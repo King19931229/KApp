@@ -1,0 +1,50 @@
+﻿#pragma once
+#include "IKConfig.h"
+#include <memory>
+
+struct IKDataStream;
+typedef std::shared_ptr<IKDataStream> KDataStreamPtr;
+
+enum IOMode
+{
+	IM_READ = 0x01,
+	IM_WRITE = 0x02,
+	IM_READ_WRITE = 0x03,
+	IM_INVALID = 0x04
+};
+
+enum IOType
+{
+	IT_MEMORY,
+	IT_FILEHANDLE,
+	IT_STREAM,
+	IT_COUNT
+};
+
+struct IKDataStream
+{
+	virtual ~IKDataStream() {}
+
+	// 接口
+	virtual bool Open(const char* pszFilePath, IOMode mode = IM_READ) = 0;
+	virtual bool Open(const char* pDataBuffer, size_t uDataSize, IOMode mode = IM_READ) = 0;
+	virtual bool Open(size_t uDataSize, IOMode mode = IM_WRITE) = 0;
+	//virtual bool Clone(KDataStreamPtr pSrc) = 0;
+	virtual bool Close() = 0;
+	virtual bool IsEOF() = 0;
+	virtual const char* GetFilePath() const = 0;
+	virtual size_t GetSize() const = 0;
+	virtual IOMode GetMode() const = 0;
+	virtual IOType GetType() const = 0;
+	virtual size_t Tell() const = 0;
+	virtual size_t Seek(long nPos) = 0;
+	virtual bool Read(char* pszBuffer, size_t uSize) = 0;
+	virtual bool Write(const char* pszBuffer, size_t uSize) = 0;
+
+	virtual bool IsReadable() const = 0;
+	virtual bool IsWriteable() const = 0;
+	virtual bool ReadLine(char* pszDestBuffer, size_t uBufferSize) = 0;
+	virtual bool WriteLine(const char* pszLine) = 0;
+};
+
+EXPORT_DLL KDataStreamPtr GetDataStream(IOType eType);

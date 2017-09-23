@@ -1,0 +1,283 @@
+﻿#pragma once
+#include "KLockFreeQueue.h"
+#include "KLockQueue.h"
+#include "KSemaphore.h"
+#include "KThreadTool.h"
+
+template<typename Task, bool bUseLockFreeQueue = true>
+class KThreadPool
+{
+	struct TaskGroup
+	{
+		bool bHasSyncTask;
+		Task asyncTask;
+		Task syncTask;
+
+		TaskGroup()
+		{
+			bHasSyncTask = false;
+		}
+	};
+
+	template<bool bUseLockFreeQueue>
+	struct BOOLToTYPE
+	{
+	};
+
+	template<>
+	struct BOOLToTYPE<false>
+	{
+		typedef KLockQueue<TaskGroup> QueueType;
+	};
+
+	template<>
+	struct BOOLToTYPE<true>
+	{
+		typedef KLockFreeQueue<TaskGroup> QueueType;
+	};
+
+	typedef typename BOOLToTYPE<bUseLockFreeQueue>::QueueType QueueType;
+	typedef std::vector<Task> SharedQueueType;
+
+	struct TripleQueue
+	{
+		SharedQueueType asyncQueue;
+		SharedQueueType async_Sync_Swap;
+		SharedQueueType syncQueue;
+		KSpinLock		lock;
+		KSemaphore		sem;
+		bool			bSwapNoEmpty;
+
+		TripleQueue()
+		{
+			bSwapNoEmpty = false;
+		}
+	};
+
+	////////////////////////////////////////////////////////////
+	class KWorkerThread
+	{
+	protected:
+		QueueType& m_Queue;
+		TripleQueue& m_SharedQueue;
+
+		bool m_bDone;
+		KSemaphore m_Sem;
+		std::thread m_Thread;
+
+		void ThreadFunc()
+		{
+			KThreadTool::SetThreadName("WorkerThread");
+			TaskGroup taskGroup;
+			while(!m_bDone)
+			{
+				if(m_Queue.Empty() && !m_bDone)
+					m_Sem.Wait();
+
+				if(m_bDone)
+					break;
+
+				m_Queue.Pop(taskGroup, [this](TaskGroup& taskGroup)
+				{
+					taskGroup.asyncTask();
+					if(taskGroup.bHasSyncTask)
+					{
+						std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
+						m_SharedQueue.asyncQueue.push_back(taskGroup.syncTask);
+						m_SharedQueue.sem.Notify();
+					}
+				});
+			}
+		}
+	public:
+		KWorkerThread(QueueType& queue,
+			TripleQueue& sharedQueue)
+			: m_Queue(queue),
+			m_SharedQueue(sharedQueue),
+			m_bDone(false),
+			m_Thread(&KWorkerThread::ThreadFunc, this)
+		{
+		}
+
+		~KWorkerThread()
+		{
+			m_bDone = true;
+			m_Sem.Notify();
+			m_Thread.join();
+		}
+
+		bool Notify()
+		{
+			return m_Sem.Notify();
+		}
+	};
+	////////////////////////////////////////////////////////////
+	class KSyncTaskThread
+	{
+	protected:
+		TripleQueue& m_SharedQueue;
+
+		bool m_bDone;
+		std::thread m_Thread;
+
+		void ThreadFunc()
+		{
+			KThreadTool::SetThreadName("SyncTaskThread");
+			bool bNeedWait = false;
+			while(!m_bDone)
+			{
+				bNeedWait = false;
+
+				if(m_bDone)
+					break;
+
+				{
+					std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
+					if(m_SharedQueue.async_Sync_Swap.empty())
+					{
+						if(m_SharedQueue.asyncQueue.empty())
+						{
+							bNeedWait = true;
+						}
+						else
+						{
+							m_SharedQueue.async_Sync_Swap.swap(m_SharedQueue.asyncQueue);
+							m_SharedQueue.bSwapNoEmpty = true;
+						}
+					}
+				}
+
+				if(!m_bDone && bNeedWait)
+					m_SharedQueue.sem.Wait();
+			}
+		}
+	public:
+		KSyncTaskThread(TripleQueue& sharedQueue)
+			: m_SharedQueue(sharedQueue),
+			m_bDone(false),
+			m_Thread(&KSyncTaskThread::ThreadFunc, this)
+		{
+		}
+
+		~KSyncTaskThread()
+		{
+			m_bDone = true;
+			m_SharedQueue.sem.Notify();
+			m_Thread.join();
+		}
+
+		bool Notify()
+		{
+			return m_SharedQueue.sem.Notify();
+		}
+	};
+	////////////////////////////////////////////////////////////
+protected:
+	KSemaphore m_Sem;
+	QueueType m_Queue;
+	TripleQueue m_SharedQueue;
+
+	std::vector<KWorkerThread*> m_Threads;
+	KSyncTaskThread *m_pSyncTaskThread;
+public:
+	KThreadPool()
+		: m_pSyncTaskThread(nullptr)
+	{
+		m_pSyncTaskThread = new KSyncTaskThread(m_SharedQueue);
+		assert(m_pSyncTaskThread);
+	}
+
+	~KThreadPool()
+	{
+		for(auto it = m_Threads.begin(), itEnd = m_Threads.end();
+			it != itEnd; ++it)
+		{
+			delete *it;
+			*it = nullptr;
+		}
+		m_Threads.clear();
+
+		delete m_pSyncTaskThread;
+		m_pSyncTaskThread = nullptr;
+	}
+
+	void PushWorkerThreads(size_t uThreadNum)
+	{
+		while(uThreadNum--)
+		{
+			KWorkerThread* pThread = new KWorkerThread(m_Queue, m_SharedQueue);
+			assert(pThread);
+			m_Threads.push_back(pThread);
+		}
+	}
+
+	void PopWorkerThreads(size_t uThreadNum)
+	{
+		assert(uThreadNum <= m_Threads.size());
+		uThreadNum = uThreadNum > m_Threads.size() ? m_Threads.size() : uThreadNum;
+		while(uThreadNum--)
+		{
+			KWorkerThread* pThread = m_Threads.back();
+			m_Threads.pop_back();
+			delete pThread;
+			pThread = nullptr;
+		}
+	}
+
+	size_t GetWorkerThreadNum()
+	{
+		return m_Threads.size();
+	}
+
+	void SubmitTask(Task asyncTask)
+	{
+		TaskGroup group;
+		group.asyncTask = asyncTask;
+
+		m_Queue.Push(group);
+		std::find_if(m_Threads.begin(), m_Threads.end(), std::mem_fun(&KWorkerThread::Notify));
+	}
+
+	void SubmitTask(Task asyncTask, Task syncTask)
+	{
+		TaskGroup group;
+
+		group.asyncTask = asyncTask;
+		group.syncTask = syncTask;
+		group.bHasSyncTask = true;
+
+		m_Queue.Push(group);
+		std::find_if(m_Threads.begin(), m_Threads.end(), std::mem_fun(&KWorkerThread::Notify));
+	}
+
+	bool AllAsyncTaskDone()
+	{
+		return m_Queue.Empty();
+	}
+
+	bool AllSyncTaskDone()
+	{
+		std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
+		return m_SharedQueue.syncQueue.empty() && m_SharedQueue.async_Sync_Swap.empty() && m_SharedQueue.asyncQueue.empty();
+	}
+
+	bool AllTaskDone()
+	{
+		return AllAsyncTaskDone() && AllSyncTaskDone();
+	}
+
+	void ProcessSyncTask()
+	{
+		if(m_SharedQueue.bSwapNoEmpty)
+		{
+			{
+				std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
+				m_SharedQueue.async_Sync_Swap.swap(m_SharedQueue.syncQueue);
+				m_SharedQueue.bSwapNoEmpty = false;
+			}
+			assert(!m_SharedQueue.syncQueue.empty());
+			std::for_each(m_SharedQueue.syncQueue.begin(), m_SharedQueue.syncQueue.end(), [](Task& syncTask){syncTask();});
+			m_SharedQueue.syncQueue.clear();
+		}
+	}
+};
