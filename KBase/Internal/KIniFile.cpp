@@ -1,9 +1,9 @@
 ﻿#include "KIniFile.h"
 #include <sstream>
 
-KIniFilePtr GetIniFile()
+IKIniFilePtr GetIniFile()
 {
-	return KIniFilePtr(new KIniFile());
+	return IKIniFilePtr(new KIniFile());
 }
 
 void KIniFile::Clear()
@@ -11,7 +11,7 @@ void KIniFile::Clear()
 	m_Section_KVTable.clear();
 }
 
-bool KIniFile::Parse(KDataStreamPtr pData)
+bool KIniFile::Parse(IKDataStreamPtr pData)
 {
 	char szBuffer[256] = {0};
 	char* pEqualPos = nullptr;
@@ -100,7 +100,7 @@ std::string KIniFile::GetValue(const char* pszSection, const char* pszKey)
 bool KIniFile::Open(const char* pszFilePath)
 {
 	Clear();
-	KDataStreamPtr pData = GetDataStream(IT_MEMORY);
+	IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
 	if(pData->Open(pszFilePath, IM_READ))
 		return Parse(pData);
 	return false;
@@ -118,7 +118,7 @@ bool KIniFile::SaveAsFile(const char* pszFilePath)
 
 	if(pszFilePath)
 	{
-		KDataStreamPtr pData = GetDataStream(IT_FILEHANDLE);
+		IKDataStreamPtr pData = GetDataStream(IT_FILEHANDLE);
 		if(pData->Open(pszFilePath, IM_WRITE))
 		{
 			std::string finalStr;

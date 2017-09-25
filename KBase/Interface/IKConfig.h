@@ -10,6 +10,10 @@
 #	define EXPORT_DLL
 #endif
 
+#define EXTERN_C extern "C"
+#define STDCALL __stdcall
+#define CDECL __cdecl
+
 // http://www.cnblogs.com/skynet/archive/2011/02/20/1959162.html
 #ifdef MEMORY_DUMP_DEBUG
 

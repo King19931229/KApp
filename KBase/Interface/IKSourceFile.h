@@ -2,7 +2,7 @@
 #include "IKDataStream.h"
 
 struct IKSourceFile;
-typedef std::shared_ptr<IKSourceFile> KSourceFilePtr;
+typedef std::shared_ptr<IKSourceFile> IKSourceFilePtr;
 
 struct IKSourceFile
 {
@@ -19,4 +19,4 @@ struct IKSourceFile
 	virtual const char* GetFinalSource() = 0;
 };
 
-EXPORT_DLL KSourceFilePtr GetSourceFile();
+EXPORT_DLL IKSourceFilePtr GetSourceFile();

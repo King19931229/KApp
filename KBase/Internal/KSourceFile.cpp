@@ -1,9 +1,9 @@
 ﻿#include "KSourceFile.h"
 #include <algorithm>
 
-KSourceFilePtr GetSourceFile()
+IKSourceFilePtr GetSourceFile()
 {
-	KSourceFilePtr pRet(new KSourceFile());
+	IKSourceFilePtr pRet(new KSourceFile());
 	return pRet;
 }
 
@@ -28,7 +28,7 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 {
 	if(!(dir.empty() || file.empty()))
 	{
-		KDataStreamPtr pData = GetDataStream(IT_MEMORY);
+		IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
 		std::string filePath = dir + file;
 
 		std::string curFileData;
@@ -162,7 +162,7 @@ bool KSourceFile::SaveAsFile(const char* pszFilePath, bool bUTF8BOM)
 {
 	if(pszFilePath && !m_FinalSource.empty())
 	{
-		KDataStreamPtr ptr = GetDataStream(IT_STREAM);
+		IKDataStreamPtr ptr = GetDataStream(IT_STREAM);
 		if(ptr->Open(pszFilePath, IM_WRITE))
 		{
 			const unsigned char szBOM[] = {0xEF, 0xBB, 0xBF};

@@ -20,13 +20,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKDataStream.h" />
-    <ClInclude Include="Interface\IKFileTool.h" />
     <ClInclude Include="Interface\IKIniFile.h" />
     <ClInclude Include="Interface\IKConfig.h" />
     <ClInclude Include="Interface\IKSourceFile.h" />
     <ClInclude Include="Internal\KDataStream.h" />
     <ClInclude Include="Internal\KIniFile.h" />
     <ClInclude Include="Internal\KSourceFile.h" />
+    <ClInclude Include="Publish\KFileTool.h" />
     <ClInclude Include="Publish\KLockFreeQueue.h" />
     <ClInclude Include="Publish\KLockQueue.h" />
     <ClInclude Include="Publish\KSemaphore.h" />

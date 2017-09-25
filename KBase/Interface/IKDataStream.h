@@ -3,7 +3,7 @@
 #include <memory>
 
 struct IKDataStream;
-typedef std::shared_ptr<IKDataStream> KDataStreamPtr;
+typedef std::shared_ptr<IKDataStream> IKDataStreamPtr;
 
 enum IOMode
 {
@@ -29,7 +29,7 @@ struct IKDataStream
 	virtual bool Open(const char* pszFilePath, IOMode mode = IM_READ) = 0;
 	virtual bool Open(const char* pDataBuffer, size_t uDataSize, IOMode mode = IM_READ) = 0;
 	virtual bool Open(size_t uDataSize, IOMode mode = IM_WRITE) = 0;
-	//virtual bool Clone(KDataStreamPtr pSrc) = 0;
+	//virtual bool Clone(IKDataStreamPtr pSrc) = 0;
 	virtual bool Close() = 0;
 	virtual bool IsEOF() = 0;
 	virtual const char* GetFilePath() const = 0;
@@ -47,4 +47,4 @@ struct IKDataStream
 	virtual bool WriteLine(const char* pszLine) = 0;
 };
 
-EXPORT_DLL KDataStreamPtr GetDataStream(IOType eType);
+EXPORT_DLL IKDataStreamPtr GetDataStream(IOType eType);

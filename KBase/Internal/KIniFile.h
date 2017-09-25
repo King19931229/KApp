@@ -16,7 +16,7 @@ protected:
 	std::string m_FilePath;
 
 	void Clear();
-	bool Parse(KDataStreamPtr pData);
+	bool Parse(IKDataStreamPtr pData);
 
 	KVTable* GetKVTable(const char* pszSection);
 	std::string GetValueFromKVTable(KVTable* pTable, const char* pszKey);

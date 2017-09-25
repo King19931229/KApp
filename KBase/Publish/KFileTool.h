@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "IKDataStream.h"
 
-namespace IKFileTool
+namespace KFileTool
 {
 	EXPORT_DLL bool IsFileExist(const char* pFilePath);
 	EXPORT_DLL bool RemoveFile(const char* pFilePath);

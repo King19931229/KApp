@@ -1,4 +1,4 @@
-﻿#include "IKFileTool.h"
+﻿#include "../Publish/KFileTool.h"
 
 #include <io.h>
 #include <direct.h>
@@ -6,7 +6,7 @@
 #include <string>
 #include <algorithm>
 
-namespace IKFileTool
+namespace KFileTool
 {
 	bool IsFileExist(const char* pFilePath)
 	{

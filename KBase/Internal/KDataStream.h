@@ -29,7 +29,7 @@ public:
 	virtual bool Open(const char* pszFilePath, IOMode mode);
 	virtual bool Open(const char* pDataBuffer, size_t uDataSize, IOMode mode);
 	virtual bool Open(size_t uDataSize, IOMode mode);
-	//virtual bool Clone(KDataStreamPtr pSrc) = 0;
+	//virtual bool Clone(IKDataStreamPtr pSrc) = 0;
 	virtual bool Close();
 	virtual bool IsEOF();
 	virtual const char* GetFilePath() const;
@@ -58,7 +58,7 @@ public:
 	virtual bool Open(const char* pszFilePath, IOMode mode);
 	virtual bool Open(const char* pDataBuffer, size_t uDataSize, IOMode mode);
 	virtual bool Open(size_t uDataSize, IOMode mode);
-	//virtual bool Clone(KDataStreamPtr pSrc) = 0;
+	//virtual bool Clone(IKDataStreamPtr pSrc) = 0;
 	virtual bool Close();
 	virtual bool IsEOF();
 	virtual const char* GetFilePath() const;
@@ -87,7 +87,7 @@ public:
 	virtual bool Open(const char* pszFilePath, IOMode mode);
 	virtual bool Open(const char* pDataBuffer, size_t uDataSize, IOMode mode);
 	virtual bool Open(size_t uDataSize, IOMode mode);
-	//virtual bool Clone(KDataStreamPtr pSrc) = 0;
+	//virtual bool Clone(IKDataStreamPtr pSrc) = 0;
 	virtual bool Close();
 	virtual bool IsEOF();
 	virtual const char* GetFilePath() const;

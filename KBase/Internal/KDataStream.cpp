@@ -1,18 +1,18 @@
 ﻿#include "KDataStream.h"
 
-KDataStreamPtr GetDataStream(IOType eType)
+IKDataStreamPtr GetDataStream(IOType eType)
 {
-	KDataStreamPtr pRet;
+	IKDataStreamPtr pRet;
 	switch (eType)
 	{
 	case IT_MEMORY:
-		pRet = KDataStreamPtr(new KMemoryDataStream());
+		pRet = IKDataStreamPtr(new KMemoryDataStream());
 		break;
 	case IT_FILEHANDLE:
-		pRet = KDataStreamPtr(new KFileHandleDataStream());
+		pRet = IKDataStreamPtr(new KFileHandleDataStream());
 		break;
 	case IT_STREAM:
-		pRet = KDataStreamPtr(new KFileDataStream());
+		pRet = IKDataStreamPtr(new KFileDataStream());
 		break;
 	default:
 		break;
@@ -132,7 +132,7 @@ bool KMemoryDataStream::Open(const char* pszFilePath, IOMode mode)
 	ReleaseData();
 	if(pszFilePath && mode == IM_READ)
 	{
-		KDataStreamPtr pData = GetDataStream(IT_FILEHANDLE);
+		IKDataStreamPtr pData = GetDataStream(IT_FILEHANDLE);
 		if(pData->Open(pszFilePath, IM_READ))
 		{
 			size_t uDataSize = pData->GetSize();

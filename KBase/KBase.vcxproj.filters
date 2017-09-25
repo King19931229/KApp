@@ -7,9 +7,6 @@
     <ClInclude Include="Interface\IKDataStream.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\IKFileTool.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\IKIniFile.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -48,6 +45,9 @@
     </ClInclude>
     <ClInclude Include="Internal\KSourceFile.h">
       <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KFileTool.h">
+      <Filter>Publish</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

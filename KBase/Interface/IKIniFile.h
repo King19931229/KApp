@@ -2,7 +2,7 @@
 #include "IKDataStream.h"
 
 struct IKIniFile;
-typedef std::shared_ptr<IKIniFile> KIniFilePtr;
+typedef std::shared_ptr<IKIniFile> IKIniFilePtr;
 
 /**
 *文件形式
@@ -39,4 +39,4 @@ struct IKIniFile
 	virtual bool SetString(const char* pszSection, const char* pszKey, char* pszValue) = 0;
 };
 
-EXPORT_DLL KIniFilePtr GetIniFile();
+EXPORT_DLL IKIniFilePtr GetIniFile();
