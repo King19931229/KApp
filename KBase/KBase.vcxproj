@@ -19,30 +19,29 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\KDataStream.cpp" />
-    <ClCompile Include="Source\KFileTool.cpp" />
-    <ClCompile Include="Source\KIniFile.cpp" />
-    <ClCompile Include="Source\KSourceFile.cpp" />
-    <ClCompile Include="Source\KThreadTool.cpp" />
-    <ClCompile Include="Source\main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Interface\IKDataStream.h" />
     <ClInclude Include="Interface\IKFileTool.h" />
     <ClInclude Include="Interface\IKIniFile.h" />
     <ClInclude Include="Interface\IKConfig.h" />
     <ClInclude Include="Interface\IKSourceFile.h" />
-    <ClInclude Include="Internal\KLockFreeQueue.h" />
-    <ClInclude Include="Internal\KLockQueue.h" />
-    <ClInclude Include="Internal\KSemaphore.h" />
-    <ClInclude Include="Internal\KSpinLock.h" />
-    <ClInclude Include="Internal\KTaskExecutor.h" />
-    <ClInclude Include="Internal\KThreadPool.h" />
-    <ClInclude Include="Internal\KThreadTool.h" />
-    <ClInclude Include="Internal\KTimer.h" />
-    <ClInclude Include="Source\KDataStream.h" />
-    <ClInclude Include="Source\KIniFile.h" />
-    <ClInclude Include="Source\KSourceFile.h" />
+    <ClInclude Include="Internal\KDataStream.h" />
+    <ClInclude Include="Internal\KIniFile.h" />
+    <ClInclude Include="Internal\KSourceFile.h" />
+    <ClInclude Include="Publish\KLockFreeQueue.h" />
+    <ClInclude Include="Publish\KLockQueue.h" />
+    <ClInclude Include="Publish\KSemaphore.h" />
+    <ClInclude Include="Publish\KSpinLock.h" />
+    <ClInclude Include="Publish\KTaskExecutor.h" />
+    <ClInclude Include="Publish\KThreadPool.h" />
+    <ClInclude Include="Publish\KThreadTool.h" />
+    <ClInclude Include="Publish\KTimer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Internal\KDataStream.cpp" />
+    <ClCompile Include="Internal\KFileTool.cpp" />
+    <ClCompile Include="Internal\KIniFile.cpp" />
+    <ClCompile Include="Internal\KSourceFile.cpp" />
+    <ClCompile Include="Internal\KThreadTool.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{93B9C2FE-9463-44F0-B9D4-435B28F9AC49}</ProjectGuid>
@@ -112,6 +111,8 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>Interface/;</AdditionalIncludeDirectories>
+      <MinimalRebuild>false</MinimalRebuild>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -126,6 +127,8 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>Interface/;</AdditionalIncludeDirectories>
+      <MinimalRebuild>false</MinimalRebuild>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -142,6 +145,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>Interface/;</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -160,6 +164,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>Interface/;</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

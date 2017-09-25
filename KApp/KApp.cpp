@@ -1,9 +1,9 @@
-#include "Internal/KLockFreeQueue.h"
-#include "Internal/KLockQueue.h"
-#include "Internal/KThreadPool.h"
-#include "Internal/KTimer.h"
-#include "Internal/KSemaphore.h"
-#include "Internal/KTaskExecutor.h"
+#include "KBase/Publish/KLockFreeQueue.h"
+#include "KBase/Publish/KLockQueue.h"
+#include "KBase/Publish/KThreadPool.h"
+#include "KBase/Publish/KTimer.h"
+#include "KBase/Publish/KSemaphore.h"
+#include "KBase/Publish/KTaskExecutor.h"
 
 std::atomic_int a;
 bool Test(int nCount)

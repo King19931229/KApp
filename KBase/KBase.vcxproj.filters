@@ -1,26 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Source\KDataStream.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\KFileTool.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\KIniFile.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\KSourceFile.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\KThreadTool.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\main.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Interface\IKConfig.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -36,37 +16,37 @@
     <ClInclude Include="Interface\IKSourceFile.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Source\KDataStream.h">
+    <ClInclude Include="Publish\KLockFreeQueue.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KLockQueue.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KSemaphore.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KSpinLock.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KTaskExecutor.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KThreadPool.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KThreadTool.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KTimer.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KDataStream.h">
       <Filter>Internal</Filter>
     </ClInclude>
-    <ClInclude Include="Source\KIniFile.h">
+    <ClInclude Include="Internal\KIniFile.h">
       <Filter>Internal</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\KLockFreeQueue.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\KLockQueue.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\KSemaphore.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\KSourceFile.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\KSpinLock.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\KTaskExecutor.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\KThreadPool.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\KThreadTool.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\KTimer.h">
+    <ClInclude Include="Internal\KSourceFile.h">
       <Filter>Internal</Filter>
     </ClInclude>
   </ItemGroup>
@@ -75,10 +55,27 @@
       <UniqueIdentifier>{9d8f4cd7-fbc8-4f11-af7a-eb624e0200f7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Internal">
-      <UniqueIdentifier>{859bb9b1-13d1-49fe-9cc8-88e678157092}</UniqueIdentifier>
+      <UniqueIdentifier>{7eb831e6-2dc7-43a5-bdbf-94d91fb6602b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source">
-      <UniqueIdentifier>{d81271e6-7c65-4f75-b7bd-86ea60ddf373}</UniqueIdentifier>
+    <Filter Include="Publish">
+      <UniqueIdentifier>{7882f0a1-43d2-462c-a4e8-43aa25889acc}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Internal\KDataStream.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KFileTool.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KIniFile.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KSourceFile.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KThreadTool.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

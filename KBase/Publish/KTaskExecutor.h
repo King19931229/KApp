@@ -51,9 +51,12 @@ public:
 
 	bool Cancel(bool bWait)
 	{
-		m_eState.store(TS_LOAD_FAIL);
-		if(bWait)
-			m_Sem.Wait();
+		if(m_eState.load() != TS_LOAD_FAIL)
+		{
+			m_eState.store(TS_LOAD_FAIL);
+			if(bWait)
+				m_Sem.Wait();
+		}
 		return true;
 	}
 };
