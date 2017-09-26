@@ -15,6 +15,7 @@ protected:
 
 	bool Trim(std::string& input);
 	bool Parse(std::string& output, const std::string& dir, const std::string& file, unsigned short uDepth);
+	bool EarseComments();
 public:
 	KSourceFile();
 	~KSourceFile();

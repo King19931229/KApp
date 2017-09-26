@@ -1,5 +1,6 @@
 ﻿#include "KSourceFile.h"
 #include <algorithm>
+#include <assert.h>
 
 IKSourceFilePtr GetSourceFile()
 {
@@ -103,6 +104,50 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 	return false;
 }
 
+bool KSourceFile::EarseComments()
+{
+	std::string::size_type pos = 0;
+	std::string::size_type tmpPos = 0;
+	std::string result;
+	result.reserve(m_FinalSource.size());
+	while(pos != std::string::npos)
+	{
+		if(m_FinalSource[pos] == '/')
+		{
+			if(m_FinalSource[pos + 1] == '/')
+			{
+				tmpPos = m_FinalSource.find("\n", pos + 2);
+				pos = tmpPos;
+				continue;
+			}
+			else if(m_FinalSource[pos + 1] == '*')
+			{
+				tmpPos = m_FinalSource.find("*/", pos + 2);
+				if(tmpPos == std::string::npos)
+					return false;
+				pos = tmpPos + 2;
+				continue;
+			}
+			else
+			{
+				assert(false);
+				return false;
+			}
+		}
+		else
+		{
+			tmpPos = m_FinalSource.find("/", pos);
+			if(tmpPos != std::string::npos)
+				result += m_FinalSource.substr(pos, tmpPos - pos);
+			else
+				result += m_FinalSource.substr(pos);
+			pos = tmpPos;
+		}
+	}
+	m_FinalSource = result;
+	return true;
+}
+
 bool KSourceFile::Open(const char* pszFilePath)
 {
 	Clear();
@@ -128,12 +173,12 @@ bool KSourceFile::Open(const char* pszFilePath)
 		}
 		Trim(m_FileDirPath);
 		Trim(m_FileName);
-		if(!Parse(m_FinalSource, m_FileDirPath, m_FileName, 0))
+		if(Parse(m_FinalSource, m_FileDirPath, m_FileName, 0))
 		{
-			Clear();
-			return false;
+			if(EarseComments())
+				return true;
 		}
-		return true;
+		Clear();
 	}
 	return false;
 }
