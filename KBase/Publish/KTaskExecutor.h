@@ -13,6 +13,7 @@ enum TaskState
 	TS_LOADING_SYNC,
 	TS_LOADED,
 
+	TS_CANCELING,
 	TS_LOAD_FAIL
 };
 
@@ -35,27 +36,43 @@ protected:
 	KTaskUnitPtr m_pTaskUnit;
 	KTaskUnitProcessor(const KTaskUnitProcessor& rhs){}
 	KTaskUnitProcessor& operator=(const KTaskUnitProcessor& rhs){}
-	bool Notify() { return m_Sem.Notify(); }
-
+	inline bool Notify() { return m_Sem.Notify(); }
+	inline bool Wait() { return m_Sem.Wait(); }
+	void Reset()
+	{
+		m_eState = TS_PENDING_ASYNC;
+	}
 public:
 	KTaskUnitProcessor(KTaskUnitPtr pUnit)
 		: m_pTaskUnit(pUnit)
-	{ m_eState.store(TS_PENDING_ASYNC); }
-	~KTaskUnitProcessor() {}
-
-	TaskState GetState() const { return (TaskState)m_eState.load();	}
-	bool Wait() { return m_Sem.Wait(); }
-	bool AsyncLoad() { return m_pTaskUnit->AsyncLoad(); }
-	bool SyncLoad() { return m_pTaskUnit->SyncLoad(); }
-	bool HasSyncLoad() const { return m_pTaskUnit->HasSyncLoad(); }
+	{
+		m_eState.store(TS_PENDING_ASYNC);
+	}
+	~KTaskUnitProcessor()
+	{
+	}
+	inline TaskState GetState() const { return (TaskState)m_eState.load();	}
+	inline bool AsyncLoad() { return m_pTaskUnit->AsyncLoad(); }
+	inline bool SyncLoad() { return m_pTaskUnit->SyncLoad(); }
+	inline bool HasSyncLoad() const { return m_pTaskUnit->HasSyncLoad(); }
 
 	bool Cancel(bool bWait)
 	{
-		if(m_eState.load() != TS_LOAD_FAIL)
+		while(true)
 		{
-			m_eState.store(TS_LOAD_FAIL);
-			if(bWait)
-				m_Sem.Wait();
+			unsigned char uExp = m_eState.load();
+			if(uExp == TS_LOAD_FAIL)
+				return true;
+			if(m_eState.compare_exchange_strong(uExp, TS_CANCELING))
+				break;
+		}
+		// 这里不是 TS_CANCELING 就是 TS_LOAD_FAIL
+		assert(m_eState.load() == TS_CANCELING || m_eState.load() == TS_LOAD_FAIL);
+		if(bWait)
+		{
+			unsigned char uExp = TS_CANCELING;
+			if(m_eState.compare_exchange_strong(uExp, TS_LOAD_FAIL))
+				Wait();
 		}
 		return true;
 	}
@@ -93,8 +110,15 @@ public:
 				}
 			}
 		}
+		while(true)
+		{
+			uExp = pTask->m_eState.load();
+			if(pTask->m_eState.compare_exchange_strong(uExp, TS_LOAD_FAIL))
+				break;
+			else
+				std::this_thread::yield();
+		}
 		pTask->Notify();
-		pTask->m_eState.store(TS_LOAD_FAIL);
 		return false;
 	}
 
@@ -107,12 +131,17 @@ public:
 			{
 				uExp = TS_LOADING_SYNC;
 				if(pTask->m_eState.compare_exchange_strong(uExp, TS_LOADED))
-				{
 					return true;
-				}
 			}
 		}
-		pTask->m_eState.store(TS_LOAD_FAIL);
+		while(true)
+		{
+			uExp = pTask->m_eState.load();
+			if(pTask->m_eState.compare_exchange_strong(uExp, TS_LOAD_FAIL))
+				break;
+			else
+				std::this_thread::yield();
+		}
 		return false;
 	}
 
@@ -137,28 +166,9 @@ public:
 			m_ExecutePool.SubmitTask(std::bind(&KTaskExecutor::AsyncFunc, pTask));
 	}
 
-	bool AllTaskDone()
-	{
-		return m_ExecutePool.AllTaskDone();
-	}
-
-	void ProcessSyncTask()
-	{
-		m_ExecutePool.ProcessSyncTask();
-	}
-
-	void PushWorkerThreads(size_t uThreadNum)
-	{
-		m_ExecutePool.PushWorkerThreads(uThreadNum);
-	}
-
-	void PopWorkerThreads(size_t uThreadNum)
-	{
-		m_ExecutePool.PopWorkerThreads(uThreadNum);
-	}
-
-	size_t GetWorkerThreadNum()
-	{
-		return m_ExecutePool.GetWorkerThreadNum();
-	}
+	inline bool AllTaskDone() { return m_ExecutePool.AllTaskDone(); }
+	inline void ProcessSyncTask() { m_ExecutePool.ProcessSyncTask(); }
+	inline void PushWorkerThreads(size_t uThreadNum) { m_ExecutePool.PushWorkerThreads(uThreadNum); }
+	inline void PopWorkerThreads(size_t uThreadNum) { m_ExecutePool.PopWorkerThreads(uThreadNum); }
+	inline size_t GetWorkerThreadNum() { return m_ExecutePool.GetWorkerThreadNum(); }
 };
