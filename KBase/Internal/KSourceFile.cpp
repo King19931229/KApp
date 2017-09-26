@@ -130,19 +130,16 @@ bool KSourceFile::EarseComments()
 			}
 			else
 			{
-				assert(false);
-				return false;
+				result += m_FinalSource[pos++];
+				continue;
 			}
 		}
+		tmpPos = m_FinalSource.find("/", pos);
+		if(tmpPos != std::string::npos)
+			result += m_FinalSource.substr(pos, tmpPos - pos);
 		else
-		{
-			tmpPos = m_FinalSource.find("/", pos);
-			if(tmpPos != std::string::npos)
-				result += m_FinalSource.substr(pos, tmpPos - pos);
-			else
-				result += m_FinalSource.substr(pos);
-			pos = tmpPos;
-		}
+			result += m_FinalSource.substr(pos);
+		pos = tmpPos;
 	}
 	m_FinalSource = result;
 	return true;
