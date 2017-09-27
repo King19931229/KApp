@@ -53,6 +53,11 @@ public:
 	inline bool SyncLoad() { return m_pTaskUnit->SyncLoad(); }
 	inline bool HasSyncLoad() const { return m_pTaskUnit->HasSyncLoad(); }
 
+	/*
+	*@brief调用线程 取消异步任务
+	*@param[in] bWait 调用线程是否等待直到异步任务被取消 true则等待false则不等待
+	*@note 如果该任务有SyncLoad则任务被取消后可能在轮询队列里 TODO: 发现死锁BUG 机制问题抑或系内存问题
+	*/
 	bool Cancel(bool bWait)
 	{
 		while(true)
@@ -71,6 +76,29 @@ public:
 			if(m_eState.compare_exchange_strong(uExp, TS_LOAD_FAIL))
 				Wait();
 		}
+		return true;
+	}
+	/*
+	*@brief 调用线程阻塞等待直到异步任务完成
+	*/
+	bool WaitAsync()
+	{
+		unsigned char uExp = 0;
+
+		uExp = TS_PENDING_ASYNC;
+		if(m_eState.compare_exchange_strong(uExp, TS_PENDING_ASYNC))
+		{
+			Wait();
+			return true;
+		}
+
+		uExp = TS_LOADING_ASYNC;
+		if(m_eState.compare_exchange_strong(uExp, TS_LOADING_ASYNC))
+		{
+			Wait();
+			return true;
+		}
+
 		return true;
 	}
 };
@@ -163,6 +191,8 @@ public:
 			m_ExecutePool.SubmitTask(std::bind(&KTaskExecutor::AsyncFunc, pTask));
 	}
 
+	inline bool AllAsyncTaskDone() { return m_ExecutePool.AllAsyncTaskDone(); }
+	inline bool AllSyncTaskDone() { return m_ExecutePool.AllSyncTaskDone(); }
 	inline bool AllTaskDone() { return m_ExecutePool.AllTaskDone(); }
 	inline void ProcessSyncTask() { m_ExecutePool.ProcessSyncTask(); }
 	inline void PushWorkerThreads(size_t uThreadNum) { m_ExecutePool.PushWorkerThreads(uThreadNum); }
