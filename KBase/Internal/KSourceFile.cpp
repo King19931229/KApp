@@ -25,11 +25,77 @@ bool KSourceFile::Trim(std::string& input)
 	return true;
 }
 
-bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::string& file, unsigned short uDepth)
+bool KSourceFile::EarseComment(std::string& out, const std::string& in)
+{
+	std::string::size_type pos = 0;
+	std::string::size_type tmpPos = 0;
+	std::string result;
+	out.reserve(in.size());
+	while(pos != std::string::npos)
+	{
+		if(in[pos] == '/')
+		{
+			if(in[pos + 1] == '/')
+			{
+				tmpPos = in.find("\n", pos + 2);
+				pos = tmpPos;
+				continue;
+			}
+			else if(in[pos + 1] == '*')
+			{
+				tmpPos = in.find("*/", pos + 2);
+				if(tmpPos == std::string::npos)
+					return false;
+				pos = tmpPos + 2;
+				continue;
+			}
+			else
+			{
+				result += in[pos++];
+				continue;
+			}
+		}
+		tmpPos = in.find("/", pos);
+		if(tmpPos != std::string::npos)
+			result += in.substr(pos, tmpPos - pos);
+		else
+			result += in.substr(pos);
+		pos = tmpPos;
+	}
+	out = result;
+	return true;
+}
+
+IKDataStreamPtr KSourceFile::GetFileData(std::string &filePath)
+{
+	char szBuffer[1024] = {0};
+	std::string rawFileData, fileData;
+	IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
+	if(pData->Open(filePath.c_str(), IM_READ))
+	{
+		while(pData->ReadLine(szBuffer, sizeof(szBuffer)))
+		{
+			rawFileData += szBuffer;
+			rawFileData += "\n";
+		}
+		if(*rawFileData.rbegin() == '\n')
+			rawFileData.erase(rawFileData.end() - 1);
+		if(EarseComment(fileData, rawFileData))
+		{
+			pData->Open(fileData.length() + 1, IM_READ_WRITE);
+			pData->Write(fileData.c_str(), fileData.length() + 1);
+			pData->Seek(0);
+			return pData;
+		}
+	}
+	pData.reset();
+	return pData;
+}
+
+bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::string& file, FileInfo* pParent)
 {
 	if(!(dir.empty() || file.empty()))
 	{
-		IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
 		std::string filePath = dir + file;
 
 		std::string curFileData;
@@ -39,9 +105,24 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 
 		char szBuffer[1024] = {0};
 		char szInclude[64] = {0};
-		if(pData->Open(filePath.c_str(), IM_READ))
+
+		IKDataStreamPtr pData = GetFileData(filePath);
+		FileInfo *pFileInfo = nullptr;
+
+		if(pData)
 		{
-			m_IncludedFiles.insert(file);
+			// 处理include信息
+			{
+				FileInfos::iterator& it = m_FileInfos.find(file);
+				if(it == m_FileInfos.end())
+					it = m_FileInfos.insert(FileInfos::value_type(file, FileInfo())).first;
+				pFileInfo = &it->second;
+				pFileInfo->pParent = pParent;
+				// 顺着这条新路径把include信息加进去
+				for(FileInfo* pPtr = pFileInfo; pPtr != nullptr; pPtr = pPtr->pParent)
+					pPtr->includeFiles.insert(file);
+			}
+
 			if(pData->GetSize() > 3)
 			{
 				char szBufer[] = {0, 0, 0};
@@ -72,29 +153,37 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 						szInclude[nLen] = '\0';
 						includeFile = szInclude;
 						Trim(includeFile);
-						if(m_IncludedFiles.find(includeFile) != m_IncludedFiles.end())
-							return false;
+
+						// 检查include是否合理
+						{
+							FileInfos::iterator& it = m_FileInfos.find(includeFile);
+							if(it != m_FileInfos.end())
+							{
+								FileInfo *pIncludeFileInfo = &it->second;
+								if(pIncludeFileInfo->includeFiles.find(file) != pIncludeFileInfo->includeFiles.end())
+								{
+									// 要include的文件包含了自己
+									return false;
+								}
+							}
+						}
+
 						std::string includeFileData;
-						if(!Parse(includeFileData, dir, includeFile, uDepth + 1))
+						if(!Parse(includeFileData, dir, includeFile, pFileInfo))
 							return false;
 						if(!includeFileData.empty())
 							curFileData += includeFileData;
 					}
-				}
-				else if(strstr(szBuffer, "#pragma once") == szBuffer)
-				{
-					if(m_IncludedFiles.find(file) != m_IncludedFiles.end())
-						return true;
 				}
 				else
 				{
 					curFileData += std::string(szBuffer) + "\n";
 				}
 
-				if(uDepth == 0)
+				if(pParent == nullptr)
 					m_OriginalSource += std::string(szBuffer) + "\n";
 			}
-			if(uDepth == 0 && *curFileData.rbegin() == '\n')
+			if(pParent == nullptr && *curFileData.rbegin() == '\n')
 				curFileData.erase(curFileData.end() - 1);
 			output += curFileData;
 
@@ -102,47 +191,6 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 		}
 	}
 	return false;
-}
-
-bool KSourceFile::EarseComments()
-{
-	std::string::size_type pos = 0;
-	std::string::size_type tmpPos = 0;
-	std::string result;
-	result.reserve(m_FinalSource.size());
-	while(pos != std::string::npos)
-	{
-		if(m_FinalSource[pos] == '/')
-		{
-			if(m_FinalSource[pos + 1] == '/')
-			{
-				tmpPos = m_FinalSource.find("\n", pos + 2);
-				pos = tmpPos;
-				continue;
-			}
-			else if(m_FinalSource[pos + 1] == '*')
-			{
-				tmpPos = m_FinalSource.find("*/", pos + 2);
-				if(tmpPos == std::string::npos)
-					return false;
-				pos = tmpPos + 2;
-				continue;
-			}
-			else
-			{
-				result += m_FinalSource[pos++];
-				continue;
-			}
-		}
-		tmpPos = m_FinalSource.find("/", pos);
-		if(tmpPos != std::string::npos)
-			result += m_FinalSource.substr(pos, tmpPos - pos);
-		else
-			result += m_FinalSource.substr(pos);
-		pos = tmpPos;
-	}
-	m_FinalSource = result;
-	return true;
 }
 
 bool KSourceFile::Open(const char* pszFilePath)
@@ -170,11 +218,8 @@ bool KSourceFile::Open(const char* pszFilePath)
 		}
 		Trim(m_FileDirPath);
 		Trim(m_FileName);
-		if(Parse(m_FinalSource, m_FileDirPath, m_FileName, 0))
-		{
-			if(EarseComments())
+		if(Parse(m_FinalSource, m_FileDirPath, m_FileName, nullptr))
 				return true;
-		}
 		Clear();
 	}
 	return false;
@@ -196,7 +241,7 @@ bool KSourceFile::Clear()
 	m_FileName.clear();
 	m_OriginalSource.clear();
 	m_FinalSource.clear();
-	m_IncludedFiles.clear();
+	m_FileInfos.clear();
 	return true;
 }
 

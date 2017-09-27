@@ -49,6 +49,9 @@
     <ClInclude Include="Publish\KFileTool.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KHash.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
@@ -75,6 +78,9 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KThreadTool.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KHash.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,4 +1,4 @@
-#include "IKIniFile.h"
+#include "Interface/IKIniFile.h"
 
 #include <string>
 #include <map>

@@ -27,6 +27,7 @@
     <ClInclude Include="Internal\KIniFile.h" />
     <ClInclude Include="Internal\KSourceFile.h" />
     <ClInclude Include="Publish\KFileTool.h" />
+    <ClInclude Include="Publish\KHash.h" />
     <ClInclude Include="Publish\KLockFreeQueue.h" />
     <ClInclude Include="Publish\KLockQueue.h" />
     <ClInclude Include="Publish\KSemaphore.h" />
@@ -39,6 +40,7 @@
   <ItemGroup>
     <ClCompile Include="Internal\KDataStream.cpp" />
     <ClCompile Include="Internal\KFileTool.cpp" />
+    <ClCompile Include="Internal\KHash.cpp" />
     <ClCompile Include="Internal\KIniFile.cpp" />
     <ClCompile Include="Internal\KSourceFile.cpp" />
     <ClCompile Include="Internal\KThreadTool.cpp" />
@@ -110,7 +112,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>Interface/;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -126,7 +128,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>Interface/;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -144,7 +146,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>Interface/;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -163,7 +165,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>Interface/;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>

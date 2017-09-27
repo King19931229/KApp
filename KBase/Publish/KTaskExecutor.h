@@ -38,12 +38,9 @@ protected:
 	KTaskUnitProcessor& operator=(const KTaskUnitProcessor& rhs){}
 	inline bool Notify() { return m_Sem.Notify(); }
 	inline bool Wait() { return m_Sem.Wait(); }
-	void Reset()
-	{
-		m_eState = TS_PENDING_ASYNC;
-	}
+	inline void Reset() { m_eState.store(TS_PENDING_ASYNC); }
 public:
-	KTaskUnitProcessor(KTaskUnitPtr pUnit)
+	explicit KTaskUnitProcessor(KTaskUnitPtr pUnit)
 		: m_pTaskUnit(pUnit)
 	{
 		m_eState.store(TS_PENDING_ASYNC);

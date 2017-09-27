@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "IKDataStream.h"
+#include "Interface/IKDataStream.h"
 
 namespace KFileTool
 {
