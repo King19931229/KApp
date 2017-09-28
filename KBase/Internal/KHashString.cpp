@@ -34,17 +34,29 @@ namespace KHashString
 			pData = nullptr;
 		}
 
-		inline bool InChunk(const char* pStr) const { return pStr >= pData && pStr < pData + CHUNK_LEN; }
-		inline bool HasSpace(size_t uLen) const { return uLen + 1 <= uRestSize; }
+		inline bool InChunk(const char* pStr) const
+		{
+			bool bRet = pStr >= pData && pStr < pData + CHUNK_LEN;
+			return bRet;
+		}
+
+		inline bool HasSpace(size_t uLen) const
+		{
+			bool bRet = uLen + 1 <= uRestSize;
+			return bRet;
+		}
+
 		bool Insert(const char* pStr, size_t uLen, const char** ppPos)
 		{
 			if(InChunk(pStr))
 				return true;
 			if(!HasSpace(uLen))
 				return false;
-			memcpy(pCurPos, pStr, uLen + 1);
+			memcpy(pCurPos, pStr, uLen);
+			pCurPos[uLen] = '\0';
 			*ppPos = pCurPos;
 			pCurPos += uLen + 1;
+			uRestSize -= uLen + 1;
 			return true;
 		}
 	};
