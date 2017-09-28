@@ -82,6 +82,8 @@ IKDataStreamPtr KSourceFile::GetFileData(std::string &filePath)
 			rawFileData.erase(rawFileData.end() - 1);
 		if(EarseComment(fileData, rawFileData))
 		{
+			pData->Close();
+			pData = GetDataStream(IT_MEMORY);
 			pData->Open(fileData.length() + 1, IM_READ_WRITE);
 			pData->Write(fileData.c_str(), fileData.length() + 1);
 			pData->Seek(0);

@@ -29,20 +29,34 @@ bool KDataStreamBase::ReadLine(char* pszDestBuffer, size_t uBufferSize)
 	{
 		size_t uLastReadPos = Tell();
 		size_t uBufferRestSize = uBufferSize - 1;
-		size_t uFileRestSize = GetSize() - uLastReadPos;
+		size_t uSize = GetSize();
+		size_t uFileRestSize = uSize - uLastReadPos;
 		size_t uCurReadSize = 0;
 		size_t uTotalReadSize = 0;
 		char* pFindPos = nullptr;
 		while(!IsEOF())
 		{
-			pFindPos = nullptr;
 			uCurReadSize = std::min(sizeof(szBuffer), uBufferRestSize);
 			uCurReadSize = std::min(uCurReadSize, uFileRestSize);
 			if(uCurReadSize == 0 || !Read(pszDestBuffer, uCurReadSize))
 				break;
 
 			// 找换行
-			if(pFindPos = strchr(pszDestBuffer, '\n'))
+			for(pFindPos = pszDestBuffer; pFindPos;)
+			{
+				if(pFindPos == pszDestBuffer + uCurReadSize)
+				{
+					pFindPos = nullptr;
+					break;
+				}
+				if(*pFindPos == '\n')
+				{
+					break;
+				}
+				++pFindPos;
+			}
+
+			if(pFindPos)
 			{
 				if(pFindPos != pszDestBuffer && *(pFindPos - 1) == '\r')
 					*(pFindPos - 1) = '\0';
@@ -52,17 +66,17 @@ bool KDataStreamBase::ReadLine(char* pszDestBuffer, size_t uBufferSize)
 				uCurReadSize = pFindPos - pszDestBuffer + 1;
 				bFind = true ;
 			}
-			uFileRestSize -= uCurReadSize;
-			uBufferRestSize -= uCurReadSize;
 			// 已经读完
-			if(uFileRestSize == 0)
+			if(uFileRestSize == uCurReadSize)
 			{
-				pszDestBuffer[uCurReadSize] = '\0';
+				pszDestBuffer[uFileRestSize] = '\0';
 				bFind = true;
 			}
-			
-			pszDestBuffer += uCurReadSize;
+
+			uFileRestSize -= uCurReadSize;
+			uBufferRestSize -= uCurReadSize;
 			uTotalReadSize += uCurReadSize;
+			pszDestBuffer += uCurReadSize;
 
 			if(bFind)
 			{
