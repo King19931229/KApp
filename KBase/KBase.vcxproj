@@ -28,6 +28,7 @@
     <ClInclude Include="Internal\KSourceFile.h" />
     <ClInclude Include="Publish\KFileTool.h" />
     <ClInclude Include="Publish\KHash.h" />
+    <ClInclude Include="Publish\KHashString.h" />
     <ClInclude Include="Publish\KLockFreeQueue.h" />
     <ClInclude Include="Publish\KLockQueue.h" />
     <ClInclude Include="Publish\KSemaphore.h" />
@@ -41,6 +42,7 @@
     <ClCompile Include="Internal\KDataStream.cpp" />
     <ClCompile Include="Internal\KFileTool.cpp" />
     <ClCompile Include="Internal\KHash.cpp" />
+    <ClCompile Include="Internal\KHashString.cpp" />
     <ClCompile Include="Internal\KIniFile.cpp" />
     <ClCompile Include="Internal\KSourceFile.cpp" />
     <ClCompile Include="Internal\KThreadTool.cpp" />

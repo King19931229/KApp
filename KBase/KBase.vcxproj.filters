@@ -52,6 +52,9 @@
     <ClInclude Include="Publish\KHash.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KHashString.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
@@ -81,6 +84,9 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KHash.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KHashString.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
