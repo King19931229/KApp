@@ -86,9 +86,9 @@ IKDataStreamPtr KSourceFile::GetFileData(std::string &filePath)
 			pData = GetDataStream(IT_MEMORY);
 			pData->Open(fileData.length() + 1, IM_READ_WRITE);
 			pData->Write(fileData.c_str(), fileData.length() + 1);
-			pData->Seek(0);
-			return pData;
 		}
+		pData->Seek(0);
+		return pData;
 	}
 	pData.reset();
 	return pData;

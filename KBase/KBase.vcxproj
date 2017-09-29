@@ -33,6 +33,7 @@
     <ClInclude Include="Publish\KLockQueue.h" />
     <ClInclude Include="Publish\KSemaphore.h" />
     <ClInclude Include="Publish\KSpinLock.h" />
+    <ClInclude Include="Publish\KStringTool.h" />
     <ClInclude Include="Publish\KTaskExecutor.h" />
     <ClInclude Include="Publish\KThreadPool.h" />
     <ClInclude Include="Publish\KThreadTool.h" />
@@ -45,6 +46,7 @@
     <ClCompile Include="Internal\KHashString.cpp" />
     <ClCompile Include="Internal\KIniFile.cpp" />
     <ClCompile Include="Internal\KSourceFile.cpp" />
+    <ClCompile Include="Internal\KStringTool.cpp" />
     <ClCompile Include="Internal\KThreadTool.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

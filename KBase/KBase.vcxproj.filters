@@ -55,6 +55,9 @@
     <ClInclude Include="Publish\KHashString.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KStringTool.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
@@ -87,6 +90,9 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KHashString.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KStringTool.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
