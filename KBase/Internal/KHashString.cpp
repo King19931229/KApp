@@ -90,7 +90,7 @@ KHashString GetHashString(const char* pszStr)
 		HashStrChunks::iterator it;
 
 		{
-			std::lock_guard<KSpinLock> gurad(SpinLock);
+			std::lock_guard<KSpinLock> guard(SpinLock);
 			it = Chunks.end();
 			it = std::find_if(Chunks.begin(), Chunks.end(), [&pszStr](KHashStrChunkPtr& pChunk)->bool { return pChunk->InChunk(pszStr); });
 			if(it != Chunks.end())
@@ -100,7 +100,7 @@ KHashString GetHashString(const char* pszStr)
 		size_t uHash = KHash::BKDR(pszStr, uLen);
 
 		{
-			std::lock_guard<KSpinLock> gurad(SpinLock);
+			std::lock_guard<KSpinLock> guard(SpinLock);
 			HashStrMap::iterator mapIt = StrMap.find(uHash);
 			if(mapIt != StrMap.end())
 				return mapIt->second;

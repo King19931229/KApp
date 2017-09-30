@@ -7,6 +7,7 @@ class KDataStreamBase : public IKDataStream
 {
 	bool _ReadLine(const char* pszLine, size_t uLen, IOLineMode* pMode, const char** ppRetEndPos);
 public:
+	virtual ~KDataStreamBase() = 0;
 	virtual bool IsReadable() const { return (GetMode() & IM_READ) > 0; }
 	virtual bool IsWriteable() const { return (GetMode() & IM_WRITE) > 0; }
 

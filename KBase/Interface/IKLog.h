@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Interface/IKConfig.h"
+#include "Interface/IKDataStream.h"
 #include <memory>
 
 enum LogLevel
@@ -19,12 +19,13 @@ struct IKLog
 public:
 	virtual ~IKLog() {}
 
-	virtual bool Init(const char* pFilePath, bool bLogConsole) = 0;
+	virtual bool Init(const char* pFilePath, bool bLogConsole, bool bLogTime, IOLineMode lineMode) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool SetLogFile(bool bLogFile) = 0;
 	virtual bool SetLogConsole(bool bLogConsole) = 0;
 	virtual bool SetLogTime(bool bLogTime) = 0;
 	virtual bool Log(LogLevel level, const char* pszMessage) = 0;
+	virtual bool LogFormat(LogLevel level, const char* pszFormat, ...) = 0;
 };
 
 EXPORT_DLL IKLogPtr CreateLog();

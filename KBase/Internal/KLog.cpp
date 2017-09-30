@@ -1,20 +1,34 @@
 ﻿#include "KLog.h"
 
 #include <ctime>
-#include <sstream>
+#include <mutex>
+#include <assert.h>
+
+#include <stdarg.h>
+
+#ifdef _WIN32
+#	include <Windows.h>
+#	define PRINTF_S sprintf_s
+#	define VSNPRINTF _vsnprintf
+#	pragma warning(disable : 4996)
+#else
+#	define PRINTF_S snprintf
+#	define VSNPRINTF vsnprintf
+#endif
 
 struct KLogLevelDesc
 {
 	LogLevel level;
 	const char* pszDesc;
+	int nLen;
 };
 
 const KLogLevelDesc LEVEL_DESC[] =
 {
-	{LL_NORMAL, ""},
-	{LL_WARNING, "[WARNING]"},
-	{LL_ERROR, "[ERROR]"},
-	{LL_COUNT, ""}
+	{LL_NORMAL, "", 0},
+	{LL_WARNING, "[WARNING]", sizeof("[WARNING]") - 1},
+	{LL_ERROR, "[ERROR]", sizeof("[ERROR]") - 1},
+	{LL_COUNT, "", 0}
 };
 static_assert(sizeof(LEVEL_DESC) / sizeof(LEVEL_DESC[0]) == LL_COUNT + 1, "LEVEL_DESC COUNT NOT MATCH TO LL_COUNT");
 
@@ -28,8 +42,13 @@ KLog::KLog()
 	m_bLogFile(false),
 	m_bLogConsole(false),
 	m_bLogTime(false),
-	m_pFile(nullptr)
+	m_pConsoleHandle(nullptr),
+	m_pFile(nullptr),
+	m_eLineMode(ILM_COUNT)
 {
+#ifdef _WIN32
+	m_pConsoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+#endif
 }
 
 KLog::~KLog()
@@ -37,7 +56,7 @@ KLog::~KLog()
 	UnInit();
 }
 
-bool KLog::Init(const char* pFilePath, bool bLogConsole)
+bool KLog::Init(const char* pFilePath, bool bLogConsole, bool bLogTime, IOLineMode mode)
 {
 	UnInit();
 	bool bRet = true;
@@ -58,7 +77,8 @@ bool KLog::Init(const char* pFilePath, bool bLogConsole)
 	}
 
 	m_bLogConsole = bLogConsole;
-	m_bLogTime = true;
+	m_bLogTime = bLogTime;
+	m_eLineMode = mode;
 
 	m_bInit = bRet;
 
@@ -95,12 +115,13 @@ bool KLog::SetLogTime(bool bLogTime)
 
 bool KLog::Log(LogLevel level, const char* pszMessage)
 {
-	if(pszMessage && (m_bLogFile || m_bLogConsole))
+	if(m_bInit && pszMessage && (m_bLogFile || m_bLogConsole))
 	{
 		size_t uLen = strlen(pszMessage);
 		if(uLen > 0)
 		{
 			bool bLogSuccess = true;
+			int nPos = 0;
 
 			char szBuffForTime[256]; szBuffForTime[0] = '\0';
 			char szBuffMessage[2048]; szBuffMessage[0] = '\0';
@@ -119,11 +140,7 @@ bool KLog::Log(LogLevel level, const char* pszMessage)
 				}
 #endif
 				// [YEAR-MON-DAY] <HOUR-MIN-SEC>
-#ifdef _WIN32
-				sprintf_s(szBuffForTime, sizeof(szBuffForTime),
-#else
-				sprintf(szBuffForTime,
-#endif
+				nPos = PRINTF_S(szBuffForTime, sizeof(szBuffForTime),
 					"[%d-%02d-%02d] <%02d:%02d:%02d>",
 					tmNow.tm_year + 1900,
 					tmNow.tm_mon + 1,
@@ -131,21 +148,74 @@ bool KLog::Log(LogLevel level, const char* pszMessage)
 					tmNow.tm_hour,
 					tmNow.tm_min,
 					tmNow.tm_sec);
+				assert(nPos > 0);
+
+				nPos = PRINTF_S(szBuffMessage, sizeof(szBuffMessage), "%s", szBuffForTime);
+				assert(nPos > 0);
 			}
-#ifdef _WIN32
-			sprintf_s(szBuffMessage, sizeof(szBuffMessage),
-#else
-			sprintf(szBuffMessage,
-#endif
-				"%s %s %s\n", szBuffForTime, LEVEL_DESC[level].pszDesc, pszMessage);
+
+			if(LEVEL_DESC[level].nLen > 0)
+			{
+				nPos = nPos + PRINTF_S(szBuffMessage + nPos , sizeof(szBuffMessage) - nPos,
+					nPos > 0 ? " %s" : "%s",
+					LEVEL_DESC[level].pszDesc);
+				assert(nPos > 0);
+			}
+
+			nPos = nPos + PRINTF_S(szBuffMessage + nPos , sizeof(szBuffMessage) - nPos,
+				nPos > 0 ? " %s" : "%s",
+				pszMessage);
+			assert(nPos > 0);
 
 			if(m_bLogFile)
-				bLogSuccess &= fprintf(m_pFile, "%s", szBuffMessage) > 0;
+			{
+				std::lock_guard<decltype(m_SpinLock)> guard(m_SpinLock);
+				bLogSuccess &= fprintf(m_pFile, "%s%s" , szBuffMessage, LINE_DESCS[m_eLineMode].pszLine) > 0;
+			}
 			if(m_bLogConsole)
-				bLogSuccess &= fprintf(stdout, "%s", szBuffMessage) > 0;
+			{
+#ifdef _WIN32
+				switch (level)
+				{
+				case LL_WARNING:
+					SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x0E, 0));
+					break;
+				case LL_ERROR:
+					SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x0C, 0));
+					break;
+				case LL_NORMAL:
+				default:
+					break;
+				}
+#endif
+				bLogSuccess &= fprintf(stdout, "%s\n", szBuffMessage) > 0;
+
+#ifdef _WIN32
+				switch (level)
+				{
+				case LL_WARNING:
+				case LL_ERROR:
+					SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x07, 0));
+				default:
+					break;
+#endif
+				}
+			}
 
 			return bLogSuccess;
 		}
 	}
 	return false;
+}
+
+bool KLog::LogFormat(LogLevel level, const char* pszFormat, ...)
+{
+	bool bRet = false;
+	va_list list;
+	va_start(list, pszFormat);
+	char szBuffer[2048]; szBuffer[0] = '\0';
+	VSNPRINTF(szBuffer, sizeof(szBuffer), pszFormat, list);
+	bRet = Log(level, szBuffer);
+	va_end(list);
+	return bRet;
 }

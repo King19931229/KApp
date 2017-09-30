@@ -10,7 +10,7 @@ enum IOMode
 	IM_READ = 0x01,
 	IM_WRITE = 0x02,
 	IM_READ_WRITE = 0x03,
-	IM_INVALID = 0X04
+	IM_INVALID = 0x04
 };
 
 enum IOType
