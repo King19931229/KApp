@@ -58,6 +58,12 @@
     <ClInclude Include="Publish\KStringTool.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKLog.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KLog.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
@@ -93,6 +99,9 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KStringTool.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KLog.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>

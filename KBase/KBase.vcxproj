@@ -22,9 +22,11 @@
     <ClInclude Include="Interface\IKDataStream.h" />
     <ClInclude Include="Interface\IKIniFile.h" />
     <ClInclude Include="Interface\IKConfig.h" />
+    <ClInclude Include="Interface\IKLog.h" />
     <ClInclude Include="Interface\IKSourceFile.h" />
     <ClInclude Include="Internal\KDataStream.h" />
     <ClInclude Include="Internal\KIniFile.h" />
+    <ClInclude Include="Internal\KLog.h" />
     <ClInclude Include="Internal\KSourceFile.h" />
     <ClInclude Include="Publish\KFileTool.h" />
     <ClInclude Include="Publish\KHash.h" />
@@ -45,6 +47,7 @@
     <ClCompile Include="Internal\KHash.cpp" />
     <ClCompile Include="Internal\KHashString.cpp" />
     <ClCompile Include="Internal\KIniFile.cpp" />
+    <ClCompile Include="Internal\KLog.cpp" />
     <ClCompile Include="Internal\KSourceFile.cpp" />
     <ClCompile Include="Internal\KStringTool.cpp" />
     <ClCompile Include="Internal\KThreadTool.cpp" />
