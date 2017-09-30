@@ -5,12 +5,13 @@
 
 class KDataStreamBase : public IKDataStream
 {
+	bool _ReadLine(const char* pszLine, size_t uLen, IOLineMode* pMode, const char** ppRetEndPos);
 public:
 	virtual bool IsReadable() const { return (GetMode() & IM_READ) > 0; }
 	virtual bool IsWriteable() const { return (GetMode() & IM_WRITE) > 0; }
 
 	virtual bool ReadLine(char* pszDestBuffer, size_t uBufferSize);
-	virtual bool WriteLine(const char* pszLine);
+	virtual bool WriteLine(const char* pszLine, IOLineMode mode);
 };
 
 class KMemoryDataStream : public KDataStreamBase

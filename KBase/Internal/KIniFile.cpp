@@ -106,16 +106,8 @@ bool KIniFile::Open(const char* pszFilePath)
 	return false;
 }
 
-bool KIniFile::SaveAsFile(const char* pszFilePath)
+bool KIniFile::SaveAsFile(const char* pszFilePath, IOLineMode mode)
 {
-	static std::string LINE_END =
-#ifdef _WIN32
-		"\r\n";
-#else
-		"\n";
-#endif
-	static size_t LINE_END_LEN = LINE_END.length();
-
 	if(pszFilePath)
 	{
 		IKDataStreamPtr pData = GetDataStream(IT_FILEHANDLE);
@@ -126,14 +118,14 @@ bool KIniFile::SaveAsFile(const char* pszFilePath)
 			for(auto itSec = m_Section_KVTable.begin(), itSecEnd = m_Section_KVTable.end();
 				itSec != itSecEnd; ++itSec)
 			{
-				finalStr += "[" + itSec->first + "]" + LINE_END;
+				finalStr += "[" + itSec->first + "]" + LINE_DESCS[mode].pszLine;
 				for(auto it = itSec->second.begin(), itEnd = itSec->second.end();
 					it != itEnd; ++it)
-					finalStr += it->first + "=" + it->second + LINE_END;
+					finalStr += it->first + "=" + it->second + LINE_DESCS[mode].pszLine;
 			}
 
 			if(finalStr.length() > 0)
-				finalStr.erase(finalStr.end() - LINE_END_LEN, finalStr.end());
+				finalStr.erase(finalStr.end() - LINE_DESCS[mode].uLen, finalStr.end());
 
 			return pData->Write(finalStr.c_str(), finalStr.length());
 		}

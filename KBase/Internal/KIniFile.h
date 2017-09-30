@@ -26,7 +26,7 @@ protected:
 	bool GetValue(const char* pszSection, const char* pszKey, Type* pValue);
 public:
 	virtual bool Open(const char* pszFilePath);
-	virtual bool SaveAsFile(const char* pszFilePath);
+	virtual bool SaveAsFile(const char* pszFilePath, IOLineMode mode);
 
 	virtual bool GetBool(const char* pszSection, const char* pszKey, bool *pValue);
 	virtual bool GetInt(const char* pszSection, const char* pszKey, int *pValue);

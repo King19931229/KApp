@@ -10,16 +10,42 @@ enum IOMode
 	IM_READ = 0x01,
 	IM_WRITE = 0x02,
 	IM_READ_WRITE = 0x03,
-	IM_INVALID = 0x04
+	IM_INVALID = 0X04
 };
 
 enum IOType
 {
 	IT_MEMORY,
 	IT_FILEHANDLE,
-	IT_STREAM,
-	IT_COUNT
+	IT_STREAM
 };
+
+enum IOLineMode
+{
+	// \n
+	ILM_UNIX,
+	// \r
+	ILM_MAC,
+	// \r\n
+	ILM_WINDOWS,
+
+	ILM_COUNT
+};
+
+struct KIOLineDesc
+{
+	IOLineMode mode;
+	const char* pszLine;
+	unsigned char uLen;
+};
+const KIOLineDesc LINE_DESCS[] =
+{
+	{ILM_UNIX, "\n", 1},
+	{ILM_MAC, "\r", 1},
+	{ILM_WINDOWS, "\r\n", 2},
+	{ILM_COUNT, "", 0}
+};
+static_assert(ILM_COUNT + 1 == sizeof(LINE_DESCS) / sizeof(LINE_DESCS[0]), "ILM_COUNT NOT MATCH TO LINE_DESCS");
 
 struct IKDataStream
 {
@@ -44,7 +70,7 @@ struct IKDataStream
 	virtual bool IsReadable() const = 0;
 	virtual bool IsWriteable() const = 0;
 	virtual bool ReadLine(char* pszDestBuffer, size_t uBufferSize) = 0;
-	virtual bool WriteLine(const char* pszLine) = 0;
+	virtual bool WriteLine(const char* pszLine, IOLineMode mode = ILM_UNIX) = 0;
 };
 
 EXPORT_DLL IKDataStreamPtr GetDataStream(IOType eType);

@@ -26,7 +26,7 @@ struct IKIniFile
 	virtual ~IKIniFile() {}
 
 	virtual bool Open(const char* pszFilePath) = 0;
-	virtual bool SaveAsFile(const char* pszFilePath) = 0;
+	virtual bool SaveAsFile(const char* pszFilePath, IOLineMode mode) = 0;
 
 	virtual bool GetBool(const char* pszSection, const char* pszKey, bool *pValue) = 0;
 	virtual bool GetInt(const char* pszSection, const char* pszKey, int *pValue) = 0;

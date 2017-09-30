@@ -1,5 +1,7 @@
 ﻿#include "KDataStream.h"
 
+#include <assert.h>
+
 IKDataStreamPtr GetDataStream(IOType eType)
 {
 	IKDataStreamPtr pRet;
@@ -21,6 +23,57 @@ IKDataStreamPtr GetDataStream(IOType eType)
 }
 
 // KDataStreamBase
+bool KDataStreamBase::_ReadLine(const char* pszLine, size_t uLen, IOLineMode* pMode, const char** ppRetEndPos)
+{
+	if(pszLine && uLen > 0)
+	{
+		const char* pFindPos = nullptr;
+		IOLineMode eCurLineMode = ILM_COUNT;
+
+		for(pFindPos = pszLine; pFindPos;)
+		{
+			if(pFindPos - pszLine == uLen)
+			{
+				pFindPos = nullptr;
+				break;
+			}
+			// windows
+			if((size_t)(pFindPos - pszLine + 1) < uLen)
+			{
+				if(*pFindPos == '\r' && *(pFindPos + 1) == '\n')
+				{
+					++pFindPos;
+					eCurLineMode = ILM_WINDOWS;
+					break;
+				}
+			}
+			// fallthough unix
+			if(*pFindPos == '\n')
+			{
+				eCurLineMode = ILM_UNIX;
+				break;
+			}
+			// fallthough mac
+			if(*pFindPos == '\r')
+			{
+				eCurLineMode = ILM_MAC;
+				break;
+			}
+			++pFindPos;
+		}
+
+		if(pFindPos)
+		{
+			if(ppRetEndPos)
+				*ppRetEndPos = pFindPos;
+			if(pMode)
+				*pMode = eCurLineMode;
+			return true;
+		}
+	}
+	return false;
+}
+
 bool KDataStreamBase::ReadLine(char* pszDestBuffer, size_t uBufferSize)
 {
 	char szBuffer[256] = {0};
@@ -33,39 +86,37 @@ bool KDataStreamBase::ReadLine(char* pszDestBuffer, size_t uBufferSize)
 		size_t uFileRestSize = uSize - uLastReadPos;
 		size_t uCurReadSize = 0;
 		size_t uTotalReadSize = 0;
+		IOLineMode eCurLineMode = ILM_COUNT;
 		char* pFindPos = nullptr;
+		const char* pLineEndPos = nullptr;
 		while(!IsEOF())
 		{
 			uCurReadSize = std::min(sizeof(szBuffer), uBufferRestSize);
 			uCurReadSize = std::min(uCurReadSize, uFileRestSize);
 			if(uCurReadSize == 0 || !Read(pszDestBuffer, uCurReadSize))
 				break;
-
+			eCurLineMode = ILM_COUNT;
 			// 找换行
-			for(pFindPos = pszDestBuffer; pFindPos;)
+			if(_ReadLine(pszDestBuffer, uCurReadSize, &eCurLineMode, &pLineEndPos))
 			{
-				if(pFindPos == pszDestBuffer + uCurReadSize)
+				pFindPos = pszDestBuffer + (pLineEndPos - pszDestBuffer);
+				switch (eCurLineMode)
 				{
-					pFindPos = nullptr;
+				case ILM_WINDOWS:
+					*(pFindPos - 1) = '\0';
+					// fallthough
+				case ILM_UNIX:
+				case ILM_MAC:
+					*pFindPos = '\0';
+					bFind = true;
+					break;
+				default:
+					assert(false && "never reach");
 					break;
 				}
-				if(*pFindPos == '\n')
-				{
-					break;
-				}
-				++pFindPos;
+				uCurReadSize = pFindPos - pszDestBuffer + 1;
 			}
 
-			if(pFindPos)
-			{
-				if(pFindPos != pszDestBuffer && *(pFindPos - 1) == '\r')
-					*(pFindPos - 1) = '\0';
-				else
-					*pFindPos = '\0';
-				// 调整读取大小
-				uCurReadSize = pFindPos - pszDestBuffer + 1;
-				bFind = true ;
-			}
 			// 已经读完
 			if(uFileRestSize == uCurReadSize)
 			{
@@ -92,7 +143,7 @@ bool KDataStreamBase::ReadLine(char* pszDestBuffer, size_t uBufferSize)
 	return false;
 }
 
-bool KDataStreamBase::WriteLine(const char* pszLine)
+bool KDataStreamBase::WriteLine(const char* pszLine, IOLineMode mode)
 {
 	if(pszLine)
 	{
@@ -100,17 +151,17 @@ bool KDataStreamBase::WriteLine(const char* pszLine)
 		size_t uLen = strlen(pszLine);
 		if(uLen)
 		{
-
-			const char pszEnd[] =
-#ifdef _WIN32
-				"\r\n";
-#else
-				"\n";
-#endif
-			if(Write(pszLine, uLen) && Write(pszEnd, sizeof(pszEnd) - 1))
+			const char* pLineEndPos = nullptr;
+			IOLineMode eCurLineMode = ILM_COUNT;
+			if(_ReadLine(pszLine, uLen, &eCurLineMode, &pLineEndPos))
+			{
+				assert(pLineEndPos);(pLineEndPos);
+				uLen -= LINE_DESCS[eCurLineMode].uLen;
+				assert(uLen > 0);
+			}
+			if(Write(pszLine, uLen) && Write(LINE_DESCS[mode].pszLine, LINE_DESCS[mode].uLen))
 				return true;
-			else
-				Seek((long)uCurWritePos);
+			Seek((long)uCurWritePos);
 		}
 	}
 	return false;
