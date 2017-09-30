@@ -198,10 +198,9 @@ bool KLog::Log(LogLevel level, const char* pszMessage)
 					SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x07, 0));
 				default:
 					break;
-#endif
 				}
+#endif
 			}
-
 			return bLogSuccess;
 		}
 	}
