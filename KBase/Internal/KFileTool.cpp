@@ -1,4 +1,4 @@
-﻿#include "../Publish/KFileTool.h"
+﻿#include "Publish/KFileTool.h"
 
 #include <io.h>
 #include <direct.h>

@@ -19,11 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Interface\IKCodec.h" />
     <ClInclude Include="Interface\IKDataStream.h" />
     <ClInclude Include="Interface\IKIniFile.h" />
     <ClInclude Include="Interface\IKConfig.h" />
     <ClInclude Include="Interface\IKLog.h" />
     <ClInclude Include="Interface\IKSourceFile.h" />
+    <ClInclude Include="Internal\KCodec.h" />
     <ClInclude Include="Internal\KDataStream.h" />
     <ClInclude Include="Internal\KIniFile.h" />
     <ClInclude Include="Internal\KLog.h" />
@@ -42,6 +44,7 @@
     <ClInclude Include="Publish\KTimer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Internal\KCodec.cpp" />
     <ClCompile Include="Internal\KDataStream.cpp" />
     <ClCompile Include="Internal\KFileTool.cpp" />
     <ClCompile Include="Internal\KHash.cpp" />

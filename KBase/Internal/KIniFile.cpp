@@ -1,4 +1,4 @@
-﻿#include "KIniFile.h"
+﻿#include "Internal/KIniFile.h"
 #include <sstream>
 
 IKIniFilePtr GetIniFile()

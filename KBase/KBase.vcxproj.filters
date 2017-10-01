@@ -64,6 +64,12 @@
     <ClInclude Include="Internal\KLog.h">
       <Filter>Internal</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKCodec.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KCodec.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
@@ -102,6 +108,9 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KLog.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KCodec.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>

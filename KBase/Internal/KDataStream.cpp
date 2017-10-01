@@ -1,4 +1,4 @@
-﻿#include "KDataStream.h"
+﻿#include "Internal/KDataStream.h"
 
 #include <assert.h>
 

@@ -32,13 +32,13 @@ enum IOLineMode
 	ILM_COUNT
 };
 
-struct KIOLineDesc
+struct IoLineDesc
 {
 	IOLineMode mode;
 	const char* pszLine;
 	unsigned char uLen;
 };
-const KIOLineDesc LINE_DESCS[] =
+const IoLineDesc LINE_DESCS[] =
 {
 	{ILM_UNIX, "\n", 1},
 	{ILM_MAC, "\r", 1},
