@@ -6,8 +6,10 @@
 *.ilk
 *.idb
 *.lastbuildstate
+*.unsuccessfulbuild
 *.tlog
 *.log
 *.sdf
 *.opensdf
 *.suo
+*.user
