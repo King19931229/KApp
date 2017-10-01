@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "KLockFreeQueue.h"
-#include "KLockQueue.h"
-#include "KSemaphore.h"
-#include "KThreadTool.h"
+#include "Publish/KLockFreeQueue.h"
+#include "Publish/KLockQueue.h"
+#include "Publish/KSemaphore.h"
+#include "Publish/KThreadTool.h"
 
 template<typename Task, bool bUseLockFreeQueue = true>
 class KThreadPool
@@ -44,7 +44,7 @@ class KThreadPool
 		SharedQueueType asyncQueue;
 		SharedQueueType async_Sync_Swap;
 		SharedQueueType syncQueue;
-		KSpinLock		lock;
+		std::mutex		lock;
 		KSemaphore		sem;
 		bool			bSwapNoEmpty;
 

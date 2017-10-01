@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "IKConfig.h"
+#include "Interface/IKConfig.h"
 #include <memory>
 
 struct IKDataStream;

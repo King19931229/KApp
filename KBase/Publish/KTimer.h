@@ -4,41 +4,32 @@ class KTimer
 {
 protected:
 	typedef std::chrono::steady_clock::time_point TimePoint;
-	typedef std::chrono::duration<double, std::ratio<1, 1>> Duration;
+	typedef std::chrono::duration<float, std::ratio<1, 1>> SecnodDuration;
+	typedef std::chrono::duration<float, std::ratio<1, 1000>> MillisecondDuration;
 	typedef std::chrono::steady_clock SteadyClock;
 	
 	TimePoint m_BeginPoint;
-	Duration m_Duration;
-
 public:
 	KTimer()
-		: m_Duration(Duration(0))
-	{
+		:m_BeginPoint(SteadyClock::now())
+	{		
 	}
 
 	~KTimer()
 	{
 	}
 
-	void Start()
+	inline void Reset() { m_BeginPoint = SteadyClock::now(); }
+
+	inline float GetSeconds()
 	{
-		m_BeginPoint = SteadyClock::now();
-		m_Duration = Duration(0);
+		TimePoint now = SteadyClock::now();
+		return std::chrono::duration_cast<SecnodDuration>(now - m_BeginPoint).count();
 	}
 
-	void Stop()
+	inline float GetMilliseconds()
 	{
-		TimePoint end = SteadyClock::now();
-		m_Duration += std::chrono::duration_cast<Duration>(end - m_BeginPoint);
-	}
-
-	void Reset()
-	{
-		m_Duration = Duration(0);
-	}
-
-	double GetDuration()
-	{
-		return m_Duration.count();
+		TimePoint now = SteadyClock::now();
+		return std::chrono::duration_cast<MillisecondDuration>(now - m_BeginPoint).count();
 	}
 };

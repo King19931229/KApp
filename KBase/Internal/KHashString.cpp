@@ -1,12 +1,22 @@
 ﻿#include "Publish/KHashString.h"
 #include "Publish/KHash.h"
-#include "Publish/KSpinLock.h"
 
 #include <mutex>
 #include <vector>
 #include <memory>
+#include <assert.h>
+#include <stdarg.h>
 #include <algorithm>
 #include <unordered_map>
+
+#ifdef _WIN32
+#	define PRINTF_S sprintf_s
+#	define VSNPRINTF _vsnprintf
+#	pragma warning(disable : 4996)
+#else
+#	define PRINTF_S snprintf
+#	define VSNPRINTF vsnprintf
+#endif
 
 static const size_t CHUNK_LEN = 1 << 24;
 
@@ -64,9 +74,9 @@ typedef std::shared_ptr<KHashStrChunk> KHashStrChunkPtr;
 typedef std::vector<KHashStrChunkPtr> HashStrChunks;
 typedef std::unordered_map<size_t, KHashString> HashStrMap;
 
-HashStrChunks Chunks;
-HashStrMap StrMap;
-KSpinLock SpinLock;
+HashStrChunks g_Chunks;
+HashStrMap g_StrMap;
+std::mutex g_Lock;
 
 bool CreateHashStringTable()
 {
@@ -75,11 +85,11 @@ bool CreateHashStringTable()
 
 bool DestroyHashStringTable()
 {
-	Chunks.swap(HashStrChunks());
+	g_Chunks.swap(HashStrChunks());
 	return true;
 }
 
-KHashString GetHashString(const char* pszStr)
+KHashString _GetHashString(const char* pszStr)
 {
 	if(pszStr)
 	{
@@ -90,37 +100,49 @@ KHashString GetHashString(const char* pszStr)
 		HashStrChunks::iterator it;
 
 		{
-			std::lock_guard<KSpinLock> guard(SpinLock);
-			it = Chunks.end();
-			it = std::find_if(Chunks.begin(), Chunks.end(), [&pszStr](KHashStrChunkPtr& pChunk)->bool { return pChunk->InChunk(pszStr); });
-			if(it != Chunks.end())
+			std::lock_guard<decltype(g_Lock)> guard(g_Lock);
+			it = g_Chunks.end();
+			it = std::find_if(g_Chunks.begin(), g_Chunks.end(), [&pszStr](KHashStrChunkPtr& pChunk)->bool { return pChunk->InChunk(pszStr); });
+			if(it != g_Chunks.end())
 				return pszStr;
 		}
 
 		size_t uHash = KHash::BKDR(pszStr, uLen);
 
 		{
-			std::lock_guard<KSpinLock> guard(SpinLock);
-			HashStrMap::iterator mapIt = StrMap.find(uHash);
-			if(mapIt != StrMap.end())
+			std::lock_guard<decltype(g_Lock)> guard(g_Lock);
+			HashStrMap::iterator mapIt = g_StrMap.find(uHash);
+			if(mapIt != g_StrMap.end())
 				return mapIt->second;
 
-			it = Chunks.end();
-			it = std::find_if(Chunks.begin(), Chunks.end(), [&uLen](KHashStrChunkPtr& pChunk)->bool { return pChunk->HasSpace(uLen); });
+			it = g_Chunks.end();
+			it = std::find_if(g_Chunks.begin(), g_Chunks.end(), [&uLen](KHashStrChunkPtr& pChunk)->bool { return pChunk->HasSpace(uLen); });
 
-			if(it == Chunks.end())
+			if(it == g_Chunks.end())
 			{
-				Chunks.push_back(KHashStrChunkPtr(new KHashStrChunk));
-				it = Chunks.end() - 1;
+				g_Chunks.push_back(KHashStrChunkPtr(new KHashStrChunk));
+				it = g_Chunks.end() - 1;
 			}
 
 			KHashString pRet = nullptr;
 			if((*it)->Insert(pszStr, uLen, &pRet))
 			{
-				StrMap.insert(HashStrMap::value_type(uHash, pRet));
+				g_StrMap.insert(HashStrMap::value_type(uHash, pRet));
 				return pRet;
 			}
 		}
 	}
 	return nullptr;
+}
+
+KHashString GetHashString(const char* pszFormat, ...)
+{
+	KHashString pRet = nullptr;
+	va_list list;
+	va_start(list, pszFormat);
+	char szBuffer[2048]; szBuffer[0] = '\0';
+	VSNPRINTF(szBuffer, sizeof(szBuffer), pszFormat, list);
+	pRet = _GetHashString(szBuffer);
+	va_end(list);
+	return pRet;
 }

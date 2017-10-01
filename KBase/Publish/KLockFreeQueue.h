@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "KSpinLock.h"
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -29,7 +28,7 @@ protected:
 	std::atomic_short	m_nMaxReadIndex;
 
 	std::atomic_size_t	m_uQueueCount;
-	KSpinLock			m_WaitLock;
+	std::mutex			m_WaitLock;
 
 	size_t				m_uWaitQueueSize;
 

@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include <queue>
-#include "KSpinLock.h"
 
 template<typename ElemType>
 class KLockQueue
@@ -9,7 +8,7 @@ public:
 	typedef std::queue<ElemType> QueueType;
 protected:
 	QueueType m_Queue;
-	KSpinLock m_Lock;
+	std::mutex m_Lock;
 	std::atomic_size_t m_uQueueSize;
 public:
 	KLockQueue()
