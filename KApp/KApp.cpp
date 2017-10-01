@@ -1,3 +1,4 @@
+#define MEMORY_DUMP_DEBUG
 #include "KBase/Publish/KLockFreeQueue.h"
 #include "KBase/Publish/KLockQueue.h"
 #include "KBase/Publish/KThreadPool.h"
@@ -24,24 +25,37 @@ void VoidTest()
 	puts("VoidTest");
 }
 
+#include "Interface/IKLog.h"
+#include "Publish/KHashString.h"
+IKLogPtr pLog;
+
 class Func : public KTaskUnit
 {
 	int m_ID;
 public:
 	Func(int id):m_ID(id) {}
-	virtual bool AsyncLoad() { printf("AsyncLoad %d\n", m_ID);return true; }
-	virtual bool SyncLoad() { printf("SyncLoad %d\n", m_ID);return false; }
-	virtual bool HasSyncLoad() const { return true; }
-	virtual bool OnFail() { printf("OnFail %d\n", m_ID);return true; }
+	virtual bool AsyncLoad()
+	{
+		KHashString str = GetHashString("AsyncLoad %d", m_ID);
+		KLOGE(pLog, "%s", str);
+		return true;
+	}
+	virtual bool SyncLoad() { KLOGE(pLog, GetHashString("SyncLoad %d", m_ID));return false; }
+	virtual bool HasSyncLoad() const { return false; }
 };
 
 int main()
 {
+	DUMP_MEMORY_LEAK_BEGIN();
+	pLog = CreateLog();
+	pLog->Init("D:/LOG.TXT", true, true, ILM_WINDOWS);
 	KTaskExecutor Exc;
-	Exc.PushWorkerThreads(4);
+	Exc.PushWorkerThreads(std::thread::hardware_concurrency());
+	KTimer timer;
 
+	timer.Reset();
 	std::vector<KTaskUnitProcessorPtr> ps;
-	for(int i = 0; i < 100; ++i)
+	for(int i = 0; i < 5000; ++i)
 	{
 		KTaskUnitPtr pUnit(new Func(i));
 		KTaskUnitProcessorPtr pProcess(new KTaskUnitProcessor(pUnit));
@@ -49,17 +63,14 @@ int main()
 		Exc.Submit(pProcess);
 	}
 
-	for(int i = 0; i < 100; ++i)
+	for(int i = 4999; i >= 0; --i)
 	{
-		if(ps[i]->Cancel(true))
-			puts("SUC CEL WAIT");
+		ps[i]->WaitAsync();
 	}
-	
-	while(!Exc.AllTaskDone())
-	{
-		Exc.ProcessSyncTask();
-	}
-	
+
+	printf("%f %f\n", timer.GetSeconds(), timer.GetMilliseconds());
+
+	Exc.PopWorkerThreads(std::thread::hardware_concurrency());
 	//std::function<bool()> func = std::bind(Test, 10);
 	//func();
 	
