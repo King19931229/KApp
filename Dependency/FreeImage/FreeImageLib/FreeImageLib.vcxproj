@@ -72,19 +72,15 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>../Publish/Debug/x86/</OutDir>
-    <IntDir>.\Debug\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>../Publish/Debug/x64/</OutDir>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>../Publish/Release/x86/</OutDir>
-    <IntDir>.\Release\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>../Publish/Release/x64/</OutDir>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -96,14 +92,9 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader />
-      <PrecompiledHeaderOutputFile>.\Debug/FreeImageLib.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\Debug/</AssemblerListingLocation>
-      <ObjectFileName>.\Debug/</ObjectFileName>
-      <ProgramDataBaseFileName>.\Debug/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <CompileAs>Default</CompileAs>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
@@ -119,11 +110,7 @@
       <AdditionalLibraryDirectories>../Publish/Debug/x86/</AdditionalLibraryDirectories>
       <AdditionalDependencies>LibJPEG.lib;LibJXR.lib;LibOpenJPEG.lib;LibPNG.lib;LibRaw.lib;LibTIFF4.lib;LibWebP.lib;OpenEXR.lib;ZLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
-    <PostBuildEvent>
-      <Command>copy Debug\FreeImaged.lib ..\..\Dist
-copy ..\FreeImage.h ..\..\Dist
-</Command>
-    </PostBuildEvent>
+    <PostBuildEvent />
     <Link>
       <AdditionalDependencies>LibJPEG.lib;LibJXR.lib;LibOpenJPEG.lib;LibPNG.lib;LibRaw.lib;LibTIFF4.lib;LibWebP.lib;OpenEXR.lib;ZLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../Publish/Debug/x86/</AdditionalLibraryDirectories>
@@ -142,14 +129,9 @@ copy ..\FreeImage.h ..\..\Dist
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <OpenMPSupport>true</OpenMPSupport>
       <PrecompiledHeader />
-      <PrecompiledHeaderOutputFile>.\Debug/FreeImageLib.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\Debug/</AssemblerListingLocation>
-      <ObjectFileName>.\Debug/</ObjectFileName>
-      <ProgramDataBaseFileName>.\Debug/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>Default</CompileAs>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
@@ -165,11 +147,7 @@ copy ..\FreeImage.h ..\..\Dist
       <AdditionalLibraryDirectories>../Publish/Debug/x64/</AdditionalLibraryDirectories>
       <AdditionalDependencies>LibJPEG.lib;LibJXR.lib;LibOpenJPEG.lib;LibPNG.lib;LibRaw.lib;LibTIFF4.lib;LibWebP.lib;OpenEXR.lib;ZLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
-    <PostBuildEvent>
-      <Command>copy Debug\FreeImaged.lib ..\..\Dist
-copy ..\FreeImage.h ..\..\Dist
-</Command>
-    </PostBuildEvent>
+    <PostBuildEvent />
     <Link>
       <AdditionalDependencies>LibJPEG.lib;LibJXR.lib;LibOpenJPEG.lib;LibPNG.lib;LibRaw.lib;LibTIFF4.lib;LibWebP.lib;OpenEXR.lib;ZLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../Publish/Debug/x64/</AdditionalLibraryDirectories>
@@ -189,13 +167,8 @@ copy ..\FreeImage.h ..\..\Dist
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <PrecompiledHeader />
-      <PrecompiledHeaderOutputFile>.\Release/FreeImageLib.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\Release/</AssemblerListingLocation>
-      <ObjectFileName>.\Release/</ObjectFileName>
-      <ProgramDataBaseFileName>.\Release/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <CompileAs>Default</CompileAs>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
@@ -211,11 +184,7 @@ copy ..\FreeImage.h ..\..\Dist
       <AdditionalLibraryDirectories>../Publish/Release/x86/</AdditionalLibraryDirectories>
       <AdditionalDependencies>LibJPEG.lib;LibJXR.lib;LibOpenJPEG.lib;LibPNG.lib;LibRaw.lib;LibTIFF4.lib;LibWebP.lib;OpenEXR.lib;ZLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
-    <PostBuildEvent>
-      <Command>copy Release\FreeImage.lib ..\..\Dist
-copy ..\FreeImage.h ..\..\Dist
-</Command>
-    </PostBuildEvent>
+    <PostBuildEvent />
     <Link>
       <AdditionalDependencies>LibJPEG.lib;LibJXR.lib;LibOpenJPEG.lib;LibPNG.lib;LibRaw.lib;LibTIFF4.lib;LibWebP.lib;OpenEXR.lib;ZLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../Publish/Release/x86/</AdditionalLibraryDirectories>
@@ -238,13 +207,8 @@ copy ..\FreeImage.h ..\..\Dist
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <OpenMPSupport>true</OpenMPSupport>
       <PrecompiledHeader />
-      <PrecompiledHeaderOutputFile>.\Release/FreeImageLib.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\Release/</AssemblerListingLocation>
-      <ObjectFileName>.\Release/</ObjectFileName>
-      <ProgramDataBaseFileName>.\Release/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <CompileAs>Default</CompileAs>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
@@ -260,11 +224,7 @@ copy ..\FreeImage.h ..\..\Dist
       <AdditionalLibraryDirectories>../Publish/Release/x64/</AdditionalLibraryDirectories>
       <AdditionalDependencies>LibJPEG.lib;LibJXR.lib;LibOpenJPEG.lib;LibPNG.lib;LibRaw.lib;LibTIFF4.lib;LibWebP.lib;OpenEXR.lib;ZLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
-    <PostBuildEvent>
-      <Command>copy Release\FreeImage.lib ..\..\Dist
-copy ..\FreeImage.h ..\..\Dist
-</Command>
-    </PostBuildEvent>
+    <PostBuildEvent />
     <Link>
       <AdditionalLibraryDirectories>../Publish/Release/x64/</AdditionalLibraryDirectories>
       <AdditionalDependencies>LibJPEG.lib;LibJXR.lib;LibOpenJPEG.lib;LibPNG.lib;LibRaw.lib;LibTIFF4.lib;LibWebP.lib;OpenEXR.lib;ZLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
