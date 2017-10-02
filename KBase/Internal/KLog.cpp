@@ -152,13 +152,13 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 
 			if(LEVEL_DESC[level].nLen > 0)
 			{
-				nPos = nPos + SNPRINTF(szBuffMessage + nPos , sizeof(szBuffMessage) - nPos,
+				nPos += SNPRINTF(szBuffMessage + nPos , sizeof(szBuffMessage) - nPos,
 					nPos > 0 ? " %s" : "%s",
 					LEVEL_DESC[level].pszDesc);
 				assert(nPos > 0);
 			}
 
-			nPos = nPos + SNPRINTF(szBuffMessage + nPos , sizeof(szBuffMessage) - nPos,
+			nPos += SNPRINTF(szBuffMessage + nPos , sizeof(szBuffMessage) - nPos,
 				nPos > 0 ? " %s" : "%s",
 				pszMessage);
 			assert(nPos > 0);
@@ -185,8 +185,10 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 					break;
 				}
 #endif
-				bLogSuccess &= fprintf(stdout, ">.%s\n", szBuffMessage) > 0;
-
+				char szTmpBuff[2048]; szTmpBuff[0] = '\0';
+				nPos = SNPRINTF(szTmpBuff, sizeof(szTmpBuff), ">.[LOG] %s\n", szBuffMessage);
+				assert(nPos > 0);
+				bLogSuccess &= fprintf(stdout, szTmpBuff) > 0;
 #ifdef _WIN32
 				switch (level)
 				{
@@ -196,6 +198,7 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 				default:
 					break;
 				}
+				OutputDebugStringA(szTmpBuff);
 #endif
 			}
 			return bLogSuccess;
