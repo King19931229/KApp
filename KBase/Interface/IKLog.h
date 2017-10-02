@@ -38,28 +38,28 @@ public:
 #define KLOG(pLog, pszFormat, ...)\
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
-	SNPRINTF(szSuffix, "<-> %s %d", __FILE__, __LINE__);\
+	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
 	pLog->LogSuffix(LL_NORMAL, szSuffix, pszFormat, __VA_ARGS__);\
 }
 
 #define KLOGW(pLog, pszFormat, ...)\
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
-	SNPRINTF(szSuffix, "<-> %s %d", __FILE__, __LINE__);\
+	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
 	pLog->LogSuffix(LL_WARNING, szSuffix, pszFormat, __VA_ARGS__);\
 }
 
 #define KLOGE(pLog, pszFormat, ...)\
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
-	SNPRINTF(szSuffix, "<-> %s %d", __FILE__, __LINE__);\
+	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
 	pLog->LogSuffix(LL_ERROR, szSuffix, pszFormat, __VA_ARGS__);\
 }
 
 #define KLOGE_ASSERT(pLog, pszFormat, ...)\
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
-	SNPRINTF(szSuffix, "<-> %s %d", __FILE__, __LINE__);\
+	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
 	pLog->LogSuffix(LL_ERROR, szSuffix, pszFormat, __VA_ARGS__);\
 	assert(false);\
 }
