@@ -27,6 +27,7 @@ void VoidTest()
 
 #include "Interface/IKLog.h"
 #include "Publish/KHashString.h"
+#include "Interface/IKCodec.h"
 IKLogPtr pLog;
 
 class Func : public KTaskUnit
@@ -37,7 +38,9 @@ public:
 	virtual bool AsyncLoad()
 	{
 		KHashString str = GetHashString("AsyncLoad %d", m_ID);
-		KLOGE(pLog, "%s", str);
+		IKCodecPtr pCodec = GetCodec("D:/test.jpg");
+		CodecResult res = pCodec->Codec("D:/test.jpg");
+		KLOG(pLog, "%s", str);
 		return true;
 	}
 	virtual bool SyncLoad() { KLOGE(pLog, GetHashString("SyncLoad %d", m_ID));return false; }
@@ -47,6 +50,8 @@ public:
 int main()
 {
 	DUMP_MEMORY_LEAK_BEGIN();
+	InitCodecManager();
+
 	pLog = CreateLog();
 	pLog->Init("D:/LOG.TXT", true, true, ILM_WINDOWS);
 	KTaskExecutor Exc;
@@ -55,7 +60,7 @@ int main()
 
 	timer.Reset();
 	std::vector<KTaskUnitProcessorPtr> ps;
-	for(int i = 0; i < 5000; ++i)
+	for(int i = 0; i < 1000; ++i)
 	{
 		KTaskUnitPtr pUnit(new Func(i));
 		KTaskUnitProcessorPtr pProcess(new KTaskUnitProcessor(pUnit));
@@ -63,14 +68,15 @@ int main()
 		Exc.Submit(pProcess);
 	}
 
-	for(int i = 4999; i >= 0; --i)
+	for(int i = 999; i >= 0; --i)
 	{
 		ps[i]->WaitAsync();
 	}
 
 	printf("%f %f\n", timer.GetSeconds(), timer.GetMilliseconds());
-
 	Exc.PopWorkerThreads(std::thread::hardware_concurrency());
+
+	UnInitCodecManager();
 	//std::function<bool()> func = std::bind(Test, 10);
 	//func();
 	
