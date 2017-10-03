@@ -1,4 +1,4 @@
-// ==========================================================
+ï»¿// ==========================================================
 // JPEG Loader and writer
 // Based on code developed by The Independent JPEG Group
 //
@@ -7,7 +7,7 @@
 // - Jan L. Nauta (jln@magentammt.com)
 // - Markus Loibl (markus.loibl@epost.de)
 // - Karl-Heinz Bussian (khbussian@moss.de)
-// - Hervé Drolon (drolon@infonie.fr)
+// - Herv?Drolon (drolon@infonie.fr)
 // - Jascha Wetzel (jascha@mainia.de)
 // - Mihail Naydenov (mnaydenov@users.sourceforge.net)
 //

@@ -1,4 +1,4 @@
-#include "Publish/KHash.h"
+﻿#include "Publish/KHash.h"
 
 namespace KHash
 {

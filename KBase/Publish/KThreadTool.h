@@ -1,4 +1,4 @@
-#include "Interface/IKConfig.h"
+﻿#include "Interface/IKConfig.h"
 #pragma once
 
 namespace KThreadTool

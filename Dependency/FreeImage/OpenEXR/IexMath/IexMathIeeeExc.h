@@ -1,4 +1,4 @@
-#ifndef INCLUDED_IEXMATHIEEE_EXC_H
+﻿#ifndef INCLUDED_IEXMATHIEEE_EXC_H
 #define INCLUDED_IEXMATHIEEE_EXC_H
 
 ///////////////////////////////////////////////////////////////////////////

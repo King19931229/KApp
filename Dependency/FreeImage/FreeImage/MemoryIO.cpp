@@ -1,9 +1,9 @@
-// ==========================================================
+ï»¿// ==========================================================
 // Memory Input/Output functions
 //
 // Design and implementation by
 // - Ryan Rubley <ryan@lostreality.org> 
-// - Hervé Drolon (drolon@infonie.fr)
+// - Herv?Drolon (drolon@infonie.fr)
 //
 // This file is part of FreeImage 3
 //

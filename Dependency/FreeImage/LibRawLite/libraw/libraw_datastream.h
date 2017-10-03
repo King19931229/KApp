@@ -1,4 +1,4 @@
-/* -*- C -*-
+﻿/* -*- C -*-
  * File: libraw_datastream.h
  * Copyright 2008-2013 LibRaw LLC (info@libraw.org)
  * Created: Sun Jan 18 13:07:35 2009

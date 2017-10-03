@@ -1,4 +1,4 @@
-#include "Publish/KThreadTool.h"
+﻿#include "Publish/KThreadTool.h"
 
 #ifdef _WIN32
 #include <Windows.h>

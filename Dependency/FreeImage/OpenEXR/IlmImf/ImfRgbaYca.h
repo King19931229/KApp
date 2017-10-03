@@ -1,4 +1,4 @@
-#ifndef INCLUDED_IMF_RGBA_YCA_H
+﻿#ifndef INCLUDED_IMF_RGBA_YCA_H
 #define INCLUDED_IMF_RGBA_YCA_H
 
 //////////////////////////////////////////////////////////////////////////////

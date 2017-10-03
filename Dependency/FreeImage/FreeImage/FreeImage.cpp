@@ -1,9 +1,9 @@
-// ==========================================================
+ï»¿// ==========================================================
 // FreeImage implementation
 //
 // Design and implementation by
 // - Floris van den Berg (flvdberg@wxs.nl)
-// - Hervé Drolon (drolon@infonie.fr)
+// - Herv?Drolon (drolon@infonie.fr)
 // - Karl-Heinz Bussian (khbussian@moss.de)
 //
 // This file is part of FreeImage 3

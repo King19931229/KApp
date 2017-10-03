@@ -1,9 +1,9 @@
-// ==========================================================
+ï»¿// ==========================================================
 // Flipping routines
 //
 // Design and implementation by
 // - Floris van den Berg (flvdberg@wxs.nl)
-// - Hervé Drolon (drolon@infonie.fr)
+// - Herv?Drolon (drolon@infonie.fr)
 // - Jim Keir (jimkeir@users.sourceforge.net)
 //
 // This file is part of FreeImage 3

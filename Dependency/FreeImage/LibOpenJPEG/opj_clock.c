@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2005, Herve Drolon, FreeImage Team
  * All rights reserved.
  *

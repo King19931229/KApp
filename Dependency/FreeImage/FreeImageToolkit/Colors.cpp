@@ -1,8 +1,8 @@
-// ==========================================================
+ï»¿// ==========================================================
 // Color manipulation routines
 //
 // Design and implementation by
-// - Hervé Drolon (drolon@infonie.fr)
+// - Herv?Drolon (drolon@infonie.fr)
 // - Carsten Klein (c.klein@datagis.com)
 // - Mihail Naydenov (mnaydenov@users.sourceforge.net)
 //

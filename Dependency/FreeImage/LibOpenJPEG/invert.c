@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2008, Jerome Fimes, Communications & Systemes <jerome.fimes@c-s.fr>
  * All rights reserved.
  *
