@@ -42,6 +42,7 @@ public:
 	virtual size_t Seek(long nPos);
 	virtual bool Read(char* pszBuffer, size_t uSize);
 	virtual bool Write(const char* pszBuffer, size_t uSize);
+	virtual bool Reference(char** ppszBuffer, size_t uSize);
 };
 
 class KFileHandleDataStream : public KDataStreamBase
@@ -71,6 +72,7 @@ public:
 	virtual size_t Seek(long nPos);
 	virtual bool Read(char* pszBuffer, size_t uSize);
 	virtual bool Write(const char* pszBuffer, size_t uSize);
+	virtual bool Reference(char** ppszBuffer, size_t uSize);
 };
 
 class KFileDataStream : public KDataStreamBase
@@ -100,4 +102,5 @@ public:
 	virtual size_t Seek(long nPos);
 	virtual bool Read(char* pszBuffer, size_t uSize);
 	virtual bool Write(const char* pszBuffer, size_t uSize);
+	virtual bool Reference(char** ppszBuffer, size_t uSize);
 };

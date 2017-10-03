@@ -23,6 +23,10 @@ IKDataStreamPtr GetDataStream(IOType eType)
 }
 
 // KDataStreamBase
+KDataStreamBase::~KDataStreamBase()
+{
+}
+
 bool KDataStreamBase::_ReadLine(const char* pszLine, size_t uLen, IOLineMode* pMode, const char** ppRetEndPos)
 {
 	if(pszLine && uLen > 0)
@@ -319,6 +323,21 @@ bool KMemoryDataStream::Write(const char* pszBuffer, size_t uSize)
 	return true;
 }
 
+bool KMemoryDataStream::Reference(char** ppszBuffer, size_t uSize)
+{
+	if(ppszBuffer)
+	{
+		size_t uLeftSize = m_uBufferSize - (size_t)(m_pCurPos - m_pDataBuffer);
+		if(uSize <= uLeftSize)
+		{
+			*ppszBuffer = m_pCurPos;
+			m_pCurPos += uSize;
+			return true;
+		}
+	}
+	return false;
+}
+
 // KFileHandleDataStream
 KFileHandleDataStream::KFileHandleDataStream()
 	: m_pFile(nullptr),
@@ -462,6 +481,13 @@ bool KFileHandleDataStream::Write(const char* pszBuffer, size_t uSize)
 		return fwrite(pszBuffer, 1, uSize, m_pFile) == uSize;
 	else
 		return false;
+}
+
+bool KFileHandleDataStream::Reference(char** ppszBuffer, size_t uSize)
+{
+	if(ppszBuffer)
+		*ppszBuffer = nullptr;
+	return false;
 }
 
 // KFileDataStream
@@ -611,4 +637,11 @@ bool KFileDataStream::Write(const char* pszBuffer, size_t uSize)
 	}
 	else
 		return false;
+}
+
+bool KFileDataStream::Reference(char** ppszBuffer, size_t uSize)
+{
+	if(ppszBuffer)
+		*ppszBuffer = nullptr;
+	return false;
 }

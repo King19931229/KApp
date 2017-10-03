@@ -12,7 +12,7 @@ enum ImageFormat
 	IF_INVALID = IF_COUNT
 };
 
-typedef std::shared_ptr<std::vector<void*>> ImageData;
+typedef std::shared_ptr<std::vector<unsigned char>> ImageData;
 struct CodecResult
 {
 	bool bSuccess;
@@ -34,9 +34,7 @@ typedef std::shared_ptr<IKCodec> IKCodecPtr;
 
 struct IKCodec
 {
-	virtual bool Codec(const char* pszFile) = 0;
-	virtual bool Clear() = 0;
-	virtual CodecResult GetResult() = 0;
+	virtual CodecResult Codec(const char* pszFile) = 0;
 };
 
 EXPORT_DLL bool InitCodecManager();

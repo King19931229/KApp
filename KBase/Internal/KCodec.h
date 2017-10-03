@@ -1,33 +1,43 @@
 ﻿#pragma once
 #include "Interface/IKCodec.h"
-#include <unordered_map>
+
+#include <set>
+#include <map>
+#include <mutex>
 
 class KFreeImageCodec : public IKCodec
 {
-protected:
-	CodecResult m_Result;
 public:
-	KFreeImageCodec();
+	typedef std::set<std::string> SupportExt;
+protected:
+	int m_nType;
+	static SupportExt ms_SupportExts;
+public:
+	KFreeImageCodec(int nType);
 	virtual ~KFreeImageCodec();
 
-	virtual bool Codec(const char* pszFile);
-	virtual bool Clear();
-	virtual CodecResult GetResult();
+	CodecResult Codec(const char* pszFile);
 
 	static bool Init();
 	static bool UnInit();
-	static bool Support(const char* pExt);
 };
 
 class KCodecManager
 {
-protected:
+public:
+	typedef std::map<std::string, IKCodecPtr> SupportCodec;
 public:
 	KCodecManager();
 	~KCodecManager();
 
-	bool Init();
-	bool UnInit();
+	static std::mutex ms_Lock;
+	static SupportCodec ms_Codecs;
 
-	IKCodecPtr GetCodec(const char* pFilePath);
+	static bool Init();
+	static bool UnInit();
+
+	static bool AddCodec(const char* pExt, IKCodecPtr pCodec);
+	static bool RemoveCodec(const char* pExt);
+
+	static IKCodecPtr GetCodec(const char* pFilePath);
 };
