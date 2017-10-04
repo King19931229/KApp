@@ -1,4 +1,4 @@
-/* -*- C++ -*-
+﻿/* -*- C++ -*-
  * File: aahd_demosaic.cpp
  * Copyright 2013 Anton Petrusevich
  * Created: Wed May  15, 2013

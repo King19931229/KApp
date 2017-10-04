@@ -1,4 +1,4 @@
-/* 
+﻿/* 
    WF debanding code
    Copyright 2011 by Yan Vladimirovich
 

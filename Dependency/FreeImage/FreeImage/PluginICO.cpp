@@ -1,9 +1,9 @@
-// ==========================================================
+ï»¿// ==========================================================
 // ICO Loader and Writer
 //
 // Design and implementation by
 // - Floris van den Berg (flvdberg@wxs.nl)
-// - Hervé Drolon (drolon@infonie.fr)
+// - Herv?Drolon (drolon@infonie.fr)
 //
 // This file is part of FreeImage 3
 //

@@ -1,9 +1,9 @@
-// ==========================================================
+﻿// ==========================================================
 // GIF Loader and Writer
 //
 // Design and implementation by
 // - Ryan Rubley <ryan@lostreality.org>
-// - Rapha�l Gaquer <raphael.gaquer@alcer.com>
+// - Rapha雔 Gaquer <raphael.gaquer@alcer.com>
 // - Aaron Shumate <aaron@shumate.us>
 //
 // This file is part of FreeImage 3

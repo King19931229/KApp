@@ -1,4 +1,4 @@
-/*
+﻿/*
  * jdarith.c
  *
  * Developed 1997-2013 by Guido Vollbeding.

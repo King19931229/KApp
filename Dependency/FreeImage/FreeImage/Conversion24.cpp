@@ -1,10 +1,10 @@
-// ==========================================================
+ï»¿// ==========================================================
 // Bitmap conversion routines
 //
 // Design and implementation by
 // - Floris van den Berg (flvdberg@wxs.nl)
 // - Dale Larson (dlarson@norsesoft.com)
-// - Hervé Drolon (drolon@infonie.fr)
+// - Herv?Drolon (drolon@infonie.fr)
 // - Jani Kajala (janik@remedy.fi)
 //
 // This file is part of FreeImage 3

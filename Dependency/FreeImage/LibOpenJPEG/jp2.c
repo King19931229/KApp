@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * Copyright (c) 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
  * Copyright (c) 2002-2007, Professor Benoit Macq
  * Copyright (c) 2001-2003, David Janssens
@@ -1268,7 +1268,7 @@ OPJ_BOOL opj_jp2_read_colr( opj_jp2_t *jp2,
 	}
 	else if (jp2->meth > 2)
     {
-        /*	ISO/IEC 15444-1:2004 (E), Table I.9 ­ Legal METH values:
+        /*	ISO/IEC 15444-1:2004 (E), Table I.9 ?Legal METH values:
         conforming JP2 reader shall ignore the entire Colour Specification box.*/
         opj_event_msg(p_manager, EVT_INFO, "COLR BOX meth value is not a regular value (%d), " 
             "so we will ignore the entire Colour Specification box. \n", jp2->meth);

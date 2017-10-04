@@ -1,4 +1,4 @@
-//
+﻿//
 // Define and set to 1 if the target system supports a proc filesystem
 // compatible with the Linux kernel's proc filesystem.  Note that this
 // is only used by a program in the IlmImfTest test suite, it's not

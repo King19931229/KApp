@@ -1,8 +1,8 @@
-// ==========================================================
+ï»¿// ==========================================================
 // Bitmap conversion routines
 //
 // Design and implementation by
-// - Hervé Drolon (drolon@infonie.fr)
+// - Herv?Drolon (drolon@infonie.fr)
 // - Tanner Helland (tannerhelland@users.sf.net)
 //
 // This file is part of FreeImage 3

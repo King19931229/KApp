@@ -1,4 +1,4 @@
-/* "$Id: mkg3states.c,v 1.11 2015/02/19 22:39:58 drolon Exp $ */
+﻿/* "$Id: mkg3states.c,v 1.11 2015/02/19 22:39:58 drolon Exp $ */
 
 /*
  * Copyright (c) 1991-1997 Sam Leffler

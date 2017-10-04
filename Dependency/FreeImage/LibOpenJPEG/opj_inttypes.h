@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2012, Mathieu Malaterre <mathieu.malaterre@gmail.com>
  * All rights reserved.
  *

@@ -1,11 +1,11 @@
-// ==========================================================
+ï»¿// ==========================================================
 // Deluxe Paint Loader
 //
 // Design and implementation by
 // - Floris van den Berg (flvdberg@wxs.nl)
 // - Mark Sibly (marksibly@blitzbasic.com)
 // - Aaron Shumate (trek@startreker.com)
-// - Hervé Drolon (drolon@infonie.fr)
+// - Herv?Drolon (drolon@infonie.fr)
 //
 // This file is part of FreeImage 3
 //

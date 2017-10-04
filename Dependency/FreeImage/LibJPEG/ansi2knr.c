@@ -1,4 +1,4 @@
-/* Copyright (C) 1989, 2000 Aladdin Enterprises.  All rights reserved. */
+﻿/* Copyright (C) 1989, 2000 Aladdin Enterprises.  All rights reserved. */
 
 /*$Id: ansi2knr.c,v 1.6 2012/01/29 12:23:24 drolon Exp $*/
 /* Convert ANSI C function definitions to K&R ("traditional C") syntax */

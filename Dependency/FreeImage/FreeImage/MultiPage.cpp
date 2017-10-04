@@ -1,4 +1,4 @@
-// ==========================================================
+ï»¿// ==========================================================
 // Multi-Page functions
 //
 // Design and implementation by
@@ -6,7 +6,7 @@
 // - Laurent Rocher (rocherl@club-internet.fr)
 // - Steve Johnson (steve@parisgroup.net)
 // - Petr Pytelka (pyta@lightcomp.com)
-// - Hervé Drolon (drolon@infonie.fr)
+// - Herv?Drolon (drolon@infonie.fr)
 // - Vadim Alexandrov (vadimalexandrov@users.sourceforge.net
 // - Martin Dyring-Andersen (mda@spamfighter.com)
 // - Volodymyr Goncharov (volodymyr.goncharov@gmail.com)

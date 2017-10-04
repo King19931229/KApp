@@ -1,4 +1,4 @@
-#ifndef HALFEXPORT_H
+﻿#ifndef HALFEXPORT_H
 #define HALFEXPORT_H
 
 //

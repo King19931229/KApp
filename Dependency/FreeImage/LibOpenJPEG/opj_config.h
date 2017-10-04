@@ -1,4 +1,4 @@
-#ifndef OPJ_CONFIG_H
+﻿#ifndef OPJ_CONFIG_H
 #define OPJ_CONFIG_H
 
 #ifndef _MSC_VER

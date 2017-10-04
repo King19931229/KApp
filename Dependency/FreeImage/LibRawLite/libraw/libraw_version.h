@@ -1,4 +1,4 @@
-/* -*- C++ -*-
+﻿/* -*- C++ -*-
  * File: libraw_version.h
  * Copyright 2008-2013 LibRaw LLC (info@libraw.org)
  * Created: Mon Sept  8, 2008 

@@ -1,4 +1,4 @@
-/*
+﻿/*
  *    Copyright (C) 2010,  Jacek Gozdz (cuniek@kft.umcs.lublin.pl)
  * 
  *    This code is licensed under a (3-clause) BSD license as follows :
