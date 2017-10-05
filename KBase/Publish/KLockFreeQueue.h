@@ -26,9 +26,8 @@ protected:
 	std::atomic_short	m_nReadIndex;
 	std::atomic_short	m_nWriteIndex;
 	std::atomic_short	m_nMaxReadIndex;
-	std::atomic_short	m_nMaxWriteIndex;
 
-	std::atomic_size_t	m_uQueueCount;
+	std::atomic_short	m_nQueueCount;
 	std::mutex			m_WaitLock;
 
 	size_t				m_uWaitQueueSize;
@@ -47,25 +46,25 @@ protected:
 		short nCurrentReadIndex = -1;
 		short nNextWriteIndex = -1;
 
-		while(true)
+		if(m_nQueueCount >= ARRAY_SIZE - 1)
+			return false;
+		do
 		{
-			nCurrentWriteIndex	= m_nWriteIndex.load(std::memory_order_acquire);
-			nCurrentReadIndex	= m_nReadIndex.load(std::memory_order_acquire);
-			nNextWriteIndex = GetIndex(nCurrentWriteIndex + 1);
+			nCurrentWriteIndex	= m_nWriteIndex.load();
+			nNextWriteIndex		= GetIndex(nCurrentWriteIndex + 1);
+			nCurrentReadIndex	= m_nReadIndex.load();
 
-			if(nNextWriteIndex == m_nMaxWriteIndex)
+			if(nNextWriteIndex == nCurrentReadIndex)
 				return false;
-
-			if(m_nWriteIndex.compare_exchange_weak(nCurrentWriteIndex, nNextWriteIndex))
-				break;
-		}
+		}while(!m_nWriteIndex.compare_exchange_strong(nCurrentWriteIndex, nNextWriteIndex));
 
 		m_RingBuffer[nCurrentWriteIndex] = element;
-		while(!m_nMaxReadIndex.compare_exchange_weak(nCurrentWriteIndex, nNextWriteIndex))
+		while(!m_nMaxReadIndex.compare_exchange_strong(nCurrentWriteIndex, nNextWriteIndex))
 		{
 			std::this_thread::yield();
 		}
-		m_uQueueCount.fetch_add(1, std::memory_order_acq_rel);
+		m_nQueueCount.fetch_add(1);
+		assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
 		return true;
 	}
 public:
@@ -74,8 +73,7 @@ public:
 		m_nReadIndex = 0;
 		m_nWriteIndex = 0;
 		m_nMaxReadIndex = 0;
-		m_nMaxWriteIndex = 0;
-		m_uQueueCount = 0;
+		m_nQueueCount = 0;
 		m_uWaitQueueSize = 0;
 	}
 
@@ -86,7 +84,7 @@ public:
 
 	size_t Size()
 	{
-		return m_uQueueCount.load(std::memory_order_relaxed) + m_uWaitQueueSize;
+		return m_nQueueCount + m_uWaitQueueSize;
 	}
 
 	size_t WaitQueueSize()
@@ -119,27 +117,23 @@ public:
 		short nCurrentMaxReadIndex = -1;
 		short nNextReadIndex = -1;
 		bool bRet = false;
-		while(true)
+		do
 		{
-			nCurrentReadIndex		= m_nReadIndex.load(std::memory_order_acquire);
-			nCurrentMaxReadIndex	= m_nMaxReadIndex.load(std::memory_order_acquire);
-			nNextReadIndex			= GetIndex(m_nReadIndex + 1);
+			nCurrentReadIndex		= m_nReadIndex.load();
+			nNextReadIndex			= GetIndex(nCurrentReadIndex + 1);
+			nCurrentMaxReadIndex	= m_nMaxReadIndex.load();
+
 			if(nCurrentReadIndex == nCurrentMaxReadIndex)
 				break;
-			if(m_nReadIndex.compare_exchange_weak(nCurrentReadIndex, nNextReadIndex))
+			element = m_RingBuffer[nCurrentReadIndex];
+			if(m_nReadIndex.compare_exchange_strong(nCurrentReadIndex, nNextReadIndex))
 			{
-				element = m_RingBuffer[nCurrentReadIndex];
-
-				while(!m_nMaxWriteIndex.compare_exchange_weak(nCurrentReadIndex, nNextReadIndex))
-				{
-					std::this_thread::yield();
-				}
-
-				m_uQueueCount.fetch_sub(1, std::memory_order_acq_rel);
+				m_nQueueCount.fetch_sub(1);
 				bRet = true;
 				break;
 			}
-		}
+		}while(true);
+		assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
 		if(bRet)
 			FlushWaitingElement();
 		return bRet;
@@ -152,28 +146,24 @@ public:
 		short nCurrentMaxReadIndex = -1;
 		short nNextReadIndex = -1;
 		bool bRet = false;
-		while(true)
+		do
 		{
-			nCurrentReadIndex		= m_nReadIndex.load(std::memory_order_acquire);
-			nCurrentMaxReadIndex	= m_nMaxReadIndex.load(std::memory_order_acquire);
-			nNextReadIndex			= GetIndex(m_nReadIndex + 1);
+			nCurrentReadIndex		= m_nReadIndex.load();
+			nNextReadIndex			= GetIndex(nCurrentReadIndex + 1);
+			nCurrentMaxReadIndex	= m_nMaxReadIndex.load();
+
 			if(nCurrentReadIndex == nCurrentMaxReadIndex)
 				break;
-			if(m_nReadIndex.compare_exchange_weak(nCurrentReadIndex, nNextReadIndex))
+			element = m_RingBuffer[nCurrentReadIndex];
+			if(m_nReadIndex.compare_exchange_strong(nCurrentReadIndex, nNextReadIndex))
 			{
-				element = m_RingBuffer[nCurrentReadIndex];
 				func(element);
-
-				while(!m_nMaxWriteIndex.compare_exchange_weak(nCurrentReadIndex, nNextReadIndex))
-				{
-					std::this_thread::yield();
-				}
-
-				m_uQueueCount.fetch_sub(1, std::memory_order_acq_rel);
+				m_nQueueCount.fetch_sub(1);
 				bRet = true;
 				break;
 			}
-		}
+		}while(true);
+		assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
 		if(bRet)
 			FlushWaitingElement();
 		return bRet;
