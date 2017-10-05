@@ -26,6 +26,7 @@ protected:
 	std::atomic_short	m_nReadIndex;
 	std::atomic_short	m_nWriteIndex;
 	std::atomic_short	m_nMaxReadIndex;
+	std::atomic_short	m_nMaxWriteIndex;
 
 	std::atomic_size_t	m_uQueueCount;
 	std::mutex			m_WaitLock;
@@ -45,16 +46,15 @@ protected:
 		short nCurrentWriteIndex = -1;
 		short nCurrentReadIndex = -1;
 		short nNextWriteIndex = -1;
+
 		while(true)
 		{
 			nCurrentWriteIndex	= m_nWriteIndex.load(std::memory_order_acquire);
 			nCurrentReadIndex	= m_nReadIndex.load(std::memory_order_acquire);
 			nNextWriteIndex = GetIndex(nCurrentWriteIndex + 1);
 
-			if(nNextWriteIndex == nCurrentReadIndex)
-			{
+			if(nNextWriteIndex == m_nMaxWriteIndex)
 				return false;
-			}
 
 			if(m_nWriteIndex.compare_exchange_weak(nCurrentWriteIndex, nNextWriteIndex))
 				break;
@@ -74,6 +74,7 @@ public:
 		m_nReadIndex = 0;
 		m_nWriteIndex = 0;
 		m_nMaxReadIndex = 0;
+		m_nMaxWriteIndex = 0;
 		m_uQueueCount = 0;
 		m_uWaitQueueSize = 0;
 	}
@@ -128,6 +129,12 @@ public:
 			if(m_nReadIndex.compare_exchange_weak(nCurrentReadIndex, nNextReadIndex))
 			{
 				element = m_RingBuffer[nCurrentReadIndex];
+
+				while(!m_nMaxWriteIndex.compare_exchange_weak(nCurrentReadIndex, nNextReadIndex))
+				{
+					std::this_thread::yield();
+				}
+
 				m_uQueueCount.fetch_sub(1, std::memory_order_acq_rel);
 				bRet = true;
 				break;
@@ -156,6 +163,12 @@ public:
 			{
 				element = m_RingBuffer[nCurrentReadIndex];
 				func(element);
+
+				while(!m_nMaxWriteIndex.compare_exchange_weak(nCurrentReadIndex, nNextReadIndex))
+				{
+					std::this_thread::yield();
+				}
+
 				m_uQueueCount.fetch_sub(1, std::memory_order_acq_rel);
 				bRet = true;
 				break;
