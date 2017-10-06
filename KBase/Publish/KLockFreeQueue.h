@@ -4,13 +4,16 @@
 #include <atomic>
 #include <queue>
 
-// 算法主体参考以下文章:
 // Yet another implementation of a lock-free circular array queue
 // https://www.codeproject.com/Articles/153898/Yet-another-implementation-of-a-lock-free-circul
-// sniperHW 翻译的这是中文译文:
+// 中文译文:
 // http://www.cnblogs.com/sniperHW/p/4172248.html
-// 由于算法维持一个静态大小的RingBuffer由于RingBuffer大小固定
-// 可能存在入队时RingBuffer已满的情况 因此维持一个缓冲队列WaitQueue
+
+// C++11 CAS
+// http://en.cppreference.com/w/cpp/atomic/atomic_compare_exchange
+// 注意C++11中atomic的CAS操作中 【Exp】是以【引用】传入而非【常引用】
+// 所以标准就允许CAS操作后【Exp】被修改
+// VS2012下CAS后【Exp】就有被修改的可能
 
 template<typename Elem_T, size_t ARRAY_SIZE = 1024>
 class KLockFreeQueue
@@ -26,10 +29,9 @@ protected:
 	std::atomic_short	m_nReadIndex;
 	std::atomic_short	m_nWriteIndex;
 	std::atomic_short	m_nMaxReadIndex;
-
+	std::atomic_short	m_nMaxWriteIndex;
 	std::atomic_short	m_nQueueCount;
 	std::mutex			m_WaitLock;
-
 	size_t				m_uWaitQueueSize;
 
 	void PushIntoWaitQueue(Elem_T& element)
@@ -43,26 +45,31 @@ protected:
 	bool TryPush(Elem_T& element)
 	{
 		short nCurrentWriteIndex = -1;
-		short nCurrentReadIndex = -1;
 		short nNextWriteIndex = -1;
-
-		if(m_nQueueCount >= ARRAY_SIZE - 1)
-			return false;
+		short nExp = -1;
 		do
 		{
 			nCurrentWriteIndex	= m_nWriteIndex.load();
 			nNextWriteIndex		= GetIndex(nCurrentWriteIndex + 1);
-			nCurrentReadIndex	= m_nReadIndex.load();
-
-			if(nNextWriteIndex == nCurrentReadIndex)
+			// C++11 CAS操作会修改【Exp】
+			nExp				= nCurrentWriteIndex;
+			// 队列已满不能【Push】
+			if(nNextWriteIndex == m_nMaxWriteIndex)
 				return false;
-		}while(!m_nWriteIndex.compare_exchange_strong(nCurrentWriteIndex, nNextWriteIndex));
+		}while(!m_nWriteIndex.compare_exchange_strong(nExp, nNextWriteIndex));
 
 		m_RingBuffer[nCurrentWriteIndex] = element;
-		while(!m_nMaxReadIndex.compare_exchange_strong(nCurrentWriteIndex, nNextWriteIndex))
+		// C++11 CAS操作会修改【Exp】
+		nExp = nCurrentWriteIndex;
+		// 这是【写保护】防止【读操作】把未在队列中的元素读出
+		while(!m_nMaxReadIndex.compare_exchange_strong(nExp, nNextWriteIndex))
 		{
+			// C++11 CAS操作会修改【Exp】
+			nExp = nCurrentWriteIndex;
+			// 多个线程同时【Push】产生冲突 当前线程【让出】
 			std::this_thread::yield();
 		}
+
 		m_nQueueCount.fetch_add(1);
 		assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
 		return true;
@@ -73,6 +80,7 @@ public:
 		m_nReadIndex = 0;
 		m_nWriteIndex = 0;
 		m_nMaxReadIndex = 0;
+		m_nMaxWriteIndex = 0;
 		m_nQueueCount = 0;
 		m_uWaitQueueSize = 0;
 	}
@@ -84,7 +92,7 @@ public:
 
 	size_t Size()
 	{
-		return m_nQueueCount + m_uWaitQueueSize;
+		return (size_t)m_nQueueCount + m_uWaitQueueSize;
 	}
 
 	size_t WaitQueueSize()
@@ -113,60 +121,82 @@ public:
 
 	bool Pop(Elem_T& element)
 	{
-		short nCurrentReadIndex = -1;
-		short nCurrentMaxReadIndex = -1;
-		short nNextReadIndex = -1;
 		bool bRet = false;
+		short nCurrentReadIndex = -1;
+		short nNextReadIndex = -1;
+		short nExp = -1;
 		do
 		{
 			nCurrentReadIndex		= m_nReadIndex.load();
 			nNextReadIndex			= GetIndex(nCurrentReadIndex + 1);
-			nCurrentMaxReadIndex	= m_nMaxReadIndex.load();
-
-			if(nCurrentReadIndex == nCurrentMaxReadIndex)
+			// C++11 CAS操作会修改【Exp】
+			nExp					= nCurrentReadIndex;
+			if(nCurrentReadIndex == m_nMaxReadIndex)
 				break;
-			element = m_RingBuffer[nCurrentReadIndex];
-			if(m_nReadIndex.compare_exchange_strong(nCurrentReadIndex, nNextReadIndex))
+			//if(m_nReadIndex.compare_exchange_strong(nExp, nNextReadIndex))
+			if(m_nReadIndex.compare_exchange_weak(nExp, nNextReadIndex))
 			{
+				element = m_RingBuffer[nCurrentReadIndex];
 				m_nQueueCount.fetch_sub(1);
-				bRet = true;
-				break;
+				// C++11 CAS操作会修改【Exp】
+				nExp = nCurrentReadIndex;
+				// 这是【读保护】防止【写操作】把正在队列中的元素覆盖掉
+				while(!m_nMaxWriteIndex.compare_exchange_strong(nExp, nNextReadIndex))
+				{
+					// C++11 CAS操作会修改【Exp】
+					nExp = nCurrentReadIndex;
+					// 多个线程同时【Pop】产生冲突 当前线程【让出】
+					std::this_thread::yield();
+				}
+				assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
+				// 把未在环形数组的元素传入
+				FlushWaitingElement();
+				return true;
 			}
 		}while(true);
 		assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
-		if(bRet)
-			FlushWaitingElement();
-		return bRet;
+		return false;
 	}
 
 	template<typename ProcFuncType>
 	bool Pop(Elem_T& element, ProcFuncType func)
 	{
 		short nCurrentReadIndex = -1;
-		short nCurrentMaxReadIndex = -1;
 		short nNextReadIndex = -1;
+		short nExp = -1;
 		bool bRet = false;
 		do
 		{
 			nCurrentReadIndex		= m_nReadIndex.load();
 			nNextReadIndex			= GetIndex(nCurrentReadIndex + 1);
-			nCurrentMaxReadIndex	= m_nMaxReadIndex.load();
-
-			if(nCurrentReadIndex == nCurrentMaxReadIndex)
+			// C++11 CAS操作会修改【Exp】
+			nExp					= nCurrentReadIndex;
+			if(nCurrentReadIndex == m_nMaxReadIndex)
 				break;
-			element = m_RingBuffer[nCurrentReadIndex];
-			if(m_nReadIndex.compare_exchange_strong(nCurrentReadIndex, nNextReadIndex))
+			//if(m_nReadIndex.compare_exchange_strong(nExp, nNextReadIndex))
+			if(m_nReadIndex.compare_exchange_weak(nExp, nNextReadIndex))
 			{
+				element = m_RingBuffer[nCurrentReadIndex];
 				func(element);
 				m_nQueueCount.fetch_sub(1);
-				bRet = true;
-				break;
+				// C++11 CAS操作会修改【Exp】
+				nExp = nCurrentReadIndex;
+				// 这是【读保护】防止【写操作】把正在队列中的元素覆盖掉
+				while(!m_nMaxWriteIndex.compare_exchange_strong(nExp, nNextReadIndex))
+				{
+					// C++11 CAS操作会修改【Exp】
+					nExp = nCurrentReadIndex;
+					// 多个线程同时【Pop】产生冲突 当前线程【让出】
+					std::this_thread::yield();
+				}
+				assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
+				// 把未在环形数组的元素传入
+				FlushWaitingElement();
+				return true;
 			}
 		}while(true);
 		assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
-		if(bRet)
-			FlushWaitingElement();
-		return bRet;
+		return false;
 	}
 
 	void FlushWaitingElement()
