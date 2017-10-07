@@ -38,8 +38,8 @@ public:
 	virtual bool AsyncLoad()
 	{
 		KHashString str = GetHashString("AsyncLoad %d", m_ID);
-		IKCodecPtr pCodec = GetCodec("D:/test.jpg");
-		CodecResult res = pCodec->Codec("D:/test.jpg");
+		IKCodecPtr pCodec = GetCodec("D:/test.JPG");
+		KCodecResult res = pCodec->Codec("D:/BIG.JPG");
 		KLOG(pLog, "%s", str);
 		return true;
 	}
@@ -60,7 +60,8 @@ int main()
 
 	timer.Reset();
 	std::vector<KTaskUnitProcessorPtr> ps;
-	for(int i = 0; i < 1000; ++i)
+	int nTaskCount = 1000;
+	for(int i = 0; i < nTaskCount; ++i)
 	{
 		KTaskUnitPtr pUnit(new Func(i));
 		KTaskUnitProcessorPtr pProcess(new KTaskUnitProcessor(pUnit));
@@ -68,7 +69,7 @@ int main()
 		Exc.Submit(pProcess);
 	}
 
-	for(int i = 999; i >= 0; --i)
+	for(int i = 0; i < nTaskCount; ++i)
 	{
 		ps[i]->WaitAsync();
 	}
@@ -79,7 +80,7 @@ int main()
 	UnInitCodecManager();
 	//std::function<bool()> func = std::bind(Test, 10);
 	//func();
-	
+
 	//TestClass t;
 	//std::mem_fun(&TestClass::TestFunc);
 
