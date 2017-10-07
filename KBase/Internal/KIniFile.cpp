@@ -1,7 +1,7 @@
 ﻿#include "Internal/KIniFile.h"
 #include <sstream>
 
-IKIniFilePtr GetIniFile()
+EXPORT_DLL IKIniFilePtr GetIniFile()
 {
 	return IKIniFilePtr(new KIniFile());
 }

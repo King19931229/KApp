@@ -19,9 +19,9 @@ KFreeImageCodec::~KFreeImageCodec()
 
 }
 
-CodecResult KFreeImageCodec::Codec(const char* pszFile)
+KCodecResult KFreeImageCodec::Codec(const char* pszFile)
 {
-	CodecResult result;
+	KCodecResult result;
 
 	IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
 	FIMEMORY *fiMem = nullptr;
@@ -96,12 +96,10 @@ CodecResult KFreeImageCodec::Codec(const char* pszFile)
 				unsigned char *srcData = FreeImage_GetBits(fiBitmap);
 				assert(srcData);
 				unsigned int srcPitch = FreeImage_GetPitch(fiBitmap);
-
-				std::vector<unsigned char>* pVec = new std::vector<unsigned char>();
-				pVec->resize(srcPitch * result.uHeight);
-				memcpy(&((*pVec)[0]), srcData,  pVec->size());
-
-				result.pData = ImageData(pVec);
+				assert(srcPitch > 0);
+				KImageDataPtr pData = KImageDataPtr(new KImageData(srcPitch * result.uHeight));
+				memcpy((void*)pData->GetData(), (const void*)srcData, pData->GetSize());
+				result.pData = pData;
 
 				result.bSuccess = true;
 			}
@@ -245,19 +243,19 @@ IKCodecPtr KCodecManager::GetCodec(const char* pFilePath)
 }
 
 // EXPORT
-bool InitCodecManager()
+EXPORT_DLL bool InitCodecManager()
 {
 	bool bRet = KCodecManager::Init();
 	return bRet;
 }
 
-bool UnInitCodecManager()
+EXPORT_DLL bool UnInitCodecManager()
 {
 	bool bRet = KCodecManager::UnInit();
 	return bRet;
 }
 
-IKCodecPtr GetCodec(const char* pszFile)
+EXPORT_DLL IKCodecPtr GetCodec(const char* pszFile)
 {
 	IKCodecPtr pRet = KCodecManager::GetCodec(pszFile);
 	return pRet;

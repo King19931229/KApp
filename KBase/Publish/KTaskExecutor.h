@@ -56,7 +56,7 @@ public:
 	/*
 	*@brief 调用线程取消异步任务
 	*@param[in] bWait 调用线程是否等待直到异步任务被取消 true则等待false则不等待
-	*@note 如果该任务有SyncLoad则任务被取消后可能在轮询队列里 TODO: 发现死锁BUG 机制问题抑或系内存问题
+	*@note 如果该任务有SyncLoad则任务被取消后可能在轮询队列里
 	*/
 	bool Cancel(bool bWait)
 	{

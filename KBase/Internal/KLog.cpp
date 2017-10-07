@@ -28,7 +28,7 @@ const KLogLevelDesc LEVEL_DESC[] =
 };
 static_assert(sizeof(LEVEL_DESC) / sizeof(LEVEL_DESC[0]) == LL_COUNT + 1, "LEVEL_DESC COUNT NOT MATCH TO LL_COUNT");
 
-IKLogPtr CreateLog()
+EXPORT_DLL IKLogPtr CreateLog()
 {
 	return IKLogPtr(new KLog());
 }

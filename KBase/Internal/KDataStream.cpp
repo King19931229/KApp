@@ -2,7 +2,7 @@
 
 #include <assert.h>
 
-IKDataStreamPtr GetDataStream(IOType eType)
+EXPORT_DLL IKDataStreamPtr GetDataStream(IOType eType)
 {
 	IKDataStreamPtr pRet;
 	switch (eType)

@@ -78,18 +78,18 @@ HashStrChunks g_Chunks;
 HashStrMap g_StrMap;
 std::mutex g_Lock;
 
-bool CreateHashStringTable()
+EXPORT_DLL bool CreateHashStringTable()
 {
 	return true;
 }
 
-bool DestroyHashStringTable()
+EXPORT_DLL bool DestroyHashStringTable()
 {
 	g_Chunks.swap(HashStrChunks());
 	return true;
 }
 
-KHashString _GetHashString(const char* pszStr)
+static KHashString _GetHashString(const char* pszStr)
 {
 	if(pszStr)
 	{
@@ -135,7 +135,7 @@ KHashString _GetHashString(const char* pszStr)
 	return nullptr;
 }
 
-KHashString GetHashString(const char* pszFormat, ...)
+EXPORT_DLL KHashString GetHashString(const char* pszFormat, ...)
 {
 	KHashString pRet = nullptr;
 	va_list list;

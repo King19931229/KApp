@@ -3,7 +3,7 @@
 namespace KHash
 {
 	// http://blog.csdn.net/wusuopubupt/article/details/11479869
-	size_t Time33(const char* pData, size_t uLen)
+	EXPORT_DLL size_t Time33(const char* pData, size_t uLen)
 	{
 		size_t hash = 5381; 
 		/* variant with the hash unrolled eight times */ 
@@ -33,7 +33,7 @@ namespace KHash
 	}
 
 	// http://blog.csdn.net/wanglx_/article/details/40400693
-	size_t BKDR(const char* pData, size_t uLen)
+	EXPORT_DLL size_t BKDR(const char* pData, size_t uLen)
 	{
 		size_t seed = 31; // 31 131 1313 13131 131313 etc.. 37
 		size_t hash = 0; 

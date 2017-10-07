@@ -7,7 +7,7 @@
 
 namespace KThreadTool
 {
-	void SetThreadName(char const* pszName, unsigned long uThreadID)
+	EXPORT_DLL void SetThreadName(char const* pszName, unsigned long uThreadID)
 	{
 #ifdef _WIN32
 #pragma pack(push,8)  

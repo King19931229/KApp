@@ -8,14 +8,14 @@
 
 namespace KFileTool
 {
-	bool IsFileExist(const char* pFilePath)
+	EXPORT_DLL bool IsFileExist(const char* pFilePath)
 	{
 		if(pFilePath && _access(pFilePath, 0) != -1)
 			return true;
 		return false;
 	}
 
-	bool RemoveFile(const char* pFilePath)
+	EXPORT_DLL bool RemoveFile(const char* pFilePath)
 	{
 		if(pFilePath)
 		{
@@ -26,7 +26,7 @@ namespace KFileTool
 		return false;
 	}
 
-	bool CreateFolder(const char* pDir, bool bRecursive)
+	EXPORT_DLL bool CreateFolder(const char* pDir, bool bRecursive)
 	{
 		if(pDir)
 		{
@@ -58,7 +58,7 @@ namespace KFileTool
 		return false;
 	}
 
-	bool RemoveFolder(const char* pDir, bool bRecursive)
+	EXPORT_DLL bool RemoveFolder(const char* pDir, bool bRecursive)
 	{
 		if(pDir)
 		{
@@ -88,7 +88,7 @@ namespace KFileTool
 		return false;
 	}
 
-	bool TrimPath(char* pDestPath, size_t uDestBufferSize, const char* pSrcPath, bool bTolower)
+	EXPORT_DLL bool TrimPath(char* pDestPath, size_t uDestBufferSize, const char* pSrcPath, bool bTolower)
 	{
 		if(pDestPath && pSrcPath && uDestBufferSize > 0)
 		{

@@ -1,7 +1,9 @@
 ﻿#pragma once
 #include "Interface/IKConfig.h"
+
 #include <memory>
 #include <vector>
+#include <assert.h>
 
 enum ImageFormat
 {
@@ -12,15 +14,39 @@ enum ImageFormat
 	IF_INVALID = IF_COUNT
 };
 
-typedef std::shared_ptr<std::vector<unsigned char>> ImageData;
-struct CodecResult
+class KImageData
+{
+protected:
+	unsigned char* m_pData;
+	size_t m_uSize;
+public:
+	KImageData(size_t uSize)
+		: m_uSize(uSize)
+	{
+		assert(m_uSize > 0);
+		m_pData = new unsigned char[m_uSize];
+		memset(m_pData, 0, m_uSize);
+	}
+	~KImageData()
+	{
+		delete[] m_pData;
+		m_pData = nullptr;
+		m_uSize = 0;
+	}
+	size_t GetSize() const { return m_uSize; }
+	unsigned char* GetData() { return m_pData; }
+	const unsigned char* GetData() const { return m_pData; }
+};
+typedef std::shared_ptr<KImageData> KImageDataPtr;
+
+struct KCodecResult
 {
 	bool bSuccess;
 	ImageFormat eFormat;
 	size_t uWidth;
 	size_t uHeight;
-	ImageData pData;
-	CodecResult()
+	KImageDataPtr pData;
+	KCodecResult()
 	{
 		bSuccess = false;
 		eFormat = IF_INVALID;
@@ -34,7 +60,7 @@ typedef std::shared_ptr<IKCodec> IKCodecPtr;
 
 struct IKCodec
 {
-	virtual CodecResult Codec(const char* pszFile) = 0;
+	virtual KCodecResult Codec(const char* pszFile) = 0;
 };
 
 EXPORT_DLL bool InitCodecManager();

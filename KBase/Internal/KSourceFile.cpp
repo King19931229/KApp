@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <assert.h>
 
-IKSourceFilePtr GetSourceFile()
+EXPORT_DLL IKSourceFilePtr GetSourceFile()
 {
 	IKSourceFilePtr pRet(new KSourceFile());
 	return pRet;
