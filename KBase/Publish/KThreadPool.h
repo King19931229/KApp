@@ -4,7 +4,7 @@
 #include "Publish/KSemaphore.h"
 #include "Publish/KThreadTool.h"
 
-template<typename Task, bool bUseLockFreeQueue = false>
+template<typename Task, bool bUseLockFreeQueue = true>
 class KThreadPool
 {
 	struct TaskGroup

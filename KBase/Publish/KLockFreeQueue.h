@@ -20,7 +20,7 @@ class KLockFreeQueue
 {
 	typedef std::queue<Elem_T> WaitingQueue;
 	typedef int ArraySizeTest[(ARRAY_SIZE & (ARRAY_SIZE - 1)) == 0 ? 1 : -1] ;
-	typedef int ArraySizeTest2[(ARRAY_SIZE <= 32767) ? 1 : -1] ;
+	typedef int ArraySizeTest2[(ARRAY_SIZE <= 0x7FFF) ? 1 : -1] ;
 	inline short GetIndex(short nPos) { return nPos & (ARRAY_SIZE - 1); }
 protected:
 	Elem_T				m_RingBuffer[ARRAY_SIZE];
@@ -29,7 +29,7 @@ protected:
 	std::atomic_short	m_nWriteIndex;
 	std::atomic_short	m_nMaxReadIndex;
 	std::atomic_short	m_nMaxWriteIndex;
-	//std::atomic_short	m_nQueueCount;
+	std::atomic_short	m_nQueueCount;
 	std::mutex			m_WaitLock;
 	size_t				m_uWaitQueueSize;
 
@@ -46,6 +46,7 @@ protected:
 		short nCurrentWriteIndex = -1;
 		short nNextWriteIndex = -1;
 		short nExp = -1;
+
 		do
 		{
 			nCurrentWriteIndex	= m_nWriteIndex.load(std::memory_order_relaxed);
@@ -68,8 +69,8 @@ protected:
 			// 多个线程同时【Push】产生冲突 当前线程【让出】
 			std::this_thread::yield();
 		}
-		//m_nQueueCount.fetch_add(1, std::memory_order_acq_rel);
-		//assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
+		m_nQueueCount.fetch_add(1, std::memory_order_acq_rel);
+		assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
 		return true;
 	}
 public:
@@ -79,7 +80,7 @@ public:
 		m_nWriteIndex = 0;
 		m_nMaxReadIndex = 0;
 		m_nMaxWriteIndex = 0;
-		//m_nQueueCount = 0;
+		m_nQueueCount = 0;
 		m_uWaitQueueSize = 0;
 	}
 
@@ -100,13 +101,15 @@ public:
 
 	inline size_t RingElementSize()
 	{
-		//return (size_t)m_nQueueCount.load(std::memory_order_relaxed);
+		return (size_t)m_nQueueCount.load(std::memory_order_relaxed);
+		/*
 		short nMaxWriteIndex = m_nMaxWriteIndex.load(std::memory_order_relaxed);
 		short nMaxReadIndex = m_nMaxReadIndex.load(std::memory_order_relaxed);
 		if(nMaxWriteIndex >= nMaxReadIndex)
-			return (size_t)(nMaxWriteIndex - nMaxReadIndex);
+		return (size_t)(nMaxWriteIndex - nMaxReadIndex);
 		else
-			return (size_t)(ARRAY_SIZE + nMaxWriteIndex - nMaxReadIndex);
+		return (size_t)(ARRAY_SIZE + nMaxWriteIndex - nMaxReadIndex);
+		*/
 	}
 
 	bool Empty()
@@ -145,7 +148,6 @@ public:
 			if(m_nReadIndex.compare_exchange_stromg(nExp, nNextReadIndex, std::memory_order_seq_cst))
 			{
 				element = m_RingBuffer[nCurrentReadIndex];
-				m_nQueueCount.fetch_sub(1, std::memory_order_acq_rel);
 				// C++11 CAS操作会修改【Exp】
 				nExp = nCurrentReadIndex;
 				// 这是【读保护】防止【写操作】把正在队列中的元素覆盖掉
@@ -156,13 +158,14 @@ public:
 					// 多个线程同时【Pop】产生冲突 当前线程【让出】
 					std::this_thread::yield();
 				}
-				//assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
+				m_nQueueCount.fetch_sub(1, std::memory_order_acq_rel);
+				assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
 				// 把未在环形数组的元素传入
 				FlushWaitingElement();
 				return true;
 			}
 		}while(true);
-		//assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
+		assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
 		return false;
 	}
 
@@ -184,8 +187,6 @@ public:
 			if(m_nReadIndex.compare_exchange_strong(nExp, nNextReadIndex, std::memory_order_seq_cst))
 			{
 				element = m_RingBuffer[nCurrentReadIndex];
-				func(element);
-				//m_nQueueCount.fetch_sub(1, std::memory_order_acq_rel);
 				// C++11 CAS操作会修改【Exp】
 				nExp = nCurrentReadIndex;
 				// 这是【读保护】防止【写操作】把正在队列中的元素覆盖掉
@@ -196,13 +197,15 @@ public:
 					// 多个线程同时【Pop】产生冲突 当前线程【让出】
 					std::this_thread::yield();
 				}
-				//assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
+				func(element);
+				m_nQueueCount.fetch_sub(1, std::memory_order_acq_rel);
+				assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
 				// 把未在环形数组的元素传入
 				FlushWaitingElement();
 				return true;
 			}
 		}while(true);
-		//assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
+		assert(m_nQueueCount >= 0 && m_nQueueCount < ARRAY_SIZE);
 		return false;
 	}
 

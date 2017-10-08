@@ -107,7 +107,7 @@ typedef std::shared_ptr<KTaskUnitProcessor> KTaskUnitProcessorPtr;
 class KTaskExecutor
 {
 protected:
-	KThreadPool<std::function<bool()>, false> m_ExecutePool;
+	KThreadPool<std::function<bool()>, true> m_ExecutePool;
 public:
 	static bool AsyncFunc(KTaskUnitProcessorPtr pTask)
 	{
