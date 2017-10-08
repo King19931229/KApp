@@ -27,9 +27,13 @@ struct KTaskUnit
 };
 typedef std::shared_ptr<KTaskUnit> KTaskUnitPtr;
 
+template<bool>
+class KTaskExecutor;
+
 struct KTaskUnitProcessor
 {
-	friend class KTaskExecutor;
+	friend class KTaskExecutor<true>;
+	friend class KTaskExecutor<false>;
 protected:
 	std::atomic_uchar m_eState;
 	KSemaphore m_Sem;
@@ -104,10 +108,11 @@ public:
 };
 typedef std::shared_ptr<KTaskUnitProcessor> KTaskUnitProcessorPtr;
 
+template<bool bUseLockFreeQueue = true>
 class KTaskExecutor
 {
 protected:
-	KThreadPool<std::function<bool()>, true> m_ExecutePool;
+	KThreadPool<std::function<bool()>, bUseLockFreeQueue> m_ExecutePool;
 public:
 	static bool AsyncFunc(KTaskUnitProcessorPtr pTask)
 	{
