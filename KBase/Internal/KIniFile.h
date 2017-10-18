@@ -24,6 +24,8 @@ protected:
 
 	template<typename Type>
 	bool GetValue(const char* pszSection, const char* pszKey, Type* pValue);
+	template<typename Type>
+	bool WriteValue(char* pszDest, size_t uBufferSize, const Type* pSrc);
 public:
 	virtual bool Open(const char* pszFilePath);
 	virtual bool SaveAsFile(const char* pszFilePath, IOLineMode mode);

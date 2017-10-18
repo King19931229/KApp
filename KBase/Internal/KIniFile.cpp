@@ -147,6 +147,24 @@ bool KIniFile::GetValue(const char* pszSection, const char* pszKey, Type* pValue
 	return false;
 }
 
+template<typename Type>
+bool KIniFile::WriteValue(char* pszDest, size_t uBufferSize, const Type* pSrc)
+{
+	if(pszDest && pSrc && uBufferSize > 0)
+	{
+		std::stringstream ss;
+		ss << *pSrc;
+		std::string& str = ss.str();
+#ifdef _WIN32
+			strcpy_s(pszDest, uBufferSize, str.c_str());
+#else
+			strncpy(pszDest, uBufferSize, str.c_str());
+#endif
+		return true;
+	}
+	return false;
+}
+
 bool KIniFile::GetBool(const char* pszSection, const char* pszKey, bool *pValue)
 {
 	return GetValue(pszSection, pszKey, pValue);
@@ -172,7 +190,7 @@ bool KIniFile::GetString(const char* pszSection, const char* pszKey, char* pszSt
 #ifdef _WIN32
 			strcpy_s(pszStr, uBufferSize, value.c_str());
 #else
-			strcpy(pszStr, value.c_str());
+			strncpy(pszStr, uBufferSize, value.c_str());
 #endif
 			return true;
 		}
@@ -182,20 +200,40 @@ bool KIniFile::GetString(const char* pszSection, const char* pszKey, char* pszSt
 
 bool KIniFile::SetBool(const char* pszSection, const char* pszKey, bool *pValue)
 {
+	char szBuffer[256]; szBuffer[0] = '\0';
+	if(WriteValue(szBuffer, sizeof(szBuffer), pValue))
+		return SetString(pszSection, pszKey, szBuffer);
 	return false;
 }
 
 bool KIniFile::SetInt(const char* pszSection, const char* pszKey, int *pValue)
 {
+	char szBuffer[256]; szBuffer[0] = '\0';
+	if(WriteValue(szBuffer, sizeof(szBuffer), pValue))
+		return SetString(pszSection, pszKey, szBuffer);
 	return false;
 }
 
 bool KIniFile::SetFloat(const char* pszSection, const char* pszKey, float *pValue)
 {
+	char szBuffer[256]; szBuffer[0] = '\0';
+	if(WriteValue(szBuffer, sizeof(szBuffer), pValue))
+		return SetString(pszSection, pszKey, szBuffer);
 	return false;
 }
 
 bool KIniFile::SetString(const char* pszSection, const char* pszKey, char* pszValue)
 {
+	if(pszSection && pszKey && pszValue)
+	{
+		KVTable* pTable = nullptr;
+		Section_KVTable::iterator it = m_Section_KVTable.find(pszSection);
+		if(it != m_Section_KVTable.end())
+			pTable = &it->second;
+		else
+			pTable = &m_Section_KVTable.insert(Section_KVTable::value_type(pszSection, KVTable())).first->second;
+		pTable->insert(KVTable::value_type(pszKey, pszValue));
+		return true;
+	}
 	return false;
 }
