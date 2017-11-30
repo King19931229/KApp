@@ -54,7 +54,7 @@ int main()
 
 	pLog = CreateLog();
 	pLog->Init("D:/LOG.TXT", true, true, ILM_WINDOWS);
-	KTaskExecutor Exc;
+	KTaskExecutor<true> Exc;
 	Exc.PushWorkerThreads(std::thread::hardware_concurrency());
 	KTimer timer;
 

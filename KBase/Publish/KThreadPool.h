@@ -65,9 +65,33 @@ class KThreadPool
 		KSemaphore m_Sem;
 		std::thread m_Thread;
 
+		static unsigned short ms_IDCounter;
+		static std::mutex ms_IDLock;
+		static std::queue<unsigned short> ms_IDQueue;
+
 		void ThreadFunc()
 		{
-			KThreadTool::SetThreadName("WorkerThread");
+			unsigned short uID = 0;
+			{
+				std::lock_guard<decltype(ms_IDLock)> lockGuard(ms_IDLock);
+				if(!ms_IDQueue.empty())
+				{
+					uID = ms_IDQueue.front();
+					ms_IDQueue.pop();
+				}
+				else
+				{
+					uID = ms_IDCounter++;
+				}
+				char szBuffer[256]; szBuffer[0] = '\0';
+#ifndef _WIN32
+				snprintf(szBuffer, sizeof(szBuffer), "WorkerThread %d", uID);
+#else
+				sprintf_s(szBuffer, sizeof(szBuffer), "WorkerThread %d", uID);
+#endif
+				KThreadTool::SetThreadName(szBuffer);
+			}
+
 			TaskGroup taskGroup;
 			while(!m_bDone)
 			{
@@ -87,6 +111,11 @@ class KThreadPool
 						m_SharedQueue.sem.Notify();
 					}
 				});
+			}
+
+			{
+				std::lock_guard<decltype(ms_IDLock)> lockGuard(ms_IDLock);
+				ms_IDQueue.push(uID);
 			}
 		}
 	public:
@@ -281,3 +310,12 @@ public:
 		}
 	}
 };
+
+template<typename Task, bool bUseLockFreeQueue>
+unsigned short KThreadPool<Task, bUseLockFreeQueue>::KWorkerThread::ms_IDCounter = 0;
+
+template<typename Task, bool bUseLockFreeQueue>
+std::mutex KThreadPool<Task, bUseLockFreeQueue>::KWorkerThread::ms_IDLock;
+
+template<typename Task, bool bUseLockFreeQueue>
+std::queue<unsigned short> KThreadPool<Task, bUseLockFreeQueue>::KWorkerThread::ms_IDQueue;
