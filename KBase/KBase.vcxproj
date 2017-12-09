@@ -33,6 +33,7 @@
     <ClInclude Include="Publish\KFileTool.h" />
     <ClInclude Include="Publish\KHash.h" />
     <ClInclude Include="Publish\KHashString.h" />
+    <ClInclude Include="Publish\KList.h" />
     <ClInclude Include="Publish\KLockFreeQueue.h" />
     <ClInclude Include="Publish\KLockQueue.h" />
     <ClInclude Include="Publish\KSemaphore.h" />

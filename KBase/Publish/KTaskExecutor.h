@@ -17,15 +17,14 @@ enum TaskState
 	TS_LOAD_FAIL
 };
 
-struct KTaskUnit
+struct IKTaskUnit
 {
-	virtual ~KTaskUnit() {}
-	// User Interface
+	virtual ~IKTaskUnit() {}
 	virtual bool AsyncLoad() = 0;
 	virtual bool SyncLoad() = 0;
 	virtual bool HasSyncLoad() const = 0;
 };
-typedef std::shared_ptr<KTaskUnit> KTaskUnitPtr;
+typedef std::shared_ptr<IKTaskUnit> KTaskUnitPtr;
 
 template<bool>
 class KTaskExecutor;
@@ -35,14 +34,20 @@ struct KTaskUnitProcessor
 	friend class KTaskExecutor<true>;
 	friend class KTaskExecutor<false>;
 protected:
+
 	std::atomic_uchar m_eState;
 	KSemaphore m_Sem;
 	KTaskUnitPtr m_pTaskUnit;
+
 	KTaskUnitProcessor(const KTaskUnitProcessor& rhs){}
 	KTaskUnitProcessor& operator=(const KTaskUnitProcessor& rhs){}
+
 	inline bool Notify() { return m_Sem.Notify(); }
 	inline bool Wait() { return m_Sem.Wait(); }
 	inline void Reset() { m_eState.store(TS_PENDING_ASYNC); }
+	inline bool AsyncLoad() { return m_pTaskUnit ? m_pTaskUnit->AsyncLoad() : false; }
+	inline bool SyncLoad() { return m_pTaskUnit? m_pTaskUnit->SyncLoad() : false; }
+	inline bool HasSyncLoad() const { return m_pTaskUnit ? m_pTaskUnit->HasSyncLoad() : false; }
 public:
 	explicit KTaskUnitProcessor(KTaskUnitPtr pUnit)
 		: m_pTaskUnit(pUnit)
@@ -52,14 +57,15 @@ public:
 	~KTaskUnitProcessor()
 	{
 	}
-	inline TaskState GetState() const { return (TaskState)m_eState.load();	}
-	inline bool AsyncLoad() { return m_pTaskUnit->AsyncLoad(); }
-	inline bool SyncLoad() { return m_pTaskUnit->SyncLoad(); }
-	inline bool HasSyncLoad() const { return m_pTaskUnit->HasSyncLoad(); }
+
+	/*
+	*@brief 获取当前线程任务状态
+	*/
+	inline TaskState GetState() const { return (TaskState)m_eState.load(); }
 
 	/*
 	*@brief 调用线程取消异步任务
-	*@param[in] bWait 调用线程是否等待直到异步任务被取消 true则等待false则不等待
+	*@param[in] bWait 调用线程是否挂起直到异步任务被取消 true则挂起false则不挂起
 	*@note 如果该任务有SyncLoad则任务被取消后可能在轮询队列里
 	*/
 	bool Cancel(bool bWait)
@@ -82,8 +88,9 @@ public:
 		}
 		return true;
 	}
+
 	/*
-	*@brief 调用线程阻塞等待直到异步任务完成
+	*@brief 调用线程挂起等待直到异步任务完成
 	*/
 	bool WaitAsync()
 	{
@@ -186,14 +193,24 @@ public:
 	{
 	}
 
-	void Submit(KTaskUnitProcessorPtr pTask)
+	KTaskUnitProcessorPtr Submit(KTaskUnitPtr pUnit)
 	{
-		if(pTask->HasSyncLoad())
-			m_ExecutePool.SubmitTask(
-			std::bind(&KTaskExecutor::AsyncFunc, pTask),
-			std::bind(&KTaskExecutor::SyncFunc, pTask));
-		else
-			m_ExecutePool.SubmitTask(std::bind(&KTaskExecutor::AsyncFunc, pTask));
+		KTaskUnitProcessorPtr pTask = nullptr;
+		{
+			if(pUnit)
+				pTask = KTaskUnitProcessorPtr(new KTaskUnitProcessor(pUnit));
+			if(pTask->HasSyncLoad())
+				m_ExecutePool.SubmitTask(
+				//std::bind(&KTaskExecutor::AsyncFunc, pTask),
+				[this, pTask]() -> bool { return AsyncFunc(pTask); },
+				//std::bind(&KTaskExecutor::SyncFunc, pTask));
+				[this, pTask]() -> bool { return SyncFunc(pTask); });
+			else
+				m_ExecutePool.SubmitTask(
+				//std::bind(&KTaskExecutor::AsyncFunc, pTask));
+				[this, pTask]() -> bool { return AsyncFunc(pTask); });
+		}
+		return pTask;
 	}
 
 	inline bool AllAsyncTaskDone() { return m_ExecutePool.AllAsyncTaskDone(); }

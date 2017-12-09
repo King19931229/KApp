@@ -70,6 +70,9 @@
     <ClInclude Include="Internal\KCodec.h">
       <Filter>Internal</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KList.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
