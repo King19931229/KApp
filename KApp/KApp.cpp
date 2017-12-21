@@ -40,7 +40,7 @@ public:
 		KHashString str = GetHashString("AsyncLoad %d", m_ID);
 		IKCodecPtr pCodec = GetCodec("D:/BIG.JPG");
 		KCodecResult res = pCodec->Codec("D:/BIG.JPG");
-		KLOG(pLog, "%s", str);
+		//KLOG(pLog, "%s", str);
 		return true;
 	}
 	virtual bool SyncLoad() { KLOGE(pLog, GetHashString("SyncLoad %d", m_ID));return false; }
@@ -58,22 +58,42 @@ int main()
 	Exc.PushWorkerThreads(std::thread::hardware_concurrency());
 	KTimer timer;
 
-	timer.Reset();
-	std::vector<KTaskUnitProcessorPtr> ps;
-	int nTaskCount = 200;
-	for(int i = 0; i < nTaskCount; ++i)
+	int nTaskCount = 1000;
+
 	{
-		KTaskUnitPtr pUnit(new Func(i));
-		ps.push_back(Exc.Submit(pUnit));
+		timer.Reset();
+		std::vector<KTaskUnitProcessorPtr> ps;
+
+		for(int i = 0; i < nTaskCount; ++i)
+		{
+			KTaskUnitPtr pUnit(new Func(i));
+			ps.push_back(Exc.Submit(pUnit));
+		}
+
+		for(int i = 0; i < nTaskCount; ++i)
+		{
+			ps[i]->WaitAsync();
+		}
+		ps.clear();
+
+		printf("%f %f\n", timer.GetSeconds(), timer.GetMilliseconds());
 	}
 
-	for(int i = 0; i < nTaskCount; ++i)
 	{
-		ps[i]->WaitAsync();
-	}
-	ps.clear();
+		timer.Reset();
 
-	printf("%f %f\n", timer.GetSeconds(), timer.GetMilliseconds());
+		KTaskUnitProcessorGroupPtr pGroup = Exc.CreateGroup();
+		for(int i = 0; i < nTaskCount; ++i)
+		{
+			KTaskUnitPtr pUnit(new Func(i));
+			Exc.Submit(pGroup, pUnit);
+		}
+
+		pGroup->WaitAsync();
+
+		printf("%f %f\n", timer.GetSeconds(), timer.GetMilliseconds());
+	}
+
 	Exc.PopWorkerThreads(std::thread::hardware_concurrency());
 
 	UnInitCodecManager();

@@ -29,29 +29,38 @@ typedef std::shared_ptr<IKTaskUnit> KTaskUnitPtr;
 template<bool>
 class KTaskExecutor;
 
+typedef std::shared_ptr<KSemaphore> KSemaphorePtr;
+
 struct KTaskUnitProcessor
 {
 	friend class KTaskExecutor<true>;
 	friend class KTaskExecutor<false>;
 protected:
-
 	std::atomic_uchar m_eState;
-	KSemaphore m_Sem;
+	KSemaphorePtr m_pSem;
 	KTaskUnitPtr m_pTaskUnit;
 
 	KTaskUnitProcessor(const KTaskUnitProcessor& rhs){}
 	KTaskUnitProcessor& operator=(const KTaskUnitProcessor& rhs){}
 
-	inline bool Notify() { return m_Sem.Notify(); }
-	inline bool Wait() { return m_Sem.Wait(); }
+	inline bool Notify() { return m_pSem->Notify(); }
+	inline bool Wait() { return m_pSem->Wait(); }
 	inline void Reset() { m_eState.store(TS_PENDING_ASYNC); }
 	inline bool AsyncLoad() { return m_pTaskUnit ? m_pTaskUnit->AsyncLoad() : false; }
 	inline bool SyncLoad() { return m_pTaskUnit? m_pTaskUnit->SyncLoad() : false; }
 	inline bool HasSyncLoad() const { return m_pTaskUnit ? m_pTaskUnit->HasSyncLoad() : false; }
+	inline bool IsDone() const { return m_eState.load() >= TS_LOADED; }
 public:
 	explicit KTaskUnitProcessor(KTaskUnitPtr pUnit)
 		: m_pTaskUnit(pUnit)
 	{
+		m_pSem = KSemaphorePtr(new KSemaphore);
+		m_eState.store(TS_PENDING_ASYNC);
+	}
+	explicit KTaskUnitProcessor(KTaskUnitPtr pUnit, KSemaphorePtr pSem)
+		: m_pTaskUnit(pUnit)
+	{
+		m_pSem = pSem;
 		m_eState.store(TS_PENDING_ASYNC);
 	}
 	~KTaskUnitProcessor()
@@ -114,6 +123,45 @@ public:
 	}
 };
 typedef std::shared_ptr<KTaskUnitProcessor> KTaskUnitProcessorPtr;
+
+class KTaskUnitProcessorGroup
+{
+	friend class KTaskExecutor<true>;
+	friend class KTaskExecutor<false>;
+protected:
+	KSemaphorePtr m_pSem;
+	typedef std::vector<KTaskUnitProcessorPtr> TaskList;
+	TaskList m_TaskList;
+
+	inline void AddIntoList(KTaskUnitProcessorPtr pUnit) { m_TaskList.push_back(pUnit); }
+	inline KSemaphorePtr GetSemaphore() { return m_pSem; }
+public:
+	KTaskUnitProcessorGroup()
+	{
+		m_pSem = KSemaphorePtr(new KSemaphore);
+	}
+	bool Cancel()
+	{
+		for(TaskList::iterator it = m_TaskList.begin(); it != m_TaskList.end(); ++it)
+		{
+			KTaskUnitProcessorPtr pUnit = *it;
+			pUnit->Cancel(false);
+		}
+		m_TaskList.clear();
+		return true;
+	}
+	bool WaitAsync()
+	{
+		for(TaskList::iterator it = m_TaskList.begin(); it != m_TaskList.end(); ++it)
+		{
+			KTaskUnitProcessorPtr pUnit = *it;
+			pUnit->WaitAsync();
+		}
+		m_TaskList.clear();
+		return true;
+	}
+};
+typedef std::shared_ptr<KTaskUnitProcessorGroup> KTaskUnitProcessorGroupPtr;
 
 template<bool bUseLockFreeQueue = true>
 class KTaskExecutor
@@ -196,19 +244,45 @@ public:
 	KTaskUnitProcessorPtr Submit(KTaskUnitPtr pUnit)
 	{
 		KTaskUnitProcessorPtr pTask = nullptr;
+		if(pUnit)
 		{
-			if(pUnit)
-				pTask = KTaskUnitProcessorPtr(new KTaskUnitProcessor(pUnit));
+			pTask = KTaskUnitProcessorPtr(new KTaskUnitProcessor(pUnit));
 			if(pTask->HasSyncLoad())
 				m_ExecutePool.SubmitTask(
-				//std::bind(&KTaskExecutor::AsyncFunc, pTask),
 				[this, pTask]() -> bool { return AsyncFunc(pTask); },
-				//std::bind(&KTaskExecutor::SyncFunc, pTask));
 				[this, pTask]() -> bool { return SyncFunc(pTask); });
 			else
 				m_ExecutePool.SubmitTask(
-				//std::bind(&KTaskExecutor::AsyncFunc, pTask));
 				[this, pTask]() -> bool { return AsyncFunc(pTask); });
+		}
+		return pTask;
+	}
+
+	KTaskUnitProcessorGroupPtr CreateGroup()
+	{
+		KTaskUnitProcessorGroupPtr pGroup = nullptr;
+		pGroup = KTaskUnitProcessorGroupPtr(new KTaskUnitProcessorGroup());
+		assert(pGroup);
+		return pGroup;
+	}
+
+	KTaskUnitProcessorPtr Submit(KTaskUnitProcessorGroupPtr pGroup, KTaskUnitPtr pUnit)
+	{
+		KTaskUnitProcessorPtr pTask = nullptr;
+		if(pGroup && pUnit)
+		{
+			if(pUnit)
+				pTask = KTaskUnitProcessorPtr(new KTaskUnitProcessor(pUnit, pGroup->GetSemaphore()));
+
+			if(pTask->HasSyncLoad())
+				m_ExecutePool.SubmitTask(
+				[this, pTask]() -> bool { return AsyncFunc(pTask); },
+				[this, pTask]() -> bool { return SyncFunc(pTask); });
+			else
+				m_ExecutePool.SubmitTask(
+				[this, pTask]() -> bool { return AsyncFunc(pTask); });
+
+			pGroup->AddIntoList(pTask);
 		}
 		return pTask;
 	}
