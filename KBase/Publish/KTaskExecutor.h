@@ -35,6 +35,7 @@ struct KTaskUnitProcessor
 {
 	friend class KTaskExecutor<true>;
 	friend class KTaskExecutor<false>;
+	friend class KTaskUnitProcessorGroup;
 protected:
 	std::atomic_uchar m_eState;
 	KSemaphorePtr m_pSem;
@@ -74,14 +75,14 @@ public:
 
 	/*
 	*@brief 调用线程取消异步任务
-	*@param[in] bWait 调用线程是否挂起直到异步任务被取消 true则挂起false则不挂起
-	*@note 如果该任务有SyncLoad则任务被取消后可能在轮询队列里
+	*@note 如果本单元任务有SyncLoad且取消时本单元异步任务已经完成则同步任务队列会保留本单元引用
 	*/
-	bool Cancel(bool bWait)
+	bool Cancel()
 	{
 		while(true)
 		{
 			unsigned char uExp = m_eState.load();
+			// 加载已经失败了
 			if(uExp == TS_LOAD_FAIL)
 				return true;
 			if(m_eState.compare_exchange_strong(uExp, TS_CANCELING))
@@ -89,12 +90,6 @@ public:
 		}
 		// 这里不是 TS_CANCELING 就是 TS_LOAD_FAIL
 		assert(m_eState.load() == TS_CANCELING || m_eState.load() == TS_LOAD_FAIL);
-		if(bWait)
-		{
-			unsigned char uExp = TS_CANCELING;
-			if(m_eState.compare_exchange_strong(uExp, TS_LOAD_FAIL))
-				Wait();
-		}
 		return true;
 	}
 
@@ -119,6 +114,7 @@ public:
 			return true;
 		}
 
+		assert(IsDone());
 		return true;
 	}
 };
@@ -145,9 +141,10 @@ public:
 		for(TaskList::iterator it = m_TaskList.begin(); it != m_TaskList.end(); ++it)
 		{
 			KTaskUnitProcessorPtr pUnit = *it;
-			pUnit->Cancel(false);
+			pUnit->Cancel();
 		}
 		m_TaskList.clear();
+		m_pSem = KSemaphorePtr(new KSemaphore);
 		return true;
 	}
 	bool WaitAsync()
@@ -155,9 +152,10 @@ public:
 		for(TaskList::iterator it = m_TaskList.begin(); it != m_TaskList.end(); ++it)
 		{
 			KTaskUnitProcessorPtr pUnit = *it;
-			pUnit->WaitAsync();
+			pUnit->Wait();
 		}
 		m_TaskList.clear();
+		m_pSem = KSemaphorePtr(new KSemaphore);
 		return true;
 	}
 };
