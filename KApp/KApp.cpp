@@ -1,10 +1,11 @@
-#define MEMORY_DUMP_DEBUG
+﻿#define MEMORY_DUMP_DEBUG
 #include "KBase/Publish/KLockFreeQueue.h"
 #include "KBase/Publish/KLockQueue.h"
 #include "KBase/Publish/KThreadPool.h"
 #include "KBase/Publish/KTimer.h"
 #include "KBase/Publish/KSemaphore.h"
 #include "KBase/Publish/KTaskExecutor.h"
+#include "KBase/Publish/KObjectPool.h"
 
 std::atomic_int a;
 bool Test(int nCount)
@@ -40,16 +41,49 @@ public:
 		KHashString str = GetHashString("AsyncLoad %d", m_ID);
 		IKCodecPtr pCodec = GetCodec("D:/BIG.JPG");
 		KCodecResult res = pCodec->Codec("D:/BIG.JPG");
-		//KLOG(pLog, "%s", str);
+		KLOG(pLog, "%s", str);
 		return true;
 	}
 	virtual bool SyncLoad() { KLOGE(pLog, GetHashString("SyncLoad %d", m_ID));return false; }
 	virtual bool HasSyncLoad() const { return false; }
 };
 
+struct Object
+{
+	Object()
+	{
+		printf("Object\n");
+	}
+	~Object()
+	{
+		printf("~Object\n");
+	}
+};
 int main()
 {
 	DUMP_MEMORY_LEAK_BEGIN();
+	KObjectPool<Object> pool;
+	
+	std::vector<Object*> datas;
+
+	pool.Init(100);
+	pool.UnInit();
+
+	pool.Init(1);
+	for(unsigned int i = 0; i < 100; ++i)
+	{
+		datas.push_back(pool.Alloc());
+	}
+	for(unsigned int i = 0; i < 100; ++i)
+	{
+		Object* pData = *datas.rbegin();
+		datas.pop_back();
+		pool.Free(pData);
+	}
+
+	pool.Shrink_to_fit();
+	pool.UnInit();
+#if 0
 	InitCodecManager();
 
 	pLog = CreateLog();
@@ -57,10 +91,10 @@ int main()
 	KTaskExecutor<true> Exc;
 	Exc.PushWorkerThreads(std::thread::hardware_concurrency());
 	KTimer timer;
+	
+	int nTaskCount = 10;
 
-	int nTaskCount = 1000;
-
-	{
+	/*{
 		timer.Reset();
 		std::vector<KTaskUnitProcessorPtr> ps;
 
@@ -77,7 +111,7 @@ int main()
 		ps.clear();
 
 		printf("%f %f\n", timer.GetSeconds(), timer.GetMilliseconds());
-	}
+	}*/
 
 	{
 		timer.Reset();
@@ -88,7 +122,14 @@ int main()
 			KTaskUnitPtr pUnit(new Func(i));
 			Exc.Submit(pGroup, pUnit);
 		}
+		pGroup->WaitAsync();
+		printf("%f %f\n", timer.GetSeconds(), timer.GetMilliseconds());
 
+		for(int i = 0; i < nTaskCount; ++i)
+		{
+			KTaskUnitPtr pUnit(new Func(i));
+			Exc.Submit(pGroup, pUnit);
+		}
 		pGroup->WaitAsync();
 
 		printf("%f %f\n", timer.GetSeconds(), timer.GetMilliseconds());
@@ -97,4 +138,5 @@ int main()
 	Exc.PopWorkerThreads(std::thread::hardware_concurrency());
 
 	UnInitCodecManager();
+#endif
 }

@@ -73,6 +73,9 @@
     <ClInclude Include="Publish\KList.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KObjectPool.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
