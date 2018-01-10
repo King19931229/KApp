@@ -29,6 +29,7 @@ void VoidTest()
 #include "Interface/IKLog.h"
 #include "Publish/KHashString.h"
 #include "Interface/IKCodec.h"
+#include "Interface/IKMemory.h"
 IKLogPtr pLog;
 
 class Func : public IKTaskUnit
@@ -50,39 +51,65 @@ public:
 
 struct Object
 {
+	int mData[1000];
 	Object()
 	{
-		printf("Object\n");
+		//printf("Object\n");
 	}
 	~Object()
 	{
-		printf("~Object\n");
+		//printf("~Object\n");
 	}
 };
 int main()
 {
 	DUMP_MEMORY_LEAK_BEGIN();
+
+	IKMemoryAllocatorPtr pAlloc = CreateAllocator();
+
+	for(int i = 0; i < 10; ++i)
+	{
+		void* pRes = pAlloc->Alloc(i, 16);
+		//pAlloc->Free(pRes);
+	}
+	/*
 	KObjectPool<Object> pool;
 	
 	std::vector<Object*> datas;
+	KTimer timer;
 
-	pool.Init(100);
-	pool.UnInit();
-
-	pool.Init(1);
-	for(unsigned int i = 0; i < 100; ++i)
+	unsigned uAllocCount = 10000;
+	pool.Init(uAllocCount);
+	
+	timer.Reset();
+	for(unsigned int i = 0; i < uAllocCount; ++i)
 	{
 		datas.push_back(pool.Alloc());
 	}
-	for(unsigned int i = 0; i < 100; ++i)
+	for(unsigned int i = 0; i < uAllocCount; ++i)
 	{
 		Object* pData = *datas.rbegin();
 		datas.pop_back();
 		pool.Free(pData);
 	}
-
+	printf("POOL: %f %f\n", timer.GetSeconds(), timer.GetMilliseconds());
 	pool.Shrink_to_fit();
 	pool.UnInit();
+
+	timer.Reset();
+	for(unsigned int i = 0; i < uAllocCount; ++i)
+	{
+		datas.push_back(new Object);
+	}
+	for(unsigned int i = 0; i < uAllocCount; ++i)
+	{
+		Object* pData = *datas.rbegin();
+		datas.pop_back();
+		delete pData;
+	}
+	printf("NOPOOL: %f %f\n", timer.GetSeconds(), timer.GetMilliseconds());
+	*/
+	
 #if 0
 	InitCodecManager();
 

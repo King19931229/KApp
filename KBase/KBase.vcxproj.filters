@@ -76,6 +76,12 @@
     <ClInclude Include="Publish\KObjectPool.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKMemory.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KMemoryAllocator.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
@@ -117,6 +123,9 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KCodec.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KMemoryAllocator.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
