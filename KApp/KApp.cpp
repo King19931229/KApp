@@ -28,6 +28,8 @@ void VoidTest()
 
 #include "Interface/IKLog.h"
 #include "Publish/KHashString.h"
+#include "Publish/KDump.h"
+
 #include "Interface/IKCodec.h"
 #include "Interface/IKMemory.h"
 IKLogPtr pLog;
@@ -61,17 +63,22 @@ struct Object
 		//printf("~Object\n");
 	}
 };
+
 int main()
 {
+	KDump::Init("d:/");
 	DUMP_MEMORY_LEAK_BEGIN();
-
+	throw "Test";
+	KDump::UnInit();
+	/*
 	IKMemoryAllocatorPtr pAlloc = CreateAllocator();
 
 	for(int i = 0; i < 10; ++i)
 	{
 		void* pRes = pAlloc->Alloc(i, 16);
-		//pAlloc->Free(pRes);
+		pAlloc->Free(pRes);
 	}
+	*/
 	/*
 	KObjectPool<Object> pool;
 	

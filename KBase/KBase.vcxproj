@@ -32,6 +32,7 @@
     <ClInclude Include="Internal\KLog.h" />
     <ClInclude Include="Internal\KMemoryAllocator.h" />
     <ClInclude Include="Internal\KSourceFile.h" />
+    <ClInclude Include="Publish\KDump.h" />
     <ClInclude Include="Publish\KFileTool.h" />
     <ClInclude Include="Publish\KHash.h" />
     <ClInclude Include="Publish\KHashString.h" />
@@ -50,6 +51,7 @@
   <ItemGroup>
     <ClCompile Include="Internal\KCodec.cpp" />
     <ClCompile Include="Internal\KDataStream.cpp" />
+    <ClCompile Include="Internal\KDump.cpp" />
     <ClCompile Include="Internal\KFileTool.cpp" />
     <ClCompile Include="Internal\KHash.cpp" />
     <ClCompile Include="Internal\KHashString.cpp" />

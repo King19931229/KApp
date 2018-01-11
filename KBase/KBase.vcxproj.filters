@@ -82,6 +82,9 @@
     <ClInclude Include="Internal\KMemoryAllocator.h">
       <Filter>Internal</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KDump.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
@@ -126,6 +129,9 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KMemoryAllocator.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KDump.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
