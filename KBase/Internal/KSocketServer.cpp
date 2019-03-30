@@ -66,8 +66,6 @@ void KSocketServer::ThreadFunc()
 		{
 			SOCKADDR m_sockClientAddr;
 			SOCKET sockClient = accept(m_socket, (SOCKADDR*)&m_sockClientAddr, &nSize);
-			if(!m_bRun)
-				return;
 			if(sockClient != SOCKET_ERROR)
 			{
 				std::lock_guard<decltype(m_cbLock)> lockGurad(m_cbLock);
