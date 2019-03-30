@@ -25,12 +25,15 @@
     <ClInclude Include="Interface\IKConfig.h" />
     <ClInclude Include="Interface\IKLog.h" />
     <ClInclude Include="Interface\IKMemory.h" />
+    <ClInclude Include="Interface\IKSocket.h" />
     <ClInclude Include="Interface\IKSourceFile.h" />
     <ClInclude Include="Internal\KCodec.h" />
     <ClInclude Include="Internal\KDataStream.h" />
     <ClInclude Include="Internal\KIniFile.h" />
     <ClInclude Include="Internal\KLog.h" />
     <ClInclude Include="Internal\KMemoryAllocator.h" />
+    <ClInclude Include="Internal\KSocketClient.h" />
+    <ClInclude Include="Internal\KSocketServer.h" />
     <ClInclude Include="Internal\KSourceFile.h" />
     <ClInclude Include="Publish\KDump.h" />
     <ClInclude Include="Publish\KFileTool.h" />
@@ -58,6 +61,8 @@
     <ClCompile Include="Internal\KIniFile.cpp" />
     <ClCompile Include="Internal\KLog.cpp" />
     <ClCompile Include="Internal\KMemoryAllocator.cpp" />
+    <ClCompile Include="Internal\KSocketClient.cpp" />
+    <ClCompile Include="Internal\KSocketServer.cpp" />
     <ClCompile Include="Internal\KSourceFile.cpp" />
     <ClCompile Include="Internal\KStringTool.cpp" />
     <ClCompile Include="Internal\KThreadTool.cpp" />

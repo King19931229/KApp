@@ -85,6 +85,15 @@
     <ClInclude Include="Publish\KDump.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKSocket.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KSocketClient.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KSocketServer.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
@@ -132,6 +141,12 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KDump.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KSocketClient.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KSocketServer.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
