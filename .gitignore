@@ -13,3 +13,5 @@
 *.opensdf
 *.suo
 *.user
+*.exp
+*.pyd
