@@ -1,0 +1,90 @@
+﻿生成启动时间为 2019/8/24 17:31:06。
+     1>项目“D:\KApp\Dependency\Python27\PCbuild\ssleay.vcxproj”在节点 7 上(Build 个目标)。
+     1>ClCompile:
+         E:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /I"D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\\" /I"D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\include32" /I"D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\crypto" /I"D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\crypto\asn1" /I"D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\crypto\evp" /I"D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\crypto\modes" /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D DSO_WIN32 /D WIN32_LEAN_AND_MEAN /D L_ENDIAN /D _CRT_SECURE_NO_WARNINGS /D _CRT_SECURE_NO_DEPRECATE /D OPENSSL_THREADS /D OPENSSL_IA32_SSE2 /D SHA1_ASM /D SHA256_ASM /D SHA512_ASM /D MD5_ASM /D AES_ASM /D VPAES_ASM /D WHIRLPOOL_ASM /D GHASH_ASM /D OPENSSL_NO_IDEA /D OPENSSL_NO_RC5 /D OPENSSL_NO_MD2 /D OPENSSL_NO_MDC2 /D OPENSSL_NO_KRB5 /D OPENSSL_NO_JPAKE /D OPENSSL_NO_RDRAND /D OPENSSL_NO_RSAX /D OPENSSL_NO_DYNAMIC_ENGINE /D OPENSSL_BN_ASM_GF2m /D OPENSSL_BN_ASM_PART_WORDS /D OPENSSL_BN_ASM_MONT /D RMD160_ASM /D WIN32 /D _WIN32 /D NDEBUG /GF /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\\" /Fd"D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\vc110.pdb" /Gd /TC /wd4244 /wd4267 /analyze- /errorReport:prompt "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\d1_both.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\d1_lib.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\d1_pkt.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\d1_srtp.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s2_clnt.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s2_enc.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s2_lib.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s2_meth.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s2_pkt.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s2_srvr.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s23_clnt.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s23_lib.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s23_meth.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s23_pkt.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s23_srvr.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s3_both.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s3_cbc.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s3_clnt.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s3_enc.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s3_lib.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s3_meth.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s3_pkt.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\s3_srvr.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\ssl_algs.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\ssl_asn1.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\ssl_cert.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\ssl_ciph.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\ssl_err.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\ssl_err2.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\ssl_lib.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\ssl_rsa.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\ssl_sess.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\t1_clnt.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\t1_enc.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\t1_lib.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\t1_meth.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\t1_reneg.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\t1_srvr.c" "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\ssl\tls_srp.c"
+         d1_both.c
+         d1_lib.c
+         d1_pkt.c
+         d1_srtp.c
+         s2_clnt.c
+         s2_enc.c
+         s2_lib.c
+         s2_meth.c
+         s2_pkt.c
+         s2_srvr.c
+         s23_clnt.c
+         s23_lib.c
+         s23_meth.c
+         s23_pkt.c
+         s23_srvr.c
+         s3_both.c
+         s3_cbc.c
+         s3_clnt.c
+         s3_enc.c
+         s3_lib.c
+         正在编译...
+         s3_meth.c
+         s3_pkt.c
+         s3_srvr.c
+         ssl_algs.c
+         ssl_asn1.c
+         ssl_cert.c
+         ssl_ciph.c
+         ssl_err.c
+         ssl_err2.c
+         ssl_lib.c
+         ssl_rsa.c
+         ssl_sess.c
+         t1_clnt.c
+         t1_enc.c
+         t1_lib.c
+         t1_meth.c
+         t1_reneg.c
+         t1_srvr.c
+         tls_srp.c
+       Lib:
+         E:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\Lib.exe /OUT:"../Publish/Release/x86/ssleay.lib" /NOLOGO /LTCG "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\d1_both.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\d1_lib.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\d1_pkt.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\d1_srtp.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s2_clnt.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s2_enc.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s2_lib.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s2_meth.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s2_pkt.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s2_srvr.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s23_clnt.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s23_lib.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s23_meth.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s23_pkt.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s23_srvr.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s3_both.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s3_cbc.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s3_clnt.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s3_enc.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s3_lib.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s3_meth.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s3_pkt.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\s3_srvr.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\ssl_algs.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\ssl_asn1.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\ssl_cert.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\ssl_ciph.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\ssl_err.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\ssl_err2.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\ssl_lib.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\ssl_rsa.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\ssl_sess.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\t1_clnt.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\t1_enc.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\t1_lib.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\t1_meth.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\t1_reneg.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\t1_srvr.obj"
+         "D:\KApp\Dependency\Python27\externals\openssl-1.0.2q\tmp\win32_Release\ssleay\tls_srp.obj"
+         ssleay.vcxproj -> D:\KApp\Dependency\Python27\PCbuild\../Publish/Release/x86/ssleay.lib
+     1>已完成生成项目“D:\KApp\Dependency\Python27\PCbuild\ssleay.vcxproj”(Build 个目标)的操作。
+
+生成成功。
+
+已用时间 00:00:58.32

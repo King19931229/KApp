@@ -1,0 +1,21 @@
+REM = This file is generated from rules.vc 
+TCL_MAJOR_VERSION = \
+8
+TCL_MINOR_VERSION = \
+5
+TCL_PATCH_LEVEL = \
+8.5.19
+PKG_HTTP_VER = \
+2.7.13
+PKG_TCLTEST_VER = \
+2.3.8
+PKG_MSGCAT_VER = \
+1.5.2
+PKG_PLATFORM_VER = \
+1.0.14
+PKG_SHELL_VER = \
+1.1.4
+PKG_DDE_VER = \
+1.3.3
+PKG_REG_VER =\
+1.2.2
