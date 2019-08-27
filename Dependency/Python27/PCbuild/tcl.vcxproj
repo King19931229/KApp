@@ -37,42 +37,29 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B5FD6F1D-129E-4BFF-9340-03606FAC7283}</ProjectGuid>
   </PropertyGroup>
+
   <Import Project="python.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="tcltk.props" />
+
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Makefile</ConfigurationType>
     <OutDir>$(tcltkDir)</OutDir>
     <TargetPath>$(OutDir)bin\$(tclDLLName)</TargetPath>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGUpdate|x64'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGUpdate|Win32'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGInstrument|x64'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGInstrument|Win32'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
+
   <ItemGroup>
-    <ExpectedOutputs Include="&#xD;&#xA;        $(OutDir)\bin\$(tclDLLName);&#xD;&#xA;        $(OutDir)\bin\$(tclShExeName);&#xD;&#xA;        $(OutDir)\include\tcl.h;&#xD;&#xA;        $(OutDir)\lib\tcl$(TclMajorVersion);&#xD;&#xA;        $(OutDir)\lib\tcl$(TclMajorVersion).$(TclMinorVersion);&#xD;&#xA;        $(OutDir)\lib\$(tclLibName)" />
+    <ExpectedOutputs Include="
+        $(OutDir)\bin\$(tclDLLName);
+        $(OutDir)\bin\$(tclShExeName);
+        $(OutDir)\include\tcl.h;
+        $(OutDir)\lib\tcl$(TclMajorVersion);
+        $(OutDir)\lib\tcl$(TclMajorVersion).$(TclMinorVersion);
+        $(OutDir)\lib\$(tclLibName)" />
   </ItemGroup>
+
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+
   <PropertyGroup>
     <TclOpts Condition="$(Configuration) == 'Debug'">symbols</TclOpts>
     <TclDirs>INSTALLDIR="$(OutDir.TrimEnd(`\`))" INSTALL_DIR="$(OutDir.TrimEnd(`\`))"</TclDirs>
@@ -88,10 +75,13 @@ nmake -f makefile.vc MACHINE=$(TclMachine) OPTS=$(TclOpts) $(TclDirs) $(DebugFla
 nmake -f makefile.vc MACHINE=$(TclMachine) OPTS=$(TclOpts) $(TclDirs) $(DebugFlags) install-binaries install-libraries
 </NMakeBuildCommandLine>
   </PropertyGroup>
+
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+
   <Target Name="CopyDll" Inputs="$(OutDir)\bin\$(tclDLLName)" Outputs="$(BuildPath)$(tclDLLName)" AfterTargets="Build">
     <Copy SourceFiles="$(OutDir)\bin\$(tclDLLName)" DestinationFiles="$(BuildPath)$(tclDLLName)" />
   </Target>
+
   <Target Name="Clean" />
   <Target Name="CleanAll">
     <Delete Files="$(TargetPath);$(BuildPath)$(tclDLLName)" />

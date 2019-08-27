@@ -38,42 +38,27 @@
     <ProjectGuid>{7E85ECCF-A72C-4DA4-9E52-884508E80BA1}</ProjectGuid>
     <RootNamespace>tk</RootNamespace>
   </PropertyGroup>
+
   <Import Project="python.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="tcltk.props" />
+
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Makefile</ConfigurationType>
     <OutDir>$(tcltkDir)</OutDir>
     <TargetPath>$(OutDir)bin\$(tkDLLName)</TargetPath>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGUpdate|x64'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGUpdate|Win32'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGInstrument|x64'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGInstrument|Win32'">
-    <PlatformToolset>v110</PlatformToolset>
-  </PropertyGroup>
+
   <ItemGroup>
-    <ExpectedOutputs Include="&#xD;&#xA;        $(OutDir)bin\$(tkDLLName);&#xD;&#xA;        $(OutDir)include\tk.h;&#xD;&#xA;        $(OutDir)lib\$(tkLibName);&#xD;&#xA;        $(OutDir)lib\tk$(TkMajorVersion).$(TkMinorVersion)" />
+    <ExpectedOutputs Include="
+        $(OutDir)bin\$(tkDLLName);
+        $(OutDir)include\tk.h;
+        $(OutDir)lib\$(tkLibName);
+        $(OutDir)lib\tk$(TkMajorVersion).$(TkMinorVersion)" />
   </ItemGroup>
+
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+
   <PropertyGroup>
     <TkOpts>msvcrt</TkOpts>
     <TkOpts Condition="$(Configuration) == 'Debug'">symbols,msvcrt</TkOpts>
@@ -97,9 +82,11 @@ nmake /nologo -f makefile.vc RC=rc MACHINE=$(TclMachine) OPTS=$(TkOpts) $(TkDirs
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+
   <Target Name="CopyDll" Inputs="$(OutDir)\bin\$(tkDLLName)" Outputs="$(BuildPath)$(tkDLLName)" AfterTargets="Build">
     <Copy SourceFiles="$(OutDir)\bin\$(tkDLLName)" DestinationFiles="$(BuildPath)$(tkDLLName)" />
   </Target>
+
   <Target Name="Clean" />
   <Target Name="CleanAll">
     <Delete Files="$(TargetPath);$(BuildPath)$(tkDLLName)" />
