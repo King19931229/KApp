@@ -146,7 +146,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x86/;../Dependency/Python27/Publish/Debug/x86/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;python27_d.lib</AdditionalDependencies>
+      <AdditionalDependencies>FreeImageLib.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -166,7 +166,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x64/;../Dependency/Python27/Publish/Debug/x64/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;python27_d.lib</AdditionalDependencies>
+      <AdditionalDependencies>FreeImageLib.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -189,7 +189,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x86/;../Dependency/Python27/Publish/Release/x86/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;python27.lib</AdditionalDependencies>
+      <AdditionalDependencies>FreeImageLib.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -211,8 +211,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x64/;../Dependency/Python27/Publish/Release/x86/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;python27.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x64/;../Dependency/Python27/Publish/Release/x64/</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
