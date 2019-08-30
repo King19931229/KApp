@@ -25,9 +25,6 @@
     <Filter Include="Python">
       <UniqueIdentifier>{a7d1bea1-3fa8-4919-aaa3-785f3a03400b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{f094cbe3-357b-4c51-a0e3-839ac0d66b78}</UniqueIdentifier>
-    </Filter>
     <Filter Include="PCStatic">
       <UniqueIdentifier>{ffab843a-122f-4148-b720-7a213c6c2ece}</UniqueIdentifier>
     </Filter>
@@ -941,10 +938,14 @@
     <ClCompile Include="Modules\getbuildinfo.c">
       <Filter>Modules</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="PC\python_nt.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
+    <ClCompile Include="PCStatic\import_nt.c">
+      <Filter>PCStatic</Filter>
+    </ClCompile>
+    <ClCompile Include="Python\dynload_win.c">
+      <Filter>Python</Filter>
+    </ClCompile>
+    <ClCompile Include="PCStatic\msvcrtmodule.c">
+      <Filter>PCStatic</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

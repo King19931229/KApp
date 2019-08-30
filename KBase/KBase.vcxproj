@@ -25,6 +25,7 @@
     <ClInclude Include="Interface\IKConfig.h" />
     <ClInclude Include="Interface\IKLog.h" />
     <ClInclude Include="Interface\IKMemory.h" />
+    <ClInclude Include="Interface\IKScript.h" />
     <ClInclude Include="Interface\IKSocket.h" />
     <ClInclude Include="Interface\IKSourceFile.h" />
     <ClInclude Include="Internal\KCodec.h" />
@@ -32,6 +33,7 @@
     <ClInclude Include="Internal\KIniFile.h" />
     <ClInclude Include="Internal\KLog.h" />
     <ClInclude Include="Internal\KMemoryAllocator.h" />
+    <ClInclude Include="Internal\KPythonCore.h" />
     <ClInclude Include="Internal\KSocketClient.h" />
     <ClInclude Include="Internal\KSocketServer.h" />
     <ClInclude Include="Internal\KSourceFile.h" />
@@ -61,6 +63,8 @@
     <ClCompile Include="Internal\KIniFile.cpp" />
     <ClCompile Include="Internal\KLog.cpp" />
     <ClCompile Include="Internal\KMemoryAllocator.cpp" />
+    <ClCompile Include="Internal\KPythonCore.cpp" />
+    <ClCompile Include="Internal\KScript.cpp" />
     <ClCompile Include="Internal\KSocketClient.cpp" />
     <ClCompile Include="Internal\KSocketServer.cpp" />
     <ClCompile Include="Internal\KSourceFile.cpp" />
@@ -134,7 +138,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../Dependency/FreeImage/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../Dependency/FreeImage/;../Dependency/boost/include;../Dependency/Python27/Include;../Dependency/Python27/PCStatic</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -145,8 +149,8 @@
       <AdditionalDependencies>FreeImageLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x86/;../Dependency/Python27/Publish/Debug/x86/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x86/;../Dependency/boost/Publish/Debug/x86/;../Dependency/Python27/Publish/Debug/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -156,7 +160,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../Dependency/FreeImage/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../Dependency/FreeImage/;../Dependency/boost/include;../Dependency/Python27/Include;../Dependency/Python27/PCStatic</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -165,8 +169,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x64/;../Dependency/Python27/Publish/Debug/x64/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x64/;../Dependency/boost/Publish/Debug/x64/;../Dependency/Python27/Publish/Debug/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -178,7 +182,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../Dependency/FreeImage/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../Dependency/FreeImage/;../Dependency/boost/include;../Dependency/Python27/Include;../Dependency/Python27/PCStatic</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -188,8 +192,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x86/;../Dependency/Python27/Publish/Release/x86/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x86/;../Dependency/boost/Publish/Release/x86/;../Dependency/Python27/Publish/Release/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -201,7 +205,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../Dependency/FreeImage/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../Dependency/FreeImage/;../Dependency/boost/include;../Dependency/Python27/Include;../Dependency/Python27/PCStatic</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -211,8 +215,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x64/;../Dependency/Python27/Publish/Release/x64/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x64/;../Dependency/boost/Publish/Release/x64/;../Dependency/Python27/Publish/Release/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

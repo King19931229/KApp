@@ -3,5 +3,6 @@
   <ItemGroup>
     <ClCompile Include="KSocketTest.cpp" />
     <ClCompile Include="KApp.cpp" />
+    <ClCompile Include="KScriptTest.cpp" />
   </ItemGroup>
 </Project>
