@@ -1,4 +1,5 @@
-﻿#include "Interface/IKIniFile.h"
+﻿#pragma once
+#include "Interface/IKIniFile.h"
 
 #include <string>
 #include <map>

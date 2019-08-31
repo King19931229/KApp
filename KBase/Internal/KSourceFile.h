@@ -1,4 +1,5 @@
-﻿#include "Interface/IKSourceFile.h"
+﻿#pragma once
+#include "Interface/IKSourceFile.h"
 
 #include <string>
 #include <map>

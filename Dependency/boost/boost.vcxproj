@@ -240,7 +240,12 @@
     <ClInclude Include="include\boost\python\wrapper.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="helloworld.cpp" />
+    <ClCompile Include="helloworld.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\converter\arg_to_python_base.cpp" />
     <ClCompile Include="src\converter\builtin_converters.cpp" />
     <ClCompile Include="src\converter\from_python.cpp" />

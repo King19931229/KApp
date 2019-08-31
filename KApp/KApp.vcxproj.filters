@@ -4,5 +4,6 @@
     <ClCompile Include="KSocketTest.cpp" />
     <ClCompile Include="KApp.cpp" />
     <ClCompile Include="KScriptTest.cpp" />
+    <ClCompile Include="KVulkanTest.cpp" />
   </ItemGroup>
 </Project>

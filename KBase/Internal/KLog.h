@@ -1,4 +1,5 @@
-﻿#include "Interface/IKLog.h"
+﻿#pragma once
+#include "Interface/IKLog.h"
 
 #include <cstdio>
 #include <mutex>

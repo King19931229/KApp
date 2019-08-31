@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Interface">
+      <UniqueIdentifier>{dde54179-65b7-4501-bcde-e265b4d7aae5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal">
+      <UniqueIdentifier>{bbad73e0-9815-4870-aea7-c1b96a73b510}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\Vulkan">
+      <UniqueIdentifier>{34684c8f-8c6b-4ec6-b233-90aabcf5a266}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Interface\IKRenderDevice.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKRenderWindow.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanRenderWindow.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KRenderDevice.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KRenderWindow.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
