@@ -19,4 +19,6 @@ public:
 
 	virtual bool GetSize(size_t &width, size_t &height);
 	virtual bool SetSize(size_t width, size_t height);
+
+	inline GLFWwindow* GetGLFWwindow() { return m_window; }
 };

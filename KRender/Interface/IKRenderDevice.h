@@ -9,21 +9,14 @@ enum RenderDevice
 	RD_COUNT
 };
 
+struct IKRenderWindow;
+
 struct IKRenderDevice
 {
-	struct ExtensionProperties
-	{
-		std::string property;
-		unsigned int specVersion;
-	};
-	typedef std::vector<ExtensionProperties> DeviceExtensions;
-
 	virtual ~IKRenderDevice() {}
 
-	virtual bool Init() = 0;
+	virtual bool Init(IKRenderWindow* window) = 0;
 	virtual bool UnInit() = 0;
-
-	virtual bool QueryExtensions(DeviceExtensions& exts) = 0;
 };
 
 typedef std::shared_ptr<IKRenderDevice> IKRenderDevicePtr;

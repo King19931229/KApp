@@ -27,15 +27,11 @@ int main()
 		IKRenderDevicePtr device = CreateRenderDevice(RD_VULKAN);
 
 		window->Init(60, 60, 1024, 768);
-		device->Init();
+		device->Init(window.get());
 
-		IKRenderDevice::DeviceExtensions ext;
-		device->QueryExtensions(ext);
-		std::for_each(ext.begin(), ext.end(), [](IKRenderDevice::ExtensionProperties& prop)
-		{
-			printf("%s\n", prop.property.c_str());
-		});
 		window->Loop();
+
+		device->UnInit();
 		window->UnInit();
 	}
 }

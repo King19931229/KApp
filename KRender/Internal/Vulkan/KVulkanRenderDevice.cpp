@@ -1,17 +1,19 @@
 #include "KVulkanRenderDevice.h"
+#include "KVulkanRenderWindow.h"
 #include "KVulkanHelper.h"
 
 #include <algorithm>
+#include <set>
 #include <functional>
 #include <assert.h>
 
-const char* VALIDATION_LAYER[] =
-{
-	"VK_LAYER_KHRONOS_validation"
-};
-#define VALIDATION_LAYER_COUNT (sizeof(VALIDATION_LAYER) / sizeof(const char*))
-
 //-------------------- Extensions --------------------//
+const char* DEVICE_EXTENSIONS[] =
+{
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+#define DEVICE_EXTENSIONS_COUNT (sizeof(DEVICE_EXTENSIONS) / sizeof(const char*))
+
 std::vector<const char*> PopulateExtensions(bool bEnableValidationLayer)
 {
 	uint32_t glfwExtensionCount = 0;
@@ -29,6 +31,13 @@ std::vector<const char*> PopulateExtensions(bool bEnableValidationLayer)
 }
 
 //-------------------- Validation Layer --------------------//
+const char* VALIDATION_LAYER[] =
+{
+	"VK_LAYER_KHRONOS_validation"
+};
+#define VALIDATION_LAYER_COUNT (sizeof(VALIDATION_LAYER) / sizeof(const char*))
+
+
 VkResult CreateDebugUtilsMessengerEXT(
 	VkInstance instance,
 	const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
@@ -74,6 +83,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 {
 	memset(&m_Instance, 0, sizeof(m_Instance));
 	memset(&m_Device, 0, sizeof(m_Device));
+	memset(&m_Surface, 0, sizeof(m_Surface));
 	memset(&m_DebugMessenger, 0, sizeof(m_DebugMessenger));
 	memset(&m_PhysicalDevice, 0, sizeof(m_PhysicalDevice));
 }
@@ -120,29 +130,56 @@ KVulkanRenderDevice::QueueFamilyIndices KVulkanRenderDevice::FindQueueFamilies(V
 	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, queueFamilies.data());
 
-	familyIndices.graphicsFamily = -1;
-	familyIndices.graphicsFamilyFound = false;
+	familyIndices.graphicsFamily.first = -1;
+	familyIndices.graphicsFamily.second = false;
+	familyIndices.presentFamily.first = -1;
+	familyIndices.presentFamily.second = false;
 
 	int idx = -1;
 	for (const auto& queueFamily : queueFamilies)
 	{
 		++idx;
+		// 检查设备索引
 		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
-			familyIndices.graphicsFamily = idx;
-			familyIndices.graphicsFamilyFound = true;
-			break;
+			familyIndices.graphicsFamily.first = idx;
+			familyIndices.graphicsFamily.second = true;
 		}
+		// 检查表现索引
+		VkBool32 presentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(vkDevice, idx, m_Surface, &presentSupport);
+		if(presentSupport)
+		{
+			familyIndices.presentFamily.first = idx;
+			familyIndices.presentFamily.second = true;
+		}
+
+		if(familyIndices.IsComplete())
+			break;
 	}
 
 	return std::move(familyIndices);
 }
 
+bool KVulkanRenderDevice::CheckDeviceSuitable(PhysicalDevice& device)
+{
+	if(!device.queueFamilyIndices.IsComplete())
+		return false;
+
+	if(!CheckExtentionsSupported(device.device))
+		return false;
+
+	SwapChainSupportDetails detail = QuerySwapChainSupport(device.device);
+	if(detail.formats.empty() || detail.presentModes.empty())
+		return false;
+
+	return true;
+}
+
 KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProperty(VkPhysicalDevice vkDevice)
 {
 	PhysicalDevice device;
-	
-	// First part
+
 	device.device = vkDevice;
 
 	vkGetPhysicalDeviceProperties(vkDevice, &device.deviceProperties);
@@ -154,10 +191,8 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, queueFamilies.data());
 
-	QueueFamilyIndices familyIndices = FindQueueFamilies(vkDevice);
-
-	// Second part
-	device.suitable = familyIndices.graphicsFamilyFound;
+	device.queueFamilyIndices = FindQueueFamilies(vkDevice);
+	device.suitable = CheckDeviceSuitable(device);
 
 	if(device.suitable)
 	{
@@ -180,6 +215,16 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 	return std::move(device);
 }
 
+bool KVulkanRenderDevice::CreateSurface(KVulkanRenderWindow* window)
+{
+	GLFWwindow *glfwWindow = window->GetGLFWwindow();
+	if(glfwCreateWindowSurface(m_Instance, glfwWindow, nullptr, &m_Surface)== VK_SUCCESS)
+	{
+		return true;
+	}
+	return false;
+}
+
 bool KVulkanRenderDevice::PickPhysicsDevice()
 {
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -194,7 +239,8 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 
 		std::for_each(vkDevices.begin(), vkDevices.end(), [&](VkPhysicalDevice& device)
 		{
-			devices.push_back(GetPhysicalDeviceProperty(device));
+			PhysicalDevice prop = GetPhysicalDeviceProperty(device);
+			devices.push_back(prop);
 		});
 
 		for(auto it = devices.begin(); it != devices.end();)
@@ -225,28 +271,44 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 
 bool KVulkanRenderDevice::CreateLogicalDevice()
 {
-	QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice.device);
+	QueueFamilyIndices indices = m_PhysicalDevice.queueFamilyIndices;
 
-	if(indices.graphicsFamilyFound)
+	if(indices.IsComplete())
 	{
-		// 填充VkDeviceQueueCreateInfo
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.queueFamilyIndex = indices.graphicsFamily;
-		queueCreateInfo.queueCount = 1;
+		std::set<QueueFamilyIndices::QueueFamilyIndex> uniqueIndices;
+		uniqueIndices.insert(indices.graphicsFamily);
+		uniqueIndices.insert(indices.presentFamily);
 
-		float queuePriority = 1.0f;
-		queueCreateInfo.pQueuePriorities = &queuePriority;
+		std::vector<VkDeviceQueueCreateInfo> DeviceQueueCreateInfos;
 
-		// 填充VkDeviceCreateInfo
-		VkPhysicalDeviceFeatures deviceFeatures = {};
+		for(auto& index : uniqueIndices)
+		{
+			assert(index.second);
+
+			// 填充VkDeviceQueueCreateInfo
+			VkDeviceQueueCreateInfo queueCreateInfo = {};
+			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			queueCreateInfo.queueFamilyIndex = index.first;
+			queueCreateInfo.queueCount = 1;
+
+			float queuePriority = 1.0f;
+			queueCreateInfo.pQueuePriorities = &queuePriority;
+
+			DeviceQueueCreateInfos.push_back(queueCreateInfo);
+		}
+
+		// 填充VkDeviceCreateInfo		
 		VkDeviceCreateInfo createInfo = {};
 
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-		createInfo.pQueueCreateInfos = &queueCreateInfo;
-		createInfo.queueCreateInfoCount = 1;
+		createInfo.pQueueCreateInfos = DeviceQueueCreateInfos.data();
+		createInfo.queueCreateInfoCount = (uint32_t)DeviceQueueCreateInfos.size();
 
+		createInfo.enabledExtensionCount = DEVICE_EXTENSIONS_COUNT;
+        createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS;
+
+		VkPhysicalDeviceFeatures deviceFeatures = {};
 		createInfo.pEnabledFeatures = &deviceFeatures;
 
 		// 尽管最新Vulkan实例验证层与设备验证层已经统一
@@ -305,8 +367,12 @@ bool KVulkanRenderDevice::UnsetDebugMessenger()
 	return true;
 }
 
-bool KVulkanRenderDevice::Init()
+bool KVulkanRenderDevice::Init(IKRenderWindow* _window)
 {
+	KVulkanRenderWindow* window = (KVulkanRenderWindow*)_window;
+	if(window == nullptr || window->GetGLFWwindow() == nullptr)
+		return false;
+
 	VkApplicationInfo appInfo = {};
 
 	// 描述实例
@@ -349,6 +415,8 @@ bool KVulkanRenderDevice::Init()
 	{
 		if(!SetupDebugMessenger())
 			return false;
+		if(!CreateSurface(window))
+			return false;
 		if(!PickPhysicsDevice())
 			return false;
 		if(!CreateLogicalDevice())
@@ -366,24 +434,61 @@ bool KVulkanRenderDevice::Init()
 bool KVulkanRenderDevice::UnInit()
 {
 	UnsetDebugMessenger();
+	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	vkDestroyDevice(m_Device, nullptr);
 	vkDestroyInstance(m_Instance, nullptr);
 	return true;
 }
 
-bool KVulkanRenderDevice::RecordExtentions()
+KVulkanRenderDevice::SwapChainSupportDetails KVulkanRenderDevice::QuerySwapChainSupport(VkPhysicalDevice device)
 {
-	m_Extentions.clear();
+	SwapChainSupportDetails details = {};
+
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_Surface, &details.capabilities);
+
+	uint32_t formatCount;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, nullptr);
+
+	if (formatCount != 0)
+	{
+		details.formats.resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, details.formats.data());
+	}
+
+	uint32_t presentModeCount;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, nullptr);
+
+	if (presentModeCount != 0)
+	{
+		details.presentModes.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, details.presentModes.data());
+	}
+
+	return details;
+}
+
+bool KVulkanRenderDevice::CheckExtentionsSupported(VkPhysicalDevice vkDevice)
+{
 	uint32_t extensionCount = 0;
-	if(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr) == VK_SUCCESS)
+	if(vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extensionCount, nullptr) == VK_SUCCESS)
 	{
 		std::vector<VkExtensionProperties> extensions(extensionCount);
-		if(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data()) == VK_SUCCESS)
+		if(vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extensionCount, extensions.data()) == VK_SUCCESS)
 		{
-			for(auto it = extensions.begin(), itEnd = extensions.end(); it != itEnd; ++it)
+			// 确保Vulkan具有我们需要的扩展
+			for(const char* requiredExt : DEVICE_EXTENSIONS)
 			{
-				ExtensionProperties prop = { it->extensionName, it->specVersion };
-				m_Extentions.push_back(std::move(prop));
+				if(std::find_if(extensions.begin(),
+					extensions.end(),
+					[&](VkExtensionProperties& prop)->bool
+				{
+					if(strcmp(prop.extensionName, requiredExt) == 0)
+						return true;
+					return false;
+				}) == extensions.end())
+				{
+					return false;
+				}
 			}
 			return true;
 		}
@@ -391,17 +496,7 @@ bool KVulkanRenderDevice::RecordExtentions()
 	return false;
 }
 
-bool KVulkanRenderDevice::QueryExtensions(DeviceExtensions& exts)
-{
-	exts = m_Extentions;
-	return true;
-}
-
 bool KVulkanRenderDevice::PostInit()
 {
-	if(RecordExtentions())
-	{
-		return true;
-	}
-	return false;
+	return true;
 }
