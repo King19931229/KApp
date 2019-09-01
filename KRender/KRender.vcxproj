@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h" />
     <ClInclude Include="Interface\IKRenderWindow.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanHelper.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderWindow.h" />
   </ItemGroup>
