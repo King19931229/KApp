@@ -20,10 +20,17 @@ class KVulkanRenderDevice : IKRenderDevice
 		QueueFamilyIndex graphicsFamily;
 		QueueFamilyIndex presentFamily;
 
-		inline bool IsComplete()
+		inline bool IsComplete() const
 		{
 			return graphicsFamily.second && presentFamily.second;
 		}
+	};
+
+	struct SwapChainSupportDetails
+	{
+		VkSurfaceCapabilitiesKHR capabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> presentModes;
 	};
 
 	struct PhysicalDevice
@@ -33,25 +40,25 @@ class KVulkanRenderDevice : IKRenderDevice
 		VkPhysicalDeviceFeatures deviceFeatures;
 
 		QueueFamilyIndices queueFamilyIndices;
+		SwapChainSupportDetails swapChainSupportDetails;
 
 		bool suitable;
 		int score;
-	};
-
-	struct SwapChainSupportDetails
-	{
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
 	};
 protected:
 	VkInstance m_Instance;
 	VkDevice m_Device;
 	VkSurfaceKHR m_Surface;
 
-	VkDebugUtilsMessengerEXT m_DebugMessenger;
 
+	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
+
+	VkSwapchainKHR  m_SwapChain;
+	std::vector<VkImage> m_SwapChainImages;
+	VkFormat m_SwapChainImageFormat;
+	VkExtent2D m_SwapChainExtent;
+
 	bool m_EnableValidationLayer;
 
 	SwapChainSupportDetails	QuerySwapChainSupport(VkPhysicalDevice device);
@@ -66,9 +73,14 @@ protected:
 	bool CheckExtentionsSupported(VkPhysicalDevice device);
 	PhysicalDevice GetPhysicalDeviceProperty(VkPhysicalDevice device);
 
+	VkSurfaceFormatKHR ChooseSwapSurfaceFormat();
+	VkPresentModeKHR ChooseSwapPresentMode();
+	VkExtent2D ChooseSwapExtent(KVulkanRenderWindow* window);
+
 	bool CreateSurface(KVulkanRenderWindow* window);
 	bool PickPhysicsDevice();
 	bool CreateLogicalDevice();
+	bool CreateSwapChain(KVulkanRenderWindow* window);
 
 	bool PostInit();
 

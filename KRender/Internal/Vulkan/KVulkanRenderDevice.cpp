@@ -81,11 +81,7 @@ void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& create
 KVulkanRenderDevice::KVulkanRenderDevice()
 	: m_EnableValidationLayer(true)
 {
-	memset(&m_Instance, 0, sizeof(m_Instance));
-	memset(&m_Device, 0, sizeof(m_Device));
-	memset(&m_Surface, 0, sizeof(m_Surface));
-	memset(&m_DebugMessenger, 0, sizeof(m_DebugMessenger));
-	memset(&m_PhysicalDevice, 0, sizeof(m_PhysicalDevice));
+
 }
 
 KVulkanRenderDevice::~KVulkanRenderDevice()
@@ -169,8 +165,7 @@ bool KVulkanRenderDevice::CheckDeviceSuitable(PhysicalDevice& device)
 	if(!CheckExtentionsSupported(device.device))
 		return false;
 
-	SwapChainSupportDetails detail = QuerySwapChainSupport(device.device);
-	if(detail.formats.empty() || detail.presentModes.empty())
+	if(device.swapChainSupportDetails.formats.empty() || device.swapChainSupportDetails.presentModes.empty())
 		return false;
 
 	return true;
@@ -192,6 +187,10 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, queueFamilies.data());
 
 	device.queueFamilyIndices = FindQueueFamilies(vkDevice);
+
+	SwapChainSupportDetails detail = QuerySwapChainSupport(device.device);
+	device.swapChainSupportDetails = detail;
+
 	device.suitable = CheckDeviceSuitable(device);
 
 	if(device.suitable)
@@ -212,7 +211,148 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 		device.score = -100;
 	}
 
-	return std::move(device);
+	return device;
+}
+
+VkSurfaceFormatKHR KVulkanRenderDevice::ChooseSwapSurfaceFormat()
+{
+	const auto& formats = m_PhysicalDevice.swapChainSupportDetails.formats;
+	for(const VkSurfaceFormatKHR& surfaceFormat : formats)
+	{
+		if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM && surfaceFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+		{
+			return surfaceFormat;
+		}
+	}
+
+	// 其实这时应该对format进行排序 这里把第一个最为最佳选择
+	return m_PhysicalDevice.swapChainSupportDetails.formats[0];
+}
+
+VkPresentModeKHR KVulkanRenderDevice::ChooseSwapPresentMode()
+{
+	VkPresentModeKHR ret = VK_PRESENT_MODE_MAX_ENUM_KHR;
+
+	const auto& presentModes = m_PhysicalDevice.swapChainSupportDetails.presentModes;
+	for (const VkPresentModeKHR& presentMode : presentModes)
+	{
+		// 有三重缓冲就使用三重缓冲
+        if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+		{
+            return presentMode;
+        }
+		// 双重缓冲
+		if (presentMode == VK_PRESENT_MODE_FIFO_KHR)
+		{
+			ret = presentMode;
+		}
+    }
+
+	// 其实Vulkan保证至少有双重缓冲可以使用
+	if(ret == VK_PRESENT_MODE_MAX_ENUM_KHR)
+	{
+		ret = m_PhysicalDevice.swapChainSupportDetails.presentModes[0];
+	}
+
+    return ret;
+}
+
+VkExtent2D KVulkanRenderDevice::ChooseSwapExtent(KVulkanRenderWindow* window)
+{
+	const VkSurfaceCapabilitiesKHR& capabilities = m_PhysicalDevice.swapChainSupportDetails.capabilities;
+	// 如果Vulkan设置了currentExtent 那么交换链的extent就必须与之一致
+	if(capabilities.currentExtent.width != UINT32_MAX && capabilities.currentExtent.height != UINT32_MAX)
+	{
+		return capabilities.currentExtent;
+	}
+	// 这里可以选择与窗口大小的最佳匹配
+	else
+	{
+		size_t width = 0, height = 0;
+		if(window->GetSize(width, height))
+		{
+			VkExtent2D actualExtent = { (uint32_t)width, (uint32_t)height };
+			actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+			actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+			return actualExtent;
+		}
+		else
+		{
+			VkExtent2D actualExtent = { capabilities.minImageExtent.width, capabilities.minImageExtent.height };
+			return actualExtent;
+		}
+	}
+}
+
+bool KVulkanRenderDevice::CreateSwapChain(KVulkanRenderWindow* window)
+{
+	VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat();
+	VkPresentModeKHR presentMode = ChooseSwapPresentMode();
+	VkExtent2D extent = ChooseSwapExtent(window);
+
+	const SwapChainSupportDetails& swapChainSupport = m_PhysicalDevice.swapChainSupportDetails;
+	// 设置为最小值可能必须等待驱动程序完成内部操作才能获取另一个要渲染的图像 因此作+1处理
+	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+
+	// Vulkan会把maxImageCount设置为0表示没有最大值限制 这里检查一下有没有超过最大值
+	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
+	{
+		imageCount = swapChainSupport.capabilities.maxImageCount;
+	}
+
+	VkSwapchainCreateInfoKHR createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = m_Surface;
+
+	createInfo.minImageCount = imageCount;
+	createInfo.imageFormat = surfaceFormat.format;
+	createInfo.imageColorSpace = surfaceFormat.colorSpace;
+	createInfo.imageExtent = extent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	const QueueFamilyIndices &indices = m_PhysicalDevice.queueFamilyIndices;
+	assert(indices.IsComplete());
+	uint32_t queueFamilyIndices[] = {indices.graphicsFamily.first, indices.presentFamily.first};
+
+	// 如果图像队列家族与表现队列家族不一样 需要并行模式支持
+	if (indices.graphicsFamily != indices.presentFamily)
+	{
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		createInfo.queueFamilyIndexCount = 2;
+		createInfo.pQueueFamilyIndices = queueFamilyIndices;
+	}
+	// 否则坚持独占模式
+	else
+	{
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		createInfo.queueFamilyIndexCount = 0; // Optional
+		createInfo.pQueueFamilyIndices = nullptr; // Optional
+	}
+
+	// 设置成当前窗口transform避免发生窗口旋转
+	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+	// 避免当前窗口与系统其它窗口发生alpha混合
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+	createInfo.presentMode = presentMode;
+	createInfo.clipped = VK_TRUE;
+
+	// 这里第一次创建交换链 设置为空即可
+	createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+	if (vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &m_SwapChain) == VK_SUCCESS)
+	{
+		vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &imageCount, nullptr);
+		m_SwapChainImages.resize(imageCount);
+		vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &imageCount, m_SwapChainImages.data());
+
+		m_SwapChainImageFormat = surfaceFormat.format;
+		m_SwapChainExtent = extent;
+
+		return true;
+	}
+	return false;
 }
 
 bool KVulkanRenderDevice::CreateSurface(KVulkanRenderWindow* window)
@@ -421,6 +561,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* _window)
 			return false;
 		if(!CreateLogicalDevice())
 			return false;
+		if(!CreateSwapChain(window))
+			return false;
 		PostInit();
 		return true;
 	}
@@ -434,6 +576,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* _window)
 bool KVulkanRenderDevice::UnInit()
 {
 	UnsetDebugMessenger();
+	vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	vkDestroyDevice(m_Device, nullptr);
 	vkDestroyInstance(m_Instance, nullptr);
