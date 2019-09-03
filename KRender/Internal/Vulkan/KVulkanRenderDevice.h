@@ -56,6 +56,7 @@ protected:
 
 	VkSwapchainKHR  m_SwapChain;
 	std::vector<VkImage> m_SwapChainImages;
+	std::vector<VkImageView> m_SwapChainImageViews;
 	VkFormat m_SwapChainImageFormat;
 	VkExtent2D m_SwapChainExtent;
 
@@ -81,6 +82,7 @@ protected:
 	bool PickPhysicsDevice();
 	bool CreateLogicalDevice();
 	bool CreateSwapChain(KVulkanRenderWindow* window);
+	bool CreateImageViews();
 
 	bool PostInit();
 
