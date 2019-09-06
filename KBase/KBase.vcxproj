@@ -45,6 +45,7 @@
     <ClInclude Include="Publish\KLockFreeQueue.h" />
     <ClInclude Include="Publish\KLockQueue.h" />
     <ClInclude Include="Publish\KObjectPool.h" />
+    <ClInclude Include="Publish\KProcess.h" />
     <ClInclude Include="Publish\KSemaphore.h" />
     <ClInclude Include="Publish\KSpinLock.h" />
     <ClInclude Include="Publish\KStringTool.h" />
@@ -63,6 +64,7 @@
     <ClCompile Include="Internal\KIniFile.cpp" />
     <ClCompile Include="Internal\KLog.cpp" />
     <ClCompile Include="Internal\KMemoryAllocator.cpp" />
+    <ClCompile Include="Internal\KProcess.cpp" />
     <ClCompile Include="Internal\KPythonCore.cpp" />
     <ClCompile Include="Internal\KScript.cpp" />
     <ClCompile Include="Internal\KSocketClient.cpp" />

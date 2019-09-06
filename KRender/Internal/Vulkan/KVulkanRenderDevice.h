@@ -3,6 +3,7 @@
 #include "vulkan/vulkan.h"
 #include "GLFW/glfw3.h"
 #include <algorithm>
+#include <vector>
 
 class KVulkanRenderWindow;
 
@@ -97,6 +98,8 @@ public:
 	KVulkanRenderDevice();
 	virtual ~KVulkanRenderDevice();
 
-	virtual bool Init(IKRenderWindow* window);
+	virtual bool Init(IKRenderWindowPtr window);
 	virtual bool UnInit();
+
+	virtual bool CreateShader(IKShaderPtr& shader);
 };

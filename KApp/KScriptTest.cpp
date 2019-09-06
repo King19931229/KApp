@@ -23,8 +23,8 @@ int main(int argc, char **argv)
 	IKScriptCorePtr pCore = GetScriptCore(ST_PYTHON27);
 	if(pCore->Init())
 	{
-		std::string content = "import sys\n"
-		"print sys.path";
-		pCore->RunScriptFromString(content.c_str());
+		const char* file = "C:/Users/King/Desktop/test.py";
+		pCore->RunScriptFromPath(file);
+		pCore->UnInit();
 	}
 }

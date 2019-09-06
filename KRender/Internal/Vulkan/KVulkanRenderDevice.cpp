@@ -1,6 +1,7 @@
 #include "KVulkanRenderDevice.h"
 #include "KVulkanRenderWindow.h"
-//#include "KVulkanHelper.h"
+#include "KVulkanShader.h"
+#include "KVulkanHelper.h"
 
 #include <algorithm>
 #include <set>
@@ -355,43 +356,6 @@ bool KVulkanRenderDevice::CreateSwapChain(KVulkanRenderWindow* window)
 	return false;
 }
 
-bool KVulkanRenderDevice::CreateImageViews()
-{
-	m_SwapChainImageViews.resize(m_SwapChainImages.size());
-	for(size_t i = 0; i < m_SwapChainImages.size(); ++i)
-	{
-		VkImage& image = m_SwapChainImages[i];
-		VkImageViewCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		// 设置image
-		createInfo.image = image;
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		// format与交换链format同步
-		createInfo.format = m_SwapChainImageFormat;
-		// 保持默认rgba映射行为
-		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		// 指定View访问范围
-		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = 1;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
-		if (vkCreateImageView(m_Device, &createInfo, nullptr, &m_SwapChainImageViews[i]) != VK_SUCCESS)
-		{
-			for(int j = 0; j < i; ++j)
-			{
-				vkDestroyImageView(m_Device, m_SwapChainImageViews[j], nullptr);
-			}
-			m_SwapChainImageViews.clear();
-			return false;
-		}
-	}
-	return true;
-}
-
 bool KVulkanRenderDevice::CreateSurface(KVulkanRenderWindow* window)
 {
 	GLFWwindow *glfwWindow = window->GetGLFWwindow();
@@ -544,9 +508,12 @@ bool KVulkanRenderDevice::UnsetDebugMessenger()
 	return true;
 }
 
-bool KVulkanRenderDevice::Init(IKRenderWindow* _window)
+bool KVulkanRenderDevice::Init(IKRenderWindowPtr _window)
 {
-	KVulkanRenderWindow* window = (KVulkanRenderWindow*)_window;
+	if(!_window)
+		return false;
+
+	KVulkanRenderWindow* window = (KVulkanRenderWindow*)_window.get();
 	if(window == nullptr || window->GetGLFWwindow() == nullptr)
 		return false;
 
@@ -600,8 +567,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* _window)
 			return false;
 		if(!CreateSwapChain(window))
 			return false;
-		if(!CreateImageViews())
-			return false;
 		PostInit();
 		return true;
 	}
@@ -615,12 +580,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* _window)
 bool KVulkanRenderDevice::UnInit()
 {
 	UnsetDebugMessenger();
-	for (VkImageView imageView : m_SwapChainImageViews)
-	{
-		vkDestroyImageView(m_Device, imageView, nullptr);
-	}
-	m_SwapChainImageViews.clear();
-	m_SwapChainImages.clear();
 	vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	vkDestroyDevice(m_Device, nullptr);
@@ -687,4 +646,10 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(VkPhysicalDevice vkDevice)
 bool KVulkanRenderDevice::PostInit()
 {
 	return true;
+}
+
+bool KVulkanRenderDevice::CreateShader(IKShaderPtr& shader)
+{
+	shader = IKShaderPtr(new KVulkanShader(m_Device));
+	return true; 
 }

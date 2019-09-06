@@ -1,24 +1,16 @@
 #pragma once
-#include "KBase/Interface/IKConfig.h"
-#include <memory>
-#include <vector>
-
-enum RenderDevice
-{
-	RD_VULKAN,
-	RD_COUNT
-};
-
-struct IKRenderWindow;
+#include "Interface/IKRenderConfig.h"
+#include "Interface/IKRenderWindow.h"
+#include "Interface/IKShader.h"
 
 struct IKRenderDevice
 {
 	virtual ~IKRenderDevice() {}
 
-	virtual bool Init(IKRenderWindow* window) = 0;
+	virtual bool Init(IKRenderWindowPtr window) = 0;
 	virtual bool UnInit() = 0;
-};
 
-typedef std::shared_ptr<IKRenderDevice> IKRenderDevicePtr;
+	virtual bool CreateShader(IKShaderPtr& shader) = 0;
+};
 
 EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform); 

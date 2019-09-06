@@ -27,6 +27,15 @@
     <ClInclude Include="Internal\Vulkan\KVulkanHelper.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKShader.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKRenderConfig.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanShader.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -39,6 +48,9 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanShader.cpp">
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,8 +1,5 @@
 #pragma once
-#include "KBase/Interface/IKConfig.h"
-#include "Interface/IKRenderDevice.h"
-
-#include <memory>
+#include "Interface/IKRenderConfig.h"
 
 struct IKRenderWindow
 {
@@ -19,7 +16,5 @@ struct IKRenderWindow
 	virtual bool GetSize(size_t &width, size_t &height) = 0;
 	virtual bool SetSize(size_t width, size_t height) = 0;
 };
-
-typedef std::shared_ptr<IKRenderWindow> IKRenderWindowPtr;
 
 EXPORT_DLL IKRenderWindowPtr CreateRenderWindow(RenderDevice platform);

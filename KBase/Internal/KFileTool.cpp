@@ -8,29 +8,35 @@
 
 namespace KFileTool
 {
-	EXPORT_DLL bool IsFileExist(const char* pFilePath)
+	bool IsFileExist(const std::string& filePath)
 	{
+		const char* pFilePath = filePath.c_str();
 		if(pFilePath && _access(pFilePath, 0) != -1)
+		{
 			return true;
+		}
 		return false;
 	}
 
-	EXPORT_DLL bool RemoveFile(const char* pFilePath)
+	bool RemoveFile(const std::string& filePath)
 	{
+		const char* pFilePath = filePath.c_str();
 		if(pFilePath)
 		{
 			if(_access(pFilePath, 0) == -1)
+			{
 				return true;
+			}
 			return remove(pFilePath) == 0;
 		}
 		return false;
 	}
 
-	EXPORT_DLL bool CreateFolder(const char* pDir, bool bRecursive)
+	bool CreateFolder(const std::string& folder, bool bRecursive)
 	{
-		if(pDir)
+		if(!folder.empty())
 		{
-			std::string str = pDir;
+			std::string str = folder;
 			std::replace(str.begin(), str.end(), '\\', '/');
 			if(str.length() > 0 && *str.rbegin() == '/')
 				str.erase(str.end() - 1);
@@ -52,17 +58,19 @@ namespace KFileTool
 				}
 			}
 			if(_access(str.c_str(), 0) != -1)
+			{
 				return true;
+			}
 			return _mkdir(str.c_str()) == 0;
 		}
 		return false;
 	}
 
-	EXPORT_DLL bool RemoveFolder(const char* pDir, bool bRecursive)
+	bool RemoveFolder(const std::string& folder, bool bRecursive)
 	{
-		if(pDir)
+		if(!folder.empty())
 		{
-			std::string str = pDir;
+			std::string str = folder;
 			std::replace(str.begin(), str.end(), '\\', '/');
 			if(str.length() > 0 && *str.rbegin() == '/')
 				str.erase(str.end() - 1);
@@ -82,33 +90,60 @@ namespace KFileTool
 				return true;
 			}
 			if(_access(str.c_str(), 0) == -1)
+			{
 				return true;
+			}
 			return _rmdir(str.c_str()) == 0;
 		}
 		return false;
 	}
 
-	EXPORT_DLL bool TrimPath(char* pDestPath, size_t uDestBufferSize, const char* pSrcPath, bool bTolower)
+	bool TrimPath(const std::string& srcPath, std::string& destPath, bool bTolower)
 	{
-		if(pDestPath && pSrcPath && uDestBufferSize > 0)
+		if(!srcPath.empty())
 		{
-			std::string str = pSrcPath;
+			destPath = srcPath;
 
 			if(bTolower)
-				std::transform(str.begin(), str.end(), str.begin(), tolower);
-
-			std::replace(str.begin(), str.end(), '\\', '/');
-
-			if(str.length() < uDestBufferSize)
 			{
-#ifdef _WIN32
-				strcpy_s(pDestPath, uDestBufferSize, str.c_str());
-#else
-				strcpy(pDestPath, str.c_str());
-#endif
-				return true;
+				std::transform(destPath.begin(), destPath.end(), destPath.begin(), tolower);
 			}
+
+			std::replace(destPath.begin(), destPath.end(), '\\', '/');
+			return true;
 		}
 		return false;
 	}
+
+	bool PathJoin(const std::string& path, const std::string& subPath, std::string& destPath)
+	{
+		if(!path.empty() && !subPath.empty())
+		{
+			std::string trimPath = path;
+			std::replace(trimPath.begin(), trimPath.end(), '\\', '/');
+
+			std::string::size_type lastPos = trimPath.find_last_not_of("/");
+			if(lastPos != std::string::npos && lastPos != trimPath.length() - 1)
+			{
+				trimPath = trimPath.erase(lastPos + 1, trimPath.length() - lastPos);
+			}
+
+			std::string trimSubPath = subPath;
+			std::replace(trimSubPath.begin(), trimSubPath.end(), '\\', '/');
+			if(trimSubPath.at(0) == '/')
+			{
+				std::string::size_type firstPos = trimSubPath.find_first_not_of('/');
+				if(firstPos != std::string::npos)
+				{
+					trimSubPath = trimSubPath.erase(0, firstPos);
+				}
+			}
+
+			destPath = trimPath + "/" + trimSubPath;
+
+			return true;
+		}
+		return false;
+	}
+
 }
