@@ -8,7 +8,7 @@
 
 namespace KFileTool
 {
-	bool IsFileExist(const std::string& filePath)
+	bool IsPathExist(const std::string& filePath)
 	{
 		const char* pFilePath = filePath.c_str();
 		if(pFilePath && _access(pFilePath, 0) != -1)
@@ -66,7 +66,7 @@ namespace KFileTool
 		return false;
 	}
 
-	bool RemoveFolder(const std::string& folder, bool bRecursive)
+	bool RemoveFolder(const std::string& folder)
 	{
 		if(!folder.empty())
 		{
@@ -74,21 +74,6 @@ namespace KFileTool
 			std::replace(str.begin(), str.end(), '\\', '/');
 			if(str.length() > 0 && *str.rbegin() == '/')
 				str.erase(str.end() - 1);
-
-			if(bRecursive)
-			{
-				std::string::size_type pos = str.find_last_of('/');
-
-				for(;pos != std::string::npos;
-					str = str.substr(0, pos), pos = str.find_last_of('/'))
-				{
-					if(_access(str.c_str(), 0) == -1)
-						continue;
-					if(_rmdir(str.c_str()) != 0)
-						return false;
-				}
-				return true;
-			}
 			if(_access(str.c_str(), 0) == -1)
 			{
 				return true;

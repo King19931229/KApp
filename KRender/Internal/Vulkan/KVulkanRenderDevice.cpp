@@ -1,6 +1,7 @@
 #include "KVulkanRenderDevice.h"
 #include "KVulkanRenderWindow.h"
 #include "KVulkanShader.h"
+#include "KVulkanProgram.h"
 #include "KVulkanHelper.h"
 
 #include <algorithm>
@@ -509,6 +510,11 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 	return false;
 }
 
+bool KVulkanRenderDevice::CreateGraphicsPipeline()
+{
+	return true;
+}
+
 VkBool32 KVulkanRenderDevice::DebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -606,6 +612,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr _window)
 			return false;
 		if(!CreateImageViews())
 			return false;
+		if(!CreateGraphicsPipeline())
+			return false;
 		PostInit();
 		return true;
 	}
@@ -697,4 +705,10 @@ bool KVulkanRenderDevice::CreateShader(IKShaderPtr& shader)
 {
 	shader = IKShaderPtr(new KVulkanShader(m_Device));
 	return true; 
+}
+
+bool KVulkanRenderDevice::CreateProgram(IKProgramPtr& program)
+{
+	program = IKProgramPtr(new KVulkanProgram(m_Device));
+	return true;
 }

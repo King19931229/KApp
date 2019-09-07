@@ -8,6 +8,46 @@ enum RenderDevice
 	RD_COUNT
 };
 
+enum ShaderType
+{
+	ST_VERTEX,
+	ST_FRAGMENT,
+	ST_COUNT
+};
+
+enum VertexSemantic
+{
+	VS_POSITION,
+	VS_NORMAL,
+
+	VS_UV,
+	VS_UV2,
+
+	VS_DIFFUSE,
+	VS_SPECULAR,
+
+	VS_TANGENT,
+	VS_BINORMAL,
+
+	VS_BLEND_WEIGHTS,
+	VS_BLEND_INDICES
+};
+
+enum VertexElement
+{
+	VE_POINT_NORMAL_UV,
+	VE_UV2,
+	VE_DIFFUSE_SPECULAR,
+	VE_TANGENT_BINORMAL,
+	VE_WEIGHTS_INDICES,
+};
+
+enum IndexType
+{
+	IT_16,
+	IT_32
+};
+
 struct IKRenderWindow;
 typedef std::shared_ptr<IKRenderWindow> IKRenderWindowPtr;
 
@@ -16,3 +56,15 @@ typedef std::shared_ptr<IKRenderDevice> IKRenderDevicePtr;
 
 struct IKShader;
 typedef std::shared_ptr<IKShader> IKShaderPtr;
+
+struct IKProgram;
+typedef std::shared_ptr<IKProgram> IKProgramPtr;
+
+struct IKVertexBuffer;
+typedef std::shared_ptr<IKVertexBuffer> IKVertexBufferPtr;
+
+struct IKIndexBuffer;
+typedef std::shared_ptr<IKIndexBuffer> IKIndexBufferPtr;
+
+struct IKUniformBuffer;
+typedef std::shared_ptr<IKUniformBuffer> IKUniformBufferPtr;

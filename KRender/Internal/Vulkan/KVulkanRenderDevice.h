@@ -84,6 +84,8 @@ protected:
 	bool CreateLogicalDevice();
 	bool CreateSwapChain(KVulkanRenderWindow* window);
 	bool CreateImageViews();
+	// Temporarily for demo use
+	bool CreateGraphicsPipeline();
 
 	bool PostInit();
 
@@ -102,4 +104,5 @@ public:
 	virtual bool UnInit();
 
 	virtual bool CreateShader(IKShaderPtr& shader);
+	virtual bool CreateProgram(IKProgramPtr& program);
 };

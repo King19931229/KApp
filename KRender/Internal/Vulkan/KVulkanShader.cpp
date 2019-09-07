@@ -5,6 +5,8 @@
 #include "KBase/Publish/KProcess.h"
 #include "KBase/Publish/KHash.h"
 
+#define CACHE_PATH "ShaderCached"
+
 KVulkanShader::KVulkanShader(VkDevice device)
 	: m_Device(device)
 {
@@ -30,8 +32,16 @@ bool KVulkanShader::InitFromFile(const std::string path)
 		if(KFileTool::PathJoin(shaderCompiler, "Bin32/glslc.exe", shaderCompiler))
 #endif
 		{
-			std::string codePath = std::string(hashCode) + ".spv";
-			if(KProcess::Wait(shaderCompiler.c_str(), path + " -o " + codePath))
+			if(!KFileTool::IsPathExist(CACHE_PATH))
+			{
+				KFileTool::CreateFolder(CACHE_PATH);
+			}
+			std::string codePath;
+			std::string message;
+
+			KFileTool::PathJoin(CACHE_PATH, std::string(hashCode) + ".spv", codePath);
+
+			if(KProcess::Wait(shaderCompiler.c_str(), path + " -o " + codePath, message))
 			{
 				IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
 				if(pData)
@@ -48,7 +58,11 @@ bool KVulkanShader::InitFromFile(const std::string path)
 					}
 				}
 			}
-
+			else
+			{
+				printf("[Vulkan Shader Compile Error]: [%s]\n%s\n", path.c_str(), message.c_str());
+				return false;
+			}
 		}
 	}
 	return false;

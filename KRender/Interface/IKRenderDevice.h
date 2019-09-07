@@ -11,6 +11,7 @@ struct IKRenderDevice
 	virtual bool UnInit() = 0;
 
 	virtual bool CreateShader(IKShaderPtr& shader) = 0;
+	virtual bool CreateProgram(IKProgramPtr& program) = 0;
 };
 
 EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform); 

@@ -20,6 +20,7 @@ IKLogPtr pLog;
 #include "KRender/Interface/IKRenderWindow.h"
 #include "KRender/Interface/IKRenderDevice.h"
 #include "KRender/Interface/IKShader.h"
+#include "KRender/Interface/IKProgram.h"
 
 #include <algorithm>
 #include <process.h>
@@ -40,10 +41,22 @@ int main()
 		window->Init(60, 60, 1024, 768);
 		device->Init(window);
 
-		IKShaderPtr shader = nullptr;
-		device->CreateShader(shader);
-		shader->InitFromFile("D:/KApp/Shader/shader.vert");
-		shader->UnInit();
+		IKShaderPtr vtShader = nullptr;
+		device->CreateShader(vtShader);
+
+		IKShaderPtr fgShader = nullptr;
+		device->CreateShader(fgShader);
+
+		IKProgramPtr program = nullptr;
+		device->CreateProgram(program);
+
+		if(vtShader->InitFromFile("D:/KApp/Shader/shader.vert") && fgShader->InitFromFile("D:/KApp/Shader/shader.frag"))
+		{
+			program->AttachShader(ST_VERTEX, vtShader);
+			program->AttachShader(ST_FRAGMENT, fgShader);
+			program->Init();
+		}
+
 		window->Loop();
 
 		device->UnInit();
