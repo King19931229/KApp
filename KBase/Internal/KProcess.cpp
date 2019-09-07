@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <vector>
 
-bool KProcess::Wait(const std::string& path, const std::string& args)
+bool KProcess::Wait(const std::string& path, const std::string& args, std::string& output)
 {
 	if(!path.empty())
 	{
@@ -70,24 +70,130 @@ bool KProcess::Wait(const std::string& path, const std::string& args)
 		}
 		return nRet != -1;
 #else
-		SHELLEXECUTEINFOA shExecInfo = {0};		
-		shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOA);
-		shExecInfo.fMask  = SEE_MASK_NOCLOSEPROCESS;
-		shExecInfo.hwnd   = NULL;
-		shExecInfo.lpVerb = "open";
-		shExecInfo.lpFile = path.c_str();
-		shExecInfo.lpParameters = args.c_str();
-		shExecInfo.lpDirectory  = NULL;
-		shExecInfo.nShow        = SW_SHOW;
-		shExecInfo.hInstApp     = NULL;
-		if(ShellExecuteExA(&shExecInfo))
-		{
-			WaitForSingleObject(shExecInfo.hProcess, INFINITE);
-			DWORD returnCode = 1;
-			GetExitCodeProcess(shExecInfo.hProcess, &returnCode);
-			return returnCode == 0;
+
+#define PIPE_BUFFER_SIZE 1024
+#define COMMAND_BUFFER_SIZE 1024
+		// https://blog.csdn.net/explorer114/article/details/79951972
+		// https://bbs.csdn.net/topics/481942
+		SECURITY_ATTRIBUTES saOutPipe;
+		STARTUPINFOA startupInfo;
+		PROCESS_INFORMATION processInfo;
+		DWORD dwErrorCode;
+		HANDLE hPipeRead = NULL;
+		HANDLE hPipeWrite = NULL;
+		char szPipeOut[PIPE_BUFFER_SIZE] = {0};
+
+		saOutPipe.nLength = sizeof(SECURITY_ATTRIBUTES);
+		saOutPipe.lpSecurityDescriptor = NULL;
+		saOutPipe.bInheritHandle = TRUE;
+		ZeroMemory(&startupInfo, sizeof(STARTUPINFO));
+		ZeroMemory(&processInfo, sizeof(PROCESS_INFORMATION));
+
+#define CLEAN_UP_PIPE()\
+		{\
+				if (hPipeRead)\
+				{\
+					CloseHandle(hPipeRead);\
+					hPipeRead = NULL;\
+				}\
+				if (hPipeWrite)\
+				{\
+					CloseHandle(hPipeWrite);\
+					hPipeWrite = NULL;\
+				}\
 		}
-		return false;
+
+		if (!CreatePipe(&hPipeRead, &hPipeWrite, &saOutPipe, PIPE_BUFFER_SIZE))
+		{
+			dwErrorCode = GetLastError();
+			return false;
+		}
+
+		std::string fullCommand = path + " " + args;
+		CHAR szCommandLine[COMMAND_BUFFER_SIZE] = {0};
+		if(fullCommand.length() + 1 > COMMAND_BUFFER_SIZE)
+		{
+			CLEAN_UP_PIPE();
+			return false;
+		}
+		strcpy(szCommandLine, fullCommand.c_str());
+
+		DWORD dwReadLen = 0;
+		DWORD dwStdLen = 0;
+		startupInfo.cb = sizeof(STARTUPINFO);
+		startupInfo.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+		startupInfo.hStdOutput = hPipeWrite;
+		startupInfo.hStdError = hPipeWrite;
+		startupInfo.wShowWindow = SW_HIDE;
+
+		if (!CreateProcessA(NULL,
+			szCommandLine,
+			NULL, NULL, TRUE, 0, NULL, NULL,
+			&startupInfo, &processInfo))
+		{
+			dwErrorCode = GetLastError();
+			CLEAN_UP_PIPE();
+			return false;
+		}
+
+#define CLEAN_UP_PROCESS()\
+		{\
+			if (processInfo.hThread)\
+			{\
+				CloseHandle(processInfo.hThread);\
+				processInfo.hThread = NULL;\
+			}\
+			if (processInfo.hProcess)\
+			{\
+				CloseHandle(processInfo.hProcess);\
+				processInfo.hProcess = NULL;\
+			}\
+		}
+
+		DWORD returnCode = 1;
+		while(true)
+		{
+			// 预览管道中数据的内容
+			if (!PeekNamedPipe(hPipeRead, NULL, 0, NULL, &dwReadLen, NULL))
+			{
+				dwErrorCode = GetLastError();
+				CLEAN_UP_PIPE();
+				CLEAN_UP_PROCESS();
+				return false;
+			}
+			else if(dwReadLen > 0)
+			{
+				ZeroMemory(szPipeOut, sizeof(szPipeOut));
+				// 读取管道中的数据
+				DWORD dwRestLen = dwReadLen;
+				while(dwRestLen > 0)
+				{
+					DWORD dwReadCount = min(dwRestLen, PIPE_BUFFER_SIZE - 1);
+					if (ReadFile(hPipeRead, szPipeOut, dwReadCount, &dwStdLen, NULL))
+					{
+						szPipeOut[dwStdLen] = 0;
+						output += szPipeOut;
+						dwRestLen -= dwStdLen;
+					}
+					else
+					{
+						dwErrorCode = GetLastError();
+						CLEAN_UP_PIPE();
+						CLEAN_UP_PROCESS();
+						return false;
+					}
+				}
+			}
+			GetExitCodeProcess(processInfo.hProcess, &returnCode);
+			if(returnCode != STILL_ACTIVE)
+				break;
+		}
+		WaitForSingleObject(processInfo.hProcess, INFINITE);
+		GetExitCodeProcess(processInfo.hProcess, &returnCode);
+		CLEAN_UP_PIPE();
+		CLEAN_UP_PROCESS();
+
+		return returnCode == 0;
 #endif
 	}
 	return false;

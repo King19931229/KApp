@@ -4,5 +4,5 @@
 
 namespace KProcess
 {
-	EXPORT_DLL bool Wait(const std::string& path, const std::string& args);
+	EXPORT_DLL bool Wait(const std::string& path, const std::string& args, std::string& output);
 }
