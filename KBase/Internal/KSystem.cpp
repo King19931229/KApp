@@ -1,5 +1,5 @@
-#include "Publish/KProcess.h"
-#include "Publish/KStringTool.h"
+#include "Publish/KSystem.h"
+#include "Publish/KStringParser.h"
 
 #ifdef _WIN32
 #include <process.h>
@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <vector>
 
-bool KProcess::Wait(const std::string& path, const std::string& args, std::string& output)
+bool KSystem::WaitProcess(const std::string& path, const std::string& args, std::string& output)
 {
 	if(!path.empty())
 	{

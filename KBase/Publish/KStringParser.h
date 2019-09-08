@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "Interface/IKConfig.h"
 
-namespace KStringTool
+namespace KStringParser
 {
 	EXPORT_DLL bool ParseToBOOL(const char* pStr, bool* pOut, size_t uCount);
 	EXPORT_DLL bool ParseToUCHAR(const char* pStr, unsigned char* pOut, size_t uCount);

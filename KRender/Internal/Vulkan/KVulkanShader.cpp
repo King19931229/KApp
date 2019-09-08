@@ -1,8 +1,8 @@
 #include "KVulkanShader.h"
 #include "KBase/Interface/IKDataStream.h"
-#include "KBase/Publish/KStringTool.h"
+#include "KBase/Publish/KStringParser.h"
 #include "KBase/Publish/KFileTool.h"
-#include "KBase/Publish/KProcess.h"
+#include "KBase/Publish/KSystem.h"
 #include "KBase/Publish/KHash.h"
 
 #define CACHE_PATH "ShaderCached"
@@ -23,7 +23,7 @@ bool KVulkanShader::InitFromFile(const std::string path)
 	size_t uHash = KHash::BKDR(path.c_str(), path.length());
 	char hashCode[256] = {0};
 
-	if(KStringTool::ParseFromSIZE_T(hashCode, sizeof(hashCode), &uHash, 1))
+	if(KStringParser::ParseFromSIZE_T(hashCode, sizeof(hashCode), &uHash, 1))
 	{
 		std::string shaderCompiler = getenv("VK_SDK_PATH");
 #ifdef _WIN64
@@ -41,7 +41,7 @@ bool KVulkanShader::InitFromFile(const std::string path)
 
 			KFileTool::PathJoin(CACHE_PATH, std::string(hashCode) + ".spv", codePath);
 
-			if(KProcess::Wait(shaderCompiler.c_str(), path + " -o " + codePath, message))
+			if(KSystem::WaitProcess(shaderCompiler.c_str(), path + " -o " + codePath, message))
 			{
 				IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
 				if(pData)

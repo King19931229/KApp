@@ -6,8 +6,9 @@
 #include "KBase/Publish/KSemaphore.h"
 #include "KBase/Publish/KTaskExecutor.h"
 #include "KBase/Publish/KObjectPool.h"
-#include "KBase/Publish/KProcess.h"
+#include "KBase/Publish/KSystem.h"
 #include "KBase/Publish/KFileTool.h"
+#include "KBase/Publish/KStringUtil.h"
 
 #include "Interface/IKLog.h"
 #include "Publish/KHashString.h"
@@ -27,8 +28,11 @@ IKLogPtr pLog;
 int main()
 {
 	DUMP_MEMORY_LEAK_BEGIN(); 
-
-	/*KProcess::Wait("D:\\VulkanSDK\\1.1.114.0\\Bin\\glslc.exe", "d:\\KApp\\Shader\\shader.vert -o test.txt");
+	/*
+	std::vector<std::string> splitResult;
+	KStringUtil::Split("I am ;; a string for test;;; ha,ha!", " ;,!", splitResult);
+	*/
+	/*KSystem::Wait("D:\\VulkanSDK\\1.1.114.0\\Bin\\glslc.exe", "d:\\KApp\\Shader\\shader.vert -o test.txt");
 	std::string vulkanRoot = getenv("VK_SDK_PATH");
 	vulkanRoot = getenv("VK_SDK_PATH");
 	KFileTool::PathJoin(vulkanRoot, "Bin/spirv-as.exe", vulkanRoot);

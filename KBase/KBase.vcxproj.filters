@@ -55,9 +55,6 @@
     <ClInclude Include="Publish\KHashString.h">
       <Filter>Publish</Filter>
     </ClInclude>
-    <ClInclude Include="Publish\KStringTool.h">
-      <Filter>Publish</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\IKLog.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -100,7 +97,13 @@
     <ClInclude Include="Internal\KPythonCore.h">
       <Filter>Internal</Filter>
     </ClInclude>
-    <ClInclude Include="Publish\KProcess.h">
+    <ClInclude Include="Publish\KStringParser.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KSystem.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KStringUtil.h">
       <Filter>Publish</Filter>
     </ClInclude>
   </ItemGroup>
@@ -137,9 +140,6 @@
     <ClCompile Include="Internal\KHashString.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\KStringTool.cpp">
-      <Filter>Internal</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\KLog.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
@@ -164,7 +164,13 @@
     <ClCompile Include="Internal\KScript.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\KProcess.cpp">
+    <ClCompile Include="Internal\KStringUtil.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KStringParser.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KSystem.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>

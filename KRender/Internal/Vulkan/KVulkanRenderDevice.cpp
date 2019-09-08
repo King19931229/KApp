@@ -159,7 +159,7 @@ KVulkanRenderDevice::QueueFamilyIndices KVulkanRenderDevice::FindQueueFamilies(V
 			break;
 	}
 
-	return std::move(familyIndices);
+	return familyIndices;
 }
 
 bool KVulkanRenderDevice::CheckDeviceSuitable(PhysicalDevice& device)
@@ -397,6 +397,33 @@ bool KVulkanRenderDevice::CreateImageViews()
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateFramebuffers()
+{
+	m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
+	for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
+	{
+		VkFramebufferCreateInfo framebufferInfo = {};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = m_RenderPass;
+		framebufferInfo.attachmentCount = 1;
+		framebufferInfo.pAttachments = &m_SwapChainImageViews[i];
+		framebufferInfo.width = m_SwapChainExtent.width;
+		framebufferInfo.height = m_SwapChainExtent.height;
+		framebufferInfo.layers = 1;
+
+		if (vkCreateFramebuffer(m_Device, &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS)
+		{
+			for(size_t j = 0; j < i; ++j)
+			{
+				vkDestroyFramebuffer(m_Device, m_SwapChainFramebuffers[j], nullptr);
+			}
+			m_SwapChainFramebuffers.clear();
+			return false;
+		}
+	}
+	return true;
+}
+
 bool KVulkanRenderDevice::CreateSurface(KVulkanRenderWindow* window)
 {
 	GLFWwindow *glfwWindow = window->GetGLFWwindow();
@@ -541,6 +568,7 @@ bool KVulkanRenderDevice::CreateRenderPass()
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
 
+	// 创建渲染通道
 	VkRenderPassCreateInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassInfo.attachmentCount = 1;
@@ -651,6 +679,7 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 	dynamicState.dynamicStateCount = 2;
 	dynamicState.pDynamicStates = dynamicStates;
 
+	// 创建管线布局
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 0; // Optional
@@ -679,17 +708,22 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 	
 	VkGraphicsPipelineCreateInfo pipelineInfo = {};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	// 指定管线所使用的Shader
 	pipelineInfo.stageCount = (uint32_t)shaderStageCreateInfo.size();
 	pipelineInfo.pStages = shaderStageCreateInfo.data();
+	// 指定管线顶点输入信息
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
+	// 指定管线视口
 	pipelineInfo.pViewportState = &viewportState;
 	pipelineInfo.pRasterizationState = &rasterizer;
+	// 指定多重采样方式
 	pipelineInfo.pMultisampleState = &multisampling;
+	// 指定混合模式
 	pipelineInfo.pColorBlendState = &colorBlending;
-
+	// 指定管线布局
 	pipelineInfo.layout = m_PipelineLayout;
-
+	// 指定渲染通道
 	pipelineInfo.renderPass = m_RenderPass;
 	pipelineInfo.subpass = 0;
 
@@ -701,6 +735,89 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 		return false;
 	}
 
+	return true;
+}
+
+bool KVulkanRenderDevice::CreateCommandPool()
+{
+	assert(m_PhysicalDevice.queueFamilyIndices.IsComplete());
+
+	VkCommandPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	// 指定该命令池所属的队列家族
+	poolInfo.queueFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
+	poolInfo.flags = 0; // Optional
+
+	if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_CommandPool) == VK_SUCCESS)
+	{
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanRenderDevice::CreateCommandBuffers()
+{
+	// 交换链上的每个帧缓冲都需要提交命令
+	m_CommandBuffers.resize(m_SwapChainFramebuffers.size());
+
+	VkCommandBufferAllocateInfo allocInfo = {};	
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = m_CommandPool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = (uint32_t) m_CommandBuffers.size();
+
+	if (vkAllocateCommandBuffers(m_Device, &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS)
+	{
+		m_CommandBuffers.clear();
+		return false;
+	}
+
+	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
+	{
+		// 命令开始时候创建需要一个命令开始信息
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = 0; // Optional
+		beginInfo.pInheritanceInfo = nullptr; // Optional
+
+		if (vkBeginCommandBuffer(m_CommandBuffers[i], &beginInfo) != VK_SUCCESS)
+		{
+			m_CommandBuffers.clear();
+			return false;
+		}
+		{
+			// 创建开始渲染过程描述
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			// 指定渲染通道
+			renderPassInfo.renderPass = m_RenderPass;
+			// 指定帧缓冲
+			renderPassInfo.framebuffer = m_SwapChainFramebuffers[i];
+
+			renderPassInfo.renderArea.offset.x = 0;
+			renderPassInfo.renderArea.offset.y = 0;
+			renderPassInfo.renderArea.extent = m_SwapChainExtent;
+
+			VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+			renderPassInfo.clearValueCount = 1;
+			renderPassInfo.pClearValues = &clearColor;
+
+			// 开始渲染过程
+			vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			{
+				vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
+				vkCmdDraw(m_CommandBuffers[i], 3, 1, 0, 0);
+			}
+			// 结束渲染过程
+			vkCmdEndRenderPass(m_CommandBuffers[i]);
+		}
+
+		if (vkEndCommandBuffer(m_CommandBuffers[i]) != VK_SUCCESS)
+		{
+			m_CommandBuffers.clear();
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -805,6 +922,12 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr _window)
 			return false;
 		if(!CreateGraphicsPipeline())
 			return false;
+		if(!CreateFramebuffers())
+			return false;
+		if(!CreateCommandPool())
+			return false;
+		if(!CreateCommandBuffers())
+			return false;
 		PostInit();
 		return true;
 	}
@@ -818,11 +941,19 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr _window)
 bool KVulkanRenderDevice::UnInit()
 {
 	UnsetDebugMessenger();
+
+	for (VkFramebuffer framebuffer : m_SwapChainFramebuffers)
+	{
+		vkDestroyFramebuffer(m_Device, framebuffer, nullptr);
+	}
+	m_SwapChainFramebuffers.clear();
+
 	for (VkImageView imageView : m_SwapChainImageViews)
 	{
 		vkDestroyImageView(m_Device, imageView, nullptr);
 	}
 	m_SwapChainImageViews.clear();
+
 	m_SwapChainImages.clear();
 
 	if(m_VSShader)
@@ -841,6 +972,9 @@ bool KVulkanRenderDevice::UnInit()
 		m_Program = nullptr;
 	}
 
+	m_CommandBuffers.clear();
+
+	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
 	vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
 	vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
 	vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);

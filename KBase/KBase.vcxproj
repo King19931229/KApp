@@ -45,10 +45,11 @@
     <ClInclude Include="Publish\KLockFreeQueue.h" />
     <ClInclude Include="Publish\KLockQueue.h" />
     <ClInclude Include="Publish\KObjectPool.h" />
-    <ClInclude Include="Publish\KProcess.h" />
+    <ClInclude Include="Publish\KStringUtil.h" />
+    <ClInclude Include="Publish\KSystem.h" />
     <ClInclude Include="Publish\KSemaphore.h" />
     <ClInclude Include="Publish\KSpinLock.h" />
-    <ClInclude Include="Publish\KStringTool.h" />
+    <ClInclude Include="Publish\KStringParser.h" />
     <ClInclude Include="Publish\KTaskExecutor.h" />
     <ClInclude Include="Publish\KThreadPool.h" />
     <ClInclude Include="Publish\KThreadTool.h" />
@@ -64,13 +65,14 @@
     <ClCompile Include="Internal\KIniFile.cpp" />
     <ClCompile Include="Internal\KLog.cpp" />
     <ClCompile Include="Internal\KMemoryAllocator.cpp" />
-    <ClCompile Include="Internal\KProcess.cpp" />
+    <ClCompile Include="Internal\KSystem.cpp" />
     <ClCompile Include="Internal\KPythonCore.cpp" />
     <ClCompile Include="Internal\KScript.cpp" />
     <ClCompile Include="Internal\KSocketClient.cpp" />
     <ClCompile Include="Internal\KSocketServer.cpp" />
     <ClCompile Include="Internal\KSourceFile.cpp" />
-    <ClCompile Include="Internal\KStringTool.cpp" />
+    <ClCompile Include="Internal\KStringParser.cpp" />
+    <ClCompile Include="Internal\KStringUtil.cpp" />
     <ClCompile Include="Internal\KThreadTool.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

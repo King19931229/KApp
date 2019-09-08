@@ -1,8 +1,8 @@
-﻿#include "Publish/KStringTool.h"
+﻿#include "Publish/KStringParser.h"
 
 #include <sstream>
 
-namespace KStringTool
+namespace KStringParser
 {
 	template<typename T>
 	bool ParseTo(const char* pStr, T* pOut, size_t uCount)

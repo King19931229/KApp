@@ -50,6 +50,7 @@ protected:
 	VkInstance m_Instance;
 	VkDevice m_Device;
 	VkSurfaceKHR m_Surface;
+	bool m_EnableValidationLayer;
 	// Temporarily for demo use
 	IKShaderPtr m_VSShader;
 	IKShaderPtr m_FGShader;
@@ -58,17 +59,21 @@ protected:
 	VkRenderPass m_RenderPass;
 	VkPipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
+	std::vector<VkCommandBuffer> m_CommandBuffers;
 
+	//
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
 
 	VkSwapchainKHR  m_SwapChain;
 	std::vector<VkImage> m_SwapChainImages;
 	std::vector<VkImageView> m_SwapChainImageViews;
+	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
+
 	VkFormat m_SwapChainImageFormat;
 	VkExtent2D m_SwapChainExtent;
 
-	bool m_EnableValidationLayer;
+	VkCommandPool m_CommandPool;
 
 	SwapChainSupportDetails	QuerySwapChainSupport(VkPhysicalDevice device);
 
@@ -91,9 +96,13 @@ protected:
 	bool CreateLogicalDevice();
 	bool CreateSwapChain(KVulkanRenderWindow* window);
 	bool CreateImageViews();
+	bool CreateFramebuffers();
+	bool CreateCommandPool();
+
 	// Temporarily for demo use
 	bool CreateRenderPass();
 	bool CreateGraphicsPipeline();
+	bool CreateCommandBuffers();
 
 	bool PostInit();
 
