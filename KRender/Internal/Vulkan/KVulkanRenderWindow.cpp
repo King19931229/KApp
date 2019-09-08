@@ -11,10 +11,11 @@ KVulkanRenderWindow::~KVulkanRenderWindow()
 
 }
 
-bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t height)
+bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable)
 {
 	if(glfwInit() == GLFW_TRUE)
 	{
+		glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		m_window = glfwCreateWindow((int)width, (int)height, "Vulkan window", nullptr, nullptr);
 		if(m_window)
@@ -97,6 +98,21 @@ bool KVulkanRenderWindow::SetSize(size_t width, size_t height)
 	{
 		glfwSetWindowSize(m_window, (int)width, (int)height);
 		return true;
+	}
+	return false;
+}
+
+bool KVulkanRenderWindow::SetResizable(bool resizable)
+{
+	return false;
+}
+
+bool KVulkanRenderWindow::IsResizable()
+{
+	if(m_window)
+	{
+		int hint = glfwGetWindowAttrib(m_window, GLFW_RESIZABLE);
+		return hint == GLFW_TRUE;
 	}
 	return false;
 }

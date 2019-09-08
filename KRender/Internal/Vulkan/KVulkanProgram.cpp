@@ -24,11 +24,11 @@ bool KVulkanProgram::AttachShader(ShaderType shaderType, IKShaderPtr _shader)
 	{
 	case ST_VERTEX:
 		{
-			memset(&m_VragShaderStageInfo, 0, sizeof(m_VragShaderStageInfo));
-			m_VragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			m_VragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			m_VragShaderStageInfo.module = vkShader;
-			m_VragShaderStageInfo.pName = "main";
+			memset(&m_VertShaderStageInfo, 0, sizeof(m_VertShaderStageInfo));
+			m_VertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			m_VertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+			m_VertShaderStageInfo.module = vkShader;
+			m_VertShaderStageInfo.pName = "main";
 			return true;
 		}
 	case ST_FRAGMENT:
@@ -48,11 +48,14 @@ bool KVulkanProgram::AttachShader(ShaderType shaderType, IKShaderPtr _shader)
 
 bool KVulkanProgram::Init()
 {
-	VkPipelineShaderStageCreateInfo shaderStages[] = {m_VragShaderStageInfo, m_FragShaderStageInfo};
-	return false;
+	m_ShaderStageInfo.clear();
+	m_ShaderStageInfo.push_back(m_VertShaderStageInfo);
+	m_ShaderStageInfo.push_back(m_FragShaderStageInfo);
+	return true;
 }
 
 bool KVulkanProgram::UnInit()
 {
-	return false;
+	m_ShaderStageInfo.clear();
+	return true;
 }

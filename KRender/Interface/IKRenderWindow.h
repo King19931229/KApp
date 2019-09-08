@@ -5,7 +5,7 @@ struct IKRenderWindow
 {
 	virtual ~IKRenderWindow() {}
 
-	virtual bool Init(size_t top, size_t left, size_t width, size_t height) = 0;
+	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool Loop() = 0;
@@ -15,6 +15,9 @@ struct IKRenderWindow
 
 	virtual bool GetSize(size_t &width, size_t &height) = 0;
 	virtual bool SetSize(size_t width, size_t height) = 0;
+
+	virtual bool SetResizable(bool resizable) = 0;
+	virtual bool IsResizable() = 0;
 };
 
 EXPORT_DLL IKRenderWindowPtr CreateRenderWindow(RenderDevice platform);

@@ -50,7 +50,14 @@ protected:
 	VkInstance m_Instance;
 	VkDevice m_Device;
 	VkSurfaceKHR m_Surface;
+	// Temporarily for demo use
+	IKShaderPtr m_VSShader;
+	IKShaderPtr m_FGShader;
+	IKProgramPtr m_Program;
 
+	VkRenderPass m_RenderPass;
+	VkPipelineLayout m_PipelineLayout;
+	VkPipeline m_GraphicsPipeline;
 
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
@@ -85,6 +92,7 @@ protected:
 	bool CreateSwapChain(KVulkanRenderWindow* window);
 	bool CreateImageViews();
 	// Temporarily for demo use
+	bool CreateRenderPass();
 	bool CreateGraphicsPipeline();
 
 	bool PostInit();

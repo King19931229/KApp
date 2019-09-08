@@ -37,8 +37,9 @@ int main()
 	if(window)
 	{
 		IKRenderDevicePtr device = CreateRenderDevice(RD_VULKAN);
-
-		window->Init(60, 60, 1024, 768);
+		
+		window->Init(60, 60, 1024, 768, false);
+		printf("%d\n", window->IsResizable());
 		device->Init(window);
 
 		IKShaderPtr vtShader = nullptr;
@@ -50,7 +51,7 @@ int main()
 		IKProgramPtr program = nullptr;
 		device->CreateProgram(program);
 
-		if(vtShader->InitFromFile("D:/KApp/Shader/shader.vert") && fgShader->InitFromFile("D:/KApp/Shader/shader.frag"))
+		if(vtShader->InitFromFile("shader.vert") && fgShader->InitFromFile("shader.frag"))
 		{
 			program->AttachShader(ST_VERTEX, vtShader);
 			program->AttachShader(ST_FRAGMENT, fgShader);

@@ -2,6 +2,8 @@
 #include "Interface/IKRenderConfig.h"
 #include <assert.h>
 
+#define MEMBER_OFFSET(structure, member) ((int)&((structure*)0)->member)
+
 #pragma pack(push, 1)
 struct KVertexPositionNormalUV
 {
@@ -65,7 +67,7 @@ namespace KVertexDefinition
 			{
 			}
 		}
-		else if(element == VE_WEIGHTS_INDICES)
+		else if(element == VE_BLEND_WEIGHTS_INDICES)
 		{
 			if(semantic == VS_BLEND_WEIGHTS)
 			{

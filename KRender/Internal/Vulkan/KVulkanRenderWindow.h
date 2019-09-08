@@ -9,7 +9,7 @@ public:
 	KVulkanRenderWindow();
 	virtual ~KVulkanRenderWindow();
 
-	virtual bool Init(size_t top, size_t left, size_t width, size_t height);
+	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable);
 	virtual bool UnInit();
 
 	virtual bool Loop();
@@ -19,6 +19,9 @@ public:
 
 	virtual bool GetSize(size_t &width, size_t &height);
 	virtual bool SetSize(size_t width, size_t height);
+
+	virtual bool SetResizable(bool resizable);
+	virtual bool IsResizable();
 
 	inline GLFWwindow* GetGLFWwindow() { return m_window; }
 };
