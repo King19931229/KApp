@@ -534,6 +534,8 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		if (vkCreateDevice(m_PhysicalDevice.device, &createInfo, nullptr, &m_Device) == VK_SUCCESS)
 		{
+			vkGetDeviceQueue(m_Device, indices.graphicsFamily.first, 0, &m_GraphicsQueue);
+			vkGetDeviceQueue(m_Device, indices.presentFamily.first, 0, &m_PresentQueue);
 			return true;
 		}
 	}
@@ -575,6 +577,19 @@ bool KVulkanRenderDevice::CreateRenderPass()
 	renderPassInfo.pAttachments = &colorAttachment;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
+
+	// 从属依赖
+	VkSubpassDependency dependency = {};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+	renderPassInfo.dependencyCount = 1;
+	renderPassInfo.pDependencies = &dependency;
 
 	if (vkCreateRenderPass(m_Device, &renderPassInfo, nullptr, &m_RenderPass) == VK_SUCCESS)
 	{
@@ -755,6 +770,21 @@ bool KVulkanRenderDevice::CreateCommandPool()
 	return false;
 }
 
+bool KVulkanRenderDevice::CreateSemaphores()
+{
+	VkSemaphoreCreateInfo semaphoreInfo = {};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	if (vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_ImageAvailableSemaphore) != VK_SUCCESS)
+	{
+		return false;
+	}
+	if (vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS)
+	{
+		return false;
+	}
+	return true;
+}
+
 bool KVulkanRenderDevice::CreateCommandBuffers()
 {
 	// 交换链上的每个帧缓冲都需要提交命令
@@ -828,7 +858,14 @@ VkBool32 KVulkanRenderDevice::DebugCallback(
 	void* pUserData
 	)
 {
-	printf("[Vulkan Validation Layer]: %s\n", pCallbackData->pMessage);
+	if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
+	{
+		printf("[Vulkan Validation Layer Debug] %s\n", pCallbackData->pMessage);
+	}
+	else
+	{
+		printf("[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
+	}
 	return VK_FALSE;
 }
 
@@ -928,7 +965,10 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr _window)
 			return false;
 		if(!CreateCommandBuffers())
 			return false;
+		if(!CreateSemaphores())
+			return false;
 		PostInit();
+		window->SetVulkanDevice(this);
 		return true;
 	}
 	else
@@ -974,13 +1014,21 @@ bool KVulkanRenderDevice::UnInit()
 
 	m_CommandBuffers.clear();
 
+	vkDestroySemaphore(m_Device, m_RenderFinishedSemaphore, nullptr);
+	vkDestroySemaphore(m_Device, m_ImageAvailableSemaphore, nullptr);
+
 	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
-	vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
+
+	vkDestroyPipeline(m_Device, m_GraphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
+	vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
+
 	vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
+
 	vkDestroyDevice(m_Device, nullptr);
 	vkDestroyInstance(m_Instance, nullptr);
+
 	return true;
 }
 
@@ -1054,5 +1102,62 @@ bool KVulkanRenderDevice::CreateShader(IKShaderPtr& shader)
 bool KVulkanRenderDevice::CreateProgram(IKProgramPtr& program)
 {
 	program = IKProgramPtr(new KVulkanProgram(m_Device));
+	return true;
+}
+
+bool KVulkanRenderDevice::Present()
+{
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(m_Device, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	// 交换链可以用于绘制时将促发此信号量
+	VkSemaphore waitSemaphores[] = {m_ImageAvailableSemaphore};
+	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+
+	// 指定命令缓冲
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
+
+	// 交换链绘制完成时将促发此信号量
+	VkSemaphore signalSemaphores[] = {m_RenderFinishedSemaphore};
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = signalSemaphores;
+
+	// 提交该绘制命令
+	if (vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+	{
+		return false;
+	}
+
+	VkPresentInfoKHR presentInfo = {};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = signalSemaphores;
+
+	VkSwapchainKHR swapChains[] = {m_SwapChain};
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains;
+	presentInfo.pImageIndices = &imageIndex;
+
+	presentInfo.pResults = nullptr;
+
+	vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+	// 这时候应该挂起当前线程等待Present执行完毕
+	// 否则可能会出现一个交换链循环后vkAcquireNextImageKHR获取到的imageIndex对应的交换链Image正在Present
+	// 疑问: vkAcquireNextImageKHR这时应该要挂起当前线程直到对应Image Present完毕
+	vkQueueWaitIdle(m_PresentQueue);
+	return true;
+}
+
+bool KVulkanRenderDevice::Wait()
+{
+	vkDeviceWaitIdle(m_Device);
 	return true;
 }

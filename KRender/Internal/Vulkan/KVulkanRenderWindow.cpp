@@ -1,7 +1,9 @@
 #include "KVulkanRenderWindow.h"
+#include "KVulkanRenderDevice.h"
 
 KVulkanRenderWindow::KVulkanRenderWindow()
-	: m_window(nullptr)
+	: m_window(nullptr),
+	m_device(nullptr)
 {
 
 }
@@ -33,13 +35,17 @@ bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t hei
 
 bool KVulkanRenderWindow::UnInit()
 {
+	if(m_device)
+	{
+		m_device = nullptr;
+	}
 	if(m_window)
 	{
 		glfwDestroyWindow(m_window);
 		glfwTerminate();
-		return true;
+		m_window = nullptr;
 	}
-	return false;
+	return true;
 }
 
 bool KVulkanRenderWindow::Loop()
@@ -49,6 +55,15 @@ bool KVulkanRenderWindow::Loop()
 		while(!glfwWindowShouldClose(m_window))
 		{
 			glfwPollEvents();
+			if(m_device)
+			{
+				m_device->Present();
+			}
+		}
+		// 挂起主线程直到device持有对象被销毁完毕
+		if(m_device)
+		{
+			m_device->Wait();
 		}
 		return true;
 	}

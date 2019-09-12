@@ -2,9 +2,12 @@
 #include "Interface/IKRenderWindow.h"
 #include "GLFW/glfw3.h"
 
+class KVulkanRenderDevice;
+
 class KVulkanRenderWindow : IKRenderWindow
 {
 	GLFWwindow* m_window;
+	KVulkanRenderDevice* m_device;
 public:
 	KVulkanRenderWindow();
 	virtual ~KVulkanRenderWindow();
@@ -24,4 +27,6 @@ public:
 	virtual bool IsResizable();
 
 	inline GLFWwindow* GetGLFWwindow() { return m_window; }
+
+	inline void SetVulkanDevice(KVulkanRenderDevice* device) { m_device = device; }
 };

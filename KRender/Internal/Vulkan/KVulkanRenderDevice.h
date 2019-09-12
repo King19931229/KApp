@@ -49,6 +49,8 @@ class KVulkanRenderDevice : IKRenderDevice
 protected:
 	VkInstance m_Instance;
 	VkDevice m_Device;
+	VkQueue m_GraphicsQueue;
+    VkQueue m_PresentQueue;
 	VkSurfaceKHR m_Surface;
 	bool m_EnableValidationLayer;
 	// Temporarily for demo use
@@ -61,6 +63,8 @@ protected:
 	VkPipeline m_GraphicsPipeline;
 	std::vector<VkCommandBuffer> m_CommandBuffers;
 
+	VkSemaphore m_ImageAvailableSemaphore;
+	VkSemaphore m_RenderFinishedSemaphore;
 	//
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
@@ -98,6 +102,7 @@ protected:
 	bool CreateImageViews();
 	bool CreateFramebuffers();
 	bool CreateCommandPool();
+	bool CreateSemaphores();
 
 	// Temporarily for demo use
 	bool CreateRenderPass();
@@ -122,4 +127,8 @@ public:
 
 	virtual bool CreateShader(IKShaderPtr& shader);
 	virtual bool CreateProgram(IKProgramPtr& program);
+
+	virtual bool Present();
+
+	bool Wait();
 };

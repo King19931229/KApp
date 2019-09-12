@@ -44,9 +44,8 @@ int main()
 		IKRenderDevicePtr device = CreateRenderDevice(RD_VULKAN);
 		
 		window->Init(60, 60, 1024, 768, false);
-		printf("%d\n", window->IsResizable());
 		device->Init(window);
-
+		/*
 		IKShaderPtr vtShader = nullptr;
 		device->CreateShader(vtShader);
 
@@ -62,7 +61,7 @@ int main()
 			program->AttachShader(ST_FRAGMENT, fgShader);
 			program->Init();
 		}
-
+		*/
 		window->Loop();
 
 		device->UnInit();
