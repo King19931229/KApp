@@ -38,4 +38,18 @@ public:
 		}
 		return true;
 	}
+
+	bool TryWait(int timeInSecond)
+	{
+		std::unique_lock<std::mutex> lock(m_Mutex);
+		if(--m_nCount < 0)
+		{
+			if(m_CondVar.wait_for(lock, std::chrono::seconds(timeInSecond)) == std::cv_status::timeout)
+			{
+				++m_nCount;
+				return false;
+			}
+		}
+		return true;
+	}
 };

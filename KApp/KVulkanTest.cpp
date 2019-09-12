@@ -25,9 +25,9 @@ IKLogPtr pLog;
 
 #include <algorithm>
 #include <process.h>
+
 int main()
 {
-	DUMP_MEMORY_LEAK_BEGIN(); 
 	/*
 	std::vector<std::string> splitResult;
 	KStringUtil::Split("I am ;; a string for test;;; ha,ha!", " ;,!", splitResult);
@@ -37,6 +37,7 @@ int main()
 	vulkanRoot = getenv("VK_SDK_PATH");
 	KFileTool::PathJoin(vulkanRoot, "Bin/spirv-as.exe", vulkanRoot);
 	*/
+	
 	IKRenderWindowPtr window = CreateRenderWindow(RD_VULKAN);
 	if(window)
 	{
@@ -66,5 +67,5 @@ int main()
 
 		device->UnInit();
 		window->UnInit();
-	}
+	}	
 }

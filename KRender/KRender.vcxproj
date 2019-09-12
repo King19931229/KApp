@@ -38,6 +38,7 @@
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp" />
     <ClCompile Include="Internal\KRenderWindow.cpp" />
+    <ClCompile Include="Internal\KVertexDefinition.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanProgram.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp" />
@@ -110,7 +111,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../KBase;../Dependency/Python27/Include;../Dependency/Python27/PCStatic;../Dependency/glfw3/include;$(VULKAN_SDK)/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -128,7 +129,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../KBase;../Dependency/Python27/Include;../Dependency/Python27/PCStatic;../Dependency/glfw3/include;$(VULKAN_SDK)/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -148,7 +149,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../KBase;../Dependency/Python27/Include;../Dependency/Python27/PCStatic;../Dependency/glfw3/include;$(VULKAN_SDK)/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -170,7 +171,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../KBase;../Dependency/Python27/Include;../Dependency/Python27/PCStatic;../Dependency/glfw3/include;$(VULKAN_SDK)/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
