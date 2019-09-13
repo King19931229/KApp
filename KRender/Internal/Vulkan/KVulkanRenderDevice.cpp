@@ -2,7 +2,11 @@
 #include "KVulkanRenderWindow.h"
 #include "KVulkanShader.h"
 #include "KVulkanProgram.h"
+#include "KVulkanBuffer.h"
+
 #include "KVulkanHelper.h"
+
+#include "Internal/KVertexDefinition.h"
 
 #include <algorithm>
 #include <set>
@@ -84,7 +88,8 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	: m_pWindow(nullptr),
 	m_EnableValidationLayer(true),
 	m_MaxFramesInFight(0),
-	m_CurrentFlightIndex(0)
+	m_CurrentFlightIndex(0),
+	m_VertexBuffer(nullptr)
 {
 
 }
@@ -929,6 +934,30 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateBuffers()
+{
+	using namespace KVertexDefinition;
+
+	std::vector<POS_3F_NORM_3F_UV_2F> vertices;
+	{
+		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
+		vertices.push_back(VERTEX);
+	}
+	{
+		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
+		vertices.push_back(VERTEX);
+	}
+	{
+		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(-0.5f, 0.5f,0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
+		vertices.push_back(VERTEX);
+	}
+
+	CreateVertexBuffer(m_VertexBuffer);
+	m_VertexBuffer->InitMemory(vertices.size(), sizeof(vertices[0]), vertices.data());
+	m_VertexBuffer->InitDevice();
+	return true;
+}
+
 VkBool32 KVulkanRenderDevice::DebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -1046,6 +1075,9 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 		if(!CreateSyncObjects())
 			return false;
+		if(!CreateBuffers())
+			return false;
+
 		PostInit();
 		m_pWindow->SetVulkanDevice(this);
 		return true;
@@ -1119,7 +1151,11 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 bool KVulkanRenderDevice::UnInit()
 {
 	m_pWindow = nullptr;
-	UnsetDebugMessenger();
+
+	if(m_VertexBuffer)
+	{
+		m_VertexBuffer->UnInit();
+	}
 	CleanupSwapChain();
 
 	m_CommandBuffers.clear();
@@ -1129,6 +1165,7 @@ bool KVulkanRenderDevice::UnInit()
 	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 
+	UnsetDebugMessenger();
 	vkDestroyDevice(m_Device, nullptr);
 	vkDestroyInstance(m_Instance, nullptr);
 
@@ -1205,6 +1242,12 @@ bool KVulkanRenderDevice::CreateShader(IKShaderPtr& shader)
 bool KVulkanRenderDevice::CreateProgram(IKProgramPtr& program)
 {
 	program = IKProgramPtr(new KVulkanProgram(m_Device));
+	return true;
+}
+
+bool KVulkanRenderDevice::CreateVertexBuffer(IKVertexBufferPtr& buffer)
+{
+	buffer = IKVertexBufferPtr(static_cast<IKVertexBuffer*>(new KVulkanVertexBuffer(m_Device, m_PhysicalDevice.device)));
 	return true;
 }
 

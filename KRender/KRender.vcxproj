@@ -25,20 +25,25 @@
     <ClInclude Include="Interface\IKShader.h" />
     <ClInclude Include="Interface\IKRenderConfig.h" />
     <ClInclude Include="Interface\IKBuffer.h" />
+    <ClInclude Include="Internal\Asset\KMaterial.h" />
+    <ClInclude Include="Internal\Asset\KMesh.h" />
+    <ClInclude Include="Internal\Asset\KSubMaterial.h" />
+    <ClInclude Include="Internal\Asset\KSubMesh.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanHelper.h" />
-    <ClInclude Include="Internal\Vulkan\KVulkanIndexBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanProgram.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderWindow.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanShader.h" />
-    <ClInclude Include="Internal\Vulkan\KVulkanUniformBuffer.h" />
-    <ClInclude Include="Internal\Vulkan\KVulkanVertexBuffer.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanBuffer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Internal\KBufferBase.cpp" />
+    <ClCompile Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KRenderDevice.cpp" />
     <ClCompile Include="Internal\KRenderWindow.cpp" />
     <ClCompile Include="Internal\KVertexDefinition.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanProgram.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp" />

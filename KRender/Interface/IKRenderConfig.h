@@ -1,5 +1,6 @@
 #pragma once
 #include "KBase/Interface/IKConfig.h"
+
 #include <memory>
 
 enum RenderDevice
@@ -33,13 +34,13 @@ enum VertexSemantic
 	VS_BLEND_INDICES
 };
 
-enum VertexElement
+enum VertexFormat
 {
-	VE_POINT_NORMAL_UV,
-	VE_UV2,
-	VE_DIFFUSE_SPECULAR,
-	VE_TANGENT_BINORMAL,
-	VE_BLEND_WEIGHTS_INDICES,
+	VF_POINT_NORMAL_UV,
+	VF_UV2,
+	VF_DIFFUSE_SPECULAR,
+	VF_TANGENT_BINORMAL,
+	VF_BLEND_WEIGHTS_INDICES,
 };
 
 enum IndexType

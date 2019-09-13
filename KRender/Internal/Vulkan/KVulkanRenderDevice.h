@@ -60,6 +60,8 @@ protected:
 	VkPipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
 	std::vector<VkCommandBuffer> m_CommandBuffers;
+	IKVertexBufferPtr m_VertexBuffer;
+
 	//
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
@@ -112,6 +114,7 @@ protected:
 	bool CreateRenderPass();
 	bool CreateGraphicsPipeline();
 	bool CreateCommandBuffers();
+	bool CreateBuffers();
 	
 	bool RecreateSwapChain();
 	bool CleanupSwapChain();
@@ -134,6 +137,8 @@ public:
 
 	virtual bool CreateShader(IKShaderPtr& shader);
 	virtual bool CreateProgram(IKProgramPtr& program);
+
+	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer);
 
 	virtual bool Present();
 

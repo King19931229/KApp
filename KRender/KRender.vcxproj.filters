@@ -10,6 +10,9 @@
     <Filter Include="Internal\Vulkan">
       <UniqueIdentifier>{34684c8f-8c6b-4ec6-b233-90aabcf5a266}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Asset">
+      <UniqueIdentifier>{1f382214-f4ee-4c0a-8cf4-c96098190be3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -48,13 +51,19 @@
     <ClInclude Include="Interface\IKBuffer.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Vulkan\KVulkanVertexBuffer.h">
-      <Filter>Internal\Vulkan</Filter>
+    <ClInclude Include="Internal\Asset\KMaterial.h">
+      <Filter>Internal\Asset</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Vulkan\KVulkanIndexBuffer.h">
-      <Filter>Internal\Vulkan</Filter>
+    <ClInclude Include="Internal\Asset\KMesh.h">
+      <Filter>Internal\Asset</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Vulkan\KVulkanUniformBuffer.h">
+    <ClInclude Include="Internal\Asset\KSubMaterial.h">
+      <Filter>Internal\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Asset\KSubMesh.h">
+      <Filter>Internal\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanBuffer.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
@@ -79,6 +88,15 @@
     </ClCompile>
     <ClCompile Include="Internal\KVertexDefinition.cpp">
       <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KBufferBase.h">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KBufferBase.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp">
+      <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

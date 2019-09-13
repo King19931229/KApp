@@ -4,65 +4,94 @@
 
 namespace KVertexDefinition
 {
-	int SemanticOffsetInElement(VertexSemantic semantic, VertexElement element)
+	static VertexSemanticDetailList POS_3F_NORM_3F_UV_2F_DETAILS;
+	static VertexSemanticDetailList UV2_2F_DETAILS;
+	static VertexSemanticDetailList DIFF_2F_SPEC_2F_DETAILS;
+	static VertexSemanticDetailList TAN_3F_BIN_3F_DETAILS;
+	static VertexSemanticDetailList BW_4F_BI_4I_DETAILS;
+	static VertexSemanticDetailList EMPYT_DETAILS;
+	static bool SEMANTIC_LIST_INIT = false;
+
+	void SafeInit()
 	{
-		if(element == VE_POINT_NORMAL_UV)
+		if(!SEMANTIC_LIST_INIT)
 		{
-			if(semantic == VS_POSITION)
+			// POS_3F_NORM_3F_UV_2F
 			{
-				return MEMBER_OFFSET(KVertexPositionNormalUV, poistion);
+				{
+					VertexSemanticDetail DETAIL = {VS_POSITION, MEMBER_OFFSET(POS_3F_NORM_3F_UV_2F, POSITION)};
+					POS_3F_NORM_3F_UV_2F_DETAILS.push_back(DETAIL);
+				}
+				{
+					VertexSemanticDetail DETAIL = {VS_NORMAL, MEMBER_OFFSET(POS_3F_NORM_3F_UV_2F, NORMAL)};
+					POS_3F_NORM_3F_UV_2F_DETAILS.push_back(DETAIL);
+				}
+				{
+					VertexSemanticDetail DETAIL = {VS_UV, MEMBER_OFFSET(POS_3F_NORM_3F_UV_2F, UV)};
+					POS_3F_NORM_3F_UV_2F_DETAILS.push_back(DETAIL);
+				}
 			}
-			else if(semantic == VS_NORMAL)
+			// UV2_2F
 			{
-				return MEMBER_OFFSET(KVertexPositionNormalUV, normal);
+				{
+					VertexSemanticDetail DETAIL = {VS_UV2, MEMBER_OFFSET(UV2_2F, UV2)};
+					UV2_2F_DETAILS.push_back(DETAIL);
+				}
 			}
-			else if(semantic == VS_UV)
+			// DIFF_2F_SPEC_2F
 			{
-				return MEMBER_OFFSET(KVertexPositionNormalUV, uv);
+				{
+					VertexSemanticDetail DETAIL = {VS_DIFFUSE, MEMBER_OFFSET(DIFF_2F_SPEC_2F, DIFFUSE)};
+					DIFF_2F_SPEC_2F_DETAILS.push_back(DETAIL);
+				}
+				{
+					VertexSemanticDetail DETAIL = {VS_SPECULAR, MEMBER_OFFSET(DIFF_2F_SPEC_2F, SPECULAR)};
+					DIFF_2F_SPEC_2F_DETAILS.push_back(DETAIL);
+				}
 			}
+			// TAN_3F_BIN_3F
+			{
+				{
+					VertexSemanticDetail DETAIL = {VS_TANGENT, MEMBER_OFFSET(TAN_3F_BIN_3F, TANGENT)};
+					TAN_3F_BIN_3F_DETAILS.push_back(DETAIL);
+				}
+				{
+					VertexSemanticDetail DETAIL = {VS_BINORMAL, MEMBER_OFFSET(TAN_3F_BIN_3F, BINORMAL)};
+					TAN_3F_BIN_3F_DETAILS.push_back(DETAIL);
+				}
+			}
+			// BW_4F_BI_4I
+			{
+				{
+					VertexSemanticDetail DETAIL = {VS_BLEND_WEIGHTS, MEMBER_OFFSET(BW_4F_BI_4I, BLEND_WEIGHTS)};
+					BW_4F_BI_4I_DETAILS.push_back(DETAIL);
+				}
+				{
+					VertexSemanticDetail DETAIL = {VS_BLEND_INDICES, MEMBER_OFFSET(BW_4F_BI_4I, BLEND_INDICES)};
+					BW_4F_BI_4I_DETAILS.push_back(DETAIL);
+				}
+			}
+			SEMANTIC_LIST_INIT = true;
 		}
-		else if(element == VE_UV2)
-		{
-			if(semantic == VS_UV2)
-			{
-				return MEMBER_OFFSET(KVertexUV2, uv2);
-			}
-		}
-		else if(element == VE_DIFFUSE_SPECULAR)
-		{
-			if(semantic == VS_DIFFUSE)
-			{
-				return MEMBER_OFFSET(KVertexDiffuseSpecular, diffuse);
-			}
-			else if(semantic == VS_SPECULAR)
-			{
-				return MEMBER_OFFSET(KVertexDiffuseSpecular, specular);
-			}
-		}
-		else if(element == VE_TANGENT_BINORMAL)
-		{
-			if(semantic == VS_TANGENT)
-			{
-				return MEMBER_OFFSET(KVertexTangentBinormal, tangent);
-			}
-			else if(semantic == VS_BINORMAL)
-			{
-				return MEMBER_OFFSET(KVertexTangentBinormal, binormal);
-			}
-		}
-		else if(element == VE_BLEND_WEIGHTS_INDICES)
-		{
-			if(semantic == VS_BLEND_WEIGHTS)
-			{
-				return MEMBER_OFFSET(KVertexBlendWeightsBlendIndices, blendWeights);
-			}
-			else if(semantic == VS_BLEND_INDICES)
-			{
-				return MEMBER_OFFSET(KVertexBlendWeightsBlendIndices, blendIndices);
-			}
-		}
-		assert(false && "vertex semantic is not found in vertex element");
-		return -1;
 	}
 
+	const VertexSemanticDetailList& SemanticsDetail(VertexFormat format)
+	{
+		SafeInit();
+		switch (format)
+		{
+		case VF_POINT_NORMAL_UV:
+			return POS_3F_NORM_3F_UV_2F_DETAILS;
+		case VF_UV2:
+			return UV2_2F_DETAILS;
+		case VF_DIFFUSE_SPECULAR:
+			return DIFF_2F_SPEC_2F_DETAILS;
+		case VF_TANGENT_BINORMAL:
+			return TAN_3F_BIN_3F_DETAILS;
+		case VF_BLEND_WEIGHTS_INDICES:
+			return BW_4F_BI_4I_DETAILS;
+		default:
+			return EMPYT_DETAILS;
+		}
+	}
 }
