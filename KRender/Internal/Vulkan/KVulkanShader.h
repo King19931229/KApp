@@ -6,7 +6,8 @@ class KVulkanShader : public IKShader
 {
 protected:
 	VkDevice m_Device;
-	VkShaderModule  m_ShaderModule;
+	VkShaderModule m_ShaderModule;
+	bool m_bShaderModuelInited;
 public:
 	KVulkanShader(VkDevice device);
 	~KVulkanShader();

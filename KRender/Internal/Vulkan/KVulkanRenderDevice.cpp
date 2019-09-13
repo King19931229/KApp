@@ -81,10 +81,10 @@ void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& create
 
 //-------------------- KVulkanRenderDevice --------------------//
 KVulkanRenderDevice::KVulkanRenderDevice()
-	: m_EnableValidationLayer(true),
-	m_VSShader(nullptr),
-	m_FGShader(nullptr),
-	m_Program(nullptr)
+	: m_pWindow(nullptr),
+	m_EnableValidationLayer(true),
+	m_MaxFramesInFight(0),
+	m_CurrentFlightIndex(0)
 {
 
 }
@@ -242,16 +242,16 @@ VkPresentModeKHR KVulkanRenderDevice::ChooseSwapPresentMode()
 	for (const VkPresentModeKHR& presentMode : presentModes)
 	{
 		// 有三重缓冲就使用三重缓冲
-        if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+		if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
 		{
-            return presentMode;
-        }
+			return presentMode;
+		}
 		// 双重缓冲
 		if (presentMode == VK_PRESENT_MODE_FIFO_KHR)
 		{
 			ret = presentMode;
 		}
-    }
+	}
 
 	// 其实Vulkan保证至少有双重缓冲可以使用
 	if(ret == VK_PRESENT_MODE_MAX_ENUM_KHR)
@@ -259,10 +259,10 @@ VkPresentModeKHR KVulkanRenderDevice::ChooseSwapPresentMode()
 		ret = m_PhysicalDevice.swapChainSupportDetails.presentModes[0];
 	}
 
-    return ret;
+	return ret;
 }
 
-VkExtent2D KVulkanRenderDevice::ChooseSwapExtent(KVulkanRenderWindow* window)
+VkExtent2D KVulkanRenderDevice::ChooseSwapExtent()
 {
 	const VkSurfaceCapabilitiesKHR& capabilities = m_PhysicalDevice.swapChainSupportDetails.capabilities;
 	// 如果Vulkan设置了currentExtent 那么交换链的extent就必须与之一致
@@ -274,7 +274,7 @@ VkExtent2D KVulkanRenderDevice::ChooseSwapExtent(KVulkanRenderWindow* window)
 	else
 	{
 		size_t width = 0, height = 0;
-		if(window->GetSize(width, height))
+		if(m_pWindow->GetSize(width, height))
 		{
 			VkExtent2D actualExtent = { (uint32_t)width, (uint32_t)height };
 			actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
@@ -289,11 +289,11 @@ VkExtent2D KVulkanRenderDevice::ChooseSwapExtent(KVulkanRenderWindow* window)
 	}
 }
 
-bool KVulkanRenderDevice::CreateSwapChain(KVulkanRenderWindow* window)
+bool KVulkanRenderDevice::CreateSwapChain()
 {
 	VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat();
 	VkPresentModeKHR presentMode = ChooseSwapPresentMode();
-	VkExtent2D extent = ChooseSwapExtent(window);
+	VkExtent2D extent = ChooseSwapExtent();
 
 	const SwapChainSupportDetails& swapChainSupport = m_PhysicalDevice.swapChainSupportDetails;
 	// 设置为最小值可能必须等待驱动程序完成内部操作才能获取另一个要渲染的图像 因此作+1处理
@@ -424,9 +424,9 @@ bool KVulkanRenderDevice::CreateFramebuffers()
 	return true;
 }
 
-bool KVulkanRenderDevice::CreateSurface(KVulkanRenderWindow* window)
+bool KVulkanRenderDevice::CreateSurface()
 {
-	GLFWwindow *glfwWindow = window->GetGLFWwindow();
+	GLFWwindow *glfwWindow = m_pWindow->GetGLFWwindow();
 	if(glfwCreateWindowSurface(m_Instance, glfwWindow, nullptr, &m_Surface)== VK_SUCCESS)
 	{
 		return true;
@@ -515,7 +515,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		createInfo.queueCreateInfoCount = (uint32_t)DeviceQueueCreateInfos.size();
 
 		createInfo.enabledExtensionCount = DEVICE_EXTENSIONS_COUNT;
-        createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS;
+		createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS;
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		createInfo.pEnabledFeatures = &deviceFeatures;
@@ -597,6 +597,39 @@ bool KVulkanRenderDevice::CreateRenderPass()
 	}
 	return false;
 }
+
+struct ProgramHolder
+{
+	IKShaderPtr VSShader;
+	IKShaderPtr FGShader;
+	IKProgramPtr Program;
+
+	ProgramHolder()
+	{
+		VSShader = nullptr;
+		FGShader = nullptr;
+		Program = nullptr;
+	}
+
+	~ProgramHolder()
+	{
+		if(VSShader)
+		{
+			VSShader->UnInit();
+			VSShader = nullptr;
+		}
+		if(FGShader)
+		{
+			FGShader->UnInit();
+			FGShader = nullptr;
+		}
+		if(Program)
+		{
+			Program->UnInit();
+			Program = nullptr;
+		}
+	}
+};
 
 bool KVulkanRenderDevice::CreateGraphicsPipeline()
 {
@@ -707,20 +740,22 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 		return false;
 	}
 
-	CreateShader(m_VSShader);
-	CreateShader(m_FGShader);
+	ProgramHolder holder;
 
-	if(!(m_VSShader->InitFromFile("shader.vert") && m_FGShader->InitFromFile("shader.frag")))
+	CreateShader(holder.VSShader);
+	CreateShader(holder.FGShader);
+
+	if(!(holder.VSShader->InitFromFile("shader.vert") && holder.FGShader->InitFromFile("shader.frag")))
 	{
 		return false;
 	}
 
-	CreateProgram(m_Program);
-	m_Program->AttachShader(ST_VERTEX, m_VSShader);
-	m_Program->AttachShader(ST_FRAGMENT, m_FGShader);
-	m_Program->Init();
-	const std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo = ((KVulkanProgram*)m_Program.get())->GetShaderStageInfo();
-	
+	CreateProgram(holder.Program);
+	holder.Program->AttachShader(ST_VERTEX, holder.VSShader);
+	holder.Program->AttachShader(ST_FRAGMENT, holder.FGShader);
+	holder.Program->Init();
+	const std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo = ((KVulkanProgram*)holder.Program.get())->GetShaderStageInfo();
+
 	VkGraphicsPipelineCreateInfo pipelineInfo = {};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	// 指定管线所使用的Shader
@@ -770,18 +805,61 @@ bool KVulkanRenderDevice::CreateCommandPool()
 	return false;
 }
 
-bool KVulkanRenderDevice::CreateSemaphores()
+bool KVulkanRenderDevice::CreateSyncObjects()
 {
+	// N个大小的交换链设定N-1个作为FramesInFight
+	m_MaxFramesInFight = (size_t)std::max((int)m_SwapChainImages.size() - 1, 1);
+	m_CurrentFlightIndex = 0;
+
+	m_ImageAvailableSemaphores.resize(m_MaxFramesInFight);
+	m_RenderFinishedSemaphores.resize(m_MaxFramesInFight);
+	m_InFlightFences.resize(m_MaxFramesInFight);
+
 	VkSemaphoreCreateInfo semaphoreInfo = {};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	if (vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_ImageAvailableSemaphore) != VK_SUCCESS)
+
+	VkFenceCreateInfo fenceInfo = {};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for(size_t i = 0; i < m_MaxFramesInFight; ++i)
 	{
-		return false;
+		if (vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) != VK_SUCCESS)
+		{
+			return false;
+		}
+		if (vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) != VK_SUCCESS)
+		{
+			return false;
+		}
+		if (vkCreateFence(m_Device, &fenceInfo, nullptr, &m_InFlightFences[i]) != VK_SUCCESS)
+		{
+			return false;
+		}
 	}
-	if (vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS)
+	return true;
+}
+
+bool KVulkanRenderDevice::DestroySyncObjects()
+{
+	for(size_t i = 0; i < m_ImageAvailableSemaphores.size(); ++i)
 	{
-		return false;
+		vkDestroySemaphore(m_Device, m_ImageAvailableSemaphores[i], nullptr);
 	}
+	m_ImageAvailableSemaphores.clear();
+
+	for(size_t i = 0; i < m_RenderFinishedSemaphores.size(); ++i)
+	{
+		vkDestroySemaphore(m_Device, m_RenderFinishedSemaphores[i], nullptr);
+	}
+	m_RenderFinishedSemaphores.clear();
+
+	for(size_t i = 0; i < m_InFlightFences.size(); ++i)
+	{
+		vkDestroyFence(m_Device, m_InFlightFences[i], nullptr);
+	}
+	m_InFlightFences.clear();
+
 	return true;
 }
 
@@ -894,14 +972,15 @@ bool KVulkanRenderDevice::UnsetDebugMessenger()
 	return true;
 }
 
-bool KVulkanRenderDevice::Init(IKRenderWindowPtr _window)
+bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 {
-	if(!_window)
+	if(!window)
 		return false;
 
-	KVulkanRenderWindow* window = (KVulkanRenderWindow*)_window.get();
-	if(window == nullptr || window->GetGLFWwindow() == nullptr)
+	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)window.get();
+	if(renderWindow == nullptr || renderWindow->GetGLFWwindow() == nullptr)
 		return false;
+	m_pWindow = renderWindow;
 
 	VkApplicationInfo appInfo = {};
 
@@ -945,13 +1024,13 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr _window)
 	{
 		if(!SetupDebugMessenger())
 			return false;
-		if(!CreateSurface(window))
+		if(!CreateSurface())
 			return false;
 		if(!PickPhysicsDevice())
 			return false;
 		if(!CreateLogicalDevice())
 			return false;
-		if(!CreateSwapChain(window))
+		if(!CreateSwapChain())
 			return false;
 		if(!CreateImageViews())
 			return false;
@@ -965,10 +1044,10 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr _window)
 			return false;
 		if(!CreateCommandBuffers())
 			return false;
-		if(!CreateSemaphores())
+		if(!CreateSyncObjects())
 			return false;
 		PostInit();
-		window->SetVulkanDevice(this);
+		m_pWindow->SetVulkanDevice(this);
 		return true;
 	}
 	else
@@ -978,10 +1057,43 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr _window)
 	return false;
 }
 
-bool KVulkanRenderDevice::UnInit()
+/*
+总共有三个入口可以侦查并促发到交换链重建
+1.glfw窗口大小改变
+2.vkAcquireNextImageKHR
+3.vkQueuePresentKHR
+技术上只有要一个入口成功合理的创建了交换链之后
+vkAcquireNextImageKHR或者vkQueuePresentKHR不会侦查到交换链需要重新创建
+*/
+bool KVulkanRenderDevice::RecreateSwapChain()
 {
-	UnsetDebugMessenger();
+	m_pWindow->IdleUntilForeground();
+	vkDeviceWaitIdle(m_Device);
+	// 记得要重新更新SwapChainDetail
+	SwapChainSupportDetails detail = QuerySwapChainSupport(m_PhysicalDevice.device);
+	m_PhysicalDevice.swapChainSupportDetails = detail;
 
+	CleanupSwapChain();
+	/*
+	设计上FramesInFight的数量与交换链数量是耦合的
+	所以这里重新构建信号量和栏栅
+	*/
+	DestroySyncObjects();
+
+	CreateSwapChain();
+	CreateImageViews();
+	CreateRenderPass();
+	CreateGraphicsPipeline();
+	CreateFramebuffers();
+	CreateCommandBuffers();
+
+	CreateSyncObjects();
+
+	return true;
+}
+
+bool KVulkanRenderDevice::CleanupSwapChain()
+{
 	for (VkFramebuffer framebuffer : m_SwapChainFramebuffers)
 	{
 		vkDestroyFramebuffer(m_Device, framebuffer, nullptr);
@@ -996,34 +1108,25 @@ bool KVulkanRenderDevice::UnInit()
 
 	m_SwapChainImages.clear();
 
-	if(m_VSShader)
-	{
-		m_VSShader->UnInit();
-		m_VSShader = nullptr;
-	}
-	if(m_FGShader)
-	{
-		m_FGShader->UnInit();
-		m_FGShader = nullptr;
-	}
-	if(m_Program)
-	{
-		m_Program->UnInit();
-		m_Program = nullptr;
-	}
-
-	m_CommandBuffers.clear();
-
-	vkDestroySemaphore(m_Device, m_RenderFinishedSemaphore, nullptr);
-	vkDestroySemaphore(m_Device, m_ImageAvailableSemaphore, nullptr);
-
-	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
-
 	vkDestroyPipeline(m_Device, m_GraphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
 	vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
 
 	vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
+	return true;
+}
+
+bool KVulkanRenderDevice::UnInit()
+{
+	m_pWindow = nullptr;
+	UnsetDebugMessenger();
+	CleanupSwapChain();
+
+	m_CommandBuffers.clear();
+
+	DestroySyncObjects();
+
+	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 
 	vkDestroyDevice(m_Device, nullptr);
@@ -1107,14 +1210,26 @@ bool KVulkanRenderDevice::CreateProgram(IKProgramPtr& program)
 
 bool KVulkanRenderDevice::Present()
 {
-	uint32_t imageIndex;
-	vkAcquireNextImageKHR(m_Device, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	vkWaitForFences(m_Device, 1, &m_InFlightFences[m_CurrentFlightIndex], VK_TRUE, UINT64_MAX);	
+
+	uint32_t imageIndex = UINT32_MAX;
+	VkResult result = vkAcquireNextImageKHR(m_Device, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFlightIndex], VK_NULL_HANDLE, &imageIndex);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		RecreateSwapChain();
+		return true;
+	}
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+	{
+		return false;
+	}
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 	// 交换链可以用于绘制时将促发此信号量
-	VkSemaphore waitSemaphores[] = {m_ImageAvailableSemaphore};
+	VkSemaphore waitSemaphores[] = {m_ImageAvailableSemaphores[m_CurrentFlightIndex]};
 	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
@@ -1125,12 +1240,14 @@ bool KVulkanRenderDevice::Present()
 	submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
 
 	// 交换链绘制完成时将促发此信号量
-	VkSemaphore signalSemaphores[] = {m_RenderFinishedSemaphore};
+	VkSemaphore signalSemaphores[] = {m_RenderFinishedSemaphores[m_CurrentFlightIndex]};
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
+	// vkResetFences放置到vkQueueSubmit之前 保证调用vkWaitForFences都不会无限死锁
+	vkResetFences(m_Device, 1, &m_InFlightFences[m_CurrentFlightIndex]);
 	// 提交该绘制命令
-	if (vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+	if (vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]) != VK_SUCCESS)
 	{
 		return false;
 	}
@@ -1148,11 +1265,27 @@ bool KVulkanRenderDevice::Present()
 
 	presentInfo.pResults = nullptr;
 
-	vkQueuePresentKHR(m_PresentQueue, &presentInfo);
-	// 这时候应该挂起当前线程等待Present执行完毕
-	// 否则可能会出现一个交换链循环后vkAcquireNextImageKHR获取到的imageIndex对应的交换链Image正在Present
-	// 疑问: vkAcquireNextImageKHR这时应该要挂起当前线程直到对应Image Present完毕
+	result = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+	{
+		RecreateSwapChain();
+	}
+#if 0
+	/*
+	这时候挂起当前线程等待Present执行完毕.
+	否则可能出现下一次调用Present时候
+	vkAcquireNextImageKHR获取到的imageIndex对应的交换链Image正提交绘制命令.
+	这就出现了CommandBuffer与Semaphore重用.
+	vkAcquireNextImageKHR获取到的imageIndex只保证该Image不是正在Present
+	但并不能保证该Image没有准备提交的绘制命令
+	*/
 	vkQueueWaitIdle(m_PresentQueue);
+#endif
+	m_CurrentFlightIndex = (m_CurrentFlightIndex + 1) %  m_MaxFramesInFight;
+	if (result != VK_SUCCESS)
+	{
+		return false;
+	}
 	return true;
 }
 

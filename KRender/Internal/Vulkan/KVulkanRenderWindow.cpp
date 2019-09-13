@@ -13,6 +13,15 @@ KVulkanRenderWindow::~KVulkanRenderWindow()
 
 }
 
+void KVulkanRenderWindow::FramebufferResizeCallback(GLFWwindow* handle, int width, int height)
+{
+	KVulkanRenderWindow* window = (KVulkanRenderWindow*)glfwGetWindowUserPointer(handle);
+	if(window && window->m_device)
+	{
+//		window->m_device->RecreateSwapChain();
+	}
+}
+
 bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable)
 {
 	if(glfwInit() == GLFW_TRUE)
@@ -22,6 +31,11 @@ bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t hei
 		m_window = glfwCreateWindow((int)width, (int)height, "Vulkan window", nullptr, nullptr);
 		if(m_window)
 		{
+			glfwSetWindowUserPointer(m_window, this);
+			if(resizable)
+			{
+				glfwSetFramebufferSizeCallback(m_window, FramebufferResizeCallback);
+			}
 			glfwSetWindowPos(m_window, (int)top, (int)left);
 			return true;
 		}
@@ -44,6 +58,17 @@ bool KVulkanRenderWindow::UnInit()
 		glfwDestroyWindow(m_window);
 		glfwTerminate();
 		m_window = nullptr;
+	}
+	return true;
+}
+
+bool KVulkanRenderWindow::IdleUntilForeground()
+{
+	int width = 0, height = 0;
+	while (width == 0 || height == 0)
+	{
+		glfwGetFramebufferSize(m_window, &width, &height);
+		glfwWaitEvents();
 	}
 	return true;
 }

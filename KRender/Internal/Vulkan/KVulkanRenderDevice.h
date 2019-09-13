@@ -9,6 +9,7 @@ class KVulkanRenderWindow;
 
 class KVulkanRenderDevice : IKRenderDevice
 {
+	friend KVulkanRenderWindow;
 	struct ExtensionProperties
 	{
 		std::string property;
@@ -47,6 +48,7 @@ class KVulkanRenderDevice : IKRenderDevice
 		int score;
 	};
 protected:
+	KVulkanRenderWindow* m_pWindow;
 	VkInstance m_Instance;
 	VkDevice m_Device;
 	VkQueue m_GraphicsQueue;
@@ -54,17 +56,10 @@ protected:
 	VkSurfaceKHR m_Surface;
 	bool m_EnableValidationLayer;
 	// Temporarily for demo use
-	IKShaderPtr m_VSShader;
-	IKShaderPtr m_FGShader;
-	IKProgramPtr m_Program;
-
 	VkRenderPass m_RenderPass;
 	VkPipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
 	std::vector<VkCommandBuffer> m_CommandBuffers;
-
-	VkSemaphore m_ImageAvailableSemaphore;
-	VkSemaphore m_RenderFinishedSemaphore;
 	//
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
@@ -73,6 +68,13 @@ protected:
 	std::vector<VkImage> m_SwapChainImages;
 	std::vector<VkImageView> m_SwapChainImageViews;
 	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
+
+	std::vector<VkSemaphore> m_ImageAvailableSemaphores;
+	std::vector<VkSemaphore> m_RenderFinishedSemaphores;
+	std::vector<VkFence> m_InFlightFences;
+
+	size_t m_MaxFramesInFight;
+	size_t m_CurrentFlightIndex;
 
 	VkFormat m_SwapChainImageFormat;
 	VkExtent2D m_SwapChainExtent;
@@ -93,21 +95,26 @@ protected:
 
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat();
 	VkPresentModeKHR ChooseSwapPresentMode();
-	VkExtent2D ChooseSwapExtent(KVulkanRenderWindow* window);
+	VkExtent2D ChooseSwapExtent();
 
-	bool CreateSurface(KVulkanRenderWindow* window);
+	bool CreateSurface();
 	bool PickPhysicsDevice();
 	bool CreateLogicalDevice();
-	bool CreateSwapChain(KVulkanRenderWindow* window);
+	bool CreateSwapChain();
 	bool CreateImageViews();
 	bool CreateFramebuffers();
 	bool CreateCommandPool();
-	bool CreateSemaphores();
+	bool CreateSyncObjects();
+
+	bool DestroySyncObjects();
 
 	// Temporarily for demo use
 	bool CreateRenderPass();
 	bool CreateGraphicsPipeline();
 	bool CreateCommandBuffers();
+	
+	bool RecreateSwapChain();
+	bool CleanupSwapChain();
 
 	bool PostInit();
 

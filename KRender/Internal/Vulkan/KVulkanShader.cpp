@@ -8,7 +8,8 @@
 #define CACHE_PATH "ShaderCached"
 
 KVulkanShader::KVulkanShader(VkDevice device)
-	: m_Device(device)
+	: m_Device(device),
+	m_bShaderModuelInited(false)
 {
 
 }
@@ -77,6 +78,7 @@ bool KVulkanShader::InitFromString(const std::vector<char> code)
 
 	if (vkCreateShaderModule(m_Device, &createInfo, nullptr, &m_ShaderModule) == VK_SUCCESS)
 	{
+		m_bShaderModuelInited = true;
 		return true;
 	}
 	return false;
@@ -84,6 +86,10 @@ bool KVulkanShader::InitFromString(const std::vector<char> code)
 
 bool KVulkanShader::UnInit()
 {
-	vkDestroyShaderModule(m_Device, m_ShaderModule, nullptr);
+	if(m_bShaderModuelInited)
+	{
+		vkDestroyShaderModule(m_Device, m_ShaderModule, nullptr);
+		m_bShaderModuelInited = false;
+	}
 	return true;
 }

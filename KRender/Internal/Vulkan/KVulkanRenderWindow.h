@@ -8,6 +8,7 @@ class KVulkanRenderWindow : IKRenderWindow
 {
 	GLFWwindow* m_window;
 	KVulkanRenderDevice* m_device;
+	static void FramebufferResizeCallback(GLFWwindow* handle, int width, int height);
 public:
 	KVulkanRenderWindow();
 	virtual ~KVulkanRenderWindow();
@@ -27,6 +28,7 @@ public:
 	virtual bool IsResizable();
 
 	inline GLFWwindow* GetGLFWwindow() { return m_window; }
-
 	inline void SetVulkanDevice(KVulkanRenderDevice* device) { m_device = device; }
+
+	bool IdleUntilForeground();
 };
