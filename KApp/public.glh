@@ -1,0 +1,3 @@
+#define POSITION 0
+#define NORMAL 1
+#define TEXCOORD0 2

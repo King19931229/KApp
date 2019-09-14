@@ -44,6 +44,7 @@
     <ClCompile Include="Internal\KRenderWindow.cpp" />
     <ClCompile Include="Internal\KVertexDefinition.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanHelper.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanProgram.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp" />

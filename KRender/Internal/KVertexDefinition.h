@@ -22,7 +22,7 @@ namespace KVertexDefinition
 		glm::vec2 UV2;
 	};
 
-	struct DIFF_2F_SPEC_2F
+	struct DIFF_3F_SPEC_3F
 	{
 		glm::vec3 DIFFUSE;
 		glm::vec3 SPECULAR;
@@ -43,10 +43,17 @@ namespace KVertexDefinition
 	struct VertexSemanticDetail
 	{
 		VertexSemantic semantic;
+		ElementFormat elementFormat;
 		int offset;
 	};
 	typedef std::vector<VertexSemanticDetail> VertexSemanticDetailList;
-	static const VertexSemanticDetailList& SemanticsDetail(VertexFormat format);
+
+	struct VertexDetail
+	{
+		VertexSemanticDetailList semanticDetails;
+		size_t vertexSize;
+	};
+	const VertexDetail& GetVertexDetail(VertexFormat format);
 
 	struct VertexBindingDetail
 	{

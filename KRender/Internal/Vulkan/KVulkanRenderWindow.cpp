@@ -18,7 +18,7 @@ void KVulkanRenderWindow::FramebufferResizeCallback(GLFWwindow* handle, int widt
 	KVulkanRenderWindow* window = (KVulkanRenderWindow*)glfwGetWindowUserPointer(handle);
 	if(window && window->m_device)
 	{
-//		window->m_device->RecreateSwapChain();
+		window->m_device->RecreateSwapChain();
 	}
 }
 

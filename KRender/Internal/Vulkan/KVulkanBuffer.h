@@ -22,4 +22,6 @@ public:
 
 	virtual bool CopyFrom(IKVertexBufferPtr pSource);
 	virtual bool CopyTo(IKVertexBufferPtr pDest);
+
+	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
 };

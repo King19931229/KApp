@@ -1,5 +1,6 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
+#include "KVulkanHelper.h"
 #include "vulkan/vulkan.h"
 #include "GLFW/glfw3.h"
 #include <algorithm>
@@ -56,6 +57,7 @@ protected:
 	VkSurfaceKHR m_Surface;
 	bool m_EnableValidationLayer;
 	// Temporarily for demo use
+	KVulkanHelper::VulkanBindingDetailList m_VertexBindDetailList;
 	VkRenderPass m_RenderPass;
 	VkPipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
@@ -114,7 +116,7 @@ protected:
 	bool CreateRenderPass();
 	bool CreateGraphicsPipeline();
 	bool CreateCommandBuffers();
-	bool CreateBuffers();
+	bool CreateVertexInput();
 	
 	bool RecreateSwapChain();
 	bool CleanupSwapChain();

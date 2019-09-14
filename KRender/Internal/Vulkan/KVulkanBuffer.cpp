@@ -41,8 +41,8 @@ bool KVulkanVertexBuffer::InitDevice()
 		{
 			if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &m_vkDeviceMemory) == VK_SUCCESS)
 			{
+				vkBindBufferMemory(m_Device, m_vkBuffer, m_vkDeviceMemory, 0);				
 				void* data;
-
 				vkMapMemory(m_Device, m_vkDeviceMemory, 0, bufferInfo.size, 0, &data);
 				memcpy(data, m_Data.data(), (size_t) bufferInfo.size);
 				// 把之前存在内存里的数据丢掉

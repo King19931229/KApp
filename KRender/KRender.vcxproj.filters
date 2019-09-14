@@ -98,5 +98,8 @@
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp">
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanHelper.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

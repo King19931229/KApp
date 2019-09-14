@@ -638,13 +638,25 @@ struct ProgramHolder
 
 bool KVulkanRenderDevice::CreateGraphicsPipeline()
 {
+	std::vector<VkVertexInputBindingDescription> bindingDescriptions;
+	std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+	for(KVulkanHelper::VulkanBindingDetail& detail : m_VertexBindDetailList)
+	{
+		bindingDescriptions.push_back(detail.bindingDescription);
+		attributeDescriptions.insert(
+			attributeDescriptions.end(),
+			detail.attributeDescriptions.begin(), detail.attributeDescriptions.end()
+			);
+	}
+
 	// 配置顶点输入信息
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputInfo.vertexBindingDescriptionCount = 0;
-	vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-	vertexInputInfo.vertexAttributeDescriptionCount = 0;
-	vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;	
+
+	vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)bindingDescriptions.size();
+	vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
+	vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attributeDescriptions.size();
+	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
 	// 配置顶点组装信息
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -689,7 +701,7 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 	rasterizer.depthBiasClamp = 0.0f; // Optional
 	rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
 
-	// 配置多重采用信息
+	// 配置多重采样信息
 	VkPipelineMultisampleStateCreateInfo multisampling = {};
 	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multisampling.sampleShadingEnable = VK_FALSE;
@@ -919,7 +931,13 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 			vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			{
 				vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
-				vkCmdDraw(m_CommandBuffers[i], 3, 1, 0, 0);
+
+				KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
+				VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
+				VkDeviceSize offsets[] = {0};
+				vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
+
+				vkCmdDraw(m_CommandBuffers[i], (uint32_t)vulkanVertexBuffer->GetVertexCount(), 1, 0, 0);
 			}
 			// 结束渲染过程
 			vkCmdEndRenderPass(m_CommandBuffers[i]);
@@ -934,28 +952,37 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 	return true;
 }
 
-bool KVulkanRenderDevice::CreateBuffers()
+bool KVulkanRenderDevice::CreateVertexInput()
 {
 	using namespace KVertexDefinition;
 
 	std::vector<POS_3F_NORM_3F_UV_2F> vertices;
 	{
-		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
+		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(0.0f, -0.8f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
 		vertices.push_back(VERTEX);
 	}
 	{
-		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
+		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(0.8f, 0.8f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
 		vertices.push_back(VERTEX);
 	}
 	{
-		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(-0.5f, 0.5f,0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
+		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(-0.8f, 0.8f,0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
 		vertices.push_back(VERTEX);
 	}
 
 	CreateVertexBuffer(m_VertexBuffer);
 	m_VertexBuffer->InitMemory(vertices.size(), sizeof(vertices[0]), vertices.data());
 	m_VertexBuffer->InitDevice();
-	return true;
+
+	VertexBindingDetail bindingDetail;
+	bindingDetail.vertexBuffer = m_VertexBuffer;
+	bindingDetail.formats.push_back(VF_POINT_NORMAL_UV);
+
+	if(KVulkanHelper::PopulateInputBindingDescription(&bindingDetail, 1, m_VertexBindDetailList))
+	{
+		return true;
+	}
+	return false;
 }
 
 VkBool32 KVulkanRenderDevice::DebugCallback(
@@ -1063,6 +1090,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 		if(!CreateImageViews())
 			return false;
+		if(!CreateVertexInput())
+			return false;
 		if(!CreateRenderPass())
 			return false;
 		if(!CreateGraphicsPipeline())
@@ -1074,8 +1103,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		if(!CreateCommandBuffers())
 			return false;
 		if(!CreateSyncObjects())
-			return false;
-		if(!CreateBuffers())
 			return false;
 
 		PostInit();
