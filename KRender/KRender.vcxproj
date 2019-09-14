@@ -30,6 +30,7 @@
     <ClInclude Include="Internal\Asset\KSubMaterial.h" />
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanGlobal.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanHelper.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanProgram.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h" />
@@ -44,6 +45,7 @@
     <ClCompile Include="Internal\KRenderWindow.cpp" />
     <ClCompile Include="Internal\KVertexDefinition.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanGlobal.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanHelper.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanProgram.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />

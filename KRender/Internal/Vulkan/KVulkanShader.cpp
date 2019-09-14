@@ -1,15 +1,17 @@
 #include "KVulkanShader.h"
+#include "KVulkanGlobal.h"
+
 #include "KBase/Interface/IKDataStream.h"
 #include "KBase/Publish/KStringParser.h"
 #include "KBase/Publish/KFileTool.h"
 #include "KBase/Publish/KSystem.h"
 #include "KBase/Publish/KHash.h"
 
+
 #define CACHE_PATH "ShaderCached"
 
-KVulkanShader::KVulkanShader(VkDevice device)
-	: m_Device(device),
-	m_bShaderModuelInited(false)
+KVulkanShader::KVulkanShader()
+	: m_bShaderModuelInited(false)
 {
 
 }
@@ -71,12 +73,14 @@ bool KVulkanShader::InitFromFile(const std::string path)
 
 bool KVulkanShader::InitFromString(const std::vector<char> code)
 {
+	using namespace KVulkanGlobal;
+
 	VkShaderModuleCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = code.size();
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
-	if (vkCreateShaderModule(m_Device, &createInfo, nullptr, &m_ShaderModule) == VK_SUCCESS)
+	if (vkCreateShaderModule(device, &createInfo, nullptr, &m_ShaderModule) == VK_SUCCESS)
 	{
 		m_bShaderModuelInited = true;
 		return true;
@@ -86,10 +90,13 @@ bool KVulkanShader::InitFromString(const std::vector<char> code)
 
 bool KVulkanShader::UnInit()
 {
+	using namespace KVulkanGlobal;
+
 	if(m_bShaderModuelInited)
 	{
-		vkDestroyShaderModule(m_Device, m_ShaderModule, nullptr);
+		vkDestroyShaderModule(device, m_ShaderModule, nullptr);
 		m_bShaderModuelInited = false;
 	}
+
 	return true;
 }

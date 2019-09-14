@@ -1,8 +1,7 @@
 #include "KVulkanProgram.h"
 #include "KVulkanShader.h"
 
-KVulkanProgram::KVulkanProgram(VkDevice device)
-	: m_Device(device)
+KVulkanProgram::KVulkanProgram()
 {
 	memset(&m_CreateInfoCollection, 0, sizeof(m_CreateInfoCollection));
 }

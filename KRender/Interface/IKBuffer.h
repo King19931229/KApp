@@ -7,7 +7,7 @@ struct IKVertexBuffer
 	virtual size_t GetBufferSize() = 0;
 	virtual size_t GetVertexCount() = 0;
 	// 初始化内存数据 通常用于异步IO
-	virtual bool InitMemory(size_t vertexCount, size_t vertexSize, void* pInitData) = 0;
+	virtual bool InitMemory(size_t vertexCount, size_t vertexSize, const void* pInitData) = 0;
 	// 初始化设备数据并释放内存数据 用于创建绘制API相关句柄
 	virtual bool InitDevice() = 0;
 	// 释放内存数据与设备相关句柄
@@ -27,7 +27,7 @@ struct IKIndexBuffer
 	virtual size_t GetBufferSize() = 0;
 	virtual size_t GetIndexCount() = 0;
 	// 初始化内存数据 通常用于异步IO
-	virtual bool InitMemory(IndexType indexType, size_t count, void* pInitData) = 0;
+	virtual bool InitMemory(IndexType indexType, size_t count, const void* pInitData) = 0;
 	// 初始化设备数据并释放内存数据 用于创建绘制API相关句柄
 	virtual bool InitDevice() = 0;
 	// 释放内存数据与设备相关句柄
@@ -43,7 +43,7 @@ struct IKIndexBuffer
 struct IKUniformBuffer
 {
 	// 初始化内存数据 通常用于异步IO
-	virtual bool InitMemory(size_t bufferSize, void* pInitData) = 0;
+	virtual bool InitMemory(size_t bufferSize, const void* pInitData) = 0;
 	// 初始化设备数据并释放内存数据 用于创建绘制API相关句柄
 	virtual bool InitDevice() = 0;
 	// 释放内存数据与设备相关句柄

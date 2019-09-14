@@ -14,6 +14,7 @@ struct IKRenderDevice
 	virtual bool CreateProgram(IKProgramPtr& program) = 0;
 
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer) = 0;
+	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer) = 0;
 
 	virtual bool Present() = 0;
 };

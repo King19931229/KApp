@@ -14,7 +14,7 @@ KVertexBufferBase::~KVertexBufferBase()
 
 }
 
-bool KVertexBufferBase::InitMemory(size_t vertexCount, size_t vertexSize, void* pInitData)
+bool KVertexBufferBase::InitMemory(size_t vertexCount, size_t vertexSize, const void* pInitData)
 {
 	if(pInitData)
 	{
@@ -39,6 +39,48 @@ bool KVertexBufferBase::UnInit()
 {
 	m_VertexCount = 0;
 	m_VertexSize = 0;
+	m_BufferSize = 0;
+	m_Data.clear();
+	return true;
+}
+
+KIndexBufferBase::KIndexBufferBase()
+	: m_uIndexCount(0),
+	m_IndexType(IT_16),
+	m_BufferSize(0)
+{
+
+}
+
+KIndexBufferBase::~KIndexBufferBase()
+{	
+
+}
+
+bool KIndexBufferBase::InitMemory(IndexType indexType, size_t count, const void* pInitData)
+{
+	if(pInitData)
+	{
+		m_uIndexCount = count;
+		m_BufferSize = (indexType == IT_32 ? sizeof(int32_t) : sizeof(int16_t)) * count;
+		m_Data.resize(m_BufferSize);	
+		memcpy(m_Data.data(), pInitData, m_BufferSize);
+		return true;
+	}
+	else
+	{
+		m_uIndexCount = 0;
+		m_IndexType = IT_16;
+		m_BufferSize = 0;
+		m_Data.clear();
+		return false;
+	}	
+}
+
+bool KIndexBufferBase::UnInit()
+{
+	m_uIndexCount = 0;
+	m_IndexType = IT_16;
 	m_BufferSize = 0;
 	m_Data.clear();
 	return true;

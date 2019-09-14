@@ -66,6 +66,9 @@
     <ClInclude Include="Internal\Vulkan\KVulkanBuffer.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanGlobal.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -99,6 +102,9 @@
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanHelper.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanGlobal.cpp">
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>

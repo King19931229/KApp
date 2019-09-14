@@ -5,8 +5,6 @@
 class KVulkanProgram : public IKProgram
 {
 protected:
-	VkDevice m_Device;
-
 	typedef std::pair<VkPipelineShaderStageCreateInfo, bool> ShaderStageCreateInfo;
 	struct ShaderStageCreateInfoCollection
 	{
@@ -21,7 +19,7 @@ protected:
 	ShaderStageCreateInfoCollection m_CreateInfoCollection;
 	std::vector<VkPipelineShaderStageCreateInfo> m_ShaderStageInfo;
 public:
-	KVulkanProgram(VkDevice device);
+	KVulkanProgram();
 	virtual ~KVulkanProgram();
 	virtual bool AttachShader(ShaderType shaderType, IKShaderPtr shader);
 

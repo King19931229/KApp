@@ -5,6 +5,7 @@
 #include "KVulkanBuffer.h"
 
 #include "KVulkanHelper.h"
+#include "KVulkanGlobal.h"
 
 #include "Internal/KVertexDefinition.h"
 
@@ -937,7 +938,11 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 				VkDeviceSize offsets[] = {0};
 				vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-				vkCmdDraw(m_CommandBuffers[i], (uint32_t)vulkanVertexBuffer->GetVertexCount(), 1, 0, 0);
+				KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffer.get();
+				vkCmdBindIndexBuffer(m_CommandBuffers[i], vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+
+				//vkCmdDraw(m_CommandBuffers[i], (uint32_t)vulkanVertexBuffer->GetVertexCount(), 1, 0, 0);
+				vkCmdDrawIndexed(m_CommandBuffers[i], static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
 			}
 			// 结束渲染过程
 			vkCmdEndRenderPass(m_CommandBuffers[i]);
@@ -956,33 +961,29 @@ bool KVulkanRenderDevice::CreateVertexInput()
 {
 	using namespace KVertexDefinition;
 
-	std::vector<POS_3F_NORM_3F_UV_2F> vertices;
+	const POS_3F_NORM_3F_UV_2F vertices[] =
 	{
-		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(0.0f, -0.8f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
-		vertices.push_back(VERTEX);
-	}
-	{
-		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(0.8f, 0.8f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
-		vertices.push_back(VERTEX);
-	}
-	{
-		POS_3F_NORM_3F_UV_2F VERTEX = {glm::vec3(-0.8f, 0.8f,0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)};
-		vertices.push_back(VERTEX);
-	}
+		{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
+		{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
+		{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
+		{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)}
+	};
 
 	CreateVertexBuffer(m_VertexBuffer);
-	m_VertexBuffer->InitMemory(vertices.size(), sizeof(vertices[0]), vertices.data());
+	m_VertexBuffer->InitMemory(sizeof(vertices) / sizeof(vertices[0]), sizeof(vertices[0]), vertices);
 	m_VertexBuffer->InitDevice();
+
+	const uint16_t indices[] = {0, 1, 2, 2, 3, 0};
+	CreateIndexBuffer(m_IndexBuffer);
+	m_IndexBuffer->InitMemory(IT_16, sizeof(indices) / sizeof(indices[0]), indices);
+	m_IndexBuffer->InitDevice();
 
 	VertexBindingDetail bindingDetail;
 	bindingDetail.vertexBuffer = m_VertexBuffer;
 	bindingDetail.formats.push_back(VF_POINT_NORMAL_UV);
+	KVulkanHelper::PopulateInputBindingDescription(&bindingDetail, 1, m_VertexBindDetailList);
 
-	if(KVulkanHelper::PopulateInputBindingDescription(&bindingDetail, 1, m_VertexBindDetailList))
-	{
-		return true;
-	}
-	return false;
+	return true;
 }
 
 VkBool32 KVulkanRenderDevice::DebugCallback(
@@ -1090,6 +1091,15 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 		if(!CreateImageViews())
 			return false;
+		if(!CreateCommandPool())
+			return false;
+		if(!CreateSyncObjects())
+			return false;
+		m_pWindow->SetVulkanDevice(this);
+		// 这里已经实际完成了设备初始化
+		PostInit();
+
+		// Temporarily for demo use
 		if(!CreateVertexInput())
 			return false;
 		if(!CreateRenderPass())
@@ -1098,15 +1108,9 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 		if(!CreateFramebuffers())
 			return false;
-		if(!CreateCommandPool())
-			return false;
 		if(!CreateCommandBuffers())
 			return false;
-		if(!CreateSyncObjects())
-			return false;
 
-		PostInit();
-		m_pWindow->SetVulkanDevice(this);
 		return true;
 	}
 	else
@@ -1183,6 +1187,10 @@ bool KVulkanRenderDevice::UnInit()
 	{
 		m_VertexBuffer->UnInit();
 	}
+	if(m_IndexBuffer)
+	{
+		m_IndexBuffer->UnInit();
+	}
 	CleanupSwapChain();
 
 	m_CommandBuffers.clear();
@@ -1196,6 +1204,7 @@ bool KVulkanRenderDevice::UnInit()
 	vkDestroyDevice(m_Device, nullptr);
 	vkDestroyInstance(m_Instance, nullptr);
 
+	PostUnInit();
 	return true;
 }
 
@@ -1257,24 +1266,42 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(VkPhysicalDevice vkDevice)
 
 bool KVulkanRenderDevice::PostInit()
 {
+	KVulkanGlobal::device = m_Device;
+	KVulkanGlobal::physicalDevice = m_PhysicalDevice.device;
+	KVulkanGlobal::graphicsCommandPool = m_CommandPool;
+	KVulkanGlobal::graphicsQueue = m_GraphicsQueue;
+
+	KVulkanGlobal::deviceReady = true;
+	return true;
+}
+
+bool KVulkanRenderDevice::PostUnInit()
+{
+	KVulkanGlobal::deviceReady = false;
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateShader(IKShaderPtr& shader)
 {
-	shader = IKShaderPtr(new KVulkanShader(m_Device));
+	shader = IKShaderPtr(new KVulkanShader());
 	return true; 
 }
 
 bool KVulkanRenderDevice::CreateProgram(IKProgramPtr& program)
 {
-	program = IKProgramPtr(new KVulkanProgram(m_Device));
+	program = IKProgramPtr(new KVulkanProgram());
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateVertexBuffer(IKVertexBufferPtr& buffer)
 {
-	buffer = IKVertexBufferPtr(static_cast<IKVertexBuffer*>(new KVulkanVertexBuffer(m_Device, m_PhysicalDevice.device)));
+	buffer = IKVertexBufferPtr(static_cast<IKVertexBuffer*>(new KVulkanVertexBuffer()));
+	return true;
+}
+
+bool KVulkanRenderDevice::CreateIndexBuffer(IKIndexBufferPtr& buffer)
+{
+	buffer = IKIndexBufferPtr(static_cast<IKIndexBuffer*>(new KVulkanIndexBuffer()));
 	return true;
 }
 

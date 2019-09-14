@@ -62,7 +62,9 @@ protected:
 	VkPipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
 	std::vector<VkCommandBuffer> m_CommandBuffers;
+
 	IKVertexBufferPtr m_VertexBuffer;
+	IKIndexBufferPtr m_IndexBuffer;
 
 	//
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
@@ -106,22 +108,23 @@ protected:
 	bool CreateLogicalDevice();
 	bool CreateSwapChain();
 	bool CreateImageViews();
-	bool CreateFramebuffers();
 	bool CreateCommandPool();
 	bool CreateSyncObjects();
 
 	bool DestroySyncObjects();
 
 	// Temporarily for demo use
+	bool CreateVertexInput();
 	bool CreateRenderPass();
 	bool CreateGraphicsPipeline();
-	bool CreateCommandBuffers();
-	bool CreateVertexInput();
-	
+	bool CreateFramebuffers();
+	bool CreateCommandBuffers();	
+
 	bool RecreateSwapChain();
 	bool CleanupSwapChain();
 
 	bool PostInit();
+	bool PostUnInit();
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -141,6 +144,7 @@ public:
 	virtual bool CreateProgram(IKProgramPtr& program);
 
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer);
+	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer);
 
 	virtual bool Present();
 
