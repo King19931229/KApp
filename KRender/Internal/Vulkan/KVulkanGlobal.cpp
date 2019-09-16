@@ -3,8 +3,8 @@
 namespace KVulkanGlobal
 {
 	bool deviceReady = false;
-	VkDevice device = nullptr;
-	VkPhysicalDevice physicalDevice = nullptr;
-	VkCommandPool graphicsCommandPool = nullptr;
-	VkQueue graphicsQueue = nullptr;
+	VkDevice device = (VkDevice)nullptr;
+	VkPhysicalDevice physicalDevice = (VkPhysicalDevice)nullptr;
+	VkCommandPool graphicsCommandPool = (VkCommandPool)nullptr;
+	VkQueue graphicsQueue = (VkQueue)nullptr;
 }

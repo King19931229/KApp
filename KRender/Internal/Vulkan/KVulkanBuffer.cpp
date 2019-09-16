@@ -91,36 +91,6 @@ bool CopyVkBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 	return false;
 }
 
-/*
-struct VKBufferHolder
-{
-	VkDevice vkDevice;
-	VkBuffer vkBuffer;
-	VkDeviceMemory vkDeviceMemory;
-	VKBufferHolder()
-	{
-		vkDevice = nullptr;
-		vkBuffer = nullptr;
-		vkDeviceMemory = nullptr;
-	}
-
-	~VKBufferHolder()
-	{
-		if(vkDevice)
-		{
-			if(vkBuffer)
-			{
-				vkDestroyBuffer(vkDevice, vkBuffer, nullptr);
-			}
-			if(vkDeviceMemory)
-			{
-				vkFreeMemory(vkDevice, vkDeviceMemory, nullptr);
-			}
-		}
-	}
-};
-*/
-
 // KVulkanVertexBuffer
 KVulkanVertexBuffer::KVulkanVertexBuffer()
 	: KVertexBufferBase(),

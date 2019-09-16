@@ -1,5 +1,4 @@
 #include "KBufferBase.h"
-#include "Interface/IKBuffer.h"
 
 KVertexBufferBase::KVertexBufferBase()
 	: m_VertexCount(0),

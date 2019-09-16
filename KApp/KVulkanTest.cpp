@@ -26,8 +26,26 @@ IKLogPtr pLog;
 #include <algorithm>
 #include <process.h>
 
+#include "KBase/Publish/KNumerical.h"
+
 int main()
 {
+	/*
+	printf("%d\n", KNumerical::Pow2LessEqual(10));
+	printf("%d\n", KNumerical::Pow2LessEqual(768));
+	printf("%d\n", KNumerical::Pow2LessEqual(512));
+
+	printf("%d\n", KNumerical::Pow2GreaterEqual(10));
+	printf("%d\n", KNumerical::Pow2GreaterEqual(768));
+	printf("%d\n", KNumerical::Pow2GreaterEqual(512));
+	printf("%d\n", KNumerical::Pow2GreaterEqual(-1));
+	
+	printf("%d\n", KNumerical::IsPow2(1));
+	printf("%d\n", KNumerical::IsPow2(768));
+	printf("%d\n", KNumerical::IsPow2(4));
+	printf("%d\n", KNumerical::IsPow2(1024));
+	printf("%d\n", KNumerical::IsPow2(1111));
+	*/
 	/*
 	std::vector<std::string> splitResult;
 	KStringUtil::Split("I am ;; a string for test;;; ha,ha!", " ;,!", splitResult);

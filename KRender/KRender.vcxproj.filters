@@ -69,6 +69,15 @@
     <ClInclude Include="Internal\Vulkan\KVulkanGlobal.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanHeapAllocator.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanConfig.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KBufferBase.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -92,12 +101,6 @@
     <ClCompile Include="Internal\KVertexDefinition.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\KBufferBase.h">
-      <Filter>Internal</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\KBufferBase.cpp">
-      <Filter>Internal</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp">
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
@@ -106,6 +109,15 @@
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanGlobal.cpp">
       <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanHeapAllocator.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="KRenderMain.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KBufferBase.cpp">
+      <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

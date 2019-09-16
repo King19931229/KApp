@@ -1,3 +1,4 @@
+#pragma once
 #include "Internal/KBufferBase.h"
 #include "Vulkan/vulkan.h"
 
