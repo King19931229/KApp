@@ -1,3 +1,4 @@
+#pragma once
 #include "Interface/IKProgram.h"
 #include "Vulkan/vulkan.h"
 #include <vector>

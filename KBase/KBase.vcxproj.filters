@@ -106,6 +106,9 @@
     <ClInclude Include="Publish\KStringUtil.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KNumerical.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">

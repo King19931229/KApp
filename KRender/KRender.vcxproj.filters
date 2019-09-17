@@ -78,6 +78,12 @@
     <ClInclude Include="Internal\KConstantGlobal.h">
       <Filter>Internal</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanConfig.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanHeapAllocator.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -118,6 +124,10 @@
     </ClCompile>
     <ClCompile Include="Internal\KConstantGlobal.cpp">
       <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="KRenderMain.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanHeapAllocator.cpp">
+      <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

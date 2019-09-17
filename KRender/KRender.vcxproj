@@ -32,6 +32,8 @@
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanHeapAllocator.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanGlobal.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanHelper.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanProgram.h" />
@@ -50,11 +52,13 @@
     <ClCompile Include="Internal\KVertexDefinition.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanGlobal.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanHeapAllocator.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanHelper.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanProgram.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanShader.cpp" />
+    <ClCompile Include="KRenderMain.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CF39F7A8-164C-4E82-9CC0-6308AE16C1D6}</ProjectGuid>
@@ -108,7 +112,7 @@
     <OutDir>Publish/Debug/x86/</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>Publish/Debug/x64</OutDir>
+    <OutDir>Publish/Debug/x64/</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>Publish/Release/x64</OutDir>
@@ -144,8 +148,10 @@
       <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>KBase.lib;glfw3.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
