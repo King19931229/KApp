@@ -20,7 +20,7 @@ public:
 	virtual bool UnInit();
 
 	virtual bool Write(const void* pData) = 0;
-	virtual bool Read(const void* pData) = 0;
+	virtual bool Read(void* pData) = 0;
 
 	virtual bool CopyFrom(IKVertexBufferPtr pSource) = 0;
 	virtual bool CopyTo(IKVertexBufferPtr pDest) = 0;
@@ -48,8 +48,31 @@ public:
 	virtual bool UnInit() = 0;
 
 	virtual bool Write(const void* pData) = 0;
-	virtual bool Read(const void* pData) = 0;
+	virtual bool Read(void* pData) = 0;
 
 	virtual bool CopyFrom(IKIndexBufferPtr pSource) = 0;
 	virtual bool CopyTo(IKIndexBufferPtr pDest) = 0;
+};
+
+class KUniformBufferBase : public IKUniformBuffer
+{
+protected:
+	size_t m_BufferSize;
+	std::vector<char> m_Data;
+public:
+	KUniformBufferBase();
+	virtual ~KUniformBufferBase();
+
+	virtual size_t GetBufferSize() { return m_BufferSize; }
+	// 初始化内存数据 通常用于异步IO
+	virtual bool InitMemory(size_t bufferSize, const void* pInitData);
+
+	virtual bool InitDevice() = 0;
+	virtual bool UnInit() = 0;
+
+	virtual bool Write(const void* pData) = 0;
+	virtual bool Read(void* pData) = 0;
+
+	virtual bool CopyFrom(IKUniformBufferPtr pSource) = 0;
+	virtual bool CopyTo(IKUniformBufferPtr pDest) = 0;
 };

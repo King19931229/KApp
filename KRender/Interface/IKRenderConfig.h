@@ -34,6 +34,18 @@ enum VertexSemantic
 	VS_BLEND_INDICES
 };
 
+enum ConstantBufferType
+{
+	CBT_TRANSFORM
+};
+
+enum ConstantSemantic
+{
+	CS_VIEW,
+	CS_MODEL,
+	CS_PROJ
+};
+
 enum VertexFormat
 {
 	VF_POINT_NORMAL_UV,
@@ -58,7 +70,7 @@ enum ElementFormat
 	EF_R32G32B32_FLOAT,
 	EF_R32G32B32A32_FLOAT,
 
-	EF_R32_UINT,
+	EF_R32_UINT
 };
 
 enum IndexType

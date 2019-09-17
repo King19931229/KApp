@@ -15,6 +15,7 @@ struct IKRenderDevice
 
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer) = 0;
 	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer) = 0;
+	virtual bool CreateUniformBuffer(IKUniformBufferPtr& buffer) = 0;
 
 	virtual bool Present() = 0;
 };

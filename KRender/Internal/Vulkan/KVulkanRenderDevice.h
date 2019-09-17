@@ -65,7 +65,7 @@ protected:
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
-
+	std::vector<IKUniformBufferPtr> m_UniformBuffers;
 	//
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
@@ -115,6 +115,7 @@ protected:
 
 	// Temporarily for demo use
 	bool CreateVertexInput();
+	bool CreateUniform();
 	bool CreateRenderPass();
 	bool CreateGraphicsPipeline();
 	bool CreateFramebuffers();
@@ -145,6 +146,7 @@ public:
 
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer);
 	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer);
+	virtual bool CreateUniformBuffer(IKUniformBufferPtr& buffer);
 
 	virtual bool Present();
 

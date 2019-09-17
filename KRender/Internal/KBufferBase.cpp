@@ -85,3 +85,39 @@ bool KIndexBufferBase::UnInit()
 	m_Data.clear();
 	return true;
 }
+
+KUniformBufferBase::KUniformBufferBase()
+	: m_BufferSize(0)
+{
+
+}
+
+KUniformBufferBase::~KUniformBufferBase()
+{
+
+}
+
+bool KUniformBufferBase::InitMemory(size_t bufferSize, const void* pInitData)
+{
+	m_BufferSize = bufferSize;
+	if(pInitData)
+	{
+		m_BufferSize = bufferSize;
+		m_Data.resize(m_BufferSize);	
+		memcpy(m_Data.data(), pInitData, m_BufferSize);
+		return true;
+	}
+	else
+	{
+		m_BufferSize = 0;
+		m_Data.clear();
+		return false;
+	}	
+}
+
+bool KUniformBufferBase::UnInit()
+{
+	m_BufferSize = 0;
+	m_Data.clear();
+	return true;
+}

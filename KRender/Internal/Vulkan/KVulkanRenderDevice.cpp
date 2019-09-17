@@ -8,6 +8,9 @@
 #include "KVulkanGlobal.h"
 
 #include "Internal/KVertexDefinition.h"
+#include "Internal/KConstantDefinition.h"
+
+#include "Internal/KConstantGlobal.h"
 
 #include <algorithm>
 #include <set>
@@ -90,7 +93,8 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_EnableValidationLayer(true),
 	m_MaxFramesInFight(0),
 	m_CurrentFlightIndex(0),
-	m_VertexBuffer(nullptr)
+	m_VertexBuffer(nullptr),
+	m_IndexBuffer(nullptr)
 {
 
 }
@@ -986,6 +990,23 @@ bool KVulkanRenderDevice::CreateVertexInput()
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateUniform()
+{
+	KConstantDefinition::ConstantBufferDetail detail = KConstantDefinition::GetConstantBufferDetail(CBT_TRANSFORM);
+
+	m_UniformBuffers.clear();
+	for(size_t i = 0; i < m_SwapChainImages.size(); ++i)
+	{
+		IKUniformBufferPtr buffer = nullptr;
+		CreateUniformBuffer(buffer);
+		m_UniformBuffers.push_back(buffer);
+
+		buffer->InitMemory(detail.bufferSize, &KConstantGlobal::Transform);
+		buffer->InitDevice();
+	}
+	return true;
+}
+
 VkBool32 KVulkanRenderDevice::DebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -1102,6 +1123,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		// Temporarily for demo use
 		if(!CreateVertexInput())
 			return false;
+		if(!CreateUniform())
+			return false;
 		if(!CreateRenderPass())
 			return false;
 		if(!CreateGraphicsPipeline())
@@ -1186,11 +1209,18 @@ bool KVulkanRenderDevice::UnInit()
 	if(m_VertexBuffer)
 	{
 		m_VertexBuffer->UnInit();
+		m_VertexBuffer = nullptr;
 	}
 	if(m_IndexBuffer)
 	{
 		m_IndexBuffer->UnInit();
+		m_VertexBuffer = nullptr;
 	}
+	for(IKUniformBufferPtr uniformBuffer : m_UniformBuffers)
+	{
+		uniformBuffer->UnInit();
+	}
+	m_UniformBuffers.clear();
 	CleanupSwapChain();
 
 	m_CommandBuffers.clear();
@@ -1302,6 +1332,12 @@ bool KVulkanRenderDevice::CreateVertexBuffer(IKVertexBufferPtr& buffer)
 bool KVulkanRenderDevice::CreateIndexBuffer(IKIndexBufferPtr& buffer)
 {
 	buffer = IKIndexBufferPtr(static_cast<IKIndexBuffer*>(new KVulkanIndexBuffer()));
+	return true;
+}
+
+bool KVulkanRenderDevice::CreateUniformBuffer(IKUniformBufferPtr& buffer)
+{
+	buffer = IKUniformBufferPtr(static_cast<IKUniformBuffer*>(new KVulkanUniformBuffer()));
 	return true;
 }
 

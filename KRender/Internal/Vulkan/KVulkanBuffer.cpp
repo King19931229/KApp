@@ -91,36 +91,6 @@ bool CopyVkBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 	return false;
 }
 
-/*
-struct VKBufferHolder
-{
-	VkDevice vkDevice;
-	VkBuffer vkBuffer;
-	VkDeviceMemory vkDeviceMemory;
-	VKBufferHolder()
-	{
-		vkDevice = nullptr;
-		vkBuffer = nullptr;
-		vkDeviceMemory = nullptr;
-	}
-
-	~VKBufferHolder()
-	{
-		if(vkDevice)
-		{
-			if(vkBuffer)
-			{
-				vkDestroyBuffer(vkDevice, vkBuffer, nullptr);
-			}
-			if(vkDeviceMemory)
-			{
-				vkFreeMemory(vkDevice, vkDeviceMemory, nullptr);
-			}
-		}
-	}
-};
-*/
-
 // KVulkanVertexBuffer
 KVulkanVertexBuffer::KVulkanVertexBuffer()
 	: KVertexBufferBase(),
@@ -205,7 +175,7 @@ bool KVulkanVertexBuffer::Write(const void* pData)
 	return false;
 }
 
-bool KVulkanVertexBuffer::Read(const void* pData)
+bool KVulkanVertexBuffer::Read(void* pData)
 {
 	return false;
 }
@@ -222,7 +192,8 @@ bool KVulkanVertexBuffer::CopyTo(IKVertexBufferPtr pDest)
 
 // KVulkanIndexBuffer
 KVulkanIndexBuffer::KVulkanIndexBuffer()
-	: KIndexBufferBase()
+	: KIndexBufferBase(),
+	m_bDeviceInit(false)
 {
 
 }
@@ -302,7 +273,7 @@ bool KVulkanIndexBuffer::Write(const void* pData)
 	return false;
 }
 
-bool KVulkanIndexBuffer::Read(const void* pData)
+bool KVulkanIndexBuffer::Read(void* pData)
 {
 	return false;
 }
@@ -313,6 +284,82 @@ bool KVulkanIndexBuffer::CopyFrom(IKIndexBufferPtr pSource)
 }
 
 bool KVulkanIndexBuffer::CopyTo(IKIndexBufferPtr pDest)
+{
+	return false;
+}
+
+// KVulkanUniformBuffer
+KVulkanUniformBuffer::KVulkanUniformBuffer()
+	: KUniformBufferBase(),
+	m_bDeviceInit(false)
+{
+
+}
+
+KVulkanUniformBuffer::~KVulkanUniformBuffer()
+{
+
+}
+
+bool KVulkanUniformBuffer::InitDevice()
+{
+	using namespace KVulkanGlobal;
+	m_bDeviceInit = false;
+	if(CreateVkBuffer((VkDeviceSize)m_BufferSize,
+		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		m_vkBuffer,
+		m_vkDeviceMemory))
+	{
+		void* data = nullptr;
+		vkMapMemory(device, m_vkDeviceMemory, 0, m_BufferSize, 0, &data);
+		memcpy(data, m_Data.data(), (size_t) m_BufferSize);
+		vkUnmapMemory(device, m_vkDeviceMemory);
+
+		m_bDeviceInit = true;
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanUniformBuffer::UnInit()
+{
+	using namespace KVulkanGlobal;
+	KUniformBufferBase::UnInit();
+	if(m_bDeviceInit)
+	{
+		vkDestroyBuffer(device, m_vkBuffer, nullptr);
+		vkFreeMemory(device, m_vkDeviceMemory, nullptr);
+		m_bDeviceInit = false;
+	}
+	return true;
+}
+
+bool KVulkanUniformBuffer::Write(const void* pData)
+{
+	using namespace KVulkanGlobal;
+	if(m_bDeviceInit && pData)
+	{
+		void* data = nullptr;
+		vkMapMemory(device, m_vkDeviceMemory, 0, m_BufferSize, 0, &data);
+		memcpy(data, pData, m_BufferSize);
+		vkUnmapMemory(device, m_vkDeviceMemory);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanUniformBuffer::Read(void* pData)
+{
+	return false;
+}
+
+bool KVulkanUniformBuffer::CopyFrom(IKUniformBufferPtr pSource)
+{
+	return false;
+}
+
+bool KVulkanUniformBuffer::CopyTo(IKUniformBufferPtr pDest)
 {
 	return false;
 }

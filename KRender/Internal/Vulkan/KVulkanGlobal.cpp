@@ -5,6 +5,6 @@ namespace KVulkanGlobal
 	bool deviceReady = false;
 	VkDevice device = nullptr;
 	VkPhysicalDevice physicalDevice = nullptr;
-	VkCommandPool graphicsCommandPool = nullptr;
+	VkCommandPool graphicsCommandPool;// = nullptr;
 	VkQueue graphicsQueue = nullptr;
 }
