@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Interface/IKConfig.h"
+#include "Publish/KConfig.h"
 
 typedef const char* KHashString;
 static const size_t HASH_STRING_MAX_LEN = 260;

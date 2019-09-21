@@ -1,5 +1,5 @@
 #pragma once
-#include "KBase/Interface/IKConfig.h"
+#include "KBase/Publish/KConfig.h"
 
 #include <memory>
 
@@ -41,8 +41,8 @@ enum ConstantBufferType
 
 enum ConstantSemantic
 {
-	CS_VIEW,
 	CS_MODEL,
+	CS_VIEW,
 	CS_PROJ
 };
 
@@ -79,6 +79,11 @@ enum IndexType
 	IT_32
 };
 
+enum TextureType
+{
+	TT_TEXTURE_2D
+};
+
 struct IKRenderWindow;
 typedef std::shared_ptr<IKRenderWindow> IKRenderWindowPtr;
 
@@ -99,3 +104,6 @@ typedef std::shared_ptr<IKIndexBuffer> IKIndexBufferPtr;
 
 struct IKUniformBuffer;
 typedef std::shared_ptr<IKUniformBuffer> IKUniformBufferPtr;
+
+struct IKTexture;
+typedef std::shared_ptr<IKTexture> IKTexturePtr;

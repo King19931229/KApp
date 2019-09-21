@@ -1,9 +1,14 @@
 #include "KVulkanProgram.h"
 #include "KVulkanShader.h"
+#include <assert.h>
 
 KVulkanProgram::KVulkanProgram()
 {
 	memset(&m_CreateInfoCollection, 0, sizeof(m_CreateInfoCollection));
+	for(int i = 0; i < ST_COUNT; ++i)
+	{
+		m_Shaders[i] = nullptr;
+	}
 }
 
 KVulkanProgram::~KVulkanProgram()
@@ -18,6 +23,9 @@ bool KVulkanProgram::AttachShader(ShaderType shaderType, IKShaderPtr _shader)
 
 	KVulkanShader* shader = (KVulkanShader*)_shader.get();
 	VkShaderModule vkShader = shader->GetShaderModule();
+
+	assert(shaderType != ST_COUNT);
+	m_Shaders[shaderType] = _shader;
 
 	switch (shaderType)
 	{

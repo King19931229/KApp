@@ -7,6 +7,7 @@
 #include "KBase/Publish/KSystem.h"
 #include "KBase/Publish/KHash.h"
 
+#include <assert.h>
 
 #define CACHE_PATH "ShaderCached"
 
@@ -64,6 +65,7 @@ bool KVulkanShader::InitFromFile(const std::string path)
 			else
 			{
 				printf("[Vulkan Shader Compile Error]: [%s]\n%s\n", path.c_str(), message.c_str());
+				assert(false && "KVulkanShader InitFromFile Failure");
 				return false;
 			}
 		}
@@ -85,6 +87,7 @@ bool KVulkanShader::InitFromString(const std::vector<char> code)
 		m_bShaderModuelInited = true;
 		return true;
 	}
+	assert(false && "KVulkanShader InitFromString Failure");
 	return false;
 }
 

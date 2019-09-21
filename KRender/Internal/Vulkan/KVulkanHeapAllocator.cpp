@@ -108,7 +108,7 @@ namespace KVulkanHeapAllocator
 				}
 #else
 				{
-					vkMemroy = malloc(size);
+					vkMemroy = malloc((size_t)size);
 				}
 #endif
 

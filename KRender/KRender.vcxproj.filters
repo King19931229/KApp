@@ -84,6 +84,15 @@
     <ClInclude Include="Internal\Vulkan\KVulkanHeapAllocator.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanSwapChain.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKTextrue.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanInitializer.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -125,8 +134,16 @@
     <ClCompile Include="Internal\KConstantGlobal.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
-    <ClCompile Include="KRenderMain.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanHeapAllocator.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="KRenderMain.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanSwapChain.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanInitializer.cpp">
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>

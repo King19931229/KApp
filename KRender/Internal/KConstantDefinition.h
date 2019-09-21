@@ -6,6 +6,13 @@
 #include <vector>
 #include <assert.h>
 
+/*
+https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
+A scalar of size N has a scalar alignment of N.
+A vector or matrix type has a scalar alignment equal to that of its component type.
+An array type has a scalar alignment equal to that of its element type.
+A structure has a scalar alignment equal to the largest scalar alignment of any of its members.
+*/
 namespace KConstantDefinition
 {
 	struct TRANSFORM
@@ -20,6 +27,7 @@ namespace KConstantDefinition
 		ConstantSemantic semantic;
 		ElementFormat elementFormat;
 		int elementCount;
+		int size;
 		int offset;
 	};
 	typedef std::vector<ConstantSemanticDetail> ConstantSemanticDetailList;
@@ -35,10 +43,12 @@ namespace KConstantDefinition
 	{
 		IKUniformBufferPtr constantBuffer;
 		ConstantBufferDetail constantDetail;
+		int slot;
 
 		ConstantBindingDetail()
 		{
 			constantBuffer = nullptr;
+			slot = -1;
 		}
 	};
 }

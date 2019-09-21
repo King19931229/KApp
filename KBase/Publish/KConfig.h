@@ -1,4 +1,4 @@
-ï»¿#pragma once
+#pragma once
 
 #ifdef DLL_EXPORT
 #	ifdef DLL_EXPORT
@@ -14,6 +14,12 @@
 #define STDCALL __stdcall
 #define CDECL __cdecl
 
+#ifdef _WIN32
+#	define ALIGNMENT(x) __declspec(align(x))
+#else
+#	define ALIGNMENT(x) __attribute__((aligned(x)))
+#endif
+
 // http://www.cnblogs.com/skynet/archive/2011/02/20/1959162.html
 #ifdef MEMORY_DUMP_DEBUG
 
@@ -22,11 +28,11 @@
 #		include <stdlib.h>
 #		include <crtdbg.h>
 
-//	å¼€å§‹æ£€æµ‹å†…å­˜æ³„æ¼
-//	DUMP_MEMORY_LEAK_BEGINå¼€å§‹è·Ÿè¸ªå†…å­˜åˆ†é…
+//	¿ªÊ¼¼ì²âÄÚ´æĞ¹Â©
+//	DUMP_MEMORY_LEAK_BEGIN¿ªÊ¼¸ú×ÙÄÚ´æ·ÖÅä
 #	define DUMP_MEMORY_LEAK_BEGIN() {_CrtSetDbgFlag (_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);}
-//	ç»“æŸæ£€æµ‹å†…å­˜æ³„æ¼
-//	DUMP_MEMORY_LEAK_ENDæ˜¯æ¸…ç©ºå†…å­˜åˆ†é…è·Ÿè¸ª
+//	½áÊø¼ì²âÄÚ´æĞ¹Â©
+//	DUMP_MEMORY_LEAK_ENDÊÇÇå¿ÕÄÚ´æ·ÖÅä¸ú×Ù
 #	define DUMP_MEMORY_LEAK_END() {_CrtDumpMemoryLeaks(); _CrtSetDbgFlag(0);}
 #	define DUMP_MEMORY_STATUS() {_CrtMemState s; _CrtMemCheckpoint(&s); _CrtMemDumpStatistics(&s);}
 

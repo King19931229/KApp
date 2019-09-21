@@ -1,5 +1,5 @@
 #define MEMORY_DUMP_DEBUG
-#include "KBase/Interface/IKConfig.h"
+#include "KBase/Publish/KConfig.h"
 #include "Internal/Vulkan/KVulkanHeapAllocator.h"
 
 #define ALLOC_TEST_COUNT 200

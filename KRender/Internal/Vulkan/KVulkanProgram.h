@@ -19,6 +19,8 @@ protected:
 	};
 	ShaderStageCreateInfoCollection m_CreateInfoCollection;
 	std::vector<VkPipelineShaderStageCreateInfo> m_ShaderStageInfo;
+
+	IKShaderPtr m_Shaders[ST_COUNT];
 public:
 	KVulkanProgram();
 	virtual ~KVulkanProgram();

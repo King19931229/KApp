@@ -62,6 +62,9 @@ protected:
 	VkPipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
 	std::vector<VkCommandBuffer> m_CommandBuffers;
+	VkDescriptorSetLayout m_DescriptorSetLayout;
+	VkDescriptorPool  m_DescriptorPool;
+	std::vector<VkDescriptorSet> m_DescriptorSets;
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
@@ -116,10 +119,15 @@ protected:
 	// Temporarily for demo use
 	bool CreateVertexInput();
 	bool CreateUniform();
+	bool CreateDescriptorPool();
+	bool CreateDescriptorSets();
 	bool CreateRenderPass();
 	bool CreateGraphicsPipeline();
 	bool CreateFramebuffers();
-	bool CreateCommandBuffers();	
+	bool CreateCommandBuffers();
+	bool CreateDescriptorSetLayout();
+
+	bool UpdateUniformBuffer(uint32_t currentImage);
 
 	bool RecreateSwapChain();
 	bool CleanupSwapChain();

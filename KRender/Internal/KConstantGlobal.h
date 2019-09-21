@@ -3,4 +3,6 @@
 namespace KConstantGlobal
 {
 	extern KConstantDefinition::TRANSFORM Transform;
+
+	void* GetGlobalConstantData(ConstantBufferType bufferType);
 }

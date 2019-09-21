@@ -17,6 +17,10 @@
 #include <functional>
 #include <assert.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <chrono>
+
 //-------------------- Extensions --------------------//
 const char* DEVICE_EXTENSIONS[] =
 {
@@ -699,7 +703,9 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	//rasterizer.cullMode = VK_CULL_MODE_NONE;
+	//rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
@@ -752,8 +758,9 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 	// 创建管线布局
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0; // Optional
-	pipelineLayoutInfo.pSetLayouts = nullptr; // Optional
+	pipelineLayoutInfo.setLayoutCount = 1; // Optional
+	// 指定该管线的描述布局
+	pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout; // Optional
 	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
 	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
@@ -946,6 +953,8 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 				vkCmdBindIndexBuffer(m_CommandBuffers[i], vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 
 				//vkCmdDraw(m_CommandBuffers[i], (uint32_t)vulkanVertexBuffer->GetVertexCount(), 1, 0, 0);
+				// 绑定描述集合
+				vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSets[i], 0, nullptr);
 				vkCmdDrawIndexed(m_CommandBuffers[i], static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
 			}
 			// 结束渲染过程
@@ -968,9 +977,9 @@ bool KVulkanRenderDevice::CreateVertexInput()
 	const POS_3F_NORM_3F_UV_2F vertices[] =
 	{
 		{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
-		{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
-		{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
-		{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)}
+		{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
+		{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
+		{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)}
 	};
 
 	CreateVertexBuffer(m_VertexBuffer);
@@ -1007,6 +1016,106 @@ bool KVulkanRenderDevice::CreateUniform()
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateDescriptorPool()
+{
+	VkDescriptorPoolSize poolSize = {};
+	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)的描述集合数最大值
+	poolSize.descriptorCount = static_cast<uint32_t>(m_SwapChainImages.size());
+
+	VkDescriptorPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.poolSizeCount = 1;
+	poolInfo.pPoolSizes = &poolSize;
+	// 创建的描述池各个type的描述集合数的总和
+	// 相当于所有pPoolSizes的descriptorCount总和
+	poolInfo.maxSets = static_cast<uint32_t>(m_SwapChainImages.size());
+
+	if (vkCreateDescriptorPool(m_Device, &poolInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool KVulkanRenderDevice::CreateDescriptorSets()
+{
+	std::vector<VkDescriptorSetLayout> layouts(m_SwapChainImages.size(), m_DescriptorSetLayout);
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	// 指定该描述集合从哪个描述池创建
+	allocInfo.descriptorPool = m_DescriptorPool;
+	// 创建的描述集合数
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(m_SwapChainImages.size());
+	// 指定每个创建的描述集合对应的描述布局
+	allocInfo.pSetLayouts = layouts.data();
+
+  	m_DescriptorSets.resize(m_SwapChainImages.size());
+	if (vkAllocateDescriptorSets(m_Device, &allocInfo, m_DescriptorSets.data()) != VK_SUCCESS)
+	{
+		return false;
+	}
+
+	// 更新描述集合
+	for (size_t i = 0; i < m_SwapChainImages.size(); i++)
+	{
+		VkDescriptorBufferInfo bufferInfo = {};
+		bufferInfo.buffer = ((KVulkanUniformBuffer*)m_UniformBuffers[i].get())->GetVulkanHandle();
+		bufferInfo.offset = 0;
+		bufferInfo.range = m_UniformBuffers[i]->GetBufferSize();
+
+		{
+			VkWriteDescriptorSet descriptorWrite = {};
+			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			// 写入的描述集合
+			descriptorWrite.dstSet = m_DescriptorSets[i];
+			// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
+			descriptorWrite.dstBinding = 0;
+			// 写入索引与descriptorCount对应
+			descriptorWrite.dstArrayElement = 0;
+
+			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite.descriptorCount = 1;
+
+			descriptorWrite.pBufferInfo = &bufferInfo;
+			descriptorWrite.pImageInfo = nullptr; // Optional
+			descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+			vkUpdateDescriptorSets(m_Device, 1, &descriptorWrite, 0, nullptr);
+		}
+	}
+    return true;
+}
+
+bool KVulkanRenderDevice::CreateDescriptorSetLayout()
+{
+	/*
+	这里仅仅声明UBO绑定的位置
+	实际UBO句柄绑定在描述集合里指定
+	*/
+	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+	// 与Shader中绑定位置对应
+	uboLayoutBinding.binding = 0;
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	// 声明UBO Buffer数组长度 这里不使用数组
+	uboLayoutBinding.descriptorCount = 1;
+	// 声明哪个阶段Shader能够使用上此UBO
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // // VK_SHADER_STAGE_ALL_GRAPHICS
+	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &uboLayoutBinding;
+
+	if (vkCreateDescriptorSetLayout(m_Device, &layoutInfo, nullptr, &m_DescriptorSetLayout) == VK_SUCCESS)
+	{
+		return true;
+	}
+	return false;
+}
+
 VkBool32 KVulkanRenderDevice::DebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -1021,6 +1130,7 @@ VkBool32 KVulkanRenderDevice::DebugCallback(
 	else
 	{
 		printf("[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
+		assert(false);
 	}
 	return VK_FALSE;
 }
@@ -1127,6 +1237,12 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 		if(!CreateRenderPass())
 			return false;
+		if(!CreateDescriptorSetLayout())
+			return false;
+		if(!CreateDescriptorPool())
+			return false;
+		if(!CreateDescriptorSets())
+			return false;
 		if(!CreateGraphicsPipeline())
 			return false;
 		if(!CreateFramebuffers())
@@ -1169,11 +1285,15 @@ bool KVulkanRenderDevice::RecreateSwapChain()
 	CreateSwapChain();
 	CreateImageViews();
 	CreateRenderPass();
+	CreateUniform();
+	CreateDescriptorPool();
+	CreateDescriptorSets();
 	CreateGraphicsPipeline();
 	CreateFramebuffers();
 	CreateCommandBuffers();
 
 	CreateSyncObjects();
+	
 
 	return true;
 }
@@ -1192,8 +1312,15 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 	}
 	m_SwapChainImageViews.clear();
 
+	for(IKUniformBufferPtr uniformBuffer : m_UniformBuffers)
+	{
+		uniformBuffer->UnInit();
+	}
+	m_UniformBuffers.clear();
 	m_SwapChainImages.clear();
 
+	m_DescriptorSets.clear();
+	vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
 	vkDestroyPipeline(m_Device, m_GraphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
 	vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
@@ -1216,17 +1343,13 @@ bool KVulkanRenderDevice::UnInit()
 		m_IndexBuffer->UnInit();
 		m_VertexBuffer = nullptr;
 	}
-	for(IKUniformBufferPtr uniformBuffer : m_UniformBuffers)
-	{
-		uniformBuffer->UnInit();
-	}
-	m_UniformBuffers.clear();
+
 	CleanupSwapChain();
 
 	m_CommandBuffers.clear();
 
 	DestroySyncObjects();
-
+	vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
 	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 
@@ -1341,6 +1464,49 @@ bool KVulkanRenderDevice::CreateUniformBuffer(IKUniformBufferPtr& buffer)
 	return true;
 }
 
+#define POINTER_OFFSET(p, offset) static_cast<void*>((static_cast<char*>(p) + offset))
+
+bool KVulkanRenderDevice::UpdateUniformBuffer(uint32_t currentImage)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 proj = glm::perspective(glm::radians(45.0f), m_SwapChainExtent.width / (float) m_SwapChainExtent.height, 0.1f, 10.0f);
+	proj[1][1] *= -1;
+
+	void* pData = KConstantGlobal::GetGlobalConstantData(CBT_TRANSFORM);
+	void* pWritePos = nullptr;
+	const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_TRANSFORM);
+	for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
+	{
+		if(detail.semantic == CS_MODEL)
+		{
+			pWritePos = POINTER_OFFSET(pData, detail.offset);
+			assert(sizeof(model) == detail.size);
+			memcpy(pWritePos, &model, sizeof(model));
+		}
+		else if(detail.semantic == CS_VIEW)
+		{
+			pWritePos = POINTER_OFFSET(pData, detail.offset);
+			assert(sizeof(view) == detail.size);
+			memcpy(pWritePos, &view, sizeof(view));
+		}
+		else if(detail.semantic == CS_PROJ)
+		{
+			pWritePos = POINTER_OFFSET(pData, detail.offset);
+			assert(sizeof(proj) == detail.size);
+			memcpy(pWritePos, &proj, sizeof(proj));
+		}
+	}
+
+	m_UniformBuffers[currentImage]->Write(pData);
+	return true;
+}
+
 bool KVulkanRenderDevice::Present()
 {
 	vkWaitForFences(m_Device, 1, &m_InFlightFences[m_CurrentFlightIndex], VK_TRUE, UINT64_MAX);	
@@ -1357,6 +1523,8 @@ bool KVulkanRenderDevice::Present()
 	{
 		return false;
 	}
+
+	UpdateUniformBuffer(imageIndex);
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

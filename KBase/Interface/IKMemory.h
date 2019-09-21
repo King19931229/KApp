@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Interface/IKConfig.h"
+#include "Publish/KConfig.h"
 #include <memory>
 
 struct IKMemoryAllocator;

@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="Interface\IKConfig.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\IKDataStream.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -107,6 +104,9 @@
       <Filter>Publish</Filter>
     </ClInclude>
     <ClInclude Include="Publish\KNumerical.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KConfig.h">
       <Filter>Publish</Filter>
     </ClInclude>
   </ItemGroup>

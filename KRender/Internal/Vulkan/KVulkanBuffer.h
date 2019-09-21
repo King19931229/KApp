@@ -65,4 +65,6 @@ public:
 
 	virtual bool CopyFrom(IKUniformBufferPtr pSource);
 	virtual bool CopyTo(IKUniformBufferPtr pDest);
+
+	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
 };
