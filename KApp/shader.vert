@@ -4,7 +4,7 @@
 
 layout(location = POSITION) in vec3 position;
 layout(location = NORMAL) in vec3 normal;
-layout(location = TEXCOORD0) in vec3 uv;
+layout(location = TEXCOORD0) in vec2 texcoord0;
 
 layout(binding = TRANSFORM)
 uniform UniformBufferObject
@@ -14,7 +14,7 @@ uniform UniformBufferObject
     mat4 proj;
 }transform;
 
-layout(location = 0) out vec3 fragColor;
+layout(location = 0) out vec2 uv;
 
 vec3 colors[4] = vec3[](
     vec3(1.0, 0.0, 0.0),
@@ -26,6 +26,5 @@ vec3 colors[4] = vec3[](
 void main()
 {
 	gl_Position = transform.proj * transform.view * transform.model * vec4(position.x, position.y, position.z, 1.0);
-	//gl_Position = vec4(position.x, position.y, position.z, 1.0);
-	fragColor = colors[gl_VertexIndex];
+	uv = texcoord0;
 }

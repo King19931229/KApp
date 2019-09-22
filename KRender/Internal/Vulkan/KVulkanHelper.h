@@ -12,8 +12,12 @@ namespace KVulkanHelper
 	typedef std::vector<VulkanBindingDetail> VulkanBindingDetailList;
 
 	bool FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& idx);
-	bool TextureTypeToVkImageType(TextureType textureType, VkImageType& imageType);
+
+	bool TextureTypeToVkImageType(TextureType textureType, VkImageType& imageType, VkImageViewType& imageViewType);
 	bool ElementFormatToVkFormat(ElementFormat elementFormat, VkFormat& vkFormat);
+	bool AddressModeToVkSamplerAddressMode(AddressMode addressMode, VkSamplerAddressMode& vkAddressMode);
+	bool FilterModeToVkFilter(FilterMode filterMode, VkFilter& vkFilterkMode);
+
 	bool PopulateInputBindingDescription(const KVertexDefinition::VertexBindingDetail* pData, uint32_t nCount, VulkanBindingDetailList& list);
 
 	void CopyVkBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);

@@ -1,5 +1,6 @@
 ﻿#include "Internal/KCodec.h"
 #include "Interface/IKDataStream.h"
+
 #include "FreeImage.h"
 
 #include <string>

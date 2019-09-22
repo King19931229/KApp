@@ -99,6 +99,15 @@
     <ClInclude Include="Interface\IKTexture.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKSampler.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanSampler.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KSamplerBase.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -156,6 +165,12 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanTexture.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KSamplerBase.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanSampler.cpp">
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>

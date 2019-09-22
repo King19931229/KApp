@@ -70,6 +70,7 @@ protected:
 	IKIndexBufferPtr m_IndexBuffer;
 	std::vector<IKUniformBufferPtr> m_UniformBuffers;
 	IKTexturePtr m_Texture;
+	IKSamplerPtr m_Sampler;
 	//
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
@@ -159,6 +160,7 @@ public:
 	virtual bool CreateUniformBuffer(IKUniformBufferPtr& buffer);
 
 	virtual bool CreateTexture(IKTexturePtr& texture);
+	virtual bool CreateSampler(IKSamplerPtr& sampler);
 
 	virtual bool Present();
 

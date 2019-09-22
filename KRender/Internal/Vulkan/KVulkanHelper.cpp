@@ -21,16 +21,18 @@ namespace KVulkanHelper
 		return false;
 	}
 
-	bool TextureTypeToVkImageType(TextureType textureType, VkImageType& imageType)
+	bool TextureTypeToVkImageType(TextureType textureType, VkImageType& imageType, VkImageViewType& imageViewType)
 	{
 		switch (textureType)
 		{
 		case TT_TEXTURE_2D:
 			imageType = VK_IMAGE_TYPE_2D;
+			imageViewType = VK_IMAGE_VIEW_TYPE_2D;
 			return true;
 		case TT_COUNT:
 		default:
 			imageType = VK_IMAGE_TYPE_MAX_ENUM;
+			imageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
 			assert(false && "Unknown texture type");
 			return false;
 		}
@@ -79,6 +81,41 @@ namespace KVulkanHelper
 		default:
 			vkFormat = VK_FORMAT_UNDEFINED;
 			assert(false && "Unknown format");
+			return false;
+		}
+	}
+
+	bool AddressModeToVkSamplerAddressMode(AddressMode addressMode, VkSamplerAddressMode& vkAddressMode)
+	{
+		switch (addressMode)
+		{
+		case AM_REPEAT:
+			vkAddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			return true;
+		case AM_CLAMP_TO_BORDER:
+			vkAddressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+			return true;
+		case AM_UNKNOWN:
+		default:
+			vkAddressMode = VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
+			assert(false && "address mode not supported");
+			return false;
+		}
+	}
+
+	bool FilterModeToVkFilter(FilterMode filterMode, VkFilter& vkFilterkMode)
+	{
+		switch (filterMode)
+		{
+		case FM_NEAREST:
+			vkFilterkMode = VK_FILTER_NEAREST;
+			return true;
+		case FM_LINEAR:
+			vkFilterkMode = VK_FILTER_LINEAR;
+			return true;
+		case FM_UNKNOWN:
+		default:
+			assert(false && "address mode not supported");
 			return false;
 		}
 	}
@@ -157,13 +194,19 @@ namespace KVulkanHelper
 		{
 			VkBufferImageCopy region = {};
 			region.bufferOffset = 0;
+			// 为每行padding所用 设置为0以忽略
 			region.bufferRowLength = 0;
+			// 为每行padding所用 设置为0以忽略
 			region.bufferImageHeight = 0;
 
-			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			region.imageSubresource.mipLevel = 0;
-			region.imageSubresource.baseArrayLayer = 0;
-			region.imageSubresource.layerCount = 1;
+			// VkImageSubresourceRange
+			{
+				// 这里不处理数组与mipmap
+				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				region.imageSubresource.mipLevel = 0;
+				region.imageSubresource.baseArrayLayer = 0;
+				region.imageSubresource.layerCount = 1;
+			}
 
 			VkOffset3D imageOffset = {0, 0, 0};
 			region.imageOffset = imageOffset;
@@ -190,26 +233,55 @@ namespace KVulkanHelper
 		{
 			VkImageMemoryBarrier barrier = {};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			// 指定旧Layout与新Layout
 			barrier.oldLayout = oldLayout;
 			barrier.newLayout = newLayout;
-
+			// 这里不处理队列家族所有权转移
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 			barrier.image = image;
-			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			barrier.subresourceRange.baseMipLevel = 0;
-			barrier.subresourceRange.levelCount = 1;
-			barrier.subresourceRange.baseArrayLayer = 0;
-			barrier.subresourceRange.layerCount = 1;
+			// VkImageSubresourceRange
+			{
+				// 这里不处理数组与mipmap
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				barrier.subresourceRange.baseMipLevel = 0;
+				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.baseArrayLayer = 0;
+				barrier.subresourceRange.layerCount = 1;
+			}
 
-			barrier.srcAccessMask = 0; // TODO
-			barrier.dstAccessMask = 0; // TODO
+			VkPipelineStageFlags sourceStage = 0;
+			VkPipelineStageFlags destinationStage = 0;
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = 0;
+
+			if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+			{
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+				sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			}
+			else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+			{
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			}
+			else
+			{
+				assert(false && "unsupported layout transition!");
+			}
 
 			vkCmdPipelineBarrier(
 				commandBuffer,
-				0 /* TODO */, 0 /* TODO */,
-				0,
+				sourceStage, /* srcStageMask */
+				destinationStage, /* dstStageMask */
+				0, /* dependencyFlags 该参数为 0 或者 VK_DEPENDENCY_BY_REGION_BIT */
 				0, nullptr,
 				0, nullptr,
 				1, &barrier

@@ -5,6 +5,7 @@
 #include "KVulkanProgram.h"
 #include "KVulkanBuffer.h"
 #include "KVulkanTextrue.h"
+#include "KVulkanSampler.h"
 
 #include "KVulkanHelper.h"
 #include "KVulkanGlobal.h"
@@ -101,7 +102,8 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_CurrentFlightIndex(0),
 	m_VertexBuffer(nullptr),
 	m_IndexBuffer(nullptr),
-	m_Texture(nullptr)
+	m_Texture(nullptr),
+	m_Sampler(nullptr)
 {
 
 }
@@ -522,8 +524,9 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 			DeviceQueueCreateInfos.push_back(queueCreateInfo);
 		}
+		VkResult RES = VK_TIMEOUT;
 
-		// 填充VkDeviceCreateInfo		
+		// 填充VkDeviceCreateInfo
 		VkDeviceCreateInfo createInfo = {};
 
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -1022,23 +1025,38 @@ bool KVulkanRenderDevice::CreateTex()
 	CreateTexture(m_Texture);
 	m_Texture->InitMemory("texture.jpg");
 	m_Texture->InitDevice();
+
+	CreateSampler(m_Sampler);
+	//m_Sampler->SetAnisotropic(true);
+	//m_Sampler->SetAnisotropicCount(16);
+	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
+	m_Sampler->Init();
+
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateDescriptorPool()
 {
-	VkDescriptorPoolSize poolSize = {};
-	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	VkDescriptorPoolSize uniformPoolSize = {};
+	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)的描述集合数最大值
-	poolSize.descriptorCount = static_cast<uint32_t>(m_SwapChainImages.size());
+	uniformPoolSize.descriptorCount = static_cast<uint32_t>(m_SwapChainImages.size());
+
+	VkDescriptorPoolSize samplerPoolSize = {};
+	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)的描述集合数最大值
+	samplerPoolSize.descriptorCount = static_cast<uint32_t>(m_SwapChainImages.size());
+
+	VkDescriptorPoolSize poolSizes[] = {uniformPoolSize, samplerPoolSize};
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = 1;
-	poolInfo.pPoolSizes = &poolSize;
+	poolInfo.poolSizeCount = sizeof(poolSizes) / sizeof(VkDescriptorPoolSize);
+	poolInfo.pPoolSizes = poolSizes;
+
 	// 创建的描述池各个type的描述集合数的总和
 	// 相当于所有pPoolSizes的descriptorCount总和
-	poolInfo.maxSets = static_cast<uint32_t>(m_SwapChainImages.size());
+	poolInfo.maxSets = static_cast<uint32_t>(m_SwapChainImages.size()) * poolInfo.poolSizeCount;
 
 	if (vkCreateDescriptorPool(m_Device, &poolInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS)
 	{
@@ -1074,24 +1092,49 @@ bool KVulkanRenderDevice::CreateDescriptorSets()
 		bufferInfo.offset = 0;
 		bufferInfo.range = m_UniformBuffers[i]->GetBufferSize();
 
+		VkDescriptorImageInfo imageInfo = {};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = ((KVulkanTexture*)m_Texture.get())->GetVkImageView();
+		imageInfo.sampler = ((KVulkanSampler*)m_Sampler.get())->GetVkSampler();
 		{
-			VkWriteDescriptorSet descriptorWrite = {};
-			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			// 写入的描述集合
-			descriptorWrite.dstSet = m_DescriptorSets[i];
-			// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
-			descriptorWrite.dstBinding = 0;
-			// 写入索引与descriptorCount对应
-			descriptorWrite.dstArrayElement = 0;
+			VkWriteDescriptorSet uniformDescriptorWrite = {};
+			{
+				uniformDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				// 写入的描述集合
+				uniformDescriptorWrite.dstSet = m_DescriptorSets[i];
+				// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
+				uniformDescriptorWrite.dstBinding = 0;
+				// 写入索引与下面descriptorCount对应
+				uniformDescriptorWrite.dstArrayElement = 0;
 
-			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrite.descriptorCount = 1;
+				uniformDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				uniformDescriptorWrite.descriptorCount = 1;
 
-			descriptorWrite.pBufferInfo = &bufferInfo;
-			descriptorWrite.pImageInfo = nullptr; // Optional
-			descriptorWrite.pTexelBufferView = nullptr; // Optional
+				uniformDescriptorWrite.pBufferInfo = &bufferInfo;
+				uniformDescriptorWrite.pImageInfo = nullptr; // Optional
+				uniformDescriptorWrite.pTexelBufferView = nullptr; // Optional
+			}
 
-			vkUpdateDescriptorSets(m_Device, 1, &descriptorWrite, 0, nullptr);
+			VkWriteDescriptorSet samplerDescriptorWrite = {};
+			{
+				samplerDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET ;
+				// 写入的描述集合
+				samplerDescriptorWrite.dstSet = m_DescriptorSets[i];
+				// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
+				samplerDescriptorWrite.dstBinding = 1;
+				// 写入索引与下面descriptorCount对应
+				samplerDescriptorWrite.dstArrayElement = 0;
+
+				samplerDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				samplerDescriptorWrite.descriptorCount = 1;
+
+				samplerDescriptorWrite.pBufferInfo = nullptr; // Optional
+				samplerDescriptorWrite.pImageInfo = &imageInfo;
+				samplerDescriptorWrite.pTexelBufferView = nullptr; // Optional
+			}
+
+			VkWriteDescriptorSet descriptorSets[] = {uniformDescriptorWrite, samplerDescriptorWrite};
+			vkUpdateDescriptorSets(m_Device, sizeof(descriptorSets) / sizeof(VkWriteDescriptorSet), descriptorSets, 0, nullptr);
 		}
 	}
     return true;
@@ -1110,13 +1153,26 @@ bool KVulkanRenderDevice::CreateDescriptorSetLayout()
 	// 声明UBO Buffer数组长度 这里不使用数组
 	uboLayoutBinding.descriptorCount = 1;
 	// 声明哪个阶段Shader能够使用上此UBO
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // // VK_SHADER_STAGE_ALL_GRAPHICS
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // VK_SHADER_STAGE_ALL_GRAPHICS
 	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+	/*
+	这里仅仅声明Sampler绑定的位置
+	实际Sampler句柄绑定在描述集合里指定
+	*/
+	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+	samplerLayoutBinding.binding = 1;
+	samplerLayoutBinding.descriptorCount = 1;
+	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerLayoutBinding.pImmutableSamplers = nullptr;
+	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutBinding bindings[] = {uboLayoutBinding, samplerLayoutBinding};
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &uboLayoutBinding;
+	layoutInfo.bindingCount = sizeof(bindings) / sizeof(VkDescriptorSetLayoutBinding);
+	layoutInfo.pBindings = bindings;
 
 	if (vkCreateDescriptorSetLayout(m_Device, &layoutInfo, nullptr, &m_DescriptorSetLayout) == VK_SUCCESS)
 	{
@@ -1359,6 +1415,11 @@ bool KVulkanRenderDevice::UnInit()
 		m_Texture->UnInit();
 		m_Texture = nullptr;
 	}
+	if(m_Sampler)
+	{
+		m_Sampler->UnInit();
+		m_Sampler = nullptr;
+	}
 
 	CleanupSwapChain();
 
@@ -1484,6 +1545,12 @@ bool KVulkanRenderDevice::CreateTexture(IKTexturePtr& texture)
 {
 	texture = IKTexturePtr(static_cast<IKTexture*>(new KVulkanTexture()));
 	return true;
+}
+
+bool KVulkanRenderDevice::CreateSampler(IKSamplerPtr& sampler)
+{
+	sampler = IKSamplerPtr(static_cast<IKSampler*>(new KVulkanSampler()));
+	return true;	
 }
 
 bool KVulkanRenderDevice::UpdateUniformBuffer(uint32_t currentImage)

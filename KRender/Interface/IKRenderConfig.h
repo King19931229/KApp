@@ -94,6 +94,24 @@ enum TextureType
 	TT_COUNT = TT_UNKNOWN
 };
 
+enum AddressMode
+{
+	AM_REPEAT,
+	AM_CLAMP_TO_BORDER,
+
+	AM_UNKNOWN,
+	AM_COUNT = AM_UNKNOWN
+};
+
+enum FilterMode
+{
+	FM_NEAREST,
+	FM_LINEAR,
+
+	FM_UNKNOWN,
+	FM_COUNT = FM_UNKNOWN
+};
+
 struct IKRenderWindow;
 typedef std::shared_ptr<IKRenderWindow> IKRenderWindowPtr;
 
@@ -117,3 +135,6 @@ typedef std::shared_ptr<IKUniformBuffer> IKUniformBufferPtr;
 
 struct IKTexture;
 typedef std::shared_ptr<IKTexture> IKTexturePtr;
+
+struct IKSampler;
+typedef std::shared_ptr<IKSampler> IKSamplerPtr;
