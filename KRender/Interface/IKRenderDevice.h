@@ -17,6 +17,8 @@ struct IKRenderDevice
 	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer) = 0;
 	virtual bool CreateUniformBuffer(IKUniformBufferPtr& buffer) = 0;
 
+	virtual bool CreateTexture(IKTexturePtr& texture) = 0;
+
 	virtual bool Present() = 0;
 };
 

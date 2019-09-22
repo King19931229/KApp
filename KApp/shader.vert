@@ -26,6 +26,6 @@ vec3 colors[4] = vec3[](
 void main()
 {
 	gl_Position = transform.proj * transform.view * transform.model * vec4(position.x, position.y, position.z, 1.0);
-	//gl_Position = vec4(position.x, position.y, position.z, 1.0) * transform.model * transform.view * transform.proj;
+	//gl_Position = vec4(position.x, position.y, position.z, 1.0);
 	fragColor = colors[gl_VertexIndex];
 }

@@ -14,7 +14,7 @@
 KVulkanShader::KVulkanShader()
 	: m_bShaderModuelInited(false)
 {
-
+	ZERO_MEMORY(m_ShaderModule);
 }
 
 KVulkanShader::~KVulkanShader()

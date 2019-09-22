@@ -1,5 +1,5 @@
 #pragma once
-#include "Vulkan/vulkan.h"
+#include "KVulkanConfig.h"
 
 class KVulkanSwapChain
 {

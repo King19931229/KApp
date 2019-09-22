@@ -1,6 +1,6 @@
 #pragma once
 #include "Interface/IKShader.h"
-#include "Vulkan/vulkan.h"
+#include "KVulkanConfig.h"
 
 class KVulkanShader : public IKShader
 {

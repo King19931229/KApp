@@ -1,7 +1,7 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
 #include "KVulkanHelper.h"
-#include "vulkan/vulkan.h"
+#include "KVulkanConfig.h"
 #include "GLFW/glfw3.h"
 #include <algorithm>
 #include <vector>
@@ -69,6 +69,7 @@ protected:
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 	std::vector<IKUniformBufferPtr> m_UniformBuffers;
+	IKTexturePtr m_Texture;
 	//
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
@@ -119,6 +120,7 @@ protected:
 	// Temporarily for demo use
 	bool CreateVertexInput();
 	bool CreateUniform();
+	bool CreateTex();
 	bool CreateDescriptorPool();
 	bool CreateDescriptorSets();
 	bool CreateRenderPass();
@@ -155,6 +157,8 @@ public:
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer);
 	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer);
 	virtual bool CreateUniformBuffer(IKUniformBufferPtr& buffer);
+
+	virtual bool CreateTexture(IKTexturePtr& texture);
 
 	virtual bool Present();
 

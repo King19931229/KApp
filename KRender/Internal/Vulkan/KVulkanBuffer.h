@@ -1,6 +1,6 @@
 #pragma once
 #include "Internal/KBufferBase.h"
-#include "Vulkan/vulkan.h"
+#include "KVulkanConfig.h"
 
 class KVulkanVertexBuffer : public KVertexBufferBase
 {

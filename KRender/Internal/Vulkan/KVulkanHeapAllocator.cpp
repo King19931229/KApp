@@ -1,4 +1,3 @@
-#include "KVulkanConfig.h"
 #include "KVulkanHeapAllocator.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanHelper.h"
@@ -103,8 +102,7 @@ namespace KVulkanHeapAllocator
 					allocInfo.pNext = nullptr;
 					allocInfo.memoryTypeIndex = memoryTypeIndex;
 
-					VkResult vkResult =	vkAllocateMemory(DEVICE, &allocInfo, nullptr, &vkMemroy);
-					VK_ASSERT_RESULT(vkResult);
+					VK_ASSERT_RESULT(vkAllocateMemory(DEVICE, &allocInfo, nullptr, &vkMemroy));
 				}
 #else
 				{

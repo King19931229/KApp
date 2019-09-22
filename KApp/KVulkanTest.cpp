@@ -55,6 +55,8 @@ int main()
 	vulkanRoot = getenv("VK_SDK_PATH");
 	KFileTool::PathJoin(vulkanRoot, "Bin/spirv-as.exe", vulkanRoot);
 	*/
+
+	InitCodecManager();
 	
 	IKRenderWindowPtr window = CreateRenderWindow(RD_VULKAN);
 	if(window)
@@ -84,5 +86,6 @@ int main()
 
 		device->UnInit();
 		window->UnInit();
-	}	
+	}
+	UnInitCodecManager();
 }

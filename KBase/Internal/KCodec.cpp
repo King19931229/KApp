@@ -19,15 +19,14 @@ KFreeImageCodec::~KFreeImageCodec()
 
 }
 
-KCodecResult KFreeImageCodec::Codec(const char* pszFile)
+bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result)
 {
-	KCodecResult result;
+	bool bSuccess = false;
 
 	IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
 	FIMEMORY *fiMem = nullptr;
 	FIBITMAP *fiBitmap = nullptr;
 
-	result.bSuccess = false;
 	result.uWidth = 0;
 	result.uHeight = 0;
 	result.eFormat = IF_INVALID;
@@ -64,9 +63,21 @@ KCodecResult KFreeImageCodec::Codec(const char* pszFile)
 				}
 
 				// Perform any colour conversions for RGB
-				else if (bpp < 8 || colourType == FIC_PALETTE || colourType == FIC_CMYK)
+				else if (bpp < 8|| colourType == FIC_PALETTE || colourType == FIC_CMYK)
 				{
 					FIBITMAP *newBitmap = FreeImage_ConvertTo24Bits(fiBitmap);
+					// free old bitmap and replace
+					FreeImage_Unload(fiBitmap);
+					fiBitmap = newBitmap;
+					// get new formats
+					bpp = FreeImage_GetBPP(fiBitmap);
+					colourType = FreeImage_GetColorType(fiBitmap);
+				}
+
+				// Extra logic forcing alpha
+				if(bpp < 32 && forceAlpha)
+				{
+					FIBITMAP *newBitmap = FreeImage_ConvertTo32Bits(fiBitmap);
 					// free old bitmap and replace
 					FreeImage_Unload(fiBitmap);
 					fiBitmap = newBitmap;
@@ -101,7 +112,7 @@ KCodecResult KFreeImageCodec::Codec(const char* pszFile)
 				memcpy((void*)pData->GetData(), (const void*)srcData, pData->GetSize());
 				result.pData = pData;
 
-				result.bSuccess = true;
+				bSuccess = true;
 			}
 		}
 	}
@@ -118,7 +129,7 @@ KCodecResult KFreeImageCodec::Codec(const char* pszFile)
 		fiMem = nullptr;
 	}
 
-	return result;
+	return bSuccess;
 }
 
 bool KFreeImageCodec::Init()

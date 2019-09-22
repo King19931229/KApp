@@ -16,7 +16,7 @@ public:
 	KFreeImageCodec(int nType);
 	virtual ~KFreeImageCodec();
 
-	KCodecResult Codec(const char* pszFile);
+	bool Codec(const char* pszFile, bool forceAlpha, KCodecResult& result);
 
 	static bool Init();
 	static bool UnInit();

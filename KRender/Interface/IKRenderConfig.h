@@ -13,7 +13,9 @@ enum ShaderType
 {
 	ST_VERTEX,
 	ST_FRAGMENT,
-	ST_COUNT
+
+	ST_UNKNOWN,
+	ST_COUNT = ST_UNKNOWN
 };
 
 enum VertexSemantic
@@ -60,6 +62,8 @@ enum ElementFormat
 	EF_R8GB8BA8_UNORM,
 	EF_R8G8B8A8_SNORM,
 
+	EF_R8GB8B8_UNORM,
+
 	EF_R16_FLOAT,
 	EF_R16G16_FLOAT,
 	EF_R16G16B16_FLOAT,
@@ -70,7 +74,10 @@ enum ElementFormat
 	EF_R32G32B32_FLOAT,
 	EF_R32G32B32A32_FLOAT,
 
-	EF_R32_UINT
+	EF_R32_UINT,
+
+	EF_UNKNOWN,
+	EF_COUNT = EF_UNKNOWN
 };
 
 enum IndexType
@@ -81,7 +88,10 @@ enum IndexType
 
 enum TextureType
 {
-	TT_TEXTURE_2D
+	TT_TEXTURE_2D,
+
+	TT_UNKNOWN,
+	TT_COUNT = TT_UNKNOWN
 };
 
 struct IKRenderWindow;

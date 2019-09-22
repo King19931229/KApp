@@ -41,14 +41,12 @@ typedef std::shared_ptr<KImageData> KImageDataPtr;
 
 struct KCodecResult
 {
-	bool bSuccess;
 	ImageFormat eFormat;
 	size_t uWidth;
 	size_t uHeight;
 	KImageDataPtr pData;
 	KCodecResult()
 	{
-		bSuccess = false;
 		eFormat = IF_INVALID;
 		uWidth = 0;
 		uHeight = 0;
@@ -60,7 +58,7 @@ typedef std::shared_ptr<IKCodec> IKCodecPtr;
 
 struct IKCodec
 {
-	virtual KCodecResult Codec(const char* pszFile) = 0;
+	virtual bool Codec(const char* pszFile, bool forceAlpha, KCodecResult& result) = 0;
 };
 
 EXPORT_DLL bool InitCodecManager();

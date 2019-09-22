@@ -1,8 +1,5 @@
 #include "KConstantDefinition.h"
 
-#define MEMBER_OFFSET(structure, member) ((int)&((structure*)0)->member)
-#define MEMBER_SIZE(structure, member) sizeof(((structure*)0)->member)
-
 namespace KConstantDefinition
 {
 	static ConstantBufferDetail TRANSFORM_DETAILS;

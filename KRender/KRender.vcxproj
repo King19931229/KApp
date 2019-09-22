@@ -25,13 +25,14 @@
     <ClInclude Include="Interface\IKShader.h" />
     <ClInclude Include="Interface\IKRenderConfig.h" />
     <ClInclude Include="Interface\IKBuffer.h" />
-    <ClInclude Include="Interface\IKTextrue.h" />
+    <ClInclude Include="Interface\IKTexture.h" />
     <ClInclude Include="Internal\Asset\KMaterial.h" />
     <ClInclude Include="Internal\Asset\KMesh.h" />
     <ClInclude Include="Internal\Asset\KSubMaterial.h" />
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
+    <ClInclude Include="Internal\KTextureBase.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanInitializer.h" />
@@ -44,6 +45,7 @@
     <ClInclude Include="Internal\Vulkan\KVulkanShader.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanSwapChain.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanTextrue.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KBufferBase.cpp" />
@@ -52,6 +54,7 @@
     <ClCompile Include="Internal\KConstantGlobal.cpp" />
     <ClCompile Include="Internal\KRenderDevice.cpp" />
     <ClCompile Include="Internal\KRenderWindow.cpp" />
+    <ClCompile Include="Internal\KTextureBase.cpp" />
     <ClCompile Include="Internal\KVertexDefinition.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanInitializer.cpp" />
@@ -63,6 +66,7 @@
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanShader.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanSwapChain.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanTexture.cpp" />
     <ClCompile Include="KRenderMain.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

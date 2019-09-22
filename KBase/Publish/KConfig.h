@@ -14,11 +14,26 @@
 #define STDCALL __stdcall
 #define CDECL __cdecl
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #	define ALIGNMENT(x) __declspec(align(x))
 #else
 #	define ALIGNMENT(x) __attribute__((aligned(x)))
 #endif
+
+#define MEMBER_OFFSET(structure, member) ((int)&((structure*)0)->member)
+#define MEMBER_SIZE(structure, member) (sizeof(((structure*)0)->member))
+
+#define POINTER_OFFSET(p, offset) ((void*)((char*)p + offset))
+
+#define ZERO_MEMORY(variable) { memset(&variable, 0, sizeof(variable)); }
+
+#define ASSERT_RESULT(exp)\
+do\
+{\
+	bool result = (bool)(exp);\
+	assert(result);\
+}\
+while(false);
 
 // http://www.cnblogs.com/skynet/archive/2011/02/20/1959162.html
 #ifdef MEMORY_DUMP_DEBUG

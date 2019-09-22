@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/vulkan.h"
+#include "KVulkanConfig.h"
 
 namespace KVulkanGlobal
 {

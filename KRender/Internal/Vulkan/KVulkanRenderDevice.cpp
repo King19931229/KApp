@@ -1,8 +1,10 @@
 #include "KVulkanRenderDevice.h"
 #include "KVulkanRenderWindow.h"
+
 #include "KVulkanShader.h"
 #include "KVulkanProgram.h"
 #include "KVulkanBuffer.h"
+#include "KVulkanTextrue.h"
 
 #include "KVulkanHelper.h"
 #include "KVulkanGlobal.h"
@@ -98,7 +100,8 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_MaxFramesInFight(0),
 	m_CurrentFlightIndex(0),
 	m_VertexBuffer(nullptr),
-	m_IndexBuffer(nullptr)
+	m_IndexBuffer(nullptr),
+	m_Texture(nullptr)
 {
 
 }
@@ -703,8 +706,6 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	//rasterizer.cullMode = VK_CULL_MODE_NONE;
-	//rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 	rasterizer.depthBiasEnable = VK_FALSE;
@@ -1016,6 +1017,14 @@ bool KVulkanRenderDevice::CreateUniform()
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateTex()
+{
+	CreateTexture(m_Texture);
+	m_Texture->InitMemory("texture.jpg");
+	m_Texture->InitDevice();
+	return true;
+}
+
 bool KVulkanRenderDevice::CreateDescriptorPool()
 {
 	VkDescriptorPoolSize poolSize = {};
@@ -1235,6 +1244,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 		if(!CreateUniform())
 			return false;
+		if(!CreateTex())
+			return false;
 		if(!CreateRenderPass())
 			return false;
 		if(!CreateDescriptorSetLayout())
@@ -1342,6 +1353,11 @@ bool KVulkanRenderDevice::UnInit()
 	{
 		m_IndexBuffer->UnInit();
 		m_VertexBuffer = nullptr;
+	}
+	if(m_Texture)
+	{
+		m_Texture->UnInit();
+		m_Texture = nullptr;
 	}
 
 	CleanupSwapChain();
@@ -1464,14 +1480,18 @@ bool KVulkanRenderDevice::CreateUniformBuffer(IKUniformBufferPtr& buffer)
 	return true;
 }
 
-#define POINTER_OFFSET(p, offset) static_cast<void*>((static_cast<char*>(p) + offset))
+bool KVulkanRenderDevice::CreateTexture(IKTexturePtr& texture)
+{
+	texture = IKTexturePtr(static_cast<IKTexture*>(new KVulkanTexture()));
+	return true;
+}
 
 bool KVulkanRenderDevice::UpdateUniformBuffer(uint32_t currentImage)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 	glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	glm::mat4 view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));

@@ -1,6 +1,6 @@
 #pragma once
 #include "Interface/IKProgram.h"
-#include "Vulkan/vulkan.h"
+#include "KVulkanConfig.h"
 #include <vector>
 
 class KVulkanProgram : public IKProgram

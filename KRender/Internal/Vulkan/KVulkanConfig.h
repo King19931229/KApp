@@ -1,13 +1,14 @@
 #pragma once
 #include "Vulkan/vulkan.h"
-#include <exception>
+#include <assert.h>
 
-#define VK_ASSERT_RESULT(result)\
+#define VK_ASSERT_RESULT(exp)\
 do\
 {\
+	VkResult result = (VkResult)(exp);\
 	if(result != VK_SUCCESS)\
 	{\
-		std::exception("vulkan result fail");\
+		assert(false && "Vulkan failure");\
 	}\
 }\
 while(false);
