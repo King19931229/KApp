@@ -20,7 +20,7 @@ KVulkanVertexBuffer::~KVulkanVertexBuffer()
 bool KVulkanVertexBuffer::InitDevice()
 {
 	using namespace KVulkanGlobal;
-	m_bDeviceInit = false;
+	ASSERT_RESULT(!m_bDeviceInit);
 
 	VkBuffer vkStageBuffer;
 	VkDeviceMemory vkStageBufferMemory;
@@ -103,7 +103,7 @@ KVulkanIndexBuffer::~KVulkanIndexBuffer()
 bool KVulkanIndexBuffer::InitDevice()
 {
 	using namespace KVulkanGlobal;
-	m_bDeviceInit = false;
+	ASSERT_RESULT(!m_bDeviceInit);
 
 	VkBuffer vkStageBuffer;
 	VkDeviceMemory vkStageBufferMemory;
@@ -187,7 +187,7 @@ KVulkanUniformBuffer::~KVulkanUniformBuffer()
 bool KVulkanUniformBuffer::InitDevice()
 {
 	using namespace KVulkanGlobal;
-	m_bDeviceInit = false;
+	ASSERT_RESULT(!m_bDeviceInit);
 
 	KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize,
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,

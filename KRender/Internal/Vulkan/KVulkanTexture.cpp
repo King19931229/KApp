@@ -20,7 +20,7 @@ KVulkanTexture::~KVulkanTexture()
 bool KVulkanTexture::InitDevice()
 {
 	using namespace KVulkanGlobal;
-	m_bDeviceInit = false;
+	ASSERT_RESULT(!m_bDeviceInit);
 	if(m_ImageData.pData && m_ImageData.pData->GetSize() > 0)
 	{
 		size_t imageSize = m_ImageData.pData->GetSize();

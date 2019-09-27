@@ -97,6 +97,34 @@ namespace KVulkanInitializer
 		}
 	}
 
+	void CreateVkImageView(VkImage image,
+		VkFormat format,
+		VkImageAspectFlags aspectFlags,
+		VkImageView& vkImageView)
+	{
+		ASSERT_RESULT(KVulkanGlobal::deviceReady);
+
+		VkImageViewCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		// 设置image
+		createInfo.image = image;
+		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		// format与交换链format同步
+		createInfo.format = format;
+		// 保持默认rgba映射行为
+		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		// 指定View访问范围
+		createInfo.subresourceRange.aspectMask = aspectFlags;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+		VK_ASSERT_RESULT(vkCreateImageView(KVulkanGlobal::device, &createInfo, nullptr, &vkImageView));
+	}
+
 	VkCommandBufferAllocateInfo CommandBufferAllocateInfo(VkCommandPool pool)
 	{
 		VkCommandBufferAllocateInfo allocInfo = {};

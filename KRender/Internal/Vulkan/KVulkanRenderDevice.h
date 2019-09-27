@@ -7,6 +7,7 @@
 #include <vector>
 
 class KVulkanRenderWindow;
+class KVulkanDepthBuffer;
 
 class KVulkanRenderDevice : IKRenderDevice
 {
@@ -79,6 +80,8 @@ protected:
 	std::vector<VkImage> m_SwapChainImages;
 	std::vector<VkImageView> m_SwapChainImageViews;
 	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
+	typedef std::shared_ptr<KVulkanDepthBuffer> DepthBufferPtr;
+	DepthBufferPtr m_DepthBuffer;
 
 	std::vector<VkSemaphore> m_ImageAvailableSemaphores;
 	std::vector<VkSemaphore> m_RenderFinishedSemaphores;

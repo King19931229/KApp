@@ -20,5 +20,10 @@ namespace KVulkanInitializer
 		VkImage& image,
 		VkDeviceMemory& imageMemory);
 
+	void CreateVkImageView(VkImage image,
+		VkFormat format,
+		VkImageAspectFlags aspectFlags,
+		VkImageView& vkImageView);
+
 	VkCommandBufferAllocateInfo CommandBufferAllocateInfo(VkCommandPool pool);
 }

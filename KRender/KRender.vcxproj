@@ -36,6 +36,7 @@
     <ClInclude Include="Internal\KSamplerBase.h" />
     <ClInclude Include="Internal\KTextureBase.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanDepthBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanInitializer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanHeapAllocator.h" />
@@ -60,6 +61,7 @@
     <ClCompile Include="Internal\KSamplerBase.cpp" />
     <ClCompile Include="Internal\KTextureBase.cpp" />
     <ClCompile Include="Internal\KVertexDefinition.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanDepthBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanInitializer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanGlobal.cpp" />
