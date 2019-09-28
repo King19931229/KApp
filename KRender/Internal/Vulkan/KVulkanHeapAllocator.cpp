@@ -12,6 +12,7 @@ do\
 }while(false);
 
 #define KVUALKAN_HEAP_TRUELY_ALLOC
+//#define KVUALKAN_HEAP_BRUTE_CHECK
 
 namespace KVulkanHeapAllocator
 {
@@ -66,6 +67,7 @@ namespace KVulkanHeapAllocator
 		uint32_t memoryTypeIndex;
 
 		BlockInfo* pHead;
+
 		PageInfo* pPre;
 		PageInfo* pNext;
 		
@@ -90,6 +92,21 @@ namespace KVulkanHeapAllocator
 		~PageInfo()
 		{
 			assert(vkMemroy == nullptr);
+		}
+
+		void Check()
+		{
+#ifdef KVUALKAN_HEAP_BRUTE_CHECK
+			if(pHead)
+			{
+				VkDeviceSize sum = 0;
+				for(BlockInfo* p = pHead; p; p = p->pNext)
+				{
+					sum += p->size;
+				}
+				assert(sum == size);
+			}
+#endif
 		}
 
 		BlockInfo* Alloc(VkDeviceSize sizeToFit)
@@ -130,10 +147,13 @@ namespace KVulkanHeapAllocator
 				Split(pHead, sizeToFit);
 				// 已被占用
 				pHead->isFree = false;
+
+				Check();
 				return pHead;
 			}
 			else
 			{
+				assert(pHead);
 				BlockInfo* pTemp = Find(sizeToFit);
 				if(pTemp)
 				{
@@ -141,8 +161,12 @@ namespace KVulkanHeapAllocator
 					Split(pTemp, sizeToFit);
 					// 已被占用
 					pTemp->isFree = false;
+
+					Check();
+
 					return pTemp;
 				}
+				Check();
 				return nullptr;
 			}
 		}
@@ -214,6 +238,18 @@ namespace KVulkanHeapAllocator
 				pTemp = pTemp->pNext;
 			}
 			return nullptr;
+		}
+
+		bool HasSpace(VkDeviceSize sizeToFit)
+		{
+			if(pHead)
+			{
+				return Find(sizeToFit) != nullptr;
+			}
+			else
+			{
+				return sizeToFit <= size;
+			}
 		}
 
 		static void Split(BlockInfo* pBlock, VkDeviceSize sizeToFit)
@@ -316,6 +352,22 @@ namespace KVulkanHeapAllocator
 			size = 0;
 		}
 
+		void Check()
+		{
+#ifdef KVUALKAN_HEAP_BRUTE_CHECK
+			if(pHead)
+			{
+				VkDeviceSize sum = 0;
+				for(PageInfo* p = pHead; p; p = p->pNext)
+				{
+					p->Check();
+					sum += p->size;
+				}
+				assert(sum == size);
+			}
+#endif
+		}
+
 		void Clear()
 		{
 			PageInfo* pTemp = nullptr;
@@ -374,6 +426,7 @@ namespace KVulkanHeapAllocator
 					BlockInfo* pBlock = pHead->Alloc(sizeToFit);
 					assert(pBlock && !pBlock->isFree);
 
+					Check();
 					return pBlock;
 				}
 				else
@@ -388,6 +441,8 @@ namespace KVulkanHeapAllocator
 						}
 						BlockInfo* pBlock = pPage->Alloc(sizeToFit);
 						assert(pBlock && !pBlock->isFree);
+
+						Check();
 						return pBlock;
 					}
 
@@ -412,6 +467,8 @@ namespace KVulkanHeapAllocator
 					}
 					BlockInfo* pBlock = pPage->Alloc(sizeToFit);
 					assert(pBlock && !pBlock->isFree);
+
+					Check();
 					return pBlock;
 				}
 			}
@@ -442,15 +499,18 @@ namespace KVulkanHeapAllocator
 				}
 				pPage->Clear();
 				SAFE_DELETE(pPage);
+				Check();
 			}
 			else
 			{
 				pPage->Free(pBlock);
+				Check();
 				// 空间为空 尝试合并临近page
 				if(pPage->vkMemroy == nullptr)
 				{
 					Trim(pPage);
 				}
+				Check();
 			}
 		}
 
@@ -461,8 +521,7 @@ namespace KVulkanHeapAllocator
 			{
 				if(pTemp->size >= sizeToFit)
 				{
-					BlockInfo* pBlock = pTemp->Find(sizeToFit);
-					if(pBlock)
+					if(pTemp->HasSpace(sizeToFit))
 					{
 						return pTemp;
 					}
@@ -501,6 +560,7 @@ namespace KVulkanHeapAllocator
 						pTemp->pNext->pPre = pPage;
 					}
 					SAFE_DELETE(pTemp);
+					pPage->Check();
 				}
 				// 与前面的freepage合并
 				while(pPage->pPre && pPage->pPre->vkMemroy == nullptr)
@@ -515,6 +575,7 @@ namespace KVulkanHeapAllocator
 						pTemp->pPre->pNext = pPage;
 					}
 					SAFE_DELETE(pTemp);
+					pPage->Check();
 				}
 				// 成为头结点
 				if(pPage->pPre == nullptr)
