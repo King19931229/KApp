@@ -380,8 +380,8 @@ bool KVulkanRenderDevice::CreateSwapChain()
 
 		if(!m_DepthBuffer)
 		{
-			m_DepthBuffer = DepthBufferPtr(new KVulkanDepthBuffer());
-			ASSERT_RESULT(m_DepthBuffer->Init(m_SwapChainExtent.width, m_SwapChainExtent.height, true));
+			m_DepthBuffer = KVulkanDepthBufferPtr(new KVulkanDepthBuffer());
+			ASSERT_RESULT(m_DepthBuffer->InitDevice(m_SwapChainExtent.width, m_SwapChainExtent.height, true));
 		}
 		else
 		{
@@ -408,24 +408,18 @@ bool KVulkanRenderDevice::CreateFramebuffers()
 	m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
 	for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
 	{
+		VkImageView imageViews[] = {m_SwapChainImageViews[i], m_DepthBuffer->GetVkImageView()};
+
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferInfo.renderPass = m_RenderPass;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = &m_SwapChainImageViews[i];
+		framebufferInfo.attachmentCount = ARRAY_SIZE(imageViews);
+		framebufferInfo.pAttachments = imageViews;
 		framebufferInfo.width = m_SwapChainExtent.width;
 		framebufferInfo.height = m_SwapChainExtent.height;
 		framebufferInfo.layers = 1;
 
-		if (vkCreateFramebuffer(m_Device, &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS)
-		{
-			for(size_t j = 0; j < i; ++j)
-			{
-				vkDestroyFramebuffer(m_Device, m_SwapChainFramebuffers[j], nullptr);
-			}
-			m_SwapChainFramebuffers.clear();
-			return false;
-		}
+		VK_ASSERT_RESULT(vkCreateFramebuffer(m_Device, &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]));
 	}
 	return true;
 }
@@ -565,10 +559,28 @@ bool KVulkanRenderDevice::CreateRenderPass()
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+	VkAttachmentDescription depthAttachment = {};
+	depthAttachment.format = m_DepthBuffer->GetVkFormat();
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentDescription attachmentDescriptions[] = {colorAttachment, depthAttachment};
 	// 声明Attachment引用结构
 	VkAttachmentReference colorAttachmentRef = {};
 	colorAttachmentRef.attachment = 0;
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthAttachmentRef = {};
+	depthAttachmentRef.attachment = 1;
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	// 声明子通道
 	VkSubpassDescription subpass = {};
@@ -576,12 +588,13 @@ bool KVulkanRenderDevice::CreateRenderPass()
 
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 	// 创建渲染通道
 	VkRenderPassCreateInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
+	renderPassInfo.attachmentCount = ARRAY_SIZE(attachmentDescriptions);
+	renderPassInfo.pAttachments = attachmentDescriptions;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
 
@@ -703,6 +716,24 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 	rasterizer.depthBiasClamp = 0.0f; // Optional
 	rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
 
+	// 配置深度缓冲信息
+	VkPipelineDepthStencilStateCreateInfo depthStencil = {};
+	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencil.depthTestEnable = VK_TRUE;
+	depthStencil.depthWriteEnable = VK_TRUE;
+
+	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+
+	depthStencil.depthBoundsTestEnable = VK_FALSE;
+	depthStencil.minDepthBounds = 0.0f; // Optional
+	depthStencil.maxDepthBounds = 1.0f; // Optional
+
+	depthStencil.stencilTestEnable = VK_FALSE;
+
+	VkStencilOpState empty = {};
+	depthStencil.front = empty; // Optional
+	depthStencil.back = empty; // Optional
+
 	// 配置多重采样信息
 	VkPipelineMultisampleStateCreateInfo multisampling = {};
 	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -786,7 +817,10 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	// 指定管线视口
 	pipelineInfo.pViewportState = &viewportState;
+	// 指定光栅化
 	pipelineInfo.pRasterizationState = &rasterizer;
+	// 指定深度缓冲
+	pipelineInfo.pDepthStencilState = &depthStencil;
 	// 指定多重采样方式
 	pipelineInfo.pMultisampleState = &multisampling;
 	// 指定混合模式
@@ -926,9 +960,10 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 			renderPassInfo.renderArea.offset.y = 0;
 			renderPassInfo.renderArea.extent = m_SwapChainExtent;
 
-			VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
-			renderPassInfo.clearValueCount = 1;
-			renderPassInfo.pClearValues = &clearColor;
+			// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
+			VkClearValue clearValues[] = {{0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0}};
+			renderPassInfo.clearValueCount = ARRAY_SIZE(clearValues);
+			renderPassInfo.pClearValues = clearValues;
 
 			// 开始渲染过程
 			vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -970,14 +1005,19 @@ bool KVulkanRenderDevice::CreateVertexInput()
 		{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
 		{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
 		{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
-		{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)}
+		{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)},
+
+		{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
+		{glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
+		{glm::vec3(0.5f, 0.5f, -0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
+		{glm::vec3(-0.5f, 0.5f, -0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)}
 	};
 
 	CreateVertexBuffer(m_VertexBuffer);
 	m_VertexBuffer->InitMemory(sizeof(vertices) / sizeof(vertices[0]), sizeof(vertices[0]), vertices);
 	m_VertexBuffer->InitDevice();
 
-	const uint16_t indices[] = {0, 1, 2, 2, 3, 0};
+	const uint16_t indices[] = {0, 1, 2, 2, 3, 0,  0 + 4, 1 + 4, 2 + 4, 2 + 4, 3 + 4, 0+ 4};
 	CreateIndexBuffer(m_IndexBuffer);
 	m_IndexBuffer->InitMemory(IT_16, sizeof(indices) / sizeof(indices[0]), indices);
 	m_IndexBuffer->InitDevice();

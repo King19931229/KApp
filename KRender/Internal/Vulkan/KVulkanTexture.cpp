@@ -14,7 +14,7 @@ KVulkanTexture::KVulkanTexture()
 
 KVulkanTexture::~KVulkanTexture()
 {
-
+	ASSERT_RESULT(!m_bDeviceInit);
 }
 
 bool KVulkanTexture::InitDevice()
@@ -71,20 +71,7 @@ bool KVulkanTexture::InitDevice()
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				// ´´½¨imageview
-				{
-					VkImageViewCreateInfo viewInfo = {};
-					viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-					viewInfo.image = m_TextureImage;
-					viewInfo.viewType = imageViewType;
-					viewInfo.format = format;
-					viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-					viewInfo.subresourceRange.baseMipLevel = 0;
-					viewInfo.subresourceRange.levelCount = 1;
-					viewInfo.subresourceRange.baseArrayLayer = 0;
-					viewInfo.subresourceRange.layerCount = 1;
-
-					VK_ASSERT_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &m_TextureImageView));
-				}
+				KVulkanInitializer::CreateVkImageView(m_TextureImage, format, VK_IMAGE_ASPECT_COLOR_BIT, m_TextureImageView);
 
 				vkDestroyBuffer(device, stagingBuffer, nullptr);
 				vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -106,6 +93,7 @@ bool KVulkanTexture::UnInit()
 		vkDestroyImageView(device, m_TextureImageView, nullptr);
 		vkDestroyImage(device, m_TextureImage, nullptr);
 		vkFreeMemory(device, m_TextureImageMemory, nullptr);
+		m_bDeviceInit = false;
 	}
 	return true;
 }

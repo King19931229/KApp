@@ -23,6 +23,8 @@
 #	define ALIGNMENT(x) __attribute__((aligned(x)))
 #endif
 
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
 #define MEMBER_OFFSET(structure, member) ((int)&((structure*)0)->member)
 #define MEMBER_SIZE(structure, member) (sizeof(((structure*)0)->member))
 

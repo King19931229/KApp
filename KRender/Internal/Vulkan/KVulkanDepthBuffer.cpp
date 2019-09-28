@@ -15,7 +15,7 @@ KVulkanDepthBuffer::KVulkanDepthBuffer()
 
 KVulkanDepthBuffer::~KVulkanDepthBuffer()
 {
-
+	ASSERT_RESULT(!m_bDeviceInit);
 }
 
 VkFormat KVulkanDepthBuffer::FindDepthFormat(bool bStencil)
@@ -35,7 +35,7 @@ VkFormat KVulkanDepthBuffer::FindDepthFormat(bool bStencil)
 	return format;
 }
 
-bool KVulkanDepthBuffer::Init(size_t uWidth, size_t uHeight, bool bStencil)
+bool KVulkanDepthBuffer::InitDevice(size_t uWidth, size_t uHeight, bool bStencil)
 {
 	ASSERT_RESULT(!m_bDeviceInit);
 	if(KVulkanGlobal::deviceReady)
@@ -56,7 +56,7 @@ bool KVulkanDepthBuffer::Init(size_t uWidth, size_t uHeight, bool bStencil)
 
 		KVulkanInitializer::CreateVkImageView(m_DepthImage,
 			m_Format,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
+			VK_IMAGE_ASPECT_DEPTH_BIT | (bStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0),
 			m_DepthImageView);
 
 		m_bDeviceInit = true;
@@ -73,6 +73,7 @@ bool KVulkanDepthBuffer::UnInit()
 		vkDestroyImageView(device, m_DepthImageView, nullptr);
 		vkDestroyImage(device, m_DepthImage, nullptr);
 		vkFreeMemory(device, m_DepthImageMemory, nullptr);
+		m_bDeviceInit = false;
 	}
 	return true;
 }
@@ -80,5 +81,5 @@ bool KVulkanDepthBuffer::UnInit()
 bool KVulkanDepthBuffer::Resize(size_t uWidth, size_t uHeight)
 {
 	ASSERT_RESULT(m_bDeviceInit);
-	return UnInit() && Init(uWidth, uHeight, m_bStencil);
+	return UnInit() && InitDevice(uWidth, uHeight, m_bStencil);
 }

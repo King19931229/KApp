@@ -8,9 +8,10 @@ KVulkanSampler::KVulkanSampler()
 {
 	ZERO_MEMORY(m_TextureSampler);
 }
+
 KVulkanSampler::~KVulkanSampler()
 {
-
+	ASSERT_RESULT(!m_SamplerInit);
 }
 
 bool KVulkanSampler::Init()

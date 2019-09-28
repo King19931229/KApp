@@ -14,7 +14,7 @@ KVulkanVertexBuffer::KVulkanVertexBuffer()
 
 KVulkanVertexBuffer::~KVulkanVertexBuffer()
 {
-
+	ASSERT_RESULT(!m_bDeviceInit);
 }
 
 bool KVulkanVertexBuffer::InitDevice()
@@ -97,7 +97,7 @@ KVulkanIndexBuffer::KVulkanIndexBuffer()
 
 KVulkanIndexBuffer::~KVulkanIndexBuffer()
 {
-
+	ASSERT_RESULT(!m_bDeviceInit);
 }
 
 bool KVulkanIndexBuffer::InitDevice()
@@ -181,7 +181,7 @@ KVulkanUniformBuffer::KVulkanUniformBuffer()
 
 KVulkanUniformBuffer::~KVulkanUniformBuffer()
 {
-
+	ASSERT_RESULT(!m_bDeviceInit);
 }
 
 bool KVulkanUniformBuffer::InitDevice()
