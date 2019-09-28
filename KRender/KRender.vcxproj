@@ -144,6 +144,8 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -162,6 +164,8 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -184,6 +188,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -206,6 +211,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

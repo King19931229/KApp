@@ -30,7 +30,7 @@ namespace KVulkanInitializer
 			ASSERT_RESULT(KVulkanHelper::FindMemoryType(
 				KVulkanGlobal::physicalDevice,
 				memRequirements.memoryTypeBits,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				properties,
 				allocInfo.memoryTypeIndex));
 			{
 				// TODO Ê¹ÓÃÄÚ´æ³Ø

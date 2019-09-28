@@ -396,6 +396,8 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;Py_ENABLE_SHARED;Py_BUILD_CORE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>Include;Python;Modules/zlib;PCStatic;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -417,6 +419,8 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;Py_ENABLE_SHARED;Py_BUILD_CORE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>Include;Python;Modules/zlib;PCStatic;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -426,7 +430,9 @@
       <AdditionalIncludeDirectories>Include</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Lib>
-      <AdditionalDependencies>ws2_32.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>ws2_32.lib</IgnoreSpecificDefaultLibraries>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -439,6 +445,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;Py_ENABLE_SHARED;Py_BUILD_CORE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>Include;Python;Modules/zlib;PCStatic;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -463,6 +470,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;Py_ENABLE_SHARED;Py_BUILD_CORE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>Include;Python;Modules/zlib;PCStatic;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
