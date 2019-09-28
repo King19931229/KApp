@@ -1,5 +1,6 @@
 #pragma once
 #include "KVulkanConfig.h"
+#include "KVulkanHeapAllocator.h"
 
 namespace KVulkanInitializer
 {
@@ -7,7 +8,10 @@ namespace KVulkanInitializer
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags properties,
 		VkBuffer& vkBuffer,
-		VkDeviceMemory& vkBufferMemory);
+		KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
+
+	void FreeVkBuffer(VkBuffer& vkBuffer,
+		KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
 
 	void CreateVkImage(uint32_t width,
 		uint32_t height,
@@ -18,7 +22,10 @@ namespace KVulkanInitializer
 		VkImageUsageFlags usage,
 		VkMemoryPropertyFlags properties,
 		VkImage& image,
-		VkDeviceMemory& imageMemory);
+		KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
+
+	void FreeVkImage(VkImage& image,
+		KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
 
 	void CreateVkImageView(VkImage image,
 		VkFormat format,

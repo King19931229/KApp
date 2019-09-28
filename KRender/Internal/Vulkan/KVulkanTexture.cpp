@@ -8,7 +8,7 @@ KVulkanTexture::KVulkanTexture()
 	m_bDeviceInit(false)
 {
 	ZERO_MEMORY(m_TextureImage);
-	ZERO_MEMORY(m_TextureImageMemory);
+	ZERO_MEMORY(m_AllocInfo);
 	ZERO_MEMORY(m_TextureImageView);
 }
 
@@ -26,20 +26,20 @@ bool KVulkanTexture::InitDevice()
 		size_t imageSize = m_ImageData.pData->GetSize();
 
 		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;	
+		KVulkanHeapAllocator::AllocInfo stagingAllocInfo;
 
 		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)imageSize,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			stagingBuffer, stagingBufferMemory);
+			stagingBuffer, stagingAllocInfo);
 		{
 			void* pixels = m_ImageData.pData->GetData();
 			assert(pixels);
 
 			void* data = nullptr;
-			VK_ASSERT_RESULT(vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data));
+			VK_ASSERT_RESULT(vkMapMemory(device, stagingAllocInfo.vkMemroy, stagingAllocInfo.vkOffset, imageSize, 0, &data));
 			memcpy(data, pixels, static_cast<size_t>(imageSize));
-			vkUnmapMemory(device, stagingBufferMemory);
+			vkUnmapMemory(device, stagingAllocInfo.vkMemroy);
 
 			VkImageType imageType = VK_IMAGE_TYPE_MAX_ENUM;
 			VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
@@ -55,7 +55,7 @@ bool KVulkanTexture::InitDevice()
 				format,
 				VK_IMAGE_TILING_OPTIMAL,
 				VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImage, m_TextureImageMemory);
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImage, m_AllocInfo);
 			{
 				// 先转换image layout为之后buffer拷贝数据到image作准备
 				KVulkanHelper::TransitionImageLayout(m_TextureImage,
@@ -73,8 +73,7 @@ bool KVulkanTexture::InitDevice()
 				// 创建imageview
 				KVulkanInitializer::CreateVkImageView(m_TextureImage, format, VK_IMAGE_ASPECT_COLOR_BIT, m_TextureImageView);
 
-				vkDestroyBuffer(device, stagingBuffer, nullptr);
-				vkFreeMemory(device, stagingBufferMemory, nullptr);
+				KVulkanInitializer::FreeVkBuffer(stagingBuffer, stagingAllocInfo);
 			}
 		}
 		m_bDeviceInit = true;
@@ -91,8 +90,7 @@ bool KVulkanTexture::UnInit()
 	if(m_bDeviceInit)
 	{
 		vkDestroyImageView(device, m_TextureImageView, nullptr);
-		vkDestroyImage(device, m_TextureImage, nullptr);
-		vkFreeMemory(device, m_TextureImageMemory, nullptr);
+		KVulkanInitializer::FreeVkImage(m_TextureImage,  m_AllocInfo);
 		m_bDeviceInit = false;
 	}
 	return true;

@@ -1,12 +1,13 @@
 #pragma once
 #include "KVulkanConfig.h"
+#include "KVulkanHeapAllocator.h"
 
 class KVulkanDepthBuffer
 {
 protected:
 	VkFormat m_Format;
 	VkImage m_DepthImage;
-	VkDeviceMemory m_DepthImageMemory;
+	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	VkImageView m_DepthImageView;
 
 	bool m_bStencil;

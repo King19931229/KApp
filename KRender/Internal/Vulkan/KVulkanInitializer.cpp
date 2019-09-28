@@ -8,7 +8,7 @@ namespace KVulkanInitializer
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags properties,
 		VkBuffer& vkBuffer,
-		VkDeviceMemory& vkBufferMemory)
+		KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
 	{
 		ASSERT_RESULT(KVulkanGlobal::deviceReady);
 
@@ -33,13 +33,17 @@ namespace KVulkanInitializer
 				properties,
 				allocInfo.memoryTypeIndex));
 			{
-				// TODO Ê¹ÓÃÄÚ´æ³Ø
-				VK_ASSERT_RESULT(vkAllocateMemory(KVulkanGlobal::device, &allocInfo, nullptr, &vkBufferMemory));
-				{
-					VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, vkBuffer, vkBufferMemory, 0));	
-				}
+				ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, allocInfo.memoryTypeIndex, properties, heapAllocInfo));
+				VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, vkBuffer, heapAllocInfo.vkMemroy, heapAllocInfo.vkOffset));
 			}
 		}
+	}
+
+	void FreeVkBuffer(VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
+	{
+		ASSERT_RESULT(KVulkanGlobal::deviceReady);
+		vkDestroyBuffer(KVulkanGlobal::device, vkBuffer, nullptr);
+		KVulkanHeapAllocator::Free(heapAllocInfo);
 	}
 
 	void CreateVkImage(uint32_t width,
@@ -51,7 +55,7 @@ namespace KVulkanInitializer
 		VkImageUsageFlags usage,
 		VkMemoryPropertyFlags properties,
 		VkImage& image,
-		VkDeviceMemory& imageMemory)
+		KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
 	{
 		ASSERT_RESULT(KVulkanGlobal::deviceReady);
 
@@ -88,9 +92,17 @@ namespace KVulkanInitializer
 				properties,
 				allocInfo.memoryTypeIndex));
 
-			VK_ASSERT_RESULT(vkAllocateMemory(KVulkanGlobal::device, &allocInfo, nullptr, &imageMemory));
-			VK_ASSERT_RESULT(vkBindImageMemory(KVulkanGlobal::device, image, imageMemory, 0));
+			ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, allocInfo.memoryTypeIndex, properties, heapAllocInfo));
+			VK_ASSERT_RESULT(vkBindImageMemory(KVulkanGlobal::device, image, heapAllocInfo.vkMemroy, heapAllocInfo.vkOffset));
 		}
+	}
+
+	void FreeVkImage(VkImage& image,
+		KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
+	{
+		ASSERT_RESULT(KVulkanGlobal::deviceReady);
+		vkDestroyImage(KVulkanGlobal::device, image, nullptr);
+		KVulkanHeapAllocator::Free(heapAllocInfo);
 	}
 
 	void CreateVkImageView(VkImage image,

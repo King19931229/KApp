@@ -13,6 +13,8 @@
 
 #include "KVulkanDepthBuffer.h"
 
+#include "KVulkanHeapAllocator.h"
+
 #include "Internal/KVertexDefinition.h"
 #include "Internal/KConstantDefinition.h"
 
@@ -1315,6 +1317,9 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		// 这里已经实际完成了设备初始化
 		PostInit();
 
+		if(!KVulkanHeapAllocator::Init())
+			return false;
+
 		if(!CreateSwapChain())
 			return false;
 		if(!CreateImageViews())
@@ -1463,6 +1468,8 @@ bool KVulkanRenderDevice::UnInit()
 	vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
 	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
+
+	KVulkanHeapAllocator::UnInit();
 
 	UnsetDebugMessenger();
 	vkDestroyDevice(m_Device, nullptr);

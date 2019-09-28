@@ -9,7 +9,7 @@ KVulkanVertexBuffer::KVulkanVertexBuffer()
 	m_bDeviceInit(false)
 {
 	ZERO_MEMORY(m_vkBuffer);
-	ZERO_MEMORY(m_vkDeviceMemory);
+	ZERO_MEMORY(m_AllocInfo);
 }
 
 KVulkanVertexBuffer::~KVulkanVertexBuffer()
@@ -23,29 +23,28 @@ bool KVulkanVertexBuffer::InitDevice()
 	ASSERT_RESULT(!m_bDeviceInit);
 
 	VkBuffer vkStageBuffer;
-	VkDeviceMemory vkStageBufferMemory;
+	KVulkanHeapAllocator::AllocInfo stageAllocInfo;
 
 	KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		vkStageBuffer,
-		vkStageBufferMemory);
+		stageAllocInfo);
 
 	void* data = nullptr;
-	VK_ASSERT_RESULT(vkMapMemory(device, vkStageBufferMemory, 0, m_BufferSize, 0, &data));
+	VK_ASSERT_RESULT(vkMapMemory(device, stageAllocInfo.vkMemroy, stageAllocInfo.vkOffset, m_BufferSize, 0, &data));
 	memcpy(data, m_Data.data(), (size_t) m_BufferSize);
-	vkUnmapMemory(device, vkStageBufferMemory);
+	vkUnmapMemory(device, stageAllocInfo.vkMemroy);
 
 	KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize,
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		m_vkBuffer,
-		m_vkDeviceMemory);
+		m_AllocInfo);
 
 	KVulkanHelper::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)m_BufferSize);
+	KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
 
-	vkDestroyBuffer(device, vkStageBuffer, nullptr);
-	vkFreeMemory(device, vkStageBufferMemory, nullptr);
 	// 把之前存在内存里的数据丢掉
 	m_Data.clear();
 	m_bDeviceInit = true;
@@ -58,8 +57,7 @@ bool KVulkanVertexBuffer::UnInit()
 	KVertexBufferBase::UnInit();
 	if(m_bDeviceInit)
 	{
-		vkDestroyBuffer(device, m_vkBuffer, nullptr);
-		vkFreeMemory(device, m_vkDeviceMemory, nullptr);
+		KVulkanInitializer::FreeVkBuffer(m_vkBuffer, m_AllocInfo);
 		m_bDeviceInit = false;
 	}
 	return true;
@@ -92,7 +90,7 @@ KVulkanIndexBuffer::KVulkanIndexBuffer()
 	m_bDeviceInit(false)
 {
 	ZERO_MEMORY(m_vkBuffer);
-	ZERO_MEMORY(m_vkDeviceMemory);
+	ZERO_MEMORY(m_AllocInfo);
 }
 
 KVulkanIndexBuffer::~KVulkanIndexBuffer()
@@ -106,31 +104,29 @@ bool KVulkanIndexBuffer::InitDevice()
 	ASSERT_RESULT(!m_bDeviceInit);
 
 	VkBuffer vkStageBuffer;
-	VkDeviceMemory vkStageBufferMemory;
+	KVulkanHeapAllocator::AllocInfo stageAllocInfo;
 
 	KVulkanInitializer::CreateVkBuffer(
 		(VkDeviceSize)m_BufferSize,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		vkStageBuffer,
-		vkStageBufferMemory);
+		stageAllocInfo);
 
 	void* data = nullptr;
-	VK_ASSERT_RESULT(vkMapMemory(device, vkStageBufferMemory, 0, m_BufferSize, 0, &data));
+	VK_ASSERT_RESULT(vkMapMemory(device, stageAllocInfo.vkMemroy, stageAllocInfo.vkOffset, m_BufferSize, 0, &data));
 	memcpy(data, m_Data.data(), (size_t) m_BufferSize);
-	vkUnmapMemory(device, vkStageBufferMemory);
+	vkUnmapMemory(device, stageAllocInfo.vkMemroy);
 
 	KVulkanInitializer::CreateVkBuffer(
 		(VkDeviceSize)m_BufferSize,
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		m_vkBuffer,
-		m_vkDeviceMemory);
+		m_AllocInfo);
 
 	KVulkanHelper::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)m_BufferSize);
-
-	vkDestroyBuffer(device, vkStageBuffer, nullptr);
-	vkFreeMemory(device, vkStageBufferMemory, nullptr);
+	KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
 
 	// 把之前存在内存里的数据丢掉
 	m_Data.clear();
@@ -144,8 +140,7 @@ bool KVulkanIndexBuffer::UnInit()
 	KIndexBufferBase::UnInit();
 	if(m_bDeviceInit)
 	{
-		vkDestroyBuffer(device, m_vkBuffer, nullptr);
-		vkFreeMemory(device, m_vkDeviceMemory, nullptr);
+		KVulkanInitializer::FreeVkBuffer(m_vkBuffer, m_AllocInfo);
 		m_bDeviceInit = false;
 	}
 	return true;
@@ -176,7 +171,7 @@ KVulkanUniformBuffer::KVulkanUniformBuffer()
 	: KUniformBufferBase(),
 	m_bDeviceInit(false)
 {
-
+	ZERO_MEMORY(m_AllocInfo);
 }
 
 KVulkanUniformBuffer::~KVulkanUniformBuffer()
@@ -193,13 +188,15 @@ bool KVulkanUniformBuffer::InitDevice()
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		m_vkBuffer,
-		m_vkDeviceMemory);
+		m_AllocInfo);
 
 	void* data = nullptr;
-	VK_ASSERT_RESULT(vkMapMemory(device, m_vkDeviceMemory, 0, m_BufferSize, 0, &data));
+	VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, &data));
 	memcpy(data, m_Data.data(), (size_t) m_BufferSize);
-	vkUnmapMemory(device, m_vkDeviceMemory);
+	vkUnmapMemory(device, m_AllocInfo.vkMemroy);
 
+	// 把之前存在内存里的数据丢掉
+	m_Data.clear();
 	m_bDeviceInit = true;
 	return true;
 }
@@ -210,8 +207,7 @@ bool KVulkanUniformBuffer::UnInit()
 	KUniformBufferBase::UnInit();
 	if(m_bDeviceInit)
 	{
-		vkDestroyBuffer(device, m_vkBuffer, nullptr);
-		vkFreeMemory(device, m_vkDeviceMemory, nullptr);
+		KVulkanInitializer::FreeVkBuffer(m_vkBuffer, m_AllocInfo);
 		m_bDeviceInit = false;
 	}
 	return true;
@@ -223,9 +219,9 @@ bool KVulkanUniformBuffer::Write(const void* pData)
 	if(m_bDeviceInit && pData)
 	{
 		void* data = nullptr;
-		VK_ASSERT_RESULT(vkMapMemory(device, m_vkDeviceMemory, 0, m_BufferSize, 0, &data));
-		memcpy(data, pData, m_BufferSize);
-		vkUnmapMemory(device, m_vkDeviceMemory);
+		VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, &data));
+		memcpy(data, pData, (size_t) m_BufferSize);
+		vkUnmapMemory(device, m_AllocInfo.vkMemroy);
 		return true;
 	}
 	return false;

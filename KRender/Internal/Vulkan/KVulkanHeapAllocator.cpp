@@ -11,6 +11,8 @@ do\
 	if(p) { delete p; p = NULL; }\
 }while(false);
 
+#define KVUALKAN_HEAP_TRUELY_ALLOC
+
 namespace KVulkanHeapAllocator
 {
 	static VkDevice DEVICE = nullptr;
@@ -20,7 +22,7 @@ namespace KVulkanHeapAllocator
 	static std::vector<uint32_t> MEMORY_TYPE_TO_HEAP_IDX;
 	static std::vector<VkDeviceSize> HEAP_REMAIN_SIZE;
 
-	static VkDeviceSize PAGE_MIN_SIZE = 1;
+	static VkDeviceSize ALLOC_FACTOR = 1024;
 	static VkDeviceSize MAX_ALLOC_COUNT = 0;
 
 	static std::mutex ALLOC_FREE_LOCK;
@@ -69,8 +71,9 @@ namespace KVulkanHeapAllocator
 		
 		// 额外信息 用于释放时索引
 		MemoryHeap* pParent;
+		int noShare;
 
-		PageInfo(MemoryHeap* _pParent, VkDevice _vkDevice, VkDeviceSize _size, uint32_t _memoryTypeIndex)
+		PageInfo(MemoryHeap* _pParent, VkDevice _vkDevice, VkDeviceSize _size, uint32_t _memoryTypeIndex, int _noShare)
 		{
 			vkDevice = _vkDevice;
 			size = _size;
@@ -81,6 +84,12 @@ namespace KVulkanHeapAllocator
 			pPre = pNext = nullptr;	
 
 			pParent = _pParent;
+			noShare = _noShare;
+		}
+
+		~PageInfo()
+		{
+			assert(vkMemroy == nullptr);
 		}
 
 		BlockInfo* Alloc(VkDeviceSize sizeToFit)
@@ -151,6 +160,7 @@ namespace KVulkanHeapAllocator
 			if(pHead->pNext == nullptr)
 			{
 				SAFE_DELETE(pHead);
+				assert(vkMemroy != nullptr);
 #ifdef KVUALKAN_HEAP_TRUELY_ALLOC
 				vkFreeMemory(vkDevice, vkMemroy, nullptr);
 #else
@@ -292,6 +302,8 @@ namespace KVulkanHeapAllocator
 		VkDevice vkDevice;
 		uint32_t memoryTypeIndex;
 		PageInfo* pHead;
+		PageInfo* pNoShareHead;
+
 		// 当前heap的总大小
 		VkDeviceSize size;
 
@@ -300,12 +312,24 @@ namespace KVulkanHeapAllocator
 			vkDevice = _device;
 			memoryTypeIndex = _memoryTypeIndex;
 			pHead = nullptr;
+			pNoShareHead = nullptr;
 			size = 0;
 		}
 
 		void Clear()
 		{
-			PageInfo* pTemp = pHead;
+			PageInfo* pTemp = nullptr;
+			
+			pTemp = pHead;
+			while(pTemp)
+			{
+				PageInfo* pNext = pTemp->pNext;
+				pTemp->Clear();
+				SAFE_DELETE(pTemp);
+				pTemp = pNext;
+			}
+
+			pTemp = pNoShareHead;
 			while(pTemp)
 			{
 				PageInfo* pNext = pTemp->pNext;
@@ -315,59 +339,81 @@ namespace KVulkanHeapAllocator
 			}
 		}
 
-		BlockInfo* Alloc(VkDeviceSize sizeToFit)
+		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkMemoryPropertyFlags usage)
 		{
 			std::lock_guard<decltype(ALLOC_FREE_LOCK)> guard(ALLOC_FREE_LOCK);
 
-			if(pHead == nullptr)
+#if 0
+			// 特殊情况只能独占一个vkAllocateMemory特殊处理
+			if(usage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 			{
-				// 分配大小必须是PAGE_MIN_SIZE的整数倍
-				VkDeviceSize sizeToAlloc = ((sizeToFit + PAGE_MIN_SIZE - 1) / PAGE_MIN_SIZE) * PAGE_MIN_SIZE;
-				pHead = new PageInfo(this, vkDevice, sizeToAlloc, memoryTypeIndex);
-				size = sizeToAlloc;
+				PageInfo* pPage = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, true);
+				BlockInfo* pBlock = pPage->Alloc(sizeToFit);
 
-				BlockInfo* pBlock = pHead->Alloc(sizeToFit);
+				pPage->pNext = pNoShareHead;
+				if(pNoShareHead)
+				{
+					pNoShareHead->pPre = pPage;
+				}
+				pNoShareHead = pPage;
+
 				assert(pBlock && !pBlock->isFree);
-
 				return pBlock;
 			}
 			else
+#endif
 			{
-				PageInfo* pPage = Find(sizeToFit);				
-				if(pPage)
+				// 分配大小必须是ALLOC_FACTOR的整数倍
+				// 当每次分配都是ALLOC_FACTOR的整数倍时候 就能保证同一个page里的offset也是ALLOC_FACTOR的整数倍
+				sizeToFit = ((sizeToFit + ALLOC_FACTOR - 1) / ALLOC_FACTOR) * ALLOC_FACTOR;
+				assert(sizeToFit % ALLOC_FACTOR == 0);
+				if(pHead == nullptr)
 				{
-					// 把多余的空间分裂出来 尽量节省实际分配的内存
-					if(pPage->vkMemroy == nullptr)
+					pHead = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, false);
+					size = sizeToFit;
+					BlockInfo* pBlock = pHead->Alloc(sizeToFit);
+					assert(pBlock && !pBlock->isFree);
+
+					return pBlock;
+				}
+				else
+				{
+					PageInfo* pPage = Find(sizeToFit);
+					if(pPage)
 					{
-						Split(pPage, sizeToFit);
+						// 把多余的空间分裂出来 尽量节省实际分配的内存
+						if(pPage->vkMemroy == nullptr)
+						{
+							Split(pPage, sizeToFit);
+						}
+						BlockInfo* pBlock = pPage->Alloc(sizeToFit);
+						assert(pBlock && !pBlock->isFree);
+						return pBlock;
+					}
+
+					// 当前所有page里找不到足够空间 分配一个新的插入到最后 保证heap总空间2倍递增
+					while (true)
+					{
+						pPage = Nail();
+						VkDeviceSize newSize = KNumerical::Pow2LessEqual(size) << 1;
+						size += newSize;
+
+						PageInfo* pNewPage = new PageInfo(this, vkDevice, newSize, memoryTypeIndex, false);
+
+						pPage->pNext = pNewPage;
+						pNewPage->pPre = pPage;
+						pNewPage->pNext = nullptr;
+
+						if(pNewPage->size >= sizeToFit)
+						{
+							pPage = pNewPage;
+							break;
+						}
 					}
 					BlockInfo* pBlock = pPage->Alloc(sizeToFit);
 					assert(pBlock && !pBlock->isFree);
 					return pBlock;
 				}
-
-				// 当前所有page里找不到足够空间 分配一个新的插入到最后 保证heap总空间2倍递增
-				while (true)
-				{
-					pPage = Nail();
-					VkDeviceSize newSize = KNumerical::Pow2LessEqual(size) << 1;
-					size += newSize;
-
-					PageInfo* pNewPage = new PageInfo(this, vkDevice, newSize, memoryTypeIndex);
-
-					pPage->pNext = pNewPage;
-					pNewPage->pPre = pPage;
-					pNewPage->pNext = nullptr;
-
-					if(pNewPage->size >= sizeToFit)
-					{
-						pPage = pNewPage;
-						break;
-					}
-				}
-				BlockInfo* pBlock = pPage->Alloc(sizeToFit);
-				assert(pBlock && !pBlock->isFree);
-				return pBlock;
 			}
 		}
 
@@ -379,11 +425,32 @@ namespace KVulkanHeapAllocator
 			PageInfo* pPage = pBlock->pParent;
 			assert(pPage->pParent == this);
 
-			pPage->Free(pBlock);
-			// 空间为空 尝试合并临近page
-			if(pPage->vkMemroy == nullptr)
+			// 特殊情况只能独占一个vkAllocateMemory特殊处理 这里连同page同时删除
+			if(pPage->noShare)
 			{
-				Trim(pPage);
+				if(pPage == pNoShareHead)
+				{
+					pNoShareHead = pPage->pNext;
+				}
+				if(pPage->pPre)
+				{
+					pPage->pPre->pNext = pPage->pNext;
+				}
+				if(pPage->pNext)
+				{
+					pPage->pNext->pPre = pPage->pPre;
+				}
+				pPage->Clear();
+				SAFE_DELETE(pPage);
+			}
+			else
+			{
+				pPage->Free(pBlock);
+				// 空间为空 尝试合并临近page
+				if(pPage->vkMemroy == nullptr)
+				{
+					Trim(pPage);
+				}
 			}
 		}
 
@@ -463,8 +530,8 @@ namespace KVulkanHeapAllocator
 			assert(pPage->vkMemroy == nullptr && pPage->size >= sizeToFit);
 			if(pPage->vkMemroy == nullptr && pPage->size >= sizeToFit)
 			{
-				// page的新大小不是PAGE_MIN_SIZE的整数倍 无法分裂
-				if(sizeToFit % PAGE_MIN_SIZE != 0)
+				// page的新大小不是ALLOC_FACTOR的整数倍 无法分裂
+				if(sizeToFit % ALLOC_FACTOR != 0)
 				{
 					return;
 				}
@@ -481,7 +548,7 @@ namespace KVulkanHeapAllocator
 				else if(remainSize > 0)
 				{
 					// 把剩余的空间分配到新节点上
-					PageInfo* pNewPage = new PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->memoryTypeIndex);
+					PageInfo* pNewPage = new PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->memoryTypeIndex, false);
 					pNewPage->vkMemroy = nullptr;
 					pNewPage->size = remainSize;
 
@@ -513,7 +580,13 @@ namespace KVulkanHeapAllocator
 			vkGetPhysicalDeviceProperties(PHYSICAL_DEVICE, &deviceProperties);
 
 			MAX_ALLOC_COUNT = deviceProperties.limits.maxMemoryAllocationCount;
-			PAGE_MIN_SIZE = deviceProperties.limits.bufferImageGranularity;
+			/*
+			Linear buffer 0xXX is aliased with non-linear image 0xXX which may indicate a bug.
+			For further info refer to the Buffer-Image Granularity section of the Vulkan specification. >
+			(https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#resources-bufferimagegranularity)
+			*/
+			// 由于这里image与buffer共享同一份VkDeviceMemory 因此每次分配占用的空间大小必须是该factor的整数倍
+			ALLOC_FACTOR = deviceProperties.limits.bufferImageGranularity;
 
 			VkPhysicalDeviceMemoryProperties memoryProperties = {};
 			vkGetPhysicalDeviceMemoryProperties(PHYSICAL_DEVICE, &memoryProperties);
@@ -568,22 +641,32 @@ namespace KVulkanHeapAllocator
 		return true;
 	}
 
-	bool Alloc(VkDeviceSize size, uint32_t memoryTypeIndex, void **ppResult)
+	bool Alloc(VkDeviceSize size, uint32_t memoryTypeIndex, VkMemoryPropertyFlags usage, AllocInfo& info)
 	{
-		if(ppResult && memoryTypeIndex < MEMORY_TYPE_COUNT)
+		if(memoryTypeIndex < MEMORY_TYPE_COUNT)
 		{
 			MemoryHeap* pHeap = MEMORY_TYPE_TO_HEAP[memoryTypeIndex];
-			*ppResult = pHeap->Alloc(size);
-			return true;
+
+			info.internalData = pHeap->Alloc(size, usage);
+			if(info.internalData)
+			{
+				BlockInfo* pBlock = (BlockInfo*)info.internalData;
+				PageInfo* pPage = (PageInfo*)pBlock->pParent;
+
+				info.vkMemroy = pPage->vkMemroy;
+				info.vkOffset = pBlock->offset;
+
+				return true;
+			}
 		}
 		return false;
 	}
 
-	bool Free(void* pResult)
+	bool Free(const AllocInfo& data)
 	{
-		if(pResult)
+		BlockInfo* pBlock = (BlockInfo*)data.internalData;
+		if(pBlock)
 		{
-			BlockInfo* pBlock = (BlockInfo*)pResult;
 			MemoryHeap* pHeap = pBlock->pParent->pParent;
 			pHeap->Free(pBlock);
 			return true;

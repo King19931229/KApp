@@ -1,12 +1,13 @@
 #pragma once
 #include "Internal/KBufferBase.h"
 #include "KVulkanConfig.h"
+#include "KVulkanHeapAllocator.h"
 
 class KVulkanVertexBuffer : public KVertexBufferBase
 {
 protected:
 	VkBuffer m_vkBuffer;
-	VkDeviceMemory m_vkDeviceMemory;
+	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	bool m_bDeviceInit;
 public:
 	KVulkanVertexBuffer();
@@ -28,7 +29,7 @@ class KVulkanIndexBuffer : public KIndexBufferBase
 {
 protected:
 	VkBuffer m_vkBuffer;
-	VkDeviceMemory m_vkDeviceMemory;
+	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	bool m_bDeviceInit;
 public:
 	KVulkanIndexBuffer();
@@ -51,7 +52,7 @@ class KVulkanUniformBuffer : public KUniformBufferBase
 {
 protected:
 	VkBuffer m_vkBuffer;
-	VkDeviceMemory m_vkDeviceMemory;
+	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	bool m_bDeviceInit;
 public:
 	KVulkanUniformBuffer();

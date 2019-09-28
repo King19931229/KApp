@@ -9,7 +9,7 @@ KVulkanDepthBuffer::KVulkanDepthBuffer()
 {
 	ZERO_MEMORY(m_Format);	
 	ZERO_MEMORY(m_DepthImage);
-	ZERO_MEMORY(m_DepthImageMemory);
+	ZERO_MEMORY(m_AllocInfo);
 	ZERO_MEMORY(m_DepthImageView);
 }
 
@@ -52,7 +52,7 @@ bool KVulkanDepthBuffer::InitDevice(size_t uWidth, size_t uHeight, bool bStencil
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			m_DepthImage,
-			m_DepthImageMemory);
+			m_AllocInfo);
 
 		KVulkanInitializer::CreateVkImageView(m_DepthImage,
 			m_Format,
@@ -71,8 +71,7 @@ bool KVulkanDepthBuffer::UnInit()
 	if(m_bDeviceInit)
 	{
 		vkDestroyImageView(device, m_DepthImageView, nullptr);
-		vkDestroyImage(device, m_DepthImage, nullptr);
-		vkFreeMemory(device, m_DepthImageMemory, nullptr);
+		KVulkanInitializer::FreeVkImage(m_DepthImage, m_AllocInfo);
 		m_bDeviceInit = false;
 	}
 	return true;
