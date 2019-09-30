@@ -400,7 +400,7 @@ bool KVulkanRenderDevice::CreateImageViews()
 	m_SwapChainImageViews.resize(m_SwapChainImages.size());
 	for(size_t i = 0; i < m_SwapChainImages.size(); ++i)
 	{
-		KVulkanInitializer::CreateVkImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, m_SwapChainImageViews[i]);
+		KVulkanInitializer::CreateVkImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_SwapChainImageViews[i]);
 	}
 	return true;
 }
@@ -1052,13 +1052,14 @@ bool KVulkanRenderDevice::CreateUniform()
 bool KVulkanRenderDevice::CreateTex()
 {
 	CreateTexture(m_Texture);
-	m_Texture->InitMemory("texture.jpg");
+	m_Texture->InitMemory("texture.jpg", true);
 	m_Texture->InitDevice();
 
 	CreateSampler(m_Sampler);
 	//m_Sampler->SetAnisotropic(true);
 	//m_Sampler->SetAnisotropicCount(16);
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
+	m_Sampler->SetMipmapLod(0, m_Texture->GetMipmaps());
 	m_Sampler->Init();
 
 	return true;
@@ -1393,7 +1394,6 @@ bool KVulkanRenderDevice::RecreateSwapChain()
 	CreateCommandBuffers();
 
 	CreateSyncObjects();
-	
 
 	return true;
 }

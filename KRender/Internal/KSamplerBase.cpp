@@ -9,7 +9,10 @@ KSamplerBase::KSamplerBase()
 	m_MagFilter(FM_NEAREST),
 
 	m_AnisotropicEnable(false),
-	m_AnisotropicCount(0)
+	m_AnisotropicCount(0),
+
+	m_MinMipmap(0),
+	m_MaxMipmap(0)
 {
 
 }
@@ -69,5 +72,19 @@ bool KSamplerBase::SetAnisotropicCount(unsigned short count)
 bool KSamplerBase::GetAnisotropicCount(unsigned short& count)
 {
 	count = m_AnisotropicCount;
+	return true;
+}
+
+bool KSamplerBase::SetMipmapLod(unsigned short minMipmap, unsigned short maxMipmap)
+{
+	m_MinMipmap = minMipmap;
+	m_MaxMipmap = maxMipmap;
+	return true;
+}
+
+bool KSamplerBase::GetMipmapLod(unsigned short& minMipmap, unsigned short& maxMipmap)
+{
+	minMipmap = m_MinMipmap;
+	maxMipmap = m_MaxMipmap;
 	return true;
 }

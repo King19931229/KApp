@@ -22,6 +22,7 @@ KTextureBase::KTextureBase()
 	: m_Width(0),
 	m_Height(0),
 	m_Depth(0),
+	m_Mipmaps(0),
 	m_Format(EF_UNKNOWN),
 	m_TextureType(TT_UNKNOWN)
 {
@@ -33,7 +34,7 @@ KTextureBase::~KTextureBase()
 
 }
 
-bool KTextureBase::InitMemory(const std::string& filePath)
+bool KTextureBase::InitMemory(const std::string& filePath, bool bGenerateMipmap)
 {
 	bool bResult = false;
 	IKCodecPtr pCodec = GetCodec(filePath.c_str());
@@ -42,6 +43,7 @@ bool KTextureBase::InitMemory(const std::string& filePath)
 		m_Width = m_ImageData.uWidth;
 		m_Height = m_ImageData.uHeight;
 		m_Depth = 1;
+		m_Mipmaps = bGenerateMipmap ? (unsigned short)std::floor(std::log(std::min(m_Width, m_Height)) / std::log(2)) + 1 : 1;
 		m_TextureType = TT_TEXTURE_2D;
 		if(ImageFormatToElementFormat(m_ImageData.eFormat, m_Format))
 		{

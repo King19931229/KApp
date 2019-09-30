@@ -17,6 +17,9 @@ struct IKSampler
 	virtual bool SetAnisotropicCount(unsigned short count) = 0;
 	virtual bool GetAnisotropicCount(unsigned short& count) = 0;
 
+	virtual bool SetMipmapLod(unsigned short minMipmap, unsigned short maxMipmap) = 0;
+	virtual bool GetMipmapLod(unsigned short& minMipmap, unsigned short& maxMipmap) = 0;
+
 	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;
 };

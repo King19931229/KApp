@@ -11,17 +11,19 @@ protected:
 	size_t m_Width;
 	size_t m_Height;
 	size_t m_Depth;
+	unsigned short m_Mipmaps;
 public:
 	KTextureBase();
 	virtual ~KTextureBase();
 
-	virtual bool InitMemory(const std::string& filePath);
+	virtual bool InitMemory(const std::string& filePath, bool bGenerateMipmap);
 	virtual bool InitDevice() = 0;
 	virtual bool UnInit();
 
 	virtual size_t GetWidth() { return m_Width; }
 	virtual size_t GetHeight() { return m_Height; }
 	virtual size_t GetDepth() { return m_Depth; }
+	virtual unsigned short GetMipmaps() { return m_Mipmaps; }
 
 	virtual TextureType GetTextureType() { return m_TextureType; }
 	virtual ElementFormat GetTextureFormat() { return m_Format; }

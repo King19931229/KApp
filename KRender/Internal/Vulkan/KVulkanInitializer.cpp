@@ -49,6 +49,7 @@ namespace KVulkanInitializer
 	void CreateVkImage(uint32_t width,
 		uint32_t height,
 		uint32_t depth,
+		uint32_t mipLevels,
 		VkImageType imageType,
 		VkFormat format,
 		VkImageTiling tiling,
@@ -65,8 +66,8 @@ namespace KVulkanInitializer
 		imageInfo.imageType = imageType;
 		imageInfo.extent.width = static_cast<uint32_t>(width);
 		imageInfo.extent.height = static_cast<uint32_t>(height);
-		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.extent.depth = static_cast<uint32_t>(depth);
+		imageInfo.mipLevels = static_cast<uint32_t>(mipLevels);
 		imageInfo.arrayLayers = 1;
 
 		imageInfo.format = format;
@@ -108,6 +109,7 @@ namespace KVulkanInitializer
 	void CreateVkImageView(VkImage image,
 		VkFormat format,
 		VkImageAspectFlags aspectFlags,
+		uint32_t mipLevels,
 		VkImageView& vkImageView)
 	{
 		ASSERT_RESULT(KVulkanGlobal::deviceReady);
@@ -127,7 +129,7 @@ namespace KVulkanInitializer
 		// ÷∏∂®View∑√Œ ∑∂Œß
 		createInfo.subresourceRange.aspectMask = aspectFlags;
 		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.levelCount = mipLevels;
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
 		VK_ASSERT_RESULT(vkCreateImageView(KVulkanGlobal::device, &createInfo, nullptr, &vkImageView));

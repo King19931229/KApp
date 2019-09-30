@@ -52,11 +52,39 @@ bool KVulkanSampler::Init()
 
 	samplerInfo.compareEnable = VK_FALSE;
 	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	/*
+	float4 mipmapsample(float2 uv, float mipLodBias)
+	{
+		lod = getLodLevelFromScreenSize(); //smaller when the object is close, may be negative
+		lod = clamp(lod + mipLodBias, minLod, maxLod);
 
+		level = clamp(floor(lod), 0, texture.mipLevels - 1);  //clamped to the number of mip levels in the texture
+
+		if (mipmapMode == VK_SAMPLER_MIPMAP_MODE_NEAREST)
+		{
+			color = sample(lod, level);
+		}
+		else
+		{
+			color = blend(sample(lod, level), sample(lod, level + 1));
+		}
+	}
+	float4 sample(int lod, int level)
+	{
+		if (lod <= 0)
+		{
+			color = readTexture(level, uv, magFilter);
+		}
+		else
+		{
+			color = readTexture(level, uv, minFilter);
+		}
+	}
+	*/
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	samplerInfo.mipLodBias = 0.0f;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = 0.0f;
+	samplerInfo.minLod = float(m_MinMipmap);
+	samplerInfo.maxLod = float(m_MaxMipmap);
 
 	VK_ASSERT_RESULT(vkCreateSampler(KVulkanGlobal::device, &samplerInfo, nullptr, &m_TextureSampler));
 	m_SamplerInit = true;

@@ -46,6 +46,7 @@ bool KVulkanDepthBuffer::InitDevice(size_t uWidth, size_t uHeight, bool bStencil
 		KVulkanInitializer::CreateVkImage(static_cast<uint32_t>(uWidth),
 			static_cast<uint32_t>(uHeight),
 			1,
+			1,
 			VK_IMAGE_TYPE_2D,
 			m_Format,
 			VK_IMAGE_TILING_OPTIMAL,
@@ -57,6 +58,7 @@ bool KVulkanDepthBuffer::InitDevice(size_t uWidth, size_t uHeight, bool bStencil
 		KVulkanInitializer::CreateVkImageView(m_DepthImage,
 			m_Format,
 			VK_IMAGE_ASPECT_DEPTH_BIT | (bStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0),
+			1,
 			m_DepthImageView);
 
 		m_bDeviceInit = true;
