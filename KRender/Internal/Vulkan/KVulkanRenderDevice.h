@@ -1,5 +1,6 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
+#include "KVulkanHeapAllocator.h"
 #include "KVulkanHelper.h"
 #include "KVulkanConfig.h"
 #include "GLFW/glfw3.h"
@@ -93,6 +94,12 @@ protected:
 	VkFormat m_SwapChainImageFormat;
 	VkExtent2D m_SwapChainExtent;
 
+	VkImage m_MsaaImage;
+	VkImageView m_MsaaImageView;
+	KVulkanHeapAllocator::AllocInfo m_MsaaAlloc;
+
+	VkSampleCountFlagBits m_SampleCountFlag;
+
 	VkCommandPool m_CommandPool;
 
 	SwapChainSupportDetails	QuerySwapChainSupport(VkPhysicalDevice device);
@@ -115,6 +122,7 @@ protected:
 	bool PickPhysicsDevice();
 	bool CreateLogicalDevice();
 	bool CreateSwapChain();
+	bool CreateImages();
 	bool CreateImageViews();
 	bool CreateCommandPool();
 	bool CreateSyncObjects();

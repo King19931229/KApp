@@ -17,6 +17,7 @@ namespace KVulkanInitializer
 		uint32_t height,
 		uint32_t depth,
 		uint32_t mipLevels,
+		VkSampleCountFlagBits numSamples,
 		VkImageType imageType,
 		VkFormat format,
 		VkImageTiling tiling,

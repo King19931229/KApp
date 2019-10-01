@@ -4,7 +4,9 @@
 #include "KVulkanInitializer.h"
 
 KVulkanDepthBuffer::KVulkanDepthBuffer()
-	: m_bStencil(false),
+	: m_SampleCountFlag(VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM),
+	m_MsaaCount(1),
+	m_bStencil(false),
 	m_bDeviceInit(false)
 {
 	ZERO_MEMORY(m_Format);	
@@ -35,18 +37,23 @@ VkFormat KVulkanDepthBuffer::FindDepthFormat(bool bStencil)
 	return format;
 }
 
-bool KVulkanDepthBuffer::InitDevice(size_t uWidth, size_t uHeight, bool bStencil)
+bool KVulkanDepthBuffer::InitDevice(size_t uWidth, size_t uHeight, unsigned short msaaCount, bool bStencil)
 {
 	ASSERT_RESULT(!m_bDeviceInit);
 	if(KVulkanGlobal::deviceReady)
 	{
+		m_MsaaCount = msaaCount;
 		m_bStencil = bStencil;
 		m_Format = FindDepthFormat(bStencil);
+
+		m_SampleCountFlag = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
+		ASSERT_RESULT(KVulkanHelper::QueryMSAASupport(KVulkanHelper::MST_DEPTH, msaaCount, m_SampleCountFlag));
 
 		KVulkanInitializer::CreateVkImage(static_cast<uint32_t>(uWidth),
 			static_cast<uint32_t>(uHeight),
 			1,
 			1,
+			m_SampleCountFlag,
 			VK_IMAGE_TYPE_2D,
 			m_Format,
 			VK_IMAGE_TILING_OPTIMAL,
@@ -82,5 +89,5 @@ bool KVulkanDepthBuffer::UnInit()
 bool KVulkanDepthBuffer::Resize(size_t uWidth, size_t uHeight)
 {
 	ASSERT_RESULT(m_bDeviceInit);
-	return UnInit() && InitDevice(uWidth, uHeight, m_bStencil);
+	return UnInit() && InitDevice(uWidth, uHeight, m_MsaaCount,	m_bStencil);
 }

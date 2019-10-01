@@ -4,6 +4,13 @@
 
 namespace KVulkanHelper
 {
+	enum MSAASupportTarget
+	{
+		MST_COLOR,
+		MST_DEPTH,
+		MST_BOTH,
+	};
+
 	struct VulkanBindingDetail
 	{
 		VkVertexInputBindingDescription bindingDescription;
@@ -30,4 +37,6 @@ namespace KVulkanHelper
 
 	bool FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features, VkFormat& vkFormat);
 	bool HasStencilComponent(VkFormat format);
+
+	bool QueryMSAASupport(MSAASupportTarget target, uint32_t msaaCount, VkSampleCountFlagBits& flag);
 }

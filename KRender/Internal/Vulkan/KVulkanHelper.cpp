@@ -292,6 +292,14 @@ namespace KVulkanHelper
 				sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 				destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 			}
+			else if	(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+			{
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+				sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			}
 			else
 			{
 				assert(false && "unsupported layout transition!");
@@ -471,4 +479,63 @@ namespace KVulkanHelper
 	{
 		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 	}
+
+	bool QueryMSAASupport(MSAASupportTarget target, uint32_t msaaCount, VkSampleCountFlagBits& flag)
+	{
+		using namespace KVulkanGlobal;
+
+		VkPhysicalDeviceProperties physicalDeviceProperties;
+		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+
+		VkSampleCountFlags counts = 0;
+		
+		if(flag == MST_BOTH)
+		{
+			counts = std::min(physicalDeviceProperties.limits.framebufferColorSampleCounts, physicalDeviceProperties.limits.framebufferDepthSampleCounts);
+		}
+		else if(flag == MST_COLOR)
+		{
+			counts = physicalDeviceProperties.limits.framebufferColorSampleCounts;
+		}
+		else
+		{
+			counts = physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+		}
+
+		flag = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
+
+
+#define CHECK_ASSIGN_MSAA_FLAG(COUNT)\
+case COUNT:\
+{\
+	flag = (counts & VK_SAMPLE_COUNT_##COUNT##_BIT) > 0 ? VK_SAMPLE_COUNT_##COUNT##_BIT : VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;\
+	break;\
+}
+
+#define DEFAULT_ASSIGN_MSAA_FLAG()\
+default:\
+{\
+	flag = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;\
+	break;\
+}
+
+		switch (msaaCount)
+		{
+			CHECK_ASSIGN_MSAA_FLAG(1);
+			CHECK_ASSIGN_MSAA_FLAG(2);
+			CHECK_ASSIGN_MSAA_FLAG(4);
+			CHECK_ASSIGN_MSAA_FLAG(8);
+			CHECK_ASSIGN_MSAA_FLAG(16);
+			CHECK_ASSIGN_MSAA_FLAG(32);
+			CHECK_ASSIGN_MSAA_FLAG(64);
+			DEFAULT_ASSIGN_MSAA_FLAG();
+		}
+
+#undef DEFAULT_ASSIGN_MSAA_FLAG
+#undef CHECK_ASSIGN_MSAA_FLAG
+
+		return flag != VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
+	}
+
+
 }

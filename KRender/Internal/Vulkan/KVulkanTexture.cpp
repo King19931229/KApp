@@ -52,6 +52,7 @@ bool KVulkanTexture::InitDevice()
 				(uint32_t)m_Height,
 				(uint32_t)m_Depth,
 				(uint32_t)m_Mipmaps,
+				VK_SAMPLE_COUNT_1_BIT,
 				imageType,
 				format,
 				VK_IMAGE_TILING_OPTIMAL,

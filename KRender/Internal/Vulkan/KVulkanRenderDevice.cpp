@@ -218,8 +218,8 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 
 	device.queueFamilyIndices = FindQueueFamilies(vkDevice);
 
-	SwapChainSupportDetails detail = QuerySwapChainSupport(device.device);
-	device.swapChainSupportDetails = detail;
+	SwapChainSupportDetails swapChainDetail = QuerySwapChainSupport(device.device);
+	device.swapChainSupportDetails = swapChainDetail;
 
 	device.suitable = CheckDeviceSuitable(device);
 
@@ -380,19 +380,54 @@ bool KVulkanRenderDevice::CreateSwapChain()
 		m_SwapChainImageFormat = surfaceFormat.format;
 		m_SwapChainExtent = extent;
 
-		if(!m_DepthBuffer)
-		{
-			m_DepthBuffer = KVulkanDepthBufferPtr(new KVulkanDepthBuffer());
-			ASSERT_RESULT(m_DepthBuffer->InitDevice(m_SwapChainExtent.width, m_SwapChainExtent.height, true));
-		}
-		else
-		{
-			m_DepthBuffer->Resize(m_SwapChainExtent.width, m_SwapChainExtent.height);
-		}
-
 		return true;
 	}
 	return false;
+}
+
+bool KVulkanRenderDevice::CreateImages()
+{
+	uint32_t candidate[] = {64,32,16,8,4,2,1};
+
+	m_SampleCountFlag = VK_SAMPLE_COUNT_1_BIT;
+	VkSampleCountFlagBits flag = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
+	uint32_t msaaCount = 1;
+	for(uint32_t count: candidate)
+	{
+		if(KVulkanHelper::QueryMSAASupport(KVulkanHelper::MST_BOTH, count , flag))
+		{
+			m_SampleCountFlag = flag;
+			msaaCount = count;
+			break;
+		}
+	}
+
+	KVulkanInitializer::CreateVkImage(m_SwapChainExtent.width, m_SwapChainExtent.height, 1,
+		1,
+		m_SampleCountFlag,
+		VK_IMAGE_TYPE_2D, m_SwapChainImageFormat,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		m_MsaaImage, m_MsaaAlloc);
+
+	KVulkanInitializer::CreateVkImageView(m_MsaaImage,
+		m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_MsaaImageView);
+
+	KVulkanHelper::TransitionImageLayout(m_MsaaImage,
+		m_SwapChainImageFormat, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+	if(!m_DepthBuffer)
+	{
+		m_DepthBuffer = KVulkanDepthBufferPtr(new KVulkanDepthBuffer());
+		ASSERT_RESULT(m_DepthBuffer->InitDevice(m_SwapChainExtent.width, m_SwapChainExtent.height, msaaCount, true));
+	}
+	else
+	{
+		m_DepthBuffer->Resize(m_SwapChainExtent.width, m_SwapChainExtent.height);
+	}
+
+	return true;
 }
 
 bool KVulkanRenderDevice::CreateImageViews()
@@ -410,7 +445,7 @@ bool KVulkanRenderDevice::CreateFramebuffers()
 	m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
 	for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
 	{
-		VkImageView imageViews[] = {m_SwapChainImageViews[i], m_DepthBuffer->GetVkImageView()};
+		VkImageView imageViews[] = {m_MsaaImageView, m_DepthBuffer->GetVkImageView(), m_SwapChainImageViews[i]};
 
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -547,10 +582,10 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 bool KVulkanRenderDevice::CreateRenderPass()
 {
-	// 声明Attachment
+	// 声明 Color Attachment
 	VkAttachmentDescription colorAttachment = {};
 	colorAttachment.format = m_SwapChainImageFormat;
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.samples = m_SampleCountFlag; // VK_SAMPLE_COUNT_1_BIT
 
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -559,11 +594,12 @@ bool KVulkanRenderDevice::CreateRenderPass()
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
 
+	// 声明 Depth Attachment
 	VkAttachmentDescription depthAttachment = {};
 	depthAttachment.format = m_DepthBuffer->GetVkFormat();
-	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.samples = m_DepthBuffer->GetVkSampleCountFlagBits();
 
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -574,7 +610,20 @@ bool KVulkanRenderDevice::CreateRenderPass()
 	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	VkAttachmentDescription attachmentDescriptions[] = {colorAttachment, depthAttachment};
+	// 声明 MSAA Resolve Attachment
+	VkAttachmentDescription colorAttachmentResolve = {};
+	colorAttachmentResolve.format = m_SwapChainImageFormat;
+	colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+	colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
 	// 声明Attachment引用结构
 	VkAttachmentReference colorAttachmentRef = {};
 	colorAttachmentRef.attachment = 0;
@@ -584,6 +633,10 @@ bool KVulkanRenderDevice::CreateRenderPass()
 	depthAttachmentRef.attachment = 1;
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+	VkAttachmentReference colorAttachmentResolveRef = {};
+	colorAttachmentResolveRef.attachment = 2;
+	colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 	// 声明子通道
 	VkSubpassDescription subpass = {};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -591,14 +644,7 @@ bool KVulkanRenderDevice::CreateRenderPass()
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
 	subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-	// 创建渲染通道
-	VkRenderPassCreateInfo renderPassInfo = {};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = ARRAY_SIZE(attachmentDescriptions);
-	renderPassInfo.pAttachments = attachmentDescriptions;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
+	subpass.pResolveAttachments = &colorAttachmentResolveRef;
 
 	// 从属依赖
 	VkSubpassDependency dependency = {};
@@ -610,6 +656,14 @@ bool KVulkanRenderDevice::CreateRenderPass()
 	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
+	// 创建渲染通道
+	VkAttachmentDescription attachmentDescriptions[] = {colorAttachment, depthAttachment, colorAttachmentResolve};
+	VkRenderPassCreateInfo renderPassInfo = {};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassInfo.attachmentCount = ARRAY_SIZE(attachmentDescriptions);
+	renderPassInfo.pAttachments = attachmentDescriptions;
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subpass;
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
@@ -740,7 +794,7 @@ bool KVulkanRenderDevice::CreateGraphicsPipeline()
 	VkPipelineMultisampleStateCreateInfo multisampling = {};
 	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multisampling.sampleShadingEnable = VK_FALSE;
-	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisampling.rasterizationSamples = m_SampleCountFlag;
 	multisampling.minSampleShading = 1.0f; // Optional
 	multisampling.pSampleMask = nullptr; // Optional
 	multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
@@ -1081,7 +1135,7 @@ bool KVulkanRenderDevice::CreateDescriptorPool()
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = sizeof(poolSizes) / sizeof(VkDescriptorPoolSize);
+	poolInfo.poolSizeCount = ARRAY_SIZE(poolSizes);
 	poolInfo.pPoolSizes = poolSizes;
 
 	// 创建的描述池各个type的描述集合数的总和
@@ -1323,6 +1377,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 
 		if(!CreateSwapChain())
 			return false;
+		if(!CreateImages())
+			return false;
 		if(!CreateImageViews())
 			return false;
 		if(!CreateSyncObjects())
@@ -1384,6 +1440,7 @@ bool KVulkanRenderDevice::RecreateSwapChain()
 	DestroySyncObjects();
 
 	CreateSwapChain();
+	CreateImages();
 	CreateImageViews();
 	CreateRenderPass();
 	CreateUniform();
@@ -1411,6 +1468,9 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 		vkDestroyImageView(m_Device, imageView, nullptr);
 	}
 	m_SwapChainImageViews.clear();
+
+	vkDestroyImageView(m_Device, m_MsaaImageView, nullptr);
+	KVulkanInitializer::FreeVkImage(m_MsaaImage, m_MsaaAlloc);
 
 	for(IKUniformBufferPtr uniformBuffer : m_UniformBuffers)
 	{

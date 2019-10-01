@@ -50,6 +50,7 @@ namespace KVulkanInitializer
 		uint32_t height,
 		uint32_t depth,
 		uint32_t mipLevels,
+		VkSampleCountFlagBits numSamples,
 		VkImageType imageType,
 		VkFormat format,
 		VkImageTiling tiling,
@@ -75,7 +76,7 @@ namespace KVulkanInitializer
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = usage;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.samples = numSamples;
 		imageInfo.flags = 0; 
 
 		VK_ASSERT_RESULT(vkCreateImage(KVulkanGlobal::device, &imageInfo, nullptr, &image));

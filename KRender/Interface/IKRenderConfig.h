@@ -17,6 +17,7 @@ enum ShaderType
 	ST_UNKNOWN,
 	ST_COUNT = ST_UNKNOWN
 };
+typedef unsigned int ShaderTypes;
 
 enum VertexSemantic
 {
