@@ -2,7 +2,8 @@
 #include "Interface/IKRenderDevice.h"
 #include "KVulkanHeapAllocator.h"
 #include "KVulkanHelper.h"
-#include "KVulkanConfig.h"
+#include "KVulkanDepthBuffer.h"
+
 #include "GLFW/glfw3.h"
 #include <algorithm>
 #include <vector>
@@ -60,9 +61,7 @@ protected:
 	bool m_EnableValidationLayer;
 	// Temporarily for demo use
 	KVulkanHelper::VulkanBindingDetailList m_VertexBindDetailList;
-	VkRenderPass m_RenderPass;
-	VkPipelineLayout m_PipelineLayout;
-	VkPipeline m_GraphicsPipeline;
+
 	std::vector<VkCommandBuffer> m_CommandBuffers;
 	VkDescriptorSetLayout m_DescriptorSetLayout;
 	VkDescriptorPool  m_DescriptorPool;
@@ -79,10 +78,10 @@ protected:
 
 	VkSwapchainKHR  m_SwapChain;
 	std::vector<VkImage> m_SwapChainImages;
-	std::vector<VkImageView> m_SwapChainImageViews;
-	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
-	typedef std::shared_ptr<KVulkanDepthBuffer> KVulkanDepthBufferPtr;
-	KVulkanDepthBufferPtr m_DepthBuffer;
+	std::vector<IKRenderTargetPtr> m_SwapChainRenderTargets;
+
+	VkPipelineLayout m_PipelineLayout;
+	std::vector<VkPipeline> m_GraphicsPipelines;
 
 	std::vector<VkSemaphore> m_ImageAvailableSemaphores;
 	std::vector<VkSemaphore> m_RenderFinishedSemaphores;
@@ -93,12 +92,6 @@ protected:
 
 	VkFormat m_SwapChainImageFormat;
 	VkExtent2D m_SwapChainExtent;
-
-	VkImage m_MsaaImage;
-	VkImageView m_MsaaImageView;
-	KVulkanHeapAllocator::AllocInfo m_MsaaAlloc;
-
-	VkSampleCountFlagBits m_SampleCountFlag;
 
 	VkCommandPool m_CommandPool;
 
@@ -122,7 +115,6 @@ protected:
 	bool PickPhysicsDevice();
 	bool CreateLogicalDevice();
 	bool CreateSwapChain();
-	bool CreateImages();
 	bool CreateImageViews();
 	bool CreateCommandPool();
 	bool CreateSyncObjects();
@@ -135,9 +127,7 @@ protected:
 	bool CreateTex();
 	bool CreateDescriptorPool();
 	bool CreateDescriptorSets();
-	bool CreateRenderPass();
 	bool CreateGraphicsPipeline();
-	bool CreateFramebuffers();
 	bool CreateCommandBuffers();
 	bool CreateDescriptorSetLayout();
 
@@ -173,6 +163,8 @@ public:
 
 	virtual bool CreateTexture(IKTexturePtr& texture);
 	virtual bool CreateSampler(IKSamplerPtr& sampler);
+
+	virtual bool CreateRenderTarget(IKRenderTargetPtr& target);
 
 	virtual bool Present();
 

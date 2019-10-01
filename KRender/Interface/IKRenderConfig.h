@@ -139,3 +139,6 @@ typedef std::shared_ptr<IKTexture> IKTexturePtr;
 
 struct IKSampler;
 typedef std::shared_ptr<IKSampler> IKSamplerPtr;
+
+struct IKRenderTarget;
+typedef std::shared_ptr<IKRenderTarget> IKRenderTargetPtr;

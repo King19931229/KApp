@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="Interface\IKProgram.h" />
     <ClInclude Include="Interface\IKRenderDevice.h" />
+    <ClInclude Include="Interface\IKRenderTarget.h" />
     <ClInclude Include="Interface\IKRenderWindow.h" />
     <ClInclude Include="Interface\IKSampler.h" />
     <ClInclude Include="Interface\IKShader.h" />
@@ -44,6 +45,7 @@
     <ClInclude Include="Internal\Vulkan\KVulkanHelper.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanProgram.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanRenderTarget.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderWindow.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanSampler.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanShader.h" />
@@ -69,6 +71,7 @@
     <ClCompile Include="Internal\Vulkan\KVulkanHelper.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanProgram.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanRenderTarget.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanSampler.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanShader.cpp" />

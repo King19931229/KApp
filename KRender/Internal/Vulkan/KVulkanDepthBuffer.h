@@ -1,6 +1,10 @@
 #pragma once
 #include "KVulkanConfig.h"
 #include "KVulkanHeapAllocator.h"
+#include <memory>
+
+class KVulkanDepthBuffer;
+typedef std::shared_ptr<KVulkanDepthBuffer> KVulkanDepthBufferPtr;
 
 class KVulkanDepthBuffer
 {

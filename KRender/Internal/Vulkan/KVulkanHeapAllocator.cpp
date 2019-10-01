@@ -81,7 +81,7 @@ namespace KVulkanHeapAllocator
 			size = _size;
 			memoryTypeIndex = _memoryTypeIndex;
 
-			vkMemroy = nullptr;
+			vkMemroy = (VkDeviceMemory)nullptr;
 			pHead = nullptr;
 			pPre = pNext = nullptr;	
 
@@ -115,7 +115,7 @@ namespace KVulkanHeapAllocator
 			{
 				return nullptr;
 			}
-			if(vkMemroy == nullptr)
+			if(vkMemroy == (VkDeviceMemory)nullptr)
 			{
 				assert(pHead == nullptr);
 
@@ -190,7 +190,7 @@ namespace KVulkanHeapAllocator
 #else
 				free(vkMemroy);
 #endif
-				vkMemroy = nullptr;
+				vkMemroy = (VkDeviceMemory)nullptr;
 			}
 		}
 
@@ -214,7 +214,7 @@ namespace KVulkanHeapAllocator
 #else
 				free(vkMemroy);
 #endif
-				vkMemroy = nullptr;
+				vkMemroy = (VkDeviceMemory)nullptr;
 			}
 
 			for(BlockInfo* p = pHead; p != nullptr;)
@@ -435,7 +435,7 @@ namespace KVulkanHeapAllocator
 					if(pPage)
 					{
 						// 把多余的空间分裂出来 尽量节省实际分配的内存
-						if(pPage->vkMemroy == nullptr)
+						if(pPage->vkMemroy == (VkDeviceMemory)nullptr)
 						{
 							Split(pPage, sizeToFit);
 						}
@@ -506,7 +506,7 @@ namespace KVulkanHeapAllocator
 				pPage->Free(pBlock);
 				Check();
 				// 空间为空 尝试合并临近page
-				if(pPage->vkMemroy == nullptr)
+				if(pPage->vkMemroy == (VkDeviceMemory)nullptr)
 				{
 					Trim(pPage);
 				}
@@ -545,10 +545,10 @@ namespace KVulkanHeapAllocator
 		{
 			assert(pPage->vkMemroy == nullptr);
 			PageInfo* pTemp = nullptr;
-			if(pPage->vkMemroy == nullptr)
+			if(pPage->vkMemroy == (VkDeviceMemory)nullptr)
 			{
 				// 与后面的freepage合并
-				while(pPage->pNext && pPage->pNext->vkMemroy == nullptr)
+				while(pPage->pNext && pPage->pNext->vkMemroy == (VkDeviceMemory)nullptr)
 				{
 					pPage->size += pPage->pNext->size;
 
@@ -563,7 +563,7 @@ namespace KVulkanHeapAllocator
 					pPage->Check();
 				}
 				// 与前面的freepage合并
-				while(pPage->pPre && pPage->pPre->vkMemroy == nullptr)
+				while(pPage->pPre && pPage->pPre->vkMemroy == (VkDeviceMemory)nullptr)
 				{
 					pPage->size += pPage->pPre->size;
 
@@ -589,7 +589,7 @@ namespace KVulkanHeapAllocator
 		static void Split(PageInfo* pPage, VkDeviceSize sizeToFit)
 		{
 			assert(pPage->vkMemroy == nullptr && pPage->size >= sizeToFit);
-			if(pPage->vkMemroy == nullptr && pPage->size >= sizeToFit)
+			if(pPage->vkMemroy == (VkDeviceMemory)nullptr && pPage->size >= sizeToFit)
 			{
 				// page的新大小不是ALLOC_FACTOR的整数倍 无法分裂
 				if(sizeToFit % ALLOC_FACTOR != 0)
@@ -601,7 +601,7 @@ namespace KVulkanHeapAllocator
 
 				PageInfo* pNext = pPage->pNext;
 				// 如果下一个page可以拿掉剩余空间
-				if(pNext && pNext->vkMemroy == nullptr)
+				if(pNext && pNext->vkMemroy == (VkDeviceMemory)nullptr)
 				{
 					pNext->size += remainSize;
 				}
@@ -610,7 +610,7 @@ namespace KVulkanHeapAllocator
 				{
 					// 把剩余的空间分配到新节点上
 					PageInfo* pNewPage = new PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->memoryTypeIndex, false);
-					pNewPage->vkMemroy = nullptr;
+					pNewPage->vkMemroy = (VkDeviceMemory)nullptr;
 					pNewPage->size = remainSize;
 
 					pNewPage->pNext = pNext;
