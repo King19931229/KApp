@@ -60,12 +60,7 @@ protected:
 	VkSurfaceKHR m_Surface;
 	bool m_EnableValidationLayer;
 	// Temporarily for demo use
-	KVulkanHelper::VulkanBindingDetailList m_VertexBindDetailList;
-
 	std::vector<VkCommandBuffer> m_CommandBuffers;
-	VkDescriptorSetLayout m_DescriptorSetLayout;
-	VkDescriptorPool  m_DescriptorPool;
-	std::vector<VkDescriptorSet> m_DescriptorSets;
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
@@ -79,9 +74,7 @@ protected:
 	VkSwapchainKHR  m_SwapChain;
 	std::vector<VkImage> m_SwapChainImages;
 	std::vector<IKRenderTargetPtr> m_SwapChainRenderTargets;
-
-	VkPipelineLayout m_PipelineLayout;
-	std::vector<VkPipeline> m_GraphicsPipelines;
+	std::vector<IKPipelinePtr> m_SwapChainPipelines;
 
 	std::vector<VkSemaphore> m_ImageAvailableSemaphores;
 	std::vector<VkSemaphore> m_RenderFinishedSemaphores;
@@ -116,6 +109,7 @@ protected:
 	bool CreateLogicalDevice();
 	bool CreateSwapChain();
 	bool CreateImageViews();
+	bool CreatePipelines();
 	bool CreateCommandPool();
 	bool CreateSyncObjects();
 
@@ -125,11 +119,7 @@ protected:
 	bool CreateVertexInput();
 	bool CreateUniform();
 	bool CreateTex();
-	bool CreateDescriptorPool();
-	bool CreateDescriptorSets();
-	bool CreateGraphicsPipeline();
 	bool CreateCommandBuffers();
-	bool CreateDescriptorSetLayout();
 
 	bool UpdateUniformBuffer(uint32_t currentImage);
 
@@ -165,6 +155,8 @@ public:
 	virtual bool CreateSampler(IKSamplerPtr& sampler);
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target);
+
+	virtual bool CreatePipeline(IKPipelinePtr& pipeline);
 
 	virtual bool Present();
 

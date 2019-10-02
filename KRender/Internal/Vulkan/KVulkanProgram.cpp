@@ -5,10 +5,6 @@
 KVulkanProgram::KVulkanProgram()
 {
 	memset(&m_CreateInfoCollection, 0, sizeof(m_CreateInfoCollection));
-	for(int i = 0; i < ST_COUNT; ++i)
-	{
-		m_Shaders[i] = nullptr;
-	}
 }
 
 KVulkanProgram::~KVulkanProgram()
@@ -16,16 +12,13 @@ KVulkanProgram::~KVulkanProgram()
 
 }
 
-bool KVulkanProgram::AttachShader(ShaderType shaderType, IKShaderPtr _shader)
+bool KVulkanProgram::AttachShader(ShaderTypeFlag shaderType, IKShaderPtr _shader)
 {
 	if(_shader == nullptr)
 		return false;
 
 	KVulkanShader* shader = (KVulkanShader*)_shader.get();
 	VkShaderModule vkShader = shader->GetShaderModule();
-
-	assert(shaderType != ST_COUNT);
-	m_Shaders[shaderType] = _shader;
 
 	switch (shaderType)
 	{
@@ -57,8 +50,8 @@ bool KVulkanProgram::AttachShader(ShaderType shaderType, IKShaderPtr _shader)
 			fragShaderStageInfo.second = true;
 			return true;
 		}
-	case ST_COUNT:
 	default:
+		assert(false && "unknown shader flag");
 		return false;
 	}
 }

@@ -103,6 +103,41 @@ namespace KVulkanHelper
 		}
 	}
 
+	bool TopologyToVkPrimitiveTopology(PrimitiveTopology topology, VkPrimitiveTopology& vkPrimitiveTopology)
+	{
+		switch (topology)
+		{
+		case PT_TRIANGLE_LIST:
+			vkPrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			return true;
+		case PT_TRIANGLE_STRIP:
+			vkPrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+			return true;
+		default:
+			assert(false && "topology mode not supported");
+			return false;
+		}
+	}
+
+	bool PolygonModeToVkPolygonMode(PolygonMode polygonMode, VkPolygonMode& vkPolygonMode)
+	{
+		switch (polygonMode)
+		{
+		case PM_FILL:
+			vkPolygonMode = VK_POLYGON_MODE_FILL;
+			return true;
+		case PM_LINE:
+			vkPolygonMode = VK_POLYGON_MODE_LINE;
+			return true;
+		case PM_POINT:
+			vkPolygonMode = VK_POLYGON_MODE_POINT;
+			return true;
+		default:
+			assert(false && "polygon mode not supported");
+			return false;
+		}
+	}
+
 	bool FilterModeToVkFilter(FilterMode filterMode, VkFilter& vkFilterkMode)
 	{
 		switch (filterMode)
@@ -120,10 +155,121 @@ namespace KVulkanHelper
 		}
 	}
 
-	bool PopulateInputBindingDescription(const KVertexDefinition::VertexBindingDetail* pData, uint32_t nCount, VulkanBindingDetailList& detailList)
+	bool CullModeToVkCullMode(CullMode cullMode, VkCullModeFlagBits& vkCullMode)
+	{
+		switch (cullMode)
+		{
+		case CM_NONE:
+			vkCullMode = VK_CULL_MODE_NONE;
+			return true;
+		case CM_FRONT:
+			vkCullMode = VK_CULL_MODE_FRONT_BIT;
+			return true;
+		case CM_BACK:
+			vkCullMode = VK_CULL_MODE_BACK_BIT;
+			return true;
+		default:
+			assert(false && "cull mode not supported");
+			return false;
+		}
+	}
+
+	bool FrontFaceToVkFrontFace(FrontFace frontFace, VkFrontFace& vkFrontFace)
+	{
+		switch (frontFace)
+		{
+		case FF_COUNTER_CLOCKWISE:
+			vkFrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+			return true;
+		case FF_CLOCKWISE:
+			vkFrontFace = VK_FRONT_FACE_CLOCKWISE;
+			return true;
+		default:
+			assert(false && "front face not supported");
+			return false;
+		}
+	}
+
+	bool BlendFactorToVkBlendFactor(BlendFactor blendFactor, VkBlendFactor& vkBlendFactor)
+	{
+		switch (blendFactor)
+		{
+		case BF_ZEOR:
+			vkBlendFactor = VK_BLEND_FACTOR_ZERO;
+			return true;
+		case BF_ONE:
+			vkBlendFactor = VK_BLEND_FACTOR_ONE;
+			return true;
+		case BF_SRC_COLOR:
+			vkBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
+			return true;
+		case BF_ONE_MINUS_SRC_COLOR:
+			vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+			return true;
+		default:
+			assert(false && "blend factor not supported");
+			return false;
+		}
+	}
+
+	bool BlendOperatorToVkBlendOp(BlendOperator blendOperator, VkBlendOp& vkBlendOp)
+	{
+		switch (blendOperator)
+		{
+		case BO_ADD:
+			vkBlendOp = VK_BLEND_OP_ADD;
+			return true;
+		case BO_SUBTRACT:
+			vkBlendOp = VK_BLEND_OP_SUBTRACT;
+			return true;
+		default:
+			assert(false && "blend operator not supported");
+			return false;
+		}
+	}
+
+	bool ShaderTypeFlagToVkShaderStageFlagBits(ShaderTypeFlag shaderTypeFlag, VkShaderStageFlagBits& bit)
+	{
+		switch (shaderTypeFlag)
+		{
+		case ST_VERTEX:
+			bit = VK_SHADER_STAGE_VERTEX_BIT;
+			return true;
+		case ST_FRAGMENT:
+			bit = VK_SHADER_STAGE_FRAGMENT_BIT;
+			return true;
+		default:
+			assert(false && "Unknown shader type flag");
+			return false;
+			break;
+		}
+	}
+
+	bool ShaderTypesToVkShaderStageFlag(ShaderTypes shaderTypes, VkFlags& flags)
+	{
+		flags = 0;
+		const ShaderTypeFlag candidate[]  = {ST_VERTEX, ST_FRAGMENT};
+		for(ShaderTypeFlag c : candidate)
+		{
+			if(shaderTypes & c)
+			{
+				VkShaderStageFlagBits bit;
+				if(ShaderTypeFlagToVkShaderStageFlagBits(c, bit))
+				{
+					flags |= bit;
+				}
+				else
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	bool PopulateInputBindingDescription(const VertexInputDetail* pData, uint32_t nCount, VulkanBindingDetailList& detailList)
 	{
 		using KVertexDefinition::VertexDetail;
-		using KVertexDefinition::VertexBindingDetail;
 		using KVertexDefinition::VertexSemanticDetail;
 		using KVertexDefinition::VertexSemanticDetailList;
 
@@ -133,10 +279,11 @@ namespace KVulkanHelper
 		detailList.clear();
 		for(uint32_t idx = 0; idx < nCount; ++idx)
 		{
-			const VertexBindingDetail& detail = pData[idx];
+			const VertexInputDetail& detail = pData[idx];
 
-			for(VertexFormat format : detail.formats)
+			for(size_t i = 0;i < detail.count; ++i)
 			{
+				VertexFormat format = detail.formats[i];
 				VulkanBindingDetail bindingDetail;
 
 				VkVertexInputBindingDescription& bindingDescription = bindingDetail.bindingDescription;				
@@ -536,6 +683,4 @@ default:\
 
 		return flag != VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
 	}
-
-
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "KBase/Publish/KConfig.h"
 
+#include <vector>
 #include <memory>
 
 enum RenderDevice
@@ -9,15 +10,12 @@ enum RenderDevice
 	RD_COUNT
 };
 
-enum ShaderType
+enum ShaderTypeFlag
 {
-	ST_VERTEX,
-	ST_FRAGMENT,
-
-	ST_UNKNOWN,
-	ST_COUNT = ST_UNKNOWN
+	ST_VERTEX = 0x01,
+	ST_FRAGMENT = 0x02,
 };
-typedef unsigned int ShaderTypes;
+typedef unsigned short ShaderTypes;
 
 enum VertexSemantic
 {
@@ -113,6 +111,52 @@ enum FilterMode
 	FM_COUNT = FM_UNKNOWN
 };
 
+enum PrimitiveTopology
+{
+	PT_TRIANGLE_LIST,
+	PT_TRIANGLE_STRIP
+};
+
+enum PolygonMode
+{
+	PM_FILL,
+	PM_LINE,
+	PM_POINT
+};
+
+enum CullMode
+{
+	CM_NONE,
+	CM_FRONT,
+	CM_BACK
+};
+
+enum FrontFace
+{
+	FF_COUNTER_CLOCKWISE,
+	FF_CLOCKWISE
+};
+
+enum BlendFactor
+{
+	BF_ZEOR,
+	BF_ONE,
+	BF_SRC_COLOR,
+	BF_ONE_MINUS_SRC_COLOR
+};
+
+enum BlendOperator
+{
+	BO_ADD,
+	BO_SUBTRACT
+};
+
+struct VertexInputDetail
+{
+	VertexFormat* formats;
+	size_t count;
+};
+
 struct IKRenderWindow;
 typedef std::shared_ptr<IKRenderWindow> IKRenderWindowPtr;
 
@@ -142,3 +186,6 @@ typedef std::shared_ptr<IKSampler> IKSamplerPtr;
 
 struct IKRenderTarget;
 typedef std::shared_ptr<IKRenderTarget> IKRenderTargetPtr;
+
+struct IKPipeline;
+typedef std::shared_ptr<IKPipeline> IKPipelinePtr;

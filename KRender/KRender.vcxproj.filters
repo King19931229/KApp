@@ -117,6 +117,12 @@
     <ClInclude Include="Internal\Vulkan\KVulkanRenderTarget.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKPipeline.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanPipeline.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -185,6 +191,11 @@
     <ClCompile Include="Internal\Vulkan\KVulkanDepthBuffer.cpp">
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\Vulkan\KVulkanRenderTarget.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanRenderTarget.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanPipeline.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

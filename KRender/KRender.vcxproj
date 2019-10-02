@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Interface\IKPipeline.h" />
     <ClInclude Include="Interface\IKProgram.h" />
     <ClInclude Include="Interface\IKRenderDevice.h" />
     <ClInclude Include="Interface\IKRenderTarget.h" />
@@ -43,6 +44,7 @@
     <ClInclude Include="Internal\Vulkan\KVulkanHeapAllocator.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanGlobal.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanHelper.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanPipeline.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanProgram.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderTarget.h" />
@@ -69,6 +71,7 @@
     <ClCompile Include="Internal\Vulkan\KVulkanGlobal.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanHeapAllocator.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanHelper.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanPipeline.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanProgram.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderTarget.cpp" />

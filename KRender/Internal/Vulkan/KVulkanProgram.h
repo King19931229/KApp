@@ -19,12 +19,10 @@ protected:
 	};
 	ShaderStageCreateInfoCollection m_CreateInfoCollection;
 	std::vector<VkPipelineShaderStageCreateInfo> m_ShaderStageInfo;
-
-	IKShaderPtr m_Shaders[ST_COUNT];
 public:
 	KVulkanProgram();
 	virtual ~KVulkanProgram();
-	virtual bool AttachShader(ShaderType shaderType, IKShaderPtr shader);
+	virtual bool AttachShader(ShaderTypeFlag shaderType, IKShaderPtr shader);
 
 	virtual bool Init();
 	virtual bool UnInit();

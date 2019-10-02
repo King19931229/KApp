@@ -4,7 +4,7 @@
 struct IKProgram
 {
 	virtual ~IKProgram() {}
-	virtual bool AttachShader(ShaderType shaderType, IKShaderPtr shader) = 0;
+	virtual bool AttachShader(ShaderTypeFlag shaderType, IKShaderPtr shader) = 0;
 	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;
 };

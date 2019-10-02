@@ -7,6 +7,7 @@
 #include "KVulkanTextrue.h"
 #include "KVulkanSampler.h"
 #include "KVulkanRenderTarget.h"
+#include "KVulkanPipeline.h"
 
 #include "KVulkanHelper.h"
 #include "KVulkanGlobal.h"
@@ -411,8 +412,55 @@ bool KVulkanRenderDevice::CreateImageViews()
 		m_SwapChainRenderTargets[i]->SetSize(m_SwapChainExtent.width, m_SwapChainExtent.height);
 
 		m_SwapChainRenderTargets[i]->InitFromImage(&m_SwapChainImages[i], &m_SwapChainImageFormat,
-			true, msaaCount);
+			true, false, msaaCount);
 	}
+	return true;
+}
+
+bool KVulkanRenderDevice::CreatePipelines()
+{
+	IKShaderPtr vertexShader = nullptr;
+	IKShaderPtr fragmentShader = nullptr;
+
+	CreateShader(vertexShader);
+	CreateShader(fragmentShader);
+
+	ASSERT_RESULT(vertexShader->InitFromFile("shader.vert") && fragmentShader->InitFromFile("shader.frag"));
+
+	m_SwapChainPipelines.resize(m_SwapChainImages.size());
+	for(size_t i = 0; i < m_SwapChainImages.size(); ++i)
+	{
+		CreatePipeline(m_SwapChainPipelines[i]);
+
+		IKPipelinePtr pipeline = m_SwapChainPipelines[i];
+
+		VertexInputDetail bindingDetail = {};
+		VertexFormat formats[] = {VF_POINT_NORMAL_UV};
+		bindingDetail.formats = formats;
+		bindingDetail.count = ARRAY_SIZE(formats);
+
+		pipeline->SetVertexBinding(&bindingDetail, 1);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+
+		pipeline->SetShader(ST_VERTEX, vertexShader);
+		pipeline->SetShader(ST_FRAGMENT, fragmentShader);
+
+		pipeline->SetBlendEnable(false);
+
+		pipeline->SetCullMode(CM_BACK);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+
+		pipeline->SetTextureSampler(1, m_Texture, m_Sampler);
+		pipeline->SetConstantBuffer(0, ST_VERTEX, m_UniformBuffers[i]);
+
+		pipeline->Init(m_SwapChainRenderTargets[i]);
+	}
+
+	vertexShader->UnInit();
+	fragmentShader->UnInit();
+
 	return true;
 }
 
@@ -533,236 +581,6 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		}
 	}
 	return false;
-}
-
-struct ProgramHolder
-{
-	IKShaderPtr VSShader;
-	IKShaderPtr FGShader;
-	IKProgramPtr Program;
-
-	ProgramHolder()
-	{
-		VSShader = nullptr;
-		FGShader = nullptr;
-		Program = nullptr;
-	}
-
-	~ProgramHolder()
-	{
-		if(VSShader)
-		{
-			VSShader->UnInit();
-			VSShader = nullptr;
-		}
-		if(FGShader)
-		{
-			FGShader->UnInit();
-			FGShader = nullptr;
-		}
-		if(Program)
-		{
-			Program->UnInit();
-			Program = nullptr;
-		}
-	}
-};
-
-bool KVulkanRenderDevice::CreateGraphicsPipeline()
-{
-	// 创建管线布局
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 1; // Optional
-	// 指定该管线的描述布局
-	pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout; // Optional
-	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
-
-	if (vkCreatePipelineLayout(m_Device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
-	{
-		return false;
-	}
-
-	m_GraphicsPipelines.resize(m_SwapChainRenderTargets.size());
-	for(size_t idx = 0, count = m_SwapChainRenderTargets.size(); idx < count; ++idx)
-	{
-		VkPipeline& graphicsPipeline = m_GraphicsPipelines[idx];
-		KVulkanRenderTarget* rendertarget = (KVulkanRenderTarget*)m_SwapChainRenderTargets[idx].get();
-
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-		for(KVulkanHelper::VulkanBindingDetail& detail : m_VertexBindDetailList)
-		{
-			bindingDescriptions.push_back(detail.bindingDescription);
-			attributeDescriptions.insert(
-				attributeDescriptions.end(),
-				detail.attributeDescriptions.begin(), detail.attributeDescriptions.end()
-				);
-		}
-
-		// 配置顶点输入信息
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;	
-
-		vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)bindingDescriptions.size();
-		vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
-		vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attributeDescriptions.size();
-		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-
-		// 配置顶点组装信息
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
-		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-		// 配置视口裁剪
-		VkViewport viewport = {};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = (float) m_SwapChainExtent.width;
-		viewport.height = (float) m_SwapChainExtent.height;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
-		VkRect2D scissor = 
-		{
-			{0, 0},
-			m_SwapChainExtent
-		};
-
-		VkPipelineViewportStateCreateInfo viewportState = {};
-		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportState.viewportCount = 1;
-		viewportState.pViewports = &viewport;
-		viewportState.scissorCount = 1;
-		viewportState.pScissors = &scissor;
-
-		// 配置光栅化信息
-		VkPipelineRasterizationStateCreateInfo rasterizer = {};
-		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizer.depthClampEnable = VK_FALSE;
-		rasterizer.rasterizerDiscardEnable = VK_FALSE;
-		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-
-		rasterizer.depthBiasEnable = VK_FALSE;
-		rasterizer.depthBiasConstantFactor = 0.0f; // Optional
-		rasterizer.depthBiasClamp = 0.0f; // Optional
-		rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
-
-		// 配置深度缓冲信息
-		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
-		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencil.depthTestEnable = VK_TRUE;
-		depthStencil.depthWriteEnable = VK_TRUE;
-
-		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-
-		depthStencil.depthBoundsTestEnable = VK_FALSE;
-		depthStencil.minDepthBounds = 0.0f; // Optional
-		depthStencil.maxDepthBounds = 1.0f; // Optional
-
-		depthStencil.stencilTestEnable = VK_FALSE;
-
-		VkStencilOpState empty = {};
-		depthStencil.front = empty; // Optional
-		depthStencil.back = empty; // Optional
-
-		// 配置多重采样信息
-		VkPipelineMultisampleStateCreateInfo multisampling = {};
-		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampling.sampleShadingEnable = VK_FALSE;
-		multisampling.rasterizationSamples = rendertarget->GetMsaaFlag();
-		multisampling.minSampleShading = 1.0f; // Optional
-		multisampling.pSampleMask = nullptr; // Optional
-		multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-		multisampling.alphaToOneEnable = VK_FALSE; // Optional
-
-		// 配置Alpha混合信息
-		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		colorBlendAttachment.blendEnable = VK_FALSE;
-		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
-
-		VkPipelineColorBlendStateCreateInfo colorBlending = {};
-		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlending.logicOpEnable = VK_FALSE;
-		colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-		colorBlending.attachmentCount = 1;
-		colorBlending.pAttachments = &colorBlendAttachment;
-		colorBlending.blendConstants[0] = 0.0f; // Optional
-		colorBlending.blendConstants[1] = 0.0f; // Optional
-		colorBlending.blendConstants[2] = 0.0f; // Optional
-		colorBlending.blendConstants[3] = 0.0f; // Optional
-
-		// 设置动态状态
-		VkDynamicState dynamicStates[] = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_LINE_WIDTH
-		};
-
-		VkPipelineDynamicStateCreateInfo dynamicState = {};
-		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicState.dynamicStateCount = 2;
-		dynamicState.pDynamicStates = dynamicStates;
-
-		ProgramHolder holder;
-
-		CreateShader(holder.VSShader);
-		CreateShader(holder.FGShader);
-
-		if(!(holder.VSShader->InitFromFile("shader.vert") && holder.FGShader->InitFromFile("shader.frag")))
-		{
-			return false;
-		}
-
-		CreateProgram(holder.Program);
-		holder.Program->AttachShader(ST_VERTEX, holder.VSShader);
-		holder.Program->AttachShader(ST_FRAGMENT, holder.FGShader);
-		holder.Program->Init();
-		const std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo = ((KVulkanProgram*)holder.Program.get())->GetShaderStageInfo();
-
-		VkGraphicsPipelineCreateInfo pipelineInfo = {};
-		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		// 指定管线所使用的Shader
-		pipelineInfo.stageCount = (uint32_t)shaderStageCreateInfo.size();
-		pipelineInfo.pStages = shaderStageCreateInfo.data();
-		// 指定管线顶点输入信息
-		pipelineInfo.pVertexInputState = &vertexInputInfo;
-		pipelineInfo.pInputAssemblyState = &inputAssembly;
-		// 指定管线视口
-		pipelineInfo.pViewportState = &viewportState;
-		// 指定光栅化
-		pipelineInfo.pRasterizationState = &rasterizer;
-		// 指定深度缓冲
-		pipelineInfo.pDepthStencilState = &depthStencil;
-		// 指定多重采样方式
-		pipelineInfo.pMultisampleState = &multisampling;
-		// 指定混合模式
-		pipelineInfo.pColorBlendState = &colorBlending;
-		// 指定管线布局
-		pipelineInfo.layout = m_PipelineLayout;
-		// 指定渲染通道
-		pipelineInfo.renderPass = rendertarget->GetRenderPass();
-		pipelineInfo.subpass = 0;
-
-		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
-		pipelineInfo.basePipelineIndex = -1; // Optional
-
-		if (vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS)
-		{
-			return false;
-		}
-	}
-	return true;
 }
 
 bool KVulkanRenderDevice::CreateCommandPool()
@@ -893,7 +711,9 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 			// 开始渲染过程
 			vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			{
-				vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipelines[i]);
+				KVulkanPipeline* pipeline = (KVulkanPipeline*)m_SwapChainPipelines[i].get();
+
+				vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipeline());
 
 				KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
 				VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
@@ -905,7 +725,8 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 
 				//vkCmdDraw(m_CommandBuffers[i], (uint32_t)vulkanVertexBuffer->GetVertexCount(), 1, 0, 0);
 				// 绑定描述集合
-				vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSets[i], 0, nullptr);
+				VkDescriptorSet set = pipeline->GetVkDescriptorSet();
+				vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipelineLayout(), 0, 1, &set, 0, nullptr);
 				vkCmdDrawIndexed(m_CommandBuffers[i], static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
 			}
 			// 结束渲染过程
@@ -947,11 +768,6 @@ bool KVulkanRenderDevice::CreateVertexInput()
 	m_IndexBuffer->InitMemory(IT_16, sizeof(indices) / sizeof(indices[0]), indices);
 	m_IndexBuffer->InitDevice();
 
-	VertexBindingDetail bindingDetail;
-	bindingDetail.vertexBuffer = m_VertexBuffer;
-	bindingDetail.formats.push_back(VF_POINT_NORMAL_UV);
-	KVulkanHelper::PopulateInputBindingDescription(&bindingDetail, 1, m_VertexBindDetailList);
-
 	return true;
 }
 
@@ -986,152 +802,6 @@ bool KVulkanRenderDevice::CreateTex()
 	m_Sampler->Init();
 
 	return true;
-}
-
-bool KVulkanRenderDevice::CreateDescriptorPool()
-{
-	VkDescriptorPoolSize uniformPoolSize = {};
-	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)的描述集合数最大值
-	uniformPoolSize.descriptorCount = static_cast<uint32_t>(m_SwapChainImages.size());
-
-	VkDescriptorPoolSize samplerPoolSize = {};
-	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)的描述集合数最大值
-	samplerPoolSize.descriptorCount = static_cast<uint32_t>(m_SwapChainImages.size());
-
-	VkDescriptorPoolSize poolSizes[] = {uniformPoolSize, samplerPoolSize};
-
-	VkDescriptorPoolCreateInfo poolInfo = {};
-	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = ARRAY_SIZE(poolSizes);
-	poolInfo.pPoolSizes = poolSizes;
-
-	// 创建的描述池各个type的描述集合数的总和
-	// 相当于所有pPoolSizes的descriptorCount总和
-	poolInfo.maxSets = static_cast<uint32_t>(m_SwapChainImages.size()) * poolInfo.poolSizeCount;
-
-	if (vkCreateDescriptorPool(m_Device, &poolInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-bool KVulkanRenderDevice::CreateDescriptorSets()
-{
-	std::vector<VkDescriptorSetLayout> layouts(m_SwapChainImages.size(), m_DescriptorSetLayout);
-	VkDescriptorSetAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	// 指定该描述集合从哪个描述池创建
-	allocInfo.descriptorPool = m_DescriptorPool;
-	// 创建的描述集合数
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(m_SwapChainImages.size());
-	// 指定每个创建的描述集合对应的描述布局
-	allocInfo.pSetLayouts = layouts.data();
-
-  	m_DescriptorSets.resize(m_SwapChainImages.size());
-	if (vkAllocateDescriptorSets(m_Device, &allocInfo, m_DescriptorSets.data()) != VK_SUCCESS)
-	{
-		return false;
-	}
-
-	// 更新描述集合
-	for (size_t i = 0; i < m_SwapChainImages.size(); i++)
-	{
-		VkDescriptorBufferInfo bufferInfo = {};
-		bufferInfo.buffer = ((KVulkanUniformBuffer*)m_UniformBuffers[i].get())->GetVulkanHandle();
-		bufferInfo.offset = 0;
-		bufferInfo.range = m_UniformBuffers[i]->GetBufferSize();
-
-		VkDescriptorImageInfo imageInfo = {};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = ((KVulkanTexture*)m_Texture.get())->GetVkImageView();
-		imageInfo.sampler = ((KVulkanSampler*)m_Sampler.get())->GetVkSampler();
-		{
-			VkWriteDescriptorSet uniformDescriptorWrite = {};
-			{
-				uniformDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				// 写入的描述集合
-				uniformDescriptorWrite.dstSet = m_DescriptorSets[i];
-				// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
-				uniformDescriptorWrite.dstBinding = 0;
-				// 写入索引与下面descriptorCount对应
-				uniformDescriptorWrite.dstArrayElement = 0;
-
-				uniformDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				uniformDescriptorWrite.descriptorCount = 1;
-
-				uniformDescriptorWrite.pBufferInfo = &bufferInfo;
-				uniformDescriptorWrite.pImageInfo = nullptr; // Optional
-				uniformDescriptorWrite.pTexelBufferView = nullptr; // Optional
-			}
-
-			VkWriteDescriptorSet samplerDescriptorWrite = {};
-			{
-				samplerDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET ;
-				// 写入的描述集合
-				samplerDescriptorWrite.dstSet = m_DescriptorSets[i];
-				// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
-				samplerDescriptorWrite.dstBinding = 1;
-				// 写入索引与下面descriptorCount对应
-				samplerDescriptorWrite.dstArrayElement = 0;
-
-				samplerDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				samplerDescriptorWrite.descriptorCount = 1;
-
-				samplerDescriptorWrite.pBufferInfo = nullptr; // Optional
-				samplerDescriptorWrite.pImageInfo = &imageInfo;
-				samplerDescriptorWrite.pTexelBufferView = nullptr; // Optional
-			}
-
-			VkWriteDescriptorSet descriptorSets[] = {uniformDescriptorWrite, samplerDescriptorWrite};
-			vkUpdateDescriptorSets(m_Device, sizeof(descriptorSets) / sizeof(VkWriteDescriptorSet), descriptorSets, 0, nullptr);
-		}
-	}
-    return true;
-}
-
-bool KVulkanRenderDevice::CreateDescriptorSetLayout()
-{
-	/*
-	这里仅仅声明UBO绑定的位置
-	实际UBO句柄绑定在描述集合里指定
-	*/
-	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-	// 与Shader中绑定位置对应
-	uboLayoutBinding.binding = 0;
-	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	// 声明UBO Buffer数组长度 这里不使用数组
-	uboLayoutBinding.descriptorCount = 1;
-	// 声明哪个阶段Shader能够使用上此UBO
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // VK_SHADER_STAGE_ALL_GRAPHICS
-	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-	/*
-	这里仅仅声明Sampler绑定的位置
-	实际Sampler句柄绑定在描述集合里指定
-	*/
-	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-	samplerLayoutBinding.binding = 1;
-	samplerLayoutBinding.descriptorCount = 1;
-	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerLayoutBinding.pImmutableSamplers = nullptr;
-	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	VkDescriptorSetLayoutBinding bindings[] = {uboLayoutBinding, samplerLayoutBinding};
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = sizeof(bindings) / sizeof(VkDescriptorSetLayoutBinding);
-	layoutInfo.pBindings = bindings;
-
-	if (vkCreateDescriptorSetLayout(m_Device, &layoutInfo, nullptr, &m_DescriptorSetLayout) == VK_SUCCESS)
-	{
-		return true;
-	}
-	return false;
 }
 
 VkBool32 KVulkanRenderDevice::DebugCallback(
@@ -1258,14 +928,9 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 		if(!CreateTex())
 			return false;
-		if(!CreateDescriptorSetLayout())
+		if(!CreatePipelines())
 			return false;
-		if(!CreateDescriptorPool())
-			return false;
-		if(!CreateDescriptorSets())
-			return false;
-		if(!CreateGraphicsPipeline())
-			return false;
+
 		if(!CreateCommandBuffers())
 			return false;
 
@@ -1305,9 +970,7 @@ bool KVulkanRenderDevice::RecreateSwapChain()
 	CreateSwapChain();
 	CreateImageViews();
 	CreateUniform();
-	CreateDescriptorPool();
-	CreateDescriptorSets();
-	CreateGraphicsPipeline();
+	CreatePipelines();
 	CreateCommandBuffers();
 
 	CreateSyncObjects();
@@ -1323,23 +986,18 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 	}
 	m_SwapChainRenderTargets.clear();
 
+	for (IKPipelinePtr pipeline :  m_SwapChainPipelines)
+	{
+		pipeline->UnInit();
+	}
+	m_SwapChainPipelines.clear();
+
 	for(IKUniformBufferPtr uniformBuffer : m_UniformBuffers)
 	{
 		uniformBuffer->UnInit();
 	}
 	m_UniformBuffers.clear();
 	m_SwapChainImages.clear();
-
-	m_DescriptorSets.clear();
-	vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
-
-	for(VkPipeline graphicsPipeline : m_GraphicsPipelines)
-	{
-		vkDestroyPipeline(m_Device, graphicsPipeline, nullptr);
-	}
-	m_GraphicsPipelines.clear();
-
-	vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
 
 	vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
 	return true;
@@ -1375,7 +1033,6 @@ bool KVulkanRenderDevice::UnInit()
 	m_CommandBuffers.clear();
 
 	DestroySyncObjects();
-	vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
 	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 
@@ -1507,6 +1164,12 @@ bool KVulkanRenderDevice::CreateSampler(IKSamplerPtr& sampler)
 bool KVulkanRenderDevice::CreateRenderTarget(IKRenderTargetPtr& target)
 {
 	target = IKRenderTargetPtr(static_cast<IKRenderTarget*>(new KVulkanRenderTarget()));
+	return true;
+}
+
+bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
+{
+	pipeline = IKPipelinePtr(static_cast<IKPipeline*>(new KVulkanPipeline()));
 	return true;
 }
 

@@ -22,10 +22,23 @@ namespace KVulkanHelper
 
 	bool TextureTypeToVkImageType(TextureType textureType, VkImageType& imageType, VkImageViewType& imageViewType);
 	bool ElementFormatToVkFormat(ElementFormat elementFormat, VkFormat& vkFormat);
+
 	bool AddressModeToVkSamplerAddressMode(AddressMode addressMode, VkSamplerAddressMode& vkAddressMode);
 	bool FilterModeToVkFilter(FilterMode filterMode, VkFilter& vkFilterkMode);
 
-	bool PopulateInputBindingDescription(const KVertexDefinition::VertexBindingDetail* pData, uint32_t nCount, VulkanBindingDetailList& list);
+	bool TopologyToVkPrimitiveTopology(PrimitiveTopology topology, VkPrimitiveTopology& vkPrimitiveTopology);
+	bool PolygonModeToVkPolygonMode(PolygonMode polygonMode, VkPolygonMode& vkPolygonMode);
+
+	bool CullModeToVkCullMode(CullMode cullMode, VkCullModeFlagBits& vkCullMode);
+	bool FrontFaceToVkFrontFace(FrontFace frontFace, VkFrontFace& vkFrontFace);
+
+	bool BlendFactorToVkBlendFactor(BlendFactor blendFactor, VkBlendFactor& vkBlendFactor);
+	bool BlendOperatorToVkBlendOp(BlendOperator blendOperator, VkBlendOp& vkBlendOp);
+
+	bool ShaderTypeFlagToVkShaderStageFlagBits(ShaderTypeFlag shaderTypeFlag, VkShaderStageFlagBits& bit);
+	bool ShaderTypesToVkShaderStageFlag(ShaderTypes shaderTypes, VkFlags& flags);
+
+	bool PopulateInputBindingDescription(const VertexInputDetail* pData, uint32_t nCount, VulkanBindingDetailList& list);
 
 	void CopyVkBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	void CopyVkBufferToVkImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);

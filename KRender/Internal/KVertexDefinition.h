@@ -53,16 +53,5 @@ namespace KVertexDefinition
 		VertexSemanticDetailList semanticDetails;
 		size_t vertexSize;
 	};
-	const VertexDetail& GetVertexDetail(VertexFormat format);
-
-	struct VertexBindingDetail
-	{
-		IKVertexBufferPtr vertexBuffer;
-		std::vector<VertexFormat> formats;
-
-		VertexBindingDetail()
-		{
-			vertexBuffer = nullptr;
-		}
-	};
+	const VertexDetail& GetVertexDetail(VertexFormat format);	
 }

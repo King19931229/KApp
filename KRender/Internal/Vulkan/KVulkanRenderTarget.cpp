@@ -6,6 +6,7 @@
 
 KVulkanRenderTarget::KVulkanRenderTarget()
 	: m_bMsaaCreated(false),
+	m_bDepthStencilCreated(false),
 	m_MsaaFlag(VK_SAMPLE_COUNT_1_BIT)
 {
 	ZERO_MEMORY(m_RenderPass);
@@ -20,17 +21,21 @@ KVulkanRenderTarget::KVulkanRenderTarget()
 
 	ZERO_MEMORY(m_MsaaImage);
 	ZERO_MEMORY(m_MsaaImageView);
-
 	ZERO_MEMORY(m_MsaaAlloc);
+
+	ZERO_MEMORY(m_DepthFormat);
+	ZERO_MEMORY(m_DepthImage);
+	ZERO_MEMORY(m_DepthImageView);
 }
 
 KVulkanRenderTarget::~KVulkanRenderTarget()
 {
-	ASSERT_RESULT(m_RenderPass == (VkRenderPass)nullptr);
-	ASSERT_RESULT(m_FrameBuffer == (VkFramebuffer)nullptr);
-	ASSERT_RESULT(m_ColorImageView == (VkImageView)nullptr);
-	ASSERT_RESULT(!m_bMsaaCreated);
-	ASSERT_RESULT(m_pDepthBuffer == nullptr);
+	ASSERT_RESULT(m_RenderPass == VK_NULL_HANDLE);
+	ASSERT_RESULT(m_FrameBuffer == VK_NULL_HANDLE);
+	ASSERT_RESULT(m_MsaaImage == VK_NULL_HANDLE);	
+	ASSERT_RESULT(m_ColorImageView == VK_NULL_HANDLE);
+	ASSERT_RESULT(m_DepthImage == VK_NULL_HANDLE);
+	ASSERT_RESULT(m_DepthImageView == VK_NULL_HANDLE);	
 }
 
 bool KVulkanRenderTarget::SetSize(size_t width, size_t height)
@@ -54,12 +59,30 @@ bool KVulkanRenderTarget::SetDepthStencilClear(float depth, unsigned int stencil
 	return true;
 }
 
-bool KVulkanRenderTarget::CreateImage(void* imageHandle, void* imageFormatHandle, bool bDepthStencil, unsigned short uMsaaCount)
+VkFormat KVulkanRenderTarget::FindDepthFormat(bool bStencil)
+{
+	VkFormat format = VK_FORMAT_MAX_ENUM;
+	std::vector<VkFormat> candidates;
+
+	if(!bStencil)
+	{
+		candidates.push_back(VK_FORMAT_D32_SFLOAT);
+	}
+	candidates.push_back(VK_FORMAT_D32_SFLOAT_S8_UINT);
+	candidates.push_back(VK_FORMAT_D24_UNORM_S8_UINT);
+
+	ASSERT_RESULT(KVulkanHelper::FindSupportedFormat(candidates, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, format));
+
+	return format;
+}
+
+bool KVulkanRenderTarget::CreateImage(void* imageHandle, void* imageFormatHandle, bool bDepth, bool bStencil, unsigned short uMsaaCount)
 {
 	ASSERT_RESULT(imageHandle != nullptr);
 	ASSERT_RESULT(imageFormatHandle != nullptr);
 
-	ASSERT_RESULT(!m_pDepthBuffer);
+	ASSERT_RESULT(!m_bMsaaCreated);
+	ASSERT_RESULT(!m_bDepthStencilCreated);
 
 	m_ColorImage = *((VkImage*)imageHandle);
 	m_ColorFormat = *((VkFormat*)imageFormatHandle);
@@ -93,10 +116,29 @@ bool KVulkanRenderTarget::CreateImage(void* imageHandle, void* imageFormatHandle
 		m_bMsaaCreated = false;
 	}
 
-	if(bDepthStencil)
+	m_bDepthStencilCreated = bDepth;
+	if(bDepth)
 	{
-		m_pDepthBuffer = KVulkanDepthBufferPtr(new KVulkanDepthBuffer());
-		ASSERT_RESULT(m_pDepthBuffer->InitDevice(m_Extend.width, m_Extend.height, uMsaaCount, true));
+		m_DepthFormat = FindDepthFormat(bStencil);
+
+		KVulkanInitializer::CreateVkImage(m_Extend.width,
+			m_Extend.height,
+			1,
+			1,
+			m_MsaaFlag,
+			VK_IMAGE_TYPE_2D,
+			m_DepthFormat,
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			m_DepthImage,
+			m_AllocInfo);
+
+		KVulkanInitializer::CreateVkImageView(m_DepthImage,
+			m_DepthFormat,
+			VK_IMAGE_ASPECT_DEPTH_BIT | (bStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0),
+			1,
+			m_DepthImageView);
 	}
 
 	return true;
@@ -122,8 +164,8 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 
 	// ÉùÃ÷ Depth Attachment
 	VkAttachmentDescription depthAttachment = {};
-	depthAttachment.format = m_pDepthBuffer->GetVkFormat();
-	depthAttachment.samples = m_pDepthBuffer->GetVkSampleCountFlagBits();
+	depthAttachment.format = m_DepthFormat;
+	depthAttachment.samples = m_MsaaFlag;
 
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -205,13 +247,13 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 	if(m_bMsaaCreated)
 	{
 		imageViews.push_back(m_MsaaImageView);
-		imageViews.push_back(m_pDepthBuffer->GetVkImageView());
+		imageViews.push_back(m_DepthImageView);
 		imageViews.push_back(m_ColorImageView);
 	}
 	else
 	{
 		imageViews.push_back(m_ColorImageView);
-		imageViews.push_back(m_pDepthBuffer->GetVkImageView());
+		imageViews.push_back(m_DepthImageView);
 	}
 
 	VkFramebufferCreateInfo framebufferInfo = {};
@@ -224,14 +266,14 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 	framebufferInfo.layers = 1;
 
 	VK_ASSERT_RESULT(vkCreateFramebuffer(KVulkanGlobal::device, &framebufferInfo, nullptr, &m_FrameBuffer));
-	
+
 	return true;
 }
 
 
-bool KVulkanRenderTarget::InitFromImage(void* imageHandle, void* imageFormatHandle, bool bDepthStencil, unsigned short uMsaaCount)
+bool KVulkanRenderTarget::InitFromImage(void* imageHandle, void* imageFormatHandle, bool bDepth, bool bStencil, unsigned short uMsaaCount)
 {
-	ASSERT_RESULT(CreateImage(imageHandle, imageFormatHandle, bDepthStencil, uMsaaCount));
+	ASSERT_RESULT(CreateImage(imageHandle, imageFormatHandle, bDepth, bStencil, uMsaaCount));
 	ASSERT_RESULT(CreateFramebuffer());	
 	return true;
 }
@@ -243,32 +285,41 @@ bool KVulkanRenderTarget::UnInit()
 	if(m_RenderPass)
 	{
 		vkDestroyRenderPass(KVulkanGlobal::device, m_RenderPass, nullptr);
-		ZERO_MEMORY(m_RenderPass);
+		m_RenderPass = VK_NULL_HANDLE;
 	}
 
 	if(m_FrameBuffer)
 	{
 		vkDestroyFramebuffer(KVulkanGlobal::device, m_FrameBuffer, nullptr);
-		ZERO_MEMORY(m_FrameBuffer);
+		m_FrameBuffer = VK_NULL_HANDLE;
 	}
 
 	if(m_ColorImageView)
 	{
 		vkDestroyImageView(KVulkanGlobal::device, m_ColorImageView, nullptr);
-		ZERO_MEMORY(m_ColorImageView);
+		m_ColorImageView = VK_NULL_HANDLE;
 	}
 
 	if(m_bMsaaCreated)
 	{
 		vkDestroyImageView(KVulkanGlobal::device, m_MsaaImageView, nullptr);
 		KVulkanInitializer::FreeVkImage(m_MsaaImage, m_MsaaAlloc);
+
+		m_MsaaImageView = VK_NULL_HANDLE;
+		m_MsaaImage = VK_NULL_HANDLE;
+
 		m_bMsaaCreated = false;
 	}
 
-	if(m_pDepthBuffer)
+	if(m_bDepthStencilCreated)
 	{
-		m_pDepthBuffer->UnInit();
-		m_pDepthBuffer = nullptr;
+		vkDestroyImageView(KVulkanGlobal::device, m_DepthImageView, nullptr);
+		KVulkanInitializer::FreeVkImage(m_DepthImage, m_AllocInfo);
+
+		m_DepthImageView = VK_NULL_HANDLE;
+		m_DepthImage = VK_NULL_HANDLE;
+
+		m_bDepthStencilCreated = false;
 	}
 
 	return true;
