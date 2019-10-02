@@ -396,7 +396,7 @@ bool KVulkanRenderDevice::CreateImageViews()
 	VkSampleCountFlagBits flag = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
 	for(uint32_t count: candidate)
 	{
-		if(KVulkanHelper::QueryMSAASupport(KVulkanHelper::MST_BOTH, count , flag))
+		if(KVulkanHelper::QueryMSAASupport(KVulkanHelper::MST_COLOR, count , flag))
 		{
 			msaaCount = count;
 			break;
@@ -407,7 +407,9 @@ bool KVulkanRenderDevice::CreateImageViews()
 	{
 		CreateRenderTarget(m_SwapChainRenderTargets[i]);
 
-		m_SwapChainRenderTargets[i]->SetColorClear(0.0f, 0.0f, 0.0f, 0.0f);
+#define HEX_COL(NUM) ((float)NUM / float(0XFF))
+		m_SwapChainRenderTargets[i]->SetColorClear(HEX_COL(0x87), HEX_COL(0xCE), HEX_COL(0xFF), HEX_COL(0XFF));
+#undef HEX_COL
 		m_SwapChainRenderTargets[i]->SetDepthStencilClear(1.0, 0);
 		m_SwapChainRenderTargets[i]->SetSize(m_SwapChainExtent.width, m_SwapChainExtent.height);
 
@@ -591,7 +593,8 @@ bool KVulkanRenderDevice::CreateCommandPool()
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	// 指定该命令池所属的队列家族
 	poolInfo.queueFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
-	poolInfo.flags = 0; // Optional
+	// 为PushConstant所用
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 	if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_CommandPool) == VK_SUCCESS)
 	{
@@ -658,6 +661,76 @@ bool KVulkanRenderDevice::DestroySyncObjects()
 	return true;
 }
 
+bool KVulkanRenderDevice::UpdateCommandBuffer(unsigned int idx)
+{
+	// 命令开始时候创建需要一个命令开始信息
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = 0; // Optional
+	beginInfo.pInheritanceInfo = nullptr; // Optional
+
+	assert(idx < m_CommandBuffers.size());
+
+	VK_ASSERT_RESULT(vkBeginCommandBuffer(m_CommandBuffers[idx], &beginInfo));	
+	{
+		KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_SwapChainRenderTargets[idx].get();
+
+		// 创建开始渲染过程描述
+		VkRenderPassBeginInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		// 指定渲染通道
+		renderPassInfo.renderPass = target->GetRenderPass();
+		// 指定帧缓冲
+		renderPassInfo.framebuffer = target->GetFrameBuffer();
+
+		renderPassInfo.renderArea.offset.x = 0;
+		renderPassInfo.renderArea.offset.y = 0;
+		renderPassInfo.renderArea.extent = target->GetExtend();
+
+		// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
+		auto clearValuesPair = target->GetVkClearValues();
+		renderPassInfo.pClearValues = clearValuesPair.first;
+		renderPassInfo.clearValueCount = clearValuesPair.second;
+
+		// 开始渲染过程
+		vkCmdBeginRenderPass(m_CommandBuffers[idx], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		{
+			KVulkanPipeline* swapchainPipeline = (KVulkanPipeline*)m_SwapChainPipelines[idx].get();
+
+			VkPipeline pipeline = swapchainPipeline->GetVkPipeline();
+			VkPipelineLayout pipelineLayout = swapchainPipeline->GetVkPipelineLayout();
+			VkDescriptorSet descriptorSet = swapchainPipeline->GetVkDescriptorSet();
+
+			// 绑定管线
+			vkCmdBindPipeline(m_CommandBuffers[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+			// 绑定管线布局
+			vkCmdBindDescriptorSets(m_CommandBuffers[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
+			void* pData = KConstantGlobal::GetGlobalConstantData(CBT_TRANSFORM);
+			vkCmdPushConstants(m_CommandBuffers[idx], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_UniformBuffers[idx]->GetBufferSize(), pData);
+
+			// 绑定顶点缓冲
+			KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
+			VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
+			VkDeviceSize offsets[] = {0};
+			vkCmdBindVertexBuffers(m_CommandBuffers[idx], 0, 1, vertexBuffers, offsets);
+			// 绑定索引缓冲
+			KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffer.get();
+			vkCmdBindIndexBuffer(m_CommandBuffers[idx], vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+
+			//vkCmdDraw(m_CommandBuffers[i], (uint32_t)vulkanVertexBuffer->GetVertexCount(), 1, 0, 0);
+			// 绘制调用
+			vkCmdDrawIndexed(m_CommandBuffers[idx], static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+		}
+		// 结束渲染过程
+		vkCmdEndRenderPass(m_CommandBuffers[idx]);
+	}
+
+	VK_ASSERT_RESULT(vkEndCommandBuffer(m_CommandBuffers[idx]));
+
+	return true;
+}
+
 bool KVulkanRenderDevice::CreateCommandBuffers()
 {
 	// 交换链上的每个帧缓冲都需要提交命令
@@ -677,68 +750,9 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{
-		// 命令开始时候创建需要一个命令开始信息
-		VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = 0; // Optional
-		beginInfo.pInheritanceInfo = nullptr; // Optional
-
-		if (vkBeginCommandBuffer(m_CommandBuffers[i], &beginInfo) != VK_SUCCESS)
-		{
-			m_CommandBuffers.clear();
-			return false;
-		}
-		{
-			KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_SwapChainRenderTargets[i].get();
-
-			// 创建开始渲染过程描述
-			VkRenderPassBeginInfo renderPassInfo = {};
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			// 指定渲染通道
-			renderPassInfo.renderPass = target->GetRenderPass();
-			// 指定帧缓冲
-			renderPassInfo.framebuffer = target->GetFrameBuffer();
-
-			renderPassInfo.renderArea.offset.x = 0;
-			renderPassInfo.renderArea.offset.y = 0;
-			renderPassInfo.renderArea.extent = m_SwapChainExtent;
-
-			// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
-			VkClearValue clearValues[] = {{0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0}};
-			renderPassInfo.clearValueCount = ARRAY_SIZE(clearValues);
-			renderPassInfo.pClearValues = clearValues;
-
-			// 开始渲染过程
-			vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-			{
-				KVulkanPipeline* pipeline = (KVulkanPipeline*)m_SwapChainPipelines[i].get();
-
-				vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipeline());
-
-				KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
-				VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
-				VkDeviceSize offsets[] = {0};
-				vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
-
-				KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffer.get();
-				vkCmdBindIndexBuffer(m_CommandBuffers[i], vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-
-				//vkCmdDraw(m_CommandBuffers[i], (uint32_t)vulkanVertexBuffer->GetVertexCount(), 1, 0, 0);
-				// 绑定描述集合
-				VkDescriptorSet set = pipeline->GetVkDescriptorSet();
-				vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVkPipelineLayout(), 0, 1, &set, 0, nullptr);
-				vkCmdDrawIndexed(m_CommandBuffers[i], static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
-			}
-			// 结束渲染过程
-			vkCmdEndRenderPass(m_CommandBuffers[i]);
-		}
-
-		if (vkEndCommandBuffer(m_CommandBuffers[i]) != VK_SUCCESS)
-		{
-			m_CommandBuffers.clear();
-			return false;
-		}
+		UpdateCommandBuffer((unsigned int)i);
 	}
+
 	return true;
 }
 
@@ -767,7 +781,6 @@ bool KVulkanRenderDevice::CreateVertexInput()
 	CreateIndexBuffer(m_IndexBuffer);
 	m_IndexBuffer->InitMemory(IT_16, sizeof(indices) / sizeof(indices[0]), indices);
 	m_IndexBuffer->InitDevice();
-
 	return true;
 }
 
@@ -935,6 +948,9 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 
 		m_pWindow->SetVulkanDevice(this);
+
+		m_RenderThreadPool.PushWorkerThreads(std::thread::hardware_concurrency());
+
 		return true;
 	}
 	else
@@ -1005,6 +1021,8 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 
 bool KVulkanRenderDevice::UnInit()
 {
+	m_RenderThreadPool.PopWorkerThreads(m_RenderThreadPool.GetWorkerThreadNum());
+	
 	m_pWindow = nullptr;
 
 	if(m_VertexBuffer)
@@ -1210,7 +1228,8 @@ bool KVulkanRenderDevice::UpdateUniformBuffer(uint32_t currentImage)
 		}
 	}
 
-	m_UniformBuffers[currentImage]->Write(pData);
+	//PushConstant替代之
+	//m_UniformBuffers[currentImage]->Write(pData);
 	return true;
 }
 
@@ -1232,6 +1251,7 @@ bool KVulkanRenderDevice::Present()
 	}
 
 	UpdateUniformBuffer(imageIndex);
+	UpdateCommandBuffer(imageIndex);
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

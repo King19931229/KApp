@@ -12,8 +12,9 @@ KVulkanRenderTarget::KVulkanRenderTarget()
 	ZERO_MEMORY(m_RenderPass);
 	ZERO_MEMORY(m_FrameBuffer);
 	ZERO_MEMORY(m_ColorFormat);
-	ZERO_MEMORY(m_ColorClear);
-	ZERO_MEMORY(m_DepthStencilClear);
+
+	ZERO_ARRAY_MEMORY(m_ClearValues);
+
 	ZERO_MEMORY(m_Extend);
 
 	ZERO_MEMORY(m_ColorImage);
@@ -48,14 +49,14 @@ bool KVulkanRenderTarget::SetSize(size_t width, size_t height)
 bool KVulkanRenderTarget::SetColorClear(float r, float g, float b, float a)
 {
 	VkClearColorValue clear = {r, g, b, a};
-	m_ColorClear.color = clear;
+	m_ClearValues[CT_COLOR].color = clear;
 	return true;
 }
 
 bool KVulkanRenderTarget::SetDepthStencilClear(float depth, unsigned int stencil)
 {
 	VkClearDepthStencilValue clear = {depth, stencil};
-	m_DepthStencilClear.depthStencil = clear;
+	m_ClearValues[CT_DEPTH_STENCIL].depthStencil = clear;
 	return true;
 }
 
@@ -91,7 +92,8 @@ bool KVulkanRenderTarget::CreateImage(void* imageHandle, void* imageFormatHandle
 
 	if(uMsaaCount > 1)
 	{
-		ASSERT_RESULT(KVulkanHelper::QueryMSAASupport(KVulkanHelper::MST_BOTH, uMsaaCount , m_MsaaFlag));
+		ASSERT_RESULT(KVulkanHelper::QueryMSAASupport(bDepth ? KVulkanHelper::MST_BOTH : KVulkanHelper::MST_COLOR,
+			uMsaaCount , m_MsaaFlag));
 
 		KVulkanInitializer::CreateVkImage(m_Extend.width, m_Extend.height, 1,
 			1,
@@ -162,7 +164,7 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachment.finalLayout = m_bMsaaCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-	// 声明 Depth Attachment
+	// 声明 Depth Attachment 不一定用到
 	VkAttachmentDescription depthAttachment = {};
 	depthAttachment.format = m_DepthFormat;
 	depthAttachment.samples = m_MsaaFlag;
@@ -200,7 +202,7 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentReference colorAttachmentResolveRef = {};
-	colorAttachmentResolveRef.attachment = 2;
+	colorAttachmentResolveRef.attachment = m_bDepthStencilCreated ? 2 : 1;
 	colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	// 声明子通道
@@ -209,7 +211,7 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
-	subpass.pDepthStencilAttachment = &depthAttachmentRef;
+	subpass.pDepthStencilAttachment = m_bDepthStencilCreated ? &depthAttachmentRef : nullptr;
 	subpass.pResolveAttachments = m_bMsaaCreated ? &colorAttachmentResolveRef : nullptr;
 
 	// 从属依赖
@@ -225,7 +227,10 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 	// 创建渲染通道	
 	std::vector<VkAttachmentDescription> descs;
 	descs.push_back(colorAttachment);
-	descs.push_back(depthAttachment);
+	if(m_bDepthStencilCreated)
+	{
+		descs.push_back(depthAttachment);
+	}
 	if(m_bMsaaCreated)
 	{
 		descs.push_back(colorAttachmentResolve);
@@ -247,13 +252,19 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 	if(m_bMsaaCreated)
 	{
 		imageViews.push_back(m_MsaaImageView);
-		imageViews.push_back(m_DepthImageView);
+		if(m_bDepthStencilCreated)
+		{
+			imageViews.push_back(m_DepthImageView);
+		}
 		imageViews.push_back(m_ColorImageView);
 	}
 	else
 	{
 		imageViews.push_back(m_ColorImageView);
-		imageViews.push_back(m_DepthImageView);
+		if(m_bDepthStencilCreated)
+		{
+			imageViews.push_back(m_DepthImageView);
+		}
 	}
 
 	VkFramebufferCreateInfo framebufferInfo = {};
@@ -323,4 +334,14 @@ bool KVulkanRenderTarget::UnInit()
 	}
 
 	return true;
+}
+
+KVulkanRenderTarget::ClearValues KVulkanRenderTarget::GetVkClearValues()
+{
+	ClearValues ret;
+
+	ret.first = m_ClearValues;
+	ret.second = m_bDepthStencilCreated ? 2: 1;
+
+	return ret;
 }

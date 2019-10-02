@@ -31,6 +31,7 @@
 #define POINTER_OFFSET(p, offset) ((void*)((char*)p + offset))
 
 #define ZERO_MEMORY(variable) { memset(&variable, 0, sizeof(variable)); }
+#define ZERO_ARRAY_MEMORY(arr) { memset(arr, 0, sizeof(arr) / sizeof(arr[0])); }
 
 #define ASSERT_RESULT(exp)\
 do\

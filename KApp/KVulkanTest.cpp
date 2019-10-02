@@ -27,9 +27,26 @@ IKLogPtr pLog;
 #include <process.h>
 
 #include "KBase/Publish/KNumerical.h"
+#include "KBase/Publish/KThreadPool.h"
 
 int main()
 {
+	/*
+	KThreadPool<std::function<bool()>> threadPool;
+	threadPool.PushWorkerThreads(8);
+	std::atomic<int> count = 0;
+	for(int i = 0; i < 1000; ++i)
+	{
+		threadPool.SubmitTask([&]()
+		{
+			printf("work %d\n", count++);
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			return true;
+		});
+	}
+	threadPool.WaitAllAsyncTaskDone();
+	return 0;
+	*/
 	/*
 	printf("%d\n", KNumerical::Pow2LessEqual(10));
 	printf("%d\n", KNumerical::Pow2LessEqual(768));

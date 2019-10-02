@@ -9,8 +9,14 @@ protected:
 	VkRenderPass	m_RenderPass;
 	VkFramebuffer	m_FrameBuffer;
 
-	VkClearValue	m_ColorClear;
-	VkClearValue	m_DepthStencilClear;
+	enum ClearTarget
+	{
+		CT_COLOR,
+		CT_DEPTH_STENCIL,
+
+		CT_COUNT
+	};
+	VkClearValue	m_ClearValues[CT_COUNT];
 
 	VkExtent2D		m_Extend;
 
@@ -53,4 +59,7 @@ public:
 	inline VkFramebuffer GetFrameBuffer() { return m_FrameBuffer; }
 	inline VkSampleCountFlagBits GetMsaaFlag(){ return m_MsaaFlag; }
 	inline VkExtent2D GetExtend() { return m_Extend; }
+
+	typedef std::pair<VkClearValue*, unsigned int> ClearValues;
+	ClearValues GetVkClearValues();
 };

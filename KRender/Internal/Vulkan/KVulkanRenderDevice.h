@@ -4,6 +4,8 @@
 #include "KVulkanHelper.h"
 #include "KVulkanDepthBuffer.h"
 
+#include "KBase/Publish/KThreadPool.h"
+
 #include "GLFW/glfw3.h"
 #include <algorithm>
 #include <vector>
@@ -61,6 +63,7 @@ protected:
 	bool m_EnableValidationLayer;
 	// Temporarily for demo use
 	std::vector<VkCommandBuffer> m_CommandBuffers;
+	KThreadPool<std::function<void()>> m_RenderThreadPool;
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
@@ -120,6 +123,7 @@ protected:
 	bool CreateUniform();
 	bool CreateTex();
 	bool CreateCommandBuffers();
+	bool UpdateCommandBuffer(unsigned int idx);
 
 	bool UpdateUniformBuffer(uint32_t currentImage);
 

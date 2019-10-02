@@ -63,6 +63,7 @@ class KThreadPool
 
 		bool m_bDone;
 		KSemaphore m_Sem;
+		KSemaphore m_SemForEmtpy;
 		std::thread m_Thread;
 
 		static unsigned short ms_IDCounter;
@@ -111,6 +112,8 @@ class KThreadPool
 						m_SharedQueue.sem.Notify();
 					}
 				});
+
+				m_SemForEmtpy.Notify();
 			}
 
 			{
@@ -138,6 +141,11 @@ class KThreadPool
 		bool Notify()
 		{
 			return m_Sem.Notify();
+		}
+
+		bool Wait()
+		{
+			return m_SemForEmtpy.WaitUntil([&]() { return m_Queue.Empty(); });
 		}
 	};
 	////////////////////////////////////////////////////////////
@@ -293,6 +301,12 @@ public:
 	bool AllTaskDone()
 	{
 		return AllAsyncTaskDone() && AllSyncTaskDone();
+	}
+
+	bool WaitAllAsyncTaskDone()
+	{
+		std::for_each(m_Threads.begin(), m_Threads.end(), std::mem_fun(&KWorkerThread::Wait));
+		return true;
 	}
 
 	void ProcessSyncTask()

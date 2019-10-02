@@ -142,11 +142,15 @@ bool KVulkanPipeline::CreateLayout()
 	ASSERT_RESULT(m_DescriptorSetLayout == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
 
+	size_t pushConstantOffset = 0;
+	std::vector<VkPushConstantRange> pushConstantRanges;
+
 	/*
 	DescriptorSetLayout 仅仅声明UBO Sampler绑定的位置
 	实际UBO Sampler 句柄绑定在描述集合里指定
 	*/
 	std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+
 	for(auto& pair : m_Uniforms)
 	{
 		unsigned int location = pair.first;
@@ -166,6 +170,16 @@ bool KVulkanPipeline::CreateLayout()
 		uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
 		layoutBindings.push_back(uboLayoutBinding);
+
+		// VkPushConstantRange TODO 临时硬代码
+		VkPushConstantRange pushConstantRange = {};
+		pushConstantRange.stageFlags = stageFlags;
+		pushConstantRange.offset = (uint32_t)pushConstantOffset;
+		pushConstantRange.size = (uint32_t)info.buffer->GetBufferSize();
+
+		pushConstantOffset += info.buffer->GetBufferSize();
+
+		pushConstantRanges.push_back(pushConstantRange);
 	}
 
 	for(auto& pair : m_Samplers)
@@ -199,8 +213,8 @@ bool KVulkanPipeline::CreateLayout()
 	pipelineLayoutInfo.setLayoutCount = 1; // Optional
 	// 指定该管线的描述布局
 	pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout; // Optional
-	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+	pipelineLayoutInfo.pushConstantRangeCount = (uint32_t)pushConstantRanges.size();
+	pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges.size() > 0 ? pushConstantRanges.data() : nullptr;
 
 	VK_ASSERT_RESULT(vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout));
 
