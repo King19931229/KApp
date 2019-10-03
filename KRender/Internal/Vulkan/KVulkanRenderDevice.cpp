@@ -458,7 +458,7 @@ bool KVulkanRenderDevice::CreatePipelines()
 		pipeline->SetTextureSampler(1, m_Texture, m_Sampler);
 
 		pipeline->PushConstantBuffer(ST_VERTEX, m_ObjectBuffer);
-		
+
 		pipeline->Init(m_SwapChainRenderTargets[i]);
 	}
 
@@ -708,10 +708,6 @@ bool KVulkanRenderDevice::UpdateCommandBuffer(unsigned int idx)
 			// 绑定管线布局
 			vkCmdBindDescriptorSets(m_CommandBuffers[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-			void* pData = nullptr;
-			ASSERT_RESULT(m_ObjectBuffer->Reference(&pData));
-			vkCmdPushConstants(m_CommandBuffers[idx], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_ObjectBuffer->GetBufferSize(), pData);
-
 			// 绑定顶点缓冲
 			KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
 			VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
@@ -723,7 +719,16 @@ bool KVulkanRenderDevice::UpdateCommandBuffer(unsigned int idx)
 
 			//vkCmdDraw(m_CommandBuffers[i], (uint32_t)vulkanVertexBuffer->GetVertexCount(), 1, 0, 0);
 			// 绘制调用
-			vkCmdDrawIndexed(m_CommandBuffers[idx], static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+			unsigned int i = 0;
+			for(const ObjectTransform& transform : m_ObjectTransforms)
+			{
+				glm::mat4 model = transform.translate * transform.rotate;
+				m_ObjectBuffer->Write(&model);
+				void* pData = nullptr;
+				ASSERT_RESULT(m_ObjectBuffer->Reference(&pData));
+				vkCmdPushConstants(m_CommandBuffers[idx], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_ObjectBuffer->GetBufferSize(), pData);
+				vkCmdDrawIndexed(m_CommandBuffers[idx], static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+			}
 		}
 		// 结束渲染过程
 		vkCmdEndRenderPass(m_CommandBuffers[idx]);
@@ -769,18 +774,13 @@ bool KVulkanRenderDevice::CreateVertexInput()
 		{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
 		{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
 		{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)},
-
-		{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
-		{glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
-		{glm::vec3(0.5f, 0.5f, -0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
-		{glm::vec3(-0.5f, 0.5f, -0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)}
 	};
 
 	CreateVertexBuffer(m_VertexBuffer);
 	m_VertexBuffer->InitMemory(sizeof(vertices) / sizeof(vertices[0]), sizeof(vertices[0]), vertices);
 	m_VertexBuffer->InitDevice();
 
-	const uint16_t indices[] = {0, 1, 2, 2, 3, 0,  0 + 4, 1 + 4, 2 + 4, 2 + 4, 3 + 4, 0+ 4};
+	const uint16_t indices[] = {0, 1, 2, 2, 3, 0};
 	CreateIndexBuffer(m_IndexBuffer);
 	m_IndexBuffer->InitMemory(IT_16, sizeof(indices) / sizeof(indices[0]), indices);
 	m_IndexBuffer->InitDevice();
@@ -800,6 +800,29 @@ bool KVulkanRenderDevice::CreateUniform()
 	m_CameraBuffer->InitMemory(KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA).bufferSize,
 		KConstantGlobal::GetGlobalConstantData(CBT_CAMERA));
 	m_CameraBuffer->InitDevice(CUT_REGULAR);
+
+	const int width = 40;
+	const int height = 40;
+	m_ObjectTransforms.clear();
+	m_ObjectTransforms.reserve(width * height);
+	for(size_t x = 0; x < width; ++x)
+	{
+		for(size_t y = 0; y < height; ++y)
+		{
+			float xPos = ((float)x - (float)width / 2.0f);
+			float yPos = ((float)y - (float)height / 2.0f);
+			ObjectTransform transform = 
+			{
+				glm::rotate(glm::mat4(1.0f),
+					glm::radians((1000.0f * float(rand() % 1000)) * glm::two_pi<float>()), 
+					glm::vec3(0.0f, 0.0f, 1.0f)),
+				glm::translate(glm::mat4(1.0f), glm::vec3(xPos, yPos, 0.0f)),
+				glm::mat4(1.0f),
+				glm::mat4(1.0f)
+			};
+			m_ObjectTransforms.push_back(transform);
+		}
+	}
 
 	return true;
 }
@@ -1201,56 +1224,71 @@ bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 	return true;
 }
 
-bool KVulkanRenderDevice::UpdateUniformBuffer(uint32_t currentImage)
+bool KVulkanRenderDevice::UpdateCamera()
 {
-	static auto startTime = std::chrono::high_resolution_clock::now();
-
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-	glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	glm::mat4 view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	glm::mat4 proj = glm::perspective(glm::radians(45.0f), m_SwapChainExtent.width / (float) m_SwapChainExtent.height, 0.1f, 10.0f);
+	glm::mat4 view = glm::lookAt(glm::vec3(0, 50.0f, 50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 proj = glm::perspective(glm::radians(45.0f), m_SwapChainExtent.width / (float) m_SwapChainExtent.height, 0.1f, 300.0f);
 	proj[1][1] *= -1;
 
+	void* pWritePos = nullptr;
+	void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);	
+	const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
+	for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 	{
-		void* pWritePos = nullptr;
-		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);	
-		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
-		for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
+		if(detail.semantic == CS_VIEW)
 		{
-			if(detail.semantic == CS_VIEW)
-			{
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				assert(sizeof(view) == detail.size);
-				memcpy(pWritePos, &view, sizeof(view));
-			}
-			else if(detail.semantic == CS_PROJ)
-			{
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				assert(sizeof(proj) == detail.size);
-				memcpy(pWritePos, &proj, sizeof(proj));
-			}
+			pWritePos = POINTER_OFFSET(pData, detail.offset);
+			assert(sizeof(view) == detail.size);
+			memcpy(pWritePos, &view, sizeof(view));
 		}
-		m_CameraBuffer->Write(pData);
+		else if(detail.semantic == CS_PROJ)
+		{
+			pWritePos = POINTER_OFFSET(pData, detail.offset);
+			assert(sizeof(proj) == detail.size);
+			memcpy(pWritePos, &proj, sizeof(proj));
+		}
+	}
+	m_CameraBuffer->Write(pData);
+
+	return true;
+}
+
+bool KVulkanRenderDevice::UpdateObjectTransform()
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+	glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	void* pWritePos = nullptr;
+	void* pData = KConstantGlobal::GetGlobalConstantData(CBT_OBJECT);	
+	const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT);
+	for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
+	{
+		if(detail.semantic == CS_MODEL)
+		{
+			pWritePos = POINTER_OFFSET(pData, detail.offset);
+			assert(sizeof(model) == detail.size);
+			memcpy(pWritePos, &model, sizeof(model));
+		}
+	}
+	m_ObjectBuffer->Write(pData);
+
+	const float speed = 1.0f;
+	const float maxRange = 5.0f;
+	float translate = maxRange * (sinf(time * speed) / glm::pi<float>());
+	for(ObjectTransform& transform : m_ObjectTransforms)
+	{
+		transform.rotate = model * transform.initRotate;
+		transform.translate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, translate)) * transform.initTranslate;
 	}
 
-	{
-		void* pWritePos = nullptr;
-		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_OBJECT);	
-		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT);
-		for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
-		{
-			if(detail.semantic == CS_MODEL)
-			{
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				assert(sizeof(model) == detail.size);
-				memcpy(pWritePos, &model, sizeof(model));
-			}
-		}
-		m_ObjectBuffer->Write(pData);
-	}	
 	return true;
+}
+
+void KVulkanRenderDevice::ThreadRenderFunc(unsigned int threadIndex, unsigned int objectIndex)
+{
+
 }
 
 bool KVulkanRenderDevice::Present()
@@ -1270,7 +1308,11 @@ bool KVulkanRenderDevice::Present()
 		return false;
 	}
 
-	UpdateUniformBuffer(imageIndex);
+	UpdateCamera();
+	UpdateObjectTransform();
+
+	m_RenderThreadPool.WaitAllAsyncTaskDone();
+
 	UpdateCommandBuffer(imageIndex);
 
 	VkSubmitInfo submitInfo = {};

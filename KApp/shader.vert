@@ -7,17 +7,14 @@ layout(location = NORMAL) in vec3 normal;
 layout(location = TEXCOORD0) in vec2 texcoord0;
 
 
-layout(push_constant) uniform PushConsts
+layout(push_constant)uniform PushConstant
 {
 	mat4 model;
-    mat4 view;
-    mat4 proj;
-}pushConsts;
+}object;
 
 layout(binding = TRANSFORM)
 uniform UniformBufferObject
 {
-    mat4 model;
     mat4 view;
     mat4 proj;
 }transform;
@@ -33,6 +30,6 @@ vec3 colors[4] = vec3[](
 
 void main()
 {
-	gl_Position = pushConsts.proj * pushConsts.view * pushConsts.model * vec4(position.x, position.y, position.z, 1.0);
+	gl_Position = transform.proj * transform.view * object.model * vec4(position.x, position.y, position.z, 1.0);
 	uv = texcoord0;
 }

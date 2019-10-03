@@ -68,6 +68,15 @@ protected:
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 
+	struct ObjectTransform
+	{
+		glm::mat4 initRotate;
+		glm::mat4 initTranslate;
+		glm::mat4 rotate;
+		glm::mat4 translate;
+	};
+	std::vector<ObjectTransform> m_ObjectTransforms;
+
 	IKUniformBufferPtr m_ObjectBuffer;
 	IKUniformBufferPtr m_CameraBuffer;
 
@@ -128,7 +137,10 @@ protected:
 	bool CreateCommandBuffers();
 	bool UpdateCommandBuffer(unsigned int idx);
 
-	bool UpdateUniformBuffer(uint32_t currentImage);
+	bool UpdateCamera();
+	bool UpdateObjectTransform();
+
+	void ThreadRenderFunc(unsigned int threadIndex, unsigned int objectIndex);
 
 	bool RecreateSwapChain();
 	bool CleanupSwapChain();

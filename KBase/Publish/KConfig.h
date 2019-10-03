@@ -36,8 +36,10 @@
 #define ASSERT_RESULT(exp)\
 do\
 {\
-	bool result = (bool)(exp);\
-	assert(result);\
+	if(!(exp))\
+	{\
+		assert(false && "assert failure please check");\
+	}\
 }\
 while(false);
 
