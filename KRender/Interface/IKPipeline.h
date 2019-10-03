@@ -19,6 +19,8 @@ struct IKPipeline
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
 	virtual bool SetTextureSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler) = 0;
 
+	virtual bool PushConstantBuffer(ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
+
 	virtual bool Init(IKRenderTargetPtr target) = 0;
 	virtual bool UnInit() = 0;
 };

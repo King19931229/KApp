@@ -67,11 +67,13 @@ public:
 	// 初始化内存数据 通常用于异步IO
 	virtual bool InitMemory(size_t bufferSize, const void* pInitData);
 
-	virtual bool InitDevice() = 0;
+	virtual bool InitDevice(ConstantUpdateType type) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool Write(const void* pData) = 0;
 	virtual bool Read(void* pData) = 0;
+
+	virtual bool Reference(void **ppData) = 0;
 
 	virtual bool CopyFrom(IKUniformBufferPtr pSource) = 0;
 	virtual bool CopyTo(IKUniformBufferPtr pDest) = 0;

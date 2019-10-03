@@ -47,12 +47,15 @@ struct IKUniformBuffer
 	// 初始化内存数据 通常用于异步IO
 	virtual bool InitMemory(size_t bufferSize, const void* pInitData) = 0;
 	// 初始化设备数据并释放内存数据 用于创建绘制API相关句柄
-	virtual bool InitDevice() = 0;
+	virtual bool InitDevice(ConstantUpdateType type) = 0;
 	// 释放内存数据与设备相关句柄
 	virtual bool UnInit() = 0;
 
 	virtual bool Write(const void* pData) = 0;
 	virtual bool Read(void* pData) = 0;
+
+	// 如果是PushConstantBuffer 直接拿出内存数据引用
+	virtual bool Reference(void **ppData) = 0;
 
 	virtual bool CopyFrom(IKUniformBufferPtr pSource) = 0;
 	virtual bool CopyTo(IKUniformBufferPtr pDest) = 0;

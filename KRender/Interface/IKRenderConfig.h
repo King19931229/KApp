@@ -35,9 +35,16 @@ enum VertexSemantic
 	VS_BLEND_INDICES
 };
 
+enum ConstantUpdateType
+{
+	CUT_REGULAR,
+	CUT_PUSH_CONSTANT
+};
+
 enum ConstantBufferType
 {
-	CBT_TRANSFORM
+	CBT_OBJECT,
+	CBT_CAMERA
 };
 
 enum ConstantSemantic

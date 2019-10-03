@@ -15,9 +15,13 @@ A structure has a scalar alignment equal to the largest scalar alignment of any 
 */
 namespace KConstantDefinition
 {
-	struct TRANSFORM
+	struct OBJECT
 	{
 		glm::mat4 MODEL;
+	};
+
+	struct CAMERA
+	{
 		glm::mat4 VIEW;
 		glm::mat4 PROJ;
 	};

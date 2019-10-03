@@ -2,7 +2,8 @@
 #include "KConstantDefinition.h"
 namespace KConstantGlobal
 {
-	extern KConstantDefinition::TRANSFORM Transform;
+	extern KConstantDefinition::OBJECT Object;
+	extern KConstantDefinition::CAMERA Camera;	
 
 	void* GetGlobalConstantData(ConstantBufferType bufferType);
 }

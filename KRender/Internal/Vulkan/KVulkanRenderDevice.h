@@ -67,7 +67,10 @@ protected:
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
-	std::vector<IKUniformBufferPtr> m_UniformBuffers;
+
+	IKUniformBufferPtr m_ObjectBuffer;
+	IKUniformBufferPtr m_CameraBuffer;
+
 	IKTexturePtr m_Texture;
 	IKSamplerPtr m_Sampler;
 	//

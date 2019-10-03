@@ -53,16 +53,19 @@ class KVulkanUniformBuffer : public KUniformBufferBase
 protected:
 	VkBuffer m_vkBuffer;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
+	ConstantUpdateType m_Type;
 	bool m_bDeviceInit;
 public:
 	KVulkanUniformBuffer();
 	virtual ~KVulkanUniformBuffer();
 
-	virtual bool InitDevice();
+	virtual bool InitDevice(ConstantUpdateType type);
 	virtual bool UnInit();
 
 	virtual bool Write(const void* pData);
 	virtual bool Read(void* pData);
+
+	virtual bool Reference(void **ppData);
 
 	virtual bool CopyFrom(IKUniformBufferPtr pSource);
 	virtual bool CopyTo(IKUniformBufferPtr pDest);

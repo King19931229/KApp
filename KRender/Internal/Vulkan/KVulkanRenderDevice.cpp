@@ -454,9 +454,11 @@ bool KVulkanRenderDevice::CreatePipelines()
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 
+		pipeline->SetConstantBuffer(0, ST_VERTEX, m_CameraBuffer);
 		pipeline->SetTextureSampler(1, m_Texture, m_Sampler);
-		pipeline->SetConstantBuffer(0, ST_VERTEX, m_UniformBuffers[i]);
 
+		pipeline->PushConstantBuffer(ST_VERTEX, m_ObjectBuffer);
+		
 		pipeline->Init(m_SwapChainRenderTargets[i]);
 	}
 
@@ -706,8 +708,9 @@ bool KVulkanRenderDevice::UpdateCommandBuffer(unsigned int idx)
 			// 绑定管线布局
 			vkCmdBindDescriptorSets(m_CommandBuffers[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-			void* pData = KConstantGlobal::GetGlobalConstantData(CBT_TRANSFORM);
-			vkCmdPushConstants(m_CommandBuffers[idx], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_UniformBuffers[idx]->GetBufferSize(), pData);
+			void* pData = nullptr;
+			ASSERT_RESULT(m_ObjectBuffer->Reference(&pData));
+			vkCmdPushConstants(m_CommandBuffers[idx], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_ObjectBuffer->GetBufferSize(), pData);
 
 			// 绑定顶点缓冲
 			KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
@@ -786,18 +789,18 @@ bool KVulkanRenderDevice::CreateVertexInput()
 
 bool KVulkanRenderDevice::CreateUniform()
 {
-	KConstantDefinition::ConstantBufferDetail detail = KConstantDefinition::GetConstantBufferDetail(CBT_TRANSFORM);
+	m_ObjectBuffer = nullptr;
+	CreateUniformBuffer(m_ObjectBuffer);
+	m_ObjectBuffer->InitMemory(KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT).bufferSize,
+		nullptr);
+	m_ObjectBuffer->InitDevice(CUT_PUSH_CONSTANT);
 
-	m_UniformBuffers.clear();
-	for(size_t i = 0; i < m_SwapChainImages.size(); ++i)
-	{
-		IKUniformBufferPtr buffer = nullptr;
-		CreateUniformBuffer(buffer);
-		m_UniformBuffers.push_back(buffer);
+	m_CameraBuffer = nullptr;
+	CreateUniformBuffer(m_CameraBuffer);
+	m_CameraBuffer->InitMemory(KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA).bufferSize,
+		KConstantGlobal::GetGlobalConstantData(CBT_CAMERA));
+	m_CameraBuffer->InitDevice(CUT_REGULAR);
 
-		buffer->InitMemory(detail.bufferSize, &KConstantGlobal::Transform);
-		buffer->InitDevice();
-	}
 	return true;
 }
 
@@ -1002,17 +1005,24 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 	}
 	m_SwapChainRenderTargets.clear();
 
+	if(m_ObjectBuffer)
+	{
+		m_ObjectBuffer->UnInit();
+		m_ObjectBuffer = nullptr;
+	}
+	if(m_CameraBuffer)
+	{
+		m_CameraBuffer->UnInit();
+		m_CameraBuffer = nullptr;
+	}
+
 	for (IKPipelinePtr pipeline :  m_SwapChainPipelines)
 	{
 		pipeline->UnInit();
 	}
 	m_SwapChainPipelines.clear();
 
-	for(IKUniformBufferPtr uniformBuffer : m_UniformBuffers)
-	{
-		uniformBuffer->UnInit();
-	}
-	m_UniformBuffers.clear();
+
 	m_SwapChainImages.clear();
 
 	vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
@@ -1203,33 +1213,43 @@ bool KVulkanRenderDevice::UpdateUniformBuffer(uint32_t currentImage)
 	glm::mat4 proj = glm::perspective(glm::radians(45.0f), m_SwapChainExtent.width / (float) m_SwapChainExtent.height, 0.1f, 10.0f);
 	proj[1][1] *= -1;
 
-	void* pData = KConstantGlobal::GetGlobalConstantData(CBT_TRANSFORM);
-	void* pWritePos = nullptr;
-	const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_TRANSFORM);
-	for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 	{
-		if(detail.semantic == CS_MODEL)
+		void* pWritePos = nullptr;
+		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);	
+		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
+		for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 		{
-			pWritePos = POINTER_OFFSET(pData, detail.offset);
-			assert(sizeof(model) == detail.size);
-			memcpy(pWritePos, &model, sizeof(model));
+			if(detail.semantic == CS_VIEW)
+			{
+				pWritePos = POINTER_OFFSET(pData, detail.offset);
+				assert(sizeof(view) == detail.size);
+				memcpy(pWritePos, &view, sizeof(view));
+			}
+			else if(detail.semantic == CS_PROJ)
+			{
+				pWritePos = POINTER_OFFSET(pData, detail.offset);
+				assert(sizeof(proj) == detail.size);
+				memcpy(pWritePos, &proj, sizeof(proj));
+			}
 		}
-		else if(detail.semantic == CS_VIEW)
-		{
-			pWritePos = POINTER_OFFSET(pData, detail.offset);
-			assert(sizeof(view) == detail.size);
-			memcpy(pWritePos, &view, sizeof(view));
-		}
-		else if(detail.semantic == CS_PROJ)
-		{
-			pWritePos = POINTER_OFFSET(pData, detail.offset);
-			assert(sizeof(proj) == detail.size);
-			memcpy(pWritePos, &proj, sizeof(proj));
-		}
+		m_CameraBuffer->Write(pData);
 	}
 
-	//PushConstant替代之
-	//m_UniformBuffers[currentImage]->Write(pData);
+	{
+		void* pWritePos = nullptr;
+		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_OBJECT);	
+		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT);
+		for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
+		{
+			if(detail.semantic == CS_MODEL)
+			{
+				pWritePos = POINTER_OFFSET(pData, detail.offset);
+				assert(sizeof(model) == detail.size);
+				memcpy(pWritePos, &model, sizeof(model));
+			}
+		}
+		m_ObjectBuffer->Write(pData);
+	}	
 	return true;
 }
 

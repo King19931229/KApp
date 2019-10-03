@@ -99,16 +99,21 @@ KUniformBufferBase::~KUniformBufferBase()
 bool KUniformBufferBase::InitMemory(size_t bufferSize, const void* pInitData)
 {
 	m_BufferSize = bufferSize;
-	if(pInitData)
+	if(bufferSize > 0)
 	{
-		m_BufferSize = bufferSize;
-		m_Data.resize(m_BufferSize);	
-		memcpy(m_Data.data(), pInitData, m_BufferSize);
+		m_Data.resize(bufferSize);	
+		if(pInitData)
+		{
+			memcpy(m_Data.data(), pInitData, bufferSize);
+		}
+		else
+		{
+			memset(m_Data.data(), 0, bufferSize);
+		}
 		return true;
 	}
 	else
 	{
-		m_BufferSize = 0;
 		m_Data.clear();
 		return false;
 	}	

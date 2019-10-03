@@ -137,14 +137,49 @@ bool KVulkanPipeline::SetTextureSampler(unsigned int location, IKTexturePtr text
 	return false;
 }
 
+bool KVulkanPipeline::PushConstantBuffer(ShaderTypes shaderTypes, IKUniformBufferPtr buffer)
+{
+	UniformBufferBindingInfo info = { shaderTypes, buffer };
+	m_PushUniforms.push_back(info);
+	return true;
+}
+
+bool KVulkanPipeline::PopConstantBuffer()
+{
+	ASSERT_RESULT(m_PushUniforms.size() > 0);
+	if(m_PushUniforms.size() > 0)
+	{
+		m_PushUniforms.pop_back();
+		return true;
+	}
+	return false;
+}
+
 bool KVulkanPipeline::CreateLayout()
 {
 	ASSERT_RESULT(m_DescriptorSetLayout == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
 
+	/*
+	声明PushConstant
+	*/
 	size_t pushConstantOffset = 0;
 	std::vector<VkPushConstantRange> pushConstantRanges;
+	for(auto& info : m_PushUniforms)
+	{
+		VkFlags stageFlags = 0;
+		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(info.shaderTypes, stageFlags));
 
+		VkPushConstantRange pushConstantRange = {};
+		pushConstantRange.stageFlags = stageFlags;
+		pushConstantRange.offset = (uint32_t)pushConstantOffset;
+		pushConstantRange.size = (uint32_t)info.buffer->GetBufferSize();
+
+		pushConstantRanges.push_back(pushConstantRange);
+
+		pushConstantOffset += info.buffer->GetBufferSize();
+	}
+	
 	/*
 	DescriptorSetLayout 仅仅声明UBO Sampler绑定的位置
 	实际UBO Sampler 句柄绑定在描述集合里指定
@@ -170,16 +205,6 @@ bool KVulkanPipeline::CreateLayout()
 		uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
 		layoutBindings.push_back(uboLayoutBinding);
-
-		// VkPushConstantRange TODO 临时硬代码
-		VkPushConstantRange pushConstantRange = {};
-		pushConstantRange.stageFlags = stageFlags;
-		pushConstantRange.offset = (uint32_t)pushConstantOffset;
-		pushConstantRange.size = (uint32_t)info.buffer->GetBufferSize();
-
-		pushConstantOffset += info.buffer->GetBufferSize();
-
-		pushConstantRanges.push_back(pushConstantRange);
 	}
 
 	for(auto& pair : m_Samplers)
@@ -210,10 +235,11 @@ bool KVulkanPipeline::CreateLayout()
 	// 创建管线布局
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 1; // Optional
+	pipelineLayoutInfo.setLayoutCount = 1;
 	// 指定该管线的描述布局
-	pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout; // Optional
-	pipelineLayoutInfo.pushConstantRangeCount = (uint32_t)pushConstantRanges.size();
+	pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout;
+	// 指定PushConstant
+	pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 	pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges.size() > 0 ? pushConstantRanges.data() : nullptr;
 
 	VK_ASSERT_RESULT(vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout));
@@ -538,6 +564,10 @@ bool KVulkanPipeline::UnInit()
 		vkDestroyPipelineLayout(KVulkanGlobal::device, m_PipelineLayout, nullptr);
 		m_PipelineLayout = VK_NULL_HANDLE;
 	}
+
+	m_Uniforms.clear();
+	m_PushUniforms.clear();
+	m_Samplers.clear();
 
 	ASSERT_RESULT(m_Program->UnInit());
 	return true;
