@@ -4,7 +4,7 @@
 #include "Publish/KSemaphore.h"
 #include "Publish/KThreadTool.h"
 
-template<typename Task, bool bUseLockFreeQueue = true>
+template<typename Task, bool bUseLockFreeQueue = false>
 class KThreadPool
 {
 	struct TaskGroup
@@ -259,6 +259,11 @@ public:
 			delete pThread;
 			pThread = nullptr;
 		}
+	}
+
+	void PopAllWorkerThreads()
+	{
+		PopWorkerThreads(m_Threads.size());
 	}
 
 	size_t GetWorkerThreadNum()

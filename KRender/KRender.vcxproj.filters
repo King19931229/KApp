@@ -123,6 +123,9 @@
     <ClInclude Include="Internal\Vulkan\KVulkanPipeline.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\KRenderThreadPool.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">

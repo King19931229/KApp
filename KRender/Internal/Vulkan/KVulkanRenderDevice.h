@@ -5,6 +5,7 @@
 #include "KVulkanDepthBuffer.h"
 
 #include "KBase/Publish/KThreadPool.h"
+#include "Internal/KRenderThreadPool.h"
 
 #include "GLFW/glfw3.h"
 #include <algorithm>
@@ -62,8 +63,19 @@ protected:
 	VkSurfaceKHR m_Surface;
 	bool m_EnableValidationLayer;
 	// Temporarily for demo use
-	std::vector<VkCommandBuffer> m_CommandBuffers;
-	KThreadPool<std::function<void()>> m_RenderThreadPool;
+	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
+	struct ThreadData
+	{
+		VkCommandBufferList commandBuffers;
+		size_t counting;
+	};
+	struct CommandBuffer
+	{
+		VkCommandBuffer primaryCommandBuffer;
+		std::vector<ThreadData> threadDatas;
+	};
+	std::vector<CommandBuffer> m_CommandBuffers;
+	KRenderThreadPool m_RenderThreadPool;
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
@@ -140,7 +152,7 @@ protected:
 	bool UpdateCamera();
 	bool UpdateObjectTransform();
 
-	void ThreadRenderFunc(unsigned int threadIndex, unsigned int objectIndex);
+	void ThreadRenderObject(uint32_t threadIndex, uint32_t imageIndex, size_t objectIndex);
 
 	bool RecreateSwapChain();
 	bool CleanupSwapChain();

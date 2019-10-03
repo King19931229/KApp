@@ -35,6 +35,7 @@
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
+    <ClInclude Include="Internal\KRenderThreadPool.h" />
     <ClInclude Include="Internal\KSamplerBase.h" />
     <ClInclude Include="Internal\KTextureBase.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />

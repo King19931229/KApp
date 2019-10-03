@@ -673,7 +673,9 @@ bool KVulkanRenderDevice::UpdateCommandBuffer(unsigned int idx)
 
 	assert(idx < m_CommandBuffers.size());
 
-	VK_ASSERT_RESULT(vkBeginCommandBuffer(m_CommandBuffers[idx], &beginInfo));	
+	VkCommandBuffer commandBuffer = m_CommandBuffers[idx].primaryCommandBuffer;
+
+	VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));	
 	{
 		KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_SwapChainRenderTargets[idx].get();
 
@@ -695,7 +697,7 @@ bool KVulkanRenderDevice::UpdateCommandBuffer(unsigned int idx)
 		renderPassInfo.clearValueCount = clearValuesPair.second;
 
 		// 开始渲染过程
-		vkCmdBeginRenderPass(m_CommandBuffers[idx], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		{
 			KVulkanPipeline* swapchainPipeline = (KVulkanPipeline*)m_SwapChainPipelines[idx].get();
 
@@ -704,18 +706,18 @@ bool KVulkanRenderDevice::UpdateCommandBuffer(unsigned int idx)
 			VkDescriptorSet descriptorSet = swapchainPipeline->GetVkDescriptorSet();
 
 			// 绑定管线
-			vkCmdBindPipeline(m_CommandBuffers[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 			// 绑定管线布局
-			vkCmdBindDescriptorSets(m_CommandBuffers[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 			// 绑定顶点缓冲
 			KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
 			VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
 			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(m_CommandBuffers[idx], 0, 1, vertexBuffers, offsets);
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 			// 绑定索引缓冲
 			KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffer.get();
-			vkCmdBindIndexBuffer(m_CommandBuffers[idx], vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+			vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 
 			//vkCmdDraw(m_CommandBuffers[i], (uint32_t)vulkanVertexBuffer->GetVertexCount(), 1, 0, 0);
 			// 绘制调用
@@ -726,15 +728,15 @@ bool KVulkanRenderDevice::UpdateCommandBuffer(unsigned int idx)
 				m_ObjectBuffer->Write(&model);
 				void* pData = nullptr;
 				ASSERT_RESULT(m_ObjectBuffer->Reference(&pData));
-				vkCmdPushConstants(m_CommandBuffers[idx], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_ObjectBuffer->GetBufferSize(), pData);
-				vkCmdDrawIndexed(m_CommandBuffers[idx], static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_ObjectBuffer->GetBufferSize(), pData);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
 			}
 		}
 		// 结束渲染过程
-		vkCmdEndRenderPass(m_CommandBuffers[idx]);
+		vkCmdEndRenderPass(commandBuffer);
 	}
 
-	VK_ASSERT_RESULT(vkEndCommandBuffer(m_CommandBuffers[idx]));
+	VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
 
 	return true;
 }
@@ -748,17 +750,16 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.commandPool = m_CommandPool;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = (uint32_t) m_CommandBuffers.size();
+	allocInfo.commandBufferCount = 1;
 
-	if (vkAllocateCommandBuffers(m_Device, &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS)
-	{
-		m_CommandBuffers.clear();
-		return false;
-	}
+	size_t numThread = m_RenderThreadPool.GetThreadCount();
 
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{
+		vkAllocateCommandBuffers(m_Device, &allocInfo, &m_CommandBuffers[i].primaryCommandBuffer);
 		UpdateCommandBuffer((unsigned int)i);
+
+		m_CommandBuffers[i].threadDatas.resize(numThread);	
 	}
 
 	return true;
@@ -975,7 +976,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 
 		m_pWindow->SetVulkanDevice(this);
 
-		m_RenderThreadPool.PushWorkerThreads(std::thread::hardware_concurrency());
+		m_RenderThreadPool.SetThreadCount(std::thread::hardware_concurrency());
 
 		return true;
 	}
@@ -1054,7 +1055,7 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 
 bool KVulkanRenderDevice::UnInit()
 {
-	m_RenderThreadPool.PopWorkerThreads(m_RenderThreadPool.GetWorkerThreadNum());
+	m_RenderThreadPool.Wait();
 	
 	m_pWindow = nullptr;
 
@@ -1286,9 +1287,10 @@ bool KVulkanRenderDevice::UpdateObjectTransform()
 	return true;
 }
 
-void KVulkanRenderDevice::ThreadRenderFunc(unsigned int threadIndex, unsigned int objectIndex)
+void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imageIndex, size_t objectIndex)
 {
-
+	//printf("%d %d\n", imageIndex, objectIndex);
+	//_sleep(10);
 }
 
 bool KVulkanRenderDevice::Present()
@@ -1310,10 +1312,24 @@ bool KVulkanRenderDevice::Present()
 
 	UpdateCamera();
 	UpdateObjectTransform();
-
-	m_RenderThreadPool.WaitAllAsyncTaskDone();
-
 	UpdateCommandBuffer(imageIndex);
+
+	// 清空线程渲染计数
+	for(ThreadData& threadData : m_CommandBuffers[imageIndex].threadDatas)
+	{
+		threadData.counting = 0;
+	}
+
+	for(size_t i = 0; i < m_ObjectTransforms.size(); ++i)
+	{
+		uint32_t threadIndex = (uint32_t)i % m_RenderThreadPool.GetThreadCount();
+		m_RenderThreadPool.GetRenderThread(threadIndex)->AddJob([=]()
+		{
+			ThreadRenderObject(threadIndex, imageIndex, i);
+		});
+	}
+
+	m_RenderThreadPool.Wait();
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1327,7 +1343,7 @@ bool KVulkanRenderDevice::Present()
 
 	// 指定命令缓冲
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
+	submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex].primaryCommandBuffer;
 
 	// 交换链绘制完成时将促发此信号量
 	VkSemaphore signalSemaphores[] = {m_RenderFinishedSemaphores[m_CurrentFlightIndex]};
