@@ -6,7 +6,7 @@
 class KSemaphore
 {
 protected:
-	std::atomic<int> m_nCount;
+	int m_nCount;
 	std::mutex m_Mutex;
 	std::condition_variable m_CondVar;
 public:
@@ -30,6 +30,17 @@ public:
 		return false;
 	}
 
+	bool NotifyAll()
+	{
+		std::unique_lock<std::mutex> lock(m_Mutex);
+		if(++m_nCount <= 0)
+		{
+			m_CondVar.notify_all();
+			return true;
+		}
+		return false;
+	}
+
 	bool Wait()
 	{
 		std::unique_lock<std::mutex> lock(m_Mutex);
@@ -40,12 +51,13 @@ public:
 		return true;
 	}
 
+#if 0
 	template<typename Pred>
 	bool WaitUntil(Pred pred)
 	{
+		std::unique_lock<std::mutex> lock(m_Mutex);
 		while(!pred())
 		{
-			std::unique_lock<std::mutex> lock(m_Mutex);
 			if(--m_nCount < 0)
 			{
 				m_CondVar.wait(lock);
@@ -53,7 +65,7 @@ public:
 		}
 		return true;
 	}
-
+#endif
 	bool TryWait(int timeInSecond)
 	{
 		std::unique_lock<std::mutex> lock(m_Mutex);
@@ -67,4 +79,5 @@ public:
 		}
 		return true;
 	}
+
 };

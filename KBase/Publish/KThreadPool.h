@@ -61,9 +61,12 @@ class KThreadPool
 		QueueType& m_Queue;
 		TripleQueue& m_SharedQueue;
 
+		KSemaphore& m_Sem;
+
+		std::mutex& m_WaitMutex;
+		std::condition_variable& m_WaitCond;
+
 		bool m_bDone;
-		KSemaphore m_Sem;
-		KSemaphore m_SemForEmtpy;
 		std::thread m_Thread;
 
 		static unsigned short ms_IDCounter;
@@ -96,8 +99,7 @@ class KThreadPool
 			TaskGroup taskGroup;
 			while(!m_bDone)
 			{
-				if(m_Queue.Empty() && !m_bDone)
-					m_Sem.Wait();
+				m_Sem.Wait();
 
 				if(m_bDone)
 					break;
@@ -113,7 +115,11 @@ class KThreadPool
 					}
 				});
 
-				m_SemForEmtpy.Notify();
+				if(m_Queue.Empty() || m_bDone)
+				{
+					std::lock_guard<std::mutex> lock(m_WaitMutex);
+					m_WaitCond.notify_all();
+				}
 			}
 
 			{
@@ -123,9 +129,16 @@ class KThreadPool
 		}
 	public:
 		KWorkerThread(QueueType& queue,
-			TripleQueue& sharedQueue)
+			TripleQueue& sharedQueue,
+			KSemaphore& sem,
+			std::mutex& waitMutex,
+			std::condition_variable& waitCond
+			)
 			: m_Queue(queue),
 			m_SharedQueue(sharedQueue),
+			m_Sem(sem),
+			m_WaitMutex(waitMutex),
+			m_WaitCond(waitCond),
 			m_bDone(false),
 			m_Thread(&KWorkerThread::ThreadFunc, this)
 		{
@@ -134,18 +147,15 @@ class KThreadPool
 		~KWorkerThread()
 		{
 			m_bDone = true;
-			m_Sem.Notify();
+			m_Sem.NotifyAll();
 			m_Thread.join();
-		}
-
-		bool Notify()
-		{
-			return m_Sem.Notify();
 		}
 
 		bool Wait()
 		{
-			return m_SemForEmtpy.WaitUntil([&]() { return m_Queue.Empty(); });
+			std::unique_lock<std::mutex> lock(m_WaitMutex);
+			m_WaitCond.wait(lock, [this](){ return m_Queue.Empty() || m_bDone; });
+			return true;
 		}
 	};
 	////////////////////////////////////////////////////////////
@@ -210,9 +220,12 @@ class KThreadPool
 	};
 	////////////////////////////////////////////////////////////
 protected:
-	KSemaphore m_Sem;
 	QueueType m_Queue;
 	TripleQueue m_SharedQueue;
+
+	KSemaphore m_Sem;
+	std::mutex m_WaitMutex;
+	std::condition_variable m_WaitCond;
 
 	std::vector<KWorkerThread*> m_Threads;
 	KSyncTaskThread *m_pSyncTaskThread;
@@ -242,7 +255,7 @@ public:
 	{
 		while(uThreadNum--)
 		{
-			KWorkerThread* pThread = new KWorkerThread(m_Queue, m_SharedQueue);
+			KWorkerThread* pThread = new KWorkerThread(m_Queue, m_SharedQueue, m_Sem, m_WaitMutex, m_WaitCond);
 			assert(pThread);
 			m_Threads.push_back(pThread);
 		}
@@ -277,7 +290,7 @@ public:
 		group.asyncTask = asyncTask;
 
 		m_Queue.Push(group);
-		std::find_if(m_Threads.begin(), m_Threads.end(), std::mem_fun(&KWorkerThread::Notify));
+		m_Sem.Notify();
 	}
 
 	void SubmitTask(Task asyncTask, Task syncTask)
@@ -289,7 +302,7 @@ public:
 		group.bHasSyncTask = true;
 
 		m_Queue.Push(group);
-		std::find_if(m_Threads.begin(), m_Threads.end(), std::mem_fun(&KWorkerThread::Notify));
+		m_Sem.Notify();
 	}
 
 	bool AllAsyncTaskDone()

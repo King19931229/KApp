@@ -31,15 +31,45 @@ protected:
 	std::atomic_short	m_nWriteIndex;
 	std::atomic_short	m_nMaxReadIndex;
 	std::atomic_short	m_nMaxWriteIndex;
-	std::atomic_size_t	m_uWaitQueueSize;
+	std::atomic_int		m_nWaitQueueSize;
+	std::atomic_int		m_nQueueSize;
 	std::mutex			m_WaitLock;
 
 	void PushIntoWaitQueue(Elem_T& element)
 	{
+		{
+			std::lock_guard<decltype(m_WaitLock)> lock(m_WaitLock);
+			++m_nWaitQueueSize;
+			m_WaitQueue.push(element);
+		}
+	}
+
+	bool PopFromWaitQueue(Elem_T& element)
+	{
 		std::lock_guard<decltype(m_WaitLock)> lock(m_WaitLock);
-		++m_uWaitQueueSize;
-		m_WaitQueue.push(element);
-		assert(m_uWaitQueueSize == m_WaitQueue.size());
+		if(m_WaitQueue.size() > 0)
+		{
+			element = m_WaitQueue.front();
+			m_WaitQueue.pop();
+			--m_nWaitQueueSize;
+			return true;
+		}
+		return false;
+	}
+
+	template<typename ProcFuncType>
+	bool PopFromWaitQueue(Elem_T& element, ProcFuncType func)
+	{
+		std::lock_guard<decltype(m_WaitLock)> lock(m_WaitLock);
+		if(m_WaitQueue.size() > 0)
+		{
+			element = m_WaitQueue.front();
+			m_WaitQueue.pop();
+			func(element);
+			--m_nWaitQueueSize;
+			return true;
+		}
+		return false;
 	}
 
 	bool TryPush(Elem_T& element)
@@ -80,7 +110,8 @@ public:
 		m_nWriteIndex = 0;
 		m_nMaxReadIndex = 0;
 		m_nMaxWriteIndex = 0;
-		m_uWaitQueueSize = 0;
+		m_nWaitQueueSize = 0;
+		m_nQueueSize = 0;
 	}
 
 	~KLockFreeQueue()
@@ -88,20 +119,20 @@ public:
 
 	}
 
-	size_t Size()
+	inline size_t Size()
 	{
-		return RingElementSize() + WaitQueueSize();
+		return m_nQueueSize;
 	}
 
 	inline size_t WaitQueueSize()
 	{
-		return m_uWaitQueueSize;
+		return m_nWaitQueueSize;
 	}
 
 	inline size_t RingElementSize()
 	{
-		short nMaxWriteIndex = m_nMaxWriteIndex.load(std::memory_order_relaxed);
-		short nMaxReadIndex = m_nMaxReadIndex.load(std::memory_order_relaxed);
+		short nMaxWriteIndex = m_nMaxWriteIndex;
+		short nMaxReadIndex = m_nMaxReadIndex;
 		if(nMaxWriteIndex >= nMaxReadIndex)
 			return (size_t)(nMaxWriteIndex - nMaxReadIndex);
 		else
@@ -115,22 +146,21 @@ public:
 
 	bool Push(Elem_T&& element)
 	{
-		// 如果WaitQueue不为空就不要直接Push到无锁队列里
-		// 不然Pop的时候把WaitQueue的元素再Push到无锁队列时候
-		// 容易发生死锁
-		if(m_uWaitQueueSize || !TryPush(element))
+		if(!TryPush(element))
 		{
 			PushIntoWaitQueue(element);
 		}
+		++m_nQueueSize;
 		return true;
 	}
 
 	bool Push(Elem_T& element)
 	{
-		if(m_uWaitQueueSize || !TryPush(element))
+		if(!TryPush(element))
 		{
 			PushIntoWaitQueue(element);
 		}
+		++m_nQueueSize;
 		return true;
 	}
 
@@ -161,24 +191,23 @@ public:
 					// 多个线程同时【Pop】产生冲突 当前线程【让出】
 					std::this_thread::yield();
 				}
-				m_nQueueCount.fetch_sub(1, std::memory_order_acq_rel);
-				// 把未在环形数组的元素传入
-				FlushWaitingElement();
 				return true;
 			}
 		}while(true);
-		// 把未在环形数组的元素传入
-		FlushWaitingElement();
 		return false;
 	}
 
 	bool Pop(Elem_T& element)
 	{
-		if(TryPop(element))
+		if(!TryPop(element))
 		{
-			return true;
+			if(!PopFromWaitQueue(element))
+			{
+				return false;
+			}
 		}
-		return false;
+		--m_nQueueSize;
+		return true;
 	}
 
 	template<typename ProcFuncType>
@@ -208,39 +237,25 @@ public:
 					nExp = nCurrentReadIndex;
 					// 多个线程同时【Pop】产生冲突 当前线程【让出】
 					std::this_thread::yield();
-				}
+				}				
 				func(element);
-				// 把未在环形数组的元素传入
-				FlushWaitingElement();
 				return true;
 			}
 		}while(true);
-		// 把未在环形数组的元素传入
-		FlushWaitingElement();
 		return false;
 	}
 
 	template<typename ProcFuncType>
 	bool Pop(Elem_T& element, ProcFuncType func)
 	{
-		if(TryPop(element, func))
+		if(!TryPop(element, func))
 		{
-			return true;
-		}
-		return false;
-	}
-
-	void FlushWaitingElement()
-	{
-		if(m_uWaitQueueSize)
-		{
-			std::lock_guard<decltype(m_WaitLock)> lock(m_WaitLock);
-			if(m_uWaitQueueSize)
+			if(!PopFromWaitQueue(element, func))
 			{
-				while(!TryPush(m_WaitQueue.front()));
-				m_WaitQueue.pop();
-				--m_uWaitQueueSize;
+				return false;
 			}
 		}
+		--m_nQueueSize;
+		return true;
 	}
 };

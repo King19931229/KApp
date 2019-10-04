@@ -752,7 +752,8 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = 1;
 
-	size_t numThread = m_RenderThreadPool.GetThreadCount();
+	size_t numThread = m_ThreadPool.GetWorkerThreadNum();
+		//m_RenderThreadPool.GetThreadCount();
 
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{
@@ -976,8 +977,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 
 		m_pWindow->SetVulkanDevice(this);
 
-		m_RenderThreadPool.SetThreadCount(std::thread::hardware_concurrency());
-
+		//m_RenderThreadPool.SetThreadCount(std::thread::hardware_concurrency());
+		m_ThreadPool.PushWorkerThreads(std::thread::hardware_concurrency());
 		return true;
 	}
 	else
@@ -1055,7 +1056,8 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 
 bool KVulkanRenderDevice::UnInit()
 {
-	m_RenderThreadPool.Wait();
+	//m_RenderThreadPool.Wait();
+	m_ThreadPool.WaitAllAsyncTaskDone();
 	
 	m_pWindow = nullptr;
 
@@ -1322,14 +1324,22 @@ bool KVulkanRenderDevice::Present()
 
 	for(size_t i = 0; i < m_ObjectTransforms.size(); ++i)
 	{
+		/*
 		uint32_t threadIndex = (uint32_t)i % m_RenderThreadPool.GetThreadCount();
 		m_RenderThreadPool.GetRenderThread(threadIndex)->AddJob([=]()
 		{
 			ThreadRenderObject(threadIndex, imageIndex, i);
 		});
+		*/
+		uint32_t threadIndex = (uint32_t)i % m_ThreadPool.GetWorkerThreadNum();
+		m_ThreadPool.SubmitTask([=]()
+		{
+			ThreadRenderObject(threadIndex, imageIndex, i);
+		});
 	}
 
-	m_RenderThreadPool.Wait();
+	m_ThreadPool.WaitAllAsyncTaskDone();
+	//m_RenderThreadPool.Wait();
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

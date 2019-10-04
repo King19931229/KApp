@@ -75,7 +75,8 @@ protected:
 		std::vector<ThreadData> threadDatas;
 	};
 	std::vector<CommandBuffer> m_CommandBuffers;
-	KRenderThreadPool m_RenderThreadPool;
+	//KRenderThreadPool m_RenderThreadPool;
+	KThreadPool<std::function<void()>, false> m_ThreadPool;
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
