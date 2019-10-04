@@ -156,3 +156,13 @@ bool KVulkanRenderWindow::IsResizable()
 	}
 	return false;
 }
+
+bool KVulkanRenderWindow::SetWindowTitle(const char* pName)
+{
+	if(m_window)
+	{
+		glfwSetWindowTitle(m_window, pName);
+		return true;
+	}
+	return false;
+}

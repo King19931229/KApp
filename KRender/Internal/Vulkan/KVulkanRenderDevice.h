@@ -5,6 +5,7 @@
 #include "KVulkanDepthBuffer.h"
 
 #include "KBase/Publish/KThreadPool.h"
+#include "KBase/Publish/KTimer.h"
 #include "Internal/KRenderThreadPool.h"
 
 #include "GLFW/glfw3.h"
@@ -68,8 +69,7 @@ protected:
 	struct ThreadData
 	{
 		VkCommandPool commandPool;
-		VkCommandBufferList commandBuffers;
-		std::vector<size_t> indices;
+		VkCommandBuffer commandBuffer;
 	};
 
 	struct CommandBuffer
@@ -80,20 +80,19 @@ protected:
 
 	VkCommandPool m_CommandPool;
 	std::vector<CommandBuffer> m_CommandBuffers;
-	//KRenderThreadPool m_RenderThreadPool;
+	KTimer m_Timer;
 	KThreadPool<std::function<void()>, true> m_ThreadPool;
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 
-	struct ObjectTransform
+	struct ObjectInitTransform
 	{
-		glm::mat4 initRotate;
-		glm::mat4 initTranslate;
 		glm::mat4 rotate;
 		glm::mat4 translate;
 	};
-	std::vector<ObjectTransform> m_ObjectTransforms;
+	std::vector<ObjectInitTransform> m_ObjectTransforms;
+	std::vector<glm::mat4> m_ObjectFinalTransforms;
 
 	IKUniformBufferPtr m_ObjectBuffer;
 	IKUniformBufferPtr m_CameraBuffer;
@@ -151,7 +150,9 @@ protected:
 	bool CreateUniform();
 	bool CreateTex();
 	bool CreateCommandBuffers();
-	bool UpdateCommandBuffer(unsigned int idx);
+	bool SubmitCommandBufferSingleThread(unsigned int idx);
+	bool SubmitCommandBufferMuitiThread(unsigned int idx);
+	bool UpdateFrameTime();
 
 	bool UpdateCamera();
 	bool UpdateObjectTransform();

@@ -18,6 +18,8 @@ struct IKRenderWindow
 
 	virtual bool SetResizable(bool resizable) = 0;
 	virtual bool IsResizable() = 0;
+
+	virtual bool SetWindowTitle(const char* pName) = 0;
 };
 
 EXPORT_DLL IKRenderWindowPtr CreateRenderWindow(RenderDevice platform);

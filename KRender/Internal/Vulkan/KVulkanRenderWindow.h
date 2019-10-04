@@ -27,6 +27,8 @@ public:
 	virtual bool SetResizable(bool resizable);
 	virtual bool IsResizable();
 
+	virtual bool SetWindowTitle(const char* pName);
+
 	inline GLFWwindow* GetGLFWwindow() { return m_window; }
 	inline void SetVulkanDevice(KVulkanRenderDevice* device) { m_device = device; }
 
