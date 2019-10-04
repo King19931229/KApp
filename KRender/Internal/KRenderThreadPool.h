@@ -30,10 +30,13 @@ public:
 						break;
 					}
 					job = m_JobQueue.front();
-					m_JobQueue.pop();
 				}
 				job();
-				m_Cond.notify_one();
+				{
+					std::unique_lock<std::mutex> lock(m_Lock);
+					m_JobQueue.pop();
+					m_Cond.notify_one();
+				}
 			}
 		}
 	public:
@@ -74,9 +77,13 @@ public:
 	{
 	}
 
-	RenderThreadPtr GetRenderThread(uint32_t idx)
+	void AddJob(uint32_t idx, std::function<void()> job)
 	{
-		return m_Threads[idx];
+		assert(idx < m_Threads.size());
+		if(idx < m_Threads.size())
+		{
+			m_Threads[idx]->AddJob(job);
+		}
 	}
 
 	void SetThreadCount(uint32_t count)
@@ -93,11 +100,20 @@ public:
 		return static_cast<uint32_t>(m_Threads.size());
 	}
 
-	void Wait()
+	void WaitAll()
 	{
 		for (auto &thread : m_Threads)
 		{
 			thread->Wait();
+		}
+	}
+
+	void Wait(uint32_t idx)
+	{
+		assert(idx < m_Threads.size());
+		if(idx < m_Threads.size())
+		{
+			m_Threads[idx]->Wait();
 		}
 	}
 };

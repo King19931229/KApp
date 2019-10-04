@@ -104,7 +104,13 @@ void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& create
 //-------------------- KVulkanRenderDevice --------------------//
 KVulkanRenderDevice::KVulkanRenderDevice()
 	: m_pWindow(nullptr),
-	m_EnableValidationLayer(true),
+	m_EnableValidationLayer(
+#ifdef _DEBUG
+	true
+#else
+	false
+#endif
+),
 	m_MaxFramesInFight(0),
 	m_CurrentFlightIndex(0),
 	m_VertexBuffer(nullptr),
@@ -746,21 +752,29 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 	// 交换链上的每个帧缓冲都需要提交命令
 	m_CommandBuffers.resize(m_SwapChainRenderTargets.size());
 
-	VkCommandBufferAllocateInfo allocInfo = {};	
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = m_CommandPool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = 1;
-
 	size_t numThread = m_ThreadPool.GetWorkerThreadNum();
-		//m_RenderThreadPool.GetThreadCount();
 
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{
+		VkCommandBufferAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = m_CommandPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandBufferCount = 1;
+
 		vkAllocateCommandBuffers(m_Device, &allocInfo, &m_CommandBuffers[i].primaryCommandBuffer);
 		UpdateCommandBuffer((unsigned int)i);
 
-		m_CommandBuffers[i].threadDatas.resize(numThread);	
+		m_CommandBuffers[i].threadDatas.resize(numThread);
+		for (ThreadData& thread : m_CommandBuffers[i].threadDatas)
+		{
+			VkCommandPoolCreateInfo poolInfo = {};
+			poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+			poolInfo.queueFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
+			poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+			VK_ASSERT_RESULT(vkCreateCommandPool(m_Device, &poolInfo, nullptr, &thread.commandPool));
+		}
 	}
 
 	return true;
@@ -971,14 +985,12 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 		if(!CreatePipelines())
 			return false;
-
+		m_ThreadPool.PushWorkerThreads(std::max(1U, std::thread::hardware_concurrency()));
+		//m_RenderThreadPool.SetThreadCount(std::thread::hardware_concurrency());
 		if(!CreateCommandBuffers())
 			return false;
 
 		m_pWindow->SetVulkanDevice(this);
-
-		//m_RenderThreadPool.SetThreadCount(std::thread::hardware_concurrency());
-		m_ThreadPool.PushWorkerThreads(std::thread::hardware_concurrency());
 		return true;
 	}
 	else
@@ -1041,6 +1053,15 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 		m_CameraBuffer = nullptr;
 	}
 
+	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
+	{
+		for (ThreadData& thread : m_CommandBuffers[i].threadDatas)
+		{
+			vkDestroyCommandPool(m_Device, thread.commandPool, nullptr);
+		}
+	}
+	m_CommandBuffers.clear();
+
 	for (IKPipelinePtr pipeline :  m_SwapChainPipelines)
 	{
 		pipeline->UnInit();
@@ -1083,8 +1104,6 @@ bool KVulkanRenderDevice::UnInit()
 	}
 
 	CleanupSwapChain();
-
-	m_CommandBuffers.clear();
 
 	DestroySyncObjects();
 	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
@@ -1289,10 +1308,73 @@ bool KVulkanRenderDevice::UpdateObjectTransform()
 	return true;
 }
 
-void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imageIndex, size_t objectIndex)
+void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imageIndex, VkCommandBufferInheritanceInfo inheritanceInfo)
 {
-	//printf("%d %d\n", imageIndex, objectIndex);
-	//_sleep(10);
+	ThreadData& threadData = m_CommandBuffers[imageIndex].threadDatas[threadIndex];
+
+	uint32_t commandBufferCount = static_cast<uint32_t>(threadData.indices.size());
+	if(threadData.indices.size() > threadData.commandBuffers.size())
+	{
+		for(VkCommandBuffer buffer: threadData.commandBuffers)
+		{
+			vkResetCommandBuffer(buffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+		}
+		threadData.commandBuffers.clear();
+
+		VkCommandBufferAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = threadData.commandPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+		allocInfo.commandBufferCount = commandBufferCount;
+		threadData.commandBuffers.resize(commandBufferCount);
+
+		VK_ASSERT_RESULT(vkAllocateCommandBuffers(m_Device, &allocInfo, threadData.commandBuffers.data()));
+	}
+
+	for(size_t i = 0; i < threadData.indices.size(); ++i)
+	{
+		size_t objIdx = threadData.indices[i];
+
+		// 命令开始时候创建需要一个命令开始信息
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT; // Optional
+		beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+		VkCommandBuffer commandBuffer = threadData.commandBuffers[i];
+		VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));	
+
+		KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get();
+		{
+			KVulkanPipeline* swapchainPipeline = (KVulkanPipeline*)m_SwapChainPipelines[imageIndex].get();
+
+			VkPipeline pipeline = swapchainPipeline->GetVkPipeline();
+			VkPipelineLayout pipelineLayout = swapchainPipeline->GetVkPipelineLayout();
+			VkDescriptorSet descriptorSet = swapchainPipeline->GetVkDescriptorSet();
+
+			// 绑定管线
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+			// 绑定管线布局
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
+			// 绑定顶点缓冲
+			KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
+			VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
+			VkDeviceSize offsets[] = {0};
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+			// 绑定索引缓冲
+			KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffer.get();
+			vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+
+			// 绘制调用
+			ObjectTransform obj = m_ObjectTransforms[objIdx];
+			glm::mat4 model = obj.translate * obj.rotate;
+
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_ObjectBuffer->GetBufferSize(), &model);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+		}
+		VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
+	}
 }
 
 bool KVulkanRenderDevice::Present()
@@ -1314,32 +1396,79 @@ bool KVulkanRenderDevice::Present()
 
 	UpdateCamera();
 	UpdateObjectTransform();
-	UpdateCommandBuffer(imageIndex);
+	//UpdateCommandBuffer(imageIndex);
 
-	// 清空线程渲染计数
 	for(ThreadData& threadData : m_CommandBuffers[imageIndex].threadDatas)
 	{
-		threadData.counting = 0;
+		threadData.indices.clear();
 	}
 
 	for(size_t i = 0; i < m_ObjectTransforms.size(); ++i)
 	{
-		/*
-		uint32_t threadIndex = (uint32_t)i % m_RenderThreadPool.GetThreadCount();
-		m_RenderThreadPool.GetRenderThread(threadIndex)->AddJob([=]()
-		{
-			ThreadRenderObject(threadIndex, imageIndex, i);
-		});
-		*/
 		uint32_t threadIndex = (uint32_t)i % m_ThreadPool.GetWorkerThreadNum();
-		m_ThreadPool.SubmitTask([=]()
-		{
-			ThreadRenderObject(threadIndex, imageIndex, i);
-		});
+		ThreadData& threadData = m_CommandBuffers[imageIndex].threadDatas[threadIndex];
+		threadData.indices.push_back(i);
 	}
 
-	m_ThreadPool.WaitAllAsyncTaskDone();
-	//m_RenderThreadPool.Wait();
+	VkCommandBuffer primaryCommandBuffer = m_CommandBuffers[imageIndex].primaryCommandBuffer;
+
+	KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get();
+
+	// 创建开始渲染过程描述
+	VkRenderPassBeginInfo renderPassInfo = {};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	// 指定渲染通道
+	renderPassInfo.renderPass = target->GetRenderPass();
+	// 指定帧缓冲
+	renderPassInfo.framebuffer = target->GetFrameBuffer();
+
+	renderPassInfo.renderArea.offset.x = 0;
+	renderPassInfo.renderArea.offset.y = 0;
+	renderPassInfo.renderArea.extent = target->GetExtend();
+
+	// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
+	auto clearValuesPair = target->GetVkClearValues();
+	renderPassInfo.pClearValues = clearValuesPair.first;
+	renderPassInfo.clearValueCount = clearValuesPair.second;
+
+	// 开始渲染过程
+	VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
+	cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	VK_ASSERT_RESULT(vkBeginCommandBuffer(primaryCommandBuffer, &cmdBufferBeginInfo));
+	{
+		vkCmdBeginRenderPass(primaryCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+		{
+			VkCommandBufferInheritanceInfo inheritanceInfo = {};
+			inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+			inheritanceInfo.renderPass = ((KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get())->GetRenderPass();
+			inheritanceInfo.framebuffer = ((KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get())->GetFrameBuffer();
+
+			for(size_t i = 0; i < m_ThreadPool.GetWorkerThreadNum(); ++i)
+			{
+				m_ThreadPool.SubmitTask([=]()
+				{
+					ThreadRenderObject((uint32_t)i, imageIndex, inheritanceInfo);
+				});
+			}
+
+			m_ThreadPool.WaitAllAsyncTaskDone();
+
+			std::vector<VkCommandBuffer> commandBuffers;
+			for(ThreadData& threadData : m_CommandBuffers[imageIndex].threadDatas)
+			{
+				if(threadData.indices.size () > 0)
+				{
+					commandBuffers.insert(commandBuffers.end(),
+						threadData.commandBuffers.begin(),
+						threadData.commandBuffers.begin() + threadData.indices.size());
+				}
+			}
+
+			vkCmdExecuteCommands(primaryCommandBuffer, (uint32_t)commandBuffers.size(), commandBuffers.data());
+		}
+		vkCmdEndRenderPass(primaryCommandBuffer);
+	}
+	VK_ASSERT_RESULT(vkEndCommandBuffer(primaryCommandBuffer));
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1353,7 +1482,7 @@ bool KVulkanRenderDevice::Present()
 
 	// 指定命令缓冲
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex].primaryCommandBuffer;
+	submitInfo.pCommandBuffers = &primaryCommandBuffer;
 
 	// 交换链绘制完成时将促发此信号量
 	VkSemaphore signalSemaphores[] = {m_RenderFinishedSemaphores[m_CurrentFlightIndex]};

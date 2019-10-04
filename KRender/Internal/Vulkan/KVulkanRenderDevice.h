@@ -64,19 +64,24 @@ protected:
 	bool m_EnableValidationLayer;
 	// Temporarily for demo use
 	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
+
 	struct ThreadData
 	{
+		VkCommandPool commandPool;
 		VkCommandBufferList commandBuffers;
-		size_t counting;
+		std::vector<size_t> indices;
 	};
+
 	struct CommandBuffer
 	{
 		VkCommandBuffer primaryCommandBuffer;
 		std::vector<ThreadData> threadDatas;
 	};
+
+	VkCommandPool m_CommandPool;
 	std::vector<CommandBuffer> m_CommandBuffers;
 	//KRenderThreadPool m_RenderThreadPool;
-	KThreadPool<std::function<void()>, false> m_ThreadPool;
+	KThreadPool<std::function<void()>, true> m_ThreadPool;
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
@@ -113,8 +118,6 @@ protected:
 
 	VkFormat m_SwapChainImageFormat;
 	VkExtent2D m_SwapChainExtent;
-
-	VkCommandPool m_CommandPool;
 
 	SwapChainSupportDetails	QuerySwapChainSupport(VkPhysicalDevice device);
 
@@ -153,7 +156,7 @@ protected:
 	bool UpdateCamera();
 	bool UpdateObjectTransform();
 
-	void ThreadRenderObject(uint32_t threadIndex, uint32_t imageIndex, size_t objectIndex);
+	void ThreadRenderObject(uint32_t threadIndex, uint32_t imageIndex, VkCommandBufferInheritanceInfo inheritanceInfo);
 
 	bool RecreateSwapChain();
 	bool CleanupSwapChain();
