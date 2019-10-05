@@ -64,25 +64,31 @@ protected:
 	VkSurfaceKHR m_Surface;
 	bool m_EnableValidationLayer;
 	// Temporarily for demo use
+	bool m_MultiThreadSumbit;
 	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
+	VkCommandPool m_CommandPool;
 
 	struct ThreadData
 	{
 		VkCommandPool commandPool;
 		VkCommandBuffer commandBuffer;
+		size_t num;
+		size_t offset;
 	};
 
 	struct CommandBuffer
 	{
 		VkCommandBuffer primaryCommandBuffer;
 		std::vector<ThreadData> threadDatas;
+		VkCommandBufferList commandBuffersExec;
 	};
-
-	VkCommandPool m_CommandPool;
 	std::vector<CommandBuffer> m_CommandBuffers;
-	KTimer m_Timer;
-	KThreadPool<std::function<void()>, true> m_ThreadPool;
 
+#ifndef THREAD_MODE_ONE
+	KThreadPool<std::function<void()>, true> m_ThreadPool;
+#else
+	KRenderThreadPool m_ThreadPool;
+#endif
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 

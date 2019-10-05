@@ -7,12 +7,12 @@ protected:
 	typedef std::chrono::duration<float, std::ratio<1, 1>> SecnodDuration;
 	typedef std::chrono::duration<float, std::ratio<1, 1000>> MillisecondDuration;
 	typedef std::chrono::high_resolution_clock HighResolutionClock;
-	
+
 	TimePoint m_BeginPoint;
 public:
 	KTimer()
 		:m_BeginPoint(HighResolutionClock::now())
-	{		
+	{
 	}
 
 	~KTimer()

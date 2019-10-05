@@ -77,7 +77,7 @@ public:
 	{
 	}
 
-	void AddJob(uint32_t idx, std::function<void()> job)
+	void AddJob(size_t idx, std::function<void()> job)
 	{
 		assert(idx < m_Threads.size());
 		if(idx < m_Threads.size())
@@ -86,16 +86,16 @@ public:
 		}
 	}
 
-	void SetThreadCount(uint32_t count)
+	void SetThreadCount(size_t count)
 	{
 		m_Threads.clear();
-		for (uint32_t i = 0; i < count; i++)
+		for (size_t i = 0; i < count; i++)
 		{
 			m_Threads.push_back(std::shared_ptr<KRenderThread>(new KRenderThread()));
 		}
 	}
 
-	uint32_t GetThreadCount()
+	size_t GetThreadCount()
 	{
 		return static_cast<uint32_t>(m_Threads.size());
 	}
@@ -108,7 +108,7 @@ public:
 		}
 	}
 
-	void Wait(uint32_t idx)
+	void Wait(size_t idx)
 	{
 		assert(idx < m_Threads.size());
 		if(idx < m_Threads.size())

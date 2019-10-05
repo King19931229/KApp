@@ -111,6 +111,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	false
 #endif
 ),
+	m_MultiThreadSumbit(true),
 	m_MaxFramesInFight(0),
 	m_CurrentFlightIndex(0),
 	m_VertexBuffer(nullptr),
@@ -420,7 +421,7 @@ bool KVulkanRenderDevice::CreateImageViews()
 		m_SwapChainRenderTargets[i]->SetSize(m_SwapChainExtent.width, m_SwapChainExtent.height);
 
 		m_SwapChainRenderTargets[i]->InitFromImage(&m_SwapChainImages[i], &m_SwapChainImageFormat,
-			true, false, msaaCount);
+			false, false, msaaCount);
 	}
 	return true;
 }
@@ -672,21 +673,49 @@ bool KVulkanRenderDevice::DestroySyncObjects()
 bool KVulkanRenderDevice::UpdateFrameTime()
 {
 	static int numFrames = 0;
+	static int numFramesTotal = 0;
+
+	static float fps = 0.0f;
+	static float frameTime = 0.0f;
+
+	static float maxFrameTime = std::numeric_limits<float>::min();
+	static float minFrameTime = std::numeric_limits<float>::max();
+
+	static KTimer FPSTimer;
+	static KTimer MaxMinTimer;
+	
+	++numFramesTotal;
+	if(MaxMinTimer.GetMilliseconds() > 5000.0f)
+	{
+		maxFrameTime = frameTime;
+		minFrameTime = frameTime;
+		MaxMinTimer.Reset();
+	}
 
 	++numFrames;
-	float time = m_Timer.GetMilliseconds();
-	time = time > 0 ? time : 0.00001f;
-
-	if(time > 1000.0f)
+	if(FPSTimer.GetMilliseconds() > 500.0f)
 	{
+		float time = FPSTimer.GetMilliseconds();
 		time = time / (float)numFrames;
-		float fps = 1000.0f / time;
-		char szBuffer[1024] = {};
-		sprintf(szBuffer, "[FPS] %f [FrameTime] %f", fps, time);
-		m_pWindow->SetWindowTitle(szBuffer);
-		m_Timer.Reset();
+		frameTime = time;
+
+		fps = 1000.0f / frameTime;
+
+		if(frameTime > maxFrameTime)
+		{
+			maxFrameTime = time;
+		}
+		if(frameTime < minFrameTime)
+		{
+			minFrameTime = time;
+		}
+		FPSTimer.Reset();
 		numFrames = 0;
 	}
+
+	char szBuffer[1024] = {};
+	sprintf(szBuffer, "[FPS] %f [FrameTime] %f [MinTime] %f [MaxTime] %f [Frame]%d", fps, frameTime, minFrameTime, maxFrameTime, numFramesTotal);
+	m_pWindow->SetWindowTitle(szBuffer);
 
 	return true;
 }
@@ -904,7 +933,11 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 		if(!CreatePipelines())
 			return false;
+#ifndef THREAD_MODE_ONE
 		m_ThreadPool.PushWorkerThreads(std::thread::hardware_concurrency());
+#else
+		m_ThreadPool.SetThreadCount(std::thread::hardware_concurrency());
+#endif
 		if(!CreateCommandBuffers())
 			return false;
 
@@ -995,8 +1028,11 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 
 bool KVulkanRenderDevice::UnInit()
 {
-	//m_RenderThreadPool.Wait();
+#ifndef THREAD_MODE_ONE
 	m_ThreadPool.WaitAllAsyncTaskDone();
+#else
+	m_ThreadPool.WaitAll();
+#endif
 	
 	m_pWindow = nullptr;
 
@@ -1225,18 +1261,22 @@ bool KVulkanRenderDevice::UpdateObjectTransform()
 	return true;
 }
 
-#define MULTITHREAD_SUBMIT_COMMAND
-
 void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imageIndex, VkCommandBufferInheritanceInfo inheritanceInfo)
 {
 	ThreadData& threadData = m_CommandBuffers[imageIndex].threadDatas[threadIndex];
-	
+
 	// 命令开始时候创建需要一个命令开始信息
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT; // Optional
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
 	beginInfo.pInheritanceInfo = &inheritanceInfo;
 
+#ifndef THREAD_MODE_ONE
+	size_t numThread = m_ThreadPool.GetWorkerThreadNum();
+#else
+	size_t numThread = m_ThreadPool.GetThreadCount();
+#endif
 	VkCommandBuffer commandBuffer = threadData.commandBuffer;
 	VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));	
 
@@ -1355,7 +1395,8 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 	VkRenderPassBeginInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	// 指定渲染通道
-	renderPassInfo.renderPass = target->GetRenderPass();
+	renderPassInfo.renderPass =  ((KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get())->GetRenderPass();
+
 	// 指定帧缓冲
 	renderPassInfo.framebuffer = target->GetFrameBuffer();
 
@@ -1381,6 +1422,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 			inheritanceInfo.renderPass = ((KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get())->GetRenderPass();
 			inheritanceInfo.framebuffer = ((KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get())->GetFrameBuffer();
 
+#ifndef THREAD_MODE_ONE
 			for(size_t i = 0; i < m_ThreadPool.GetWorkerThreadNum(); ++i)
 			{
 				m_ThreadPool.SubmitTask([=]()
@@ -1388,11 +1430,25 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 					ThreadRenderObject((uint32_t)i, imageIndex, inheritanceInfo);
 				});
 			}
-
 			m_ThreadPool.WaitAllAsyncTaskDone();
+#else
+			for(size_t i = 0; i < m_ThreadPool.GetThreadCount(); ++i)
+			{
+				m_ThreadPool.AddJob(i, [=]()
+				{
+					ThreadRenderObject((uint32_t)i, imageIndex, inheritanceInfo);
+				});
+			}
 
-			std::vector<VkCommandBuffer> commandBuffers;
+			m_ThreadPool.WaitAll();
+#endif
+			auto commandBuffers = m_CommandBuffers[imageIndex].commandBuffersExec;
+			commandBuffers.clear();
+#ifndef THREAD_MODE_ONE
 			size_t numThread = m_ThreadPool.GetWorkerThreadNum();
+#else
+			size_t numThread = m_ThreadPool.GetThreadCount();
+#endif
 			for(size_t threadIndex = 0; threadIndex < numThread; ++threadIndex)
 			{
 				ThreadData& threadData = m_CommandBuffers[imageIndex].threadDatas[threadIndex];
@@ -1416,7 +1472,11 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 	// 交换链上的每个帧缓冲都需要提交命令
 	m_CommandBuffers.resize(m_SwapChainRenderTargets.size());
 
+#ifndef THREAD_MODE_ONE
 	size_t numThread = m_ThreadPool.GetWorkerThreadNum();
+#else
+	size_t numThread = m_ThreadPool.GetThreadCount();
+#endif
 
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{
@@ -1429,8 +1489,12 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 		vkAllocateCommandBuffers(m_Device, &allocInfo, &m_CommandBuffers[i].primaryCommandBuffer);
 
 		m_CommandBuffers[i].threadDatas.resize(numThread);
-
+#ifndef THREAD_MODE_ONE
 		size_t numThread = m_ThreadPool.GetWorkerThreadNum();
+#else
+		size_t numThread = m_ThreadPool.GetThreadCount();
+#endif
+
 		size_t numPerThread = m_ObjectTransforms.size() / numThread;
 		size_t numRemain = m_ObjectTransforms.size() % numThread;
 
@@ -1444,6 +1508,9 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 			poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 			VK_ASSERT_RESULT(vkCreateCommandPool(m_Device, &poolInfo, nullptr, &threadData.commandPool));
+
+			threadData.num = numPerThread + ((threadIdx == numThread - 1) ? numRemain : 0);
+			threadData.offset = numPerThread * threadIdx;
 
 			VkCommandBufferAllocateInfo allocInfo = {};
 			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1478,13 +1545,19 @@ bool KVulkanRenderDevice::Present()
 
 	UpdateCamera();
 	UpdateObjectTransform();
+	UpdateFrameTime();
+
+	if(m_MultiThreadSumbit)
+	{
+		SubmitCommandBufferMuitiThread(imageIndex);
+	}
+	else
+	{
+		SubmitCommandBufferSingleThread(imageIndex);
+	}
 
 	VkCommandBuffer primaryCommandBuffer = m_CommandBuffers[imageIndex].primaryCommandBuffer;
-#ifdef MULTITHREAD_SUBMIT_COMMAND
-	SubmitCommandBufferMuitiThread(imageIndex);
-#else
-	SubmitCommandBufferSingleThread(imageIndex);
-#endif
+
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -1526,6 +1599,7 @@ bool KVulkanRenderDevice::Present()
 	presentInfo.pResults = nullptr;
 
 	result = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 	{
 		RecreateSwapChain();
@@ -1546,7 +1620,7 @@ bool KVulkanRenderDevice::Present()
 	{
 		return false;
 	}
-	UpdateFrameTime();
+
 	return true;
 }
 
