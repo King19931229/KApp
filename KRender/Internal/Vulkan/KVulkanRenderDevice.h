@@ -2,7 +2,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "KVulkanHeapAllocator.h"
 #include "KVulkanHelper.h"
-#include "KVulkanDepthBuffer.h"
+#include "KVulkanSwapChain.h"
 
 #include "KBase/Publish/KThreadPool.h"
 #include "KBase/Publish/KTimer.h"
@@ -36,21 +36,12 @@ class KVulkanRenderDevice : IKRenderDevice
 		}
 	};
 
-	struct SwapChainSupportDetails
-	{
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
-
 	struct PhysicalDevice
 	{
 		VkPhysicalDevice device;
 		VkPhysicalDeviceProperties deviceProperties;
 		VkPhysicalDeviceFeatures deviceFeatures;
-
 		QueueFamilyIndices queueFamilyIndices;
-		SwapChainSupportDetails swapChainSupportDetails;
 
 		bool suitable;
 		int score;
@@ -92,6 +83,8 @@ protected:
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 
+	KVulkanSwapChainPtr m_pSwapChain;
+
 	struct ObjectInitTransform
 	{
 		glm::mat4 rotate;
@@ -105,26 +98,12 @@ protected:
 
 	IKTexturePtr m_Texture;
 	IKSamplerPtr m_Sampler;
-	//
+	
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
 
-	VkSwapchainKHR  m_SwapChain;
-	std::vector<VkImage> m_SwapChainImages;
 	std::vector<IKRenderTargetPtr> m_SwapChainRenderTargets;
 	std::vector<IKPipelinePtr> m_SwapChainPipelines;
-
-	std::vector<VkSemaphore> m_ImageAvailableSemaphores;
-	std::vector<VkSemaphore> m_RenderFinishedSemaphores;
-	std::vector<VkFence> m_InFlightFences;
-
-	size_t m_MaxFramesInFight;
-	size_t m_CurrentFlightIndex;
-
-	VkFormat m_SwapChainImageFormat;
-	VkExtent2D m_SwapChainExtent;
-
-	SwapChainSupportDetails	QuerySwapChainSupport(VkPhysicalDevice device);
 
 	bool CheckValidationLayerAvailable();
 	bool SetupDebugMessenger();
@@ -136,10 +115,6 @@ protected:
 	bool CheckExtentionsSupported(VkPhysicalDevice device);
 	PhysicalDevice GetPhysicalDeviceProperty(VkPhysicalDevice device);
 
-	VkSurfaceFormatKHR ChooseSwapSurfaceFormat();
-	VkPresentModeKHR ChooseSwapPresentMode();
-	VkExtent2D ChooseSwapExtent();
-
 	bool CreateSurface();
 	bool PickPhysicsDevice();
 	bool CreateLogicalDevice();
@@ -147,9 +122,6 @@ protected:
 	bool CreateImageViews();
 	bool CreatePipelines();
 	bool CreateCommandPool();
-	bool CreateSyncObjects();
-
-	bool DestroySyncObjects();
 
 	// Temporarily for demo use
 	bool CreateVertexInput();

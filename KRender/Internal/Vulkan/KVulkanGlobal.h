@@ -4,13 +4,6 @@
 
 namespace KVulkanGlobal
 {
-	struct MSAASupport
-	{
-		bool sample_1;
-
-	};
-
-
 	extern bool deviceReady;
 	extern VkDevice device;
 	extern VkPhysicalDevice physicalDevice;
