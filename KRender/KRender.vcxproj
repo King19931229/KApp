@@ -55,6 +55,8 @@
     <ClInclude Include="Internal\Vulkan\KVulkanBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanSwapChain.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanTextrue.h" />
+    <ClInclude Include="Publish\KAABBBox.h" />
+    <ClInclude Include="Publish\KCamera.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KBufferBase.cpp" />

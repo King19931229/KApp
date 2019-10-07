@@ -13,6 +13,9 @@
     <Filter Include="Internal\Asset">
       <UniqueIdentifier>{1f382214-f4ee-4c0a-8cf4-c96098190be3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Publish">
+      <UniqueIdentifier>{f874efcb-4c25-4320-8ff2-dc8f6e66d276}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -125,6 +128,12 @@
     </ClInclude>
     <ClInclude Include="Internal\KRenderThreadPool.h">
       <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KAABBBox.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KCamera.h">
+      <Filter>Publish</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

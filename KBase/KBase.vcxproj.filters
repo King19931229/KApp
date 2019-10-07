@@ -109,6 +109,9 @@
     <ClInclude Include="Publish\KConfig.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KInput.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">

@@ -7,6 +7,7 @@
 #include "KBase/Publish/KThreadPool.h"
 #include "KBase/Publish/KTimer.h"
 #include "Internal/KRenderThreadPool.h"
+#include "Publish/KCamera.h"
 
 #include "GLFW/glfw3.h"
 #include <algorithm>
@@ -84,6 +85,12 @@ protected:
 	IKIndexBufferPtr m_IndexBuffer;
 
 	KVulkanSwapChainPtr m_pSwapChain;
+
+	KCamera m_Camera;
+	KKeyboardCallbackType m_KeyCallback;
+	KMouseCallbackType m_MouseCallback;
+	int m_Move[3];
+	float m_Drag[2];
 
 	struct ObjectInitTransform
 	{

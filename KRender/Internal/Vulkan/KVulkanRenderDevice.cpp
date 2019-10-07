@@ -117,7 +117,8 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_Texture(nullptr),
 	m_Sampler(nullptr)
 {
-
+	ZERO_ARRAY_MEMORY(m_Move);
+	ZERO_ARRAY_MEMORY(m_Drag);
 }
 
 KVulkanRenderDevice::~KVulkanRenderDevice()
@@ -680,7 +681,67 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)window.get();
 	if(renderWindow == nullptr || renderWindow->GetGLFWwindow() == nullptr)
 		return false;
+
+	ZERO_ARRAY_MEMORY(m_Move);
+	m_Drag[0] = 0.0f;
+	m_Drag[1] = 0.0f;
+
+	m_Camera.SetPosition(glm::vec3(0, 400.0f, 400.0f));
+	m_Camera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	m_KeyCallback = [this](InputKeyboard key, InputAction action)
+	{
+		switch (key)
+		{
+		case INPUT_KEY_W:
+			m_Move[2] = action != INPUT_ACTION_RELEASE ? 1 : 0;
+			break;
+		case INPUT_KEY_S:
+			m_Move[2] = action != INPUT_ACTION_RELEASE ? -1 : 0;
+			break;
+		case INPUT_KEY_A:
+			m_Move[0] = action != INPUT_ACTION_RELEASE ? -1 : 0;
+			break;
+		case INPUT_KEY_D:
+			m_Move[0] = action != INPUT_ACTION_RELEASE ? 1 : 0;
+			break;
+		default:
+			break;
+		}
+	};
+
+	m_MouseCallback = [this](InputMouseButton mouse, InputAction action, float xPos, float yPos)
+	{
+		if(action == INPUT_ACTION_PRESS)
+		{
+			m_Drag[0] = xPos;
+			m_Drag[1] = yPos;
+		}
+		if(action == INPUT_ACTION_REPEAT)
+		{
+			float deltaX = xPos - m_Drag[0];
+			float deltaY = yPos - m_Drag[1];
+
+			size_t width; size_t height;
+			m_pWindow->GetSize(width, height);
+
+			if(abs(deltaX) > 0.0001f && abs(deltaX) >= abs(deltaY))
+			{
+				m_Camera.RotateUp(-glm::quarter_pi<float>() * deltaX / width);
+			}
+			else if(abs(deltaY) > 0.0001f)
+			{
+				m_Camera.RotateRight(-glm::quarter_pi<float>() * deltaY / height);
+			}
+			m_Drag[0] = xPos;
+			m_Drag[1] = yPos;
+		}
+	};
+
 	m_pWindow = renderWindow;
+
+	m_pWindow->RegisterKeyboardCallback(&m_KeyCallback);
+	m_pWindow->RegisterMouseCallback(&m_MouseCallback);
 
 	VkApplicationInfo appInfo = {};
 
@@ -982,11 +1043,22 @@ bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 
 bool KVulkanRenderDevice::UpdateCamera()
 {
+	static KTimer m_MoveTimer;
+
+	const float dt = m_MoveTimer.GetSeconds();
+	const float moveSpeed = 50.0f;
+	m_MoveTimer.Reset();
+
+	m_Camera.MoveRight(dt * moveSpeed * m_Move[0]);
+	m_Camera.MoveUp(dt * moveSpeed * m_Move[1]);
+	m_Camera.MoveForward(dt * moveSpeed * m_Move[2]);
+
 	VkExtent2D extend = m_pSwapChain->GetExtent();
 
-	glm::mat4 view = glm::lookAt(glm::vec3(0, 400.0f, 400.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	glm::mat4 proj = glm::perspective(glm::radians(45.0f), extend.width / (float) extend.height, 0.1f, 3000.0f);
-	proj[1][1] *= -1;
+	m_Camera.SetPerspective(glm::radians(45.0f), extend.width / (float) extend.height, 0.1f, 3000.0f);
+
+	glm::mat4 view = m_Camera.GetViewMatrix();
+	glm::mat4 proj = m_Camera.GetProjectiveMatrix();
 
 	void* pWritePos = nullptr;
 	void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);	

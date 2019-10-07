@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKRenderWindow.h"
 #include "GLFW/glfw3.h"
+#include <chrono>
 
 class KVulkanRenderDevice;
 
@@ -8,7 +9,21 @@ class KVulkanRenderWindow : IKRenderWindow
 {
 	GLFWwindow* m_window;
 	KVulkanRenderDevice* m_device;
+
+	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
+	std::vector<KMouseCallbackType*> m_MouseCallbacks;
+
+	bool m_MouseDown[INPUT_MOUSE_BUTTON_COUNT];
+
+	static bool GLFWKeyToInputKeyboard(int key, InputKeyboard& keyboard);
+	static bool GLFWMouseButtonToInputMouseButton(int mouse, InputMouseButton& mouseButton);
+	static bool GLFWActionToInputAction(int action, InputAction& inputAction);
+
 	static void FramebufferResizeCallback(GLFWwindow* handle, int width, int height);
+	static void KeyboardCallback(GLFWwindow* handle, int key, int scancode, int action, int mods);
+	static void MouseCallback(GLFWwindow* handle, int mouse, int action, int mods);
+
+	void OnMouseMove();
 public:
 	KVulkanRenderWindow();
 	virtual ~KVulkanRenderWindow();
@@ -28,6 +43,12 @@ public:
 	virtual bool IsResizable();
 
 	virtual bool SetWindowTitle(const char* pName);
+
+	virtual bool RegisterKeyboardCallback(KKeyboardCallbackType* callback);
+	virtual bool RegisterMouseCallback(KMouseCallbackType* callback);
+
+	virtual bool UnRegisterKeyboardCallback(KKeyboardCallbackType* callback);
+	virtual bool UnRegisterMouseCallback(KMouseCallbackType* callback);
 
 	inline GLFWwindow* GetGLFWwindow() { return m_window; }
 	inline void SetVulkanDevice(KVulkanRenderDevice* device) { m_device = device; }

@@ -1,5 +1,11 @@
 #pragma once
 #include "Interface/IKRenderConfig.h"
+#include "KBase/Publish/KInput.h"
+
+#include <functional>
+
+typedef std::function<void(InputKeyboard key, InputAction action)> KKeyboardCallbackType;
+typedef std::function<void(InputMouseButton key, InputAction action, float x, float y)> KMouseCallbackType;
 
 struct IKRenderWindow
 {
@@ -20,6 +26,12 @@ struct IKRenderWindow
 	virtual bool IsResizable() = 0;
 
 	virtual bool SetWindowTitle(const char* pName) = 0;
+
+	virtual bool RegisterKeyboardCallback(KKeyboardCallbackType* callback) = 0;
+	virtual bool RegisterMouseCallback(KMouseCallbackType* callback) = 0;
+
+	virtual bool UnRegisterKeyboardCallback(KKeyboardCallbackType* callback) = 0;
+	virtual bool UnRegisterMouseCallback(KMouseCallbackType* callback) = 0;
 };
 
 EXPORT_DLL IKRenderWindowPtr CreateRenderWindow(RenderDevice platform);
