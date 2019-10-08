@@ -79,6 +79,10 @@ protected:
 			m_InvaildProj = false;
 		}
 	}
+
+	inline bool CheckLockX(const glm::vec3& newRight) { return m_EnableLockX ? glm::dot(newRight, m_LockX) * glm::dot(m_Right, m_LockX) > 0.0f : true; }
+	inline bool CheckLockY(const glm::vec3& newUp) { return m_EnableLockY ? glm::dot(newUp, m_LockY) * glm::dot(m_Up, m_LockY) > 0.0f : true; }
+	inline bool CheckLockZ(const glm::vec3& newForward) { return m_EnableLockZ ? glm::dot(newForward, m_LockZ) * glm::dot(m_Forward, m_LockZ) > 0.0f : true; }
 public:
 	KCamera()
 		: m_Near(1.0f),
@@ -103,20 +107,25 @@ public:
 		UpdateProperty();
 	}
 
-	inline const glm::vec3& GetPostion() const { return m_Pos; }
+	inline void SetCustomLockXAxis(const glm::vec3& axis) { m_LockX = axis; }
+	inline void SetCustomLockYAxis(const glm::vec3& axis) { m_LockY = axis; }
+	inline void SetCustomLockZAxis(const glm::vec3& axis) { m_LockZ = axis; }
+	inline void SetLockXEnable(bool enable) { m_EnableLockX = enable; }
+	inline void SetLockYEnable(bool enable) { m_EnableLockY = enable; }
+	inline void SetLockZEnable(bool enable) { m_EnableLockZ = enable; }
 
+	inline const glm::vec3& GetPostion() const { return m_Pos; }
 	inline const glm::vec3& GetUp() const { return m_Up; }
 	inline const glm::vec3& GetForward() const { return m_Forward; }
 	inline const glm::vec3& GetRight() const { return m_Right; }
-
 	inline const glm::mat4& GetViewMatrix() const { return m_View; }
 	inline const glm::mat4& GetProjectiveMatrix() const { return m_Proj; }
 
-	bool SetPosition(const glm::vec3& pos)
+	void SetPosition(const glm::vec3& pos)
 	{
 		m_Pos = pos;
+		m_InvaildView = true;
 		UpdateProperty();
-		return true;
 	}
 
 	bool LookAt(const glm::vec3& center, const glm::vec3 up)
@@ -127,34 +136,7 @@ public:
 		glm::vec3 newUp = glm::normalize(up);
 		glm::vec3 newRight = glm::cross(newForward, newUp);
 
-		if(m_EnableLockZ)
-		{
-			if(glm::dot(m_LockZ - newRight, m_LockZ - m_Right) <= 0.0f ||
-				glm::dot(-m_LockZ - newRight, -m_LockZ - m_Right) <= 0.0f)
-			{
-				bReturn = false;
-			}
-		}
-		else if(m_EnableLockY)
-		{
-			if(glm::dot(m_LockY - newForward, m_LockY - m_Forward) <= 0.0f ||
-				glm::dot(-m_LockY - newForward, -m_LockY - m_Forward) <= 0.0f)
-			{
-				bReturn = false;
-			}
-		}
-		else if(m_EnableLockY)
-		{
-			if(glm::dot(m_LockY - newForward, m_LockY - m_Forward) <= 0.0f ||
-				glm::dot(-m_LockY - newForward, -m_LockY - m_Forward) <= 0.0f)
-			{
-				bReturn = false;
-			}
-		}
-		else
-		{
-			bReturn = true;
-		}
+		bReturn = CheckLockX(newRight) && CheckLockY(newUp) && CheckLockZ(newForward);
 
 		if(bReturn)
 		{
@@ -163,8 +145,14 @@ public:
 			m_InvaildView = true;
 			UpdateProperty();
 		}
-
 		return bReturn;
+	}
+
+	void Move(const glm::vec3& offset)
+	{
+		m_Pos += offset;
+		m_InvaildView = true;
+		UpdateProperty();
 	}
 
 	bool MoveForward(float dist)
@@ -191,25 +179,41 @@ public:
 		return true;
 	}
 
+	bool Rotate(const glm::vec3& axis, float radian)
+	{
+		bool bReturn = false;
+
+		glm::mat4 rotate = glm::transpose(glm::mat4(glm::mat3(m_View)));
+		glm::mat4 newRotate = glm::rotate(glm::mat4(1.0f), radian, axis) * rotate;
+
+		glm::vec3 newRight		= glm::vec3(newRotate[0][0], newRotate[0][1], newRotate[0][2]);
+		glm::vec3 newUp			= glm::vec3(newRotate[1][0], newRotate[1][1], newRotate[1][2]);
+		glm::vec3 newForward	= -glm::vec3(newRotate[2][0], newRotate[2][1], newRotate[2][2]);
+
+		bReturn = CheckLockX(newRight) && CheckLockY(newUp) && CheckLockZ(newForward);
+
+		if(bReturn)
+		{
+			m_Forward = newForward;
+			m_Up = newUp;
+			m_InvaildView = true;
+			UpdateProperty();
+		}
+
+		return bReturn;
+	}
+
 	bool RotateForward(float radian)
 	{
 		bool bReturn = false;
 		glm::vec3 newUp = glm::rotate(glm::mat4(1.0f), radian, m_Forward) * glm::vec4(m_Up, 0.0f);
-		if(m_EnableLockX)
-		{
-			if(glm::dot(m_LockX - newUp, m_LockX - m_Up) <= 0.0f ||
-				glm::dot(-m_LockX - newUp, -m_LockX - m_Up) <= 0.0f)
-			{
-				bReturn = false;
-			}
-		}
-		else
-		{
-			bReturn = true;
-		}
+		glm::vec3 newRight = glm::cross(m_Forward, newUp);
+		bReturn = CheckLockY(newUp) && CheckLockX(newRight);
+
 		if(bReturn)
 		{
-			m_Up = std::move(newUp);
+			m_Up = newUp;
+			m_Right = newRight;
 			m_InvaildView = true;
 			UpdateProperty();
 		}
@@ -220,22 +224,13 @@ public:
 	{
 		bool bReturn = false;
 		glm::vec3 newRight = glm::rotate(glm::mat4(1.0f), radian, m_Up) * glm::vec4(m_Right, 0.0f);
-		if(m_EnableLockZ)
-		{
-			if(glm::dot(m_LockZ - newRight, m_LockZ - m_Right) <= 0.0f ||
-				glm::dot(-m_LockZ - newRight, -m_LockZ - m_Right) <= 0.0f)
-			{
-				bReturn = false;
-			}
-		}
-		else
-		{
-			bReturn = true;
-		}
+		glm::vec3 newForward = glm::cross(m_Up, newRight);
+		bReturn = CheckLockX(newRight) && CheckLockZ(newForward);
+
 		if(bReturn)
 		{
 			m_Right = newRight;
-			m_Forward = -glm::cross(newRight, m_Up);
+			m_Forward = newForward;
 			m_InvaildView = true;
 			UpdateProperty();
 		}
@@ -246,22 +241,13 @@ public:
 	{
 		bool bReturn = false;
 		glm::vec3 newForward = glm::rotate(glm::mat4(1.0f), radian, m_Right) * glm::vec4(m_Forward, 0.0f);
-		if(m_EnableLockY)
-		{
-			if(glm::dot(m_LockY - newForward, m_LockY - m_Forward) <= 0.0f ||
-				glm::dot(-m_LockY - newForward, -m_LockY - m_Forward) <= 0.0f)
-			{
-				bReturn = false;
-			}
-		}
-		else
-		{
-			bReturn = true;
-		}
+		glm::vec3 newUp = glm::cross(m_Right, newForward);
+		bReturn = CheckLockY(newUp) && CheckLockZ(newForward);
+
 		if(bReturn)
 		{
 			m_Forward = newForward;
-			m_Up = glm::cross(m_Right, newForward);
+			m_Up = newUp;
 			m_InvaildView = true;
 			UpdateProperty();
 		}

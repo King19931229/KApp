@@ -6,6 +6,7 @@
 
 typedef std::function<void(InputKeyboard key, InputAction action)> KKeyboardCallbackType;
 typedef std::function<void(InputMouseButton key, InputAction action, float x, float y)> KMouseCallbackType;
+typedef std::function<void(float x, float y)> KScrollCallbackType;
 
 struct IKRenderWindow
 {
@@ -29,9 +30,11 @@ struct IKRenderWindow
 
 	virtual bool RegisterKeyboardCallback(KKeyboardCallbackType* callback) = 0;
 	virtual bool RegisterMouseCallback(KMouseCallbackType* callback) = 0;
+	virtual bool RegisterScrollCallback(KScrollCallbackType* callback) = 0;
 
 	virtual bool UnRegisterKeyboardCallback(KKeyboardCallbackType* callback) = 0;
 	virtual bool UnRegisterMouseCallback(KMouseCallbackType* callback) = 0;
+	virtual bool UnRegisterScrollCallback(KScrollCallbackType* callback) = 0;
 };
 
 EXPORT_DLL IKRenderWindowPtr CreateRenderWindow(RenderDevice platform);

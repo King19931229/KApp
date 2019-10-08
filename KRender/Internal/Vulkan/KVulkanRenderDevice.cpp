@@ -118,7 +118,6 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_Sampler(nullptr)
 {
 	ZERO_ARRAY_MEMORY(m_Move);
-	ZERO_ARRAY_MEMORY(m_Drag);
 }
 
 KVulkanRenderDevice::~KVulkanRenderDevice()
@@ -683,11 +682,17 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		return false;
 
 	ZERO_ARRAY_MEMORY(m_Move);
-	m_Drag[0] = 0.0f;
-	m_Drag[1] = 0.0f;
+	
+	for(int i = 0; i < ARRAY_SIZE(m_Drag); ++i)
+	{
+		m_Drag[i][0] = 0.0f;
+		m_Drag[i][1] = 0.0f;
+	}
 
 	m_Camera.SetPosition(glm::vec3(0, 400.0f, 400.0f));
 	m_Camera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	m_Camera.SetCustomLockYAxis(glm::vec3(0,0,1));
+	m_Camera.SetLockYEnable(true);
 
 	m_KeyCallback = [this](InputKeyboard key, InputAction action)
 	{
@@ -705,6 +710,12 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		case INPUT_KEY_D:
 			m_Move[0] = action != INPUT_ACTION_RELEASE ? 1 : 0;
 			break;
+		case INPUT_KEY_E:
+			m_Move[1] = action != INPUT_ACTION_RELEASE ? 1 : 0;
+			break;
+		case INPUT_KEY_Q:
+			m_Move[1] = action != INPUT_ACTION_RELEASE ? -1 : 0;
+			break;
 		default:
 			break;
 		}
@@ -714,34 +725,55 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 	{
 		if(action == INPUT_ACTION_PRESS)
 		{
-			m_Drag[0] = xPos;
-			m_Drag[1] = yPos;
+			m_Drag[mouse][0] = xPos;
+			m_Drag[mouse][1] = yPos;
 		}
 		if(action == INPUT_ACTION_REPEAT)
 		{
-			float deltaX = xPos - m_Drag[0];
-			float deltaY = yPos - m_Drag[1];
+			float deltaX = xPos - m_Drag[mouse][0];
+			float deltaY = yPos - m_Drag[mouse][1];
 
 			size_t width; size_t height;
 			m_pWindow->GetSize(width, height);
 
-			if(abs(deltaX) > 0.0001f && abs(deltaX) >= abs(deltaY))
+			if(mouse == INPUT_MOUSE_BUTTON_LEFT)
 			{
-				m_Camera.RotateUp(-glm::quarter_pi<float>() * deltaX / width);
+				if(abs(deltaX) > 0.0001f)
+				{
+					m_Camera.Rotate(glm::vec3(0.0f, 0.0f, 1.0f), -glm::quarter_pi<float>() * deltaX / width);
+				}
+				if(abs(deltaY) > 0.0001f)
+				{
+					m_Camera.RotateRight(-glm::quarter_pi<float>() * deltaY / height);
+				}
 			}
-			else if(abs(deltaY) > 0.0001f)
+			else if(mouse == INPUT_MOUSE_BUTTON_RIGHT)
 			{
-				m_Camera.RotateRight(-glm::quarter_pi<float>() * deltaY / height);
+				const float fSpeed = 500.f;
+
+				glm::vec3 forward = m_Camera.GetForward(); forward.z = 0.0f; forward = glm::normalize(forward);
+				glm::vec3 right = m_Camera.GetRight(); right.z = 0.0f; right = glm::normalize(right);
+
+				m_Camera.Move(deltaY * fSpeed * forward / (float)width);
+				m_Camera.Move(-deltaX * fSpeed * right / (float)height);
 			}
-			m_Drag[0] = xPos;
-			m_Drag[1] = yPos;
+
+			m_Drag[mouse][0] = xPos;
+			m_Drag[mouse][1] = yPos;
 		}
+	};
+
+	m_ScrollCallback = [this](float xOffset, float yOffset)
+	{
+		const float fSpeed = 15.0f;
+		m_Camera.MoveForward(fSpeed * yOffset);
 	};
 
 	m_pWindow = renderWindow;
 
 	m_pWindow->RegisterKeyboardCallback(&m_KeyCallback);
 	m_pWindow->RegisterMouseCallback(&m_MouseCallback);
+	m_pWindow->RegisterScrollCallback(&m_ScrollCallback);
 
 	VkApplicationInfo appInfo = {};
 
@@ -1046,11 +1078,11 @@ bool KVulkanRenderDevice::UpdateCamera()
 	static KTimer m_MoveTimer;
 
 	const float dt = m_MoveTimer.GetSeconds();
-	const float moveSpeed = 50.0f;
+	const float moveSpeed = 300.0f;
 	m_MoveTimer.Reset();
 
 	m_Camera.MoveRight(dt * moveSpeed * m_Move[0]);
-	m_Camera.MoveUp(dt * moveSpeed * m_Move[1]);
+	m_Camera.Move(dt * moveSpeed * m_Move[1] * glm::vec3(0,0,1));
 	m_Camera.MoveForward(dt * moveSpeed * m_Move[2]);
 
 	VkExtent2D extend = m_pSwapChain->GetExtent();

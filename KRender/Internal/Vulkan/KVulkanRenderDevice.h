@@ -89,8 +89,10 @@ protected:
 	KCamera m_Camera;
 	KKeyboardCallbackType m_KeyCallback;
 	KMouseCallbackType m_MouseCallback;
+	KScrollCallbackType m_ScrollCallback;
+
 	int m_Move[3];
-	float m_Drag[2];
+	float m_Drag[INPUT_MOUSE_BUTTON_COUNT][2];
 
 	struct ObjectInitTransform
 	{

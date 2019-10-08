@@ -12,6 +12,7 @@ class KVulkanRenderWindow : IKRenderWindow
 
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
+	std::vector<KScrollCallbackType*> m_ScrollCallbacks;
 
 	bool m_MouseDown[INPUT_MOUSE_BUTTON_COUNT];
 
@@ -22,6 +23,7 @@ class KVulkanRenderWindow : IKRenderWindow
 	static void FramebufferResizeCallback(GLFWwindow* handle, int width, int height);
 	static void KeyboardCallback(GLFWwindow* handle, int key, int scancode, int action, int mods);
 	static void MouseCallback(GLFWwindow* handle, int mouse, int action, int mods);
+	static void ScrollCallback(GLFWwindow* handle, double xoffset, double yoffset);
 
 	void OnMouseMove();
 public:
@@ -46,9 +48,11 @@ public:
 
 	virtual bool RegisterKeyboardCallback(KKeyboardCallbackType* callback);
 	virtual bool RegisterMouseCallback(KMouseCallbackType* callback);
+	virtual bool RegisterScrollCallback(KScrollCallbackType* callback);
 
 	virtual bool UnRegisterKeyboardCallback(KKeyboardCallbackType* callback);
 	virtual bool UnRegisterMouseCallback(KMouseCallbackType* callback);
+	virtual bool UnRegisterScrollCallback(KScrollCallbackType* callback);
 
 	inline GLFWwindow* GetGLFWwindow() { return m_window; }
 	inline void SetVulkanDevice(KVulkanRenderDevice* device) { m_device = device; }

@@ -42,6 +42,14 @@ bool KVulkanRenderWindow::GLFWKeyToInputKeyboard(int key, InputKeyboard& board)
 		board = INPUT_KEY_D;
 		return true;
 
+	case GLFW_KEY_Q:
+		board = INPUT_KEY_Q;
+		return true;
+
+	case GLFW_KEY_E:
+		board = INPUT_KEY_E;
+		return true;
+
 	default:
 		return false;
 	}
@@ -136,6 +144,21 @@ void KVulkanRenderWindow::MouseCallback(GLFWwindow* handle, int mouse, int actio
 	}
 }
 
+void KVulkanRenderWindow::ScrollCallback(GLFWwindow* handle, double xoffset, double yoffset)
+{
+	KVulkanRenderWindow* window = (KVulkanRenderWindow*)glfwGetWindowUserPointer(handle);
+	if(window && window->m_device && !window->m_ScrollCallbacks.empty())
+	{
+		for(auto it = window->m_ScrollCallbacks.begin(),
+			itEnd = window->m_ScrollCallbacks.end();
+			it != itEnd; ++it)
+		{
+			KScrollCallbackType& callback = (*(*it));
+			callback((float)xoffset, (float)yoffset);
+		}
+	}
+}
+
 void KVulkanRenderWindow::OnMouseMove()
 {
 	bool mouseButtonDown = m_MouseDown[INPUT_MOUSE_BUTTON_LEFT] || m_MouseDown[INPUT_MOUSE_BUTTON_MIDDLE] || m_MouseDown[INPUT_MOUSE_BUTTON_RIGHT];
@@ -174,6 +197,7 @@ bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t hei
 				glfwSetFramebufferSizeCallback(m_window, FramebufferResizeCallback);
 				glfwSetKeyCallback(m_window, KeyboardCallback);
 				glfwSetMouseButtonCallback(m_window, MouseCallback);
+				glfwSetScrollCallback(m_window, ScrollCallback);
 			}
 			glfwSetWindowPos(m_window, (int)top, (int)left);
 			ZERO_ARRAY_MEMORY(m_MouseDown);
@@ -332,6 +356,16 @@ bool KVulkanRenderWindow::RegisterMouseCallback(KMouseCallbackType* callback)
 	return false;
 }
 
+bool KVulkanRenderWindow::RegisterScrollCallback(KScrollCallbackType* callback)
+{
+	if(callback && std::find(m_ScrollCallbacks.begin(), m_ScrollCallbacks.end(), callback) == m_ScrollCallbacks.end())
+	{
+		m_ScrollCallbacks.push_back(callback);
+		return true;
+	}
+	return false;
+}
+
 bool KVulkanRenderWindow::UnRegisterKeyboardCallback(KKeyboardCallbackType* callback)
 {
 	if(callback)
@@ -354,6 +388,20 @@ bool KVulkanRenderWindow::UnRegisterMouseCallback(KMouseCallbackType* callback)
 		if(it != m_MouseCallbacks.end())
 		{
 			m_MouseCallbacks.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KVulkanRenderWindow::UnRegisterScrollCallback(KScrollCallbackType* callback)
+{
+	if(callback)
+	{
+		auto it = std::find(m_ScrollCallbacks.begin(), m_ScrollCallbacks.end(), callback);
+		if(it != m_ScrollCallbacks.end())
+		{
+			m_ScrollCallbacks.erase(it);
 			return true;
 		}
 	}
