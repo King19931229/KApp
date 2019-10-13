@@ -135,6 +135,9 @@
     <ClInclude Include="Publish\KCamera.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KPlane.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">

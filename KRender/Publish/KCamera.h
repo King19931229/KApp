@@ -1,29 +1,67 @@
 #pragma once
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "KPlane.h"
+#include "KAABBBox.h"
 #include <utility>
 
 class KCamera
 {
 public:
-	enum PROJECTIVE_MODE
+	enum ProjectiveMode
 	{
 		PM_PERSPECTIVE = 0,
 		PM_ORTHO
 	};
+
+	enum FrustrmPlane
+	{
+		FP_NEAR,
+		FP_FAR,
+
+		FP_LEFT,
+		FP_RIGHT,
+
+		FP_BOTTOM,
+		FP_TOP,
+
+		FP_COUNT
+	};
+
+	enum FrustrmCorner
+	{
+		FC_NEAR_TOP_LEFT,
+		FC_NEAR_TOP_RIGHT,
+		FC_NEAR_BOTTOM_RIGHT,
+		FC_NEAR_BOTTOM_LEFT,
+
+		FC_FAR_BOTTOM_LEFT,
+		FC_FAR_TOP_LEFT,
+		FC_FAR_TOP_RIGHT,
+		FC_FAR_BOTTOM_RIGHT,
+
+		FC_COUNT
+	};
+
 protected:
+	ProjectiveMode m_Mode;
+
 	glm::vec3 m_Pos;
 
 	glm::vec3 m_Forward;
 	glm::vec3 m_Up;
 	glm::vec3 m_Right;
 
-	glm::vec3 m_LockX;
-	glm::vec3 m_LockY;
-	glm::vec3 m_LockZ;
+	KAABBBox m_Box;
+	KPlane m_Planes[FP_COUNT];
+	glm::vec3 m_Corners[FC_COUNT];
 
 	glm::mat4 m_View;
 	glm::mat4 m_Proj;
+
+	glm::vec3 m_LockX;
+	glm::vec3 m_LockY;
+	glm::vec3 m_LockZ;
 
 	float m_Near;
 	float m_Far;
@@ -32,8 +70,6 @@ protected:
 
 	float m_Width;
 	float m_Height;
-
-	PROJECTIVE_MODE m_Mode;
 
 	bool m_EnableLockX;
 	bool m_EnableLockY;
@@ -56,9 +92,7 @@ protected:
 
 			assert(abs(m_Up.x - calcUp.x) <= 0.00001f);
 			assert(abs(m_Up.y - calcUp.y) <= 0.00001f);
-			assert(abs(m_Up.z - calcUp.z) <= 0.00001f);
-
-			m_InvaildView = false;
+			assert(abs(m_Up.z - calcUp.z) <= 0.00001f);			
 		}
 
 		if(m_InvaildProj)
@@ -75,9 +109,51 @@ protected:
 				m_Proj = glm::orthoRH(-m_Width * 0.5f, m_Width * 0.5f, -m_Height * 0.5f, m_Height * 0.5f, m_Near, m_Far);
 			}
 			m_Proj[1][1] *= -1;
-
-			m_InvaildProj = false;
 		}
+
+		if(m_InvaildView || m_InvaildProj)
+		{
+			float ratio = m_Far / m_Near;
+
+			float nearHalfWidth = 0.5f * m_Width;
+			float nearHalfHeight = 0.5f * m_Height;
+
+			float farHalfWidth = nearHalfWidth * ratio;
+			float farHalfHeight = nearHalfHeight * ratio;
+
+			m_Corners[FC_NEAR_TOP_LEFT] = glm::vec3(-nearHalfWidth, nearHalfHeight, -m_Near);
+			m_Corners[FC_NEAR_TOP_RIGHT] = glm::vec3(nearHalfWidth, nearHalfHeight, -m_Near);
+			m_Corners[FC_NEAR_BOTTOM_RIGHT] = glm::vec3(nearHalfWidth, -nearHalfHeight, -m_Near);
+			m_Corners[FC_NEAR_BOTTOM_LEFT] = glm::vec3(-nearHalfWidth, -nearHalfHeight, -m_Near);
+
+			m_Corners[FC_FAR_BOTTOM_LEFT] = glm::vec3(-farHalfWidth, -farHalfHeight, -m_Far);
+			m_Corners[FC_FAR_TOP_LEFT] = glm::vec3(-farHalfWidth, farHalfHeight, -m_Far);
+			m_Corners[FC_FAR_TOP_RIGHT] = glm::vec3(farHalfWidth, farHalfHeight, -m_Far);
+			m_Corners[FC_FAR_BOTTOM_RIGHT] = glm::vec3(farHalfWidth, -farHalfHeight, -m_Far);
+
+			glm::mat4 viewInv = glm::inverse(m_View);
+
+			KAABBBox tempBoxResult;
+			m_Box.SetNull();
+			for(int i = 0; i < FC_COUNT; ++i)
+			{
+				m_Corners[i] = viewInv * glm::vec4(m_Corners[i], 1.0f);
+				m_Box.Merge(m_Corners[i], tempBoxResult);
+				m_Box = tempBoxResult;
+			}
+
+			m_Planes[FP_NEAR].Init(m_Corners[FC_NEAR_TOP_LEFT], m_Corners[FC_NEAR_TOP_RIGHT], m_Corners[FC_NEAR_BOTTOM_RIGHT]);
+			m_Planes[FP_FAR].Init(m_Corners[FC_FAR_TOP_LEFT], m_Corners[FC_FAR_BOTTOM_LEFT], m_Corners[FC_FAR_BOTTOM_RIGHT]);
+
+			m_Planes[FP_LEFT].Init(m_Corners[FC_FAR_BOTTOM_LEFT], m_Corners[FC_FAR_TOP_LEFT], m_Corners[FC_NEAR_BOTTOM_LEFT]);
+			m_Planes[FP_RIGHT].Init(m_Corners[FC_FAR_TOP_RIGHT], m_Corners[FC_FAR_BOTTOM_RIGHT], m_Corners[FC_NEAR_BOTTOM_RIGHT]);
+
+			m_Planes[FP_BOTTOM].Init(m_Corners[FC_NEAR_BOTTOM_LEFT], m_Corners[FC_NEAR_BOTTOM_RIGHT], m_Corners[FC_FAR_BOTTOM_RIGHT]);
+			m_Planes[FP_TOP].Init(m_Corners[FC_NEAR_TOP_LEFT], m_Corners[FC_FAR_TOP_LEFT], m_Corners[FC_FAR_TOP_RIGHT]);
+		}
+
+		m_InvaildView = false;
+		m_InvaildProj = false;
 	}
 
 	inline bool CheckLockX(const glm::vec3& newRight) { return m_EnableLockX ? glm::dot(newRight, m_LockX) * glm::dot(m_Right, m_LockX) > 0.0f : true; }
@@ -288,5 +364,24 @@ public:
 		m_InvaildProj = true;
 		UpdateProperty();
 		return true;
+	}
+
+	bool CheckVisible(const KAABBBox& box) const
+	{
+		glm::vec3 halfSize = box.GetExtend() * 0.5f;
+		glm::vec3 center = box.GetCenter();
+		for(int i = 0; i < FP_COUNT; ++i)
+		{
+			if(m_Planes[i].GetSide(center, halfSize) == KPlane::PS_NEGATIVE)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool CheckVisibleFast(const KAABBBox& box) const
+	{
+		return m_Box.Intersection(box);
 	}
 };

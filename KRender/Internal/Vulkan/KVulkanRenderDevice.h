@@ -1,13 +1,15 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
+#include "Internal/KRenderThreadPool.h"
 #include "KVulkanHeapAllocator.h"
 #include "KVulkanHelper.h"
 #include "KVulkanSwapChain.h"
 
 #include "KBase/Publish/KThreadPool.h"
 #include "KBase/Publish/KTimer.h"
-#include "Internal/KRenderThreadPool.h"
+
 #include "Publish/KCamera.h"
+#include "Publish/KAABBBox.h"
 
 #include "GLFW/glfw3.h"
 #include <algorithm>
@@ -59,7 +61,7 @@ protected:
 	bool m_MultiThreadSumbit;
 	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
 	VkCommandPool m_CommandPool;
-
+	KAABBBox m_Box;
 	struct ThreadData
 	{
 		VkCommandPool commandPool;

@@ -553,6 +553,14 @@ bool KVulkanRenderDevice::CreateVertexInput()
 		{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)},
 	};
 
+	m_Box.SetNull();
+	KAABBBox tempCalcResult;
+	for(int i = 0; i < ARRAY_SIZE(vertices); ++i)
+	{
+		m_Box.Merge(vertices[i].POSITION, tempCalcResult);
+		m_Box = tempCalcResult;
+	}
+
 	CreateVertexBuffer(m_VertexBuffer);
 	m_VertexBuffer->InitMemory(sizeof(vertices) / sizeof(vertices[0]), sizeof(vertices[0]), vertices);
 	m_VertexBuffer->InitDevice();
@@ -736,7 +744,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			size_t width; size_t height;
 			m_pWindow->GetSize(width, height);
 
-			if(mouse == INPUT_MOUSE_BUTTON_LEFT)
+			if(mouse == INPUT_MOUSE_BUTTON_RIGHT)
 			{
 				if(abs(deltaX) > 0.0001f)
 				{
@@ -747,7 +755,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 					m_Camera.RotateRight(-glm::quarter_pi<float>() * deltaY / height);
 				}
 			}
-			else if(mouse == INPUT_MOUSE_BUTTON_RIGHT)
+			else if(mouse == INPUT_MOUSE_BUTTON_LEFT)
 			{
 				const float fSpeed = 500.f;
 
@@ -931,6 +939,7 @@ bool KVulkanRenderDevice::UnInit()
 {
 #ifndef THREAD_MODE_ONE
 	m_ThreadPool.WaitAllAsyncTaskDone();
+	m_ThreadPool.PopAllWorkerThreads();
 #else
 	m_ThreadPool.WaitAll();
 #endif
@@ -1191,8 +1200,14 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imag
 		for(size_t i = 0; i < threadData.num; ++i)
 		{
 			glm::mat4& model = m_ObjectFinalTransforms[i + threadData.offset];
-			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_ObjectBuffer->GetBufferSize(), &model);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+
+			KAABBBox objectBox;
+			m_Box.Transform(model, objectBox);
+			if(m_Camera.CheckVisible(objectBox))
+			{
+				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_ObjectBuffer->GetBufferSize(), &model);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+			}
 		}
 	}
 	VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
@@ -1255,8 +1270,13 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(unsigned int imageInde
 			// 绘制调用
 			for(glm::mat4& model : m_ObjectFinalTransforms)
 			{
-				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_ObjectBuffer->GetBufferSize(), &model);
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+				KAABBBox objectBox;
+				m_Box.Transform(model, objectBox);
+				if(m_Camera.CheckVisible(objectBox))
+				{
+					vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)m_ObjectBuffer->GetBufferSize(), &model);
+					vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+				}
 			}
 		}
 		// 结束渲染过程

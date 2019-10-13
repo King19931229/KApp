@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <queue>
 #include <memory>
+#include <assert.h>
 
 class KRenderThreadPool
 {
