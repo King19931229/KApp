@@ -105,7 +105,7 @@ protected:
 	std::vector<glm::mat4> m_ObjectFinalTransforms;
 
 	IKUniformBufferPtr m_ObjectBuffer;
-	IKUniformBufferPtr m_CameraBuffer;
+	std::vector<IKUniformBufferPtr> m_CameraBuffers;
 
 	IKTexturePtr m_Texture;
 	IKSamplerPtr m_Sampler;
@@ -143,7 +143,7 @@ protected:
 	bool SubmitCommandBufferMuitiThread(unsigned int idx);
 	bool UpdateFrameTime();
 
-	bool UpdateCamera();
+	bool UpdateCamera(unsigned int idx);
 	bool UpdateObjectTransform();
 
 	void ThreadRenderObject(uint32_t threadIndex, uint32_t imageIndex, VkCommandBufferInheritanceInfo inheritanceInfo);

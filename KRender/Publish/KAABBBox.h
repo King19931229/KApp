@@ -46,14 +46,12 @@ public:
 	{
 		if(IsDefault())
 		{
-			glm::vec3 v = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
-
 			float min[3];
 			float max[3];
 
-			min[0] = max[0] = v[0];
-			min[1] = max[1] = v[1];
-			min[2] = max[2] = v[2];
+			min[0] = max[0] = transform[3][0];
+			min[1] = max[1] = transform[3][1];
+			min[2] = max[2] = transform[3][2];
 
 			float e = 0.0f, f = 0.0f;
 			for(int i = 0; i < 3; i++)

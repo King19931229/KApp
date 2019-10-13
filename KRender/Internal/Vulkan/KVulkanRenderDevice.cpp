@@ -341,7 +341,7 @@ bool KVulkanRenderDevice::CreatePipelines()
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 
-		pipeline->SetConstantBuffer(0, ST_VERTEX, m_CameraBuffer);
+		pipeline->SetConstantBuffer(0, ST_VERTEX, m_CameraBuffers[i]);
 		pipeline->SetTextureSampler(1, m_Texture, m_Sampler);
 
 		pipeline->PushConstantBuffer(ST_VERTEX, m_ObjectBuffer);
@@ -580,11 +580,14 @@ bool KVulkanRenderDevice::CreateUniform()
 		nullptr);
 	m_ObjectBuffer->InitDevice(CUT_PUSH_CONSTANT);
 
-	m_CameraBuffer = nullptr;
-	CreateUniformBuffer(m_CameraBuffer);
-	m_CameraBuffer->InitMemory(KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA).bufferSize,
-		KConstantGlobal::GetGlobalConstantData(CBT_CAMERA));
-	m_CameraBuffer->InitDevice(CUT_REGULAR);
+	m_CameraBuffers.resize(m_SwapChainRenderTargets.size());
+	for(size_t i = 0; i < m_CameraBuffers.size(); ++i)
+	{
+		CreateUniformBuffer(m_CameraBuffers[i]);
+		m_CameraBuffers[i]->InitMemory(KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA).bufferSize,
+			KConstantGlobal::GetGlobalConstantData(CBT_CAMERA));
+		m_CameraBuffers[i]->InitDevice(CUT_REGULAR);
+	}
 
 #ifdef _DEBUG
 	const int width = 40;
@@ -704,25 +707,35 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 
 	m_KeyCallback = [this](InputKeyboard key, InputAction action)
 	{
+		int sign = 0;
+		if(action == INPUT_ACTION_PRESS)
+		{
+			sign = 1;
+		}
+		else if(action == INPUT_ACTION_RELEASE)
+		{
+			sign = -1;
+		}
+
 		switch (key)
 		{
 		case INPUT_KEY_W:
-			m_Move[2] = action != INPUT_ACTION_RELEASE ? 1 : 0;
+			m_Move[2] += sign;
 			break;
 		case INPUT_KEY_S:
-			m_Move[2] = action != INPUT_ACTION_RELEASE ? -1 : 0;
+			m_Move[2] += -sign;
 			break;
 		case INPUT_KEY_A:
-			m_Move[0] = action != INPUT_ACTION_RELEASE ? -1 : 0;
+			m_Move[0] -= sign;
 			break;
 		case INPUT_KEY_D:
-			m_Move[0] = action != INPUT_ACTION_RELEASE ? 1 : 0;
+			m_Move[0] += sign;
 			break;
 		case INPUT_KEY_E:
-			m_Move[1] = action != INPUT_ACTION_RELEASE ? 1 : 0;
+			m_Move[1] += sign;
 			break;
 		case INPUT_KEY_Q:
-			m_Move[1] = action != INPUT_ACTION_RELEASE ? -1 : 0;
+			m_Move[1] -= sign;
 			break;
 		default:
 			break;
@@ -908,11 +921,11 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 		m_ObjectBuffer->UnInit();
 		m_ObjectBuffer = nullptr;
 	}
-	if(m_CameraBuffer)
+	for(size_t i = 0; i < m_CameraBuffers.size(); ++i)
 	{
-		m_CameraBuffer->UnInit();
-		m_CameraBuffer = nullptr;
+		m_CameraBuffers[i]->UnInit();
 	}
+	m_CameraBuffers.clear();
 
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{
@@ -1082,8 +1095,10 @@ bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 	return true;
 }
 
-bool KVulkanRenderDevice::UpdateCamera()
+bool KVulkanRenderDevice::UpdateCamera(unsigned int idx)
 {
+	ASSERT_RESULT(idx < m_CameraBuffers.size());
+
 	static KTimer m_MoveTimer;
 
 	const float dt = m_MoveTimer.GetSeconds();
@@ -1119,7 +1134,7 @@ bool KVulkanRenderDevice::UpdateCamera()
 			memcpy(pWritePos, &proj, sizeof(proj));
 		}
 	}
-	m_CameraBuffer->Write(pData);
+	m_CameraBuffers[idx]->Write(pData);
 
 	return true;
 }
@@ -1141,13 +1156,16 @@ bool KVulkanRenderDevice::UpdateObjectTransform()
 
 	glm::mat4 deltaTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, translate));
 
+	for(size_t i = 0; i < m_ObjectTransforms.size(); ++i)
+	{
+		ObjectInitTransform& transform = m_ObjectTransforms[i];
+		transform.translate = deltaTranslate * transform.translate;
+		transform.rotate = deltaRotate * transform.rotate;
+	}
+
 	for(size_t i = 0; i < m_ObjectFinalTransforms.size(); ++i)
 	{
 		ObjectInitTransform& transform = m_ObjectTransforms[i];
-
-		transform.translate = deltaTranslate * transform.translate;
-		transform.rotate = deltaRotate * transform.rotate;
-
 		glm::mat4& model = m_ObjectFinalTransforms[i];
 		model = transform.translate * transform.rotate;
 	}
@@ -1447,7 +1465,7 @@ bool KVulkanRenderDevice::Present()
 		return false;
 	}
 
-	UpdateCamera();
+	UpdateCamera(imageIndex);
 	UpdateObjectTransform();
 	UpdateFrameTime();
 
