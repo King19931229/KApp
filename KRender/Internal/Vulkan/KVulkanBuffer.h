@@ -9,13 +9,16 @@ protected:
 	VkBuffer m_vkBuffer;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	bool m_bDeviceInit;
+	bool m_bHostVisible;
 public:
 	KVulkanVertexBuffer();
 	~KVulkanVertexBuffer();
 
-	virtual bool InitDevice();
+	virtual bool InitDevice(bool hostVisible);
 	virtual bool UnInit();
 
+	virtual bool Map(void** ppData);
+	virtual bool UnMap();
 	virtual bool Write(const void* pData);
 	virtual bool Read(void* pData);
 
@@ -31,13 +34,16 @@ protected:
 	VkBuffer m_vkBuffer;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	bool m_bDeviceInit;
+	bool m_bHostVisible;
 public:
 	KVulkanIndexBuffer();
 	virtual ~KVulkanIndexBuffer();
 
-	virtual bool InitDevice();
+	virtual bool InitDevice(bool hostVisible);
 	virtual bool UnInit();
 
+	virtual bool Map(void** ppData);
+	virtual bool UnMap();
 	virtual bool Write(const void* pData);
 	virtual bool Read(void* pData);
 
@@ -53,13 +59,12 @@ class KVulkanUniformBuffer : public KUniformBufferBase
 protected:
 	VkBuffer m_vkBuffer;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
-	ConstantUpdateType m_Type;
 	bool m_bDeviceInit;
 public:
 	KVulkanUniformBuffer();
 	virtual ~KVulkanUniformBuffer();
 
-	virtual bool InitDevice(ConstantUpdateType type);
+	virtual bool InitDevice();
 	virtual bool UnInit();
 
 	virtual bool Write(const void* pData);

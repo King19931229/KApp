@@ -16,9 +16,11 @@ public:
 	virtual size_t GetBufferSize() { return m_BufferSize; }
 
 	virtual bool InitMemory(size_t vertexCount, size_t vertexSize, const void* pInitData);
-	virtual bool InitDevice() = 0;
+	virtual bool InitDevice(bool hostVisible) = 0;
 	virtual bool UnInit();
 
+	virtual bool Map(void** ppData) = 0;
+	virtual bool UnMap() = 0;
 	virtual bool Write(const void* pData) = 0;
 	virtual bool Read(void* pData) = 0;
 
@@ -40,13 +42,13 @@ public:
 	virtual IndexType GetIndexType() { return m_IndexType; }
 	virtual size_t GetBufferSize() { return m_BufferSize; }
 	virtual size_t GetIndexCount() { return m_uIndexCount; }
-	// 初始化内存数据 通常用于异步IO
+
 	virtual bool InitMemory(IndexType indexType, size_t count, const void* pInitData);
-	// 初始化设备数据并释放内存数据 用于创建绘制API相关句柄
-	virtual bool InitDevice() = 0;
-	// 释放内存数据与设备相关句柄
+	virtual bool InitDevice(bool hostVisible) = 0;
 	virtual bool UnInit() = 0;
 
+	virtual bool Map(void** ppData) = 0;
+	virtual bool UnMap() = 0;
 	virtual bool Write(const void* pData) = 0;
 	virtual bool Read(void* pData) = 0;
 
@@ -67,7 +69,7 @@ public:
 	// 初始化内存数据 通常用于异步IO
 	virtual bool InitMemory(size_t bufferSize, const void* pInitData);
 
-	virtual bool InitDevice(ConstantUpdateType type) = 0;
+	virtual bool InitDevice() = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool Write(const void* pData) = 0;

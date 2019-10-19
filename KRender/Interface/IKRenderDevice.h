@@ -24,6 +24,8 @@ struct IKRenderDevice
 
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline) = 0;
 
+	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui) = 0;
+
 	virtual bool Present() = 0;
 };
 

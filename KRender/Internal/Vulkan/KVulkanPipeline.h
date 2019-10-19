@@ -33,7 +33,13 @@ protected:
 		IKUniformBufferPtr buffer;
 	};
 	std::map<unsigned int, UniformBufferBindingInfo> m_Uniforms;
-	std::vector<UniformBufferBindingInfo> m_PushUniforms;
+
+	struct PushConstantBindingInfo
+	{
+		PushConstant constant;
+		PushConstantLocation location;
+	};
+	std::vector<PushConstantBindingInfo> m_PushContants;
 
 	// Sampler пео╒
 	struct SamplerBindingInfo
@@ -73,10 +79,9 @@ public:
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
 	virtual bool SetTextureSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
 
-	virtual bool PushConstantBuffer(ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
-	virtual bool PopConstantBuffer();
+	virtual bool PushConstantBlock(const PushConstant& constant, PushConstantLocation& location);
 
-	virtual bool Init(IKRenderTargetPtr target);
+	virtual bool Init(IKRenderTarget* target);
 	virtual bool UnInit();
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }

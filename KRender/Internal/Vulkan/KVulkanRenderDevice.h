@@ -70,9 +70,16 @@ protected:
 		size_t offset;
 	};
 
+	struct UIData
+	{
+		VkCommandPool commandPool;
+		VkCommandBuffer uiCommandBuffer;
+	};
+
 	struct CommandBuffer
 	{
 		VkCommandBuffer primaryCommandBuffer;
+		UIData uiData;
 		std::vector<ThreadData> threadDatas;
 		VkCommandBufferList commandBuffersExec;
 	};
@@ -104,7 +111,8 @@ protected:
 	std::vector<ObjectInitTransform> m_ObjectTransforms;
 	std::vector<glm::mat4> m_ObjectFinalTransforms;
 
-	IKUniformBufferPtr m_ObjectBuffer;
+	PushConstant m_ObjectConstant;
+	PushConstantLocation m_ObjectConstantLoc;
 	std::vector<IKUniformBufferPtr> m_CameraBuffers;
 
 	IKTexturePtr m_Texture;
@@ -115,6 +123,8 @@ protected:
 
 	std::vector<IKRenderTargetPtr> m_SwapChainRenderTargets;
 	std::vector<IKPipelinePtr> m_SwapChainPipelines;
+
+	IKUIOverlayPtr m_UIOverlay;
 
 	bool CheckValidationLayerAvailable();
 	bool SetupDebugMessenger();
@@ -182,6 +192,8 @@ public:
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target);
 
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline);
+
+	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui);
 
 	virtual bool Present();
 

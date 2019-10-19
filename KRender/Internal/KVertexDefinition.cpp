@@ -10,6 +10,7 @@ namespace KVertexDefinition
 	static VertexDetail DIFF_3F_SPEC_3F_DETAILS;
 	static VertexDetail TAN_3F_BIN_3F_DETAILS;
 	static VertexDetail BW_4F_BI_4I_DETAILS;
+	static VertexDetail GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS;
 	static VertexDetail EMPYT_DETAILS;
 	static bool VERTEX_DETAIL_INIT = false;
 
@@ -87,6 +88,26 @@ namespace KVertexDefinition
 				}
 				BW_4F_BI_4I_DETAILS.vertexSize = sizeof(BW_4F_BI_4I);
 			}
+			// GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS
+			{
+				// VS_GUI_POS
+				{
+					VertexSemanticDetail DETAIL = {VS_GUI_POS, EF_R32G32_FLOAT, MEMBER_OFFSET(GUI_POS_2F_UV_2F_COLOR_4BYTE, GUI_POSITION)};
+					GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// VS_GUI_UV
+				{
+					VertexSemanticDetail DETAIL = {VS_GUI_UV, EF_R32G32_FLOAT, MEMBER_OFFSET(GUI_POS_2F_UV_2F_COLOR_4BYTE, GUI_UV)};
+					GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// VS_GUI_COLOR
+				{
+					VertexSemanticDetail DETAIL = {VS_GUI_COLOR, EF_R8GB8BA8_UNORM, MEMBER_OFFSET(GUI_POS_2F_UV_2F_COLOR_4BYTE, GUI_COLOR)};
+					GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+
+				GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS.vertexSize = sizeof(GUI_POS_2F_UV_2F_COLOR_4BYTE);
+			}
 			VERTEX_DETAIL_INIT = true;
 		}
 	}
@@ -106,7 +127,10 @@ namespace KVertexDefinition
 			return TAN_3F_BIN_3F_DETAILS;
 		case VF_BLEND_WEIGHTS_INDICES:
 			return BW_4F_BI_4I_DETAILS;
+		case VF_GUI_POS_UV_COLOR:
+			return GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS;
 		default:
+			assert(false && "unknown format");
 			return EMPYT_DETAILS;
 		}
 	}

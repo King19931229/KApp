@@ -13,9 +13,30 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 		return true;
 	case IF_COUNT:
 	default:
+		assert(false && "unsupport format");
 		elementFormat = EF_UNKNOWN;
 		return false;
 	}
+}
+
+static bool ImageFormatToSize(ImageFormat format, size_t& size)
+{
+	switch (format)
+	{
+	case IF_R8G8B8A8:
+		size = 4;
+		return true;
+	case IF_R8G8B8:
+		size = 3;
+		return true;
+	case IF_COUNT:
+		break;
+	default:
+		break;
+	}
+	assert(false && "unsupport format");
+	size = 0;
+	return false;
 }
 
 KTextureBase::KTextureBase()
@@ -34,29 +55,55 @@ KTextureBase::~KTextureBase()
 
 }
 
-bool KTextureBase::InitMemory(const std::string& filePath, bool bGenerateMipmap)
+bool KTextureBase::InitProperty(bool bGenerateMipmap)
 {
-	bool bResult = false;
+	m_Width = m_ImageData.uWidth;
+	m_Height = m_ImageData.uHeight;
+	m_Depth = 1;
+	m_Mipmaps = bGenerateMipmap ? (unsigned short)std::floor(std::log(std::min(m_Width, m_Height)) / std::log(2)) + 1 : 1;
+	m_TextureType = TT_TEXTURE_2D;
+	if(ImageFormatToElementFormat(m_ImageData.eFormat, m_Format))
+	{
+		return true;
+	}
+	return false;
+}
+
+bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap)
+{
 	IKCodecPtr pCodec = GetCodec(filePath.c_str());
 	if(pCodec && pCodec->Codec(filePath.c_str(), true, m_ImageData))
 	{
-		m_Width = m_ImageData.uWidth;
-		m_Height = m_ImageData.uHeight;
-		m_Depth = 1;
-		m_Mipmaps = bGenerateMipmap ? (unsigned short)std::floor(std::log(std::min(m_Width, m_Height)) / std::log(2)) + 1 : 1;
-		m_TextureType = TT_TEXTURE_2D;
-		if(ImageFormatToElementFormat(m_ImageData.eFormat, m_Format))
+		if(InitProperty(bGenerateMipmap))
 		{
-			bResult = true;
+			return true;
 		}
 	}
+	m_ImageData.pData = nullptr;
+	return false;
+}
 
-	if(!bResult)
+bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap)
+{
+	if(pRawData)
 	{
-		m_ImageData.pData = nullptr;
+		size_t formatSize = 0;
+		if(ImageFormatToSize(format, formatSize))
+		{
+			KImageDataPtr pImageData = KImageDataPtr(new KImageData(width * height * formatSize));			 
+			memcpy(pImageData->GetData(), pRawData, pImageData->GetSize());
+			m_ImageData.eFormat = format;
+			m_ImageData.uWidth = width;
+			m_ImageData.uHeight = height;
+			m_ImageData.pData = pImageData;
+			if(InitProperty(bGenerateMipmap))
+			{
+				return true;
+			}
+		}
 	}
-
-	return bResult;
+	m_ImageData.pData = nullptr;
+	return false;
 }
 
 bool KTextureBase::UnInit()

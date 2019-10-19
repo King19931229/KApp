@@ -1,11 +1,13 @@
 #pragma once
 #include "Interface/IKRenderConfig.h"
+#include "KBase/Interface/IKCodec.h"
 #include <string>
 
 struct IKTexture
 {
 	virtual ~IKTexture() {}
-	virtual bool InitMemory(const std::string& filePath, bool bGenerateMipmap) = 0;
+	virtual bool InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap) = 0;
+	virtual bool InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap) = 0;
 	virtual bool InitDevice() = 0;
 	virtual bool UnInit() = 0;
 

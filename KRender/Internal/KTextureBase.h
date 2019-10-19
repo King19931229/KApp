@@ -12,11 +12,14 @@ protected:
 	size_t m_Height;
 	size_t m_Depth;
 	unsigned short m_Mipmaps;
+
+	bool InitProperty(bool bGenerateMipmap);
 public:
 	KTextureBase();
 	virtual ~KTextureBase();
 
-	virtual bool InitMemory(const std::string& filePath, bool bGenerateMipmap);
+	virtual bool InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap);
+	virtual bool InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap);
 	virtual bool InitDevice() = 0;
 	virtual bool UnInit();
 

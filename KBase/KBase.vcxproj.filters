@@ -1,15 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="Interface\IKDataStream.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\IKIniFile.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\IKSourceFile.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Publish\KLockFreeQueue.h">
       <Filter>Publish</Filter>
     </ClInclude>
@@ -52,14 +43,8 @@
     <ClInclude Include="Publish\KHashString.h">
       <Filter>Publish</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\IKLog.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\KLog.h">
       <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\IKCodec.h">
-      <Filter>Interface</Filter>
     </ClInclude>
     <ClInclude Include="Internal\KCodec.h">
       <Filter>Internal</Filter>
@@ -70,26 +55,17 @@
     <ClInclude Include="Publish\KObjectPool.h">
       <Filter>Publish</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\IKMemory.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\KMemoryAllocator.h">
       <Filter>Internal</Filter>
     </ClInclude>
     <ClInclude Include="Publish\KDump.h">
       <Filter>Publish</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\IKSocket.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\KSocketClient.h">
       <Filter>Internal</Filter>
     </ClInclude>
     <ClInclude Include="Internal\KSocketServer.h">
       <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\IKScript.h">
-      <Filter>Interface</Filter>
     </ClInclude>
     <ClInclude Include="Internal\KPythonCore.h">
       <Filter>Internal</Filter>
@@ -114,9 +90,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="Interface">
-      <UniqueIdentifier>{9d8f4cd7-fbc8-4f11-af7a-eb624e0200f7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Internal">
       <UniqueIdentifier>{7eb831e6-2dc7-43a5-bdbf-94d91fb6602b}</UniqueIdentifier>
     </Filter>

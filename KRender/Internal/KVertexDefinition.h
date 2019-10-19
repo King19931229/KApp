@@ -39,6 +39,13 @@ namespace KVertexDefinition
 		glm::vec4 BLEND_WEIGHTS;
 		glm::ivec4 BLEND_INDICES;
 	};
+
+	struct GUI_POS_2F_UV_2F_COLOR_4BYTE
+	{
+		glm::vec2 GUI_POSITION;
+		glm::vec2 GUI_UV;
+		unsigned int GUI_COLOR;
+	};
 #pragma pack(pop)
 	struct VertexSemanticDetail
 	{

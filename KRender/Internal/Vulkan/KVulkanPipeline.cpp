@@ -1,6 +1,6 @@
 #include "KVulkanPipeline.h"
 #include "KVulkanBuffer.h"
-#include "KVulkanTextrue.h"
+#include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
 #include "KVulkanHelper.h"
 #include "KVulkanProgram.h"
@@ -137,22 +137,14 @@ bool KVulkanPipeline::SetTextureSampler(unsigned int location, IKTexturePtr text
 	return false;
 }
 
-bool KVulkanPipeline::PushConstantBuffer(ShaderTypes shaderTypes, IKUniformBufferPtr buffer)
+bool KVulkanPipeline::PushConstantBlock(const PushConstant& constant, PushConstantLocation& location)
 {
-	UniformBufferBindingInfo info = { shaderTypes, buffer };
-	m_PushUniforms.push_back(info);
-	return true;
-}
+	int size = 0; for(auto& info : m_PushContants) { size += info.constant.size; }
+	location.offset = size;
 
-bool KVulkanPipeline::PopConstantBuffer()
-{
-	ASSERT_RESULT(m_PushUniforms.size() > 0);
-	if(m_PushUniforms.size() > 0)
-	{
-		m_PushUniforms.pop_back();
-		return true;
-	}
-	return false;
+	PushConstantBindingInfo info = { constant, location };
+	m_PushContants.push_back(info);
+	return true;
 }
 
 bool KVulkanPipeline::CreateLayout()
@@ -165,19 +157,19 @@ bool KVulkanPipeline::CreateLayout()
 	*/
 	size_t pushConstantOffset = 0;
 	std::vector<VkPushConstantRange> pushConstantRanges;
-	for(auto& info : m_PushUniforms)
+	for(auto& info : m_PushContants)
 	{
 		VkFlags stageFlags = 0;
-		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(info.shaderTypes, stageFlags));
+		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(info.constant.shaderTypes, stageFlags));
 
 		VkPushConstantRange pushConstantRange = {};
 		pushConstantRange.stageFlags = stageFlags;
 		pushConstantRange.offset = (uint32_t)pushConstantOffset;
-		pushConstantRange.size = (uint32_t)info.buffer->GetBufferSize();
+		pushConstantRange.size = (uint32_t)info.constant.size;
 
 		pushConstantRanges.push_back(pushConstantRange);
 
-		pushConstantOffset += info.buffer->GetBufferSize();
+		pushConstantOffset += pushConstantRange.size;
 	}
 	
 	/*
@@ -481,6 +473,7 @@ bool KVulkanPipeline::CreatePipeline(KVulkanRenderTarget* renderTarget)
 	// 设置动态状态
 	VkDynamicState dynamicStates[] = {
 		VK_DYNAMIC_STATE_VIEWPORT,
+		VK_DYNAMIC_STATE_SCISSOR,
 		VK_DYNAMIC_STATE_LINE_WIDTH
 	};
 
@@ -511,6 +504,8 @@ bool KVulkanPipeline::CreatePipeline(KVulkanRenderTarget* renderTarget)
 	pipelineInfo.pMultisampleState = &multisampling;
 	// 指定混合模式
 	pipelineInfo.pColorBlendState = &colorBlending;
+	// 指定动态状态
+	pipelineInfo.pDynamicState = &dynamicState;
 	// 指定管线布局
 	pipelineInfo.layout = m_PipelineLayout;
 	// 指定渲染通道
@@ -525,9 +520,9 @@ bool KVulkanPipeline::CreatePipeline(KVulkanRenderTarget* renderTarget)
 	return true;
 }
 
-bool KVulkanPipeline::Init(IKRenderTargetPtr target)
+bool KVulkanPipeline::Init(IKRenderTarget* target)
 {
-	KVulkanRenderTarget* renderTarget = static_cast<KVulkanRenderTarget*>(target.get());
+	KVulkanRenderTarget* renderTarget = static_cast<KVulkanRenderTarget*>(target);
 
 	ASSERT_RESULT(m_Program->Init());
 	ASSERT_RESULT(CreateLayout());
@@ -566,7 +561,7 @@ bool KVulkanPipeline::UnInit()
 	}
 
 	m_Uniforms.clear();
-	m_PushUniforms.clear();
+	m_PushContants.clear();
 	m_Samplers.clear();
 
 	ASSERT_RESULT(m_Program->UnInit());

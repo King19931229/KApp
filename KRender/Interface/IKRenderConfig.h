@@ -32,13 +32,11 @@ enum VertexSemantic
 	VS_BINORMAL,
 
 	VS_BLEND_WEIGHTS,
-	VS_BLEND_INDICES
-};
+	VS_BLEND_INDICES,
 
-enum ConstantUpdateType
-{
-	CUT_REGULAR,
-	CUT_PUSH_CONSTANT
+	VS_GUI_POS,
+	VS_GUI_UV,
+	VS_GUI_COLOR,
 };
 
 enum ConstantBufferType
@@ -61,6 +59,8 @@ enum VertexFormat
 	VF_DIFFUSE_SPECULAR,
 	VF_TANGENT_BINORMAL,
 	VF_BLEND_WEIGHTS_INDICES,
+	// for gui
+	VF_GUI_POS_UV_COLOR
 };
 
 enum ElementFormat
@@ -164,6 +164,27 @@ struct VertexInputDetail
 	size_t count;
 };
 
+struct PushConstant
+{
+	ShaderTypes shaderTypes;
+	int size;
+
+	PushConstant()
+	{
+		shaderTypes = 0;
+		size = 0;
+	}
+};
+
+struct PushConstantLocation
+{
+	int offset;
+	PushConstantLocation()
+	{
+		offset = 0;
+	}
+};
+
 struct IKRenderWindow;
 typedef std::shared_ptr<IKRenderWindow> IKRenderWindowPtr;
 
@@ -196,3 +217,6 @@ typedef std::shared_ptr<IKRenderTarget> IKRenderTargetPtr;
 
 struct IKPipeline;
 typedef std::shared_ptr<IKPipeline> IKPipelinePtr;
+
+struct IKUIOverlay;
+typedef std::shared_ptr<IKUIOverlay> IKUIOverlayPtr;

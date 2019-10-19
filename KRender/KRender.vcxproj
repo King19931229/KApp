@@ -29,6 +29,7 @@
     <ClInclude Include="Interface\IKRenderConfig.h" />
     <ClInclude Include="Interface\IKBuffer.h" />
     <ClInclude Include="Interface\IKTexture.h" />
+    <ClInclude Include="Interface\IKUIOverlay.h" />
     <ClInclude Include="Internal\Asset\KMaterial.h" />
     <ClInclude Include="Internal\Asset\KMesh.h" />
     <ClInclude Include="Internal\Asset\KSubMaterial.h" />
@@ -38,6 +39,7 @@
     <ClInclude Include="Internal\KRenderThreadPool.h" />
     <ClInclude Include="Internal\KSamplerBase.h" />
     <ClInclude Include="Internal\KTextureBase.h" />
+    <ClInclude Include="Internal\KUIOverlayBase.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanDepthBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
@@ -54,7 +56,8 @@
     <ClInclude Include="Internal\Vulkan\KVulkanShader.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanSwapChain.h" />
-    <ClInclude Include="Internal\Vulkan\KVulkanTextrue.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanTexture.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanUIOverlay.h" />
     <ClInclude Include="Publish\KAABBBox.h" />
     <ClInclude Include="Publish\KCamera.h" />
     <ClInclude Include="Publish\KPlane.h" />
@@ -68,6 +71,7 @@
     <ClCompile Include="Internal\KRenderWindow.cpp" />
     <ClCompile Include="Internal\KSamplerBase.cpp" />
     <ClCompile Include="Internal\KTextureBase.cpp" />
+    <ClCompile Include="Internal\KUIOverlayBase.cpp" />
     <ClCompile Include="Internal\KVertexDefinition.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanDepthBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
@@ -84,6 +88,7 @@
     <ClCompile Include="Internal\Vulkan\KVulkanShader.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanSwapChain.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanTexture.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanUIOverlay.cpp" />
     <ClCompile Include="KRenderMain.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -153,7 +158,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
@@ -162,8 +167,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\Dependency\glfw3\Publish\Debug\x86;$(VULKAN_SDK)\Lib32</AdditionalLibraryDirectories>
-      <AdditionalDependencies>KBase.lib;glfw3.lib;vulkan-1.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\Dependency\glfw3\Publish\Debug\x86;..\Dependency\imgui\Publish\Debug\x86;$(VULKAN_SDK)\Lib32</AdditionalLibraryDirectories>
+      <AdditionalDependencies>KBase.lib;glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -173,7 +178,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
@@ -184,8 +189,8 @@
       <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>KBase.lib;glfw3.lib;vulkan-1.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;..\Dependency\imgui\Publish\Debug\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>KBase.lib;glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -197,7 +202,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -207,8 +212,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>KBase.lib;glfw3.lib;vulkan-1.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\Dependency\glfw3\Publish\Release\x86;$(VULKAN_SDK)\Lib32</AdditionalLibraryDirectories>
+      <AdditionalDependencies>KBase.lib;glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\Dependency\glfw3\Publish\Release\x86;..\Dependency\imgui\Publish\Release\x86;$(VULKAN_SDK)\Lib32</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -220,7 +225,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../KBase/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;$(VULKAN_SDK)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -230,8 +235,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>KBase.lib;glfw3.lib;vulkan-1.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;..\Dependency\imgui\Publish\Release\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>KBase.lib;glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
