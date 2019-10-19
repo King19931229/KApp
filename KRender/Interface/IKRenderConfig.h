@@ -148,8 +148,12 @@ enum BlendFactor
 {
 	BF_ZEOR,
 	BF_ONE,
+
 	BF_SRC_COLOR,
-	BF_ONE_MINUS_SRC_COLOR
+	BF_ONE_MINUS_SRC_COLOR,
+
+	BF_SRC_ALPHA,
+	BF_ONE_MINUS_SRC_ALPHA
 };
 
 enum BlendOperator

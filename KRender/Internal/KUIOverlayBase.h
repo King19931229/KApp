@@ -6,10 +6,10 @@ class KUIOverlayBase : public IKUIOverlay
 protected:
 	void* m_UIContext;
 
-	IKPipelinePtr m_Pipeline;
-
-	IKIndexBufferPtr m_IndexBuffer;
-	IKVertexBufferPtr m_VertexBuffer;
+	std::vector<IKPipelinePtr> m_Pipelines;
+	std::vector<IKIndexBufferPtr> m_IndexBuffers;
+	std::vector<IKVertexBufferPtr> m_VertexBuffers;
+	std::vector<bool> m_NeedUpdates;
 
 	IKShaderPtr m_VertexShader;
 	IKShaderPtr m_FragmentShader;
@@ -25,22 +25,21 @@ protected:
 	PushConstant m_Constant;
 	PushConstantLocation m_ConstantLoc;
 
-	bool m_bNeedUpdate;
-
 	void InitImgui();
 	void UnInitImgui();
 
+	void RemindUpdate();
 	void PrepareResources();
-	void PreparePipeline(IKRenderTarget* renderTarget);
+	void PreparePipeline(const std::vector<IKRenderTarget*>& renderTargets);
 public:
 	KUIOverlayBase();
 	virtual ~KUIOverlayBase();
 
-	virtual bool Init(IKRenderDevice* renderDevice, IKRenderTarget* renderTarget);
+	virtual bool Init(IKRenderDevice* renderDevice, const std::vector<IKRenderTarget*>& renderTargets);
 	virtual bool UnInit();
 	virtual bool Resize(size_t width, size_t height);
-	virtual bool Update();
-	virtual bool Draw(void* commandBufferPtr) = 0;
+	virtual bool Update(unsigned int imageIndex);
+	virtual bool Draw(unsigned int imageIndex, void* commandBufferPtr) = 0;
 
 	virtual bool Begin(const char* str);
 	virtual bool SetWindowPos(unsigned int x, unsigned int y);

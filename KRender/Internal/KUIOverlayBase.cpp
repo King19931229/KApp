@@ -9,8 +9,7 @@
 #include "imgui.h"
 
 KUIOverlayBase::KUIOverlayBase()
-	: m_bNeedUpdate(true),
-	m_UIContext(nullptr)
+	: m_UIContext(nullptr)
 {
 
 }
@@ -57,14 +56,11 @@ void KUIOverlayBase::UnInitImgui()
 	}
 }
 
-bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, IKRenderTarget* renderTarget)
+bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, const std::vector<IKRenderTarget*>& renderTargets)
 {
 	ASSERT_RESULT(renderDevice != nullptr);
-	ASSERT_RESULT(renderTarget != nullptr);
+	ASSERT_RESULT(!renderTargets.empty());
 	ASSERT_RESULT(UnInit());
-
-	renderDevice->CreateIndexBuffer(m_IndexBuffer);
-	renderDevice->CreateVertexBuffer(m_VertexBuffer);
 
 	renderDevice->CreateShader(m_VertexShader);
 	renderDevice->CreateShader(m_FragmentShader);
@@ -75,11 +71,24 @@ bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, IKRenderTarget* renderTa
 	m_Constant.shaderTypes = ST_VERTEX;
 	m_Constant.size = sizeof(m_PushConstBlock);
 
-	renderDevice->CreatePipeline(m_Pipeline);
+	size_t numImages = renderTargets.size();
+
+	m_IndexBuffers.resize(numImages);
+	m_VertexBuffers.resize(numImages);
+	m_Pipelines.resize(numImages);
+	m_NeedUpdates.resize(numImages);
+
+	for(size_t i = 0; i < numImages; ++i)
+	{
+		renderDevice->CreateIndexBuffer(m_IndexBuffers[i]);
+		renderDevice->CreateVertexBuffer(m_VertexBuffers[i]);
+		renderDevice->CreatePipeline(m_Pipelines[i]);
+		m_NeedUpdates[i] = true;
+	}
 
 	InitImgui();
 	PrepareResources();
-	PreparePipeline(renderTarget);
+	PreparePipeline(renderTargets);
 
 	return true;
 }
@@ -88,17 +97,19 @@ bool KUIOverlayBase::UnInit()
 {
 	UnInitImgui();
 
-	if(m_IndexBuffer)
+	for(IKIndexBufferPtr indexBuffer : m_IndexBuffers)
 	{
-		m_IndexBuffer->UnInit();
-		m_IndexBuffer = nullptr;
+		indexBuffer->UnInit();
+		indexBuffer = nullptr;
 	}
+	m_IndexBuffers.clear();
 
-	if(m_VertexBuffer)
+	for(IKVertexBufferPtr vertexBuffer : m_VertexBuffers)
 	{
-		m_VertexBuffer->UnInit();
-		m_VertexBuffer = nullptr;
+		vertexBuffer->UnInit();
+		vertexBuffer = nullptr;
 	}
+	m_VertexBuffers.clear();
 
 	if(m_VertexShader)
 	{
@@ -124,11 +135,14 @@ bool KUIOverlayBase::UnInit()
 		m_FontSampler = nullptr;
 	}
 
-	if(m_Pipeline)
+	for(IKPipelinePtr pipeline : m_Pipelines)
 	{
-		m_Pipeline->UnInit();
-		m_Pipeline = nullptr;
+		pipeline->UnInit();
+		pipeline = nullptr;
 	}
+	m_Pipelines.clear();
+
+	m_NeedUpdates.clear();
 
 	return true;
 }
@@ -156,83 +170,86 @@ void KUIOverlayBase::PrepareResources()
 	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/uioverlay.frag"));
 }
 
-void KUIOverlayBase::PreparePipeline(IKRenderTarget* renderTarget)
+void KUIOverlayBase::PreparePipeline(const std::vector<IKRenderTarget*>& renderTargets)
 {
-	ASSERT_RESULT(m_Pipeline != nullptr);
+	ASSERT_RESULT(m_Pipelines.size() == renderTargets.size());
 
 	VertexFormat vertexFormats[] = {VF_GUI_POS_UV_COLOR};
 	VertexInputDetail detail = { vertexFormats, ARRAY_SIZE(vertexFormats) };
 
-	m_Pipeline->SetVertexBinding(&detail, 1);
-	m_Pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-	m_Pipeline->SetBlendEnable(true);
-	m_Pipeline->SetColorBlend(BF_SRC_COLOR, BF_ONE_MINUS_SRC_COLOR,	BO_ADD);
-	m_Pipeline->SetCullMode(CM_NONE);
-	m_Pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-	m_Pipeline->SetPolygonMode(PM_FILL);
-	m_Pipeline->SetShader(ST_VERTEX, m_VertexShader);
-	m_Pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
-	m_Pipeline->SetTextureSampler(0, m_FontTexture, m_FontSampler);
-	m_Pipeline->PushConstantBlock(m_Constant, m_ConstantLoc);
-
-	ASSERT_RESULT(m_Pipeline->Init(renderTarget));
+	for(size_t i = 0; i < m_Pipelines.size(); ++i)
+	{
+		IKPipelinePtr pipeline = m_Pipelines[i];
+		pipeline->SetVertexBinding(&detail, 1);
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(true);
+		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetShader(ST_VERTEX, m_VertexShader);
+		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+		pipeline->SetTextureSampler(0, m_FontTexture, m_FontSampler);
+		pipeline->PushConstantBlock(m_Constant, m_ConstantLoc);
+		ASSERT_RESULT(pipeline->Init(renderTargets[i]));
+	}	
 }
 
-bool KUIOverlayBase::Update()
+bool KUIOverlayBase::Update(unsigned int imageIndex)
 {
-	if(!m_bNeedUpdate)
+	if(imageIndex < m_NeedUpdates.size())
+	{
+		ImDrawData* imDrawData = ImGui::GetDrawData();
+		bool updateCmdBuffers = false;
+
+		if (!imDrawData) 
+		{
+			return true;
+		};
+
+		if(imDrawData->TotalVtxCount == 0 || imDrawData->TotalIdxCount == 0)
+		{
+			return true;
+		}
+
+		size_t vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
+		size_t indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
+
+		if(vertexBufferSize > m_VertexBuffers[imageIndex]->GetBufferSize())
+		{
+			m_VertexBuffers[imageIndex]->UnInit();
+			m_VertexBuffers[imageIndex]->InitMemory(imDrawData->TotalVtxCount, sizeof(ImDrawVert), nullptr);
+			m_VertexBuffers[imageIndex]->InitDevice(true);
+		}
+
+		if(indexBufferSize > m_IndexBuffers[imageIndex]->GetBufferSize())
+		{
+			m_IndexBuffers[imageIndex]->UnInit();
+			m_IndexBuffers[imageIndex]->InitMemory(sizeof(ImDrawIdx) == 2 ? IT_16 : IT_32, imDrawData->TotalIdxCount, nullptr);
+			m_IndexBuffers[imageIndex]->InitDevice(true);
+		}
+
+		ImDrawVert* vtxDst = nullptr;
+		ImDrawIdx* idxDst  = nullptr;
+
+		ASSERT_RESULT(m_VertexBuffers[imageIndex]->Map((void**)&vtxDst));
+		ASSERT_RESULT(m_IndexBuffers[imageIndex]->Map((void**)&idxDst));
+
+		for (int n = 0; n < imDrawData->CmdListsCount; n++)
+		{
+			const ImDrawList* cmd_list = imDrawData->CmdLists[n];
+			memcpy(vtxDst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+			memcpy(idxDst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+			vtxDst += cmd_list->VtxBuffer.Size;
+			idxDst += cmd_list->IdxBuffer.Size;
+		}
+
+		ASSERT_RESULT(m_VertexBuffers[imageIndex]->UnMap());
+		ASSERT_RESULT(m_IndexBuffers[imageIndex]->UnMap());
+
 		return true;
-
-	ImDrawData* imDrawData = ImGui::GetDrawData();
-	bool updateCmdBuffers = false;
-
-	if (!imDrawData) 
-	{
-		return true;
-	};
-
-	if(imDrawData->TotalVtxCount == 0 || imDrawData->TotalIdxCount == 0)
-	{
-		return true;
 	}
-
-	size_t vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
-	size_t indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
-
-	if(vertexBufferSize > m_VertexBuffer->GetBufferSize())
-	{
-		m_VertexBuffer->UnInit();
-		m_VertexBuffer->InitMemory(imDrawData->TotalVtxCount, sizeof(ImDrawVert), nullptr);
-		m_VertexBuffer->InitDevice(true);
-	}
-
-	if(indexBufferSize > m_IndexBuffer->GetBufferSize())
-	{
-		m_IndexBuffer->UnInit();
-		m_IndexBuffer->InitMemory(sizeof(ImDrawIdx) == 2 ? IT_16 : IT_32, imDrawData->TotalIdxCount, nullptr);
-		m_IndexBuffer->InitDevice(true);
-	}
-
-	ImDrawVert* vtxDst = nullptr;
-	ImDrawIdx* idxDst  = nullptr;
-
-	ASSERT_RESULT(m_VertexBuffer->Map((void**)&vtxDst));
-	ASSERT_RESULT(m_IndexBuffer->Map((void**)&idxDst));
-
-	for (int n = 0; n < imDrawData->CmdListsCount; n++)
-	{
-		const ImDrawList* cmd_list = imDrawData->CmdLists[n];
-		memcpy(vtxDst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-		memcpy(idxDst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-		vtxDst += cmd_list->VtxBuffer.Size;
-		idxDst += cmd_list->IdxBuffer.Size;
-	}
-
-	ASSERT_RESULT(m_VertexBuffer->UnMap());
-	ASSERT_RESULT(m_IndexBuffer->UnMap());
-
-	m_bNeedUpdate = false;
-	return true;
+	return false;
 }
 
 bool KUIOverlayBase::Resize(size_t width, size_t height)
@@ -325,31 +342,39 @@ bool KUIOverlayBase::Header(const char* caption)
 	return ImGui::CollapsingHeader(caption, ImGuiTreeNodeFlags_DefaultOpen);
 }
 
+void KUIOverlayBase::RemindUpdate()
+{
+	for(size_t i = 0; i < m_NeedUpdates.size(); ++i)
+	{
+		m_NeedUpdates[i] = true;
+	}
+}
+
 bool KUIOverlayBase::CheckBox(const char* caption, bool* value)
 {
 	bool res = ImGui::Checkbox(caption, value);
-	if (res) { m_bNeedUpdate = true; };
+	if (res) { RemindUpdate(); };
 	return res;
 }
 
 bool KUIOverlayBase::InputFloat(const char* caption, float* value, float step, unsigned int precision)
 {
 	bool res = ImGui::InputFloat(caption, value, step, step * 10.0f, precision);
-	if (res) { m_bNeedUpdate = true; };
+	if (res) { RemindUpdate(); };
 	return res;
 }
 
 bool KUIOverlayBase::SliderFloat(const char* caption, float* value, float min, float max)
 {
 	bool res = ImGui::SliderFloat(caption, value, min, max);
-	if (res) { m_bNeedUpdate = true; };
+	if (res) { RemindUpdate(); };
 	return res;
 }
 
 bool KUIOverlayBase::SliderInt(const char* caption, int* value, int min, int max)
 {
 	bool res = ImGui::SliderInt(caption, value, min, max);
-	if (res) { m_bNeedUpdate = true; };
+	if (res) { RemindUpdate(); };
 	return res;
 }
 
@@ -367,14 +392,14 @@ bool KUIOverlayBase::ComboBox(const char* caption, int* itemindex, const std::ve
 	}
 	int itemCount = static_cast<int>(charitems.size());
 	bool res = ImGui::Combo(caption, itemindex, &charitems[0], itemCount, itemCount);
-	if (res) { m_bNeedUpdate = true; };
+	if (res) { RemindUpdate(); };
 	return res;
 }
 
 bool KUIOverlayBase::Button(const char* caption)
 {
 	bool res = ImGui::Button(caption);
-	if (res) { m_bNeedUpdate = true; };
+	if (res) { RemindUpdate(); };
 	return res;
 }
 
@@ -384,5 +409,5 @@ void KUIOverlayBase::Text(const char* formatstr, ...)
 	va_start(args, formatstr);
 	ImGui::TextV(formatstr, args);
 	va_end(args);
-	m_bNeedUpdate = true;
+	RemindUpdate();
 }

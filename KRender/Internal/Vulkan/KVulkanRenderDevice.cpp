@@ -285,8 +285,9 @@ bool KVulkanRenderDevice::CreateImageViews()
 		}
 	}
 
-	VkImage image = VK_NULL_HANDLE;	
+	std::vector<IKRenderTarget*> renderTargets;
 
+	VkImage image = VK_NULL_HANDLE;	
 	m_SwapChainRenderTargets.resize(imageCount);
 	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
 	{
@@ -303,10 +304,13 @@ bool KVulkanRenderDevice::CreateImageViews()
 		m_SwapChainRenderTargets[i]->InitFromImage(&image,
 			&format,
 			false, false, msaaCount);
+
+		renderTargets.push_back(m_SwapChainRenderTargets[i].get());
 	}
 
 	CreateUIOVerlay(m_UIOverlay);
-	m_UIOverlay->Init(this, m_SwapChainRenderTargets[0].get());
+
+	m_UIOverlay->Init(this, renderTargets);
 	m_UIOverlay->Resize(extend.width, extend.height);
 
 	return true;
@@ -1348,7 +1352,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(unsigned int imageInde
 			}
 		}
 		{
-			//m_UIOverlay->Draw(&commandBuffer);
+			m_UIOverlay->Draw(imageIndex, &commandBuffer);
 		}
 		// ½áÊøäÖÈ¾¹ý³Ì
 		vkCmdEndRenderPass(commandBuffer);
@@ -1455,7 +1459,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 				vkCmdSetViewport(uiCommandBuffer, 0, 1, &viewPort);
 				vkCmdSetScissor(uiCommandBuffer, 0, 1, &scissorRect);
 
-				//m_UIOverlay->Draw(&uiCommandBuffer);
+				m_UIOverlay->Draw(imageIndex, &uiCommandBuffer);
 				VK_ASSERT_RESULT(vkEndCommandBuffer(uiCommandBuffer));
 				commandBuffers.push_back(uiCommandBuffer);
 			}
@@ -1588,7 +1592,7 @@ bool KVulkanRenderDevice::Present()
 	}
 	m_UIOverlay->EndNewFrame();
 
-	m_UIOverlay->Update();
+	m_UIOverlay->Update(imageIndex);
 
 	if(m_MultiThreadSumbit)
 	{

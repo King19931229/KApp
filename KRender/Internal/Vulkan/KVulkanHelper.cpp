@@ -206,6 +206,12 @@ namespace KVulkanHelper
 		case BF_ONE_MINUS_SRC_COLOR:
 			vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
 			return true;
+		case BF_SRC_ALPHA:
+			vkBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+			return true;
+		case BF_ONE_MINUS_SRC_ALPHA:
+			vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+			return true;
 		default:
 			assert(false && "blend factor not supported");
 			return false;

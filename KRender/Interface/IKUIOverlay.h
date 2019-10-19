@@ -6,11 +6,11 @@ struct IKUIOverlay
 {
 	virtual ~IKUIOverlay() {}
 
-	virtual bool Init(IKRenderDevice* renderDevice, IKRenderTarget* renderTarget) = 0;
+	virtual bool Init(IKRenderDevice* renderDevice, const std::vector<IKRenderTarget*>& renderTargets) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool Resize(size_t width, size_t height) = 0;
-	virtual bool Update() = 0;
-	virtual bool Draw(void* commandBufferPtr) = 0;
+	virtual bool Update(unsigned int imageIndex) = 0;
+	virtual bool Draw(unsigned int imageIndex, void* commandBufferPtr) = 0;
 
 	virtual bool SetMousePosition(unsigned int x, unsigned int y) = 0;
 	virtual bool SetMouseDown(InputMouseButton button, bool down) = 0;

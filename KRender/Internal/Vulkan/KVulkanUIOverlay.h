@@ -8,5 +8,5 @@ public:
 	KVulkanUIOverlay();
 	virtual ~KVulkanUIOverlay();
 
-	virtual bool Draw(void* commandBufferPtr);
+	virtual bool Draw(unsigned int imageIndex, void* commandBufferPtr);
 };
