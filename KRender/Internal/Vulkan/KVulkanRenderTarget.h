@@ -1,6 +1,5 @@
 #include "Interface/IKRenderTarget.h"
 #include "KVulkanConfig.h"
-#include "KVulkanDepthBuffer.h"
 #include "KVulkanHeapAllocator.h"
 
 class KVulkanRenderTarget : public IKRenderTarget
@@ -21,7 +20,6 @@ protected:
 	VkExtent2D		m_Extend;
 
 	VkFormat		m_ColorFormat;
-	VkImage			m_ColorImage;
 	VkImageView		m_ColorImageView;
 
 	VkFormat		m_DepthFormat;
@@ -38,7 +36,7 @@ protected:
 	bool			m_bDepthStencilCreated;
 
 	static VkFormat FindDepthFormat(bool bStencil);
-	bool CreateImage(void* imageHandle, void* imageFormatHandle, bool bDepth, bool bStencil, unsigned short uMsaaCount);
+	bool CreateImage(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount);
 	bool CreateFramebuffer();
 public:
 	KVulkanRenderTarget();
@@ -48,12 +46,10 @@ public:
 	virtual bool SetColorClear(float r, float g, float b, float a);
 	virtual bool SetDepthStencilClear(float depth, unsigned int stencil);
 
-	virtual bool InitFromImage(void* imageHandle, void* imageFormatHandle,
-		bool bDepth,
-		bool bStencil,
-		unsigned short uMsaaCount);
-
+	virtual bool InitFromImageView(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount);
 	virtual bool UnInit();
+
+	virtual bool GetImageView(RenderTargetComponent component, ImageView& view);
 
 	inline VkRenderPass GetRenderPass() { return m_RenderPass; }
 	inline VkFramebuffer GetFrameBuffer() { return m_FrameBuffer; }

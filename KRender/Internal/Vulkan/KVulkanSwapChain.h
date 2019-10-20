@@ -1,4 +1,5 @@
 #pragma once
+#include "Interface/IKRenderConfig.h"
 #include "KVulkanConfig.h"
 #include <vector>
 #include <memory>
@@ -27,6 +28,7 @@ protected:
 	size_t m_CurrentFlightIndex;
 
 	std::vector<VkImage> m_SwapChainImages;
+	std::vector<VkImageView> m_SwapChainImageViews;
 	std::vector<VkSemaphore> m_ImageAvailableSemaphores;
 	std::vector<VkSemaphore> m_RenderFinishedSemaphores;
 	std::vector<VkFence> m_InFlightFences;
@@ -61,7 +63,7 @@ public:
 	VkResult AcquireNextImage(uint32_t& imageIndex);
 	VkResult PresentQueue(VkQueue graphicsQueue, VkQueue presentQueue, uint32_t imageIndex, VkCommandBuffer commandBuffer);
 
-	bool GetImage(size_t imageIndex, VkImage& vkImage);
+	bool GetImageView(size_t imageIndex, ImageView& imageView);
 	inline size_t GetImageCount() { return m_SwapChainImages.size(); }
 	inline VkExtent2D GetExtent() { return m_Extend; }
 	inline VkFormat GetFormat() { return m_SurfaceFormat.format; }

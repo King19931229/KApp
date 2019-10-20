@@ -16,9 +16,6 @@
     <Filter Include="Publish">
       <UniqueIdentifier>{f874efcb-4c25-4320-8ff2-dc8f6e66d276}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Interface\Interface">
-      <UniqueIdentifier>{63530ac1-3a2b-4993-b7e4-3df5c0fe88e5}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -111,9 +108,6 @@
     <ClInclude Include="Internal\KSamplerBase.h">
       <Filter>Internal</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Vulkan\KVulkanDepthBuffer.h">
-      <Filter>Internal\Vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\IKRenderTarget.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -148,6 +142,9 @@
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Vulkan\KVulkanTexture.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanImageView.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
@@ -213,9 +210,6 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanSampler.cpp">
-      <Filter>Internal\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\Vulkan\KVulkanDepthBuffer.cpp">
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderTarget.cpp">

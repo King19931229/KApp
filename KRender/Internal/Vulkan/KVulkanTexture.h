@@ -7,8 +7,9 @@ class KVulkanTexture : public KTextureBase
 {
 protected:
 	VkImage m_TextureImage;
-	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	VkImageView m_TextureImageView;
+	VkFormat m_TextureFormat;
+	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	bool m_bDeviceInit;
 public:
 	KVulkanTexture();
@@ -16,6 +17,5 @@ public:
 
 	virtual bool InitDevice();
 	virtual bool UnInit();
-
-	VkImageView GetVkImageView() { return m_TextureImageView; }
+	virtual ImageView GetImageView();
 };

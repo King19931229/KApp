@@ -189,7 +189,7 @@ void KUIOverlayBase::PreparePipeline(const std::vector<IKRenderTarget*>& renderT
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetShader(ST_VERTEX, m_VertexShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
-		pipeline->SetTextureSampler(0, m_FontTexture, m_FontSampler);
+		pipeline->SetSampler(0, m_FontTexture->GetImageView(), m_FontSampler);
 		pipeline->PushConstantBlock(m_Constant, m_ConstantLoc);
 		ASSERT_RESULT(pipeline->Init(renderTargets[i]));
 	}	

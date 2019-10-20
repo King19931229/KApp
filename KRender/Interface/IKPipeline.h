@@ -15,10 +15,8 @@ struct IKPipeline
 	virtual bool SetPolygonMode(PolygonMode polygonMode) = 0;
 
 	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader) = 0;
-
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
-	virtual bool SetTextureSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler) = 0;
-
+	virtual bool SetSampler(unsigned int location, const ImageView& view, IKSamplerPtr sampler) = 0;
 	virtual bool PushConstantBlock(const PushConstant& constant, PushConstantLocation& location) = 0;
 
 	virtual bool Init(IKRenderTarget* target) = 0;

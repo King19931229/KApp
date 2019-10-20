@@ -45,7 +45,8 @@ KTextureBase::KTextureBase()
 	m_Depth(0),
 	m_Mipmaps(0),
 	m_Format(EF_UNKNOWN),
-	m_TextureType(TT_UNKNOWN)
+	m_TextureType(TT_UNKNOWN),
+	m_bCreateAsRt(false)
 {
 
 }
@@ -76,6 +77,7 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 	{
 		if(InitProperty(bGenerateMipmap))
 		{
+			m_bCreateAsRt = false;
 			return true;
 		}
 	}
@@ -98,12 +100,26 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t
 			m_ImageData.pData = pImageData;
 			if(InitProperty(bGenerateMipmap))
 			{
+				m_bCreateAsRt = false;
 				return true;
 			}
 		}
 	}
 	m_ImageData.pData = nullptr;
 	return false;
+}
+
+bool KTextureBase::InitMemeoryAsRT(size_t width, size_t height, ElementFormat format)
+{
+	m_Width = width;
+	m_Height = height;
+	m_Depth = 1;
+	m_Mipmaps = 1;
+	m_Format = format;
+	m_TextureType = TT_TEXTURE_2D;
+	m_bCreateAsRt = true;
+	m_ImageData.pData = nullptr;
+	return true;
 }
 
 bool KTextureBase::UnInit()

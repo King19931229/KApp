@@ -11,7 +11,9 @@ protected:
 	size_t m_Width;
 	size_t m_Height;
 	size_t m_Depth;
+
 	unsigned short m_Mipmaps;
+	bool m_bCreateAsRt;
 
 	bool InitProperty(bool bGenerateMipmap);
 public:
@@ -20,6 +22,7 @@ public:
 
 	virtual bool InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap);
 	virtual bool InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap);
+	virtual bool InitMemeoryAsRT(size_t width, size_t height, ElementFormat format);
 	virtual bool InitDevice() = 0;
 	virtual bool UnInit();
 

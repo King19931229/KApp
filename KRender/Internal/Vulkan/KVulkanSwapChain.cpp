@@ -1,5 +1,6 @@
 #include "KVulkanSwapChain.h"
 #include "KVulkanGlobal.h"
+#include "KVulkanInitializer.h"
 #include "KBase/Publish/KConfig.h"
 
 KVulkanSwapChain::KVulkanSwapChain()
@@ -182,6 +183,13 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 	m_SwapChainImages.resize(imageCount);
 	VK_ASSERT_RESULT(vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &imageCount, m_SwapChainImages.data()));
 
+	// ´´½¨ImageView
+	m_SwapChainImageViews.resize(imageCount);
+	for(size_t i = 0; i < m_SwapChainImageViews.size(); ++i)
+	{
+		KVulkanInitializer::CreateVkImageView(m_SwapChainImages[i], m_SurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_SwapChainImageViews[i]);
+	}
+
 	return true;
 }
 
@@ -213,6 +221,11 @@ bool KVulkanSwapChain::CreateSyncObjects()
 
 bool KVulkanSwapChain::CleanupSwapChain()
 {
+	for(VkImageView vkImageView : m_SwapChainImageViews)
+	{
+		vkDestroyImageView(KVulkanGlobal::device, vkImageView, nullptr);
+	}
+	m_SwapChainImageViews.clear();
 	m_SwapChainImages.clear();
 	vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
 	m_SwapChain = VK_NULL_HANDLE;
@@ -348,14 +361,14 @@ VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQu
 	return vkResult;
 }
 
-bool KVulkanSwapChain::GetImage(size_t imageIndex, VkImage& vkImage)
+bool KVulkanSwapChain::GetImageView(size_t imageIndex, ImageView& imageView)
 {
-	assert(imageIndex < m_SwapChainImages.size());
-	if(imageIndex < m_SwapChainImages.size())
+	assert(imageIndex < m_SwapChainImageViews.size());
+	if(imageIndex < m_SwapChainImageViews.size())
 	{
-		vkImage = m_SwapChainImages[imageIndex];
+		imageView.imageViewHandle = m_SwapChainImageViews[imageIndex];
+		imageView.imageForamt = m_SurfaceFormat.format;
 		return true;
 	}
-
 	return false;
 }

@@ -162,6 +162,18 @@ enum BlendOperator
 	BO_SUBTRACT
 };
 
+enum RenderTargetComponent
+{
+	RTC_COLOR,
+	RTC_DEPTH_STENCIL
+};
+
+struct ImageView
+{
+	void* imageViewHandle;
+	int imageForamt;
+};
+
 struct VertexInputDetail
 {
 	VertexFormat* formats;

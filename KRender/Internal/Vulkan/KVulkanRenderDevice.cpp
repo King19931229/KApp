@@ -14,8 +14,6 @@
 #include "KVulkanGlobal.h"
 #include "KVulkanInitializer.h"
 
-#include "KVulkanDepthBuffer.h"
-
 #include "KVulkanHeapAllocator.h"
 
 #include "Internal/KVertexDefinition.h"
@@ -297,15 +295,35 @@ bool KVulkanRenderDevice::CreateImageViews()
 		m_SwapChainRenderTargets[i]->SetColorClear(HEX_COL(0x87), HEX_COL(0xCE), HEX_COL(0xFF), HEX_COL(0XFF));
 #undef HEX_COL
 		m_SwapChainRenderTargets[i]->SetDepthStencilClear(1.0, 0);
+		// TODO init from imageview
 		m_SwapChainRenderTargets[i]->SetSize(extend.width, extend.height);
 
-		m_pSwapChain->GetImage(i, image);
+		ImageView imageView = {0};
+		m_pSwapChain->GetImageView(i, imageView);
 
-		m_SwapChainRenderTargets[i]->InitFromImage(&image,
-			&format,
-			false, false, msaaCount);
+		m_SwapChainRenderTargets[i]->InitFromImageView(imageView, true, true, msaaCount);
 
 		renderTargets.push_back(m_SwapChainRenderTargets[i].get());
+	}
+
+	m_OffScreenTextures.resize(imageCount);
+	for(size_t i = 0; i < m_OffScreenTextures.size(); ++i)
+	{
+		CreateTexture(m_OffScreenTextures[i]);
+		m_OffScreenTextures[i]->InitMemeoryAsRT(extend.width, extend.height, EF_R16G16B16A16_FLOAT);
+		m_OffScreenTextures[i]->InitDevice();
+	}
+
+	m_OffscreenRenderTargets.resize(imageCount);
+	for(size_t i = 0; i < m_OffscreenRenderTargets.size(); ++i)
+	{
+		CreateRenderTarget(m_OffscreenRenderTargets[i]);
+#define HEX_COL(NUM) ((float)NUM / float(0XFF))
+		m_OffscreenRenderTargets[i]->SetColorClear(HEX_COL(0x87), HEX_COL(0xCE), HEX_COL(0xFF), HEX_COL(0XFF));
+#undef HEX_COL
+		m_OffscreenRenderTargets[i]->SetDepthStencilClear(1.0, 0);
+		m_OffscreenRenderTargets[i]->SetSize(extend.width, extend.height);
+		m_OffscreenRenderTargets[i]->InitFromImageView(m_OffScreenTextures[i]->GetImageView(), true, true, msaaCount);
 	}
 
 	CreateUIOVerlay(m_UIOverlay);
@@ -352,7 +370,7 @@ bool KVulkanRenderDevice::CreatePipelines()
 		pipeline->SetPolygonMode(PM_FILL);
 
 		pipeline->SetConstantBuffer(0, ST_VERTEX, m_CameraBuffers[i]);
-		pipeline->SetTextureSampler(1, m_Texture, m_Sampler);
+		pipeline->SetSampler(1, m_Texture->GetImageView(), m_Sampler);
 
 		pipeline->PushConstantBlock(m_ObjectConstant, m_ObjectConstantLoc);
 
@@ -932,18 +950,43 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 		m_UIOverlay = nullptr;
 	}
 	
+	// clear offscreen rts
+	for (IKTexturePtr texture : m_OffScreenTextures)
+	{
+		texture->UnInit();
+	}
+	m_OffScreenTextures.clear();
+	for (IKRenderTargetPtr target :  m_OffscreenRenderTargets)
+	{
+		target->UnInit();
+	}
+	m_OffscreenRenderTargets.clear();
+	for (IKPipelinePtr pipeline :  m_OffscreenPipelines)
+	{
+		pipeline->UnInit();
+	}
+	m_OffscreenPipelines.clear();
+
+	// clear swapchain rts
 	for (IKRenderTargetPtr target :  m_SwapChainRenderTargets)
 	{
 		target->UnInit();
 	}
 	m_SwapChainRenderTargets.clear();
+	for (IKPipelinePtr pipeline :  m_SwapChainPipelines)
+	{
+		pipeline->UnInit();
+	}
+	m_SwapChainPipelines.clear();
 
+	// clear camera buffer
 	for(size_t i = 0; i < m_CameraBuffers.size(); ++i)
 	{
 		m_CameraBuffers[i]->UnInit();
 	}
 	m_CameraBuffers.clear();
 
+	// clear command buffers
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{
 		vkDestroyCommandPool(m_Device, m_CommandBuffers[i].uiData.commandPool, nullptr);
@@ -954,12 +997,7 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 	}
 	m_CommandBuffers.clear();
 
-	for (IKPipelinePtr pipeline :  m_SwapChainPipelines)
-	{
-		pipeline->UnInit();
-	}
-	m_SwapChainPipelines.clear();
-
+	// clear swapchain
 	m_pSwapChain->UnInit();
 	m_pSwapChain = nullptr;
 

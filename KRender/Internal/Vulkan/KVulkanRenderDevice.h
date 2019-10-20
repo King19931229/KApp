@@ -121,6 +121,10 @@ protected:
 	VkDebugUtilsMessengerEXT m_DebugMessenger;
 	PhysicalDevice m_PhysicalDevice;
 
+	std::vector<IKTexturePtr> m_OffScreenTextures;
+	std::vector<IKRenderTargetPtr> m_OffscreenRenderTargets;
+	std::vector<IKPipelinePtr> m_OffscreenPipelines;
+
 	std::vector<IKRenderTargetPtr> m_SwapChainRenderTargets;
 	std::vector<IKPipelinePtr> m_SwapChainPipelines;
 

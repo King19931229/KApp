@@ -116,13 +116,13 @@ bool KVulkanPipeline::SetConstantBuffer(unsigned int location, ShaderTypes shade
 	return false;
 }
 
-bool KVulkanPipeline::SetTextureSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler)
+bool KVulkanPipeline::SetSampler(unsigned int location, const ImageView& imageView, IKSamplerPtr sampler)
 {
-	if(texture && sampler)
+	if(imageView.imageViewHandle != nullptr && sampler)
 	{
 		ASSERT_RESULT(m_Uniforms.find(location) == m_Uniforms.end() && "The location you try to bind is conflited with ubo");
 
-		SamplerBindingInfo info = { texture, sampler };
+		SamplerBindingInfo info = { (VkImageView)imageView.imageViewHandle, sampler };
 		auto& it = m_Samplers.find(location);
 		if(it == m_Samplers.end())
 		{
@@ -319,14 +319,12 @@ bool KVulkanPipeline::CreateDestcription()
 		unsigned int location = pair.first;
 		SamplerBindingInfo& info = pair.second;
 
-		KVulkanTexture* texture = static_cast<KVulkanTexture*>(info.texture.get());
-		ASSERT_RESULT(texture != nullptr);
 		KVulkanSampler* sampler = static_cast<KVulkanSampler*>(info.sampler.get());
 		ASSERT_RESULT(sampler != nullptr);
 
 		VkDescriptorImageInfo imageInfo = {};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = texture->GetVkImageView();
+		imageInfo.imageView = info.vkImageView;
 		imageInfo.sampler = sampler->GetVkSampler();
 
 		VkWriteDescriptorSet samplerDescriptorWrite = {};
@@ -423,14 +421,14 @@ bool KVulkanPipeline::CreatePipeline(KVulkanRenderTarget* renderTarget)
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	depthStencil.depthTestEnable = VK_TRUE;
 	depthStencil.depthWriteEnable = VK_TRUE;
+	// TODO
+	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
-	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-
-	depthStencil.depthBoundsTestEnable = VK_FALSE;
+	depthStencil.depthBoundsTestEnable = VK_FALSE; // Optional
 	depthStencil.minDepthBounds = 0.0f; // Optional
 	depthStencil.maxDepthBounds = 1.0f; // Optional
-
-	depthStencil.stencilTestEnable = VK_TRUE;
+	// TODO
+	depthStencil.stencilTestEnable = VK_FALSE;
 
 	VkStencilOpState empty = {};
 	depthStencil.front = empty; // Optional

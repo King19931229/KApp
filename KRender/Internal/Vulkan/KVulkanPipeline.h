@@ -44,7 +44,7 @@ protected:
 	// Sampler пео╒
 	struct SamplerBindingInfo
 	{
-		IKTexturePtr texture;
+		VkImageView vkImageView;
 		IKSamplerPtr sampler;
 	};
 	std::map<unsigned int, SamplerBindingInfo> m_Samplers;
@@ -77,8 +77,7 @@ public:
 	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader);
 
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
-	virtual bool SetTextureSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
-
+	virtual bool SetSampler(unsigned int location, const ImageView& view, IKSamplerPtr sampler);
 	virtual bool PushConstantBlock(const PushConstant& constant, PushConstantLocation& location);
 
 	virtual bool Init(IKRenderTarget* target);

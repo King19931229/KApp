@@ -16,8 +16,6 @@ KVulkanRenderTarget::KVulkanRenderTarget()
 	ZERO_ARRAY_MEMORY(m_ClearValues);
 
 	ZERO_MEMORY(m_Extend);
-
-	ZERO_MEMORY(m_ColorImage);
 	ZERO_MEMORY(m_ColorImageView);
 
 	ZERO_MEMORY(m_MsaaImage);
@@ -77,18 +75,15 @@ VkFormat KVulkanRenderTarget::FindDepthFormat(bool bStencil)
 	return format;
 }
 
-bool KVulkanRenderTarget::CreateImage(void* imageHandle, void* imageFormatHandle, bool bDepth, bool bStencil, unsigned short uMsaaCount)
+bool KVulkanRenderTarget::CreateImage(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount)
 {
-	ASSERT_RESULT(imageHandle != nullptr);
-	ASSERT_RESULT(imageFormatHandle != nullptr);
+	ASSERT_RESULT(view.imageViewHandle != nullptr);
 
 	ASSERT_RESULT(!m_bMsaaCreated);
 	ASSERT_RESULT(!m_bDepthStencilCreated);
 
-	m_ColorImage = *((VkImage*)imageHandle);
-	m_ColorFormat = *((VkFormat*)imageFormatHandle);
-
-	KVulkanInitializer::CreateVkImageView(m_ColorImage, m_ColorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_ColorImageView);
+	m_ColorFormat = (VkFormat)view.imageForamt;
+	m_ColorImageView = (VkImageView)view.imageViewHandle;
 
 	if(uMsaaCount > 1)
 	{
@@ -290,10 +285,9 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 	return true;
 }
 
-
-bool KVulkanRenderTarget::InitFromImage(void* imageHandle, void* imageFormatHandle, bool bDepth, bool bStencil, unsigned short uMsaaCount)
+bool KVulkanRenderTarget::InitFromImageView(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount)
 {
-	ASSERT_RESULT(CreateImage(imageHandle, imageFormatHandle, bDepth, bStencil, uMsaaCount));
+	ASSERT_RESULT(CreateImage(view, bDepth, bStencil, uMsaaCount));
 	ASSERT_RESULT(CreateFramebuffer());	
 	return true;
 }
@@ -314,11 +308,7 @@ bool KVulkanRenderTarget::UnInit()
 		m_FrameBuffer = VK_NULL_HANDLE;
 	}
 
-	if(m_ColorImageView)
-	{
-		vkDestroyImageView(KVulkanGlobal::device, m_ColorImageView, nullptr);
-		m_ColorImageView = VK_NULL_HANDLE;
-	}
+	m_ColorImageView = VK_NULL_HANDLE;
 
 	if(m_bMsaaCreated)
 	{
@@ -343,6 +333,28 @@ bool KVulkanRenderTarget::UnInit()
 	}
 
 	return true;
+}
+
+bool KVulkanRenderTarget::GetImageView(RenderTargetComponent component, ImageView& view)
+{
+	switch (component)
+	{
+	case RTC_COLOR:
+		view.imageForamt = m_ColorFormat;
+		view.imageViewHandle = m_ColorImageView;
+		return true;
+	case RTC_DEPTH_STENCIL:
+		if(m_bDepthStencilCreated)
+		{
+			view.imageForamt = m_DepthFormat;
+			view.imageViewHandle = m_DepthImageView;
+			return true;
+		}
+		return false;
+	default:
+		assert(false && "unknown component");
+		return false;
+	}
 }
 
 KVulkanRenderTarget::ClearValues KVulkanRenderTarget::GetVkClearValues()

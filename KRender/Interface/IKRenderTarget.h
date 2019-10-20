@@ -10,9 +10,8 @@ struct IKRenderTarget
 	virtual bool SetColorClear(float r, float g, float b, float a) = 0;
 	virtual bool SetDepthStencilClear(float depth, unsigned int stencil) = 0;
 
-	virtual bool InitFromImage(void* imageHandle, void* imageFormatHandle,
-		bool bDepth,
-		bool bStencil,
-		unsigned short uMsaaCount) = 0;
+	virtual bool InitFromImageView(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount) = 0;
 	virtual bool UnInit() = 0;
+
+	virtual bool GetImageView(RenderTargetComponent component, ImageView& view) = 0;
 };
