@@ -60,8 +60,10 @@ protected:
 	// Temporarily for demo use
 	bool m_MultiThreadSumbit;
 	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
+
 	VkCommandPool m_CommandPool;
 	KAABBBox m_Box;
+
 	struct ThreadData
 	{
 		VkCommandPool commandPool;
@@ -70,16 +72,12 @@ protected:
 		size_t offset;
 	};
 
-	struct UIData
-	{
-		VkCommandPool commandPool;
-		VkCommandBuffer uiCommandBuffer;
-	};
-
 	struct CommandBuffer
 	{
 		VkCommandBuffer primaryCommandBuffer;
-		UIData uiData;
+		VkCommandBuffer uiCommandBuffer;
+		VkCommandBuffer postprocessCommandBuffer;
+
 		std::vector<ThreadData> threadDatas;
 		VkCommandBufferList commandBuffersExec;
 	};
@@ -90,8 +88,17 @@ protected:
 #else
 	KRenderThreadPool m_ThreadPool;
 #endif
-	IKVertexBufferPtr m_VertexBuffer;
-	IKIndexBufferPtr m_IndexBuffer;
+	struct Square
+	{
+		IKVertexBufferPtr vertexBuffer;
+		IKIndexBufferPtr indexBuffer;
+	}m_SqaureData;
+
+	struct Quad
+	{
+		IKVertexBufferPtr vertexBuffer;
+		IKIndexBufferPtr indexBuffer;
+	}m_QuadData;
 
 	KVulkanSwapChainPtr m_pSwapChain;
 

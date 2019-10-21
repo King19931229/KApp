@@ -109,10 +109,8 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 #else
 	false
 #endif
-),
+	),
 	m_MultiThreadSumbit(true),
-	m_VertexBuffer(nullptr),
-	m_IndexBuffer(nullptr),
 	m_Texture(nullptr),
 	m_Sampler(nullptr)
 {
@@ -286,25 +284,6 @@ bool KVulkanRenderDevice::CreateImageViews()
 	std::vector<IKRenderTarget*> renderTargets;
 
 	VkImage image = VK_NULL_HANDLE;	
-	m_SwapChainRenderTargets.resize(imageCount);
-	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
-	{
-		CreateRenderTarget(m_SwapChainRenderTargets[i]);
-
-#define HEX_COL(NUM) ((float)NUM / float(0XFF))
-		m_SwapChainRenderTargets[i]->SetColorClear(HEX_COL(0x87), HEX_COL(0xCE), HEX_COL(0xFF), HEX_COL(0XFF));
-#undef HEX_COL
-		m_SwapChainRenderTargets[i]->SetDepthStencilClear(1.0, 0);
-		// TODO init from imageview
-		m_SwapChainRenderTargets[i]->SetSize(extend.width, extend.height);
-
-		ImageView imageView = {0};
-		m_pSwapChain->GetImageView(i, imageView);
-
-		m_SwapChainRenderTargets[i]->InitFromImageView(imageView, true, true, msaaCount);
-
-		renderTargets.push_back(m_SwapChainRenderTargets[i].get());
-	}
 
 	m_OffScreenTextures.resize(imageCount);
 	for(size_t i = 0; i < m_OffScreenTextures.size(); ++i)
@@ -326,6 +305,23 @@ bool KVulkanRenderDevice::CreateImageViews()
 		m_OffscreenRenderTargets[i]->InitFromImageView(m_OffScreenTextures[i]->GetImageView(), true, true, msaaCount);
 	}
 
+	m_SwapChainRenderTargets.resize(imageCount);
+	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
+	{
+		CreateRenderTarget(m_SwapChainRenderTargets[i]);
+		m_SwapChainRenderTargets[i]->SetColorClear(0.0f, 0.0f, 0.0f, 1.0f);
+		m_SwapChainRenderTargets[i]->SetDepthStencilClear(1.0, 0);
+		// TODO init from imageview
+		m_SwapChainRenderTargets[i]->SetSize(extend.width, extend.height);
+
+		ImageView imageView = {0};
+		m_pSwapChain->GetImageView(i, imageView);
+
+		m_SwapChainRenderTargets[i]->InitFromImageView(imageView, true, true, msaaCount);
+
+		renderTargets.push_back(m_SwapChainRenderTargets[i].get());
+	}
+
 	CreateUIOVerlay(m_UIOverlay);
 
 	m_UIOverlay->Init(this, renderTargets);
@@ -339,46 +335,87 @@ bool KVulkanRenderDevice::CreatePipelines()
 	IKShaderPtr vertexShader = nullptr;
 	IKShaderPtr fragmentShader = nullptr;
 
-	CreateShader(vertexShader);
-	CreateShader(fragmentShader);
-
-	ASSERT_RESULT(vertexShader->InitFromFile("Shaders/shader.vert") && fragmentShader->InitFromFile("Shaders/shader.frag"));
-
-	m_SwapChainPipelines.resize(m_SwapChainRenderTargets.size());
-	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
 	{
-		CreatePipeline(m_SwapChainPipelines[i]);
+		CreateShader(vertexShader);
+		CreateShader(fragmentShader);
 
-		IKPipelinePtr pipeline = m_SwapChainPipelines[i];
+		ASSERT_RESULT(vertexShader->InitFromFile("Shaders/shader.vert") && fragmentShader->InitFromFile("Shaders/shader.frag"));
 
-		VertexInputDetail bindingDetail = {};
-		VertexFormat formats[] = {VF_POINT_NORMAL_UV};
-		bindingDetail.formats = formats;
-		bindingDetail.count = ARRAY_SIZE(formats);
+		m_OffscreenPipelines.resize(m_OffscreenRenderTargets.size());
+		for(size_t i = 0; i < m_OffscreenRenderTargets.size(); ++i)
+		{
+			CreatePipeline(m_OffscreenPipelines[i]);
 
-		pipeline->SetVertexBinding(&bindingDetail, 1);
+			IKPipelinePtr pipeline = m_OffscreenPipelines[i];
 
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+			VertexInputDetail bindingDetail = {};
+			VertexFormat formats[] = {VF_POINT_NORMAL_UV};
+			bindingDetail.formats = formats;
+			bindingDetail.count = ARRAY_SIZE(formats);
 
-		pipeline->SetShader(ST_VERTEX, vertexShader);
-		pipeline->SetShader(ST_FRAGMENT, fragmentShader);
+			pipeline->SetVertexBinding(&bindingDetail, 1);
 
-		pipeline->SetBlendEnable(false);
+			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
-		pipeline->SetCullMode(CM_BACK);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
+			pipeline->SetShader(ST_VERTEX, vertexShader);
+			pipeline->SetShader(ST_FRAGMENT, fragmentShader);
 
-		pipeline->SetConstantBuffer(0, ST_VERTEX, m_CameraBuffers[i]);
-		pipeline->SetSampler(1, m_Texture->GetImageView(), m_Sampler);
+			pipeline->SetBlendEnable(false);
 
-		pipeline->PushConstantBlock(m_ObjectConstant, m_ObjectConstantLoc);
+			pipeline->SetCullMode(CM_BACK);
+			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+			pipeline->SetPolygonMode(PM_FILL);
 
-		pipeline->Init(m_SwapChainRenderTargets[i].get());
+			pipeline->SetConstantBuffer(0, ST_VERTEX, m_CameraBuffers[i]);
+			pipeline->SetSampler(1, m_Texture->GetImageView(), m_Sampler);
+
+			pipeline->PushConstantBlock(m_ObjectConstant, m_ObjectConstantLoc);
+
+			pipeline->Init(m_OffscreenRenderTargets[i].get());
+		}
+
+		vertexShader->UnInit();
+		fragmentShader->UnInit();
 	}
 
-	vertexShader->UnInit();
-	fragmentShader->UnInit();
+	{
+		CreateShader(vertexShader);
+		CreateShader(fragmentShader);
+
+		ASSERT_RESULT(vertexShader->InitFromFile("Shaders/screenquad.vert") && fragmentShader->InitFromFile("Shaders/screenquad.frag"));
+
+		m_SwapChainPipelines.resize(m_SwapChainRenderTargets.size());
+		for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
+		{
+			CreatePipeline(m_SwapChainPipelines[i]);
+
+			IKPipelinePtr pipeline = m_SwapChainPipelines[i];
+
+			VertexInputDetail bindingDetail = {};
+			VertexFormat formats[] = {VF_SCREENQUAD_POS};
+			bindingDetail.formats = formats;
+			bindingDetail.count = ARRAY_SIZE(formats);
+
+			pipeline->SetVertexBinding(&bindingDetail, 1);
+
+			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+
+			pipeline->SetShader(ST_VERTEX, vertexShader);
+			pipeline->SetShader(ST_FRAGMENT, fragmentShader);
+
+			pipeline->SetBlendEnable(false);
+
+			pipeline->SetCullMode(CM_BACK);
+			pipeline->SetFrontFace(FF_CLOCKWISE);
+			pipeline->SetPolygonMode(PM_FILL);
+
+			pipeline->SetSampler(0, m_OffScreenTextures[i]->GetImageView(), m_Sampler);
+			pipeline->Init(m_SwapChainRenderTargets[i].get());
+		}
+
+		vertexShader->UnInit();
+		fragmentShader->UnInit();
+	}
 
 	return true;
 }
@@ -573,30 +610,53 @@ bool KVulkanRenderDevice::CreateVertexInput()
 {
 	using namespace KVertexDefinition;
 
-	const POS_3F_NORM_3F_UV_2F vertices[] =
+	// Square
 	{
-		{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
-		{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
-		{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
-		{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)},
-	};
+		const POS_3F_NORM_3F_UV_2F vertices[] =
+		{
+			{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
+			{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
+			{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
+			{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)},
+		};
 
-	m_Box.SetNull();
-	KAABBBox tempCalcResult;
-	for(int i = 0; i < ARRAY_SIZE(vertices); ++i)
-	{
-		m_Box.Merge(vertices[i].POSITION, tempCalcResult);
-		m_Box = tempCalcResult;
+		m_Box.SetNull();
+		KAABBBox tempCalcResult;
+		for(int i = 0; i < ARRAY_SIZE(vertices); ++i)
+		{
+			m_Box.Merge(vertices[i].POSITION, tempCalcResult);
+			m_Box = tempCalcResult;
+		}
+
+		CreateVertexBuffer(m_SqaureData.vertexBuffer);
+		m_SqaureData.vertexBuffer->InitMemory(sizeof(vertices) / sizeof(vertices[0]), sizeof(vertices[0]), vertices);
+		m_SqaureData.vertexBuffer->InitDevice(false);
+
+		const uint32_t indices[] = {0, 1, 2, 2, 3, 0};
+		CreateIndexBuffer(m_SqaureData.indexBuffer);
+		m_SqaureData.indexBuffer->InitMemory(IT_32, sizeof(indices) / sizeof(indices[0]), indices);
+		m_SqaureData.indexBuffer->InitDevice(false);
 	}
 
-	CreateVertexBuffer(m_VertexBuffer);
-	m_VertexBuffer->InitMemory(sizeof(vertices) / sizeof(vertices[0]), sizeof(vertices[0]), vertices);
-	m_VertexBuffer->InitDevice(false);
+	// Screen Quad
+	{
+		const SCREENQUAD_POS_2F vertices[] =
+		{
+			glm::vec2(-1.0f, -1.0f),
+			glm::vec2(1.0f, -1.0f),
+			glm::vec2(1.0f, 1.0f),
+			glm::vec2(-1.0f, 1.0f)
+		};
 
-	const uint32_t indices[] = {0, 1, 2, 2, 3, 0};
-	CreateIndexBuffer(m_IndexBuffer);
-	m_IndexBuffer->InitMemory(IT_32, sizeof(indices) / sizeof(indices[0]), indices);
-	m_IndexBuffer->InitDevice(false);
+		CreateVertexBuffer(m_QuadData.vertexBuffer);
+		m_QuadData.vertexBuffer->InitMemory(sizeof(vertices) / sizeof(vertices[0]), sizeof(vertices[0]), vertices);
+		m_QuadData.vertexBuffer->InitDevice(false);
+
+		const uint32_t indices[] = {0, 1, 2, 2, 3, 0};
+		CreateIndexBuffer(m_QuadData.indexBuffer);
+		m_QuadData.indexBuffer->InitMemory(IT_32, sizeof(indices) / sizeof(indices[0]), indices);
+		m_QuadData.indexBuffer->InitDevice(false);
+	}
 
 	return true;
 }
@@ -989,7 +1049,6 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 	// clear command buffers
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{
-		vkDestroyCommandPool(m_Device, m_CommandBuffers[i].uiData.commandPool, nullptr);
 		for (ThreadData& thread : m_CommandBuffers[i].threadDatas)
 		{
 			vkDestroyCommandPool(m_Device, thread.commandPool, nullptr);
@@ -1015,15 +1074,26 @@ bool KVulkanRenderDevice::UnInit()
 	
 	m_pWindow = nullptr;
 
-	if(m_VertexBuffer)
+	if(m_SqaureData.indexBuffer)
 	{
-		m_VertexBuffer->UnInit();
-		m_VertexBuffer = nullptr;
+		m_SqaureData.indexBuffer->UnInit();
+		m_SqaureData.indexBuffer = nullptr;
 	}
-	if(m_IndexBuffer)
+	if(m_SqaureData.vertexBuffer)
 	{
-		m_IndexBuffer->UnInit();
-		m_VertexBuffer = nullptr;
+		m_SqaureData.vertexBuffer->UnInit();
+		m_SqaureData.vertexBuffer = nullptr;
+	}
+
+	if(m_QuadData.indexBuffer)
+	{
+		m_QuadData.indexBuffer->UnInit();
+		m_QuadData.indexBuffer = nullptr;
+	}
+	if(m_QuadData.vertexBuffer)
+	{
+		m_QuadData.vertexBuffer->UnInit();
+		m_QuadData.vertexBuffer = nullptr;
 	}
 	if(m_Texture)
 	{
@@ -1243,8 +1313,7 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imag
 	// 命令开始时候创建需要一个命令开始信息
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 	beginInfo.pInheritanceInfo = &inheritanceInfo;
 
 #ifndef THREAD_MODE_ONE
@@ -1255,13 +1324,13 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imag
 	VkCommandBuffer commandBuffer = threadData.commandBuffer;
 	VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));	
 
-	KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get();
+	KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_OffscreenRenderTargets[imageIndex].get();
 	{
-		KVulkanPipeline* swapchainPipeline = (KVulkanPipeline*)m_SwapChainPipelines[imageIndex].get();
+		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_OffscreenPipelines[imageIndex].get();
 
-		VkPipeline pipeline = swapchainPipeline->GetVkPipeline();
-		VkPipelineLayout pipelineLayout = swapchainPipeline->GetVkPipelineLayout();
-		VkDescriptorSet descriptorSet = swapchainPipeline->GetVkDescriptorSet();
+		VkPipeline pipeline = vulkanPipeline->GetVkPipeline();
+		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
+		VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 
 		// 绑定管线
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -1269,12 +1338,12 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imag
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 		// 绑定顶点缓冲
-		KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
+		KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_SqaureData.vertexBuffer.get();
 		VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
 		VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 		// 绑定索引缓冲
-		KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffer.get();
+		KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_SqaureData.indexBuffer.get();
 		vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 
 		VkOffset2D offset = {0, 0};
@@ -1313,87 +1382,161 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(unsigned int imageInde
 {
 	assert(imageIndex < m_CommandBuffers.size());
 
-	VkCommandBuffer commandBuffer = m_CommandBuffers[imageIndex].primaryCommandBuffer;
-
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	// 开始渲染过程
+	VkCommandBuffer commandBuffer = m_CommandBuffers[imageIndex].primaryCommandBuffer;
 	VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));	
 	{
-		KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get();
-
-		// 创建开始渲染过程描述
-		VkRenderPassBeginInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		// 指定渲染通道
-		renderPassInfo.renderPass = target->GetRenderPass();
-		// 指定帧缓冲
-		renderPassInfo.framebuffer = target->GetFrameBuffer();
-
-		VkOffset2D offset = {0, 0};
-		VkExtent2D extent = target->GetExtend();
-
-		renderPassInfo.renderArea.offset = offset;
-		renderPassInfo.renderArea.extent = extent;
-
-		// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
-		auto clearValuesPair = target->GetVkClearValues();
-		renderPassInfo.pClearValues = clearValuesPair.first;
-		renderPassInfo.clearValueCount = clearValuesPair.second;
-
-		// 开始渲染过程
-		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		// 第一个RenderPass 绘制场景
 		{
-			KVulkanPipeline* swapchainPipeline = (KVulkanPipeline*)m_SwapChainPipelines[imageIndex].get();
+			KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_OffscreenRenderTargets[imageIndex].get();
 
-			VkPipeline pipeline = swapchainPipeline->GetVkPipeline();
-			VkPipelineLayout pipelineLayout = swapchainPipeline->GetVkPipelineLayout();
-			VkDescriptorSet descriptorSet = swapchainPipeline->GetVkDescriptorSet();
+			// 创建开始渲染过程描述
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			// 指定渲染通道
+			renderPassInfo.renderPass = target->GetRenderPass();
+			// 指定帧缓冲
+			renderPassInfo.framebuffer = target->GetFrameBuffer();
 
-			// 绑定管线
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-			// 绑定管线布局
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+			VkOffset2D offset = {0, 0};
+			VkExtent2D extent = target->GetExtend();
 
-			// 绑定顶点缓冲
-			KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
-			VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			// 绑定索引缓冲
-			KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffer.get();
-			vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+			renderPassInfo.renderArea.offset = offset;
+			renderPassInfo.renderArea.extent = extent;
 
-			VkRect2D scissorRect = { offset, extent};
-			VkViewport viewPort = 
+			// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
+			auto clearValuesPair = target->GetVkClearValues();
+			renderPassInfo.pClearValues = clearValuesPair.first;
+			renderPassInfo.clearValueCount = clearValuesPair.second;
+
+			// 开始渲染过程
+			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			{
-				0.0f,
-				0.0f,
-				(float)extent.width,
-				(float)extent.height,
-				0.0f,
-				1.0f 
-			};
-			vkCmdSetViewport(commandBuffer, 0, 1, &viewPort);
-			vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
+				KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_OffscreenPipelines[imageIndex].get();
 
-			// 绘制调用
-			for(glm::mat4& model : m_ObjectFinalTransforms)
-			{
-				KAABBBox objectBox;
-				m_Box.Transform(model, objectBox);
-				if(m_Camera.CheckVisible(objectBox))
+				VkPipeline pipeline = vulkanPipeline->GetVkPipeline();
+				VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
+				VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
+
+				// 绑定管线
+				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+				// 绑定管线布局
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
+				// 绑定顶点缓冲
+				KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_SqaureData.vertexBuffer.get();
+				VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
+				VkDeviceSize offsets[] = {0};
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+				// 绑定索引缓冲
+				KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_SqaureData.indexBuffer.get();
+				vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+
+				VkRect2D scissorRect = { offset, extent};
+				VkViewport viewPort = 
 				{
-					vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, m_ObjectConstantLoc.offset, m_ObjectConstant.size, &model);
-					vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+					0.0f,
+					0.0f,
+					(float)extent.width,
+					(float)extent.height,
+					0.0f,
+					1.0f 
+				};
+				vkCmdSetViewport(commandBuffer, 0, 1, &viewPort);
+				vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
+
+				// 绘制调用
+				for(glm::mat4& model : m_ObjectFinalTransforms)
+				{
+					KAABBBox objectBox;
+					m_Box.Transform(model, objectBox);
+					if(m_Camera.CheckVisible(objectBox))
+					{
+						vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, m_ObjectConstantLoc.offset, m_ObjectConstant.size, &model);
+						vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+					}
 				}
 			}
+			// 结束渲染过程
+			vkCmdEndRenderPass(commandBuffer);
 		}
+		// 第二个RenderPass 绘制ScreenQuad与UI
 		{
-			m_UIOverlay->Draw(imageIndex, &commandBuffer);
+			// 命令开始时候创建需要一个命令开始信息
+			VkCommandBufferBeginInfo beginInfo = {};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			beginInfo.pInheritanceInfo = nullptr;
+
+			KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get();
+
+			// 创建开始渲染过程描述
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			// 指定渲染通道
+			renderPassInfo.renderPass = target->GetRenderPass();
+			// 指定帧缓冲
+			renderPassInfo.framebuffer = target->GetFrameBuffer();
+
+			VkOffset2D offset = {0, 0};
+			VkExtent2D extent = target->GetExtend();
+
+			renderPassInfo.renderArea.offset = offset;
+			renderPassInfo.renderArea.extent = extent;
+
+			// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
+			auto clearValuesPair = target->GetVkClearValues();
+			renderPassInfo.pClearValues = clearValuesPair.first;
+			renderPassInfo.clearValueCount = clearValuesPair.second;
+
+			// 开始渲染过程
+			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			{
+				KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_SwapChainPipelines[imageIndex].get();
+
+				VkPipeline pipeline = vulkanPipeline->GetVkPipeline();
+				VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
+				VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
+
+				// 绑定管线
+				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+				// 绑定管线布局
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
+				// 绑定顶点缓冲
+				KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_QuadData.vertexBuffer.get();
+				VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
+				VkDeviceSize offsets[] = {0};
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+				// 绑定索引缓冲
+				KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_QuadData.indexBuffer.get();
+				vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+
+				VkOffset2D offset = {0, 0};
+				VkExtent2D extent = target->GetExtend();
+
+				VkRect2D scissorRect = { offset, extent};
+				VkViewport viewPort = 
+				{
+					0.0f,
+					0.0f,
+					(float)extent.width,
+					(float)extent.height,
+					0.0f,
+					1.0f 
+				};
+				vkCmdSetViewport(commandBuffer, 0, 1, &viewPort);
+				vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+			}
+			{
+				m_UIOverlay->Draw(imageIndex, &commandBuffer);
+			}
+			// 结束渲染过程
+			vkCmdEndRenderPass(commandBuffer);
 		}
-		// 结束渲染过程
-		vkCmdEndRenderPass(commandBuffer);
 	}
 	VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
 
@@ -1403,86 +1546,115 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(unsigned int imageInde
 bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex)
 {
 	assert(imageIndex < m_CommandBuffers.size());
-	KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get();
+	KVulkanRenderTarget* offscreenTarget = (KVulkanRenderTarget*)m_OffscreenRenderTargets[imageIndex].get();
+	KVulkanRenderTarget* swapChainTarget = (KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get();
 
 	VkCommandBuffer primaryCommandBuffer = m_CommandBuffers[imageIndex].primaryCommandBuffer;
-	VkCommandBuffer uiCommandBuffer = m_CommandBuffers[imageIndex].uiData.uiCommandBuffer;
+	VkCommandBuffer uiCommandBuffer = m_CommandBuffers[imageIndex].uiCommandBuffer;
+	VkCommandBuffer postprocessCommandBuffer = m_CommandBuffers[imageIndex].postprocessCommandBuffer;
 
 	// 开始渲染过程
 	VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
 	cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	VK_ASSERT_RESULT(vkBeginCommandBuffer(primaryCommandBuffer, &cmdBufferBeginInfo));
 	{
-		// 创建开始渲染过程描述
-		VkRenderPassBeginInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		// 指定渲染通道
-		renderPassInfo.renderPass =  ((KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get())->GetRenderPass();
-
-		// 指定帧缓冲
-		renderPassInfo.framebuffer = target->GetFrameBuffer();
-
-		renderPassInfo.renderArea.offset.x = 0;
-		renderPassInfo.renderArea.offset.y = 0;
-		renderPassInfo.renderArea.extent = target->GetExtend();
-
-		// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
-		auto clearValuesPair = target->GetVkClearValues();
-		renderPassInfo.pClearValues = clearValuesPair.first;
-		renderPassInfo.clearValueCount = clearValuesPair.second;
-
-		vkCmdBeginRenderPass(primaryCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 		{
-			VkCommandBufferInheritanceInfo inheritanceInfo = {};
-			inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-			inheritanceInfo.renderPass = ((KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get())->GetRenderPass();
-			inheritanceInfo.framebuffer = ((KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get())->GetFrameBuffer();
+			// 创建开始渲染过程描述
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			// 指定渲染通道
+			renderPassInfo.renderPass = offscreenTarget->GetRenderPass();
+			// 指定帧缓冲
+			renderPassInfo.framebuffer = offscreenTarget->GetFrameBuffer();
+
+			renderPassInfo.renderArea.offset.x = 0;
+			renderPassInfo.renderArea.offset.y = 0;
+			renderPassInfo.renderArea.extent = offscreenTarget->GetExtend();
+
+			// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
+			auto clearValuesPair = offscreenTarget->GetVkClearValues();
+			renderPassInfo.pClearValues = clearValuesPair.first;
+			renderPassInfo.clearValueCount = clearValuesPair.second;
+
+			vkCmdBeginRenderPass(primaryCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+			{
+				VkCommandBufferInheritanceInfo inheritanceInfo = {};
+				inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+				inheritanceInfo.renderPass = offscreenTarget->GetRenderPass();
+				inheritanceInfo.framebuffer = offscreenTarget->GetFrameBuffer();
 
 #ifndef THREAD_MODE_ONE
-			for(size_t i = 0; i < m_ThreadPool.GetWorkerThreadNum(); ++i)
-			{
-				m_ThreadPool.SubmitTask([=]()
+				for(size_t i = 0; i < m_ThreadPool.GetWorkerThreadNum(); ++i)
 				{
-					ThreadRenderObject((uint32_t)i, imageIndex, inheritanceInfo);
-				});
-			}
-			m_ThreadPool.WaitAllAsyncTaskDone();
-#else
-			for(size_t i = 0; i < m_ThreadPool.GetThreadCount(); ++i)
-			{
-				m_ThreadPool.AddJob(i, [=]()
-				{
-					ThreadRenderObject((uint32_t)i, imageIndex, inheritanceInfo);
-				});
-			}
-
-			m_ThreadPool.WaitAll();
-#endif
-			auto commandBuffers = m_CommandBuffers[imageIndex].commandBuffersExec;
-			commandBuffers.clear();
-#ifndef THREAD_MODE_ONE
-			size_t numThread = m_ThreadPool.GetWorkerThreadNum();
-#else
-			size_t numThread = m_ThreadPool.GetThreadCount();
-#endif
-			for(size_t threadIndex = 0; threadIndex < numThread; ++threadIndex)
-			{
-				ThreadData& threadData = m_CommandBuffers[imageIndex].threadDatas[threadIndex];
-				if(threadIndex == 0 || numThread <= m_ObjectTransforms.size())
-				{
-					commandBuffers.push_back(threadData.commandBuffer);
+					m_ThreadPool.SubmitTask([=]()
+					{
+						ThreadRenderObject((uint32_t)i, imageIndex, inheritanceInfo);
+					});
 				}
-			}
+				m_ThreadPool.WaitAllAsyncTaskDone();
+#else
+				for(size_t i = 0; i < m_ThreadPool.GetThreadCount(); ++i)
+				{
+					m_ThreadPool.AddJob(i, [=]()
+					{
+						ThreadRenderObject((uint32_t)i, imageIndex, inheritanceInfo);
+					});
+				}
 
+				m_ThreadPool.WaitAll();
+#endif
+				auto commandBuffers = m_CommandBuffers[imageIndex].commandBuffersExec;
+				commandBuffers.clear();
+#ifndef THREAD_MODE_ONE
+				size_t numThread = m_ThreadPool.GetWorkerThreadNum();
+#else
+				size_t numThread = m_ThreadPool.GetThreadCount();
+#endif
+				for(size_t threadIndex = 0; threadIndex < numThread; ++threadIndex)
+				{
+					ThreadData& threadData = m_CommandBuffers[imageIndex].threadDatas[threadIndex];
+					if(threadIndex == 0 || numThread <= m_ObjectTransforms.size())
+					{
+						commandBuffers.push_back(threadData.commandBuffer);
+					}
+				}
+
+				vkCmdExecuteCommands(primaryCommandBuffer, (uint32_t)commandBuffers.size(), commandBuffers.data());
+			}
+			vkCmdEndRenderPass(primaryCommandBuffer);
+		}
+
+		{
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			// 指定渲染通道
+			renderPassInfo.renderPass = swapChainTarget->GetRenderPass();
+			// 指定帧缓冲
+			renderPassInfo.framebuffer = swapChainTarget->GetFrameBuffer();
+
+			renderPassInfo.renderArea.offset.x = 0;
+			renderPassInfo.renderArea.offset.y = 0;
+			renderPassInfo.renderArea.extent = swapChainTarget->GetExtend();
+
+			// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
+			auto clearValuesPair = swapChainTarget->GetVkClearValues();
+			renderPassInfo.pClearValues = clearValuesPair.first;
+			renderPassInfo.clearValueCount = clearValuesPair.second;
+			vkCmdBeginRenderPass(primaryCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 			{
+				VkCommandBufferInheritanceInfo inheritanceInfo = {};
+				inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+				inheritanceInfo.renderPass = swapChainTarget->GetRenderPass();
+				inheritanceInfo.framebuffer = swapChainTarget->GetFrameBuffer();
+
 				VkCommandBufferBeginInfo beginInfo = {};
 				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 				beginInfo.pInheritanceInfo = &inheritanceInfo;
 				VK_ASSERT_RESULT(vkBeginCommandBuffer(uiCommandBuffer, &beginInfo));
 
 				VkOffset2D offset = {0, 0};
-				VkExtent2D extent = target->GetExtend();
+				VkExtent2D extent = swapChainTarget->GetExtend();
 
 				VkRect2D scissorRect = { offset, extent};
 				VkViewport viewPort = 
@@ -1499,12 +1671,12 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 
 				m_UIOverlay->Draw(imageIndex, &uiCommandBuffer);
 				VK_ASSERT_RESULT(vkEndCommandBuffer(uiCommandBuffer));
-				commandBuffers.push_back(uiCommandBuffer);
-			}
 
-			vkCmdExecuteCommands(primaryCommandBuffer, (uint32_t)commandBuffers.size(), commandBuffers.data());
+				VkCommandBuffer commandBuffers[] = {postprocessCommandBuffer, uiCommandBuffer};
+				vkCmdExecuteCommands(primaryCommandBuffer, ARRAY_SIZE(commandBuffers), commandBuffers);
+			}
+			vkCmdEndRenderPass(primaryCommandBuffer);
 		}
-		vkCmdEndRenderPass(primaryCommandBuffer);
 	}
 	VK_ASSERT_RESULT(vkEndCommandBuffer(primaryCommandBuffer));
 
@@ -1534,20 +1706,100 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 			vkAllocateCommandBuffers(m_Device, &allocInfo, &m_CommandBuffers[i].primaryCommandBuffer);
 		}
 
-		// 创建UI命令缓冲与命令池
+		// 创建UI命令缓冲
 		{
-			VkCommandPoolCreateInfo poolInfo = {};
-			poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-			poolInfo.queueFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
-			poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-			VK_ASSERT_RESULT(vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_CommandBuffers[i].uiData.commandPool));
-
 			VkCommandBufferAllocateInfo allocInfo = {};
 			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			allocInfo.commandPool = m_CommandBuffers[i].uiData.commandPool;
+			allocInfo.commandPool = m_CommandPool;
 			allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 			allocInfo.commandBufferCount = 1;
-			vkAllocateCommandBuffers(m_Device, &allocInfo, &m_CommandBuffers[i].uiData.uiCommandBuffer);
+			vkAllocateCommandBuffers(m_Device, &allocInfo, &m_CommandBuffers[i].uiCommandBuffer);
+		}
+
+		// 创建后处理命令缓冲
+		{
+			VkCommandBufferAllocateInfo allocInfo = {};
+			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			allocInfo.commandPool = m_CommandPool;
+			allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+			allocInfo.commandBufferCount = 1;
+			vkAllocateCommandBuffers(m_Device, &allocInfo, &m_CommandBuffers[i].postprocessCommandBuffer);
+
+			VkCommandBuffer commandBuffer = m_CommandBuffers[i].postprocessCommandBuffer;
+
+			VkCommandBufferInheritanceInfo inheritanceInfo = {};
+			inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+			inheritanceInfo.renderPass = ((KVulkanRenderTarget*)m_SwapChainRenderTargets[i].get())->GetRenderPass();
+			inheritanceInfo.framebuffer = ((KVulkanRenderTarget*)m_SwapChainRenderTargets[i].get())->GetFrameBuffer();
+
+			// 命令开始时候创建需要一个命令开始信息
+			VkCommandBufferBeginInfo beginInfo = {};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+			beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+			VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+			{
+				KVulkanRenderTarget* target = (KVulkanRenderTarget*)m_SwapChainRenderTargets[i].get();
+				// 创建开始渲染过程描述
+				VkRenderPassBeginInfo renderPassInfo = {};
+				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+				// 指定渲染通道 ?
+				renderPassInfo.renderPass = target->GetRenderPass();
+				// 指定帧缓冲 ?
+				renderPassInfo.framebuffer = target->GetFrameBuffer();
+
+				VkOffset2D offset = {0, 0};
+				VkExtent2D extent = target->GetExtend();
+
+				renderPassInfo.renderArea.offset = offset;
+				renderPassInfo.renderArea.extent = extent;
+
+				// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
+				auto clearValuesPair = target->GetVkClearValues();
+				renderPassInfo.pClearValues = clearValuesPair.first;
+				renderPassInfo.clearValueCount = clearValuesPair.second;
+
+				{
+					KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_SwapChainPipelines[i].get();
+
+					VkPipeline pipeline = vulkanPipeline->GetVkPipeline();
+					VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
+					VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
+
+					// 绑定管线
+					vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+					// 绑定管线布局
+					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
+					// 绑定顶点缓冲
+					KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_QuadData.vertexBuffer.get();
+					VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
+					VkDeviceSize offsets[] = {0};
+					vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+					// 绑定索引缓冲
+					KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_QuadData.indexBuffer.get();
+					vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+
+					VkOffset2D offset = {0, 0};
+					VkExtent2D extent = target->GetExtend();
+
+					VkRect2D scissorRect = { offset, extent};
+					VkViewport viewPort = 
+					{
+						0.0f,
+						0.0f,
+						(float)extent.width,
+						(float)extent.height,
+						0.0f,
+						1.0f 
+					};
+					vkCmdSetViewport(commandBuffer, 0, 1, &viewPort);
+					vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
+					vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
+				}
+			}
+			VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
 		}
 
 		m_CommandBuffers[i].threadDatas.resize(numThread);

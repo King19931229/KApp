@@ -46,6 +46,11 @@ namespace KVertexDefinition
 		glm::vec2 GUI_UV;
 		unsigned int GUI_COLOR;
 	};
+
+	struct SCREENQUAD_POS_2F
+	{
+		glm::vec2 QUAD_POSITION;
+	};
 #pragma pack(pop)
 	struct VertexSemanticDetail
 	{

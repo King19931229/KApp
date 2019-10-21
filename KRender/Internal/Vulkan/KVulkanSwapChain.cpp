@@ -368,6 +368,7 @@ bool KVulkanSwapChain::GetImageView(size_t imageIndex, ImageView& imageView)
 	{
 		imageView.imageViewHandle = m_SwapChainImageViews[imageIndex];
 		imageView.imageForamt = m_SurfaceFormat.format;
+		imageView.fromSwapChain = true;
 		return true;
 	}
 	return false;

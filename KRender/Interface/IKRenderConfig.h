@@ -37,6 +37,8 @@ enum VertexSemantic
 	VS_GUI_POS,
 	VS_GUI_UV,
 	VS_GUI_COLOR,
+
+	VS_SCREENQAUD_POS
 };
 
 enum ConstantBufferType
@@ -54,13 +56,16 @@ enum ConstantSemantic
 
 enum VertexFormat
 {
+	// for 3d element
 	VF_POINT_NORMAL_UV,
 	VF_UV2,
 	VF_DIFFUSE_SPECULAR,
 	VF_TANGENT_BINORMAL,
 	VF_BLEND_WEIGHTS_INDICES,
 	// for gui
-	VF_GUI_POS_UV_COLOR
+	VF_GUI_POS_UV_COLOR,
+	// for offscreen quad
+	VF_SCREENQUAD_POS
 };
 
 enum ElementFormat
@@ -172,6 +177,7 @@ struct ImageView
 {
 	void* imageViewHandle;
 	int imageForamt;
+	bool fromSwapChain;
 };
 
 struct VertexInputDetail

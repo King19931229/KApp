@@ -297,6 +297,8 @@ namespace KVulkanHelper
 
 				const VertexDetail& vertexDetail = KVertexDefinition::GetVertexDetail(format);
 
+				assert(vertexDetail.vertexSize > 0 && "impossible to get a zero size vertex");
+
 				// ππ‘ÏVkVertexInputBindingDescription
 				bindingDescription.binding = idx;
 				bindingDescription.stride = (uint32_t)vertexDetail.vertexSize;

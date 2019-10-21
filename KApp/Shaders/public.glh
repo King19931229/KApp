@@ -1,5 +1,21 @@
 #define POSITION 0
 #define NORMAL 1
 #define TEXCOORD0 2
+#define TEXCOORD1 3
+
+#define DIFFUSE 4
+#define SPECULAR 5
+
+#define TANGENT 6
+#define BINORMAL 7
+
+#define BLEND_WEIGHTS 8
+#define BLEND_INDICES 9
+
+#define GUI_POS 10
+#define GUI_UV 11
+#define GUI_COLOR 12
+
+#define SCREENQAUD_POS 13
 
 #define TRANSFORM 0

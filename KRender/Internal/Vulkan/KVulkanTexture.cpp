@@ -42,6 +42,7 @@ bool KVulkanTexture::InitDevice()
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImage, m_AllocInfo);
+
 		KVulkanInitializer::CreateVkImageView(m_TextureImage, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_TextureImageView);
 		m_bDeviceInit = true;
 		m_ImageData.pData = nullptr;
@@ -139,6 +140,6 @@ bool KVulkanTexture::UnInit()
 
 ImageView KVulkanTexture::GetImageView()
 {
-	ImageView ret = {m_TextureImageView, m_TextureFormat};
+	ImageView ret = {m_TextureImageView, m_TextureFormat, false};
 	return ret;
 };

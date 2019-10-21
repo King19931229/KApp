@@ -1,8 +1,9 @@
 #version 450
+#include "public.glh"
 
-layout (location = 10) in vec2 inPos;
-layout (location = 11) in vec2 inUV;
-layout (location = 12) in vec4 inColor;
+layout (location = GUI_POS) in vec2 inPos;
+layout (location = GUI_UV) in vec2 inUV;
+layout (location = GUI_COLOR) in vec4 inColor;
 
 layout (push_constant) uniform PushConstants {
 	vec2 scale;

@@ -141,9 +141,11 @@ bool KVulkanRenderTarget::CreateImage(const ImageView& view, bool bDepth, bool b
 	return true;
 }
 
-bool KVulkanRenderTarget::CreateFramebuffer()
+bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 {	
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
+
+	VkImageLayout finalLayout = fromSwapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	// 声明 Color Attachment
 	VkAttachmentDescription colorAttachment = {};
@@ -157,7 +159,7 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = m_bMsaaCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachment.finalLayout = m_bMsaaCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : finalLayout;
 
 	// 声明 Depth Attachment 不一定用到
 	VkAttachmentDescription depthAttachment = {};
@@ -185,7 +187,7 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 	colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachmentResolve.finalLayout = finalLayout;
 
 	// 声明Attachment引用结构
 	VkAttachmentReference colorAttachmentRef = {};
@@ -288,7 +290,7 @@ bool KVulkanRenderTarget::CreateFramebuffer()
 bool KVulkanRenderTarget::InitFromImageView(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount)
 {
 	ASSERT_RESULT(CreateImage(view, bDepth, bStencil, uMsaaCount));
-	ASSERT_RESULT(CreateFramebuffer());	
+	ASSERT_RESULT(CreateFramebuffer(view.fromSwapChain));	
 	return true;
 }
 

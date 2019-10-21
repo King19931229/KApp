@@ -37,7 +37,7 @@ protected:
 
 	static VkFormat FindDepthFormat(bool bStencil);
 	bool CreateImage(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount);
-	bool CreateFramebuffer();
+	bool CreateFramebuffer(bool fromSwapChain);
 public:
 	KVulkanRenderTarget();
 	~KVulkanRenderTarget();

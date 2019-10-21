@@ -11,6 +11,7 @@ namespace KVertexDefinition
 	static VertexDetail TAN_3F_BIN_3F_DETAILS;
 	static VertexDetail BW_4F_BI_4I_DETAILS;
 	static VertexDetail GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS;
+	static VertexDetail SCREENQUAD_POS_2F_DETAILS;
 	static VertexDetail EMPYT_DETAILS;
 	static bool VERTEX_DETAIL_INIT = false;
 
@@ -105,8 +106,16 @@ namespace KVertexDefinition
 					VertexSemanticDetail DETAIL = {VS_GUI_COLOR, EF_R8GB8BA8_UNORM, MEMBER_OFFSET(GUI_POS_2F_UV_2F_COLOR_4BYTE, GUI_COLOR)};
 					GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS.semanticDetails.push_back(DETAIL);
 				}
-
 				GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS.vertexSize = sizeof(GUI_POS_2F_UV_2F_COLOR_4BYTE);
+			}
+			// SCREENQUAD_POS_2F_DETAILS
+			{
+				// VS_SCREENQAUD_POS
+				{
+					VertexSemanticDetail DETAIL = {VS_SCREENQAUD_POS, EF_R32G32_FLOAT, MEMBER_OFFSET(SCREENQUAD_POS_2F, QUAD_POSITION)};
+					SCREENQUAD_POS_2F_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				SCREENQUAD_POS_2F_DETAILS.vertexSize = sizeof(SCREENQUAD_POS_2F);
 			}
 			VERTEX_DETAIL_INIT = true;
 		}
@@ -129,6 +138,8 @@ namespace KVertexDefinition
 			return BW_4F_BI_4I_DETAILS;
 		case VF_GUI_POS_UV_COLOR:
 			return GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS;
+		case VF_SCREENQUAD_POS:
+			return SCREENQUAD_POS_2F_DETAILS;
 		default:
 			assert(false && "unknown format");
 			return EMPYT_DETAILS;
