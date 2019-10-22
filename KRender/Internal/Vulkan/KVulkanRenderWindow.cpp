@@ -161,8 +161,7 @@ void KVulkanRenderWindow::ScrollCallback(GLFWwindow* handle, double xoffset, dou
 
 void KVulkanRenderWindow::OnMouseMove()
 {
-	bool mouseButtonDown = m_MouseDown[INPUT_MOUSE_BUTTON_LEFT] || m_MouseDown[INPUT_MOUSE_BUTTON_MIDDLE] || m_MouseDown[INPUT_MOUSE_BUTTON_RIGHT];
-	if(mouseButtonDown && !m_MouseCallbacks.empty())
+	if(!m_MouseCallbacks.empty())
 	{
 		double xpos = 0, ypos = 0;
 		glfwGetCursorPos(m_window, &xpos, &ypos);
@@ -170,14 +169,7 @@ void KVulkanRenderWindow::OnMouseMove()
 			it != itEnd; ++it)
 		{
 			KMouseCallbackType& callback = (*(*it));
-
-			for(int i = 0; i < INPUT_MOUSE_BUTTON_COUNT; ++i)
-			{
-				if(m_MouseDown[i])
-				{
-					callback((InputMouseButton)i, INPUT_ACTION_REPEAT, (float)xpos, (float)ypos);
-				}
-			}
+			callback(INPUT_MOUSE_BUTTON_NONE, INPUT_ACTION_REPEAT, (float)xpos, (float)ypos);
 		}
 	}
 }

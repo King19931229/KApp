@@ -108,7 +108,8 @@ protected:
 	KScrollCallbackType m_ScrollCallback;
 
 	int m_Move[3];
-	float m_Drag[INPUT_MOUSE_BUTTON_COUNT][2];
+	bool m_MouseDown[INPUT_MOUSE_BUTTON_COUNT];
+	float m_MousePos[2];
 
 	struct ObjectInitTransform
 	{
