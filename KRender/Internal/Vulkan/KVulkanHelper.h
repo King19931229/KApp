@@ -29,6 +29,8 @@ namespace KVulkanHelper
 	bool TopologyToVkPrimitiveTopology(PrimitiveTopology topology, VkPrimitiveTopology& vkPrimitiveTopology);
 	bool PolygonModeToVkPolygonMode(PolygonMode polygonMode, VkPolygonMode& vkPolygonMode);
 
+	bool CompareFuncToVkCompareOp(CompareFunc func, VkCompareOp& op);
+
 	bool CullModeToVkCullMode(CullMode cullMode, VkCullModeFlagBits& vkCullMode);
 	bool FrontFaceToVkFrontFace(FrontFace frontFace, VkFrontFace& vkFrontFace);
 

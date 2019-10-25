@@ -56,12 +56,13 @@ protected:
 	VkQueue m_GraphicsQueue;
     VkQueue m_PresentQueue;
 	VkSurfaceKHR m_Surface;
+	VkPipelineCache m_PipelineCache;
+	VkCommandPool m_GraphicCommandPool;
 	bool m_EnableValidationLayer;
 	// Temporarily for demo use
 	bool m_MultiThreadSumbit;
 	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
 
-	VkCommandPool m_CommandPool;
 	KAABBBox m_Box;
 
 	struct ThreadData
@@ -74,6 +75,7 @@ protected:
 
 	struct CommandBuffer
 	{
+		VkCommandPool commandPool;
 		VkCommandBuffer primaryCommandBuffer;
 		VkCommandBuffer uiCommandBuffer;
 		VkCommandBuffer postprocessCommandBuffer;
@@ -151,6 +153,7 @@ protected:
 	bool CreateSurface();
 	bool PickPhysicsDevice();
 	bool CreateLogicalDevice();
+	bool CreatePipelineCache();
 	bool CreateSwapChain();
 	bool CreateImageViews();
 	bool CreatePipelines();

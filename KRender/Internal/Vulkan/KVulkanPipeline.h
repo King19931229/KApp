@@ -23,6 +23,11 @@ protected:
 	VkCullModeFlagBits m_CullMode;
 	VkFrontFace m_FrontFace;
 
+	// 深度信息
+	VkBool32 m_DepthWrite;
+	VkBool32 m_DepthTest;
+	VkCompareOp m_DepthOp;
+
 	// Shader信息
 	IKProgramPtr m_Program;
 
@@ -73,6 +78,8 @@ public:
 	virtual bool SetCullMode(CullMode cullMode);
 	virtual bool SetFrontFace(FrontFace frontFace);
 	virtual bool SetPolygonMode(PolygonMode polygonMode);
+
+	virtual bool SetDepthFunc(CompareFunc func, bool depthWrtie, bool depthTest);
 
 	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader);
 

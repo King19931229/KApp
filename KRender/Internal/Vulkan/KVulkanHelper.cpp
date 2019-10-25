@@ -138,6 +138,40 @@ namespace KVulkanHelper
 		}
 	}
 
+	bool CompareFuncToVkCompareOp(CompareFunc func, VkCompareOp& op)
+	{
+		switch (func)
+		{
+		case CF_NEVER:
+			op = VK_COMPARE_OP_NEVER;
+			return true;
+		case CF_LESS:
+			op = VK_COMPARE_OP_LESS;
+			return true;
+		case CF_EQUAL:
+			op = VK_COMPARE_OP_EQUAL;
+			return true;
+		case CF_LESS_OR_EQUAL:
+			op = VK_COMPARE_OP_LESS_OR_EQUAL;
+			return true;
+		case CF_GREATER:
+			op = VK_COMPARE_OP_GREATER;
+			return true;
+		case CF_NOT_EQUAL:
+			op = VK_COMPARE_OP_NOT_EQUAL;
+			return true;
+		case CF_GREATER_OR_EQUAL:
+			op = VK_COMPARE_OP_GREATER_OR_EQUAL;
+			return true;
+		case CF_ALWAYS:
+			op = VK_COMPARE_OP_ALWAYS;
+			return true;
+		default:
+			assert(false && "compare func not supported");
+			return false;
+		}
+	}
+
 	bool FilterModeToVkFilter(FilterMode filterMode, VkFilter& vkFilterkMode)
 	{
 		switch (filterMode)

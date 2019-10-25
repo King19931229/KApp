@@ -7,23 +7,26 @@
 #include "KVulkanRenderTarget.h"
 #include "KVulkanGlobal.h"
 
-KVulkanPipeline::KVulkanPipeline()
-	: m_PrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
+KVulkanPipeline::KVulkanPipeline() :
+	m_PrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
 	m_ColorSrcBlendFactor(VK_BLEND_FACTOR_SRC_ALPHA),
 	m_ColorDstBlendFactor(VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA),
 	m_ColorBlendOp(VK_BLEND_OP_ADD),
 	m_BlendEnable(VK_FALSE),
 	m_PolygonMode(VK_POLYGON_MODE_FILL),
 	m_CullMode(VK_CULL_MODE_BACK_BIT),
-	m_FrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+	m_FrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE),
+	m_DepthWrite(VK_TRUE),
+	m_DepthTest(VK_TRUE),
+	m_DepthOp(VK_COMPARE_OP_LESS_OR_EQUAL),
+	m_DescriptorSetLayout(VK_NULL_HANDLE),
+	m_DescriptorPool(VK_NULL_HANDLE),
+	m_DescriptorSet(VK_NULL_HANDLE),
+	m_PipelineLayout(VK_NULL_HANDLE),
+	m_GraphicsPipeline(VK_NULL_HANDLE),
+	m_Program(IKProgramPtr(new KVulkanProgram()))
 {
-	m_Program = IKProgramPtr(new KVulkanProgram());
 
-	m_DescriptorSetLayout = VK_NULL_HANDLE;
-	m_DescriptorPool = VK_NULL_HANDLE;
-	m_DescriptorSet	= VK_NULL_HANDLE;
-	m_PipelineLayout = VK_NULL_HANDLE;
-	m_GraphicsPipeline = VK_NULL_HANDLE;
 }
 
 KVulkanPipeline::~KVulkanPipeline()
@@ -89,6 +92,14 @@ bool KVulkanPipeline::SetPolygonMode(PolygonMode polygonMode)
 	return true;
 }
 
+bool KVulkanPipeline::SetDepthFunc(CompareFunc func, bool depthWrtie, bool depthTest)
+{
+	ASSERT_RESULT(KVulkanHelper::CompareFuncToVkCompareOp(func, m_DepthOp));
+	m_DepthWrite = (VkBool32)depthWrtie;
+	m_DepthTest = (VkBool32)depthTest;
+	return true;
+}
+
 bool KVulkanPipeline::SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader)
 {
 	ASSERT_RESULT(m_Program->AttachShader(shaderType, shader));
@@ -151,26 +162,6 @@ bool KVulkanPipeline::CreateLayout()
 {
 	ASSERT_RESULT(m_DescriptorSetLayout == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
-
-	/*
-	声明PushConstant
-	*/
-	size_t pushConstantOffset = 0;
-	std::vector<VkPushConstantRange> pushConstantRanges;
-	for(auto& info : m_PushContants)
-	{
-		VkFlags stageFlags = 0;
-		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(info.constant.shaderTypes, stageFlags));
-
-		VkPushConstantRange pushConstantRange = {};
-		pushConstantRange.stageFlags = stageFlags;
-		pushConstantRange.offset = (uint32_t)pushConstantOffset;
-		pushConstantRange.size = (uint32_t)info.constant.size;
-
-		pushConstantRanges.push_back(pushConstantRange);
-
-		pushConstantOffset += pushConstantRange.size;
-	}
 	
 	/*
 	DescriptorSetLayout 仅仅声明UBO Sampler绑定的位置
@@ -223,6 +214,26 @@ bool KVulkanPipeline::CreateLayout()
 	layoutInfo.pBindings = layoutBindings.data();
 
 	VK_ASSERT_RESULT(vkCreateDescriptorSetLayout(KVulkanGlobal::device, &layoutInfo, nullptr, &m_DescriptorSetLayout));
+
+	/*
+	声明PushConstant
+	*/
+	size_t pushConstantOffset = 0;
+	std::vector<VkPushConstantRange> pushConstantRanges;
+	for(auto& info : m_PushContants)
+	{
+		VkFlags stageFlags = 0;
+		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(info.constant.shaderTypes, stageFlags));
+
+		VkPushConstantRange pushConstantRange = {};
+		pushConstantRange.stageFlags = stageFlags;
+		pushConstantRange.offset = (uint32_t)pushConstantOffset;
+		pushConstantRange.size = (uint32_t)info.constant.size;
+
+		pushConstantRanges.push_back(pushConstantRange);
+
+		pushConstantOffset += pushConstantRange.size;
+	}
 
 	// 创建管线布局
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -419,10 +430,9 @@ bool KVulkanPipeline::CreatePipeline(KVulkanRenderTarget* renderTarget)
 	// 配置深度缓冲信息
 	VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depthStencil.depthTestEnable = VK_TRUE;
-	depthStencil.depthWriteEnable = VK_TRUE;
-	// TODO
-	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+	depthStencil.depthTestEnable = m_DepthTest;
+	depthStencil.depthWriteEnable = m_DepthWrite;
+	depthStencil.depthCompareOp = m_DepthOp;
 
 	depthStencil.depthBoundsTestEnable = VK_FALSE; // Optional
 	depthStencil.minDepthBounds = 0.0f; // Optional
@@ -513,7 +523,7 @@ bool KVulkanPipeline::CreatePipeline(KVulkanRenderTarget* renderTarget)
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional
 
-	VK_ASSERT_RESULT(vkCreateGraphicsPipelines(KVulkanGlobal::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline));
+	VK_ASSERT_RESULT(vkCreateGraphicsPipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline));
 
 	return true;
 }

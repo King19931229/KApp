@@ -14,6 +14,8 @@ struct IKPipeline
 	virtual bool SetFrontFace(FrontFace frontFace) = 0;
 	virtual bool SetPolygonMode(PolygonMode polygonMode) = 0;
 
+	virtual bool SetDepthFunc(CompareFunc func, bool depthWrtie, bool depthTest) = 0;
+
 	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader) = 0;
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
 	virtual bool SetSampler(unsigned int location, const ImageView& view, IKSamplerPtr sampler) = 0;

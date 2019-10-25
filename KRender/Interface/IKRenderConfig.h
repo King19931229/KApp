@@ -149,6 +149,18 @@ enum FrontFace
 	FF_CLOCKWISE
 };
 
+enum CompareFunc
+{
+	CF_NEVER,
+	CF_LESS,
+	CF_EQUAL,
+	CF_LESS_OR_EQUAL,
+	CF_GREATER,
+	CF_NOT_EQUAL,
+	CF_GREATER_OR_EQUAL,
+	CF_ALWAYS,
+};
+
 enum BlendFactor
 {
 	BF_ZEOR,
