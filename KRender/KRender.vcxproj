@@ -41,6 +41,7 @@
     <ClInclude Include="Internal\KTextureBase.h" />
     <ClInclude Include="Internal\KUIOverlayBase.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
+    <ClInclude Include="Internal\Object\KSkyBox.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanImageView.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanInitializer.h" />
@@ -73,6 +74,7 @@
     <ClCompile Include="Internal\KTextureBase.cpp" />
     <ClCompile Include="Internal\KUIOverlayBase.cpp" />
     <ClCompile Include="Internal\KVertexDefinition.cpp" />
+    <ClCompile Include="Internal\Object\KSkyBox.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanInitializer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanGlobal.cpp" />

@@ -57,6 +57,7 @@ namespace KVulkanInitializer
 		VkImageTiling tiling,
 		VkImageUsageFlags usage,
 		VkMemoryPropertyFlags properties,
+		VkImageCreateFlags flags,
 		VkImage& image,
 		KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
 	{
@@ -78,7 +79,7 @@ namespace KVulkanInitializer
 		imageInfo.usage = usage;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.samples = numSamples;
-		imageInfo.flags = 0; 
+		imageInfo.flags = flags; 
 
 		VK_ASSERT_RESULT(vkCreateImage(KVulkanGlobal::device, &imageInfo, nullptr, &image));
 		{

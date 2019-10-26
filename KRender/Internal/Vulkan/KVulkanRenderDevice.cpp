@@ -729,6 +729,10 @@ bool KVulkanRenderDevice::CreateTex()
 	m_Texture->InitMemoryFromFile("Textures/vulkan_11_rgba.ktx", true);
 	m_Texture->InitDevice();
 
+	CreateTexture(m_CubeTexture);
+	m_CubeTexture->InitMemoryFromFile("Textures/pisa_cube.ktx", true);
+	m_CubeTexture->InitDevice();
+
 	CreateSampler(m_Sampler);
 	//m_Sampler->SetAnisotropic(true);
 	//m_Sampler->SetAnisotropicCount(16);
@@ -1119,6 +1123,11 @@ bool KVulkanRenderDevice::UnInit()
 	{
 		m_Texture->UnInit();
 		m_Texture = nullptr;
+	}
+	if(m_CubeTexture)
+	{
+		m_CubeTexture->UnInit();
+		m_CubeTexture = nullptr;
 	}
 	if(m_Sampler)
 	{

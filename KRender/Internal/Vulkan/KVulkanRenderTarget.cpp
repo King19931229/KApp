@@ -97,6 +97,7 @@ bool KVulkanRenderTarget::CreateImage(const ImageView& view, bool bDepth, bool b
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			0,
 			m_MsaaImage, m_MsaaAlloc);
 
 		KVulkanInitializer::CreateVkImageView(m_MsaaImage, VK_IMAGE_VIEW_TYPE_2D,
@@ -128,6 +129,7 @@ bool KVulkanRenderTarget::CreateImage(const ImageView& view, bool bDepth, bool b
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			0,
 			m_DepthImage,
 			m_AllocInfo);
 

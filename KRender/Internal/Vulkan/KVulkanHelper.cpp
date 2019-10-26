@@ -458,8 +458,10 @@ namespace KVulkanHelper
 				{
 					region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 					region.imageSubresource.mipLevel = info.mipLevel;
+					// 拷贝的layer索引
 					region.imageSubresource.baseArrayLayer = info.layer;
-					region.imageSubresource.layerCount = layers;
+					// 拷贝多少个layer 固定为1
+					region.imageSubresource.layerCount = 1;
 				}
 
 				VkOffset3D imageOffset = {0, 0, 0};

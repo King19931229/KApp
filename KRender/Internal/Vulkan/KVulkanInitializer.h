@@ -24,6 +24,7 @@ namespace KVulkanInitializer
 		VkImageTiling tiling,
 		VkImageUsageFlags usage,
 		VkMemoryPropertyFlags properties,
+		VkImageCreateFlags flags,
 		VkImage& image,
 		KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
 

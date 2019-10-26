@@ -126,6 +126,7 @@ protected:
 	std::vector<IKUniformBufferPtr> m_CameraBuffers;
 
 	IKTexturePtr m_Texture;
+	IKTexturePtr m_CubeTexture;
 	IKSamplerPtr m_Sampler;
 	
 	VkDebugUtilsMessengerEXT m_DebugMessenger;

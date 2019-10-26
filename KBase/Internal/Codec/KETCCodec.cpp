@@ -286,7 +286,7 @@ bool KETCCodec::DecodeKTX(const IKDataStreamPtr& stream, KCodecResult& result)
 			if(depth > 1) depth >>= 1;
 		}
 
-		assert(mipOffset == imageSize && "all subimage size must equal to the whole");
+		assert(mipOffset * numFaces == imageSize && "all subimage size must equal to the whole");
 
 		return true;
 	}

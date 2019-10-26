@@ -16,6 +16,9 @@
     <Filter Include="Publish">
       <UniqueIdentifier>{f874efcb-4c25-4320-8ff2-dc8f6e66d276}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Object">
+      <UniqueIdentifier>{1985d96b-a5e0-4b04-8495-be2d984eed87}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -147,6 +150,9 @@
     <ClInclude Include="Internal\Vulkan\KVulkanImageView.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Object\KSkyBox.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -223,6 +229,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanUIOverlay.cpp">
       <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Object\KSkyBox.cpp">
+      <Filter>Internal\Object</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
