@@ -1,55 +1,30 @@
 ﻿#pragma once
 #include "Publish/KConfig.h"
-
-#include <memory>
-#include <vector>
-#include <assert.h>
-
-enum ImageFormat
-{
-	IF_R8G8B8A8,
-	IF_R8G8B8,
-
-	IF_COUNT,
-	IF_INVALID = IF_COUNT
-};
-
-class KImageData
-{
-protected:
-	unsigned char* m_pData;
-	size_t m_uSize;
-public:
-	KImageData(size_t uSize)
-		: m_uSize(uSize)
-	{
-		assert(m_uSize > 0);
-		m_pData = new unsigned char[m_uSize];
-		memset(m_pData, 0, m_uSize);
-	}
-	~KImageData()
-	{
-		delete[] m_pData;
-		m_pData = nullptr;
-		m_uSize = 0;
-	}
-	size_t GetSize() const { return m_uSize; }
-	unsigned char* GetData() { return m_pData; }
-	const unsigned char* GetData() const { return m_pData; }
-};
-typedef std::shared_ptr<KImageData> KImageDataPtr;
+#include "Publish/KImage.h"
 
 struct KCodecResult
 {
+	KImageDataPtr pData;
+
 	ImageFormat eFormat;
 	size_t uWidth;
 	size_t uHeight;
-	KImageDataPtr pData;
+	size_t uDepth;
+	size_t uMipmap;
+
+	bool bCompressed;
+	bool bCubemap;
+
 	KCodecResult()
 	{
+		pData = nullptr;
 		eFormat = IF_INVALID;
 		uWidth = 0;
 		uHeight = 0;
+		uDepth = 1;
+		uMipmap = 1;
+		bCompressed = false;
+		bCubemap = false;
 	}
 };
 

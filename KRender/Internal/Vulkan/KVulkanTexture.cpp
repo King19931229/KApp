@@ -36,6 +36,7 @@ bool KVulkanTexture::InitDevice()
 			(uint32_t)m_Height,
 			1,
 			1,
+			1,
 			VK_SAMPLE_COUNT_1_BIT,
 			imageType,
 			m_TextureFormat,
@@ -43,7 +44,7 @@ bool KVulkanTexture::InitDevice()
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImage, m_AllocInfo);
 
-		KVulkanInitializer::CreateVkImageView(m_TextureImage, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_TextureImageView);
+		KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_TextureImageView);
 		m_bDeviceInit = true;
 		m_ImageData.pData = nullptr;
 		return true;
@@ -77,9 +78,12 @@ bool KVulkanTexture::InitDevice()
 				ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(m_TextureType, imageType, imageViewType));
 				ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(m_Format, m_TextureFormat));
 
+				uint32_t layerCounts = m_TextureType == TT_TEXTURE_CUBE_MAP ? 6 : 1;
+
 				KVulkanInitializer::CreateVkImage((uint32_t)m_Width,
 					(uint32_t)m_Height,
 					(uint32_t)m_Depth,
+					(uint32_t)layerCounts,
 					(uint32_t)m_Mipmaps,
 					VK_SAMPLE_COUNT_1_BIT,
 					imageType,
@@ -91,28 +95,49 @@ bool KVulkanTexture::InitDevice()
 					// 先转换image layout为之后buffer拷贝数据到image作准备
 					KVulkanHelper::TransitionImageLayout(m_TextureImage,
 						m_TextureFormat,
+						layerCounts,
 						(uint32_t)m_Mipmaps,
 						VK_IMAGE_LAYOUT_UNDEFINED,
 						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-					// 拷贝buffer数据到image
-					KVulkanHelper::CopyVkBufferToVkImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(m_Width), static_cast<uint32_t>(m_Height));
+					
+					const KSubImageInfoList& subImageInfo = m_ImageData.pData->GetSubImageInfo();
+					KVulkanHelper::SubRegionCopyInfoList copyInfo;
 
-					if(m_Mipmaps > 1)
+					copyInfo.reserve(subImageInfo.size());
+
+					for(const KSubImageInfo& info : subImageInfo)
 					{
-						KVulkanHelper::GenerateMipmaps(m_TextureImage, m_TextureFormat, static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), static_cast<int32_t>(m_Mipmaps));
+						KVulkanHelper::SubRegionCopyInfo copy;
+
+						copy.offset = static_cast<uint32_t>(info.uOffset);
+						copy.width = static_cast<uint32_t>(info.uWidth);
+						copy.height = static_cast<uint32_t>(info.uHeight);
+						copy.mipLevel = static_cast<uint32_t>(info.uMipmapIndex);
+						copy.layer = static_cast<uint32_t>(info.uFaceIndex);
+
+						copyInfo.push_back(copy);
+					}
+
+					// 拷贝buffer数据到image
+					KVulkanHelper::CopyVkBufferToVkImageByRegion(stagingBuffer, m_TextureImage, layerCounts, copyInfo);
+
+					if(m_bGenerateMipmap)
+					{
+						KVulkanHelper::GenerateMipmaps(m_TextureImage, m_TextureFormat, static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), layerCounts, static_cast<int32_t>(m_Mipmaps));
 					}
 					else
 					{
 						// 再转换image layout为之后shader使用image数据作准备
 						KVulkanHelper::TransitionImageLayout(m_TextureImage,
 							m_TextureFormat,
+							1,
 							(uint32_t)m_Mipmaps,
 							VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 					}
 
 					// 创建imageview
-					KVulkanInitializer::CreateVkImageView(m_TextureImage, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)m_Mipmaps, m_TextureImageView);
+					KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)m_Mipmaps, m_TextureImageView);
 
 					KVulkanInitializer::FreeVkBuffer(stagingBuffer, stagingAllocInfo);
 				}

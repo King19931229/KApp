@@ -623,9 +623,9 @@ bool KVulkanRenderDevice::CreateVertexInput()
 	{
 		const POS_3F_NORM_3F_UV_2F vertices[] =
 		{
-			{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
+			{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
 			{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
-			{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
+			{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
 			{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)},
 		};
 
@@ -721,7 +721,12 @@ bool KVulkanRenderDevice::CreateUniform()
 bool KVulkanRenderDevice::CreateTex()
 {
 	CreateTexture(m_Texture);
+
 	m_Texture->InitMemoryFromFile("Textures/texture.jpg", true);
+	m_Texture->InitDevice();
+	m_Texture->UnInit();
+
+	m_Texture->InitMemoryFromFile("Textures/vulkan_11_rgba.ktx", true);
 	m_Texture->InitDevice();
 
 	CreateSampler(m_Sampler);

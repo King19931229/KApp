@@ -91,7 +91,7 @@ bool KVulkanRenderTarget::CreateImage(const ImageView& view, bool bDepth, bool b
 			uMsaaCount , m_MsaaFlag));
 
 		KVulkanInitializer::CreateVkImage(m_Extend.width, m_Extend.height, 1,
-			1,
+			1,1,
 			m_MsaaFlag,
 			VK_IMAGE_TYPE_2D, m_ColorFormat,
 			VK_IMAGE_TILING_OPTIMAL,
@@ -99,11 +99,11 @@ bool KVulkanRenderTarget::CreateImage(const ImageView& view, bool bDepth, bool b
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			m_MsaaImage, m_MsaaAlloc);
 
-		KVulkanInitializer::CreateVkImageView(m_MsaaImage,
+		KVulkanInitializer::CreateVkImageView(m_MsaaImage, VK_IMAGE_VIEW_TYPE_2D,
 			m_ColorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_MsaaImageView);
 
 		KVulkanHelper::TransitionImageLayout(m_MsaaImage,
-			m_ColorFormat, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			m_ColorFormat, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 		m_bMsaaCreated = true;
 	}
@@ -121,7 +121,7 @@ bool KVulkanRenderTarget::CreateImage(const ImageView& view, bool bDepth, bool b
 		KVulkanInitializer::CreateVkImage(m_Extend.width,
 			m_Extend.height,
 			1,
-			1,
+			1,1,
 			m_MsaaFlag,
 			VK_IMAGE_TYPE_2D,
 			m_DepthFormat,
@@ -132,6 +132,7 @@ bool KVulkanRenderTarget::CreateImage(const ImageView& view, bool bDepth, bool b
 			m_AllocInfo);
 
 		KVulkanInitializer::CreateVkImageView(m_DepthImage,
+			VK_IMAGE_VIEW_TYPE_2D,
 			m_DepthFormat,
 			VK_IMAGE_ASPECT_DEPTH_BIT | (bStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0),
 			1,

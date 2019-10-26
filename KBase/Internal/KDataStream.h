@@ -8,6 +8,9 @@ class KDataStreamBase : public IKDataStream
 	bool _ReadLine(const char* pszLine, size_t uLen, IOLineMode* pMode, const char** ppRetEndPos);
 public:
 	virtual ~KDataStreamBase() = 0;
+
+	virtual size_t Skip(size_t uSize) { return Seek(static_cast<long>(Tell() + uSize)); }
+
 	virtual bool IsReadable() const { return (GetMode() & IM_READ) > 0; }
 	virtual bool IsWriteable() const { return (GetMode() & IM_WRITE) > 0; }
 
@@ -31,7 +34,7 @@ public:
 	virtual bool Open(const char* pszFilePath, IOMode mode);
 	virtual bool Open(const char* pDataBuffer, size_t uDataSize, IOMode mode);
 	virtual bool Open(size_t uDataSize, IOMode mode);
-	//virtual bool Clone(IKDataStreamPtr pSrc) = 0;
+
 	virtual bool Close();
 	virtual bool IsEOF();
 	virtual const char* GetFilePath() const;
@@ -61,7 +64,7 @@ public:
 	virtual bool Open(const char* pszFilePath, IOMode mode);
 	virtual bool Open(const char* pDataBuffer, size_t uDataSize, IOMode mode);
 	virtual bool Open(size_t uDataSize, IOMode mode);
-	//virtual bool Clone(IKDataStreamPtr pSrc) = 0;
+
 	virtual bool Close();
 	virtual bool IsEOF();
 	virtual const char* GetFilePath() const;
@@ -91,7 +94,7 @@ public:
 	virtual bool Open(const char* pszFilePath, IOMode mode);
 	virtual bool Open(const char* pDataBuffer, size_t uDataSize, IOMode mode);
 	virtual bool Open(size_t uDataSize, IOMode mode);
-	//virtual bool Clone(IKDataStreamPtr pSrc) = 0;
+
 	virtual bool Close();
 	virtual bool IsEOF();
 	virtual const char* GetFilePath() const;

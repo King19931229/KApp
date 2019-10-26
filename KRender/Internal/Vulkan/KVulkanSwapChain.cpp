@@ -187,7 +187,7 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 	m_SwapChainImageViews.resize(imageCount);
 	for(size_t i = 0; i < m_SwapChainImageViews.size(); ++i)
 	{
-		KVulkanInitializer::CreateVkImageView(m_SwapChainImages[i], m_SurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_SwapChainImageViews[i]);
+		KVulkanInitializer::CreateVkImageView(m_SwapChainImages[i], VK_IMAGE_VIEW_TYPE_2D, m_SurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_SwapChainImageViews[i]);
 	}
 
 	return true;

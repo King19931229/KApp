@@ -49,6 +49,7 @@ namespace KVulkanInitializer
 	void CreateVkImage(uint32_t width,
 		uint32_t height,
 		uint32_t depth,
+		uint32_t layers,
 		uint32_t mipLevels,
 		VkSampleCountFlagBits numSamples,
 		VkImageType imageType,
@@ -69,7 +70,7 @@ namespace KVulkanInitializer
 		imageInfo.extent.height = static_cast<uint32_t>(height);
 		imageInfo.extent.depth = static_cast<uint32_t>(depth);
 		imageInfo.mipLevels = static_cast<uint32_t>(mipLevels);
-		imageInfo.arrayLayers = 1;
+		imageInfo.arrayLayers = static_cast<uint32_t>(layers);
 
 		imageInfo.format = format;
 		imageInfo.tiling = tiling;
@@ -108,6 +109,7 @@ namespace KVulkanInitializer
 	}
 
 	void CreateVkImageView(VkImage image,
+		VkImageViewType imageViewType,
 		VkFormat format,
 		VkImageAspectFlags aspectFlags,
 		uint32_t mipLevels,
@@ -119,7 +121,7 @@ namespace KVulkanInitializer
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		// 设置image
 		createInfo.image = image;
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		createInfo.viewType = imageViewType;
 		// format与交换链format同步
 		createInfo.format = format;
 		// 保持默认rgba映射行为

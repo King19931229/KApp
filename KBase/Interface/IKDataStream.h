@@ -55,7 +55,7 @@ struct IKDataStream
 	virtual bool Open(const char* pszFilePath, IOMode mode = IM_READ) = 0;
 	virtual bool Open(const char* pDataBuffer, size_t uDataSize, IOMode mode = IM_READ) = 0;
 	virtual bool Open(size_t uDataSize, IOMode mode = IM_WRITE) = 0;
-	//virtual bool Clone(IKDataStreamPtr pSrc) = 0;
+
 	virtual bool Close() = 0;
 	virtual bool IsEOF() = 0;
 	virtual const char* GetFilePath() const = 0;
@@ -64,6 +64,7 @@ struct IKDataStream
 	virtual IOType GetType() const = 0;
 	virtual size_t Tell() const = 0;
 	virtual size_t Seek(long nPos) = 0;
+	virtual size_t Skip(size_t uSize) = 0;
 	virtual bool Read(char* pszBuffer, size_t uSize) = 0;
 	virtual bool Write(const char* pszBuffer, size_t uSize) = 0;
 	virtual bool Reference(char** ppszBuffer, size_t uSize) = 0;

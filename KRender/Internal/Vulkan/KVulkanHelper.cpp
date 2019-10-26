@@ -29,6 +29,10 @@ namespace KVulkanHelper
 			imageType = VK_IMAGE_TYPE_2D;
 			imageViewType = VK_IMAGE_VIEW_TYPE_2D;
 			return true;
+		case TT_TEXTURE_CUBE_MAP:
+			imageType = VK_IMAGE_TYPE_2D;
+			imageViewType = VK_IMAGE_VIEW_TYPE_CUBE;
+			return true;
 		case TT_COUNT:
 		default:
 			imageType = VK_IMAGE_TYPE_MAX_ENUM;
@@ -77,6 +81,19 @@ namespace KVulkanHelper
 			return true;
 		case EF_R32_UINT:
 			vkFormat = VK_FORMAT_R32_UINT;
+			return true;
+		case EF_ETC1_R8G8B8_UNORM:
+			// TODO Correct?
+			vkFormat = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+			return true;
+		case EF_ETC2_R8G8B8_UNORM:
+			vkFormat = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+			return true;
+		case EF_ETC2_R8G8B8A1_UNORM:
+			vkFormat = VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
+			return true;
+		case EF_ETC2_R8G8B8A8_UNORM:
+			vkFormat = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
 			return true;
 		default:
 			vkFormat = VK_FORMAT_UNDEFINED;
@@ -415,7 +432,58 @@ namespace KVulkanHelper
 		EndSingleTimeCommand(KVulkanGlobal::graphicsQueue, KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
-	void TransitionImageLayout(VkImage image, VkFormat format, uint32_t mipLevels, VkImageLayout oldLayout, VkImageLayout newLayout)
+	void CopyVkBufferToVkImageByRegion(VkBuffer buffer, VkImage image, uint32_t layers, const SubRegionCopyInfoList& copyInfo)
+	{
+		ASSERT_RESULT(layers > 0 && copyInfo.size() > 0);
+
+		VkCommandBuffer commandBuffer;
+		BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
+		{
+			std::vector<VkBufferImageCopy> regions;
+			regions.reserve(copyInfo.size());
+
+			for(const SubRegionCopyInfo& info : copyInfo)
+			{
+				VkBufferImageCopy region = {};
+
+				region.bufferOffset = info.offset;
+				// 为每行padding所用 设置为0以忽略
+				region.bufferRowLength = 0;
+				// 为每行padding所用 设置为0以忽略
+				region.bufferImageHeight = 0;
+
+				ASSERT_RESULT(info.layer < layers);
+
+				// VkImageSubresourceRange
+				{
+					region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					region.imageSubresource.mipLevel = info.mipLevel;
+					region.imageSubresource.baseArrayLayer = info.layer;
+					region.imageSubresource.layerCount = layers;
+				}
+
+				VkOffset3D imageOffset = {0, 0, 0};
+				region.imageOffset = imageOffset;
+
+				VkExtent3D imageExtent = {info.width, info.height, 1};
+				region.imageExtent = imageExtent;
+
+				regions.push_back(region);
+			}
+
+			vkCmdCopyBufferToImage(
+				commandBuffer,
+				buffer,
+				image,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				static_cast<uint32_t>(regions.size()),
+				regions.data()
+				);
+		}
+		EndSingleTimeCommand(KVulkanGlobal::graphicsQueue, KVulkanGlobal::graphicsCommandPool, commandBuffer);
+	}
+
+	void TransitionImageLayout(VkImage image, VkFormat format, uint32_t layers, uint32_t mipLevels, VkImageLayout oldLayout, VkImageLayout newLayout)
 	{
 		VkCommandBuffer commandBuffer;
 		BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
@@ -449,7 +517,7 @@ namespace KVulkanHelper
 				barrier.subresourceRange.baseMipLevel = 0;
 				barrier.subresourceRange.levelCount = mipLevels;
 				barrier.subresourceRange.baseArrayLayer = 0;
-				barrier.subresourceRange.layerCount = 1;
+				barrier.subresourceRange.layerCount = layers;
 			}
 
 			VkPipelineStageFlags sourceStage = 0;
@@ -507,7 +575,7 @@ namespace KVulkanHelper
 		EndSingleTimeCommand(KVulkanGlobal::graphicsQueue, KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
-	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, uint32_t mipLevels)
+	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, uint32_t layers, uint32_t mipLevels)
 	{
 		// 检查该format是否支持线性过滤
 		VkFormatProperties formatProperties;
@@ -531,56 +599,75 @@ namespace KVulkanHelper
 			barrier.subresourceRange.layerCount = 1;
 			barrier.subresourceRange.levelCount = 1;
 
-			int32_t mipWidth = texWidth;
-			int32_t mipHeight = texHeight;
-
-			for (uint32_t i = 1; i < mipLevels; i++)
+			for(uint32_t layer = 0; layer < layers; ++layer)
 			{
-				// 先用内存屏障对上一层mipmap执行一次Transition 从Transfer目标转换到transfer源
-				barrier.subresourceRange.baseMipLevel = i - 1;
+				int32_t mipWidth = texWidth;
+				int32_t mipHeight = texHeight;
+
+				for (uint32_t mipmapLevel = 1; mipmapLevel < mipLevels; mipmapLevel++)
+				{
+					// 先用内存屏障对上一层mipmap执行一次Transition 从Transfer目标转换到transfer源
+					barrier.subresourceRange.baseMipLevel = mipmapLevel - 1;
+					barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+					barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+					barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+					barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+					vkCmdPipelineBarrier(commandBuffer,
+						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+						0, nullptr,
+						0, nullptr,
+						1, &barrier);
+
+					VkImageBlit blit = {};
+
+					VkOffset3D srcOffsets[] = {{0, 0, 0}, {mipWidth, mipHeight, 1}};
+					blit.srcOffsets[0] = srcOffsets[0];
+					blit.srcOffsets[1] = srcOffsets[1];
+
+					blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					blit.srcSubresource.mipLevel = mipmapLevel - 1;
+					blit.srcSubresource.baseArrayLayer = layer;
+					blit.srcSubresource.layerCount = 1;
+
+					VkOffset3D dstOffsets[] = {{0, 0, 0}, { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 }};
+					blit.dstOffsets[0] = dstOffsets[0];
+					blit.dstOffsets[1] = dstOffsets[1];
+
+					blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					blit.dstSubresource.mipLevel = mipmapLevel;
+					blit.dstSubresource.baseArrayLayer = layer;
+					blit.dstSubresource.layerCount = 1;
+
+					// 执行一次blit 把上一层 mipmap blit 到下一层 mipmap
+					vkCmdBlitImage(commandBuffer,
+						image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						1, &blit,
+						// 指定bilt时候使用线性过滤
+						VK_FILTER_LINEAR);
+
+					// 再用内存屏障对上一层mipmap执行一次Transition 从Transfer源转换到Shader可读
+					barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+					barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+					barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+					vkCmdPipelineBarrier(commandBuffer,
+						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+						0, nullptr,
+						0, nullptr,
+						1, &barrier);
+
+					if (mipWidth > 1) mipWidth /= 2;
+					if (mipHeight > 1) mipHeight /= 2;
+				}
+
+				// 把遗留下来的最后一层mipmap执行Transition 从Transfer目标转换到Shader可读
+				barrier.subresourceRange.baseMipLevel = mipLevels - 1;
 				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-				barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-				vkCmdPipelineBarrier(commandBuffer,
-					VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-					0, nullptr,
-					0, nullptr,
-					1, &barrier);
-
-				VkImageBlit blit = {};
-
-				VkOffset3D srcOffsets[] = {{0, 0, 0}, {mipWidth, mipHeight, 1}};
-				blit.srcOffsets[0] = srcOffsets[0];
-				blit.srcOffsets[1] = srcOffsets[1];
-
-				blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				blit.srcSubresource.mipLevel = i - 1;
-				blit.srcSubresource.baseArrayLayer = 0;
-				blit.srcSubresource.layerCount = 1;
-
-				VkOffset3D dstOffsets[] = {{0, 0, 0}, { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 }};
-				blit.dstOffsets[0] = dstOffsets[0];
-				blit.dstOffsets[1] = dstOffsets[1];
-
-				blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				blit.dstSubresource.mipLevel = i;
-				blit.dstSubresource.baseArrayLayer = 0;
-				blit.dstSubresource.layerCount = 1;
-
-				// 执行一次blit 把上一层 mipmap blit 到下一层 mipmap
-				vkCmdBlitImage(commandBuffer,
-					image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-					image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					1, &blit,
-					// 指定bilt时候使用线性过滤
-					VK_FILTER_LINEAR);
-
-				// 再用内存屏障对上一层mipmap执行一次Transition 从Transfer源转换到Shader可读
-				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 				barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 				vkCmdPipelineBarrier(commandBuffer,
@@ -588,23 +675,7 @@ namespace KVulkanHelper
 					0, nullptr,
 					0, nullptr,
 					1, &barrier);
-
-				if (mipWidth > 1) mipWidth /= 2;
-				if (mipHeight > 1) mipHeight /= 2;
 			}
-
-			// 把遗留下来的最后一层mipmap执行Transition 从Transfer目标转换到Shader可读
-			barrier.subresourceRange.baseMipLevel = mipLevels - 1;
-			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-			vkCmdPipelineBarrier(commandBuffer,
-				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-				0, nullptr,
-				0, nullptr,
-				1, &barrier);
 		}
 		EndSingleTimeCommand(KVulkanGlobal::graphicsQueue, KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}

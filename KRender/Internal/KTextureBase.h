@@ -11,11 +11,13 @@ protected:
 	size_t m_Width;
 	size_t m_Height;
 	size_t m_Depth;
-
+	// mipmap层数
 	unsigned short m_Mipmaps;
+	// 是否需要硬生成mipmap
+	bool m_bGenerateMipmap;
 	bool m_bCreateAsRt;
 
-	bool InitProperty(bool bGenerateMipmap);
+	bool InitProperty(bool generateMipmap);
 public:
 	KTextureBase();
 	virtual ~KTextureBase();
