@@ -133,7 +133,11 @@ bool KVulkanPipeline::SetSampler(unsigned int location, const ImageView& imageVi
 	{
 		ASSERT_RESULT(m_Uniforms.find(location) == m_Uniforms.end() && "The location you try to bind is conflited with ubo");
 
-		SamplerBindingInfo info = { (VkImageView)imageView.imageViewHandle, sampler };
+		SamplerBindingInfo info =
+		{
+			(VkImageView)imageView.imageViewHandle,
+			((KVulkanSampler*)sampler.get())->GetVkSampler()
+		};
 		auto& it = m_Samplers.find(location);
 		if(it == m_Samplers.end())
 		{
@@ -259,12 +263,12 @@ bool KVulkanPipeline::CreateDestcription()
 	VkDescriptorPoolSize uniformPoolSize = {};
 	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)的描述集合数最大值
-	uniformPoolSize.descriptorCount = 1;
+	uniformPoolSize.descriptorCount = std::max(1U, static_cast<uint32_t>(m_Uniforms.size()));
 
 	VkDescriptorPoolSize samplerPoolSize = {};
 	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)的描述集合数最大值
-	samplerPoolSize.descriptorCount = 1;
+	samplerPoolSize.descriptorCount = std::max(1U, static_cast<uint32_t>(m_Samplers.size()));
 
 	VkDescriptorPoolSize poolSizes[] = {uniformPoolSize, samplerPoolSize};
 
@@ -292,6 +296,13 @@ bool KVulkanPipeline::CreateDestcription()
 
 	// 更新描述集合
 	std::vector<VkWriteDescriptorSet> writeDescriptorSet;
+	std::vector<VkDescriptorBufferInfo> descBufferInfo;
+	std::vector<VkDescriptorImageInfo> descImageInfo;
+
+	writeDescriptorSet.reserve(m_Uniforms.size());
+	descBufferInfo.reserve(m_Uniforms.size());
+	descImageInfo.reserve(m_Samplers.size());
+
 	for(auto& pair : m_Uniforms)
 	{
 		unsigned int location = pair.first;
@@ -304,6 +315,8 @@ bool KVulkanPipeline::CreateDestcription()
 		bufferInfo.buffer = uniformBuffer->GetVulkanHandle();
 		bufferInfo.offset = 0;
 		bufferInfo.range = uniformBuffer->GetBufferSize();
+
+		descBufferInfo.push_back(bufferInfo);
 
 		VkWriteDescriptorSet uniformDescriptorWrite = {};
 
@@ -318,7 +331,7 @@ bool KVulkanPipeline::CreateDestcription()
 		uniformDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		uniformDescriptorWrite.descriptorCount = 1;
 
-		uniformDescriptorWrite.pBufferInfo = &bufferInfo;
+		uniformDescriptorWrite.pBufferInfo = &descBufferInfo.back();
 		uniformDescriptorWrite.pImageInfo = nullptr; // Optional
 		uniformDescriptorWrite.pTexelBufferView = nullptr; // Optional
 
@@ -330,13 +343,12 @@ bool KVulkanPipeline::CreateDestcription()
 		unsigned int location = pair.first;
 		SamplerBindingInfo& info = pair.second;
 
-		KVulkanSampler* sampler = static_cast<KVulkanSampler*>(info.sampler.get());
-		ASSERT_RESULT(sampler != nullptr);
-
 		VkDescriptorImageInfo imageInfo = {};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = info.vkImageView;
-		imageInfo.sampler = sampler->GetVkSampler();
+		imageInfo.sampler = info.vkSampler;
+
+		descImageInfo.push_back(imageInfo);
 
 		VkWriteDescriptorSet samplerDescriptorWrite = {};
 
@@ -352,7 +364,7 @@ bool KVulkanPipeline::CreateDestcription()
 		samplerDescriptorWrite.descriptorCount = 1;
 
 		samplerDescriptorWrite.pBufferInfo = nullptr; // Optional
-		samplerDescriptorWrite.pImageInfo = &imageInfo;
+		samplerDescriptorWrite.pImageInfo = &descImageInfo.back();
 		samplerDescriptorWrite.pTexelBufferView = nullptr; // Optional
 
 		writeDescriptorSet.push_back(samplerDescriptorWrite);

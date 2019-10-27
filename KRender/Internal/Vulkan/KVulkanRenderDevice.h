@@ -1,9 +1,12 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
 #include "Internal/KRenderThreadPool.h"
+
 #include "KVulkanHeapAllocator.h"
 #include "KVulkanHelper.h"
 #include "KVulkanSwapChain.h"
+
+#include "Internal/Object/KSkyBox.h"
 
 #include "KBase/Publish/KThreadPool.h"
 #include "KBase/Publish/KTimer.h"
@@ -54,7 +57,7 @@ protected:
 	VkInstance m_Instance;
 	VkDevice m_Device;
 	VkQueue m_GraphicsQueue;
-    VkQueue m_PresentQueue;
+	VkQueue m_PresentQueue;
 	VkSurfaceKHR m_Surface;
 	VkPipelineCache m_PipelineCache;
 	VkCommandPool m_GraphicCommandPool;
@@ -64,6 +67,7 @@ protected:
 	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
 
 	KAABBBox m_Box;
+	KSkyBox m_SkyBox;
 
 	struct ThreadData
 	{
@@ -77,6 +81,7 @@ protected:
 	{
 		VkCommandPool commandPool;
 		VkCommandBuffer primaryCommandBuffer;
+		VkCommandBuffer skyBoxCommandBuffer;
 		VkCommandBuffer uiCommandBuffer;
 		VkCommandBuffer postprocessCommandBuffer;
 
@@ -126,7 +131,6 @@ protected:
 	std::vector<IKUniformBufferPtr> m_CameraBuffers;
 
 	IKTexturePtr m_Texture;
-	IKTexturePtr m_CubeTexture;
 	IKSamplerPtr m_Sampler;
 	
 	VkDebugUtilsMessengerEXT m_DebugMessenger;

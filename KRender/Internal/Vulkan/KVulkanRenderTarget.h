@@ -50,6 +50,7 @@ public:
 	virtual bool UnInit();
 
 	virtual bool GetImageView(RenderTargetComponent component, ImageView& view);
+	virtual bool GetSize(size_t& width, size_t& height);
 
 	inline VkRenderPass GetRenderPass() { return m_RenderPass; }
 	inline VkFramebuffer GetFrameBuffer() { return m_FrameBuffer; }

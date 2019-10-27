@@ -50,7 +50,7 @@ protected:
 	struct SamplerBindingInfo
 	{
 		VkImageView vkImageView;
-		IKSamplerPtr sampler;
+		VkSampler vkSampler;
 	};
 	std::map<unsigned int, SamplerBindingInfo> m_Samplers;
 

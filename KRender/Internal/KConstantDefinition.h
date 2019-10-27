@@ -15,6 +15,7 @@ A structure has a scalar alignment equal to the largest scalar alignment of any 
 */
 namespace KConstantDefinition
 {
+
 	struct OBJECT
 	{
 		glm::mat4 MODEL;
@@ -24,6 +25,7 @@ namespace KConstantDefinition
 	{
 		glm::mat4 VIEW;
 		glm::mat4 PROJ;
+		glm::mat4 VIEW_INV;
 	};
 
 	struct ConstantSemanticDetail

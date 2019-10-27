@@ -18,4 +18,6 @@
 
 #define SCREENQAUD_POS 13
 
-#define TRANSFORM 0
+#define CAMERA 0
+
+#define CUBEMAP_UVW(uvw) vec3(-uvw.x, -uvw.y, -uvw.z)

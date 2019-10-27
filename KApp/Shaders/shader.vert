@@ -12,24 +12,27 @@ layout(push_constant)uniform PushConstant
 	mat4 model;
 }object;
 
-layout(binding = TRANSFORM)
-uniform UniformBufferObject
+layout(binding = CAMERA)
+uniform CameraInfo
 {
     mat4 view;
     mat4 proj;
-}transform;
+	mat4 viewInv;
+}camera;
 
 layout(location = 0) out vec2 uv;
-
-vec3 colors[4] = vec3[](
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0),
-	vec3(1.0, 0.0, 0.0)
-);
+layout(location = 1) out vec3 worldPos;
+layout(location = 2) out vec3 worldNormal;
+layout(location = 3) out vec3 worldEye;
 
 void main()
 {
-	gl_Position = transform.proj * transform.view * object.model * vec4(position.x, position.y, position.z, 1.0);
 	uv = texcoord0;
+
+	worldPos = (object.model * vec4(position, 1.0)).xyz;
+	worldNormal = mat3(object.model) * normal;
+
+	worldEye = (camera.viewInv * vec4(vec3(0.0), 1.0)).xyz;
+
+	gl_Position = camera.proj * camera.view * vec4(worldPos, 1.0);
 }

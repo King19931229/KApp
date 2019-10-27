@@ -14,4 +14,5 @@ struct IKRenderTarget
 	virtual bool UnInit() = 0;
 
 	virtual bool GetImageView(RenderTargetComponent component, ImageView& view) = 0;
+	virtual bool GetSize(size_t& width, size_t& height) = 0;
 };

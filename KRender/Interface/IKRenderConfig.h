@@ -51,7 +51,8 @@ enum ConstantSemantic
 {
 	CS_MODEL,
 	CS_VIEW,
-	CS_PROJ
+	CS_PROJ,
+	CS_VIEW_INV
 };
 
 enum VertexFormat

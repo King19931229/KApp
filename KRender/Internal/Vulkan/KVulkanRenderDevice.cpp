@@ -304,8 +304,13 @@ bool KVulkanRenderDevice::CreateImageViews()
 		m_OffscreenRenderTargets[i]->SetDepthStencilClear(1.0, 0);
 		m_OffscreenRenderTargets[i]->SetSize(extend.width, extend.height);
 		m_OffscreenRenderTargets[i]->InitFromImageView(m_OffScreenTextures[i]->GetImageView(), true, true, msaaCount);
-	}
 
+		renderTargets.push_back(m_OffscreenRenderTargets[i].get());
+	}
+		
+	m_SkyBox.Init(this, renderTargets, "Textures/uffizi_cube.ktx");
+
+	renderTargets.clear();
 	m_SwapChainRenderTargets.resize(imageCount);
 	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
 	{
@@ -369,6 +374,7 @@ bool KVulkanRenderDevice::CreatePipelines()
 
 			pipeline->SetConstantBuffer(0, ST_VERTEX, m_CameraBuffers[i]);
 			pipeline->SetSampler(1, m_Texture->GetImageView(), m_Sampler);
+			pipeline->SetSampler(2, m_SkyBox.GetCubeTexture()->GetImageView(), m_SkyBox.GetSampler());
 
 			pipeline->PushConstantBlock(m_ObjectConstant, m_ObjectConstantLoc);
 
@@ -623,10 +629,10 @@ bool KVulkanRenderDevice::CreateVertexInput()
 	{
 		const POS_3F_NORM_3F_UV_2F vertices[] =
 		{
-			{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
-			{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
-			{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
-			{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)},
+			{glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 0.0f)},
+			{glm::vec3(0.5f, 0.0f, -0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 0.0f)},
+			{glm::vec3(-0.5f, 0.0f, -0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 1.0f)},
+			{glm::vec3(-0.5f, 0.0f, 0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 1.0f)},
 		};
 
 		m_Box.SetNull();
@@ -707,8 +713,8 @@ bool KVulkanRenderDevice::CreateUniform()
 			{
 				glm::rotate(glm::mat4(1.0f),
 					glm::radians((1000.0f * float(rand() % 1000)) * glm::two_pi<float>()), 
-					glm::vec3(0.0f, 0.0f, 1.0f)),
-				glm::translate(glm::mat4(1.0f), glm::vec3(xPos, yPos, 0.0f)),
+					glm::vec3(0.0f, 1.0f, 0.0f)),
+				glm::translate(glm::mat4(1.0f), glm::vec3(xPos, 0.0, yPos)),
 			};
 			m_ObjectTransforms.push_back(transform);
 			m_ObjectFinalTransforms.push_back(glm::mat4(1.0f));
@@ -728,10 +734,6 @@ bool KVulkanRenderDevice::CreateTex()
 
 	m_Texture->InitMemoryFromFile("Textures/vulkan_11_rgba.ktx", true);
 	m_Texture->InitDevice();
-
-	CreateTexture(m_CubeTexture);
-	m_CubeTexture->InitMemoryFromFile("Textures/pisa_cube.ktx", true);
-	m_CubeTexture->InitDevice();
 
 	CreateSampler(m_Sampler);
 	//m_Sampler->SetAnisotropic(true);
@@ -806,8 +808,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 	}
 
 	m_Camera.SetPosition(glm::vec3(0, 400.0f, 400.0f));
-	m_Camera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	m_Camera.SetCustomLockYAxis(glm::vec3(0,0,1));
+	m_Camera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	m_Camera.SetCustomLockYAxis(glm::vec3(0,1,0));
 	m_Camera.SetLockYEnable(true);
 
 	m_KeyCallback = [this](InputKeyboard key, InputAction action)
@@ -876,7 +878,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			{
 				if(abs(deltaX) > 0.0001f)
 				{
-					m_Camera.Rotate(glm::vec3(0.0f, 0.0f, 1.0f), -glm::quarter_pi<float>() * deltaX / width);
+					m_Camera.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), -glm::quarter_pi<float>() * deltaX / width);
 				}
 				if(abs(deltaY) > 0.0001f)
 				{
@@ -887,8 +889,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			{
 				const float fSpeed = 500.f;
 
-				glm::vec3 forward = m_Camera.GetForward(); forward.z = 0.0f; forward = glm::normalize(forward);
-				glm::vec3 right = m_Camera.GetRight(); right.z = 0.0f; right = glm::normalize(right);
+				glm::vec3 forward = m_Camera.GetForward(); forward.y = 0.0f; forward = glm::normalize(forward);
+				glm::vec3 right = m_Camera.GetRight(); right.y = 0.0f; right = glm::normalize(right);
 
 				m_Camera.Move(deltaY * fSpeed * forward / (float)width);
 				m_Camera.Move(-deltaX * fSpeed * right / (float)height);
@@ -1032,6 +1034,8 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 		m_UIOverlay->UnInit();
 		m_UIOverlay = nullptr;
 	}
+
+	m_SkyBox.UnInit();
 	
 	// clear offscreen rts
 	for (IKTexturePtr texture : m_OffScreenTextures)
@@ -1123,11 +1127,6 @@ bool KVulkanRenderDevice::UnInit()
 	{
 		m_Texture->UnInit();
 		m_Texture = nullptr;
-	}
-	if(m_CubeTexture)
-	{
-		m_CubeTexture->UnInit();
-		m_CubeTexture = nullptr;
 	}
 	if(m_Sampler)
 	{
@@ -1287,6 +1286,7 @@ bool KVulkanRenderDevice::UpdateCamera(unsigned int idx)
 
 	glm::mat4 view = m_Camera.GetViewMatrix();
 	glm::mat4 proj = m_Camera.GetProjectiveMatrix();
+	glm::mat4 viewInv = glm::inverse(view);
 
 	void* pWritePos = nullptr;
 	void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);	
@@ -1305,6 +1305,12 @@ bool KVulkanRenderDevice::UpdateCamera(unsigned int idx)
 			assert(sizeof(proj) == detail.size);
 			memcpy(pWritePos, &proj, sizeof(proj));
 		}
+		else if(detail.semantic == CS_VIEW_INV)
+		{
+			pWritePos = POINTER_OFFSET(pData, detail.offset);
+			assert(sizeof(viewInv) == detail.size);
+			memcpy(pWritePos, &viewInv, sizeof(viewInv));
+		}
 	}
 	m_CameraBuffers[idx]->Write(pData);
 
@@ -1320,13 +1326,13 @@ bool KVulkanRenderDevice::UpdateObjectTransform()
 	float fLastTime = std::chrono::duration_cast<std::chrono::duration<float, std::ratio<1, 1>>>(lastTime - firstTime).count();
 	float fCurrentTime = std::chrono::duration_cast<std::chrono::duration<float, std::ratio<1, 1>>>(currentTime - firstTime).count();
 
-	glm::mat4 deltaRotate = glm::rotate(glm::mat4(1.0f), (fCurrentTime - fLastTime) * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 deltaRotate = glm::rotate(glm::mat4(1.0f), (fCurrentTime - fLastTime) * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	const float speed = 1.0f;
 	const float maxRange = 5.0f;
 	float translate = maxRange * ((sinf(fCurrentTime * speed) - sinf(fLastTime * speed)) / glm::pi<float>());
 
-	glm::mat4 deltaTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, translate));
+	glm::mat4 deltaTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, translate, 0.0f));
 
 	for(size_t i = 0; i < m_ObjectTransforms.size(); ++i)
 	{
@@ -1457,8 +1463,12 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(unsigned int imageInde
 			renderPassInfo.pClearValues = clearValuesPair.first;
 			renderPassInfo.clearValueCount = clearValuesPair.second;
 
-			// 开始渲染过程
+			// 开始渲染天空盒
 			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			{
+				m_SkyBox.Draw(imageIndex, &commandBuffer);
+			}
+			// 开始渲染物件
 			{
 				KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_OffscreenPipelines[imageIndex].get();
 
@@ -1599,6 +1609,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 	KVulkanRenderTarget* swapChainTarget = (KVulkanRenderTarget*)m_SwapChainRenderTargets[imageIndex].get();
 
 	VkCommandBuffer primaryCommandBuffer = m_CommandBuffers[imageIndex].primaryCommandBuffer;
+	VkCommandBuffer skyBoxCommandBuffer = m_CommandBuffers[imageIndex].skyBoxCommandBuffer;	
 	VkCommandBuffer uiCommandBuffer = m_CommandBuffers[imageIndex].uiCommandBuffer;
 	VkCommandBuffer postprocessCommandBuffer = m_CommandBuffers[imageIndex].postprocessCommandBuffer;
 
@@ -1632,6 +1643,25 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 				inheritanceInfo.renderPass = offscreenTarget->GetRenderPass();
 				inheritanceInfo.framebuffer = offscreenTarget->GetFrameBuffer();
 
+				auto commandBuffers = m_CommandBuffers[imageIndex].commandBuffersExec;
+				commandBuffers.clear();
+
+				{
+					// 命令开始时候创建需要一个命令开始信息
+					VkCommandBufferBeginInfo beginInfo = {};
+					beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+					beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+					beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+					VK_ASSERT_RESULT(vkBeginCommandBuffer(skyBoxCommandBuffer, &beginInfo));
+					{
+						m_SkyBox.Draw(imageIndex, &skyBoxCommandBuffer);
+					}
+					VK_ASSERT_RESULT(vkEndCommandBuffer(skyBoxCommandBuffer));
+
+					commandBuffers.push_back(skyBoxCommandBuffer);
+				}
+
 #ifndef THREAD_MODE_ONE
 				for(size_t i = 0; i < m_ThreadPool.GetWorkerThreadNum(); ++i)
 				{
@@ -1652,8 +1682,6 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 
 				m_ThreadPool.WaitAll();
 #endif
-				auto commandBuffers = m_CommandBuffers[imageIndex].commandBuffersExec;
-				commandBuffers.clear();
 #ifndef THREAD_MODE_ONE
 				size_t numThread = m_ThreadPool.GetWorkerThreadNum();
 #else
@@ -1803,6 +1831,16 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 			allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 			allocInfo.commandBufferCount = 1;
 			vkAllocateCommandBuffers(m_Device, &allocInfo, &m_CommandBuffers[i].primaryCommandBuffer);
+		}
+
+		// 创建天空盒子命令缓冲
+		{
+			VkCommandBufferAllocateInfo allocInfo = {};
+			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			allocInfo.commandPool = m_CommandBuffers[i].commandPool;
+			allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+			allocInfo.commandBufferCount = 1;
+			vkAllocateCommandBuffers(m_Device, &allocInfo, &m_CommandBuffers[i].skyBoxCommandBuffer);
 		}
 
 		// 创建UI命令缓冲

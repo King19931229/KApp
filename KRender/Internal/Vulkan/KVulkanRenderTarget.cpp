@@ -346,13 +346,13 @@ bool KVulkanRenderTarget::GetImageView(RenderTargetComponent component, ImageVie
 	{
 	case RTC_COLOR:
 		view.imageForamt = m_ColorFormat;
-		view.imageViewHandle = m_ColorImageView;
+		view.imageViewHandle = (void*)m_ColorImageView;
 		return true;
 	case RTC_DEPTH_STENCIL:
 		if(m_bDepthStencilCreated)
 		{
 			view.imageForamt = m_DepthFormat;
-			view.imageViewHandle = m_DepthImageView;
+			view.imageViewHandle = (void*)m_DepthImageView;
 			return true;
 		}
 		return false;
@@ -360,6 +360,13 @@ bool KVulkanRenderTarget::GetImageView(RenderTargetComponent component, ImageVie
 		assert(false && "unknown component");
 		return false;
 	}
+}
+
+bool KVulkanRenderTarget::GetSize(size_t& width, size_t& height)
+{
+	width = m_Extend.width;
+	height = m_Extend.height;
+	return true;
 }
 
 KVulkanRenderTarget::ClearValues KVulkanRenderTarget::GetVkClearValues()

@@ -366,7 +366,7 @@ bool KVulkanSwapChain::GetImageView(size_t imageIndex, ImageView& imageView)
 	assert(imageIndex < m_SwapChainImageViews.size());
 	if(imageIndex < m_SwapChainImageViews.size())
 	{
-		imageView.imageViewHandle = m_SwapChainImageViews[imageIndex];
+		imageView.imageViewHandle = (void*)m_SwapChainImageViews[imageIndex];
 		imageView.imageForamt = m_SurfaceFormat.format;
 		imageView.fromSwapChain = true;
 		return true;
