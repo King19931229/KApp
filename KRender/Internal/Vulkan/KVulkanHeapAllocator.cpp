@@ -25,6 +25,7 @@ namespace KVulkanHeapAllocator
 
 	static VkDeviceSize ALLOC_FACTOR = 1024;
 	static VkDeviceSize MAX_ALLOC_COUNT = 0;
+	static VkDeviceSize MAX_PAGE_SIZE = 256 * 1024 * 1024;
 
 	static std::mutex ALLOC_FREE_LOCK;
 
@@ -64,7 +65,9 @@ namespace KVulkanHeapAllocator
 		void* vkMemroy;
 #endif
 		VkDeviceSize size;
+
 		uint32_t memoryTypeIndex;
+		uint32_t memoryHeapIndex;
 
 		BlockInfo* pHead;
 
@@ -75,11 +78,14 @@ namespace KVulkanHeapAllocator
 		MemoryHeap* pParent;
 		int noShare;
 
-		PageInfo(MemoryHeap* _pParent, VkDevice _vkDevice, VkDeviceSize _size, uint32_t _memoryTypeIndex, int _noShare)
+		PageInfo(MemoryHeap* _pParent, VkDevice _vkDevice, VkDeviceSize _size,
+			uint32_t _memoryTypeIndex, uint32_t _memoryHeapIndex, int _noShare)
 		{
 			vkDevice = _vkDevice;
 			size = _size;
+
 			memoryTypeIndex = _memoryTypeIndex;
+			memoryHeapIndex = _memoryHeapIndex;
 
 			vkMemroy = VK_NULL_HANDLE;
 			pHead = nullptr;
@@ -129,6 +135,7 @@ namespace KVulkanHeapAllocator
 					allocInfo.memoryTypeIndex = memoryTypeIndex;
 
 					VK_ASSERT_RESULT(vkAllocateMemory(DEVICE, &allocInfo, nullptr, &vkMemroy));
+					HEAP_REMAIN_SIZE[memoryHeapIndex] -= size;
 				}
 #else
 				{
@@ -187,6 +194,7 @@ namespace KVulkanHeapAllocator
 				assert(vkMemroy != VK_NULL_HANDLE);
 #ifdef KVUALKAN_HEAP_TRUELY_ALLOC
 				vkFreeMemory(vkDevice, vkMemroy, nullptr);
+				HEAP_REMAIN_SIZE[memoryHeapIndex] += size;
 #else
 				free(vkMemroy);
 #endif
@@ -211,6 +219,7 @@ namespace KVulkanHeapAllocator
 			{
 #ifdef KVUALKAN_HEAP_TRUELY_ALLOC
 				vkFreeMemory(vkDevice, vkMemroy, nullptr);
+				HEAP_REMAIN_SIZE[memoryHeapIndex] += size;
 #else
 				free(vkMemroy);
 #endif
@@ -337,16 +346,18 @@ namespace KVulkanHeapAllocator
 	{
 		VkDevice vkDevice;
 		uint32_t memoryTypeIndex;
+		uint32_t memoryHeapIndex;
 		PageInfo* pHead;
 		PageInfo* pNoShareHead;
 
 		// 当前heap的总大小
 		VkDeviceSize size;
 
-		MemoryHeap(VkDevice _device, uint32_t _memoryTypeIndex)
+		MemoryHeap(VkDevice _device, uint32_t _memoryTypeIndex, uint32_t _memoryHeapIndex)
 		{
 			vkDevice = _device;
 			memoryTypeIndex = _memoryTypeIndex;
+			memoryHeapIndex = _memoryHeapIndex;
 			pHead = nullptr;
 			pNoShareHead = nullptr;
 			size = 0;
@@ -421,7 +432,7 @@ namespace KVulkanHeapAllocator
 				assert(sizeToFit % ALLOC_FACTOR == 0);
 				if(pHead == nullptr)
 				{
-					pHead = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, false);
+					pHead = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, memoryHeapIndex, false);
 					size = sizeToFit;
 					BlockInfo* pBlock = pHead->Alloc(sizeToFit);
 					assert(pBlock && !pBlock->isFree);
@@ -450,10 +461,18 @@ namespace KVulkanHeapAllocator
 					while (true)
 					{
 						pPage = Nail();
+
 						VkDeviceSize newSize = KNumerical::Pow2LessEqual(size) << 1;
+						VkDeviceSize remainSize = HEAP_REMAIN_SIZE[memoryHeapIndex];
+
+						newSize = std::min(MAX_PAGE_SIZE, newSize);
+						newSize = std::max(sizeToFit, newSize);
+
+						assert(newSize <= remainSize);
+
 						size += newSize;
 
-						PageInfo* pNewPage = new PageInfo(this, vkDevice, newSize, memoryTypeIndex, false);
+						PageInfo* pNewPage = new PageInfo(this, vkDevice, newSize, memoryTypeIndex, memoryHeapIndex, false);
 
 						pPage->pNext = pNewPage;
 						pNewPage->pPre = pPage;
@@ -609,7 +628,7 @@ namespace KVulkanHeapAllocator
 				else if(remainSize > 0)
 				{
 					// 把剩余的空间分配到新节点上
-					PageInfo* pNewPage = new PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->memoryTypeIndex, false);
+					PageInfo* pNewPage = new PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->memoryTypeIndex, pPage->memoryHeapIndex, false);
 					pNewPage->vkMemroy = VK_NULL_HANDLE;
 					pNewPage->size = remainSize;
 
@@ -657,8 +676,9 @@ namespace KVulkanHeapAllocator
 			MEMORY_TYPE_TO_HEAP.resize(memoryProperties.memoryTypeCount);
 			for(uint32_t memTypeIdx = 0; memTypeIdx < memoryProperties.memoryTypeCount; ++memTypeIdx)
 			{
-				MEMORY_TYPE_TO_HEAP_IDX[memTypeIdx] = memoryProperties.memoryTypes[memTypeIdx].heapIndex;
-				MEMORY_TYPE_TO_HEAP[memTypeIdx] = new MemoryHeap(KVulkanGlobal::device, memTypeIdx);
+				uint32_t memHeapIndex = memoryProperties.memoryTypes[memTypeIdx].heapIndex;
+				MEMORY_TYPE_TO_HEAP_IDX[memTypeIdx] = memHeapIndex;
+				MEMORY_TYPE_TO_HEAP[memTypeIdx] = new MemoryHeap(KVulkanGlobal::device, memTypeIdx, memHeapIndex);
 			}
 
 			HEAP_REMAIN_SIZE.resize(memoryProperties.memoryHeapCount);
