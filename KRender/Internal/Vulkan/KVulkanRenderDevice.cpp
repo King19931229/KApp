@@ -1277,7 +1277,7 @@ bool KVulkanRenderDevice::UpdateCamera(unsigned int idx)
 	m_MoveTimer.Reset();
 
 	m_Camera.MoveRight(dt * moveSpeed * m_Move[0]);
-	m_Camera.Move(dt * moveSpeed * m_Move[1] * glm::vec3(0,0,1));
+	m_Camera.Move(dt * moveSpeed * m_Move[1] * glm::vec3(0,1,0));
 	m_Camera.MoveForward(dt * moveSpeed * m_Move[2]);
 
 	VkExtent2D extend = m_pSwapChain->GetExtent();
