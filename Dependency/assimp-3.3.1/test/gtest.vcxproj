@@ -1,0 +1,848 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{BEC1E457-66CB-381B-8CEC-7453AD0E75C3}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>x64</Platform>
+    <ProjectName>gtest</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>D:\KApp\Dependency\assimp-3.3.1\.;D:\KApp\Dependency\assimp-3.3.1;D:\KApp\Dependency\assimp-3.3.1\include;D:\KApp\Dependency\assimp-3.3.1\contrib\zlib;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest\googletest\include;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest\gtest\include;D:\KApp\Dependency\assimp-3.3.1\code;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Midl>
+      <AdditionalIncludeDirectories>D:\KApp\Dependency\assimp-3.3.1\.;D:\KApp\Dependency\assimp-3.3.1;D:\KApp\Dependency\assimp-3.3.1\include;D:\KApp\Dependency\assimp-3.3.1\contrib\zlib;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest\googletest\include;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest\gtest\include;D:\KApp\Dependency\assimp-3.3.1\code;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>D:\KApp\Dependency\assimp-3.3.1\.;D:\KApp\Dependency\assimp-3.3.1;D:\KApp\Dependency\assimp-3.3.1\include;D:\KApp\Dependency\assimp-3.3.1\contrib\zlib;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest\googletest\include;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest\gtest\include;D:\KApp\Dependency\assimp-3.3.1\code;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Midl>
+      <AdditionalIncludeDirectories>D:\KApp\Dependency\assimp-3.3.1\.;D:\KApp\Dependency\assimp-3.3.1;D:\KApp\Dependency\assimp-3.3.1\include;D:\KApp\Dependency\assimp-3.3.1\contrib\zlib;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest\googletest\include;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest\gtest\include;D:\KApp\Dependency\assimp-3.3.1\code;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\test\CMakeLists.txt">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/KApp/Dependency/assimp-3.3.1/test/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building Custom Rule D:/KApp/Dependency/assimp-3.3.1/test/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -HD:/KApp/Dependency/assimp-3.3.1 -BD:/KApp/Dependency/assimp-3.3.1 --check-stamp-file D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -HD:/KApp/Dependency/assimp-3.3.1 -BD:/KApp/Dependency/assimp-3.3.1 --check-stamp-file D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/KApp/Dependency/assimp-3.3.1/test/CMakeLists.txt;D:\KApp\Dependency\assimp-3.3.1\test\CMakeLists.txt;D:\KApp\Dependency\assimp-3.3.1\cmake-modules\AddGTest.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindThreads.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckLibraryExists.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckIncludeFile.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\ExternalProject.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\RepositoryInfo.txt.in;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;D:\KApp\Dependency\assimp-3.3.1\test\gtest\tmp\gtest-cfgcmd.txt.in;D:\KApp\Dependency\assimp-3.3.1\test\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:/KApp/Dependency/assimp-3.3.1/test/CMakeLists.txt;D:\KApp\Dependency\assimp-3.3.1\test\CMakeLists.txt;D:\KApp\Dependency\assimp-3.3.1\cmake-modules\AddGTest.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindThreads.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckLibraryExists.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckIncludeFile.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\ExternalProject.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\RepositoryInfo.txt.in;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;D:\KApp\Dependency\assimp-3.3.1\test\gtest\tmp\gtest-cfgcmd.txt.in;D:\KApp\Dependency\assimp-3.3.1\test\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\generate.stamp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/KApp/Dependency/assimp-3.3.1/test/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building Custom Rule D:/KApp/Dependency/assimp-3.3.1/test/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -HD:/KApp/Dependency/assimp-3.3.1 -BD:/KApp/Dependency/assimp-3.3.1 --check-stamp-file D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -HD:/KApp/Dependency/assimp-3.3.1 -BD:/KApp/Dependency/assimp-3.3.1 --check-stamp-file D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/KApp/Dependency/assimp-3.3.1/test/CMakeLists.txt;D:\KApp\Dependency\assimp-3.3.1\test\CMakeLists.txt;D:\KApp\Dependency\assimp-3.3.1\cmake-modules\AddGTest.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindThreads.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckLibraryExists.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckIncludeFile.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\ExternalProject.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\RepositoryInfo.txt.in;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;D:\KApp\Dependency\assimp-3.3.1\test\gtest\tmp\gtest-cfgcmd.txt.in;D:\KApp\Dependency\assimp-3.3.1\test\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:/KApp/Dependency/assimp-3.3.1/test/CMakeLists.txt;D:\KApp\Dependency\assimp-3.3.1\test\CMakeLists.txt;D:\KApp\Dependency\assimp-3.3.1\cmake-modules\AddGTest.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindThreads.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckLibraryExists.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\CheckIncludeFile.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\ExternalProject.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\RepositoryInfo.txt.in;C:\Program Files\CMake\share\cmake-3.9\Modules\FindGit.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.9\Modules\FindPackageMessage.cmake;D:\KApp\Dependency\assimp-3.3.1\test\gtest\tmp\gtest-cfgcmd.txt.in;D:\KApp\Dependency\assimp-3.3.1\test\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\generate.stamp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-mkdir.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Creating directories for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Creating directories for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/tmp
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/tmp
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-mkdir.rule;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-mkdir.rule;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Creating directories for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Creating directories for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/tmp
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/tmp
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/gtest/src
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-mkdir.rule;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-mkdir.rule;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-download.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Performing download step (git clone) for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Performing download step (git clone) for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-download-Debug.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-download-Debug.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-download.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\gtest-gitinfo.txt;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-download.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\gtest-gitinfo.txt;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Performing download step (git clone) for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Performing download step (git clone) for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-download-Release.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-download-Release.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-download.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\gtest-gitinfo.txt;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-download.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\gtest-gitinfo.txt;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-update.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Performing update step for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Performing update step for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/tmp/gtest-gitupdate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/tmp/gtest-gitupdate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-update.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-update.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Performing update step for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Performing update step for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/tmp/gtest-gitupdate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/tmp/gtest-gitupdate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-update.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-update.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-patch.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">No patch step for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">No patch step for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-patch.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-patch.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">No patch step for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">No patch step for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-patch.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-patch.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-configure.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Performing configure step for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Performing configure step for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-configure-Debug.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-configure-Debug.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-configure.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\tmp\gtest-cfgcmd.txt;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-configure.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\tmp\gtest-cfgcmd.txt;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Performing configure step for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Performing configure step for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-configure-Release.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-configure-Release.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-configure.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\tmp\gtest-cfgcmd.txt;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-configure.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\tmp\gtest-cfgcmd.txt;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-build.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Performing build step for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Performing build step for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-build-Debug.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-build-Debug.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-build.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-build.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Performing build step for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Performing build step for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-build-Release.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -Dconfig=$(Configuration) -P D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/gtest-build-Release.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-build.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-build.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-install.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">No install step for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">No install step for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-install.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-install.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">No install step for 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">No install step for 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+cd D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-install.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/075718e3f5651aa55a8f198a2dc8c58d/gtest-install.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\8efb4cb1350ff16d3fb0cd915fcb9c42\gtest-complete.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Completed 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Completed 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/$(Configuration)
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/$(Configuration)/gtest-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/$(Configuration)
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/$(Configuration)/gtest-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/8efb4cb1350ff16d3fb0cd915fcb9c42/gtest-complete.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/8efb4cb1350ff16d3fb0cd915fcb9c42/gtest-complete.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\$(Configuration)\gtest-complete</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\$(Configuration)\gtest-complete</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Completed 'gtest'</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Completed 'gtest'</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/$(Configuration)
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/$(Configuration)/gtest-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/$(Configuration)
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/CMakeFiles/$(Configuration)/gtest-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch D:/KApp/Dependency/assimp-3.3.1/test/gtest/src/gtest-stamp/$(Configuration)/gtest-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/8efb4cb1350ff16d3fb0cd915fcb9c42/gtest-complete.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/8efb4cb1350ff16d3fb0cd915fcb9c42/gtest-complete.rule;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-mkdir;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-download;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-update;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-patch;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-configure;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-build;D:\KApp\Dependency\assimp-3.3.1\test\gtest\src\gtest-stamp\$(Configuration)\gtest-install;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\$(Configuration)\gtest-complete</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\$(Configuration)\gtest-complete</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\2cbf815ca6723eaf8b623a4e08165b64\gtest.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/2cbf815ca6723eaf8b623a4e08165b64/gtest.rule;D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\$(Configuration)\gtest-complete;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/2cbf815ca6723eaf8b623a4e08165b64/gtest.rule;D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\$(Configuration)\gtest-complete;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\gtest</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\gtest</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/2cbf815ca6723eaf8b623a4e08165b64/gtest.rule;D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\$(Configuration)\gtest-complete;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:/KApp/Dependency/assimp-3.3.1/CMakeFiles/2cbf815ca6723eaf8b623a4e08165b64/gtest.rule;D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\$(Configuration)\gtest-complete;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\gtest</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\gtest</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\gtest" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

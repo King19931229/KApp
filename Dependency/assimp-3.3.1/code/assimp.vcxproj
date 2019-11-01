@@ -1,0 +1,705 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{07973995-7C7D-3216-9364-E698F2554571}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>x64</Platform>
+    <ProjectName>assimp</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</GenerateManifest>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</GenerateManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>../Publish/Release/x86/</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>../Publish/Debug/x86/</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>../Publish/Debug/x64/</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>../Publish/Release/x64/</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>../include;../contrib/contrib/zlib;../contrib/rapidjson/include;../contrib/openddlparser/include;../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>Debug/</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;OPENDDL_NO_USE_CPP11;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;assimp_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;OPENDDL_NO_USE_CPP11;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;CMAKE_INTDIR=\"Debug\";assimp_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>zlibstatic.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../contrib/Publish/Debug/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <SubSystem>Console</SubSystem>
+      <Version>
+      </Version>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>../include;../contrib/contrib/zlib;../contrib/rapidjson/include;../contrib/openddlparser/include;../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>Debug/</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;OPENDDL_NO_USE_CPP11;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;assimp_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;OPENDDL_NO_USE_CPP11;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;CMAKE_INTDIR=\"Debug\";assimp_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>zlibstatic.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../contrib/Publish/Debug/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <SubSystem>Console</SubSystem>
+      <Version>
+      </Version>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>../include;../contrib/contrib/zlib;../contrib/rapidjson/include;../contrib/openddlparser/include;../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>Release/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;OPENDDL_NO_USE_CPP11;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;CMAKE_INTDIR="Release";assimp_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;OPENDDL_NO_USE_CPP11;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;CMAKE_INTDIR=\"Release\";assimp_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>zlibstatic.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../contrib/Publish/Release/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <SubSystem>Console</SubSystem>
+      <Version>
+      </Version>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>../include;../contrib/contrib/zlib;../contrib/rapidjson/include;../contrib/openddlparser/include;../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>Release/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;OPENDDL_NO_USE_CPP11;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;CMAKE_INTDIR="Release";assimp_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;OPENDDL_NO_USE_CPP11;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;CMAKE_INTDIR=\"Release\";assimp_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>zlibstatic.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../contrib/Publish/Release/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <SubSystem>Console</SubSystem>
+      <Version>
+      </Version>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Assimp.cpp" />
+    <ClInclude Include="fast_atof.h" />
+    <ClInclude Include="qnan.h" />
+    <ClCompile Include="BaseImporter.cpp" />
+    <ClInclude Include="BaseImporter.h" />
+    <ClCompile Include="BaseProcess.cpp" />
+    <ClInclude Include="BaseProcess.h" />
+    <ClInclude Include="Importer.h" />
+    <ClInclude Include="ScenePrivate.h" />
+    <ClCompile Include="PostStepRegistry.cpp" />
+    <ClCompile Include="ImporterRegistry.cpp" />
+    <ClInclude Include="ByteSwapper.h" />
+    <ClInclude Include="DefaultProgressHandler.h" />
+    <ClCompile Include="DefaultIOStream.cpp" />
+    <ClInclude Include="DefaultIOStream.h" />
+    <ClCompile Include="DefaultIOSystem.cpp" />
+    <ClInclude Include="DefaultIOSystem.h" />
+    <ClInclude Include="CInterfaceIOWrapper.h" />
+    <ClInclude Include="Hash.h" />
+    <ClCompile Include="Importer.cpp" />
+    <ClInclude Include="IFF.h" />
+    <ClInclude Include="MemoryIOWrapper.h" />
+    <ClInclude Include="ParsingUtils.h" />
+    <ClInclude Include="StreamReader.h" />
+    <ClInclude Include="StreamWriter.h" />
+    <ClInclude Include="StringComparison.h" />
+    <ClInclude Include="StringUtils.h" />
+    <ClCompile Include="SGSpatialSort.cpp" />
+    <ClInclude Include="SGSpatialSort.h" />
+    <ClCompile Include="VertexTriangleAdjacency.cpp" />
+    <ClInclude Include="VertexTriangleAdjacency.h" />
+    <ClInclude Include="GenericProperty.h" />
+    <ClCompile Include="SpatialSort.cpp" />
+    <ClInclude Include="SpatialSort.h" />
+    <ClCompile Include="SceneCombiner.cpp" />
+    <ClInclude Include="SceneCombiner.h" />
+    <ClCompile Include="ScenePreprocessor.cpp" />
+    <ClInclude Include="ScenePreprocessor.h" />
+    <ClCompile Include="SkeletonMeshBuilder.cpp" />
+    <ClInclude Include="SkeletonMeshBuilder.h" />
+    <ClCompile Include="SplitByBoneCountProcess.cpp" />
+    <ClInclude Include="SplitByBoneCountProcess.h" />
+    <ClInclude Include="SmoothingGroups.h" />
+    <ClCompile Include="StandardShapes.cpp" />
+    <ClInclude Include="StandardShapes.h" />
+    <ClCompile Include="TargetAnimation.cpp" />
+    <ClInclude Include="TargetAnimation.h" />
+    <ClCompile Include="RemoveComments.cpp" />
+    <ClInclude Include="RemoveComments.h" />
+    <ClCompile Include="Subdivision.cpp" />
+    <ClInclude Include="Subdivision.h" />
+    <ClInclude Include="Vertex.h" />
+    <ClInclude Include="LineSplitter.h" />
+    <ClInclude Include="TinyFormatter.h" />
+    <ClInclude Include="Profiler.h" />
+    <ClInclude Include="LogAux.h" />
+    <ClCompile Include="Bitmap.cpp" />
+    <ClInclude Include="Bitmap.h" />
+    <ClInclude Include="XMLTools.h" />
+    <ClCompile Include="Version.cpp" />
+    <ClInclude Include="..\include\assimp\DefaultLogger.hpp" />
+    <ClInclude Include="..\include\assimp\LogStream.hpp" />
+    <ClInclude Include="..\include\assimp\Logger.hpp" />
+    <ClInclude Include="..\include\assimp\NullLogger.hpp" />
+    <ClInclude Include="Win32DebugLogStream.h" />
+    <ClCompile Include="DefaultLogger.cpp" />
+    <ClInclude Include="FileLogStream.h" />
+    <ClInclude Include="StdOStreamLogStream.h" />
+    <ClCompile Include="Exporter.cpp" />
+    <ClCompile Include="AssimpCExport.cpp" />
+    <ClInclude Include="BlobIOSystem.h" />
+    <ClCompile Include="CalcTangentsProcess.cpp" />
+    <ClInclude Include="CalcTangentsProcess.h" />
+    <ClCompile Include="ComputeUVMappingProcess.cpp" />
+    <ClInclude Include="ComputeUVMappingProcess.h" />
+    <ClCompile Include="ConvertToLHProcess.cpp" />
+    <ClInclude Include="ConvertToLHProcess.h" />
+    <ClCompile Include="FindDegenerates.cpp" />
+    <ClInclude Include="FindDegenerates.h" />
+    <ClCompile Include="FindInstancesProcess.cpp" />
+    <ClInclude Include="FindInstancesProcess.h" />
+    <ClCompile Include="FindInvalidDataProcess.cpp" />
+    <ClInclude Include="FindInvalidDataProcess.h" />
+    <ClCompile Include="FixNormalsStep.cpp" />
+    <ClInclude Include="FixNormalsStep.h" />
+    <ClCompile Include="GenFaceNormalsProcess.cpp" />
+    <ClInclude Include="GenFaceNormalsProcess.h" />
+    <ClCompile Include="GenVertexNormalsProcess.cpp" />
+    <ClInclude Include="GenVertexNormalsProcess.h" />
+    <ClCompile Include="PretransformVertices.cpp" />
+    <ClInclude Include="PretransformVertices.h" />
+    <ClCompile Include="ImproveCacheLocality.cpp" />
+    <ClInclude Include="ImproveCacheLocality.h" />
+    <ClCompile Include="JoinVerticesProcess.cpp" />
+    <ClInclude Include="JoinVerticesProcess.h" />
+    <ClCompile Include="LimitBoneWeightsProcess.cpp" />
+    <ClInclude Include="LimitBoneWeightsProcess.h" />
+    <ClCompile Include="RemoveRedundantMaterials.cpp" />
+    <ClInclude Include="RemoveRedundantMaterials.h" />
+    <ClCompile Include="RemoveVCProcess.cpp" />
+    <ClInclude Include="RemoveVCProcess.h" />
+    <ClCompile Include="SortByPTypeProcess.cpp" />
+    <ClInclude Include="SortByPTypeProcess.h" />
+    <ClCompile Include="SplitLargeMeshes.cpp" />
+    <ClInclude Include="SplitLargeMeshes.h" />
+    <ClCompile Include="TextureTransform.cpp" />
+    <ClInclude Include="TextureTransform.h" />
+    <ClCompile Include="TriangulateProcess.cpp" />
+    <ClInclude Include="TriangulateProcess.h" />
+    <ClCompile Include="ValidateDataStructure.cpp" />
+    <ClInclude Include="ValidateDataStructure.h" />
+    <ClCompile Include="OptimizeGraph.cpp" />
+    <ClInclude Include="OptimizeGraph.h" />
+    <ClCompile Include="OptimizeMeshes.cpp" />
+    <ClInclude Include="OptimizeMeshes.h" />
+    <ClCompile Include="DeboneProcess.cpp" />
+    <ClInclude Include="DeboneProcess.h" />
+    <ClInclude Include="ProcessHelper.h" />
+    <ClCompile Include="ProcessHelper.cpp" />
+    <ClInclude Include="PolyTools.h" />
+    <ClCompile Include="MakeVerboseFormat.cpp" />
+    <ClInclude Include="MakeVerboseFormat.h" />
+    <ClCompile Include="MaterialSystem.cpp" />
+    <ClInclude Include="MaterialSystem.h" />
+    <ClInclude Include="StepExporter.h" />
+    <ClCompile Include="StepExporter.cpp" />
+    <ClCompile Include="3DSConverter.cpp" />
+    <ClInclude Include="3DSHelper.h" />
+    <ClCompile Include="3DSLoader.cpp" />
+    <ClInclude Include="3DSLoader.h" />
+    <ClInclude Include="3DSExporter.h" />
+    <ClCompile Include="3DSExporter.cpp" />
+    <ClCompile Include="ACLoader.cpp" />
+    <ClInclude Include="ACLoader.h" />
+    <ClCompile Include="ASELoader.cpp" />
+    <ClInclude Include="ASELoader.h" />
+    <ClCompile Include="ASEParser.cpp" />
+    <ClInclude Include="ASEParser.h" />
+    <ClInclude Include="AssbinExporter.h" />
+    <ClCompile Include="AssbinExporter.cpp" />
+    <ClInclude Include="AssbinLoader.h" />
+    <ClCompile Include="AssbinLoader.cpp" />
+    <ClInclude Include="AssxmlExporter.h" />
+    <ClCompile Include="AssxmlExporter.cpp" />
+    <ClCompile Include="B3DImporter.cpp" />
+    <ClInclude Include="B3DImporter.h" />
+    <ClCompile Include="BVHLoader.cpp" />
+    <ClInclude Include="BVHLoader.h" />
+    <ClInclude Include="ColladaHelper.h" />
+    <ClCompile Include="ColladaLoader.cpp" />
+    <ClInclude Include="ColladaLoader.h" />
+    <ClCompile Include="ColladaParser.cpp" />
+    <ClInclude Include="ColladaParser.h" />
+    <ClInclude Include="ColladaExporter.h" />
+    <ClCompile Include="ColladaExporter.cpp" />
+    <ClCompile Include="DXFLoader.cpp" />
+    <ClInclude Include="DXFLoader.h" />
+    <ClInclude Include="DXFHelper.h" />
+    <ClCompile Include="CSMLoader.cpp" />
+    <ClInclude Include="CSMLoader.h" />
+    <ClInclude Include="HMPFileData.h" />
+    <ClCompile Include="HMPLoader.cpp" />
+    <ClInclude Include="HMPLoader.h" />
+    <ClInclude Include="HalfLifeFileData.h" />
+    <ClCompile Include="IRRMeshLoader.cpp" />
+    <ClInclude Include="IRRMeshLoader.h" />
+    <ClCompile Include="IRRShared.cpp" />
+    <ClInclude Include="IRRShared.h" />
+    <ClCompile Include="IRRLoader.cpp" />
+    <ClInclude Include="IRRLoader.h" />
+    <ClCompile Include="LWOAnimation.cpp" />
+    <ClInclude Include="LWOAnimation.h" />
+    <ClCompile Include="LWOBLoader.cpp" />
+    <ClInclude Include="LWOFileData.h" />
+    <ClCompile Include="LWOLoader.cpp" />
+    <ClInclude Include="LWOLoader.h" />
+    <ClCompile Include="LWOMaterial.cpp" />
+    <ClCompile Include="LWSLoader.cpp" />
+    <ClInclude Include="LWSLoader.h" />
+    <ClInclude Include="MD2FileData.h" />
+    <ClCompile Include="MD2Loader.cpp" />
+    <ClInclude Include="MD2Loader.h" />
+    <ClInclude Include="MD2NormalTable.h" />
+    <ClInclude Include="MD3FileData.h" />
+    <ClCompile Include="MD3Loader.cpp" />
+    <ClInclude Include="MD3Loader.h" />
+    <ClCompile Include="MD5Loader.cpp" />
+    <ClInclude Include="MD5Loader.h" />
+    <ClCompile Include="MD5Parser.cpp" />
+    <ClInclude Include="MD5Parser.h" />
+    <ClInclude Include="MDCFileData.h" />
+    <ClCompile Include="MDCLoader.cpp" />
+    <ClInclude Include="MDCLoader.h" />
+    <ClInclude Include="MDCNormalTable.h" />
+    <ClInclude Include="MDLDefaultColorMap.h" />
+    <ClInclude Include="MDLFileData.h" />
+    <ClCompile Include="MDLLoader.cpp" />
+    <ClInclude Include="MDLLoader.h" />
+    <ClCompile Include="MDLMaterialLoader.cpp" />
+    <ClCompile Include="NFFLoader.cpp" />
+    <ClInclude Include="NFFLoader.h" />
+    <ClCompile Include="NDOLoader.cpp" />
+    <ClInclude Include="NDOLoader.h" />
+    <ClCompile Include="OFFLoader.cpp" />
+    <ClInclude Include="OFFLoader.h" />
+    <ClInclude Include="ObjFileData.h" />
+    <ClCompile Include="ObjFileImporter.cpp" />
+    <ClInclude Include="ObjFileImporter.h" />
+    <ClCompile Include="ObjFileMtlImporter.cpp" />
+    <ClInclude Include="ObjFileMtlImporter.h" />
+    <ClCompile Include="ObjFileParser.cpp" />
+    <ClInclude Include="ObjFileParser.h" />
+    <ClInclude Include="ObjTools.h" />
+    <ClInclude Include="ObjExporter.h" />
+    <ClCompile Include="ObjExporter.cpp" />
+    <ClInclude Include="OgreImporter.h" />
+    <ClInclude Include="OgreStructs.h" />
+    <ClInclude Include="OgreParsingUtils.h" />
+    <ClInclude Include="OgreBinarySerializer.h" />
+    <ClInclude Include="OgreXmlSerializer.h" />
+    <ClCompile Include="OgreImporter.cpp" />
+    <ClCompile Include="OgreStructs.cpp" />
+    <ClCompile Include="OgreBinarySerializer.cpp" />
+    <ClCompile Include="OgreXmlSerializer.cpp" />
+    <ClCompile Include="OgreMaterial.cpp" />
+    <ClCompile Include="OpenGEXExporter.cpp" />
+    <ClInclude Include="OpenGEXExporter.h" />
+    <ClCompile Include="OpenGEXImporter.cpp" />
+    <ClInclude Include="OpenGEXImporter.h" />
+    <ClInclude Include="OpenGEXStructs.h" />
+    <ClCompile Include="PlyLoader.cpp" />
+    <ClInclude Include="PlyLoader.h" />
+    <ClCompile Include="PlyParser.cpp" />
+    <ClInclude Include="PlyParser.h" />
+    <ClCompile Include="PlyExporter.cpp" />
+    <ClInclude Include="PlyExporter.h" />
+    <ClCompile Include="MS3DLoader.cpp" />
+    <ClInclude Include="MS3DLoader.h" />
+    <ClCompile Include="COBLoader.cpp" />
+    <ClInclude Include="COBLoader.h" />
+    <ClInclude Include="COBScene.h" />
+    <ClCompile Include="BlenderLoader.cpp" />
+    <ClInclude Include="BlenderLoader.h" />
+    <ClCompile Include="BlenderDNA.cpp" />
+    <ClInclude Include="BlenderDNA.h" />
+    <ClInclude Include="BlenderDNA.inl" />
+    <ClCompile Include="BlenderScene.cpp" />
+    <ClInclude Include="BlenderScene.h" />
+    <ClInclude Include="BlenderSceneGen.h" />
+    <ClInclude Include="BlenderIntermediate.h" />
+    <ClInclude Include="BlenderModifier.h" />
+    <ClCompile Include="BlenderModifier.cpp" />
+    <ClInclude Include="BlenderBMesh.h" />
+    <ClCompile Include="BlenderBMesh.cpp" />
+    <ClInclude Include="BlenderTessellator.h" />
+    <ClCompile Include="BlenderTessellator.cpp" />
+    <ClCompile Include="IFCLoader.cpp" />
+    <ClInclude Include="IFCLoader.h" />
+    <ClCompile Include="IFCReaderGen.cpp">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalOptions) /bigobj</AdditionalOptions>
+    </ClCompile>
+    <ClInclude Include="IFCReaderGen.h" />
+    <ClInclude Include="IFCUtil.h" />
+    <ClCompile Include="IFCUtil.cpp" />
+    <ClCompile Include="IFCGeometry.cpp" />
+    <ClCompile Include="IFCMaterial.cpp" />
+    <ClCompile Include="IFCProfile.cpp" />
+    <ClCompile Include="IFCCurve.cpp" />
+    <ClCompile Include="IFCBoolean.cpp" />
+    <ClCompile Include="IFCOpenings.cpp" />
+    <ClInclude Include="STEPFile.h" />
+    <ClInclude Include="STEPFileReader.h" />
+    <ClCompile Include="STEPFileReader.cpp" />
+    <ClCompile Include="STEPFileEncoding.cpp" />
+    <ClInclude Include="STEPFileEncoding.h" />
+    <ClCompile Include="XGLLoader.cpp" />
+    <ClInclude Include="XGLLoader.h" />
+    <ClCompile Include="FBXImporter.cpp" />
+    <ClInclude Include="FBXCompileConfig.h" />
+    <ClInclude Include="FBXImporter.h" />
+    <ClCompile Include="FBXParser.cpp" />
+    <ClInclude Include="FBXParser.h" />
+    <ClCompile Include="FBXTokenizer.cpp" />
+    <ClInclude Include="FBXTokenizer.h" />
+    <ClInclude Include="FBXImportSettings.h" />
+    <ClInclude Include="FBXConverter.h" />
+    <ClCompile Include="FBXConverter.cpp" />
+    <ClInclude Include="FBXUtil.h" />
+    <ClCompile Include="FBXUtil.cpp" />
+    <ClInclude Include="FBXDocument.h" />
+    <ClCompile Include="FBXDocument.cpp" />
+    <ClInclude Include="FBXProperties.h" />
+    <ClCompile Include="FBXProperties.cpp" />
+    <ClInclude Include="FBXMeshGeometry.h" />
+    <ClCompile Include="FBXMeshGeometry.cpp" />
+    <ClCompile Include="FBXMaterial.cpp" />
+    <ClCompile Include="FBXModel.cpp" />
+    <ClCompile Include="FBXAnimation.cpp" />
+    <ClCompile Include="FBXNodeAttribute.cpp" />
+    <ClCompile Include="FBXDeformer.cpp" />
+    <ClCompile Include="FBXBinaryTokenizer.cpp" />
+    <ClCompile Include="FBXDocumentUtil.cpp" />
+    <ClCompile Include="Q3DLoader.cpp" />
+    <ClInclude Include="Q3DLoader.h" />
+    <ClInclude Include="Q3BSPFileData.h" />
+    <ClInclude Include="Q3BSPFileParser.h" />
+    <ClCompile Include="Q3BSPFileParser.cpp" />
+    <ClInclude Include="Q3BSPFileImporter.h" />
+    <ClCompile Include="Q3BSPFileImporter.cpp" />
+    <ClInclude Include="Q3BSPZipArchive.h" />
+    <ClCompile Include="Q3BSPZipArchive.cpp" />
+    <ClCompile Include="RawLoader.cpp" />
+    <ClInclude Include="RawLoader.h" />
+    <ClCompile Include="SIBImporter.cpp" />
+    <ClInclude Include="SIBImporter.h" />
+    <ClCompile Include="SMDLoader.cpp" />
+    <ClInclude Include="SMDLoader.h" />
+    <ClCompile Include="STLLoader.cpp" />
+    <ClInclude Include="STLLoader.h" />
+    <ClInclude Include="STLExporter.h" />
+    <ClCompile Include="STLExporter.cpp" />
+    <ClCompile Include="TerragenLoader.cpp" />
+    <ClInclude Include="TerragenLoader.h" />
+    <ClCompile Include="UnrealLoader.cpp" />
+    <ClInclude Include="UnrealLoader.h" />
+    <ClInclude Include="XFileHelper.h" />
+    <ClCompile Include="XFileImporter.cpp" />
+    <ClInclude Include="XFileImporter.h" />
+    <ClCompile Include="XFileParser.cpp" />
+    <ClInclude Include="XFileParser.h" />
+    <ClInclude Include="XFileExporter.h" />
+    <ClCompile Include="XFileExporter.cpp" />
+    <ClInclude Include="glTFAsset.h" />
+    <ClInclude Include="glTFAsset.inl" />
+    <ClInclude Include="glTFAssetWriter.h" />
+    <ClInclude Include="glTFAssetWriter.inl" />
+    <ClCompile Include="glTFImporter.cpp" />
+    <ClInclude Include="glTFImporter.h" />
+    <ClInclude Include="glTFExporter.h" />
+    <ClCompile Include="glTFExporter.cpp" />
+    <ClInclude Include="D3MFImporter.h" />
+    <ClCompile Include="D3MFImporter.cpp" />
+    <ClInclude Include="D3MFOpcPackage.h" />
+    <ClCompile Include="D3MFOpcPackage.cpp" />
+    <ClInclude Include="irrXMLWrapper.h" />
+    <ClInclude Include="..\contrib\irrXML\CXMLReaderImpl.h" />
+    <ClInclude Include="..\contrib\irrXML\heapsort.h" />
+    <ClInclude Include="..\contrib\irrXML\irrArray.h" />
+    <ClInclude Include="..\contrib\irrXML\irrString.h" />
+    <ClInclude Include="..\contrib\irrXML\irrTypes.h" />
+    <ClCompile Include="..\contrib\irrXML\irrXML.cpp" />
+    <ClInclude Include="..\contrib\irrXML\irrXML.h" />
+    <ClInclude Include="..\contrib\ConvertUTF\ConvertUTF.h" />
+    <ClCompile Include="..\contrib\ConvertUTF\ConvertUTF.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClInclude Include="..\contrib\unzip\crypt.h" />
+    <ClCompile Include="..\contrib\unzip\ioapi.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClInclude Include="..\contrib\unzip\ioapi.h" />
+    <ClCompile Include="..\contrib\unzip\unzip.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClInclude Include="..\contrib\unzip\unzip.h" />
+    <ClCompile Include="..\contrib\poly2tri\poly2tri\common\shapes.cc" />
+    <ClInclude Include="..\contrib\poly2tri\poly2tri\common\shapes.h" />
+    <ClInclude Include="..\contrib\poly2tri\poly2tri\common\utils.h" />
+    <ClInclude Include="..\contrib\poly2tri\poly2tri\sweep\advancing_front.h" />
+    <ClCompile Include="..\contrib\poly2tri\poly2tri\sweep\advancing_front.cc" />
+    <ClCompile Include="..\contrib\poly2tri\poly2tri\sweep\cdt.cc" />
+    <ClInclude Include="..\contrib\poly2tri\poly2tri\sweep\cdt.h" />
+    <ClCompile Include="..\contrib\poly2tri\poly2tri\sweep\sweep.cc" />
+    <ClInclude Include="..\contrib\poly2tri\poly2tri\sweep\sweep.h" />
+    <ClCompile Include="..\contrib\poly2tri\poly2tri\sweep\sweep_context.cc" />
+    <ClInclude Include="..\contrib\poly2tri\poly2tri\sweep\sweep_context.h" />
+    <ClInclude Include="..\contrib\clipper\clipper.hpp" />
+    <ClCompile Include="..\contrib\clipper\clipper.cpp" />
+    <ClCompile Include="..\contrib\openddlparser\code\OpenDDLParser.cpp" />
+    <ClCompile Include="..\contrib\openddlparser\code\DDLNode.cpp" />
+    <ClCompile Include="..\contrib\openddlparser\code\OpenDDLCommon.cpp" />
+    <ClCompile Include="..\contrib\openddlparser\code\OpenDDLExport.cpp" />
+    <ClCompile Include="..\contrib\openddlparser\code\Value.cpp" />
+    <ClInclude Include="..\contrib\openddlparser\include\openddlparser\OpenDDLParser.h" />
+    <ClInclude Include="..\contrib\openddlparser\include\openddlparser\OpenDDLParserUtils.h" />
+    <ClInclude Include="..\contrib\openddlparser\include\openddlparser\OpenDDLCommon.h" />
+    <ClInclude Include="..\contrib\openddlparser\include\openddlparser\OpenDDLExport.h" />
+    <ClInclude Include="..\contrib\openddlparser\include\openddlparser\DDLNode.h" />
+    <ClInclude Include="..\contrib\openddlparser\include\openddlparser\Value.h" />
+    <ClInclude Include="..\include\assimp\anim.h" />
+    <ClInclude Include="..\include\assimp\ai_assert.h" />
+    <ClInclude Include="..\include\assimp\camera.h" />
+    <ClInclude Include="..\include\assimp\color4.h" />
+    <ClInclude Include="..\include\assimp\color4.inl" />
+    <ClInclude Include="..\include\assimp\config.h" />
+    <ClInclude Include="..\include\assimp\defs.h" />
+    <ClInclude Include="..\include\assimp\cfileio.h" />
+    <ClInclude Include="..\include\assimp\light.h" />
+    <ClInclude Include="..\include\assimp\material.h" />
+    <ClInclude Include="..\include\assimp\material.inl" />
+    <ClInclude Include="..\include\assimp\matrix3x3.h" />
+    <ClInclude Include="..\include\assimp\matrix3x3.inl" />
+    <ClInclude Include="..\include\assimp\matrix4x4.h" />
+    <ClInclude Include="..\include\assimp\matrix4x4.inl" />
+    <ClInclude Include="..\include\assimp\mesh.h" />
+    <ClInclude Include="..\include\assimp\postprocess.h" />
+    <ClInclude Include="..\include\assimp\quaternion.h" />
+    <ClInclude Include="..\include\assimp\quaternion.inl" />
+    <ClInclude Include="..\include\assimp\scene.h" />
+    <ClInclude Include="..\include\assimp\metadata.h" />
+    <ClInclude Include="..\include\assimp\texture.h" />
+    <ClInclude Include="..\include\assimp\types.h" />
+    <ClInclude Include="..\include\assimp\vector2.h" />
+    <ClInclude Include="..\include\assimp\vector2.inl" />
+    <ClInclude Include="..\include\assimp\vector3.h" />
+    <ClInclude Include="..\include\assimp\vector3.inl" />
+    <ClInclude Include="..\include\assimp\version.h" />
+    <ClInclude Include="..\include\assimp\cimport.h" />
+    <ClInclude Include="..\include\assimp\importerdesc.h" />
+    <ClInclude Include="..\include\assimp\Importer.hpp" />
+    <ClInclude Include="..\include\assimp\ProgressHandler.hpp" />
+    <ClInclude Include="..\include\assimp\IOStream.hpp" />
+    <ClInclude Include="..\include\assimp\IOSystem.hpp" />
+    <ClInclude Include="..\include\assimp\cexport.h" />
+    <ClInclude Include="..\include\assimp\Exporter.hpp" />
+    <ClInclude Include="..\include\assimp\Compiler\pushpack1.h" />
+    <ClInclude Include="..\include\assimp\Compiler\poppack1.h" />
+    <ClInclude Include="..\include\assimp\Compiler\pstdint.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

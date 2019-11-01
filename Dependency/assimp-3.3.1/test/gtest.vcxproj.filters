@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\test\CMakeLists.txt" />
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\075718e3f5651aa55a8f198a2dc8c58d\gtest-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\8efb4cb1350ff16d3fb0cd915fcb9c42\gtest-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\KApp\Dependency\assimp-3.3.1\CMakeFiles\2cbf815ca6723eaf8b623a4e08165b64\gtest.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="D:\KApp\Dependency\assimp-3.3.1\test\CMakeFiles\gtest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{D9FA33B7-9ED4-3BCE-96F7-D4CEF6632262}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
