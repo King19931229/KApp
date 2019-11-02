@@ -11,6 +11,7 @@
 #include "KBase/Publish/KStringUtil.h"
 
 #include "Interface/IKLog.h"
+#include "Interface/IKAssetLoader.h"
 #include "Publish/KHashString.h"
 #include "Publish/KDump.h"
 
@@ -74,7 +75,17 @@ int main()
 	*/
 
 	InitCodecManager();
-	
+	InitAssetLoaderManager();
+
+	IKAssetLoaderPtr loader = GetAssetLoader();
+	KAssetImportOption option;
+	option.components.push_back(AVC_POSITION_3F);
+	option.components.push_back(AVC_NORMAL_3F);
+	option.components.push_back(AVC_UV_2F);
+	KAssetImportResult result;
+
+	loader->Import("../Dependency/assimp-3.3.1/test/models/OBJ/spider.obj", option, result);
+
 	IKRenderWindowPtr window = CreateRenderWindow(RD_VULKAN);
 	if(window)
 	{
@@ -104,5 +115,7 @@ int main()
 		device->UnInit();
 		window->UnInit();
 	}
+
+	UnInitAssetLoaderManager();
 	UnInitCodecManager();
 }

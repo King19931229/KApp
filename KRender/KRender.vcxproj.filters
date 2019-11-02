@@ -153,6 +153,9 @@
     <ClInclude Include="Internal\Object\KSkyBox.h">
       <Filter>Internal\Object</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\KRenderCommand.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -232,6 +235,12 @@
     </ClCompile>
     <ClCompile Include="Internal\Object\KSkyBox.cpp">
       <Filter>Internal\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\KSubMesh.cpp">
+      <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\KSubMaterial.cpp">
+      <Filter>Internal\Asset</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

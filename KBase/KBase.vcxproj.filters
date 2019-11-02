@@ -97,6 +97,36 @@
     <ClInclude Include="Publish\KImage.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKCodec.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKDataStream.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKIniFile.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKLog.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKMemory.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKScript.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKSocket.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKSourceFile.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKAssetLoader.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KAssetLoader.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -107,6 +137,9 @@
     </Filter>
     <Filter Include="Internal\Codec">
       <UniqueIdentifier>{ca136eda-d75e-4d52-9216-195a7a23f4e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interface">
+      <UniqueIdentifier>{a07689e0-a5d8-4da4-8dbd-c000f802fa22}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -169,6 +202,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Codec\KFreeImageCodec.cpp">
       <Filter>Internal\Codec</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KAssetLoader.cpp">
+      <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

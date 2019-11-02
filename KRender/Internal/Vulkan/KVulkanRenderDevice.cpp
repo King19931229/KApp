@@ -323,7 +323,7 @@ bool KVulkanRenderDevice::CreateImageViews()
 		ImageView imageView = {0};
 		m_pSwapChain->GetImageView(i, imageView);
 
-		m_SwapChainRenderTargets[i]->InitFromImageView(imageView, true, true, msaaCount);
+		m_SwapChainRenderTargets[i]->InitFromImageView(imageView, true, true, 1);
 
 		renderTargets.push_back(m_SwapChainRenderTargets[i].get());
 	}

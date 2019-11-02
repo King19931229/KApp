@@ -1,17 +1,25 @@
 #pragma once
 #include "Internal/KVertexDefinition.h"
+#include "Internal/KRenderCommand.h"
 
 class KSubMesh
 {
-	std::vector<KVertexDefinition::VertexBindingDetail> m_VertexBufferDetails;
-	IKVertexBufferPtr m_IndexBuffer;
+	friend class KMesh;
 protected:
-	KSubMesh();
+	KMesh*		m_pParent;
+	KVertexData m_VertexData;
+	KIndexData	m_IndexData;
+	bool		m_IndexDraw;
+
+	bool GetRenderCommand(PipelineStage stage, IKRenderTarget* target, KRenderCommand& command);
+public:
+	KSubMesh(KMesh* parent);
 	~KSubMesh();
 
-	bool ReadFromFile(const std::string& fileName);
-	bool ReadFromMemroy(std::vector<char> memoryData);
-
-	bool Init();
-	bool Uninit();
+	bool Init(const KVertexData& vertexData, const KIndexData& indexData);
+	bool UnInit();
+	
+	bool AppendRenderList(PipelineStage stage, IKRenderTarget* target, KRenderCommandList& list);
 };
+
+typedef std::shared_ptr<KSubMesh> KSubMeshPtr;

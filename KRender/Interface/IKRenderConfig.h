@@ -192,6 +192,12 @@ enum RenderTargetComponent
 	RTC_DEPTH_STENCIL
 };
 
+enum PipelineStage
+{
+	PIPELINE_STAGE_OPAQUE,
+	PIPELINE_STAGE_COUNT
+};
+
 struct ImageView
 {
 	void* imageViewHandle;

@@ -40,6 +40,7 @@
     <ClInclude Include="Internal\KSamplerBase.h" />
     <ClInclude Include="Internal\KTextureBase.h" />
     <ClInclude Include="Internal\KUIOverlayBase.h" />
+    <ClInclude Include="Internal\KRenderCommand.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
     <ClInclude Include="Internal\Object\KSkyBox.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
@@ -64,6 +65,8 @@
     <ClInclude Include="Publish\KPlane.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Internal\Asset\KSubMaterial.cpp" />
+    <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
     <ClCompile Include="Internal\KBufferBase.cpp" />
     <ClInclude Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KConstantDefinition.cpp" />
