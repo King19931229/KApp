@@ -60,9 +60,6 @@
     <ClInclude Include="Internal\Asset\KMaterial.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Asset\KMesh.h">
-      <Filter>Internal\Asset</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Asset\KSubMaterial.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>
@@ -156,6 +153,15 @@
     <ClInclude Include="Internal\KRenderCommand.h">
       <Filter>Internal</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Asset\KMesh.h">
+      <Filter>Internal\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KRenderGlobal.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KPipelineManager.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -241,6 +247,18 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\KSubMaterial.cpp">
       <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\KMesh.cpp">
+      <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\KMaterial.cpp">
+      <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KPipelineManager.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KRenderGlobal.cpp">
+      <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

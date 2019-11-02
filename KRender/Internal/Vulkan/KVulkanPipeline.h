@@ -2,10 +2,28 @@
 #include "Interface/IKPipeline.h"
 #include "KVulkanConfig.h"
 #include <map>
+#include <mutex>
 
 class KVulkanRenderTarget;
+
+class KVulkanPipelineHandle : public IKPipelineHandle
+{
+protected:
+	VkPipeline m_GraphicsPipeline;
+public:
+	KVulkanPipelineHandle();
+	~KVulkanPipelineHandle();
+
+	bool Init(IKPipeline* pipeline, IKRenderTarget* target);
+	bool UnInit();
+
+	inline VkPipeline GetVkPipeline() { return m_GraphicsPipeline; }
+};
+
+
 class KVulkanPipeline : public IKPipeline
 {
+	friend class KVulkanPipelineHandle;
 protected:
 	// 顶点装配信息
 	std::vector<VkVertexInputBindingDescription> m_BindingDescriptions;
@@ -54,17 +72,18 @@ protected:
 	};
 	std::map<unsigned int, SamplerBindingInfo> m_Samplers;
 
+	std::map<IKRenderTarget*, IKPipelineHandlePtr> m_PipelineHandles;
+
 	// 设备句柄
 	VkDescriptorSetLayout	m_DescriptorSetLayout;
 	VkDescriptorPool		m_DescriptorPool;
 	VkDescriptorSet			m_DescriptorSet;
-
 	VkPipelineLayout		m_PipelineLayout;
-	VkPipeline				m_GraphicsPipeline;
+
+	std::mutex m_Lock;
 
 	bool CreateLayout();
 	bool CreateDestcription();
-	bool CreatePipeline(KVulkanRenderTarget* renderTarget);
 public:
 	KVulkanPipeline();
 	~KVulkanPipeline();
@@ -87,10 +106,12 @@ public:
 	virtual bool SetSampler(unsigned int location, const ImageView& view, IKSamplerPtr sampler);
 	virtual bool PushConstantBlock(const PushConstant& constant, PushConstantLocation& location);
 
-	virtual bool Init(IKRenderTarget* target);
+	virtual bool Init();
 	virtual bool UnInit();
 
+	virtual bool GetPipelineHandle(IKRenderTarget* target, IKPipelineHandlePtr& handle);
+	virtual bool RemovePipelineHandle(IKRenderTarget* target);
+
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
-	inline VkPipeline GetVkPipeline() { return m_GraphicsPipeline; }
 	inline VkDescriptorSet GetVkDescriptorSet() { return m_DescriptorSet; }
 };

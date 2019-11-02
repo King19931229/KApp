@@ -110,7 +110,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	false
 #endif
 	),
-	m_MultiThreadSumbit(true),
+	m_MultiThreadSumbit(false),
 	m_Texture(nullptr),
 	m_Sampler(nullptr)
 {
@@ -378,11 +378,12 @@ bool KVulkanRenderDevice::CreatePipelines()
 
 			pipeline->PushConstantBlock(m_ObjectConstant, m_ObjectConstantLoc);
 
-			pipeline->Init(m_OffscreenRenderTargets[i].get());
+			pipeline->Init();
 		}
 
-		vertexShader->UnInit();
-		fragmentShader->UnInit();
+		//TODO
+		//vertexShader->UnInit();
+		//fragmentShader->UnInit();
 	}
 
 	{
@@ -417,11 +418,12 @@ bool KVulkanRenderDevice::CreatePipelines()
 			pipeline->SetPolygonMode(PM_FILL);
 
 			pipeline->SetSampler(0, m_OffScreenTextures[i]->GetImageView(), m_Sampler);
-			pipeline->Init(m_SwapChainRenderTargets[i].get());
+			pipeline->Init();
 		}
 
-		vertexShader->UnInit();
-		fragmentShader->UnInit();
+		//TODO
+		//vertexShader->UnInit();
+		//fragmentShader->UnInit();
 	}
 
 	return true;
@@ -1060,6 +1062,7 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 		target->UnInit();
 	}
 	m_SwapChainRenderTargets.clear();
+
 	for (IKPipelinePtr pipeline :  m_SwapChainPipelines)
 	{
 		pipeline->UnInit();
@@ -1354,6 +1357,8 @@ bool KVulkanRenderDevice::UpdateObjectTransform()
 
 void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imageIndex, VkCommandBufferInheritanceInfo inheritanceInfo)
 {
+	IKPipelineHandlePtr pipelineHandle;
+
 	ThreadData& threadData = m_CommandBuffers[imageIndex].threadDatas[threadIndex];
 
 	// https://devblogs.nvidia.com/vulkan-dos-donts/ ResetCommandPool释放内存
@@ -1378,7 +1383,9 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imag
 	{
 		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_OffscreenPipelines[imageIndex].get();
 
-		VkPipeline pipeline = vulkanPipeline->GetVkPipeline();
+		vulkanPipeline->GetPipelineHandle(target, pipelineHandle);
+		VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
+
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 		VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 
@@ -1430,6 +1437,8 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t imag
 
 bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(unsigned int imageIndex)
 {
+	IKPipelineHandlePtr pipelineHandle = nullptr;
+
 	assert(imageIndex < m_CommandBuffers.size());
 
 	vkResetCommandPool(m_Device, m_CommandBuffers[imageIndex].commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
@@ -1466,13 +1475,15 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(unsigned int imageInde
 			// 开始渲染天空盒
 			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			{
-				m_SkyBox.Draw(imageIndex, &commandBuffer);
+				m_SkyBox.Draw(imageIndex, target, &commandBuffer);
 			}
 			// 开始渲染物件
 			{
 				KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_OffscreenPipelines[imageIndex].get();
 
-				VkPipeline pipeline = vulkanPipeline->GetVkPipeline();
+				vulkanPipeline->GetPipelineHandle(target, pipelineHandle);
+				VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
+
 				VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 				VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 
@@ -1552,7 +1563,9 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(unsigned int imageInde
 			{
 				KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_SwapChainPipelines[imageIndex].get();
 
-				VkPipeline pipeline = vulkanPipeline->GetVkPipeline();
+				vulkanPipeline->GetPipelineHandle(target, pipelineHandle);
+				VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
+
 				VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 				VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 
@@ -1588,7 +1601,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(unsigned int imageInde
 				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
 			}
 			{
-				m_UIOverlay->Draw(imageIndex, &commandBuffer);
+				m_UIOverlay->Draw(imageIndex, target, &commandBuffer);
 			}
 			// 结束渲染过程
 			vkCmdEndRenderPass(commandBuffer);
@@ -1601,6 +1614,8 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(unsigned int imageInde
 
 bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex)
 {
+	IKPipelineHandlePtr pipelineHandle;
+
 	assert(imageIndex < m_CommandBuffers.size());
 
 	vkResetCommandPool(m_Device, m_CommandBuffers[imageIndex].commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
@@ -1655,7 +1670,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 
 					VK_ASSERT_RESULT(vkBeginCommandBuffer(skyBoxCommandBuffer, &beginInfo));
 					{
-						m_SkyBox.Draw(imageIndex, &skyBoxCommandBuffer);
+						m_SkyBox.Draw(imageIndex, offscreenTarget, &skyBoxCommandBuffer);
 					}
 					VK_ASSERT_RESULT(vkEndCommandBuffer(skyBoxCommandBuffer));
 
@@ -1746,7 +1761,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 					vkCmdSetViewport(uiCommandBuffer, 0, 1, &viewPort);
 					vkCmdSetScissor(uiCommandBuffer, 0, 1, &scissorRect);
 
-					m_UIOverlay->Draw(imageIndex, &uiCommandBuffer);
+					m_UIOverlay->Draw(imageIndex, swapChainTarget, &uiCommandBuffer);
 					VK_ASSERT_RESULT(vkEndCommandBuffer(uiCommandBuffer));
 				}
 
@@ -1754,7 +1769,9 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(unsigned int imageIndex
 				{
 					KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_SwapChainPipelines[imageIndex].get();
 
-					VkPipeline pipeline = vulkanPipeline->GetVkPipeline();
+					vulkanPipeline->GetPipelineHandle(swapChainTarget, pipelineHandle);
+					VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
+
 					VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 					VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 

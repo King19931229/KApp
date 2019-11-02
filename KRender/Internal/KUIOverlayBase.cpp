@@ -192,7 +192,7 @@ void KUIOverlayBase::PreparePipeline(const std::vector<IKRenderTarget*>& renderT
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
 		pipeline->SetSampler(0, m_FontTexture->GetImageView(), m_FontSampler);
 		pipeline->PushConstantBlock(m_Constant, m_ConstantLoc);
-		ASSERT_RESULT(pipeline->Init(renderTargets[i]));
+		ASSERT_RESULT(pipeline->Init());
 	}	
 }
 

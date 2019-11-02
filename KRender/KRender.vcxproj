@@ -36,6 +36,8 @@
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
+    <ClInclude Include="Internal\KPipelineManager.h" />
+    <ClInclude Include="Internal\KRenderGlobal.h" />
     <ClInclude Include="Internal\KRenderThreadPool.h" />
     <ClInclude Include="Internal\KSamplerBase.h" />
     <ClInclude Include="Internal\KTextureBase.h" />
@@ -65,13 +67,17 @@
     <ClInclude Include="Publish\KPlane.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Internal\Asset\KMaterial.cpp" />
+    <ClCompile Include="Internal\Asset\KMesh.cpp" />
     <ClCompile Include="Internal\Asset\KSubMaterial.cpp" />
     <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
     <ClCompile Include="Internal\KBufferBase.cpp" />
     <ClInclude Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KConstantDefinition.cpp" />
     <ClCompile Include="Internal\KConstantGlobal.cpp" />
+    <ClCompile Include="Internal\KPipelineManager.cpp" />
     <ClCompile Include="Internal\KRenderDevice.cpp" />
+    <ClCompile Include="Internal\KRenderGlobal.cpp" />
     <ClCompile Include="Internal\KRenderWindow.cpp" />
     <ClCompile Include="Internal\KSamplerBase.cpp" />
     <ClCompile Include="Internal\KTextureBase.cpp" />

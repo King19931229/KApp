@@ -111,7 +111,7 @@ void KSkyBox::PreparePipeline(const std::vector<IKRenderTarget*>& renderTargets)
 		pipeline->SetSampler(1, m_CubeTexture->GetImageView(), m_CubeSampler);
 		pipeline->PushConstantBlock(m_Constant, m_ConstantLoc);
 
-		ASSERT_RESULT(pipeline->Init(renderTargets[i]));
+		ASSERT_RESULT(pipeline->Init());
 	}
 }
 
@@ -211,7 +211,7 @@ bool KSkyBox::UnInit()
 	return true;
 }
 
-// œ»…œ≥µ
+#include "Internal/Vulkan/KVulkanRenderTarget.h"
 #include "Internal/Vulkan/KVulkanPipeline.h"
 #include "Internal/Vulkan/KVulkanBuffer.h"
 #include "Internal/Vulkan/KVulkanTexture.h"
@@ -219,7 +219,7 @@ bool KSkyBox::UnInit()
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-bool KSkyBox::Draw(unsigned int imageIndex, void* commandBufferPtr)
+bool KSkyBox::Draw(unsigned int imageIndex, IKRenderTarget* target, void* commandBufferPtr)
 {
 	if(imageIndex < m_Pipelines.size())
 	{
@@ -231,7 +231,13 @@ bool KSkyBox::Draw(unsigned int imageIndex, void* commandBufferPtr)
 		KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
 		KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffer.get();
 
-		VkPipeline pipeline = vulkanPipeline->GetVkPipeline();
+		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target;
+
+		IKPipelineHandlePtr pipelineHandle;
+		vulkanPipeline->GetPipelineHandle(vulkanTarget, pipelineHandle);
+
+		VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
+
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 		VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 

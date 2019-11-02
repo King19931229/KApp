@@ -265,5 +265,8 @@ typedef std::shared_ptr<IKRenderTarget> IKRenderTargetPtr;
 struct IKPipeline;
 typedef std::shared_ptr<IKPipeline> IKPipelinePtr;
 
+struct IKPipelineHandle;
+typedef std::shared_ptr<IKPipelineHandle> IKPipelineHandlePtr;
+
 struct IKUIOverlay;
 typedef std::shared_ptr<IKUIOverlay> IKUIOverlayPtr;

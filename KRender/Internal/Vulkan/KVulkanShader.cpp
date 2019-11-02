@@ -14,7 +14,7 @@
 KVulkanShader::KVulkanShader()
 	: m_bShaderModuelInited(false)
 {
-	ZERO_MEMORY(m_ShaderModule);
+	m_ShaderModule = VK_NULL_HANDLE;
 }
 
 KVulkanShader::~KVulkanShader()
@@ -98,6 +98,7 @@ bool KVulkanShader::UnInit()
 	if(m_bShaderModuelInited)
 	{
 		vkDestroyShaderModule(device, m_ShaderModule, nullptr);
+		m_ShaderModule = VK_NULL_HANDLE;
 		m_bShaderModuelInited = false;
 	}
 
