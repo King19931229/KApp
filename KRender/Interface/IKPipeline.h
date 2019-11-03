@@ -6,7 +6,7 @@ struct IKPipelineHandle
 {
 	virtual ~IKPipelineHandle() {}
 
-	virtual bool Init(IKPipeline* pipeline, IKRenderTarget* target) = 0;
+	virtual bool Init(IKRenderTarget* target) = 0;
 	virtual bool UnInit() = 0;
 };
 
@@ -31,9 +31,8 @@ struct IKPipeline
 	virtual bool SetSampler(unsigned int location, const ImageView& view, IKSamplerPtr sampler) = 0;
 	virtual bool PushConstantBlock(const PushConstant& constant, PushConstantLocation& location) = 0;
 
-	virtual bool Init() = 0;
-	virtual bool UnInit() = 0;
+	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& handle) = 0;
 
-	virtual bool GetPipelineHandle(IKRenderTarget* target, IKPipelineHandlePtr& handle) = 0;
-	virtual bool RemovePipelineHandle(IKRenderTarget* target) = 0;
+	virtual bool Init() = 0;
+	virtual bool UnInit() = 0;	
 };

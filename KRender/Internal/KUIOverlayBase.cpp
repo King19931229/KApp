@@ -56,10 +56,10 @@ void KUIOverlayBase::UnInitImgui()
 	}
 }
 
-bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, const std::vector<IKRenderTarget*>& renderTargets)
+bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 {
 	ASSERT_RESULT(renderDevice != nullptr);
-	ASSERT_RESULT(!renderTargets.empty());
+	ASSERT_RESULT(frameInFlight > 0);
 	ASSERT_RESULT(UnInit());
 
 	renderDevice->CreateShader(m_VertexShader);
@@ -71,7 +71,7 @@ bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, const std::vector<IKRend
 	m_Constant.shaderTypes = ST_VERTEX;
 	m_Constant.size = sizeof(m_PushConstBlock);
 
-	size_t numImages = renderTargets.size();
+	size_t numImages = frameInFlight;
 
 	m_IndexBuffers.resize(numImages);
 	m_VertexBuffers.resize(numImages);
@@ -88,7 +88,7 @@ bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, const std::vector<IKRend
 
 	InitImgui();
 	PrepareResources();
-	PreparePipeline(renderTargets);
+	PreparePipeline();
 
 	return true;
 }
@@ -170,10 +170,8 @@ void KUIOverlayBase::PrepareResources()
 	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/uioverlay.frag"));
 }
 
-void KUIOverlayBase::PreparePipeline(const std::vector<IKRenderTarget*>& renderTargets)
+void KUIOverlayBase::PreparePipeline()
 {
-	ASSERT_RESULT(m_Pipelines.size() == renderTargets.size());
-
 	VertexFormat vertexFormats[] = {VF_GUI_POS_UV_COLOR};
 	VertexInputDetail detail = { vertexFormats, ARRAY_SIZE(vertexFormats) };
 

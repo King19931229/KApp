@@ -2,5 +2,6 @@
 
 namespace KRenderGlobal
 {
-	KPipelineManager pipelineManager;
+	KPipelineManager PipelineManager;
+	KFrameResourceManager FrameResourceManager;
 }

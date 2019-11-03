@@ -53,6 +53,7 @@ struct KRenderCommand
 	KVertexDataPtr vertexData;
 	KIndexDataPtr indexData;
 	IKPipelinePtr pipeline;
+	IKPipelineHandlePtr pipelineHandle;
 	bool indexDraw;
 };
 

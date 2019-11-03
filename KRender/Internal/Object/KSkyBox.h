@@ -8,15 +8,8 @@ protected:
 	static KVertexDefinition::POS_3F_NORM_3F_UV_2F ms_Positions[8];
 	static uint16_t ms_Indices[36];
 
-	struct Extent
-	{
-		uint32_t width;
-		uint32_t height;
-	};
-
 	std::vector<IKPipelinePtr> m_Pipelines;
 	std::vector<IKUniformBufferPtr> m_UniformBuffers;
-	std::vector<Extent> m_Extents;
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
@@ -35,12 +28,12 @@ protected:
 	PushConstantLocation m_ConstantLoc;
 
 	void LoadResource(const char* cubeTexPath);
-	void PreparePipeline(const std::vector<IKRenderTarget*>& renderTargets);
+	void PreparePipeline();
 public:
 	KSkyBox();
 	~KSkyBox();
 
-	bool Init(IKRenderDevice* renderDevice,	const std::vector<IKRenderTarget*>& renderTargets, const char* cubeTexPath);
+	bool Init(IKRenderDevice* renderDevice,	size_t frameInFlight, const char* cubeTexPath);
 	bool UnInit();
 
 	bool Draw(unsigned int imageIndex, IKRenderTarget* target, void* commandBufferPtr);

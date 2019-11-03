@@ -55,11 +55,12 @@ public:
 		uint32_t presentIndex,
 		VkSurfaceKHR surface,
 		uint32_t windowWidth,
-		uint32_t windowHeight);
+		uint32_t windowHeight,
+		size_t frameInFlight);
 
 	bool UnInit();
 
-	VkResult WaitForInfightFrame();
+	VkResult WaitForInfightFrame(size_t& frameIndex);
 	VkResult AcquireNextImage(uint32_t& imageIndex);
 	VkResult PresentQueue(VkQueue graphicsQueue, VkQueue presentQueue, uint32_t imageIndex, VkCommandBuffer commandBuffer);
 

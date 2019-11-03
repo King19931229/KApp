@@ -36,6 +36,7 @@
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
+    <ClInclude Include="Internal\KFrameResourceManager.h" />
     <ClInclude Include="Internal\KPipelineManager.h" />
     <ClInclude Include="Internal\KRenderGlobal.h" />
     <ClInclude Include="Internal\KRenderThreadPool.h" />
@@ -75,6 +76,7 @@
     <ClInclude Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KConstantDefinition.cpp" />
     <ClCompile Include="Internal\KConstantGlobal.cpp" />
+    <ClCompile Include="Internal\KFrameResourceManager.cpp" />
     <ClCompile Include="Internal\KPipelineManager.cpp" />
     <ClCompile Include="Internal\KRenderDevice.cpp" />
     <ClCompile Include="Internal\KRenderGlobal.cpp" />

@@ -8,6 +8,7 @@
 #include "Interface/IKSampler.h"
 
 #include "Internal/KConstantGlobal.h"
+#include "Internal/KRenderGlobal.h"
 
 #if 0
       1------2
@@ -88,10 +89,8 @@ void KSkyBox::LoadResource(const char* cubeTexPath)
 	m_Constant.size = sizeof(m_PushConstBlock);
 }
 
-void KSkyBox::PreparePipeline(const std::vector<IKRenderTarget*>& renderTargets)
+void KSkyBox::PreparePipeline()
 {
-	ASSERT_RESULT(renderTargets.size() == m_Pipelines.size());
-
 	VertexFormat vertexFormats[] = {VF_POINT_NORMAL_UV};
 	VertexInputDetail detail = { vertexFormats, ARRAY_SIZE(vertexFormats) };
 
@@ -115,10 +114,10 @@ void KSkyBox::PreparePipeline(const std::vector<IKRenderTarget*>& renderTargets)
 	}
 }
 
-bool KSkyBox::Init(IKRenderDevice* renderDevice, const std::vector<IKRenderTarget*>& renderTargets, const char* cubeTexPath)
+bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const char* cubeTexPath)
 {
 	ASSERT_RESULT(renderDevice != nullptr);
-	ASSERT_RESULT(!renderTargets.empty());
+	ASSERT_RESULT(frameInFlight > 0);
 	ASSERT_RESULT(cubeTexPath != nullptr);
 
 	ASSERT_RESULT(UnInit());
@@ -132,26 +131,19 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, const std::vector<IKRenderTarge
 	renderDevice->CreateVertexBuffer(m_VertexBuffer);
 	renderDevice->CreateIndexBuffer(m_IndexBuffer);
 
-	size_t numImages = renderTargets.size();
+	size_t numImages = frameInFlight;
 
 	m_Pipelines.resize(numImages);
 	m_UniformBuffers.resize(numImages);
-	m_Extents.resize(numImages);
 
 	for(size_t i = 0; i < numImages; ++i)
 	{
 		renderDevice->CreatePipeline(m_Pipelines[i]);
 		renderDevice->CreateUniformBuffer(m_UniformBuffers[i]);
-		
-		size_t width = 0, height = 0;
-		renderTargets[i]->GetSize(width, height);
-
-		m_Extents[i].width = static_cast<uint32_t>(width);
-		m_Extents[i].height = static_cast<uint32_t>(height);
 	}
 
 	LoadResource(cubeTexPath);
-	PreparePipeline(renderTargets);
+	PreparePipeline();
 
 	return true;
 }
@@ -234,7 +226,7 @@ bool KSkyBox::Draw(unsigned int imageIndex, IKRenderTarget* target, void* comman
 		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target;
 
 		IKPipelineHandlePtr pipelineHandle;
-		vulkanPipeline->GetPipelineHandle(vulkanTarget, pipelineHandle);
+		KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline, vulkanTarget, pipelineHandle);
 
 		VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
 
@@ -257,7 +249,10 @@ bool KSkyBox::Draw(unsigned int imageIndex, IKRenderTarget* target, void* comman
 		vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 
 		VkOffset2D offset = {0, 0};
-		VkExtent2D extent = {m_Extents[imageIndex].width,  m_Extents[imageIndex].height};
+
+		size_t width = 0, height = 0;
+		target->GetSize(width, height);
+		VkExtent2D extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
 		VkRect2D scissorRect = { offset, extent};
 		VkViewport viewPort = 

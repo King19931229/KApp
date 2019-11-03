@@ -1,21 +1,28 @@
 #pragma once
 #include "Interface/IKRenderTarget.h"
 
+#include <mutex>
 #include <map>
 #include <set>
 
 class KPipelineManager
 {
 protected:
-	typedef std::set<IKPipelinePtr> PipelineSet;
-	typedef std::map<IKRenderTargetPtr, PipelineSet> RenderPipelineMap;	
-	RenderPipelineMap m_RenderPipelineMap;
+	IKRenderDevice* m_Device;
+
+	typedef std::map<IKRenderTarget*, IKPipelineHandlePtr> RtPipelineHandleMap;
+	typedef std::map<IKPipeline*, RtPipelineHandleMap> PipelineHandleMap;
+	PipelineHandleMap m_RenderPipelineMap;
+	std::mutex m_Lock;
 public:
 	KPipelineManager();
 	~KPipelineManager();
 
-	bool Manage(IKRenderTargetPtr target, IKPipelinePtr pipeline);
-	bool UnManage(IKRenderTargetPtr target, IKPipelinePtr pipeline);
+	bool Init(IKRenderDevice* device);
+	bool UnInit();
 
-	bool ReInit(IKRenderTargetPtr target);
+	bool GetPipelineHandle(IKPipeline* pipeline, IKRenderTarget* target, IKPipelineHandlePtr& handle);
+	bool InvaildateHandleByRt(IKRenderTarget* target);
+	bool InvaildateHandleByPipeline(IKPipeline* pipeline);
+	bool InvaildateAllHandle();
 };

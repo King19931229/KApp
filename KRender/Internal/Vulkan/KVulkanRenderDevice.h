@@ -62,8 +62,17 @@ protected:
 	VkPipelineCache m_PipelineCache;
 	VkCommandPool m_GraphicCommandPool;
 	bool m_EnableValidationLayer;
-	// Temporarily for demo use
 	bool m_MultiThreadSumbit;
+
+	size_t m_FrameInFlight;
+	// Temporarily for demo use
+	IKShaderPtr m_SceneVertexShader;
+	IKShaderPtr m_SceneFragmentShader;
+
+	IKShaderPtr m_PostVertexShader;
+	IKShaderPtr m_PostFragmentShader;
+
+	
 	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
 
 	KAABBBox m_Box;
@@ -128,7 +137,6 @@ protected:
 
 	PushConstant m_ObjectConstant;
 	PushConstantLocation m_ObjectConstantLoc;
-	std::vector<IKUniformBufferPtr> m_CameraBuffers;
 
 	IKTexturePtr m_Texture;
 	IKSamplerPtr m_Sampler;
@@ -149,6 +157,9 @@ protected:
 	bool SetupDebugMessenger();
 	bool UnsetDebugMessenger();
 
+	bool InitGlobalManager();
+	bool UnInitGlobalManager();
+
 	bool CheckDeviceSuitable(PhysicalDevice& device);
 
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
@@ -167,23 +178,22 @@ protected:
 	// Temporarily for demo use
 	bool CreateVertexInput();
 	bool CreateUniform();
-	bool CreateTex();
+	bool CreateResource();
 	bool CreateCommandBuffers();
-	bool SubmitCommandBufferSingleThread(unsigned int idx);
-	bool SubmitCommandBufferMuitiThread(unsigned int idx);
+	bool SubmitCommandBufferSingleThread(uint32_t chainImageIndex, uint32_t frameIndex);
+	bool SubmitCommandBufferMuitiThread(uint32_t chainImageIndex, uint32_t frameIndex);
 	bool UpdateFrameTime();
 
-	bool UpdateCamera(unsigned int idx);
+	bool UpdateCamera(size_t idx);
 	bool UpdateObjectTransform();
 
-	void ThreadRenderObject(uint32_t threadIndex, uint32_t imageIndex, VkCommandBufferInheritanceInfo inheritanceInfo);
+	void ThreadRenderObject(uint32_t threadIndex, uint32_t chainImageIndex, uint32_t frameIndex, VkCommandBufferInheritanceInfo inheritanceInfo);
 
 	bool RecreateSwapChain();
 	bool CleanupSwapChain();
 
-	// Sync global variable
-	bool PostInit();
-	bool PostUnInit();
+	bool InitDeviceGlobal();
+	bool UnInitDeviceGlobal();
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

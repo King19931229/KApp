@@ -6,7 +6,7 @@ struct IKUIOverlay
 {
 	virtual ~IKUIOverlay() {}
 
-	virtual bool Init(IKRenderDevice* renderDevice, const std::vector<IKRenderTarget*>& renderTargets) = 0;
+	virtual bool Init(IKRenderDevice* renderDevice, size_t frameInFlight) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool Resize(size_t width, size_t height) = 0;
 	virtual bool Update(unsigned int imageIndex) = 0;

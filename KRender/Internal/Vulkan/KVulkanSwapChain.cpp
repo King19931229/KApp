@@ -195,8 +195,9 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 
 bool KVulkanSwapChain::CreateSyncObjects()
 {
-	// N个大小的交换链设定N-1个作为FramesInFight
-	m_MaxFramesInFight = (size_t)std::max((int)m_SwapChainImages.size() - 1, 1);
+	//InFlightFrame数目不超过Image数目
+	//m_MaxFramesInFight = std::min(m_SwapChainImages.size(), m_MaxFramesInFight);
+
 	m_CurrentFlightIndex = 0;
 
 	m_ImageAvailableSemaphores.resize(m_MaxFramesInFight);
@@ -261,13 +262,15 @@ bool KVulkanSwapChain::Init(VkDevice device,
 		uint32_t presentIndex,
 		VkSurfaceKHR surface,
 		uint32_t windowWidth,
-		uint32_t windowHeight)
+		uint32_t windowHeight,
+		size_t frameInFlight)
 {
 	ASSERT_RESULT(m_SwapChain == VK_NULL_HANDLE);
 
 	m_Device = device;
 	m_PhysicalDevice = physicalDevice;
 	m_Surface = surface;
+	m_MaxFramesInFight = frameInFlight;
 
 	ASSERT_RESULT(QuerySwapChainSupport());
 	ASSERT_RESULT(CreateSwapChain(windowWidth, windowHeight, graphIndex, presentIndex));
@@ -285,9 +288,10 @@ bool KVulkanSwapChain::UnInit()
 	return true;
 }
 
-VkResult KVulkanSwapChain::WaitForInfightFrame()
+VkResult KVulkanSwapChain::WaitForInfightFrame(size_t& frameIndex)
 {
-	VkResult result = vkWaitForFences(m_Device, 1, &m_InFlightFences[m_CurrentFlightIndex], VK_TRUE, UINT64_MAX);	
+	VkResult result = vkWaitForFences(m_Device, 1, &m_InFlightFences[m_CurrentFlightIndex], VK_TRUE, UINT64_MAX);
+	frameIndex = m_CurrentFlightIndex;
 	return result;
 }
 

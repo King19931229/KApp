@@ -4,6 +4,8 @@
 #include "KVulkanInitializer.h"
 #include "KVulkanHelper.h"
 
+#include "Internal/KRenderGlobal.h"
+
 KVulkanRenderTarget::KVulkanRenderTarget()
 	: m_bMsaaCreated(false),
 	m_bDepthStencilCreated(false),
@@ -336,6 +338,8 @@ bool KVulkanRenderTarget::UnInit()
 
 		m_bDepthStencilCreated = false;
 	}
+
+	KRenderGlobal::PipelineManager.InvaildateHandleByRt(this);
 
 	return true;
 }

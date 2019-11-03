@@ -162,6 +162,9 @@
     <ClInclude Include="Internal\KPipelineManager.h">
       <Filter>Internal</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\KFrameResourceManager.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -258,6 +261,9 @@
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KRenderGlobal.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KFrameResourceManager.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>

@@ -44,7 +44,10 @@ enum VertexSemantic
 enum ConstantBufferType
 {
 	CBT_OBJECT,
-	CBT_CAMERA
+	CBT_CAMERA,
+
+	CBT_UNKNOWN,
+	CBT_COUNT = CBT_UNKNOWN
 };
 
 enum ConstantSemantic

@@ -6,6 +6,8 @@
 #include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
 
+#include "Internal/KRenderGlobal.h"
+
 #include "imgui.h"
 
 KVulkanUIOverlay::KVulkanUIOverlay()
@@ -39,8 +41,7 @@ bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderTarget* target, voi
 		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)(target);
 
 		IKPipelineHandlePtr pipelineHandle;
-		vulkanPipeline->GetPipelineHandle(vulkanTarget, pipelineHandle);
-
+		KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline, vulkanTarget, pipelineHandle);
 		VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
 
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();

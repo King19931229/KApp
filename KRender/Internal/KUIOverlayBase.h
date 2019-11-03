@@ -30,12 +30,12 @@ protected:
 
 	void RemindUpdate();
 	void PrepareResources();
-	void PreparePipeline(const std::vector<IKRenderTarget*>& renderTargets);
+	void PreparePipeline();
 public:
 	KUIOverlayBase();
 	virtual ~KUIOverlayBase();
 
-	virtual bool Init(IKRenderDevice* renderDevice, const std::vector<IKRenderTarget*>& renderTargets);
+	virtual bool Init(IKRenderDevice* renderDevice, size_t frameInFlight);
 	virtual bool UnInit();
 	virtual bool Resize(size_t width, size_t height);
 	virtual bool Update(unsigned int imageIndex);

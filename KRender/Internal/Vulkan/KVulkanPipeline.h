@@ -2,19 +2,20 @@
 #include "Interface/IKPipeline.h"
 #include "KVulkanConfig.h"
 #include <map>
-#include <mutex>
 
 class KVulkanRenderTarget;
+class KVulkanPipeline;
 
 class KVulkanPipelineHandle : public IKPipelineHandle
 {
 protected:
+	KVulkanPipeline* m_Parent;
 	VkPipeline m_GraphicsPipeline;
 public:
-	KVulkanPipelineHandle();
+	KVulkanPipelineHandle(KVulkanPipeline* parent);
 	~KVulkanPipelineHandle();
 
-	bool Init(IKPipeline* pipeline, IKRenderTarget* target);
+	bool Init(IKRenderTarget* target);
 	bool UnInit();
 
 	inline VkPipeline GetVkPipeline() { return m_GraphicsPipeline; }
@@ -72,15 +73,11 @@ protected:
 	};
 	std::map<unsigned int, SamplerBindingInfo> m_Samplers;
 
-	std::map<IKRenderTarget*, IKPipelineHandlePtr> m_PipelineHandles;
-
 	// Éè±¸¾ä±ú
 	VkDescriptorSetLayout	m_DescriptorSetLayout;
 	VkDescriptorPool		m_DescriptorPool;
 	VkDescriptorSet			m_DescriptorSet;
 	VkPipelineLayout		m_PipelineLayout;
-
-	std::mutex m_Lock;
 
 	bool CreateLayout();
 	bool CreateDestcription();
@@ -109,8 +106,7 @@ public:
 	virtual bool Init();
 	virtual bool UnInit();
 
-	virtual bool GetPipelineHandle(IKRenderTarget* target, IKPipelineHandlePtr& handle);
-	virtual bool RemovePipelineHandle(IKRenderTarget* target);
+	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& handle);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 	inline VkDescriptorSet GetVkDescriptorSet() { return m_DescriptorSet; }
