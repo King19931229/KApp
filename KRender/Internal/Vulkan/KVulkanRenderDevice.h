@@ -177,7 +177,7 @@ protected:
 
 	// Temporarily for demo use
 	bool CreateVertexInput();
-	bool CreateUniform();
+	bool CreateTransform();
 	bool CreateResource();
 	bool CreateCommandBuffers();
 	bool SubmitCommandBufferSingleThread(uint32_t chainImageIndex, uint32_t frameIndex);
@@ -220,8 +220,8 @@ public:
 	virtual bool CreateSampler(IKSamplerPtr& sampler);
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target);
-
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline);
+	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle);
 
 	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui);
 

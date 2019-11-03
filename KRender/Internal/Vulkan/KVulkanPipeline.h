@@ -9,13 +9,15 @@ class KVulkanPipeline;
 class KVulkanPipelineHandle : public IKPipelineHandle
 {
 protected:
-	KVulkanPipeline* m_Parent;
+	KVulkanPipeline* m_Pipeline;
+	KVulkanRenderTarget* m_Target;
+
 	VkPipeline m_GraphicsPipeline;
 public:
-	KVulkanPipelineHandle(KVulkanPipeline* parent);
+	KVulkanPipelineHandle();
 	~KVulkanPipelineHandle();
 
-	bool Init(IKRenderTarget* target);
+	bool Init(IKPipeline* pipeline, IKRenderTarget* target);
 	bool UnInit();
 
 	inline VkPipeline GetVkPipeline() { return m_GraphicsPipeline; }
@@ -86,7 +88,7 @@ public:
 	~KVulkanPipeline();
 
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology);
-	virtual bool SetVertexBinding(VertexInputDetail* inputDetails, unsigned int count);
+	virtual bool SetVertexBinding(VertexInputDetail* inputDetails, size_t count);
 
 	virtual bool SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op);
 	virtual bool SetBlendEnable(bool enable);
@@ -105,8 +107,6 @@ public:
 
 	virtual bool Init();
 	virtual bool UnInit();
-
-	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& handle);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 	inline VkDescriptorSet GetVkDescriptorSet() { return m_DescriptorSet; }

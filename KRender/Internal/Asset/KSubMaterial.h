@@ -19,3 +19,5 @@ public:
 
 	const KMaterialTextrueBinding& GetTextureBinding() const { return m_Textrues; }
 };
+
+typedef std::shared_ptr<KSubMaterial> KSubMaterialPtr;

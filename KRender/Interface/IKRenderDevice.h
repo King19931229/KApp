@@ -21,8 +21,8 @@ struct IKRenderDevice
 	virtual bool CreateSampler(IKSamplerPtr& sampler) = 0;
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target) = 0;
-
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline) = 0;
+	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle) = 0;
 
 	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui) = 0;
 

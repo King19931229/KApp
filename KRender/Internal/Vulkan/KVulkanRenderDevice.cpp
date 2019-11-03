@@ -662,7 +662,7 @@ bool KVulkanRenderDevice::CreateVertexInput()
 	return true;
 }
 
-bool KVulkanRenderDevice::CreateUniform()
+bool KVulkanRenderDevice::CreateTransform()
 {
 	m_ObjectConstant.shaderTypes = ST_VERTEX;
 	m_ObjectConstant.size = (int)KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT).bufferSize;
@@ -984,7 +984,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		// Temporarily for demo use
 		if(!CreateVertexInput())
 			return false;
-		if(!CreateUniform())
+		if(!CreateTransform())
 			return false;
 		if(!CreateResource())
 			return false;
@@ -1025,9 +1025,7 @@ bool KVulkanRenderDevice::RecreateSwapChain()
 
 	CreateSwapChain();
 	CreateImageViews();
-	CreateUniform();
 	CreatePipelines();
-	CreateCommandBuffers();
 
 	return true;
 }
@@ -1071,17 +1069,6 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 		pipeline->UnInit();
 	}
 	m_SwapChainPipelines.clear();
-
-	// clear command buffers
-	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
-	{
-		for (ThreadData& thread : m_CommandBuffers[i].threadDatas)
-		{
-			vkDestroyCommandPool(m_Device, thread.commandPool, nullptr);
-		}
-		vkDestroyCommandPool(m_Device, m_CommandBuffers[i].commandPool, nullptr);
-	}
-	m_CommandBuffers.clear();
 
 	// clear swapchain
 	m_pSwapChain->UnInit();
@@ -1153,6 +1140,17 @@ bool KVulkanRenderDevice::UnInit()
 		m_PostFragmentShader->UnInit();
 		m_PostFragmentShader = nullptr;
 	}
+
+	// clear command buffers
+	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
+	{
+		for (ThreadData& thread : m_CommandBuffers[i].threadDatas)
+		{
+			vkDestroyCommandPool(m_Device, thread.commandPool, nullptr);
+		}
+		vkDestroyCommandPool(m_Device, m_CommandBuffers[i].commandPool, nullptr);
+	}
+	m_CommandBuffers.clear();
 
 	CleanupSwapChain();
 
@@ -1277,6 +1275,12 @@ bool KVulkanRenderDevice::CreateRenderTarget(IKRenderTargetPtr& target)
 bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 {
 	pipeline = IKPipelinePtr(static_cast<IKPipeline*>(new KVulkanPipeline()));
+	return true;
+}
+
+bool KVulkanRenderDevice::CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle)
+{
+	pipelineHandle = IKPipelineHandlePtr(static_cast<IKPipelineHandle*>(new KVulkanPipelineHandle()));
 	return true;
 }
 

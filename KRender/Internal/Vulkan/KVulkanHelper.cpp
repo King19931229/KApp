@@ -324,17 +324,17 @@ namespace KVulkanHelper
 		return true;
 	}
 
-	bool PopulateInputBindingDescription(const VertexInputDetail* pData, uint32_t nCount, VulkanBindingDetailList& detailList)
+	bool PopulateInputBindingDescription(const VertexInputDetail* pData, size_t uCount, VulkanBindingDetailList& detailList)
 	{
 		using KVertexDefinition::VertexDetail;
 		using KVertexDefinition::VertexSemanticDetail;
 		using KVertexDefinition::VertexSemanticDetailList;
 
-		if(pData == nullptr || nCount == 0)
+		if(pData == nullptr || uCount == 0)
 			return false;
 
 		detailList.clear();
-		for(uint32_t idx = 0; idx < nCount; ++idx)
+		for(size_t idx = 0; idx < uCount; ++idx)
 		{
 			const VertexInputDetail& detail = pData[idx];
 
@@ -351,7 +351,7 @@ namespace KVulkanHelper
 				assert(vertexDetail.vertexSize > 0 && "impossible to get a zero size vertex");
 
 				// 构造VkVertexInputBindingDescription
-				bindingDescription.binding = idx;
+				bindingDescription.binding = static_cast<uint32_t>(idx);
 				bindingDescription.stride = (uint32_t)vertexDetail.vertexSize;
 				bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
@@ -363,7 +363,7 @@ namespace KVulkanHelper
 					VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 					ElementFormatToVkFormat(semanticDetail.elementFormat, vkFormat);
 
-					attributeDescription.binding = idx;
+					attributeDescription.binding = static_cast<uint32_t>(idx);
 					// 语意枚举值即为绑定位置
 					attributeDescription.location = semanticDetail.semantic;
 					attributeDescription.format = vkFormat;

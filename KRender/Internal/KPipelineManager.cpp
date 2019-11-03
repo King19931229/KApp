@@ -1,4 +1,5 @@
 #include "KPipelineManager.h"
+#include "Interface/IKRenderDevice.h"
 #include "Interface/IKPipeline.h"
 #include <assert.h>
 
@@ -33,9 +34,9 @@ bool KPipelineManager::GetPipelineHandle(IKPipeline* pipeline, IKRenderTarget* t
 	if(it == m_RenderPipelineMap.end())
 	{
 		RtPipelineHandleMap handleMap;
-		if(pipeline->CreatePipelineHandle(handle))
+		if(m_Device->CreatePipelineHandle(handle))
 		{
-			if(handle->Init(target))
+			if(handle->Init(pipeline, target))
 			{
 				handleMap.insert(RtPipelineHandleMap::value_type(target, handle));
 				m_RenderPipelineMap.insert(PipelineHandleMap::value_type(pipeline, std::move(handleMap)));
@@ -50,9 +51,9 @@ bool KPipelineManager::GetPipelineHandle(IKPipeline* pipeline, IKRenderTarget* t
 		RtPipelineHandleMap::iterator it2 = handleMap.find(target);
 		if(it2 == handleMap.end())
 		{
-			if(pipeline->CreatePipelineHandle(handle))
+			if(m_Device->CreatePipelineHandle(handle))
 			{
-				if(handle->Init(target))
+				if(handle->Init(pipeline, target))
 				{
 					handleMap.insert(RtPipelineHandleMap::value_type(target, handle));
 					return true;

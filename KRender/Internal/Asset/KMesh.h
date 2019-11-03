@@ -1,6 +1,7 @@
 #pragma once
 #include "Internal/KVertexDefinition.h"
 #include "Internal/KRenderCommand.h"
+#include "KMaterial.h"
 #include "KSubMesh.h"
 
 class KMesh
@@ -8,13 +9,24 @@ class KMesh
 	friend class KSubMesh;
 protected:
 	KVertexData m_VertexData;
-	std::vector<KSubMeshPtr> m_SubMeshes;
+	KMaterialPtr m_Material;
+
+	struct SubMeshData
+	{
+		KSubMeshPtr subMesh;
+		KIndexData indexData;
+	};
+	std::vector<SubMeshData> m_SubMeshes;
 public:
 	KMesh();
 	~KMesh();
 
-	bool Load(const char* szPath);
-	bool Save(const char* szPath);
+	bool SaveAsFile(const char* szPath);
 
-	bool AppendRenderList(PipelineStage stage, IKRenderTarget* target, KRenderCommandList& list);
+	bool InitFromFile(const char* szPath, size_t frameInFlight);
+	bool UnInit();
+
+	KMaterialPtr GetMaterial();
+
+	bool AppendRenderList(PipelineStage stage, size_t frameIndex, KRenderCommandList& list);
 };

@@ -50,7 +50,7 @@ namespace KVulkanHelper
 	bool ShaderTypeFlagToVkShaderStageFlagBits(ShaderTypeFlag shaderTypeFlag, VkShaderStageFlagBits& bit);
 	bool ShaderTypesToVkShaderStageFlag(ShaderTypes shaderTypes, VkFlags& flags);
 
-	bool PopulateInputBindingDescription(const VertexInputDetail* pData, uint32_t nCount, VulkanBindingDetailList& list);
+	bool PopulateInputBindingDescription(const VertexInputDetail* pData, size_t uCount, VulkanBindingDetailList& list);
 
 	void CopyVkBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
