@@ -113,6 +113,7 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 		if(InitProperty(bGenerateMipmap))
 		{
 			m_bCreateAsRt = false;
+			m_Path = filePath;
 			return true;
 		}
 	}

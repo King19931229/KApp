@@ -8,7 +8,7 @@
 
 KSubMesh::KSubMesh(KMesh* parent, size_t mtlIndex)
 	: m_pParent(parent),
-	m_MaterialIndex(mtlIndex),
+	m_Material(nullptr),
 	m_FrameInFlight(0),
 	m_IndexDraw(true)
 {
@@ -68,16 +68,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 {
 	if(stage == PIPELINE_STAGE_OPAQUE)
 	{
-		std::vector<VertexInputDetail> bindingDetails;
-		bindingDetails.resize(m_VertexData.vertexFormats.size());
-
-		// 每个format占用一个buffer
-		for(size_t i = 0; i < bindingDetails.size(); ++i)
-		{
-			VertexInputDetail& inputDetail = bindingDetails[i];
-			inputDetail.formats = (m_VertexData.vertexFormats.data() + i);
-		}
-		pipeline->SetVertexBinding(bindingDetails.data(), bindingDetails.size());
+		pipeline->SetVertexBinding(m_VertexData.vertexFormats.data(), m_VertexData.vertexFormats.size());
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "Internal/KVertexDefinition.h"
 #include "Internal/KRenderCommand.h"
+#include "KMaterial.h"
 
 class KSubMesh
 {
@@ -9,7 +10,7 @@ protected:
 	typedef std::vector<IKPipelinePtr> FramePipelineList;
 
 	KMesh*					m_pParent;
-	size_t					m_MaterialIndex;
+	KMaterialPtr			m_Material;
 
 	KVertexData				m_VertexData;
 	KIndexData				m_IndexData;

@@ -88,7 +88,7 @@ public:
 	~KVulkanPipeline();
 
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology);
-	virtual bool SetVertexBinding(VertexInputDetail* inputDetails, size_t count);
+	virtual bool SetVertexBinding(VertexFormat* formats, size_t count);
 
 	virtual bool SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op);
 	virtual bool SetBlendEnable(bool enable);

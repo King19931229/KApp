@@ -15,44 +15,20 @@ bool KMesh::SaveAsFile(const char* szPath)
 
 bool KMesh::InitFromFile(const char* szPath, size_t frameInFlight)
 {
-	// TODO
-
-	for(SubMeshData& subMeshData : m_SubMeshes)
-	{
-		ASSERT_RESULT(subMeshData.subMesh != nullptr);
-		ASSERT_RESULT(subMeshData.subMesh->Init(m_VertexData, subMeshData.indexData, frameInFlight));
-	}
+	m_Path = szPath;
 	return true;
 }
 
 bool KMesh::UnInit()
 {
-	for(SubMeshData& subMeshData : m_SubMeshes)
-	{
-		ASSERT_RESULT(subMeshData.subMesh != nullptr);
-		ASSERT_RESULT(subMeshData.subMesh->UnInit());
-	}
-	m_SubMeshes.clear();
-
-	if(m_Material)
-	{
-		m_Material = nullptr;
-	}
-
 	return true;
-}
-
-KMaterialPtr KMesh::GetMaterial()
-{
-	return m_Material;
 }
 
 bool KMesh::AppendRenderList(PipelineStage stage, size_t frameIndex, KRenderCommandList& list)
 {
-	for(SubMeshData& subMeshData : m_SubMeshes)
+	for(KSubMeshPtr subMesh : m_SubMeshes)
 	{
-		ASSERT_RESULT(subMeshData.subMesh != nullptr);
-		ASSERT_RESULT(subMeshData.subMesh->AppendRenderList(stage, frameIndex, list));
+		ASSERT_RESULT(subMesh->AppendRenderList(stage, frameIndex, list));
 	}
 	return true;
 }

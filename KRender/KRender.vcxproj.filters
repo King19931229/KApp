@@ -19,6 +19,9 @@
     <Filter Include="Internal\Object">
       <UniqueIdentifier>{1985d96b-a5e0-4b04-8495-be2d984eed87}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Manager">
+      <UniqueIdentifier>{1558d674-c1d0-4388-a389-2f51e0fc2c6d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -58,9 +61,6 @@
       <Filter>Interface</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Asset\KMaterial.h">
-      <Filter>Internal\Asset</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\Asset\KSubMaterial.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Asset\KSubMesh.h">
@@ -159,11 +159,20 @@
     <ClInclude Include="Internal\KRenderGlobal.h">
       <Filter>Internal</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\KPipelineManager.h">
-      <Filter>Internal</Filter>
+    <ClInclude Include="Internal\Manager\KFrameResourceManager.h">
+      <Filter>Internal\Manager</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\KFrameResourceManager.h">
-      <Filter>Internal</Filter>
+    <ClInclude Include="Internal\Manager\KMeshManager.h">
+      <Filter>Internal\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Manager\KPipelineManager.h">
+      <Filter>Internal\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Manager\KShaderManager.h">
+      <Filter>Internal\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Manager\KTextureManager.h">
+      <Filter>Internal\Manager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -248,23 +257,29 @@
     <ClCompile Include="Internal\Asset\KSubMesh.cpp">
       <Filter>Internal\Asset</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\Asset\KSubMaterial.cpp">
-      <Filter>Internal\Asset</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\Asset\KMesh.cpp">
       <Filter>Internal\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Asset\KMaterial.cpp">
       <Filter>Internal\Asset</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\KPipelineManager.cpp">
-      <Filter>Internal</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\KRenderGlobal.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\KFrameResourceManager.cpp">
-      <Filter>Internal</Filter>
+    <ClCompile Include="Internal\Manager\KFrameResourceManager.cpp">
+      <Filter>Internal\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Manager\KMeshManager.cpp">
+      <Filter>Internal\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Manager\KPipelineManager.cpp">
+      <Filter>Internal\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Manager\KShaderManager.cpp">
+      <Filter>Internal\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Manager\KTextureManager.cpp">
+      <Filter>Internal\Manager</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

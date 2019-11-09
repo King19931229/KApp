@@ -92,12 +92,11 @@ void KSkyBox::LoadResource(const char* cubeTexPath)
 void KSkyBox::PreparePipeline()
 {
 	VertexFormat vertexFormats[] = {VF_POINT_NORMAL_UV};
-	VertexInputDetail detail = { vertexFormats, ARRAY_SIZE(vertexFormats) };
 
 	for(size_t i = 0; i < m_Pipelines.size(); ++i)
 	{
 		IKPipelinePtr pipeline = m_Pipelines[i];
-		pipeline->SetVertexBinding(&detail, 1);
+		pipeline->SetVertexBinding(vertexFormats, 1);
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
 		pipeline->SetCullMode(CM_NONE);

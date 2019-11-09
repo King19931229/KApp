@@ -6,6 +6,7 @@
 
 struct KVertexData
 {
+	// 每个顶点格式占用一个顶点缓冲
 	std::vector<VertexFormat> vertexFormats;
 	std::vector<IKVertexBufferPtr> vertexBuffers;
 	uint32_t vertexStart;
@@ -19,6 +20,7 @@ struct KVertexData
 
 	void Destroy()
 	{
+		assert(vertexFormats.size() == vertexBuffers.size());
 		vertexFormats.clear();
 		vertexBuffers.clear();
 		vertexStart = 0;

@@ -44,10 +44,10 @@ bool KVulkanPipeline::SetPrimitiveTopology(PrimitiveTopology topology)
 	return true;
 }
 
-bool KVulkanPipeline::SetVertexBinding(VertexInputDetail* inputDetails, size_t count)
+bool KVulkanPipeline::SetVertexBinding(VertexFormat* formats, size_t count)
 {
 	KVulkanHelper::VulkanBindingDetailList bindingDetails;
-	ASSERT_RESULT(KVulkanHelper::PopulateInputBindingDescription(inputDetails, count, bindingDetails));
+	ASSERT_RESULT(KVulkanHelper::PopulateInputBindingDescription(formats, count, bindingDetails));
 
 	for(KVulkanHelper::VulkanBindingDetail& detail : bindingDetails)
 	{

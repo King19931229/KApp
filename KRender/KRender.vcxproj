@@ -32,12 +32,9 @@
     <ClInclude Include="Interface\IKUIOverlay.h" />
     <ClInclude Include="Internal\Asset\KMaterial.h" />
     <ClInclude Include="Internal\Asset\KMesh.h" />
-    <ClInclude Include="Internal\Asset\KSubMaterial.h" />
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
-    <ClInclude Include="Internal\KFrameResourceManager.h" />
-    <ClInclude Include="Internal\KPipelineManager.h" />
     <ClInclude Include="Internal\KRenderGlobal.h" />
     <ClInclude Include="Internal\KRenderThreadPool.h" />
     <ClInclude Include="Internal\KSamplerBase.h" />
@@ -45,6 +42,11 @@
     <ClInclude Include="Internal\KUIOverlayBase.h" />
     <ClInclude Include="Internal\KRenderCommand.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
+    <ClInclude Include="Internal\Manager\KFrameResourceManager.h" />
+    <ClInclude Include="Internal\Manager\KMeshManager.h" />
+    <ClInclude Include="Internal\Manager\KPipelineManager.h" />
+    <ClInclude Include="Internal\Manager\KShaderManager.h" />
+    <ClInclude Include="Internal\Manager\KTextureManager.h" />
     <ClInclude Include="Internal\Object\KSkyBox.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanImageView.h" />
@@ -70,14 +72,11 @@
   <ItemGroup>
     <ClCompile Include="Internal\Asset\KMaterial.cpp" />
     <ClCompile Include="Internal\Asset\KMesh.cpp" />
-    <ClCompile Include="Internal\Asset\KSubMaterial.cpp" />
     <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
     <ClCompile Include="Internal\KBufferBase.cpp" />
     <ClInclude Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KConstantDefinition.cpp" />
     <ClCompile Include="Internal\KConstantGlobal.cpp" />
-    <ClCompile Include="Internal\KFrameResourceManager.cpp" />
-    <ClCompile Include="Internal\KPipelineManager.cpp" />
     <ClCompile Include="Internal\KRenderDevice.cpp" />
     <ClCompile Include="Internal\KRenderGlobal.cpp" />
     <ClCompile Include="Internal\KRenderWindow.cpp" />
@@ -85,6 +84,11 @@
     <ClCompile Include="Internal\KTextureBase.cpp" />
     <ClCompile Include="Internal\KUIOverlayBase.cpp" />
     <ClCompile Include="Internal\KVertexDefinition.cpp" />
+    <ClCompile Include="Internal\Manager\KFrameResourceManager.cpp" />
+    <ClCompile Include="Internal\Manager\KMeshManager.cpp" />
+    <ClCompile Include="Internal\Manager\KPipelineManager.cpp" />
+    <ClCompile Include="Internal\Manager\KShaderManager.cpp" />
+    <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
     <ClCompile Include="Internal\Object\KSkyBox.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanInitializer.cpp" />

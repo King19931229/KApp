@@ -201,17 +201,12 @@ enum PipelineStage
 	PIPELINE_STAGE_COUNT
 };
 
+//TODO
 struct ImageView
 {
 	void* imageViewHandle;
 	int imageForamt;
 	bool fromSwapChain;
-};
-
-struct VertexInputDetail
-{
-	VertexFormat* formats;
-	size_t count;
 };
 
 struct PushConstant

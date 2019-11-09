@@ -15,7 +15,7 @@ struct IKPipeline
 	virtual ~IKPipeline() {}
 
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology) = 0;
-	virtual bool SetVertexBinding(VertexInputDetail* inputDetails, size_t count) = 0;
+	virtual bool SetVertexBinding(VertexFormat* format, size_t count) = 0;
 
 	virtual bool SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op) = 0;
 	virtual bool SetBlendEnable(bool enable) = 0;

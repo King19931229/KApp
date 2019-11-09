@@ -324,7 +324,7 @@ namespace KVulkanHelper
 		return true;
 	}
 
-	bool PopulateInputBindingDescription(const VertexInputDetail* pData, size_t uCount, VulkanBindingDetailList& detailList)
+	bool PopulateInputBindingDescription(const VertexFormat* pData, size_t uCount, VulkanBindingDetailList& detailList)
 	{
 		using KVertexDefinition::VertexDetail;
 		using KVertexDefinition::VertexSemanticDetail;
@@ -336,44 +336,40 @@ namespace KVulkanHelper
 		detailList.clear();
 		for(size_t idx = 0; idx < uCount; ++idx)
 		{
-			const VertexInputDetail& detail = pData[idx];
+			VertexFormat format = pData[idx];
 
-			for(size_t i = 0;i < detail.count; ++i)
+			VulkanBindingDetail bindingDetail = {};
+
+			VkVertexInputBindingDescription& bindingDescription = bindingDetail.bindingDescription;				
+			std::vector<VkVertexInputAttributeDescription>& attributeDescriptions = bindingDetail.attributeDescriptions;
+
+			const VertexDetail& vertexDetail = KVertexDefinition::GetVertexDetail(format);
+
+			assert(vertexDetail.vertexSize > 0 && "impossible to get a zero size vertex");
+
+			// 构造VkVertexInputBindingDescription
+			bindingDescription.binding = static_cast<uint32_t>(idx);
+			bindingDescription.stride = (uint32_t)vertexDetail.vertexSize;
+			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+			// 构造VkVertexInputAttributeDescription
+			const VertexSemanticDetailList& semanticDetailList = vertexDetail.semanticDetails;
+			for(const VertexSemanticDetail& semanticDetail : semanticDetailList)
 			{
-				VertexFormat format = detail.formats[i];
-				VulkanBindingDetail bindingDetail;
+				VkVertexInputAttributeDescription attributeDescription = {};
+				VkFormat vkFormat = VK_FORMAT_UNDEFINED;
+				ElementFormatToVkFormat(semanticDetail.elementFormat, vkFormat);
 
-				VkVertexInputBindingDescription& bindingDescription = bindingDetail.bindingDescription;				
-				std::vector<VkVertexInputAttributeDescription>& attributeDescriptions = bindingDetail.attributeDescriptions;
+				attributeDescription.binding = static_cast<uint32_t>(idx);
+				// 语意枚举值即为绑定位置
+				attributeDescription.location = semanticDetail.semantic;
+				attributeDescription.format = vkFormat;
+				attributeDescription.offset = (uint32_t)semanticDetail.offset;
 
-				const VertexDetail& vertexDetail = KVertexDefinition::GetVertexDetail(format);
-
-				assert(vertexDetail.vertexSize > 0 && "impossible to get a zero size vertex");
-
-				// 构造VkVertexInputBindingDescription
-				bindingDescription.binding = static_cast<uint32_t>(idx);
-				bindingDescription.stride = (uint32_t)vertexDetail.vertexSize;
-				bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-				// 构造VkVertexInputAttributeDescription
-				const VertexSemanticDetailList& semanticDetailList = vertexDetail.semanticDetails;
-				for(const VertexSemanticDetail& semanticDetail : semanticDetailList)
-				{
-					VkVertexInputAttributeDescription attributeDescription = {};
-					VkFormat vkFormat = VK_FORMAT_UNDEFINED;
-					ElementFormatToVkFormat(semanticDetail.elementFormat, vkFormat);
-
-					attributeDescription.binding = static_cast<uint32_t>(idx);
-					// 语意枚举值即为绑定位置
-					attributeDescription.location = semanticDetail.semantic;
-					attributeDescription.format = vkFormat;
-					attributeDescription.offset = (uint32_t)semanticDetail.offset;
-
-					attributeDescriptions.push_back(attributeDescription);
-				}
-
-				detailList.push_back(bindingDetail);
+				attributeDescriptions.push_back(attributeDescription);
 			}
+
+			detailList.push_back(bindingDetail);
 		}
 
 		return true;

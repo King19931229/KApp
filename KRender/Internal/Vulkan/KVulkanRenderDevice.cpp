@@ -349,12 +349,9 @@ bool KVulkanRenderDevice::CreatePipelines()
 
 			IKPipelinePtr pipeline = m_OffscreenPipelines[i];
 
-			VertexInputDetail bindingDetail = {};
 			VertexFormat formats[] = {VF_POINT_NORMAL_UV};
-			bindingDetail.formats = formats;
-			bindingDetail.count = ARRAY_SIZE(formats);
 
-			pipeline->SetVertexBinding(&bindingDetail, 1);
+			pipeline->SetVertexBinding(formats, 1);
 
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
@@ -387,12 +384,9 @@ bool KVulkanRenderDevice::CreatePipelines()
 
 			IKPipelinePtr pipeline = m_SwapChainPipelines[i];
 
-			VertexInputDetail bindingDetail = {};
 			VertexFormat formats[] = {VF_SCREENQUAD_POS};
-			bindingDetail.formats = formats;
-			bindingDetail.count = ARRAY_SIZE(formats);
 
-			pipeline->SetVertexBinding(&bindingDetail, 1);
+			pipeline->SetVertexBinding(formats, 1);
 
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
@@ -703,14 +697,7 @@ bool KVulkanRenderDevice::CreateTransform()
 
 bool KVulkanRenderDevice::CreateResource()
 {
-	CreateTexture(m_Texture);
-
-	m_Texture->InitMemoryFromFile("Textures/texture.jpg", true);
-	m_Texture->InitDevice();
-	m_Texture->UnInit();
-
-	m_Texture->InitMemoryFromFile("Textures/vulkan_11_rgba.ktx", true);
-	m_Texture->InitDevice();
+	ASSERT_RESULT(KRenderGlobal::TextrueManager.Acquire("Textures/vulkan_11_rgba.ktx", m_Texture));
 
 	CreateSampler(m_Sampler);
 	//m_Sampler->SetAnisotropic(true);
@@ -719,15 +706,11 @@ bool KVulkanRenderDevice::CreateResource()
 	m_Sampler->SetMipmapLod(0, m_Texture->GetMipmaps());
 	m_Sampler->Init();
 
-	CreateShader(m_SceneVertexShader);
-	CreateShader(m_SceneFragmentShader);
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shader.vert", m_SceneVertexShader));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shader.frag", m_SceneFragmentShader));
 
-	ASSERT_RESULT(m_SceneVertexShader->InitFromFile("Shaders/shader.vert") && m_SceneFragmentShader->InitFromFile("Shaders/shader.frag"));
-
-	CreateShader(m_PostVertexShader);
-	CreateShader(m_PostFragmentShader);
-
-	ASSERT_RESULT(m_PostVertexShader->InitFromFile("Shaders/screenquad.vert") && m_PostFragmentShader->InitFromFile("Shaders/screenquad.frag"));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/screenquad.vert", m_PostVertexShader));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/screenquad.frag", m_PostFragmentShader));
 
 	return true;
 }
@@ -779,8 +762,13 @@ bool KVulkanRenderDevice::UnsetDebugMessenger()
 bool KVulkanRenderDevice::InitGlobalManager()
 {
 	KVulkanHeapAllocator::Init();
+
 	KRenderGlobal::PipelineManager.Init(this);
 	KRenderGlobal::FrameResourceManager.Init(this, m_FrameInFlight);
+	KRenderGlobal::MeshManager.Init(this, m_FrameInFlight);
+	KRenderGlobal::ShaderManager.Init(this);
+	KRenderGlobal::TextrueManager.Init(this);
+
 	return true;
 }
 
@@ -788,6 +776,10 @@ bool KVulkanRenderDevice::UnInitGlobalManager()
 {
 	KRenderGlobal::PipelineManager.UnInit();
 	KRenderGlobal::FrameResourceManager.UnInit();
+	KRenderGlobal::MeshManager.UnInit();
+	KRenderGlobal::ShaderManager.UnInit();
+	KRenderGlobal::TextrueManager.UnInit();
+
 	KVulkanHeapAllocator::UnInit();
 	return true;
 }
@@ -1109,37 +1101,24 @@ bool KVulkanRenderDevice::UnInit()
 		m_QuadData.vertexBuffer->UnInit();
 		m_QuadData.vertexBuffer = nullptr;
 	}
-	if(m_Texture)
-	{
-		m_Texture->UnInit();
-		m_Texture = nullptr;
-	}
+	
+	KRenderGlobal::TextrueManager.Release(m_Texture);
+	m_Texture = nullptr;
+
 	if(m_Sampler)
 	{
 		m_Sampler->UnInit();
 		m_Sampler = nullptr;
 	}
 
-	if(m_SceneVertexShader)
-	{
-		m_SceneVertexShader->UnInit();
-		m_SceneVertexShader = nullptr;
-	}
-	if(m_SceneFragmentShader)
-	{
-		m_SceneFragmentShader->UnInit();
-		m_SceneFragmentShader = nullptr;
-	}
-	if(m_PostVertexShader)
-	{
-		m_PostVertexShader->UnInit();
-		m_PostVertexShader = nullptr;
-	}
-	if(m_PostFragmentShader)
-	{
-		m_PostFragmentShader->UnInit();
-		m_PostFragmentShader = nullptr;
-	}
+	KRenderGlobal::ShaderManager.Release(m_SceneVertexShader);
+	m_SceneVertexShader = nullptr;
+	KRenderGlobal::ShaderManager.Release(m_SceneFragmentShader);
+	m_SceneFragmentShader = nullptr;
+	KRenderGlobal::ShaderManager.Release(m_PostVertexShader);
+	m_PostVertexShader = nullptr;
+	KRenderGlobal::ShaderManager.Release(m_PostFragmentShader);
+	m_PostFragmentShader = nullptr;
 
 	// clear command buffers
 	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)

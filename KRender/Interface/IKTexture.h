@@ -21,4 +21,6 @@ struct IKTexture
 
 	virtual TextureType GetTextureType() = 0;
 	virtual ElementFormat GetTextureFormat() = 0;
+
+	virtual const char* GetPath() = 0;
 };

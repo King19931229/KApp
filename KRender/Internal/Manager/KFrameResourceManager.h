@@ -1,6 +1,6 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
-#include "KConstantDefinition.h"
+#include "Internal/KConstantDefinition.h"
 
 class KFrameResourceManager
 {

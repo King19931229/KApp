@@ -173,12 +173,11 @@ void KUIOverlayBase::PrepareResources()
 void KUIOverlayBase::PreparePipeline()
 {
 	VertexFormat vertexFormats[] = {VF_GUI_POS_UV_COLOR};
-	VertexInputDetail detail = { vertexFormats, ARRAY_SIZE(vertexFormats) };
 
 	for(size_t i = 0; i < m_Pipelines.size(); ++i)
 	{
 		IKPipelinePtr pipeline = m_Pipelines[i];
-		pipeline->SetVertexBinding(&detail, 1);
+		pipeline->SetVertexBinding(vertexFormats, 1);
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(true);
 		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);

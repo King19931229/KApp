@@ -1,5 +1,5 @@
 #include "KFrameResourceManager.h"
-#include "KConstantGlobal.h"
+#include "Internal/KConstantGlobal.h"
 
 KFrameResourceManager::KFrameResourceManager()
 	: m_Device(nullptr),

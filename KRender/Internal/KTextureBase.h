@@ -5,6 +5,7 @@
 class KTextureBase : public IKTexture
 {
 protected:
+	std::string m_Path;
 	KCodecResult m_ImageData;
 	ElementFormat m_Format;
 	TextureType m_TextureType;
@@ -32,6 +33,8 @@ public:
 	virtual size_t GetHeight() { return m_Height; }
 	virtual size_t GetDepth() { return m_Depth; }
 	virtual unsigned short GetMipmaps() { return m_Mipmaps; }
+
+	virtual const char* GetPath() { return m_Path.c_str(); }
 
 	virtual TextureType GetTextureType() { return m_TextureType; }
 	virtual ElementFormat GetTextureFormat() { return m_Format; }

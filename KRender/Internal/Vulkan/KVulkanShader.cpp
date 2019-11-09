@@ -57,7 +57,15 @@ bool KVulkanShader::InitFromFile(const std::string path)
 						code.resize(uSize);
 						if(pData->Read(code.data(), uSize))
 						{
-							return InitFromString(code);
+							if(InitFromString(code))
+							{
+								m_Path = path;
+								return true;
+							}
+							else
+							{
+								return false;
+							}
 						}
 					}
 				}
@@ -103,4 +111,9 @@ bool KVulkanShader::UnInit()
 	}
 
 	return true;
+}
+
+const char* KVulkanShader::GetPath()
+{
+	return m_Path.c_str();
 }
