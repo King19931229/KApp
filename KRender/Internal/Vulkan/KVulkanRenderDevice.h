@@ -229,6 +229,8 @@ public:
 
 	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui);
 
+	virtual bool Render(void* commandBufferPtr, IKRenderTarget* target, const KRenderCommand& command);
+
 	virtual bool Present();
 
 	bool Wait();

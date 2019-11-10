@@ -1444,6 +1444,14 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t chai
 			}
 		}
 	}
+
+	KRenderCommandList commandList;
+	m_TestMesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, commandList);
+
+	for(const KRenderCommand& command : commandList)
+	{
+		Render(&commandBuffer, target, command);
+	}
 	VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
@@ -1536,6 +1544,14 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 						vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, m_ObjectConstantLoc.offset, m_ObjectConstant.size, &model);
 						vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
 					}
+				}
+
+				KRenderCommandList commandList;
+				m_TestMesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, commandList);
+
+				for(const KRenderCommand& command : commandList)
+				{
+					Render(&commandBuffer, target, command);
 				}
 			}
 			// 结束渲染过程
@@ -1926,6 +1942,83 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 		}
 
 	}
+	return true;
+}
+
+bool KVulkanRenderDevice::Render(void* commandBufferPtr, IKRenderTarget* target, const KRenderCommand& command)
+{
+	if(!command.Complete())
+	{
+		assert(false && "render command not complete. check the logic");
+		return false;
+	}
+
+	VkCommandBuffer commandBuffer = *((VkCommandBuffer*)commandBufferPtr);
+
+	KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target;
+	KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)command.pipeline;
+	IKPipelineHandlePtr pipelineHandle = nullptr;
+
+	ASSERT_RESULT(KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline, vulkanTarget, pipelineHandle));
+
+	VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
+
+	VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
+	VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
+
+	// 绑定管线
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+	// 绑定管线布局
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
+	// 设置视口与裁剪
+	VkOffset2D offset = {0, 0};
+	VkExtent2D extent = vulkanTarget->GetExtend();
+
+	VkRect2D scissorRect = { offset, extent};
+	VkViewport viewPort = 
+	{
+		0.0f,
+		0.0f,
+		(float)extent.width,
+		(float)extent.height,
+		0.0f,
+		1.0f 
+	};
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewPort);
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
+
+	// 绑定顶点缓冲
+	VkBuffer vertexBuffers[32] = {0};
+	VkDeviceSize offsets[32] = {0};
+
+	uint32_t vertexBufferCount = static_cast<uint32_t>(command.vertexData->vertexBuffers.size());
+
+	assert(vertexBufferCount < 32);
+
+	for(uint32_t i = 0; i < vertexBufferCount; ++i)
+	{
+		IKVertexBufferPtr vertexBuffer = command.vertexData->vertexBuffers[i];
+		vertexBuffers[i] = ((KVulkanVertexBuffer*)vertexBuffer.get())->GetVulkanHandle();
+		offsets[i] = 0;
+	}
+
+	vkCmdBindVertexBuffers(commandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
+
+	// TODO how to push constant
+
+	if(command.indexDraw)
+	{
+		// 绑定索引缓冲
+		KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
+		vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+		vkCmdDrawIndexed(commandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+	}
+	else
+	{
+		vkCmdDraw(commandBuffer, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
+	}
+
 	return true;
 }
 

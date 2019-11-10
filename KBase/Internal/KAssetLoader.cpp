@@ -136,12 +136,12 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 					{
 					case AVC_POSITION_3F:
 						vertexBuffer.push_back(pPos->x * scale[0] + center[0]);
-						vertexBuffer.push_back(-pPos->y * scale[1] + center[1]);
+						vertexBuffer.push_back(pPos->y * scale[1] + center[1]);
 						vertexBuffer.push_back(pPos->z * scale[2] + center[2]);
 						break;
 					case AVC_NORMAL_3F:
 						vertexBuffer.push_back(pNormal->x);
-						vertexBuffer.push_back(-pNormal->y);
+						vertexBuffer.push_back(pNormal->y);
 						vertexBuffer.push_back(pNormal->z);
 						break;
 					case AVC_UV_2F:

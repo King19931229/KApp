@@ -1,6 +1,6 @@
 #pragma once
 #include "Internal/KVertexDefinition.h"
-#include "Internal/KRenderCommand.h"
+#include "Interface/IKRenderDevice.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KSubMesh.h"
 

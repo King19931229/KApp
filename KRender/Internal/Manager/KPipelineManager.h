@@ -25,4 +25,7 @@ public:
 	bool InvaildateHandleByRt(IKRenderTarget* target);
 	bool InvaildateHandleByPipeline(IKPipeline* pipeline);
 	bool InvaildateAllHandle();
+
+	bool CreatePipeline(IKPipelinePtr& pipeline);
+	bool DestroyPipeline(IKPipelinePtr& pipeline);
 };

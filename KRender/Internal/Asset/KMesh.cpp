@@ -141,8 +141,6 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 				));
 			ASSERT_RESULT(indexData.indexBuffer->InitDevice(false));
 
-			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, frameInFlight));
-
 			KMaterialPtr material = KMaterialPtr(new KMaterial());
 			if(!subPart.material.diffuse.empty())
 			{
@@ -157,7 +155,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 				material->ResignTexture(2, subPart.material.normal.c_str());
 			}
 
-			ASSERT_RESULT(subMesh->ResignMaterial(material));
+			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, frameInFlight));
 		}
 		m_Path = szPath;
 		return true;

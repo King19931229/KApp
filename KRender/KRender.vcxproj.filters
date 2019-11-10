@@ -150,9 +150,6 @@
     <ClInclude Include="Internal\Object\KSkyBox.h">
       <Filter>Internal\Object</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\KRenderCommand.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Asset\KMesh.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>

@@ -1,6 +1,6 @@
 #pragma once
 #include "Internal/KVertexDefinition.h"
-#include "Internal/KRenderCommand.h"
+#include "Interface/IKRenderDevice.h"
 #include "KMaterial.h"
 
 class KSubMesh
@@ -31,11 +31,9 @@ public:
 	KSubMesh(KMesh* parent);
 	~KSubMesh();
 
-	bool Init(const KVertexData* vertexData, const KIndexData& indexData, size_t frameInFlight);
+	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialPtr material, size_t frameInFlight);
 	bool UnInit();
 
-	bool ResignMaterial(KMaterialPtr material);
-	
 	bool AppendRenderList(PipelineStage stage, size_t frameIndex, KRenderCommandList& list);
 };
 

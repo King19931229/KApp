@@ -138,3 +138,18 @@ bool KPipelineManager::InvaildateAllHandle()
 	m_RenderPipelineMap.clear();
 	return true;
 }
+
+bool KPipelineManager::CreatePipeline(IKPipelinePtr& pipeline)
+{
+	return m_Device->CreatePipeline(pipeline);
+}
+
+bool KPipelineManager::DestroyPipeline(IKPipelinePtr& pipeline)
+{
+	if(pipeline)
+	{
+		pipeline->UnInit();
+		pipeline = nullptr;
+	}
+	return true;
+}

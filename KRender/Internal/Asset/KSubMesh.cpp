@@ -22,13 +22,15 @@ KSubMesh::~KSubMesh()
 
 }
 
-bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, size_t frameInFlight)
+bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialPtr material, size_t frameInFlight)
 {
 	UnInit();
 
 	m_pVertexData = vertexData;
 	m_IndexData = indexData;
 	m_FrameInFlight = frameInFlight;
+
+	m_Material = material;
 
 	m_ObjectConstant.shaderTypes = ST_VERTEX;
 	m_ObjectConstant.size = (int)KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT).bufferSize;
@@ -37,9 +39,9 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	{
 		FramePipelineList& pipelines = m_Pipelines[i];
 		pipelines.resize(m_FrameInFlight);
-		for(IKPipelinePtr& pipeline : pipelines)
+		for(size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
 		{
-			pipeline = nullptr;
+			ASSERT_RESULT(CreatePipeline((PipelineStage)i, frameIndex, pipelines[frameIndex]));
 		}
 	}
 
@@ -57,12 +59,8 @@ bool KSubMesh::UnInit()
 		FramePipelineList& pipelines = m_Pipelines[i];
 		for(IKPipelinePtr& pipeline : pipelines)
 		{
-			// pipeline can actually be empty for not being created yet
-			if(pipeline)
-			{
-				pipeline->UnInit();
-				pipeline = nullptr;
-			}
+			KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
+			pipeline = nullptr;
 		}
 		pipelines.clear();
 	}
@@ -76,17 +74,6 @@ bool KSubMesh::UnInit()
 	return true;
 }
 
-bool KSubMesh::ResignMaterial(KMaterialPtr material)
-{
-	if(m_Material)
-	{
-		m_Material->UnInit();
-		m_Material = nullptr;
-	}
-	m_Material = material;
-	return true;
-}
-
 bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline)
 {
 	assert(m_pVertexData);
@@ -97,12 +84,14 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 
 	if(stage == PIPELINE_STAGE_OPAQUE)
 	{
+		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+
 		pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
 		// hard code for now
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shader.vert", m_SceneVSShader));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.vert", m_SceneVSShader));
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.frag", m_SceneFSShader));
 
 		pipeline->SetShader(ST_VERTEX, m_SceneVSShader);
@@ -111,24 +100,32 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetBlendEnable(false);
 
 		pipeline->SetCullMode(CM_BACK);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
+
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(0, ST_VERTEX, cameraBuffer);
 
-		// hard code for now
-		// 0:diffuse 1:specular 2:normal
-		KMaterialTextureInfo diffuseMap = m_Material->GetTexture(0);
-		KMaterialTextureInfo specularMap = m_Material->GetTexture(1);
-		KMaterialTextureInfo normalMap = m_Material->GetTexture(2);
+		IKUniformBufferPtr objectBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_OBJECT);
+		pipeline->SetConstantBuffer(1, ST_VERTEX, objectBuffer);
 
-		if(diffuseMap.texture && diffuseMap.sampler)
+		if(m_Material)
 		{
-			pipeline->SetSampler(1, diffuseMap.texture->GetImageView(), diffuseMap.sampler);
+			// hard code for now
+			// 0:diffuse 1:specular 2:normal
+			KMaterialTextureInfo diffuseMap = m_Material->GetTexture(0);
+			KMaterialTextureInfo specularMap = m_Material->GetTexture(1);
+			KMaterialTextureInfo normalMap = m_Material->GetTexture(2);
+
+			if(diffuseMap.texture && diffuseMap.sampler)
+			{
+				pipeline->SetSampler(2, diffuseMap.texture->GetImageView(), diffuseMap.sampler);
+			}
 		}
 
-		pipeline->PushConstantBlock(m_ObjectConstant, m_ObjectConstantLoc);
+		//pipeline->PushConstantBlock(m_ObjectConstant, m_ObjectConstantLoc);
 
 		pipeline->Init();
 		return true;
@@ -155,13 +152,15 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderC
 
 	FramePipelineList& pipelines = m_Pipelines[stage];
 	assert(frameIndex < pipelines.size());
-	IKPipelinePtr& pipeline = pipelines[frameIndex];
 
-	if(pipeline == nullptr)
-	{
-		return CreatePipeline(stage, frameIndex, pipeline);
-	}
-	return false;
+	IKPipelinePtr& pipeline = pipelines[frameIndex];
+	assert(pipeline);
+
+	command.vertexData = m_pVertexData;
+	command.indexData = &m_IndexData;
+	command.pipeline = pipeline.get();
+
+	return true;
 }
 
 bool KSubMesh::AppendRenderList(PipelineStage stage, size_t frameIndex,	KRenderCommandList& list)
@@ -169,7 +168,7 @@ bool KSubMesh::AppendRenderList(PipelineStage stage, size_t frameIndex,	KRenderC
 	KRenderCommand command;
 	if(GetRenderCommand(stage, frameIndex, command))
 	{
-		list.push_back(std::move(command));
+		list.push_back(command);
 		return true;
 	}
 
