@@ -10,6 +10,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KBase", "KBase\KBase.vcxproj", "{93B9C2FE-9463-44F0-B9D4-435B28F9AC49}"
 	ProjectSection(ProjectDependencies) = postProject
 		{07973995-7C7D-3216-9364-E698F2554571} = {07973995-7C7D-3216-9364-E698F2554571}
+		{624048AA-A8C5-43DB-8108-39838C785174} = {624048AA-A8C5-43DB-8108-39838C785174}
 		{084FDDAE-48AE-4454-AF02-5D5960AC35AC} = {084FDDAE-48AE-4454-AF02-5D5960AC35AC}
 		{961104EC-2331-46A3-AF3C-AFE29793B96B} = {961104EC-2331-46A3-AF3C-AFE29793B96B}
 		{9E219DF2-315D-478E-8A07-8960C377CE1E} = {9E219DF2-315D-478E-8A07-8960C377CE1E}
@@ -368,6 +369,63 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "assimp", "Dependency\assimp
 		{71906CA7-EC0D-3007-B6DC-A09F6E068C08} = {71906CA7-EC0D-3007-B6DC-A09F6E068C08}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tinyxml2", "tinyxml2", "{C733AEB7-9FE5-4E13-9A3A-6133AF51B5BD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "rapidjson", "rapidjson", "{28B8BDE8-1041-4DC7-BE0F-0B104B22A66C}"
+	ProjectSection(SolutionItems) = preProject
+		Dependency\rapidjson\include\rapidjson\allocators.h = Dependency\rapidjson\include\rapidjson\allocators.h
+		Dependency\rapidjson\include\rapidjson\cursorstreamwrapper.h = Dependency\rapidjson\include\rapidjson\cursorstreamwrapper.h
+		Dependency\rapidjson\include\rapidjson\document.h = Dependency\rapidjson\include\rapidjson\document.h
+		Dependency\rapidjson\include\rapidjson\encodedstream.h = Dependency\rapidjson\include\rapidjson\encodedstream.h
+		Dependency\rapidjson\include\rapidjson\encodings.h = Dependency\rapidjson\include\rapidjson\encodings.h
+		Dependency\rapidjson\include\rapidjson\filereadstream.h = Dependency\rapidjson\include\rapidjson\filereadstream.h
+		Dependency\rapidjson\include\rapidjson\filewritestream.h = Dependency\rapidjson\include\rapidjson\filewritestream.h
+		Dependency\rapidjson\include\rapidjson\fwd.h = Dependency\rapidjson\include\rapidjson\fwd.h
+		Dependency\rapidjson\include\rapidjson\istreamwrapper.h = Dependency\rapidjson\include\rapidjson\istreamwrapper.h
+		Dependency\rapidjson\include\rapidjson\memorybuffer.h = Dependency\rapidjson\include\rapidjson\memorybuffer.h
+		Dependency\rapidjson\include\rapidjson\memorystream.h = Dependency\rapidjson\include\rapidjson\memorystream.h
+		Dependency\rapidjson\include\rapidjson\ostreamwrapper.h = Dependency\rapidjson\include\rapidjson\ostreamwrapper.h
+		Dependency\rapidjson\include\rapidjson\pointer.h = Dependency\rapidjson\include\rapidjson\pointer.h
+		Dependency\rapidjson\include\rapidjson\prettywriter.h = Dependency\rapidjson\include\rapidjson\prettywriter.h
+		Dependency\rapidjson\include\rapidjson\rapidjson.h = Dependency\rapidjson\include\rapidjson\rapidjson.h
+		Dependency\rapidjson\include\rapidjson\reader.h = Dependency\rapidjson\include\rapidjson\reader.h
+		Dependency\rapidjson\include\rapidjson\schema.h = Dependency\rapidjson\include\rapidjson\schema.h
+		Dependency\rapidjson\include\rapidjson\stream.h = Dependency\rapidjson\include\rapidjson\stream.h
+		Dependency\rapidjson\include\rapidjson\stringbuffer.h = Dependency\rapidjson\include\rapidjson\stringbuffer.h
+		Dependency\rapidjson\include\rapidjson\writer.h = Dependency\rapidjson\include\rapidjson\writer.h
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tinyxml2", "Dependency\tinyxml2\tinyxml2.vcxproj", "{624048AA-A8C5-43DB-8108-39838C785174}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "error", "error", "{852B8826-8AAF-43B0-B623-6585778E0BDB}"
+	ProjectSection(SolutionItems) = preProject
+		Dependency\rapidjson\include\rapidjson\error\en.h = Dependency\rapidjson\include\rapidjson\error\en.h
+		Dependency\rapidjson\include\rapidjson\error\error.h = Dependency\rapidjson\include\rapidjson\error\error.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "internal", "internal", "{A76CC5E1-5ED3-44A3-9A62-83972B0F3F3D}"
+	ProjectSection(SolutionItems) = preProject
+		Dependency\rapidjson\include\rapidjson\internal\biginteger.h = Dependency\rapidjson\include\rapidjson\internal\biginteger.h
+		Dependency\rapidjson\include\rapidjson\internal\clzll.h = Dependency\rapidjson\include\rapidjson\internal\clzll.h
+		Dependency\rapidjson\include\rapidjson\internal\diyfp.h = Dependency\rapidjson\include\rapidjson\internal\diyfp.h
+		Dependency\rapidjson\include\rapidjson\internal\dtoa.h = Dependency\rapidjson\include\rapidjson\internal\dtoa.h
+		Dependency\rapidjson\include\rapidjson\internal\ieee754.h = Dependency\rapidjson\include\rapidjson\internal\ieee754.h
+		Dependency\rapidjson\include\rapidjson\internal\itoa.h = Dependency\rapidjson\include\rapidjson\internal\itoa.h
+		Dependency\rapidjson\include\rapidjson\internal\meta.h = Dependency\rapidjson\include\rapidjson\internal\meta.h
+		Dependency\rapidjson\include\rapidjson\internal\pow10.h = Dependency\rapidjson\include\rapidjson\internal\pow10.h
+		Dependency\rapidjson\include\rapidjson\internal\regex.h = Dependency\rapidjson\include\rapidjson\internal\regex.h
+		Dependency\rapidjson\include\rapidjson\internal\stack.h = Dependency\rapidjson\include\rapidjson\internal\stack.h
+		Dependency\rapidjson\include\rapidjson\internal\strfunc.h = Dependency\rapidjson\include\rapidjson\internal\strfunc.h
+		Dependency\rapidjson\include\rapidjson\internal\strtod.h = Dependency\rapidjson\include\rapidjson\internal\strtod.h
+		Dependency\rapidjson\include\rapidjson\internal\swap.h = Dependency\rapidjson\include\rapidjson\internal\swap.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "msinttypes", "msinttypes", "{378ECAAF-4C6A-47F9-955C-82D383E8FAEB}"
+	ProjectSection(SolutionItems) = preProject
+		Dependency\rapidjson\include\rapidjson\msinttypes\inttypes.h = Dependency\rapidjson\include\rapidjson\msinttypes\inttypes.h
+		Dependency\rapidjson\include\rapidjson\msinttypes\stdint.h = Dependency\rapidjson\include\rapidjson\msinttypes\stdint.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -528,6 +586,14 @@ Global
 		{07973995-7C7D-3216-9364-E698F2554571}.Release|Win32.Build.0 = Release|Win32
 		{07973995-7C7D-3216-9364-E698F2554571}.Release|x64.ActiveCfg = Release|x64
 		{07973995-7C7D-3216-9364-E698F2554571}.Release|x64.Build.0 = Release|x64
+		{624048AA-A8C5-43DB-8108-39838C785174}.Debug|Win32.ActiveCfg = Debug|Win32
+		{624048AA-A8C5-43DB-8108-39838C785174}.Debug|Win32.Build.0 = Debug|Win32
+		{624048AA-A8C5-43DB-8108-39838C785174}.Debug|x64.ActiveCfg = Debug|x64
+		{624048AA-A8C5-43DB-8108-39838C785174}.Debug|x64.Build.0 = Debug|x64
+		{624048AA-A8C5-43DB-8108-39838C785174}.Release|Win32.ActiveCfg = Release|Win32
+		{624048AA-A8C5-43DB-8108-39838C785174}.Release|Win32.Build.0 = Release|Win32
+		{624048AA-A8C5-43DB-8108-39838C785174}.Release|x64.ActiveCfg = Release|x64
+		{624048AA-A8C5-43DB-8108-39838C785174}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -540,6 +606,8 @@ Global
 		{D062239C-250A-45F1-B7E4-CE8452C9E074} = {88511D86-7E5A-4AFB-81C3-95F8B8B93757}
 		{C7EA995D-A372-4B9A-A3FC-A245D010DB88} = {88511D86-7E5A-4AFB-81C3-95F8B8B93757}
 		{3B15FECC-2DAE-462F-85DE-EFF109B52B3D} = {88511D86-7E5A-4AFB-81C3-95F8B8B93757}
+		{C733AEB7-9FE5-4E13-9A3A-6133AF51B5BD} = {88511D86-7E5A-4AFB-81C3-95F8B8B93757}
+		{28B8BDE8-1041-4DC7-BE0F-0B104B22A66C} = {88511D86-7E5A-4AFB-81C3-95F8B8B93757}
 		{097D9F6C-FD0E-4CBC-9676-009012AAECA8} = {0A7EF3F4-A35F-4605-9F84-97423332746A}
 		{244455E0-5F25-4451-9540-F317883E52A8} = {0A7EF3F4-A35F-4605-9F84-97423332746A}
 		{E3536C28-A7F1-4B53-8E52-7D2232F9E098} = {0A7EF3F4-A35F-4605-9F84-97423332746A}
@@ -560,5 +628,9 @@ Global
 		{34062101-421D-46BD-8849-8C8435DD59D3} = {C7EA995D-A372-4B9A-A3FC-A245D010DB88}
 		{71906CA7-EC0D-3007-B6DC-A09F6E068C08} = {3B15FECC-2DAE-462F-85DE-EFF109B52B3D}
 		{07973995-7C7D-3216-9364-E698F2554571} = {3B15FECC-2DAE-462F-85DE-EFF109B52B3D}
+		{624048AA-A8C5-43DB-8108-39838C785174} = {C733AEB7-9FE5-4E13-9A3A-6133AF51B5BD}
+		{852B8826-8AAF-43B0-B623-6585778E0BDB} = {28B8BDE8-1041-4DC7-BE0F-0B104B22A66C}
+		{A76CC5E1-5ED3-44A3-9A62-83972B0F3F3D} = {28B8BDE8-1041-4DC7-BE0F-0B104B22A66C}
+		{378ECAAF-4C6A-47F9-955C-82D383E8FAEB} = {28B8BDE8-1041-4DC7-BE0F-0B104B22A66C}
 	EndGlobalSection
 EndGlobal

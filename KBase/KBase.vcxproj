@@ -163,8 +163,8 @@
       <AdditionalDependencies>FreeImageLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x86/;../Dependency/boost/Publish/Debug/x86/;../Dependency/Python27/Publish/Debug/x86/;../Dependency/assimp-3.3.1/Publish/Debug/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib;assimp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x86/;../Dependency/boost/Publish/Debug/x86/;../Dependency/Python27/Publish/Debug/x86/;../Dependency/assimp-3.3.1/Publish/Debug/x86/;../Dependency/tinyxml2/Publish/Debug/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib;assimp.lib;tinyxml2.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -185,8 +185,8 @@
       <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x64/;../Dependency/boost/Publish/Debug/x64/;../Dependency/Python27/Publish/Debug/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x64/;../Dependency/boost/Publish/Debug/x64/;../Dependency/Python27/Publish/Debug/x64/;../Dependency/assimp-3.3.1/Publish/Debug/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib;assimp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x64/;../Dependency/boost/Publish/Debug/x64/;../Dependency/Python27/Publish/Debug/x64/;../Dependency/assimp-3.3.1/Publish/Debug/x64/;../Dependency/tinyxml2/Publish/Debug/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib;assimp.lib;tinyxml2.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -208,8 +208,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x86/;../Dependency/boost/Publish/Release/x86/;../Dependency/Python27/Publish/Release/x86/;../Dependency/assimp-3.3.1/Publish/Release/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib;assimp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x86/;../Dependency/boost/Publish/Release/x86/;../Dependency/Python27/Publish/Release/x86/;../Dependency/assimp-3.3.1/Publish/Release/x86/;../Dependency/tinyxml2/Publish/Release/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib;assimp.lib;tinyxml2.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -231,8 +231,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x64/;../Dependency/boost/Publish/Release/x64/;../Dependency/Python27/Publish/Release/x64/;../Dependency/assimp-3.3.1/Publish/Release/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib;assimp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x64/;../Dependency/boost/Publish/Release/x64/;../Dependency/Python27/Publish/Release/x64/;../Dependency/assimp-3.3.1/Publish/Release/x64/;../Dependency/tinyxml2/Publish/Release/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;python27.lib;assimp.lib;tinyxml2.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
