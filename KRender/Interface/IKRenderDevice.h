@@ -66,6 +66,14 @@ struct KRenderCommand
 	const IKPipeline* pipeline;
 	bool indexDraw;
 
+	KRenderCommand()
+	{
+		vertexData = nullptr;
+		indexData = nullptr;
+		pipeline = nullptr;
+		indexDraw = false;
+	}
+
 	bool Complete() const
 	{
 		if(!vertexData || !pipeline)

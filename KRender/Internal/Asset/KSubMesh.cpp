@@ -159,6 +159,7 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderC
 	command.vertexData = m_pVertexData;
 	command.indexData = &m_IndexData;
 	command.pipeline = pipeline.get();
+	command.indexDraw = true;
 
 	return true;
 }
