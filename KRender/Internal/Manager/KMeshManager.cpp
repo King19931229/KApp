@@ -36,7 +36,7 @@ bool KMeshManager::UnInit()
 	return true;
 }
 
-bool KMeshManager::Acquire(const char* path, KMeshPtr& ptr)
+bool KMeshManager::AcquireImpl(const char* path, bool fromAsset, KMeshPtr& ptr)
 {
 	auto it = m_Meshes.find(path);
 
@@ -49,7 +49,18 @@ bool KMeshManager::Acquire(const char* path, KMeshPtr& ptr)
 	}
 
 	ptr = KMeshPtr(new KMesh());
-	if(ptr->InitFromFile(path, m_FrameInFlight))
+
+	bool bRetValue = false;
+	if(fromAsset)
+	{
+		bRetValue = ptr->InitFromAsset(path, m_Device, m_FrameInFlight);
+	}
+	else
+	{
+		bRetValue = ptr->InitFromFile(path, m_Device, m_FrameInFlight);
+	}
+
+	if(bRetValue)
 	{
 		MeshUsingInfo info = { 1, ptr };
 		m_Meshes[path] = info;
@@ -58,6 +69,16 @@ bool KMeshManager::Acquire(const char* path, KMeshPtr& ptr)
 
 	ptr = nullptr;
 	return false;
+}
+
+bool KMeshManager::Acquire(const char* path, KMeshPtr& ptr)
+{
+	return AcquireImpl(path, false, ptr);
+}
+
+bool KMeshManager::AcquireFromAsset(const char* path, KMeshPtr& ptr)
+{
+	return AcquireImpl(path, true, ptr);
 }
 
 bool KMeshManager::Release(KMeshPtr& ptr)

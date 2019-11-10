@@ -115,6 +115,14 @@ namespace KFileTool
 
 			std::string trimSubPath = subPath;
 			std::replace(trimSubPath.begin(), trimSubPath.end(), '\\', '/');
+
+			// remove extra "./"
+			if(trimSubPath.substr(0, 2) == "./")
+			{
+				trimSubPath.erase(0, 2);
+			}
+
+			// remove extra "///////"
 			if(trimSubPath.at(0) == '/')
 			{
 				std::string::size_type firstPos = trimSubPath.find_first_not_of('/');
@@ -131,4 +139,24 @@ namespace KFileTool
 		return false;
 	}
 
+	bool ParentFolder(const std::string& path, std::string& parentFolder)
+	{
+		if(!path.empty())
+		{
+			std::string trimPath = path;
+			std::replace(trimPath.begin(), trimPath.end(), '\\', '/');
+			std::string::size_type lastPos = trimPath.find_last_of("/");
+
+			if(lastPos != std::string::npos)
+			{
+				parentFolder = path.substr(0, lastPos);
+			}
+			else
+			{
+				parentFolder = path;
+			}
+			return true;
+		}
+		return false;
+	}
 }

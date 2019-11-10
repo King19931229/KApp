@@ -601,6 +601,11 @@ bool KVulkanRenderDevice::UpdateFrameTime()
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateMesh()
+{
+	return	KRenderGlobal::MeshManager.AcquireFromAsset("../Dependency/assimp-3.3.1/test/models/OBJ/spider.obj", m_TestMesh);
+}
+
 bool KVulkanRenderDevice::CreateVertexInput()
 {
 	using namespace KVertexDefinition;
@@ -707,7 +712,7 @@ bool KVulkanRenderDevice::CreateResource()
 	m_Sampler->Init();
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shader.vert", m_SceneVertexShader));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shader.frag", m_SceneFragmentShader));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/demo.frag", m_SceneFragmentShader));
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/screenquad.vert", m_PostVertexShader));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/screenquad.frag", m_PostFragmentShader));
@@ -974,6 +979,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			return false;
 
 		// Temporarily for demo use
+		if(!CreateMesh())
+			return false;
 		if(!CreateVertexInput())
 			return false;
 		if(!CreateTransform())
@@ -1101,6 +1108,9 @@ bool KVulkanRenderDevice::UnInit()
 		m_QuadData.vertexBuffer->UnInit();
 		m_QuadData.vertexBuffer = nullptr;
 	}
+
+	KRenderGlobal::MeshManager.Release(m_TestMesh);
+	m_TestMesh = nullptr;
 	
 	KRenderGlobal::TextrueManager.Release(m_Texture);
 	m_Texture = nullptr;

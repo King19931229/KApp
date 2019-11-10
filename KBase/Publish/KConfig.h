@@ -28,7 +28,7 @@
 #define MEMBER_OFFSET(structure, member) ((int)&((structure*)0)->member)
 #define MEMBER_SIZE(structure, member) (sizeof(((structure*)0)->member))
 
-#define POINTER_OFFSET(p, offset) ((void*)((char*)p + offset))
+#define POINTER_OFFSET(p, offset) ((void*)((char*)(p) + offset))
 
 #define ZERO_MEMORY(variable) { memset(&variable, 0, sizeof(variable)); }
 #define ZERO_ARRAY_MEMORY(arr) { memset(arr, 0, sizeof(arr)); }

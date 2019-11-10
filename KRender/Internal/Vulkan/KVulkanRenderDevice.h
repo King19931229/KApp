@@ -11,6 +11,8 @@
 #include "KBase/Publish/KThreadPool.h"
 #include "KBase/Publish/KTimer.h"
 
+#include "Internal/KRenderGlobal.h"
+
 #include "Publish/KCamera.h"
 #include "Publish/KAABBBox.h"
 
@@ -72,6 +74,7 @@ protected:
 	IKShaderPtr m_PostVertexShader;
 	IKShaderPtr m_PostFragmentShader;
 
+	KMeshPtr m_TestMesh;
 	
 	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
 
@@ -176,6 +179,7 @@ protected:
 	bool CreateCommandPool();
 
 	// Temporarily for demo use
+	bool CreateMesh();
 	bool CreateVertexInput();
 	bool CreateTransform();
 	bool CreateResource();

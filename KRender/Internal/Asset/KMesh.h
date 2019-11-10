@@ -1,6 +1,7 @@
 #pragma once
 #include "Internal/KVertexDefinition.h"
 #include "Internal/KRenderCommand.h"
+#include "KBase/Interface/IKAssetLoader.h"
 #include "KSubMesh.h"
 
 class KMesh
@@ -10,13 +11,16 @@ protected:
 	KVertexData m_VertexData;
 	std::vector<KSubMeshPtr> m_SubMeshes;
 	std::string m_Path;
+
+	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group);
 public:
 	KMesh();
 	~KMesh();
 
 	bool SaveAsFile(const char* szPath);
 
-	bool InitFromFile(const char* szPath, size_t frameInFlight);
+	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
+	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
 	bool UnInit();
 
 	const std::string& GetPath() const { return m_Path; }

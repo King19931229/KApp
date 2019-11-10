@@ -78,10 +78,15 @@ int main()
 	InitAssetLoaderManager();
 
 	IKAssetLoaderPtr loader = GetAssetLoader();
+
+	KAssetImportOption::ComponentGroup group;
+	group.push_back(AVC_POSITION_3F);
+	group.push_back(AVC_NORMAL_3F);
+	group.push_back(AVC_UV_2F);
+
 	KAssetImportOption option;
-	option.components.push_back(AVC_POSITION_3F);
-	option.components.push_back(AVC_NORMAL_3F);
-	option.components.push_back(AVC_UV_2F);
+	option.components.push_back(std::move(group));
+
 	KAssetImportResult result;
 
 	loader->Import("../Dependency/assimp-3.3.1/test/models/OBJ/spider.obj", option, result);
@@ -90,7 +95,7 @@ int main()
 	if(window)
 	{
 		IKRenderDevicePtr device = CreateRenderDevice(RD_VULKAN);
-		
+
 		window->Init(60, 60, 1024, 768, true);
 		device->Init(window);
 		/*

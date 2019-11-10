@@ -81,3 +81,18 @@ bool KTextureManager::Release(IKTexturePtr& texture)
 	}
 	return false;
 }
+
+bool KTextureManager::CreateSampler(IKSamplerPtr& sampler)
+{
+	return m_Device->CreateSampler(sampler);
+}
+
+bool KTextureManager::DestroySampler(IKSamplerPtr& sampler)
+{
+	if(sampler)
+	{
+		sampler->UnInit();
+		sampler = nullptr;
+	}
+	return true;
+}

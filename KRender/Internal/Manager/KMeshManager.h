@@ -14,6 +14,8 @@ protected:
 	MeshMap m_Meshes;
 	IKRenderDevice* m_Device;
 	size_t m_FrameInFlight;
+
+	bool AcquireImpl(const char* path, bool fromAsset, KMeshPtr& ptr);
 public:
 	KMeshManager();
 	~KMeshManager();
@@ -22,5 +24,6 @@ public:
 	bool UnInit();
 
 	bool Acquire(const char* path, KMeshPtr& ptr);
+	bool AcquireFromAsset(const char* path, KMeshPtr& ptr);
 	bool Release(KMeshPtr& ptr);
 };

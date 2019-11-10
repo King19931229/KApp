@@ -11,6 +11,7 @@ class KAssetLoader : public IKAssetLoader
 {
 protected:
 	Assimp::Importer m_Importer;
+	std::string m_AssetFolder;
 
 	bool ImportAiScene(const aiScene* scene, const KAssetImportOption& importOption, KAssetImportResult& result);
 public:

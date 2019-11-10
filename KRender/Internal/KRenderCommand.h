@@ -21,8 +21,12 @@ struct KVertexData
 	void Destroy()
 	{
 		assert(vertexFormats.size() == vertexBuffers.size());
-		vertexFormats.clear();
+		for(IKVertexBufferPtr& buffer : vertexBuffers)
+		{
+			buffer->UnInit();
+		}
 		vertexBuffers.clear();
+		vertexFormats.clear();		
 		vertexStart = 0;
 		vertexCount = 0;
 	}
@@ -43,7 +47,11 @@ struct KIndexData
 
 	void Destroy()
 	{
-		indexBuffer = nullptr;
+		if(indexBuffer)
+		{
+			indexBuffer->UnInit();
+			indexBuffer = nullptr;
+		}
 		indexStart = 0;
 		indexCount = 0;
 	}

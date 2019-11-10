@@ -1,5 +1,6 @@
 #include "KAssetLoader.h"
 #include "Interface/IKDataStream.h"
+#include "Publish/KFileTool.h"
 
 EXPORT_DLL bool InitAssetLoaderManager()
 {
@@ -63,28 +64,55 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 	const float* uvScale = importOption.uvScale;
 
 	auto& extend = result.extend;
-
 	auto& parts = result.parts;
-	parts.resize(scene->mNumMeshes);
 		
 	uint32_t vertexCount = 0;
 	uint32_t indexCount = 0; 
 
-	std::vector<float> vertexBuffer;
+	std::vector<std::vector<float>> vertexBuffers;
 	std::vector<uint32_t> index32Buffer;
+
+	vertexBuffers.resize(importOption.components.size());
 
 	// Load meshes
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++)
 	{
 		const aiMesh* paiMesh = scene->mMeshes[i];
+		if(paiMesh->mNumVertices == 0 || paiMesh->mNumFaces == 0)
+		{
+			continue;
+		}
 
-		parts[i].vertexBase = vertexCount;
-		parts[i].indexBase = indexCount;
+		KAssetImportResult::ModelPart part;
+
+		part.vertexBase = vertexCount;
+		part.indexBase = indexCount;
 
 		vertexCount += scene->mMeshes[i]->mNumVertices;
 
-		aiColor3D pColor(0.f, 0.f, 0.f);
-		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor);
+		aiColor3D pDiffuse(0.f, 0.f, 0.f);
+		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pDiffuse);
+
+		aiColor3D pSpecular(0.f, 0.f, 0.f);
+		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_SPECULAR, pSpecular);
+
+		aiString diffuseMap;
+		if(aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseMap))
+		{
+			KFileTool::PathJoin(m_AssetFolder, diffuseMap.C_Str(), part.material.diffuse);
+		}
+
+		aiString specaulrMap;
+		if(aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_SPECULAR, 0, &specaulrMap))
+		{
+			KFileTool::PathJoin(m_AssetFolder, specaulrMap.C_Str(), part.material.specular);
+		}
+
+		aiString normalMap;
+		if(aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_NORMALS, 0, &normalMap))
+		{
+			KFileTool::PathJoin(m_AssetFolder, normalMap.C_Str(), part.material.normal);
+		}
 
 		const aiVector3D Zero3D(0.0f, 0.0f, 0.0f);
 
@@ -93,45 +121,61 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 			const aiVector3D* pPos = &(paiMesh->mVertices[j]);
 			const aiVector3D* pNormal = &(paiMesh->mNormals[j]);
 			const aiVector3D* pTexCoord = (paiMesh->HasTextureCoords(0)) ? &(paiMesh->mTextureCoords[0][j]) : &Zero3D;
+			const aiVector3D* pTexCoord2 = (paiMesh->HasTextureCoords(1)) ? &(paiMesh->mTextureCoords[1][j]) : &Zero3D;
 			const aiVector3D* pTangent = (paiMesh->HasTangentsAndBitangents()) ? &(paiMesh->mTangents[j]) : &Zero3D;
 			const aiVector3D* pBiTangent = (paiMesh->HasTangentsAndBitangents()) ? &(paiMesh->mBitangents[j]) : &Zero3D;
 
-			for (const AssetVertexComponent& component: importOption.components)
+			for (size_t comIdx = 0; comIdx < importOption.components.size(); ++comIdx)
 			{
-				switch (component)
+				const KAssetImportOption::ComponentGroup& componentGroup = importOption.components[comIdx];
+				std::vector<float>& vertexBuffer = vertexBuffers[comIdx];
+
+				for(const AssetVertexComponent &component : componentGroup)
 				{
-				case AVC_POSITION_3F:
-					vertexBuffer.push_back(pPos->x * scale[0] + center[0]);
-					vertexBuffer.push_back(-pPos->y * scale[1] + center[1]);
-					vertexBuffer.push_back(pPos->z * scale[2] + center[2]);
-					break;
-				case AVC_NORMAL_3F:
-					vertexBuffer.push_back(pNormal->x);
-					vertexBuffer.push_back(-pNormal->y);
-					vertexBuffer.push_back(pNormal->z);
-					break;
-				case AVC_UV_2F:
-					vertexBuffer.push_back(pTexCoord->x * uvScale[0]);
-					vertexBuffer.push_back(pTexCoord->y * uvScale[1]);
-					break;
-				case AVC_COLOR_3F:
-					vertexBuffer.push_back(pColor.r);
-					vertexBuffer.push_back(pColor.g);
-					vertexBuffer.push_back(pColor.b);
-					break;
-				case AVC_TANGENT_3F:
-					vertexBuffer.push_back(pTangent->x);
-					vertexBuffer.push_back(pTangent->y);
-					vertexBuffer.push_back(pTangent->z);
-					break;
-				case AVC_BITANGENT_3F:
-					vertexBuffer.push_back(pBiTangent->x);
-					vertexBuffer.push_back(pBiTangent->y);
-					vertexBuffer.push_back(pBiTangent->z);
-					break;
-				default:
-					assert(false && "unknown format");
-				};
+					switch (component)
+					{
+					case AVC_POSITION_3F:
+						vertexBuffer.push_back(pPos->x * scale[0] + center[0]);
+						vertexBuffer.push_back(-pPos->y * scale[1] + center[1]);
+						vertexBuffer.push_back(pPos->z * scale[2] + center[2]);
+						break;
+					case AVC_NORMAL_3F:
+						vertexBuffer.push_back(pNormal->x);
+						vertexBuffer.push_back(-pNormal->y);
+						vertexBuffer.push_back(pNormal->z);
+						break;
+					case AVC_UV_2F:
+						vertexBuffer.push_back(pTexCoord->x * uvScale[0]);
+						vertexBuffer.push_back(pTexCoord->y * uvScale[1]);
+						break;
+					case AVC_UV2_2F:
+						vertexBuffer.push_back(pTexCoord2->x * uvScale[0]);
+						vertexBuffer.push_back(pTexCoord2->y * uvScale[1]);
+						break;
+					case AVC_DIFFUSE_3F:
+						vertexBuffer.push_back(pDiffuse.r);
+						vertexBuffer.push_back(pDiffuse.g);
+						vertexBuffer.push_back(pDiffuse.b);
+						break;
+					case AVC_SPECULAR_3F:
+						vertexBuffer.push_back(pSpecular.r);
+						vertexBuffer.push_back(pSpecular.g);
+						vertexBuffer.push_back(pSpecular.b);
+						break;
+					case AVC_TANGENT_3F:
+						vertexBuffer.push_back(pTangent->x);
+						vertexBuffer.push_back(pTangent->y);
+						vertexBuffer.push_back(pTangent->z);
+						break;
+					case AVC_BINORMAL_3F:
+						vertexBuffer.push_back(pBiTangent->x);
+						vertexBuffer.push_back(pBiTangent->y);
+						vertexBuffer.push_back(pBiTangent->z);
+						break;
+					default:
+						assert(false && "unknown format");
+					};
+				}
 			}
 
 			extend.max[0] = std::max(pPos->x, extend.max[0]);
@@ -143,7 +187,7 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 			extend.min[2] = std::min(pPos->z, extend.min[2]);
 		}
 
-		parts[i].vertexCount = paiMesh->mNumVertices;
+		part.vertexCount = paiMesh->mNumVertices;
 
 		uint32_t indexBase = static_cast<uint32_t>(index32Buffer.size());
 		for (unsigned int j = 0; j < paiMesh->mNumFaces; j++)
@@ -154,16 +198,28 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 			index32Buffer.push_back(indexBase + Face.mIndices[0]);
 			index32Buffer.push_back(indexBase + Face.mIndices[1]);
 			index32Buffer.push_back(indexBase + Face.mIndices[2]);
-			parts[i].indexCount += 3;
+			part.indexCount += 3;
 			indexCount += 3;
 		}
+
+		parts.push_back(std::move(part));
 	}
 
-	auto& verticesData = result.verticesData;
+	auto& verticesDatas = result.verticesDatas;
 	auto& indicesData = result.indicesData;
 
-	verticesData.resize(sizeof(float) * vertexBuffer.size());
-	memcpy(verticesData.data(), vertexBuffer.data(), verticesData.size());
+	verticesDatas.resize(vertexBuffers.size());
+	for(size_t vbIdx = 0; vbIdx < vertexBuffers.size(); ++vbIdx)
+	{
+		auto& verticesData = verticesDatas[vbIdx];
+		const auto& verticesBuffer = vertexBuffers[vbIdx];
+
+		verticesData.resize(verticesBuffer.size() * sizeof(float));
+		memcpy(verticesData.data(), verticesBuffer.data(), verticesData.size());
+	}
+
+	result.vertexCount = vertexCount;
+	result.indexCount = indexCount;
 
 	if(indexCount < 0xFFFF)
 	{
@@ -173,13 +229,14 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 		{
 			index16Buffer[i] = static_cast<uint16_t>(index32Buffer[i]);
 		}
-
+		result.index16Bit = true;
 		indicesData.resize(sizeof(uint16_t) * index16Buffer.size());
 		memcpy(indicesData.data(), index16Buffer.data(), indicesData.size());
 	}
 	else
 	{
-		indicesData.resize(sizeof(uint16_t) * index32Buffer.size());
+		result.index16Bit = false;
+		indicesData.resize(sizeof(uint32_t) * index32Buffer.size());
 		memcpy(indicesData.data(), index32Buffer.data(), indicesData.size());
 	}
 
@@ -194,6 +251,8 @@ bool KAssetLoader::ImportFromMemory(const char* pData, size_t dataSize, const KA
 		LogInfo(m_Importer.GetErrorString());
 		return false;
 	}
+
+	m_AssetFolder.clear();
 
 	// Now we can access the file's contents.
 	if(ImportAiScene(scene, importOption, result))
@@ -211,6 +270,12 @@ bool KAssetLoader::Import(const char* pszFile, const KAssetImportOption& importO
 	if(!scene)
 	{
 		LogInfo(m_Importer.GetErrorString());
+		return false;
+	}
+
+	if(!KFileTool::ParentFolder(pszFile, m_AssetFolder))
+	{
+		assert(false && "no asset folder");
 		return false;
 	}
 

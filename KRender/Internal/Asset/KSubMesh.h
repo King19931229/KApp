@@ -12,7 +12,7 @@ protected:
 	KMesh*					m_pParent;
 	KMaterialPtr			m_Material;
 
-	KVertexData				m_VertexData;
+	const KVertexData*		m_pVertexData;
 	KIndexData				m_IndexData;
 	bool					m_IndexDraw;
 
@@ -22,14 +22,19 @@ protected:
 	PushConstant			m_ObjectConstant;
 	PushConstantLocation	m_ObjectConstantLoc;
 
+	IKShaderPtr				m_SceneVSShader;
+	IKShaderPtr				m_SceneFSShader;
+
 	bool CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline);
 	bool GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderCommand& command);
 public:
-	KSubMesh(KMesh* parent, size_t mtlIndex);
+	KSubMesh(KMesh* parent);
 	~KSubMesh();
 
-	bool Init(const KVertexData& vertexData, const KIndexData& indexData, size_t frameInFlight);
+	bool Init(const KVertexData* vertexData, const KIndexData& indexData, size_t frameInFlight);
 	bool UnInit();
+
+	bool ResignMaterial(KMaterialPtr material);
 	
 	bool AppendRenderList(PipelineStage stage, size_t frameIndex, KRenderCommandList& list);
 };

@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKTexture.h"
+#include "Interface/IKSampler.h"
 
 #include <map>
 
@@ -24,4 +25,8 @@ public:
 
 	bool Acquire(const char* path, IKTexturePtr& texture);
 	bool Release(IKTexturePtr& texture);
+
+	// for now
+	bool CreateSampler(IKSamplerPtr& sampler);
+	bool DestroySampler(IKSamplerPtr& sampler);
 };

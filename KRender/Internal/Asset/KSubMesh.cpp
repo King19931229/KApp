@@ -3,11 +3,13 @@
 
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKPipeline.h"
+#include "Interface/IKSampler.h"
 
 #include "Internal/KRenderGlobal.h"
 
-KSubMesh::KSubMesh(KMesh* parent, size_t mtlIndex)
+KSubMesh::KSubMesh(KMesh* parent)
 	: m_pParent(parent),
+	m_pVertexData(nullptr),
 	m_Material(nullptr),
 	m_FrameInFlight(0),
 	m_IndexDraw(true)
@@ -20,11 +22,11 @@ KSubMesh::~KSubMesh()
 
 }
 
-bool KSubMesh::Init(const KVertexData& vertexData, const KIndexData& indexData, size_t frameInFlight)
+bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, size_t frameInFlight)
 {
 	UnInit();
 
-	m_VertexData = vertexData;
+	m_pVertexData = vertexData;
 	m_IndexData = indexData;
 	m_FrameInFlight = frameInFlight;
 
@@ -46,7 +48,7 @@ bool KSubMesh::Init(const KVertexData& vertexData, const KIndexData& indexData, 
 
 bool KSubMesh::UnInit()
 {
-	m_VertexData.Destroy();
+	m_pVertexData = nullptr;
 	m_IndexData.Destroy();
 	m_FrameInFlight = 0;
 
@@ -55,27 +57,56 @@ bool KSubMesh::UnInit()
 		FramePipelineList& pipelines = m_Pipelines[i];
 		for(IKPipelinePtr& pipeline : pipelines)
 		{
-			pipeline->UnInit();
-			pipeline = nullptr;
+			// pipeline can actually be empty for not being created yet
+			if(pipeline)
+			{
+				pipeline->UnInit();
+				pipeline = nullptr;
+			}
 		}
 		pipelines.clear();
+	}
+
+	if(m_Material)
+	{
+		m_Material->UnInit();
+		m_Material = nullptr;
 	}
 
 	return true;
 }
 
+bool KSubMesh::ResignMaterial(KMaterialPtr material)
+{
+	if(m_Material)
+	{
+		m_Material->UnInit();
+		m_Material = nullptr;
+	}
+	m_Material = material;
+	return true;
+}
+
 bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline)
 {
+	assert(m_pVertexData);
+	if(!m_pVertexData)
+	{
+		return false;
+	}
+
 	if(stage == PIPELINE_STAGE_OPAQUE)
 	{
-		pipeline->SetVertexBinding(m_VertexData.vertexFormats.data(), m_VertexData.vertexFormats.size());
+		pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
-		/*
-		pipeline->SetShader(ST_VERTEX, m_SceneVertexShader);
-		pipeline->SetShader(ST_FRAGMENT, m_SceneFragmentShader);
-		*/
+		// hard code for now
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shader.vert", m_SceneVSShader));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.frag", m_SceneFSShader));
+
+		pipeline->SetShader(ST_VERTEX, m_SceneVSShader);
+		pipeline->SetShader(ST_FRAGMENT, m_SceneFSShader);
 
 		pipeline->SetBlendEnable(false);
 
@@ -86,10 +117,16 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(0, ST_VERTEX, cameraBuffer);
 
-		/*
-		pipeline->SetSampler(1, m_Texture->GetImageView(), m_Sampler);
-		pipeline->SetSampler(2, m_SkyBox.GetCubeTexture()->GetImageView(), m_SkyBox.GetSampler());
-		*/
+		// hard code for now
+		// 0:diffuse 1:specular 2:normal
+		KMaterialTextureInfo diffuseMap = m_Material->GetTexture(0);
+		KMaterialTextureInfo specularMap = m_Material->GetTexture(1);
+		KMaterialTextureInfo normalMap = m_Material->GetTexture(2);
+
+		if(diffuseMap.texture && diffuseMap.sampler)
+		{
+			pipeline->SetSampler(1, diffuseMap.texture->GetImageView(), diffuseMap.sampler);
+		}
 
 		pipeline->PushConstantBlock(m_ObjectConstant, m_ObjectConstantLoc);
 

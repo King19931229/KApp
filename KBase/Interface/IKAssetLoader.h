@@ -7,20 +7,34 @@ enum AssetVertexComponent
 {
 	AVC_POSITION_3F = 0x0,
 	AVC_NORMAL_3F = 0x1,
-	AVC_COLOR_3F = 0x2,
 	AVC_UV_2F = 0x3,
-	AVC_TANGENT_3F = 0x4,
-	AVC_BITANGENT_3F = 0x5,
+
+	AVC_UV2_2F = 0x4,
+
+	AVC_DIFFUSE_3F = 0x5,
+	AVC_SPECULAR_3F = 0x6,
+
+	AVC_TANGENT_3F = 0x7,
+	AVC_BINORMAL_3F = 0x8,
 };
 
 struct KAssetImportResult
 {
-	std::vector<char> verticesData;
+	typedef std::vector<char> VertexDataBuffer;
+
+	std::vector<VertexDataBuffer> verticesDatas;
 	uint32_t vertexCount;
 
 	std::vector<char> indicesData;
 	uint32_t indexCount;
 	bool index16Bit;
+
+	struct Material
+	{
+		std::string diffuse;
+		std::string specular;
+		std::string normal;
+	};
 
 	struct ModelPart
 	{
@@ -28,6 +42,7 @@ struct KAssetImportResult
 		uint32_t vertexCount;
 		uint32_t indexBase;
 		uint32_t indexCount;
+		Material material;
 
 		ModelPart()
 		{
@@ -60,7 +75,8 @@ struct KAssetImportResult
 
 struct KAssetImportOption
 {
-	std::vector<AssetVertexComponent> components;
+	typedef std::vector<AssetVertexComponent> ComponentGroup;
+	std::vector<ComponentGroup> components;
 	float scale[3];
 	float center[3];
 	float uvScale[2];
