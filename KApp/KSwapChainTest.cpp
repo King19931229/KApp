@@ -42,8 +42,12 @@ class SwapChainApp
 	std::vector<KSemaphorePtr> m_presentDoneSem;
 	std::vector<KSemaphorePtr> m_drawDoneSem;
 
+	std::mutex m_vsyncLock;
+	KSemaphorePtr m_vsyncSem;
+
 	std::thread m_presentThread;
 	std::thread m_drawThread;
+	std::thread m_vsyncThread;
 
 	KTimer m_presentTimer;
 	KTimer m_drawTimer;
@@ -57,20 +61,38 @@ public:
 		m_nPresentIdx(0),
 		m_nDrawIdx(1),
 		m_nPresentFrame(0),
-		m_nDrawFrame(0)
+		m_nDrawFrame(0),
+		m_vsyncSem(nullptr)
 	{
 		for(size_t i = 0; i < nSwapChainNum; ++i)
 		{
 			m_presentDoneSem.push_back(KSemaphorePtr(new KSemaphore()));
 			m_drawDoneSem.push_back(KSemaphorePtr(new KSemaphore()));
-			if(m_bVSync)
+
+			if(i != m_nDrawIdx)
 			{
-				if(i != m_nDrawIdx)
-				{
-					m_presentDoneSem[i]->Notify();
-				}
+				m_presentDoneSem[i]->Notify();
 			}
 		}
+
+		m_vsyncThread = std::thread([this]()
+		{
+			while(true)
+			{
+				if(m_nDrawFrame >= m_nMaxDrawFrame)
+				{
+					break;
+				}
+				std::this_thread::sleep_for(std::chrono::milliseconds(16));
+				//printf("[vsync]\n");
+
+				std::lock_guard<decltype(m_vsyncLock)> guard(m_vsyncLock);
+				if(m_vsyncSem)
+				{
+					m_vsyncSem->Notify();
+				}
+			};
+		});
 
 		m_presentThread = std::thread([this]() 
 		{
@@ -80,52 +102,60 @@ public:
 			{
 				size_t nNextPrensentIdx = (m_nPresentIdx + 1) % m_nSwapChainNum;
 				m_nPresentFrame++;
-				if(m_drawDoneSem[nNextPrensentIdx]->TryWait(0))
+
+				if(m_nDrawFrame >= m_nMaxDrawFrame)
 				{
-					m_nPresentIdx = nNextPrensentIdx;
-					//printf("[%d] image on swap chain presenting...\n", m_nPresentIdx);
-					std::this_thread::sleep_for(std::chrono::milliseconds(16));
-					//printf("[%d] image on swap chain presented\n", m_nPresentIdx);
-					if(m_bVSync)
-					{
-						m_presentDoneSem[m_nPresentIdx]->Notify();
-					}
-					if(m_nDrawFrame >= m_nMaxDrawFrame)
-					{
-						break;
-					}
+					break;
 				}
-				else
+
+				m_drawDoneSem[nNextPrensentIdx]->Wait();
+
+				m_nPresentIdx = nNextPrensentIdx;
+				//printf("[%d] image on swap chain presenting...\n", m_nPresentIdx);
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				if(m_bVSync)
 				{
-					std::this_thread::sleep_for(std::chrono::milliseconds(16));
-					//printf("[%d] image on swap chain is not ready for presented yet...\n", nNextPrensentIdx);
+					{
+						std::lock_guard<decltype(m_vsyncLock)> guard(m_vsyncLock);
+						m_vsyncSem = KSemaphorePtr(new KSemaphore()); 
+					}
+
+					m_vsyncSem->Wait();
+
+					{
+						std::lock_guard<decltype(m_vsyncLock)> guard(m_vsyncLock);
+						m_vsyncSem = nullptr;
+					}
+					//printf("vsync singal [%d] image on swap chain. ready to present\n", m_nPresentIdx);
 				}
+				//printf("[%d] image on swap chain presented\n", m_nPresentIdx);
+				m_presentDoneSem[m_nPresentIdx]->Notify();
+
 			}
 			float frametime = m_presentTimer.GetMilliseconds() / (float) m_nPresentFrame;
 			//printf("[present fps] %f\n", 1000.0 / frametime);
 		});
-
 
 		m_drawThread = std::thread([this]() 
 		{
 			m_drawTimer.Reset();
 			while(true)
 			{
+				if(m_nDrawFrame >= m_nMaxDrawFrame)
+				{
+					break;
+				}
+
 				//printf("[%d] image on swap chain drawing...\n", m_nDrawIdx);
 				std::this_thread::sleep_for(std::chrono::milliseconds(m_DrawFrameTime));
 				//printf("[%d] image on swap chain drawed\n", m_nDrawIdx);
 				m_nDrawFrame += 1;
 				m_drawDoneSem[m_nDrawIdx]->Notify();
 				size_t nNextDrawIdx = (m_nDrawIdx + 1) % m_nSwapChainNum;
-				if(m_bVSync)
-				{
-					m_presentDoneSem[nNextDrawIdx]->Wait();
-				}
+
+				m_presentDoneSem[nNextDrawIdx]->Wait();
+
 				m_nDrawIdx = nNextDrawIdx;
-				if(m_nDrawFrame >= m_nMaxDrawFrame)
-				{
-					break;
-				}
 			}
 			float frametime = m_drawTimer.GetMilliseconds() / (float) m_nDrawFrame;
 			printf("[draw fps] %f\n", 1000.0 / frametime);
@@ -134,8 +164,9 @@ public:
 
 	bool Wait()
 	{
-		m_presentThread.join();
+		//m_presentThread.join();
 		m_drawThread.join();
+		//m_vsyncThread.join();
 		return true;
 	}
 };
@@ -150,21 +181,21 @@ int main()
 	//https://www.reddit.com/r/buildapc/comments/1544hx/explaining_vsync_and_other_things/
 	//https://hardforum.com/threads/how-vsync-works-and-why-people-loathe-it.928593/
 	{
-		SwapChainApp on_2_20(true, 2, 20, 500);
+		SwapChainApp on_2_20(true, 2, 20, 200);
 		on_2_20.Wait();
 	}
 	{
-		SwapChainApp on_3_20(true, 3, 20, 500);
+		SwapChainApp on_3_20(true, 3, 20, 200);
 		on_3_20.Wait();
 	}
 
 	// 以2ms为刷新时间渲染 开启垂直同步下最高帧率只能达到60fps 关闭垂直同步能够到达500fps
 	{
-		SwapChainApp on_2_2(true, 2, 2, 500);
+		SwapChainApp on_2_2(true, 2, 2, 200);
 		on_2_2.Wait();
 	}
 	{
-		SwapChainApp off_2_2(false, 2, 2, 500);
+		SwapChainApp off_2_2(false, 2, 2, 200);
 		off_2_2.Wait();
 	}
 }

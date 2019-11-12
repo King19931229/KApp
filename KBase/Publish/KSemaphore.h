@@ -65,6 +65,7 @@ public:
 		}
 		return true;
 	}
+#endif
 
 	bool TryWait(int timeInMicroseconds)
 	{
@@ -79,5 +80,5 @@ public:
 		}
 		return true;
 	}
-#endif
+
 };
