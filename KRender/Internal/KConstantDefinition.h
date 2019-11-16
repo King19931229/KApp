@@ -43,17 +43,4 @@ namespace KConstantDefinition
 		size_t bufferSize;
 	};
 	const ConstantBufferDetail& GetConstantBufferDetail(ConstantBufferType bufferType);
-
-	struct ConstantBindingDetail
-	{
-		IKUniformBufferPtr constantBuffer;
-		ConstantBufferDetail constantDetail;
-		int slot;
-
-		ConstantBindingDetail()
-		{
-			constantBuffer = nullptr;
-			slot = -1;
-		}
-	};
 }

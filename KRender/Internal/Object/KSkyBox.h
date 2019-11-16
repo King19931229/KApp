@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Interface/IKRenderDevice.h"
 #include "Internal/KVertexDefinition.h"
 
 class KSkyBox
@@ -7,9 +8,9 @@ class KSkyBox
 protected:
 	static KVertexDefinition::POS_3F_NORM_3F_UV_2F ms_Positions[8];
 	static uint16_t ms_Indices[36];
+	static VertexFormat  ms_VertexFormats[1];
 
 	std::vector<IKPipelinePtr> m_Pipelines;
-	std::vector<IKUniformBufferPtr> m_UniformBuffers;
 
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
@@ -20,15 +21,12 @@ protected:
 	IKTexturePtr m_CubeTexture;
 	IKSamplerPtr m_CubeSampler;
 
-	struct PushConstBlock
-	{
-		glm::mat4 model;
-	} m_PushConstBlock;
-	PushConstant m_Constant;
-	PushConstantLocation m_ConstantLoc;
+	KVertexData m_VertexData;
+	KIndexData m_IndexData;
 
 	void LoadResource(const char* cubeTexPath);
 	void PreparePipeline();
+	void InitRenderData();
 public:
 	KSkyBox();
 	~KSkyBox();
@@ -36,7 +34,7 @@ public:
 	bool Init(IKRenderDevice* renderDevice,	size_t frameInFlight, const char* cubeTexPath);
 	bool UnInit();
 
-	bool Draw(unsigned int imageIndex, IKRenderTarget* target, void* commandBufferPtr);
+	bool GetRenderCommand(unsigned int imageIndex, KRenderCommand& command);
 
 	inline IKTexturePtr GetCubeTexture() { return m_CubeTexture; }
 	inline IKSamplerPtr GetSampler() { return m_CubeSampler; }

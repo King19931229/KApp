@@ -3,6 +3,7 @@
 #include "Interface/IKRenderWindow.h"
 #include "Interface/IKShader.h"
 #include "Interface/IKBuffer.h"
+
 #include <assert.h>
 
 struct KVertexData
@@ -32,7 +33,6 @@ struct KVertexData
 		vertexCount = 0;
 	}
 };
-typedef std::shared_ptr<KVertexData> KVertexDataPtr;
 
 struct KIndexData
 {
@@ -57,13 +57,14 @@ struct KIndexData
 		indexCount = 0;
 	}
 };
-typedef std::shared_ptr<KIndexData> KIndexDataPtr;
 
 struct KRenderCommand
 {
 	const KVertexData* vertexData;
 	const KIndexData* indexData;
 	const IKPipeline* pipeline;
+	const void* objectData;
+	bool useObjectData;
 	bool indexDraw;
 
 	KRenderCommand()
@@ -71,6 +72,8 @@ struct KRenderCommand
 		vertexData = nullptr;
 		indexData = nullptr;
 		pipeline = nullptr;
+		objectData = false;
+		useObjectData = false;
 		indexDraw = false;
 	}
 
@@ -80,7 +83,15 @@ struct KRenderCommand
 		{
 			return false;
 		}
-		return indexDraw ? indexData != nullptr : true;
+		if(indexDraw && !indexData)
+		{
+			return false;
+		}
+		if(useObjectData && !objectData)
+		{
+			return false;
+		}
+		return true;
 	}
 };
 
@@ -110,7 +121,7 @@ struct IKRenderDevice
 	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui) = 0;
 
 	// TODO abstract CommandBuffer
-	virtual bool Render(void* commandBufferPtr, IKRenderTarget* target, const KRenderCommand& command) = 0;
+	virtual bool Render(void* commandBufferPtr, IKRenderTarget* target, size_t frameIndex, size_t threadIndex, const KRenderCommand& command) = 0;
 
 	virtual bool Present() = 0;
 };

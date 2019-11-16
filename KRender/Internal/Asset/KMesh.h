@@ -1,5 +1,6 @@
 #pragma once
 #include "Internal/KVertexDefinition.h"
+#include "Internal/KConstantDefinition.h"
 #include "Interface/IKRenderDevice.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KSubMesh.h"
@@ -11,6 +12,7 @@ protected:
 	KVertexData m_VertexData;
 	std::vector<KSubMeshPtr> m_SubMeshes;
 	std::string m_Path;
+	KConstantDefinition::OBJECT m_ObjectData;
 
 	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group);
 public:
@@ -19,13 +21,15 @@ public:
 
 	bool SaveAsFile(const char* szPath);
 
-	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
-	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
+	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum);
+	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum);
 	bool UnInit();
 
 	const std::string& GetPath() const { return m_Path; }
 
-	bool AppendRenderList(PipelineStage stage, size_t frameIndex, KRenderCommandList& list);
+	bool SetModelMatrix(const glm::mat4& model) { m_ObjectData.MODEL = model; }
+
+	bool AppendRenderList(PipelineStage stage, size_t frameIndex, size_t threadIndex, KRenderCommandList& list);
 };
 
 typedef std::shared_ptr<KMesh> KMeshPtr;

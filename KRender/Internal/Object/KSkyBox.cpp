@@ -51,6 +51,8 @@ uint16_t KSkyBox::ms_Indices[] =
 	6, 3, 0, 3, 6, 7
 };
 
+VertexFormat KSkyBox::ms_VertexFormats[] = {VF_POINT_NORMAL_UV};
+
 KSkyBox::KSkyBox()
 {
 
@@ -78,25 +80,14 @@ void KSkyBox::LoadResource(const char* cubeTexPath)
 
 	m_IndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_Indices), ms_Indices);
 	m_IndexBuffer->InitDevice(false);
-
-	for(IKUniformBufferPtr uniformBuffer : m_UniformBuffers)
-	{
-		uniformBuffer->InitMemory(sizeof(KConstantGlobal::Camera), &KConstantGlobal::Camera);
-		uniformBuffer->InitDevice();
-	}
-
-	m_Constant.shaderTypes = ST_VERTEX;
-	m_Constant.size = sizeof(m_PushConstBlock);
 }
 
 void KSkyBox::PreparePipeline()
 {
-	VertexFormat vertexFormats[] = {VF_POINT_NORMAL_UV};
-
 	for(size_t i = 0; i < m_Pipelines.size(); ++i)
 	{
 		IKPipelinePtr pipeline = m_Pipelines[i];
-		pipeline->SetVertexBinding(vertexFormats, 1);
+		pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
 		pipeline->SetCullMode(CM_NONE);
@@ -105,12 +96,29 @@ void KSkyBox::PreparePipeline()
 		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 		pipeline->SetShader(ST_VERTEX, m_VertexShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
-		pipeline->SetConstantBuffer(0, ST_VERTEX, m_UniformBuffers[i]);
-		pipeline->SetSampler(1, m_CubeTexture->GetImageView(), m_CubeSampler);
-		pipeline->PushConstantBlock(m_Constant, m_ConstantLoc);
+
+		//IKUniformBufferPtr objectBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_OBJECT);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, 0, CBT_CAMERA);
+
+		//pipeline->SetConstantBuffer(CBT_OBJECT, ST_VERTEX, objectBuffer);
+		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
+
+		pipeline->SetSampler(CBT_COUNT, m_CubeTexture->GetImageView(), m_CubeSampler);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
+}
+
+void KSkyBox::InitRenderData()
+{
+	m_VertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_VertexBuffer);
+	m_VertexData.vertexFormats = std::vector<VertexFormat>(ms_VertexFormats, ms_VertexFormats + ARRAY_SIZE(ms_VertexFormats));
+	m_VertexData.vertexCount = ARRAY_SIZE(ms_Positions);
+	m_VertexData.vertexStart = 0;
+
+	m_IndexData.indexBuffer = m_IndexBuffer;
+	m_IndexData.indexCount = ARRAY_SIZE(ms_Indices);
+	m_IndexData.indexStart = 0;
 }
 
 bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const char* cubeTexPath)
@@ -131,18 +139,16 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 	renderDevice->CreateIndexBuffer(m_IndexBuffer);
 
 	size_t numImages = frameInFlight;
-
 	m_Pipelines.resize(numImages);
-	m_UniformBuffers.resize(numImages);
 
 	for(size_t i = 0; i < numImages; ++i)
 	{
 		renderDevice->CreatePipeline(m_Pipelines[i]);
-		renderDevice->CreateUniformBuffer(m_UniformBuffers[i]);
 	}
 
 	LoadResource(cubeTexPath);
 	PreparePipeline();
+	InitRenderData();
 
 	return true;
 }
@@ -155,13 +161,6 @@ bool KSkyBox::UnInit()
 		pipeline = nullptr;
 	}
 	m_Pipelines.clear();
-
-	for(IKUniformBufferPtr uniformBuffer : m_UniformBuffers)
-	{
-		uniformBuffer->UnInit();
-		uniformBuffer = nullptr;
-	}
-	m_UniformBuffers.clear();
 
 	if(m_VertexBuffer)
 	{
@@ -202,72 +201,14 @@ bool KSkyBox::UnInit()
 	return true;
 }
 
-#include "Internal/Vulkan/KVulkanRenderTarget.h"
-#include "Internal/Vulkan/KVulkanPipeline.h"
-#include "Internal/Vulkan/KVulkanBuffer.h"
-#include "Internal/Vulkan/KVulkanTexture.h"
-#include "Internal/Vulkan/KVulkanSampler.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-bool KSkyBox::Draw(unsigned int imageIndex, IKRenderTarget* target, void* commandBufferPtr)
+bool KSkyBox::GetRenderCommand(unsigned int imageIndex, KRenderCommand& command)
 {
 	if(imageIndex < m_Pipelines.size())
 	{
-		const VkCommandBuffer commandBuffer = *((VkCommandBuffer*)commandBufferPtr);
-
-		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_Pipelines[imageIndex].get();
-		KVulkanUniformBuffer* vulkanUniformBuffer = (KVulkanUniformBuffer*)m_UniformBuffers[imageIndex].get();
-
-		KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffer.get();
-		KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffer.get();
-
-		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target;
-
-		IKPipelineHandlePtr pipelineHandle;
-		KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline, vulkanTarget, pipelineHandle);
-
-		VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
-
-		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
-		VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-
-		m_PushConstBlock.model = glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f));
-
-		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &m_PushConstBlock);
-
-		vulkanUniformBuffer->Write(&KConstantGlobal::Camera);
-
-		VkDeviceSize offsets[] = { 0 };
-		VkBuffer vkVertexbuffers[] = { vulkanVertexBuffer->GetVulkanHandle() };
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vkVertexbuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-
-		VkOffset2D offset = {0, 0};
-
-		size_t width = 0, height = 0;
-		target->GetSize(width, height);
-		VkExtent2D extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
-
-		VkRect2D scissorRect = { offset, extent};
-		VkViewport viewPort = 
-		{
-			0.0f,
-			0.0f,
-			(float)extent.width,
-			(float)extent.height,
-			0.0f,
-			1.0f 
-		};
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewPort);
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
-
-		vkCmdDrawIndexed(commandBuffer, (uint32_t)m_IndexBuffer->GetIndexCount(), 1, 0, 0, 0);
-
+		command.vertexData = &m_VertexData;
+		command.indexData = &m_IndexData;
+		command.pipeline = m_Pipelines[imageIndex].get();
+		command.indexDraw = true;
 		return true;
 	}
 	return false;

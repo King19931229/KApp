@@ -410,11 +410,10 @@ namespace KVulkanHeapAllocator
 		{
 			std::lock_guard<decltype(ALLOC_FREE_LOCK)> guard(ALLOC_FREE_LOCK);
 
-#if 0
 			// 特殊情况只能独占一个vkAllocateMemory特殊处理
 			if(usage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 			{
-				PageInfo* pPage = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, true);
+				PageInfo* pPage = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, memoryHeapIndex, true);
 				BlockInfo* pBlock = pPage->Alloc(sizeToFit);
 
 				pPage->pNext = pNoShareHead;
@@ -428,7 +427,6 @@ namespace KVulkanHeapAllocator
 				return pBlock;
 			}
 			else
-#endif
 			{
 				// 分配大小必须是ALLOC_FACTOR的整数倍
 				// 当每次分配都是ALLOC_FACTOR的整数倍时候 就能保证同一个page里的offset也是ALLOC_FACTOR的整数倍

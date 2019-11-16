@@ -6,12 +6,12 @@ layout(location = 1) in vec3 worldPos;
 layout(location = 2) in vec3 worldNormal;
 layout(location = 3) in vec3 worldEye;
 
-layout(binding = 1) uniform sampler2D texSampler;
-layout(binding = 2) uniform samplerCube samplerEnvMap;
-
 layout(location = 0) out vec4 outColor;
 
 #include "public.glh"
+
+layout(binding = TEXTURE_SLOT0) uniform sampler2D texSampler;
+layout(binding = TEXTURE_SLOT1) uniform samplerCube samplerEnvMap;
 
 void main()
 {

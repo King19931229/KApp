@@ -67,6 +67,7 @@ protected:
 	bool m_MultiThreadSumbit;
 
 	size_t m_FrameInFlight;
+	size_t m_MaxRenderThreadNum;
 	// Temporarily for demo use
 	IKShaderPtr m_SceneVertexShader;
 	IKShaderPtr m_SceneFragmentShader;
@@ -229,8 +230,7 @@ public:
 
 	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui);
 
-	virtual bool Render(void* commandBufferPtr, IKRenderTarget* target, const KRenderCommand& command);
-
+	virtual bool Render(void* commandBufferPtr, IKRenderTarget* target, size_t frameIndex, size_t threadIndex, const KRenderCommand& command);
 	virtual bool Present();
 
 	bool Wait();

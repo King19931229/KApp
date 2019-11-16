@@ -14,13 +14,14 @@ protected:
 	MeshMap m_Meshes;
 	IKRenderDevice* m_Device;
 	size_t m_FrameInFlight;
+	size_t m_RenderThreadNum;
 
 	bool AcquireImpl(const char* path, bool fromAsset, KMeshPtr& ptr);
 public:
 	KMeshManager();
 	~KMeshManager();
 
-	bool Init(IKRenderDevice* device, size_t frameInFlight);
+	bool Init(IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum);
 	bool UnInit();
 
 	bool Acquire(const char* path, KMeshPtr& ptr);

@@ -116,6 +116,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_Sampler(nullptr),
 	m_FrameInFlight(2)
 {
+	m_MaxRenderThreadNum = std::thread::hardware_concurrency();
 	ZERO_ARRAY_MEMORY(m_Move);
 	ZERO_ARRAY_MEMORY(m_MouseDown);
 }
@@ -364,11 +365,11 @@ bool KVulkanRenderDevice::CreatePipelines()
 			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 			pipeline->SetPolygonMode(PM_FILL);
 
-			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
-			pipeline->SetConstantBuffer(0, ST_VERTEX, cameraBuffer);
+			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, 0, CBT_CAMERA);
+			pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
 
-			pipeline->SetSampler(1, m_Texture->GetImageView(), m_Sampler);
-			pipeline->SetSampler(2, m_SkyBox.GetCubeTexture()->GetImageView(), m_SkyBox.GetSampler());
+			pipeline->SetSampler(CBT_COUNT, m_Texture->GetImageView(), m_Sampler);
+			pipeline->SetSampler(CBT_COUNT + 1, m_SkyBox.GetCubeTexture()->GetImageView(), m_SkyBox.GetSampler());
 
 			pipeline->PushConstantBlock(m_ObjectConstant, m_ObjectConstantLoc);
 
@@ -603,6 +604,7 @@ bool KVulkanRenderDevice::UpdateFrameTime()
 
 bool KVulkanRenderDevice::CreateMesh()
 {
+	//return KRenderGlobal::MeshManager.AcquireFromAsset("../Sponza/sponza.obj", m_TestMesh);
 	return	KRenderGlobal::MeshManager.AcquireFromAsset("../Dependency/assimp-3.3.1/test/models/OBJ/spider.obj", m_TestMesh);
 }
 
@@ -769,8 +771,8 @@ bool KVulkanRenderDevice::InitGlobalManager()
 	KVulkanHeapAllocator::Init();
 
 	KRenderGlobal::PipelineManager.Init(this);
-	KRenderGlobal::FrameResourceManager.Init(this, m_FrameInFlight);
-	KRenderGlobal::MeshManager.Init(this, m_FrameInFlight);
+	KRenderGlobal::FrameResourceManager.Init(this, m_FrameInFlight, m_MaxRenderThreadNum);
+	KRenderGlobal::MeshManager.Init(this, m_FrameInFlight, m_MaxRenderThreadNum);
 	KRenderGlobal::ShaderManager.Init(this);
 	KRenderGlobal::TextrueManager.Init(this);
 
@@ -990,9 +992,9 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		if(!CreatePipelines())
 			return false;
 #ifndef THREAD_MODE_ONE
-		m_ThreadPool.PushWorkerThreads(std::thread::hardware_concurrency());
+		m_ThreadPool.PushWorkerThreads(m_MaxRenderThreadNum);
 #else
-		m_ThreadPool.SetThreadCount(std::thread::hardware_concurrency());
+		m_ThreadPool.SetThreadCount(m_MaxRenderThreadNum);
 #endif
 		if(!CreateCommandBuffers())
 			return false;
@@ -1283,7 +1285,7 @@ bool KVulkanRenderDevice::UpdateCamera(size_t idx)
 {
 	ASSERT_RESULT(idx < m_FrameInFlight);
 
-	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(idx, CBT_CAMERA);
+	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(idx, 0, CBT_CAMERA);
 
 	static KTimer m_MoveTimer;
 
@@ -1297,7 +1299,7 @@ bool KVulkanRenderDevice::UpdateCamera(size_t idx)
 
 	VkExtent2D extend = m_pSwapChain->GetExtent();
 
-	m_Camera.SetPerspective(glm::radians(45.0f), extend.width / (float) extend.height, 0.1f, 3000.0f);
+	m_Camera.SetPerspective(glm::radians(45.0f), extend.width / (float) extend.height, 1.0f, 3000.0f);
 
 	glm::mat4 view = m_Camera.GetViewMatrix();
 	glm::mat4 proj = m_Camera.GetProjectiveMatrix();
@@ -1446,11 +1448,11 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t chai
 	}
 
 	KRenderCommandList commandList;
-	m_TestMesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, commandList);
+	m_TestMesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, threadIndex, commandList);
 
 	for(const KRenderCommand& command : commandList)
 	{
-		Render(&commandBuffer, target, command);
+		Render(&commandBuffer, target, frameIndex, threadIndex, command);
 	}
 	VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
 }
@@ -1495,7 +1497,11 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 			// 开始渲染天空盒
 			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			{
-				m_SkyBox.Draw(frameIndex, target, &commandBuffer);
+				KRenderCommand command;
+				if(m_SkyBox.GetRenderCommand(frameIndex, command))
+				{
+					Render(&commandBuffer, target, frameIndex, 0, command);
+				}
 			}
 			// 开始渲染物件
 			{
@@ -1547,11 +1553,11 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				}
 
 				KRenderCommandList commandList;
-				m_TestMesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, commandList);
+				m_TestMesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, 0, commandList);
 
 				for(const KRenderCommand& command : commandList)
 				{
-					Render(&commandBuffer, target, command);
+					Render(&commandBuffer, target, frameIndex, 0, command);
 				}
 			}
 			// 结束渲染过程
@@ -1698,7 +1704,11 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 
 					VK_ASSERT_RESULT(vkBeginCommandBuffer(skyBoxCommandBuffer, &beginInfo));
 					{
-						m_SkyBox.Draw(frameIndex, offscreenTarget, &skyBoxCommandBuffer);
+						KRenderCommand command;
+						if(m_SkyBox.GetRenderCommand(frameIndex, command))
+						{
+							Render(&skyBoxCommandBuffer, offscreenTarget, frameIndex, 0, command);
+						}
 					}
 					VK_ASSERT_RESULT(vkEndCommandBuffer(skyBoxCommandBuffer));
 
@@ -1945,7 +1955,7 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 	return true;
 }
 
-bool KVulkanRenderDevice::Render(void* commandBufferPtr, IKRenderTarget* target, const KRenderCommand& command)
+bool KVulkanRenderDevice::Render(void* commandBufferPtr, IKRenderTarget* target, size_t frameIndex, size_t threadIndex, const KRenderCommand& command)
 {
 	if(!command.Complete())
 	{
@@ -2005,7 +2015,14 @@ bool KVulkanRenderDevice::Render(void* commandBufferPtr, IKRenderTarget* target,
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
 
-	// TODO how to push constant
+	// TODO push constant
+	if(command.useObjectData)
+	{
+		KConstantDefinition::OBJECT* objectData  = (KConstantDefinition::OBJECT*)command.objectData;
+		KVulkanUniformBuffer* vulkanUniformBuffer = (KVulkanUniformBuffer*)KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, threadIndex, CBT_OBJECT).get();
+		vulkanUniformBuffer->Write(objectData);
+		//vkCmdUpdateBuffer(commandBuffer, vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize(), objectData);
+	}
 
 	if(command.indexDraw)
 	{

@@ -5,6 +5,7 @@
 
 KMesh::KMesh()
 {
+	m_ObjectData.MODEL = glm::mat4(1.0f);
 }
 
 KMesh::~KMesh()
@@ -16,7 +17,7 @@ bool KMesh::SaveAsFile(const char* szPath)
 	return false;
 }
 
-bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum)
 {
 	m_Path = szPath;
 	return true;
@@ -61,7 +62,7 @@ bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOptio
 	}
 }
 
-bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum)
 {
 	assert(szPath && device);
 	if(!szPath || !device)
@@ -155,7 +156,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 				material->ResignTexture(2, subPart.material.normal.c_str());
 			}
 
-			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, frameInFlight));
+			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, frameInFlight, renderThreadNum));
 		}
 		m_Path = szPath;
 		return true;
@@ -163,11 +164,11 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 	return false;
 }
 
-bool KMesh::AppendRenderList(PipelineStage stage, size_t frameIndex, KRenderCommandList& list)
+bool KMesh::AppendRenderList(PipelineStage stage, size_t frameIndex, size_t threadIndex, KRenderCommandList& list)
 {
 	for(KSubMeshPtr subMesh : m_SubMeshes)
 	{
-		ASSERT_RESULT(subMesh->AppendRenderList(stage, frameIndex, list));
+		ASSERT_RESULT(subMesh->AppendRenderList(stage, frameIndex, threadIndex, list));
 	}
 	return true;
 }
