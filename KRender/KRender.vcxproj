@@ -33,6 +33,14 @@
     <ClInclude Include="Internal\Asset\KMaterial.h" />
     <ClInclude Include="Internal\Asset\KMesh.h" />
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
+    <ClInclude Include="Internal\Entity\Component\KCullComponent.h" />
+    <ClInclude Include="Internal\Entity\Component\KRenderComponent.h" />
+    <ClInclude Include="Internal\Entity\Component\KTransformComponent.h" />
+    <ClInclude Include="Internal\Entity\KComponent.h" />
+    <ClInclude Include="Internal\Entity\KECS.h" />
+    <ClInclude Include="Internal\Entity\KEntity.h" />
+    <ClInclude Include="Internal\Entity\KEntityManager.h" />
+    <ClInclude Include="Internal\Entity\KSystem.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
     <ClInclude Include="Internal\KRenderGlobal.h" />
@@ -72,6 +80,8 @@
     <ClCompile Include="Internal\Asset\KMaterial.cpp" />
     <ClCompile Include="Internal\Asset\KMesh.cpp" />
     <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
+    <ClCompile Include="Internal\Entity\KEntity.cpp" />
+    <ClCompile Include="Internal\Entity\KEntityManager.cpp" />
     <ClCompile Include="Internal\KBufferBase.cpp" />
     <ClInclude Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KConstantDefinition.cpp" />

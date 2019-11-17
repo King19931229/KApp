@@ -22,6 +22,12 @@
     <Filter Include="Internal\Manager">
       <UniqueIdentifier>{1558d674-c1d0-4388-a389-2f51e0fc2c6d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Entity">
+      <UniqueIdentifier>{8967d34f-37de-4b73-a589-6c710cb790a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\Entity\Component">
+      <UniqueIdentifier>{b865c2f1-91cd-4de3-8015-b78b7f619537}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -171,6 +177,30 @@
     <ClInclude Include="Internal\Manager\KTextureManager.h">
       <Filter>Internal\Manager</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Entity\KEntity.h">
+      <Filter>Internal\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Entity\KComponent.h">
+      <Filter>Internal\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Entity\KEntityManager.h">
+      <Filter>Internal\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Entity\KSystem.h">
+      <Filter>Internal\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Entity\KECS.h">
+      <Filter>Internal\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Entity\Component\KTransformComponent.h">
+      <Filter>Internal\Entity\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Entity\Component\KRenderComponent.h">
+      <Filter>Internal\Entity\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Entity\Component\KCullComponent.h">
+      <Filter>Internal\Entity\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -277,6 +307,12 @@
     </ClCompile>
     <ClCompile Include="Internal\Manager\KTextureManager.cpp">
       <Filter>Internal\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Entity\KEntity.cpp">
+      <Filter>Internal\Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Entity\KEntityManager.cpp">
+      <Filter>Internal\Entity</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
