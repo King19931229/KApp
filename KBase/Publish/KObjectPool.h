@@ -1,5 +1,7 @@
 ﻿#pragma once
 #include "Publish/KList.h"
+
+#include <mutex>
 #include <memory>
 #include <assert.h>
 
@@ -7,166 +9,222 @@ template<typename OBJECT_TYPE>
 class KObjectPool
 {
 protected:
-	struct ListItem
+	struct BlockItem;
+	struct ObjectItem
 	{
+		BlockItem* block;
 		KLIST_NODE node;
 		OBJECT_TYPE object;
-		unsigned uMagicNum;
+		size_t uMagicNum;
 	};
 
-	KLIST_NODE m_UseListHead;
-	KLIST_NODE m_FreeListHead;
+	struct BlockItem
+	{
+		KLIST_NODE node;
 
-	unsigned m_uUseCount;
-	unsigned m_uFreeCount;
-	unsigned m_uInitCount;
-	unsigned m_uMagicNum;
+		ObjectItem* items;
+
+		KLIST_NODE useHead;
+		KLIST_NODE freeHead;
+
+		size_t useCount;
+		size_t freeCount;
+		size_t uMagicNum;
+	};
+
+	KLIST_NODE m_BlockItemHead;
+
+	size_t m_uBlockNum;
+	size_t m_uCountInBlock;
+	size_t m_uMagicNum;
+
+	std::mutex m_Lock;
+
+	void AppendBlock()
+	{
+		++m_uBlockNum;
+
+		BlockItem* pBlockItem = new BlockItem();
+
+		KLIST_INIT(&(pBlockItem->node));
+		pBlockItem->items = (ObjectItem*)malloc(m_uCountInBlock * sizeof(ObjectItem));
+
+		KLIST_INIT(&(pBlockItem->useHead));
+		KLIST_INIT(&(pBlockItem->freeHead));
+
+		pBlockItem->useCount = 0;
+		pBlockItem->freeCount = m_uCountInBlock;
+
+		pBlockItem->uMagicNum = m_uMagicNum;
+
+		for(size_t i = 0; i < m_uCountInBlock; ++i)
+		{
+			ObjectItem* pObjectItem = ((ObjectItem*)pBlockItem->items) + i;
+
+			pObjectItem->block = pBlockItem;
+			pObjectItem->uMagicNum = m_uMagicNum;
+
+			KLIST_NODE* objectNode = &(pObjectItem->node);
+			KLIST_INIT(objectNode);
+			KLIST_PUSH_BACK(&pBlockItem->freeHead, objectNode);
+		}
+
+		KLIST_PUSH_BACK(&m_BlockItemHead, &(pBlockItem->node));
+	}
 public:
-	KObjectPool()
-		: m_uUseCount(0),
-		m_uFreeCount(0),
-		m_uInitCount(0),
+	KObjectPool() :
+		m_uBlockNum(0),
+		m_uCountInBlock(0),
 		m_uMagicNum(0)
 	{
-		KLIST_INIT(&m_UseListHead);
-		KLIST_INIT(&m_FreeListHead);
+		KLIST_INIT(&m_BlockItemHead);
 	}
 
 	~KObjectPool()
 	{
-		assert(m_uUseCount == 0);
-		assert(m_uFreeCount == 0);
-		assert(m_uInitCount == 0);
+		assert(m_uBlockNum == 0);
+		assert(m_uCountInBlock == 0);
+		assert(m_uMagicNum == 0);
 	}
 
-	void Init(unsigned uCount)
+	void Init(size_t countInBlock)
 	{
-		assert(m_uUseCount == 0);
-		assert(m_uFreeCount == 0);
-		assert(m_uInitCount == 0);
-
 		UnInit();
-		m_uMagicNum = (unsigned)rand();
 
-		m_uInitCount = uCount;
+		m_uBlockNum = 0;
+		m_uCountInBlock = countInBlock;
+		m_uMagicNum = (size_t)rand();
 
-		KLIST_INIT(&m_UseListHead);
-		KLIST_INIT(&m_FreeListHead);
-
-		for(unsigned i = 0; i < m_uInitCount; ++i)
-		{
-			ListItem* pNewItem = new ListItem();
-			pNewItem->uMagicNum = m_uMagicNum;
-
-			KLIST_INIT(&(pNewItem->node));
-			KLIST_PUSH_BACK(&m_FreeListHead, &(pNewItem->node));
-		}
-
-		m_uFreeCount = m_uInitCount;
-		m_uUseCount = 0;
+		KLIST_INIT(&m_BlockItemHead);
+		AppendBlock();
 	}
 
 	void UnInit()
 	{
-		unsigned nRestCount = 0;
-		
-		nRestCount = m_uUseCount;
-		for(KLIST_NODE* pNode = m_UseListHead.pNext; pNode != &m_UseListHead; --nRestCount)
+		size_t nRestCount = 0;
+		nRestCount = m_uBlockNum;
+		for(KLIST_NODE* pNode = m_BlockItemHead.pNext; pNode != &m_BlockItemHead; --nRestCount)
 		{
 			KLIST_NODE* pNext = pNode->pNext;
+			BlockItem* pItem = CONTAINING_RECORD(pNode, BlockItem, node);
+			assert(pItem->uMagicNum == m_uMagicNum);
 
-			ListItem* pItem = CONTAINING_RECORD(pNode, ListItem, node);
-			OBJECT_TYPE* pObject = &(pItem->object);
-			pObject->~OBJECT_TYPE();
+			for(KLIST_NODE* pUseNode = pItem->useHead.pNext; pUseNode != &(pItem->useHead);)
+			{
+				KLIST_NODE* pNextUseNode = pUseNode->pNext;
+				ObjectItem* pObjectItem = CONTAINING_RECORD(pUseNode, ObjectItem, node);
+				assert(pObjectItem->uMagicNum == m_uMagicNum);
+
+				OBJECT_TYPE* object = &pObjectItem->object;
+				object->~OBJECT_TYPE();
+
+				KLIST_ERASE(pUseNode);
+				pUseNode = pNextUseNode;
+			}
+
+			for(KLIST_NODE* pfreeNode = pItem->freeHead.pNext; pfreeNode != &(pItem->freeHead);)
+			{
+				KLIST_NODE* pNextFreeNode = pfreeNode->pNext;
+				ObjectItem* pObjectItem = CONTAINING_RECORD(pfreeNode, ObjectItem, node);
+				assert(pObjectItem->uMagicNum == m_uMagicNum);
+
+				KLIST_ERASE(pfreeNode);
+				pfreeNode = pNextFreeNode;
+			}
+
+			free(pItem->items);
 
 			KLIST_ERASE(pNode);
-			delete pNode;
 			pNode = pNext;
+
+			delete pItem;
 		}
-		m_uUseCount = 0;
+
+		m_uBlockNum = 0;
 		assert(nRestCount == 0);
-		assert(KLIST_EMPTY(&m_UseListHead));
 
-		nRestCount = m_uFreeCount;
-		for(KLIST_NODE* pNode = m_FreeListHead.pNext; pNode != &m_FreeListHead; --nRestCount)
-		{
-			KLIST_NODE* pNext = pNode->pNext;
+		assert(KLIST_EMPTY(&m_BlockItemHead));
 
-			ListItem* pItem = CONTAINING_RECORD(pNode, ListItem, node);
-			OBJECT_TYPE* pObject = &(pItem->object);
-
-			KLIST_ERASE(pNode);
-			delete pNode;
-
-			pNode = pNext;
-		}
-		m_uFreeCount = 0;
-		assert(nRestCount == 0);
-		assert(KLIST_EMPTY(&m_FreeListHead));
-
-		m_uInitCount = 0;
+		m_uCountInBlock = 0;
 		m_uMagicNum = 0;
 	}
 
 	OBJECT_TYPE* Alloc()
 	{
-		OBJECT_TYPE*	pRet	= nullptr;
-		ListItem*		pItem	= nullptr;
-		KLIST_NODE*		pNode	= nullptr;
+		//std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 
-		if(m_uFreeCount > 0)
+		OBJECT_TYPE*	pRet		= nullptr;
+		ObjectItem*		pObjectItem	= nullptr;
+		KLIST_NODE*		pNode		= nullptr;
+
+		for(KLIST_NODE* pNode = m_BlockItemHead.pPrev; pNode != &m_BlockItemHead;)
 		{
-			pNode = m_FreeListHead.pPrev;
-			assert(pNode != &m_FreeListHead);
+			BlockItem* pBlockItem = CONTAINING_RECORD(pNode, BlockItem, node);
+			if(pBlockItem->freeCount > 0)
+			{
+				KLIST_NODE* pfreeNode = pBlockItem->freeHead.pPrev;
+				assert(pfreeNode != &pBlockItem->freeHead);
 
-			pItem = CONTAINING_RECORD(pNode, ListItem, node);
+				pObjectItem = CONTAINING_RECORD(pfreeNode, ObjectItem, node);
 
-			KLIST_ERASE(pNode);
-			--m_uFreeCount;
+				KLIST_ERASE(pfreeNode);
+				--pBlockItem->freeCount;
+
+				KLIST_PUSH_BACK(&pBlockItem->useHead, pfreeNode);
+				++pBlockItem->useCount;
+				break;
+			}
+			pNode = pNode->pPrev;
 		}
-		else
+
+		if(!pObjectItem)
 		{
-			pItem = new ListItem();
-			pItem->uMagicNum = m_uMagicNum;
+			AppendBlock();
 
-			pNode = &(pItem->node);
-			KLIST_INIT(pNode);
+			KLIST_NODE* pNode = m_BlockItemHead.pPrev;
+			BlockItem* pBlockItem = CONTAINING_RECORD(pNode, BlockItem, node);
+
+			KLIST_NODE* pfreeNode = pBlockItem->freeHead.pPrev;
+			assert(pfreeNode != &pBlockItem->freeHead);
+
+			pObjectItem = CONTAINING_RECORD(pfreeNode, ObjectItem, node);
+
+			KLIST_ERASE(pfreeNode);
+			--pBlockItem->freeCount;
+
+			KLIST_PUSH_BACK(&pBlockItem->useHead, pfreeNode);
+			++pBlockItem->useCount;
 		}
-		pRet = &(pItem->object);
-		KLIST_PUSH_BACK(&m_UseListHead, pNode);
-		++m_uUseCount;
+
+		pRet = &(pObjectItem->object);
 		new (pRet) OBJECT_TYPE;
 		return pRet;
 	}
 
 	void Free(OBJECT_TYPE* pObject)
 	{
-		ListItem* pItem = CONTAINING_RECORD(pObject, ListItem, object);
-		assert(pItem->uMagicNum == m_uMagicNum);
-		assert(m_uUseCount > 0);
+		//std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 
-		KLIST_ERASE(&pItem->node);
-		assert(&(pItem->object) == pObject);
+		ObjectItem* pObjectItem = CONTAINING_RECORD(pObject, ObjectItem, object);
+		assert(pObjectItem->uMagicNum == m_uMagicNum);
+		assert(&(pObjectItem->object) == pObject);
+
 		pObject->~OBJECT_TYPE();
-		--m_uUseCount;
 
-		KLIST_PUSH_BACK(&m_FreeListHead, &(pItem->node));
-		++m_uFreeCount;
-	}
+		BlockItem* pBlockItem = pObjectItem->block;
 
-	void Shrink_to_fit()
-	{
-		while(m_uFreeCount > m_uInitCount)
+		KLIST_ERASE(&pObjectItem->node);
+		KLIST_PUSH_BACK(&(pBlockItem->freeHead), &(pObjectItem->node));
+
+		--pBlockItem->useCount;
+		++pBlockItem->freeCount;
+
+		if(pBlockItem->useCount == 0)
 		{
-			KLIST_NODE* pNode = m_FreeListHead.pPrev;
-			assert(pNode != &m_FreeListHead);
-
-			ListItem* pItem = CONTAINING_RECORD(pNode, ListItem, node);
-
-			KLIST_ERASE(pNode);
-			delete pItem;
-
-			--m_uFreeCount;
+			free(pBlockItem->items);
+			KLIST_ERASE(&pBlockItem->node);
+			delete pBlockItem;
+			--m_uBlockNum;
 		}
 	}
 };

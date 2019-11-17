@@ -43,7 +43,8 @@ public:
 	{
 		KHashString str = GetHashString("AsyncLoad %d", m_ID);
 		IKCodecPtr pCodec = GetCodec("D:/BIG.JPG");
-		KCodecResult res = pCodec->Codec("D:/BIG.JPG");
+		KCodecResult res;
+		pCodec->Codec("D:/BIG.JPG", true, res);
 		KLOG(pLog, "%s", str);
 		return true;
 	}
@@ -66,10 +67,42 @@ struct Object
 
 int main()
 {
-	KDump::Init("d:/");
 	DUMP_MEMORY_LEAK_BEGIN();
-	throw "Test";
-	KDump::UnInit();
+	KObjectPool<Object> pool;
+	pool.Init(100);
+
+	std::vector<Object*> datas;
+	size_t uAllocCount = 100000;
+
+	KTimer timer;
+	timer.Reset();
+	for(unsigned int i = 0; i < uAllocCount; ++i)
+	{
+		datas.push_back(new Object);
+	}
+	for(unsigned int i = 0; i < uAllocCount; ++i)
+	{
+		Object* pData = *datas.rbegin();
+		datas.pop_back();
+		delete pData;
+	}
+	printf("NOPOOL: %f\n",timer.GetMilliseconds());
+
+	timer.Reset();
+	for(size_t i = 0; i < uAllocCount; ++i)
+	{
+		datas.push_back(pool.Alloc());
+	}
+
+	for(unsigned int i = 0; i < uAllocCount; ++i)
+	{
+		Object* pData = *datas.rbegin();
+		datas.pop_back();
+		pool.Free(pData);
+	}
+	printf("POOL: %f\n",timer.GetMilliseconds());
+
+	pool.UnInit();
 	/*
 	IKMemoryAllocatorPtr pAlloc = CreateAllocator();
 
