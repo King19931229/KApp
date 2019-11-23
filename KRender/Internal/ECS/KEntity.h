@@ -6,20 +6,21 @@
 class KEntity
 {
 protected:
-	typedef std::map<ComponentType, KComponentBasePtr> ComponentMap;
+	typedef std::map<ComponentType, KComponentBase*> ComponentMap;
 	ComponentMap m_Components;
 	size_t m_Id;
 public:
 	KEntity(size_t id);
 	~KEntity();
 
-	bool GetComponent(ComponentType type, KComponentBasePtr& ptr);
+	bool GetComponent(ComponentType type, KComponentBase** pptr);
 	bool HasComponent(ComponentType type);
 
 	bool HasComponents(const ComponentTypeList& components);
 
-	bool RegisterComponent(KComponentBasePtr component);
+	bool RegisterComponent(ComponentType type);
 	bool UnRegisterComponent(ComponentType type);
+	bool UnRegisterAllComponent();
 
 	inline size_t GetID() { return m_Id; }
 };

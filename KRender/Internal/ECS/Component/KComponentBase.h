@@ -1,5 +1,5 @@
 #pragma once
-#include "KECS.h"
+#include "Internal/ECS/KECS.h"
 
 class KComponentBase
 {

@@ -13,6 +13,9 @@ public:
 	KEntityManager();
 	~KEntityManager();
 
+	void Init();
+	void UnInit();
+
 	KEntityPtr CreateEntity();
 	bool ReleaseEntity(KEntityPtr& entity);
 

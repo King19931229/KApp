@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="IKRenderCore.h" />
     <ClInclude Include="Interface\IKPipeline.h" />
     <ClInclude Include="Interface\IKProgram.h" />
     <ClInclude Include="Interface\IKRenderDevice.h" />
@@ -33,14 +34,15 @@
     <ClInclude Include="Internal\Asset\KMaterial.h" />
     <ClInclude Include="Internal\Asset\KMesh.h" />
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
-    <ClInclude Include="Internal\Entity\Component\KCullComponent.h" />
-    <ClInclude Include="Internal\Entity\Component\KRenderComponent.h" />
-    <ClInclude Include="Internal\Entity\Component\KTransformComponent.h" />
-    <ClInclude Include="Internal\Entity\KComponent.h" />
-    <ClInclude Include="Internal\Entity\KECS.h" />
-    <ClInclude Include="Internal\Entity\KEntity.h" />
-    <ClInclude Include="Internal\Entity\KEntityManager.h" />
-    <ClInclude Include="Internal\Entity\KSystem.h" />
+    <ClInclude Include="Internal\ECS\Component\KComponentBase.h" />
+    <ClInclude Include="Internal\ECS\Component\KRenderComponent.h" />
+    <ClInclude Include="Internal\ECS\Component\KTransformComponent.h" />
+    <ClInclude Include="Internal\ECS\KComponentManager.h" />
+    <ClInclude Include="Internal\ECS\KECS.h" />
+    <ClInclude Include="Internal\ECS\KECSGlobal.h" />
+    <ClInclude Include="Internal\ECS\KEntity.h" />
+    <ClInclude Include="Internal\ECS\KEntityManager.h" />
+    <ClInclude Include="Internal\ECS\System\KCullSystem.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
     <ClInclude Include="Internal\KRenderGlobal.h" />
@@ -80,8 +82,11 @@
     <ClCompile Include="Internal\Asset\KMaterial.cpp" />
     <ClCompile Include="Internal\Asset\KMesh.cpp" />
     <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
-    <ClCompile Include="Internal\Entity\KEntity.cpp" />
-    <ClCompile Include="Internal\Entity\KEntityManager.cpp" />
+    <ClCompile Include="Internal\ECS\KComponentManager.cpp" />
+    <ClCompile Include="Internal\ECS\KECSGlobal.cpp" />
+    <ClCompile Include="Internal\ECS\KEntity.cpp" />
+    <ClCompile Include="Internal\ECS\KEntityManager.cpp" />
+    <ClCompile Include="Internal\ECS\System\KCullSystem.cpp" />
     <ClCompile Include="Internal\KBufferBase.cpp" />
     <ClInclude Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KConstantDefinition.cpp" />

@@ -62,8 +62,9 @@ struct KRenderCommand
 {
 	const KVertexData* vertexData;
 	const KIndexData* indexData;
-	const IKPipeline* pipeline;
-	const void* objectData;
+	IKPipeline* pipeline;
+	IKPipelineHandle* pipelineHandle;
+	void* objectData;
 	bool useObjectData;
 	bool indexDraw;
 
@@ -72,6 +73,7 @@ struct KRenderCommand
 		vertexData = nullptr;
 		indexData = nullptr;
 		pipeline = nullptr;
+		pipelineHandle = nullptr;
 		objectData = false;
 		useObjectData = false;
 		indexDraw = false;

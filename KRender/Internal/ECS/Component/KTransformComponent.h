@@ -1,11 +1,11 @@
 #pragma once
-#include "Internal/Entity/KComponent.h"
+#include "KComponentBase.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-class KTransformComponent : KComponentBase
+class KTransformComponent : public KComponentBase
 {
 protected:
 	glm::vec3 m_Position;

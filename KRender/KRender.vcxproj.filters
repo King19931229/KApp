@@ -22,11 +22,14 @@
     <Filter Include="Internal\Manager">
       <UniqueIdentifier>{1558d674-c1d0-4388-a389-2f51e0fc2c6d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Internal\Entity">
+    <Filter Include="Internal\ECS">
       <UniqueIdentifier>{8967d34f-37de-4b73-a589-6c710cb790a8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Internal\Entity\Component">
+    <Filter Include="Internal\ECS\Component">
       <UniqueIdentifier>{b865c2f1-91cd-4de3-8015-b78b7f619537}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\ECS\System">
+      <UniqueIdentifier>{c83286fc-13f7-4857-85a5-f38f1d2e1bfa}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -177,29 +180,35 @@
     <ClInclude Include="Internal\Manager\KTextureManager.h">
       <Filter>Internal\Manager</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Entity\KEntity.h">
-      <Filter>Internal\Entity</Filter>
+    <ClInclude Include="Internal\ECS\Component\KTransformComponent.h">
+      <Filter>Internal\ECS\Component</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Entity\KComponent.h">
-      <Filter>Internal\Entity</Filter>
+    <ClInclude Include="Internal\ECS\Component\KRenderComponent.h">
+      <Filter>Internal\ECS\Component</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Entity\KEntityManager.h">
-      <Filter>Internal\Entity</Filter>
+    <ClInclude Include="Internal\ECS\KEntityManager.h">
+      <Filter>Internal\ECS</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Entity\KSystem.h">
-      <Filter>Internal\Entity</Filter>
+    <ClInclude Include="Internal\ECS\KComponentManager.h">
+      <Filter>Internal\ECS</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Entity\KECS.h">
-      <Filter>Internal\Entity</Filter>
+    <ClInclude Include="Internal\ECS\KECS.h">
+      <Filter>Internal\ECS</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Entity\Component\KTransformComponent.h">
-      <Filter>Internal\Entity\Component</Filter>
+    <ClInclude Include="Internal\ECS\KECSGlobal.h">
+      <Filter>Internal\ECS</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Entity\Component\KRenderComponent.h">
-      <Filter>Internal\Entity\Component</Filter>
+    <ClInclude Include="Internal\ECS\KEntity.h">
+      <Filter>Internal\ECS</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Entity\Component\KCullComponent.h">
-      <Filter>Internal\Entity\Component</Filter>
+    <ClInclude Include="Internal\ECS\System\KCullSystem.h">
+      <Filter>Internal\ECS\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\ECS\Component\KComponentBase.h">
+      <Filter>Internal\ECS\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="IKRenderCore.h">
+      <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -222,9 +231,6 @@
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KVertexDefinition.cpp">
-      <Filter>Internal</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\KBufferBase.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp">
@@ -308,11 +314,23 @@
     <ClCompile Include="Internal\Manager\KTextureManager.cpp">
       <Filter>Internal\Manager</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\Entity\KEntity.cpp">
-      <Filter>Internal\Entity</Filter>
+    <ClCompile Include="Internal\KBufferBase.cpp">
+      <Filter>Internal\Object</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\Entity\KEntityManager.cpp">
-      <Filter>Internal\Entity</Filter>
+    <ClCompile Include="Internal\ECS\KComponentManager.cpp">
+      <Filter>Internal\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ECS\KECSGlobal.cpp">
+      <Filter>Internal\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ECS\KEntity.cpp">
+      <Filter>Internal\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ECS\KEntityManager.cpp">
+      <Filter>Internal\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ECS\System\KCullSystem.cpp">
+      <Filter>Internal\ECS\System</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

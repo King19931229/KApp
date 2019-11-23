@@ -74,8 +74,6 @@ protected:
 
 	IKShaderPtr m_PostVertexShader;
 	IKShaderPtr m_PostFragmentShader;
-
-	KMeshPtr m_TestMesh;
 	
 	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
 
@@ -86,6 +84,7 @@ protected:
 	{
 		VkCommandPool commandPool;
 		VkCommandBuffer commandBuffer;
+		std::vector<KRenderCommand> commands;
 		size_t num;
 		size_t offset;
 	};

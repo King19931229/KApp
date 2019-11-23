@@ -14,8 +14,22 @@ KEntityManager::~KEntityManager()
 
 size_t KEntityManager::GetAvailibleID()
 {
-	// TODO
 	return m_EntityHandleCounter++;
+}
+
+void KEntityManager::Init()
+{
+
+}
+
+void KEntityManager::UnInit()
+{
+	for(auto pair : m_Entities)
+	{
+		KEntityPtr& entity = pair.second;
+		entity->UnRegisterAllComponent();
+	}
+	m_Entities.clear();
 }
 
 KEntityPtr KEntityManager::CreateEntity()

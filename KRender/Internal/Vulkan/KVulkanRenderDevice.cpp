@@ -22,6 +22,9 @@
 #include "Internal/KConstantGlobal.h"
 #include "Internal/KRenderGlobal.h"
 
+#include "Internal/ECS/KECSGlobal.h"
+#include "Internal/ECS/System/KCullSystem.h"
+
 #include <algorithm>
 #include <set>
 #include <functional>
@@ -100,6 +103,8 @@ void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& create
 		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 	createInfo.pfnUserCallback = pCallBack;
 } 
+
+KCullSystem CULL_SYSTEM;
 
 //-------------------- KVulkanRenderDevice --------------------//
 KVulkanRenderDevice::KVulkanRenderDevice()
@@ -275,6 +280,7 @@ bool KVulkanRenderDevice::CreateImageViews()
 	VkFormat format			= m_pSwapChain->GetFormat();
 
 	uint32_t msaaCount = 1;
+
 	uint32_t candidate[] = {64,32,16,8,4,2,1};
 	VkSampleCountFlagBits flag = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
 	for(uint32_t count: candidate)
@@ -604,8 +610,20 @@ bool KVulkanRenderDevice::UpdateFrameTime()
 
 bool KVulkanRenderDevice::CreateMesh()
 {
-	//return KRenderGlobal::MeshManager.AcquireFromAsset("../Sponza/sponza.obj", m_TestMesh);
-	return	KRenderGlobal::MeshManager.AcquireFromAsset("../Dependency/assimp-3.3.1/test/models/OBJ/spider.obj", m_TestMesh);
+	for(size_t i = 0; i < 1; ++i)
+	{
+		KEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
+		entity->RegisterComponent(CT_RENDER);
+
+		KRenderComponent* component = nullptr;
+		if(entity->GetComponent(CT_RENDER, (KComponentBase**)&component))
+		{
+			//"../Dependency/assimp-3.3.1/test/models/OBJ/spider.obj"
+			//"../Sponza/sponza.obj"
+			component->InitFromAsset("../Dependency/assimp-3.3.1/test/models/OBJ/spider.obj");
+		}
+	}
+	return true;
 }
 
 bool KVulkanRenderDevice::CreateVertexInput()
@@ -690,8 +708,8 @@ bool KVulkanRenderDevice::CreateTransform()
 			ObjectInitTransform transform = 
 			{
 				glm::rotate(glm::mat4(1.0f),
-					glm::radians((1000.0f * float(rand() % 1000)) * glm::two_pi<float>()), 
-					glm::vec3(0.0f, 1.0f, 0.0f)),
+				glm::radians((1000.0f * float(rand() % 1000)) * glm::two_pi<float>()), 
+				glm::vec3(0.0f, 1.0f, 0.0f)),
 				glm::translate(glm::mat4(1.0f), glm::vec3(xPos, 0.0, yPos)),
 			};
 			m_ObjectTransforms.push_back(transform);
@@ -776,6 +794,8 @@ bool KVulkanRenderDevice::InitGlobalManager()
 	KRenderGlobal::ShaderManager.Init(this);
 	KRenderGlobal::TextrueManager.Init(this);
 
+	KECSGlobal::Init();
+
 	return true;
 }
 
@@ -788,6 +808,9 @@ bool KVulkanRenderDevice::UnInitGlobalManager()
 	KRenderGlobal::TextrueManager.UnInit();
 
 	KVulkanHeapAllocator::UnInit();
+
+	KECSGlobal::UnInit();
+
 	return true;
 }
 
@@ -1111,8 +1134,18 @@ bool KVulkanRenderDevice::UnInit()
 		m_QuadData.vertexBuffer = nullptr;
 	}
 
-	KRenderGlobal::MeshManager.Release(m_TestMesh);
-	m_TestMesh = nullptr;
+	KECSGlobal::EntityManager.ViewAllEntity([](KEntityPtr entity)
+	{
+		KRenderComponent* component = nullptr;
+		if(entity->GetComponent(CT_RENDER, (KComponentBase**)&component))
+		{
+			KMeshPtr mesh = component->GetMesh();
+			if(mesh)
+			{
+				component->UnInit();
+			}
+		}
+	});
 	
 	KRenderGlobal::TextrueManager.Release(m_Texture);
 	m_Texture = nullptr;
@@ -1447,13 +1480,11 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t chai
 		}
 	}
 
-	KRenderCommandList commandList;
-	m_TestMesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, threadIndex, commandList);
-
-	for(const KRenderCommand& command : commandList)
+	for(KRenderCommand& command : threadData.commands)
 	{
 		Render(&commandBuffer, target, frameIndex, threadIndex, command);
 	}
+
 	VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
@@ -1500,6 +1531,9 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				KRenderCommand command;
 				if(m_SkyBox.GetRenderCommand(frameIndex, command))
 				{
+					IKPipelineHandlePtr handle;
+					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, target, handle);
+					command.pipelineHandle = handle.get();
 					Render(&commandBuffer, target, frameIndex, 0, command);
 				}
 			}
@@ -1553,10 +1587,20 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				}
 
 				KRenderCommandList commandList;
-				m_TestMesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, 0, commandList);
 
-				for(const KRenderCommand& command : commandList)
+				std::vector<KRenderComponent*> cullRes;
+				CULL_SYSTEM.Execute(m_Camera, cullRes);
+				for(KRenderComponent* component : cullRes)
 				{
+					KMeshPtr mesh = component->GetMesh();
+					mesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, 0, commandList);
+				}
+
+				for(KRenderCommand& command : commandList)
+				{
+					IKPipelineHandlePtr handle;
+					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, target, handle);
+					command.pipelineHandle = handle.get();
 					Render(&commandBuffer, target, frameIndex, 0, command);
 				}
 			}
@@ -1707,12 +1751,57 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 						KRenderCommand command;
 						if(m_SkyBox.GetRenderCommand(frameIndex, command))
 						{
+							IKPipelineHandlePtr handle;
+							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle);
+							command.pipelineHandle = handle.get();
 							Render(&skyBoxCommandBuffer, offscreenTarget, frameIndex, 0, command);
 						}
 					}
 					VK_ASSERT_RESULT(vkEndCommandBuffer(skyBoxCommandBuffer));
 
 					commandBuffers.push_back(skyBoxCommandBuffer);
+				}
+
+#ifndef THREAD_MODE_ONE
+				size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
+#else
+				size_t threadCount = m_ThreadPool.GetThreadCount();
+#endif
+
+				std::vector<KRenderComponent*> cullRes;
+				CULL_SYSTEM.Execute(m_Camera, cullRes);
+
+				size_t drawEachthread = cullRes.size() / threadCount;
+				size_t reaminCount = cullRes.size() % threadCount;
+
+				for(size_t i = 0; i < threadCount; ++i)
+				{
+					ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[i];
+					threadData.commands.clear();
+
+					for(size_t st = i * drawEachthread, ed = st + drawEachthread; st < ed; ++st)
+					{
+						KRenderComponent* component = cullRes[st];
+						KMeshPtr mesh = component->GetMesh();
+						mesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, i, threadData.commands);
+					}
+
+					if(i == threadCount - 1)
+					{
+						for(size_t st = threadCount * drawEachthread, ed = st + reaminCount; st < ed; ++st)
+						{
+							KRenderComponent* component = cullRes[st];
+							KMeshPtr mesh = component->GetMesh();
+							mesh->AppendRenderList(PIPELINE_STAGE_OPAQUE, frameIndex, i, threadData.commands);
+						}
+					}
+
+					for(KRenderCommand& command : threadData.commands)
+					{
+						IKPipelineHandlePtr handle;
+						KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle);
+						command.pipelineHandle = handle.get();
+					}
 				}
 
 #ifndef THREAD_MODE_ONE
@@ -1735,18 +1824,11 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 
 				m_ThreadPool.WaitAll();
 #endif
-#ifndef THREAD_MODE_ONE
-				size_t numThread = m_ThreadPool.GetWorkerThreadNum();
-#else
-				size_t numThread = m_ThreadPool.GetThreadCount();
-#endif
-				for(size_t threadIndex = 0; threadIndex < numThread; ++threadIndex)
+
+				for(size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
 				{
 					ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
-					if(threadIndex == 0 || numThread <= m_ObjectTransforms.size())
-					{
-						commandBuffers.push_back(threadData.commandBuffer);
-					}
+					commandBuffers.push_back(threadData.commandBuffer);
 				}
 
 				vkCmdExecuteCommands(primaryCommandBuffer, (uint32_t)commandBuffers.size(), commandBuffers.data());
@@ -1963,15 +2045,18 @@ bool KVulkanRenderDevice::Render(void* commandBufferPtr, IKRenderTarget* target,
 		return false;
 	}
 
+	if(!command.pipelineHandle)
+	{
+		return false;
+	}
+
 	VkCommandBuffer commandBuffer = *((VkCommandBuffer*)commandBufferPtr);
 
 	KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target;
 	KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)command.pipeline;
-	IKPipelineHandlePtr pipelineHandle = nullptr;
+	KVulkanPipelineHandle* pipelineHandle = (KVulkanPipelineHandle*)command.pipelineHandle;
 
-	ASSERT_RESULT(KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline, vulkanTarget, pipelineHandle));
-
-	VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
+	VkPipeline pipeline = pipelineHandle->GetVkPipeline();
 
 	VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 	VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
