@@ -152,12 +152,15 @@ bool KVulkanPipeline::SetSampler(unsigned int location, const ImageView& imageVi
 	return false;
 }
 
-bool KVulkanPipeline::PushConstantBlock(const PushConstant& constant, PushConstantLocation& location)
+bool KVulkanPipeline::PushConstantBlock(ShaderTypes shaderTypes, uint32_t size, uint32_t& offset)
 {
-	int size = 0; for(auto& info : m_PushContants) { size += info.constant.size; }
-	location.offset = size;
+	offset = 0;
+	for(auto& info : m_PushContants)
+	{
+		offset += info.size;
+	}
 
-	PushConstantBindingInfo info = { constant, location };
+	PushConstantBindingInfo info = { shaderTypes, size, offset };
 	m_PushContants.push_back(info);
 	return true;
 }
@@ -227,12 +230,12 @@ bool KVulkanPipeline::CreateLayout()
 	for(auto& info : m_PushContants)
 	{
 		VkFlags stageFlags = 0;
-		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(info.constant.shaderTypes, stageFlags));
+		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(info.shaderTypes, stageFlags));
 
 		VkPushConstantRange pushConstantRange = {};
 		pushConstantRange.stageFlags = stageFlags;
 		pushConstantRange.offset = (uint32_t)pushConstantOffset;
-		pushConstantRange.size = (uint32_t)info.constant.size;
+		pushConstantRange.size = (uint32_t)info.size;
 
 		pushConstantRanges.push_back(pushConstantRange);
 

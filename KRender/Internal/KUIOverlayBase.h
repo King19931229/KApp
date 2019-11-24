@@ -22,8 +22,7 @@ protected:
 		glm::vec2 scale;
 		glm::vec2 translate;
 	} m_PushConstBlock;
-	PushConstant m_Constant;
-	PushConstantLocation m_ConstantLoc;
+	uint32_t m_PushOffset;
 
 	void InitImgui();
 	void UnInitImgui();

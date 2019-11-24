@@ -62,20 +62,28 @@ struct KRenderCommand
 {
 	const KVertexData* vertexData;
 	const KIndexData* indexData;
+
 	IKPipeline* pipeline;
 	IKPipelineHandle* pipelineHandle;
+
 	void* objectData;
+	uint32_t objectPushOffset;
 	bool useObjectData;
+
 	bool indexDraw;
 
 	KRenderCommand()
 	{
 		vertexData = nullptr;
 		indexData = nullptr;
+
 		pipeline = nullptr;
 		pipelineHandle = nullptr;
+
 		objectData = false;
+		objectPushOffset = 0;
 		useObjectData = false;
+
 		indexDraw = false;
 	}
 
@@ -90,6 +98,10 @@ struct KRenderCommand
 			return false;
 		}
 		if(useObjectData && !objectData)
+		{
+			return false;
+		}
+		if(!pipelineHandle)
 		{
 			return false;
 		}
@@ -123,7 +135,7 @@ struct IKRenderDevice
 	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui) = 0;
 
 	// TODO abstract CommandBuffer
-	virtual bool Render(void* commandBufferPtr, IKRenderTarget* target, size_t frameIndex, size_t threadIndex, const KRenderCommand& command) = 0;
+	virtual bool Render(void* commandBufferPtr, size_t frameIndex, size_t threadIndex, const KRenderCommand& command) = 0;
 
 	virtual bool Present() = 0;
 };

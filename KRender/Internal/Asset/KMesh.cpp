@@ -5,7 +5,6 @@
 
 KMesh::KMesh()
 {
-	m_ObjectData.MODEL = glm::mat4(1.0f);
 }
 
 KMesh::~KMesh()
@@ -164,11 +163,11 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 	return false;
 }
 
-bool KMesh::AppendRenderList(PipelineStage stage, size_t frameIndex, size_t threadIndex, KRenderCommandList& list)
+bool KMesh::Visit(PipelineStage stage, size_t frameIndex, size_t threadIndex, std::function<void(KRenderCommand)> func)
 {
 	for(KSubMeshPtr subMesh : m_SubMeshes)
 	{
-		ASSERT_RESULT(subMesh->AppendRenderList(stage, frameIndex, threadIndex, list));
+		ASSERT_RESULT(subMesh->Visit(stage, frameIndex, threadIndex, func));
 	}
 	return true;
 }

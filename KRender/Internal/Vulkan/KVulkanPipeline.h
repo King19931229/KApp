@@ -62,8 +62,9 @@ protected:
 
 	struct PushConstantBindingInfo
 	{
-		PushConstant constant;
-		PushConstantLocation location;
+		ShaderTypes shaderTypes;
+		uint32_t size;
+		uint32_t offset;
 	};
 	std::vector<PushConstantBindingInfo> m_PushContants;
 
@@ -103,7 +104,7 @@ public:
 
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
 	virtual bool SetSampler(unsigned int location, const ImageView& view, IKSamplerPtr sampler);
-	virtual bool PushConstantBlock(const PushConstant& constant, PushConstantLocation& location);
+	virtual bool PushConstantBlock(ShaderTypes shaderTypes, uint32_t size, uint32_t& offset);
 
 	virtual bool Init();
 	virtual bool UnInit();

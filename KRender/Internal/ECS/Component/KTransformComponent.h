@@ -1,5 +1,6 @@
 #pragma once
 #include "KComponentBase.h"
+#include "Internal/KConstantDefinition.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"
@@ -11,6 +12,7 @@ protected:
 	glm::vec3 m_Position;
 	glm::vec3 m_Scale;
 	glm::quat m_Rotate;	
+	KConstantDefinition::OBJECT m_FinalTransform;
 public:
 	KTransformComponent()
 		: KComponentBase(CT_TRANSFORM),
@@ -24,11 +26,12 @@ public:
 	glm::vec3& GetScale() { return m_Scale; }
 	glm::vec3& GetPosition() { return m_Position; }
 
-	inline glm::mat4 FinalTransform() const
+	inline KConstantDefinition::OBJECT&	FinalTransform()
 	{
 		glm::mat4 rotate = glm::mat4_cast(m_Rotate);
 		glm::mat4 scale = glm::scale(glm::mat4(1.0f), m_Scale);
 		glm::mat4 translate = glm::translate(glm::mat4(1.0f), m_Position);
-		return translate * rotate * scale;
+		m_FinalTransform.MODEL = translate * rotate * scale;
+		return m_FinalTransform;
 	}
 };

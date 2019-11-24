@@ -68,9 +68,6 @@ bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 	renderDevice->CreateTexture(m_FontTexture);
 	renderDevice->CreateSampler(m_FontSampler);
 
-	m_Constant.shaderTypes = ST_VERTEX;
-	m_Constant.size = sizeof(m_PushConstBlock);
-
 	size_t numImages = frameInFlight;
 
 	m_IndexBuffers.resize(numImages);
@@ -188,7 +185,8 @@ void KUIOverlayBase::PreparePipeline()
 		pipeline->SetShader(ST_VERTEX, m_VertexShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
 		pipeline->SetSampler(0, m_FontTexture->GetImageView(), m_FontSampler);
-		pipeline->PushConstantBlock(m_Constant, m_ConstantLoc);
+
+		pipeline->PushConstantBlock(ST_VERTEX, sizeof(m_PushConstBlock), m_PushOffset);
 		ASSERT_RESULT(pipeline->Init());
 	}	
 }

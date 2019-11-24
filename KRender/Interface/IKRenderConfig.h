@@ -209,27 +209,6 @@ struct ImageView
 	bool fromSwapChain;
 };
 
-struct PushConstant
-{
-	ShaderTypes shaderTypes;
-	int size;
-
-	PushConstant()
-	{
-		shaderTypes = 0;
-		size = 0;
-	}
-};
-
-struct PushConstantLocation
-{
-	int offset;
-	PushConstantLocation()
-	{
-		offset = 0;
-	}
-};
-
 struct IKRenderWindow;
 typedef std::shared_ptr<IKRenderWindow> IKRenderWindowPtr;
 

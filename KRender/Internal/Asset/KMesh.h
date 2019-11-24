@@ -12,24 +12,20 @@ protected:
 	KVertexData m_VertexData;
 	std::vector<KSubMeshPtr> m_SubMeshes;
 	std::string m_Path;
-	KConstantDefinition::OBJECT m_ObjectData;
 
 	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group);
 public:
 	KMesh();
 	~KMesh();
 
-	bool SaveAsFile(const char* szPath);
+	inline const std::string& GetPath() const { return m_Path; }
 
+	bool SaveAsFile(const char* szPath);
 	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum);
 	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum);
 	bool UnInit();
 
-	const std::string& GetPath() const { return m_Path; }
-
-	bool SetModelMatrix(const glm::mat4& model) { m_ObjectData.MODEL = model; }
-
-	bool AppendRenderList(PipelineStage stage, size_t frameIndex, size_t threadIndex, KRenderCommandList& list);
+	bool Visit(PipelineStage stage, size_t frameIndex, size_t threadIndex, std::function<void(KRenderCommand)> func);
 };
 
 typedef std::shared_ptr<KMesh> KMeshPtr;

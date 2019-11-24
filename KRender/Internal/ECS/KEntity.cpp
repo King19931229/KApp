@@ -51,7 +51,7 @@ bool KEntity::HasComponents(const ComponentTypeList& components)
 	return true;
 }
 
-bool KEntity::RegisterComponent(ComponentType type)
+bool KEntity::RegisterComponent(ComponentType type, KComponentBase** pptr)
 {
 	auto it = m_Components.find(type);
 	if(it == m_Components.end())
@@ -59,6 +59,10 @@ bool KEntity::RegisterComponent(ComponentType type)
 		KComponentBase* component = KECSGlobal::ComponentManager.Alloc(type);
 		m_Components.insert(ComponentMap::value_type(type, component));
 		component->RegisterEntityHandle(this);
+		if(pptr)
+		{
+			*pptr = component;
+		}
 		return true;
 	}
 	else

@@ -18,7 +18,7 @@ public:
 
 	bool HasComponents(const ComponentTypeList& components);
 
-	bool RegisterComponent(ComponentType type);
+	bool RegisterComponent(ComponentType type, KComponentBase** pptr = nullptr);
 	bool UnRegisterComponent(ComponentType type);
 	bool UnRegisterAllComponent();
 

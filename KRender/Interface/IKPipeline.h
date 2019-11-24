@@ -29,7 +29,7 @@ struct IKPipeline
 	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader) = 0;
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
 	virtual bool SetSampler(unsigned int location, const ImageView& view, IKSamplerPtr sampler) = 0;
-	virtual bool PushConstantBlock(const PushConstant& constant, PushConstantLocation& location) = 0;
+	virtual bool PushConstantBlock(ShaderTypes shaderTypes, uint32_t size, uint32_t& offset) = 0;
 
 	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;

@@ -12,10 +12,10 @@ layout(location = SPECULAR) in vec3 specular;
 layout(location = TANGENT) in vec3 tangent;
 layout(location = BINORMAL) in vec3 binormal;
 
-layout(binding = OBJECT)
-uniform ObjectInfo
+layout(push_constant)
+uniform PushConstant
 {
-    mat4 model;
+	mat4 model;
 }object;
 
 layout(binding = CAMERA)

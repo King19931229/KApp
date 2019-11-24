@@ -138,8 +138,21 @@ protected:
 	std::vector<ObjectInitTransform> m_ObjectTransforms;
 	std::vector<glm::mat4> m_ObjectFinalTransforms;
 
+	struct PushConstant
+	{
+		ShaderTypes shaderTypes;
+		uint32_t size;
+		uint32_t offset;
+
+		PushConstant()
+		{
+			shaderTypes = 0;
+			size = 0;
+			offset = 0;
+		}
+	};
+
 	PushConstant m_ObjectConstant;
-	PushConstantLocation m_ObjectConstantLoc;
 
 	IKTexturePtr m_Texture;
 	IKSamplerPtr m_Sampler;
@@ -229,7 +242,10 @@ public:
 
 	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui);
 
-	virtual bool Render(void* commandBufferPtr, IKRenderTarget* target, size_t frameIndex, size_t threadIndex, const KRenderCommand& command);
+	virtual bool Begin(void* commandBufferPtr, IKRenderTarget* target);
+	virtual bool Render(void* commandBufferPtr, size_t frameIndex, size_t threadIndex, const KRenderCommand& command);
+	virtual bool End(void* commandBufferPtr);
+
 	virtual bool Present();
 
 	bool Wait();
