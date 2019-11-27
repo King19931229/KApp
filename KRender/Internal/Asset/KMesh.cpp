@@ -167,7 +167,7 @@ bool KMesh::Visit(PipelineStage stage, size_t frameIndex, size_t threadIndex, st
 {
 	for(KSubMeshPtr subMesh : m_SubMeshes)
 	{
-		ASSERT_RESULT(subMesh->Visit(stage, frameIndex, threadIndex, func));
+		subMesh->Visit(stage, frameIndex, threadIndex, func);
 	}
 	return true;
 }

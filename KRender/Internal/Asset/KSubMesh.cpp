@@ -50,7 +50,7 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 			for(size_t threadIndex = 0; threadIndex < m_RenderThreadNum; ++threadIndex)
 			{
 				PipelineInfo& info = threadPipelines[threadIndex];
-				ASSERT_RESULT(CreatePipeline((PipelineStage)i, frameIndex, threadIndex, info.pipeline, info.objectPushOffset));
+				CreatePipeline((PipelineStage)i, frameIndex, threadIndex, info.pipeline, info.objectPushOffset);
 			}
 		}
 	}
@@ -83,8 +83,11 @@ bool KSubMesh::UnInit()
 		{
 			for(PipelineInfo& info : framePipelineList)
 			{
-				KRenderGlobal::PipelineManager.DestroyPipeline(info.pipeline);
-				info.pipeline = nullptr;
+				if(info.pipeline)
+				{
+					KRenderGlobal::PipelineManager.DestroyPipeline(info.pipeline);
+					info.pipeline = nullptr;
+				}
 			}
 			framePipelineList.clear();
 		}
@@ -144,6 +147,12 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 			{
 				pipeline->SetSampler(CBT_COUNT, diffuseMap.texture->GetImageView(), diffuseMap.sampler);
 			}
+			else
+			{
+				KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
+				pipeline = nullptr;
+				return false;
+			}
 		}
 
 		pipeline->Init();
@@ -176,17 +185,22 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, size_t r
 	assert(renderThreadIndex < thredPipelines.size());
 
 	PipelineInfo& info = thredPipelines[renderThreadIndex];
-	assert(info.pipeline);
+	if(info.pipeline)
+	{
+		command.vertexData = m_pVertexData;
+		command.indexData = &m_IndexData;
+		command.pipeline = info.pipeline.get();
+		command.indexDraw = true;
 
-	command.vertexData = m_pVertexData;
-	command.indexData = &m_IndexData;
-	command.pipeline = info.pipeline.get();
-	command.indexDraw = true;
+		command.objectPushOffset = info.objectPushOffset;
+		command.useObjectData = false;
 
-	command.objectPushOffset = info.objectPushOffset;
-	command.useObjectData = false;
-
-	return true;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 bool KSubMesh::Visit(PipelineStage stage, size_t frameIndex, size_t threadIndex, std::function<void(KRenderCommand)> func)
