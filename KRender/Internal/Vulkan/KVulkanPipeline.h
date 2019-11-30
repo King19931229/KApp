@@ -49,9 +49,6 @@ protected:
 	VkBool32 m_DepthTest;
 	VkCompareOp m_DepthOp;
 
-	// Shader信息
-	IKProgramPtr m_Program;
-
 	// Constant Buffer信息
 	struct UniformBufferBindingInfo
 	{
@@ -68,11 +65,15 @@ protected:
 	};
 	std::vector<PushConstantBindingInfo> m_PushContants;
 
+	IKShaderPtr m_VertexShader;
+	IKShaderPtr m_FragmentShader;
+
 	// Sampler 信息
 	struct SamplerBindingInfo
 	{
 		VkImageView vkImageView;
 		VkSampler vkSampler;
+		bool depthStencil;
 	};
 	std::map<unsigned int, SamplerBindingInfo> m_Samplers;
 

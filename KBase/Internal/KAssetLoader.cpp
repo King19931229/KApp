@@ -45,7 +45,27 @@ EXPORT_DLL IKAssetLoaderPtr GetAssetLoader()
 	return IKAssetLoaderPtr(new KAssetLoader());
 }
 
-#define IMPORT_FLAGS (aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals)
+#define IMPORT_FLAGS (aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices)
+
+uint32_t KAssetLoader::GetFlags(const KAssetImportOption& importOption)
+{
+	uint32_t flag = IMPORT_FLAGS;
+	for(const KAssetImportOption::ComponentGroup& group : importOption.components)
+	{
+		for(const AssetVertexComponent& component : group)
+		{
+			if(component == AVC_NORMAL_3F)
+			{
+				flag |= aiProcess_GenSmoothNormals;
+			}
+			if(component == AVC_TANGENT_3F || component == AVC_BINORMAL_3F)
+			{
+				flag |= (aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
+			}
+		}
+	}
+	return flag;
+}
 
 bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption& importOption, KAssetImportResult& result)
 {
@@ -245,7 +265,7 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 
 bool KAssetLoader::ImportFromMemory(const char* pData, size_t dataSize, const KAssetImportOption& importOption, KAssetImportResult& result)
 {
-	const aiScene* scene = m_Importer.ReadFileFromMemory(pData, dataSize, IMPORT_FLAGS);
+	const aiScene* scene = m_Importer.ReadFileFromMemory(pData, dataSize, GetFlags(importOption));
 	if(!scene)
 	{
 		LogInfo(m_Importer.GetErrorString());
@@ -266,7 +286,7 @@ bool KAssetLoader::ImportFromMemory(const char* pData, size_t dataSize, const KA
 
 bool KAssetLoader::Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result)
 {
-	const aiScene* scene = m_Importer.ReadFile(pszFile, IMPORT_FLAGS);
+	const aiScene* scene = m_Importer.ReadFile(pszFile, GetFlags(importOption));
 	if(!scene)
 	{
 		LogInfo(m_Importer.GetErrorString());

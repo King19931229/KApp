@@ -23,9 +23,14 @@ protected:
 	VkImageView		m_ColorImageView;
 
 	VkFormat		m_DepthFormat;
+
 	VkImage			m_DepthImage;
 	VkImageView		m_DepthImageView;
-	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
+	KVulkanHeapAllocator::AllocInfo m_DepthAlloc;
+
+	VkImage			m_DepthResolveImage;
+	VkImageView		m_DepthResolveImageView;
+	KVulkanHeapAllocator::AllocInfo m_DepthResolveAlloc;
 
 	VkSampleCountFlagBits m_MsaaFlag;
 	VkImage			m_MsaaImage;

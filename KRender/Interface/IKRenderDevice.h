@@ -119,7 +119,6 @@ struct IKRenderDevice
 	virtual bool UnInit() = 0;
 
 	virtual bool CreateShader(IKShaderPtr& shader) = 0;
-	virtual bool CreateProgram(IKProgramPtr& program) = 0;
 
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer) = 0;
 	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer) = 0;

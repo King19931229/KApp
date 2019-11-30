@@ -12,14 +12,41 @@
 #define CACHE_PATH "ShaderCached"
 
 KVulkanShader::KVulkanShader()
-	: m_bShaderModuelInited(false)
 {
 	m_ShaderModule = VK_NULL_HANDLE;
+	ZERO_MEMORY(m_SpecializationInfo);
 }
 
 KVulkanShader::~KVulkanShader()
 {
+	ASSERT_RESULT(m_ShaderModule == VK_NULL_HANDLE);
+}
 
+bool KVulkanShader::SetConstantEntry(uint32_t constantID, uint32_t offset, size_t size, const void* data)
+{
+	if(data)
+	{
+		auto it = m_ConstantEntries.find(constantID);
+
+		ConstantEntryInfo* pInfo = nullptr;
+
+		if(it != m_ConstantEntries.end())
+		{
+			pInfo = &it->second;
+		}
+		else
+		{
+			m_ConstantEntries[constantID] = ConstantEntryInfo();
+			pInfo = &(m_ConstantEntries.find(constantID)->second);
+		}
+
+		pInfo->offset = offset;
+		pInfo->data.resize(size);
+		memcpy(pInfo->data.data(), data, size);
+
+		return true;
+	}
+	return false;	
 }
 
 bool KVulkanShader::InitFromFile(const std::string path)
@@ -92,7 +119,36 @@ bool KVulkanShader::InitFromString(const std::vector<char> code)
 
 	if (vkCreateShaderModule(device, &createInfo, nullptr, &m_ShaderModule) == VK_SUCCESS)
 	{
-		m_bShaderModuelInited = true;
+		size_t constantSize = 0;
+		for(auto& pair : m_ConstantEntries)
+		{
+			constantSize += pair.second.data.size();
+		}
+		m_ConstantData.resize(constantSize);
+
+		m_SpecializationMapEntry.clear();
+		m_SpecializationMapEntry.reserve(m_ConstantEntries.size());
+		for(auto& pair : m_ConstantEntries)
+		{
+			VkSpecializationMapEntry entry = {};
+			ConstantEntryInfo& info = pair.second;
+
+			entry.constantID = pair.first;
+			entry.offset = info.offset;
+			entry.size = info.data.size();
+
+			memcpy(m_ConstantData.data() + entry.offset, info.data.data(), entry.size);
+
+			m_SpecializationMapEntry.push_back(entry);
+		}
+
+		ZERO_MEMORY(m_SpecializationInfo);
+
+		m_SpecializationInfo.mapEntryCount = (uint32_t)m_ConstantEntries.size();
+		m_SpecializationInfo.pMapEntries = m_SpecializationMapEntry.data();
+		m_SpecializationInfo.dataSize = m_ConstantData.size();
+		m_SpecializationInfo.pData = m_ConstantData.data();
+
 		return true;
 	}
 	assert(false && "KVulkanShader InitFromString Failure");
@@ -103,12 +159,15 @@ bool KVulkanShader::UnInit()
 {
 	using namespace KVulkanGlobal;
 
-	if(m_bShaderModuelInited)
+	if(m_ShaderModule != VK_NULL_HANDLE)
 	{
 		vkDestroyShaderModule(device, m_ShaderModule, nullptr);
 		m_ShaderModule = VK_NULL_HANDLE;
-		m_bShaderModuelInited = false;
 	}
+
+	m_SpecializationMapEntry.clear();
+	ZERO_MEMORY(m_SpecializationInfo);
+	m_ConstantData.clear();
 
 	return true;
 }

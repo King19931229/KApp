@@ -2,7 +2,6 @@
 #include "KVulkanRenderWindow.h"
 
 #include "KVulkanShader.h"
-#include "KVulkanProgram.h"
 #include "KVulkanBuffer.h"
 #include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
@@ -280,7 +279,7 @@ bool KVulkanRenderDevice::CreateImageViews()
 	VkFormat format			= m_pSwapChain->GetFormat();
 
 	uint32_t msaaCount = 1;
-
+	/*
 	uint32_t candidate[] = {64,32,16,8,4,2,1};
 	VkSampleCountFlagBits flag = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
 	for(uint32_t count: candidate)
@@ -291,6 +290,7 @@ bool KVulkanRenderDevice::CreateImageViews()
 			break;
 		}
 	}
+	*/
 
 	std::vector<IKRenderTarget*> renderTargets;
 
@@ -406,7 +406,14 @@ bool KVulkanRenderDevice::CreatePipelines()
 			pipeline->SetFrontFace(FF_CLOCKWISE);
 			pipeline->SetPolygonMode(PM_FILL);
 
-			pipeline->SetSampler(0, m_OffScreenTextures[i]->GetImageView(), m_Sampler);
+			//pipeline->SetSampler(0, m_OffScreenTextures[i]->GetImageView(), m_Sampler);
+
+			ImageView depthView;
+			if(m_OffscreenRenderTargets[i]->GetImageView(RTC_DEPTH_STENCIL, depthView))
+			{
+				pipeline->SetSampler(0, depthView, m_Sampler);
+			}
+
 			pipeline->Init();
 		}
 	}
@@ -787,7 +794,11 @@ VkBool32 KVulkanRenderDevice::DebugCallback(
 	{
 		printf("[Vulkan Validation Layer Debug] %s\n", pCallbackData->pMessage);
 	}
-	else
+	if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+	{
+		printf("[Vulkan Validation Layer Performance] %s\n", pCallbackData->pMessage);
+	}
+	else if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
 	{
 		printf("[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
 		assert(false);
@@ -1288,12 +1299,6 @@ bool KVulkanRenderDevice::CreateShader(IKShaderPtr& shader)
 {
 	shader = IKShaderPtr(new KVulkanShader());
 	return true; 
-}
-
-bool KVulkanRenderDevice::CreateProgram(IKProgramPtr& program)
-{
-	program = IKProgramPtr(new KVulkanProgram());
-	return true;
 }
 
 bool KVulkanRenderDevice::CreateVertexBuffer(IKVertexBufferPtr& buffer)

@@ -3,7 +3,7 @@
 #include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
 #include "KVulkanHelper.h"
-#include "KVulkanProgram.h"
+#include "KVulkanShader.h"
 #include "KVulkanRenderTarget.h"
 #include "KVulkanGlobal.h"
 
@@ -24,8 +24,7 @@ KVulkanPipeline::KVulkanPipeline() :
 	m_DescriptorSetLayout(VK_NULL_HANDLE),
 	m_DescriptorPool(VK_NULL_HANDLE),
 	m_DescriptorSet(VK_NULL_HANDLE),
-	m_PipelineLayout(VK_NULL_HANDLE),
-	m_Program(IKProgramPtr(new KVulkanProgram()))
+	m_PipelineLayout(VK_NULL_HANDLE)
 {
 
 }
@@ -102,8 +101,18 @@ bool KVulkanPipeline::SetDepthFunc(CompareFunc func, bool depthWrtie, bool depth
 
 bool KVulkanPipeline::SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader)
 {
-	ASSERT_RESULT(m_Program->AttachShader(shaderType, shader));
-	return true;
+	switch (shaderType)
+	{
+	case ST_VERTEX:
+		m_VertexShader = shader;
+		return true;
+	case ST_FRAGMENT:
+		m_FragmentShader = shader;
+		return true;
+	default:
+		assert(false && "unknown shader");
+		return false;
+	}
 }
 
 bool KVulkanPipeline::SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer)
@@ -136,7 +145,8 @@ bool KVulkanPipeline::SetSampler(unsigned int location, const ImageView& imageVi
 		SamplerBindingInfo info =
 		{
 			(VkImageView)imageView.imageViewHandle,
-			((KVulkanSampler*)sampler.get())->GetVkSampler()
+			((KVulkanSampler*)sampler.get())->GetVkSampler(),
+			imageView.fromDepthStencil ? true : false
 		};
 		auto& it = m_Samplers.find(location);
 		if(it == m_Samplers.end())
@@ -347,7 +357,7 @@ bool KVulkanPipeline::CreateDestcription()
 		SamplerBindingInfo& info = pair.second;
 
 		VkDescriptorImageInfo imageInfo = {};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageLayout = info.depthStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = info.vkImageView;
 		imageInfo.sampler = info.vkSampler;
 
@@ -379,8 +389,8 @@ bool KVulkanPipeline::CreateDestcription()
 }
 
 bool KVulkanPipeline::Init()
-{	
-	ASSERT_RESULT(m_Program->Init());
+{
+	ASSERT_RESULT(m_VertexShader && m_FragmentShader);
 	ASSERT_RESULT(CreateLayout());
 	ASSERT_RESULT(CreateDestcription());
 	return true;
@@ -409,13 +419,14 @@ bool KVulkanPipeline::UnInit()
 		m_PipelineLayout = VK_NULL_HANDLE;
 	}
 
+	m_VertexShader = nullptr;
+	m_FragmentShader = nullptr;
+
 	KRenderGlobal::PipelineManager.InvaildateHandleByPipeline(this);
 
 	m_Uniforms.clear();
 	m_PushContants.clear();
 	m_Samplers.clear();
-
-	ASSERT_RESULT(m_Program->UnInit());
 
 	return true;
 }
@@ -442,10 +453,9 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 
 	m_Pipeline = static_cast<KVulkanPipeline*>(pipeline);
 	m_Target = static_cast<KVulkanRenderTarget*>(target);
-	
-	KVulkanProgram* program = static_cast<KVulkanProgram*>(m_Pipeline->m_Program.get());
-	ASSERT_RESULT(program != nullptr);
 
+	ASSERT_RESULT(m_Pipeline != nullptr);
+	ASSERT_RESULT(m_Pipeline->m_VertexShader && m_Pipeline->m_FragmentShader);
 	ASSERT_RESULT(m_Target != nullptr);
 	VkSampleCountFlagBits msaaFlag = m_Target->GetMsaaFlag();
 	VkExtent2D extend = m_Target->GetExtend();
@@ -565,8 +575,30 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	dynamicState.dynamicStateCount = ARRAY_SIZE(dynamicStates);
 	dynamicState.pDynamicStates = dynamicStates;
 
-	// 配置Shader信息
-	const std::vector<VkPipelineShaderStageCreateInfo> shaderStageInfo = program->GetShaderStageInfo();
+	std::vector<VkPipelineShaderStageCreateInfo> shaderStageInfo;
+	KVulkanShader* vulkanShader = nullptr;
+
+	// vs
+	VkPipelineShaderStageCreateInfo vsShaderCreateInfo = {};
+	vulkanShader = (KVulkanShader*)m_Pipeline->m_VertexShader.get();
+	vsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	vsShaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+	vsShaderCreateInfo.module = vulkanShader->GetShaderModule();
+	vsShaderCreateInfo.pSpecializationInfo = vulkanShader->GetSpecializationInfo();
+	vsShaderCreateInfo.pName = "main";
+
+	shaderStageInfo.push_back(vsShaderCreateInfo);
+
+	// fs
+	VkPipelineShaderStageCreateInfo fsShaderCreateInfo = {};
+	vulkanShader = (KVulkanShader*)m_Pipeline->m_FragmentShader.get();
+	fsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	fsShaderCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fsShaderCreateInfo.module = vulkanShader->GetShaderModule();
+	fsShaderCreateInfo.pSpecializationInfo = vulkanShader->GetSpecializationInfo();
+	fsShaderCreateInfo.pName = "main";
+
+	shaderStageInfo.push_back(fsShaderCreateInfo);
 
 	// 创建管线
 	VkGraphicsPipelineCreateInfo pipelineInfo = {};

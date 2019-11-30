@@ -77,7 +77,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 		KAssetImportOption option;
 		KAssetImportResult result;
 
-		VertexFormat formats[] = { VF_POINT_NORMAL_UV, VF_DIFFUSE_SPECULAR, VF_TANGENT_BINORMAL };
+		VertexFormat formats[] = { VF_POINT_NORMAL_UV };
 		for(VertexFormat format : formats)
 		{
 			KAssetImportOption::ComponentGroup group;

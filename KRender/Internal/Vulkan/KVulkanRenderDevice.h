@@ -227,7 +227,6 @@ public:
 	virtual bool UnInit();
 
 	virtual bool CreateShader(IKShaderPtr& shader);
-	virtual bool CreateProgram(IKProgramPtr& program);
 
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer);
 	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer);

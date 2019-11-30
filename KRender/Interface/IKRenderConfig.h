@@ -207,6 +207,7 @@ struct ImageView
 	void* imageViewHandle;
 	int imageForamt;
 	bool fromSwapChain;
+	bool fromDepthStencil;
 };
 
 struct IKRenderWindow;
@@ -217,9 +218,6 @@ typedef std::shared_ptr<IKRenderDevice> IKRenderDevicePtr;
 
 struct IKShader;
 typedef std::shared_ptr<IKShader> IKShaderPtr;
-
-struct IKProgram;
-typedef std::shared_ptr<IKProgram> IKProgramPtr;
 
 struct IKVertexBuffer;
 typedef std::shared_ptr<IKVertexBuffer> IKVertexBufferPtr;

@@ -129,16 +129,16 @@ bool KVulkanRenderTarget::CreateImage(const ImageView& view, bool bDepth, bool b
 			VK_IMAGE_TYPE_2D,
 			m_DepthFormat,
 			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			0,
 			m_DepthImage,
-			m_AllocInfo);
+			m_DepthAlloc);
 
 		KVulkanInitializer::CreateVkImageView(m_DepthImage,
 			VK_IMAGE_VIEW_TYPE_2D,
 			m_DepthFormat,
-			VK_IMAGE_ASPECT_DEPTH_BIT | (bStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0),
+			VK_IMAGE_ASPECT_DEPTH_BIT,
 			1,
 			m_DepthImageView);
 	}
@@ -178,7 +178,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
 	// 声明 MSAA Resolve Attachment 不一定用到
 	VkAttachmentDescription colorAttachmentResolve = {};
@@ -331,7 +331,7 @@ bool KVulkanRenderTarget::UnInit()
 	if(m_bDepthStencilCreated)
 	{
 		vkDestroyImageView(KVulkanGlobal::device, m_DepthImageView, nullptr);
-		KVulkanInitializer::FreeVkImage(m_DepthImage, m_AllocInfo);
+		KVulkanInitializer::FreeVkImage(m_DepthImage, m_DepthAlloc);
 
 		m_DepthImageView = VK_NULL_HANDLE;
 		m_DepthImage = VK_NULL_HANDLE;
@@ -351,13 +351,25 @@ bool KVulkanRenderTarget::GetImageView(RenderTargetComponent component, ImageVie
 	case RTC_COLOR:
 		view.imageForamt = m_ColorFormat;
 		view.imageViewHandle = (void*)m_ColorImageView;
+		view.fromDepthStencil = false;
+		view.fromSwapChain = false;
 		return true;
 	case RTC_DEPTH_STENCIL:
 		if(m_bDepthStencilCreated)
 		{
-			view.imageForamt = m_DepthFormat;
-			view.imageViewHandle = (void*)m_DepthImageView;
-			return true;
+			if(!m_bMsaaCreated)
+			{
+				view.imageForamt = m_DepthFormat;
+				view.imageViewHandle = (void*)m_DepthImageView;
+				view.fromDepthStencil = true;
+				view.fromSwapChain = false;
+				return true;
+			}
+			else
+			{
+				// http://aicdg.com/ue4-msaa-depth/
+				assert(false && "depth stencil msaa can't not be resolved in vulkan");
+			}
 		}
 		return false;
 	default:

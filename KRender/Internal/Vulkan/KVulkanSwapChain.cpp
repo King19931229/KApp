@@ -373,6 +373,7 @@ bool KVulkanSwapChain::GetImageView(size_t imageIndex, ImageView& imageView)
 		imageView.imageViewHandle = (void*)m_SwapChainImageViews[imageIndex];
 		imageView.imageForamt = m_SurfaceFormat.format;
 		imageView.fromSwapChain = true;
+		imageView.fromDepthStencil = false;
 		return true;
 	}
 	return false;

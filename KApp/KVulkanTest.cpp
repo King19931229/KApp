@@ -22,7 +22,6 @@ IKLogPtr pLog;
 #include "KRender/Interface/IKRenderWindow.h"
 #include "KRender/Interface/IKRenderDevice.h"
 #include "KRender/Interface/IKShader.h"
-#include "KRender/Interface/IKProgram.h"
 
 #include <algorithm>
 #include <process.h>
