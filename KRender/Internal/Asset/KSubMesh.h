@@ -3,6 +3,8 @@
 #include "Interface/IKRenderDevice.h"
 #include "KMaterial.h"
 
+#include <functional>
+
 class KSubMesh
 {
 	friend class KMesh;

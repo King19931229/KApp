@@ -210,6 +210,15 @@
     <ClInclude Include="Internal\Shadow\KShadowMap.h">
       <Filter>Internal\Shadow</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKCommandBuffer.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKRenderCommand.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -334,6 +343,9 @@
     </ClCompile>
     <ClCompile Include="Internal\ECS\Component\KRenderComponent.cpp">
       <Filter>Internal\ECS\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanCommandBuffer.cpp">
+      <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

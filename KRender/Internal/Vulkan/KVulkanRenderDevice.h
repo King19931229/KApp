@@ -82,7 +82,7 @@ protected:
 
 	struct ThreadData
 	{
-		VkCommandPool commandPool;
+		IKCommandPoolPtr commandPool;
 		VkCommandBuffer commandBuffer;
 		std::vector<KRenderCommand> commands;
 		size_t num;
@@ -91,12 +91,12 @@ protected:
 
 	struct CommandBuffer
 	{
-		VkCommandPool commandPool;
-		VkCommandBuffer primaryCommandBuffer;
-		VkCommandBuffer skyBoxCommandBuffer;
-		VkCommandBuffer shadowMapCommandBuffer;
-		VkCommandBuffer uiCommandBuffer;
-		VkCommandBuffer postprocessCommandBuffer;
+		IKCommandPoolPtr commandPool;
+		IKCommandBufferPtr primaryCommandBuffer;
+		IKCommandBufferPtr skyBoxCommandBuffer;
+		IKCommandBufferPtr shadowMapCommandBuffer;
+		IKCommandBufferPtr uiCommandBuffer;
+		IKCommandBufferPtr postprocessCommandBuffer;
 
 		std::vector<ThreadData> threadDatas;
 		VkCommandBufferList commandBuffersExec;
@@ -248,6 +248,8 @@ public:
 	virtual bool SetDepthBias(void* commandBufferPtr, float depthBiasConstant, float depthBiasSlope);
 	virtual bool Render(void* commandBufferPtr, size_t frameIndex, size_t threadIndex, const KRenderCommand& command);
 
+	virtual bool CreateCommandPool(IKCommandPoolPtr& pool);
+	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer);
 	virtual bool Present();
 
 	bool Wait();

@@ -208,6 +208,18 @@ enum PipelineStage
 	PIPELINE_STAGE_COUNT
 };
 
+enum QueueFamilyIndex
+{
+	QUEUE_FAMILY_INDEX_GRAPHICS,
+	QUEUE_FAMILY_INDEX_PRESENT
+};
+
+enum CommandBufferLevel
+{
+	CBL_PRIMARY,
+	CBL_SECONDARY
+};
+
 //TODO
 struct ImageView
 {
@@ -249,6 +261,12 @@ typedef std::shared_ptr<IKPipeline> IKPipelinePtr;
 
 struct IKPipelineHandle;
 typedef std::shared_ptr<IKPipelineHandle> IKPipelineHandlePtr;
+
+struct IKCommandPool;
+typedef std::shared_ptr<IKCommandPool> IKCommandPoolPtr;
+
+struct IKCommandBuffer;
+typedef std::shared_ptr<IKCommandBuffer> IKCommandBufferPtr;
 
 struct IKUIOverlay;
 typedef std::shared_ptr<IKUIOverlay> IKUIOverlayPtr;
