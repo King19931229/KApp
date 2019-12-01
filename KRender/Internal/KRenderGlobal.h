@@ -1,8 +1,13 @@
+#pragma once
+
 #include "Internal/Manager/KPipelineManager.h"
 #include "Internal/Manager/KFrameResourceManager.h"
 #include "Internal/Manager/KShaderManager.h"
 #include "Internal/Manager/KMeshManager.h"
 #include "Internal/Manager/KTextureManager.h"
+
+#include "Internal/Object/KSkyBox.h"
+#include "Internal/Shadow/KShadowMap.h"
 
 namespace KRenderGlobal
 {
@@ -11,4 +16,7 @@ namespace KRenderGlobal
 	extern KShaderManager ShaderManager;
 	extern KMeshManager MeshManager;
 	extern KTextureManager TextrueManager;
+
+	extern KSkyBox SkyBox;
+	extern KShadowMap ShadowMap;
 };

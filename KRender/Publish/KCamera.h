@@ -197,6 +197,9 @@ public:
 	inline const glm::mat4& GetViewMatrix() const { return m_View; }
 	inline const glm::mat4& GetProjectiveMatrix() const { return m_Proj; }
 
+	inline float GetNear() const { return m_Near; }
+	inline float GetFar() const { return m_Far; }
+
 	void SetPosition(const glm::vec3& pos)
 	{
 		m_Pos = pos;

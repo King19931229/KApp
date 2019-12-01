@@ -25,6 +25,8 @@ struct IKPipeline
 	virtual bool SetPolygonMode(PolygonMode polygonMode) = 0;
 
 	virtual bool SetDepthFunc(CompareFunc func, bool depthWrtie, bool depthTest) = 0;
+	//virtual bool SetDepthBias(float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor) = 0;
+	virtual bool SetDepthBiasEnable(bool enable) = 0;
 
 	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader) = 0;
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;

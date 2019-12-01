@@ -17,6 +17,14 @@ KVulkanRenderTarget::KVulkanRenderTarget()
 
 	ZERO_ARRAY_MEMORY(m_ClearValues);
 
+	m_ClearValues[CT_COLOR].color.float32[0] = 0;
+	m_ClearValues[CT_COLOR].color.float32[1] = 0;
+	m_ClearValues[CT_COLOR].color.float32[2] = 0;
+	m_ClearValues[CT_COLOR].color.float32[3] = 0;
+
+	m_ClearValues[CT_DEPTH_STENCIL].depthStencil.depth = 1.0;
+	m_ClearValues[CT_DEPTH_STENCIL].depthStencil.stencil = 0;
+
 	ZERO_MEMORY(m_Extend);
 	ZERO_MEMORY(m_ColorImageView);
 
@@ -299,6 +307,122 @@ bool KVulkanRenderTarget::InitFromImageView(const ImageView& view, bool bDepth, 
 	return true;
 }
 
+bool KVulkanRenderTarget::CreateDepthImage(bool bStencil)
+{
+	m_MsaaFlag = VK_SAMPLE_COUNT_1_BIT;
+	m_bMsaaCreated = false;
+
+	m_DepthFormat = FindDepthFormat(bStencil);
+
+	KVulkanInitializer::CreateVkImage(m_Extend.width,
+		m_Extend.height,
+		1,
+		1,1,
+		m_MsaaFlag,
+		VK_IMAGE_TYPE_2D,
+		m_DepthFormat,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		0,
+		m_DepthImage,
+		m_DepthAlloc);
+
+	KVulkanInitializer::CreateVkImageView(m_DepthImage,
+		VK_IMAGE_VIEW_TYPE_2D,
+		m_DepthFormat,
+		VK_IMAGE_ASPECT_DEPTH_BIT,
+		1,
+		m_DepthImageView);
+
+	m_bDepthStencilCreated = true;
+
+	return true;
+}
+
+bool KVulkanRenderTarget::CreateDepthBuffer()
+{
+	ASSERT_RESULT(KVulkanGlobal::deviceReady);
+
+	VkAttachmentDescription depthAttachment = {};
+	depthAttachment.format = m_DepthFormat;
+	depthAttachment.samples = m_MsaaFlag;
+
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+	// 声明Attachment引用结构
+	VkAttachmentReference depthAttachmentRef = {};
+	depthAttachmentRef.attachment = 0;
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	// 声明子通道
+	VkSubpassDescription subpass = {};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+	subpass.colorAttachmentCount = 0;
+	subpass.pColorAttachments = nullptr;
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;
+	subpass.pResolveAttachments = nullptr;
+
+	// 从属依赖
+	VkSubpassDependency dependencies[2] = {};
+
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	dependencies[1].srcSubpass = 0;
+	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	// 创建渲染通道	
+	VkRenderPassCreateInfo renderPassInfo = {};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassInfo.attachmentCount = 1;
+	renderPassInfo.pAttachments = &depthAttachment;
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subpass;
+	renderPassInfo.dependencyCount = ARRAY_SIZE(dependencies);
+	renderPassInfo.pDependencies = dependencies;
+
+	VK_ASSERT_RESULT(vkCreateRenderPass(KVulkanGlobal::device, &renderPassInfo, nullptr, &m_RenderPass));
+
+	VkFramebufferCreateInfo framebufferInfo = {};
+	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.renderPass = m_RenderPass;
+	framebufferInfo.attachmentCount = 1;
+	framebufferInfo.pAttachments = &m_DepthImageView;
+	framebufferInfo.width = m_Extend.width;
+	framebufferInfo.height = m_Extend.height;
+	framebufferInfo.layers = 1;
+
+	VK_ASSERT_RESULT(vkCreateFramebuffer(KVulkanGlobal::device, &framebufferInfo, nullptr, &m_FrameBuffer));
+
+	return true;
+}
+
+bool KVulkanRenderTarget::InitFromDepthStencil(bool bStencil)
+{
+	ASSERT_RESULT(CreateDepthImage(bStencil));
+	ASSERT_RESULT(CreateDepthBuffer());	
+	return true;
+}
+
 bool KVulkanRenderTarget::UnInit()
 {
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
@@ -349,11 +473,18 @@ bool KVulkanRenderTarget::GetImageView(RenderTargetComponent component, ImageVie
 	switch (component)
 	{
 	case RTC_COLOR:
-		view.imageForamt = m_ColorFormat;
-		view.imageViewHandle = (void*)m_ColorImageView;
-		view.fromDepthStencil = false;
-		view.fromSwapChain = false;
-		return true;
+		if(m_ColorImageView)
+		{
+			view.imageForamt = m_ColorFormat;
+			view.imageViewHandle = (void*)m_ColorImageView;
+			view.fromDepthStencil = false;
+			view.fromSwapChain = false;
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	case RTC_DEPTH_STENCIL:
 		if(m_bDepthStencilCreated)
 		{
@@ -389,8 +520,21 @@ KVulkanRenderTarget::ClearValues KVulkanRenderTarget::GetVkClearValues()
 {
 	ClearValues ret;
 
-	ret.first = m_ClearValues;
-	ret.second = m_bDepthStencilCreated ? 2: 1;
+	if(m_ColorImageView)
+	{
+		ret.first = m_ClearValues;
+		ret.second = m_bDepthStencilCreated ? 2: 1;
+	}
+	else if(m_bDepthStencilCreated)
+	{
+		ret.first = &m_ClearValues[CT_DEPTH_STENCIL];
+		ret.second = 1;
+	}
+	else
+	{
+		assert(false);
+		ret.second = 0;
+	}
 
 	return ret;
 }

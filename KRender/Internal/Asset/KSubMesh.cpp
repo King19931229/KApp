@@ -38,6 +38,9 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.vert", m_SceneVSShader));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.frag", m_SceneFSShader));
 
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shadow.vert", m_ShadowVSShader));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shadow.frag", m_ShadowFSShader));
+
 	for(size_t i = 0; i < PIPELINE_STAGE_COUNT; ++i)
 	{
 		FramePipelineList& pipelines = m_Pipelines[i];
@@ -73,6 +76,17 @@ bool KSubMesh::UnInit()
 	{
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_SceneFSShader));
 		m_SceneFSShader = nullptr;
+	}
+
+	if(m_ShadowVSShader)
+	{
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_ShadowVSShader));
+		m_ShadowVSShader = nullptr;
+	}
+	if(m_ShadowFSShader)
+	{
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_ShadowFSShader));
+		m_ShadowFSShader = nullptr;
 	}
 
 	for(size_t i = 0; i < PIPELINE_STAGE_COUNT; ++i)
@@ -135,6 +149,12 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, renderThreadIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
 
+		IKUniformBufferPtr shaodwBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, renderThreadIndex, CBT_SHADOW);
+		pipeline->SetConstantBuffer(CBT_SHADOW, ST_VERTEX | ST_FRAGMENT, shaodwBuffer);
+
+		bool diffuseReady = false;
+		bool shadowReady = false;
+
 		if(m_Material)
 		{
 			// hard code for now
@@ -146,16 +166,55 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 			if(diffuseMap.texture && diffuseMap.sampler)
 			{
 				pipeline->SetSampler(CBT_COUNT, diffuseMap.texture->GetImageView(), diffuseMap.sampler);
-			}
-			else
-			{
-				KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-				pipeline = nullptr;
-				return false;
+				diffuseReady = true;
 			}
 		}
 
-		pipeline->Init();
+		IKRenderTargetPtr shadowTarget = KRenderGlobal::ShadowMap.GetShadowMapTarget(frameIndex);
+		if(shadowTarget)
+		{
+			ImageView depthView;
+			if(shadowTarget->GetImageView(RTC_DEPTH_STENCIL, depthView))
+			{
+				pipeline->SetSampler(CBT_COUNT + 3, depthView, KRenderGlobal::ShadowMap.GetSampler());
+				shadowReady = true;
+			}
+		}
+
+		if(!diffuseReady || !shadowReady)
+		{
+			KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
+			pipeline = nullptr;
+			return false;
+		}
+
+		ASSERT_RESULT(pipeline->Init());
+		return true;
+	}
+	else if(stage == PIPELINE_STAGE_SHADOW_GEN)
+	{
+		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+
+		pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		pipeline->SetDepthBiasEnable(true);
+
+		pipeline->SetShader(ST_VERTEX, m_ShadowVSShader);
+		pipeline->SetShader(ST_FRAGMENT, m_ShadowFSShader);
+
+		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, renderThreadIndex, CBT_SHADOW);
+		pipeline->SetConstantBuffer(CBT_SHADOW, ST_VERTEX, shadowBuffer);
+
+		pipeline->PushConstantBlock(ST_VERTEX, (uint32_t)KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT).bufferSize, objectPushOffset);
+
+		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
 	else

@@ -45,6 +45,7 @@ enum ConstantBufferType
 {
 	CBT_OBJECT,
 	CBT_CAMERA,
+	CBT_SHADOW,
 
 	CBT_UNKNOWN,
 	CBT_COUNT = CBT_UNKNOWN
@@ -54,8 +55,13 @@ enum ConstantSemantic
 {
 	CS_MODEL,
 	CS_VIEW,
+
 	CS_PROJ,
-	CS_VIEW_INV
+	CS_VIEW_INV,
+
+	CS_SHADOW_VIEW,
+	CS_SHADOW_PROJ,
+	CS_SHADOW_NEAR_FAR
 };
 
 enum VertexFormat
@@ -198,6 +204,7 @@ enum RenderTargetComponent
 enum PipelineStage
 {
 	PIPELINE_STAGE_OPAQUE,
+	PIPELINE_STAGE_SHADOW_GEN,
 	PIPELINE_STAGE_COUNT
 };
 

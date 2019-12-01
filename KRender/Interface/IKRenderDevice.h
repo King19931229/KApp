@@ -134,6 +134,11 @@ struct IKRenderDevice
 	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui) = 0;
 
 	// TODO abstract CommandBuffer
+	virtual bool BeginRenderPass(void* commandBufferPtr, IKRenderTarget* target) = 0;
+	virtual bool EndRenderPass(void* commandBufferPtr) = 0;
+
+	virtual bool SetViewport(void* commandBufferPtr, IKRenderTarget* target) = 0;
+	virtual bool SetDepthBias(void* commandBufferPtr, float depthBiasConstant, float depthBiasSlope) = 0;
 	virtual bool Render(void* commandBufferPtr, size_t frameIndex, size_t threadIndex, const KRenderCommand& command) = 0;
 
 	virtual bool Present() = 0;

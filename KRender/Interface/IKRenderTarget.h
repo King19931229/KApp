@@ -11,6 +11,7 @@ struct IKRenderTarget
 	virtual bool SetDepthStencilClear(float depth, unsigned int stencil) = 0;
 
 	virtual bool InitFromImageView(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount) = 0;
+	virtual bool InitFromDepthStencil(bool bStencil) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool GetImageView(RenderTargetComponent component, ImageView& view) = 0;

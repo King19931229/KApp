@@ -56,6 +56,7 @@
     <ClInclude Include="Internal\Manager\KShaderManager.h" />
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
     <ClInclude Include="Internal\Object\KSkyBox.h" />
+    <ClInclude Include="Internal\Shadow\KShadowMap.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanImageView.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanInitializer.h" />
@@ -80,6 +81,7 @@
     <ClCompile Include="Internal\Asset\KMaterial.cpp" />
     <ClCompile Include="Internal\Asset\KMesh.cpp" />
     <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
+    <ClCompile Include="Internal\ECS\Component\KRenderComponent.cpp" />
     <ClCompile Include="Internal\ECS\KComponentManager.cpp" />
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp" />
     <ClCompile Include="Internal\ECS\KEntity.cpp" />
@@ -102,6 +104,7 @@
     <ClCompile Include="Internal\Manager\KShaderManager.cpp" />
     <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
     <ClCompile Include="Internal\Object\KSkyBox.cpp" />
+    <ClCompile Include="Internal\Shadow\KShadowMap.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanInitializer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanGlobal.cpp" />

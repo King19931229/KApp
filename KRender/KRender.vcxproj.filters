@@ -31,6 +31,9 @@
     <Filter Include="Internal\ECS\System">
       <UniqueIdentifier>{c83286fc-13f7-4857-85a5-f38f1d2e1bfa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Shadow">
+      <UniqueIdentifier>{c265759e-630b-41c6-ac9e-8587ee6d2412}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -204,6 +207,9 @@
     <ClInclude Include="IKRenderCore.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Shadow\KShadowMap.h">
+      <Filter>Internal\Shadow</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -305,9 +311,6 @@
     <ClCompile Include="Internal\Manager\KTextureManager.cpp">
       <Filter>Internal\Manager</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\KBufferBase.cpp">
-      <Filter>Internal\Object</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\ECS\KComponentManager.cpp">
       <Filter>Internal\ECS</Filter>
     </ClCompile>
@@ -322,6 +325,15 @@
     </ClCompile>
     <ClCompile Include="Internal\ECS\System\KCullSystem.cpp">
       <Filter>Internal\ECS\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KBufferBase.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Shadow\KShadowMap.cpp">
+      <Filter>Internal\Shadow</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ECS\Component\KRenderComponent.cpp">
+      <Filter>Internal\ECS\Component</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

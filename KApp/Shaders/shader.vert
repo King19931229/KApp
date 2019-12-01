@@ -6,18 +6,11 @@ layout(location = POSITION) in vec3 position;
 layout(location = NORMAL) in vec3 normal;
 layout(location = TEXCOORD0) in vec2 texcoord0;
 
-layout(push_constant)uniform PushConstant
+layout(push_constant)
+uniform PushConstant
 {
 	mat4 model;
 }object;
-
-layout(binding = CAMERA)
-uniform CameraInfo
-{
-    mat4 view;
-    mat4 proj;
-	mat4 viewInv;
-}camera;
 
 layout(location = 0) out vec2 uv;
 layout(location = 1) out vec3 worldPos;

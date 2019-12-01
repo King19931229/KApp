@@ -7,6 +7,7 @@
 #include "KVulkanSwapChain.h"
 
 #include "Internal/Object/KSkyBox.h"
+#include "Internal/Shadow/KShadowMap.h"
 
 #include "KBase/Publish/KThreadPool.h"
 #include "KBase/Publish/KTimer.h"
@@ -78,7 +79,6 @@ protected:
 	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
 
 	KAABBBox m_Box;
-	KSkyBox m_SkyBox;
 
 	struct ThreadData
 	{
@@ -94,6 +94,7 @@ protected:
 		VkCommandPool commandPool;
 		VkCommandBuffer primaryCommandBuffer;
 		VkCommandBuffer skyBoxCommandBuffer;
+		VkCommandBuffer shadowMapCommandBuffer;
 		VkCommandBuffer uiCommandBuffer;
 		VkCommandBuffer postprocessCommandBuffer;
 
@@ -241,9 +242,11 @@ public:
 
 	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui);
 
-	virtual bool Begin(void* commandBufferPtr, IKRenderTarget* target);
+	virtual bool BeginRenderPass(void* commandBufferPtr, IKRenderTarget* target);
+	virtual bool EndRenderPass(void* commandBufferPtr);
+	virtual bool SetViewport(void* commandBufferPtr, IKRenderTarget* target);
+	virtual bool SetDepthBias(void* commandBufferPtr, float depthBiasConstant, float depthBiasSlope);
 	virtual bool Render(void* commandBufferPtr, size_t frameIndex, size_t threadIndex, const KRenderCommand& command);
-	virtual bool End(void* commandBufferPtr);
 
 	virtual bool Present();
 

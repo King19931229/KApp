@@ -49,6 +49,14 @@ protected:
 	VkBool32 m_DepthTest;
 	VkCompareOp m_DepthOp;
 
+	// 深度偏移
+	/*
+	float m_DepthBiasConstantFactor;
+	float m_DepthBiasClamp;
+	float m_DepthBiasSlopeFactor;
+	*/
+	VkBool32 m_DepthBiasEnable;
+
 	// Constant Buffer信息
 	struct UniformBufferBindingInfo
 	{
@@ -100,6 +108,8 @@ public:
 	virtual bool SetPolygonMode(PolygonMode polygonMode);
 
 	virtual bool SetDepthFunc(CompareFunc func, bool depthWrtie, bool depthTest);
+	//virtual bool SetDepthBias(float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor);
+	virtual bool SetDepthBiasEnable(bool enable);
 
 	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader);
 

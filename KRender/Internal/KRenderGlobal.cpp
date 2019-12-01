@@ -7,4 +7,7 @@ namespace KRenderGlobal
 	KShaderManager ShaderManager;
 	KMeshManager MeshManager;
 	KTextureManager TextrueManager;
+
+	KSkyBox SkyBox;
+	KShadowMap ShadowMap;
 }

@@ -27,6 +27,13 @@ namespace KConstantDefinition
 		glm::mat4 VIEW_INV;
 	};
 
+	struct SHADOW
+	{
+		glm::mat4 LIGHT_VIEW;
+		glm::mat4 LIGHT_PROJ;
+		glm::vec2 CAM_NEAR_FAR;
+	};
+
 	struct ConstantSemanticDetail
 	{
 		ConstantSemantic semantic;

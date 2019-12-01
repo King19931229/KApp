@@ -24,7 +24,13 @@ KVulkanPipeline::KVulkanPipeline() :
 	m_DescriptorSetLayout(VK_NULL_HANDLE),
 	m_DescriptorPool(VK_NULL_HANDLE),
 	m_DescriptorSet(VK_NULL_HANDLE),
-	m_PipelineLayout(VK_NULL_HANDLE)
+	m_PipelineLayout(VK_NULL_HANDLE),
+	/*
+	m_DepthBiasConstantFactor(0),
+	m_DepthBiasClamp(0),
+	m_DepthBiasSlopeFactor(0),
+	*/
+	m_DepthBiasEnable(VK_FALSE)
 {
 
 }
@@ -96,6 +102,22 @@ bool KVulkanPipeline::SetDepthFunc(CompareFunc func, bool depthWrtie, bool depth
 	ASSERT_RESULT(KVulkanHelper::CompareFuncToVkCompareOp(func, m_DepthOp));
 	m_DepthWrite = (VkBool32)depthWrtie;
 	m_DepthTest = (VkBool32)depthTest;
+	return true;
+}
+
+/*
+bool KVulkanPipeline::SetDepthBias(float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor)
+{
+	m_DepthBiasConstantFactor = depthBiasConstantFactor;
+	m_DepthBiasClamp = depthBiasClamp;
+	m_DepthBiasSlopeFactor = depthBiasSlopeFactor;
+	return true;
+}
+*/
+
+bool KVulkanPipeline::SetDepthBiasEnable(bool enable)
+{
+	m_DepthBiasEnable = (VkBool32)enable;
 	return true;
 }
 
@@ -507,7 +529,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	rasterizer.cullMode = m_Pipeline->m_CullMode;
 	rasterizer.frontFace = m_Pipeline->m_FrontFace;
 
-	rasterizer.depthBiasEnable = VK_FALSE;
+	rasterizer.depthBiasEnable = m_Pipeline->m_DepthBiasEnable;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
 	rasterizer.depthBiasClamp = 0.0f; // Optional
 	rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
@@ -556,24 +578,37 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	colorBlending.logicOpEnable = VK_FALSE;
 	colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-	colorBlending.attachmentCount = 1;
-	colorBlending.pAttachments = &colorBlendAttachment;
+
+	ImageView colorImageView;
+	if(m_Target->GetImageView(RTC_COLOR, colorImageView))
+	{
+		colorBlending.attachmentCount = 1;
+		colorBlending.pAttachments = &colorBlendAttachment;
+	}
+	else
+	{
+		colorBlending.attachmentCount = 0;
+		colorBlending.pAttachments = nullptr;
+	}
 	colorBlending.blendConstants[0] = 0.0f; // Optional
 	colorBlending.blendConstants[1] = 0.0f; // Optional
 	colorBlending.blendConstants[2] = 0.0f; // Optional
 	colorBlending.blendConstants[3] = 0.0f; // Optional
 
 	// ÉèÖÃ¶¯Ì¬×´Ì¬
-	VkDynamicState dynamicStates[] = {
-		VK_DYNAMIC_STATE_VIEWPORT,
-		VK_DYNAMIC_STATE_SCISSOR,
-		VK_DYNAMIC_STATE_LINE_WIDTH
-	};
+	std::vector<VkDynamicState> dynamicStates;
+
+	dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
+	dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
+	if(rasterizer.depthBiasEnable)
+	{
+		dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
+	}
 
 	VkPipelineDynamicStateCreateInfo dynamicState = {};
 	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicState.dynamicStateCount = ARRAY_SIZE(dynamicStates);
-	dynamicState.pDynamicStates = dynamicStates;
+	dynamicState.dynamicStateCount = (uint32_t)dynamicStates.size();
+	dynamicState.pDynamicStates = dynamicStates.data();
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStageInfo;
 	KVulkanShader* vulkanShader = nullptr;

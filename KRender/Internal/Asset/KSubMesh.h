@@ -30,6 +30,9 @@ protected:
 	IKShaderPtr				m_SceneVSShader;
 	IKShaderPtr				m_SceneFSShader;
 
+	IKShaderPtr				m_ShadowVSShader;
+	IKShaderPtr				m_ShadowFSShader;
+
 	bool CreatePipeline(PipelineStage stage, size_t frameIndex, size_t renderThreadIndex, IKPipelinePtr& pipeline, uint32_t& objectPushOffset);
 	bool GetRenderCommand(PipelineStage stage, size_t frameIndex, size_t renderThreadIndex, KRenderCommand& command);
 public:

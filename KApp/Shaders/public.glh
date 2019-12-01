@@ -1,3 +1,6 @@
+#ifndef __PUBLIC__
+#define __PUBLIC__
+
 #define POSITION 0
 #define NORMAL 1
 #define TEXCOORD0 2
@@ -20,11 +23,38 @@
 
 #define OBJECT 0
 #define CAMERA 1
+#define SHADOW 2
 
-#define TEXTURE_SLOT0 2
-#define TEXTURE_SLOT1 3
-#define TEXTURE_SLOT2 4
-#define TEXTURE_SLOT3 5
-#define TEXTURE_SLOT4 6
+#define TEXTURE_SLOT0 3
+#define TEXTURE_SLOT1 4
+#define TEXTURE_SLOT2 5
+#define TEXTURE_SLOT3 6
+#define TEXTURE_SLOT4 7
 
 #define CUBEMAP_UVW(uvw) vec3(-uvw.x, -uvw.y, -uvw.z)
+
+/*
+layout(binding = OBJECT)
+uniform Object
+{
+	mat4 model;
+}object;
+*/
+
+layout(binding = CAMERA)
+uniform CameraInfo
+{
+    mat4 view;
+    mat4 proj;
+	mat4 viewInv;
+}camera;
+
+layout(binding = SHADOW)
+uniform ShdowInfo
+{
+    mat4 light_view;
+	mat4 light_proj;
+	vec2 near_far;
+}shadow;
+
+#endif

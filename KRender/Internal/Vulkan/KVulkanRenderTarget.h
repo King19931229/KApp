@@ -41,8 +41,12 @@ protected:
 	bool			m_bDepthStencilCreated;
 
 	static VkFormat FindDepthFormat(bool bStencil);
+
 	bool CreateImage(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount);
 	bool CreateFramebuffer(bool fromSwapChain);
+
+	bool CreateDepthImage(bool bStencil);
+	bool CreateDepthBuffer();
 public:
 	KVulkanRenderTarget();
 	~KVulkanRenderTarget();
@@ -52,6 +56,7 @@ public:
 	virtual bool SetDepthStencilClear(float depth, unsigned int stencil);
 
 	virtual bool InitFromImageView(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount);
+	virtual bool InitFromDepthStencil(bool bStencil);
 	virtual bool UnInit();
 
 	virtual bool GetImageView(RenderTargetComponent component, ImageView& view);
