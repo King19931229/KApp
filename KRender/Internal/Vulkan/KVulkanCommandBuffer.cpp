@@ -70,8 +70,7 @@ bool KVulkanCommandPool::Reset()
 KVulkanCommandBuffer::KVulkanCommandBuffer()
 	: m_CommandBuffer(VK_NULL_HANDLE),
 	m_ParentPool(VK_NULL_HANDLE),
-	m_CommandLevel(VK_COMMAND_BUFFER_LEVEL_MAX_ENUM),
-	m_SubpassContents(VK_SUBPASS_CONTENTS_MAX_ENUM)
+	m_CommandLevel(VK_COMMAND_BUFFER_LEVEL_MAX_ENUM)
 {
 
 }
@@ -99,11 +98,9 @@ bool KVulkanCommandBuffer::Init(IKCommandPool* pool, CommandBufferLevel level)
 	{
 	case CBL_PRIMARY:
 		m_CommandLevel = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		m_SubpassContents = VK_SUBPASS_CONTENTS_INLINE;
 		break;
 	case CBL_SECONDARY:
 		m_CommandLevel = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-		m_SubpassContents = VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS;
 		break;
 	default:
 		assert(false && "impossible to reach");
@@ -129,7 +126,6 @@ bool KVulkanCommandBuffer::UnInit()
 	m_CommandBuffer = VK_NULL_HANDLE;
 	m_ParentPool = VK_NULL_HANDLE;
 	m_CommandLevel = VK_COMMAND_BUFFER_LEVEL_MAX_ENUM;
-	m_SubpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
 
 	return true;
 }
@@ -243,7 +239,22 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 	return false;
 }
 
-bool KVulkanCommandBuffer::Execute(KCommandBufferList& commandBuffers)
+bool KVulkanCommandBuffer::Execute(IKCommandBuffer* buffer)
+{
+	assert(m_CommandBuffer != VK_NULL_HANDLE);
+	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+	VkCommandBuffer handle = ((KVulkanCommandBuffer*)buffer)->GetVkHandle();
+	VkCommandBufferLevel level = ((KVulkanCommandBuffer*)buffer)->GetVkBufferLevel();
+	if(handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+	{
+		vkCmdExecuteCommands(m_CommandBuffer, 1, &handle);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers)
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
@@ -314,7 +325,7 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderTarget* target)
 	return false;
 }
 
-bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTarget* target)
+bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTarget* target, SubpassContents conent)
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	if(m_CommandBuffer != VK_NULL_HANDLE)
@@ -336,7 +347,22 @@ bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTarget* target)
 		auto clearValuesPair = vulkanTarget->GetVkClearValues();
 		renderPassInfo.pClearValues = clearValuesPair.first;
 		renderPassInfo.clearValueCount = clearValuesPair.second;
-		vkCmdBeginRenderPass(m_CommandBuffer, &renderPassInfo, m_SubpassContents);
+
+		VkSubpassContents subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
+		switch (conent)
+		{
+		case SUBPASS_CONTENTS_INLINE:
+			subpassContents = VK_SUBPASS_CONTENTS_INLINE;
+			break;
+		case SUBPASS_CONTENTS_SECONDARY:
+			subpassContents = VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS;
+			break;
+		default:
+			assert(false && "unable to reach");
+			break;
+		}
+
+		vkCmdBeginRenderPass(m_CommandBuffer, &renderPassInfo, subpassContents);
 
 		return true;
 	}

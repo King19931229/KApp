@@ -23,7 +23,6 @@ protected:
 	VkCommandBuffer m_CommandBuffer;
 	VkCommandPool m_ParentPool;
 	VkCommandBufferLevel m_CommandLevel;
-	VkSubpassContents m_SubpassContents;
 public:
 	KVulkanCommandBuffer();
 	virtual ~KVulkanCommandBuffer();
@@ -36,13 +35,14 @@ public:
 
 	virtual bool Render(const KRenderCommand& command);
 
-	virtual bool Execute(KCommandBufferList& commandBuffers);
+	virtual bool Execute(IKCommandBuffer* buffer);
+	virtual bool ExecuteAll(KCommandBufferList& commandBuffers);
 
 	virtual bool BeginPrimary();
 	virtual bool BeginSecondary(IKRenderTarget* target);
 	virtual bool End();
 
-	virtual bool BeginRenderPass(IKRenderTarget* target);
+	virtual bool BeginRenderPass(IKRenderTarget* target, SubpassContents conent);
 	virtual bool EndRenderPass();
 
 	inline VkCommandBuffer GetVkHandle() { return m_CommandBuffer; }

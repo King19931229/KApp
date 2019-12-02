@@ -1,4 +1,5 @@
 #include "KShadowMap.h"
+#include "Interface/IKCommandBuffer.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKTexture.h"
 #include "Interface/IKSampler.h"
@@ -64,7 +65,7 @@ bool KShadowMap::UnInit()
 	return true;
 }
 
-bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, void* commandBufferPtr, size_t frameIndex)
+bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* commandBuffer, size_t frameIndex)
 {
 	if(frameIndex < m_RenderTargets.size())
 	{
@@ -108,10 +109,10 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, void* commandBuff
 
 			IKRenderTargetPtr shadowTarget = m_RenderTargets[frameIndex];
 
-			renderDevice->SetViewport(commandBufferPtr, shadowTarget.get());
+			commandBuffer->SetViewport(shadowTarget.get());
 			// Set depth bias (aka "Polygon offset")
 			// Required to avoid shadow mapping artefacts
-			renderDevice->SetDepthBias(commandBufferPtr, m_DepthBiasConstant, m_DepthBiasSlope);
+			commandBuffer->SetDepthBias(m_DepthBiasConstant, 0, m_DepthBiasSlope);
 			{
 				KRenderCommandList commandList;
 				for(KRenderComponent* component : cullRes)
@@ -136,7 +137,7 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, void* commandBuff
 					IKPipelineHandlePtr handle;
 					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, shadowTarget.get(), handle);
 					command.pipelineHandle = handle.get();
-					renderDevice->Render(commandBufferPtr, frameIndex, 0, command);
+					commandBuffer->Render(command);
 				}
 			}
 		}

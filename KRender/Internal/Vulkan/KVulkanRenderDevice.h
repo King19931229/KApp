@@ -1,5 +1,6 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
+#include "Interface/IKCommandBuffer.h"
 #include "Internal/KRenderThreadPool.h"
 
 #include "KVulkanHeapAllocator.h"
@@ -75,15 +76,13 @@ protected:
 
 	IKShaderPtr m_PostVertexShader;
 	IKShaderPtr m_PostFragmentShader;
-	
-	typedef std::vector<VkCommandBuffer> VkCommandBufferList;
 
 	KAABBBox m_Box;
 
 	struct ThreadData
 	{
 		IKCommandPoolPtr commandPool;
-		VkCommandBuffer commandBuffer;
+		IKCommandBufferPtr commandBuffer;
 		std::vector<KRenderCommand> commands;
 		size_t num;
 		size_t offset;
@@ -99,7 +98,7 @@ protected:
 		IKCommandBufferPtr postprocessCommandBuffer;
 
 		std::vector<ThreadData> threadDatas;
-		VkCommandBufferList commandBuffersExec;
+		KCommandBufferList commandBuffersExec;
 	};
 	std::vector<CommandBuffer> m_CommandBuffers;
 
@@ -205,7 +204,7 @@ protected:
 	bool UpdateCamera(size_t idx);
 	bool UpdateObjectTransform();
 
-	void ThreadRenderObject(uint32_t threadIndex, uint32_t chainImageIndex, uint32_t frameIndex, VkCommandBufferInheritanceInfo inheritanceInfo);
+	void ThreadRenderObject(uint32_t threadIndex, uint32_t chainImageIndex, uint32_t frameIndex);
 
 	bool RecreateSwapChain();
 	bool CleanupSwapChain();
@@ -242,14 +241,9 @@ public:
 
 	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui);
 
-	virtual bool BeginRenderPass(void* commandBufferPtr, IKRenderTarget* target);
-	virtual bool EndRenderPass(void* commandBufferPtr);
-	virtual bool SetViewport(void* commandBufferPtr, IKRenderTarget* target);
-	virtual bool SetDepthBias(void* commandBufferPtr, float depthBiasConstant, float depthBiasSlope);
-	virtual bool Render(void* commandBufferPtr, size_t frameIndex, size_t threadIndex, const KRenderCommand& command);
-
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool);
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer);
+
 	virtual bool Present();
 
 	bool Wait();

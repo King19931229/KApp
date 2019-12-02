@@ -220,6 +220,12 @@ enum CommandBufferLevel
 	CBL_SECONDARY
 };
 
+enum SubpassContents
+{
+	SUBPASS_CONTENTS_INLINE,
+	SUBPASS_CONTENTS_SECONDARY
+};
+
 //TODO
 struct ImageView
 {

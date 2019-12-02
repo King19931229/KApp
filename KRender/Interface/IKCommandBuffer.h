@@ -24,12 +24,13 @@ struct IKCommandBuffer
 
 	virtual bool Render(const KRenderCommand& command) = 0;
 
-	virtual bool Execute(KCommandBufferList& commandBuffers) = 0;
+	virtual bool Execute(IKCommandBuffer* buffer) = 0;
+	virtual bool ExecuteAll(KCommandBufferList& commandBuffers) = 0;
 
 	virtual bool BeginPrimary() = 0;
 	virtual bool BeginSecondary(IKRenderTarget* target) = 0;
 	virtual bool End() = 0;
 
-	virtual bool BeginRenderPass(IKRenderTarget* target) = 0;
+	virtual bool BeginRenderPass(IKRenderTarget* target, SubpassContents conent) = 0;
 	virtual bool EndRenderPass() = 0;
 };
