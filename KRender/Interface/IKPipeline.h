@@ -35,4 +35,6 @@ struct IKPipeline
 
 	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;
+
+	virtual bool Reload() = 0;
 };

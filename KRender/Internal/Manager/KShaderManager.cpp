@@ -34,6 +34,17 @@ bool KShaderManager::UnInit()
 	return true;
 }
 
+bool KShaderManager::Reload()
+{
+	for(auto it = m_Shaders.begin(), itEnd = m_Shaders.end(); it != itEnd; ++it)
+	{
+		ShaderUsingInfo& info = it->second;
+		assert(info.shader);
+		info.shader->Reload();
+	}
+	return true;
+}
+
 bool KShaderManager::Acquire(const char* path, IKShaderPtr& shader)
 {
 	auto it = m_Shaders.find(path);

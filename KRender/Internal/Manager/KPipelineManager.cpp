@@ -26,6 +26,29 @@ bool KPipelineManager::UnInit()
 	return true;
 }
 
+bool KPipelineManager::Reload()
+{
+	std::vector<IKPipeline*> reloadPipelines;
+	reloadPipelines.reserve(m_RenderPipelineMap.size());
+
+	{
+		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+		for(PipelineHandleMap::iterator it = m_RenderPipelineMap.begin(), itEnd = m_RenderPipelineMap.end();
+			it != itEnd; ++it)
+		{
+			IKPipeline* pipeline = it->first;
+			reloadPipelines.push_back(pipeline);
+		}
+	}
+
+	for(IKPipeline* pipeline : reloadPipelines)
+	{
+		pipeline->Reload();
+	}
+
+	return true;
+}
+
 bool KPipelineManager::GetPipelineHandle(IKPipeline* pipeline, IKRenderTarget* target, IKPipelineHandlePtr& handle)
 {
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);

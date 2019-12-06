@@ -10,6 +10,8 @@ enum InputKeyboard
 	INPUT_KEY_Q,
 	INPUT_KEY_E,
 
+	INPUT_KEY_ENTER,
+
 	INPUT_KEY_COUNT
 };
 

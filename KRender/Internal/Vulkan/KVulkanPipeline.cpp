@@ -418,7 +418,7 @@ bool KVulkanPipeline::Init()
 	return true;
 }
 
-bool KVulkanPipeline::UnInit()
+bool KVulkanPipeline::DestroyDevice()
 {
 	if(m_DescriptorSet)
 	{
@@ -434,23 +434,35 @@ bool KVulkanPipeline::UnInit()
 		vkDestroyDescriptorSetLayout(KVulkanGlobal::device, m_DescriptorSetLayout, nullptr);
 		m_DescriptorSetLayout = VK_NULL_HANDLE;
 	}
-
 	if(m_PipelineLayout)
 	{
 		vkDestroyPipelineLayout(KVulkanGlobal::device, m_PipelineLayout, nullptr);
 		m_PipelineLayout = VK_NULL_HANDLE;
 	}
 
+	KRenderGlobal::PipelineManager.InvaildateHandleByPipeline(this);
+
+	return true;
+}
+
+bool KVulkanPipeline::UnInit()
+{
+	DestroyDevice();
+
 	m_VertexShader = nullptr;
 	m_FragmentShader = nullptr;
-
-	KRenderGlobal::PipelineManager.InvaildateHandleByPipeline(this);
 
 	m_Uniforms.clear();
 	m_PushContants.clear();
 	m_Samplers.clear();
 
 	return true;
+}
+
+bool KVulkanPipeline::Reload()
+{
+	DestroyDevice();
+	return Init();
 }
 
 KVulkanPipelineHandle::KVulkanPipelineHandle()

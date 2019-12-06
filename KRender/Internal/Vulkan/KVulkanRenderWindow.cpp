@@ -50,6 +50,10 @@ bool KVulkanRenderWindow::GLFWKeyToInputKeyboard(int key, InputKeyboard& board)
 		board = INPUT_KEY_E;
 		return true;
 
+	case GLFW_KEY_ENTER:
+		board = INPUT_KEY_ENTER;
+		return true;
+
 	default:
 		return false;
 	}

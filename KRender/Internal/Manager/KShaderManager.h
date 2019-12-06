@@ -23,6 +23,8 @@ public:
 	bool Init(IKRenderDevice* device);
 	bool UnInit();
 
+	bool Reload();
+
 	bool Acquire(const char* path, IKShaderPtr& shader);
 	bool Release(IKShaderPtr& shader);
 };

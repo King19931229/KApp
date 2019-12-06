@@ -93,6 +93,7 @@ protected:
 
 	bool CreateLayout();
 	bool CreateDestcription();
+	bool DestroyDevice();
 public:
 	KVulkanPipeline();
 	~KVulkanPipeline();
@@ -119,6 +120,8 @@ public:
 
 	virtual bool Init();
 	virtual bool UnInit();
+
+	virtual bool Reload();
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 	inline VkDescriptorSet GetVkDescriptorSet() { return m_DescriptorSet; }

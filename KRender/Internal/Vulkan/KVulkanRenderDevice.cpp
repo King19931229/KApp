@@ -106,9 +106,7 @@ void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& create
 } 
 
 /* TODO LIST
-1. 重构CommandBuffer
-2. Pipeline Reload
-3. Mesh 序列化
+Mesh 序列化
 */
 
 KCullSystem CULL_SYSTEM;
@@ -617,6 +615,14 @@ bool KVulkanRenderDevice::UpdateFrameTime()
 	return true;
 }
 
+bool KVulkanRenderDevice::Reload()
+{
+	Wait();
+	KRenderGlobal::ShaderManager.Reload();
+	KRenderGlobal::PipelineManager.Reload();
+	return true;
+}
+
 bool KVulkanRenderDevice::CreateMesh()
 {
 	const char* szPaths[] =
@@ -926,6 +932,11 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			break;
 		default:
 			break;
+		}
+
+		if(key == INPUT_KEY_ENTER)
+		{
+			Reload();
 		}
 	};
 

@@ -49,7 +49,7 @@ bool KVulkanShader::SetConstantEntry(uint32_t constantID, uint32_t offset, size_
 	return false;	
 }
 
-bool KVulkanShader::InitFromFile(const std::string path)
+bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pModule)
 {
 	size_t uHash = KHash::BKDR(path.c_str(), path.length());
 	char hashCode[256] = {0};
@@ -84,9 +84,8 @@ bool KVulkanShader::InitFromFile(const std::string path)
 						code.resize(uSize);
 						if(pData->Read(code.data(), uSize))
 						{
-							if(InitFromString(code))
+							if(InitFromStringImpl(code, pModule))
 							{
-								m_Path = path;
 								return true;
 							}
 							else
@@ -100,7 +99,6 @@ bool KVulkanShader::InitFromFile(const std::string path)
 			else
 			{
 				printf("[Vulkan Shader Compile Error]: [%s]\n%s\n", path.c_str(), message.c_str());
-				assert(false && "KVulkanShader InitFromFile Failure");
 				return false;
 			}
 		}
@@ -108,7 +106,7 @@ bool KVulkanShader::InitFromFile(const std::string path)
 	return false;
 }
 
-bool KVulkanShader::InitFromString(const std::vector<char> code)
+bool KVulkanShader::InitFromStringImpl(const std::vector<char>& code, VkShaderModule* pModule)
 {
 	using namespace KVulkanGlobal;
 
@@ -117,62 +115,125 @@ bool KVulkanShader::InitFromString(const std::vector<char> code)
 	createInfo.codeSize = code.size();
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
-	if (vkCreateShaderModule(device, &createInfo, nullptr, &m_ShaderModule) == VK_SUCCESS)
+	if (vkCreateShaderModule(device, &createInfo, nullptr, pModule) == VK_SUCCESS)
 	{
-		size_t constantSize = 0;
-		for(auto& pair : m_ConstantEntries)
-		{
-			constantSize += pair.second.data.size();
-		}
-		m_ConstantData.resize(constantSize);
-
-		m_SpecializationMapEntry.clear();
-		m_SpecializationMapEntry.reserve(m_ConstantEntries.size());
-		for(auto& pair : m_ConstantEntries)
-		{
-			VkSpecializationMapEntry entry = {};
-			ConstantEntryInfo& info = pair.second;
-
-			entry.constantID = pair.first;
-			entry.offset = info.offset;
-			entry.size = info.data.size();
-
-			memcpy(m_ConstantData.data() + entry.offset, info.data.data(), entry.size);
-
-			m_SpecializationMapEntry.push_back(entry);
-		}
-
-		ZERO_MEMORY(m_SpecializationInfo);
-
-		m_SpecializationInfo.mapEntryCount = (uint32_t)m_ConstantEntries.size();
-		m_SpecializationInfo.pMapEntries = m_SpecializationMapEntry.data();
-		m_SpecializationInfo.dataSize = m_ConstantData.size();
-		m_SpecializationInfo.pData = m_ConstantData.data();
-
+		InitConstant();
 		return true;
 	}
-	assert(false && "KVulkanShader InitFromString Failure");
+
 	return false;
+}
+
+bool KVulkanShader::InitFromFile(const std::string& path)
+{
+	VkShaderModule module = VK_NULL_HANDLE;
+	if(InitFromFileImpl(path, &module))
+	{
+		DestroyDevice(m_ShaderModule);
+		m_ShaderModule = module;
+		m_Path = path;
+		return true;
+	}
+	else
+	{
+		// first time load
+		if(m_ShaderModule == VK_NULL_HANDLE)
+		{
+			assert(false && "shader compile failure");
+		}
+		m_ShaderModule = VK_NULL_HANDLE;
+		return false;
+	}
+}
+
+bool KVulkanShader::InitFromString(const std::vector<char>& code)
+{
+	VkShaderModule module = VK_NULL_HANDLE;
+	if(InitFromStringImpl(code, &module))
+	{
+		DestroyDevice(m_ShaderModule);
+		m_ShaderModule = module;
+		return true;
+	}
+	else
+	{
+		// first time load
+		if(m_ShaderModule == VK_NULL_HANDLE)
+		{
+			assert(false && "shader compile failure");
+		}
+		m_ShaderModule = VK_NULL_HANDLE;
+		return false;
+	}
+}
+
+bool KVulkanShader::InitConstant()
+{
+	size_t constantSize = 0;
+	for(auto& pair : m_ConstantEntries)
+	{
+		constantSize += pair.second.data.size();
+	}
+	m_ConstantData.resize(constantSize);
+
+	m_SpecializationMapEntry.clear();
+	m_SpecializationMapEntry.reserve(m_ConstantEntries.size());
+	for(auto& pair : m_ConstantEntries)
+	{
+		VkSpecializationMapEntry entry = {};
+		ConstantEntryInfo& info = pair.second;
+
+		entry.constantID = pair.first;
+		entry.offset = info.offset;
+		entry.size = info.data.size();
+
+		memcpy(m_ConstantData.data() + entry.offset, info.data.data(), entry.size);
+
+		m_SpecializationMapEntry.push_back(entry);
+	}
+
+	ZERO_MEMORY(m_SpecializationInfo);
+
+	m_SpecializationInfo.mapEntryCount = (uint32_t)m_ConstantEntries.size();
+	m_SpecializationInfo.pMapEntries = m_SpecializationMapEntry.data();
+	m_SpecializationInfo.dataSize = m_ConstantData.size();
+	m_SpecializationInfo.pData = m_ConstantData.data();
+
+	return true;
+}
+
+bool KVulkanShader::DestroyDevice(VkShaderModule& module)
+{
+	if(module != VK_NULL_HANDLE)
+	{
+		vkDestroyShaderModule(KVulkanGlobal::device, module, nullptr);
+		module = VK_NULL_HANDLE;
+	}
+	return true;
 }
 
 bool KVulkanShader::UnInit()
 {
-	using namespace KVulkanGlobal;
-
-	if(m_ShaderModule != VK_NULL_HANDLE)
-	{
-		vkDestroyShaderModule(device, m_ShaderModule, nullptr);
-		m_ShaderModule = VK_NULL_HANDLE;
-	}
-
-	m_SpecializationMapEntry.clear();
-	ZERO_MEMORY(m_SpecializationInfo);
+	DestroyDevice(m_ShaderModule);
 	m_ConstantData.clear();
-
 	return true;
 }
 
 const char* KVulkanShader::GetPath()
 {
 	return m_Path.c_str();
+}
+
+bool KVulkanShader::Reload()
+{
+	if(!m_Path.empty())
+	{		
+		VkShaderModule module = VK_NULL_HANDLE;
+		if(InitFromFileImpl(m_Path, &module))
+		{
+			DestroyDevice(m_ShaderModule);
+			m_ShaderModule = module;
+		}
+	}
+	return false;
 }

@@ -200,6 +200,7 @@ protected:
 	bool SubmitCommandBufferSingleThread(uint32_t chainImageIndex, uint32_t frameIndex);
 	bool SubmitCommandBufferMuitiThread(uint32_t chainImageIndex, uint32_t frameIndex);
 	bool UpdateFrameTime();
+	bool Reload();
 
 	bool UpdateCamera(size_t idx);
 	bool UpdateObjectTransform();
