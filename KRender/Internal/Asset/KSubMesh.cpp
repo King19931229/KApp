@@ -34,6 +34,8 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 
 	m_Material = material;
 
+	m_IndexDraw = true;
+
 	// hard code for now
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.vert", m_SceneVSShader));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.frag", m_SceneFSShader));
@@ -249,7 +251,7 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, size_t r
 		command.vertexData = m_pVertexData;
 		command.indexData = &m_IndexData;
 		command.pipeline = info.pipeline.get();
-		command.indexDraw = true;
+		command.indexDraw = m_IndexDraw;
 
 		command.objectPushOffset = info.objectPushOffset;
 		command.useObjectData = false;

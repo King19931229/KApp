@@ -34,6 +34,9 @@
     <Filter Include="Internal\Shadow">
       <UniqueIdentifier>{c265759e-630b-41c6-ac9e-8587ee6d2412}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Asset\Serializer">
+      <UniqueIdentifier>{33de496f-8ea2-46ac-8a58-05cce571f0c7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -219,6 +222,12 @@
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Asset\Serializer\KMeshSerializer.h">
+      <Filter>Internal\Asset\Serializer</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Asset\Serializer\KMeshSerializerV0.h">
+      <Filter>Internal\Asset\Serializer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -346,6 +355,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanCommandBuffer.cpp">
       <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\Serializer\KMeshSerializerV0.cpp">
+      <Filter>Internal\Asset\Serializer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -35,6 +35,8 @@
     <ClInclude Include="Internal\Asset\KMaterial.h" />
     <ClInclude Include="Internal\Asset\KMesh.h" />
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
+    <ClInclude Include="Internal\Asset\Serializer\KMeshSerializer.h" />
+    <ClInclude Include="Internal\Asset\Serializer\KMeshSerializerV0.h" />
     <ClInclude Include="Internal\ECS\Component\KComponentBase.h" />
     <ClInclude Include="Internal\ECS\Component\KRenderComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KTransformComponent.h" />
@@ -84,6 +86,7 @@
     <ClCompile Include="Internal\Asset\KMaterial.cpp" />
     <ClCompile Include="Internal\Asset\KMesh.cpp" />
     <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
+    <ClCompile Include="Internal\Asset\Serializer\KMeshSerializerV0.cpp" />
     <ClCompile Include="Internal\ECS\Component\KRenderComponent.cpp" />
     <ClCompile Include="Internal\ECS\KComponentManager.cpp" />
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp" />
