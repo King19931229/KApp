@@ -65,7 +65,10 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 	}
 
 	// 把之前存在内存里的数据丢掉
-	m_Data.clear();
+	if(hostVisible)
+	{
+		m_Data.clear();
+	}
 	m_bDeviceInit = true;
 	m_bHostVisible = hostVisible;
 
@@ -88,11 +91,15 @@ bool KVulkanVertexBuffer::UnInit()
 
 bool KVulkanVertexBuffer::Map(void** ppData)
 {
-	if(m_bDeviceInit && m_bHostVisible)
+	ASSERT_RESULT(ppData != nullptr);
+	if(m_bHostVisible)
 	{
-		using namespace KVulkanGlobal;
-		VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
-		return true;
+		if(m_bDeviceInit)
+		{
+			using namespace KVulkanGlobal;
+			VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
+			return true;
+		}
 	}
 	return false;
 }
@@ -110,26 +117,41 @@ bool KVulkanVertexBuffer::UnMap()
 
 bool KVulkanVertexBuffer::Write(const void* pData)
 {
-	void* pMapData = nullptr;
-	if(Map(&pMapData))
+	if(m_bHostVisible)
 	{
-		memcpy(pMapData, pData, m_BufferSize);
-		UnMap();
-		return true;
+		void* pMapData = nullptr;
+		if(Map(&pMapData))
+		{
+			memcpy(pMapData, pData, m_BufferSize);
+			UnMap();
+			return true;
+		}
 	}
 	return false;
 }
 
 bool KVulkanVertexBuffer::Read(void* pData)
 {
-	void* pMapData = nullptr;
-	if(Map(&pMapData))
+	if(m_bHostVisible)
 	{
-		memcpy(pData, pMapData, m_BufferSize);
-		UnMap();
-		return true;
+		void* pMapData = nullptr;
+		if(Map(&pMapData))
+		{
+			memcpy(pData, pMapData, m_BufferSize);
+			UnMap();
+			return true;
+		}
 	}
-	return false;
+	else
+	{
+		if(!m_Data.empty())
+		{
+			assert(m_Data.size() == m_BufferSize);
+			memcpy(pData, m_Data.data(), m_BufferSize);
+			return true;
+		}
+	}
+	return true;
 }
 
 bool KVulkanVertexBuffer::CopyFrom(IKVertexBufferPtr pSource)
@@ -206,7 +228,10 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 	}
 
 	// 把之前存在内存里的数据丢掉
-	m_Data.clear();
+	if(hostVisible)
+	{
+		m_Data.clear();
+	}
 	m_bDeviceInit = true;
 	m_bHostVisible = hostVisible;
 
@@ -229,11 +254,15 @@ bool KVulkanIndexBuffer::UnInit()
 
 bool KVulkanIndexBuffer::Map(void** ppData)
 {
-	if(m_bDeviceInit && m_bHostVisible)
+	ASSERT_RESULT(ppData != nullptr);
+	if(m_bHostVisible)
 	{
-		using namespace KVulkanGlobal;
-		VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
-		return true;
+		if(m_bDeviceInit)
+		{
+			using namespace KVulkanGlobal;
+			VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
+			return true;
+		}
 	}
 	return false;
 }
@@ -251,6 +280,8 @@ bool KVulkanIndexBuffer::UnMap()
 
 bool KVulkanIndexBuffer::Write(const void* pData)
 {
+	if(m_bHostVisible)
+	{
 	void* pMapData = nullptr;
 	if(Map(&pMapData))
 	{
@@ -258,19 +289,32 @@ bool KVulkanIndexBuffer::Write(const void* pData)
 		UnMap();
 		return true;
 	}
+	}
 	return false;
 }
 
 bool KVulkanIndexBuffer::Read(void* pData)
 {
-	void* pMapData = nullptr;
-	if(Map(&pMapData))
+	if(m_bHostVisible)
 	{
-		memcpy(pData, pMapData, m_BufferSize);
-		UnMap();
-		return true;
+		void* pMapData = nullptr;
+		if(Map(&pMapData))
+		{
+			memcpy(pData, pMapData, m_BufferSize);
+			UnMap();
+			return true;
+		}
 	}
-	return false;
+	else
+	{
+		if(!m_Data.empty())
+		{
+			assert(m_Data.size() == m_BufferSize);
+			memcpy(pData, m_Data.data(), m_BufferSize);
+			return true;
+		}
+	}
+	return true;
 }
 
 bool KVulkanIndexBuffer::CopyFrom(IKIndexBufferPtr pSource)

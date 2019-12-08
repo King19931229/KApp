@@ -14,6 +14,7 @@ public:
 
 	virtual size_t GetVertexCount() { return m_VertexCount; }
 	virtual size_t GetBufferSize() { return m_BufferSize; }
+	virtual size_t GetVertexSize() { return m_VertexSize; }
 
 	virtual bool InitMemory(size_t vertexCount, size_t vertexSize, const void* pInitData);
 	virtual bool InitDevice(bool hostVisible) = 0;

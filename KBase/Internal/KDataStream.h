@@ -43,9 +43,9 @@ public:
 	virtual IOType GetType() const;
 	virtual size_t Tell() const;
 	virtual size_t Seek(long nPos);
-	virtual bool Read(char* pszBuffer, size_t uSize);
-	virtual bool Write(const char* pszBuffer, size_t uSize);
-	virtual bool Reference(char** ppszBuffer, size_t uSize);
+	virtual bool Read(void* pBuffer, size_t uSize);
+	virtual bool Write(const void* pBuffer, size_t uSize);
+	virtual bool Reference(void** ppBuffer, size_t uSize);
 };
 
 class KFileHandleDataStream : public KDataStreamBase
@@ -73,9 +73,9 @@ public:
 	virtual IOType GetType() const;
 	virtual size_t Tell() const;
 	virtual size_t Seek(long nPos);
-	virtual bool Read(char* pszBuffer, size_t uSize);
-	virtual bool Write(const char* pszBuffer, size_t uSize);
-	virtual bool Reference(char** ppszBuffer, size_t uSize);
+	virtual bool Read(void* pBuffer, size_t uSize);
+	virtual bool Write(const void* pBuffer, size_t uSize);
+	virtual bool Reference(void** ppBuffer, size_t uSize);
 };
 
 class KFileDataStream : public KDataStreamBase
@@ -103,7 +103,7 @@ public:
 	virtual IOType GetType() const;
 	virtual size_t Tell() const;
 	virtual size_t Seek(long nPos);
-	virtual bool Read(char* pszBuffer, size_t uSize);
-	virtual bool Write(const char* pszBuffer, size_t uSize);
-	virtual bool Reference(char** ppszBuffer, size_t uSize);
+	virtual bool Read(void* pBuffer, size_t uSize);
+	virtual bool Write(const void* pBuffer, size_t uSize);
+	virtual bool Reference(void** ppBuffer, size_t uSize);
 };

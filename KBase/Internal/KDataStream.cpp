@@ -299,38 +299,38 @@ size_t KMemoryDataStream::Seek(long nPos)
 	return (size_t)nPos;
 }
 
-bool KMemoryDataStream::Read(char* pszBuffer, size_t uSize)
+bool KMemoryDataStream::Read(void* pBuffer, size_t uSize)
 {
 	if(!IsReadable())
 		return false;
 	size_t uLeftSize = m_uBufferSize - (size_t)(m_pCurPos - m_pDataBuffer);
 	if(uSize > uLeftSize)
 		return false;
-	memcpy(pszBuffer, m_pCurPos, sizeof(pszBuffer[0]) * uSize);
+	memcpy(pBuffer, m_pCurPos, uSize);
 	m_pCurPos += uSize;
 	return true;
 }
 
-bool KMemoryDataStream::Write(const char* pszBuffer, size_t uSize)
+bool KMemoryDataStream::Write(const void* pBuffer, size_t uSize)
 {
 	if(!IsWriteable())
 		return false;
 	size_t uLeftSize = m_uBufferSize - (size_t)(m_pCurPos - m_pDataBuffer);
 	if(uSize > uLeftSize)
 		return false;
-	memcpy(m_pCurPos, pszBuffer, sizeof(pszBuffer[0]) * uSize);
+	memcpy(m_pCurPos, pBuffer, uSize);
 	m_pCurPos += uSize;
 	return true;
 }
 
-bool KMemoryDataStream::Reference(char** ppszBuffer, size_t uSize)
+bool KMemoryDataStream::Reference(void** ppBuffer, size_t uSize)
 {
-	if(ppszBuffer)
+	if(ppBuffer)
 	{
 		size_t uLeftSize = m_uBufferSize - (size_t)(m_pCurPos - m_pDataBuffer);
 		if(uSize <= uLeftSize)
 		{
-			*ppszBuffer = m_pCurPos;
+			*ppBuffer = m_pCurPos;
 			m_pCurPos += uSize;
 			return true;
 		}
@@ -423,7 +423,11 @@ bool KFileHandleDataStream::Close()
 bool KFileHandleDataStream::IsEOF()
 {
 	if(m_pFile)
-		return feof(m_pFile) != 0;
+	{
+		return ftell(m_pFile) == (long)m_uSize;
+		// 对于刚刚读完所有信息 feof返回true
+		//return feof(m_pFile) != 0;
+	}
 	return true;
 }
 
@@ -463,30 +467,30 @@ size_t KFileHandleDataStream::Seek(long nPos)
 		return 0;
 }
 
-bool KFileHandleDataStream::Read(char* pszBuffer, size_t uSize)
+bool KFileHandleDataStream::Read(void* pBuffer, size_t uSize)
 {
 	if(!IsReadable())
 		return false;
 	if(m_pFile)
-		return fread(pszBuffer, 1, uSize, m_pFile) == uSize;
+		return fread(pBuffer, 1, uSize, m_pFile) == uSize;
 	else
 		return false;
 }
 
-bool KFileHandleDataStream::Write(const char* pszBuffer, size_t uSize)
+bool KFileHandleDataStream::Write(const void* pBuffer, size_t uSize)
 {
 	if(!IsWriteable())
 		return false;
 	if(m_pFile)
-		return fwrite(pszBuffer, 1, uSize, m_pFile) == uSize;
+		return fwrite(pBuffer, 1, uSize, m_pFile) == uSize;
 	else
 		return false;
 }
 
-bool KFileHandleDataStream::Reference(char** ppszBuffer, size_t uSize)
+bool KFileHandleDataStream::Reference(void** ppBuffer, size_t uSize)
 {
-	if(ppszBuffer)
-		*ppszBuffer = nullptr;
+	if(ppBuffer)
+		*ppBuffer = nullptr;
 	return false;
 }
 
@@ -613,35 +617,35 @@ size_t KFileDataStream::Seek(long nPos)
 		return 0;
 }
 
-bool KFileDataStream::Read(char* pszBuffer, size_t uSize)
+bool KFileDataStream::Read(void* pBuffer, size_t uSize)
 {
 	if(!IsReadable())
 		return false;
 	if(m_FileStream.is_open())
 	{
-		m_FileStream.read(pszBuffer, (std::streamsize)uSize);
+		m_FileStream.read((char*)pBuffer, (std::streamsize)uSize);
 		return m_FileStream.gcount() == uSize;
 	}
 	else
 		return false;
 }
 
-bool KFileDataStream::Write(const char* pszBuffer, size_t uSize)
+bool KFileDataStream::Write(const void* pBuffer, size_t uSize)
 {
 	if(!IsWriteable())
 		return false;
 	if(m_FileStream.is_open())
 	{
-		m_FileStream.write(pszBuffer, (std::streamsize)uSize);
+		m_FileStream.write((char*)pBuffer, (std::streamsize)uSize);
 		return true;
 	}
 	else
 		return false;
 }
 
-bool KFileDataStream::Reference(char** ppszBuffer, size_t uSize)
+bool KFileDataStream::Reference(void** ppBuffer, size_t uSize)
 {
-	if(ppszBuffer)
-		*ppszBuffer = nullptr;
+	if(ppBuffer)
+		*ppBuffer = nullptr;
 	return false;
 }

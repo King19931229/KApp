@@ -65,9 +65,9 @@ struct IKDataStream
 	virtual size_t Tell() const = 0;
 	virtual size_t Seek(long nPos) = 0;
 	virtual size_t Skip(size_t uSize) = 0;
-	virtual bool Read(char* pszBuffer, size_t uSize) = 0;
-	virtual bool Write(const char* pszBuffer, size_t uSize) = 0;
-	virtual bool Reference(char** ppszBuffer, size_t uSize) = 0;
+	virtual bool Read(void* pBuffer, size_t uSize) = 0;
+	virtual bool Write(const void* pBuffer, size_t uSize) = 0;
+	virtual bool Reference(void** ppBuffer, size_t uSize) = 0;
 
 	virtual bool IsReadable() const = 0;
 	virtual bool IsWriteable() const = 0;

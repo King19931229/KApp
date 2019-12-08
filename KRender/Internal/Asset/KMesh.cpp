@@ -1,4 +1,5 @@
 #include "KMesh.h"
+#include "Serializer/KMeshSerializer.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKBuffer.h"
 #include "Internal/KVertexDefinition.h"
@@ -13,13 +14,35 @@ KMesh::~KMesh()
 
 bool KMesh::SaveAsFile(const char* szPath)
 {
+	assert(szPath);
+	if(!szPath)
+	{
+		return false;
+	}
+	if(KMeshSerializer::SaveAsFile(this, szPath, MSV_VERSION_NEWEST))
+	{
+		return true;
+	}
 	return false;
 }
 
 bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum)
 {
-	m_Path = szPath;
-	return true;
+	assert(szPath && device);
+	if(!szPath || !device)
+	{
+		return false;
+	}
+
+	UnInit();
+
+	if(KMeshSerializer::LoadFromFile(device, this, szPath, frameInFlight, renderThreadNum))
+	{
+		m_Path = szPath;
+		return true;
+	}
+	
+	return false;
 }
 
 bool KMesh::UnInit()
@@ -77,7 +100,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 		KAssetImportOption option;
 		KAssetImportResult result;
 
-		VertexFormat formats[] = { VF_POINT_NORMAL_UV };
+		VertexFormat formats[] = { VF_POINT_NORMAL_UV, VF_DIFFUSE_SPECULAR, VF_TANGENT_BINORMAL };
 		for(VertexFormat format : formats)
 		{
 			KAssetImportOption::ComponentGroup group;
@@ -144,15 +167,15 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 			KMaterialPtr material = KMaterialPtr(new KMaterial());
 			if(!subPart.material.diffuse.empty())
 			{
-				material->ResignTexture(0, subPart.material.diffuse.c_str());
+				material->ResignTexture(MTS_DIFFUSE, subPart.material.diffuse.c_str());
 			}
 			if(!subPart.material.specular.empty())
 			{
-				material->ResignTexture(1, subPart.material.specular.c_str());
+				material->ResignTexture(MTS_SPECULAR, subPart.material.specular.c_str());
 			}
 			if(!subPart.material.normal.empty())
 			{
-				material->ResignTexture(2, subPart.material.normal.c_str());
+				material->ResignTexture(MTS_NORMAL, subPart.material.normal.c_str());
 			}
 
 			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, frameInFlight, renderThreadNum));

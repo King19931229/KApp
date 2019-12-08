@@ -10,7 +10,7 @@ layout(location = 0) out vec4 outColor;
 layout(binding = TEXTURE_SLOT0) uniform sampler2D texSampler;
 layout(binding = TEXTURE_SLOT3) uniform sampler2D shadowSampler;
 
-#define ambient 0.5
+#define ambient 0.4
 float textureProj(vec4 shadowCoord, vec2 off)
 {
 	float shadow = 1.0;
@@ -32,7 +32,7 @@ float textureProj(vec4 shadowCoord, vec2 off)
 float filterPCF(vec4 sc)
 {
 	ivec2 texDim = textureSize(shadowSampler, 0);
-	float scale = 1.5;
+	float scale = 1.0;
 	float dx = scale * 1.0 / float(texDim.x);
 	float dy = scale * 1.0 / float(texDim.y);
 
@@ -63,7 +63,7 @@ float LinearizeDepth(float depth)
 void main()
 {
 	float shadow = filterPCF(shadowCoord);
-	//textureProj(shadowCoord, vec2(0.0));
+	//
 	outColor = texture(texSampler, uv);
 	outColor.rgb *= shadow;
 

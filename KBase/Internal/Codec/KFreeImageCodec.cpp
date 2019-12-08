@@ -29,7 +29,7 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 
 	if(pData->Open(pszFile, IM_READ))
 	{
-		char* pRefData = nullptr;
+		void* pRefData = nullptr;
 		size_t uSize = pData->GetSize();
 		if(pData->Reference(&pRefData, uSize))
 		{

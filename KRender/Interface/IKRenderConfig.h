@@ -75,7 +75,10 @@ enum VertexFormat
 	// for gui
 	VF_GUI_POS_UV_COLOR,
 	// for offscreen quad
-	VF_SCREENQUAD_POS
+	VF_SCREENQUAD_POS,
+
+	VF_UNKNOWN,
+	VF_COUNT = VF_UNKNOWN
 };
 
 enum ElementFormat

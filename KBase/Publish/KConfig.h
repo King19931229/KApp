@@ -43,6 +43,26 @@ do\
 }\
 while(false);
 
+#define ACTION_ON_FAILURE(exp, ...)\
+do\
+{\
+	if(!(exp))\
+	{\
+		__VA_ARGS__;\
+	}\
+}\
+while(false);
+
+#define ACTION_ON_SUCCESS(exp, ...)\
+do\
+{\
+	if((exp))\
+	{\
+		__VA_ARGS__;\
+	}\
+}\
+while(false);
+
 // http://www.cnblogs.com/skynet/archive/2011/02/20/1959162.html
 #ifdef MEMORY_DUMP_DEBUG
 

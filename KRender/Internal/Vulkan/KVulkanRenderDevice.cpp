@@ -631,6 +631,13 @@ bool KVulkanRenderDevice::CreateMesh()
 		"../Sponza/sponza.obj"
 	};
 
+	const char* destPaths[] =
+	{
+		"../Dependency/assimp-3.3.1/test/models/OBJ/spider.mesh",
+		"../Sponza/sponza.mesh"
+	};
+
+#if 1
 #ifdef _DEBUG
 	int width = 3, height = 3;
 #else
@@ -661,7 +668,10 @@ bool KVulkanRenderDevice::CreateMesh()
 			}
 		}
 	}
-#if 0
+#endif
+#if 1
+	const uint32_t IDX = 1;
+	const bool MESH_EXPORT = false;
 	for(size_t i = 0; i < 1; ++i)
 	{
 		KEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
@@ -669,7 +679,25 @@ bool KVulkanRenderDevice::CreateMesh()
 		KComponentBase* component = nullptr;
 		if(entity->RegisterComponent(CT_RENDER, &component))
 		{
-			((KRenderComponent*)component)->InitFromAsset(szPaths[1]);
+#if 1
+			if(MESH_EXPORT)
+			{
+				((KRenderComponent*)component)->InitFromAsset(szPaths[IDX]);
+
+				KMeshPtr mesh = ((KRenderComponent*)component)->GetMesh();
+				if(mesh && mesh->SaveAsFile(destPaths[IDX]))
+				{
+					((KRenderComponent*)component)->Init(destPaths[IDX]);
+				}
+			}
+			else
+			{
+				((KRenderComponent*)component)->Init(destPaths[IDX]);
+			}
+#else
+			((KRenderComponent*)component)->InitFromAsset(szPaths[IDX]);
+			//((KRenderComponent*)component)->Init(destPaths[IDX]);
+#endif
 		}
 		entity->RegisterComponent(CT_TRANSFORM);
 	}

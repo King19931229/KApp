@@ -8,6 +8,7 @@
 class KMesh
 {
 	friend class KSubMesh;
+	friend class KMeshSerializerV0;
 protected:
 	KVertexData m_VertexData;
 	std::vector<KSubMeshPtr> m_SubMeshes;

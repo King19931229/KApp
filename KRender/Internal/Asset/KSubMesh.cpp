@@ -159,11 +159,9 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 
 		if(m_Material)
 		{
-			// hard code for now
-			// 0:diffuse 1:specular 2:normal
-			KMaterialTextureInfo diffuseMap = m_Material->GetTexture(0);
-			KMaterialTextureInfo specularMap = m_Material->GetTexture(1);
-			KMaterialTextureInfo normalMap = m_Material->GetTexture(2);
+			KMaterialTextureInfo diffuseMap = m_Material->GetTexture(MTS_DIFFUSE);
+			KMaterialTextureInfo specularMap = m_Material->GetTexture(MTS_SPECULAR);
+			KMaterialTextureInfo normalMap = m_Material->GetTexture(MTS_NORMAL);
 
 			if(diffuseMap.texture && diffuseMap.sampler)
 			{

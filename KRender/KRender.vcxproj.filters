@@ -359,5 +359,8 @@
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializerV0.cpp">
       <Filter>Internal\Asset\Serializer</Filter>
     </ClCompile>
+    <ClCompile Include="Internal\Asset\Serializer\KMeshSerializer.cpp">
+      <Filter>Internal\Asset\Serializer</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -8,6 +8,7 @@
 class KSubMesh
 {
 	friend class KMesh;
+	friend class KMeshSerializerV0;
 protected:
 	struct PipelineInfo
 	{
