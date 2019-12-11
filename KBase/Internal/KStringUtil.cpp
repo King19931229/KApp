@@ -2,7 +2,7 @@
 
 namespace KStringUtil
 {
-	bool Split(const std::string& input, const std::string splitChars, std::vector<std::string>& splitResult)
+	bool Split(const std::string& input, const std::string& splitChars, std::vector<std::string>& splitResult)
 	{
 		splitResult.clear();
 		if(!input.empty())
@@ -35,6 +35,41 @@ namespace KStringUtil
 					splitResult.push_back(input.substr(nonSplit));
 					break;
 				}
+			}
+			return true;
+		}
+		return false;
+	}
+
+	bool Strip(const std::string& src, const std::string& stripChars, std::string& result, bool left, bool right)
+	{
+		if(!src.empty())
+		{
+			std::string::size_type startPos = 0;
+			std::string::size_type endPos = src.length() - 1;
+
+			if(left)
+			{
+				startPos = src.find_first_not_of(stripChars);
+			}
+			if(right)
+			{
+				endPos = src.find_last_not_of(stripChars);
+			}
+			if(startPos != std::string::npos)
+			{
+				if(endPos != std::string::npos)
+				{
+					result = src.substr(startPos, endPos - startPos + 1);
+				}
+				else
+				{
+					result = src.substr(startPos);
+				}
+			}
+			else
+			{
+				result = "";
 			}
 			return true;
 		}

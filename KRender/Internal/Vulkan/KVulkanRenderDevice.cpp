@@ -26,6 +26,8 @@
 #include "Internal/ECS/KECSGlobal.h"
 #include "Internal/ECS/System/KCullSystem.h"
 
+#include "KBase/Interface/IKLog.h"
+
 #include <algorithm>
 #include <set>
 #include <functional>
@@ -828,16 +830,15 @@ VkBool32 KVulkanRenderDevice::DebugCallback(
 {
 	if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
 	{
-		printf("[Vulkan Validation Layer Debug] %s\n", pCallbackData->pMessage);
+		KG_LOG("[Vulkan Validation Layer Debug] %s\n", pCallbackData->pMessage);
 	}
 	if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
 	{
-		printf("[Vulkan Validation Layer Performance] %s\n", pCallbackData->pMessage);
+		KG_LOGW("[Vulkan Validation Layer Performance] %s\n", pCallbackData->pMessage);
 	}
 	else if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
 	{
-		printf("[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
-		assert(false);
+		KG_LOGE_ASSERT("[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
 	}
 	return VK_FALSE;
 }

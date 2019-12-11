@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <stdarg.h>
 
+IKLogPtr GLogger = nullptr;
+
 #ifdef _WIN32
 #	include <Windows.h>
 #	define VSNPRINTF _vsnprintf
@@ -227,7 +229,7 @@ bool KLog::LogPrefix(LogLevel level, const char* pszPrefix, const char* pszForma
 	va_start(list, pszFormat);	
 	char szBuffer[2048]; szBuffer[0] = '\0';
 	nPos = SNPRINTF(szBuffer, sizeof(szBuffer), "%s ", pszPrefix);
-	assert(nPos > 0);
+	assert(nPos >= 0);
 	VSNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos, pszFormat, list);
 	bRet = Log(level, szBuffer);
 	va_end(list);
@@ -242,7 +244,7 @@ bool KLog::LogSuffix(LogLevel level, const char* pszSuffix, const char* pszForma
 	va_start(list, pszFormat);	
 	char szBuffer[2048]; szBuffer[0] = '\0';
 	nPos = VSNPRINTF(szBuffer + nPos, sizeof(szBuffer), pszFormat, list);
-	assert(nPos > 0);
+	assert(nPos >= 0);
 	SNPRINTF(szBuffer + nPos, sizeof(szBuffer)  - nPos, " %s", pszSuffix);
 	bRet = Log(level, szBuffer);
 	va_end(list);

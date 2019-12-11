@@ -29,48 +29,23 @@ IKLogPtr pLog;
 #include "KBase/Publish/KNumerical.h"
 #include "KBase/Publish/KThreadPool.h"
 
+#include "KBase/Publish/KHash.h"
+
+#include "KRender/Internal/KDebugConsole.h"
+
 int main()
 {
-	/*
-	KThreadPool<std::function<bool()>> threadPool;
-	threadPool.PushWorkerThreads(8);
-	std::atomic<int> count = 0;
-	for(int i = 0; i < 1000; ++i)
-	{
-		threadPool.SubmitTask([&]()
-		{
-			printf("work %d\n", count++);
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
-			return true;
-		});
-	}
-	threadPool.WaitAllAsyncTaskDone();
-	return 0;
-	*/
-	/*
-	printf("%d\n", KNumerical::Pow2LessEqual(10));
-	printf("%d\n", KNumerical::Pow2LessEqual(768));
-	printf("%d\n", KNumerical::Pow2LessEqual(512));
+	GLogger = CreateLog();
+	GLogger->Init("log.txt", true, true, ILM_UNIX);
 
-	printf("%d\n", KNumerical::Pow2GreaterEqual(10));
-	printf("%d\n", KNumerical::Pow2GreaterEqual(768));
-	printf("%d\n", KNumerical::Pow2GreaterEqual(512));
-	printf("%d\n", KNumerical::Pow2GreaterEqual(-1));
-	
-	printf("%d\n", KNumerical::IsPow2(1));
-	printf("%d\n", KNumerical::IsPow2(768));
-	printf("%d\n", KNumerical::IsPow2(4));
-	printf("%d\n", KNumerical::IsPow2(1024));
-	printf("%d\n", KNumerical::IsPow2(1111));
-	*/
 	/*
-	std::vector<std::string> splitResult;
-	KStringUtil::Split("I am ;; a string for test;;; ha,ha!", " ;,!", splitResult);
-	*/
-	/*KSystem::Wait("D:\\VulkanSDK\\1.1.114.0\\Bin\\glslc.exe", "d:\\KApp\\Shader\\shader.vert -o test.txt");
-	std::string vulkanRoot = getenv("VK_SDK_PATH");
-	vulkanRoot = getenv("VK_SDK_PATH");
-	KFileTool::PathJoin(vulkanRoot, "Bin/spirv-as.exe", vulkanRoot);
+	KDebugConsole console;
+	KDebugConsole::InputCallBackType callback = [](const char* info)
+	{
+		KG_LOGE(info);
+	};
+	console.AddCallback(&callback);
+	console.Init();
 	*/
 
 	InitCodecManager();

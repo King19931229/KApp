@@ -22,17 +22,22 @@
     <ClInclude Include="Interface\IKAssetLoader.h" />
     <ClInclude Include="Interface\IKCodec.h" />
     <ClInclude Include="Interface\IKDataStream.h" />
+    <ClInclude Include="Interface\IKFileSystem.h" />
     <ClInclude Include="Interface\IKIniFile.h" />
     <ClInclude Include="Interface\IKLog.h" />
     <ClInclude Include="Interface\IKMemory.h" />
+    <ClInclude Include="Interface\IKRefObject.h" />
     <ClInclude Include="Interface\IKScript.h" />
     <ClInclude Include="Interface\IKSocket.h" />
     <ClInclude Include="Interface\IKSourceFile.h" />
     <ClInclude Include="Internal\Codec\KETCCodec.h" />
     <ClInclude Include="Internal\Codec\KFreeImageCodec.h" />
+    <ClInclude Include="Internal\FileSystem\KNativieFileSystem.h" />
+    <ClInclude Include="Internal\Hash\KMD5.h" />
     <ClInclude Include="Internal\KAssetLoader.h" />
     <ClInclude Include="Internal\KCodec.h" />
     <ClInclude Include="Internal\KDataStream.h" />
+    <ClInclude Include="Internal\KFileSystem.h" />
     <ClInclude Include="Internal\KIniFile.h" />
     <ClInclude Include="Internal\KLog.h" />
     <ClInclude Include="Internal\KMemoryAllocator.h" />
@@ -65,10 +70,13 @@
   <ItemGroup>
     <ClCompile Include="Internal\Codec\KETCCodec.cpp" />
     <ClCompile Include="Internal\Codec\KFreeImageCodec.cpp" />
+    <ClCompile Include="Internal\FileSystem\KNativieFileSystem.cpp" />
+    <ClCompile Include="Internal\Hash\KMD5.cpp" />
     <ClCompile Include="Internal\KAssetLoader.cpp" />
     <ClCompile Include="Internal\KCodec.cpp" />
     <ClCompile Include="Internal\KDataStream.cpp" />
     <ClCompile Include="Internal\KDump.cpp" />
+    <ClCompile Include="Internal\KFileSystem.cpp" />
     <ClCompile Include="Internal\KFileTool.cpp" />
     <ClCompile Include="Internal\KHash.cpp" />
     <ClCompile Include="Internal\KHashString.cpp" />

@@ -1,6 +1,7 @@
 #include "KVulkanShader.h"
 #include "KVulkanGlobal.h"
 
+#include "KBase/Interface/IKLog.h"
 #include "KBase/Interface/IKDataStream.h"
 #include "KBase/Publish/KStringParser.h"
 #include "KBase/Publish/KFileTool.h"
@@ -51,10 +52,10 @@ bool KVulkanShader::SetConstantEntry(uint32_t constantID, uint32_t offset, size_
 
 bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pModule)
 {
-	size_t uHash = KHash::BKDR(path.c_str(), path.length());
+	uint32_t uHash = KHash::BKDR(path.c_str(), path.length());
 	char hashCode[256] = {0};
 
-	if(KStringParser::ParseFromSIZE_T(hashCode, sizeof(hashCode), &uHash, 1))
+	if(KStringParser::ParseFromUINT(hashCode, sizeof(hashCode), &uHash, 1))
 	{
 		std::string shaderCompiler = getenv("VK_SDK_PATH");
 #ifdef _WIN64
@@ -98,7 +99,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 			}
 			else
 			{
-				printf("[Vulkan Shader Compile Error]: [%s]\n%s\n", path.c_str(), message.c_str());
+				KG_LOGE("[Vulkan Shader Compile Error]: [%s]\n%s\n", path.c_str(), message.c_str());
 				return false;
 			}
 		}

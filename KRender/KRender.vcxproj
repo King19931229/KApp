@@ -48,6 +48,7 @@
     <ClInclude Include="Internal\ECS\System\KCullSystem.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
+    <ClInclude Include="Internal\KDebugConsole.h" />
     <ClInclude Include="Internal\KRenderGlobal.h" />
     <ClInclude Include="Internal\KRenderThreadPool.h" />
     <ClInclude Include="Internal\KSamplerBase.h" />
@@ -98,6 +99,7 @@
     <ClInclude Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KConstantDefinition.cpp" />
     <ClCompile Include="Internal\KConstantGlobal.cpp" />
+    <ClCompile Include="Internal\KDebugConsole.cpp" />
     <ClCompile Include="Internal\KRenderDevice.cpp" />
     <ClCompile Include="Internal\KRenderGlobal.cpp" />
     <ClCompile Include="Internal\KRenderWindow.cpp" />

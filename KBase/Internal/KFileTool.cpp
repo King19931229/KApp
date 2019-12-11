@@ -1,7 +1,9 @@
 ﻿#include "Publish/KFileTool.h"
+#include "Publish/KStringUtil.h"
 
 #include <io.h>
 #include <direct.h>
+#include <assert.h>
 
 #include <string>
 #include <algorithm>
@@ -158,5 +160,54 @@ namespace KFileTool
 			return true;
 		}
 		return false;
+	}
+
+	bool CopyFile(const std::string& src, const std::string& dest)
+	{
+		bool bRet = false;
+
+		std::string destFolder;
+		if(ParentFolder(dest, destFolder))
+		{
+			if(!IsPathExist(destFolder))
+			{
+				CreateFolder(destFolder, true);
+			}
+
+			FILE* srcHandle = fopen(src.c_str(), "rb");
+			if(srcHandle)
+			{
+				long size = 0;
+
+				fseek(srcHandle, 0, SEEK_END);
+				size = ftell(srcHandle);
+				fseek(srcHandle, 0, SEEK_SET);
+
+				char* buffer = nullptr;
+				if (size > 0)
+				{
+					buffer = new char[size];
+					size_t readCount = fread(buffer, 1, size, srcHandle);
+					assert(readCount == (size_t)size);
+				}
+
+				FILE* destHandle = fopen(dest.c_str(), "wb");
+				if(destHandle)
+				{
+					if(buffer)
+					{
+						size_t writeCount = fwrite(buffer, 1, (size_t)size, destHandle);
+						assert(writeCount == (size_t)size);
+					}
+					fclose(destHandle);
+					bRet = true;
+				}
+
+				SAFE_DELETE_ARRAY(buffer);
+				fclose(srcHandle);
+			}
+		}
+
+		return bRet;
 	}
 }

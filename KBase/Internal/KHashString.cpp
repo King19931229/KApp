@@ -72,7 +72,7 @@ struct KHashStrChunk
 
 typedef std::shared_ptr<KHashStrChunk> KHashStrChunkPtr;
 typedef std::vector<KHashStrChunkPtr> HashStrChunks;
-typedef std::unordered_map<size_t, KHashString> HashStrMap;
+typedef std::unordered_map<uint32_t, KHashString> HashStrMap;
 
 HashStrChunks g_Chunks;
 HashStrMap g_StrMap;
@@ -107,7 +107,7 @@ static KHashString _GetHashString(const char* pszStr)
 				return pszStr;
 		}
 
-		size_t uHash = KHash::BKDR(pszStr, uLen);
+		uint32_t uHash = KHash::BKDR(pszStr, uLen);
 
 		{
 			std::lock_guard<decltype(g_Lock)> guard(g_Lock);

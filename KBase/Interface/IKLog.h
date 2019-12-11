@@ -64,4 +64,11 @@ public:
 	assert(false);\
 }
 
+extern IKLogPtr GLogger;
+
+#define KG_LOG(pszFormat, ...) KLOG(GLogger, pszFormat, __VA_ARGS__)
+#define KG_LOGW(pszFormat, ...) KLOGW(GLogger, pszFormat, __VA_ARGS__)
+#define KG_LOGE(pszFormat, ...) KLOGE(GLogger, pszFormat, __VA_ARGS__)
+#define KG_LOGE_ASSERT(pszFormat, ...) KLOGE_ASSERT(GLogger, pszFormat, __VA_ARGS__)
+
 EXPORT_DLL IKLogPtr CreateLog();

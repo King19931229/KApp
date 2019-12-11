@@ -23,6 +23,12 @@
 #	define ALIGNMENT(x) __attribute__((aligned(x)))
 #endif
 
+#if defined(_DEBUG)
+#	define FORCEINLINE								inline
+#else
+#	define FORCEINLINE								__forceinline
+#endif
+
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #define MEMBER_OFFSET(structure, member) ((int)&((structure*)0)->member)
@@ -32,6 +38,9 @@
 
 #define ZERO_MEMORY(variable) { memset(&variable, 0, sizeof(variable)); }
 #define ZERO_ARRAY_MEMORY(arr) { memset(arr, 0, sizeof(arr)); }
+
+#define SAFE_DELETE(ptr) { if(ptr) { delete ptr; ptr = nullptr; } }
+#define SAFE_DELETE_ARRAY(ptr) { if(ptr) { delete[] ptr; ptr = nullptr; } }
 
 #define ASSERT_RESULT(exp)\
 do\

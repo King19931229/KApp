@@ -228,6 +228,9 @@
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializerV0.h">
       <Filter>Internal\Asset\Serializer</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\KDebugConsole.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -358,6 +361,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializerV0.cpp">
       <Filter>Internal\Asset\Serializer</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KDebugConsole.cpp">
+      <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializer.cpp">
       <Filter>Internal\Asset\Serializer</Filter>
