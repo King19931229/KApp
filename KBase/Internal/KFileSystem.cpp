@@ -1,7 +1,15 @@
 #include "KFileSystem.h"
 #include "FileSystem/KNativieFileSystem.h"
 
+#include <algorithm>
 #include <assert.h>
+
+IKFileSystemManagerPtr GFileSystemManager = nullptr;
+
+EXPORT_DLL IKFileSystemManagerPtr CreateFileSystemManager()
+{
+	return IKFileSystemManagerPtr((IKFileSystemManager*)new KFileSystemManager());
+}
 
 KFileSystemManager::KFileSystemManager()
 {
@@ -10,7 +18,7 @@ KFileSystemManager::KFileSystemManager()
 
 KFileSystemManager::~KFileSystemManager()
 {
-	assert(m_FileSys.empty() && "File system not clear");
+	assert(m_Queue.empty() && "File system not clear");
 }
 
 bool KFileSystemManager::Init()
@@ -21,55 +29,86 @@ bool KFileSystemManager::Init()
 
 bool KFileSystemManager::UnInit()
 {
-	for(auto& pair : m_FileSys)
+	for(PriorityFileSystem& sys : m_Queue)
 	{
-		IKFileSystemPtr& sys = pair.second;
-		sys->UnInit();
+		sys.system->UnInit();
 	}
+	m_Queue.clear();
 	return true;
 }
 
-bool KFileSystemManager::AddSystem(const char* root, FileSystemType type)
+bool KFileSystemManager::AddSystem(const char* root, int priority, FileSystemType type)
 {
-	if(m_FileSys.find(root) == m_FileSys.end())
+	if(std::find_if(m_Queue.begin(), m_Queue.end(), [=](const PriorityFileSystem& sysInQueue) {	return FileSysEqual(sysInQueue, root, type); })== m_Queue.end())
 	{
+		IKFileSystemPtr fileSys = nullptr;
 		switch (type)
 		{
 		case FST_NATIVE:
 			{
-				IKFileSystemPtr sys = IKFileSystemPtr(new KNativeFileSystem());
-				sys->Init(root);
-				m_FileSys[root] = sys;
-				return true;
+				fileSys = IKFileSystemPtr(new KNativeFileSystem());
+				fileSys->Init(root);
+				break;
 			}
 		default:
 			assert(false && "Unknown type");
 		}
+
+		if(fileSys)
+		{
+			PriorityFileSystem newSys = PriorityFileSystem(fileSys, root, type, priority);
+			auto insertPos = std::lower_bound(m_Queue.begin(), m_Queue.end(), newSys, [](const PriorityFileSystem& a, const PriorityFileSystem& b) { return FileSysCmp(a, b); });
+			m_Queue.insert(insertPos, newSys);
+			return true;
+		}
 	}
+
 	return false;
 }
 
-bool KFileSystemManager::RemoveSystem(const char* root)
+bool KFileSystemManager::RemoveSystem(const char* root, FileSystemType type)
 {
-	auto it = m_FileSys.find(root);
-	if(it != m_FileSys.end())
+	auto it = std::find_if(m_Queue.begin(),
+		m_Queue.end(),
+		[=](const PriorityFileSystem& sysInQueue)
 	{
-		IKFileSystemPtr& sys = it->second;
-		sys->UnInit();
-		sys = nullptr;
+		return FileSysEqual(sysInQueue, root, type);
+	});
 
-		m_FileSys.erase(it);
-		return true;
+	if(it != m_Queue.end())
+	{
+		it->system->UnInit();
+		m_Queue.erase(it);
 	}
-	return false;
+
+	return true;
 }
 
-IKFileSystemPtr KFileSystemManager::GetFileSystem(const char* root)
+IKFileSystemPtr KFileSystemManager::GetFileSystem(const char* root, FileSystemType type)
 {
-	auto it = m_FileSys.find(root);
-	if(it != m_FileSys.end())
+	auto it = std::find_if(m_Queue.begin(),
+		m_Queue.end(),
+		[=](const PriorityFileSystem& sysInQueue)
 	{
-		return it->second;
+		return FileSysEqual(sysInQueue, root, type);
+	});
+
+	if(it != m_Queue.end())
+	{
+		return it->system;
 	}
+
 	return nullptr;
+}
+
+bool KFileSystemManager::Open(const std::string& file, IKDataStreamPtr& ret)
+{
+	for(PriorityFileSystem& sys : m_Queue)
+	{
+		if(sys.system->Open(file, ret))
+		{
+			return true;
+		}
+	}
+	return false;
 }

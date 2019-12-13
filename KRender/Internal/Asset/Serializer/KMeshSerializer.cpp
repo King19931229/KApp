@@ -1,19 +1,24 @@
 #include "KMeshSerializer.h"
 #include "KMeshSerializerV0.h"
 #include "KBase/Interface/IKDataStream.h"
+#include "KBase/Interface/IKFileSystem.h"
 
 namespace KMeshSerializer
 {
 	bool LoadFromFile(IKRenderDevice* device, KMesh* pMesh, const char* path, size_t frameInFlight, size_t renderThreadNum)
 	{
-		IKDataStreamPtr pData = GetDataStream(IT_FILEHANDLE);
-		if(pData && pData->Open(path, IM_READ))
+		IKDataStreamPtr pData = nullptr;
+		if(GFileSystemManager->Open(path, pData))
 		{
-			// no need to judge version now
-			KMeshSerializerV0 reader(device);
-			bool bRet = reader.LoadFromStream(pMesh, pData, frameInFlight, renderThreadNum);
-			pData->Close();
-			return bRet;
+			IKDataStreamPtr pData = GetDataStream(IT_FILEHANDLE);
+			if(pData && pData->Open(path, IM_READ))
+			{
+				// no need to judge version now
+				KMeshSerializerV0 reader(device);
+				bool bRet = reader.LoadFromStream(pMesh, pData, frameInFlight, renderThreadNum);
+				pData->Close();
+				return bRet;
+			}
 		}
 		return false;
 	}

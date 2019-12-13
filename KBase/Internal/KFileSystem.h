@@ -1,23 +1,46 @@
 #pragma once
 #include "Interface/IKFileSystem.h"
+#include <vector>
 
-#include <map>
-#include <mutex>
-
-class KFileSystemManager
+class KFileSystemManager : IKFileSystemManager
 {
-public:
-	typedef std::map<std::string, IKFileSystemPtr> FileSystemMap;
-	static FileSystemMap m_FileSys;
+protected:
+	struct PriorityFileSystem
+	{
+		IKFileSystemPtr system;
+		std::string root;
+		FileSystemType type;
+		int priority;
+
+		PriorityFileSystem(IKFileSystemPtr _sys, const std::string& _root, FileSystemType _type, int _priority)
+		{
+			system = _sys;
+			root = _root;
+			type = _type;
+			priority = _priority;
+		}
+	};
+	typedef std::vector<PriorityFileSystem> FileSystemQueue;
+	FileSystemQueue m_Queue;
+
+	inline static bool FileSysEqual(const PriorityFileSystem &sys, const std::string& root, FileSystemType type)
+	{ 
+		return sys.root == root && sys.type == type;
+	}
+	inline static bool FileSysCmp(const PriorityFileSystem &a, const PriorityFileSystem &b)
+	{
+		return a.priority < b.priority;
+	}
 public:
 	KFileSystemManager();
 	~KFileSystemManager();
 
-	static bool Init();
-	static bool UnInit();
+	virtual bool Init();
+	virtual bool UnInit();
 
-	static bool AddSystem(const char* root, FileSystemType type);
-	static bool RemoveSystem(const char* root);
+	virtual bool AddSystem(const char* root, int priority, FileSystemType type);
+	virtual bool RemoveSystem(const char* root, FileSystemType type);
+	virtual IKFileSystemPtr GetFileSystem(const char* root, FileSystemType type);
 
-	static IKFileSystemPtr GetFileSystem(const char* root);
+	virtual bool Open(const std::string& file, IKDataStreamPtr& ret);
 };

@@ -3,6 +3,7 @@
 
 #include "KBase/Interface/IKLog.h"
 #include "KBase/Interface/IKDataStream.h"
+#include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Publish/KStringParser.h"
 #include "KBase/Publish/KFileTool.h"
 #include "KBase/Publish/KSystem.h"
@@ -75,8 +76,8 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 
 			if(KSystem::WaitProcess(shaderCompiler.c_str(), path + " -o " + codePath, message))
 			{
-				IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
-				if(pData)
+				IKDataStreamPtr pData = nullptr;
+				if(GFileSystemManager->Open(codePath, pData))
 				{
 					if(pData->Open(codePath.c_str(), IM_READ))
 					{

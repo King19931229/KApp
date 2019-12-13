@@ -5,6 +5,9 @@
 struct IKFileSystem;
 typedef std::shared_ptr<IKFileSystem> IKFileSystemPtr;
 
+struct IKFileSystemManager;
+typedef std::shared_ptr<IKFileSystemManager> IKFileSystemManagerPtr;
+
 enum FileSystemType
 {
 	FST_NATIVE,
@@ -24,3 +27,20 @@ struct IKFileSystem
 	virtual bool Open(const std::string& file, IKDataStreamPtr& ret) = 0;
 	virtual bool IsFileExist(const std::string& file) = 0;
 };
+
+struct IKFileSystemManager
+{
+	virtual ~IKFileSystemManager() {}
+
+	virtual bool Init() = 0;
+	virtual bool UnInit() = 0;
+
+	virtual bool AddSystem(const char* root, int priority, FileSystemType type) = 0;
+	virtual bool RemoveSystem(const char* root, FileSystemType type) = 0;
+	virtual IKFileSystemPtr GetFileSystem(const char* root, FileSystemType type) = 0;
+
+	virtual bool Open(const std::string& file, IKDataStreamPtr& ret) = 0;
+};
+
+extern IKFileSystemManagerPtr GFileSystemManager;
+EXPORT_DLL IKFileSystemManagerPtr CreateFileSystemManager();

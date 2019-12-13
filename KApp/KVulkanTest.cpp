@@ -32,11 +32,18 @@ IKLogPtr pLog;
 #include "KBase/Publish/KHash.h"
 
 #include "KRender/Internal/KDebugConsole.h"
+#include "Interface/IKFileSystem.h"
 
 int main()
 {
 	GLogger = CreateLog();
 	GLogger->Init("log.txt", true, true, ILM_UNIX);
+
+	GFileSystemManager = CreateFileSystemManager();
+	GFileSystemManager->Init();
+
+	GFileSystemManager->AddSystem(".", 0, FST_NATIVE);
+	GFileSystemManager->AddSystem("../", 1, FST_NATIVE);
 
 	/*
 	KDebugConsole console;
@@ -97,4 +104,6 @@ int main()
 
 	UnInitAssetLoaderManager();
 	UnInitCodecManager();
+
+	GFileSystemManager->UnInit();
 }
