@@ -30,4 +30,5 @@ public:
 	virtual bool Log(LogLevel level, const char* pszFormat, ...);
 	virtual bool LogPrefix(LogLevel level, const char* pszPrefix, const char* pszFormat, ...);
 	virtual bool LogSuffix(LogLevel level, const char* pszSuffix, const char* pszFormat, ...);
+	virtual bool LogPrefixSuffix(LogLevel level, const char* pszPrefix, const char* pszSuffix, const char* pszFormat, ...);
 };

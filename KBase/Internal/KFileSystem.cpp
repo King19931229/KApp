@@ -1,5 +1,6 @@
 #include "KFileSystem.h"
-#include "FileSystem/KNativieFileSystem.h"
+#include "FileSystem/KNativeFileSystem.h"
+#include "FileSystem/KZipFileSystem.h"
 
 #include <algorithm>
 #include <assert.h>
@@ -47,6 +48,12 @@ bool KFileSystemManager::AddSystem(const char* root, int priority, FileSystemTyp
 		case FST_NATIVE:
 			{
 				fileSys = IKFileSystemPtr(new KNativeFileSystem());
+				fileSys->Init(root);
+				break;
+			}
+		case FST_ZIP:
+			{
+				fileSys = IKFileSystemPtr(new KZipFileSystem());
 				fileSys->Init(root);
 				break;
 			}
@@ -101,11 +108,11 @@ IKFileSystemPtr KFileSystemManager::GetFileSystem(const char* root, FileSystemTy
 	return nullptr;
 }
 
-bool KFileSystemManager::Open(const std::string& file, IKDataStreamPtr& ret)
+bool KFileSystemManager::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret)
 {
 	for(PriorityFileSystem& sys : m_Queue)
 	{
-		if(sys.system->Open(file, ret))
+		if(sys.system->Open(file, priorityType, ret))
 		{
 			return true;
 		}

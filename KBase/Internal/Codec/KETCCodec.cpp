@@ -1,4 +1,5 @@
 #include "KETCCodec.h"
+#include "Interface/IKFileSystem.h"
 
 #define KTX_EXT "ktx"
 #define PKM_EXT "pkm"
@@ -296,8 +297,9 @@ bool KETCCodec::DecodeKTX(const IKDataStreamPtr& stream, KCodecResult& result)
 
 bool KETCCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result)
 {
-	IKDataStreamPtr stream = GetDataStream(IT_MEMORY);
-	if(!stream->Open(pszFile, IM_READ))
+	IKDataStreamPtr stream = nullptr;
+
+	if(!GFileSystemManager->Open(pszFile, IT_FILEHANDLE, stream))
 	{
 		return false;
 	}

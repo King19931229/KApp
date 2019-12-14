@@ -8,17 +8,13 @@ namespace KMeshSerializer
 	bool LoadFromFile(IKRenderDevice* device, KMesh* pMesh, const char* path, size_t frameInFlight, size_t renderThreadNum)
 	{
 		IKDataStreamPtr pData = nullptr;
-		if(GFileSystemManager->Open(path, pData))
+		if(GFileSystemManager->Open(path, IT_FILEHANDLE, pData))
 		{
-			IKDataStreamPtr pData = GetDataStream(IT_FILEHANDLE);
-			if(pData && pData->Open(path, IM_READ))
-			{
-				// no need to judge version now
-				KMeshSerializerV0 reader(device);
-				bool bRet = reader.LoadFromStream(pMesh, pData, frameInFlight, renderThreadNum);
-				pData->Close();
-				return bRet;
-			}
+			// no need to judge version now
+			KMeshSerializerV0 reader(device);
+			bool bRet = reader.LoadFromStream(pMesh, path, pData, frameInFlight, renderThreadNum);
+			pData->Close();
+			return bRet;
 		}
 		return false;
 	}

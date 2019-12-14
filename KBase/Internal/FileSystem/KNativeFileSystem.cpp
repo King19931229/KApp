@@ -1,5 +1,6 @@
-#include "KNativieFileSystem.h"
+#include "KNativeFileSystem.h"
 #include "Publish/KFileTool.h"
+#include "Interface/IKLog.h"
 
 KNativeFileSystem::KNativeFileSystem()
 {
@@ -36,7 +37,7 @@ bool KNativeFileSystem::GetRoot(std::string& root)
 	return false;
 }
 
-bool KNativeFileSystem::Open(const std::string& file, IKDataStreamPtr& ret)
+bool KNativeFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret)
 {
 	std::string fullPath;
 
@@ -44,9 +45,10 @@ bool KNativeFileSystem::Open(const std::string& file, IKDataStreamPtr& ret)
 	{
 		if(KFileTool::IsPathExist(fullPath))
 		{
-			ret = GetDataStream(IT_FILEHANDLE);
+			ret = GetDataStream(priorityType);
 			if(ret->Open(fullPath.c_str(), IM_READ))
 			{
+				KG_LOG(LM_IO, "[%s] file open on disk [%s]",  file.c_str(), m_Root.c_str());
 				return true;
 			}
 		}

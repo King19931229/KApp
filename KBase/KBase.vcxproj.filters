@@ -133,14 +133,17 @@
     <ClInclude Include="Interface\IKFileSystem.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\FileSystem\KNativieFileSystem.h">
-      <Filter>Internal\FileSystem</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\KFileSystem.h">
       <Filter>Internal</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Hash\KMD5.h">
       <Filter>Internal\Hash</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\FileSystem\KNativeFileSystem.h">
+      <Filter>Internal\FileSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\FileSystem\KZipFileSystem.h">
+      <Filter>Internal\FileSystem</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -227,14 +230,17 @@
     <ClCompile Include="Internal\KAssetLoader.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\FileSystem\KNativieFileSystem.cpp">
-      <Filter>Internal\FileSystem</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\KFileSystem.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Hash\KMD5.cpp">
       <Filter>Internal\Hash</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\FileSystem\KNativeFileSystem.cpp">
+      <Filter>Internal\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\FileSystem\KZipFileSystem.cpp">
+      <Filter>Internal\FileSystem</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

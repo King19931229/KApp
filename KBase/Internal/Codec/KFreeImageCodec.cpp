@@ -1,6 +1,7 @@
 #include "KFreeImageCodec.h"
 #include "FreeImage.h"
 #include "Interface/IKDataStream.h"
+#include "Interface/IKFileSystem.h"
 
 // KFreeImageCodec
 KFreeImageCodec::SupportExt KFreeImageCodec::ms_SupportExts;
@@ -18,8 +19,8 @@ KFreeImageCodec::~KFreeImageCodec()
 bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result)
 {
 	bool bSuccess = false;
-
-	IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
+	
+	IKDataStreamPtr pData = nullptr;
 	FIMEMORY *fiMem = nullptr;
 	FIBITMAP *fiBitmap = nullptr;
 
@@ -27,13 +28,14 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 	result.uHeight = 0;
 	result.eFormat = IF_INVALID;
 
-	if(pData->Open(pszFile, IM_READ))
+	if(GFileSystemManager->Open(pszFile, IT_FILEHANDLE, pData))
 	{
-		void* pRefData = nullptr;
-		size_t uSize = pData->GetSize();
-		if(pData->Reference(&pRefData, uSize))
+		std::vector<char> buffer;
+		buffer.resize(pData->GetSize());
+
+		if(pData->Read(buffer.data(), buffer.size()))
 		{
-			fiMem = FreeImage_OpenMemory((BYTE*)(pRefData), static_cast<DWORD>(pData->GetSize()));
+			fiMem = FreeImage_OpenMemory((BYTE*)(buffer.data()), static_cast<DWORD>(pData->GetSize()));
 			fiBitmap = FreeImage_LoadFromMemory((FREE_IMAGE_FORMAT)m_nType, fiMem);
 
 			unsigned bpp = FreeImage_GetBPP(fiBitmap);

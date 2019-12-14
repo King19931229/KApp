@@ -77,7 +77,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 			if(KSystem::WaitProcess(shaderCompiler.c_str(), path + " -o " + codePath, message))
 			{
 				IKDataStreamPtr pData = nullptr;
-				if(GFileSystemManager->Open(codePath, pData))
+				if(GFileSystemManager->Open(codePath, IT_FILEHANDLE, pData))
 				{
 					if(pData->Open(codePath.c_str(), IM_READ))
 					{
@@ -100,7 +100,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 			}
 			else
 			{
-				KG_LOGE("[Vulkan Shader Compile Error]: [%s]\n%s\n", path.c_str(), message.c_str());
+				KG_LOGE(LM_RENDER, "[Vulkan Shader Compile Error]: [%s]\n%s\n", path.c_str(), message.c_str());
 				return false;
 			}
 		}

@@ -1,6 +1,11 @@
 #include "KMeshSerializerV0.h"
+#include "KBase/Publish/KStringUtil.h"
+#include "KBase/Publish/KFileTool.h"
+
 #include "Interface/IKBuffer.h"
 #include "Interface/IKTexture.h"
+
+#include <algorithm>
 
 enum MeshSerializerElement : uint32_t
 {
@@ -48,6 +53,64 @@ KMeshSerializerV0::KMeshSerializerV0(IKRenderDevice* device)
 
 KMeshSerializerV0::~KMeshSerializerV0()
 {
+}
+
+bool KMeshSerializerV0::ResolvePath(const std::string& meshPath, const std::string texturePath, std::string& outPath)
+{
+	std::string trimedMeshPath = meshPath;
+	std::string trimedtexturePath = texturePath;
+
+	std::replace(trimedMeshPath.begin(), trimedMeshPath.end(), '\\', '/');
+	std::replace(trimedtexturePath.begin(), trimedtexturePath.end(), '\\', '/');
+
+	std::vector<std::string> meshSplitResult;
+	std::vector<std::string> textureSplitResult;
+
+	if(KStringUtil::Split(trimedMeshPath, "/", meshSplitResult) && KStringUtil::Split(trimedtexturePath, "/", textureSplitResult))
+	{
+		std::remove_if(meshSplitResult.begin(), meshSplitResult.end(), [](const std::string& elem) { return elem == "."; });
+		std::remove_if(textureSplitResult.begin(), textureSplitResult.end(), [](const std::string& elem) { return elem == "."; });
+
+		std::string commandFolder = "";
+
+		size_t i = 0, j = std::min(meshSplitResult.size(), textureSplitResult.size());
+		for(; i < j && meshSplitResult[i] == textureSplitResult[i]; ++i);
+
+		if(i != 0)
+		{
+			outPath = "";
+
+			j = meshSplitResult.size() - i;
+			for(; j > 1; --j)
+			{
+				outPath += "../";
+			}
+
+			if(i < textureSplitResult.size())
+			{
+				outPath += textureSplitResult[i++];
+				for(j = textureSplitResult.size(); i < j; ++i)
+				{
+					outPath += "/" + textureSplitResult[i];
+				}
+			}
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool KMeshSerializerV0::CombinePath(const std::string& meshPath, const std::string texturePath, std::string& outPath)
+{
+	std::string parentFolder;
+	if(KFileTool::ParentFolder(meshPath, parentFolder))
+	{
+		outPath = parentFolder + "/" + texturePath;
+		return true;
+	}
+
+	return false;
 }
 
 bool KMeshSerializerV0::ReadString(IKDataStreamPtr& stream, std::string& value)
@@ -281,9 +344,11 @@ bool KMeshSerializerV0::ReadMaterialElementData(IKDataStreamPtr& stream, Materia
 {
 	uint32_t flag = 0;
 	ACTION_ON_FAILURE(stream->Read(&flag, sizeof(flag)) && flag == MES_MATERIAL_ELEMENT, return false);
+
 	ACTION_ON_FAILURE(ReadString(stream, materialData.diffuse), return false);
 	ACTION_ON_FAILURE(ReadString(stream, materialData.specular), return false);
 	ACTION_ON_FAILURE(ReadString(stream, materialData.normal), return false);
+
 	return true;
 }
 
@@ -322,7 +387,7 @@ bool KMeshSerializerV0::ReadDrawElementData(IKDataStreamPtr& stream, DrawElement
 	return true;
 }
 
-bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, IKDataStreamPtr& stream, size_t frameInFlight, size_t renderThreadNum)
+bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath, IKDataStreamPtr& stream, size_t frameInFlight, size_t renderThreadNum)
 {
 	uint32_t head = 0;
 	uint32_t magic = 0;
@@ -421,15 +486,27 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, IKDataStreamPtr& stream, si
 		KMaterialPtr material = KMaterialPtr(new KMaterial());
 		if(!materialData.diffuse.empty())
 		{
-			material->ResignTexture(MTS_DIFFUSE, materialData.diffuse.c_str());
+			std::string diffusePath;
+			if(CombinePath(meshPath, materialData.diffuse, diffusePath))
+			{
+				material->ResignTexture(MTS_DIFFUSE, diffusePath.c_str());
+			}
 		}
 		if(!materialData.specular.empty())
 		{
-			material->ResignTexture(MTS_SPECULAR, materialData.specular.c_str());
+			std::string specularPath;
+			if(CombinePath(meshPath, materialData.specular, specularPath))
+			{
+				material->ResignTexture(MTS_SPECULAR, specularPath.c_str());
+			}
 		}
 		if(!materialData.normal.empty())
 		{
-			material->ResignTexture(MTS_NORMAL, materialData.normal.c_str());
+			std::string normalPath;
+			if(CombinePath(meshPath, materialData.normal, normalPath))
+			{
+				material->ResignTexture(MTS_SPECULAR, normalPath.c_str());
+			}
 		}
 
 		submesh = KSubMeshPtr(new KSubMesh(pMesh));
@@ -641,15 +718,15 @@ bool KMeshSerializerV0::SaveToStream(KMesh* pMesh, IKDataStreamPtr& stream)
 		MaterialInfo mtlInfo;
 		if(diffuseInfo.IsComplete())
 		{
-			mtlInfo.diffuse = diffuseInfo.texture->GetPath();
+			ResolvePath(pMesh->m_Path, diffuseInfo.texture->GetPath(), mtlInfo.diffuse);
 		}
 		if(specularInfo.IsComplete())
 		{
-			mtlInfo.specular = specularInfo.texture->GetPath();
+			ResolvePath(pMesh->m_Path, specularInfo.texture->GetPath(), mtlInfo.specular);
 		}
 		if(normalInfo.IsComplete())
 		{
-			mtlInfo.normal = normalInfo.texture->GetPath();
+			ResolvePath(pMesh->m_Path, normalInfo.texture->GetPath(), mtlInfo.normal);
 		}
 
 		DrawElementInfo drawInfo = {(uint32_t)i, (uint32_t)i};

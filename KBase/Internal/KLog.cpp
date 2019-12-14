@@ -188,7 +188,7 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 				}
 #endif
 				char szTmpBuff[2048]; szTmpBuff[0] = '\0';
-				nPos = SNPRINTF(szTmpBuff, sizeof(szTmpBuff), ">.[LOG] %s\n", szBuffMessage);
+				nPos = SNPRINTF(szTmpBuff, sizeof(szTmpBuff), "[LOG] %s\n", szBuffMessage);
 				assert(nPos > 0);
 				bLogSuccess &= fprintf(stdout, szTmpBuff) > 0;
 #ifdef _WIN32
@@ -201,6 +201,8 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 					break;
 				}
 				OutputDebugStringA(szTmpBuff);
+#else
+				printf("%s", szTmpBuff);
 #endif
 			}
 			return bLogSuccess;
@@ -228,7 +230,7 @@ bool KLog::LogPrefix(LogLevel level, const char* pszPrefix, const char* pszForma
 	va_list list;
 	va_start(list, pszFormat);	
 	char szBuffer[2048]; szBuffer[0] = '\0';
-	nPos = SNPRINTF(szBuffer, sizeof(szBuffer), "%s ", pszPrefix);
+	nPos += SNPRINTF(szBuffer, sizeof(szBuffer), "%s ", pszPrefix);
 	assert(nPos >= 0);
 	VSNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos, pszFormat, list);
 	bRet = Log(level, szBuffer);
@@ -243,9 +245,26 @@ bool KLog::LogSuffix(LogLevel level, const char* pszSuffix, const char* pszForma
 	va_list list;
 	va_start(list, pszFormat);	
 	char szBuffer[2048]; szBuffer[0] = '\0';
-	nPos = VSNPRINTF(szBuffer + nPos, sizeof(szBuffer), pszFormat, list);
+	nPos += VSNPRINTF(szBuffer + nPos, sizeof(szBuffer), pszFormat, list);
 	assert(nPos >= 0);
-	SNPRINTF(szBuffer + nPos, sizeof(szBuffer)  - nPos, " %s", pszSuffix);
+	SNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos, " %s", pszSuffix);
+	bRet = Log(level, szBuffer);
+	va_end(list);
+	return bRet;
+}
+
+bool KLog::LogPrefixSuffix(LogLevel level, const char* pszPrefix, const char* pszSuffix, const char* pszFormat, ...)
+{
+	bool bRet = false;
+	int nPos = 0;
+	va_list list;
+	va_start(list, pszFormat);	
+	char szBuffer[2048]; szBuffer[0] = '\0';
+	nPos += SNPRINTF(szBuffer, sizeof(szBuffer), "%s ", pszPrefix);
+	assert(nPos >= 0);
+	nPos += VSNPRINTF(szBuffer + nPos, sizeof(szBuffer), pszFormat, list);
+	assert(nPos >= 0);
+	SNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos, " %s", pszSuffix);
 	bRet = Log(level, szBuffer);
 	va_end(list);
 	return bRet;

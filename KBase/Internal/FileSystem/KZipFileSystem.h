@@ -1,12 +1,14 @@
 #pragma once
 #include "Interface/IKFileSystem.h"
+#include "zip.h"
 
-class KNativeFileSystem : public IKFileSystem
+class KZipFileSystem : public IKFileSystem
 {
+	zip_t* m_Zip;
 	std::string m_Root;
 public:
-	KNativeFileSystem();
-	virtual ~KNativeFileSystem();
+	KZipFileSystem();
+	virtual ~KZipFileSystem();
 	virtual FileSystemType GetType();
 
 	virtual bool Init(const std::string& root);
@@ -14,6 +16,6 @@ public:
 
 	virtual bool GetRoot(std::string& root);
 
-	virtual bool Open(const std::string& file, IKDataStreamPtr& ret);
+	virtual bool Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret);
 	virtual bool IsFileExist(const std::string& file);
 };

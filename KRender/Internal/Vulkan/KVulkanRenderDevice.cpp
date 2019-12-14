@@ -108,7 +108,7 @@ void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& create
 } 
 
 /* TODO LIST
-Mesh 序列化
+材质文件
 */
 
 KCullSystem CULL_SYSTEM;
@@ -673,7 +673,14 @@ bool KVulkanRenderDevice::CreateMesh()
 #endif
 #if 1
 	const uint32_t IDX = 1;
-	const bool MESH_EXPORT = false;
+
+	enum InitMode
+	{
+		IM_EXPORT,
+		IM_IMPORT,
+		IM_IMPORT_ZIP,
+	}mode = IM_IMPORT_ZIP;
+
 	for(size_t i = 0; i < 1; ++i)
 	{
 		KEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
@@ -682,7 +689,7 @@ bool KVulkanRenderDevice::CreateMesh()
 		if(entity->RegisterComponent(CT_RENDER, &component))
 		{
 #if 1
-			if(MESH_EXPORT)
+			if(mode == IM_EXPORT)
 			{
 				((KRenderComponent*)component)->InitFromAsset(szPaths[IDX]);
 
@@ -692,9 +699,13 @@ bool KVulkanRenderDevice::CreateMesh()
 					((KRenderComponent*)component)->Init(destPaths[IDX]);
 				}
 			}
-			else
+			else if(mode == IM_IMPORT)
 			{
 				((KRenderComponent*)component)->Init(destPaths[IDX]);
+			}
+			else if(mode == IM_IMPORT_ZIP)
+			{
+				((KRenderComponent*)component)->Init("Sponza/sponza.mesh");
 			}
 #else
 			((KRenderComponent*)component)->InitFromAsset(szPaths[IDX]);
@@ -830,15 +841,15 @@ VkBool32 KVulkanRenderDevice::DebugCallback(
 {
 	if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
 	{
-		KG_LOG("[Vulkan Validation Layer Debug] %s\n", pCallbackData->pMessage);
+		KG_LOG(LM_RENDER, "[Vulkan Validation Layer Debug] %s\n", pCallbackData->pMessage);
 	}
 	if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
 	{
-		KG_LOGW("[Vulkan Validation Layer Performance] %s\n", pCallbackData->pMessage);
+		KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Performance] %s\n", pCallbackData->pMessage);
 	}
 	else if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
 	{
-		KG_LOGE_ASSERT("[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
+		KG_LOGE_ASSERT(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
 	}
 	return VK_FALSE;
 }

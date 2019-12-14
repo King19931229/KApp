@@ -42,5 +42,5 @@ public:
 	virtual bool RemoveSystem(const char* root, FileSystemType type);
 	virtual IKFileSystemPtr GetFileSystem(const char* root, FileSystemType type);
 
-	virtual bool Open(const std::string& file, IKDataStreamPtr& ret);
+	virtual bool Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret);
 };

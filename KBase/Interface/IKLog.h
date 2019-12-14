@@ -27,6 +27,7 @@ public:
 	virtual bool Log(LogLevel level, const char* pszFormat, ...) = 0;
 	virtual bool LogPrefix(LogLevel level, const char* pszPrefix, const char* pszFormat, ...) = 0;
 	virtual bool LogSuffix(LogLevel level, const char* pszSuffix, const char* pszFormat, ...) = 0;
+	virtual bool LogPrefixSuffix(LogLevel level, const char* pszPrefix, const char* pszSuffix, const char* pszFormat, ...) = 0;
 };
 
 #ifdef _WIN32
@@ -35,40 +36,65 @@ public:
 #	define SNPRINTF snprintf
 #endif
 
-#define KLOG(pLog, pszFormat, ...)\
-{\
-	char szSuffix[256]; szSuffix[0] = '\0';\
-	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
-	pLog->LogSuffix(LL_NORMAL, szSuffix, pszFormat, __VA_ARGS__);\
+enum LogModule
+{
+	LM_DEFAULT,
+	LM_IO,
+	LM_RENDER,
+};
+
+static inline const char* LOG_MOUDLE_TO_STR(LogModule module)
+{
+	switch (module)
+	{
+#define	LOG_MODULE_CASE(r) case LM_##r: return "["#r"]";
+		LOG_MODULE_CASE(DEFAULT);
+		LOG_MODULE_CASE(IO);
+		LOG_MODULE_CASE(RENDER);
+#undef	LOG_MODULE_CASE
+	};
+
+	return "";
 }
 
-#define KLOGW(pLog, pszFormat, ...)\
+#define KLOG(pLog, module, pszFormat, ...)\
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
+	const char* szPrefix = LOG_MOUDLE_TO_STR(module);\
 	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
-	pLog->LogSuffix(LL_WARNING, szSuffix, pszFormat, __VA_ARGS__);\
+	pLog->LogPrefixSuffix(LL_NORMAL, szPrefix, szSuffix, pszFormat, __VA_ARGS__);\
 }
 
-#define KLOGE(pLog, pszFormat, ...)\
+#define KLOGW(pLog, module, pszFormat, ...)\
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
+	const char* szPrefix = LOG_MOUDLE_TO_STR(module);\
 	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
-	pLog->LogSuffix(LL_ERROR, szSuffix, pszFormat, __VA_ARGS__);\
+	pLog->LogPrefixSuffix(LL_WARNING, szPrefix, szSuffix, pszFormat, __VA_ARGS__);\
 }
 
-#define KLOGE_ASSERT(pLog, pszFormat, ...)\
+#define KLOGE(pLog, module, pszFormat, ...)\
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
+	const char* szPrefix = LOG_MOUDLE_TO_STR(module);\
 	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
-	pLog->LogSuffix(LL_ERROR, szSuffix, pszFormat, __VA_ARGS__);\
+	pLog->LogPrefixSuffix(LL_ERROR, szPrefix, szSuffix, pszFormat, __VA_ARGS__);\
+}
+
+#define KLOGE_ASSERT(pLog, module, pszFormat, ...)\
+{\
+	char szSuffix[256]; szSuffix[0] = '\0';\
+	const char* szPrefix = LOG_MOUDLE_TO_STR(module);\
+	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
+	pLog->LogPrefixSuffix(LL_ERROR, szPrefix, szSuffix, pszFormat, __VA_ARGS__);\
 	assert(false);\
 }
 
 extern IKLogPtr GLogger;
 
-#define KG_LOG(pszFormat, ...) KLOG(GLogger, pszFormat, __VA_ARGS__)
-#define KG_LOGW(pszFormat, ...) KLOGW(GLogger, pszFormat, __VA_ARGS__)
-#define KG_LOGE(pszFormat, ...) KLOGE(GLogger, pszFormat, __VA_ARGS__)
-#define KG_LOGE_ASSERT(pszFormat, ...) KLOGE_ASSERT(GLogger, pszFormat, __VA_ARGS__)
+#define KG_LOG(module, pszFormat, ...) KLOG(GLogger, module, pszFormat, __VA_ARGS__)
+#define KG_LOGW(module, pszFormat, ...) KLOGW(GLogger, module, pszFormat, __VA_ARGS__)
+#define KG_LOGE(module, pszFormat, ...) KLOGE(GLogger, module, pszFormat, __VA_ARGS__)
+#define KG_LOGE_ASSERT(module, pszFormat, ...) KLOGE_ASSERT(GLogger, module, pszFormat, __VA_ARGS__)
 
 EXPORT_DLL IKLogPtr CreateLog();

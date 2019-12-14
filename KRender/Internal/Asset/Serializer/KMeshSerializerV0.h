@@ -19,6 +19,9 @@ protected:
 		uint32_t materialDataIdx;
 	};
 
+	bool ResolvePath(const std::string& meshPath, const std::string texturePath, std::string& outPath);
+	bool CombinePath(const std::string& meshPath, const std::string texturePath, std::string& outPath);
+
 	bool ReadString(IKDataStreamPtr& stream, std::string& value);
 	bool WriteString(IKDataStreamPtr& stream, const std::string& value);
 
@@ -51,6 +54,6 @@ public:
 	KMeshSerializerV0(IKRenderDevice* device);
 	~KMeshSerializerV0();
 
-	bool LoadFromStream(KMesh* pMesh, IKDataStreamPtr& stream, size_t frameInFlight, size_t renderThreadNum);
+	bool LoadFromStream(KMesh* pMesh, const std::string& meshPath, IKDataStreamPtr& stream, size_t frameInFlight, size_t renderThreadNum);
 	bool SaveToStream(KMesh* pMesh, IKDataStreamPtr& stream);
 };

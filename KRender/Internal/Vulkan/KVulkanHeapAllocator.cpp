@@ -5,12 +5,6 @@
 
 #include <mutex>
 
-#define SAFE_DELETE(p)\
-do\
-{\
-	if(p) { delete p; p = NULL; }\
-}while(false);
-
 #define KVUALKAN_HEAP_TRUELY_ALLOC
 //#define KVUALKAN_HEAP_BRUTE_CHECK
 
