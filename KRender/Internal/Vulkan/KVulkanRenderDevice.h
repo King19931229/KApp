@@ -65,6 +65,7 @@ protected:
 	VkSurfaceKHR m_Surface;
 	VkPipelineCache m_PipelineCache;
 	VkCommandPool m_GraphicCommandPool;
+	int32_t m_ValidationLayerIdx;
 	bool m_EnableValidationLayer;
 	bool m_MultiThreadSumbit;
 
@@ -169,7 +170,7 @@ protected:
 
 	IKUIOverlayPtr m_UIOverlay;
 
-	bool CheckValidationLayerAvailable();
+	bool CheckValidationLayerAvailable(int32_t& candidateIdx);
 	bool SetupDebugMessenger();
 	bool UnsetDebugMessenger();
 
@@ -192,6 +193,7 @@ protected:
 	bool CreateCommandPool();
 
 	// Temporarily for demo use
+	bool AddWindowCallback();
 	bool CreateMesh();
 	bool CreateVertexInput();
 	bool CreateTransform();

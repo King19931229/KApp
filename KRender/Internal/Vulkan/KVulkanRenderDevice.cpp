@@ -61,12 +61,32 @@ std::vector<const char*> PopulateExtensions(bool bEnableValidationLayer)
 }
 
 //-------------------- Validation Layer --------------------//
-const char* VALIDATION_LAYER[] =
+const char* KHRONOS_VALIDATION_LAYERS[] =
 {
-	"VK_LAYER_KHRONOS_validation"
+	"VK_LAYER_KHRONOS_validation",
 };
-#define VALIDATION_LAYER_COUNT (sizeof(VALIDATION_LAYER) / sizeof(const char*))
 
+const char* LUNARG_GOOGLE_VALIDATION_LAYERS[] =
+{
+	"VK_LAYER_LUNARG_standard_validation",
+	"VK_LAYER_LUNARG_core_validation",
+	"VK_LAYER_LUNARG_object_tracker",
+	"VK_LAYER_LUNARG_parameter_validation",
+	"VK_LAYER_GOOGLE_threading",
+	"VK_LAYER_GOOGLE_unique_objects"
+};
+
+struct ValidationLayerCandidate
+{
+	const char** layers;
+	uint32_t arraySize;
+};
+
+ValidationLayerCandidate VALIDATION_LAYER_CANDIDATE[] =
+{
+	{KHRONOS_VALIDATION_LAYERS, ARRAY_SIZE(LUNARG_GOOGLE_VALIDATION_LAYERS)},
+	{LUNARG_GOOGLE_VALIDATION_LAYERS, ARRAY_SIZE(LUNARG_GOOGLE_VALIDATION_LAYERS)},
+};
 
 VkResult CreateDebugUtilsMessengerEXT(
 	VkInstance instance,
@@ -100,7 +120,7 @@ void DestroyDebugUtilsMessengerEXT(
 void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo, PFN_vkDebugUtilsMessengerCallbackEXT pCallBack)
 {
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
@@ -123,6 +143,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	false
 #endif
 	),
+	m_ValidationLayerIdx(-1),
 	m_MultiThreadSumbit(true),
 	m_Texture(nullptr),
 	m_Sampler(nullptr),
@@ -138,7 +159,7 @@ KVulkanRenderDevice::~KVulkanRenderDevice()
 
 }
 
-bool KVulkanRenderDevice::CheckValidationLayerAvailable()
+bool KVulkanRenderDevice::CheckValidationLayerAvailable(int32_t& candidateIdx)
 {
 	uint32_t layerCount;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -146,23 +167,32 @@ bool KVulkanRenderDevice::CheckValidationLayerAvailable()
 	std::vector<VkLayerProperties> availableLayers(layerCount);
 	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-	for(const char* vaildLayer : VALIDATION_LAYER)
+	candidateIdx = -1;
+
+	for(uint32_t i = 0; i < ARRAY_SIZE(VALIDATION_LAYER_CANDIDATE); ++i)
 	{
-		bool bLayerFound = false;
-		for(const VkLayerProperties& prop : availableLayers)
+		const ValidationLayerCandidate& candidate = VALIDATION_LAYER_CANDIDATE[i];
+		uint32_t j = 0;
+		for(; j < candidate.arraySize; ++j)
 		{
-			if(strcmp(prop.layerName, vaildLayer) == 0)
+			const char* layerName = candidate.layers[j];
+
+			if(std::find_if(
+				availableLayers.begin(),
+				availableLayers.end(),
+				[layerName](const VkLayerProperties& prop) { return strcmp(layerName, prop.layerName) == 0; }) == availableLayers.end())
 			{
-				bLayerFound = true;
 				break;
 			}
 		}
-		if(!bLayerFound)
+
+		if(j == candidate.arraySize)
 		{
-			return false;
+			candidateIdx = i;
+			return true;
 		}
 	}
-	return true;
+	return false;
 }
 
 KVulkanRenderDevice::QueueFamilyIndices KVulkanRenderDevice::FindQueueFamilies(VkPhysicalDevice vkDevice)
@@ -522,10 +552,10 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		// 尽管最新Vulkan实例验证层与设备验证层已经统一
 		// 但是最好保留代码兼容性
-		if (m_EnableValidationLayer)
+		if (m_EnableValidationLayer && m_ValidationLayerIdx >= 0)
 		{
-			createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYER_COUNT);
-			createInfo.ppEnabledLayerNames = VALIDATION_LAYER;
+			createInfo.enabledLayerCount = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].arraySize;
+			createInfo.ppEnabledLayerNames = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].layers;
 		}
 		else
 		{
@@ -915,18 +945,11 @@ bool KVulkanRenderDevice::UnInitGlobalManager()
 	return true;
 }
 
-bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
+bool KVulkanRenderDevice::AddWindowCallback()
 {
-	if(!window)
-		return false;
-
-	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)window.get();
-	if(renderWindow == nullptr || renderWindow->GetGLFWwindow() == nullptr)
-		return false;
-
 	ZERO_ARRAY_MEMORY(m_Move);
 	ZERO_ARRAY_MEMORY(m_MouseDown);
-	
+
 	for(int i = 0; i < ARRAY_SIZE(m_MousePos); ++i)
 	{
 		m_MousePos[0] = 0.0f;
@@ -1038,11 +1061,26 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		m_Camera.MoveForward(fSpeed * yOffset);
 	};
 
-	m_pWindow = renderWindow;
-
 	m_pWindow->RegisterKeyboardCallback(&m_KeyCallback);
 	m_pWindow->RegisterMouseCallback(&m_MouseCallback);
 	m_pWindow->RegisterScrollCallback(&m_ScrollCallback);
+
+	return true;
+}
+
+bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
+{
+	if(!window)
+		return false;
+
+	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)window.get();
+	if(renderWindow == nullptr || renderWindow->GetGLFWwindow() == nullptr)
+		return false;
+
+	m_pWindow = renderWindow;
+
+	// temp
+	AddWindowCallback();
 
 	VkApplicationInfo appInfo = {};
 
@@ -1059,17 +1097,25 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 	createInfo.pApplicationInfo = &appInfo;
 
 	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
+
+	m_ValidationLayerIdx = -1;
 	// 挂接验证层
 	if(m_EnableValidationLayer)
 	{
-		bool bCheckResult = CheckValidationLayerAvailable();
-		assert(bCheckResult);
-		createInfo.enabledLayerCount = VALIDATION_LAYER_COUNT;
-		createInfo.ppEnabledLayerNames = VALIDATION_LAYER;
-
-		// 这是为了检查vkCreateInstance与SetupDebugMessenger之间的错误
-		PopulateDebugMessengerCreateInfo(debugCreateInfo, DebugCallback);
-		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+		bool bCheckResult = CheckValidationLayerAvailable(m_ValidationLayerIdx);
+		assert(bCheckResult && "try to find validation layer but fail");
+		if(m_ValidationLayerIdx >= 0)
+		{
+			createInfo.enabledLayerCount = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].arraySize;
+			createInfo.ppEnabledLayerNames = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].layers;
+			// 这是为了检查vkCreateInstance与SetupDebugMessenger之间的错误
+			PopulateDebugMessengerCreateInfo(debugCreateInfo, DebugCallback);
+			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+			for(uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
+			{
+				KG_LOG(LM_RENDER, "Vulkan validation layer picked [%s]\n", createInfo.ppEnabledLayerNames[i]);
+			}
+		}
 	}
 	else
 	{
@@ -1274,9 +1320,19 @@ bool KVulkanRenderDevice::UnInit()
 	{
 		for (ThreadData& thread : m_CommandBuffers[i].threadDatas)
 		{
+			thread.commandBuffer->UnInit();
+			thread.commandBuffer = nullptr;
+
 			thread.commandPool->UnInit();
 			thread.commandPool = nullptr;
 		}
+
+		m_CommandBuffers[i].primaryCommandBuffer->UnInit();
+		m_CommandBuffers[i].skyBoxCommandBuffer->UnInit();
+		m_CommandBuffers[i].shadowMapCommandBuffer->UnInit();
+		m_CommandBuffers[i].uiCommandBuffer->UnInit();
+		m_CommandBuffers[i].postprocessCommandBuffer->UnInit();
+
 		m_CommandBuffers[i].commandPool->UnInit();
 		m_CommandBuffers[i].commandPool = nullptr;
 	}

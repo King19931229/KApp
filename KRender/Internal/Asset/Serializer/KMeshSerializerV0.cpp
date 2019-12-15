@@ -12,35 +12,37 @@ enum MeshSerializerElement : uint32_t
 	MSE_HEAD = MESH_HEAD,
 		// magic [uint32_t]
 		// version [uint32_t]
-		MSE_VERTEX_DATA = 0x02,
+		MSE_VERTEX_DATA = 0x1000,
 			// vertex start [uint32_t]
 			// vertex count [uint32_t]
 			// vertex element count [uint32_t]
-			MSE_VERTEX_ELEMENT = 0x03, // [REPEAT]
-				MSE_VERTEX_FORMAT = 0x04,
+			MSE_VERTEX_ELEMENT = 0x1010, // [ALWAYS] [REPEAT]
+				MSE_VERTEX_FORMAT = 0x1011,
 					// vertex format [uint32_t]
-				MSE_VERTEX_BUFFER = 0x05,
+				MSE_VERTEX_BUFFER = 0x1012,
 					// vertex data count [uint32_t]
 					// vertex data size [uint32_t]
 					// vertex buffer data [bytes] (size = vertex_data_count * vertex_data_size)
-		MSE_INDEX_DATA = 0x06,
+		MSE_INDEX_DATA = 0x2000,
 			// index element count [uint32_t]
-			MSE_INDEX_ELEMENT = 0x07, // [REPEAT]
+			MSE_INDEX_ELEMENT = 0x2010, // [ALWAYS] [REPEAT]
 				// index start [uint32_t]
 				// index count [uint32_t]
 				// is16format [bool]
 				// index buffer size [uint32_t]
 				// index buffer data [bytes]
-		MES_MATERIAL_DATA = 0x08,
-			// material element count [uint32_t]
-			MES_MATERIAL_ELEMENT = 0x09, // [REPEAT]
-				// TODO Material file record
-				// diffuse path [string]
-				// specualr path [string]
-				// normal path [string]
-		MSE_DRAW_ELEMENT_DATA = 0x10,
+		MES_MATERIAL_DATA = 0x3000,
+			MES_MATERIAL_ELEMENT_DATA = 0x3010, // [OPTIONAL]
+				// material element count [uint32_t]
+				MES_MATERIAL_LAYER_ELEMENT = 0x3011, // [ALWAYS] [REPEAT]
+					// diffuse path [string]
+					// specualr path [string]
+					// normal path [string]
+			MES_MATERIAL_FILE_DATA = 0x3020, // [OPTIONAL]
+				// material file path [string]
+		MSE_DRAW_ELEMENT_DATA = 0x4000,
 			// draw element count [uint32_t]
-			MSE_DRAW_ELEMENT = 0x11, // [REPEAT]
+			MSE_DRAW_ELEMENT = 0x4010, // [ALWAYS] [REPEAT]
 				// index data index [uint32_t]
 				// material data index [uint32_t]
 };
@@ -323,6 +325,23 @@ bool KMeshSerializerV0::ReadIndexElementData(IKDataStreamPtr& stream, KIndexData
 
 bool KMeshSerializerV0::ReadMaterialData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas)
 {
+	uint32_t flag = 0;
+	ACTION_ON_FAILURE(stream->Read(&flag, sizeof(flag)), return false);
+
+	if(flag == MES_MATERIAL_ELEMENT_DATA)
+	{
+		return ReadMaterialElementData(stream, materialDatas);
+	}
+	else if(flag == MES_MATERIAL_FILE_DATA)
+	{
+		return ReadMaterialFileData(stream, materialDatas);
+	}
+
+	return false;
+}
+
+bool KMeshSerializerV0::ReadMaterialElementData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas)
+{
 	uint32_t materialElementCount = 0;	
 	ACTION_ON_FAILURE(stream->Read(&materialElementCount, sizeof(materialElementCount)), return false);
 
@@ -330,7 +349,7 @@ bool KMeshSerializerV0::ReadMaterialData(IKDataStreamPtr& stream, std::vector<Ma
 	for(uint32_t i = 0; i < materialElementCount; ++i)
 	{
 		MaterialInfo materialData;
-		if(!ReadMaterialElementData(stream, materialData))
+		if(!ReadMaterialLayerElementData(stream, materialData))
 		{
 			return false;
 		}
@@ -340,15 +359,20 @@ bool KMeshSerializerV0::ReadMaterialData(IKDataStreamPtr& stream, std::vector<Ma
 	return true;
 }
 
-bool KMeshSerializerV0::ReadMaterialElementData(IKDataStreamPtr& stream, MaterialInfo& materialData)
+bool KMeshSerializerV0::ReadMaterialLayerElementData(IKDataStreamPtr& stream, MaterialInfo& materialData)
 {
 	uint32_t flag = 0;
-	ACTION_ON_FAILURE(stream->Read(&flag, sizeof(flag)) && flag == MES_MATERIAL_ELEMENT, return false);
+	ACTION_ON_FAILURE(stream->Read(&flag, sizeof(flag)) && flag == MES_MATERIAL_LAYER_ELEMENT, return false);
 
 	ACTION_ON_FAILURE(ReadString(stream, materialData.diffuse), return false);
 	ACTION_ON_FAILURE(ReadString(stream, materialData.specular), return false);
 	ACTION_ON_FAILURE(ReadString(stream, materialData.normal), return false);
 
+	return true;
+}
+
+bool KMeshSerializerV0::ReadMaterialFileData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas)
+{
 	return true;
 }
 
@@ -417,9 +441,6 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 	while (!stream->IsEOF())
 	{
 		uint32_t flag = 0;
-
-		size_t pos = stream->Tell();
-		size_t size = stream->GetSize();
 		ACTION_ON_FAILURE(stream->Read(&flag, sizeof(flag)), RELEASE_ON_FAIL());
 
 		if(flag == MSE_VERTEX_DATA)
@@ -636,6 +657,13 @@ bool KMeshSerializerV0::WriteIndexElementData(IKDataStreamPtr& stream, const KIn
 bool KMeshSerializerV0::WriteMaterialData(IKDataStreamPtr& stream, const std::vector<MaterialInfo>& materialDatas)
 {
 	uint32_t flag = MES_MATERIAL_DATA;
+	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
+	return WriteMaterialElementData(stream, materialDatas);
+}
+
+bool KMeshSerializerV0::WriteMaterialElementData(IKDataStreamPtr& stream, const std::vector<MaterialInfo>& materialDatas)
+{
+	uint32_t flag = MES_MATERIAL_ELEMENT_DATA;
 	uint32_t materialElementCount = static_cast<uint32_t>(materialDatas.size());
 
 	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
@@ -643,7 +671,7 @@ bool KMeshSerializerV0::WriteMaterialData(IKDataStreamPtr& stream, const std::ve
 
 	for(uint32_t i = 0; i < materialElementCount; ++i)
 	{
-		if(!WriteMaterialElementData(stream, materialDatas[i]))
+		if(!WriteMaterialLayerElementData(stream, materialDatas[i]))
 		{
 			return false;
 		}
@@ -651,15 +679,20 @@ bool KMeshSerializerV0::WriteMaterialData(IKDataStreamPtr& stream, const std::ve
 	return true;
 }
 
-bool KMeshSerializerV0::WriteMaterialElementData(IKDataStreamPtr& stream, const MaterialInfo& materialData)
+bool KMeshSerializerV0::WriteMaterialLayerElementData(IKDataStreamPtr& stream, const MaterialInfo& materialData)
 {
-	uint32_t flag = MES_MATERIAL_ELEMENT;
+	uint32_t flag = MES_MATERIAL_LAYER_ELEMENT;
 
 	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
 	ACTION_ON_FAILURE(WriteString(stream, materialData.diffuse), return false);
 	ACTION_ON_FAILURE(WriteString(stream, materialData.specular), return false);
 	ACTION_ON_FAILURE(WriteString(stream, materialData.normal), return false);
 
+	return true;
+}
+
+bool KMeshSerializerV0::WriteMaterialFileData(IKDataStreamPtr& stream, const std::vector<MaterialInfo>& materialDatas)
+{
 	return true;
 }
 
