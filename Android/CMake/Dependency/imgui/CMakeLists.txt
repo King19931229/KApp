@@ -10,15 +10,15 @@ cmake_minimum_required(VERSION 3.4.1)
 # You can define multiple libraries, and CMake builds them for you.
 # Gradle automatically packages shared libraries with your APK.
 
-set(SRC_ROOT ../../../..)
+set(SRC_ROOT ../../../../Dependency/imgui)
 
 add_library( # Sets the name of the library.
         imgui
-        # Sets the library as a shared library.
+        # Sets the library as a static library.
         STATIC
         # Provides a relative path to your source file(s).
-        ${SRC_ROOT}/Dependency/imgui/imgui.cpp
-        ${SRC_ROOT}/Dependency/imgui/imgui_demo.cpp
-        ${SRC_ROOT}/Dependency/imgui/imgui_draw.cpp
-        ${SRC_ROOT}/Dependency/imgui/imgui_widgets.cpp
+        ${SRC_ROOT}/imgui.cpp
+        ${SRC_ROOT}/imgui_demo.cpp
+        ${SRC_ROOT}/imgui_draw.cpp
+        ${SRC_ROOT}/imgui_widgets.cpp
 )

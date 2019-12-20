@@ -10,12 +10,12 @@ cmake_minimum_required(VERSION 3.4.1)
 # You can define multiple libraries, and CMake builds them for you.
 # Gradle automatically packages shared libraries with your APK.
 
-set(SRC_ROOT ../../../..)
+set(SRC_ROOT ../../../../Dependency/tinyxml2)
 
 add_library( # Sets the name of the library.
         tinyxml2
-        # Sets the library as a shared library.
+        # Sets the library as a static library.
         STATIC
         # Provides a relative path to your source file(s).
-        ${SRC_ROOT}/Dependency/tinyxml2/tinyxml2.cpp
+        ${SRC_ROOT}/tinyxml2.cpp
 )

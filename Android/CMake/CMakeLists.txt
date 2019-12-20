@@ -35,6 +35,7 @@ find_library( # Sets the name of the path variable.
 add_subdirectory(Dependency/imgui)
 add_subdirectory(Dependency/tinyxml2)
 add_subdirectory(Dependency/zip)
+add_subdirectory(Dependency/FreeImage/FreeImage)
 
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
@@ -42,6 +43,7 @@ add_subdirectory(Dependency/zip)
 
 target_link_libraries( # Specifies the target library.
         native-lib
+        FreeImage
         imgui
         tinyxml2
         zip
