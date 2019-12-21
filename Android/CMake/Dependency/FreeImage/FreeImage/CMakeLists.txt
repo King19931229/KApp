@@ -133,3 +133,25 @@ set(DEFINES
     __ANSI__
 )
 target_compile_definitions(FreeImage PRIVATE ${DEFINES})
+
+add_subdirectory(../LibJPEG LibJPEG_binary_dir)
+add_subdirectory(../LibJXR LibJXR_binary_dir)
+add_subdirectory(../LibPNG LibPNG_binary_dir)
+add_subdirectory(../LibOpenJPEG LibOpenJPEG_binary_dir)
+add_subdirectory(../LibRawLite LibRawLite_binary_dir)
+add_subdirectory(../LibTIFF4 LibTIFF4_binary_dir)
+add_subdirectory(../LibWebP LibWebP_binary_dir)
+add_subdirectory(../OpenEXR OpenEXR_binary_dir)
+add_subdirectory(../ZLib ZLib_binary_dir)
+
+target_link_libraries(FreeImage
+    LibJPEG
+    LibJXR
+    LibPNG
+    LibOpenJPEG
+    LibRaw
+    LibTIFF4
+    LibWebP
+    OpenEXR
+    ZLib
+)

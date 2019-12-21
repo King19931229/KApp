@@ -18,6 +18,10 @@ android {
             }
         }
     }
+    sourceSets.main {
+        jni.srcDirs = []
+        jniLibs.srcDir 'src/main/libs'
+    }
     buildTypes {
         release {
             minifyEnabled false
