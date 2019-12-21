@@ -115,7 +115,7 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 		{
 			// 处理include信息
 			{
-				FileInfos::iterator& it = m_FileInfos.find(file);
+				FileInfos::iterator it = m_FileInfos.find(file);
 				if(it == m_FileInfos.end())
 					it = m_FileInfos.insert(FileInfos::value_type(file, FileInfo())).first;
 				pFileInfo = &it->second;
@@ -158,7 +158,7 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 
 						// 检查include是否合理
 						{
-							FileInfos::iterator& it = m_FileInfos.find(includeFile);
+							FileInfos::iterator it = m_FileInfos.find(includeFile);
 							if(it != m_FileInfos.end())
 							{
 								FileInfo *pIncludeFileInfo = &it->second;

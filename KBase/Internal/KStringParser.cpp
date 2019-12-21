@@ -30,7 +30,7 @@ namespace KStringParser
 				if(uCount)
 					ss << " ";
 			}
-			std::string& str = ss.str();
+			std::string str = ss.str();
 			if(str.length() < uSize)
 			{
 #ifndef _WIN32

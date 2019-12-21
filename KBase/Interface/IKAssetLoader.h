@@ -2,6 +2,7 @@
 #include "Publish/KConfig.h"
 #include <memory>
 #include <vector>
+#include <string>
 
 enum AssetVertexComponent
 {

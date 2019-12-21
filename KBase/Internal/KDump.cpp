@@ -1,9 +1,9 @@
 ﻿#include "Publish/KDump.h"
 #include <string>
 
-#ifdef _WIN32
-
 static std::string gs_szDumpPath;
+
+#ifdef _WIN32
 
 #include <Windows.h>
 #include <DbgHelp.h>

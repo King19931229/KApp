@@ -5,6 +5,8 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
+set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 1)
+
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
@@ -37,7 +39,8 @@ add_subdirectory(Dependency/tinyxml2)
 add_subdirectory(Dependency/zip)
 add_subdirectory(Dependency/FreeImage/FreeImage)
 add_subdirectory(Dependency/assimp-3.3.1/code)
-add_subdirectory(Dependency/Python27)
+#add_subdirectory(Dependency/Python27)
+add_subdirectory(KBase)
 
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
@@ -51,6 +54,7 @@ target_link_libraries( # Specifies the target library.
 #        python27
         tinyxml2
         zip
+        KBase
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib})

@@ -154,11 +154,11 @@ bool KIniFile::WriteValue(char* pszDest, size_t uBufferSize, const Type* pSrc)
 	{
 		std::stringstream ss;
 		ss << *pSrc;
-		std::string& str = ss.str();
+		std::string str = ss.str();
 #ifdef _WIN32
 			strcpy_s(pszDest, uBufferSize, str.c_str());
 #else
-			strncpy(pszDest, uBufferSize, str.c_str());
+			strncpy(pszDest, str.c_str(), uBufferSize);
 #endif
 		return true;
 	}
@@ -190,7 +190,7 @@ bool KIniFile::GetString(const char* pszSection, const char* pszKey, char* pszSt
 #ifdef _WIN32
 			strcpy_s(pszStr, uBufferSize, value.c_str());
 #else
-			strncpy(pszStr, uBufferSize, value.c_str());
+			strncpy(pszStr, value.c_str(), uBufferSize);
 #endif
 			return true;
 		}

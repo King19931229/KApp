@@ -1,19 +1,36 @@
 ﻿#include "Publish/KFileTool.h"
 #include "Publish/KStringUtil.h"
 
+#ifdef _WIN32
 #include <io.h>
 #include <direct.h>
+#else
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 #include <assert.h>
 
 #include <string>
 #include <algorithm>
+
+#ifdef _WIN32
+#define ACCESS(path, mode) _access(path, mode)
+#define MKDIR(path) _mkdir(path)
+#define RMDIR(path) _rmdir(path)
+#else
+#define ACCESS(path, mode) access(path, mode)
+#define MKDIR(path) mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)
+#define RMDIR(path) rmdir(path)
+#endif
 
 namespace KFileTool
 {
 	bool IsPathExist(const std::string& filePath)
 	{
 		const char* pFilePath = filePath.c_str();
-		if(pFilePath && _access(pFilePath, 0) != -1)
+		if(pFilePath && ACCESS(pFilePath, 0) != -1)
 		{
 			return true;
 		}
@@ -25,7 +42,7 @@ namespace KFileTool
 		const char* pFilePath = filePath.c_str();
 		if(pFilePath)
 		{
-			if(_access(pFilePath, 0) == -1)
+			if(ACCESS(pFilePath, 0) == -1)
 			{
 				return true;
 			}
@@ -53,17 +70,17 @@ namespace KFileTool
 					std::string curDir = str.substr(0, pCurDir - pTrimPath);
 					if(curDir.length() > 0 && *curDir.rbegin() == ':')
 						continue;
-					if(_access(curDir.c_str(), 0) != -1)
+					if(ACCESS(curDir.c_str(), 0) != -1)
 						continue;
-					if(_mkdir(curDir.c_str()) != 0)
+					if(MKDIR(curDir.c_str()) != 0)
 						return false;
 				}
 			}
-			if(_access(str.c_str(), 0) != -1)
+			if(ACCESS(str.c_str(), 0) != -1)
 			{
 				return true;
 			}
-			return _mkdir(str.c_str()) == 0;
+			return MKDIR(str.c_str()) == 0;
 		}
 		return false;
 	}
@@ -76,11 +93,11 @@ namespace KFileTool
 			std::replace(str.begin(), str.end(), '\\', '/');
 			if(str.length() > 0 && *str.rbegin() == '/')
 				str.erase(str.end() - 1);
-			if(_access(str.c_str(), 0) == -1)
+			if(ACCESS(str.c_str(), 0) == -1)
 			{
 				return true;
 			}
-			return _rmdir(str.c_str()) == 0;
+			return RMDIR(str.c_str()) == 0;
 		}
 		return false;
 	}

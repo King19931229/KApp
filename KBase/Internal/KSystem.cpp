@@ -62,7 +62,11 @@ bool KSystem::WaitProcess(const std::string& path, const std::string& args, std:
 		int nRet = -1;
 		try
 		{
+#ifdef _WIN32
 			int nRet = (int)execv(path.c_str(), pData);
+#else
+			int nRet = (int)execv(path.c_str(), (char* const*)*pData);
+#endif
 		}
 		catch(...)
 		{

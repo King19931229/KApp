@@ -190,7 +190,7 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 				char szTmpBuff[2048]; szTmpBuff[0] = '\0';
 				nPos = SNPRINTF(szTmpBuff, sizeof(szTmpBuff), "[LOG] %s\n", szBuffMessage);
 				assert(nPos > 0);
-				bLogSuccess &= fprintf(stdout, szTmpBuff) > 0;
+				bLogSuccess &= fprintf(stdout, "%s", szTmpBuff) > 0;
 #ifdef _WIN32
 				switch (level)
 				{

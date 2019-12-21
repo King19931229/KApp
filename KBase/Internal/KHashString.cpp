@@ -85,7 +85,7 @@ EXPORT_DLL bool CreateHashStringTable()
 
 EXPORT_DLL bool DestroyHashStringTable()
 {
-	g_Chunks.swap(HashStrChunks());
+	g_Chunks.clear();
 	return true;
 }
 

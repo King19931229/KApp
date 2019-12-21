@@ -61,7 +61,7 @@ static inline const char* LOG_MOUDLE_TO_STR(LogModule module)
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
 	const char* szPrefix = LOG_MOUDLE_TO_STR(module);\
-	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
+	SNPRINTF(szSuffix, ARRAY_SIZE(szSuffix), "[%s:%d]", __FILE__, __LINE__);\
 	pLog->LogPrefixSuffix(LL_NORMAL, szPrefix, szSuffix, pszFormat, __VA_ARGS__);\
 }
 
@@ -69,7 +69,7 @@ static inline const char* LOG_MOUDLE_TO_STR(LogModule module)
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
 	const char* szPrefix = LOG_MOUDLE_TO_STR(module);\
-	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
+	SNPRINTF(szSuffix, ARRAY_SIZE(szSuffix), "[%s:%d]", __FILE__, __LINE__);\
 	pLog->LogPrefixSuffix(LL_WARNING, szPrefix, szSuffix, pszFormat, __VA_ARGS__);\
 }
 
@@ -77,7 +77,7 @@ static inline const char* LOG_MOUDLE_TO_STR(LogModule module)
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
 	const char* szPrefix = LOG_MOUDLE_TO_STR(module);\
-	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
+	SNPRINTF(szSuffix, ARRAY_SIZE(szSuffix), "[%s:%d]", __FILE__, __LINE__);\
 	pLog->LogPrefixSuffix(LL_ERROR, szPrefix, szSuffix, pszFormat, __VA_ARGS__);\
 }
 
@@ -85,7 +85,7 @@ static inline const char* LOG_MOUDLE_TO_STR(LogModule module)
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
 	const char* szPrefix = LOG_MOUDLE_TO_STR(module);\
-	SNPRINTF(szSuffix, "[%s:%d]", __FILE__, __LINE__);\
+	SNPRINTF(szSuffix, ARRAY_SIZE(szSuffix), "[%s:%d]", __FILE__, __LINE__);\
 	pLog->LogPrefixSuffix(LL_ERROR, szPrefix, szSuffix, pszFormat, __VA_ARGS__);\
 	assert(false);\
 }
