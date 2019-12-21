@@ -36,6 +36,8 @@ add_subdirectory(Dependency/imgui)
 add_subdirectory(Dependency/tinyxml2)
 add_subdirectory(Dependency/zip)
 add_subdirectory(Dependency/FreeImage/FreeImage)
+add_subdirectory(Dependency/assimp-3.3.1/code)
+add_subdirectory(Dependency/Python27)
 
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
@@ -44,7 +46,9 @@ add_subdirectory(Dependency/FreeImage/FreeImage)
 target_link_libraries( # Specifies the target library.
         native-lib
         FreeImage
+        assimp
         imgui
+#        python27
         tinyxml2
         zip
         # Links the target library to the log library

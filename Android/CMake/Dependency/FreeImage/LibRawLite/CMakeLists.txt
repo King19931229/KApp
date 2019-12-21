@@ -30,7 +30,6 @@ add_library( # Sets the name of the library.
 )
 
 set(DEFINES
-    ANDROID
     LIBRAW_NODLL
 )
 

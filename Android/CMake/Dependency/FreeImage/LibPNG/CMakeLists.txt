@@ -37,9 +37,3 @@ add_library( # Sets the name of the library.
         ${SRC_ROOT}/LibPNG/pngwtran.c
         ${SRC_ROOT}/LibPNG/pngwutil.c
 )
-
-set(DEFINES
-    ANDROID
-)
-
-target_compile_definitions(LibPNG PRIVATE ${DEFINES})

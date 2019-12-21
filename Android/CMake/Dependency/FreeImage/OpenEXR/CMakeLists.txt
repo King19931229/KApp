@@ -136,10 +136,4 @@ add_library( # Sets the name of the library.
         ${SRC_ROOT}/OpenEXR/IexMath/IexMathFpu.cpp
 )
 
-set(DEFINES
-    ANDROID
-)
-
 set(CMAKE_CXX_FLAGS -Wno-narrowing)
-
-target_compile_definitions(OpenEXR PRIVATE ${DEFINES})

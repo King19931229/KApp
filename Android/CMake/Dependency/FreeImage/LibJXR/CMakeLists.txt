@@ -48,7 +48,6 @@ add_library( # Sets the name of the library.
 )
 
 set(DEFINES
-    ANDROID
     DISABLE_PERF_MEASUREMENT
     # add __ANSI__ otherwise LibJXR is broken: https://sourceforge.net/p/freeimage/discussion/36110/thread/7e436844/
     __ANSI__

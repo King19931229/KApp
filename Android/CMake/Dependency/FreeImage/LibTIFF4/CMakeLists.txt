@@ -59,10 +59,4 @@ add_library( # Sets the name of the library.
         ${SRC_ROOT}/LibTIFF4/tif_zip.c
 )
 
-set(DEFINES
-    ANDROID
-)
-
 set(CMAKE_CXX_FLAGS -Wno-narrowing)
-
-target_compile_definitions(LibTIFF4 PRIVATE ${DEFINES})

@@ -69,9 +69,3 @@ add_library( # Sets the name of the library.
         ${SRC_ROOT}/LibJPEG/jutils.c
         ${SRC_ROOT}/LibJPEG/transupp.c
 )
-
-set(DEFINES
-    ANDROID
-)
-
-target_compile_definitions(LibJPEG PRIVATE ${DEFINES})

@@ -41,9 +41,3 @@ add_library( # Sets the name of the library.
         ${SRC_ROOT}/LibOpenJPEG/tcd.c
         ${SRC_ROOT}/LibOpenJPEG/tgt.c
 )
-
-set(DEFINES
-    ANDROID
-)
-
-target_compile_definitions(LibOpenJPEG PRIVATE ${DEFINES})

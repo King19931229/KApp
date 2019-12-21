@@ -116,13 +116,7 @@ add_library( # Sets the name of the library.
 
 add_library(cpufeatures ${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c)
 
-set(DEFINES
-    ANDROID
-)
-
 set(CMAKE_CXX_FLAGS -Wno-narrowing)
-
-target_compile_definitions(LibWebP PRIVATE ${DEFINES})
 
 target_link_libraries(LibWebP
     cpufeatures
