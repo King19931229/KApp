@@ -10,8 +10,8 @@ namespace KVulkanHelper
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 		{
-			// 1.typeFilteræ˜¯å¦ä¸å†…å­˜ç±»å‹å…¼å®¹
-			// 2.propertyFlagså†…å­˜å±æ€§æ˜¯å¦å®Œæ•´åŒ…å«æ‰€éœ€properties
+			// 1.typeFilterÊÇ·ñÓëÄÚ´æÀàĞÍ¼æÈİ
+			// 2.propertyFlagsÄÚ´æÊôĞÔÊÇ·ñÍêÕû°üº¬ËùĞèproperties
 			if ((typeFilter & (1 << i))	&& (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
 			{
 				idx = i;
@@ -347,12 +347,12 @@ namespace KVulkanHelper
 
 			assert(vertexDetail.vertexSize > 0 && "impossible to get a zero size vertex");
 
-			// æ„é€ VkVertexInputBindingDescription
+			// ¹¹ÔìVkVertexInputBindingDescription
 			bindingDescription.binding = static_cast<uint32_t>(idx);
 			bindingDescription.stride = (uint32_t)vertexDetail.vertexSize;
 			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-			// æ„é€ VkVertexInputAttributeDescription
+			// ¹¹ÔìVkVertexInputAttributeDescription
 			const VertexSemanticDetailList& semanticDetailList = vertexDetail.semanticDetails;
 			for(const VertexSemanticDetail& semanticDetail : semanticDetailList)
 			{
@@ -361,7 +361,7 @@ namespace KVulkanHelper
 				ElementFormatToVkFormat(semanticDetail.elementFormat, vkFormat);
 
 				attributeDescription.binding = static_cast<uint32_t>(idx);
-				// è¯­æ„æšä¸¾å€¼å³ä¸ºç»‘å®šä½ç½®
+				// ÓïÒâÃ¶¾ÙÖµ¼´Îª°ó¶¨Î»ÖÃ
 				attributeDescription.location = semanticDetail.semantic;
 				attributeDescription.format = vkFormat;
 				attributeDescription.offset = (uint32_t)semanticDetail.offset;
@@ -396,14 +396,14 @@ namespace KVulkanHelper
 		{
 			VkBufferImageCopy region = {};
 			region.bufferOffset = 0;
-			// ä¸ºæ¯è¡Œpaddingæ‰€ç”¨ è®¾ç½®ä¸º0ä»¥å¿½ç•¥
+			// ÎªÃ¿ĞĞpaddingËùÓÃ ÉèÖÃÎª0ÒÔºöÂÔ
 			region.bufferRowLength = 0;
-			// ä¸ºæ¯è¡Œpaddingæ‰€ç”¨ è®¾ç½®ä¸º0ä»¥å¿½ç•¥
+			// ÎªÃ¿ĞĞpaddingËùÓÃ ÉèÖÃÎª0ÒÔºöÂÔ
 			region.bufferImageHeight = 0;
 
 			// VkImageSubresourceRange
 			{
-				// è¿™é‡Œä¸å¤„ç†æ•°ç»„ä¸mipmap
+				// ÕâÀï²»´¦ÀíÊı×éÓëmipmap
 				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				region.imageSubresource.mipLevel = 0;
 				region.imageSubresource.baseArrayLayer = 0;
@@ -443,9 +443,9 @@ namespace KVulkanHelper
 				VkBufferImageCopy region = {};
 
 				region.bufferOffset = info.offset;
-				// ä¸ºæ¯è¡Œpaddingæ‰€ç”¨ è®¾ç½®ä¸º0ä»¥å¿½ç•¥
+				// ÎªÃ¿ĞĞpaddingËùÓÃ ÉèÖÃÎª0ÒÔºöÂÔ
 				region.bufferRowLength = 0;
-				// ä¸ºæ¯è¡Œpaddingæ‰€ç”¨ è®¾ç½®ä¸º0ä»¥å¿½ç•¥
+				// ÎªÃ¿ĞĞpaddingËùÓÃ ÉèÖÃÎª0ÒÔºöÂÔ
 				region.bufferImageHeight = 0;
 
 				ASSERT_RESULT(info.layer < layers);
@@ -454,9 +454,9 @@ namespace KVulkanHelper
 				{
 					region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 					region.imageSubresource.mipLevel = info.mipLevel;
-					// æ‹·è´çš„layerç´¢å¼•
+					// ¿½±´µÄlayerË÷Òı
 					region.imageSubresource.baseArrayLayer = info.layer;
-					// æ‹·è´å¤šå°‘ä¸ªlayer å›ºå®šä¸º1
+					// ¿½±´¶àÉÙ¸ölayer ¹Ì¶¨Îª1
 					region.imageSubresource.layerCount = 1;
 				}
 
@@ -488,17 +488,17 @@ namespace KVulkanHelper
 		{
 			VkImageMemoryBarrier barrier = {};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			// æŒ‡å®šæ—§Layoutä¸æ–°Layout
+			// Ö¸¶¨¾ÉLayoutÓëĞÂLayout
 			barrier.oldLayout = oldLayout;
 			barrier.newLayout = newLayout;
-			// è¿™é‡Œä¸å¤„ç†é˜Ÿåˆ—å®¶æ—æ‰€æœ‰æƒè½¬ç§»
+			// ÕâÀï²»´¦Àí¶ÓÁĞ¼Ò×åËùÓĞÈ¨×ªÒÆ
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 			barrier.image = image;
 			// VkImageSubresourceRange
 			{
-				// è¿™é‡Œä¸å¤„ç†æ•°ç»„ä¸mipmap
+				// ÕâÀï²»´¦ÀíÊı×éÓëmipmap
 				if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 				{
 					barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -564,7 +564,7 @@ namespace KVulkanHelper
 				commandBuffer,
 				sourceStage, /* srcStageMask */
 				destinationStage, /* dstStageMask */
-				0, /* dependencyFlags è¯¥å‚æ•°ä¸º 0 æˆ–è€… VK_DEPENDENCY_BY_REGION_BIT */
+				0, /* dependencyFlags ¸Ã²ÎÊıÎª 0 »òÕß VK_DEPENDENCY_BY_REGION_BIT */
 				0, nullptr,
 				0, nullptr,
 				1, &barrier
@@ -575,7 +575,7 @@ namespace KVulkanHelper
 
 	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, uint32_t layers, uint32_t mipLevels)
 	{
-		// æ£€æŸ¥è¯¥formatæ˜¯å¦æ”¯æŒçº¿æ€§è¿‡æ»¤
+		// ¼ì²é¸ÃformatÊÇ·ñÖ§³ÖÏßĞÔ¹ıÂË
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(KVulkanGlobal::physicalDevice, format, &formatProperties);
 		if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
@@ -604,7 +604,7 @@ namespace KVulkanHelper
 
 				for (uint32_t mipmapLevel = 1; mipmapLevel < mipLevels; mipmapLevel++)
 				{
-					// å…ˆç”¨å†…å­˜å±éšœå¯¹ä¸Šä¸€å±‚mipmapæ‰§è¡Œä¸€æ¬¡Transition ä»Transferç›®æ ‡è½¬æ¢åˆ°transferæº
+					// ÏÈÓÃÄÚ´æÆÁÕÏ¶ÔÉÏÒ»²ãmipmapÖ´ĞĞÒ»´ÎTransition ´ÓTransferÄ¿±ê×ª»»µ½transferÔ´
 					barrier.subresourceRange.baseMipLevel = mipmapLevel - 1;
 					barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 					barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -637,15 +637,15 @@ namespace KVulkanHelper
 					blit.dstSubresource.baseArrayLayer = layer;
 					blit.dstSubresource.layerCount = 1;
 
-					// æ‰§è¡Œä¸€æ¬¡blit æŠŠä¸Šä¸€å±‚ mipmap blit åˆ°ä¸‹ä¸€å±‚ mipmap
+					// Ö´ĞĞÒ»´Îblit °ÑÉÏÒ»²ã mipmap blit µ½ÏÂÒ»²ã mipmap
 					vkCmdBlitImage(commandBuffer,
 						image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 						image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 						1, &blit,
-						// æŒ‡å®šbiltæ—¶å€™ä½¿ç”¨çº¿æ€§è¿‡æ»¤
+						// Ö¸¶¨biltÊ±ºòÊ¹ÓÃÏßĞÔ¹ıÂË
 						VK_FILTER_LINEAR);
 
-					// å†ç”¨å†…å­˜å±éšœå¯¹ä¸Šä¸€å±‚mipmapæ‰§è¡Œä¸€æ¬¡Transition ä»Transferæºè½¬æ¢åˆ°Shaderå¯è¯»
+					// ÔÙÓÃÄÚ´æÆÁÕÏ¶ÔÉÏÒ»²ãmipmapÖ´ĞĞÒ»´ÎTransition ´ÓTransferÔ´×ª»»µ½Shader¿É¶Á
 					barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 					barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
@@ -661,7 +661,7 @@ namespace KVulkanHelper
 					if (mipHeight > 1) mipHeight /= 2;
 				}
 
-				// æŠŠé—ç•™ä¸‹æ¥çš„æœ€åä¸€å±‚mipmapæ‰§è¡ŒTransition ä»Transferç›®æ ‡è½¬æ¢åˆ°Shaderå¯è¯»
+				// °ÑÒÅÁôÏÂÀ´µÄ×îºóÒ»²ãmipmapÖ´ĞĞTransition ´ÓTransferÄ¿±ê×ª»»µ½Shader¿É¶Á
 				barrier.subresourceRange.baseMipLevel = mipLevels - 1;
 				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 				barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -715,7 +715,7 @@ namespace KVulkanHelper
 		for (VkFormat format : candidates)
 		{
 			VkFormatProperties props;
-			// è·å–è¯¥VkFormatå¯¹åº”çš„tProperties
+			// »ñÈ¡¸ÃVkFormat¶ÔÓ¦µÄtProperties
 			vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
 
 			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
