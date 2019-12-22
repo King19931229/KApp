@@ -1,4 +1,4 @@
-﻿#include "Publish/KDump.h"
+#include "Publish/KDump.h"
 #include <string>
 
 static std::string gs_szDumpPath;

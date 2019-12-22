@@ -1,4 +1,4 @@
-﻿#include "Publish/KFileTool.h"
+#include "Publish/KFileTool.h"
 #include "Publish/KStringUtil.h"
 
 #ifdef _WIN32

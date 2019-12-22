@@ -160,7 +160,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 
 	VkImageLayout finalLayout = fromSwapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-	// ÉùÃ÷ Color Attachment
+	// å£°æ˜ Color Attachment
 	VkAttachmentDescription colorAttachment = {};
 	colorAttachment.format = m_ColorFormat;
 	colorAttachment.samples = m_bMsaaCreated ? m_MsaaFlag : VK_SAMPLE_COUNT_1_BIT;
@@ -174,7 +174,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachment.finalLayout = m_bMsaaCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : finalLayout;
 
-	// ÉùÃ÷ Depth Attachment ²»Ò»¶¨ÓÃµ½
+	// å£°æ˜ Depth Attachment ä¸ä¸€å®šç”¨åˆ°
 	VkAttachmentDescription depthAttachment = {};
 	depthAttachment.format = m_DepthFormat;
 	depthAttachment.samples = m_MsaaFlag;
@@ -188,7 +188,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
-	// ÉùÃ÷ MSAA Resolve Attachment ²»Ò»¶¨ÓÃµ½
+	// å£°æ˜ MSAA Resolve Attachment ä¸ä¸€å®šç”¨åˆ°
 	VkAttachmentDescription colorAttachmentResolve = {};
 	colorAttachmentResolve.format = m_ColorFormat;
 	colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -202,7 +202,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachmentResolve.finalLayout = finalLayout;
 
-	// ÉùÃ÷AttachmentÒıÓÃ½á¹¹
+	// å£°æ˜Attachmentå¼•ç”¨ç»“æ„
 	VkAttachmentReference colorAttachmentRef = {};
 	colorAttachmentRef.attachment = 0;
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -215,7 +215,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	colorAttachmentResolveRef.attachment = m_bDepthStencilCreated ? 2 : 1;
 	colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-	// ÉùÃ÷×ÓÍ¨µÀ
+	// å£°æ˜å­é€šé“
 	VkSubpassDescription subpass = {};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
@@ -224,7 +224,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	subpass.pDepthStencilAttachment = m_bDepthStencilCreated ? &depthAttachmentRef : nullptr;
 	subpass.pResolveAttachments = m_bMsaaCreated ? &colorAttachmentResolveRef : nullptr;
 
-	// ´ÓÊôÒÀÀµ
+	// ä»å±ä¾èµ–
 	VkSubpassDependency dependencies[2] = {};
 
 	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -243,7 +243,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-	// ´´½¨äÖÈ¾Í¨µÀ	
+	// åˆ›å»ºæ¸²æŸ“é€šé“	
 	std::vector<VkAttachmentDescription> descs;
 	descs.push_back(colorAttachment);
 	if(m_bDepthStencilCreated)
@@ -357,12 +357,12 @@ bool KVulkanRenderTarget::CreateDepthBuffer()
 	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
-	// ÉùÃ÷AttachmentÒıÓÃ½á¹¹
+	// å£°æ˜Attachmentå¼•ç”¨ç»“æ„
 	VkAttachmentReference depthAttachmentRef = {};
 	depthAttachmentRef.attachment = 0;
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	// ÉùÃ÷×ÓÍ¨µÀ
+	// å£°æ˜å­é€šé“
 	VkSubpassDescription subpass = {};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
@@ -371,7 +371,7 @@ bool KVulkanRenderTarget::CreateDepthBuffer()
 	subpass.pDepthStencilAttachment = &depthAttachmentRef;
 	subpass.pResolveAttachments = nullptr;
 
-	// ´ÓÊôÒÀÀµ
+	// ä»å±ä¾èµ–
 	VkSubpassDependency dependencies[2] = {};
 
 	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -390,7 +390,7 @@ bool KVulkanRenderTarget::CreateDepthBuffer()
 	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-	// ´´½¨äÖÈ¾Í¨µÀ	
+	// åˆ›å»ºæ¸²æŸ“é€šé“	
 	VkRenderPassCreateInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassInfo.attachmentCount = 1;

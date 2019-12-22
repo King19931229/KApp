@@ -12,9 +12,9 @@ protected:
 	size_t m_Width;
 	size_t m_Height;
 	size_t m_Depth;
-	// mipmap层数
+	// mipmap灞傛暟
 	unsigned short m_Mipmaps;
-	// 是否需要硬生成mipmap
+	// 鏄惁闇�瑕佺‖鐢熸垚mipmap
 	bool m_bGenerateMipmap;
 	bool m_bCreateAsRt;
 

@@ -1,4 +1,4 @@
-﻿#include "KBase/Publish/KConfig.h"
+#include "KBase/Publish/KConfig.h"
 #pragma once
 
 namespace KThreadTool

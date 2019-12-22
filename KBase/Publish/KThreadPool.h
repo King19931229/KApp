@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "KBase/Publish/KLockFreeQueue.h"
 #include "KBase/Publish/KLockQueue.h"
 #include "KBase/Publish/KSemaphore.h"

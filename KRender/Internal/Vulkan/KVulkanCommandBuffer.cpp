@@ -137,7 +137,7 @@ bool KVulkanCommandBuffer::SetViewport(IKRenderTarget* target)
 	{
 		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target;
 
-		// ÉèÖÃÊÓ¿ÚÓë²Ã¼ô
+		// è®¾ç½®è§†å£ä¸Žè£å‰ª
 		VkOffset2D offset = {0, 0};
 		VkExtent2D extent = vulkanTarget->GetExtend();
 
@@ -194,12 +194,12 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 		VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 
-		// °ó¶¨¹ÜÏß
+		// ç»‘å®šç®¡çº¿
 		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		// °ó¶¨¹ÜÏß²¼¾Ö
+		// ç»‘å®šç®¡çº¿å¸ƒå±€
 		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-		// °ó¶¨¶¥µã»º³å
+		// ç»‘å®šé¡¶ç‚¹ç¼“å†²
 		VkBuffer vertexBuffers[32] = {0};
 		VkDeviceSize offsets[32] = {0};
 
@@ -224,7 +224,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 		if(command.indexDraw)
 		{
-			// °ó¶¨Ë÷Òý»º³å
+			// ç»‘å®šç´¢å¼•ç¼“å†²
 			KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
 			vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 			vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
@@ -312,7 +312,7 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderTarget* target)
 		inheritanceInfo.renderPass = vulkanTarget->GetRenderPass();
 		inheritanceInfo.framebuffer = vulkanTarget->GetFrameBuffer();
 
-		// ÃüÁî¿ªÊ¼Ê±ºò´´½¨ÐèÒªÒ»¸öÃüÁî¿ªÊ¼ÐÅÏ¢
+		// å‘½ä»¤å¼€å§‹æ—¶å€™åˆ›å»ºéœ€è¦ä¸€ä¸ªå‘½ä»¤å¼€å§‹ä¿¡æ¯
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
@@ -334,16 +334,16 @@ bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTarget* target, SubpassConten
 
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		// Ö¸¶¨äÖÈ¾Í¨µÀ
+		// æŒ‡å®šæ¸²æŸ“é€šé“
 		renderPassInfo.renderPass = vulkanTarget->GetRenderPass();
-		// Ö¸¶¨Ö¡»º³å
+		// æŒ‡å®šå¸§ç¼“å†²
 		renderPassInfo.framebuffer = vulkanTarget->GetFrameBuffer();
 
 		renderPassInfo.renderArea.offset.x = 0;
 		renderPassInfo.renderArea.offset.y = 0;
 		renderPassInfo.renderArea.extent = vulkanTarget->GetExtend();
 
-		// ×¢ÒâÇåÀí»º³åÖµµÄË³ÐòÒªºÍRenderPass°ó¶¨AttachmentµÄË³ÐòÒ»ÖÂ
+		// æ³¨æ„æ¸…ç†ç¼“å†²å€¼çš„é¡ºåºè¦å’ŒRenderPassç»‘å®šAttachmentçš„é¡ºåºä¸€è‡´
 		auto clearValuesPair = vulkanTarget->GetVkClearValues();
 		renderPassInfo.pClearValues = clearValuesPair.first;
 		renderPassInfo.clearValueCount = clearValuesPair.second;

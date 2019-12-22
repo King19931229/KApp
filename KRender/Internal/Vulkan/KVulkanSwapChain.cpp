@@ -68,7 +68,7 @@ bool KVulkanSwapChain::QuerySwapChainSupport()
 		}
 	}
 
-	// ÆäÊµÕâÊ±Ó¦¸Ã¶Ôformat½øĞĞÅÅĞò ÕâÀï°ÑµÚÒ»¸ö×îÎª×î¼ÑÑ¡Ôñ
+	// å…¶å®è¿™æ—¶åº”è¯¥å¯¹formatè¿›è¡Œæ’åº è¿™é‡ŒæŠŠç¬¬ä¸€ä¸ªæœ€ä¸ºæœ€ä½³é€‰æ‹©
 	m_SurfaceFormat = m_SwapChainSupportDetails.formats[0];
 	return true;
 }
@@ -80,20 +80,20 @@ bool KVulkanSwapChain::ChooseSwapPresentMode()
 	const auto& presentModes = m_SwapChainSupportDetails.presentModes;
 	for (const VkPresentModeKHR& presentMode : presentModes)
 	{
-		// ÓĞÈıÖØ»º³å¾ÍÊ¹ÓÃÈıÖØ»º³å
+		// æœ‰ä¸‰é‡ç¼“å†²å°±ä½¿ç”¨ä¸‰é‡ç¼“å†²
 		if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
 		{
 			m_PresentMode = presentMode;
 			break;
 		}
-		// Ë«ÖØ»º³å
+		// åŒé‡ç¼“å†²
 		if (presentMode == VK_PRESENT_MODE_FIFO_KHR)
 		{
 			m_PresentMode = presentMode;
 		}
 	}
 
-	// ÆäÊµVulkan±£Ö¤ÖÁÉÙÓĞË«ÖØ»º³å¿ÉÒÔÊ¹ÓÃ
+	// å…¶å®Vulkanä¿è¯è‡³å°‘æœ‰åŒé‡ç¼“å†²å¯ä»¥ä½¿ç”¨
 	if(m_PresentMode == VK_PRESENT_MODE_MAX_ENUM_KHR)
 	{
 		m_PresentMode = m_SwapChainSupportDetails.presentModes[0];
@@ -105,12 +105,12 @@ bool KVulkanSwapChain::ChooseSwapPresentMode()
 bool KVulkanSwapChain::ChooseSwapExtent(uint32_t windowWidth, uint32_t windowHeight)
 {
 	const VkSurfaceCapabilitiesKHR& capabilities = m_SwapChainSupportDetails.capabilities;
-	// Èç¹ûVulkanÉèÖÃÁËcurrentExtent ÄÇÃ´½»»»Á´µÄextent¾Í±ØĞëÓëÖ®Ò»ÖÂ
+	// å¦‚æœVulkanè®¾ç½®äº†currentExtent é‚£ä¹ˆäº¤æ¢é“¾çš„extentå°±å¿…é¡»ä¸ä¹‹ä¸€è‡´
 	if(capabilities.currentExtent.width != UINT32_MAX && capabilities.currentExtent.height != UINT32_MAX)
 	{
 		m_Extend = capabilities.currentExtent;
 	}
-	// ÕâÀï¿ÉÒÔÑ¡ÔñÓë´°¿Ú´óĞ¡µÄ×î¼ÑÆ¥Åä
+	// è¿™é‡Œå¯ä»¥é€‰æ‹©ä¸çª—å£å¤§å°çš„æœ€ä½³åŒ¹é…
 	else
 	{
 		VkExtent2D actualExtent = { windowWidth, windowHeight };
@@ -129,10 +129,10 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 	ASSERT_RESULT(ChooseSwapExtent(windowWidth, windowHeight));
 
 	const SwapChainSupportDetails& swapChainSupport = m_SwapChainSupportDetails;
-	// ÉèÖÃÎª×îĞ¡Öµ¿ÉÄÜ±ØĞëµÈ´ıÇı¶¯³ÌĞòÍê³ÉÄÚ²¿²Ù×÷²ÅÄÜ»ñÈ¡ÁíÒ»¸öÒªäÖÈ¾µÄÍ¼Ïñ Òò´Ë×÷+1´¦Àí
+	// è®¾ç½®ä¸ºæœ€å°å€¼å¯èƒ½å¿…é¡»ç­‰å¾…é©±åŠ¨ç¨‹åºå®Œæˆå†…éƒ¨æ“ä½œæ‰èƒ½è·å–å¦ä¸€ä¸ªè¦æ¸²æŸ“çš„å›¾åƒ å› æ­¤ä½œ+1å¤„ç†
 	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
 
-	// Vulkan»á°ÑmaxImageCountÉèÖÃÎª0±íÊ¾Ã»ÓĞ×î´óÖµÏŞÖÆ ÕâÀï¼ì²éÒ»ÏÂÓĞÃ»ÓĞ³¬¹ı×î´óÖµ
+	// Vulkanä¼šæŠŠmaxImageCountè®¾ç½®ä¸º0è¡¨ç¤ºæ²¡æœ‰æœ€å¤§å€¼é™åˆ¶ è¿™é‡Œæ£€æŸ¥ä¸€ä¸‹æœ‰æ²¡æœ‰è¶…è¿‡æœ€å¤§å€¼
 	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
 	{
 		imageCount = swapChainSupport.capabilities.maxImageCount;
@@ -151,14 +151,14 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 
 	uint32_t queueFamilyIndices[] = {graphIndex, presentIndex};
 
-	// Èç¹ûÍ¼Ïñ¶ÓÁĞ¼Ò×åÓë±íÏÖ¶ÓÁĞ¼Ò×å²»Ò»Ñù ĞèÒª²¢ĞĞÄ£Ê½Ö§³Ö
+	// å¦‚æœå›¾åƒé˜Ÿåˆ—å®¶æ—ä¸è¡¨ç°é˜Ÿåˆ—å®¶æ—ä¸ä¸€æ · éœ€è¦å¹¶è¡Œæ¨¡å¼æ”¯æŒ
 	if (graphIndex != presentIndex)
 	{
 		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 		createInfo.queueFamilyIndexCount = 2;
 		createInfo.pQueueFamilyIndices = queueFamilyIndices;
 	}
-	// ·ñÔò¼á³Ö¶ÀÕ¼Ä£Ê½
+	// å¦åˆ™åšæŒç‹¬å æ¨¡å¼
 	else
 	{
 		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -166,15 +166,15 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 		createInfo.pQueueFamilyIndices = nullptr; // Optional
 	}
 
-	// ÉèÖÃ³Éµ±Ç°´°¿Útransform±ÜÃâ·¢Éú´°¿ÚĞı×ª
+	// è®¾ç½®æˆå½“å‰çª—å£transformé¿å…å‘ç”Ÿçª—å£æ—‹è½¬
 	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-	// ±ÜÃâµ±Ç°´°¿ÚÓëÏµÍ³ÆäËü´°¿Ú·¢Éúalpha»ìºÏ
+	// é¿å…å½“å‰çª—å£ä¸ç³»ç»Ÿå…¶å®ƒçª—å£å‘ç”Ÿalphaæ··åˆ
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
 	createInfo.presentMode = m_PresentMode;
 	createInfo.clipped = VK_TRUE;
 
-	// ÕâÀïµÚÒ»´Î´´½¨½»»»Á´ ÉèÖÃÎª¿Õ¼´¿É
+	// è¿™é‡Œç¬¬ä¸€æ¬¡åˆ›å»ºäº¤æ¢é“¾ è®¾ç½®ä¸ºç©ºå³å¯
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
 	VK_ASSERT_RESULT(vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &m_SwapChain));
@@ -183,7 +183,7 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 	m_SwapChainImages.resize(imageCount);
 	VK_ASSERT_RESULT(vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &imageCount, m_SwapChainImages.data()));
 
-	// ´´½¨ImageView
+	// åˆ›å»ºImageView
 	m_SwapChainImageViews.resize(imageCount);
 	for(size_t i = 0; i < m_SwapChainImageViews.size(); ++i)
 	{
@@ -195,7 +195,7 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 
 bool KVulkanSwapChain::CreateSyncObjects()
 {
-	//InFlightFrameÊıÄ¿²»³¬¹ıImageÊıÄ¿
+	//InFlightFrameæ•°ç›®ä¸è¶…è¿‡Imageæ•°ç›®
 	//m_MaxFramesInFight = std::min(m_SwapChainImages.size(), m_MaxFramesInFight);
 
 	m_CurrentFlightIndex = 0;
@@ -297,7 +297,7 @@ VkResult KVulkanSwapChain::WaitForInfightFrame(size_t& frameIndex)
 
 VkResult KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
 {
-	// »ñÈ¡¿ÉÓÃ½»»»Á´ImageË÷Òı Í¬Ê±´Ù·¢Image¿ÉÓÃĞÅºÅÁ¿
+	// è·å–å¯ç”¨äº¤æ¢é“¾Imageç´¢å¼• åŒæ—¶ä¿ƒå‘Imageå¯ç”¨ä¿¡å·é‡
 	VkResult result = vkAcquireNextImageKHR(m_Device, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFlightIndex], VK_NULL_HANDLE, &imageIndex);
 	return result;
 }
@@ -309,26 +309,26 @@ VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQu
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	// ÃüÁî»º³å¹ÜÏßCOLOR_ATTACHMENT_OUTPUT¿ÉÓÃÊ± µÈ´ı½»»»Á´Image¿ÉÓÃĞÅºÅÁ¿
+	// å‘½ä»¤ç¼“å†²ç®¡çº¿COLOR_ATTACHMENT_OUTPUTå¯ç”¨æ—¶ ç­‰å¾…äº¤æ¢é“¾Imageå¯ç”¨ä¿¡å·é‡
 	VkSemaphore waitSemaphores[] = {m_ImageAvailableSemaphores[m_CurrentFlightIndex]};
 	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 
-	// Ö¸¶¨ÃüÁî»º³å
+	// æŒ‡å®šå‘½ä»¤ç¼“å†²
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	// ÃüÁî»º³åÌá½»Íê³Éºó½«´Ù·¢´ËĞÅºÅÁ¿
+	// å‘½ä»¤ç¼“å†²æäº¤å®Œæˆåå°†ä¿ƒå‘æ­¤ä¿¡å·é‡
 	VkSemaphore signalSemaphores[] = {m_RenderFinishedSemaphores[m_CurrentFlightIndex]};
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	// vkResetFences·ÅÖÃµ½vkQueueSubmitÖ®Ç° ±£Ö¤µ÷ÓÃvkWaitForFences¶¼²»»áÎŞÏŞËÀËø
+	// vkResetFencesæ”¾ç½®åˆ°vkQueueSubmitä¹‹å‰ ä¿è¯è°ƒç”¨vkWaitForFenceséƒ½ä¸ä¼šæ— é™æ­»é”
 	vkResetFences(m_Device, 1, &m_InFlightFences[m_CurrentFlightIndex]);
 
-	// Ìá½»¸Ã»æÖÆÃüÁî
+	// æäº¤è¯¥ç»˜åˆ¶å‘½ä»¤
 	vkResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]);
 	VK_ASSERT_RESULT(vkResult);
 
@@ -336,7 +336,7 @@ VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQu
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
 	presentInfo.waitSemaphoreCount = 1;
-	// ½»»»Á´PresentÇ°µÈ´ıÃüÁî»º³åÌá½»Íê³É
+	// äº¤æ¢é“¾Presentå‰ç­‰å¾…å‘½ä»¤ç¼“å†²æäº¤å®Œæˆ
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
 	VkSwapchainKHR swapChains[] = {m_SwapChain};
@@ -350,12 +350,12 @@ VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQu
 
 #if 0
 	/*
-	ÕâÊ±ºò¹ÒÆğµ±Ç°Ïß³ÌµÈ´ıPresentÖ´ĞĞÍê±Ï.
-	·ñÔò¿ÉÄÜ³öÏÖÏÂÒ»´Îµ÷ÓÃPresentÊ±ºò
-	vkAcquireNextImageKHR»ñÈ¡µ½µÄimageIndex¶ÔÓ¦µÄ½»»»Á´ImageÕıÌá½»»æÖÆÃüÁî.
-	Õâ¾Í³öÏÖÁËCommandBufferÓëSemaphoreÖØÓÃ.
-	vkAcquireNextImageKHR»ñÈ¡µ½µÄimageIndexÖ»±£Ö¤¸ÃImage²»ÊÇÕıÔÚPresent
-	µ«²¢²»ÄÜ±£Ö¤¸ÃImageÃ»ÓĞ×¼±¸Ìá½»µÄ»æÖÆÃüÁî
+	è¿™æ—¶å€™æŒ‚èµ·å½“å‰çº¿ç¨‹ç­‰å¾…Presentæ‰§è¡Œå®Œæ¯•.
+	å¦åˆ™å¯èƒ½å‡ºç°ä¸‹ä¸€æ¬¡è°ƒç”¨Presentæ—¶å€™
+	vkAcquireNextImageKHRè·å–åˆ°çš„imageIndexå¯¹åº”çš„äº¤æ¢é“¾Imageæ­£æäº¤ç»˜åˆ¶å‘½ä»¤.
+	è¿™å°±å‡ºç°äº†CommandBufferä¸Semaphoreé‡ç”¨.
+	vkAcquireNextImageKHRè·å–åˆ°çš„imageIndexåªä¿è¯è¯¥Imageä¸æ˜¯æ­£åœ¨Present
+	ä½†å¹¶ä¸èƒ½ä¿è¯è¯¥Imageæ²¡æœ‰å‡†å¤‡æäº¤çš„ç»˜åˆ¶å‘½ä»¤
 	*/
 	vkQueueWaitIdle(m_PresentQueue);
 #endif	

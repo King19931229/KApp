@@ -1,4 +1,4 @@
-﻿#include "Internal/KCodec.h"
+#include "Internal/KCodec.h"
 
 #include "Codec/KFreeImageCodec.h"
 #include "Codec/KETCCodec.h"

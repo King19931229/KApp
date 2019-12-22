@@ -1,4 +1,4 @@
-﻿#include "Publish/KStringParser.h"
+#include "Publish/KStringParser.h"
 
 #include <sstream>
 

@@ -92,9 +92,9 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 	m_Height = m_ImageData.uHeight;
 	m_Depth = 1;
 
-	// ÒÑ¾­´æÔÚmipmapÊı¾İ¾Í²»ĞèÒªÓ²Éú³Émipmap
+	// å·²ç»å­˜åœ¨mipmapæ•°æ®å°±ä¸éœ€è¦ç¡¬ç”Ÿæˆmipmap
 	m_bGenerateMipmap = m_ImageData.uMipmap > 1 ? false : generateMipmap;
-	// Èç¹ûÓ²Éú³Émipmap mipmap²ãÊıÓë³ß´çÏà¹Ø ·ñÔò´ÓmipmapÊı¾İÖĞ»ñÈ¡
+	// å¦‚æœç¡¬ç”Ÿæˆmipmap mipmapå±‚æ•°ä¸å°ºå¯¸ç›¸å…³ å¦åˆ™ä»mipmapæ•°æ®ä¸­è·å–
 	m_Mipmaps = (unsigned short)(m_bGenerateMipmap ? (unsigned short)std::floor(std::log(std::min(m_Width, m_Height)) / std::log(2)) + 1 : m_ImageData.uMipmap);
 
 	m_TextureType = m_ImageData.bCubemap ? TT_TEXTURE_CUBE_MAP : TT_TEXTURE_2D;

@@ -1,4 +1,4 @@
-﻿/* $Id: tif_tile.c,v 1.11 2015/02/19 22:39:59 drolon Exp $ */
+/* $Id: tif_tile.c,v 1.11 2015/02/19 22:39:59 drolon Exp $ */
 
 /*
  * Copyright (c) 1991-1997 Sam Leffler

@@ -7,11 +7,11 @@ struct IKVertexBuffer
 	virtual size_t GetBufferSize() = 0;
 	virtual size_t GetVertexCount() = 0;
 	virtual size_t GetVertexSize() = 0;
-	// ³õÊ¼»¯ÄÚ´æÊı¾İ Í¨³£ÓÃÓÚÒì²½IO
+	// åˆå§‹åŒ–å†…å­˜æ•°æ® é€šå¸¸ç”¨äºå¼‚æ­¥IO
 	virtual bool InitMemory(size_t vertexCount, size_t vertexSize, const void* pInitData) = 0;
-	// ³õÊ¼»¯Éè±¸Êı¾İ²¢ÊÍ·ÅÄÚ´æÊı¾İ ÓÃÓÚ´´½¨»æÖÆAPIÏà¹Ø¾ä±ú
+	// åˆå§‹åŒ–è®¾å¤‡æ•°æ®å¹¶é‡Šæ”¾å†…å­˜æ•°æ® ç”¨äºåˆ›å»ºç»˜åˆ¶APIç›¸å…³å¥æŸ„
 	virtual bool InitDevice(bool hostVisible) = 0;
-	// ÊÍ·ÅÄÚ´æÊı¾İÓëÉè±¸Ïà¹Ø¾ä±ú
+	// é‡Šæ”¾å†…å­˜æ•°æ®ä¸è®¾å¤‡ç›¸å…³å¥æŸ„
 	virtual bool UnInit() = 0;
 
 	virtual bool Map(void** ppData) = 0;
@@ -29,11 +29,11 @@ struct IKIndexBuffer
 	virtual IndexType GetIndexType() = 0;
 	virtual size_t GetBufferSize() = 0;
 	virtual size_t GetIndexCount() = 0;
-	// ³õÊ¼»¯ÄÚ´æÊı¾İ Í¨³£ÓÃÓÚÒì²½IO
+	// åˆå§‹åŒ–å†…å­˜æ•°æ® é€šå¸¸ç”¨äºå¼‚æ­¥IO
 	virtual bool InitMemory(IndexType indexType, size_t count, const void* pInitData) = 0;
-	// ³õÊ¼»¯Éè±¸Êı¾İ²¢ÊÍ·ÅÄÚ´æÊı¾İ ÓÃÓÚ´´½¨»æÖÆAPIÏà¹Ø¾ä±ú
+	// åˆå§‹åŒ–è®¾å¤‡æ•°æ®å¹¶é‡Šæ”¾å†…å­˜æ•°æ® ç”¨äºåˆ›å»ºç»˜åˆ¶APIç›¸å…³å¥æŸ„
 	virtual bool InitDevice(bool hostVisible) = 0;
-	// ÊÍ·ÅÄÚ´æÊı¾İÓëÉè±¸Ïà¹Ø¾ä±ú
+	// é‡Šæ”¾å†…å­˜æ•°æ®ä¸è®¾å¤‡ç›¸å…³å¥æŸ„
 	virtual bool UnInit() = 0;
 
 	virtual bool Map(void** ppData) = 0;
@@ -49,17 +49,17 @@ struct IKUniformBuffer
 {
 	virtual ~IKUniformBuffer() {}
 	virtual size_t GetBufferSize() = 0;
-	// ³õÊ¼»¯ÄÚ´æÊı¾İ Í¨³£ÓÃÓÚÒì²½IO
+	// åˆå§‹åŒ–å†…å­˜æ•°æ® é€šå¸¸ç”¨äºå¼‚æ­¥IO
 	virtual bool InitMemory(size_t bufferSize, const void* pInitData) = 0;
-	// ³õÊ¼»¯Éè±¸Êı¾İ²¢ÊÍ·ÅÄÚ´æÊı¾İ ÓÃÓÚ´´½¨»æÖÆAPIÏà¹Ø¾ä±ú
+	// åˆå§‹åŒ–è®¾å¤‡æ•°æ®å¹¶é‡Šæ”¾å†…å­˜æ•°æ® ç”¨äºåˆ›å»ºç»˜åˆ¶APIç›¸å…³å¥æŸ„
 	virtual bool InitDevice() = 0;
-	// ÊÍ·ÅÄÚ´æÊı¾İÓëÉè±¸Ïà¹Ø¾ä±ú
+	// é‡Šæ”¾å†…å­˜æ•°æ®ä¸è®¾å¤‡ç›¸å…³å¥æŸ„
 	virtual bool UnInit() = 0;
 
 	virtual bool Write(const void* pData) = 0;
 	virtual bool Read(void* pData) = 0;
 
-	// Èç¹ûÊÇPushConstantBuffer Ö±½ÓÄÃ³öÄÚ´æÊı¾İÒıÓÃ
+	// å¦‚æœæ˜¯PushConstantBuffer ç›´æ¥æ‹¿å‡ºå†…å­˜æ•°æ®å¼•ç”¨
 	virtual bool Reference(void **ppData) = 0;
 
 	virtual bool CopyFrom(IKUniformBufferPtr pSource) = 0;

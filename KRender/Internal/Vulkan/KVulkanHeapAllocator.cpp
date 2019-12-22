@@ -30,16 +30,16 @@ namespace KVulkanHeapAllocator
 
 	struct BlockInfo
 	{
-		// ±¾blockÔÚpageµÄÆ«ÒÆÁ¿
+		// æœ¬blockåœ¨pageçš„åç§»é‡
 		VkDeviceSize offset;
 
-		// ±¾block´óĞ¡
+		// æœ¬blockå¤§å°
 		VkDeviceSize size;
 		int isFree;
 
 		BlockInfo* pNext;
 		BlockInfo* pPre;
-		// ¶îÍâĞÅÏ¢ ÓÃÓÚÊÍ·ÅÊ±Ë÷Òı
+		// é¢å¤–ä¿¡æ¯ ç”¨äºé‡Šæ”¾æ—¶ç´¢å¼•
 		PageInfo* pParent;
 
 		BlockInfo(PageInfo* _pParent)
@@ -72,7 +72,7 @@ namespace KVulkanHeapAllocator
 		PageInfo* pPre;
 		PageInfo* pNext;
 		
-		// ¶îÍâĞÅÏ¢ ÓÃÓÚÊÍ·ÅÊ±Ë÷Òı
+		// é¢å¤–ä¿¡æ¯ ç”¨äºé‡Šæ”¾æ—¶ç´¢å¼•
 		MemoryHeap* pParent;
 		int noShare;
 
@@ -148,9 +148,9 @@ namespace KVulkanHeapAllocator
 				pHead->size = size;
 				pHead->pParent = this;
 
-				// °Ñ¶àÓàµÄ¿Õ¼ä·ÖÁÑ³öÀ´
+				// æŠŠå¤šä½™çš„ç©ºé—´åˆ†è£‚å‡ºæ¥
 				Split(pHead, sizeToFit);
-				// ÒÑ±»Õ¼ÓÃ
+				// å·²è¢«å ç”¨
 				pHead->isFree = false;
 
 				Check();
@@ -162,9 +162,9 @@ namespace KVulkanHeapAllocator
 				BlockInfo* pTemp = Find(sizeToFit);
 				if(pTemp)
 				{
-					// °Ñ¶àÓàµÄ¿Õ¼ä·ÖÁÑ³öÀ´
+					// æŠŠå¤šä½™çš„ç©ºé—´åˆ†è£‚å‡ºæ¥
 					Split(pTemp, sizeToFit);
-					// ÒÑ±»Õ¼ÓÃ
+					// å·²è¢«å ç”¨
 					pTemp->isFree = false;
 
 					Check();
@@ -181,11 +181,11 @@ namespace KVulkanHeapAllocator
 			assert(pBlock->pParent == this);
 			assert(!pBlock->isFree);
 			assert(pHead);
-			// ÒÑ±»ÊÍ·Å
+			// å·²è¢«é‡Šæ”¾
 			pBlock->isFree = true;
-			// ÓëÇ°ºóµÄfreeblockºÏ²¢
+			// ä¸å‰åçš„freeblockåˆå¹¶
 			Trim(pBlock);
-			// Ö»Ê£ÏÂ×îºóÒ»¸ö½Úµã ÊÍ·ÅÄÚ´æ
+			// åªå‰©ä¸‹æœ€åä¸€ä¸ªèŠ‚ç‚¹ é‡Šæ”¾å†…å­˜
 			if(pHead->pNext == nullptr)
 			{
 				SAFE_DELETE(pHead);
@@ -200,7 +200,7 @@ namespace KVulkanHeapAllocator
 			}
 		}
 
-		// ÊÍ·Åµôfreeblock
+		// é‡Šæ”¾æ‰freeblock
 		void Trim()
 		{
 			BlockInfo* pTemp = pHead;
@@ -267,16 +267,16 @@ namespace KVulkanHeapAllocator
 				VkDeviceSize remainSize = pBlock->size - sizeToFit;
 
 				BlockInfo* pNext = pBlock->pNext;
-				// Èç¹ûÏÂÒ»¸öblock¿ÉÒÔÄÃµôÊ£Óà¿Õ¼ä
+				// å¦‚æœä¸‹ä¸€ä¸ªblockå¯ä»¥æ‹¿æ‰å‰©ä½™ç©ºé—´
 				if(pNext && pNext->isFree)
 				{
 					pNext->offset -= remainSize;
 					pNext->size += remainSize;
 				}
-				// ·ñÔò·ÖÁÑ¶àÒ»¸öblockÀ´¼ÇÂ¼Ê£Óà¿Õ¼ä
+				// å¦åˆ™åˆ†è£‚å¤šä¸€ä¸ªblockæ¥è®°å½•å‰©ä½™ç©ºé—´
 				else if(remainSize > 0)
 				{
-					// °ÑÊ£ÓàµÄ¿Õ¼ä·ÖÅäµ½ĞÂ½ÚµãÉÏ
+					// æŠŠå‰©ä½™çš„ç©ºé—´åˆ†é…åˆ°æ–°èŠ‚ç‚¹ä¸Š
 					BlockInfo* pNewBlock = new BlockInfo(pBlock->pParent);
 					pNewBlock->isFree = true;
 					pNewBlock->size = remainSize;
@@ -290,7 +290,7 @@ namespace KVulkanHeapAllocator
 					pBlock->pNext = pNewBlock;
 				}
 
-				// ÖØĞÂ·ÖÅä±¾block¿Õ¼ä
+				// é‡æ–°åˆ†é…æœ¬blockç©ºé—´
 				pBlock->size = sizeToFit;
 			}
 		}
@@ -301,7 +301,7 @@ namespace KVulkanHeapAllocator
 			BlockInfo* pTemp = nullptr;
 			if(pBlock->isFree)
 			{
-				// ÓëºóÃæµÄfreeblockºÏ²¢
+				// ä¸åé¢çš„freeblockåˆå¹¶
 				while(pBlock->pNext && pBlock->pNext->isFree)
 				{
 					pBlock->size += pBlock->pNext->size;
@@ -315,7 +315,7 @@ namespace KVulkanHeapAllocator
 					}
 					SAFE_DELETE(pTemp);
 				}
-				// ÓëÇ°ÃæµÄfreeblockºÏ²¢
+				// ä¸å‰é¢çš„freeblockåˆå¹¶
 				while(pBlock->pPre && pBlock->pPre->isFree)
 				{
 					pBlock->size += pBlock->pPre->size;
@@ -330,7 +330,7 @@ namespace KVulkanHeapAllocator
 					}
 					SAFE_DELETE(pTemp);
 				}
-				// ³ÉÎªÍ·½áµã
+				// æˆä¸ºå¤´ç»“ç‚¹
 				if(pBlock->pPre == nullptr)
 				{
 					assert(pBlock->pParent);
@@ -348,7 +348,7 @@ namespace KVulkanHeapAllocator
 		PageInfo* pHead;
 		PageInfo* pNoShareHead;
 
-		// µ±Ç°heapµÄ×Ü´óĞ¡
+		// å½“å‰heapçš„æ€»å¤§å°
 		VkDeviceSize size;
 
 		MemoryHeap(VkDevice _device, uint32_t _memoryTypeIndex, uint32_t _memoryHeapIndex)
@@ -404,7 +404,7 @@ namespace KVulkanHeapAllocator
 		{
 			std::lock_guard<decltype(ALLOC_FREE_LOCK)> guard(ALLOC_FREE_LOCK);
 
-			// ÌØÊâÇé¿öÖ»ÄÜ¶ÀÕ¼Ò»¸övkAllocateMemoryÌØÊâ´¦Àí
+			// ç‰¹æ®Šæƒ…å†µåªèƒ½ç‹¬å ä¸€ä¸ªvkAllocateMemoryç‰¹æ®Šå¤„ç†
 			if(usage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 			{
 				PageInfo* pPage = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, memoryHeapIndex, true);
@@ -422,8 +422,8 @@ namespace KVulkanHeapAllocator
 			}
 			else
 			{
-				// ·ÖÅä´óĞ¡±ØĞëÊÇALLOC_FACTORµÄÕûÊı±¶
-				// µ±Ã¿´Î·ÖÅä¶¼ÊÇALLOC_FACTORµÄÕûÊı±¶Ê±ºò ¾ÍÄÜ±£Ö¤Í¬Ò»¸öpageÀïµÄoffsetÒ²ÊÇALLOC_FACTORµÄÕûÊı±¶
+				// åˆ†é…å¤§å°å¿…é¡»æ˜¯ALLOC_FACTORçš„æ•´æ•°å€
+				// å½“æ¯æ¬¡åˆ†é…éƒ½æ˜¯ALLOC_FACTORçš„æ•´æ•°å€æ—¶å€™ å°±èƒ½ä¿è¯åŒä¸€ä¸ªpageé‡Œçš„offsetä¹Ÿæ˜¯ALLOC_FACTORçš„æ•´æ•°å€
 				sizeToFit = ((sizeToFit + ALLOC_FACTOR - 1) / ALLOC_FACTOR) * ALLOC_FACTOR;
 				assert(sizeToFit % ALLOC_FACTOR == 0);
 				if(pHead == nullptr)
@@ -441,7 +441,7 @@ namespace KVulkanHeapAllocator
 					PageInfo* pPage = Find(sizeToFit);
 					if(pPage)
 					{
-						// °Ñ¶àÓàµÄ¿Õ¼ä·ÖÁÑ³öÀ´ ¾¡Á¿½ÚÊ¡Êµ¼Ê·ÖÅäµÄÄÚ´æ
+						// æŠŠå¤šä½™çš„ç©ºé—´åˆ†è£‚å‡ºæ¥ å°½é‡èŠ‚çœå®é™…åˆ†é…çš„å†…å­˜
 						if(pPage->vkMemroy == VK_NULL_HANDLE)
 						{
 							Split(pPage, sizeToFit);
@@ -453,7 +453,7 @@ namespace KVulkanHeapAllocator
 						return pBlock;
 					}
 
-					// µ±Ç°ËùÓĞpageÀïÕÒ²»µ½×ã¹»¿Õ¼ä ·ÖÅäÒ»¸öĞÂµÄ²åÈëµ½×îºó ±£Ö¤heap×Ü¿Õ¼ä2±¶µİÔö
+					// å½“å‰æ‰€æœ‰pageé‡Œæ‰¾ä¸åˆ°è¶³å¤Ÿç©ºé—´ åˆ†é…ä¸€ä¸ªæ–°çš„æ’å…¥åˆ°æœ€å ä¿è¯heapæ€»ç©ºé—´2å€é€’å¢
 					while (true)
 					{
 						pPage = Nail();
@@ -497,7 +497,7 @@ namespace KVulkanHeapAllocator
 			PageInfo* pPage = pBlock->pParent;
 			assert(pPage->pParent == this);
 
-			// ÌØÊâÇé¿öÖ»ÄÜ¶ÀÕ¼Ò»¸övkAllocateMemoryÌØÊâ´¦Àí ÕâÀïÁ¬Í¬pageÍ¬Ê±É¾³ı
+			// ç‰¹æ®Šæƒ…å†µåªèƒ½ç‹¬å ä¸€ä¸ªvkAllocateMemoryç‰¹æ®Šå¤„ç† è¿™é‡Œè¿åŒpageåŒæ—¶åˆ é™¤
 			if(pPage->noShare)
 			{
 				if(pPage == pNoShareHead)
@@ -520,7 +520,7 @@ namespace KVulkanHeapAllocator
 			{
 				pPage->Free(pBlock);
 				Check();
-				// ¿Õ¼äÎª¿Õ ³¢ÊÔºÏ²¢ÁÙ½üpage
+				// ç©ºé—´ä¸ºç©º å°è¯•åˆå¹¶ä¸´è¿‘page
 				if(pPage->vkMemroy == VK_NULL_HANDLE)
 				{
 					Trim(pPage);
@@ -562,7 +562,7 @@ namespace KVulkanHeapAllocator
 			PageInfo* pTemp = nullptr;
 			if(pPage->vkMemroy == VK_NULL_HANDLE)
 			{
-				// ÓëºóÃæµÄfreepageºÏ²¢
+				// ä¸åé¢çš„freepageåˆå¹¶
 				while(pPage->pNext && pPage->pNext->vkMemroy == VK_NULL_HANDLE)
 				{
 					pPage->size += pPage->pNext->size;
@@ -577,7 +577,7 @@ namespace KVulkanHeapAllocator
 					SAFE_DELETE(pTemp);
 					pPage->Check();
 				}
-				// ÓëÇ°ÃæµÄfreepageºÏ²¢
+				// ä¸å‰é¢çš„freepageåˆå¹¶
 				while(pPage->pPre && pPage->pPre->vkMemroy == VK_NULL_HANDLE)
 				{
 					pPage->size += pPage->pPre->size;
@@ -592,7 +592,7 @@ namespace KVulkanHeapAllocator
 					SAFE_DELETE(pTemp);
 					pPage->Check();
 				}
-				// ³ÉÎªÍ·½áµã
+				// æˆä¸ºå¤´ç»“ç‚¹
 				if(pPage->pPre == nullptr)
 				{
 					assert(pPage->pParent);
@@ -606,7 +606,7 @@ namespace KVulkanHeapAllocator
 			assert(pPage->vkMemroy == VK_NULL_HANDLE && pPage->size >= sizeToFit);
 			if(pPage->vkMemroy == VK_NULL_HANDLE && pPage->size >= sizeToFit)
 			{
-				// pageµÄĞÂ´óĞ¡²»ÊÇALLOC_FACTORµÄÕûÊı±¶ ÎŞ·¨·ÖÁÑ
+				// pageçš„æ–°å¤§å°ä¸æ˜¯ALLOC_FACTORçš„æ•´æ•°å€ æ— æ³•åˆ†è£‚
 				if(sizeToFit % ALLOC_FACTOR != 0)
 				{
 					return;
@@ -615,15 +615,15 @@ namespace KVulkanHeapAllocator
 				VkDeviceSize remainSize = pPage->size - sizeToFit;
 
 				PageInfo* pNext = pPage->pNext;
-				// Èç¹ûÏÂÒ»¸öpage¿ÉÒÔÄÃµôÊ£Óà¿Õ¼ä
+				// å¦‚æœä¸‹ä¸€ä¸ªpageå¯ä»¥æ‹¿æ‰å‰©ä½™ç©ºé—´
 				if(pNext && pNext->vkMemroy == VK_NULL_HANDLE)
 				{
 					pNext->size += remainSize;
 				}
-				// ·ñÔò·ÖÁÑ¶àÒ»¸öpageÀ´¼ÇÂ¼Ê£Óà¿Õ¼ä
+				// å¦åˆ™åˆ†è£‚å¤šä¸€ä¸ªpageæ¥è®°å½•å‰©ä½™ç©ºé—´
 				else if(remainSize > 0)
 				{
-					// °ÑÊ£ÓàµÄ¿Õ¼ä·ÖÅäµ½ĞÂ½ÚµãÉÏ
+					// æŠŠå‰©ä½™çš„ç©ºé—´åˆ†é…åˆ°æ–°èŠ‚ç‚¹ä¸Š
 					PageInfo* pNewPage = new PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->memoryTypeIndex, pPage->memoryHeapIndex, false);
 					pNewPage->vkMemroy = VK_NULL_HANDLE;
 					pNewPage->size = remainSize;
@@ -636,7 +636,7 @@ namespace KVulkanHeapAllocator
 					pPage->pNext = pNewPage;
 				}
 
-				// ÖØĞÂ·ÖÅä±¾page¿Õ¼ä
+				// é‡æ–°åˆ†é…æœ¬pageç©ºé—´
 				pPage->size = sizeToFit;
 			}
 		}
@@ -659,7 +659,7 @@ namespace KVulkanHeapAllocator
 			For further info refer to the Buffer-Image Granularity section of the Vulkan specification. >
 			(https://www.khronos.org/registry/vulkan/specs/1.0-extensions/xhtml/vkspec.html#resources-bufferimagegranularity)
 			*/
-			// ÓÉÓÚÕâÀïimageÓëbuffer¹²ÏíÍ¬Ò»·İVkDeviceMemory Òò´ËÃ¿´Î·ÖÅäÕ¼ÓÃµÄ¿Õ¼ä´óĞ¡±ØĞëÊÇ¸ÃfactorµÄÕûÊı±¶
+			// ç”±äºè¿™é‡Œimageä¸bufferå…±äº«åŒä¸€ä»½VkDeviceMemory å› æ­¤æ¯æ¬¡åˆ†é…å ç”¨çš„ç©ºé—´å¤§å°å¿…é¡»æ˜¯è¯¥factorçš„æ•´æ•°å€
 			ALLOC_FACTOR = deviceProperties.limits.bufferImageGranularity;
 
 			VkPhysicalDeviceMemoryProperties memoryProperties = {};
@@ -678,7 +678,7 @@ namespace KVulkanHeapAllocator
 			for(uint32_t memHeapIdx = 0; memHeapIdx < memoryProperties.memoryHeapCount; ++memHeapIdx)
 			{
 				HEAP_REMAIN_SIZE[memHeapIdx] = memoryProperties.memoryHeaps[memHeapIdx].size;
-				// page×î´ó´óĞ¡Îª¿É·ÖÅä¿Õ¼äµÄ1/8 µ«ÊÇ²»Òª¸ßÓÚ512M
+				// pageæœ€å¤§å¤§å°ä¸ºå¯åˆ†é…ç©ºé—´çš„1/8 ä½†æ˜¯ä¸è¦é«˜äº512M
 				MAX_PAGE_SIZE[memHeapIdx] =	std::min(
 						KNumerical::Pow2LessEqual(memoryProperties.memoryHeaps[memHeapIdx].size >> 3),
 						static_cast<VkDeviceSize>(512U * 1024U * 1024U));

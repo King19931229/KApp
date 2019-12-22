@@ -1,4 +1,4 @@
-﻿#include "Publish/KHashString.h"
+#include "Publish/KHashString.h"
 #include "Publish/KHash.h"
 
 #include <mutex>

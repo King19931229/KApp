@@ -1,4 +1,4 @@
-﻿#ifndef INCLUDED_IMF_PXR24_COMPRESSOR_H
+#ifndef INCLUDED_IMF_PXR24_COMPRESSOR_H
 #define INCLUDED_IMF_PXR24_COMPRESSOR_H
 
 /////////////////////////////////////////////////////////////////////////////

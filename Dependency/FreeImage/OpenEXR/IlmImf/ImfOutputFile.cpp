@@ -1,4 +1,4 @@
-﻿//
+//
 ///\todo: version needs fixing!
 //
 

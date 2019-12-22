@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Publish/KThreadPool.h"
 #include <memory>
 

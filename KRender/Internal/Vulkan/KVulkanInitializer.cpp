@@ -120,17 +120,17 @@ namespace KVulkanInitializer
 
 		VkImageViewCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		// 设置image
+		// 璁剧疆image
 		createInfo.image = image;
 		createInfo.viewType = imageViewType;
-		// format与交换链format同步
+		// format涓庝氦鎹㈤摼format鍚屾
 		createInfo.format = format;
-		// 保持默认rgba映射行为
+		// 淇濇寔榛樿rgba鏄犲皠琛屼负
 		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
 		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		// 指定View访问范围
+		// 鎸囧畾View璁块棶鑼冨洿
 		createInfo.subresourceRange.aspectMask = aspectFlags;
 		createInfo.subresourceRange.baseMipLevel = 0;
 		createInfo.subresourceRange.levelCount = mipLevels;

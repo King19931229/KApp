@@ -90,7 +90,7 @@ bool KVulkanTexture::InitDevice()
 					createFlags,
 					m_TextureImage, m_AllocInfo);
 				{
-					// ÏÈ×ª»»image layoutÎªÖ®ºóbuffer¿½±´Êı¾İµ½image×÷×¼±¸
+					// å…ˆè½¬æ¢image layoutä¸ºä¹‹åbufferæ‹·è´æ•°æ®åˆ°imageä½œå‡†å¤‡
 					KVulkanHelper::TransitionImageLayout(m_TextureImage,
 						m_TextureFormat,
 						(uint32_t)layerCounts,
@@ -114,7 +114,7 @@ bool KVulkanTexture::InitDevice()
 						copyInfo.push_back(copy);
 					}
 
-					// ¿½±´bufferÊı¾İµ½image
+					// æ‹·è´bufferæ•°æ®åˆ°image
 					KVulkanHelper::CopyVkBufferToVkImageByRegion(stagingBuffer, m_TextureImage, layerCounts, copyInfo);
 
 					if(m_bGenerateMipmap)
@@ -123,7 +123,7 @@ bool KVulkanTexture::InitDevice()
 					}
 					else
 					{
-						// ÔÙ×ª»»image layoutÎªÖ®ºóshaderÊ¹ÓÃimageÊı¾İ×÷×¼±¸
+						// å†è½¬æ¢image layoutä¸ºä¹‹åshaderä½¿ç”¨imageæ•°æ®ä½œå‡†å¤‡
 						KVulkanHelper::TransitionImageLayout(m_TextureImage,
 							m_TextureFormat,
 							(uint32_t)layerCounts,
@@ -132,7 +132,7 @@ bool KVulkanTexture::InitDevice()
 							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 					}
 
-					// ´´½¨imageview
+					// åˆ›å»ºimageview
 					KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)m_Mipmaps, m_TextureImageView);
 
 					KVulkanInitializer::FreeVkBuffer(stagingBuffer, stagingAllocInfo);

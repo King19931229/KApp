@@ -54,7 +54,7 @@ namespace KNumerical
 		}
 	}
 
-	// ´Ó0¿ªÊ¼¼ÆËã
+	// ä»Ž0å¼€å§‹è®¡ç®—
 	template<typename T>
 	T HighestBinaryBit(T num)
 	{

@@ -157,7 +157,7 @@ bool KSystem::WaitProcess(const std::string& path, const std::string& args, std:
 		DWORD returnCode = 1;
 		while(true)
 		{
-			// 预览管道中数据的内容
+			// 棰勮绠￠亾涓暟鎹殑鍐呭
 			if (!PeekNamedPipe(hPipeRead, NULL, 0, NULL, &dwReadLen, NULL))
 			{
 				dwErrorCode = GetLastError();
@@ -168,7 +168,7 @@ bool KSystem::WaitProcess(const std::string& path, const std::string& args, std:
 			else if(dwReadLen > 0)
 			{
 				ZeroMemory(szPipeOut, sizeof(szPipeOut));
-				// 读取管道中的数据
+				// 璇诲彇绠￠亾涓殑鏁版嵁
 				DWORD dwRestLen = dwReadLen;
 				while(dwRestLen > 0)
 				{

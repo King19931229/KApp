@@ -1,4 +1,4 @@
-﻿#include "Internal/KLog.h"
+#include "Internal/KLog.h"
 
 #include <ctime>
 #include <assert.h>

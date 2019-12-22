@@ -67,7 +67,7 @@ public:
 	virtual ~KUniformBufferBase();
 
 	virtual size_t GetBufferSize() { return m_BufferSize; }
-	// ³õÊ¼»¯ÄÚ´æÊı¾İ Í¨³£ÓÃÓÚÒì²½IO
+	// åˆå§‹åŒ–å†…å­˜æ•°æ® é€šå¸¸ç”¨äºå¼‚æ­¥IO
 	virtual bool InitMemory(size_t bufferSize, const void* pInitData);
 
 	virtual bool InitDevice() = 0;

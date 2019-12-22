@@ -1,4 +1,4 @@
-﻿/* -*- C++ -*-
+/* -*- C++ -*-
  * File: dht_demosaic.cpp
  * Copyright 2013 Anton Petrusevich
  * Created: Tue Apr  9, 2013

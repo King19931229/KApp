@@ -80,11 +80,11 @@ while(false);
 #		include <stdlib.h>
 #		include <crtdbg.h>
 
-//	��ʼ����ڴ�й©
-//	DUMP_MEMORY_LEAK_BEGIN��ʼ�����ڴ����
+//	开始检测内存泄漏
+//	DUMP_MEMORY_LEAK_BEGIN开始跟踪内存分配
 #	define DUMP_MEMORY_LEAK_BEGIN() {_CrtSetDbgFlag (_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);}
-//	��������ڴ�й©
-//	DUMP_MEMORY_LEAK_END������ڴ�������
+//	结束检测内存泄漏
+//	DUMP_MEMORY_LEAK_END是清空内存分配跟踪
 #	define DUMP_MEMORY_LEAK_END() {_CrtDumpMemoryLeaks(); _CrtSetDbgFlag(0);}
 #	define DUMP_MEMORY_STATUS() {_CrtMemState s; _CrtMemCheckpoint(&s); _CrtMemDumpStatistics(&s);}
 

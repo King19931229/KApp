@@ -69,7 +69,7 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* 
 {
 	if(frameIndex < m_RenderTargets.size())
 	{
-		// 更新CBuffer
+		// 鏇存柊CBuffer
 		{
 			glm::mat4 view = m_Camera.GetViewMatrix();
 			glm::mat4 proj = m_Camera.GetProjectiveMatrix();
@@ -102,7 +102,7 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* 
 			}
 			shadowBuffer->Write(pData);
 		}
-		// 更新RenderTarget
+		// 鏇存柊RenderTarget
 		{
 			std::vector<KRenderComponent*> cullRes;
 			m_CullSystem.Execute(m_Camera, cullRes);

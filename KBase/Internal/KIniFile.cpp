@@ -1,4 +1,4 @@
-﻿#include "Internal/KIniFile.h"
+#include "Internal/KIniFile.h"
 #include <sstream>
 
 EXPORT_DLL IKIniFilePtr GetIniFile()

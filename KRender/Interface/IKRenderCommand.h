@@ -6,7 +6,7 @@
 
 struct KVertexData
 {
-	// Ã¿¸ö¶¥µã¸ñÊ½Õ¼ÓÃÒ»¸ö¶¥µã»º³å
+	// æ¯ä¸ªé¡¶ç‚¹æ ¼å¼å ç”¨ä¸€ä¸ªé¡¶ç‚¹ç¼“å†²
 	std::vector<VertexFormat> vertexFormats;
 	std::vector<IKVertexBufferPtr> vertexBuffers;
 	uint32_t vertexStart;

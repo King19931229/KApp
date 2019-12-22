@@ -5,7 +5,7 @@
 
     Written by:         Quinn
 
-    Copyright:          Copyright © 1999 by Apple Computer, Inc., all rights reserved.
+    Copyright:          Copyright ?1999 by Apple Computer, Inc., all rights reserved.
 
                             You may incorporate this Apple sample source code into your program(s) without
                             restriction. This Apple sample source code has been provided "AS IS" and the

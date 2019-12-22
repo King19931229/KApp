@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "KBase/Publish/KList.h"
 
 #include <mutex>

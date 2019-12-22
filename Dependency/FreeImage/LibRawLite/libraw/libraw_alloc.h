@@ -1,4 +1,4 @@
-﻿/* -*- C++ -*-
+/* -*- C++ -*-
  * File: libraw_alloc.h
  * Copyright 2008-2013 LibRaw LLC (info@libraw.org)
  * Created: Sat Mar  22, 2008 

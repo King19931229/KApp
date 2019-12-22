@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Interface/IKMemory.h"
 #include "Publish/KList.h"
 

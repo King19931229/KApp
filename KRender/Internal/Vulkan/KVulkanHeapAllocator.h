@@ -7,7 +7,7 @@ namespace KVulkanHeapAllocator
 	{
 		VkDeviceMemory vkMemroy;
 		VkDeviceSize vkOffset;
-		// ÄÚ²¿ÊÍ·ÅÊ¹ÓÃ ²»ÒªĞŞ¸ÄÆäÄÚÈİ
+		// å†…éƒ¨é‡Šæ”¾ä½¿ç”¨ ä¸è¦ä¿®æ”¹å…¶å†…å®¹
 		void* internalData;
 	};
 

@@ -28,28 +28,28 @@ class KVulkanPipeline : public IKPipeline
 {
 	friend class KVulkanPipelineHandle;
 protected:
-	// ¶¥µã×°ÅäĞÅÏ¢
+	// é¡¶ç‚¹è£…é…ä¿¡æ¯
 	std::vector<VkVertexInputBindingDescription> m_BindingDescriptions;
 	std::vector<VkVertexInputAttributeDescription> m_AttributeDescriptions;
 	VkPrimitiveTopology	m_PrimitiveTopology;
 
-	// Alpha»ìºÏĞÅÏ¢
+	// Alphaæ··åˆä¿¡æ¯
 	VkBlendFactor m_ColorSrcBlendFactor;
 	VkBlendFactor m_ColorDstBlendFactor;
 	VkBlendOp m_ColorBlendOp;
 	VkBool32 m_BlendEnable;
 
-	// ¹âÕ¤»¯ĞÅÏ¢
+	// å…‰æ …åŒ–ä¿¡æ¯
 	VkPolygonMode m_PolygonMode;
 	VkCullModeFlagBits m_CullMode;
 	VkFrontFace m_FrontFace;
 
-	// Éî¶ÈĞÅÏ¢
+	// æ·±åº¦ä¿¡æ¯
 	VkBool32 m_DepthWrite;
 	VkBool32 m_DepthTest;
 	VkCompareOp m_DepthOp;
 
-	// Éî¶ÈÆ«ÒÆ
+	// æ·±åº¦åç§»
 	/*
 	float m_DepthBiasConstantFactor;
 	float m_DepthBiasClamp;
@@ -57,7 +57,7 @@ protected:
 	*/
 	VkBool32 m_DepthBiasEnable;
 
-	// Constant BufferĞÅÏ¢
+	// Constant Bufferä¿¡æ¯
 	struct UniformBufferBindingInfo
 	{
 		ShaderTypes shaderTypes;
@@ -76,7 +76,7 @@ protected:
 	IKShaderPtr m_VertexShader;
 	IKShaderPtr m_FragmentShader;
 
-	// Sampler ĞÅÏ¢
+	// Sampler ä¿¡æ¯
 	struct SamplerBindingInfo
 	{
 		VkImageView vkImageView;
@@ -85,7 +85,7 @@ protected:
 	};
 	std::map<unsigned int, SamplerBindingInfo> m_Samplers;
 
-	// Éè±¸¾ä±ú
+	// è®¾å¤‡å¥æŸ„
 	VkDescriptorSetLayout	m_DescriptorSetLayout;
 	VkDescriptorPool		m_DescriptorPool;
 	VkDescriptorSet			m_DescriptorSet;

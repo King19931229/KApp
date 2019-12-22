@@ -1,4 +1,4 @@
-﻿#include "Internal/KSourceFile.h"
+#include "Internal/KSourceFile.h"
 #include <algorithm>
 #include <assert.h>
 

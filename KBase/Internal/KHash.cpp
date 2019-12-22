@@ -1,4 +1,4 @@
-﻿#include "Publish/KHash.h"
+#include "Publish/KHash.h"
 #include "Internal/Hash/KMD5.h"
 #include <sstream>
 

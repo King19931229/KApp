@@ -2,7 +2,7 @@
 
 C implementation derived directly from heapq.py in Py2.3
 which was written by Kevin O'Connor, augmented by Tim Peters,
-annotated by François Pinard, and converted to C by Raymond Hettinger.
+annotated by Fran莽ois Pinard, and converted to C by Raymond Hettinger.
 
 */
 
@@ -597,7 +597,7 @@ maintains the heap invariant!\n");
 PyDoc_STRVAR(__about__,
 "Heap queues\n\
 \n\
-[explanation by Fran�ois Pinard]\n\
+[explanation by Fran鏾is Pinard]\n\
 \n\
 Heaps are arrays for which a[k] <= a[2*k+1] and a[k] <= a[2*k+2] for\n\
 all k, counting elements from 0.  For the sake of comparison,\n\

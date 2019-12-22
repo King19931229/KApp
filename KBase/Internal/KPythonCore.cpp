@@ -18,7 +18,7 @@ bool KPythonCore::Init()
 bool KPythonCore::UnInit()
 {
 	/*
-	python27·´³õÊ¼»¯»áµ¼ÖÂÄÚ´æĞ¹Â©
+	python27ååˆå§‹åŒ–ä¼šå¯¼è‡´å†…å­˜æ³„æ¼
 	https://docs.python.org/2/c-api/init.html
 	Dynamically loaded extension modules loaded by Python are not unloaded.
 	Small amounts of memory allocated by the Python interpreter may not be freed (if you find a leak, please report it).

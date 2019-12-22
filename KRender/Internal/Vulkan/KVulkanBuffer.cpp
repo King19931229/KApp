@@ -64,7 +64,7 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
 	}
 
-	// °ÑÖ®Ç°´æÔÚÄÚ´æÀïµÄÊı¾İ¶ªµô
+	// æŠŠä¹‹å‰å­˜åœ¨å†…å­˜é‡Œçš„æ•°æ®ä¸¢æ‰
 	if(hostVisible)
 	{
 		m_Data.clear();
@@ -227,7 +227,7 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
 	}
 
-	// °ÑÖ®Ç°´æÔÚÄÚ´æÀïµÄÊı¾İ¶ªµô
+	// æŠŠä¹‹å‰å­˜åœ¨å†…å­˜é‡Œçš„æ•°æ®ä¸¢æ‰
 	if(hostVisible)
 	{
 		m_Data.clear();
@@ -358,7 +358,7 @@ bool KVulkanUniformBuffer::InitDevice()
 	memcpy(data, m_Data.data(), (size_t) m_BufferSize);
 	vkUnmapMemory(device, m_AllocInfo.vkMemroy);
 
-	// °ÑÖ®Ç°´æÔÚÄÚ´æÀïµÄÊı¾İ¶ªµô
+	// æŠŠä¹‹å‰å­˜åœ¨å†…å­˜é‡Œçš„æ•°æ®ä¸¢æ‰
 	m_Data.clear();
 	m_bDeviceInit = true;
 

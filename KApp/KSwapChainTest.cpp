@@ -175,9 +175,9 @@ int main()
 {
 	DUMP_MEMORY_LEAK_BEGIN();
 	// SwapChainApp(vsync,swapchain,frametime)
-	// ��ʹ�ô�ֱͬ�� ��ֻʹ��˫��������� ��20msΪ��Ⱦˢ��ʱ�� �����Ϊ��Ⱦ֡�ʻ���50fps
-	// Ȼ��ʵ������ֻ�ﵽ��40fps
-	// ʹ���������ܹ��˷������� ʹ��֡�ʴﵽ50fps
+	// 在使用垂直同步 并只使用双缓冲情况下 以20ms为渲染刷新时间 你会认为渲染帧率会有50fps
+	// 然而实际上你只达到了40fps
+	// 使用三缓冲能够克服此现象 使得帧率达到50fps
 	//https://www.reddit.com/r/buildapc/comments/1544hx/explaining_vsync_and_other_things/
 	//https://hardforum.com/threads/how-vsync-works-and-why-people-loathe-it.928593/
 	{
@@ -189,7 +189,7 @@ int main()
 		on_3_20.Wait();
 	}
 
-	// ��2msΪˢ��ʱ����Ⱦ ������ֱͬ�������֡��ֻ�ܴﵽ60fps �رմ�ֱͬ���ܹ�����500fps
+	// 以2ms为刷新时间渲染 开启垂直同步下最高帧率只能达到60fps 关闭垂直同步能够到达500fps
 	{
 		SwapChainApp on_2_2(true, 2, 2, 200);
 		on_2_2.Wait();

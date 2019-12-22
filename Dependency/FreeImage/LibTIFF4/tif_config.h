@@ -1,4 +1,4 @@
-﻿#ifndef TIF_CONFIG_H
+#ifndef TIF_CONFIG_H
 #define TIF_CONFIG_H
 
 /* Define to 1 if you have the <assert.h> header file. */

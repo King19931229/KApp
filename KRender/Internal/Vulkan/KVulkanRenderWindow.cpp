@@ -271,7 +271,7 @@ bool KVulkanRenderWindow::Loop()
 				m_device->Present();
 			}
 		}
-		// �������߳�ֱ��device���ж����������?
+		// 挂起主线程直到device持有对象被销毁完毕
 		if(m_device)
 		{
 			m_device->Wait();

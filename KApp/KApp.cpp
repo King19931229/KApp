@@ -1,4 +1,4 @@
-﻿#define MEMORY_DUMP_DEBUG
+#define MEMORY_DUMP_DEBUG
 #include "KBase/Publish/KLockFreeQueue.h"
 #include "KBase/Publish/KLockQueue.h"
 #include "KBase/Publish/KThreadPool.h"

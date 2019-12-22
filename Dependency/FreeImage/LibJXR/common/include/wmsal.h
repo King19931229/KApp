@@ -1,4 +1,4 @@
-﻿/***
+/***
 *sal.h - markers for documenting the semantics of APIs
 *
 * Copyright ?Microsoft Corp.

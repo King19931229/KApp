@@ -5,7 +5,7 @@
 
     Written by:         Quinn
 
-    Copyright:          Copyright © 1999 by Apple Computer, Inc., all rights reserved.
+    Copyright:          Copyright ?1999 by Apple Computer, Inc., all rights reserved.
 
                             You may incorporate this Apple sample source code into your program(s) without
                             restriction. This Apple sample source code has been provided "AS IS" and the
@@ -48,12 +48,12 @@
 //
 // Done:
 //
-// Ã investigate alternative APIs, like an external lookup routine
+// ?investigate alternative APIs, like an external lookup routine
 //   renamed CFMLateImport to CFMLateImportLibrary to allow for
 //   future expansion of the APIs for things like CFMLateImportSymbol
-// Ã test with non-zero fragment offset in the file
-// Ã test more with MPW fragments
-// Ã test data imports
+// ?test with non-zero fragment offset in the file
+// ?test more with MPW fragments
+// ?test data imports
 
 /////////////////////////////////////////////////////////////////
 

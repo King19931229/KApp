@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Interface/IKIniFile.h"
 
 #include <string>

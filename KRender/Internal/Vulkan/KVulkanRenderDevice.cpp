@@ -133,7 +133,7 @@ void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& create
 } 
 
 /* TODO LIST
-²ÄÖÊÎÄ¼ş
+æè´¨æ–‡ä»¶
 */
 
 KCullSystem CULL_SYSTEM;
@@ -219,13 +219,13 @@ KVulkanRenderDevice::QueueFamilyIndices KVulkanRenderDevice::FindQueueFamilies(V
 	for (const auto& queueFamily : queueFamilies)
 	{
 		++idx;
-		// ¼ì²éÉè±¸Ë÷Òı
+		// æ£€æŸ¥è®¾å¤‡ç´¢å¼•
 		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
 			familyIndices.graphicsFamily.first = idx;
 			familyIndices.graphicsFamily.second = true;
 		}
-		// ¼ì²é±íÏÖË÷Òı
+		// æ£€æŸ¥è¡¨ç°ç´¢å¼•
 		VkBool32 presentSupport = false;
 		vkGetPhysicalDeviceSurfaceSupportKHR(vkDevice, idx, m_Surface, &presentSupport);
 		if(presentSupport)
@@ -532,7 +532,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		{
 			assert(index.second);
 
-			// Ìî³äVkDeviceQueueCreateInfo
+			// å¡«å……VkDeviceQueueCreateInfo
 			VkDeviceQueueCreateInfo queueCreateInfo = {};
 			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 			queueCreateInfo.queueFamilyIndex = index.first;
@@ -545,7 +545,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		}
 		VkResult RES = VK_TIMEOUT;
 
-		// Ìî³äVkDeviceCreateInfo
+		// å¡«å……VkDeviceCreateInfo
 		VkDeviceCreateInfo createInfo = {};
 
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -559,8 +559,8 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		createInfo.pEnabledFeatures = &deviceFeatures;
 
-		// ¾¡¹Ü×îĞÂVulkanÊµÀıÑéÖ¤²ãÓëÉè±¸ÑéÖ¤²ãÒÑ¾­Í³Ò»
-		// µ«ÊÇ×îºÃ±£Áô´úÂë¼æÈİĞÔ
+		// å°½ç®¡æœ€æ–°Vulkanå®ä¾‹éªŒè¯å±‚ä¸è®¾å¤‡éªŒè¯å±‚å·²ç»ç»Ÿä¸€
+		// ä½†æ˜¯æœ€å¥½ä¿ç•™ä»£ç å…¼å®¹æ€§
 		if (m_EnableValidationLayer && m_ValidationLayerIdx >= 0)
 		{
 			createInfo.enabledLayerCount = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].arraySize;
@@ -595,9 +595,9 @@ bool KVulkanRenderDevice::CreateCommandPool()
 
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	// Ö¸¶¨¸ÃÃüÁî³ØËùÊôµÄ¶ÓÁĞ¼Ò×å
+	// æŒ‡å®šè¯¥å‘½ä»¤æ± æ‰€å±çš„é˜Ÿåˆ—å®¶æ—
 	poolInfo.queueFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
-	// ÎªTransientËùÓÃ
+	// ä¸ºTransientæ‰€ç”¨
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
 	if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_GraphicCommandPool) == VK_SUCCESS)
@@ -1098,7 +1098,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 
 	VkApplicationInfo appInfo = {};
 
-	// ÃèÊöÊµÀı
+	// æè¿°å®ä¾‹
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = "KVulkan";
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -1113,7 +1113,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
 
 	m_ValidationLayerIdx = -1;
-	// ¹Ò½ÓÑéÖ¤²ã
+	// æŒ‚æ¥éªŒè¯å±‚
 	if(m_EnableValidationLayer)
 	{
 		bool bCheckResult = CheckValidationLayerAvailable(m_ValidationLayerIdx);
@@ -1122,7 +1122,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		{
 			createInfo.enabledLayerCount = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].arraySize;
 			createInfo.ppEnabledLayerNames = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].layers;
-			// ÕâÊÇÎªÁË¼ì²évkCreateInstanceÓëSetupDebugMessengerÖ®¼äµÄ´íÎó
+			// è¿™æ˜¯ä¸ºäº†æ£€æŸ¥vkCreateInstanceä¸SetupDebugMessengerä¹‹é—´çš„é”™è¯¯
 			PopulateDebugMessengerCreateInfo(debugCreateInfo, DebugCallback);
 			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
 			for(uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
@@ -1137,7 +1137,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		createInfo.pNext = nullptr;
 	}
 
-	// ¹Ò½ÓÀ©Õ¹
+	// æŒ‚æ¥æ‰©å±•
 	auto extensions = PopulateExtensions(m_EnableValidationLayer);
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 	createInfo.ppEnabledExtensionNames = extensions.data();
@@ -1157,10 +1157,10 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		if(!CreateCommandPool())
 			return false;
 
-		// Êµ¼ÊÍê³ÉÁËÉè±¸³õÊ¼»¯
+		// å®é™…å®Œæˆäº†è®¾å¤‡åˆå§‹åŒ–
 		if(!InitDeviceGlobal())
 			return false;
-		// ³õÊ¼»¯È«¾Ö¶ÔÏó
+		// åˆå§‹åŒ–å…¨å±€å¯¹è±¡
 		if(!InitGlobalManager())
 			return false;
 
@@ -1199,12 +1199,12 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 }
 
 /*
-×Ü¹²ÓĞÈı¸öÈë¿Ú¿ÉÒÔÕì²é²¢´Ù·¢µ½½»»»Á´ÖØ½¨
-1.glfw´°¿Ú´óĞ¡¸Ä±ä
+æ€»å…±æœ‰ä¸‰ä¸ªå…¥å£å¯ä»¥ä¾¦æŸ¥å¹¶ä¿ƒå‘åˆ°äº¤æ¢é“¾é‡å»º
+1.glfwçª—å£å¤§å°æ”¹å˜
 2.vkAcquireNextImageKHR
 3.vkQueuePresentKHR
-¼¼ÊõÉÏÖ»ÓĞÒªÒ»¸öÈë¿Ú³É¹¦ºÏÀíµÄ´´½¨ÁË½»»»Á´Ö®ºó
-vkAcquireNextImageKHR»òÕßvkQueuePresentKHR²»»áÕì²éµ½½»»»Á´ĞèÒªÖØĞÂ´´½¨
+æŠ€æœ¯ä¸Šåªæœ‰è¦ä¸€ä¸ªå…¥å£æˆåŠŸåˆç†çš„åˆ›å»ºäº†äº¤æ¢é“¾ä¹‹å
+vkAcquireNextImageKHRæˆ–è€…vkQueuePresentKHRä¸ä¼šä¾¦æŸ¥åˆ°äº¤æ¢é“¾éœ€è¦é‡æ–°åˆ›å»º
 */
 bool KVulkanRenderDevice::RecreateSwapChain()
 {
@@ -1377,7 +1377,7 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(VkPhysicalDevice vkDevice)
 		std::vector<VkExtensionProperties> extensions(extensionCount);
 		if(vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extensionCount, extensions.data()) == VK_SUCCESS)
 		{
-			// È·±£Vulkan¾ßÓĞÎÒÃÇĞèÒªµÄÀ©Õ¹
+			// ç¡®ä¿Vulkanå…·æœ‰æˆ‘ä»¬éœ€è¦çš„æ‰©å±•
 			for(const char* requiredExt : DEVICE_EXTENSIONS)
 			{
 				if(std::find_if(extensions.begin(),
@@ -1586,7 +1586,7 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t chai
 
 	ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
 
-	// https://devblogs.nvidia.com/vulkan-dos-donts/ ResetCommandPoolÊÍ·ÅÄÚ´æ
+	// https://devblogs.nvidia.com/vulkan-dos-donts/ ResetCommandPoolé‡Šæ”¾å†…å­˜
 	threadData.commandPool->Reset();
 
 #ifndef THREAD_MODE_ONE
@@ -1610,17 +1610,17 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t threadIndex, uint32_t chai
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 		VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 
-		// °ó¶¨¹ÜÏß
+		// ç»‘å®šç®¡çº¿
 		vkCmdBindPipeline(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		// °ó¶¨¹ÜÏß²¼¾Ö
+		// ç»‘å®šç®¡çº¿å¸ƒå±€
 		vkCmdBindDescriptorSets(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-		// °ó¶¨¶¥µã»º³å
+		// ç»‘å®šé¡¶ç‚¹ç¼“å†²
 		KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_SqaureData.vertexBuffer.get();
 		VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
 		VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(vkBufferHandle, 0, 1, vertexBuffers, offsets);
-		// °ó¶¨Ë÷Òı»º³å
+		// ç»‘å®šç´¢å¼•ç¼“å†²
 		KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_SqaureData.indexBuffer.get();
 		vkCmdBindIndexBuffer(vkBufferHandle, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 
@@ -1656,7 +1656,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	// ¿ªÊ¼äÖÈ¾¹ı³Ì
+	// å¼€å§‹æ¸²æŸ“è¿‡ç¨‹
 
 	IKCommandBufferPtr primaryBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
 	VkCommandBuffer vkBufferHandle = ((KVulkanCommandBuffer*)primaryBuffer.get())->GetVkHandle();
@@ -1672,7 +1672,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 		primaryBuffer->BeginRenderPass(m_OffscreenRenderTargets[frameIndex].get(), SUBPASS_CONTENTS_INLINE);
 		{
 			primaryBuffer->SetViewport(m_OffscreenRenderTargets[frameIndex].get());
-			// ¿ªÊ¼äÖÈ¾SkyBox
+			// å¼€å§‹æ¸²æŸ“SkyBox
 			{
 				KRenderCommand command;
 				if(KRenderGlobal::SkyBox.GetRenderCommand(frameIndex, command))
@@ -1683,7 +1683,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 					primaryBuffer->Render(command);
 				}
 			}
-			// ¿ªÊ¼äÖÈ¾Îï¼ş
+			// å¼€å§‹æ¸²æŸ“ç‰©ä»¶
 			{
 				KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_OffscreenPipelines[frameIndex].get();
 
@@ -1693,21 +1693,21 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 				VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 
-				// °ó¶¨¹ÜÏß
+				// ç»‘å®šç®¡çº¿
 				vkCmdBindPipeline(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-				// °ó¶¨¹ÜÏß²¼¾Ö
+				// ç»‘å®šç®¡çº¿å¸ƒå±€
 				vkCmdBindDescriptorSets(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-				// °ó¶¨¶¥µã»º³å
+				// ç»‘å®šé¡¶ç‚¹ç¼“å†²
 				KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_SqaureData.vertexBuffer.get();
 				VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
 				VkDeviceSize offsets[] = {0};
 				vkCmdBindVertexBuffers(vkBufferHandle, 0, 1, vertexBuffers, offsets);
-				// °ó¶¨Ë÷Òı»º³å
+				// ç»‘å®šç´¢å¼•ç¼“å†²
 				KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_SqaureData.indexBuffer.get();
 				vkCmdBindIndexBuffer(vkBufferHandle, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 
-				// »æÖÆµ÷ÓÃ
+				// ç»˜åˆ¶è°ƒç”¨
 				for(glm::mat4& model : m_ObjectFinalTransforms)
 				{
 					KAABBBox objectBox;
@@ -1752,7 +1752,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 		}
 		primaryBuffer->EndRenderPass();
 
-		// »æÖÆScreenQuadÓëUI
+		// ç»˜åˆ¶ScreenQuadä¸UI
 		primaryBuffer->BeginRenderPass(m_SwapChainRenderTargets[chainImageIndex].get(), SUBPASS_CONTENTS_INLINE);
 		{
 			primaryBuffer->SetViewport(m_SwapChainRenderTargets[chainImageIndex].get());
@@ -1765,17 +1765,17 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 				VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 
-				// °ó¶¨¹ÜÏß
+				// ç»‘å®šç®¡çº¿
 				vkCmdBindPipeline(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-				// °ó¶¨¹ÜÏß²¼¾Ö
+				// ç»‘å®šç®¡çº¿å¸ƒå±€
 				vkCmdBindDescriptorSets(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-				// °ó¶¨¶¥µã»º³å
+				// ç»‘å®šé¡¶ç‚¹ç¼“å†²
 				KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_QuadData.vertexBuffer.get();
 				VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
 				VkDeviceSize offsets[] = {0};
 				vkCmdBindVertexBuffers(vkBufferHandle, 0, 1, vertexBuffers, offsets);
-				// °ó¶¨Ë÷Òı»º³å
+				// ç»‘å®šç´¢å¼•ç¼“å†²
 				KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_QuadData.indexBuffer.get();
 				vkCmdBindIndexBuffer(vkBufferHandle, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 
@@ -1811,10 +1811,10 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 	IKCommandBufferPtr postprocessCommandBuffer = m_CommandBuffers[frameIndex].postprocessCommandBuffer;
 
 	VkCommandBuffer vkBufferHandle = VK_NULL_HANDLE;
-	// ¿ªÊ¼äÖÈ¾¹ı³Ì
+	// å¼€å§‹æ¸²æŸ“è¿‡ç¨‹
 	primaryCommandBuffer->BeginPrimary();
 	{
-		// ÒõÓ°»æÖÆRenderPass
+		// é˜´å½±ç»˜åˆ¶RenderPass
 		{
 			{
 				primaryCommandBuffer->BeginRenderPass(shadowMapTarget, SUBPASS_CONTENTS_SECONDARY);
@@ -1827,14 +1827,14 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 				primaryCommandBuffer->EndRenderPass();
 			}
 		}
-		// Îï¼ş»æÖÆRenderPass
+		// ç‰©ä»¶ç»˜åˆ¶RenderPass
 		{
 			primaryCommandBuffer->BeginRenderPass(offscreenTarget, SUBPASS_CONTENTS_SECONDARY);
 
 			auto commandBuffers = m_CommandBuffers[frameIndex].commandBuffersExec;
 			commandBuffers.clear();
 
-			// »æÖÆSkyBox
+			// ç»˜åˆ¶SkyBox
 			{
 				skyBoxCommandBuffer->BeginSecondary(offscreenTarget);
 				skyBoxCommandBuffer->SetViewport(offscreenTarget);
@@ -1928,7 +1928,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 		}
 		primaryCommandBuffer->EndRenderPass();
 
-		// ºó´¦ÀíÓëUI RenderPass
+		// åå¤„ç†ä¸UI RenderPass
 		primaryCommandBuffer->BeginRenderPass(swapChainTarget, SUBPASS_CONTENTS_SECONDARY);
 		{
 			{
@@ -1945,17 +1945,17 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 				VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 				VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
 
-				// °ó¶¨¹ÜÏß
+				// ç»‘å®šç®¡çº¿
 				vkCmdBindPipeline(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-				// °ó¶¨¹ÜÏß²¼¾Ö
+				// ç»‘å®šç®¡çº¿å¸ƒå±€
 				vkCmdBindDescriptorSets(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-				// °ó¶¨¶¥µã»º³å
+				// ç»‘å®šé¡¶ç‚¹ç¼“å†²
 				KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_QuadData.vertexBuffer.get();
 				VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
 				VkDeviceSize offsets[] = {0};
 				vkCmdBindVertexBuffers(vkBufferHandle, 0, 1, vertexBuffers, offsets);
-				// °ó¶¨Ë÷Òı»º³å
+				// ç»‘å®šç´¢å¼•ç¼“å†²
 				KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_QuadData.indexBuffer.get();
 				vkCmdBindIndexBuffer(vkBufferHandle, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 
@@ -2026,7 +2026,7 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 		size_t numPerThread = m_ObjectTransforms.size() / numThread;
 		size_t numRemain = m_ObjectTransforms.size() % numThread;
 
-		// ´´½¨Ïß³ÌÃüÁî»º³åÓëÃüÁî³Ø
+		// åˆ›å»ºçº¿ç¨‹å‘½ä»¤ç¼“å†²ä¸å‘½ä»¤æ± 
 		for (size_t threadIdx = 0; threadIdx < numThread; ++threadIdx)
 		{
 			ThreadData& threadData = m_CommandBuffers[i].threadDatas[threadIdx];

@@ -1,4 +1,4 @@
-﻿#include "KMemoryAllocator.h"
+#include "KMemoryAllocator.h"
 #include <assert.h>
 
 EXPORT_DLL IKMemoryAllocatorPtr CreateAllocator()
