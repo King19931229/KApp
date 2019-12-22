@@ -35,6 +35,13 @@ find_library( # Sets the name of the path variable.
 add_subdirectory(KBase)
 add_subdirectory(KRender)
 
+# https://github.com/android/ndk-samples/blob/master/native-activity/app/src/main/cpp/CMakeLists.txt
+# build native_app_glue as a static lib
+set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
+add_library(native_app_glue STATIC ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
+# Export ANativeActivity_onCreate(),
+# Refer to: https://github.com/android-ndk/ndk/issues/381.
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 include_directories(${ANDROID_NDK}/sources/android/native_app_glue)
 
 # Specifies libraries CMake should link to your target library. You
@@ -43,6 +50,8 @@ include_directories(${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_link_libraries( # Specifies the target library.
         native-lib
+        android
+        native_app_glue
         KBase
         KRender
         # Links the target library to the log library

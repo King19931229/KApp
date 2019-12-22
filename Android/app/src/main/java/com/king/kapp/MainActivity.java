@@ -1,24 +1,54 @@
 package com.king.kapp;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.widget.TextView;
+import android.app.AlertDialog;
+import android.app.NativeActivity;
+import android.content.DialogInterface;
+import android.content.pm.ApplicationInfo;
 
-public class MainActivity extends AppCompatActivity {
+import java.util.concurrent.Semaphore;
 
-    // Used to load the 'native-lib' library on application startup.
+public class MainActivity extends NativeActivity {
+
     static {
+        // Load native library
         System.loadLibrary("native-lib");
     }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+    }
 
-        // Example of a call to a native method
-        TextView tv = (TextView) findViewById(R.id.sample_text);
-        tv.setText(stringFromJNI());
+    // Use a semaphore to create a modal dialog
+
+    private final Semaphore semaphore = new Semaphore(0, true);
+
+    public void showAlert(final String message)
+    {
+        final MainActivity activity = this;
+
+        ApplicationInfo applicationInfo = activity.getApplicationInfo();
+        final String applicationName = applicationInfo.nonLocalizedLabel.toString();
+
+        this.runOnUiThread(new Runnable() {
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(activity, android.R.style.Theme_Material_Dialog_Alert);
+                builder.setTitle(applicationName);
+                builder.setMessage(message);
+                builder.setPositiveButton("Close", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        semaphore.release();
+                    }
+                });
+                builder.setCancelable(false);
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+        });
+        try {
+            semaphore.acquire();
+        }
+        catch (InterruptedException e) { }
     }
 
     /**
