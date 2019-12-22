@@ -79,7 +79,6 @@ inline bool KLIST_POP_FRONT(KLIST_NODE* pHeadList)
 {
 	if(pHeadList)
 	{
-		pHeadList->pNext;
 		KLIST_ERASE(pHeadList->pNext);
 		return true;
 	}
@@ -90,7 +89,6 @@ inline bool KLIST_POP_BACK(KLIST_NODE* pHeadList)
 {
 	if(pHeadList)
 	{
-		pHeadList->pPrev;
 		KLIST_ERASE(pHeadList->pPrev);
 		return true;
 	}

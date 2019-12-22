@@ -144,7 +144,7 @@ bool KVulkanPipeline::SetConstantBuffer(unsigned int location, ShaderTypes shade
 		ASSERT_RESULT(m_Samplers.find(location) == m_Samplers.end() && "The location you try to bind is conflited with sampler");
 
 		UniformBufferBindingInfo info = { shaderTypes, buffer };
-		auto& it = m_Uniforms.find(location);
+		auto it = m_Uniforms.find(location);
 		if(it == m_Uniforms.end())
 		{
 			m_Uniforms[location] = info;
@@ -170,7 +170,7 @@ bool KVulkanPipeline::SetSampler(unsigned int location, const ImageView& imageVi
 			((KVulkanSampler*)sampler.get())->GetVkSampler(),
 			imageView.fromDepthStencil ? true : false
 		};
-		auto& it = m_Samplers.find(location);
+		auto it = m_Samplers.find(location);
 		if(it == m_Samplers.end())
 		{
 			m_Samplers[location] = info;
@@ -203,8 +203,8 @@ bool KVulkanPipeline::CreateLayout()
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
 	
 	/*
-	DescriptorSetLayout ½ö½öÉùÃ÷UBO Sampler°ó¶¨µÄÎ»ÖÃ
-	Êµ¼ÊUBO Sampler ¾ä±ú°ó¶¨ÔÚÃèÊö¼¯ºÏÀïÖ¸¶¨
+	DescriptorSetLayout ä»…ä»…å£°æ˜UBO Samplerç»‘å®šçš„ä½ç½®
+	å®é™…UBO Sampler å¥æŸ„ç»‘å®šåœ¨æè¿°é›†åˆé‡ŒæŒ‡å®š
 	*/
 	std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
 
@@ -217,12 +217,12 @@ bool KVulkanPipeline::CreateLayout()
 		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(info.shaderTypes, stageFlags));
 
 		VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-		// ÓëShaderÖĞ°ó¶¨Î»ÖÃ¶ÔÓ¦
+		// ä¸Shaderä¸­ç»‘å®šä½ç½®å¯¹åº”
 		uboLayoutBinding.binding = location;
 		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		// ÉùÃ÷UBO BufferÊı×é³¤¶È ÕâÀï²»Ê¹ÓÃÊı×é
+		// å£°æ˜UBO Bufferæ•°ç»„é•¿åº¦ è¿™é‡Œä¸ä½¿ç”¨æ•°ç»„
 		uboLayoutBinding.descriptorCount = 1;
-		// ÉùÃ÷ÄÄ¸ö½×¶ÎShaderÄÜ¹»Ê¹ÓÃÉÏ´ËUBO
+		// å£°æ˜å“ªä¸ªé˜¶æ®µShaderèƒ½å¤Ÿä½¿ç”¨ä¸Šæ­¤UBO
 		uboLayoutBinding.stageFlags = stageFlags; // VK_SHADER_STAGE_ALL_GRAPHICS
 		uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
@@ -235,12 +235,12 @@ bool KVulkanPipeline::CreateLayout()
 		SamplerBindingInfo& info = pair.second;
 
 		VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-		// ÓëShaderÖĞ°ó¶¨Î»ÖÃ¶ÔÓ¦
+		// ä¸Shaderä¸­ç»‘å®šä½ç½®å¯¹åº”
 		samplerLayoutBinding.binding = location;
 		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		// ÕâÀï²»Ê¹ÓÃÊı×é
+		// è¿™é‡Œä¸ä½¿ç”¨æ•°ç»„
 		samplerLayoutBinding.descriptorCount = 1;
-		// ÉùÃ÷ÄÄ¸ö½×¶ÎShaderÄÜ¹»Ê¹ÓÃÉÏ´ËSampler
+		// å£°æ˜å“ªä¸ªé˜¶æ®µShaderèƒ½å¤Ÿä½¿ç”¨ä¸Šæ­¤Sampler
 		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
@@ -255,7 +255,7 @@ bool KVulkanPipeline::CreateLayout()
 	VK_ASSERT_RESULT(vkCreateDescriptorSetLayout(KVulkanGlobal::device, &layoutInfo, nullptr, &m_DescriptorSetLayout));
 
 	/*
-	ÉùÃ÷PushConstant
+	å£°æ˜PushConstant
 	*/
 	size_t pushConstantOffset = 0;
 	std::vector<VkPushConstantRange> pushConstantRanges;
@@ -274,13 +274,13 @@ bool KVulkanPipeline::CreateLayout()
 		pushConstantOffset += pushConstantRange.size;
 	}
 
-	// ´´½¨¹ÜÏß²¼¾Ö
+	// åˆ›å»ºç®¡çº¿å¸ƒå±€
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1;
-	// Ö¸¶¨¸Ã¹ÜÏßµÄÃèÊö²¼¾Ö
+	// æŒ‡å®šè¯¥ç®¡çº¿çš„æè¿°å¸ƒå±€
 	pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout;
-	// Ö¸¶¨PushConstant
+	// æŒ‡å®šPushConstant
 	pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 	pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges.size() > 0 ? pushConstantRanges.data() : nullptr;
 
@@ -297,12 +297,12 @@ bool KVulkanPipeline::CreateDestcription()
 
 	VkDescriptorPoolSize uniformPoolSize = {};
 	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	// ¸ÃÃèÊö³Ø´´½¨¸Ãtype(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)µÄÃèÊö¼¯ºÏÊı×î´óÖµ
+	// è¯¥æè¿°æ± åˆ›å»ºè¯¥type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)çš„æè¿°é›†åˆæ•°æœ€å¤§å€¼
 	uniformPoolSize.descriptorCount = std::max(1U, static_cast<uint32_t>(m_Uniforms.size()));
 
 	VkDescriptorPoolSize samplerPoolSize = {};
 	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	// ¸ÃÃèÊö³Ø´´½¨¸Ãtype(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)µÄÃèÊö¼¯ºÏÊı×î´óÖµ
+	// è¯¥æè¿°æ± åˆ›å»ºè¯¥type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)çš„æè¿°é›†åˆæ•°æœ€å¤§å€¼
 	samplerPoolSize.descriptorCount = std::max(1U, static_cast<uint32_t>(m_Samplers.size()));
 
 	VkDescriptorPoolSize poolSizes[] = {uniformPoolSize, samplerPoolSize};
@@ -312,24 +312,24 @@ bool KVulkanPipeline::CreateDestcription()
 	poolInfo.poolSizeCount = ARRAY_SIZE(poolSizes);
 	poolInfo.pPoolSizes = poolSizes;
 
-	// ´´½¨µÄÃèÊö³Ø¸÷¸ötypeµÄÃèÊö¼¯ºÏÊıµÄ×ÜºÍ
-	// Ïàµ±ÓÚËùÓĞpPoolSizesµÄdescriptorCount×ÜºÍ
+	// åˆ›å»ºçš„æè¿°æ± å„ä¸ªtypeçš„æè¿°é›†åˆæ•°çš„æ€»å’Œ
+	// ç›¸å½“äºæ‰€æœ‰pPoolSizesçš„descriptorCountæ€»å’Œ
 	poolInfo.maxSets = poolInfo.poolSizeCount;
 
 	VK_ASSERT_RESULT(vkCreateDescriptorPool(KVulkanGlobal::device, &poolInfo, nullptr, &m_DescriptorPool));
 
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	// Ö¸¶¨¸ÃÃèÊö¼¯ºÏ´ÓÄÄ¸öÃèÊö³Ø´´½¨
+	// æŒ‡å®šè¯¥æè¿°é›†åˆä»å“ªä¸ªæè¿°æ± åˆ›å»º
 	allocInfo.descriptorPool = m_DescriptorPool;
-	// ´´½¨µÄÃèÊö¼¯ºÏÊı
+	// åˆ›å»ºçš„æè¿°é›†åˆæ•°
 	allocInfo.descriptorSetCount = 1;
-	// Ö¸¶¨Ã¿¸ö´´½¨µÄÃèÊö¼¯ºÏ¶ÔÓ¦µÄÃèÊö²¼¾Ö
+	// æŒ‡å®šæ¯ä¸ªåˆ›å»ºçš„æè¿°é›†åˆå¯¹åº”çš„æè¿°å¸ƒå±€
 	allocInfo.pSetLayouts = &m_DescriptorSetLayout;
 
 	VK_ASSERT_RESULT(vkAllocateDescriptorSets(KVulkanGlobal::device, &allocInfo, &m_DescriptorSet));
 
-	// ¸üĞÂÃèÊö¼¯ºÏ
+	// æ›´æ–°æè¿°é›†åˆ
 	std::vector<VkWriteDescriptorSet> writeDescriptorSet;
 	std::vector<VkDescriptorBufferInfo> descBufferInfo;
 	std::vector<VkDescriptorImageInfo> descImageInfo;
@@ -356,11 +356,11 @@ bool KVulkanPipeline::CreateDestcription()
 		VkWriteDescriptorSet uniformDescriptorWrite = {};
 
 		uniformDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		// Ğ´ÈëµÄÃèÊö¼¯ºÏ
+		// å†™å…¥çš„æè¿°é›†åˆ
 		uniformDescriptorWrite.dstSet = m_DescriptorSet;
-		// Ğ´ÈëµÄÎ»ÖÃ ÓëDescriptorSetLayoutÀïµÄVkDescriptorSetLayoutBindingÎ»ÖÃ¶ÔÓ¦
+		// å†™å…¥çš„ä½ç½® ä¸DescriptorSetLayouté‡Œçš„VkDescriptorSetLayoutBindingä½ç½®å¯¹åº”
 		uniformDescriptorWrite.dstBinding = location;
-		// Ğ´ÈëË÷ÒıÓëÏÂÃædescriptorCount¶ÔÓ¦
+		// å†™å…¥ç´¢å¼•ä¸ä¸‹é¢descriptorCountå¯¹åº”
 		uniformDescriptorWrite.dstArrayElement = 0;
 
 		uniformDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -388,11 +388,11 @@ bool KVulkanPipeline::CreateDestcription()
 		VkWriteDescriptorSet samplerDescriptorWrite = {};
 
 		samplerDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET ;
-		// Ğ´ÈëµÄÃèÊö¼¯ºÏ
+		// å†™å…¥çš„æè¿°é›†åˆ
 		samplerDescriptorWrite.dstSet = m_DescriptorSet;
-		// Ğ´ÈëµÄÎ»ÖÃ ÓëDescriptorSetLayoutÀïµÄVkDescriptorSetLayoutBindingÎ»ÖÃ¶ÔÓ¦
+		// å†™å…¥çš„ä½ç½® ä¸DescriptorSetLayouté‡Œçš„VkDescriptorSetLayoutBindingä½ç½®å¯¹åº”
 		samplerDescriptorWrite.dstBinding = location;
-		// Ğ´ÈëË÷ÒıÓëÏÂÃædescriptorCount¶ÔÓ¦
+		// å†™å…¥ç´¢å¼•ä¸ä¸‹é¢descriptorCountå¯¹åº”
 		samplerDescriptorWrite.dstArrayElement = 0;
 
 		samplerDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -494,7 +494,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	VkSampleCountFlagBits msaaFlag = m_Target->GetMsaaFlag();
 	VkExtent2D extend = m_Target->GetExtend();
 
-	// ÅäÖÃ¶¥µãÊäÈëĞÅÏ¢
+	// é…ç½®é¡¶ç‚¹è¾“å…¥ä¿¡æ¯
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;	
 
@@ -503,13 +503,13 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)m_Pipeline->m_AttributeDescriptions.size();
 	vertexInputInfo.pVertexAttributeDescriptions = m_Pipeline->m_AttributeDescriptions.data();
 
-	// ÅäÖÃ¶¥µã×é×°ĞÅÏ¢
+	// é…ç½®é¡¶ç‚¹ç»„è£…ä¿¡æ¯
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	inputAssembly.topology = m_Pipeline->m_PrimitiveTopology;
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-	// ÅäÖÃÊÓ¿Ú²Ã¼ô
+	// é…ç½®è§†å£è£å‰ª
 	VkViewport viewport = {};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
@@ -531,7 +531,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	viewportState.scissorCount = 1;
 	viewportState.pScissors = &scissor;
 
-	// ÅäÖÃ¹âÕ¤»¯ĞÅÏ¢
+	// é…ç½®å…‰æ …åŒ–ä¿¡æ¯
 	VkPipelineRasterizationStateCreateInfo rasterizer = {};
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizer.depthClampEnable = VK_FALSE;
@@ -546,7 +546,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	rasterizer.depthBiasClamp = 0.0f; // Optional
 	rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
 
-	// ÅäÖÃÉî¶È»º³åĞÅÏ¢
+	// é…ç½®æ·±åº¦ç¼“å†²ä¿¡æ¯
 	VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	depthStencil.depthTestEnable = m_Pipeline->m_DepthTest;
@@ -563,7 +563,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	depthStencil.front = empty; // Optional
 	depthStencil.back = empty; // Optional
 
-	// ÅäÖÃ¶àÖØ²ÉÑùĞÅÏ¢
+	// é…ç½®å¤šé‡é‡‡æ ·ä¿¡æ¯
 	VkPipelineMultisampleStateCreateInfo multisampling = {};
 	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multisampling.sampleShadingEnable = VK_FALSE;
@@ -573,7 +573,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
 	multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
-	// ÅäÖÃAlpha»ìºÏĞÅÏ¢
+	// é…ç½®Alphaæ··åˆä¿¡æ¯
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colorBlendAttachment.blendEnable = m_Pipeline->m_BlendEnable;
@@ -607,7 +607,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	colorBlending.blendConstants[2] = 0.0f; // Optional
 	colorBlending.blendConstants[3] = 0.0f; // Optional
 
-	// ÉèÖÃ¶¯Ì¬×´Ì¬
+	// è®¾ç½®åŠ¨æ€çŠ¶æ€
 	std::vector<VkDynamicState> dynamicStates;
 
 	dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
@@ -647,30 +647,30 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 
 	shaderStageInfo.push_back(fsShaderCreateInfo);
 
-	// ´´½¨¹ÜÏß
+	// åˆ›å»ºç®¡çº¿
 	VkGraphicsPipelineCreateInfo pipelineInfo = {};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	// Ö¸¶¨¹ÜÏßËùÊ¹ÓÃµÄShader
+	// æŒ‡å®šç®¡çº¿æ‰€ä½¿ç”¨çš„Shader
 	pipelineInfo.stageCount = (uint32_t)shaderStageInfo.size();
 	pipelineInfo.pStages = shaderStageInfo.data();
-	// Ö¸¶¨¹ÜÏß¶¥µãÊäÈëĞÅÏ¢
+	// æŒ‡å®šç®¡çº¿é¡¶ç‚¹è¾“å…¥ä¿¡æ¯
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
-	// Ö¸¶¨¹ÜÏßÊÓ¿Ú
+	// æŒ‡å®šç®¡çº¿è§†å£
 	pipelineInfo.pViewportState = &viewportState;
-	// Ö¸¶¨¹âÕ¤»¯
+	// æŒ‡å®šå…‰æ …åŒ–
 	pipelineInfo.pRasterizationState = &rasterizer;
-	// Ö¸¶¨Éî¶È»º³å
+	// æŒ‡å®šæ·±åº¦ç¼“å†²
 	pipelineInfo.pDepthStencilState = &depthStencil;
-	// Ö¸¶¨¶àÖØ²ÉÑù·½Ê½
+	// æŒ‡å®šå¤šé‡é‡‡æ ·æ–¹å¼
 	pipelineInfo.pMultisampleState = &multisampling;
-	// Ö¸¶¨»ìºÏÄ£Ê½
+	// æŒ‡å®šæ··åˆæ¨¡å¼
 	pipelineInfo.pColorBlendState = &colorBlending;
-	// Ö¸¶¨¶¯Ì¬×´Ì¬
+	// æŒ‡å®šåŠ¨æ€çŠ¶æ€
 	pipelineInfo.pDynamicState = &dynamicState;
-	// Ö¸¶¨¹ÜÏß²¼¾Ö
+	// æŒ‡å®šç®¡çº¿å¸ƒå±€
 	pipelineInfo.layout = m_Pipeline->m_PipelineLayout;
-	// Ö¸¶¨äÖÈ¾Í¨µÀ
+	// æŒ‡å®šæ¸²æŸ“é€šé“
 	pipelineInfo.renderPass = m_Target->GetRenderPass();
 	pipelineInfo.subpass = 0;
 

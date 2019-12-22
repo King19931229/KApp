@@ -1,19 +1,23 @@
 #pragma once
 #include "Interface/IKRenderWindow.h"
-#include "GLFW/glfw3.h"
 #include <chrono>
+
+#ifndef __ANDROID__
+#include "GLFW/glfw3.h"
+#else
+
+#endif
 
 class KVulkanRenderDevice;
 
 class KVulkanRenderWindow : IKRenderWindow
-{
-	GLFWwindow* m_window;
+{	
 	KVulkanRenderDevice* m_device;
-
+#ifndef __ANDROID__
+	GLFWwindow* m_window;
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
 	std::vector<KScrollCallbackType*> m_ScrollCallbacks;
-
 	bool m_MouseDown[INPUT_MOUSE_BUTTON_COUNT];
 
 	static bool GLFWKeyToInputKeyboard(int key, InputKeyboard& keyboard);
@@ -26,6 +30,10 @@ class KVulkanRenderWindow : IKRenderWindow
 	static void ScrollCallback(GLFWwindow* handle, double xoffset, double yoffset);
 
 	void OnMouseMove();
+#else
+
+#endif
+
 public:
 	KVulkanRenderWindow();
 	virtual ~KVulkanRenderWindow();
@@ -54,8 +62,9 @@ public:
 	virtual bool UnRegisterMouseCallback(KMouseCallbackType* callback);
 	virtual bool UnRegisterScrollCallback(KScrollCallbackType* callback);
 
-	inline GLFWwindow* GetGLFWwindow() { return m_window; }
 	inline void SetVulkanDevice(KVulkanRenderDevice* device) { m_device = device; }
-
+#ifndef __ANDROID__
+	inline GLFWwindow* GetGLFWwindow() { return m_window; }
+#endif
 	bool IdleUntilForeground();
 };

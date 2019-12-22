@@ -81,13 +81,13 @@ void KSocketServer::ThreadFunc()
 		{
 
 #ifdef _WIN32
-            SOCKADDR m_sockClientAddr;
+            SOCKADDR sockClientAddr;
             int nSize = sizeof(SOCKADDR);
-			SOCKET sockClient = accept(m_socket, (SOCKADDR*)&m_sockClientAddr, &nSize);
+			SOCKET sockClient = accept(m_socket, (SOCKADDR*)&sockClientAddr, &nSize);
 #else
-            sockaddr m_sockClientAddr;
+            sockaddr sockClientAddr;
             int nSize = sizeof(sockaddr);
-            int sockClient = accept(m_socket, &m_sockClientAddr, &nSize);
+            int sockClient = accept(m_socket, &sockClientAddr, &nSize);
 #endif
 			if(sockClient != SOCKET_ERROR)
 			{

@@ -169,6 +169,7 @@ public:
 		bool bRet = false;
 		short nCurrentReadIndex = -1;
 		short nNextReadIndex = -1;
+		short nExp = -1;
 		do
 		{
 			nCurrentReadIndex		= m_nReadIndex.load(std::memory_order_relaxed);
@@ -177,7 +178,7 @@ public:
 			nExp					= nCurrentReadIndex;
 			if(nCurrentReadIndex == m_nMaxReadIndex.load(std::memory_order_relaxed))
 				break;
-			if(m_nReadIndex.compare_exchange_stromg(nExp, nNextReadIndex, std::memory_order_seq_cst))
+			if(m_nReadIndex.compare_exchange_strong(nExp, nNextReadIndex, std::memory_order_seq_cst))
 			{
 				element = m_RingBuffer[nCurrentReadIndex];
 				// C++11 CAS操作会修改【Exp】

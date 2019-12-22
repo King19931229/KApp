@@ -5,6 +5,7 @@
 
 #include <functional>
 
+class KMesh;
 class KSubMesh
 {
 	friend class KMesh;

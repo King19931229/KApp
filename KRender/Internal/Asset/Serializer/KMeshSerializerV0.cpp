@@ -122,7 +122,7 @@ bool KMeshSerializerV0::ReadString(IKDataStreamPtr& stream, std::string& value)
 	if(len > 0)
 	{
 		char* temp = new char[len + 1];
-		ACTION_ON_FAILURE(stream->Read(temp, len), delete temp; return false);
+		ACTION_ON_FAILURE(stream->Read(temp, len), delete[] temp; return false);
 		temp[len] = '\0';
 		value = temp;
 		delete[] temp;

@@ -18,12 +18,16 @@
 #include "Publish/KCamera.h"
 #include "Publish/KAABBBox.h"
 
-#include "GLFW/glfw3.h"
 #include <algorithm>
 #include <vector>
 
+#ifndef __ANDROID__
+#include "GLFW/glfw3.h"
+#else
+
+#endif
+
 class KVulkanRenderWindow;
-class KVulkanDepthBuffer;
 
 class KVulkanRenderDevice : IKRenderDevice
 {

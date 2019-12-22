@@ -1,4 +1,5 @@
 #include "KDebugConsole.h"
+#include <stdio.h>
 #ifdef _WIN32
 #include <Windows.h>
 #endif
@@ -28,7 +29,7 @@ void KDebugConsole::ThreadFunc()
 #ifdef _WIN32
 		gets_s(buffer, sizeof(buffer) - 1);
 #else
-		gets(buffer);
+		fgets(buffer, sizeof(buffer) - 1, stdin);
 #endif
 		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 		{

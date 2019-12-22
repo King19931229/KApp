@@ -1,3 +1,4 @@
+#if 0
 #define MEMORY_DUMP_DEBUG
 #include "KBase/Publish/KConfig.h"
 #include "Internal/Vulkan/KVulkanHeapAllocator.h"
@@ -27,3 +28,4 @@ int main()
 
 	KVulkanHeapAllocator::UnInit();
 }
+#endif

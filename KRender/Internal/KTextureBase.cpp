@@ -1,5 +1,6 @@
 #include "KTextureBase.h"
 #include "KBase/Interface/IKDataStream.h"
+#include <cmath>
 
 static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& elementFormat)
 {

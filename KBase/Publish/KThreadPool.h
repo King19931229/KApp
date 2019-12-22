@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "Publish/KLockFreeQueue.h"
-#include "Publish/KLockQueue.h"
-#include "Publish/KSemaphore.h"
-#include "Publish/KThreadTool.h"
+#include "KBase/Publish/KLockFreeQueue.h"
+#include "KBase/Publish/KLockQueue.h"
+#include "KBase/Publish/KSemaphore.h"
+#include "KBase/Publish/KThreadTool.h"
 
 template<typename Task, bool bUseLockFreeQueue = false>
 class KThreadPool
@@ -19,7 +19,7 @@ class KThreadPool
 		}
 	};
 
-	template<bool bUseLockFreeQueue>
+	template<bool __UseLockFreeQueue__>
 	struct BOOLToTYPE
 	{
 	};

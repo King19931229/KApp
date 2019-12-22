@@ -15,6 +15,7 @@ file(GLOB_RECURSE SRC "${SRC_ROOT}/*.cpp")
 
 include_directories(
     ${SRC_ROOT}
+    ${SRC_ROOT}/../
     ${SRC_ROOT}/../Dependency/FreeImage/
     ${SRC_ROOT}/../Dependency/boost/include/
     ${SRC_ROOT}/../Dependency/Python27/Include/
@@ -22,6 +23,13 @@ include_directories(
     ${SRC_ROOT}/../Dependency/assimp-3.3.1/include/
     ${SRC_ROOT}/../Dependency/zip-0.1.16/src/
 )
+
+add_subdirectory(../Dependency/imgui imgui_binary_dir)
+add_subdirectory(../Dependency/tinyxml2 tinyxml2_binary_dir)
+add_subdirectory(../Dependency/zip zip_binary_dir)
+add_subdirectory(../Dependency/FreeImage/FreeImage FreeImage_binary_dir)
+add_subdirectory(../Dependency/assimp-3.3.1/code code_binary_dir)
+#add_subdirectory(../Dependency/Python27 Python27_binary_dir)
 
 add_library(KBase
     STATIC

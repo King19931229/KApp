@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "Publish/KConfig.h"
-#include "Publish/KImage.h"
+#include "KBase/Publish/KConfig.h"
+#include "KBase/Publish/KImage.h"
 
 struct KCodecResult
 {

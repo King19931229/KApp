@@ -44,8 +44,9 @@ const char* DEVICE_EXTENSIONS[] =
 };
 #define DEVICE_EXTENSIONS_COUNT (sizeof(DEVICE_EXTENSIONS) / sizeof(const char*))
 
-std::vector<const char*> PopulateExtensions(bool bEnableValidationLayer)
+static std::vector<const char*> PopulateExtensions(bool bEnableValidationLayer)
 {
+#ifndef __ANDROID__
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -58,6 +59,10 @@ std::vector<const char*> PopulateExtensions(bool bEnableValidationLayer)
 	}
 
 	return std::move(extensions);
+#else
+	std::vector<const char*> extensions;
+	return std::move(extensions);
+#endif
 }
 
 //-------------------- Validation Layer --------------------//
@@ -455,11 +460,15 @@ bool KVulkanRenderDevice::CreatePipelines()
 
 bool KVulkanRenderDevice::CreateSurface()
 {
+#ifndef __ANDROID__
 	GLFWwindow *glfwWindow = m_pWindow->GetGLFWwindow();
 	if(glfwCreateWindowSurface(m_Instance, glfwWindow, nullptr, &m_Surface)== VK_SUCCESS)
 	{
 		return true;
 	}
+#else
+
+#endif
 	return false;
 }
 
@@ -1074,8 +1083,13 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		return false;
 
 	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)window.get();
+#ifndef __ANDROID__
 	if(renderWindow == nullptr || renderWindow->GetGLFWwindow() == nullptr)
 		return false;
+#else
+	if(renderWindow == nullptr)
+		return false;
+#endif
 
 	m_pWindow = renderWindow;
 
@@ -1910,7 +1924,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
 				commandBuffers.push_back(threadData.commandBuffer.get());
 			}
-			primaryCommandBuffer->ExecuteAll(std::move(commandBuffers));
+			primaryCommandBuffer->ExecuteAll(commandBuffers);
 		}
 		primaryCommandBuffer->EndRenderPass();
 

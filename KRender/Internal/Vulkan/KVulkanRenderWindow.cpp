@@ -2,16 +2,22 @@
 #include "KVulkanRenderDevice.h"
 
 KVulkanRenderWindow::KVulkanRenderWindow()
-	: m_window(nullptr),
-	m_device(nullptr)
+	: m_device(nullptr)
 {
+#ifndef __ANDROID__
+	m_window = nullptr;
 	ZERO_ARRAY_MEMORY(m_MouseDown);
+#else
+
+#endif
 }
 
 KVulkanRenderWindow::~KVulkanRenderWindow()
 {
 
 }
+
+#ifndef __ANDROID__
 
 void KVulkanRenderWindow::FramebufferResizeCallback(GLFWwindow* handle, int width, int height)
 {
@@ -178,8 +184,11 @@ void KVulkanRenderWindow::OnMouseMove()
 	}
 }
 
+#endif
+
 bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable)
 {
+#ifndef	__ANDROID__
 	if(glfwInit() == GLFW_TRUE)
 	{
 		glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
@@ -204,6 +213,9 @@ bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t hei
 	{
 		m_window = nullptr;
 	}
+#else
+
+#endif
 	return false;
 }
 
@@ -213,6 +225,7 @@ bool KVulkanRenderWindow::UnInit()
 	{
 		m_device = nullptr;
 	}
+#ifndef	__ANDROID__
 	if(m_window)
 	{
 		glfwDestroyWindow(m_window);
@@ -222,23 +235,31 @@ bool KVulkanRenderWindow::UnInit()
 
 	m_KeyboardCallbacks.clear();
 	m_MouseCallbacks.clear();
+#else
+
+#endif
 
 	return true;
 }
 
 bool KVulkanRenderWindow::IdleUntilForeground()
 {
+#ifndef	__ANDROID__
 	int width = 0, height = 0;
 	while (width == 0 || height == 0)
 	{
 		glfwGetFramebufferSize(m_window, &width, &height);
 		glfwWaitEvents();
 	}
+#else
+
+#endif
 	return true;
 }
 
 bool KVulkanRenderWindow::Loop()
 {
+#ifndef	__ANDROID__
 	if(m_window)
 	{
 		while(!glfwWindowShouldClose(m_window))
@@ -250,7 +271,7 @@ bool KVulkanRenderWindow::Loop()
 				m_device->Present();
 			}
 		}
-		// ¹ÒÆðÖ÷Ïß³ÌÖ±µ½device³ÖÓÐ¶ÔÏó±»Ïú»ÙÍê±Ï
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½Ö±ï¿½ï¿½deviceï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?
 		if(m_device)
 		{
 			m_device->Wait();
@@ -261,10 +282,14 @@ bool KVulkanRenderWindow::Loop()
 	{
 		return false;
 	}
+#else
+	return false;
+#endif
 }
 
 bool KVulkanRenderWindow::GetPosition(size_t &top, size_t &left)
 {
+#ifndef	__ANDROID__
 	if(m_window)
 	{
 		int xPos = -1, yPos = -1;
@@ -272,21 +297,25 @@ bool KVulkanRenderWindow::GetPosition(size_t &top, size_t &left)
 		top = (size_t)xPos, left = (size_t)yPos;
 		return true;
 	}
+#endif
 	return false;
 }
 
 bool KVulkanRenderWindow::SetPosition(size_t top, size_t left)
 {
+#ifndef	__ANDROID__
 	if(m_window)
 	{
 		glfwSetWindowPos(m_window, (int)top, (int)left);
 		return true;
 	}
+#endif
 	return false;
 }
 
 bool KVulkanRenderWindow::GetSize(size_t &width, size_t &height)
 {
+#ifndef	__ANDROID__
 	if(m_window)
 	{
 		int nWidth = -1, nHeight = -1;
@@ -294,16 +323,21 @@ bool KVulkanRenderWindow::GetSize(size_t &width, size_t &height)
 		width = (size_t)nWidth, height = (size_t)nHeight;
 		return true;
 	}
+#else
+
+#endif
 	return false;
 }
 
 bool KVulkanRenderWindow::SetSize(size_t width, size_t height)
 {
+#ifndef	__ANDROID__
 	if(m_window)
 	{
 		glfwSetWindowSize(m_window, (int)width, (int)height);
 		return true;
 	}
+#endif
 	return false;
 }
 
@@ -314,56 +348,67 @@ bool KVulkanRenderWindow::SetResizable(bool resizable)
 
 bool KVulkanRenderWindow::IsResizable()
 {
+#ifndef	__ANDROID__
 	if(m_window)
 	{
 		int hint = glfwGetWindowAttrib(m_window, GLFW_RESIZABLE);
 		return hint == GLFW_TRUE;
 	}
+#endif
 	return false;
 }
 
 bool KVulkanRenderWindow::SetWindowTitle(const char* pName)
 {
+#ifndef	__ANDROID__
 	if(m_window)
 	{
 		glfwSetWindowTitle(m_window, pName);
 		return true;
 	}
+#endif
 	return false;
 }
 
 bool KVulkanRenderWindow::RegisterKeyboardCallback(KKeyboardCallbackType* callback)
 {
+#ifndef	__ANDROID__
 	if(callback && std::find(m_KeyboardCallbacks.begin(), m_KeyboardCallbacks.end(), callback) == m_KeyboardCallbacks.end())
 	{
 		m_KeyboardCallbacks.push_back(callback);
 		return true;
 	}
+#endif
 	return false;
 }
 
 bool KVulkanRenderWindow::RegisterMouseCallback(KMouseCallbackType* callback)
 {
+#ifndef	__ANDROID__
 	if(callback && std::find(m_MouseCallbacks.begin(), m_MouseCallbacks.end(), callback) == m_MouseCallbacks.end())
 	{
 		m_MouseCallbacks.push_back(callback);
 		return true;
 	}
+#endif
 	return false;
 }
 
 bool KVulkanRenderWindow::RegisterScrollCallback(KScrollCallbackType* callback)
 {
+#ifndef	__ANDROID__
 	if(callback && std::find(m_ScrollCallbacks.begin(), m_ScrollCallbacks.end(), callback) == m_ScrollCallbacks.end())
 	{
 		m_ScrollCallbacks.push_back(callback);
 		return true;
 	}
+#endif
 	return false;
 }
 
 bool KVulkanRenderWindow::UnRegisterKeyboardCallback(KKeyboardCallbackType* callback)
 {
+#ifndef	__ANDROID__
 	if(callback)
 	{
 		auto it = std::find(m_KeyboardCallbacks.begin(), m_KeyboardCallbacks.end(), callback);
@@ -373,11 +418,13 @@ bool KVulkanRenderWindow::UnRegisterKeyboardCallback(KKeyboardCallbackType* call
 			return true;
 		}
 	}
+#endif
 	return false;
 }
 
 bool KVulkanRenderWindow::UnRegisterMouseCallback(KMouseCallbackType* callback)
 {
+#ifndef	__ANDROID__
 	if(callback)
 	{
 		auto it = std::find(m_MouseCallbacks.begin(), m_MouseCallbacks.end(), callback);
@@ -387,11 +434,13 @@ bool KVulkanRenderWindow::UnRegisterMouseCallback(KMouseCallbackType* callback)
 			return true;
 		}
 	}
+#endif
 	return false;
 }
 
 bool KVulkanRenderWindow::UnRegisterScrollCallback(KScrollCallbackType* callback)
 {
+#ifndef	__ANDROID__
 	if(callback)
 	{
 		auto it = std::find(m_ScrollCallbacks.begin(), m_ScrollCallbacks.end(), callback);
@@ -401,5 +450,6 @@ bool KVulkanRenderWindow::UnRegisterScrollCallback(KScrollCallbackType* callback
 			return true;
 		}
 	}
+#endif
 	return false;
 }

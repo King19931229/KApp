@@ -78,7 +78,7 @@ struct KRenderCommand
 		pipeline = nullptr;
 		pipelineHandle = nullptr;
 
-		objectData = false;
+		objectData = nullptr;
 		objectPushOffset = 0;
 		useObjectData = false;
 

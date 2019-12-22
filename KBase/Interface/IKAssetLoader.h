@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Publish/KConfig.h"
+#include "KBase/Publish/KConfig.h"
 #include <memory>
 #include <vector>
 #include <string>

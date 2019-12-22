@@ -159,7 +159,7 @@ bool KDataStreamBase::WriteLine(const char* pszLine, IOLineMode mode)
 			IOLineMode eCurLineMode = ILM_COUNT;
 			if(_ReadLine(pszLine, uLen, &eCurLineMode, &pLineEndPos))
 			{
-				assert(pLineEndPos);(pLineEndPos);
+				assert(pLineEndPos);
 				uLen -= LINE_DESCS[eCurLineMode].uLen;
 				assert(uLen > 0);
 			}

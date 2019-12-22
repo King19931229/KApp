@@ -49,39 +49,46 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 			switch(imageType)
 			{
 			case FIT_BITMAP:
-				// Standard image type
-				// Perform any colour conversions for greyscale
-				if (colourType == FIC_MINISWHITE || colourType == FIC_MINISBLACK)
 				{
-					FIBITMAP *newBitmap = FreeImage_ConvertToGreyscale(fiBitmap);
-					FreeImage_Unload(fiBitmap);
-					fiBitmap = newBitmap;
-					bpp = FreeImage_GetBPP(fiBitmap);
-					colourType = FreeImage_GetColorType(fiBitmap);
-				}
+					// Standard image type
+					// Perform any colour conversions for greyscale
+					if (colourType == FIC_MINISWHITE || colourType == FIC_MINISBLACK)
+					{
+						FIBITMAP *newBitmap = FreeImage_ConvertToGreyscale(fiBitmap);
+						FreeImage_Unload(fiBitmap);
+						fiBitmap = newBitmap;
+						bpp = FreeImage_GetBPP(fiBitmap);
+						colourType = FreeImage_GetColorType(fiBitmap);
+					}
 
-				// Perform any colour conversions for RGB
-				else if (bpp < 8|| colourType == FIC_PALETTE || colourType == FIC_CMYK)
-				{
-					FIBITMAP *newBitmap = FreeImage_ConvertTo24Bits(fiBitmap);
-					// free old bitmap and replace
-					FreeImage_Unload(fiBitmap);
-					fiBitmap = newBitmap;
-					// get new formats
-					bpp = FreeImage_GetBPP(fiBitmap);
-					colourType = FreeImage_GetColorType(fiBitmap);
-				}
+					// Perform any colour conversions for RGB
+					else if (bpp < 8|| colourType == FIC_PALETTE || colourType == FIC_CMYK)
+					{
+						FIBITMAP *newBitmap = FreeImage_ConvertTo24Bits(fiBitmap);
+						// free old bitmap and replace
+						FreeImage_Unload(fiBitmap);
+						fiBitmap = newBitmap;
+						// get new formats
+						bpp = FreeImage_GetBPP(fiBitmap);
+						colourType = FreeImage_GetColorType(fiBitmap);
+					}
 
-				// Extra logic forcing alpha
-				if(bpp < 32 && forceAlpha)
+					// Extra logic forcing alpha
+					if(bpp < 32 && forceAlpha)
+					{
+						FIBITMAP *newBitmap = FreeImage_ConvertTo32Bits(fiBitmap);
+						// free old bitmap and replace
+						FreeImage_Unload(fiBitmap);
+						fiBitmap = newBitmap;
+						// get new formats
+						bpp = FreeImage_GetBPP(fiBitmap);
+						colourType = FreeImage_GetColorType(fiBitmap);
+					}
+				}
+			default:
 				{
-					FIBITMAP *newBitmap = FreeImage_ConvertTo32Bits(fiBitmap);
-					// free old bitmap and replace
-					FreeImage_Unload(fiBitmap);
-					fiBitmap = newBitmap;
-					// get new formats
-					bpp = FreeImage_GetBPP(fiBitmap);
-					colourType = FreeImage_GetColorType(fiBitmap);
+					bpp = 0;
+					assert(false && "unsupport to perform now");
 				}
 			}
 
