@@ -85,10 +85,10 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 						colourType = FreeImage_GetColorType(fiBitmap);
 					}
 				}
+				// keep the compiler happy
 			default:
 				{
-					bpp = 0;
-					assert(false && "unsupport to perform now");
+
 				}
 			}
 
