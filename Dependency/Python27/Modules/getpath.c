@@ -92,12 +92,32 @@
  */
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
+#ifndef VERSION
+#define VERSION "2.1"
+#endif
 
-#if !defined(PREFIX) || !defined(EXEC_PREFIX) || !defined(VERSION) || !defined(VPATH)
-#error "PREFIX, EXEC_PREFIX, VERSION, and VPATH must be constant defined"
+#ifndef VPATH
+#define VPATH "."
+#endif
+
+#ifndef PREFIX
+#  ifdef __VMS
+#    define PREFIX ""
+#  else
+#    define PREFIX "/usr/local"
+#  endif
+#endif
+
+#ifndef EXEC_PREFIX
+#define EXEC_PREFIX PREFIX
+#endif
+
+#ifndef PYTHONPATH
+#define PYTHONPATH PREFIX "/lib/python" VERSION ":" \
+EXEC_PREFIX "/lib/python" VERSION "/lib-dynload"
 #endif
 
 #ifndef LANDMARK
@@ -382,7 +402,7 @@ calculate_path(void)
     NSModule pythonModule;
 #endif
 #ifdef __APPLE__
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4
+    #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4
     uint32_t nsexeclength = MAXPATHLEN;
 #else
     unsigned long nsexeclength = MAXPATHLEN;

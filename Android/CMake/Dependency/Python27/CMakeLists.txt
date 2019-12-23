@@ -16,8 +16,7 @@ include_directories(${SRC_ROOT}
     ${SRC_ROOT}/Include
     ${SRC_ROOT}/Python
     ${SRC_ROOT}/Modules/zlib
-    ${SRC_ROOT}/PCStatic
-#    ${SRC_ROOT}/RISCOS
+    ${SRC_ROOT}/Android
 )
 
 add_library( # Sets the name of the library.
@@ -43,6 +42,18 @@ add_library( # Sets the name of the library.
         ${SRC_ROOT}/Modules/future_builtins.c
         ${SRC_ROOT}/Modules/gcmodule.c
         ${SRC_ROOT}/Modules/getbuildinfo.c
+
+        ${SRC_ROOT}/Modules/posixmodule.c
+#        ${SRC_ROOT}/Modules/_ssl.c
+        ${SRC_ROOT}/Modules/posixmodule.c
+        ${SRC_ROOT}/Modules/selectmodule.c
+        ${SRC_ROOT}/Modules/socketmodule.c
+
+        ${SRC_ROOT}/Modules/getpath.c
+        ${SRC_ROOT}/Modules/pwdmodule.c
+        ${SRC_ROOT}/Modules/fcntlmodule.c
+        ${SRC_ROOT}/Modules/unicodedata.c
+
         ${SRC_ROOT}/Modules/imageop.c
         ${SRC_ROOT}/Modules/itertoolsmodule.c
         ${SRC_ROOT}/Modules/main.c
@@ -52,7 +63,6 @@ add_library( # Sets the name of the library.
         ${SRC_ROOT}/Modules/mmapmodule.c
         ${SRC_ROOT}/Modules/operator.c
         ${SRC_ROOT}/Modules/parsermodule.c
-        ${SRC_ROOT}/Modules/posixmodule.c
         ${SRC_ROOT}/Modules/rotatingtree.c
         ${SRC_ROOT}/Modules/sha256module.c
         ${SRC_ROOT}/Modules/sha512module.c
@@ -153,26 +163,7 @@ add_library( # Sets the name of the library.
         ${SRC_ROOT}/Parser/parser.c
         ${SRC_ROOT}/Parser/parsetok.c
         ${SRC_ROOT}/Parser/tokenizer.c
-
-#        ${SRC_ROOT}/RISCOS/sleep.c
-#        ${SRC_ROOT}/RISCOS/unixstuff.c
-#        ${SRC_ROOT}/RISCOS/Modules/config.c
-#        ${SRC_ROOT}/RISCOS/Modules/drawfmodule.c
-#        ${SRC_ROOT}/RISCOS/Modules/getpath_riscos.c
-#        ${SRC_ROOT}/RISCOS/Modules/riscosmodule.c
-#        ${SRC_ROOT}/RISCOS/Modules/swimodule.c
-#        ${SRC_ROOT}/RISCOS/Python/dynload_riscos.c
-#        ${SRC_ROOT}/RISCOS/Python/getcwd_riscos.c
-
-        ${SRC_ROOT}/PCStatic/config.c
-        ${SRC_ROOT}/PCStatic/dl_nt.c
-        ${SRC_ROOT}/PCStatic/getpathp.c
-        ${SRC_ROOT}/PCStatic/import_nt.c
-        ${SRC_ROOT}/PCStatic/make_versioninfo.c
-        ${SRC_ROOT}/PCStatic/msvcrtmodule.c
-        ${SRC_ROOT}/PCStatic/_subprocess.c
-        ${SRC_ROOT}/PCStatic/_winreg.c
-
+        ${SRC_ROOT}/Android/config.c
         ${SRC_ROOT}/Python/asdl.c
         ${SRC_ROOT}/Python/ast.c
         ${SRC_ROOT}/Python/bltinmodule.c
@@ -180,7 +171,7 @@ add_library( # Sets the name of the library.
         ${SRC_ROOT}/Python/codecs.c
         ${SRC_ROOT}/Python/compile.c
         ${SRC_ROOT}/Python/dtoa.c
-        ${SRC_ROOT}/Python/dynload_win.c
+#        ${SRC_ROOT}/Python/dynload_win.c
         ${SRC_ROOT}/Python/errors.c
         ${SRC_ROOT}/Python/formatter_string.c
         ${SRC_ROOT}/Python/formatter_unicode.c
