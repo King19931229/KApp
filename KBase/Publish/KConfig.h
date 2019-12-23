@@ -88,14 +88,21 @@ while(false);
 #	define DUMP_MEMORY_LEAK_END() {_CrtDumpMemoryLeaks(); _CrtSetDbgFlag(0);}
 #	define DUMP_MEMORY_STATUS() {_CrtMemState s; _CrtMemCheckpoint(&s); _CrtMemDumpStatistics(&s);}
 
-#	else
-//	https://en.wikipedia.org/wiki/Mtrace
-#	include <stdlib.h>
-#	include <mcheck.h>
-#	define DUMP_MEMORY_LEAK_BEGIN() {mtrace();}
-#	define DUMP_MEMORY_LEAK_END() {muntrace();}
-#	define DUMP_MEMORY_STATUS()
-
+#	else // _WIN32 
+// https://en.wikipedia.org/wiki/Mtrace
+// https://onestraw.github.io/cprogram/os-macro/
+// https://stackoverflow.com/questions/26569064/fatal-error-mcheck-h-file-not-found
+//#		ifdef __linux__
+//#			include <stdlib.h>
+//#			include <mcheck.h>
+//#			define DUMP_MEMORY_LEAK_BEGIN() {mtrace();}
+//#			define DUMP_MEMORY_LEAK_END() {muntrace();}
+//#			define DUMP_MEMORY_STATUS()
+//#		else
+#			define DUMP_MEMORY_LEAK_BEGIN()
+#			define DUMP_MEMORY_LEAK_END()
+#			define DUMP_MEMORY_STATUS()
+//#		endif
 #	endif
 
 #else

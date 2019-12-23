@@ -44,6 +44,9 @@ add_library(native_app_glue STATIC ${ANDROID_NDK}/sources/android/native_app_glu
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 include_directories(${ANDROID_NDK}/sources/android/native_app_glue)
 
+include_directories(../../)
+include_directories(../../KBase)
+include_directories(../../KRender)
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.

@@ -29,6 +29,7 @@ add_subdirectory(../Dependency/tinyxml2 tinyxml2_binary_dir)
 add_subdirectory(../Dependency/zip zip_binary_dir)
 add_subdirectory(../Dependency/FreeImage/FreeImage FreeImage_binary_dir)
 add_subdirectory(../Dependency/assimp-3.3.1/code code_binary_dir)
+add_subdirectory(../Dependency/boost boost_binary_dir)
 add_subdirectory(../Dependency/Python27 Python27_binary_dir)
 
 add_library(KBase
@@ -39,6 +40,7 @@ add_library(KBase
 target_link_libraries( # Specifies the target library.
     KBase
     FreeImage
+    boost
     python27
     assimp
     imgui
