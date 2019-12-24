@@ -1,5 +1,9 @@
 #pragma once
 #include "vulkan/vulkan.h"
+#ifdef __ANDROID__
+#include "vulkan/vk_platform.h"
+#include "vulkan/vulkan_android.h"
+#endif
 #include <stdio.h>
 #include <assert.h>
 

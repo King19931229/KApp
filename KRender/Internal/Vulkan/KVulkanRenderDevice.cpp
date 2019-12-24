@@ -52,17 +52,15 @@ static std::vector<const char*> PopulateExtensions(bool bEnableValidationLayer)
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
 	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
+#else
+	std::vector<const char*> extensions;
+#endif
 	if (bEnableValidationLayer)
 	{
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 	}
-
 	return std::move(extensions);
-#else
-	std::vector<const char*> extensions;
-	return std::move(extensions);
-#endif
 }
 
 //-------------------- Validation Layer --------------------//
@@ -73,7 +71,6 @@ const char* KHRONOS_VALIDATION_LAYERS[] =
 
 const char* LUNARG_GOOGLE_VALIDATION_LAYERS[] =
 {
-	"VK_LAYER_LUNARG_standard_validation",
 	"VK_LAYER_LUNARG_core_validation",
 	"VK_LAYER_LUNARG_object_tracker",
 	"VK_LAYER_LUNARG_parameter_validation",
@@ -89,11 +86,21 @@ struct ValidationLayerCandidate
 
 ValidationLayerCandidate VALIDATION_LAYER_CANDIDATE[] =
 {
-	{KHRONOS_VALIDATION_LAYERS, ARRAY_SIZE(LUNARG_GOOGLE_VALIDATION_LAYERS)},
+	{KHRONOS_VALIDATION_LAYERS, ARRAY_SIZE(KHRONOS_VALIDATION_LAYERS)},
 	{LUNARG_GOOGLE_VALIDATION_LAYERS, ARRAY_SIZE(LUNARG_GOOGLE_VALIDATION_LAYERS)},
 };
 
-VkResult CreateDebugUtilsMessengerEXT(
+static void PopulateDebugUtilsMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo, PFN_vkDebugUtilsMessengerCallbackEXT pCallBack)
+{
+	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	createInfo.pfnUserCallback = pCallBack;
+}
+
+static VkResult CreateDebugUtilsMessengerEXT(
 	VkInstance instance,
 	const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
 	const VkAllocationCallbacks* pAllocator,
@@ -110,7 +117,7 @@ VkResult CreateDebugUtilsMessengerEXT(
 	}
 }
 
-void DestroyDebugUtilsMessengerEXT(
+static void DestroyDebugUtilsMessengerEXT(
 	VkInstance instance,
 	VkDebugUtilsMessengerEXT debugMessenger,
 	const VkAllocationCallbacks* pAllocator)
@@ -122,18 +129,47 @@ void DestroyDebugUtilsMessengerEXT(
 	}
 }
 
-void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo, PFN_vkDebugUtilsMessengerCallbackEXT pCallBack)
+static void PopulateDebugReportCallbackCreateInfo(VkDebugReportCallbackCreateInfoEXT& createInfo, PFN_vkDebugReportCallbackEXT pCallBack)
 {
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo.pfnUserCallback = pCallBack;
-} 
+	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+	createInfo.flags =  VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
+		VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+	createInfo.pfnCallback = pCallBack;
+}
+
+static VkResult CreateDebugReportCallbackEXT(
+	VkInstance instance,
+	const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
+	const VkAllocationCallbacks* pAllocator,
+	VkDebugReportCallbackEXT* debugReport)
+{
+
+	PFN_vkCreateDebugReportCallbackEXT func = (PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+	if (func != nullptr)
+	{
+		return func(instance, pCreateInfo, pAllocator, debugReport);
+	}
+	else
+	{
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
+}
+
+static void DestroyDebugReportCallbackEXT(
+	VkInstance instance,
+	VkDebugReportCallbackEXT debugReport,
+	const VkAllocationCallbacks* pAllocator)
+{
+	PFN_vkDestroyDebugReportCallbackEXT func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+	if (func != nullptr)
+	{
+		func(instance, debugReport, pAllocator);
+	}
+}
 
 /* TODO LIST
 材质文件
+场景文件
 */
 
 KCullSystem CULL_SYSTEM;
@@ -142,7 +178,9 @@ KCullSystem CULL_SYSTEM;
 KVulkanRenderDevice::KVulkanRenderDevice()
 	: m_pWindow(nullptr),
 	m_EnableValidationLayer(
-#ifdef _DEBUG
+#if defined(_WIN32) && defined(_DEBUG)
+	true
+#elif defined(__ANDROID__)
 	true
 #else
 	false
@@ -215,7 +253,7 @@ KVulkanRenderDevice::QueueFamilyIndices KVulkanRenderDevice::FindQueueFamilies(V
 	familyIndices.presentFamily.first = -1;
 	familyIndices.presentFamily.second = false;
 
-	int idx = -1;
+	uint32_t idx = -1;
 	for (const auto& queueFamily : queueFamilies)
 	{
 		++idx;
@@ -462,12 +500,25 @@ bool KVulkanRenderDevice::CreateSurface()
 {
 #ifndef __ANDROID__
 	GLFWwindow *glfwWindow = m_pWindow->GetGLFWwindow();
-	if(glfwCreateWindowSurface(m_Instance, glfwWindow, nullptr, &m_Surface)== VK_SUCCESS)
+	if(glfwWindow)
 	{
-		return true;
+		if(glfwCreateWindowSurface(m_Instance, glfwWindow, nullptr, &m_Surface)== VK_SUCCESS)
+		{
+			return true;
+		}
 	}
 #else
-
+	android_app* app = m_pWindow->GetAndroidApp();
+	if(app)
+	{
+		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
+		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+		surfaceCreateInfo.window = app->window;
+		if(vkCreateAndroidSurfaceKHR(m_Instance, &surfaceCreateInfo, NULL, &m_Surface) == VK_SUCCESS)
+		{
+			return true;
+		}
+	}
 #endif
 	return false;
 }
@@ -871,7 +922,7 @@ bool KVulkanRenderDevice::CreateResource()
 	return true;
 }
 
-VkBool32 KVulkanRenderDevice::DebugCallback(
+VkBool32 KVulkanRenderDevice::DebugUtilsMessengerCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -893,17 +944,53 @@ VkBool32 KVulkanRenderDevice::DebugCallback(
 	return VK_FALSE;
 }
 
+VkBool32 KVulkanRenderDevice::DebugReportCallback(
+	VkDebugReportFlagsEXT flags,
+	VkDebugReportObjectTypeEXT objectType,
+	uint64_t object,
+	size_t location,
+	int32_t messageCode,
+	const char *pLayerPrefix,
+	const char *pMessage,
+	void *pUserData
+	)
+{
+	if(messageCode == VK_DEBUG_REPORT_WARNING_BIT_EXT)
+	{
+		KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Performance] %s\n", pMessage);
+	}
+	else if(messageCode == VK_DEBUG_REPORT_ERROR_BIT_EXT)
+	{
+		KG_LOGE_ASSERT(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pMessage);
+	}
+	else
+	{
+		KG_LOG(LM_RENDER, "[Vulkan Validation Layer Debug] %s\n", pMessage);
+	}
+	return VK_FALSE;
+}
+
 bool KVulkanRenderDevice::SetupDebugMessenger()
 {
 	if(m_EnableValidationLayer)
 	{
+#ifndef __ANDROID__
 		VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
-		PopulateDebugMessengerCreateInfo(createInfo, DebugCallback);
+		PopulateDebugUtilsMessengerCreateInfo(createInfo, DebugUtilsMessengerCallback);
 
-		if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS)
+		if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugUtilsMessenger) == VK_SUCCESS)
 		{
 			return true;
 		}
+#else
+		VkDebugReportCallbackCreateInfoEXT createInfo = {};
+		PopulateDebugReportCallbackCreateInfo(createInfo, DebugReportCallback);
+
+		if (CreateDebugReportCallbackEXT(m_Instance, &createInfo, nullptr, &m_DebugReportCallback) == VK_SUCCESS)
+		{
+			return true;
+		}
+#endif
 		return false;
 	}
 	return true;
@@ -913,7 +1000,11 @@ bool KVulkanRenderDevice::UnsetDebugMessenger()
 {
 	if(m_EnableValidationLayer)
 	{
-		DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+#ifndef __ANDROID__
+		DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugUtilsMessenger, nullptr);
+#else
+		DestroyDebugReportCallbackEXT(m_Instance, m_DebugReportCallback, nullptr);
+#endif
 	}
 	return true;
 }
@@ -1083,13 +1174,16 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 		return false;
 
 	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)window.get();
-#ifndef __ANDROID__
-	if(renderWindow == nullptr || renderWindow->GetGLFWwindow() == nullptr)
-		return false;
-#else
-	if(renderWindow == nullptr)
-		return false;
+	if(renderWindow == nullptr
+#if defined(_WIN32)
+		|| renderWindow->GetGLFWwindow() == nullptr
+#elif defined(__ANDROID__)
+		|| renderWindow->GetAndroidApp() == nullptr
 #endif
+		)
+	{
+		return false;
+	}
 
 	m_pWindow = renderWindow;
 
@@ -1111,7 +1205,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 	createInfo.pApplicationInfo = &appInfo;
 
 	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
-
 	m_ValidationLayerIdx = -1;
 	// 挂接验证层
 	if(m_EnableValidationLayer)
@@ -1123,8 +1216,12 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 			createInfo.enabledLayerCount = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].arraySize;
 			createInfo.ppEnabledLayerNames = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].layers;
 			// 这是为了检查vkCreateInstance与SetupDebugMessenger之间的错误
-			PopulateDebugMessengerCreateInfo(debugCreateInfo, DebugCallback);
+#ifndef __ANDROID__	
+			PopulateDebugUtilsMessengerCreateInfo(debugCreateInfo, DebugUtilsMessengerCallback);
 			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+#else
+
+#endif
 			for(uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
 			{
 				KG_LOG(LM_RENDER, "Vulkan validation layer picked [%s]\n", createInfo.ppEnabledLayerNames[i]);
@@ -1227,7 +1324,7 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 		m_UIOverlay->UnInit();
 		m_UIOverlay = nullptr;
 	}
-	
+
 	// clear offscreen rts
 	for (IKTexturePtr texture : m_OffScreenTextures)
 	{
@@ -1273,7 +1370,7 @@ bool KVulkanRenderDevice::UnInit()
 #else
 	m_ThreadPool.WaitAll();
 #endif
-	
+
 	m_pWindow = nullptr;
 
 	if(m_SqaureData.indexBuffer)
@@ -1310,7 +1407,7 @@ bool KVulkanRenderDevice::UnInit()
 			}
 		}
 	});
-	
+
 	KRenderGlobal::TextrueManager.Release(m_Texture);
 	m_Texture = nullptr;
 
@@ -1435,7 +1532,7 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 bool KVulkanRenderDevice::CreateShader(IKShaderPtr& shader)
 {
 	shader = IKShaderPtr(new KVulkanShader());
-	return true; 
+	return true;
 }
 
 bool KVulkanRenderDevice::CreateVertexBuffer(IKVertexBufferPtr& buffer)
@@ -1465,7 +1562,7 @@ bool KVulkanRenderDevice::CreateTexture(IKTexturePtr& texture)
 bool KVulkanRenderDevice::CreateSampler(IKSamplerPtr& sampler)
 {
 	sampler = IKSamplerPtr(static_cast<IKSampler*>(new KVulkanSampler()));
-	return true;	
+	return true;
 }
 
 bool KVulkanRenderDevice::CreateRenderTarget(IKRenderTargetPtr& target)
@@ -1517,7 +1614,7 @@ bool KVulkanRenderDevice::UpdateCamera(size_t idx)
 	{
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(idx, 0, CBT_CAMERA);
 		void* pWritePos = nullptr;
-		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);	
+		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);
 		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
 		for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 		{

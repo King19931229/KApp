@@ -162,7 +162,8 @@ protected:
 	IKTexturePtr m_Texture;
 	IKSamplerPtr m_Sampler;
 	
-	VkDebugUtilsMessengerEXT m_DebugMessenger;
+	VkDebugUtilsMessengerEXT m_DebugUtilsMessenger;
+    VkDebugReportCallbackEXT m_DebugReportCallback;
 	PhysicalDevice m_PhysicalDevice;
 
 	std::vector<IKTexturePtr> m_OffScreenTextures;
@@ -219,12 +220,23 @@ protected:
 	bool InitDeviceGlobal();
 	bool UnInitDeviceGlobal();
 
-	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessengerCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT messageType,
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData
 		);
+
+	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
+		VkDebugReportFlagsEXT flags,
+		VkDebugReportObjectTypeEXT objectType,
+		uint64_t object,
+		size_t location,
+		int32_t messageCode,
+		const char *pLayerPrefix,
+		const char *pMessage,
+		void *pUserData
+	);
 
 public:
 	KVulkanRenderDevice();

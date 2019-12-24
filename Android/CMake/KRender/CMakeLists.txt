@@ -17,6 +17,7 @@ include_directories(
     ${SRC_ROOT}/../
     ${SRC_ROOT}/../Dependency/glm-0.9.8.0/
     ${SRC_ROOT}/../Dependency/imgui/
+    ${ANDROID_NDK}/sources/android/native_app_glue
 )
 
 file(GLOB_RECURSE SRC "${SRC_ROOT}/*.cpp")

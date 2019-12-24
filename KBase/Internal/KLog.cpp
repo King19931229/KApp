@@ -4,10 +4,15 @@
 #include <assert.h>
 #include <stdarg.h>
 
+#if defined(_WIN32)
+#	include <Windows.h>
+#elif defined(__ANDROID__)
+#	include <android/log.h>
+#endif
+
 IKLogPtr GLogger = nullptr;
 
-#ifdef _WIN32
-#	include <Windows.h>
+#if defined(_WIN32)
 #	define VSNPRINTF _vsnprintf
 #	pragma warning(disable : 4996)
 #else
@@ -25,9 +30,11 @@ const KLogLevelDesc LEVEL_DESC[] =
 {
 	{LL_NORMAL, "", 0},
 	{LL_WARNING, "[WARNING]", sizeof("[WARNING]") - 1},
+	{LL_DEBUG, "[DEBUG]", sizeof("[DEBUG]") - 1},
 	{LL_ERROR, "[ERROR]", sizeof("[ERROR]") - 1},
 	{LL_COUNT, "", 0}
 };
+
 static_assert(sizeof(LEVEL_DESC) / sizeof(LEVEL_DESC[0]) == LL_COUNT + 1, "LEVEL_DESC COUNT NOT MATCH TO LL_COUNT");
 
 EXPORT_DLL IKLogPtr CreateLog()
@@ -173,7 +180,7 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 
 			if(m_bLogConsole)
 			{
-#ifdef _WIN32
+#if defined(_WIN32)
 				switch (level)
 				{
 				case LL_WARNING:
@@ -183,6 +190,7 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 					SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x0C, 0));
 					break;
 				case LL_NORMAL:
+				case LL_DEBUG:
 				default:
 					break;
 				}
@@ -191,16 +199,26 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 				nPos = SNPRINTF(szTmpBuff, sizeof(szTmpBuff), "[LOG] %s\n", szBuffMessage);
 				assert(nPos > 0);
 				bLogSuccess &= fprintf(stdout, "%s", szTmpBuff) > 0;
-#ifdef _WIN32
+#if defined(_WIN32)
+				OutputDebugStringA(szTmpBuff);
+				SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x07, 0));
+#elif defined(__ANDROID__)
 				switch (level)
 				{
+				case LL_NORMAL:
+					__android_log_print(ANDROID_LOG_INFO, "ANDROID", "%s", szTmpBuff);
 				case LL_WARNING:
+					__android_log_print(ANDROID_LOG_WARN, "ANDROID", "%s", szTmpBuff);
+					break;
+				case LL_DEBUG:
+					__android_log_print(ANDROID_LOG_DEBUG, "ANDROID", "%s", szTmpBuff);
+					break;
 				case LL_ERROR:
-					SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x07, 0));
+					__android_log_print(ANDROID_LOG_ERROR, "ANDROID", "%s", szTmpBuff);
+					break;
 				default:
 					break;
 				}
-				OutputDebugStringA(szTmpBuff);
 #else
 				printf("%s", szTmpBuff);
 #endif

@@ -6,6 +6,7 @@ enum LogLevel
 {
 	LL_NORMAL,
 	LL_WARNING,
+	LL_DEBUG,
 	LL_ERROR,
 
 	LL_COUNT

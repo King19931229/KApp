@@ -5,7 +5,7 @@
 #ifndef __ANDROID__
 #include "GLFW/glfw3.h"
 #else
-
+#include "android_native_app_glue.h"
 #endif
 
 class KVulkanRenderDevice;
@@ -31,7 +31,8 @@ class KVulkanRenderWindow : IKRenderWindow
 
 	void OnMouseMove();
 #else
-
+    ANativeWindow* m_window;
+	android_app* m_app;
 #endif
 
 public:
@@ -39,6 +40,7 @@ public:
 	virtual ~KVulkanRenderWindow();
 
 	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable);
+	virtual bool Init(android_app* app);
 	virtual bool UnInit();
 
 	virtual bool Loop();
@@ -63,8 +65,10 @@ public:
 	virtual bool UnRegisterScrollCallback(KScrollCallbackType* callback);
 
 	inline void SetVulkanDevice(KVulkanRenderDevice* device) { m_device = device; }
-#ifndef __ANDROID__
+#if defined(_WIN32)
 	inline GLFWwindow* GetGLFWwindow() { return m_window; }
+#else
+    inline android_app* GetAndroidApp() { return m_app; }
 #endif
 	bool IdleUntilForeground();
 };

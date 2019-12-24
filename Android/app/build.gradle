@@ -17,8 +17,17 @@ android {
             }
         }
     }
+    sourceSets {
+        main.assets.srcDirs = ['assets']
+        main {
+            jniLibs {
+                srcDir "${android.ndkDirectory}/sources/third_party/vulkan/src/build-android/jniLibs"
+            }
+        }
+    }
     buildTypes {
-        release {
+        customDebugType  {
+            debuggable true
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

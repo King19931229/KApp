@@ -1,5 +1,6 @@
 #include "KVulkanRenderWindow.h"
 #include "KVulkanRenderDevice.h"
+#include "KBase/Interface/IKLog.h"
 
 KVulkanRenderWindow::KVulkanRenderWindow()
 	: m_device(nullptr)
@@ -8,7 +9,7 @@ KVulkanRenderWindow::KVulkanRenderWindow()
 	m_window = nullptr;
 	ZERO_ARRAY_MEMORY(m_MouseDown);
 #else
-
+	m_app = nullptr;
 #endif
 }
 
@@ -18,7 +19,6 @@ KVulkanRenderWindow::~KVulkanRenderWindow()
 }
 
 #ifndef __ANDROID__
-
 void KVulkanRenderWindow::FramebufferResizeCallback(GLFWwindow* handle, int width, int height)
 {
 	KVulkanRenderWindow* window = (KVulkanRenderWindow*)glfwGetWindowUserPointer(handle);
@@ -183,7 +183,10 @@ void KVulkanRenderWindow::OnMouseMove()
 		}
 	}
 }
-
+#else
+#include <android/native_activity.h>
+#include <android/asset_manager.h>
+#include <sys/system_properties.h>
 #endif
 
 bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable)
@@ -213,18 +216,25 @@ bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t hei
 	{
 		m_window = nullptr;
 	}
+	return true;
 #else
-
-#endif
 	return false;
+#endif
+}
+
+bool KVulkanRenderWindow::Init(android_app* app)
+{
+#ifdef __ANDROID__
+	m_app = app;
+	return true;
+#else
+	return false;
+#endif
 }
 
 bool KVulkanRenderWindow::UnInit()
 {
-	if(m_device)
-	{
-		m_device = nullptr;
-	}
+    m_device = nullptr;
 #ifndef	__ANDROID__
 	if(m_window)
 	{
@@ -235,11 +245,11 @@ bool KVulkanRenderWindow::UnInit()
 
 	m_KeyboardCallbacks.clear();
 	m_MouseCallbacks.clear();
-#else
-
-#endif
-
 	return true;
+#else
+	m_app = nullptr;
+	return true;
+#endif
 }
 
 bool KVulkanRenderWindow::IdleUntilForeground()
@@ -265,9 +275,9 @@ bool KVulkanRenderWindow::Loop()
 		while(!glfwWindowShouldClose(m_window))
 		{
 			glfwPollEvents();
-			OnMouseMove();
 			if(m_device)
 			{
+				OnMouseMove();
 				m_device->Present();
 			}
 		}
@@ -283,7 +293,49 @@ bool KVulkanRenderWindow::Loop()
 		return false;
 	}
 #else
-	return false;
+	if(m_app)
+	{
+		while (true) {
+			int ident = 0;
+			int events = 0;
+			struct android_poll_source *source;
+			bool destroy = false;
+			bool focused = true;
+
+			while ((ident = ALooper_pollAll(focused ? 0 : -1, NULL, &events, (void **) &source)) >=
+				   0) {
+				if (source != NULL) {
+					source->process(m_app, source);
+				}
+				if (m_app->destroyRequested != 0) {
+					KG_LOG(LM_RENDER, "%s", "Android app destroy requested");
+					destroy = true;
+					break;
+				}
+			}
+
+			if (m_device) {
+				m_device->Present();
+			}
+
+			// App destruction requested
+			// Exit loop, example will be destroyed in application main
+			if (destroy)
+			{
+				// 挂起主线程直到device持有对象被销毁完毕
+				if (m_device) {
+					m_device->Wait();
+				}
+				ANativeActivity_finish(m_app->activity);
+				break;
+			}
+		}
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 #endif
 }
 

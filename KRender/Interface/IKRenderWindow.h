@@ -8,11 +8,16 @@ typedef std::function<void(InputKeyboard key, InputAction action)> KKeyboardCall
 typedef std::function<void(InputMouseButton key, InputAction action, float x, float y)> KMouseCallbackType;
 typedef std::function<void(float x, float y)> KScrollCallbackType;
 
+// 安卓专用
+struct ANativeWindow;
+struct android_app;
+
 struct IKRenderWindow
 {
 	virtual ~IKRenderWindow() {}
 
 	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable) = 0;
+	virtual bool Init(android_app* app) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool Loop() = 0;
