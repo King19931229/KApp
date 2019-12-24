@@ -46,6 +46,7 @@ IKLogPtr pLog;
 #include "KBase/Publish/KHash.h"
 
 #include "KRender/Internal/KDebugConsole.h"
+#include "KRender/Internal/Vulkan/KVulkanRenderWindow.h"
 #include "Interface/IKFileSystem.h"
 
 void android_main(android_app* state)
@@ -62,14 +63,19 @@ void android_main(android_app* state)
     IKRenderWindowPtr window = CreateRenderWindow(RD_VULKAN);
     if(window)
     {
+		KVulkanRenderWindow* vulkanWindow = (KVulkanRenderWindow*)window.get();
+		state->onAppCmd = vulkanWindow->HandleAppCommand;
+		state->onInputEvent = vulkanWindow->HandleAppInput;
+		state->userData = vulkanWindow;
+
         IKRenderDevicePtr device = CreateRenderDevice(RD_VULKAN);
 
         window->Init(state);
-        device->Init(window);
+        //device->Init(window);
 
         window->Loop();
 
-        device->UnInit();
+        //device->UnInit();
         window->UnInit();
     }
 

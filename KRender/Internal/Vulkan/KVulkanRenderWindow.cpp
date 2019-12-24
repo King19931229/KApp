@@ -10,6 +10,7 @@ KVulkanRenderWindow::KVulkanRenderWindow()
 	ZERO_ARRAY_MEMORY(m_MouseDown);
 #else
 	m_app = nullptr;
+	m_bFocus = false;
 #endif
 }
 
@@ -226,6 +227,7 @@ bool KVulkanRenderWindow::Init(android_app* app)
 {
 #ifdef __ANDROID__
 	m_app = app;
+	m_bFocus = false;
 	return true;
 #else
 	return false;
@@ -267,6 +269,57 @@ bool KVulkanRenderWindow::IdleUntilForeground()
 	return true;
 }
 
+#if defined(__ANDROID__)
+int32_t KVulkanRenderWindow::HandleAppInput(struct android_app* app, AInputEvent* event)
+{
+	return 0;
+}
+
+void KVulkanRenderWindow::HandleAppCommand(android_app* app, int32_t cmd)
+{
+	assert(app->userData != nullptr);
+	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)(app->userData);
+	switch (cmd)
+	{
+		case APP_CMD_SAVE_STATE:
+		KG_LOG(LM_RENDER, "%s", "APP_CMD_SAVE_STATE");
+			break;
+		case APP_CMD_INIT_WINDOW:
+		KG_LOG(LM_RENDER, "%s", "APP_CMD_INIT_WINDOW");
+			if (renderWindow->m_device != NULL)
+			{
+				if(renderWindow->m_device->Init(renderWindow))
+				{
+
+				}
+				else
+				{
+					KG_LOGE_ASSERT(LM_RENDER, "%s", "Could not initialize Vulkan, exiting!");
+					app->destroyRequested = 1;
+				}
+			}
+			else
+			{
+				KG_LOGE_ASSERT(LM_RENDER, "%s", "No window assigned!");
+			}
+			break;
+		case APP_CMD_LOST_FOCUS:
+		KG_LOG(LM_RENDER, "%s","APP_CMD_LOST_FOCUS");
+			renderWindow->m_bFocus = false;
+			break;
+		case APP_CMD_GAINED_FOCUS:
+		KG_LOG(LM_RENDER, "%s","APP_CMD_GAINED_FOCUS");
+			renderWindow->m_bFocus = true;
+			break;
+		case APP_CMD_TERM_WINDOW:
+			// Window is hidden or closed, clean up resources
+		KG_LOG(LM_RENDER, "%s","APP_CMD_TERM_WINDOW");
+			renderWindow->m_device->UnInit();
+			break;
+	}
+}
+
+#endif
 bool KVulkanRenderWindow::Loop()
 {
 #ifndef	__ANDROID__
@@ -300,9 +353,8 @@ bool KVulkanRenderWindow::Loop()
 			int events = 0;
 			struct android_poll_source *source;
 			bool destroy = false;
-			bool focused = true;
 
-			while ((ident = ALooper_pollAll(focused ? 0 : -1, NULL, &events, (void **) &source)) >=
+			while ((ident = ALooper_pollAll(m_bFocus ? 0 : -1, NULL, &events, (void **) &source)) >=
 				   0) {
 				if (source != NULL) {
 					source->process(m_app, source);

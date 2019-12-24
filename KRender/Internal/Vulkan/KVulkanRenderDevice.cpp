@@ -44,22 +44,25 @@ const char* DEVICE_EXTENSIONS[] =
 };
 #define DEVICE_EXTENSIONS_COUNT (sizeof(DEVICE_EXTENSIONS) / sizeof(const char*))
 
-static std::vector<const char*> PopulateExtensions(bool bEnableValidationLayer)
+static std::vector<const char*> PopulateInstanceExtensions(bool bEnableValidationLayer)
 {
 #ifndef __ANDROID__
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
 	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-#else
-	std::vector<const char*> extensions;
-#endif
 	if (bEnableValidationLayer)
 	{
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 	}
+#else
+	std::vector<const char*> extensions;
+	if (bEnableValidationLayer)
+	{
+		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+	}
+#endif
 	return std::move(extensions);
 }
 
@@ -284,7 +287,7 @@ bool KVulkanRenderDevice::CheckDeviceSuitable(PhysicalDevice& device)
 	if(!device.queueFamilyIndices.IsComplete())
 		return false;
 
-	if(!CheckExtentionsSupported(device.device))
+	if(!CheckExtentionsSupported(device))
 		return false;
 
 	return true;
@@ -306,6 +309,21 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, queueFamilies.data());
 
 	device.queueFamilyIndices = FindQueueFamilies(vkDevice);
+
+	// Get list of supported extensions
+	uint32_t extCount = 0;
+	vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extCount, nullptr);
+	if (extCount > 0)
+	{
+		std::vector<VkExtensionProperties> extensions(extCount);
+		if (vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
+		{
+			for (auto ext : extensions)
+			{
+				device.supportedExtensions.push_back(ext.extensionName);
+			}
+		}
+	}
 
 	device.suitable = CheckDeviceSuitable(device);
 
@@ -1168,12 +1186,9 @@ bool KVulkanRenderDevice::AddWindowCallback()
 	return true;
 }
 
-bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
+bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 {
-	if(!window)
-		return false;
-
-	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)window.get();
+	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)window;
 	if(renderWindow == nullptr
 #if defined(_WIN32)
 		|| renderWindow->GetGLFWwindow() == nullptr
@@ -1235,7 +1250,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindowPtr window)
 	}
 
 	// 挂接扩展
-	auto extensions = PopulateExtensions(m_EnableValidationLayer);
+	auto extensions = PopulateInstanceExtensions(m_EnableValidationLayer);
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 	createInfo.ppEnabledExtensionNames = extensions.data();
 
@@ -1466,33 +1481,18 @@ bool KVulkanRenderDevice::UnInit()
 	return true;
 }
 
-bool KVulkanRenderDevice::CheckExtentionsSupported(VkPhysicalDevice vkDevice)
+bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 {
 	uint32_t extensionCount = 0;
-	if(vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extensionCount, nullptr) == VK_SUCCESS)
+	// 确保Vulkan具有我们需要的扩展
+	for (const char *requiredExt : DEVICE_EXTENSIONS)
 	{
-		std::vector<VkExtensionProperties> extensions(extensionCount);
-		if(vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extensionCount, extensions.data()) == VK_SUCCESS)
+		if(std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
 		{
-			// 确保Vulkan具有我们需要的扩展
-			for(const char* requiredExt : DEVICE_EXTENSIONS)
-			{
-				if(std::find_if(extensions.begin(),
-					extensions.end(),
-					[&](VkExtensionProperties& prop)->bool
-				{
-					if(strcmp(prop.extensionName, requiredExt) == 0)
-						return true;
-					return false;
-				}) == extensions.end())
-				{
-					return false;
-				}
-			}
-			return true;
+			return false;
 		}
 	}
-	return false;
+	return true;
 }
 
 bool KVulkanRenderDevice::InitDeviceGlobal()

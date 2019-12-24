@@ -7,7 +7,7 @@ struct IKRenderDevice
 {
 	virtual ~IKRenderDevice() {}
 
-	virtual bool Init(IKRenderWindowPtr window) = 0;
+	virtual bool Init(IKRenderWindow* window) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool CreateShader(IKShaderPtr& shader) = 0;

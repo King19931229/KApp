@@ -32,12 +32,6 @@ class KVulkanRenderWindow;
 class KVulkanRenderDevice : IKRenderDevice
 {
 	friend KVulkanRenderWindow;
-	struct ExtensionProperties
-	{
-		std::string property;
-		unsigned int specVersion;
-	};
-
 	struct QueueFamilyIndices
 	{
 		typedef std::pair<uint32_t, bool> QueueFamilyIndex;
@@ -56,6 +50,7 @@ class KVulkanRenderDevice : IKRenderDevice
 		VkPhysicalDeviceProperties deviceProperties;
 		VkPhysicalDeviceFeatures deviceFeatures;
 		QueueFamilyIndices queueFamilyIndices;
+		std::vector<std::string> supportedExtensions;
 
 		bool suitable;
 		int score;
@@ -185,7 +180,7 @@ protected:
 	bool CheckDeviceSuitable(PhysicalDevice& device);
 
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
-	bool CheckExtentionsSupported(VkPhysicalDevice device);
+	bool CheckExtentionsSupported(PhysicalDevice& device);
 	PhysicalDevice GetPhysicalDeviceProperty(VkPhysicalDevice device);
 
 	bool CreateSurface();
@@ -242,7 +237,7 @@ public:
 	KVulkanRenderDevice();
 	virtual ~KVulkanRenderDevice();
 
-	virtual bool Init(IKRenderWindowPtr window);
+	virtual bool Init(IKRenderWindow* window);
 	virtual bool UnInit();
 
 	virtual bool CreateShader(IKShaderPtr& shader);

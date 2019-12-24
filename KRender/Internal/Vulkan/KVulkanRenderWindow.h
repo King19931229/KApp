@@ -33,6 +33,7 @@ class KVulkanRenderWindow : IKRenderWindow
 #else
     ANativeWindow* m_window;
 	android_app* m_app;
+	bool m_bFocus;
 #endif
 
 public:
@@ -69,6 +70,8 @@ public:
 	inline GLFWwindow* GetGLFWwindow() { return m_window; }
 #else
     inline android_app* GetAndroidApp() { return m_app; }
+	static int32_t HandleAppInput(struct android_app* app, AInputEvent* event);
+	static void HandleAppCommand(android_app* app, int32_t cmd);
 #endif
 	bool IdleUntilForeground();
 };
