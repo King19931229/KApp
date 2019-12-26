@@ -5,6 +5,7 @@
 #include "KBase/Interface/IKDataStream.h"
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Publish/KStringParser.h"
+#include "KBase/Publish/KStringUtil.h"
 #include "KBase/Publish/KFileTool.h"
 #include "KBase/Publish/KSystem.h"
 #include "KBase/Publish/KHash.h"
@@ -51,13 +52,34 @@ bool KVulkanShader::SetConstantEntry(uint32_t constantID, uint32_t offset, size_
 	return false;	
 }
 
-bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pModule)
+bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* pModule)
 {
-	uint32_t uHash = KHash::BKDR(path.c_str(), path.length());
-	char hashCode[256] = {0};
-
-	if(KStringParser::ParseFromUINT(hashCode, sizeof(hashCode), &uHash, 1))
+	// TODO
+	std::string path = _path;
+#ifdef __ANDROID__
+	ASSERT_RESULT(KFileTool::ReplaceExt(path, ".spv", path));
+	ASSERT_RESULT(KFileTool::PathJoin(CACHE_PATH, path, path));
+#endif
+	if(KStringUtil::EndsWith(path, ".spv"))
 	{
+		IKDataStreamPtr pData = nullptr;
+		if(GFileSystemManager->Open(path, IT_FILEHANDLE, pData))
+		{
+			size_t uSize = pData->GetSize();
+			std::vector<char> code;
+			code.resize(uSize);
+			if(pData->Read(code.data(), uSize))
+			{
+				if(InitFromStringImpl(code, pModule))
+				{
+					return true;
+				}
+			}
+		}
+	}
+	else
+	{
+#ifdef _WIN32
 		std::string shaderCompiler = getenv("VULKAN_SDK");
 #ifdef _WIN64
 		if(KFileTool::PathJoin(shaderCompiler, "Bin/glslc.exe", shaderCompiler))
@@ -65,35 +87,34 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 		if(KFileTool::PathJoin(shaderCompiler, "Bin32/glslc.exe", shaderCompiler))
 #endif
 		{
-			if(!KFileTool::IsPathExist(CACHE_PATH))
-			{
-				KFileTool::CreateFolder(CACHE_PATH);
-			}
 			std::string codePath;
+			ASSERT_RESULT(KFileTool::ReplaceExt(path, ".spv", codePath));
+			ASSERT_RESULT(KFileTool::PathJoin(CACHE_PATH, codePath, codePath));
+
+			std::string parentFolder;
+			if(KFileTool::ParentFolder(codePath, parentFolder))
+			{
+				ASSERT_RESULT(KFileTool::CreateFolder(parentFolder, true));
+			}
+
 			std::string message;
-
-			KFileTool::PathJoin(CACHE_PATH, std::string(hashCode) + ".spv", codePath);
-
 			if(KSystem::WaitProcess(shaderCompiler.c_str(), path + " -o " + codePath, message))
 			{
 				IKDataStreamPtr pData = nullptr;
 				if(GFileSystemManager->Open(codePath, IT_FILEHANDLE, pData))
 				{
-					if(pData->Open(codePath.c_str(), IM_READ))
+					size_t uSize = pData->GetSize();
+					std::vector<char> code;
+					code.resize(uSize);
+					if(pData->Read(code.data(), uSize))
 					{
-						size_t uSize = pData->GetSize();
-						std::vector<char> code;
-						code.resize(uSize);
-						if(pData->Read(code.data(), uSize))
+						if(InitFromStringImpl(code, pModule))
 						{
-							if(InitFromStringImpl(code, pModule))
-							{
-								return true;
-							}
-							else
-							{
-								return false;
-							}
+							return true;
+						}
+						else
+						{
+							return false;
 						}
 					}
 				}
@@ -104,6 +125,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 				return false;
 			}
 		}
+#endif
 	}
 	return false;
 }

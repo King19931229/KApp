@@ -79,7 +79,7 @@ int main()
 		IKRenderDevicePtr device = CreateRenderDevice(RD_VULKAN);
 
 		window->Init(60, 60, 1024, 768, true);
-		device->Init(window);
+		device->Init(window.get());
 		/*
 		IKShaderPtr vtShader = nullptr;
 		device->CreateShader(vtShader);

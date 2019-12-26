@@ -1,6 +1,7 @@
 #include "KFileSystem.h"
 #include "FileSystem/KNativeFileSystem.h"
 #include "FileSystem/KZipFileSystem.h"
+#include "FileSystem/KApkFileSystem.h"
 
 #include <algorithm>
 #include <assert.h>
@@ -54,6 +55,12 @@ bool KFileSystemManager::AddSystem(const char* root, int priority, FileSystemTyp
 		case FST_ZIP:
 			{
 				fileSys = IKFileSystemPtr(new KZipFileSystem());
+				fileSys->Init(root);
+				break;
+			}
+			case FST_APK:
+			{
+				fileSys = IKFileSystemPtr(new KApkFileSystem());
 				fileSys->Init(root);
 				break;
 			}

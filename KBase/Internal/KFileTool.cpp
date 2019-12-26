@@ -152,10 +152,29 @@ namespace KFileTool
 			}
 
 			destPath = trimPath + "/" + trimSubPath;
+			// remove extra "./"
+			if(destPath.substr(0, 2) == "./")
+			{
+				destPath.erase(0, 2);
+			}
 
 			return true;
 		}
 		return false;
+	}
+
+	bool ReplaceExt(const std::string& path, const std::string& ext, std::string& destPath)
+	{
+		std::string::size_type pos = path.find_last_of(".");
+		if(pos != std::string::npos)
+		{
+			destPath = path.substr(0, pos) + ext;
+		}
+		else
+		{
+			destPath = path + ext;
+		}
+		return true;
 	}
 
 	bool ParentFolder(const std::string& path, std::string& parentFolder)

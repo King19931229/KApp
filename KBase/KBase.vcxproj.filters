@@ -145,6 +145,12 @@
     <ClInclude Include="Internal\FileSystem\KZipFileSystem.h">
       <Filter>Internal\FileSystem</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\FileSystem\KApkFileSystem.h">
+      <Filter>Internal\FileSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KPlatform.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -241,6 +247,12 @@
     </ClCompile>
     <ClCompile Include="Internal\FileSystem\KZipFileSystem.cpp">
       <Filter>Internal\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\FileSystem\KApkFileSystem.cpp">
+      <Filter>Internal\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KPlatform.cpp">
+      <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

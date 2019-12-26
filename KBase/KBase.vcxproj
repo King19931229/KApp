@@ -32,6 +32,7 @@
     <ClInclude Include="Interface\IKSourceFile.h" />
     <ClInclude Include="Internal\Codec\KETCCodec.h" />
     <ClInclude Include="Internal\Codec\KFreeImageCodec.h" />
+    <ClInclude Include="Internal\FileSystem\KApkFileSystem.h" />
     <ClInclude Include="Internal\FileSystem\KNativeFileSystem.h" />
     <ClInclude Include="Internal\FileSystem\KZipFileSystem.h" />
     <ClInclude Include="Internal\Hash\KMD5.h" />
@@ -58,6 +59,7 @@
     <ClInclude Include="Publish\KLockQueue.h" />
     <ClInclude Include="Publish\KNumerical.h" />
     <ClInclude Include="Publish\KObjectPool.h" />
+    <ClInclude Include="Publish\KPlatform.h" />
     <ClInclude Include="Publish\KStringUtil.h" />
     <ClInclude Include="Publish\KSystem.h" />
     <ClInclude Include="Publish\KSemaphore.h" />
@@ -71,6 +73,7 @@
   <ItemGroup>
     <ClCompile Include="Internal\Codec\KETCCodec.cpp" />
     <ClCompile Include="Internal\Codec\KFreeImageCodec.cpp" />
+    <ClCompile Include="Internal\FileSystem\KApkFileSystem.cpp" />
     <ClCompile Include="Internal\FileSystem\KNativeFileSystem.cpp" />
     <ClCompile Include="Internal\FileSystem\KZipFileSystem.cpp" />
     <ClCompile Include="Internal\Hash\KMD5.cpp" />
@@ -85,6 +88,7 @@
     <ClCompile Include="Internal\KIniFile.cpp" />
     <ClCompile Include="Internal\KLog.cpp" />
     <ClCompile Include="Internal\KMemoryAllocator.cpp" />
+    <ClCompile Include="Internal\KPlatform.cpp" />
     <ClCompile Include="Internal\KSystem.cpp" />
     <ClCompile Include="Internal\KPythonCore.cpp" />
     <ClCompile Include="Internal\KScript.cpp" />
@@ -165,6 +169,7 @@
       <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -187,6 +192,7 @@
       <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -210,6 +216,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -233,6 +240,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

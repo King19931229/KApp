@@ -236,7 +236,7 @@ bool KVulkanRenderWindow::Init(android_app* app)
 
 bool KVulkanRenderWindow::UnInit()
 {
-    m_device = nullptr;
+	m_device = nullptr;
 #ifndef	__ANDROID__
 	if(m_window)
 	{
@@ -270,6 +270,22 @@ bool KVulkanRenderWindow::IdleUntilForeground()
 }
 
 #if defined(__ANDROID__)
+void KVulkanRenderWindow::ShowAlert(const char* message)
+{
+	JNIEnv* jni;
+	m_app->activity->vm->AttachCurrentThread(&jni, NULL);
+
+	jstring jmessage = jni->NewStringUTF(message);
+
+	jclass clazz = jni->GetObjectClass(m_app->activity->clazz);
+	// Signature has to match java implementation (arguments)
+	jmethodID methodID = jni->GetMethodID(clazz, "showAlert", "(Ljava/lang/String;)V");
+	jni->CallVoidMethod(m_app->activity->clazz, methodID, jmessage);
+	jni->DeleteLocalRef(jmessage);
+
+	m_app->activity->vm->DetachCurrentThread();
+}
+
 int32_t KVulkanRenderWindow::HandleAppInput(struct android_app* app, AInputEvent* event)
 {
 	return 0;
@@ -281,41 +297,41 @@ void KVulkanRenderWindow::HandleAppCommand(android_app* app, int32_t cmd)
 	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)(app->userData);
 	switch (cmd)
 	{
-		case APP_CMD_SAVE_STATE:
+	case APP_CMD_SAVE_STATE:
 		KG_LOG(LM_RENDER, "%s", "APP_CMD_SAVE_STATE");
-			break;
-		case APP_CMD_INIT_WINDOW:
+		break;
+	case APP_CMD_INIT_WINDOW:
 		KG_LOG(LM_RENDER, "%s", "APP_CMD_INIT_WINDOW");
-			if (renderWindow->m_device != NULL)
+		if (renderWindow->m_device != NULL)
+		{
+			if(renderWindow->m_device->Init(renderWindow))
 			{
-				if(renderWindow->m_device->Init(renderWindow))
-				{
 
-				}
-				else
-				{
-					KG_LOGE_ASSERT(LM_RENDER, "%s", "Could not initialize Vulkan, exiting!");
-					app->destroyRequested = 1;
-				}
 			}
 			else
 			{
-				KG_LOGE_ASSERT(LM_RENDER, "%s", "No window assigned!");
+				KG_LOGE_ASSERT(LM_RENDER, "%s", "Could not initialize Vulkan, exiting!");
+				app->destroyRequested = 1;
 			}
-			break;
-		case APP_CMD_LOST_FOCUS:
+		}
+		else
+		{
+			KG_LOGE_ASSERT(LM_RENDER, "%s", "No window assigned!");
+		}
+		break;
+	case APP_CMD_LOST_FOCUS:
 		KG_LOG(LM_RENDER, "%s","APP_CMD_LOST_FOCUS");
-			renderWindow->m_bFocus = false;
-			break;
-		case APP_CMD_GAINED_FOCUS:
+		renderWindow->m_bFocus = false;
+		break;
+	case APP_CMD_GAINED_FOCUS:
 		KG_LOG(LM_RENDER, "%s","APP_CMD_GAINED_FOCUS");
-			renderWindow->m_bFocus = true;
-			break;
-		case APP_CMD_TERM_WINDOW:
-			// Window is hidden or closed, clean up resources
+		renderWindow->m_bFocus = true;
+		break;
+	case APP_CMD_TERM_WINDOW:
+		// Window is hidden or closed, clean up resources
 		KG_LOG(LM_RENDER, "%s","APP_CMD_TERM_WINDOW");
-			renderWindow->m_device->UnInit();
-			break;
+		renderWindow->m_device->UnInit();
+		break;
 	}
 }
 
@@ -355,15 +371,15 @@ bool KVulkanRenderWindow::Loop()
 			bool destroy = false;
 
 			while ((ident = ALooper_pollAll(m_bFocus ? 0 : -1, NULL, &events, (void **) &source)) >=
-				   0) {
-				if (source != NULL) {
-					source->process(m_app, source);
-				}
-				if (m_app->destroyRequested != 0) {
-					KG_LOG(LM_RENDER, "%s", "Android app destroy requested");
-					destroy = true;
-					break;
-				}
+				0) {
+					if (source != NULL) {
+						source->process(m_app, source);
+					}
+					if (m_app->destroyRequested != 0) {
+						KG_LOG(LM_RENDER, "%s", "Android app destroy requested");
+						destroy = true;
+						break;
+					}
 			}
 
 			if (m_device) {
@@ -428,7 +444,14 @@ bool KVulkanRenderWindow::GetSize(size_t &width, size_t &height)
 		return true;
 	}
 #else
-
+	if(m_app && m_app->window)
+	{
+		int nWidth = ANativeWindow_getWidth(m_app->window);
+		int nHeight = ANativeWindow_getHeight(m_app->window);
+		width = (size_t)nWidth;
+		height = (size_t)nHeight;
+		return true;
+	}
 #endif
 	return false;
 }

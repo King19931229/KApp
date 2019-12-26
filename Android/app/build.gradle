@@ -18,7 +18,6 @@ android {
         }
     }
     sourceSets {
-        main.assets.srcDirs = ['assets']
         main {
             jniLibs {
                 srcDir "${android.ndkDirectory}/sources/third_party/vulkan/src/build-android/jniLibs"
@@ -26,7 +25,7 @@ android {
         }
     }
     buildTypes {
-        customDebugType  {
+        customDebugType {
             debuggable true
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -34,7 +33,8 @@ android {
     }
     externalNativeBuild {
         cmake {
-        path file('../CMake/CMakeLists.txt')
+            path file('../CMake/CMakeLists.txt')
         }
     }
+    sourceSets { main { assets.srcDirs = ['src/main/assets/'] } }
 }

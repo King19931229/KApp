@@ -11,7 +11,8 @@ typedef std::shared_ptr<IKFileSystemManager> IKFileSystemManagerPtr;
 enum FileSystemType
 {
 	FST_NATIVE,
-	FST_ZIP
+	FST_ZIP,
+	FST_APK
 };
 
 struct IKFileSystem

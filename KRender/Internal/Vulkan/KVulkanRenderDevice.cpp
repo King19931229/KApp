@@ -58,6 +58,8 @@ static std::vector<const char*> PopulateInstanceExtensions(bool bEnableValidatio
 	}
 #else
 	std::vector<const char*> extensions;
+	extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+	extensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 	if (bEnableValidationLayer)
 	{
 		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -737,7 +739,7 @@ bool KVulkanRenderDevice::CreateMesh()
 {
 	const char* szPaths[] =
 	{
-		"../Dependency/assimp-3.3.1/test/models/OBJ/spider.obj",
+		"Model/OBJ/spider.obj",
 		"../Sponza/sponza.obj"
 	};
 

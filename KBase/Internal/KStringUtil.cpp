@@ -75,4 +75,18 @@ namespace KStringUtil
 		}
 		return false;
 	}
+
+	bool StartsWith(const std::string& src, const std::string& chars)
+	{
+		if(src.length() >= chars.length() && src.substr(0, chars.length()) == chars)
+			return true;
+		return false;
+	}
+
+	bool EndsWith(const std::string& src, const std::string& chars)
+	{
+		if(src.length() >= chars.length() && src.substr(src.length() - chars.length()) == chars)
+			return true;
+		return false;
+	}
 }

@@ -6,6 +6,8 @@
 #include "Interface/IKTexture.h"
 #include "Interface/IKSampler.h"
 
+#include "KBase/Interface/IKFileSystem.h"
+
 #include "imgui.h"
 
 KUIOverlayBase::KUIOverlayBase()
@@ -150,11 +152,27 @@ void KUIOverlayBase::PrepareResources()
 	ASSERT_RESULT(m_FontSampler != nullptr);
 
 	ImGuiIO& io = ImGui::GetIO();
+
 	// Create font texture
 	unsigned char* fontData;
 	int texWidth = 0, texHeight = 0;
-	io.Fonts->AddFontFromFileTTF("Fonts/Roboto-Medium.ttf", 16.0f);	
-	io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
+
+	IKDataStreamPtr ttfDataStream = nullptr;
+	if(GFileSystemManager->Open("Fonts/Roboto-Medium.ttf", IT_MEMORY, ttfDataStream))
+	{
+		size_t ttfDataSize = ttfDataStream->GetSize();
+		char* ttfData = new char[ttfDataSize];
+		// https://github.com/ocornut/imgui/issues/1259
+		if(ttfDataStream->Read(ttfData, ttfDataSize))
+		{
+			io.Fonts->AddFontFromMemoryTTF(ttfData, (int)ttfDataSize, 16.0f);
+			io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
+		}
+		else
+		{
+			delete[] ttfData;
+		}
+	}
 
 	ASSERT_RESULT(m_FontTexture->InitMemoryFromData(fontData, (size_t)texWidth, (size_t)texHeight, IF_R8G8B8A8, false));
 	ASSERT_RESULT(m_FontTexture->InitDevice());
