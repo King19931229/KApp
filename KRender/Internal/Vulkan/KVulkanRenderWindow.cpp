@@ -364,25 +364,29 @@ bool KVulkanRenderWindow::Loop()
 #else
 	if(m_app)
 	{
-		while (true) {
+		while (true)
+		{
 			int ident = 0;
 			int events = 0;
 			struct android_poll_source *source;
 			bool destroy = false;
 
-			while ((ident = ALooper_pollAll(m_bFocus ? 0 : -1, NULL, &events, (void **) &source)) >=
-				0) {
-					if (source != NULL) {
+			while ((ident = ALooper_pollAll(m_bFocus ? 0 : -1, NULL, &events, (void **) &source)) >= 0)
+			{
+					if (source != NULL)
+					{
 						source->process(m_app, source);
 					}
-					if (m_app->destroyRequested != 0) {
+					if (m_app->destroyRequested != 0)
+					{
 						KG_LOG(LM_RENDER, "%s", "Android app destroy requested");
 						destroy = true;
 						break;
 					}
 			}
 
-			if (m_device) {
+			if (m_device)
+			{
 				m_device->Present();
 			}
 
@@ -391,7 +395,8 @@ bool KVulkanRenderWindow::Loop()
 			if (destroy)
 			{
 				// 挂起主线程直到device持有对象被销毁完毕
-				if (m_device) {
+				if (m_device)
+				{
 					m_device->Wait();
 				}
 				ANativeActivity_finish(m_app->activity);

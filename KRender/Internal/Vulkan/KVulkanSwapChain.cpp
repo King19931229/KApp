@@ -138,6 +138,10 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 		imageCount = swapChainSupport.capabilities.maxImageCount;
 	}
 
+	// 询问交换链支持格式
+	VkSurfaceCapabilitiesKHR surfaceCapabilities = {};
+	VK_ASSERT_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, m_Surface, &surfaceCapabilities));
+
 	VkSwapchainCreateInfoKHR createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	createInfo.surface = m_Surface;
@@ -148,6 +152,8 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 	createInfo.imageExtent = m_Extend;
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	ASSERT_RESULT(createInfo.imageUsage & surfaceCapabilities.supportedUsageFlags && "imageUsage must be supported");
 
 	uint32_t queueFamilyIndices[] = {graphIndex, presentIndex};
 
@@ -168,8 +174,25 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 
 	// 设置成当前窗口transform避免发生窗口旋转
 	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-	// 避免当前窗口与系统其它窗口发生alpha混合
-	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+	const VkCompositeAlphaFlagBitsKHR compositeCandidata[] =
+	{
+		// 避免当前窗口与系统其它窗口发生alpha混合
+		VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+		VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
+		VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR
+	};
+
+	for(uint32_t i = 0; i < ARRAY_SIZE(compositeCandidata); ++i)
+	{
+		if(compositeCandidata[i] & surfaceCapabilities.supportedCompositeAlpha)
+		{
+			createInfo.compositeAlpha = compositeCandidata[i];
+			break;
+		}
+	}
+	ASSERT_RESULT(createInfo.compositeAlpha != 0 && "compositeAlpha must be selected");
 
 	createInfo.presentMode = m_PresentMode;
 	createInfo.clipped = VK_TRUE;

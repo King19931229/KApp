@@ -74,6 +74,14 @@ static inline const char* LOG_MOUDLE_TO_STR(LogModule module)
 	pLog->LogPrefixSuffix(LL_WARNING, szPrefix, szSuffix, pszFormat, __VA_ARGS__);\
 }
 
+#define KLOGD(pLog, module, pszFormat, ...)\
+{\
+	char szSuffix[256]; szSuffix[0] = '\0';\
+	const char* szPrefix = LOG_MOUDLE_TO_STR(module);\
+	SNPRINTF(szSuffix, ARRAY_SIZE(szSuffix), "[%s:%d]", __FILE__, __LINE__);\
+	pLog->LogPrefixSuffix(LL_DEBUG, szPrefix, szSuffix, pszFormat, __VA_ARGS__);\
+}
+
 #define KLOGE(pLog, module, pszFormat, ...)\
 {\
 	char szSuffix[256]; szSuffix[0] = '\0';\
@@ -95,6 +103,7 @@ extern IKLogPtr GLogger;
 
 #define KG_LOG(module, pszFormat, ...) KLOG(GLogger, module, pszFormat, __VA_ARGS__)
 #define KG_LOGW(module, pszFormat, ...) KLOGW(GLogger, module, pszFormat, __VA_ARGS__)
+#define KG_LOGD(module, pszFormat, ...) KLOGD(GLogger, module, pszFormat, __VA_ARGS__)
 #define KG_LOGE(module, pszFormat, ...) KLOGE(GLogger, module, pszFormat, __VA_ARGS__)
 #define KG_LOGE_ASSERT(module, pszFormat, ...) KLOGE_ASSERT(GLogger, module, pszFormat, __VA_ARGS__)
 

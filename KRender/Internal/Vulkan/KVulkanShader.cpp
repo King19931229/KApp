@@ -57,7 +57,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* p
 	// TODO
 	std::string path = _path;
 #ifdef __ANDROID__
-	ASSERT_RESULT(KFileTool::ReplaceExt(path, ".spv", path));
+	path = path + ".spv";
 	ASSERT_RESULT(KFileTool::PathJoin(CACHE_PATH, path, path));
 #endif
 	if(KStringUtil::EndsWith(path, ".spv"))
@@ -87,8 +87,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* p
 		if(KFileTool::PathJoin(shaderCompiler, "Bin32/glslc.exe", shaderCompiler))
 #endif
 		{
-			std::string codePath;
-			ASSERT_RESULT(KFileTool::ReplaceExt(path, ".spv", codePath));
+			std::string codePath = path + ".spv";
 			ASSERT_RESULT(KFileTool::PathJoin(CACHE_PATH, codePath, codePath));
 
 			std::string parentFolder;
@@ -98,7 +97,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* p
 			}
 
 			std::string message;
-			if(KSystem::WaitProcess(shaderCompiler.c_str(), path + " -o " + codePath, message))
+			if(KSystem::WaitProcess(shaderCompiler.c_str(), path + " --target-env=vulkan1.0 --target-spv=spv1.0 -o " + codePath, message))
 			{
 				IKDataStreamPtr pData = nullptr;
 				if(GFileSystemManager->Open(codePath, IT_FILEHANDLE, pData))

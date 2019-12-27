@@ -678,20 +678,17 @@ bool KVulkanRenderDevice::CreateCommandPool()
 	return false;
 }
 
+static int numFrames = 0;
+static float fps = 0.0f;
+static float frameTime = 0.0f;
+static int numFramesTotal = 0;
+static float maxFrameTime = 0;
+static float minFrameTime = 0;
+static KTimer FPSTimer;
+static KTimer MaxMinTimer;
+
 bool KVulkanRenderDevice::UpdateFrameTime()
 {
-	static int numFrames = 0;
-	static int numFramesTotal = 0;
-
-	static float fps = 0.0f;
-	static float frameTime = 0.0f;
-
-	static float maxFrameTime = 0;
-	static float minFrameTime = 0;
-
-	static KTimer FPSTimer;
-	static KTimer MaxMinTimer;
-
 	if(MaxMinTimer.GetMilliseconds() > 5000.0f)
 	{
 		maxFrameTime = frameTime;
@@ -975,18 +972,27 @@ VkBool32 KVulkanRenderDevice::DebugReportCallback(
 	void *pUserData
 	)
 {
-	if(messageCode == VK_DEBUG_REPORT_WARNING_BIT_EXT)
+	if(flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+	{
+		KG_LOG(LM_RENDER, "[Vulkan Validation Layer Info] %s\n", pMessage);
+	}
+	if(flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+	{
+		KG_LOGD(LM_RENDER, "[Vulkan Validation Layer Debug] %s\n", pMessage);
+	}
+	if(flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
 	{
 		KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Performance] %s\n", pMessage);
 	}
-	else if(messageCode == VK_DEBUG_REPORT_ERROR_BIT_EXT)
+	if(flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+	{
+		KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Warning] %s\n", pMessage);
+	}
+	if(flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
 	{
 		KG_LOGE_ASSERT(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pMessage);
 	}
-	else
-	{
-		KG_LOG(LM_RENDER, "[Vulkan Validation Layer Debug] %s\n", pMessage);
-	}
+
 	return VK_FALSE;
 }
 
@@ -1381,6 +1387,8 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 
 bool KVulkanRenderDevice::UnInit()
 {
+
+	Wait();
 #ifndef THREAD_MODE_ONE
 	m_ThreadPool.WaitAllAsyncTaskDone();
 	m_ThreadPool.PopAllWorkerThreads();
@@ -2174,6 +2182,7 @@ bool KVulkanRenderDevice::Present()
 		m_UIOverlay->SetWindowSize(0, 0);
 		m_UIOverlay->Begin("Example");
 		{
+			m_UIOverlay->Text("FPS [%f] FrameTime [%f]", fps, frameTime);
 			m_UIOverlay->PushItemWidth(110.0f);
 			if (m_UIOverlay->Header("Setting"))
 			{

@@ -33,7 +33,7 @@ namespace KVulkanInitializer
 				properties,
 				allocInfo.memoryTypeIndex));
 			{
-				ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, allocInfo.memoryTypeIndex, properties, heapAllocInfo));
+				ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, memRequirements.alignment, allocInfo.memoryTypeIndex, properties, heapAllocInfo));
 				VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, vkBuffer, heapAllocInfo.vkMemroy, heapAllocInfo.vkOffset));
 			}
 		}
@@ -96,7 +96,7 @@ namespace KVulkanInitializer
 				properties,
 				allocInfo.memoryTypeIndex));
 
-			ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, allocInfo.memoryTypeIndex, properties, heapAllocInfo));
+			ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, memRequirements.alignment, allocInfo.memoryTypeIndex, properties, heapAllocInfo));
 			VK_ASSERT_RESULT(vkBindImageMemory(KVulkanGlobal::device, image, heapAllocInfo.vkMemroy, heapAllocInfo.vkOffset));
 		}
 	}

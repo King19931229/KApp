@@ -13,6 +13,6 @@ namespace KVulkanHeapAllocator
 
 	bool Init();
 	bool UnInit();
-	bool Alloc(VkDeviceSize size, uint32_t memoryTypeIndex, VkMemoryPropertyFlags usage, AllocInfo& info);
+	bool Alloc(VkDeviceSize size, VkDeviceSize alignment, uint32_t memoryTypeIndex, VkMemoryPropertyFlags usage, AllocInfo& info);
 	bool Free(const AllocInfo& data);
 }

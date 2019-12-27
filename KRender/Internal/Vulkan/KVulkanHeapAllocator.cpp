@@ -7,6 +7,7 @@
 
 #define KVUALKAN_HEAP_TRUELY_ALLOC
 //#define KVUALKAN_HEAP_BRUTE_CHECK
+#define BIAS_OFFSET(offset, size) (!(offset % size)? offset : offset + alignment - (offset % alignment))
 
 namespace KVulkanHeapAllocator
 {
@@ -35,6 +36,7 @@ namespace KVulkanHeapAllocator
 
 		// 本block大小
 		VkDeviceSize size;
+		VkDeviceSize alignOffset;
 		int isFree;
 
 		BlockInfo* pNext;
@@ -47,6 +49,7 @@ namespace KVulkanHeapAllocator
 			assert(_pParent);
 			isFree = true;
 			offset = 0;
+			alignOffset = 0;
 			size = 0;
 			pNext = pPre = nullptr;
 			pParent = _pParent;
@@ -113,7 +116,7 @@ namespace KVulkanHeapAllocator
 #endif
 		}
 
-		BlockInfo* Alloc(VkDeviceSize sizeToFit)
+		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment)
 		{
 			if(sizeToFit > size)
 			{
@@ -144,6 +147,7 @@ namespace KVulkanHeapAllocator
 				pHead = new BlockInfo(this);
 				pHead->isFree = true;
 				pHead->offset = 0;
+				pHead->alignOffset = 0;
 				pHead->pPre = pHead->pNext = nullptr;
 				pHead->size = size;
 				pHead->pParent = this;
@@ -159,13 +163,19 @@ namespace KVulkanHeapAllocator
 			else
 			{
 				assert(pHead);
-				BlockInfo* pTemp = Find(sizeToFit);
+
+				VkDeviceSize offset = 0;
+				VkDeviceSize extraSize = 0;
+				BlockInfo* pTemp = Find(sizeToFit, alignment, &offset, &extraSize);
 				if(pTemp)
 				{
+					sizeToFit = extraSize;
+
 					// 把多余的空间分裂出来
 					Split(pTemp, sizeToFit);
 					// 已被占用
 					pTemp->isFree = false;
+					pTemp->alignOffset = offset;
 
 					Check();
 
@@ -233,25 +243,39 @@ namespace KVulkanHeapAllocator
 			pHead = nullptr;
 		}
 
-		BlockInfo* Find(VkDeviceSize sizeToFit)
+		BlockInfo* Find(VkDeviceSize sizeToFit, VkDeviceSize alignment, VkDeviceSize* pOffset, VkDeviceSize* pExtraSize)
 		{
 			BlockInfo* pTemp = pHead;
 			while(pTemp)
 			{
 				if(pTemp->isFree && pTemp->size >= sizeToFit)
 				{
-					return pTemp;
+					VkDeviceSize offset = BIAS_OFFSET(pTemp->offset, alignment);
+					VkDeviceSize extraSize = offset - pTemp->offset + sizeToFit;
+					assert(offset % alignment == 0);
+					if(extraSize <= pTemp->size)
+					{
+						if(pOffset)
+						{
+							*pOffset = offset;
+						}
+						if(pExtraSize)
+						{
+							*pExtraSize = extraSize;
+						}
+						return pTemp;
+					}
 				}
 				pTemp = pTemp->pNext;
 			}
 			return nullptr;
 		}
 
-		bool HasSpace(VkDeviceSize sizeToFit)
+		bool HasSpace(VkDeviceSize sizeToFit, VkDeviceSize alignment)
 		{
 			if(pHead)
 			{
-				return Find(sizeToFit) != nullptr;
+				return Find(sizeToFit, alignment, nullptr, nullptr) != nullptr;
 			}
 			else
 			{
@@ -271,6 +295,7 @@ namespace KVulkanHeapAllocator
 				if(pNext && pNext->isFree)
 				{
 					pNext->offset -= remainSize;
+					pNext->alignOffset = pNext->offset;
 					pNext->size += remainSize;
 				}
 				// 否则分裂多一个block来记录剩余空间
@@ -281,6 +306,7 @@ namespace KVulkanHeapAllocator
 					pNewBlock->isFree = true;
 					pNewBlock->size = remainSize;
 					pNewBlock->offset = pBlock->offset + sizeToFit;
+					pNewBlock->alignOffset = pNewBlock->offset;
 
 					pNewBlock->pNext = pNext;
 					pNewBlock->pPre = pBlock;
@@ -320,6 +346,7 @@ namespace KVulkanHeapAllocator
 				{
 					pBlock->size += pBlock->pPre->size;
 					pBlock->offset = pBlock->pPre->offset;
+					pBlock->alignOffset = pBlock->offset;
 
 					pTemp = pBlock->pPre;
 					pBlock->pPre = pTemp->pPre;
@@ -400,7 +427,7 @@ namespace KVulkanHeapAllocator
 			}
 		}
 
-		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkMemoryPropertyFlags usage)
+		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment, VkMemoryPropertyFlags usage)
 		{
 			std::lock_guard<decltype(ALLOC_FREE_LOCK)> guard(ALLOC_FREE_LOCK);
 
@@ -408,7 +435,7 @@ namespace KVulkanHeapAllocator
 			if(usage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 			{
 				PageInfo* pPage = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, memoryHeapIndex, true);
-				BlockInfo* pBlock = pPage->Alloc(sizeToFit);
+				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
 
 				pPage->pNext = pNoShareHead;
 				if(pNoShareHead)
@@ -430,7 +457,7 @@ namespace KVulkanHeapAllocator
 				{
 					pHead = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, memoryHeapIndex, false);
 					size = sizeToFit;
-					BlockInfo* pBlock = pHead->Alloc(sizeToFit);
+					BlockInfo* pBlock = pHead->Alloc(sizeToFit, alignment);
 					assert(pBlock && !pBlock->isFree);
 
 					Check();
@@ -438,7 +465,7 @@ namespace KVulkanHeapAllocator
 				}
 				else
 				{
-					PageInfo* pPage = Find(sizeToFit);
+					PageInfo* pPage = Find(sizeToFit, alignment);
 					if(pPage)
 					{
 						// 把多余的空间分裂出来 尽量节省实际分配的内存
@@ -446,7 +473,7 @@ namespace KVulkanHeapAllocator
 						{
 							Split(pPage, sizeToFit);
 						}
-						BlockInfo* pBlock = pPage->Alloc(sizeToFit);
+						BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
 						assert(pBlock && !pBlock->isFree);
 
 						Check();
@@ -480,7 +507,7 @@ namespace KVulkanHeapAllocator
 							break;
 						}
 					}
-					BlockInfo* pBlock = pPage->Alloc(sizeToFit);
+					BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
 					assert(pBlock && !pBlock->isFree);
 
 					Check();
@@ -529,14 +556,14 @@ namespace KVulkanHeapAllocator
 			}
 		}
 
-		PageInfo* Find(VkDeviceSize sizeToFit)
+		PageInfo* Find(VkDeviceSize sizeToFit, VkDeviceSize alignment)
 		{
 			PageInfo* pTemp = pHead;
 			while(pTemp)
 			{
 				if(pTemp->size >= sizeToFit)
 				{
-					if(pTemp->HasSpace(sizeToFit))
+					if(pTemp->HasSpace(sizeToFit, alignment))
 					{
 						return pTemp;
 					}
@@ -723,20 +750,20 @@ namespace KVulkanHeapAllocator
 		return true;
 	}
 
-	bool Alloc(VkDeviceSize size, uint32_t memoryTypeIndex, VkMemoryPropertyFlags usage, AllocInfo& info)
+	bool Alloc(VkDeviceSize size, VkDeviceSize alignment, uint32_t memoryTypeIndex, VkMemoryPropertyFlags usage, AllocInfo& info)
 	{
 		if(memoryTypeIndex < MEMORY_TYPE_COUNT)
 		{
 			MemoryHeap* pHeap = MEMORY_TYPE_TO_HEAP[memoryTypeIndex];
 
-			info.internalData = pHeap->Alloc(size, usage);
+			info.internalData = pHeap->Alloc(size, alignment, usage);
 			if(info.internalData)
 			{
 				BlockInfo* pBlock = (BlockInfo*)info.internalData;
 				PageInfo* pPage = (PageInfo*)pBlock->pParent;
 
 				info.vkMemroy = static_cast<VkDeviceMemory>(pPage->vkMemroy);
-				info.vkOffset = pBlock->offset;
+				info.vkOffset = pBlock->alignOffset;
 
 				return true;
 			}
