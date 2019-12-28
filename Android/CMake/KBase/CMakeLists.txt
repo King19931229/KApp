@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.4.1)
 # Gradle automatically packages shared libraries with your APK.
 
 set(SRC_ROOT ../../../KBase)
-file(GLOB_RECURSE SRC "${SRC_ROOT}/*.cpp")
+file(GLOB_RECURSE SRC "${SRC_ROOT}/*.cpp" "${SRC_ROOT}/*.h")
 
 include_directories(
     ${SRC_ROOT}

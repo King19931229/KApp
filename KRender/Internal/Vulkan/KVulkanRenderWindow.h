@@ -33,6 +33,7 @@ class KVulkanRenderWindow : IKRenderWindow
 #else
     ANativeWindow* m_window;
 	android_app* m_app;
+	std::vector<KTouchCallbackType*> m_TouchCallbacks;
 	bool m_bFocus;
 #endif
 
@@ -60,10 +61,12 @@ public:
 	virtual bool RegisterKeyboardCallback(KKeyboardCallbackType* callback);
 	virtual bool RegisterMouseCallback(KMouseCallbackType* callback);
 	virtual bool RegisterScrollCallback(KScrollCallbackType* callback);
+	virtual bool RegisterTouchCallback(KTouchCallbackType* callback);
 
 	virtual bool UnRegisterKeyboardCallback(KKeyboardCallbackType* callback);
 	virtual bool UnRegisterMouseCallback(KMouseCallbackType* callback);
 	virtual bool UnRegisterScrollCallback(KScrollCallbackType* callback);
+	virtual bool UnRegisterTouchCallback(KTouchCallbackType* callback);
 
 	inline void SetVulkanDevice(KVulkanRenderDevice* device) { m_device = device; }
 #if defined(_WIN32)

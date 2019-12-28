@@ -3,10 +3,12 @@
 #include "KBase/Publish/KInput.h"
 
 #include <functional>
+#include <tuple>
 
 typedef std::function<void(InputKeyboard key, InputAction action)> KKeyboardCallbackType;
 typedef std::function<void(InputMouseButton key, InputAction action, float x, float y)> KMouseCallbackType;
 typedef std::function<void(float x, float y)> KScrollCallbackType;
+typedef std::function<void(const std::vector<std::tuple<float, float>>& touchPositions, InputAction action)> KTouchCallbackType;
 
 // 安卓专用
 struct ANativeWindow;
@@ -36,10 +38,12 @@ struct IKRenderWindow
 	virtual bool RegisterKeyboardCallback(KKeyboardCallbackType* callback) = 0;
 	virtual bool RegisterMouseCallback(KMouseCallbackType* callback) = 0;
 	virtual bool RegisterScrollCallback(KScrollCallbackType* callback) = 0;
+	virtual bool RegisterTouchCallback(KTouchCallbackType* callback) = 0;
 
 	virtual bool UnRegisterKeyboardCallback(KKeyboardCallbackType* callback) = 0;
 	virtual bool UnRegisterMouseCallback(KMouseCallbackType* callback) = 0;
 	virtual bool UnRegisterScrollCallback(KScrollCallbackType* callback) = 0;
+	virtual bool UnRegisterTouchCallback(KTouchCallbackType* callback) = 0;
 };
 
 EXPORT_DLL IKRenderWindowPtr CreateRenderWindow(RenderDevice platform);

@@ -247,9 +247,11 @@ bool KVulkanRenderWindow::UnInit()
 
 	m_KeyboardCallbacks.clear();
 	m_MouseCallbacks.clear();
+	m_ScrollCallbacks.clear();
 	return true;
 #else
 	m_app = nullptr;
+	m_TouchCallbacks.clear();
 	return true;
 #endif
 }
@@ -288,6 +290,66 @@ void KVulkanRenderWindow::ShowAlert(const char* message)
 
 int32_t KVulkanRenderWindow::HandleAppInput(struct android_app* app, AInputEvent* event)
 {
+	assert(app->userData != nullptr);
+	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)(app->userData);
+	int32_t eventType = AInputEvent_getType(event);
+	if (eventType == AINPUT_EVENT_TYPE_MOTION)
+	{
+		int32_t eventSource = AInputEvent_getSource(event);
+		switch (eventSource)
+		{
+			case AINPUT_SOURCE_TOUCHSCREEN:
+			{
+				int32_t nativeAction = AMotionEvent_getAction(event);
+
+				InputAction inputAction = INPUT_ACTION_UNKNOWN;
+				switch (nativeAction)
+				{
+					case AMOTION_EVENT_ACTION_UP:
+					case AMOTION_EVENT_ACTION_POINTER_UP:
+					case AMOTION_EVENT_ACTION_CANCEL:
+					case AMOTION_EVENT_ACTION_OUTSIDE:
+						inputAction = INPUT_ACTION_RELEASE;
+						break;
+					case AMOTION_EVENT_ACTION_DOWN:
+					case AMOTION_EVENT_ACTION_POINTER_DOWN:
+						inputAction = INPUT_ACTION_PRESS;
+						break;
+					case AMOTION_EVENT_ACTION_MOVE:
+					case AMOTION_EVENT_ACTION_SCROLL:
+						inputAction = INPUT_ACTION_REPEAT;
+						break;
+					default:
+						break;
+				}
+
+				if(inputAction != INPUT_ACTION_UNKNOWN)
+				{
+					size_t touchCount = AMotionEvent_getPointerCount(event);
+
+					std::vector<std::tuple<float, float>> touchPositions;
+					touchPositions.reserve(touchCount);
+
+					KG_LOG(LM_DEFAULT, "touch counts [%d] action [%d] native action [%d]", touchCount, inputAction, nativeAction);
+					for(size_t i = 0; i < touchCount; ++i)
+					{
+						float x = AMotionEvent_getX(event, i);
+						float y = AMotionEvent_getY(event, i);
+						std::tuple<float, float> pos = std::make_tuple(x, y);
+						touchPositions.push_back(pos);
+					}
+
+					for (auto it = renderWindow->m_TouchCallbacks.begin(),
+							 itEnd = renderWindow->m_TouchCallbacks.end();
+						 it != itEnd; ++it)
+					{
+						KTouchCallbackType &callback = (*(*it));
+						callback(touchPositions, inputAction);
+					}
+				}
+			}
+		}
+	}
 	return 0;
 }
 
@@ -538,6 +600,18 @@ bool KVulkanRenderWindow::RegisterScrollCallback(KScrollCallbackType* callback)
 	return false;
 }
 
+bool KVulkanRenderWindow::RegisterTouchCallback(KTouchCallbackType* callback)
+{
+#ifdef __ANDROID__
+	if(callback && std::find(m_TouchCallbacks.begin(), m_TouchCallbacks.end(), callback) == m_TouchCallbacks.end())
+	{
+		m_TouchCallbacks.push_back(callback);
+		return true;
+	}
+#endif
+	return false;
+}
+
 bool KVulkanRenderWindow::UnRegisterKeyboardCallback(KKeyboardCallbackType* callback)
 {
 #ifndef	__ANDROID__
@@ -579,6 +653,22 @@ bool KVulkanRenderWindow::UnRegisterScrollCallback(KScrollCallbackType* callback
 		if(it != m_ScrollCallbacks.end())
 		{
 			m_ScrollCallbacks.erase(it);
+			return true;
+		}
+	}
+#endif
+	return false;
+}
+
+bool KVulkanRenderWindow::UnRegisterTouchCallback(KTouchCallbackType *callback)
+{
+#ifdef __ANDROID__
+	if(callback)
+	{
+		auto it = std::find(m_TouchCallbacks.begin(), m_TouchCallbacks.end(), callback);
+		if(it != m_TouchCallbacks.end())
+		{
+			m_TouchCallbacks.erase(it);
 			return true;
 		}
 	}

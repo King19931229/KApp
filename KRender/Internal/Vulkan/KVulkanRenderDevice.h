@@ -122,13 +122,22 @@ protected:
 	KVulkanSwapChainPtr m_pSwapChain;
 
 	KCamera m_Camera;
+
 	KKeyboardCallbackType m_KeyCallback;
 	KMouseCallbackType m_MouseCallback;
 	KScrollCallbackType m_ScrollCallback;
+	KTouchCallbackType m_TouchCallback;
 
 	int m_Move[3];
+
 	bool m_MouseDown[INPUT_MOUSE_BUTTON_COUNT];
 	float m_MousePos[2];
+
+	int m_TouchAction;
+	int m_LastTouchCount;
+	float m_LastTouchDistance;
+	bool m_Touch[2];
+	float m_TouchPos[2][2];
 
 	struct ObjectInitTransform
 	{

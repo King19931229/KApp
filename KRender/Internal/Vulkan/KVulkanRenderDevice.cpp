@@ -200,6 +200,10 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_MaxRenderThreadNum = std::thread::hardware_concurrency();
 	ZERO_ARRAY_MEMORY(m_Move);
 	ZERO_ARRAY_MEMORY(m_MouseDown);
+	ZERO_ARRAY_MEMORY(m_Touch);
+	m_TouchAction = 0;
+	m_LastTouchCount = 0;
+	m_LastTouchDistance = 0;
 }
 
 KVulkanRenderDevice::~KVulkanRenderDevice()
@@ -750,7 +754,7 @@ bool KVulkanRenderDevice::CreateMesh()
 #ifdef _DEBUG
 	int width = 3, height = 3;
 #else
-	int width = 3, height = 3;
+	int width = 10, height = 10;
 #endif
 	int widthExtend = width * 8, heightExtend = height * 8;
 	for(int i = 0; i <= width; ++i)
@@ -1082,6 +1086,16 @@ bool KVulkanRenderDevice::AddWindowCallback()
 		m_MousePos[1] = 0.0f;
 	}
 
+	m_TouchAction = 0;
+	m_LastTouchCount = 0;
+	m_LastTouchDistance = 0;
+	ZERO_ARRAY_MEMORY(m_Touch);
+	for(int i = 0; i < ARRAY_SIZE(m_TouchPos); ++i)
+	{
+		m_TouchPos[i][0] = 0.0f;
+		m_TouchPos[1][1] = 0.0f;
+	}
+
 	m_Camera.SetPosition(glm::vec3(0, 400.0f, 400.0f));
 	m_Camera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	m_Camera.SetCustomLockYAxis(glm::vec3(0,1,0));
@@ -1187,9 +1201,97 @@ bool KVulkanRenderDevice::AddWindowCallback()
 		m_Camera.MoveForward(fSpeed * yOffset);
 	};
 
+	m_TouchCallback = [this](const std::vector<std::tuple<float, float>>& touchPositions, InputAction action)
+	{
+		if(action == INPUT_ACTION_REPEAT)
+		{
+			if (touchPositions.size() >= m_LastTouchCount && touchPositions.size() <= 2)
+			{
+				m_TouchAction = (int) touchPositions.size();
+
+				for (size_t i = 0; i < std::min((size_t)2, touchPositions.size()); ++i)
+				{
+					if (!m_Touch[i])
+					{
+						m_TouchPos[i][0] = std::get<0>(touchPositions[i]);
+						m_TouchPos[i][1] = std::get<1>(touchPositions[i]);
+					}
+					m_Touch[i] = true;
+				}
+			}
+			else
+			{
+				m_TouchAction = 0;
+				m_LastTouchDistance = 0;
+				for (int i = 0; i < ARRAY_SIZE(m_TouchPos); ++i)
+				{
+					m_TouchPos[i][0] = 0.0f;
+					m_TouchPos[1][1] = 0.0f;
+				}
+				ZERO_ARRAY_MEMORY(m_Touch);
+			}
+			m_LastTouchCount = (int)touchPositions.size();
+		}
+		else
+		{
+			m_TouchAction = 0;
+			m_LastTouchDistance = 0;
+			for (int i = 0; i < ARRAY_SIZE(m_TouchPos); ++i)
+			{
+				m_TouchPos[i][0] = 0.0f;
+				m_TouchPos[1][1] = 0.0f;
+			}
+			ZERO_ARRAY_MEMORY(m_Touch);
+		}
+
+		if (m_TouchAction == 1 && touchPositions.size() == 1)
+		{
+			float dx = std::get<0>(touchPositions[0]) - m_TouchPos[0][0];
+			float dy = std::get<1>(touchPositions[0]) - m_TouchPos[0][1];
+
+			size_t width;
+			size_t height;
+			m_pWindow->GetSize(width, height);
+
+			if (abs(dx) > 0.0001f)
+			{
+				m_Camera.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), -glm::quarter_pi<float>() * dx / width);
+			}
+			if(abs(dy) > 0.0001f)
+			{
+				m_Camera.RotateRight(-glm::quarter_pi<float>() * dy / height);
+			}
+		}
+		else if (m_TouchAction == 2 && touchPositions.size() == 2)
+		{
+			float dx = std::get<0>(touchPositions[0]) - std::get<0>(touchPositions[1]);
+			float dy = std::get<1>(touchPositions[0]) - std::get<1>(touchPositions[1]);
+			const float fSpeed = 0.1f;
+
+			float distance = sqrtf(dx * dx + dy * dy);
+
+			if(m_LastTouchDistance > 0.0f)
+			{
+				m_Camera.MoveForward((distance - m_LastTouchDistance) * fSpeed);
+			}
+			m_LastTouchDistance = distance;
+		}
+
+		if (m_TouchAction)
+		{
+			for (size_t i = 0; i < std::min((size_t)2, touchPositions.size()); ++i)
+			{
+				m_TouchPos[i][0] = std::get<0>(touchPositions[i]);
+				m_TouchPos[i][1] = std::get<1>(touchPositions[i]);
+				m_Touch[i] = true;
+			}
+		}
+	};
+
 	m_pWindow->RegisterKeyboardCallback(&m_KeyCallback);
 	m_pWindow->RegisterMouseCallback(&m_MouseCallback);
 	m_pWindow->RegisterScrollCallback(&m_ScrollCallback);
+	m_pWindow->RegisterTouchCallback(&m_TouchCallback);
 
 	return true;
 }

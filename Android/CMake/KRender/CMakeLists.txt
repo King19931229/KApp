@@ -20,7 +20,7 @@ include_directories(
     ${ANDROID_NDK}/sources/android/native_app_glue
 )
 
-file(GLOB_RECURSE SRC "${SRC_ROOT}/*.cpp")
+file(GLOB_RECURSE SRC "${SRC_ROOT}/*.cpp" "${SRC_ROOT}/*.h")
 
 add_library(KRender
     STATIC
