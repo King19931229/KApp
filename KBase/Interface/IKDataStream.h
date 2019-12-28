@@ -38,6 +38,7 @@ struct IoLineDesc
 	const char* pszLine;
 	unsigned char uLen;
 };
+
 const IoLineDesc LINE_DESCS[] =
 {
 	{ILM_UNIX, "\n", 1},
@@ -45,6 +46,7 @@ const IoLineDesc LINE_DESCS[] =
 	{ILM_WINDOWS, "\r\n", 2},
 	{ILM_COUNT, "", 0}
 };
+
 static_assert(ILM_COUNT + 1 == sizeof(LINE_DESCS) / sizeof(LINE_DESCS[0]), "ILM_COUNT NOT MATCH TO LINE_DESCS");
 
 struct IKDataStream
@@ -57,6 +59,7 @@ struct IKDataStream
 	virtual bool Open(size_t uDataSize, IOMode mode = IM_WRITE) = 0;
 
 	virtual bool Close() = 0;
+	virtual bool Flush() = 0;
 	virtual bool IsEOF() = 0;
 	virtual const char* GetFilePath() const = 0;
 	virtual size_t GetSize() const = 0;

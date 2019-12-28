@@ -41,7 +41,11 @@ struct IKFileSystemManager
 	virtual IKFileSystemPtr GetFileSystem(const char* root, FileSystemType type) = 0;
 
 	virtual bool Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret) = 0;
+	virtual bool IsFileExist(const std::string& file) = 0;
 };
 
-extern IKFileSystemManagerPtr GFileSystemManager;
-EXPORT_DLL IKFileSystemManagerPtr CreateFileSystemManager();
+namespace KFileSystem
+{
+	extern IKFileSystemManagerPtr Manager;
+}
+//EXPORT_DLL IKFileSystemManagerPtr CreateFileSystemManager();

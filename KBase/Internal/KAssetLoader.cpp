@@ -1,4 +1,6 @@
 #include "KAssetLoader.h"
+#include "KAssetIOHooker.h"
+
 #include "Interface/IKDataStream.h"
 #include "Publish/KFileTool.h"
 
@@ -43,6 +45,17 @@ static void LogDebug(const char* logString)
 EXPORT_DLL IKAssetLoaderPtr GetAssetLoader()
 {
 	return IKAssetLoaderPtr(new KAssetLoader());
+}
+
+KAssetLoader::KAssetLoader()
+{
+	KAssetIOHooker* hooker = new KAssetIOHooker(KFileSystem::Manager.get());
+	m_Importer.SetIOHandler(hooker);
+}
+
+KAssetLoader::~KAssetLoader()
+{
+
 }
 
 #define IMPORT_FLAGS (aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices)

@@ -7,7 +7,7 @@
         android:icon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
-        <activity android:name=".MainActivity"
+        <activity android:name="com.king.kapp.MainActivity"
             android:screenOrientation="landscape"
             android:configChanges="orientation|keyboardHidden">
             <meta-data android:name="android.app.lib_name"

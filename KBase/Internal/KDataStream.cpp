@@ -266,6 +266,11 @@ bool KMemoryDataStream::Close()
 	return true;
 }
 
+bool KMemoryDataStream::Flush()
+{
+	return true;
+}
+
 const char* KMemoryDataStream::GetFilePath() const
 {
 	return nullptr;
@@ -420,6 +425,15 @@ bool KFileHandleDataStream::Close()
 	return true;
 }
 
+bool KFileHandleDataStream::Flush()
+{
+	if(m_pFile)
+	{
+		fflush(m_pFile);
+	}
+	return true;
+}
+
 bool KFileHandleDataStream::IsEOF()
 {
 	if(m_pFile)
@@ -568,6 +582,13 @@ bool KFileDataStream::Close()
 {
 	if(m_FileStream.is_open())
 		m_FileStream.close();
+	return true;
+}
+
+bool KFileDataStream::Flush()
+{
+	if(m_FileStream.is_open())
+		m_FileStream.flush();
 	return true;
 }
 

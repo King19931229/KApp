@@ -151,6 +151,9 @@
     <ClInclude Include="Publish\KPlatform.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\KAssetIOHooker.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -252,6 +255,9 @@
       <Filter>Internal\FileSystem</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KPlatform.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KAssetIOHooker.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>

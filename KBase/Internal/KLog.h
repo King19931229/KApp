@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <mutex>
 
-class KLog : public IKLog
+class KLogger : public IKLogger
 {
 protected:
 	bool m_bInit;
@@ -19,8 +19,8 @@ protected:
 
 	bool _Log(LogLevel level, const char* pszMessage);
 public:
-	KLog();
-	virtual ~KLog();
+	KLogger();
+	virtual ~KLogger();
 
 	virtual bool Init(const char* pFilePath, bool bLogConsole, bool bLogTime, IOLineMode lineMode);
 	virtual bool UnInit();

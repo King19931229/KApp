@@ -1,4 +1,6 @@
 #include "Internal/KLog.h"
+#include "Publish/KPlatform.h"
+#include "Publish/KFileTool.h"
 
 #include <ctime>
 #include <assert.h>
@@ -6,27 +8,23 @@
 
 #if defined(_WIN32)
 #	include <Windows.h>
-#elif defined(__ANDROID__)
-#	include <android/log.h>
-#endif
-
-IKLogPtr GLogger = nullptr;
-
-#if defined(_WIN32)
+#	define SNPRINTF sprintf_s
 #	define VSNPRINTF _vsnprintf
 #	pragma warning(disable : 4996)
 #else
+#	include <android/log.h>
+#	define SNPRINTF snprintf
 #	define VSNPRINTF vsnprintf
 #endif
 
-struct KLogLevelDesc
+struct LogLevelDesc
 {
 	LogLevel level;
 	const char* pszDesc;
 	int nLen;
 };
 
-const KLogLevelDesc LEVEL_DESC[] =
+const LogLevelDesc LEVEL_DESC[] =
 {
 	{LL_NORMAL, "", 0},
 	{LL_WARNING, "[WARNING]", sizeof("[WARNING]") - 1},
@@ -37,12 +35,17 @@ const KLogLevelDesc LEVEL_DESC[] =
 
 static_assert(sizeof(LEVEL_DESC) / sizeof(LEVEL_DESC[0]) == LL_COUNT + 1, "LEVEL_DESC COUNT NOT MATCH TO LL_COUNT");
 
-EXPORT_DLL IKLogPtr CreateLog()
+EXPORT_DLL IKLoggerPtr CreateLogger()
 {
-	return IKLogPtr(new KLog());
+	return IKLoggerPtr(new KLogger());
 }
 
-KLog::KLog()
+namespace KLog
+{
+	IKLoggerPtr Logger = CreateLogger();
+}
+
+KLogger::KLogger()
 	: m_bInit(false),
 	m_bLogFile(false),
 	m_bLogConsole(false),
@@ -56,25 +59,33 @@ KLog::KLog()
 #endif
 }
 
-KLog::~KLog()
+KLogger::~KLogger()
 {
 	UnInit();
 }
 
-bool KLog::Init(const char* pFilePath, bool bLogConsole, bool bLogTime, IOLineMode mode)
+bool KLogger::Init(const char* pFilePath, bool bLogConsole, bool bLogTime, IOLineMode mode)
 {
 	UnInit();
 	bool bRet = true;
 	if(pFilePath)
 	{
 		m_bLogFile = true;
-#ifdef _WIN32
+#if defined(_WIN32)
 		fopen_s(&m_pFile, pFilePath, "wb");
+#elif defined(__ANDROID__)
+		std::string fullPath;
+		if(KFileTool::PathJoin(KPlatform::GetExternalDataPath(), pFilePath, fullPath))
+		{
+			m_pFile = fopen(fullPath.c_str(), "wb");
+		}
 #else
-		m_pFile = fopen(pFilePath, "wb");
+		static_assert(false && "unsupport platform now");
 #endif
-		if(m_pFile == nullptr)
+		if(!m_pFile)
+		{
 			bRet = false;
+		}
 	}
 	else
 	{
@@ -90,7 +101,7 @@ bool KLog::Init(const char* pFilePath, bool bLogConsole, bool bLogTime, IOLineMo
 	return bRet;
 }
 
-bool KLog::UnInit()
+bool KLogger::UnInit()
 {
 	if(m_pFile)
 	{
@@ -100,25 +111,25 @@ bool KLog::UnInit()
 	return true;
 }
 
-bool KLog::SetLogFile(bool bLogFile)
+bool KLogger::SetLogFile(bool bLogFile)
 {
 	m_bLogFile = bLogFile;
 	return true;
 }
 
-bool KLog::SetLogConsole(bool bLogConsole)
+bool KLogger::SetLogConsole(bool bLogConsole)
 {
 	m_bLogConsole = bLogConsole;
 	return true;
 }
 
-bool KLog::SetLogTime(bool bLogTime)
+bool KLogger::SetLogTime(bool bLogTime)
 {
 	m_bLogTime = bLogTime;
 	return true;
 }
 
-bool KLog::_Log(LogLevel level, const char* pszMessage)
+bool KLogger::_Log(LogLevel level, const char* pszMessage)
 {
 	if(m_bInit && pszMessage && (m_bLogFile || m_bLogConsole))
 	{
@@ -176,7 +187,10 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 			std::lock_guard<decltype(m_Lock)> guard(m_Lock);
 
 			if(m_bLogFile)
-				bLogSuccess &= fprintf(m_pFile, "%s%s" , szBuffMessage, LINE_DESCS[m_eLineMode].pszLine) > 0;
+			{
+				bLogSuccess &= fprintf(m_pFile, "%s%s", szBuffMessage, LINE_DESCS[m_eLineMode].pszLine) > 0;
+				fflush(m_pFile);
+			}
 
 			if(m_bLogConsole)
 			{
@@ -229,7 +243,7 @@ bool KLog::_Log(LogLevel level, const char* pszMessage)
 	return false;
 }
 
-bool KLog::Log(LogLevel level, const char* pszFormat, ...)
+bool KLogger::Log(LogLevel level, const char* pszFormat, ...)
 {
 	bool bRet = false;
 	va_list list;
@@ -241,7 +255,7 @@ bool KLog::Log(LogLevel level, const char* pszFormat, ...)
 	return bRet;
 }
 
-bool KLog::LogPrefix(LogLevel level, const char* pszPrefix, const char* pszFormat, ...)
+bool KLogger::LogPrefix(LogLevel level, const char* pszPrefix, const char* pszFormat, ...)
 {
 	bool bRet = false;
 	int nPos = 0;
@@ -256,7 +270,7 @@ bool KLog::LogPrefix(LogLevel level, const char* pszPrefix, const char* pszForma
 	return bRet;
 }
 
-bool KLog::LogSuffix(LogLevel level, const char* pszSuffix, const char* pszFormat, ...)
+bool KLogger::LogSuffix(LogLevel level, const char* pszSuffix, const char* pszFormat, ...)
 {
 	bool bRet = false;
 	int nPos = 0;
@@ -271,7 +285,7 @@ bool KLog::LogSuffix(LogLevel level, const char* pszSuffix, const char* pszForma
 	return bRet;
 }
 
-bool KLog::LogPrefixSuffix(LogLevel level, const char* pszPrefix, const char* pszSuffix, const char* pszFormat, ...)
+bool KLogger::LogPrefixSuffix(LogLevel level, const char* pszPrefix, const char* pszSuffix, const char* pszFormat, ...)
 {
 	bool bRet = false;
 	int nPos = 0;

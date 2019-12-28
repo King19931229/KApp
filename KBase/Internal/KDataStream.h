@@ -36,6 +36,7 @@ public:
 	virtual bool Open(size_t uDataSize, IOMode mode);
 
 	virtual bool Close();
+	virtual bool Flush();
 	virtual bool IsEOF();
 	virtual const char* GetFilePath() const;
 	virtual size_t GetSize() const;
@@ -66,6 +67,7 @@ public:
 	virtual bool Open(size_t uDataSize, IOMode mode);
 
 	virtual bool Close();
+	virtual bool Flush();
 	virtual bool IsEOF();
 	virtual const char* GetFilePath() const;
 	virtual size_t GetSize() const;
@@ -96,6 +98,7 @@ public:
 	virtual bool Open(size_t uDataSize, IOMode mode);
 
 	virtual bool Close();
+	virtual bool Flush();
 	virtual bool IsEOF();
 	virtual const char* GetFilePath() const;
 	virtual size_t GetSize() const;

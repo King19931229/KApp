@@ -16,6 +16,9 @@ protected:
 	uint32_t GetFlags(const KAssetImportOption& importOption);
 	bool ImportAiScene(const aiScene* scene, const KAssetImportOption& importOption, KAssetImportResult& result);
 public:
+	KAssetLoader();
+	virtual ~KAssetLoader();
+
 	virtual bool ImportFromMemory(const char* pData, size_t size, const KAssetImportOption& importOption, KAssetImportResult& result);
 	virtual bool Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result);
 };

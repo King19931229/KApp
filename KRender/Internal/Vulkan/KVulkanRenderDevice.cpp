@@ -186,7 +186,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 #if defined(_WIN32) && defined(_DEBUG)
 	true
 #elif defined(__ANDROID__)
-	true
+	false
 #else
 	false
 #endif
@@ -750,7 +750,7 @@ bool KVulkanRenderDevice::CreateMesh()
 #ifdef _DEBUG
 	int width = 3, height = 3;
 #else
-	int width = 30, height = 30;
+	int width = 3, height = 3;
 #endif
 	int widthExtend = width * 8, heightExtend = height * 8;
 	for(int i = 0; i <= width; ++i)
@@ -778,7 +778,7 @@ bool KVulkanRenderDevice::CreateMesh()
 		}
 	}
 #endif
-#if 1
+#if 0
 	const uint32_t IDX = 1;
 
 	enum InitMode

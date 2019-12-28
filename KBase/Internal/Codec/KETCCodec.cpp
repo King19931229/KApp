@@ -299,7 +299,7 @@ bool KETCCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 {
 	IKDataStreamPtr stream = nullptr;
 
-	if(!GFileSystemManager->Open(pszFile, IT_FILEHANDLE, stream))
+	if(!KFileSystem::Manager->Open(pszFile, IT_FILEHANDLE, stream))
 	{
 		return false;
 	}

@@ -34,8 +34,6 @@ Java_com_king_kapp_MainActivity_stringFromJNI(
 #include "Interface/IKCodec.h"
 #include "Interface/IKMemory.h"
 
-IKLogPtr pLog;
-
 #include "KRender/Interface/IKRenderWindow.h"
 #include "KRender/Interface/IKRenderDevice.h"
 #include "KRender/Interface/IKShader.h"
@@ -52,30 +50,23 @@ IKLogPtr pLog;
 #include "KRender/Internal/Vulkan/KVulkanRenderWindow.h"
 #include "Interface/IKFileSystem.h"
 
-void android_main(android_app *state) {
+void android_main(android_app *state)
+{
 	DUMP_MEMORY_LEAK_BEGIN();
 
-	KPlatform::androidApp = state;
+	KPlatform::AndroidApp = state;
 
-	GLogger = CreateLog();
-	GLogger->Init(nullptr, true, true, ILM_UNIX);
+	KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
 
-	GFileSystemManager = CreateFileSystemManager();
-	GFileSystemManager->AddSystem("/data/data/com.king.kapp", -1, FST_NATIVE);
-	GFileSystemManager->AddSystem(".", -2, FST_APK);
-
-	IKDataStreamPtr data = nullptr;
-	if (GFileSystemManager->Open("AndroidManifest.xml", IT_FILEHANDLE, data)) {
-		AAsset *asset = AAssetManager_open(state->activity->assetManager, "AndroidManifest.xml",
-										   AASSET_MODE_STREAMING);
-	}
-
+	KFileSystem::Manager->AddSystem(KPlatform::GetExternalDataPath(), -1, FST_NATIVE);
+	KFileSystem::Manager->AddSystem(".", -2, FST_APK);
 
 	InitCodecManager();
 	InitAssetLoaderManager();
 
 	IKRenderWindowPtr window = CreateRenderWindow(RD_VULKAN);
-	if (window) {
+	if (window)
+	{
 		window->Init(state);
 		KVulkanRenderWindow *vulkanWindow = (KVulkanRenderWindow *) window.get();
 		state->onAppCmd = vulkanWindow->HandleAppCommand;
@@ -97,5 +88,5 @@ void android_main(android_app *state) {
 	UnInitAssetLoaderManager();
 	UnInitCodecManager();
 
-	GFileSystemManager->UnInit();
+	KLog::Logger->UnInit();
 }

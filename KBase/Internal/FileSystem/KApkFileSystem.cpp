@@ -27,10 +27,10 @@ FileSystemType KApkFileSystem::GetType()
 bool KApkFileSystem::Init(const std::string& root)
 {
 #ifdef __ANDROID__
-	assert(KPlatform::androidApp != nullptr && "androidApp is null");
-	if(KPlatform::androidApp)
+	assert(KPlatform::AndroidApp != nullptr && "androidApp is null");
+	if(KPlatform::AndroidApp)
 	{
-		m_AssetManager = KPlatform::androidApp->activity->assetManager;
+		m_AssetManager = KPlatform::AndroidApp->activity->assetManager;
 		m_Root = root;
 		return true;
 	}

@@ -172,16 +172,14 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 		createInfo.pQueueFamilyIndices = nullptr; // Optional
 	}
 
-	// 设置成当前窗口transform避免发生窗口旋转
-	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+	createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	ASSERT_RESULT(createInfo.preTransform & surfaceCapabilities.supportedTransforms && "preTransform must be supported");
 
 	const VkCompositeAlphaFlagBitsKHR compositeCandidata[] =
 	{
 		// 避免当前窗口与系统其它窗口发生alpha混合
 		VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
-		VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
-		VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR
+		VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
 	};
 
 	for(uint32_t i = 0; i < ARRAY_SIZE(compositeCandidata); ++i)

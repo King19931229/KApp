@@ -36,6 +36,7 @@
     <ClInclude Include="Internal\FileSystem\KNativeFileSystem.h" />
     <ClInclude Include="Internal\FileSystem\KZipFileSystem.h" />
     <ClInclude Include="Internal\Hash\KMD5.h" />
+    <ClInclude Include="Internal\KAssetIOHooker.h" />
     <ClInclude Include="Internal\KAssetLoader.h" />
     <ClInclude Include="Internal\KCodec.h" />
     <ClInclude Include="Internal\KDataStream.h" />
@@ -77,6 +78,7 @@
     <ClCompile Include="Internal\FileSystem\KNativeFileSystem.cpp" />
     <ClCompile Include="Internal\FileSystem\KZipFileSystem.cpp" />
     <ClCompile Include="Internal\Hash\KMD5.cpp" />
+    <ClCompile Include="Internal\KAssetIOHooker.cpp" />
     <ClCompile Include="Internal\KAssetLoader.cpp" />
     <ClCompile Include="Internal\KCodec.cpp" />
     <ClCompile Include="Internal\KDataStream.cpp" />

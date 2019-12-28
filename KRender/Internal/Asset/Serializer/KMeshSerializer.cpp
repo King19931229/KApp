@@ -8,7 +8,7 @@ namespace KMeshSerializer
 	bool LoadFromFile(IKRenderDevice* device, KMesh* pMesh, const char* path, size_t frameInFlight, size_t renderThreadNum)
 	{
 		IKDataStreamPtr pData = nullptr;
-		if(GFileSystemManager->Open(path, IT_FILEHANDLE, pData))
+		if(KFileSystem::Manager->Open(path, IT_FILEHANDLE, pData))
 		{
 			// no need to judge version now
 			KMeshSerializerV0 reader(device);

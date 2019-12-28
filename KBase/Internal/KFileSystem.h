@@ -43,4 +43,5 @@ public:
 	virtual IKFileSystemPtr GetFileSystem(const char* root, FileSystemType type);
 
 	virtual bool Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret);
+	virtual bool IsFileExist(const std::string& file);
 };

@@ -2,6 +2,12 @@
 #include "KBase/Interface/IKDataStream.h"
 #include <memory>
 
+#if defined(_WIN32)
+#	define SNPRINTF sprintf_s
+#else
+#	define SNPRINTF snprintf
+#endif
+
 enum LogLevel
 {
 	LL_NORMAL,
@@ -12,13 +18,13 @@ enum LogLevel
 	LL_COUNT
 };
 
-struct IKLog;
-typedef std::shared_ptr<IKLog> IKLogPtr;
+struct IKLogger;
+typedef std::shared_ptr<IKLogger> IKLoggerPtr;
 
-struct IKLog
+struct IKLogger
 {
 public:
-	virtual ~IKLog() {}
+	virtual ~IKLogger() {}
 
 	virtual bool Init(const char* pFilePath, bool bLogConsole, bool bLogTime, IOLineMode lineMode) = 0;
 	virtual bool UnInit() = 0;
@@ -30,12 +36,6 @@ public:
 	virtual bool LogSuffix(LogLevel level, const char* pszSuffix, const char* pszFormat, ...) = 0;
 	virtual bool LogPrefixSuffix(LogLevel level, const char* pszPrefix, const char* pszSuffix, const char* pszFormat, ...) = 0;
 };
-
-#ifdef _WIN32
-#	define SNPRINTF sprintf_s
-#else
-#	define SNPRINTF snprintf
-#endif
 
 enum LogModule
 {
@@ -99,12 +99,15 @@ static inline const char* LOG_MOUDLE_TO_STR(LogModule module)
 	assert(false);\
 }
 
-extern IKLogPtr GLogger;
+namespace KLog
+{
+	extern IKLoggerPtr Logger;
+}
 
-#define KG_LOG(module, pszFormat, ...) KLOG(GLogger, module, pszFormat, __VA_ARGS__)
-#define KG_LOGW(module, pszFormat, ...) KLOGW(GLogger, module, pszFormat, __VA_ARGS__)
-#define KG_LOGD(module, pszFormat, ...) KLOGD(GLogger, module, pszFormat, __VA_ARGS__)
-#define KG_LOGE(module, pszFormat, ...) KLOGE(GLogger, module, pszFormat, __VA_ARGS__)
-#define KG_LOGE_ASSERT(module, pszFormat, ...) KLOGE_ASSERT(GLogger, module, pszFormat, __VA_ARGS__)
+#define KG_LOG(module, pszFormat, ...) KLOG(KLog::Logger, module, pszFormat, __VA_ARGS__)
+#define KG_LOGW(module, pszFormat, ...) KLOGW(KLog::Logger, module, pszFormat, __VA_ARGS__)
+#define KG_LOGD(module, pszFormat, ...) KLOGD(KLog::Logger, module, pszFormat, __VA_ARGS__)
+#define KG_LOGE(module, pszFormat, ...) KLOGE(KLog::Logger, module, pszFormat, __VA_ARGS__)
+#define KG_LOGE_ASSERT(module, pszFormat, ...) KLOGE_ASSERT(KLog::Logger, module, pszFormat, __VA_ARGS__)
 
-EXPORT_DLL IKLogPtr CreateLog();
+//EXPORT_DLL IKLoggerPtr CreateLogger();

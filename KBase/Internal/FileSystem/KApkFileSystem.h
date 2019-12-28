@@ -2,6 +2,7 @@
 #include "Interface/IKFileSystem.h"
 #ifdef __ANDROID__
 #include <android/asset_manager.h>
+#include <android_native_app_glue.h>
 #endif
 
 class KApkFileSystem : public IKFileSystem

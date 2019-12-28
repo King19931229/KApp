@@ -17,7 +17,6 @@
 
 #include "Interface/IKCodec.h"
 #include "Interface/IKMemory.h"
-IKLogPtr pLog;
 
 #include "KRender/Interface/IKRenderWindow.h"
 #include "KRender/Interface/IKRenderDevice.h"
@@ -36,15 +35,12 @@ IKLogPtr pLog;
 
 int main()
 {
-	GLogger = CreateLog();
-	GLogger->Init("log.txt", true, true, ILM_UNIX);
-
-	GFileSystemManager = CreateFileSystemManager();
-	GFileSystemManager->Init();
-
-	GFileSystemManager->AddSystem("../Sponza.zip", -1, FST_ZIP);
-	GFileSystemManager->AddSystem(".", 0, FST_NATIVE);
-	GFileSystemManager->AddSystem("../", 1, FST_NATIVE);
+	KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
+	
+	KFileSystem::Manager->Init();
+	KFileSystem::Manager->AddSystem("../Sponza.zip", -1, FST_ZIP);
+	KFileSystem::Manager->AddSystem(".", 0, FST_NATIVE);
+	KFileSystem::Manager->AddSystem("../", 1, FST_NATIVE);
 
 	/*
 	KDebugConsole console;
@@ -106,5 +102,6 @@ int main()
 	UnInitAssetLoaderManager();
 	UnInitCodecManager();
 
-	GFileSystemManager->UnInit();
+	KLog::Logger->UnInit();
+	KFileSystem::Manager->UnInit();
 }

@@ -6,11 +6,14 @@
 #include <algorithm>
 #include <assert.h>
 
-IKFileSystemManagerPtr GFileSystemManager = nullptr;
-
 EXPORT_DLL IKFileSystemManagerPtr CreateFileSystemManager()
 {
 	return IKFileSystemManagerPtr((IKFileSystemManager*)new KFileSystemManager());
+}
+
+namespace KFileSystem
+{
+	IKFileSystemManagerPtr Manager = CreateFileSystemManager();
 }
 
 KFileSystemManager::KFileSystemManager()
@@ -120,6 +123,18 @@ bool KFileSystemManager::Open(const std::string& file, IOType priorityType, IKDa
 	for(PriorityFileSystem& sys : m_Queue)
 	{
 		if(sys.system->Open(file, priorityType, ret))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KFileSystemManager::IsFileExist(const std::string& file)
+{
+	for(PriorityFileSystem& sys : m_Queue)
+	{
+		if(sys.system->IsFileExist(file))
 		{
 			return true;
 		}

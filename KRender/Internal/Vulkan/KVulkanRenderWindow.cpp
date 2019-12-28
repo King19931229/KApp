@@ -334,8 +334,8 @@ void KVulkanRenderWindow::HandleAppCommand(android_app* app, int32_t cmd)
 		break;
 	}
 }
-
 #endif
+
 bool KVulkanRenderWindow::Loop()
 {
 #ifndef	__ANDROID__
@@ -385,7 +385,7 @@ bool KVulkanRenderWindow::Loop()
 					}
 			}
 
-			if (m_device)
+			if (m_device && m_bFocus)
 			{
 				m_device->Present();
 			}
