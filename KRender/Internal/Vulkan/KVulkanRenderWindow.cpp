@@ -302,8 +302,11 @@ int32_t KVulkanRenderWindow::HandleAppInput(struct android_app* app, AInputEvent
 			{
 				int32_t nativeAction = AMotionEvent_getAction(event);
 
+				int32_t pointerIndex = (nativeAction & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+				int32_t poinerAction = nativeAction & AMOTION_EVENT_ACTION_MASK;
+
 				InputAction inputAction = INPUT_ACTION_UNKNOWN;
-				switch (nativeAction)
+				switch (poinerAction)
 				{
 					case AMOTION_EVENT_ACTION_UP:
 					case AMOTION_EVENT_ACTION_POINTER_UP:
@@ -323,14 +326,15 @@ int32_t KVulkanRenderWindow::HandleAppInput(struct android_app* app, AInputEvent
 						break;
 				}
 
+				size_t touchCount = AMotionEvent_getPointerCount(event);
+				KG_LOG(LM_DEFAULT, "touch counts [%d] action [%d] native action [%d]", touchCount, inputAction, nativeAction);
+				KG_LOG(LM_DEFAULT, "pointer index [%d] pointer action [%d]", pointerIndex, poinerAction);
+
 				if(inputAction != INPUT_ACTION_UNKNOWN)
 				{
-					size_t touchCount = AMotionEvent_getPointerCount(event);
-
 					std::vector<std::tuple<float, float>> touchPositions;
 					touchPositions.reserve(touchCount);
 
-					KG_LOG(LM_DEFAULT, "touch counts [%d] action [%d] native action [%d]", touchCount, inputAction, nativeAction);
 					for(size_t i = 0; i < touchCount; ++i)
 					{
 						float x = AMotionEvent_getX(event, i);
@@ -339,7 +343,7 @@ int32_t KVulkanRenderWindow::HandleAppInput(struct android_app* app, AInputEvent
 						touchPositions.push_back(pos);
 					}
 
-					for (auto it = renderWindow->m_TouchCallbacks.begin(),
+					for(auto it = renderWindow->m_TouchCallbacks.begin(),
 							 itEnd = renderWindow->m_TouchCallbacks.end();
 						 it != itEnd; ++it)
 					{

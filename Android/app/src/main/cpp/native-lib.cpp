@@ -59,6 +59,8 @@ void android_main(android_app *state)
 	KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
 
 	KFileSystem::Manager->AddSystem(KPlatform::GetExternalDataPath(), -1, FST_NATIVE);
+	std::string zipPath = std::string(KPlatform::GetExternalDataPath())  + "/Model/Sponza.zip";
+	KFileSystem::Manager->AddSystem(zipPath.c_str(), -3, FST_ZIP);
 	KFileSystem::Manager->AddSystem(".", -2, FST_APK);
 
 	InitCodecManager();

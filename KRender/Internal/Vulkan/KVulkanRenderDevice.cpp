@@ -782,7 +782,7 @@ bool KVulkanRenderDevice::CreateMesh()
 		}
 	}
 #endif
-#if 0
+#if 1
 	const uint32_t IDX = 1;
 
 	enum InitMode
@@ -1205,7 +1205,7 @@ bool KVulkanRenderDevice::AddWindowCallback()
 	{
 		if(action == INPUT_ACTION_REPEAT)
 		{
-			if (touchPositions.size() >= m_LastTouchCount && touchPositions.size() <= 2)
+			if (touchPositions.size() >= m_LastTouchCount && touchPositions.size() <= 2 && touchPositions.size() > 0)
 			{
 				m_TouchAction = (int) touchPositions.size();
 
@@ -1218,6 +1218,12 @@ bool KVulkanRenderDevice::AddWindowCallback()
 					}
 					m_Touch[i] = true;
 				}
+				m_LastTouchCount = (int)touchPositions.size();
+
+				if(m_TouchAction != 2)
+				{
+					m_LastTouchDistance = 0;
+				}
 			}
 			else
 			{
@@ -1229,8 +1235,8 @@ bool KVulkanRenderDevice::AddWindowCallback()
 					m_TouchPos[1][1] = 0.0f;
 				}
 				ZERO_ARRAY_MEMORY(m_Touch);
+				m_LastTouchCount = 0;
 			}
-			m_LastTouchCount = (int)touchPositions.size();
 		}
 		else
 		{
@@ -1255,18 +1261,18 @@ bool KVulkanRenderDevice::AddWindowCallback()
 
 			if (abs(dx) > 0.0001f)
 			{
-				m_Camera.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), -glm::quarter_pi<float>() * dx / width);
+				m_Camera.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 3.0f * -glm::quarter_pi<float>() * dx / width);
 			}
 			if(abs(dy) > 0.0001f)
 			{
-				m_Camera.RotateRight(-glm::quarter_pi<float>() * dy / height);
+				m_Camera.RotateRight(2.0f * -glm::quarter_pi<float>() * dy / height);
 			}
 		}
 		else if (m_TouchAction == 2 && touchPositions.size() == 2)
 		{
 			float dx = std::get<0>(touchPositions[0]) - std::get<0>(touchPositions[1]);
 			float dy = std::get<1>(touchPositions[0]) - std::get<1>(touchPositions[1]);
-			const float fSpeed = 0.1f;
+			const float fSpeed = 0.3f;
 
 			float distance = sqrtf(dx * dx + dy * dy);
 
@@ -1279,6 +1285,7 @@ bool KVulkanRenderDevice::AddWindowCallback()
 
 		if (m_TouchAction)
 		{
+			ZERO_ARRAY_MEMORY(m_Touch);
 			for (size_t i = 0; i < std::min((size_t)2, touchPositions.size()); ++i)
 			{
 				m_TouchPos[i][0] = std::get<0>(touchPositions[i]);

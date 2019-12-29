@@ -221,6 +221,7 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 				{
 				case LL_NORMAL:
 					__android_log_print(ANDROID_LOG_INFO, "ANDROID", "%s", szTmpBuff);
+					break;
 				case LL_WARNING:
 					__android_log_print(ANDROID_LOG_WARN, "ANDROID", "%s", szTmpBuff);
 					break;
@@ -231,6 +232,7 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 					__android_log_print(ANDROID_LOG_ERROR, "ANDROID", "%s", szTmpBuff);
 					break;
 				default:
+					assert(false && "unable to reach");
 					break;
 				}
 #else
