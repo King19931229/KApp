@@ -158,28 +158,63 @@ bool KVulkanPipeline::SetConstantBuffer(unsigned int location, ShaderTypes shade
 	return false;
 }
 
-bool KVulkanPipeline::SetSampler(unsigned int location, const ImageView& imageView, IKSamplerPtr sampler)
+bool KVulkanPipeline::BindSampler(unsigned int location, const SamplerBindingInfo& info)
 {
-	if(imageView.imageViewHandle != nullptr && sampler)
-	{
-		ASSERT_RESULT(m_Uniforms.find(location) == m_Uniforms.end() && "The location you try to bind is conflited with ubo");
+	ASSERT_RESULT(m_Uniforms.find(location) == m_Uniforms.end() && "The location you try to bind is conflited with ubo");
 
+	auto it = m_Samplers.find(location);
+	if(it == m_Samplers.end())
+	{
+		m_Samplers[location] = info;
+	}
+	else
+	{
+		it->second = info;
+	}
+
+	return true;
+}
+
+bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler)
+{
+	if(texture && sampler)
+	{
+		KVulkanTexture* vulkanTexture = (KVulkanTexture*)texture.get();
+		VkImageView imageView = vulkanTexture->GetImageView();
+
+		ASSERT_RESULT(imageView != VK_NULL_HANDLE);
 		SamplerBindingInfo info =
 		{
-			(VkImageView)imageView.imageViewHandle,
+			imageView,
 			((KVulkanSampler*)sampler.get())->GetVkSampler(),
-			imageView.fromDepthStencil ? true : false
+			false,
 		};
-		auto it = m_Samplers.find(location);
-		if(it == m_Samplers.end())
+
+		ASSERT_RESULT(BindSampler(location, info));
+	}
+	return false;
+}
+
+bool KVulkanPipeline::SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler)
+{
+	if(target && sampler)
+	{
+		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target.get();
+
+		VkFormat format = VK_FORMAT_UNDEFINED;
+		VkImageView imageView = VK_NULL_HANDLE;
+
+		ASSERT_RESULT(vulkanTarget->GetImageViewInformation(RTC_DEPTH_STENCIL, format, imageView));
+
+		ASSERT_RESULT(imageView != VK_NULL_HANDLE);
+		SamplerBindingInfo info =
 		{
-			m_Samplers[location] = info;
-		}
-		else
-		{
-			it->second = info;
-		}
-		return true;
+			imageView,
+			((KVulkanSampler*)sampler.get())->GetVkSampler(),
+			true,
+		};
+
+		ASSERT_RESULT(BindSampler(location, info));
 	}
 	return false;
 }
@@ -591,16 +626,19 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	colorBlending.logicOpEnable = VK_FALSE;
 	colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
 
-	ImageView colorImageView;
-	if(m_Target->GetImageView(RTC_COLOR, colorImageView))
 	{
-		colorBlending.attachmentCount = 1;
-		colorBlending.pAttachments = &colorBlendAttachment;
-	}
-	else
-	{
-		colorBlending.attachmentCount = 0;
-		colorBlending.pAttachments = nullptr;
+		VkFormat colorForamt = VK_FORMAT_UNDEFINED;
+		VkImageView colorImageView = VK_NULL_HANDLE;
+		if(m_Target->GetImageViewInformation(RTC_COLOR, colorForamt, colorImageView))
+		{
+			colorBlending.attachmentCount = 1;
+			colorBlending.pAttachments = &colorBlendAttachment;
+		}
+		else
+		{
+			colorBlending.attachmentCount = 0;
+			colorBlending.pAttachments = nullptr;
+		}
 	}
 	colorBlending.blendConstants[0] = 0.0f; // Optional
 	colorBlending.blendConstants[1] = 0.0f; // Optional

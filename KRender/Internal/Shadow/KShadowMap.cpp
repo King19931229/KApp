@@ -40,8 +40,7 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice,	size_t frameInFlight, size_t
 		IKRenderTargetPtr& target = m_RenderTargets[i];
 		ASSERT_RESULT(renderDevice->CreateRenderTarget(target));
 		target->SetDepthStencilClear(1.0, 0);
-		target->SetSize(shadowMapSize, shadowMapSize);
-		ASSERT_RESULT(target->InitFromDepthStencil(false));
+		ASSERT_RESULT(target->InitFromDepthStencil(shadowMapSize, shadowMapSize, false));
 	}
 
 	return true;

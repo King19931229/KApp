@@ -257,6 +257,7 @@ public:
 
 	virtual bool CreateTexture(IKTexturePtr& texture);
 	virtual bool CreateSampler(IKSamplerPtr& sampler);
+	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain);
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target);
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline);

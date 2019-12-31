@@ -30,6 +30,7 @@
     <ClInclude Include="Interface\IKShader.h" />
     <ClInclude Include="Interface\IKRenderConfig.h" />
     <ClInclude Include="Interface\IKBuffer.h" />
+    <ClInclude Include="Interface\IKSwapChain.h" />
     <ClInclude Include="Interface\IKTexture.h" />
     <ClInclude Include="Interface\IKUIOverlay.h" />
     <ClInclude Include="Internal\Asset\KMaterial.h" />
@@ -64,7 +65,6 @@
     <ClInclude Include="Internal\Shadow\KShadowMap.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
-    <ClInclude Include="Internal\Vulkan\KVulkanImageView.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanInitializer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanHeapAllocator.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanGlobal.h" />

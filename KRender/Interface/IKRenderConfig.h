@@ -229,14 +229,8 @@ enum SubpassContents
 	SUBPASS_CONTENTS_SECONDARY
 };
 
-//TODO
-struct ImageView
-{
-	void* imageViewHandle;
-	int imageForamt;
-	bool fromSwapChain;
-	bool fromDepthStencil;
-};
+struct IKSwapChain;
+typedef std::shared_ptr<IKSwapChain> IKSwapChainPtr;
 
 struct IKRenderWindow;
 typedef std::shared_ptr<IKRenderWindow> IKRenderWindowPtr;

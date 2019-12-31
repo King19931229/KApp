@@ -18,6 +18,7 @@ struct IKRenderDevice
 
 	virtual bool CreateTexture(IKTexturePtr& texture) = 0;
 	virtual bool CreateSampler(IKSamplerPtr& sampler) = 0;
+	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain) = 0;
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target) = 0;
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline) = 0;

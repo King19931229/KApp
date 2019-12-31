@@ -202,7 +202,7 @@ void KUIOverlayBase::PreparePipeline()
 		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 		pipeline->SetShader(ST_VERTEX, m_VertexShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
-		pipeline->SetSampler(0, m_FontTexture->GetImageView(), m_FontSampler);
+		pipeline->SetSampler(0, m_FontTexture, m_FontSampler);
 
 		pipeline->PushConstantBlock(ST_VERTEX, sizeof(m_PushConstBlock), m_PushOffset);
 		ASSERT_RESULT(pipeline->Init());

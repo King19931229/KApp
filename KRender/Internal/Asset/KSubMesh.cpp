@@ -155,7 +155,6 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 		pipeline->SetConstantBuffer(CBT_SHADOW, ST_VERTEX | ST_FRAGMENT, shaodwBuffer);
 
 		bool diffuseReady = false;
-		bool shadowReady = false;
 
 		if(m_Material)
 		{
@@ -165,7 +164,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 
 			if(diffuseMap.texture && diffuseMap.sampler)
 			{
-				pipeline->SetSampler(CBT_COUNT, diffuseMap.texture->GetImageView(), diffuseMap.sampler);
+				pipeline->SetSampler(CBT_COUNT, diffuseMap.texture, diffuseMap.sampler);
 				diffuseReady = true;
 			}
 		}
@@ -173,15 +172,10 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 		IKRenderTargetPtr shadowTarget = KRenderGlobal::ShadowMap.GetShadowMapTarget(frameIndex);
 		if(shadowTarget)
 		{
-			ImageView depthView;
-			if(shadowTarget->GetImageView(RTC_DEPTH_STENCIL, depthView))
-			{
-				pipeline->SetSampler(CBT_COUNT + 3, depthView, KRenderGlobal::ShadowMap.GetSampler());
-				shadowReady = true;
-			}
+			pipeline->SetSamplerDepthAttachment(CBT_COUNT + 3, shadowTarget, KRenderGlobal::ShadowMap.GetSampler());
 		}
 
-		if(!diffuseReady || !shadowReady)
+		if(!diffuseReady)
 		{
 			KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
 			pipeline = nullptr;
