@@ -17,6 +17,7 @@ struct IKPipeline
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology) = 0;
 	virtual bool SetVertexBinding(const VertexFormat* format, size_t count) = 0;
 
+	virtual bool SetColorWrite(bool r, bool g, bool b, bool a) = 0;
 	virtual bool SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op) = 0;
 	virtual bool SetBlendEnable(bool enable) = 0;
 

@@ -31,6 +31,9 @@ protected:
 	size_t					m_RenderThreadNum;
 	FramePipelineList		m_Pipelines[PIPELINE_STAGE_COUNT];
 
+	IKShaderPtr				m_PreZVSShader;
+	IKShaderPtr				m_PreZFSShader;
+
 	IKShaderPtr				m_SceneVSShader;
 	IKShaderPtr				m_SceneFSShader;
 

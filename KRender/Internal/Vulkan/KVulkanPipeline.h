@@ -34,6 +34,7 @@ protected:
 	VkPrimitiveTopology	m_PrimitiveTopology;
 
 	// Alpha混合信息
+	VkColorComponentFlags m_ColorWriteMask;
 	VkBlendFactor m_ColorSrcBlendFactor;
 	VkBlendFactor m_ColorDstBlendFactor;
 	VkBlendOp m_ColorBlendOp;
@@ -102,6 +103,7 @@ public:
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology);
 	virtual bool SetVertexBinding(const VertexFormat* formats, size_t count);
 
+	virtual bool SetColorWrite(bool r, bool g, bool b, bool a);
 	virtual bool SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op);
 	virtual bool SetBlendEnable(bool enable);
 

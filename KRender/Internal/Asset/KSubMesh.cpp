@@ -37,6 +37,9 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	m_IndexDraw = true;
 
 	// hard code for now
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/prez.vert", m_PreZVSShader));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/prez.frag", m_PreZFSShader));
+
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.vert", m_SceneVSShader));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.frag", m_SceneFSShader));
 
@@ -69,27 +72,26 @@ bool KSubMesh::UnInit()
 	m_IndexData.Destroy();
 	m_FrameInFlight = 0;
 
-	if(m_SceneVSShader)
-	{
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_SceneVSShader));
-		m_SceneVSShader = nullptr;
-	}
-	if(m_SceneFSShader)
-	{
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_SceneFSShader));
-		m_SceneFSShader = nullptr;
-	}
+#define SAFE_RELEASE_SHADER(shader)\
+do\
+{\
+	if(shader)\
+	{\
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(shader));\
+		shader = nullptr;\
+	}\
+}while(0);\
 
-	if(m_ShadowVSShader)
-	{
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_ShadowVSShader));
-		m_ShadowVSShader = nullptr;
-	}
-	if(m_ShadowFSShader)
-	{
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_ShadowFSShader));
-		m_ShadowFSShader = nullptr;
-	}
+	SAFE_RELEASE_SHADER(m_PreZVSShader);
+	SAFE_RELEASE_SHADER(m_PreZFSShader);
+
+	SAFE_RELEASE_SHADER(m_SceneVSShader);
+	SAFE_RELEASE_SHADER(m_SceneFSShader);
+
+	SAFE_RELEASE_SHADER(m_ShadowVSShader);
+	SAFE_RELEASE_SHADER(m_ShadowFSShader);
+
+#undef SAFE_RELEASE_SHADER
 
 	for(size_t i = 0; i < PIPELINE_STAGE_COUNT; ++i)
 	{
@@ -119,6 +121,11 @@ bool KSubMesh::UnInit()
 	return true;
 }
 
+// 安卓上还是有用的
+#ifndef __ANDROID__
+#	define PRE_Z_DISABLE
+#endif
+
 bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t renderThreadIndex, IKPipelinePtr& pipeline, uint32_t& objectPushOffset)
 {
 	assert(m_pVertexData);
@@ -127,7 +134,34 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 		return false;
 	}
 
-	if(stage == PIPELINE_STAGE_OPAQUE)
+	if(stage == PIPELINE_STAGE_PRE_Z)
+	{
+		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+		pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+
+		pipeline->SetShader(ST_VERTEX, m_PreZVSShader);
+		pipeline->SetShader(ST_FRAGMENT, m_PreZFSShader);
+
+		pipeline->SetBlendEnable(false);
+
+		pipeline->SetCullMode(CM_BACK);
+		pipeline->SetFrontFace(FF_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+
+		pipeline->SetColorWrite(false, false, false, false);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		pipeline->PushConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT), objectPushOffset);
+
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, renderThreadIndex, CBT_CAMERA);
+		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
+
+		ASSERT_RESULT(pipeline->Init());
+		return true;
+	}
+	else if(stage == PIPELINE_STAGE_OPAQUE)
 	{
 		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
 
@@ -144,7 +178,13 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 
+		pipeline->SetColorWrite(true, true, true, true);
+#ifdef PRE_Z_DISABLE
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+#else
+		pipeline->SetDepthFunc(CF_EQUAL, false, true);
+#endif
+		
 
 		pipeline->PushConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT), objectPushOffset);
 
@@ -196,6 +236,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 		pipeline->SetCullMode(CM_NONE);
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(false, false, false, false);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		pipeline->SetDepthBiasEnable(true);
@@ -230,6 +271,12 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, size_t r
 		assert(false && "frame index out of bound");
 		return false;
 	}
+#ifdef PRE_Z_DISABLE
+	if(stage == PIPELINE_STAGE_PRE_Z)
+	{
+		return false;
+	}
+#endif
 
 	FramePipelineList& pipelines = m_Pipelines[stage];
 	assert(frameIndex < pipelines.size());

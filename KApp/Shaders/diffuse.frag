@@ -1,5 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+layout(early_fragment_tests) in;
 
 layout(location = 0) in vec2 uv;
 layout(location = 1) in vec4 shadowCoord;
@@ -14,7 +15,7 @@ layout(binding = TEXTURE_SLOT3) uniform sampler2D shadowSampler;
 float textureProj(vec4 shadowCoord, vec2 off)
 {
 	float shadow = 1.0;
-	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) 
+	if ( shadowCoord.z > 0 && shadowCoord.z < 1.0 ) 
 	{
 		float dist = texture( shadowSampler, shadowCoord.xy + off ).r;
 		if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
@@ -60,10 +61,21 @@ float LinearizeDepth(float depth)
 	return (2.0 * n) / (f + n - z * (f - n));	
 }
 
+const bool pcf = true;
+
 void main()
 {
-	float shadow = filterPCF(shadowCoord);
-	//
+	float shadow = 0.0f;
+	
+	if(pcf)
+	{
+		shadow = filterPCF(shadowCoord);
+	}
+	else
+	{
+		shadow = textureProj(shadowCoord, vec2(0.0f, 0.0f));
+	}
+
 	outColor = texture(texSampler, uv);
 	outColor.rgb *= shadow;
 

@@ -11,6 +11,7 @@
 
 KVulkanPipeline::KVulkanPipeline() :
 	m_PrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
+	m_ColorWriteMask(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT),
 	m_ColorSrcBlendFactor(VK_BLEND_FACTOR_SRC_ALPHA),
 	m_ColorDstBlendFactor(VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA),
 	m_ColorBlendOp(VK_BLEND_OP_ADD),
@@ -62,6 +63,16 @@ bool KVulkanPipeline::SetVertexBinding(const VertexFormat* formats, size_t count
 			detail.attributeDescriptions.end()
 			);
 	}	
+	return true;
+}
+
+bool KVulkanPipeline::SetColorWrite(bool r, bool g, bool b, bool a)
+{
+	m_ColorWriteMask = 0;
+	m_ColorWriteMask |=  (r * VK_COLOR_COMPONENT_R_BIT);
+	m_ColorWriteMask |=  (g * VK_COLOR_COMPONENT_G_BIT);
+	m_ColorWriteMask |=  (b * VK_COLOR_COMPONENT_B_BIT);
+	m_ColorWriteMask |=  (a * VK_COLOR_COMPONENT_A_BIT);
 	return true;
 }
 
@@ -610,7 +621,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 
 	// 配置Alpha混合信息
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	colorBlendAttachment.colorWriteMask = m_Pipeline->m_ColorWriteMask;
 	colorBlendAttachment.blendEnable = m_Pipeline->m_BlendEnable;
 
 	colorBlendAttachment.srcColorBlendFactor = m_Pipeline->m_ColorSrcBlendFactor;

@@ -204,9 +204,6 @@
     <ClInclude Include="Internal\ECS\Component\KComponentBase.h">
       <Filter>Internal\ECS\Component</Filter>
     </ClInclude>
-    <ClInclude Include="IKRenderCore.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Shadow\KShadowMap.h">
       <Filter>Internal\Shadow</Filter>
     </ClInclude>
