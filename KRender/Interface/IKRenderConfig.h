@@ -206,6 +206,7 @@ enum RenderTargetComponent
 
 enum PipelineStage
 {
+	PIPELINE_STAGE_PRE_Z,
 	PIPELINE_STAGE_OPAQUE,
 	PIPELINE_STAGE_SHADOW_GEN,
 	PIPELINE_STAGE_COUNT
@@ -229,14 +230,8 @@ enum SubpassContents
 	SUBPASS_CONTENTS_SECONDARY
 };
 
-//TODO
-struct ImageView
-{
-	void* imageViewHandle;
-	int imageForamt;
-	bool fromSwapChain;
-	bool fromDepthStencil;
-};
+struct IKSwapChain;
+typedef std::shared_ptr<IKSwapChain> IKSwapChainPtr;
 
 struct IKRenderWindow;
 typedef std::shared_ptr<IKRenderWindow> IKRenderWindowPtr;

@@ -82,8 +82,13 @@ protected:
 	struct ThreadData
 	{
 		IKCommandPoolPtr commandPool;
+
+		IKCommandBufferPtr preZcommandBuffer;
+		std::vector<KRenderCommand> preZcommands;
+
 		IKCommandBufferPtr commandBuffer;
 		std::vector<KRenderCommand> commands;
+
 		size_t num;
 		size_t offset;
 	};
@@ -216,7 +221,7 @@ protected:
 	bool UpdateCamera(size_t idx);
 	bool UpdateObjectTransform();
 
-	void ThreadRenderObject(uint32_t threadIndex, uint32_t chainImageIndex, uint32_t frameIndex);
+	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
 
 	bool RecreateSwapChain();
 	bool CleanupSwapChain();
@@ -257,6 +262,7 @@ public:
 
 	virtual bool CreateTexture(IKTexturePtr& texture);
 	virtual bool CreateSampler(IKSamplerPtr& sampler);
+	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain);
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target);
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline);

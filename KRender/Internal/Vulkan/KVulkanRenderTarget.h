@@ -19,8 +19,8 @@ protected:
 
 	VkExtent2D		m_Extend;
 
-	VkFormat		m_ColorFormat;
 	VkImageView		m_ColorImageView;
+	VkFormat		m_ColorFormat;
 
 	VkFormat		m_DepthFormat;
 
@@ -42,7 +42,7 @@ protected:
 
 	static VkFormat FindDepthFormat(bool bStencil);
 
-	bool CreateImage(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount);
+	bool CreateImage(VkImageView imageView, VkFormat imageForamt,bool bDepth, bool bStencil, unsigned short uMsaaCount);
 	bool CreateFramebuffer(bool fromSwapChain);
 
 	bool CreateDepthImage(bool bStencil);
@@ -51,15 +51,14 @@ public:
 	KVulkanRenderTarget();
 	~KVulkanRenderTarget();
 
-	virtual bool SetSize(size_t width, size_t height);
 	virtual bool SetColorClear(float r, float g, float b, float a);
 	virtual bool SetDepthStencilClear(float depth, unsigned int stencil);
 
-	virtual bool InitFromImageView(const ImageView& view, bool bDepth, bool bStencil, unsigned short uMsaaCount);
-	virtual bool InitFromDepthStencil(bool bStencil);
-	virtual bool UnInit();
+	virtual bool InitFromSwapChain(IKSwapChain* swapChain, size_t imageIndex, bool bDepth, bool bStencil, unsigned short uMsaaCount);
+	virtual bool InitFromTexture(IKTexture* texture, bool bDepth, bool bStencil, unsigned short uMsaaCount);
+	virtual bool InitFromDepthStencil(size_t width, size_t height, bool bStencil);
 
-	virtual bool GetImageView(RenderTargetComponent component, ImageView& view);
+	virtual bool UnInit();
 	virtual bool GetSize(size_t& width, size_t& height);
 
 	inline VkRenderPass GetRenderPass() { return m_RenderPass; }
@@ -69,4 +68,5 @@ public:
 
 	typedef std::pair<VkClearValue*, unsigned int> ClearValues;
 	ClearValues GetVkClearValues();
+	bool GetImageViewInformation(RenderTargetComponent component, VkFormat& format, VkImageView& imageView);
 };

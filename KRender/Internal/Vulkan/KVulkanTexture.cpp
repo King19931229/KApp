@@ -158,9 +158,3 @@ bool KVulkanTexture::UnInit()
 	}
 	return true;
 }
-
-ImageView KVulkanTexture::GetImageView()
-{
-	ImageView ret = {(void*)m_TextureImageView, m_TextureFormat, false, false};
-	return ret;
-};

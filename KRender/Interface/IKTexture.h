@@ -12,8 +12,6 @@ struct IKTexture
 	virtual bool InitDevice() = 0;
 	virtual bool UnInit() = 0;
 
-	virtual ImageView GetImageView() = 0;
-
 	virtual size_t GetWidth() = 0;
 	virtual size_t GetHeight() = 0;
 	virtual size_t GetDepth() = 0;

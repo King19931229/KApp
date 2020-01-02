@@ -17,5 +17,7 @@ public:
 
 	virtual bool InitDevice();
 	virtual bool UnInit();
-	virtual ImageView GetImageView();
+
+	inline VkImageView GetImageView() { return m_TextureImageView; }
+	inline VkFormat GetImageFormat() { return m_TextureFormat; }
 };

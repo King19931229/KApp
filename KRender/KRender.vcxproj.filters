@@ -153,9 +153,6 @@
     <ClInclude Include="Internal\Vulkan\KVulkanTexture.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Vulkan\KVulkanImageView.h">
-      <Filter>Internal\Vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Object\KSkyBox.h">
       <Filter>Internal\Object</Filter>
     </ClInclude>
@@ -207,9 +204,6 @@
     <ClInclude Include="Internal\ECS\Component\KComponentBase.h">
       <Filter>Internal\ECS\Component</Filter>
     </ClInclude>
-    <ClInclude Include="IKRenderCore.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Shadow\KShadowMap.h">
       <Filter>Internal\Shadow</Filter>
     </ClInclude>
@@ -230,6 +224,9 @@
     </ClInclude>
     <ClInclude Include="Internal\KDebugConsole.h">
       <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKSwapChain.h">
+      <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

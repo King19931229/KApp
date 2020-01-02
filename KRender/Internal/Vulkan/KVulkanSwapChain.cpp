@@ -277,24 +277,18 @@ bool KVulkanSwapChain::DestroySyncObjects()
 	return true;
 }
 
-bool KVulkanSwapChain::Init(VkDevice device,
-		VkPhysicalDevice physicalDevice,
-		uint32_t graphIndex,
-		uint32_t presentIndex,
-		VkSurfaceKHR surface,
-		uint32_t windowWidth,
-		uint32_t windowHeight,
-		size_t frameInFlight)
+bool KVulkanSwapChain::Init(uint32_t width, uint32_t height, size_t frameInFlight)
 {
 	ASSERT_RESULT(m_SwapChain == VK_NULL_HANDLE);
+	ASSERT_RESULT(KVulkanGlobal::deviceReady);
 
-	m_Device = device;
-	m_PhysicalDevice = physicalDevice;
-	m_Surface = surface;
+	m_Device = KVulkanGlobal::device;
+	m_PhysicalDevice = KVulkanGlobal::physicalDevice;
+	m_Surface = KVulkanGlobal::surface;
 	m_MaxFramesInFight = frameInFlight;
 
 	ASSERT_RESULT(QuerySwapChainSupport());
-	ASSERT_RESULT(CreateSwapChain(windowWidth, windowHeight, graphIndex, presentIndex));
+	ASSERT_RESULT(CreateSwapChain(width, height, KVulkanGlobal::graphicsFamilyIndex, KVulkanGlobal::presentFamilyIndex));
 	ASSERT_RESULT(CreateSyncObjects());
 
 	return true;
@@ -384,18 +378,4 @@ VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQu
 	m_CurrentFlightIndex = (m_CurrentFlightIndex + 1) %  m_MaxFramesInFight;
 
 	return vkResult;
-}
-
-bool KVulkanSwapChain::GetImageView(size_t imageIndex, ImageView& imageView)
-{
-	assert(imageIndex < m_SwapChainImageViews.size());
-	if(imageIndex < m_SwapChainImageViews.size())
-	{
-		imageView.imageViewHandle = (void*)m_SwapChainImageViews[imageIndex];
-		imageView.imageForamt = m_SurfaceFormat.format;
-		imageView.fromSwapChain = true;
-		imageView.fromDepthStencil = false;
-		return true;
-	}
-	return false;
 }

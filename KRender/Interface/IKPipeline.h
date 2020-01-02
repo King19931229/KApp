@@ -17,6 +17,7 @@ struct IKPipeline
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology) = 0;
 	virtual bool SetVertexBinding(const VertexFormat* format, size_t count) = 0;
 
+	virtual bool SetColorWrite(bool r, bool g, bool b, bool a) = 0;
 	virtual bool SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op) = 0;
 	virtual bool SetBlendEnable(bool enable) = 0;
 
@@ -30,7 +31,8 @@ struct IKPipeline
 
 	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader) = 0;
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
-	virtual bool SetSampler(unsigned int location, const ImageView& view, IKSamplerPtr sampler) = 0;
+	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler) = 0;
+	virtual bool SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler) = 0;
 	virtual bool PushConstantBlock(ShaderTypes shaderTypes, uint32_t size, uint32_t& offset) = 0;
 
 	virtual bool Init() = 0;

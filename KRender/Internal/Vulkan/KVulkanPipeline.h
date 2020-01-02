@@ -34,6 +34,7 @@ protected:
 	VkPrimitiveTopology	m_PrimitiveTopology;
 
 	// Alpha混合信息
+	VkColorComponentFlags m_ColorWriteMask;
 	VkBlendFactor m_ColorSrcBlendFactor;
 	VkBlendFactor m_ColorDstBlendFactor;
 	VkBlendOp m_ColorBlendOp;
@@ -94,6 +95,7 @@ protected:
 	bool CreateLayout();
 	bool CreateDestcription();
 	bool DestroyDevice();
+	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
 public:
 	KVulkanPipeline();
 	~KVulkanPipeline();
@@ -101,6 +103,7 @@ public:
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology);
 	virtual bool SetVertexBinding(const VertexFormat* formats, size_t count);
 
+	virtual bool SetColorWrite(bool r, bool g, bool b, bool a);
 	virtual bool SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op);
 	virtual bool SetBlendEnable(bool enable);
 
@@ -115,7 +118,8 @@ public:
 	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader);
 
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
-	virtual bool SetSampler(unsigned int location, const ImageView& view, IKSamplerPtr sampler);
+	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
+	virtual bool SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler);
 	virtual bool PushConstantBlock(ShaderTypes shaderTypes, uint32_t size, uint32_t& offset);
 
 	virtual bool Init();

@@ -8,6 +8,7 @@ namespace KVulkanGlobal
 
 	extern VkDevice device;
 	extern VkPhysicalDevice physicalDevice;
+	extern VkSurfaceKHR surface;
 	extern VkCommandPool graphicsCommandPool;
 	extern VkQueue graphicsQueue;
 	extern VkPipelineCache pipelineCache;
