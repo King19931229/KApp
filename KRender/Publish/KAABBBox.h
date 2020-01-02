@@ -35,10 +35,22 @@ public:
 	inline glm::vec3 GetCenter() const { return (m_Min + m_Max) * 0.5f; }
 	inline glm::vec3 GetExtend() const { return m_Max - m_Min; }
 
-	void Init(const glm::vec3& center, const glm::vec3& extend)
+	void InitFromExtent(const glm::vec3& center, const glm::vec3& extend)
 	{
 		m_Min = center - extend;
 		m_Max = center + extend;
+		m_Mode = EM_DEFAULF;
+	}
+
+	void InitFromMinMax(const glm::vec3& min, const glm::vec3& max)
+	{
+		m_Min = min;
+		m_Max = max;
+
+		assert(m_Max.x >= m_Min.x);
+		assert(m_Max.y >= m_Min.y);
+		assert(m_Max.z >= m_Min.z);
+
 		m_Mode = EM_DEFAULF;
 	}
 
@@ -243,7 +255,7 @@ public:
     |/    |/
     6-----7
 #endif
-	bool GetAllCorners(std::vector<glm::vec3> results)
+	bool GetAllCorners(std::vector<glm::vec3>& results)
 	{
 		if(IsDefault())
 		{

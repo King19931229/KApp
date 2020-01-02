@@ -92,7 +92,7 @@ protected:
 
 			assert(abs(m_Up.x - calcUp.x) <= 0.00001f);
 			assert(abs(m_Up.y - calcUp.y) <= 0.00001f);
-			assert(abs(m_Up.z - calcUp.z) <= 0.00001f);			
+			assert(abs(m_Up.z - calcUp.z) <= 0.00001f);	
 		}
 
 		if(m_InvaildProj)
@@ -134,13 +134,14 @@ protected:
 			glm::mat4 viewInv = glm::inverse(m_View);
 
 			KAABBBox tempBoxResult;
+			tempBoxResult.SetNull();
 			m_Box.SetNull();
 			for(int i = 0; i < FC_COUNT; ++i)
 			{
 				m_Corners[i] = viewInv * glm::vec4(m_Corners[i], 1.0f);
-				m_Box.Merge(m_Corners[i], tempBoxResult);
-				m_Box = tempBoxResult;
+				tempBoxResult.Merge(m_Corners[i], tempBoxResult);
 			}
+			m_Box = tempBoxResult;
 
 			m_Planes[FP_NEAR].Init(m_Corners[FC_NEAR_TOP_LEFT], m_Corners[FC_NEAR_TOP_RIGHT], m_Corners[FC_NEAR_BOTTOM_RIGHT]);
 			m_Planes[FP_FAR].Init(m_Corners[FC_FAR_TOP_LEFT], m_Corners[FC_FAR_BOTTOM_LEFT], m_Corners[FC_FAR_BOTTOM_RIGHT]);
