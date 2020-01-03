@@ -2,6 +2,7 @@
 #include "KVulkanGlobal.h"
 #include "KVulkanHelper.h"
 #include "KBase/Publish/KNumerical.h"
+#include "KBase/Interface/IKLog.h"
 
 #include <mutex>
 
@@ -490,8 +491,13 @@ namespace KVulkanHeapAllocator
 
 						newSize = std::min(MAX_PAGE_SIZE[memoryHeapIndex], newSize);
 						newSize = std::max(sizeToFit, newSize);
+						newSize = std::min(remainSize, newSize);
 
-						assert(newSize <= remainSize);
+						if(newSize < sizeToFit)
+						{
+							KG_LOGE(LM_RENDER, "Heap Space allocate [%d] is not enough for [%d]", newSize, sizeToFit);
+						}
+						assert(newSize >= sizeToFit);
 
 						size += newSize;
 
