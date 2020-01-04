@@ -178,14 +178,14 @@ public:
 			nExp					= nCurrentReadIndex;
 			if(nCurrentReadIndex == m_nMaxReadIndex.load(std::memory_order_relaxed))
 				break;
-			if(m_nReadIndex.compare_exchange_strong(nExp, nNextReadIndex, std::memory_order_seq_cst))
+			if(m_nReadIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_seq_cst))
 			{
 				element = m_RingBuffer[nCurrentReadIndex];
 				// C++11 CAS操作会修改【Exp】
 				nExp = nCurrentReadIndex;
 				// 这是【读保护】防止【写操作】把正在队列中的元素覆盖掉
 				// 只有最小Compare成功的ReadIndex可以修改到MaxWriteIndex 保证MaxWriteIndex正确性
-				while(!m_nMaxWriteIndex.compare_exchange_strong(nExp, nNextReadIndex, std::memory_order_seq_cst))
+				while(!m_nMaxWriteIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_seq_cst))
 				{
 					// C++11 CAS操作会修改【Exp】
 					nExp = nCurrentReadIndex;
@@ -225,14 +225,14 @@ public:
 			nExp					= nCurrentReadIndex;
 			if(nCurrentReadIndex == m_nMaxReadIndex.load(std::memory_order_relaxed))
 				break;
-			if(m_nReadIndex.compare_exchange_strong(nExp, nNextReadIndex, std::memory_order_seq_cst))
+			if(m_nReadIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_seq_cst))
 			{
 				element = m_RingBuffer[nCurrentReadIndex];
 				// C++11 CAS操作会修改【Exp】
 				nExp = nCurrentReadIndex;
 				// 这是【读保护】防止【写操作】把正在队列中的元素覆盖掉
 				// 只有最小Compare成功的ReadIndex可以修改到MaxWriteIndex 保证MaxWriteIndex正确性
-				while(!m_nMaxWriteIndex.compare_exchange_strong(nExp, nNextReadIndex, std::memory_order_seq_cst))
+				while(!m_nMaxWriteIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_seq_cst))
 				{
 					// C++11 CAS操作会修改【Exp】
 					nExp = nCurrentReadIndex;

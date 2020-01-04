@@ -115,7 +115,7 @@ class KThreadPool
 					}
 				});
 
-				if(m_Queue.Empty() || m_bDone)
+				if(m_Queue.Empty())
 				{
 					std::lock_guard<std::mutex> lock(m_WaitMutex);
 					m_WaitCond.notify_all();
@@ -149,13 +149,6 @@ class KThreadPool
 			m_bDone = true;
 			m_Sem.NotifyAll();
 			m_Thread.join();
-		}
-
-		bool Wait()
-		{
-			std::unique_lock<std::mutex> lock(m_WaitMutex);
-			m_WaitCond.wait(lock, [this](){ return m_Queue.Empty() || m_bDone; });
-			return true;
 		}
 	};
 	////////////////////////////////////////////////////////////
@@ -323,7 +316,8 @@ public:
 
 	bool WaitAllAsyncTaskDone()
 	{
-		std::for_each(m_Threads.begin(), m_Threads.end(), std::mem_fun(&KWorkerThread::Wait));
+		std::unique_lock<std::mutex> lock(m_WaitMutex);
+		m_WaitCond.wait(lock, [this](){ return m_Queue.Empty(); });
 		return true;
 	}
 
