@@ -21,6 +21,7 @@ namespace KVulkanHeapAllocator
 
 	static uint32_t MEMORY_TYPE_COUNT = 0;
 
+	static std::vector<VkDeviceSize> MIN_PAGE_SIZE;
 	static std::vector<VkDeviceSize> MAX_PAGE_SIZE;
 	static std::vector<VkDeviceSize> HEAP_REMAIN_SIZE;
 	static std::vector<MemoryHeap*> MEMORY_TYPE_TO_HEAP;
@@ -376,8 +377,8 @@ namespace KVulkanHeapAllocator
 		PageInfo* pHead;
 		PageInfo* pNoShareHead;
 
-		// 当前heap的总大小
-		VkDeviceSize size;
+		VkDeviceSize lastPageSize;
+		VkDeviceSize totalPageSize;
 
 		MemoryHeap(VkDevice _device, uint32_t _memoryTypeIndex, uint32_t _memoryHeapIndex)
 		{
@@ -386,7 +387,9 @@ namespace KVulkanHeapAllocator
 			memoryHeapIndex = _memoryHeapIndex;
 			pHead = nullptr;
 			pNoShareHead = nullptr;
-			size = 0;
+
+			lastPageSize = 0;
+			totalPageSize = 0;
 		}
 
 		void Check()
@@ -400,7 +403,7 @@ namespace KVulkanHeapAllocator
 					p->Check();
 					sum += p->size;
 				}
-				assert(sum == size);
+				assert(sum == totalPageSize);
 			}
 #endif
 		}
@@ -408,7 +411,9 @@ namespace KVulkanHeapAllocator
 		void Clear()
 		{
 			PageInfo* pTemp = nullptr;
-			
+
+			lastPageSize = totalPageSize = 0;
+
 			pTemp = pHead;
 			while(pTemp)
 			{
@@ -426,6 +431,23 @@ namespace KVulkanHeapAllocator
 				SAFE_DELETE(pTemp);
 				pTemp = pNext;
 			}
+		}
+
+		VkDeviceSize NewPageSize()
+		{
+			VkDeviceSize newSize = lastPageSize ? lastPageSize << 1 : MIN_PAGE_SIZE[memoryHeapIndex];
+			newSize = std::min(MAX_PAGE_SIZE[memoryHeapIndex], newSize);
+			newSize = std::max(MIN_PAGE_SIZE[memoryHeapIndex], newSize);
+			return newSize;
+		}
+
+		VkDeviceSize FindPageFitSize(VkDeviceSize pageSize, VkDeviceSize sizeToFit)
+		{
+			VkDeviceSize newPageSize = KNumerical::Factor2GreaterEqual(sizeToFit);
+			newPageSize = std::max(newPageSize, MIN_PAGE_SIZE[memoryHeapIndex]);
+			newPageSize = std::min(newPageSize, MAX_PAGE_SIZE[memoryHeapIndex]);
+			newPageSize = std::min(newPageSize, pageSize);
+			return newPageSize;
 		}
 
 		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment, VkMemoryPropertyFlags usage)
@@ -454,58 +476,31 @@ namespace KVulkanHeapAllocator
 				// 当每次分配都是ALLOC_FACTOR的整数倍时候 就能保证同一个page里的offset也是ALLOC_FACTOR的整数倍
 				sizeToFit = ((sizeToFit + ALLOC_FACTOR - 1) / ALLOC_FACTOR) * ALLOC_FACTOR;
 				assert(sizeToFit % ALLOC_FACTOR == 0);
-				if(pHead == nullptr)
+
+				PageInfo* pPage = Find(sizeToFit, alignment);
+				if(!pPage)
 				{
-					pHead = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, memoryHeapIndex, false);
-					size = sizeToFit;
-					BlockInfo* pBlock = pHead->Alloc(sizeToFit, alignment);
-					assert(pBlock && !pBlock->isFree);
-
-					Check();
-					return pBlock;
-				}
-				else
-				{
-					PageInfo* pPage = Find(sizeToFit, alignment);
-					if(pPage)
-					{
-						// 把多余的空间分裂出来 尽量节省实际分配的内存
-						if(pPage->vkMemroy == VK_NULL_HANDLE)
-						{
-							Split(pPage, sizeToFit);
-						}
-						BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
-						assert(pBlock && !pBlock->isFree);
-
-						Check();
-						return pBlock;
-					}
-
 					// 当前所有page里找不到足够空间 分配一个新的插入到最后 保证heap总空间2倍递增
 					while (true)
 					{
 						pPage = Nail();
+						VkDeviceSize newSize = NewPageSize();
 
-						VkDeviceSize newSize = KNumerical::Pow2LessEqual(size) << 1;
-						VkDeviceSize remainSize = HEAP_REMAIN_SIZE[memoryHeapIndex];
-
-						newSize = std::min(MAX_PAGE_SIZE[memoryHeapIndex], newSize);
-						newSize = std::max(sizeToFit, newSize);
-						newSize = std::min(remainSize, newSize);
-
-						if(newSize < sizeToFit)
-						{
-							KG_LOGE(LM_RENDER, "Heap Space allocate [%d] is not enough for [%d]", newSize, sizeToFit);
-						}
-						assert(newSize >= sizeToFit);
-
-						size += newSize;
+						lastPageSize = newSize;
+						totalPageSize += newSize;
 
 						PageInfo* pNewPage = new PageInfo(this, vkDevice, newSize, memoryTypeIndex, memoryHeapIndex, false);
 
-						pPage->pNext = pNewPage;
+						if(pPage)
+							pPage->pNext = pNewPage;
 						pNewPage->pPre = pPage;
 						pNewPage->pNext = nullptr;
+
+						// 头结点
+						if(pHead == nullptr)
+						{
+							pHead = pNewPage;
+						}
 
 						if(pNewPage->size >= sizeToFit)
 						{
@@ -513,12 +508,19 @@ namespace KVulkanHeapAllocator
 							break;
 						}
 					}
-					BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
-					assert(pBlock && !pBlock->isFree);
-
-					Check();
-					return pBlock;
 				}
+
+				// 把多余的空间分裂出来 尽量节省实际分配的内存
+				if(pPage->vkMemroy == VK_NULL_HANDLE)
+				{
+					VkDeviceSize newPageSize = FindPageFitSize(pPage->size, sizeToFit);
+					Split(pPage, newPageSize);
+				}
+				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
+				assert(pBlock && !pBlock->isFree);
+
+				Check();
+				return pBlock;
 			}
 		}
 
@@ -565,7 +567,7 @@ namespace KVulkanHeapAllocator
 		PageInfo* Find(VkDeviceSize sizeToFit, VkDeviceSize alignment)
 		{
 			PageInfo* pTemp = pHead;
-			while(pTemp)
+			while(pTemp && pTemp)
 			{
 				if(pTemp->size >= sizeToFit)
 				{
@@ -582,7 +584,7 @@ namespace KVulkanHeapAllocator
 		PageInfo* Nail()
 		{
 			PageInfo* pTemp = pHead;
-			while(pTemp->pNext)
+			while(pTemp && pTemp->pNext)
 			{
 				pTemp = pTemp->pNext;
 			}
@@ -706,15 +708,16 @@ namespace KVulkanHeapAllocator
 				MEMORY_TYPE_TO_HEAP[memTypeIdx] = new MemoryHeap(KVulkanGlobal::device, memTypeIdx, memHeapIndex);
 			}
 
-			MAX_PAGE_SIZE.resize(memoryProperties.memoryHeapCount);
 			HEAP_REMAIN_SIZE.resize(memoryProperties.memoryHeapCount);
+			MIN_PAGE_SIZE.resize(memoryProperties.memoryHeapCount);
+			MAX_PAGE_SIZE.resize(memoryProperties.memoryHeapCount);
+
 			for(uint32_t memHeapIdx = 0; memHeapIdx < memoryProperties.memoryHeapCount; ++memHeapIdx)
 			{
 				HEAP_REMAIN_SIZE[memHeapIdx] = memoryProperties.memoryHeaps[memHeapIdx].size;
+				MIN_PAGE_SIZE[memHeapIdx] = KNumerical::Pow2GreaterEqual(memoryProperties.memoryHeaps[memHeapIdx].size * memoryProperties.memoryHeapCount/ MAX_ALLOC_COUNT);
 				// page最大大小为可分配空间的1/8 但是不要高于512M
-				MAX_PAGE_SIZE[memHeapIdx] =	std::min(
-						KNumerical::Pow2LessEqual(memoryProperties.memoryHeaps[memHeapIdx].size >> 3),
-						static_cast<VkDeviceSize>(512U * 1024U * 1024U));
+				MAX_PAGE_SIZE[memHeapIdx] =	std::min(KNumerical::Pow2LessEqual(memoryProperties.memoryHeaps[memHeapIdx].size >> 3), static_cast<VkDeviceSize>(512U * 1024U * 1024U));
 			}
 
 			return true;
@@ -729,6 +732,8 @@ namespace KVulkanHeapAllocator
 			MEMORY_TYPE_TO_HEAP[0] = new MemoryHeap(KVulkanGlobal::device, 0, 0);
 			HEAP_REMAIN_SIZE.resize(1);
 			HEAP_REMAIN_SIZE[0] = static_cast<VkDeviceSize>(512U * 1024U * 1024U);
+			MIN_PAGE_SIZE.resize(1);
+			MIN_PAGE_SIZE[0] = static_cast<VkDeviceSize>(1);
 			MAX_PAGE_SIZE.resize(1);
 			MAX_PAGE_SIZE[0] = static_cast<VkDeviceSize>(512U * 1024U * 1024U);
 			return true;
@@ -751,6 +756,7 @@ namespace KVulkanHeapAllocator
 		MEMORY_TYPE_COUNT = 0;
 		MEMORY_TYPE_TO_HEAP.clear();
 		HEAP_REMAIN_SIZE.clear();
+		MIN_PAGE_SIZE.clear();
 		MAX_PAGE_SIZE.clear();
 
 		return true;
