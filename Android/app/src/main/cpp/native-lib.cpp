@@ -37,6 +37,7 @@ Java_com_king_kapp_MainActivity_stringFromJNI(
 #include "KRender/Interface/IKRenderWindow.h"
 #include "KRender/Interface/IKRenderDevice.h"
 #include "KRender/Interface/IKShader.h"
+#include "KRender/Interface/IKRenderCore.h"
 
 #include <algorithm>
 
@@ -63,32 +64,11 @@ void android_main(android_app *state)
 	KFileSystem::Manager->AddSystem(zipPath.c_str(), -3, FST_ZIP);
 	KFileSystem::Manager->AddSystem(".", -2, FST_APK);
 
-	InitCodecManager();
-	InitAssetLoaderManager();
+	IKRenderCorePtr renderCore = CreateRenderCore();
 
-	IKRenderWindowPtr window = CreateRenderWindow(RD_VULKAN);
-	if (window)
-	{
-		window->Init(state);
-		KVulkanRenderWindow *vulkanWindow = (KVulkanRenderWindow *) window.get();
-		state->onAppCmd = vulkanWindow->HandleAppCommand;
-		state->onInputEvent = vulkanWindow->HandleAppInput;
-		state->userData = vulkanWindow;
-
-		IKRenderDevicePtr device = CreateRenderDevice(RD_VULKAN);
-
-		vulkanWindow->Init(state);
-		vulkanWindow->SetVulkanDevice((KVulkanRenderDevice *) device.get());
-		//device->Init(window);
-
-		window->Loop();
-
-		//device->UnInit();
-		window->UnInit();
-	}
-
-	UnInitAssetLoaderManager();
-	UnInitCodecManager();
+	renderCore->Init(RD_VULKAN, 1024, 1024);
+	renderCore->Loop();
+	renderCore->UnInit();
 
 	KLog::Logger->UnInit();
 }

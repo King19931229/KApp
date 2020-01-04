@@ -68,7 +68,7 @@ public:
 	virtual bool UnRegisterScrollCallback(KScrollCallbackType* callback);
 	virtual bool UnRegisterTouchCallback(KTouchCallbackType* callback);
 
-	inline void SetVulkanDevice(KVulkanRenderDevice* device) { m_device = device; }
+	virtual bool SetRenderDevice(IKRenderDevice* device);
 #if defined(_WIN32)
 	inline GLFWwindow* GetGLFWwindow() { return m_window; }
 #else

@@ -228,6 +228,11 @@ bool KVulkanRenderWindow::Init(android_app* app)
 #ifdef __ANDROID__
 	m_app = app;
 	m_bFocus = false;
+
+	m_app->onAppCmd = this->HandleAppCommand;
+	m_app->onInputEvent = this->HandleAppInput;
+	m_app->userData = this;
+
 	return true;
 #else
 	return false;
@@ -678,4 +683,10 @@ bool KVulkanRenderWindow::UnRegisterTouchCallback(KTouchCallbackType *callback)
 	}
 #endif
 	return false;
+}
+
+bool KVulkanRenderWindow::SetRenderDevice(IKRenderDevice* device)
+{
+	 m_device = static_cast<KVulkanRenderDevice*>(device);
+	 return true;
 }

@@ -399,7 +399,7 @@ bool KVulkanRenderDevice::CreateImageViews()
 	for(size_t i = 0; i < m_OffScreenTextures.size(); ++i)
 	{
 		CreateTexture(m_OffScreenTextures[i]);
-		m_OffScreenTextures[i]->InitMemeoryAsRT(extend.width , extend.height, EF_R16G16B16A16_FLOAT);
+		m_OffScreenTextures[i]->InitMemeoryAsRT(extend.width, extend.height, EF_R16G16B16A16_FLOAT);
 		m_OffScreenTextures[i]->InitDevice();
 	}
 
@@ -1400,7 +1400,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		if(!CreateCommandBuffers())
 			return false;
 
-		m_pWindow->SetVulkanDevice(this);
+		m_pWindow->SetRenderDevice(this);
 		return true;
 	}
 	else

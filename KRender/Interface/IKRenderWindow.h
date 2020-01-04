@@ -34,6 +34,7 @@ struct IKRenderWindow
 	virtual bool IsResizable() = 0;
 
 	virtual bool SetWindowTitle(const char* pName) = 0;
+	virtual bool SetRenderDevice(IKRenderDevice* device) = 0;
 
 	virtual bool RegisterKeyboardCallback(KKeyboardCallbackType* callback) = 0;
 	virtual bool RegisterMouseCallback(KMouseCallbackType* callback) = 0;

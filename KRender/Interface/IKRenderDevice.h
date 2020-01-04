@@ -32,4 +32,4 @@ struct IKRenderDevice
 	virtual bool Present() = 0;
 };
 
-EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform); 
+EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform);

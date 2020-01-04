@@ -255,7 +255,7 @@ public:
     |/    |/
     6-----7
 #endif
-	bool GetAllCorners(std::vector<glm::vec3>& results)
+	bool GetAllCorners(std::vector<glm::vec3>& results) const
 	{
 		if(IsDefault())
 		{

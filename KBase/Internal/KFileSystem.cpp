@@ -3,6 +3,8 @@
 #include "FileSystem/KZipFileSystem.h"
 #include "FileSystem/KApkFileSystem.h"
 
+#include "Interface/IKLog.h"
+
 #include <algorithm>
 #include <assert.h>
 
@@ -127,6 +129,7 @@ bool KFileSystemManager::Open(const std::string& file, IOType priorityType, IKDa
 			return true;
 		}
 	}
+	KG_LOGE(LM_IO, "file [%s] can't to be found by file manager", file.c_str());
 	return false;
 }
 

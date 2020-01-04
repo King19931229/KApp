@@ -37,6 +37,15 @@
     <Filter Include="Internal\Asset\Serializer">
       <UniqueIdentifier>{33de496f-8ea2-46ac-8a58-05cce571f0c7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\PostProcess">
+      <UniqueIdentifier>{fde19757-99a2-452b-9990-bfae5dfd77f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\RenderDispatcher">
+      <UniqueIdentifier>{31833760-9865-4a77-93fb-98f218a9880b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\Scene">
+      <UniqueIdentifier>{f03dae9d-eae0-46e1-9dbd-4d8312daa32b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -228,6 +237,24 @@
     <ClInclude Include="Interface\IKSwapChain.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\KRenderCore.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\PostProcess\KPostProcessManager.h">
+      <Filter>Internal\PostProcess</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\RenderDispatcher\KRenderDispatcher.h">
+      <Filter>Internal\RenderDispatcher</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Scene\KScene.h">
+      <Filter>Internal\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Scene\KOctreeSceneManager.h">
+      <Filter>Internal\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKRenderCore.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -364,6 +391,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializer.cpp">
       <Filter>Internal\Asset\Serializer</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KRenderCore.cpp">
+      <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

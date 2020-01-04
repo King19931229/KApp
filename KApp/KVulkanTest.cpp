@@ -21,6 +21,7 @@
 #include "KRender/Interface/IKRenderWindow.h"
 #include "KRender/Interface/IKRenderDevice.h"
 #include "KRender/Interface/IKShader.h"
+#include "KRender/Interface/IKRenderCore.h"
 
 #include <algorithm>
 #include <process.h>
@@ -52,55 +53,12 @@ int main()
 	console.Init();
 	*/
 
-	InitCodecManager();
-	InitAssetLoaderManager();
 
-	IKAssetLoaderPtr loader = GetAssetLoader();
+	IKRenderCorePtr renderCore = CreateRenderCore();
 
-	KAssetImportOption::ComponentGroup group;
-	group.push_back(AVC_POSITION_3F);
-	group.push_back(AVC_NORMAL_3F);
-	group.push_back(AVC_UV_2F);
-
-	KAssetImportOption option;
-	option.components.push_back(std::move(group));
-
-	KAssetImportResult result;
-
-	loader->Import("../Dependency/assimp-3.3.1/test/models/OBJ/spider.obj", option, result);
-
-	IKRenderWindowPtr window = CreateRenderWindow(RD_VULKAN);
-	if(window)
-	{
-		IKRenderDevicePtr device = CreateRenderDevice(RD_VULKAN);
-
-		window->Init(60, 60, 1024, 768, true);
-		device->Init(window.get());
-		/*
-		IKShaderPtr vtShader = nullptr;
-		device->CreateShader(vtShader);
-
-		IKShaderPtr fgShader = nullptr;
-		device->CreateShader(fgShader);
-
-		IKProgramPtr program = nullptr;
-		device->CreateProgram(program);
-
-		if(vtShader->InitFromFile("shader.vert") && fgShader->InitFromFile("shader.frag"))
-		{
-			program->AttachShader(ST_VERTEX, vtShader);
-			program->AttachShader(ST_FRAGMENT, fgShader);
-			program->Init();
-		}
-		*/
-		window->Loop();
-
-		device->UnInit();
-		window->UnInit();
-	}
-
-	UnInitAssetLoaderManager();
-	UnInitCodecManager();
+	renderCore->Init(RD_VULKAN, 1024, 1024);
+	renderCore->Loop();
+	renderCore->UnInit();
 
 	KLog::Logger->UnInit();
 	KFileSystem::Manager->UnInit();

@@ -120,11 +120,12 @@ do\
 
 	return true;
 }
-
+/*
 // 安卓上还是有用的
 #ifndef __ANDROID__
 #	define PRE_Z_DISABLE
 #endif
+*/
 
 bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t renderThreadIndex, IKPipelinePtr& pipeline, uint32_t& objectPushOffset)
 {

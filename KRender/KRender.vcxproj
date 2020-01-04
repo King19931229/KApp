@@ -22,6 +22,7 @@
     <ClInclude Include="Interface\IKCommandBuffer.h" />
     <ClInclude Include="Interface\IKPipeline.h" />
     <ClInclude Include="Interface\IKRenderCommand.h" />
+    <ClInclude Include="Interface\IKRenderCore.h" />
     <ClInclude Include="Interface\IKRenderDevice.h" />
     <ClInclude Include="Interface\IKRenderTarget.h" />
     <ClInclude Include="Interface\IKRenderWindow.h" />
@@ -49,6 +50,7 @@
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
     <ClInclude Include="Internal\KDebugConsole.h" />
+    <ClInclude Include="Internal\KRenderCore.h" />
     <ClInclude Include="Internal\KRenderGlobal.h" />
     <ClInclude Include="Internal\KRenderThreadPool.h" />
     <ClInclude Include="Internal\KSamplerBase.h" />
@@ -61,6 +63,10 @@
     <ClInclude Include="Internal\Manager\KShaderManager.h" />
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
     <ClInclude Include="Internal\Object\KSkyBox.h" />
+    <ClInclude Include="Internal\PostProcess\KPostProcessManager.h" />
+    <ClInclude Include="Internal\RenderDispatcher\KRenderDispatcher.h" />
+    <ClInclude Include="Internal\Scene\KOctreeSceneManager.h" />
+    <ClInclude Include="Internal\Scene\KScene.h" />
     <ClInclude Include="Internal\Shadow\KShadowMap.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
@@ -99,6 +105,7 @@
     <ClCompile Include="Internal\KConstantDefinition.cpp" />
     <ClCompile Include="Internal\KConstantGlobal.cpp" />
     <ClCompile Include="Internal\KDebugConsole.cpp" />
+    <ClCompile Include="Internal\KRenderCore.cpp" />
     <ClCompile Include="Internal\KRenderDevice.cpp" />
     <ClCompile Include="Internal\KRenderGlobal.cpp" />
     <ClCompile Include="Internal\KRenderWindow.cpp" />

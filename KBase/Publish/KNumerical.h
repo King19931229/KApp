@@ -54,6 +54,34 @@ namespace KNumerical
 		}
 	}
 
+	template<typename T>
+	T Factor2LessEqual(T num)
+	{
+		if(num > 0)
+		{
+			return ((num - (T)1) >> (T)1) <<(T) 1;
+		}
+		else
+		{
+			assert(false && "num is not greater than 0");
+			return 0;
+		}
+	}
+
+	template<typename T>
+	T Factor2GreaterEqual(T num)
+	{
+		if(num > 0)
+		{
+			return ((num + (T)1) >> (T)1) <<(T) 1;
+		}
+		else
+		{
+			assert(false && "num is not greater than 0");
+			return 0;
+		}
+	}
+
 	// 从0开始计算
 	template<typename T>
 	T HighestBinaryBit(T num)
@@ -87,5 +115,30 @@ namespace KNumerical
 			assert(false && "num is not greater than 0");
 			return 0;
 		}
+	}
+
+	template<typename T>
+	T GCD(T a, T b)
+	{
+		T c;
+		if(a < b)
+		{
+			c = a;
+			a = b;
+			b = c;
+		}
+		while(b)
+		{
+			c = a % b;
+			a = b;
+			b = c;
+		}
+		return a;
+	}
+
+	template<typename T>
+	T LCM(T a, T b)
+	{
+		return a * b / GCD(a, b);
 	}
 }
