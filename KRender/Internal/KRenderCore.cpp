@@ -3,10 +3,10 @@
 #include "Interface/IKRenderWindow.h"
 #include "Interface/IKRenderDevice.h"
 
-// TODO
+#include "Internal/KRenderGlobal.h"
+
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Interface/IKCodec.h"
-
 #include "KBase/Publish/KPlatform.h"
 
 EXPORT_DLL IKRenderCorePtr CreateRenderCore()

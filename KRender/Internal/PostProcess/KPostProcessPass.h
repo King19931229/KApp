@@ -1,5 +1,11 @@
 #pragma once
 #include "Interface/IKRenderConfig.h"
+#include "Interface/IKShader.h"
+#include "Interface/IKTexture.h"
+#include "Interface/IKRenderTarget.h"
+#include "Interface/IKPipeline.h"
+#include "Interface/IKCommandBuffer.h"
+
 #include <map>
 
 class KPostProcessManager;
@@ -12,6 +18,7 @@ protected:
 
 	size_t m_Width;
 	size_t m_Height;
+	unsigned short m_MsaaCount;
 	size_t m_FrameInFlight;
 	ElementFormat m_Format;
 
@@ -43,6 +50,7 @@ protected:
 	std::vector<IKTexturePtr> m_Textures;
 	std::vector<IKRenderTargetPtr> m_RenderTargets;
 	std::vector<IKPipelinePtr> m_Pipelines;
+	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 	IKSamplerPtr m_Sampler;
 public:
 	KPostProcessPass(KPostProcessManager* manager);
@@ -51,6 +59,7 @@ public:
 	bool SetShader(const char* vsFile, const char* fsFile);
 	bool SetSize(size_t width, size_t height);
 	bool SetFormat(ElementFormat format);
+	bool SetMSAA(unsigned short msaaCount);
 
 	bool ConnectInput(KPostProcessPass* input, uint16_t slot);
 
@@ -64,6 +73,7 @@ public:
 	inline IKTexturePtr GetTexture(size_t frameIndex) { return m_Textures.size() > frameIndex ? m_Textures[frameIndex] : nullptr; }
 	inline IKRenderTargetPtr GetRenderTarget(size_t frameIndex) { return m_RenderTargets.size() > frameIndex ? m_RenderTargets[frameIndex] : nullptr; }
 	inline IKPipelinePtr GetPipeline(size_t frameIndex) { return m_Pipelines.size() > frameIndex ? m_Pipelines[frameIndex] : nullptr; }
+	inline IKCommandBufferPtr GetCommandBuffer(size_t frameIndex) { return m_CommandBuffers.size() > frameIndex ? m_CommandBuffers[frameIndex] : nullptr; }
 	inline IKSamplerPtr GetSampler() { return m_Sampler; }
 	inline bool IsStartPoint() { return m_bIsStartPoint; }
 	inline bool IsInit() { return m_bInit; }

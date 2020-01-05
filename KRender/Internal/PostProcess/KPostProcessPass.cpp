@@ -1,11 +1,6 @@
 #include "KPostProcessPass.h"
 #include "KPostProcessManager.h"
 
-#include "Interface/IKShader.h"
-#include "Interface/IKTexture.h"
-#include "Interface/IKRenderTarget.h"
-#include "Interface/IKPipeline.h"
-
 #include "Internal/KRenderGlobal.h"
 
 #include <assert.h>
@@ -14,6 +9,7 @@ KPostProcessPass::KPostProcessPass(KPostProcessManager* manager)
 	: m_Mgr(manager),
 	m_Width(0),
 	m_Height(0),
+	m_MsaaCount(1),
 	m_FrameInFlight(0),
 	m_Format(EF_R8GB8BA8_UNORM),
 	m_bIsStartPoint(false),
@@ -27,6 +23,7 @@ KPostProcessPass::~KPostProcessPass()
 	assert(m_FSShader == nullptr);
 	assert(m_Textures.empty());
 	assert(m_RenderTargets.empty());
+	assert(m_CommandBuffers.empty());
 }
 
 bool KPostProcessPass::SetShader(const char* vsFile, const char* fsFile)
@@ -46,6 +43,12 @@ bool KPostProcessPass::SetSize(size_t width, size_t height)
 bool KPostProcessPass::SetFormat(ElementFormat format)
 {
 	m_Format = format;
+	return true;
+}
+
+bool KPostProcessPass::SetMSAA(unsigned short msaaCount)
+{
+	m_MsaaCount = msaaCount;
 	return true;
 }
 
@@ -129,17 +132,61 @@ bool KPostProcessPass::Init(size_t frameInFlight, bool isStartPoint)
 	m_FrameInFlight = frameInFlight;
 	m_bIsStartPoint = isStartPoint;
 
-	if(!m_bIsStartPoint)
-	{
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(m_VSFile.c_str(), m_VSShader));
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(m_FSFile.c_str(), m_FSShader));
-	}
-	else
+	IKRenderDevice* device = m_Mgr->GetDevice();
+
+	if(m_bIsStartPoint)
 	{
 		ASSERT_RESULT(m_InputConnections.empty());
 	}
+	else
+	{
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(m_VSFile.c_str(), m_VSShader));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(m_FSFile.c_str(), m_FSShader));
 
-	IKRenderDevice* device = m_Mgr->GetDevice();
+		m_CommandBuffers.resize(m_FrameInFlight);
+		for(size_t i = 0; i < m_Pipelines.size(); ++i)
+		{
+			device->CreateCommandBuffer(m_CommandBuffers[i]);
+			m_CommandBuffers[i]->Init(m_Mgr->GetCommandPool().get(), CBL_SECONDARY);
+		}
+
+		m_Pipelines.resize(m_FrameInFlight);
+		for(size_t i = 0; i < m_Pipelines.size(); ++i)
+		{
+			device->CreatePipeline(m_Pipelines[i]);
+
+			IKPipelinePtr pipeline = m_Pipelines[i];
+
+			VertexFormat formats[] = {VF_SCREENQUAD_POS};
+
+			pipeline->SetVertexBinding(formats, 1);
+
+			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+
+			pipeline->SetShader(ST_VERTEX, m_VSShader);
+			pipeline->SetShader(ST_FRAGMENT, m_FSShader);
+
+			pipeline->SetBlendEnable(false);
+
+			pipeline->SetCullMode(CM_BACK);
+			pipeline->SetFrontFace(FF_CLOCKWISE);
+			pipeline->SetPolygonMode(PM_FILL);
+
+			for(const PassConnection& connection : m_InputConnections)
+			{
+				KPostProcessPass* inputPass = connection.pass;
+				uint16_t location = connection.slot;
+
+				IKTexturePtr inputTexture = inputPass->GetTexture(i);
+				IKSamplerPtr sampler = inputPass->GetSampler();
+
+				ASSERT_RESULT(inputTexture != nullptr && sampler != nullptr);
+
+				pipeline->SetSampler(location, inputTexture, sampler);
+			}
+			pipeline->Init();
+		}
+	}
 
 	m_Textures.resize(m_FrameInFlight);
 	for(size_t i = 0; i < m_Textures.size(); ++i)
@@ -153,47 +200,9 @@ bool KPostProcessPass::Init(size_t frameInFlight, bool isStartPoint)
 	for(size_t i = 0; i < m_RenderTargets.size(); ++i)
 	{
 		device->CreateRenderTarget(m_RenderTargets[i]);
-		m_RenderTargets[i]->SetColorClear(0, 0, 0, 0);
+		m_RenderTargets[i]->SetColorClear(0, 0, 0, 1);
 		m_RenderTargets[i]->SetDepthStencilClear(1.0, 0);
-		m_RenderTargets[i]->InitFromTexture(m_Textures[i].get(), true, true, 1);
-	}
-
-	m_Pipelines.resize(m_FrameInFlight);
-	for(size_t i = 0; i < m_Pipelines.size(); ++i)
-	{
-		device->CreatePipeline(m_Pipelines[i]);
-
-		IKPipelinePtr pipeline = m_Pipelines[i];
-
-		VertexFormat formats[] = {VF_POINT_NORMAL_UV};
-
-		pipeline->SetVertexBinding(formats, 1);
-
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-
-		pipeline->SetShader(ST_VERTEX, m_VSShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FSShader);
-
-		pipeline->SetBlendEnable(false);
-
-		pipeline->SetCullMode(CM_BACK);
-		pipeline->SetFrontFace(FF_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-
-		for(const PassConnection& connection : m_InputConnections)
-		{
-			KPostProcessPass* inputPass = connection.pass;
-			uint16_t location = connection.slot;
-
-			IKTexturePtr inputTexture = inputPass->GetTexture(i);
-			IKSamplerPtr sampler = inputPass->GetSampler();
-
-			ASSERT_RESULT(inputTexture != nullptr && sampler != nullptr);
-
-			pipeline->SetSampler(location, inputTexture, sampler);
-		}
-
-		pipeline->Init();
+		m_RenderTargets[i]->InitFromTexture(m_Textures[i].get(), true, true, m_MsaaCount);
 	}
 
 	device->CreateSampler(m_Sampler);
@@ -239,6 +248,13 @@ bool KPostProcessPass::UnInit()
 		pipeline = nullptr;
 	}
 	m_Pipelines.clear();
+
+	for(IKCommandBufferPtr& buffer : m_CommandBuffers)
+	{
+		buffer->UnInit();
+		buffer = nullptr;
+	}
+	m_CommandBuffers.clear();
 
 	if(m_Sampler)
 	{

@@ -7,6 +7,7 @@
 #include "Internal/Manager/KTextureManager.h"
 
 #include "Internal/PostProcess/KPostProcessManager.h"
+#include "Internal/PostProcess/KPostProcessPass.h"
 
 #include "Internal/Object/KSkyBox.h"
 #include "Internal/Shadow/KShadowMap.h"

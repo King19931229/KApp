@@ -170,13 +170,11 @@ protected:
 
 	IKTexturePtr m_Texture;
 	IKSamplerPtr m_Sampler;
-	
+
 	VkDebugUtilsMessengerEXT m_DebugUtilsMessenger;
-    VkDebugReportCallbackEXT m_DebugReportCallback;
+	VkDebugReportCallbackEXT m_DebugReportCallback;
 	PhysicalDevice m_PhysicalDevice;
 
-	std::vector<IKTexturePtr> m_OffScreenTextures;
-	std::vector<IKRenderTargetPtr> m_OffscreenRenderTargets;
 	std::vector<IKPipelinePtr> m_OffscreenPipelines;
 
 	std::vector<IKRenderTargetPtr> m_SwapChainRenderTargets;

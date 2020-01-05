@@ -1,11 +1,6 @@
 #include "KPostProcessManager.h"
 #include "KPostProcessPass.h"
 
-#include "Interface/IKShader.h"
-#include "Interface/IKTexture.h"
-#include "Interface/IKRenderTarget.h"
-#include "Interface/IKPipeline.h"
-
 #include <queue>
 
 KPostProcessManager::KPostProcessManager()
@@ -17,21 +12,29 @@ KPostProcessManager::KPostProcessManager()
 KPostProcessManager::~KPostProcessManager()
 {
 	assert(m_AllPasses.empty());
+	assert(m_CommandPool == nullptr);
 }
 
 bool KPostProcessManager::Init(IKRenderDevice* device,
 							   size_t width, size_t height,
+							   unsigned short massCount,
 							   ElementFormat startFormat,
 							   size_t frameInFlight)
 {
 	UnInit();
 
+	m_Device = device;
 	m_StartPointPass = new KPostProcessPass(this);
 	m_StartPointPass->SetFormat(startFormat);
+	m_StartPointPass->SetMSAA(massCount);
 	m_StartPointPass->SetSize(width, height);
 	m_StartPointPass->Init(frameInFlight, true);
 
+	m_Device->CreateCommandPool(m_CommandPool);
+
 	m_AllPasses.insert(m_StartPointPass);
+
+	return true;
 }
 
 bool KPostProcessManager::UnInit()
@@ -49,6 +52,12 @@ bool KPostProcessManager::UnInit()
 
 	assert(m_StartPointPass == nullptr);
 	SAFE_DELETE(m_StartPointPass);
+
+	if(m_CommandPool)
+	{
+		m_CommandPool->UnInit();
+		m_CommandPool = nullptr;
+	}
 
 	return true;
 }
@@ -89,4 +98,14 @@ bool KPostProcessManager::Resize(size_t width, size_t height)
 	}
 
 	return true;
+}
+
+IKRenderTargetPtr KPostProcessManager::GetOffscreenTarget(size_t frameIndex)
+{
+	return m_StartPointPass ? m_StartPointPass->GetRenderTarget(frameIndex) : nullptr;
+}
+
+IKTexturePtr KPostProcessManager::GetOffscreenTextrue(size_t frameIndex)
+{
+	return m_StartPointPass ? m_StartPointPass->GetTexture(frameIndex) : nullptr;
 }
