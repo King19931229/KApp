@@ -30,6 +30,7 @@ struct IKRenderDevice
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer) = 0;
 
 	virtual bool Present() = 0;
+	virtual bool Wait() = 0;
 };
 
 EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform);

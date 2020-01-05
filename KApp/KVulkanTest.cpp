@@ -56,7 +56,7 @@ int main()
 
 	IKRenderCorePtr renderCore = CreateRenderCore();
 
-	renderCore->Init(RD_VULKAN, 1024, 1024);
+	renderCore->Init(RD_VULKAN, 1280, 720);
 	renderCore->Loop();
 	renderCore->UnInit();
 

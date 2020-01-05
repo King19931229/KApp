@@ -6,6 +6,8 @@
 #include "Internal/Manager/KMeshManager.h"
 #include "Internal/Manager/KTextureManager.h"
 
+#include "Internal/PostProcess/KPostProcessManager.h"
+
 #include "Internal/Object/KSkyBox.h"
 #include "Internal/Shadow/KShadowMap.h"
 
@@ -16,6 +18,8 @@ namespace KRenderGlobal
 	extern KShaderManager ShaderManager;
 	extern KMeshManager MeshManager;
 	extern KTextureManager TextrueManager;
+
+	extern KPostProcessManager PostProcessManager;
 
 	extern KSkyBox SkyBox;
 	extern KShadowMap ShadowMap;

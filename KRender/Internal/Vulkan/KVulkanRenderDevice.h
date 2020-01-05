@@ -272,8 +272,7 @@ public:
 
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool);
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer);
-
+	
 	virtual bool Present();
-
-	bool Wait();
+	virtual bool Wait();
 };

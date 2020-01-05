@@ -8,7 +8,7 @@
 
 #define KVUALKAN_HEAP_TRUELY_ALLOC
 //#define KVUALKAN_HEAP_BRUTE_CHECK
-#define BIAS_OFFSET(offset, size) (!(offset % size)? offset : offset + alignment - (offset % alignment))
+//#define KVUALKAN_HEAP_LCM_ALIGNMENT_FACTOR
 
 namespace KVulkanHeapAllocator
 {
@@ -38,7 +38,6 @@ namespace KVulkanHeapAllocator
 
 		// 本block大小
 		VkDeviceSize size;
-		VkDeviceSize alignOffset;
 		int isFree;
 
 		BlockInfo* pNext;
@@ -51,7 +50,6 @@ namespace KVulkanHeapAllocator
 			assert(_pParent);
 			isFree = true;
 			offset = 0;
-			alignOffset = 0;
 			size = 0;
 			pNext = pPre = nullptr;
 			pParent = _pParent;
@@ -149,13 +147,12 @@ namespace KVulkanHeapAllocator
 				pHead = new BlockInfo(this);
 				pHead->isFree = true;
 				pHead->offset = 0;
-				pHead->alignOffset = 0;
 				pHead->pPre = pHead->pNext = nullptr;
 				pHead->size = size;
 				pHead->pParent = this;
 
 				// 把多余的空间分裂出来
-				Split(pHead, sizeToFit);
+				Split(pHead, 0, sizeToFit);
 				// 已被占用
 				pHead->isFree = false;
 
@@ -171,13 +168,10 @@ namespace KVulkanHeapAllocator
 				BlockInfo* pTemp = Find(sizeToFit, alignment, &offset, &extraSize);
 				if(pTemp)
 				{
-					sizeToFit = extraSize;
-
 					// 把多余的空间分裂出来
-					Split(pTemp, sizeToFit);
+					Split(pTemp, offset, sizeToFit);
 					// 已被占用
 					pTemp->isFree = false;
-					pTemp->alignOffset = offset;
 
 					Check();
 
@@ -252,7 +246,7 @@ namespace KVulkanHeapAllocator
 			{
 				if(pTemp->isFree && pTemp->size >= sizeToFit)
 				{
-					VkDeviceSize offset = BIAS_OFFSET(pTemp->offset, alignment);
+					VkDeviceSize offset = (pTemp->offset % size) ? pTemp->offset + alignment - (pTemp->offset % alignment) : pTemp->offset;
 					VkDeviceSize extraSize = offset - pTemp->offset + sizeToFit;
 					assert(offset % alignment == 0);
 					if(extraSize <= pTemp->size)
@@ -285,11 +279,35 @@ namespace KVulkanHeapAllocator
 			}
 		}
 
-		static void Split(BlockInfo* pBlock, VkDeviceSize sizeToFit)
+		static void Split(BlockInfo* pBlock, VkDeviceSize offset, VkDeviceSize sizeToFit)
 		{
 			assert(pBlock->isFree && pBlock->size >= sizeToFit);
 			if(pBlock->isFree && pBlock->size >= sizeToFit)
 			{
+				if(offset > 0)
+				{
+					BlockInfo* pPre = new BlockInfo(pBlock->pParent);
+
+					pPre->pPre = pBlock->pPre;
+					if(pPre->pPre)
+						pPre->pPre->pNext = pPre;
+
+					pPre->pNext = pBlock;
+					pBlock->pPre = pPre;
+
+					if(pBlock == pBlock->pParent->pHead)
+					{
+						pBlock->pParent->pHead = pPre;
+					}
+
+					pPre->isFree = true;
+					pPre->offset = pBlock->offset;
+					pPre->size = offset - pBlock->offset;
+
+					pBlock->offset += pPre->size;
+					pBlock->size -= pPre->size;
+				}
+
 				VkDeviceSize remainSize = pBlock->size - sizeToFit;
 
 				BlockInfo* pNext = pBlock->pNext;
@@ -297,7 +315,6 @@ namespace KVulkanHeapAllocator
 				if(pNext && pNext->isFree)
 				{
 					pNext->offset -= remainSize;
-					pNext->alignOffset = pNext->offset;
 					pNext->size += remainSize;
 				}
 				// 否则分裂多一个block来记录剩余空间
@@ -308,7 +325,6 @@ namespace KVulkanHeapAllocator
 					pNewBlock->isFree = true;
 					pNewBlock->size = remainSize;
 					pNewBlock->offset = pBlock->offset + sizeToFit;
-					pNewBlock->alignOffset = pNewBlock->offset;
 
 					pNewBlock->pNext = pNext;
 					pNewBlock->pPre = pBlock;
@@ -348,7 +364,6 @@ namespace KVulkanHeapAllocator
 				{
 					pBlock->size += pBlock->pPre->size;
 					pBlock->offset = pBlock->pPre->offset;
-					pBlock->alignOffset = pBlock->offset;
 
 					pTemp = pBlock->pPre;
 					pBlock->pPre = pTemp->pPre;
@@ -472,10 +487,16 @@ namespace KVulkanHeapAllocator
 			}
 			else
 			{
-				// 分配大小必须是ALLOC_FACTOR的整数倍
-				// 当每次分配都是ALLOC_FACTOR的整数倍时候 就能保证同一个page里的offset也是ALLOC_FACTOR的整数倍
-				sizeToFit = ((sizeToFit + ALLOC_FACTOR - 1) / ALLOC_FACTOR) * ALLOC_FACTOR;
-				assert(sizeToFit % ALLOC_FACTOR == 0);
+				VkDeviceSize allocFactor = ALLOC_FACTOR;
+#ifdef KVUALKAN_HEAP_LCM_ALIGNMENT_FACTOR
+				allocFactor = KNumerical::LCM(alignment, ALLOC_FACTOR);
+#else
+				allocFactor = ALLOC_FACTOR;
+#endif
+				// 分配大小必须是allocFactor的整数倍
+				// 当每次分配都是allocFactor的整数倍时候 就能保证同一个page里的offset也是allocFactor的整数倍
+				sizeToFit = ((sizeToFit + allocFactor - 1) / allocFactor) * allocFactor;
+				assert(sizeToFit % allocFactor == 0);
 
 				PageInfo* pPage = Find(sizeToFit, alignment);
 				if(!pPage)
@@ -775,7 +796,7 @@ namespace KVulkanHeapAllocator
 				PageInfo* pPage = (PageInfo*)pBlock->pParent;
 
 				info.vkMemroy = static_cast<VkDeviceMemory>(pPage->vkMemroy);
-				info.vkOffset = pBlock->alignOffset;
+				info.vkOffset = pBlock->offset;
 
 				return true;
 			}

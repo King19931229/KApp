@@ -8,6 +8,8 @@ namespace KRenderGlobal
 	KMeshManager MeshManager;
 	KTextureManager TextrueManager;
 
+	KPostProcessManager PostProcessManager;
+
 	KSkyBox SkyBox;
 	KShadowMap ShadowMap;
 }

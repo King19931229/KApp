@@ -255,6 +255,9 @@
     <ClInclude Include="Interface\IKRenderCore.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\PostProcess\KPostProcessPass.h">
+      <Filter>Internal\PostProcess</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -394,6 +397,12 @@
     </ClCompile>
     <ClCompile Include="Internal\KRenderCore.cpp">
       <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\PostProcess\KPostProcessManager.cpp">
+      <Filter>Internal\PostProcess</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\PostProcess\KPostProcessPass.cpp">
+      <Filter>Internal\PostProcess</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
