@@ -22,7 +22,6 @@ namespace KVulkanHeapAllocator
 	static uint32_t MEMORY_TYPE_COUNT = 0;
 
 	static std::vector<VkDeviceSize> MIN_PAGE_SIZE;
-	static std::vector<VkDeviceSize> MAX_PAGE_SIZE;
 	static std::vector<VkDeviceSize> HEAP_REMAIN_SIZE;
 	static std::vector<MemoryHeap*> MEMORY_TYPE_TO_HEAP;
 
@@ -451,7 +450,6 @@ namespace KVulkanHeapAllocator
 		VkDeviceSize NewPageSize()
 		{
 			VkDeviceSize newSize = lastPageSize ? lastPageSize << 1 : MIN_PAGE_SIZE[memoryHeapIndex];
-			newSize = std::min(MAX_PAGE_SIZE[memoryHeapIndex], newSize);
 			newSize = std::max(MIN_PAGE_SIZE[memoryHeapIndex], newSize);
 			return newSize;
 		}
@@ -460,7 +458,6 @@ namespace KVulkanHeapAllocator
 		{
 			VkDeviceSize newPageSize = KNumerical::Factor2GreaterEqual(sizeToFit);
 			newPageSize = std::max(newPageSize, MIN_PAGE_SIZE[memoryHeapIndex]);
-			newPageSize = std::min(newPageSize, MAX_PAGE_SIZE[memoryHeapIndex]);
 			newPageSize = std::min(newPageSize, pageSize);
 			return newPageSize;
 		}
@@ -731,14 +728,11 @@ namespace KVulkanHeapAllocator
 
 			HEAP_REMAIN_SIZE.resize(memoryProperties.memoryHeapCount);
 			MIN_PAGE_SIZE.resize(memoryProperties.memoryHeapCount);
-			MAX_PAGE_SIZE.resize(memoryProperties.memoryHeapCount);
 
 			for(uint32_t memHeapIdx = 0; memHeapIdx < memoryProperties.memoryHeapCount; ++memHeapIdx)
 			{
 				HEAP_REMAIN_SIZE[memHeapIdx] = memoryProperties.memoryHeaps[memHeapIdx].size;
 				MIN_PAGE_SIZE[memHeapIdx] = KNumerical::Pow2GreaterEqual(memoryProperties.memoryHeaps[memHeapIdx].size * memoryProperties.memoryHeapCount/ MAX_ALLOC_COUNT);
-				// page最大大小为可分配空间的1/8 但是不要高于512M
-				MAX_PAGE_SIZE[memHeapIdx] =	std::min(KNumerical::Pow2LessEqual(memoryProperties.memoryHeaps[memHeapIdx].size >> 3), static_cast<VkDeviceSize>(512U * 1024U * 1024U));
 			}
 
 			return true;
@@ -778,7 +772,6 @@ namespace KVulkanHeapAllocator
 		MEMORY_TYPE_TO_HEAP.clear();
 		HEAP_REMAIN_SIZE.clear();
 		MIN_PAGE_SIZE.clear();
-		MAX_PAGE_SIZE.clear();
 
 		return true;
 	}
