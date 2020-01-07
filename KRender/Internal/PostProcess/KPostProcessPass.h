@@ -10,6 +10,14 @@
 
 class KPostProcessManager;
 
+enum PostProcessStage : uint16_t
+{
+	POST_PROCESS_STAGE_REGULAR = 0x00,
+	POST_PROCESS_STAGE_START_POINT = 0x01,
+	POST_PROCESS_STAGE_END_POINT = 0x02,
+};
+typedef uint16_t PostProcessStageFlags;
+
 class KPostProcessPass
 {
 	friend class KPostProcessManager;
@@ -41,7 +49,7 @@ protected:
 	IKShaderPtr m_VSShader;
 	IKShaderPtr m_FSShader;
 
-	bool m_bIsStartPoint;
+	PostProcessStageFlags m_Flags;
 	bool m_bInit;
 
 	std::vector<PassConnection> m_InputConnections;
@@ -67,7 +75,7 @@ public:
 	bool DisconnectOutput(const PassConnection& connection);
 	bool DisconnectAll();
 
-	bool Init(size_t frameInFlight, bool isStartPoint);
+	bool Init(size_t frameInFlight, PostProcessStageFlags flags);
 	bool UnInit();
 
 	inline IKTexturePtr GetTexture(size_t frameIndex) { return m_Textures.size() > frameIndex ? m_Textures[frameIndex] : nullptr; }
@@ -75,6 +83,5 @@ public:
 	inline IKPipelinePtr GetPipeline(size_t frameIndex) { return m_Pipelines.size() > frameIndex ? m_Pipelines[frameIndex] : nullptr; }
 	inline IKCommandBufferPtr GetCommandBuffer(size_t frameIndex) { return m_CommandBuffers.size() > frameIndex ? m_CommandBuffers[frameIndex] : nullptr; }
 	inline IKSamplerPtr GetSampler() { return m_Sampler; }
-	inline bool IsStartPoint() { return m_bIsStartPoint; }
 	inline bool IsInit() { return m_bInit; }
 };

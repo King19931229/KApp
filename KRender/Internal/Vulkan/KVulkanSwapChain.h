@@ -1,5 +1,6 @@
 #pragma once
 #include "Interface/IKSwapChain.h"
+#include "KVulkanRenderTarget.h"
 #include "KVulkanConfig.h"
 #include <vector>
 #include <memory>
@@ -34,6 +35,8 @@ protected:
 	std::vector<VkFence> m_InFlightFences;
 	SwapChainSupportDetails m_SwapChainSupportDetails;
 
+	std::vector<KVulkanRenderTarget*> m_SwapChainRenderTargets;
+
 	bool QuerySwapChainSupport();
 	bool ChooseSwapSurfaceFormat();
 	bool ChooseSwapPresentMode();
@@ -42,9 +45,11 @@ protected:
 	bool CreateSwapChain(uint32_t windowWidth, uint32_t windowHeight,
 		uint32_t graphIndex, uint32_t presentIndex);
 	bool CreateSyncObjects();
+	bool CreateRenderTargets();
 
 	bool CleanupSwapChain();
 	bool DestroySyncObjects();
+	bool DestroyRenderTargets();
 public:
 	KVulkanSwapChain();
 	~KVulkanSwapChain();
@@ -55,6 +60,8 @@ public:
 	virtual uint32_t GetWidth() { return m_Extend.width; }
 	virtual uint32_t GetHeight() { return m_Extend.height; }
 
+	virtual IKRenderTarget* GetRenderTarget(size_t frameIndex);
+
 	VkResult WaitForInfightFrame(size_t& frameIndex);
 	VkResult AcquireNextImage(uint32_t& imageIndex);
 	VkResult PresentQueue(VkQueue graphicsQueue, VkQueue presentQueue, uint32_t imageIndex, VkCommandBuffer commandBuffer);
@@ -64,5 +71,3 @@ public:
 	inline VkExtent2D GetExtent() { return m_Extend; }
 	inline VkFormat GetImageFormat() { return m_SurfaceFormat.format; }
 };
-
-typedef std::shared_ptr<KVulkanSwapChain> KVulkanSwapChainPtr;

@@ -124,7 +124,7 @@ protected:
 		IKIndexBufferPtr indexBuffer;
 	}m_QuadData;
 
-	KVulkanSwapChainPtr m_pSwapChain;
+	IKSwapChainPtr m_pSwapChain;
 
 	KCamera m_Camera;
 
@@ -176,8 +176,6 @@ protected:
 	PhysicalDevice m_PhysicalDevice;
 
 	std::vector<IKPipelinePtr> m_OffscreenPipelines;
-
-	std::vector<IKRenderTargetPtr> m_SwapChainRenderTargets;
 	std::vector<IKPipelinePtr> m_SwapChainPipelines;
 
 	IKUIOverlayPtr m_UIOverlay;
@@ -200,7 +198,6 @@ protected:
 	bool CreateLogicalDevice();
 	bool CreatePipelineCache();
 	bool CreateSwapChain();
-	bool CreateImageViews();
 	bool CreatePipelines();
 	bool CreateCommandPool();
 
@@ -214,6 +211,7 @@ protected:
 	bool SubmitCommandBufferSingleThread(uint32_t chainImageIndex, uint32_t frameIndex);
 	bool SubmitCommandBufferMuitiThread(uint32_t chainImageIndex, uint32_t frameIndex);
 	bool UpdateFrameTime();
+	bool CreateUI();
 	bool Reload();
 
 	bool UpdateCamera(size_t idx);

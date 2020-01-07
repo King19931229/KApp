@@ -42,7 +42,6 @@ int main()
 	KFileSystem::Manager->AddSystem("../Sponza.zip", -1, FST_ZIP);
 	KFileSystem::Manager->AddSystem(".", 0, FST_NATIVE);
 	KFileSystem::Manager->AddSystem("../", 1, FST_NATIVE);
-
 	/*
 	KDebugConsole console;
 	KDebugConsole::InputCallBackType callback = [](const char* info)

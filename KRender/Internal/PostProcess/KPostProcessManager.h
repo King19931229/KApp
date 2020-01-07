@@ -5,6 +5,7 @@
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKCommandBuffer.h"
+#include "Internal/KVertexDefinition.h"
 
 #include <set>
 
@@ -12,11 +13,22 @@ class KPostProcessPass;
 
 class KPostProcessManager
 {
+	friend class KPostProcessPass;
+protected:
 	IKRenderDevice* m_Device;
 	IKCommandPoolPtr m_CommandPool;
 
 	std::set<KPostProcessPass*> m_AllPasses;
 	KPostProcessPass* m_StartPointPass;
+
+	static const KVertexDefinition::SCREENQUAD_POS_2F ms_vertices[4];
+	static const uint32_t ms_Indices[6];
+
+	KVertexData m_SharedVertexData;
+	KIndexData m_SharedIndexData;
+
+	IKVertexBufferPtr m_SharedVertexBuffer;
+	IKIndexBufferPtr m_SharedIndexBuffer;
 public:
 	KPostProcessManager();
 	~KPostProcessManager();

@@ -25,6 +25,7 @@ KVulkanSwapChain::~KVulkanSwapChain()
 	ASSERT_RESULT(m_ImageAvailableSemaphores.empty());
 	ASSERT_RESULT(m_RenderFinishedSemaphores.empty());
 	ASSERT_RESULT(m_InFlightFences.empty());
+	ASSERT_RESULT(m_SwapChainRenderTargets.empty());
 }
 
 bool KVulkanSwapChain::QuerySwapChainSupport()
@@ -241,6 +242,19 @@ bool KVulkanSwapChain::CreateSyncObjects()
 	return true;
 }
 
+bool KVulkanSwapChain::CreateRenderTargets()
+{
+	m_SwapChainRenderTargets.resize(m_SwapChainImages.size());
+	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
+	{
+		m_SwapChainRenderTargets[i] = new KVulkanRenderTarget();
+		m_SwapChainRenderTargets[i]->SetColorClear(0.0f, 0.0f, 0.0f, 1.0f);
+		m_SwapChainRenderTargets[i]->SetDepthStencilClear(1.0, 0);
+		m_SwapChainRenderTargets[i]->InitFromSwapChain(this, i, true, true, 1);
+	}
+	return true;
+}
+
 bool KVulkanSwapChain::CleanupSwapChain()
 {
 	for(VkImageView vkImageView : m_SwapChainImageViews)
@@ -277,6 +291,17 @@ bool KVulkanSwapChain::DestroySyncObjects()
 	return true;
 }
 
+bool KVulkanSwapChain::DestroyRenderTargets()
+{
+	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
+	{
+		m_SwapChainRenderTargets[i]->UnInit();
+		SAFE_DELETE(m_SwapChainRenderTargets[i]);
+	}
+	m_SwapChainRenderTargets.clear();
+	return true;
+}
+
 bool KVulkanSwapChain::Init(uint32_t width, uint32_t height, size_t frameInFlight)
 {
 	ASSERT_RESULT(m_SwapChain == VK_NULL_HANDLE);
@@ -290,6 +315,7 @@ bool KVulkanSwapChain::Init(uint32_t width, uint32_t height, size_t frameInFligh
 	ASSERT_RESULT(QuerySwapChainSupport());
 	ASSERT_RESULT(CreateSwapChain(width, height, KVulkanGlobal::graphicsFamilyIndex, KVulkanGlobal::presentFamilyIndex));
 	ASSERT_RESULT(CreateSyncObjects());
+	ASSERT_RESULT(CreateRenderTargets());
 
 	return true;
 }
@@ -299,8 +325,14 @@ bool KVulkanSwapChain::UnInit()
 	ASSERT_RESULT(m_SwapChain != VK_NULL_HANDLE);
 	ASSERT_RESULT(CleanupSwapChain());
 	ASSERT_RESULT(DestroySyncObjects());
+	ASSERT_RESULT(DestroyRenderTargets());
 
 	return true;
+}
+
+IKRenderTarget* KVulkanSwapChain::GetRenderTarget(size_t frameIndex)
+{
+	return frameIndex < m_SwapChainRenderTargets.size() ? m_SwapChainRenderTargets[frameIndex] : nullptr;
 }
 
 VkResult KVulkanSwapChain::WaitForInfightFrame(size_t& frameIndex)

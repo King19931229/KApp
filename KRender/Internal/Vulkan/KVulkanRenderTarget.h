@@ -1,3 +1,4 @@
+#pragma once
 #include "Interface/IKRenderTarget.h"
 #include "KVulkanConfig.h"
 #include "KVulkanHeapAllocator.h"

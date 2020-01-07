@@ -12,7 +12,7 @@ KPostProcessPass::KPostProcessPass(KPostProcessManager* manager)
 	m_MsaaCount(1),
 	m_FrameInFlight(0),
 	m_Format(EF_R8GB8BA8_UNORM),
-	m_bIsStartPoint(false),
+	m_Flags(0),
 	m_bInit(false)
 {
 }
@@ -125,16 +125,16 @@ bool KPostProcessPass::DisconnectAll()
 	return true;
 }
 
-bool KPostProcessPass::Init(size_t frameInFlight, bool isStartPoint)
+bool KPostProcessPass::Init(size_t frameInFlight, PostProcessStageFlags flags)
 {
 	ASSERT_RESULT(UnInit());
 
 	m_FrameInFlight = frameInFlight;
-	m_bIsStartPoint = isStartPoint;
+	m_Flags = flags;
 
 	IKRenderDevice* device = m_Mgr->GetDevice();
 
-	if(m_bIsStartPoint)
+	if(m_Flags & POST_PROCESS_STAGE_START_POINT)
 	{
 		ASSERT_RESULT(m_InputConnections.empty());
 	}
@@ -188,21 +188,24 @@ bool KPostProcessPass::Init(size_t frameInFlight, bool isStartPoint)
 		}
 	}
 
-	m_Textures.resize(m_FrameInFlight);
-	for(size_t i = 0; i < m_Textures.size(); ++i)
+	if(!(m_Flags & POST_PROCESS_STAGE_END_POINT))
 	{
-		device->CreateTexture(m_Textures[i]);
-		m_Textures[i]->InitMemeoryAsRT(m_Width, m_Height, m_Format);
-		m_Textures[i]->InitDevice();
-	}
+		m_Textures.resize(m_FrameInFlight);
+		for(size_t i = 0; i < m_Textures.size(); ++i)
+		{
+			device->CreateTexture(m_Textures[i]);
+			m_Textures[i]->InitMemeoryAsRT(m_Width, m_Height, m_Format);
+			m_Textures[i]->InitDevice();
+		}
 
-	m_RenderTargets.resize(m_FrameInFlight);
-	for(size_t i = 0; i < m_RenderTargets.size(); ++i)
-	{
-		device->CreateRenderTarget(m_RenderTargets[i]);
-		m_RenderTargets[i]->SetColorClear(0, 0, 0, 1);
-		m_RenderTargets[i]->SetDepthStencilClear(1.0, 0);
-		m_RenderTargets[i]->InitFromTexture(m_Textures[i].get(), true, true, m_MsaaCount);
+		m_RenderTargets.resize(m_FrameInFlight);
+		for(size_t i = 0; i < m_RenderTargets.size(); ++i)
+		{
+			device->CreateRenderTarget(m_RenderTargets[i]);
+			m_RenderTargets[i]->SetColorClear(0, 0, 0, 1);
+			m_RenderTargets[i]->SetDepthStencilClear(1.0, 0);
+			m_RenderTargets[i]->InitFromTexture(m_Textures[i].get(), true, true, m_MsaaCount);
+		}
 	}
 
 	device->CreateSampler(m_Sampler);
