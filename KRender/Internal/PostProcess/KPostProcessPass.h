@@ -14,9 +14,7 @@ enum PostProcessStage : uint16_t
 {
 	POST_PROCESS_STAGE_REGULAR = 0x00,
 	POST_PROCESS_STAGE_START_POINT = 0x01,
-	POST_PROCESS_STAGE_END_POINT = 0x02,
 };
-typedef uint16_t PostProcessStageFlags;
 
 class KPostProcessPass
 {
@@ -49,7 +47,7 @@ protected:
 	IKShaderPtr m_VSShader;
 	IKShaderPtr m_FSShader;
 
-	PostProcessStageFlags m_Flags;
+	PostProcessStage m_Stage;
 	bool m_bInit;
 
 	std::vector<PassConnection> m_InputConnections;
@@ -75,7 +73,7 @@ public:
 	bool DisconnectOutput(const PassConnection& connection);
 	bool DisconnectAll();
 
-	bool Init(size_t frameInFlight, PostProcessStageFlags flags);
+	bool Init(size_t frameInFlight, PostProcessStage stage);
 	bool UnInit();
 
 	inline IKTexturePtr GetTexture(size_t frameIndex) { return m_Textures.size() > frameIndex ? m_Textures[frameIndex] : nullptr; }

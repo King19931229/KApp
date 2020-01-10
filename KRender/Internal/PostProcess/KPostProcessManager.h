@@ -19,7 +19,9 @@ protected:
 	IKCommandPoolPtr m_CommandPool;
 
 	std::set<KPostProcessPass*> m_AllPasses;
+
 	KPostProcessPass* m_StartPointPass;
+	KPostProcessPass* m_EndPointPass;
 
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_vertices[4];
 	static const uint32_t ms_Indices[6];
@@ -29,6 +31,8 @@ protected:
 
 	IKVertexBufferPtr m_SharedVertexBuffer;
 	IKIndexBufferPtr m_SharedIndexBuffer;
+
+	void IterPostProcessGraph(std::function<void(KPostProcessPass*)> func);
 public:
 	KPostProcessManager();
 	~KPostProcessManager();
@@ -39,8 +43,8 @@ public:
 		ElementFormat startFormat,
 		size_t frameInFlight);
 	bool UnInit();
-
 	bool Resize(size_t width, size_t height);
+	bool Execute(IKRenderTarget* swapChainTarget, size_t frameIndex, IKCommandBufferPtr primaryCommandBuffer);
 
 	IKRenderTargetPtr GetOffscreenTarget(size_t frameIndex);
 	IKTexturePtr GetOffscreenTextrue(size_t frameIndex);

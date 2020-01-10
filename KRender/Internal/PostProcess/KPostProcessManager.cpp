@@ -14,7 +14,9 @@ const KVertexDefinition::SCREENQUAD_POS_2F KPostProcessManager::ms_vertices[] =
 const uint32_t KPostProcessManager::ms_Indices[] = {0, 1, 2, 2, 3, 0};
 
 KPostProcessManager::KPostProcessManager()
-	: m_Device(nullptr)
+	: m_Device(nullptr),
+	m_StartPointPass(nullptr),
+	m_EndPointPass(nullptr)
 {
 
 }
@@ -22,6 +24,8 @@ KPostProcessManager::KPostProcessManager()
 KPostProcessManager::~KPostProcessManager()
 {
 	assert(m_AllPasses.empty());
+	assert(m_StartPointPass == nullptr);
+	assert(m_EndPointPass == nullptr);
 	assert(m_CommandPool == nullptr);
 	assert(m_SharedVertexBuffer == nullptr);
 	assert(m_SharedIndexBuffer == nullptr);
@@ -60,6 +64,8 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_StartPointPass->SetSize(width, height);
 	m_StartPointPass->Init(frameInFlight, POST_PROCESS_STAGE_START_POINT);
 
+	m_EndPointPass = m_StartPointPass;
+
 	m_Device->CreateCommandPool(m_CommandPool);
 
 	m_AllPasses.insert(m_StartPointPass);
@@ -82,12 +88,18 @@ bool KPostProcessManager::UnInit()
 		{
 			m_StartPointPass = nullptr;
 		}
+		if(pass == m_EndPointPass)
+		{
+			m_EndPointPass = nullptr;
+		}
 		SAFE_DELETE(pass);
 	}
 	m_AllPasses.clear();
 
 	assert(m_StartPointPass == nullptr);
 	SAFE_DELETE(m_StartPointPass);
+	assert(m_EndPointPass == nullptr);
+	SAFE_DELETE(m_EndPointPass);
 
 	if(m_CommandPool)
 	{
@@ -98,20 +110,16 @@ bool KPostProcessManager::UnInit()
 	return true;
 }
 
-bool KPostProcessManager::Resize(size_t width, size_t height)
+void KPostProcessManager::IterPostProcessGraph(std::function<void(KPostProcessPass*)> func)
 {
-	m_Device->Wait();
-
 	std::map<KPostProcessPass*, bool> visitFlags;
+	std::queue<KPostProcessPass*> bfsQueue;
+	bfsQueue.push(m_StartPointPass);
 
 	for(KPostProcessPass* pass : m_AllPasses)
 	{
 		visitFlags[pass] = false;
-		pass->UnInit();
 	}
-
-	std::queue<KPostProcessPass*> bfsQueue;
-	bfsQueue.push(m_StartPointPass);
 
 	while(!bfsQueue.empty())
 	{
@@ -121,10 +129,7 @@ bool KPostProcessManager::Resize(size_t width, size_t height)
 		if(!visitFlags[pass])
 		{
 			visitFlags[pass] = true;
-
-			pass->SetSize(width, height);
-			pass->Init(pass->m_FrameInFlight, pass->m_Flags);
-
+			func(pass);
 			for(KPostProcessPass::PassConnection& conn : pass->m_OutputConnections)
 			{
 				KPostProcessPass* outPass = conn.pass;
@@ -132,6 +137,48 @@ bool KPostProcessManager::Resize(size_t width, size_t height)
 			}
 		}
 	}
+}
+
+bool KPostProcessManager::Resize(size_t width, size_t height)
+{
+	m_Device->Wait();
+
+	for(KPostProcessPass* pass : m_AllPasses)
+	{
+		pass->UnInit();
+	}
+
+	IterPostProcessGraph([width, height](KPostProcessPass* pass)
+	{
+		pass->SetSize(width, height);
+		pass->Init(pass->m_FrameInFlight, pass->m_Stage);
+	});
+
+	return true;
+}
+
+bool KPostProcessManager::Execute(IKRenderTarget* swapChainTarget, size_t frameIndex, IKCommandBufferPtr primaryCommandBuffer)
+{
+	IterPostProcessGraph([=](KPostProcessPass* pass)
+	{
+		if(pass == m_StartPointPass)
+		{
+			return;
+		}
+
+		IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer(frameIndex);
+		IKRenderTarget* renderTarget = pass->GetRenderTarget(frameIndex).get();
+
+		primaryCommandBuffer->BeginRenderPass(renderTarget, SUBPASS_CONTENTS_INLINE);
+		{
+			commandBuffer->BeginSecondary(renderTarget);
+			// TODO
+			commandBuffer->End();
+		}
+
+		primaryCommandBuffer->Execute(commandBuffer.get());
+		primaryCommandBuffer->EndRenderPass();
+	});
 
 	return true;
 }
