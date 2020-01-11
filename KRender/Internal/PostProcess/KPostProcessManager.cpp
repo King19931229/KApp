@@ -1,5 +1,6 @@
 #include "KPostProcessManager.h"
 #include "KPostProcessPass.h"
+#include "KPostProcessConnection.h"
 
 #include "Interface/IKSwapChain.h"
 #include "Interface/IKUIOverlay.h"
@@ -29,6 +30,7 @@ KPostProcessManager::KPostProcessManager()
 
 KPostProcessManager::~KPostProcessManager()
 {
+	assert(m_AllConnections.empty());
 	assert(m_AllPasses.empty());
 	assert(m_StartPointPass == nullptr);
 	assert(m_CommandPool == nullptr);
@@ -80,7 +82,7 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_StartPointPass = new KPostProcessPass(this, frameInFlight, POST_PROCESS_STAGE_START_POINT);
 	m_StartPointPass->SetFormat(startFormat);
 	m_StartPointPass->SetMSAA(massCount);
-	m_StartPointPass->SetSize(width, height);
+	m_StartPointPass->SetScale(1.0f);
 
 	m_AllPasses.insert(m_StartPointPass);
 
@@ -114,10 +116,16 @@ bool KPostProcessManager::UnInit()
 		if(pass == m_StartPointPass)
 		{
 			m_StartPointPass = nullptr;
-		}		
+		}
 		SAFE_DELETE(pass);
 	}
 	m_AllPasses.clear();
+
+	for(KPostProcessConnection* conn : m_AllConnections)
+	{	
+		SAFE_DELETE(conn);
+	}
+	m_AllConnections.clear();
 
 	assert(m_StartPointPass == nullptr);
 	SAFE_DELETE(m_StartPointPass);
@@ -157,9 +165,9 @@ void KPostProcessManager::IterPostProcessGraph(std::function<void(KPostProcessPa
 		{
 			visitFlags[pass] = true;
 			func(pass);
-			for(KPostProcessPass::PassConnection& conn : pass->m_OutputConnections)
+
+			for(KPostProcessPass* outPass : pass->m_Outputs)
 			{
-				KPostProcessPass* outPass = conn.pass;
 				bfsQueue.push(outPass);
 			}
 		}
@@ -202,9 +210,22 @@ bool KPostProcessManager::Construct()
 		pass->UnInit();
 	}
 
+	for(KPostProcessConnection* conn : m_AllConnections)
+	{
+		ASSERT_RESULT(conn->IsComplete());
+
+		KPostProcessPass* inputPass = conn->m_InputPass;
+		KPostProcessPass* outputPass = conn->m_OutputPass;
+
+		outputPass->AddInput(conn);
+		if(conn->m_InputType == POST_PROCESS_INPUT_PASS)
+		{
+			inputPass->AddOutput(outputPass);
+		}
+	}
+
 	IterPostProcessGraph([this](KPostProcessPass* pass)
 	{
-		pass->SetSize(m_Width, m_Height);
 		pass->Init();
 	});
 	return true;
@@ -216,7 +237,6 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 	{
 		IterPostProcessGraph([=, &endPass](KPostProcessPass* pass)
 		{
-			// TODO
 			endPass = pass;
 
 			if(pass == m_StartPointPass)
@@ -260,26 +280,90 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 	return true;
 }
 
-KPostProcessPass* KPostProcessManager::CreatePass(const char* vsFile, const char* fsFile, ElementFormat format)
+KPostProcessPass* KPostProcessManager::CreatePass(const char* vsFile, const char* fsFile, float scale, ElementFormat format)
 {
 	KPostProcessPass* pass = new KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR);
+
 	pass->SetFormat(format);
 	pass->SetMSAA(0);
 	pass->SetShader(vsFile, fsFile);
-	pass->SetSize(m_Width, m_Height);
+	pass->SetScale(scale);
+
 	m_AllPasses.insert(pass);
+
 	return pass;
 }
 
 void KPostProcessManager::DeletePass(KPostProcessPass* pass)
 {
+	std::vector<KPostProcessConnection*> invalidConn;
+
+	for(KPostProcessConnection* conn : m_AllConnections)
+	{
+		KPostProcessPass* inputPass = conn->m_InputPass;
+		KPostProcessPass* outputPass = conn->m_OutputPass;
+
+		if(conn->m_InputType == POST_PROCESS_INPUT_PASS)
+		{
+			if(inputPass == pass)
+			{
+				invalidConn.push_back(conn);
+				continue;
+			}
+		}
+		if(outputPass == pass)
+		{
+			invalidConn.push_back(conn);
+		}
+	}
+
+	for(KPostProcessConnection* conn : invalidConn)
+	{
+		auto it = m_AllConnections.find(conn);
+		m_AllConnections.erase(it);
+		SAFE_DELETE(conn); 
+	}
+
 	auto it = m_AllPasses.find(pass);
 	if(it != m_AllPasses.end())
 	{
 		m_AllPasses.erase(it);
-		pass->DisconnectAll();
 		pass->UnInit();
 		SAFE_DELETE(pass);
+	}
+}
+
+KPostProcessConnection* KPostProcessManager::CreatePassConnection(KPostProcessPass* input, KPostProcessPass* output, size_t slot)
+{
+	KPostProcessConnection* conn = new KPostProcessConnection();
+
+	conn->SetInputAsPass(slot, input);
+	conn->SetOutput(output);
+
+	m_AllConnections.insert(conn);
+
+	return conn;
+}
+
+KPostProcessConnection* KPostProcessManager::CreateTextureConnection(IKTexturePtr inputTexure, KPostProcessPass* output, size_t slot)
+{
+	KPostProcessConnection* conn = new KPostProcessConnection();
+
+	conn->SetInputAsTextrue(slot, inputTexure);
+	conn->SetOutput(output);
+
+	m_AllConnections.insert(conn);
+
+	return conn;
+}
+
+void KPostProcessManager::DeleteConnection(KPostProcessConnection* conn)
+{
+	auto it = m_AllConnections.find(conn);
+	if(it != m_AllConnections.end())
+	{
+		m_AllConnections.erase(it);
+		SAFE_DELETE(conn);
 	}
 }
 

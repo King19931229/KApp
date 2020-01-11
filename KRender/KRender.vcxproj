@@ -63,6 +63,7 @@
     <ClInclude Include="Internal\Manager\KShaderManager.h" />
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
     <ClInclude Include="Internal\Object\KSkyBox.h" />
+    <ClInclude Include="Internal\PostProcess\KPostProcessConnection.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessManager.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessPass.h" />
     <ClInclude Include="Internal\RenderDispatcher\KRenderDispatcher.h" />
@@ -120,6 +121,7 @@
     <ClCompile Include="Internal\Manager\KShaderManager.cpp" />
     <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
     <ClCompile Include="Internal\Object\KSkyBox.cpp" />
+    <ClCompile Include="Internal\PostProcess\KPostProcessConnection.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessManager.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessPass.cpp" />
     <ClCompile Include="Internal\Shadow\KShadowMap.cpp" />

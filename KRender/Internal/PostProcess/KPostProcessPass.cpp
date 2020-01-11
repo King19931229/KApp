@@ -1,5 +1,6 @@
 #include "KPostProcessPass.h"
 #include "KPostProcessManager.h"
+#include "KPostProcessConnection.h"
 
 #include "Internal/KRenderGlobal.h"
 
@@ -22,6 +23,8 @@ KPostProcessPass::~KPostProcessPass()
 	assert(m_VSShader == nullptr);
 	assert(m_FSShader == nullptr);
 	assert(m_Textures.empty());
+	assert(m_Inputs.empty());
+	assert(m_Outputs.empty());
 	assert(m_RenderTargets.empty());
 	assert(m_CommandBuffers.empty());
 }
@@ -33,10 +36,10 @@ bool KPostProcessPass::SetShader(const char* vsFile, const char* fsFile)
 	return true;
 }
 
-bool KPostProcessPass::SetSize(size_t width, size_t height)
+bool KPostProcessPass::SetScale(float scale)
 {
-	m_Width = width;
-	m_Height = height;
+	m_Width = static_cast<size_t>(m_Mgr->m_Width * scale);
+	m_Height = static_cast<size_t>(m_Mgr->m_Height * scale);
 	return true;
 }
 
@@ -52,88 +55,13 @@ bool KPostProcessPass::SetMSAA(unsigned short msaaCount)
 	return true;
 }
 
-bool KPostProcessPass::ConnectInput(KPostProcessPass* input, uint16_t slot)
-{
-	if(input)
-	{
-		if(std::find_if(m_InputConnections.begin(), m_InputConnections.end(),
-			[=](const PassConnection& element) { return element.slot == slot; }) != m_InputConnections.end())
-		{
-			assert(false && "input slot conflit");
-			return false;
-		}
-
-		PassConnection inputSlot = {input, slot};
-		PassConnection ouputSlot = {this, slot};
-
-		this->m_InputConnections.push_back(inputSlot);
-		input->m_OutputConnections.push_back(ouputSlot);
-
-		return true;
-	}
-
-	return false;
-}
-
-bool KPostProcessPass::DisconnectInput(const PassConnection& connection)
-{
-	auto it = std::find(m_InputConnections.begin(), m_InputConnections.end(), connection);
-	if(it != m_InputConnections.end())
-	{
-		KPostProcessPass* input = it->pass;
-
-		PassConnection outputConnection = { this, connection.slot };
-		input->DisconnectOutput(outputConnection);
-
-		m_InputConnections.erase(it);
-	}
-
-	return true;
-}
-
-bool KPostProcessPass::DisconnectOutput(const PassConnection& connection)
-{
-	auto it = std::find(m_OutputConnections.begin(), m_OutputConnections.end(), connection);
-	if(it != m_OutputConnections.end())
-	{
-		KPostProcessPass* output = it->pass;
-
-		PassConnection inputConnection = { this, connection.slot };
-		output->DisconnectInput(inputConnection);
-
-		m_OutputConnections.erase(it);
-	}
-
-	return true;
-}
-
-bool KPostProcessPass::DisconnectAll()
-{
-	std::vector<PassConnection> inputs = m_InputConnections;
-	std::vector<PassConnection> outputs = m_OutputConnections;
-
-	for(const PassConnection& connection : inputs)
-	{
-		DisconnectInput(connection);
-	}
-
-	for(const PassConnection& connection : outputs)
-	{
-		DisconnectOutput(connection);
-	}
-
-	return true;
-}
-
 bool KPostProcessPass::Init()
 {
-	ASSERT_RESULT(UnInit());
-
 	IKRenderDevice* device = m_Mgr->GetDevice();
 
 	if(m_Stage == POST_PROCESS_STAGE_START_POINT)
 	{
-		ASSERT_RESULT(m_InputConnections.empty());
+		ASSERT_RESULT(m_Inputs.empty());
 	}
 	else
 	{
@@ -169,18 +97,26 @@ bool KPostProcessPass::Init()
 			pipeline->SetFrontFace(FF_CLOCKWISE);
 			pipeline->SetPolygonMode(PM_FILL);
 
-			for(const PassConnection& connection : m_InputConnections)
+			for(KPostProcessConnection* conn : m_Inputs)
 			{
-				KPostProcessPass* inputPass = connection.pass;
-				uint16_t location = connection.slot;
+				KPostProcessPass* inputPass		= conn->m_InputPass;
+				IKTexturePtr inputTexture		= conn->m_InputTexture;
+				size_t location					= conn->m_InputSlot;
+				KPostProcessPass* outputPass	= conn->m_OutputPass;
+				IKSamplerPtr sampler			= m_Mgr->m_Sampler;
 
-				IKTexturePtr inputTexture = inputPass->GetTexture(i);
-				IKSamplerPtr sampler = m_Mgr->m_Sampler;
+				ASSERT_RESULT(outputPass == this);
 
-				ASSERT_RESULT(inputTexture != nullptr && sampler != nullptr);
-
-				pipeline->SetSampler(location, inputTexture, sampler);
+				if(conn->m_InputType == POST_PROCESS_INPUT_TEXTURE)
+				{
+					pipeline->SetSampler((unsigned int)location, inputTexture, sampler);
+				}
+				else
+				{
+					pipeline->SetSampler((unsigned int)location, inputPass->GetTexture(i), sampler);
+				}
 			}
+
 			pipeline->Init();
 		}
 	}
@@ -241,11 +177,15 @@ bool KPostProcessPass::UnInit()
 		KRenderGlobal::ShaderManager.Release(m_VSShader);
 		m_VSShader = nullptr;
 	}
+
 	if(m_FSShader)
 	{
 		KRenderGlobal::ShaderManager.Release(m_FSShader);
 		m_FSShader = nullptr;
 	}
+
+	m_Inputs.clear();
+	m_Outputs.clear();
 
 	for(IKTexturePtr& texture : m_Textures)
 	{
@@ -285,4 +225,25 @@ bool KPostProcessPass::UnInit()
 	m_bInit = false;
 
 	return true;
+}
+
+bool KPostProcessPass::AddInput(KPostProcessConnection* conn)
+{
+	if(conn)
+	{
+		m_Inputs.insert(conn);
+		return true;
+	}
+	return false;
+}
+
+
+bool KPostProcessPass::AddOutput(KPostProcessPass* pass)
+{
+	if(pass)
+	{
+		m_Outputs.insert(pass);
+		return true;
+	}
+	return false;
 }

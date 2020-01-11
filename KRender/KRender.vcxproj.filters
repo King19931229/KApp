@@ -258,6 +258,9 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessPass.h">
       <Filter>Internal\PostProcess</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\PostProcess\KPostProcessConnection.h">
+      <Filter>Internal\PostProcess</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
@@ -402,6 +405,9 @@
       <Filter>Internal\PostProcess</Filter>
     </ClCompile>
     <ClCompile Include="Internal\PostProcess\KPostProcessPass.cpp">
+      <Filter>Internal\PostProcess</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\PostProcess\KPostProcessConnection.cpp">
       <Filter>Internal\PostProcess</Filter>
     </ClCompile>
   </ItemGroup>

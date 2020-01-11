@@ -948,9 +948,16 @@ bool KVulkanRenderDevice::InitGlobalManager()
 
 	KRenderGlobal::PostProcessManager.Init(this, width, height, msaaCount, EF_R16G16B16A16_FLOAT, m_FrameInFlight);
 
-	KPostProcessPass* pass = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess.frag", EF_R8GB8BA8_UNORM);
 	KPostProcessPass* startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
-	pass->ConnectInput(startPoint, 0);
+
+	KPostProcessPass* pass = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess.frag", 0.5f, EF_R8GB8BA8_UNORM);
+	KPostProcessPass* pass2 = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess2.frag", 0.5f, EF_R8GB8BA8_UNORM);
+	KPostProcessPass* pass3 = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess3.frag", 1.0f, EF_R8GB8BA8_UNORM);
+
+	KRenderGlobal::PostProcessManager.CreatePassConnection(startPoint, pass, 0);
+	KRenderGlobal::PostProcessManager.CreatePassConnection(startPoint, pass2, 0);
+	KRenderGlobal::PostProcessManager.CreatePassConnection(pass, pass3, 0);
+	KRenderGlobal::PostProcessManager.CreatePassConnection(pass2, pass3, 1);
 
 	KRenderGlobal::PostProcessManager.Construct();
 

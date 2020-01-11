@@ -8,5 +8,5 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-	outColor = texture(texSampler, uv).rgba;
+	outColor = texture(texSampler, uv).bgra;
 }

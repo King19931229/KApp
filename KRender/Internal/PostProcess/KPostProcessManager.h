@@ -10,6 +10,7 @@
 #include <set>
 
 class KPostProcessPass;
+class KPostProcessConnection;
 
 class KPostProcessManager
 {
@@ -25,6 +26,8 @@ protected:
 	//
 	std::set<KPostProcessPass*> m_AllPasses;
 	KPostProcessPass* m_StartPointPass;
+
+	std::set<KPostProcessConnection*> m_AllConnections;
 
 	//
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_vertices[4];
@@ -56,8 +59,13 @@ public:
 	bool UnInit();
 	bool Resize(size_t width, size_t height);
 
-	KPostProcessPass* CreatePass(const char* vsFile, const char* fsFile, ElementFormat format);
+	KPostProcessPass* CreatePass(const char* vsFile, const char* fsFile, float scale, ElementFormat format);
 	void DeletePass(KPostProcessPass* pass);
+
+	KPostProcessConnection* CreatePassConnection(KPostProcessPass* input, KPostProcessPass* output, size_t slot);
+	KPostProcessConnection* CreateTextureConnection(IKTexturePtr inputTexure, KPostProcessPass* output, size_t slot);
+	void DeleteConnection(KPostProcessConnection* conn);
+
 	KPostProcessPass* GetStartPointPass();
 
 	bool Construct();
