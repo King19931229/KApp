@@ -290,7 +290,7 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, size_t r
 	{
 		command.vertexData = m_pVertexData;
 		command.indexData = &m_IndexData;
-		command.pipeline = info.pipeline.get();
+		command.pipeline = info.pipeline;
 		command.indexDraw = m_IndexDraw;
 
 		command.objectPushOffset = info.objectPushOffset;

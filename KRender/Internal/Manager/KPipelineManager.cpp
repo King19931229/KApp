@@ -28,7 +28,7 @@ bool KPipelineManager::UnInit()
 
 bool KPipelineManager::Reload()
 {
-	std::vector<IKPipeline*> reloadPipelines;
+	std::vector<IKPipelinePtr> reloadPipelines;
 	reloadPipelines.reserve(m_RenderPipelineMap.size());
 
 	{
@@ -36,12 +36,12 @@ bool KPipelineManager::Reload()
 		for(PipelineHandleMap::iterator it = m_RenderPipelineMap.begin(), itEnd = m_RenderPipelineMap.end();
 			it != itEnd; ++it)
 		{
-			IKPipeline* pipeline = it->first;
+			IKPipelinePtr pipeline = it->first;
 			reloadPipelines.push_back(pipeline);
 		}
 	}
 
-	for(IKPipeline* pipeline : reloadPipelines)
+	for(IKPipelinePtr pipeline : reloadPipelines)
 	{
 		pipeline->Reload();
 	}
@@ -49,7 +49,7 @@ bool KPipelineManager::Reload()
 	return true;
 }
 
-bool KPipelineManager::GetPipelineHandle(IKPipeline* pipeline, IKRenderTarget* target, IKPipelineHandlePtr& handle)
+bool KPipelineManager::GetPipelineHandle(IKPipelinePtr pipeline, IKRenderTargetPtr target, IKPipelineHandlePtr& handle)
 {
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 
@@ -92,7 +92,7 @@ bool KPipelineManager::GetPipelineHandle(IKPipeline* pipeline, IKRenderTarget* t
 	}
 }
 
-bool KPipelineManager::InvaildateHandleByRt(IKRenderTarget* target)
+bool KPipelineManager::InvaildateHandleByRt(IKRenderTargetPtr target)
 {
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 
@@ -121,7 +121,7 @@ bool KPipelineManager::InvaildateHandleByRt(IKRenderTarget* target)
 	return true;
 }
 
-bool KPipelineManager::InvaildateHandleByPipeline(IKPipeline* pipeline)
+bool KPipelineManager::InvaildateHandleByPipeline(IKPipelinePtr pipeline)
 {
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 

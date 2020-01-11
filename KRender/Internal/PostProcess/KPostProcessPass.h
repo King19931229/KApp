@@ -60,8 +60,13 @@ protected:
 
 	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 
+private:
+	// 只有KPostProcessManager可以初始化与反初始化KPostProcessPass
 	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage);
 	~KPostProcessPass();
+	bool Init();
+	bool UnInit();
+
 public:
 	bool SetShader(const char* vsFile, const char* fsFile);
 	bool SetSize(size_t width, size_t height);
@@ -73,9 +78,6 @@ public:
 	bool DisconnectInput(const PassConnection& connection);
 	bool DisconnectOutput(const PassConnection& connection);
 	bool DisconnectAll();
-
-	bool Init();
-	bool UnInit();
 
 	inline IKTexturePtr GetTexture(size_t frameIndex) { return m_Textures.size() > frameIndex ? m_Textures[frameIndex] : nullptr; }
 	inline IKRenderTargetPtr GetRenderTarget(size_t frameIndex) { return m_RenderTargets.size() > frameIndex ? m_RenderTargets[frameIndex] : nullptr; }

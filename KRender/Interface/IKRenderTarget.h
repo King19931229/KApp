@@ -1,7 +1,7 @@
 #pragma once
 #include "IKRenderConfig.h"
 
-struct IKRenderTarget
+struct IKRenderTarget : public std::enable_shared_from_this<IKRenderTarget>
 {
 	virtual ~IKRenderTarget() {}
 

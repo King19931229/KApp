@@ -493,7 +493,7 @@ bool KVulkanRenderTarget::UnInit()
 		m_bDepthStencilCreated = false;
 	}
 
-	KRenderGlobal::PipelineManager.InvaildateHandleByRt(this);
+	KRenderGlobal::PipelineManager.InvaildateHandleByRt(shared_from_this());
 
 	return true;
 }

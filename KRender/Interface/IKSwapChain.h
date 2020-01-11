@@ -8,5 +8,5 @@ struct IKSwapChain
 	virtual bool UnInit() = 0;
 	virtual uint32_t GetWidth() = 0;
 	virtual uint32_t GetHeight() = 0;
-	virtual IKRenderTarget* GetRenderTarget(size_t frameIndex) = 0;
+	virtual IKRenderTargetPtr GetRenderTarget(size_t frameIndex) = 0;
 };

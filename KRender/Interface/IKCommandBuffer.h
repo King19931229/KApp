@@ -10,27 +10,27 @@ struct IKCommandPool
 	virtual bool Reset() = 0;
 };
 
-typedef std::vector<IKCommandBuffer*> KCommandBufferList;
+typedef std::vector<IKCommandBufferPtr> KCommandBufferList;
 
 struct IKCommandBuffer
 {
 	virtual ~IKCommandBuffer() {};
 
-	virtual bool Init(IKCommandPool* pool, CommandBufferLevel level) = 0;
+	virtual bool Init(IKCommandPoolPtr pool, CommandBufferLevel level) = 0;
 	virtual bool UnInit() = 0;
 
-	virtual bool SetViewport(IKRenderTarget* target) = 0;
+	virtual bool SetViewport(IKRenderTargetPtr target) = 0;
 	virtual bool SetDepthBias(float depthBiasConstant, float depthBiasClamp, float depthBiasSlope) = 0;
 
 	virtual bool Render(const KRenderCommand& command) = 0;
 
-	virtual bool Execute(IKCommandBuffer* buffer) = 0;
+	virtual bool Execute(IKCommandBufferPtr buffer) = 0;
 	virtual bool ExecuteAll(KCommandBufferList& commandBuffers) = 0;
 
 	virtual bool BeginPrimary() = 0;
-	virtual bool BeginSecondary(IKRenderTarget* target) = 0;
+	virtual bool BeginSecondary(IKRenderTargetPtr target) = 0;
 	virtual bool End() = 0;
 
-	virtual bool BeginRenderPass(IKRenderTarget* target, SubpassContents conent) = 0;
+	virtual bool BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent) = 0;
 	virtual bool EndRenderPass() = 0;
 };

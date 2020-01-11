@@ -486,7 +486,7 @@ bool KVulkanPipeline::DestroyDevice()
 		m_PipelineLayout = VK_NULL_HANDLE;
 	}
 
-	KRenderGlobal::PipelineManager.InvaildateHandleByPipeline(this);
+	KRenderGlobal::PipelineManager.InvaildateHandleByPipeline(shared_from_this());
 
 	return true;
 }
@@ -512,47 +512,41 @@ bool KVulkanPipeline::Reload()
 }
 
 KVulkanPipelineHandle::KVulkanPipelineHandle()
-	: m_Pipeline(nullptr),
-	m_Target(nullptr),
-	m_GraphicsPipeline(VK_NULL_HANDLE)
+	: m_GraphicsPipeline(VK_NULL_HANDLE)
 {
 }
 
 KVulkanPipelineHandle::~KVulkanPipelineHandle()
 {
-	ASSERT_RESULT(m_Pipeline == nullptr);
-	ASSERT_RESULT(m_Target == nullptr);
 	ASSERT_RESULT(m_GraphicsPipeline == VK_NULL_HANDLE);
 }
 
-bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
+bool KVulkanPipelineHandle::Init(IKPipelinePtr pipeline, IKRenderTargetPtr target)
 {
-	ASSERT_RESULT(m_Pipeline == nullptr);
-	ASSERT_RESULT(m_Target == nullptr);
 	ASSERT_RESULT(m_GraphicsPipeline == VK_NULL_HANDLE);
 
-	m_Pipeline = static_cast<KVulkanPipeline*>(pipeline);
-	m_Target = static_cast<KVulkanRenderTarget*>(target);
+	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline.get());
+	KVulkanRenderTarget* vulkanTarget = static_cast<KVulkanRenderTarget*>(target.get());
 
-	ASSERT_RESULT(m_Pipeline != nullptr);
-	ASSERT_RESULT(m_Pipeline->m_VertexShader && m_Pipeline->m_FragmentShader);
-	ASSERT_RESULT(m_Target != nullptr);
-	VkSampleCountFlagBits msaaFlag = m_Target->GetMsaaFlag();
-	VkExtent2D extend = m_Target->GetExtend();
+	ASSERT_RESULT(vulkanPipeline != nullptr);
+	ASSERT_RESULT(vulkanPipeline->m_VertexShader && vulkanPipeline->m_FragmentShader);
+	ASSERT_RESULT(vulkanTarget != nullptr);
+	VkSampleCountFlagBits msaaFlag = vulkanTarget->GetMsaaFlag();
+	VkExtent2D extend = vulkanTarget->GetExtend();
 
 	// 配置顶点输入信息
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;	
 
-	vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)m_Pipeline->m_BindingDescriptions.size();
-	vertexInputInfo.pVertexBindingDescriptions = m_Pipeline->m_BindingDescriptions.data();
-	vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)m_Pipeline->m_AttributeDescriptions.size();
-	vertexInputInfo.pVertexAttributeDescriptions = m_Pipeline->m_AttributeDescriptions.data();
+	vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)vulkanPipeline->m_BindingDescriptions.size();
+	vertexInputInfo.pVertexBindingDescriptions = vulkanPipeline->m_BindingDescriptions.data();
+	vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)vulkanPipeline->m_AttributeDescriptions.size();
+	vertexInputInfo.pVertexAttributeDescriptions = vulkanPipeline->m_AttributeDescriptions.data();
 
 	// 配置顶点组装信息
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = m_Pipeline->m_PrimitiveTopology;
+	inputAssembly.topology = vulkanPipeline->m_PrimitiveTopology;
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 	// 配置视口裁剪
@@ -582,12 +576,12 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizer.depthClampEnable = VK_FALSE;
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = m_Pipeline->m_PolygonMode;
+	rasterizer.polygonMode = vulkanPipeline->m_PolygonMode;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = m_Pipeline->m_CullMode;
-	rasterizer.frontFace = m_Pipeline->m_FrontFace;
+	rasterizer.cullMode = vulkanPipeline->m_CullMode;
+	rasterizer.frontFace = vulkanPipeline->m_FrontFace;
 
-	rasterizer.depthBiasEnable = m_Pipeline->m_DepthBiasEnable;
+	rasterizer.depthBiasEnable = vulkanPipeline->m_DepthBiasEnable;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
 	rasterizer.depthBiasClamp = 0.0f; // Optional
 	rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
@@ -595,9 +589,9 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	// 配置深度缓冲信息
 	VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depthStencil.depthTestEnable = m_Pipeline->m_DepthTest;
-	depthStencil.depthWriteEnable = m_Pipeline->m_DepthWrite;
-	depthStencil.depthCompareOp = m_Pipeline->m_DepthOp;
+	depthStencil.depthTestEnable = vulkanPipeline->m_DepthTest;
+	depthStencil.depthWriteEnable = vulkanPipeline->m_DepthWrite;
+	depthStencil.depthCompareOp = vulkanPipeline->m_DepthOp;
 
 	depthStencil.depthBoundsTestEnable = VK_FALSE; // Optional
 	depthStencil.minDepthBounds = 0.0f; // Optional
@@ -621,12 +615,12 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 
 	// 配置Alpha混合信息
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-	colorBlendAttachment.colorWriteMask = m_Pipeline->m_ColorWriteMask;
-	colorBlendAttachment.blendEnable = m_Pipeline->m_BlendEnable;
+	colorBlendAttachment.colorWriteMask = vulkanPipeline->m_ColorWriteMask;
+	colorBlendAttachment.blendEnable = vulkanPipeline->m_BlendEnable;
 
-	colorBlendAttachment.srcColorBlendFactor = m_Pipeline->m_ColorSrcBlendFactor;
-	colorBlendAttachment.dstColorBlendFactor = m_Pipeline->m_ColorDstBlendFactor;
-	colorBlendAttachment.colorBlendOp = m_Pipeline->m_ColorBlendOp;
+	colorBlendAttachment.srcColorBlendFactor = vulkanPipeline->m_ColorSrcBlendFactor;
+	colorBlendAttachment.dstColorBlendFactor = vulkanPipeline->m_ColorDstBlendFactor;
+	colorBlendAttachment.colorBlendOp = vulkanPipeline->m_ColorBlendOp;
 
 	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
 	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
@@ -640,7 +634,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	{
 		VkFormat colorForamt = VK_FORMAT_UNDEFINED;
 		VkImageView colorImageView = VK_NULL_HANDLE;
-		if(m_Target->GetImageViewInformation(RTC_COLOR, colorForamt, colorImageView))
+		if(vulkanTarget->GetImageViewInformation(RTC_COLOR, colorForamt, colorImageView))
 		{
 			colorBlending.attachmentCount = 1;
 			colorBlending.pAttachments = &colorBlendAttachment;
@@ -676,7 +670,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 
 	// vs
 	VkPipelineShaderStageCreateInfo vsShaderCreateInfo = {};
-	vulkanShader = (KVulkanShader*)m_Pipeline->m_VertexShader.get();
+	vulkanShader = (KVulkanShader*)vulkanPipeline->m_VertexShader.get();
 	vsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vsShaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
 	vsShaderCreateInfo.module = vulkanShader->GetShaderModule();
@@ -687,7 +681,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 
 	// fs
 	VkPipelineShaderStageCreateInfo fsShaderCreateInfo = {};
-	vulkanShader = (KVulkanShader*)m_Pipeline->m_FragmentShader.get();
+	vulkanShader = (KVulkanShader*)vulkanPipeline->m_FragmentShader.get();
 	fsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	fsShaderCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 	fsShaderCreateInfo.module = vulkanShader->GetShaderModule();
@@ -718,9 +712,9 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	// 指定动态状态
 	pipelineInfo.pDynamicState = &dynamicState;
 	// 指定管线布局
-	pipelineInfo.layout = m_Pipeline->m_PipelineLayout;
+	pipelineInfo.layout = vulkanPipeline->m_PipelineLayout;
 	// 指定渲染通道
-	pipelineInfo.renderPass = m_Target->GetRenderPass();
+	pipelineInfo.renderPass = vulkanTarget->GetRenderPass();
 	pipelineInfo.subpass = 0;
 
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
@@ -738,7 +732,5 @@ bool KVulkanPipelineHandle::UnInit()
 		vkDestroyPipeline(KVulkanGlobal::device, m_GraphicsPipeline, nullptr);
 		m_GraphicsPipeline = VK_NULL_HANDLE;
 	}
-	m_Target = nullptr;
-	m_Pipeline = nullptr;
 	return true;
 }

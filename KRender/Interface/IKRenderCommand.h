@@ -2,6 +2,8 @@
 
 #include "Interface/IKShader.h"
 #include "Interface/IKBuffer.h"
+#include "Interface/IKPipeline.h"
+
 #include <assert.h>
 
 struct KVertexData
@@ -61,8 +63,8 @@ struct KRenderCommand
 	const KVertexData* vertexData;
 	const KIndexData* indexData;
 
-	IKPipeline* pipeline;
-	IKPipelineHandle* pipelineHandle;
+	IKPipelinePtr pipeline;
+	IKPipelineHandlePtr pipelineHandle;
 
 	void* objectData;
 	uint32_t objectPushOffset;

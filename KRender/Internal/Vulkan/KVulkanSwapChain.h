@@ -35,7 +35,7 @@ protected:
 	std::vector<VkFence> m_InFlightFences;
 	SwapChainSupportDetails m_SwapChainSupportDetails;
 
-	std::vector<KVulkanRenderTarget*> m_SwapChainRenderTargets;
+	std::vector<IKRenderTargetPtr> m_SwapChainRenderTargets;
 
 	bool QuerySwapChainSupport();
 	bool ChooseSwapSurfaceFormat();
@@ -60,7 +60,7 @@ public:
 	virtual uint32_t GetWidth() { return m_Extend.width; }
 	virtual uint32_t GetHeight() { return m_Extend.height; }
 
-	virtual IKRenderTarget* GetRenderTarget(size_t frameIndex);
+	virtual IKRenderTargetPtr GetRenderTarget(size_t frameIndex);
 
 	VkResult WaitForInfightFrame(size_t& frameIndex);
 	VkResult AcquireNextImage(uint32_t& imageIndex);

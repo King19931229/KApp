@@ -80,12 +80,12 @@ KVulkanCommandBuffer::~KVulkanCommandBuffer()
 
 }
 
-bool KVulkanCommandBuffer::Init(IKCommandPool* pool, CommandBufferLevel level)
+bool KVulkanCommandBuffer::Init(IKCommandPoolPtr pool, CommandBufferLevel level)
 {
 	ASSERT_RESULT(UnInit());
 
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
-	KVulkanCommandPool* vulkanPool = (KVulkanCommandPool*)pool;
+	KVulkanCommandPool* vulkanPool = (KVulkanCommandPool*)pool.get();
 
 	m_ParentPool = vulkanPool->GetVkHandle();
 	ASSERT_RESULT(m_ParentPool != VK_NULL_HANDLE);
@@ -130,12 +130,12 @@ bool KVulkanCommandBuffer::UnInit()
 	return true;
 }
 
-bool KVulkanCommandBuffer::SetViewport(IKRenderTarget* target)
+bool KVulkanCommandBuffer::SetViewport(IKRenderTargetPtr target)
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	if(m_CommandBuffer != VK_NULL_HANDLE)
 	{
-		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target;
+		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target.get();
 
 		// 设置视口与裁剪
 		VkOffset2D offset = {0, 0};
@@ -186,8 +186,8 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			return false;
 		}
 
-		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)command.pipeline;
-		KVulkanPipelineHandle* pipelineHandle = (KVulkanPipelineHandle*)command.pipelineHandle;
+		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)command.pipeline.get();
+		KVulkanPipelineHandle* pipelineHandle = (KVulkanPipelineHandle*)command.pipelineHandle.get();
 
 		VkPipeline pipeline = pipelineHandle->GetVkPipeline();
 
@@ -239,13 +239,13 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 	return false;
 }
 
-bool KVulkanCommandBuffer::Execute(IKCommandBuffer* buffer)
+bool KVulkanCommandBuffer::Execute(IKCommandBufferPtr buffer)
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
-	VkCommandBuffer handle = ((KVulkanCommandBuffer*)buffer)->GetVkHandle();
-	VkCommandBufferLevel level = ((KVulkanCommandBuffer*)buffer)->GetVkBufferLevel();
+	VkCommandBuffer handle = ((KVulkanCommandBuffer*)buffer.get())->GetVkHandle();
+	VkCommandBufferLevel level = ((KVulkanCommandBuffer*)buffer.get())->GetVkBufferLevel();
 	if(handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
 	{
 		vkCmdExecuteCommands(m_CommandBuffer, 1, &handle);
@@ -264,10 +264,10 @@ bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers)
 	{
 		std::vector<VkCommandBuffer> vkCommandBuffers;
 
-		for(IKCommandBuffer* buffer : commandBuffers)
+		for(IKCommandBufferPtr buffer : commandBuffers)
 		{
-			VkCommandBuffer handle = ((KVulkanCommandBuffer*)buffer)->GetVkHandle();
-			VkCommandBufferLevel level = ((KVulkanCommandBuffer*)buffer)->GetVkBufferLevel();
+			VkCommandBuffer handle = ((KVulkanCommandBuffer*)buffer.get())->GetVkHandle();
+			VkCommandBufferLevel level = ((KVulkanCommandBuffer*)buffer.get())->GetVkBufferLevel();
 			ASSERT_RESULT(handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 			if(handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
 			{
@@ -298,14 +298,14 @@ bool KVulkanCommandBuffer::BeginPrimary()
 	return false;
 }
 
-bool KVulkanCommandBuffer::BeginSecondary(IKRenderTarget* target)
+bool KVulkanCommandBuffer::BeginSecondary(IKRenderTargetPtr target)
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 
 	if(m_CommandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
 	{
-		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target;
+		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target.get();
 
 		VkCommandBufferInheritanceInfo inheritanceInfo = {};
 		inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
@@ -325,12 +325,12 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderTarget* target)
 	return false;
 }
 
-bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTarget* target, SubpassContents conent)
+bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent)
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	if(m_CommandBuffer != VK_NULL_HANDLE)
 	{
-		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target;
+		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target.get();
 
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;

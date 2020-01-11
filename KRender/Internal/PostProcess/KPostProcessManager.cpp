@@ -81,7 +81,6 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_StartPointPass->SetFormat(startFormat);
 	m_StartPointPass->SetMSAA(massCount);
 	m_StartPointPass->SetSize(width, height);
-	m_StartPointPass->Init();
 
 	m_AllPasses.insert(m_StartPointPass);
 
@@ -174,21 +173,12 @@ bool KPostProcessManager::Resize(size_t width, size_t height)
 	m_Width = width;
 	m_Height = height;
 
-	for(KPostProcessPass* pass : m_AllPasses)
-	{
-		pass->UnInit();
-	}
-
-	IterPostProcessGraph([width, height](KPostProcessPass* pass)
-	{
-		pass->SetSize(width, height);
-		pass->Init();
-	});
+	Construct();
 
 	return true;
 }
 
-void KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipeline* pipeline, IKRenderTarget* target)
+void KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderTargetPtr target)
 {
 	IKPipelineHandlePtr pipeHandle = nullptr;
 	KRenderGlobal::PipelineManager.GetPipelineHandle(pipeline, target, pipeHandle);
@@ -196,7 +186,7 @@ void KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipel
 	command.vertexData = &m_SharedVertexData;
 	command.indexData = &m_SharedIndexData;
 	command.pipeline = pipeline;
-	command.pipelineHandle = pipeHandle.get();
+	command.pipelineHandle = pipeHandle;
 
 	command.objectData = nullptr;
 	command.objectPushOffset = 0;
@@ -205,7 +195,22 @@ void KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipel
 	command.indexDraw = true;
 }
 
-bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChain* swapChain, IKUIOverlay* ui, IKCommandBufferPtr primaryCommandBuffer)
+bool KPostProcessManager::Construct()
+{
+	for(KPostProcessPass* pass : m_AllPasses)
+	{
+		pass->UnInit();
+	}
+
+	IterPostProcessGraph([this](KPostProcessPass* pass)
+	{
+		pass->SetSize(m_Width, m_Height);
+		pass->Init();
+	});
+	return true;
+}
+
+bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChainPtr& swapChain, IKUIOverlayPtr& ui, IKCommandBufferPtr primaryCommandBuffer)
 {
 	KPostProcessPass* endPass = nullptr;
 	{
@@ -220,7 +225,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 			}
 
 			IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer(frameIndex);
-			IKRenderTarget* renderTarget = pass->GetRenderTarget(frameIndex).get();
+			IKRenderTargetPtr renderTarget = pass->GetRenderTarget(frameIndex);
 
 			primaryCommandBuffer->BeginRenderPass(renderTarget, SUBPASS_CONTENTS_SECONDARY);
 			{
@@ -228,41 +233,31 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 				commandBuffer->SetViewport(renderTarget);
 
 				KRenderCommand command;
-				PopulateRenderCommand(command, pass->GetPipeline(frameIndex).get(), renderTarget);
+				PopulateRenderCommand(command, pass->GetPipeline(frameIndex), renderTarget);
 				commandBuffer->Render(command);
 				commandBuffer->End();
 			}
-			primaryCommandBuffer->Execute(commandBuffer.get());
+			primaryCommandBuffer->Execute(commandBuffer);
 			primaryCommandBuffer->EndRenderPass();
 		});
 	}
 
 	{
-		IKRenderTarget* swapChainTarget = swapChain->GetRenderTarget(chainImageIndex);
+		IKRenderTargetPtr swapChainTarget = swapChain->GetRenderTarget(chainImageIndex);
 		primaryCommandBuffer->BeginRenderPass(swapChainTarget, SUBPASS_CONTENTS_INLINE);
 
 		primaryCommandBuffer->SetViewport(swapChainTarget);
 
 		KRenderCommand command;
-		PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(frameIndex).get(), swapChainTarget);
+		PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(frameIndex), swapChainTarget);
 		primaryCommandBuffer->Render(command);
 
-		ui->Draw(frameIndex, swapChainTarget, primaryCommandBuffer.get());
+		ui->Draw(frameIndex, swapChainTarget, primaryCommandBuffer);
 
 		primaryCommandBuffer->EndRenderPass();
 	}
 
 	return true;
-}
-
-IKRenderTargetPtr KPostProcessManager::GetOffscreenTarget(size_t frameIndex)
-{
-	return m_StartPointPass ? m_StartPointPass->GetRenderTarget(frameIndex) : nullptr;
-}
-
-IKTexturePtr KPostProcessManager::GetOffscreenTextrue(size_t frameIndex)
-{
-	return m_StartPointPass ? m_StartPointPass->GetTexture(frameIndex) : nullptr;
 }
 
 KPostProcessPass* KPostProcessManager::CreatePass(const char* vsFile, const char* fsFile, ElementFormat format)

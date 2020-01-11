@@ -21,11 +21,11 @@ KVulkanUIOverlay::~KVulkanUIOverlay()
 
 }
 
-bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderTarget* target, IKCommandBuffer* commandBuffer)
+bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderTargetPtr target, IKCommandBufferPtr commandBuffer)
 {
 	if(imageIndex < m_Pipelines.size())
 	{
-		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)commandBuffer;
+		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)commandBuffer.get();
 		const VkCommandBuffer commandBuffer = vulkanCommandBuffer->GetVkHandle();
 
 		ImDrawData* imDrawData = ImGui::GetDrawData();
@@ -40,10 +40,10 @@ bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderTarget* target, IKC
 		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_Pipelines[imageIndex].get();
 		KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffers[imageIndex].get();
 		KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffers[imageIndex].get();
-		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)(target);
+		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)(target.get());
 
 		IKPipelineHandlePtr pipelineHandle;
-		KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline, vulkanTarget, pipelineHandle);
+		KRenderGlobal::PipelineManager.GetPipelineHandle(m_Pipelines[imageIndex], target, pipelineHandle);
 		VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
 
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();

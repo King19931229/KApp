@@ -9,15 +9,12 @@ class KVulkanPipeline;
 class KVulkanPipelineHandle : public IKPipelineHandle
 {
 protected:
-	KVulkanPipeline* m_Pipeline;
-	KVulkanRenderTarget* m_Target;
-
 	VkPipeline m_GraphicsPipeline;
 public:
 	KVulkanPipelineHandle();
 	~KVulkanPipelineHandle();
 
-	bool Init(IKPipeline* pipeline, IKRenderTarget* target);
+	bool Init(IKPipelinePtr pipeline, IKRenderTargetPtr target);
 	bool UnInit();
 
 	inline VkPipeline GetVkPipeline() { return m_GraphicsPipeline; }

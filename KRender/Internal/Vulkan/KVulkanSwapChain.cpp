@@ -247,7 +247,7 @@ bool KVulkanSwapChain::CreateRenderTargets()
 	m_SwapChainRenderTargets.resize(m_SwapChainImages.size());
 	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
 	{
-		m_SwapChainRenderTargets[i] = new KVulkanRenderTarget();
+		m_SwapChainRenderTargets[i] = IKRenderTargetPtr(new KVulkanRenderTarget());
 		m_SwapChainRenderTargets[i]->SetColorClear(0.0f, 0.0f, 0.0f, 1.0f);
 		m_SwapChainRenderTargets[i]->SetDepthStencilClear(1.0, 0);
 		m_SwapChainRenderTargets[i]->InitFromSwapChain(this, i, true, true, 1);
@@ -296,7 +296,7 @@ bool KVulkanSwapChain::DestroyRenderTargets()
 	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
 	{
 		m_SwapChainRenderTargets[i]->UnInit();
-		SAFE_DELETE(m_SwapChainRenderTargets[i]);
+		m_SwapChainRenderTargets[i] = nullptr;
 	}
 	m_SwapChainRenderTargets.clear();
 	return true;
@@ -330,9 +330,9 @@ bool KVulkanSwapChain::UnInit()
 	return true;
 }
 
-IKRenderTarget* KVulkanSwapChain::GetRenderTarget(size_t frameIndex)
+IKRenderTargetPtr KVulkanSwapChain::GetRenderTarget(size_t frameIndex)
 {
-	return frameIndex < m_SwapChainRenderTargets.size() ? m_SwapChainRenderTargets[frameIndex] : nullptr;
+	return frameIndex < m_SwapChainRenderTargets.size() ? m_SwapChainRenderTargets[frameIndex]->shared_from_this() : nullptr;
 }
 
 VkResult KVulkanSwapChain::WaitForInfightFrame(size_t& frameIndex)

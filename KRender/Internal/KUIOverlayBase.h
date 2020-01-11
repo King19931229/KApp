@@ -38,7 +38,7 @@ public:
 	virtual bool UnInit();
 	virtual bool Resize(size_t width, size_t height);
 	virtual bool Update(unsigned int imageIndex);
-	virtual bool Draw(unsigned int imageIndex, IKRenderTarget* target, IKCommandBuffer* commandBufferPtr) = 0;
+	virtual bool Draw(unsigned int imageIndex, IKRenderTargetPtr target, IKCommandBufferPtr commandBufferPtr) = 0;
 
 	virtual bool Begin(const char* str);
 	virtual bool SetWindowPos(unsigned int x, unsigned int y);

@@ -144,7 +144,7 @@ bool KPostProcessPass::Init()
 		for(size_t i = 0; i < m_CommandBuffers.size(); ++i)
 		{
 			device->CreateCommandBuffer(m_CommandBuffers[i]);
-			m_CommandBuffers[i]->Init(m_Mgr->m_CommandPool.get(), CBL_SECONDARY);
+			m_CommandBuffers[i]->Init(m_Mgr->m_CommandPool, CBL_SECONDARY);
 		}
 
 		m_Pipelines.resize(m_FrameInFlight);

@@ -27,22 +27,22 @@ public:
 	KVulkanCommandBuffer();
 	virtual ~KVulkanCommandBuffer();
 
-	virtual bool Init(IKCommandPool* pool, CommandBufferLevel level);
+	virtual bool Init(IKCommandPoolPtr pool, CommandBufferLevel level);
 	virtual bool UnInit();
 
-	virtual bool SetViewport(IKRenderTarget* target);
+	virtual bool SetViewport(IKRenderTargetPtr target);
 	virtual bool SetDepthBias(float depthBiasConstant, float depthBiasClamp, float depthBiasSlope);
 
 	virtual bool Render(const KRenderCommand& command);
 
-	virtual bool Execute(IKCommandBuffer* buffer);
+	virtual bool Execute(IKCommandBufferPtr buffer);
 	virtual bool ExecuteAll(KCommandBufferList& commandBuffers);
 
 	virtual bool BeginPrimary();
-	virtual bool BeginSecondary(IKRenderTarget* target);
+	virtual bool BeginSecondary(IKRenderTargetPtr target);
 	virtual bool End();
 
-	virtual bool BeginRenderPass(IKRenderTarget* target, SubpassContents conent);
+	virtual bool BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent);
 	virtual bool EndRenderPass();
 
 	inline VkCommandBuffer GetVkHandle() { return m_CommandBuffer; }

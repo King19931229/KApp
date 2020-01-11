@@ -207,7 +207,7 @@ bool KSkyBox::GetRenderCommand(unsigned int imageIndex, KRenderCommand& command)
 	{
 		command.vertexData = &m_VertexData;
 		command.indexData = &m_IndexData;
-		command.pipeline = m_Pipelines[imageIndex].get();
+		command.pipeline = m_Pipelines[imageIndex];
 		command.indexDraw = true;
 		return true;
 	}

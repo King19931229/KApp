@@ -6,11 +6,11 @@ struct IKPipelineHandle
 {
 	virtual ~IKPipelineHandle() {}
 
-	virtual bool Init(IKPipeline* pipeline, IKRenderTarget* target) = 0;
+	virtual bool Init(IKPipelinePtr pipeline, IKRenderTargetPtr target) = 0;
 	virtual bool UnInit() = 0;
 };
 
-struct IKPipeline
+struct IKPipeline : public std::enable_shared_from_this<IKPipeline>
 {
 	virtual ~IKPipeline() {}
 

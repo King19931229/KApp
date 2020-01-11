@@ -43,7 +43,7 @@ protected:
 	IKSamplerPtr m_Sampler;
 
 	void IterPostProcessGraph(std::function<void(KPostProcessPass*)> func);
-	void PopulateRenderCommand(KRenderCommand& command, IKPipeline* pipeline, IKRenderTarget* target);
+	void PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderTargetPtr target);
 public:
 	KPostProcessManager();
 	~KPostProcessManager();
@@ -55,14 +55,13 @@ public:
 		size_t frameInFlight);
 	bool UnInit();
 	bool Resize(size_t width, size_t height);
-	bool Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChain* swapChain, IKUIOverlay* ui, IKCommandBufferPtr primaryCommandBuffer);
-
-	IKRenderTargetPtr GetOffscreenTarget(size_t frameIndex);
-	IKTexturePtr GetOffscreenTextrue(size_t frameIndex);
 
 	KPostProcessPass* CreatePass(const char* vsFile, const char* fsFile, ElementFormat format);
 	void DeletePass(KPostProcessPass* pass);
 	KPostProcessPass* GetStartPointPass();
+
+	bool Construct();
+	bool Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChainPtr& swapChain, IKUIOverlayPtr& ui, IKCommandBufferPtr primaryCommandBuffer);
 
 	inline IKRenderDevice* GetDevice() { return m_Device; }	
 };
