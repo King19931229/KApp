@@ -1,6 +1,11 @@
 #include "KPostProcessManager.h"
 #include "KPostProcessPass.h"
 
+#include "Interface/IKSwapChain.h"
+#include "Interface/IKUIOverlay.h"
+
+#include "Internal/KRenderGlobal.h"
+
 #include <queue>
 
 const KVertexDefinition::SCREENQUAD_POS_2F KPostProcessManager::ms_vertices[] = 
@@ -16,16 +21,16 @@ const uint32_t KPostProcessManager::ms_Indices[] = {0, 1, 2, 2, 3, 0};
 KPostProcessManager::KPostProcessManager()
 	: m_Device(nullptr),
 	m_StartPointPass(nullptr),
-	m_EndPointPass(nullptr)
+	m_FrameInFlight(0),
+	m_Width(0),
+	m_Height(0)
 {
-
 }
 
 KPostProcessManager::~KPostProcessManager()
 {
 	assert(m_AllPasses.empty());
 	assert(m_StartPointPass == nullptr);
-	assert(m_EndPointPass == nullptr);
 	assert(m_CommandPool == nullptr);
 	assert(m_SharedVertexBuffer == nullptr);
 	assert(m_SharedIndexBuffer == nullptr);
@@ -40,6 +45,20 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	UnInit();
 
 	m_Device = device;
+	m_FrameInFlight = frameInFlight;
+	m_Width = width;
+	m_Height = height;
+
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/screenquad.vert", m_ScreenDrawVS));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/screenquad.frag", m_ScreenDrawFS));
+
+	m_Device->CreateSampler(m_Sampler);
+	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
+	m_Sampler->SetMipmapLod(0, 0);
+	m_Sampler->Init();
+
+	m_Device->CreateCommandPool(m_CommandPool);
+	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
 
 	m_Device->CreateVertexBuffer(m_SharedVertexBuffer);
 	m_SharedVertexBuffer->InitMemory(ARRAY_SIZE(ms_vertices), sizeof(ms_vertices[0]), ms_vertices);
@@ -58,15 +77,11 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_SharedIndexData.indexCount = ARRAY_SIZE(ms_Indices);
 	m_SharedIndexData.indexBuffer = m_SharedIndexBuffer;
 
-	m_StartPointPass = new KPostProcessPass(this);
+	m_StartPointPass = new KPostProcessPass(this, frameInFlight, POST_PROCESS_STAGE_START_POINT);
 	m_StartPointPass->SetFormat(startFormat);
 	m_StartPointPass->SetMSAA(massCount);
 	m_StartPointPass->SetSize(width, height);
-	m_StartPointPass->Init(frameInFlight, POST_PROCESS_STAGE_START_POINT);
-
-	m_EndPointPass = m_StartPointPass;
-
-	m_Device->CreateCommandPool(m_CommandPool);
+	m_StartPointPass->Init();
 
 	m_AllPasses.insert(m_StartPointPass);
 
@@ -75,6 +90,19 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 
 bool KPostProcessManager::UnInit()
 {
+	m_FrameInFlight = 0;
+
+	if(m_ScreenDrawVS)
+	{
+		KRenderGlobal::ShaderManager.Release(m_ScreenDrawVS);
+		m_ScreenDrawVS = nullptr;
+	}
+	if(m_ScreenDrawFS)
+	{
+		KRenderGlobal::ShaderManager.Release(m_ScreenDrawFS);
+		m_ScreenDrawFS = nullptr;
+	}
+
 	m_SharedVertexData.Destroy();
 	m_SharedIndexData.Destroy();
 
@@ -87,24 +115,24 @@ bool KPostProcessManager::UnInit()
 		if(pass == m_StartPointPass)
 		{
 			m_StartPointPass = nullptr;
-		}
-		if(pass == m_EndPointPass)
-		{
-			m_EndPointPass = nullptr;
-		}
+		}		
 		SAFE_DELETE(pass);
 	}
 	m_AllPasses.clear();
 
 	assert(m_StartPointPass == nullptr);
 	SAFE_DELETE(m_StartPointPass);
-	assert(m_EndPointPass == nullptr);
-	SAFE_DELETE(m_EndPointPass);
 
 	if(m_CommandPool)
 	{
 		m_CommandPool->UnInit();
 		m_CommandPool = nullptr;
+	}
+
+	if(m_Sampler)
+	{
+		m_Sampler->UnInit();
+		m_Sampler = nullptr;
 	}
 
 	return true;
@@ -143,6 +171,9 @@ bool KPostProcessManager::Resize(size_t width, size_t height)
 {
 	m_Device->Wait();
 
+	m_Width = width;
+	m_Height = height;
+
 	for(KPostProcessPass* pass : m_AllPasses)
 	{
 		pass->UnInit();
@@ -151,34 +182,75 @@ bool KPostProcessManager::Resize(size_t width, size_t height)
 	IterPostProcessGraph([width, height](KPostProcessPass* pass)
 	{
 		pass->SetSize(width, height);
-		pass->Init(pass->m_FrameInFlight, pass->m_Stage);
+		pass->Init();
 	});
 
 	return true;
 }
 
-bool KPostProcessManager::Execute(IKRenderTarget* swapChainTarget, size_t frameIndex, IKCommandBufferPtr primaryCommandBuffer)
+void KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipeline* pipeline, IKRenderTarget* target)
 {
-	IterPostProcessGraph([=](KPostProcessPass* pass)
+	IKPipelineHandlePtr pipeHandle = nullptr;
+	KRenderGlobal::PipelineManager.GetPipelineHandle(pipeline, target, pipeHandle);
+
+	command.vertexData = &m_SharedVertexData;
+	command.indexData = &m_SharedIndexData;
+	command.pipeline = pipeline;
+	command.pipelineHandle = pipeHandle.get();
+
+	command.objectData = nullptr;
+	command.objectPushOffset = 0;
+	command.useObjectData = false;
+
+	command.indexDraw = true;
+}
+
+bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChain* swapChain, IKUIOverlay* ui, IKCommandBufferPtr primaryCommandBuffer)
+{
+	KPostProcessPass* endPass = nullptr;
 	{
-		if(pass == m_StartPointPass)
+		IterPostProcessGraph([=, &endPass](KPostProcessPass* pass)
 		{
-			return;
-		}
-
-		IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer(frameIndex);
-		IKRenderTarget* renderTarget = pass->GetRenderTarget(frameIndex).get();
-
-		primaryCommandBuffer->BeginRenderPass(renderTarget, SUBPASS_CONTENTS_INLINE);
-		{
-			commandBuffer->BeginSecondary(renderTarget);
 			// TODO
-			commandBuffer->End();
-		}
+			endPass = pass;
 
-		primaryCommandBuffer->Execute(commandBuffer.get());
+			if(pass == m_StartPointPass)
+			{
+				return;
+			}
+
+			IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer(frameIndex);
+			IKRenderTarget* renderTarget = pass->GetRenderTarget(frameIndex).get();
+
+			primaryCommandBuffer->BeginRenderPass(renderTarget, SUBPASS_CONTENTS_SECONDARY);
+			{
+				commandBuffer->BeginSecondary(renderTarget);
+				commandBuffer->SetViewport(renderTarget);
+
+				KRenderCommand command;
+				PopulateRenderCommand(command, pass->GetPipeline(frameIndex).get(), renderTarget);
+				commandBuffer->Render(command);
+				commandBuffer->End();
+			}
+			primaryCommandBuffer->Execute(commandBuffer.get());
+			primaryCommandBuffer->EndRenderPass();
+		});
+	}
+
+	{
+		IKRenderTarget* swapChainTarget = swapChain->GetRenderTarget(chainImageIndex);
+		primaryCommandBuffer->BeginRenderPass(swapChainTarget, SUBPASS_CONTENTS_INLINE);
+
+		primaryCommandBuffer->SetViewport(swapChainTarget);
+
+		KRenderCommand command;
+		PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(frameIndex).get(), swapChainTarget);
+		primaryCommandBuffer->Render(command);
+
+		ui->Draw(frameIndex, swapChainTarget, primaryCommandBuffer.get());
+
 		primaryCommandBuffer->EndRenderPass();
-	});
+	}
 
 	return true;
 }
@@ -191,4 +263,32 @@ IKRenderTargetPtr KPostProcessManager::GetOffscreenTarget(size_t frameIndex)
 IKTexturePtr KPostProcessManager::GetOffscreenTextrue(size_t frameIndex)
 {
 	return m_StartPointPass ? m_StartPointPass->GetTexture(frameIndex) : nullptr;
+}
+
+KPostProcessPass* KPostProcessManager::CreatePass(const char* vsFile, const char* fsFile, ElementFormat format)
+{
+	KPostProcessPass* pass = new KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR);
+	pass->SetFormat(format);
+	pass->SetMSAA(0);
+	pass->SetShader(vsFile, fsFile);
+	pass->SetSize(m_Width, m_Height);
+	m_AllPasses.insert(pass);
+	return pass;
+}
+
+void KPostProcessManager::DeletePass(KPostProcessPass* pass)
+{
+	auto it = m_AllPasses.find(pass);
+	if(it != m_AllPasses.end())
+	{
+		m_AllPasses.erase(it);
+		pass->DisconnectAll();
+		pass->UnInit();
+		SAFE_DELETE(pass);
+	}
+}
+
+KPostProcessPass* KPostProcessManager::GetStartPointPass()
+{
+	return m_StartPointPass;
 }

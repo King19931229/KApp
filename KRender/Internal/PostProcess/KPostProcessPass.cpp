@@ -5,14 +5,14 @@
 
 #include <assert.h>
 
-KPostProcessPass::KPostProcessPass(KPostProcessManager* manager)
+KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage)
 	: m_Mgr(manager),
 	m_Width(0),
 	m_Height(0),
 	m_MsaaCount(1),
-	m_FrameInFlight(0),
+	m_FrameInFlight(frameInFlight),
 	m_Format(EF_R8GB8BA8_UNORM),
-	m_Stage(POST_PROCESS_STAGE_REGULAR),
+	m_Stage(stage),
 	m_bInit(false)
 {
 }
@@ -125,12 +125,9 @@ bool KPostProcessPass::DisconnectAll()
 	return true;
 }
 
-bool KPostProcessPass::Init(size_t frameInFlight, PostProcessStage stage)
+bool KPostProcessPass::Init()
 {
 	ASSERT_RESULT(UnInit());
-
-	m_FrameInFlight = frameInFlight;
-	m_Stage = stage;
 
 	IKRenderDevice* device = m_Mgr->GetDevice();
 
@@ -144,10 +141,10 @@ bool KPostProcessPass::Init(size_t frameInFlight, PostProcessStage stage)
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(m_FSFile.c_str(), m_FSShader));
 
 		m_CommandBuffers.resize(m_FrameInFlight);
-		for(size_t i = 0; i < m_Pipelines.size(); ++i)
+		for(size_t i = 0; i < m_CommandBuffers.size(); ++i)
 		{
 			device->CreateCommandBuffer(m_CommandBuffers[i]);
-			m_CommandBuffers[i]->Init(m_Mgr->GetCommandPool().get(), CBL_SECONDARY);
+			m_CommandBuffers[i]->Init(m_Mgr->m_CommandPool.get(), CBL_SECONDARY);
 		}
 
 		m_Pipelines.resize(m_FrameInFlight);
@@ -178,7 +175,7 @@ bool KPostProcessPass::Init(size_t frameInFlight, PostProcessStage stage)
 				uint16_t location = connection.slot;
 
 				IKTexturePtr inputTexture = inputPass->GetTexture(i);
-				IKSamplerPtr sampler = inputPass->GetSampler();
+				IKSamplerPtr sampler = m_Mgr->m_Sampler;
 
 				ASSERT_RESULT(inputTexture != nullptr && sampler != nullptr);
 
@@ -205,10 +202,32 @@ bool KPostProcessPass::Init(size_t frameInFlight, PostProcessStage stage)
 		m_RenderTargets[i]->InitFromTexture(m_Textures[i].get(), true, true, m_MsaaCount);
 	}
 
-	device->CreateSampler(m_Sampler);
-	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_Sampler->SetMipmapLod(0, 0);
-	m_Sampler->Init();
+	m_ScreenDrawPipelines.resize(m_FrameInFlight);
+	for(size_t i = 0; i < m_ScreenDrawPipelines.size(); ++i)
+	{
+		device->CreatePipeline(m_ScreenDrawPipelines[i]);
+
+		IKPipelinePtr pipeline = m_ScreenDrawPipelines[i];
+
+		VertexFormat formats[] = {VF_SCREENQUAD_POS};
+
+		pipeline->SetVertexBinding(formats, 1);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+
+		pipeline->SetShader(ST_VERTEX, m_Mgr->m_ScreenDrawVS);
+		pipeline->SetShader(ST_FRAGMENT, m_Mgr->m_ScreenDrawFS);
+
+		pipeline->SetBlendEnable(false);
+
+		pipeline->SetCullMode(CM_BACK);
+		pipeline->SetFrontFace(FF_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+
+		pipeline->SetSampler(0, m_Textures[i], m_Mgr->m_Sampler);
+
+		pipeline->Init();
+	}
 
 	m_bInit = true;
 
@@ -219,12 +238,12 @@ bool KPostProcessPass::UnInit()
 {
 	if(m_VSShader)
 	{
-		m_VSShader->UnInit();
+		KRenderGlobal::ShaderManager.Release(m_VSShader);
 		m_VSShader = nullptr;
 	}
 	if(m_FSShader)
 	{
-		m_FSShader->UnInit();
+		KRenderGlobal::ShaderManager.Release(m_FSShader);
 		m_FSShader = nullptr;
 	}
 
@@ -249,18 +268,19 @@ bool KPostProcessPass::UnInit()
 	}
 	m_Pipelines.clear();
 
+	for(IKPipelinePtr& pipeline : m_ScreenDrawPipelines)
+	{
+		pipeline->UnInit();
+		pipeline = nullptr;
+	}
+	m_ScreenDrawPipelines.clear();
+
 	for(IKCommandBufferPtr& buffer : m_CommandBuffers)
 	{
 		buffer->UnInit();
 		buffer = nullptr;
 	}
 	m_CommandBuffers.clear();
-
-	if(m_Sampler)
-	{
-		m_Sampler->UnInit();
-		m_Sampler = nullptr;
-	}
 
 	m_bInit = false;
 

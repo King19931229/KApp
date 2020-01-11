@@ -56,12 +56,13 @@ protected:
 	std::vector<IKTexturePtr> m_Textures;
 	std::vector<IKRenderTargetPtr> m_RenderTargets;
 	std::vector<IKPipelinePtr> m_Pipelines;
-	std::vector<IKCommandBufferPtr> m_CommandBuffers;
-	IKSamplerPtr m_Sampler;
-public:
-	KPostProcessPass(KPostProcessManager* manager);
-	~KPostProcessPass();
+	std::vector<IKPipelinePtr> m_ScreenDrawPipelines;
 
+	std::vector<IKCommandBufferPtr> m_CommandBuffers;
+
+	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage);
+	~KPostProcessPass();
+public:
 	bool SetShader(const char* vsFile, const char* fsFile);
 	bool SetSize(size_t width, size_t height);
 	bool SetFormat(ElementFormat format);
@@ -73,13 +74,13 @@ public:
 	bool DisconnectOutput(const PassConnection& connection);
 	bool DisconnectAll();
 
-	bool Init(size_t frameInFlight, PostProcessStage stage);
+	bool Init();
 	bool UnInit();
 
 	inline IKTexturePtr GetTexture(size_t frameIndex) { return m_Textures.size() > frameIndex ? m_Textures[frameIndex] : nullptr; }
 	inline IKRenderTargetPtr GetRenderTarget(size_t frameIndex) { return m_RenderTargets.size() > frameIndex ? m_RenderTargets[frameIndex] : nullptr; }
 	inline IKPipelinePtr GetPipeline(size_t frameIndex) { return m_Pipelines.size() > frameIndex ? m_Pipelines[frameIndex] : nullptr; }
+	inline IKPipelinePtr GetScreenDrawPipeline(size_t frameIndex) { return m_ScreenDrawPipelines.size() > frameIndex ? m_ScreenDrawPipelines[frameIndex] : nullptr; }
 	inline IKCommandBufferPtr GetCommandBuffer(size_t frameIndex) { return m_CommandBuffers.size() > frameIndex ? m_CommandBuffers[frameIndex] : nullptr; }
-	inline IKSamplerPtr GetSampler() { return m_Sampler; }
 	inline bool IsInit() { return m_bInit; }
 };

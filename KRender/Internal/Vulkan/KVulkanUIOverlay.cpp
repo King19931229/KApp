@@ -5,6 +5,7 @@
 #include "KVulkanBuffer.h"
 #include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
+#include "KVulkanCommandBuffer.h"
 
 #include "Internal/KRenderGlobal.h"
 
@@ -20,11 +21,12 @@ KVulkanUIOverlay::~KVulkanUIOverlay()
 
 }
 
-bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderTarget* target, void* commandBufferPtr)
+bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderTarget* target, IKCommandBuffer* commandBuffer)
 {
 	if(imageIndex < m_Pipelines.size())
 	{
-		const VkCommandBuffer commandBuffer = *((VkCommandBuffer*)commandBufferPtr);
+		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)commandBuffer;
+		const VkCommandBuffer commandBuffer = vulkanCommandBuffer->GetVkHandle();
 
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 		int32_t vertexOffset = 0;

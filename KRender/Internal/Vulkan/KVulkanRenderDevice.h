@@ -74,9 +74,6 @@ protected:
 	IKShaderPtr m_SceneVertexShader;
 	IKShaderPtr m_SceneFragmentShader;
 
-	IKShaderPtr m_PostVertexShader;
-	IKShaderPtr m_PostFragmentShader;
-
 	KAABBBox m_Box;
 
 	struct ThreadData
@@ -99,8 +96,6 @@ protected:
 		IKCommandBufferPtr primaryCommandBuffer;
 		IKCommandBufferPtr skyBoxCommandBuffer;
 		IKCommandBufferPtr shadowMapCommandBuffer;
-		IKCommandBufferPtr uiCommandBuffer;
-		IKCommandBufferPtr postprocessCommandBuffer;
 
 		std::vector<ThreadData> threadDatas;
 		KCommandBufferList commandBuffersExec;
@@ -117,14 +112,6 @@ protected:
 		IKVertexBufferPtr vertexBuffer;
 		IKIndexBufferPtr indexBuffer;
 	}m_SqaureData;
-
-	struct Quad
-	{
-		IKVertexBufferPtr vertexBuffer;
-		IKIndexBufferPtr indexBuffer;
-	}m_QuadData;
-
-	IKSwapChainPtr m_pSwapChain;
 
 	KCamera m_Camera;
 
@@ -176,8 +163,7 @@ protected:
 	PhysicalDevice m_PhysicalDevice;
 
 	std::vector<IKPipelinePtr> m_OffscreenPipelines;
-	std::vector<IKPipelinePtr> m_SwapChainPipelines;
-
+	IKSwapChainPtr m_SwapChain;
 	IKUIOverlayPtr m_UIOverlay;
 
 	bool CheckValidationLayerAvailable(int32_t& candidateIdx);

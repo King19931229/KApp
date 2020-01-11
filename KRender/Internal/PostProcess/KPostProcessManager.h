@@ -17,12 +17,16 @@ class KPostProcessManager
 protected:
 	IKRenderDevice* m_Device;
 	IKCommandPoolPtr m_CommandPool;
+	size_t m_FrameInFlight;
 
+	size_t m_Width;
+	size_t m_Height;
+
+	//
 	std::set<KPostProcessPass*> m_AllPasses;
-
 	KPostProcessPass* m_StartPointPass;
-	KPostProcessPass* m_EndPointPass;
 
+	//
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_vertices[4];
 	static const uint32_t ms_Indices[6];
 
@@ -32,7 +36,14 @@ protected:
 	IKVertexBufferPtr m_SharedVertexBuffer;
 	IKIndexBufferPtr m_SharedIndexBuffer;
 
+	//
+	IKShaderPtr m_ScreenDrawVS;
+	IKShaderPtr m_ScreenDrawFS;
+
+	IKSamplerPtr m_Sampler;
+
 	void IterPostProcessGraph(std::function<void(KPostProcessPass*)> func);
+	void PopulateRenderCommand(KRenderCommand& command, IKPipeline* pipeline, IKRenderTarget* target);
 public:
 	KPostProcessManager();
 	~KPostProcessManager();
@@ -44,11 +55,14 @@ public:
 		size_t frameInFlight);
 	bool UnInit();
 	bool Resize(size_t width, size_t height);
-	bool Execute(IKRenderTarget* swapChainTarget, size_t frameIndex, IKCommandBufferPtr primaryCommandBuffer);
+	bool Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChain* swapChain, IKUIOverlay* ui, IKCommandBufferPtr primaryCommandBuffer);
 
 	IKRenderTargetPtr GetOffscreenTarget(size_t frameIndex);
 	IKTexturePtr GetOffscreenTextrue(size_t frameIndex);
 
+	KPostProcessPass* CreatePass(const char* vsFile, const char* fsFile, ElementFormat format);
+	void DeletePass(KPostProcessPass* pass);
+	KPostProcessPass* GetStartPointPass();
+
 	inline IKRenderDevice* GetDevice() { return m_Device; }	
-	inline IKCommandPoolPtr GetCommandPool() { return m_CommandPool; }
 };
