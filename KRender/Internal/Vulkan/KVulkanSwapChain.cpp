@@ -2,6 +2,7 @@
 #include "KVulkanGlobal.h"
 #include "KVulkanInitializer.h"
 #include "KBase/Publish/KConfig.h"
+#include <algorithm>
 
 KVulkanSwapChain::KVulkanSwapChain()
 	: m_MaxFramesInFight(0),

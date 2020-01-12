@@ -1,6 +1,7 @@
 #include "KVulkanHelper.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanInitializer.h"
+#include <algorithm>
 
 namespace KVulkanHelper
 {

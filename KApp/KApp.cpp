@@ -32,7 +32,6 @@ void VoidTest()
 
 #include "Interface/IKCodec.h"
 #include "Interface/IKMemory.h"
-IKLogPtr pLog;
 
 class Func : public IKTaskUnit
 {
@@ -45,7 +44,6 @@ public:
 		IKCodecPtr pCodec = GetCodec("D:/BIG.JPG");
 		KCodecResult res;
 		pCodec->Codec("D:/BIG.JPG", true, res);
-		KLOG(pLog, "%s", str);
 		return true;
 	}
 	virtual bool SyncLoad() { KLOGE(pLog, GetHashString("SyncLoad %d", m_ID));return false; }

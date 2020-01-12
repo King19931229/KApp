@@ -803,7 +803,7 @@ inittimezone(PyObject *m) {
 
     And I'm lazy and hate C so nyer.
      */
-#if defined(HAVE_TZNAME) && !defined(__GLIBC__) && !defined(__CYGWIN__)
+#if defined(HAVE_TZNAME) && !defined(__GLIBC__) && !defined(__CYGWIN__) && !defined(_WIN32)
     tzset();
 #ifdef PYOS_OS2
     PyModule_AddIntConstant(m, "timezone", _timezone);
@@ -822,7 +822,7 @@ inittimezone(PyObject *m) {
     PyModule_AddIntConstant(m, "daylight", daylight);
     PyModule_AddObject(m, "tzname",
                        Py_BuildValue("(zz)", tzname[0], tzname[1]));
-#else /* !HAVE_TZNAME || __GLIBC__ || __CYGWIN__*/
+#else /* !HAVE_TZNAME || __GLIBC__ || __CYGWIN__ || _WIN32*/
 #ifdef HAVE_STRUCT_TM_TM_ZONE
     {
 #define YEAR ((time_t)((365 * 24 + 6) * 3600))

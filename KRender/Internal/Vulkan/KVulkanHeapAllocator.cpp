@@ -3,6 +3,7 @@
 #include "KVulkanHelper.h"
 #include "KBase/Publish/KNumerical.h"
 #include "KBase/Interface/IKLog.h"
+#include <algorithm>
 
 #include <mutex>
 

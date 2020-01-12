@@ -1,5 +1,5 @@
 #include "Internal/KDataStream.h"
-
+#include <algorithm>
 #include <assert.h>
 
 EXPORT_DLL IKDataStreamPtr GetDataStream(IOType eType)

@@ -1,6 +1,7 @@
 #pragma once
 #include "Publish/KThreadPool.h"
 #include <memory>
+#include <assert.h>
 
 enum TaskState
 {
