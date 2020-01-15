@@ -282,11 +282,14 @@ bool KVulkanRenderWindow::UnInit()
 bool KVulkanRenderWindow::IdleUntilForeground()
 {
 #ifndef	__ANDROID__
-	int width = 0, height = 0;
-	while (width == 0 || height == 0)
+	if (m_window)
 	{
-		glfwGetFramebufferSize(m_window, &width, &height);
-		glfwWaitEvents();
+		int width = 0, height = 0;
+		while (width == 0 || height == 0)
+		{
+			glfwGetFramebufferSize(m_window, &width, &height);
+			glfwWaitEvents();
+		}
 	}
 #else
 

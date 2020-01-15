@@ -31,7 +31,7 @@
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
-#define MEMBER_OFFSET(structure, member) ((int)&((structure*)0)->member)
+#define MEMBER_OFFSET(structure, member) ((size_t)&((structure*)0)->member)
 #define MEMBER_SIZE(structure, member) (sizeof(((structure*)0)->member))
 
 #define POINTER_OFFSET(p, offset) ((void*)((char*)(p) + offset))

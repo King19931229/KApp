@@ -1,8 +1,6 @@
 #include "KVertexDefinition.h"
 #include <algorithm>
 
-#define MEMBER_OFFSET(structure, member) ((int)&((structure*)0)->member)
-
 namespace KVertexDefinition
 {
 	static VertexDetail POS_3F_NORM_3F_UV_2F_DETAILS;

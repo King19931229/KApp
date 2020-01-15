@@ -144,7 +144,7 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 					long nLen = 0;
 					pszIncludeBeg = strchr(szBuffer, '"');
 					pszIncludeEnd = strrchr(szBuffer, '"');
-					nLen = (long)pszIncludeEnd - (long)pszIncludeBeg - 1;
+					nLen = (long)(pszIncludeEnd - pszIncludeBeg - 1);
 					if(pszIncludeBeg && pszIncludeEnd && nLen > 0)
 					{
 #ifndef _WIN32
