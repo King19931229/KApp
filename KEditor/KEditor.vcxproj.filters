@@ -31,9 +31,15 @@
     <ClCompile Include="KEditor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="KERenderWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="KERenderWidget.h">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>

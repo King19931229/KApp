@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.421
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KApp", "KApp\KApp.vcxproj", "{D6D098EF-06B5-4885-AA20-567A6D9CBBC0}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -434,6 +434,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zip", "Dependency\zip-0.1.16\zip.vcxproj", "{3607F064-076A-4100-ABF8-FAA15F40FF5D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KEditor", "KEditor\KEditor.vcxproj", "{F203B998-D821-44D7-B960-2F3E22DA6259}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CF39F7A8-164C-4E82-9CC0-6308AE16C1D6} = {CF39F7A8-164C-4E82-9CC0-6308AE16C1D6}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

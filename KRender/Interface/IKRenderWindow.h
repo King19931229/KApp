@@ -19,7 +19,10 @@ struct IKRenderWindow
 	virtual ~IKRenderWindow() {}
 
 	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable) = 0;
+	// 安卓专用
 	virtual bool Init(android_app* app) = 0;
+	// Windows专用
+	virtual bool Init(void* HWND) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool Loop() = 0;

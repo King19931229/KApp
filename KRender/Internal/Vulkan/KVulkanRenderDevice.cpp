@@ -44,30 +44,6 @@ const char* DEVICE_EXTENSIONS[] =
 };
 #define DEVICE_EXTENSIONS_COUNT (sizeof(DEVICE_EXTENSIONS) / sizeof(const char*))
 
-static std::vector<const char*> PopulateInstanceExtensions(bool bEnableValidationLayer)
-{
-#ifndef __ANDROID__
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-	if (bEnableValidationLayer)
-	{
-		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-	}
-#else
-	std::vector<const char*> extensions;
-	extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-	extensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
-	if (bEnableValidationLayer)
-	{
-		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-	}
-#endif
-	return std::move(extensions);
-}
-
 //-------------------- Validation Layer --------------------//
 const char* KHRONOS_VALIDATION_LAYERS[] =
 {
@@ -423,33 +399,6 @@ bool KVulkanRenderDevice::CreatePipelines()
 		}
 	}
 	return true;
-}
-
-bool KVulkanRenderDevice::CreateSurface()
-{
-#ifndef __ANDROID__
-	GLFWwindow *glfwWindow = m_pWindow->GetGLFWwindow();
-	if(glfwWindow)
-	{
-		if(glfwCreateWindowSurface(m_Instance, glfwWindow, nullptr, &m_Surface)== VK_SUCCESS)
-		{
-			return true;
-		}
-	}
-#else
-	android_app* app = m_pWindow->GetAndroidApp();
-	if(app)
-	{
-		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-		surfaceCreateInfo.window = app->window;
-		if(vkCreateAndroidSurfaceKHR(m_Instance, &surfaceCreateInfo, NULL, &m_Surface) == VK_SUCCESS)
-		{
-			return true;
-		}
-	}
-#endif
-	return false;
 }
 
 bool KVulkanRenderDevice::PickPhysicsDevice()
@@ -1222,7 +1171,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)window;
 	if(renderWindow == nullptr
 #if defined(_WIN32)
-		|| renderWindow->GetGLFWwindow() == nullptr
+		|| renderWindow->GetHWND() == nullptr
 #elif defined(__ANDROID__)
 		|| renderWindow->GetAndroidApp() == nullptr
 #endif
@@ -1281,7 +1230,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	}
 
 	// 挂接扩展
-	auto extensions = PopulateInstanceExtensions(m_EnableValidationLayer);
+	std::vector<const char*> extensions;
+	ASSERT_RESULT(PopulateInstanceExtensions(extensions));
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 	createInfo.ppEnabledExtensionNames = extensions.data();
 
@@ -2198,4 +2148,70 @@ bool KVulkanRenderDevice::Wait()
 {
 	vkDeviceWaitIdle(m_Device);
 	return true;
+}
+
+// 平台相关的脏东西放到最下面
+#if defined(_WIN32)
+#	pragma warning (disable : 4005)
+#	include <Windows.h>
+#	include "vulkan/vulkan_win32.h"
+#elif defined(__ANDROID__)
+#	include "vulkan/vulkan_android.h"
+#endif
+
+bool KVulkanRenderDevice::PopulateInstanceExtensions(std::vector<const char*>& extensions)
+{
+	extensions.clear();
+#if defined(_WIN32)
+	extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+	extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+	if (m_EnableValidationLayer)
+	{
+		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+	}
+	return true;
+#elif defined(__ANDROID__)
+	extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+	extensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+	if (m_EnableValidationLayer)
+	{
+		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+	}
+	return true;
+#else
+	return false;
+#endif	
+}
+
+bool KVulkanRenderDevice::CreateSurface()
+{
+#ifdef _WIN32
+	HWND hwnd = (HWND)(m_pWindow->GetHWND());
+	HINSTANCE hInstance = GetModuleHandle(NULL);
+	if (hwnd != NULL && hInstance != NULL)
+	{
+		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
+		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+		surfaceCreateInfo.hinstance = (HINSTANCE)hInstance;
+		surfaceCreateInfo.hwnd = (HWND)hwnd;
+		if (vkCreateWin32SurfaceKHR(m_Instance, &surfaceCreateInfo, nullptr, &m_Surface) == VK_SUCCESS)
+		{
+			return true;
+		}
+	}
+#else
+	android_app* app = m_pWindow->GetAndroidApp();
+	if (app)
+	{
+		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
+		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+		surfaceCreateInfo.window = app->window;
+		if (vkCreateAndroidSurfaceKHR(m_Instance, &surfaceCreateInfo, NULL, &m_Surface) == VK_SUCCESS)
+		{
+			return true;
+		}
+	}
+#endif
+	return false;
 }

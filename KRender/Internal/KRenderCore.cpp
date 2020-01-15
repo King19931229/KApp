@@ -43,12 +43,31 @@ bool KRenderCore::Init(RenderDevice device, size_t windowWidth, size_t windowHei
 #else
 		static_assert(false && "unsupport platform");
 #endif
-
 		m_bInit = true;
-
 		return true;
 	}
-	return false;	
+	return false;
+}
+
+bool KRenderCore::Init(RenderDevice device, void* hwnd)
+{
+	if(!m_bInit)
+	{
+#if defined(_WIN32)
+		m_Window = CreateRenderWindow(device);
+		m_Device = CreateRenderDevice(device);
+
+		ASSERT_RESULT(InitCodecManager());
+		ASSERT_RESULT(InitAssetLoaderManager());
+
+		m_Window->Init(hwnd);
+		m_Device->Init(m_Window.get());
+
+		m_bInit = true;
+		return true;
+#endif
+	}
+	return false;
 }
 
 bool KRenderCore::UnInit()
@@ -74,6 +93,16 @@ bool KRenderCore::Loop()
 	if(m_bInit)
 	{
 		m_Window->Loop();
+		return true;
+	}
+	return false;
+}
+
+bool KRenderCore::Tick()
+{
+	if (m_bInit)
+	{
+		m_Device->Present();
 		return true;
 	}
 	return false;

@@ -6,10 +6,13 @@ struct IKRenderCore
 	virtual ~IKRenderCore() {}
 
 	virtual bool Init(RenderDevice device, size_t windowWidth, size_t windowHeight) = 0;
+	virtual bool Init(RenderDevice device, void* hwnd) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool Loop() = 0;
+	virtual bool Tick() = 0;
 
 	virtual IKRenderWindow* GetRenderWindow() = 0;
+	virtual IKRenderDevice* GetRenderDevice() = 0;
 };
 typedef std::unique_ptr<IKRenderCore> IKRenderCorePtr;
 

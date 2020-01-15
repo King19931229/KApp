@@ -37,7 +37,7 @@
 int main()
 {
 	KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
-	
+
 	KFileSystem::Manager->Init();
 	KFileSystem::Manager->AddSystem("../Sponza.zip", -1, FST_ZIP);
 	KFileSystem::Manager->AddSystem(".", 0, FST_NATIVE);

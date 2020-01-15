@@ -2,11 +2,17 @@
 #include "KVulkanRenderDevice.h"
 #include "KBase/Interface/IKLog.h"
 
+#ifdef _WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include "GLFW/glfw3native.h"
+#endif
+
 KVulkanRenderWindow::KVulkanRenderWindow()
 	: m_device(nullptr)
 {
 #ifndef __ANDROID__
 	m_window = nullptr;
+	m_HWND = NULL;
 	ZERO_ARRAY_MEMORY(m_MouseDown);
 #else
 	m_app = nullptr;
@@ -192,7 +198,7 @@ void KVulkanRenderWindow::OnMouseMove()
 
 bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable)
 {
-#ifndef	__ANDROID__
+#ifdef	_WIN32
 	if(glfwInit() == GLFW_TRUE)
 	{
 		glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
@@ -210,6 +216,8 @@ bool KVulkanRenderWindow::Init(size_t top, size_t left, size_t width, size_t hei
 			}
 			glfwSetWindowPos(m_window, (int)top, (int)left);
 			ZERO_ARRAY_MEMORY(m_MouseDown);
+
+			m_HWND = glfwGetWin32Window(m_window);
 			return true;
 		}
 	}
@@ -233,6 +241,16 @@ bool KVulkanRenderWindow::Init(android_app* app)
 	m_app->onInputEvent = this->HandleAppInput;
 	m_app->userData = this;
 
+	return true;
+#else
+	return false;
+#endif
+}
+
+bool KVulkanRenderWindow::Init(void* hwnd)
+{
+#if defined(_WIN32)
+	m_HWND = hwnd;
 	return true;
 #else
 	return false;
@@ -517,6 +535,14 @@ bool KVulkanRenderWindow::GetSize(size_t &width, size_t &height)
 		int nWidth = -1, nHeight = -1;
 		glfwGetWindowSize(m_window, &nWidth, &nHeight);
 		width = (size_t)nWidth, height = (size_t)nHeight;
+		return true;
+	}
+	else if (m_HWND)
+	{
+		RECT area;
+		GetClientRect((HWND)m_HWND, &area);
+		width = (size_t)area.right;
+		height = (size_t)area.bottom;
 		return true;
 	}
 #else

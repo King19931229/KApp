@@ -166,6 +166,7 @@ protected:
 	IKSwapChainPtr m_SwapChain;
 	IKUIOverlayPtr m_UIOverlay;
 
+	bool PopulateInstanceExtensions(std::vector<const char*>& extensions);
 	bool CheckValidationLayerAvailable(int32_t& candidateIdx);
 	bool SetupDebugMessenger();
 	bool UnsetDebugMessenger();

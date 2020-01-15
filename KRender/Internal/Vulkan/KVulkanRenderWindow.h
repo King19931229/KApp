@@ -2,9 +2,9 @@
 #include "Interface/IKRenderWindow.h"
 #include <chrono>
 
-#ifndef __ANDROID__
+#if defined(_WIN32)
 #include "GLFW/glfw3.h"
-#else
+#elif defined(__ANDROID__)
 #include "android_native_app_glue.h"
 #endif
 
@@ -13,7 +13,9 @@ class KVulkanRenderDevice;
 class KVulkanRenderWindow : IKRenderWindow
 {	
 	KVulkanRenderDevice* m_device;
-#ifndef __ANDROID__
+#if defined(_WIN32)
+	// https://github.com/glfw/glfw/issues/25
+	void* m_HWND;
 	GLFWwindow* m_window;
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
@@ -30,7 +32,7 @@ class KVulkanRenderWindow : IKRenderWindow
 	static void ScrollCallback(GLFWwindow* handle, double xoffset, double yoffset);
 
 	void OnMouseMove();
-#else
+#elif defined(__ANDROID__)
     ANativeWindow* m_window;
 	android_app* m_app;
 	std::vector<KTouchCallbackType*> m_TouchCallbacks;
@@ -43,6 +45,7 @@ public:
 
 	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable);
 	virtual bool Init(android_app* app);
+	virtual bool Init(void* hwnd);
 	virtual bool UnInit();
 
 	virtual bool Loop();
@@ -70,10 +73,10 @@ public:
 
 	virtual bool SetRenderDevice(IKRenderDevice* device);
 #if defined(_WIN32)
-	inline GLFWwindow* GetGLFWwindow() { return m_window; }
-#else
-    inline android_app* GetAndroidApp() { return m_app; }
-    void ShowAlert(const char* message);
+	inline void* GetHWND() { return m_HWND; }
+#elif defined(__ANDROID__)
+	inline android_app* GetAndroidApp() { return m_app; }
+	void ShowAlert(const char* message);
 	static int32_t HandleAppInput(struct android_app* app, AInputEvent* event);
 	static void HandleAppCommand(android_app* app, int32_t cmd);
 #endif
