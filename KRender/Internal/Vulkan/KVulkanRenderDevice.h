@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKCommandBuffer.h"
+#include "Interface/IKRenderWindow.h"
 #include "Internal/KRenderThreadPool.h"
 
 #include "KVulkanHeapAllocator.h"
@@ -27,11 +28,8 @@
 
 #endif
 
-class KVulkanRenderWindow;
-
 class KVulkanRenderDevice : IKRenderDevice
 {
-	friend KVulkanRenderWindow;
 	struct QueueFamilyIndices
 	{
 		typedef std::pair<uint32_t, bool> QueueFamilyIndex;
@@ -56,7 +54,7 @@ class KVulkanRenderDevice : IKRenderDevice
 		int score;
 	};
 protected:
-	KVulkanRenderWindow* m_pWindow;
+	IKRenderWindow* m_pWindow;
 	VkInstance m_Instance;
 	VkDevice m_Device;
 	VkQueue m_GraphicsQueue;
@@ -206,7 +204,6 @@ protected:
 
 	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
 
-	bool RecreateSwapChain();
 	bool CleanupSwapChain();
 
 	bool InitDeviceGlobal();
@@ -258,4 +255,6 @@ public:
 	
 	virtual bool Present();
 	virtual bool Wait();
+
+	virtual bool RecreateSwapChain();
 };

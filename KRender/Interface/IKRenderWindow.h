@@ -14,18 +14,30 @@ typedef std::function<void(const std::vector<std::tuple<float, float>>& touchPos
 struct ANativeWindow;
 struct android_app;
 
+enum RenderWindowType
+{
+	RENDER_WINDOW_GLFW,
+	RENDER_WINDOW_ANDROID_NATIVE,
+	RENDER_WINDOW_EXTERNAL
+};
+
 struct IKRenderWindow
 {
 	virtual ~IKRenderWindow() {}
 
+	virtual RenderWindowType GetType() = 0;
+
 	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable) = 0;
-	// 安卓专用
 	virtual bool Init(android_app* app) = 0;
-	// Windows专用
 	virtual bool Init(void* HWND) = 0;
 	virtual bool UnInit() = 0;
 
+	virtual android_app* GetAndroidApp() = 0;
+	virtual void* GetHWND() = 0;
+
 	virtual bool Loop() = 0;
+
+	virtual bool IdleUntilForeground() = 0;
 
 	virtual bool GetPosition(size_t &top, size_t &left) = 0;
 	virtual bool SetPosition(size_t top, size_t left) = 0;
@@ -50,4 +62,4 @@ struct IKRenderWindow
 	virtual bool UnRegisterTouchCallback(KTouchCallbackType* callback) = 0;
 };
 
-EXPORT_DLL IKRenderWindowPtr CreateRenderWindow(RenderDevice platform);
+EXPORT_DLL IKRenderWindowPtr CreateRenderWindow(RenderWindowType windowType);

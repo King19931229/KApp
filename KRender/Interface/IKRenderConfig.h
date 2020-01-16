@@ -6,8 +6,7 @@
 
 enum RenderDevice
 {
-	RD_VULKAN,
-	RD_COUNT
+	RENDER_DEVICE_VULKAN
 };
 
 enum ShaderTypeFlag

@@ -42,22 +42,25 @@ int main()
 	KFileSystem::Manager->AddSystem("../Sponza.zip", -1, FST_ZIP);
 	KFileSystem::Manager->AddSystem(".", 0, FST_NATIVE);
 	KFileSystem::Manager->AddSystem("../", 1, FST_NATIVE);
-	/*
-	KDebugConsole console;
-	KDebugConsole::InputCallBackType callback = [](const char* info)
-	{
-		KG_LOGE(info);
-	};
-	console.AddCallback(&callback);
-	console.Init();
-	*/
 
+	ASSERT_RESULT(InitCodecManager());
+	ASSERT_RESULT(InitAssetLoaderManager());
+
+	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_GLFW);
+	window->Init(60, 60, 1280, 720, true);
+	IKRenderDevicePtr device = CreateRenderDevice(RENDER_DEVICE_VULKAN);
+	device->Init(window.get());
 
 	IKRenderCorePtr renderCore = CreateRenderCore();
-
-	renderCore->Init(RD_VULKAN, 1280, 720);
+	renderCore->Init(device, window);
 	renderCore->Loop();
 	renderCore->UnInit();
+
+	window->UnInit();
+	device->UnInit();
+
+	ASSERT_RESULT(UnInitCodecManager());
+	ASSERT_RESULT(UnInitAssetLoaderManager());
 
 	KLog::Logger->UnInit();
 	KFileSystem::Manager->UnInit();

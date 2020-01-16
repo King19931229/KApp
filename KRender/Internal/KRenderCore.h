@@ -1,21 +1,22 @@
 #pragma once
 #include "Interface/IKRenderCore.h"
+#include "KRender/Internal/KDebugConsole.h"
 
 class KRenderCore : public IKRenderCore
 {
-	IKRenderDevicePtr m_Device;
-	IKRenderWindowPtr m_Window;
+	IKRenderDevice* m_Device;
+	IKRenderWindow* m_Window;
+	KDebugConsole* m_DebugConsole;
 	bool m_bInit;
 public:
 	KRenderCore();
 	virtual ~KRenderCore();
 
-	virtual bool Init(RenderDevice device, size_t windowWidth, size_t windowHeight);
-	virtual bool Init(RenderDevice device, void* hwnd);
+	virtual bool Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window);
 	virtual bool UnInit();
 	virtual bool Loop();
 	virtual bool Tick();
 
-	virtual IKRenderWindow* GetRenderWindow() { return m_Window ? m_Window.get() : nullptr; }
-	virtual IKRenderDevice* GetRenderDevice() { return m_Device ? m_Device.get() : nullptr; }
+	virtual IKRenderWindow* GetRenderWindow() { return m_Window; }
+	virtual IKRenderDevice* GetRenderDevice() { return m_Device; }
 };

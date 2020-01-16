@@ -2,25 +2,21 @@
 #include "Interface/IKRenderWindow.h"
 #include <chrono>
 
-#if defined(_WIN32)
+#ifndef __ANDROID__
 #include "GLFW/glfw3.h"
-#elif defined(__ANDROID__)
-#include "android_native_app_glue.h"
 #endif
 
-class KVulkanRenderDevice;
-
-class KVulkanRenderWindow : IKRenderWindow
-{	
-	KVulkanRenderDevice* m_device;
+class KGLFWRenderWindow : IKRenderWindow
+{
+	IKRenderDevice* m_device;
+#ifndef __ANDROID__
 #if defined(_WIN32)
-	// https://github.com/glfw/glfw/issues/25
 	void* m_HWND;
+#endif
 	GLFWwindow* m_window;
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
 	std::vector<KScrollCallbackType*> m_ScrollCallbacks;
-	bool m_MouseDown[INPUT_MOUSE_BUTTON_COUNT];
 
 	static bool GLFWKeyToInputKeyboard(int key, InputKeyboard& keyboard);
 	static bool GLFWMouseButtonToInputMouseButton(int mouse, InputMouseButton& mouseButton);
@@ -32,23 +28,24 @@ class KVulkanRenderWindow : IKRenderWindow
 	static void ScrollCallback(GLFWwindow* handle, double xoffset, double yoffset);
 
 	void OnMouseMove();
-#elif defined(__ANDROID__)
-    ANativeWindow* m_window;
-	android_app* m_app;
-	std::vector<KTouchCallbackType*> m_TouchCallbacks;
-	bool m_bFocus;
 #endif
-
 public:
-	KVulkanRenderWindow();
-	virtual ~KVulkanRenderWindow();
+	KGLFWRenderWindow();
+	virtual ~KGLFWRenderWindow();
+
+	virtual RenderWindowType GetType();
 
 	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable);
 	virtual bool Init(android_app* app);
 	virtual bool Init(void* hwnd);
 	virtual bool UnInit();
 
+	virtual android_app* GetAndroidApp();
+	virtual void* GetHWND();
+
 	virtual bool Loop();
+
+	virtual bool IdleUntilForeground();
 
 	virtual bool GetPosition(size_t &top, size_t &left);
 	virtual bool SetPosition(size_t top, size_t left);
@@ -72,13 +69,4 @@ public:
 	virtual bool UnRegisterTouchCallback(KTouchCallbackType* callback);
 
 	virtual bool SetRenderDevice(IKRenderDevice* device);
-#if defined(_WIN32)
-	inline void* GetHWND() { return m_HWND; }
-#elif defined(__ANDROID__)
-	inline android_app* GetAndroidApp() { return m_app; }
-	void ShowAlert(const char* message);
-	static int32_t HandleAppInput(struct android_app* app, AInputEvent* event);
-	static void HandleAppCommand(android_app* app, int32_t cmd);
-#endif
-	bool IdleUntilForeground();
 };

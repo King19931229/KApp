@@ -18,7 +18,10 @@ public:
 	bool UnInit();
 protected:
 	KERenderWidget*	m_RenderWidget;
+	IKRenderWindowPtr m_RenderWindow;
+	IKRenderDevicePtr m_RenderDevice;
 	IKRenderCorePtr m_RenderCore;
+	bool m_bInit;
 private:
 	Ui::KEditorClass ui;
 };

@@ -48,7 +48,6 @@ Java_com_king_kapp_MainActivity_stringFromJNI(
 #include "KBase/Publish/KPlatform.h"
 
 #include "KRender/Internal/KDebugConsole.h"
-#include "KRender/Internal/Vulkan/KVulkanRenderWindow.h"
 #include "Interface/IKFileSystem.h"
 
 void android_main(android_app *state)
@@ -64,11 +63,25 @@ void android_main(android_app *state)
 	KFileSystem::Manager->AddSystem(zipPath.c_str(), -3, FST_ZIP);
 	KFileSystem::Manager->AddSystem(".", -2, FST_APK);
 
+	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_ANDROID_NATIVE);
+	IKRenderDevicePtr device = CreateRenderDevice(RENDER_DEVICE_VULKAN);
+
+	ASSERT_RESULT(InitCodecManager());
+	ASSERT_RESULT(InitAssetLoaderManager());
+
+	window->Init(state);
+	window->SetRenderDevice(device.get());
+
 	IKRenderCorePtr renderCore = CreateRenderCore();
 
-	renderCore->Init(RD_VULKAN, 1024, 1024);
+	renderCore->Init(device, window);
+
 	renderCore->Loop();
 	renderCore->UnInit();
 
+	ASSERT_RESULT(UnInitCodecManager());
+	ASSERT_RESULT(UnInitAssetLoaderManager());
+
 	KLog::Logger->UnInit();
+	KFileSystem::Manager->UnInit();
 }

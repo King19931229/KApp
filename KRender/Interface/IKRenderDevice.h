@@ -31,6 +31,8 @@ struct IKRenderDevice
 
 	virtual bool Present() = 0;
 	virtual bool Wait() = 0;
+
+	virtual bool RecreateSwapChain() = 0;
 };
 
 EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform);

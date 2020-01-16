@@ -24,7 +24,7 @@ void KDebugConsole::ThreadFunc()
 			SetConsoleTextAttribute(consoleHandle, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
 		}
 #endif
-		printf("[DEBUG CONSOLE] >>>");
+		printf(":>");
 		char buffer[2048];
 #ifdef _WIN32
 		gets_s(buffer, sizeof(buffer) - 1);

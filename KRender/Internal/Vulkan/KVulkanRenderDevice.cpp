@@ -1,5 +1,4 @@
 #include "KVulkanRenderDevice.h"
-#include "KVulkanRenderWindow.h"
 
 #include "KVulkanShader.h"
 #include "KVulkanBuffer.h"
@@ -1157,30 +1156,30 @@ bool KVulkanRenderDevice::AddWindowCallback()
 			}
 		}
 	};
-
+#if defined(_WIN32)
 	m_pWindow->RegisterKeyboardCallback(&m_KeyCallback);
 	m_pWindow->RegisterMouseCallback(&m_MouseCallback);
 	m_pWindow->RegisterScrollCallback(&m_ScrollCallback);
+#elif defined(__ANDROID__)
 	m_pWindow->RegisterTouchCallback(&m_TouchCallback);
-
+#endif
 	return true;
 }
 
 bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 {
-	KVulkanRenderWindow* renderWindow = (KVulkanRenderWindow*)window;
-	if(renderWindow == nullptr
+	if(window == nullptr
 #if defined(_WIN32)
-		|| renderWindow->GetHWND() == nullptr
+		|| window->GetHWND() == nullptr
 #elif defined(__ANDROID__)
-		|| renderWindow->GetAndroidApp() == nullptr
+		|| window->GetAndroidApp() == nullptr
 #endif
 		)
 	{
 		return false;
 	}
 
-	m_pWindow = renderWindow;
+	m_pWindow = window;
 
 	// temp
 	AddWindowCallback();
@@ -1289,32 +1288,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		memset(&m_Instance, 0, sizeof(m_Instance));
 	}
 	return false;
-}
-
-/*
-总共有三个入口可以侦查并促发到交换链重建
-1.glfw窗口大小改变
-2.vkAcquireNextImageKHR
-3.vkQueuePresentKHR
-技术上只有要一个入口成功合理的创建了交换链之后
-vkAcquireNextImageKHR或者vkQueuePresentKHR不会侦查到交换链需要重新创建
-*/
-bool KVulkanRenderDevice::RecreateSwapChain()
-{
-	m_pWindow->IdleUntilForeground();
-	vkDeviceWaitIdle(m_Device);
-
-	size_t width = 0, height = 0;
-	m_pWindow->GetSize(width, height);
-	KRenderGlobal::PostProcessManager.Resize(width, height);
-
-	CleanupSwapChain();
-
-	CreateSwapChain();
-	CreateUI();
-	CreatePipelines();
-
-	return true;
 }
 
 bool KVulkanRenderDevice::CleanupSwapChain()
@@ -2150,6 +2123,32 @@ bool KVulkanRenderDevice::Wait()
 	return true;
 }
 
+/*
+总共有三个入口可以侦查并促发到交换链重建
+1.glfw窗口大小改变
+2.vkAcquireNextImageKHR
+3.vkQueuePresentKHR
+技术上只有要一个入口成功合理的创建了交换链之后
+vkAcquireNextImageKHR或者vkQueuePresentKHR不会侦查到交换链需要重新创建
+*/
+bool KVulkanRenderDevice::RecreateSwapChain()
+{
+	m_pWindow->IdleUntilForeground();
+	vkDeviceWaitIdle(m_Device);
+
+	size_t width = 0, height = 0;
+	m_pWindow->GetSize(width, height);
+	KRenderGlobal::PostProcessManager.Resize(width, height);
+
+	CleanupSwapChain();
+
+	CreateSwapChain();
+	CreateUI();
+	CreatePipelines();
+
+	return true;
+}
+
 // 平台相关的脏东西放到最下面
 #if defined(_WIN32)
 #	pragma warning (disable : 4005)
@@ -2157,6 +2156,7 @@ bool KVulkanRenderDevice::Wait()
 #	include "vulkan/vulkan_win32.h"
 #elif defined(__ANDROID__)
 #	include "vulkan/vulkan_android.h"
+#	include "android_native_app_glue.h"
 #endif
 
 bool KVulkanRenderDevice::PopulateInstanceExtensions(std::vector<const char*>& extensions)

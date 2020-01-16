@@ -89,6 +89,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
+    <ClCompile Include="KEQtRenderWindow.cpp" />
     <ClCompile Include="KERenderWidget.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -103,6 +104,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KERenderWidget.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="KEQtRenderWindow.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

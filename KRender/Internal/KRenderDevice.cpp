@@ -5,10 +5,10 @@ IKRenderDevicePtr CreateRenderDevice(RenderDevice platform)
 {
 	switch (platform)
 	{
-	case RD_VULKAN:
+	case RENDER_DEVICE_VULKAN:
 		return IKRenderDevicePtr((IKRenderDevice*)new KVulkanRenderDevice());
-	case RD_COUNT:
 	default:
+		assert(false && "impossible to reach");
 		return IKRenderDevicePtr(nullptr);
 		break;
 	}

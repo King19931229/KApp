@@ -38,9 +38,9 @@ namespace KConstantDefinition
 	{
 		ConstantSemantic semantic;
 		ElementFormat elementFormat;
-		int elementCount;
-		int size;
-		int offset;
+		size_t elementCount;
+		size_t size;
+		size_t offset;
 	};
 	typedef std::vector<ConstantSemanticDetail> ConstantSemanticDetailList;
 

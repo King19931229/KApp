@@ -46,6 +46,9 @@
     <Filter Include="Internal\Scene">
       <UniqueIdentifier>{f03dae9d-eae0-46e1-9dbd-4d8312daa32b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Window">
+      <UniqueIdentifier>{3c22e8fe-9e8c-417b-b03c-356abf1caab9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -53,9 +56,6 @@
     </ClInclude>
     <ClInclude Include="Interface\IKRenderWindow.h">
       <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\Vulkan\KVulkanRenderWindow.h">
-      <Filter>Internal\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h">
       <Filter>Internal\Vulkan</Filter>
@@ -261,11 +261,14 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessConnection.h">
       <Filter>Internal\PostProcess</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Window\KGLFWRenderWindow.h">
+      <Filter>Internal\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Window\KAndroidRenderWindow.h">
+      <Filter>Internal\Window</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp">
-      <Filter>Internal\Vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\KRenderDevice.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
@@ -409,6 +412,12 @@
     </ClCompile>
     <ClCompile Include="Internal\PostProcess\KPostProcessConnection.cpp">
       <Filter>Internal\PostProcess</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Window\KGLFWRenderWindow.cpp">
+      <Filter>Internal\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Window\KAndroidRenderWindow.cpp">
+      <Filter>Internal\Window</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

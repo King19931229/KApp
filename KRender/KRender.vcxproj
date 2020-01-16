@@ -79,13 +79,14 @@
     <ClInclude Include="Internal\Vulkan\KVulkanPipeline.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderTarget.h" />
-    <ClInclude Include="Internal\Vulkan\KVulkanRenderWindow.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanSampler.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanShader.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanSwapChain.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanTexture.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanUIOverlay.h" />
+    <ClInclude Include="Internal\Window\KAndroidRenderWindow.h" />
+    <ClInclude Include="Internal\Window\KGLFWRenderWindow.h" />
     <ClInclude Include="Publish\KAABBBox.h" />
     <ClInclude Include="Publish\KCamera.h" />
     <ClInclude Include="Publish\KPlane.h" />
@@ -134,12 +135,13 @@
     <ClCompile Include="Internal\Vulkan\KVulkanPipeline.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderTarget.cpp" />
-    <ClCompile Include="Internal\Vulkan\KVulkanRenderWindow.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanSampler.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanShader.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanSwapChain.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanTexture.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanUIOverlay.cpp" />
+    <ClCompile Include="Internal\Window\KAndroidRenderWindow.cpp" />
+    <ClCompile Include="Internal\Window\KGLFWRenderWindow.cpp" />
     <ClCompile Include="KRenderMain.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

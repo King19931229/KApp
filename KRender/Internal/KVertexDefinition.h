@@ -44,7 +44,7 @@ namespace KVertexDefinition
 	{
 		glm::vec2 GUI_POSITION;
 		glm::vec2 GUI_UV;
-		unsigned int GUI_COLOR;
+		uint32_t GUI_COLOR;
 	};
 
 	struct SCREENQUAD_POS_2F
@@ -56,7 +56,7 @@ namespace KVertexDefinition
 	{
 		VertexSemantic semantic;
 		ElementFormat elementFormat;
-		int offset;
+		size_t offset;
 	};
 	typedef std::vector<VertexSemanticDetail> VertexSemanticDetailList;
 
