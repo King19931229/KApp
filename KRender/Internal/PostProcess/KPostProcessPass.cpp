@@ -8,8 +8,7 @@
 
 KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage)
 	: m_Mgr(manager),
-	m_Width(0),
-	m_Height(0),
+	m_Scale(1),
 	m_MsaaCount(1),
 	m_FrameInFlight(frameInFlight),
 	m_Format(EF_R8GB8BA8_UNORM),
@@ -38,8 +37,7 @@ bool KPostProcessPass::SetShader(const char* vsFile, const char* fsFile)
 
 bool KPostProcessPass::SetScale(float scale)
 {
-	m_Width = static_cast<size_t>(m_Mgr->m_Width * scale);
-	m_Height = static_cast<size_t>(m_Mgr->m_Height * scale);
+	m_Scale = scale;
 	return true;
 }
 
@@ -121,11 +119,14 @@ bool KPostProcessPass::Init()
 		}
 	}
 
+	size_t width = static_cast<size_t>(m_Mgr->m_Width * m_Scale);
+	size_t height = static_cast<size_t>(m_Mgr->m_Height * m_Scale);
+
 	m_Textures.resize(m_FrameInFlight);
 	for(size_t i = 0; i < m_Textures.size(); ++i)
 	{
 		device->CreateTexture(m_Textures[i]);
-		m_Textures[i]->InitMemeoryAsRT(m_Width, m_Height, m_Format);
+		m_Textures[i]->InitMemeoryAsRT(width, height, m_Format);
 		m_Textures[i]->InitDevice();
 	}
 

@@ -24,8 +24,7 @@ class KPostProcessPass
 protected:
 	KPostProcessManager* m_Mgr;
 
-	size_t m_Width;
-	size_t m_Height;
+	float m_Scale;
 	unsigned short m_MsaaCount;
 	size_t m_FrameInFlight;
 	ElementFormat m_Format;
