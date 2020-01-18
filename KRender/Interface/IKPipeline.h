@@ -2,17 +2,36 @@
 
 #include "IKRenderConfig.h"
 
+enum PipelineHandleState
+{
+	PIPELINE_HANDLE_STATE_UNLOADED,
+	PIPELINE_HANDLE_STATE_PENDING,
+	PIPELINE_HANDLE_STATE_LOADING,
+	PIPELINE_HANDLE_STATE_LOADED
+};
+
 struct IKPipelineHandle
 {
 	virtual ~IKPipelineHandle() {}
-
-	virtual bool Init(IKPipelinePtr pipeline, IKRenderTargetPtr target) = 0;
+	virtual PipelineHandleState GetState() = 0;
+	virtual bool Init(IKPipelinePtr pipeline, IKRenderTargetPtr target, bool async) = 0;
 	virtual bool UnInit() = 0;
+	virtual bool WaitDevice() = 0;
+};
+
+enum PipelineResourceState
+{
+	PIPELINE_RESOURCE_UNLOADED,
+	PIPELINE_RESOURCE_PENDING,
+	PIPELINE_RESOURCE_LOADING,
+	PIPELINE_RESOURCE_LOADED
 };
 
 struct IKPipeline : public std::enable_shared_from_this<IKPipeline>
 {
 	virtual ~IKPipeline() {}
+
+	virtual PipelineResourceState GetState() = 0;
 
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology) = 0;
 	virtual bool SetVertexBinding(const VertexFormat* format, size_t count) = 0;
@@ -35,8 +54,9 @@ struct IKPipeline : public std::enable_shared_from_this<IKPipeline>
 	virtual bool SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler) = 0;
 	virtual bool PushConstantBlock(ShaderTypes shaderTypes, uint32_t size, uint32_t& offset) = 0;
 
-	virtual bool Init() = 0;
+	virtual bool Init(bool async) = 0;
 	virtual bool UnInit() = 0;
+	virtual bool Reload(bool async) = 0;
 
-	virtual bool Reload() = 0;
+	virtual bool WaitDevice() = 0;
 };

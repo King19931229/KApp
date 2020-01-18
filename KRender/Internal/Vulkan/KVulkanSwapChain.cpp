@@ -377,8 +377,11 @@ VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQu
 	vkResetFences(m_Device, 1, &m_InFlightFences[m_CurrentFlightIndex]);
 
 	// 提交该绘制命令
-	vkResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]);
-	VK_ASSERT_RESULT(vkResult);
+	{
+		std::lock_guard<decltype(KVulkanGlobal::graphicsQueueLock)> guard(KVulkanGlobal::graphicsQueueLock);
+		vkResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]);
+		VK_ASSERT_RESULT(vkResult);
+	}
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -394,7 +397,10 @@ VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQu
 
 	presentInfo.pResults = nullptr;
 
-	vkResult = vkQueuePresentKHR(presentQueue, &presentInfo);
+	{
+		std::lock_guard<decltype(KVulkanGlobal::graphicsQueueLock)> guard(KVulkanGlobal::graphicsQueueLock);
+		vkResult = vkQueuePresentKHR(presentQueue, &presentInfo);
+	}
 
 #if 0
 	/*

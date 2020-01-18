@@ -205,7 +205,7 @@ void KUIOverlayBase::PreparePipeline()
 		pipeline->SetSampler(0, m_FontTexture, m_FontSampler);
 
 		pipeline->PushConstantBlock(ST_VERTEX, sizeof(m_PushConstBlock), m_PushOffset);
-		ASSERT_RESULT(pipeline->Init());
+		ASSERT_RESULT(pipeline->Init(false));
 	}	
 }
 

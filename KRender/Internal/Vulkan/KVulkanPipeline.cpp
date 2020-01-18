@@ -31,9 +31,10 @@ KVulkanPipeline::KVulkanPipeline() :
 	m_DepthBiasClamp(0),
 	m_DepthBiasSlopeFactor(0),
 	*/
-	m_DepthBiasEnable(VK_FALSE)
+	m_DepthBiasEnable(VK_FALSE),
+	m_LoadTask(nullptr),
+	m_State(PIPELINE_RESOURCE_UNLOADED)
 {
-
 }
 
 KVulkanPipeline::~KVulkanPipeline()
@@ -42,6 +43,57 @@ KVulkanPipeline::~KVulkanPipeline()
 	ASSERT_RESULT(m_DescriptorPool == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_DescriptorSet == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
+	ASSERT_RESULT(m_LoadTask == nullptr);
+	ASSERT_RESULT(m_State == PIPELINE_RESOURCE_UNLOADED)
+}
+
+void KVulkanPipeline::CancelLoadTask()
+{
+	if (m_LoadTask)
+	{
+		m_LoadTask->Cancel();
+		m_LoadTask = nullptr;
+	}
+}
+
+void KVulkanPipeline::WaitLoadTask()
+{
+	if (m_LoadTask)
+	{
+		m_LoadTask->WaitAsync();
+		m_LoadTask = nullptr;
+	}
+}
+
+bool KVulkanPipeline::DestroyDevice()
+{
+	CancelLoadTask();
+
+	if (m_DescriptorSet)
+	{
+		m_DescriptorSet = VK_NULL_HANDLE;
+	}
+	if (m_DescriptorPool)
+	{
+		vkDestroyDescriptorPool(KVulkanGlobal::device, m_DescriptorPool, nullptr);
+		m_DescriptorPool = VK_NULL_HANDLE;
+	}
+	if (m_DescriptorSetLayout)
+	{
+		vkDestroyDescriptorSetLayout(KVulkanGlobal::device, m_DescriptorSetLayout, nullptr);
+		m_DescriptorSetLayout = VK_NULL_HANDLE;
+	}
+	if (m_PipelineLayout)
+	{
+		vkDestroyPipelineLayout(KVulkanGlobal::device, m_PipelineLayout, nullptr);
+		m_PipelineLayout = VK_NULL_HANDLE;
+	}
+
+	KRenderGlobal::PipelineManager.InvaildateHandleByPipeline(shared_from_this());
+
+	m_State = PIPELINE_RESOURCE_UNLOADED;
+
+	return true;
 }
 
 bool KVulkanPipeline::SetPrimitiveTopology(PrimitiveTopology topology)
@@ -463,37 +515,31 @@ bool KVulkanPipeline::CreateDestcription()
 	return true;
 }
 
-bool KVulkanPipeline::Init()
+bool KVulkanPipeline::Init(bool async)
 {
-	ASSERT_RESULT(m_VertexShader && m_FragmentShader);
-	ASSERT_RESULT(CreateLayout());
-	ASSERT_RESULT(CreateDestcription());
-	return true;
-}
+	DestroyDevice();
 
-bool KVulkanPipeline::DestroyDevice()
-{
-	if(m_DescriptorSet)
+	auto loadImpl = [=]()->bool
 	{
-		m_DescriptorSet = VK_NULL_HANDLE;
-	}
-	if(m_DescriptorPool)
-	{
-		vkDestroyDescriptorPool(KVulkanGlobal::device, m_DescriptorPool, nullptr);
-		m_DescriptorPool = VK_NULL_HANDLE;
-	}
-	if(m_DescriptorSetLayout)
-	{
-		vkDestroyDescriptorSetLayout(KVulkanGlobal::device, m_DescriptorSetLayout, nullptr);
-		m_DescriptorSetLayout = VK_NULL_HANDLE;
-	}
-	if(m_PipelineLayout)
-	{
-		vkDestroyPipelineLayout(KVulkanGlobal::device, m_PipelineLayout, nullptr);
-		m_PipelineLayout = VK_NULL_HANDLE;
-	}
+		m_State = PIPELINE_RESOURCE_LOADING;
+		ASSERT_RESULT(m_VertexShader && m_FragmentShader);
+		ASSERT_RESULT(CreateLayout());
+		ASSERT_RESULT(CreateDestcription());
+		m_State = PIPELINE_RESOURCE_LOADED;
+		m_LoadTask = nullptr;
+		return true;
+	};
 
-	KRenderGlobal::PipelineManager.InvaildateHandleByPipeline(shared_from_this());
+	if (async)
+	{
+		m_State = PIPELINE_RESOURCE_PENDING;
+		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		return true;
+	}
+	else
+	{
+		return loadImpl();
+	}
 
 	return true;
 }
@@ -512,232 +558,296 @@ bool KVulkanPipeline::UnInit()
 	return true;
 }
 
-bool KVulkanPipeline::Reload()
+bool KVulkanPipeline::Reload(bool async)
 {
 	DestroyDevice();
-	return Init();
+	return Init(async);
+}
+
+bool KVulkanPipeline::WaitDevice()
+{
+	WaitLoadTask();
+	return true;
 }
 
 KVulkanPipelineHandle::KVulkanPipelineHandle()
-	: m_GraphicsPipeline(VK_NULL_HANDLE)
+	: m_GraphicsPipeline(VK_NULL_HANDLE),
+	m_LoadTask(nullptr),
+	m_State(PIPELINE_HANDLE_STATE_UNLOADED)
 {
 }
 
 KVulkanPipelineHandle::~KVulkanPipelineHandle()
 {
 	ASSERT_RESULT(m_GraphicsPipeline == VK_NULL_HANDLE);
+	ASSERT_RESULT(m_LoadTask == nullptr);
+	ASSERT_RESULT(m_State == PIPELINE_HANDLE_STATE_UNLOADED);
 }
 
-bool KVulkanPipelineHandle::Init(IKPipelinePtr pipeline, IKRenderTargetPtr target)
+void KVulkanPipelineHandle::CancelLoadTask()
 {
-	ASSERT_RESULT(m_GraphicsPipeline == VK_NULL_HANDLE);
-
-	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline.get());
-	KVulkanRenderTarget* vulkanTarget = static_cast<KVulkanRenderTarget*>(target.get());
-
-	ASSERT_RESULT(vulkanPipeline != nullptr);
-	ASSERT_RESULT(vulkanPipeline->m_VertexShader && vulkanPipeline->m_FragmentShader);
-	ASSERT_RESULT(vulkanTarget != nullptr);
-	VkSampleCountFlagBits msaaFlag = vulkanTarget->GetMsaaFlag();
-	VkExtent2D extend = vulkanTarget->GetExtend();
-
-	// 配置顶点输入信息
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;	
-
-	vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)vulkanPipeline->m_BindingDescriptions.size();
-	vertexInputInfo.pVertexBindingDescriptions = vulkanPipeline->m_BindingDescriptions.data();
-	vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)vulkanPipeline->m_AttributeDescriptions.size();
-	vertexInputInfo.pVertexAttributeDescriptions = vulkanPipeline->m_AttributeDescriptions.data();
-
-	// 配置顶点组装信息
-	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
-	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = vulkanPipeline->m_PrimitiveTopology;
-	inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-	// 配置视口裁剪
-	VkViewport viewport = {};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = (float) extend.width;
-	viewport.height = (float) extend.height;
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-
-	VkRect2D scissor = 
+	if(m_LoadTask)
 	{
-		{0, 0},
-		extend
+		m_LoadTask->Cancel();
+		m_LoadTask = nullptr;
+	}
+}
+
+void KVulkanPipelineHandle::WaitLoadTask()
+{
+	if (m_LoadTask)
+	{
+		m_LoadTask->WaitAsync();
+		m_LoadTask = nullptr;
+	}
+}
+
+void KVulkanPipelineHandle::ReleaseHandle()
+{
+	CancelLoadTask();
+
+	if (m_GraphicsPipeline)
+	{
+		vkDestroyPipeline(KVulkanGlobal::device, m_GraphicsPipeline, nullptr);
+		m_GraphicsPipeline = VK_NULL_HANDLE;
+		m_State = PIPELINE_HANDLE_STATE_UNLOADED;
+	}
+}
+
+bool KVulkanPipelineHandle::Init(IKPipelinePtr pipeline, IKRenderTargetPtr target, bool async)
+{
+	ReleaseHandle();
+
+	auto loadImpl = [=]()->bool
+	{
+		ASSERT_RESULT(pipeline);
+		ASSERT_RESULT(target);
+
+		pipeline->WaitDevice();
+
+		m_State = PIPELINE_HANDLE_STATE_LOADING;
+
+		ASSERT_RESULT(m_GraphicsPipeline == VK_NULL_HANDLE);
+
+		KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline.get());
+		KVulkanRenderTarget* vulkanTarget = static_cast<KVulkanRenderTarget*>(target.get());
+
+		ASSERT_RESULT(vulkanPipeline->m_VertexShader && vulkanPipeline->m_FragmentShader);
+		VkSampleCountFlagBits msaaFlag = vulkanTarget->GetMsaaFlag();
+		VkExtent2D extend = vulkanTarget->GetExtend();
+
+		// 配置顶点输入信息
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
+		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+		vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)vulkanPipeline->m_BindingDescriptions.size();
+		vertexInputInfo.pVertexBindingDescriptions = vulkanPipeline->m_BindingDescriptions.data();
+		vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)vulkanPipeline->m_AttributeDescriptions.size();
+		vertexInputInfo.pVertexAttributeDescriptions = vulkanPipeline->m_AttributeDescriptions.data();
+
+		// 配置顶点组装信息
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
+		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		inputAssembly.topology = vulkanPipeline->m_PrimitiveTopology;
+		inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+		// 配置视口裁剪
+		VkViewport viewport = {};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = (float)extend.width;
+		viewport.height = (float)extend.height;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+
+		VkRect2D scissor =
+		{
+			{0, 0},
+			extend
+		};
+
+		VkPipelineViewportStateCreateInfo viewportState = {};
+		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportState.viewportCount = 1;
+		viewportState.pViewports = &viewport;
+		viewportState.scissorCount = 1;
+		viewportState.pScissors = &scissor;
+
+		// 配置光栅化信息
+		VkPipelineRasterizationStateCreateInfo rasterizer = {};
+		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizer.depthClampEnable = VK_FALSE;
+		rasterizer.rasterizerDiscardEnable = VK_FALSE;
+		rasterizer.polygonMode = vulkanPipeline->m_PolygonMode;
+		rasterizer.lineWidth = 1.0f;
+		rasterizer.cullMode = vulkanPipeline->m_CullMode;
+		rasterizer.frontFace = vulkanPipeline->m_FrontFace;
+
+		rasterizer.depthBiasEnable = vulkanPipeline->m_DepthBiasEnable;
+		rasterizer.depthBiasConstantFactor = 0.0f; // Optional
+		rasterizer.depthBiasClamp = 0.0f; // Optional
+		rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
+
+		// 配置深度缓冲信息
+		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
+		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencil.depthTestEnable = vulkanPipeline->m_DepthTest;
+		depthStencil.depthWriteEnable = vulkanPipeline->m_DepthWrite;
+		depthStencil.depthCompareOp = vulkanPipeline->m_DepthOp;
+
+		depthStencil.depthBoundsTestEnable = VK_FALSE; // Optional
+		depthStencil.minDepthBounds = 0.0f; // Optional
+		depthStencil.maxDepthBounds = 1.0f; // Optional
+		// TODO
+		depthStencil.stencilTestEnable = VK_FALSE;
+
+		VkStencilOpState empty = {};
+		depthStencil.front = empty; // Optional
+		depthStencil.back = empty; // Optional
+
+		// 配置多重采样信息
+		VkPipelineMultisampleStateCreateInfo multisampling = {};
+		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampling.sampleShadingEnable = VK_FALSE;
+		multisampling.rasterizationSamples = msaaFlag;
+		multisampling.minSampleShading = 1.0f; // Optional
+		multisampling.pSampleMask = nullptr; // Optional
+		multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
+		multisampling.alphaToOneEnable = VK_FALSE; // Optional
+
+		// 配置Alpha混合信息
+		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+		colorBlendAttachment.colorWriteMask = vulkanPipeline->m_ColorWriteMask;
+		colorBlendAttachment.blendEnable = vulkanPipeline->m_BlendEnable;
+
+		colorBlendAttachment.srcColorBlendFactor = vulkanPipeline->m_ColorSrcBlendFactor;
+		colorBlendAttachment.dstColorBlendFactor = vulkanPipeline->m_ColorDstBlendFactor;
+		colorBlendAttachment.colorBlendOp = vulkanPipeline->m_ColorBlendOp;
+
+		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+
+		VkPipelineColorBlendStateCreateInfo colorBlending = {};
+		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlending.logicOpEnable = VK_FALSE;
+		colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
+
+		{
+			VkFormat colorForamt = VK_FORMAT_UNDEFINED;
+			VkImageView colorImageView = VK_NULL_HANDLE;
+			if (vulkanTarget->GetImageViewInformation(RTC_COLOR, colorForamt, colorImageView))
+			{
+				colorBlending.attachmentCount = 1;
+				colorBlending.pAttachments = &colorBlendAttachment;
+			}
+			else
+			{
+				colorBlending.attachmentCount = 0;
+				colorBlending.pAttachments = nullptr;
+			}
+		}
+		colorBlending.blendConstants[0] = 0.0f; // Optional
+		colorBlending.blendConstants[1] = 0.0f; // Optional
+		colorBlending.blendConstants[2] = 0.0f; // Optional
+		colorBlending.blendConstants[3] = 0.0f; // Optional
+
+		// 设置动态状态
+		std::vector<VkDynamicState> dynamicStates;
+
+		dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
+		dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
+		if (rasterizer.depthBiasEnable)
+		{
+			dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
+		}
+
+		VkPipelineDynamicStateCreateInfo dynamicState = {};
+		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		dynamicState.dynamicStateCount = (uint32_t)dynamicStates.size();
+		dynamicState.pDynamicStates = dynamicStates.data();
+
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStageInfo;
+		KVulkanShader* vulkanShader = nullptr;
+
+		// vs
+		VkPipelineShaderStageCreateInfo vsShaderCreateInfo = {};
+		vulkanShader = (KVulkanShader*)vulkanPipeline->m_VertexShader.get();
+		vsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		vsShaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		vsShaderCreateInfo.module = vulkanShader->GetShaderModule();
+		vsShaderCreateInfo.pSpecializationInfo = vulkanShader->GetSpecializationInfo();
+		vsShaderCreateInfo.pName = "main";
+
+		shaderStageInfo.push_back(vsShaderCreateInfo);
+
+		// fs
+		VkPipelineShaderStageCreateInfo fsShaderCreateInfo = {};
+		vulkanShader = (KVulkanShader*)vulkanPipeline->m_FragmentShader.get();
+		fsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		fsShaderCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		fsShaderCreateInfo.module = vulkanShader->GetShaderModule();
+		fsShaderCreateInfo.pSpecializationInfo = vulkanShader->GetSpecializationInfo();
+		fsShaderCreateInfo.pName = "main";
+
+		shaderStageInfo.push_back(fsShaderCreateInfo);
+
+		// 创建管线
+		VkGraphicsPipelineCreateInfo pipelineInfo = {};
+		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		// 指定管线所使用的Shader
+		pipelineInfo.stageCount = (uint32_t)shaderStageInfo.size();
+		pipelineInfo.pStages = shaderStageInfo.data();
+		// 指定管线顶点输入信息
+		pipelineInfo.pVertexInputState = &vertexInputInfo;
+		pipelineInfo.pInputAssemblyState = &inputAssembly;
+		// 指定管线视口
+		pipelineInfo.pViewportState = &viewportState;
+		// 指定光栅化
+		pipelineInfo.pRasterizationState = &rasterizer;
+		// 指定深度缓冲
+		pipelineInfo.pDepthStencilState = &depthStencil;
+		// 指定多重采样方式
+		pipelineInfo.pMultisampleState = &multisampling;
+		// 指定混合模式
+		pipelineInfo.pColorBlendState = &colorBlending;
+		// 指定动态状态
+		pipelineInfo.pDynamicState = &dynamicState;
+		// 指定管线布局
+		pipelineInfo.layout = vulkanPipeline->m_PipelineLayout;
+		// 指定渲染通道
+		pipelineInfo.renderPass = vulkanTarget->GetRenderPass();
+		pipelineInfo.subpass = 0;
+
+		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+		pipelineInfo.basePipelineIndex = -1; // Optional
+
+		VK_ASSERT_RESULT(vkCreateGraphicsPipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline));
+		m_State = PIPELINE_HANDLE_STATE_LOADED;
+		m_LoadTask = nullptr;
+		return true;
 	};
 
-	VkPipelineViewportStateCreateInfo viewportState = {};
-	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	viewportState.viewportCount = 1;
-	viewportState.pViewports = &viewport;
-	viewportState.scissorCount = 1;
-	viewportState.pScissors = &scissor;
-
-	// 配置光栅化信息
-	VkPipelineRasterizationStateCreateInfo rasterizer = {};
-	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizer.depthClampEnable = VK_FALSE;
-	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = vulkanPipeline->m_PolygonMode;
-	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = vulkanPipeline->m_CullMode;
-	rasterizer.frontFace = vulkanPipeline->m_FrontFace;
-
-	rasterizer.depthBiasEnable = vulkanPipeline->m_DepthBiasEnable;
-	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
-	rasterizer.depthBiasClamp = 0.0f; // Optional
-	rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
-
-	// 配置深度缓冲信息
-	VkPipelineDepthStencilStateCreateInfo depthStencil = {};
-	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depthStencil.depthTestEnable = vulkanPipeline->m_DepthTest;
-	depthStencil.depthWriteEnable = vulkanPipeline->m_DepthWrite;
-	depthStencil.depthCompareOp = vulkanPipeline->m_DepthOp;
-
-	depthStencil.depthBoundsTestEnable = VK_FALSE; // Optional
-	depthStencil.minDepthBounds = 0.0f; // Optional
-	depthStencil.maxDepthBounds = 1.0f; // Optional
-	// TODO
-	depthStencil.stencilTestEnable = VK_FALSE;
-
-	VkStencilOpState empty = {};
-	depthStencil.front = empty; // Optional
-	depthStencil.back = empty; // Optional
-
-	// 配置多重采样信息
-	VkPipelineMultisampleStateCreateInfo multisampling = {};
-	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisampling.sampleShadingEnable = VK_FALSE;
-	multisampling.rasterizationSamples = msaaFlag;
-	multisampling.minSampleShading = 1.0f; // Optional
-	multisampling.pSampleMask = nullptr; // Optional
-	multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-	multisampling.alphaToOneEnable = VK_FALSE; // Optional
-
-	// 配置Alpha混合信息
-	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-	colorBlendAttachment.colorWriteMask = vulkanPipeline->m_ColorWriteMask;
-	colorBlendAttachment.blendEnable = vulkanPipeline->m_BlendEnable;
-
-	colorBlendAttachment.srcColorBlendFactor = vulkanPipeline->m_ColorSrcBlendFactor;
-	colorBlendAttachment.dstColorBlendFactor = vulkanPipeline->m_ColorDstBlendFactor;
-	colorBlendAttachment.colorBlendOp = vulkanPipeline->m_ColorBlendOp;
-
-	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
-
-	VkPipelineColorBlendStateCreateInfo colorBlending = {};
-	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	colorBlending.logicOpEnable = VK_FALSE;
-	colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-
+	if (async)
 	{
-		VkFormat colorForamt = VK_FORMAT_UNDEFINED;
-		VkImageView colorImageView = VK_NULL_HANDLE;
-		if(vulkanTarget->GetImageViewInformation(RTC_COLOR, colorForamt, colorImageView))
-		{
-			colorBlending.attachmentCount = 1;
-			colorBlending.pAttachments = &colorBlendAttachment;
-		}
-		else
-		{
-			colorBlending.attachmentCount = 0;
-			colorBlending.pAttachments = nullptr;
-		}
+		m_State = PIPELINE_HANDLE_STATE_PENDING;
+		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		return true;
 	}
-	colorBlending.blendConstants[0] = 0.0f; // Optional
-	colorBlending.blendConstants[1] = 0.0f; // Optional
-	colorBlending.blendConstants[2] = 0.0f; // Optional
-	colorBlending.blendConstants[3] = 0.0f; // Optional
-
-	// 设置动态状态
-	std::vector<VkDynamicState> dynamicStates;
-
-	dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
-	dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
-	if(rasterizer.depthBiasEnable)
+	else
 	{
-		dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
+		return loadImpl();
 	}
-
-	VkPipelineDynamicStateCreateInfo dynamicState = {};
-	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicState.dynamicStateCount = (uint32_t)dynamicStates.size();
-	dynamicState.pDynamicStates = dynamicStates.data();
-
-	std::vector<VkPipelineShaderStageCreateInfo> shaderStageInfo;
-	KVulkanShader* vulkanShader = nullptr;
-
-	// vs
-	VkPipelineShaderStageCreateInfo vsShaderCreateInfo = {};
-	vulkanShader = (KVulkanShader*)vulkanPipeline->m_VertexShader.get();
-	vsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vsShaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vsShaderCreateInfo.module = vulkanShader->GetShaderModule();
-	vsShaderCreateInfo.pSpecializationInfo = vulkanShader->GetSpecializationInfo();
-	vsShaderCreateInfo.pName = "main";
-
-	shaderStageInfo.push_back(vsShaderCreateInfo);
-
-	// fs
-	VkPipelineShaderStageCreateInfo fsShaderCreateInfo = {};
-	vulkanShader = (KVulkanShader*)vulkanPipeline->m_FragmentShader.get();
-	fsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fsShaderCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fsShaderCreateInfo.module = vulkanShader->GetShaderModule();
-	fsShaderCreateInfo.pSpecializationInfo = vulkanShader->GetSpecializationInfo();
-	fsShaderCreateInfo.pName = "main";
-
-	shaderStageInfo.push_back(fsShaderCreateInfo);
-
-	// 创建管线
-	VkGraphicsPipelineCreateInfo pipelineInfo = {};
-	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	// 指定管线所使用的Shader
-	pipelineInfo.stageCount = (uint32_t)shaderStageInfo.size();
-	pipelineInfo.pStages = shaderStageInfo.data();
-	// 指定管线顶点输入信息
-	pipelineInfo.pVertexInputState = &vertexInputInfo;
-	pipelineInfo.pInputAssemblyState = &inputAssembly;
-	// 指定管线视口
-	pipelineInfo.pViewportState = &viewportState;
-	// 指定光栅化
-	pipelineInfo.pRasterizationState = &rasterizer;
-	// 指定深度缓冲
-	pipelineInfo.pDepthStencilState = &depthStencil;
-	// 指定多重采样方式
-	pipelineInfo.pMultisampleState = &multisampling;
-	// 指定混合模式
-	pipelineInfo.pColorBlendState = &colorBlending;
-	// 指定动态状态
-	pipelineInfo.pDynamicState = &dynamicState;
-	// 指定管线布局
-	pipelineInfo.layout = vulkanPipeline->m_PipelineLayout;
-	// 指定渲染通道
-	pipelineInfo.renderPass = vulkanTarget->GetRenderPass();
-	pipelineInfo.subpass = 0;
-
-	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
-	pipelineInfo.basePipelineIndex = -1; // Optional
-
-	VK_ASSERT_RESULT(vkCreateGraphicsPipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline));
-	
-	return true;
 }
 
 bool KVulkanPipelineHandle::UnInit()
 {
-	if(m_GraphicsPipeline)
-	{
-		vkDestroyPipeline(KVulkanGlobal::device, m_GraphicsPipeline, nullptr);
-		m_GraphicsPipeline = VK_NULL_HANDLE;
-	}
+	ReleaseHandle();
+	return true;
+}
+
+bool KVulkanPipelineHandle::WaitDevice()
+{
+	WaitLoadTask();
 	return true;
 }

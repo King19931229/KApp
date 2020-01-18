@@ -394,7 +394,7 @@ bool KVulkanRenderDevice::CreatePipelines()
 
 			pipeline->PushConstantBlock(m_ObjectConstant.shaderTypes, m_ObjectConstant.size, m_ObjectConstant.offset); 
 
-			pipeline->Init();
+			pipeline->Init(false);
 		}
 	}
 	return true;
@@ -1658,7 +1658,7 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t frameIndex, uint32_t threa
 	{
 		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_OffscreenPipelines[frameIndex].get();
 
-		KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline->shared_from_this(), target->shared_from_this(), pipelineHandle);
+		KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline->shared_from_this(), target->shared_from_this(), pipelineHandle, false);
 		VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
 
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
@@ -1729,7 +1729,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				if(KRenderGlobal::SkyBox.GetRenderCommand(frameIndex, command))
 				{
 					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle);
+					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, false);
 					command.pipelineHandle = handle;
 					primaryBuffer->Render(command);
 				}
@@ -1738,7 +1738,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 			{
 				KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_OffscreenPipelines[frameIndex].get();
 
-				KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline->shared_from_this(), offscreenTarget->shared_from_this(), pipelineHandle);
+				KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline->shared_from_this(), offscreenTarget->shared_from_this(), pipelineHandle, false);
 				VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
 
 				VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
@@ -1803,7 +1803,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				for(KRenderCommand& command : preZCommandList)
 				{
 					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle);
+					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
 					command.pipelineHandle = handle;
 					primaryBuffer->Render(command);
 				}
@@ -1811,7 +1811,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				for(KRenderCommand& command : commandList)
 				{
 					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle);
+					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
 					command.pipelineHandle = handle;
 					primaryBuffer->Render(command);
 				}
@@ -1876,7 +1876,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 				if(KRenderGlobal::SkyBox.GetRenderCommand(frameIndex, command))
 				{
 					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle);
+					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, false);
 					command.pipelineHandle = handle;
 					skyBoxCommandBuffer->Render(command);
 				}
@@ -1922,7 +1922,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 							command.objectData = &transform->FinalTransform();
 
 							IKPipelineHandlePtr handle;
-							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle);
+							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
 							command.pipelineHandle = handle;
 							threadData.preZcommands.push_back(command);
 						});
@@ -1933,7 +1933,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 							command.objectData = &transform->FinalTransform();
 
 							IKPipelineHandlePtr handle;
-							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle);
+							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
 							command.pipelineHandle = handle;
 
 							threadData.commands.push_back(command);

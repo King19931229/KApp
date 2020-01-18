@@ -61,7 +61,7 @@ namespace KVulkanHelper
 	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, uint32_t layers, uint32_t mipLevels);
 
 	void BeginSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
-	void EndSingleTimeCommand(VkQueue queue, VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
+	void EndSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
 
 	bool FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features, VkFormat& vkFormat);
 	bool HasStencilComponent(VkFormat format);

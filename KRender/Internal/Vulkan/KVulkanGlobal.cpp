@@ -7,7 +7,9 @@ namespace KVulkanGlobal
 	VkDevice device = VK_NULL_HANDLE;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkSurfaceKHR surface = VK_NULL_HANDLE;
+	std::mutex graphicsPoolLock;
 	VkCommandPool graphicsCommandPool = VK_NULL_HANDLE;
+	std::mutex graphicsQueueLock;
 	VkQueue graphicsQueue = VK_NULL_HANDLE;
 	VkPipelineCache pipelineCache = VK_NULL_HANDLE;
 

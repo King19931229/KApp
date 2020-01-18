@@ -188,7 +188,7 @@ bool KPostProcessManager::Resize(size_t width, size_t height)
 void KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderTargetPtr target)
 {
 	IKPipelineHandlePtr pipeHandle = nullptr;
-	KRenderGlobal::PipelineManager.GetPipelineHandle(pipeline, target, pipeHandle);
+	KRenderGlobal::PipelineManager.GetPipelineHandle(pipeline, target, pipeHandle, false);
 
 	command.vertexData = &m_SharedVertexData;
 	command.indexData = &m_SharedIndexData;

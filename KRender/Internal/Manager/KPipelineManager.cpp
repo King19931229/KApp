@@ -43,13 +43,13 @@ bool KPipelineManager::Reload()
 
 	for(IKPipelinePtr pipeline : reloadPipelines)
 	{
-		pipeline->Reload();
+		pipeline->Reload(true);
 	}
 
 	return true;
 }
 
-bool KPipelineManager::GetPipelineHandle(IKPipelinePtr pipeline, IKRenderTargetPtr target, IKPipelineHandlePtr& handle)
+bool KPipelineManager::GetPipelineHandle(IKPipelinePtr pipeline, IKRenderTargetPtr target, IKPipelineHandlePtr& handle, bool async)
 {
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 
@@ -59,7 +59,7 @@ bool KPipelineManager::GetPipelineHandle(IKPipelinePtr pipeline, IKRenderTargetP
 		RtPipelineHandleMap handleMap;
 		if(m_Device->CreatePipelineHandle(handle))
 		{
-			if(handle->Init(pipeline, target))
+			if(handle->Init(pipeline, target, async))
 			{
 				handleMap.insert(RtPipelineHandleMap::value_type(target, handle));
 				m_RenderPipelineMap.insert(PipelineHandleMap::value_type(pipeline, std::move(handleMap)));
@@ -76,7 +76,7 @@ bool KPipelineManager::GetPipelineHandle(IKPipelinePtr pipeline, IKRenderTargetP
 		{
 			if(m_Device->CreatePipelineHandle(handle))
 			{
-				if(handle->Init(pipeline, target))
+				if(handle->Init(pipeline, target, async))
 				{
 					handleMap.insert(RtPipelineHandleMap::value_type(target, handle));
 					return true;

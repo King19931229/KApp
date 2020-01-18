@@ -159,7 +159,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, renderThreadIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
 
-		ASSERT_RESULT(pipeline->Init());
+		ASSERT_RESULT(pipeline->Init(true));
 		return true;
 	}
 	else if(stage == PIPELINE_STAGE_OPAQUE)
@@ -223,7 +223,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 			return false;
 		}
 
-		ASSERT_RESULT(pipeline->Init());
+		ASSERT_RESULT(pipeline->Init(true));
 		return true;
 	}
 	else if(stage == PIPELINE_STAGE_SHADOW_GEN)
@@ -250,7 +250,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, size_t ren
 
 		pipeline->PushConstantBlock(ST_VERTEX, (uint32_t)KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT).bufferSize, objectPushOffset);
 
-		ASSERT_RESULT(pipeline->Init());
+		ASSERT_RESULT(pipeline->Init(true));
 		return true;
 	}
 	else

@@ -104,7 +104,7 @@ void KSkyBox::PreparePipeline()
 
 		pipeline->SetSampler(CBT_COUNT, m_CubeTexture, m_CubeSampler);
 
-		ASSERT_RESULT(pipeline->Init());
+		ASSERT_RESULT(pipeline->Init(false));
 	}
 }
 

@@ -387,7 +387,7 @@ namespace KVulkanHelper
 			copyRegion.size = size;
 			vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 		}
-		EndSingleTimeCommand(KVulkanGlobal::graphicsQueue, KVulkanGlobal::graphicsCommandPool, commandBuffer);
+		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
 	void CopyVkBufferToVkImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
@@ -426,7 +426,7 @@ namespace KVulkanHelper
 				&region
 				);
 		}
-		EndSingleTimeCommand(KVulkanGlobal::graphicsQueue, KVulkanGlobal::graphicsCommandPool, commandBuffer);
+		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
 	void CopyVkBufferToVkImageByRegion(VkBuffer buffer, VkImage image, uint32_t layers, const SubRegionCopyInfoList& copyInfo)
@@ -479,7 +479,7 @@ namespace KVulkanHelper
 				regions.data()
 				);
 		}
-		EndSingleTimeCommand(KVulkanGlobal::graphicsQueue, KVulkanGlobal::graphicsCommandPool, commandBuffer);
+		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
 	void TransitionImageLayout(VkImage image, VkFormat format, uint32_t layers, uint32_t mipLevels, VkImageLayout oldLayout, VkImageLayout newLayout)
@@ -571,7 +571,7 @@ namespace KVulkanHelper
 				1, &barrier
 				);
 		}
-		EndSingleTimeCommand(KVulkanGlobal::graphicsQueue, KVulkanGlobal::graphicsCommandPool, commandBuffer);
+		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
 	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, uint32_t layers, uint32_t mipLevels)
@@ -676,14 +676,17 @@ namespace KVulkanHelper
 					1, &barrier);
 			}
 		}
-		EndSingleTimeCommand(KVulkanGlobal::graphicsQueue, KVulkanGlobal::graphicsCommandPool, commandBuffer);
+		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
 	void BeginSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer)
 	{
 		VkCommandBufferAllocateInfo allocInfo = KVulkanInitializer::CommandBufferAllocateInfo(commandPool);
 
-		VK_ASSERT_RESULT(vkAllocateCommandBuffers(KVulkanGlobal::device, &allocInfo, &commandBuffer));
+		{
+			std::lock_guard<decltype(KVulkanGlobal::graphicsPoolLock)> guard(KVulkanGlobal::graphicsPoolLock);
+			VK_ASSERT_RESULT(vkAllocateCommandBuffers(KVulkanGlobal::device, &allocInfo, &commandBuffer));
+		}
 
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -692,10 +695,8 @@ namespace KVulkanHelper
 		VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 	}
 
-	void EndSingleTimeCommand(VkQueue queue, VkCommandPool commandPool, VkCommandBuffer& commandBuffer)
+	void EndSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer)
 	{
-		using namespace KVulkanGlobal;
-
 		VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
 
 		VkSubmitInfo submitInfo = {};
@@ -703,10 +704,17 @@ namespace KVulkanHelper
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &commandBuffer;
 
-		VK_ASSERT_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VK_ASSERT_RESULT(vkQueueWaitIdle(queue));
+		{
+			std::lock_guard<decltype(KVulkanGlobal::graphicsQueueLock)> guard(KVulkanGlobal::graphicsQueueLock);
+			VkQueue queue = KVulkanGlobal::graphicsQueue;
+			VK_ASSERT_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+			VK_ASSERT_RESULT(vkQueueWaitIdle(queue));
+		}
 
-		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+		{
+			std::lock_guard<decltype(KVulkanGlobal::graphicsPoolLock)> guard(KVulkanGlobal::graphicsPoolLock);
+			vkFreeCommandBuffers(KVulkanGlobal::device, commandPool, 1, &commandBuffer);
+		}
 	}
 
 	bool FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features, VkFormat& vkFormat)

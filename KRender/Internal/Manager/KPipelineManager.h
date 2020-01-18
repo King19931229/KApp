@@ -23,7 +23,7 @@ public:
 
 	bool Reload();
 
-	bool GetPipelineHandle(IKPipelinePtr pipeline, IKRenderTargetPtr target, IKPipelineHandlePtr& handle);
+	bool GetPipelineHandle(IKPipelinePtr pipeline, IKRenderTargetPtr target, IKPipelineHandlePtr& handle, bool async);
 	bool InvaildateHandleByRt(IKRenderTargetPtr target);
 	bool InvaildateHandleByPipeline(IKPipelinePtr pipeline);
 	bool InvaildateAllHandle();

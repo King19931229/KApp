@@ -43,7 +43,7 @@ bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderTargetPtr target, I
 		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)(target.get());
 
 		IKPipelineHandlePtr pipelineHandle;
-		KRenderGlobal::PipelineManager.GetPipelineHandle(m_Pipelines[imageIndex], target, pipelineHandle);
+		KRenderGlobal::PipelineManager.GetPipelineHandle(m_Pipelines[imageIndex], target, pipelineHandle, false);
 		VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
 
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
