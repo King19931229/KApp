@@ -3,6 +3,7 @@
 #include "KBase/Publish/KLockQueue.h"
 #include "KBase/Publish/KSemaphore.h"
 #include "KBase/Publish/KThreadTool.h"
+#include <assert.h>
 
 template<typename Task, bool bUseLockFreeQueue = false>
 class KThreadPool

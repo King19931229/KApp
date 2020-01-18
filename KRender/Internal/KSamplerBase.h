@@ -32,9 +32,10 @@ public:
 	virtual bool SetAnisotropicCount(unsigned short count);
 	virtual bool GetAnisotropicCount(unsigned short& count);
 
-	virtual bool SetMipmapLod(unsigned short minMipmap, unsigned short maxMipmap);
 	virtual bool GetMipmapLod(unsigned short& minMipmap, unsigned short& maxMipmap);
 
-	virtual bool Init() = 0;
+	virtual bool Init(unsigned short minMipmap, unsigned short maxMipmap) = 0;
+	virtual bool Init(IKTexturePtr texture, bool async) = 0;
+
 	virtual bool UnInit() = 0;
 };

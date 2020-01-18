@@ -65,12 +65,11 @@ KSkyBox::~KSkyBox()
 
 void KSkyBox::LoadResource(const char* cubeTexPath)
 {
-	ASSERT_RESULT(m_CubeTexture->InitMemoryFromFile(cubeTexPath, true));
-	ASSERT_RESULT(m_CubeTexture->InitDevice());
+	ASSERT_RESULT(m_CubeTexture->InitMemoryFromFile(cubeTexPath, true, false));
+	ASSERT_RESULT(m_CubeTexture->InitDevice(false));
 
 	m_CubeSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_CubeSampler->SetMipmapLod(0, m_CubeTexture->GetMipmaps());
-	m_CubeSampler->Init();
+	m_CubeSampler->Init(m_CubeTexture, false);
 
 	ASSERT_RESULT(m_VertexShader->InitFromFile("Shaders/cube.vert"));
 	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/cube.frag"));

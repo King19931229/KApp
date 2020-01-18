@@ -23,7 +23,7 @@ public:
 	bool Init(IKRenderDevice* device);
 	bool UnInit();
 
-	bool Acquire(const char* path, IKTexturePtr& texture);
+	bool Acquire(const char* path, IKTexturePtr& texture, bool async);
 	bool Release(IKTexturePtr& texture);
 
 	// for now

@@ -77,9 +77,25 @@ protected:
 	// Sampler 信息
 	struct SamplerBindingInfo
 	{
+
 		VkImageView vkImageView;
 		VkSampler vkSampler;
+
+		IKTexturePtr texture;
+		IKSamplerPtr sampler;
+
+		bool nakeInfo;
 		bool depthStencil;
+
+		SamplerBindingInfo()
+		{
+			vkImageView = VK_NULL_HANDLE;
+			vkSampler = VK_NULL_HANDLE;
+			texture = nullptr;
+			sampler = nullptr;
+			nakeInfo = false;
+			depthStencil = false;
+		}
 	};
 	std::map<unsigned int, SamplerBindingInfo> m_Samplers;
 

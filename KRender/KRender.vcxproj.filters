@@ -267,6 +267,9 @@
     <ClInclude Include="Internal\Window\KAndroidRenderWindow.h">
       <Filter>Internal\Window</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKResource.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">

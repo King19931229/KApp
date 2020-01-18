@@ -190,16 +190,12 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IK
 {
 	if(texture && sampler)
 	{
-		KVulkanTexture* vulkanTexture = (KVulkanTexture*)texture.get();
-		VkImageView imageView = vulkanTexture->GetImageView();
+		SamplerBindingInfo info;
 
-		ASSERT_RESULT(imageView != VK_NULL_HANDLE);
-		SamplerBindingInfo info =
-		{
-			imageView,
-			((KVulkanSampler*)sampler.get())->GetVkSampler(),
-			false,
-		};
+		info.texture = texture;
+		info.sampler = sampler;
+		info.nakeInfo = false;
+		info.depthStencil = false;
 
 		ASSERT_RESULT(BindSampler(location, info));
 	}
@@ -218,12 +214,12 @@ bool KVulkanPipeline::SetSamplerDepthAttachment(unsigned int location, IKRenderT
 		ASSERT_RESULT(vulkanTarget->GetImageViewInformation(RTC_DEPTH_STENCIL, format, imageView));
 
 		ASSERT_RESULT(imageView != VK_NULL_HANDLE);
-		SamplerBindingInfo info =
-		{
-			imageView,
-			((KVulkanSampler*)sampler.get())->GetVkSampler(),
-			true,
-		};
+		SamplerBindingInfo info;
+
+		info.vkImageView = imageView;
+		info.vkSampler = ((KVulkanSampler*)sampler.get())->GetVkSampler();
+		info.nakeInfo = true;
+		info.depthStencil = true;
 
 		ASSERT_RESULT(BindSampler(location, info));
 	}
@@ -278,7 +274,6 @@ bool KVulkanPipeline::CreateLayout()
 	for(auto& pair : m_Samplers)
 	{
 		unsigned int location = pair.first;
-		SamplerBindingInfo& info = pair.second;
 
 		VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 		// 与Shader中绑定位置对应
@@ -426,8 +421,20 @@ bool KVulkanPipeline::CreateDestcription()
 
 		VkDescriptorImageInfo imageInfo = {};
 		imageInfo.imageLayout = info.depthStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = info.vkImageView;
-		imageInfo.sampler = info.vkSampler;
+
+		if (info.nakeInfo)
+		{
+			imageInfo.imageView = info.vkImageView;
+			imageInfo.sampler = info.vkSampler;
+		}
+		else
+		{
+			info.texture->WaitForDevice();
+			info.sampler->WaitForDevice();
+
+			imageInfo.imageView = ((KVulkanTexture*)info.texture.get())->GetImageView();
+			imageInfo.sampler = ((KVulkanSampler*)info.sampler.get())->GetVkSampler();
+		}
 
 		descImageInfo.push_back(imageInfo);
 

@@ -32,7 +32,7 @@ bool KTextureManager::UnInit()
 	return true;
 }
 
-bool KTextureManager::Acquire(const char* path, IKTexturePtr& texture)
+bool KTextureManager::Acquire(const char* path, IKTexturePtr& texture, bool async)
 {
 	auto it = m_Textures.find(path);
 
@@ -45,9 +45,9 @@ bool KTextureManager::Acquire(const char* path, IKTexturePtr& texture)
 	}
 
 	m_Device->CreateTexture(texture);
-	if(texture->InitMemoryFromFile(path, true))
+	if(texture->InitMemoryFromFile(path, true, async))
 	{
-		if(texture->InitDevice())
+		if(texture->InitDevice(async))
 		{
 			TextureUsingInfo info = { 1, texture };
 			m_Textures[path] = info;

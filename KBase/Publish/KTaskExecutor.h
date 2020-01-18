@@ -1,21 +1,23 @@
 #pragma once
-#include "Publish/KThreadPool.h"
+#include "KBase/Publish/KThreadPool.h"
+#include "KBase/Publish/KSpinLock.h"
 #include <memory>
 #include <assert.h>
 
 enum TaskState
 {
+	// 该任务已经提交到多线程命令队列里
 	TS_PENDING_ASYNC,
-
+	// 工作线程正在执行该任务异步部分
 	TS_LOADING_ASYNC,
-
-	TS_LOADED_ASYNC,/* TS_PENDING_SYNC */
-
+	// 工作线程已经完成该任务异步部分 但是同步任务还没被执行
+	TS_LOADED_ASYNC, /* TS_PENDING_SYNC */
+	// 该任务的同步部分已经进入到队列中 等待主线程轮训
 	TS_LOADING_SYNC,
+	// 该任务被执行完全执行完毕
 	TS_LOADED,
-
-	TS_CANCELING,
-	TS_LOAD_FAIL
+	// 该任务执行失败
+	TS_LOAD_FAIL /*TS_CANCELED */
 };
 
 struct IKTaskUnit
@@ -26,6 +28,38 @@ struct IKTaskUnit
 	virtual bool HasSyncLoad() const = 0;
 };
 typedef std::shared_ptr<IKTaskUnit> KTaskUnitPtr;
+
+class KSampleAsyncTaskUnit : public IKTaskUnit
+{
+public:
+	typedef std::function<bool()> FuncType;
+protected:
+	FuncType m_AsyncFunc;
+public:
+	KSampleAsyncTaskUnit(FuncType asyncFunc)
+		: m_AsyncFunc(asyncFunc)
+	{}
+	virtual bool AsyncLoad() { return m_AsyncFunc(); }
+	virtual bool SyncLoad() { return false;	}
+	virtual bool HasSyncLoad() const { return false; }
+};
+
+class KSampleTaskUnit : public IKTaskUnit
+{
+public:
+	typedef std::function<bool()> FuncType;
+protected:
+	FuncType m_AsyncFunc;
+	FuncType m_SyncFunc;
+public:
+	KSampleTaskUnit(FuncType asyncFunc, FuncType syncFunc)
+		: m_AsyncFunc(asyncFunc),
+		m_SyncFunc(syncFunc)
+	{}
+	virtual bool AsyncLoad() { return m_AsyncFunc(); }
+	virtual bool SyncLoad() { return m_SyncFunc(); }
+	virtual bool HasSyncLoad() const { return true; }
+};
 
 template<bool>
 class KTaskExecutor;
@@ -38,6 +72,7 @@ struct KTaskUnitProcessor
 	friend class KTaskExecutor<false>;
 	friend class KTaskUnitProcessorGroup;
 protected:
+	KSpinLock m_WaitLock;
 	std::atomic_uchar m_eState;
 	KSemaphorePtr m_pSem;
 	KTaskUnitPtr m_pTaskUnit;
@@ -86,11 +121,11 @@ public:
 			// 加载已经失败了
 			if(uExp == TS_LOAD_FAIL)
 				return true;
-			if(m_eState.compare_exchange_strong(uExp, TS_CANCELING))
+			if(m_eState.compare_exchange_weak(uExp, TS_LOAD_FAIL))
 				break;
 		}
-		// 这里不是 TS_CANCELING 就是 TS_LOAD_FAIL
-		assert(m_eState.load() == TS_CANCELING || m_eState.load() == TS_LOAD_FAIL);
+		// 这里就是 TS_LOAD_FAIL
+		assert(m_eState.load() == TS_LOAD_FAIL);
 		return true;
 	}
 
@@ -99,22 +134,12 @@ public:
 	*/
 	bool WaitAsync()
 	{
-		unsigned char uExp = 0;
-
-		uExp = TS_PENDING_ASYNC;
-		if(m_eState.compare_exchange_strong(uExp, TS_PENDING_ASYNC))
+		std::lock_guard<decltype(m_WaitLock)> lockGuard(m_WaitLock);
+		if (IsDone())
 		{
-			Wait();
 			return true;
 		}
-
-		uExp = TS_LOADING_ASYNC;
-		if(m_eState.compare_exchange_strong(uExp, TS_LOADING_ASYNC))
-		{
-			Wait();
-			return true;
-		}
-
+		Wait();
 		assert(IsDone());
 		return true;
 	}
@@ -197,7 +222,7 @@ public:
 		while(true)
 		{
 			uExp = pTask->m_eState.load();
-			if(pTask->m_eState.compare_exchange_strong(uExp, TS_LOAD_FAIL))
+			if(pTask->m_eState.compare_exchange_weak(uExp, TS_LOAD_FAIL))
 				break;
 			else
 				std::this_thread::yield();
@@ -221,7 +246,7 @@ public:
 		while(true)
 		{
 			uExp = pTask->m_eState.load();
-			if(pTask->m_eState.compare_exchange_strong(uExp, TS_LOAD_FAIL))
+			if(pTask->m_eState.compare_exchange_weak(uExp, TS_LOAD_FAIL))
 				break;
 			else
 				std::this_thread::yield();
@@ -259,9 +284,7 @@ public:
 
 	KTaskUnitProcessorGroupPtr CreateGroup()
 	{
-		KTaskUnitProcessorGroupPtr pGroup = nullptr;
-		pGroup = KTaskUnitProcessorGroupPtr(new KTaskUnitProcessorGroup());
-		assert(pGroup);
+		KTaskUnitProcessorGroupPtr pGroup = KTaskUnitProcessorGroupPtr(new KTaskUnitProcessorGroup());
 		return pGroup;
 	}
 

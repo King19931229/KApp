@@ -174,12 +174,12 @@ void KUIOverlayBase::PrepareResources()
 		}
 	}
 
-	ASSERT_RESULT(m_FontTexture->InitMemoryFromData(fontData, (size_t)texWidth, (size_t)texHeight, IF_R8G8B8A8, false));
-	ASSERT_RESULT(m_FontTexture->InitDevice());
+	ASSERT_RESULT(m_FontTexture->InitMemoryFromData(fontData, (size_t)texWidth, (size_t)texHeight, IF_R8G8B8A8, false, false));
+	ASSERT_RESULT(m_FontTexture->InitDevice(false));
 
 	m_FontSampler->SetAddressMode(AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER);
 	m_FontSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	ASSERT_RESULT(m_FontSampler->Init());
+	ASSERT_RESULT(m_FontSampler->Init(0, 0));
 
 	ASSERT_RESULT(m_VertexShader->InitFromFile("Shaders/uioverlay.vert"));
 	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/uioverlay.frag"));

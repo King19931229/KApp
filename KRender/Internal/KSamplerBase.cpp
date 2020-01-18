@@ -75,13 +75,6 @@ bool KSamplerBase::GetAnisotropicCount(unsigned short& count)
 	return true;
 }
 
-bool KSamplerBase::SetMipmapLod(unsigned short minMipmap, unsigned short maxMipmap)
-{
-	m_MinMipmap = minMipmap;
-	m_MaxMipmap = maxMipmap;
-	return true;
-}
-
 bool KSamplerBase::GetMipmapLod(unsigned short& minMipmap, unsigned short& maxMipmap)
 {
 	minMipmap = m_MinMipmap;

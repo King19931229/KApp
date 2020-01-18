@@ -1,5 +1,6 @@
 #include "KTextureBase.h"
 #include "KBase/Interface/IKDataStream.h"
+#include "Internal/KRenderGlobal.h"
 #include <algorithm>
 #include <cmath>
 
@@ -77,14 +78,17 @@ KTextureBase::KTextureBase()
 	m_Format(EF_UNKNOWN),
 	m_TextureType(TT_UNKNOWN),
 	m_bGenerateMipmap(false),
-	m_bCreateAsRt(false)
+	m_bCreateAsRt(false),
+	m_ResourceState(RS_UNLOADED),
+	m_MemoryLoadTask(nullptr)
 {
 
 }
 
 KTextureBase::~KTextureBase()
 {
-
+	ASSERT_RESULT(m_MemoryLoadTask == nullptr);
+	ASSERT_RESULT(m_ResourceState == RS_UNLOADED);
 }
 
 bool KTextureBase::InitProperty(bool generateMipmap)
@@ -107,62 +111,133 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 	return false;
 }
 
-bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap)
+bool KTextureBase::CancelMemoryTask()
 {
-	IKCodecPtr pCodec = GetCodec(filePath.c_str());
-	if(pCodec && pCodec->Codec(filePath.c_str(), true, m_ImageData))
+	if (m_MemoryLoadTask)
 	{
-		if(InitProperty(bGenerateMipmap))
-		{
-			m_bCreateAsRt = false;
-			m_Path = filePath;
-			return true;
-		}
+		m_MemoryLoadTask->Cancel();
+		m_MemoryLoadTask = nullptr;
 	}
-	m_ImageData.pData = nullptr;
-	return false;
+	return true;
 }
 
-bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap)
+bool KTextureBase::WaitMemoryTask()
 {
-	if(pRawData)
+	if (m_MemoryLoadTask)
 	{
-		size_t formatSize = 0;
-		if(ImageFormatToSize(format, formatSize))
+		m_MemoryLoadTask->WaitAsync();
+		m_MemoryLoadTask = nullptr;
+	}
+	return true;
+}
+
+bool KTextureBase::ReleaseMemory()
+{
+	CancelMemoryTask();
+	m_ImageData.pData = nullptr;
+	m_ResourceState = RS_UNLOADED;
+	return true;
+}
+
+bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap, bool async)
+{
+	ReleaseMemory();
+	auto loadImpl = [=]()->bool
+	{
+		m_ResourceState = RS_MEMORY_LOADING;
+
+		IKCodecPtr pCodec = GetCodec(filePath.c_str());
+		if (pCodec && pCodec->Codec(filePath.c_str(), true, m_ImageData))
 		{
-			KImageDataPtr pImageData = KImageDataPtr(new KImageData(width * height * formatSize));			 
-			memcpy(pImageData->GetData(), pRawData, pImageData->GetSize());
-			m_ImageData.eFormat = format;
-			m_ImageData.uWidth = width;
-			m_ImageData.uHeight = height;
-			m_ImageData.uDepth = 1;
-			m_ImageData.uMipmap = 1;
-			m_ImageData.bCompressed = false;
-			m_ImageData.bCubemap = false;
-			m_ImageData.pData = pImageData;
-
-			KSubImageInfo subImageInfo;
-			subImageInfo.uWidth = width;
-			subImageInfo.uHeight = height;
-			subImageInfo.uOffset = 0;
-			subImageInfo.uSize = pImageData->GetSize();
-			subImageInfo.uFaceIndex = 0;
-			subImageInfo.uMipmapIndex = 0;
-			m_ImageData.pData->GetSubImageInfo().push_back(subImageInfo);
-
-			if(InitProperty(bGenerateMipmap))
+			if (InitProperty(bGenerateMipmap))
 			{
 				m_bCreateAsRt = false;
+				m_Path = filePath;
+				m_ResourceState = RS_MEMORY_LOADED;
+				m_MemoryLoadTask = nullptr;
 				return true;
 			}
 		}
+
+		m_ResourceState = RS_UNLOADED;
+		m_ImageData.pData = nullptr;
+		m_MemoryLoadTask = nullptr;
+		return false;
+	};
+
+	if (async)
+	{
+		m_MemoryLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		return true;
 	}
-	m_ImageData.pData = nullptr;
-	return false;
+	else
+	{
+		return loadImpl();
+	}
+}
+
+bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap, bool async)
+{
+	ReleaseMemory();
+	auto loadImpl = [=]()->bool
+	{
+		m_ResourceState = RS_MEMORY_LOADING;
+
+		if (pRawData)
+		{
+			size_t formatSize = 0;
+			if (ImageFormatToSize(format, formatSize))
+			{
+				KImageDataPtr pImageData = KImageDataPtr(new KImageData(width * height * formatSize));
+				memcpy(pImageData->GetData(), pRawData, pImageData->GetSize());
+				m_ImageData.eFormat = format;
+				m_ImageData.uWidth = width;
+				m_ImageData.uHeight = height;
+				m_ImageData.uDepth = 1;
+				m_ImageData.uMipmap = 1;
+				m_ImageData.bCompressed = false;
+				m_ImageData.bCubemap = false;
+				m_ImageData.pData = pImageData;
+
+				KSubImageInfo subImageInfo;
+				subImageInfo.uWidth = width;
+				subImageInfo.uHeight = height;
+				subImageInfo.uOffset = 0;
+				subImageInfo.uSize = pImageData->GetSize();
+				subImageInfo.uFaceIndex = 0;
+				subImageInfo.uMipmapIndex = 0;
+				m_ImageData.pData->GetSubImageInfo().push_back(subImageInfo);
+
+				if (InitProperty(bGenerateMipmap))
+				{
+					m_bCreateAsRt = false;
+					m_ResourceState = RS_MEMORY_LOADED;
+					return true;
+				}
+			}
+		}
+
+		m_ResourceState = RS_UNLOADED;
+		m_ImageData.pData = nullptr;
+		m_MemoryLoadTask = nullptr;
+		return false;
+	};
+
+	if (async)
+	{
+		m_ResourceState = RS_PENDING;
+		m_MemoryLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		return true;
+	}
+	else
+	{
+		return loadImpl();
+	}
 }
 
 bool KTextureBase::InitMemeoryAsRT(size_t width, size_t height, ElementFormat format)
 {
+	CancelMemoryTask();
 	m_Width = width;
 	m_Height = height;
 	m_Depth = 1;
@@ -171,11 +246,12 @@ bool KTextureBase::InitMemeoryAsRT(size_t width, size_t height, ElementFormat fo
 	m_TextureType = TT_TEXTURE_2D;
 	m_bCreateAsRt = true;
 	m_ImageData.pData = nullptr;
+	m_ResourceState = RS_MEMORY_LOADED;
 	return true;
 }
 
 bool KTextureBase::UnInit()
 {
-	m_ImageData.pData = nullptr;
+	ReleaseMemory();
 	return true;
 }

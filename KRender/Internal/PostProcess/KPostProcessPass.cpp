@@ -127,7 +127,7 @@ bool KPostProcessPass::Init()
 	{
 		device->CreateTexture(m_Textures[i]);
 		m_Textures[i]->InitMemeoryAsRT(width, height, m_Format);
-		m_Textures[i]->InitDevice();
+		m_Textures[i]->InitDevice(false);
 	}
 
 	m_RenderTargets.resize(m_FrameInFlight);

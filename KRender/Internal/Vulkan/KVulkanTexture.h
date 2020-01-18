@@ -11,11 +11,20 @@ protected:
 	VkFormat m_TextureFormat;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	bool m_bDeviceInit;
+	KTaskUnitProcessorPtr m_DeviceLoadTask;
+
+	bool CancelDeviceTask();
+	bool WaitDeviceTask();
+	bool ReleaseDevice();
 public:
 	KVulkanTexture();
 	virtual ~KVulkanTexture();
 
-	virtual bool InitDevice();
+	virtual ResourceState GetResourceState();
+	virtual void WaitForMemory();
+	virtual void WaitForDevice();
+
+	virtual bool InitDevice(bool async);
 	virtual bool UnInit();
 
 	inline VkImageView GetImageView() { return m_TextureImageView; }

@@ -40,7 +40,7 @@ bool KMaterial::ResignTexture(size_t slot, const char* path)
 	IKTexturePtr texture;
 	IKSamplerPtr sampler;
 
-	if(KRenderGlobal::TextrueManager.Acquire(path, texture))
+	if(KRenderGlobal::TextrueManager.Acquire(path, texture, true))
 	{
 		ASSERT_RESULT(KRenderGlobal::TextrueManager.CreateSampler(sampler));
 
@@ -61,10 +61,9 @@ bool KMaterial::ResignTexture(size_t slot, const char* path)
 		}
 
 		sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-		sampler->SetMipmapLod(0, texture->GetMipmaps());
-		ASSERT_RESULT(sampler->Init());
+		ASSERT_RESULT(sampler->Init(texture, true));
 
-		KMaterialTextureInfo info = { texture, sampler };		
+		KMaterialTextureInfo info = { texture, sampler };
 		m_Textrues[slot] = info;
 
 		return true;

@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKTexture.h"
 #include "KBase/Interface/IKCodec.h"
+#include "KBase/Publish/KTaskExecutor.h"
 
 class KTextureBase : public IKTexture
 {
@@ -18,15 +19,23 @@ protected:
 	bool m_bGenerateMipmap;
 	bool m_bCreateAsRt;
 
+	ResourceState m_ResourceState;
+	KTaskUnitProcessorPtr m_MemoryLoadTask;
+
 	bool InitProperty(bool generateMipmap);
+	bool CancelMemoryTask();
+	bool WaitMemoryTask();
+	bool ReleaseMemory();
 public:
 	KTextureBase();
 	virtual ~KTextureBase();
 
-	virtual bool InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap);
-	virtual bool InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap);
+	virtual ResourceState GetResourceState() = 0;
+
+	virtual bool InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap, bool async);
+	virtual bool InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap, bool async);
 	virtual bool InitMemeoryAsRT(size_t width, size_t height, ElementFormat format);
-	virtual bool InitDevice() = 0;
+	virtual bool InitDevice(bool async) = 0;
 	virtual bool UnInit();
 
 	virtual size_t GetWidth() { return m_Width; }

@@ -12,6 +12,8 @@
 #include "Internal/Object/KSkyBox.h"
 #include "Internal/Shadow/KShadowMap.h"
 
+#include "KBase/Publish/KTaskExecutor.h"
+
 namespace KRenderGlobal
 {
 	extern KPipelineManager PipelineManager;
@@ -24,4 +26,6 @@ namespace KRenderGlobal
 
 	extern KSkyBox SkyBox;
 	extern KShadowMap ShadowMap;
+
+	extern KTaskExecutor<true> TaskExecutor;
 };

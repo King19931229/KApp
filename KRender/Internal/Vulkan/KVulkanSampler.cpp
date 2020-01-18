@@ -4,20 +4,70 @@
 
 KVulkanSampler::KVulkanSampler()
 	: KSamplerBase(),
-	m_SamplerInit(false)
+	m_TextureSampler(VK_NULL_HANDLE),
+	m_DeviceLoadTask(nullptr),
+	m_ResourceState(RS_UNLOADED)
 {
-	ZERO_MEMORY(m_TextureSampler);
 }
 
 KVulkanSampler::~KVulkanSampler()
 {
-	ASSERT_RESULT(!m_SamplerInit);
+	ASSERT_RESULT(m_TextureSampler == VK_NULL_HANDLE);
+	ASSERT_RESULT(m_DeviceLoadTask == nullptr);
+	ASSERT_RESULT(m_ResourceState == RS_UNLOADED);
 }
 
-bool KVulkanSampler::Init()
+ResourceState KVulkanSampler::GetResourceState()
+{
+	return m_ResourceState;
+}
+
+void KVulkanSampler::WaitForMemory()
+{
+	return;
+}
+
+void KVulkanSampler::WaitForDevice()
+{
+	WaitDeviceTask();
+}
+
+bool KVulkanSampler::CancelDeviceTask()
+{
+	if (m_DeviceLoadTask)
+	{
+		m_DeviceLoadTask->Cancel();
+		m_DeviceLoadTask = nullptr;
+	}
+	return true;
+}
+
+bool KVulkanSampler::WaitDeviceTask()
+{
+	if (m_DeviceLoadTask)
+	{
+		m_DeviceLoadTask->WaitAsync();
+		m_DeviceLoadTask = nullptr;
+	}
+	return true;
+}
+
+bool KVulkanSampler::ReleaseDevice()
+{
+	CancelDeviceTask();
+	if (m_TextureSampler != VK_NULL_HANDLE)
+	{
+		vkDestroySampler(KVulkanGlobal::device, m_TextureSampler, nullptr);
+		m_TextureSampler = VK_NULL_HANDLE;
+	}
+	m_ResourceState = RS_UNLOADED;
+	return true;
+}
+
+bool KVulkanSampler::CreateDevice()
 {
 	assert(KVulkanGlobal::deviceReady);
-	assert(!m_SamplerInit);
+	assert(m_TextureSampler == VK_NULL_HANDLE);
 
 	VkFilter magFilter = VK_FILTER_MAX_ENUM;
 	VkFilter minFilter = VK_FILTER_MAX_ENUM;
@@ -87,19 +137,53 @@ bool KVulkanSampler::Init()
 	samplerInfo.maxLod = float(m_MaxMipmap);
 
 	VK_ASSERT_RESULT(vkCreateSampler(KVulkanGlobal::device, &samplerInfo, nullptr, &m_TextureSampler));
-	m_SamplerInit = true;
 	return true;
+}
+
+bool KVulkanSampler::Init(unsigned short minMipmap, unsigned short maxMipmap)
+{
+	m_MinMipmap = minMipmap;
+	m_MaxMipmap = maxMipmap;
+	ReleaseDevice();
+	CreateDevice();
+	m_ResourceState = RS_DEVICE_LOADED;
+	return true;
+}
+
+bool KVulkanSampler::Init(IKTexturePtr texture, bool async)
+{
+	if (texture)
+	{
+		ReleaseDevice();
+
+		auto loadImpl = [=]()->bool
+		{
+			m_ResourceState = RS_DEVICE_LOADING;
+			texture->WaitForDevice();
+			m_MinMipmap = 0;
+			m_MaxMipmap = texture->GetMipmaps();
+			CreateDevice();
+			m_ResourceState = RS_DEVICE_LOADED;
+			m_DeviceLoadTask = nullptr;
+			return true;
+		};
+
+		if (async)
+		{
+			m_ResourceState = RS_PENDING;
+			m_DeviceLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+			return true;
+		}
+		else
+		{
+			return loadImpl();
+		}
+	}
+	return false;
 }
 
 bool KVulkanSampler::UnInit()
 {
-	if(m_SamplerInit)
-	{
-		assert(KVulkanGlobal::deviceReady);
-		vkDestroySampler(KVulkanGlobal::device, m_TextureSampler, nullptr);
-		ZERO_MEMORY(m_TextureSampler);
-		m_SamplerInit = false;
-		return true;
-	}
-	return false;
+	ReleaseDevice();
+	return true;
 }

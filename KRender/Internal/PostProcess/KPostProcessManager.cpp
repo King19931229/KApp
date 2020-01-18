@@ -56,8 +56,7 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 
 	m_Device->CreateSampler(m_Sampler);
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_Sampler->SetMipmapLod(0, 0);
-	m_Sampler->Init();
+	m_Sampler->Init(0, 0);
 
 	m_Device->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);

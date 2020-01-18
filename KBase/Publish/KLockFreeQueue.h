@@ -146,9 +146,16 @@ public:
 
 	bool Push(Elem_T&& element)
 	{
-		if(!TryPush(element))
+		if (m_nWaitQueueSize)
 		{
 			PushIntoWaitQueue(element);
+		}
+		else
+		{
+			if (!TryPush(element))
+			{
+				PushIntoWaitQueue(element);
+			}
 		}
 		++m_nQueueSize;
 		return true;
@@ -156,9 +163,16 @@ public:
 
 	bool Push(Elem_T& element)
 	{
-		if(!TryPush(element))
+		if (m_nWaitQueueSize)
 		{
-			PushIntoWaitQueue(element);
+			PushIntoWaitQueue(element);			
+		}
+		else
+		{
+			if (!TryPush(element))
+			{
+				PushIntoWaitQueue(element);
+			}
 		}
 		++m_nQueueSize;
 		return true;

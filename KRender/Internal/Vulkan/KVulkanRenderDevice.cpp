@@ -758,14 +758,13 @@ bool KVulkanRenderDevice::CreateTransform()
 
 bool KVulkanRenderDevice::CreateResource()
 {
-	ASSERT_RESULT(KRenderGlobal::TextrueManager.Acquire("Textures/vulkan_11_rgba.ktx", m_Texture));
+	ASSERT_RESULT(KRenderGlobal::TextrueManager.Acquire("Textures/vulkan_11_rgba.ktx", m_Texture, false));
 
 	CreateSampler(m_Sampler);
 	//m_Sampler->SetAnisotropic(true);
 	//m_Sampler->SetAnisotropicCount(16);
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_Sampler->SetMipmapLod(0, m_Texture->GetMipmaps());
-	m_Sampler->Init();
+	m_Sampler->Init(m_Texture, false);
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shader.vert", m_SceneVertexShader));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/demo.frag", m_SceneFragmentShader));
@@ -873,6 +872,7 @@ bool KVulkanRenderDevice::InitGlobalManager()
 {
 	KVulkanHeapAllocator::Init();
 
+	KRenderGlobal::TaskExecutor.PushWorkerThreads(std::thread::hardware_concurrency());
 	KRenderGlobal::PipelineManager.Init(this);
 	KRenderGlobal::FrameResourceManager.Init(this, m_FrameInFlight, m_MaxRenderThreadNum);
 	KRenderGlobal::MeshManager.Init(this, m_FrameInFlight, m_MaxRenderThreadNum);
@@ -933,6 +933,7 @@ bool KVulkanRenderDevice::UnInitGlobalManager()
 	KRenderGlobal::PostProcessManager.UnInit();
 
 	KVulkanHeapAllocator::UnInit();
+	KRenderGlobal::TaskExecutor.PopWorkerThreads(std::thread::hardware_concurrency());
 
 	return true;
 }
@@ -2042,6 +2043,9 @@ bool KVulkanRenderDevice::CreateCommandBuffers()
 
 bool KVulkanRenderDevice::Present()
 {
+	// TODO
+	KRenderGlobal::TaskExecutor.ProcessSyncTask();
+
 	VkResult vkResult;
 
 	size_t frameIndex = 0;

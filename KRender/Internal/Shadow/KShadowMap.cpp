@@ -30,7 +30,7 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice,	size_t frameInFlight, size_t
 	renderDevice->CreateSampler(m_ShadowSampler);
 	m_ShadowSampler->SetAddressMode(AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER);
 	m_ShadowSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_ShadowSampler->Init();
+	m_ShadowSampler->Init(0, 0);
 
 	size_t numImages = frameInFlight;
 	m_RenderTargets.resize(numImages);
