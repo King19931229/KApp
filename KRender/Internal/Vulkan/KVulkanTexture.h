@@ -11,6 +11,8 @@ protected:
 	VkFormat m_TextureFormat;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	bool m_bDeviceInit;
+
+	std::mutex m_DeviceLoadTaskLock;
 	KTaskUnitProcessorPtr m_DeviceLoadTask;
 
 	bool CancelDeviceTask();

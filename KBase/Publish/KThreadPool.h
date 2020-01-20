@@ -43,15 +43,14 @@ class KThreadPool
 	struct TripleQueue
 	{
 		SharedQueueType asyncQueue;
-		SharedQueueType async_Sync_Swap;
+		SharedQueueType asyncSyncSwapQueue;
 		SharedQueueType syncQueue;
 		std::mutex		lock;
 		KSemaphore		sem;
-		bool			bSwapNoEmpty;
 
 		TripleQueue()
 		{
-			bSwapNoEmpty = false;
+
 		}
 	};
 
@@ -168,13 +167,11 @@ class KThreadPool
 			while(!m_bDone)
 			{
 				bNeedWait = false;
-
 				if(m_bDone)
 					break;
-
 				{
 					std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
-					if(m_SharedQueue.async_Sync_Swap.empty())
+					if(m_SharedQueue.asyncSyncSwapQueue.empty())
 					{
 						if(m_SharedQueue.asyncQueue.empty())
 						{
@@ -182,12 +179,10 @@ class KThreadPool
 						}
 						else
 						{
-							m_SharedQueue.async_Sync_Swap.swap(m_SharedQueue.asyncQueue);
-							m_SharedQueue.bSwapNoEmpty = true;
+							m_SharedQueue.asyncSyncSwapQueue.swap(m_SharedQueue.asyncQueue);
 						}
 					}
 				}
-
 				if(!m_bDone && bNeedWait)
 					m_SharedQueue.sem.Wait();
 			}
@@ -307,7 +302,7 @@ public:
 	bool AllSyncTaskDone()
 	{
 		std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
-		return m_SharedQueue.syncQueue.empty() && m_SharedQueue.async_Sync_Swap.empty() && m_SharedQueue.asyncQueue.empty();
+		return m_SharedQueue.syncQueue.empty() && m_SharedQueue.asyncSyncSwapQueue.empty() && m_SharedQueue.asyncQueue.empty();
 	}
 
 	bool AllTaskDone()
@@ -324,17 +319,20 @@ public:
 
 	void ProcessSyncTask()
 	{
-		if(m_SharedQueue.bSwapNoEmpty)
 		{
+			std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
+			if(m_SharedQueue.syncQueue.empty() && !m_SharedQueue.asyncSyncSwapQueue.empty())
 			{
-				std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
-				m_SharedQueue.async_Sync_Swap.swap(m_SharedQueue.syncQueue);
-				m_SharedQueue.bSwapNoEmpty = false;
+				m_SharedQueue.asyncSyncSwapQueue.swap(m_SharedQueue.syncQueue);
 			}
-			assert(!m_SharedQueue.syncQueue.empty());
-			std::for_each(m_SharedQueue.syncQueue.begin(), m_SharedQueue.syncQueue.end(), [](Task& syncTask){syncTask();});
-			m_SharedQueue.syncQueue.clear();
+			else
+			{
+				return;
+			}
 		}
+		assert(!m_SharedQueue.syncQueue.empty());
+		std::for_each(m_SharedQueue.syncQueue.begin(), m_SharedQueue.syncQueue.end(), [](Task& syncTask) {syncTask(); });
+		m_SharedQueue.syncQueue.clear();
 	}
 };
 

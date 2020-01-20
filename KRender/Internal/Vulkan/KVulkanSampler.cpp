@@ -34,6 +34,7 @@ void KVulkanSampler::WaitForDevice()
 
 bool KVulkanSampler::CancelDeviceTask()
 {
+	std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
 	if (m_DeviceLoadTask)
 	{
 		m_DeviceLoadTask->Cancel();
@@ -44,9 +45,10 @@ bool KVulkanSampler::CancelDeviceTask()
 
 bool KVulkanSampler::WaitDeviceTask()
 {
+	std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
 	if (m_DeviceLoadTask)
 	{
-		m_DeviceLoadTask->WaitAsync();
+		m_DeviceLoadTask->Wait();
 		m_DeviceLoadTask = nullptr;
 	}
 	return true;
@@ -164,13 +166,13 @@ bool KVulkanSampler::Init(IKTexturePtr texture, bool async)
 			m_MaxMipmap = texture->GetMipmaps();
 			CreateDevice();
 			m_ResourceState = RS_DEVICE_LOADED;
-			m_DeviceLoadTask = nullptr;
 			return true;
 		};
 
 		if (async)
 		{
 			m_ResourceState = RS_PENDING;
+			std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
 			m_DeviceLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
 			return true;
 		}

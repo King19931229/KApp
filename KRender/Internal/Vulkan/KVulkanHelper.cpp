@@ -683,10 +683,7 @@ namespace KVulkanHelper
 	{
 		VkCommandBufferAllocateInfo allocInfo = KVulkanInitializer::CommandBufferAllocateInfo(commandPool);
 
-		{
-			std::lock_guard<decltype(KVulkanGlobal::graphicsPoolLock)> guard(KVulkanGlobal::graphicsPoolLock);
-			VK_ASSERT_RESULT(vkAllocateCommandBuffers(KVulkanGlobal::device, &allocInfo, &commandBuffer));
-		}
+		VK_ASSERT_RESULT(vkAllocateCommandBuffers(KVulkanGlobal::device, &allocInfo, &commandBuffer));
 
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -704,17 +701,11 @@ namespace KVulkanHelper
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &commandBuffer;
 
-		{
-			std::lock_guard<decltype(KVulkanGlobal::graphicsQueueLock)> guard(KVulkanGlobal::graphicsQueueLock);
-			VkQueue queue = KVulkanGlobal::graphicsQueue;
-			VK_ASSERT_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-			VK_ASSERT_RESULT(vkQueueWaitIdle(queue));
-		}
+		VkQueue queue = KVulkanGlobal::graphicsQueue;
+		VK_ASSERT_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_ASSERT_RESULT(vkQueueWaitIdle(queue));
 
-		{
-			std::lock_guard<decltype(KVulkanGlobal::graphicsPoolLock)> guard(KVulkanGlobal::graphicsPoolLock);
-			vkFreeCommandBuffers(KVulkanGlobal::device, commandPool, 1, &commandBuffer);
-		}
+		vkFreeCommandBuffers(KVulkanGlobal::device, commandPool, 1, &commandBuffer);
 	}
 
 	bool FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features, VkFormat& vkFormat)

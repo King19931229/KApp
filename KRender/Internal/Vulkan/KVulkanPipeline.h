@@ -11,7 +11,10 @@ class KVulkanPipelineHandle : public IKPipelineHandle
 {
 protected:
 	VkPipeline m_GraphicsPipeline;
+
+	std::mutex m_LoadTaskLock;
 	KTaskUnitProcessorPtr m_LoadTask;
+
 	PipelineHandleState m_State;
 
 	void CancelLoadTask();
@@ -119,7 +122,9 @@ protected:
 	bool CreateDestcription();
 	bool DestroyDevice();
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
+	bool WaitDependencyResource();
 
+	std::mutex m_LoadTaskLock;
 	KTaskUnitProcessorPtr m_LoadTask;
 	PipelineResourceState m_State;
 

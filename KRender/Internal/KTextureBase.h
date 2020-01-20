@@ -20,6 +20,8 @@ protected:
 	bool m_bCreateAsRt;
 
 	ResourceState m_ResourceState;
+
+	std::mutex m_MemoryLoadTaskLock;
 	KTaskUnitProcessorPtr m_MemoryLoadTask;
 
 	bool InitProperty(bool generateMipmap);

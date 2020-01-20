@@ -49,6 +49,7 @@ KVulkanPipeline::~KVulkanPipeline()
 
 void KVulkanPipeline::CancelLoadTask()
 {
+	std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
 	if (m_LoadTask)
 	{
 		m_LoadTask->Cancel();
@@ -58,9 +59,10 @@ void KVulkanPipeline::CancelLoadTask()
 
 void KVulkanPipeline::WaitLoadTask()
 {
+	std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
 	if (m_LoadTask)
 	{
-		m_LoadTask->WaitAsync();
+		m_LoadTask->Wait();
 		m_LoadTask = nullptr;
 	}
 }
@@ -235,6 +237,25 @@ bool KVulkanPipeline::BindSampler(unsigned int location, const SamplerBindingInf
 		it->second = info;
 	}
 
+	return true;
+}
+
+bool KVulkanPipeline::WaitDependencyResource()
+{
+	for (auto& pair : m_Samplers)
+	{
+		unsigned int location = pair.first;
+		SamplerBindingInfo& info = pair.second;
+
+		VkDescriptorImageInfo imageInfo = {};
+		imageInfo.imageLayout = info.depthStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		if (!info.nakeInfo)
+		{
+			info.texture->WaitForDevice();
+			info.sampler->WaitForDevice();
+		}
+	}
 	return true;
 }
 
@@ -481,12 +502,12 @@ bool KVulkanPipeline::CreateDestcription()
 		}
 		else
 		{
-			info.texture->WaitForDevice();
-			info.sampler->WaitForDevice();
-
 			imageInfo.imageView = ((KVulkanTexture*)info.texture.get())->GetImageView();
 			imageInfo.sampler = ((KVulkanSampler*)info.sampler.get())->GetVkSampler();
 		}
+
+		ASSERT_RESULT(imageInfo.imageView);
+		ASSERT_RESULT(imageInfo.sampler);
 
 		descImageInfo.push_back(imageInfo);
 
@@ -519,6 +540,11 @@ bool KVulkanPipeline::Init(bool async)
 {
 	DestroyDevice();
 
+	auto waitImpl = [=]()->bool
+	{
+		return WaitDependencyResource();
+	};
+
 	auto loadImpl = [=]()->bool
 	{
 		m_State = PIPELINE_RESOURCE_LOADING;
@@ -526,18 +552,19 @@ bool KVulkanPipeline::Init(bool async)
 		ASSERT_RESULT(CreateLayout());
 		ASSERT_RESULT(CreateDestcription());
 		m_State = PIPELINE_RESOURCE_LOADED;
-		m_LoadTask = nullptr;
 		return true;
 	};
 
 	if (async)
 	{
 		m_State = PIPELINE_RESOURCE_PENDING;
-		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleTaskUnit(waitImpl, loadImpl)));
 		return true;
 	}
 	else
 	{
+		waitImpl();
 		return loadImpl();
 	}
 
@@ -586,6 +613,7 @@ KVulkanPipelineHandle::~KVulkanPipelineHandle()
 
 void KVulkanPipelineHandle::CancelLoadTask()
 {
+	std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
 	if(m_LoadTask)
 	{
 		m_LoadTask->Cancel();
@@ -595,9 +623,10 @@ void KVulkanPipelineHandle::CancelLoadTask()
 
 void KVulkanPipelineHandle::WaitLoadTask()
 {
+	std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
 	if (m_LoadTask)
 	{
-		m_LoadTask->WaitAsync();
+		m_LoadTask->Wait();
 		m_LoadTask = nullptr;
 	}
 }
@@ -610,20 +639,26 @@ void KVulkanPipelineHandle::ReleaseHandle()
 	{
 		vkDestroyPipeline(KVulkanGlobal::device, m_GraphicsPipeline, nullptr);
 		m_GraphicsPipeline = VK_NULL_HANDLE;
-		m_State = PIPELINE_HANDLE_STATE_UNLOADED;
 	}
+
+	m_State = PIPELINE_HANDLE_STATE_UNLOADED;
 }
 
 bool KVulkanPipelineHandle::Init(IKPipelinePtr pipeline, IKRenderTargetPtr target, bool async)
 {
 	ReleaseHandle();
 
+	auto waitImpl = [=]()->bool
+	{
+		ASSERT_RESULT(pipeline);
+		pipeline->WaitDevice();
+		return true;
+	};
+
 	auto loadImpl = [=]()->bool
 	{
 		ASSERT_RESULT(pipeline);
 		ASSERT_RESULT(target);
-
-		pipeline->WaitDevice();
 
 		m_State = PIPELINE_HANDLE_STATE_LOADING;
 
@@ -824,18 +859,19 @@ bool KVulkanPipelineHandle::Init(IKPipelinePtr pipeline, IKRenderTargetPtr targe
 
 		VK_ASSERT_RESULT(vkCreateGraphicsPipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline));
 		m_State = PIPELINE_HANDLE_STATE_LOADED;
-		m_LoadTask = nullptr;
 		return true;
 	};
 
 	if (async)
 	{
 		m_State = PIPELINE_HANDLE_STATE_PENDING;
-		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleTaskUnit(waitImpl, loadImpl)));
 		return true;
 	}
 	else
 	{
+		waitImpl();
 		return loadImpl();
 	}
 }

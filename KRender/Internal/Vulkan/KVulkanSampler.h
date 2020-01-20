@@ -7,7 +7,10 @@ class KVulkanSampler : public KSamplerBase
 {
 protected:
 	VkSampler m_TextureSampler;
+
+	std::mutex m_DeviceLoadTaskLock;
 	KTaskUnitProcessorPtr m_DeviceLoadTask;
+
 	ResourceState m_ResourceState;
 
 	bool CancelDeviceTask();

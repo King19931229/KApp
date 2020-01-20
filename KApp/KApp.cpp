@@ -19,12 +19,16 @@ public:
 	Func0(int id): m_ID(id) {}
 	virtual bool AsyncLoad()
 	{
-		//printf("Func0 %d\n", m_ID);
-		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+		//printf("Func0 asycn %d\n", m_ID);
+		std::this_thread::sleep_for(std::chrono::milliseconds(std::rand() % 5));
 		return true;
 	}
-	virtual bool SyncLoad() { return false; }
-	virtual bool HasSyncLoad() const { return false; }
+	virtual bool SyncLoad()
+	{
+		//printf("Func0 sycn %d\n", m_ID);
+		return true;
+	}
+	virtual bool HasSyncLoad() const { return true; }
 };
 
 class Func1 : public IKTaskUnit
@@ -35,19 +39,23 @@ public:
 	Func1(KTaskUnitProcessorPtr ptr, int id) :m_Ptr(ptr), m_ID(id) {}
 	virtual bool AsyncLoad()
 	{
-		//printf("Func1 %d\n", m_ID);
-		m_Ptr->WaitAsync();
+		//printf("Func1 asycn %d\n", m_ID);
+		m_Ptr->Wait();
 		return true;
 	}
-	virtual bool SyncLoad() { return false; }
-	virtual bool HasSyncLoad() const { return false; }
+	virtual bool SyncLoad()
+	{
+		printf("Func1 sycn %d\n", m_ID);
+		return true;
+	}
+	virtual bool HasSyncLoad() const { return true; }
 };
 
 int main()
 {
 	DUMP_MEMORY_LEAK_BEGIN();
 
-	int nTaskCount = 1000;
+	int nTaskCount = 10;
 
 	{
 		KTimer timer;
@@ -73,50 +81,9 @@ int main()
 				allPtr1.push_back(ptr1);
 			}
 
-			for (int i = 0; i < nTaskCount; ++i)
+			while (!Exc.AllTaskDone())
 			{
-				allPtr0[i]->WaitAsync();
-			}
-			for (int i = 0; i < nTaskCount; ++i)
-			{
-				allPtr0[i]->WaitAsync();
-			}
-
-			printf("%f\n", timer.GetMilliseconds());
-		}
-	}
-
-	{
-		KTimer timer;
-
-		KTaskExecutor<true> Exc;
-		Exc.PushWorkerThreads(std::thread::hardware_concurrency());
-
-		std::vector<KTaskUnitProcessorPtr> allPtr0;
-		std::vector<KTaskUnitProcessorPtr> allPtr1;
-		allPtr0.reserve(nTaskCount);
-		allPtr1.reserve(nTaskCount);
-		{
-			timer.Reset();
-
-			for (int i = 0; i < nTaskCount; ++i)
-			{
-				KTaskUnitPtr pUnit0(new Func0(2 * i));
-				KTaskUnitProcessorPtr ptr0 = Exc.Submit(pUnit0);
-				allPtr0.push_back(ptr0);
-
-				KTaskUnitPtr pUnit1(new Func1(ptr0, 2 * i + 1));
-				KTaskUnitProcessorPtr ptr1 = Exc.Submit(pUnit1);
-				allPtr1.push_back(ptr1);
-			}
-
-			for (int i = 0; i < nTaskCount; ++i)
-			{
-				allPtr0[i]->WaitAsync();
-			}
-			for (int i = 0; i < nTaskCount; ++i)
-			{
-				allPtr0[i]->WaitAsync();
+				Exc.ProcessSyncTask();
 			}
 
 			printf("%f\n", timer.GetMilliseconds());

@@ -113,6 +113,7 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 
 bool KTextureBase::CancelMemoryTask()
 {
+	std::unique_lock<decltype(m_MemoryLoadTaskLock)> guard(m_MemoryLoadTaskLock);
 	if (m_MemoryLoadTask)
 	{
 		m_MemoryLoadTask->Cancel();
@@ -123,9 +124,10 @@ bool KTextureBase::CancelMemoryTask()
 
 bool KTextureBase::WaitMemoryTask()
 {
+	std::unique_lock<decltype(m_MemoryLoadTaskLock)> guard(m_MemoryLoadTaskLock);
 	if (m_MemoryLoadTask)
 	{
-		m_MemoryLoadTask->WaitAsync();
+		m_MemoryLoadTask->Wait();
 		m_MemoryLoadTask = nullptr;
 	}
 	return true;
@@ -154,19 +156,18 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 				m_bCreateAsRt = false;
 				m_Path = filePath;
 				m_ResourceState = RS_MEMORY_LOADED;
-				m_MemoryLoadTask = nullptr;
 				return true;
 			}
 		}
 
 		m_ResourceState = RS_UNLOADED;
 		m_ImageData.pData = nullptr;
-		m_MemoryLoadTask = nullptr;
 		return false;
 	};
 
 	if (async)
 	{
+		std::unique_lock<decltype(m_MemoryLoadTaskLock)> guard(m_MemoryLoadTaskLock);
 		m_MemoryLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
 		return true;
 	}
@@ -219,13 +220,13 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t
 
 		m_ResourceState = RS_UNLOADED;
 		m_ImageData.pData = nullptr;
-		m_MemoryLoadTask = nullptr;
 		return false;
 	};
 
 	if (async)
 	{
 		m_ResourceState = RS_PENDING;
+		std::unique_lock<decltype(m_MemoryLoadTaskLock)> guard(m_MemoryLoadTaskLock);
 		m_MemoryLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
 		return true;
 	}

@@ -38,6 +38,7 @@ void KVulkanTexture::WaitForDevice()
 
 bool KVulkanTexture::CancelDeviceTask()
 {
+	std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
 	if (m_DeviceLoadTask)
 	{
 		m_DeviceLoadTask->Cancel();
@@ -48,9 +49,10 @@ bool KVulkanTexture::CancelDeviceTask()
 
 bool KVulkanTexture::WaitDeviceTask()
 {
+	std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
 	if (m_DeviceLoadTask)
 	{
-		m_DeviceLoadTask->WaitAsync();
+		m_DeviceLoadTask->Wait();
 		m_DeviceLoadTask = nullptr;
 	}
 	return true;
@@ -73,10 +75,14 @@ bool KVulkanTexture::InitDevice(bool async)
 {
 	ReleaseDevice();
 
-	auto loadImpl = [=]()->bool
+	auto waitImpl = [=]()->bool
 	{
 		WaitMemoryTask();
+		return true;
+	};
 
+	auto loadImpl = [=]()->bool
+	{
 		ResourceState previousState = m_ResourceState;
 		m_ResourceState = RS_DEVICE_LOADING;
 
@@ -114,7 +120,6 @@ bool KVulkanTexture::InitDevice(bool async)
 			m_ImageData.pData = nullptr;
 
 			m_ResourceState = RS_DEVICE_LOADED;
-			m_DeviceLoadTask = nullptr;
 			return true;
 		}
 		else
@@ -205,7 +210,6 @@ bool KVulkanTexture::InitDevice(bool async)
 				m_ImageData.pData = nullptr;
 
 				m_ResourceState = RS_DEVICE_LOADED;
-				m_DeviceLoadTask = nullptr;
 				return true;
 			}
 		}
@@ -216,11 +220,13 @@ bool KVulkanTexture::InitDevice(bool async)
 
 	if (async)
 	{
-		m_DeviceLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
+		m_DeviceLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleTaskUnit(waitImpl, loadImpl)));
 		return true;
 	}
 	else
 	{
+		waitImpl();
 		return loadImpl();
 	}
 }

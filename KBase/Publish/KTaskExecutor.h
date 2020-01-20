@@ -72,7 +72,7 @@ struct KTaskUnitProcessor
 	friend class KTaskExecutor<false>;
 	friend class KTaskUnitProcessorGroup;
 protected:
-	KSpinLock m_WaitLock;
+	std::mutex m_WaitLock;
 	std::atomic_uchar m_eState;
 	KSemaphorePtr m_pSem;
 	KTaskUnitPtr m_pTaskUnit;
@@ -80,9 +80,8 @@ protected:
 	KTaskUnitProcessor(const KTaskUnitProcessor& rhs){}
 	KTaskUnitProcessor& operator=(const KTaskUnitProcessor& rhs){}
 
-	inline bool Notify() { return m_pSem->Notify(); }
-	inline bool Wait() { return m_pSem->Wait(); }
-	inline void Reset() { m_eState.store(TS_PENDING_ASYNC); }
+	inline bool NotifySem() { return m_pSem->Notify(); }
+	inline bool WaitSem() { return m_pSem->Wait(); }
 	inline bool AsyncLoad() { return m_pTaskUnit ? m_pTaskUnit->AsyncLoad() : false; }
 	inline bool SyncLoad() { return m_pTaskUnit? m_pTaskUnit->SyncLoad() : false; }
 	inline bool HasSyncLoad() const { return m_pTaskUnit ? m_pTaskUnit->HasSyncLoad() : false; }
@@ -130,16 +129,16 @@ public:
 	}
 
 	/*
-	*@brief 调用线程挂起等待直到异步任务完成
+	*@brief 调用线程挂起等待直到任务完成
 	*/
-	bool WaitAsync()
+	bool Wait()
 	{
 		std::lock_guard<decltype(m_WaitLock)> lockGuard(m_WaitLock);
 		if (IsDone())
 		{
 			return true;
 		}
-		Wait();
+		WaitSem();
 		assert(IsDone());
 		return true;
 	}
@@ -173,12 +172,12 @@ public:
 		m_pSem = KSemaphorePtr(new KSemaphore);
 		return true;
 	}
-	bool WaitAsync()
+	bool Wait()
 	{
 		for(TaskList::iterator it = m_TaskList.begin(); it != m_TaskList.end(); ++it)
 		{
 			KTaskUnitProcessorPtr pUnit = *it;
-			pUnit->Wait();
+			pUnit->WaitSem();
 		}
 		m_TaskList.clear();
 		m_pSem = KSemaphorePtr(new KSemaphore);
@@ -205,7 +204,10 @@ public:
 				{
 					if(pTask->m_eState.compare_exchange_strong(uExp, TS_LOADED_ASYNC))
 					{
-						pTask->Notify();
+						if(!pTask->HasSyncLoad())
+						{
+							pTask->NotifySem();
+						}
 						return true;
 					}
 				}
@@ -213,7 +215,10 @@ public:
 				{
 					if(pTask->m_eState.compare_exchange_strong(uExp, TS_LOADED))
 					{
-						pTask->Notify();
+						if(!pTask->HasSyncLoad())
+						{
+							pTask->NotifySem();
+						}
 						return true;
 					}
 				}
@@ -227,7 +232,10 @@ public:
 			else
 				std::this_thread::yield();
 		}
-		pTask->Notify();
+		if(!pTask->HasSyncLoad())
+		{
+			pTask->NotifySem();
+		}
 		return false;
 	}
 
@@ -240,7 +248,10 @@ public:
 			{
 				uExp = TS_LOADING_SYNC;
 				if(pTask->m_eState.compare_exchange_strong(uExp, TS_LOADED))
+				{
+					pTask->NotifySem();
 					return true;
+				}
 			}
 		}
 		while(true)
@@ -251,6 +262,7 @@ public:
 			else
 				std::this_thread::yield();
 		}
+		pTask->NotifySem();
 		return false;
 	}
 
