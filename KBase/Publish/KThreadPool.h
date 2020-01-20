@@ -3,6 +3,7 @@
 #include "KBase/Publish/KLockQueue.h"
 #include "KBase/Publish/KSemaphore.h"
 #include "KBase/Publish/KThreadTool.h"
+#include <list>
 #include <assert.h>
 
 template<typename Task, bool bUseLockFreeQueue = false>
@@ -38,7 +39,7 @@ class KThreadPool
 	};
 
 	typedef typename BOOLToTYPE<bUseLockFreeQueue>::QueueType QueueType;
-	typedef std::vector<Task> SharedQueueType;
+	typedef std::list<Task> SharedQueueType;
 
 	struct TripleQueue
 	{
@@ -46,7 +47,7 @@ class KThreadPool
 		SharedQueueType asyncSyncSwapQueue;
 		SharedQueueType syncQueue;
 		std::mutex		lock;
-		KSemaphore		sem;
+		std::condition_variable cond;
 
 		TripleQueue()
 		{
@@ -111,7 +112,7 @@ class KThreadPool
 					{
 						std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
 						m_SharedQueue.asyncQueue.push_back(taskGroup.syncTask);
-						m_SharedQueue.sem.Notify();
+						m_SharedQueue.cond.notify_one();
 					}
 				});
 
@@ -162,29 +163,24 @@ class KThreadPool
 
 		void ThreadFunc()
 		{
-			KThreadTool::SetThreadName("SyncTaskThread");
-			bool bNeedWait = false;
-			while(!m_bDone)
+			KThreadTool::SetThreadName("SyncTaskSwapThread");
+			while (!m_bDone)
 			{
-				bNeedWait = false;
-				if(m_bDone)
-					break;
+				std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
+				m_SharedQueue.cond.wait(lock, [this] { return !m_SharedQueue.asyncQueue.empty() || m_bDone; });
+
+				if (m_bDone)
 				{
-					std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
-					if(m_SharedQueue.asyncSyncSwapQueue.empty())
+					break;
+				}
+
+				if (m_SharedQueue.asyncSyncSwapQueue.empty())
+				{
+					if (!m_SharedQueue.asyncQueue.empty())
 					{
-						if(m_SharedQueue.asyncQueue.empty())
-						{
-							bNeedWait = true;
-						}
-						else
-						{
-							m_SharedQueue.asyncSyncSwapQueue.swap(m_SharedQueue.asyncQueue);
-						}
+						m_SharedQueue.asyncSyncSwapQueue.swap(m_SharedQueue.asyncQueue);
 					}
 				}
-				if(!m_bDone && bNeedWait)
-					m_SharedQueue.sem.Wait();
 			}
 		}
 	public:
@@ -198,7 +194,7 @@ class KThreadPool
 		~KSyncTaskThread()
 		{
 			m_bDone = true;
-			m_SharedQueue.sem.Notify();
+			m_SharedQueue.cond.notify_one();
 			m_Thread.join();
 		}
 
@@ -319,20 +315,16 @@ public:
 
 	void ProcessSyncTask()
 	{
+		if (!m_SharedQueue.syncQueue.empty())
 		{
-			std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
-			if(m_SharedQueue.syncQueue.empty() && !m_SharedQueue.asyncSyncSwapQueue.empty())
-			{
-				m_SharedQueue.asyncSyncSwapQueue.swap(m_SharedQueue.syncQueue);
-			}
-			else
-			{
-				return;
-			}
+			std::for_each(m_SharedQueue.syncQueue.begin(), m_SharedQueue.syncQueue.end(), [](Task& syncTask) {syncTask(); });
+			m_SharedQueue.syncQueue.clear();
 		}
-		assert(!m_SharedQueue.syncQueue.empty());
-		std::for_each(m_SharedQueue.syncQueue.begin(), m_SharedQueue.syncQueue.end(), [](Task& syncTask) {syncTask(); });
-		m_SharedQueue.syncQueue.clear();
+		std::unique_lock<decltype(m_SharedQueue.lock)> lock(m_SharedQueue.lock);
+		if (!m_SharedQueue.asyncSyncSwapQueue.empty())
+		{
+			m_SharedQueue.asyncSyncSwapQueue.swap(m_SharedQueue.syncQueue);
+		}
 	}
 };
 
