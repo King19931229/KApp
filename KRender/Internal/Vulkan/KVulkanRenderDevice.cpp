@@ -179,7 +179,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_MultiThreadSumbit(true),
 	m_Texture(nullptr),
 	m_Sampler(nullptr),
-	m_FrameInFlight(2)
+	m_FrameInFlight(1)
 {
 	m_MaxRenderThreadNum = std::thread::hardware_concurrency();
 	ZERO_ARRAY_MEMORY(m_Move);
@@ -605,7 +605,7 @@ bool KVulkanRenderDevice::CreateMesh()
 
 #if 1
 #ifdef _DEBUG
-	int width = 3, height = 3;
+	int width = 0, height = 0;
 #else
 	int width = 10, height = 10;
 #endif
@@ -635,7 +635,7 @@ bool KVulkanRenderDevice::CreateMesh()
 		}
 	}
 #endif
-#if 1
+#if 0
 	const uint32_t IDX = 1;
 
 	enum InitMode
@@ -872,7 +872,6 @@ bool KVulkanRenderDevice::InitGlobalManager()
 {
 	KVulkanHeapAllocator::Init();
 
-	KRenderGlobal::TaskExecutor.PushWorkerThreads(std::thread::hardware_concurrency());
 	KRenderGlobal::PipelineManager.Init(this);
 	KRenderGlobal::FrameResourceManager.Init(this, m_FrameInFlight, m_MaxRenderThreadNum);
 	KRenderGlobal::MeshManager.Init(this, m_FrameInFlight, m_MaxRenderThreadNum);
@@ -924,16 +923,16 @@ bool KVulkanRenderDevice::UnInitGlobalManager()
 	KRenderGlobal::SkyBox.UnInit();
 	KRenderGlobal::ShadowMap.UnInit();
 
-	KRenderGlobal::PipelineManager.UnInit();
-	KRenderGlobal::FrameResourceManager.UnInit();
 	KRenderGlobal::MeshManager.UnInit();
-	KRenderGlobal::ShaderManager.UnInit();
-	KRenderGlobal::TextrueManager.UnInit();
-
 	KRenderGlobal::PostProcessManager.UnInit();
 
+	KRenderGlobal::TextrueManager.UnInit();
+	KRenderGlobal::ShaderManager.UnInit();
+	KRenderGlobal::PipelineManager.UnInit();
+
+	KRenderGlobal::FrameResourceManager.UnInit();
+
 	KVulkanHeapAllocator::UnInit();
-	KRenderGlobal::TaskExecutor.PopWorkerThreads(std::thread::hardware_concurrency());
 
 	return true;
 }
@@ -1185,6 +1184,8 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	// temp
 	AddWindowCallback();
 
+	KRenderGlobal::TaskExecutor.PushWorkerThreads(std::thread::hardware_concurrency());
+
 	VkApplicationInfo appInfo = {};
 
 	// 描述实例
@@ -1321,6 +1322,12 @@ bool KVulkanRenderDevice::UnInit()
 #else
 	m_ThreadPool.WaitAll();
 #endif
+
+	while (!KRenderGlobal::TaskExecutor.AllTaskDone())
+	{
+		KRenderGlobal::TaskExecutor.ProcessSyncTask();
+	}
+	KRenderGlobal::TaskExecutor.PopWorkerThreads(std::thread::hardware_concurrency());
 
 	m_pWindow = nullptr;
 
@@ -1898,21 +1905,21 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 			size_t drawEachThread = cullRes.size() / threadCount;
 			size_t reaminCount = cullRes.size() % threadCount;
 
-			for(size_t i = 0; i < threadCount; ++i)
+			for (size_t i = 0; i < threadCount; ++i)
 			{
 				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[i];
 
 				threadData.preZcommands.clear();
 				threadData.commands.clear();
 
-				for(size_t st = i * drawEachThread, ed = st + drawEachThread + (i == threadCount - 1 ? reaminCount : 0); st < ed; ++st)
+				auto addMesh = [&](size_t index)
 				{
-					KRenderComponent* component = cullRes[st];
+					KRenderComponent* component = cullRes[index];
 					KMeshPtr mesh = component->GetMesh();
 
 					KEntity* entity = component->GetEntityHandle();
 					KTransformComponent* transform = nullptr;
-					if(entity->GetComponent(CT_TRANSFORM, (KComponentBase**)&transform))
+					if (entity->GetComponent(CT_TRANSFORM, (KComponentBase**)&transform))
 					{
 						KMeshPtr mesh = component->GetMesh();
 
@@ -1938,6 +1945,19 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 
 							threadData.commands.push_back(command);
 						});
+					}
+				};			
+
+				for(size_t st = i * drawEachThread, ed = st + drawEachThread; st < ed; ++st)
+				{
+					addMesh(st);
+				}
+
+				if (i == 0)
+				{
+					for (size_t st = threadCount * drawEachThread, ed = st + reaminCount; st < ed; ++st)
+					{
+						addMesh(st);
 					}
 				}
 			}

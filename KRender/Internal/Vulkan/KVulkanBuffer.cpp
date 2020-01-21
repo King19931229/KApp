@@ -67,7 +67,7 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 	// 把之前存在内存里的数据丢掉
 	if(hostVisible)
 	{
-		m_Data.clear();
+		m_Data.swap(decltype(m_Data)());
 	}
 	m_bDeviceInit = true;
 	m_bHostVisible = hostVisible;
@@ -230,7 +230,7 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 	// 把之前存在内存里的数据丢掉
 	if(hostVisible)
 	{
-		m_Data.clear();
+		m_Data.swap(decltype(m_Data)());
 	}
 	m_bDeviceInit = true;
 	m_bHostVisible = hostVisible;
@@ -359,7 +359,7 @@ bool KVulkanUniformBuffer::InitDevice()
 	vkUnmapMemory(device, m_AllocInfo.vkMemroy);
 
 	// 把之前存在内存里的数据丢掉
-	m_Data.clear();
+	m_Data.swap(decltype(m_Data)());
 	m_bDeviceInit = true;
 
 	return true;

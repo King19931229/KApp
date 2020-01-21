@@ -123,6 +123,7 @@ protected:
 	bool DestroyDevice();
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
 	bool WaitDependencyResource();
+	bool CheckDependencyResource();
 
 	std::mutex m_LoadTaskLock;
 	KTaskUnitProcessorPtr m_LoadTask;

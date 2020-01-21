@@ -226,9 +226,13 @@ bool KVulkanTexture::InitDevice(bool async)
 	}
 	else
 	{
-		waitImpl();
-		return loadImpl();
+		if (waitImpl())
+		{
+			return loadImpl();
+		}
+		assert(false && "should not be reached");
 	}
+	return false;
 }
 
 bool KVulkanTexture::UnInit()

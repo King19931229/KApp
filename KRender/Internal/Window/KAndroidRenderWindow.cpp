@@ -251,7 +251,6 @@ bool KAndroidRenderWindow::Loop()
 			// Exit loop, example will be destroyed in application main
 			if (destroy)
 			{
-				// �������߳�ֱ��device���ж����������?
 				if (m_device)
 				{
 					m_device->Wait();

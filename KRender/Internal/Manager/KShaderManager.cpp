@@ -21,6 +21,7 @@ bool KShaderManager::Init(IKRenderDevice* device)
 
 bool KShaderManager::UnInit()
 {
+	ASSERT_RESULT(m_Shaders.empty());
 	for(auto it = m_Shaders.begin(), itEnd = m_Shaders.end(); it != itEnd; ++it)
 	{
 		ShaderUsingInfo& info = it->second;
@@ -28,7 +29,6 @@ bool KShaderManager::UnInit()
 		info.shader->UnInit();
 	}
 	m_Shaders.clear();
-
 	m_Device = nullptr;
 	return true;
 }

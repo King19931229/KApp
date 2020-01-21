@@ -19,7 +19,7 @@ bool KTextureManager::Init(IKRenderDevice* device)
 
 bool KTextureManager::UnInit()
 {
-	m_Device = nullptr;
+	assert(m_Textures.empty());
 	for(auto it = m_Textures.begin(), itEnd = m_Textures.end(); it != itEnd; ++it)
 	{
 		TextureUsingInfo& info = it->second;
@@ -27,7 +27,6 @@ bool KTextureManager::UnInit()
 		info.texture->UnInit();
 	}
 	m_Textures.clear();
-
 	m_Device = nullptr;
 	return true;
 }

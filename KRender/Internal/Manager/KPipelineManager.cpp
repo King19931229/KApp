@@ -22,7 +22,21 @@ bool KPipelineManager::Init(IKRenderDevice* device)
 
 bool KPipelineManager::UnInit()
 {
+	assert(m_RenderPipelineMap.empty());
+	for (PipelineHandleMap::iterator it = m_RenderPipelineMap.begin(), itEnd = m_RenderPipelineMap.end();
+		it != itEnd; ++it)
+	{
+		RtPipelineHandleMap& handleMap = it->second;
+		for (RtPipelineHandleMap::iterator it2 = handleMap.begin(), it2End = handleMap.end();
+			it2 != it2End; ++it2)
+		{
+			IKPipelineHandlePtr pipelineHandle = it2->second;
+			pipelineHandle->UnInit();
+		}
+		handleMap.clear();
+	}
 	m_Device = nullptr;
+	m_RenderPipelineMap.clear();
 	return true;
 }
 
@@ -43,7 +57,7 @@ bool KPipelineManager::Reload()
 
 	for(IKPipelinePtr pipeline : reloadPipelines)
 	{
-		pipeline->Reload(true);
+		pipeline->Reload(false);
 	}
 
 	return true;

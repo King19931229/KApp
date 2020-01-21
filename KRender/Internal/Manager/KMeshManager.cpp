@@ -25,6 +25,8 @@ bool KMeshManager::Init(IKRenderDevice* device, size_t frameInFlight, size_t ren
 
 bool KMeshManager::UnInit()
 {
+	assert(m_Meshes.empty());
+
 	for(auto it = m_Meshes.begin(), itEnd = m_Meshes.end(); it != itEnd; ++it)
 	{
 		MeshUsingInfo& info = it->second;
@@ -32,7 +34,6 @@ bool KMeshManager::UnInit()
 		info.mesh->UnInit();
 	}
 	m_Meshes.clear();
-
 	m_Device = nullptr;
 	m_FrameInFlight = 0;
 

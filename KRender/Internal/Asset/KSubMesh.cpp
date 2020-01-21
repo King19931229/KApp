@@ -58,6 +58,7 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 			for(size_t threadIndex = 0; threadIndex < m_RenderThreadNum; ++threadIndex)
 			{
 				PipelineInfo& info = threadPipelines[threadIndex];
+				assert(!info.pipeline);
 				CreatePipeline((PipelineStage)i, frameIndex, threadIndex, info.pipeline, info.objectPushOffset);
 			}
 		}

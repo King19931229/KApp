@@ -158,10 +158,20 @@ bool KVulkanSampler::Init(IKTexturePtr texture, bool async)
 	{
 		ReleaseDevice();
 
+		auto waitImpl = [=]()->bool
+		{
+			texture->WaitForMemory();
+			return true;
+		};
+
+		auto checkImpl = [=]()->bool
+		{
+			return texture->GetResourceState() == RS_DEVICE_LOADED;
+		};
+
 		auto loadImpl = [=]()->bool
 		{
 			m_ResourceState = RS_DEVICE_LOADING;
-			texture->WaitForDevice();
 			m_MinMipmap = 0;
 			m_MaxMipmap = texture->GetMipmaps();
 			CreateDevice();
@@ -169,16 +179,26 @@ bool KVulkanSampler::Init(IKTexturePtr texture, bool async)
 			return true;
 		};
 
+		auto waitAndLoadImpl = [=]()->bool
+		{
+			waitImpl();
+			return loadImpl();
+		};
+
 		if (async)
 		{
 			m_ResourceState = RS_PENDING;
 			std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
-			m_DeviceLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+			m_DeviceLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(waitAndLoadImpl)));
 			return true;
 		}
 		else
 		{
-			return loadImpl();
+			if (checkImpl())
+			{
+				return loadImpl();
+			}
+			assert(false && "should not be reached");
 		}
 	}
 	return false;

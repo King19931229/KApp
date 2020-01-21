@@ -259,6 +259,31 @@ bool KVulkanPipeline::WaitDependencyResource()
 	return true;
 }
 
+bool KVulkanPipeline::CheckDependencyResource()
+{
+	for (auto& pair : m_Samplers)
+	{
+		unsigned int location = pair.first;
+		SamplerBindingInfo& info = pair.second;
+
+		VkDescriptorImageInfo imageInfo = {};
+		imageInfo.imageLayout = info.depthStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		if (!info.nakeInfo)
+		{
+			if (info.texture->GetResourceState() != RS_DEVICE_LOADED)
+			{
+				return false;
+			}
+			if (info.sampler->GetResourceState() != RS_DEVICE_LOADED)
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler)
 {
 	if(texture && sampler)
@@ -545,6 +570,11 @@ bool KVulkanPipeline::Init(bool async)
 		return WaitDependencyResource();
 	};
 
+	auto checkImpl = [=]()->bool
+	{
+		return CheckDependencyResource();
+	};
+
 	auto loadImpl = [=]()->bool
 	{
 		m_State = PIPELINE_RESOURCE_LOADING;
@@ -564,8 +594,11 @@ bool KVulkanPipeline::Init(bool async)
 	}
 	else
 	{
-		waitImpl();
-		return loadImpl();
+		if (checkImpl())
+		{
+			return loadImpl();
+		}
+		assert(false && "should not be reached");
 	}
 
 	return true;
@@ -648,11 +681,18 @@ bool KVulkanPipelineHandle::Init(IKPipelinePtr pipeline, IKRenderTargetPtr targe
 {
 	ReleaseHandle();
 
+	// 裸指针
 	auto waitImpl = [=]()->bool
 	{
 		ASSERT_RESULT(pipeline);
 		pipeline->WaitDevice();
 		return true;
+	};
+
+	auto checkImpl = [=]()->bool
+	{
+		ASSERT_RESULT(pipeline);
+		return pipeline->GetState() == PIPELINE_RESOURCE_LOADED;
 	};
 
 	auto loadImpl = [=]()->bool
@@ -871,9 +911,13 @@ bool KVulkanPipelineHandle::Init(IKPipelinePtr pipeline, IKRenderTargetPtr targe
 	}
 	else
 	{
-		waitImpl();
-		return loadImpl();
+		if (checkImpl())
+		{
+			return loadImpl();
+		}
+		assert(false && "should not be reached");
 	}
+	return false;
 }
 
 bool KVulkanPipelineHandle::UnInit()

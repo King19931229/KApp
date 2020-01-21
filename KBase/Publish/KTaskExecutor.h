@@ -325,6 +325,7 @@ public:
 	inline bool AllSyncTaskDone() { return m_ExecutePool.AllSyncTaskDone(); }
 	inline bool AllTaskDone() { return m_ExecutePool.AllTaskDone(); }
 	inline void ProcessSyncTask() { m_ExecutePool.ProcessSyncTask(); }
+	inline void WaitAllAsyncTaskDone() { m_ExecutePool.WaitAllAsyncTaskDone(); }
 	inline void PushWorkerThreads(size_t uThreadNum) { m_ExecutePool.PushWorkerThreads(uThreadNum); }
 	inline void PopWorkerThreads(size_t uThreadNum) { m_ExecutePool.PopWorkerThreads(uThreadNum); }
 	inline size_t GetWorkerThreadNum() { return m_ExecutePool.GetWorkerThreadNum(); }
