@@ -128,17 +128,6 @@ void KGLFWRenderWindow::KeyboardCallback(GLFWwindow* handle, int key, int scanco
 
 		if (GLFWKeyToInputKeyboard(key, keyboard) && GLFWActionToInputAction(action, inputAction))
 		{
-#if 0
-			static bool first = true;
-			if (first && keyboard == INPUT_KEY_ENTER)
-			{
-				window->m_device->UnInit();
-				window->m_device->Init(window);
-				first = false;
-				return;
-			}
-#endif
-
 			for (auto it = window->m_KeyboardCallbacks.begin(),
 				itEnd = window->m_KeyboardCallbacks.end();
 				it != itEnd; ++it)

@@ -179,7 +179,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_MultiThreadSumbit(true),
 	m_Texture(nullptr),
 	m_Sampler(nullptr),
-	m_FrameInFlight(1)
+	m_FrameInFlight(2)
 {
 	m_MaxRenderThreadNum = std::thread::hardware_concurrency();
 	ZERO_ARRAY_MEMORY(m_Move);
@@ -605,14 +605,14 @@ bool KVulkanRenderDevice::CreateMesh()
 
 #if 1
 #ifdef _DEBUG
-	int width = 0, height = 0;
+	int width = 1, height = 1;
 #else
 	int width = 10, height = 10;
 #endif
 	int widthExtend = width * 8, heightExtend = height * 8;
-	for(int i = 0; i <= width; ++i)
+	for(int i = 0; i < width; ++i)
 	{
-		for(int j = 0; j <= height; ++j)
+		for(int j = 0; j < height; ++j)
 		{
 			KEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
 
@@ -635,7 +635,7 @@ bool KVulkanRenderDevice::CreateMesh()
 		}
 	}
 #endif
-#if 0
+#if 1
 	const uint32_t IDX = 1;
 
 	enum InitMode
@@ -897,8 +897,8 @@ bool KVulkanRenderDevice::InitGlobalManager()
 
 	KPostProcessPass* startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
-	KPostProcessPass* pass = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess.frag", 0.5f, EF_R8GB8BA8_UNORM);
-	KPostProcessPass* pass2 = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess2.frag", 0.5f, EF_R8GB8BA8_UNORM);
+	KPostProcessPass* pass = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess.frag", 1.0f, EF_R8GB8BA8_UNORM);
+	KPostProcessPass* pass2 = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess2.frag", 1.0f, EF_R8GB8BA8_UNORM);
 	KPostProcessPass* pass3 = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess3.frag", 1.0f, EF_R8GB8BA8_UNORM);
 
 	KRenderGlobal::PostProcessManager.CreatePassConnection(startPoint, pass, 0);
@@ -933,6 +933,8 @@ bool KVulkanRenderDevice::UnInitGlobalManager()
 	KRenderGlobal::FrameResourceManager.UnInit();
 
 	KVulkanHeapAllocator::UnInit();
+
+	assert(KRenderGlobal::TaskExecutor.AllTaskDone());
 
 	return true;
 }
@@ -1184,7 +1186,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	// temp
 	AddWindowCallback();
 
-	KRenderGlobal::TaskExecutor.PushWorkerThreads(std::thread::hardware_concurrency());
+	KRenderGlobal::TaskExecutor.Init(std::thread::hardware_concurrency());
 
 	VkApplicationInfo appInfo = {};
 
@@ -1275,7 +1277,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		if(!CreatePipelines())
 			return false;
 #ifndef THREAD_MODE_ONE
-		m_ThreadPool.PushWorkerThreads(m_MaxRenderThreadNum);
+		m_ThreadPool.Init(m_MaxRenderThreadNum);
 #else
 		m_ThreadPool.SetThreadCount(m_MaxRenderThreadNum);
 #endif
@@ -1318,7 +1320,7 @@ bool KVulkanRenderDevice::UnInit()
 	Wait();
 #ifndef THREAD_MODE_ONE
 	m_ThreadPool.WaitAllAsyncTaskDone();
-	m_ThreadPool.PopAllWorkerThreads();
+	m_ThreadPool.UnInit();
 #else
 	m_ThreadPool.WaitAll();
 #endif
@@ -1327,7 +1329,7 @@ bool KVulkanRenderDevice::UnInit()
 	{
 		KRenderGlobal::TaskExecutor.ProcessSyncTask();
 	}
-	KRenderGlobal::TaskExecutor.PopWorkerThreads(std::thread::hardware_concurrency());
+	KRenderGlobal::TaskExecutor.UnInit();
 
 	m_pWindow = nullptr;
 
@@ -1630,18 +1632,15 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t frameIndex, uint32_t threa
 #endif
 
 	IKCommandBufferPtr commandBuffer = nullptr;
-	std::vector<KRenderCommand> renderCommands;
-
 	// PreZ
 	commandBuffer = threadData.preZcommandBuffer;
-	renderCommands = std::move(threadData.preZcommands);
 
 	IKRenderTargetPtr offscreenTarget = KRenderGlobal::PostProcessManager.GetStartPointPass()->GetRenderTarget(frameIndex);
 
 	commandBuffer->BeginSecondary(offscreenTarget);
 	commandBuffer->SetViewport(offscreenTarget);
 
-	for(KRenderCommand& command : renderCommands)
+	for(KRenderCommand& command : threadData.preZcommands)
 	{
 		commandBuffer->Render(command);
 	}
@@ -1649,12 +1648,11 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t frameIndex, uint32_t threa
 
 	// Regular
 	commandBuffer = threadData.commandBuffer;
-	renderCommands = std::move(threadData.commands);
 
 	commandBuffer->BeginSecondary(offscreenTarget);
 	commandBuffer->SetViewport(offscreenTarget);
 
-	for(KRenderCommand& command : renderCommands)
+	for(KRenderCommand& command : threadData.commands)
 	{
 		commandBuffer->Render(command);
 	}
@@ -1872,7 +1870,6 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 			primaryCommandBuffer->BeginRenderPass(offscreenTarget, SUBPASS_CONTENTS_SECONDARY);
 
 			auto commandBuffers = m_CommandBuffers[frameIndex].commandBuffersExec;
-			commandBuffers.clear();
 
 			// 绘制SkyBox
 			{
@@ -1982,18 +1979,25 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 			m_ThreadPool.WaitAll();
 #endif
 
-			for(size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
+			for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
 			{
 				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
 				commandBuffers.push_back(threadData.preZcommandBuffer);
+				threadData.preZcommands.clear();
 			}
 
-			for(size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
+			for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
 			{
 				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
 				commandBuffers.push_back(threadData.commandBuffer);
+				threadData.commands.clear();
 			}
-			primaryCommandBuffer->ExecuteAll(commandBuffers);
+
+			if (!commandBuffers.empty())
+			{
+				primaryCommandBuffer->ExecuteAll(commandBuffers);
+				commandBuffers.clear();
+			}
 
 			primaryCommandBuffer->EndRenderPass();
 		}

@@ -218,50 +218,46 @@ public:
 	KThreadPool()
 		: m_pSyncTaskThread(nullptr)
 	{
-		m_pSyncTaskThread = new KSyncTaskThread(m_SharedQueue);
-		assert(m_pSyncTaskThread);
 	}
 
 	~KThreadPool()
 	{
-		for(auto it = m_Threads.begin(), itEnd = m_Threads.end();
+		assert(m_Threads.empty());
+		assert(m_pSyncTaskThread == nullptr);
+		assert(m_Sem.GetCount() == 0);
+	}
+
+	void Init(size_t uThreadNum)
+	{
+		assert(!m_pSyncTaskThread);
+		if (!m_pSyncTaskThread)
+		{
+			m_pSyncTaskThread = new KSyncTaskThread(m_SharedQueue);
+			while (uThreadNum--)
+			{
+				KWorkerThread* pThread = new KWorkerThread(m_Queue, m_SharedQueue, m_Sem, m_WaitMutex, m_WaitCond);
+				assert(pThread);
+				m_Threads.push_back(pThread);
+			}
+		}
+	}
+
+	void UnInit()
+	{
+		assert(m_pSyncTaskThread);
+		if (m_pSyncTaskThread)
+		{
+			delete m_pSyncTaskThread;
+			m_pSyncTaskThread = nullptr;
+		}
+		for (auto it = m_Threads.begin(), itEnd = m_Threads.end();
 			it != itEnd; ++it)
 		{
 			delete *it;
 			*it = nullptr;
 		}
 		m_Threads.clear();
-
-		delete m_pSyncTaskThread;
-		m_pSyncTaskThread = nullptr;
-	}
-
-	void PushWorkerThreads(size_t uThreadNum)
-	{
-		while(uThreadNum--)
-		{
-			KWorkerThread* pThread = new KWorkerThread(m_Queue, m_SharedQueue, m_Sem, m_WaitMutex, m_WaitCond);
-			assert(pThread);
-			m_Threads.push_back(pThread);
-		}
-	}
-
-	void PopWorkerThreads(size_t uThreadNum)
-	{
-		assert(uThreadNum <= m_Threads.size());
-		uThreadNum = uThreadNum > m_Threads.size() ? m_Threads.size() : uThreadNum;
-		while(uThreadNum--)
-		{
-			KWorkerThread* pThread = m_Threads.back();
-			m_Threads.pop_back();
-			delete pThread;
-			pThread = nullptr;
-		}
-	}
-
-	void PopAllWorkerThreads()
-	{
-		PopWorkerThreads(m_Threads.size());
+		m_Sem.Reset();
 	}
 
 	size_t GetWorkerThreadNum()

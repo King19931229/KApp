@@ -51,6 +51,19 @@ public:
 		return true;
 	}
 
+	bool Reset()
+	{
+		std::unique_lock<std::mutex> lock(m_Mutex);
+		m_nCount = 0;
+		return true;
+	}
+
+	int GetCount()
+	{
+		std::unique_lock<std::mutex> lock(m_Mutex);
+		return m_nCount;
+	}
+
 #if 0
 	template<typename Pred>
 	bool WaitUntil(Pred pred)

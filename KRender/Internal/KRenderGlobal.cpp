@@ -13,5 +13,5 @@ namespace KRenderGlobal
 	KSkyBox SkyBox;
 	KShadowMap ShadowMap;
 
-	KTaskExecutor<false> TaskExecutor;
+	KTaskExecutor<true> TaskExecutor;
 }
