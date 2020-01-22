@@ -766,8 +766,8 @@ bool KVulkanRenderDevice::CreateResource()
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_Sampler->Init(m_Texture, false);
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shader.vert", m_SceneVertexShader));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/demo.frag", m_SceneFragmentShader));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shader.vert", m_SceneVertexShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/demo.frag", m_SceneFragmentShader, false));
 
 	return true;
 }

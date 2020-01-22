@@ -181,8 +181,8 @@ void KUIOverlayBase::PrepareResources()
 	m_FontSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	ASSERT_RESULT(m_FontSampler->Init(0, 0));
 
-	ASSERT_RESULT(m_VertexShader->InitFromFile("Shaders/uioverlay.vert"));
-	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/uioverlay.frag"));
+	ASSERT_RESULT(m_VertexShader->InitFromFile("Shaders/uioverlay.vert", false));
+	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/uioverlay.frag", false));
 }
 
 void KUIOverlayBase::PreparePipeline()

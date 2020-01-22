@@ -256,6 +256,17 @@ bool KVulkanPipeline::WaitDependencyResource()
 			info.sampler->WaitForDevice();
 		}
 	}
+
+	if (m_VertexShader)
+	{
+		m_VertexShader->WaitForDevice();
+	}
+
+	if (m_FragmentShader)
+	{
+		m_FragmentShader->WaitForDevice();
+	}
+
 	return true;
 }
 
@@ -281,6 +292,23 @@ bool KVulkanPipeline::CheckDependencyResource()
 			}
 		}
 	}
+
+	if (m_VertexShader)
+	{
+		if (m_VertexShader->GetResourceState() != RS_DEVICE_LOADED)
+		{
+			return false;
+		}
+	}
+
+	if (m_FragmentShader)
+	{
+		if (m_FragmentShader->GetResourceState() != RS_DEVICE_LOADED)
+		{
+			return false;
+		}
+	}
+
 	return true;
 }
 

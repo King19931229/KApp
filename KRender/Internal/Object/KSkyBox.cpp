@@ -71,8 +71,8 @@ void KSkyBox::LoadResource(const char* cubeTexPath)
 	m_CubeSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_CubeSampler->Init(m_CubeTexture, false);
 
-	ASSERT_RESULT(m_VertexShader->InitFromFile("Shaders/cube.vert"));
-	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/cube.frag"));
+	ASSERT_RESULT(m_VertexShader->InitFromFile("Shaders/cube.vert", false));
+	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/cube.frag", false));
 
 	m_VertexBuffer->InitMemory(ARRAY_SIZE(ms_Positions), sizeof(ms_Positions[0]), ms_Positions);
 	m_VertexBuffer->InitDevice(false);

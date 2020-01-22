@@ -51,8 +51,8 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_Width = width;
 	m_Height = height;
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/screenquad.vert", m_ScreenDrawVS));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/screenquad.frag", m_ScreenDrawFS));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/screenquad.vert", m_ScreenDrawVS, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/screenquad.frag", m_ScreenDrawFS, false));
 
 	m_Device->CreateSampler(m_Sampler);
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);

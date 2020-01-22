@@ -25,6 +25,6 @@ public:
 
 	bool Reload();
 
-	bool Acquire(const char* path, IKShaderPtr& shader);
+	bool Acquire(const char* path, IKShaderPtr& shader, bool async);
 	bool Release(IKShaderPtr& shader);
 };

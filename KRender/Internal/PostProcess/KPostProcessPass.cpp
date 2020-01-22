@@ -63,8 +63,8 @@ bool KPostProcessPass::Init()
 	}
 	else
 	{
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(m_VSFile.c_str(), m_VSShader));
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(m_FSFile.c_str(), m_FSShader));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(m_VSFile.c_str(), m_VSShader, false));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(m_FSFile.c_str(), m_FSShader, false));
 
 		m_CommandBuffers.resize(m_FrameInFlight);
 		for(size_t i = 0; i < m_CommandBuffers.size(); ++i)

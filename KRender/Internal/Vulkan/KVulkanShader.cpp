@@ -10,19 +10,61 @@
 #include "KBase/Publish/KSystem.h"
 #include "KBase/Publish/KHash.h"
 
+#include "Internal/KRenderGlobal.h"
+
 #include <assert.h>
 
 #define CACHE_PATH "ShaderCached"
 
 KVulkanShader::KVulkanShader()
+	: m_ShaderModule(VK_NULL_HANDLE),
+	m_ResourceState(RS_UNLOADED),
+	m_LoadTask(nullptr)
 {
-	m_ShaderModule = VK_NULL_HANDLE;
 	ZERO_MEMORY(m_SpecializationInfo);
 }
 
 KVulkanShader::~KVulkanShader()
 {
+	ASSERT_RESULT(m_ResourceState == RS_UNLOADED);
+	ASSERT_RESULT(m_LoadTask == nullptr);
 	ASSERT_RESULT(m_ShaderModule == VK_NULL_HANDLE);
+}
+
+ResourceState KVulkanShader::GetResourceState()
+{
+	return m_ResourceState;
+}
+
+void KVulkanShader::WaitForMemory()
+{
+}
+
+void KVulkanShader::WaitForDevice()
+{
+	WaitDeviceTask();
+}
+
+bool KVulkanShader::CancelDeviceTask()
+{
+	std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+	if (m_LoadTask)
+	{
+		m_LoadTask->Cancel();
+		m_LoadTask = nullptr;
+	}
+	return true;
+}
+
+bool KVulkanShader::WaitDeviceTask()
+{
+	std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+	if (m_LoadTask)
+	{
+		m_LoadTask->Wait();
+		m_LoadTask = nullptr;
+	}
+	return true;
 }
 
 bool KVulkanShader::SetConstantEntry(uint32_t constantID, uint32_t offset, size_t size, const void* data)
@@ -54,9 +96,9 @@ bool KVulkanShader::SetConstantEntry(uint32_t constantID, uint32_t offset, size_
 
 bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* pModule)
 {
-	// TODO
 	std::string path = _path;
 #ifdef __ANDROID__
+	// TODO
 	path = path + ".spv";
 	ASSERT_RESULT(KFileTool::PathJoin(CACHE_PATH, path, path));
 #endif
@@ -147,46 +189,80 @@ bool KVulkanShader::InitFromStringImpl(const std::vector<char>& code, VkShaderMo
 	return false;
 }
 
-bool KVulkanShader::InitFromFile(const std::string& path)
+bool KVulkanShader::InitFromFile(const std::string& path, bool async)
 {
-	VkShaderModule module = VK_NULL_HANDLE;
-	if(InitFromFileImpl(path, &module))
+	CancelDeviceTask();
+
+	auto loadImpl = [=]()->bool
 	{
+		m_ResourceState = RS_DEVICE_LOADING;
+		VkShaderModule module = VK_NULL_HANDLE;
 		DestroyDevice(m_ShaderModule);
-		m_ShaderModule = module;
-		m_Path = path;
+		if (InitFromFileImpl(path, &module))
+		{
+			m_ShaderModule = module;
+			m_Path = path;
+			m_ResourceState = RS_DEVICE_LOADED;
+			return true;
+		}
+		else
+		{
+			m_ShaderModule = VK_NULL_HANDLE;
+			m_ResourceState = RS_UNLOADED;
+			m_Path = "";
+			assert(false && "shader compile failure");
+			return false;
+		}
+	};
+
+	if (async)
+	{
+		m_ResourceState = RS_PENDING;
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
 		return true;
 	}
 	else
 	{
-		// first time load
-		if(m_ShaderModule == VK_NULL_HANDLE)
-		{
-			assert(false && "shader compile failure");
-		}
-		m_ShaderModule = VK_NULL_HANDLE;
-		return false;
+		return loadImpl();
 	}
 }
 
-bool KVulkanShader::InitFromString(const std::vector<char>& code)
+bool KVulkanShader::InitFromString(const std::vector<char>& code, bool async)
 {
-	VkShaderModule module = VK_NULL_HANDLE;
-	if(InitFromStringImpl(code, &module))
+	CancelDeviceTask();
+
+	auto loadImpl = [=]()->bool
 	{
+		m_ResourceState = RS_DEVICE_LOADING;
+		VkShaderModule module = VK_NULL_HANDLE;
 		DestroyDevice(m_ShaderModule);
-		m_ShaderModule = module;
+		m_Path = "";
+		if (InitFromStringImpl(code, &module))
+		{
+			m_ShaderModule = module;
+			m_ResourceState = RS_DEVICE_LOADED;
+			return true;
+		}
+		else
+		{
+			m_ShaderModule = VK_NULL_HANDLE;
+			assert(false && "shader compile failure");
+			m_ResourceState = RS_UNLOADED;
+			return false;
+		}
+	};
+
+	if (async)
+	{
+		m_ResourceState = RS_PENDING;
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
 		return true;
 	}
 	else
 	{
-		// first time load
-		if(m_ShaderModule == VK_NULL_HANDLE)
-		{
-			assert(false && "shader compile failure");
-		}
-		m_ShaderModule = VK_NULL_HANDLE;
-		return false;
+		return loadImpl();
 	}
 }
 
@@ -237,8 +313,13 @@ bool KVulkanShader::DestroyDevice(VkShaderModule& module)
 
 bool KVulkanShader::UnInit()
 {
+	CancelDeviceTask();
+
 	DestroyDevice(m_ShaderModule);
 	m_ConstantData.clear();
+
+	m_ResourceState = RS_UNLOADED;
+
 	return true;
 }
 
@@ -249,14 +330,27 @@ const char* KVulkanShader::GetPath()
 
 bool KVulkanShader::Reload()
 {
-	if(!m_Path.empty())
-	{		
+	CancelDeviceTask();
+
+	if (!m_Path.empty())
+	{
+		ResourceState previousState = m_ResourceState;
+		m_ResourceState = RS_DEVICE_LOADING;
+
 		VkShaderModule module = VK_NULL_HANDLE;
-		if(InitFromFileImpl(m_Path, &module))
+		if (InitFromFileImpl(m_Path, &module))
 		{
 			DestroyDevice(m_ShaderModule);
 			m_ShaderModule = module;
+			m_ResourceState = RS_DEVICE_LOADED;
+			return true;
+		}
+		else
+		{
+			m_ResourceState = previousState;
+			return false;
 		}
 	}
+
 	return false;
 }

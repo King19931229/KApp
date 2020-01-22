@@ -44,7 +44,7 @@ bool KShaderManager::Reload()
 	return true;
 }
 
-bool KShaderManager::Acquire(const char* path, IKShaderPtr& shader)
+bool KShaderManager::Acquire(const char* path, IKShaderPtr& shader, bool async)
 {
 	auto it = m_Shaders.find(path);
 
@@ -57,7 +57,7 @@ bool KShaderManager::Acquire(const char* path, IKShaderPtr& shader)
 	}
 
 	m_Device->CreateShader(shader);
-	if(shader->InitFromFile(path))
+	if(shader->InitFromFile(path, async))
 	{
 		ShaderUsingInfo info = { 1, shader };
 		m_Shaders[path] = info;
