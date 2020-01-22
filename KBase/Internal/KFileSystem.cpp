@@ -8,14 +8,29 @@
 #include <algorithm>
 #include <assert.h>
 
-EXPORT_DLL IKFileSystemManagerPtr CreateFileSystemManager()
-{
-	return IKFileSystemManagerPtr((IKFileSystemManager*)new KFileSystemManager());
-}
-
 namespace KFileSystem
 {
-	IKFileSystemManagerPtr Manager = CreateFileSystemManager();
+	bool CreateFileManager()
+	{
+		assert(Manager == nullptr);
+		if (Manager == nullptr)
+		{
+			Manager = IKFileSystemManagerPtr((IKFileSystemManager*)new KFileSystemManager());
+		}
+		return true;
+	}
+
+	bool DestroyFileManager()
+	{
+		assert(Manager != nullptr);
+		if (Manager != nullptr)
+		{
+			Manager = nullptr;
+		}
+		return true;
+	}
+
+	IKFileSystemManagerPtr Manager = nullptr;
 }
 
 KFileSystemManager::KFileSystemManager()
@@ -39,6 +54,7 @@ bool KFileSystemManager::UnInit()
 	for(PriorityFileSystem& sys : m_Queue)
 	{
 		sys.system->UnInit();
+		sys.system = nullptr;
 	}
 	m_Queue.clear();
 	return true;

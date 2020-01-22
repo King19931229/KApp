@@ -5,8 +5,9 @@
 #include "Interface/IKBuffer.h"
 #include "Interface/IKTexture.h"
 #include "Interface/IKSampler.h"
-
 #include "KBase/Interface/IKFileSystem.h"
+
+#include "Internal/KRenderGlobal.h"
 
 #include "imgui.h"
 
@@ -81,7 +82,7 @@ bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 	{
 		renderDevice->CreateIndexBuffer(m_IndexBuffers[i]);
 		renderDevice->CreateVertexBuffer(m_VertexBuffers[i]);
-		renderDevice->CreatePipeline(m_Pipelines[i]);
+		KRenderGlobal::PipelineManager.CreatePipeline(m_Pipelines[i]);
 		m_NeedUpdates[i] = true;
 	}
 
@@ -136,7 +137,7 @@ bool KUIOverlayBase::UnInit()
 
 	for(IKPipelinePtr pipeline : m_Pipelines)
 	{
-		pipeline->UnInit();
+		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
 		pipeline = nullptr;
 	}
 	m_Pipelines.clear();

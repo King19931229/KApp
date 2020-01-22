@@ -271,6 +271,7 @@ bool KMeshSerializerV0::ReadIndexData(IKDataStreamPtr& stream, std::vector<KInde
 		tempIndexDatas.clear();
 	};
 
+	tempIndexDatas.reserve(indexElementCount);
 	for(uint32_t i = 0; i < indexElementCount; ++i)
 	{
 		KIndexData indexData;
@@ -279,8 +280,8 @@ bool KMeshSerializerV0::ReadIndexData(IKDataStreamPtr& stream, std::vector<KInde
 			releaseBuffers();
 			return false;
 		}
-
 		tempIndexDatas.push_back(indexData);
+		indexData.Clear();
 	};
 
 	indexDatas = std::move(tempIndexDatas);
@@ -482,7 +483,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 
 #undef RELEASE_ON_FAIL
 
-	pMesh->m_VertexData = vertexData;
+	pMesh->m_VertexData = std::move(vertexData);
 	pMesh->m_SubMeshes.resize(drawInfos.size());
 	for(size_t i = 0; i < drawInfos.size(); ++i)
 	{

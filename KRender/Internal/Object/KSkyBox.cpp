@@ -142,7 +142,7 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 
 	for(size_t i = 0; i < numImages; ++i)
 	{
-		renderDevice->CreatePipeline(m_Pipelines[i]);
+		KRenderGlobal::PipelineManager.CreatePipeline(m_Pipelines[i]);
 	}
 
 	LoadResource(cubeTexPath);
@@ -156,7 +156,7 @@ bool KSkyBox::UnInit()
 {
 	for(IKPipelinePtr pipeline : m_Pipelines)
 	{
-		pipeline->UnInit();
+		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
 		pipeline = nullptr;
 	}
 	m_Pipelines.clear();
@@ -196,6 +196,9 @@ bool KSkyBox::UnInit()
 		m_CubeSampler->UnInit();
 		m_CubeSampler = nullptr;
 	}
+
+	m_VertexData.Clear();
+	m_IndexData.Clear();
 
 	return true;
 }

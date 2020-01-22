@@ -20,15 +20,49 @@ struct KVertexData
 		vertexCount = 0;
 	}
 
+	KVertexData(KVertexData&& rhs)
+	{
+		vertexFormats = std::move(rhs.vertexFormats);
+		vertexBuffers = std::move(rhs.vertexBuffers);
+		vertexStart = rhs.vertexStart;
+		vertexCount = rhs.vertexCount;
+		rhs.vertexStart = 0;
+		rhs.vertexCount = 0;
+	}
+
+	KVertexData& operator=(KVertexData&& rhs)
+	{
+		vertexFormats = std::move(rhs.vertexFormats);
+		vertexBuffers = std::move(rhs.vertexBuffers);
+		vertexStart = rhs.vertexStart;
+		vertexCount = rhs.vertexCount;
+		rhs.vertexStart = 0;
+		rhs.vertexCount = 0;
+		return *this;
+	}
+
+	~KVertexData()
+	{
+	}
+
+	void Clear()
+	{
+		vertexBuffers.clear();
+		vertexFormats.clear();
+		vertexStart = 0;
+		vertexCount = 0;
+	}
+
 	void Destroy()
 	{
 		assert(vertexFormats.size() == vertexBuffers.size());
-		for(IKVertexBufferPtr& buffer : vertexBuffers)
+		for (IKVertexBufferPtr& buffer : vertexBuffers)
 		{
 			buffer->UnInit();
+			buffer = nullptr;
 		}
 		vertexBuffers.clear();
-		vertexFormats.clear();		
+		vertexFormats.clear();
 		vertexStart = 0;
 		vertexCount = 0;
 	}
@@ -39,9 +73,41 @@ struct KIndexData
 	IKIndexBufferPtr indexBuffer;
 	uint32_t indexStart;
 	uint32_t indexCount;
+	/*
+	KIndexData(KIndexData&& rhs)
+	{
+		indexBuffer = rhs.indexBuffer;
+		indexStart = rhs.indexStart;
+		indexCount = rhs.indexCount;
+		rhs.indexBuffer = nullptr;
+		rhs.indexStart = 0;
+		rhs.indexCount = 0;
+	}
 
+	KIndexData& operator=(KIndexData&& rhs)
+	{
+		indexBuffer = rhs.indexBuffer;
+		indexStart = rhs.indexStart;
+		indexCount = rhs.indexCount;
+		rhs.indexBuffer = nullptr;
+		rhs.indexStart = 0;
+		rhs.indexCount = 0;
+		return *this;
+	}
+	*/
 	KIndexData()
 	{
+		indexStart = 0;
+		indexCount = 0;
+	}
+
+	~KIndexData()
+	{
+	}
+
+	void Clear()
+	{
+		indexBuffer = nullptr;
 		indexStart = 0;
 		indexCount = 0;
 	}

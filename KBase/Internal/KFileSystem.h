@@ -33,7 +33,7 @@ protected:
 	}
 public:
 	KFileSystemManager();
-	~KFileSystemManager();
+	virtual ~KFileSystemManager();
 
 	virtual bool Init();
 	virtual bool UnInit();

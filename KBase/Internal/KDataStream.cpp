@@ -358,9 +358,11 @@ KFileHandleDataStream::~KFileHandleDataStream()
 
 void KFileHandleDataStream::ReleaseHandle()
 {
-	if(m_pFile)
+	if (m_pFile)
+	{
 		fclose(m_pFile);
-	m_pFile = nullptr;
+		m_pFile = nullptr;
+	}
 	m_uSize = 0;
 	m_FilePath.clear();
 }

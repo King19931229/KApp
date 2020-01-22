@@ -6,7 +6,7 @@ struct IKFileSystem;
 typedef std::shared_ptr<IKFileSystem> IKFileSystemPtr;
 
 struct IKFileSystemManager;
-typedef std::shared_ptr<IKFileSystemManager> IKFileSystemManagerPtr;
+typedef std::unique_ptr<IKFileSystemManager> IKFileSystemManagerPtr;
 
 enum FileSystemType
 {
@@ -46,6 +46,8 @@ struct IKFileSystemManager
 
 namespace KFileSystem
 {
+	extern bool CreateFileManager();
+	extern bool DestroyFileManager();
 	extern IKFileSystemManagerPtr Manager;
 }
 //EXPORT_DLL IKFileSystemManagerPtr CreateFileSystemManager();

@@ -97,6 +97,9 @@ struct IKAssetLoader
 	virtual bool Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result) = 0;
 };
 
-EXPORT_DLL bool InitAssetLoaderManager();
-EXPORT_DLL bool UnInitAssetLoaderManager();
-EXPORT_DLL IKAssetLoaderPtr GetAssetLoader();
+namespace KAssetLoaderManager
+{
+	extern bool CreateAssetLoader();
+	extern bool DestroyAssetLoader();
+	extern IKAssetLoaderPtr Loader;
+}

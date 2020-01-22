@@ -36,6 +36,9 @@ struct IKCodec
 	virtual bool Codec(const char* pszFile, bool forceAlpha, KCodecResult& result) = 0;
 };
 
-EXPORT_DLL bool InitCodecManager();
-EXPORT_DLL bool UnInitCodecManager();
-EXPORT_DLL IKCodecPtr GetCodec(const char* pszFile);
+namespace KCodec
+{
+	extern bool CreateCodecManager();
+	extern bool DestroyCodecManager();
+	extern IKCodecPtr GetCodec(const char* pszFile);
+}

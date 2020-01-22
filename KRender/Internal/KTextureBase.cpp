@@ -148,7 +148,7 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 	{
 		m_ResourceState = RS_MEMORY_LOADING;
 
-		IKCodecPtr pCodec = GetCodec(filePath.c_str());
+		IKCodecPtr pCodec = KCodec::GetCodec(filePath.c_str());
 		if (pCodec && pCodec->Codec(filePath.c_str(), true, m_ImageData))
 		{
 			if (InitProperty(bGenerateMipmap))

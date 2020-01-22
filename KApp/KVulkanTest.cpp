@@ -36,15 +36,19 @@
 
 int main()
 {
+	DUMP_MEMORY_LEAK_BEGIN();
+
+	KLog::CreateLogger();
 	KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
 
+	KFileSystem::CreateFileManager();
 	KFileSystem::Manager->Init();
 	KFileSystem::Manager->AddSystem("../Sponza.zip", -1, FST_ZIP);
 	KFileSystem::Manager->AddSystem(".", 0, FST_NATIVE);
 	KFileSystem::Manager->AddSystem("../", 1, FST_NATIVE);
 
-	ASSERT_RESULT(InitCodecManager());
-	ASSERT_RESULT(InitAssetLoaderManager());
+	KAssetLoaderManager::CreateAssetLoader();
+	KCodec::CreateCodecManager();
 
 	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_GLFW);
 	window->Init(60, 60, 1280, 720, true);
@@ -58,10 +62,14 @@ int main()
 
 	window->UnInit();
 	device->UnInit();
+	window = nullptr;
+	device = nullptr;
 
-	ASSERT_RESULT(UnInitCodecManager());
-	ASSERT_RESULT(UnInitAssetLoaderManager());
+	KAssetLoaderManager::DestroyAssetLoader();
+	KCodec::DestroyCodecManager();
 
 	KLog::Logger->UnInit();
+	KLog::DestroyLogger();
 	KFileSystem::Manager->UnInit();
+	KFileSystem::DestroyFileManager();
 }

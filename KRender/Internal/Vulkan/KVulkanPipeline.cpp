@@ -44,7 +44,12 @@ KVulkanPipeline::~KVulkanPipeline()
 	ASSERT_RESULT(m_DescriptorSet == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_LoadTask == nullptr);
-	ASSERT_RESULT(m_State == PIPELINE_RESOURCE_UNLOADED)
+	ASSERT_RESULT(m_State == PIPELINE_RESOURCE_UNLOADED);
+	ASSERT_RESULT(m_VertexShader == nullptr);
+	ASSERT_RESULT(m_FragmentShader == nullptr);
+	ASSERT_RESULT(m_Uniforms.empty());
+	ASSERT_RESULT(m_PushContants.empty());
+	ASSERT_RESULT(m_Samplers.empty());
 }
 
 void KVulkanPipeline::CancelLoadTask()
@@ -709,7 +714,6 @@ bool KVulkanPipelineHandle::Init(IKPipelinePtr pipeline, IKRenderTargetPtr targe
 {
 	ReleaseHandle();
 
-	// 裸指针
 	auto waitImpl = [=]()->bool
 	{
 		ASSERT_RESULT(pipeline);

@@ -7,6 +7,27 @@
 #include <algorithm>
 #include <assert.h>
 
+namespace KCodec
+{
+	bool CreateCodecManager()
+	{
+		bool bRet = KCodecManager::Init();
+		return bRet;
+	}
+
+	bool DestroyCodecManager()
+	{
+		bool bRet = KCodecManager::UnInit();
+		return bRet;
+	}
+
+	IKCodecPtr GetCodec(const char* pszFile)
+	{
+		IKCodecPtr pRet = KCodecManager::GetCodec(pszFile);
+		return pRet;
+	}
+}
+
 // KCodecManager
 KCodecManager::SupportCodec KCodecManager::ms_Codecs;
 std::mutex KCodecManager::ms_Lock;
@@ -81,24 +102,5 @@ IKCodecPtr KCodecManager::GetCodec(const char* pFilePath)
 				pRet = it->second;
 		}
 	}
-	return pRet;
-}
-
-// EXPORT
-EXPORT_DLL bool InitCodecManager()
-{
-	bool bRet = KCodecManager::Init();
-	return bRet;
-}
-
-EXPORT_DLL bool UnInitCodecManager()
-{
-	bool bRet = KCodecManager::UnInit();
-	return bRet;
-}
-
-EXPORT_DLL IKCodecPtr GetCodec(const char* pszFile)
-{
-	IKCodecPtr pRet = KCodecManager::GetCodec(pszFile);
 	return pRet;
 }

@@ -1009,7 +1009,10 @@ bool KVulkanRenderDevice::AddWindowCallback()
 
 	m_MouseCallback = [this](InputMouseButton mouse, InputAction action, float xPos, float yPos)
 	{
-		m_UIOverlay->SetMousePosition((unsigned int)xPos, (unsigned int)yPos);
+		if (m_UIOverlay)
+		{
+			m_UIOverlay->SetMousePosition((unsigned int)xPos, (unsigned int)yPos);
+		}
 
 		if(action == INPUT_ACTION_PRESS)
 		{
@@ -1017,7 +1020,10 @@ bool KVulkanRenderDevice::AddWindowCallback()
 			m_MousePos[1] = yPos;
 
 			m_MouseDown[mouse] = true;
-			m_UIOverlay->SetMouseDown(mouse, true);
+			if (m_UIOverlay)
+			{
+				m_UIOverlay->SetMouseDown(mouse, true);
+			}
 		}
 		if(action == INPUT_ACTION_RELEASE)
 		{
@@ -1309,8 +1315,11 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 	m_OffscreenPipelines.clear();
 
 	// clear swapchain
-	m_SwapChain->UnInit();
-	m_SwapChain = nullptr;
+	if (m_SwapChain)
+	{
+		m_SwapChain->UnInit();
+		m_SwapChain = nullptr;
+	}
 
 	return true;
 }
@@ -1397,16 +1406,38 @@ bool KVulkanRenderDevice::UnInit()
 
 	CleanupSwapChain();
 
-	vkDestroyPipelineCache(m_Device, m_PipelineCache, nullptr);
+	if (m_PipelineCache != VK_NULL_HANDLE)
+	{
+		vkDestroyPipelineCache(m_Device, m_PipelineCache, nullptr);
+		m_PipelineCache = VK_NULL_HANDLE;
+	}
 
-	vkDestroyCommandPool(m_Device, m_GraphicCommandPool, nullptr);
-	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
+	if (m_GraphicCommandPool != VK_NULL_HANDLE)
+	{
+		vkDestroyCommandPool(m_Device, m_GraphicCommandPool, nullptr);
+		m_GraphicCommandPool = VK_NULL_HANDLE;
+	}
+
+	if (m_Surface != VK_NULL_HANDLE)
+	{
+		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
+		m_Surface = VK_NULL_HANDLE;
+	}
 
 	UnInitGlobalManager();
 	UnsetDebugMessenger();
 
-	vkDestroyDevice(m_Device, nullptr);
-	vkDestroyInstance(m_Instance, nullptr);
+	if (m_Device != VK_NULL_HANDLE)
+	{
+		vkDestroyDevice(m_Device, nullptr);
+		m_Device = VK_NULL_HANDLE;
+	}
+
+	if (m_Instance != VK_NULL_HANDLE)
+	{
+		vkDestroyInstance(m_Instance, nullptr);
+		m_Instance = VK_NULL_HANDLE;
+	}
 
 	UnInitDeviceGlobal();
 	return true;
@@ -2147,8 +2178,12 @@ bool KVulkanRenderDevice::CreateCommandBuffer(IKCommandBufferPtr& buffer)
 
 bool KVulkanRenderDevice::Wait()
 {
-	vkDeviceWaitIdle(m_Device);
-	return true;
+	if(m_Device != VK_NULL_HANDLE)
+	{
+		vkDeviceWaitIdle(m_Device);
+		return true;
+	}
+	return false;
 }
 
 /*

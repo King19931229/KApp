@@ -35,14 +35,29 @@ const LogLevelDesc LEVEL_DESC[] =
 
 static_assert(sizeof(LEVEL_DESC) / sizeof(LEVEL_DESC[0]) == LL_COUNT + 1, "LEVEL_DESC COUNT NOT MATCH TO LL_COUNT");
 
-EXPORT_DLL IKLoggerPtr CreateLogger()
-{
-	return IKLoggerPtr(new KLogger());
-}
-
 namespace KLog
 {
-	IKLoggerPtr Logger = CreateLogger();
+	bool CreateLogger()
+	{
+		assert(Logger == nullptr);
+		if (!Logger)
+		{
+			Logger = IKLoggerPtr(new KLogger());
+		}
+		return true;
+	}
+
+	bool DestroyLogger()
+	{
+		assert(Logger != nullptr);
+		if (Logger)
+		{
+			Logger = nullptr;
+		}
+		return true;
+	}
+
+	IKLoggerPtr Logger = nullptr;
 }
 
 KLogger::KLogger()
@@ -54,20 +69,25 @@ KLogger::KLogger()
 	m_pFile(nullptr),
 	m_eLineMode(ILM_COUNT)
 {
-#ifdef _WIN32
-	m_pConsoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-#endif
 }
 
 KLogger::~KLogger()
 {
-	UnInit();
+#ifdef _WIN32
+	assert(m_pConsoleHandle == NULL);
+#endif
+	assert(m_pFile == nullptr);
+	assert(!m_bInit);
 }
 
 bool KLogger::Init(const char* pFilePath, bool bLogConsole, bool bLogTime, IOLineMode mode)
 {
 	UnInit();
 	bool bRet = true;
+#ifdef _WIN32
+	m_pConsoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+#endif
+
 	if(pFilePath)
 	{
 		m_bLogFile = true;
@@ -103,11 +123,17 @@ bool KLogger::Init(const char* pFilePath, bool bLogConsole, bool bLogTime, IOLin
 
 bool KLogger::UnInit()
 {
+#ifdef _WIN32
+	m_pConsoleHandle = NULL;
+#endif
 	if(m_pFile)
 	{
 		fclose(m_pFile);
 		m_pFile = nullptr;
 	}
+
+	m_bInit = false;
+
 	return true;
 }
 

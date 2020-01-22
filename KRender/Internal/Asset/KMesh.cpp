@@ -10,6 +10,9 @@ KMesh::KMesh()
 
 KMesh::~KMesh()
 {
+	ASSERT_RESULT(m_VertexData.vertexBuffers.empty());
+	ASSERT_RESULT(m_VertexData.vertexFormats.empty());
+	ASSERT_RESULT(m_SubMeshes.empty());
 }
 
 bool KMesh::SaveAsFile(const char* szPath)
@@ -94,7 +97,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 
 	UnInit();
 
-	IKAssetLoaderPtr loader = GetAssetLoader();
+	IKAssetLoaderPtr& loader = KAssetLoaderManager::Loader;
 	if(loader)
 	{
 		KAssetImportOption option;
@@ -179,6 +182,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 			}
 
 			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, frameInFlight, renderThreadNum));
+			indexData.Clear();
 		}
 		m_Path = szPath;
 		return true;

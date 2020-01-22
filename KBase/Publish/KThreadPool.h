@@ -244,7 +244,7 @@ public:
 
 	void UnInit()
 	{
-		assert(m_pSyncTaskThread);
+		//assert(m_pSyncTaskThread);
 		if (m_pSyncTaskThread)
 		{
 			delete m_pSyncTaskThread;

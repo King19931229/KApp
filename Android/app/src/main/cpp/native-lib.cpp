@@ -56,8 +56,10 @@ void android_main(android_app *state)
 
 	KPlatform::AndroidApp = state;
 
+	KLog::CreateLogger();
 	KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
 
+	KFileSystem::CreateFileManager();
 	KFileSystem::Manager->AddSystem(KPlatform::GetExternalDataPath(), -1, FST_NATIVE);
 	std::string zipPath = std::string(KPlatform::GetExternalDataPath())  + "/Model/Sponza.zip";
 	KFileSystem::Manager->AddSystem(zipPath.c_str(), -3, FST_ZIP);
@@ -66,8 +68,8 @@ void android_main(android_app *state)
 	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_ANDROID_NATIVE);
 	IKRenderDevicePtr device = CreateRenderDevice(RENDER_DEVICE_VULKAN);
 
-	ASSERT_RESULT(InitCodecManager());
-	ASSERT_RESULT(InitAssetLoaderManager());
+	KAssetLoaderManager::CreateAssetLoader();
+	KCodec::CreateCodecManager();
 
 	window->Init(state);
 	window->SetRenderDevice(device.get());
@@ -79,9 +81,11 @@ void android_main(android_app *state)
 	renderCore->Loop();
 	renderCore->UnInit();
 
-	ASSERT_RESULT(UnInitCodecManager());
-	ASSERT_RESULT(UnInitAssetLoaderManager());
+	KAssetLoaderManager::DestroyAssetLoader();
+	KCodec::DestroyCodecManager();
 
 	KLog::Logger->UnInit();
+	KLog::DestroyLogger();
 	KFileSystem::Manager->UnInit();
+	KFileSystem::DestroyFileManager();
 }

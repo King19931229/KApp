@@ -10,26 +10,30 @@ int main(int argc, char *argv[])
 	QApplication a(argc, argv);
 	KEditor w;
 
+	KLog::CreateLogger();
 	KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
 
+	KFileSystem::CreateFileManager();
 	KFileSystem::Manager->Init();
 	KFileSystem::Manager->AddSystem("../Sponza.zip", -1, FST_ZIP);
 	KFileSystem::Manager->AddSystem(".", 0, FST_NATIVE);
 	KFileSystem::Manager->AddSystem("../", 1, FST_NATIVE);
 
-	ASSERT_RESULT(InitCodecManager());
-	ASSERT_RESULT(InitAssetLoaderManager());
+	KAssetLoaderManager::CreateAssetLoader();
+	KCodec::CreateCodecManager();
 
 	w.Init();
 	w.show();
 	int nResult = a.exec();
 	w.UnInit();
 
-	ASSERT_RESULT(UnInitCodecManager());
-	ASSERT_RESULT(UnInitAssetLoaderManager());
+	KAssetLoaderManager::DestroyAssetLoader();
+	KCodec::DestroyCodecManager();
 
 	KLog::Logger->UnInit();
+	KLog::DestroyLogger();
 	KFileSystem::Manager->UnInit();
+	KFileSystem::DestroyFileManager();
 
 	return nResult;
 }

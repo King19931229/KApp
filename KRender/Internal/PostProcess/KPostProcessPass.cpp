@@ -76,7 +76,7 @@ bool KPostProcessPass::Init()
 		m_Pipelines.resize(m_FrameInFlight);
 		for(size_t i = 0; i < m_Pipelines.size(); ++i)
 		{
-			device->CreatePipeline(m_Pipelines[i]);
+			KRenderGlobal::PipelineManager.CreatePipeline(m_Pipelines[i]);
 
 			IKPipelinePtr pipeline = m_Pipelines[i];
 
@@ -142,7 +142,7 @@ bool KPostProcessPass::Init()
 	m_ScreenDrawPipelines.resize(m_FrameInFlight);
 	for(size_t i = 0; i < m_ScreenDrawPipelines.size(); ++i)
 	{
-		device->CreatePipeline(m_ScreenDrawPipelines[i]);
+		KRenderGlobal::PipelineManager.CreatePipeline(m_ScreenDrawPipelines[i]);
 
 		IKPipelinePtr pipeline = m_ScreenDrawPipelines[i];
 
@@ -204,14 +204,14 @@ bool KPostProcessPass::UnInit()
 
 	for(IKPipelinePtr& pipeline : m_Pipelines)
 	{
-		pipeline->UnInit();
+		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
 		pipeline = nullptr;
 	}
 	m_Pipelines.clear();
 
 	for(IKPipelinePtr& pipeline : m_ScreenDrawPipelines)
 	{
-		pipeline->UnInit();
+		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
 		pipeline = nullptr;
 	}
 	m_ScreenDrawPipelines.clear();

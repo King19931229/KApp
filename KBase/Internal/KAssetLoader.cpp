@@ -4,30 +4,44 @@
 #include "Interface/IKDataStream.h"
 #include "Publish/KFileTool.h"
 
-EXPORT_DLL bool InitAssetLoaderManager()
+namespace KAssetLoaderManager
 {
-	 // Change this line to normal if you not want to analyse the import process
-	//Assimp::Logger::LogSeverity severity = Assimp::Logger::NORMAL;
-	Assimp::Logger::LogSeverity severity = Assimp::Logger::VERBOSE;
+	bool CreateAssetLoader()
+	{
+		assert(Loader == nullptr);
+		if (Loader == nullptr)
+		{
+			// Change this line to normal if you not want to analyse the import process
+			// Assimp::Logger::LogSeverity severity = Assimp::Logger::NORMAL;
+			Assimp::Logger::LogSeverity severity = Assimp::Logger::VERBOSE;
 
-	// Create a logger instance for Console Output
-	Assimp::DefaultLogger::create("",severity, aiDefaultLogStream_STDOUT);
+			// Create a logger instance for Console Output
+			// Assimp::DefaultLogger::create("",severity, aiDefaultLogStream_STDOUT);
 
-	// Create a logger instance for File Output (found in project folder or near .exe)
-	Assimp::DefaultLogger::create("assimp_log.txt",severity, aiDefaultLogStream_FILE);
+			// Create a logger instance for File Output (found in project folder or near .exe)
+			Assimp::DefaultLogger::create("assimp_log.txt", severity, aiDefaultLogStream_FILE);
 
-	// Now I am ready for logging my stuff
-	Assimp::DefaultLogger::get()->info("this is my info-call");
+			// Now I am ready for logging my stuff
+			Assimp::DefaultLogger::get()->info("this is my info-call");
 
-	return true;
-}
+			Loader = IKAssetLoaderPtr(new KAssetLoader());
+		}
+		return true;
+	}
 
-EXPORT_DLL bool UnInitAssetLoaderManager()
-{
-	// Kill it after the work is done
-	Assimp::DefaultLogger::kill();
+	bool DestroyAssetLoader()
+	{
+		assert(Loader != nullptr);
+		if (Loader != nullptr)
+		{
+			// Kill it after the work is done
+			Assimp::DefaultLogger::kill();
+			Loader = nullptr;
+		}
+		return true;
+	}
 
-	return true;
+	IKAssetLoaderPtr Loader = nullptr;
 }
 
 static void LogInfo(const std::string& logString)
@@ -40,11 +54,6 @@ static void LogDebug(const char* logString)
 {
 	// Will add message to File with "debug" Tag
 	Assimp::DefaultLogger::get()->debug(logString);
-}
-
-EXPORT_DLL IKAssetLoaderPtr GetAssetLoader()
-{
-	return IKAssetLoaderPtr(new KAssetLoader());
 }
 
 KAssetLoader::KAssetLoader()

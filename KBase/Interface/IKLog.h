@@ -19,7 +19,7 @@ enum LogLevel
 };
 
 struct IKLogger;
-typedef std::shared_ptr<IKLogger> IKLoggerPtr;
+typedef std::unique_ptr<IKLogger> IKLoggerPtr;
 
 struct IKLogger
 {
@@ -101,6 +101,8 @@ static inline const char* LOG_MOUDLE_TO_STR(LogModule module)
 
 namespace KLog
 {
+	extern bool CreateLogger();
+	extern bool DestroyLogger();
 	extern IKLoggerPtr Logger;
 }
 
