@@ -412,7 +412,7 @@ bool KMeshSerializerV0::ReadDrawElementData(IKDataStreamPtr& stream, DrawElement
 	return true;
 }
 
-bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath, IKDataStreamPtr& stream, size_t frameInFlight, size_t renderThreadNum)
+bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath, IKDataStreamPtr& stream, size_t frameInFlight)
 {
 	uint32_t head = 0;
 	uint32_t magic = 0;
@@ -532,7 +532,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 		}
 
 		submesh = KSubMeshPtr(new KSubMesh(pMesh));
-		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, material, frameInFlight, renderThreadNum));
+		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, material, frameInFlight));
 	}
 
 	return true;

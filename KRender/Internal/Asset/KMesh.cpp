@@ -29,7 +29,7 @@ bool KMesh::SaveAsFile(const char* szPath)
 	return false;
 }
 
-bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum)
+bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight)
 {
 	assert(szPath && device);
 	if(!szPath || !device)
@@ -39,7 +39,7 @@ bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t fram
 
 	UnInit();
 
-	if(KMeshSerializer::LoadFromFile(device, this, szPath, frameInFlight, renderThreadNum))
+	if(KMeshSerializer::LoadFromFile(device, this, szPath, frameInFlight))
 	{
 		m_Path = szPath;
 		return true;
@@ -87,7 +87,7 @@ bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOptio
 	}
 }
 
-bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum)
+bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight)
 {
 	assert(szPath && device);
 	if(!szPath || !device)
@@ -181,7 +181,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 				material->ResignTexture(MTS_NORMAL, subPart.material.normal.c_str());
 			}
 
-			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, frameInFlight, renderThreadNum));
+			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, frameInFlight));
 			indexData.Clear();
 		}
 		m_Path = szPath;
@@ -190,11 +190,11 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 	return false;
 }
 
-bool KMesh::Visit(PipelineStage stage, size_t frameIndex, size_t threadIndex, std::function<void(KRenderCommand)> func)
+bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func)
 {
 	for(KSubMeshPtr subMesh : m_SubMeshes)
 	{
-		subMesh->Visit(stage, frameIndex, threadIndex, func);
+		subMesh->Visit(stage, frameIndex, func);
 	}
 	return true;
 }

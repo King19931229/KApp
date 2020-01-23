@@ -87,6 +87,7 @@ while(false);
 //	DUMP_MEMORY_LEAK_END是清空内存分配跟踪
 #	define DUMP_MEMORY_LEAK_END() {_CrtDumpMemoryLeaks(); _CrtSetDbgFlag(0);}
 #	define DUMP_MEMORY_STATUS() {_CrtMemState s; _CrtMemCheckpoint(&s); _CrtMemDumpStatistics(&s);}
+#	define DUMP_MEMORY_BREAK(block) { _CrtSetBreakAlloc(block); }
 
 #	else // _WIN32 
 // https://en.wikipedia.org/wiki/Mtrace
@@ -98,10 +99,12 @@ while(false);
 //#			define DUMP_MEMORY_LEAK_BEGIN() {mtrace();}
 //#			define DUMP_MEMORY_LEAK_END() {muntrace();}
 //#			define DUMP_MEMORY_STATUS()
+//#			define DUMP_MEMORY_BREAK(block)
 //#		else
 #			define DUMP_MEMORY_LEAK_BEGIN()
 #			define DUMP_MEMORY_LEAK_END()
 #			define DUMP_MEMORY_STATUS()
+#			define DUMP_MEMORY_BREAK(block)
 //#		endif
 #	endif
 
@@ -110,5 +113,5 @@ while(false);
 #	define DUMP_MEMORY_LEAK_BEGIN()
 #	define DUMP_MEMORY_LEAK_END()
 #	define DUMP_MEMORY_STATUS()
-
+#	define DUMP_MEMORY_BREAK(block)
 #endif//MEMORY_DUMP_DEBUG

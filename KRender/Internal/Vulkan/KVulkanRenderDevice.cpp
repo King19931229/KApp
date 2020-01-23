@@ -386,7 +386,7 @@ bool KVulkanRenderDevice::CreatePipelines()
 			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 			pipeline->SetPolygonMode(PM_FILL);
 
-			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, 0, CBT_CAMERA);
+			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
 			pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
 
 			pipeline->SetSampler(CBT_COUNT, m_Texture, m_Sampler);
@@ -873,8 +873,8 @@ bool KVulkanRenderDevice::InitGlobalManager()
 	KVulkanHeapAllocator::Init();
 
 	KRenderGlobal::PipelineManager.Init(this);
-	KRenderGlobal::FrameResourceManager.Init(this, m_FrameInFlight, m_MaxRenderThreadNum);
-	KRenderGlobal::MeshManager.Init(this, m_FrameInFlight, m_MaxRenderThreadNum);
+	KRenderGlobal::FrameResourceManager.Init(this, m_FrameInFlight);
+	KRenderGlobal::MeshManager.Init(this, m_FrameInFlight);
 	KRenderGlobal::ShaderManager.Init(this);
 	KRenderGlobal::TextrueManager.Init(this);
 
@@ -1582,7 +1582,7 @@ bool KVulkanRenderDevice::UpdateCamera(size_t idx)
 	glm::mat4 viewInv = glm::inverse(view);
 	glm::vec2 near_far = glm::vec2(m_Camera.GetNear(), m_Camera.GetFar());
 	{
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(idx, 0, CBT_CAMERA);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(idx, CBT_CAMERA);
 		void* pWritePos = nullptr;
 		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);
 		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
@@ -1820,14 +1820,14 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 					{
 						KMeshPtr mesh = component->GetMesh();
 
-						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, 0, [&](KRenderCommand command)
+						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand command)
 						{
 							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
 							preZCommandList.push_back(command);
 						});
 
-						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, 0, [&](KRenderCommand command)
+						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand command)
 						{
 							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
@@ -1951,7 +1951,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 					{
 						KMeshPtr mesh = component->GetMesh();
 
-						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, i, [&](KRenderCommand command)
+						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand command)
 						{
 							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
@@ -1962,7 +1962,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 							threadData.preZcommands.push_back(command);
 						});
 
-						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, i, [&](KRenderCommand command)
+						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand command)
 						{
 							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();

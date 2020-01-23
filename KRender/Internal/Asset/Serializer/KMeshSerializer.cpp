@@ -5,14 +5,14 @@
 
 namespace KMeshSerializer
 {
-	bool LoadFromFile(IKRenderDevice* device, KMesh* pMesh, const char* path, size_t frameInFlight, size_t renderThreadNum)
+	bool LoadFromFile(IKRenderDevice* device, KMesh* pMesh, const char* path, size_t frameInFlight)
 	{
 		IKDataStreamPtr pData = nullptr;
 		if(KFileSystem::Manager->Open(path, IT_FILEHANDLE, pData))
 		{
 			// no need to judge version now
 			KMeshSerializerV0 reader(device);
-			bool bRet = reader.LoadFromStream(pMesh, path, pData, frameInFlight, renderThreadNum);
+			bool bRet = reader.LoadFromStream(pMesh, path, pData, frameInFlight);
 			pData->Close();
 			return bRet;
 		}

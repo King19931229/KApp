@@ -16,9 +16,7 @@ protected:
 		IKPipelinePtr pipeline;
 		uint32_t objectPushOffset;
 	};
-
-	typedef std::vector<PipelineInfo> PipelineList;
-	typedef std::vector<PipelineList> FramePipelineList;
+	typedef std::vector<PipelineInfo> FramePipelineList;
 	
 	KMesh*					m_pParent;
 	KMaterialPtr			m_Material;
@@ -28,7 +26,6 @@ protected:
 	bool					m_IndexDraw;
 
 	size_t					m_FrameInFlight;
-	size_t					m_RenderThreadNum;
 	FramePipelineList		m_Pipelines[PIPELINE_STAGE_COUNT];
 
 	IKShaderPtr				m_PreZVSShader;
@@ -40,16 +37,16 @@ protected:
 	IKShaderPtr				m_ShadowVSShader;
 	IKShaderPtr				m_ShadowFSShader;
 
-	bool CreatePipeline(PipelineStage stage, size_t frameIndex, size_t renderThreadIndex, IKPipelinePtr& pipeline, uint32_t& objectPushOffset);
-	bool GetRenderCommand(PipelineStage stage, size_t frameIndex, size_t renderThreadIndex, KRenderCommand& command);
+	bool CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline, uint32_t& objectPushOffset);
+	bool GetRenderCommand(PipelineStage stage, size_t frameIndex,KRenderCommand& command);
 public:
 	KSubMesh(KMesh* parent);
 	~KSubMesh();
 
-	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialPtr material, size_t frameInFlight, size_t renderThreadNum);
+	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialPtr material, size_t frameInFlight);
 	bool UnInit();
 
-	bool Visit(PipelineStage stage, size_t frameIndex, size_t threadIndex, std::function<void(KRenderCommand)> func);
+	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func);
 };
 
 typedef std::shared_ptr<KSubMesh> KSubMeshPtr;

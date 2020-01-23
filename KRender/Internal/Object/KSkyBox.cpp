@@ -97,7 +97,7 @@ void KSkyBox::PreparePipeline()
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
 
 		//IKUniformBufferPtr objectBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_OBJECT);
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, 0, CBT_CAMERA);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
 
 		//pipeline->SetConstantBuffer(CBT_OBJECT, ST_VERTEX, objectBuffer);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);

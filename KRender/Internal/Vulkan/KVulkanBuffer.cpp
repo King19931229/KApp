@@ -65,11 +65,9 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 	}
 
 	// 把之前存在内存里的数据丢掉
-	if(hostVisible)
-	{
-		m_Data.resize(0);
-		m_Data.shrink_to_fit();
-	}
+	m_Data.resize(0);
+	m_Data.shrink_to_fit();
+
 	m_bDeviceInit = true;
 	m_bHostVisible = hostVisible;
 
@@ -143,6 +141,7 @@ bool KVulkanVertexBuffer::Read(void* pData)
 			return true;
 		}
 	}
+#if 0
 	else
 	{
 		if(!m_Data.empty())
@@ -152,6 +151,7 @@ bool KVulkanVertexBuffer::Read(void* pData)
 			return true;
 		}
 	}
+#endif
 	return true;
 }
 
@@ -229,11 +229,9 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 	}
 
 	// 把之前存在内存里的数据丢掉
-	if(hostVisible)
-	{
-		m_Data.resize(0);
-		m_Data.shrink_to_fit();
-	}
+	m_Data.resize(0);
+	m_Data.shrink_to_fit();
+
 	m_bDeviceInit = true;
 	m_bHostVisible = hostVisible;
 
@@ -284,13 +282,13 @@ bool KVulkanIndexBuffer::Write(const void* pData)
 {
 	if(m_bHostVisible)
 	{
-	void* pMapData = nullptr;
-	if(Map(&pMapData))
-	{
-		memcpy(pMapData, pData, m_BufferSize);
-		UnMap();
-		return true;
-	}
+		void* pMapData = nullptr;
+		if(Map(&pMapData))
+		{
+			memcpy(pMapData, pData, m_BufferSize);
+			UnMap();
+			return true;
+		}
 	}
 	return false;
 }
@@ -307,6 +305,7 @@ bool KVulkanIndexBuffer::Read(void* pData)
 			return true;
 		}
 	}
+#if 0
 	else
 	{
 		if(!m_Data.empty())
@@ -316,6 +315,7 @@ bool KVulkanIndexBuffer::Read(void* pData)
 			return true;
 		}
 	}
+#endif
 	return true;
 }
 

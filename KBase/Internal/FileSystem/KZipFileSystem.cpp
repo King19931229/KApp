@@ -49,6 +49,8 @@ bool KZipFileSystem::Open(const std::string& file, IOType priorityType, IKDataSt
 {
 	if(m_Zip != nullptr)
 	{
+		std::unique_lock<decltype(m_ZipLock)> guard(m_ZipLock);
+
 		ACTION_ON_FAILURE(zip_entry_open(m_Zip, file.c_str()) == 0, return false);
 
 		void *buf = NULL;
@@ -78,6 +80,8 @@ bool KZipFileSystem::IsFileExist(const std::string& file)
 {
 	if(m_Zip != nullptr)
 	{
+		std::unique_lock<decltype(m_ZipLock)> guard(m_ZipLock);
+
 		ACTION_ON_FAILURE(zip_entry_open(m_Zip, file.c_str()) == 0, return false);
 		ACTION_ON_FAILURE(zip_entry_close(m_Zip) == 0, return false);
 		return true;

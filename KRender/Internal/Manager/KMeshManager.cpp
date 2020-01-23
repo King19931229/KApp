@@ -2,8 +2,7 @@
 
 KMeshManager::KMeshManager()
 	: m_Device(nullptr),
-	m_FrameInFlight(0),
-	m_RenderThreadNum(0)
+	m_FrameInFlight(0)
 {
 }
 
@@ -12,13 +11,12 @@ KMeshManager::~KMeshManager()
 	assert(m_Meshes.empty());
 }
 
-bool KMeshManager::Init(IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum)
+bool KMeshManager::Init(IKRenderDevice* device, size_t frameInFlight)
 {
 	UnInit();
 
 	m_Device = device;
 	m_FrameInFlight = frameInFlight;
-	m_RenderThreadNum = renderThreadNum;
 
 	return true;
 }
@@ -57,11 +55,11 @@ bool KMeshManager::AcquireImpl(const char* path, bool fromAsset, KMeshPtr& ptr)
 	bool bRetValue = false;
 	if(fromAsset)
 	{
-		bRetValue = ptr->InitFromAsset(path, m_Device, m_FrameInFlight, m_RenderThreadNum);
+		bRetValue = ptr->InitFromAsset(path, m_Device, m_FrameInFlight);
 	}
 	else
 	{
-		bRetValue = ptr->InitFromFile(path, m_Device, m_FrameInFlight, m_RenderThreadNum);
+		bRetValue = ptr->InitFromFile(path, m_Device, m_FrameInFlight);
 	}
 
 	if(bRetValue)

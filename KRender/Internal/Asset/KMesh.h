@@ -22,11 +22,11 @@ public:
 	inline const std::string& GetPath() const { return m_Path; }
 
 	bool SaveAsFile(const char* szPath);
-	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum);
-	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, size_t renderThreadNum);
+	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
+	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
 	bool UnInit();
 
-	bool Visit(PipelineStage stage, size_t frameIndex, size_t threadIndex, std::function<void(KRenderCommand)> func);
+	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func);
 };
 
 typedef std::shared_ptr<KMesh> KMeshPtr;

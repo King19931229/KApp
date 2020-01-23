@@ -1,10 +1,12 @@
 #pragma once
 #include "Interface/IKFileSystem.h"
+#include <mutex>
 #include "zip.h"
 
 class KZipFileSystem : public IKFileSystem
 {
 	zip_t* m_Zip;
+	std::mutex m_ZipLock;
 	std::string m_Root;
 public:
 	KZipFileSystem();

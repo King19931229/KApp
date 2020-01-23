@@ -74,7 +74,7 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* 
 			glm::mat4 proj = m_Camera.GetProjectiveMatrix();
 			glm::vec2 near_far = glm::vec2(m_Camera.GetNear(), m_Camera.GetFar());
 
-			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, 0, CBT_SHADOW);
+			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_SHADOW);
 			void* pWritePos = nullptr;
 			void* pData = KConstantGlobal::GetGlobalConstantData(CBT_SHADOW);	
 			const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_SHADOW);
@@ -122,7 +122,7 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* 
 					{
 						KMeshPtr mesh = component->GetMesh();
 
-						mesh->Visit(PIPELINE_STAGE_SHADOW_GEN, frameIndex, 0, [&](KRenderCommand command)
+						mesh->Visit(PIPELINE_STAGE_SHADOW_GEN, frameIndex, [&](KRenderCommand command)
 						{
 							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
