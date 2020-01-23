@@ -1,21 +1,41 @@
 #include "KEditor.h"
-#include "KERenderWidget.h"
-#include "KEQtRenderWindow.h"
-
+#include "Widget/KERenderWidget.h"
+#include "Widget/KEGraphWidget.h"
+#include "Other/KEQtRenderWindow.h"
+#include <QTextCodec>
 #include <assert.h>
 
 KEditor::KEditor(QWidget *parent)
 	: QMainWindow(parent),
 	m_RenderWidget(nullptr),
-	m_bInit(false)
+	m_GraphWidget(nullptr),
+	m_bInit(false),
+	m_GraphAction(nullptr)
 {
 	ui.setupUi(this);
+	QTextCodec::setCodecForLocale(QTextCodec::codecForName("GBK"));
+	SetupMenu();
 }
 
 KEditor::~KEditor()
 {
 	assert(m_RenderWidget == nullptr);
+	assert(m_GraphWidget == nullptr);
 	assert(m_RenderCore == nullptr);
+}
+
+bool KEditor::SetupMenu()
+{
+	m_GraphAction = ui.menu->addAction(QString::fromLocal8Bit("½ÚµãÍ¼"));
+	QObject::connect(m_GraphAction, &QAction::triggered,
+		this, &KEditor::OnOpenGraphWidget);
+	return true;
+}
+
+bool KEditor::OnOpenGraphWidget()
+{
+	m_GraphWidget->show();
+	return true;
 }
 
 bool KEditor::Init()
@@ -36,6 +56,9 @@ bool KEditor::Init()
 
 		m_RenderWidget->Init(m_RenderCore);
 		setCentralWidget(m_RenderWidget);
+
+		m_GraphWidget = new KEGraphWidget();
+		m_GraphWidget->hide();
 
 		m_bInit = true;
 		return true;
@@ -62,6 +85,8 @@ bool KEditor::UnInit()
 			m_RenderWidget->UnInit();
 			SAFE_DELETE(m_RenderWidget);
 		}
+
+		SAFE_DELETE(m_GraphWidget);
 
 		m_bInit = false;
 	}

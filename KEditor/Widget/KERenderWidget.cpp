@@ -1,5 +1,5 @@
 #include "KERenderWidget.h"
-#include "KEQtRenderWindow.h"
+#include "Other/KEQtRenderWindow.h"
 #include <qevent.h>
 
 #include <assert.h>

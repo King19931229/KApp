@@ -1,14 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
       <Extensions>qrc;*</Extensions>
@@ -23,27 +15,53 @@
       <Extensions>qrc;*</Extensions>
       <ParseFiles>false</ParseFiles>
     </Filter>
+    <Filter Include="Widget">
+      <UniqueIdentifier>{9bf4b843-0204-482e-9e4a-f960416ce27e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graph">
+      <UniqueIdentifier>{f7b10276-49d0-4895-9465-b9e6be339eff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Other">
+      <UniqueIdentifier>{1004ae85-5236-4664-ad01-ae76d12f962f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="KEditor.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Widget\KERenderWidget.cpp">
+      <Filter>Widget</Filter>
     </ClCompile>
-    <ClCompile Include="KEditor.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Other\KEQtRenderWindow.cpp">
+      <Filter>Other</Filter>
     </ClCompile>
-    <ClCompile Include="KERenderWidget.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Widget\KEGraphWidget.cpp">
+      <Filter>Widget</Filter>
     </ClCompile>
-    <ClCompile Include="KEQtRenderWindow.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Graph\KEGraphView.cpp">
+      <Filter>Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\KEGraphScene.cpp">
+      <Filter>Graph</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="KEditor.h">
-      <Filter>Header Files</Filter>
+    <QtMoc Include="KEditor.h" />
+    <QtMoc Include="Widget\KERenderWidget.h">
+      <Filter>Widget</Filter>
     </QtMoc>
-    <QtMoc Include="KERenderWidget.h">
-      <Filter>Header Files</Filter>
+    <QtMoc Include="Widget\KEGraphWidget.h">
+      <Filter>Widget</Filter>
+    </QtMoc>
+    <QtMoc Include="Graph\KEGraphView.h">
+      <Filter>Graph</Filter>
+    </QtMoc>
+    <QtMoc Include="Graph\KEGraphScene.h">
+      <Filter>Graph</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -57,7 +75,10 @@
     </QtRcc>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="KEQtRenderWindow.h">
+    <ClInclude Include="Other\KEQtRenderWindow.h">
+      <Filter>Other</Filter>
+    </ClInclude>
+    <ClInclude Include="KEditorConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

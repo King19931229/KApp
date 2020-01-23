@@ -59,7 +59,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
-      <AdditionalIncludeDirectories>$(Qt_INCLUDEPATH_);../;../KBase;../KRender;../Dependency/Python27/Include;../Dependency/Python27/PCStatic%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(Qt_INCLUDEPATH_);./;../;../KBase;../KRender;../Dependency/Python27/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -76,7 +76,7 @@
       <DebugInformationFormat />
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
-      <AdditionalIncludeDirectories>$(Qt_INCLUDEPATH_);../;../KBase;../KRender;../Dependency/Python27/Include;../Dependency/Python27/PCStatic%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(Qt_INCLUDEPATH_);./;../;../KBase;../KRender;../Dependency/Python27/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -88,10 +88,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Graph\KEGraphScene.cpp" />
+    <ClCompile Include="Graph\KEGraphView.cpp" />
     <ClCompile Include="KEditor.cpp" />
-    <ClCompile Include="KEQtRenderWindow.cpp" />
-    <ClCompile Include="KERenderWidget.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Other\KEQtRenderWindow.cpp" />
+    <ClCompile Include="Widget\KEGraphWidget.cpp" />
+    <ClCompile Include="Widget\KERenderWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -103,10 +106,14 @@
     <QtRcc Include="KEditor.qrc" />
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="KERenderWidget.h" />
+    <QtMoc Include="Widget\KERenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="KEQtRenderWindow.h" />
+    <QtMoc Include="Graph\KEGraphScene.h" />
+    <QtMoc Include="Graph\KEGraphView.h" />
+    <ClInclude Include="KEditorConfig.h" />
+    <ClInclude Include="Other\KEQtRenderWindow.h" />
+    <QtMoc Include="Widget\KEGraphWidget.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
