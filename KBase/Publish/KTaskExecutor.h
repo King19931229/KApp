@@ -77,8 +77,8 @@ protected:
 	KSemaphorePtr m_pSem;
 	KTaskUnitPtr m_pTaskUnit;
 
-	KTaskUnitProcessor(const KTaskUnitProcessor& rhs){}
-	KTaskUnitProcessor& operator=(const KTaskUnitProcessor& rhs){}
+	KTaskUnitProcessor(const KTaskUnitProcessor& rhs) {}
+	KTaskUnitProcessor& operator=(const KTaskUnitProcessor& rhs) { return *this; }
 
 	inline bool NotifySem() { return m_pSem->Notify(); }
 	inline bool WaitSem() { return m_pSem->Wait(); }

@@ -1,5 +1,6 @@
 #include "KEGraphWidget.h"
 #include "Graph/KEGraphView.h"
+#include "Graph/Node/KEGraphNodeView.h"
 #include "KEditorConfig.h"
 #include <QLayout>
 #include <assert.h>
@@ -22,4 +23,8 @@ KEGraphWidget::KEGraphWidget()
 KEGraphWidget::~KEGraphWidget()
 {
 	SAFE_DELETE(m_View);
+}
+
+void KEGraphWidget::Test()
+{
 }

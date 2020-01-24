@@ -1,8 +1,14 @@
 #include "KEGraphView.h"
 #include "KEGraphScene.h"
 #include "KEditorConfig.h"
+
 #include <QMouseEvent>
 #include <QPainter>
+#include <QtWidgets/QMenu>
+#include <QTreeWidget>
+#include <QWidgetAction>
+#include <QLineEdit>
+#include <QHeaderView>
 
 KEGraphView::KEGraphView(QWidget *parent)
 	: QGraphicsView(parent),
@@ -19,12 +25,13 @@ KEGraphView::KEGraphView(QWidget *parent)
 	setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
 	setCacheMode(QGraphicsView::CacheBackground);
 
-	m_Scene = new KEGraphScene(this);
-	this->setScene(m_Scene);
+	m_Scene = KEGraphScenePtr(new KEGraphScene(this));
+	this->setScene(m_Scene.get());
 }
 
 KEGraphView::~KEGraphView()
 {
+	m_Scene = nullptr;
 }
 
 void KEGraphView::ScaleUp()
@@ -46,6 +53,59 @@ void KEGraphView::ScaleDown()
 	double const factor = std::pow(step, -1.0);
 
 	scale(factor, factor);
+}
+
+void KEGraphView::contextMenuEvent(QContextMenuEvent *event)
+{
+	if (itemAt(event->pos()))
+	{
+		QGraphicsView::contextMenuEvent(event);
+		return;
+	}
+
+	QMenu modelMenu;
+
+	QString skipText = QStringLiteral("skip me");
+
+	//Add filterbox to the context menu
+	QLineEdit *txtBox = new QLineEdit(&modelMenu);
+	txtBox->setPlaceholderText(QStringLiteral("Filter"));
+	txtBox->setClearButtonEnabled(true);
+
+	QWidgetAction *txtBoxAction = new QWidgetAction(&modelMenu);
+	txtBoxAction->setDefaultWidget(txtBox);
+
+	modelMenu.addAction(txtBoxAction);
+
+	//Add result treeview to the context menu
+	QTreeWidget *treeView = new QTreeWidget(&modelMenu);
+	treeView->header()->close();
+
+	QWidgetAction *treeViewAction = new QWidgetAction(&modelMenu);
+	treeViewAction->setDefaultWidget(treeView);
+
+	modelMenu.addAction(treeViewAction);
+
+	//
+	QString testText = "Test";
+	QTreeWidgetItem* item = new QTreeWidgetItem(treeView);
+	item->setText(0, testText);
+	item->setData(0, Qt::UserRole, testText);
+
+	connect(treeView, &QTreeWidget::itemClicked, [&](QTreeWidgetItem *item, int)
+	{
+		QString modelName = item->data(0, Qt::UserRole).toString();
+		// ²âÊÔ´úÂë
+		if (modelName == testText)
+		{
+
+		}
+	});
+	//
+
+	treeView->expandAll();
+
+	modelMenu.exec(event->globalPos());
 }
 
 void KEGraphView::wheelEvent(QWheelEvent *event)

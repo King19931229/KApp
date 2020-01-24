@@ -90,6 +90,10 @@
   <ItemGroup>
     <ClCompile Include="Graph\KEGraphScene.cpp" />
     <ClCompile Include="Graph\KEGraphView.cpp" />
+    <ClCompile Include="Graph\Node\KEGraphNodeControl.cpp" />
+    <ClCompile Include="Graph\Node\KEGraphNodeGeometry.cpp" />
+    <ClCompile Include="Graph\Node\KEGraphNodeModel.cpp" />
+    <ClCompile Include="Graph\Node\KEGraphNodeView.cpp" />
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
@@ -109,8 +113,15 @@
     <QtMoc Include="Widget\KERenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Utility\QStringStdHash.hpp" />
+    <ClInclude Include="Utility\QUuidStdHash.hpp" />
     <QtMoc Include="Graph\KEGraphScene.h" />
     <QtMoc Include="Graph\KEGraphView.h" />
+    <ClInclude Include="Graph\KEGraphPredefine.h" />
+    <QtMoc Include="Graph\Node\KEGraphNodeView.h" />
+    <QtMoc Include="Graph\Node\KEGraphNodeControl.h" />
+    <QtMoc Include="Graph\Node\KEGraphNodeModel.h" />
+    <ClInclude Include="Graph\Node\KEGraphNodeGeometry.h" />
     <ClInclude Include="KEditorConfig.h" />
     <ClInclude Include="Other\KEQtRenderWindow.h" />
     <QtMoc Include="Widget\KEGraphWidget.h" />

@@ -10,4 +10,6 @@ protected:
 public:
 	KEGraphWidget();
 	~KEGraphWidget();
+
+	void Test();
 };

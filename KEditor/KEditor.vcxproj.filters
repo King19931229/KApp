@@ -24,10 +24,11 @@
     <Filter Include="Other">
       <UniqueIdentifier>{1004ae85-5236-4664-ad01-ae76d12f962f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
-      <ParseFiles>true</ParseFiles>
+    <Filter Include="Graph\Node">
+      <UniqueIdentifier>{0513aab6-0ec8-4250-85dc-82468a257775}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility">
+      <UniqueIdentifier>{d3f46398-fbfc-416a-bf8f-e817452c3b40}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -48,6 +49,18 @@
     <ClCompile Include="Graph\KEGraphScene.cpp">
       <Filter>Graph</Filter>
     </ClCompile>
+    <ClCompile Include="Graph\Node\KEGraphNodeModel.cpp">
+      <Filter>Graph\Node</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\Node\KEGraphNodeControl.cpp">
+      <Filter>Graph\Node</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\Node\KEGraphNodeView.cpp">
+      <Filter>Graph\Node</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\Node\KEGraphNodeGeometry.cpp">
+      <Filter>Graph\Node</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -62,6 +75,15 @@
     </QtMoc>
     <QtMoc Include="Graph\KEGraphScene.h">
       <Filter>Graph</Filter>
+    </QtMoc>
+    <QtMoc Include="Graph\Node\KEGraphNodeView.h">
+      <Filter>Graph\Node</Filter>
+    </QtMoc>
+    <QtMoc Include="Graph\Node\KEGraphNodeControl.h">
+      <Filter>Graph\Node</Filter>
+    </QtMoc>
+    <QtMoc Include="Graph\Node\KEGraphNodeModel.h">
+      <Filter>Graph\Node</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -78,8 +100,18 @@
     <ClInclude Include="Other\KEQtRenderWindow.h">
       <Filter>Other</Filter>
     </ClInclude>
-    <ClInclude Include="KEditorConfig.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="KEditorConfig.h" />
+    <ClInclude Include="Graph\KEGraphPredefine.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\Node\KEGraphNodeGeometry.h">
+      <Filter>Graph\Node</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\QStringStdHash.hpp">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\QUuidStdHash.hpp">
+      <Filter>Utility</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

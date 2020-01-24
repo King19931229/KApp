@@ -39,8 +39,8 @@ protected:
 	{
 		{
 			std::lock_guard<decltype(m_WaitLock)> lock(m_WaitLock);
-			++m_nWaitQueueSize;
 			m_WaitQueue.push(element);
+			m_nWaitQueueSize.fetch_add(1, std::memory_order_acq_rel);
 		}
 	}
 
@@ -51,7 +51,7 @@ protected:
 		{
 			element = m_WaitQueue.front();
 			m_WaitQueue.pop();
-			--m_nWaitQueueSize;
+			m_nWaitQueueSize.fetch_sub(1, std::memory_order_acq_rel);
 			return true;
 		}
 		return false;
@@ -66,7 +66,7 @@ protected:
 			element = m_WaitQueue.front();
 			m_WaitQueue.pop();
 			func(element);
-			--m_nWaitQueueSize;
+			m_nWaitQueueSize.fetch_sub(1, std::memory_order_acq_rel);
 			return true;
 		}
 		return false;
@@ -80,21 +80,21 @@ protected:
 
 		do
 		{
-			nCurrentWriteIndex	= m_nWriteIndex.load(std::memory_order_relaxed);
+			nCurrentWriteIndex	= m_nWriteIndex.load(std::memory_order_acquire);
 			nNextWriteIndex		= GetIndex(nCurrentWriteIndex + 1);
 			// C++11 CAS操作会修改【Exp】
 			nExp				= nCurrentWriteIndex;
 			// 队列已满不能【Push】
-			if(nNextWriteIndex == m_nMaxWriteIndex.load(std::memory_order_relaxed))
+			if(nNextWriteIndex == m_nMaxWriteIndex.load(std::memory_order_acquire))
 				return false;
-		}while(!m_nWriteIndex.compare_exchange_weak(nExp, nNextWriteIndex, std::memory_order_seq_cst));
+		}while(!m_nWriteIndex.compare_exchange_weak(nExp, nNextWriteIndex, std::memory_order_acq_rel));
 
 		m_RingBuffer[nCurrentWriteIndex] = element;
 		// C++11 CAS操作会修改【Exp】
 		nExp = nCurrentWriteIndex;
 		// 这是【写保护】防止【读操作】把未在队列中的元素读出
 		// 只有最小Compare成功的WriteIndex可以修改到MaxReadIndex 保证MaxReadIndex正确性
-		while(!m_nMaxReadIndex.compare_exchange_weak(nExp, nNextWriteIndex, std::memory_order_seq_cst))
+		while(!m_nMaxReadIndex.compare_exchange_weak(nExp, nNextWriteIndex, std::memory_order_acq_rel))
 		{
 			// C++11 CAS操作会修改【Exp】
 			nExp = nCurrentWriteIndex;
@@ -121,12 +121,12 @@ public:
 
 	inline size_t Size()
 	{
-		return m_nQueueSize;
+		return m_nQueueSize.load(std::memory_order_acquire);
 	}
 
 	inline size_t WaitQueueSize()
 	{
-		return m_nWaitQueueSize;
+		return m_nWaitQueueSize.load(std::memory_order_acquire);
 	}
 
 	inline size_t RingElementSize()
@@ -146,7 +146,7 @@ public:
 
 	bool Push(Elem_T&& element)
 	{
-		if (m_nWaitQueueSize)
+		if (m_nWaitQueueSize.load(std::memory_order_acquire))
 		{
 			PushIntoWaitQueue(element);
 		}
@@ -157,13 +157,13 @@ public:
 				PushIntoWaitQueue(element);
 			}
 		}
-		++m_nQueueSize;
+		m_nQueueSize.fetch_add(1, std::memory_order_acq_rel);
 		return true;
 	}
 
 	bool Push(Elem_T& element)
 	{
-		if (m_nWaitQueueSize)
+		if (m_nWaitQueueSize.load(std::memory_order_acquire))
 		{
 			PushIntoWaitQueue(element);			
 		}
@@ -174,7 +174,7 @@ public:
 				PushIntoWaitQueue(element);
 			}
 		}
-		++m_nQueueSize;
+		m_nQueueSize.fetch_add(1, std::memory_order_acq_rel);
 		return true;
 	}
 
@@ -186,20 +186,20 @@ public:
 		short nExp = -1;
 		do
 		{
-			nCurrentReadIndex		= m_nReadIndex.load(std::memory_order_relaxed);
+			nCurrentReadIndex		= m_nReadIndex.load(std::memory_order_acquire);
 			nNextReadIndex			= GetIndex(nCurrentReadIndex + 1);
 			// C++11 CAS操作会修改【Exp】
 			nExp					= nCurrentReadIndex;
-			if(nCurrentReadIndex == m_nMaxReadIndex.load(std::memory_order_relaxed))
+			if(nCurrentReadIndex == m_nMaxReadIndex.load(std::memory_order_acquire))
 				break;
-			if(m_nReadIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_seq_cst))
+			if(m_nReadIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_acq_rel))
 			{
 				element = m_RingBuffer[nCurrentReadIndex];
 				// C++11 CAS操作会修改【Exp】
 				nExp = nCurrentReadIndex;
 				// 这是【读保护】防止【写操作】把正在队列中的元素覆盖掉
 				// 只有最小Compare成功的ReadIndex可以修改到MaxWriteIndex 保证MaxWriteIndex正确性
-				while(!m_nMaxWriteIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_seq_cst))
+				while(!m_nMaxWriteIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_acq_rel))
 				{
 					// C++11 CAS操作会修改【Exp】
 					nExp = nCurrentReadIndex;
@@ -221,7 +221,7 @@ public:
 				return false;
 			}
 		}
-		--m_nQueueSize;
+		m_nQueueSize.fetch_sub(1, std::memory_order_acq_rel);
 		return true;
 	}
 
@@ -233,20 +233,20 @@ public:
 		short nExp = -1;
 		do
 		{
-			nCurrentReadIndex		= m_nReadIndex.load(std::memory_order_relaxed);
+			nCurrentReadIndex		= m_nReadIndex.load(std::memory_order_acquire);
 			nNextReadIndex			= GetIndex(nCurrentReadIndex + 1);
 			// C++11 CAS操作会修改【Exp】
 			nExp					= nCurrentReadIndex;
-			if(nCurrentReadIndex == m_nMaxReadIndex.load(std::memory_order_relaxed))
+			if(nCurrentReadIndex == m_nMaxReadIndex.load(std::memory_order_acquire))
 				break;
-			if(m_nReadIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_seq_cst))
+			if(m_nReadIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_acq_rel))
 			{
 				element = m_RingBuffer[nCurrentReadIndex];
 				// C++11 CAS操作会修改【Exp】
 				nExp = nCurrentReadIndex;
 				// 这是【读保护】防止【写操作】把正在队列中的元素覆盖掉
 				// 只有最小Compare成功的ReadIndex可以修改到MaxWriteIndex 保证MaxWriteIndex正确性
-				while(!m_nMaxWriteIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_seq_cst))
+				while(!m_nMaxWriteIndex.compare_exchange_weak(nExp, nNextReadIndex, std::memory_order_acq_rel))
 				{
 					// C++11 CAS操作会修改【Exp】
 					nExp = nCurrentReadIndex;
@@ -270,7 +270,7 @@ public:
 				return false;
 			}
 		}
-		--m_nQueueSize;
+		m_nQueueSize.fetch_sub(1, std::memory_order_acq_rel);
 		return true;
 	}
 };

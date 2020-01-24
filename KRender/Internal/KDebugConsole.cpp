@@ -26,13 +26,9 @@ void KDebugConsole::ThreadFunc()
 #endif
 		printf(":>");
 		char buffer[2048];
-#ifdef _WIN32
-		gets_s(buffer, sizeof(buffer) - 1);
-#else
 		fgets(buffer, sizeof(buffer) - 1, stdin);
-#endif
-		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 		{
+			std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 			for(auto callback : m_InputCallbacks)
 			{
 				(*callback)(buffer);
