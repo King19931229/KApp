@@ -5,6 +5,7 @@
 
 #include "Graph/KEGraphPredefine.h"
 #include "KEGraphNodeGeometry.h"
+#include "KEGraphNodeState.h"
 
 class KEGraphNodeControl : public QObject
 {
@@ -12,15 +13,19 @@ class KEGraphNodeControl : public QObject
 protected:
 	KEGraphNodeViewPtr m_View;
 	KEGraphNodeModelPtr m_Model;
-	KEGraphNodeGeometry m_Geometry;
 	QUuid m_ID;
+	KEGraphNodeState m_NodeState;
+	KEGraphNodeGeometry m_Geometry;
 public:
 	KEGraphNodeControl(KEGraphNodeModelPtr&& model);
 	virtual ~KEGraphNodeControl();
 
-	KEGraphNodeView* GetView() { return m_View.get(); }
 	void SetView(KEGraphNodeViewPtr&& view);
-	KEGraphNodeGeometry& GetGeometry() { return m_Geometry; }
+	KEGraphNodeView* GetView() { return m_View.get(); }
+
+	inline KEGraphNodeGeometry& GetGeometry() { return m_Geometry; }
+	inline KEGraphNodeState& GetNodeState() { return m_NodeState; }
+	inline KEGraphNodeModel* GetModel() { return m_Model.get(); }
 
 	inline QUuid ID() const { return m_ID; }
 };

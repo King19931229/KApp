@@ -30,6 +30,9 @@
     <Filter Include="Utility">
       <UniqueIdentifier>{d3f46398-fbfc-416a-bf8f-e817452c3b40}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graph\Test">
+      <UniqueIdentifier>{e9d45620-9d5c-4a50-9467-74a51b44bf0a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -61,6 +64,21 @@
     <ClCompile Include="Graph\Node\KEGraphNodeGeometry.cpp">
       <Filter>Graph\Node</Filter>
     </ClCompile>
+    <ClCompile Include="Graph\Test\KEGraphNodeTestModel.cpp">
+      <Filter>Graph\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\KEGraphRegistrar.cpp">
+      <Filter>Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\KEGraphPainter.cpp">
+      <Filter>Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\Node\KEGraphNodeState.cpp">
+      <Filter>Graph\Node</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\Node\KEGraphNodeStyle.cpp">
+      <Filter>Graph\Node</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -84,6 +102,9 @@
     </QtMoc>
     <QtMoc Include="Graph\Node\KEGraphNodeModel.h">
       <Filter>Graph\Node</Filter>
+    </QtMoc>
+    <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h">
+      <Filter>Graph\Test</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -112,6 +133,21 @@
     </ClInclude>
     <ClInclude Include="Utility\QUuidStdHash.hpp">
       <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\KEGraphRegistrar.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\KEGraphPainter.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\Node\KEGraphNodeState.h">
+      <Filter>Graph\Node</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\Node\KEGraphNodeData.h">
+      <Filter>Graph\Node</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\Node\KEGraphNodeStyle.h">
+      <Filter>Graph\Node</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

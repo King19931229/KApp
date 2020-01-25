@@ -1,6 +1,7 @@
 #pragma once
 #include <QtWidgets/QWidget>
 #include "Graph/KEGraphPredefine.h"
+#include "KEGraphNodeData.h"
 
 class KEGraphNodeModel : public QObject
 {
@@ -14,9 +15,12 @@ public:
 	/// It is possible to hide caption in GUI
 	virtual bool CaptionVisible() const { return true; }
 	/// Port caption is used in GUI to label individual ports
-	virtual QString	PortCaption(PortType type, uint16_t index) const { return QString(); }
+	virtual QString	PortCaption(PortType type, uint32_t index) const { return QString(); }
 	/// It is possible to hide port caption in GUI
-	virtual bool PortCaptionVisible(PortType type, uint16_t index) const { return false; }
+	virtual bool PortCaptionVisible(PortType type, uint32_t index) const { return false; }
 	/// Name makes this model unique
 	virtual QString	Name() const = 0;
+
+	virtual	unsigned int NumPorts(PortType portType) const = 0;
+	virtual	KEGraphNodeDataType DataType(PortType portType, uint32_t portIndex) const = 0;
 };

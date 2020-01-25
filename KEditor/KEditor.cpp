@@ -1,6 +1,7 @@
 #include "KEditor.h"
 #include "Widget/KERenderWidget.h"
 #include "Widget/KEGraphWidget.h"
+#include "Graph/KEGraphRegistrar.h"
 #include "Other/KEQtRenderWindow.h"
 #include <QTextCodec>
 #include <assert.h>
@@ -27,8 +28,7 @@ KEditor::~KEditor()
 bool KEditor::SetupMenu()
 {
 	m_GraphAction = ui.menu->addAction(QString::fromLocal8Bit("½ÚµãÍ¼"));
-	QObject::connect(m_GraphAction, &QAction::triggered,
-		this, &KEditor::OnOpenGraphWidget);
+	QObject::connect(m_GraphAction, &QAction::triggered, this, &KEditor::OnOpenGraphWidget);
 	return true;
 }
 
@@ -60,6 +60,8 @@ bool KEditor::Init()
 		m_GraphWidget = new KEGraphWidget();
 		m_GraphWidget->hide();
 
+		KEGraphRegistrar::Init();
+
 		m_bInit = true;
 		return true;
 	}
@@ -87,6 +89,8 @@ bool KEditor::UnInit()
 		}
 
 		SAFE_DELETE(m_GraphWidget);
+
+		KEGraphRegistrar::UnInit();
 
 		m_bInit = false;
 	}

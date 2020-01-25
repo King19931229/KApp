@@ -8,6 +8,7 @@ KEGraphNodeControl::KEGraphNodeControl(KEGraphNodeModelPtr&& model)
 	m_ID(QUuid::createUuid()),
 	m_Geometry(m_Model)
 {
+	m_Geometry.RecalculateSize();
 }
 
 KEGraphNodeControl::~KEGraphNodeControl()

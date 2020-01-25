@@ -16,10 +16,10 @@ protected:
 	KEGraphScenePtr m_Scene;
 	QPointF m_ClickPos;
 
-	virtual void contextMenuEvent(QContextMenuEvent *event);
-	virtual void wheelEvent(QWheelEvent *event);
-	virtual void mousePressEvent(QMouseEvent *event);
-	virtual void mouseMoveEvent(QMouseEvent *event);
-	virtual void drawBackground(QPainter* painter, const QRectF& r);
-	virtual void showEvent(QShowEvent *event);
+	virtual void contextMenuEvent(QContextMenuEvent *event) override;
+	virtual void wheelEvent(QWheelEvent *event) override;
+	virtual void mousePressEvent(QMouseEvent *event) override;
+	virtual void mouseMoveEvent(QMouseEvent *event) override;
+	virtual void drawBackground(QPainter* painter, const QRectF& r) override;
+	virtual void showEvent(QShowEvent *event) override;
 };

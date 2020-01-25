@@ -88,12 +88,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Graph\KEGraphPainter.cpp" />
+    <ClCompile Include="Graph\KEGraphRegistrar.cpp" />
     <ClCompile Include="Graph\KEGraphScene.cpp" />
     <ClCompile Include="Graph\KEGraphView.cpp" />
     <ClCompile Include="Graph\Node\KEGraphNodeControl.cpp" />
     <ClCompile Include="Graph\Node\KEGraphNodeGeometry.cpp" />
     <ClCompile Include="Graph\Node\KEGraphNodeModel.cpp" />
+    <ClCompile Include="Graph\Node\KEGraphNodeState.cpp" />
+    <ClCompile Include="Graph\Node\KEGraphNodeStyle.cpp" />
     <ClCompile Include="Graph\Node\KEGraphNodeView.cpp" />
+    <ClCompile Include="Graph\Test\KEGraphNodeTestModel.cpp" />
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
@@ -113,6 +118,12 @@
     <QtMoc Include="Widget\KERenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />
+    <ClInclude Include="Graph\KEGraphPainter.h" />
+    <ClInclude Include="Graph\KEGraphRegistrar.h" />
+    <ClInclude Include="Graph\Node\KEGraphNodeData.h" />
+    <ClInclude Include="Graph\Node\KEGraphNodeState.h" />
+    <ClInclude Include="Graph\Node\KEGraphNodeStyle.h" />
     <ClInclude Include="Utility\QStringStdHash.hpp" />
     <ClInclude Include="Utility\QUuidStdHash.hpp" />
     <QtMoc Include="Graph\KEGraphScene.h" />

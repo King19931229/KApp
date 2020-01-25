@@ -18,9 +18,9 @@ public:
 	void RemoveNode(KEGraphNodeControl* node);
 
 Q_SIGNALS:
-	void NodeCreated(KEGraphNodeControl* n);
-	void NodePlaced(KEGraphNodeControl* n);
-	void NodeDeleted(KEGraphNodeControl* n);
-	void NodeMoved(KEGraphNodeControl* node, const QPointF& newLocation);
-	void NodeDoubleClicked(KEGraphNodeControl* node);
+	void SingalNodeCreated(KEGraphNodeControl* n);
+	void SingalNodePlaced(KEGraphNodeControl* n);
+	void SingalNodeDeleted(KEGraphNodeControl* n);
+	void SingalNodeMoved(KEGraphNodeControl* node, const QPointF& newLocation);
+	void SingalNodeDoubleClicked(KEGraphNodeControl* node);
 };

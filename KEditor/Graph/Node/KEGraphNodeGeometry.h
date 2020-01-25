@@ -9,7 +9,7 @@
 class KEGraphNodeGeometry
 {
 protected:
-	KEGraphNodeModelPtr& m_Model;
+	KEGraphNodeModelPtr& m_DataModel;
 	unsigned int m_Width;
 	unsigned int m_Height;
 	unsigned int m_EntryWidth;
@@ -19,11 +19,28 @@ protected:
 	unsigned int m_Spacing;
 	bool m_Hovered;
 
+	unsigned int m_nSources;
+	unsigned int m_nSinks;
+
 	QFontMetrics m_FontMetrics;
 	QFontMetrics m_BoldFontMetrics;
+
+	unsigned int CaptionHeight() const;
+	unsigned int CaptionWidth() const;
+	unsigned int PortWidth(PortType portType) const;
 public:
 	KEGraphNodeGeometry(KEGraphNodeModelPtr& model);
 	~KEGraphNodeGeometry();
 
-	QRectF boundingRect() const;
+	unsigned int Width() { return m_Width; }
+	unsigned int Height() { return m_Height; }
+	unsigned int Spacing() { return m_Spacing; }
+	unsigned int EntryWidth() { return m_EntryWidth; }
+	unsigned int EntryHeight() { return m_EntryHeight; }
+
+	QRectF BoundingRect() const;
+	/// Updates size unconditionally
+	void RecalculateSize();
+	/// Updates size if the QFontMetrics is changed
+	void RecalculateSize(QFont const &font);
 };

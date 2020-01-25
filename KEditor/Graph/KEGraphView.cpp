@@ -1,6 +1,11 @@
 #include "KEGraphView.h"
 #include "KEGraphScene.h"
+#include "KEGraphRegistrar.h"
 #include "KEditorConfig.h"
+
+#include "Graph/Node/KEGraphNodeView.h"
+
+#include "Graph/Test/KEGraphNodeTestModel.h"
 
 #include <QMouseEvent>
 #include <QPainter>
@@ -14,7 +19,7 @@ KEGraphView::KEGraphView(QWidget *parent)
 	: QGraphicsView(parent),
 	m_Scene(nullptr)
 {
-	setDragMode(QGraphicsView::ScrollHandDrag);
+	//setDragMode(QGraphicsView::ScrollHandDrag);
 	setRenderHint(QPainter::Antialiasing);
 
 	QBrush backgroundBrush = QBrush(QColor(53, 53, 53));
@@ -86,22 +91,33 @@ void KEGraphView::contextMenuEvent(QContextMenuEvent *event)
 
 	modelMenu.addAction(treeViewAction);
 
-	//
+	// ²âÊÔ´úÂë
 	QString testText = "Test";
 	QTreeWidgetItem* item = new QTreeWidgetItem(treeView);
 	item->setText(0, testText);
 	item->setData(0, Qt::UserRole, testText);
 
+	KEGraphRegistrar::RegisterGraphModel(testText, []()->KEGraphNodeModelPtr
+	{
+		return KEGraphNodeModelPtr(new KEGraphNodeTestModel());
+	});
+
 	connect(treeView, &QTreeWidget::itemClicked, [&](QTreeWidgetItem *item, int)
 	{
 		QString modelName = item->data(0, Qt::UserRole).toString();
-		// ²âÊÔ´úÂë
-		if (modelName == testText)
+		KEGraphNodeModelPtr model = KEGraphRegistrar::GetNodeModel(modelName);
+	
+		if (model)
 		{
-
+			QPoint pos = event->pos();
+			QPointF posView = this->mapToScene(pos);
+			KEGraphNodeControl* nodeControl = m_Scene->CreateNode(std::move(model));
+			nodeControl->GetView()->setPos(posView);
+			m_Scene->SingalNodePlaced(nodeControl);
 		}
+
+		modelMenu.close();
 	});
-	//
 
 	treeView->expandAll();
 
@@ -141,6 +157,7 @@ void KEGraphView::mousePressEvent(QMouseEvent *event)
 
 void KEGraphView::mouseMoveEvent(QMouseEvent *event)
 {
+	QGraphicsView::mouseMoveEvent(event);
 	if (scene()->mouseGrabberItem() == nullptr && event->buttons() == Qt::LeftButton)
 	{
 		// Make sure shift is not being pressed
