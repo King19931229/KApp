@@ -1,7 +1,8 @@
 #pragma once
 #include <QtCore/QUuid>
 #include <QtWidgets/QGraphicsObject>
-#include "Graph/KEGraphPredefine.h"
+
+#include "Graph/KEGraphConfig.h"
 
 class KEGraphNodeView : public QGraphicsObject
 {

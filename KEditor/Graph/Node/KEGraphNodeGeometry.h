@@ -4,7 +4,7 @@
 #include <QtGui/QTransform>
 #include <QtGui/QFontMetrics>
 
-#include "Graph/KEGraphPredefine.h"
+#include "Graph/KEGraphConfig.h"
 
 class KEGraphNodeGeometry
 {
@@ -43,4 +43,6 @@ public:
 	void RecalculateSize();
 	/// Updates size if the QFontMetrics is changed
 	void RecalculateSize(QFont const &font);
+
+	QPointF	PortScenePosition(PortIndexType index, PortType portType, const QTransform &t = QTransform()) const;
 };

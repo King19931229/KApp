@@ -3,7 +3,7 @@
 #include <QtCore/QUuid>
 #include <QtCore/QJsonObject>
 
-#include "Graph/KEGraphPredefine.h"
+#include "Graph/KEGraphConfig.h"
 #include "KEGraphNodeGeometry.h"
 #include "KEGraphNodeState.h"
 
@@ -28,4 +28,7 @@ public:
 	inline KEGraphNodeModel* GetModel() { return m_Model.get(); }
 
 	inline QUuid ID() const { return m_ID; }
+
+	void ResetReactionToConnection();
+	void PropagateData(KEGraphNodeDataPtr data, PortIndexType inPortIndex);
 };

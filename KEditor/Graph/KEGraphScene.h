@@ -1,9 +1,11 @@
 #pragma once
-#include "KEGraphPredefine.h"
-#include "Node/KEGraphNodeControl.h"
-#include "Utility/QUuidStdHash.hpp"
 #include <QGraphicsScene>
 #include <unordered_map>
+
+#include "KEGraphConfig.h"
+
+#include "Node/KEGraphNodeControl.h"
+#include "Utility/QUuidStdHash.hpp"
 
 class KEGraphScene : public QGraphicsScene
 {

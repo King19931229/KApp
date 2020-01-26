@@ -1,6 +1,6 @@
 #pragma once
 #include <QtWidgets/QGraphicsView>
-#include "KEGraphPredefine.h"
+#include "KEGraphConfig.h"
 
 class KEGraphView : public QGraphicsView
 {

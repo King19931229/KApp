@@ -1,9 +1,9 @@
 #pragma once
+#include <unordered_map>
+#include <functional>
 
 #include "Node/KEGraphNodeModel.h"
 #include "Utility/QStringStdHash.hpp"
-#include <unordered_map>
-#include <functional>
 
 class KEGraphRegistrar
 {

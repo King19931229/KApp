@@ -13,8 +13,8 @@ KEGraphNodeGeometry::KEGraphNodeGeometry(KEGraphNodeModelPtr& model)
 	m_OutputPortWidth(70),
 	m_Spacing(20),
 	m_Hovered(false),
-	m_nSources(0),// TODO
-	m_nSinks(0),// TODO
+	m_nSources(model->NumPorts(PT_OUT)),
+	m_nSinks(model->NumPorts(PT_IN)),
 	m_DataModel(model),
 	m_FontMetrics(QFont()),
 	m_BoldFontMetrics(QFont())
@@ -85,39 +85,32 @@ void KEGraphNodeGeometry::RecalculateSize()
 		m_Height = step * maxNumOfEntries;
 	}
 
-	/*
-	TODO
 	if (auto w = m_DataModel->EmbeddedWidget())
 	{
 		m_Height = std::max(m_Height, static_cast<unsigned>(w->height()));
 	}
-	*/
 
 	m_Height += CaptionHeight();
-	
+
 	m_InputPortWidth = PortWidth(PortType::PT_IN);
 	m_OutputPortWidth = PortWidth(PortType::PT_OUT);
-	
+
 	m_Width = m_InputPortWidth + m_OutputPortWidth + 2 * m_Spacing;
 
-	/*
-	if (auto w = _dataModel->embeddedWidget())
+	if (auto w = m_DataModel->EmbeddedWidget())
 	{
 		m_Width += w->width();
 	}
-	*/
 
 	m_Width = std::max(m_Width, CaptionWidth());
-
 	/*
-	if (_dataModel->validationState() != NodeValidationState::Valid)
+	if (m_DataModel->ValidationState() != NodeValidationState::Valid)
 	{
-		_width = std::max(_width, validationWidth());
-		_height += validationHeight() + _spacing;
+		m_Width = std::max(m_Width, ValidationWidth());
+		m_Height += ValidationHeight() + m_Spacing;
 	}
 	*/
 }
-
 
 void KEGraphNodeGeometry::RecalculateSize(QFont const & font) 
 {
@@ -135,4 +128,37 @@ void KEGraphNodeGeometry::RecalculateSize(QFont const & font)
 
 		RecalculateSize();
 	}
+}
+
+QPointF	KEGraphNodeGeometry::PortScenePosition(PortIndexType index, PortType portType, const QTransform& t) const
+{
+	unsigned int step = m_EntryHeight + m_Spacing;
+
+	QPointF result;
+
+	double totalHeight = 0.0;
+	totalHeight += CaptionHeight();
+	totalHeight += step * index;
+	// TODO: why?
+	totalHeight += step / 2.0;
+
+	switch (portType)
+	{
+		case PT_OUT:
+		{
+			double x = m_Width + KEGraphNodeStyle::ConnectionPointDiameter;
+			result = QPointF(x, totalHeight);
+			break;
+		}
+		case PT_IN:
+		{
+			double x = 0.0 - KEGraphNodeStyle::ConnectionPointDiameter;
+			result = QPointF(x, totalHeight);
+			break;
+		}
+		default:
+			break;
+	}
+
+	return t.map(result);
 }

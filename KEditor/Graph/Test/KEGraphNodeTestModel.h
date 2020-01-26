@@ -13,5 +13,9 @@ public:
 	virtual QString	Name() const override;
 
 	virtual	unsigned int NumPorts(PortType portType) const override;
-	virtual	KEGraphNodeDataType DataType(PortType portType, uint32_t portIndex) const override;
+	virtual	KEGraphNodeDataType DataType(PortType portType, PortIndexType portIndex) const override;
+
+	virtual	void SetInData(KEGraphNodeDataPtr nodeData, PortIndexType port) override;
+	virtual KEGraphNodeDataPtr OutData(PortIndexType port) override;
+	virtual	QWidget* EmbeddedWidget() override;
 };

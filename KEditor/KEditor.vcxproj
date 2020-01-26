@@ -88,6 +88,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Graph\Connection\KEGraphConnectionControl.cpp" />
+    <ClCompile Include="Graph\Connection\KEGraphConnectionGeometry.cpp" />
+    <ClCompile Include="Graph\Connection\KEGraphConnectionState.cpp" />
+    <ClCompile Include="Graph\Connection\KEGraphConnectionView.cpp" />
     <ClCompile Include="Graph\KEGraphPainter.cpp" />
     <ClCompile Include="Graph\KEGraphRegistrar.cpp" />
     <ClCompile Include="Graph\KEGraphScene.cpp" />
@@ -119,7 +123,12 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />
+    <QtMoc Include="Graph\Connection\KEGraphConnectionControl.h" />
+    <ClInclude Include="Graph\Connection\KEGraphConnectionGeometry.h" />
+    <ClInclude Include="Graph\Connection\KEGraphConnectionState.h" />
+    <ClInclude Include="Graph\Connection\KEGraphConnectionView.h" />
     <ClInclude Include="Graph\KEGraphPainter.h" />
+    <ClInclude Include="Graph\KEGraphPort.h" />
     <ClInclude Include="Graph\KEGraphRegistrar.h" />
     <ClInclude Include="Graph\Node\KEGraphNodeData.h" />
     <ClInclude Include="Graph\Node\KEGraphNodeState.h" />
@@ -128,7 +137,7 @@
     <ClInclude Include="Utility\QUuidStdHash.hpp" />
     <QtMoc Include="Graph\KEGraphScene.h" />
     <QtMoc Include="Graph\KEGraphView.h" />
-    <ClInclude Include="Graph\KEGraphPredefine.h" />
+    <ClInclude Include="Graph\KEGraphConfig.h" />
     <QtMoc Include="Graph\Node\KEGraphNodeView.h" />
     <QtMoc Include="Graph\Node\KEGraphNodeControl.h" />
     <QtMoc Include="Graph\Node\KEGraphNodeModel.h" />

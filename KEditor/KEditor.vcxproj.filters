@@ -33,6 +33,9 @@
     <Filter Include="Graph\Test">
       <UniqueIdentifier>{e9d45620-9d5c-4a50-9467-74a51b44bf0a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graph\Connection">
+      <UniqueIdentifier>{83caf1ca-0345-46a5-b858-9a1868e1a2b5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -79,6 +82,18 @@
     <ClCompile Include="Graph\Node\KEGraphNodeStyle.cpp">
       <Filter>Graph\Node</Filter>
     </ClCompile>
+    <ClCompile Include="Graph\Connection\KEGraphConnectionControl.cpp">
+      <Filter>Graph\Connection</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\Connection\KEGraphConnectionView.cpp">
+      <Filter>Graph\Connection</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\Connection\KEGraphConnectionGeometry.cpp">
+      <Filter>Graph\Connection</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\Connection\KEGraphConnectionState.cpp">
+      <Filter>Graph\Connection</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -106,6 +121,9 @@
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h">
       <Filter>Graph\Test</Filter>
     </QtMoc>
+    <QtMoc Include="Graph\Connection\KEGraphConnectionControl.h">
+      <Filter>Graph\Connection</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="KEditor.ui">
@@ -122,9 +140,6 @@
       <Filter>Other</Filter>
     </ClInclude>
     <ClInclude Include="KEditorConfig.h" />
-    <ClInclude Include="Graph\KEGraphPredefine.h">
-      <Filter>Graph</Filter>
-    </ClInclude>
     <ClInclude Include="Graph\Node\KEGraphNodeGeometry.h">
       <Filter>Graph\Node</Filter>
     </ClInclude>
@@ -148,6 +163,21 @@
     </ClInclude>
     <ClInclude Include="Graph\Node\KEGraphNodeStyle.h">
       <Filter>Graph\Node</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\Connection\KEGraphConnectionView.h">
+      <Filter>Graph\Connection</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\KEGraphConfig.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\Connection\KEGraphConnectionGeometry.h">
+      <Filter>Graph\Connection</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\Connection\KEGraphConnectionState.h">
+      <Filter>Graph\Connection</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\KEGraphPort.h">
+      <Filter>Graph</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
