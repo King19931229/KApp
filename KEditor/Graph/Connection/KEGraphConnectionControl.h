@@ -58,6 +58,7 @@ public:
 	PortType RequiredPort() const;
 
 	void SetView(KEGraphConnectionViewPtr&& graphics);
+	inline KEGraphConnectionView* GetView() const { return m_View.get(); }
 
 	/// Assigns a node to the required port.
 	/// It is assumed that there is a required port, no extra checks

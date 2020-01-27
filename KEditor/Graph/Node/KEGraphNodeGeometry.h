@@ -25,6 +25,8 @@ protected:
 	QFontMetrics m_FontMetrics;
 	QFontMetrics m_BoldFontMetrics;
 
+	QPointF m_DraggingPos;
+
 	unsigned int CaptionHeight() const;
 	unsigned int CaptionWidth() const;
 	unsigned int PortWidth(PortType portType) const;
@@ -32,11 +34,21 @@ public:
 	KEGraphNodeGeometry(KEGraphNodeModelPtr& model);
 	~KEGraphNodeGeometry();
 
-	unsigned int Width() { return m_Width; }
-	unsigned int Height() { return m_Height; }
-	unsigned int Spacing() { return m_Spacing; }
-	unsigned int EntryWidth() { return m_EntryWidth; }
-	unsigned int EntryHeight() { return m_EntryHeight; }
+	inline unsigned int Width() const { return m_Width; }
+	inline unsigned int Height() const { return m_Height; }
+	inline unsigned int Spacing() const { return m_Spacing; }
+	inline bool Hovered() const { return m_Hovered; }
+	inline unsigned int EntryWidth() const { return m_EntryWidth; }
+	inline unsigned int EntryHeight() const { return m_EntryHeight; }
+	inline unsigned int	NumSources() const { return m_nSources; }
+	inline unsigned int	NumSinks() const { return m_nSinks; }
+	inline const QPointF& DraggingPos() const { return m_DraggingPos; }
+
+	inline void	SetEntryHeight(unsigned int h) { m_EntryHeight = h; }
+	inline void SetEntryWidth(unsigned int w) { m_EntryWidth = w; }
+	inline void	SetSpacing(unsigned int s) { m_Spacing = s; }
+	inline void	SetHovered(bool h) { m_Hovered = h; }
+	inline void SetDraggingPosition(QPointF const& pos) { m_DraggingPos = pos; }
 
 	QRectF BoundingRect() const;
 	/// Updates size unconditionally

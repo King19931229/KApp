@@ -15,7 +15,10 @@ public:
 	KEGraphNodeView(KEGraphScene* scene, KEGraphNodeControl* control);
 	virtual ~KEGraphNodeView();
 
+	inline KEGraphNodeControl* GetControl() { return m_Node; }
+
 	enum { Type = UserType + 1 };
+	int	type() const override { return Type; }
 
 	void Lock(bool locked);
 	void SetGeometryChanged();	

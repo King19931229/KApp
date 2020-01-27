@@ -15,6 +15,7 @@ KEGraphNodeGeometry::KEGraphNodeGeometry(KEGraphNodeModelPtr& model)
 	m_Hovered(false),
 	m_nSources(model->NumPorts(PT_OUT)),
 	m_nSinks(model->NumPorts(PT_IN)),
+	m_DraggingPos(-1000, -1000),
 	m_DataModel(model),
 	m_FontMetrics(QFont()),
 	m_BoldFontMetrics(QFont())

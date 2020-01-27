@@ -25,4 +25,10 @@ Q_SIGNALS:
 	void SingalNodeDeleted(KEGraphNodeControl* n);
 	void SingalNodeMoved(KEGraphNodeControl* node, const QPointF& newLocation);
 	void SingalNodeDoubleClicked(KEGraphNodeControl* node);
+
+	void SingalNodeHovered(KEGraphNodeControl* n, QPoint screenPos);
+	void SingalNodeHoverLeft(KEGraphNodeControl* n);
+
+	void SingalConnectionHovered(KEGraphConnectionControl* c, QPoint screenPos);
+	void SingalConnectionLeft(KEGraphConnectionControl* c, QPoint screenPos);
 };

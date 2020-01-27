@@ -48,7 +48,7 @@ KEGraphConnectionControl::~KEGraphConnectionControl()
 
 	if (m_OutNode)
 	{
-		m_InNode->GetView()->update();
+		m_OutNode->GetView()->update();
 	}
 }
 

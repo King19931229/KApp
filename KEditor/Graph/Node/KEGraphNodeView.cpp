@@ -172,12 +172,32 @@ void KEGraphNodeView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
 void KEGraphNodeView::hoverEnterEvent(QGraphicsSceneHoverEvent* event)
 {
+	// bring all the colliding nodes to background
+	QList<QGraphicsItem *> overlapItems = collidingItems();
 
+	for (QGraphicsItem *item : overlapItems)
+	{
+		if (item->zValue() > 0.0)
+		{
+			item->setZValue(0.0);
+		}
+	}
+
+	// bring this node forward
+	setZValue(1.0);
+
+	m_Node->GetGeometry().SetHovered(true);
+	update();
+	m_Scene->SingalNodeHovered(m_Node, event->screenPos());
+	event->accept();
 }
 
 void KEGraphNodeView::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
 {
-
+	m_Node->GetGeometry().SetHovered(false);
+	update();
+	m_Scene->SingalNodeHoverLeft(m_Node);
+	event->accept();
 }
 
 void KEGraphNodeView::hoverMoveEvent(QGraphicsSceneHoverEvent *)

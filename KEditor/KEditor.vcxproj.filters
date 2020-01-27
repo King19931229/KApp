@@ -94,6 +94,9 @@
     <ClCompile Include="Graph\Connection\KEGraphConnectionState.cpp">
       <Filter>Graph\Connection</Filter>
     </ClCompile>
+    <ClCompile Include="Graph\Connection\KEGraphConnectionStyle.cpp">
+      <Filter>Graph\Connection</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -122,6 +125,9 @@
       <Filter>Graph\Test</Filter>
     </QtMoc>
     <QtMoc Include="Graph\Connection\KEGraphConnectionControl.h">
+      <Filter>Graph\Connection</Filter>
+    </QtMoc>
+    <QtMoc Include="Graph\Connection\KEGraphConnectionView.h">
       <Filter>Graph\Connection</Filter>
     </QtMoc>
   </ItemGroup>
@@ -164,20 +170,20 @@
     <ClInclude Include="Graph\Node\KEGraphNodeStyle.h">
       <Filter>Graph\Node</Filter>
     </ClInclude>
-    <ClInclude Include="Graph\Connection\KEGraphConnectionView.h">
-      <Filter>Graph\Connection</Filter>
-    </ClInclude>
     <ClInclude Include="Graph\KEGraphConfig.h">
       <Filter>Graph</Filter>
     </ClInclude>
     <ClInclude Include="Graph\Connection\KEGraphConnectionGeometry.h">
       <Filter>Graph\Connection</Filter>
     </ClInclude>
-    <ClInclude Include="Graph\Connection\KEGraphConnectionState.h">
-      <Filter>Graph\Connection</Filter>
-    </ClInclude>
     <ClInclude Include="Graph\KEGraphPort.h">
       <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\Connection\KEGraphConnectionStyle.h">
+      <Filter>Graph\Connection</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\Connection\KEGraphConnectionState.h">
+      <Filter>Graph\Connection</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
