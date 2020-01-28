@@ -27,7 +27,6 @@ KEGraphNodeGeometry::KEGraphNodeGeometry(KEGraphNodeModelPtr& model)
 
 KEGraphNodeGeometry::~KEGraphNodeGeometry()
 {
-
 }
 
 unsigned int KEGraphNodeGeometry::CaptionHeight() const
@@ -71,7 +70,6 @@ unsigned int KEGraphNodeGeometry::PortWidth(PortType portType) const
 
 QRectF KEGraphNodeGeometry::BoundingRect() const
 {
-	return QRectF(0, 0, m_Width, m_Height);
 	double addon = 4 * KEGraphNodeStyle::ConnectionPointDiameter;
 	return QRectF(0 - addon, 0 - addon, m_Width + 2 * addon, m_Height + 2 * addon);
 }
@@ -104,7 +102,7 @@ void KEGraphNodeGeometry::RecalculateSize()
 	}
 
 	m_Width = std::max(m_Width, CaptionWidth());
-	/*
+	/* TODO
 	if (m_DataModel->ValidationState() != NodeValidationState::Valid)
 	{
 		m_Width = std::max(m_Width, ValidationWidth());
@@ -129,6 +127,33 @@ void KEGraphNodeGeometry::RecalculateSize(QFont const & font)
 
 		RecalculateSize();
 	}
+}
+
+QRect KEGraphNodeGeometry::ResizeRect() const
+{
+	unsigned int rectSize = 7;
+
+	return QRect(m_Width - rectSize,
+		m_Height - rectSize,
+		rectSize,
+		rectSize);
+}
+
+QPointF KEGraphNodeGeometry::WidgetPosition() const
+{
+	if (auto w = m_DataModel->EmbeddedWidget())
+	{
+		/* TODO
+		if (m_DataModel->validationState() != NodeValidationState::Valid)
+		{
+			return QPointF(m_Spacing + PortWidth(PT_IN),
+				(CaptionHeight() + m_Height - ValidationHeight() - m_Spacing - w->height()) / 2.0);
+		}
+		*/
+		return QPointF(m_Spacing + PortWidth(PT_IN), (CaptionHeight() + m_Height - w->height()) / 2.0);
+	}
+
+	return QPointF();
 }
 
 QPointF	KEGraphNodeGeometry::PortScenePosition(PortIndexType index, PortType portType, const QTransform& t) const
@@ -162,4 +187,32 @@ QPointF	KEGraphNodeGeometry::PortScenePosition(PortIndexType index, PortType por
 	}
 
 	return t.map(result);
+}
+
+PortIndexType KEGraphNodeGeometry::CheckHitScenePoint(PortType portType, QPointF scenePoint, QTransform const & sceneTransform) const
+{
+	PortIndexType result = INVALID_PORT_INDEX;
+
+	if (portType == PT_NONE)
+		return result;
+
+	double const tolerance = 2.0 * KEGraphNodeStyle::ConnectionPointDiameter;
+
+	unsigned int const nItems = m_DataModel->NumPorts(portType);
+
+	for (unsigned int i = 0; i < nItems; ++i)
+	{
+		auto pp = PortScenePosition(i, portType, sceneTransform);
+
+		QPointF p = pp - scenePoint;
+		auto    distance = std::sqrt(QPointF::dotProduct(p, p));
+
+		if (distance < tolerance)
+		{
+			result = PortIndexType(i);
+			break;
+		}
+	}
+
+	return result;
 }

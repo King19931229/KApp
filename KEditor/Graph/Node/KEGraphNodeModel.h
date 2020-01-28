@@ -22,6 +22,8 @@ public:
 	/// Name makes this model unique
 	virtual QString	Name() const = 0;
 
+	virtual	bool Resizable() const { return false; }
+
 	virtual	unsigned int NumPorts(PortType portType) const = 0;
 	virtual	KEGraphNodeDataType DataType(PortType portType, PortIndexType portIndex) const = 0;
 
@@ -29,4 +31,13 @@ public:
 	virtual	void SetInData(KEGraphNodeDataPtr nodeData, PortIndexType port) = 0;
 	virtual KEGraphNodeDataPtr OutData(PortIndexType port) = 0;
 	virtual	QWidget* EmbeddedWidget() = 0;
+
+	virtual	ConnectionPolicy PortOutConnectionPolicy(PortIndexType portIndex) const {	return CP_MANY; }
+
+Q_SIGNALS:
+	void SingalDataUpdated(PortIndexType index);
+	void SingalDataInvalidated(PortIndexType index);
+	void SingalComputingStarted();
+	void SingalComputingFinished();
+	void SingalEmbeddedWidgetSizeUpdated();
 };

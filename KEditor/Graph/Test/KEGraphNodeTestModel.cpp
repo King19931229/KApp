@@ -20,7 +20,15 @@ QString	KEGraphNodeTestModel::Name() const
 
 unsigned int KEGraphNodeTestModel::NumPorts(PortType portType) const
 {
-	return 0;
+	switch (portType)
+	{
+	case PT_IN:
+		return 2;
+	case PT_OUT:
+		return 3;
+	default:
+		return 0;
+	}
 }
 
 KEGraphNodeDataType KEGraphNodeTestModel::DataType(PortType portType, PortIndexType portIndex) const

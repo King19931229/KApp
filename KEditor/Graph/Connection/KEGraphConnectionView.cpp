@@ -1,8 +1,12 @@
 #include "KEGraphConnectionView.h"
-#include "Graph/KEGraphScene.h"
+
 #include "Graph/Connection/KEGraphConnectionControl.h"
 #include "Graph/Connection/KEGraphConnectionView.h"
+
+#include "Graph/KEGraphScene.h"
+#include "Graph/KEGraphPort.h"
 #include "Graph/KEGraphPainter.h"
+#include "Graph/KEGraphInteraction.h"
 
 #include <QtWidgets/QGraphicsSceneMouseEvent>
 #include <QtWidgets/QGraphicsDropShadowEffect>
@@ -54,8 +58,8 @@ void KEGraphConnectionView::Move()
 {
 	for (PortType portType : { PT_IN, PT_OUT })
 	{
-		KEGraphNodeControl* node = nullptr;
-		if (m_Connection->GetNode(portType, &node))
+		KEGraphNodeControl* node = m_Connection->GetNode(portType);
+		if (node)
 		{
 			const KEGraphNodeView* nodeGraphics = node->GetView();
 			const KEGraphNodeGeometry& nodeGeom = node->GetGeometry();
@@ -107,12 +111,50 @@ void KEGraphConnectionView::mousePressEvent(QGraphicsSceneMouseEvent* event)
 
 void KEGraphConnectionView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-	// TODO
+	prepareGeometryChange();
+
+	QGraphicsView* view = static_cast<QGraphicsView*>(event->widget());
+	KEGraphNodeControl* node = m_Scene->LocateNodeAt(event->scenePos());
+
+	KEGraphConnectionState& state = m_Connection->ConnectionState();
+
+	state.InteractWithNode(node);
+	if (node)
+	{
+		node->ReactToPossibleConnection(state.RequiredPort(),
+			m_Connection->DataType(OppositePort(state.RequiredPort())),
+			event->scenePos());
+	}
+
+	QPointF offset = event->pos() - event->lastPos();
+	auto requiredPort = m_Connection->RequiredPort();
+	if (requiredPort != PT_NONE)
+	{
+		m_Connection->ConnectionGeometry().MoveEndPoint(requiredPort, offset);
+	}
+
+	update();
+	event->accept();
 }
 
 void KEGraphConnectionView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-	// TODO
+	ungrabMouse();
+	event->accept();
+
+	KEGraphNodeControl* node = m_Scene->LocateNodeAt(event->scenePos());
+
+	KEGraphInteraction interaction(*node, *m_Connection, *m_Scene);
+
+	if (node && interaction.TryConnect())
+	{
+		node->ResetReactionToConnection();
+	}
+
+	if (m_Connection->ConnectionState().RequiresPort())
+	{
+		m_Scene->DeleteConnection(m_Connection);
+	}
 }
 
 void KEGraphConnectionView::hoverEnterEvent(QGraphicsSceneHoverEvent* event)

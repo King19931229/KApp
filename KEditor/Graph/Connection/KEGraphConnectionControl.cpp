@@ -37,7 +37,7 @@ KEGraphConnectionControl::~KEGraphConnectionControl()
 {
 	if (Complete())
 	{
-		SingalConnectionMadeIncomplete(*this);
+		SingalConnectionMadeIncomplete(this);
 	}
 	PropagateEmptyData();
 
@@ -101,12 +101,10 @@ void KEGraphConnectionControl::SetView(KEGraphConnectionViewPtr&& graphics)
 
 	if (RequiredPort() != PT_NONE)
 	{
-
 		PortType attachedPort = OppositePort(RequiredPort());
 		PortIndexType attachedPortIndex = GetPortIndex(attachedPort);
 
-		KEGraphNodeControl* node = nullptr;
-		GetNode(attachedPort, &node);
+		KEGraphNodeControl* const& node = GetNode(attachedPort);
 
 		QTransform nodeSceneTransform = node->GetView()->sceneTransform();
 
@@ -114,11 +112,10 @@ void KEGraphConnectionControl::SetView(KEGraphConnectionViewPtr&& graphics)
 			attachedPort,
 			nodeSceneTransform);
 
-		// TODO
-		// m_View->setPos(pos);
+		m_View->setPos(pos);
 	}
-	// TODO
-	// m_View->move();
+
+	m_View->Move();
 }
 
 PortIndexType KEGraphConnectionControl::GetPortIndex(PortType portType) const
@@ -141,23 +138,20 @@ PortIndexType KEGraphConnectionControl::GetPortIndex(PortType portType) const
 void KEGraphConnectionControl::SetNodeToPort(KEGraphNodeControl* node, PortType portType, PortIndexType portIndex)
 {
 	bool wasIncomplete = !Complete();
-	KEGraphNodeControl** ppNode = nullptr;
-	if (GetNode(portType, ppNode))
+
+	GetNode(portType) = node;
+
+	if (portType == PT_OUT)
+		m_OutPortIndex = portIndex;
+	else
+		m_InPortIndex = portIndex;
+
+	m_ConnectionState.SetNoRequiredPort();
+
+	SingalUpdated(this);
+	if (Complete() && wasIncomplete)
 	{
-		*ppNode = node;
-
-		if (portType == PT_OUT)
-			m_OutPortIndex = portIndex;
-		else
-			m_InPortIndex = portIndex;
-
-		m_ConnectionState.SetNoRequiredPort();
-
-		SingalUpdated(*this);
-		if (Complete() && wasIncomplete)
-		{
-			SingalConnectionCompleted(*this);
-		}
+		SingalConnectionCompleted(this);
 	}
 }
 
@@ -174,36 +168,30 @@ void KEGraphConnectionControl::RemoveFromNodes() const
 	}
 }
 
-bool KEGraphConnectionControl::GetNode(PortType portType, KEGraphNodeControl** ppNode)
+KEGraphNodeControl*& KEGraphConnectionControl::GetNode(PortType portType)
 {
-	if (ppNode)
+	switch (portType)
 	{
-		switch (portType)
-		{
-		case PT_IN:
-			*ppNode = m_InNode;
-			return true;
-		case PT_OUT:
-			*ppNode = m_OutNode;
-			return true;
-		default:
-			*ppNode = nullptr;
-			return false;
-		}
+	case PT_IN:
+		return m_InNode;
+	case PT_OUT:
+		return m_OutNode;
+	default:
+		assert(false && "should not be reached");
+		// keep the compiler happy
+		static KEGraphNodeControl* null = nullptr;
+		return null;
 	}
-	return false;
 }
 
 void KEGraphConnectionControl::ClearNode(PortType portType)
 {
 	if (Complete())
 	{
-		SingalConnectionMadeIncomplete(*this);
+		SingalConnectionMadeIncomplete(this);
 	}
 
-	KEGraphNodeControl** ppNode = nullptr;
-	GetNode(portType, ppNode);
-	*ppNode = nullptr;
+	GetNode(portType) = nullptr;
 
 	if (portType == PT_IN)
 	{

@@ -93,6 +93,7 @@
     <ClCompile Include="Graph\Connection\KEGraphConnectionState.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionStyle.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionView.cpp" />
+    <ClCompile Include="Graph\KEGraphInteraction.cpp" />
     <ClCompile Include="Graph\KEGraphPainter.cpp" />
     <ClCompile Include="Graph\KEGraphRegistrar.cpp" />
     <ClCompile Include="Graph\KEGraphScene.cpp" />
@@ -129,6 +130,7 @@
     <QtMoc Include="Graph\Connection\KEGraphConnectionView.h" />
     <ClInclude Include="Graph\Connection\KEGraphConnectionState.h" />
     <ClInclude Include="Graph\Connection\KEGraphConnectionStyle.h" />
+    <ClInclude Include="Graph\KEGraphInteraction.h" />
     <ClInclude Include="Graph\KEGraphPainter.h" />
     <ClInclude Include="Graph\KEGraphPort.h" />
     <ClInclude Include="Graph\KEGraphRegistrar.h" />

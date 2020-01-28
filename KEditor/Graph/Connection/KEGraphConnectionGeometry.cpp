@@ -58,7 +58,6 @@ QRectF KEGraphConnectionGeometry::BoundingRect() const
 
 	QRectF c1c2Rect = QRectF(points.first, points.second).normalized();
 
-	// TODO
 	float const diam = KEGraphConnectionStyle::PointDiameter;
 
 	QRectF commonRect = basicRect.united(c1c2Rect);

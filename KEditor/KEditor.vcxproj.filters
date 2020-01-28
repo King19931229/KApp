@@ -97,6 +97,9 @@
     <ClCompile Include="Graph\Connection\KEGraphConnectionStyle.cpp">
       <Filter>Graph\Connection</Filter>
     </ClCompile>
+    <ClCompile Include="Graph\KEGraphInteraction.cpp">
+      <Filter>Graph</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -184,6 +187,9 @@
     </ClInclude>
     <ClInclude Include="Graph\Connection\KEGraphConnectionState.h">
       <Filter>Graph\Connection</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\KEGraphInteraction.h">
+      <Filter>Graph</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

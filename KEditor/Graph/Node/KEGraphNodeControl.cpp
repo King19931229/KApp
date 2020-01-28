@@ -1,6 +1,7 @@
 #include "KEGraphNodeControl.h"
 #include "KEGraphNodeModel.h"
 #include "KEGraphNodeView.h"
+#include "Graph/Connection/KEGraphConnectionControl.h"
 
 KEGraphNodeControl::KEGraphNodeControl(KEGraphNodeModelPtr&& model)
 	: m_Model(std::move(model)),
@@ -10,17 +11,34 @@ KEGraphNodeControl::KEGraphNodeControl(KEGraphNodeModelPtr&& model)
 	m_NodeState(m_Model)
 {
 	m_Geometry.RecalculateSize();
+
+	// propagate data: model => node
+	connect(m_Model.get(), &KEGraphNodeModel::SingalDataUpdated, this, &KEGraphNodeControl::OnDataUpdated);
+	connect(m_Model.get(), &KEGraphNodeModel::SingalEmbeddedWidgetSizeUpdated, this, &KEGraphNodeControl::OnNodeSizeUpdated);
 }
 
 KEGraphNodeControl::~KEGraphNodeControl()
 {
-	m_Model = nullptr;
-	m_View = nullptr;
 }
 
 void KEGraphNodeControl::SetView(KEGraphNodeViewPtr&& view)
 {
 	m_View = std::move(view);
+}
+
+void KEGraphNodeControl::ReactToPossibleConnection(PortType reactingPortType, const KEGraphNodeDataType& reactingDataType, const QPointF& scenePoint)
+{
+	const QTransform t = m_View->sceneTransform();
+
+	QPointF p = t.inverted().map(scenePoint);
+
+	m_Geometry.SetDraggingPosition(p);
+
+	m_View->update();
+
+	m_NodeState.SetReaction(KEGraphNodeState::REACTING,
+		reactingPortType,
+		reactingDataType);
 }
 
 void KEGraphNodeControl::ResetReactionToConnection()
@@ -38,4 +56,35 @@ void KEGraphNodeControl::PropagateData(KEGraphNodeDataPtr data, PortIndexType in
 	m_Geometry.RecalculateSize();
 	m_View->update();
 	m_View->MoveConnections();
+}
+
+void KEGraphNodeControl::OnDataUpdated(PortIndexType index)
+{
+	KEGraphNodeDataPtr nodeData = m_Model->OutData(index);
+	auto connections = m_NodeState.Connections(PT_OUT, index);
+
+	for (auto const& c : connections)
+	{
+		c.second->PropagateData(nodeData);
+	}
+}
+
+void KEGraphNodeControl::OnNodeSizeUpdated()
+{
+	if (m_Model->EmbeddedWidget())
+	{
+		m_Model->EmbeddedWidget()->adjustSize();
+	}
+	m_Geometry.RecalculateSize();
+	for (PortType type : {PT_IN, PT_OUT})
+	{
+		for (auto& conn_set : m_NodeState.GetEntries(type))
+		{
+			for (auto& pair : conn_set)
+			{
+				KEGraphConnectionControl* conn = pair.second;
+				conn->GetView()->Move();
+			}
+		}
+	}
 }

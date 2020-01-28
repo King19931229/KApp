@@ -1,7 +1,9 @@
 #include "KEGraphNodeView.h"
 #include "KEGraphNodeControl.h"
+#include "KEGraphNodeStyle.h"
 
 #include "Graph/KEGraphScene.h"
+#include "Graph/KEGraphInteraction.h"
 #include "Graph/KEGraphPainter.h"
 
 #include <QtWidgets/QGraphicsEffect>
@@ -12,7 +14,8 @@
 KEGraphNodeView::KEGraphNodeView(KEGraphScene* scene, KEGraphNodeControl* control)
 	: m_Scene(scene),
 	m_Node(control),
-	m_Locked(false)
+	m_Locked(false),
+	m_ProxyWidget(nullptr)
 {
 	m_Scene->addItem(this);
 
@@ -27,14 +30,16 @@ KEGraphNodeView::KEGraphNodeView(KEGraphScene* scene, KEGraphNodeControl* contro
 	auto effect = new QGraphicsDropShadowEffect;
 	effect->setOffset(4, 4);
 	effect->setBlurRadius(20);
-	effect->setColor(QColor(20, 20, 20));
+	effect->setColor(KEGraphNodeStyle::ShadowColor);
 	setGraphicsEffect(effect);
 
-	setOpacity(0.8);
+	setOpacity(KEGraphNodeStyle::Opacity);
 
 	setAcceptHoverEvents(true);
 
 	setZValue(0);
+
+	EmbedQWidget();
 
 	// connect to the move signals to emit the move signals in FlowScene
 	auto onMoveSlot = [this]
@@ -103,7 +108,86 @@ void KEGraphNodeView::mousePressEvent(QGraphicsSceneMouseEvent* event)
 		m_Scene->clearSelection();
 	}
 
-	// TODO port resize
+	for (PortType portToCheck : {PT_IN, PT_OUT})
+	{
+		const KEGraphNodeGeometry& nodeGeometry = m_Node->GetGeometry();
+
+		// TODO do not pass sceneTransform
+		const PortIndexType portIndex = nodeGeometry.CheckHitScenePoint(
+			portToCheck,
+			event->scenePos(),
+			sceneTransform());
+
+		if (portIndex != INVALID_PORT_INDEX)
+		{
+			const KEGraphNodeState& nodeState = m_Node->GetNodeState();
+
+			auto connections = nodeState.Connections(portToCheck, portIndex);
+
+			// start dragging existing connection
+			if (!connections.empty() && portToCheck == PT_OUT)
+			{
+				KEGraphConnectionControl* conn = connections.begin()->second;
+				KEGraphInteraction interaction(*m_Node, *conn, *m_Scene);
+				interaction.Disconnect(portToCheck);
+			}
+			else // initialize new Connection
+			{
+				if (portToCheck == PT_OUT)
+				{
+					const ConnectionPolicy outPolicy = m_Node->GetModel()->PortOutConnectionPolicy(portIndex);
+					if (!connections.empty() &&	outPolicy == CP_ONE)
+					{
+						m_Scene->DeleteConnection(connections.begin()->second);
+					}
+				}
+
+				// todo add to FlowScene
+				KEGraphConnectionControl* connection = m_Scene->CreateConnection(portToCheck,
+					m_Node,
+					portIndex);
+
+				m_Node->GetNodeState().SetConnection(portToCheck,
+					portIndex,
+					*connection);
+
+				connection->GetView()->grabMouse();
+			}
+		}
+	}
+
+	QPointF pos = event->pos();
+	KEGraphNodeGeometry& geom = m_Node->GetGeometry();
+	KEGraphNodeState& state = m_Node->GetNodeState();
+
+	if (m_Node->GetModel()->Resizable() &&
+		geom.ResizeRect().contains(QPoint(pos.x(), pos.y())))
+	{
+		state.SetResizing(true);
+	}
+}
+
+void KEGraphNodeView::EmbedQWidget()
+{
+	KEGraphNodeGeometry& geom = m_Node->GetGeometry();
+
+	if (auto w = m_Node->GetModel()->EmbeddedWidget())
+	{
+		m_ProxyWidget = new QGraphicsProxyWidget(this);
+
+		m_ProxyWidget->setWidget(w);
+
+		m_ProxyWidget->setPreferredWidth(5);
+
+		geom.RecalculateSize();
+
+		m_ProxyWidget->setPos(geom.WidgetPosition());
+
+		update();
+
+		m_ProxyWidget->setOpacity(1.0);
+		m_ProxyWidget->setFlag(QGraphicsItem::ItemIgnoresParentOpacity);
+	}
 }
 
 void KEGraphNodeView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
@@ -111,13 +195,11 @@ void KEGraphNodeView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 	KEGraphNodeGeometry& geom = m_Node->GetGeometry();
 	KEGraphNodeState& state = m_Node->GetNodeState();
 
-	/*
-	TODO
-	if (state.resizing())
+	if (state.Resizing())
 	{
 		auto diff = event->pos() - event->lastPos();
 
-		if (auto w = _node.nodeDataModel()->embeddedWidget())
+		if (auto w = m_Node->GetModel()->EmbeddedWidget())
 		{
 			prepareGeometryChange();
 
@@ -127,20 +209,19 @@ void KEGraphNodeView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 
 			w->setFixedSize(oldSize);
 
-			_proxyWidget->setMinimumSize(oldSize);
-			_proxyWidget->setMaximumSize(oldSize);
-			_proxyWidget->setPos(geom.widgetPosition());
+			m_ProxyWidget->setMinimumSize(oldSize);
+			m_ProxyWidget->setMaximumSize(oldSize);
+			m_ProxyWidget->setPos(geom.WidgetPosition());
 
-			geom.recalculateSize();
+			geom.RecalculateSize();
 			update();
 
-			moveConnections();
+			MoveConnections();
 
 			event->accept();
 		}
 	}
 	else
-	*/
 	{
 		QGraphicsObject::mouseMoveEvent(event);
 
@@ -161,8 +242,7 @@ void KEGraphNodeView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
 	KEGraphNodeState& state = m_Node->GetNodeState();
 
-	// TODO
-	// state.setResizing(false);
+	state.SetResizing(false);
 
 	QGraphicsObject::mouseReleaseEvent(event);
 
@@ -200,9 +280,21 @@ void KEGraphNodeView::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
 	event->accept();
 }
 
-void KEGraphNodeView::hoverMoveEvent(QGraphicsSceneHoverEvent *)
+void KEGraphNodeView::hoverMoveEvent(QGraphicsSceneHoverEvent* event)
 {
+	QPointF pos = event->pos();
+	KEGraphNodeGeometry& geom = m_Node->GetGeometry();
 
+	if (m_Node->GetModel()->Resizable() && geom.ResizeRect().contains(QPoint(pos.x(), pos.y())))
+	{
+		setCursor(QCursor(Qt::SizeFDiagCursor));
+	}
+	else
+	{
+		setCursor(QCursor());
+	}
+
+	event->accept();
 }
 
 void KEGraphNodeView::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)

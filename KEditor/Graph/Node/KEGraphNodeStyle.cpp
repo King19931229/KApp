@@ -9,13 +9,13 @@ QColor KEGraphNodeStyle::GradientColor3 = QColor(58, 58, 58);
 QColor KEGraphNodeStyle::ShadowColor = QColor(20, 20, 20);
 QColor KEGraphNodeStyle::FontColor = QColor("white");
 QColor KEGraphNodeStyle::FontColorFaded = QColor("gray");
-	
+
 QColor KEGraphNodeStyle::ConnectionPointColor = QColor(169, 169, 169);
 QColor KEGraphNodeStyle::FilledConnectionPointColor = QColor("cyan");
-	 
+
 QColor KEGraphNodeStyle::WarningColor = QColor("red");
 QColor KEGraphNodeStyle::ErrorColor = QColor(128, 128, 0);
-	
+
 float KEGraphNodeStyle::PenWidth = 1.0f;
 float KEGraphNodeStyle::HoveredPenWidth = 1.5f;
 

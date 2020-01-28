@@ -81,8 +81,8 @@ void KEGraphPainter::DrawModelName(QPainter* painter, KEGraphNodeGeometry& geom,
 	QPointF position((geom.Width() - rect.width()) / 2.0, (geom.Spacing() + geom.EntryHeight()) / 3.0);
 
 	painter->setFont(f);
-	// TODO
-	painter->setPen(QColor(0, 0, 0));
+
+	painter->setPen(KEGraphNodeStyle::FontColor);
 	painter->drawText(position, name);
 
 	f.setBold(false);
@@ -91,22 +91,166 @@ void KEGraphPainter::DrawModelName(QPainter* painter, KEGraphNodeGeometry& geom,
 
 void KEGraphPainter::DrawEntryLabels(QPainter* painter, KEGraphNodeGeometry& geom, KEGraphNodeState const& state, KEGraphNodeModel const * model)
 {
+	QFontMetrics const & metrics = painter->fontMetrics();
 
+	for (PortType portType : {PT_OUT, PT_IN})
+	{
+		auto& entries = state.GetEntries(portType);
+
+		size_t n = entries.size();
+
+		for (size_t i = 0; i < n; ++i)
+		{
+			QPointF p = geom.PortScenePosition(i, portType);
+
+			if (entries[i].empty())
+				painter->setPen(KEGraphNodeStyle::FontColorFaded);
+			else
+				painter->setPen(KEGraphNodeStyle::FontColor);
+
+			QString s;
+
+			if (model->PortCaptionVisible(portType, i))
+			{
+				s = model->PortCaption(portType, i);
+			}
+			else
+			{
+				s = model->DataType(portType, i).name;
+			}
+
+			auto rect = metrics.boundingRect(s);
+
+			p.setY(p.y() + rect.height() / 4.0);
+
+			switch (portType)
+			{
+			case PT_IN:
+				p.setX(5.0);
+				break;
+
+			case PT_OUT:
+				p.setX(geom.Width() - 5.0 - rect.width());
+				break;
+
+			default:
+				break;
+			}
+
+			painter->drawText(p, s);
+		}
+	}
 }
 
 void KEGraphPainter::DrawConnectionPoints(QPainter* painter, KEGraphNodeGeometry& geom, KEGraphNodeState const& state, KEGraphNodeModel const * model, KEGraphScene const & scene)
 {
+	float diameter = KEGraphNodeStyle::ConnectionPointDiameter;
+	double reducedDiameter = diameter * 0.6;
 
+	for (PortType portType : {PT_OUT, PT_IN})
+	{
+		size_t n = state.GetEntries(portType).size();
+
+		for (unsigned int i = 0; i < n; ++i)
+		{
+			QPointF p = geom.PortScenePosition(i, portType);
+
+			auto const & dataType = model->DataType(portType, i);
+
+			bool canConnect = (state.GetEntries(portType)[i].empty() ||
+				(portType == PT_OUT && model->PortOutConnectionPolicy(i) == CP_MANY));
+
+			double r = 1.0;
+			if (state.IsReacting() && canConnect && portType == state.ReactingPortType())
+			{
+
+				QPointF diff = geom.DraggingPos() - p;
+				double dist = std::sqrt(QPointF::dotProduct(diff, diff));
+				bool typeConvertable = false;
+
+				{
+					if (portType == PT_IN)
+					{
+						// TODO
+						// typeConvertable = scene.registry().getTypeConverter(state.reactingDataType(), dataType) != nullptr;
+					}
+					else
+					{
+						// TODO
+						// typeConvertable = scene.registry().getTypeConverter(dataType, state.reactingDataType()) != nullptr;
+					}
+				}
+
+				if (state.ReactingDataType().id == dataType.id || typeConvertable)
+				{
+					double const thres = 40.0;
+					r = (dist < thres) ?
+						(2.0 - dist / thres) :
+						1.0;
+				}
+				else
+				{
+					double const thres = 80.0;
+					r = (dist < thres) ?
+						(dist / thres) :
+						1.0;
+				}
+			}
+
+			if (KEGraphConnectionStyle::UseDataDefinedColors)
+			{
+				painter->setBrush(KEGraphConnectionStyle::NormalColor(dataType.id));
+			}
+			else
+			{
+				painter->setBrush(KEGraphNodeStyle::ConnectionPointColor);
+			}
+
+			painter->drawEllipse(p, reducedDiameter * r, reducedDiameter * r);
+		}
+	}
 }
 
 void KEGraphPainter::DrawFilledConnectionPoints(QPainter* painter, KEGraphNodeGeometry& geom, KEGraphNodeState const& state, KEGraphNodeModel const * model)
 {
+	float diameter = KEGraphNodeStyle::ConnectionPointDiameter;
 
+	for (PortType portType : {PT_OUT, PT_IN})
+	{
+		size_t n = state.GetEntries(portType).size();
+		for (size_t i = 0; i < n; ++i)
+		{
+			QPointF p = geom.PortScenePosition(i, portType);
+
+			if (!state.GetEntries(portType)[i].empty())
+			{
+				auto const & dataType = model->DataType(portType, i);
+
+				if (KEGraphConnectionStyle::UseDataDefinedColors)
+				{
+					QColor const c = KEGraphConnectionStyle::NormalColor(dataType.id);
+					painter->setPen(c);
+					painter->setBrush(c);
+				}
+				else
+				{
+					painter->setPen(KEGraphNodeStyle::FilledConnectionPointColor);
+					painter->setBrush(KEGraphNodeStyle::FilledConnectionPointColor);
+				}
+
+				painter->drawEllipse(p, diameter * 0.4, diameter * 0.4);
+			}
+		}
+	}
 }
 
 void KEGraphPainter::DrawResizeRect(QPainter* painter, KEGraphNodeGeometry& geom, KEGraphNodeModel const * model)
 {
-
+	if (model->Resizable())
+	{
+		painter->setBrush(Qt::gray);
+		painter->drawEllipse(geom.ResizeRect());
+	}
 }
 
 void KEGraphPainter::DrawValidationRect(QPainter * painter, KEGraphNodeGeometry& geom, KEGraphNodeModel const * model, KEGraphNodeView const & graphicsObject)

@@ -56,5 +56,9 @@ public:
 	/// Updates size if the QFontMetrics is changed
 	void RecalculateSize(QFont const &font);
 
+	QRect ResizeRect() const;
+	QPointF WidgetPosition() const;
+
 	QPointF	PortScenePosition(PortIndexType index, PortType portType, const QTransform &t = QTransform()) const;
+	PortIndexType CheckHitScenePoint(PortType portType, QPointF point, QTransform const & t = QTransform()) const;
 };

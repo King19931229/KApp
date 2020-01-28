@@ -13,15 +13,15 @@ class KEGraphNodeControl : public QObject
 protected:
 	KEGraphNodeViewPtr m_View;
 	KEGraphNodeModelPtr m_Model;
-	QUuid m_ID;
 	KEGraphNodeState m_NodeState;
 	KEGraphNodeGeometry m_Geometry;
+	QUuid m_ID;
 public:
 	KEGraphNodeControl(KEGraphNodeModelPtr&& model);
 	virtual ~KEGraphNodeControl();
 
 	void SetView(KEGraphNodeViewPtr&& view);
-	KEGraphNodeView* GetView() { return m_View.get(); }
+	inline KEGraphNodeView* GetView() { return m_View.get(); }
 
 	inline KEGraphNodeGeometry& GetGeometry() { return m_Geometry; }
 	inline KEGraphNodeState& GetNodeState() { return m_NodeState; }
@@ -29,6 +29,15 @@ public:
 
 	inline QUuid ID() const { return m_ID; }
 
+	void ReactToPossibleConnection(PortType, const KEGraphNodeDataType&, const QPointF& scenePoint);
 	void ResetReactionToConnection();
+
+public Q_SLOTS:
+	/// Propagates incoming data to the underlying model.
 	void PropagateData(KEGraphNodeDataPtr data, PortIndexType inPortIndex);
+	/// Fetches data from model's OUT #index port
+	/// and propagates it to the connection
+	void OnDataUpdated(PortIndexType index);
+	/// update the graphic part if the size of the embeddedwidget changes
+	void OnNodeSizeUpdated();
 };

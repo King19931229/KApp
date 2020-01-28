@@ -1,6 +1,7 @@
 #pragma once
 #include <QtCore/QUuid>
 #include <QtWidgets/QGraphicsObject>
+#include <QGraphicsProxyWidget>
 
 #include "Graph/KEGraphConfig.h"
 
@@ -10,7 +11,10 @@ class KEGraphNodeView : public QGraphicsObject
 protected:
 	KEGraphScene* m_Scene;
 	KEGraphNodeControl* m_Node;
+	QGraphicsProxyWidget* m_ProxyWidget;
 	bool m_Locked;
+
+	void EmbedQWidget();
 public:
 	KEGraphNodeView(KEGraphScene* scene, KEGraphNodeControl* control);
 	virtual ~KEGraphNodeView();

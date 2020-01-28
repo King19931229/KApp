@@ -2,6 +2,22 @@
 #include <memory>
 #include <functional>
 
+enum PortType
+{
+	PT_NONE,
+	PT_IN,
+	PT_OUT
+};
+
+typedef int32_t PortIndexType;
+static const PortIndexType INVALID_PORT_INDEX = -1;
+
+enum ConnectionPolicy
+{
+	CP_ONE,
+	CP_MANY
+};
+
 class KEGraphScene;
 typedef std::unique_ptr<KEGraphScene> KEGraphScenePtr;
 
@@ -24,13 +40,3 @@ class KEGraphConnectionControl;
 typedef std::unique_ptr<KEGraphConnectionControl> KEGraphConnectionControlPtr;
 
 typedef std::function<KEGraphNodeDataPtr(KEGraphNodeDataPtr)> GraphNodeDataConverterFunc;
-
-enum PortType
-{
-	PT_NONE,
-	PT_IN,
-	PT_OUT
-};
-
-typedef int32_t PortIndexType;
-static const PortIndexType INVALID_PORT_INDEX = -1;

@@ -12,6 +12,7 @@ class KEGraphScene : public QGraphicsScene
 	Q_OBJECT
 protected:
 	std::unordered_map<QUuid, KEGraphNodeControlPtr> m_Node;
+	std::unordered_map<QUuid, KEGraphConnectionControlPtr> m_Connection;
 public:
 	KEGraphScene(QObject * parent);
 	~KEGraphScene();
@@ -19,6 +20,17 @@ public:
 	KEGraphNodeControl* CreateNode(KEGraphNodeModelPtr&& model);
 	void RemoveNode(KEGraphNodeControl* node);
 
+	KEGraphConnectionControl* CreateConnection(PortType connectedPort,
+		KEGraphNodeControl* node,
+		PortIndexType portIndex);
+	KEGraphConnectionControl* CreateConnection(KEGraphNodeControl* nodeIn,
+		PortIndexType portIndexIn,
+		KEGraphNodeControl* nodeOut,
+		PortIndexType portIndexOut,
+		const GraphNodeDataConverterFunc& converter = GraphNodeDataConverterFunc{});
+	void DeleteConnection(KEGraphConnectionControl* connection);
+
+	KEGraphNodeControl* LocateNodeAt(QPointF scenePoint);
 Q_SIGNALS:
 	void SingalNodeCreated(KEGraphNodeControl* n);
 	void SingalNodePlaced(KEGraphNodeControl* n);
@@ -28,6 +40,9 @@ Q_SIGNALS:
 
 	void SingalNodeHovered(KEGraphNodeControl* n, QPoint screenPos);
 	void SingalNodeHoverLeft(KEGraphNodeControl* n);
+
+	void SingalConnectionCreated(const KEGraphConnectionControl* c);
+	void SingalConnectionDeleted(const KEGraphConnectionControl* c);
 
 	void SingalConnectionHovered(KEGraphConnectionControl* c, QPoint screenPos);
 	void SingalConnectionLeft(KEGraphConnectionControl* c, QPoint screenPos);
