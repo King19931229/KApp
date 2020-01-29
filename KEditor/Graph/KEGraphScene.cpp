@@ -17,6 +17,23 @@ KEGraphScene::KEGraphScene(QObject * parent)
 
 KEGraphScene::~KEGraphScene()
 {
+	ClearScene();
+}
+
+void KEGraphScene::ClearScene()
+{
+	// Manual node cleanup. Simply clearing the holding datastructures doesn't work, the code crashes when
+	// there are both nodes and connections in the scene. (The data propagation internal logic tries to propagate
+	// data through already freed connections.)
+	while (m_Connection.size() > 0)
+	{
+		DeleteConnection(m_Connection.begin()->second.get());
+	}
+
+	while (m_Node.size() > 0)
+	{
+		RemoveNode(m_Node.begin()->second.get());
+	}
 }
 
 KEGraphNodeControl* KEGraphScene::CreateNode(KEGraphNodeModelPtr&& model)
@@ -37,7 +54,17 @@ void KEGraphScene::RemoveNode(KEGraphNodeControl* node)
 {
 	SingalNodeDeleted(node);
 
-	// TODO
+	for (auto portType : { PT_IN, PT_OUT })
+	{
+		const KEGraphNodeState& nodeState = node->GetNodeState();
+		const auto& nodeEntries = nodeState.GetEntries(portType);
+
+		for (auto connections : nodeEntries)
+		{
+			for (auto const& pair : connections)
+				DeleteConnection(pair.second);
+		}
+	}
 
 	m_Node.erase(node->ID());
 }

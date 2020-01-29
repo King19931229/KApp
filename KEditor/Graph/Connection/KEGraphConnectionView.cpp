@@ -172,3 +172,8 @@ void KEGraphConnectionView::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
 	m_Scene->SingalConnectionLeft(Connection(), event->screenPos());
 	event->accept();
 }
+
+void KEGraphConnectionView::contextMenuEvent(QGraphicsSceneContextMenuEvent* event)
+{
+	m_Scene->SingalConnectionContextMenu(m_Connection, mapToScene(event->pos()));
+}

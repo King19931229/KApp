@@ -71,8 +71,18 @@ void KEGraphNodeView::SetGeometryChanged()
 
 void KEGraphNodeView::MoveConnections()
 {
-	// TODO
-	return;
+	const KEGraphNodeState& nodeState = m_Node->GetNodeState();
+
+	for (PortType portType : {PT_IN, PT_OUT})
+	{
+		auto const & connectionEntries = nodeState.GetEntries(portType);
+
+		for (auto const & connections : connectionEntries)
+		{
+			for (auto & con : connections)
+				con.second->GetView()->Move();
+		}
+	}
 }
 
 // override
@@ -125,7 +135,7 @@ void KEGraphNodeView::mousePressEvent(QGraphicsSceneMouseEvent* event)
 			auto connections = nodeState.Connections(portToCheck, portIndex);
 
 			// start dragging existing connection
-			if (!connections.empty() && portToCheck == PT_OUT)
+			if (!connections.empty() && portToCheck == PT_IN)
 			{
 				KEGraphConnectionControl* conn = connections.begin()->second;
 				KEGraphInteraction interaction(*m_Node, *conn, *m_Scene);
@@ -299,10 +309,11 @@ void KEGraphNodeView::hoverMoveEvent(QGraphicsSceneHoverEvent* event)
 
 void KEGraphNodeView::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
-
+	QGraphicsItem::mouseDoubleClickEvent(event);
+	m_Scene->SingalNodeDoubleClicked(m_Node);
 }
 
 void KEGraphNodeView::contextMenuEvent(QGraphicsSceneContextMenuEvent* event)
 {
-
+	m_Scene->SingalNodeContextMenu(m_Node, mapToScene(event->pos()));
 }

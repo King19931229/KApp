@@ -8,9 +8,11 @@ public:
 	KEGraphNodeTestModel();
 	virtual	~KEGraphNodeTestModel();
 
-	/// Caption is used in GUI
 	virtual QString	Caption() const override;
 	virtual QString	Name() const override;
+
+	virtual QString	PortCaption(PortType type, PortIndexType index) const override;
+	virtual bool PortCaptionVisible(PortType type, PortIndexType index) const override;
 
 	virtual	unsigned int NumPorts(PortType portType) const override;
 	virtual	KEGraphNodeDataType DataType(PortType portType, PortIndexType portIndex) const override;

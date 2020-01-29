@@ -35,7 +35,7 @@ QPointF KEGraphInteraction::ConnectionEndScenePosition(PortType portType) const
 	KEGraphConnectionView* view = m_Connection->GetView();
 	KEGraphConnectionGeometry& geometry = m_Connection->ConnectionGeometry();
 	QPointF endPoint = geometry.GetEndPoint(portType);
-	return endPoint;
+	return view->mapToScene(endPoint);
 }
 
 QPointF KEGraphInteraction::NodePortScenePosition(PortType portType, PortIndexType portIndex) const

@@ -3,8 +3,14 @@
 #include "KEGraphRegistrar.h"
 #include "KEditorConfig.h"
 
+#include "Graph/Node/KEGraphNodeControl.h"
 #include "Graph/Node/KEGraphNodeView.h"
+#include "Graph/Node/KEGraphNodeModel.h"
 
+#include "Graph/Connection/KEGraphConnectionControl.h"
+#include "Graph/Connection/KEGraphConnectionView.h"
+
+// TODO
 #include "Graph/Test/KEGraphNodeTestModel.h"
 
 #include <QMouseEvent>
@@ -17,7 +23,9 @@
 
 KEGraphView::KEGraphView(QWidget *parent)
 	: QGraphicsView(parent),
-	m_Scene(nullptr)
+	m_Scene(nullptr),
+	m_ClearSelectionAction(nullptr),
+	m_DeleteSelectionAction(nullptr)
 {
 	//setDragMode(QGraphicsView::ScrollHandDrag);
 	setRenderHint(QPainter::Antialiasing);
@@ -32,11 +40,134 @@ KEGraphView::KEGraphView(QWidget *parent)
 
 	m_Scene = KEGraphScenePtr(new KEGraphScene(this));
 	this->setScene(m_Scene.get());
+
+	m_ClearSelectionAction = QActionPtr(new QAction(QStringLiteral("Clear Selection"), this));
+	m_ClearSelectionAction->setShortcut(Qt::Key_Escape);
+	connect(m_ClearSelectionAction.get(), &QAction::triggered, m_Scene.get(), &QGraphicsScene::clearSelection);
+	addAction(m_ClearSelectionAction.get());
+
+	m_DeleteSelectionAction = QActionPtr(new QAction(QStringLiteral("Delete Selection"), this));
+	m_DeleteSelectionAction->setShortcut(Qt::Key_Delete);
+	connect(m_DeleteSelectionAction.get(), &QAction::triggered, this, &KEGraphView::DeleteSelectedNodes);
+	addAction(m_DeleteSelectionAction.get());
+
+	connect((KEGraphScene*)scene(),
+		&KEGraphScene::SingalNodeContextMenu,
+		this,
+		&KEGraphView::OnNodeContextMenu);
+
+	connect((KEGraphScene*)scene(),
+		&KEGraphScene::SingalConnectionContextMenu,
+		this,
+		&KEGraphView::OnConnectionContextMenu);
 }
 
 KEGraphView::~KEGraphView()
 {
-	m_Scene = nullptr;
+}
+
+void KEGraphView::DeleteSelectedNodes()
+{
+	// Delete the selected connections first, ensuring that they won't be
+	// automatically deleted when selected nodes are deleted (deleting a node
+	// deletes some connections as well)
+	for (QGraphicsItem * item : m_Scene->selectedItems())
+	{
+		if (KEGraphConnectionView* c = qgraphicsitem_cast<KEGraphConnectionView*>(item))
+		{
+			m_Scene->DeleteConnection(c->Connection());
+		}
+	}
+
+	// Delete the nodes; this will delete many of the connections.
+	// Selected connections were already deleted prior to this loop, otherwise
+	// qgraphicsitem_cast<NodeGraphicsObject*>(item) could be a use-after-free
+	// when a selected connection is deleted by deleting the node.
+	for (QGraphicsItem * item : m_Scene->selectedItems())
+	{
+		if (KEGraphNodeView* n = qgraphicsitem_cast<KEGraphNodeView*>(item))
+		{
+			m_Scene->RemoveNode(n->GetControl());
+		}
+	}
+}
+
+void KEGraphView::OnNodeContextMenu(KEGraphNodeControl* n, const QPointF& pos)
+{
+	QMenu nodeMenu;
+
+	QWidgetAction *treeAction = new QWidgetAction(&nodeMenu);
+
+	QTreeWidget *treeView = new QTreeWidget(&nodeMenu);
+	treeView->header()->close();
+
+	treeAction->setDefaultWidget(treeView);
+	nodeMenu.addAction(treeAction);
+
+	const static QString copyOp = QString("Copy");
+	const static QString pasteOp = QString("Paste");
+	const static QString deleteOp = QString("Delete");
+
+	for (const QString& op : { /*copyOp, pasteOp,*/ deleteOp })
+	{
+		QTreeWidgetItem* item = new QTreeWidgetItem(treeView);
+		item->setText(0, op);
+		item->setData(0, Qt::UserRole, op);
+	}
+
+	connect(treeView, &QTreeWidget::itemClicked, [&](QTreeWidgetItem *item, int)
+	{
+		QString op = item->data(0, Qt::UserRole).toString();
+
+		if (op == deleteOp)
+		{
+			m_Scene->RemoveNode(n);
+		}
+
+		nodeMenu.close();
+	});
+	treeView->expandAll();
+
+	nodeMenu.exec(QPoint(mapToGlobal(mapFromScene(pos))));
+}
+
+void KEGraphView::OnConnectionContextMenu(KEGraphConnectionControl* conn, const QPointF& pos)
+{
+	QMenu connMenu;
+
+	QWidgetAction *treeAction = new QWidgetAction(&connMenu);
+
+	QTreeWidget *treeView = new QTreeWidget(&connMenu);
+	treeView->header()->close();
+
+	treeAction->setDefaultWidget(treeView);
+	connMenu.addAction(treeAction);
+
+	const static QString copyOp = QString("Copy");
+	const static QString pasteOp = QString("Paste");
+	const static QString deleteOp = QString("Delete");
+
+	for (const QString& op : { /*copyOp, pasteOp,*/ deleteOp })
+	{
+		QTreeWidgetItem* item = new QTreeWidgetItem(treeView);
+		item->setText(0, op);
+		item->setData(0, Qt::UserRole, op);
+	}
+
+	connect(treeView, &QTreeWidget::itemClicked, [&](QTreeWidgetItem *item, int)
+	{
+		QString op = item->data(0, Qt::UserRole).toString();
+
+		if (op == deleteOp)
+		{
+			m_Scene->DeleteConnection(conn);
+		}
+
+		connMenu.close();
+	});
+	treeView->expandAll();
+
+	connMenu.exec(QPoint(mapToGlobal(mapFromScene(pos))));
 }
 
 void KEGraphView::ScaleUp()

@@ -205,7 +205,7 @@ PortIndexType KEGraphNodeGeometry::CheckHitScenePoint(PortType portType, QPointF
 		auto pp = PortScenePosition(i, portType, sceneTransform);
 
 		QPointF p = pp - scenePoint;
-		auto    distance = std::sqrt(QPointF::dotProduct(p, p));
+		double distance = std::sqrt(QPointF::dotProduct(p, p));
 
 		if (distance < tolerance)
 		{

@@ -18,6 +18,23 @@ QString	KEGraphNodeTestModel::Name() const
 	return QString("TestName");
 }
 
+QString KEGraphNodeTestModel::PortCaption(PortType type, PortIndexType index) const
+{
+	switch (type)
+	{
+	case PT_IN:
+		return "Input";
+	case PT_OUT:
+		return "Output";
+	};
+	return "";
+}
+
+bool KEGraphNodeTestModel::PortCaptionVisible(PortType type, PortIndexType index) const
+{
+	return true;
+}
+
 unsigned int KEGraphNodeTestModel::NumPorts(PortType portType) const
 {
 	switch (portType)

@@ -260,7 +260,24 @@ void KEGraphPainter::DrawValidationRect(QPainter * painter, KEGraphNodeGeometry&
 
 void KEGraphPainter::DrawSketchLine(QPainter * painter, KEGraphConnectionControl const & connection)
 {
+	KEGraphConnectionState const& state = connection.ConnectionState();
 
+	if (state.RequiresPort())
+	{
+		QPen p;
+		p.setWidth(KEGraphConnectionStyle::ConstructionLineWidth);
+		p.setColor(KEGraphConnectionStyle::ConstructionColor);
+		p.setStyle(Qt::DashLine);
+
+		painter->setPen(p);
+		painter->setBrush(Qt::NoBrush);
+
+		KEGraphConnectionGeometry const& geom = connection.ConnectionGeometry();
+
+		auto cubic = CubicPath(geom);
+		// cubic spline
+		painter->drawPath(cubic);
+	}
 }
 
 void KEGraphPainter::DrawHoveredOrSelected(QPainter * painter, KEGraphConnectionControl const & connection)
