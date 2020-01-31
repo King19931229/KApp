@@ -22,8 +22,14 @@ KPostProcessPass::~KPostProcessPass()
 	assert(m_VSShader == nullptr);
 	assert(m_FSShader == nullptr);
 	assert(m_Textures.empty());
-	assert(m_Inputs.empty());
-	assert(m_Outputs.empty());
+	for (KPostProcessConnection*& conn : m_InputConnection)
+	{
+		assert(!conn);
+	}
+	for (ConnectionSet& connSet : m_OutputConnection)
+	{
+		assert(connSet.empty());
+	}
 	assert(m_RenderTargets.empty());
 	assert(m_CommandBuffers.empty());
 }
@@ -59,7 +65,10 @@ bool KPostProcessPass::Init()
 
 	if(m_Stage == POST_PROCESS_STAGE_START_POINT)
 	{
-		ASSERT_RESULT(m_Inputs.empty());
+		for (KPostProcessConnection*& input : m_InputConnection)
+		{
+			ASSERT_RESULT(input == nullptr);
+		}
 	}
 	else
 	{
@@ -80,7 +89,7 @@ bool KPostProcessPass::Init()
 
 			IKPipelinePtr pipeline = m_Pipelines[i];
 
-			VertexFormat formats[] = {VF_SCREENQUAD_POS};
+			VertexFormat formats[] = { VF_SCREENQUAD_POS };
 
 			pipeline->SetVertexBinding(formats, 1);
 
@@ -95,23 +104,34 @@ bool KPostProcessPass::Init()
 			pipeline->SetFrontFace(FF_CLOCKWISE);
 			pipeline->SetPolygonMode(PM_FILL);
 
-			for(KPostProcessConnection* conn : m_Inputs)
+			for (int16_t slot = 0; slot < MAX_INPUT_SLOT_COUNT; ++slot)
 			{
-				KPostProcessPass* inputPass		= conn->m_InputPass;
-				IKTexturePtr inputTexture		= conn->m_InputTexture;
-				size_t location					= conn->m_InputSlot;
-				KPostProcessPass* outputPass	= conn->m_OutputPass;
-				IKSamplerPtr sampler			= m_Mgr->m_Sampler;
-
-				ASSERT_RESULT(outputPass == this);
-
-				if(conn->m_InputType == POST_PROCESS_INPUT_TEXTURE)
+				KPostProcessConnection*& input = m_InputConnection[slot];
+				if (input)
 				{
-					pipeline->SetSampler((unsigned int)location, inputTexture, sampler);
-				}
-				else
-				{
-					pipeline->SetSampler((unsigned int)location, inputPass->GetTexture(i), sampler);
+					ASSERT_RESULT(input->IsComplete());
+					ASSERT_RESULT(input->m_Input.pass == this);
+
+					KPostProcessOutputData& outputData = input->m_Output;
+					KPostProcessInputData& inputData = input->m_Input;
+
+					KPostProcessPass* outputPass = outputData.pass;
+					IKTexturePtr outputTexture = outputData.texture;
+					size_t location = inputData.slot;
+					IKSamplerPtr sampler = m_Mgr->m_Sampler;
+
+					if (outputData.type == POST_PROCESS_OUTPUT_TEXTURE)
+					{
+						pipeline->SetSampler((unsigned int)location, outputTexture, sampler);
+					}
+					else if (outputData.type == POST_PROCESS_OUTPUT_PASS)
+					{
+						pipeline->SetSampler((unsigned int)location, outputPass->GetTexture(i), sampler);
+					}
+					else
+					{
+						assert(false && "impossible to reach");
+					}
 				}
 			}
 
@@ -185,8 +205,15 @@ bool KPostProcessPass::UnInit()
 		m_FSShader = nullptr;
 	}
 
-	m_Inputs.clear();
-	m_Outputs.clear();
+	for (KPostProcessConnection*& input : m_InputConnection)
+	{
+		input = nullptr;
+	}
+
+	for (ConnectionSet& connSet : m_OutputConnection)
+	{
+		connSet.clear();
+	}
 
 	for(IKTexturePtr& texture : m_Textures)
 	{
@@ -228,23 +255,48 @@ bool KPostProcessPass::UnInit()
 	return true;
 }
 
-bool KPostProcessPass::AddInput(KPostProcessConnection* conn)
+bool KPostProcessPass::AddInputConnection(KPostProcessConnection* conn, int16_t slot)
 {
-	if(conn)
+	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		m_Inputs.insert(conn);
+		m_InputConnection[slot] = conn;
 		return true;
 	}
 	return false;
 }
 
-
-bool KPostProcessPass::AddOutput(KPostProcessPass* pass)
+bool KPostProcessPass::AddOutputConnection(KPostProcessConnection* conn, int16_t slot)
 {
-	if(pass)
+	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		m_Outputs.insert(pass);
+		m_OutputConnection[slot].insert(conn);
 		return true;
+	}
+	return false;
+}
+
+bool KPostProcessPass::RemoveInputConnection(KPostProcessConnection* conn, int16_t slot)
+{
+	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
+	{
+		if (m_InputConnection[slot] == conn)
+		{
+			m_InputConnection[slot] = nullptr;
+		}
+	}
+	return false;
+}
+
+bool KPostProcessPass::RemoveOutputConnection(KPostProcessConnection* conn, int16_t slot)
+{
+	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
+	{
+		auto it = m_OutputConnection[slot].find(conn);
+		if (it != m_OutputConnection[slot].end())
+		{
+			m_OutputConnection[slot].erase(it);
+			return true;
+		}
 	}
 	return false;
 }

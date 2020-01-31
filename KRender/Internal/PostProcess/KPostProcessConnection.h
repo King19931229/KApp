@@ -1,12 +1,6 @@
 #pragma once
-#include "Interface/IKTexture.h"
-
-enum PostProcessInputType
-{
-	POST_PROCESS_INPUT_PASS,
-	POST_PROCESS_INPUT_TEXTURE,
-	POST_PROCESS_INPUT_UNKNOWN
-};
+#include "KPostProcessData.h"
+#include <unordered_set>
 
 class KPostProcessPass;
 class KPostProcessManager;
@@ -16,18 +10,16 @@ class KPostProcessConnection
 	friend class KPostProcessManager;
 	friend class KPostProcessPass;
 protected:
-	PostProcessInputType	m_InputType;
-	KPostProcessPass*		m_InputPass;
-	IKTexturePtr			m_InputTexture;
-	size_t					m_InputSlot;
-	KPostProcessPass*		m_OutputPass;
+	KPostProcessOutputData m_Output;
+	KPostProcessInputData m_Input;
 
 	KPostProcessConnection();
 	~KPostProcessConnection();
 public:
-	void SetInputAsPass(size_t slot, KPostProcessPass* pass);
-	void SetInputAsTextrue(size_t slot, IKTexturePtr texture);
-	void SetOutput(KPostProcessPass* pass);
-
-	bool IsComplete();
+	inline void SetOutputAsPass(KPostProcessPass* pass, int16_t slot) { m_Output.InitAsPass(pass, slot); }
+	inline void SetOutputAsTextrue(IKTexturePtr texture, int16_t slot) { m_Output.InitAsTexture(texture, slot); }
+	inline void SetInput(KPostProcessPass* pass, int16_t slot) { m_Input.Init(pass, slot); }
+	inline bool IsComplete() const { return m_Input.IsComplete() && m_Output.IsComplete(); }
 };
+
+typedef std::unordered_set<KPostProcessConnection*> ConnectionSet;

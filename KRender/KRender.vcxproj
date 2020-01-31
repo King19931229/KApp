@@ -65,6 +65,7 @@
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
     <ClInclude Include="Internal\Object\KSkyBox.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessConnection.h" />
+    <ClInclude Include="Internal\PostProcess\KPostProcessData.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessManager.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessPass.h" />
     <ClInclude Include="Internal\RenderDispatcher\KRenderDispatcher.h" />

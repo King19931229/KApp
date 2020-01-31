@@ -2,7 +2,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKShader.h"
 
-#include <map>
+#include <unordered_map>
 
 class KShaderManager
 {
@@ -13,7 +13,7 @@ protected:
 		IKShaderPtr shader;
 	};
 
-	typedef std::map<std::string, ShaderUsingInfo> ShaderMap;
+	typedef std::unordered_map<std::string, ShaderUsingInfo> ShaderMap;
 	ShaderMap m_Shaders;
 	IKRenderDevice* m_Device;
 public:

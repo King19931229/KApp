@@ -901,10 +901,10 @@ bool KVulkanRenderDevice::InitGlobalManager()
 	KPostProcessPass* pass2 = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess2.frag", 1.0f, EF_R8GB8BA8_UNORM);
 	KPostProcessPass* pass3 = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess3.frag", 1.0f, EF_R8GB8BA8_UNORM);
 
-	KRenderGlobal::PostProcessManager.CreatePassConnection(startPoint, pass, 0);
-	KRenderGlobal::PostProcessManager.CreatePassConnection(startPoint, pass2, 0);
-	KRenderGlobal::PostProcessManager.CreatePassConnection(pass, pass3, 0);
-	KRenderGlobal::PostProcessManager.CreatePassConnection(pass2, pass3, 1);
+	KRenderGlobal::PostProcessManager.CreatePassConnection(startPoint, 0, pass, 0);
+	KRenderGlobal::PostProcessManager.CreatePassConnection(startPoint, 0, pass2, 0);
+	KRenderGlobal::PostProcessManager.CreatePassConnection(pass, 0, pass3, 0);
+	KRenderGlobal::PostProcessManager.CreatePassConnection(pass2, 0, pass3, 1);
 
 	KRenderGlobal::PostProcessManager.Construct();
 

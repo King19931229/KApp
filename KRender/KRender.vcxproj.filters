@@ -270,6 +270,9 @@
     <ClInclude Include="Interface\IKResource.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\PostProcess\KPostProcessData.h">
+      <Filter>Internal\PostProcess</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">

@@ -5,11 +5,9 @@
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKCommandBuffer.h"
-
-#include <set>
+#include "KPostProcessConnection.h"
 
 class KPostProcessManager;
-class KPostProcessConnection;
 
 enum PostProcessStage : uint16_t
 {
@@ -45,19 +43,21 @@ protected:
 	std::vector<IKPipelinePtr> m_ScreenDrawPipelines;
 	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 
-	// 后处理输入输出信息
-	std::set<KPostProcessConnection*> m_Inputs;
-	std::set<KPostProcessPass*> m_Outputs;
+	// 一个输出槽可能连接到多个节点输出
+	ConnectionSet m_OutputConnection[MAX_OUTPUT_SLOT_COUNT];
+	// 一个输入槽只可能从一个节点输入
+	KPostProcessConnection* m_InputConnection[MAX_INPUT_SLOT_COUNT];
 private:
-	// 只有KPostProcessManager可以初始化与反初始化KPostProcessPass
 	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage);
 	~KPostProcessPass();
 
 	bool Init();
 	bool UnInit();
 
-	bool AddInput(KPostProcessConnection* conn);
-	bool AddOutput(KPostProcessPass* pass);
+	bool AddInputConnection(KPostProcessConnection* conn, int16_t slot);
+	bool AddOutputConnection(KPostProcessConnection* conn, int16_t slot);
+	bool RemoveInputConnection(KPostProcessConnection* conn, int16_t slot);
+	bool RemoveOutputConnection(KPostProcessConnection* conn, int16_t slot);
 public:
 	bool SetShader(const char* vsFile, const char* fsFile);
 	bool SetScale(float scale);

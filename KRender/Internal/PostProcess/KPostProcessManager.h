@@ -7,7 +7,7 @@
 #include "Interface/IKCommandBuffer.h"
 #include "Internal/KVertexDefinition.h"
 
-#include <set>
+#include <unordered_set>
 
 class KPostProcessPass;
 class KPostProcessConnection;
@@ -23,13 +23,11 @@ protected:
 	size_t m_Width;
 	size_t m_Height;
 
-	//
-	std::set<KPostProcessPass*> m_AllPasses;
+	std::unordered_set<KPostProcessPass*> m_AllPasses;
 	KPostProcessPass* m_StartPointPass;
 
-	std::set<KPostProcessConnection*> m_AllConnections;
+	std::unordered_set<KPostProcessConnection*> m_AllConnections;
 
-	//
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_vertices[4];
 	static const uint32_t ms_Indices[6];
 
@@ -39,7 +37,6 @@ protected:
 	IKVertexBufferPtr m_SharedVertexBuffer;
 	IKIndexBufferPtr m_SharedIndexBuffer;
 
-	//
 	IKShaderPtr m_ScreenDrawVS;
 	IKShaderPtr m_ScreenDrawFS;
 
@@ -62,8 +59,8 @@ public:
 	KPostProcessPass* CreatePass(const char* vsFile, const char* fsFile, float scale, ElementFormat format);
 	void DeletePass(KPostProcessPass* pass);
 
-	KPostProcessConnection* CreatePassConnection(KPostProcessPass* input, KPostProcessPass* output, size_t slot);
-	KPostProcessConnection* CreateTextureConnection(IKTexturePtr inputTexure, KPostProcessPass* output, size_t slot);
+	KPostProcessConnection* CreatePassConnection(KPostProcessPass* outputPass, int16_t outSlot, KPostProcessPass* inputPass, int16_t inSlot);
+	KPostProcessConnection* CreateTextureConnection(IKTexturePtr outputTexure, int16_t outSlot, KPostProcessPass* inputPass, int16_t inSlot);
 	void DeleteConnection(KPostProcessConnection* conn);
 
 	KPostProcessPass* GetStartPointPass();

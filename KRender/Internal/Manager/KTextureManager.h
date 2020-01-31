@@ -3,7 +3,7 @@
 #include "Interface/IKTexture.h"
 #include "Interface/IKSampler.h"
 
-#include <map>
+#include <unordered_map>
 
 class KTextureManager
 {
@@ -13,7 +13,7 @@ protected:
 		size_t useCount;
 		IKTexturePtr texture;
 	};
-	typedef std::map<std::string, TextureUsingInfo> TextureMap;
+	typedef std::unordered_map<std::string, TextureUsingInfo> TextureMap;
 	TextureMap m_Textures;
 	IKRenderDevice* m_Device;
 public:

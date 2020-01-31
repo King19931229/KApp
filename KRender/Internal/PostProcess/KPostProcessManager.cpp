@@ -7,6 +7,7 @@
 
 #include "Internal/KRenderGlobal.h"
 
+#include <unordered_map>
 #include <queue>
 
 const KVertexDefinition::SCREENQUAD_POS_2F KPostProcessManager::ms_vertices[] = 
@@ -146,8 +147,9 @@ bool KPostProcessManager::UnInit()
 
 void KPostProcessManager::IterPostProcessGraph(std::function<void(KPostProcessPass*)> func)
 {
-	std::map<KPostProcessPass*, bool> visitFlags;
+	std::unordered_map<KPostProcessPass*, bool> visitFlags;
 	std::queue<KPostProcessPass*> bfsQueue;
+
 	bfsQueue.push(m_StartPointPass);
 
 	for(KPostProcessPass* pass : m_AllPasses)
@@ -163,11 +165,16 @@ void KPostProcessManager::IterPostProcessGraph(std::function<void(KPostProcessPa
 		if(!visitFlags[pass])
 		{
 			visitFlags[pass] = true;
+
 			func(pass);
 
-			for(KPostProcessPass* outPass : pass->m_Outputs)
+			for (int16_t slot = 0; slot < MAX_OUTPUT_SLOT_COUNT; ++slot)
 			{
-				bfsQueue.push(outPass);
+				ConnectionSet& connections = pass->m_OutputConnection[slot];
+				for (KPostProcessConnection* conn : connections)
+				{
+					bfsQueue.push(conn->m_Input.pass);
+				}
 			}
 		}
 	}
@@ -213,20 +220,21 @@ bool KPostProcessManager::Construct()
 	{
 		ASSERT_RESULT(conn->IsComplete());
 
-		KPostProcessPass* inputPass = conn->m_InputPass;
-		KPostProcessPass* outputPass = conn->m_OutputPass;
+		KPostProcessOutputData& outputData = conn->m_Output;
+		KPostProcessInputData& inputData = conn->m_Input;
 
-		outputPass->AddInput(conn);
-		if(conn->m_InputType == POST_PROCESS_INPUT_PASS)
+		if (outputData.type == POST_PROCESS_OUTPUT_PASS)
 		{
-			inputPass->AddOutput(outputPass);
+			ASSERT_RESULT(outputData.pass->AddOutputConnection(conn, outputData.slot));
 		}
+		ASSERT_RESULT(inputData.pass->AddInputConnection(conn, inputData.slot));
 	}
 
 	IterPostProcessGraph([this](KPostProcessPass* pass)
 	{
 		pass->Init();
 	});
+
 	return true;
 }
 
@@ -299,18 +307,26 @@ void KPostProcessManager::DeletePass(KPostProcessPass* pass)
 
 	for(KPostProcessConnection* conn : m_AllConnections)
 	{
-		KPostProcessPass* inputPass = conn->m_InputPass;
-		KPostProcessPass* outputPass = conn->m_OutputPass;
+		ASSERT_RESULT(conn->IsComplete());
 
-		if(conn->m_InputType == POST_PROCESS_INPUT_PASS)
+		KPostProcessOutputData& outputData = conn->m_Output;
+		KPostProcessInputData& inputData = conn->m_Input;
+		
+		bool invalid = false;
+
+		if (outputData.type == POST_PROCESS_OUTPUT_PASS)
 		{
-			if(inputPass == pass)
+			if (outputData.pass == pass)
 			{
-				invalidConn.push_back(conn);
-				continue;
+				invalid = true;
 			}
 		}
-		if(outputPass == pass)
+		if (inputData.pass == pass)
+		{
+			invalid = true;
+		}
+
+		if (invalid)
 		{
 			invalidConn.push_back(conn);
 		}
@@ -332,24 +348,29 @@ void KPostProcessManager::DeletePass(KPostProcessPass* pass)
 	}
 }
 
-KPostProcessConnection* KPostProcessManager::CreatePassConnection(KPostProcessPass* input, KPostProcessPass* output, size_t slot)
+KPostProcessConnection* KPostProcessManager::CreatePassConnection(KPostProcessPass* outputPass, int16_t outSlot, KPostProcessPass* inputPass, int16_t inSlot)
 {
 	KPostProcessConnection* conn = new KPostProcessConnection();
 
-	conn->SetInputAsPass(slot, input);
-	conn->SetOutput(output);
+	conn->m_Output.InitAsPass(outputPass, outSlot);
+	conn->m_Input.Init(inputPass, inSlot);
+
+	ASSERT_RESULT(outputPass->AddOutputConnection(conn, outSlot));
+	ASSERT_RESULT(inputPass->AddInputConnection(conn, inSlot));
 
 	m_AllConnections.insert(conn);
 
 	return conn;
 }
 
-KPostProcessConnection* KPostProcessManager::CreateTextureConnection(IKTexturePtr inputTexure, KPostProcessPass* output, size_t slot)
+KPostProcessConnection* KPostProcessManager::CreateTextureConnection(IKTexturePtr outputTexure, int16_t outSlot, KPostProcessPass* inputPass, int16_t inSlot)
 {
 	KPostProcessConnection* conn = new KPostProcessConnection();
 
-	conn->SetInputAsTextrue(slot, inputTexure);
-	conn->SetOutput(output);
+	conn->m_Output.InitAsTexture(outputTexure, outSlot);
+	conn->m_Input.Init(inputPass, inSlot);
+
+	ASSERT_RESULT(inputPass->AddInputConnection(conn, inSlot));
 
 	m_AllConnections.insert(conn);
 
@@ -361,6 +382,15 @@ void KPostProcessManager::DeleteConnection(KPostProcessConnection* conn)
 	auto it = m_AllConnections.find(conn);
 	if(it != m_AllConnections.end())
 	{
+		KPostProcessOutputData& outputData = conn->m_Output;
+		KPostProcessInputData& inputData = conn->m_Input;
+
+		if (outputData.type == POST_PROCESS_OUTPUT_PASS)
+		{
+			ASSERT_RESULT(outputData.pass->RemoveOutputConnection(conn, outputData.slot));
+		}
+		ASSERT_RESULT(inputData.pass->RemoveInputConnection(conn, inputData.slot));
+
 		m_AllConnections.erase(it);
 		SAFE_DELETE(conn);
 	}

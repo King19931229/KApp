@@ -4,7 +4,7 @@
 class KEntityManager
 {
 protected:
-	typedef std::map<size_t, KEntityPtr> EntityMap;
+	typedef std::unordered_map<size_t, KEntityPtr> EntityMap;
 	EntityMap m_Entities;
 	size_t m_EntityHandleCounter;
 

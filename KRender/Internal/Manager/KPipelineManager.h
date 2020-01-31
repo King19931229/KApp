@@ -2,16 +2,15 @@
 #include "Interface/IKRenderTarget.h"
 
 #include <mutex>
-#include <map>
-#include <set>
+#include <unordered_map>
 
 class KPipelineManager
 {
 protected:
 	IKRenderDevice* m_Device;
 
-	typedef std::map<IKRenderTargetPtr, IKPipelineHandlePtr> RtPipelineHandleMap;
-	typedef std::map<IKPipelinePtr, RtPipelineHandleMap> PipelineHandleMap;
+	typedef std::unordered_map<IKRenderTargetPtr, IKPipelineHandlePtr> RtPipelineHandleMap;
+	typedef std::unordered_map<IKPipelinePtr, RtPipelineHandleMap> PipelineHandleMap;
 	PipelineHandleMap m_RenderPipelineMap;
 	std::mutex m_Lock;
 public:

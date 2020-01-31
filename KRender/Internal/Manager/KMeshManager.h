@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
 #include "Internal/Asset/KMesh.h"
+#include <unordered_map>
 
 class KMeshManager
 {
@@ -10,7 +11,7 @@ protected:
 		size_t useCount;
 		KMeshPtr mesh;
 	};
-	typedef std::map<std::string, MeshUsingInfo> MeshMap;
+	typedef std::unordered_map<std::string, MeshUsingInfo> MeshMap;
 	MeshMap m_Meshes;
 	IKRenderDevice* m_Device;
 	size_t m_FrameInFlight;
