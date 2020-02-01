@@ -24,6 +24,7 @@
     <ClInclude Include="Interface\IKDataStream.h" />
     <ClInclude Include="Interface\IKFileSystem.h" />
     <ClInclude Include="Interface\IKIniFile.h" />
+    <ClInclude Include="Interface\IKJson.h" />
     <ClInclude Include="Interface\IKLog.h" />
     <ClInclude Include="Interface\IKMemory.h" />
     <ClInclude Include="Interface\IKRefObject.h" />
@@ -36,6 +37,8 @@
     <ClInclude Include="Internal\FileSystem\KNativeFileSystem.h" />
     <ClInclude Include="Internal\FileSystem\KZipFileSystem.h" />
     <ClInclude Include="Internal\Hash\KMD5.h" />
+    <ClInclude Include="Internal\Json\KJsonDocument.h" />
+    <ClInclude Include="Internal\Json\KJsonValue.h" />
     <ClInclude Include="Internal\KAssetIOHooker.h" />
     <ClInclude Include="Internal\KAssetLoader.h" />
     <ClInclude Include="Internal\KCodec.h" />
@@ -78,6 +81,8 @@
     <ClCompile Include="Internal\FileSystem\KNativeFileSystem.cpp" />
     <ClCompile Include="Internal\FileSystem\KZipFileSystem.cpp" />
     <ClCompile Include="Internal\Hash\KMD5.cpp" />
+    <ClCompile Include="Internal\Json\KJsonDocument.cpp" />
+    <ClCompile Include="Internal\Json\KJsonValue.cpp" />
     <ClCompile Include="Internal\KAssetIOHooker.cpp" />
     <ClCompile Include="Internal\KAssetLoader.cpp" />
     <ClCompile Include="Internal\KCodec.cpp" />
@@ -168,7 +173,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
@@ -191,7 +196,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
@@ -216,7 +221,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
     </ClCompile>
@@ -240,7 +245,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
     </ClCompile>

@@ -22,6 +22,7 @@ include_directories(
     ${SRC_ROOT}/../Dependency/Python27/Android/
     ${SRC_ROOT}/../Dependency/assimp-3.3.1/include/
     ${SRC_ROOT}/../Dependency/zip-0.1.16/src/
+    ${SRC_ROOT}/../Dependency/rapidjson/include/
     ${ANDROID_NDK}/sources/android/native_app_glue
 )
 

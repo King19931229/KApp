@@ -154,6 +154,15 @@
     <ClInclude Include="Internal\KAssetIOHooker.h">
       <Filter>Internal</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKJson.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Json\KJsonDocument.h">
+      <Filter>Internal\Json</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Json\KJsonValue.h">
+      <Filter>Internal\Json</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -173,6 +182,9 @@
     </Filter>
     <Filter Include="Internal\Hash">
       <UniqueIdentifier>{84f97919-4418-4419-a5e6-dafa55482194}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\Json">
+      <UniqueIdentifier>{00ef7e7b-b33f-4e5a-938f-2d47ecd5321a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -259,6 +271,12 @@
     </ClCompile>
     <ClCompile Include="Internal\KAssetIOHooker.cpp">
       <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Json\KJsonDocument.cpp">
+      <Filter>Internal\Json</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Json\KJsonValue.cpp">
+      <Filter>Internal\Json</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

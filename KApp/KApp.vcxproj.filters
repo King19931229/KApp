@@ -6,5 +6,6 @@
     <ClCompile Include="KScriptTest.cpp" />
     <ClCompile Include="KVulkanTest.cpp" />
     <ClCompile Include="KSwapChainTest.cpp" />
+    <ClCompile Include="KJsonTest.cpp" />
   </ItemGroup>
 </Project>
