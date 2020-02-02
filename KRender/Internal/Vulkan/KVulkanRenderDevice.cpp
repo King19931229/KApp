@@ -906,6 +906,11 @@ bool KVulkanRenderDevice::InitGlobalManager()
 	KRenderGlobal::PostProcessManager.CreatePassConnection(pass, 0, pass3, 0);
 	KRenderGlobal::PostProcessManager.CreatePassConnection(pass2, 0, pass3, 1);
 
+#ifdef _WIN32
+	// 临时代码测试功能
+	KRenderGlobal::PostProcessManager.Save("postprocess.json");
+	KRenderGlobal::PostProcessManager.Load("postprocess.json");
+#endif
 	KRenderGlobal::PostProcessManager.Construct();
 
 	KRenderGlobal::SkyBox.Init(this, m_FrameInFlight, "Textures/uffizi_cube.ktx");

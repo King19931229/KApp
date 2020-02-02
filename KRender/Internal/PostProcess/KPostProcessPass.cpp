@@ -3,6 +3,7 @@
 #include "KPostProcessConnection.h"
 
 #include "Internal/KRenderGlobal.h"
+#include "KBase/Publish/KStringParser.h"
 
 #include <assert.h>
 
@@ -15,6 +16,26 @@ KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInF
 	m_Stage(stage),
 	m_bInit(false)
 {
+	// TODO
+	char szTempBuffer[256] = { 0 };
+	size_t address = (size_t)this;
+	ASSERT_RESULT(KStringParser::ParseFromSIZE_T(szTempBuffer, ARRAY_SIZE(szTempBuffer), &address, 1));
+	m_ID = szTempBuffer;
+
+	ZERO_ARRAY_MEMORY(m_InputConnection);
+}
+
+KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage, IDType id)
+	: m_Mgr(manager),
+	m_Scale(1),
+	m_MsaaCount(1),
+	m_FrameInFlight(frameInFlight),
+	m_Format(EF_R8GB8BA8_UNORM),
+	m_Stage(stage),
+	m_bInit(false),
+	m_ID(id)
+{
+	ZERO_ARRAY_MEMORY(m_InputConnection);
 }
 
 KPostProcessPass::~KPostProcessPass()
@@ -32,6 +53,11 @@ KPostProcessPass::~KPostProcessPass()
 	}
 	assert(m_RenderTargets.empty());
 	assert(m_CommandBuffers.empty());
+}
+
+KPostProcessPass::IDType KPostProcessPass::ID()
+{
+	return m_ID;
 }
 
 bool KPostProcessPass::SetShader(const char* vsFile, const char* fsFile)
@@ -255,6 +281,53 @@ bool KPostProcessPass::UnInit()
 	return true;
 }
 
+const char* KPostProcessPass::msIDKey = "id";
+const char* KPostProcessPass::msStageKey = "stage";
+const char* KPostProcessPass::msScaleKey = "scale";
+const char* KPostProcessPass::msFormatKey = "format";
+const char* KPostProcessPass::msMSAAKey = "msaa";
+const char* KPostProcessPass::msVSKey = "vs";
+const char* KPostProcessPass::msFSKey = "fs";
+
+bool KPostProcessPass::Save(IKJsonDocumentPtr jsonDoc, IKJsonValuePtr& object)
+{
+	object = jsonDoc->CreateObject();
+
+	object->AddMember(msIDKey, jsonDoc->CreateString(m_ID.c_str()));
+
+	object->AddMember(msStageKey, jsonDoc->CreateInt(m_Stage));
+
+	object->AddMember(msScaleKey, jsonDoc->CreateFloat(m_Scale));
+	object->AddMember(msFormatKey, jsonDoc->CreateInt(m_Format));
+	object->AddMember(msMSAAKey, jsonDoc->CreateInt(m_MsaaCount));
+	object->AddMember(msVSKey, jsonDoc->CreateString(m_VSFile.c_str()));
+	object->AddMember(msFSKey, jsonDoc->CreateString(m_FSFile.c_str()));
+
+	return true;
+}
+
+bool KPostProcessPass::Load(IKJsonValuePtr& object)
+{
+	if (object->IsObject())
+	{
+		m_ID = object->GetMember(msIDKey)->GetString();
+
+		m_Stage = (PostProcessStage)object->GetMember(msStageKey)->GetInt();
+
+		m_Scale = object->GetMember(msScaleKey)->GetFloat();
+		m_Format = (ElementFormat)object->GetMember(msFormatKey)->GetInt();
+		m_MsaaCount = object->GetMember(msMSAAKey)->GetInt();
+		m_VSFile = object->GetMember(msVSKey)->GetString();
+		m_FSFile = object->GetMember(msFSKey)->GetString();
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bool KPostProcessPass::AddInputConnection(KPostProcessConnection* conn, int16_t slot)
 {
 	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
@@ -282,6 +355,7 @@ bool KPostProcessPass::RemoveInputConnection(KPostProcessConnection* conn, int16
 		if (m_InputConnection[slot] == conn)
 		{
 			m_InputConnection[slot] = nullptr;
+			return true;
 		}
 	}
 	return false;

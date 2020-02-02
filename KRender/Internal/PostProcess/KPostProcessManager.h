@@ -6,11 +6,10 @@
 #include "Interface/IKPipeline.h"
 #include "Interface/IKCommandBuffer.h"
 #include "Internal/KVertexDefinition.h"
+#include "KPostProcessPass.h"
+#include "KPostProcessConnection.h"
 
-#include <unordered_set>
-
-class KPostProcessPass;
-class KPostProcessConnection;
+#include <unordered_map>
 
 class KPostProcessManager
 {
@@ -23,10 +22,10 @@ protected:
 	size_t m_Width;
 	size_t m_Height;
 
-	std::unordered_set<KPostProcessPass*> m_AllPasses;
+	std::unordered_map<KPostProcessPass::IDType, KPostProcessPass*> m_AllPasses;
 	KPostProcessPass* m_StartPointPass;
 
-	std::unordered_set<KPostProcessConnection*> m_AllConnections;
+	std::unordered_map<KPostProcessConnection::IDType, KPostProcessConnection*> m_AllConnections;
 
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_vertices[4];
 	static const uint32_t ms_Indices[6];
@@ -42,6 +41,11 @@ protected:
 
 	IKSamplerPtr m_Sampler;
 
+	static const char* msStartPointKey;
+	static const char* msPassesKey;
+	static const char* msConnectionsKey;
+
+	void ClearCreatedPassConnection();
 	void IterPostProcessGraph(std::function<void(KPostProcessPass*)> func);
 	void PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderTargetPtr target);
 public:
@@ -56,12 +60,17 @@ public:
 	bool UnInit();
 	bool Resize(size_t width, size_t height);
 
+	bool Save(const char* jsonFile);
+	bool Load(const char* jsonFile);
+
 	KPostProcessPass* CreatePass(const char* vsFile, const char* fsFile, float scale, ElementFormat format);
 	void DeletePass(KPostProcessPass* pass);
+	KPostProcessPass* GetPass(KPostProcessPass::IDType id);
 
 	KPostProcessConnection* CreatePassConnection(KPostProcessPass* outputPass, int16_t outSlot, KPostProcessPass* inputPass, int16_t inSlot);
 	KPostProcessConnection* CreateTextureConnection(IKTexturePtr outputTexure, int16_t outSlot, KPostProcessPass* inputPass, int16_t inSlot);
 	void DeleteConnection(KPostProcessConnection* conn);
+	KPostProcessConnection* GetConnection(KPostProcessConnection::IDType id);
 
 	KPostProcessPass* GetStartPointPass();
 

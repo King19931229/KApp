@@ -125,6 +125,7 @@
     <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
     <ClCompile Include="Internal\Object\KSkyBox.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessConnection.cpp" />
+    <ClCompile Include="Internal\PostProcess\KPostProcessData.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessManager.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessPass.cpp" />
     <ClCompile Include="Internal\Shadow\KShadowMap.cpp" />

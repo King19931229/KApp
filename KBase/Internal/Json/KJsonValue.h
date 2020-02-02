@@ -8,7 +8,7 @@ class KJsonValue : public IKJsonValue
 	friend class KJsonDocument;
 protected:
 	rapidjson::Value m_SelfValue;
-	rapidjson::Value& m_Value;
+	rapidjson::Value* m_Value;
 	rapidjson::Document::AllocatorType& m_Allocator;
 
 	void SetArray();

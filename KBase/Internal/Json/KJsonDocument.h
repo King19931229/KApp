@@ -15,6 +15,7 @@ public:
 
 	virtual IKJsonValuePtr GetRoot();
 
+	virtual bool ParseFromDataStream(IKDataStreamPtr dataStream);
 	virtual bool ParseFromFile(const char* jsonFile);
 	virtual bool ParseFromString(const char* jsonStr);
 	virtual bool SaveAsFile(const char* jsonFile);

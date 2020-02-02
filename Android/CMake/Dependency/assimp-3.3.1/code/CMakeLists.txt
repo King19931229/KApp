@@ -15,7 +15,7 @@ set(SRC_ROOT ../../../../../Dependency/assimp-3.3.1)
 include_directories(${SRC_ROOT}
     ${SRC_ROOT}/include
     ${SRC_ROOT}/contrib/contrib/zlib
-    ${SRC_ROOT}/contrib/rapidjson/include
+    ${SRC_ROOT}/../rapidjson/include
     ${SRC_ROOT}/contrib/openddlparser/include
 )
 

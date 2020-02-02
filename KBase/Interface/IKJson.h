@@ -1,5 +1,6 @@
 #pragma once
 #include "KBase/Publish/KConfig.h"
+#include "KBase/Interface/IKDataStream.h"
 #include <string>
 #include <memory>
 #include <vector>
@@ -42,6 +43,7 @@ struct IKJsonDocument
 
 	virtual IKJsonValuePtr GetRoot() = 0;
 
+	virtual bool ParseFromDataStream(IKDataStreamPtr dataStream) = 0;
 	virtual bool ParseFromFile(const char* jsonFile) = 0;
 	virtual bool ParseFromString(const char* jsonStr) = 0;
 	virtual bool SaveAsFile(const char* jsonFile) = 0;

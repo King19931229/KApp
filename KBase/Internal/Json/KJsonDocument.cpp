@@ -1,5 +1,6 @@
 #include "KJsonDocument.h"
 #include "KJsonValue.h"
+#include "rapidjson/prettywriter.h"
 #include <fstream>
 #include <strstream>
 
@@ -11,6 +12,7 @@ EXPORT_DLL IKJsonDocumentPtr GetJsonDocument()
 KJsonDocument::KJsonDocument()
 {
 	m_Doc.SetObject();
+	assert(m_Doc.IsObject());
 }
 
 KJsonDocument::~KJsonDocument()
@@ -20,6 +22,22 @@ KJsonDocument::~KJsonDocument()
 IKJsonValuePtr KJsonDocument::GetRoot()
 {
 	return IKJsonValuePtr(new KJsonValue(m_Doc, m_Doc.GetAllocator()));
+}
+
+bool KJsonDocument::ParseFromDataStream(IKDataStreamPtr dataStream)
+{
+	size_t size = dataStream->GetSize();
+
+	std::vector<char> datas;
+	datas.resize(size + 1);
+
+	if (dataStream->Read(datas.data(), size))
+	{
+		datas[size] = '\0';
+		return ParseFromString(datas.data());
+	}
+
+	return false;
 }
 
 bool KJsonDocument::ParseFromFile(const char* jsonFile)
@@ -41,13 +59,13 @@ bool KJsonDocument::ParseFromFile(const char* jsonFile)
 
 bool KJsonDocument::ParseFromString(const char* jsonStr)
 {
-	return m_Doc.Parse(jsonStr).HasParseError();
+	return !m_Doc.Parse(jsonStr).HasParseError();
 }
 
 bool KJsonDocument::SaveAsFile(const char* jsonFile)
 {
 	rapidjson::StringBuffer strBuffer;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(strBuffer);
+	rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(strBuffer);
 
 	m_Doc.Accept(writer);
 
@@ -108,7 +126,6 @@ IKJsonValuePtr KJsonDocument::CreateFloat(float value)
 	jsonValue->SetFloat(value);
 	IKJsonValuePtr ret = IKJsonValuePtr(jsonValue);
 	return ret;
-
 }
 
 IKJsonValuePtr KJsonDocument::CreateString(const char* value)

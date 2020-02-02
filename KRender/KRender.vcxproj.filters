@@ -425,5 +425,8 @@
     <ClCompile Include="Internal\Window\KAndroidRenderWindow.cpp">
       <Filter>Internal\Window</Filter>
     </ClCompile>
+    <ClCompile Include="Internal\PostProcess\KPostProcessData.cpp">
+      <Filter>Internal\Object</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

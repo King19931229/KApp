@@ -5,6 +5,7 @@
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKCommandBuffer.h"
+#include "KBase/Interface/IKJson.h"
 #include "KPostProcessConnection.h"
 
 class KPostProcessManager;
@@ -19,8 +20,11 @@ enum PostProcessStage : uint16_t
 class KPostProcessPass
 {
 	friend class KPostProcessManager;
+	friend class KPostProcessConnection;
+	typedef std::string IDType;
 protected:
 	KPostProcessManager* m_Mgr;
+	IDType m_ID;
 
 	float m_Scale;
 	unsigned short m_MsaaCount;
@@ -49,15 +53,29 @@ protected:
 	KPostProcessConnection* m_InputConnection[MAX_INPUT_SLOT_COUNT];
 private:
 	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage);
+	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage, IDType id);
 	~KPostProcessPass();
+
+	IDType ID();
 
 	bool Init();
 	bool UnInit();
+
+	bool Save(IKJsonDocumentPtr jsonDoc, IKJsonValuePtr& object);
+	bool Load(IKJsonValuePtr& object);
 
 	bool AddInputConnection(KPostProcessConnection* conn, int16_t slot);
 	bool AddOutputConnection(KPostProcessConnection* conn, int16_t slot);
 	bool RemoveInputConnection(KPostProcessConnection* conn, int16_t slot);
 	bool RemoveOutputConnection(KPostProcessConnection* conn, int16_t slot);
+
+	static const char* msIDKey;
+	static const char* msStageKey;
+	static const char* msScaleKey;
+	static const char* msFormatKey;
+	static const char* msMSAAKey;
+	static const char* msVSKey;
+	static const char* msFSKey;
 public:
 	bool SetShader(const char* vsFile, const char* fsFile);
 	bool SetScale(float scale);

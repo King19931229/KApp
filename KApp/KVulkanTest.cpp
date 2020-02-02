@@ -33,6 +33,7 @@
 
 #include "KRender/Internal/KDebugConsole.h"
 #include "Interface/IKFileSystem.h"
+#include "KBase/Interface/IKJson.h"
 
 int main()
 {
