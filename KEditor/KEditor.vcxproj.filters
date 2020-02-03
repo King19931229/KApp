@@ -36,6 +36,12 @@
     <Filter Include="Graph\Connection">
       <UniqueIdentifier>{83caf1ca-0345-46a5-b858-9a1868e1a2b5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PostProcess">
+      <UniqueIdentifier>{a5a9404e-7731-4f2c-b45c-18e1de27f42b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Property">
+      <UniqueIdentifier>{7f026aef-ccd2-4373-8f22-9053cc573f15}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -100,6 +106,15 @@
     <ClCompile Include="Graph\KEGraphInteraction.cpp">
       <Filter>Graph</Filter>
     </ClCompile>
+    <ClCompile Include="PostProcess\KEPostProcessPassModel.cpp">
+      <Filter>PostProcess</Filter>
+    </ClCompile>
+    <ClCompile Include="PostProcess\KEPostProcessTextureModel.cpp">
+      <Filter>PostProcess</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -132,6 +147,12 @@
     </QtMoc>
     <QtMoc Include="Graph\Connection\KEGraphConnectionView.h">
       <Filter>Graph\Connection</Filter>
+    </QtMoc>
+    <QtMoc Include="PostProcess\KEPostProcessPassModel.h">
+      <Filter>PostProcess</Filter>
+    </QtMoc>
+    <QtMoc Include="PostProcess\KEPostProcessTextureModel.h">
+      <Filter>PostProcess</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -190,6 +211,12 @@
     </ClInclude>
     <ClInclude Include="Graph\KEGraphInteraction.h">
       <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="PostProcess\KEPostProcessData.h">
+      <Filter>PostProcess</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\KEPostProcessGraphWidget.h">
+      <Filter>Widget</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

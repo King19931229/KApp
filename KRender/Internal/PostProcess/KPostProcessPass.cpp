@@ -43,11 +43,11 @@ KPostProcessPass::~KPostProcessPass()
 	assert(m_VSShader == nullptr);
 	assert(m_FSShader == nullptr);
 	assert(m_Textures.empty());
-	for (KPostProcessConnection*& conn : m_InputConnection)
+	for (auto& conn : m_InputConnection)
 	{
 		assert(!conn);
 	}
-	for (ConnectionSet& connSet : m_OutputConnection)
+	for (auto& connSet : m_OutputConnection)
 	{
 		assert(connSet.empty());
 	}
@@ -231,12 +231,12 @@ bool KPostProcessPass::UnInit()
 		m_FSShader = nullptr;
 	}
 
-	for (KPostProcessConnection*& input : m_InputConnection)
+	for (auto& input : m_InputConnection)
 	{
 		input = nullptr;
 	}
 
-	for (ConnectionSet& connSet : m_OutputConnection)
+	for (auto& connSet : m_OutputConnection)
 	{
 		connSet.clear();
 	}
@@ -328,31 +328,33 @@ bool KPostProcessPass::Load(IKJsonValuePtr& object)
 	}
 }
 
-bool KPostProcessPass::AddInputConnection(KPostProcessConnection* conn, int16_t slot)
+bool KPostProcessPass::AddInputConnection(IKPostProcessConnection* conn, int16_t slot)
 {
 	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		m_InputConnection[slot] = conn;
+		assert(((KPostProcessConnection*)conn)->m_Input.pass == this);
+		m_InputConnection[slot] = (KPostProcessConnection*)conn;
 		return true;
 	}
 	return false;
 }
 
-bool KPostProcessPass::AddOutputConnection(KPostProcessConnection* conn, int16_t slot)
+bool KPostProcessPass::AddOutputConnection(IKPostProcessConnection* conn, int16_t slot)
 {
 	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		m_OutputConnection[slot].insert(conn);
+		assert(((KPostProcessConnection*)conn)->m_Output.pass == this);
+		m_OutputConnection[slot].insert((KPostProcessConnection*)conn);
 		return true;
 	}
 	return false;
 }
 
-bool KPostProcessPass::RemoveInputConnection(KPostProcessConnection* conn, int16_t slot)
+bool KPostProcessPass::RemoveInputConnection(IKPostProcessConnection* conn, int16_t slot)
 {
 	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		if (m_InputConnection[slot] == conn)
+		if (m_InputConnection[slot] == (KPostProcessConnection*)conn)
 		{
 			m_InputConnection[slot] = nullptr;
 			return true;
@@ -361,11 +363,11 @@ bool KPostProcessPass::RemoveInputConnection(KPostProcessConnection* conn, int16
 	return false;
 }
 
-bool KPostProcessPass::RemoveOutputConnection(KPostProcessConnection* conn, int16_t slot)
+bool KPostProcessPass::RemoveOutputConnection(IKPostProcessConnection* conn, int16_t slot)
 {
 	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		auto it = m_OutputConnection[slot].find(conn);
+		auto it = m_OutputConnection[slot].find((KPostProcessConnection*)conn);
 		if (it != m_OutputConnection[slot].end())
 		{
 			m_OutputConnection[slot].erase(it);

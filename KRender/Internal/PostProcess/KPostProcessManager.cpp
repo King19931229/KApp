@@ -13,6 +13,11 @@
 #include <unordered_map>
 #include <queue>
 
+EXPORT_DLL IKPostProcessManager* GetProcessManager()
+{
+	return &KRenderGlobal::PostProcessManager;
+}
+
 const KVertexDefinition::SCREENQUAD_POS_2F KPostProcessManager::ms_vertices[] = 
 {
 	glm::vec2(-1.0f, -1.0f),
@@ -178,7 +183,7 @@ void KPostProcessManager::IterPostProcessGraph(std::function<void(KPostProcessPa
 
 			for (int16_t slot = 0; slot < MAX_OUTPUT_SLOT_COUNT; ++slot)
 			{
-				ConnectionSet& connections = pass->m_OutputConnection[slot];
+				auto& connections = pass->m_OutputConnection[slot];
 				for (KPostProcessConnection* conn : connections)
 				{
 					bfsQueue.push(conn->m_Input.pass);
@@ -381,7 +386,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 	return true;
 }
 
-KPostProcessPass* KPostProcessManager::CreatePass(const char* vsFile, const char* fsFile, float scale, ElementFormat format)
+IKPostProcessPass* KPostProcessManager::CreatePass(const char* vsFile, const char* fsFile, float scale, ElementFormat format)
 {
 	KPostProcessPass* pass = new KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR);
 
@@ -395,7 +400,7 @@ KPostProcessPass* KPostProcessManager::CreatePass(const char* vsFile, const char
 	return pass;
 }
 
-void KPostProcessManager::DeletePass(KPostProcessPass* pass)
+void KPostProcessManager::DeletePass(IKPostProcessPass* pass)
 {
 	std::vector<KPostProcessConnection*> invalidConn;
 
@@ -435,11 +440,11 @@ void KPostProcessManager::DeletePass(KPostProcessPass* pass)
 		SAFE_DELETE(conn); 
 	}
 
-	auto it = m_AllPasses.find(pass->ID());
+	auto it = m_AllPasses.find(((KPostProcessPass*)pass)->ID());
 	if(it != m_AllPasses.end())
 	{
 		m_AllPasses.erase(it);
-		pass->UnInit();
+		((KPostProcessPass*)pass)->UnInit();
 		SAFE_DELETE(pass);
 	}
 }
@@ -454,12 +459,12 @@ KPostProcessPass* KPostProcessManager::GetPass(KPostProcessPass::IDType id)
 	return nullptr;
 }
 
-KPostProcessConnection* KPostProcessManager::CreatePassConnection(KPostProcessPass* outputPass, int16_t outSlot, KPostProcessPass* inputPass, int16_t inSlot)
+IKPostProcessConnection* KPostProcessManager::CreatePassConnection(IKPostProcessPass* outputPass, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot)
 {
 	KPostProcessConnection* conn = new KPostProcessConnection(this);
 
-	conn->m_Output.InitAsPass(outputPass, outSlot);
-	conn->m_Input.Init(inputPass, inSlot);
+	conn->m_Output.InitAsPass((KPostProcessPass*)outputPass, outSlot);
+	conn->m_Input.Init((KPostProcessPass*)inputPass, inSlot);
 
 	ASSERT_RESULT(outputPass->AddOutputConnection(conn, outSlot));
 	ASSERT_RESULT(inputPass->AddInputConnection(conn, inSlot));
@@ -469,12 +474,12 @@ KPostProcessConnection* KPostProcessManager::CreatePassConnection(KPostProcessPa
 	return conn;
 }
 
-KPostProcessConnection* KPostProcessManager::CreateTextureConnection(IKTexturePtr outputTexure, int16_t outSlot, KPostProcessPass* inputPass, int16_t inSlot)
+IKPostProcessConnection* KPostProcessManager::CreateTextureConnection(IKTexturePtr outputTexure, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot)
 {
 	KPostProcessConnection* conn = new KPostProcessConnection(this);
 
 	conn->m_Output.InitAsTexture(outputTexure, outSlot);
-	conn->m_Input.Init(inputPass, inSlot);
+	conn->m_Input.Init((KPostProcessPass*)inputPass, inSlot);
 
 	ASSERT_RESULT(inputPass->AddInputConnection(conn, inSlot));
 
@@ -483,13 +488,13 @@ KPostProcessConnection* KPostProcessManager::CreateTextureConnection(IKTexturePt
 	return conn;
 }
 
-void KPostProcessManager::DeleteConnection(KPostProcessConnection* conn)
+void KPostProcessManager::DeleteConnection(IKPostProcessConnection* conn)
 {
-	auto it = m_AllConnections.find(conn->ID());
+	auto it = m_AllConnections.find(((KPostProcessConnection*)conn)->ID());
 	if(it != m_AllConnections.end())
 	{
-		KPostProcessOutputData& outputData = conn->m_Output;
-		KPostProcessInputData& inputData = conn->m_Input;
+		KPostProcessOutputData& outputData = ((KPostProcessConnection*)conn)->m_Output;
+		KPostProcessInputData& inputData = ((KPostProcessConnection*)conn)->m_Input;
 
 		if (outputData.type == POST_PROCESS_OUTPUT_PASS)
 		{
@@ -512,7 +517,7 @@ KPostProcessConnection* KPostProcessManager::GetConnection(KPostProcessConnectio
 	return nullptr;
 }
 
-KPostProcessPass* KPostProcessManager::GetStartPointPass()
+IKPostProcessPass* KPostProcessManager::GetStartPointPass()
 {
 	return m_StartPointPass;
 }

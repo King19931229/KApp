@@ -1,7 +1,14 @@
 #include "KEGraphRegistrar.h"
 #include <assert.h>
 
-KEGraphRegistrar::CreateFuncMap KEGraphRegistrar::ms_CreateFuncMap;
+KEGraphRegistrar::KEGraphRegistrar()
+{
+}
+
+KEGraphRegistrar::~KEGraphRegistrar()
+{
+	assert(m_CreateFuncMap.empty());
+}
 
 bool KEGraphRegistrar::Init()
 {
@@ -11,16 +18,16 @@ bool KEGraphRegistrar::Init()
 
 bool KEGraphRegistrar::UnInit()
 {
-	ms_CreateFuncMap.clear();
+	m_CreateFuncMap.clear();
 	return true;
 }
 
-bool KEGraphRegistrar::RegisterGraphModel(const QString& name, GraphNodeModelCreateFunc func)
+bool KEGraphRegistrar::RegisterGraphModel(const QString& name, KEGraphNodeModelCreateFunc func)
 {
-	auto it = ms_CreateFuncMap.find(name);
-	if (it == ms_CreateFuncMap.end())
+	auto it = m_CreateFuncMap.find(name);
+	if (it == m_CreateFuncMap.end())
 	{
-		ms_CreateFuncMap[name] = func;
+		m_CreateFuncMap[name] = func;
 		return true;
 	}
 	return false;
@@ -28,18 +35,27 @@ bool KEGraphRegistrar::RegisterGraphModel(const QString& name, GraphNodeModelCre
 
 bool KEGraphRegistrar::UnRegisterGraphModel(const QString& name)
 {
-	auto it = ms_CreateFuncMap.find(name);
-	if (it != ms_CreateFuncMap.end())
+	auto it = m_CreateFuncMap.find(name);
+	if (it != m_CreateFuncMap.end())
 	{
-		ms_CreateFuncMap.erase(it);
+		m_CreateFuncMap.erase(it);
 	}
 	return true;
 }
 
+void KEGraphRegistrar::VisitModel(ModelVisitFunc func)
+{
+	for (auto it = m_CreateFuncMap.begin(), itEnd = m_CreateFuncMap.end();
+		it != itEnd; ++it)
+	{
+		func(it->first, it->second);
+	}
+}
+
 KEGraphNodeModelPtr KEGraphRegistrar::GetNodeModel(const QString& name)
 {
-	auto it = ms_CreateFuncMap.find(name);
-	if (it != ms_CreateFuncMap.end())
+	auto it = m_CreateFuncMap.find(name);
+	if (it != m_CreateFuncMap.end())
 	{
 		KEGraphNodeModelPtr ret = (it->second)();
 		return ret;

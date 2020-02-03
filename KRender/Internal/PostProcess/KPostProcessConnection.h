@@ -1,12 +1,13 @@
 #pragma once
 #include "KPostProcessData.h"
 #include "KBase/Interface/IKJson.h"
+#include "Interface/IKPostProcess.h"
 #include <unordered_set>
 
 class KPostProcessPass;
 class KPostProcessManager;
 
-class KPostProcessConnection
+class KPostProcessConnection : public IKPostProcessConnection
 {
 	friend class KPostProcessManager;
 	friend class KPostProcessPass;
@@ -31,10 +32,10 @@ protected:
 
 	inline IDType ID() { return m_ID; }
 public:
-	inline void SetOutputAsPass(KPostProcessPass* pass, int16_t slot) { m_Output.InitAsPass(pass, slot); }
-	inline void SetOutputAsTextrue(IKTexturePtr texture, int16_t slot) { m_Output.InitAsTexture(texture, slot); }
-	inline void SetInput(KPostProcessPass* pass, int16_t slot) { m_Input.Init(pass, slot); }
-	inline bool IsComplete() const { return m_Input.IsComplete() && m_Output.IsComplete(); }
+	void SetOutputPortAsPass(IKPostProcessPass* pass, int16_t slot) override { m_Output.InitAsPass((KPostProcessPass*)pass, slot); }
+	void SetOutputPortAsTextrue(IKTexturePtr texture, int16_t slot) override  { m_Output.InitAsTexture(texture, slot); }
+	void SetInputPort(IKPostProcessPass* pass, int16_t slot) override  { m_Input.Init((KPostProcessPass*)pass, slot); }
+	bool IsComplete() const override  { return m_Input.IsComplete() && m_Output.IsComplete(); }
 };
 
-typedef std::unordered_set<KPostProcessConnection*> ConnectionSet;
+typedef std::unordered_set<KPostProcessConnection*> KPostProcessConnectionSet;

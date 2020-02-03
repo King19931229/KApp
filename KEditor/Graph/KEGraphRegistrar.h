@@ -7,13 +7,21 @@
 
 class KEGraphRegistrar
 {
-	typedef std::function<KEGraphNodeModelPtr(void)> GraphNodeModelCreateFunc;
-	typedef std::unordered_map<QString, GraphNodeModelCreateFunc> CreateFuncMap;
-	static CreateFuncMap ms_CreateFuncMap;
+protected:
+	typedef std::unordered_map<QString, KEGraphNodeModelCreateFunc> CreateFuncMap;
+	CreateFuncMap m_CreateFuncMap;
 public:
-	static bool Init();
-	static bool UnInit();
-	static bool RegisterGraphModel(const QString& name, GraphNodeModelCreateFunc func);
-	static bool UnRegisterGraphModel(const QString& name);
-	static KEGraphNodeModelPtr GetNodeModel(const QString& name);
+	KEGraphRegistrar();
+	~KEGraphRegistrar();
+
+	bool Init();
+	bool UnInit();
+
+	bool RegisterGraphModel(const QString& name, KEGraphNodeModelCreateFunc func);
+	bool UnRegisterGraphModel(const QString& name);
+
+	typedef std::function<void(const QString& name, KEGraphNodeModelCreateFunc func)> ModelVisitFunc;
+	void VisitModel(ModelVisitFunc func);
+
+	KEGraphNodeModelPtr GetNodeModel(const QString& name);
 };

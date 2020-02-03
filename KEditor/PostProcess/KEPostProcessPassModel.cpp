@@ -1,12 +1,13 @@
-#include "KEGraphNodeTestModel.h"
+#include "KEPostProcessPassModel.h"
 #include "KRender/Publish/KEnumString.h"
+#include "KRender/Interface/IKPostProcess.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QComboBox>
 
-KEGraphNodeTestModel::KEGraphNodeTestModel()
+KEPostProcessPassModel::KEPostProcessPassModel()
 {
 	QVBoxLayout* layout = new QVBoxLayout();
 
@@ -70,21 +71,22 @@ KEGraphNodeTestModel::KEGraphNodeTestModel()
 	m_EditWidget.setLayout(layout);
 }
 
-KEGraphNodeTestModel::~KEGraphNodeTestModel()
+KEPostProcessPassModel::~KEPostProcessPassModel()
 {
+
 }
 
-QString	KEGraphNodeTestModel::Caption() const
+QString	KEPostProcessPassModel::Caption() const
 {
-	return QString("TestCaption");
+	return "Pass";
 }
 
-QString	KEGraphNodeTestModel::Name() const
+QString	KEPostProcessPassModel::Name() const
 {
-	return QString("TestName");
+	return "ProcessPass";
 }
 
-QString KEGraphNodeTestModel::PortCaption(PortType type, PortIndexType index) const
+QString	KEPostProcessPassModel::PortCaption(PortType type, PortIndexType index) const
 {
 	switch (type)
 	{
@@ -96,40 +98,41 @@ QString KEGraphNodeTestModel::PortCaption(PortType type, PortIndexType index) co
 	return "";
 }
 
-bool KEGraphNodeTestModel::PortCaptionVisible(PortType type, PortIndexType index) const
+bool KEPostProcessPassModel::PortCaptionVisible(PortType type, PortIndexType index) const
 {
 	return true;
 }
 
-unsigned int KEGraphNodeTestModel::NumPorts(PortType portType) const
+unsigned int KEPostProcessPassModel::NumPorts(PortType portType) const
 {
 	switch (portType)
 	{
 	case PT_IN:
-		return 2;
+		return MAX_INPUT_SLOT_COUNT;
 	case PT_OUT:
-		return 3;
+		return MAX_OUTPUT_SLOT_COUNT;
 	default:
 		return 0;
 	}
 }
 
-KEGraphNodeDataType KEGraphNodeTestModel::DataType(PortType portType, PortIndexType portIndex) const
+KEGraphNodeDataType KEPostProcessPassModel::DataType(PortType portType, PortIndexType portIndex) const
 {
 	return KEGraphNodeDataType();
 }
 
-void KEGraphNodeTestModel::SetInData(KEGraphNodeDataPtr nodeData, PortIndexType port)
+void KEPostProcessPassModel::SetInData(KEGraphNodeDataPtr nodeData, PortIndexType port)
 {
-	return;
+	//TODO
 }
 
-KEGraphNodeDataPtr KEGraphNodeTestModel::OutData(PortIndexType port)
+KEGraphNodeDataPtr KEPostProcessPassModel::OutData(PortIndexType port)
 {
+	//TODO
 	return nullptr;
 }
 
-QWidget* KEGraphNodeTestModel::EmbeddedWidget()
+QWidget* KEPostProcessPassModel::EmbeddedWidget()
 {
 	return &m_EditWidget;
 }

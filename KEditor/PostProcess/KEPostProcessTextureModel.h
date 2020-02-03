@@ -1,15 +1,14 @@
 #pragma once
 #include "Graph/Node/KEGraphNodeModel.h"
-#include <QWidget>
 
-class KEGraphNodeTestModel : public KEGraphNodeModel
+class KEPostProcessTextureModel : public KEGraphNodeModel
 {
 	Q_OBJECT
 protected:
 	QWidget m_EditWidget;
 public:
-	KEGraphNodeTestModel();
-	virtual	~KEGraphNodeTestModel();
+	KEPostProcessTextureModel();
+	virtual	~KEPostProcessTextureModel();
 
 	virtual QString	Caption() const override;
 	virtual QString	Name() const override;

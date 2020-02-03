@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="Interface\IKCommandBuffer.h" />
     <ClInclude Include="Interface\IKPipeline.h" />
+    <ClInclude Include="Interface\IKPostProcess.h" />
     <ClInclude Include="Interface\IKRenderCommand.h" />
     <ClInclude Include="Interface\IKRenderCore.h" />
     <ClInclude Include="Interface\IKRenderDevice.h" />
@@ -91,6 +92,7 @@
     <ClInclude Include="Internal\Window\KGLFWRenderWindow.h" />
     <ClInclude Include="Publish\KAABBBox.h" />
     <ClInclude Include="Publish\KCamera.h" />
+    <ClInclude Include="Publish\KEnumString.h" />
     <ClInclude Include="Publish\KPlane.h" />
   </ItemGroup>
   <ItemGroup>

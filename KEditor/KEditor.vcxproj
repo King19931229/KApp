@@ -108,7 +108,10 @@
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
+    <ClCompile Include="PostProcess\KEPostProcessPassModel.cpp" />
+    <ClCompile Include="PostProcess\KEPostProcessTextureModel.cpp" />
     <ClCompile Include="Widget\KEGraphWidget.cpp" />
+    <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp" />
     <ClCompile Include="Widget\KERenderWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -124,6 +127,7 @@
     <QtMoc Include="Widget\KERenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Widget\KEPostProcessGraphWidget.h" />
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />
     <QtMoc Include="Graph\Connection\KEGraphConnectionControl.h" />
     <ClInclude Include="Graph\Connection\KEGraphConnectionGeometry.h" />
@@ -137,6 +141,9 @@
     <ClInclude Include="Graph\Node\KEGraphNodeData.h" />
     <ClInclude Include="Graph\Node\KEGraphNodeState.h" />
     <ClInclude Include="Graph\Node\KEGraphNodeStyle.h" />
+    <QtMoc Include="PostProcess\KEPostProcessPassModel.h" />
+    <QtMoc Include="PostProcess\KEPostProcessTextureModel.h" />
+    <ClInclude Include="PostProcess\KEPostProcessData.h" />
     <ClInclude Include="Utility\QStringStdHash.hpp" />
     <ClInclude Include="Utility\QUuidStdHash.hpp" />
     <QtMoc Include="Graph\KEGraphScene.h" />

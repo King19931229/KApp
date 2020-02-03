@@ -5,6 +5,7 @@
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKCommandBuffer.h"
+#include "Interface/IKPostProcess.h"
 #include "KBase/Interface/IKJson.h"
 #include "KPostProcessConnection.h"
 
@@ -17,7 +18,7 @@ enum PostProcessStage : uint16_t
 	POST_PROCESS_STAGE_END_POINT,
 };
 
-class KPostProcessPass
+class KPostProcessPass : public IKPostProcessPass
 {
 	friend class KPostProcessManager;
 	friend class KPostProcessConnection;
@@ -48,7 +49,7 @@ protected:
 	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 
 	// 一个输出槽可能连接到多个节点输出
-	ConnectionSet m_OutputConnection[MAX_OUTPUT_SLOT_COUNT];
+	KPostProcessConnectionSet m_OutputConnection[MAX_OUTPUT_SLOT_COUNT];
 	// 一个输入槽只可能从一个节点输入
 	KPostProcessConnection* m_InputConnection[MAX_INPUT_SLOT_COUNT];
 private:
@@ -64,11 +65,6 @@ private:
 	bool Save(IKJsonDocumentPtr jsonDoc, IKJsonValuePtr& object);
 	bool Load(IKJsonValuePtr& object);
 
-	bool AddInputConnection(KPostProcessConnection* conn, int16_t slot);
-	bool AddOutputConnection(KPostProcessConnection* conn, int16_t slot);
-	bool RemoveInputConnection(KPostProcessConnection* conn, int16_t slot);
-	bool RemoveOutputConnection(KPostProcessConnection* conn, int16_t slot);
-
 	static const char* msIDKey;
 	static const char* msStageKey;
 	static const char* msScaleKey;
@@ -77,14 +73,19 @@ private:
 	static const char* msVSKey;
 	static const char* msFSKey;
 public:
-	bool SetShader(const char* vsFile, const char* fsFile);
-	bool SetScale(float scale);
-	bool SetFormat(ElementFormat format);
-	bool SetMSAA(unsigned short msaaCount);
+	bool SetShader(const char* vsFile, const char* fsFile) override;
+	bool SetScale(float scale) override;
+	bool SetFormat(ElementFormat format) override;
+	bool SetMSAA(unsigned short msaaCount) override;
+
+	bool AddInputConnection(IKPostProcessConnection* conn, int16_t slot) override;
+	bool AddOutputConnection(IKPostProcessConnection* conn, int16_t slot) override;
+	bool RemoveInputConnection(IKPostProcessConnection* conn, int16_t slot) override;
+	bool RemoveOutputConnection(IKPostProcessConnection* conn, int16_t slot) override;
 
 	inline void SetAsEndPoint() { m_Stage = POST_PROCESS_STAGE_END_POINT; }
 	inline IKTexturePtr GetTexture(size_t frameIndex) { return m_Textures.size() > frameIndex ? m_Textures[frameIndex] : nullptr; }
-	inline IKRenderTargetPtr GetRenderTarget(size_t frameIndex) { return m_RenderTargets.size() > frameIndex ? m_RenderTargets[frameIndex] : nullptr; }
+	inline IKRenderTargetPtr GetRenderTarget(size_t frameIndex) { return m_RenderTargets.size() > frameIndex ? m_RenderTargets[frameIndex] : nullptr; } 
 	inline IKPipelinePtr GetPipeline(size_t frameIndex) { return m_Pipelines.size() > frameIndex ? m_Pipelines[frameIndex] : nullptr; }
 	inline IKPipelinePtr GetScreenDrawPipeline(size_t frameIndex) { return m_ScreenDrawPipelines.size() > frameIndex ? m_ScreenDrawPipelines[frameIndex] : nullptr; }
 	inline IKCommandBufferPtr GetCommandBuffer(size_t frameIndex) { return m_CommandBuffers.size() > frameIndex ? m_CommandBuffers[frameIndex] : nullptr; }

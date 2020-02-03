@@ -39,4 +39,9 @@ typedef std::unique_ptr<KEGraphConnectionView> KEGraphConnectionViewPtr;
 class KEGraphConnectionControl;
 typedef std::unique_ptr<KEGraphConnectionControl> KEGraphConnectionControlPtr;
 
+class KEGraphRegistrar;
+typedef std::unique_ptr<KEGraphRegistrar> KEGraphRegistrarPtr;
+
+typedef std::function<KEGraphNodeModelPtr(void)> KEGraphNodeModelCreateFunc;
+
 typedef std::function<KEGraphNodeDataPtr(KEGraphNodeDataPtr)> GraphNodeDataConverterFunc;

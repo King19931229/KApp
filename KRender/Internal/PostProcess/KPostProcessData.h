@@ -1,5 +1,6 @@
 #pragma once
 #include "Interface/IKTexture.h"
+#include "Interface/IKPostProcess.h"
 
 enum PostProcessOutputType : uint16_t
 {
@@ -7,10 +8,6 @@ enum PostProcessOutputType : uint16_t
 	POST_PROCESS_OUTPUT_TEXTURE,
 	POST_PROCESS_OUTPUT_UNKNOWN
 };
-
-const static int16_t MAX_INPUT_SLOT_COUNT = 4;
-const static int16_t MAX_OUTPUT_SLOT_COUNT = 4;
-static const int16_t INVALID_SLOT_INDEX = -1;
 
 class KPostProcessPass;
 

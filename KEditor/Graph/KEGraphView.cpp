@@ -10,9 +10,6 @@
 #include "Graph/Connection/KEGraphConnectionControl.h"
 #include "Graph/Connection/KEGraphConnectionView.h"
 
-// TODO
-#include "Graph/Test/KEGraphNodeTestModel.h"
-
 #include <QMouseEvent>
 #include <QPainter>
 #include <QtWidgets/QMenu>
@@ -191,6 +188,16 @@ void KEGraphView::ScaleDown()
 	scale(factor, factor);
 }
 
+void KEGraphView::RegisterModel(const QString& name, KEGraphNodeModelCreateFunc func)
+{
+	m_Scene->GetRegistrar()->RegisterGraphModel(name, func);
+}
+
+void KEGraphView::UnRegisterGraphModel(const QString& name)
+{
+	m_Scene->GetRegistrar()->UnRegisterGraphModel(name);
+}
+
 void KEGraphView::contextMenuEvent(QContextMenuEvent *event)
 {
 	if (itemAt(event->pos()))
@@ -200,8 +207,6 @@ void KEGraphView::contextMenuEvent(QContextMenuEvent *event)
 	}
 
 	QMenu modelMenu;
-
-	QString skipText = QStringLiteral("skip me");
 
 	//Add filterbox to the context menu
 	QLineEdit *txtBox = new QLineEdit(&modelMenu);
@@ -222,21 +227,18 @@ void KEGraphView::contextMenuEvent(QContextMenuEvent *event)
 
 	modelMenu.addAction(treeViewAction);
 
-	// ²âÊÔ´úÂë
-	QString testText = "Test";
-	QTreeWidgetItem* item = new QTreeWidgetItem(treeView);
-	item->setText(0, testText);
-	item->setData(0, Qt::UserRole, testText);
-
-	KEGraphRegistrar::RegisterGraphModel(testText, []()->KEGraphNodeModelPtr
+	m_Scene->GetRegistrar()->VisitModel([&](const QString& name, auto func)
 	{
-		return KEGraphNodeModelPtr(new KEGraphNodeTestModel());
+		QString testText = name;
+		QTreeWidgetItem* item = new QTreeWidgetItem(treeView);
+		item->setText(0, name);
+		item->setData(0, Qt::UserRole, name);
 	});
 
 	connect(treeView, &QTreeWidget::itemClicked, [&](QTreeWidgetItem *item, int)
 	{
 		QString modelName = item->data(0, Qt::UserRole).toString();
-		KEGraphNodeModelPtr model = KEGraphRegistrar::GetNodeModel(modelName);
+		KEGraphNodeModelPtr model = m_Scene->GetRegistrar()->GetNodeModel(modelName);
 	
 		if (model)
 		{

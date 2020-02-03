@@ -1,4 +1,5 @@
 #include "KEGraphScene.h"
+#include "KEGraphRegistrar.h"
 
 #include "Node/KEGraphNodeControl.h"
 #include "Node/KEGraphNodeView.h"
@@ -10,14 +11,22 @@
 #include <QGraphicsView>
 
 KEGraphScene::KEGraphScene(QObject * parent)
-	: QGraphicsScene(parent)
+	: QGraphicsScene(parent),
+	m_Registrar(KEGraphRegistrarPtr(new KEGraphRegistrar()))
 {
 	setItemIndexMethod(QGraphicsScene::NoIndex);
+	m_Registrar->Init();
 }
 
 KEGraphScene::~KEGraphScene()
 {
+	m_Registrar->UnInit();
 	ClearScene();
+}
+
+KEGraphRegistrar* KEGraphScene::GetRegistrar()
+{
+	return m_Registrar.get();
 }
 
 void KEGraphScene::ClearScene()

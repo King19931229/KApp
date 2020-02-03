@@ -1,6 +1,6 @@
 #include "KEditor.h"
 #include "Widget/KERenderWidget.h"
-#include "Widget/KEGraphWidget.h"
+#include "Widget/KEPostProcessGraphWidget.h"
 #include "Graph/KEGraphRegistrar.h"
 #include "Other/KEQtRenderWindow.h"
 #include <QTextCodec>
@@ -57,10 +57,8 @@ bool KEditor::Init()
 		m_RenderWidget->Init(m_RenderCore);
 		setCentralWidget(m_RenderWidget);
 
-		m_GraphWidget = new KEGraphWidget();
+		m_GraphWidget = new KEPostProcessGraphWidget();
 		m_GraphWidget->hide();
-
-		KEGraphRegistrar::Init();
 
 		m_bInit = true;
 		return true;
@@ -89,8 +87,6 @@ bool KEditor::UnInit()
 		}
 
 		SAFE_DELETE(m_GraphWidget);
-
-		KEGraphRegistrar::UnInit();
 
 		m_bInit = false;
 	}

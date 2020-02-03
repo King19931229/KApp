@@ -273,6 +273,12 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessData.h">
       <Filter>Internal\PostProcess</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKPostProcess.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KEnumString.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">

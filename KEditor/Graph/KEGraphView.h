@@ -9,6 +9,9 @@ class KEGraphView : public QGraphicsView
 public:
 	KEGraphView(QWidget *parent = nullptr);
 	~KEGraphView();
+
+	void RegisterModel(const QString& name, KEGraphNodeModelCreateFunc func);
+	void UnRegisterGraphModel(const QString& name);
 public Q_SLOTS:
 	void OnNodeContextMenu(KEGraphNodeControl* n, const QPointF& pos);
 	void OnConnectionContextMenu(KEGraphConnectionControl* conn, const QPointF& pos);

@@ -13,11 +13,14 @@ class KEGraphScene : public QGraphicsScene
 protected:
 	std::unordered_map<QUuid, KEGraphNodeControlPtr> m_Node;
 	std::unordered_map<QUuid, KEGraphConnectionControlPtr> m_Connection;
+	KEGraphRegistrarPtr m_Registrar;
 
 	void ClearScene();
 public:
 	KEGraphScene(QObject * parent);
 	~KEGraphScene();
+
+	KEGraphRegistrar* GetRegistrar();
 
 	KEGraphNodeControl* CreateNode(KEGraphNodeModelPtr&& model);
 	void RemoveNode(KEGraphNodeControl* node);

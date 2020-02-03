@@ -5,13 +5,14 @@
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKCommandBuffer.h"
+#include "Interface/IKPostProcess.h"
 #include "Internal/KVertexDefinition.h"
 #include "KPostProcessPass.h"
 #include "KPostProcessConnection.h"
 
 #include <unordered_map>
 
-class KPostProcessManager
+class KPostProcessManager : public IKPostProcessManager
 {
 	friend class KPostProcessPass;
 protected:
@@ -63,16 +64,16 @@ public:
 	bool Save(const char* jsonFile);
 	bool Load(const char* jsonFile);
 
-	KPostProcessPass* CreatePass(const char* vsFile, const char* fsFile, float scale, ElementFormat format);
-	void DeletePass(KPostProcessPass* pass);
+	IKPostProcessPass* CreatePass(const char* vsFile, const char* fsFile, float scale, ElementFormat format) override;
+	void DeletePass(IKPostProcessPass* pass) override;
 	KPostProcessPass* GetPass(KPostProcessPass::IDType id);
 
-	KPostProcessConnection* CreatePassConnection(KPostProcessPass* outputPass, int16_t outSlot, KPostProcessPass* inputPass, int16_t inSlot);
-	KPostProcessConnection* CreateTextureConnection(IKTexturePtr outputTexure, int16_t outSlot, KPostProcessPass* inputPass, int16_t inSlot);
-	void DeleteConnection(KPostProcessConnection* conn);
+	IKPostProcessConnection* CreatePassConnection(IKPostProcessPass* outputPass, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot) override;
+	IKPostProcessConnection* CreateTextureConnection(IKTexturePtr outputTexure, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot) override;
+	void DeleteConnection(IKPostProcessConnection* conn) override;
 	KPostProcessConnection* GetConnection(KPostProcessConnection::IDType id);
 
-	KPostProcessPass* GetStartPointPass();
+	IKPostProcessPass* GetStartPointPass() override;
 
 	bool Construct();
 	bool Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChainPtr& swapChain, IKUIOverlayPtr& ui, IKCommandBufferPtr primaryCommandBuffer);
