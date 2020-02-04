@@ -12,5 +12,6 @@ public:
 	bool UnInit() override;
 
 public Q_SLOTS:
-	void SyncPostprocess();
+	void Sync();
+	void AutoLayout();
 };

@@ -31,7 +31,10 @@ bool KEPostProcessGraphWidget::Init()
 		});
 
 		QAction* syncAction = m_MenuBar->addAction("Sync");
-		connect(syncAction, &QAction::triggered, this, &KEPostProcessGraphWidget::SyncPostprocess);
+		connect(syncAction, &QAction::triggered, this, &KEPostProcessGraphWidget::Sync);
+
+		QAction* autoLayoutAction = m_MenuBar->addAction("AutoLayout");
+		connect(autoLayoutAction, &QAction::triggered, this, &KEPostProcessGraphWidget::AutoLayout);
 
 		return true;
 	}
@@ -43,8 +46,14 @@ bool KEPostProcessGraphWidget::UnInit()
 	return KEGraphWidget::UnInit();
 }
 
-void KEPostProcessGraphWidget::SyncPostprocess()
+void KEPostProcessGraphWidget::Sync()
 {
 	KEPostProcessGraphView* view = static_cast<KEPostProcessGraphView*>(m_View);
 	view->Sync();
+}
+
+void KEPostProcessGraphWidget::AutoLayout()
+{
+	KEPostProcessGraphView* view = static_cast<KEPostProcessGraphView*>(m_View);
+	view->AutoLayout();
 }
