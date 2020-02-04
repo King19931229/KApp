@@ -184,9 +184,9 @@ void KPostProcessManager::IterPostProcessGraph(std::function<void(KPostProcessPa
 			for (int16_t slot = 0; slot < MAX_OUTPUT_SLOT_COUNT; ++slot)
 			{
 				auto& connections = pass->m_OutputConnection[slot];
-				for (KPostProcessConnection* conn : connections)
+				for (IKPostProcessConnection* conn : connections)
 				{
-					bfsQueue.push(conn->m_Input.pass);
+					bfsQueue.push(((KPostProcessConnection*)conn)->m_Input.pass);
 				}
 			}
 		}

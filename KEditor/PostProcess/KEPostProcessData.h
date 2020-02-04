@@ -22,18 +22,19 @@ public:
 	}
 };
 
-class KEPostProcessTextureData : public KEGraphNodeData
+class KEPostProcessPassData : public KEGraphNodeData
 {
 public:
-	IKTexturePtr textrue;
-	KEPostProcessTextureData()
-		: textrue(nullptr)
+	IKPostProcessPass* pass;
+	KEPostProcessPassData(IKPostProcessPass* _pass)
+		: pass(_pass)
 	{
 	}
 
 	KEGraphNodeDataType Type() const override
 	{
 		KEGraphNodeDataType type;
-		type.id = POSTPROCESS_TEXTURE_ID;
+		type.id = POSTPROCESS_PASS_ID;
+		return type;
 	}
 };

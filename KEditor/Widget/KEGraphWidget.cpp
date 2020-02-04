@@ -10,32 +10,49 @@
 KEGraphWidget::KEGraphWidget()
 	: QWidget(),
 	m_MenuBar(nullptr),
-	m_View(nullptr)
+	m_View(nullptr),
+	m_bInit(false)
 {
-	m_MenuBar = new QMenuBar(this);
-	m_View = new KEGraphView(this);
-
-	QVBoxLayout *layout = new QVBoxLayout(this);
-	layout->addWidget(m_MenuBar);
-	layout->addWidget(m_View);
-	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(0);
-	setLayout(layout);
-
-	setWindowTitle("Graph");
-	resize(800, 600);
+	
 }
 
 KEGraphWidget::~KEGraphWidget()
 {
-	SAFE_DELETE(m_MenuBar);
-	SAFE_DELETE(m_View);
+	assert(!m_bInit);
+	assert(!m_MenuBar);
+	assert(!m_View);
 }
 
-void KEGraphWidget::Test()
+bool KEGraphWidget::Init()
 {
-	m_View->RegisterModel("Test", []()->KEGraphNodeModelPtr
+	if (!m_bInit)
 	{
-		return KEGraphNodeModelPtr(new KEGraphNodeTestModel());
-	});
+		m_MenuBar = new QMenuBar(this);
+		m_View = CreateViewImpl();
+
+		QVBoxLayout *layout = new QVBoxLayout(this);
+		layout->addWidget(m_MenuBar);
+		layout->addWidget(m_View);
+		layout->setContentsMargins(0, 0, 0, 0);
+		layout->setSpacing(0);
+		setLayout(layout);
+
+		setWindowTitle("Graph");
+		resize(800, 600);
+
+		m_bInit = true;
+		return true;
+	}
+	return false;
+}
+
+bool KEGraphWidget::UnInit()
+{
+	if (m_bInit)
+	{
+		SAFE_DELETE(m_View);
+		SAFE_DELETE(m_MenuBar);
+		m_bInit = false;
+	}
+	return true;
 }

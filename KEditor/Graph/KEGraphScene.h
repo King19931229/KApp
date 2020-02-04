@@ -15,10 +15,11 @@ protected:
 	std::unordered_map<QUuid, KEGraphConnectionControlPtr> m_Connection;
 	KEGraphRegistrarPtr m_Registrar;
 
-	void ClearScene();
 public:
 	KEGraphScene(QObject * parent);
 	~KEGraphScene();
+
+	void ClearScene();
 
 	KEGraphRegistrar* GetRegistrar();
 

@@ -376,3 +376,24 @@ bool KPostProcessPass::RemoveOutputConnection(IKPostProcessConnection* conn, int
 	}
 	return false;
 }
+
+bool KPostProcessPass::GetOutputConnection(KPostProcessConnectionSet& set, int16_t slot)
+{
+	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0)
+	{
+		set = m_OutputConnection[slot];
+		return true;
+	}
+	return false;
+
+}
+
+bool KPostProcessPass::GetInputConnection(IKPostProcessConnection*& conn, int16_t slot)
+{
+	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
+	{
+		conn = m_InputConnection[slot];
+		return true;
+	}
+	return false;
+}

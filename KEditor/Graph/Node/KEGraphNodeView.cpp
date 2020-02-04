@@ -52,7 +52,7 @@ KEGraphNodeView::KEGraphNodeView(KEGraphScene* scene, KEGraphNodeControl* contro
 
 KEGraphNodeView::~KEGraphNodeView()
 {
-
+	m_Scene->removeItem(this);
 }
 
 void KEGraphNodeView::Lock(bool locked)

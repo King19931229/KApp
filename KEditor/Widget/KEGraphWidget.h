@@ -9,9 +9,11 @@ class KEGraphWidget : public QWidget
 protected:
 	QMenuBar* m_MenuBar;
 	KEGraphView* m_View;
+	bool m_bInit;
 public:
 	KEGraphWidget();
-	~KEGraphWidget();
-
-	void Test();
+	virtual ~KEGraphWidget();
+	virtual KEGraphView* CreateViewImpl() = 0;
+	virtual bool Init();
+	virtual bool UnInit();
 };

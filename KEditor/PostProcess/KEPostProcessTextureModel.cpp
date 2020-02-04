@@ -1,3 +1,4 @@
+#include "KEditorConfig.h"
 #include "KEPostProcessTextureModel.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -20,12 +21,13 @@ KEPostProcessTextureModel::KEPostProcessTextureModel()
 		layout->addLayout(lineLayout);
 	}
 
-	m_EditWidget.setLayout(layout);
+	m_EditWidget = new QWidget();
+	m_EditWidget->setLayout(layout);
 }
 
 KEPostProcessTextureModel::~KEPostProcessTextureModel()
 {
-
+	// m_EditWidget ÓÉNodeView³ÖÓÐÉ¾³ý
 }
 
 QString	KEPostProcessTextureModel::Caption() const
@@ -86,5 +88,5 @@ KEGraphNodeDataPtr KEPostProcessTextureModel::OutData(PortIndexType port)
 
 QWidget* KEPostProcessTextureModel::EmbeddedWidget()
 {
-	return &m_EditWidget;
+	return m_EditWidget;
 }

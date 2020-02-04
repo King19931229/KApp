@@ -108,6 +108,7 @@
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
+    <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessPassModel.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessTextureModel.cpp" />
     <ClCompile Include="Widget\KEGraphWidget.cpp" />
@@ -127,6 +128,7 @@
     <QtMoc Include="Widget\KERenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />
     <ClInclude Include="Widget\KEPostProcessGraphWidget.h" />
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />
     <QtMoc Include="Graph\Connection\KEGraphConnectionControl.h" />

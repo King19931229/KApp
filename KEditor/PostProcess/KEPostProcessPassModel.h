@@ -1,13 +1,26 @@
 #pragma once
 #include "Graph/Node/KEGraphNodeModel.h"
+#include "KRender/Interface/IKPostProcess.h"
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QComboBox>
 
 class KEPostProcessPassModel : public KEGraphNodeModel
 {
 	Q_OBJECT
 protected:
-	QWidget m_EditWidget;
+	QComboBox* m_FormatCombo;
+	QLineEdit* m_ScaleEdit;
+	QLineEdit* m_MSAAEdit;
+	QLineEdit* m_VSEdit;
+	QLineEdit* m_FSEdit;
+	QWidget* m_EditWidget;
+
+	IKPostProcessPass* m_Pass;
 public:
-	KEPostProcessPassModel();
+	KEPostProcessPassModel(IKPostProcessPass* pass = nullptr);
 	virtual	~KEPostProcessPassModel();
 
 	virtual QString	Caption() const override;

@@ -115,6 +115,9 @@
     <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
+    <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp">
+      <Filter>PostProcess</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -217,6 +220,9 @@
     </ClInclude>
     <ClInclude Include="Widget\KEPostProcessGraphWidget.h">
       <Filter>Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="PostProcess\KEPostProcessGraphView.h">
+      <Filter>PostProcess</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

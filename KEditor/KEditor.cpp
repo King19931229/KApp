@@ -58,6 +58,7 @@ bool KEditor::Init()
 		setCentralWidget(m_RenderWidget);
 
 		m_GraphWidget = new KEPostProcessGraphWidget();
+		m_GraphWidget->Init();
 		m_GraphWidget->hide();
 
 		m_bInit = true;
@@ -86,7 +87,11 @@ bool KEditor::UnInit()
 			SAFE_DELETE(m_RenderWidget);
 		}
 
-		SAFE_DELETE(m_GraphWidget);
+		if (m_GraphWidget)
+		{
+			m_GraphWidget->UnInit();
+			SAFE_DELETE(m_GraphWidget);
+		}
 
 		m_bInit = false;
 	}

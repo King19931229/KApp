@@ -8,7 +8,7 @@ class KEGraphView : public QGraphicsView
 	typedef std::unique_ptr<QAction> QActionPtr;
 public:
 	KEGraphView(QWidget *parent = nullptr);
-	~KEGraphView();
+	virtual ~KEGraphView();
 
 	void RegisterModel(const QString& name, KEGraphNodeModelCreateFunc func);
 	void UnRegisterGraphModel(const QString& name);

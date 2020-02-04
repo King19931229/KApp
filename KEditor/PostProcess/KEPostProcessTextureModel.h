@@ -5,7 +5,7 @@ class KEPostProcessTextureModel : public KEGraphNodeModel
 {
 	Q_OBJECT
 protected:
-	QWidget m_EditWidget;
+	QWidget *m_EditWidget;
 public:
 	KEPostProcessTextureModel();
 	virtual	~KEPostProcessTextureModel();

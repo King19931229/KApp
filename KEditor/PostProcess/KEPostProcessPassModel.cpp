@@ -1,13 +1,10 @@
 #include "KEPostProcessPassModel.h"
+#include "KEPostProcessData.h"
 #include "KRender/Publish/KEnumString.h"
 #include "KRender/Interface/IKPostProcess.h"
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QLineEdit>
-#include <QComboBox>
 
-KEPostProcessPassModel::KEPostProcessPassModel()
+KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
+	: m_Pass(pass)
 {
 	QVBoxLayout* layout = new QVBoxLayout();
 
@@ -25,6 +22,7 @@ KEPostProcessPassModel::KEPostProcessPassModel()
 		}
 
 		layout->addLayout(lineLayout);
+		m_FormatCombo = combo;
 	}
 
 	{
@@ -41,6 +39,7 @@ KEPostProcessPassModel::KEPostProcessPassModel()
 		lineLayout->addWidget(lineEdit);
 
 		layout->addLayout(lineLayout);
+		m_ScaleEdit = lineEdit;
 	}
 
 	{
@@ -55,25 +54,40 @@ KEPostProcessPassModel::KEPostProcessPassModel()
 		lineLayout->addWidget(lineEdit);
 
 		layout->addLayout(lineLayout);
+		m_MSAAEdit = lineEdit;
 	}
 
 	{
 		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("Shader");
+		QLabel* label = new QLabel("VSShader");
 		QLineEdit* lineEdit = new QLineEdit();
 
 		lineLayout->addWidget(label);
 		lineLayout->addWidget(lineEdit);
 
 		layout->addLayout(lineLayout);
+		m_VSEdit = lineEdit;
 	}
 
-	m_EditWidget.setLayout(layout);
+	{
+		QHBoxLayout* lineLayout = new QHBoxLayout();
+		QLabel* label = new QLabel("FSShader");
+		QLineEdit* lineEdit = new QLineEdit();
+
+		lineLayout->addWidget(label);
+		lineLayout->addWidget(lineEdit);
+
+		layout->addLayout(lineLayout);
+		m_FSEdit = lineEdit;
+	}
+
+	m_EditWidget = new QWidget();
+	m_EditWidget->setLayout(layout);
 }
 
 KEPostProcessPassModel::~KEPostProcessPassModel()
 {
-
+	// assert(!m_Pass);
 }
 
 QString	KEPostProcessPassModel::Caption() const
@@ -128,11 +142,12 @@ void KEPostProcessPassModel::SetInData(KEGraphNodeDataPtr nodeData, PortIndexTyp
 
 KEGraphNodeDataPtr KEPostProcessPassModel::OutData(PortIndexType port)
 {
-	//TODO
-	return nullptr;
+	KEPostProcessPassData* passData = new KEPostProcessPassData(m_Pass);
+	KEGraphNodeDataPtr data = KEGraphNodeDataPtr(passData);
+	return data;
 }
 
 QWidget* KEPostProcessPassModel::EmbeddedWidget()
 {
-	return &m_EditWidget;
+	return m_EditWidget;
 }

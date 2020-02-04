@@ -83,6 +83,9 @@ public:
 	bool RemoveInputConnection(IKPostProcessConnection* conn, int16_t slot) override;
 	bool RemoveOutputConnection(IKPostProcessConnection* conn, int16_t slot) override;
 
+	bool GetOutputConnection(KPostProcessConnectionSet& set, int16_t slot) override;
+	bool GetInputConnection(IKPostProcessConnection*& conn, int16_t slot) override;
+
 	inline void SetAsEndPoint() { m_Stage = POST_PROCESS_STAGE_END_POINT; }
 	inline IKTexturePtr GetTexture(size_t frameIndex) { return m_Textures.size() > frameIndex ? m_Textures[frameIndex] : nullptr; }
 	inline IKRenderTargetPtr GetRenderTarget(size_t frameIndex) { return m_RenderTargets.size() > frameIndex ? m_RenderTargets[frameIndex] : nullptr; } 

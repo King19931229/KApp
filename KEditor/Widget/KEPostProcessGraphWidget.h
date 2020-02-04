@@ -7,6 +7,10 @@ public:
 	KEPostProcessGraphWidget();
 	~KEPostProcessGraphWidget();
 
+	KEGraphView* CreateViewImpl() override;
+	bool Init() override;
+	bool UnInit() override;
+
 public Q_SLOTS:
 	void SyncPostprocess();
 };
