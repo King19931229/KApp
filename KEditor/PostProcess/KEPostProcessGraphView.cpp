@@ -70,7 +70,7 @@ static const float NODE_HORIZONTAL_GRAP = 35.0f;
 
 float KEPostProcessGraphView::CalcOutputHeight(KEGraphNodeControl* node,
 	std::unordered_map<KEGraphNodeControl*, float>& records,
-	std::unordered_map<KEGraphNodeControl* ,std::unordered_set<KEGraphNodeControl*>>& uniqueChilds)
+	std::unordered_map<KEGraphNodeControl* ,std::vector<KEGraphNodeControl*>>& uniqueChilds)
 {
 	auto it = records.find(node);
 	if (it != records.end())
@@ -80,9 +80,9 @@ float KEPostProcessGraphView::CalcOutputHeight(KEGraphNodeControl* node,
 	records[node] = 0;
 
 	float height = 0;
-	float maxChildHeight = 0;
-	float childHeightSum = 0;
-	std::unordered_set<KEGraphNodeControl*> uniqueChild;
+
+	std::vector<KEGraphNodeControl*> uniqueChild;
+
 	auto& state = node->GetNodeState();
 	auto& geometry = node->GetGeometry();
 
@@ -95,28 +95,23 @@ float KEPostProcessGraphView::CalcOutputHeight(KEGraphNodeControl* node,
 			float childHeight = CalcOutputHeight(outNode, records, uniqueChilds);
 			if (childHeight > 0)
 			{
-				uniqueChild.insert(outNode);
-				maxChildHeight = std::max(maxChildHeight, childHeight);
-				childHeightSum += childHeight;
+				uniqueChild.push_back(outNode);
+				height += childHeight + NODE_VERTICAL_GRAP;
 			}
 		}
 	}
-	uniqueChilds[node] = uniqueChild;
-
-	if (uniqueChild.size() > 0)
-	{
-		height = (float)(uniqueChild.size() - 1) * NODE_VERTICAL_GRAP + (float)uniqueChild.size() * maxChildHeight;
-		//height = childHeightSum + (float)(uniqueChild.size() - 1) * NODE_VERTICAL_GRAP;
-	}
+	height -= NODE_VERTICAL_GRAP;	
 
 	height = std::max(height, (float)geometry.BoundingRect().height());
 
 	records[node] = height;
+	uniqueChilds[node] = std::move(uniqueChild);
+
 	return height;
 }
 
 void KEPostProcessGraphView::PlaceNodeX(KEGraphNodeControl* node,
-	const std::unordered_map<KEGraphNodeControl*, std::unordered_set<KEGraphNodeControl*>>& uniqueChilds)
+	const std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>>& uniqueChilds)
 {
 	auto view = node->GetView();
 	auto& state = node->GetNodeState();
@@ -140,7 +135,7 @@ void KEPostProcessGraphView::PlaceNodeX(KEGraphNodeControl* node,
 
 void KEPostProcessGraphView::PlaceNodeY(KEGraphNodeControl* node,
 	const std::unordered_map<KEGraphNodeControl*, float>& records,
-	const std::unordered_map<KEGraphNodeControl*, std::unordered_set<KEGraphNodeControl*>>& uniqueChilds)
+	const std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>>& uniqueChilds)
 {
 	auto view = node->GetView();
 	auto& state = node->GetNodeState();
@@ -148,15 +143,11 @@ void KEPostProcessGraphView::PlaceNodeY(KEGraphNodeControl* node,
 	auto center = view->sceneBoundingRect().center();
 	const auto& children = uniqueChilds.at(node);
 
-	float childHeight = records.at(node);
-	float segmentY = center.y() - childHeight * 0.5f;
-
-	float segmentHeight = childHeight / (float)children.size();
-
-	size_t segmentCounter = 0;
-
+	float nodeHeightTotal = records.at(node);
+	float childHeightSum = 0;
 	for (KEGraphNodeControl* child : children)
 	{
+		float childHeight = records.at(child);
 		auto childView = child->GetView();
 		// 只有一个子节点
 		if (children.size() == 1)
@@ -165,10 +156,14 @@ void KEPostProcessGraphView::PlaceNodeY(KEGraphNodeControl* node,
 		}
 		else
 		{
-			childView->setY(segmentY + segmentHeight * segmentCounter + segmentHeight * 0.5f - childView->boundingRect().height() * 0.5f);
+			childView->setY(center.y() - nodeHeightTotal * 0.5f
+				+ childHeightSum + childHeight * 0.5f
+				- childView->boundingRect().height() * 0.5f);
 		}
-		++segmentCounter;
+		childHeightSum += childHeight + NODE_VERTICAL_GRAP;
 	}
+	childHeightSum -= NODE_VERTICAL_GRAP;
+	assert(childHeightSum <= nodeHeightTotal);
 
 	for (KEGraphNodeControl* child : children)
 	{
@@ -180,7 +175,7 @@ void KEPostProcessGraphView::PlaceNodeY(KEGraphNodeControl* node,
 
 void KEPostProcessGraphView::PlaceNode(KEGraphNodeControl* node,
 	const std::unordered_map<KEGraphNodeControl*, float>& records,
-	const std::unordered_map<KEGraphNodeControl*, std::unordered_set<KEGraphNodeControl*>>& uniqueChilds)
+	const std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>>& uniqueChilds)
 {
 	PlaceNodeX(node, uniqueChilds);
 	PlaceNodeY(node, records, uniqueChilds);
@@ -223,7 +218,7 @@ bool KEPostProcessGraphView::AutoLayout()
 	if (m_StartNode)
 	{
 		std::unordered_map<KEGraphNodeControl*, float> nodeChildHeight;
-		std::unordered_map<KEGraphNodeControl*, std::unordered_set<KEGraphNodeControl*>> uniqueChilds;
+		std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>> uniqueChilds;
 		CalcOutputHeight(m_StartNode, nodeChildHeight, uniqueChilds);
 		PlaceNode(m_StartNode, nodeChildHeight, uniqueChilds);
 	}
