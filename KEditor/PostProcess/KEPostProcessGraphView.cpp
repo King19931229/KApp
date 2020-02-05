@@ -47,9 +47,8 @@ void KEPostProcessGraphView::BuildConnection(IKPostProcessPass* pass, const std:
 	}
 }
 
-static const float NODE_VERTICAL_GRAP = 5.0f;
-static const float NODE_HORIZONTAL_GRAP = 35.0f;
-
+static const float NODE_VERTICAL_GRAP = 32.0f;
+static const float NODE_HORIZONTAL_GRAP = 64.0f;
 
 bool KEPostProcessGraphView::PopulateUniqueChild(KEGraphNodeControl* node,
 	std::unordered_set<KEGraphNodeControl*>& visitedNode,
@@ -122,7 +121,10 @@ void KEPostProcessGraphView::PlaceNodeX(KEGraphNodeControl* node,
 	for (KEGraphNodeControl* child : children)
 	{
 		auto childView = child->GetView();
-		childView->setX(view->x() + view->boundingRect().width() + NODE_HORIZONTAL_GRAP);
+		childView->setX(view->x()
+			+ view->boundingRect().width() + NODE_HORIZONTAL_GRAP
+			- view->boundingRect().left()
+		);
 		PlaceNodeX(child, uniqueChilds);
 		childView->MoveConnections();
 	}
@@ -135,6 +137,7 @@ void KEPostProcessGraphView::PlaceNodeY(KEGraphNodeControl* node,
 	auto view = node->GetView();
 	auto& state = node->GetNodeState();
 
+	auto bounding = view->sceneBoundingRect();
 	auto center = view->sceneBoundingRect().center();
 	const auto& children = uniqueChilds.at(node);
 
@@ -153,7 +156,9 @@ void KEPostProcessGraphView::PlaceNodeY(KEGraphNodeControl* node,
 		{
 			childView->setY(center.y() - nodeHeightTotal * 0.5f
 				+ childHeightSum + childHeight * 0.5f
-				- childView->boundingRect().height() * 0.5f);
+				- childView->boundingRect().height() * 0.5f
+				- childView->boundingRect().top()
+			);
 		}
 		childHeightSum += childHeight + NODE_VERTICAL_GRAP;
 	}
@@ -234,14 +239,33 @@ bool KEPostProcessGraphView::Sync()
 	return true;
 }
 
+QRectF KEPostProcessGraphView::AllNodeBoundingRect() const
+{
+	QRectF rect;
+	const auto& nodeDicts = m_Scene->GetAllNodes();
+	for (const auto& pair : nodeDicts)
+	{
+		KEGraphNodeControl* node = pair.second.get();
+		QRectF nodeRect = node->GetView()->sceneBoundingRect();
+		rect = rect.united(nodeRect);
+	}
+	return rect;
+}
+
 bool KEPostProcessGraphView::AutoLayout()
 {
 	std::unordered_set<KEGraphNodeControl*> noneInputNodes;
-
+	// 1.收集入度为0的节点
 	{
 		CollectNoneInputNode(noneInputNodes);
 	}
+	// 1.5 如果找不到入度为0的节点 直接返回
+	if (noneInputNodes.empty())
+	{
+		return true;
+	}
 
+	// 2.收集在排版后每个节点的子节点
 	std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>> uniqueChilds;
 	{
 		std::unordered_set<KEGraphNodeControl*> visitNodes;
@@ -251,6 +275,7 @@ bool KEPostProcessGraphView::AutoLayout()
 		}
 	}
 
+	// 3.添加一个虚拟根节点 连接到所有入度为0的节点上
 	KEGraphNodeControl* startNode = nullptr;
 	{
 		auto centerPos = mapToScene(width() / 2, height() / 2);
@@ -262,14 +287,33 @@ bool KEPostProcessGraphView::AutoLayout()
 			uniqueChilds[startNode].push_back(outNode);
 		}
 	}
-
+	// 4.排列节点
 	{
 		std::unordered_map<KEGraphNodeControl*, float> nodeChildHeight;
 		CalcOutputHeight(startNode, nodeChildHeight, uniqueChilds);
 		PlaceNode(startNode, nodeChildHeight, uniqueChilds);
 	}
 
+	// 5.移除虚拟根节点
 	m_Scene->RemoveNode(startNode);
+
+	// 6.调整view位置与缩放
+	{
+		QRectF sceneBounding = AllNodeBoundingRect();
+
+		QPointF viewTopLeft = mapToScene(QPoint(0, 0));
+		QPointF viewBottomRight = mapToScene(QPoint(width(), height()));
+
+		float width = viewBottomRight.x() - viewTopLeft.x();
+		float height = viewBottomRight.y() - viewTopLeft.y();
+
+		QPointF viewCenter = (viewTopLeft + viewBottomRight) * 0.5f;
+		QPointF difference = sceneBounding.center() - viewCenter;
+		// setSceneRect其实只是把传入QRectF中心点作为观察中心点
+		setSceneRect(sceneRect().translated(difference.x(), difference.y()));
+		float factor = std::min(width / sceneBounding.width(), height / sceneBounding.height());
+		scale(factor, factor);
+	}
 
 	return true;
 }

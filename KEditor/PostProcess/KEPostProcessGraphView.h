@@ -32,6 +32,8 @@ protected:
 		const std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>>& uniqueChilds);
 
 	void CollectNoneInputNode(std::unordered_set<KEGraphNodeControl*>& noneInputNodes);
+
+	QRectF AllNodeBoundingRect() const;
 public:
 	KEPostProcessGraphView();
 	virtual ~KEPostProcessGraphView();
