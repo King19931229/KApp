@@ -10,6 +10,7 @@ struct IKPostProcessConnection;
 struct IKPostProcessPass;
 struct IKPostProcessManager;
 typedef std::unordered_set<IKPostProcessConnection*> KPostProcessConnectionSet;
+typedef std::unordered_set<IKPostProcessPass*> KPostProcessPassSet;
 
 struct IKPostProcessConnection
 {
@@ -45,6 +46,8 @@ struct IKPostProcessManager
 
 	virtual IKPostProcessPass* CreatePass(const char* vsFile, const char* fsFile, float scale, ElementFormat format) = 0;
 	virtual void DeletePass(IKPostProcessPass* pass) = 0;
+
+	virtual bool GetAllPasses(KPostProcessPassSet& set) = 0;
 
 	virtual IKPostProcessConnection* CreatePassConnection(IKPostProcessPass* outputPass, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot) = 0;
 	virtual IKPostProcessConnection* CreateTextureConnection(IKTexturePtr outputTexure, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot) = 0;

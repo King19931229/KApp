@@ -105,6 +105,7 @@
     <ClCompile Include="Graph\Node\KEGraphNodeStyle.cpp" />
     <ClCompile Include="Graph\Node\KEGraphNodeView.cpp" />
     <ClCompile Include="Graph\Test\KEGraphNodeTestModel.cpp" />
+    <ClCompile Include="Graph\Utility\KEGraphEmtpyNodeModel.cpp" />
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
@@ -128,6 +129,7 @@
     <QtMoc Include="Widget\KERenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Graph\Utility\KEGraphEmtpyNodeModel.h" />
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />
     <ClInclude Include="Widget\KEPostProcessGraphWidget.h" />
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />

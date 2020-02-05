@@ -459,6 +459,16 @@ KPostProcessPass* KPostProcessManager::GetPass(KPostProcessPass::IDType id)
 	return nullptr;
 }
 
+bool KPostProcessManager::GetAllPasses(KPostProcessPassSet& set)
+{
+	set.clear();
+	for (auto pair : m_AllPasses)
+	{
+		set.insert(pair.second);
+	}
+	return true;
+}
+
 IKPostProcessConnection* KPostProcessManager::CreatePassConnection(IKPostProcessPass* outputPass, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot)
 {
 	KPostProcessConnection* conn = new KPostProcessConnection(this);

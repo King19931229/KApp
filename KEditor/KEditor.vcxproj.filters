@@ -42,6 +42,9 @@
     <Filter Include="Property">
       <UniqueIdentifier>{7f026aef-ccd2-4373-8f22-9053cc573f15}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graph\Utility">
+      <UniqueIdentifier>{2e9db08a-2335-447a-bdc3-c0ba845e530d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -118,6 +121,9 @@
     <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp">
       <Filter>PostProcess</Filter>
     </ClCompile>
+    <ClCompile Include="Graph\Utility\KEGraphEmtpyNodeModel.cpp">
+      <Filter>Graph\Utility</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -156,6 +162,9 @@
     </QtMoc>
     <QtMoc Include="PostProcess\KEPostProcessTextureModel.h">
       <Filter>PostProcess</Filter>
+    </QtMoc>
+    <QtMoc Include="Graph\Utility\KEGraphEmtpyNodeModel.h">
+      <Filter>Graph\Utility</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

@@ -2,6 +2,7 @@
 #include "Graph/Node/KEGraphNodeControl.h"
 #include "Graph/Node/KEGraphNodeModel.h"
 #include "Graph/Connection/KEGraphConnectionControl.h"
+#include <assert.h>
 
 KEGraphNodeState::KEGraphNodeState(const KEGraphNodeModelPtr& model)
 	: m_InConnections(model->NumPorts(PT_IN)),
@@ -42,18 +43,22 @@ KEGraphNodeState::EntryConnectionList& KEGraphNodeState::GetEntries(PortType por
 KEGraphNodeState::ConnectionPtrSet KEGraphNodeState::Connections(PortType portType, PortIndexType portIndex) const
 {
 	const EntryConnectionList& connections = GetEntries(portType);
-	return connections[portIndex];
+	assert(portIndex < connections.size());
+	return connections.at(portIndex);
 }
 
 void KEGraphNodeState::SetConnection(PortType portType, PortIndexType portIndex, KEGraphConnectionControl& connection)
 {
 	auto &connections = GetEntries(portType);
+	assert(portIndex < connections.size());
 	connections.at(portIndex).insert(std::make_pair(connection.ID(), &connection));
 }
 
 void KEGraphNodeState::EraseConnection(PortType portType, PortIndexType portIndex, QUuid id)
 {
-	GetEntries(portType)[portIndex].erase(id);
+	auto &connections = GetEntries(portType);
+	assert(portIndex < connections.size());
+	connections.at(portIndex).erase(id);
 }
 
 KEGraphNodeState::ReactToConnectionState KEGraphNodeState::Reaction() const

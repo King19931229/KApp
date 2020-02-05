@@ -10,7 +10,10 @@ enum PortType
 };
 
 typedef int32_t PortIndexType;
-static const PortIndexType INVALID_PORT_INDEX = -1;
+enum PortIndex : PortIndexType
+{
+	INVALID_PORT_INDEX = -1
+};
 
 enum ConnectionPolicy
 {

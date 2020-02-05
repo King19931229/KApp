@@ -10,9 +10,12 @@
 class KEGraphScene : public QGraphicsScene
 {
 	Q_OBJECT
+public:
+	typedef std::unordered_map<QUuid, KEGraphNodeControlPtr> NodeDict;
+	typedef std::unordered_map<QUuid, KEGraphConnectionControlPtr> ConnectionDict;
 protected:
-	std::unordered_map<QUuid, KEGraphNodeControlPtr> m_Node;
-	std::unordered_map<QUuid, KEGraphConnectionControlPtr> m_Connection;
+	NodeDict m_Node;
+	ConnectionDict m_Connection;
 	KEGraphRegistrarPtr m_Registrar;
 
 public:
@@ -22,6 +25,9 @@ public:
 	void ClearScene();
 
 	KEGraphRegistrar* GetRegistrar();
+
+	inline const NodeDict& GetAllNodes() const { return m_Node; }
+	inline const ConnectionDict& GetAllConnections() const { return m_Connection; }
 
 	KEGraphNodeControl* CreateNode(KEGraphNodeModelPtr&& model);
 	void RemoveNode(KEGraphNodeControl* node);

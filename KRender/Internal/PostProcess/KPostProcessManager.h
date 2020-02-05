@@ -68,6 +68,8 @@ public:
 	void DeletePass(IKPostProcessPass* pass) override;
 	KPostProcessPass* GetPass(KPostProcessPass::IDType id);
 
+	bool GetAllPasses(KPostProcessPassSet& set) override;
+
 	IKPostProcessConnection* CreatePassConnection(IKPostProcessPass* outputPass, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot) override;
 	IKPostProcessConnection* CreateTextureConnection(IKTexturePtr outputTexure, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot) override;
 	void DeleteConnection(IKPostProcessConnection* conn) override;

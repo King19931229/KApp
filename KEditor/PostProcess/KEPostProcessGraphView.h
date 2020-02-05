@@ -10,14 +10,15 @@
 class KEPostProcessGraphView : public KEGraphView
 {
 protected:
-	KEGraphNodeControl* m_StartNode;
-	void CollectPass(IKPostProcessPass* pass, std::unordered_set<IKPostProcessPass*>& allPass);
+	void BuildConnection(IKPostProcessPass* pass, const std::unordered_map<IKPostProcessPass*, KEGraphNodeControl*>& pass2node, std::unordered_set<IKPostProcessPass*>& visitedPass);
+
+	bool PopulateUniqueChild(KEGraphNodeControl* node,
+		std::unordered_set<KEGraphNodeControl*>& visitedNode,
+		std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>>& uniqueChilds);
 
 	float CalcOutputHeight(KEGraphNodeControl* node,
 		std::unordered_map<KEGraphNodeControl*, float>& records,
-		std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>>& uniqueChilds);
-
-	void BuildConnection(IKPostProcessPass* pass, const std::unordered_map<IKPostProcessPass*, KEGraphNodeControl*>& pass2node, std::unordered_set<IKPostProcessPass*>& visitedPass);
+		const std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>>& uniqueChilds);
 
 	void PlaceNodeX(KEGraphNodeControl* node,
 		const std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>>& uniqueChilds);
@@ -29,6 +30,8 @@ protected:
 	void PlaceNode(KEGraphNodeControl* node,
 		const std::unordered_map<KEGraphNodeControl*, float>& records,
 		const std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>>& uniqueChilds);
+
+	void CollectNoneInputNode(std::unordered_set<KEGraphNodeControl*>& noneInputNodes);
 public:
 	KEPostProcessGraphView();
 	virtual ~KEPostProcessGraphView();
