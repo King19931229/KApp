@@ -5,39 +5,42 @@
 
 #include "Property/KEPropertyModel.h"
 #include "Property/KEPropertyViewModel.h"
-#include "Property/KEPropertyRegularView.h"
+#include "Property/KEPropertyLineEditView.h"
 
 KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
-	: m_Pass(pass)
+	: m_Pass(pass),
+	m_Scale(1.0f),
+	m_MSAA(1),
+	m_VSFile("test"),
+	m_FSFile("string")
 {
+	{
+		auto model = KEditor::MakePropertyModelPtr<float>(&m_Scale);
+		auto view = KEditor::MakeLineEditViewPtr<float>();
+		m_ScaleViewModel = KEditor::MakePropertyViewModelPtr<float>(model, view);
+	}
+
+	{
+		auto model = KEditor::MakePropertyModelPtr<int>(&m_MSAA);
+		auto view = KEditor::MakeLineEditViewPtr<int>();
+		m_MSAAViewModel = KEditor::MakePropertyViewModelPtr<int>(model, view);
+	}
+
+	{
+		auto model = KEditor::MakePropertyModelPtr<std::string>(&m_VSFile);
+		auto view = KEditor::MakeLineEditViewPtr<std::string>();
+		m_VSViewModel = KEditor::MakePropertyViewModelPtr<std::string>(model, view);
+	}
+
+	{
+		auto model = KEditor::MakePropertyModelPtr<std::string>(&m_FSFile);
+		auto view = KEditor::MakeLineEditViewPtr<std::string>();
+		m_FSViewModel = KEditor::MakePropertyViewModelPtr<std::string>(model, view);
+	}
 
 	QVBoxLayout* layout = new QVBoxLayout();
-	/*	
-	{
-		KEPropertyModel<float> *model = new KEPropertyModel<float>();
-		KEPropertyRegularView<float> *view = new KEPropertyRegularView<float>();
-		KEPropertyViewModel<float> *viewModel = new KEPropertyViewModel<float>(*model, *view);
-		viewModel->SetValue({300.0f});
-		layout->addLayout(view->GetLayout());
-	}
 
-	{
-		KEPropertyModel<std::string> *model = new KEPropertyModel<std::string>();
-		KEPropertyRegularView<std::string> *view = new KEPropertyRegularView<std::string>();
-		KEPropertyViewModel<std::string> *viewModel = new KEPropertyViewModel<std::string>(*model, *view);
-		viewModel->SetValue({ "a" });
-		layout->addLayout(view->GetLayout());
-	}
-	
-	{
-		KEPropertyModel<std::string, 2> *model = new KEPropertyModel<std::string, 2>();
-		KEPropertyRegularView<std::string, 2> *view = new KEPropertyRegularView<std::string, 2>();
-		KEPropertyViewModel<std::string, 2> *viewModel = new KEPropertyViewModel<std::string, 2>(*model, *view);
-		viewModel->SetValue({ "b", "c" });
-		layout->addLayout(view->GetLayout());
-	}
-	*/
-
+	/*
 	{
 		QHBoxLayout* lineLayout = new QHBoxLayout();
 		QLabel* label = new QLabel("Format");
@@ -54,61 +57,37 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 		layout->addLayout(lineLayout);
 		m_FormatCombo = combo;
 	}
-
+	*/
 	{
 		QHBoxLayout* lineLayout = new QHBoxLayout();
 		QLabel* label = new QLabel("Scale");
-		QLineEdit* lineEdit = new QLineEdit();
-
-		QDoubleValidator* doubleValidator = new QDoubleValidator(0.0, 1.0, 2, lineEdit);
-		doubleValidator->setNotation(QDoubleValidator::StandardNotation);
-
-		lineEdit->setValidator(doubleValidator);
-
 		lineLayout->addWidget(label);
-		lineLayout->addWidget(lineEdit);
-
+		lineLayout->addLayout(m_ScaleViewModel->GetView()->GetLayout());
 		layout->addLayout(lineLayout);
-		m_ScaleEdit = lineEdit;
 	}
 
 	{
 		QHBoxLayout* lineLayout = new QHBoxLayout();
 		QLabel* label = new QLabel("MSAA");
-		QLineEdit* lineEdit = new QLineEdit();
-
-		QIntValidator* intValidator = new QIntValidator(1, 8, lineEdit);
-		lineEdit->setValidator(intValidator);
-
 		lineLayout->addWidget(label);
-		lineLayout->addWidget(lineEdit);
-
+		lineLayout->addLayout(m_MSAAViewModel->GetView()->GetLayout());
 		layout->addLayout(lineLayout);
-		m_MSAAEdit = lineEdit;
 	}
 
 	{
 		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("VSShader");
-		QLineEdit* lineEdit = new QLineEdit();
-
+		QLabel* label = new QLabel("VS");
 		lineLayout->addWidget(label);
-		lineLayout->addWidget(lineEdit);
-
+		lineLayout->addLayout(m_VSViewModel->GetView()->GetLayout());
 		layout->addLayout(lineLayout);
-		m_VSEdit = lineEdit;
 	}
 
 	{
 		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("FSShader");
-		QLineEdit* lineEdit = new QLineEdit();
-
+		QLabel* label = new QLabel("FS");
 		lineLayout->addWidget(label);
-		lineLayout->addWidget(lineEdit);
-
+		lineLayout->addLayout(m_FSViewModel->GetView()->GetLayout());
 		layout->addLayout(lineLayout);
-		m_FSEdit = lineEdit;
 	}
 
 	m_EditWidget = new QWidget();

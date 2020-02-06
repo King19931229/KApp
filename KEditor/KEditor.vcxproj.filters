@@ -242,7 +242,10 @@
     <ClInclude Include="Property\KEPropertyBaseView.h">
       <Filter>Property</Filter>
     </ClInclude>
-    <ClInclude Include="Property\KEPropertyRegularView.h">
+    <ClInclude Include="Property\KEPropertyWidget.h">
+      <Filter>Property</Filter>
+    </ClInclude>
+    <ClInclude Include="Property\KEPropertyLineEditView.h">
       <Filter>Property</Filter>
     </ClInclude>
   </ItemGroup>
