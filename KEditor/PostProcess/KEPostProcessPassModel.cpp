@@ -3,10 +3,40 @@
 #include "KRender/Publish/KEnumString.h"
 #include "KRender/Interface/IKPostProcess.h"
 
+#include "Property/KEPropertyModel.h"
+#include "Property/KEPropertyViewModel.h"
+#include "Property/KEPropertyRegularView.h"
+
 KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 	: m_Pass(pass)
 {
+
 	QVBoxLayout* layout = new QVBoxLayout();
+	/*	
+	{
+		KEPropertyModel<float> *model = new KEPropertyModel<float>();
+		KEPropertyRegularView<float> *view = new KEPropertyRegularView<float>();
+		KEPropertyViewModel<float> *viewModel = new KEPropertyViewModel<float>(*model, *view);
+		viewModel->SetValue({300.0f});
+		layout->addLayout(view->GetLayout());
+	}
+
+	{
+		KEPropertyModel<std::string> *model = new KEPropertyModel<std::string>();
+		KEPropertyRegularView<std::string> *view = new KEPropertyRegularView<std::string>();
+		KEPropertyViewModel<std::string> *viewModel = new KEPropertyViewModel<std::string>(*model, *view);
+		viewModel->SetValue({ "a" });
+		layout->addLayout(view->GetLayout());
+	}
+	
+	{
+		KEPropertyModel<std::string, 2> *model = new KEPropertyModel<std::string, 2>();
+		KEPropertyRegularView<std::string, 2> *view = new KEPropertyRegularView<std::string, 2>();
+		KEPropertyViewModel<std::string, 2> *viewModel = new KEPropertyViewModel<std::string, 2>(*model, *view);
+		viewModel->SetValue({ "b", "c" });
+		layout->addLayout(view->GetLayout());
+	}
+	*/
 
 	{
 		QHBoxLayout* lineLayout = new QHBoxLayout();

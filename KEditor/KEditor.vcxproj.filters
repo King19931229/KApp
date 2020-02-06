@@ -233,5 +233,17 @@
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h">
       <Filter>PostProcess</Filter>
     </ClInclude>
+    <ClInclude Include="Property\KEPropertyModel.h">
+      <Filter>Property</Filter>
+    </ClInclude>
+    <ClInclude Include="Property\KEPropertyViewModel.h">
+      <Filter>Property</Filter>
+    </ClInclude>
+    <ClInclude Include="Property\KEPropertyBaseView.h">
+      <Filter>Property</Filter>
+    </ClInclude>
+    <ClInclude Include="Property\KEPropertyRegularView.h">
+      <Filter>Property</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
