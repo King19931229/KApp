@@ -38,6 +38,9 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 		m_FSViewModel = KEditor::MakePropertyViewModelPtr<std::string>(model, view);
 	}
 
+	m_ScaleViewModel->SetValue({ 1.0f });
+	m_MSAAViewModel->SetValue({ 1 });
+
 	QVBoxLayout* layout = new QVBoxLayout();
 
 	/*
