@@ -7,23 +7,25 @@
 #include <QLineEdit>
 #include <QComboBox>
 
-#include "Property/KEPropertyViewModel.h"
+#include "Property/KEPropertyComboView.h"
+#include "Property/KEPropertyLineEditView.h"
 
 class KEPostProcessPassModel : public KEGraphNodeModel
 {
 	Q_OBJECT
 protected:
+	ElementFormat m_Format;
 	float m_Scale;
 	int m_MSAA;
 	std::string m_VSFile;
 	std::string m_FSFile;
 
-	KEPropertyViewModel<float>::PtrType m_ScaleViewModel;
-	KEPropertyViewModel<int>::PtrType m_MSAAViewModel;
-	KEPropertyViewModel<std::string>::PtrType m_VSViewModel;
-	KEPropertyViewModel<std::string>::PtrType m_FSViewModel;
+	KEPropertyComboView<ElementFormat>::BasePtr m_FormatView;
+	KEPropertyLineEditView<float>::BasePtr m_ScaleView;
+	KEPropertyLineEditView<int>::BasePtr m_MSAAView;
+	KEPropertyLineEditView<std::string>::BasePtr m_VSView;
+	KEPropertyLineEditView<std::string>::BasePtr m_FSView;
 
-	QComboBox* m_FormatCombo;
 	QWidget* m_EditWidget;
 
 	IKPostProcessPass* m_Pass;

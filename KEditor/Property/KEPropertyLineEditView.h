@@ -1,6 +1,7 @@
 #pragma once
 #include "KEditorConfig.h"
 #include "KEPropertyBaseView.h"
+#include "KEPropertyModel.h"
 #include <QLineEdit>
 #include <QValidator>
 #include <assert.h>
@@ -83,11 +84,18 @@ protected:
 
 	void SetModelData(size_t index, const QString& text)
 	{
-		T data = DataFromQString(text, T());
+		T data = DataFromQString(text, (*m_Model)[index]);
 		UpdateModelElement(index, data);
 	}
+
+	void SetWidgetValue(size_t index, const T& value) override
+	{
+		assert(index < DIMENSION);
+		SetWidgetText(*m_Widget[index], value);
+	}
 public:
-	KEPropertyLineEditView()
+	KEPropertyLineEditView(ModelPtrType model)
+		: KEPropertyView(model)
 	{
 		m_Layout = new QHBoxLayout();
 		for (size_t i = 0; i < DIMENSION; ++i)
@@ -100,6 +108,8 @@ public:
 				SetModelData(i, newText);
 			});
 		}
+
+		UpdateView(*m_Model);
 	}
 
 	~KEPropertyLineEditView()
@@ -115,20 +125,23 @@ public:
 	{
 		return m_Layout;
 	}
-
-	void SetWidgetValue(size_t index, const T& value) override
-	{
-		assert(index < DIMENSION);
-		SetWidgetText(*m_Widget[index], value);
-	}
 };
 
 namespace KEditor
 {
 	template<typename T, size_t DIMENTSION = 1, typename... Types>
-	inline std::shared_ptr<KEPropertyView<T, DIMENTSION>> MakeLineEditViewPtr(Types&&... args)
+	inline std::shared_ptr<KEPropertyBaseView> MakeLineEditViewByModel(Types&&... args)
 	{
-		return std::shared_ptr<KEPropertyView<T, DIMENTSION>>
-			(new KEPropertyLineEditView<T, DIMENTSION>(std::forward<Types>(args)...));
+		return std::shared_ptr<KEPropertyBaseView>
+			(new KEPropertyLineEditView<T, DIMENTSION>(
+				std::forward<Types>(args)...));
+	}
+
+	template<typename T, size_t DIMENTSION = 1, typename... Types>
+	inline std::shared_ptr<KEPropertyBaseView> MakeLineEditView(Types&&... args)
+	{
+		return std::shared_ptr<KEPropertyBaseView>
+			(new KEPropertyLineEditView<T, DIMENTSION>(
+				KEditor::MakePropertyModel<T, DIMENTSION>(std::forward<Types>(args)...)));
 	}
 }

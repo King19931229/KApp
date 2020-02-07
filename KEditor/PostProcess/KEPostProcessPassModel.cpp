@@ -3,69 +3,47 @@
 #include "KRender/Publish/KEnumString.h"
 #include "KRender/Interface/IKPostProcess.h"
 
-#include "Property/KEPropertyModel.h"
-#include "Property/KEPropertyViewModel.h"
-#include "Property/KEPropertyLineEditView.h"
-
 KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 	: m_Pass(pass),
+	m_Format(EF_R8GB8BA8_UNORM),
 	m_Scale(1.0f),
 	m_MSAA(1),
 	m_VSFile("test"),
 	m_FSFile("string")
 {
-	{
-		auto model = KEditor::MakePropertyModelPtr<float>(&m_Scale);
-		auto view = KEditor::MakeLineEditViewPtr<float>();
-		m_ScaleViewModel = KEditor::MakePropertyViewModelPtr<float>(model, view);
-	}
+	m_FormatView = KEditor::MakeComboEditView<ElementFormat>(&m_Format);
 
-	{
-		auto model = KEditor::MakePropertyModelPtr<int>(&m_MSAA);
-		auto view = KEditor::MakeLineEditViewPtr<int>();
-		m_MSAAViewModel = KEditor::MakePropertyViewModelPtr<int>(model, view);
-	}
+	m_ScaleView = KEditor::MakeLineEditView<float>(&m_Scale);
+	m_MSAAView = KEditor::MakeLineEditView<int>(&m_MSAA);
+	m_VSView = KEditor::MakeLineEditView<std::string>(&m_VSFile);
+	m_FSView = KEditor::MakeLineEditView<std::string>(&m_FSFile);
 
+	for (uint32_t f = 0; f < EF_COUNT; ++f)
 	{
-		auto model = KEditor::MakePropertyModelPtr<std::string>(&m_VSFile);
-		auto view = KEditor::MakeLineEditViewPtr<std::string>();
-		m_VSViewModel = KEditor::MakePropertyViewModelPtr<std::string>(model, view);
+		m_FormatView->DynamicComboCast<ElementFormat>()->AppendMapping(
+			ElementFormat(f),
+			KEnumString::ElementForamtToString(ElementFormat(f)));
 	}
+	m_FormatView->DynamicCast<ElementFormat>()->SetValue({ EF_R16G16B16A16_FLOAT });
 
-	{
-		auto model = KEditor::MakePropertyModelPtr<std::string>(&m_FSFile);
-		auto view = KEditor::MakeLineEditViewPtr<std::string>();
-		m_FSViewModel = KEditor::MakePropertyViewModelPtr<std::string>(model, view);
-	}
-
-	m_ScaleViewModel->SetValue({ 1.0f });
-	m_MSAAViewModel->SetValue({ 1 });
+	m_ScaleView->DynamicCast<float>()->SetValue({ 1.0f });
+	m_MSAAView->DynamicCast<int>()->SetValue({ 2 });
 
 	QVBoxLayout* layout = new QVBoxLayout();
 
-	/*
 	{
 		QHBoxLayout* lineLayout = new QHBoxLayout();
 		QLabel* label = new QLabel("Format");
-		QComboBox* combo = new QComboBox();
-
 		lineLayout->addWidget(label);
-		lineLayout->addWidget(combo);
-
-		for (uint32_t f = 0; f < EF_COUNT; ++f)
-		{
-			combo->addItem(KEnumString::ElementForamtToString(ElementFormat(f)));
-		}
-
-		layout->addLayout(lineLayout);
-		m_FormatCombo = combo;
+		lineLayout->addLayout(m_FormatView->GetLayout());
+		layout->addLayout(lineLayout);		
 	}
-	*/
+
 	{
 		QHBoxLayout* lineLayout = new QHBoxLayout();
 		QLabel* label = new QLabel("Scale");
 		lineLayout->addWidget(label);
-		lineLayout->addLayout(m_ScaleViewModel->GetView()->GetLayout());
+		lineLayout->addLayout(m_ScaleView->GetLayout());
 		layout->addLayout(lineLayout);
 	}
 
@@ -73,7 +51,7 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 		QHBoxLayout* lineLayout = new QHBoxLayout();
 		QLabel* label = new QLabel("MSAA");
 		lineLayout->addWidget(label);
-		lineLayout->addLayout(m_MSAAViewModel->GetView()->GetLayout());
+		lineLayout->addLayout(m_MSAAView->GetLayout());
 		layout->addLayout(lineLayout);
 	}
 
@@ -81,7 +59,7 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 		QHBoxLayout* lineLayout = new QHBoxLayout();
 		QLabel* label = new QLabel("VS");
 		lineLayout->addWidget(label);
-		lineLayout->addLayout(m_VSViewModel->GetView()->GetLayout());
+		lineLayout->addLayout(m_VSView->GetLayout());
 		layout->addLayout(lineLayout);
 	}
 
@@ -89,7 +67,7 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 		QHBoxLayout* lineLayout = new QHBoxLayout();
 		QLabel* label = new QLabel("FS");
 		lineLayout->addWidget(label);
-		lineLayout->addLayout(m_FSViewModel->GetView()->GetLayout());
+		lineLayout->addLayout(m_FSView->GetLayout());
 		layout->addLayout(lineLayout);
 	}
 

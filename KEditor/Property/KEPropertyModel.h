@@ -3,9 +3,6 @@
 #include <assert.h>
 #include <memory>
 
-template<typename T, size_t DIMENSION>
-class KEPropertyViewModel;
-
 template<typename T, size_t DIMENSION = 1>
 class KEPropertyModel
 {
@@ -166,7 +163,7 @@ public:
 namespace KEditor
 {
 	template<typename T, size_t DIMENTSION = 1, typename... Types>
-	inline std::shared_ptr<KEPropertyModel<T, DIMENTSION>> MakePropertyModelPtr(Types&&... args)
+	inline std::shared_ptr<KEPropertyModel<T, DIMENTSION>> MakePropertyModel(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyModel<T, DIMENTSION>>
 			(new KEPropertyModel<T, DIMENTSION>(std::forward<Types>(args)...));
