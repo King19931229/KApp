@@ -245,5 +245,8 @@
     <ClInclude Include="Property\KEPropertyComboView.h">
       <Filter>Property</Filter>
     </ClInclude>
+    <ClInclude Include="Property\KEPropertySliderView.h">
+      <Filter>Property</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

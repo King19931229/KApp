@@ -12,22 +12,23 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 	m_FSFile("string")
 {
 	m_FormatView = KEditor::MakeComboEditView<ElementFormat>(&m_Format);
-
 	m_ScaleView = KEditor::MakeLineEditView<float>(&m_Scale);
-	m_MSAAView = KEditor::MakeLineEditView<int>(&m_MSAA);
+	m_MSAAView = KEditor::MakeSliderEditView<int>(&m_MSAA);
 	m_VSView = KEditor::MakeLineEditView<std::string>(&m_VSFile);
 	m_FSView = KEditor::MakeLineEditView<std::string>(&m_FSFile);
 
+	m_MSAAView->SafeSliderCast<int>()->SetRange(1, 8);
+
 	for (uint32_t f = 0; f < EF_COUNT; ++f)
 	{
-		m_FormatView->DynamicComboCast<ElementFormat>()->AppendMapping(
+		m_FormatView->SafeComboCast<ElementFormat>()->AppendMapping(
 			ElementFormat(f),
 			KEnumString::ElementForamtToString(ElementFormat(f)));
 	}
-	m_FormatView->DynamicCast<ElementFormat>()->SetValue({ EF_R16G16B16A16_FLOAT });
 
-	m_ScaleView->DynamicCast<float>()->SetValue({ 1.0f });
-	m_MSAAView->DynamicCast<int>()->SetValue({ 2 });
+	m_FormatView->SafeCast<ElementFormat>()->SetValue({ EF_R16G16B16A16_FLOAT });
+	m_ScaleView->SafeCast<float>()->SetValue({ 1.0f });
+	m_MSAAView->SafeCast<int>()->SetValue({ 2 });
 
 	QVBoxLayout* layout = new QVBoxLayout();
 
@@ -36,7 +37,7 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 		QLabel* label = new QLabel("Format");
 		lineLayout->addWidget(label);
 		lineLayout->addLayout(m_FormatView->GetLayout());
-		layout->addLayout(lineLayout);		
+		layout->addLayout(lineLayout);
 	}
 
 	{

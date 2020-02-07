@@ -135,6 +135,7 @@
     <ClInclude Include="Property\KEPropertyComboView.h" />
     <ClInclude Include="Property\KEPropertyModel.h" />
     <ClInclude Include="Property\KEPropertyLineEditView.h" />
+    <ClInclude Include="Property\KEPropertySliderView.h" />
     <ClInclude Include="Widget\KEPostProcessGraphWidget.h" />
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />
     <QtMoc Include="Graph\Connection\KEGraphConnectionControl.h" />

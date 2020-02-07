@@ -9,6 +9,7 @@
 
 #include "Property/KEPropertyComboView.h"
 #include "Property/KEPropertyLineEditView.h"
+#include "Property/KEPropertySliderView.h"
 
 class KEPostProcessPassModel : public KEGraphNodeModel
 {
@@ -22,7 +23,7 @@ protected:
 
 	KEPropertyComboView<ElementFormat>::BasePtr m_FormatView;
 	KEPropertyLineEditView<float>::BasePtr m_ScaleView;
-	KEPropertyLineEditView<int>::BasePtr m_MSAAView;
+	KEPropertySliderView<int>::BasePtr m_MSAAView;
 	KEPropertyLineEditView<std::string>::BasePtr m_VSView;
 	KEPropertyLineEditView<std::string>::BasePtr m_FSView;
 

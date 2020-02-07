@@ -2,7 +2,7 @@
 #include "KEditorConfig.h"
 #include "KEPropertyBaseView.h"
 #include "KEPropertyModel.h"
-#include <QComboBox.h>
+#include <QComboBox>
 #include <string>
 #include <unordered_map>
 #include <assert.h>

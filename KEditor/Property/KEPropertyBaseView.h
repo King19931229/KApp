@@ -1,6 +1,7 @@
 #pragma once
 #include <QLayout>
 #include <memory>
+#include <assert.h>
 
 template<typename T, size_t DIMENSION>
 class KEPropertyView;
@@ -11,6 +12,9 @@ class KEPropertyModel;
 template<typename T>
 class KEPropertyComboView;
 
+template<typename T, size_t DIMENSION>
+class KEPropertySliderView;
+
 class KEPropertyBaseView
 {
 public:
@@ -18,30 +22,49 @@ public:
 	virtual ~KEPropertyBaseView() {}
 	virtual QLayout* GetLayout() = 0;
 
-	//
+	// 转基础派生类
 	template<typename T, size_t DIMENSION = 1>
-	KEPropertyView<T, DIMENSION>* DynamicCast()
+	KEPropertyView<T, DIMENSION>* SafeCast()
 	{
-		return dynamic_cast<KEPropertyView<T, DIMENSION>*>(this);
+		KEPropertyView<T, DIMENSION>* ret = dynamic_cast<KEPropertyView<T, DIMENSION>*>(this);
+		assert(ret);
+		return ret;
 	}
 
 	template<typename T, size_t DIMENSION = 1>
-	KEPropertyView<T, DIMENSION>* StaticCast()
+	KEPropertyView<T, DIMENSION>* Cast()
 	{
 		return static_cast<KEPropertyView<T, DIMENSION>*>(this);
 	}
 
-	//
+	// 转Combo派生类
 	template<typename T>
-	KEPropertyComboView<T>* StaticComboCast()
+	KEPropertyComboView<T>* SafeComboCast()
+	{
+		KEPropertyComboView<T>* ret = dynamic_cast<KEPropertyComboView<T>*>(this);
+		assert(ret);
+		return ret;
+	}
+
+	template<typename T>
+	KEPropertyComboView<T>* ComboCast()
 	{
 		return static_cast<KEPropertyComboView<T>*>(this);
 	}
 
-	template<typename T>
-	KEPropertyComboView<T>* DynamicComboCast()
+	// 转Slider派生类
+	template<typename T, size_t DIMENSION = 1>
+	KEPropertySliderView<T, DIMENSION>* SafeSliderCast()
 	{
-		return dynamic_cast<KEPropertyComboView<T>*>(this);
+		KEPropertySliderView<T, DIMENSION>* ret = dynamic_cast<KEPropertySliderView<T, DIMENSION>*>(this);
+		assert(ret);
+		return ret;
+	}
+
+	template<typename T, size_t DIMENSION = 1>
+	KEPropertySliderView<T, DIMENSION>* SliderCast()
+	{
+		return static_cast<KEPropertySliderView<T, DIMENSION>*>(this);
 	}
 };
 
@@ -68,8 +91,19 @@ protected:
 	{
 		if (m_Model)
 		{
+			assert(index < DIMENSION);
 			(*m_Model)[index] = value;
 		}
+	}
+
+	T GetModelElement(size_t index)
+	{
+		if (m_Model)
+		{
+			assert(index < DIMENSION);
+			return (*m_Model)[index];
+		}
+		return T();
 	}
 
 	void UpdateView(const ModelType& value)
