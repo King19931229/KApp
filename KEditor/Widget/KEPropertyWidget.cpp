@@ -91,10 +91,13 @@ bool KEPropertyWidget::RemoveItem(const std::string& name)
 
 	if (it != m_Items.end())
 	{
-		PropertyItem& item = *it;
-		m_Layout->removeItem(item.layout);
-		SAFE_DELETE(item.layout);
-		SAFE_DELETE(item.label);
+		m_Layout->removeItem(it->layout);
+
+		it->layout->removeWidget(it->label);
+		it->layout->removeItem(it->propertyView->GetLayout());
+
+		SAFE_DELETE(it->layout);
+		SAFE_DELETE(it->label);
 		return true;
 	}
 	else
