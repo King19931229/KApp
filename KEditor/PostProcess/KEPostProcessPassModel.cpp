@@ -5,17 +5,14 @@
 
 KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 	: m_Pass(pass),
-	m_Format(EF_R8GB8BA8_UNORM),
-	m_Scale(1.0f),
-	m_MSAA(1),
-	m_VSFile("test"),
-	m_FSFile("string")
+	m_Widget(nullptr)
 {
-	m_FormatView = KEditor::MakeComboEditView<ElementFormat>(&m_Format);
-	m_ScaleView = KEditor::MakeLineEditView<float>(&m_Scale);
-	m_MSAAView = KEditor::MakeSliderEditView<int>(&m_MSAA);
-	m_VSView = KEditor::MakeLineEditView<std::string>(&m_VSFile);
-	m_FSView = KEditor::MakeLineEditView<std::string>(&m_FSFile);
+	m_FormatView = KEditor::MakeComboEditView<ElementFormat>();
+	m_ScaleView = KEditor::MakeLineEditView<float>(1.0f);
+	m_MSAAView = KEditor::MakeSliderEditView<int>(2);
+	m_VSView = KEditor::MakeLineEditView<std::string>("VS");
+	m_FSView = KEditor::MakeLineEditView<std::string>("FS");
+	m_TestView = KEditor::MakeCheckBoxView<bool>(false);
 
 	m_MSAAView->SafeSliderCast<int>()->SetRange(1, 8);
 
@@ -26,58 +23,22 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 			KEnumString::ElementForamtToString(ElementFormat(f)));
 	}
 
-	m_FormatView->SafeCast<ElementFormat>()->SetValue({ EF_R16G16B16A16_FLOAT });
-	m_ScaleView->SafeCast<float>()->SetValue({ 1.0f });
-	m_MSAAView->SafeCast<int>()->SetValue({ 2 });
+	m_FormatView->Cast<ElementFormat>()->SetValue(EF_R16G16B16A16_FLOAT);
 
-	QVBoxLayout* layout = new QVBoxLayout();
+	m_Widget = new KEPropertyWidget();
+	m_Widget->Init();
 
-	{
-		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("Format");
-		lineLayout->addWidget(label);
-		lineLayout->addLayout(m_FormatView->GetLayout());
-		layout->addLayout(lineLayout);
-	}
-
-	{
-		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("Scale");
-		lineLayout->addWidget(label);
-		lineLayout->addLayout(m_ScaleView->GetLayout());
-		layout->addLayout(lineLayout);
-	}
-
-	{
-		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("MSAA");
-		lineLayout->addWidget(label);
-		lineLayout->addLayout(m_MSAAView->GetLayout());
-		layout->addLayout(lineLayout);
-	}
-
-	{
-		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("VS");
-		lineLayout->addWidget(label);
-		lineLayout->addLayout(m_VSView->GetLayout());
-		layout->addLayout(lineLayout);
-	}
-
-	{
-		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("FS");
-		lineLayout->addWidget(label);
-		lineLayout->addLayout(m_FSView->GetLayout());
-		layout->addLayout(lineLayout);
-	}
-
-	m_EditWidget = new QWidget();
-	m_EditWidget->setLayout(layout);
+	m_Widget->AppendItem("Test", m_TestView);
+	m_Widget->AppendItem("Format", m_FormatView);
+	m_Widget->AppendItem("Scale", m_ScaleView);
+	m_Widget->AppendItem("MSAA", m_MSAAView);
+	m_Widget->AppendItem("VS", m_VSView);
+	m_Widget->AppendItem("FS", m_FSView);
 }
 
 KEPostProcessPassModel::~KEPostProcessPassModel()
 {
+	m_Widget->UnInit();
 	// assert(!m_Pass);
 }
 
@@ -140,5 +101,5 @@ KEGraphNodeDataPtr KEPostProcessPassModel::OutData(PortIndexType port)
 
 QWidget* KEPostProcessPassModel::EmbeddedWidget()
 {
-	return m_EditWidget;
+	return m_Widget;
 }

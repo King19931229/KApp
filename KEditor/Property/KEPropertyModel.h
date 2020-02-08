@@ -9,6 +9,7 @@ class KEPropertyModel
 protected:
 	T m_SelfValue[DIMENSION];
 	T* m_Value;
+
 	typedef KEPropertyModel<T, DIMENSION> ModelType;
 
 	void Construct(std::initializer_list<T> list)
@@ -79,6 +80,20 @@ public:
 	{
 	}
 
+	KEPropertyModel(const T& value)
+		: m_Value(m_SelfValue)
+	{
+		static_assert(DIMENSION == 1, "dimension larger than 1 is not supported");
+		m_Value[0] = value;
+	}
+
+	KEPropertyModel(const T&& value)
+		: m_Value(m_SelfValue)
+	{
+		static_assert(DIMENSION == 1, "dimension larger than 1 is not supported");
+		m_Value[0] = value;
+	}
+
 	KEPropertyModel(std::initializer_list<T> list)
 		: m_Value(m_SelfValue)
 	{
@@ -94,6 +109,20 @@ public:
 	size_t Diemension() const
 	{
 		return DIMENSION;
+	}
+
+	ModelType& operator=(const T& value)
+	{
+		static_assert(DIMENSION == 1, "dimension larger than 1 is not supported");
+		m_Value[0] = value;
+		return *this;
+	}
+
+	ModelType& operator=(const T&& value)
+	{
+		static_assert(DIMENSION == 1, "dimension larger than 1 is not supported");
+		m_Value[0] = value;
+		return *this;
 	}
 
 	ModelType& operator=(const ModelType& rhs)
@@ -127,7 +156,7 @@ public:
 	
 	bool operator<=(const ModelType& rhs) const
 	{
-		static_assert(DIMENSION == 1, "dimension lager than 1 is not comparable");
+		static_assert(DIMENSION == 1, "dimension larger than 1 is not comparable");
 		return m_Value[0] <= rhs.m_Value[0];
 	}
 

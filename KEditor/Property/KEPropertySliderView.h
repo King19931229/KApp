@@ -4,7 +4,6 @@
 #include "KEPropertyModel.h"
 #include <QSlider>
 #include <QSpinBox>
-#include <string>
 #include <assert.h>
 
 template<typename T, size_t DIMENSION = 1>
@@ -117,8 +116,6 @@ public:
 	void SetRange(T min, T max)
 	{
 		assert(max >= min);
-		assert(max >= FindMaxValue());
-		assert(min <= FindMinValue());
 
 		m_Min = min;
 		m_Max = max;

@@ -9,11 +9,14 @@ class KEPropertyView;
 template<typename T, size_t DIMENSION>
 class KEPropertyModel;
 
-template<typename T>
+template<typename T, size_t DIMENSION>
 class KEPropertyComboView;
 
 template<typename T, size_t DIMENSION>
 class KEPropertySliderView;
+
+template<typename T, size_t DIMENSION>
+class KEPropertyCheckBoxView;
 
 class KEPropertyBaseView
 {
@@ -38,18 +41,18 @@ public:
 	}
 
 	// 转Combo派生类
-	template<typename T>
-	KEPropertyComboView<T>* SafeComboCast()
+	template<typename T, size_t DIMENSION = 1>
+	KEPropertyComboView<T, DIMENSION>* SafeComboCast()
 	{
-		KEPropertyComboView<T>* ret = dynamic_cast<KEPropertyComboView<T>*>(this);
+		KEPropertyComboView<T, DIMENSION>* ret = dynamic_cast<KEPropertyComboView<T, DIMENSION>*>(this);
 		assert(ret);
 		return ret;
 	}
 
-	template<typename T>
-	KEPropertyComboView<T>* ComboCast()
+	template<typename T, size_t DIMENSION = 1>
+	KEPropertyComboView<T, DIMENSION>* ComboCast()
 	{
-		return static_cast<KEPropertyComboView<T>*>(this);
+		return static_cast<KEPropertyComboView<T, DIMENSION>*>(this);
 	}
 
 	// 转Slider派生类
@@ -65,6 +68,21 @@ public:
 	KEPropertySliderView<T, DIMENSION>* SliderCast()
 	{
 		return static_cast<KEPropertySliderView<T, DIMENSION>*>(this);
+	}
+
+	// 转CheckBox派生类
+	template<typename T, size_t DIMENSION = 1>
+	KEPropertyCheckBoxView<T, DIMENSION>* SafeCheckBoxCast()
+	{
+		KEPropertyCheckBoxView<T, DIMENSION>* ret = dynamic_cast<KEPropertyCheckBoxView<T, DIMENSION>*>(this);
+		assert(ret);
+		return ret;
+	}
+
+	template<typename T, size_t DIMENSION = 1>
+	KEPropertyCheckBoxView<T, DIMENSION>* CheckBoxCast()
+	{
+		return static_cast<KEPropertyCheckBoxView<T, DIMENSION>*>(this);
 	}
 };
 
@@ -96,7 +114,7 @@ protected:
 		}
 	}
 
-	T GetModelElement(size_t index)
+	T GetModelElement(size_t index) const
 	{
 		if (m_Model)
 		{

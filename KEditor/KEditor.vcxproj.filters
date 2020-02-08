@@ -124,6 +124,9 @@
     <ClCompile Include="Graph\Utility\KEGraphEmtpyNodeModel.cpp">
       <Filter>Graph\Utility</Filter>
     </ClCompile>
+    <ClCompile Include="Widget\KEPropertyWidget.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -165,6 +168,9 @@
     </QtMoc>
     <QtMoc Include="Graph\Utility\KEGraphEmtpyNodeModel.h">
       <Filter>Graph\Utility</Filter>
+    </QtMoc>
+    <QtMoc Include="Widget\KEPropertyWidget.h">
+      <Filter>Widget</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -246,6 +252,9 @@
       <Filter>Property</Filter>
     </ClInclude>
     <ClInclude Include="Property\KEPropertySliderView.h">
+      <Filter>Property</Filter>
+    </ClInclude>
+    <ClInclude Include="Property\KEPropertyCheckBoxView.h">
       <Filter>Property</Filter>
     </ClInclude>
   </ItemGroup>

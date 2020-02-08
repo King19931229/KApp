@@ -7,21 +7,22 @@
 #include <unordered_map>
 #include <assert.h>
 
-template<typename T>
-class KEPropertyComboView : public KEPropertyView<T, 1>
+template<typename T, size_t DIMENSION = 1>
+class KEPropertyComboView : public KEPropertyView<T, DIMENSION>
 {
 public:
 	typedef std::unordered_map<std::string, T> TextToEnumMapType;
 	typedef std::unordered_map<T, std::string> EnumToTextMapType;
 protected:
-	QComboBox *m_Widget;
+	QComboBox *m_Widget[DIMENSION];
 	QHBoxLayout *m_Layout;
 
 	TextToEnumMapType m_TextToEnum;
 	EnumToTextMapType m_EnumToText;
 
-	void SetModelData(const QString& text)
+	void SetModelData(size_t index, const QString& text)
 	{
+		assert(index < DIMENSION);
 		if (text.size() > 0)
 		{
 			std::string currentText = text.toStdString();
@@ -30,43 +31,49 @@ protected:
 			if (it != m_TextToEnum.end())
 			{
 				T newValue = it->second;
-				UpdateModelElement(0, newValue);
+				UpdateModelElement(index, newValue);
 			}
 		}
 	}
 
 	void SetWidgetValue(size_t index, const T& value) override
 	{
+		assert(index < DIMENSION);
 		auto it = m_EnumToText.find(value);
 		assert(it != m_EnumToText.end());
 		if (it != m_EnumToText.end())
 		{
 			std::string newText = it->second;
-			int idx = m_Widget->findText(newText.c_str());
+			int idx = m_Widget[index]->findText(newText.c_str());
 			assert(idx >= 0);
 			if (idx >= 0)
 			{
-				m_Widget->setCurrentIndex(idx);
+				m_Widget[index]->setCurrentIndex(idx);
 			}
 		}
 	}
 
 	void RefreshComboItem()
 	{
-		std::string currentText = m_Widget->currentText().toStdString();
-
-		m_Widget->clear();
-		for (const auto& pair : m_TextToEnum)
+		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_Widget->addItem(pair.first.c_str());
-		}
+			T value = GetModelElement(i);
 
-		if (m_TextToEnum.find(currentText) != m_TextToEnum.end())
-		{
-			int idx = m_Widget->findText(currentText.c_str());
-			if (idx >= 0)
+			m_Widget[i]->clear();
+			for (const auto& pair : m_TextToEnum)
 			{
-				m_Widget->setCurrentIndex(idx);
+				m_Widget[i]->addItem(pair.first.c_str());
+			}
+
+			auto it = m_EnumToText.find(value);
+			if (it != m_EnumToText.end())
+			{
+				const std::string& text = it->second;
+				int idx = m_Widget[i]->findText(text.c_str());
+				if (idx >= 0)
+				{
+					m_Widget[i]->setCurrentIndex(idx);
+				}
 			}
 		}
 	}
@@ -75,14 +82,19 @@ public:
 		: KEPropertyView(model)
 	{
 		m_Layout = new QHBoxLayout();
-		m_Widget = new QComboBox();
-		m_Layout->addWidget(m_Widget);
-
-		QObject::connect(m_Widget, &QComboBox::currentTextChanged,
-			[=, this](const QString& newText)
+		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			SetModelData(newText);
-		});
+			m_Widget[i] = new QComboBox();
+			m_Widget[i]->setCurrentIndex(-1);
+
+			QObject::connect(m_Widget[i], &QComboBox::currentTextChanged,
+				[=, this](const QString& newText)
+			{
+				SetModelData(i, newText);
+			});
+
+			m_Layout->addWidget(m_Widget[i]);
+		}
 
 		// UpdateView(*m_Model);
 	}
@@ -123,7 +135,10 @@ public:
 	~KEPropertyComboView()
 	{
 		SAFE_DELETE(m_Layout);
-		SAFE_DELETE(m_Widget);
+		for (size_t i = 0; i < DIMENSION; ++i)
+		{
+			SAFE_DELETE(m_Widget[i]);
+		}
 	}
 
 	QLayout* GetLayout() override

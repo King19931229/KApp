@@ -10,26 +10,23 @@
 #include "Property/KEPropertyComboView.h"
 #include "Property/KEPropertyLineEditView.h"
 #include "Property/KEPropertySliderView.h"
+#include "Property/KEPropertyCheckBoxView.h"
+#include "Widget/KEPropertyWidget.h"
 
 class KEPostProcessPassModel : public KEGraphNodeModel
 {
 	Q_OBJECT
 protected:
-	ElementFormat m_Format;
-	float m_Scale;
-	int m_MSAA;
-	std::string m_VSFile;
-	std::string m_FSFile;
+	IKPostProcessPass* m_Pass;
+
+	KEPropertyWidget* m_Widget;
 
 	KEPropertyComboView<ElementFormat>::BasePtr m_FormatView;
 	KEPropertyLineEditView<float>::BasePtr m_ScaleView;
 	KEPropertySliderView<int>::BasePtr m_MSAAView;
 	KEPropertyLineEditView<std::string>::BasePtr m_VSView;
 	KEPropertyLineEditView<std::string>::BasePtr m_FSView;
-
-	QWidget* m_EditWidget;
-
-	IKPostProcessPass* m_Pass;
+	KEPropertyCheckBoxView<bool>::BasePtr m_TestView;	
 public:
 	KEPostProcessPassModel(IKPostProcessPass* pass = nullptr);
 	virtual	~KEPostProcessPassModel();

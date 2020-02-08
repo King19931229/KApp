@@ -114,6 +114,7 @@
     <ClCompile Include="PostProcess\KEPostProcessTextureModel.cpp" />
     <ClCompile Include="Widget\KEGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp" />
+    <ClCompile Include="Widget\KEPropertyWidget.cpp" />
     <ClCompile Include="Widget\KERenderWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -129,9 +130,11 @@
     <QtMoc Include="Widget\KERenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Widget\KEPropertyWidget.h" />
     <QtMoc Include="Graph\Utility\KEGraphEmtpyNodeModel.h" />
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />
     <ClInclude Include="Property\KEPropertyBaseView.h" />
+    <ClInclude Include="Property\KEPropertyCheckBoxView.h" />
     <ClInclude Include="Property\KEPropertyComboView.h" />
     <ClInclude Include="Property\KEPropertyModel.h" />
     <ClInclude Include="Property\KEPropertyLineEditView.h" />
