@@ -14,35 +14,35 @@ KEPostProcessGraphView::~KEPostProcessGraphView()
 {
 }
 
-void KEPostProcessGraphView::BuildConnection(IKPostProcessPass* pass, const std::unordered_map<IKPostProcessPass*, KEGraphNodeControl*>& pass2node, std::unordered_set<IKPostProcessPass*>& visitedPass)
+void KEPostProcessGraphView::BuildConnection(IKPostProcessNode* node, const std::unordered_map<IKPostProcessNode*, KEGraphNodeControl*>& node2GraphNode, std::unordered_set<IKPostProcessNode*>& visitedNode)
 {
-	if (visitedPass.find(pass) != visitedPass.end())
+	if (visitedNode.find(node) != visitedNode.end())
 	{
 		return;
 	}
-	visitedPass.insert(pass);
+	visitedNode.insert(node);
 
-	auto it = pass2node.find(pass);
-	assert(it != pass2node.end());
+	auto it = node2GraphNode.find(node);
+	assert(it != node2GraphNode.end());
 
 	KEGraphNodeControl* outNode = it->second;
 
 	for (int16_t i = 0; i < MAX_OUTPUT_SLOT_COUNT; ++i)
 	{
 		KPostProcessConnectionSet outConns;
-		pass->GetOutputConnection(outConns, i);
+		node->GetOutputConnection(outConns, i);
 		for (IKPostProcessConnection* conn : outConns)
 		{
-			IKPostProcessPass* inPass = conn->GetInputPortPass();
-			auto itIn = pass2node.find(inPass);
-			assert(itIn != pass2node.end());
+			IKPostProcessNode* inPortNode = conn->GetInputPortNode();
+			auto itIn = node2GraphNode.find(inPortNode);
+			assert(itIn != node2GraphNode.end());
 
 			KEGraphNodeControl* inNode = itIn->second;
 			assert(conn->GetOutputSlot() == i);
 
 			m_Scene->CreateConnection(inNode, conn->GetInputSlot(), outNode, conn->GetOutputSlot());
 
-			BuildConnection(inPass, pass2node, visitedPass);
+			BuildConnection(inPortNode, node2GraphNode, visitedNode);
 		}
 	}
 }
@@ -217,22 +217,32 @@ bool KEPostProcessGraphView::Sync()
 	IKPostProcessManager* mgr = GetProcessManager();
 	IKPostProcessPass* startPass = mgr->GetStartPointPass();
 
-	KPostProcessPassSet allPass;
-	mgr->GetAllPasses(allPass);
+	KPostProcessNodeSet allNode;
+	mgr->GetAllNodes(allNode);
 
 	auto centerPos = mapToScene(width() / 2, height() / 2);
 
-	std::unordered_map<IKPostProcessPass*, KEGraphNodeControl*> pass2node;
-	for (IKPostProcessPass* pass : allPass)
+	std::unordered_map<IKPostProcessNode*, KEGraphNodeControl*> node2GraphNode;
+	for (IKPostProcessNode* node : allNode)
 	{
-		KEGraphNodeModelPtr model = KEGraphNodeModelPtr(new KEPostProcessPassModel(pass));
-		KEGraphNodeControl* node = m_Scene->CreateNode(std::move(model));
-		node->GetView()->setPos(centerPos);
-		pass2node[pass] = node;
+		PostProcessNodeType nodeType = node->GetType();
+
+		if(nodeType == PPNT_PASS)
+		{
+			IKPostProcessPass* pass = (IKPostProcessPass*)node;
+			KEGraphNodeModelPtr model = KEGraphNodeModelPtr(new KEPostProcessPassModel(pass));
+			KEGraphNodeControl* graphNode = m_Scene->CreateNode(std::move(model));
+			graphNode->GetView()->setPos(centerPos);
+			node2GraphNode[node] = graphNode;
+		}
+		else
+		{
+			// TODO
+		}
 	}
 
-	allPass.clear();
-	BuildConnection(startPass, pass2node, allPass);
+	allNode.clear();
+	BuildConnection(startPass, node2GraphNode, allNode);
 
 	AutoLayout();
 

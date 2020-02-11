@@ -7,28 +7,26 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 	: m_Pass(pass),
 	m_Widget(nullptr)
 {
-	m_FormatView = KEditor::MakeComboEditView<ElementFormat>();
-	m_ScaleView = KEditor::MakeLineEditView<float>(1.0f);
-	m_MSAAView = KEditor::MakeSliderEditView<int>(2);
-	m_VSView = KEditor::MakeLineEditView<std::string>("VS");
-	m_FSView = KEditor::MakeLineEditView<std::string>("FS");
-	m_TestView = KEditor::MakeCheckBoxView<bool>(false);
+	m_ScaleView = KEditor::MakeLineEditView<float>(m_Pass->GetScale());
 
+	m_MSAAView = KEditor::MakeSliderEditView<int>(m_Pass->GetMSAA());
 	m_MSAAView->SafeSliderCast<int>()->SetRange(1, 8);
 
+	m_VSView = KEditor::MakeLineEditView<std::string>(std::get<0>(m_Pass->GetShader()));
+	m_FSView = KEditor::MakeLineEditView<std::string>(std::get<1>(m_Pass->GetShader()));
+
+	m_FormatView = KEditor::MakeComboEditView<ElementFormat>();
 	for (uint32_t f = 0; f < EF_COUNT; ++f)
 	{
 		m_FormatView->SafeComboCast<ElementFormat>()->AppendMapping(
 			ElementFormat(f),
 			KEnumString::ElementForamtToString(ElementFormat(f)));
 	}
-
-	m_FormatView->Cast<ElementFormat>()->SetValue(EF_R16G16B16A16_FLOAT);
+	m_FormatView->Cast<ElementFormat>()->SetValue(m_Pass->GetFormat());
 
 	m_Widget = new KEPropertyWidget();
 	m_Widget->Init();
 
-	m_Widget->AppendItem("Test", m_TestView);
 	m_Widget->AppendItem("Format", m_FormatView);
 	m_Widget->AppendItem("Scale", m_ScaleView);
 	m_Widget->AppendItem("MSAA", m_MSAAView);

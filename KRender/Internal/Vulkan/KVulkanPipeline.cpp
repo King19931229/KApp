@@ -329,6 +329,7 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IK
 		info.depthStencil = false;
 
 		ASSERT_RESULT(BindSampler(location, info));
+		return true;
 	}
 	return false;
 }
@@ -353,6 +354,7 @@ bool KVulkanPipeline::SetSamplerDepthAttachment(unsigned int location, IKRenderT
 		info.depthStencil = true;
 
 		ASSERT_RESULT(BindSampler(location, info));
+		return true;
 	}
 	return false;
 }

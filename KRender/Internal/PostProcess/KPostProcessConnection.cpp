@@ -1,5 +1,6 @@
 #include "KPostProcessConnection.h"
 #include "KPostProcessPass.h"
+#include "KPostProcessTexture.h"
 #include "KPostProcessManager.h"
 #include "KBase/Publish/KStringParser.h"
 #include "Internal/KRenderGlobal.h"
@@ -37,33 +38,17 @@ bool KPostProcessConnection::Save(IKJsonDocumentPtr jsonDoc, IKJsonValuePtr& obj
 	object->AddMember(msIDKey, jsonDoc->CreateString(m_ID.c_str()));
 
 	auto in = jsonDoc->CreateObject();
-	in->AddMember(KPostProcessInputData::msPassKey, jsonDoc->CreateString(m_Input.pass->ID().c_str()));
-	in->AddMember(KPostProcessInputData::msSlotKey, jsonDoc->CreateInt(m_Input.slot));
+	in->AddMember(KPostProcessData::msIDKey, jsonDoc->CreateString(m_Input.node->ID().c_str()));
+	in->AddMember(KPostProcessData::msSlotKey, jsonDoc->CreateInt(m_Input.slot));
+
 	object->AddMember(msInKey, in);
 
 	auto out = jsonDoc->CreateObject();
-	out->AddMember(KPostProcessOutputData::msTypeKey, jsonDoc->CreateInt(m_Output.type));
-	switch (m_Output.type)
-	{
-		case POST_PROCESS_OUTPUT_PASS:
-		{
-			assert(m_Output.pass);
-			out->AddMember(KPostProcessOutputData::msPassKey, jsonDoc->CreateString(m_Output.pass->ID().c_str()));
-			break;
-		}
-		case POST_PROCESS_OUTPUT_TEXTURE:
-		{
-			assert(m_Output.texture);
-			out->AddMember(KPostProcessOutputData::msTextureKey, jsonDoc->CreateString(m_Output.texture->GetPath()));
-			break;
-		}
-		default:
-		{
-			assert(false && "impossible to reach");
-			break;
-		}
-	}
-	out->AddMember(KPostProcessOutputData::msSlotKey, jsonDoc->CreateInt(m_Output.slot));
+	PostProcessNodeType outType = m_Output.node->GetType();
+
+	out->AddMember(KPostProcessData::msIDKey, jsonDoc->CreateString(m_Output.node->ID().c_str()));
+	out->AddMember(KPostProcessData::msSlotKey, jsonDoc->CreateInt(m_Output.slot));
+
 	object->AddMember(msOutKey, out);
 
 	return true;
@@ -72,69 +57,39 @@ bool KPostProcessConnection::Save(IKJsonDocumentPtr jsonDoc, IKJsonValuePtr& obj
 bool KPostProcessConnection::Load(IKJsonValuePtr& object)
 {
 	m_ID = object->GetMember(msIDKey)->GetString();
-	
-	KPostProcessPass* inPass = nullptr;
-	int16_t inSlot = INVALID_SLOT_INDEX;
-
-	KPostProcessPass* outPass = nullptr;
-	IKTexturePtr outTexture = nullptr;
-	int16_t outSlot = INVALID_SLOT_INDEX;
 
 	{
+		IKPostProcessNode* inNode = nullptr;
+		int16_t inSlot = INVALID_SLOT_INDEX;
+
 		auto in_json = object->GetMember(msInKey);
 
-		auto in_pass_id = in_json->GetMember(KPostProcessInputData::msPassKey)->GetString();
-		inPass = m_Mgr->GetPass(in_pass_id);
-		assert(inPass);
+		auto in_pass_id = in_json->GetMember(KPostProcessData::msIDKey)->GetString();
+		inNode = m_Mgr->GetNode(in_pass_id);
+		assert(inNode);
 
-		inSlot = (int16_t)in_json->GetMember(KPostProcessInputData::msSlotKey)->GetInt();
+		inSlot = (int16_t)in_json->GetMember(KPostProcessData::msSlotKey)->GetInt();
 		assert(inSlot >= 0);
 
-		m_Input.Init(inPass, inSlot);
+		m_Input.Init(inNode, inSlot);
+		ASSERT_RESULT(inNode->AddInputConnection(this, inSlot));
 	}
 
 	{
+		IKPostProcessNode* outNode = nullptr;
+		int16_t outSlot = INVALID_SLOT_INDEX;
+
 		auto out_json = object->GetMember(msOutKey);
 
-		outSlot = (int16_t)out_json->GetMember(KPostProcessOutputData::msSlotKey)->GetInt();
+		auto out_pass_id = out_json->GetMember(KPostProcessData::msIDKey)->GetString();
+		outNode = m_Mgr->GetNode(out_pass_id);
+		assert(outNode);
+
+		outSlot = (int16_t)out_json->GetMember(KPostProcessData::msSlotKey)->GetInt();
 		assert(outSlot >= 0);
 
-		PostProcessOutputType outType = (PostProcessOutputType)out_json->GetMember(KPostProcessOutputData::msTypeKey)->GetInt();
-
-		switch (outType)
-		{
-			case POST_PROCESS_OUTPUT_PASS:
-			{
-				auto out_pass_id = out_json->GetMember(KPostProcessOutputData::msPassKey)->GetString();
-				outPass = m_Mgr->GetPass(out_pass_id);
-				assert(outPass);
-
-				m_Output.InitAsPass(outPass, outSlot);
-
-				break;
-			}
-			case POST_PROCESS_OUTPUT_TEXTURE:
-			{
-				std::string outTexPath = out_json->GetMember(KPostProcessOutputData::msTextureKey)->GetString();
-				KRenderGlobal::TextrueManager.Acquire(outTexPath.c_str(), outTexture, false);
-				assert(outTexture);
-
-				m_Output.InitAsTexture(outTexture, outSlot);
-
-				break;
-			}
-			default:
-			{
-				assert(false && "impossible to reach");
-				break;
-			}
-		}
-	}
-
-	inPass->AddInputConnection(this, inSlot);
-	if (outPass)
-	{
-		outPass->AddOutputConnection(this, outSlot);
+		m_Output.Init(outNode, outSlot);
+		ASSERT_RESULT(outNode->AddOutputConnection(this, outSlot));
 	}
 
 	return true;

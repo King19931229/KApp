@@ -26,7 +26,6 @@ protected:
 	KEPropertySliderView<int>::BasePtr m_MSAAView;
 	KEPropertyLineEditView<std::string>::BasePtr m_VSView;
 	KEPropertyLineEditView<std::string>::BasePtr m_FSView;
-	KEPropertyCheckBoxView<bool>::BasePtr m_TestView;	
 public:
 	KEPostProcessPassModel(IKPostProcessPass* pass = nullptr);
 	virtual	~KEPostProcessPassModel();

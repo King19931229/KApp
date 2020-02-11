@@ -23,7 +23,7 @@ protected:
 	size_t m_Width;
 	size_t m_Height;
 
-	std::unordered_map<KPostProcessPass::IDType, KPostProcessPass*> m_AllPasses;
+	std::unordered_map<IKPostProcessNode::IDType, IKPostProcessNode*> m_AllNodes;
 	KPostProcessPass* m_StartPointPass;
 
 	std::unordered_map<KPostProcessConnection::IDType, KPostProcessConnection*> m_AllConnections;
@@ -42,12 +42,16 @@ protected:
 
 	IKSamplerPtr m_Sampler;
 
+	static const char* msTypeKey;
+	static const char* msIDKey;
+
 	static const char* msStartPointKey;
-	static const char* msPassesKey;
+
+	static const char* msNodesKey;
 	static const char* msConnectionsKey;
 
 	void ClearCreatedPassConnection();
-	void IterPostProcessGraph(std::function<void(KPostProcessPass*)> func);
+	void IterPostProcessGraph(std::function<void(IKPostProcessNode*)> func);
 	void PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderTargetPtr target);
 public:
 	KPostProcessManager();
@@ -64,14 +68,14 @@ public:
 	bool Save(const char* jsonFile);
 	bool Load(const char* jsonFile);
 
-	IKPostProcessPass* CreatePass(const char* vsFile, const char* fsFile, float scale, ElementFormat format) override;
-	void DeletePass(IKPostProcessPass* pass) override;
-	KPostProcessPass* GetPass(KPostProcessPass::IDType id);
+	IKPostProcessPass* CreatePass() override;
+	IKPostProcessTexture* CreateTextrue() override;
 
-	bool GetAllPasses(KPostProcessPassSet& set) override;
+	void DeleteNode(IKPostProcessNode* pass) override;
+	IKPostProcessNode* GetNode(IKPostProcessNode::IDType id) override;
+	bool GetAllNodes(KPostProcessNodeSet& set) override;
 
-	IKPostProcessConnection* CreatePassConnection(IKPostProcessPass* outputPass, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot) override;
-	IKPostProcessConnection* CreateTextureConnection(IKTexturePtr outputTexure, int16_t outSlot, IKPostProcessPass* inputPass, int16_t inSlot) override;
+	IKPostProcessConnection* CreateConnection(IKPostProcessNode* outNode, int16_t outSlot, IKPostProcessNode* inNode, int16_t inSlot) override;
 	void DeleteConnection(IKPostProcessConnection* conn) override;
 	KPostProcessConnection* GetConnection(KPostProcessConnection::IDType id);
 

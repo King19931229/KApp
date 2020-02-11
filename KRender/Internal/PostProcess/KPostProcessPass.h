@@ -22,7 +22,6 @@ class KPostProcessPass : public IKPostProcessPass
 {
 	friend class KPostProcessManager;
 	friend class KPostProcessConnection;
-	typedef std::string IDType;
 protected:
 	KPostProcessManager* m_Mgr;
 	IDType m_ID;
@@ -55,17 +54,16 @@ protected:
 private:
 	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage);
 	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage, IDType id);
-	~KPostProcessPass();
+	virtual ~KPostProcessPass();
 
-	IDType ID();
+	IDType ID() override;
 
-	bool Init();
-	bool UnInit();
+	bool Init() override;
+	bool UnInit() override;
 
 	bool Save(IKJsonDocumentPtr jsonDoc, IKJsonValuePtr& object);
 	bool Load(IKJsonValuePtr& object);
 
-	static const char* msIDKey;
 	static const char* msStageKey;
 	static const char* msScaleKey;
 	static const char* msFormatKey;
@@ -77,6 +75,11 @@ public:
 	bool SetScale(float scale) override;
 	bool SetFormat(ElementFormat format) override;
 	bool SetMSAA(unsigned short msaaCount) override;
+
+	std::tuple<std::string, std::string> GetShader() override;
+	float GetScale() override;
+	ElementFormat GetFormat() override;
+	unsigned short GetMSAA() override;
 
 	bool AddInputConnection(IKPostProcessConnection* conn, int16_t slot) override;
 	bool AddOutputConnection(IKPostProcessConnection* conn, int16_t slot) override;

@@ -69,6 +69,7 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessData.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessManager.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessPass.h" />
+    <ClInclude Include="Internal\PostProcess\KPostProcessTexture.h" />
     <ClInclude Include="Internal\RenderDispatcher\KRenderDispatcher.h" />
     <ClInclude Include="Internal\Scene\KOctreeSceneManager.h" />
     <ClInclude Include="Internal\Scene\KScene.h" />
@@ -130,6 +131,7 @@
     <ClCompile Include="Internal\PostProcess\KPostProcessData.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessManager.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessPass.cpp" />
+    <ClCompile Include="Internal\PostProcess\KPostProcessTexture.cpp" />
     <ClCompile Include="Internal\Shadow\KShadowMap.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanCommandBuffer.cpp" />

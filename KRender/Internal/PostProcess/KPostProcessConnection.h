@@ -14,8 +14,8 @@ class KPostProcessConnection : public IKPostProcessConnection
 	typedef std::string IDType;
 protected:
 	KPostProcessManager* m_Mgr;
-	KPostProcessOutputData m_Output;
-	KPostProcessInputData m_Input;
+	KPostProcessData m_Output;
+	KPostProcessData m_Input;
 
 	IDType m_ID;
 
@@ -32,11 +32,10 @@ protected:
 
 	inline IDType ID() { return m_ID; }
 public:
-	void SetOutputPortAsPass(IKPostProcessPass* pass, int16_t slot) override { m_Output.InitAsPass((KPostProcessPass*)pass, slot); }
-	void SetOutputPortAsTextrue(IKTexturePtr texture, int16_t slot) override  { m_Output.InitAsTexture(texture, slot); }
-	void SetInputPort(IKPostProcessPass* pass, int16_t slot) override  { m_Input.Init((KPostProcessPass*)pass, slot); }
-	IKPostProcessPass* GetInputPortPass() override { return (IKPostProcessPass*)m_Input.pass; }
-	IKPostProcessPass* GetOutputPortPass() override { return (IKPostProcessPass*)m_Output.pass; } // TODO
+	void SetOutputPort(IKPostProcessNode* node, int16_t slot) override { m_Output.Init(node, slot); }
+	void SetInputPort(IKPostProcessNode* node, int16_t slot) override { m_Input.Init(node, slot); }
+	IKPostProcessNode* GetInputPortNode() override { return m_Input.node; }
+	IKPostProcessNode* GetOutputPortNode() override { return m_Output.node; }
 	int16_t GetInputSlot() override { return m_Input.slot; }
 	int16_t GetOutputSlot() override { return m_Output.slot; }
 	bool IsComplete() const override  { return m_Input.IsComplete() && m_Output.IsComplete(); }

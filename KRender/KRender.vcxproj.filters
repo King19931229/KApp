@@ -279,6 +279,9 @@
     <ClInclude Include="Publish\KEnumString.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\PostProcess\KPostProcessTexture.h">
+      <Filter>Internal\PostProcess</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -431,8 +434,11 @@
     <ClCompile Include="Internal\Window\KAndroidRenderWindow.cpp">
       <Filter>Internal\Window</Filter>
     </ClCompile>
+    <ClCompile Include="Internal\PostProcess\KPostProcessTexture.cpp">
+      <Filter>Internal\PostProcess</Filter>
+    </ClCompile>
     <ClCompile Include="Internal\PostProcess\KPostProcessData.cpp">
-      <Filter>Internal\Object</Filter>
+      <Filter>Internal\PostProcess</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

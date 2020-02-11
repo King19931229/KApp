@@ -10,7 +10,7 @@
 class KEPostProcessGraphView : public KEGraphView
 {
 protected:
-	void BuildConnection(IKPostProcessPass* pass, const std::unordered_map<IKPostProcessPass*, KEGraphNodeControl*>& pass2node, std::unordered_set<IKPostProcessPass*>& visitedPass);
+	void BuildConnection(IKPostProcessNode* node, const std::unordered_map<IKPostProcessNode*, KEGraphNodeControl*>& node2GraphNode, std::unordered_set<IKPostProcessNode*>& visitedNode);
 
 	bool PopulateUniqueChild(KEGraphNodeControl* node,
 		std::unordered_set<KEGraphNodeControl*>& visitedNode,

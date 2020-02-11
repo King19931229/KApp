@@ -1,4 +1,5 @@
 #include "KPostProcessPass.h"
+#include "KPostProcessTexture.h"
 #include "KPostProcessManager.h"
 #include "KPostProcessConnection.h"
 
@@ -85,6 +86,26 @@ bool KPostProcessPass::SetMSAA(unsigned short msaaCount)
 	return true;
 }
 
+std::tuple<std::string, std::string> KPostProcessPass::GetShader()
+{
+	return std::make_tuple(m_VSFile, m_FSFile);
+}
+
+float KPostProcessPass::GetScale()
+{
+	return m_Scale;
+}
+
+ElementFormat KPostProcessPass::GetFormat()
+{
+	return m_Format;
+}
+
+unsigned short KPostProcessPass::GetMSAA()
+{
+	return m_MsaaCount;
+}
+
 bool KPostProcessPass::Init()
 {
 	IKRenderDevice* device = m_Mgr->GetDevice();
@@ -136,23 +157,28 @@ bool KPostProcessPass::Init()
 				if (input)
 				{
 					ASSERT_RESULT(input->IsComplete());
-					ASSERT_RESULT(input->m_Input.pass == this);
 
-					KPostProcessOutputData& outputData = input->m_Output;
-					KPostProcessInputData& inputData = input->m_Input;
+					KPostProcessData& outputData = input->m_Output;
+					KPostProcessData& inputData = input->m_Input;
 
-					KPostProcessPass* outputPass = outputData.pass;
-					IKTexturePtr outputTexture = outputData.texture;
+					IKPostProcessNode* outputNode = outputData.node;
+					PostProcessNodeType outputType = outputNode->GetType();
+
+					assert(inputData.node == this);
+					assert(inputData.slot == slot);
+
 					size_t location = inputData.slot;
 					IKSamplerPtr sampler = m_Mgr->m_Sampler;
 
-					if (outputData.type == POST_PROCESS_OUTPUT_TEXTURE)
+					if (outputType == PPNT_TEXTURE)
 					{
-						pipeline->SetSampler((unsigned int)location, outputTexture, sampler);
+						KPostProcessTexture* outTexture = (KPostProcessTexture*)outputNode;
+						pipeline->SetSampler((unsigned int)location, outTexture->GetTexture(), sampler);
 					}
-					else if (outputData.type == POST_PROCESS_OUTPUT_PASS)
+					else if (outputType == PPNT_PASS)
 					{
-						pipeline->SetSampler((unsigned int)location, outputPass->GetTexture(i), sampler);
+						KPostProcessPass* outPass = (KPostProcessPass*)outputNode;
+						pipeline->SetSampler((unsigned int)location, outPass->GetTexture(i), sampler);
 					}
 					else
 					{
@@ -281,7 +307,6 @@ bool KPostProcessPass::UnInit()
 	return true;
 }
 
-const char* KPostProcessPass::msIDKey = "id";
 const char* KPostProcessPass::msStageKey = "stage";
 const char* KPostProcessPass::msScaleKey = "scale";
 const char* KPostProcessPass::msFormatKey = "format";
@@ -293,10 +318,7 @@ bool KPostProcessPass::Save(IKJsonDocumentPtr jsonDoc, IKJsonValuePtr& object)
 {
 	object = jsonDoc->CreateObject();
 
-	object->AddMember(msIDKey, jsonDoc->CreateString(m_ID.c_str()));
-
 	object->AddMember(msStageKey, jsonDoc->CreateInt(m_Stage));
-
 	object->AddMember(msScaleKey, jsonDoc->CreateFloat(m_Scale));
 	object->AddMember(msFormatKey, jsonDoc->CreateInt(m_Format));
 	object->AddMember(msMSAAKey, jsonDoc->CreateInt(m_MsaaCount));
@@ -310,8 +332,6 @@ bool KPostProcessPass::Load(IKJsonValuePtr& object)
 {
 	if (object->IsObject())
 	{
-		m_ID = object->GetMember(msIDKey)->GetString();
-
 		m_Stage = (PostProcessStage)object->GetMember(msStageKey)->GetInt();
 
 		m_Scale = object->GetMember(msScaleKey)->GetFloat();
@@ -332,7 +352,6 @@ bool KPostProcessPass::AddInputConnection(IKPostProcessConnection* conn, int16_t
 {
 	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		assert(((KPostProcessConnection*)conn)->m_Input.pass == this);
 		m_InputConnection[slot] = (KPostProcessConnection*)conn;
 		return true;
 	}
@@ -343,7 +362,6 @@ bool KPostProcessPass::AddOutputConnection(IKPostProcessConnection* conn, int16_
 {
 	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		assert(((KPostProcessConnection*)conn)->m_Output.pass == this);
 		m_OutputConnection[slot].insert((KPostProcessConnection*)conn);
 		return true;
 	}
@@ -385,7 +403,6 @@ bool KPostProcessPass::GetOutputConnection(KPostProcessConnectionSet& set, int16
 		return true;
 	}
 	return false;
-
 }
 
 bool KPostProcessPass::GetInputConnection(IKPostProcessConnection*& conn, int16_t slot)

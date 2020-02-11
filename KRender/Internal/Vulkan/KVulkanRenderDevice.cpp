@@ -897,14 +897,25 @@ bool KVulkanRenderDevice::InitGlobalManager()
 
 	IKPostProcessPass* startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
-	IKPostProcessPass* pass = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess.frag", 1.0f, EF_R8GB8BA8_UNORM);
-	IKPostProcessPass* pass2 = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess2.frag", 1.0f, EF_R8GB8BA8_UNORM);
-	IKPostProcessPass* pass3 = KRenderGlobal::PostProcessManager.CreatePass("Shaders/screenquad.vert", "Shaders/postprocess3.frag", 1.0f, EF_R8GB8BA8_UNORM);
+	IKPostProcessPass* pass = KRenderGlobal::PostProcessManager.CreatePass();
+	pass->SetShader("Shaders/screenquad.vert", "Shaders/postprocess.frag");
+	pass->SetScale(1.0f);
+	pass->SetFormat(EF_R8GB8BA8_UNORM);
 
-	KRenderGlobal::PostProcessManager.CreatePassConnection(startPoint, 0, pass, 0);
-	KRenderGlobal::PostProcessManager.CreatePassConnection(startPoint, 0, pass2, 0);
-	KRenderGlobal::PostProcessManager.CreatePassConnection(pass, 0, pass3, 0);
-	KRenderGlobal::PostProcessManager.CreatePassConnection(pass2, 0, pass3, 1);
+	IKPostProcessPass* pass2 = KRenderGlobal::PostProcessManager.CreatePass();
+	pass2->SetShader("Shaders/screenquad.vert", "Shaders/postprocess2.frag");
+	pass2->SetScale(1.0f);
+	pass2->SetFormat(EF_R8GB8BA8_UNORM);
+
+	IKPostProcessPass* pass3 = KRenderGlobal::PostProcessManager.CreatePass();
+	pass3->SetShader("Shaders/screenquad.vert", "Shaders/postprocess3.frag");
+	pass3->SetScale(1.0f);
+	pass3->SetFormat(EF_R8GB8BA8_UNORM);
+
+	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass, 0);
+	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass2, 0);
+	KRenderGlobal::PostProcessManager.CreateConnection(pass, 0, pass3, 0);
+	KRenderGlobal::PostProcessManager.CreateConnection(pass2, 0, pass3, 1);
 
 #ifdef _WIN32
 	// 临时代码测试功能

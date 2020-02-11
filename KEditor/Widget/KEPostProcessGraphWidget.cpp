@@ -23,12 +23,13 @@ bool KEPostProcessGraphWidget::Init()
 	{
 		m_View->RegisterModel("Pass", []()->KEGraphNodeModelPtr
 		{
-			return KEGraphNodeModelPtr(new KEPostProcessPassModel());
+			return KEGraphNodeModelPtr(new KEPostProcessPassModel(GetProcessManager()->CreatePass()));
 		});
-		m_View->RegisterModel("Texture", []()->KEGraphNodeModelPtr
+
+		/*m_View->RegisterModel("Texture", []()->KEGraphNodeModelPtr
 		{
 			return KEGraphNodeModelPtr(new KEPostProcessTextureModel());
-		});
+		});*/
 
 		QAction* syncAction = m_MenuBar->addAction("Sync");
 		connect(syncAction, &QAction::triggered, this, &KEPostProcessGraphWidget::Sync);
