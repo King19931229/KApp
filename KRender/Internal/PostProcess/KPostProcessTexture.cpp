@@ -63,7 +63,7 @@ bool KPostProcessTexture::RemoveOutputConnection(IKPostProcessConnection* conn, 
 	return false;
 }
 
-bool KPostProcessTexture::GetOutputConnection(KPostProcessConnectionSet& set, int16_t slot)
+bool KPostProcessTexture::GetOutputConnection(std::unordered_set<IKPostProcessConnection*>& set, int16_t slot)
 {
 	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0)
 	{

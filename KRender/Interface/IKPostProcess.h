@@ -1,6 +1,7 @@
 #pragma once
 #include "KRender/Interface/IKTexture.h"
 #include <unordered_set>
+#include <memory>
 
 const static int16_t MAX_INPUT_SLOT_COUNT = 4;
 const static int16_t MAX_OUTPUT_SLOT_COUNT = 4;
@@ -8,12 +9,19 @@ static const int16_t INVALID_SLOT_INDEX = -1;
 
 struct IKPostProcessConnection;
 struct IKPostProcessNode;
+struct IKPostProcessPass;
+struct IKPostProcessTexture;
 struct IKPostProcessManager;
-typedef std::unordered_set<IKPostProcessConnection*> KPostProcessConnectionSet;
-typedef std::unordered_set<IKPostProcessNode*> KPostProcessNodeSet;
+
+typedef std::shared_ptr<IKPostProcessConnection> IKPostProcessConnectionPtr;
+typedef std::shared_ptr<IKPostProcessNode> IKPostProcessNodePtr;
+
+typedef std::unordered_set<IKPostProcessNodePtr> KPostProcessNodeSet;
 
 struct IKPostProcessConnection
 {
+	typedef std::string IDType;
+
 	virtual void SetOutputPort(IKPostProcessNode* node, int16_t slot) = 0;
 	virtual void SetInputPort(IKPostProcessNode* node, int16_t slot) = 0;
 	virtual IKPostProcessNode* GetInputPortNode() = 0;
@@ -21,6 +29,7 @@ struct IKPostProcessConnection
 	virtual int16_t GetInputSlot() = 0;
 	virtual int16_t GetOutputSlot() = 0;
 	virtual bool IsComplete() const = 0;
+	virtual IDType ID() = 0;
 };
 
 enum PostProcessNodeType
@@ -37,16 +46,20 @@ struct IKPostProcessNode
 	typedef std::string IDType;
 	virtual IDType ID() = 0;
 
-	//
+	virtual bool GetOutputConnection(std::unordered_set<IKPostProcessConnection*>& set, int16_t slot) = 0;
+	virtual bool GetInputConnection(IKPostProcessConnection*& conn, int16_t slot) = 0;
+
+	virtual IKPostProcessPass* CastPass() = 0;
+	virtual IKPostProcessTexture* CastTexture() = 0;
+
+	// 内部使用 编辑器不能调用
 	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;
+
 	virtual bool AddInputConnection(IKPostProcessConnection* conn, int16_t slot) = 0;
 	virtual bool AddOutputConnection(IKPostProcessConnection* conn, int16_t slot) = 0;
 	virtual bool RemoveInputConnection(IKPostProcessConnection* conn, int16_t slot) = 0;
 	virtual bool RemoveOutputConnection(IKPostProcessConnection* conn, int16_t slot) = 0;
-
-	virtual bool GetOutputConnection(KPostProcessConnectionSet& set, int16_t slot) = 0;
-	virtual bool GetInputConnection(IKPostProcessConnection*& conn, int16_t slot) = 0;
 };
 
 struct IKPostProcessTexture : public IKPostProcessNode
@@ -74,17 +87,19 @@ struct IKPostProcessPass : public IKPostProcessNode
 
 struct IKPostProcessManager
 {
-	virtual IKPostProcessPass* GetStartPointPass() = 0;
+	virtual IKPostProcessNodePtr GetStartPointPass() = 0;
 
-	virtual IKPostProcessPass* CreatePass() = 0;
-	virtual IKPostProcessTexture* CreateTextrue() = 0;
+	virtual IKPostProcessNodePtr CreatePass() = 0;
+	virtual IKPostProcessNodePtr CreateTextrue() = 0;
 
-	virtual void DeleteNode(IKPostProcessNode* pass) = 0;
-	virtual IKPostProcessNode* GetNode(IKPostProcessNode::IDType id) = 0;
+	virtual void DeleteNode(IKPostProcessNodePtr node) = 0;
+	virtual IKPostProcessNodePtr GetNode(IKPostProcessNode::IDType id) = 0;
 	virtual bool GetAllNodes(KPostProcessNodeSet& set) = 0;
 
-	virtual IKPostProcessConnection* CreateConnection(IKPostProcessNode* outputNode, int16_t outSlot, IKPostProcessNode* inputNode, int16_t inSlot) = 0;
-	virtual void DeleteConnection(IKPostProcessConnection* conn) = 0;
+	virtual IKPostProcessConnectionPtr CreateConnection(IKPostProcessNodePtr outputNode, int16_t outSlot, IKPostProcessNodePtr inputNode, int16_t inSlot) = 0;
+	virtual void DeleteConnection(IKPostProcessConnectionPtr conn) = 0;
+
+	virtual bool Construct() = 0;
 };
 
 EXPORT_DLL IKPostProcessManager* GetProcessManager();

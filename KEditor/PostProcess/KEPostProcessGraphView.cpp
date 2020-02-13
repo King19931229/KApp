@@ -1,6 +1,7 @@
 #include "KEPostProcessGraphView.h"
 
 #include "PostProcess/KEPostProcessPassModel.h"
+
 #include "Graph/KEGraphScene.h"
 #include "Graph/Node/KEGraphNodeView.h"
 #include "Graph/Utility/KEGraphEmtpyNodeModel.h"
@@ -8,6 +9,12 @@
 
 KEPostProcessGraphView::KEPostProcessGraphView()
 {
+	RegisterModel("Pass", []()->KEGraphNodeModelPtr
+	{
+		return KEGraphNodeModelPtr(new KEPostProcessPassModel(GetProcessManager()->CreatePass()));
+	});
+
+	Sync();
 }
 
 KEPostProcessGraphView::~KEPostProcessGraphView()
@@ -29,7 +36,7 @@ void KEPostProcessGraphView::BuildConnection(IKPostProcessNode* node, const std:
 
 	for (int16_t i = 0; i < MAX_OUTPUT_SLOT_COUNT; ++i)
 	{
-		KPostProcessConnectionSet outConns;
+		std::unordered_set<IKPostProcessConnection*> outConns;
 		node->GetOutputConnection(outConns, i);
 		for (IKPostProcessConnection* conn : outConns)
 		{
@@ -215,7 +222,7 @@ bool KEPostProcessGraphView::Sync()
 	m_Scene->ClearScene();
 
 	IKPostProcessManager* mgr = GetProcessManager();
-	IKPostProcessPass* startPass = mgr->GetStartPointPass();
+	IKPostProcessPass* startPass = mgr->GetStartPointPass()->CastPass();
 
 	KPostProcessNodeSet allNode;
 	mgr->GetAllNodes(allNode);
@@ -223,17 +230,17 @@ bool KEPostProcessGraphView::Sync()
 	auto centerPos = mapToScene(width() / 2, height() / 2);
 
 	std::unordered_map<IKPostProcessNode*, KEGraphNodeControl*> node2GraphNode;
-	for (IKPostProcessNode* node : allNode)
+	for (IKPostProcessNodePtr node : allNode)
 	{
 		PostProcessNodeType nodeType = node->GetType();
 
 		if(nodeType == PPNT_PASS)
 		{
-			IKPostProcessPass* pass = (IKPostProcessPass*)node;
-			KEGraphNodeModelPtr model = KEGraphNodeModelPtr(new KEPostProcessPassModel(pass));
+			IKPostProcessPass* pass = node->CastPass();
+			KEGraphNodeModelPtr model = KEGraphNodeModelPtr(new KEPostProcessPassModel(node));
 			KEGraphNodeControl* graphNode = m_Scene->CreateNode(std::move(model));
 			graphNode->GetView()->setPos(centerPos);
-			node2GraphNode[node] = graphNode;
+			node2GraphNode[node.get()] = graphNode;
 		}
 		else
 		{
@@ -241,8 +248,8 @@ bool KEPostProcessGraphView::Sync()
 		}
 	}
 
-	allNode.clear();
-	BuildConnection(startPass, node2GraphNode, allNode);
+	std::unordered_set<IKPostProcessNode*> visitedNode;
+	BuildConnection(startPass, node2GraphNode, visitedNode);
 
 	AutoLayout();
 
@@ -328,7 +335,7 @@ bool KEPostProcessGraphView::AutoLayout()
 	return true;
 }
 
-bool KEPostProcessGraphView::Apply()
+bool KEPostProcessGraphView::Construct()
 {
-	return false;
+	return GetProcessManager()->Construct();
 }

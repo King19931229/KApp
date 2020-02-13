@@ -59,37 +59,33 @@ bool KPostProcessConnection::Load(IKJsonValuePtr& object)
 	m_ID = object->GetMember(msIDKey)->GetString();
 
 	{
-		IKPostProcessNode* inNode = nullptr;
 		int16_t inSlot = INVALID_SLOT_INDEX;
 
 		auto in_json = object->GetMember(msInKey);
 
 		auto in_pass_id = in_json->GetMember(KPostProcessData::msIDKey)->GetString();
-		inNode = m_Mgr->GetNode(in_pass_id);
+		auto inNode = m_Mgr->GetNode(in_pass_id);
 		assert(inNode);
 
 		inSlot = (int16_t)in_json->GetMember(KPostProcessData::msSlotKey)->GetInt();
 		assert(inSlot >= 0);
 
-		m_Input.Init(inNode, inSlot);
-		ASSERT_RESULT(inNode->AddInputConnection(this, inSlot));
+		m_Input.Init(inNode.get(), inSlot);
 	}
 
 	{
-		IKPostProcessNode* outNode = nullptr;
 		int16_t outSlot = INVALID_SLOT_INDEX;
 
 		auto out_json = object->GetMember(msOutKey);
 
 		auto out_pass_id = out_json->GetMember(KPostProcessData::msIDKey)->GetString();
-		outNode = m_Mgr->GetNode(out_pass_id);
+		auto outNode = m_Mgr->GetNode(out_pass_id);
 		assert(outNode);
 
 		outSlot = (int16_t)out_json->GetMember(KPostProcessData::msSlotKey)->GetInt();
 		assert(outSlot >= 0);
 
-		m_Output.Init(outNode, outSlot);
-		ASSERT_RESULT(outNode->AddOutputConnection(this, outSlot));
+		m_Output.Init(outNode.get(), outSlot);
 	}
 
 	return true;

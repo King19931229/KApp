@@ -9,20 +9,24 @@ protected:
 	IDType m_ID;
 	std::string m_Path;
 	IKTexturePtr m_Texture;
-	KPostProcessConnectionSet m_OutputConnection[MAX_OUTPUT_SLOT_COUNT];
+	std::unordered_set<IKPostProcessConnection*> m_OutputConnection[MAX_OUTPUT_SLOT_COUNT];
 
 	static const char* ms_TextureKey;
-public:
+
 	KPostProcessTexture();
 	KPostProcessTexture(IDType id);
+public:
 	virtual ~KPostProcessTexture();
+
+	IKPostProcessPass* CastPass() override { return nullptr; }
+	IKPostProcessTexture* CastTexture() override { return this; }
 
 	bool AddInputConnection(IKPostProcessConnection* conn, int16_t slot) override;
 	bool AddOutputConnection(IKPostProcessConnection* conn, int16_t slot) override;
 	bool RemoveInputConnection(IKPostProcessConnection* conn, int16_t slot) override;
 	bool RemoveOutputConnection(IKPostProcessConnection* conn, int16_t slot) override;
 
-	bool GetOutputConnection(KPostProcessConnectionSet& set, int16_t slot) override;
+	bool GetOutputConnection(std::unordered_set<IKPostProcessConnection*>& set, int16_t slot) override;
 	bool GetInputConnection(IKPostProcessConnection*& conn, int16_t slot) override;
 
 	bool SetPath(const char* textureFile) override;

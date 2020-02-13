@@ -3,17 +3,36 @@
 #include "KRender/Publish/KEnumString.h"
 #include "KRender/Interface/IKPostProcess.h"
 
-KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
+KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessNodePtr pass)
 	: m_Pass(pass),
 	m_Widget(nullptr)
 {
-	m_ScaleView = KEditor::MakeLineEditView<float>(m_Pass->GetScale());
+	assert(m_Pass != nullptr);
 
-	m_MSAAView = KEditor::MakeSliderEditView<int>(m_Pass->GetMSAA());
+	m_ScaleView = KEditor::MakeLineEditView<float>(m_Pass->CastPass()->GetScale());
+	m_ScaleView->Cast<float>()->AddListener([this](auto value)
+	{
+		m_Pass->CastPass()->SetScale(value);
+	});
+
+	m_MSAAView = KEditor::MakeSliderEditView<int>(m_Pass->CastPass()->GetMSAA());
+	m_MSAAView->Cast<int>()->AddListener([this](auto value)
+	{
+		m_Pass->CastPass()->SetMSAA(value);
+	});
+
 	m_MSAAView->SafeSliderCast<int>()->SetRange(1, 8);
 
-	m_VSView = KEditor::MakeLineEditView<std::string>(std::get<0>(m_Pass->GetShader()));
-	m_FSView = KEditor::MakeLineEditView<std::string>(std::get<1>(m_Pass->GetShader()));
+	m_ShaderView = KEditor::MakeLineEditView<std::string, 2>(
+	{
+		std::get<0>(m_Pass->CastPass()->GetShader()),
+		std::get<1>(m_Pass->CastPass()->GetShader())
+	});
+
+	m_ShaderView->Cast<std::string, 2>()->AddListener([this](auto value)
+	{
+		m_Pass->CastPass()->SetShader(value[0].c_str(), value[1].c_str());
+	});
 
 	m_FormatView = KEditor::MakeComboEditView<ElementFormat>();
 	for (uint32_t f = 0; f < EF_COUNT; ++f)
@@ -22,7 +41,11 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 			ElementFormat(f),
 			KEnumString::ElementForamtToString(ElementFormat(f)));
 	}
-	m_FormatView->Cast<ElementFormat>()->SetValue(m_Pass->GetFormat());
+	m_FormatView->Cast<ElementFormat>()->SetValue(m_Pass->CastPass()->GetFormat());
+	m_FormatView->Cast<ElementFormat>()->AddListener([this](auto value)
+	{
+		m_Pass->CastPass()->SetFormat(value);
+	});
 
 	m_Widget = new KEPropertyWidget();
 	m_Widget->Init();
@@ -30,14 +53,21 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessPass* pass)
 	m_Widget->AppendItem("Format", m_FormatView);
 	m_Widget->AppendItem("Scale", m_ScaleView);
 	m_Widget->AppendItem("MSAA", m_MSAAView);
-	m_Widget->AppendItem("VS", m_VSView);
-	m_Widget->AppendItem("FS", m_FSView);
+	m_Widget->AppendItem("Shader", m_ShaderView);
 }
 
 KEPostProcessPassModel::~KEPostProcessPassModel()
 {
 	m_Widget->UnInit();
-	// assert(!m_Pass);
+	IKPostProcessManager* mgr = GetProcessManager();
+	mgr->DeleteNode(m_Pass);
+	m_Pass = nullptr;
+}
+
+bool KEPostProcessPassModel::Deletable() const
+{
+	IKPostProcessManager* mgr = GetProcessManager();
+	return mgr->GetStartPointPass() != m_Pass;
 }
 
 QString	KEPostProcessPassModel::Caption() const
@@ -92,7 +122,7 @@ void KEPostProcessPassModel::SetInData(KEGraphNodeDataPtr nodeData, PortIndexTyp
 
 KEGraphNodeDataPtr KEPostProcessPassModel::OutData(PortIndexType port)
 {
-	KEPostProcessPassData* passData = new KEPostProcessPassData(m_Pass);
+	KEPostProcessPassData* passData = new KEPostProcessPassData(m_Pass->CastPass());
 	KEGraphNodeDataPtr data = KEGraphNodeDataPtr(passData);
 	return data;
 }

@@ -5,7 +5,7 @@
 
 KEPostProcessGraphWidget::KEPostProcessGraphWidget()
 	: KEGraphWidget()
-{	
+{
 }
 
 KEPostProcessGraphWidget::~KEPostProcessGraphWidget()
@@ -21,21 +21,19 @@ bool KEPostProcessGraphWidget::Init()
 {
 	if (KEGraphWidget::Init())
 	{
-		m_View->RegisterModel("Pass", []()->KEGraphNodeModelPtr
+		auto autoLayout = m_MenuBar->addAction("AutoLayout");
+		connect(autoLayout, &QAction::triggered, this, [this]()
 		{
-			return KEGraphNodeModelPtr(new KEPostProcessPassModel(GetProcessManager()->CreatePass()));
+			KEPostProcessGraphView* view = static_cast<KEPostProcessGraphView*>(m_View);
+			view->AutoLayout();
 		});
 
-		/*m_View->RegisterModel("Texture", []()->KEGraphNodeModelPtr
+		auto Construct = m_MenuBar->addAction("Construct");
+		connect(Construct, &QAction::triggered, this, [this]()
 		{
-			return KEGraphNodeModelPtr(new KEPostProcessTextureModel());
-		});*/
-
-		QAction* syncAction = m_MenuBar->addAction("Sync");
-		connect(syncAction, &QAction::triggered, this, &KEPostProcessGraphWidget::Sync);
-
-		QAction* autoLayoutAction = m_MenuBar->addAction("AutoLayout");
-		connect(autoLayoutAction, &QAction::triggered, this, &KEPostProcessGraphWidget::AutoLayout);
+			KEPostProcessGraphView* view = static_cast<KEPostProcessGraphView*>(m_View);
+			view->Construct();
+		});
 
 		return true;
 	}
@@ -45,16 +43,4 @@ bool KEPostProcessGraphWidget::Init()
 bool KEPostProcessGraphWidget::UnInit()
 {
 	return KEGraphWidget::UnInit();
-}
-
-void KEPostProcessGraphWidget::Sync()
-{
-	KEPostProcessGraphView* view = static_cast<KEPostProcessGraphView*>(m_View);
-	view->Sync();
-}
-
-void KEPostProcessGraphWidget::AutoLayout()
-{
-	KEPostProcessGraphView* view = static_cast<KEPostProcessGraphView*>(m_View);
-	view->AutoLayout();
 }

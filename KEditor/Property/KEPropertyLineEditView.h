@@ -144,4 +144,12 @@ namespace KEditor
 			(new KEPropertyLineEditView<T, DIMENTSION>(
 				KEditor::MakePropertyModel<T, DIMENTSION>(std::forward<Types>(args)...)));
 	}
+
+	template<typename T, size_t DIMENTSION>
+	inline std::shared_ptr<KEPropertyBaseView> MakeLineEditView(std::initializer_list<T>&& list)
+	{
+		return std::shared_ptr<KEPropertyBaseView>
+			(new KEPropertyLineEditView<T, DIMENTSION>(KEditor::MakePropertyModel<T, DIMENTSION>(
+				std::forward<decltype(list)>(list))));
+	}
 }

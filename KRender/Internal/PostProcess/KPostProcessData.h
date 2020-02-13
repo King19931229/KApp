@@ -7,8 +7,8 @@ struct KPostProcessData
 	static const char* msIDKey;
 	static const char* msSlotKey;
 
-	IKPostProcessNode*		node;
-	int16_t					slot;
+	IKPostProcessNode*	node;
+	int16_t				slot;
 
 	KPostProcessData()
 	{

@@ -40,5 +40,5 @@ public:
 
 	bool Sync();
 	bool AutoLayout();
-	bool Apply();
+	bool Construct();
 };

@@ -48,13 +48,12 @@ protected:
 	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 
 	// 一个输出槽可能连接到多个节点输出
-	KPostProcessConnectionSet m_OutputConnection[MAX_OUTPUT_SLOT_COUNT];
+	std::unordered_set<IKPostProcessConnection*> m_OutputConnection[MAX_OUTPUT_SLOT_COUNT];
 	// 一个输入槽只可能从一个节点输入
-	KPostProcessConnection* m_InputConnection[MAX_INPUT_SLOT_COUNT];
+	IKPostProcessConnection* m_InputConnection[MAX_INPUT_SLOT_COUNT];
 private:
 	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage);
 	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage, IDType id);
-	virtual ~KPostProcessPass();
 
 	IDType ID() override;
 
@@ -71,6 +70,11 @@ private:
 	static const char* msVSKey;
 	static const char* msFSKey;
 public:
+	virtual ~KPostProcessPass();
+
+	IKPostProcessPass* CastPass() override { return this; }
+	IKPostProcessTexture* CastTexture() override { return nullptr; }
+
 	bool SetShader(const char* vsFile, const char* fsFile) override;
 	bool SetScale(float scale) override;
 	bool SetFormat(ElementFormat format) override;
@@ -86,8 +90,8 @@ public:
 	bool RemoveInputConnection(IKPostProcessConnection* conn, int16_t slot) override;
 	bool RemoveOutputConnection(IKPostProcessConnection* conn, int16_t slot) override;
 
-	bool GetOutputConnection(KPostProcessConnectionSet& set, int16_t slot) override;
-	bool GetInputConnection(IKPostProcessConnection*& conn, int16_t slot) override;
+	bool GetOutputConnection(std::unordered_set<IKPostProcessConnection*>& set, int16_t slot) override;
+	bool GetInputConnection(IKPostProcessConnection*&conn, int16_t slot) override;
 
 	inline void SetAsEndPoint() { m_Stage = POST_PROCESS_STAGE_END_POINT; }
 	inline IKTexturePtr GetTexture(size_t frameIndex) { return m_Textures.size() > frameIndex ? m_Textures[frameIndex] : nullptr; }

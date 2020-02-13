@@ -83,14 +83,14 @@ public:
 	KEPropertyModel(const T& value)
 		: m_Value(m_SelfValue)
 	{
-		static_assert(DIMENSION == 1, "dimension larger than 1 is not supported");
+		assert(DIMENSION == 1 && "dimension larger than 1 is not supported");
 		m_Value[0] = value;
 	}
 
 	KEPropertyModel(const T&& value)
 		: m_Value(m_SelfValue)
 	{
-		static_assert(DIMENSION == 1, "dimension larger than 1 is not supported");
+		assert(DIMENSION == 1 && "dimension larger than 1 is not supported");
 		m_Value[0] = value;
 	}
 
@@ -187,6 +187,18 @@ public:
 		assert(index < DIMENSION);
 		return m_Value[index];
 	}
+
+	operator const T&() const
+	{
+		assert(DIMENSION == 1 && "dimension larger than 1 is not supported");
+		return m_Value[0];
+	}
+
+	operator T&()
+	{
+		assert(DIMENSION == 1 && "dimension larger than 1 is not supported");
+		return m_Value[0];
+	}
 };
 
 namespace KEditor
@@ -196,5 +208,11 @@ namespace KEditor
 	{
 		return std::shared_ptr<KEPropertyModel<T, DIMENTSION>>
 			(new KEPropertyModel<T, DIMENTSION>(std::forward<Types>(args)...));
+	}
+
+	template<typename T, size_t DIMENTSION>
+	inline std::shared_ptr<KEPropertyModel<T, DIMENTSION>> MakePropertyModel(std::initializer_list<T>&& list)
+	{
+		return std::shared_ptr<KEPropertyModel<T, DIMENTSION>>(new KEPropertyModel<T, DIMENTSION>(std::forward<decltype(list)>(list)));
 	}
 }

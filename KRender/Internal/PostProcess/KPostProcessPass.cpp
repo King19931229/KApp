@@ -112,7 +112,7 @@ bool KPostProcessPass::Init()
 
 	if(m_Stage == POST_PROCESS_STAGE_START_POINT)
 	{
-		for (KPostProcessConnection*& input : m_InputConnection)
+		for (auto& input : m_InputConnection)
 		{
 			ASSERT_RESULT(input == nullptr);
 		}
@@ -153,13 +153,13 @@ bool KPostProcessPass::Init()
 
 			for (int16_t slot = 0; slot < MAX_INPUT_SLOT_COUNT; ++slot)
 			{
-				KPostProcessConnection*& input = m_InputConnection[slot];
+				auto& input = m_InputConnection[slot];
 				if (input)
 				{
 					ASSERT_RESULT(input->IsComplete());
 
-					KPostProcessData& outputData = input->m_Output;
-					KPostProcessData& inputData = input->m_Input;
+					KPostProcessData& outputData = ((KPostProcessConnection*)input)->m_Output;
+					KPostProcessData& inputData = ((KPostProcessConnection*)input)->m_Input;
 
 					IKPostProcessNode* outputNode = outputData.node;
 					PostProcessNodeType outputType = outputNode->GetType();
@@ -352,7 +352,7 @@ bool KPostProcessPass::AddInputConnection(IKPostProcessConnection* conn, int16_t
 {
 	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		m_InputConnection[slot] = (KPostProcessConnection*)conn;
+		m_InputConnection[slot] = conn;
 		return true;
 	}
 	return false;
@@ -362,7 +362,7 @@ bool KPostProcessPass::AddOutputConnection(IKPostProcessConnection* conn, int16_
 {
 	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		m_OutputConnection[slot].insert((KPostProcessConnection*)conn);
+		m_OutputConnection[slot].insert(conn);
 		return true;
 	}
 	return false;
@@ -372,7 +372,7 @@ bool KPostProcessPass::RemoveInputConnection(IKPostProcessConnection* conn, int1
 {
 	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		if (m_InputConnection[slot] == (KPostProcessConnection*)conn)
+		if (m_InputConnection[slot] == conn)
 		{
 			m_InputConnection[slot] = nullptr;
 			return true;
@@ -385,7 +385,7 @@ bool KPostProcessPass::RemoveOutputConnection(IKPostProcessConnection* conn, int
 {
 	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
-		auto it = m_OutputConnection[slot].find((KPostProcessConnection*)conn);
+		auto it = m_OutputConnection[slot].find(conn);
 		if (it != m_OutputConnection[slot].end())
 		{
 			m_OutputConnection[slot].erase(it);
@@ -395,7 +395,7 @@ bool KPostProcessPass::RemoveOutputConnection(IKPostProcessConnection* conn, int
 	return false;
 }
 
-bool KPostProcessPass::GetOutputConnection(KPostProcessConnectionSet& set, int16_t slot)
+bool KPostProcessPass::GetOutputConnection(std::unordered_set<IKPostProcessConnection*>& set, int16_t slot)
 {
 	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0)
 	{

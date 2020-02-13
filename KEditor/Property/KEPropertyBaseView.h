@@ -1,6 +1,7 @@
 #pragma once
 #include <QLayout>
 #include <memory>
+#include <functional>
 #include <assert.h>
 
 template<typename T, size_t DIMENSION>
@@ -94,6 +95,7 @@ public:
 	typedef std::shared_ptr<ModelType> ModelPtrType;
 protected:
 	ModelPtrType m_Model;
+	std::list<std::function<void(ModelType)>> m_Listener;
 
 	virtual void SetWidgetValue(size_t index, const T& value) = 0;
 
@@ -102,6 +104,7 @@ protected:
 		if (m_Model)
 		{
 			*m_Model = value;
+			CallListener();
 		}
 	}
 
@@ -111,6 +114,7 @@ protected:
 		{
 			assert(index < DIMENSION);
 			(*m_Model)[index] = value;
+			CallListener();
 		}
 	}
 
@@ -131,6 +135,24 @@ protected:
 			SetWidgetValue(i, value[i]);
 		}
 	}
+
+	void CallListener()
+	{
+		for (const auto& func : m_Listener)
+		{
+			func(*m_Model);
+		}
+	}
+
+	void CallSingleListener()
+	{
+		static_assert(DIMENSION == 1, "dimension must be 1");
+		const T& value = (*m_Model)[0];
+		for (const auto& func : m_SingleListener)
+		{
+			func(value);
+		}
+	}
 public:
 	KEPropertyView(ModelPtrType model)
 		: m_Model(model)
@@ -146,5 +168,15 @@ public:
 	ModelType GetValue() const
 	{
 		return *m_Model;
+	}
+
+	void AddListener(std::function<void(ModelType)> listener)
+	{
+		m_Listener.push_back(listener);
+	}
+
+	void RemoveAllListener()
+	{
+		m_Listener.clear();
 	}
 };

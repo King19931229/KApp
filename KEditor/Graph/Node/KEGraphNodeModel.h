@@ -23,6 +23,7 @@ public:
 	virtual QString	Name() const = 0;
 
 	virtual	bool Resizable() const { return false; }
+	virtual bool Deletable() const { return true; }
 
 	virtual	unsigned int NumPorts(PortType portType) const = 0;
 	virtual	KEGraphNodeDataType DataType(PortType portType, PortIndexType portIndex) const = 0;

@@ -3,6 +3,7 @@
 
 class KEPostProcessGraphWidget : public KEGraphWidget
 {
+protected:
 public:
 	KEPostProcessGraphWidget();
 	~KEPostProcessGraphWidget();
@@ -10,8 +11,4 @@ public:
 	KEGraphView* CreateViewImpl() override;
 	bool Init() override;
 	bool UnInit() override;
-
-public Q_SLOTS:
-	void Sync();
-	void AutoLayout();
 };

@@ -11,6 +11,7 @@
 #include "KPostProcessConnection.h"
 
 #include <unordered_map>
+#include <unordered_set>
 
 class KPostProcessManager : public IKPostProcessManager
 {
@@ -23,10 +24,12 @@ protected:
 	size_t m_Width;
 	size_t m_Height;
 
-	std::unordered_map<IKPostProcessNode::IDType, IKPostProcessNode*> m_AllNodes;
-	KPostProcessPass* m_StartPointPass;
+	std::unordered_map<IKPostProcessNode::IDType, IKPostProcessNodePtr> m_AllNodes;
+	IKPostProcessNodePtr m_StartPointPass;
+	std::unordered_set<IKPostProcessNodePtr> m_DeletedNodes;
 
-	std::unordered_map<KPostProcessConnection::IDType, KPostProcessConnection*> m_AllConnections;
+	std::unordered_map<KPostProcessConnection::IDType, IKPostProcessConnectionPtr> m_AllConnections;
+	std::unordered_set<IKPostProcessConnectionPtr> m_DeletedConnections;
 
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_vertices[4];
 	static const uint32_t ms_Indices[6];
@@ -41,6 +44,7 @@ protected:
 	IKShaderPtr m_ScreenDrawFS;
 
 	IKSamplerPtr m_Sampler;
+	bool m_bConstructed;
 
 	static const char* msTypeKey;
 	static const char* msIDKey;
@@ -50,6 +54,7 @@ protected:
 	static const char* msNodesKey;
 	static const char* msConnectionsKey;
 
+	void ClearDeletedPassConnection();
 	void ClearCreatedPassConnection();
 	void IterPostProcessGraph(std::function<void(IKPostProcessNode*)> func);
 	void PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderTargetPtr target);
@@ -68,20 +73,20 @@ public:
 	bool Save(const char* jsonFile);
 	bool Load(const char* jsonFile);
 
-	IKPostProcessPass* CreatePass() override;
-	IKPostProcessTexture* CreateTextrue() override;
+	IKPostProcessNodePtr CreatePass() override;
+	IKPostProcessNodePtr CreateTextrue() override;
 
-	void DeleteNode(IKPostProcessNode* pass) override;
-	IKPostProcessNode* GetNode(IKPostProcessNode::IDType id) override;
+	void DeleteNode(IKPostProcessNodePtr node) override;
+	IKPostProcessNodePtr GetNode(IKPostProcessNode::IDType id) override;
 	bool GetAllNodes(KPostProcessNodeSet& set) override;
 
-	IKPostProcessConnection* CreateConnection(IKPostProcessNode* outNode, int16_t outSlot, IKPostProcessNode* inNode, int16_t inSlot) override;
-	void DeleteConnection(IKPostProcessConnection* conn) override;
-	KPostProcessConnection* GetConnection(KPostProcessConnection::IDType id);
+	IKPostProcessConnectionPtr CreateConnection(IKPostProcessNodePtr outNode, int16_t outSlot, IKPostProcessNodePtr inNode, int16_t inSlot) override;
+	void DeleteConnection(IKPostProcessConnectionPtr conn) override;
+	IKPostProcessConnectionPtr GetConnection(KPostProcessConnection::IDType id);
 
-	IKPostProcessPass* GetStartPointPass() override;
+	IKPostProcessNodePtr GetStartPointPass() override;
 
-	bool Construct();
+	bool Construct() override;
 	bool Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChainPtr& swapChain, IKUIOverlayPtr& ui, IKCommandBufferPtr primaryCommandBuffer);
 
 	inline IKRenderDevice* GetDevice() { return m_Device; }	

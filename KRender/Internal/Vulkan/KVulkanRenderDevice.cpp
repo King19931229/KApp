@@ -895,22 +895,22 @@ bool KVulkanRenderDevice::InitGlobalManager()
 
 	KRenderGlobal::PostProcessManager.Init(this, width, height, msaaCount, EF_R16G16B16A16_FLOAT, m_FrameInFlight);
 
-	IKPostProcessPass* startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
+	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
-	IKPostProcessPass* pass = KRenderGlobal::PostProcessManager.CreatePass();
-	pass->SetShader("Shaders/screenquad.vert", "Shaders/postprocess.frag");
-	pass->SetScale(1.0f);
-	pass->SetFormat(EF_R8GB8BA8_UNORM);
+	auto pass = KRenderGlobal::PostProcessManager.CreatePass();
+	pass->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess.frag");
+	pass->CastPass()->SetScale(1.0f);
+	pass->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
 
-	IKPostProcessPass* pass2 = KRenderGlobal::PostProcessManager.CreatePass();
-	pass2->SetShader("Shaders/screenquad.vert", "Shaders/postprocess2.frag");
-	pass2->SetScale(1.0f);
-	pass2->SetFormat(EF_R8GB8BA8_UNORM);
+	auto pass2 = KRenderGlobal::PostProcessManager.CreatePass();
+	pass2->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess2.frag");
+	pass2->CastPass()->SetScale(1.0f);
+	pass2->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
 
-	IKPostProcessPass* pass3 = KRenderGlobal::PostProcessManager.CreatePass();
-	pass3->SetShader("Shaders/screenquad.vert", "Shaders/postprocess3.frag");
-	pass3->SetScale(1.0f);
-	pass3->SetFormat(EF_R8GB8BA8_UNORM);
+	auto pass3 = KRenderGlobal::PostProcessManager.CreatePass();
+	pass3->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess3.frag");
+	pass3->CastPass()->SetScale(1.0f);
+	pass3->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
 
 	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass, 0);
 	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass2, 0);
@@ -1682,7 +1682,7 @@ void KVulkanRenderDevice::ThreadRenderObject(uint32_t frameIndex, uint32_t threa
 	// PreZ
 	commandBuffer = threadData.preZcommandBuffer;
 
-	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass())->GetRenderTarget(frameIndex);
+	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
 
 	commandBuffer->BeginSecondary(offscreenTarget);
 	commandBuffer->SetViewport(offscreenTarget);
@@ -1755,7 +1755,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 
 	m_CommandBuffers[frameIndex].commandPool->Reset();
 
-	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass())->GetRenderTarget(frameIndex);
+	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
 
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1887,7 +1887,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 
 	m_CommandBuffers[frameIndex].commandPool->Reset();
 
-	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass())->GetRenderTarget(frameIndex);
+	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
 	IKRenderTargetPtr swapChainTarget = m_SwapChain->GetRenderTarget(chainImageIndex);
 	IKRenderTargetPtr shadowMapTarget = KRenderGlobal::ShadowMap.GetShadowMapTarget(frameIndex);
 

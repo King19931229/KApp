@@ -84,7 +84,12 @@ void KEGraphView::DeleteSelectedNodes()
 	{
 		if (KEGraphNodeView* n = qgraphicsitem_cast<KEGraphNodeView*>(item))
 		{
-			m_Scene->RemoveNode(n->GetControl());
+			auto node = n->GetControl();
+			auto model = node->GetModel();
+			if (model->Deletable())
+			{
+				m_Scene->RemoveNode(node);
+			}
 		}
 	}
 }
@@ -118,7 +123,11 @@ void KEGraphView::OnNodeContextMenu(KEGraphNodeControl* n, const QPointF& pos)
 
 		if (op == deleteOp)
 		{
-			m_Scene->RemoveNode(n);
+			auto model = n->GetModel();
+			if (model->Deletable())
+			{
+				m_Scene->RemoveNode(n);
+			}
 		}
 
 		nodeMenu.close();

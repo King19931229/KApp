@@ -17,18 +17,21 @@ class KEPostProcessPassModel : public KEGraphNodeModel
 {
 	Q_OBJECT
 protected:
-	IKPostProcessPass* m_Pass;
+	IKPostProcessNodePtr m_Pass;
 
 	KEPropertyWidget* m_Widget;
 
 	KEPropertyComboView<ElementFormat>::BasePtr m_FormatView;
 	KEPropertyLineEditView<float>::BasePtr m_ScaleView;
 	KEPropertySliderView<int>::BasePtr m_MSAAView;
-	KEPropertyLineEditView<std::string>::BasePtr m_VSView;
-	KEPropertyLineEditView<std::string>::BasePtr m_FSView;
+	KEPropertyLineEditView<std::string, 2>::BasePtr m_ShaderView;
 public:
-	KEPostProcessPassModel(IKPostProcessPass* pass = nullptr);
+	KEPostProcessPassModel(IKPostProcessNodePtr pass = nullptr);
 	virtual	~KEPostProcessPassModel();
+
+	inline IKPostProcessPass* GetPass() { return m_Pass->CastPass(); }
+
+	virtual bool Deletable() const override;
 
 	virtual QString	Caption() const override;
 	virtual QString	Name() const override;
