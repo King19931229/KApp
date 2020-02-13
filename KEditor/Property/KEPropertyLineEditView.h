@@ -58,33 +58,33 @@ protected:
 	}
 
 	template<typename T2>
-	T2 DataFromQString(const QString& text, const T2& default)
+	T2 DataFromQString(const QString& text)
 	{
 		static_assert(false, "please implement data form qstring");
 		return default;
 	}
 
 	template<>
-	std::string DataFromQString(const QString& text, const std::string& default)
+	std::string DataFromQString(const QString& text)
 	{
 		return text.toStdString();
 	}
 
 	template<>
-	float DataFromQString(const QString& text, const float& default)
+	float DataFromQString(const QString& text)
 	{
 		return text.toFloat();
 	}
 
 	template<>
-	int DataFromQString(const QString& text, const int& default)
+	int DataFromQString(const QString& text)
 	{
 		return text.toInt();
 	}
 
 	void SetModelData(size_t index, const QString& text)
 	{
-		T data = DataFromQString(text, (*m_Model)[index]);
+		T data = DataFromQString<T>(text);
 		UpdateModelElement(index, data);
 	}
 

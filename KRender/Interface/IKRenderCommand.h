@@ -20,27 +20,6 @@ struct KVertexData
 		vertexCount = 0;
 	}
 
-	KVertexData(KVertexData&& rhs)
-	{
-		vertexFormats = std::move(rhs.vertexFormats);
-		vertexBuffers = std::move(rhs.vertexBuffers);
-		vertexStart = rhs.vertexStart;
-		vertexCount = rhs.vertexCount;
-		rhs.vertexStart = 0;
-		rhs.vertexCount = 0;
-	}
-
-	KVertexData& operator=(KVertexData&& rhs)
-	{
-		vertexFormats = std::move(rhs.vertexFormats);
-		vertexBuffers = std::move(rhs.vertexBuffers);
-		vertexStart = rhs.vertexStart;
-		vertexCount = rhs.vertexCount;
-		rhs.vertexStart = 0;
-		rhs.vertexCount = 0;
-		return *this;
-	}
-
 	~KVertexData()
 	{
 	}
@@ -73,28 +52,7 @@ struct KIndexData
 	IKIndexBufferPtr indexBuffer;
 	uint32_t indexStart;
 	uint32_t indexCount;
-	/*
-	KIndexData(KIndexData&& rhs)
-	{
-		indexBuffer = rhs.indexBuffer;
-		indexStart = rhs.indexStart;
-		indexCount = rhs.indexCount;
-		rhs.indexBuffer = nullptr;
-		rhs.indexStart = 0;
-		rhs.indexCount = 0;
-	}
 
-	KIndexData& operator=(KIndexData&& rhs)
-	{
-		indexBuffer = rhs.indexBuffer;
-		indexStart = rhs.indexStart;
-		indexCount = rhs.indexCount;
-		rhs.indexBuffer = nullptr;
-		rhs.indexStart = 0;
-		rhs.indexCount = 0;
-		return *this;
-	}
-	*/
 	KIndexData()
 	{
 		indexStart = 0;
