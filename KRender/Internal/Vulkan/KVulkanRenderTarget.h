@@ -48,8 +48,11 @@ protected:
 
 	bool CreateDepthImage(bool bStencil);
 	bool CreateDepthBuffer();
-public:
+
 	KVulkanRenderTarget();
+public:
+	static IKRenderTargetPtr CreateRenderTarget();
+public:
 	~KVulkanRenderTarget();
 
 	virtual bool SetColorClear(float r, float g, float b, float a);

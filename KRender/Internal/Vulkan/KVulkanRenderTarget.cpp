@@ -7,6 +7,11 @@
 
 #include "Internal/KRenderGlobal.h"
 
+IKRenderTargetPtr KVulkanRenderTarget::CreateRenderTarget()
+{
+	return IKRenderTargetPtr(new KVulkanRenderTarget());
+}
+
 KVulkanRenderTarget::KVulkanRenderTarget()
 	: m_bMsaaCreated(false),
 	m_bDepthStencilCreated(false),

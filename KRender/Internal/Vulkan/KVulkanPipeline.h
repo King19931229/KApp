@@ -131,8 +131,11 @@ protected:
 
 	void CancelLoadTask();
 	void WaitLoadTask();
-public:
+
 	KVulkanPipeline();
+public:
+	static IKPipelinePtr CreatePipeline();
+public:
 	virtual ~KVulkanPipeline();
 
 	virtual PipelineResourceState GetState() { return m_State; }

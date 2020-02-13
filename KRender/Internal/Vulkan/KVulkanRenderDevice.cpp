@@ -1553,13 +1553,13 @@ bool KVulkanRenderDevice::CreateSwapChain(IKSwapChainPtr& swapChain)
 
 bool KVulkanRenderDevice::CreateRenderTarget(IKRenderTargetPtr& target)
 {
-	target = IKRenderTargetPtr(static_cast<IKRenderTarget*>(new KVulkanRenderTarget()));
+	target = KVulkanRenderTarget::CreateRenderTarget();
 	return true;
 }
 
 bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 {
-	pipeline = IKPipelinePtr(static_cast<IKPipeline*>(new KVulkanPipeline()));
+	pipeline = KVulkanPipeline::CreatePipeline();
 	return true;
 }
 

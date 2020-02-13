@@ -9,6 +9,11 @@
 
 #include "Internal/KRenderGlobal.h"
 
+IKPipelinePtr KVulkanPipeline::CreatePipeline()
+{
+	return IKPipelinePtr(new KVulkanPipeline());
+}
+
 KVulkanPipeline::KVulkanPipeline() :
 	m_PrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
 	m_ColorWriteMask(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT),
