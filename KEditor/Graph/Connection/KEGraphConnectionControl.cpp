@@ -247,7 +247,7 @@ void KEGraphConnectionControl::PropagateData(KEGraphNodeDataPtr nodeData) const
 {
 	if (m_InNode)
 	{
-		if (m_Converter)
+		if (m_Converter && nodeData)
 		{
 			nodeData = m_Converter(nodeData);
 		}
@@ -257,6 +257,6 @@ void KEGraphConnectionControl::PropagateData(KEGraphNodeDataPtr nodeData) const
 
 void KEGraphConnectionControl::PropagateEmptyData() const
 {
-	KEGraphNodeDataPtr emptyData;
+	KEGraphNodeDataPtr emptyData = nullptr;
 	PropagateData(emptyData);
 }

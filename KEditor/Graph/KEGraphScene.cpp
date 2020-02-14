@@ -101,7 +101,7 @@ KEGraphConnectionControl* KEGraphScene::CreateConnection(PortType connectedPort,
 	connect(conn,
 		&KEGraphConnectionControl::SingalConnectionCompleted,
 		this,
-		[this](const KEGraphConnectionControl* c)
+		[this](KEGraphConnectionControl* c)
 	{
 		SingalConnectionCreated(c);
 	});

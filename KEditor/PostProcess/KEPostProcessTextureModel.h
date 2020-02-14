@@ -7,11 +7,13 @@ class KEPostProcessTextureModel : public KEGraphNodeModel
 protected:
 	QWidget *m_EditWidget;
 public:
+	const static QString ModelName;
+
 	KEPostProcessTextureModel();
 	virtual	~KEPostProcessTextureModel();
 
 	virtual QString	Caption() const override;
-	virtual QString	Name() const override;
+	virtual QString	Name() const override { return ModelName; }
 
 	virtual QString	PortCaption(PortType type, PortIndexType index) const override;
 	virtual bool PortCaptionVisible(PortType type, PortIndexType index) const override;

@@ -6,35 +6,30 @@
 const static QString POSTPROCESS_TEXTURE_ID = "postprocess_texture";
 const static QString POSTPROCESS_PASS_ID = "postprocess_pass";
 
-class KEPostProcessTextureData : public KEGraphNodeData
-{	
-public:
-	IKTexturePtr textrue;
-	KEPostProcessTextureData()
-		: textrue(nullptr)
-	{
-	}
-
-	KEGraphNodeDataType Type() const override
-	{
-		KEGraphNodeDataType type;
-		type.id = POSTPROCESS_TEXTURE_ID;
-	}
-};
-
-class KEPostProcessPassData : public KEGraphNodeData
+class KEPostProcessNodeData : public KEGraphNodeData
 {
 public:
-	IKPostProcessPass* pass;
-	KEPostProcessPassData(IKPostProcessPass* _pass)
-		: pass(_pass)
+	IKPostProcessNodePtr node;
+	int16_t slot;
+	KEPostProcessNodeData(IKPostProcessNodePtr _node, int16_t _slot)
+		: node(_node),
+		slot(_slot)
 	{
+		assert(node);
+		assert(slot != INVALID_SLOT_INDEX);
 	}
 
 	KEGraphNodeDataType Type() const override
 	{
 		KEGraphNodeDataType type;
-		type.id = POSTPROCESS_PASS_ID;
+		if (node->GetType() == PPNT_PASS)
+		{
+			type.id = POSTPROCESS_PASS_ID;
+		}
+		else if (node->GetType() == PPNT_TEXTURE)
+		{
+			type.id = POSTPROCESS_TEXTURE_ID;
+		}
 		return type;
 	}
 };

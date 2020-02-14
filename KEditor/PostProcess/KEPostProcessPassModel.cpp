@@ -3,6 +3,8 @@
 #include "KRender/Publish/KEnumString.h"
 #include "KRender/Interface/IKPostProcess.h"
 
+decltype(KEPostProcessPassModel::ModelName) KEPostProcessPassModel::ModelName = "PostProcessPass";
+
 KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessNodePtr pass)
 	: m_Pass(pass),
 	m_Widget(nullptr)
@@ -59,9 +61,17 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessNodePtr pass)
 KEPostProcessPassModel::~KEPostProcessPassModel()
 {
 	m_Widget->UnInit();
+
 	IKPostProcessManager* mgr = GetProcessManager();
 	mgr->DeleteNode(m_Pass);
 	m_Pass = nullptr;
+
+	for (auto pair : m_InConn)
+	{
+		IKPostProcessConnectionPtr conn = pair.second;
+		mgr->DeleteConnection(conn);
+	}
+	m_InConn.clear();
 }
 
 bool KEPostProcessPassModel::Deletable() const
@@ -73,11 +83,6 @@ bool KEPostProcessPassModel::Deletable() const
 QString	KEPostProcessPassModel::Caption() const
 {
 	return "Pass";
-}
-
-QString	KEPostProcessPassModel::Name() const
-{
-	return "ProcessPass";
 }
 
 QString	KEPostProcessPassModel::PortCaption(PortType type, PortIndexType index) const
@@ -117,13 +122,56 @@ KEGraphNodeDataType KEPostProcessPassModel::DataType(PortType portType, PortInde
 
 void KEPostProcessPassModel::SetInData(KEGraphNodeDataPtr nodeData, PortIndexType port)
 {
-	//TODO
+	int16_t outPort = INVALID_SLOT_INDEX;
+	IKPostProcessNodePtr outNode = nullptr;
+
+	if (nodeData)
+	{
+		KEPostProcessNodeData* data = (KEPostProcessNodeData*)nodeData.get();
+		outPort = data->slot;
+		outNode = data->node;
+	}
+
+	if (outNode)
+	{
+		if (outPort != INVALID_SLOT_INDEX)
+		{
+			IKPostProcessManager* mgr = GetProcessManager();
+
+			KPostProcessConnectionSet set;
+			mgr->GetAllConnections(set);
+
+			IKPostProcessConnectionPtr conn = mgr->FindConnection(outNode, outPort, m_Pass, port);
+			if (!conn)
+			{
+				conn = mgr->CreateConnection(outNode, outPort, m_Pass, port);
+			}
+			else
+			{
+				// 进入这个分支是正常的
+				// 1.节点数据输入可能促发多次
+				// 2.节点图抢在编辑器之前创建
+			}
+
+			m_InConn[port] = conn;
+		}
+	}
+	else
+	{
+		auto it = m_InConn.find(port);
+		if (it != m_InConn.end())
+		{
+			IKPostProcessConnectionPtr conn = it->second;
+			IKPostProcessManager* mgr = GetProcessManager();
+			mgr->DeleteConnection(conn);
+			m_InConn.erase(it);
+		}
+	}
 }
 
 KEGraphNodeDataPtr KEPostProcessPassModel::OutData(PortIndexType port)
 {
-	KEPostProcessPassData* passData = new KEPostProcessPassData(m_Pass->CastPass());
-	KEGraphNodeDataPtr data = KEGraphNodeDataPtr(passData);
+	KEGraphNodeDataPtr data = KEGraphNodeDataPtr(new KEPostProcessNodeData(m_Pass, port));
 	return data;
 }
 

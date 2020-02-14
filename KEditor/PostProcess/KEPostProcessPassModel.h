@@ -13,10 +13,13 @@
 #include "Property/KEPropertyCheckBoxView.h"
 #include "Widget/KEPropertyWidget.h"
 
+#include <unordered_map>
 class KEPostProcessPassModel : public KEGraphNodeModel
 {
 	Q_OBJECT
 protected:
+	std::unordered_map<int16_t, IKPostProcessConnectionPtr> m_InConn;
+
 	IKPostProcessNodePtr m_Pass;
 
 	KEPropertyWidget* m_Widget;
@@ -26,15 +29,18 @@ protected:
 	KEPropertySliderView<int>::BasePtr m_MSAAView;
 	KEPropertyLineEditView<std::string, 2>::BasePtr m_ShaderView;
 public:
+	const static QString ModelName;
+
 	KEPostProcessPassModel(IKPostProcessNodePtr pass = nullptr);
 	virtual	~KEPostProcessPassModel();
 
 	inline IKPostProcessPass* GetPass() { return m_Pass->CastPass(); }
+	inline IKPostProcessNodePtr GetNode() { return m_Pass; }
 
 	virtual bool Deletable() const override;
 
 	virtual QString	Caption() const override;
-	virtual QString	Name() const override;
+	virtual QString	Name() const override { return ModelName; }
 
 	virtual QString	PortCaption(PortType type, PortIndexType index) const override;
 	virtual bool PortCaptionVisible(PortType type, PortIndexType index) const override;

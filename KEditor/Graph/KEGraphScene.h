@@ -55,8 +55,8 @@ Q_SIGNALS:
 
 	void SingalNodeContextMenu(KEGraphNodeControl* n, const QPointF& pos);
 
-	void SingalConnectionCreated(const KEGraphConnectionControl* c);
-	void SingalConnectionDeleted(const KEGraphConnectionControl* c);
+	void SingalConnectionCreated(KEGraphConnectionControl* c);
+	void SingalConnectionDeleted(KEGraphConnectionControl* c);
 
 	void SingalConnectionHovered(KEGraphConnectionControl* c, QPoint screenPos);
 	void SingalConnectionLeft(KEGraphConnectionControl* c, QPoint screenPos);

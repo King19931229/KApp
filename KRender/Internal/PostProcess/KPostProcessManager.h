@@ -81,7 +81,10 @@ public:
 	bool GetAllNodes(KPostProcessNodeSet& set) override;
 
 	IKPostProcessConnectionPtr CreateConnection(IKPostProcessNodePtr outNode, int16_t outSlot, IKPostProcessNodePtr inNode, int16_t inSlot) override;
+	IKPostProcessConnectionPtr FindConnection(IKPostProcessNodePtr outputNode, int16_t outSlot, IKPostProcessNodePtr inputNode, int16_t inSlot) override;
 	void DeleteConnection(IKPostProcessConnectionPtr conn) override;
+	bool GetAllConnections(KPostProcessConnectionSet& set) override;
+
 	IKPostProcessConnectionPtr GetConnection(KPostProcessConnection::IDType id);
 
 	IKPostProcessNodePtr GetStartPointPass() override;

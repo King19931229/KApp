@@ -73,8 +73,6 @@ public:
 	KEGraphConnectionGeometry& ConnectionGeometry() { return m_ConnectionGeometry; }
 	const KEGraphConnectionGeometry& ConnectionGeometry() const { return m_ConnectionGeometry; }
 
-	const static KEGraphNodeControl* NULLNODE;
-
 	KEGraphNodeControl*& GetNode(PortType portType);
 
 	PortIndexType GetPortIndex(PortType portType) const;
@@ -89,7 +87,7 @@ public: // data propagation
 	void PropagateData(KEGraphNodeDataPtr nodeData) const;
 	void PropagateEmptyData() const;
 Q_SIGNALS:
-	void SingalConnectionCompleted(const KEGraphConnectionControl*) const;
-	void SingalConnectionMadeIncomplete(const KEGraphConnectionControl*) const;
+	void SingalConnectionCompleted(KEGraphConnectionControl*) const;
+	void SingalConnectionMadeIncomplete(KEGraphConnectionControl*) const;
 	void SingalUpdated(KEGraphConnectionControl* conn) const;
 };

@@ -6,6 +6,8 @@
 #include <QLineEdit>
 #include <QComboBox>
 
+decltype(KEPostProcessTextureModel::ModelName) KEPostProcessTextureModel::ModelName = "PostProcessTextrue";
+
 KEPostProcessTextureModel::KEPostProcessTextureModel()
 {
 	QVBoxLayout* layout = new QVBoxLayout();
@@ -33,11 +35,6 @@ KEPostProcessTextureModel::~KEPostProcessTextureModel()
 QString	KEPostProcessTextureModel::Caption() const
 {
 	return "Texture";
-}
-
-QString	KEPostProcessTextureModel::Name() const
-{
-	return "ProcessTexture";
 }
 
 QString	KEPostProcessTextureModel::PortCaption(PortType type, PortIndexType index) const

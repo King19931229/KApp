@@ -140,6 +140,14 @@ bool KPostProcessManager::UnInit()
 
 void KPostProcessManager::ClearDeletedPassConnection()
 {
+	for (IKPostProcessConnectionPtr conn : m_DeletedConnections)
+	{
+		KPostProcessData& outputData = ((KPostProcessConnection*)conn.get())->m_Output;
+		KPostProcessData& inputData = ((KPostProcessConnection*)conn.get())->m_Input;
+
+		outputData.node->RemoveOutputConnection(conn.get(), outputData.slot);
+		inputData.node->RemoveInputConnection(conn.get(), inputData.slot);
+	}
 	m_DeletedConnections.clear();
 
 	for (IKPostProcessNodePtr node : m_DeletedNodes)
@@ -562,19 +570,51 @@ IKPostProcessConnectionPtr KPostProcessManager::CreateConnection(IKPostProcessNo
 	return conn;
 }
 
+IKPostProcessConnectionPtr KPostProcessManager::FindConnection(IKPostProcessNodePtr outputNode, int16_t outSlot, IKPostProcessNodePtr inputNode, int16_t inSlot)
+{
+	auto it = std::find_if(m_AllConnections.begin(), m_AllConnections.end(), [&, this](auto pair)->bool
+	{
+		IKPostProcessConnectionPtr conn = pair.second;
+		if (conn->IsComplete())
+		{
+			if (conn->GetInputPortNode() == inputNode.get() &&
+				conn->GetOutputPortNode() == outputNode.get() &&
+				conn->GetInputSlot() == inSlot &&
+				conn->GetOutputSlot() == outSlot)
+			{
+				return true;
+			}
+		}
+		return false;
+	});
+
+	if (it != m_AllConnections.end())
+	{
+		return it->second;
+	}
+
+	return nullptr;
+}
+
+
 void KPostProcessManager::DeleteConnection(IKPostProcessConnectionPtr conn)
 {
 	auto it = m_AllConnections.find(conn->ID());
 	if(it != m_AllConnections.end())
 	{
-		KPostProcessData& outputData = ((KPostProcessConnection*)conn.get())->m_Output;
-		KPostProcessData& inputData = ((KPostProcessConnection*)conn.get())->m_Input;
-
-		outputData.node->RemoveOutputConnection(conn.get(), outputData.slot);
-		inputData.node->RemoveInputConnection(conn.get(), inputData.slot);
-
+		m_DeletedConnections.insert(conn);
 		m_AllConnections.erase(it);
 	}
+}
+
+bool KPostProcessManager::GetAllConnections(KPostProcessConnectionSet& set)
+{
+	set.clear();
+	for (auto pair : m_AllConnections)
+	{
+		set.insert(pair.second);
+	}
+	return true;
 }
 
 IKPostProcessConnectionPtr KPostProcessManager::GetConnection(KPostProcessConnection::IDType id)

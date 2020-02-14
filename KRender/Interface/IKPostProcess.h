@@ -17,6 +17,7 @@ typedef std::shared_ptr<IKPostProcessConnection> IKPostProcessConnectionPtr;
 typedef std::shared_ptr<IKPostProcessNode> IKPostProcessNodePtr;
 
 typedef std::unordered_set<IKPostProcessNodePtr> KPostProcessNodeSet;
+typedef std::unordered_set<IKPostProcessConnectionPtr> KPostProcessConnectionSet;
 
 struct IKPostProcessConnection
 {
@@ -96,8 +97,10 @@ struct IKPostProcessManager
 	virtual IKPostProcessNodePtr GetNode(IKPostProcessNode::IDType id) = 0;
 	virtual bool GetAllNodes(KPostProcessNodeSet& set) = 0;
 
+	virtual IKPostProcessConnectionPtr FindConnection(IKPostProcessNodePtr outputNode, int16_t outSlot, IKPostProcessNodePtr inputNode, int16_t inSlot) = 0;
 	virtual IKPostProcessConnectionPtr CreateConnection(IKPostProcessNodePtr outputNode, int16_t outSlot, IKPostProcessNodePtr inputNode, int16_t inSlot) = 0;
 	virtual void DeleteConnection(IKPostProcessConnectionPtr conn) = 0;
+	virtual bool GetAllConnections(KPostProcessConnectionSet& set) = 0;
 
 	virtual bool Construct() = 0;
 };
