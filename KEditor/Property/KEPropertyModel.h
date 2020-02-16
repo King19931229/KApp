@@ -7,21 +7,21 @@ template<typename T, size_t DIMENSION = 1>
 class KEPropertyModel
 {
 protected:
-	T m_SelfValue[DIMENSION];
-	T* m_Value;
+	T* m_SelfValue = nullptr;
+	T* m_Value = nullptr;
 
 	typedef KEPropertyModel<T, DIMENSION> ModelType;
 
-	void Construct(std::initializer_list<T> list)
+	inline void Construct(std::initializer_list<T> list) noexcept
 	{
 		assert(list.size() == DIMENSION);
 		for (size_t i = 0; i < list.size(); ++i)
 		{
-			m_Value[i] = *(list.begin() + i);
+			m_Value[i] = std::move(*(list.begin() + i));
 		}
 	}
 
-	void Construct(const ModelType& rhs)
+	inline void Construct(const ModelType& rhs) noexcept
 	{
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
@@ -29,109 +29,142 @@ protected:
 		}
 	}
 
-	void ZeroConstruct()
+	inline void Construct(ModelType&& rhs) noexcept
 	{
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_Value[i] = T();
+			m_Value[i] = std::move(rhs.m_Value[i]);
+		}
+	}
+
+	inline void EmptyConstruct() noexcept
+	{
+		for (size_t i = 0; i < DIMENSION; ++i)
+		{
+			m_Value[i] = std::move(T());
 		}
 	}
 
 	template<typename T2>
-	bool Less(const T2& lhs, const T2& rhs) const
+	inline bool Less(const T2& lhs, const T2& rhs) const
 	{
 		return lhs < rhs;
 	}
 
 	template<typename T2>
-	bool Greater(const T2& lhs, const T2& rhs) const
+	inline bool Greater(const T2& lhs, const T2& rhs) const
 	{
 		return lhs > rhs;
 	}
 
 	template<typename T2>
-	bool Compare(const T2& lhs, const T2& rhs) const
+	inline bool Compare(const T2& lhs, const T2& rhs) const
 	{
 		return lhs == rhs;
 	}
 
 	template<>
-	bool Compare(const float& lhs, const float& rhs) const
+	inline bool Compare(const float& lhs, const float& rhs) const
 	{
 		constexpr float precision = 0.0001f;
 		return std::abs(lhs - rhs) < precision;
 	}
 
 	template<>
-	bool Compare(const double& lhs, const double& rhs) const
+	inline bool Compare(const double& lhs, const double& rhs) const
 	{
 		constexpr double precision = 0.0001;
 		return std::abs(lhs - rhs) < precision;
 	}
 public:
-	KEPropertyModel()
-		: m_Value(m_SelfValue)
+	KEPropertyModel() noexcept
+		: m_SelfValue(new T [DIMENSION]),
+		m_Value(m_SelfValue)
 	{
-		ZeroConstruct();
+		EmptyConstruct();
 	}
 
-	KEPropertyModel(T reference[DIMENSION])
-		: m_Value(reference)
-	{
-	}
-
-	KEPropertyModel(const T& value)
-		: m_Value(m_SelfValue)
+	KEPropertyModel(const T& value) noexcept
+		: m_SelfValue(new T[DIMENSION]),
+		m_Value(m_SelfValue)
 	{
 		assert(DIMENSION == 1 && "dimension larger than 1 is not supported");
 		m_Value[0] = value;
 	}
 
-	KEPropertyModel(const T&& value)
-		: m_Value(m_SelfValue)
+	KEPropertyModel(T&& value) noexcept
+		: m_SelfValue(new T[DIMENSION]),
+		m_Value(m_SelfValue)
 	{
 		assert(DIMENSION == 1 && "dimension larger than 1 is not supported");
-		m_Value[0] = value;
+		m_Value[0] = std::move(value);
 	}
 
-	KEPropertyModel(std::initializer_list<T> list)
-		: m_Value(m_SelfValue)
+	KEPropertyModel(std::initializer_list<T> list) noexcept
+		: m_SelfValue(new T[DIMENSION]),
+		m_Value(m_SelfValue)
 	{
 		Construct(list);
 	}
 
-	KEPropertyModel(KEPropertyModel& rhs)
-		: m_Value(m_SelfValue)
+	KEPropertyModel(const KEPropertyModel& rhs) noexcept
+		: m_SelfValue(new T[DIMENSION]),
+		m_Value(m_SelfValue)
 	{
 		Construct(rhs);
 	}
 
-	size_t Diemension() const
+	KEPropertyModel(KEPropertyModel&& rhs) noexcept
+		: m_SelfValue(std::move(rhs.m_SelfValue)),
+		m_Value(m_SelfValue)
+	{
+		rhs.m_SelfValue = nullptr;
+		Construct(rhs);
+	}
+
+	KEPropertyModel(T reference[DIMENSION]) noexcept
+		: m_SelfValue(nullptr),
+		m_Value(reference)
+	{
+	}
+
+	~KEPropertyModel()
+	{
+		SAFE_DELETE_ARRAY(m_SelfValue);
+	}
+
+	constexpr size_t Diemension() const
 	{
 		return DIMENSION;
 	}
 
-	ModelType& operator=(const T& value)
+	ModelType& operator=(const T& value) noexcept
 	{
 		static_assert(DIMENSION == 1, "dimension larger than 1 is not supported");
 		m_Value[0] = value;
 		return *this;
 	}
 
-	ModelType& operator=(const T&& value)
+	ModelType& operator=(T&& value) noexcept
 	{
 		static_assert(DIMENSION == 1, "dimension larger than 1 is not supported");
-		m_Value[0] = value;
+		m_Value[0] = std::move(value);
 		return *this;
 	}
 
-	ModelType& operator=(const ModelType& rhs)
+	ModelType& operator=(const ModelType& rhs) noexcept
 	{
 		Construct(rhs);
 		return *this;
 	}
 
-	ModelType& operator=(std::initializer_list<T> list)
+	ModelType& operator=(ModelType&& rhs) noexcept
+	{
+		Construct(std::move(rhs));
+		return *this;
+	}
+
+	ModelType& operator=(std::initializer_list<T> list) noexcept
 	{
 		Construct(list);
 		return *this;
