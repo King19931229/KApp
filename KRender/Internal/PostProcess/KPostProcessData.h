@@ -13,7 +13,7 @@ struct KPostProcessData
 	KPostProcessData()
 	{
 		node = nullptr;
-		slot = INVALID_SLOT_INDEX;
+		slot = PostProcessPort::INVALID_SLOT_INDEX;
 	}
 
 	void Init(IKPostProcessNode* _node, int16_t _slot)
@@ -24,7 +24,7 @@ struct KPostProcessData
 
 	bool IsComplete() const
 	{
-		if (node && slot != INVALID_SLOT_INDEX)
+		if (node && slot != PostProcessPort::INVALID_SLOT_INDEX)
 		{
 			return true;
 		}

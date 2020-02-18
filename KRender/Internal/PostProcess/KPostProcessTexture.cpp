@@ -35,7 +35,7 @@ bool KPostProcessTexture::AddInputConnection(IKPostProcessConnection* conn, int1
 
 bool KPostProcessTexture::AddOutputConnection(IKPostProcessConnection* conn, int16_t slot)
 {
-	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
+	if (slot < PostProcessPort::MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
 		m_OutputConnection[slot].insert(conn);
 		return true;
@@ -51,7 +51,7 @@ bool KPostProcessTexture::RemoveInputConnection(IKPostProcessConnection* conn, i
 
 bool KPostProcessTexture::RemoveOutputConnection(IKPostProcessConnection* conn, int16_t slot)
 {
-	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
+	if (slot < PostProcessPort::MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
 		auto it = m_OutputConnection[slot].find((KPostProcessConnection*)conn);
 		if (it != m_OutputConnection[slot].end())
@@ -65,7 +65,7 @@ bool KPostProcessTexture::RemoveOutputConnection(IKPostProcessConnection* conn, 
 
 bool KPostProcessTexture::GetOutputConnection(std::unordered_set<IKPostProcessConnection*>& set, int16_t slot)
 {
-	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0)
+	if (slot < PostProcessPort::MAX_OUTPUT_SLOT_COUNT && slot >= 0)
 	{
 		set = m_OutputConnection[slot];
 		return true;

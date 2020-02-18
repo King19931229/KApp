@@ -16,7 +16,7 @@ public:
 		slot(_slot)
 	{
 		assert(node);
-		assert(slot != INVALID_SLOT_INDEX);
+		assert(slot != PostProcessPort::INVALID_SLOT_INDEX);
 	}
 
 	KEGraphNodeDataType Type() const override

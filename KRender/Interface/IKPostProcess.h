@@ -3,9 +3,12 @@
 #include <unordered_set>
 #include <memory>
 
-const static int16_t MAX_INPUT_SLOT_COUNT = 4;
-const static int16_t MAX_OUTPUT_SLOT_COUNT = 4;
-static const int16_t INVALID_SLOT_INDEX = -1;
+struct PostProcessPort
+{
+	constexpr static int16_t MAX_INPUT_SLOT_COUNT = 4;
+	constexpr static int16_t MAX_OUTPUT_SLOT_COUNT = 4;
+	constexpr static int16_t INVALID_SLOT_INDEX = -1;
+};
 
 struct IKPostProcessConnection;
 struct IKPostProcessNode;

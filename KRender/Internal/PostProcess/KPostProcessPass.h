@@ -48,9 +48,9 @@ protected:
 	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 
 	// 一个输出槽可能连接到多个节点输出
-	std::unordered_set<IKPostProcessConnection*> m_OutputConnection[MAX_OUTPUT_SLOT_COUNT];
+	std::unordered_set<IKPostProcessConnection*> m_OutputConnection[PostProcessPort::MAX_OUTPUT_SLOT_COUNT];
 	// 一个输入槽只可能从一个节点输入
-	IKPostProcessConnection* m_InputConnection[MAX_INPUT_SLOT_COUNT];
+	IKPostProcessConnection* m_InputConnection[PostProcessPort::MAX_INPUT_SLOT_COUNT];
 private:
 	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage);
 	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage, IDType id);

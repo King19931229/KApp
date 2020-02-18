@@ -59,7 +59,7 @@ bool KPostProcessConnection::Load(IKJsonValuePtr& object)
 	m_ID = object->GetMember(msIDKey)->GetString();
 
 	{
-		int16_t inSlot = INVALID_SLOT_INDEX;
+		int16_t inSlot = PostProcessPort::INVALID_SLOT_INDEX;
 
 		auto in_json = object->GetMember(msInKey);
 
@@ -74,7 +74,7 @@ bool KPostProcessConnection::Load(IKJsonValuePtr& object)
 	}
 
 	{
-		int16_t outSlot = INVALID_SLOT_INDEX;
+		int16_t outSlot = PostProcessPort::INVALID_SLOT_INDEX;
 
 		auto out_json = object->GetMember(msOutKey);
 

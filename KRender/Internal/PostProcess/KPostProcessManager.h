@@ -56,6 +56,7 @@ protected:
 
 	void ClearDeletedPassConnection();
 	void ClearCreatedPassConnection();
+	void GetAllParentNode(IKPostProcessNode* node, std::unordered_set<IKPostProcessNode*>& parents);
 	void IterPostProcessGraph(std::function<void(IKPostProcessNode*)> func);
 	void PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderTargetPtr target);
 public:

@@ -16,41 +16,6 @@ KEPostProcessGraphView::KEPostProcessGraphView()
 	});
 
 	Sync();
-
-	//auto FindPostProcessNode = [](KEGraphNodeModel* model)->IKPostProcessNodePtr
-	//{
-	//	IKPostProcessNodePtr node = nullptr;
-
-	//	if (model->Name() == KEPostProcessPassModel::ModelName)
-	//	{
-	//		node = ((KEPostProcessPassModel*)model)->GetNode();
-	//	}
-	//	else if (model->Name() == KEPostProcessTextureModel::ModelName)
-	//	{
-	//		// TODO
-	//	}
-	//	return node;
-	//};
-
-	//QObject::connect(m_Scene.get(), &KEGraphScene::SingalConnectionCreated, [&FindPostProcessNode](KEGraphConnectionControl* conn)
-	//{
-	//	int16_t outSlot = (int16_t)conn->GetPortIndex(PT_OUT);
-	//	IKPostProcessNodePtr outNode = FindPostProcessNode(conn->GetNode(PT_OUT)->GetModel());
-
-	//	int16_t inSlot = (int16_t)conn->GetPortIndex(PT_IN);
-	//	IKPostProcessNodePtr inNode = FindPostProcessNode(conn->GetNode(PT_IN)->GetModel());
-
-	//	if (outNode && inNode)
-	//	{
-	//		auto mgr = GetProcessManager();
-	//		mgr->CreateConnection(outNode, outSlot, inNode, inSlot);
-	//	}
-	//});
-
-	//QObject::connect(m_Scene.get(), &KEGraphScene::SingalConnectionDeleted, [](KEGraphConnectionControl* conn)
-	//{
-
-	//});
 }
 
 KEPostProcessGraphView::~KEPostProcessGraphView()
@@ -70,7 +35,7 @@ void KEPostProcessGraphView::BuildConnection(IKPostProcessNode* node, const std:
 
 	KEGraphNodeControl* outNode = it->second;
 
-	for (int16_t i = 0; i < MAX_OUTPUT_SLOT_COUNT; ++i)
+	for (int16_t i = 0; i < PostProcessPort::MAX_OUTPUT_SLOT_COUNT; ++i)
 	{
 		std::unordered_set<IKPostProcessConnection*> outConns;
 		node->GetOutputConnection(outConns, i);

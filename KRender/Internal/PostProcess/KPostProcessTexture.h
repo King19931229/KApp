@@ -9,7 +9,7 @@ protected:
 	IDType m_ID;
 	std::string m_Path;
 	IKTexturePtr m_Texture;
-	std::unordered_set<IKPostProcessConnection*> m_OutputConnection[MAX_OUTPUT_SLOT_COUNT];
+	std::unordered_set<IKPostProcessConnection*> m_OutputConnection[PostProcessPort::MAX_OUTPUT_SLOT_COUNT];
 
 	static const char* ms_TextureKey;
 

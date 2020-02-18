@@ -151,7 +151,7 @@ bool KPostProcessPass::Init()
 			pipeline->SetFrontFace(FF_CLOCKWISE);
 			pipeline->SetPolygonMode(PM_FILL);
 
-			for (int16_t slot = 0; slot < MAX_INPUT_SLOT_COUNT; ++slot)
+			for (int16_t slot = 0; slot < PostProcessPort::MAX_INPUT_SLOT_COUNT; ++slot)
 			{
 				auto& input = m_InputConnection[slot];
 				if (input)
@@ -350,7 +350,7 @@ bool KPostProcessPass::Load(IKJsonValuePtr& object)
 
 bool KPostProcessPass::AddInputConnection(IKPostProcessConnection* conn, int16_t slot)
 {
-	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
+	if (slot < PostProcessPort::MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
 		m_InputConnection[slot] = conn;
 		return true;
@@ -360,7 +360,7 @@ bool KPostProcessPass::AddInputConnection(IKPostProcessConnection* conn, int16_t
 
 bool KPostProcessPass::AddOutputConnection(IKPostProcessConnection* conn, int16_t slot)
 {
-	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
+	if (slot < PostProcessPort::MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
 		m_OutputConnection[slot].insert(conn);
 		return true;
@@ -370,7 +370,7 @@ bool KPostProcessPass::AddOutputConnection(IKPostProcessConnection* conn, int16_
 
 bool KPostProcessPass::RemoveInputConnection(IKPostProcessConnection* conn, int16_t slot)
 {
-	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
+	if (slot < PostProcessPort::MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
 		if (m_InputConnection[slot] == conn)
 		{
@@ -383,7 +383,7 @@ bool KPostProcessPass::RemoveInputConnection(IKPostProcessConnection* conn, int1
 
 bool KPostProcessPass::RemoveOutputConnection(IKPostProcessConnection* conn, int16_t slot)
 {
-	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
+	if (slot < PostProcessPort::MAX_OUTPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
 		auto it = m_OutputConnection[slot].find(conn);
 		if (it != m_OutputConnection[slot].end())
@@ -397,7 +397,7 @@ bool KPostProcessPass::RemoveOutputConnection(IKPostProcessConnection* conn, int
 
 bool KPostProcessPass::GetOutputConnection(std::unordered_set<IKPostProcessConnection*>& set, int16_t slot)
 {
-	if (slot < MAX_OUTPUT_SLOT_COUNT && slot >= 0)
+	if (slot < PostProcessPort::MAX_OUTPUT_SLOT_COUNT && slot >= 0)
 	{
 		set = m_OutputConnection[slot];
 		return true;
@@ -407,7 +407,7 @@ bool KPostProcessPass::GetOutputConnection(std::unordered_set<IKPostProcessConne
 
 bool KPostProcessPass::GetInputConnection(IKPostProcessConnection*& conn, int16_t slot)
 {
-	if (slot < MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
+	if (slot < PostProcessPort::MAX_INPUT_SLOT_COUNT && slot >= 0 && conn)
 	{
 		conn = m_InputConnection[slot];
 		return true;

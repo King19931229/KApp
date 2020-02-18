@@ -198,7 +198,20 @@ void KPostProcessManager::ClearCreatedPassConnection()
 	m_AllNodes.clear();
 }
 
-// TODO
+void KPostProcessManager::GetAllParentNode(IKPostProcessNode* node, std::unordered_set<IKPostProcessNode*>& parents)
+{
+	parents.clear();
+
+	for (auto i = 0; i < PostProcessPort::MAX_INPUT_SLOT_COUNT; ++i)
+	{
+		IKPostProcessConnection* conn = nullptr;
+		if (node->GetInputConnection(conn, i) && conn)
+		{
+			parents.insert(conn->GetOutputPortNode());
+		}
+	}
+}
+
 void KPostProcessManager::IterPostProcessGraph(std::function<void(IKPostProcessNode*)> func)
 {
 	std::unordered_map<IKPostProcessNode*, bool> visitFlags;
@@ -219,24 +232,38 @@ void KPostProcessManager::IterPostProcessGraph(std::function<void(IKPostProcessN
 
 		if (!visitFlags[node])
 		{
+			bool skipVisit = false;
+
+			std::unordered_set<IKPostProcessNode*> parents;
+			GetAllParentNode(node, parents);
+
+			for (IKPostProcessNode* parent : parents)
+			{
+				if (!visitFlags[parent])
+				{
+					skipVisit = true;
+					break;
+				}
+			}
+
+			if (skipVisit)
+			{
+				continue;
+			}
+
 			visitFlags[node] = true;
 
 			func(node);
 
-			for (int16_t slot = 0; slot < MAX_OUTPUT_SLOT_COUNT; ++slot)
+			for (int16_t slot = 0; slot < PostProcessPort::MAX_OUTPUT_SLOT_COUNT; ++slot)
 			{
-				if (node->GetType() == PPNT_PASS)
+				std::unordered_set<IKPostProcessConnection*> connections;
+				if (node->GetOutputConnection(connections, slot))
 				{
-					KPostProcessPass* pass = (KPostProcessPass*)node;
-					auto& connections = pass->m_OutputConnection[slot];
 					for (auto conn : connections)
 					{
 						bfsQueue.push(((KPostProcessConnection*)conn)->m_Input.node);
 					}
-				}
-				else
-				{
-					// TODO
 				}
 			}
 		}

@@ -107,9 +107,9 @@ unsigned int KEPostProcessPassModel::NumPorts(PortType portType) const
 	switch (portType)
 	{
 	case PT_IN:
-		return MAX_INPUT_SLOT_COUNT;
+		return PostProcessPort::MAX_INPUT_SLOT_COUNT;
 	case PT_OUT:
-		return MAX_OUTPUT_SLOT_COUNT;
+		return PostProcessPort::MAX_OUTPUT_SLOT_COUNT;
 	default:
 		return 0;
 	}
@@ -122,7 +122,7 @@ KEGraphNodeDataType KEPostProcessPassModel::DataType(PortType portType, PortInde
 
 void KEPostProcessPassModel::SetInData(KEGraphNodeDataPtr nodeData, PortIndexType port)
 {
-	int16_t outPort = INVALID_SLOT_INDEX;
+	int16_t outPort = PostProcessPort::INVALID_SLOT_INDEX;
 	IKPostProcessNodePtr outNode = nullptr;
 
 	if (nodeData)
@@ -134,7 +134,7 @@ void KEPostProcessPassModel::SetInData(KEGraphNodeDataPtr nodeData, PortIndexTyp
 
 	if (outNode)
 	{
-		if (outPort != INVALID_SLOT_INDEX)
+		if (outPort != PostProcessPort::INVALID_SLOT_INDEX)
 		{
 			IKPostProcessManager* mgr = GetProcessManager();
 
