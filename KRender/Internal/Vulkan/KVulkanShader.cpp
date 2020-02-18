@@ -122,6 +122,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* p
 	else
 	{
 #ifdef _WIN32
+#pragma warning(disable: 4996)
 		std::string shaderCompiler = getenv("VULKAN_SDK");
 #ifdef _WIN64
 		if(KFileTool::PathJoin(shaderCompiler, "Bin/glslc.exe", shaderCompiler))

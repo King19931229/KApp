@@ -317,20 +317,29 @@ bool KEPostProcessGraphView::AutoLayout()
 
 	// 6.调整view位置与缩放
 	{
-		QRectF sceneBounding = AllNodeBoundingRect();
+		// 先缩放
+		{
+			QRectF sceneBounding = AllNodeBoundingRect();
+			QPointF viewTopLeft = mapToScene(QPoint(0, 0));
+			QPointF viewBottomRight = mapToScene(QPoint(width(), height()));
 
-		QPointF viewTopLeft = mapToScene(QPoint(0, 0));
-		QPointF viewBottomRight = mapToScene(QPoint(width(), height()));
+			float width = viewBottomRight.x() - viewTopLeft.x();
+			float height = viewBottomRight.y() - viewTopLeft.y();
 
-		float width = viewBottomRight.x() - viewTopLeft.x();
-		float height = viewBottomRight.y() - viewTopLeft.y();
+			float factor = std::min(width / sceneBounding.width(), height / sceneBounding.height());
+			scale(factor, factor);
+		}
+		// 再平移
+		{
+			QRectF sceneBounding = AllNodeBoundingRect();
+			QPointF viewTopLeft = mapToScene(QPoint(0, 0));
+			QPointF viewBottomRight = mapToScene(QPoint(width(), height()));
 
-		QPointF viewCenter = (viewTopLeft + viewBottomRight) * 0.5f;
-		QPointF difference = sceneBounding.center() - viewCenter;
-		// setSceneRect其实只是把传入QRectF中心点作为观察中心点
-		setSceneRect(sceneRect().translated(difference.x(), difference.y()));
-		float factor = std::min(width / sceneBounding.width(), height / sceneBounding.height());
-		scale(factor, factor);
+			QPointF viewCenter = (viewTopLeft + viewBottomRight) * 0.5f;
+			QPointF difference = sceneBounding.center() - viewCenter;
+			// setSceneRect其实只是把传入QRectF中心点作为观察中心点
+			setSceneRect(sceneRect().translated(difference.x(), difference.y()));
+		}
 	}
 
 	return true;

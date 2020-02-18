@@ -386,6 +386,6 @@ public:
 
 	bool CheckVisibleFast(const KAABBBox& box) const
 	{
-		return m_Box.Intersection(box);
+		return m_Box.Intersect(box);
 	}
 };

@@ -34,6 +34,10 @@ public:
 
 	inline glm::vec3 GetCenter() const { return (m_Min + m_Max) * 0.5f; }
 	inline glm::vec3 GetExtend() const { return m_Max - m_Min; }
+	inline const glm::vec3& GetMin() const { return m_Min; }
+	inline const glm::vec3& GetMax() const { return m_Max; }
+	inline glm::vec3 GetMin() { return m_Min; }
+	inline glm::vec3 GetMax() { return m_Max; }
 
 	void InitFromExtent(const glm::vec3& center, const glm::vec3& extend)
 	{
@@ -98,7 +102,7 @@ public:
 		}
 	}
 
-	bool Intersection(const glm::vec3& point) const
+	bool Intersect(const glm::vec3& point) const
 	{
 		if(m_Max.x < point.x)
 			return false;
@@ -115,7 +119,7 @@ public:
 		return true;
 	}
 
-	bool Intersection(const KAABBBox& other) const
+	bool Intersect(const KAABBBox& other) const
 	{
 		if(m_Max.x < other.m_Min.x)
 			return false;
