@@ -197,12 +197,15 @@ bool KMeshSerializerV0::ReadVertexData(IKDataStreamPtr& stream, KVertexData& ver
 		vertexBuffers.clear();
 	};
 
+	KAABBBox bound;
+	bound.SetNull();
+
 	for(uint32_t i = 0; i < vertexElementCount; ++i)
 	{
 		VertexFormat format = VF_UNKNOWN;
 		IKVertexBufferPtr buffer = nullptr;
 
-		if(!ReadVertexElementData(stream, format, buffer))
+		if(!ReadVertexElementData(stream, format, buffer, bound))
 		{
 			releaseBuffers();
 			return false;
@@ -216,11 +219,12 @@ bool KMeshSerializerV0::ReadVertexData(IKDataStreamPtr& stream, KVertexData& ver
 	vertexData.vertexBuffers = std::move(vertexBuffers);
 	vertexData.vertexStart = vertexStart;
 	vertexData.vertexCount = vertexCount;
+	vertexData.bound = std::move(bound);
 
 	return true;
 }
 
-bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFormat& foramt, IKVertexBufferPtr& vertexBuffer)
+bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFormat& format, IKVertexBufferPtr& vertexBuffer, KAABBBox& bound)
 {
 	uint32_t flag = 0;
 
@@ -241,7 +245,7 @@ bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFor
 	ACTION_ON_FAILURE(stream->Read(&vertexDataCount, sizeof(vertexDataCount)), return false);
 	ACTION_ON_FAILURE(stream->Read(&vertexDataSize, sizeof(vertexDataSize)), return false);
 
-	foramt = (VertexFormat)vertexFormat;
+	format = (VertexFormat)vertexFormat;
 
 	vertexDatas.resize(vertexDataCount * vertexDataSize);
 	ACTION_ON_FAILURE(stream->Read(vertexDatas.data(), vertexDatas.size()), return false);
@@ -251,7 +255,37 @@ bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFor
 
 	ASSERT_RESULT(vertexBuffer->InitMemory(vertexDataCount, vertexDataSize, vertexDatas.data()));
 	ASSERT_RESULT(vertexBuffer->InitDevice(false));
-	
+
+	// bounding box
+	{
+		const auto& detail = KVertexDefinition::GetVertexDetail(format);
+
+		auto it = std::find_if(detail.semanticDetails.cbegin(), detail.semanticDetails.cend(), [](
+			const KVertexDefinition::VertexSemanticDetail& semanticDetail)
+		{
+			return semanticDetail.semantic == VS_POSITION;
+		});
+		if (it != detail.semanticDetails.cend())
+		{
+			const auto& semanticDetail = *it;
+			ElementFormat eleFormat = semanticDetail.elementFormat;
+			size_t eleOffset = semanticDetail.offset;
+
+			for (size_t i = 0; i < vertexDataCount; ++i)
+			{
+				if (eleFormat == EF_R32G32B32_FLOAT)
+				{
+					const glm::vec3* posData = reinterpret_cast<const glm::vec3*>(vertexDatas.data() + i * vertexDataSize + eleOffset);
+					bound.Merge(*posData, bound);
+				}
+				else
+				{
+					assert(false && "impossible");
+				}
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -487,7 +521,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 	pMesh->m_SubMeshes.resize(drawInfos.size());
 	for(size_t i = 0; i < drawInfos.size(); ++i)
 	{
-		const DrawElementInfo drawInfo = drawInfos[i];
+		const DrawElementInfo& drawInfo = drawInfos[i];
 
 		if(drawInfo.indexDataIdx >= indexDatas.size())
 		{

@@ -1,7 +1,12 @@
 #include "KOctreeSceneManager.h"
+#include "Internal/ECS/Component/KRenderComponent.h"
+#include "Internal/ECS/Component/KTransformComponent.h"
 
 KOctreeSceneManager::KOctreeSceneManager()
-	: m_Root(nullptr)
+	: m_Root(nullptr),
+	m_Looseness(1.0f),
+	m_InitialSize(0.0f),
+	m_MinSize(0.0f)
 {
 }
 
@@ -10,10 +15,15 @@ KOctreeSceneManager::~KOctreeSceneManager()
 	assert(!m_Root);
 }
 
-bool KOctreeSceneManager::Init(float baseLengthVal, float minSizeVal, float loosenessVal, const glm::vec3& centerVal)
+bool KOctreeSceneManager::Init(float initialWorldSize, const glm::vec3& initialWorldPos, float minNodeSize, float loosenessVal)
 {
 	UnInit();
-	m_Root = new KOctreeNode(baseLengthVal, minSizeVal, loosenessVal, centerVal);
+
+	m_InitialSize = initialWorldSize;
+	m_MinSize = minNodeSize;
+	m_Looseness = glm::clamp(loosenessVal, 1.0f, 2.0f);
+
+	m_Root = new KOctreeNode(m_InitialSize, m_MinSize, m_Looseness, initialWorldPos);
 	return true;
 }
 
@@ -23,26 +33,78 @@ bool KOctreeSceneManager::UnInit()
 	return true;
 }
 
+bool KOctreeSceneManager::GetEntityBound(KEntity* entity, KAABBBox& bound)
+{
+	if (entity)
+	{
+		KComponentBase* component = nullptr;
+		KRenderComponent* renderComponent = nullptr;
+		KTransformComponent* transformComponent = nullptr;
+
+		if (entity->GetComponent(CT_RENDER, &component))
+		{
+			renderComponent = (KRenderComponent*)component;
+		}
+		if (entity->GetComponent(CT_TRANSFORM, &component))
+		{
+			transformComponent = (KTransformComponent*)component;
+		}
+
+		if (renderComponent && transformComponent)
+		{
+			KMeshPtr mesh = renderComponent->GetMesh();
+			if (mesh)
+			{
+				const KAABBBox& localBound = mesh->GetLocalBound();
+				const auto& finalTransform = transformComponent->FinalTransform();
+				localBound.Transform(finalTransform.MODEL, bound);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 bool KOctreeSceneManager::Add(KEntity* entity)
 {
-	// TODO
+	KAABBBox bound;
+	if (m_Root && GetEntityBound(entity, bound))
+	{
+		return m_Root->Add(entity, bound);
+	}
 	return false;
 }
 
 bool KOctreeSceneManager::Remove(KEntity* entity)
 {
-	// TODO
+	KAABBBox bound;
+	if (m_Root && GetEntityBound(entity, bound))
+	{
+		return m_Root->Remove(entity, bound);
+	}
 	return false;
 }
 
 bool KOctreeSceneManager::Move(KEntity* entity)
 {
-	// TODO
-	return false;
+	if (!Remove(entity))
+	{
+		return false;
+	}
+	if (!Add(entity))
+	{
+		return false;
+	}
+	return true;
 }
 
-bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::vector<KEntity*>& visibles)
+bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<KEntity*>& visibles)
 {
-	// TODO
+	if (m_Root)
+	{
+		visibles.clear();
+		m_Root->GetWithinCamera(*camera, visibles);
+		return true;
+	}
 	return false;
 }

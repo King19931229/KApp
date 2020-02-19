@@ -279,8 +279,7 @@ public:
 		return false;
 	}
 
-	using QueryResultType = std::deque<KEntity*>;
-
+	template<typename QueryResultType>
 	void GetColliding(const KAABBBox& checkBounds, QueryResultType& result)
 	{
 		if (!bounds.Intersect(checkBounds))
@@ -306,6 +305,7 @@ public:
 		}
 	}
 
+	template<typename QueryResultType>
 	void GetWithinCamera(const KCamera& camera, QueryResultType& result)
 	{
 		if (!camera.CheckVisible(bounds))
@@ -326,20 +326,32 @@ public:
 	}
 };
 
-class KOctreeSceneManager
+#include "KSceneManagerBase.h"
+
+class KOctreeSceneManager : public KSceneManagerBase
 {
+protected:
+	// Root node of the octree
 	KOctreeNode* m_Root;
+	// Should be a value between 1 and 2. A multiplier for the base size of a node.
+	// 1.0 is a "normal" octree, while values > 1 have overlap
+	float m_Looseness;
+	// Size that the octree was on creation
+	float m_InitialSize;
+	// Minimum side length that a node can be - essentially an alternative to having a max depth
+	float m_MinSize;
+
+	bool GetEntityBound(KEntity* entity, KAABBBox& bound);
 public:
 	KOctreeSceneManager();
 	~KOctreeSceneManager();
 
-	bool Init(float baseLengthVal, float minSizeVal, float loosenessVal, const glm::vec3& centerVal);
+	bool Init(float initialWorldSize, const glm::vec3& initialWorldPos, float minNodeSize, float loosenessVal);
 	bool UnInit();
 
-	bool Add(KEntity* entity);
-	bool Remove(KEntity* entity);
-
-	bool Move(KEntity* entity);
-
-	bool GetVisibleEntity(const KCamera* camera, std::vector<KEntity*>& visibles);
+	SceneManagerType GetType() override { return SCENE_MANGER_TYPE_OCTREE; }
+	bool Add(KEntity* entity) override;
+	bool Remove(KEntity* entity) override;
+	bool Move(KEntity* entity) override;
+	bool GetVisibleEntity(const KCamera* camera, std::deque<KEntity*>& visibles) override;
 };

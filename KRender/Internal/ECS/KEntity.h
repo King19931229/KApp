@@ -13,6 +13,7 @@ public:
 	KEntity(size_t id);
 	~KEntity();
 
+	// TODO make it template
 	bool GetComponent(ComponentType type, KComponentBase** pptr);
 	bool HasComponent(ComponentType type);
 

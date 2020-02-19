@@ -179,7 +179,7 @@ public:
 		}
 	}
 
-	void Merge(const KAABBBox& other, KAABBBox& result) const
+	void Merge(const KAABBBox& other, KAABBBox& result)
 	{
 		if(IsInfinite())
 		{
@@ -222,7 +222,7 @@ public:
 		}
 	}
 
-	void Merge(const glm::vec3& point, KAABBBox& result) const
+	void Merge(const glm::vec3& point, KAABBBox& result)
 	{
 		if(IsInfinite())
 		{

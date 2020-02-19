@@ -13,6 +13,14 @@ protected:
 	glm::vec3 m_Scale;
 	glm::quat m_Rotate;	
 	KConstantDefinition::OBJECT m_FinalTransform;
+
+	void UpdateTransform()
+	{
+		glm::mat4 rotate = glm::mat4_cast(m_Rotate);
+		glm::mat4 scale = glm::scale(glm::mat4(1.0f), m_Scale);
+		glm::mat4 translate = glm::translate(glm::mat4(1.0f), m_Position);
+		m_FinalTransform.MODEL = translate * rotate * scale;
+	}
 public:
 	KTransformComponent()
 		: KComponentBase(CT_TRANSFORM),
@@ -22,16 +30,30 @@ public:
 	{}
 	virtual ~KTransformComponent() {}
 
-	glm::quat& GetRotate() { return m_Rotate; }
-	glm::vec3& GetScale() { return m_Scale; }
-	glm::vec3& GetPosition() { return m_Position; }
+	inline const glm::quat& GetRotate() const { return m_Rotate; }
+	inline const glm::vec3& GetScale() const { return m_Scale; }
+	inline const glm::vec3& GetPosition() const { return m_Position; }
 
-	inline KConstantDefinition::OBJECT&	FinalTransform()
+	void SetRotate(const glm::quat& rotate)
 	{
-		glm::mat4 rotate = glm::mat4_cast(m_Rotate);
-		glm::mat4 scale = glm::scale(glm::mat4(1.0f), m_Scale);
-		glm::mat4 translate = glm::translate(glm::mat4(1.0f), m_Position);
-		m_FinalTransform.MODEL = translate * rotate * scale;
+		m_Rotate = rotate;
+		UpdateTransform();
+	}
+
+	void SetScale(const glm::vec3& scale)
+	{
+		m_Scale = scale;
+		UpdateTransform();
+	}
+
+	void SetPosition(const glm::vec3& position)
+	{
+		m_Position = position;
+		UpdateTransform();
+	}
+
+	inline const KConstantDefinition::OBJECT& FinalTransform() const
+	{		
 		return m_FinalTransform;
 	}
 };

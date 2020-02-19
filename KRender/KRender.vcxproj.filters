@@ -282,6 +282,9 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessTexture.h">
       <Filter>Internal\PostProcess</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Scene\KSceneManagerBase.h">
+      <Filter>Internal\Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -441,6 +444,9 @@
       <Filter>Internal\PostProcess</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Scene\KOctreeSceneManager.cpp">
+      <Filter>Internal\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Scene\KScene.cpp">
       <Filter>Internal\Scene</Filter>
     </ClCompile>
   </ItemGroup>

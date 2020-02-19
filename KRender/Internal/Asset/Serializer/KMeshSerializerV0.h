@@ -30,7 +30,7 @@ protected:
 	bool ReadVersion(IKDataStreamPtr& stream, uint32_t& version);
 
 	bool ReadVertexData(IKDataStreamPtr& stream, KVertexData& vertexData);
-	bool ReadVertexElementData(IKDataStreamPtr& stream, VertexFormat& foramt, IKVertexBufferPtr& vertexBuffer);
+	bool ReadVertexElementData(IKDataStreamPtr& stream, VertexFormat& foramt, IKVertexBufferPtr& vertexBuffer, KAABBBox& bound);
 
 	bool ReadIndexData(IKDataStreamPtr& stream, std::vector<KIndexData>& indexDatas);
 	bool ReadIndexElementData(IKDataStreamPtr& stream, KIndexData& indexData);

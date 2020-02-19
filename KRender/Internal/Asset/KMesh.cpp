@@ -119,12 +119,14 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 			return false;
 		}
 
-		m_VertexData.vertexFormats = std::move(std::vector<VertexFormat>(formats, formats + ARRAY_SIZE(formats)));
+		m_VertexData.vertexFormats = std::vector<VertexFormat>(formats, formats + ARRAY_SIZE(formats));
 		m_VertexData.vertexBuffers.resize(m_VertexData.vertexFormats.size());
 		m_VertexData.vertexStart = 0;
 		m_VertexData.vertexCount = result.vertexCount;
 
 		assert(m_VertexData.vertexFormats.size() == result.verticesDatas.size());
+
+		m_VertexData.bound.SetNull();
 
 		for(size_t i = 0; i < m_VertexData.vertexFormats.size(); ++i)
 		{
@@ -138,6 +140,36 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 
 			ASSERT_RESULT(buffer->InitMemory(result.vertexCount, detail.vertexSize, dataSource.data()));
 			ASSERT_RESULT(buffer->InitDevice(false));
+
+			if (format == VF_POINT_NORMAL_UV)
+			{
+				const auto& detail = KVertexDefinition::GetVertexDetail(format);
+
+				auto it = std::find_if(detail.semanticDetails.cbegin(), detail.semanticDetails.cend(), [](
+					const KVertexDefinition::VertexSemanticDetail& semanticDetail)
+				{
+					return semanticDetail.semantic == VS_POSITION;
+				});
+				if (it != detail.semanticDetails.cend())
+				{
+					const auto& semanticDetail = *it;
+					ElementFormat eleFormat = semanticDetail.elementFormat;
+					size_t eleOffset = semanticDetail.offset;
+
+					for (uint32_t i = 0; i < result.vertexCount; ++i)
+					{
+						if (eleFormat == EF_R32G32B32_FLOAT)
+						{
+							const glm::vec3* posData = reinterpret_cast<const glm::vec3*>(dataSource.data() + i * detail.vertexSize + eleOffset);
+							m_VertexData.bound.Merge(*posData, m_VertexData.bound);
+						}
+						else
+						{
+							assert(false && "impossible");
+						}
+					}
+				}
+			}
 		}
 
 		m_SubMeshes.resize(result.parts.size());

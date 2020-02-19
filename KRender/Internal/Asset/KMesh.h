@@ -20,6 +20,7 @@ public:
 	~KMesh();
 
 	inline const std::string& GetPath() const { return m_Path; }
+	inline const KAABBBox& GetLocalBound() const { return m_VertexData.bound; }
 
 	bool SaveAsFile(const char* szPath);
 	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight);

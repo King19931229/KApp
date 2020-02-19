@@ -3,6 +3,7 @@
 #include "Interface/IKShader.h"
 #include "Interface/IKBuffer.h"
 #include "Interface/IKPipeline.h"
+#include "Publish/KAABBBox.h"
 
 #include <assert.h>
 
@@ -13,11 +14,13 @@ struct KVertexData
 	std::vector<IKVertexBufferPtr> vertexBuffers;
 	uint32_t vertexStart;
 	uint32_t vertexCount;
+	KAABBBox bound;
 
 	KVertexData()
 	{
 		vertexStart = 0;
 		vertexCount = 0;
+		bound.SetNull();
 	}
 
 	~KVertexData()
@@ -28,6 +31,7 @@ struct KVertexData
 	{
 		vertexBuffers.clear();
 		vertexFormats.clear();
+		bound.SetNull();
 		vertexStart = 0;
 		vertexCount = 0;
 	}
@@ -90,7 +94,7 @@ struct KRenderCommand
 	IKPipelinePtr pipeline;
 	IKPipelineHandlePtr pipelineHandle;
 
-	void* objectData;
+	const void* objectData;
 	uint32_t objectPushOffset;
 	bool useObjectData;
 

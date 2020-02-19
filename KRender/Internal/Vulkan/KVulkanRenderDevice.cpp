@@ -25,6 +25,8 @@
 #include "Internal/ECS/KECSGlobal.h"
 #include "Internal/ECS/System/KCullSystem.h"
 
+#include "Internal/Scene/KScene.h"
+
 #include "KBase/Interface/IKLog.h"
 
 #include <algorithm>
@@ -150,9 +152,7 @@ static void DestroyDebugReportCallbackEXT(
 /* TODO LIST
 材质文件
 场景文件
-Mesh包围盒
 深度排序
-后处理框架
 场景渲染框架
 */
 
@@ -162,6 +162,7 @@ Android 镜头翻转
 */
 
 KCullSystem CULL_SYSTEM;
+KScene SCENE;
 
 //-------------------- KVulkanRenderDevice --------------------//
 KVulkanRenderDevice::KVulkanRenderDevice()
@@ -624,14 +625,18 @@ bool KVulkanRenderDevice::CreateMesh()
 
 			if(entity->RegisterComponent(CT_TRANSFORM, &component))
 			{
-				glm::vec3& pos = ((KTransformComponent*)component)->GetPosition();
+				glm::vec3 pos = ((KTransformComponent*)component)->GetPosition();
 				pos.x =(float)(i * 2 - width) / width * widthExtend;
 				pos.z = (float)(j * 2 - height) / height * heightExtend;
 				pos.y = 0;
-
-				glm::vec3& scale = ((KTransformComponent*)component)->GetScale();
+				((KTransformComponent*)component)->SetPosition(pos);
+				
+				glm::vec3 scale = ((KTransformComponent*)component)->GetScale();
 				scale = glm::vec3(0.1f, 0.1f, 0.1f);
+				((KTransformComponent*)component)->SetScale(scale);
 			}
+
+			SCENE.Add(entity.get());
 		}
 	}
 #endif
@@ -677,6 +682,8 @@ bool KVulkanRenderDevice::CreateMesh()
 #endif
 		}
 		entity->RegisterComponent(CT_TRANSFORM);
+
+		SCENE.Add(entity.get());
 	}
 #endif
 	return true;
@@ -1288,6 +1295,9 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 			return false;
 
 		// Temporarily for demo use
+		// TODO
+		SCENE.Init(SCENE_MANGER_TYPE_OCTREE, 5000.0f, glm::vec3(0.0f));
+
 		if(!CreateMesh())
 			return false;
 		if(!CreateVertexInput())
@@ -1343,6 +1353,10 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 bool KVulkanRenderDevice::UnInit()
 {
 	Wait();
+
+	// TODO
+	SCENE.UnInit();
+
 #ifndef THREAD_MODE_ONE
 	m_ThreadPool.WaitAllAsyncTaskDone();
 	m_ThreadPool.UnInit();
