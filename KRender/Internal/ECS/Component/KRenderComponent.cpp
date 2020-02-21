@@ -8,8 +8,7 @@ KRenderComponent::KRenderComponent()
 
 KRenderComponent::~KRenderComponent()
 {
-	assert(m_Mesh == nullptr);
-	m_Mesh = nullptr;
+	UnInit();
 }
 
 bool KRenderComponent::Init(const char* path)
@@ -22,13 +21,18 @@ bool KRenderComponent::InitFromAsset(const char* path)
 	return KRenderGlobal::MeshManager.AcquireFromAsset(path, m_Mesh);
 }
 
+bool KRenderComponent::InitAsBox(const KAABBBox& bound)
+{
+	return KRenderGlobal::MeshManager.CreateBox(bound, m_Mesh);
+}
+
 bool KRenderComponent::UnInit()
 {
-	if(m_Mesh)
+	if (m_Mesh)
 	{
 		KRenderGlobal::MeshManager.Release(m_Mesh);
 		m_Mesh = nullptr;
 		return true;
 	}
-	return false;
+	return true;
 }

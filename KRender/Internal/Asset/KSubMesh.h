@@ -28,6 +28,9 @@ protected:
 	size_t					m_FrameInFlight;
 	FramePipelineList		m_Pipelines[PIPELINE_STAGE_COUNT];
 
+	IKShaderPtr				m_DebugVSShader;
+	IKShaderPtr				m_DebugFSShader;
+
 	IKShaderPtr				m_PreZVSShader;
 	IKShaderPtr				m_PreZFSShader;
 
@@ -44,6 +47,7 @@ public:
 	~KSubMesh();
 
 	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialPtr material, size_t frameInFlight);
+	bool InitDebugOnly(const KVertexData* vertexData, const KIndexData& indexData, size_t frameInFlight);
 	bool UnInit();
 
 	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func);

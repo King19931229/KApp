@@ -22,6 +22,7 @@ public:
 	bool Move(KEntity* entity);
 
 	bool GetVisibleComponent(const KCamera& camera, std::vector<KRenderComponent*>& result);
+	bool GetDebugComponent(std::vector<KRenderComponent*>& result);
 
 	bool Load(const char* filename);
 	bool Save(const char* filename);

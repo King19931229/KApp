@@ -9,6 +9,7 @@ class KMesh
 {
 	friend class KSubMesh;
 	friend class KMeshSerializerV0;
+	friend class KMeshUtilityImpl;
 protected:
 	KVertexData m_VertexData;
 	std::vector<KSubMeshPtr> m_SubMeshes;
@@ -25,6 +26,7 @@ public:
 	bool SaveAsFile(const char* szPath);
 	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
 	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsBox(const KAABBBox& box, IKRenderDevice* device, size_t frameInFlight);
 	bool UnInit();
 
 	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func);

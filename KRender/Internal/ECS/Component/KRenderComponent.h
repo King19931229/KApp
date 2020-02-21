@@ -12,6 +12,7 @@ public:
 
 	bool Init(const char* path);
 	bool InitFromAsset(const char* path);
+	bool InitAsBox(const KAABBBox& bound);
 	bool UnInit();
 
 	inline KMeshPtr GetMesh() { return m_Mesh; }

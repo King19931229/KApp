@@ -50,14 +50,17 @@ bool KOctreeSceneManager::GetEntityBound(KEntity* entity, KAABBBox& bound)
 			transformComponent = (KTransformComponent*)component;
 		}
 
-		if (renderComponent && transformComponent)
+		if (renderComponent)
 		{
 			KMeshPtr mesh = renderComponent->GetMesh();
 			if (mesh)
 			{
 				const KAABBBox& localBound = mesh->GetLocalBound();
-				const auto& finalTransform = transformComponent->FinalTransform();
-				localBound.Transform(finalTransform.MODEL, bound);
+				if (transformComponent)
+				{
+					const auto& finalTransform = transformComponent->FinalTransform();
+					localBound.Transform(finalTransform.MODEL, bound);
+				}
 				return true;
 			}
 		}
@@ -104,6 +107,17 @@ bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<KEn
 	{
 		visibles.clear();
 		m_Root->GetWithinCamera(*camera, visibles);
+		return true;
+	}
+	return false;
+}
+
+bool KOctreeSceneManager::GetDebugComponent(std::vector<KRenderComponent*>& result)
+{
+	if (m_Root)
+	{
+		result.clear();
+		m_Root->GetDebugRender(result);
 		return true;
 	}
 	return false;

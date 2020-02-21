@@ -1,4 +1,5 @@
 #include "KMeshManager.h"
+#include "Internal/Asset/Utility/KMeshUtility.h"
 
 KMeshManager::KMeshManager()
 	: m_Device(nullptr),
@@ -9,6 +10,7 @@ KMeshManager::KMeshManager()
 KMeshManager::~KMeshManager()
 {
 	assert(m_Meshes.empty());
+	assert(m_SpecialMesh.empty());
 }
 
 bool KMeshManager::Init(IKRenderDevice* device, size_t frameInFlight)
@@ -32,6 +34,13 @@ bool KMeshManager::UnInit()
 		info.mesh->UnInit();
 	}
 	m_Meshes.clear();
+
+	for (KMeshPtr mesh : m_SpecialMesh)
+	{
+		mesh->UnInit();
+	}
+	m_SpecialMesh.clear();
+
 	m_Device = nullptr;
 	m_FrameInFlight = 0;
 
@@ -87,21 +96,49 @@ bool KMeshManager::Release(KMeshPtr& ptr)
 {
 	if(ptr)
 	{
-		auto it = m_Meshes.find(ptr->GetPath());
-		if(it != m_Meshes.end())
+		const auto& path = ptr->GetPath();
+
+		if (!path.empty())
 		{
-			MeshUsingInfo& info = it->second;
-			info.useCount -= 1;
-
-			if(info.useCount == 0)
+			auto it = m_Meshes.find(path);
+			if (it != m_Meshes.end())
 			{
-				ptr->UnInit();
-				m_Meshes.erase(it);
-			}
+				MeshUsingInfo& info = it->second;
+				info.useCount -= 1;
 
-			ptr = nullptr;
-			return true;
+				if (info.useCount == 0)
+				{
+					ptr->UnInit();
+					m_Meshes.erase(it);
+				}
+
+				ptr = nullptr;
+				return true;
+			}
+		}
+		else
+		{
+			auto it = m_SpecialMesh.find(ptr);
+			if (it != m_SpecialMesh.end())
+			{
+				m_SpecialMesh.erase(it);
+				ptr->UnInit();
+				ptr = nullptr;
+				return true;
+			}
 		}
 	}
+	return false;
+}
+
+bool KMeshManager::CreateBox(const KAABBBox& box, KMeshPtr& ptr)
+{
+	ptr = KMeshPtr(new KMesh());
+	if (ptr->InitAsBox(box, m_Device, m_FrameInFlight))
+	{
+		m_SpecialMesh.insert(ptr);
+		return true;
+	}
+	ptr = nullptr;
 	return false;
 }

@@ -49,6 +49,9 @@
     <Filter Include="Internal\Window">
       <UniqueIdentifier>{3c22e8fe-9e8c-417b-b03c-356abf1caab9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Asset\Utility">
+      <UniqueIdentifier>{535415ea-deda-46d1-a7db-91afc3ba3bfc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -285,6 +288,12 @@
     <ClInclude Include="Internal\Scene\KSceneManagerBase.h">
       <Filter>Internal\Scene</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Asset\Utility\KMeshUtility.h">
+      <Filter>Internal\Asset\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Scene\KOctreeNode.h">
+      <Filter>Internal\Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -448,6 +457,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Scene\KScene.cpp">
       <Filter>Internal\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\Utility\KMeshUtility.cpp">
+      <Filter>Internal\Asset\Utility</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

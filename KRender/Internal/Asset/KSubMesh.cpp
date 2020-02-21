@@ -18,7 +18,6 @@ KSubMesh::KSubMesh(KMesh* parent)
 
 KSubMesh::~KSubMesh()
 {
-
 }
 
 bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialPtr material, size_t frameInFlight)
@@ -34,6 +33,9 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	m_IndexDraw = true;
 
 	// hard code for now
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/debug.vert", m_DebugVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/debug.frag", m_DebugFSShader, true));
+
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/prez.vert", m_PreZVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/prez.frag", m_PreZFSShader, true));
 
@@ -58,6 +60,32 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	return true;
 }
 
+bool KSubMesh::InitDebugOnly(const KVertexData* vertexData, const KIndexData& indexData, size_t frameInFlight)
+{
+	UnInit();
+
+	m_pVertexData = vertexData;
+	m_IndexData = indexData;
+	m_FrameInFlight = frameInFlight;
+
+	m_IndexDraw = true;
+
+	// hard code for now
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/debug.vert", m_DebugVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/debug.frag", m_DebugFSShader, true));
+
+	FramePipelineList& pipelines = m_Pipelines[PIPELINE_STAGE_DEBUG];
+	pipelines.resize(m_FrameInFlight);
+	for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
+	{
+		PipelineInfo& info = pipelines[frameIndex];
+		assert(!info.pipeline);
+		CreatePipeline(PIPELINE_STAGE_DEBUG, frameIndex, info.pipeline, info.objectPushOffset);
+	}
+
+	return true;
+}
+
 bool KSubMesh::UnInit()
 {
 	m_pVertexData = nullptr;
@@ -73,6 +101,9 @@ do\
 		shader = nullptr;\
 	}\
 }while(0);\
+
+	SAFE_RELEASE_SHADER(m_DebugVSShader);
+	SAFE_RELEASE_SHADER(m_DebugFSShader);
 
 	SAFE_RELEASE_SHADER(m_PreZVSShader);
 	SAFE_RELEASE_SHADER(m_PreZFSShader);
@@ -240,6 +271,33 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		ASSERT_RESULT(pipeline->Init(true));
 		return true;
 	}
+	else if (stage == PIPELINE_STAGE_DEBUG)
+	{
+		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+
+		pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
+
+		pipeline->SetPrimitiveTopology(PT_LINE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_LINE);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, false, true);
+
+		pipeline->SetDepthBiasEnable(false);
+
+		pipeline->SetShader(ST_VERTEX, m_DebugVSShader);
+		pipeline->SetShader(ST_FRAGMENT, m_DebugFSShader);
+
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
+		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
+
+		pipeline->PushConstantBlock(ST_VERTEX, (uint32_t)KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT).bufferSize, objectPushOffset);
+
+		ASSERT_RESULT(pipeline->Init(true));
+		return true;
+	}
 	else
 	{
 		assert(false && "not impl");
@@ -267,7 +325,10 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderC
 #endif
 
 	FramePipelineList& pipelines = m_Pipelines[stage];
-	assert(frameIndex < pipelines.size());
+	if (frameIndex >= pipelines.size())
+	{
+		return false;
+	}
 
 	PipelineInfo& info = pipelines[frameIndex];
 	if(info.pipeline)

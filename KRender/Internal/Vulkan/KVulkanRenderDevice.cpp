@@ -161,7 +161,6 @@ PC 阴影闪烁
 Android 镜头翻转
 */
 
-KCullSystem CULL_SYSTEM;
 KScene SCENE;
 
 //-------------------- KVulkanRenderDevice --------------------//
@@ -486,6 +485,11 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS;
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
+
+		// TODO 检测
+		deviceFeatures.fillModeNonSolid = VK_TRUE;
+		deviceFeatures.samplerAnisotropy = VK_TRUE;
+
 		createInfo.pEnabledFeatures = &deviceFeatures;
 
 		// 尽管最新Vulkan实例验证层与设备验证层已经统一
@@ -618,19 +622,19 @@ bool KVulkanRenderDevice::CreateMesh()
 			KEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
 
 			KComponentBase* component = nullptr;
-			if(entity->RegisterComponent(CT_RENDER, &component))
+			if (entity->RegisterComponent(CT_RENDER, &component))
 			{
 				((KRenderComponent*)component)->InitFromAsset(szPaths[0]);
 			}
 
-			if(entity->RegisterComponent(CT_TRANSFORM, &component))
+			if (entity->RegisterComponent(CT_TRANSFORM, &component))
 			{
 				glm::vec3 pos = ((KTransformComponent*)component)->GetPosition();
-				pos.x =(float)(i * 2 - width) / width * widthExtend;
+				pos.x = (float)(i * 2 - width) / width * widthExtend;
 				pos.z = (float)(j * 2 - height) / height * heightExtend;
 				pos.y = 0;
 				((KTransformComponent*)component)->SetPosition(pos);
-				
+
 				glm::vec3 scale = ((KTransformComponent*)component)->GetScale();
 				scale = glm::vec3(0.1f, 0.1f, 0.1f);
 				((KTransformComponent*)component)->SetScale(scale);
@@ -1296,7 +1300,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 
 		// Temporarily for demo use
 		// TODO
-		SCENE.Init(SCENE_MANGER_TYPE_OCTREE, 5000.0f, glm::vec3(0.0f));
+		SCENE.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
 
 		if(!CreateMesh())
 			return false;
@@ -1840,7 +1844,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				KRenderCommandList commandList;
 
 				std::vector<KRenderComponent*> cullRes;
-				CULL_SYSTEM.Execute(m_Camera, cullRes);
+				SCENE.GetVisibleComponent(m_Camera, cullRes);
 
 				for(KRenderComponent* component : cullRes)
 				{
@@ -1858,6 +1862,26 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 						});
 
 						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand command)
+						{
+							command.useObjectData = true;
+							command.objectData = &transform->FinalTransform();
+							commandList.push_back(command);
+						});
+					}
+				}
+
+				std::vector<KRenderComponent*> debugRes;
+				SCENE.GetDebugComponent(debugRes);
+
+				for (KRenderComponent* component : debugRes)
+				{
+					KEntity* entity = component->GetEntityHandle();
+					KTransformComponent* transform = nullptr;
+					if (entity->GetComponent(CT_TRANSFORM, (KComponentBase**)&transform))
+					{
+						KMeshPtr mesh = component->GetMesh();
+
+						mesh->Visit(PIPELINE_STAGE_DEBUG, frameIndex, [&](KRenderCommand command)
 						{
 							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
@@ -1958,7 +1982,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 #endif
 
 			std::vector<KRenderComponent*> cullRes;
-			CULL_SYSTEM.Execute(m_Camera, cullRes);
+			SCENE.GetVisibleComponent(m_Camera, cullRes);
 
 			size_t drawEachThread = cullRes.size() / threadCount;
 			size_t reaminCount = cullRes.size() % threadCount;

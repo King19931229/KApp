@@ -1,5 +1,6 @@
 #include "KMesh.h"
 #include "Serializer/KMeshSerializer.h"
+#include "Utility/KMeshUtility.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKBuffer.h"
 #include "Internal/KVertexDefinition.h"
@@ -220,6 +221,19 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 		return true;
 	}
 	return false;
+}
+
+bool KMesh::InitAsBox(const KAABBBox& box, IKRenderDevice* device, size_t frameInFlight)
+{
+	assert(device);
+	if (!device)
+	{
+		return false;
+	}
+
+	UnInit();
+
+	return KMeshUtility::CreateBox(device, this, box, frameInFlight);
 }
 
 bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func)

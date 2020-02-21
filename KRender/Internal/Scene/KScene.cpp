@@ -88,6 +88,16 @@ bool KScene::GetVisibleComponent(const KCamera& camera, std::vector<KRenderCompo
 	return false;
 }
 
+bool KScene::GetDebugComponent(std::vector<KRenderComponent*>& result)
+{
+	result.clear();
+	if (m_SceneMgr && m_SceneMgr->GetDebugComponent(result))
+	{
+		return true;
+	}
+	return false;
+}
+
 bool KScene::Load(const char* filename)
 {
 	return false;

@@ -17,4 +17,5 @@ public:
 	virtual bool Remove(KEntity* entity) = 0;
 	virtual bool Move(KEntity* entity) = 0;
 	virtual bool GetVisibleEntity(const KCamera* camera, std::deque<KEntity*>& visibles) = 0;
+	virtual bool GetDebugComponent(std::vector<KRenderComponent*>& result) = 0;
 };

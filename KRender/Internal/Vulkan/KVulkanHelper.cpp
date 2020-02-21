@@ -131,6 +131,9 @@ namespace KVulkanHelper
 		case PT_TRIANGLE_STRIP:
 			vkPrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 			return true;
+		case PT_LINE_LIST:
+			vkPrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+			return true;
 		default:
 			assert(false && "topology mode not supported");
 			return false;

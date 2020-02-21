@@ -47,6 +47,7 @@ include_directories(${ANDROID_NDK}/sources/android/native_app_glue)
 include_directories(../../)
 include_directories(../../KBase)
 include_directories(../../KRender)
+include_directories(../../Dependency/glm-0.9.8.0)
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.
