@@ -96,6 +96,8 @@ bool KEditor::UnInit()
 			SAFE_DELETE(m_GraphWidget);
 		}
 
+		KEditorGlobal::CommandInvoker.Clear();
+
 		m_bInit = false;
 	}
 

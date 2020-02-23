@@ -42,7 +42,6 @@ bool KEPropertyWidget::UnInit()
 		}
 		m_Items.clear();
 
-		setLayout(nullptr);
 		SAFE_DELETE(m_Layout);
 
 		m_bInit = false;

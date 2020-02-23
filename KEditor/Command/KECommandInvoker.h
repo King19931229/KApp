@@ -1,12 +1,12 @@
 #pragma once
 #include "KECommand.h"
-#include <deque>
+#include <list>
 
 class KECommandInvoker
 {
 protected:
-	std::deque<KECommandPtr> m_HistoryCommands;
-	std::deque<KECommandPtr>::iterator m_CurrentPos;
+	std::list<KECommandPtr> m_HistoryCommands;
+	std::list<KECommandPtr>::iterator m_CurrentPos;
 	void Discard();
 public:
 	KECommandInvoker();

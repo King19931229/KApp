@@ -88,7 +88,7 @@ void KEGraphView::DeleteSelectedNodes()
 			auto model = node->GetModel();
 			if (model->Deletable())
 			{
-				m_Scene->RemoveNode(node);
+				m_Scene->RemoveNode(node->ID());
 			}
 		}
 	}
@@ -126,7 +126,7 @@ void KEGraphView::OnNodeContextMenu(KEGraphNodeControl* n, const QPointF& pos)
 			auto model = n->GetModel();
 			if (model->Deletable())
 			{
-				m_Scene->RemoveNode(n);
+				m_Scene->RemoveNode(n->ID());
 			}
 		}
 

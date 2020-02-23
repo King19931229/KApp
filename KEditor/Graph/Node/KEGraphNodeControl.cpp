@@ -3,14 +3,14 @@
 #include "KEGraphNodeView.h"
 #include "Graph/KEGraphScene.h"
 #include "Graph/Connection/KEGraphConnectionControl.h"
+#include <assert.h>
 
 KEGraphNodeControl::KEGraphNodeControl(KEGraphNodeModelPtr&& model)
 	: m_Model(std::move(model)),
 	m_View(nullptr),
 	m_ID(QUuid::createUuid()),
 	m_Geometry(m_Model),
-	m_NodeState(m_Model),
-	m_Scene(nullptr)
+	m_NodeState(m_Model)
 {
 	m_Geometry.RecalculateSize();
 
@@ -26,7 +26,6 @@ KEGraphNodeControl::~KEGraphNodeControl()
 void KEGraphNodeControl::SetView(KEGraphNodeViewPtr&& view)
 {
 	m_View = std::move(view);
-	m_Scene = (KEGraphScene*)(m_View->scene());
 }
 
 void KEGraphNodeControl::ReactToPossibleConnection(PortType reactingPortType, const KEGraphNodeDataType& reactingDataType, const QPointF& scenePoint)
@@ -92,16 +91,17 @@ void KEGraphNodeControl::OnNodeSizeUpdated()
 	}
 }
 
-void KEGraphNodeControl::Exit()
+void KEGraphNodeControl::Exit(KEGraphScene* scene)
 {
-	if (m_View->scene() == m_Scene)
+	if (m_View->scene() == scene)
 	{
-		m_Scene->removeItem(m_View.get());
+		scene->removeItem(m_View.get());
+		assert(m_View->scene() == nullptr);
 	}
 }
 
-void KEGraphNodeControl::Enter()
+void KEGraphNodeControl::Enter(KEGraphScene* scene)
 {
-	Exit();
-	m_Scene->addItem(m_View.get());
+	Exit(scene);
+	scene->addItem(m_View.get());
 }

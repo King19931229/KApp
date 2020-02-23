@@ -43,7 +43,7 @@ void KEGraphScene::ClearScene()
 
 	while (m_Node.size() > 0)
 	{
-		RemoveNode(m_Node.begin()->second.get());
+		RemoveNode(m_Node.begin()->second);
 	}
 }
 
@@ -55,18 +55,9 @@ KEGraphNodeControl* KEGraphScene::CreateNode(KEGraphNodeModelPtr&& model)
 	KEGraphNodeControl* ret = node.get();
 	ret->SetView(std::move(view));
 
-	auto command = KECommandUnility::CreateLambdaCommand(
-		[nodePtr = node->shared_from_this(), this]()
-	{
-		nodePtr->Enter();
-		m_Node[nodePtr->ID()] = nodePtr;
-	},
-		[nodePtr = node->shared_from_this(), this]()
-	{
-		nodePtr->Exit();
-		m_Node.erase(nodePtr->ID());
-	});
+	auto command = KECommandPtr(new	KEGraphNodeCreateCommand(this, node));
 
+	// TODO 从Init进入的不入栈
 	if (node->GetModel()->Redoable())
 	{
 		KEditorGlobal::CommandInvoker.Execute(command);
@@ -80,9 +71,9 @@ KEGraphNodeControl* KEGraphScene::CreateNode(KEGraphNodeModelPtr&& model)
 	return ret;
 }
 
-void KEGraphScene::RemoveNode(KEGraphNodeControl* node)
+void KEGraphScene::RemoveNode(KEGraphNodeControlPtr node)
 {
-	SingalNodeDeleted(node);
+	SingalNodeDeleted(node.get());
 
 	for (auto portType : { PT_IN, PT_OUT })
 	{
@@ -96,18 +87,9 @@ void KEGraphScene::RemoveNode(KEGraphNodeControl* node)
 		}
 	}
 
-	auto command = KECommandUnility::CreateLambdaCommand(
-		[nodePtr = node->shared_from_this(), this]()
-	{
-		nodePtr->Exit();
-		m_Node.erase(nodePtr->ID());
-	},
-		[nodePtr = node->shared_from_this(), this]()
-	{
-		nodePtr->Enter();
-		m_Node.insert({ nodePtr->ID(), nodePtr });
-	});
+	auto command = KECommandPtr(new	KEGraphNodeRemoveCommand(this, node));
 
+	// TODO 从UnInit进入的不入栈
 	if (node->GetModel()->Redoable())
 	{
 		KEditorGlobal::CommandInvoker.Execute(command);
@@ -115,6 +97,22 @@ void KEGraphScene::RemoveNode(KEGraphNodeControl* node)
 	else
 	{
 		command->Execute();
+	}
+}
+
+void KEGraphScene::RemoveNode(const QUuid& id)
+{
+	KEGraphNodeControlPtr node = nullptr;
+
+	auto it = m_Node.find(id);	
+	if (it != m_Node.end())
+	{
+		node = it->second;
+	}
+
+	if (node)
+	{
+		RemoveNode(node);
 	}
 }
 

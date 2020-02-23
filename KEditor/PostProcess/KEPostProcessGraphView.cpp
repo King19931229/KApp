@@ -313,7 +313,7 @@ bool KEPostProcessGraphView::AutoLayout()
 	}
 
 	// 5.移除虚拟根节点
-	m_Scene->RemoveNode(startNode);
+	m_Scene->RemoveNode(startNode->ID());
 
 	// 6.调整view位置与缩放
 	{

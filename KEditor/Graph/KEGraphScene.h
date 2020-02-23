@@ -13,7 +13,7 @@ class KEGraphScene : public QGraphicsScene
 public:
 	// Command
 	friend class KEGraphNodeRemoveCommand;
-
+	friend class KEGraphNodeCreateCommand;
 
 	typedef std::unordered_map<QUuid, KEGraphNodeControlPtr> NodeDict;
 	typedef std::unordered_map<QUuid, KEGraphConnectionControlPtr> ConnectionDict;
@@ -34,7 +34,8 @@ public:
 	inline const ConnectionDict& GetAllConnections() const { return m_Connection; }
 
 	KEGraphNodeControl* CreateNode(KEGraphNodeModelPtr&& model);
-	void RemoveNode(KEGraphNodeControl* node);
+	void RemoveNode(KEGraphNodeControlPtr node);
+	void RemoveNode(const QUuid& id);
 
 	KEGraphConnectionControl* CreateConnection(PortType connectedPort,
 		KEGraphNodeControl* node,

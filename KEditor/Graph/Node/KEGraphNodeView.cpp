@@ -17,7 +17,10 @@ KEGraphNodeView::KEGraphNodeView(KEGraphScene* scene, KEGraphNodeControl* contro
 	m_Locked(false),
 	m_ProxyWidget(nullptr)
 {
-	m_Scene->addItem(this);
+	/*if (this->scene() == nullptr)
+	{
+		m_Scene->addItem(this);
+	}*/
 
 	setFlag(QGraphicsItem::ItemDoesntPropagateOpacityToChildren, true);
 	setFlag(QGraphicsItem::ItemIsMovable, true);
@@ -52,7 +55,10 @@ KEGraphNodeView::KEGraphNodeView(KEGraphScene* scene, KEGraphNodeControl* contro
 
 KEGraphNodeView::~KEGraphNodeView()
 {
-	m_Scene->removeItem(this);
+	/*if (this->scene() == m_Scene)
+	{
+		m_Scene->removeItem(this);
+	}*/
 }
 
 void KEGraphNodeView::Lock(bool locked)
