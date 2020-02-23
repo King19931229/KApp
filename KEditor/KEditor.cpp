@@ -1,4 +1,5 @@
 #include "KEditor.h"
+#include "KEditorGlobal.h"
 #include "Widget/KERenderWidget.h"
 #include "Widget/KEPostProcessGraphWidget.h"
 #include "Graph/KEGraphRegistrar.h"
@@ -60,6 +61,8 @@ bool KEditor::Init()
 		m_GraphWidget = new KEPostProcessGraphWidget();
 		m_GraphWidget->Init();
 		m_GraphWidget->hide();
+
+		KEditorGlobal::CommandInvoker.Clear();
 
 		m_bInit = true;
 		return true;

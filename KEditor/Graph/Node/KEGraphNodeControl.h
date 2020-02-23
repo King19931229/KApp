@@ -7,7 +7,7 @@
 #include "KEGraphNodeGeometry.h"
 #include "KEGraphNodeState.h"
 
-class KEGraphNodeControl : public QObject
+class KEGraphNodeControl : public QObject, public std::enable_shared_from_this<KEGraphNodeControl>
 {
 	Q_OBJECT
 protected:
@@ -15,6 +15,7 @@ protected:
 	KEGraphNodeModelPtr m_Model;
 	KEGraphNodeState m_NodeState;
 	KEGraphNodeGeometry m_Geometry;
+	KEGraphScene* m_Scene;
 	QUuid m_ID;
 public:
 	KEGraphNodeControl(KEGraphNodeModelPtr&& model);
@@ -31,6 +32,9 @@ public:
 
 	void ReactToPossibleConnection(PortType, const KEGraphNodeDataType&, const QPointF& scenePoint);
 	void ResetReactionToConnection();
+
+	void Exit();
+	void Enter();
 
 public Q_SLOTS:
 	/// Propagates incoming data to the underlying model.

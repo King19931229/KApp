@@ -11,6 +11,10 @@ class KEGraphScene : public QGraphicsScene
 {
 	Q_OBJECT
 public:
+	// Command
+	friend class KEGraphNodeRemoveCommand;
+
+
 	typedef std::unordered_map<QUuid, KEGraphNodeControlPtr> NodeDict;
 	typedef std::unordered_map<QUuid, KEGraphConnectionControlPtr> ConnectionDict;
 protected:

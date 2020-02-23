@@ -297,7 +297,7 @@ bool KEPostProcessGraphView::AutoLayout()
 	KEGraphNodeControl* startNode = nullptr;
 	{
 		auto centerPos = mapToScene(width() / 2, height() / 2);
-		KEGraphNodeModelPtr model = KEGraphNodeModelPtr(new KEGraphEmtpyNodeModel(0, 1));
+		KEGraphNodeModelPtr model = KEGraphNodeModelPtr(new KEGraphEmtpyNodeModel(0, 1, false));
 		startNode = m_Scene->CreateNode(std::move(model));
 		startNode->GetView()->setPos(centerPos);
 		for (KEGraphNodeControl* outNode : noneInputNodes)

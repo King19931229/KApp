@@ -88,6 +88,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Command\KECommandInvoker.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionControl.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionGeometry.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionState.cpp" />
@@ -107,6 +108,7 @@
     <ClCompile Include="Graph\Test\KEGraphNodeTestModel.cpp" />
     <ClCompile Include="Graph\Utility\KEGraphEmtpyNodeModel.cpp" />
     <ClCompile Include="KEditor.cpp" />
+    <ClCompile Include="KEdtiorGlobal.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp" />
@@ -132,6 +134,10 @@
   <ItemGroup>
     <QtMoc Include="Widget\KEPropertyWidget.h" />
     <QtMoc Include="Graph\Utility\KEGraphEmtpyNodeModel.h" />
+    <ClInclude Include="Command\KECommand.h" />
+    <ClInclude Include="Command\KECommandInvoker.h" />
+    <ClInclude Include="Graph\Command\KEGraphNodeCommand.h" />
+    <ClInclude Include="KEditorGlobal.h" />
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />
     <ClInclude Include="Property\KEPropertyBaseView.h" />
     <ClInclude Include="Property\KEPropertyCheckBoxView.h" />

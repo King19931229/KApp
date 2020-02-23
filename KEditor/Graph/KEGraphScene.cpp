@@ -8,6 +8,8 @@
 #include "Connection/KEGraphConnectionControl.h"
 #include "Connection/KEGraphConnectionView.h"
 
+#include "Command/KEGraphNodeCommand.h"
+
 #include <QGraphicsView>
 
 KEGraphScene::KEGraphScene(QObject * parent)
@@ -53,7 +55,26 @@ KEGraphNodeControl* KEGraphScene::CreateNode(KEGraphNodeModelPtr&& model)
 	KEGraphNodeControl* ret = node.get();
 	ret->SetView(std::move(view));
 
-	m_Node[node->ID()] = std::move(node);
+	auto command = KECommandUnility::CreateLambdaCommand(
+		[nodePtr = node->shared_from_this(), this]()
+	{
+		nodePtr->Enter();
+		m_Node[nodePtr->ID()] = nodePtr;
+	},
+		[nodePtr = node->shared_from_this(), this]()
+	{
+		nodePtr->Exit();
+		m_Node.erase(nodePtr->ID());
+	});
+
+	if (node->GetModel()->Redoable())
+	{
+		KEditorGlobal::CommandInvoker.Execute(command);
+	}
+	else
+	{
+		command->Execute();
+	}
 
 	SingalNodeCreated(ret);
 	return ret;
@@ -75,7 +96,26 @@ void KEGraphScene::RemoveNode(KEGraphNodeControl* node)
 		}
 	}
 
-	m_Node.erase(node->ID());
+	auto command = KECommandUnility::CreateLambdaCommand(
+		[nodePtr = node->shared_from_this(), this]()
+	{
+		nodePtr->Exit();
+		m_Node.erase(nodePtr->ID());
+	},
+		[nodePtr = node->shared_from_this(), this]()
+	{
+		nodePtr->Enter();
+		m_Node.insert({ nodePtr->ID(), nodePtr });
+	});
+
+	if (node->GetModel()->Redoable())
+	{
+		KEditorGlobal::CommandInvoker.Execute(command);
+	}
+	else
+	{
+		command->Execute();
+	}
 }
 
 KEGraphConnectionControl* KEGraphScene::CreateConnection(PortType connectedPort,

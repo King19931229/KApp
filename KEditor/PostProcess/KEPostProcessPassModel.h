@@ -31,7 +31,7 @@ protected:
 public:
 	const static QString ModelName;
 
-	KEPostProcessPassModel(IKPostProcessNodePtr pass = nullptr);
+	KEPostProcessPassModel(IKPostProcessNodePtr pass);
 	virtual	~KEPostProcessPassModel();
 
 	inline IKPostProcessPass* GetPass() { return m_Pass->CastPass(); }

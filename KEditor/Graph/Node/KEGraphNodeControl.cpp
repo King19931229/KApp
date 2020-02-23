@@ -1,6 +1,7 @@
 #include "KEGraphNodeControl.h"
 #include "KEGraphNodeModel.h"
 #include "KEGraphNodeView.h"
+#include "Graph/KEGraphScene.h"
 #include "Graph/Connection/KEGraphConnectionControl.h"
 
 KEGraphNodeControl::KEGraphNodeControl(KEGraphNodeModelPtr&& model)
@@ -8,7 +9,8 @@ KEGraphNodeControl::KEGraphNodeControl(KEGraphNodeModelPtr&& model)
 	m_View(nullptr),
 	m_ID(QUuid::createUuid()),
 	m_Geometry(m_Model),
-	m_NodeState(m_Model)
+	m_NodeState(m_Model),
+	m_Scene(nullptr)
 {
 	m_Geometry.RecalculateSize();
 
@@ -24,6 +26,7 @@ KEGraphNodeControl::~KEGraphNodeControl()
 void KEGraphNodeControl::SetView(KEGraphNodeViewPtr&& view)
 {
 	m_View = std::move(view);
+	m_Scene = (KEGraphScene*)(m_View->scene());
 }
 
 void KEGraphNodeControl::ReactToPossibleConnection(PortType reactingPortType, const KEGraphNodeDataType& reactingDataType, const QPointF& scenePoint)
@@ -87,4 +90,18 @@ void KEGraphNodeControl::OnNodeSizeUpdated()
 			}
 		}
 	}
+}
+
+void KEGraphNodeControl::Exit()
+{
+	if (m_View->scene() == m_Scene)
+	{
+		m_Scene->removeItem(m_View.get());
+	}
+}
+
+void KEGraphNodeControl::Enter()
+{
+	Exit();
+	m_Scene->addItem(m_View.get());
 }

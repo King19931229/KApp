@@ -16,4 +16,7 @@ public:
 	virtual KEGraphView* CreateViewImpl() = 0;
 	virtual bool Init();
 	virtual bool UnInit();
+
+	void keyPressEvent(QKeyEvent *event) override;
+	void keyReleaseEvent(QKeyEvent *event) override;
 };

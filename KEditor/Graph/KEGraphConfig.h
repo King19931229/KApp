@@ -28,7 +28,7 @@ class KEGraphNodeView;
 typedef std::unique_ptr<KEGraphNodeView> KEGraphNodeViewPtr;
 
 class KEGraphNodeControl;
-typedef std::unique_ptr<KEGraphNodeControl> KEGraphNodeControlPtr;
+typedef std::shared_ptr<KEGraphNodeControl> KEGraphNodeControlPtr;
 
 class KEGraphNodeModel;
 typedef std::unique_ptr<KEGraphNodeModel> KEGraphNodeModelPtr;

@@ -45,6 +45,12 @@
     <Filter Include="Graph\Utility">
       <UniqueIdentifier>{2e9db08a-2335-447a-bdc3-c0ba845e530d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Command">
+      <UniqueIdentifier>{6ea82301-d25c-48ae-9e6d-5ccbe2caf384}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graph\Command">
+      <UniqueIdentifier>{85b93f1b-3344-407b-b328-4a82abf9b22e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -127,6 +133,10 @@
     <ClCompile Include="Widget\KEPropertyWidget.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
+    <ClCompile Include="Command\KECommandInvoker.cpp">
+      <Filter>Command</Filter>
+    </ClCompile>
+    <ClCompile Include="KEdtiorGlobal.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -256,6 +266,16 @@
     </ClInclude>
     <ClInclude Include="Property\KEPropertyCheckBoxView.h">
       <Filter>Property</Filter>
+    </ClInclude>
+    <ClInclude Include="Command\KECommand.h">
+      <Filter>Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Command\KECommandInvoker.h">
+      <Filter>Command</Filter>
+    </ClInclude>
+    <ClInclude Include="KEditorGlobal.h" />
+    <ClInclude Include="Graph\Command\KEGraphNodeCommand.h">
+      <Filter>Graph\Command</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,9 +1,8 @@
 #include "KEGraphWidget.h"
 #include "Graph/KEGraphView.h"
 #include "Graph/Node/KEGraphNodeView.h"
-
-#include "Graph/Test/KEGraphNodeTestModel.h"
 #include "KEditorConfig.h"
+#include "KEditorGlobal.h"
 #include <QLayout>
 #include <assert.h>
 
@@ -55,4 +54,24 @@ bool KEGraphWidget::UnInit()
 		m_bInit = false;
 	}
 	return true;
+}
+
+void KEGraphWidget::keyPressEvent(QKeyEvent *event)
+{
+
+}
+
+void KEGraphWidget::keyReleaseEvent(QKeyEvent *event)
+{
+	if ((event->modifiers() & Qt::ControlModifier))
+	{
+		if (event->key() == Qt::Key_Z)
+		{
+			KEditorGlobal::CommandInvoker.Undo();
+		}
+		else if (event->key() == Qt::Key_Y)
+		{
+			KEditorGlobal::CommandInvoker.Redo();
+		}
+	}
 }
