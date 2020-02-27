@@ -18,7 +18,7 @@ KEGraphConnectionView::KEGraphConnectionView(KEGraphScene* scene, KEGraphConnect
 	: m_Scene(scene),
 	m_Connection(connection)
 {
-	m_Scene->addItem(this);
+	//m_Scene->addItem(this);
 
 	setFlag(QGraphicsItem::ItemIsMovable, true);
 	setFlag(QGraphicsItem::ItemIsFocusable, true);
@@ -33,7 +33,7 @@ KEGraphConnectionView::KEGraphConnectionView(KEGraphScene* scene, KEGraphConnect
 
 KEGraphConnectionView::~KEGraphConnectionView()
 {
-	m_Scene->removeItem(this);
+	//m_Scene->removeItem(this);
 }
 
 void KEGraphConnectionView::AddGraphicsEffect()
@@ -58,7 +58,7 @@ void KEGraphConnectionView::Move()
 {
 	for (PortType portType : { PT_IN, PT_OUT })
 	{
-		KEGraphNodeControl* node = m_Connection->GetNode(portType);
+		KEGraphNodeControl* node = m_Connection->Node(portType);
 		if (node)
 		{
 			const KEGraphNodeView* nodeGraphics = node->GetView();
@@ -153,7 +153,7 @@ void KEGraphConnectionView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
 	if (m_Connection->ConnectionState().RequiresPort())
 	{
-		m_Scene->DeleteConnection(m_Connection);
+		m_Scene->DeleteConnection(m_Connection->ID());
 	}
 }
 

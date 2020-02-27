@@ -72,7 +72,7 @@ void KEGraphView::DeleteSelectedNodes()
 	{
 		if (KEGraphConnectionView* c = qgraphicsitem_cast<KEGraphConnectionView*>(item))
 		{
-			m_Scene->DeleteConnection(c->Connection());
+			m_Scene->DeleteConnection(c->Connection()->ID());
 		}
 	}
 
@@ -166,7 +166,7 @@ void KEGraphView::OnConnectionContextMenu(KEGraphConnectionControl* conn, const 
 
 		if (op == deleteOp)
 		{
-			m_Scene->DeleteConnection(conn);
+			m_Scene->DeleteConnection(conn->ID());
 		}
 
 		connMenu.close();

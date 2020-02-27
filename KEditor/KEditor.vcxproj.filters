@@ -277,5 +277,8 @@
     <ClInclude Include="Graph\Command\KEGraphNodeCommand.h">
       <Filter>Graph\Command</Filter>
     </ClInclude>
+    <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h">
+      <Filter>Graph\Command</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

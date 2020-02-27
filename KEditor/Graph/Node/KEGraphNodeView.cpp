@@ -154,7 +154,7 @@ void KEGraphNodeView::mousePressEvent(QGraphicsSceneMouseEvent* event)
 					const ConnectionPolicy outPolicy = m_Node->GetModel()->PortOutConnectionPolicy(portIndex);
 					if (!connections.empty() &&	outPolicy == CP_ONE)
 					{
-						m_Scene->DeleteConnection(connections.begin()->second);
+						m_Scene->DeleteConnection(connections.begin()->second->ID());
 					}
 				}
 

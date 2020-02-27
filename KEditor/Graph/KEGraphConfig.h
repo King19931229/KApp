@@ -40,7 +40,7 @@ class KEGraphConnectionView;
 typedef std::unique_ptr<KEGraphConnectionView> KEGraphConnectionViewPtr;
 
 class KEGraphConnectionControl;
-typedef std::unique_ptr<KEGraphConnectionControl> KEGraphConnectionControlPtr;
+typedef std::shared_ptr<KEGraphConnectionControl> KEGraphConnectionControlPtr;
 
 class KEGraphRegistrar;
 typedef std::unique_ptr<KEGraphRegistrar> KEGraphRegistrarPtr;

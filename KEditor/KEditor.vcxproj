@@ -136,6 +136,7 @@
     <QtMoc Include="Graph\Utility\KEGraphEmtpyNodeModel.h" />
     <ClInclude Include="Command\KECommand.h" />
     <ClInclude Include="Command\KECommandInvoker.h" />
+    <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h" />
     <ClInclude Include="Graph\Command\KEGraphNodeCommand.h" />
     <ClInclude Include="KEditorGlobal.h" />
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />

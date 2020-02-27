@@ -79,7 +79,7 @@ bool KEPostProcessGraphView::PopulateUniqueChild(KEGraphNodeControl* node,
 		const auto& connSet = entries[i];
 		for (auto& pair : connSet)
 		{
-			KEGraphNodeControl* outNode = pair.second->GetNode(PT_IN);
+			KEGraphNodeControl* outNode = pair.second->Node(PT_IN);
 			if (PopulateUniqueChild(outNode, visitedNode, uniqueChilds))
 			{
 				children.push_back(outNode);

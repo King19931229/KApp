@@ -14,6 +14,8 @@ public:
 	// Command
 	friend class KEGraphNodeRemoveCommand;
 	friend class KEGraphNodeCreateCommand;
+	friend class KEGraphConnectionRemoveCommand;
+	friend class KEGraphConnectionCreateCommand;
 
 	typedef std::unordered_map<QUuid, KEGraphNodeControlPtr> NodeDict;
 	typedef std::unordered_map<QUuid, KEGraphConnectionControlPtr> ConnectionDict;
@@ -45,7 +47,8 @@ public:
 		KEGraphNodeControl* nodeOut,
 		PortIndexType portIndexOut,
 		const GraphNodeDataConverterFunc& converter = GraphNodeDataConverterFunc{});
-	void DeleteConnection(KEGraphConnectionControl* connection);
+	void DeleteConnection(KEGraphConnectionControlPtr connection);
+	void DeleteConnection(const QUuid& id);
 
 	KEGraphNodeControl* LocateNodeAt(QPointF scenePoint);
 Q_SIGNALS:

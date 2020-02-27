@@ -2,6 +2,8 @@
 #include "Graph/Connection/KEGraphConnectionControl.h"
 #include "Graph/Connection/KEGraphConnectionView.h"
 #include "Graph/KEGraphPort.h"
+#include "Graph/KEGraphScene.h"
+
 #include <assert.h>
 
 KEGraphConnectionControl::KEGraphConnectionControl(PortType portType,
@@ -34,22 +36,67 @@ KEGraphConnectionControl::KEGraphConnectionControl(KEGraphNodeControl* nodeIn,
 }
 
 KEGraphConnectionControl::~KEGraphConnectionControl()
+{	
+}
+
+void KEGraphConnectionControl::Exit(KEGraphScene* scene)
 {
+	if (m_View->scene() == scene)
+	{
+		RemoveFromNodes();
+
+		PropagateEmptyData();
+
+		if (m_InNode)
+		{
+			m_InNode->GetView()->update();
+		}
+
+		if (m_OutNode)
+		{
+			m_OutNode->GetView()->update();
+		}
+
+		scene->removeItem(m_View.get());
+		assert(m_View->scene() == nullptr);
+
+		if (Complete())
+		{
+			SingalConnectionMadeIncomplete(this);
+		}
+	}
+}
+
+void KEGraphConnectionControl::Enter(KEGraphScene* scene)
+{
+	Exit(scene);
+
 	if (Complete())
 	{
-		SingalConnectionMadeIncomplete(this);
-	}
-	PropagateEmptyData();
-
-	if (m_InNode)
-	{
-		m_InNode->GetView()->update();
+		m_InNode->GetNodeState().SetConnection(PT_IN, m_InPortIndex, *this);
+		m_OutNode->GetNodeState().SetConnection(PT_OUT, m_OutPortIndex, *this);
 	}
 
 	if (m_OutNode)
 	{
-		m_OutNode->GetView()->update();
+		// trigger data propagation
+		m_OutNode->OnDataUpdated(m_OutPortIndex);
+		scene->SingalConnectionCreated(this);
 	}
+	else
+	{
+		// Note: this connection isn't truly created yet. It's only partially created.
+		// Thus, don't send the connectionCreated(...) signal.
+		connect(this,
+			&KEGraphConnectionControl::SingalConnectionCompleted,
+			this,
+			[scene, this](KEGraphConnectionControl* c)
+		{
+			scene->SingalConnectionCreated(c);
+		});
+	}
+
+	scene->addItem(m_View.get());
 }
 
 QUuid KEGraphConnectionControl::ID() const
@@ -104,7 +151,7 @@ void KEGraphConnectionControl::SetView(KEGraphConnectionViewPtr&& graphics)
 		PortType attachedPort = OppositePort(RequiredPort());
 		PortIndexType attachedPortIndex = GetPortIndex(attachedPort);
 
-		KEGraphNodeControl* const& node = GetNode(attachedPort);
+		KEGraphNodeControl* const& node = Node(attachedPort);
 
 		QTransform nodeSceneTransform = node->GetView()->sceneTransform();
 
@@ -139,7 +186,7 @@ void KEGraphConnectionControl::SetNodeToPort(KEGraphNodeControl* node, PortType 
 {
 	bool wasIncomplete = !Complete();
 
-	GetNode(portType) = node;
+	Node(portType) = node;
 
 	if (portType == PT_OUT)
 		m_OutPortIndex = portIndex;
@@ -168,7 +215,7 @@ void KEGraphConnectionControl::RemoveFromNodes() const
 	}
 }
 
-KEGraphNodeControl*& KEGraphConnectionControl::GetNode(PortType portType)
+KEGraphNodeControl*& KEGraphConnectionControl::Node(PortType portType)
 {
 	switch (portType)
 	{
@@ -191,7 +238,7 @@ void KEGraphConnectionControl::ClearNode(PortType portType)
 		SingalConnectionMadeIncomplete(this);
 	}
 
-	GetNode(portType) = nullptr;
+	Node(portType) = nullptr;
 
 	if (portType == PT_IN)
 	{

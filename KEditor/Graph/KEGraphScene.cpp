@@ -9,6 +9,7 @@
 #include "Connection/KEGraphConnectionView.h"
 
 #include "Command/KEGraphNodeCommand.h"
+#include "Command/KEGraphConnectionCommand.h"
 
 #include <QGraphicsView>
 
@@ -38,7 +39,7 @@ void KEGraphScene::ClearScene()
 	// data through already freed connections.)
 	while (m_Connection.size() > 0)
 	{
-		DeleteConnection(m_Connection.begin()->second.get());
+		DeleteConnection(m_Connection.begin()->second);
 	}
 
 	while (m_Node.size() > 0)
@@ -83,7 +84,7 @@ void KEGraphScene::RemoveNode(KEGraphNodeControlPtr node)
 		for (auto connections : nodeEntries)
 		{
 			for (auto const& pair : connections)
-				DeleteConnection(pair.second);
+				DeleteConnection(pair.second->ID());
 		}
 	}
 
@@ -131,18 +132,9 @@ KEGraphConnectionControl* KEGraphScene::CreateConnection(PortType connectedPort,
 	// after this function connection points are set to node port
 	connection->SetView(std::move(view));
 
-	m_Connection[connection->ID()] = std::move(connection);
-
-	// Note: this connection isn't truly created yet. It's only partially created.
-	// Thus, don't send the connectionCreated(...) signal.
-
-	connect(conn,
-		&KEGraphConnectionControl::SingalConnectionCompleted,
-		this,
-		[this](KEGraphConnectionControl* c)
-	{
-		SingalConnectionCreated(c);
-	});
+	// 不入栈
+	auto command = KECommandPtr(new	KEGraphConnectionCreateCommand(this, connection));
+	command->Execute();
 
 	return conn;
 }
@@ -163,32 +155,32 @@ KEGraphConnectionControl* KEGraphScene::CreateConnection(KEGraphNodeControl* nod
 	KEGraphConnectionControl* conn = connection.get();
 	KEGraphConnectionViewPtr view = KEGraphConnectionViewPtr(new KEGraphConnectionView(this, conn));
 
-	nodeIn->GetNodeState().SetConnection(PT_IN, portIndexIn, *connection);
-	nodeOut->GetNodeState().SetConnection(PT_OUT, portIndexOut, *connection);
-
 	// after this function connection points are set to node port
 	connection->SetView(std::move(view));
 
-	// trigger data propagation
-	nodeOut->OnDataUpdated(portIndexOut);
-
-	m_Connection[connection->ID()] = std::move(connection);
-
-	SingalConnectionCreated(conn);
+	auto command = KECommandPtr(new	KEGraphConnectionCreateCommand(this, connection));
+	// TODO 从UnInit进入的不入栈
+	KEditorGlobal::CommandInvoker.Execute(command);
 
 	return conn;
 }
 
-void KEGraphScene::DeleteConnection(KEGraphConnectionControl* connection)
+void KEGraphScene::DeleteConnection(KEGraphConnectionControlPtr connection)
 {
 	if (connection)
 	{
-		auto it = m_Connection.find(connection->ID());
-		if (it != m_Connection.end())
-		{
-			connection->RemoveFromNodes();
-			m_Connection.erase(it);
-		}
+		// TODO 从UnInit进入的不入栈
+		auto command = KECommandPtr(new	KEGraphConnectionRemoveCommand(this, connection));
+		KEditorGlobal::CommandInvoker.Execute(command);
+	}
+}
+
+void KEGraphScene::DeleteConnection(const QUuid& id)
+{
+	auto it = m_Connection.find(id);
+	if (it != m_Connection.end())
+	{
+		DeleteConnection(it->second);
 	}
 }
 

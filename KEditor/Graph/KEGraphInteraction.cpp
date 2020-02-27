@@ -79,7 +79,7 @@ bool KEGraphInteraction::CanConnect(PortIndexType& portIndex, GraphNodeDataConve
 	}
 
 	// 1.5) Forbid connecting the node to itself
-	KEGraphNodeControl* node = m_Connection->GetNode(OppositePort(requiredPort));
+	KEGraphNodeControl* node = m_Connection->Node(OppositePort(requiredPort));
 	if (node == nullptr)
 	{
 		return false;
@@ -160,7 +160,7 @@ bool KEGraphInteraction::TryConnect() const
 	m_Node->GetView()->MoveConnections();
 
 	// 5) Poke model to intiate data transfer
-	KEGraphNodeControl* outNode = m_Connection->GetNode(PT_OUT);
+	KEGraphNodeControl* outNode = m_Connection->Node(PT_OUT);
 	if (outNode)
 	{
 		PortIndexType outPortIndex = m_Connection->GetPortIndex(PT_OUT);

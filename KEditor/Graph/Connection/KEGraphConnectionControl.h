@@ -73,7 +73,7 @@ public:
 	KEGraphConnectionGeometry& ConnectionGeometry() { return m_ConnectionGeometry; }
 	const KEGraphConnectionGeometry& ConnectionGeometry() const { return m_ConnectionGeometry; }
 
-	KEGraphNodeControl*& GetNode(PortType portType);
+	KEGraphNodeControl*& Node(PortType portType);
 
 	PortIndexType GetPortIndex(PortType portType) const;
 	void ClearNode(PortType portType);
@@ -83,6 +83,8 @@ public:
 	void SetTypeConverter(GraphNodeDataConverterFunc converter);
 	bool Complete() const;
 
+	void Exit(KEGraphScene* scene);
+	void Enter(KEGraphScene* scene);
 public: // data propagation
 	void PropagateData(KEGraphNodeDataPtr nodeData) const;
 	void PropagateEmptyData() const;
