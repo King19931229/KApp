@@ -2,6 +2,7 @@
 #include "KEGraphNodeModel.h"
 #include "KEGraphNodeView.h"
 #include "Graph/KEGraphScene.h"
+#include "KEGraphNodeGeometry.h"
 #include "Graph/Connection/KEGraphConnectionControl.h"
 #include <assert.h>
 
@@ -95,6 +96,10 @@ void KEGraphNodeControl::Exit(KEGraphScene* scene)
 {
 	if (m_View->scene() == scene)
 	{
+		// 取消选中与Hover状态
+		m_View->setSelected(false);
+		m_Geometry.SetHovered(false);
+
 		scene->removeItem(m_View.get());
 		assert(m_View->scene() == nullptr);
 	}

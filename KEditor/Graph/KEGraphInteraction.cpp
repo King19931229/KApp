@@ -11,6 +11,11 @@
 
 #include "KEGraphPort.h"
 
+#include "KEditorGlobal.h"
+#include "Command/KEGraphConnectionCommand.h"
+
+#include <assert.h>
+
 KEGraphInteraction::KEGraphInteraction(KEGraphNodeControl& node,
 	KEGraphConnectionControl& connection,
 	KEGraphScene& scene)
@@ -159,6 +164,8 @@ bool KEGraphInteraction::TryConnect() const
 	// 4) Adjust Connection geometry
 	m_Node->GetView()->MoveConnections();
 
+	// the new Step 5 will do the data transfer implicitly
+#if 0
 	// 5) Poke model to intiate data transfer
 	KEGraphNodeControl* outNode = m_Connection->Node(PT_OUT);
 	if (outNode)
@@ -166,6 +173,13 @@ bool KEGraphInteraction::TryConnect() const
 		PortIndexType outPortIndex = m_Connection->GetPortIndex(PT_OUT);
 		outNode->OnDataUpdated(outPortIndex);
 	}
+#endif
+
+	// 5) Push a create command into stack (and that will also implicitly create an additional incomplete and compelete state change)
+	auto conn = m_Scene->GetConnection(m_Connection->ID());
+	assert(conn);
+	auto command = KECommandPtr(new	KEGraphConnectionCreateCommand(m_Scene, conn));
+	KEditorGlobal::CommandInvoker.Execute(command);
 
 	return true;
 }

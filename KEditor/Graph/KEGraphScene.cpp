@@ -57,16 +57,7 @@ KEGraphNodeControl* KEGraphScene::CreateNode(KEGraphNodeModelPtr&& model)
 	ret->SetView(std::move(view));
 
 	auto command = KECommandPtr(new	KEGraphNodeCreateCommand(this, node));
-
-	// TODO 从Init进入的不入栈
-	if (node->GetModel()->Redoable())
-	{
-		KEditorGlobal::CommandInvoker.Execute(command);
-	}
-	else
-	{
-		command->Execute();
-	}
+	KEditorGlobal::CommandInvoker.Execute(command);
 
 	SingalNodeCreated(ret);
 	return ret;
@@ -89,16 +80,7 @@ void KEGraphScene::RemoveNode(KEGraphNodeControlPtr node)
 	}
 
 	auto command = KECommandPtr(new	KEGraphNodeRemoveCommand(this, node));
-
-	// TODO 从UnInit进入的不入栈
-	if (node->GetModel()->Redoable())
-	{
-		KEditorGlobal::CommandInvoker.Execute(command);
-	}
-	else
-	{
-		command->Execute();
-	}
+	KEditorGlobal::CommandInvoker.Execute(command);
 }
 
 void KEGraphScene::RemoveNode(const QUuid& id)
@@ -132,8 +114,8 @@ KEGraphConnectionControl* KEGraphScene::CreateConnection(PortType connectedPort,
 	// after this function connection points are set to node port
 	connection->SetView(std::move(view));
 
-	// 不入栈
 	auto command = KECommandPtr(new	KEGraphConnectionCreateCommand(this, connection));
+	// Don't push into stack. A completed command will be pushed inside KEGraphInteraction
 	command->Execute();
 
 	return conn;
@@ -159,7 +141,6 @@ KEGraphConnectionControl* KEGraphScene::CreateConnection(KEGraphNodeControl* nod
 	connection->SetView(std::move(view));
 
 	auto command = KECommandPtr(new	KEGraphConnectionCreateCommand(this, connection));
-	// TODO 从UnInit进入的不入栈
 	KEditorGlobal::CommandInvoker.Execute(command);
 
 	return conn;
@@ -169,9 +150,15 @@ void KEGraphScene::DeleteConnection(KEGraphConnectionControlPtr connection)
 {
 	if (connection)
 	{
-		// TODO 从UnInit进入的不入栈
 		auto command = KECommandPtr(new	KEGraphConnectionRemoveCommand(this, connection));
-		KEditorGlobal::CommandInvoker.Execute(command);
+		if (connection->Complete())
+		{
+			KEditorGlobal::CommandInvoker.Execute(command);
+		}
+		else
+		{
+			command->Execute();
+		}
 	}
 }
 
@@ -182,6 +169,16 @@ void KEGraphScene::DeleteConnection(const QUuid& id)
 	{
 		DeleteConnection(it->second);
 	}
+}
+
+KEGraphConnectionControlPtr KEGraphScene::GetConnection(const QUuid& id)
+{
+	auto it = m_Connection.find(id);
+	if (it != m_Connection.end())
+	{
+		return it->second;
+	}
+	return nullptr;
 }
 
 KEGraphNodeControl* KEGraphScene::LocateNodeAt(QPointF scenePoint)

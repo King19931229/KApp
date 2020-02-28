@@ -2,19 +2,13 @@
 
 KEGraphEmtpyNodeModel::KEGraphEmtpyNodeModel(unsigned int inPorts, unsigned int outPorts, bool redoable)
 	: m_InPorts(inPorts),
-	m_OutPorts(outPorts),
-	m_bRedoable(redoable)
+	m_OutPorts(outPorts)
 {
 }
 
 KEGraphEmtpyNodeModel::~KEGraphEmtpyNodeModel()
 {
 
-}
-
-bool KEGraphEmtpyNodeModel::Redoable() const
-{
-	return m_bRedoable;
 }
 
 QString	KEGraphEmtpyNodeModel::Caption() const

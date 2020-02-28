@@ -7,12 +7,9 @@ class KEGraphEmtpyNodeModel : public KEGraphNodeModel
 protected:
 	unsigned int m_InPorts;
 	unsigned int m_OutPorts;
-	bool m_bRedoable;
 public:
 	KEGraphEmtpyNodeModel(unsigned int inPorts, unsigned int outPorts, bool redoable);
 	virtual	~KEGraphEmtpyNodeModel();
-
-	virtual bool Redoable() const override;
 
 	virtual QString	Caption() const override;
 	virtual QString	Name() const override;

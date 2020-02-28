@@ -43,6 +43,10 @@ void KEGraphConnectionControl::Exit(KEGraphScene* scene)
 {
 	if (m_View->scene() == scene)
 	{
+		// 取消选中与Hover状态
+		m_View->setSelected(false);
+		m_ConnectionGeometry.SetHovered(false);
+
 		RemoveFromNodes();
 
 		PropagateEmptyData();

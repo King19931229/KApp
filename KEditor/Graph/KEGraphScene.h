@@ -50,6 +50,8 @@ public:
 	void DeleteConnection(KEGraphConnectionControlPtr connection);
 	void DeleteConnection(const QUuid& id);
 
+	KEGraphConnectionControlPtr GetConnection(const QUuid& id);
+
 	KEGraphNodeControl* LocateNodeAt(QPointF scenePoint);
 Q_SIGNALS:
 	void SingalNodeCreated(KEGraphNodeControl* n);

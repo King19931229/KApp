@@ -4,23 +4,24 @@
 KECommandInvoker::KECommandInvoker()
 	: m_CurrentPos(m_HistoryCommands.end())
 {
+	assert(m_HistoryCommands.empty());
 }
 
-void KECommandInvoker::Discard()
+void KECommandInvoker::Execute(KECommandPtr& command)
 {
 	if (m_CurrentPos != m_HistoryCommands.end())
 	{
 		m_CurrentPos = m_HistoryCommands.erase(m_CurrentPos, m_HistoryCommands.end());
 		assert(m_CurrentPos == m_HistoryCommands.end());
 	}
-}
 
-void KECommandInvoker::Execute(KECommandPtr& command)
-{
-	Discard();
 	command->Execute();
-	m_HistoryCommands.push_back(command);
-	m_CurrentPos = m_HistoryCommands.end();
+
+	if (!m_bLock)
+	{
+		m_HistoryCommands.push_back(command);
+		m_CurrentPos = m_HistoryCommands.end();
+	}
 }
 
 void KECommandInvoker::Undo()
@@ -45,4 +46,19 @@ void KECommandInvoker::Clear()
 {
 	m_HistoryCommands.clear();
 	m_CurrentPos = m_HistoryCommands.end();
+}
+
+KECommandInvokerLockGuard KECommandInvoker::CreateLockGurad()
+{
+	return KECommandInvokerLockGuard(this);
+}
+
+void KECommandInvoker::Lock()
+{
+	m_bLock = true;
+}
+
+void KECommandInvoker::UnLock()
+{
+	m_bLock = false;
 }

@@ -43,6 +43,9 @@ bool KEditor::Init()
 {
 	if (!m_bInit)
 	{
+		// 不允许构建操作进入操作栈
+		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
+
 		m_RenderWidget = new KERenderWidget();
 
 		m_RenderCore = CreateRenderCore();
@@ -62,8 +65,6 @@ bool KEditor::Init()
 		m_GraphWidget->Init();
 		m_GraphWidget->hide();
 
-		KEditorGlobal::CommandInvoker.Clear();
-
 		m_bInit = true;
 		return true;
 	}
@@ -75,6 +76,10 @@ bool KEditor::UnInit()
 {
 	if (m_bInit)
 	{
+		// 清空操作栈 同时不允许析构操作进入操作栈
+		KEditorGlobal::CommandInvoker.Clear();
+		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
+
 		m_RenderWindow->UnInit();
 		m_RenderWindow = nullptr;
 
@@ -95,8 +100,6 @@ bool KEditor::UnInit()
 			m_GraphWidget->UnInit();
 			SAFE_DELETE(m_GraphWidget);
 		}
-
-		KEditorGlobal::CommandInvoker.Clear();
 
 		m_bInit = false;
 	}
