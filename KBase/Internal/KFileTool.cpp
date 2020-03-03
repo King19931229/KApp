@@ -4,6 +4,7 @@
 #ifdef _WIN32
 #include <io.h>
 #include <direct.h>
+#pragma warning (disable:4996)
 #else
 #include <sys/types.h>
 #include <sys/stat.h>

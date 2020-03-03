@@ -163,6 +163,21 @@
     <ClInclude Include="Internal\Json\KJsonValue.h">
       <Filter>Internal\Json</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKXML.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\XML\KXMLDeclaration.h">
+      <Filter>Internal\XML</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\XML\KXMLAttribute.h">
+      <Filter>Internal\XML</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\XML\KXMLElement.h">
+      <Filter>Internal\XML</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\XML\KXMLDocument.h">
+      <Filter>Internal\XML</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -185,6 +200,9 @@
     </Filter>
     <Filter Include="Internal\Json">
       <UniqueIdentifier>{00ef7e7b-b33f-4e5a-938f-2d47ecd5321a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\XML">
+      <UniqueIdentifier>{f22790df-62aa-41a9-96c4-33b444e87c9b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -277,6 +295,18 @@
     </ClCompile>
     <ClCompile Include="Internal\Json\KJsonValue.cpp">
       <Filter>Internal\Json</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\XML\KXMLDeclaration.cpp">
+      <Filter>Internal\XML</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\XML\KXMLAttribute.cpp">
+      <Filter>Internal\XML</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\XML\KXMLElement.cpp">
+      <Filter>Internal\XML</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\XML\KXMLDocument.cpp">
+      <Filter>Internal\XML</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
