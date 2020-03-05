@@ -90,21 +90,21 @@ private:
 
 		// Create the bounding box.
 		glm::vec3 size = glm::vec3(adjLength, adjLength, adjLength);
-		bounds.InitFromExtent(center, size);
+		bounds.InitFromHalfExtent(center, size);
 
 		float quarter = baseLength / 4.0f;
 		float childActualLength = (quarter / 2) * looseness;
 		glm::vec3 childActualSize = glm::vec3(childActualLength, childActualLength, childActualLength);
 
 		childBounds = new KAABBBox[8];
-		childBounds[0].InitFromExtent(center + glm::vec3(-quarter, quarter, -quarter), childActualSize);
-		childBounds[1].InitFromExtent(center + glm::vec3(quarter, quarter, -quarter), childActualSize);
-		childBounds[2].InitFromExtent(center + glm::vec3(-quarter, quarter, quarter), childActualSize);
-		childBounds[3].InitFromExtent(center + glm::vec3(quarter, quarter, quarter), childActualSize);
-		childBounds[4].InitFromExtent(center + glm::vec3(-quarter, -quarter, -quarter), childActualSize);
-		childBounds[5].InitFromExtent(center + glm::vec3(quarter, -quarter, -quarter), childActualSize);
-		childBounds[6].InitFromExtent(center + glm::vec3(-quarter, -quarter, quarter), childActualSize);
-		childBounds[7].InitFromExtent(center + glm::vec3(quarter, -quarter, quarter), childActualSize);
+		childBounds[0].InitFromHalfExtent(center + glm::vec3(-quarter, quarter, -quarter), childActualSize);
+		childBounds[1].InitFromHalfExtent(center + glm::vec3(quarter, quarter, -quarter), childActualSize);
+		childBounds[2].InitFromHalfExtent(center + glm::vec3(-quarter, quarter, quarter), childActualSize);
+		childBounds[3].InitFromHalfExtent(center + glm::vec3(quarter, quarter, quarter), childActualSize);
+		childBounds[4].InitFromHalfExtent(center + glm::vec3(-quarter, -quarter, -quarter), childActualSize);
+		childBounds[5].InitFromHalfExtent(center + glm::vec3(quarter, -quarter, -quarter), childActualSize);
+		childBounds[6].InitFromHalfExtent(center + glm::vec3(-quarter, -quarter, quarter), childActualSize);
+		childBounds[7].InitFromHalfExtent(center + glm::vec3(quarter, -quarter, quarter), childActualSize);
 	}
 
 	static bool Encapsulates(const KAABBBox& outerBounds, const KAABBBox& innerBounds)
@@ -361,7 +361,7 @@ public:
 			KComponentBase* component = nullptr;
 			if (boundEntity->RegisterComponent(CT_RENDER, &component))
 			{
-				((KRenderComponent*)component)->InitAsBox(bounds);
+				((KRenderComponent*)component)->InitAsBox(bounds.GetExtend() * 0.5f);
 			}
 
 			if (boundEntity->RegisterComponent(CT_TRANSFORM, &component))

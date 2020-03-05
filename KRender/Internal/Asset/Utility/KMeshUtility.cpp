@@ -5,10 +5,34 @@
 
 namespace KMeshUtility
 {
-	bool CreateBox(IKRenderDevice* device, KMesh* pMesh, const KAABBBox& bound, size_t frameInFlight)
+	bool CreateBox(IKRenderDevice* device, KMesh* pMesh, const glm::vec3& halfExtent, size_t frameInFlight)
 	{
 		KMeshUtilityImpl impl(device);
-		return impl.CreateBox(pMesh, bound, frameInFlight);
+		return impl.CreateBox(pMesh, halfExtent, frameInFlight);
+	}
+
+	bool CreateQuad(IKRenderDevice* device, KMesh* pMesh, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, size_t frameInFlight)
+	{
+		KMeshUtilityImpl impl(device);
+		return impl.CreateQuad(pMesh, lengthU, lengthV, axisU, axisV, frameInFlight);
+	}
+
+	bool CreateCone(IKRenderDevice* device, KMesh* pMesh, const glm::vec3& org, float height, float radius, size_t frameInFlight)
+	{
+		KMeshUtilityImpl impl(device);
+		return impl.CreateCone(pMesh, org, height, radius, frameInFlight);
+	}
+
+	bool CreateCylinder(IKRenderDevice* device, KMesh* pMesh, const glm::vec3& org, float height, float radius, size_t frameInFlight)
+	{
+		KMeshUtilityImpl impl(device);
+		return impl.CreateCylinder(pMesh, org, height, radius, frameInFlight);
+	}
+
+	bool CreateCircle(IKRenderDevice* device, KMesh* pMesh, float radius, size_t frameInFlight)
+	{
+		KMeshUtilityImpl impl(device);
+		return impl.CreateCircle(pMesh, radius, frameInFlight);
 	}
 }
 
@@ -22,9 +46,8 @@ KMeshUtilityImpl::~KMeshUtilityImpl()
 {
 }
 
-bool KMeshUtilityImpl::CreateBox(KMesh* pMesh, const KAABBBox& bound, size_t frameInFlight)
+bool KMeshUtilityImpl::CreateBox(KMesh* pMesh, const glm::vec3& halfExtend, size_t frameInFlight)
 {
-	assert(bound.IsDefault());
 	if (pMesh)
 	{
 		pMesh->UnInit();
@@ -34,27 +57,29 @@ bool KMeshUtilityImpl::CreateBox(KMesh* pMesh, const KAABBBox& bound, size_t fra
 		IKVertexBufferPtr vertexBuffer = nullptr;
 		m_Device->CreateVertexBuffer(vertexBuffer);
 
-		vertexData.vertexFormats.push_back(VF_POINT_NORMAL_UV);
+		KAABBBox bound;
+		bound.InitFromHalfExtent(glm::vec3(0.0f), halfExtend);
+
+		KVertexDefinition::DEBUG_POS_3F positions[] =
+		{
+			{ halfExtend * glm::vec3(-1.0f, -1.0, -1.0f) },
+			{ halfExtend * glm::vec3(-1.0, 1.0f, -1.0f) },
+			{ halfExtend * glm::vec3(1.0f, 1.0f, -1.0f) },
+			{ halfExtend * glm::vec3(1.0f, -1.0f, -1.0f) },
+
+			{ halfExtend * glm::vec3(1.0f, 1.0f, 1.0f) },
+			{ halfExtend * glm::vec3(-1.0, 1.0f, 1.0f) },
+			{ halfExtend * glm::vec3(-1.0, -1.0f, 1.0f) },
+			{ halfExtend * glm::vec3(1.0f, -1.0f, 1.0f) }
+		};
+
+		vertexData.vertexFormats.push_back(VF_DEBUG_POINT);
 		vertexData.vertexBuffers.push_back(vertexBuffer);
 		vertexData.vertexStart = 0;
-		vertexData.vertexCount = 8;
+		vertexData.vertexCount = ARRAY_SIZE(positions);
 		vertexData.bound = bound;
 
-		auto center = bound.GetCenter();
 		auto halfExtend = bound.GetExtend() * 0.5f;
-
-		KVertexDefinition::POS_3F_NORM_3F_UV_2F positions[] =
-		{
-			{ /*center + */halfExtend * glm::vec3(-1.0f, -1.0, -1.0f), glm::vec3(-1.0, -1.0f, -1.0f), glm::vec2(1.0f, 0.0f) },
-			{ /*center + */halfExtend * glm::vec3(-1.0, 1.0f, -1.0f), glm::vec3(-1.0, 1.0f, 1.0f), glm::vec2(0.0f, 0.0f) },
-			{ /*center + */halfExtend * glm::vec3(1.0f, 1.0f, -1.0f), glm::vec3(1.0f, 1.0f, -1.0f), glm::vec2(1.0f, 0.0f) },
-			{ /*center + */halfExtend * glm::vec3(1.0f, -1.0f, -1.0f), glm::vec3(1.0f, -1.0f, -1.0f), glm::vec2(1.0f, 1.0f) },
-
-			{ /*center + */halfExtend * glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec2(1.0f, 0.0f) },
-			{ /*center + */halfExtend * glm::vec3(-1.0, 1.0f, 1.0f), glm::vec3(-1.0, 1.0f, 1.0f), glm::vec2(0.0f, 0.0f) },
-			{ /*center + */halfExtend * glm::vec3(-1.0, -1.0f, 1.0f), glm::vec3(-1.0, -1.0f, 1.0f), glm::vec2(1.0f, 0.0f) },
-			{ /*center + */halfExtend * glm::vec3(1.0f, -1.0f, 1.0f), glm::vec3(1.0f, -1.0f, 1.0f), glm::vec2(1.0f, 1.0f) }
-		};
 
 		vertexBuffer->InitMemory(ARRAY_SIZE(positions), sizeof(positions[0]), positions);
 		vertexBuffer->InitDevice(false);
@@ -87,11 +112,89 @@ bool KMeshUtilityImpl::CreateBox(KMesh* pMesh, const KAABBBox& bound, size_t fra
 		auto& subMeshes = pMesh->m_SubMeshes;
 
 		KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
-		newSubMesh->InitDebugOnly(&vertexData, std::move(indexData), frameInFlight);
+		newSubMesh->InitDebug(DEBUG_PRIMITIVE_LINE, &vertexData, &indexData, frameInFlight);
 
 		subMeshes.push_back(newSubMesh);
 
 		return true;
 	}
+	return false;
+}
+
+bool KMeshUtilityImpl::CreateQuad(KMesh* pMesh, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, size_t frameInFlight)
+{
+	if (pMesh)
+	{
+		pMesh->UnInit();
+
+		KVertexData& vertexData = pMesh->m_VertexData;
+
+		IKVertexBufferPtr vertexBuffer = nullptr;
+		m_Device->CreateVertexBuffer(vertexBuffer);
+
+		KVertexDefinition::DEBUG_POS_3F positions[] =
+		{
+			glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::vec3(axisU * lengthU),
+			glm::vec3(axisV * lengthV),
+			glm::vec3(axisU * lengthU + axisV * lengthV),
+		};
+
+		KAABBBox bound;
+		for (const auto& pos : positions)
+		{
+			bound.Merge(pos.DEBUG_POSITION, bound);
+		}
+
+		vertexData.vertexFormats.push_back(VF_DEBUG_POINT);
+		vertexData.vertexBuffers.push_back(vertexBuffer);
+		vertexData.vertexStart = 0;
+		vertexData.vertexCount = ARRAY_SIZE(positions);
+		vertexData.bound = bound;
+
+		vertexBuffer->InitMemory(ARRAY_SIZE(positions), sizeof(positions[0]), positions);
+		vertexBuffer->InitDevice(false);
+
+		uint16_t indices[] =
+		{
+			0, 1, 2,
+			3, 2, 1,
+		};
+
+		IKIndexBufferPtr indexBuffer = nullptr;
+		m_Device->CreateIndexBuffer(indexBuffer);
+
+		indexBuffer->InitMemory(IT_16, ARRAY_SIZE(indices), indices);
+		indexBuffer->InitDevice(false);
+
+		KIndexData indexData;
+		indexData.indexBuffer = indexBuffer;
+		indexData.indexStart = 0;
+		indexData.indexCount = ARRAY_SIZE(indices);
+
+		auto& subMeshes = pMesh->m_SubMeshes;
+
+		KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
+		newSubMesh->InitDebug(DEBUG_PRIMITIVE_TRIANGLE, &vertexData, &indexData, frameInFlight);
+
+		subMeshes.push_back(newSubMesh);
+
+		return true;
+	}
+	return false;
+}
+
+bool KMeshUtilityImpl::CreateCone(KMesh* pMesh, const glm::vec3& org, float height, float radius, size_t frameInFlight)
+{
+	return false;
+}
+
+bool KMeshUtilityImpl::CreateCylinder(KMesh* pMesh, const glm::vec3& org, float height, float radius, size_t frameInFlight)
+{
+	return false;
+}
+
+bool KMeshUtilityImpl::CreateCircle(KMesh* pMesh, float radius, size_t frameInFlight)
+{
 	return false;
 }

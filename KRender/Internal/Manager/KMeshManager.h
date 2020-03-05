@@ -35,5 +35,9 @@ public:
 	bool Release(KMeshPtr& ptr);
 
 	// utility
-	bool CreateBox(const KAABBBox& box, KMeshPtr& ptr);
+	bool CreateBox(const glm::vec3& halfExtent, KMeshPtr& ptr);
+	bool CreateQuad(float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, KMeshPtr& ptr);
+	bool CreateCone(const glm::vec3& org, float height, float radius, KMeshPtr& ptr);
+	bool CreateCylinder(const glm::vec3& org, float height, float radius, KMeshPtr& ptr);
+	bool CreateCircle(float radius, KMeshPtr& ptr);
 };

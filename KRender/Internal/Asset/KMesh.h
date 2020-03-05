@@ -26,7 +26,14 @@ public:
 	bool SaveAsFile(const char* szPath);
 	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
 	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsBox(const KAABBBox& box, IKRenderDevice* device, size_t frameInFlight);
+
+
+	bool InitAsBox(const glm::vec3& halfExtent, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsQuad(float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsCone(const glm::vec3& org, float height, float radius, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsCylinder(const glm::vec3& org, float height, float radius, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsCircle(float radius, IKRenderDevice* device, size_t frameInFlight);
+
 	bool UnInit();
 
 	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func);

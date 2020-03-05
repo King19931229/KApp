@@ -3,8 +3,6 @@
 #include "public.glh"
 
 layout(location = POSITION) in vec3 position;
-layout(location = NORMAL) in vec3 normal;
-layout(location = TEXCOORD0) in vec2 texcoord0;
 
 layout(push_constant)
 uniform PushConstant

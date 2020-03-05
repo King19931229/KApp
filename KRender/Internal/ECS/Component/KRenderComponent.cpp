@@ -21,9 +21,29 @@ bool KRenderComponent::InitFromAsset(const char* path)
 	return KRenderGlobal::MeshManager.AcquireFromAsset(path, m_Mesh);
 }
 
-bool KRenderComponent::InitAsBox(const KAABBBox& bound)
+bool KRenderComponent::InitAsBox(const glm::vec3& halfExtent)
 {
-	return KRenderGlobal::MeshManager.CreateBox(bound, m_Mesh);
+	return KRenderGlobal::MeshManager.CreateBox(halfExtent, m_Mesh);
+}
+
+bool KRenderComponent::InitAsQuad(float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV)
+{
+	return KRenderGlobal::MeshManager.CreateQuad(lengthU, lengthV, axisU, axisV, m_Mesh);
+}
+
+bool KRenderComponent::InitAsCone(const glm::vec3& org, float height, float radius)
+{
+	return KRenderGlobal::MeshManager.CreateCone(org, height, radius, m_Mesh);
+}
+
+bool KRenderComponent::InitAsCylinder(const glm::vec3& org, float height, float radius)
+{
+	return KRenderGlobal::MeshManager.CreateCylinder(org, height, radius, m_Mesh);
+}
+
+bool KRenderComponent::InitAsCircle(float radius)
+{
+	return KRenderGlobal::MeshManager.CreateCircle(radius, m_Mesh);
 }
 
 bool KRenderComponent::UnInit()

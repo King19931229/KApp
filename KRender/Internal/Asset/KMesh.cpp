@@ -95,7 +95,6 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 	{
 		return false;
 	}
-
 	UnInit();
 
 	IKAssetLoaderPtr& loader = KAssetLoaderManager::Loader;
@@ -223,17 +222,65 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 	return false;
 }
 
-bool KMesh::InitAsBox(const KAABBBox& box, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::InitAsBox(const glm::vec3& halfExtent, IKRenderDevice* device, size_t frameInFlight)
 {
 	assert(device);
 	if (!device)
 	{
 		return false;
 	}
-
 	UnInit();
 
-	return KMeshUtility::CreateBox(device, this, box, frameInFlight);
+	return KMeshUtility::CreateBox(device, this, halfExtent, frameInFlight);
+}
+
+
+bool KMesh::InitAsQuad(float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, IKRenderDevice* device, size_t frameInFlight)
+{
+	assert(device);
+	if (!device)
+	{
+		return false;
+	}
+	UnInit();
+
+	return KMeshUtility::CreateQuad(device, this, lengthU, lengthV, axisU, axisV, frameInFlight);
+}
+
+bool KMesh::InitAsCone(const glm::vec3& org, float height, float radius, IKRenderDevice* device, size_t frameInFlight)
+{
+	assert(device);
+	if (!device)
+	{
+		return false;
+	}
+	UnInit();
+
+	return KMeshUtility::CreateCone(device, this, org, height, radius, frameInFlight);
+}
+
+bool KMesh::InitAsCylinder(const glm::vec3& org, float height, float radius, IKRenderDevice* device, size_t frameInFlight)
+{
+	assert(device);
+	if (!device)
+	{
+		return false;
+	}
+	UnInit();
+
+	return KMeshUtility::CreateCylinder(device, this, org, height, radius, frameInFlight);
+}
+
+bool KMesh::InitAsCircle(float radius, IKRenderDevice* device, size_t frameInFlight)
+{
+	assert(device);
+	if (!device)
+	{
+		return false;
+	}
+	UnInit();
+
+	return KMeshUtility::CreateCircle(device, this, radius, frameInFlight);
 }
 
 bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func)

@@ -39,7 +39,7 @@ public:
 	inline glm::vec3 GetMin() { return m_Min; }
 	inline glm::vec3 GetMax() { return m_Max; }
 
-	void InitFromExtent(const glm::vec3& center, const glm::vec3& extend)
+	void InitFromHalfExtent(const glm::vec3& center, const glm::vec3& extend)
 	{
 		m_Min = center - extend;
 		m_Max = center + extend;

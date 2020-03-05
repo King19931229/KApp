@@ -51,6 +51,11 @@ namespace KVertexDefinition
 	{
 		glm::vec2 QUAD_POSITION;
 	};
+
+	struct DEBUG_POS_3F
+	{
+		glm::vec3 DEBUG_POSITION;
+	};
 #pragma pack(pop)
 	struct VertexSemanticDetail
 	{

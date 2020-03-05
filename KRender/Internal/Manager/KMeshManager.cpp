@@ -131,10 +131,58 @@ bool KMeshManager::Release(KMeshPtr& ptr)
 	return false;
 }
 
-bool KMeshManager::CreateBox(const KAABBBox& box, KMeshPtr& ptr)
+bool KMeshManager::CreateBox(const glm::vec3& halfExtent, KMeshPtr& ptr)
 {
 	ptr = KMeshPtr(new KMesh());
-	if (ptr->InitAsBox(box, m_Device, m_FrameInFlight))
+	if (ptr->InitAsBox(halfExtent, m_Device, m_FrameInFlight))
+	{
+		m_SpecialMesh.insert(ptr);
+		return true;
+	}
+	ptr = nullptr;
+	return false;
+}
+
+bool KMeshManager::CreateQuad(float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, KMeshPtr& ptr)
+{
+	ptr = KMeshPtr(new KMesh());
+	if (ptr->InitAsQuad(lengthU, lengthV, axisU, axisV, m_Device, m_FrameInFlight))
+	{
+		m_SpecialMesh.insert(ptr);
+		return true;
+	}
+	ptr = nullptr;
+	return false;
+}
+
+bool KMeshManager::CreateCone(const glm::vec3& org, float height, float radius, KMeshPtr& ptr)
+{
+	ptr = KMeshPtr(new KMesh());
+	if (ptr->InitAsCone(org, height, radius, m_Device, m_FrameInFlight))
+	{
+		m_SpecialMesh.insert(ptr);
+		return true;
+	}
+	ptr = nullptr;
+	return false;
+}
+
+bool KMeshManager::CreateCylinder(const glm::vec3& org, float height, float radius, KMeshPtr& ptr)
+{
+	ptr = KMeshPtr(new KMesh());
+	if (ptr->InitAsCylinder(org, height, radius, m_Device, m_FrameInFlight))
+	{
+		m_SpecialMesh.insert(ptr);
+		return true;
+	}
+	ptr = nullptr;
+	return false;
+}
+
+bool KMeshManager::CreateCircle(float radius, KMeshPtr& ptr)
+{
+	ptr = KMeshPtr(new KMesh());
+	if (ptr->InitAsCircle(radius, m_Device, m_FrameInFlight))
 	{
 		m_SpecialMesh.insert(ptr);
 		return true;
