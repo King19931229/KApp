@@ -14,10 +14,12 @@ public:
 	bool InitFromAsset(const char* path);
 
 	bool InitAsBox(const glm::vec3& halfExtent);
-	bool InitAsQuad(float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV);
-	bool InitAsCone(const glm::vec3& org, float height, float radius);
-	bool InitAsCylinder(const glm::vec3& org, float height, float radius);
-	bool InitAsCircle(float radius);
+
+	bool InitAsQuad(const glm::mat4& transform, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV);
+	bool InitAsCone(const glm::mat4& transform, float height, float radius);
+	bool InitAsCylinder(const glm::mat4& transform, float height, float radius);
+	bool InitAsCircle(const glm::mat4& transform, float radius);
+	bool InitAsSphere(const glm::mat4& transform, float radius);
 
 	bool UnInit();
 

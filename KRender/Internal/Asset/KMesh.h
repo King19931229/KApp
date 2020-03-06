@@ -29,10 +29,11 @@ public:
 
 
 	bool InitAsBox(const glm::vec3& halfExtent, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsQuad(float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsCone(const glm::vec3& org, float height, float radius, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsCylinder(const glm::vec3& org, float height, float radius, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsCircle(float radius, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsQuad(const glm::mat4& transform, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsCone(const glm::mat4& transform, float height, float radius, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsCylinder(const glm::mat4& transform, float height, float radius, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsCircle(const glm::mat4& transform, float radius, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsSphere(const glm::mat4& transform, float radius, IKRenderDevice* device, size_t frameInFlight);
 
 	bool UnInit();
 

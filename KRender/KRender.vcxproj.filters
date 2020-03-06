@@ -52,6 +52,9 @@
     <Filter Include="Internal\Asset\Utility">
       <UniqueIdentifier>{535415ea-deda-46d1-a7db-91afc3ba3bfc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Gizmo">
+      <UniqueIdentifier>{c2114faa-71be-454b-b273-2044004f7233}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">

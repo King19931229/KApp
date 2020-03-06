@@ -36,8 +36,9 @@ public:
 
 	// utility
 	bool CreateBox(const glm::vec3& halfExtent, KMeshPtr& ptr);
-	bool CreateQuad(float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, KMeshPtr& ptr);
-	bool CreateCone(const glm::vec3& org, float height, float radius, KMeshPtr& ptr);
-	bool CreateCylinder(const glm::vec3& org, float height, float radius, KMeshPtr& ptr);
-	bool CreateCircle(float radius, KMeshPtr& ptr);
+	bool CreateQuad(const glm::mat4& transform, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, KMeshPtr& ptr);
+	bool CreateCone(const glm::mat4& transform, float height, float radius, KMeshPtr& ptr);
+	bool CreateCylinder(const glm::mat4& transform, float height, float radius, KMeshPtr& ptr);
+	bool CreateCircle(const glm::mat4& transform, float radius, KMeshPtr& ptr);
+	bool CreateSphere(const glm::mat4& transform, float radius, KMeshPtr& ptr);
 };

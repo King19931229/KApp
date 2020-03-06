@@ -11,28 +11,39 @@ namespace KMeshUtility
 		return impl.CreateBox(pMesh, halfExtent, frameInFlight);
 	}
 
-	bool CreateQuad(IKRenderDevice* device, KMesh* pMesh, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, size_t frameInFlight)
+	bool CreateQuad(IKRenderDevice* device, KMesh* pMesh, const glm::mat4& transform,
+		float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, size_t frameInFlight)
 	{
 		KMeshUtilityImpl impl(device);
-		return impl.CreateQuad(pMesh, lengthU, lengthV, axisU, axisV, frameInFlight);
+		return impl.CreateQuad(pMesh, transform, lengthU, lengthV, axisU, axisV, frameInFlight);
 	}
 
-	bool CreateCone(IKRenderDevice* device, KMesh* pMesh, const glm::vec3& org, float height, float radius, size_t frameInFlight)
+	bool CreateCone(IKRenderDevice* device, KMesh* pMesh, const glm::mat4& transform,
+		float height, float radius, size_t frameInFlight)
 	{
 		KMeshUtilityImpl impl(device);
-		return impl.CreateCone(pMesh, org, height, radius, frameInFlight);
+		return impl.CreateCone(pMesh, transform, height, radius, frameInFlight);
 	}
 
-	bool CreateCylinder(IKRenderDevice* device, KMesh* pMesh, const glm::vec3& org, float height, float radius, size_t frameInFlight)
+	bool CreateCylinder(IKRenderDevice* device, KMesh* pMesh, const glm::mat4& transform,
+		float height, float radius, size_t frameInFlight)
 	{
 		KMeshUtilityImpl impl(device);
-		return impl.CreateCylinder(pMesh, org, height, radius, frameInFlight);
+		return impl.CreateCylinder(pMesh, transform, height, radius, frameInFlight);
 	}
 
-	bool CreateCircle(IKRenderDevice* device, KMesh* pMesh, float radius, size_t frameInFlight)
+	bool CreateCircle(IKRenderDevice* device, KMesh* pMesh, const glm::mat4& transform,
+		float radius, size_t frameInFlight)
 	{
 		KMeshUtilityImpl impl(device);
-		return impl.CreateCircle(pMesh, radius, frameInFlight);
+		return impl.CreateCircle(pMesh, transform, radius, frameInFlight);
+	}
+
+	bool CreateSphere(IKRenderDevice* device, KMesh* pMesh, const glm::mat4& transform,
+		float radius, size_t frameInFlight)
+	{
+		KMeshUtilityImpl impl(device);
+		return impl.CreateSphere(pMesh, transform, radius, frameInFlight);
 	}
 }
 
@@ -121,7 +132,7 @@ bool KMeshUtilityImpl::CreateBox(KMesh* pMesh, const glm::vec3& halfExtend, size
 	return false;
 }
 
-bool KMeshUtilityImpl::CreateQuad(KMesh* pMesh, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, size_t frameInFlight)
+bool KMeshUtilityImpl::CreateQuad(KMesh* pMesh, const glm::mat4& transform, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, size_t frameInFlight)
 {
 	if (pMesh)
 	{
@@ -184,17 +195,253 @@ bool KMeshUtilityImpl::CreateQuad(KMesh* pMesh, float lengthU, float lengthV, co
 	return false;
 }
 
-bool KMeshUtilityImpl::CreateCone(KMesh* pMesh, const glm::vec3& org, float height, float radius, size_t frameInFlight)
+bool KMeshUtilityImpl::CreateCone(KMesh* pMesh, const glm::mat4& transform, float height, float radius, size_t frameInFlight)
 {
-	return false;
+	const auto sgements = 50;
+
+	std::vector<KVertexDefinition::DEBUG_POS_3F> positions;
+	positions.reserve(sgements * 3);
+
+	for (auto i = 0; i < sgements; ++i)
+	{
+		float bx = cos((float)i / (float)sgements * TWO_PI) * radius;
+		float bz = sin((float)i / (float)sgements * TWO_PI) * radius;
+
+		float cx = cos((float)(i + 1) / (float)sgements * TWO_PI) * radius;
+		float cz = sin((float)(i + 1) / (float)sgements * TWO_PI) * radius;
+
+		positions.push_back({ glm::vec3(bx, 0, bz) });
+		positions.push_back({ glm::vec3(cx, 0, cz) });
+		positions.push_back({ glm::vec3(0, height, 0) });
+	}
+
+	pMesh->UnInit();
+
+	KVertexData& vertexData = pMesh->m_VertexData;
+
+	IKVertexBufferPtr vertexBuffer = nullptr;
+	m_Device->CreateVertexBuffer(vertexBuffer);
+
+	KAABBBox bound;
+
+	for (auto& pos : positions)
+	{
+		glm::vec4 t = transform * glm::vec4(pos.DEBUG_POSITION, 1.0);
+		pos.DEBUG_POSITION = glm::vec3(t.x, t.y, t.z);
+		bound.Merge(pos.DEBUG_POSITION, bound);
+	}
+
+	vertexData.vertexFormats.push_back(VF_DEBUG_POINT);
+	vertexData.vertexBuffers.push_back(vertexBuffer);
+	vertexData.vertexStart = 0;
+	vertexData.vertexCount = (uint32_t)positions.size();
+	vertexData.bound = bound;
+
+	vertexBuffer->InitMemory(positions.size(), sizeof(positions[0]), positions.data());
+	vertexBuffer->InitDevice(false);
+
+	auto& subMeshes = pMesh->m_SubMeshes;
+
+	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
+	newSubMesh->InitDebug(DEBUG_PRIMITIVE_TRIANGLE, &vertexData, nullptr, frameInFlight);
+
+	subMeshes.push_back(newSubMesh);
+
+	return true;
 }
 
-bool KMeshUtilityImpl::CreateCylinder(KMesh* pMesh, const glm::vec3& org, float height, float radius, size_t frameInFlight)
+bool KMeshUtilityImpl::CreateCylinder(KMesh* pMesh, const glm::mat4& transform, float height, float radius, size_t frameInFlight)
 {
-	return false;
+	const auto sgements = 50;
+
+	std::vector<KVertexDefinition::DEBUG_POS_3F> positions;
+	positions.reserve(sgements * 6);
+
+	for (auto i = 0; i < sgements; ++i)
+	{
+		float bx = cos((float)i / (float)sgements * TWO_PI) * radius;
+		float bz = sin((float)i / (float)sgements * TWO_PI) * radius;
+
+		float cx = cos((float)(i + 1) / (float)sgements * TWO_PI) * radius;
+		float cz = sin((float)(i + 1) / (float)sgements * TWO_PI) * radius;
+
+		positions.push_back({ glm::vec3(bx, 0, bz) });
+		positions.push_back({ glm::vec3(cx, 0, cz) });
+		positions.push_back({ glm::vec3(bx, height, bz) });
+
+		positions.push_back({ glm::vec3(cx, height, cz) });
+		positions.push_back({ glm::vec3(bx, height, bz) });
+		positions.push_back({ glm::vec3(cx, 0, cz) });
+	}
+
+	pMesh->UnInit();
+
+	KVertexData& vertexData = pMesh->m_VertexData;
+
+	IKVertexBufferPtr vertexBuffer = nullptr;
+	m_Device->CreateVertexBuffer(vertexBuffer);
+
+	KAABBBox bound;
+
+	for (auto& pos : positions)
+	{
+		glm::vec4 t = transform * glm::vec4(pos.DEBUG_POSITION, 1.0);
+		pos.DEBUG_POSITION = glm::vec3(t.x, t.y, t.z);
+		bound.Merge(pos.DEBUG_POSITION, bound);
+	}
+
+	vertexData.vertexFormats.push_back(VF_DEBUG_POINT);
+	vertexData.vertexBuffers.push_back(vertexBuffer);
+	vertexData.vertexStart = 0;
+	vertexData.vertexCount = (uint32_t)positions.size();
+	vertexData.bound = bound;
+
+	vertexBuffer->InitMemory(positions.size(), sizeof(positions[0]), positions.data());
+	vertexBuffer->InitDevice(false);
+
+	auto& subMeshes = pMesh->m_SubMeshes;
+
+	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
+	newSubMesh->InitDebug(DEBUG_PRIMITIVE_TRIANGLE, &vertexData, nullptr, frameInFlight);
+
+	subMeshes.push_back(newSubMesh);
+
+	return true;
 }
 
-bool KMeshUtilityImpl::CreateCircle(KMesh* pMesh, float radius, size_t frameInFlight)
+bool KMeshUtilityImpl::CreateCircle(KMesh* pMesh, const glm::mat4& transform, float radius, size_t frameInFlight)
 {
-	return false;
+	const size_t sgements = 50;
+
+	std::vector<KVertexDefinition::DEBUG_POS_3F> positions;
+	positions.reserve(sgements * 2);
+
+	for (auto i = 0; i < sgements; ++i)
+	{
+		float bx = cos((float)i / (float)sgements * TWO_PI) * radius;
+		float bz = sin((float)i / (float)sgements * TWO_PI) * radius;
+
+		float cx = cos((float)(i + 1) / (float)sgements * TWO_PI) * radius;
+		float cz = sin((float)(i + 1) / (float)sgements * TWO_PI) * radius;
+
+		positions.push_back({ glm::vec3(bx, 0, bz) });
+		positions.push_back({ glm::vec3(cx, 0, cz) });
+	}
+
+	pMesh->UnInit();
+
+	KVertexData& vertexData = pMesh->m_VertexData;
+
+	IKVertexBufferPtr vertexBuffer = nullptr;
+	m_Device->CreateVertexBuffer(vertexBuffer);
+
+	KAABBBox bound;
+
+	for (auto& pos : positions)
+	{
+		glm::vec4 t = transform * glm::vec4(pos.DEBUG_POSITION, 1.0);
+		pos.DEBUG_POSITION = glm::vec3(t.x, t.y, t.z);
+		bound.Merge(pos.DEBUG_POSITION, bound);
+	}
+
+	vertexData.vertexFormats.push_back(VF_DEBUG_POINT);
+	vertexData.vertexBuffers.push_back(vertexBuffer);
+	vertexData.vertexStart = 0;
+	vertexData.vertexCount = (uint32_t)positions.size();
+	vertexData.bound = bound;
+
+	vertexBuffer->InitMemory(positions.size(), sizeof(positions[0]), positions.data());
+	vertexBuffer->InitDevice(false);
+
+	auto& subMeshes = pMesh->m_SubMeshes;
+
+	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
+	newSubMesh->InitDebug(DEBUG_PRIMITIVE_LINE, &vertexData, nullptr, frameInFlight);
+
+	subMeshes.push_back(newSubMesh);
+
+	return true;
+}
+
+bool KMeshUtilityImpl::CreateSphere(KMesh* pMesh, const glm::mat4& transform, float radius, size_t frameInFlight)
+{
+	const auto sgements = 50;
+
+	std::vector<KVertexDefinition::DEBUG_POS_3F> positions;
+	positions.reserve(sgements * sgements * 6);
+
+	float step_y = PI / sgements;
+	float step_xz = TWO_PI / sgements;
+	float x[4], y[4], z[4];
+
+	float angle_y = 0.0F;
+	float angle_xz = 0.0;
+
+	for (auto i = 0; i < sgements; ++i)
+	{
+		angle_y = i * step_y - HALF_PI;
+
+		for (auto j = 0; j < sgements; ++j)
+		{
+			angle_xz = j * step_xz;
+
+			x[0] = radius * cos(angle_y) * cos(angle_xz);
+			y[0] = radius * sin(angle_y);
+			z[0] = radius * cos(angle_y) * sin(angle_xz);
+
+			x[1] = radius * cos(angle_y + step_y) * cos(angle_xz);
+			y[1] = radius * sin(angle_y + step_y);
+			z[1] = radius * cos(angle_y + step_y) * sin(angle_xz);
+
+			x[2] = radius* cos(angle_y + step_y) * cos(angle_xz + step_xz);
+			y[2] = radius* sin(angle_y + step_y);
+			z[2] = radius* cos(angle_y + step_y) * sin(angle_xz + step_xz);
+
+			x[3] = radius * cos(angle_y) * cos(angle_xz + step_xz);
+			y[3] = radius * sin(angle_y);
+			z[3] = radius * cos(angle_y) * sin(angle_xz + step_xz);
+
+			positions.push_back({ glm::vec3(x[0], y[0], z[0]) });
+			positions.push_back({ glm::vec3(x[1], y[1], z[1]) });
+			positions.push_back({ glm::vec3(x[2], y[2], z[2]) });
+
+			positions.push_back({ glm::vec3(x[0], y[0], z[0]) });
+			positions.push_back({ glm::vec3(x[2], y[2], z[2]) });
+			positions.push_back({ glm::vec3(x[3], y[3], z[3]) });
+		}
+	}
+
+	pMesh->UnInit();
+
+	KVertexData& vertexData = pMesh->m_VertexData;
+
+	IKVertexBufferPtr vertexBuffer = nullptr;
+	m_Device->CreateVertexBuffer(vertexBuffer);
+
+	KAABBBox bound;
+
+	for (auto& pos : positions)
+	{
+		glm::vec4 t = transform * glm::vec4(pos.DEBUG_POSITION, 1.0);
+		pos.DEBUG_POSITION = glm::vec3(t.x, t.y, t.z);
+		bound.Merge(pos.DEBUG_POSITION, bound);
+	}
+
+	vertexData.vertexFormats.push_back(VF_DEBUG_POINT);
+	vertexData.vertexBuffers.push_back(vertexBuffer);
+	vertexData.vertexStart = 0;
+	vertexData.vertexCount = (uint32_t)positions.size();
+	vertexData.bound = bound;
+
+	vertexBuffer->InitMemory(positions.size(), sizeof(positions[0]), positions.data());
+	vertexBuffer->InitDevice(false);
+
+	auto& subMeshes = pMesh->m_SubMeshes;
+
+	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
+	newSubMesh->InitDebug(DEBUG_PRIMITIVE_TRIANGLE, &vertexData, nullptr, frameInFlight);
+
+	subMeshes.push_back(newSubMesh);
+
+	return true;
 }

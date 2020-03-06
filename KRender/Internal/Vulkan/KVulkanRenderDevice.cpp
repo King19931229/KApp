@@ -696,7 +696,8 @@ bool KVulkanRenderDevice::CreateMesh()
 		KComponentBase* component = nullptr;
 		if (entity->RegisterComponent(CT_RENDER, &component))
 		{
-			((KRenderComponent*)component)->InitAsQuad(30.0f, 30.0f, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			//((KRenderComponent*)component)->InitAsQuad(30.0f, 30.0f, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			((KRenderComponent*)component)->InitAsSphere(glm::mat4(1.0f), 30.0f);
 		}
 
 		if (entity->RegisterComponent(CT_TRANSFORM, &component))
@@ -1884,6 +1885,13 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 						});
 
 						mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand command)
+						{
+							command.useObjectData = true;
+							command.objectData = &transform->FinalTransform();
+							commandList.push_back(command);
+						});
+
+						mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand command)
 						{
 							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
