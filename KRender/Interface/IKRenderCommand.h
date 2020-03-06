@@ -95,9 +95,6 @@ struct KRenderCommand
 	IKPipelineHandlePtr pipelineHandle;
 
 	const void* objectData;
-	uint32_t objectPushOffset;
-	bool useObjectData;
-
 	bool indexDraw;
 
 	KRenderCommand()
@@ -109,9 +106,6 @@ struct KRenderCommand
 		pipelineHandle = nullptr;
 
 		objectData = nullptr;
-		objectPushOffset = 0;
-		useObjectData = false;
-
 		indexDraw = false;
 	}
 
@@ -122,10 +116,6 @@ struct KRenderCommand
 			return false;
 		}
 		if(indexDraw && !indexData)
-		{
-			return false;
-		}
-		if(useObjectData && !objectData)
 		{
 			return false;
 		}

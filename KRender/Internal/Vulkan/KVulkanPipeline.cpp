@@ -40,6 +40,7 @@ KVulkanPipeline::KVulkanPipeline() :
 	m_LoadTask(nullptr),
 	m_State(PIPELINE_RESOURCE_UNLOADED)
 {
+	m_PushContant = { 0, 0 };
 }
 
 KVulkanPipeline::~KVulkanPipeline()
@@ -53,7 +54,6 @@ KVulkanPipeline::~KVulkanPipeline()
 	ASSERT_RESULT(m_VertexShader == nullptr);
 	ASSERT_RESULT(m_FragmentShader == nullptr);
 	ASSERT_RESULT(m_Uniforms.empty());
-	ASSERT_RESULT(m_PushContants.empty());
 	ASSERT_RESULT(m_Samplers.empty());
 }
 
@@ -364,16 +364,15 @@ bool KVulkanPipeline::SetSamplerDepthAttachment(unsigned int location, IKRenderT
 	return false;
 }
 
-bool KVulkanPipeline::PushConstantBlock(ShaderTypes shaderTypes, uint32_t size, uint32_t& offset)
+bool KVulkanPipeline::CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size)
 {
-	offset = 0;
-	for(auto& info : m_PushContants)
-	{
-		offset += info.size;
-	}
+	m_PushContant = { shaderTypes, size };
+	return true;
+}
 
-	PushConstantBindingInfo info = { shaderTypes, size, offset };
-	m_PushContants.push_back(info);
+bool KVulkanPipeline::DestroyConstantBlock()
+{
+	m_PushContant = { 0, 0 };
 	return true;
 }
 
@@ -436,21 +435,18 @@ bool KVulkanPipeline::CreateLayout()
 	/*
 	声明PushConstant
 	*/
-	size_t pushConstantOffset = 0;
 	std::vector<VkPushConstantRange> pushConstantRanges;
-	for(auto& info : m_PushContants)
+	if(m_PushContant.size > 0)
 	{
 		VkFlags stageFlags = 0;
-		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(info.shaderTypes, stageFlags));
+		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(m_PushContant.shaderTypes, stageFlags));
 
 		VkPushConstantRange pushConstantRange = {};
 		pushConstantRange.stageFlags = stageFlags;
-		pushConstantRange.offset = (uint32_t)pushConstantOffset;
-		pushConstantRange.size = (uint32_t)info.size;
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = m_PushContant.size;
 
 		pushConstantRanges.push_back(pushConstantRange);
-
-		pushConstantOffset += pushConstantRange.size;
 	}
 
 	// 创建管线布局
@@ -651,8 +647,9 @@ bool KVulkanPipeline::UnInit()
 	m_VertexShader = nullptr;
 	m_FragmentShader = nullptr;
 
+	m_PushContant = { 0, 0 };
+
 	m_Uniforms.clear();
-	m_PushContants.clear();
 	m_Samplers.clear();
 
 	return true;

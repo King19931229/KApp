@@ -80,9 +80,8 @@ protected:
 	{
 		ShaderTypes shaderTypes;
 		uint32_t size;
-		uint32_t offset;
 	};
-	std::vector<PushConstantBindingInfo> m_PushContants;
+	PushConstantBindingInfo m_PushContant;
 
 	IKShaderPtr m_VertexShader;
 	IKShaderPtr m_FragmentShader;
@@ -160,7 +159,8 @@ public:
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
 	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
 	virtual bool SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler);
-	virtual bool PushConstantBlock(ShaderTypes shaderTypes, uint32_t size, uint32_t& offset);
+	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size);
+	virtual bool DestroyConstantBlock();
 
 	virtual bool Init(bool async);
 	virtual bool UnInit();

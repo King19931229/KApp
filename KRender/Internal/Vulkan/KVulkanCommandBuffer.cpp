@@ -221,10 +221,10 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 		vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
 
-		if(command.useObjectData)
+		if(command.objectData)
 		{
 			KConstantDefinition::OBJECT* objectData  = (KConstantDefinition::OBJECT*)command.objectData;
-			vkCmdPushConstants(m_CommandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, command.objectPushOffset, sizeof(KConstantDefinition::OBJECT), objectData);
+			vkCmdPushConstants(m_CommandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(KConstantDefinition::OBJECT), objectData);
 		}
 
 		if(command.indexDraw)

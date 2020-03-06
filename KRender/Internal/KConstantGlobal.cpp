@@ -10,11 +10,6 @@ namespace KConstantGlobal
 
 	static const glm::vec2 VEC2_ZERO = glm::vec2(0.0f, 0.0f);
 
-	KConstantDefinition::OBJECT Object =
-	{
-		MAT4X4_IDENTITY,
-	};
-
 	KConstantDefinition::CAMERA Camera =
 	{
 		MAT4X4_IDENTITY,
@@ -33,8 +28,6 @@ namespace KConstantGlobal
 	{
 		switch (bufferType)
 		{
-		case CBT_OBJECT:
-			return &Object;
 		case CBT_CAMERA:
 			return &Camera;
 		case CBT_SHADOW:

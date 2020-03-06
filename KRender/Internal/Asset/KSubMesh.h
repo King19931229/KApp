@@ -11,13 +11,8 @@ class KSubMesh
 	friend class KMesh;
 	friend class KMeshSerializerV0;
 protected:
-	struct PipelineInfo
-	{
-		IKPipelinePtr pipeline;
-		uint32_t objectPushOffset;
-	};
-	typedef std::vector<PipelineInfo> FramePipelineList;
-	
+	typedef std::vector<IKPipelinePtr> FramePipelineList;
+
 	KMesh*					m_pParent;
 	KMaterialPtr			m_Material;
 
@@ -40,7 +35,7 @@ protected:
 	IKShaderPtr				m_ShadowVSShader;
 	IKShaderPtr				m_ShadowFSShader;
 
-	bool CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline, uint32_t& objectPushOffset);
+	bool CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline);
 	bool GetRenderCommand(PipelineStage stage, size_t frameIndex,KRenderCommand& command);
 public:
 	KSubMesh(KMesh* parent);

@@ -392,7 +392,7 @@ bool KVulkanRenderDevice::CreatePipelines()
 			pipeline->SetSampler(CBT_COUNT, m_Texture, m_Sampler);
 			pipeline->SetSampler(CBT_COUNT + 1, KRenderGlobal::SkyBox.GetCubeTexture(), KRenderGlobal::SkyBox.GetSampler());
 
-			pipeline->PushConstantBlock(m_ObjectConstant.shaderTypes, m_ObjectConstant.size, m_ObjectConstant.offset); 
+			pipeline->CreateConstantBlock(m_ObjectConstant.shaderTypes, m_ObjectConstant.size);
 
 			pipeline->Init(false);
 		}
@@ -747,7 +747,7 @@ bool KVulkanRenderDevice::CreateVertexInput()
 bool KVulkanRenderDevice::CreateTransform()
 {
 	m_ObjectConstant.shaderTypes = ST_VERTEX;
-	m_ObjectConstant.size = (int)KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT).bufferSize;
+	m_ObjectConstant.size = sizeof(KConstantDefinition::OBJECT);
 
 #ifdef _DEBUG
 	const int width = 40;
@@ -1872,28 +1872,24 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 
 						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand command)
 						{
-							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
 							preZCommandList.push_back(command);
 						});
 
 						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand command)
 						{
-							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
 							commandList.push_back(command);
 						});
 
 						mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand command)
 						{
-							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
 							commandList.push_back(command);
 						});
 
 						mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand command)
 						{
-							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
 							commandList.push_back(command);
 						});
@@ -1913,7 +1909,6 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 
 						mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand command)
 						{
-							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
 							commandList.push_back(command);
 						});
@@ -2037,7 +2032,6 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 
 						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand command)
 						{
-							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
 
 							IKPipelineHandlePtr handle;
@@ -2048,7 +2042,6 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 
 						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand command)
 						{
-							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
 
 							IKPipelineHandlePtr handle;

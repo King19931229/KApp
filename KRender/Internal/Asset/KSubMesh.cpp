@@ -48,9 +48,9 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 		pipelines.resize(m_FrameInFlight);
 		for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
 		{
-			PipelineInfo& info = pipelines[frameIndex];
-			assert(!info.pipeline);
-			CreatePipeline((PipelineStage)i, frameIndex, info.pipeline, info.objectPushOffset);
+			IKPipelinePtr& pipeline = pipelines[frameIndex];
+			assert(!pipeline);
+			CreatePipeline((PipelineStage)i, frameIndex, pipeline);
 		}
 	}
 
@@ -95,9 +95,9 @@ bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData,
 	pipelines.resize(m_FrameInFlight);
 	for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
 	{
-		PipelineInfo& info = pipelines[frameIndex];
-		assert(!info.pipeline);
-		CreatePipeline(debugStage, frameIndex, info.pipeline, info.objectPushOffset);
+		IKPipelinePtr& pipeline = pipelines[frameIndex];
+		assert(pipeline == nullptr);
+		CreatePipeline(debugStage, frameIndex, pipeline);
 	}
 
 	return true;
@@ -136,12 +136,12 @@ do\
 	for(size_t i = 0; i < PIPELINE_STAGE_COUNT; ++i)
 	{
 		FramePipelineList& pipelines = m_Pipelines[i];
-		for (PipelineInfo& info : pipelines)
+		for (IKPipelinePtr& pipeline : pipelines)
 		{
-			if (info.pipeline)
+			if (pipeline)
 			{
-				KRenderGlobal::PipelineManager.DestroyPipeline(info.pipeline);
-				info.pipeline = nullptr;
+				KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
+				pipeline = nullptr;
 			}
 		}
 		pipelines.clear();
@@ -162,7 +162,7 @@ do\
 #endif
 */
 
-bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline, uint32_t& objectPushOffset)
+bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline)
 {
 	assert(m_pVertexData);
 	if(!m_pVertexData)
@@ -189,7 +189,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetColorWrite(false, false, false, false);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-		pipeline->PushConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT), objectPushOffset);
+		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
@@ -220,9 +220,8 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 #else
 		pipeline->SetDepthFunc(CF_EQUAL, false, true);
 #endif
-		
 
-		pipeline->PushConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT), objectPushOffset);
+		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
@@ -283,7 +282,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_SHADOW);
 		pipeline->SetConstantBuffer(CBT_SHADOW, ST_VERTEX, shadowBuffer);
 
-		pipeline->PushConstantBlock(ST_VERTEX, (uint32_t)KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT).bufferSize, objectPushOffset);
+		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		ASSERT_RESULT(pipeline->Init(true));
 		return true;
@@ -310,7 +309,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
 
-		pipeline->PushConstantBlock(ST_VERTEX, (uint32_t)KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT).bufferSize, objectPushOffset);
+		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		ASSERT_RESULT(pipeline->Init(true));
 		return true;
@@ -337,7 +336,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
 
-		pipeline->PushConstantBlock(ST_VERTEX, (uint32_t)KConstantDefinition::GetConstantBufferDetail(CBT_OBJECT).bufferSize, objectPushOffset);
+		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		ASSERT_RESULT(pipeline->Init(true));
 		return true;
@@ -374,16 +373,14 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderC
 		return false;
 	}
 
-	PipelineInfo& info = pipelines[frameIndex];
-	if(info.pipeline)
+	IKPipelinePtr& pipeline = pipelines[frameIndex];
+	if(pipeline)
 	{
 		command.vertexData = m_pVertexData;
 		command.indexData = &m_IndexData;
-		command.pipeline = info.pipeline;
+		command.pipeline = pipeline;
 		command.indexDraw = m_IndexDraw;
-
-		command.objectPushOffset = info.objectPushOffset;
-		command.useObjectData = false;
+		command.objectData = nullptr;
 
 		return true;
 	}

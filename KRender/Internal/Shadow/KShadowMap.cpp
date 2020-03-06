@@ -124,7 +124,6 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* 
 
 						mesh->Visit(PIPELINE_STAGE_SHADOW_GEN, frameIndex, [&](KRenderCommand command)
 						{
-							command.useObjectData = true;
 							command.objectData = &transform->FinalTransform();
 							commandList.push_back(command);
 						});

@@ -5,12 +5,10 @@ KFrameResourceManager::KFrameResourceManager()
 	: m_Device(nullptr),
 	m_FrameInFlight(0)
 {
-
 }
 
 KFrameResourceManager::~KFrameResourceManager()
 {
-
 }
 
 bool KFrameResourceManager::Init(IKRenderDevice* device, size_t frameInFlight)
@@ -20,7 +18,7 @@ bool KFrameResourceManager::Init(IKRenderDevice* device, size_t frameInFlight)
 	m_Device = device;
 	m_FrameInFlight = frameInFlight;
 
-	for (size_t cbtIdx = 0; cbtIdx < CBT_COUNT; ++cbtIdx)
+	for (size_t cbtIdx = CBT_CAMERA; cbtIdx < CBT_COUNT; ++cbtIdx)
 	{
 		ConstantBufferType bufferType = (ConstantBufferType)cbtIdx;
 		FrameBufferList& frameBuffers = m_FrameContantBuffer[cbtIdx];

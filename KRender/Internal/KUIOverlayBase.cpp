@@ -205,7 +205,7 @@ void KUIOverlayBase::PreparePipeline()
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
 		pipeline->SetSampler(0, m_FontTexture, m_FontSampler);
 
-		pipeline->PushConstantBlock(ST_VERTEX, sizeof(m_PushConstBlock), m_PushOffset);
+		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(m_PushConstBlock));
 		ASSERT_RESULT(pipeline->Init(false));
 	}	
 }

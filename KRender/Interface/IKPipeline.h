@@ -52,7 +52,9 @@ struct IKPipeline : public std::enable_shared_from_this<IKPipeline>
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
 	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler) = 0;
 	virtual bool SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler) = 0;
-	virtual bool PushConstantBlock(ShaderTypes shaderTypes, uint32_t size, uint32_t& offset) = 0;
+
+	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size) = 0;
+	virtual bool DestroyConstantBlock() = 0;
 
 	virtual bool Init(bool async) = 0;
 	virtual bool UnInit() = 0;

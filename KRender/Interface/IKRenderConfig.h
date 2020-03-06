@@ -42,7 +42,9 @@ enum VertexSemantic
 
 enum ConstantBufferType
 {
+	// only for push constant
 	CBT_OBJECT,
+	// only for constant buffer
 	CBT_CAMERA,
 	CBT_SHADOW,
 
