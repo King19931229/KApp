@@ -37,7 +37,7 @@ public:
 
 	bool UnInit();
 
-	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func);
+	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func);
 };
 
 typedef std::shared_ptr<KMesh> KMeshPtr;

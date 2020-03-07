@@ -413,7 +413,7 @@ void KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipel
 	command.pipeline = pipeline;
 	command.pipelineHandle = pipeHandle;
 
-	command.objectData = nullptr;
+	command.objectData.clear();
 
 	command.indexDraw = true;
 }

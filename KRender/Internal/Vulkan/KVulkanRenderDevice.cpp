@@ -173,6 +173,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	),
 	m_ValidationLayerIdx(-1),
 	m_MultiThreadSumbit(true),
+	m_OctreeDebugDraw(false),
 	m_Texture(nullptr),
 	m_Sampler(nullptr),
 	m_FrameInFlight(2)
@@ -1849,7 +1850,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				KRenderCommandList commandList;
 
 				std::vector<KRenderComponent*> cullRes;
-				KRenderGlobal::Scene.GetVisibleComponent(m_Camera, cullRes);
+				KRenderGlobal::Scene.GetRenderComponent(m_Camera, cullRes);
 
 				for(KRenderComponent* component : cullRes)
 				{
@@ -1859,48 +1860,37 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 					{
 						KMeshPtr mesh = component->GetMesh();
 
-						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand command)
+						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand&& command)
 						{
-							command.objectData = &transform->FinalTransform();
-							preZCommandList.push_back(command);
+							command.SetObjectData(transform->FinalTransform());
+							preZCommandList.push_back(std::move(command));
 						});
 
-						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand command)
+						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& command)
 						{
-							command.objectData = &transform->FinalTransform();
-							commandList.push_back(command);
+							command.SetObjectData(transform->FinalTransform());
+							commandList.push_back(std::move(command));
 						});
 
-						mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand command)
+						KDebugComponent* debug = nullptr;
+						if (entity->GetComponent(CT_DEBUG, (KComponentBase**)&debug))
 						{
-							command.objectData = &transform->FinalTransform();
-							commandList.push_back(command);
-						});
+							KConstantDefinition::DEBUG objectData;
+							objectData.MODEL = transform->FinalTransform();
+							objectData.COLOR = debug->Color();
 
-						mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand command)
-						{
-							command.objectData = &transform->FinalTransform();
-							commandList.push_back(command);
-						});
-					}
-				}
+							mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand&& command)
+							{
+								command.SetObjectData(objectData);
+								commandList.push_back(std::move(command));
+							});
 
-				std::vector<KRenderComponent*> debugRes;
-				KRenderGlobal::Scene.GetDebugComponent(debugRes);
-
-				for (KRenderComponent* component : debugRes)
-				{
-					KEntity* entity = component->GetEntityHandle();
-					KTransformComponent* transform = nullptr;
-					if (entity->GetComponent(CT_TRANSFORM, (KComponentBase**)&transform))
-					{
-						KMeshPtr mesh = component->GetMesh();
-
-						mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand command)
-						{
-							command.objectData = &transform->FinalTransform();
-							commandList.push_back(command);
-						});
+							mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand&& command)
+							{
+								command.SetObjectData(objectData);
+								commandList.push_back(std::move(command));
+							});
+						}
 					}
 				}
 
@@ -1996,7 +1986,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 #endif
 
 			std::vector<KRenderComponent*> cullRes;
-			KRenderGlobal::Scene.GetVisibleComponent(m_Camera, cullRes);
+			KRenderGlobal::Scene.GetRenderComponent(m_Camera, cullRes);
 
 			size_t drawEachThread = cullRes.size() / threadCount;
 			size_t reaminCount = cullRes.size() % threadCount;
@@ -2019,26 +2009,56 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 					{
 						KMeshPtr mesh = component->GetMesh();
 
-						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand command)
+						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand&& command)
 						{
-							command.objectData = &transform->FinalTransform();
+							command.SetObjectData(transform->FinalTransform());
 
 							IKPipelineHandlePtr handle;
 							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
 							command.pipelineHandle = handle;
-							threadData.preZcommands.push_back(command);
+							threadData.preZcommands.push_back(std::move(command));
 						});
 
-						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand command)
+						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& command)
 						{
-							command.objectData = &transform->FinalTransform();
+							command.SetObjectData(transform->FinalTransform());
 
 							IKPipelineHandlePtr handle;
 							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
 							command.pipelineHandle = handle;
 
-							threadData.commands.push_back(command);
+							threadData.commands.push_back(std::move(command));
 						});
+
+						KDebugComponent* debug = nullptr;
+						if (entity->GetComponent(CT_DEBUG, (KComponentBase**)&debug))
+						{
+							KConstantDefinition::DEBUG objectData;
+							objectData.MODEL = transform->FinalTransform();
+							objectData.COLOR = debug->Color();
+
+							mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand&& command)
+							{
+								command.SetObjectData(objectData);
+
+								IKPipelineHandlePtr handle;
+								KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
+								command.pipelineHandle = handle;
+
+								threadData.commands.push_back(std::move(command));
+							});
+
+							mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand&& command)
+							{
+								command.SetObjectData(objectData);
+
+								IKPipelineHandlePtr handle;
+								KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
+								command.pipelineHandle = handle;
+
+								threadData.commands.push_back(std::move(command));
+							});
+						}
 					}
 				};			
 
@@ -2203,6 +2223,8 @@ bool KVulkanRenderDevice::Present()
 				m_UIOverlay->CheckBox("MultiRender", &m_MultiThreadSumbit);
 				m_UIOverlay->SliderFloat("Shadow DepthBiasConstant", &KRenderGlobal::ShadowMap.GetDepthBiasConstant(), 0.0f, 5.0f);
 				m_UIOverlay->SliderFloat("Shadow DepthBiasSlope", &KRenderGlobal::ShadowMap.GetDepthBiasSlope(), 0.0f, 5.0f);
+
+				m_UIOverlay->CheckBox("OctreeDraw", &m_OctreeDebugDraw);
 			}
 			m_UIOverlay->PopItemWidth();
 		}
@@ -2211,6 +2233,8 @@ bool KVulkanRenderDevice::Present()
 	m_UIOverlay->EndNewFrame();
 
 	m_UIOverlay->Update((uint32_t)frameIndex);
+
+	KRenderGlobal::Scene.EnableDebugRender(m_OctreeDebugDraw);
 
 	if(m_MultiThreadSumbit)
 	{

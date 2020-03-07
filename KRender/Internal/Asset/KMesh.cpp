@@ -295,7 +295,7 @@ bool KMesh::InitAsSphere(const glm::mat4& transform, float radius, IKRenderDevic
 	return KMeshUtility::CreateSphere(device, this, transform, radius, frameInFlight);
 }
 
-bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func)
+bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func)
 {
 	for(KSubMeshPtr subMesh : m_SubMeshes)
 	{

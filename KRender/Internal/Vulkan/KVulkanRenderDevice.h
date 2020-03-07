@@ -66,6 +66,7 @@ protected:
 	int32_t m_ValidationLayerIdx;
 	bool m_EnableValidationLayer;
 	bool m_MultiThreadSumbit;
+	bool m_OctreeDebugDraw;
 
 	size_t m_FrameInFlight;
 	size_t m_MaxRenderThreadNum;

@@ -1,13 +1,16 @@
 #pragma once
-#include <unordered_map>
-
 #include "KECS.h"
+#include <unordered_map>
+#include "Internal/KConstantDefinition.h"
 
 class KEntity
 {
 protected:
 	typedef std::unordered_map<ComponentType, KComponentBase*> ComponentMap;
 	ComponentMap m_Components;
+
+
+
 	size_t m_Id;
 public:
 	KEntity(size_t id);

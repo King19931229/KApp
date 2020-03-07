@@ -86,6 +86,7 @@ struct KIndexData
 	}
 };
 
+// TODO 分离KRenderData 与 KRenderCommand
 struct KRenderCommand
 {
 	const KVertexData* vertexData;
@@ -94,7 +95,7 @@ struct KRenderCommand
 	IKPipelinePtr pipeline;
 	IKPipelineHandlePtr pipelineHandle;
 
-	const void* objectData;
+	std::vector<char> objectData;
 	bool indexDraw;
 
 	KRenderCommand()
@@ -105,21 +106,33 @@ struct KRenderCommand
 		pipeline = nullptr;
 		pipelineHandle = nullptr;
 
-		objectData = nullptr;
 		indexDraw = false;
+	}
+
+	template<typename T>
+	void SetObjectData(T&& value)
+	{
+		objectData.resize(sizeof(value));
+		memcpy(objectData.data(), &value, objectData.size());
+	}
+
+	void ClearObjectData()
+	{
+		objectData.clear();
+		objectData.shrink_to_fit();
 	}
 
 	bool Complete() const
 	{
-		if(!vertexData || !pipeline)
+		if (!vertexData || !pipeline)
 		{
 			return false;
 		}
-		if(indexDraw && !indexData)
+		if (indexDraw && !indexData)
 		{
 			return false;
 		}
-		if(!pipelineHandle)
+		if (!pipelineHandle)
 		{
 			return false;
 		}

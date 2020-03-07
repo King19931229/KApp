@@ -351,8 +351,8 @@ public:
 		}
 	}
 
-	template<typename Type>
-	void GetDebugRender(Type& componentList)
+	template<typename QueryResultType>
+	void GetDebugRender(QueryResultType& result)
 	{
 		if (!boundEntity)
 		{
@@ -368,19 +368,20 @@ public:
 			{
 				((KTransformComponent*)component)->SetPosition(bounds.GetCenter());
 			}
+
+			if (boundEntity->RegisterComponent(CT_DEBUG, &component))
+			{
+				((KDebugComponent*)component)->SetColor(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+			}
 		}
 
-		KRenderComponent* renderComponent = nullptr;
-		if (boundEntity->GetComponent(CT_RENDER, (KComponentBase**)&renderComponent))
-		{
-			componentList.push_back(renderComponent);
-		}
+		result.push_back(boundEntity);
 
 		if (children)
 		{
 			for (auto i = 0; i < 8; i++)
 			{
-				children[i].GetDebugRender(componentList);
+				children[i].GetDebugRender(result);
 			}
 		}
 	}

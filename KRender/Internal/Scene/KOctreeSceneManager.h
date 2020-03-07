@@ -29,5 +29,5 @@ public:
 	bool Remove(KEntityPtr entity) override;
 	bool Move(KEntityPtr entity) override;
 	bool GetVisibleEntity(const KCamera* camera, std::deque<KEntityPtr>& visibles) override;
-	bool GetDebugComponent(std::vector<KRenderComponent*>& result) override;
+	bool GetDebugEntity(std::deque<KEntityPtr>& debugVisibles) override;
 };

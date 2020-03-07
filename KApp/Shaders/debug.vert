@@ -8,9 +8,13 @@ layout(push_constant)
 uniform PushConstant
 {
 	mat4 model;
+	vec4 color;
 }object;
+
+layout(location = 0) out vec4 color;
 
 void main()
 {
 	gl_Position = camera.proj * camera.view * object.model * vec4(position, 1.0);
+	color = object.color;
 }

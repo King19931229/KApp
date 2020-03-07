@@ -105,19 +105,17 @@ bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<KEn
 {
 	if (m_Root)
 	{
-		visibles.clear();
 		m_Root->GetWithinCamera(*camera, visibles);
 		return true;
 	}
 	return false;
 }
 
-bool KOctreeSceneManager::GetDebugComponent(std::vector<KRenderComponent*>& result)
+bool KOctreeSceneManager::GetDebugEntity(std::deque<KEntityPtr>& debugVisibles)
 {
 	if (m_Root)
 	{
-		result.clear();
-		m_Root->GetDebugRender(result);
+		m_Root->GetDebugRender(debugVisibles);
 		return true;
 	}
 	return false;

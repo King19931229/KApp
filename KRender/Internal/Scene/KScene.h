@@ -10,6 +10,7 @@ class KScene
 {
 protected:
 	KSceneManagerBase* m_SceneMgr;
+	bool m_EnableDebugRender;
 public:
 	KScene();
 	~KScene();
@@ -21,8 +22,9 @@ public:
 	bool Remove(KEntityPtr entity);
 	bool Move(KEntityPtr entity);
 
-	bool GetVisibleComponent(const KCamera& camera, std::vector<KRenderComponent*>& result);
-	bool GetDebugComponent(std::vector<KRenderComponent*>& result);
+	bool GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result);
+
+	inline void EnableDebugRender(bool enable) { m_EnableDebugRender = enable; }
 
 	bool Load(const char* filename);
 	bool Save(const char* filename);

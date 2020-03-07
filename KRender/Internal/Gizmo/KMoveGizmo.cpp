@@ -35,6 +35,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 	m_XYPlaneEntity = KECSGlobal::EntityManager.CreateEntity();
 
 	KRenderComponent* renderComponent = nullptr;
+	KDebugComponent* debugComponent = nullptr;
 
 	constexpr float scale = 5.0f;
 	constexpr float originRaidus = 1.0f;
@@ -50,21 +51,37 @@ bool KMoveGizmo::Init(const KCamera* camera)
 	// Origin
 	m_OriginEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsSphere(glm::mat4(scale), originRaidus);
+
+	m_OriginEntity->RegisterComponent(CT_DEBUG, &debugComponent);
+	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+
 	m_OriginEntity->RegisterComponent(CT_TRANSFORM);
 
 	// XAxis
 	m_XAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsCylinder(glm::rotate(glm::mat4(scale), -glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)), axisLength, axisRadius);
+
+	m_XAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
+	debugComponent->SetColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+
 	m_XAxisEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YAxis
 	m_YAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsCylinder(glm::mat4(scale), axisLength, axisRadius);
+
+	m_YAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
+	debugComponent->SetColor(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+
 	m_YAxisEntity->RegisterComponent(CT_TRANSFORM);
 
 	// ZAxis
 	m_ZAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsCylinder(glm::rotate(glm::mat4(scale), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)), axisLength, axisRadius);
+
+	m_ZAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
+	debugComponent->SetColor(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+
 	m_ZAxisEntity->RegisterComponent(CT_TRANSFORM);
 
 	// XArrow
@@ -74,6 +91,10 @@ bool KMoveGizmo::Init(const KCamera* camera)
 		glm::rotate(glm::mat4(scale), -glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)),
 		arrowLength,
 		arrowRadius);
+
+	m_XArrowEntity->RegisterComponent(CT_DEBUG, &debugComponent);
+	debugComponent->SetColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+
 	m_XArrowEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YArrow
@@ -82,6 +103,10 @@ bool KMoveGizmo::Init(const KCamera* camera)
 		glm::translate(glm::mat4(scale), glm::vec3(0, axisLength, 0.0f)),
 		arrowLength,
 		arrowRadius);
+
+	m_YArrowEntity->RegisterComponent(CT_DEBUG, &debugComponent);
+	debugComponent->SetColor(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+
 	m_YArrowEntity->RegisterComponent(CT_TRANSFORM);
 
 	// ZArrow
@@ -91,21 +116,37 @@ bool KMoveGizmo::Init(const KCamera* camera)
 		glm::rotate(glm::mat4(scale), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)),
 		arrowLength,
 		arrowRadius);
+
+	m_ZArrowEntity->RegisterComponent(CT_DEBUG, &debugComponent);
+	debugComponent->SetColor(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+
 	m_ZArrowEntity->RegisterComponent(CT_TRANSFORM);
 
 	// XZPlane
 	m_XZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsQuad(glm::mat4(scale), planeSize, planeSize, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	m_XZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
+	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+
 	m_XZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YZPlane
 	m_YZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsQuad(glm::mat4(scale), planeSize, planeSize, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	m_YZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
+	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+
 	m_YZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YZPlane
 	m_XYPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsQuad(glm::mat4(scale), planeSize, planeSize, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+	m_XYPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
+	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+
 	m_XYPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	return true;

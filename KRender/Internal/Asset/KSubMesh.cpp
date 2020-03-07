@@ -294,11 +294,12 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
 
 		pipeline->SetPrimitiveTopology(PT_LINE_LIST);
-		pipeline->SetBlendEnable(false);
+		pipeline->SetBlendEnable(true);
 		pipeline->SetCullMode(CM_NONE);
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_LINE);
 		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
 		pipeline->SetDepthFunc(CF_ALWAYS, false, true);
 
 		pipeline->SetDepthBiasEnable(false);
@@ -309,7 +310,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
 
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
+		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::DEBUG));
 
 		ASSERT_RESULT(pipeline->Init(true));
 		return true;
@@ -321,11 +322,12 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
+		pipeline->SetBlendEnable(true);
 		pipeline->SetCullMode(CM_NONE);
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
 		pipeline->SetDepthFunc(CF_ALWAYS, false, true);
 
 		pipeline->SetDepthBiasEnable(false);
@@ -336,7 +338,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
 
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
+		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::DEBUG));
 
 		ASSERT_RESULT(pipeline->Init(true));
 		return true;
@@ -380,7 +382,7 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderC
 		command.indexData = &m_IndexData;
 		command.pipeline = pipeline;
 		command.indexDraw = m_IndexDraw;
-		command.objectData = nullptr;
+		command.objectData.clear();
 
 		return true;
 	}
@@ -390,12 +392,12 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderC
 	}
 }
 
-bool KSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func)
+bool KSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func)
 {
 	KRenderCommand command;
 	if(GetRenderCommand(stage, frameIndex, command))
 	{
-		func(command);
+		func(std::move(command));
 		return true;
 	}
 	return false;

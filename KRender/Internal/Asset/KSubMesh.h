@@ -45,7 +45,7 @@ public:
 	bool InitDebug(DebugPrimitive primtive, const KVertexData* vertexData, const KIndexData* indexData, size_t frameInFlight);
 	bool UnInit();
 
-	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand)> func);
+	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func);
 };
 
 typedef std::shared_ptr<KSubMesh> KSubMeshPtr;

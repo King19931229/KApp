@@ -20,6 +20,12 @@ namespace KConstantDefinition
 		glm::mat4 MODEL;
 	};
 
+	struct DEBUG
+	{
+		OBJECT MODEL;
+		glm::vec4 COLOR;
+	};
+
 	struct CAMERA
 	{
 		glm::mat4 VIEW;

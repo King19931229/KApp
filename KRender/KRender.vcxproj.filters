@@ -303,6 +303,9 @@
     <ClInclude Include="Interface\IKGizmo.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\ECS\Component\KDebugComponent.h">
+      <Filter>Internal\ECS\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">

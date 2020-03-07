@@ -2,7 +2,8 @@
 #include "KOctreeSceneManager.h"
 
 KScene::KScene()
-	: m_SceneMgr(nullptr)
+	: m_SceneMgr(nullptr),
+	m_EnableDebugRender(false)
 {
 }
 
@@ -66,15 +67,22 @@ bool KScene::Move(KEntityPtr entity)
 	return m_SceneMgr && m_SceneMgr->Move(entity);
 }
 
-bool KScene::GetVisibleComponent(const KCamera& camera, std::vector<KRenderComponent*>& result)
+bool KScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result)
 {
-	std::deque<KEntityPtr> visibles;
-	if (m_SceneMgr && m_SceneMgr->GetVisibleEntity(&camera, visibles))
+	std::deque<KEntityPtr> entities;
+	if (m_SceneMgr)
 	{
-		result.clear();
-		result.reserve(visibles.size());
+		m_SceneMgr->GetVisibleEntity(&camera, entities);
 
-		for (KEntityPtr entity : visibles)
+		if (m_EnableDebugRender)
+		{
+			m_SceneMgr->GetDebugEntity(entities);
+		}
+
+		result.clear();
+		result.reserve(entities.size());
+
+		for (KEntityPtr entity : entities)
 		{
 			KRenderComponent* component = nullptr;
 			if (entity->GetComponent(CT_RENDER, (KComponentBase**)&component) && component)
@@ -83,16 +91,6 @@ bool KScene::GetVisibleComponent(const KCamera& camera, std::vector<KRenderCompo
 			}
 		}
 
-		return true;
-	}
-	return false;
-}
-
-bool KScene::GetDebugComponent(std::vector<KRenderComponent*>& result)
-{
-	result.clear();
-	if (m_SceneMgr && m_SceneMgr->GetDebugComponent(result))
-	{
 		return true;
 	}
 	return false;

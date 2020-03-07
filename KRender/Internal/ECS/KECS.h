@@ -7,6 +7,7 @@ enum ComponentType
 {
 	CT_TRANSFORM,
 	CT_RENDER,
+	CT_DEBUG,
 
 	CT_COUNT,
 	CT_UNKNOWN = CT_COUNT

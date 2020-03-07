@@ -43,6 +43,7 @@
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializerV0.h" />
     <ClInclude Include="Internal\Asset\Utility\KMeshUtility.h" />
     <ClInclude Include="Internal\ECS\Component\KComponentBase.h" />
+    <ClInclude Include="Internal\ECS\Component\KDebugComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KRenderComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KTransformComponent.h" />
     <ClInclude Include="Internal\ECS\KComponentManager.h" />
