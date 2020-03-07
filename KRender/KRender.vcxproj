@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKCommandBuffer.h" />
+    <ClInclude Include="Interface\IKGizmo.h" />
     <ClInclude Include="Interface\IKPipeline.h" />
     <ClInclude Include="Interface\IKPostProcess.h" />
     <ClInclude Include="Interface\IKRenderCommand.h" />
@@ -50,6 +51,7 @@
     <ClInclude Include="Internal\ECS\KEntity.h" />
     <ClInclude Include="Internal\ECS\KEntityManager.h" />
     <ClInclude Include="Internal\ECS\System\KCullSystem.h" />
+    <ClInclude Include="Internal\Gizmo\KMoveGizmo.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
     <ClInclude Include="Internal\KDebugConsole.h" />
@@ -112,6 +114,8 @@
     <ClCompile Include="Internal\ECS\KEntity.cpp" />
     <ClCompile Include="Internal\ECS\KEntityManager.cpp" />
     <ClCompile Include="Internal\ECS\System\KCullSystem.cpp" />
+    <ClCompile Include="Internal\Gizmo\KGizmo.cpp" />
+    <ClCompile Include="Internal\Gizmo\KMoveGizmo.cpp" />
     <ClCompile Include="Internal\KBufferBase.cpp" />
     <ClInclude Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KConstantDefinition.cpp" />

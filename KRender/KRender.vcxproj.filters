@@ -297,6 +297,12 @@
     <ClInclude Include="Internal\Scene\KOctreeNode.h">
       <Filter>Internal\Scene</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Gizmo\KMoveGizmo.h">
+      <Filter>Internal\Gizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKGizmo.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -463,6 +469,12 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\Utility\KMeshUtility.cpp">
       <Filter>Internal\Asset\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Gizmo\KMoveGizmo.cpp">
+      <Filter>Internal\Gizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Gizmo\KGizmo.cpp">
+      <Filter>Internal\Gizmo</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

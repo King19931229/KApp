@@ -14,7 +14,7 @@ KEntity::~KEntity()
 	assert(m_Components.empty() && "Components not empty");
 }
 
-bool KEntity::GetComponent(ComponentType type, KComponentBase** pptr)
+bool KEntity::GetComponentBase(ComponentType type, KComponentBase** pptr)
 {
 	if(pptr)
 	{
@@ -51,7 +51,7 @@ bool KEntity::HasComponents(const ComponentTypeList& components)
 	return true;
 }
 
-bool KEntity::RegisterComponent(ComponentType type, KComponentBase** pptr)
+bool KEntity::RegisterComponentBase(ComponentType type, KComponentBase** pptr)
 {
 	auto it = m_Components.find(type);
 	if(it == m_Components.end())

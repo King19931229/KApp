@@ -17,9 +17,9 @@ public:
 	bool Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos);
 	bool UnInit();
 
-	bool Add(KEntity* entity);
-	bool Remove(KEntity* entity);
-	bool Move(KEntity* entity);
+	bool Add(KEntityPtr entity);
+	bool Remove(KEntityPtr entity);
+	bool Move(KEntityPtr entity);
 
 	bool GetVisibleComponent(const KCamera& camera, std::vector<KRenderComponent*>& result);
 	bool GetDebugComponent(std::vector<KRenderComponent*>& result);

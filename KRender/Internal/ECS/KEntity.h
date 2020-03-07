@@ -13,13 +13,25 @@ public:
 	KEntity(size_t id);
 	~KEntity();
 
-	// TODO make it template
-	bool GetComponent(ComponentType type, KComponentBase** pptr);
+	bool GetComponentBase(ComponentType type, KComponentBase** pptr);
+	template<typename T>
+	bool GetComponent(ComponentType type, T** pptr)
+	{
+		return GetComponentBase(type, (KComponentBase**)(pptr));
+	}
 	bool HasComponent(ComponentType type);
-
 	bool HasComponents(const ComponentTypeList& components);
 
-	bool RegisterComponent(ComponentType type, KComponentBase** pptr = nullptr);
+	bool RegisterComponentBase(ComponentType type, KComponentBase** pptr);
+	template<typename T>
+	bool RegisterComponent(ComponentType type, T** pptr)
+	{
+		return RegisterComponentBase(type, (KComponentBase**)(pptr));
+	}
+	bool RegisterComponent(ComponentType type)
+	{
+		return RegisterComponentBase(type, nullptr);
+	}
 	bool UnRegisterComponent(ComponentType type);
 	bool UnRegisterAllComponent();
 

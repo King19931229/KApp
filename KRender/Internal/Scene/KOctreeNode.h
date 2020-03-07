@@ -9,7 +9,7 @@
 // An object in the octree
 struct KOctreeObject
 {
-	KEntity* Obj;
+	KEntityPtr Obj;
 	KAABBBox Bounds;
 };
 
@@ -152,7 +152,7 @@ private:
 		return false;
 	}
 
-	void SubAdd(KEntity* obj, const KAABBBox& objBounds)
+	void SubAdd(KEntityPtr obj, const KAABBBox& objBounds)
 	{
 		if (!HasChildren())
 		{
@@ -198,7 +198,7 @@ private:
 		}
 	}
 
-	bool SubRemove(KEntity* obj, const KAABBBox& objBounds)
+	bool SubRemove(KEntityPtr obj, const KAABBBox& objBounds)
 	{
 		bool removed = false;
 
@@ -251,7 +251,7 @@ public:
 		}
 	}
 
-	bool Add(KEntity* obj, const KAABBBox& objBounds)
+	bool Add(KEntityPtr obj, const KAABBBox& objBounds)
 	{
 		if (!Encapsulates(bounds, objBounds))
 		{
@@ -261,7 +261,7 @@ public:
 		return true;
 	}
 
-	bool Remove(KEntity* obj, const KAABBBox& objBounds)
+	bool Remove(KEntityPtr obj, const KAABBBox& objBounds)
 	{
 		if (!Encapsulates(bounds, objBounds))
 		{

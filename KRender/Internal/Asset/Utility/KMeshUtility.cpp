@@ -143,17 +143,23 @@ bool KMeshUtilityImpl::CreateQuad(KMesh* pMesh, const glm::mat4& transform, floa
 		IKVertexBufferPtr vertexBuffer = nullptr;
 		m_Device->CreateVertexBuffer(vertexBuffer);
 
+		glm::vec3 normAxisU = glm::normalize(axisU);
+		glm::vec3 normAxisV = glm::normalize(axisV);
+
 		KVertexDefinition::DEBUG_POS_3F positions[] =
 		{
 			glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::vec3(axisU * lengthU),
-			glm::vec3(axisV * lengthV),
-			glm::vec3(axisU * lengthU + axisV * lengthV),
+			glm::vec3(normAxisU * lengthU),
+			glm::vec3(normAxisV * lengthV),
+			glm::vec3(normAxisU * lengthU + normAxisV * lengthV),
 		};
 
 		KAABBBox bound;
-		for (const auto& pos : positions)
+
+		for (auto& pos : positions)
 		{
+			glm::vec4 t = transform * glm::vec4(pos.DEBUG_POSITION, 1.0);
+			pos.DEBUG_POSITION = glm::vec3(t.x, t.y, t.z);
 			bound.Merge(pos.DEBUG_POSITION, bound);
 		}
 

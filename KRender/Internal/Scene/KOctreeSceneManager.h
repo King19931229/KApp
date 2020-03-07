@@ -16,7 +16,7 @@ protected:
 	// Minimum side length that a node can be - essentially an alternative to having a max depth
 	float m_MinSize;
 
-	bool GetEntityBound(KEntity* entity, KAABBBox& bound);
+	bool GetEntityBound(KEntityPtr entity, KAABBBox& bound);
 public:
 	KOctreeSceneManager();
 	~KOctreeSceneManager();
@@ -25,9 +25,9 @@ public:
 	bool UnInit();
 
 	SceneManagerType GetType() override { return SCENE_MANGER_TYPE_OCTREE; }
-	bool Add(KEntity* entity) override;
-	bool Remove(KEntity* entity) override;
-	bool Move(KEntity* entity) override;
-	bool GetVisibleEntity(const KCamera* camera, std::deque<KEntity*>& visibles) override;
+	bool Add(KEntityPtr entity) override;
+	bool Remove(KEntityPtr entity) override;
+	bool Move(KEntityPtr entity) override;
+	bool GetVisibleEntity(const KCamera* camera, std::deque<KEntityPtr>& visibles) override;
 	bool GetDebugComponent(std::vector<KRenderComponent*>& result) override;
 };

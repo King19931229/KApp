@@ -18,6 +18,7 @@
 
 #include "Publish/KCamera.h"
 #include "Publish/KAABBBox.h"
+#include "Interface/IKGizmo.h"
 
 #include <algorithm>
 #include <vector>
@@ -69,6 +70,8 @@ protected:
 	size_t m_FrameInFlight;
 	size_t m_MaxRenderThreadNum;
 	// Temporarily for demo use
+	IKGizmoPtr m_MoveGizmo;
+
 	IKShaderPtr m_SceneVertexShader;
 	IKShaderPtr m_SceneFragmentShader;
 

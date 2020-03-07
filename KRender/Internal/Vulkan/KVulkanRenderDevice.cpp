@@ -25,8 +25,6 @@
 #include "Internal/ECS/KECSGlobal.h"
 #include "Internal/ECS/System/KCullSystem.h"
 
-#include "Internal/Scene/KScene.h"
-
 #include "KBase/Interface/IKLog.h"
 
 #include <algorithm>
@@ -160,8 +158,6 @@ static void DestroyDebugReportCallbackEXT(
 PC 阴影闪烁
 Android 镜头翻转
 */
-
-KScene SCENE;
 
 //-------------------- KVulkanRenderDevice --------------------//
 KVulkanRenderDevice::KVulkanRenderDevice()
@@ -640,7 +636,7 @@ bool KVulkanRenderDevice::CreateMesh()
 				((KTransformComponent*)component)->SetScale(scale);
 			}
 
-			SCENE.Add(entity.get());
+			KRenderGlobal::Scene.Add(entity);
 		}
 	}
 #endif
@@ -687,25 +683,13 @@ bool KVulkanRenderDevice::CreateMesh()
 		}
 		entity->RegisterComponent(CT_TRANSFORM);
 
-		SCENE.Add(entity.get());
+		KRenderGlobal::Scene.Add(entity);
 	}
 #endif
-	{
-		KEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
+	m_MoveGizmo = CreateGizmo(GizmoType::GIZMO_TYPE_MOVE);
+	m_MoveGizmo->Init(&m_Camera);
+	m_MoveGizmo->Enter();
 
-		KComponentBase* component = nullptr;
-		if (entity->RegisterComponent(CT_RENDER, &component))
-		{
-			//((KRenderComponent*)component)->InitAsQuad(30.0f, 30.0f, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			((KRenderComponent*)component)->InitAsSphere(glm::mat4(1.0f), 30.0f);
-		}
-
-		if (entity->RegisterComponent(CT_TRANSFORM, &component))
-		{
-		}
-
-		SCENE.Add(entity.get());
-	}
 	return true;
 }
 
@@ -1315,8 +1299,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 			return false;
 
 		// Temporarily for demo use
-		// TODO
-		SCENE.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
+		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
 
 		if(!CreateMesh())
 			return false;
@@ -1375,7 +1358,7 @@ bool KVulkanRenderDevice::UnInit()
 	Wait();
 
 	// TODO
-	SCENE.UnInit();
+	KRenderGlobal::Scene.UnInit();
 
 #ifndef THREAD_MODE_ONE
 	m_ThreadPool.WaitAllAsyncTaskDone();
@@ -1415,6 +1398,12 @@ bool KVulkanRenderDevice::UnInit()
 			}
 		}
 	});
+
+	if (m_MoveGizmo)
+	{
+		m_MoveGizmo->Leave();
+		m_MoveGizmo->UnInit();
+	}
 
 	KRenderGlobal::TextrueManager.Release(m_Texture);
 	m_Texture = nullptr;
@@ -1860,7 +1849,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				KRenderCommandList commandList;
 
 				std::vector<KRenderComponent*> cullRes;
-				SCENE.GetVisibleComponent(m_Camera, cullRes);
+				KRenderGlobal::Scene.GetVisibleComponent(m_Camera, cullRes);
 
 				for(KRenderComponent* component : cullRes)
 				{
@@ -1897,7 +1886,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageInd
 				}
 
 				std::vector<KRenderComponent*> debugRes;
-				SCENE.GetDebugComponent(debugRes);
+				KRenderGlobal::Scene.GetDebugComponent(debugRes);
 
 				for (KRenderComponent* component : debugRes)
 				{
@@ -2007,7 +1996,7 @@ bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageInde
 #endif
 
 			std::vector<KRenderComponent*> cullRes;
-			SCENE.GetVisibleComponent(m_Camera, cullRes);
+			KRenderGlobal::Scene.GetVisibleComponent(m_Camera, cullRes);
 
 			size_t drawEachThread = cullRes.size() / threadCount;
 			size_t reaminCount = cullRes.size() % threadCount;

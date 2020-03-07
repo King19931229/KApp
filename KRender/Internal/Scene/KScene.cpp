@@ -51,30 +51,30 @@ bool KScene::UnInit()
 	return true;
 }
 
-bool KScene::Add(KEntity* entity)
+bool KScene::Add(KEntityPtr entity)
 {
 	return m_SceneMgr && m_SceneMgr->Add(entity);
 }
 
-bool KScene::Remove(KEntity* entity)
+bool KScene::Remove(KEntityPtr entity)
 {
 	return m_SceneMgr && m_SceneMgr->Remove(entity);
 }
 
-bool KScene::Move(KEntity* entity)
+bool KScene::Move(KEntityPtr entity)
 {
 	return m_SceneMgr && m_SceneMgr->Move(entity);
 }
 
 bool KScene::GetVisibleComponent(const KCamera& camera, std::vector<KRenderComponent*>& result)
 {
-	std::deque<KEntity*> visibles;
+	std::deque<KEntityPtr> visibles;
 	if (m_SceneMgr && m_SceneMgr->GetVisibleEntity(&camera, visibles))
 	{
 		result.clear();
 		result.reserve(visibles.size());
 
-		for (KEntity* entity : visibles)
+		for (KEntityPtr entity : visibles)
 		{
 			KRenderComponent* component = nullptr;
 			if (entity->GetComponent(CT_RENDER, (KComponentBase**)&component) && component)

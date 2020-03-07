@@ -12,6 +12,8 @@
 #include "Internal/Object/KSkyBox.h"
 #include "Internal/Shadow/KShadowMap.h"
 
+#include "Internal/Scene/KScene.h"
+
 #include "KBase/Publish/KTaskExecutor.h"
 
 namespace KRenderGlobal
@@ -26,6 +28,8 @@ namespace KRenderGlobal
 
 	extern KSkyBox SkyBox;
 	extern KShadowMap ShadowMap;
+
+	extern KScene Scene;
 
 	extern KTaskExecutor<true> TaskExecutor;
 };
