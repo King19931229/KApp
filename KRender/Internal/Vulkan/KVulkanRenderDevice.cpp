@@ -174,6 +174,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_ValidationLayerIdx(-1),
 	m_MultiThreadSumbit(true),
 	m_OctreeDebugDraw(false),
+	m_MouseCtrlCamera(true),
 	m_Texture(nullptr),
 	m_Sampler(nullptr),
 	m_FrameInFlight(2)
@@ -689,6 +690,8 @@ bool KVulkanRenderDevice::CreateMesh()
 #endif
 	m_MoveGizmo = CreateGizmo(GizmoType::GIZMO_TYPE_MOVE);
 	m_MoveGizmo->Init(&m_Camera);
+	m_MoveGizmo->SetManipulateMode(GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL);
+	//m_MoveGizmo->SetMatrix(glm::rotate(glm::mat4(1.0f), glm::pi<float>() * 0.5f, glm::vec3(1.0f, 0.0f, 0.0f)));
 	m_MoveGizmo->Enter();
 
 	return true;
@@ -1042,50 +1045,54 @@ bool KVulkanRenderDevice::AddWindowCallback()
 			m_UIOverlay->SetMousePosition((unsigned int)xPos, (unsigned int)yPos);
 		}
 
+		size_t width; size_t height;
+		m_pWindow->GetSize(width, height);
+
 		if(action == INPUT_ACTION_PRESS)
 		{
 			m_MousePos[0] = xPos;
 			m_MousePos[1] = yPos;
 
 			m_MouseDown[mouse] = true;
-			if (m_UIOverlay)
-			{
-				m_UIOverlay->SetMouseDown(mouse, true);
-			}
+			m_UIOverlay->SetMouseDown(mouse, true);
+			m_MoveGizmo->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
 		}
 		if(action == INPUT_ACTION_RELEASE)
 		{
 			m_MouseDown[mouse] = false;
 			m_UIOverlay->SetMouseDown(mouse, false);
+			m_MoveGizmo->OnMouseUp((unsigned int)xPos, (unsigned int)yPos);
 		}
 		if(action == INPUT_ACTION_REPEAT)
 		{
+			m_MoveGizmo->OnMouseMove((unsigned int)xPos, (unsigned int)yPos);
+
 			float deltaX = xPos - m_MousePos[0];
 			float deltaY = yPos - m_MousePos[1];
 
-			size_t width; size_t height;
-			m_pWindow->GetSize(width, height);
-
-			if(m_MouseDown[INPUT_MOUSE_BUTTON_RIGHT])
+			if (m_MouseCtrlCamera)
 			{
-				if(abs(deltaX) > 0.0001f)
+				if (m_MouseDown[INPUT_MOUSE_BUTTON_RIGHT])
 				{
-					m_Camera.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), -glm::quarter_pi<float>() * deltaX / width);
+					if (abs(deltaX) > 0.0001f)
+					{
+						m_Camera.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), -glm::quarter_pi<float>() * deltaX / width);
+					}
+					if (abs(deltaY) > 0.0001f)
+					{
+						m_Camera.RotateRight(-glm::quarter_pi<float>() * deltaY / height);
+					}
 				}
-				if(abs(deltaY) > 0.0001f)
+				if (m_MouseDown[INPUT_MOUSE_BUTTON_LEFT])
 				{
-					m_Camera.RotateRight(-glm::quarter_pi<float>() * deltaY / height);
+					const float fSpeed = 500.f;
+
+					glm::vec3 forward = m_Camera.GetForward(); forward.y = 0.0f; forward = glm::normalize(forward);
+					glm::vec3 right = m_Camera.GetRight(); right.y = 0.0f; right = glm::normalize(right);
+
+					m_Camera.Move(deltaY * fSpeed * forward / (float)width);
+					m_Camera.Move(-deltaX * fSpeed * right / (float)height);
 				}
-			}
-			if(m_MouseDown[INPUT_MOUSE_BUTTON_LEFT])
-			{
-				const float fSpeed = 500.f;
-
-				glm::vec3 forward = m_Camera.GetForward(); forward.y = 0.0f; forward = glm::normalize(forward);
-				glm::vec3 right = m_Camera.GetRight(); right.y = 0.0f; right = glm::normalize(right);
-
-				m_Camera.Move(deltaY * fSpeed * forward / (float)width);
-				m_Camera.Move(-deltaX * fSpeed * right / (float)height);
 			}
 
 			m_MousePos[0] = xPos;
@@ -2186,6 +2193,7 @@ bool KVulkanRenderDevice::Present()
 {
 	// TODO
 	KRenderGlobal::TaskExecutor.ProcessSyncTask();
+	m_MoveGizmo->Update();
 
 	VkResult vkResult;
 
@@ -2220,11 +2228,11 @@ bool KVulkanRenderDevice::Present()
 			m_UIOverlay->PushItemWidth(110.0f);
 			if (m_UIOverlay->Header("Setting"))
 			{
+				m_UIOverlay->CheckBox("MouseCtrlCamera", &m_MouseCtrlCamera);
+				m_UIOverlay->CheckBox("OctreeDraw", &m_OctreeDebugDraw);
 				m_UIOverlay->CheckBox("MultiRender", &m_MultiThreadSumbit);
 				m_UIOverlay->SliderFloat("Shadow DepthBiasConstant", &KRenderGlobal::ShadowMap.GetDepthBiasConstant(), 0.0f, 5.0f);
 				m_UIOverlay->SliderFloat("Shadow DepthBiasSlope", &KRenderGlobal::ShadowMap.GetDepthBiasSlope(), 0.0f, 5.0f);
-
-				m_UIOverlay->CheckBox("OctreeDraw", &m_OctreeDebugDraw);
 			}
 			m_UIOverlay->PopItemWidth();
 		}

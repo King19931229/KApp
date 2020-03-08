@@ -7,6 +7,10 @@ class KMoveGizmo : public IKGizmo
 protected:
 	glm::mat4 m_Transform;
 	GizmoManipulateMode m_Mode;
+	unsigned int m_ScreenWidth;
+	unsigned int m_ScreenHeight;
+	float m_DisplayScale;
+	float m_ScreenScaleFactor;
 	const KCamera* m_Camera;
 
 	KEntityPtr m_OriginEntity;
@@ -34,8 +38,20 @@ public:
 	void Enter() override;
 	void Leave() override;
 
+	void Update() override;
+
 	const glm::mat4& GetMatrix() const override;
+	void SetMatrix(const glm::mat4& matrix) override;
 
 	GizmoManipulateMode GetManipulateMode() const override;
 	void SetManipulateMode(GizmoManipulateMode mode) override;
+
+	float GetDisplayScale() const override;
+	void SetDisplayScale(float scale) override;
+
+	void SetScreenSize(unsigned int width, unsigned int height) override;
+
+	void OnMouseDown(unsigned int x, unsigned int y) override;
+	void OnMouseMove(unsigned int x, unsigned int y) override;
+	void OnMouseUp(unsigned int x, unsigned int y) override;
 };

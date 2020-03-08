@@ -40,6 +40,12 @@ public:
 		UpdateTransform();
 	}
 
+	void SetRotate(const glm::mat3& rotate)
+	{
+		m_Rotate = glm::quat_cast(rotate);
+		UpdateTransform();
+	}
+
 	void SetScale(const glm::vec3& scale)
 	{
 		m_Scale = scale;

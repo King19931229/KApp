@@ -27,10 +27,22 @@ struct IKGizmo
 	virtual void Enter() = 0;
 	virtual void Leave() = 0;
 
+	virtual void Update() = 0;
+
 	virtual const glm::mat4& GetMatrix() const = 0;
+	virtual void SetMatrix(const glm::mat4& matrix) = 0;
 
 	virtual GizmoManipulateMode GetManipulateMode() const = 0;
 	virtual void SetManipulateMode(GizmoManipulateMode mode) = 0;
+
+	virtual float GetDisplayScale() const = 0;
+	virtual void SetDisplayScale(float scale) = 0;
+
+	virtual void SetScreenSize(unsigned int width, unsigned int height) = 0;
+
+	virtual void OnMouseDown(unsigned int x, unsigned int y) = 0;
+	virtual void OnMouseMove(unsigned int x, unsigned int y) = 0;
+	virtual void OnMouseUp(unsigned int x, unsigned int y) = 0;
 };
 
 typedef std::shared_ptr<IKGizmo> IKGizmoPtr;

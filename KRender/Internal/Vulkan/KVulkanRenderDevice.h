@@ -67,6 +67,7 @@ protected:
 	bool m_EnableValidationLayer;
 	bool m_MultiThreadSumbit;
 	bool m_OctreeDebugDraw;
+	bool m_MouseCtrlCamera;
 
 	size_t m_FrameInFlight;
 	size_t m_MaxRenderThreadNum;
