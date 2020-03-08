@@ -26,6 +26,30 @@ protected:
 	KEntityPtr m_XZPlaneEntity;
 	KEntityPtr m_YZPlaneEntity;
 	KEntityPtr m_XYPlaneEntity;
+
+	bool CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin, glm::vec3& dir);
+
+	enum class MoveGizmoAxis
+	{
+		AXIS_X,
+		AXIS_Y,
+		AXIS_Z
+	};
+	glm::vec3 GetAxis(MoveGizmoAxis axis);
+
+	enum class MoveOperator
+	{
+		MOVE_X,
+		MOVE_Y,
+		MOVE_Z,
+		MOVE_XY,
+		MOVE_XZ,
+		MOVE_YZ,
+		MOVE_NONE
+	};
+	MoveOperator m_OperatorType;
+
+	MoveOperator GetOperatorType(unsigned int x, unsigned int y);
 public:
 	KMoveGizmo();
 	~KMoveGizmo();

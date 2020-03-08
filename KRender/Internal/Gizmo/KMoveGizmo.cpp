@@ -1,14 +1,18 @@
 #include "KMoveGizmo.h"
 #include "Internal/KRenderGlobal.h"
+#include "Publish/KPlane.h"
+
+#include "KBase/Interface/IKLog.h"
 
 KMoveGizmo::KMoveGizmo()
 	: m_Transform(glm::mat4(1.0f)),
 	m_Mode(GizmoManipulateMode::GIZMO_MANIPULATE_WORLD),
-	m_ScreenWidth(1),
-	m_ScreenHeight(1),
+	m_ScreenWidth(0),
+	m_ScreenHeight(0),
 	m_DisplayScale(1.0f),
 	m_ScreenScaleFactor(1.0f),
-	m_Camera(nullptr)	
+	m_Camera(nullptr),
+	m_OperatorType(MoveOperator::MOVE_NONE)
 {
 }
 
@@ -18,6 +22,17 @@ KMoveGizmo::~KMoveGizmo()
 {
 	assert(!m_Camera);
 }
+
+constexpr float scale = 1.0f;
+constexpr float originRaidus = 0.08f;
+
+constexpr float axisLength = 1.0f;
+constexpr float axisRadius = 0.025f;
+
+constexpr float arrowLength = 0.15f;
+constexpr float arrowRadius = 0.045f;
+
+constexpr float planeSize = 0.5f;
 
 bool KMoveGizmo::Init(const KCamera* camera)
 {
@@ -41,17 +56,6 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	KRenderComponent* renderComponent = nullptr;
 	KDebugComponent* debugComponent = nullptr;
-
-	constexpr float scale = 1.0f;
-	constexpr float originRaidus = 0.08f;
-
-	constexpr float axisLength = 1.0f;
-	constexpr float axisRadius = 0.025f;
-
-	constexpr float arrowLength = 0.15f;
-	constexpr float arrowRadius = 0.045f;
-
-	constexpr float planeSize = 0.5f;
 
 	// Origin
 	m_OriginEntity->RegisterComponent(CT_RENDER, &renderComponent);
@@ -240,6 +244,151 @@ void KMoveGizmo::Update()
 	}
 }
 
+bool KMoveGizmo::CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin, glm::vec3& dir)
+{
+	if (m_Camera && m_ScreenWidth > 0 && m_ScreenHeight > 0)
+	{
+		glm::vec4 near = glm::vec4(
+			2.0f * ((float)x / (float)m_ScreenWidth) - 1.0f,
+			2.0f * ((float)y / (float)m_ScreenHeight) - 1.0f,
+#ifdef GLM_FORCE_DEPTH_ZERO_TO_ONE
+			0.0f,
+#else
+			- 1.0f,
+#endif
+			1.0f
+		);
+		glm::vec4 far = glm::vec4(near.x, near.y, 1.0f, 1.0f);
+
+		glm::mat4 vp = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
+		glm::mat4 inv_vp = glm::inverse(vp);
+
+		near = inv_vp * near;
+		far = inv_vp * far;
+
+		glm::vec3 nearPos = glm::vec3(near.x, near.y, near.z) / near.w;
+		glm::vec3 farPos = glm::vec3(far.x, far.y, far.z) / far.w;
+
+		origin = nearPos;
+		dir = glm::normalize(farPos - nearPos);
+		return true;
+	}
+	return false;
+}
+
+glm::vec3 KMoveGizmo::GetAxis(MoveGizmoAxis axis)
+{
+	glm::vec3 axisVec = glm::vec3(0.0f);
+	switch (axis)
+	{
+	case KMoveGizmo::MoveGizmoAxis::AXIS_X:
+		axisVec = glm::vec3(1.0f, 0.0f, 0.0f);
+		break;
+	case KMoveGizmo::MoveGizmoAxis::AXIS_Y:
+		axisVec = glm::vec3(0.0f, 1.0f, 0.0f);
+		break;
+	case KMoveGizmo::MoveGizmoAxis::AXIS_Z:
+		axisVec = glm::vec3(0.0f, 0.0f, 1.0f);
+		break;
+	default:
+		break;
+	}
+
+	if (m_Mode == GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL)
+	{
+		axisVec = m_Transform * glm::vec4(axisVec, 0.0f);
+	}
+
+	return axisVec;
+}
+
+KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned int y)
+{
+	glm::vec3 origin, dir;
+	if (CalcPickRay(x, y, origin, dir))
+	{
+		glm::vec3 transformPos = glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
+
+		KPlane plane;
+		glm::vec3 intersectPos;
+
+		// XY plane
+		plane.Init(transformPos, GetAxis(MoveGizmoAxis::AXIS_Z));
+		if (plane.Intersect(origin, dir, intersectPos))
+		{
+			intersectPos /= m_ScreenScaleFactor;
+			if (intersectPos.x > 0.0f && intersectPos.y > 0.0f)
+			{
+				if (intersectPos.x < axisRadius && intersectPos.y < axisLength)
+				{
+					KLog::Logger->Log(LL_DEBUG, "pick y axis");
+					return MoveOperator::MOVE_Y;
+				}
+				else if (intersectPos.y < axisRadius && intersectPos.x < axisLength)
+				{
+					KLog::Logger->Log(LL_DEBUG, "pick x axis");
+					return MoveOperator::MOVE_X;
+				}
+				else if (intersectPos.x < planeSize && intersectPos.y < planeSize)
+				{
+					KLog::Logger->Log(LL_DEBUG, "pick xy plane");
+					return MoveOperator::MOVE_XY;
+				}
+			}
+		}
+
+		// YZ plane
+		plane.Init(transformPos, GetAxis(MoveGizmoAxis::AXIS_X));
+		if (plane.Intersect(origin, dir, intersectPos))
+		{
+			intersectPos /= m_ScreenScaleFactor;
+			if (intersectPos.y > 0.0f && intersectPos.z > 0.0f)
+			{
+				if (intersectPos.y < axisRadius && intersectPos.z < axisLength)
+				{
+					KLog::Logger->Log(LL_DEBUG, "pick z axis");
+					return MoveOperator::MOVE_Z;
+				}
+				else if (intersectPos.z < axisRadius && intersectPos.y < axisLength)
+				{
+					KLog::Logger->Log(LL_DEBUG, "pick y axis");
+					return MoveOperator::MOVE_Y;
+				}
+				else if (intersectPos.y < planeSize && intersectPos.z < planeSize)
+				{
+					KLog::Logger->Log(LL_DEBUG, "pick yz plane");
+					return MoveOperator::MOVE_YZ;
+				}
+			}
+		}
+
+		// XZ plane
+		plane.Init(transformPos, GetAxis(MoveGizmoAxis::AXIS_Y));
+		if (plane.Intersect(origin, dir, intersectPos))
+		{
+			intersectPos /= m_ScreenScaleFactor;
+			if (intersectPos.x > 0.0f && intersectPos.z > 0.0f)
+			{
+				if (intersectPos.x < axisRadius && intersectPos.z < axisLength)
+				{
+					KLog::Logger->Log(LL_DEBUG, "pick z axis");
+					return MoveOperator::MOVE_Z;
+				}
+				else if (intersectPos.z < axisRadius && intersectPos.x < axisLength)
+				{
+					KLog::Logger->Log(LL_DEBUG, "pick x axis");
+					return MoveOperator::MOVE_X;
+				}
+				else if (intersectPos.x < planeSize && intersectPos.z < planeSize)
+				{
+					KLog::Logger->Log(LL_DEBUG, "pick xz plane");
+					return MoveOperator::MOVE_XZ;
+				}
+			}
+		}
+	}
+}
+
 const glm::mat4& KMoveGizmo::GetMatrix() const
 {
 	return m_Transform;
@@ -283,7 +432,8 @@ void KMoveGizmo::OnMouseDown(unsigned int x, unsigned int y)
 
 void KMoveGizmo::OnMouseMove(unsigned int x, unsigned int y)
 {
-
+	// test
+	GetOperatorType(x, y);
 }
 
 void KMoveGizmo::OnMouseUp(unsigned int x, unsigned int y)

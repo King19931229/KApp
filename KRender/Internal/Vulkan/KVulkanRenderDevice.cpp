@@ -1048,6 +1048,8 @@ bool KVulkanRenderDevice::AddWindowCallback()
 		size_t width; size_t height;
 		m_pWindow->GetSize(width, height);
 
+		m_MoveGizmo->SetScreenSize((unsigned int)width, (unsigned int)height);
+
 		if(action == INPUT_ACTION_PRESS)
 		{
 			m_MousePos[0] = xPos;

@@ -19,14 +19,12 @@ public:
 		: m_Normal(0.0f, 1.0f, 0.0f),
 		m_Dist(0.0f)
 	{
-
 	}
 
-	void Init(const glm::vec3& normal, float dist)
+	void Init(const glm::vec3& p, const glm::vec3& normal)
 	{
-		float len = glm::length(normal);
-		m_Normal = normal / len;
-		m_Dist = dist / len;
+		m_Normal = glm::normalize(normal);
+		m_Dist = -glm::dot(p, m_Normal);
 	}
 
 	void Init(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c)
@@ -51,5 +49,22 @@ public:
 		else if(dist > maxDist)
 			return PS_POSITIVE;
 		return PS_SPAN;
+	}
+
+	bool Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result)
+	{
+		float DdotN = glm::dot(m_Normal, dir);
+		constexpr float exp = 0.00001f;
+		if (fabs(DdotN) > exp)
+		{
+			// t = ((P * N) - (O * N)) / (D * N)
+			float t = (-m_Dist - glm::dot(origin, m_Normal)) / DdotN;
+			if (t >= 0.0f)
+			{
+				result = origin + dir * t;
+				return true;
+			}
+		}
+		return false;
 	}
 };
