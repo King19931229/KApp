@@ -70,6 +70,9 @@ bool KTextureManager::Release(IKTexturePtr& texture)
 
 			if(info.useCount == 0)
 			{
+				// 等待设备空闲
+				m_Device->Wait();
+
 				texture->UnInit();
 				m_Textures.erase(it);
 			}
@@ -90,6 +93,9 @@ bool KTextureManager::DestroySampler(IKSamplerPtr& sampler)
 {
 	if(sampler)
 	{
+		// 等待设备空闲
+		m_Device->Wait();
+
 		sampler->UnInit();
 		sampler = nullptr;
 	}

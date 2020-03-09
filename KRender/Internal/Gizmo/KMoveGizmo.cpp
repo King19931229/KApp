@@ -23,16 +23,24 @@ KMoveGizmo::~KMoveGizmo()
 	assert(!m_Camera);
 }
 
-constexpr float scale = 1.0f;
-constexpr float originRaidus = 0.08f;
+constexpr float ORIGIN_RADIUS = 0.08f;
 
-constexpr float axisLength = 1.0f;
-constexpr float axisRadius = 0.025f;
+constexpr float AXIS_LENGTH = 1.0f;
+constexpr float AXIS_RADIUS = 0.025f;
 
-constexpr float arrowLength = 0.15f;
-constexpr float arrowRadius = 0.045f;
+constexpr float ARROW_LENGTH = 0.15f;
+constexpr float ARROW_RADIUS = 0.045f;
 
-constexpr float planeSize = 0.5f;
+constexpr float PLANE_SIZE = 0.5f;
+
+static const glm::vec4 X_AXIS_COLOR = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+static const glm::vec4 Y_AXIS_COLOR = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+static const glm::vec4 Z_AXIS_COLOR = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+
+static const glm::vec4 SELECT_AXIS_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+static const glm::vec4 PLANE_COLOR = glm::vec4(1.0f, 1.0f, 0.0f, 0.5f);
+static const glm::vec4 SELECT_PLANE_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 0.5f);
 
 bool KMoveGizmo::Init(const KCamera* camera)
 {
@@ -59,7 +67,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// Origin
 	m_OriginEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsSphere(glm::mat4(scale), originRaidus);
+	renderComponent->InitAsSphere(glm::mat4(1.0f), ORIGIN_RADIUS);
 
 	m_OriginEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -68,38 +76,38 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// XAxis
 	m_XAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsCylinder(glm::rotate(glm::mat4(scale), -glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)), axisLength, axisRadius);
+	renderComponent->InitAsCylinder(glm::rotate(glm::mat4(1.0f), -glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)), AXIS_LENGTH, AXIS_RADIUS);
 
 	m_XAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+	debugComponent->SetColor(X_AXIS_COLOR);
 
 	m_XAxisEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YAxis
 	m_YAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsCylinder(glm::mat4(scale), axisLength, axisRadius);
+	renderComponent->InitAsCylinder(glm::mat4(1.0f), AXIS_LENGTH, AXIS_RADIUS);
 
 	m_YAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+	debugComponent->SetColor(Y_AXIS_COLOR);
 
 	m_YAxisEntity->RegisterComponent(CT_TRANSFORM);
 
 	// ZAxis
 	m_ZAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsCylinder(glm::rotate(glm::mat4(scale), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)), axisLength, axisRadius);
+	renderComponent->InitAsCylinder(glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)), AXIS_LENGTH, AXIS_RADIUS);
 
 	m_ZAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+	debugComponent->SetColor(Z_AXIS_COLOR);
 
 	m_ZAxisEntity->RegisterComponent(CT_TRANSFORM);
 
 	// XArrow
 	m_XArrowEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsCone(
-		glm::translate(glm::mat4(1.0f), glm::vec3(axisLength, 0.0f, 0.0f)) *
-		glm::rotate(glm::mat4(scale), -glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)),
-		arrowLength,
-		arrowRadius);
+		glm::translate(glm::mat4(1.0f), glm::vec3(AXIS_LENGTH, 0.0f, 0.0f)) *
+		glm::rotate(glm::mat4(1.0f), -glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)),
+		ARROW_LENGTH,
+		ARROW_RADIUS);
 
 	m_XArrowEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -109,9 +117,9 @@ bool KMoveGizmo::Init(const KCamera* camera)
 	// YArrow
 	m_YArrowEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsCone(
-		glm::translate(glm::mat4(scale), glm::vec3(0, axisLength, 0.0f)),
-		arrowLength,
-		arrowRadius);
+		glm::translate(glm::mat4(1.0f), glm::vec3(0, AXIS_LENGTH, 0.0f)),
+		ARROW_LENGTH,
+		ARROW_RADIUS);
 
 	m_YArrowEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -121,10 +129,10 @@ bool KMoveGizmo::Init(const KCamera* camera)
 	// ZArrow
 	m_ZArrowEntity->RegisterComponent(CT_RENDER, &renderComponent);
 	renderComponent->InitAsCone(
-		glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0f, axisLength)) *
-		glm::rotate(glm::mat4(scale), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)),
-		arrowLength,
-		arrowRadius);
+		glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0f, AXIS_LENGTH)) *
+		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)),
+		ARROW_LENGTH,
+		ARROW_RADIUS);
 
 	m_ZArrowEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -133,25 +141,25 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// XZPlane
 	m_XZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsQuad(glm::mat4(scale), planeSize, planeSize, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	renderComponent->InitAsQuad(glm::mat4(1.0f), PLANE_SIZE, PLANE_SIZE, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	m_XZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+	debugComponent->SetColor(PLANE_COLOR);
 
 	m_XZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YZPlane
 	m_YZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsQuad(glm::mat4(scale), planeSize, planeSize, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	renderComponent->InitAsQuad(glm::mat4(1.0f), PLANE_SIZE, PLANE_SIZE, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	m_YZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+	debugComponent->SetColor(PLANE_COLOR);
 
 	m_YZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YZPlane
 	m_XYPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsQuad(glm::mat4(scale), planeSize, planeSize, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	renderComponent->InitAsQuad(glm::mat4(1.0f), PLANE_SIZE, PLANE_SIZE, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	m_XYPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
@@ -230,16 +238,14 @@ void KMoveGizmo::Update()
 			KTransformComponent* transform = nullptr;
 			entity->GetComponent(CT_TRANSFORM, &transform);
 
-			glm::vec3 previousPos = transform->GetPosition();
+			// TODO ÐÞÕýMoveÂß¼­
+			KRenderGlobal::Scene.Remove(entity);
 
 			transform->SetPosition(transformPos);
 			transform->SetRotate(rotate);
 			transform->SetScale(glm::vec3(m_ScreenScaleFactor));
 
-			if (previousPos != transformPos)
-			{
-				KRenderGlobal::Scene.Move(entity);
-			}
+			KRenderGlobal::Scene.Add(entity);
 		}
 	}
 }
@@ -302,34 +308,30 @@ glm::vec3 KMoveGizmo::GetAxis(MoveGizmoAxis axis)
 	return axisVec;
 }
 
-KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned int y)
+KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned int y, KPlane& plane, glm::vec3& intersectPos)
 {
 	glm::vec3 origin, dir;
 	if (CalcPickRay(x, y, origin, dir))
 	{
 		glm::vec3 transformPos = glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
 
-		KPlane plane;
-		glm::vec3 intersectPos;
-
 		// XY plane
 		plane.Init(transformPos, GetAxis(MoveGizmoAxis::AXIS_Z));
 		if (plane.Intersect(origin, dir, intersectPos))
 		{
-			intersectPos /= m_ScreenScaleFactor;
-			if (intersectPos.x > 0.0f && intersectPos.y > 0.0f)
+			glm::vec3 normalizePos = (intersectPos - transformPos) / m_ScreenScaleFactor;
 			{
-				if (intersectPos.x < axisRadius && intersectPos.y < axisLength)
+				if (fabs(normalizePos.x) < AXIS_RADIUS && normalizePos.y < AXIS_LENGTH && normalizePos.y >= 0)
 				{
 					KLog::Logger->Log(LL_DEBUG, "pick y axis");
 					return MoveOperator::MOVE_Y;
 				}
-				else if (intersectPos.y < axisRadius && intersectPos.x < axisLength)
+				else if (fabs(normalizePos.y) < AXIS_RADIUS && normalizePos.x < AXIS_LENGTH && normalizePos.x >= 0)
 				{
 					KLog::Logger->Log(LL_DEBUG, "pick x axis");
 					return MoveOperator::MOVE_X;
 				}
-				else if (intersectPos.x < planeSize && intersectPos.y < planeSize)
+				else if (normalizePos.x < PLANE_SIZE && normalizePos.x > 0.0f && normalizePos.y < PLANE_SIZE && normalizePos.y > 0.0f)
 				{
 					KLog::Logger->Log(LL_DEBUG, "pick xy plane");
 					return MoveOperator::MOVE_XY;
@@ -341,20 +343,19 @@ KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned in
 		plane.Init(transformPos, GetAxis(MoveGizmoAxis::AXIS_X));
 		if (plane.Intersect(origin, dir, intersectPos))
 		{
-			intersectPos /= m_ScreenScaleFactor;
-			if (intersectPos.y > 0.0f && intersectPos.z > 0.0f)
+			glm::vec3 normalizePos = (intersectPos - transformPos) / m_ScreenScaleFactor;
 			{
-				if (intersectPos.y < axisRadius && intersectPos.z < axisLength)
+				if (fabs(normalizePos.y) < AXIS_RADIUS && normalizePos.z < AXIS_LENGTH && normalizePos.z >= 0.0f)
 				{
 					KLog::Logger->Log(LL_DEBUG, "pick z axis");
 					return MoveOperator::MOVE_Z;
 				}
-				else if (intersectPos.z < axisRadius && intersectPos.y < axisLength)
+				else if (fabs(normalizePos.z) < AXIS_RADIUS && normalizePos.y < AXIS_LENGTH && normalizePos.y >= 0.0f)
 				{
 					KLog::Logger->Log(LL_DEBUG, "pick y axis");
 					return MoveOperator::MOVE_Y;
 				}
-				else if (intersectPos.y < planeSize && intersectPos.z < planeSize)
+				else if (normalizePos.y < PLANE_SIZE && normalizePos.y > 0.0f && normalizePos.z < PLANE_SIZE && normalizePos.z > 0.0f)
 				{
 					KLog::Logger->Log(LL_DEBUG, "pick yz plane");
 					return MoveOperator::MOVE_YZ;
@@ -366,20 +367,19 @@ KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned in
 		plane.Init(transformPos, GetAxis(MoveGizmoAxis::AXIS_Y));
 		if (plane.Intersect(origin, dir, intersectPos))
 		{
-			intersectPos /= m_ScreenScaleFactor;
-			if (intersectPos.x > 0.0f && intersectPos.z > 0.0f)
+			glm::vec3 normalizePos = (intersectPos - transformPos) / m_ScreenScaleFactor;
 			{
-				if (intersectPos.x < axisRadius && intersectPos.z < axisLength)
+				if (fabs(normalizePos.x) < AXIS_RADIUS && normalizePos.z < AXIS_LENGTH && normalizePos.z >= 0.0f)
 				{
 					KLog::Logger->Log(LL_DEBUG, "pick z axis");
 					return MoveOperator::MOVE_Z;
 				}
-				else if (intersectPos.z < axisRadius && intersectPos.x < axisLength)
+				else if (fabs(normalizePos.z) < AXIS_RADIUS && normalizePos.x < AXIS_LENGTH && normalizePos.x >= 0.0f)
 				{
 					KLog::Logger->Log(LL_DEBUG, "pick x axis");
 					return MoveOperator::MOVE_X;
 				}
-				else if (intersectPos.x < planeSize && intersectPos.z < planeSize)
+				else if (normalizePos.x < PLANE_SIZE && normalizePos.x > 0.0f && normalizePos.z < PLANE_SIZE && normalizePos.z > 0.0f)
 				{
 					KLog::Logger->Log(LL_DEBUG, "pick xz plane");
 					return MoveOperator::MOVE_XZ;
@@ -387,6 +387,8 @@ KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned in
 			}
 		}
 	}
+
+	return MoveOperator::MOVE_NONE;
 }
 
 const glm::mat4& KMoveGizmo::GetMatrix() const
@@ -427,16 +429,112 @@ void KMoveGizmo::SetScreenSize(unsigned int width, unsigned int height)
 
 void KMoveGizmo::OnMouseDown(unsigned int x, unsigned int y)
 {
-
+	m_OperatorType = GetOperatorType(x, y, m_PickPlane, m_IntersectPos);
 }
 
 void KMoveGizmo::OnMouseMove(unsigned int x, unsigned int y)
 {
-	// test
-	GetOperatorType(x, y);
+	if (m_OperatorType == MoveOperator::MOVE_NONE)
+	{
+		KPlane plane;
+		glm::vec3 intersectPos;
+		MoveOperator predictType = GetOperatorType(x, y, plane, intersectPos);
+
+		auto setEntityColor = [](KEntityPtr entity, const glm::vec4& color)
+		{
+			KDebugComponent* debugComponent = nullptr;
+			if (entity && entity->GetComponent(CT_DEBUG, &debugComponent))
+			{
+				debugComponent->SetColor(color);
+			}
+		};
+
+		setEntityColor(m_XAxisEntity, X_AXIS_COLOR);
+		setEntityColor(m_YAxisEntity, Y_AXIS_COLOR);
+		setEntityColor(m_ZAxisEntity, Z_AXIS_COLOR);
+		setEntityColor(m_XZPlaneEntity, PLANE_COLOR);
+		setEntityColor(m_XYPlaneEntity, PLANE_COLOR);
+		setEntityColor(m_YZPlaneEntity, PLANE_COLOR);
+
+		switch (predictType)
+		{
+		case KMoveGizmo::MoveOperator::MOVE_X:
+			setEntityColor(m_XAxisEntity, SELECT_AXIS_COLOR);
+			break;
+		case KMoveGizmo::MoveOperator::MOVE_Y:
+			setEntityColor(m_YAxisEntity, SELECT_AXIS_COLOR);
+			break;
+		case KMoveGizmo::MoveOperator::MOVE_Z:
+			setEntityColor(m_ZAxisEntity, SELECT_AXIS_COLOR);
+			break;
+		case KMoveGizmo::MoveOperator::MOVE_XY:
+			setEntityColor(m_XYPlaneEntity, SELECT_PLANE_COLOR);
+			break;
+		case KMoveGizmo::MoveOperator::MOVE_XZ:
+			setEntityColor(m_XZPlaneEntity, SELECT_PLANE_COLOR);
+			break;
+		case KMoveGizmo::MoveOperator::MOVE_YZ:
+			setEntityColor(m_YZPlaneEntity, SELECT_PLANE_COLOR);
+			break;
+		case KMoveGizmo::MoveOperator::MOVE_NONE:
+			break;
+		default:
+			break;
+		}
+	}
+	else
+	{
+		glm::vec3 origin, dir;
+		if (CalcPickRay(x, y, origin, dir))
+		{
+			glm::vec3 transformPos = glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
+			glm::vec3 intersectPos;
+			if (m_PickPlane.Intersect(origin, dir, intersectPos))
+			{
+				glm::vec3 diff = intersectPos - m_IntersectPos;
+				glm::vec3 moveVec;
+
+				glm::vec3 xAxis = GetAxis(MoveGizmoAxis::AXIS_X);
+				glm::vec3 yAxis = GetAxis(MoveGizmoAxis::AXIS_Y);
+				glm::vec3 zAxis = GetAxis(MoveGizmoAxis::AXIS_Z);
+
+				switch (m_OperatorType)
+				{
+				case KMoveGizmo::MoveOperator::MOVE_X:
+					moveVec = glm::vec3(glm::dot(xAxis, diff), 0.0f, 0.0f);
+					break;
+				case KMoveGizmo::MoveOperator::MOVE_Y:
+					moveVec = glm::vec3(0.0f, glm::dot(yAxis, diff), 0.0f);
+					break;
+				case KMoveGizmo::MoveOperator::MOVE_Z:
+					moveVec = glm::vec3(0.0f, 0.0f, glm::dot(zAxis, diff));
+					break;
+				case KMoveGizmo::MoveOperator::MOVE_XY:
+					moveVec = glm::vec3(glm::dot(xAxis, diff), glm::dot(yAxis, diff), 0.0f);
+					break;
+				case KMoveGizmo::MoveOperator::MOVE_XZ:
+					moveVec = glm::vec3(glm::dot(xAxis, diff), 0.0f, glm::dot(zAxis, diff));
+					break;
+				case KMoveGizmo::MoveOperator::MOVE_YZ:
+					moveVec = glm::vec3(0.0f, glm::dot(yAxis, diff), glm::dot(zAxis, diff));
+					break;
+				case KMoveGizmo::MoveOperator::MOVE_NONE:
+				default:
+					assert(false && "impossible to reach");
+					break;
+				}
+
+				moveVec = moveVec.x * xAxis + moveVec.y * yAxis + moveVec.z * zAxis;
+
+				m_Transform = glm::translate(glm::mat4(1.0f), moveVec) * m_Transform;
+
+				m_IntersectPos = intersectPos;
+			}
+		}
+	}
 }
 
 void KMoveGizmo::OnMouseUp(unsigned int x, unsigned int y)
 {
-
+	m_OperatorType = MoveOperator::MOVE_NONE;
 }

@@ -80,6 +80,9 @@ bool KShaderManager::Release(IKShaderPtr& shader)
 
 			if(info.useCount == 0)
 			{
+				// µÈ´ıÉè±¸¿ÕÏĞ
+				m_Device->Wait();
+
 				shader->UnInit();
 				m_Shaders.erase(it);
 			}

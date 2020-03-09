@@ -122,6 +122,10 @@ bool KMeshManager::Release(KMeshPtr& ptr)
 			if (it != m_SpecialMesh.end())
 			{
 				m_SpecialMesh.erase(it);
+
+				// µÈ´ýÉè±¸¿ÕÏÐ
+				m_Device->Wait();
+
 				ptr->UnInit();
 				ptr = nullptr;
 				return true;

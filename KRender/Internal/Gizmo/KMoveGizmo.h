@@ -13,6 +13,9 @@ protected:
 	float m_ScreenScaleFactor;
 	const KCamera* m_Camera;
 
+	KPlane m_PickPlane;
+	glm::vec3 m_IntersectPos;
+
 	KEntityPtr m_OriginEntity;
 
 	KEntityPtr m_XAxisEntity;
@@ -49,7 +52,7 @@ protected:
 	};
 	MoveOperator m_OperatorType;
 
-	MoveOperator GetOperatorType(unsigned int x, unsigned int y);
+	MoveOperator GetOperatorType(unsigned int x, unsigned int y, KPlane& plane, glm::vec3& intersectPos);
 public:
 	KMoveGizmo();
 	~KMoveGizmo();
