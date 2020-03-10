@@ -49,7 +49,7 @@ KVulkanPipeline::~KVulkanPipeline()
 	ASSERT_RESULT(m_DescriptorPool == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_DescriptorSet == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
-	ASSERT_RESULT(m_LoadTask == nullptr);
+	//ASSERT_RESULT(m_LoadTask == nullptr);
 	ASSERT_RESULT(m_State == PIPELINE_RESOURCE_UNLOADED);
 	ASSERT_RESULT(m_VertexShader == nullptr);
 	ASSERT_RESULT(m_FragmentShader == nullptr);
@@ -59,21 +59,29 @@ KVulkanPipeline::~KVulkanPipeline()
 
 void KVulkanPipeline::CancelLoadTask()
 {
-	std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-	if (m_LoadTask)
+	KTaskUnitProcessorPtr loadTask = nullptr;
 	{
-		m_LoadTask->Cancel();
-		m_LoadTask = nullptr;
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		loadTask = m_LoadTask;
+	}
+
+	if (loadTask)
+	{
+		loadTask->Cancel();
 	}
 }
 
 void KVulkanPipeline::WaitLoadTask()
 {
-	std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-	if (m_LoadTask)
+	KTaskUnitProcessorPtr loadTask = nullptr;
 	{
-		m_LoadTask->Wait();
-		m_LoadTask = nullptr;
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		loadTask = m_LoadTask;
+	}
+
+	if (loadTask)
+	{
+		loadTask->Wait();
 	}
 }
 
@@ -601,17 +609,17 @@ bool KVulkanPipeline::Init(bool async)
 {
 	DestroyDevice();
 
-	auto waitImpl = [=]()->bool
+	auto waitImpl = [this]()->bool
 	{
 		return WaitDependencyResource();
 	};
 
-	auto checkImpl = [=]()->bool
+	auto checkImpl = [this]()->bool
 	{
 		return CheckDependencyResource();
 	};
 
-	auto loadImpl = [=]()->bool
+	auto loadImpl = [this]()->bool
 	{
 		m_State = PIPELINE_RESOURCE_LOADING;
 		ASSERT_RESULT(m_VertexShader && m_FragmentShader);
@@ -677,27 +685,35 @@ KVulkanPipelineHandle::KVulkanPipelineHandle()
 KVulkanPipelineHandle::~KVulkanPipelineHandle()
 {
 	ASSERT_RESULT(m_GraphicsPipeline == VK_NULL_HANDLE);
-	ASSERT_RESULT(m_LoadTask == nullptr);
+	//ASSERT_RESULT(m_LoadTask == nullptr);
 	ASSERT_RESULT(m_State == PIPELINE_HANDLE_STATE_UNLOADED);
 }
 
 void KVulkanPipelineHandle::CancelLoadTask()
 {
-	std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-	if(m_LoadTask)
+	KTaskUnitProcessorPtr loadTask = nullptr;
 	{
-		m_LoadTask->Cancel();
-		m_LoadTask = nullptr;
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		loadTask = m_LoadTask;
+	}
+
+	if (loadTask)
+	{
+		loadTask->Cancel();
 	}
 }
 
 void KVulkanPipelineHandle::WaitLoadTask()
 {
-	std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-	if (m_LoadTask)
+	KTaskUnitProcessorPtr loadTask = nullptr;
 	{
-		m_LoadTask->Wait();
-		m_LoadTask = nullptr;
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		loadTask = m_LoadTask;
+	}
+
+	if (loadTask)
+	{
+		loadTask->Wait();
 	}
 }
 
@@ -718,20 +734,20 @@ bool KVulkanPipelineHandle::Init(IKPipelinePtr pipeline, IKRenderTargetPtr targe
 {
 	ReleaseHandle();
 
-	auto waitImpl = [=]()->bool
+	auto waitImpl = [pipeline, this]()->bool
 	{
 		ASSERT_RESULT(pipeline);
 		pipeline->WaitDevice();
 		return true;
 	};
 
-	auto checkImpl = [=]()->bool
+	auto checkImpl = [pipeline, this]()->bool
 	{
 		ASSERT_RESULT(pipeline);
 		return pipeline->GetState() == PIPELINE_RESOURCE_LOADED;
 	};
 
-	auto loadImpl = [=]()->bool
+	auto loadImpl = [pipeline, target, this]()->bool
 	{
 		ASSERT_RESULT(pipeline);
 		ASSERT_RESULT(target);
