@@ -66,9 +66,10 @@ private:
 
 	void Merge()
 	{
+		assert(children);
 		for (auto i = 0; i < 8; ++i)
 		{
-			auto curChild = children[i];
+			auto &curChild = children[i];
 			auto numObjects = curChild.objects.size();
 			for (auto it = curChild.objects.cbegin(), itEnd = curChild.objects.cend();
 				it != itEnd; ++it)
@@ -96,7 +97,9 @@ private:
 		float childActualLength = (quarter / 2) * looseness;
 		glm::vec3 childActualSize = glm::vec3(childActualLength, childActualLength, childActualLength);
 
+		assert(!childBounds);
 		childBounds = new KAABBBox[8];
+
 		childBounds[0].InitFromHalfExtent(center + glm::vec3(-quarter, quarter, -quarter), childActualSize);
 		childBounds[1].InitFromHalfExtent(center + glm::vec3(quarter, quarter, -quarter), childActualSize);
 		childBounds[2].InitFromHalfExtent(center + glm::vec3(-quarter, quarter, quarter), childActualSize);
@@ -230,9 +233,13 @@ private:
 		return removed;
 	}
 
+	// ÓÃÓÚ new []
 	KOctreeNode()
 	{
 	}
+	// ½ûÖ¹¿½±´
+	KOctreeNode(const KOctreeNode& rhs) = delete;
+	KOctreeNode& operator=(const KOctreeNode& rhs) = delete;
 public:
 	KOctreeNode(float baseLengthVal, float minSizeVal, float loosenessVal, const glm::vec3& centerVal)
 	{
@@ -243,6 +250,7 @@ public:
 	{
 		SAFE_DELETE_ARRAY(children);
 		SAFE_DELETE_ARRAY(childBounds);
+
 		if (boundEntity)
 		{
 			boundEntity->UnRegisterAllComponent();
