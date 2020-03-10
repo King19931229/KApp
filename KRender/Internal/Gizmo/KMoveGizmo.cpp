@@ -315,73 +315,80 @@ KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned in
 	{
 		glm::vec3 transformPos = glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
 
+		glm::vec3 xAxis = GetAxis(MoveGizmoAxis::AXIS_X);
+		glm::vec3 yAxis = GetAxis(MoveGizmoAxis::AXIS_Y);
+		glm::vec3 zAxis = GetAxis(MoveGizmoAxis::AXIS_Z);
+
 		// XY plane
-		plane.Init(transformPos, GetAxis(MoveGizmoAxis::AXIS_Z));
+		plane.Init(transformPos, zAxis);
 		if (plane.Intersect(origin, dir, intersectPos))
 		{
 			glm::vec3 normalizePos = (intersectPos - transformPos) / m_ScreenScaleFactor;
+			normalizePos = glm::vec3(glm::dot(normalizePos, xAxis), glm::dot(normalizePos, yAxis), glm::dot(normalizePos, zAxis));
 			{
 				if (fabs(normalizePos.x) < AXIS_RADIUS && normalizePos.y < AXIS_LENGTH && normalizePos.y >= 0)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick y axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick y axis");
 					return MoveOperator::MOVE_Y;
 				}
 				else if (fabs(normalizePos.y) < AXIS_RADIUS && normalizePos.x < AXIS_LENGTH && normalizePos.x >= 0)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick x axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick x axis");
 					return MoveOperator::MOVE_X;
 				}
 				else if (normalizePos.x < PLANE_SIZE && normalizePos.x > 0.0f && normalizePos.y < PLANE_SIZE && normalizePos.y > 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick xy plane");
+					//KLog::Logger->Log(LL_DEBUG, "pick xy plane");
 					return MoveOperator::MOVE_XY;
 				}
 			}
 		}
 
 		// YZ plane
-		plane.Init(transformPos, GetAxis(MoveGizmoAxis::AXIS_X));
+		plane.Init(transformPos, xAxis);
 		if (plane.Intersect(origin, dir, intersectPos))
 		{
 			glm::vec3 normalizePos = (intersectPos - transformPos) / m_ScreenScaleFactor;
+			normalizePos = glm::vec3(glm::dot(normalizePos, xAxis), glm::dot(normalizePos, yAxis), glm::dot(normalizePos, zAxis));
 			{
 				if (fabs(normalizePos.y) < AXIS_RADIUS && normalizePos.z < AXIS_LENGTH && normalizePos.z >= 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick z axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick z axis");
 					return MoveOperator::MOVE_Z;
 				}
 				else if (fabs(normalizePos.z) < AXIS_RADIUS && normalizePos.y < AXIS_LENGTH && normalizePos.y >= 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick y axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick y axis");
 					return MoveOperator::MOVE_Y;
 				}
 				else if (normalizePos.y < PLANE_SIZE && normalizePos.y > 0.0f && normalizePos.z < PLANE_SIZE && normalizePos.z > 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick yz plane");
+					//KLog::Logger->Log(LL_DEBUG, "pick yz plane");
 					return MoveOperator::MOVE_YZ;
 				}
 			}
 		}
 
 		// XZ plane
-		plane.Init(transformPos, GetAxis(MoveGizmoAxis::AXIS_Y));
+		plane.Init(transformPos, yAxis);
 		if (plane.Intersect(origin, dir, intersectPos))
 		{
 			glm::vec3 normalizePos = (intersectPos - transformPos) / m_ScreenScaleFactor;
+			normalizePos = glm::vec3(glm::dot(normalizePos, xAxis), glm::dot(normalizePos, yAxis), glm::dot(normalizePos, zAxis));
 			{
 				if (fabs(normalizePos.x) < AXIS_RADIUS && normalizePos.z < AXIS_LENGTH && normalizePos.z >= 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick z axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick z axis");
 					return MoveOperator::MOVE_Z;
 				}
 				else if (fabs(normalizePos.z) < AXIS_RADIUS && normalizePos.x < AXIS_LENGTH && normalizePos.x >= 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick x axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick x axis");
 					return MoveOperator::MOVE_X;
 				}
 				else if (normalizePos.x < PLANE_SIZE && normalizePos.x > 0.0f && normalizePos.z < PLANE_SIZE && normalizePos.z > 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick xz plane");
+					//KLog::Logger->Log(LL_DEBUG, "pick xz plane");
 					return MoveOperator::MOVE_XZ;
 				}
 			}
