@@ -46,6 +46,11 @@ bool KRenderComponent::InitAsCircle(const glm::mat4& transform, float radius)
 	return KRenderGlobal::MeshManager.CreateCircle(transform, radius, m_Mesh);
 }
 
+bool KRenderComponent::InitAsArc(const glm::mat4& transform, float radius, float theta)
+{
+	return KRenderGlobal::MeshManager.CreateArc(transform, radius, theta, m_Mesh);
+}
+
 bool KRenderComponent::InitAsSphere(const glm::mat4& transform, float radius)
 {
 	return KRenderGlobal::MeshManager.CreateSphere(transform, radius, m_Mesh);

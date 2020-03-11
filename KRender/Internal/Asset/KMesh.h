@@ -33,6 +33,7 @@ public:
 	bool InitAsCone(const glm::mat4& transform, float height, float radius, IKRenderDevice* device, size_t frameInFlight);
 	bool InitAsCylinder(const glm::mat4& transform, float height, float radius, IKRenderDevice* device, size_t frameInFlight);
 	bool InitAsCircle(const glm::mat4& transform, float radius, IKRenderDevice* device, size_t frameInFlight);
+	bool InitAsArc(const glm::mat4& transform, float radius, float thera, IKRenderDevice* device, size_t frameInFlight);
 	bool InitAsSphere(const glm::mat4& transform, float radius, IKRenderDevice* device, size_t frameInFlight);
 
 	bool UnInit();

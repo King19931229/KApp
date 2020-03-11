@@ -40,5 +40,6 @@ public:
 	bool CreateCone(const glm::mat4& transform, float height, float radius, KMeshPtr& ptr);
 	bool CreateCylinder(const glm::mat4& transform, float height, float radius, KMeshPtr& ptr);
 	bool CreateCircle(const glm::mat4& transform, float radius, KMeshPtr& ptr);
+	bool CreateArc(const glm::mat4& transform, float radius, float theta, KMeshPtr& ptr);
 	bool CreateSphere(const glm::mat4& transform, float radius, KMeshPtr& ptr);
 };

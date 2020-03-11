@@ -45,6 +45,13 @@ namespace KMeshUtility
 		KMeshUtilityImpl impl(device);
 		return impl.CreateSphere(pMesh, transform, radius, frameInFlight);
 	}
+
+	bool CreateArc(IKRenderDevice* device, KMesh* pMesh,
+		const glm::mat4& transform, float radius, float theta, size_t frameInFlight)
+	{
+		KMeshUtilityImpl impl(device);
+		return impl.CreateArc(pMesh, transform, radius, theta, frameInFlight);
+	}
 }
 
 KMeshUtilityImpl::KMeshUtilityImpl(IKRenderDevice* device)
@@ -446,6 +453,62 @@ bool KMeshUtilityImpl::CreateSphere(KMesh* pMesh, const glm::mat4& transform, fl
 
 	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
 	newSubMesh->InitDebug(DEBUG_PRIMITIVE_TRIANGLE, &vertexData, nullptr, frameInFlight);
+
+	subMeshes.push_back(newSubMesh);
+
+	return true;
+}
+
+bool KMeshUtilityImpl::CreateArc(KMesh* pMesh, const glm::mat4& transform,
+	float radius, float theta, size_t frameInFlight)
+{
+	const size_t sgements = 50;
+
+	std::vector<KVertexDefinition::DEBUG_POS_3F> positions;
+	positions.reserve(sgements * 3);
+
+	for (auto i = 0; i < sgements; ++i)
+	{
+		float bx = cos((float)i / (float)sgements * theta) * radius;
+		float bz = sin((float)i / (float)sgements * theta) * radius;
+
+		float cx = cos((float)(i + 1) / (float)sgements * theta) * radius;
+		float cz = sin((float)(i + 1) / (float)sgements * theta) * radius;
+
+		positions.push_back({ glm::vec3(bx, 0, bz) });
+		positions.push_back({ glm::vec3(cx, 0, cz) });
+		positions.push_back({ glm::vec3(0, 0, 0) });
+	}
+
+	pMesh->UnInit();
+
+	KVertexData& vertexData = pMesh->m_VertexData;
+
+	IKVertexBufferPtr vertexBuffer = nullptr;
+	m_Device->CreateVertexBuffer(vertexBuffer);
+
+	KAABBBox bound;
+
+	for (auto& pos : positions)
+	{
+		glm::vec4 t = transform * glm::vec4(pos.DEBUG_POSITION, 1.0);
+		pos.DEBUG_POSITION = glm::vec3(t.x, t.y, t.z);
+		bound.Merge(pos.DEBUG_POSITION, bound);
+	}
+
+	vertexData.vertexFormats.push_back(VF_DEBUG_POINT);
+	vertexData.vertexBuffers.push_back(vertexBuffer);
+	vertexData.vertexStart = 0;
+	vertexData.vertexCount = (uint32_t)positions.size();
+	vertexData.bound = bound;
+
+	vertexBuffer->InitMemory(positions.size(), sizeof(positions[0]), positions.data());
+	vertexBuffer->InitDevice(false);
+
+	auto& subMeshes = pMesh->m_SubMeshes;
+
+	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
+	newSubMesh->InitDebug(DEBUG_PRIMITIVE_LINE, &vertexData, nullptr, frameInFlight);
 
 	subMeshes.push_back(newSubMesh);
 

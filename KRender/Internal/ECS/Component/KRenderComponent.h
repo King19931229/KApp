@@ -19,6 +19,7 @@ public:
 	bool InitAsCone(const glm::mat4& transform, float height, float radius);
 	bool InitAsCylinder(const glm::mat4& transform, float height, float radius);
 	bool InitAsCircle(const glm::mat4& transform, float radius);
+	bool InitAsArc(const glm::mat4& transform, float radius, float theta);
 	bool InitAsSphere(const glm::mat4& transform, float radius);
 
 	bool UnInit();

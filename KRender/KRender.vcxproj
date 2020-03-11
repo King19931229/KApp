@@ -52,7 +52,9 @@
     <ClInclude Include="Internal\ECS\KEntity.h" />
     <ClInclude Include="Internal\ECS\KEntityManager.h" />
     <ClInclude Include="Internal\ECS\System\KCullSystem.h" />
+    <ClInclude Include="Internal\Gizmo\KGizmoBase.h" />
     <ClInclude Include="Internal\Gizmo\KMoveGizmo.h" />
+    <ClInclude Include="Internal\Gizmo\KRotateGizmo.h" />
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
     <ClInclude Include="Internal\KDebugConsole.h" />
@@ -116,7 +118,9 @@
     <ClCompile Include="Internal\ECS\KEntityManager.cpp" />
     <ClCompile Include="Internal\ECS\System\KCullSystem.cpp" />
     <ClCompile Include="Internal\Gizmo\KGizmo.cpp" />
+    <ClCompile Include="Internal\Gizmo\KGizmoBase.cpp" />
     <ClCompile Include="Internal\Gizmo\KMoveGizmo.cpp" />
+    <ClCompile Include="Internal\Gizmo\KRotateGizmo.cpp" />
     <ClCompile Include="Internal\KBufferBase.cpp" />
     <ClInclude Include="Internal\KBufferBase.h" />
     <ClCompile Include="Internal\KConstantDefinition.cpp" />

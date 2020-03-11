@@ -195,6 +195,19 @@ bool KMeshManager::CreateCircle(const glm::mat4& transform, float radius, KMeshP
 	return false;
 }
 
+bool KMeshManager::CreateArc(const glm::mat4& transform, float radius, float theta, KMeshPtr& ptr)
+{
+
+	ptr = KMeshPtr(new KMesh());
+	if (ptr->InitAsArc(transform, radius, theta, m_Device, m_FrameInFlight))
+	{
+		m_SpecialMesh.insert(ptr);
+		return true;
+	}
+	ptr = nullptr;
+	return false;
+}
+
 bool KMeshManager::CreateSphere(const glm::mat4& transform, float radius, KMeshPtr& ptr)
 {
 	ptr = KMeshPtr(new KMesh());

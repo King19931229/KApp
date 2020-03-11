@@ -688,10 +688,10 @@ bool KVulkanRenderDevice::CreateMesh()
 		KRenderGlobal::Scene.Add(entity);
 	}
 #endif
-	m_MoveGizmo = CreateGizmo(GizmoType::GIZMO_TYPE_MOVE);
+	m_MoveGizmo = CreateGizmo(GizmoType::GIZMO_TYPE_ROTATE);
 	m_MoveGizmo->Init(&m_Camera);
 	m_MoveGizmo->SetManipulateMode(GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL);
-	//m_MoveGizmo->SetMatrix(glm::rotate(glm::mat4(1.0f), glm::pi<float>() * 0.5f, glm::vec3(1.0f, 0.0f, 0.0f)));
+	m_MoveGizmo->SetMatrix(glm::rotate(glm::mat4(1.0f), glm::pi<float>() * 0.3f, glm::vec3(1.0f, 0.0f, 0.0f)));
 	m_MoveGizmo->Enter();
 
 	return true;

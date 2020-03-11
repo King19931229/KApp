@@ -306,6 +306,12 @@
     <ClInclude Include="Internal\ECS\Component\KDebugComponent.h">
       <Filter>Internal\ECS\Component</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Gizmo\KGizmoBase.h">
+      <Filter>Internal\Gizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Gizmo\KRotateGizmo.h">
+      <Filter>Internal\Gizmo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -477,6 +483,12 @@
       <Filter>Internal\Gizmo</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Gizmo\KGizmo.cpp">
+      <Filter>Internal\Gizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Gizmo\KGizmoBase.cpp">
+      <Filter>Internal\Gizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Gizmo\KRotateGizmo.cpp">
       <Filter>Internal\Gizmo</Filter>
     </ClCompile>
   </ItemGroup>
