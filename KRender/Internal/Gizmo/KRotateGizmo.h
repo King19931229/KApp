@@ -13,9 +13,7 @@ protected:
 	KEntityPtr m_YPlaneEntity;
 	KEntityPtr m_ZPlaneEntity;
 
-	KEntityPtr m_XRotateEntity;
-	KEntityPtr m_YRotateEntity;
-	KEntityPtr m_ZRotateEntity;
+	KEntityPtr m_RotateEntity;
 
 	enum class RotateOperator
 	{
@@ -29,6 +27,8 @@ protected:
 	RotateOperator m_OperatorType;
 
 	RotateOperator GetOperatorType(unsigned int x, unsigned int y, KPlane& plane, glm::vec3& intersectPos);
+
+	glm::mat3 GetRotate(KEntityPtr entity, const glm::mat3& gizmoRotate) override;
 public:
 	KRotateGizmo();
 	~KRotateGizmo();
@@ -37,7 +37,6 @@ public:
 
 	bool Init(const KCamera* camera) override;
 	bool UnInit() override;
-
 	void OnMouseDown(unsigned int x, unsigned int y) override;
 	void OnMouseMove(unsigned int x, unsigned int y) override;
 	void OnMouseUp(unsigned int x, unsigned int y) override;

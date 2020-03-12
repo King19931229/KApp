@@ -218,8 +218,15 @@ private:
 
 		if (!removed && children)
 		{
-			int bestFitChild = BestFitChild(objBounds.GetCenter());
-			removed = children[bestFitChild].SubRemove(obj, objBounds);
+			//TODO Fix the error
+			for (auto i = 0; i < 8; ++i)
+			{
+				removed = children[i].SubRemove(obj, objBounds);
+				if (removed)
+					break;
+			}
+			//int bestFitChild = BestFitChild(objBounds.GetCenter());
+			//removed = children[bestFitChild].SubRemove(obj, objBounds);
 		}
 
 		if (removed && children)
@@ -271,10 +278,11 @@ public:
 
 	bool Remove(KEntityPtr obj, const KAABBBox& objBounds)
 	{
-		if (!Encapsulates(bounds, objBounds))
+		// TODO Fix the error
+		/*if (!Encapsulates(bounds, objBounds))
 		{
 			return false;
-		}
+		}*/
 		return SubRemove(obj, objBounds);
 	}
 

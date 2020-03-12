@@ -13,7 +13,7 @@ KRotateGizmo::~KRotateGizmo()
 {
 }
 
-#define ALL_SCENE_ENTITY { m_XPlaneEntity, m_YPlaneEntity, m_ZPlaneEntity, m_XRotateEntity, m_YRotateEntity, m_ZRotateEntity }
+#define ALL_SCENE_ENTITY { m_XPlaneEntity, m_YPlaneEntity, m_ZPlaneEntity, m_RotateEntity }
 #define NO_ENTITY {}
 
 KRotateGizmo::RotateOperator KRotateGizmo::GetOperatorType(unsigned int x, unsigned int y, KPlane& plane, glm::vec3& intersectPos)
@@ -64,6 +64,18 @@ KRotateGizmo::RotateOperator KRotateGizmo::GetOperatorType(unsigned int x, unsig
 	return RotateOperator::ROTATE_NONE;
 }
 
+glm::mat3 KRotateGizmo::GetRotate(KEntityPtr entity, const glm::mat3& gizmoRotate)
+{
+	if (entity == m_RotateEntity)
+	{
+		return glm::mat3(1.0f);
+	}
+	else
+	{
+		return gizmoRotate;
+	}
+}
+
 constexpr float RADIUS = 1.0f;
 
 static const glm::vec4 X_PLANE_COLOR = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -71,7 +83,9 @@ static const glm::vec4 Y_PLANE_COLOR = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
 static const glm::vec4 Z_PLANE_COLOR = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
 static const glm::vec4 SELECT_PLANE_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
 static const glm::vec4 ROTATE_COLOR = glm::vec4(1.0f, 1.0f, 0.0f, 0.5f);
+static const glm::vec4 EMTPY_COLOR = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
 bool KRotateGizmo::Init(const KCamera* camera)
 {
@@ -82,9 +96,7 @@ bool KRotateGizmo::Init(const KCamera* camera)
 	m_YPlaneEntity = KECSGlobal::EntityManager.CreateEntity();
 	m_ZPlaneEntity = KECSGlobal::EntityManager.CreateEntity();
 
-	m_XRotateEntity = KECSGlobal::EntityManager.CreateEntity();
-	m_YRotateEntity = KECSGlobal::EntityManager.CreateEntity();
-	m_ZRotateEntity = KECSGlobal::EntityManager.CreateEntity();
+	m_RotateEntity = KECSGlobal::EntityManager.CreateEntity();
 
 	KRenderComponent* renderComponent = nullptr;
 	KDebugComponent* debugComponent = nullptr;
@@ -116,13 +128,9 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	m_ZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
-	m_XRotateEntity->RegisterComponent(CT_RENDER);
-	m_YRotateEntity->RegisterComponent(CT_RENDER);
-	m_ZRotateEntity->RegisterComponent(CT_RENDER);
-
-	m_XRotateEntity->RegisterComponent(CT_TRANSFORM);
-	m_YRotateEntity->RegisterComponent(CT_TRANSFORM);
-	m_ZRotateEntity->RegisterComponent(CT_TRANSFORM);
+	m_RotateEntity->RegisterComponent(CT_RENDER);
+	m_RotateEntity->RegisterComponent(CT_TRANSFORM);
+	m_RotateEntity->RegisterComponent(CT_DEBUG);
 
 	m_AllEntity = ALL_SCENE_ENTITY;
 
@@ -153,42 +161,20 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 		glm::vec3 intersectPos;
 		RotateOperator predictType = GetOperatorType(x, y, plane, intersectPos);
 
-		auto setEntityColor = [](KEntityPtr entity, const glm::vec4& color)
-		{
-			KDebugComponent* debugComponent = nullptr;
-			if (entity && entity->GetComponent(CT_DEBUG, &debugComponent))
-			{
-				debugComponent->SetColor(color);
-			}
-		};
-
-		auto unsetRender = [](KEntityPtr entity)
-		{
-			KRenderComponent* renderComponent = nullptr;
-			if (entity && entity->GetComponent(CT_RENDER, &renderComponent))
-			{
-				renderComponent->UnInit();
-			}
-		};
-
-		setEntityColor(m_XPlaneEntity, X_PLANE_COLOR);
-		setEntityColor(m_YPlaneEntity, Y_PLANE_COLOR);
-		setEntityColor(m_ZPlaneEntity, Z_PLANE_COLOR);
-
-		unsetRender(m_XRotateEntity);
-		unsetRender(m_YRotateEntity);
-		unsetRender(m_ZRotateEntity);
+		SetEntityColor(m_XPlaneEntity, X_PLANE_COLOR);
+		SetEntityColor(m_YPlaneEntity, Y_PLANE_COLOR);
+		SetEntityColor(m_ZPlaneEntity, Z_PLANE_COLOR);
 
 		switch (predictType)
 		{
 		case KRotateGizmo::RotateOperator::ROTATE_X:
-			setEntityColor(m_XPlaneEntity, SELECT_PLANE_COLOR);
+			SetEntityColor(m_XPlaneEntity, SELECT_PLANE_COLOR);
 			break;
 		case KRotateGizmo::RotateOperator::ROTATE_Y:
-			setEntityColor(m_YPlaneEntity, SELECT_PLANE_COLOR);
+			SetEntityColor(m_YPlaneEntity, SELECT_PLANE_COLOR);
 			break;
 		case KRotateGizmo::RotateOperator::ROTATE_Z:
-			setEntityColor(m_ZPlaneEntity, SELECT_PLANE_COLOR);
+			SetEntityColor(m_ZPlaneEntity, SELECT_PLANE_COLOR);
 			break;
 		case KRotateGizmo::RotateOperator::ROTATE_SCREEN:
 			break;
@@ -214,11 +200,22 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				glm::vec3 v3 = glm::cross(v1, v2);
 
 				float cosTheta = glm::dot(v1, v2) / (glm::length(v1) * glm::length(v2));
+				cosTheta = glm::clamp(cosTheta, -1.0f, 1.0f);
+
 				float theta = acosf(cosTheta);
 
 				if (glm::dot(v3, m_PickPlane.GetNormal()) < 0.0f)
 				{
 					theta = -theta;
+				}
+
+				SetEntityColor(m_RotateEntity, ROTATE_COLOR);
+
+				KRenderComponent* renderComponent = nullptr;
+				if (m_RotateEntity && m_RotateEntity->GetComponent(CT_RENDER, &renderComponent))
+				{
+					renderComponent->UnInit();
+					renderComponent->InitAsArc(v1, m_PickPlane.GetNormal(), RADIUS, theta);
 				}
 
 				//KLog::Logger->Log(LL_DEBUG, "%f", theta);
@@ -233,4 +230,5 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 void KRotateGizmo::OnMouseUp(unsigned int x, unsigned int y)
 {
 	m_OperatorType = RotateOperator::ROTATE_NONE;
+	SetEntityColor(m_RotateEntity, EMTPY_COLOR);
 }

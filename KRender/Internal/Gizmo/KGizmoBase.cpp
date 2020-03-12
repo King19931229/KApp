@@ -17,6 +17,15 @@ KGizmoBase::~KGizmoBase()
 	assert(!m_Camera);
 }
 
+void KGizmoBase::SetEntityColor(KEntityPtr entity, const glm::vec4& color)
+{
+	KDebugComponent* debugComponent = nullptr;
+	if (entity && entity->GetComponent(CT_DEBUG, &debugComponent))
+	{
+		debugComponent->SetColor(color);
+	}
+};
+
 bool KGizmoBase::CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin, glm::vec3& dir)
 {
 	if (m_Camera && m_ScreenWidth > 0 && m_ScreenHeight > 0)
@@ -98,6 +107,7 @@ bool KGizmoBase::UnInit()
 
 void KGizmoBase::Enter()
 {
+	Leave();
 	for (KEntityPtr entity : m_AllEntity)
 	{
 		assert(entity);
@@ -152,11 +162,9 @@ void KGizmoBase::Update()
 			{
 				// TODO ÐÞÕýMoveÂß¼­
 				KRenderGlobal::Scene.Remove(entity);
-
 				transform->SetPosition(transformPos);
-				transform->SetRotate(rotate);
+				transform->SetRotate(GetRotate(entity, rotate));
 				transform->SetScale(glm::vec3(m_ScreenScaleFactor));
-
 				KRenderGlobal::Scene.Add(entity);
 			}
 		}

@@ -283,7 +283,7 @@ bool KMesh::InitAsCircle(const glm::mat4& transform, float radius, IKRenderDevic
 	return KMeshUtility::CreateCircle(device, this, transform, radius, frameInFlight);
 }
 
-bool KMesh::InitAsArc(const glm::mat4& transform, float radius, float thera, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::InitAsArc(const glm::vec3& axis, const glm::vec3& normal, float radius, float thera, IKRenderDevice* device, size_t frameInFlight)
 {
 	assert(device);
 	if (!device)
@@ -292,7 +292,7 @@ bool KMesh::InitAsArc(const glm::mat4& transform, float radius, float thera, IKR
 	}
 	UnInit();
 
-	return KMeshUtility::CreateArc(device, this, transform, radius, thera, frameInFlight);
+	return KMeshUtility::CreateArc(device, this, axis, normal, radius, thera, frameInFlight);
 }
 
 bool KMesh::InitAsSphere(const glm::mat4& transform, float radius, IKRenderDevice* device, size_t frameInFlight)

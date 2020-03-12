@@ -18,8 +18,9 @@ public:
 	bool InitAsQuad(const glm::mat4& transform, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV);
 	bool InitAsCone(const glm::mat4& transform, float height, float radius);
 	bool InitAsCylinder(const glm::mat4& transform, float height, float radius);
+	// TODO InitAsCircle(const glm::vec3& axis, const glm::vec3& normal, float radius)
 	bool InitAsCircle(const glm::mat4& transform, float radius);
-	bool InitAsArc(const glm::mat4& transform, float radius, float theta);
+	bool InitAsArc(const glm::vec3& axis, const glm::vec3& normal, float radius, float theta);
 	bool InitAsSphere(const glm::mat4& transform, float radius);
 
 	bool UnInit();

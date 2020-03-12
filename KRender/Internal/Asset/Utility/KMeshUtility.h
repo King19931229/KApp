@@ -27,7 +27,7 @@ public:
 		float radius, size_t frameInFlight);
 	bool CreateSphere(KMesh* pMesh, const glm::mat4& transform,
 		float radius, size_t frameInFlight);
-	bool CreateArc(KMesh* pMesh, const glm::mat4& transform,
+	bool CreateArc(KMesh* pMesh, const glm::vec3& axis, const glm::vec3& normal,
 		float radius, float theta, size_t frameInFlight);
 };
 
@@ -46,5 +46,5 @@ namespace KMeshUtility
 	bool CreateSphere(IKRenderDevice* device, KMesh* pMesh,
 		const glm::mat4& transform, float radius, size_t frameInFlight);
 	bool CreateArc(IKRenderDevice* device, KMesh* pMesh,
-		const glm::mat4& transform, float radius, float theta, size_t frameInFlight);
+		const glm::vec3& normal, const glm::vec3& axis, float radius, float theta, size_t frameInFlight);
 }

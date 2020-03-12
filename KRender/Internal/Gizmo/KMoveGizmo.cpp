@@ -275,41 +275,32 @@ void KMoveGizmo::OnMouseMove(unsigned int x, unsigned int y)
 		glm::vec3 intersectPos;
 		MoveOperator predictType = GetOperatorType(x, y, plane, intersectPos);
 
-		auto setEntityColor = [](KEntityPtr entity, const glm::vec4& color)
-		{
-			KDebugComponent* debugComponent = nullptr;
-			if (entity && entity->GetComponent(CT_DEBUG, &debugComponent))
-			{
-				debugComponent->SetColor(color);
-			}
-		};
-
-		setEntityColor(m_XAxisEntity, X_AXIS_COLOR);
-		setEntityColor(m_YAxisEntity, Y_AXIS_COLOR);
-		setEntityColor(m_ZAxisEntity, Z_AXIS_COLOR);
-		setEntityColor(m_XZPlaneEntity, PLANE_COLOR);
-		setEntityColor(m_XYPlaneEntity, PLANE_COLOR);
-		setEntityColor(m_YZPlaneEntity, PLANE_COLOR);
+		SetEntityColor(m_XAxisEntity, X_AXIS_COLOR);
+		SetEntityColor(m_YAxisEntity, Y_AXIS_COLOR);
+		SetEntityColor(m_ZAxisEntity, Z_AXIS_COLOR);
+		SetEntityColor(m_XZPlaneEntity, PLANE_COLOR);
+		SetEntityColor(m_XYPlaneEntity, PLANE_COLOR);
+		SetEntityColor(m_YZPlaneEntity, PLANE_COLOR);
 
 		switch (predictType)
 		{
 		case KMoveGizmo::MoveOperator::MOVE_X:
-			setEntityColor(m_XAxisEntity, SELECT_AXIS_COLOR);
+			SetEntityColor(m_XAxisEntity, SELECT_AXIS_COLOR);
 			break;
 		case KMoveGizmo::MoveOperator::MOVE_Y:
-			setEntityColor(m_YAxisEntity, SELECT_AXIS_COLOR);
+			SetEntityColor(m_YAxisEntity, SELECT_AXIS_COLOR);
 			break;
 		case KMoveGizmo::MoveOperator::MOVE_Z:
-			setEntityColor(m_ZAxisEntity, SELECT_AXIS_COLOR);
+			SetEntityColor(m_ZAxisEntity, SELECT_AXIS_COLOR);
 			break;
 		case KMoveGizmo::MoveOperator::MOVE_XY:
-			setEntityColor(m_XYPlaneEntity, SELECT_PLANE_COLOR);
+			SetEntityColor(m_XYPlaneEntity, SELECT_PLANE_COLOR);
 			break;
 		case KMoveGizmo::MoveOperator::MOVE_XZ:
-			setEntityColor(m_XZPlaneEntity, SELECT_PLANE_COLOR);
+			SetEntityColor(m_XZPlaneEntity, SELECT_PLANE_COLOR);
 			break;
 		case KMoveGizmo::MoveOperator::MOVE_YZ:
-			setEntityColor(m_YZPlaneEntity, SELECT_PLANE_COLOR);
+			SetEntityColor(m_YZPlaneEntity, SELECT_PLANE_COLOR);
 			break;
 		case KMoveGizmo::MoveOperator::MOVE_NONE:
 			break;
