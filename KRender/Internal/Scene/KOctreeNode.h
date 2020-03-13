@@ -13,6 +13,9 @@ struct KOctreeObject
 	KAABBBox Bounds;
 };
 
+struct KOctreeNode;
+typedef std::unordered_map<KEntityPtr, KOctreeNode*> KEntityToNodeMap;
+
 // A node in a BoundsOctree
 // Copyright 2014 Nition, BSD licence (see LICENCE file). www.momentstudio.co.nz
 struct KOctreeNode
@@ -41,6 +44,8 @@ private:
 	KAABBBox* childBounds = nullptr;
 	// Render component for debugging info
 	KEntityPtr boundEntity = nullptr;
+	// Record the mapping record for the entity to the node
+	KEntityToNodeMap* sharedEntityToNode = nullptr;
 
 	bool HasChildren()
 	{
@@ -76,18 +81,23 @@ private:
 			{
 				const auto& curObj = *it;
 				objects.push_back(curObj);
+
+				(*sharedEntityToNode)[curObj.Obj] = this;
 			}
 		}
 		SAFE_DELETE_ARRAY(children);
 	}
 
-	void SetValues(float baseLengthVal, float minSizeVal, float loosenessVal, const glm::vec3& centerVal)
+	void SetValues(float baseLengthVal, float minSizeVal, float loosenessVal, const glm::vec3& centerVal, KEntityToNodeMap* entityToNode)
 	{
+		assert(entityToNode);
+
 		baseLength = baseLengthVal;
 		minSize = minSizeVal;
 		looseness = loosenessVal;
 		center = centerVal;
 		adjLength = looseness * baseLengthVal;
+		sharedEntityToNode = entityToNode;
 
 		// Create the bounding box.
 		glm::vec3 size = glm::vec3(adjLength, adjLength, adjLength);
@@ -121,14 +131,14 @@ private:
 		float newLength = baseLength / 2.0f;
 		assert(!children);
 		children = new KOctreeNode[8];
-		children[0].SetValues(newLength, minSize, looseness, center + glm::vec3(-quarter, quarter, -quarter));
-		children[1].SetValues(newLength, minSize, looseness, center + glm::vec3(quarter, quarter, -quarter));
-		children[2].SetValues(newLength, minSize, looseness, center + glm::vec3(-quarter, quarter, quarter));
-		children[3].SetValues(newLength, minSize, looseness, center + glm::vec3(quarter, quarter, quarter));
-		children[4].SetValues(newLength, minSize, looseness, center + glm::vec3(-quarter, -quarter, -quarter));
-		children[5].SetValues(newLength, minSize, looseness, center + glm::vec3(quarter, -quarter, -quarter));
-		children[6].SetValues(newLength, minSize, looseness, center + glm::vec3(-quarter, -quarter, quarter));
-		children[7].SetValues(newLength, minSize, looseness, center + glm::vec3(quarter, -quarter, quarter));
+		children[0].SetValues(newLength, minSize, looseness, center + glm::vec3(-quarter, quarter, -quarter), sharedEntityToNode);
+		children[1].SetValues(newLength, minSize, looseness, center + glm::vec3(quarter, quarter, -quarter), sharedEntityToNode);
+		children[2].SetValues(newLength, minSize, looseness, center + glm::vec3(-quarter, quarter, quarter), sharedEntityToNode);
+		children[3].SetValues(newLength, minSize, looseness, center + glm::vec3(quarter, quarter, quarter), sharedEntityToNode);
+		children[4].SetValues(newLength, minSize, looseness, center + glm::vec3(-quarter, -quarter, -quarter), sharedEntityToNode);
+		children[5].SetValues(newLength, minSize, looseness, center + glm::vec3(quarter, -quarter, -quarter), sharedEntityToNode);
+		children[6].SetValues(newLength, minSize, looseness, center + glm::vec3(-quarter, -quarter, quarter), sharedEntityToNode);
+		children[7].SetValues(newLength, minSize, looseness, center + glm::vec3(quarter, -quarter, quarter), sharedEntityToNode);
 	}
 
 	inline int BestFitChild(const glm::vec3& objBoundsCenter)
@@ -163,6 +173,7 @@ private:
 			{
 				KOctreeObject newObject = { obj, objBounds };
 				objects.push_back(std::move(newObject));
+				(*sharedEntityToNode)[obj] = this;
 				return;
 			}
 
@@ -198,46 +209,8 @@ private:
 		{
 			KOctreeObject newObj = { obj, objBounds };
 			objects.push_back(std::move(newObj));
+			(*sharedEntityToNode)[obj] = this;
 		}
-	}
-
-	bool SubRemove(KEntityPtr obj, const KAABBBox& objBounds)
-	{
-		bool removed = false;
-
-		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
-		{
-			const auto& existingObj = *it;
-			if (existingObj.Obj == obj)
-			{
-				objects.erase(it);
-				removed = true;
-				break;
-			}
-		}
-
-		if (!removed && children)
-		{
-			//TODO Fix the error
-			for (auto i = 0; i < 8; ++i)
-			{
-				removed = children[i].SubRemove(obj, objBounds);
-				if (removed)
-					break;
-			}
-			//int bestFitChild = BestFitChild(objBounds.GetCenter());
-			//removed = children[bestFitChild].SubRemove(obj, objBounds);
-		}
-
-		if (removed && children)
-		{
-			if (ShouldMerge())
-			{
-				Merge();
-			}
-		}
-
-		return removed;
 	}
 
 	// ÓÃÓÚ new []
@@ -248,9 +221,9 @@ private:
 	KOctreeNode(const KOctreeNode& rhs) = delete;
 	KOctreeNode& operator=(const KOctreeNode& rhs) = delete;
 public:
-	KOctreeNode(float baseLengthVal, float minSizeVal, float loosenessVal, const glm::vec3& centerVal)
+	KOctreeNode(float baseLengthVal, float minSizeVal, float loosenessVal, const glm::vec3& centerVal, KEntityToNodeMap* entityToNode)
 	{
-		SetValues(baseLengthVal, minSizeVal, loosenessVal, centerVal);
+		SetValues(baseLengthVal, minSizeVal, loosenessVal, centerVal, entityToNode);
 	}
 
 	~KOctreeNode()
@@ -276,14 +249,30 @@ public:
 		return true;
 	}
 
-	bool Remove(KEntityPtr obj, const KAABBBox& objBounds)
+	bool Remove(KEntityPtr obj)
 	{
-		// TODO Fix the error
-		/*if (!Encapsulates(bounds, objBounds))
+		bool removed = false;
+
+		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
 		{
-			return false;
-		}*/
-		return SubRemove(obj, objBounds);
+			const auto& existingObj = *it;
+			if (existingObj.Obj == obj)
+			{
+				objects.erase(it);
+				removed = true;
+				break;
+			}
+		}
+
+		if (removed && children)
+		{
+			if (ShouldMerge())
+			{
+				Merge();
+			}
+		}
+
+		return removed;
 	}
 
 	bool IsColliding(const KAABBBox& checkBounds)

@@ -16,6 +16,8 @@ protected:
 	// Minimum side length that a node can be - essentially an alternative to having a max depth
 	float m_MinSize;
 
+	KEntityToNodeMap* m_EntityToNode;
+
 	bool GetEntityBound(KEntityPtr entity, KAABBBox& bound);
 public:
 	KOctreeSceneManager();

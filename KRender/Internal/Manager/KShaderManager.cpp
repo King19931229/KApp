@@ -53,6 +53,7 @@ bool KShaderManager::Acquire(const char* path, IKShaderPtr& shader, bool async)
 		ShaderUsingInfo& info = it->second;
 		info.useCount += 1;
 		shader = info.shader;
+		assert(strcmp(shader->GetPath(), path) == 0);
 		return true;
 	}
 
@@ -61,6 +62,7 @@ bool KShaderManager::Acquire(const char* path, IKShaderPtr& shader, bool async)
 	{
 		ShaderUsingInfo info = { 1, shader };
 		m_Shaders[path] = info;
+		assert(strcmp(shader->GetPath(), path) == 0);
 		return true;
 	}
 

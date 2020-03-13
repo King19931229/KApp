@@ -6,13 +6,15 @@ KOctreeSceneManager::KOctreeSceneManager()
 	: m_Root(nullptr),
 	m_Looseness(1.0f),
 	m_InitialSize(0.0f),
-	m_MinSize(0.0f)
+	m_MinSize(0.0f),
+	m_EntityToNode(nullptr)
 {
 }
 
 KOctreeSceneManager::~KOctreeSceneManager()
 {
 	assert(!m_Root);
+	assert(!m_EntityToNode);
 }
 
 bool KOctreeSceneManager::Init(float initialWorldSize, const glm::vec3& initialWorldPos, float minNodeSize, float loosenessVal)
@@ -22,14 +24,17 @@ bool KOctreeSceneManager::Init(float initialWorldSize, const glm::vec3& initialW
 	m_InitialSize = initialWorldSize;
 	m_MinSize = minNodeSize;
 	m_Looseness = glm::clamp(loosenessVal, 1.0f, 2.0f);
+	m_EntityToNode = new KEntityToNodeMap();
 
-	m_Root = new KOctreeNode(m_InitialSize, m_MinSize, m_Looseness, initialWorldPos);
+	m_Root = new KOctreeNode(m_InitialSize, m_MinSize, m_Looseness, initialWorldPos, m_EntityToNode);
+
 	return true;
 }
 
 bool KOctreeSceneManager::UnInit()
 {
 	SAFE_DELETE(m_Root);
+	SAFE_DELETE(m_EntityToNode);
 	return true;
 }
 
@@ -80,10 +85,16 @@ bool KOctreeSceneManager::Add(KEntityPtr entity)
 
 bool KOctreeSceneManager::Remove(KEntityPtr entity)
 {
-	KAABBBox bound;
-	if (m_Root && GetEntityBound(entity, bound))
+	if (m_Root && m_EntityToNode)
 	{
-		return m_Root->Remove(entity, bound);
+		auto it = m_EntityToNode->find(entity);
+		if (it != m_EntityToNode->end())
+		{
+			KOctreeNode* node = it->second;
+			bool success = node->Remove(entity);
+			assert(success);
+			return success;
+		}
 	}
 	return false;
 }

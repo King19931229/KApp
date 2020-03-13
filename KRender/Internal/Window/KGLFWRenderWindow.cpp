@@ -11,6 +11,8 @@
 KGLFWRenderWindow::KGLFWRenderWindow()
 	: m_device(nullptr)
 {
+	m_LastMovePos[0] = -1.0f;
+	m_LastMovePos[1] = -1.0f;
 #ifndef __ANDROID__
 	m_window = nullptr;
 #if defined(_WIN32)
@@ -184,11 +186,19 @@ void KGLFWRenderWindow::OnMouseMove()
 	{
 		double xpos = 0, ypos = 0;
 		glfwGetCursorPos(m_window, &xpos, &ypos);
-		for (auto it = m_MouseCallbacks.begin(), itEnd = m_MouseCallbacks.end();
-			it != itEnd; ++it)
+
+		constexpr float exp = 0.001f;
+		if (fabs(xpos - m_LastMovePos[0]) > exp || fabs(ypos - m_LastMovePos[1]) > exp)
 		{
-			KMouseCallbackType& callback = (*(*it));
-			callback(INPUT_MOUSE_BUTTON_NONE, INPUT_ACTION_REPEAT, (float)xpos, (float)ypos);
+			for (auto it = m_MouseCallbacks.begin(), itEnd = m_MouseCallbacks.end();
+				it != itEnd; ++it)
+			{
+				KMouseCallbackType& callback = (*(*it));
+				callback(INPUT_MOUSE_BUTTON_NONE, INPUT_ACTION_REPEAT, (float)xpos, (float)ypos);
+			}
+
+			m_LastMovePos[0] = xpos;
+			m_LastMovePos[1] = ypos;
 		}
 	}
 }
@@ -216,6 +226,9 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 #ifdef	_WIN32
 			m_HWND = glfwGetWin32Window(m_window);
 #endif
+			m_LastMovePos[0] = -1.0f;
+			m_LastMovePos[1] = -1.0f;
+
 			return true;
 		}
 	}

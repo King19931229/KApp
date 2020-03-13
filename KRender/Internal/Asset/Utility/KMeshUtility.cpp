@@ -128,6 +128,7 @@ bool KMeshUtilityImpl::CreateBox(KMesh* pMesh, const glm::vec3& halfExtend, size
 		indexData.indexCount = ARRAY_SIZE(indices);
 
 		auto& subMeshes = pMesh->m_SubMeshes;
+		assert(subMeshes.empty());
 
 		KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
 		newSubMesh->InitDebug(DEBUG_PRIMITIVE_LINE, &vertexData, &indexData, frameInFlight);
@@ -197,6 +198,7 @@ bool KMeshUtilityImpl::CreateQuad(KMesh* pMesh, const glm::mat4& transform, floa
 		indexData.indexCount = ARRAY_SIZE(indices);
 
 		auto& subMeshes = pMesh->m_SubMeshes;
+		assert(subMeshes.empty());
 
 		KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
 		newSubMesh->InitDebug(DEBUG_PRIMITIVE_TRIANGLE, &vertexData, &indexData, frameInFlight);
@@ -254,6 +256,7 @@ bool KMeshUtilityImpl::CreateCone(KMesh* pMesh, const glm::mat4& transform, floa
 	vertexBuffer->InitDevice(false);
 
 	auto& subMeshes = pMesh->m_SubMeshes;
+	assert(subMeshes.empty());
 
 	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
 	newSubMesh->InitDebug(DEBUG_PRIMITIVE_TRIANGLE, &vertexData, nullptr, frameInFlight);
@@ -313,6 +316,7 @@ bool KMeshUtilityImpl::CreateCylinder(KMesh* pMesh, const glm::mat4& transform, 
 	vertexBuffer->InitDevice(false);
 
 	auto& subMeshes = pMesh->m_SubMeshes;
+	assert(subMeshes.empty());
 
 	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
 	newSubMesh->InitDebug(DEBUG_PRIMITIVE_TRIANGLE, &vertexData, nullptr, frameInFlight);
@@ -367,6 +371,7 @@ bool KMeshUtilityImpl::CreateCircle(KMesh* pMesh, const glm::mat4& transform, fl
 	vertexBuffer->InitDevice(false);
 
 	auto& subMeshes = pMesh->m_SubMeshes;
+	assert(subMeshes.empty());
 
 	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
 	newSubMesh->InitDebug(DEBUG_PRIMITIVE_LINE, &vertexData, nullptr, frameInFlight);
@@ -450,6 +455,7 @@ bool KMeshUtilityImpl::CreateSphere(KMesh* pMesh, const glm::mat4& transform, fl
 	vertexBuffer->InitDevice(false);
 
 	auto& subMeshes = pMesh->m_SubMeshes;
+	assert(subMeshes.empty());
 
 	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
 	newSubMesh->InitDebug(DEBUG_PRIMITIVE_TRIANGLE, &vertexData, nullptr, frameInFlight);
@@ -510,6 +516,7 @@ bool KMeshUtilityImpl::CreateArc(KMesh* pMesh, const glm::vec3& axis, const glm:
 	vertexBuffer->InitDevice(false);
 
 	auto& subMeshes = pMesh->m_SubMeshes;
+	assert(subMeshes.empty());
 
 	KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
 	newSubMesh->InitDebug(DEBUG_PRIMITIVE_TRIANGLE, &vertexData, nullptr, frameInFlight);

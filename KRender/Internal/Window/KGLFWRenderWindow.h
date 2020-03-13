@@ -14,6 +14,7 @@ class KGLFWRenderWindow : IKRenderWindow
 	void* m_HWND;
 #endif
 	GLFWwindow* m_window;
+	double m_LastMovePos[2];
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
 	std::vector<KScrollCallbackType*> m_ScrollCallbacks;

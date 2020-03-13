@@ -177,7 +177,8 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_MouseCtrlCamera(true),
 	m_Texture(nullptr),
 	m_Sampler(nullptr),
-	m_FrameInFlight(2)
+	m_FrameInFlight(2),
+	m_MoveGizmo(nullptr)
 {
 	m_MaxRenderThreadNum = std::thread::hardware_concurrency();
 	ZERO_ARRAY_MEMORY(m_Move);
@@ -1048,7 +1049,10 @@ bool KVulkanRenderDevice::AddWindowCallback()
 		size_t width; size_t height;
 		m_pWindow->GetSize(width, height);
 
-		m_MoveGizmo->SetScreenSize((unsigned int)width, (unsigned int)height);
+		if (m_MoveGizmo)
+		{
+			m_MoveGizmo->SetScreenSize((unsigned int)width, (unsigned int)height);
+		}
 
 		if(action == INPUT_ACTION_PRESS)
 		{
@@ -1057,17 +1061,26 @@ bool KVulkanRenderDevice::AddWindowCallback()
 
 			m_MouseDown[mouse] = true;
 			m_UIOverlay->SetMouseDown(mouse, true);
-			m_MoveGizmo->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
+			if (m_MoveGizmo)
+			{
+				m_MoveGizmo->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
+			}
 		}
 		if(action == INPUT_ACTION_RELEASE)
 		{
 			m_MouseDown[mouse] = false;
 			m_UIOverlay->SetMouseDown(mouse, false);
-			m_MoveGizmo->OnMouseUp((unsigned int)xPos, (unsigned int)yPos);
+			if (m_MoveGizmo)
+			{
+				m_MoveGizmo->OnMouseUp((unsigned int)xPos, (unsigned int)yPos);
+			}
 		}
 		if(action == INPUT_ACTION_REPEAT)
 		{
-			m_MoveGizmo->OnMouseMove((unsigned int)xPos, (unsigned int)yPos);
+			if (m_MoveGizmo)
+			{
+				m_MoveGizmo->OnMouseMove((unsigned int)xPos, (unsigned int)yPos);
+			}
 
 			float deltaX = xPos - m_MousePos[0];
 			float deltaY = yPos - m_MousePos[1];
@@ -2195,7 +2208,11 @@ bool KVulkanRenderDevice::Present()
 {
 	// TODO
 	KRenderGlobal::TaskExecutor.ProcessSyncTask();
-	m_MoveGizmo->Update();
+
+	if (m_MoveGizmo)
+	{
+		m_MoveGizmo->Update();
+	}
 
 	VkResult vkResult;
 
