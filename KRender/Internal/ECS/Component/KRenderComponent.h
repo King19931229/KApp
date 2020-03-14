@@ -1,7 +1,7 @@
 #pragma once
 #include "KComponentBase.h"
 #include "Internal/Asset/KMesh.h"
-#include "Internal/Asset/Utility/KMeshUnilityInfo.h"
+#include "Internal/Asset/Utility/KMeshUtilityInfo.h"
 
 class KRenderComponent : public KComponentBase
 {

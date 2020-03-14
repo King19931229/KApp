@@ -4,7 +4,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KSubMesh.h"
-#include "Utility/KMeshUnilityInfo.h"
+#include "Utility/KMeshUtilityInfo.h"
 
 class KMesh
 {
