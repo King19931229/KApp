@@ -259,6 +259,7 @@ public:
 			if (existingObj.Obj == obj)
 			{
 				objects.erase(it);
+				(*sharedEntityToNode).erase(obj);
 				removed = true;
 				break;
 			}
