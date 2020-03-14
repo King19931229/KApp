@@ -103,7 +103,8 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	// XRotate
 	m_XPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsCircle(glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)), RADIUS);
+	renderComponent->InitAsUnility(KMeshUtility::CreateCircle({
+		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)), RADIUS }));
 
 	m_XPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(X_PLANE_COLOR);
@@ -112,7 +113,7 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	// YRotate
 	m_YPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsCircle(glm::mat4(1.0f), RADIUS);
+	renderComponent->InitAsUnility(KMeshUtility::CreateCircle({ glm::mat4(1.0f), RADIUS }));
 
 	m_YPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(Y_PLANE_COLOR);
@@ -121,7 +122,8 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	// ZRotate
 	m_ZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsCircle(glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)), RADIUS);
+	renderComponent->InitAsUnility(KMeshUtility::CreateCircle({
+		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)), RADIUS }));
 
 	m_ZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(Z_PLANE_COLOR);
@@ -215,7 +217,7 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				if (m_RotateEntity && m_RotateEntity->GetComponent(CT_RENDER, &renderComponent))
 				{
 					renderComponent->UnInit();
-					renderComponent->InitAsArc(v1, m_PickPlane.GetNormal(), RADIUS, theta);
+					renderComponent->InitAsUnility(KMeshUtility::CreateArc({ v1, m_PickPlane.GetNormal(), RADIUS, theta }));
 				}
 
 				//KLog::Logger->Log(LL_DEBUG, "%f", theta);

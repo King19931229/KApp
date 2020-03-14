@@ -4,6 +4,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KSubMesh.h"
+#include "Utility/KMeshUnilityInfo.h"
 
 class KMesh
 {
@@ -26,16 +27,7 @@ public:
 	bool SaveAsFile(const char* szPath);
 	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
 	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
-
-
-	bool InitAsBox(const glm::vec3& halfExtent, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsQuad(const glm::mat4& transform, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsCone(const glm::mat4& transform, float height, float radius, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsCylinder(const glm::mat4& transform, float height, float radius, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsCircle(const glm::mat4& transform, float radius, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsArc(const glm::vec3& axis, const glm::vec3& normal, float radius, float thera, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsSphere(const glm::mat4& transform, float radius, IKRenderDevice* device, size_t frameInFlight);
-
+	bool InitAsUnility(const KMeshUnilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
 	bool UnInit();
 
 	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func);

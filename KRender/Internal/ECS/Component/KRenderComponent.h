@@ -1,6 +1,7 @@
 #pragma once
 #include "KComponentBase.h"
 #include "Internal/Asset/KMesh.h"
+#include "Internal/Asset/Utility/KMeshUnilityInfo.h"
 
 class KRenderComponent : public KComponentBase
 {
@@ -12,16 +13,7 @@ public:
 
 	bool Init(const char* path);
 	bool InitFromAsset(const char* path);
-
-	bool InitAsBox(const glm::vec3& halfExtent);
-
-	bool InitAsQuad(const glm::mat4& transform, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV);
-	bool InitAsCone(const glm::mat4& transform, float height, float radius);
-	bool InitAsCylinder(const glm::mat4& transform, float height, float radius);
-	// TODO InitAsCircle(const glm::vec3& axis, const glm::vec3& normal, float radius)
-	bool InitAsCircle(const glm::mat4& transform, float radius);
-	bool InitAsArc(const glm::vec3& axis, const glm::vec3& normal, float radius, float theta);
-	bool InitAsSphere(const glm::mat4& transform, float radius);
+	bool InitAsUnility(const KMeshUnilityInfoPtr& info);
 
 	bool UnInit();
 

@@ -291,9 +291,6 @@
     <ClInclude Include="Internal\Scene\KSceneManagerBase.h">
       <Filter>Internal\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Asset\Utility\KMeshUtility.h">
-      <Filter>Internal\Asset\Utility</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Scene\KOctreeNode.h">
       <Filter>Internal\Scene</Filter>
     </ClInclude>
@@ -311,6 +308,12 @@
     </ClInclude>
     <ClInclude Include="Internal\Gizmo\KRotateGizmo.h">
       <Filter>Internal\Gizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Asset\Utility\KMeshUnilityInfo.h">
+      <Filter>Internal\Asset\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Asset\Utility\KMeshUtilityImpl.h">
+      <Filter>Internal\Asset\Utility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -476,9 +479,6 @@
     <ClCompile Include="Internal\Scene\KScene.cpp">
       <Filter>Internal\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\Asset\Utility\KMeshUtility.cpp">
-      <Filter>Internal\Asset\Utility</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\Gizmo\KMoveGizmo.cpp">
       <Filter>Internal\Gizmo</Filter>
     </ClCompile>
@@ -490,6 +490,12 @@
     </ClCompile>
     <ClCompile Include="Internal\Gizmo\KRotateGizmo.cpp">
       <Filter>Internal\Gizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\Utility\KMeshUnilityInfo.cpp">
+      <Filter>Internal\Asset\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\Utility\KMeshUtilityImpl.cpp">
+      <Filter>Internal\Asset\Utility</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

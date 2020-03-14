@@ -32,14 +32,6 @@ public:
 
 	bool Acquire(const char* path, KMeshPtr& ptr);
 	bool AcquireFromAsset(const char* path, KMeshPtr& ptr);
+	bool AcquireAsUnility(const KMeshUnilityInfoPtr& info, KMeshPtr& ptr);
 	bool Release(KMeshPtr& ptr);
-
-	// utility
-	bool CreateBox(const glm::vec3& halfExtent, KMeshPtr& ptr);
-	bool CreateQuad(const glm::mat4& transform, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, KMeshPtr& ptr);
-	bool CreateCone(const glm::mat4& transform, float height, float radius, KMeshPtr& ptr);
-	bool CreateCylinder(const glm::mat4& transform, float height, float radius, KMeshPtr& ptr);
-	bool CreateCircle(const glm::mat4& transform, float radius, KMeshPtr& ptr);
-	bool CreateArc(const glm::vec3& axis, const glm::vec3& normal, float radius, float theta, KMeshPtr& ptr);
-	bool CreateSphere(const glm::mat4& transform, float radius, KMeshPtr& ptr);
 };

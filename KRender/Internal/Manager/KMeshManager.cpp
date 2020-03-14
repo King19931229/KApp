@@ -1,5 +1,5 @@
 #include "KMeshManager.h"
-#include "Internal/Asset/Utility/KMeshUtility.h"
+#include "Internal/Asset/Utility/KMeshUtilityImpl.h"
 
 KMeshManager::KMeshManager()
 	: m_Device(nullptr),
@@ -135,82 +135,10 @@ bool KMeshManager::Release(KMeshPtr& ptr)
 	return false;
 }
 
-bool KMeshManager::CreateBox(const glm::vec3& halfExtent, KMeshPtr& ptr)
+bool KMeshManager::AcquireAsUnility(const KMeshUnilityInfoPtr& info, KMeshPtr& ptr)
 {
 	ptr = KMeshPtr(new KMesh());
-	if (ptr->InitAsBox(halfExtent, m_Device, m_FrameInFlight))
-	{
-		m_SpecialMesh.insert(ptr);
-		return true;
-	}
-	ptr = nullptr;
-	return false;
-}
-
-bool KMeshManager::CreateQuad(const glm::mat4& transform, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, KMeshPtr& ptr)
-{
-	ptr = KMeshPtr(new KMesh());
-	if (ptr->InitAsQuad(transform, lengthU, lengthV, axisU, axisV, m_Device, m_FrameInFlight))
-	{
-		m_SpecialMesh.insert(ptr);
-		return true;
-	}
-	ptr = nullptr;
-	return false;
-}
-
-bool KMeshManager::CreateCone(const glm::mat4& transform, float height, float radius, KMeshPtr& ptr)
-{
-	ptr = KMeshPtr(new KMesh());
-	if (ptr->InitAsCone(transform, height, radius, m_Device, m_FrameInFlight))
-	{
-		m_SpecialMesh.insert(ptr);
-		return true;
-	}
-	ptr = nullptr;
-	return false;
-}
-
-bool KMeshManager::CreateCylinder(const glm::mat4& transform, float height, float radius, KMeshPtr& ptr)
-{
-	ptr = KMeshPtr(new KMesh());
-	if (ptr->InitAsCylinder(transform, height, radius, m_Device, m_FrameInFlight))
-	{
-		m_SpecialMesh.insert(ptr);
-		return true;
-	}
-	ptr = nullptr;
-	return false;
-}
-
-bool KMeshManager::CreateCircle(const glm::mat4& transform, float radius, KMeshPtr& ptr)
-{
-	ptr = KMeshPtr(new KMesh());
-	if (ptr->InitAsCircle(transform, radius, m_Device, m_FrameInFlight))
-	{
-		m_SpecialMesh.insert(ptr);
-		return true;
-	}
-	ptr = nullptr;
-	return false;
-}
-
-bool KMeshManager::CreateArc(const glm::vec3& axis, const glm::vec3& normal, float radius, float theta, KMeshPtr& ptr)
-{
-	ptr = KMeshPtr(new KMesh());
-	if (ptr->InitAsArc(axis, normal, radius, theta, m_Device, m_FrameInFlight))
-	{
-		m_SpecialMesh.insert(ptr);
-		return true;
-	}
-	ptr = nullptr;
-	return false;
-}
-
-bool KMeshManager::CreateSphere(const glm::mat4& transform, float radius, KMeshPtr& ptr)
-{
-	ptr = KMeshPtr(new KMesh());
-	if (ptr->InitAsSphere(transform, radius, m_Device, m_FrameInFlight))
+	if (ptr->InitAsUnility(info, m_Device, m_FrameInFlight))
 	{
 		m_SpecialMesh.insert(ptr);
 		return true;

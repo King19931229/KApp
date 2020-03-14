@@ -366,7 +366,8 @@ public:
 			KComponentBase* component = nullptr;
 			if (boundEntity->RegisterComponent(CT_RENDER, &component))
 			{
-				((KRenderComponent*)component)->InitAsBox(bounds.GetExtend() * 0.5f);
+				((KRenderComponent*)component)->InitAsUnility(
+					KMeshUtility::CreateBox({ bounds.GetExtend() * 0.5f }));
 			}
 
 			if (boundEntity->RegisterComponent(CT_TRANSFORM, &component))

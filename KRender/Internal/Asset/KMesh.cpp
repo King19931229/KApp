@@ -1,6 +1,6 @@
 #include "KMesh.h"
 #include "Serializer/KMeshSerializer.h"
-#include "Utility/KMeshUtility.h"
+#include "Utility/KMeshUtilityImpl.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKBuffer.h"
 #include "Internal/KVertexDefinition.h"
@@ -222,7 +222,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 	return false;
 }
 
-bool KMesh::InitAsBox(const glm::vec3& halfExtent, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::InitAsUnility(const KMeshUnilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight)
 {
 	assert(device);
 	if (!device)
@@ -231,80 +231,7 @@ bool KMesh::InitAsBox(const glm::vec3& halfExtent, IKRenderDevice* device, size_
 	}
 	UnInit();
 
-	return KMeshUtility::CreateBox(device, this, halfExtent, frameInFlight);
-}
-
-
-bool KMesh::InitAsQuad(const glm::mat4& transform, float lengthU, float lengthV, const glm::vec3& axisU, const glm::vec3& axisV, IKRenderDevice* device, size_t frameInFlight)
-{
-	assert(device);
-	if (!device)
-	{
-		return false;
-	}
-	UnInit();
-
-	return KMeshUtility::CreateQuad(device, this, transform, lengthU, lengthV, axisU, axisV, frameInFlight);
-}
-
-bool KMesh::InitAsCone(const glm::mat4& transform, float height, float radius, IKRenderDevice* device, size_t frameInFlight)
-{
-	assert(device);
-	if (!device)
-	{
-		return false;
-	}
-	UnInit();
-
-	return KMeshUtility::CreateCone(device, this, transform, height, radius, frameInFlight);
-}
-
-bool KMesh::InitAsCylinder(const glm::mat4& transform, float height, float radius, IKRenderDevice* device, size_t frameInFlight)
-{
-	assert(device);
-	if (!device)
-	{
-		return false;
-	}
-	UnInit();
-
-	return KMeshUtility::CreateCylinder(device, this, transform, height, radius, frameInFlight);
-}
-
-bool KMesh::InitAsCircle(const glm::mat4& transform, float radius, IKRenderDevice* device, size_t frameInFlight)
-{
-	assert(device);
-	if (!device)
-	{
-		return false;
-	}
-	UnInit();
-
-	return KMeshUtility::CreateCircle(device, this, transform, radius, frameInFlight);
-}
-
-bool KMesh::InitAsArc(const glm::vec3& axis, const glm::vec3& normal, float radius, float thera, IKRenderDevice* device, size_t frameInFlight)
-{
-	assert(device);
-	if (!device)
-	{
-		return false;
-	}
-	UnInit();
-
-	return KMeshUtility::CreateArc(device, this, axis, normal, radius, thera, frameInFlight);
-}
-
-bool KMesh::InitAsSphere(const glm::mat4& transform, float radius, IKRenderDevice* device, size_t frameInFlight)
-{
-	assert(device);
-	if (!device)
-	{
-		return false;
-	}
-	UnInit();
-
-	return KMeshUtility::CreateSphere(device, this, transform, radius, frameInFlight);
+	return KMeshUtility::CreateUtility(device, this, info, frameInFlight);
 }
 
 bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func)
