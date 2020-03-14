@@ -1125,7 +1125,7 @@ bool KVulkanRenderDevice::AddWindowCallback()
 	{
 		if(action == INPUT_ACTION_REPEAT)
 		{
-			if (touchPositions.size() >= m_LastTouchCount && touchPositions.size() <= 2 && touchPositions.size() > 0)
+			if (touchPositions.size() >= (size_t)m_LastTouchCount && touchPositions.size() <= 2 && touchPositions.size() > 0)
 			{
 				m_TouchAction = (int) touchPositions.size();
 

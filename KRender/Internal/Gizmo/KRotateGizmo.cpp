@@ -103,7 +103,7 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	// XRotate
 	m_XPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(KMeshUtility::CreateCircle({
+	renderComponent->InitUtility(KMeshUtility::CreateCircle({
 		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)), RADIUS }));
 
 	m_XPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
@@ -113,7 +113,7 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	// YRotate
 	m_YPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(KMeshUtility::CreateCircle({ glm::mat4(1.0f), RADIUS }));
+	renderComponent->InitUtility(KMeshUtility::CreateCircle({ glm::mat4(1.0f), RADIUS }));
 
 	m_YPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(Y_PLANE_COLOR);
@@ -122,7 +122,7 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	// ZRotate
 	m_ZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(KMeshUtility::CreateCircle({
+	renderComponent->InitUtility(KMeshUtility::CreateCircle({
 		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)), RADIUS }));
 
 	m_ZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
@@ -130,7 +130,9 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	m_ZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
-	m_RotateEntity->RegisterComponent(CT_RENDER);
+	m_RotateEntity->RegisterComponent(CT_RENDER, &renderComponent);
+	renderComponent->InitUtility(KMeshUtility::CreateArc({ glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), RADIUS, 0.0f }));
+
 	m_RotateEntity->RegisterComponent(CT_TRANSFORM);
 	m_RotateEntity->RegisterComponent(CT_DEBUG);
 
@@ -216,8 +218,7 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				KRenderComponent* renderComponent = nullptr;
 				if (m_RotateEntity && m_RotateEntity->GetComponent(CT_RENDER, &renderComponent))
 				{
-					renderComponent->UnInit();
-					renderComponent->InitAsUnility(KMeshUtility::CreateArc({ v1, m_PickPlane.GetNormal(), RADIUS, theta }));
+					renderComponent->UpdateUtility(KMeshUtility::CreateArc({ v1, m_PickPlane.GetNormal(), RADIUS, theta }));
 				}
 
 				//KLog::Logger->Log(LL_DEBUG, "%f", theta);

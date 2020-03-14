@@ -61,7 +61,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// Origin
 	m_OriginEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(KMeshUtility::CreateSphere({ glm::mat4(1.0f), ORIGIN_RADIUS }));
+	renderComponent->InitUtility(KMeshUtility::CreateSphere({ glm::mat4(1.0f), ORIGIN_RADIUS }));
 
 	m_OriginEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -70,7 +70,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// XAxis
 	m_XAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(KMeshUtility::CreateCylinder({ 
+	renderComponent->InitUtility(KMeshUtility::CreateCylinder({ 
 		glm::rotate(glm::mat4(1.0f), -glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)), AXIS_LENGTH, AXIS_RADIUS }));
 
 	m_XAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
@@ -80,7 +80,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// YAxis
 	m_YAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(KMeshUtility::CreateCylinder({ glm::mat4(1.0f), AXIS_LENGTH, AXIS_RADIUS }));
+	renderComponent->InitUtility(KMeshUtility::CreateCylinder({ glm::mat4(1.0f), AXIS_LENGTH, AXIS_RADIUS }));
 
 	m_YAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
 	debugComponent->SetColor(Y_AXIS_COLOR);
@@ -89,7 +89,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// ZAxis
 	m_ZAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(KMeshUtility::CreateCylinder({
+	renderComponent->InitUtility(KMeshUtility::CreateCylinder({
 		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)), AXIS_LENGTH, AXIS_RADIUS }));
 
 	m_ZAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
@@ -99,7 +99,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// XArrow
 	m_XArrowEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(
+	renderComponent->InitUtility(
 		KMeshUtility::CreateCone({
 		glm::translate(glm::mat4(1.0f), glm::vec3(AXIS_LENGTH, 0.0f, 0.0f)) *
 		glm::rotate(glm::mat4(1.0f), -glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)),
@@ -113,7 +113,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// YArrow
 	m_YArrowEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(
+	renderComponent->InitUtility(
 		KMeshUtility::CreateCone({
 		glm::translate(glm::mat4(1.0f), glm::vec3(0, AXIS_LENGTH, 0.0f)),
 		ARROW_LENGTH,
@@ -126,7 +126,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// ZArrow
 	m_ZArrowEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(
+	renderComponent->InitUtility(
 		KMeshUtility::CreateCone({
 		glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0f, AXIS_LENGTH)) *
 		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)),
@@ -140,7 +140,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// XZPlane
 	m_XZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(
+	renderComponent->InitUtility(
 		KMeshUtility::CreateQuad({
 		glm::mat4(1.0f), PLANE_SIZE, PLANE_SIZE, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) }));
 
@@ -151,7 +151,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// YZPlane
 	m_YZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(
+	renderComponent->InitUtility(
 		KMeshUtility::CreateQuad({ glm::mat4(1.0f), PLANE_SIZE, PLANE_SIZE, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) }));
 
 	m_YZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
@@ -161,7 +161,7 @@ bool KMoveGizmo::Init(const KCamera* camera)
 
 	// YZPlane
 	m_XYPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUnility(
+	renderComponent->InitUtility(
 		KMeshUtility::CreateQuad({ glm::mat4(1.0f), PLANE_SIZE, PLANE_SIZE, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f) }));
 
 	m_XYPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);

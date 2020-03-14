@@ -27,8 +27,10 @@ public:
 	bool SaveAsFile(const char* szPath);
 	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
 	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
-	bool InitAsUnility(const KMeshUnilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
+	bool InitUtility(const KMeshUnilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
 	bool UnInit();
+
+	bool UpdateUnility(const KMeshUnilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
 
 	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func);
 };

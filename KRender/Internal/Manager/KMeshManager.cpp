@@ -135,14 +135,24 @@ bool KMeshManager::Release(KMeshPtr& ptr)
 	return false;
 }
 
-bool KMeshManager::AcquireAsUnility(const KMeshUnilityInfoPtr& info, KMeshPtr& ptr)
+bool KMeshManager::AcquireAsUtility(const KMeshUnilityInfoPtr& info, KMeshPtr& ptr)
 {
 	ptr = KMeshPtr(new KMesh());
-	if (ptr->InitAsUnility(info, m_Device, m_FrameInFlight))
+	if (ptr->InitUtility(info, m_Device, m_FrameInFlight))
 	{
 		m_SpecialMesh.insert(ptr);
 		return true;
 	}
 	ptr = nullptr;
+	return false;
+}
+
+bool KMeshManager::UpdateUtility(const KMeshUnilityInfoPtr& info, KMeshPtr& ptr)
+{
+	if (ptr)
+	{
+		m_Device->Wait();
+		return ptr->UpdateUnility(info, m_Device, m_FrameInFlight);
+	}
 	return false;
 }

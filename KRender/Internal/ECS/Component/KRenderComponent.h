@@ -13,9 +13,10 @@ public:
 
 	bool Init(const char* path);
 	bool InitFromAsset(const char* path);
-	bool InitAsUnility(const KMeshUnilityInfoPtr& info);
-
+	bool InitUtility(const KMeshUnilityInfoPtr& info);
 	bool UnInit();
+
+	bool UpdateUtility(const KMeshUnilityInfoPtr& info);
 
 	inline KMeshPtr GetMesh() { return m_Mesh; }
 };

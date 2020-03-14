@@ -62,6 +62,64 @@ namespace KMeshUtility
 
 		return false;
 	}
+
+	bool UpdateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUnilityInfoPtr& info, size_t frameInFlight)
+	{
+		KMeshUtilityImpl impl(device);
+
+		auto type = info->GetType();
+
+		switch (type)
+		{
+		case KMeshUnilityInfo::UT_BOX:
+		{
+			KMeshBoxUnilityInfo* boxInfo = (KMeshBoxUnilityInfo*)info.get();
+			return impl.UpdateBox(boxInfo->info, pMesh, frameInFlight);
+		}
+
+		case KMeshUnilityInfo::UT_QUAD:
+		{
+			KMeshQuadUnilityInfo* quadInfo = (KMeshQuadUnilityInfo*)info.get();
+			return impl.UpdateQuad(quadInfo->info, pMesh, frameInFlight);
+		}
+
+		case KMeshUnilityInfo::UT_CONE:
+		{
+			KMeshConeUnilityInfo* coneInfo = (KMeshConeUnilityInfo*)info.get();
+			return impl.UpdateCone(coneInfo->info, pMesh, frameInFlight);
+		}
+
+		case KMeshUnilityInfo::UT_CYLINDER:
+		{
+			KMeshCylinderUnilityInfo* cylinderInfo = (KMeshCylinderUnilityInfo*)info.get();
+			return impl.UpdateCylinder(cylinderInfo->info, pMesh, frameInFlight);
+		}
+
+		case KMeshUnilityInfo::UT_CIRLCE:
+		{
+			KMeshCircleUnilityInfo* circleInfo = (KMeshCircleUnilityInfo*)info.get();
+			return impl.UpdateCircle(circleInfo->info, pMesh, frameInFlight);
+		}
+
+		case KMeshUnilityInfo::UT_ARC:
+		{
+			KMeshArcUnilityInfo* arcInfo = (KMeshArcUnilityInfo*)info.get();
+			return impl.UpdateArc(arcInfo->info, pMesh, frameInFlight);
+		}
+
+		case KMeshUnilityInfo::UT_SPHERE:
+		{
+			KMeshSphereUnilityInfo* sphereInfo = (KMeshSphereUnilityInfo*)info.get();
+			return impl.UpdateSphere(sphereInfo->info, pMesh, frameInFlight);
+		}
+
+		default:
+			assert(false && "impossible to reach");
+			break;
+		}
+
+		return false;
+	}
 }
 
 KMeshUtilityImpl::KMeshUtilityImpl(IKRenderDevice* device)
@@ -379,6 +437,39 @@ bool KMeshUtilityImpl::CreateMesh(const std::vector<KVertexDefinition::DEBUG_POS
 	return false;
 }
 
+bool KMeshUtilityImpl::UpdateMesh(const std::vector<KVertexDefinition::DEBUG_POS_3F>& vertices, KMesh* pMesh, size_t frameInFlight)
+{
+	if (pMesh)
+	{
+		auto& subMeshes = pMesh->m_SubMeshes;
+		if (subMeshes.size() != 1)
+		{
+			return false;
+		}
+
+		KVertexData& vertexData = pMesh->m_VertexData;
+		if (vertexData.vertexBuffers.size() != 1 || vertexData.vertexFormats.size() != 1)
+		{
+			return false;
+		}
+
+		if (vertexData.vertexFormats[0] != VF_DEBUG_POINT)
+		{
+			return false;
+		}
+
+		IKVertexBufferPtr vertexBuffer = vertexData.vertexBuffers[0];
+
+		vertexBuffer->UnInit();
+		vertexBuffer->InitMemory(vertices.size(), sizeof(vertices[0]), vertices.data());
+		vertexBuffer->InitDevice(false);
+
+		return true;
+	}
+
+	return false;
+}
+
 bool KMeshUtilityImpl::CreateBox(const KMeshBoxInfo& info, KMesh* pMesh, size_t frameInFlight)
 {
 	return CreateByInfo(info, pMesh, frameInFlight);
@@ -412,4 +503,39 @@ bool KMeshUtilityImpl::CreateSphere(const KMeshSphereInfo& info, KMesh* pMesh, s
 bool KMeshUtilityImpl::CreateArc(const KMeshArcInfo& info, KMesh* pMesh, size_t frameInFlight)
 {
 	return CreateByInfo(info, pMesh, frameInFlight);
+}
+
+bool KMeshUtilityImpl::UpdateBox(const KMeshBoxInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return UpdateByInfo(info, pMesh, frameInFlight);
+}
+
+bool KMeshUtilityImpl::UpdateQuad(const KMeshQuadInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return UpdateByInfo(info, pMesh, frameInFlight);
+}
+
+bool KMeshUtilityImpl::UpdateCone(const KMeshConeInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return UpdateByInfo(info, pMesh, frameInFlight);
+}
+
+bool KMeshUtilityImpl::UpdateCylinder(const KMeshCylinderInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return UpdateByInfo(info, pMesh, frameInFlight);
+}
+
+bool KMeshUtilityImpl::UpdateCircle(const KMeshCircleInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return UpdateByInfo(info, pMesh, frameInFlight);
+}
+
+bool KMeshUtilityImpl::UpdateSphere(const KMeshSphereInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return UpdateByInfo(info, pMesh, frameInFlight);
+}
+
+bool KMeshUtilityImpl::UpdateArc(const KMeshArcInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return UpdateByInfo(info, pMesh, frameInFlight);
 }

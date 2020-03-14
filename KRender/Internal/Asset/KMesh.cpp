@@ -222,7 +222,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 	return false;
 }
 
-bool KMesh::InitAsUnility(const KMeshUnilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::InitUtility(const KMeshUnilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight)
 {
 	assert(device);
 	if (!device)
@@ -232,6 +232,17 @@ bool KMesh::InitAsUnility(const KMeshUnilityInfoPtr& info, IKRenderDevice* devic
 	UnInit();
 
 	return KMeshUtility::CreateUtility(device, this, info, frameInFlight);
+}
+
+bool KMesh::UpdateUnility(const KMeshUnilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight)
+{
+	assert(device);
+	if (!device)
+	{
+		return false;
+	}
+
+	return KMeshUtility::UpdateUtility(device, this, info, frameInFlight);
 }
 
 bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func)
