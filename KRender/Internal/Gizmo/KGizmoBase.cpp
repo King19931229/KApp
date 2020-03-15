@@ -125,22 +125,66 @@ void KGizmoBase::Leave()
 	}
 }
 
+glm::mat3 KGizmoBase::GetRotate(KEntityPtr entity, const glm::mat3& gizmoRotate)
+{
+	return gizmoRotate;
+}
+
+glm::vec3 KGizmoBase::GetScale()
+{
+	glm::vec3 scale = TransformScale();
+
+	scale.x /= fabs(scale.x);
+	scale.y /= fabs(scale.y);
+	scale.z /= fabs(scale.z);
+
+	return scale * glm::vec3(m_ScreenScaleFactor);
+}
+
+glm::vec3 KGizmoBase::TransformPos() const
+{
+	return glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
+}
+
+glm::vec3 KGizmoBase::TransformScale() const
+{
+	glm::mat4 rotate = TransformRotate();
+	glm::mat4 translate = glm::translate(glm::mat4(1.0f), TransformPos());
+	glm::mat4 scale = glm::inverse(translate * rotate) * m_Transform;
+	return glm::vec3(scale[0][0], scale[1][1], scale[2][2]);
+}
+
+glm::mat3 KGizmoBase::TransformRotate() const
+{
+	glm::mat3 rotate;
+
+	glm::vec3 xAxis = m_Transform * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+	glm::vec3 yAxis = m_Transform * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+	glm::vec3 zAxis = m_Transform * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+
+	xAxis = glm::normalize(xAxis);
+	yAxis = glm::normalize(yAxis);
+	zAxis = glm::normalize(zAxis);
+
+	rotate = glm::mat3(xAxis, yAxis, zAxis);
+
+	// z轴不是x.cross(y) 是负缩放导致的
+	if (glm::dot(glm::cross(xAxis, yAxis), zAxis) < 0.0f)
+	{
+		rotate *= glm::mat3(-1.0f);
+	}
+
+	return rotate;
+}
+
 void KGizmoBase::Update()
 {
-	glm::vec3 transformPos = glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
+	glm::vec3 transformPos = TransformPos();
 	glm::mat3 rotate;
 
 	if (m_Mode == GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL)
 	{
-		glm::vec3 xAxis = m_Transform * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-		glm::vec3 yAxis = m_Transform * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-		glm::vec3 zAxis = m_Transform * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-
-		xAxis = glm::normalize(xAxis);
-		yAxis = glm::normalize(yAxis);
-		zAxis = glm::normalize(zAxis);
-
-		rotate = glm::mat3(xAxis, yAxis, zAxis);
+		rotate = TransformRotate();
 	}
 	else
 	{
@@ -154,6 +198,8 @@ void KGizmoBase::Update()
 		m_ScreenScaleFactor = m_DisplayScale * 0.15f * tpos.w;
 	}
 
+	glm::vec3 scale = GetScale();
+
 	for (KEntityPtr entity : m_AllEntity)
 	{
 		if (entity)
@@ -163,7 +209,7 @@ void KGizmoBase::Update()
 			{
 				transform->SetPosition(transformPos);
 				transform->SetRotate(GetRotate(entity, rotate));
-				transform->SetScale(GetScale());
+				transform->SetScale(scale);
 				KRenderGlobal::Scene.Move(entity);
 			}
 		}

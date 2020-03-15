@@ -45,6 +45,13 @@ struct IKGizmo
 	virtual void OnMouseUp(unsigned int x, unsigned int y) = 0;
 };
 
-typedef std::shared_ptr<IKGizmo> IKGizmoPtr;
+struct IKGizmoGroup : public IKGizmo
+{
+	virtual GizmoType SetType(GizmoType type) = 0;
+};
 
+typedef std::shared_ptr<IKGizmo> IKGizmoPtr;
 IKGizmoPtr CreateGizmo(GizmoType type);
+
+typedef std::shared_ptr<IKGizmoGroup> IKGizmoGroupPtr;
+IKGizmoGroupPtr CreateGizmoGroup();

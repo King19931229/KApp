@@ -318,6 +318,9 @@
     <ClInclude Include="Internal\Gizmo\KScaleGizmo.h">
       <Filter>Internal\Gizmo</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Gizmo\KGizmo.h">
+      <Filter>Internal\Gizmo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">

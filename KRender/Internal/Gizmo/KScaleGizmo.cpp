@@ -291,22 +291,13 @@ KScaleGizmo::ScaleOperator KScaleGizmo::GetOperatorType(unsigned int x, unsigned
 	return ScaleOperator::SCALE_NONE;
 }
 
-//#define DEBUG_GIZMO
+#define DEBUG_GIZMO
 
 glm::vec3 KScaleGizmo::GetScale()
 {
 #ifdef DEBUG_GIZMO
-	glm::vec3 transformPos = glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
-	glm::vec3 xAxis = GetAxis(GizmoAxis::AXIS_X);
-	glm::vec3 yAxis = GetAxis(GizmoAxis::AXIS_Y);
-	glm::vec3 zAxis = GetAxis(GizmoAxis::AXIS_Z);
-
-	glm::mat4 rotate = glm::mat3(xAxis, yAxis, zAxis);
-	glm::mat4 translate = glm::translate(glm::mat4(1.0f), transformPos);
-	glm::mat4 scale = glm::inverse(translate * rotate) * m_Transform;
-
-	glm::vec3 ret = glm::vec3(scale[0][0], scale[1][1], scale[2][2]) * glm::vec3(m_ScreenScaleFactor);
-	return ret;
+	glm::vec3 scale = TransformScale();
+	return scale * glm::vec3(m_ScreenScaleFactor);
 #else
 	return KGizmoBase::GetScale();
 #endif
@@ -370,7 +361,7 @@ void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
 		glm::vec3 origin, dir;
 		if (CalcPickRay(x, y, origin, dir))
 		{
-			glm::vec3 transformPos = glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
+			glm::vec3 transformPos = TransformPos();
 			glm::vec3 intersectPos;
 			if (m_PickPlane.Intersect(origin, dir, intersectPos))
 			{
@@ -378,9 +369,9 @@ void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				glm::vec3 yAxis = GetAxis(GizmoAxis::AXIS_Y);
 				glm::vec3 zAxis = GetAxis(GizmoAxis::AXIS_Z);
 
-				glm::mat4 rotate = glm::mat3(xAxis, yAxis, zAxis);
+				glm::mat4 rotate = TransformRotate();
 				glm::mat4 translate = glm::translate(glm::mat4(1.0f), transformPos);
-				glm::mat4 scale = glm::inverse(translate * rotate) * m_Transform;
+				glm::mat4 scale = glm::scale(glm::mat4(1.0f), TransformScale());
 
 				glm::vec3 scaleVec = glm::vec3(0.0f);
 				glm::vec3 worldScaleVec = glm::vec3(0.0f);
@@ -420,8 +411,9 @@ void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				default:
 					break;
 				}
-				
+
 				glm::mat4 newScale = scale;
+				glm::vec3 releatedScale = glm::vec3(1.0f);
 
 				constexpr float SCREEN_DIV_FACTOR = 100.0f;
 
@@ -433,21 +425,29 @@ void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
 						len = -len;
 					}
 					len /= SCREEN_DIV_FACTOR;
-
-					glm::vec3 releatedScale = (glm::vec3(1.0f, 1.0f, 1.0f) - scaleVec) + scaleVec * (1.0f + len);
-					newScale = scale * glm::scale(glm::mat4(1.0f), releatedScale);
+					releatedScale = (glm::vec3(1.0f, 1.0f, 1.0f) - scaleVec) + scaleVec * (1.0f + len);
 				}
 				else
 				{
 					float len = (curPickPos.x - m_PickPos.x);// - (curPickPos.y - m_PickPos.y);
 					len /= SCREEN_DIV_FACTOR;
-
-					glm::vec3 releatedScale = scaleVec * (1.0f + len);
-					newScale = scale * glm::scale(glm::mat4(1.0f), releatedScale);
+					releatedScale = scaleVec * (1.0f + len);
 				}
 
-				m_Transform = translate * rotate * newScale;
-				m_IntersectPos = intersectPos;				
+				if (releatedScale.x > 0.0f && releatedScale.y > 0.0f && releatedScale.z > 0.0f)
+				{
+					newScale = scale * glm::scale(glm::mat4(1.0f), releatedScale);
+
+					constexpr float zeroExp = 0.0001f;
+					if (fabs(newScale[0][0]) > zeroExp &&
+						fabs(newScale[1][1]) > zeroExp &&
+						fabs(newScale[2][2]) > zeroExp)
+					{
+						m_Transform = translate * rotate * newScale;
+					}
+
+					m_IntersectPos = intersectPos;
+				}
 			}
 		}
 	}

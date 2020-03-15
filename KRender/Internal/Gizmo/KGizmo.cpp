@@ -1,7 +1,4 @@
-#include "Interface/IKGizmo.h"
-#include "KMoveGizmo.h"
-#include "KRotateGizmo.h"
-#include "KScaleGizmo.h"
+#include "KGizmo.h"
 
 IKGizmoPtr CreateGizmo(GizmoType type)
 {
@@ -16,4 +13,10 @@ IKGizmoPtr CreateGizmo(GizmoType type)
 	default:
 		return nullptr;
 	}
+}
+
+IKGizmoGroupPtr CreateGizmoGroup()
+{
+	return nullptr;
+	//return IKGizmoGroupPtr(new KGizmo());
 }

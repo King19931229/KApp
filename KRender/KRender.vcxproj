@@ -53,6 +53,7 @@
     <ClInclude Include="Internal\ECS\KEntity.h" />
     <ClInclude Include="Internal\ECS\KEntityManager.h" />
     <ClInclude Include="Internal\ECS\System\KCullSystem.h" />
+    <ClInclude Include="Internal\Gizmo\KGizmo.h" />
     <ClInclude Include="Internal\Gizmo\KGizmoBase.h" />
     <ClInclude Include="Internal\Gizmo\KMoveGizmo.h" />
     <ClInclude Include="Internal\Gizmo\KRotateGizmo.h" />

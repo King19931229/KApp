@@ -346,6 +346,10 @@ public:
 			{
 				result.push_back(curObject.Obj);
 			}
+			else
+			{
+				int x = 0;
+			}
 		}
 
 		if (children)

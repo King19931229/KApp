@@ -26,8 +26,12 @@ protected:
 
 	std::vector<KEntityPtr> m_AllEntity;
 
-	virtual glm::mat3 GetRotate(KEntityPtr entity, const glm::mat3& gizmoRotate) { return gizmoRotate; }
-	virtual glm::vec3 GetScale() { return glm::vec3(m_ScreenScaleFactor); }
+	virtual glm::mat3 GetRotate(KEntityPtr entity, const glm::mat3& gizmoRotate);
+	virtual glm::vec3 GetScale();
+
+	glm::vec3 TransformPos() const;
+	glm::vec3 TransformScale() const;
+	glm::mat3 TransformRotate() const;
 public:
 	KGizmoBase();
 	~KGizmoBase();

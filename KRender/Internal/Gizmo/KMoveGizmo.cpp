@@ -186,7 +186,7 @@ KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned in
 	glm::vec3 origin, dir;
 	if (CalcPickRay(x, y, origin, dir))
 	{
-		glm::vec3 transformPos = glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
+		glm::vec3 transformPos = TransformPos();
 
 		glm::vec3 xAxis = GetAxis(GizmoAxis::AXIS_X);
 		glm::vec3 yAxis = GetAxis(GizmoAxis::AXIS_Y);
@@ -322,7 +322,7 @@ void KMoveGizmo::OnMouseMove(unsigned int x, unsigned int y)
 		glm::vec3 origin, dir;
 		if (CalcPickRay(x, y, origin, dir))
 		{
-			glm::vec3 transformPos = glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
+			glm::vec3 transformPos = TransformPos();
 			glm::vec3 intersectPos;
 			if (m_PickPlane.Intersect(origin, dir, intersectPos))
 			{
