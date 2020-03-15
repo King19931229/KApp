@@ -1,9 +1,9 @@
 #pragma once
 
-class KMeshUnilityInfo
+class KMeshUtilityInfo
 {
 public:
-	enum UnilityType
+	enum UtilityType
 	{
 		UT_BOX,
 		UT_QUAD,
@@ -11,14 +11,16 @@ public:
 		UT_CYLINDER,
 		UT_CIRLCE,
 		UT_ARC,
-		UT_SPHERE
+		UT_SPHERE,
+		UT_TRIANGLE,
+		UT_CUBE
 	};
 
-	virtual ~KMeshUnilityInfo() {}
-	virtual UnilityType GetType() = 0;
+	virtual ~KMeshUtilityInfo() {}
+	virtual UtilityType GetType() = 0;
 };
 
-typedef std::shared_ptr<KMeshUnilityInfo> KMeshUnilityInfoPtr;
+typedef std::shared_ptr<KMeshUtilityInfo> KMeshUtilityInfoPtr;
 
 struct KMeshBoxInfo
 {
@@ -68,97 +70,138 @@ struct KMeshSphereInfo
 	float radius;
 };
 
-namespace KMeshUtility
+struct KMeshTriangleInfo
 {
-	KMeshUnilityInfoPtr CreateBox(const KMeshBoxInfo& info);
-	KMeshUnilityInfoPtr CreateQuad(const KMeshQuadInfo& info);
-	KMeshUnilityInfoPtr CreateCone(const KMeshConeInfo& info);
-	KMeshUnilityInfoPtr CreateCylinder(const KMeshCylinderInfo& info);
-	KMeshUnilityInfoPtr CreateCircle(const KMeshCircleInfo& info);
-	KMeshUnilityInfoPtr CreateArc(const KMeshArcInfo& info);
-	KMeshUnilityInfoPtr CreateSphere(const KMeshSphereInfo& info);
+	glm::vec3 origin;
+	float lengthU;
+	float lengthV;
+	glm::vec3 axisU;
+	glm::vec3 axisV;
 };
 
-class KMeshBoxUnilityInfo : public KMeshUnilityInfo
+struct KMeshCubeInfo
+{
+	glm::mat4 transform;
+	glm::vec3 halfExtend;
+};
+
+namespace KMeshUtility
+{
+	KMeshUtilityInfoPtr CreateBox(const KMeshBoxInfo& info);
+	KMeshUtilityInfoPtr CreateQuad(const KMeshQuadInfo& info);
+	KMeshUtilityInfoPtr CreateCone(const KMeshConeInfo& info);
+	KMeshUtilityInfoPtr CreateCylinder(const KMeshCylinderInfo& info);
+	KMeshUtilityInfoPtr CreateCircle(const KMeshCircleInfo& info);
+	KMeshUtilityInfoPtr CreateArc(const KMeshArcInfo& info);
+	KMeshUtilityInfoPtr CreateSphere(const KMeshSphereInfo& info);
+	KMeshUtilityInfoPtr CreateTriangle(const KMeshTriangleInfo& info);
+	KMeshUtilityInfoPtr CreateCube(const KMeshCubeInfo& info);
+};
+
+class KMeshBoxUtilityInfo : public KMeshUtilityInfo
 {
 public:
 	KMeshBoxInfo info;
-	KMeshBoxUnilityInfo(const KMeshBoxInfo& _info)
+	KMeshBoxUtilityInfo(const KMeshBoxInfo& _info)
 		: info(_info)
 	{
 	}
 
-	UnilityType GetType() final { return UT_BOX; }
+	UtilityType GetType() final { return UT_BOX; }
 };
 
-class KMeshQuadUnilityInfo : public KMeshUnilityInfo
+class KMeshQuadUtilityInfo : public KMeshUtilityInfo
 {
 public:
 	KMeshQuadInfo info;
-	KMeshQuadUnilityInfo(const KMeshQuadInfo& _info)
+	KMeshQuadUtilityInfo(const KMeshQuadInfo& _info)
 		: info(_info)
 	{
 	}
 
-	UnilityType GetType() final { return UT_QUAD; }
+	UtilityType GetType() final { return UT_QUAD; }
 };
 
-class KMeshConeUnilityInfo : public KMeshUnilityInfo
+class KMeshConeUtilityInfo : public KMeshUtilityInfo
 {
 public:
 	KMeshConeInfo info;
-	KMeshConeUnilityInfo(const KMeshConeInfo& _info)
+	KMeshConeUtilityInfo(const KMeshConeInfo& _info)
 		: info(_info)
 	{
 	}
 
-	UnilityType GetType() final { return UT_CONE; }
+	UtilityType GetType() final { return UT_CONE; }
 };
 
-class KMeshCylinderUnilityInfo : public KMeshUnilityInfo
+class KMeshCylinderUtilityInfo : public KMeshUtilityInfo
 {
 public:
 	KMeshCylinderInfo info;
-	KMeshCylinderUnilityInfo(const KMeshCylinderInfo& _info)
+	KMeshCylinderUtilityInfo(const KMeshCylinderInfo& _info)
 		: info(_info)
 	{
 	}
 
-	UnilityType GetType() final { return UT_CYLINDER; }
+	UtilityType GetType() final { return UT_CYLINDER; }
 };
 
-class KMeshCircleUnilityInfo : public KMeshUnilityInfo
+class KMeshCircleUtilityInfo : public KMeshUtilityInfo
 {
 public:
 	KMeshCircleInfo info;
-	KMeshCircleUnilityInfo(const KMeshCircleInfo& _info)
+	KMeshCircleUtilityInfo(const KMeshCircleInfo& _info)
 		: info(_info)
 	{
 	}
 
-	UnilityType GetType() final { return UT_CIRLCE; }
+	UtilityType GetType() final { return UT_CIRLCE; }
 };
 
-class KMeshArcUnilityInfo : public KMeshUnilityInfo
+class KMeshArcUtilityInfo : public KMeshUtilityInfo
 {
 public:
 	KMeshArcInfo info;
-	KMeshArcUnilityInfo(const KMeshArcInfo& _info)
+	KMeshArcUtilityInfo(const KMeshArcInfo& _info)
 		: info(_info)
 	{
 	}
 
-	UnilityType GetType() final { return UT_ARC; }
+	UtilityType GetType() final { return UT_ARC; }
 };
 
-class KMeshSphereUnilityInfo : public KMeshUnilityInfo
+class KMeshSphereUtilityInfo : public KMeshUtilityInfo
 {
 public:
 	KMeshSphereInfo info;
-	KMeshSphereUnilityInfo(const KMeshSphereInfo& _info)
+	KMeshSphereUtilityInfo(const KMeshSphereInfo& _info)
 		: info(_info)
 	{
 	}
 
-	UnilityType GetType() final { return UT_SPHERE; }
+	UtilityType GetType() final { return UT_SPHERE; }
+};
+
+class KMeshTriangleUtilityInfo : public KMeshUtilityInfo
+{
+public:
+	KMeshTriangleInfo info;
+	KMeshTriangleUtilityInfo(const KMeshTriangleInfo& _info)
+		: info(_info)
+	{
+	}
+
+	UtilityType GetType() final { return UT_TRIANGLE; }
+};
+
+class KMeshCubeUtilityInfo : public KMeshUtilityInfo
+{
+public:
+	KMeshCubeInfo info;
+	KMeshCubeUtilityInfo(const KMeshCubeInfo& _info)
+		: info(_info)
+	{
+	}
+
+	UtilityType GetType() final { return UT_CUBE; }
 };

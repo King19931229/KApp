@@ -1,6 +1,7 @@
 #include "Interface/IKGizmo.h"
 #include "KMoveGizmo.h"
 #include "KRotateGizmo.h"
+#include "KScaleGizmo.h"
 
 IKGizmoPtr CreateGizmo(GizmoType type)
 {
@@ -10,8 +11,8 @@ IKGizmoPtr CreateGizmo(GizmoType type)
 		return IKGizmoPtr(new KMoveGizmo());
 	case GizmoType::GIZMO_TYPE_ROTATE:
 		return IKGizmoPtr(new KRotateGizmo());
-	/*case GizmoType::GIZMO_TYPE_SCALE:
-		return IKGizmoPtr(new KScaleGizmo());*/
+	case GizmoType::GIZMO_TYPE_SCALE:
+		return IKGizmoPtr(new KScaleGizmo());
 	default:
 		return nullptr;
 	}

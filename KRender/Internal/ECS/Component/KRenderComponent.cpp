@@ -21,12 +21,12 @@ bool KRenderComponent::InitFromAsset(const char* path)
 	return KRenderGlobal::MeshManager.AcquireFromAsset(path, m_Mesh);
 }
 
-bool KRenderComponent::InitUtility(const KMeshUnilityInfoPtr& info)
+bool KRenderComponent::InitUtility(const KMeshUtilityInfoPtr& info)
 {
 	return KRenderGlobal::MeshManager.AcquireAsUtility(info, m_Mesh);
 }
 
-bool KRenderComponent::UpdateUtility(const KMeshUnilityInfoPtr& info)
+bool KRenderComponent::UpdateUtility(const KMeshUtilityInfoPtr& info)
 {
 	return KRenderGlobal::MeshManager.UpdateUtility(info, m_Mesh);
 }

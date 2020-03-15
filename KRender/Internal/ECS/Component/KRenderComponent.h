@@ -13,10 +13,10 @@ public:
 
 	bool Init(const char* path);
 	bool InitFromAsset(const char* path);
-	bool InitUtility(const KMeshUnilityInfoPtr& info);
+	bool InitUtility(const KMeshUtilityInfoPtr& info);
 	bool UnInit();
 
-	bool UpdateUtility(const KMeshUnilityInfoPtr& info);
+	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
 
 	inline KMeshPtr GetMesh() { return m_Mesh; }
 };

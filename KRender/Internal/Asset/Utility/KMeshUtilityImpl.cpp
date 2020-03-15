@@ -5,7 +5,7 @@
 
 namespace KMeshUtility
 {
-	bool CreateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUnilityInfoPtr& info, size_t frameInFlight)
+	bool CreateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUtilityInfoPtr& info, size_t frameInFlight)
 	{
 		KMeshUtilityImpl impl(device);
 
@@ -13,46 +13,58 @@ namespace KMeshUtility
 
 		switch (type)
 		{
-		case KMeshUnilityInfo::UT_BOX:
+		case KMeshUtilityInfo::UT_BOX:
 		{
-			KMeshBoxUnilityInfo* boxInfo = (KMeshBoxUnilityInfo*)info.get();
+			KMeshBoxUtilityInfo* boxInfo = (KMeshBoxUtilityInfo*)info.get();
 			return impl.CreateBox(boxInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_QUAD:
+		case KMeshUtilityInfo::UT_QUAD:
 		{
-			KMeshQuadUnilityInfo* quadInfo = (KMeshQuadUnilityInfo*)info.get();
+			KMeshQuadUtilityInfo* quadInfo = (KMeshQuadUtilityInfo*)info.get();
 			return impl.CreateQuad(quadInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_CONE:
+		case KMeshUtilityInfo::UT_CONE:
 		{
-			KMeshConeUnilityInfo* coneInfo = (KMeshConeUnilityInfo*)info.get();
+			KMeshConeUtilityInfo* coneInfo = (KMeshConeUtilityInfo*)info.get();
 			return impl.CreateCone(coneInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_CYLINDER:
+		case KMeshUtilityInfo::UT_CYLINDER:
 		{
-			KMeshCylinderUnilityInfo* cylinderInfo = (KMeshCylinderUnilityInfo*)info.get();
+			KMeshCylinderUtilityInfo* cylinderInfo = (KMeshCylinderUtilityInfo*)info.get();
 			return impl.CreateCylinder(cylinderInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_CIRLCE:
+		case KMeshUtilityInfo::UT_CIRLCE:
 		{
-			KMeshCircleUnilityInfo* circleInfo = (KMeshCircleUnilityInfo*)info.get();
+			KMeshCircleUtilityInfo* circleInfo = (KMeshCircleUtilityInfo*)info.get();
 			return impl.CreateCircle(circleInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_ARC:
+		case KMeshUtilityInfo::UT_ARC:
 		{
-			KMeshArcUnilityInfo* arcInfo = (KMeshArcUnilityInfo*)info.get();
+			KMeshArcUtilityInfo* arcInfo = (KMeshArcUtilityInfo*)info.get();
 			return impl.CreateArc(arcInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_SPHERE:
+		case KMeshUtilityInfo::UT_SPHERE:
 		{
-			KMeshSphereUnilityInfo* sphereInfo = (KMeshSphereUnilityInfo*)info.get();
+			KMeshSphereUtilityInfo* sphereInfo = (KMeshSphereUtilityInfo*)info.get();
 			return impl.CreateSphere(sphereInfo->info, pMesh, frameInFlight);
+		}
+
+		case KMeshUtilityInfo::UT_TRIANGLE:
+		{
+			KMeshTriangleUtilityInfo* triInfo = (KMeshTriangleUtilityInfo*)info.get();
+			return impl.CreateTriangle(triInfo->info, pMesh, frameInFlight);
+		}
+
+		case KMeshUtilityInfo::UT_CUBE:
+		{
+			KMeshCubeUtilityInfo* cubeInfo = (KMeshCubeUtilityInfo*)info.get();
+			return impl.CreateCube(cubeInfo->info, pMesh, frameInFlight);
 		}
 
 		default:
@@ -63,7 +75,7 @@ namespace KMeshUtility
 		return false;
 	}
 
-	bool UpdateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUnilityInfoPtr& info, size_t frameInFlight)
+	bool UpdateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUtilityInfoPtr& info, size_t frameInFlight)
 	{
 		KMeshUtilityImpl impl(device);
 
@@ -71,46 +83,58 @@ namespace KMeshUtility
 
 		switch (type)
 		{
-		case KMeshUnilityInfo::UT_BOX:
+		case KMeshUtilityInfo::UT_BOX:
 		{
-			KMeshBoxUnilityInfo* boxInfo = (KMeshBoxUnilityInfo*)info.get();
+			KMeshBoxUtilityInfo* boxInfo = (KMeshBoxUtilityInfo*)info.get();
 			return impl.UpdateBox(boxInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_QUAD:
+		case KMeshUtilityInfo::UT_QUAD:
 		{
-			KMeshQuadUnilityInfo* quadInfo = (KMeshQuadUnilityInfo*)info.get();
+			KMeshQuadUtilityInfo* quadInfo = (KMeshQuadUtilityInfo*)info.get();
 			return impl.UpdateQuad(quadInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_CONE:
+		case KMeshUtilityInfo::UT_CONE:
 		{
-			KMeshConeUnilityInfo* coneInfo = (KMeshConeUnilityInfo*)info.get();
+			KMeshConeUtilityInfo* coneInfo = (KMeshConeUtilityInfo*)info.get();
 			return impl.UpdateCone(coneInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_CYLINDER:
+		case KMeshUtilityInfo::UT_CYLINDER:
 		{
-			KMeshCylinderUnilityInfo* cylinderInfo = (KMeshCylinderUnilityInfo*)info.get();
+			KMeshCylinderUtilityInfo* cylinderInfo = (KMeshCylinderUtilityInfo*)info.get();
 			return impl.UpdateCylinder(cylinderInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_CIRLCE:
+		case KMeshUtilityInfo::UT_CIRLCE:
 		{
-			KMeshCircleUnilityInfo* circleInfo = (KMeshCircleUnilityInfo*)info.get();
+			KMeshCircleUtilityInfo* circleInfo = (KMeshCircleUtilityInfo*)info.get();
 			return impl.UpdateCircle(circleInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_ARC:
+		case KMeshUtilityInfo::UT_ARC:
 		{
-			KMeshArcUnilityInfo* arcInfo = (KMeshArcUnilityInfo*)info.get();
+			KMeshArcUtilityInfo* arcInfo = (KMeshArcUtilityInfo*)info.get();
 			return impl.UpdateArc(arcInfo->info, pMesh, frameInFlight);
 		}
 
-		case KMeshUnilityInfo::UT_SPHERE:
+		case KMeshUtilityInfo::UT_SPHERE:
 		{
-			KMeshSphereUnilityInfo* sphereInfo = (KMeshSphereUnilityInfo*)info.get();
+			KMeshSphereUtilityInfo* sphereInfo = (KMeshSphereUtilityInfo*)info.get();
 			return impl.UpdateSphere(sphereInfo->info, pMesh, frameInFlight);
+		}
+
+		case KMeshUtilityInfo::UT_TRIANGLE:
+		{
+			KMeshTriangleUtilityInfo* triInfo = (KMeshTriangleUtilityInfo*)info.get();
+			return impl.UpdateTriangle(triInfo->info, pMesh, frameInFlight);
+		}
+
+		case KMeshUtilityInfo::UT_CUBE:
+		{
+			KMeshCubeUtilityInfo* cubeInfo = (KMeshCubeUtilityInfo*)info.get();
+			return impl.UpdateCube(cubeInfo->info, pMesh, frameInFlight);
 		}
 
 		default:
@@ -158,10 +182,69 @@ void KMeshUtilityImpl::PouplateData(const KMeshBoxInfo& info, std::vector<KVerte
 		0, 6,
 		7, 3,
 		5, 6,
-		7, 4
+		7, 4,
+		5, 4,
+		7, 6
 	};
 
 	primtive = DEBUG_PRIMITIVE_LINE;
+}
+
+void KMeshUtilityImpl::PouplateData(const KMeshTriangleInfo& info, std::vector<KVertexDefinition::DEBUG_POS_3F>& vertices, std::vector<uint16_t>& indices, DebugPrimitive& primtive)
+{
+	glm::vec3 normAxisU = glm::normalize(info.axisU);
+	glm::vec3 normAxisV = glm::normalize(info.axisV);
+
+	vertices =
+	{
+		{ info.origin },
+		{ info.origin + glm::vec3(normAxisU * info.lengthU) },
+		{ info.origin + glm::vec3(normAxisV * info.lengthV) },
+	};
+
+	indices = {};
+
+	primtive = DEBUG_PRIMITIVE_TRIANGLE;
+}
+
+void KMeshUtilityImpl::PouplateData(const KMeshCubeInfo& info, std::vector<KVertexDefinition::DEBUG_POS_3F>& vertices, std::vector<uint16_t>& indices, DebugPrimitive& primtive)
+{
+	vertices =
+	{
+		{ info.halfExtend * glm::vec3(-1.0f, -1.0, -1.0f) },
+		{ info.halfExtend * glm::vec3(-1.0, 1.0f, -1.0f) },
+		{ info.halfExtend * glm::vec3(1.0f, 1.0f, -1.0f) },
+		{ info.halfExtend * glm::vec3(1.0f, -1.0f, -1.0f) },
+
+		{ info.halfExtend * glm::vec3(1.0f, 1.0f, 1.0f) },
+		{ info.halfExtend * glm::vec3(-1.0, 1.0f, 1.0f) },
+		{ info.halfExtend * glm::vec3(-1.0, -1.0f, 1.0f) },
+		{ info.halfExtend * glm::vec3(1.0f, -1.0f, 1.0f) }
+	};
+
+	for (auto& pos : vertices)
+	{
+		glm::vec4 t = info.transform * glm::vec4(pos.DEBUG_POSITION, 1.0);
+		pos.DEBUG_POSITION = glm::vec3(t.x, t.y, t.z);
+	}
+
+	indices =
+	{
+		// back
+		1, 2, 0, 3, 0, 2,
+		// front
+		4, 5, 6, 7, 4, 6,
+		// left
+		5, 1, 0, 6, 5, 0,
+		// right
+		2, 4, 7, 3, 2, 7,
+		// up
+		2, 1, 5, 5, 4, 2,
+		// down
+		0, 3, 6, 7, 6, 3
+	};
+
+	primtive = DEBUG_PRIMITIVE_TRIANGLE;
 }
 
 void KMeshUtilityImpl::PouplateData(const KMeshQuadInfo& info, std::vector<KVertexDefinition::DEBUG_POS_3F>& vertices, std::vector<uint16_t>& indices, DebugPrimitive& primtive)
@@ -505,6 +588,16 @@ bool KMeshUtilityImpl::CreateArc(const KMeshArcInfo& info, KMesh* pMesh, size_t 
 	return CreateByInfo(info, pMesh, frameInFlight);
 }
 
+bool KMeshUtilityImpl::CreateTriangle(const KMeshTriangleInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return CreateByInfo(info, pMesh, frameInFlight);
+}
+
+bool KMeshUtilityImpl::CreateCube(const KMeshCubeInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return CreateByInfo(info, pMesh, frameInFlight);
+}
+
 bool KMeshUtilityImpl::UpdateBox(const KMeshBoxInfo& info, KMesh* pMesh, size_t frameInFlight)
 {
 	return UpdateByInfo(info, pMesh, frameInFlight);
@@ -536,6 +629,16 @@ bool KMeshUtilityImpl::UpdateSphere(const KMeshSphereInfo& info, KMesh* pMesh, s
 }
 
 bool KMeshUtilityImpl::UpdateArc(const KMeshArcInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return UpdateByInfo(info, pMesh, frameInFlight);
+}
+
+bool KMeshUtilityImpl::UpdateTriangle(const KMeshTriangleInfo& info, KMesh* pMesh, size_t frameInFlight)
+{
+	return UpdateByInfo(info, pMesh, frameInFlight);
+}
+
+bool KMeshUtilityImpl::UpdateCube(const KMeshCubeInfo& info, KMesh* pMesh, size_t frameInFlight)
 {
 	return UpdateByInfo(info, pMesh, frameInFlight);
 }

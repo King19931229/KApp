@@ -25,7 +25,9 @@ protected:
 	glm::vec3 GetAxis(GizmoAxis axis);
 
 	std::vector<KEntityPtr> m_AllEntity;
+
 	virtual glm::mat3 GetRotate(KEntityPtr entity, const glm::mat3& gizmoRotate) { return gizmoRotate; }
+	virtual glm::vec3 GetScale() { return glm::vec3(m_ScreenScaleFactor); }
 public:
 	KGizmoBase();
 	~KGizmoBase();

@@ -32,8 +32,8 @@ public:
 
 	bool Acquire(const char* path, KMeshPtr& ptr);
 	bool AcquireFromAsset(const char* path, KMeshPtr& ptr);
-	bool AcquireAsUtility(const KMeshUnilityInfoPtr& info, KMeshPtr& ptr);
+	bool AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr);
 	bool Release(KMeshPtr& ptr);
 
-	bool UpdateUtility(const KMeshUnilityInfoPtr& info, KMeshPtr& ptr);
+	bool UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr);
 };

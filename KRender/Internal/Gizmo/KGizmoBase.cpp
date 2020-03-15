@@ -79,6 +79,7 @@ glm::vec3 KGizmoBase::GetAxis(GizmoAxis axis)
 	if (m_Mode == GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL)
 	{
 		axisVec = m_Transform * glm::vec4(axisVec, 0.0f);
+		axisVec = glm::normalize(axisVec);
 	}
 
 	return axisVec;
@@ -160,12 +161,10 @@ void KGizmoBase::Update()
 			KTransformComponent* transform = nullptr;
 			if (entity->GetComponent(CT_TRANSFORM, &transform))
 			{
-				// TODO ÐÞÕýMoveÂß¼­
-				KRenderGlobal::Scene.Remove(entity);
 				transform->SetPosition(transformPos);
 				transform->SetRotate(GetRotate(entity, rotate));
-				transform->SetScale(glm::vec3(m_ScreenScaleFactor));
-				KRenderGlobal::Scene.Add(entity);
+				transform->SetScale(GetScale());
+				KRenderGlobal::Scene.Move(entity);
 			}
 		}
 	}

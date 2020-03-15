@@ -315,6 +315,9 @@
     <ClInclude Include="Internal\Asset\Utility\KMeshUtilityInfo.h">
       <Filter>Internal\Asset\Utility</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Gizmo\KScaleGizmo.h">
+      <Filter>Internal\Gizmo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -496,6 +499,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\Utility\KMeshUtilityInfo.cpp">
       <Filter>Internal\Asset\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Gizmo\KScaleGizmo.cpp">
+      <Filter>Internal\Gizmo</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

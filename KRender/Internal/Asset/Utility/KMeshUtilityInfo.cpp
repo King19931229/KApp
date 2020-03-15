@@ -2,38 +2,48 @@
 
 namespace KMeshUtility
 {
-	KMeshUnilityInfoPtr CreateBox(const KMeshBoxInfo& info)
+	KMeshUtilityInfoPtr CreateBox(const KMeshBoxInfo& info)
 	{
-		return KMeshUnilityInfoPtr(new KMeshBoxUnilityInfo(info));
+		return KMeshUtilityInfoPtr(new KMeshBoxUtilityInfo(info));
 	}
 
-	KMeshUnilityInfoPtr CreateQuad(const KMeshQuadInfo& info)
+	KMeshUtilityInfoPtr CreateQuad(const KMeshQuadInfo& info)
 	{
-		return KMeshUnilityInfoPtr(new KMeshQuadUnilityInfo(info));
+		return KMeshUtilityInfoPtr(new KMeshQuadUtilityInfo(info));
 	}
 
-	KMeshUnilityInfoPtr CreateCone(const KMeshConeInfo& info)
+	KMeshUtilityInfoPtr CreateCone(const KMeshConeInfo& info)
 	{
-		return KMeshUnilityInfoPtr(new KMeshConeUnilityInfo(info));
+		return KMeshUtilityInfoPtr(new KMeshConeUtilityInfo(info));
 	}
 
-	KMeshUnilityInfoPtr CreateCylinder(const KMeshCylinderInfo& info)
+	KMeshUtilityInfoPtr CreateCylinder(const KMeshCylinderInfo& info)
 	{
-		return KMeshUnilityInfoPtr(new KMeshCylinderUnilityInfo(info));
+		return KMeshUtilityInfoPtr(new KMeshCylinderUtilityInfo(info));
 	}
 
-	KMeshUnilityInfoPtr CreateCircle(const KMeshCircleInfo& info)
+	KMeshUtilityInfoPtr CreateCircle(const KMeshCircleInfo& info)
 	{
-		return KMeshUnilityInfoPtr(new KMeshCircleUnilityInfo(info));
+		return KMeshUtilityInfoPtr(new KMeshCircleUtilityInfo(info));
 	}
 
-	KMeshUnilityInfoPtr CreateArc(const KMeshArcInfo& info)
+	KMeshUtilityInfoPtr CreateArc(const KMeshArcInfo& info)
 	{
-		return KMeshUnilityInfoPtr(new KMeshArcUnilityInfo(info));
+		return KMeshUtilityInfoPtr(new KMeshArcUtilityInfo(info));
 	}
 
-	KMeshUnilityInfoPtr CreateSphere(const KMeshSphereInfo& info)
+	KMeshUtilityInfoPtr CreateSphere(const KMeshSphereInfo& info)
 	{
-		return KMeshUnilityInfoPtr(new KMeshSphereUnilityInfo(info));
+		return KMeshUtilityInfoPtr(new KMeshSphereUtilityInfo(info));
+	}
+
+	KMeshUtilityInfoPtr CreateTriangle(const KMeshTriangleInfo& info)
+	{
+		return KMeshUtilityInfoPtr(new KMeshTriangleUtilityInfo(info));
+	}
+
+	KMeshUtilityInfoPtr CreateCube(const KMeshCubeInfo& info)
+	{
+		return KMeshUtilityInfoPtr(new KMeshCubeUtilityInfo(info));
 	}
 }

@@ -135,7 +135,7 @@ bool KMeshManager::Release(KMeshPtr& ptr)
 	return false;
 }
 
-bool KMeshManager::AcquireAsUtility(const KMeshUnilityInfoPtr& info, KMeshPtr& ptr)
+bool KMeshManager::AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr)
 {
 	ptr = KMeshPtr(new KMesh());
 	if (ptr->InitUtility(info, m_Device, m_FrameInFlight))
@@ -147,7 +147,7 @@ bool KMeshManager::AcquireAsUtility(const KMeshUnilityInfoPtr& info, KMeshPtr& p
 	return false;
 }
 
-bool KMeshManager::UpdateUtility(const KMeshUnilityInfoPtr& info, KMeshPtr& ptr)
+bool KMeshManager::UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr)
 {
 	if (ptr)
 	{
