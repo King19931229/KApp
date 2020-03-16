@@ -69,6 +69,23 @@ bool KGLFWRenderWindow::GLFWKeyToInputKeyboard(int key, InputKeyboard& board)
 		board = INPUT_KEY_E;
 		return true;
 
+	case GLFW_KEY_R:
+		board = INPUT_KEY_R;
+		return true;
+
+	case GLFW_KEY_1:
+		board = INPUT_KEY_1;
+		return true;
+	case GLFW_KEY_2:
+		board = INPUT_KEY_2;
+		return true;
+	case GLFW_KEY_3:
+		board = INPUT_KEY_3;
+		return true;
+	case GLFW_KEY_4:
+		board = INPUT_KEY_4;
+		return true;
+
 	case GLFW_KEY_ENTER:
 		board = INPUT_KEY_ENTER;
 		return true;

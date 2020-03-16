@@ -689,10 +689,13 @@ bool KVulkanRenderDevice::CreateMesh()
 		KRenderGlobal::Scene.Add(entity);
 	}
 #endif
-	m_MoveGizmo = CreateGizmo(GizmoType::GIZMO_TYPE_SCALE);
+
+	m_MoveGizmo = CreateGizmo();
 	m_MoveGizmo->Init(&m_Camera);
 	m_MoveGizmo->SetManipulateMode(GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL);
-	m_MoveGizmo->SetMatrix(glm::rotate(glm::mat4(1.0f), glm::pi<float>() * 0.3f, glm::vec3(1.0f, 0.0f, 0.0f)));
+	m_MoveGizmo->SetMatrix(glm::rotate(glm::mat4(1.0f), glm::pi<float>() * 0.3f, glm::vec3(1.0f, 0.0f, 0.0f)) *
+		glm::translate(glm::mat4(1.0f), glm::vec3(30.0f, 30.0f, 0.0f)));
+	m_MoveGizmo->SetType(GizmoType::GIZMO_TYPE_ROTATE);
 	m_MoveGizmo->Enter();
 
 	return true;
@@ -1029,6 +1032,31 @@ bool KVulkanRenderDevice::AddWindowCallback()
 		case INPUT_KEY_Q:
 			m_Move[1] -= sign;
 			break;
+
+		case INPUT_KEY_1:
+			m_MoveGizmo->SetType(GizmoType::GIZMO_TYPE_MOVE);
+			break;
+
+		case INPUT_KEY_2:
+			m_MoveGizmo->SetType(GizmoType::GIZMO_TYPE_ROTATE);
+			break;
+
+		case INPUT_KEY_3:
+			m_MoveGizmo->SetType(GizmoType::GIZMO_TYPE_SCALE);
+			break;
+
+		case INPUT_KEY_R:
+		{
+			if (action == INPUT_ACTION_PRESS)
+			{
+				GizmoManipulateMode mode = m_MoveGizmo->GetManipulateMode() == GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL ?
+					GizmoManipulateMode::GIZMO_MANIPULATE_WORLD :
+					GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL;
+				m_MoveGizmo->SetManipulateMode(mode);
+			}
+			break;
+		}
+
 		default:
 			break;
 		}

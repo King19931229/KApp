@@ -223,7 +223,15 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 
 				//KLog::Logger->Log(LL_DEBUG, "%f", theta);
 
-				m_Transform = glm::rotate(glm::mat4(1.0f), theta, m_PickPlane.GetNormal()) * m_PickTransform;
+				m_Transform = m_PickTransform;
+
+				glm::mat4 rotate = TransformRotate();
+				rotate = glm::rotate(glm::mat4(1.0f), theta, m_PickPlane.GetNormal()) * rotate;
+
+				glm::mat4 translate = glm::translate(glm::mat4(1.0f), transformPos);
+				glm::mat4 scale = glm::scale(glm::mat4(1.0f), TransformScale());
+
+				m_Transform = translate * rotate * scale;
 			}
 
 		}

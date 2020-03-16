@@ -206,22 +206,22 @@ KScaleGizmo::ScaleOperator KScaleGizmo::GetOperatorType(unsigned int x, unsigned
 			{
 				if (normalizePos.x < INNER_PLANE_SIZE && normalizePos.x > 0.0f && normalizePos.y < INNER_PLANE_SIZE && normalizePos.y > 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick xyz plane");
+					//KLog::Logger->Log(LL_DEBUG, "pick xyz plane");
 					return ScaleOperator::SCALE_XYZ;
 				}
 				if (fabs(normalizePos.x) < AXIS_RADIUS && normalizePos.y < AXIS_LENGTH && normalizePos.y >= 0)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick y axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick y axis");
 					return ScaleOperator::SCALE_Y;
 				}
 				else if (fabs(normalizePos.y) < AXIS_RADIUS && normalizePos.x < AXIS_LENGTH && normalizePos.x >= 0)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick x axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick x axis");
 					return ScaleOperator::SCALE_X;
 				}
 				else if (normalizePos.x < PLANE_SIZE && normalizePos.x > 0.0f && normalizePos.y < PLANE_SIZE && normalizePos.y > 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick xy plane");
+					//KLog::Logger->Log(LL_DEBUG, "pick xy plane");
 					return ScaleOperator::SCALE_XY;
 				}
 			}
@@ -236,22 +236,22 @@ KScaleGizmo::ScaleOperator KScaleGizmo::GetOperatorType(unsigned int x, unsigned
 			{
 				if (normalizePos.y < INNER_PLANE_SIZE && normalizePos.y > 0.0f && normalizePos.z < INNER_PLANE_SIZE && normalizePos.z > 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick xyz plane");
+					//KLog::Logger->Log(LL_DEBUG, "pick xyz plane");
 					return ScaleOperator::SCALE_XYZ;
 				}
 				else if (fabs(normalizePos.y) < AXIS_RADIUS && normalizePos.z < AXIS_LENGTH && normalizePos.z >= 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick z axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick z axis");
 					return ScaleOperator::SCALE_Z;
 				}
 				else if (fabs(normalizePos.z) < AXIS_RADIUS && normalizePos.y < AXIS_LENGTH && normalizePos.y >= 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick y axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick y axis");
 					return ScaleOperator::SCALE_Y;
 				}
 				else if (normalizePos.y < PLANE_SIZE && normalizePos.y > 0.0f && normalizePos.z < PLANE_SIZE && normalizePos.z > 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick yz plane");
+					//KLog::Logger->Log(LL_DEBUG, "pick yz plane");
 					return ScaleOperator::SCALE_YZ;
 				}
 			}
@@ -266,22 +266,22 @@ KScaleGizmo::ScaleOperator KScaleGizmo::GetOperatorType(unsigned int x, unsigned
 			{
 				if (normalizePos.x < INNER_PLANE_SIZE && normalizePos.x > 0.0f && normalizePos.z < INNER_PLANE_SIZE && normalizePos.z > 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick xyz plane");
+					//KLog::Logger->Log(LL_DEBUG, "pick xyz plane");
 					return ScaleOperator::SCALE_XYZ;
 				}
 				else if (fabs(normalizePos.x) < AXIS_RADIUS && normalizePos.z < AXIS_LENGTH && normalizePos.z >= 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick z axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick z axis");
 					return ScaleOperator::SCALE_Z;
 				}
 				else if (fabs(normalizePos.z) < AXIS_RADIUS && normalizePos.x < AXIS_LENGTH && normalizePos.x >= 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick x axis");
+					//KLog::Logger->Log(LL_DEBUG, "pick x axis");
 					return ScaleOperator::SCALE_X;
 				}
 				else if (normalizePos.x < PLANE_SIZE && normalizePos.x > 0.0f && normalizePos.z < PLANE_SIZE && normalizePos.z > 0.0f)
 				{
-					KLog::Logger->Log(LL_DEBUG, "pick xz plane");
+					//KLog::Logger->Log(LL_DEBUG, "pick xz plane");
 					return ScaleOperator::SCALE_XZ;
 				}
 			}
@@ -291,7 +291,7 @@ KScaleGizmo::ScaleOperator KScaleGizmo::GetOperatorType(unsigned int x, unsigned
 	return ScaleOperator::SCALE_NONE;
 }
 
-#define DEBUG_GIZMO
+//#define DEBUG_GIZMO
 
 glm::vec3 KScaleGizmo::GetScale()
 {

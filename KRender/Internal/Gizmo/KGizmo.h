@@ -4,19 +4,20 @@
 #include "KRotateGizmo.h"
 #include "KScaleGizmo.h"
 
-class KGizmo : public IKGizmoGroup
+class KGizmo : public IKGizmo
 {
 protected:
 	IKGizmoPtr m_TranslateGizmo;
 	IKGizmoPtr m_RotateGizmo;
 	IKGizmoPtr m_ScaleGizmo;
-
 	IKGizmoPtr m_CurrentGizmo;
+	bool m_Enter;
 public:
 	KGizmo();
 	~KGizmo();
 
 	GizmoType GetType() const override;
+	bool SetType(GizmoType type) override;
 
 	bool Init(const KCamera* camera)  override;
 	bool UnInit() override;
@@ -40,6 +41,4 @@ public:
 	void OnMouseDown(unsigned int x, unsigned int y) override;
 	void OnMouseMove(unsigned int x, unsigned int y) override;
 	void OnMouseUp(unsigned int x, unsigned int y) override;
-
-	GizmoType SetType(GizmoType type) override;
 };

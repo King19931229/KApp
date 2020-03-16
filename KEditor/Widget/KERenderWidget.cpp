@@ -74,6 +74,23 @@ bool KERenderWidget::QtKeyToInputKeyboard(Qt::Key button, InputKeyboard& keyboar
 		keyboard = INPUT_KEY_E;
 		return true;
 
+	case Qt::Key_R:
+		keyboard = INPUT_KEY_R;
+		return true;
+
+	case Qt::Key_1:
+		keyboard = INPUT_KEY_1;
+		return true;
+	case Qt::Key_2:
+		keyboard = INPUT_KEY_2;
+		return true;
+	case Qt::Key_3:
+		keyboard = INPUT_KEY_3;
+		return true;
+	case Qt::Key_4:
+		keyboard = INPUT_KEY_4;
+		return true;
+
 	case Qt::Key_Enter:
 		keyboard = INPUT_KEY_ENTER;
 		return true;

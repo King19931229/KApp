@@ -39,6 +39,8 @@ public:
 	bool Init(const KCamera* camera) override;
 	bool UnInit() override;
 
+	bool SetType(GizmoType type) final { return false; }
+
 	void Enter() final;
 	void Leave() final;
 
