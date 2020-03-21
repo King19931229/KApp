@@ -99,3 +99,50 @@ bool KEntity::UnRegisterAllComponent()
 	m_Components.clear();
 	return true;
 }
+
+bool KEntity::GetBound(KAABBBox& bound)
+{
+	KComponentBase* component = nullptr;
+	KRenderComponent* renderComponent = nullptr;
+	KTransformComponent* transformComponent = nullptr;
+
+	if (GetComponent(CT_RENDER, &component))
+	{
+		renderComponent = (KRenderComponent*)component;
+	}
+	if (GetComponent(CT_TRANSFORM, &component))
+	{
+		transformComponent = (KTransformComponent*)component;
+	}
+
+	if (renderComponent)
+	{
+		KMeshPtr mesh = renderComponent->GetMesh();
+		if (mesh)
+		{
+			const KAABBBox& localBound = mesh->GetLocalBound();
+			if (transformComponent)
+			{
+				const auto& finalTransform = transformComponent->FinalTransform();
+				localBound.Transform(finalTransform.MODEL, bound);
+			}
+			else
+			{
+				bound = localBound;
+			}
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir)
+{
+	KAABBBox bound;
+	if (GetBound(bound) && bound.Intersect(origin, dir))
+	{
+		return true;
+	}
+	return false;
+}

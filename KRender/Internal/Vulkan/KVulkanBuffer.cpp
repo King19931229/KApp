@@ -6,7 +6,6 @@
 // KVulkanVertexBuffer
 KVulkanVertexBuffer::KVulkanVertexBuffer()
 	: KVertexBufferBase(),
-	m_bDeviceInit(false),
 	m_bHostVisible(false)
 {
 	m_vkBuffer = VK_NULL_HANDLE;
@@ -15,14 +14,14 @@ KVulkanVertexBuffer::KVulkanVertexBuffer()
 
 KVulkanVertexBuffer::~KVulkanVertexBuffer()
 {
-	ASSERT_RESULT(!m_bDeviceInit);
+	ASSERT_RESULT(m_ShadowData.empty());
 	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
 }
 
 bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 {
 	using namespace KVulkanGlobal;
-	ASSERT_RESULT(!m_bDeviceInit);
+	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
 
 	if(hostVisible)
 	{
@@ -64,11 +63,8 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
 	}
 
-	// 把之前存在内存里的数据丢掉
-	m_Data.resize(0);
-	m_Data.shrink_to_fit();
+	m_ShadowData = std::move(m_Data);
 
-	m_bDeviceInit = true;
 	m_bHostVisible = hostVisible;
 
 	return true;
@@ -78,13 +74,24 @@ bool KVulkanVertexBuffer::UnInit()
 {
 	using namespace KVulkanGlobal;
 	KVertexBufferBase::UnInit();
-	if(m_bDeviceInit)
+
+	if(m_vkBuffer != VK_NULL_HANDLE)
 	{
 		KVulkanInitializer::FreeVkBuffer(m_vkBuffer, m_AllocInfo);
 		m_vkBuffer = VK_NULL_HANDLE;
 		ZERO_MEMORY(m_AllocInfo);
-		m_bDeviceInit = false;
 	}
+
+	m_ShadowData.clear();
+	m_ShadowData.shrink_to_fit();
+
+	return true;
+}
+
+bool KVulkanVertexBuffer::DiscardMemory()
+{
+	m_ShadowData.clear();
+	m_ShadowData.shrink_to_fit();
 	return true;
 }
 
@@ -93,7 +100,7 @@ bool KVulkanVertexBuffer::Map(void** ppData)
 	ASSERT_RESULT(ppData != nullptr);
 	if(m_bHostVisible)
 	{
-		if(m_bDeviceInit)
+		if(m_vkBuffer != VK_NULL_HANDLE)
 		{
 			using namespace KVulkanGlobal;
 			VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
@@ -105,11 +112,14 @@ bool KVulkanVertexBuffer::Map(void** ppData)
 
 bool KVulkanVertexBuffer::UnMap()
 {
-	if(m_bDeviceInit && m_bHostVisible)
+	if(m_bHostVisible)
 	{
-		using namespace KVulkanGlobal;
-		vkUnmapMemory(device, m_AllocInfo.vkMemroy);
-		return true;
+		if (m_vkBuffer != VK_NULL_HANDLE)
+		{
+			using namespace KVulkanGlobal;
+			vkUnmapMemory(device, m_AllocInfo.vkMemroy);
+			return true;
+		}
 	}
 	return false;
 }
@@ -141,17 +151,15 @@ bool KVulkanVertexBuffer::Read(void* pData)
 			return true;
 		}
 	}
-#if 0
 	else
 	{
-		if(!m_Data.empty())
+		if(!m_ShadowData.empty())
 		{
-			assert(m_Data.size() == m_BufferSize);
-			memcpy(pData, m_Data.data(), m_BufferSize);
+			assert(m_ShadowData.size() == m_BufferSize);
+			memcpy(pData, m_ShadowData.data(), m_BufferSize);
 			return true;
 		}
 	}
-#endif
 	return true;
 }
 
@@ -168,7 +176,6 @@ bool KVulkanVertexBuffer::CopyTo(IKVertexBufferPtr pDest)
 // KVulkanIndexBuffer
 KVulkanIndexBuffer::KVulkanIndexBuffer()
 	: KIndexBufferBase(),
-	m_bDeviceInit(false),
 	m_bHostVisible(false)
 {
 	m_vkBuffer = VK_NULL_HANDLE;
@@ -177,14 +184,14 @@ KVulkanIndexBuffer::KVulkanIndexBuffer()
 
 KVulkanIndexBuffer::~KVulkanIndexBuffer()
 {
-	ASSERT_RESULT(!m_bDeviceInit);
+	ASSERT_RESULT(m_ShadowData.empty());
 	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
 }
 
 bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 {
 	using namespace KVulkanGlobal;
-	ASSERT_RESULT(!m_bDeviceInit);
+	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
 
 	if(hostVisible)
 	{
@@ -228,11 +235,8 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
 	}
 
-	// 把之前存在内存里的数据丢掉
-	m_Data.resize(0);
-	m_Data.shrink_to_fit();
+	m_ShadowData = std::move(m_Data);
 
-	m_bDeviceInit = true;
 	m_bHostVisible = hostVisible;
 
 	return true;
@@ -242,13 +246,24 @@ bool KVulkanIndexBuffer::UnInit()
 {
 	using namespace KVulkanGlobal;
 	KIndexBufferBase::UnInit();
-	if(m_bDeviceInit)
+
+	if(m_vkBuffer != VK_NULL_HANDLE)
 	{
 		KVulkanInitializer::FreeVkBuffer(m_vkBuffer, m_AllocInfo);
 		m_vkBuffer = VK_NULL_HANDLE;
 		ZERO_MEMORY(m_AllocInfo);
-		m_bDeviceInit = false;
 	}
+
+	m_ShadowData.clear();
+	m_ShadowData.shrink_to_fit();
+
+	return true;
+}
+
+bool KVulkanIndexBuffer::DiscardMemory()
+{
+	m_ShadowData.clear();
+	m_ShadowData.shrink_to_fit();
 	return true;
 }
 
@@ -257,7 +272,7 @@ bool KVulkanIndexBuffer::Map(void** ppData)
 	ASSERT_RESULT(ppData != nullptr);
 	if(m_bHostVisible)
 	{
-		if(m_bDeviceInit)
+		if(m_vkBuffer != VK_NULL_HANDLE)
 		{
 			using namespace KVulkanGlobal;
 			VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
@@ -269,11 +284,14 @@ bool KVulkanIndexBuffer::Map(void** ppData)
 
 bool KVulkanIndexBuffer::UnMap()
 {
-	if(m_bDeviceInit && m_bHostVisible)
+	if(m_bHostVisible)
 	{
-		using namespace KVulkanGlobal;
-		vkUnmapMemory(device, m_AllocInfo.vkMemroy);
-		return true;
+		if (m_vkBuffer != VK_NULL_HANDLE)
+		{
+			using namespace KVulkanGlobal;
+			vkUnmapMemory(device, m_AllocInfo.vkMemroy);
+			return true;
+		}
 	}
 	return false;
 }
@@ -305,17 +323,15 @@ bool KVulkanIndexBuffer::Read(void* pData)
 			return true;
 		}
 	}
-#if 0
 	else
 	{
-		if(!m_Data.empty())
+		if (!m_ShadowData.empty())
 		{
-			assert(m_Data.size() == m_BufferSize);
-			memcpy(pData, m_Data.data(), m_BufferSize);
+			assert(m_ShadowData.size() == m_BufferSize);
+			memcpy(pData, m_ShadowData.data(), m_BufferSize);
 			return true;
 		}
 	}
-#endif
 	return true;
 }
 

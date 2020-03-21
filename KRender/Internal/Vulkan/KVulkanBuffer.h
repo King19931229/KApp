@@ -8,7 +8,7 @@ class KVulkanVertexBuffer : public KVertexBufferBase
 protected:
 	VkBuffer m_vkBuffer;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
-	bool m_bDeviceInit;
+	std::vector<char> m_ShadowData;
 	bool m_bHostVisible;
 public:
 	KVulkanVertexBuffer();
@@ -16,6 +16,8 @@ public:
 
 	virtual bool InitDevice(bool hostVisible);
 	virtual bool UnInit();
+
+	virtual bool DiscardMemory();
 
 	virtual bool Map(void** ppData);
 	virtual bool UnMap();
@@ -33,7 +35,7 @@ class KVulkanIndexBuffer : public KIndexBufferBase
 protected:
 	VkBuffer m_vkBuffer;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
-	bool m_bDeviceInit;
+	std::vector<char> m_ShadowData;
 	bool m_bHostVisible;
 public:
 	KVulkanIndexBuffer();
@@ -41,6 +43,8 @@ public:
 
 	virtual bool InitDevice(bool hostVisible);
 	virtual bool UnInit();
+
+	virtual bool DiscardMemory();
 
 	virtual bool Map(void** ppData);
 	virtual bool UnMap();

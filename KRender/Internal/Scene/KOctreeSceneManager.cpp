@@ -38,45 +38,10 @@ bool KOctreeSceneManager::UnInit()
 	return true;
 }
 
-bool KOctreeSceneManager::GetEntityBound(KEntityPtr entity, KAABBBox& bound)
-{
-	if (entity)
-	{
-		KComponentBase* component = nullptr;
-		KRenderComponent* renderComponent = nullptr;
-		KTransformComponent* transformComponent = nullptr;
-
-		if (entity->GetComponent(CT_RENDER, &component))
-		{
-			renderComponent = (KRenderComponent*)component;
-		}
-		if (entity->GetComponent(CT_TRANSFORM, &component))
-		{
-			transformComponent = (KTransformComponent*)component;
-		}
-
-		if (renderComponent)
-		{
-			KMeshPtr mesh = renderComponent->GetMesh();
-			if (mesh)
-			{
-				const KAABBBox& localBound = mesh->GetLocalBound();
-				if (transformComponent)
-				{
-					const auto& finalTransform = transformComponent->FinalTransform();
-					localBound.Transform(finalTransform.MODEL, bound);
-				}
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
 bool KOctreeSceneManager::Add(KEntityPtr entity)
 {
 	KAABBBox bound;
-	if (m_Root && GetEntityBound(entity, bound))
+	if (m_Root && entity->GetBound(bound))
 	{
 		return m_Root->Add(entity, bound);
 	}

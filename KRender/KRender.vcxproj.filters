@@ -321,6 +321,12 @@
     <ClInclude Include="Internal\Gizmo\KGizmo.h">
       <Filter>Internal\Gizmo</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Asset\KTriangleMesh.h">
+      <Filter>Internal\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KTriangle.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">

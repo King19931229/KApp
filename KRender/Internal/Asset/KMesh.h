@@ -4,6 +4,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KSubMesh.h"
+#include "KTriangleMesh.h"
 #include "Utility/KMeshUtilityInfo.h"
 
 class KMesh
@@ -14,9 +15,11 @@ class KMesh
 protected:
 	KVertexData m_VertexData;
 	std::vector<KSubMeshPtr> m_SubMeshes;
+	KTriangleMesh m_TriangleMesh;
 	std::string m_Path;
 
 	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group);
+	void UpdateTriangleMesh();
 public:
 	KMesh();
 	~KMesh();

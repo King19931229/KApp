@@ -14,6 +14,7 @@ KMesh::~KMesh()
 	ASSERT_RESULT(m_VertexData.vertexBuffers.empty());
 	ASSERT_RESULT(m_VertexData.vertexFormats.empty());
 	ASSERT_RESULT(m_SubMeshes.empty());
+	ASSERT_RESULT(m_TriangleMesh.triangles.empty());
 }
 
 bool KMesh::SaveAsFile(const char* szPath)
@@ -58,7 +59,108 @@ bool KMesh::UnInit()
 	}
 	m_SubMeshes.clear();
 	m_Path.clear();
+	m_TriangleMesh.Destroy();
 	return true;
+}
+
+void KMesh::UpdateTriangleMesh()
+{
+	m_TriangleMesh.Destroy();
+	for (KSubMeshPtr& subMesh : m_SubMeshes)
+	{
+		const KVertexData* vertexData = subMesh->m_pVertexData;
+
+		size_t idx = 0;
+		for (VertexFormat format : vertexData->vertexFormats)
+		{
+			if (format == VF_POINT_NORMAL_UV)
+			{
+				IKVertexBufferPtr vertexBuffer = vertexData->vertexBuffers[idx];
+
+				std::vector<glm::vec3> vertices;
+				vertices.reserve(vertexBuffer->GetVertexCount());
+
+				{
+					std::vector<char> vertexDatas;
+					vertexDatas.resize(vertexBuffer->GetBufferSize());
+					vertexBuffer->Read(vertexDatas.data());
+					KVertexDefinition::POS_3F_NORM_3F_UV_2F* pData = (KVertexDefinition::POS_3F_NORM_3F_UV_2F*)vertexDatas.data();
+					for (auto i = vertexData->vertexStart; i < vertexData->vertexCount; ++i)
+					{
+						vertices.push_back(pData[i].POSITION);
+					}
+				}
+
+				if (subMesh->m_IndexDraw)
+				{
+					const KIndexData& indexData = subMesh->m_IndexData;
+					IKIndexBufferPtr indexBuffer = indexData.indexBuffer;
+
+					assert(indexBuffer->GetIndexCount() % 3 == 0);
+
+					std::vector<uint32_t> indices;
+
+					if (indexBuffer->GetIndexType() == IT_32)
+					{
+						indices.resize(indexBuffer->GetIndexCount());
+						indexBuffer->Read(indices.data());
+					}
+					else
+					{
+						indices.reserve(indexBuffer->GetIndexCount());
+
+						std::vector<uint16_t> indices16;
+						indices16.resize(indexBuffer->GetIndexCount());
+						indexBuffer->Read(indices16.data());
+
+						for (uint16_t idx : indices16)
+						{
+							indices.push_back(idx);
+						}
+					}
+
+					size_t triangleCount = indices.size() / 3;
+					m_TriangleMesh.triangles.reserve(triangleCount);
+
+					for (size_t i = 0; i < triangleCount; ++i)
+					{
+						KTriangle triangle;
+						triangle.Init({ vertices[indices[i * 3]], vertices[indices[i * 3 + 1]], vertices[indices[i * 3 + 2]] });
+						m_TriangleMesh.triangles.push_back(std::move(triangle));
+					}
+				}
+				else
+				{
+					assert(vertices.size() % 3 == 0);
+
+					size_t triangleCount = vertices.size() / 3;
+					m_TriangleMesh.triangles.reserve(triangleCount);
+
+					for (size_t i = 0; i < triangleCount; ++i)
+					{
+						KTriangle triangle;
+						triangle.Init({ vertices[i * 3], vertices[i * 3 + 1], vertices[i * 3 + 2] });
+						m_TriangleMesh.triangles.push_back(std::move(triangle));
+					}
+				}
+			}
+			++idx;
+		}
+	}
+
+	for (KSubMeshPtr& subMesh : m_SubMeshes)
+	{
+		if (subMesh->m_IndexData.indexBuffer)
+		{
+			subMesh->m_IndexData.indexBuffer->DiscardMemory();
+		}
+
+	}
+
+	for (IKVertexBufferPtr buffer : m_VertexData.vertexBuffers)
+	{
+		buffer->DiscardMemory();
+	}
 }
 
 bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group)
@@ -217,6 +319,9 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 			indexData.Clear();
 		}
 		m_Path = szPath;
+
+		UpdateTriangleMesh();
+
 		return true;
 	}
 	return false;
@@ -231,7 +336,13 @@ bool KMesh::InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device,
 	}
 	UnInit();
 
-	return KMeshUtility::CreateUtility(device, this, info, frameInFlight);
+	if (KMeshUtility::CreateUtility(device, this, info, frameInFlight))
+	{
+		UpdateTriangleMesh();
+		return true;
+	}
+
+	return false;
 }
 
 bool KMesh::UpdateUnility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight)
@@ -242,7 +353,13 @@ bool KMesh::UpdateUnility(const KMeshUtilityInfoPtr& info, IKRenderDevice* devic
 		return false;
 	}
 
-	return KMeshUtility::UpdateUtility(device, this, info, frameInFlight);
+	if (KMeshUtility::UpdateUtility(device, this, info, frameInFlight))
+	{
+		UpdateTriangleMesh();
+		return true;
+	}
+
+	return false;
 }
 
 bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func)

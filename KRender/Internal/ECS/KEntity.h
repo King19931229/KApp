@@ -2,14 +2,13 @@
 #include "KECS.h"
 #include <unordered_map>
 #include "Internal/KConstantDefinition.h"
+#include "Publish/KAABBBox.h"
 
 class KEntity
 {
 protected:
 	typedef std::unordered_map<ComponentType, KComponentBase*> ComponentMap;
 	ComponentMap m_Components;
-
-
 
 	size_t m_Id;
 public:
@@ -37,6 +36,9 @@ public:
 	}
 	bool UnRegisterComponent(ComponentType type);
 	bool UnRegisterAllComponent();
+
+	bool GetBound(KAABBBox& bound);
+	bool Intersect(const glm::vec3& origin, const glm::vec3& dir);
 
 	inline size_t GetID() { return m_Id; }
 };

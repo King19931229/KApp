@@ -249,6 +249,19 @@ public:
 		}
 	}
 
+	bool Intersect(const glm::vec3& origin, const glm::vec3& dir)
+	{
+		glm::vec3 inv_dir = 1.0f / dir;
+		glm::vec3 tMin = (m_Min - origin) * inv_dir;
+		glm::vec3 tMax = (m_Max - origin) * inv_dir;
+		glm::vec3 t1 = glm::min(tMin, tMax);
+		glm::vec3 t2 = glm::max(tMin, tMax);
+		float tNear = std::max(std::max(t1.x, t1.y), t1.z);
+		float tFar = std::min(std::min(t2.x, t2.y), t2.z);
+
+		return tNear <= tFar;
+	}
+
 #if 0
       1------2
       /|    /|

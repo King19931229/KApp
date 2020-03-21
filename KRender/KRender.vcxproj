@@ -39,6 +39,7 @@
     <ClInclude Include="Internal\Asset\KMaterial.h" />
     <ClInclude Include="Internal\Asset\KMesh.h" />
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
+    <ClInclude Include="Internal\Asset\KTriangleMesh.h" />
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializer.h" />
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializerV0.h" />
     <ClInclude Include="Internal\Asset\Utility\KMeshUtilityInfo.h" />
@@ -106,6 +107,7 @@
     <ClInclude Include="Publish\KCamera.h" />
     <ClInclude Include="Publish\KEnumString.h" />
     <ClInclude Include="Publish\KPlane.h" />
+    <ClInclude Include="Publish\KTriangle.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Asset\KMaterial.cpp" />

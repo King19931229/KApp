@@ -17,8 +17,6 @@ protected:
 	float m_MinSize;
 
 	KEntityToNodeMap* m_EntityToNode;
-
-	bool GetEntityBound(KEntityPtr entity, KAABBBox& bound);
 public:
 	KOctreeSceneManager();
 	~KOctreeSceneManager();
