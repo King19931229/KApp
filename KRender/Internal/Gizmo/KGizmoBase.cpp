@@ -30,30 +30,10 @@ bool KGizmoBase::CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin, 
 {
 	if (m_Camera && m_ScreenWidth > 0 && m_ScreenHeight > 0)
 	{
-		glm::vec4 near = glm::vec4(
-			2.0f * ((float)x / (float)m_ScreenWidth) - 1.0f,
-			2.0f * ((float)y / (float)m_ScreenHeight) - 1.0f,
-#ifdef GLM_FORCE_DEPTH_ZERO_TO_ONE
-			0.0f,
-#else
-			- 1.0f,
-#endif
-			1.0f
-		);
-		glm::vec4 far = glm::vec4(near.x, near.y, 1.0f, 1.0f);
-
-		glm::mat4 vp = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
-		glm::mat4 inv_vp = glm::inverse(vp);
-
-		near = inv_vp * near;
-		far = inv_vp * far;
-
-		glm::vec3 nearPos = glm::vec3(near.x, near.y, near.z) / near.w;
-		glm::vec3 farPos = glm::vec3(far.x, far.y, far.z) / far.w;
-
-		origin = nearPos;
-		dir = glm::normalize(farPos - nearPos);
-		return true;
+		if (m_Camera->CalcPickRay(x, y, m_ScreenWidth, m_ScreenHeight, origin, dir))
+		{
+			return true;
+		}
 	}
 	return false;
 }

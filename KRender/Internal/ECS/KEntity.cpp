@@ -100,6 +100,22 @@ bool KEntity::UnRegisterAllComponent()
 	return true;
 }
 
+bool KEntity::GetTransform(glm::mat4& transform)
+{
+	KTransformComponent* transformComponent = nullptr;
+	if (GetComponent(CT_TRANSFORM, &transformComponent))
+	{
+		const auto& finalTransform = transformComponent->FinalTransform();
+		transform = finalTransform.MODEL;
+	}
+	else
+	{
+		transform = glm::mat4(1.0f);
+	}
+
+	return true;
+}
+
 bool KEntity::GetBound(KAABBBox& bound)
 {
 	KComponentBase* component = nullptr;
@@ -137,12 +153,78 @@ bool KEntity::GetBound(KAABBBox& bound)
 	return false;
 }
 
-bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir)
+bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result, const float* maxDistance)
 {
 	KAABBBox bound;
-	if (GetBound(bound) && bound.Intersect(origin, dir))
+
+	glm::vec3 boxResult;
+	if (GetBound(bound) && bound.Intersection(origin, dir, boxResult))
 	{
-		return true;
+		if (maxDistance && glm::dot(boxResult - origin, dir) > *maxDistance)
+		{
+			return false;
+		}
+
+		glm::vec3 localOrigin;
+		glm::vec3 localDir;
+
+		KRenderComponent* renderComponent = nullptr;
+		if (GetComponent(CT_RENDER, &renderComponent))
+		{
+			glm::mat4 model;
+			glm::mat4 invModel;
+			if (GetTransform(model))
+			{
+				glm::mat4 invModel = glm::inverse(model);
+
+				localOrigin = invModel * glm::vec4(origin, 1.0f);
+				localDir = invModel * glm::vec4(dir, 0.0f);
+				localDir = glm::normalize(localDir);
+
+				KMeshPtr mesh = renderComponent->GetMesh();
+				if (mesh)
+				{
+					const KTriangleMesh& triangleMesh = mesh->GetTriangleMesh();
+
+					glm::vec3 triangleResult;
+					bool intersect = false;
+
+					if (maxDistance)
+					{
+						if (triangleMesh.CloestPickPoint(localOrigin, localDir, triangleResult))
+						{
+							intersect = true;
+						}
+					}
+					else
+					{
+						glm::vec3 triangleResult;
+						if (triangleMesh.Pick(localOrigin, localDir, triangleResult))
+						{
+							intersect = true;
+						}
+					}
+
+					if (intersect)
+					{
+						float dotRes = 0.0f;
+						dotRes = glm::dot(triangleResult - localOrigin, localDir);
+						glm::vec3 localPoint = localOrigin + dotRes * localDir;
+						result = model * glm::vec4(localPoint, 1.0f);
+
+						if (maxDistance)
+						{
+							float distance = glm::dot(result - origin, dir);
+							return distance < *maxDistance;
+						}
+						else
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
 	}
 	return false;
 }

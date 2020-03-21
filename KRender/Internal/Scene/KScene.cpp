@@ -96,6 +96,74 @@ bool KScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderCompon
 	return false;
 }
 
+bool KScene::Pick(const KCamera& camera, size_t x, size_t y,
+	size_t screenWidth, size_t screenHeight, std::vector<KEntityPtr>& result)
+{
+	if (m_SceneMgr)
+	{
+		glm::vec3 origin;
+		glm::vec3 dir;
+		glm::vec3 resultPoint;
+
+		if (camera.CalcPickRay(x, y, screenWidth, screenHeight, origin, dir))
+		{
+			std::vector<KEntityPtr> entities;
+			if (m_SceneMgr->Pick(origin, dir, entities))
+			{
+				result.clear();
+				result.reserve(entities.size());
+
+				for (KEntityPtr entity : entities)
+				{
+					if (entity->Intersect(origin, dir, resultPoint))
+					{
+						result.push_back(entity);
+					}
+				}
+
+				return !result.empty();
+			}
+		}
+	}
+
+	return false;
+}
+
+bool KScene::CloestPick(const KCamera& camera, size_t x, size_t y,
+	size_t screenWidth, size_t screenHeight, KEntityPtr& result)
+{
+	if (m_SceneMgr)
+	{
+		glm::vec3 origin;
+		glm::vec3 dir;
+		glm::vec3 resultPoint;
+
+		float maxDistance = std::numeric_limits<float>::max();
+		result = nullptr;
+
+		if (camera.CalcPickRay(x, y, screenWidth, screenHeight, origin, dir))
+		{
+			std::vector<KEntityPtr> entities;
+			if (m_SceneMgr->Pick(origin, dir, entities))
+			{
+				for (KEntityPtr entity : entities)
+				{
+					if (entity->Intersect(origin, dir, resultPoint, &maxDistance))
+					{
+						maxDistance = glm::dot(resultPoint - origin, dir);
+						assert(maxDistance >= 0.0f);
+						result = entity;
+					}
+				}
+
+				return result != nullptr;
+			}
+		}
+	}
+
+	return false;
+}
+
 bool KScene::Load(const char* filename)
 {
 	return false;

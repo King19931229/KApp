@@ -1091,6 +1091,18 @@ bool KVulkanRenderDevice::AddWindowCallback()
 			m_UIOverlay->SetMouseDown(mouse, true);
 			if (m_MoveGizmo)
 			{
+				KEntityPtr entity;
+				if (mouse == INPUT_MOUSE_BUTTON_LEFT)
+				{
+					if (KRenderGlobal::Scene.CloestPick(m_Camera, (size_t)xPos, (size_t)yPos, width, height, entity))
+					{
+						glm::mat4 transform;
+						if (entity->GetTransform(transform))
+						{
+							m_MoveGizmo->SetMatrix(transform);
+						}
+					}
+				}
 				m_MoveGizmo->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
 			}
 		}

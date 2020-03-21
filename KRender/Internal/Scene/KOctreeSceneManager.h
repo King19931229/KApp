@@ -30,4 +30,6 @@ public:
 	bool Move(KEntityPtr entity) override;
 	bool GetVisibleEntity(const KCamera* camera, std::deque<KEntityPtr>& visibles) override;
 	bool GetDebugEntity(std::deque<KEntityPtr>& debugVisibles) override;
+
+	bool Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<KEntityPtr>& result) override;
 };

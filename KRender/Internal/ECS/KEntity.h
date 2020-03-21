@@ -38,7 +38,8 @@ public:
 	bool UnRegisterAllComponent();
 
 	bool GetBound(KAABBBox& bound);
-	bool Intersect(const glm::vec3& origin, const glm::vec3& dir);
+	bool GetTransform(glm::mat4& transform);
+	bool Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result, const float* maxDistance = nullptr);
 
 	inline size_t GetID() { return m_Id; }
 };

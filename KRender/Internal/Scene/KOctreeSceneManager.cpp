@@ -96,3 +96,13 @@ bool KOctreeSceneManager::GetDebugEntity(std::deque<KEntityPtr>& debugVisibles)
 	}
 	return false;
 }
+
+bool KOctreeSceneManager::Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<KEntityPtr>& result)
+{
+	if (m_Root)
+	{
+		m_Root->GetColliding(origin, dir, result);
+		return true;
+	}
+	return false;
+}

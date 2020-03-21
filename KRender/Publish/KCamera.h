@@ -388,4 +388,33 @@ public:
 	{
 		return m_Box.Intersect(box);
 	}
+
+	bool CalcPickRay(size_t x, size_t y, size_t screenWidth, size_t screenHeight,
+		glm::vec3& origin, glm::vec3& dir) const
+	{
+		glm::vec4 near = glm::vec4(
+			2.0f * ((float)x / (float)screenWidth) - 1.0f,
+			2.0f * ((float)y / (float)screenHeight) - 1.0f,
+#ifdef GLM_FORCE_DEPTH_ZERO_TO_ONE
+			0.0f,
+#else
+			- 1.0f,
+#endif
+			1.0f
+		);
+		glm::vec4 far = glm::vec4(near.x, near.y, 1.0f, 1.0f);
+
+		glm::mat4 vp = GetProjectiveMatrix() * GetViewMatrix();
+		glm::mat4 inv_vp = glm::inverse(vp);
+
+		near = inv_vp * near;
+		far = inv_vp * far;
+
+		glm::vec3 nearPos = glm::vec3(near.x, near.y, near.z) / near.w;
+		glm::vec3 farPos = glm::vec3(far.x, far.y, far.z) / far.w;
+
+		origin = nearPos;
+		dir = glm::normalize(farPos - nearPos);
+		return true;
+	}
 };

@@ -306,6 +306,33 @@ public:
 	}
 
 	template<typename QueryResultType>
+	void GetColliding(const glm::vec3& origin, const glm::vec3& dir, QueryResultType& result)
+	{
+		if (!bounds.Intersect(origin, dir))
+		{
+			return;
+		}
+
+		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
+		{
+			const auto& curObject = *it;
+			if (curObject.Bounds.Intersect(origin, dir))
+			{
+				result.push_back(curObject.Obj);
+			}
+		}
+
+		if (children)
+		{
+			for (auto i = 0; i < 8; i++)
+			{
+				children[i].GetColliding(origin, dir, result);
+			}
+		}
+
+	}
+
+	template<typename QueryResultType>
 	void GetColliding(const KAABBBox& checkBounds, QueryResultType& result)
 	{
 		if (!bounds.Intersect(checkBounds))

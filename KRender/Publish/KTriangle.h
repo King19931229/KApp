@@ -41,7 +41,7 @@ public:
 		}
 	}
 
-	bool IsPointInside(const glm::vec3& point)
+	bool IsPointInside(const glm::vec3& point) const
 	{
 		glm::vec3 A0 = point - m_Points[0];
 		glm::vec3 B0 = m_Points[1] - m_Points[0];
@@ -61,15 +61,24 @@ public:
 			return false;
 	}
 
-	bool Intersect(const glm::vec3& origin, const glm::vec3& dir)
+	bool Intersect(const glm::vec3& origin, const glm::vec3& dir) const
+	{
+		glm::vec3 intersectPoint;
+		if (Intersection(origin, dir, intersectPoint))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	bool Intersection(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result) const
 	{
 		KPlane plane;
 		plane.Init(m_Points[0], m_Points[1], m_Points[2]);
 
-		glm::vec3 intersectPoint;
-		if (plane.Intersect(origin, dir, intersectPoint))
+		if (plane.Intersect(origin, dir, result))
 		{
-			if (IsPointInside(intersectPoint))
+			if (IsPointInside(result))
 			{
 				return true;
 			}

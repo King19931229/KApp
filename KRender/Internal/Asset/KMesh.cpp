@@ -44,6 +44,7 @@ bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t fram
 	if(KMeshSerializer::LoadFromFile(device, this, szPath, frameInFlight))
 	{
 		m_Path = szPath;
+		UpdateTriangleMesh();
 		return true;
 	}
 	
