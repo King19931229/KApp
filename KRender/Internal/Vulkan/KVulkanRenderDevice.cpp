@@ -23,7 +23,6 @@
 #include "Internal/KRenderGlobal.h"
 
 #include "Internal/ECS/KECSGlobal.h"
-#include "Internal/ECS/System/KCullSystem.h"
 
 #include "KBase/Interface/IKLog.h"
 
@@ -175,8 +174,6 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_MultiThreadSumbit(true),
 	m_OctreeDebugDraw(false),
 	m_MouseCtrlCamera(true),
-	m_Texture(nullptr),
-	m_Sampler(nullptr),
 	m_FrameInFlight(2),
 	m_MoveGizmo(nullptr)
 {
@@ -357,45 +354,6 @@ bool KVulkanRenderDevice::CreateUI()
 	CreateUIOVerlay(m_UIOverlay);
 	m_UIOverlay->Init(this, m_FrameInFlight);
 	m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-	return true;
-}
-
-bool KVulkanRenderDevice::CreatePipelines()
-{
-	{
-		m_OffscreenPipelines.resize(m_FrameInFlight);
-		for(size_t i = 0; i < m_OffscreenPipelines.size(); ++i)
-		{
-			CreatePipeline(m_OffscreenPipelines[i]);
-
-			IKPipelinePtr pipeline = m_OffscreenPipelines[i];
-
-			VertexFormat formats[] = {VF_POINT_NORMAL_UV};
-
-			pipeline->SetVertexBinding(formats, 1);
-
-			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-
-			pipeline->SetShader(ST_VERTEX, m_SceneVertexShader);
-			pipeline->SetShader(ST_FRAGMENT, m_SceneFragmentShader);
-
-			pipeline->SetBlendEnable(false);
-
-			pipeline->SetCullMode(CM_BACK);
-			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-			pipeline->SetPolygonMode(PM_FILL);
-
-			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
-			pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
-
-			pipeline->SetSampler(CBT_COUNT, m_Texture, m_Sampler);
-			pipeline->SetSampler(CBT_COUNT + 1, KRenderGlobal::SkyBox.GetCubeTexture(), KRenderGlobal::SkyBox.GetSampler());
-
-			pipeline->CreateConstantBlock(m_ObjectConstant.shaderTypes, m_ObjectConstant.size);
-
-			pipeline->Init(false);
-		}
-	}
 	return true;
 }
 
@@ -701,96 +659,6 @@ bool KVulkanRenderDevice::CreateMesh()
 	return true;
 }
 
-bool KVulkanRenderDevice::CreateVertexInput()
-{
-	using namespace KVertexDefinition;
-
-	// Square
-	{
-		const POS_3F_NORM_3F_UV_2F vertices[] =
-		{
-			{glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 0.0f)},
-			{glm::vec3(0.5f, 0.0f, -0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 0.0f)},
-			{glm::vec3(-0.5f, 0.0f, -0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 1.0f)},
-			{glm::vec3(-0.5f, 0.0f, 0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 1.0f)},
-		};
-
-		m_Box.SetNull();
-		KAABBBox tempCalcResult;
-		for(int i = 0; i < ARRAY_SIZE(vertices); ++i)
-		{
-			m_Box.Merge(vertices[i].POSITION, tempCalcResult);
-			m_Box = tempCalcResult;
-		}
-
-		CreateVertexBuffer(m_SqaureData.vertexBuffer);
-		m_SqaureData.vertexBuffer->InitMemory(sizeof(vertices) / sizeof(vertices[0]), sizeof(vertices[0]), vertices);
-		m_SqaureData.vertexBuffer->InitDevice(false);
-
-		const uint32_t indices[] = {0, 1, 2, 2, 3, 0};
-		CreateIndexBuffer(m_SqaureData.indexBuffer);
-		m_SqaureData.indexBuffer->InitMemory(IT_32, sizeof(indices) / sizeof(indices[0]), indices);
-		m_SqaureData.indexBuffer->InitDevice(false);
-	}
-
-	return true;
-}
-
-bool KVulkanRenderDevice::CreateTransform()
-{
-	m_ObjectConstant.shaderTypes = ST_VERTEX;
-	m_ObjectConstant.size = sizeof(KConstantDefinition::OBJECT);
-
-#ifdef _DEBUG
-	const int width = 40;
-	const int height = 40;
-#else
-	const int width = 0;
-	const int height = 0;
-#endif
-
-	m_ObjectTransforms.clear();
-	m_ObjectTransforms.reserve(width * height);
-
-	m_ObjectFinalTransforms.clear();
-	m_ObjectFinalTransforms.reserve(width * height);
-	for(size_t x = 0; x <= width; ++x)
-	{
-		for(size_t y = 0; y <= height; ++y)
-		{
-			float xPos = ((float)x - (float)width / 2.0f);
-			float yPos = ((float)y - (float)height / 2.0f);
-			ObjectInitTransform transform = 
-			{
-				glm::rotate(glm::mat4(1.0f),
-				glm::radians((1000.0f * float(rand() % 1000)) * glm::two_pi<float>()), 
-				glm::vec3(0.0f, 1.0f, 0.0f)),
-				glm::translate(glm::mat4(1.0f), glm::vec3(xPos, 0.0, yPos)),
-			};
-			m_ObjectTransforms.push_back(transform);
-			m_ObjectFinalTransforms.push_back(glm::mat4(1.0f));
-		}
-	}
-
-	return true;
-}
-
-bool KVulkanRenderDevice::CreateResource()
-{
-	ASSERT_RESULT(KRenderGlobal::TextrueManager.Acquire("Textures/vulkan_11_rgba.ktx", m_Texture, false));
-
-	CreateSampler(m_Sampler);
-	//m_Sampler->SetAnisotropic(true);
-	//m_Sampler->SetAnisotropicCount(16);
-	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_Sampler->Init(m_Texture, false);
-
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shader.vert", m_SceneVertexShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/demo.frag", m_SceneFragmentShader, false));
-
-	return true;
-}
-
 VkBool32 KVulkanRenderDevice::DebugUtilsMessengerCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -971,6 +839,18 @@ bool KVulkanRenderDevice::UnInitGlobalManager()
 
 	assert(KRenderGlobal::TaskExecutor.AllTaskDone());
 
+	return true;
+}
+
+bool KVulkanRenderDevice::InitRenderDispatcher()
+{
+	KRenderGlobal::RenderDispatcher.Init(this, (uint32_t)m_FrameInFlight, m_SwapChain, m_UIOverlay);
+	return true;
+}
+
+bool KVulkanRenderDevice::UnInitRenderDispatcher()
+{
+	KRenderGlobal::RenderDispatcher.UnInit();
 	return true;
 }
 
@@ -1361,25 +1241,12 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		if(!CreateUI())
 			return false;
 
+		if (!InitRenderDispatcher())
+			return false;
+
 		// Temporarily for demo use
 		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
-
 		if(!CreateMesh())
-			return false;
-		if(!CreateVertexInput())
-			return false;
-		if(!CreateTransform())
-			return false;
-		if(!CreateResource())
-			return false;
-		if(!CreatePipelines())
-			return false;
-#ifndef THREAD_MODE_ONE
-		m_ThreadPool.Init(m_MaxRenderThreadNum);
-#else
-		m_ThreadPool.SetThreadCount(m_MaxRenderThreadNum);
-#endif
-		if(!CreateCommandBuffers())
 			return false;
 
 		m_pWindow->SetRenderDevice(this);
@@ -1400,12 +1267,6 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 		m_UIOverlay = nullptr;
 	}
 
-	for (IKPipelinePtr pipeline :  m_OffscreenPipelines)
-	{
-		pipeline->UnInit();
-	}
-	m_OffscreenPipelines.clear();
-
 	// clear swapchain
 	if (m_SwapChain)
 	{
@@ -1423,13 +1284,6 @@ bool KVulkanRenderDevice::UnInit()
 	// TODO
 	KRenderGlobal::Scene.UnInit();
 
-#ifndef THREAD_MODE_ONE
-	m_ThreadPool.WaitAllAsyncTaskDone();
-	m_ThreadPool.UnInit();
-#else
-	m_ThreadPool.WaitAll();
-#endif
-
 	while (!KRenderGlobal::TaskExecutor.AllTaskDone())
 	{
 		KRenderGlobal::TaskExecutor.ProcessSyncTask();
@@ -1437,17 +1291,6 @@ bool KVulkanRenderDevice::UnInit()
 	KRenderGlobal::TaskExecutor.UnInit();
 
 	m_pWindow = nullptr;
-
-	if(m_SqaureData.indexBuffer)
-	{
-		m_SqaureData.indexBuffer->UnInit();
-		m_SqaureData.indexBuffer = nullptr;
-	}
-	if(m_SqaureData.vertexBuffer)
-	{
-		m_SqaureData.vertexBuffer->UnInit();
-		m_SqaureData.vertexBuffer = nullptr;
-	}
 
 	KECSGlobal::EntityManager.ViewAllEntity([](KEntityPtr entity)
 	{
@@ -1467,44 +1310,6 @@ bool KVulkanRenderDevice::UnInit()
 		m_MoveGizmo->Leave();
 		m_MoveGizmo->UnInit();
 	}
-
-	KRenderGlobal::TextrueManager.Release(m_Texture);
-	m_Texture = nullptr;
-
-	if(m_Sampler)
-	{
-		m_Sampler->UnInit();
-		m_Sampler = nullptr;
-	}
-
-	KRenderGlobal::ShaderManager.Release(m_SceneVertexShader);
-	m_SceneVertexShader = nullptr;
-	KRenderGlobal::ShaderManager.Release(m_SceneFragmentShader);
-	m_SceneFragmentShader = nullptr;
-
-	// clear command buffers
-	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
-	{
-		for (ThreadData& thread : m_CommandBuffers[i].threadDatas)
-		{
-			thread.preZcommandBuffer->UnInit();
-			thread.preZcommandBuffer = nullptr;
-
-			thread.commandBuffer->UnInit();
-			thread.commandBuffer = nullptr;
-
-			thread.commandPool->UnInit();
-			thread.commandPool = nullptr;
-		}
-
-		m_CommandBuffers[i].primaryCommandBuffer->UnInit();
-		m_CommandBuffers[i].skyBoxCommandBuffer->UnInit();
-		m_CommandBuffers[i].shadowMapCommandBuffer->UnInit();
-
-		m_CommandBuffers[i].commandPool->UnInit();
-		m_CommandBuffers[i].commandPool = nullptr;
-	}
-	m_CommandBuffers.clear();
 
 	CleanupSwapChain();
 
@@ -1527,6 +1332,7 @@ bool KVulkanRenderDevice::UnInit()
 	}
 
 	UnInitGlobalManager();
+	UnInitRenderDispatcher();
 	UnsetDebugMessenger();
 
 	if (m_Device != VK_NULL_HANDLE)
@@ -1714,536 +1520,6 @@ bool KVulkanRenderDevice::UpdateCamera(size_t idx)
 	return true;
 }
 
-bool KVulkanRenderDevice::UpdateObjectTransform()
-{
-	static auto lastTime = std::chrono::high_resolution_clock::now();
-	static auto firstTime = std::chrono::high_resolution_clock::now();
-	auto currentTime = std::chrono::high_resolution_clock::now();
-
-	float fLastTime = std::chrono::duration_cast<std::chrono::duration<float, std::ratio<1, 1>>>(lastTime - firstTime).count();
-	float fCurrentTime = std::chrono::duration_cast<std::chrono::duration<float, std::ratio<1, 1>>>(currentTime - firstTime).count();
-
-	glm::mat4 deltaRotate = glm::rotate(glm::mat4(1.0f), (fCurrentTime - fLastTime) * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-	const float speed = 1.0f;
-	const float maxRange = 5.0f;
-	float translate = maxRange * ((sinf(fCurrentTime * speed) - sinf(fLastTime * speed)) / glm::pi<float>());
-
-	glm::mat4 deltaTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, translate, 0.0f));
-
-	for(size_t i = 0; i < m_ObjectTransforms.size(); ++i)
-	{
-		ObjectInitTransform& transform = m_ObjectTransforms[i];
-		transform.translate = deltaTranslate * transform.translate;
-		transform.rotate = deltaRotate * transform.rotate;
-	}
-
-	for(size_t i = 0; i < m_ObjectFinalTransforms.size(); ++i)
-	{
-		ObjectInitTransform& transform = m_ObjectTransforms[i];
-		glm::mat4& model = m_ObjectFinalTransforms[i];
-		model = transform.translate * transform.rotate;
-	}
-
-	lastTime = currentTime;
-	return true;
-}
-
-void KVulkanRenderDevice::ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex)
-{
-	IKPipelineHandlePtr pipelineHandle;
-
-	ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
-
-	// https://devblogs.nvidia.com/vulkan-dos-donts/ ResetCommandPool释放内存
-	threadData.commandPool->Reset();
-
-#ifndef THREAD_MODE_ONE
-	size_t numThread = m_ThreadPool.GetWorkerThreadNum();
-#else
-	size_t numThread = m_ThreadPool.GetThreadCount();
-#endif
-
-	IKCommandBufferPtr commandBuffer = nullptr;
-	// PreZ
-	commandBuffer = threadData.preZcommandBuffer;
-
-	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
-
-	commandBuffer->BeginSecondary(offscreenTarget);
-	commandBuffer->SetViewport(offscreenTarget);
-
-	for(KRenderCommand& command : threadData.preZcommands)
-	{
-		commandBuffer->Render(command);
-	}
-	commandBuffer->End();
-
-	// Regular
-	commandBuffer = threadData.commandBuffer;
-
-	commandBuffer->BeginSecondary(offscreenTarget);
-	commandBuffer->SetViewport(offscreenTarget);
-
-	for(KRenderCommand& command : threadData.commands)
-	{
-		commandBuffer->Render(command);
-	}
-
-	VkCommandBuffer vkBufferHandle = ((KVulkanCommandBuffer*)commandBuffer.get())->GetVkHandle();
-
-	KVulkanRenderTarget* target = (KVulkanRenderTarget*)offscreenTarget.get();
-	{
-		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_OffscreenPipelines[frameIndex].get();
-
-		KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline->shared_from_this(), target->shared_from_this(), pipelineHandle, false);
-		VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
-
-		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
-		VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
-
-		// 绑定管线
-		vkCmdBindPipeline(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		// 绑定管线布局
-		vkCmdBindDescriptorSets(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-
-		// 绑定顶点缓冲
-		KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_SqaureData.vertexBuffer.get();
-		VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
-		VkDeviceSize offsets[] = {0};
-		vkCmdBindVertexBuffers(vkBufferHandle, 0, 1, vertexBuffers, offsets);
-		// 绑定索引缓冲
-		KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_SqaureData.indexBuffer.get();
-		vkCmdBindIndexBuffer(vkBufferHandle, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-
-		for(size_t i = 0; i < threadData.num; ++i)
-		{
-			glm::mat4& model = m_ObjectFinalTransforms[i + threadData.offset];
-
-			KAABBBox objectBox;
-			m_Box.Transform(model, objectBox);
-			if(m_Camera.CheckVisible(objectBox))
-			{
-				vkCmdPushConstants(vkBufferHandle, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, m_ObjectConstant.offset, m_ObjectConstant.size, &model);
-				vkCmdDrawIndexed(vkBufferHandle, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
-			}
-		}
-	}
-
-	commandBuffer->End();
-}
-
-bool KVulkanRenderDevice::SubmitCommandBufferSingleThread(uint32_t chainImageIndex, uint32_t frameIndex)
-{
-	IKPipelineHandlePtr pipelineHandle = nullptr;
-
-	assert(frameIndex < m_CommandBuffers.size());
-
-	m_CommandBuffers[frameIndex].commandPool->Reset();
-
-	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
-
-	VkCommandBufferBeginInfo beginInfo = {};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	// 开始渲染过程
-
-	IKCommandBufferPtr primaryBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
-	VkCommandBuffer vkBufferHandle = ((KVulkanCommandBuffer*)primaryBuffer.get())->GetVkHandle();
-
-	primaryBuffer->BeginPrimary();
-	{
-		primaryBuffer->BeginRenderPass(KRenderGlobal::ShadowMap.GetShadowMapTarget(frameIndex), SUBPASS_CONTENTS_INLINE);
-		{
-			KRenderGlobal::ShadowMap.UpdateShadowMap(this, primaryBuffer.get(), frameIndex);
-		}
-		primaryBuffer->EndRenderPass();
-
-		primaryBuffer->BeginRenderPass(offscreenTarget, SUBPASS_CONTENTS_INLINE);
-		{
-			primaryBuffer->SetViewport(offscreenTarget);
-			// 开始渲染SkyBox
-			{
-				KRenderCommand command;
-				if(KRenderGlobal::SkyBox.GetRenderCommand(frameIndex, command))
-				{
-					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, false);
-					command.pipelineHandle = handle;
-					primaryBuffer->Render(command);
-				}
-			}
-			// 开始渲染物件
-			{
-				KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_OffscreenPipelines[frameIndex].get();
-
-				KRenderGlobal::PipelineManager.GetPipelineHandle(vulkanPipeline->shared_from_this(), offscreenTarget->shared_from_this(), pipelineHandle, false);
-				VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
-
-				VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
-				VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
-
-				// 绑定管线
-				vkCmdBindPipeline(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-				// 绑定管线布局
-				vkCmdBindDescriptorSets(vkBufferHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-
-				// 绑定顶点缓冲
-				KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_SqaureData.vertexBuffer.get();
-				VkBuffer vertexBuffers[] = {vulkanVertexBuffer->GetVulkanHandle()};
-				VkDeviceSize offsets[] = {0};
-				vkCmdBindVertexBuffers(vkBufferHandle, 0, 1, vertexBuffers, offsets);
-				// 绑定索引缓冲
-				KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_SqaureData.indexBuffer.get();
-				vkCmdBindIndexBuffer(vkBufferHandle, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-
-				// 绘制调用
-				for(glm::mat4& model : m_ObjectFinalTransforms)
-				{
-					KAABBBox objectBox;
-					m_Box.Transform(model, objectBox);
-					if(m_Camera.CheckVisible(objectBox))
-					{
-						vkCmdPushConstants(vkBufferHandle, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, m_ObjectConstant.offset, m_ObjectConstant.size, &model);
-						vkCmdDrawIndexed(vkBufferHandle, static_cast<uint32_t>(vulkanIndexBuffer->GetIndexCount()), 1, 0, 0, 0);
-					}
-				}
-
-				KRenderCommandList preZCommandList;
-				KRenderCommandList commandList;
-
-				std::vector<KRenderComponent*> cullRes;
-				KRenderGlobal::Scene.GetRenderComponent(m_Camera, cullRes);
-
-				for(KRenderComponent* component : cullRes)
-				{
-					KEntity* entity = component->GetEntityHandle();
-					KTransformComponent* transform = nullptr;
-					if(entity->GetComponent(CT_TRANSFORM, (KComponentBase**)&transform))
-					{
-						KMeshPtr mesh = component->GetMesh();
-
-						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand&& command)
-						{
-							command.SetObjectData(transform->FinalTransform());
-							preZCommandList.push_back(std::move(command));
-						});
-
-						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& command)
-						{
-							command.SetObjectData(transform->FinalTransform());
-							commandList.push_back(std::move(command));
-						});
-
-						KDebugComponent* debug = nullptr;
-						if (entity->GetComponent(CT_DEBUG, (KComponentBase**)&debug))
-						{
-							KConstantDefinition::DEBUG objectData;
-							objectData.MODEL = transform->FinalTransform();
-							objectData.COLOR = debug->Color();
-
-							mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand&& command)
-							{
-								command.SetObjectData(objectData);
-								commandList.push_back(std::move(command));
-							});
-
-							mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand&& command)
-							{
-								command.SetObjectData(objectData);
-								commandList.push_back(std::move(command));
-							});
-						}
-					}
-				}
-
-				for(KRenderCommand& command : preZCommandList)
-				{
-					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-					command.pipelineHandle = handle;
-					primaryBuffer->Render(command);
-				}
-
-				for(KRenderCommand& command : commandList)
-				{
-					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-					command.pipelineHandle = handle;
-					primaryBuffer->Render(command);
-				}
-			}
-		}
-		primaryBuffer->EndRenderPass();
-	}
-
-	KRenderGlobal::PostProcessManager.Execute(chainImageIndex, frameIndex, m_SwapChain, m_UIOverlay, primaryBuffer);
-
-	primaryBuffer->End();
-
-	return true;
-}
-
-bool KVulkanRenderDevice::SubmitCommandBufferMuitiThread(uint32_t chainImageIndex, uint32_t frameIndex)
-{
-	IKPipelineHandlePtr pipelineHandle;
-
-	assert(frameIndex < m_CommandBuffers.size());
-
-	m_CommandBuffers[frameIndex].commandPool->Reset();
-
-	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
-	IKRenderTargetPtr swapChainTarget = m_SwapChain->GetRenderTarget(chainImageIndex);
-	IKRenderTargetPtr shadowMapTarget = KRenderGlobal::ShadowMap.GetShadowMapTarget(frameIndex);
-
-	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
-	IKCommandBufferPtr skyBoxCommandBuffer = m_CommandBuffers[frameIndex].skyBoxCommandBuffer;
-	IKCommandBufferPtr shadowMapCommandBuffer = m_CommandBuffers[frameIndex].shadowMapCommandBuffer;
-
-	VkCommandBuffer vkBufferHandle = VK_NULL_HANDLE;
-	// 开始渲染过程
-	primaryCommandBuffer->BeginPrimary();
-	{
-		// 阴影绘制RenderPass
-		{
-			{
-				primaryCommandBuffer->BeginRenderPass(shadowMapTarget, SUBPASS_CONTENTS_SECONDARY);
-				{
-					shadowMapCommandBuffer->BeginSecondary(shadowMapTarget);
-					KRenderGlobal::ShadowMap.UpdateShadowMap(this, shadowMapCommandBuffer.get(), frameIndex);
-					shadowMapCommandBuffer->End();
-				}
-				primaryCommandBuffer->Execute(shadowMapCommandBuffer);
-				primaryCommandBuffer->EndRenderPass();
-			}
-		}
-		// 物件绘制RenderPass
-		{
-			primaryCommandBuffer->BeginRenderPass(offscreenTarget, SUBPASS_CONTENTS_SECONDARY);
-
-			auto commandBuffers = m_CommandBuffers[frameIndex].commandBuffersExec;
-
-			// 绘制SkyBox
-			{
-				skyBoxCommandBuffer->BeginSecondary(offscreenTarget);
-				skyBoxCommandBuffer->SetViewport(offscreenTarget);
-
-				KRenderCommand command;
-				if(KRenderGlobal::SkyBox.GetRenderCommand(frameIndex, command))
-				{
-					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, false);
-					command.pipelineHandle = handle;
-					skyBoxCommandBuffer->Render(command);
-				}
-				skyBoxCommandBuffer->End();
-
-				vkBufferHandle = ((KVulkanCommandBuffer*)skyBoxCommandBuffer.get())->GetVkHandle();
-				commandBuffers.push_back(skyBoxCommandBuffer);
-			}
-
-#ifndef THREAD_MODE_ONE
-			size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
-#else
-			size_t threadCount = m_ThreadPool.GetThreadCount();
-#endif
-
-			std::vector<KRenderComponent*> cullRes;
-			KRenderGlobal::Scene.GetRenderComponent(m_Camera, cullRes);
-
-			size_t drawEachThread = cullRes.size() / threadCount;
-			size_t reaminCount = cullRes.size() % threadCount;
-
-			for (size_t i = 0; i < threadCount; ++i)
-			{
-				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[i];
-
-				threadData.preZcommands.clear();
-				threadData.commands.clear();
-
-				auto addMesh = [&](size_t index)
-				{
-					KRenderComponent* component = cullRes[index];
-					KMeshPtr mesh = component->GetMesh();
-
-					KEntity* entity = component->GetEntityHandle();
-					KTransformComponent* transform = nullptr;
-					if (entity->GetComponent(CT_TRANSFORM, (KComponentBase**)&transform))
-					{
-						KMeshPtr mesh = component->GetMesh();
-
-						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand&& command)
-						{
-							command.SetObjectData(transform->FinalTransform());
-
-							IKPipelineHandlePtr handle;
-							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-							command.pipelineHandle = handle;
-							threadData.preZcommands.push_back(std::move(command));
-						});
-
-						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& command)
-						{
-							command.SetObjectData(transform->FinalTransform());
-
-							IKPipelineHandlePtr handle;
-							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-							command.pipelineHandle = handle;
-
-							threadData.commands.push_back(std::move(command));
-						});
-
-						KDebugComponent* debug = nullptr;
-						if (entity->GetComponent(CT_DEBUG, (KComponentBase**)&debug))
-						{
-							KConstantDefinition::DEBUG objectData;
-							objectData.MODEL = transform->FinalTransform();
-							objectData.COLOR = debug->Color();
-
-							mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand&& command)
-							{
-								command.SetObjectData(objectData);
-
-								IKPipelineHandlePtr handle;
-								KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-								command.pipelineHandle = handle;
-
-								threadData.commands.push_back(std::move(command));
-							});
-
-							mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand&& command)
-							{
-								command.SetObjectData(objectData);
-
-								IKPipelineHandlePtr handle;
-								KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-								command.pipelineHandle = handle;
-
-								threadData.commands.push_back(std::move(command));
-							});
-						}
-					}
-				};			
-
-				for(size_t st = i * drawEachThread, ed = st + drawEachThread; st < ed; ++st)
-				{
-					addMesh(st);
-				}
-
-				if (i == 0)
-				{
-					for (size_t st = threadCount * drawEachThread, ed = st + reaminCount; st < ed; ++st)
-					{
-						addMesh(st);
-					}
-				}
-			}
-
-#ifndef THREAD_MODE_ONE
-			for(size_t i = 0; i < m_ThreadPool.GetWorkerThreadNum(); ++i)
-			{
-				m_ThreadPool.SubmitTask([=]()
-				{
-					ThreadRenderObject(frameIndex, (uint32_t)i);
-				});
-			}
-			m_ThreadPool.WaitAllAsyncTaskDone();
-#else
-			for(size_t i = 0; i < m_ThreadPool.GetThreadCount(); ++i)
-			{
-				m_ThreadPool.AddJob(i, [=]()
-				{
-					ThreadRenderObject(frameIndex, (uint32_t)i);
-				});
-			}
-			m_ThreadPool.WaitAll();
-#endif
-
-			for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
-			{
-				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
-				commandBuffers.push_back(threadData.preZcommandBuffer);
-				threadData.preZcommands.clear();
-			}
-
-			for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
-			{
-				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
-				commandBuffers.push_back(threadData.commandBuffer);
-				threadData.commands.clear();
-			}
-
-			if (!commandBuffers.empty())
-			{
-				primaryCommandBuffer->ExecuteAll(commandBuffers);
-				commandBuffers.clear();
-			}
-
-			primaryCommandBuffer->EndRenderPass();
-		}
-	}
-
-	KRenderGlobal::PostProcessManager.Execute(chainImageIndex, frameIndex, m_SwapChain, m_UIOverlay, primaryCommandBuffer);
-
-	primaryCommandBuffer->End();
-
-	return true;
-}
-
-bool KVulkanRenderDevice::CreateCommandBuffers()
-{
-	m_CommandBuffers.resize(m_FrameInFlight);
-
-#ifndef THREAD_MODE_ONE
-	size_t numThread = m_ThreadPool.GetWorkerThreadNum();
-#else
-	size_t numThread = m_ThreadPool.GetThreadCount();
-#endif
-
-	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
-	{
-		CreateCommandPool(m_CommandBuffers[i].commandPool);
-		m_CommandBuffers[i].commandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
-
-		CreateCommandBuffer(m_CommandBuffers[i].primaryCommandBuffer);
-		m_CommandBuffers[i].primaryCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_PRIMARY);
-
-		CreateCommandBuffer(m_CommandBuffers[i].skyBoxCommandBuffer);
-		m_CommandBuffers[i].skyBoxCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
-
-		CreateCommandBuffer(m_CommandBuffers[i].shadowMapCommandBuffer);
-		m_CommandBuffers[i].shadowMapCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
-
-		m_CommandBuffers[i].threadDatas.resize(numThread);
-#ifndef THREAD_MODE_ONE
-		size_t numThread = m_ThreadPool.GetWorkerThreadNum();
-#else
-		size_t numThread = m_ThreadPool.GetThreadCount();
-#endif
-
-		size_t numPerThread = m_ObjectTransforms.size() / numThread;
-		size_t numRemain = m_ObjectTransforms.size() % numThread;
-
-		// 创建线程命令缓冲与命令池
-		for (size_t threadIdx = 0; threadIdx < numThread; ++threadIdx)
-		{
-			ThreadData& threadData = m_CommandBuffers[i].threadDatas[threadIdx];
-
-			CreateCommandPool(threadData.commandPool);
-			threadData.commandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
-
-			threadData.num = numPerThread + ((threadIdx == numThread - 1) ? numRemain : 0);
-			threadData.offset = numPerThread * threadIdx;
-
-			CreateCommandBuffer(threadData.preZcommandBuffer);
-			threadData.preZcommandBuffer->Init(threadData.commandPool, CBL_SECONDARY);
-
-			CreateCommandBuffer(threadData.commandBuffer);
-			threadData.commandBuffer->Init(threadData.commandPool, CBL_SECONDARY);
-		}
-	}
-	return true;
-}
-
 bool KVulkanRenderDevice::Present()
 {
 	// TODO
@@ -2274,7 +1550,6 @@ bool KVulkanRenderDevice::Present()
 	}
 
 	UpdateCamera(frameIndex);
-	UpdateObjectTransform();
 	UpdateFrameTime();
 
 	m_UIOverlay->StartNewFrame();
@@ -2302,17 +1577,9 @@ bool KVulkanRenderDevice::Present()
 	m_UIOverlay->Update((uint32_t)frameIndex);
 
 	KRenderGlobal::Scene.EnableDebugRender(m_OctreeDebugDraw);
+	KRenderGlobal::RenderDispatcher.Execute(&KRenderGlobal::Scene, &m_Camera, chainImageIndex, (uint32_t)frameIndex);
 
-	if(m_MultiThreadSumbit)
-	{
-		SubmitCommandBufferMuitiThread(chainImageIndex, (uint32_t)frameIndex);
-	}
-	else
-	{
-		SubmitCommandBufferSingleThread(chainImageIndex, (uint32_t)frameIndex);
-	}
-
-	VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)m_CommandBuffers[frameIndex].primaryCommandBuffer.get())->GetVkHandle();
+	VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer((uint32_t)frameIndex).get())->GetVkHandle();
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(m_GraphicsQueue, m_PresentQueue, chainImageIndex, primaryCommandBuffer);
 	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
 	{
@@ -2364,7 +1631,8 @@ bool KVulkanRenderDevice::RecreateSwapChain()
 
 	CreateSwapChain();
 	CreateUI();
-	CreatePipelines();
+
+	KRenderGlobal::RenderDispatcher.ResetSwapChain(m_SwapChain, m_UIOverlay);
 
 	return true;
 }

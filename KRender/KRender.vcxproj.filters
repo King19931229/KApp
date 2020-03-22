@@ -40,9 +40,6 @@
     <Filter Include="Internal\PostProcess">
       <UniqueIdentifier>{fde19757-99a2-452b-9990-bfae5dfd77f6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Internal\RenderDispatcher">
-      <UniqueIdentifier>{31833760-9865-4a77-93fb-98f218a9880b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Internal\Scene">
       <UniqueIdentifier>{f03dae9d-eae0-46e1-9dbd-4d8312daa32b}</UniqueIdentifier>
     </Filter>
@@ -54,6 +51,9 @@
     </Filter>
     <Filter Include="Internal\Gizmo">
       <UniqueIdentifier>{c2114faa-71be-454b-b273-2044004f7233}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\Dispatcher">
+      <UniqueIdentifier>{31833760-9865-4a77-93fb-98f218a9880b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -249,9 +249,6 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessManager.h">
       <Filter>Internal\PostProcess</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\RenderDispatcher\KRenderDispatcher.h">
-      <Filter>Internal\RenderDispatcher</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Scene\KScene.h">
       <Filter>Internal\Scene</Filter>
     </ClInclude>
@@ -326,6 +323,9 @@
     </ClInclude>
     <ClInclude Include="Publish\KTriangle.h">
       <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Dispatcher\KRenderDispatcher.h">
+      <Filter>Internal\Dispatcher</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -511,6 +511,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Gizmo\KScaleGizmo.cpp">
       <Filter>Internal\Gizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Dispatcher\KRenderDispatcher.cpp">
+      <Filter>Internal\Dispatcher</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

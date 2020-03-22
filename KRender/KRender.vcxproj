@@ -44,6 +44,7 @@
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializerV0.h" />
     <ClInclude Include="Internal\Asset\Utility\KMeshUtilityInfo.h" />
     <ClInclude Include="Internal\Asset\Utility\KMeshUtilityImpl.h" />
+    <ClInclude Include="Internal\Dispatcher\KRenderDispatcher.h" />
     <ClInclude Include="Internal\ECS\Component\KComponentBase.h" />
     <ClInclude Include="Internal\ECS\Component\KDebugComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KRenderComponent.h" />
@@ -80,7 +81,6 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessManager.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessPass.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessTexture.h" />
-    <ClInclude Include="Internal\RenderDispatcher\KRenderDispatcher.h" />
     <ClInclude Include="Internal\Scene\KOctreeNode.h" />
     <ClInclude Include="Internal\Scene\KOctreeSceneManager.h" />
     <ClInclude Include="Internal\Scene\KScene.h" />
@@ -117,6 +117,7 @@
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializerV0.cpp" />
     <ClCompile Include="Internal\Asset\Utility\KMeshUtilityInfo.cpp" />
     <ClCompile Include="Internal\Asset\Utility\KMeshUtilityImpl.cpp" />
+    <ClCompile Include="Internal\Dispatcher\KRenderDispatcher.cpp" />
     <ClCompile Include="Internal\ECS\Component\KRenderComponent.cpp" />
     <ClCompile Include="Internal\ECS\KComponentManager.cpp" />
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp" />

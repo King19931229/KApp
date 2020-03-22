@@ -14,6 +14,7 @@ namespace KRenderGlobal
 	KShadowMap ShadowMap;
 
 	KScene Scene;
+	KRenderDispatcher RenderDispatcher;
 
 	KTaskExecutor<true> TaskExecutor;
 }

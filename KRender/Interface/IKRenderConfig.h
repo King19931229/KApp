@@ -246,7 +246,7 @@ enum SubpassContents
 };
 
 struct IKSwapChain;
-typedef std::unique_ptr<IKSwapChain> IKSwapChainPtr;
+typedef std::shared_ptr<IKSwapChain> IKSwapChainPtr;
 
 struct IKRenderWindow;
 typedef std::unique_ptr<IKRenderWindow> IKRenderWindowPtr;
@@ -255,7 +255,7 @@ struct IKRenderDevice;
 typedef std::unique_ptr<IKRenderDevice> IKRenderDevicePtr;
 
 struct IKUIOverlay;
-typedef std::unique_ptr<IKUIOverlay> IKUIOverlayPtr;
+typedef std::shared_ptr<IKUIOverlay> IKUIOverlayPtr;
 
 struct IKShader;
 typedef std::shared_ptr<IKShader> IKShaderPtr;

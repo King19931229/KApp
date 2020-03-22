@@ -13,6 +13,7 @@
 #include "Internal/Shadow/KShadowMap.h"
 
 #include "Internal/Scene/KScene.h"
+#include "Internal/Dispatcher/KRenderDispatcher.h"
 
 #include "KBase/Publish/KTaskExecutor.h"
 
@@ -30,6 +31,7 @@ namespace KRenderGlobal
 	extern KShadowMap ShadowMap;
 
 	extern KScene Scene;
+	extern KRenderDispatcher RenderDispatcher;
 
 	extern KTaskExecutor<true> TaskExecutor;
 };

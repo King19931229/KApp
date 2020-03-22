@@ -9,6 +9,8 @@
 #include "KBase/Interface/IKCodec.h"
 #include "KBase/Publish/KPlatform.h"
 
+#include "Dispatcher/KRenderDispatcher.h"
+
 EXPORT_DLL IKRenderCorePtr CreateRenderCore()
 {
 	return IKRenderCorePtr(new KRenderCore());

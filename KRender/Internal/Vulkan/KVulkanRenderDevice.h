@@ -74,48 +74,6 @@ protected:
 	// Temporarily for demo use
 	IKGizmoPtr m_MoveGizmo;
 
-	IKShaderPtr m_SceneVertexShader;
-	IKShaderPtr m_SceneFragmentShader;
-
-	KAABBBox m_Box;
-
-	struct ThreadData
-	{
-		IKCommandPoolPtr commandPool;
-
-		IKCommandBufferPtr preZcommandBuffer;
-		std::vector<KRenderCommand> preZcommands;
-
-		IKCommandBufferPtr commandBuffer;
-		std::vector<KRenderCommand> commands;
-
-		size_t num;
-		size_t offset;
-	};
-
-	struct CommandBuffer
-	{
-		IKCommandPoolPtr commandPool;
-		IKCommandBufferPtr primaryCommandBuffer;
-		IKCommandBufferPtr skyBoxCommandBuffer;
-		IKCommandBufferPtr shadowMapCommandBuffer;
-
-		std::vector<ThreadData> threadDatas;
-		KCommandBufferList commandBuffersExec;
-	};
-	std::vector<CommandBuffer> m_CommandBuffers;
-
-#ifndef THREAD_MODE_ONE
-	KThreadPool<std::function<void()>, true> m_ThreadPool;
-#else
-	KRenderThreadPool m_ThreadPool;
-#endif
-	struct Square
-	{
-		IKVertexBufferPtr vertexBuffer;
-		IKIndexBufferPtr indexBuffer;
-	}m_SqaureData;
-
 	KCamera m_Camera;
 
 	KKeyboardCallbackType m_KeyCallback;
@@ -134,38 +92,10 @@ protected:
 	bool m_Touch[2];
 	float m_TouchPos[2][2];
 
-	struct ObjectInitTransform
-	{
-		glm::mat4 rotate;
-		glm::mat4 translate;
-	};
-	std::vector<ObjectInitTransform> m_ObjectTransforms;
-	std::vector<glm::mat4> m_ObjectFinalTransforms;
-
-	struct PushConstant
-	{
-		ShaderTypes shaderTypes;
-		uint32_t size;
-		uint32_t offset;
-
-		PushConstant()
-		{
-			shaderTypes = 0;
-			size = 0;
-			offset = 0;
-		}
-	};
-
-	PushConstant m_ObjectConstant;
-
-	IKTexturePtr m_Texture;
-	IKSamplerPtr m_Sampler;
-
 	VkDebugUtilsMessengerEXT m_DebugUtilsMessenger;
 	VkDebugReportCallbackEXT m_DebugReportCallback;
 	PhysicalDevice m_PhysicalDevice;
 
-	std::vector<IKPipelinePtr> m_OffscreenPipelines;
 	IKSwapChainPtr m_SwapChain;
 	IKUIOverlayPtr m_UIOverlay;
 
@@ -176,6 +106,10 @@ protected:
 
 	bool InitGlobalManager();
 	bool UnInitGlobalManager();
+
+	// TODO 先放这里
+	bool InitRenderDispatcher();
+	bool UnInitRenderDispatcher();
 
 	bool CheckDeviceSuitable(PhysicalDevice& device);
 
@@ -188,27 +122,16 @@ protected:
 	bool CreateLogicalDevice();
 	bool CreatePipelineCache();
 	bool CreateSwapChain();
-	bool CreatePipelines();
 	bool CreateCommandPool();
 
 	// Temporarily for demo use
 	bool AddWindowCallback();
 	bool CreateMesh();
-	bool CreateVertexInput();
-	bool CreateTransform();
-	bool CreateResource();
-	bool CreateCommandBuffers();
-	bool SubmitCommandBufferSingleThread(uint32_t chainImageIndex, uint32_t frameIndex);
-	bool SubmitCommandBufferMuitiThread(uint32_t chainImageIndex, uint32_t frameIndex);
 	bool UpdateFrameTime();
 	bool CreateUI();
 	bool Reload();
 
 	bool UpdateCamera(size_t idx);
-	bool UpdateObjectTransform();
-
-	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
-
 	bool CleanupSwapChain();
 
 	bool InitDeviceGlobal();
