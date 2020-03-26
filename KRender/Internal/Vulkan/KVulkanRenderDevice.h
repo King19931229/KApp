@@ -20,6 +20,10 @@
 #include "Publish/KAABBBox.h"
 #include "Interface/IKGizmo.h"
 
+#include "Internal/Controller/KCameraMoveController.h"
+#include "Internal/Controller/KUIOverlayController.h"
+#include "Internal/Controller/KGizmoController.h"
+
 #include <algorithm>
 #include <vector>
 
@@ -75,22 +79,11 @@ protected:
 	IKGizmoPtr m_MoveGizmo;
 
 	KCamera m_Camera;
+	KCameraMoveController m_CameraMoveController;
+	KUIOverlayController m_UIController;
+	KGizmoController m_GizmoContoller;
 
 	KKeyboardCallbackType m_KeyCallback;
-	KMouseCallbackType m_MouseCallback;
-	KScrollCallbackType m_ScrollCallback;
-	KTouchCallbackType m_TouchCallback;
-
-	int m_Move[3];
-
-	bool m_MouseDown[INPUT_MOUSE_BUTTON_COUNT];
-	float m_MousePos[2];
-
-	int m_TouchAction;
-	int m_LastTouchCount;
-	float m_LastTouchDistance;
-	bool m_Touch[2];
-	float m_TouchPos[2][2];
 
 	VkDebugUtilsMessengerEXT m_DebugUtilsMessenger;
 	VkDebugReportCallbackEXT m_DebugReportCallback;
@@ -110,6 +103,8 @@ protected:
 	// TODO 先放这里
 	bool InitRenderDispatcher();
 	bool UnInitRenderDispatcher();
+	bool InitController();
+	bool UnInitController();
 
 	bool CheckDeviceSuitable(PhysicalDevice& device);
 
@@ -124,8 +119,6 @@ protected:
 	bool CreateSwapChain();
 	bool CreateCommandPool();
 
-	// Temporarily for demo use
-	bool AddWindowCallback();
 	bool CreateMesh();
 	bool UpdateFrameTime();
 	bool CreateUI();

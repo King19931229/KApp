@@ -54,6 +54,8 @@ public:
 	KRenderDispatcher();
 	~KRenderDispatcher();
 
+	inline void SetMultiThreadSumbit(bool multi) { m_MultiThreadSumbit = multi; }
+
 	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay);
 	bool UnInit();
 

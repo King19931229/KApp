@@ -80,11 +80,11 @@ bool KEditor::UnInit()
 		KEditorGlobal::CommandInvoker.Clear();
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 
-		m_RenderWindow->UnInit();
-		m_RenderWindow = nullptr;
-
 		m_RenderDevice->UnInit();
 		m_RenderDevice = nullptr;
+
+		m_RenderWindow->UnInit();
+		m_RenderWindow = nullptr;
 
 		m_RenderCore->UnInit();
 		m_RenderCore = nullptr;

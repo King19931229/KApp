@@ -178,12 +178,6 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	m_MoveGizmo(nullptr)
 {
 	m_MaxRenderThreadNum = std::thread::hardware_concurrency();
-	ZERO_ARRAY_MEMORY(m_Move);
-	ZERO_ARRAY_MEMORY(m_MouseDown);
-	ZERO_ARRAY_MEMORY(m_Touch);
-	m_TouchAction = 0;
-	m_LastTouchCount = 0;
-	m_LastTouchDistance = 0;
 }
 
 KVulkanRenderDevice::~KVulkanRenderDevice()
@@ -647,15 +641,6 @@ bool KVulkanRenderDevice::CreateMesh()
 		KRenderGlobal::Scene.Add(entity);
 	}
 #endif
-
-	m_MoveGizmo = CreateGizmo();
-	m_MoveGizmo->Init(&m_Camera);
-	m_MoveGizmo->SetManipulateMode(GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL);
-	m_MoveGizmo->SetMatrix(glm::rotate(glm::mat4(1.0f), glm::pi<float>() * 0.3f, glm::vec3(1.0f, 0.0f, 0.0f)) *
-		glm::translate(glm::mat4(1.0f), glm::vec3(30.0f, 30.0f, 0.0f)));
-	m_MoveGizmo->SetType(GizmoType::GIZMO_TYPE_ROTATE);
-	m_MoveGizmo->Enter();
-
 	return true;
 }
 
@@ -854,293 +839,47 @@ bool KVulkanRenderDevice::UnInitRenderDispatcher()
 	return true;
 }
 
-bool KVulkanRenderDevice::AddWindowCallback()
+bool KVulkanRenderDevice::InitController()
 {
-	ZERO_ARRAY_MEMORY(m_Move);
-	ZERO_ARRAY_MEMORY(m_MouseDown);
-
-	for(int i = 0; i < ARRAY_SIZE(m_MousePos); ++i)
-	{
-		m_MousePos[0] = 0.0f;
-		m_MousePos[1] = 0.0f;
-	}
-
-	m_TouchAction = 0;
-	m_LastTouchCount = 0;
-	m_LastTouchDistance = 0;
-	ZERO_ARRAY_MEMORY(m_Touch);
-	for(int i = 0; i < ARRAY_SIZE(m_TouchPos); ++i)
-	{
-		m_TouchPos[i][0] = 0.0f;
-		m_TouchPos[1][1] = 0.0f;
-	}
-
 	m_Camera.SetPosition(glm::vec3(0, 400.0f, 400.0f));
 	m_Camera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	m_Camera.SetCustomLockYAxis(glm::vec3(0,1,0));
+	m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
 	m_Camera.SetLockYEnable(true);
+
+	m_MoveGizmo = CreateGizmo();
+	m_MoveGizmo->Init(&m_Camera);
+	m_MoveGizmo->SetManipulateMode(GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL);
+	m_MoveGizmo->SetMatrix(glm::rotate(glm::mat4(1.0f), glm::pi<float>() * 0.3f, glm::vec3(1.0f, 0.0f, 0.0f)) *
+		glm::translate(glm::mat4(1.0f), glm::vec3(30.0f, 30.0f, 0.0f)));
+	m_MoveGizmo->SetType(GizmoType::GIZMO_TYPE_ROTATE);
+	m_MoveGizmo->Enter();
+
+	m_CameraMoveController.Init(&m_Camera, m_pWindow);
+	m_UIController.Init(m_UIOverlay, m_pWindow);
+	m_GizmoContoller.Init(m_MoveGizmo, &m_Camera, m_pWindow);
 
 	m_KeyCallback = [this](InputKeyboard key, InputAction action)
 	{
-		int sign = 0;
-		if(action == INPUT_ACTION_PRESS)
-		{
-			sign = 1;
-		}
-		else if(action == INPUT_ACTION_RELEASE)
-		{
-			sign = -1;
-		}
-
-		switch (key)
-		{
-		case INPUT_KEY_W:
-			m_Move[2] += sign;
-			break;
-		case INPUT_KEY_S:
-			m_Move[2] += -sign;
-			break;
-		case INPUT_KEY_A:
-			m_Move[0] -= sign;
-			break;
-		case INPUT_KEY_D:
-			m_Move[0] += sign;
-			break;
-		case INPUT_KEY_E:
-			m_Move[1] += sign;
-			break;
-		case INPUT_KEY_Q:
-			m_Move[1] -= sign;
-			break;
-
-		case INPUT_KEY_1:
-			m_MoveGizmo->SetType(GizmoType::GIZMO_TYPE_MOVE);
-			break;
-
-		case INPUT_KEY_2:
-			m_MoveGizmo->SetType(GizmoType::GIZMO_TYPE_ROTATE);
-			break;
-
-		case INPUT_KEY_3:
-			m_MoveGizmo->SetType(GizmoType::GIZMO_TYPE_SCALE);
-			break;
-
-		case INPUT_KEY_R:
-		{
-			if (action == INPUT_ACTION_PRESS)
-			{
-				GizmoManipulateMode mode = m_MoveGizmo->GetManipulateMode() == GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL ?
-					GizmoManipulateMode::GIZMO_MANIPULATE_WORLD :
-					GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL;
-				m_MoveGizmo->SetManipulateMode(mode);
-			}
-			break;
-		}
-
-		default:
-			break;
-		}
-
-		if(key == INPUT_KEY_ENTER)
+		if (key == INPUT_KEY_ENTER)
 		{
 			Reload();
 		}
 	};
 
-	m_MouseCallback = [this](InputMouseButton mouse, InputAction action, float xPos, float yPos)
-	{
-		if (m_UIOverlay)
-		{
-			m_UIOverlay->SetMousePosition((unsigned int)xPos, (unsigned int)yPos);
-		}
-
-		size_t width; size_t height;
-		m_pWindow->GetSize(width, height);
-
-		if (m_MoveGizmo)
-		{
-			m_MoveGizmo->SetScreenSize((unsigned int)width, (unsigned int)height);
-		}
-
-		if(action == INPUT_ACTION_PRESS)
-		{
-			m_MousePos[0] = xPos;
-			m_MousePos[1] = yPos;
-
-			m_MouseDown[mouse] = true;
-			m_UIOverlay->SetMouseDown(mouse, true);
-			if (m_MoveGizmo)
-			{
-				KEntityPtr entity;
-				if (mouse == INPUT_MOUSE_BUTTON_LEFT)
-				{
-					if (KRenderGlobal::Scene.CloestPick(m_Camera, (size_t)xPos, (size_t)yPos, width, height, entity))
-					{
-						glm::mat4 transform;
-						if (entity->GetTransform(transform))
-						{
-							m_MoveGizmo->SetMatrix(transform);
-						}
-					}
-				}
-				m_MoveGizmo->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
-			}
-		}
-		if(action == INPUT_ACTION_RELEASE)
-		{
-			m_MouseDown[mouse] = false;
-			m_UIOverlay->SetMouseDown(mouse, false);
-			if (m_MoveGizmo)
-			{
-				m_MoveGizmo->OnMouseUp((unsigned int)xPos, (unsigned int)yPos);
-			}
-		}
-		if(action == INPUT_ACTION_REPEAT)
-		{
-			if (m_MoveGizmo)
-			{
-				m_MoveGizmo->OnMouseMove((unsigned int)xPos, (unsigned int)yPos);
-			}
-
-			float deltaX = xPos - m_MousePos[0];
-			float deltaY = yPos - m_MousePos[1];
-
-			if (m_MouseCtrlCamera)
-			{
-				if (m_MouseDown[INPUT_MOUSE_BUTTON_RIGHT])
-				{
-					if (abs(deltaX) > 0.0001f)
-					{
-						m_Camera.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), -glm::quarter_pi<float>() * deltaX / width);
-					}
-					if (abs(deltaY) > 0.0001f)
-					{
-						m_Camera.RotateRight(-glm::quarter_pi<float>() * deltaY / height);
-					}
-				}
-				if (m_MouseDown[INPUT_MOUSE_BUTTON_LEFT])
-				{
-					const float fSpeed = 500.f;
-
-					glm::vec3 forward = m_Camera.GetForward(); forward.y = 0.0f; forward = glm::normalize(forward);
-					glm::vec3 right = m_Camera.GetRight(); right.y = 0.0f; right = glm::normalize(right);
-
-					m_Camera.Move(deltaY * fSpeed * forward / (float)width);
-					m_Camera.Move(-deltaX * fSpeed * right / (float)height);
-				}
-			}
-
-			m_MousePos[0] = xPos;
-			m_MousePos[1] = yPos;
-		}
-	};
-
-	m_ScrollCallback = [this](float xOffset, float yOffset)
-	{
-		const float fSpeed = 15.0f;
-		m_Camera.MoveForward(fSpeed * yOffset);
-	};
-
-	m_TouchCallback = [this](const std::vector<std::tuple<float, float>>& touchPositions, InputAction action)
-	{
-		if(action == INPUT_ACTION_REPEAT)
-		{
-			if (touchPositions.size() >= (size_t)m_LastTouchCount && touchPositions.size() <= 2 && touchPositions.size() > 0)
-			{
-				m_TouchAction = (int) touchPositions.size();
-
-				for (size_t i = 0; i < std::min((size_t)2, touchPositions.size()); ++i)
-				{
-					if (!m_Touch[i])
-					{
-						m_TouchPos[i][0] = std::get<0>(touchPositions[i]);
-						m_TouchPos[i][1] = std::get<1>(touchPositions[i]);
-					}
-					m_Touch[i] = true;
-				}
-				m_LastTouchCount = (int)touchPositions.size();
-
-				if(m_TouchAction != 2)
-				{
-					m_LastTouchDistance = 0;
-				}
-			}
-			else
-			{
-				m_TouchAction = 0;
-				m_LastTouchDistance = 0;
-				for (int i = 0; i < ARRAY_SIZE(m_TouchPos); ++i)
-				{
-					m_TouchPos[i][0] = 0.0f;
-					m_TouchPos[1][1] = 0.0f;
-				}
-				ZERO_ARRAY_MEMORY(m_Touch);
-				m_LastTouchCount = 0;
-			}
-		}
-		else
-		{
-			m_TouchAction = 0;
-			m_LastTouchDistance = 0;
-			for (int i = 0; i < ARRAY_SIZE(m_TouchPos); ++i)
-			{
-				m_TouchPos[i][0] = 0.0f;
-				m_TouchPos[1][1] = 0.0f;
-			}
-			ZERO_ARRAY_MEMORY(m_Touch);
-		}
-
-		if (m_TouchAction == 1 && touchPositions.size() == 1)
-		{
-			float dx = std::get<0>(touchPositions[0]) - m_TouchPos[0][0];
-			float dy = std::get<1>(touchPositions[0]) - m_TouchPos[0][1];
-
-			size_t width;
-			size_t height;
-			m_pWindow->GetSize(width, height);
-
-			if (abs(dx) > 0.0001f)
-			{
-				m_Camera.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 3.0f * -glm::quarter_pi<float>() * dx / width);
-			}
-			if(abs(dy) > 0.0001f)
-			{
-				m_Camera.RotateRight(2.0f * -glm::quarter_pi<float>() * dy / height);
-			}
-		}
-		else if (m_TouchAction == 2 && touchPositions.size() == 2)
-		{
-			float dx = std::get<0>(touchPositions[0]) - std::get<0>(touchPositions[1]);
-			float dy = std::get<1>(touchPositions[0]) - std::get<1>(touchPositions[1]);
-			const float fSpeed = 0.3f;
-
-			float distance = sqrtf(dx * dx + dy * dy);
-
-			if(m_LastTouchDistance > 0.0f)
-			{
-				m_Camera.MoveForward((distance - m_LastTouchDistance) * fSpeed);
-			}
-			m_LastTouchDistance = distance;
-		}
-
-		if (m_TouchAction)
-		{
-			ZERO_ARRAY_MEMORY(m_Touch);
-			for (size_t i = 0; i < std::min((size_t)2, touchPositions.size()); ++i)
-			{
-				m_TouchPos[i][0] = std::get<0>(touchPositions[i]);
-				m_TouchPos[i][1] = std::get<1>(touchPositions[i]);
-				m_Touch[i] = true;
-			}
-		}
-	};
 #if defined(_WIN32)
 	m_pWindow->RegisterKeyboardCallback(&m_KeyCallback);
-	m_pWindow->RegisterMouseCallback(&m_MouseCallback);
-	m_pWindow->RegisterScrollCallback(&m_ScrollCallback);
-#elif defined(__ANDROID__)
-	m_pWindow->RegisterTouchCallback(&m_TouchCallback);
 #endif
+	return true;
+}
+
+bool KVulkanRenderDevice::UnInitController()
+{
+#if defined(_WIN32)
+	m_pWindow->UnRegisterKeyboardCallback(&m_KeyCallback);
+#endif
+	m_CameraMoveController.UnInit();
+	m_UIController.UnInit();
+	m_GizmoContoller.UnInit();
 	return true;
 }
 
@@ -1158,9 +897,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	}
 
 	m_pWindow = window;
-
-	// temp
-	AddWindowCallback();
 
 	KRenderGlobal::TaskExecutor.Init(std::thread::hardware_concurrency());
 
@@ -1241,12 +977,13 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		if(!CreateUI())
 			return false;
 
-		if (!InitRenderDispatcher())
-			return false;
-
 		// Temporarily for demo use
 		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
 		if(!CreateMesh())
+			return false;
+		if (!InitRenderDispatcher())
+			return false;
+		if (!InitController())
 			return false;
 
 		m_pWindow->SetRenderDevice(this);
@@ -1290,8 +1027,6 @@ bool KVulkanRenderDevice::UnInit()
 	}
 	KRenderGlobal::TaskExecutor.UnInit();
 
-	m_pWindow = nullptr;
-
 	KECSGlobal::EntityManager.ViewAllEntity([](KEntityPtr entity)
 	{
 		KRenderComponent* component = nullptr;
@@ -1333,7 +1068,10 @@ bool KVulkanRenderDevice::UnInit()
 
 	UnInitGlobalManager();
 	UnInitRenderDispatcher();
+	UnInitController();
 	UnsetDebugMessenger();
+
+	m_pWindow = nullptr;
 
 	if (m_Device != VK_NULL_HANDLE)
 	{
@@ -1474,16 +1212,9 @@ bool KVulkanRenderDevice::UpdateCamera(size_t idx)
 	static KTimer m_MoveTimer;
 
 	const float dt = m_MoveTimer.GetSeconds();
-	const float moveSpeed = 300.0f;
 	m_MoveTimer.Reset();
 
-	m_Camera.MoveRight(dt * moveSpeed * m_Move[0]);
-	m_Camera.Move(dt * moveSpeed * m_Move[1] * glm::vec3(0,1,0));
-	m_Camera.MoveForward(dt * moveSpeed * m_Move[2]);
-
-	VkExtent2D extend = ((KVulkanSwapChain*)m_SwapChain.get())->GetExtent();
-
-	m_Camera.SetPerspective(glm::radians(45.0f), extend.width / (float) extend.height, 1.0f, 10000.0f);
+	m_CameraMoveController.Update(dt);
 
 	glm::mat4 view = m_Camera.GetViewMatrix();
 	glm::mat4 proj = m_Camera.GetProjectiveMatrix();
@@ -1577,7 +1308,10 @@ bool KVulkanRenderDevice::Present()
 	m_UIOverlay->Update((uint32_t)frameIndex);
 
 	KRenderGlobal::Scene.EnableDebugRender(m_OctreeDebugDraw);
+	KRenderGlobal::RenderDispatcher.SetMultiThreadSumbit(m_MultiThreadSumbit);
 	KRenderGlobal::RenderDispatcher.Execute(&KRenderGlobal::Scene, &m_Camera, chainImageIndex, (uint32_t)frameIndex);
+
+	m_CameraMoveController.SetEnable(m_MouseCtrlCamera);
 
 	VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer((uint32_t)frameIndex).get())->GetVkHandle();
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(m_GraphicsQueue, m_PresentQueue, chainImageIndex, primaryCommandBuffer);

@@ -55,6 +55,9 @@
     <Filter Include="Internal\Dispatcher">
       <UniqueIdentifier>{31833760-9865-4a77-93fb-98f218a9880b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Controller">
+      <UniqueIdentifier>{02b90263-ebce-41ba-a4fb-1299848c2060}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -327,6 +330,15 @@
     <ClInclude Include="Internal\Dispatcher\KRenderDispatcher.h">
       <Filter>Internal\Dispatcher</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Controller\KCameraMoveController.h">
+      <Filter>Internal\Controller</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Controller\KUIOverlayController.h">
+      <Filter>Internal\Controller</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Controller\KGizmoController.h">
+      <Filter>Internal\Controller</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -514,6 +526,15 @@
     </ClCompile>
     <ClCompile Include="Internal\Dispatcher\KRenderDispatcher.cpp">
       <Filter>Internal\Dispatcher</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Controller\KCameraMoveController.cpp">
+      <Filter>Internal\Controller</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Controller\KUIOverlayController.cpp">
+      <Filter>Internal\Controller</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Controller\KGizmoController.cpp">
+      <Filter>Internal\Controller</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

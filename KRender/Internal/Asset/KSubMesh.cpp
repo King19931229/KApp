@@ -155,12 +155,12 @@ do\
 
 	return true;
 }
-/*
+
 // 安卓上还是有用的
 #ifndef __ANDROID__
 #	define PRE_Z_DISABLE
 #endif
-*/
+
 
 bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline)
 {
@@ -300,7 +300,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetPolygonMode(PM_LINE);
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, true);
+		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 
 		pipeline->SetDepthBiasEnable(false);
 
@@ -328,7 +328,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, true);
+		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 
 		pipeline->SetDepthBiasEnable(false);
 

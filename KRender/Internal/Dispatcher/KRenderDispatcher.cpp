@@ -101,8 +101,6 @@ void KRenderDispatcher::ThreadRenderObject(uint32_t frameIndex, uint32_t threadI
 	// https://devblogs.nvidia.com/vulkan-dos-donts/ ResetCommandPool Õ∑≈ƒ⁄¥Ê
 	threadData.commandPool->Reset();
 
-	size_t numThread = m_ThreadPool.GetWorkerThreadNum();
-
 	IKCommandBufferPtr commandBuffer = nullptr;
 	// PreZ
 	commandBuffer = threadData.preZcommandBuffer;
@@ -282,6 +280,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 			primaryCommandBuffer->BeginRenderPass(offscreenTarget, SUBPASS_CONTENTS_SECONDARY);
 
 			auto commandBuffers = m_CommandBuffers[frameIndex].commandBuffersExec;
+			commandBuffers.clear();
 
 			// ªÊ÷∆SkyBox
 			{
@@ -385,7 +384,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 					addMesh(st);
 				}
 
-				if (i == 0)
+				if (i == threadCount - 1)
 				{
 					for (size_t st = threadCount * drawEachThread, ed = st + reaminCount; st < ed; ++st)
 					{
@@ -394,7 +393,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 				}
 			}
 
-			for (size_t i = 0; i < m_ThreadPool.GetWorkerThreadNum(); ++i)
+			for (size_t i = 0; i < threadCount; ++i)
 			{
 				m_ThreadPool.SubmitTask([=]()
 				{
@@ -406,21 +405,26 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 			for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
 			{
 				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
-				commandBuffers.push_back(threadData.preZcommandBuffer);
-				threadData.preZcommands.clear();
+				if (!threadData.preZcommands.empty())
+				{
+					commandBuffers.push_back(threadData.preZcommandBuffer);
+					threadData.preZcommands.clear();
+				}
 			}
 
 			for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
 			{
 				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
-				commandBuffers.push_back(threadData.commandBuffer);
-				threadData.commands.clear();
+				if (!threadData.commands.empty())
+				{
+					commandBuffers.push_back(threadData.commandBuffer);
+					threadData.commands.clear();
+				}
 			}
 
 			if (!commandBuffers.empty())
 			{
 				primaryCommandBuffer->ExecuteAll(commandBuffers);
-				commandBuffers.clear();
 			}
 
 			primaryCommandBuffer->EndRenderPass();
