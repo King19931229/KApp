@@ -3,6 +3,8 @@
 #include "Interface/IKRenderWindow.h"
 #include "Interface/IKRenderCommand.h"
 
+typedef std::function<void(uint32_t chainIndex, uint32_t frameIndex)> KDevicePresentCallback;
+
 struct IKRenderDevice
 {
 	virtual ~IKRenderDevice() {}
@@ -24,7 +26,7 @@ struct IKRenderDevice
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline) = 0;
 	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle) = 0;
 
-	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui) = 0;
+	virtual bool CreateUIOverlay(IKUIOverlayPtr& ui) = 0;
 
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool) = 0;
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer) = 0;
@@ -33,6 +35,13 @@ struct IKRenderDevice
 	virtual bool Wait() = 0;
 
 	virtual bool RecreateSwapChain() = 0;
+
+	virtual IKSwapChainPtr GetCurrentSwapChain() = 0;
+	virtual IKUIOverlayPtr GetCurrentUIOverlay() = 0;
+	virtual uint32_t GetFrameInFlight() = 0;
+
+	virtual bool RegisterPresentCallback(KDevicePresentCallback* callback) = 0;
+	virtual bool UnRegisterPresentCallback(KDevicePresentCallback* callback) = 0;
 };
 
 EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform);

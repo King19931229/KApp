@@ -247,14 +247,17 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KScene* scene, KCamera* 
 					primaryBuffer->Render(command);
 				}
 
-				ClearDepthStencil(primaryBuffer, offscreenTarget, clearValue.depthStencil);
-
-				for (KRenderCommand& command : debugCommandList)
+				if (!debugCommandList.empty())
 				{
-					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-					command.pipelineHandle = handle;
-					primaryBuffer->Render(command);
+					ClearDepthStencil(primaryBuffer, offscreenTarget, clearValue.depthStencil);
+
+					for (KRenderCommand& command : debugCommandList)
+					{
+						IKPipelineHandlePtr handle;
+						KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
+						command.pipelineHandle = handle;
+						primaryBuffer->Render(command);
+					}
 				}
 			}
 		}
@@ -505,6 +508,10 @@ bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKS
 
 bool KRenderDispatcher::UnInit()
 {
+	if (m_Device)
+	{
+		m_Device->Wait();
+	}
 	m_Device = nullptr;
 	m_SwapChain = nullptr;
 	m_UIOverlay = nullptr;

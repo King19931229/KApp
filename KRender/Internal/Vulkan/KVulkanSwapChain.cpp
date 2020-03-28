@@ -301,7 +301,7 @@ bool KVulkanSwapChain::DestroyRenderTargets()
 	return true;
 }
 
-bool KVulkanSwapChain::Init(uint32_t width, uint32_t height, size_t frameInFlight)
+bool KVulkanSwapChain::Init(uint32_t width, uint32_t height, uint32_t frameInFlight)
 {
 	ASSERT_RESULT(m_SwapChain == VK_NULL_HANDLE);
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
@@ -329,12 +329,12 @@ bool KVulkanSwapChain::UnInit()
 	return true;
 }
 
-IKRenderTargetPtr KVulkanSwapChain::GetRenderTarget(size_t frameIndex)
+IKRenderTargetPtr KVulkanSwapChain::GetRenderTarget(uint32_t frameIndex)
 {
 	return frameIndex < m_SwapChainRenderTargets.size() ? m_SwapChainRenderTargets[frameIndex]->shared_from_this() : nullptr;
 }
 
-VkResult KVulkanSwapChain::WaitForInfightFrame(size_t& frameIndex)
+VkResult KVulkanSwapChain::WaitForInfightFrame(uint32_t& frameIndex)
 {
 	VkResult result = vkWaitForFences(m_Device, 1, &m_InFlightFences[m_CurrentFlightIndex], VK_TRUE, UINT64_MAX);
 	frameIndex = m_CurrentFlightIndex;

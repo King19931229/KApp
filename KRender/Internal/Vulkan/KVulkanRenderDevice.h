@@ -20,10 +20,6 @@
 #include "Publish/KAABBBox.h"
 #include "Interface/IKGizmo.h"
 
-#include "Internal/Controller/KCameraMoveController.h"
-#include "Internal/Controller/KUIOverlayController.h"
-#include "Internal/Controller/KGizmoController.h"
-
 #include <algorithm>
 #include <vector>
 
@@ -69,21 +65,11 @@ protected:
 	VkCommandPool m_GraphicCommandPool;
 	int32_t m_ValidationLayerIdx;
 	bool m_EnableValidationLayer;
-	bool m_MultiThreadSumbit;
-	bool m_OctreeDebugDraw;
-	bool m_MouseCtrlCamera;
 
-	size_t m_FrameInFlight;
-	size_t m_MaxRenderThreadNum;
-	// Temporarily for demo use
-	IKGizmoPtr m_MoveGizmo;
+	uint32_t m_FrameInFlight;
 
-	KCamera m_Camera;
-	KCameraMoveController m_CameraMoveController;
-	KUIOverlayController m_UIController;
-	KGizmoController m_GizmoContoller;
-
-	KKeyboardCallbackType m_KeyCallback;
+	typedef std::unordered_set<KDevicePresentCallback*> PresentCallbackSet;
+	PresentCallbackSet m_PresentCallback;
 
 	VkDebugUtilsMessengerEXT m_DebugUtilsMessenger;
 	VkDebugReportCallbackEXT m_DebugReportCallback;
@@ -100,12 +86,6 @@ protected:
 	bool InitGlobalManager();
 	bool UnInitGlobalManager();
 
-	// TODO 先放这里
-	bool InitRenderDispatcher();
-	bool UnInitRenderDispatcher();
-	bool InitController();
-	bool UnInitController();
-
 	bool CheckDeviceSuitable(PhysicalDevice& device);
 
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
@@ -120,11 +100,7 @@ protected:
 	bool CreateCommandPool();
 
 	bool CreateMesh();
-	bool UpdateFrameTime();
 	bool CreateUI();
-	bool Reload();
-
-	bool UpdateCamera(size_t idx);
 	bool CleanupSwapChain();
 
 	bool InitDeviceGlobal();
@@ -169,7 +145,7 @@ public:
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline);
 	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle);
 
-	virtual bool CreateUIOVerlay(IKUIOverlayPtr& ui);
+	virtual bool CreateUIOverlay(IKUIOverlayPtr& ui);
 
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool);
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer);
@@ -177,5 +153,12 @@ public:
 	virtual bool Present();
 	virtual bool Wait();
 
+	virtual bool RegisterPresentCallback(KDevicePresentCallback* callback);
+	virtual bool UnRegisterPresentCallback(KDevicePresentCallback* callback);
+
 	virtual bool RecreateSwapChain();
+
+	virtual IKSwapChainPtr GetCurrentSwapChain();
+	virtual IKUIOverlayPtr GetCurrentUIOverlay();
+	virtual uint32_t GetFrameInFlight();
 };

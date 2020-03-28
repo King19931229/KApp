@@ -171,13 +171,8 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 #endif
 	),
 	m_ValidationLayerIdx(-1),
-	m_MultiThreadSumbit(true),
-	m_OctreeDebugDraw(false),
-	m_MouseCtrlCamera(true),
-	m_FrameInFlight(2),
-	m_MoveGizmo(nullptr)
+	m_FrameInFlight(2)
 {
-	m_MaxRenderThreadNum = std::thread::hardware_concurrency();
 }
 
 KVulkanRenderDevice::~KVulkanRenderDevice()
@@ -345,7 +340,7 @@ bool KVulkanRenderDevice::CreateSwapChain()
 
 bool KVulkanRenderDevice::CreateUI()
 {
-	CreateUIOVerlay(m_UIOverlay);
+	CreateUIOverlay(m_UIOverlay);
 	m_UIOverlay->Init(this, m_FrameInFlight);
 	m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
 	return true;
@@ -489,60 +484,6 @@ bool KVulkanRenderDevice::CreateCommandPool()
 		return true;
 	}
 	return false;
-}
-
-static int numFrames = 0;
-static float fps = 0.0f;
-static float frameTime = 0.0f;
-static int numFramesTotal = 0;
-static float maxFrameTime = 0;
-static float minFrameTime = 0;
-static KTimer FPSTimer;
-static KTimer MaxMinTimer;
-
-bool KVulkanRenderDevice::UpdateFrameTime()
-{
-	if(MaxMinTimer.GetMilliseconds() > 5000.0f)
-	{
-		maxFrameTime = frameTime;
-		minFrameTime = frameTime;
-		MaxMinTimer.Reset();
-	}
-
-	++numFrames;
-	if(FPSTimer.GetMilliseconds() > 500.0f)
-	{
-		float time = FPSTimer.GetMilliseconds();
-		time = time / (float)numFrames;
-		frameTime = time;
-
-		fps = 1000.0f / frameTime;
-
-		if(frameTime > maxFrameTime)
-		{
-			maxFrameTime = time;
-		}
-		if(frameTime < minFrameTime)
-		{
-			minFrameTime = time;
-		}
-		FPSTimer.Reset();
-		numFrames = 0;
-	}
-
-	char szBuffer[1024] = {};
-	sprintf(szBuffer, "[FPS] %f [FrameTime] %f [MinTime] %f [MaxTime] %f [Frame]%d", fps, frameTime, minFrameTime, maxFrameTime, numFramesTotal++);
-	m_pWindow->SetWindowTitle(szBuffer);
-
-	return true;
-}
-
-bool KVulkanRenderDevice::Reload()
-{
-	Wait();
-	KRenderGlobal::ShaderManager.Reload();
-	KRenderGlobal::PipelineManager.Reload();
-	return true;
 }
 
 bool KVulkanRenderDevice::CreateMesh()
@@ -827,62 +768,6 @@ bool KVulkanRenderDevice::UnInitGlobalManager()
 	return true;
 }
 
-bool KVulkanRenderDevice::InitRenderDispatcher()
-{
-	KRenderGlobal::RenderDispatcher.Init(this, (uint32_t)m_FrameInFlight, m_SwapChain, m_UIOverlay);
-	return true;
-}
-
-bool KVulkanRenderDevice::UnInitRenderDispatcher()
-{
-	KRenderGlobal::RenderDispatcher.UnInit();
-	return true;
-}
-
-bool KVulkanRenderDevice::InitController()
-{
-	m_Camera.SetPosition(glm::vec3(0, 400.0f, 400.0f));
-	m_Camera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
-	m_Camera.SetLockYEnable(true);
-
-	m_MoveGizmo = CreateGizmo();
-	m_MoveGizmo->Init(&m_Camera);
-	m_MoveGizmo->SetManipulateMode(GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL);
-	m_MoveGizmo->SetMatrix(glm::rotate(glm::mat4(1.0f), glm::pi<float>() * 0.3f, glm::vec3(1.0f, 0.0f, 0.0f)) *
-		glm::translate(glm::mat4(1.0f), glm::vec3(30.0f, 30.0f, 0.0f)));
-	m_MoveGizmo->SetType(GizmoType::GIZMO_TYPE_ROTATE);
-	m_MoveGizmo->Enter();
-
-	m_CameraMoveController.Init(&m_Camera, m_pWindow);
-	m_UIController.Init(m_UIOverlay, m_pWindow);
-	m_GizmoContoller.Init(m_MoveGizmo, &m_Camera, m_pWindow);
-
-	m_KeyCallback = [this](InputKeyboard key, InputAction action)
-	{
-		if (key == INPUT_KEY_ENTER)
-		{
-			Reload();
-		}
-	};
-
-#if defined(_WIN32)
-	m_pWindow->RegisterKeyboardCallback(&m_KeyCallback);
-#endif
-	return true;
-}
-
-bool KVulkanRenderDevice::UnInitController()
-{
-#if defined(_WIN32)
-	m_pWindow->UnRegisterKeyboardCallback(&m_KeyCallback);
-#endif
-	m_CameraMoveController.UnInit();
-	m_UIController.UnInit();
-	m_GizmoContoller.UnInit();
-	return true;
-}
-
 bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 {
 	if(window == nullptr
@@ -981,10 +866,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
 		if(!CreateMesh())
 			return false;
-		if (!InitRenderDispatcher())
-			return false;
-		if (!InitController())
-			return false;
 
 		m_pWindow->SetRenderDevice(this);
 		return true;
@@ -1040,12 +921,6 @@ bool KVulkanRenderDevice::UnInit()
 		}
 	});
 
-	if (m_MoveGizmo)
-	{
-		m_MoveGizmo->Leave();
-		m_MoveGizmo->UnInit();
-	}
-
 	CleanupSwapChain();
 
 	if (m_PipelineCache != VK_NULL_HANDLE)
@@ -1067,8 +942,6 @@ bool KVulkanRenderDevice::UnInit()
 	}
 
 	UnInitGlobalManager();
-	UnInitRenderDispatcher();
-	UnInitController();
 	UnsetDebugMessenger();
 
 	m_pWindow = nullptr;
@@ -1199,71 +1072,17 @@ bool KVulkanRenderDevice::CreatePipelineHandle(IKPipelineHandlePtr& pipelineHand
 	return true;
 }
 
-bool KVulkanRenderDevice::CreateUIOVerlay(IKUIOverlayPtr& ui)
+bool KVulkanRenderDevice::CreateUIOverlay(IKUIOverlayPtr& ui)
 {
 	ui = IKUIOverlayPtr(static_cast<IKUIOverlay*>(new KVulkanUIOverlay()));
 	return true;
 }
 
-bool KVulkanRenderDevice::UpdateCamera(size_t idx)
-{
-	ASSERT_RESULT(idx < m_FrameInFlight);
-
-	static KTimer m_MoveTimer;
-
-	const float dt = m_MoveTimer.GetSeconds();
-	m_MoveTimer.Reset();
-
-	m_CameraMoveController.Update(dt);
-
-	glm::mat4 view = m_Camera.GetViewMatrix();
-	glm::mat4 proj = m_Camera.GetProjectiveMatrix();
-	glm::mat4 viewInv = glm::inverse(view);
-	glm::vec2 near_far = glm::vec2(m_Camera.GetNear(), m_Camera.GetFar());
-	{
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(idx, CBT_CAMERA);
-		void* pWritePos = nullptr;
-		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);
-		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
-		for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
-		{
-			if(detail.semantic == CS_VIEW)
-			{
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				assert(sizeof(view) == detail.size);
-				memcpy(pWritePos, &view, sizeof(view));
-			}
-			else if(detail.semantic == CS_PROJ)
-			{
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				assert(sizeof(proj) == detail.size);
-				memcpy(pWritePos, &proj, sizeof(proj));
-			}
-			else if(detail.semantic == CS_VIEW_INV)
-			{
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				assert(sizeof(viewInv) == detail.size);
-				memcpy(pWritePos, &viewInv, sizeof(viewInv));
-			}
-		}
-		cameraBuffer->Write(pData);
-	}
-	return true;
-}
-
 bool KVulkanRenderDevice::Present()
 {
-	// TODO
-	KRenderGlobal::TaskExecutor.ProcessSyncTask();
-
-	if (m_MoveGizmo)
-	{
-		m_MoveGizmo->Update();
-	}
-
 	VkResult vkResult;
 
-	size_t frameIndex = 0;
+	uint32_t frameIndex = 0;
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->WaitForInfightFrame(frameIndex);
 	VK_ASSERT_RESULT(vkResult);
 
@@ -1280,40 +1099,12 @@ bool KVulkanRenderDevice::Present()
 		return false;
 	}
 
-	UpdateCamera(frameIndex);
-	UpdateFrameTime();
-
-	m_UIOverlay->StartNewFrame();
+	for (KDevicePresentCallback* callback : m_PresentCallback)
 	{
-		m_UIOverlay->SetWindowPos(10, 10);
-		m_UIOverlay->SetWindowSize(0, 0);
-		m_UIOverlay->Begin("Example");
-		{
-			m_UIOverlay->Text("FPS [%f] FrameTime [%f]", fps, frameTime);
-			m_UIOverlay->PushItemWidth(110.0f);
-			if (m_UIOverlay->Header("Setting"))
-			{
-				m_UIOverlay->CheckBox("MouseCtrlCamera", &m_MouseCtrlCamera);
-				m_UIOverlay->CheckBox("OctreeDraw", &m_OctreeDebugDraw);
-				m_UIOverlay->CheckBox("MultiRender", &m_MultiThreadSumbit);
-				m_UIOverlay->SliderFloat("Shadow DepthBiasConstant", &KRenderGlobal::ShadowMap.GetDepthBiasConstant(), 0.0f, 5.0f);
-				m_UIOverlay->SliderFloat("Shadow DepthBiasSlope", &KRenderGlobal::ShadowMap.GetDepthBiasSlope(), 0.0f, 5.0f);
-			}
-			m_UIOverlay->PopItemWidth();
-		}
-		m_UIOverlay->End();
+		(*callback)(chainImageIndex, frameIndex);
 	}
-	m_UIOverlay->EndNewFrame();
 
-	m_UIOverlay->Update((uint32_t)frameIndex);
-
-	KRenderGlobal::Scene.EnableDebugRender(m_OctreeDebugDraw);
-	KRenderGlobal::RenderDispatcher.SetMultiThreadSumbit(m_MultiThreadSumbit);
-	KRenderGlobal::RenderDispatcher.Execute(&KRenderGlobal::Scene, &m_Camera, chainImageIndex, (uint32_t)frameIndex);
-
-	m_CameraMoveController.SetEnable(m_MouseCtrlCamera);
-
-	VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer((uint32_t)frameIndex).get())->GetVkHandle();
+	VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer(frameIndex).get())->GetVkHandle();
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(m_GraphicsQueue, m_PresentQueue, chainImageIndex, primaryCommandBuffer);
 	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
 	{
@@ -1344,6 +1135,45 @@ bool KVulkanRenderDevice::Wait()
 	return false;
 }
 
+bool KVulkanRenderDevice::RegisterPresentCallback(KDevicePresentCallback* callback)
+{
+	if (callback)
+	{
+		m_PresentCallback.insert(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanRenderDevice::UnRegisterPresentCallback(KDevicePresentCallback* callback)
+{
+	if (callback)
+	{
+		auto it = m_PresentCallback.find(callback);
+		if (it != m_PresentCallback.end())
+		{
+			m_PresentCallback.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
+IKSwapChainPtr KVulkanRenderDevice::GetCurrentSwapChain()
+{
+	return m_SwapChain;
+}
+
+IKUIOverlayPtr KVulkanRenderDevice::GetCurrentUIOverlay()
+{
+	return m_UIOverlay;
+}
+
+uint32_t KVulkanRenderDevice::GetFrameInFlight()
+{
+	return m_FrameInFlight;
+}
+
 /*
 总共有三个入口可以侦查并促发到交换链重建
 1.glfw窗口大小改变
@@ -1357,14 +1187,13 @@ bool KVulkanRenderDevice::RecreateSwapChain()
 	m_pWindow->IdleUntilForeground();
 	vkDeviceWaitIdle(m_Device);
 
+	CleanupSwapChain();
+	CreateSwapChain();
+	CreateUI();
+
 	size_t width = 0, height = 0;
 	m_pWindow->GetSize(width, height);
 	KRenderGlobal::PostProcessManager.Resize(width, height);
-
-	CleanupSwapChain();
-
-	CreateSwapChain();
-	CreateUI();
 
 	KRenderGlobal::RenderDispatcher.ResetSwapChain(m_SwapChain, m_UIOverlay);
 

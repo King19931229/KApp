@@ -25,8 +25,8 @@ protected:
 	VkPresentModeKHR m_PresentMode;
 	VkSurfaceFormatKHR m_SurfaceFormat;
 
-	size_t m_MaxFramesInFight;
-	size_t m_CurrentFlightIndex;
+	uint32_t m_MaxFramesInFight;
+	uint32_t m_CurrentFlightIndex;
 
 	std::vector<VkImage> m_SwapChainImages;
 	std::vector<VkImageView> m_SwapChainImageViews;
@@ -54,15 +54,15 @@ public:
 	KVulkanSwapChain();
 	~KVulkanSwapChain();
 
-	bool Init(uint32_t width, uint32_t height, size_t frameInFlight);
+	bool Init(uint32_t width, uint32_t height, uint32_t frameInFlight);
 	bool UnInit();
 
 	virtual uint32_t GetWidth() { return m_Extend.width; }
 	virtual uint32_t GetHeight() { return m_Extend.height; }
 
-	virtual IKRenderTargetPtr GetRenderTarget(size_t frameIndex);
+	virtual IKRenderTargetPtr GetRenderTarget(uint32_t frameIndex);
 
-	VkResult WaitForInfightFrame(size_t& frameIndex);
+	VkResult WaitForInfightFrame(uint32_t& frameIndex);
 	VkResult AcquireNextImage(uint32_t& imageIndex);
 	VkResult PresentQueue(VkQueue graphicsQueue, VkQueue presentQueue, uint32_t imageIndex, VkCommandBuffer commandBuffer);
 
