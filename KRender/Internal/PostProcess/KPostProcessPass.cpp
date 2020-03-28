@@ -206,8 +206,6 @@ bool KPostProcessPass::Init()
 	for(size_t i = 0; i < m_RenderTargets.size(); ++i)
 	{
 		device->CreateRenderTarget(m_RenderTargets[i]);
-		m_RenderTargets[i]->SetColorClear(0, 0, 0, 1);
-		m_RenderTargets[i]->SetDepthStencilClear(1.0, 0);
 		m_RenderTargets[i]->InitFromTexture(m_Textures[i].get(), true, true, m_MsaaCount);
 	}
 

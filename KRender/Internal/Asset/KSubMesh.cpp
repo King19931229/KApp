@@ -300,7 +300,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetPolygonMode(PM_LINE);
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
+		pipeline->SetDepthFunc(CF_ALWAYS, true, true);
 
 		pipeline->SetDepthBiasEnable(false);
 
@@ -328,7 +328,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
+		pipeline->SetDepthFunc(CF_ALWAYS, true, true);
 
 		pipeline->SetDepthBiasEnable(false);
 

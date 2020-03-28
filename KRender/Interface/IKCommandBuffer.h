@@ -2,6 +2,32 @@
 
 #include "IKRenderCommand.h"
 
+struct KClearColor
+{
+	float r;
+	float g;
+	float b;
+	float a;
+};
+
+struct KClearDepthStencil
+{
+	float depth;
+	unsigned int stencil;;
+};
+
+struct KClearValue
+{
+	KClearColor color;
+	KClearDepthStencil depthStencil;
+};
+
+struct KClearRect
+{
+	uint32_t width;
+	uint32_t height;
+};
+
 struct IKCommandPool
 {
 	virtual ~IKCommandPool() {};
@@ -31,6 +57,10 @@ struct IKCommandBuffer
 	virtual bool BeginSecondary(IKRenderTargetPtr target) = 0;
 	virtual bool End() = 0;
 
-	virtual bool BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent) = 0;
+	virtual bool BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent, const KClearValue& clearValue) = 0;
+
+	virtual bool ClearColor(const KClearRect& rect, const KClearColor& color) = 0;
+	virtual bool ClearDepthStencil(const KClearRect& rect, const KClearDepthStencil& depthStencil) = 0;
+
 	virtual bool EndRenderPass() = 0;
 };

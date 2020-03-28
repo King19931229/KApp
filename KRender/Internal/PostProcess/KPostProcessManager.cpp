@@ -464,6 +464,8 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 {
 	KPostProcessPass* endPass = nullptr;
 
+	KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
+
 	IterPostProcessGraph([=, &endPass](IKPostProcessNode* node)
 	{
 		PostProcessNodeType type = node->GetType();
@@ -480,7 +482,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 			IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer(frameIndex);
 			IKRenderTargetPtr renderTarget = pass->GetRenderTarget(frameIndex);
 
-			primaryCommandBuffer->BeginRenderPass(renderTarget, SUBPASS_CONTENTS_SECONDARY);
+			primaryCommandBuffer->BeginRenderPass(renderTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
 			{
 				commandBuffer->BeginSecondary(renderTarget);
 				commandBuffer->SetViewport(renderTarget);
@@ -498,7 +500,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 	if (endPass)
 	{
 		IKRenderTargetPtr swapChainTarget = swapChain->GetRenderTarget(chainImageIndex);
-		primaryCommandBuffer->BeginRenderPass(swapChainTarget, SUBPASS_CONTENTS_INLINE);
+		primaryCommandBuffer->BeginRenderPass(swapChainTarget, SUBPASS_CONTENTS_INLINE, clearValue);
 
 		primaryCommandBuffer->SetViewport(swapChainTarget);
 

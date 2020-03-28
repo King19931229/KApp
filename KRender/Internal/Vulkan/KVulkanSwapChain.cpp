@@ -249,8 +249,6 @@ bool KVulkanSwapChain::CreateRenderTargets()
 	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
 	{
 		m_SwapChainRenderTargets[i] = KVulkanRenderTarget::CreateRenderTarget();
-		m_SwapChainRenderTargets[i]->SetColorClear(0.0f, 0.0f, 0.0f, 1.0f);
-		m_SwapChainRenderTargets[i]->SetDepthStencilClear(1.0, 0);
 		m_SwapChainRenderTargets[i]->InitFromSwapChain(this, i, true, true, 1);
 	}
 	return true;

@@ -22,8 +22,11 @@ protected:
 		IKCommandBufferPtr preZcommandBuffer;
 		std::vector<KRenderCommand> preZcommands;
 
-		IKCommandBufferPtr commandBuffer;
-		std::vector<KRenderCommand> commands;
+		IKCommandBufferPtr defaultCommandBuffer;
+		std::vector<KRenderCommand> defaultCommands;
+
+		IKCommandBufferPtr debugCommandBuffer;
+		std::vector<KRenderCommand> debugCommands;
 	};
 
 	struct CommandBuffer
@@ -32,6 +35,8 @@ protected:
 		IKCommandBufferPtr primaryCommandBuffer;
 		IKCommandBufferPtr skyBoxCommandBuffer;
 		IKCommandBufferPtr shadowMapCommandBuffer;
+
+		IKCommandBufferPtr clearCommandBuffer;
 
 		std::vector<ThreadData> threadDatas;
 		KCommandBufferList commandBuffersExec;
@@ -50,6 +55,8 @@ protected:
 
 	bool CreateCommandBuffers();
 	bool DestroyCommandBuffers();
+
+	void ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTargetPtr target, const KClearDepthStencil& value);
 public:
 	KRenderDispatcher();
 	~KRenderDispatcher();

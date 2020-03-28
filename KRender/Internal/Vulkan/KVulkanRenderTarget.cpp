@@ -13,35 +13,24 @@ IKRenderTargetPtr KVulkanRenderTarget::CreateRenderTarget()
 }
 
 KVulkanRenderTarget::KVulkanRenderTarget()
-	: m_bMsaaCreated(false),
-	m_bDepthStencilCreated(false),
-	m_MsaaFlag(VK_SAMPLE_COUNT_1_BIT)
 {
-	ZERO_MEMORY(m_RenderPass);
-	ZERO_MEMORY(m_FrameBuffer);
-	ZERO_MEMORY(m_ColorFormat);
+	m_MsaaFlag = VK_SAMPLE_COUNT_1_BIT;
 
-	ZERO_ARRAY_MEMORY(m_ClearValues);
-
-	m_ClearValues[CT_COLOR].color.float32[0] = 0;
-	m_ClearValues[CT_COLOR].color.float32[1] = 0;
-	m_ClearValues[CT_COLOR].color.float32[2] = 0;
-	m_ClearValues[CT_COLOR].color.float32[3] = 0;
-
-	m_ClearValues[CT_DEPTH_STENCIL].depthStencil.depth = 1.0;
-	m_ClearValues[CT_DEPTH_STENCIL].depthStencil.stencil = 0;
+	m_RenderPass = VK_NULL_HANDLE;
+	m_FrameBuffer = VK_NULL_HANDLE;
+	m_ColorFormat = VK_FORMAT_UNDEFINED;
 
 	ZERO_MEMORY(m_Extend);
-	ZERO_MEMORY(m_ColorImageView);
-	ZERO_MEMORY(m_ColorFormat);
+	m_ColorImageView = VK_NULL_HANDLE;
+	m_ColorFormat = VK_FORMAT_UNDEFINED;
 
-	ZERO_MEMORY(m_MsaaImage);
-	ZERO_MEMORY(m_MsaaImageView);
+	m_MsaaImage = VK_NULL_HANDLE;
+	m_MsaaImageView = VK_NULL_HANDLE;
 	ZERO_MEMORY(m_MsaaAlloc);
 
-	ZERO_MEMORY(m_DepthFormat);
-	ZERO_MEMORY(m_DepthImage);
-	ZERO_MEMORY(m_DepthImageView);
+	m_DepthFormat = VK_FORMAT_UNDEFINED;
+	m_DepthImage = VK_NULL_HANDLE;
+	m_DepthImageView = VK_NULL_HANDLE;
 }
 
 KVulkanRenderTarget::~KVulkanRenderTarget()
@@ -52,20 +41,6 @@ KVulkanRenderTarget::~KVulkanRenderTarget()
 	ASSERT_RESULT(m_ColorImageView == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_DepthImage == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_DepthImageView == VK_NULL_HANDLE);	
-}
-
-bool KVulkanRenderTarget::SetColorClear(float r, float g, float b, float a)
-{
-	VkClearColorValue clear = {r, g, b, a};
-	m_ClearValues[CT_COLOR].color = clear;
-	return true;
-}
-
-bool KVulkanRenderTarget::SetDepthStencilClear(float depth, unsigned int stencil)
-{
-	VkClearDepthStencilValue clear = {depth, stencil};
-	m_ClearValues[CT_DEPTH_STENCIL].depthStencil = clear;
-	return true;
 }
 
 VkFormat KVulkanRenderTarget::FindDepthFormat(bool bStencil)
@@ -91,8 +66,8 @@ bool KVulkanRenderTarget::CreateImage(VkImageView imageView,
 									  bool bStencil,
 									  unsigned short uMsaaCount)
 {
-	ASSERT_RESULT(!m_bMsaaCreated);
-	ASSERT_RESULT(!m_bDepthStencilCreated);
+	ASSERT_RESULT(m_MsaaImage == VK_NULL_HANDLE);
+	ASSERT_RESULT(m_DepthImage == VK_NULL_HANDLE);
 
 	m_ColorImageView = imageView;
 	m_ColorFormat = imageForamt;
@@ -117,16 +92,13 @@ bool KVulkanRenderTarget::CreateImage(VkImageView imageView,
 
 		KVulkanHelper::TransitionImageLayout(m_MsaaImage,
 			m_ColorFormat, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-		m_bMsaaCreated = true;
 	}
 	else
 	{
 		m_MsaaFlag = VK_SAMPLE_COUNT_1_BIT;
-		m_bMsaaCreated = false;
+		m_MsaaImage = VK_NULL_HANDLE;
 	}
 
-	m_bDepthStencilCreated = bDepth;
 	if(bDepth)
 	{
 		m_DepthFormat = FindDepthFormat(bStencil);
@@ -162,10 +134,13 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 
 	VkImageLayout finalLayout = fromSwapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
+	bool massCreated = m_MsaaImage != VK_NULL_HANDLE;
+	bool depthStencilCreated = m_DepthImage != VK_NULL_HANDLE;
+
 	// 声明 Color Attachment
 	VkAttachmentDescription colorAttachment = {};
 	colorAttachment.format = m_ColorFormat;
-	colorAttachment.samples = m_bMsaaCreated ? m_MsaaFlag : VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.samples = massCreated ? m_MsaaFlag : VK_SAMPLE_COUNT_1_BIT;
 
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -174,7 +149,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = m_bMsaaCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : finalLayout;
+	colorAttachment.finalLayout = massCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : finalLayout;
 
 	// 声明 Depth Attachment 不一定用到
 	VkAttachmentDescription depthAttachment = {};
@@ -214,7 +189,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentReference colorAttachmentResolveRef = {};
-	colorAttachmentResolveRef.attachment = m_bDepthStencilCreated ? 2 : 1;
+	colorAttachmentResolveRef.attachment = m_DepthImage != VK_NULL_HANDLE ? 2 : 1;
 	colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	// 声明子通道
@@ -223,8 +198,8 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
-	subpass.pDepthStencilAttachment = m_bDepthStencilCreated ? &depthAttachmentRef : nullptr;
-	subpass.pResolveAttachments = m_bMsaaCreated ? &colorAttachmentResolveRef : nullptr;
+	subpass.pDepthStencilAttachment = depthStencilCreated ? &depthAttachmentRef : nullptr;
+	subpass.pResolveAttachments = massCreated ? &colorAttachmentResolveRef : nullptr;
 
 	// 从属依赖
 	VkSubpassDependency dependencies[2] = {};
@@ -248,11 +223,11 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	// 创建渲染通道	
 	std::vector<VkAttachmentDescription> descs;
 	descs.push_back(colorAttachment);
-	if(m_bDepthStencilCreated)
+	if(depthStencilCreated)
 	{
 		descs.push_back(depthAttachment);
 	}
-	if(m_bMsaaCreated)
+	if(massCreated)
 	{
 		descs.push_back(colorAttachmentResolve);
 	}
@@ -270,10 +245,10 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 
 	std::vector<VkImageView> imageViews;
 
-	if(m_bMsaaCreated)
+	if(massCreated)
 	{
 		imageViews.push_back(m_MsaaImageView);
-		if(m_bDepthStencilCreated)
+		if(depthStencilCreated)
 		{
 			imageViews.push_back(m_DepthImageView);
 		}
@@ -282,7 +257,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	else
 	{
 		imageViews.push_back(m_ColorImageView);
-		if(m_bDepthStencilCreated)
+		if(depthStencilCreated)
 		{
 			imageViews.push_back(m_DepthImageView);
 		}
@@ -352,7 +327,7 @@ bool KVulkanRenderTarget::InitFromDepthStencil(size_t width, size_t height, bool
 bool KVulkanRenderTarget::CreateDepthImage(bool bStencil)
 {
 	m_MsaaFlag = VK_SAMPLE_COUNT_1_BIT;
-	m_bMsaaCreated = false;
+	m_MsaaImage = VK_NULL_HANDLE;
 
 	m_DepthFormat = FindDepthFormat(bStencil);
 
@@ -376,8 +351,6 @@ bool KVulkanRenderTarget::CreateDepthImage(bool bStencil)
 		VK_IMAGE_ASPECT_DEPTH_BIT,
 		1,
 		m_DepthImageView);
-
-	m_bDepthStencilCreated = true;
 
 	return true;
 }
@@ -476,26 +449,22 @@ bool KVulkanRenderTarget::UnInit()
 
 	m_ColorImageView = VK_NULL_HANDLE;
 
-	if(m_bMsaaCreated)
+	if(m_MsaaImage != VK_NULL_HANDLE)
 	{
 		vkDestroyImageView(KVulkanGlobal::device, m_MsaaImageView, nullptr);
 		KVulkanInitializer::FreeVkImage(m_MsaaImage, m_MsaaAlloc);
 
 		m_MsaaImageView = VK_NULL_HANDLE;
 		m_MsaaImage = VK_NULL_HANDLE;
-
-		m_bMsaaCreated = false;
 	}
 
-	if(m_bDepthStencilCreated)
+	if(m_DepthImage != VK_NULL_HANDLE)
 	{
 		vkDestroyImageView(KVulkanGlobal::device, m_DepthImageView, nullptr);
 		KVulkanInitializer::FreeVkImage(m_DepthImage, m_DepthAlloc);
 
 		m_DepthImageView = VK_NULL_HANDLE;
 		m_DepthImage = VK_NULL_HANDLE;
-
-		m_bDepthStencilCreated = false;
 	}
 
 	KRenderGlobal::PipelineManager.InvaildateHandleByRt(shared_from_this());
@@ -510,27 +479,14 @@ bool KVulkanRenderTarget::GetSize(size_t& width, size_t& height)
 	return true;
 }
 
-KVulkanRenderTarget::ClearValues KVulkanRenderTarget::GetVkClearValues()
+bool KVulkanRenderTarget::HasColorAttachment()
 {
-	ClearValues ret;
+	return m_ColorImageView != nullptr;
+}
 
-	if(m_ColorImageView)
-	{
-		ret.first = m_ClearValues;
-		ret.second = m_bDepthStencilCreated ? 2: 1;
-	}
-	else if(m_bDepthStencilCreated)
-	{
-		ret.first = &m_ClearValues[CT_DEPTH_STENCIL];
-		ret.second = 1;
-	}
-	else
-	{
-		assert(false);
-		ret.second = 0;
-	}
-
-	return ret;
+bool KVulkanRenderTarget::HasDepthStencilAttachment()
+{
+	return m_DepthImageView != nullptr;
 }
 
 bool KVulkanRenderTarget::GetImageViewInformation(RenderTargetComponent component, VkFormat& format, VkImageView& imageView)
@@ -538,7 +494,7 @@ bool KVulkanRenderTarget::GetImageViewInformation(RenderTargetComponent componen
 	switch (component)
 	{
 	case RTC_COLOR:
-		if(m_ColorImageView)
+		if(m_ColorImageView != VK_NULL_HANDLE)
 		{
 			format = m_ColorFormat;
 			imageView = m_ColorImageView;
@@ -549,9 +505,9 @@ bool KVulkanRenderTarget::GetImageViewInformation(RenderTargetComponent componen
 			return false;
 		}
 	case RTC_DEPTH_STENCIL:
-		if(m_bDepthStencilCreated)
+		if(m_DepthImageView != VK_NULL_HANDLE)
 		{
-			if(!m_bMsaaCreated)
+			if(m_MsaaImageView == VK_NULL_HANDLE)
 			{
 				format = m_DepthFormat;
 				imageView = m_DepthImageView;

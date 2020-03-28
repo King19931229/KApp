@@ -42,7 +42,11 @@ public:
 	virtual bool BeginSecondary(IKRenderTargetPtr target);
 	virtual bool End();
 
-	virtual bool BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent);
+	virtual bool BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent, const KClearValue& clearValue);
+
+	virtual bool ClearColor(const KClearRect& rect, const KClearColor& color);
+	virtual bool ClearDepthStencil(const KClearRect& rect, const KClearDepthStencil& depthStencil);
+
 	virtual bool EndRenderPass();
 
 	inline VkCommandBuffer GetVkHandle() { return m_CommandBuffer; }

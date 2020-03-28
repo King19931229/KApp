@@ -329,7 +329,7 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderTargetPtr target)
 	return false;
 }
 
-bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent)
+bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent, const KClearValue& clearValue)
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	if(m_CommandBuffer != VK_NULL_HANDLE)
@@ -348,9 +348,34 @@ bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTargetPtr target, SubpassCont
 		renderPassInfo.renderArea.extent = vulkanTarget->GetExtend();
 
 		// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
-		auto clearValuesPair = vulkanTarget->GetVkClearValues();
-		renderPassInfo.pClearValues = clearValuesPair.first;
-		renderPassInfo.clearValueCount = clearValuesPair.second;
+		VkClearValue clearValues[2];
+		uint32_t clearValueCount = 0;
+		if (vulkanTarget->HasColorAttachment())
+		{
+			clearValues[0].color.float32[0] = clearValue.color.r;
+			clearValues[0].color.float32[1] = clearValue.color.g;
+			clearValues[0].color.float32[2] = clearValue.color.b;
+			clearValues[0].color.float32[3] = clearValue.color.a;
+			if (vulkanTarget->HasDepthStencilAttachment())
+			{
+				clearValues[1].depthStencil.depth = clearValue.depthStencil.depth;
+				clearValues[1].depthStencil.stencil = clearValue.depthStencil.stencil;
+				clearValueCount = 2;
+			}
+			else
+			{
+				clearValueCount = 1;
+			}
+		}
+		else if (vulkanTarget->HasDepthStencilAttachment())
+		{
+			clearValues[0].depthStencil.depth = clearValue.depthStencil.depth;
+			clearValues[0].depthStencil.stencil = clearValue.depthStencil.stencil;
+			clearValueCount = 1;
+		}
+
+		renderPassInfo.pClearValues = clearValues;
+		renderPassInfo.clearValueCount = clearValueCount;
 
 		VkSubpassContents subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
 		switch (conent)
@@ -371,6 +396,54 @@ bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTargetPtr target, SubpassCont
 		return true;
 	}
 	return false;
+}
+
+bool KVulkanCommandBuffer::ClearColor(const KClearRect& rect, const KClearColor& color)
+{
+	VkClearValue clearValue;
+	VkClearAttachment clearAttachment;
+
+	clearValue.color.float32[0] = color.r;
+	clearValue.color.float32[1] = color.g;
+	clearValue.color.float32[2] = color.b;
+	clearValue.color.float32[3] = color.a;
+
+	clearAttachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	clearAttachment.colorAttachment = 0;
+	clearAttachment.clearValue = clearValue;
+
+	VkClearRect clearRect;
+	clearRect.baseArrayLayer = 0;
+	clearRect.layerCount = 1;
+	clearRect.rect.offset = { 0 , 0 };
+	clearRect.rect.extent = { rect.width, rect.height };
+
+	vkCmdClearAttachments(m_CommandBuffer, 1, &clearAttachment, 1, &clearRect);
+
+	return true;
+}
+
+bool KVulkanCommandBuffer::ClearDepthStencil(const KClearRect& rect, const KClearDepthStencil& depthStencil)
+{
+	VkClearValue clearValue;
+	VkClearAttachment clearAttachment;
+
+	clearValue.depthStencil.depth = depthStencil.depth;
+	clearValue.depthStencil.stencil = depthStencil.stencil;
+
+	clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+	clearAttachment.colorAttachment = 0;
+	clearAttachment.clearValue = clearValue;
+
+	VkClearRect clearRect;
+	clearRect.baseArrayLayer = 0;
+	clearRect.layerCount = 1;
+	clearRect.rect.offset = { 0 , 0 };
+	clearRect.rect.extent = { rect.width, rect.height };
+
+	vkCmdClearAttachments(m_CommandBuffer, 1, &clearAttachment, 1, &clearRect);
+
+	return true;
 }
 
 bool KVulkanCommandBuffer::EndRenderPass()
