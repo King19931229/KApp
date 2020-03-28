@@ -52,12 +52,14 @@ int main()
 	KCodec::CreateCodecManager();
 
 	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_GLFW);
-	window->Init(60, 60, 1280, 720, true);
 	IKRenderDevicePtr device = CreateRenderDevice(RENDER_DEVICE_VULKAN);
-	device->Init(window.get());
 
 	IKRenderCorePtr renderCore = CreateRenderCore();
 	renderCore->Init(device, window);
+
+	window->Init(60, 60, 1280, 720, true);
+	device->Init(window.get());
+
 	renderCore->Loop();
 	renderCore->UnInit();
 

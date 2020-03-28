@@ -23,13 +23,24 @@ protected:
 	KGizmoController m_GizmoContoller;
 
 	KKeyboardCallbackType m_KeyCallback;
+
 	KDevicePresentCallback m_PresentCallback;
+	KSwapChainRecreateCallback m_SwapChainCallback;
+	KDeviceInitCallback m_InitCallback;
+	KDeviceUnInitCallback m_UnitCallback;
+
 
 	bool m_MultiThreadSumbit;
 	bool m_OctreeDebugDraw;
 	bool m_MouseCtrlCamera;
 
 	bool m_bInit;
+
+	bool InitPostProcess();
+	bool UnInitPostProcess();
+
+	bool InitGlobalManager();
+	bool UnInitGlobalManager();
 
 	bool InitRenderDispatcher();
 	bool InitController();
@@ -46,6 +57,7 @@ protected:
 	bool UpdateGizmo();
 
 	void OnPresent(uint32_t chainIndex, uint32_t frameIndex);
+	void OnSwapChainRecreate(uint32_t width, uint32_t height);
 public:
 	KRenderCore();
 	virtual ~KRenderCore();

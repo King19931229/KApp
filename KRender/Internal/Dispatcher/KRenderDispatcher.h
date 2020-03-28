@@ -66,8 +66,6 @@ public:
 	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay);
 	bool UnInit();
 
-	bool ResetSwapChain(IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay);
-
 	bool Execute(KScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
 	IKCommandBufferPtr GetPrimaryCommandBuffer(uint32_t frameIndex);
 };

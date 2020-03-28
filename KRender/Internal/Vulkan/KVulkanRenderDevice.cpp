@@ -681,90 +681,15 @@ bool KVulkanRenderDevice::UnsetDebugMessenger()
 	return true;
 }
 
-bool KVulkanRenderDevice::InitGlobalManager()
+bool KVulkanRenderDevice::InitHeapAllocator()
 {
 	KVulkanHeapAllocator::Init();
-
-	KRenderGlobal::PipelineManager.Init(this);
-	KRenderGlobal::FrameResourceManager.Init(this, m_FrameInFlight);
-	KRenderGlobal::MeshManager.Init(this, m_FrameInFlight);
-	KRenderGlobal::ShaderManager.Init(this);
-	KRenderGlobal::TextrueManager.Init(this);
-
-	size_t width = 0, height = 0;
-	m_pWindow->GetSize(width, height);
-
-	unsigned short msaaCount = 1;
-	unsigned short candidate[] = {64,32,16,8,4,2,1};
-	VkSampleCountFlagBits flag = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
-	for(unsigned short count: candidate)
-	{
-		if(KVulkanHelper::QueryMSAASupport(KVulkanHelper::MST_COLOR, count , flag))
-		{
-			msaaCount = count;
-			break;
-		}
-	}
-
-	KRenderGlobal::PostProcessManager.Init(this, width, height, msaaCount, EF_R16G16B16A16_FLOAT, m_FrameInFlight);
-
-	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
-
-	auto pass = KRenderGlobal::PostProcessManager.CreatePass();
-	pass->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess.frag");
-	pass->CastPass()->SetScale(1.0f);
-	pass->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
-
-	auto pass2 = KRenderGlobal::PostProcessManager.CreatePass();
-	pass2->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess2.frag");
-	pass2->CastPass()->SetScale(1.0f);
-	pass2->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
-
-	auto pass3 = KRenderGlobal::PostProcessManager.CreatePass();
-	pass3->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess3.frag");
-	pass3->CastPass()->SetScale(1.0f);
-	pass3->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
-
-	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass, 0);
-	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass2, 0);
-	KRenderGlobal::PostProcessManager.CreateConnection(pass, 0, pass3, 0);
-	KRenderGlobal::PostProcessManager.CreateConnection(pass2, 0, pass3, 1);
-
-#ifdef _WIN32
-	// 临时代码测试功能
-	KRenderGlobal::PostProcessManager.Save("postprocess.json");
-	KRenderGlobal::PostProcessManager.Load("postprocess.json");
-#endif
-	KRenderGlobal::PostProcessManager.Construct();
-
-	KRenderGlobal::SkyBox.Init(this, m_FrameInFlight, "Textures/uffizi_cube.ktx");
-	KRenderGlobal::ShadowMap.Init(this, m_FrameInFlight, 2048);
-
-	KECSGlobal::Init();
-
 	return true;
 }
 
-bool KVulkanRenderDevice::UnInitGlobalManager()
+bool KVulkanRenderDevice::UnInitHeapAllocator()
 {
-	KECSGlobal::UnInit();
-
-	KRenderGlobal::SkyBox.UnInit();
-	KRenderGlobal::ShadowMap.UnInit();
-
-	KRenderGlobal::MeshManager.UnInit();
-	KRenderGlobal::PostProcessManager.UnInit();
-
-	KRenderGlobal::TextrueManager.UnInit();
-	KRenderGlobal::ShaderManager.UnInit();
-	KRenderGlobal::PipelineManager.UnInit();
-
-	KRenderGlobal::FrameResourceManager.UnInit();
-
 	KVulkanHeapAllocator::UnInit();
-
-	assert(KRenderGlobal::TaskExecutor.AllTaskDone());
-
 	return true;
 }
 
@@ -853,14 +778,18 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		// 实际完成了设备初始化
 		if(!InitDeviceGlobal())
 			return false;
-		// 初始化全局对象
-		if(!InitGlobalManager())
-			return false;
 
+		if(!InitHeapAllocator())
+			return false;
 		if(!CreateSwapChain())
 			return false;
 		if(!CreateUI())
 			return false;
+
+		for (KDeviceInitCallback* callback : m_InitCallback)
+		{
+			(*callback)();
+		}
 
 		// Temporarily for demo use
 		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
@@ -899,14 +828,7 @@ bool KVulkanRenderDevice::UnInit()
 {
 	Wait();
 
-	// TODO
 	KRenderGlobal::Scene.UnInit();
-
-	while (!KRenderGlobal::TaskExecutor.AllTaskDone())
-	{
-		KRenderGlobal::TaskExecutor.ProcessSyncTask();
-	}
-	KRenderGlobal::TaskExecutor.UnInit();
 
 	KECSGlobal::EntityManager.ViewAllEntity([](KEntityPtr entity)
 	{
@@ -941,7 +863,13 @@ bool KVulkanRenderDevice::UnInit()
 		m_Surface = VK_NULL_HANDLE;
 	}
 
-	UnInitGlobalManager();
+	for (KDeviceUnInitCallback* callback : m_UnInitCallback)
+	{
+		(*callback)();
+	}
+
+	UnInitHeapAllocator();
+
 	UnsetDebugMessenger();
 
 	m_pWindow = nullptr;
@@ -1159,17 +1087,89 @@ bool KVulkanRenderDevice::UnRegisterPresentCallback(KDevicePresentCallback* call
 	return false;
 }
 
-IKSwapChainPtr KVulkanRenderDevice::GetCurrentSwapChain()
+bool KVulkanRenderDevice::RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback)
+{
+	if (callback)
+	{
+		m_SwapChainCallback.insert(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanRenderDevice::UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback)
+{
+	if (callback)
+	{
+		auto it = m_SwapChainCallback.find(callback);
+		if (it != m_SwapChainCallback.end())
+		{
+			m_SwapChainCallback.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KVulkanRenderDevice::RegisterDeviceInitCallback(KDeviceInitCallback* callback)
+{
+	if (callback)
+	{
+		m_InitCallback.insert(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanRenderDevice::UnRegisterDeviceInitCallback(KDeviceInitCallback* callback)
+{
+	if (callback)
+	{
+		auto it = m_InitCallback.find(callback);
+		if (it != m_InitCallback.end())
+		{
+			m_InitCallback.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KVulkanRenderDevice::RegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback)
+{
+	if (callback)
+	{
+		m_UnInitCallback.insert(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanRenderDevice::UnRegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback)
+{
+	if (callback)
+	{
+		auto it = m_UnInitCallback.find(callback);
+		if (it != m_UnInitCallback.end())
+		{
+			m_UnInitCallback.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
+IKSwapChainPtr KVulkanRenderDevice::GetSwapChain()
 {
 	return m_SwapChain;
 }
 
-IKUIOverlayPtr KVulkanRenderDevice::GetCurrentUIOverlay()
+IKUIOverlayPtr KVulkanRenderDevice::GetUIOverlay()
 {
 	return m_UIOverlay;
 }
 
-uint32_t KVulkanRenderDevice::GetFrameInFlight()
+uint32_t KVulkanRenderDevice::GetNumFramesInFlight()
 {
 	return m_FrameInFlight;
 }
@@ -1187,15 +1187,21 @@ bool KVulkanRenderDevice::RecreateSwapChain()
 	m_pWindow->IdleUntilForeground();
 	vkDeviceWaitIdle(m_Device);
 
-	CleanupSwapChain();
-	CreateSwapChain();
-	CreateUI();
-
 	size_t width = 0, height = 0;
 	m_pWindow->GetSize(width, height);
-	KRenderGlobal::PostProcessManager.Resize(width, height);
 
-	KRenderGlobal::RenderDispatcher.ResetSwapChain(m_SwapChain, m_UIOverlay);
+	m_SwapChain->UnInit();
+	m_SwapChain->Init((uint32_t)width, (uint32_t)height, m_FrameInFlight);
+
+	m_UIOverlay->UnInit();
+	m_UIOverlay->Init(this, m_FrameInFlight);
+
+	m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+
+	for (KSwapChainRecreateCallback* callback : m_SwapChainCallback)
+	{
+		(*callback)((uint32_t)width, (uint32_t)height);
+	}
 
 	return true;
 }

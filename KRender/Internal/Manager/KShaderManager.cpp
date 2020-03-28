@@ -57,6 +57,8 @@ bool KShaderManager::Acquire(const char* path, IKShaderPtr& shader, bool async)
 		return true;
 	}
 
+	ASSERT_RESULT(m_Device);
+
 	m_Device->CreateShader(shader);
 	if(shader->InitFromFile(path, async))
 	{
@@ -82,7 +84,7 @@ bool KShaderManager::Release(IKShaderPtr& shader)
 
 			if(info.useCount == 0)
 			{
-				// µÈ´ýÉè±¸¿ÕÏÐ
+				// ï¿½È´ï¿½ï¿½è±¸ï¿½ï¿½ï¿½ï¿½
 				m_Device->Wait();
 
 				shader->UnInit();

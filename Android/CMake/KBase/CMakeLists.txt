@@ -23,6 +23,7 @@ include_directories(
     ${SRC_ROOT}/../Dependency/assimp-3.3.1/include/
     ${SRC_ROOT}/../Dependency/zip-0.1.16/src/
     ${SRC_ROOT}/../Dependency/rapidjson/include/
+    ${SRC_ROOT}/../Dependency/tinyxml2/
     ${ANDROID_NDK}/sources/android/native_app_glue
 )
 

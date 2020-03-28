@@ -29,7 +29,7 @@
 
 #endif
 
-class KVulkanRenderDevice : IKRenderDevice
+class KVulkanRenderDevice : public IKRenderDevice
 {
 	struct QueueFamilyIndices
 	{
@@ -65,11 +65,7 @@ protected:
 	VkCommandPool m_GraphicCommandPool;
 	int32_t m_ValidationLayerIdx;
 	bool m_EnableValidationLayer;
-
 	uint32_t m_FrameInFlight;
-
-	typedef std::unordered_set<KDevicePresentCallback*> PresentCallbackSet;
-	PresentCallbackSet m_PresentCallback;
 
 	VkDebugUtilsMessengerEXT m_DebugUtilsMessenger;
 	VkDebugReportCallbackEXT m_DebugReportCallback;
@@ -78,19 +74,34 @@ protected:
 	IKSwapChainPtr m_SwapChain;
 	IKUIOverlayPtr m_UIOverlay;
 
+	typedef std::unordered_set<KDevicePresentCallback*> PresentCallbackSet;
+	PresentCallbackSet m_PresentCallback;
+
+	typedef std::unordered_set<KSwapChainRecreateCallback*> SwapChainCallbackSet;
+	SwapChainCallbackSet m_SwapChainCallback;
+
+	typedef std::unordered_set<KDeviceInitCallback*> DeviceInitCallbackSet;
+	DeviceInitCallbackSet m_InitCallback;
+
+	typedef std::unordered_set<KDeviceUnInitCallback*> DeviceUnInitCallbackSet;
+	DeviceUnInitCallbackSet m_UnInitCallback;
+
 	bool PopulateInstanceExtensions(std::vector<const char*>& extensions);
 	bool CheckValidationLayerAvailable(int32_t& candidateIdx);
 	bool SetupDebugMessenger();
 	bool UnsetDebugMessenger();
 
-	bool InitGlobalManager();
-	bool UnInitGlobalManager();
+	bool InitHeapAllocator();
+	bool UnInitHeapAllocator();
 
 	bool CheckDeviceSuitable(PhysicalDevice& device);
 
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 	bool CheckExtentionsSupported(PhysicalDevice& device);
 	PhysicalDevice GetPhysicalDeviceProperty(VkPhysicalDevice device);
+
+	bool CreateSwapChain(IKSwapChainPtr& swapChain);
+	bool CreateUIOverlay(IKUIOverlayPtr& ui);
 
 	bool CreateSurface();
 	bool PickPhysicsDevice();
@@ -111,7 +122,7 @@ protected:
 		VkDebugUtilsMessageTypeFlagsEXT messageType,
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData
-		);
+	);
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
 		VkDebugReportFlagsEXT flags,
@@ -139,26 +150,32 @@ public:
 
 	virtual bool CreateTexture(IKTexturePtr& texture);
 	virtual bool CreateSampler(IKSamplerPtr& sampler);
-	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain);
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target);
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline);
 	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle);
 
-	virtual bool CreateUIOverlay(IKUIOverlayPtr& ui);
-
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool);
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer);
-	
+
 	virtual bool Present();
 	virtual bool Wait();
+
+	virtual bool RecreateSwapChain();
 
 	virtual bool RegisterPresentCallback(KDevicePresentCallback* callback);
 	virtual bool UnRegisterPresentCallback(KDevicePresentCallback* callback);
 
-	virtual bool RecreateSwapChain();
+	virtual bool RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
+	virtual bool UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
 
-	virtual IKSwapChainPtr GetCurrentSwapChain();
-	virtual IKUIOverlayPtr GetCurrentUIOverlay();
-	virtual uint32_t GetFrameInFlight();
+	virtual bool RegisterDeviceInitCallback(KDeviceInitCallback* callback);
+	virtual bool UnRegisterDeviceInitCallback(KDeviceInitCallback* callback);
+
+	virtual bool RegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback);
+	virtual bool UnRegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback);
+
+	virtual IKSwapChainPtr GetSwapChain();
+	virtual IKUIOverlayPtr GetUIOverlay();
+	virtual uint32_t GetNumFramesInFlight();
 };

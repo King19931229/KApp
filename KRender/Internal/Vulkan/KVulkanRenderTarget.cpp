@@ -189,7 +189,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentReference colorAttachmentResolveRef = {};
-	colorAttachmentResolveRef.attachment = m_DepthImage != VK_NULL_HANDLE ? 2 : 1;
+	colorAttachmentResolveRef.attachment = depthStencilCreated ? 2 : 1;
 	colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	// 声明子通道
@@ -481,12 +481,12 @@ bool KVulkanRenderTarget::GetSize(size_t& width, size_t& height)
 
 bool KVulkanRenderTarget::HasColorAttachment()
 {
-	return m_ColorImageView != nullptr;
+	return m_ColorImageView != VK_NULL_HANDLE;
 }
 
 bool KVulkanRenderTarget::HasDepthStencilAttachment()
 {
-	return m_DepthImageView != nullptr;
+	return m_DepthImageView != VK_NULL_HANDLE;
 }
 
 bool KVulkanRenderTarget::GetImageViewInformation(RenderTargetComponent component, VkFormat& format, VkImageView& imageView)

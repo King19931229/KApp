@@ -13,6 +13,7 @@
 #include "Dispatcher/KRenderDispatcher.h"
 
 #include "Internal/KConstantGlobal.h"
+#include "Internal/ECS/KECSGlobal.h"
 
 EXPORT_DLL IKRenderCorePtr CreateRenderCore()
 {
@@ -36,11 +37,95 @@ KRenderCore::~KRenderCore()
 	assert(!m_DebugConsole);
 }
 
+bool KRenderCore::InitPostProcess()
+{
+	size_t width = 0, height = 0;
+	m_Window->GetSize(width, height);
+
+	uint32_t frameInFlight = m_Device->GetNumFramesInFlight();
+
+	KRenderGlobal::PostProcessManager.Init(m_Device, width, height, 2, EF_R16G16B16A16_FLOAT, frameInFlight);
+
+	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
+
+	auto pass = KRenderGlobal::PostProcessManager.CreatePass();
+	pass->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess.frag");
+	pass->CastPass()->SetScale(1.0f);
+	pass->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
+
+	auto pass2 = KRenderGlobal::PostProcessManager.CreatePass();
+	pass2->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess2.frag");
+	pass2->CastPass()->SetScale(1.0f);
+	pass2->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
+
+	auto pass3 = KRenderGlobal::PostProcessManager.CreatePass();
+	pass3->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess3.frag");
+	pass3->CastPass()->SetScale(1.0f);
+	pass3->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
+
+	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass, 0);
+	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass2, 0);
+	KRenderGlobal::PostProcessManager.CreateConnection(pass, 0, pass3, 0);
+	KRenderGlobal::PostProcessManager.CreateConnection(pass2, 0, pass3, 1);
+
+#ifdef _WIN32
+	// 临时代码测试功能
+	KRenderGlobal::PostProcessManager.Save("postprocess.json");
+	KRenderGlobal::PostProcessManager.Load("postprocess.json");
+#endif
+	KRenderGlobal::PostProcessManager.Construct();
+
+	return true;
+}
+
+bool KRenderCore::UnInitPostProcess()
+{
+	KRenderGlobal::PostProcessManager.UnInit();
+	return true;
+}
+
+bool KRenderCore::InitGlobalManager()
+{
+	uint32_t frameInFlight = m_Device->GetNumFramesInFlight();
+
+	KRenderGlobal::PipelineManager.Init(m_Device);
+	KRenderGlobal::FrameResourceManager.Init(m_Device, frameInFlight);
+	KRenderGlobal::MeshManager.Init(m_Device, frameInFlight);
+	KRenderGlobal::ShaderManager.Init(m_Device);
+	KRenderGlobal::TextrueManager.Init(m_Device);
+
+	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
+	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
+
+	KECSGlobal::Init();
+	return true;
+}
+
+bool KRenderCore::UnInitGlobalManager()
+{
+	KECSGlobal::UnInit();
+
+	KRenderGlobal::SkyBox.UnInit();
+	KRenderGlobal::ShadowMap.UnInit();
+
+	KRenderGlobal::MeshManager.UnInit();
+
+	KRenderGlobal::TextrueManager.UnInit();
+	KRenderGlobal::ShaderManager.UnInit();
+	KRenderGlobal::PipelineManager.UnInit();
+
+	KRenderGlobal::FrameResourceManager.UnInit();
+
+	assert(KRenderGlobal::TaskExecutor.AllTaskDone());
+
+	return true;
+}
+
 bool KRenderCore::InitRenderDispatcher()
 {
-	uint32_t frameInFlight = m_Device->GetFrameInFlight();
-	IKSwapChainPtr swapChain = m_Device->GetCurrentSwapChain();
-	IKUIOverlayPtr ui = m_Device->GetCurrentUIOverlay();
+	uint32_t frameInFlight = m_Device->GetNumFramesInFlight();
+	IKSwapChainPtr swapChain = m_Device->GetSwapChain();
+	IKUIOverlayPtr ui = m_Device->GetUIOverlay();
 
 	KRenderGlobal::RenderDispatcher.Init(m_Device, frameInFlight, swapChain, ui);
 	return true;
@@ -54,7 +139,7 @@ bool KRenderCore::UnInitRenderDispatcher()
 
 bool KRenderCore::InitController()
 {
-	IKUIOverlayPtr ui = m_Device->GetCurrentUIOverlay();
+	IKUIOverlayPtr ui = m_Device->GetUIOverlay();
 	m_CameraMoveController.Init(&m_Camera, m_Window);
 	m_UIController.Init(ui, m_Window);
 	m_GizmoContoller.Init(m_Gizmo, &m_Camera, m_Window);
@@ -116,17 +201,39 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
 		m_Camera.SetLockYEnable(true);
 
-		InitRenderDispatcher();		
-		InitGizmo();
-		InitController();
-
 		m_PresentCallback = [this](uint32_t chainIndex, uint32_t frameIndex)
 		{
 			OnPresent(chainIndex, frameIndex);
 		};
 
+		m_SwapChainCallback = [this](uint32_t width, uint32_t height)
+		{
+			OnSwapChainRecreate(width, height);
+		};
+
+		m_InitCallback = [this]()
+		{
+			InitGlobalManager();
+			InitPostProcess();
+			InitRenderDispatcher();
+			InitGizmo();
+			InitController();
+		};
+
+		m_UnitCallback = [this]()
+		{
+			UnInitPostProcess();
+			UnInitGlobalManager();
+			UnInitRenderDispatcher();
+			UnInitGizmo();
+			UnInitController();
+		};
+
 		m_Device->RegisterPresentCallback(&m_PresentCallback);
-		
+		m_Device->RegisterSwapChainRecreateCallback(&m_SwapChainCallback);
+		m_Device->RegisterDeviceInitCallback(&m_InitCallback);
+		m_Device->RegisterDeviceUnInitCallback(&m_UnitCallback);
+
 		m_bInit = true;
 		return true;
 	}
@@ -135,16 +242,21 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 bool KRenderCore::UnInit()
 {
-	if(m_bInit)
+	if (m_bInit)
 	{
 		m_DebugConsole->UnInit();
 		SAFE_DELETE(m_DebugConsole);
 
-		UnInitRenderDispatcher();
-		UnInitGizmo();
-		UnInitController();
+		while (!KRenderGlobal::TaskExecutor.AllTaskDone())
+		{
+			KRenderGlobal::TaskExecutor.ProcessSyncTask();
+		}
+		KRenderGlobal::TaskExecutor.UnInit();
 
 		m_Device->UnRegisterPresentCallback(&m_PresentCallback);
+		m_Device->UnRegisterSwapChainRecreateCallback(&m_SwapChainCallback);
+		m_Device->UnRegisterDeviceInitCallback(&m_InitCallback);
+		m_Device->UnRegisterDeviceUnInitCallback(&m_UnitCallback);
 
 		m_Window = nullptr;
 		m_Device = nullptr;
@@ -156,7 +268,7 @@ bool KRenderCore::UnInit()
 
 bool KRenderCore::Loop()
 {
-	if(m_bInit)
+	if (m_bInit)
 	{
 		m_Window->Loop();
 		return true;
@@ -261,7 +373,7 @@ bool KRenderCore::UpdateFrameTime()
 
 bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 {
-	IKUIOverlayPtr ui = m_Device->GetCurrentUIOverlay();
+	IKUIOverlayPtr ui = m_Device->GetUIOverlay();
 
 	ui->StartNewFrame();
 	{
@@ -321,4 +433,9 @@ void KRenderCore::OnPresent(uint32_t chainIndex, uint32_t frameIndex)
 	m_CameraMoveController.SetEnable(m_MouseCtrlCamera);
 
 	KRenderGlobal::RenderDispatcher.Execute(&KRenderGlobal::Scene, &m_Camera, chainIndex, frameIndex);
+}
+
+void KRenderCore::OnSwapChainRecreate(uint32_t width, uint32_t height)
+{
+	KRenderGlobal::PostProcessManager.Resize(width, height);
 }

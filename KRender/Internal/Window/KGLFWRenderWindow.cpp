@@ -11,9 +11,9 @@
 KGLFWRenderWindow::KGLFWRenderWindow()
 	: m_device(nullptr)
 {
+#ifndef __ANDROID__
 	m_LastMovePos[0] = -1.0f;
 	m_LastMovePos[1] = -1.0f;
-#ifndef __ANDROID__
 	m_window = nullptr;
 #if defined(_WIN32)
 	m_HWND = NULL;

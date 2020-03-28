@@ -520,13 +520,6 @@ bool KRenderDispatcher::UnInit()
 	return true;
 }
 
-bool KRenderDispatcher::ResetSwapChain(IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay)
-{
-	m_SwapChain = swapChain;
-	m_UIOverlay = uiOverlay;
-	return true;
-}
-
 bool KRenderDispatcher::Execute(KScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	if (m_MultiThreadSumbit)

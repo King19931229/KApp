@@ -4,6 +4,9 @@
 #include "Interface/IKRenderCommand.h"
 
 typedef std::function<void(uint32_t chainIndex, uint32_t frameIndex)> KDevicePresentCallback;
+typedef std::function<void(uint32_t width, uint32_t height)> KSwapChainRecreateCallback;
+typedef std::function<void()> KDeviceInitCallback;
+typedef std::function<void()> KDeviceUnInitCallback;
 
 struct IKRenderDevice
 {
@@ -20,13 +23,10 @@ struct IKRenderDevice
 
 	virtual bool CreateTexture(IKTexturePtr& texture) = 0;
 	virtual bool CreateSampler(IKSamplerPtr& sampler) = 0;
-	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain) = 0;
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target) = 0;
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline) = 0;
 	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle) = 0;
-
-	virtual bool CreateUIOverlay(IKUIOverlayPtr& ui) = 0;
 
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool) = 0;
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer) = 0;
@@ -36,12 +36,21 @@ struct IKRenderDevice
 
 	virtual bool RecreateSwapChain() = 0;
 
-	virtual IKSwapChainPtr GetCurrentSwapChain() = 0;
-	virtual IKUIOverlayPtr GetCurrentUIOverlay() = 0;
-	virtual uint32_t GetFrameInFlight() = 0;
+	virtual IKSwapChainPtr GetSwapChain() = 0;
+	virtual IKUIOverlayPtr GetUIOverlay() = 0;
+	virtual uint32_t GetNumFramesInFlight() = 0;
 
 	virtual bool RegisterPresentCallback(KDevicePresentCallback* callback) = 0;
 	virtual bool UnRegisterPresentCallback(KDevicePresentCallback* callback) = 0;
+
+	virtual bool RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback) = 0;
+	virtual bool UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback) = 0;
+
+	virtual bool RegisterDeviceInitCallback(KDeviceInitCallback* callback) = 0;
+	virtual bool UnRegisterDeviceInitCallback(KDeviceInitCallback* callback) = 0;
+
+	virtual bool RegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback) = 0;
+	virtual bool UnRegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback) = 0;
 };
 
 EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform);

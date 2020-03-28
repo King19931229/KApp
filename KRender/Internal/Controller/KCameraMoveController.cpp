@@ -250,7 +250,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window)
 		m_Window->RegisterMouseCallback(&m_MouseCallback);
 		m_Window->RegisterScrollCallback(&m_ScrollCallback);
 #elif defined(__ANDROID__)
-		m_pWindow->RegisterTouchCallback(&m_TouchCallback);
+		m_Window->RegisterTouchCallback(&m_TouchCallback);
 #endif
 		return true;
 	}

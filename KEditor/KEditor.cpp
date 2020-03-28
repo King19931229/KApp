@@ -51,14 +51,13 @@ bool KEditor::Init()
 		m_RenderCore = CreateRenderCore();
 
 		m_RenderWindow = IKRenderWindowPtr((IKRenderWindow*)new KEQtRenderWindow());
-		m_RenderWindow->Init((void*)m_RenderWidget->winId());
-
 		m_RenderDevice = CreateRenderDevice(RENDER_DEVICE_VULKAN);
-
-		m_RenderDevice->Init(m_RenderWindow.get());
 		m_RenderCore->Init(m_RenderDevice, m_RenderWindow);
 
+		m_RenderWindow->Init((void*)m_RenderWidget->winId());
+		m_RenderDevice->Init(m_RenderWindow.get());
 		m_RenderWidget->Init(m_RenderCore);
+
 		setCentralWidget(m_RenderWidget);
 
 		m_GraphWidget = new KEPostProcessGraphWidget();
@@ -80,13 +79,12 @@ bool KEditor::UnInit()
 		KEditorGlobal::CommandInvoker.Clear();
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 
-		m_RenderCore->UnInit();
-		m_RenderCore = nullptr;
-
 		m_RenderDevice->UnInit();
-		m_RenderDevice = nullptr;
-
 		m_RenderWindow->UnInit();
+		m_RenderCore->UnInit();
+
+		m_RenderDevice = nullptr;
+		m_RenderCore = nullptr;
 		m_RenderWindow = nullptr;
 
 		if (m_RenderWidget)
