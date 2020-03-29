@@ -110,7 +110,6 @@ protected:
 	bool CreateSwapChain();
 	bool CreateCommandPool();
 
-	bool CreateMesh();
 	bool CreateUI();
 	bool CleanupSwapChain();
 

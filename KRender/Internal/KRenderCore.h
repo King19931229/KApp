@@ -29,7 +29,6 @@ protected:
 	KDeviceInitCallback m_InitCallback;
 	KDeviceUnInitCallback m_UnitCallback;
 
-
 	bool m_MultiThreadSumbit;
 	bool m_OctreeDebugDraw;
 	bool m_MouseCtrlCamera;
@@ -49,6 +48,10 @@ protected:
 	bool UnInitRenderDispatcher();
 	bool UnInitController();
 	bool UnInitGizmo();
+
+	// ¡Ÿ ±π¶ƒ‹
+	bool InitDemo();
+	bool UnInitDemo();
 
 	bool UpdateFrameTime();
 	bool UpdateCamera(size_t frameIndex);
