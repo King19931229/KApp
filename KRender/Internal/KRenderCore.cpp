@@ -69,7 +69,7 @@ bool KRenderCore::InitPostProcess()
 	KRenderGlobal::PostProcessManager.CreateConnection(pass2, 0, pass3, 1);
 
 #ifdef _WIN32
-	// ÁÙÊ±´úÂë²âÊÔ¹¦ÄÜ
+	// ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¹ï¿½ï¿½ï¿½
 	KRenderGlobal::PostProcessManager.Save("postprocess.json");
 	KRenderGlobal::PostProcessManager.Load("postprocess.json");
 #endif
@@ -115,8 +115,6 @@ bool KRenderCore::UnInitGlobalManager()
 	KRenderGlobal::PipelineManager.UnInit();
 
 	KRenderGlobal::FrameResourceManager.UnInit();
-
-	assert(KRenderGlobal::TaskExecutor.AllTaskDone());
 
 	return true;
 }
@@ -191,6 +189,8 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 {
 	if (!m_bInit)
 	{
+		KRenderGlobal::TaskExecutor.Init(std::thread::hardware_concurrency());
+
 		m_Device = device.get();
 		m_Window = window.get();
 		m_DebugConsole = new KDebugConsole();
@@ -251,6 +251,8 @@ bool KRenderCore::UnInit()
 		{
 			KRenderGlobal::TaskExecutor.ProcessSyncTask();
 		}
+		assert(KRenderGlobal::TaskExecutor.AllTaskDone());
+
 		KRenderGlobal::TaskExecutor.UnInit();
 
 		m_Device->UnRegisterPresentCallback(&m_PresentCallback);

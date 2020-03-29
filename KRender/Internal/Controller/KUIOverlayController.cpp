@@ -3,7 +3,8 @@
 
 KUIOverlayController::KUIOverlayController()
 	: m_UIOverlay(nullptr),
-	m_Window(nullptr)
+	m_Window(nullptr),
+	m_Enable(true)
 {
 }
 

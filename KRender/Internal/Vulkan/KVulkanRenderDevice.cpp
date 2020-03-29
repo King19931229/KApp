@@ -708,8 +708,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 
 	m_pWindow = window;
 
-	KRenderGlobal::TaskExecutor.Init(std::thread::hardware_concurrency());
-
 	VkApplicationInfo appInfo = {};
 
 	// 描述实例
