@@ -22,6 +22,10 @@ KRenderDispatcher::~KRenderDispatcher()
 	ASSERT_RESULT(m_CommandBuffers.empty());
 }
 
+static const char* PRE_Z_STAGE = "PreZ";
+static const char* DEFAULT_STAGE = "Default";
+static const char* DEBUG_STAGE = "Debug";
+
 bool KRenderDispatcher::CreateCommandBuffers()
 {
 	m_CommandBuffers.resize(m_FrameInFlight);
@@ -146,7 +150,9 @@ void KRenderDispatcher::ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTar
 
 bool KRenderDispatcher::SubmitCommandBufferSingleThread(KScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
 {
-	IKPipelineHandlePtr pipelineHandle = nullptr;
+	KRenderStageStatistics preZStatistics;
+	KRenderStageStatistics defaultStatistics;
+	KRenderStageStatistics debugStatistics;
 
 	assert(frameIndex < m_CommandBuffers.size());
 
@@ -200,12 +206,36 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KScene* scene, KCamera* 
 						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand&& command)
 						{
 							command.SetObjectData(transform->FinalTransform());
+
+							++preZStatistics.drawcalls;
+							if (command.indexDraw)
+							{
+								preZStatistics.faces += command.indexData->indexCount / 3;
+							}
+							else
+							{
+								preZStatistics.faces += command.vertexData->vertexCount / 3;
+							}
+
 							preZCommandList.push_back(std::move(command));
 						});
 
 						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& command)
 						{
 							command.SetObjectData(transform->FinalTransform());
+
+							++defaultStatistics.drawcalls;
+							if (command.indexDraw)
+							{
+								defaultStatistics.faces += command.indexData->indexCount / 3;
+								defaultStatistics.primtives += command.indexData->indexCount;
+							}
+							else
+							{
+								defaultStatistics.faces += command.vertexData->vertexCount / 3;
+								defaultStatistics.primtives += command.vertexData->vertexCount;
+							}
+
 							defaultCommandList.push_back(std::move(command));
 						});
 
@@ -219,12 +249,38 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KScene* scene, KCamera* 
 							mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand&& command)
 							{
 								command.SetObjectData(objectData);
+
+								++debugStatistics.drawcalls;
+								if (command.indexDraw)
+								{
+									debugStatistics.faces += command.indexData->indexCount / 3;
+									debugStatistics.primtives += command.indexData->indexCount;
+								}
+								else
+								{
+									debugStatistics.faces += command.vertexData->vertexCount / 3;
+									debugStatistics.primtives += command.vertexData->vertexCount;
+								}
+
 								debugCommandList.push_back(std::move(command));
 							});
 
 							mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand&& command)
 							{
 								command.SetObjectData(objectData);
+
+								++debugStatistics.drawcalls;
+								if (command.indexDraw)
+								{
+									debugStatistics.faces += command.indexData->indexCount / 2;
+									debugStatistics.primtives += command.indexData->indexCount;
+								}
+								else
+								{
+									debugStatistics.faces += command.vertexData->vertexCount / 2;
+									debugStatistics.primtives += command.vertexData->vertexCount;
+								}
+
 								debugCommandList.push_back(std::move(command));
 							});
 						}
@@ -268,6 +324,10 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KScene* scene, KCamera* 
 
 	primaryBuffer->End();
 
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(PRE_Z_STAGE, preZStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEFAULT_STAGE, defaultStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
+
 	return true;
 }
 
@@ -291,6 +351,10 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 
 	KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 
+	KRenderStageStatistics preZStatistics;
+	KRenderStageStatistics defaultStatistics;
+	KRenderStageStatistics debugStatistics;
+
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
 	{
@@ -300,6 +364,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 				primaryCommandBuffer->BeginRenderPass(shadowMapTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
 				{
 					shadowMapCommandBuffer->BeginSecondary(shadowMapTarget);
+					// TODO 将Shadow Command拿出来操作
 					KRenderGlobal::ShadowMap.UpdateShadowMap(m_Device, shadowMapCommandBuffer.get(), frameIndex);
 					shadowMapCommandBuffer->End();
 				}
@@ -366,7 +431,18 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 							IKPipelineHandlePtr handle;
 							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
 							command.pipelineHandle = handle;
-							threadData.preZcommands.push_back(std::move(command));
+
+							++preZStatistics.drawcalls;
+							if (command.indexDraw)
+							{
+								preZStatistics.faces += command.indexData->indexCount / 3;
+							}
+							else
+							{
+								preZStatistics.faces += command.vertexData->vertexCount / 3;
+							}
+
+							threadData.preZcommands.push_back(std::move(command));							
 						});
 
 						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& command)
@@ -376,6 +452,18 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 							IKPipelineHandlePtr handle;
 							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
 							command.pipelineHandle = handle;
+
+							++defaultStatistics.drawcalls;
+							if (command.indexDraw)
+							{
+								defaultStatistics.faces += command.indexData->indexCount / 3;
+								defaultStatistics.primtives += command.indexData->indexCount;
+							}
+							else
+							{
+								defaultStatistics.faces += command.vertexData->vertexCount / 3;
+								defaultStatistics.primtives += command.vertexData->vertexCount;
+							}
 
 							threadData.defaultCommands.push_back(std::move(command));
 						});
@@ -395,6 +483,18 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 								KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
 								command.pipelineHandle = handle;
 
+								++debugStatistics.drawcalls;
+								if (command.indexDraw)
+								{
+									debugStatistics.faces += command.indexData->indexCount / 3;
+									debugStatistics.primtives += command.indexData->indexCount;
+								}
+								else
+								{
+									debugStatistics.faces += command.vertexData->vertexCount / 3;
+									debugStatistics.primtives += command.vertexData->vertexCount;
+								}
+
 								threadData.debugCommands.push_back(std::move(command));
 							});
 
@@ -405,6 +505,18 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 								IKPipelineHandlePtr handle;
 								KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
 								command.pipelineHandle = handle;
+
+								++debugStatistics.drawcalls;
+								if (command.indexDraw)
+								{
+									debugStatistics.faces += command.indexData->indexCount / 2;
+									debugStatistics.primtives += command.indexData->indexCount;
+								}
+								else
+								{
+									debugStatistics.faces += command.vertexData->vertexCount / 2;
+									debugStatistics.primtives += command.vertexData->vertexCount;
+								}
 
 								threadData.debugCommands.push_back(std::move(command));
 							});
@@ -492,6 +604,10 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 
 	primaryCommandBuffer->End();
 
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(PRE_Z_STAGE, preZStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEFAULT_STAGE, defaultStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
+
 	return true;
 }
 
@@ -503,6 +619,11 @@ bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKS
 	m_UIOverlay = uiOverlay;
 	m_ThreadPool.Init(m_MaxRenderThreadNum);
 	CreateCommandBuffers();
+
+	KRenderGlobal::Statistics.RegisterRenderStage(PRE_Z_STAGE);
+	KRenderGlobal::Statistics.RegisterRenderStage(DEFAULT_STAGE);
+	KRenderGlobal::Statistics.RegisterRenderStage(DEBUG_STAGE);
+
 	return true;
 }
 
@@ -517,6 +638,11 @@ bool KRenderDispatcher::UnInit()
 	m_UIOverlay = nullptr;
 	m_ThreadPool.UnInit();
 	DestroyCommandBuffers();
+
+	KRenderGlobal::Statistics.UnRegisterRenderStage(PRE_Z_STAGE);
+	KRenderGlobal::Statistics.UnRegisterRenderStage(DEFAULT_STAGE);
+	KRenderGlobal::Statistics.UnRegisterRenderStage(DEBUG_STAGE);
+
 	return true;
 }
 

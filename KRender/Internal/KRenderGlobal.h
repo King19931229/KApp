@@ -15,6 +15,8 @@
 #include "Internal/Scene/KScene.h"
 #include "Internal/Dispatcher/KRenderDispatcher.h"
 
+#include "Internal/KStatistics.h"
+
 #include "KBase/Publish/KTaskExecutor.h"
 
 namespace KRenderGlobal
@@ -34,4 +36,6 @@ namespace KRenderGlobal
 	extern KRenderDispatcher RenderDispatcher;
 
 	extern KTaskExecutor<true> TaskExecutor;
+
+	extern KStatistics Statistics;
 };

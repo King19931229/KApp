@@ -339,6 +339,12 @@
     <ClInclude Include="Internal\Controller\KGizmoController.h">
       <Filter>Internal\Controller</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\KStatistics.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKStatistics.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -535,6 +541,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Controller\KGizmoController.cpp">
       <Filter>Internal\Controller</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KStatistics.cpp">
+      <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -69,7 +69,6 @@ bool KRenderCore::InitPostProcess()
 	KRenderGlobal::PostProcessManager.CreateConnection(pass2, 0, pass3, 1);
 
 #ifdef _WIN32
-	// ��ʱ������Թ���
 	KRenderGlobal::PostProcessManager.Save("postprocess.json");
 	KRenderGlobal::PostProcessManager.Load("postprocess.json");
 #endif
@@ -327,47 +326,15 @@ bool KRenderCore::UpdateCamera(size_t frameIndex)
 	return false;
 }
 
-static int numFrames = 0;
-static float fps = 0.0f;
-static float frameTime = 0.0f;
-static int numFramesTotal = 0;
-static float maxFrameTime = 0;
-static float minFrameTime = 0;
-static KTimer FPSTimer;
-static KTimer MaxMinTimer;
-
 bool KRenderCore::UpdateFrameTime()
 {
-	if (MaxMinTimer.GetMilliseconds() > 5000.0f)
-	{
-		maxFrameTime = frameTime;
-		minFrameTime = frameTime;
-		MaxMinTimer.Reset();
-	}
+	KRenderGlobal::Statistics.Update();
 
-	++numFrames;
-	if (FPSTimer.GetMilliseconds() > 500.0f)
-	{
-		float time = FPSTimer.GetMilliseconds();
-		time = time / (float)numFrames;
-		frameTime = time;
-
-		fps = 1000.0f / frameTime;
-
-		if (frameTime > maxFrameTime)
-		{
-			maxFrameTime = time;
-		}
-		if (frameTime < minFrameTime)
-		{
-			minFrameTime = time;
-		}
-		FPSTimer.Reset();
-		numFrames = 0;
-	}
+	KRenderStatistics statistics;
+	KRenderGlobal::Statistics.GetAllStatistics(statistics);
 
 	char szBuffer[1024] = {};
-	sprintf(szBuffer, "[FPS] %f [FrameTime] %f [MinTime] %f [MaxTime] %f [Frame]%d", fps, frameTime, minFrameTime, maxFrameTime, numFramesTotal++);
+	sprintf(szBuffer, "[FPS] %f [FrameTime] %f", statistics.frame.fps, statistics.frame.frametime);
 	m_Window->SetWindowTitle(szBuffer);
 
 	return true;
@@ -383,7 +350,11 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 		ui->SetWindowSize(0, 0);
 		ui->Begin("Example");
 		{
-			ui->Text("FPS [%f] FrameTime [%f]", fps, frameTime);
+			KRenderStatistics statistics;
+			KRenderGlobal::Statistics.GetAllStatistics(statistics);
+
+			ui->Text("FPS [%f] FrameTime [%f]", statistics.frame.fps, statistics.frame.frametime);
+			ui->Text("DrawCall [%d] Face [%d] [Primtives] [%d]", statistics.stage.drawcalls, statistics.stage.faces, statistics.stage.primtives);
 			ui->PushItemWidth(110.0f);
 			if (ui->Header("Setting"))
 			{

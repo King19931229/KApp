@@ -103,7 +103,7 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* 
 		// 更新RenderTarget
 		{
 			std::vector<KRenderComponent*> cullRes;
-			m_CullSystem.Execute(m_Camera, cullRes);
+			KRenderGlobal::Scene.GetRenderComponent(m_Camera, cullRes);
 
 			IKRenderTargetPtr shadowTarget = m_RenderTargets[frameIndex];
 

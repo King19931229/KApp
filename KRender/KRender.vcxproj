@@ -33,6 +33,7 @@
     <ClInclude Include="Interface\IKShader.h" />
     <ClInclude Include="Interface\IKRenderConfig.h" />
     <ClInclude Include="Interface\IKBuffer.h" />
+    <ClInclude Include="Interface\IKStatistics.h" />
     <ClInclude Include="Interface\IKSwapChain.h" />
     <ClInclude Include="Interface\IKTexture.h" />
     <ClInclude Include="Interface\IKUIOverlay.h" />
@@ -70,6 +71,7 @@
     <ClInclude Include="Internal\KRenderGlobal.h" />
     <ClInclude Include="Internal\KRenderThreadPool.h" />
     <ClInclude Include="Internal\KSamplerBase.h" />
+    <ClInclude Include="Internal\KStatistics.h" />
     <ClInclude Include="Internal\KTextureBase.h" />
     <ClInclude Include="Internal\KUIOverlayBase.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
@@ -145,6 +147,7 @@
     <ClCompile Include="Internal\KRenderGlobal.cpp" />
     <ClCompile Include="Internal\KRenderWindow.cpp" />
     <ClCompile Include="Internal\KSamplerBase.cpp" />
+    <ClCompile Include="Internal\KStatistics.cpp" />
     <ClCompile Include="Internal\KTextureBase.cpp" />
     <ClCompile Include="Internal\KUIOverlayBase.cpp" />
     <ClCompile Include="Internal\KVertexDefinition.cpp" />

@@ -17,4 +17,6 @@ namespace KRenderGlobal
 	KRenderDispatcher RenderDispatcher;
 
 	KTaskExecutor<true> TaskExecutor;
+
+	KStatistics Statistics;
 }
