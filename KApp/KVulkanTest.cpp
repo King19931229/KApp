@@ -61,10 +61,13 @@ int main()
 	device->Init(window.get());
 
 	renderCore->Loop();
-	renderCore->UnInit();
 
 	window->UnInit();
 	device->UnInit();
+
+	renderCore->UnInit();
+	renderCore = nullptr;
+
 	window = nullptr;
 	device = nullptr;
 
