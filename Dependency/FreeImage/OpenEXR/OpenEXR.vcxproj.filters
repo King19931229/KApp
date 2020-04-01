@@ -55,9 +55,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="IlmImf\b44ExpLogTable.cpp">
-      <Filter>Source Files\IlmImf Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="IlmImf\ImfAcesFile.cpp">
       <Filter>Source Files\IlmImf Source Files</Filter>
     </ClCompile>

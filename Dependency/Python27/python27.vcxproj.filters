@@ -10,9 +10,6 @@
     <Filter Include="Modules\_io">
       <UniqueIdentifier>{9a564af2-801a-4ff2-ace2-d7912825a895}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Modules\zlib">
-      <UniqueIdentifier>{8bcff4b7-1c87-4b40-9074-ba724af0865b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Modules\cjkcodecs">
       <UniqueIdentifier>{84fcc788-eb11-4ea2-8b6c-ab9ce984fef3}</UniqueIdentifier>
     </Filter>
@@ -309,39 +306,6 @@
     <ClInclude Include="Modules\_io\_iomodule.h">
       <Filter>Modules\_io</Filter>
     </ClInclude>
-    <ClInclude Include="Modules\zlib\crc32.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Modules\zlib\deflate.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Modules\zlib\inffast.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Modules\zlib\inffixed.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Modules\zlib\inflate.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Modules\zlib\inftrees.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Modules\zlib\trees.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Modules\zlib\zconf.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Modules\zlib\zconf.in.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Modules\zlib\zlib.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Modules\zlib\zutil.h">
-      <Filter>Modules\zlib</Filter>
-    </ClInclude>
     <ClInclude Include="Modules\cjkcodecs\alg_jisx0201.h">
       <Filter>Modules\cjkcodecs</Filter>
     </ClInclude>
@@ -571,51 +535,6 @@
     </ClCompile>
     <ClCompile Include="Modules\_io\textio.c">
       <Filter>Modules\_io</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\adler32.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\compress.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\crc32.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\deflate.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\gzclose.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\gzlib.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\gzread.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\gzwrite.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\infback.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\inffast.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\inflate.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\inftrees.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\trees.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\uncompr.c">
-      <Filter>Modules\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Modules\zlib\zutil.c">
-      <Filter>Modules\zlib</Filter>
     </ClCompile>
     <ClCompile Include="Modules\cjkcodecs\_codecs_cn.c">
       <Filter>Modules\cjkcodecs</Filter>
@@ -930,9 +849,6 @@
       <Filter>PCStatic</Filter>
     </ClCompile>
     <ClCompile Include="PCStatic\getpathp.c">
-      <Filter>PCStatic</Filter>
-    </ClCompile>
-    <ClCompile Include="PCStatic\make_versioninfo.c">
       <Filter>PCStatic</Filter>
     </ClCompile>
     <ClCompile Include="Modules\getbuildinfo.c">

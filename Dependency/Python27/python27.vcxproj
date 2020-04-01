@@ -120,17 +120,6 @@
     <ClInclude Include="Modules\cjkcodecs\multibytecodec.h" />
     <ClInclude Include="Modules\md5.h" />
     <ClInclude Include="Modules\rotatingtree.h" />
-    <ClInclude Include="Modules\zlib\crc32.h" />
-    <ClInclude Include="Modules\zlib\deflate.h" />
-    <ClInclude Include="Modules\zlib\inffast.h" />
-    <ClInclude Include="Modules\zlib\inffixed.h" />
-    <ClInclude Include="Modules\zlib\inflate.h" />
-    <ClInclude Include="Modules\zlib\inftrees.h" />
-    <ClInclude Include="Modules\zlib\trees.h" />
-    <ClInclude Include="Modules\zlib\zconf.h" />
-    <ClInclude Include="Modules\zlib\zconf.in.h" />
-    <ClInclude Include="Modules\zlib\zlib.h" />
-    <ClInclude Include="Modules\zlib\zutil.h" />
     <ClInclude Include="Modules\_io\_iomodule.h" />
     <ClInclude Include="Modules\_math.h" />
     <ClInclude Include="Objects\stringlib\count.h" />
@@ -187,21 +176,6 @@
     <ClCompile Include="Modules\xxsubtype.c" />
     <ClCompile Include="Modules\zipimport.c" />
     <ClCompile Include="Modules\zlibmodule.c" />
-    <ClCompile Include="Modules\zlib\adler32.c" />
-    <ClCompile Include="Modules\zlib\compress.c" />
-    <ClCompile Include="Modules\zlib\crc32.c" />
-    <ClCompile Include="Modules\zlib\deflate.c" />
-    <ClCompile Include="Modules\zlib\gzclose.c" />
-    <ClCompile Include="Modules\zlib\gzlib.c" />
-    <ClCompile Include="Modules\zlib\gzread.c" />
-    <ClCompile Include="Modules\zlib\gzwrite.c" />
-    <ClCompile Include="Modules\zlib\infback.c" />
-    <ClCompile Include="Modules\zlib\inffast.c" />
-    <ClCompile Include="Modules\zlib\inflate.c" />
-    <ClCompile Include="Modules\zlib\inftrees.c" />
-    <ClCompile Include="Modules\zlib\trees.c" />
-    <ClCompile Include="Modules\zlib\uncompr.c" />
-    <ClCompile Include="Modules\zlib\zutil.c" />
     <ClCompile Include="Modules\_bisectmodule.c" />
     <ClCompile Include="Modules\_codecsmodule.c" />
     <ClCompile Include="Modules\_collectionsmodule.c" />
@@ -279,7 +253,6 @@
     <ClCompile Include="PCStatic\dl_nt.c" />
     <ClCompile Include="PCStatic\getpathp.c" />
     <ClCompile Include="PCStatic\import_nt.c" />
-    <ClCompile Include="PCStatic\make_versioninfo.c" />
     <ClCompile Include="PCStatic\msvcrtmodule.c" />
     <ClCompile Include="PCStatic\_subprocess.c" />
     <ClCompile Include="PCStatic\_winreg.c" />
@@ -395,7 +368,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;Py_ENABLE_SHARED;Py_BUILD_CORE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>Include;Python;Modules/zlib;PCStatic;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Include;Python;PCStatic;../zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
@@ -408,7 +381,9 @@
       <AdditionalIncludeDirectories>Include</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Lib>
-      <AdditionalDependencies>ws2_32.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>ws2_32.lib</IgnoreSpecificDefaultLibraries>
+      <AdditionalLibraryDirectories>../zlib/Publish/Debug/x86/</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -418,7 +393,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;Py_ENABLE_SHARED;Py_BUILD_CORE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>Include;Python;Modules/zlib;PCStatic;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Include;Python;PCStatic;../zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
@@ -430,9 +405,9 @@
       <AdditionalIncludeDirectories>Include</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>ws2_32.lib</IgnoreSpecificDefaultLibraries>
+      <AdditionalLibraryDirectories>../zlib/Publish/Debug/x64/</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -444,7 +419,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;Py_ENABLE_SHARED;Py_BUILD_CORE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>Include;Python;Modules/zlib;PCStatic;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Include;Python;PCStatic;../zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -457,7 +432,8 @@
       <AdditionalIncludeDirectories>Include</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Lib>
-      <AdditionalDependencies>ws2_32.lib</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../zlib/Publish/Release/x86/</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -469,7 +445,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;Py_ENABLE_SHARED;Py_BUILD_CORE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>Include;Python;Modules/zlib;PCStatic;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Include;Python;PCStatic;../zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -482,7 +458,8 @@
       <AdditionalIncludeDirectories>Include</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Lib>
-      <AdditionalDependencies>ws2_32.lib</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../zlib/Publish/Release/x64/</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
