@@ -4,6 +4,8 @@
 #include "Interface/IKDataStream.h"
 #include "Publish/KFileTool.h"
 
+#include "KBase/Interface/IKLog.h"
+
 namespace KAssetLoaderManager
 {
 	bool CreateAssetLoader()
@@ -46,14 +48,16 @@ namespace KAssetLoaderManager
 
 static void LogInfo(const std::string& logString)
 {
+	KLog::Logger->Log(LL_NORMAL, "%s", logString.c_str());
 	// Will add message to File with "info" Tag
 	Assimp::DefaultLogger::get()->info(logString.c_str());
 }
 
-static void LogDebug(const char* logString)
+static void LogError(const std::string& logString)
 {
-	// Will add message to File with "debug" Tag
-	Assimp::DefaultLogger::get()->debug(logString);
+	KLog::Logger->Log(LL_ERROR, "%s", logString.c_str());
+	// Will add message to File with "error" Tag
+	Assimp::DefaultLogger::get()->error(logString);
 }
 
 KAssetLoader::KAssetLoader()
@@ -290,7 +294,7 @@ bool KAssetLoader::ImportFromMemory(const char* pData, size_t dataSize, const KA
 	const aiScene* scene = m_Importer.ReadFileFromMemory(pData, dataSize, GetFlags(importOption));
 	if(!scene)
 	{
-		LogInfo(m_Importer.GetErrorString());
+		LogError(m_Importer.GetErrorString());
 		return false;
 	}
 
@@ -311,7 +315,7 @@ bool KAssetLoader::Import(const char* pszFile, const KAssetImportOption& importO
 	const aiScene* scene = m_Importer.ReadFile(pszFile, GetFlags(importOption));
 	if(!scene)
 	{
-		LogInfo(m_Importer.GetErrorString());
+		LogError(m_Importer.GetErrorString());
 		return false;
 	}
 
