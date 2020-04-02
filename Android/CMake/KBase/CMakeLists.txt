@@ -34,6 +34,7 @@ add_subdirectory(../Dependency/FreeImage/FreeImage FreeImage_binary_dir)
 add_subdirectory(../Dependency/assimp-3.3.1/code code_binary_dir)
 add_subdirectory(../Dependency/boost boost_binary_dir)
 add_subdirectory(../Dependency/Python27 Python27_binary_dir)
+add_subdirectory(../Dependency/zlib zlib_binary_dir)
 
 add_library(KBase
     STATIC
@@ -49,4 +50,5 @@ target_link_libraries( # Specifies the target library.
     imgui
     tinyxml2
     zip
+    zlibstatic
 )

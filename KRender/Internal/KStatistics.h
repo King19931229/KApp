@@ -2,6 +2,7 @@
 #include "Interface/IKStatistics.h"
 #include "KBase/Publish/KTimer.h"
 
+#include <string>
 #include <unordered_map>
 
 class KStatistics : public IKStatistics
@@ -44,7 +45,6 @@ protected:
 	};
 
 	FrameData m_FrameData;
-	uint32_t m_NumFrame;
 
 	float m_MaxMinRefreshTime;
 	float m_RefreshTime;

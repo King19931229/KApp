@@ -134,6 +134,9 @@ set(DEFINES
 )
 target_compile_definitions(FreeImage PRIVATE ${DEFINES})
 
+message(STATUS "CMAKE_CURRENT_SOURCE_DIR = ${CMAKE_CURRENT_SOURCE_DIR}")
+message(STATUS "CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
+
 add_subdirectory(../LibJPEG LibJPEG_binary_dir)
 add_subdirectory(../LibJXR LibJXR_binary_dir)
 add_subdirectory(../LibPNG LibPNG_binary_dir)
@@ -142,7 +145,7 @@ add_subdirectory(../LibRawLite LibRawLite_binary_dir)
 add_subdirectory(../LibTIFF4 LibTIFF4_binary_dir)
 add_subdirectory(../LibWebP LibWebP_binary_dir)
 add_subdirectory(../OpenEXR OpenEXR_binary_dir)
-add_subdirectory(../ZLib ZLib_binary_dir)
+#add_subdirectory(../../zlib ../zlib_binary_dir)
 
 target_link_libraries(FreeImage
     LibJPEG
@@ -153,5 +156,5 @@ target_link_libraries(FreeImage
     LibTIFF4
     LibWebP
     OpenEXR
-    ZLib
+#    zlibstatic
 )

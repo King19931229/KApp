@@ -14,7 +14,7 @@ set(SRC_ROOT ../../../../../Dependency/assimp-3.3.1)
 
 include_directories(${SRC_ROOT}
     ${SRC_ROOT}/include
-    ${SRC_ROOT}/contrib/contrib/zlib
+    ${SRC_ROOT}/../zlib
     ${SRC_ROOT}/../rapidjson/include
     ${SRC_ROOT}/contrib/openddlparser/include
 )
@@ -198,15 +198,17 @@ set(DEFINES
     OPENDDL_NO_USE_CPP11
     ASSIMP_BUILD_NO_C4D_IMPORTER
     ASSIMP_BUILD_DLL_EXPORT
+    ASSIMP_BUILD_NO_OWN_ZLIB
     OPENDDLPARSER_BUILD
     assimp_EXPORTS
 )
-target_compile_definitions(assimp PRIVATE ${DEFINES})
 
 set(CMAKE_CXX_FLAGS -Wno-narrowing)
 
-add_subdirectory(../contrib contrib_binary_dir)
+#add_subdirectory(../../zlib ../zlib_binary_dir)
 
-target_link_libraries(assimp
-        zlibstatic
-)
+target_compile_definitions(assimp PRIVATE ${DEFINES})
+
+#target_link_libraries(assimp
+#        zlibstatic
+#)

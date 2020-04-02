@@ -15,7 +15,7 @@ set(SRC_ROOT ../../../../Dependency/Python27)
 include_directories(${SRC_ROOT}
     ${SRC_ROOT}/Include
     ${SRC_ROOT}/Python
-    ${SRC_ROOT}/Modules/zlib
+    ${SRC_ROOT}/../zlib
     ${SRC_ROOT}/Android
 )
 
@@ -73,23 +73,23 @@ add_library( # Sets the name of the library.
         ${SRC_ROOT}/Modules/threadmodule.c
         ${SRC_ROOT}/Modules/timemodule.c
         ${SRC_ROOT}/Modules/xxsubtype.c
-        ${SRC_ROOT}/Modules/zipimport.c
-        ${SRC_ROOT}/Modules/zlibmodule.c
-        ${SRC_ROOT}/Modules/zlib/adler32.c
-        ${SRC_ROOT}/Modules/zlib/compress.c
-        ${SRC_ROOT}/Modules/zlib/crc32.c
-        ${SRC_ROOT}/Modules/zlib/deflate.c
-        ${SRC_ROOT}/Modules/zlib/gzclose.c
-        ${SRC_ROOT}/Modules/zlib/gzlib.c
-        ${SRC_ROOT}/Modules/zlib/gzread.c
-        ${SRC_ROOT}/Modules/zlib/gzwrite.c
-        ${SRC_ROOT}/Modules/zlib/infback.c
-        ${SRC_ROOT}/Modules/zlib/inffast.c
-        ${SRC_ROOT}/Modules/zlib/inflate.c
-        ${SRC_ROOT}/Modules/zlib/inftrees.c
-        ${SRC_ROOT}/Modules/zlib/trees.c
-        ${SRC_ROOT}/Modules/zlib/uncompr.c
-        ${SRC_ROOT}/Modules/zlib/zutil.c
+#        ${SRC_ROOT}/Modules/zipimport.c
+#        ${SRC_ROOT}/Modules/zlibmodule.c
+#        ${SRC_ROOT}/Modules/zlib/adler32.c
+#        ${SRC_ROOT}/Modules/zlib/compress.c
+#        ${SRC_ROOT}/Modules/zlib/crc32.c
+#        ${SRC_ROOT}/Modules/zlib/deflate.c
+#        ${SRC_ROOT}/Modules/zlib/gzclose.c
+#        ${SRC_ROOT}/Modules/zlib/gzlib.c
+#        ${SRC_ROOT}/Modules/zlib/gzread.c
+#        ${SRC_ROOT}/Modules/zlib/gzwrite.c
+#        ${SRC_ROOT}/Modules/zlib/infback.c
+#        ${SRC_ROOT}/Modules/zlib/inffast.c
+#        ${SRC_ROOT}/Modules/zlib/inflate.c
+#        ${SRC_ROOT}/Modules/zlib/inftrees.c
+#        ${SRC_ROOT}/Modules/zlib/trees.c
+#        ${SRC_ROOT}/Modules/zlib/uncompr.c
+#        ${SRC_ROOT}/Modules/zlib/zutil.c
         ${SRC_ROOT}/Modules/_bisectmodule.c
         ${SRC_ROOT}/Modules/_codecsmodule.c
         ${SRC_ROOT}/Modules/_collectionsmodule.c
@@ -213,5 +213,11 @@ set(DEFINES
     Py_ENABLE_SHARED
     Py_BUILD_CORE
 )
+
+#add_subdirectory(../zlib zlib_binary_dir)
+#
+#target_link_libraries(python27
+#        zlibstatic
+#)
 
 target_compile_definitions(python27 PRIVATE ${DEFINES})
