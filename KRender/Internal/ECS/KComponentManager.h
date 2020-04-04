@@ -19,6 +19,6 @@ public:
 	void Init();
 	void UnInit();
 
-	KComponentBase* Alloc(ComponentType type);
-	void Free(KComponentBase* component);
+	IKComponentBase* Alloc(ComponentType type);
+	void Free(IKComponentBase* component);
 };

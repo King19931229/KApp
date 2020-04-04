@@ -219,9 +219,6 @@
     <ClInclude Include="Internal\ECS\System\KCullSystem.h">
       <Filter>Internal\ECS\System</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\ECS\Component\KComponentBase.h">
-      <Filter>Internal\ECS\Component</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Shadow\KShadowMap.h">
       <Filter>Internal\Shadow</Filter>
     </ClInclude>

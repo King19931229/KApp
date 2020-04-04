@@ -14,7 +14,7 @@ void KCullSystem::Execute(const KCamera& camera, std::vector<KRenderComponent*>&
 	KECSGlobal::EntityManager.ViewAllEntity([&](KEntityPtr entity)
 	{
 		KRenderComponent* component = nullptr;
-		if(entity->GetComponent(CT_RENDER, (KComponentBase**)&component))
+		if(entity->GetComponent(CT_RENDER, (IKComponentBase**)&component))
 		{
 			if(component && component->GetMesh())
 			{

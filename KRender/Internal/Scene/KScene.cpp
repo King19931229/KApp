@@ -85,7 +85,7 @@ bool KScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderCompon
 		for (KEntityPtr entity : entities)
 		{
 			KRenderComponent* component = nullptr;
-			if (entity->GetComponent(CT_RENDER, (KComponentBase**)&component) && component)
+			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component) && component)
 			{
 				result.push_back(component);
 			}

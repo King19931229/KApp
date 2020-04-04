@@ -115,9 +115,9 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* 
 				KRenderCommandList commandList;
 				for(KRenderComponent* component : cullRes)
 				{
-					KEntity* entity = component->GetEntityHandle();
+					IKEntity* entity = component->GetEntityHandle();
 					KTransformComponent* transform = nullptr;
-					if(entity->GetComponent(CT_TRANSFORM, (KComponentBase**)&transform))
+					if(entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
 					{
 						KMeshPtr mesh = component->GetMesh();
 

@@ -213,7 +213,7 @@ bool KRenderCore::InitDemo()
 		{
 			KEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
 
-			KComponentBase* component = nullptr;
+			IKComponentBase* component = nullptr;
 			if (entity->RegisterComponent(CT_RENDER, &component))
 			{
 				((KRenderComponent*)component)->InitFromAsset(szPaths[0]);
@@ -250,7 +250,7 @@ bool KRenderCore::InitDemo()
 	{
 		KEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
 
-		KComponentBase* component = nullptr;
+		IKComponentBase* component = nullptr;
 		if (entity->RegisterComponent(CT_RENDER, &component))
 		{
 #if 1
@@ -293,7 +293,7 @@ bool KRenderCore::UnInitDemo()
 	KECSGlobal::EntityManager.ViewAllEntity([](KEntityPtr entity)
 	{
 		KRenderComponent* component = nullptr;
-		if (entity->GetComponent(CT_RENDER, (KComponentBase**)&component))
+		if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component))
 		{
 			KMeshPtr mesh = component->GetMesh();
 			if (mesh)

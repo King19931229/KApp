@@ -1,5 +1,4 @@
 #include "KEntity.h"
-#include "Component/KComponentBase.h"
 #include "KECSGlobal.h"
 
 #include <assert.h>
@@ -14,7 +13,7 @@ KEntity::~KEntity()
 	assert(m_Components.empty() && "Components not empty");
 }
 
-bool KEntity::GetComponentBase(ComponentType type, KComponentBase** pptr)
+bool KEntity::GetComponentBase(ComponentType type, IKComponentBase** pptr)
 {
 	if(pptr)
 	{
@@ -51,12 +50,12 @@ bool KEntity::HasComponents(const ComponentTypeList& components)
 	return true;
 }
 
-bool KEntity::RegisterComponentBase(ComponentType type, KComponentBase** pptr)
+bool KEntity::RegisterComponentBase(ComponentType type, IKComponentBase** pptr)
 {
 	auto it = m_Components.find(type);
 	if(it == m_Components.end())
 	{
-		KComponentBase* component = KECSGlobal::ComponentManager.Alloc(type);
+		IKComponentBase* component = KECSGlobal::ComponentManager.Alloc(type);
 		m_Components.insert(ComponentMap::value_type(type, component));
 		component->RegisterEntityHandle(this);
 		if(pptr)
@@ -76,7 +75,7 @@ bool KEntity::UnRegisterComponent(ComponentType type)
 	auto it = m_Components.find(type);
 	if(it != m_Components.end())
 	{
-		KComponentBase*& component = it->second;
+		IKComponentBase*& component = it->second;
 		component->UnRegisterEntityHandle();
 		m_Components.erase(it);
 		KECSGlobal::ComponentManager.Free(component);
@@ -92,7 +91,7 @@ bool KEntity::UnRegisterAllComponent()
 {
 	for(auto it = m_Components.begin(), itEnd = m_Components.end(); it != itEnd; ++it)
 	{
-		KComponentBase*& component = it->second;
+		IKComponentBase*& component = it->second;
 		component->UnRegisterEntityHandle();
 		KECSGlobal::ComponentManager.Free(component);
 	}
@@ -118,7 +117,7 @@ bool KEntity::GetTransform(glm::mat4& transform)
 
 bool KEntity::GetBound(KAABBBox& bound)
 {
-	KComponentBase* component = nullptr;
+	IKComponentBase* component = nullptr;
 	KRenderComponent* renderComponent = nullptr;
 	KTransformComponent* transformComponent = nullptr;
 

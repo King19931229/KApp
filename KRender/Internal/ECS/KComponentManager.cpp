@@ -22,7 +22,7 @@ void KComponentManager::UnInit()
 	m_DebugComponentPool.UnInit();
 }
 
-KComponentBase* KComponentManager::Alloc(ComponentType type)
+IKComponentBase* KComponentManager::Alloc(ComponentType type)
 {
 	switch (type)
 	{
@@ -38,7 +38,7 @@ KComponentBase* KComponentManager::Alloc(ComponentType type)
 	}
 }
 
-void KComponentManager::Free(KComponentBase* component)
+void KComponentManager::Free(IKComponentBase* component)
 {
 	if(component)
 	{

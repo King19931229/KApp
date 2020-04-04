@@ -178,6 +178,21 @@
     <ClInclude Include="Internal\XML\KXMLDocument.h">
       <Filter>Internal\XML</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKEntity.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Component\IKComponentBase.h">
+      <Filter>Interface\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Component\IKRenderComponent.h">
+      <Filter>Interface\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Component\IKTransformComponent.h">
+      <Filter>Interface\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Component\IKDebugComponent.h">
+      <Filter>Interface\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -203,6 +218,9 @@
     </Filter>
     <Filter Include="Internal\XML">
       <UniqueIdentifier>{f22790df-62aa-41a9-96c4-33b444e87c9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interface\Component">
+      <UniqueIdentifier>{772542ba-f000-4beb-8fbc-9a77f5aa40ab}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

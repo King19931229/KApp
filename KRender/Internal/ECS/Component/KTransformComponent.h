@@ -1,12 +1,12 @@
 #pragma once
-#include "KComponentBase.h"
+#include "KBase/Interface/Component/IKTransformComponent.h"
 #include "Internal/KConstantDefinition.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-class KTransformComponent : public KComponentBase
+class KTransformComponent : public IKTransformComponent
 {
 protected:
 	glm::vec3 m_Position;
@@ -23,43 +23,47 @@ protected:
 	}
 public:
 	KTransformComponent()
-		: KComponentBase(CT_TRANSFORM),
-		m_Position(glm::vec3(0.0f)),
+		: m_Position(glm::vec3(0.0f)),
 		m_Scale(glm::vec3(1.0f)),
 		m_Rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f))
 	{}
 	virtual ~KTransformComponent() {}
 
-	inline const glm::quat& GetRotate() const { return m_Rotate; }
-	inline const glm::vec3& GetScale() const { return m_Scale; }
-	inline const glm::vec3& GetPosition() const { return m_Position; }
+	const glm::quat& GetRotate() const override { return m_Rotate; }
+	const glm::vec3& GetScale() const override { return m_Scale; }
+	const glm::vec3& GetPosition() const override { return m_Position; }
 
-	void SetRotate(const glm::quat& rotate)
+	void SetRotate(const glm::quat& rotate) override
 	{
 		m_Rotate = rotate;
 		UpdateTransform();
 	}
 
-	void SetRotate(const glm::mat3& rotate)
+	void SetRotate(const glm::mat3& rotate) override
 	{
 		m_Rotate = glm::quat_cast(rotate);
 		UpdateTransform();
 	}
 
-	void SetScale(const glm::vec3& scale)
+	void SetScale(const glm::vec3& scale) override
 	{
 		m_Scale = scale;
 		UpdateTransform();
 	}
 
-	void SetPosition(const glm::vec3& position)
+	void SetPosition(const glm::vec3& position) override
 	{
 		m_Position = position;
 		UpdateTransform();
 	}
 
+	const glm::mat4& GetFinal() override
+	{
+		return m_FinalTransform.MODEL;
+	}
+
 	inline const KConstantDefinition::OBJECT& FinalTransform() const
-	{		
+	{
 		return m_FinalTransform;
 	}
 };

@@ -2,8 +2,7 @@
 #include "Internal/KRenderGlobal.h"
 
 KRenderComponent::KRenderComponent()
-	: KComponentBase(CT_RENDER),
-	m_Mesh(nullptr)
+	: m_Mesh(nullptr)
 {}
 
 KRenderComponent::~KRenderComponent()

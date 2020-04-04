@@ -395,7 +395,7 @@ public:
 		{
 			boundEntity = KECSGlobal::EntityManager.CreateEntity();
 
-			KComponentBase* component = nullptr;
+			IKComponentBase* component = nullptr;
 			if (boundEntity->RegisterComponent(CT_RENDER, &component))
 			{
 				((KRenderComponent*)component)->InitUtility(

@@ -1,9 +1,9 @@
 #pragma once
-#include "KComponentBase.h"
+#include "KBase/Interface/Component/IKRenderComponent.h"
 #include "Internal/Asset/KMesh.h"
 #include "Internal/Asset/Utility/KMeshUtilityInfo.h"
 
-class KRenderComponent : public KComponentBase
+class KRenderComponent : public IKRenderComponent
 {
 protected:
 	KMeshPtr m_Mesh;

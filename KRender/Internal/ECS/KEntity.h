@@ -4,10 +4,10 @@
 #include "Internal/KConstantDefinition.h"
 #include "Publish/KAABBBox.h"
 
-class KEntity
+class KEntity : public IKEntity
 {
 protected:
-	typedef std::unordered_map<ComponentType, KComponentBase*> ComponentMap;
+	typedef std::unordered_map<ComponentType, IKComponentBase*> ComponentMap;
 	ComponentMap m_Components;
 
 	size_t m_Id;
@@ -15,31 +15,17 @@ public:
 	KEntity(size_t id);
 	~KEntity();
 
-	bool GetComponentBase(ComponentType type, KComponentBase** pptr);
-	template<typename T>
-	bool GetComponent(ComponentType type, T** pptr)
-	{
-		return GetComponentBase(type, (KComponentBase**)(pptr));
-	}
-	bool HasComponent(ComponentType type);
-	bool HasComponents(const ComponentTypeList& components);
+	bool GetComponentBase(ComponentType type, IKComponentBase** pptr) override;
+	bool HasComponent(ComponentType type) override;
+	bool HasComponents(const ComponentTypeList& components) override;
 
-	bool RegisterComponentBase(ComponentType type, KComponentBase** pptr);
-	template<typename T>
-	bool RegisterComponent(ComponentType type, T** pptr)
-	{
-		return RegisterComponentBase(type, (KComponentBase**)(pptr));
-	}
-	bool RegisterComponent(ComponentType type)
-	{
-		return RegisterComponentBase(type, nullptr);
-	}
-	bool UnRegisterComponent(ComponentType type);
-	bool UnRegisterAllComponent();
+	bool RegisterComponentBase(ComponentType type, IKComponentBase** pptr) override;
+	bool UnRegisterComponent(ComponentType type) override;
+	bool UnRegisterAllComponent() override;
 
 	bool GetBound(KAABBBox& bound);
 	bool GetTransform(glm::mat4& transform);
 	bool Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result, const float* maxDistance = nullptr);
 
-	inline size_t GetID() { return m_Id; }
+	size_t GetID() const override { return m_Id; }
 };

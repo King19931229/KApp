@@ -197,9 +197,9 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KScene* scene, KCamera* 
 
 				for (KRenderComponent* component : cullRes)
 				{
-					KEntity* entity = component->GetEntityHandle();
+					IKEntity* entity = component->GetEntityHandle();
 					KTransformComponent* transform = nullptr;
-					if (entity->GetComponent(CT_TRANSFORM, (KComponentBase**)&transform))
+					if (entity->GetComponent(CT_TRANSFORM, &transform))
 					{
 						KMeshPtr mesh = component->GetMesh();
 
@@ -240,7 +240,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KScene* scene, KCamera* 
 						});
 
 						KDebugComponent* debug = nullptr;
-						if (entity->GetComponent(CT_DEBUG, (KComponentBase**)&debug))
+						if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
 						{
 							KConstantDefinition::DEBUG objectData;
 							objectData.MODEL = transform->FinalTransform();
@@ -418,9 +418,9 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 					KRenderComponent* component = cullRes[index];
 					KMeshPtr mesh = component->GetMesh();
 
-					KEntity* entity = component->GetEntityHandle();
+					IKEntity* entity = component->GetEntityHandle();
 					KTransformComponent* transform = nullptr;
-					if (entity->GetComponent(CT_TRANSFORM, (KComponentBase**)&transform))
+					if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
 					{
 						KMeshPtr mesh = component->GetMesh();
 
@@ -469,7 +469,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* c
 						});
 
 						KDebugComponent* debug = nullptr;
-						if (entity->GetComponent(CT_DEBUG, (KComponentBase**)&debug))
+						if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
 						{
 							KConstantDefinition::DEBUG objectData;
 							objectData.MODEL = transform->FinalTransform();
