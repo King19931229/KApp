@@ -8,19 +8,19 @@ protected:
 	KPlane m_PickPlane;
 	glm::vec3 m_IntersectPos;
 
-	KEntityPtr m_OriginEntity;
+	IKEntityPtr m_OriginEntity;
 
-	KEntityPtr m_XAxisEntity;
-	KEntityPtr m_YAxisEntity;
-	KEntityPtr m_ZAxisEntity;
+	IKEntityPtr m_XAxisEntity;
+	IKEntityPtr m_YAxisEntity;
+	IKEntityPtr m_ZAxisEntity;
 
-	KEntityPtr m_XArrowEntity;
-	KEntityPtr m_YArrowEntity;
-	KEntityPtr m_ZArrowEntity;
+	IKEntityPtr m_XArrowEntity;
+	IKEntityPtr m_YArrowEntity;
+	IKEntityPtr m_ZArrowEntity;
 
-	KEntityPtr m_XZPlaneEntity;
-	KEntityPtr m_YZPlaneEntity;
-	KEntityPtr m_XYPlaneEntity;
+	IKEntityPtr m_XZPlaneEntity;
+	IKEntityPtr m_YZPlaneEntity;
+	IKEntityPtr m_XYPlaneEntity;
 
 	enum class MoveOperator
 	{

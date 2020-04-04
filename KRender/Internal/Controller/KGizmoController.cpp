@@ -1,6 +1,7 @@
 #include "KGizmoController.h"
 #include "Internal/ECS/KEntity.h"
 #include "Internal/KRenderGlobal.h"
+#include "KBase/Interface/Component/IKTransformComponent.h"
 
 #include <assert.h>
 
@@ -76,15 +77,16 @@ bool KGizmoController::Init(IKGizmoPtr gizmo, KCamera* camera, IKRenderWindow* w
 
 				if (action == INPUT_ACTION_PRESS)
 				{
-					KEntityPtr entity = nullptr;
+					IKEntityPtr entity = nullptr;
 					if (mouse == INPUT_MOUSE_BUTTON_LEFT)
 					{
 						if (KRenderGlobal::Scene.CloestPick(*m_Camera, (size_t) xPos, (size_t) yPos,
 															width, height, entity))
 						{
-							glm::mat4 transform;
-							if (entity->GetTransform(transform))
+							IKTransformComponent* compoent = nullptr;
+							if (entity->GetComponent(CT_TRANSFORM, &compoent))
 							{
+								const glm::mat4& transform = compoent->GetFinal();
 								m_Gizmo->SetMatrix(transform);
 							}
 						}

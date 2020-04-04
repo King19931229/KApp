@@ -1,8 +1,8 @@
 #pragma once
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "KPlane.h"
-#include "KAABBBox.h"
+#include "KBase/Publish/KPlane.h"
+#include "KBase/Publish/KAABBBox.h"
 #include <utility>
 
 class KCamera

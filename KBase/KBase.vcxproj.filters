@@ -196,6 +196,15 @@
     <ClInclude Include="Interface\Component\IKComponentManager.h">
       <Filter>Interface\Component</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KAABBBox.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KPlane.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KTriangle.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">

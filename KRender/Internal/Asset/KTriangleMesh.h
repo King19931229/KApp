@@ -1,5 +1,5 @@
 #pragma once
-#include "Publish/KTriangle.h"
+#include "KBase/Publish/KTriangle.h"
 
 struct KTriangleMesh
 {

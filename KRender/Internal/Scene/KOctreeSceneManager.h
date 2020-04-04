@@ -25,11 +25,11 @@ public:
 	bool UnInit();
 
 	SceneManagerType GetType() override { return SCENE_MANGER_TYPE_OCTREE; }
-	bool Add(KEntityPtr entity) override;
-	bool Remove(KEntityPtr entity) override;
-	bool Move(KEntityPtr entity) override;
-	bool GetVisibleEntity(const KCamera* camera, std::deque<KEntityPtr>& visibles) override;
-	bool GetDebugEntity(std::deque<KEntityPtr>& debugVisibles) override;
+	bool Add(IKEntityPtr entity) override;
+	bool Remove(IKEntityPtr entity) override;
+	bool Move(IKEntityPtr entity) override;
+	bool GetVisibleEntity(const KCamera* camera, std::deque<IKEntityPtr>& visibles) override;
+	bool GetDebugEntity(std::deque<IKEntityPtr>& debugVisibles) override;
 
-	bool Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<KEntityPtr>& result) override;
+	bool Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result) override;
 };

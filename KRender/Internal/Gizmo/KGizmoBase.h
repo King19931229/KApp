@@ -13,7 +13,7 @@ protected:
 	float m_ScreenScaleFactor;
 	const KCamera* m_Camera;
 
-	void SetEntityColor(KEntityPtr entity, const glm::vec4& color);
+	void SetEntityColor(IKEntityPtr entity, const glm::vec4& color);
 	bool CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin, glm::vec3& dir);
 
 	enum class GizmoAxis
@@ -24,9 +24,9 @@ protected:
 	};
 	glm::vec3 GetAxis(GizmoAxis axis);
 
-	std::vector<KEntityPtr> m_AllEntity;
+	std::vector<IKEntityPtr> m_AllEntity;
 
-	virtual glm::mat3 GetRotate(KEntityPtr entity, const glm::mat3& gizmoRotate);
+	virtual glm::mat3 GetRotate(IKEntityPtr entity, const glm::mat3& gizmoRotate);
 	virtual glm::vec3 GetScale();
 
 	glm::vec3 TransformPos() const;

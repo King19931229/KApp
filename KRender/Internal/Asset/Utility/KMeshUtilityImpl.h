@@ -1,6 +1,6 @@
 #pragma once
 #include "Internal/Asset/KMesh.h"
-#include "Publish/KAABBBox.h"
+#include "KBase/Publish/KAABBBox.h"
 #include "KMeshUtilityInfo.h"
 
 class KMeshUtilityImpl

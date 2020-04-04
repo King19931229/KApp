@@ -17,7 +17,7 @@ KGizmoBase::~KGizmoBase()
 	assert(!m_Camera);
 }
 
-void KGizmoBase::SetEntityColor(KEntityPtr entity, const glm::vec4& color)
+void KGizmoBase::SetEntityColor(IKEntityPtr entity, const glm::vec4& color)
 {
 	KDebugComponent* debugComponent = nullptr;
 	if (entity && entity->GetComponent(CT_DEBUG, &debugComponent))
@@ -74,7 +74,7 @@ bool KGizmoBase::Init(const KCamera* camera)
 bool KGizmoBase::UnInit()
 {
 	m_Camera = nullptr;
-	for (KEntityPtr entity : m_AllEntity)
+	for (IKEntityPtr entity : m_AllEntity)
 	{
 		if (entity)
 		{
@@ -89,7 +89,7 @@ bool KGizmoBase::UnInit()
 void KGizmoBase::Enter()
 {
 	Leave();
-	for (KEntityPtr entity : m_AllEntity)
+	for (IKEntityPtr entity : m_AllEntity)
 	{
 		assert(entity);
 		KRenderGlobal::Scene.Add(entity);
@@ -98,14 +98,14 @@ void KGizmoBase::Enter()
 
 void KGizmoBase::Leave()
 {
-	for (KEntityPtr entity : m_AllEntity)
+	for (IKEntityPtr entity : m_AllEntity)
 	{
 		assert(entity);
 		KRenderGlobal::Scene.Remove(entity);
 	}
 }
 
-glm::mat3 KGizmoBase::GetRotate(KEntityPtr entity, const glm::mat3& gizmoRotate)
+glm::mat3 KGizmoBase::GetRotate(IKEntityPtr entity, const glm::mat3& gizmoRotate)
 {
 	return gizmoRotate;
 }
@@ -180,7 +180,7 @@ void KGizmoBase::Update()
 
 	glm::vec3 scale = GetScale();
 
-	for (KEntityPtr entity : m_AllEntity)
+	for (IKEntityPtr entity : m_AllEntity)
 	{
 		if (entity)
 		{

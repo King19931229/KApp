@@ -17,7 +17,6 @@
 #include "Internal/KRenderGlobal.h"
 
 #include "Publish/KCamera.h"
-#include "Publish/KAABBBox.h"
 #include "Interface/IKGizmo.h"
 
 #include <algorithm>

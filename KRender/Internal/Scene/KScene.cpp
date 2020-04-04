@@ -52,24 +52,24 @@ bool KScene::UnInit()
 	return true;
 }
 
-bool KScene::Add(KEntityPtr entity)
+bool KScene::Add(IKEntityPtr entity)
 {
 	return m_SceneMgr && m_SceneMgr->Add(entity);
 }
 
-bool KScene::Remove(KEntityPtr entity)
+bool KScene::Remove(IKEntityPtr entity)
 {
 	return m_SceneMgr && m_SceneMgr->Remove(entity);
 }
 
-bool KScene::Move(KEntityPtr entity)
+bool KScene::Move(IKEntityPtr entity)
 {
 	return m_SceneMgr && m_SceneMgr->Move(entity);
 }
 
 bool KScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result)
 {
-	std::deque<KEntityPtr> entities;
+	std::deque<IKEntityPtr> entities;
 	if (m_SceneMgr)
 	{
 		m_SceneMgr->GetVisibleEntity(&camera, entities);
@@ -82,7 +82,7 @@ bool KScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderCompon
 		result.clear();
 		result.reserve(entities.size());
 
-		for (KEntityPtr entity : entities)
+		for (IKEntityPtr entity : entities)
 		{
 			KRenderComponent* component = nullptr;
 			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component) && component)
@@ -97,7 +97,7 @@ bool KScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderCompon
 }
 
 bool KScene::Pick(const KCamera& camera, size_t x, size_t y,
-	size_t screenWidth, size_t screenHeight, std::vector<KEntityPtr>& result)
+	size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result)
 {
 	if (m_SceneMgr)
 	{
@@ -107,13 +107,13 @@ bool KScene::Pick(const KCamera& camera, size_t x, size_t y,
 
 		if (camera.CalcPickRay(x, y, screenWidth, screenHeight, origin, dir))
 		{
-			std::vector<KEntityPtr> entities;
+			std::vector<IKEntityPtr> entities;
 			if (m_SceneMgr->Pick(origin, dir, entities))
 			{
 				result.clear();
 				result.reserve(entities.size());
 
-				for (KEntityPtr entity : entities)
+				for (IKEntityPtr entity : entities)
 				{
 					if (entity->Intersect(origin, dir, resultPoint))
 					{
@@ -130,7 +130,7 @@ bool KScene::Pick(const KCamera& camera, size_t x, size_t y,
 }
 
 bool KScene::CloestPick(const KCamera& camera, size_t x, size_t y,
-	size_t screenWidth, size_t screenHeight, KEntityPtr& result)
+	size_t screenWidth, size_t screenHeight, IKEntityPtr& result)
 {
 	if (m_SceneMgr)
 	{
@@ -143,10 +143,10 @@ bool KScene::CloestPick(const KCamera& camera, size_t x, size_t y,
 
 		if (camera.CalcPickRay(x, y, screenWidth, screenHeight, origin, dir))
 		{
-			std::vector<KEntityPtr> entities;
+			std::vector<IKEntityPtr> entities;
 			if (m_SceneMgr->Pick(origin, dir, entities))
 			{
-				for (KEntityPtr entity : entities)
+				for (IKEntityPtr entity : entities)
 				{
 					if (entity->Intersect(origin, dir, resultPoint, &maxDistance))
 					{

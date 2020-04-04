@@ -150,13 +150,7 @@
     <ClInclude Include="Internal\KRenderThreadPool.h">
       <Filter>Internal</Filter>
     </ClInclude>
-    <ClInclude Include="Publish\KAABBBox.h">
-      <Filter>Publish</Filter>
-    </ClInclude>
     <ClInclude Include="Publish\KCamera.h">
-      <Filter>Publish</Filter>
-    </ClInclude>
-    <ClInclude Include="Publish\KPlane.h">
       <Filter>Publish</Filter>
     </ClInclude>
     <ClInclude Include="Interface\IKUIOverlay.h">
@@ -317,9 +311,6 @@
     </ClInclude>
     <ClInclude Include="Internal\Asset\KTriangleMesh.h">
       <Filter>Internal\Asset</Filter>
-    </ClInclude>
-    <ClInclude Include="Publish\KTriangle.h">
-      <Filter>Publish</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Dispatcher\KRenderDispatcher.h">
       <Filter>Internal\Dispatcher</Filter>

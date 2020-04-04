@@ -9,21 +9,21 @@ protected:
 	glm::vec3 m_IntersectPos;
 	glm::vec2 m_PickPos;
 
-	KEntityPtr m_OriginEntity;
+	IKEntityPtr m_OriginEntity;
 
-	KEntityPtr m_XAxisEntity;
-	KEntityPtr m_YAxisEntity;
-	KEntityPtr m_ZAxisEntity;
+	IKEntityPtr m_XAxisEntity;
+	IKEntityPtr m_YAxisEntity;
+	IKEntityPtr m_ZAxisEntity;
 
-	KEntityPtr m_XCubeEntity;
-	KEntityPtr m_YCubeEntity;
-	KEntityPtr m_ZCubeEntity;
+	IKEntityPtr m_XCubeEntity;
+	IKEntityPtr m_YCubeEntity;
+	IKEntityPtr m_ZCubeEntity;
 
-	KEntityPtr m_XZPlaneEntity;
-	KEntityPtr m_YZPlaneEntity;
-	KEntityPtr m_XYPlaneEntity;
+	IKEntityPtr m_XZPlaneEntity;
+	IKEntityPtr m_YZPlaneEntity;
+	IKEntityPtr m_XYPlaneEntity;
 
-	KEntityPtr m_XYZPlaneEntity;
+	IKEntityPtr m_XYZPlaneEntity;
 
 	enum class ScaleOperator
 	{

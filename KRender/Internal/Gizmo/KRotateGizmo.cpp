@@ -1,6 +1,6 @@
 #include "KRotateGizmo.h"
 #include "Internal/KRenderGlobal.h"
-#include "Publish/KPlane.h"
+#include "KBase/Publish/KPlane.h"
 #include "KBase/Interface/IKLog.h"
 
 KRotateGizmo::KRotateGizmo()
@@ -64,7 +64,7 @@ KRotateGizmo::RotateOperator KRotateGizmo::GetOperatorType(unsigned int x, unsig
 	return RotateOperator::ROTATE_NONE;
 }
 
-glm::mat3 KRotateGizmo::GetRotate(KEntityPtr entity, const glm::mat3& gizmoRotate)
+glm::mat3 KRotateGizmo::GetRotate(IKEntityPtr entity, const glm::mat3& gizmoRotate)
 {
 	if (entity == m_RotateEntity)
 	{

@@ -3,7 +3,7 @@
 #include "Interface/IKShader.h"
 #include "Interface/IKBuffer.h"
 #include "Interface/IKPipeline.h"
-#include "Publish/KAABBBox.h"
+#include "KBase/Publish/KAABBBox.h"
 
 #include <assert.h>
 

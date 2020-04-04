@@ -4,7 +4,7 @@
 class KEntityManager
 {
 protected:
-	typedef std::unordered_map<size_t, KEntityPtr> EntityMap;
+	typedef std::unordered_map<size_t, IKEntityPtr> EntityMap;
 	EntityMap m_Entities;
 	size_t m_EntityHandleCounter;
 
@@ -16,8 +16,8 @@ public:
 	void Init();
 	void UnInit();
 
-	KEntityPtr CreateEntity();
-	bool ReleaseEntity(KEntityPtr& entity);
+	IKEntityPtr CreateEntity();
+	bool ReleaseEntity(IKEntityPtr& entity);
 
 	void ViewEntity(const ComponentTypeList& components, KEntityViewFunc func);
 	void ViewAllEntity(KEntityViewFunc func);

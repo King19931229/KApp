@@ -26,24 +26,22 @@ void KEntityManager::UnInit()
 {
 	for(auto pair : m_Entities)
 	{
-		KEntityPtr& entity = pair.second;
+		IKEntityPtr& entity = pair.second;
 		entity->UnRegisterAllComponent();
 	}
 	m_Entities.clear();
 }
 
-KEntityPtr KEntityManager::CreateEntity()
+IKEntityPtr KEntityManager::CreateEntity()
 {
 	size_t id = GetAvailibleID();
-	KEntity* newEntity = new KEntity(id);
-	KEntityPtr entity = KEntityPtr(newEntity);
-
+	IKEntityPtr entity = IKEntityPtr(new KEntity(id));
 	assert(m_Entities.find(id) == m_Entities.end());
 	m_Entities[id] = entity;
 	return entity;
 }
 
-bool KEntityManager::ReleaseEntity(KEntityPtr& entity)
+bool KEntityManager::ReleaseEntity(IKEntityPtr& entity)
 {
 	if(entity != nullptr)
 	{
@@ -70,7 +68,7 @@ void KEntityManager::ViewEntity(const ComponentTypeList& components, KEntityView
 {
 	for(auto pair : m_Entities)
 	{
-		KEntityPtr& entity = pair.second;
+		IKEntityPtr& entity = pair.second;
 		if(entity->HasComponents(components))
 		{
 			func(entity);
@@ -82,7 +80,7 @@ void KEntityManager::ViewAllEntity(KEntityViewFunc func)
 {
 	for(auto pair : m_Entities)
 	{
-		KEntityPtr& entity = pair.second;
+		IKEntityPtr& entity = pair.second;
 		func(entity);
 	}
 }

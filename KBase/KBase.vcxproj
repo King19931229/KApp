@@ -62,6 +62,7 @@
     <ClInclude Include="Internal\XML\KXMLDeclaration.h" />
     <ClInclude Include="Internal\XML\KXMLDocument.h" />
     <ClInclude Include="Internal\XML\KXMLElement.h" />
+    <ClInclude Include="Publish\KAABBBox.h" />
     <ClInclude Include="Publish\KConfig.h" />
     <ClInclude Include="Publish\KDump.h" />
     <ClInclude Include="Publish\KFileTool.h" />
@@ -74,6 +75,7 @@
     <ClInclude Include="Publish\KLockQueue.h" />
     <ClInclude Include="Publish\KNumerical.h" />
     <ClInclude Include="Publish\KObjectPool.h" />
+    <ClInclude Include="Publish\KPlane.h" />
     <ClInclude Include="Publish\KPlatform.h" />
     <ClInclude Include="Publish\KStringUtil.h" />
     <ClInclude Include="Publish\KSystem.h" />
@@ -84,6 +86,7 @@
     <ClInclude Include="Publish\KThreadPool.h" />
     <ClInclude Include="Publish\KThreadTool.h" />
     <ClInclude Include="Publish\KTimer.h" />
+    <ClInclude Include="Publish\KTriangle.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Codec\KETCCodec.cpp" />

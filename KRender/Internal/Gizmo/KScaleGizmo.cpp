@@ -1,6 +1,6 @@
 #include "KScaleGizmo.h"
 #include "Internal/KRenderGlobal.h"
-#include "Publish/KPlane.h"
+#include "KBase/Publish/KPlane.h"
 #include "KBase/Interface/IKLog.h"
 
 KScaleGizmo::KScaleGizmo()

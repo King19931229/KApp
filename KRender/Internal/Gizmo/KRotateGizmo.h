@@ -9,11 +9,11 @@ protected:
 	glm::vec3 m_IntersectPos;
 	glm::mat4 m_PickTransform;
 
-	KEntityPtr m_XPlaneEntity;
-	KEntityPtr m_YPlaneEntity;
-	KEntityPtr m_ZPlaneEntity;
+	IKEntityPtr m_XPlaneEntity;
+	IKEntityPtr m_YPlaneEntity;
+	IKEntityPtr m_ZPlaneEntity;
 
-	KEntityPtr m_RotateEntity;
+	IKEntityPtr m_RotateEntity;
 
 	enum class RotateOperator
 	{
@@ -28,7 +28,7 @@ protected:
 
 	RotateOperator GetOperatorType(unsigned int x, unsigned int y, KPlane& plane, glm::vec3& intersectPos);
 
-	glm::mat3 GetRotate(KEntityPtr entity, const glm::mat3& gizmoRotate) override;
+	glm::mat3 GetRotate(IKEntityPtr entity, const glm::mat3& gizmoRotate) override;
 public:
 	KRotateGizmo();
 	~KRotateGizmo();

@@ -2,7 +2,6 @@
 #include "KECS.h"
 #include <unordered_map>
 #include "Internal/KConstantDefinition.h"
-#include "Publish/KAABBBox.h"
 
 class KEntity : public IKEntity
 {
@@ -23,9 +22,9 @@ public:
 	bool UnRegisterComponent(ComponentType type) override;
 	bool UnRegisterAllComponent() override;
 
-	bool GetBound(KAABBBox& bound);
-	bool GetTransform(glm::mat4& transform);
-	bool Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result, const float* maxDistance = nullptr);
+	bool GetBound(KAABBBox& bound) override;
+	bool GetTransform(glm::mat4& transform) override;
+	bool Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result, const float* maxDistance) override;
 
 	size_t GetID() const override { return m_Id; }
 };

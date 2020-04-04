@@ -107,11 +107,8 @@
     <ClInclude Include="Internal\Vulkan\KVulkanUIOverlay.h" />
     <ClInclude Include="Internal\Window\KAndroidRenderWindow.h" />
     <ClInclude Include="Internal\Window\KGLFWRenderWindow.h" />
-    <ClInclude Include="Publish\KAABBBox.h" />
     <ClInclude Include="Publish\KCamera.h" />
     <ClInclude Include="Publish\KEnumString.h" />
-    <ClInclude Include="Publish\KPlane.h" />
-    <ClInclude Include="Publish\KTriangle.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Asset\KMaterial.cpp" />

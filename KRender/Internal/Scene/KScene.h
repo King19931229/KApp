@@ -18,16 +18,16 @@ public:
 	bool Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos);
 	bool UnInit();
 
-	bool Add(KEntityPtr entity);
-	bool Remove(KEntityPtr entity);
-	bool Move(KEntityPtr entity);
+	bool Add(IKEntityPtr entity);
+	bool Remove(IKEntityPtr entity);
+	bool Move(IKEntityPtr entity);
 
 	bool GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result);
 
 	bool Pick(const KCamera& camera, size_t x, size_t y,
-		size_t screenWidth, size_t screenHeight, std::vector<KEntityPtr>& result);
+		size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result);
 	bool CloestPick(const KCamera& camera, size_t x, size_t y,
-		size_t screenWidth, size_t screenHeight, KEntityPtr& result);
+		size_t screenWidth, size_t screenHeight, IKEntityPtr& result);
 
 	inline void EnableDebugRender(bool enable) { m_EnableDebugRender = enable; }
 

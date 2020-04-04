@@ -211,7 +211,7 @@ bool KRenderCore::InitDemo()
 	{
 		for (int j = 0; j < height; ++j)
 		{
-			KEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
+			IKEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
 
 			IKComponentBase* component = nullptr;
 			if (entity->RegisterComponent(CT_RENDER, &component))
@@ -248,7 +248,7 @@ bool KRenderCore::InitDemo()
 
 	for (size_t i = 0; i < 1; ++i)
 	{
-		KEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
+		IKEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
 
 		IKComponentBase* component = nullptr;
 		if (entity->RegisterComponent(CT_RENDER, &component))
@@ -290,7 +290,7 @@ bool KRenderCore::UnInitDemo()
 {
 	KRenderGlobal::Scene.UnInit();
 
-	KECSGlobal::EntityManager.ViewAllEntity([](KEntityPtr entity)
+	KECSGlobal::EntityManager.ViewAllEntity([](IKEntityPtr entity)
 	{
 		KRenderComponent* component = nullptr;
 		if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component))

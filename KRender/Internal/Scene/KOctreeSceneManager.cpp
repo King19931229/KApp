@@ -38,7 +38,7 @@ bool KOctreeSceneManager::UnInit()
 	return true;
 }
 
-bool KOctreeSceneManager::Add(KEntityPtr entity)
+bool KOctreeSceneManager::Add(IKEntityPtr entity)
 {
 	KAABBBox bound;
 	if (m_Root && entity->GetBound(bound))
@@ -48,7 +48,7 @@ bool KOctreeSceneManager::Add(KEntityPtr entity)
 	return false;
 }
 
-bool KOctreeSceneManager::Remove(KEntityPtr entity)
+bool KOctreeSceneManager::Remove(IKEntityPtr entity)
 {
 	if (m_Root && m_EntityToNode)
 	{
@@ -64,7 +64,7 @@ bool KOctreeSceneManager::Remove(KEntityPtr entity)
 	return false;
 }
 
-bool KOctreeSceneManager::Move(KEntityPtr entity)
+bool KOctreeSceneManager::Move(IKEntityPtr entity)
 {
 	if (!Remove(entity))
 	{
@@ -77,7 +77,7 @@ bool KOctreeSceneManager::Move(KEntityPtr entity)
 	return true;
 }
 
-bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<KEntityPtr>& visibles)
+bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<IKEntityPtr>& visibles)
 {
 	if (m_Root)
 	{
@@ -87,7 +87,7 @@ bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<KEn
 	return false;
 }
 
-bool KOctreeSceneManager::GetDebugEntity(std::deque<KEntityPtr>& debugVisibles)
+bool KOctreeSceneManager::GetDebugEntity(std::deque<IKEntityPtr>& debugVisibles)
 {
 	if (m_Root)
 	{
@@ -97,7 +97,7 @@ bool KOctreeSceneManager::GetDebugEntity(std::deque<KEntityPtr>& debugVisibles)
 	return false;
 }
 
-bool KOctreeSceneManager::Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<KEntityPtr>& result)
+bool KOctreeSceneManager::Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result)
 {
 	if (m_Root)
 	{
