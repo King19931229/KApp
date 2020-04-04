@@ -52,7 +52,7 @@
     <ClInclude Include="Internal\ECS\Component\KDebugComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KRenderComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KTransformComponent.h" />
-    <ClInclude Include="Internal\ECS\KComponentManager.h" />
+    <ClInclude Include="Internal\ECS\KRenderComponentManager.h" />
     <ClInclude Include="Internal\ECS\KECS.h" />
     <ClInclude Include="Internal\ECS\KECSGlobal.h" />
     <ClInclude Include="Internal\ECS\KEntity.h" />
@@ -126,7 +126,7 @@
     <ClCompile Include="Internal\Controller\KUIOverlayController.cpp" />
     <ClCompile Include="Internal\Dispatcher\KRenderDispatcher.cpp" />
     <ClCompile Include="Internal\ECS\Component\KRenderComponent.cpp" />
-    <ClCompile Include="Internal\ECS\KComponentManager.cpp" />
+    <ClCompile Include="Internal\ECS\KRenderComponentManager.cpp" />
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp" />
     <ClCompile Include="Internal\ECS\KEntity.cpp" />
     <ClCompile Include="Internal\ECS\KEntityManager.cpp" />

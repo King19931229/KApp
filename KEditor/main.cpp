@@ -3,6 +3,8 @@
 #include "KBase/Interface/IKLog.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Interface/IKCodec.h"
+#include "KBase/Interface/Component/IKComponentManager.h"
+
 #include <QtWidgets/QApplication>
 #include <QFile>
 #include <QTextStream>
@@ -25,6 +27,8 @@ int main(int argc, char *argv[])
 	KLog::CreateLogger();
 	KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
 
+	KComponent::CreateManager();
+
 	KFileSystem::CreateFileManager();
 	KFileSystem::Manager->Init();
 	KFileSystem::Manager->AddSystem("../Sponza.zip", -1, FST_ZIP);
@@ -44,6 +48,9 @@ int main(int argc, char *argv[])
 
 	KLog::Logger->UnInit();
 	KLog::DestroyLogger();
+
+	KComponent::DestroyManager();
+
 	KFileSystem::Manager->UnInit();
 	KFileSystem::DestroyFileManager();
 

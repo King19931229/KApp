@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\Component\IKComponentBase.h" />
+    <ClInclude Include="Interface\Component\IKComponentManager.h" />
     <ClInclude Include="Interface\Component\IKDebugComponent.h" />
     <ClInclude Include="Interface\Component\IKRenderComponent.h" />
     <ClInclude Include="Interface\Component\IKTransformComponent.h" />
@@ -96,6 +97,8 @@
     <ClCompile Include="Internal\KAssetIOHooker.cpp" />
     <ClCompile Include="Internal\KAssetLoader.cpp" />
     <ClCompile Include="Internal\KCodec.cpp" />
+    <ClCompile Include="Internal\KComponentManager.cpp" />
+    <ClCompile Include="Internal\KComponentManager.h" />
     <ClCompile Include="Internal\KDataStream.cpp" />
     <ClCompile Include="Internal\KDump.cpp" />
     <ClCompile Include="Internal\KFileSystem.cpp" />

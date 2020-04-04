@@ -55,7 +55,7 @@ bool KEntity::RegisterComponentBase(ComponentType type, IKComponentBase** pptr)
 	auto it = m_Components.find(type);
 	if(it == m_Components.end())
 	{
-		IKComponentBase* component = KECSGlobal::ComponentManager.Alloc(type);
+		IKComponentBase* component = KComponent::Manager->Alloc(type);
 		m_Components.insert(ComponentMap::value_type(type, component));
 		component->RegisterEntityHandle(this);
 		if(pptr)
@@ -78,7 +78,7 @@ bool KEntity::UnRegisterComponent(ComponentType type)
 		IKComponentBase*& component = it->second;
 		component->UnRegisterEntityHandle();
 		m_Components.erase(it);
-		KECSGlobal::ComponentManager.Free(component);
+		KComponent::Manager->Free(component);
 		return true;
 	}
 	else
@@ -93,7 +93,7 @@ bool KEntity::UnRegisterAllComponent()
 	{
 		IKComponentBase*& component = it->second;
 		component->UnRegisterEntityHandle();
-		KECSGlobal::ComponentManager.Free(component);
+		KComponent::Manager->Free(component);
 	}
 	m_Components.clear();
 	return true;

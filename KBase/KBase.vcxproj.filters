@@ -193,6 +193,9 @@
     <ClInclude Include="Interface\Component\IKDebugComponent.h">
       <Filter>Interface\Component</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\Component\IKComponentManager.h">
+      <Filter>Interface\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -325,6 +328,12 @@
     </ClCompile>
     <ClCompile Include="Internal\XML\KXMLDocument.cpp">
       <Filter>Internal\XML</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KComponentManager.h">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KComponentManager.cpp">
+      <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

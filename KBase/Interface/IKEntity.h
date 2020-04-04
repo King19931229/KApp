@@ -1,5 +1,6 @@
 #pragma once
 #include "KBase/Interface/Component/IKComponentBase.h"
+#include "KBase/Interface/Component/IKComponentManager.h"
 
 struct IKEntity
 {

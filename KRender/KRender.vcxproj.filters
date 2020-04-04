@@ -204,9 +204,6 @@
     <ClInclude Include="Internal\ECS\KEntityManager.h">
       <Filter>Internal\ECS</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\ECS\KComponentManager.h">
-      <Filter>Internal\ECS</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\ECS\KECS.h">
       <Filter>Internal\ECS</Filter>
     </ClInclude>
@@ -342,6 +339,9 @@
     <ClInclude Include="Interface\IKStatistics.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\ECS\KRenderComponentManager.h">
+      <Filter>Internal\ECS</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -439,9 +439,6 @@
     </ClCompile>
     <ClCompile Include="Internal\Manager\KTextureManager.cpp">
       <Filter>Internal\Manager</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\ECS\KComponentManager.cpp">
-      <Filter>Internal\ECS</Filter>
     </ClCompile>
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp">
       <Filter>Internal\ECS</Filter>
@@ -541,6 +538,9 @@
     </ClCompile>
     <ClCompile Include="Internal\KStatistics.cpp">
       <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ECS\KRenderComponentManager.cpp">
+      <Filter>Internal\ECS</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

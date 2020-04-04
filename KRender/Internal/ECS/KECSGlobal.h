@@ -1,10 +1,10 @@
 #pragma once
-#include "KComponentManager.h"
+#include "KRenderComponentManager.h"
 #include "KEntityManager.h"
 
 namespace KECSGlobal
 {
-	extern KComponentManager ComponentManager;
+	extern KRenderComponentManager ComponentManager;
 	extern KEntityManager EntityManager;
 
 	void Init();

@@ -57,7 +57,7 @@ public:
 		UpdateTransform();
 	}
 
-	const glm::mat4& GetFinal() override
+	const glm::mat4& GetFinal() const override
 	{
 		return m_FinalTransform.MODEL;
 	}

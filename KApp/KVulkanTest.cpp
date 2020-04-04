@@ -34,6 +34,7 @@
 #include "KRender/Internal/KDebugConsole.h"
 #include "Interface/IKFileSystem.h"
 #include "KBase/Interface/IKJson.h"
+#include "KBase/Interface/Component/IKComponentManager.h"
 
 int main()
 {
@@ -41,6 +42,8 @@ int main()
 
 	KLog::CreateLogger();
 	KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
+
+	KComponent::CreateManager();
 
 	KFileSystem::CreateFileManager();
 	KFileSystem::Manager->Init();
@@ -76,6 +79,9 @@ int main()
 
 	KLog::Logger->UnInit();
 	KLog::DestroyLogger();
+
+	KComponent::DestroyManager();
+
 	KFileSystem::Manager->UnInit();
 	KFileSystem::DestroyFileManager();
 }

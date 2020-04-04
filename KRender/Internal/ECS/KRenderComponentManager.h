@@ -6,19 +6,16 @@
 
 #include "KBase/Publish/KObjectPool.h"
 
-class KComponentManager
+class KRenderComponentManager
 {
 protected:
 	KObjectPool<KTransformComponent> m_TransformComponentPool;
 	KObjectPool<KRenderComponent> m_RenderComponentPool;
 	KObjectPool<KDebugComponent> m_DebugComponentPool;
 public:
-	KComponentManager();
-	~KComponentManager();
+	KRenderComponentManager();
+	~KRenderComponentManager();
 
 	void Init();
 	void UnInit();
-
-	IKComponentBase* Alloc(ComponentType type);
-	void Free(IKComponentBase* component);
 };

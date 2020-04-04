@@ -2,7 +2,7 @@
 
 namespace KECSGlobal
 {
-	KComponentManager ComponentManager;
+	KRenderComponentManager ComponentManager;
 	KEntityManager EntityManager;
 
 	void Init()
