@@ -130,6 +130,7 @@
     <ProjectGuid>{93B9C2FE-9463-44F0-B9D4-435B28F9AC49}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>KBase</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -244,6 +245,7 @@
       <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -268,6 +270,7 @@
       <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

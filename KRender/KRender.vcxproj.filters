@@ -240,9 +240,6 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessManager.h">
       <Filter>Internal\PostProcess</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Scene\KScene.h">
-      <Filter>Internal\Scene</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Scene\KOctreeSceneManager.h">
       <Filter>Internal\Scene</Filter>
     </ClInclude>
@@ -332,6 +329,12 @@
     </ClInclude>
     <ClInclude Include="Internal\ECS\KRenderComponentManager.h">
       <Filter>Internal\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKRenderScene.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Scene\KRenderScene.h">
+      <Filter>Internal\Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -491,9 +494,6 @@
     <ClCompile Include="Internal\Scene\KOctreeSceneManager.cpp">
       <Filter>Internal\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\Scene\KScene.cpp">
-      <Filter>Internal\Scene</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\Gizmo\KMoveGizmo.cpp">
       <Filter>Internal\Gizmo</Filter>
     </ClCompile>
@@ -532,6 +532,9 @@
     </ClCompile>
     <ClCompile Include="Internal\ECS\KRenderComponentManager.cpp">
       <Filter>Internal\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Scene\KRenderScene.cpp">
+      <Filter>Internal\Scene</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

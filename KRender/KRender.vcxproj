@@ -30,6 +30,7 @@
     <ClInclude Include="Interface\IKRenderWindow.h" />
     <ClInclude Include="Interface\IKResource.h" />
     <ClInclude Include="Interface\IKSampler.h" />
+    <ClInclude Include="Interface\IKRenderScene.h" />
     <ClInclude Include="Interface\IKShader.h" />
     <ClInclude Include="Interface\IKRenderConfig.h" />
     <ClInclude Include="Interface\IKBuffer.h" />
@@ -87,7 +88,7 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessTexture.h" />
     <ClInclude Include="Internal\Scene\KOctreeNode.h" />
     <ClInclude Include="Internal\Scene\KOctreeSceneManager.h" />
-    <ClInclude Include="Internal\Scene\KScene.h" />
+    <ClInclude Include="Internal\Scene\KRenderScene.h" />
     <ClInclude Include="Internal\Scene\KSceneManagerBase.h" />
     <ClInclude Include="Internal\Shadow\KShadowMap.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h" />
@@ -159,7 +160,7 @@
     <ClCompile Include="Internal\PostProcess\KPostProcessPass.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessTexture.cpp" />
     <ClCompile Include="Internal\Scene\KOctreeSceneManager.cpp" />
-    <ClCompile Include="Internal\Scene\KScene.cpp" />
+    <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
     <ClCompile Include="Internal\Shadow\KShadowMap.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanCommandBuffer.cpp" />
@@ -183,6 +184,7 @@
     <ProjectGuid>{CF39F7A8-164C-4E82-9CC0-6308AE16C1D6}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>KRender</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -234,10 +236,10 @@
     <OutDir>Publish/Debug/x64/</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>Publish/Release/x64</OutDir>
+    <OutDir>Publish/Release/x64/</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>Publish/Release/x86</OutDir>
+    <OutDir>Publish/Release/x86/</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -250,6 +252,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -271,6 +274,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -295,6 +299,7 @@
       <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;$(VULKAN_SDK)/Include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -318,6 +323,7 @@
       <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;$(VULKAN_SDK)/Include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

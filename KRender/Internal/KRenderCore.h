@@ -49,9 +49,8 @@ protected:
 	bool UnInitController();
 	bool UnInitGizmo();
 
-	// ¡Ÿ ±π¶ƒ‹
-	bool InitDemo();
-	bool UnInitDemo();
+	bool InitScene();
+	bool UnInitScene();
 
 	bool UpdateFrameTime();
 	bool UpdateCamera(size_t frameIndex);
@@ -69,6 +68,8 @@ public:
 	virtual bool UnInit();
 	virtual bool Loop();
 	virtual bool Tick();
+
+	virtual IKRenderScene* GetRenderScene();
 
 	virtual IKRenderWindow* GetRenderWindow() { return m_Window; }
 	virtual IKRenderDevice* GetRenderDevice() { return m_Device; }

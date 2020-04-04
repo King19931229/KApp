@@ -1,12 +1,8 @@
 #pragma once
+#include "Interface/IKRenderScene.h"
 #include <deque>
 
 class KCamera;
-
-enum SceneManagerType
-{
-	SCENE_MANGER_TYPE_OCTREE
-};
 
 class KSceneManagerBase
 {

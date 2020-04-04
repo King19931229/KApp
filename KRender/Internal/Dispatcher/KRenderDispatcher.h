@@ -2,7 +2,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKCommandBuffer.h"
 #include "Interface/IKSwapChain.h"
-#include "Internal/Scene/KScene.h"
+#include "Internal/Scene/KRenderScene.h"
 #include "KBase/Publish/KThreadPool.h"
 #include "Publish/KCamera.h"
 
@@ -50,8 +50,8 @@ protected:
 
 	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
 
-	bool SubmitCommandBufferSingleThread(KScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
-	bool SubmitCommandBufferMuitiThread(KScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
+	bool SubmitCommandBufferSingleThread(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
+	bool SubmitCommandBufferMuitiThread(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
 
 	bool CreateCommandBuffers();
 	bool DestroyCommandBuffers();
@@ -66,6 +66,6 @@ public:
 	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay);
 	bool UnInit();
 
-	bool Execute(KScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
+	bool Execute(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
 	IKCommandBufferPtr GetPrimaryCommandBuffer(uint32_t frameIndex);
 };

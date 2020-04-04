@@ -1,5 +1,6 @@
 #pragma once
 #include "KRender/Interface/IKRenderConfig.h"
+#include "KRender/Interface/IKRenderScene.h"
 
 struct IKRenderCore
 {
@@ -10,6 +11,7 @@ struct IKRenderCore
 	virtual bool Loop() = 0;
 	virtual bool Tick() = 0;
 
+	virtual IKRenderScene* GetRenderScene() = 0;
 	virtual IKRenderWindow* GetRenderWindow() = 0;
 	virtual IKRenderDevice* GetRenderDevice() = 0;
 };

@@ -15,6 +15,10 @@
 #include "Internal/KConstantGlobal.h"
 #include "Internal/ECS/KECSGlobal.h"
 
+#ifdef _WIN32
+#	pragma warning(disable:4996)
+#endif
+
 EXPORT_DLL IKRenderCorePtr CreateRenderCore()
 {
 	return IKRenderCorePtr(new KRenderCore());
@@ -184,7 +188,7 @@ bool KRenderCore::UnInitGizmo()
 	return true;
 }
 
-bool KRenderCore::InitDemo()
+bool KRenderCore::InitScene()
 {
 	KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
 
@@ -286,7 +290,7 @@ bool KRenderCore::InitDemo()
 	return true;
 }
 
-bool KRenderCore::UnInitDemo()
+bool KRenderCore::UnInitScene()
 {
 	KRenderGlobal::Scene.UnInit();
 
@@ -337,7 +341,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			InitGlobalManager();
 			InitPostProcess();
 			InitRenderDispatcher();
-			InitDemo();
+			InitScene();
 			InitGizmo();
 			InitController();
 		};
@@ -347,7 +351,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			UnInitPostProcess();
 			UnInitGlobalManager();
 			UnInitRenderDispatcher();
-			UnInitDemo();
+			UnInitScene();
 			UnInitGizmo();
 			UnInitController();
 		};
@@ -409,6 +413,11 @@ bool KRenderCore::Tick()
 		return true;
 	}
 	return false;
+}
+
+IKRenderScene* KRenderCore::GetRenderScene()
+{
+	return &KRenderGlobal::Scene;
 }
 
 bool KRenderCore::UpdateCamera(size_t frameIndex)

@@ -1,18 +1,18 @@
-#include "KScene.h"
+#include "KRenderScene.h"
 #include "KOctreeSceneManager.h"
 
-KScene::KScene()
+KRenderScene::KRenderScene()
 	: m_SceneMgr(nullptr),
 	m_EnableDebugRender(false)
 {
 }
 
-KScene::~KScene()
+KRenderScene::~KRenderScene()
 {
 	assert(!m_SceneMgr);
 }
 
-bool KScene::Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos)
+bool KRenderScene::Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos)
 {
 	UnInit();
 
@@ -38,7 +38,7 @@ bool KScene::Init(SceneManagerType type, float initialSize, const glm::vec3& ini
 	return false;
 }
 
-bool KScene::UnInit()
+bool KRenderScene::UnInit()
 {
 	if (m_SceneMgr)
 	{
@@ -52,22 +52,22 @@ bool KScene::UnInit()
 	return true;
 }
 
-bool KScene::Add(IKEntityPtr entity)
+bool KRenderScene::Add(IKEntityPtr entity)
 {
 	return m_SceneMgr && m_SceneMgr->Add(entity);
 }
 
-bool KScene::Remove(IKEntityPtr entity)
+bool KRenderScene::Remove(IKEntityPtr entity)
 {
 	return m_SceneMgr && m_SceneMgr->Remove(entity);
 }
 
-bool KScene::Move(IKEntityPtr entity)
+bool KRenderScene::Move(IKEntityPtr entity)
 {
 	return m_SceneMgr && m_SceneMgr->Move(entity);
 }
 
-bool KScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result)
+bool KRenderScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result)
 {
 	std::deque<IKEntityPtr> entities;
 	if (m_SceneMgr)
@@ -96,7 +96,7 @@ bool KScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderCompon
 	return false;
 }
 
-bool KScene::Pick(const KCamera& camera, size_t x, size_t y,
+bool KRenderScene::Pick(const KCamera& camera, size_t x, size_t y,
 	size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result)
 {
 	if (m_SceneMgr)
@@ -129,7 +129,7 @@ bool KScene::Pick(const KCamera& camera, size_t x, size_t y,
 	return false;
 }
 
-bool KScene::CloestPick(const KCamera& camera, size_t x, size_t y,
+bool KRenderScene::CloestPick(const KCamera& camera, size_t x, size_t y,
 	size_t screenWidth, size_t screenHeight, IKEntityPtr& result)
 {
 	if (m_SceneMgr)
@@ -161,15 +161,5 @@ bool KScene::CloestPick(const KCamera& camera, size_t x, size_t y,
 		}
 	}
 
-	return false;
-}
-
-bool KScene::Load(const char* filename)
-{
-	return false;
-}
-
-bool KScene::Save(const char* filename)
-{
 	return false;
 }

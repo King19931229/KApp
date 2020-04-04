@@ -148,7 +148,7 @@ void KRenderDispatcher::ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTar
 	buffer->ClearDepthStencil(rect, value);
 }
 
-bool KRenderDispatcher::SubmitCommandBufferSingleThread(KScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
+bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	KRenderStageStatistics preZStatistics;
 	KRenderStageStatistics defaultStatistics;
@@ -331,7 +331,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KScene* scene, KCamera* 
 	return true;
 }
 
-bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KScene* scene, KCamera* camera,
+bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCamera* camera,
 	uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	IKPipelineHandlePtr pipelineHandle;
@@ -646,7 +646,7 @@ bool KRenderDispatcher::UnInit()
 	return true;
 }
 
-bool KRenderDispatcher::Execute(KScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
+bool KRenderDispatcher::Execute(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	if (m_MultiThreadSumbit)
 	{

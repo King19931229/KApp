@@ -155,7 +155,7 @@ void KUIOverlayBase::PrepareResources()
 	ImGuiIO& io = ImGui::GetIO();
 
 	// Create font texture
-	unsigned char* fontData;
+	unsigned char* fontData = nullptr;
 	int texWidth = 0, texHeight = 0;
 
 	IKDataStreamPtr ttfDataStream = nullptr;

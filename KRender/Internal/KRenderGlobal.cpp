@@ -13,7 +13,7 @@ namespace KRenderGlobal
 	KSkyBox SkyBox;
 	KShadowMap ShadowMap;
 
-	KScene Scene;
+	KRenderScene Scene;
 	KRenderDispatcher RenderDispatcher;
 
 	KTaskExecutor<true> TaskExecutor;
