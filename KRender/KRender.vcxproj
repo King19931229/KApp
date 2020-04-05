@@ -284,7 +284,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;..\Dependency\imgui\Publish\Debug\x64;..\Dependency\Optick\lib\x64\debug\;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>KBase.lib;glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -333,7 +333,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;..\Dependency\imgui\Publish\Release\x64;..\Dependency\Optick\lib\x64\release\;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>KBase.lib;glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

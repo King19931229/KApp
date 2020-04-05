@@ -100,8 +100,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86</AdditionalLibraryDirectories>
-      <AdditionalDependencies>KBase.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\KRender\Publish\Debug\x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>KBase.lib;KRender.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -119,8 +119,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64</AdditionalLibraryDirectories>
-      <AdditionalDependencies>KBase.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\KRender\Publish\Debug\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>KBase.lib;KRender.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -142,8 +142,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86</AdditionalLibraryDirectories>
-      <AdditionalDependencies>KBase.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\KRender\Publish\Release\x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>KBase.lib;KRender.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -165,8 +165,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64</AdditionalLibraryDirectories>
-      <AdditionalDependencies>KBase.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\KRender\Publish\Release\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>KBase.lib;KRender.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -1,6 +1,6 @@
 #pragma once
 #include <QWidget>
-#include "KRender/Interface/IKRenderCore.h"
+#include "KEngine/Interface/IKEngine.h"
 #include "KBase/Publish/KInput.h"
 
 class KEQtRenderWindow;
@@ -8,7 +8,8 @@ class KERenderWidget : public QWidget
 {
 	Q_OBJECT
 protected:
-	IKRenderCore* m_RenderCore;
+	IKEngine* m_Engine;
+	IKRenderDevice* m_RenderDevice;
 	KEQtRenderWindow* m_RenderWindow;
 
 	static bool QtButtonToMouseButton(Qt::MouseButton button, InputMouseButton& mouseButton);
@@ -20,7 +21,7 @@ public:
 	KERenderWidget(QWidget* pParent = NULL);
 	~KERenderWidget();
 
-	bool Init(IKRenderCorePtr& core);
+	bool Init(IKEnginePtr& engine);
 	bool UnInit();
 
 	// 重写基类函数

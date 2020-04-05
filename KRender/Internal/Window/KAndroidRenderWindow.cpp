@@ -9,7 +9,7 @@
 #endif
 
 KAndroidRenderWindow::KAndroidRenderWindow()
-	: m_device(nullptr)
+	: m_Device(nullptr)
 {
 #ifdef __ANDROID__
 	m_app = nullptr;
@@ -57,7 +57,7 @@ bool KAndroidRenderWindow::Init(void* hwnd)
 
 bool KAndroidRenderWindow::UnInit()
 {
-	m_device = nullptr;
+	m_Device = nullptr;
 #ifdef	__ANDROID__
 	m_app = nullptr;
 	m_TouchCallbacks.clear();
@@ -182,9 +182,9 @@ void KAndroidRenderWindow::HandleAppCommand(android_app* app, int32_t cmd)
 		break;
 	case APP_CMD_INIT_WINDOW:
 		KG_LOG(LM_RENDER, "%s", "APP_CMD_INIT_WINDOW");
-		if (renderWindow->m_device != NULL)
+		if (renderWindow->m_Device != NULL)
 		{
-			if (renderWindow->m_device->Init(renderWindow))
+			if (renderWindow->m_Device->Init(renderWindow))
 			{
 
 			}
@@ -210,7 +210,7 @@ void KAndroidRenderWindow::HandleAppCommand(android_app* app, int32_t cmd)
 	case APP_CMD_TERM_WINDOW:
 		// Window is hidden or closed, clean up resources
 		KG_LOG(LM_RENDER, "%s", "APP_CMD_TERM_WINDOW");
-		renderWindow->m_device->UnInit();
+		renderWindow->m_Device->UnInit();
 		break;
 	}
 }
@@ -242,18 +242,18 @@ bool KAndroidRenderWindow::Loop()
 				}
 			}
 
-			if (m_device && m_bFocus)
+			if (m_Device && m_bFocus)
 			{
-				m_device->Present();
+				m_Device->Present();
 			}
 
 			// App destruction requested
 			// Exit loop, example will be destroyed in application main
 			if (destroy)
 			{
-				if (m_device)
+				if (m_Device)
 				{
-					m_device->Wait();
+					m_Device->Wait();
 				}
 				ANativeActivity_finish(m_app->activity);
 				break;
@@ -380,6 +380,6 @@ bool KAndroidRenderWindow::UnRegisterTouchCallback(KTouchCallbackType *callback)
 
 bool KAndroidRenderWindow::SetRenderDevice(IKRenderDevice* device)
 {
-	m_device = device;
+	m_Device = device;
 	return true;
 }

@@ -9,7 +9,8 @@
 
 class KAndroidRenderWindow : IKRenderWindow
 {
-	IKRenderDevice* m_device;
+protected:
+	IKRenderDevice* m_Device;
 #if defined(__ANDROID__)
 	android_app* m_app;
 	bool m_bFocus;

@@ -3,7 +3,8 @@
 #include <QtWidgets/QMainWindow>
 #include <QLayout>
 #include "ui_KEditor.h"
-#include "KRender/Interface/IKRenderCore.h"
+
+#include "KEngine/Interface/IKEngine.h"
 
 class KERenderWidget;
 class KEGraphWidget;
@@ -20,9 +21,7 @@ public:
 protected:
 	KERenderWidget*	m_RenderWidget;
 	KEGraphWidget* m_GraphWidget; 
-	IKRenderWindowPtr m_RenderWindow;
-	IKRenderDevicePtr m_RenderDevice;
-	IKRenderCorePtr m_RenderCore;
+	IKEnginePtr m_Engine;
 	bool m_bInit;
 private:
 	Ui::KEditorClass ui;

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Interface/IKShader.h"
-#include "Interface/IKBuffer.h"
-#include "Interface/IKPipeline.h"
+#include "KRender/Interface/IKShader.h"
+#include "KRender/Interface/IKBuffer.h"
+#include "KRender/Interface/IKPipeline.h"
 #include "KBase/Publish/KAABBBox.h"
 
 #include <assert.h>

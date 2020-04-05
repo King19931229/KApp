@@ -8,7 +8,8 @@
 
 class KGLFWRenderWindow : IKRenderWindow
 {
-	IKRenderDevice* m_device;
+protected:
+	IKRenderDevice* m_Device;
 #ifndef __ANDROID__
 #if defined(_WIN32)
 	void* m_HWND;

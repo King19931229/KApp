@@ -6,7 +6,7 @@ class KEQtRenderWindow : public IKRenderWindow
 {
 	friend class KERenderWidget;
 protected:
-	IKRenderDevice* m_device;
+	IKRenderDevice* m_Device;
 	void* m_HWND;
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;

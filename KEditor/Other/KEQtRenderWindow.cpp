@@ -5,7 +5,7 @@
 #endif
 
 KEQtRenderWindow::KEQtRenderWindow()
-	: m_device(nullptr),
+	: m_Device(nullptr),
 	m_HWND(nullptr)
 {
 }
@@ -32,13 +32,20 @@ bool KEQtRenderWindow::Init(android_app* app)
 
 bool KEQtRenderWindow::Init(void* hwnd)
 {
+	ASSERT_RESULT(m_Device);
 	m_HWND = hwnd;
+	m_Device->Init(this);
 	return true;
 }
 
 bool KEQtRenderWindow::UnInit()
 {
 	m_HWND = nullptr;
+	if (m_Device)
+	{
+		m_Device->UnInit();
+		m_Device = nullptr;
+	}
 	return true;
 }
 
@@ -191,6 +198,6 @@ bool KEQtRenderWindow::UnRegisterTouchCallback(KTouchCallbackType* callback)
 
 bool KEQtRenderWindow::SetRenderDevice(IKRenderDevice* device)
 {
-	m_device = device;
+	m_Device = device;
 	return true;
 }

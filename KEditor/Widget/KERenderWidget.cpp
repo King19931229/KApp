@@ -5,7 +5,8 @@
 #include <assert.h>
 
 KERenderWidget::KERenderWidget(QWidget* pParent)
-	: m_RenderCore(nullptr),
+	: m_Engine(nullptr),
+	m_RenderDevice(nullptr),
 	m_RenderWindow(nullptr)
 {
 	setAttribute(Qt::WA_PaintOnScreen, true);
@@ -16,36 +17,46 @@ KERenderWidget::KERenderWidget(QWidget* pParent)
 
 KERenderWidget::~KERenderWidget()
 {
-	ASSERT_RESULT(m_RenderCore == nullptr);
+	ASSERT_RESULT(m_Engine == nullptr);
+	ASSERT_RESULT(m_RenderDevice == nullptr);
 	ASSERT_RESULT(m_RenderWindow == nullptr);
 }
 
-bool KERenderWidget::Init(IKRenderCorePtr& core)
+bool KERenderWidget::Init(IKEnginePtr& engine)
 {
-	m_RenderCore = core.get();
-	m_RenderWindow = (KEQtRenderWindow*)(core->GetRenderWindow());
-	return true;
+	if (engine)
+	{
+		m_Engine = engine.get();
+		IKRenderCore* render = m_Engine->GetRenderCore();
+		if (render)
+		{
+			m_RenderWindow = (KEQtRenderWindow*)(render->GetRenderWindow());
+			m_RenderDevice = render->GetRenderDevice();
+			return true;
+		}
+	}
+	return false;
 }
 
 bool KERenderWidget::UnInit()
 {
-	m_RenderCore = nullptr;
+	m_Engine = nullptr;
+	m_RenderDevice = nullptr;
 	m_RenderWindow = nullptr;
 	return true;
 }
 
 void KERenderWidget::resizeEvent(QResizeEvent *event)
 {
-	if (m_RenderCore)
+	if (m_RenderDevice)
 	{
-		IKRenderDevice* device = m_RenderCore->GetRenderDevice();
-		device->RecreateSwapChain();
+		m_RenderDevice->RecreateSwapChain();
 	}
 }
 
 void KERenderWidget::paintEvent(QPaintEvent *event)
 {
-	m_RenderCore->Tick();
+	m_Engine->Tick();
 	// 保证此函数体每一帧都调用
 	update();
 }

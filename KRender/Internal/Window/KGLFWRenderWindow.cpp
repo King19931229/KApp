@@ -9,7 +9,7 @@
 #endif
 
 KGLFWRenderWindow::KGLFWRenderWindow()
-	: m_device(nullptr)
+	: m_Device(nullptr)
 {
 #ifndef __ANDROID__
 	m_LastMovePos[0] = -1.0f;
@@ -35,9 +35,9 @@ RenderWindowType KGLFWRenderWindow::GetType()
 void KGLFWRenderWindow::FramebufferResizeCallback(GLFWwindow* handle, int width, int height)
 {
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
-	if (window && window->m_device)
+	if (window && window->m_Device)
 	{
-		window->m_device->RecreateSwapChain();
+		window->m_Device->RecreateSwapChain();
 	}
 }
 
@@ -140,7 +140,7 @@ bool KGLFWRenderWindow::GLFWActionToInputAction(int action, InputAction& inputAc
 void KGLFWRenderWindow::KeyboardCallback(GLFWwindow* handle, int key, int scancode, int action, int mods)
 {
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
-	if (window && window->m_device && !window->m_KeyboardCallbacks.empty())
+	if (window && window->m_Device && !window->m_KeyboardCallbacks.empty())
 	{
 		InputKeyboard keyboard;
 		InputAction inputAction;
@@ -161,7 +161,7 @@ void KGLFWRenderWindow::KeyboardCallback(GLFWwindow* handle, int key, int scanco
 void KGLFWRenderWindow::MouseCallback(GLFWwindow* handle, int mouse, int action, int mods)
 {
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
-	if (window && window->m_device && !window->m_MouseCallbacks.empty())
+	if (window && window->m_Device && !window->m_MouseCallbacks.empty())
 	{
 		InputMouseButton mouseButton;
 		InputAction inputAction;
@@ -185,7 +185,7 @@ void KGLFWRenderWindow::MouseCallback(GLFWwindow* handle, int mouse, int action,
 void KGLFWRenderWindow::ScrollCallback(GLFWwindow* handle, double xoffset, double yoffset)
 {
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
-	if (window && window->m_device && !window->m_ScrollCallbacks.empty())
+	if (window && window->m_Device && !window->m_ScrollCallbacks.empty())
 	{
 		for (auto it = window->m_ScrollCallbacks.begin(),
 			itEnd = window->m_ScrollCallbacks.end();
@@ -224,6 +224,8 @@ void KGLFWRenderWindow::OnMouseMove()
 bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable)
 {
 #ifndef __ANDROID__
+	ASSERT_RESULT(m_Device);
+
 	if (glfwInit() == GLFW_TRUE)
 	{
 		glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
@@ -245,6 +247,8 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 #endif
 			m_LastMovePos[0] = -1.0f;
 			m_LastMovePos[1] = -1.0f;
+
+			m_Device->Init(this);
 
 			return true;
 		}
@@ -272,8 +276,13 @@ bool KGLFWRenderWindow::Init(void* hwnd)
 
 bool KGLFWRenderWindow::UnInit()
 {
-	m_device = nullptr;
 #ifndef __ANDROID__
+	if (m_Device)
+	{
+		m_Device->UnInit();
+		m_Device = nullptr;
+	}
+
 	if (m_window)
 	{
 		glfwDestroyWindow(m_window);
@@ -330,16 +339,16 @@ bool KGLFWRenderWindow::Loop()
 		while (!glfwWindowShouldClose(m_window))
 		{
 			glfwPollEvents();
-			if (m_device)
+			if (m_Device)
 			{
 				OnMouseMove();
-				m_device->Present();
+				m_Device->Present();
 			}
 		}
 
-		if (m_device)
+		if (m_Device)
 		{
-			m_device->Wait();
+			m_Device->Wait();
 		}
 		return true;
 	}
@@ -531,6 +540,6 @@ bool KGLFWRenderWindow::UnRegisterTouchCallback(KTouchCallbackType *callback)
 
 bool KGLFWRenderWindow::SetRenderDevice(IKRenderDevice* device)
 {
-	m_device = device;
+	m_Device = device;
 	return true;
 }

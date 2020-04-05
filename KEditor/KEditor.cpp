@@ -11,6 +11,7 @@ KEditor::KEditor(QWidget *parent)
 	: QMainWindow(parent),
 	m_RenderWidget(nullptr),
 	m_GraphWidget(nullptr),
+	m_Engine(nullptr),
 	m_bInit(false),
 	m_GraphAction(nullptr)
 {
@@ -23,7 +24,7 @@ KEditor::~KEditor()
 {
 	assert(m_RenderWidget == nullptr);
 	assert(m_GraphWidget == nullptr);
-	assert(m_RenderCore == nullptr);
+	assert(m_Engine == nullptr);
 }
 
 bool KEditor::SetupMenu()
@@ -44,20 +45,21 @@ bool KEditor::Init()
 	if (!m_bInit)
 	{
 		// 不允许构建操作进入操作栈
+
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 
 		m_RenderWidget = new KERenderWidget();
 
-		m_RenderCore = CreateRenderCore();
+		IKRenderWindowPtr window = IKRenderWindowPtr(new KEQtRenderWindow());
+		
+		KEngineOptions options;
+		options.window.hwnd = (void*)m_RenderWidget->winId();
+		options.window.type = KEngineOptions::WindowInitializeInformation::EDITOR;
 
-		m_RenderWindow = IKRenderWindowPtr((IKRenderWindow*)new KEQtRenderWindow());
-		m_RenderDevice = CreateRenderDevice(RENDER_DEVICE_VULKAN);
-		m_RenderCore->Init(m_RenderDevice, m_RenderWindow);
+		m_Engine = CreateEngine();
+		m_Engine->Init(std::move(window), options);
 
-		m_RenderWindow->Init((void*)m_RenderWidget->winId());
-		m_RenderDevice->Init(m_RenderWindow.get());
-		m_RenderWidget->Init(m_RenderCore);
-
+		m_RenderWidget->Init(m_Engine);
 		setCentralWidget(m_RenderWidget);
 
 		m_GraphWidget = new KEPostProcessGraphWidget();
@@ -79,13 +81,8 @@ bool KEditor::UnInit()
 		KEditorGlobal::CommandInvoker.Clear();
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 
-		m_RenderDevice->UnInit();
-		m_RenderWindow->UnInit();
-		m_RenderCore->UnInit();
-
-		m_RenderDevice = nullptr;
-		m_RenderCore = nullptr;
-		m_RenderWindow = nullptr;
+		m_Engine->UnInit();
+		m_Engine = nullptr;
 
 		if (m_RenderWidget)
 		{

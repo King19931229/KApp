@@ -1,7 +1,7 @@
 #pragma once
-#include "Interface/IKRenderConfig.h"
-#include "Interface/IKRenderWindow.h"
-#include "Interface/IKRenderCommand.h"
+#include "KRender/Interface/IKRenderConfig.h"
+#include "KRender/Interface/IKRenderWindow.h"
+#include "KRender/Interface/IKRenderCommand.h"
 
 typedef std::function<void(uint32_t chainIndex, uint32_t frameIndex)> KDevicePresentCallback;
 typedef std::function<void(uint32_t width, uint32_t height)> KSwapChainRecreateCallback;
