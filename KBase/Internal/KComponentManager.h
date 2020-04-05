@@ -1,3 +1,4 @@
+#pragma once
 #include "Interface/Component/IKComponentManager.h"
 
 class KComponentManager : public IKComponentManager

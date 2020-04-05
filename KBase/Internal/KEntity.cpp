@@ -1,5 +1,8 @@
 #include "KEntity.h"
-#include "KECSGlobal.h"
+
+#include "Interface/Component/IKDebugComponent.h"
+#include "Interface/Component/IKRenderComponent.h"
+#include "Interface/Component/IKTransformComponent.h"
 
 #include <assert.h>
 
@@ -55,7 +58,7 @@ bool KEntity::RegisterComponentBase(ComponentType type, IKComponentBase** pptr)
 	auto it = m_Components.find(type);
 	if(it == m_Components.end())
 	{
-		IKComponentBase* component = KComponent::Manager->Alloc(type);
+		IKComponentBase* component = KECS::ComponentManager->Alloc(type);
 		m_Components.insert(ComponentMap::value_type(type, component));
 		component->RegisterEntityHandle(this);
 		if(pptr)
@@ -78,7 +81,7 @@ bool KEntity::UnRegisterComponent(ComponentType type)
 		IKComponentBase*& component = it->second;
 		component->UnRegisterEntityHandle();
 		m_Components.erase(it);
-		KComponent::Manager->Free(component);
+		KECS::ComponentManager->Free(component);
 		return true;
 	}
 	else
@@ -93,7 +96,7 @@ bool KEntity::UnRegisterAllComponent()
 	{
 		IKComponentBase*& component = it->second;
 		component->UnRegisterEntityHandle();
-		KComponent::Manager->Free(component);
+		KECS::ComponentManager->Free(component);
 	}
 	m_Components.clear();
 	return true;
@@ -101,11 +104,10 @@ bool KEntity::UnRegisterAllComponent()
 
 bool KEntity::GetTransform(glm::mat4& transform)
 {
-	KTransformComponent* transformComponent = nullptr;
+	IKTransformComponent* transformComponent = nullptr;
 	if (GetComponent(CT_TRANSFORM, &transformComponent))
 	{
-		const auto& finalTransform = transformComponent->FinalTransform();
-		transform = finalTransform.MODEL;
+		transform = transformComponent->GetFinal();
 	}
 	else
 	{
@@ -118,28 +120,27 @@ bool KEntity::GetTransform(glm::mat4& transform)
 bool KEntity::GetBound(KAABBBox& bound)
 {
 	IKComponentBase* component = nullptr;
-	KRenderComponent* renderComponent = nullptr;
-	KTransformComponent* transformComponent = nullptr;
+	IKRenderComponent* renderComponent = nullptr;
+	IKTransformComponent* transformComponent = nullptr;
 
 	if (GetComponent(CT_RENDER, &component))
 	{
-		renderComponent = (KRenderComponent*)component;
+		renderComponent = (IKRenderComponent*)component;
 	}
 	if (GetComponent(CT_TRANSFORM, &component))
 	{
-		transformComponent = (KTransformComponent*)component;
+		transformComponent = (IKTransformComponent*)component;
 	}
 
 	if (renderComponent)
 	{
-		KMeshPtr mesh = renderComponent->GetMesh();
-		if (mesh)
+		KAABBBox localBound;
+		if (renderComponent->GetLocalBound(localBound))
 		{
-			const KAABBBox& localBound = mesh->GetLocalBound();
 			if (transformComponent)
 			{
-				const auto& finalTransform = transformComponent->FinalTransform();
-				localBound.Transform(finalTransform.MODEL, bound);
+				const glm::mat4& world = transformComponent->GetFinal();
+				localBound.Transform(world, bound);
 			}
 			else
 			{
@@ -167,7 +168,7 @@ bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3
 		glm::vec3 localOrigin;
 		glm::vec3 localDir;
 
-		KRenderComponent* renderComponent = nullptr;
+		IKRenderComponent* renderComponent = nullptr;
 		if (GetComponent(CT_RENDER, &renderComponent))
 		{
 			glm::mat4 model;
@@ -180,48 +181,29 @@ bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3
 				localDir = invModel * glm::vec4(dir, 0.0f);
 				localDir = glm::normalize(localDir);
 
-				KMeshPtr mesh = renderComponent->GetMesh();
-				if (mesh)
-				{
-					const KTriangleMesh& triangleMesh = mesh->GetTriangleMesh();
+				glm::vec3 hitResult;
+				bool intersect = maxDistance ?
+					renderComponent->CloestPick(localOrigin, localDir, hitResult) :
+					renderComponent->Pick(localOrigin, localDir, hitResult);
 
-					glm::vec3 triangleResult;
-					bool intersect = false;
+				if (intersect)
+				{
+					float dotRes = 0.0f;
+					dotRes = glm::dot(hitResult - localOrigin, localDir);
+					glm::vec3 localPoint = localOrigin + dotRes * localDir;
+					result = model * glm::vec4(localPoint, 1.0f);
 
 					if (maxDistance)
 					{
-						if (triangleMesh.CloestPickPoint(localOrigin, localDir, triangleResult))
-						{
-							intersect = true;
-						}
+						float distance = glm::dot(result - origin, dir);
+						return distance < *maxDistance;
 					}
 					else
 					{
-						glm::vec3 triangleResult;
-						if (triangleMesh.Pick(localOrigin, localDir, triangleResult))
-						{
-							intersect = true;
-						}
-					}
-
-					if (intersect)
-					{
-						float dotRes = 0.0f;
-						dotRes = glm::dot(triangleResult - localOrigin, localDir);
-						glm::vec3 localPoint = localOrigin + dotRes * localDir;
-						result = model * glm::vec4(localPoint, 1.0f);
-
-						if (maxDistance)
-						{
-							float distance = glm::dot(result - origin, dir);
-							return distance < *maxDistance;
-						}
-						else
-						{
-							return true;
-						}
+						return true;
 					}
 				}
+
 			}
 		}
 	}

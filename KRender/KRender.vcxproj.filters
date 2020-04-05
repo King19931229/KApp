@@ -195,16 +195,7 @@
     <ClInclude Include="Internal\ECS\Component\KRenderComponent.h">
       <Filter>Internal\ECS\Component</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\ECS\KEntityManager.h">
-      <Filter>Internal\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\ECS\KECS.h">
-      <Filter>Internal\ECS</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\ECS\KECSGlobal.h">
-      <Filter>Internal\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\ECS\KEntity.h">
       <Filter>Internal\ECS</Filter>
     </ClInclude>
     <ClInclude Include="Internal\ECS\System\KCullSystem.h">
@@ -435,12 +426,6 @@
       <Filter>Internal\Manager</Filter>
     </ClCompile>
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp">
-      <Filter>Internal\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\ECS\KEntity.cpp">
-      <Filter>Internal\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\ECS\KEntityManager.cpp">
       <Filter>Internal\ECS</Filter>
     </ClCompile>
     <ClCompile Include="Internal\ECS\System\KCullSystem.cpp">

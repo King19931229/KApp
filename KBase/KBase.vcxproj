@@ -24,10 +24,11 @@
     <ClInclude Include="Interface\Component\IKDebugComponent.h" />
     <ClInclude Include="Interface\Component\IKRenderComponent.h" />
     <ClInclude Include="Interface\Component\IKTransformComponent.h" />
+    <ClInclude Include="Interface\Entity\IKEntity.h" />
+    <ClInclude Include="Interface\Entity\IKEntityManager.h" />
     <ClInclude Include="Interface\IKAssetLoader.h" />
     <ClInclude Include="Interface\IKCodec.h" />
     <ClInclude Include="Interface\IKDataStream.h" />
-    <ClInclude Include="Interface\IKEntity.h" />
     <ClInclude Include="Interface\IKFileSystem.h" />
     <ClInclude Include="Interface\IKIniFile.h" />
     <ClInclude Include="Interface\IKJson.h" />
@@ -49,7 +50,10 @@
     <ClInclude Include="Internal\KAssetIOHooker.h" />
     <ClInclude Include="Internal\KAssetLoader.h" />
     <ClInclude Include="Internal\KCodec.h" />
+    <ClInclude Include="Internal\KComponentManager.h" />
     <ClInclude Include="Internal\KDataStream.h" />
+    <ClInclude Include="Internal\KEntity.h" />
+    <ClInclude Include="Internal\KEntityManager.h" />
     <ClInclude Include="Internal\KFileSystem.h" />
     <ClInclude Include="Internal\KIniFile.h" />
     <ClInclude Include="Internal\KLog.h" />
@@ -101,9 +105,10 @@
     <ClCompile Include="Internal\KAssetLoader.cpp" />
     <ClCompile Include="Internal\KCodec.cpp" />
     <ClCompile Include="Internal\KComponentManager.cpp" />
-    <ClCompile Include="Internal\KComponentManager.h" />
     <ClCompile Include="Internal\KDataStream.cpp" />
     <ClCompile Include="Internal\KDump.cpp" />
+    <ClCompile Include="Internal\KEntity.cpp" />
+    <ClCompile Include="Internal\KEntityManager.cpp" />
     <ClCompile Include="Internal\KFileSystem.cpp" />
     <ClCompile Include="Internal\KFileTool.cpp" />
     <ClCompile Include="Internal\KHash.cpp" />
@@ -112,7 +117,6 @@
     <ClCompile Include="Internal\KLog.cpp" />
     <ClCompile Include="Internal\KMemoryAllocator.cpp" />
     <ClCompile Include="Internal\KPlatform.cpp" />
-    <ClCompile Include="Internal\KSystem.cpp" />
     <ClCompile Include="Internal\KPythonCore.cpp" />
     <ClCompile Include="Internal\KScript.cpp" />
     <ClCompile Include="Internal\KSocketClient.cpp" />
@@ -120,6 +124,7 @@
     <ClCompile Include="Internal\KSourceFile.cpp" />
     <ClCompile Include="Internal\KStringParser.cpp" />
     <ClCompile Include="Internal\KStringUtil.cpp" />
+    <ClCompile Include="Internal\KSystem.cpp" />
     <ClCompile Include="Internal\KThreadTool.cpp" />
     <ClCompile Include="Internal\XML\KXMLAttribute.cpp" />
     <ClCompile Include="Internal\XML\KXMLDeclaration.cpp" />

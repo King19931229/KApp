@@ -54,10 +54,7 @@
     <ClInclude Include="Internal\ECS\Component\KRenderComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KTransformComponent.h" />
     <ClInclude Include="Internal\ECS\KRenderComponentManager.h" />
-    <ClInclude Include="Internal\ECS\KECS.h" />
     <ClInclude Include="Internal\ECS\KECSGlobal.h" />
-    <ClInclude Include="Internal\ECS\KEntity.h" />
-    <ClInclude Include="Internal\ECS\KEntityManager.h" />
     <ClInclude Include="Internal\ECS\System\KCullSystem.h" />
     <ClInclude Include="Internal\Gizmo\KGizmo.h" />
     <ClInclude Include="Internal\Gizmo\KGizmoBase.h" />
@@ -126,8 +123,6 @@
     <ClCompile Include="Internal\ECS\Component\KRenderComponent.cpp" />
     <ClCompile Include="Internal\ECS\KRenderComponentManager.cpp" />
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp" />
-    <ClCompile Include="Internal\ECS\KEntity.cpp" />
-    <ClCompile Include="Internal\ECS\KEntityManager.cpp" />
     <ClCompile Include="Internal\ECS\System\KCullSystem.cpp" />
     <ClCompile Include="Internal\Gizmo\KGizmo.cpp" />
     <ClCompile Include="Internal\Gizmo\KGizmoBase.cpp" />

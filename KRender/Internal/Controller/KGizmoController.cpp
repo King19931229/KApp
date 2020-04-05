@@ -1,5 +1,5 @@
 #include "KGizmoController.h"
-#include "Internal/ECS/KEntity.h"
+#include "KBase/Interface/Entity/IKEntityManager.h"
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
 

@@ -6,7 +6,6 @@
 #include "Internal/KRenderGlobal.h"
 #include "Internal/KConstantGlobal.h"
 
-#include "Internal/ECS/KEntity.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
 
 KShadowMap::KShadowMap() : 

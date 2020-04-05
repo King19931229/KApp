@@ -15,7 +15,7 @@ void KRenderComponentManager::Init()
 	m_RenderComponentPool.Init(1024);
 	m_DebugComponentPool.Init(1024);
 
-	KComponent::Manager->RegisterFunc(CT_TRANSFORM,
+	KECS::ComponentManager->RegisterFunc(CT_TRANSFORM,
 		IKComponentCreateDestroyFuncPair(
 			[this]()->IKComponentBase*
 	{
@@ -26,7 +26,7 @@ void KRenderComponentManager::Init()
 		m_TransformComponentPool.Free((KTransformComponent*)component);
 	}));
 
-	KComponent::Manager->RegisterFunc(CT_RENDER,
+	KECS::ComponentManager->RegisterFunc(CT_RENDER,
 		IKComponentCreateDestroyFuncPair(
 			[this]()->IKComponentBase*
 	{
@@ -37,7 +37,7 @@ void KRenderComponentManager::Init()
 		m_RenderComponentPool.Free((KRenderComponent*)component);
 	}));
 
-	KComponent::Manager->RegisterFunc(CT_DEBUG,
+	KECS::ComponentManager->RegisterFunc(CT_DEBUG,
 		IKComponentCreateDestroyFuncPair(
 			[this]()->IKComponentBase*
 	{
@@ -51,9 +51,12 @@ void KRenderComponentManager::Init()
 
 void KRenderComponentManager::UnInit()
 {
-	KComponent::Manager->UnRegisterFunc(CT_TRANSFORM);
-	KComponent::Manager->UnRegisterFunc(CT_RENDER);
-	KComponent::Manager->UnRegisterFunc(CT_DEBUG);
+	if (KECS::ComponentManager)
+	{
+		KECS::ComponentManager->UnRegisterFunc(CT_TRANSFORM);
+		KECS::ComponentManager->UnRegisterFunc(CT_RENDER);
+		KECS::ComponentManager->UnRegisterFunc(CT_DEBUG);
+	}
 
 	m_TransformComponentPool.UnInit();
 	m_RenderComponentPool.UnInit();

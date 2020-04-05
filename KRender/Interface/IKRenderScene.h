@@ -1,5 +1,5 @@
 #pragma once
-#include "KBase/Interface/IKEntity.h"
+#include "KBase/Interface/Entity/IKEntity.h"
 #include "KRender/Publish/KCamera.h"
 #include "glm/glm.hpp"
 

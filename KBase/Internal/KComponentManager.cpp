@@ -1,30 +1,30 @@
 #include "KComponentManager.h"
 #include <assert.h>
 
-namespace KComponent
+namespace KECS
 {
-	IKComponentManagerPtr Manager = nullptr;
+	IKComponentManagerPtr ComponentManager = nullptr;
 
-	bool CreateManager()
+	bool CreateComponentManager()
 	{
-		assert(!Manager);
-		if (!Manager)
+		assert(!ComponentManager);
+		if (!ComponentManager)
 		{
-			Manager = IKComponentManagerPtr(new KComponentManager());
+			ComponentManager = IKComponentManagerPtr(new KComponentManager());
 			return true;
 		}
 		return false;
 	}
 
-	bool DestroyManager()
+	bool DestroyComponentManager()
 	{
-		if (Manager)
+		if (ComponentManager)
 		{
-			Manager = nullptr;
+			ComponentManager = nullptr;
 			return true;
 		}
 		return false;
-	}	
+	}
 }
 
 KComponentManager::KComponentManager()

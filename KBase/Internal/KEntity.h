@@ -1,7 +1,6 @@
 #pragma once
-#include "KECS.h"
+#include "Interface/Entity/IKEntity.h"
 #include <unordered_map>
-#include "Internal/KConstantDefinition.h"
 
 class KEntity : public IKEntity
 {

@@ -1,6 +1,6 @@
 #pragma once
 #include "KBase/Publish/KConfig.h"
-#include "Internal/ECS/KEntity.h"
+#include "KBase/Interface/Entity/IKEntity.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Publish/KCamera.h"
 #include "KSceneManagerBase.h"

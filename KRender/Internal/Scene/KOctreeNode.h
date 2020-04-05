@@ -1,10 +1,12 @@
 #pragma once
-#include "Internal/ECS/KEntity.h"
+#include "KBase/Interface/Entity/IKEntity.h"
+#include "KBase/Interface/Entity/IKEntityManager.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/ECS/KECSGlobal.h"
 #include "Publish/KCamera.h"
 #include "glm/glm.hpp"
 #include <deque>
+#include <unordered_map>
 
 // An object in the octree
 struct KOctreeObject
@@ -234,7 +236,7 @@ public:
 		if (boundEntity)
 		{
 			boundEntity->UnRegisterAllComponent();
-			KECSGlobal::EntityManager.ReleaseEntity(boundEntity);
+			KECS::EntityManager->ReleaseEntity(boundEntity);
 			boundEntity = nullptr;
 		}
 	}
@@ -393,7 +395,7 @@ public:
 	{
 		if (!boundEntity)
 		{
-			boundEntity = KECSGlobal::EntityManager.CreateEntity();
+			boundEntity = KECS::EntityManager->CreateEntity();
 
 			IKComponentBase* component = nullptr;
 			if (boundEntity->RegisterComponent(CT_RENDER, &component))

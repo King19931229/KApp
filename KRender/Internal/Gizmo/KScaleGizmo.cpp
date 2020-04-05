@@ -43,21 +43,21 @@ bool KScaleGizmo::Init(const KCamera* camera)
 
 	KGizmoBase::Init(camera);
 
-	m_OriginEntity = KECSGlobal::EntityManager.CreateEntity();
+	m_OriginEntity = KECS::EntityManager->CreateEntity();
 
-	m_XAxisEntity = KECSGlobal::EntityManager.CreateEntity();
-	m_YAxisEntity = KECSGlobal::EntityManager.CreateEntity();
-	m_ZAxisEntity = KECSGlobal::EntityManager.CreateEntity();
+	m_XAxisEntity = KECS::EntityManager->CreateEntity();
+	m_YAxisEntity = KECS::EntityManager->CreateEntity();
+	m_ZAxisEntity = KECS::EntityManager->CreateEntity();
 
-	m_XCubeEntity = KECSGlobal::EntityManager.CreateEntity();
-	m_YCubeEntity = KECSGlobal::EntityManager.CreateEntity();
-	m_ZCubeEntity = KECSGlobal::EntityManager.CreateEntity();
+	m_XCubeEntity = KECS::EntityManager->CreateEntity();
+	m_YCubeEntity = KECS::EntityManager->CreateEntity();
+	m_ZCubeEntity = KECS::EntityManager->CreateEntity();
 
-	m_XZPlaneEntity = KECSGlobal::EntityManager.CreateEntity();
-	m_YZPlaneEntity = KECSGlobal::EntityManager.CreateEntity();
-	m_XYPlaneEntity = KECSGlobal::EntityManager.CreateEntity();
+	m_XZPlaneEntity = KECS::EntityManager->CreateEntity();
+	m_YZPlaneEntity = KECS::EntityManager->CreateEntity();
+	m_XYPlaneEntity = KECS::EntityManager->CreateEntity();
 
-	m_XYZPlaneEntity = KECSGlobal::EntityManager.CreateEntity();
+	m_XYZPlaneEntity = KECS::EntityManager->CreateEntity();
 
 	KRenderComponent* renderComponent = nullptr;
 	KDebugComponent* debugComponent = nullptr;

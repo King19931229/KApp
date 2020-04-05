@@ -7,6 +7,7 @@
 
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Interface/IKCodec.h"
+#include "KBase/Interface/Entity/IKEntityManager.h"
 #include "KBase/Publish/KPlatform.h"
 #include "KBase/Publish/KTimer.h"
 
@@ -215,7 +216,7 @@ bool KRenderCore::InitScene()
 	{
 		for (int j = 0; j < height; ++j)
 		{
-			IKEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
+			IKEntityPtr entity = KECS::EntityManager->CreateEntity();
 
 			IKComponentBase* component = nullptr;
 			if (entity->RegisterComponent(CT_RENDER, &component))
@@ -252,7 +253,7 @@ bool KRenderCore::InitScene()
 
 	for (size_t i = 0; i < 1; ++i)
 	{
-		IKEntityPtr entity = KECSGlobal::EntityManager.CreateEntity();
+		IKEntityPtr entity = KECS::EntityManager->CreateEntity();
 
 		IKComponentBase* component = nullptr;
 		if (entity->RegisterComponent(CT_RENDER, &component))
@@ -294,18 +295,21 @@ bool KRenderCore::UnInitScene()
 {
 	KRenderGlobal::Scene.UnInit();
 
-	KECSGlobal::EntityManager.ViewAllEntity([](IKEntityPtr entity)
+	if (KECS::EntityManager)
 	{
-		KRenderComponent* component = nullptr;
-		if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component))
+		KECS::EntityManager->ViewAllEntity([](IKEntityPtr entity)
 		{
-			KMeshPtr mesh = component->GetMesh();
-			if (mesh)
+			KRenderComponent* component = nullptr;
+			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component))
 			{
-				component->UnInit();
+				KMeshPtr mesh = component->GetMesh();
+				if (mesh)
+				{
+					component->UnInit();
+				}
 			}
-		}
-	});
+		});
+	}
 
 	return true;
 }
@@ -348,12 +352,12 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 		m_UnitCallback = [this]()
 		{
+			UnInitController();
+			UnInitGizmo();
+			UnInitScene();
+			UnInitRenderDispatcher();
 			UnInitPostProcess();
 			UnInitGlobalManager();
-			UnInitRenderDispatcher();
-			UnInitScene();
-			UnInitGizmo();
-			UnInitController();
 		};
 
 		m_Device->RegisterPresentCallback(&m_PresentCallback);

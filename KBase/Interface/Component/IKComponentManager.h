@@ -20,9 +20,9 @@ struct IKComponentManager
 
 typedef std::unique_ptr<IKComponentManager> IKComponentManagerPtr;
 
-namespace KComponent
+namespace KECS
 {
-	extern bool CreateManager();
-	extern bool DestroyManager();
-	extern IKComponentManagerPtr Manager;
+	extern bool CreateComponentManager();
+	extern bool DestroyComponentManager();
+	extern IKComponentManagerPtr ComponentManager;
 }

@@ -1,5 +1,35 @@
 #include "KEntityManager.h"
+#include "KEntity.h"
+
 #include <assert.h>
+
+namespace KECS
+{
+	IKEntityManagerPtr EntityManager = nullptr;
+
+	bool CreateEntityManager()
+	{
+		assert(!EntityManager);
+		if (!EntityManager)
+		{
+			EntityManager = IKEntityManagerPtr(new KEntityManager());
+			((KEntityManager*)EntityManager.get())->Init();
+			return true;
+		}
+		return false;
+	}
+
+	bool DestroyEntityManager()
+	{
+		if (EntityManager)
+		{
+			((KEntityManager*)EntityManager.get())->UnInit();
+			EntityManager = nullptr;
+			return true;
+		}
+		return false;
+	}
+}
 
 KEntityManager::KEntityManager()
 	: m_EntityHandleCounter(0)
@@ -19,7 +49,6 @@ size_t KEntityManager::GetAvailibleID()
 
 void KEntityManager::Init()
 {
-
 }
 
 void KEntityManager::UnInit()

@@ -1,6 +1,6 @@
 #pragma once
 #include "Interface/IKGizmo.h"
-#include "Internal/ECS/KECSGlobal.h"
+#include "KBase/Interface/Entity/IKEntityManager.h"
 
 class KGizmoBase : public IKGizmo
 {

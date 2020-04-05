@@ -2,6 +2,7 @@
 #include "KEngine.h"
 #include "KBase/Interface/IKLog.h"
 #include "KBase/Interface/Component/IKComponentManager.h"
+#include "KBase/Interface/Entity/IKEntityManager.h"
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Interface/IKCodec.h"
@@ -40,7 +41,8 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 		KLog::CreateLogger();
 		KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
 
-		KComponent::CreateManager();
+		KECS::CreateComponentManager();
+		KECS::CreateEntityManager();
 
 		KFileSystem::CreateFileManager();
 		KFileSystem::Manager->Init();
@@ -89,6 +91,9 @@ bool KEngine::UnInit()
 {
 	if (m_bInit)
 	{
+		KECS::DestroyEntityManager();
+		KECS::DestroyComponentManager();
+
 		m_Window->UnInit();
 
 		m_RenderCore->UnInit();
@@ -102,8 +107,6 @@ bool KEngine::UnInit()
 
 		KLog::Logger->UnInit();
 		KLog::DestroyLogger();
-
-		KComponent::DestroyManager();
 
 		KFileSystem::Manager->UnInit();
 		KFileSystem::DestroyFileManager();

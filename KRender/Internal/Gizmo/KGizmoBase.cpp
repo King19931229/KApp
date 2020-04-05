@@ -1,4 +1,6 @@
 #include "KGizmoBase.h"
+#include "KBase/Interface/Component/IKDebugComponent.h"
+#include "KBase/Interface/Component/IKTransformComponent.h"
 #include "Internal/KRenderGlobal.h"
 
 KGizmoBase::KGizmoBase()
@@ -19,7 +21,7 @@ KGizmoBase::~KGizmoBase()
 
 void KGizmoBase::SetEntityColor(IKEntityPtr entity, const glm::vec4& color)
 {
-	KDebugComponent* debugComponent = nullptr;
+	IKDebugComponent* debugComponent = nullptr;
 	if (entity && entity->GetComponent(CT_DEBUG, &debugComponent))
 	{
 		debugComponent->SetColor(color);
@@ -80,7 +82,10 @@ bool KGizmoBase::UnInit()
 		{
 			KRenderGlobal::Scene.Remove(entity);
 			entity->UnRegisterAllComponent();
-			KECSGlobal::EntityManager.ReleaseEntity(entity);
+			if (KECS::EntityManager)
+			{
+				KECS::EntityManager->ReleaseEntity(entity);
+			}
 		}
 	}
 	return true;
@@ -184,7 +189,7 @@ void KGizmoBase::Update()
 	{
 		if (entity)
 		{
-			KTransformComponent* transform = nullptr;
+			IKTransformComponent* transform = nullptr;
 			if (entity->GetComponent(CT_TRANSFORM, &transform))
 			{
 				transform->SetPosition(transformPos);

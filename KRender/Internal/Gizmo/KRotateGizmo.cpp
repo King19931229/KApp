@@ -92,11 +92,11 @@ bool KRotateGizmo::Init(const KCamera* camera)
 	UnInit();
 	KGizmoBase::Init(camera);
 
-	m_XPlaneEntity = KECSGlobal::EntityManager.CreateEntity();
-	m_YPlaneEntity = KECSGlobal::EntityManager.CreateEntity();
-	m_ZPlaneEntity = KECSGlobal::EntityManager.CreateEntity();
+	m_XPlaneEntity = KECS::EntityManager->CreateEntity();
+	m_YPlaneEntity = KECS::EntityManager->CreateEntity();
+	m_ZPlaneEntity = KECS::EntityManager->CreateEntity();
 
-	m_RotateEntity = KECSGlobal::EntityManager.CreateEntity();
+	m_RotateEntity = KECS::EntityManager->CreateEntity();
 
 	KRenderComponent* renderComponent = nullptr;
 	KDebugComponent* debugComponent = nullptr;
