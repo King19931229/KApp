@@ -106,10 +106,9 @@ protected:
 	bool PickPhysicsDevice();
 	bool CreateLogicalDevice();
 	bool CreatePipelineCache();
-	bool CreateSwapChain();
 	bool CreateCommandPool();
 
-	bool CreateUI();
+	bool InitSwapChain();
 	bool CleanupSwapChain();
 
 	bool InitDeviceGlobal();

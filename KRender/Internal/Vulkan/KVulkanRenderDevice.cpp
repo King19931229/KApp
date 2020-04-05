@@ -307,29 +307,6 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 	return device;
 }
 
-bool KVulkanRenderDevice::CreateSwapChain()
-{
-	ASSERT_RESULT(m_PhysicalDevice.queueFamilyIndices.IsComplete());
-	ASSERT_RESULT(m_pWindow != nullptr);
-
-	size_t windowWidth = 0, windowHeight= 0;
-	ASSERT_RESULT(m_pWindow->GetSize(windowWidth, windowHeight));
-
-	ASSERT_RESULT(m_SwapChain == nullptr);
-	CreateSwapChain(m_SwapChain);
-
-	ASSERT_RESULT(m_SwapChain->Init((uint32_t)windowWidth, (uint32_t)windowHeight, m_FrameInFlight));
-	return true;
-}
-
-bool KVulkanRenderDevice::CreateUI()
-{
-	CreateUIOverlay(m_UIOverlay);
-	m_UIOverlay->Init(this, m_FrameInFlight);
-	m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-	return true;
-}
-
 bool KVulkanRenderDevice::PickPhysicsDevice()
 {
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -661,18 +638,19 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		// 实际完成了设备初始化
 		if(!InitDeviceGlobal())
 			return false;
-
 		if(!InitHeapAllocator())
 			return false;
-		if(!CreateSwapChain())
-			return false;
-		if(!CreateUI())
-			return false;
+
+		CreateSwapChain(m_SwapChain);
+		CreateUIOverlay(m_UIOverlay);
 
 		for (KDeviceInitCallback* callback : m_InitCallback)
 		{
 			(*callback)();
 		}
+
+		if(!InitSwapChain())
+			return false;
 
 		m_pWindow->SetRenderDevice(this);
 		return true;
@@ -682,6 +660,24 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		memset(&m_Instance, 0, sizeof(m_Instance));
 	}
 	return false;
+}
+
+bool KVulkanRenderDevice::InitSwapChain()
+{
+	ASSERT_RESULT(m_PhysicalDevice.queueFamilyIndices.IsComplete());
+	ASSERT_RESULT(m_pWindow != nullptr);
+
+	size_t windowWidth = 0, windowHeight = 0;
+	ASSERT_RESULT(m_pWindow->GetSize(windowWidth, windowHeight));
+
+	ASSERT_RESULT(m_SwapChain);
+	ASSERT_RESULT(m_SwapChain->Init((uint32_t)windowWidth, (uint32_t)windowHeight, m_FrameInFlight));
+
+	ASSERT_RESULT(m_UIOverlay);
+	m_UIOverlay->Init(this, m_FrameInFlight);
+	m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+
+	return true;
 }
 
 bool KVulkanRenderDevice::CleanupSwapChain()
@@ -706,6 +702,11 @@ bool KVulkanRenderDevice::UnInit()
 {
 	Wait();
 
+	for (KDeviceUnInitCallback* callback : m_UnInitCallback)
+	{
+		(*callback)();
+	}
+
 	CleanupSwapChain();
 
 	if (m_PipelineCache != VK_NULL_HANDLE)
@@ -724,11 +725,6 @@ bool KVulkanRenderDevice::UnInit()
 	{
 		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 		m_Surface = VK_NULL_HANDLE;
-	}
-
-	for (KDeviceUnInitCallback* callback : m_UnInitCallback)
-	{
-		(*callback)();
 	}
 
 	UnInitHeapAllocator();
@@ -853,7 +849,7 @@ bool KVulkanRenderDevice::CreateRenderTarget(IKRenderTargetPtr& target)
 
 bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 {
-	pipeline = KVulkanPipeline::CreatePipeline();
+	pipeline = IKPipelinePtr(new KVulkanPipeline());
 	return true;
 }
 

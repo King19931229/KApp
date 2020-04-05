@@ -25,7 +25,7 @@ bool KMeshManager::Init(IKRenderDevice* device, size_t frameInFlight)
 
 bool KMeshManager::UnInit()
 {
-	assert(m_Meshes.empty());
+	// ASSERT_RESULT(m_Meshes.empty());
 
 	for(auto it = m_Meshes.begin(), itEnd = m_Meshes.end(); it != itEnd; ++it)
 	{

@@ -194,7 +194,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
 
-		ASSERT_RESULT(pipeline->Init(true));
+		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
 	else if(stage == PIPELINE_STAGE_OPAQUE)
@@ -257,7 +257,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 			return false;
 		}
 
-		ASSERT_RESULT(pipeline->Init(true));
+		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
 	else if(stage == PIPELINE_STAGE_SHADOW_GEN)
@@ -284,7 +284,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 
 		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
-		ASSERT_RESULT(pipeline->Init(true));
+		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
 	else if (stage == PIPELINE_STAGE_DEBUG_LINE)
@@ -312,7 +312,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 
 		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::DEBUG));
 
-		ASSERT_RESULT(pipeline->Init(true));
+		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
 	else if (stage == PIPELINE_STAGE_DEBUG_TRIANGLE)
@@ -340,7 +340,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 
 		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::DEBUG));
 
-		ASSERT_RESULT(pipeline->Init(true));
+		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
 	else

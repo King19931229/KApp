@@ -19,7 +19,7 @@ bool KTextureManager::Init(IKRenderDevice* device)
 
 bool KTextureManager::UnInit()
 {
-	assert(m_Textures.empty());
+	// ASSERT_RESULT(m_Textures.empty());
 	for(auto it = m_Textures.begin(), itEnd = m_Textures.end(); it != itEnd; ++it)
 	{
 		TextureUsingInfo& info = it->second;

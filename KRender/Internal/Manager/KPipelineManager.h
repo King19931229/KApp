@@ -2,17 +2,15 @@
 #include "Interface/IKRenderTarget.h"
 
 #include <mutex>
-#include <unordered_map>
+#include <unordered_set>
 
 class KPipelineManager
 {
 protected:
-	IKRenderDevice* m_Device;
+	typedef std::unordered_set<IKPipelinePtr> PipelineSet;
 
-	typedef std::unordered_map<IKRenderTargetPtr, IKPipelineHandlePtr> RtPipelineHandleMap;
-	typedef std::unordered_map<IKPipelinePtr, RtPipelineHandleMap> PipelineHandleMap;
-	PipelineHandleMap m_RenderPipelineMap;
-	std::mutex m_Lock;
+	IKRenderDevice* m_Device;	
+	PipelineSet m_Pipelines;
 public:
 	KPipelineManager();
 	~KPipelineManager();
@@ -22,10 +20,8 @@ public:
 
 	bool Reload();
 
-	bool GetPipelineHandle(IKPipelinePtr pipeline, IKRenderTargetPtr target, IKPipelineHandlePtr& handle, bool async);
 	bool InvaildateHandleByRt(IKRenderTargetPtr target);
 	bool InvaildateHandleByPipeline(IKPipelinePtr pipeline);
-	bool InvaildateAllHandle();
 
 	bool CreatePipeline(IKPipelinePtr& pipeline);
 	bool DestroyPipeline(IKPipelinePtr& pipeline);

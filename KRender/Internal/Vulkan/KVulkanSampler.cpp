@@ -5,7 +5,7 @@
 KVulkanSampler::KVulkanSampler()
 	: KSamplerBase(),
 	m_TextureSampler(VK_NULL_HANDLE),
-	m_DeviceLoadTask(nullptr),
+	m_LoadTask(nullptr),
 	m_ResourceState(RS_UNLOADED)
 {
 }
@@ -13,7 +13,7 @@ KVulkanSampler::KVulkanSampler()
 KVulkanSampler::~KVulkanSampler()
 {
 	ASSERT_RESULT(m_TextureSampler == VK_NULL_HANDLE);
-	ASSERT_RESULT(m_DeviceLoadTask == nullptr);
+	// ASSERT_RESULT(m_LoadTask == nullptr);
 	ASSERT_RESULT(m_ResourceState == RS_UNLOADED);
 }
 
@@ -34,23 +34,33 @@ void KVulkanSampler::WaitForDevice()
 
 bool KVulkanSampler::CancelDeviceTask()
 {
-	std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
-	if (m_DeviceLoadTask)
+	KTaskUnitProcessorPtr loadTask = nullptr;
 	{
-		m_DeviceLoadTask->Cancel();
-		m_DeviceLoadTask = nullptr;
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		loadTask = m_LoadTask;
 	}
+
+	if (loadTask)
+	{
+		loadTask->Cancel();
+	}
+
 	return true;
 }
 
 bool KVulkanSampler::WaitDeviceTask()
 {
-	std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
-	if (m_DeviceLoadTask)
+	KTaskUnitProcessorPtr loadTask = nullptr;
 	{
-		m_DeviceLoadTask->Wait();
-		m_DeviceLoadTask = nullptr;
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		loadTask = m_LoadTask;
 	}
+
+	if (loadTask)
+	{
+		loadTask->Wait();
+	}
+
 	return true;
 }
 
@@ -188,8 +198,8 @@ bool KVulkanSampler::Init(IKTexturePtr texture, bool async)
 		if (async)
 		{
 			m_ResourceState = RS_PENDING;
-			std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
-			m_DeviceLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(waitAndLoadImpl)));
+			std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+			m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(waitAndLoadImpl)));
 			return true;
 		}
 		else

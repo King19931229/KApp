@@ -179,10 +179,12 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 				KRenderCommand command;
 				if (KRenderGlobal::SkyBox.GetRenderCommand(frameIndex, command))
 				{
-					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, false);
-					command.pipelineHandle = handle;
-					primaryBuffer->Render(command);
+					IKPipelineHandlePtr handle = nullptr;
+					if (command.pipeline->GetHandle(offscreenTarget, handle))
+					{
+						command.pipelineHandle = handle;
+						primaryBuffer->Render(command);
+					}
 				}
 			}
 
@@ -289,18 +291,22 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 
 				for (KRenderCommand& command : preZCommandList)
 				{
-					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-					command.pipelineHandle = handle;
-					primaryBuffer->Render(command);
+					IKPipelineHandlePtr handle = nullptr;
+					if (command.pipeline->GetHandle(offscreenTarget, handle))
+					{
+						command.pipelineHandle = handle;
+						primaryBuffer->Render(command);
+					}
 				}
 
 				for (KRenderCommand& command : defaultCommandList)
 				{
-					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-					command.pipelineHandle = handle;
-					primaryBuffer->Render(command);
+					IKPipelineHandlePtr handle = nullptr;
+					if (command.pipeline->GetHandle(offscreenTarget, handle))
+					{
+						command.pipelineHandle = handle;
+						primaryBuffer->Render(command);
+					}
 				}
 
 				if (!debugCommandList.empty())
@@ -309,10 +315,12 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 
 					for (KRenderCommand& command : debugCommandList)
 					{
-						IKPipelineHandlePtr handle;
-						KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-						command.pipelineHandle = handle;
-						primaryBuffer->Render(command);
+						IKPipelineHandlePtr handle = nullptr;
+						if (command.pipeline->GetHandle(offscreenTarget, handle))
+						{
+							command.pipelineHandle = handle;
+							primaryBuffer->Render(command);
+						}
 					}
 				}
 			}
@@ -387,10 +395,12 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 				KRenderCommand command;
 				if (KRenderGlobal::SkyBox.GetRenderCommand(frameIndex, command))
 				{
-					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, false);
-					command.pipelineHandle = handle;
-					skyBoxCommandBuffer->Render(command);
+					IKPipelineHandlePtr handle = nullptr;
+					if (command.pipeline->GetHandle(offscreenTarget, handle))
+					{
+						command.pipelineHandle = handle;
+						skyBoxCommandBuffer->Render(command);
+					}
 				}
 				skyBoxCommandBuffer->End();
 
@@ -428,44 +438,48 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 						{
 							command.SetObjectData(transform->FinalTransform());
 
-							IKPipelineHandlePtr handle;
-							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-							command.pipelineHandle = handle;
-
-							++preZStatistics.drawcalls;
-							if (command.indexDraw)
+							IKPipelineHandlePtr handle = nullptr;
+							if (command.pipeline->GetHandle(offscreenTarget, handle))
 							{
-								preZStatistics.faces += command.indexData->indexCount / 3;
-							}
-							else
-							{
-								preZStatistics.faces += command.vertexData->vertexCount / 3;
-							}
+								command.pipelineHandle = handle;
 
-							threadData.preZcommands.push_back(std::move(command));							
+								++preZStatistics.drawcalls;
+								if (command.indexDraw)
+								{
+									preZStatistics.faces += command.indexData->indexCount / 3;
+								}
+								else
+								{
+									preZStatistics.faces += command.vertexData->vertexCount / 3;
+								}
+
+								threadData.preZcommands.push_back(std::move(command));
+							}
 						});
 
 						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& command)
 						{
 							command.SetObjectData(transform->FinalTransform());
 
-							IKPipelineHandlePtr handle;
-							KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-							command.pipelineHandle = handle;
-
-							++defaultStatistics.drawcalls;
-							if (command.indexDraw)
+							IKPipelineHandlePtr handle = nullptr;
+							if (command.pipeline->GetHandle(offscreenTarget, handle))
 							{
-								defaultStatistics.faces += command.indexData->indexCount / 3;
-								defaultStatistics.primtives += command.indexData->indexCount;
-							}
-							else
-							{
-								defaultStatistics.faces += command.vertexData->vertexCount / 3;
-								defaultStatistics.primtives += command.vertexData->vertexCount;
-							}
+								command.pipelineHandle = handle;
 
-							threadData.defaultCommands.push_back(std::move(command));
+								++defaultStatistics.drawcalls;
+								if (command.indexDraw)
+								{
+									defaultStatistics.faces += command.indexData->indexCount / 3;
+									defaultStatistics.primtives += command.indexData->indexCount;
+								}
+								else
+								{
+									defaultStatistics.faces += command.vertexData->vertexCount / 3;
+									defaultStatistics.primtives += command.vertexData->vertexCount;
+								}
+
+								threadData.defaultCommands.push_back(std::move(command));
+							}
 						});
 
 						KDebugComponent* debug = nullptr;
@@ -479,46 +493,50 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 							{
 								command.SetObjectData(objectData);
 
-								IKPipelineHandlePtr handle;
-								KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-								command.pipelineHandle = handle;
-
-								++debugStatistics.drawcalls;
-								if (command.indexDraw)
+								IKPipelineHandlePtr handle = nullptr;
+								if (command.pipeline->GetHandle(offscreenTarget, handle))
 								{
-									debugStatistics.faces += command.indexData->indexCount / 3;
-									debugStatistics.primtives += command.indexData->indexCount;
-								}
-								else
-								{
-									debugStatistics.faces += command.vertexData->vertexCount / 3;
-									debugStatistics.primtives += command.vertexData->vertexCount;
-								}
+									command.pipelineHandle = handle;
 
-								threadData.debugCommands.push_back(std::move(command));
+									++debugStatistics.drawcalls;
+									if (command.indexDraw)
+									{
+										debugStatistics.faces += command.indexData->indexCount / 3;
+										debugStatistics.primtives += command.indexData->indexCount;
+									}
+									else
+									{
+										debugStatistics.faces += command.vertexData->vertexCount / 3;
+										debugStatistics.primtives += command.vertexData->vertexCount;
+									}
+
+									threadData.debugCommands.push_back(std::move(command));
+								}
 							});
 
 							mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand&& command)
 							{
 								command.SetObjectData(objectData);
 
-								IKPipelineHandlePtr handle;
-								KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, offscreenTarget, handle, true);
-								command.pipelineHandle = handle;
-
-								++debugStatistics.drawcalls;
-								if (command.indexDraw)
+								IKPipelineHandlePtr handle = nullptr;
+								if (command.pipeline->GetHandle(offscreenTarget, handle))
 								{
-									debugStatistics.faces += command.indexData->indexCount / 2;
-									debugStatistics.primtives += command.indexData->indexCount;
-								}
-								else
-								{
-									debugStatistics.faces += command.vertexData->vertexCount / 2;
-									debugStatistics.primtives += command.vertexData->vertexCount;
-								}
+									command.pipelineHandle = handle;
 
-								threadData.debugCommands.push_back(std::move(command));
+									++debugStatistics.drawcalls;
+									if (command.indexDraw)
+									{
+										debugStatistics.faces += command.indexData->indexCount / 2;
+										debugStatistics.primtives += command.indexData->indexCount;
+									}
+									else
+									{
+										debugStatistics.faces += command.vertexData->vertexCount / 2;
+										debugStatistics.primtives += command.vertexData->vertexCount;
+									}
+
+									threadData.debugCommands.push_back(std::move(command));
+								}
 							});
 						}
 					}

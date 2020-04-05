@@ -403,19 +403,23 @@ bool KPostProcessManager::Load(const char* jsonFile)
 	return false;
 }
 
-void KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderTargetPtr target)
+bool KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderTargetPtr target)
 {
 	IKPipelineHandlePtr pipeHandle = nullptr;
-	KRenderGlobal::PipelineManager.GetPipelineHandle(pipeline, target, pipeHandle, false);
+	if (pipeline->GetHandle(target, pipeHandle))
+	{
+		command.vertexData = &m_SharedVertexData;
+		command.indexData = &m_SharedIndexData;
+		command.pipeline = pipeline;
+		command.pipelineHandle = pipeHandle;
 
-	command.vertexData = &m_SharedVertexData;
-	command.indexData = &m_SharedIndexData;
-	command.pipeline = pipeline;
-	command.pipelineHandle = pipeHandle;
+		command.objectData.clear();
 
-	command.objectData.clear();
+		command.indexDraw = true;
 
-	command.indexDraw = true;
+		return true;
+	}
+	return false;
 }
 
 bool KPostProcessManager::Construct()
@@ -488,8 +492,11 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 				commandBuffer->SetViewport(renderTarget);
 
 				KRenderCommand command;
-				PopulateRenderCommand(command, pass->GetPipeline(frameIndex), renderTarget);
-				commandBuffer->Render(command);
+
+				if (PopulateRenderCommand(command, pass->GetPipeline(frameIndex), renderTarget))
+				{
+					commandBuffer->Render(command);
+				}
 				commandBuffer->End();
 			}
 			primaryCommandBuffer->Execute(commandBuffer);
@@ -505,8 +512,10 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 		primaryCommandBuffer->SetViewport(swapChainTarget);
 
 		KRenderCommand command;
-		PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(frameIndex), swapChainTarget);
-		primaryCommandBuffer->Render(command);
+		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(frameIndex), swapChainTarget))
+		{
+			primaryCommandBuffer->Render(command);
+		}
 
 		ui->Draw(frameIndex, swapChainTarget, primaryCommandBuffer);
 

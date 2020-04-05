@@ -11,28 +11,15 @@ class KVulkanPipelineHandle : public IKPipelineHandle
 {
 protected:
 	VkPipeline m_GraphicsPipeline;
-
-	std::mutex m_LoadTaskLock;
-	KTaskUnitProcessorPtr m_LoadTask;
-
-	PipelineHandleState m_State;
-
-	void CancelLoadTask();
-	void WaitLoadTask();
-	void ReleaseHandle();
 public:
 	KVulkanPipelineHandle();
 	virtual~KVulkanPipelineHandle();
 
-	virtual PipelineHandleState GetState() { return m_State; }
-
-	virtual bool Init(IKPipelinePtr pipeline, IKRenderTargetPtr target, bool async);
+	virtual bool Init(IKPipeline* pipeline, IKRenderTarget* target);
 	virtual bool UnInit();
-	virtual bool WaitDevice();
 
 	inline VkPipeline GetVkPipeline() { return m_GraphicsPipeline; }
 };
-
 
 class KVulkanPipeline : public IKPipeline
 {
@@ -120,24 +107,15 @@ protected:
 	bool CreateLayout();
 	bool CreateDestcription();
 	bool DestroyDevice();
+	bool ClearHandle();
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
-	bool WaitDependencyResource();
 	bool CheckDependencyResource();
 
-	std::mutex m_LoadTaskLock;
-	KTaskUnitProcessorPtr m_LoadTask;
-	PipelineResourceState m_State;
-
-	void CancelLoadTask();
-	void WaitLoadTask();
-
+	typedef std::unordered_map<IKRenderTargetPtr, IKPipelineHandlePtr> RtPipelineHandleMap;
+	RtPipelineHandleMap m_HandleMap;
+public:
 	KVulkanPipeline();
-public:
-	static IKPipelinePtr CreatePipeline();
-public:
 	virtual ~KVulkanPipeline();
-
-	virtual PipelineResourceState GetState() { return m_State; }
 
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology);
 	virtual bool SetVertexBinding(const VertexFormat* formats, size_t count);
@@ -162,11 +140,12 @@ public:
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size);
 	virtual bool DestroyConstantBlock();
 
-	virtual bool Init(bool async);
+	virtual bool Init();
 	virtual bool UnInit();
-	virtual bool Reload(bool async);
+	virtual bool Reload();
 
-	virtual bool WaitDevice();
+	virtual bool GetHandle(IKRenderTargetPtr target, IKPipelineHandlePtr& handle);
+	virtual bool InvaildHandle(IKRenderTargetPtr target);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 	inline VkDescriptorSet GetVkDescriptorSet() { return m_DescriptorSet; }

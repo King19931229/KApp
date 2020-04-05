@@ -187,7 +187,7 @@ bool KPostProcessPass::Init()
 				}
 			}
 
-			pipeline->Init(false);
+			pipeline->Init();
 		}
 	}
 
@@ -233,7 +233,7 @@ bool KPostProcessPass::Init()
 
 		pipeline->SetSampler(0, m_Textures[i], m_Mgr->m_Sampler);
 
-		pipeline->Init(false);
+		pipeline->Init();
 	}
 
 	m_bInit = true;

@@ -8,8 +8,8 @@ class KVulkanSampler : public KSamplerBase
 protected:
 	VkSampler m_TextureSampler;
 
-	std::mutex m_DeviceLoadTaskLock;
-	KTaskUnitProcessorPtr m_DeviceLoadTask;
+	std::mutex m_LoadTaskLock;
+	KTaskUnitProcessorPtr m_LoadTask;;
 
 	ResourceState m_ResourceState;
 

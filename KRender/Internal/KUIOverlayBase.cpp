@@ -82,7 +82,7 @@ bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 	{
 		renderDevice->CreateIndexBuffer(m_IndexBuffers[i]);
 		renderDevice->CreateVertexBuffer(m_VertexBuffers[i]);
-		renderDevice->CreatePipeline(m_Pipelines[i]);
+		KRenderGlobal::PipelineManager.CreatePipeline(m_Pipelines[i]);
 		m_NeedUpdates[i] = true;
 	}
 
@@ -137,8 +137,7 @@ bool KUIOverlayBase::UnInit()
 
 	for(IKPipelinePtr pipeline : m_Pipelines)
 	{
-		pipeline->UnInit();
-		pipeline = nullptr;
+		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
 	}
 	m_Pipelines.clear();
 
@@ -206,7 +205,7 @@ void KUIOverlayBase::PreparePipeline()
 		pipeline->SetSampler(0, m_FontTexture, m_FontSampler);
 
 		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(m_PushConstBlock));
-		ASSERT_RESULT(pipeline->Init(false));
+		ASSERT_RESULT(pipeline->Init());
 	}	
 }
 

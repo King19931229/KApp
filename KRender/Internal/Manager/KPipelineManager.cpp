@@ -6,12 +6,11 @@
 KPipelineManager::KPipelineManager()
 	: m_Device(nullptr)
 {
-
 }
 
 KPipelineManager::~KPipelineManager()
 {
-	ASSERT_RESULT(m_RenderPipelineMap.empty());
+	ASSERT_RESULT(m_Pipelines.empty());
 }
 
 bool KPipelineManager::Init(IKRenderDevice* device)
@@ -22,171 +21,69 @@ bool KPipelineManager::Init(IKRenderDevice* device)
 
 bool KPipelineManager::UnInit()
 {
-	assert(m_RenderPipelineMap.empty());
-	for (PipelineHandleMap::iterator it = m_RenderPipelineMap.begin(), itEnd = m_RenderPipelineMap.end();
-		it != itEnd; ++it)
+	for (IKPipelinePtr pipeline : m_Pipelines)
 	{
-		RtPipelineHandleMap& handleMap = it->second;
-		for (RtPipelineHandleMap::iterator it2 = handleMap.begin(), it2End = handleMap.end();
-			it2 != it2End; ++it2)
-		{
-			IKPipelineHandlePtr pipelineHandle = it2->second;
-			pipelineHandle->UnInit();
-		}
-		handleMap.clear();
+		pipeline->UnInit();
 	}
+	m_Pipelines.clear();
 	m_Device = nullptr;
-	m_RenderPipelineMap.clear();
 	return true;
 }
 
 bool KPipelineManager::Reload()
 {
-	std::vector<IKPipelinePtr> reloadPipelines;
-	reloadPipelines.reserve(m_RenderPipelineMap.size());
-
+	for (IKPipelinePtr pipeline : m_Pipelines)
 	{
-		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
-		for(PipelineHandleMap::iterator it = m_RenderPipelineMap.begin(), itEnd = m_RenderPipelineMap.end();
-			it != itEnd; ++it)
-		{
-			IKPipelinePtr pipeline = it->first;
-			reloadPipelines.push_back(pipeline);
-		}
+		pipeline->Reload();
 	}
-
-	for(IKPipelinePtr pipeline : reloadPipelines)
-	{
-		pipeline->Reload(false);
-	}
-
 	return true;
-}
-
-bool KPipelineManager::GetPipelineHandle(IKPipelinePtr pipeline, IKRenderTargetPtr target, IKPipelineHandlePtr& handle, bool async)
-{
-	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
-
-	PipelineHandleMap::iterator it = m_RenderPipelineMap.find(pipeline);
-	if(it == m_RenderPipelineMap.end())
-	{
-		RtPipelineHandleMap handleMap;
-		if(m_Device->CreatePipelineHandle(handle))
-		{
-			if(handle->Init(pipeline, target, async))
-			{
-				handleMap.insert(RtPipelineHandleMap::value_type(target, handle));
-				m_RenderPipelineMap.insert(PipelineHandleMap::value_type(pipeline, std::move(handleMap)));
-				return true;
-			}
-		}
-		return false;
-	}
-	else
-	{
-		RtPipelineHandleMap& handleMap = it->second;
-		RtPipelineHandleMap::iterator it2 = handleMap.find(target);
-		if(it2 == handleMap.end())
-		{
-			if(m_Device->CreatePipelineHandle(handle))
-			{
-				if(handle->Init(pipeline, target, async))
-				{
-					handleMap.insert(RtPipelineHandleMap::value_type(target, handle));
-					return true;
-				}
-			}
-			return false;
-		}
-		else
-		{
-			handle = it2->second;
-		}
-		return true;
-	}
 }
 
 bool KPipelineManager::InvaildateHandleByRt(IKRenderTargetPtr target)
 {
-	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
-
-	for(PipelineHandleMap::iterator it = m_RenderPipelineMap.begin();
-		it != m_RenderPipelineMap.end();)
+	if (target)
 	{
-		RtPipelineHandleMap& handleMap = it->second;
-		RtPipelineHandleMap::iterator it2 = handleMap.find(target);
-		if(it2 != handleMap.end())
+		for (IKPipelinePtr pipeline : m_Pipelines)
 		{
-			IKPipelineHandlePtr& handle = it2->second;
-			handle->UnInit();
-
-			handleMap.erase(it2);
+			pipeline->InvaildHandle(target);
 		}
-
-		if(handleMap.empty())
-		{
-			it = m_RenderPipelineMap.erase(it);
-		}
-		else
-		{
-			++it;
-		}
+		return true;
 	}
-	return true;
+	return false;
 }
 
 bool KPipelineManager::InvaildateHandleByPipeline(IKPipelinePtr pipeline)
 {
-	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
-
-	PipelineHandleMap::iterator it = m_RenderPipelineMap.find(pipeline);
-	if(it != m_RenderPipelineMap.end())
+	if (pipeline)
 	{
-		RtPipelineHandleMap& handleMap = it->second;
-		for(RtPipelineHandleMap::iterator it2 = handleMap.begin(), it2End = handleMap.end();
-			it2 != it2End; ++it2)
-		{
-			IKPipelineHandlePtr& handle = it2->second;
-			handle->UnInit();
-		}
-		handleMap.clear();
-
-		m_RenderPipelineMap.erase(it);
+		pipeline->Reload();
+		return true;
 	}
-	return true;
-}
-
-bool KPipelineManager::InvaildateAllHandle()
-{
-	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
-
-	for(PipelineHandleMap::iterator it = m_RenderPipelineMap.begin(), itEnd = m_RenderPipelineMap.end();
-		it != itEnd; ++it)
-	{
-		RtPipelineHandleMap& handleMap = it->second;
-		for(RtPipelineHandleMap::iterator it2 = handleMap.begin(), it2End = handleMap.end();
-			it2 != it2End; ++it2)
-		{
-			IKPipelineHandlePtr& handle = it2->second;
-			handle->UnInit();
-		}
-		handleMap.clear();
-	}
-	m_RenderPipelineMap.clear();
-	return true;
+	return false;
 }
 
 bool KPipelineManager::CreatePipeline(IKPipelinePtr& pipeline)
 {
-	return m_Device->CreatePipeline(pipeline);
+	if (m_Device->CreatePipeline(pipeline))
+	{
+		m_Pipelines.insert(pipeline);
+		return true;
+	}
+	return false;
 }
 
 bool KPipelineManager::DestroyPipeline(IKPipelinePtr& pipeline)
 {
 	if(pipeline)
 	{
+		auto it = m_Pipelines.find(pipeline);
+		if (it != m_Pipelines.end())
+		{
+			m_Pipelines.erase(it);
+		}
 		pipeline->UnInit();
 		pipeline = nullptr;
+		return true;
 	}
-	return true;
+	return false;
 }

@@ -318,8 +318,6 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 {
 	if (!m_bInit)
 	{
-		KRenderGlobal::TaskExecutor.Init(std::thread::hardware_concurrency());
-
 		m_Device = device.get();
 		m_Window = window.get();
 		m_DebugConsole = new KDebugConsole();
@@ -342,6 +340,8 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 		m_InitCallback = [this]()
 		{
+			KRenderGlobal::TaskExecutor.Init(std::thread::hardware_concurrency());
+
 			InitGlobalManager();
 			InitPostProcess();
 			InitRenderDispatcher();
@@ -352,6 +352,14 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 		m_UnitCallback = [this]()
 		{
+			while (!KRenderGlobal::TaskExecutor.AllTaskDone())
+			{
+				KRenderGlobal::TaskExecutor.ProcessSyncTask();
+			}
+			assert(KRenderGlobal::TaskExecutor.AllTaskDone());
+
+			KRenderGlobal::TaskExecutor.UnInit();
+
 			UnInitController();
 			UnInitGizmo();
 			UnInitScene();
@@ -377,14 +385,6 @@ bool KRenderCore::UnInit()
 	{
 		m_DebugConsole->UnInit();
 		SAFE_DELETE(m_DebugConsole);
-
-		while (!KRenderGlobal::TaskExecutor.AllTaskDone())
-		{
-			KRenderGlobal::TaskExecutor.ProcessSyncTask();
-		}
-		assert(KRenderGlobal::TaskExecutor.AllTaskDone());
-
-		KRenderGlobal::TaskExecutor.UnInit();
 
 		m_Device->UnRegisterPresentCallback(&m_PresentCallback);
 		m_Device->UnRegisterSwapChainRecreateCallback(&m_SwapChainCallback);

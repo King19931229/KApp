@@ -7,7 +7,7 @@
 KVulkanTexture::KVulkanTexture()
 	: KTextureBase(),
 	m_bDeviceInit(false),
-	m_DeviceLoadTask(nullptr)
+	m_LoadTask(nullptr)
 {
 	ZERO_MEMORY(m_AllocInfo);
 	m_TextureImage = VK_NULL_HANDLE;
@@ -18,7 +18,7 @@ KVulkanTexture::KVulkanTexture()
 KVulkanTexture::~KVulkanTexture()
 {
 	ASSERT_RESULT(!m_bDeviceInit);
-	ASSERT_RESULT(m_DeviceLoadTask == nullptr);
+	// ASSERT_RESULT(m_LoadTask == nullptr);
 }
 
 ResourceState KVulkanTexture::GetResourceState()
@@ -38,23 +38,33 @@ void KVulkanTexture::WaitForDevice()
 
 bool KVulkanTexture::CancelDeviceTask()
 {
-	std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
-	if (m_DeviceLoadTask)
+	KTaskUnitProcessorPtr loadTask = nullptr;
 	{
-		m_DeviceLoadTask->Cancel();
-		m_DeviceLoadTask = nullptr;
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		loadTask = m_LoadTask;
 	}
+
+	if (loadTask)
+	{
+		loadTask->Cancel();
+	}
+
 	return true;
 }
 
 bool KVulkanTexture::WaitDeviceTask()
 {
-	std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
-	if (m_DeviceLoadTask)
+	KTaskUnitProcessorPtr loadTask = nullptr;
 	{
-		m_DeviceLoadTask->Wait();
-		m_DeviceLoadTask = nullptr;
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		loadTask = m_LoadTask;
 	}
+
+	if (loadTask)
+	{
+		loadTask->Wait();
+	}
+
 	return true;
 }
 
@@ -220,8 +230,8 @@ bool KVulkanTexture::InitDevice(bool async)
 
 	if (async)
 	{
-		std::unique_lock<decltype(m_DeviceLoadTaskLock)> guard(m_DeviceLoadTaskLock);
-		m_DeviceLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleTaskUnit(waitImpl, loadImpl)));
+		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
+		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleTaskUnit(waitImpl, loadImpl)));
 		return true;
 	}
 	else

@@ -181,16 +181,6 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			return false;
 		}
 
-		if (command.pipeline->GetState() != PIPELINE_RESOURCE_LOADED)
-		{
-			return false;
-		}
-
-		if (command.pipelineHandle->GetState() != PIPELINE_HANDLE_STATE_LOADED)
-		{
-			return false;
-		}
-
 		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)command.pipeline.get();
 		KVulkanPipelineHandle* pipelineHandle = (KVulkanPipelineHandle*)command.pipelineHandle.get();
 

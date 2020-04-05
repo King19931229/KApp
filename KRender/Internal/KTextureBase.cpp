@@ -135,7 +135,7 @@ bool KTextureBase::WaitMemoryTask()
 
 bool KTextureBase::ReleaseMemory()
 {
-	CancelMemoryTask();
+	WaitMemoryTask();
 	m_ImageData.pData = nullptr;
 	m_ResourceState = RS_UNLOADED;
 	return true;
@@ -238,7 +238,7 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t
 
 bool KTextureBase::InitMemeoryAsRT(size_t width, size_t height, ElementFormat format)
 {
-	CancelMemoryTask();
+	WaitMemoryTask();
 	m_Width = width;
 	m_Height = height;
 	m_Depth = 1;

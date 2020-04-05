@@ -12,8 +12,8 @@ protected:
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	bool m_bDeviceInit;
 
-	std::mutex m_DeviceLoadTaskLock;
-	KTaskUnitProcessorPtr m_DeviceLoadTask;
+	std::mutex m_LoadTaskLock;
+	KTaskUnitProcessorPtr m_LoadTask;
 
 	bool CancelDeviceTask();
 	bool WaitDeviceTask();

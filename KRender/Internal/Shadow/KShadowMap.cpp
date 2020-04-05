@@ -130,10 +130,12 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* 
 
 				for(KRenderCommand& command : commandList)
 				{
-					IKPipelineHandlePtr handle;
-					KRenderGlobal::PipelineManager.GetPipelineHandle(command.pipeline, shadowTarget, handle, true);
-					command.pipelineHandle = handle;
-					commandBuffer->Render(command);
+					IKPipelineHandlePtr handle = nullptr;
+					if (command.pipeline->GetHandle(shadowTarget, handle))
+					{
+						command.pipelineHandle = handle;
+						commandBuffer->Render(command);
+					}
 				}
 			}
 		}
