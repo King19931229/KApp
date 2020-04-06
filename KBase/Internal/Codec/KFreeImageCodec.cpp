@@ -28,7 +28,8 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 	result.uHeight = 0;
 	result.eFormat = IF_INVALID;
 
-	if(KFileSystem::Manager->Open(pszFile, IT_FILEHANDLE, pData))
+	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
+	if (system && system->Open(pszFile, IT_FILEHANDLE, pData))
 	{
 		std::vector<char> buffer;
 		buffer.resize(pData->GetSize());

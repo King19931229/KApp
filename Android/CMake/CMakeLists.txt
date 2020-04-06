@@ -34,6 +34,7 @@ find_library( # Sets the name of the path variable.
 
 add_subdirectory(KBase)
 add_subdirectory(KRender)
+add_subdirectory(KEngine)
 
 # https://github.com/android/ndk-samples/blob/master/native-activity/app/src/main/cpp/CMakeLists.txt
 # build native_app_glue as a static lib
@@ -47,6 +48,7 @@ include_directories(${ANDROID_NDK}/sources/android/native_app_glue)
 include_directories(../../)
 include_directories(../../KBase)
 include_directories(../../KRender)
+include_directories(../../KEngine)
 include_directories(../../Dependency/glm-0.9.8.0)
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
@@ -56,8 +58,7 @@ target_link_libraries( # Specifies the target library.
         native-lib
         android
         native_app_glue
-        KBase
-        KRender
+        KEngine
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib})

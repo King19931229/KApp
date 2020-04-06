@@ -115,7 +115,9 @@ bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* p
 	if(KStringUtil::EndsWith(path, ".spv"))
 	{
 		IKDataStreamPtr pData = nullptr;
-		if(KFileSystem::Manager->Open(path, IT_FILEHANDLE, pData))
+
+		IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
+		if (system && system->Open(path, IT_FILEHANDLE, pData))
 		{
 			size_t uSize = pData->GetSize();
 			std::vector<char> code;
@@ -153,7 +155,8 @@ bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* p
 			if(KSystem::WaitProcess(shaderCompiler.c_str(), path + " --target-env=vulkan1.0 --target-spv=spv1.0 -o " + codePath, message))
 			{
 				IKDataStreamPtr pData = nullptr;
-				if(KFileSystem::Manager->Open(codePath, IT_FILEHANDLE, pData))
+				IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
+				if (system && system->Open(codePath, IT_FILEHANDLE, pData))
 				{
 					size_t uSize = pData->GetSize();
 					std::vector<char> code;

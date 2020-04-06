@@ -181,16 +181,7 @@
     <ClInclude Include="Internal\KCodec.h">
       <Filter>Internal</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\KComponentManager.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\KDataStream.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\KEntity.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\KEntityManager.h">
       <Filter>Internal</Filter>
     </ClInclude>
     <ClInclude Include="Internal\KFileSystem.h">
@@ -216,6 +207,18 @@
     </ClInclude>
     <ClInclude Include="Internal\KSourceFile.h">
       <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\ECS\KComponentManager.h">
+      <Filter>Internal\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\ECS\KEntity.h">
+      <Filter>Internal\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\ECS\KEntityManager.h">
+      <Filter>Internal\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\FileSystem\KMultiFileSystem.h">
+      <Filter>Internal\FileSystem</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -248,6 +251,9 @@
     </Filter>
     <Filter Include="Interface\Entity">
       <UniqueIdentifier>{6bd8879f-c22a-4659-99f2-1433f591e583}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\ECS">
+      <UniqueIdentifier>{2d971872-a991-4530-ab8f-c1033bbe4500}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -296,19 +302,10 @@
     <ClCompile Include="Internal\KCodec.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\KComponentManager.cpp">
-      <Filter>Internal</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\KDataStream.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KDump.cpp">
-      <Filter>Internal</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\KEntity.cpp">
-      <Filter>Internal</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\KEntityManager.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KFileSystem.cpp">
@@ -361,6 +358,18 @@
     </ClCompile>
     <ClCompile Include="Internal\KThreadTool.cpp">
       <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ECS\KComponentManager.cpp">
+      <Filter>Internal\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ECS\KEntity.cpp">
+      <Filter>Internal\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ECS\KEntityManager.cpp">
+      <Filter>Internal\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\FileSystem\KMultiFileSystem.cpp">
+      <Filter>Internal\FileSystem</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

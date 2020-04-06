@@ -341,7 +341,9 @@ bool KPostProcessManager::Load(const char* jsonFile)
 	IKJsonValuePtr root = jsonDoc->GetRoot();
 
 	IKDataStreamPtr fileStream = nullptr;
-	if (KFileSystem::Manager->Open(jsonFile, IT_FILEHANDLE, fileStream))
+
+	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
+	if (system && system->Open(jsonFile, IT_FILEHANDLE, fileStream))
 	{
 		if (jsonDoc->ParseFromDataStream(fileStream))
 		{

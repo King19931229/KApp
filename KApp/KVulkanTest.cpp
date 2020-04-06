@@ -20,7 +20,7 @@ int main()
 	options.window.width = 1280;
 	options.window.height = 720;
 	options.window.resizable = true;
-	options.window.type = KEngineOptions::WindowInitializeInformation::DEFAULT;
+	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
 

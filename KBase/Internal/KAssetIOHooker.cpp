@@ -88,12 +88,12 @@ KAssetIOHooker::KAssetIOHooker(IKFileSystemManager* fileSysMgr)
 
 KAssetIOHooker::~KAssetIOHooker()
 {
-
 }
 
 bool KAssetIOHooker::Exists(const char* pFile) const
 {
-	return m_FileSystemManager->IsFileExist(pFile);
+	IKFileSystemPtr system = m_FileSystemManager->GetFileSystem(FSD_RESOURCE);
+	return system && system->IsFileExist(pFile);
 }
 
 char KAssetIOHooker::getOsSeparator() const
@@ -110,7 +110,8 @@ Assimp::IOStream* KAssetIOHooker::Open(const char* pFile, const char* pMode)
 	}
 
 	IKDataStreamPtr dataStream = nullptr;
-	if(m_FileSystemManager->Open(pFile, IT_FILEHANDLE, dataStream))
+	IKFileSystemPtr system = m_FileSystemManager->GetFileSystem(FSD_RESOURCE);		
+	if(system && system->Open(pFile, IT_FILEHANDLE, dataStream))
 	{
 		Assimp::IOStream* stream = new KAssetIOStream(dataStream);
 		return stream;

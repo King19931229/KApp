@@ -16,10 +16,10 @@ struct KEngineOptions
 
 		enum Type
 		{
-			DEFAULT,
-			ANDROID,
-			EDITOR,
-			UNKNOWN
+			TYPE_DEFAULT,
+			TYPE_ANDROID,
+			TYPE_EDITOR,
+			TYPE_UNKNOWN
 		}type;
 
 		WindowInitializeInformation()
@@ -28,7 +28,7 @@ struct KEngineOptions
 			resizable = true;
 			app = nullptr;
 			hwnd = nullptr;
-			type = UNKNOWN;
+			type = TYPE_UNKNOWN;
 		}
 	}window;
 };

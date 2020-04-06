@@ -15,26 +15,26 @@ FileSystemType KNativeFileSystem::GetType()
 	return FST_NATIVE;
 }
 
-bool KNativeFileSystem::Init(const std::string& root)
+bool KNativeFileSystem::Init()
 {
-	m_Root = root;
 	return true;
 }
 
 bool KNativeFileSystem::UnInit()
 {
-	m_Root.clear();
+	return true;
+}
+
+bool KNativeFileSystem::SetRoot(const std::string& root)
+{
+	m_Root = root;
 	return true;
 }
 
 bool KNativeFileSystem::GetRoot(std::string& root)
 {
-	if(!m_Root.empty())
-	{
-		root = m_Root;
-		return true;
-	}
-	return false;
+	root = m_Root;
+	return true;
 }
 
 bool KNativeFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret)

@@ -41,7 +41,11 @@
     <ClInclude Include="Interface\IKXML.h" />
     <ClInclude Include="Internal\Codec\KETCCodec.h" />
     <ClInclude Include="Internal\Codec\KFreeImageCodec.h" />
+    <ClInclude Include="Internal\ECS\KComponentManager.h" />
+    <ClInclude Include="Internal\ECS\KEntity.h" />
+    <ClInclude Include="Internal\ECS\KEntityManager.h" />
     <ClInclude Include="Internal\FileSystem\KApkFileSystem.h" />
+    <ClInclude Include="Internal\FileSystem\KMultiFileSystem.h" />
     <ClInclude Include="Internal\FileSystem\KNativeFileSystem.h" />
     <ClInclude Include="Internal\FileSystem\KZipFileSystem.h" />
     <ClInclude Include="Internal\Hash\KMD5.h" />
@@ -50,10 +54,7 @@
     <ClInclude Include="Internal\KAssetIOHooker.h" />
     <ClInclude Include="Internal\KAssetLoader.h" />
     <ClInclude Include="Internal\KCodec.h" />
-    <ClInclude Include="Internal\KComponentManager.h" />
     <ClInclude Include="Internal\KDataStream.h" />
-    <ClInclude Include="Internal\KEntity.h" />
-    <ClInclude Include="Internal\KEntityManager.h" />
     <ClInclude Include="Internal\KFileSystem.h" />
     <ClInclude Include="Internal\KIniFile.h" />
     <ClInclude Include="Internal\KLog.h" />
@@ -95,7 +96,11 @@
   <ItemGroup>
     <ClCompile Include="Internal\Codec\KETCCodec.cpp" />
     <ClCompile Include="Internal\Codec\KFreeImageCodec.cpp" />
+    <ClCompile Include="Internal\ECS\KComponentManager.cpp" />
+    <ClCompile Include="Internal\ECS\KEntity.cpp" />
+    <ClCompile Include="Internal\ECS\KEntityManager.cpp" />
     <ClCompile Include="Internal\FileSystem\KApkFileSystem.cpp" />
+    <ClCompile Include="Internal\FileSystem\KMultiFileSystem.cpp" />
     <ClCompile Include="Internal\FileSystem\KNativeFileSystem.cpp" />
     <ClCompile Include="Internal\FileSystem\KZipFileSystem.cpp" />
     <ClCompile Include="Internal\Hash\KMD5.cpp" />
@@ -104,11 +109,8 @@
     <ClCompile Include="Internal\KAssetIOHooker.cpp" />
     <ClCompile Include="Internal\KAssetLoader.cpp" />
     <ClCompile Include="Internal\KCodec.cpp" />
-    <ClCompile Include="Internal\KComponentManager.cpp" />
     <ClCompile Include="Internal\KDataStream.cpp" />
     <ClCompile Include="Internal\KDump.cpp" />
-    <ClCompile Include="Internal\KEntity.cpp" />
-    <ClCompile Include="Internal\KEntityManager.cpp" />
     <ClCompile Include="Internal\KFileSystem.cpp" />
     <ClCompile Include="Internal\KFileTool.cpp" />
     <ClCompile Include="Internal\KHash.cpp" />

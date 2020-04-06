@@ -2,6 +2,7 @@
 #include "FileSystem/KNativeFileSystem.h"
 #include "FileSystem/KZipFileSystem.h"
 #include "FileSystem/KApkFileSystem.h"
+#include "FileSystem/KMultiFileSystem.h"
 
 #include "Interface/IKLog.h"
 
@@ -31,132 +32,101 @@ namespace KFileSystem
 	}
 
 	IKFileSystemManagerPtr Manager = nullptr;
-}
 
-KFileSystemManager::KFileSystemManager()
-{
-
-}
-
-KFileSystemManager::~KFileSystemManager()
-{
-	assert(m_Queue.empty() && "File system not clear");
-}
-
-bool KFileSystemManager::Init()
-{
-	UnInit();
-	return true;
-}
-
-bool KFileSystemManager::UnInit()
-{
-	for(PriorityFileSystem& sys : m_Queue)
-	{
-		sys.system->UnInit();
-		sys.system = nullptr;
-	}
-	m_Queue.clear();
-	return true;
-}
-
-bool KFileSystemManager::AddSystem(const char* root, int priority, FileSystemType type)
-{
-	if(std::find_if(m_Queue.begin(), m_Queue.end(), [=](const PriorityFileSystem& sysInQueue) {	return FileSysEqual(sysInQueue, root, type); })== m_Queue.end())
+	IKFileSystemPtr CreateFileSystem(FileSystemType type)
 	{
 		IKFileSystemPtr fileSys = nullptr;
 		switch (type)
 		{
 		case FST_NATIVE:
-			{
-				fileSys = IKFileSystemPtr(new KNativeFileSystem());
-				fileSys->Init(root);
-				break;
-			}
+		{
+			fileSys = IKFileSystemPtr(new KNativeFileSystem());
+			break;
+		}
 		case FST_ZIP:
-			{
-				fileSys = IKFileSystemPtr(new KZipFileSystem());
-				fileSys->Init(root);
-				break;
-			}
-			case FST_APK:
-			{
-				fileSys = IKFileSystemPtr(new KApkFileSystem());
-				fileSys->Init(root);
-				break;
-			}
+		{
+			fileSys = IKFileSystemPtr(new KZipFileSystem());
+			break;
+		}
+		case FST_APK:
+		{
+			fileSys = IKFileSystemPtr(new KApkFileSystem());
+			break;
+		}
+		case FST_MULTI:
+		{
+			fileSys = IKFileSystemPtr(new KMultiFileSystem());
+			break;
+		}
 		default:
 			assert(false && "Unknown type");
 		}
-
-		if(fileSys)
-		{
-			PriorityFileSystem newSys = PriorityFileSystem(fileSys, root, type, priority);
-			auto insertPos = std::lower_bound(m_Queue.begin(), m_Queue.end(), newSys, [](const PriorityFileSystem& a, const PriorityFileSystem& b) { return FileSysCmp(a, b); });
-			m_Queue.insert(insertPos, newSys);
-			return true;
-		}
+		return fileSys;
 	}
-
-	return false;
 }
 
-bool KFileSystemManager::RemoveSystem(const char* root, FileSystemType type)
+KFileSystemManager::KFileSystemManager()
 {
-	auto it = std::find_if(m_Queue.begin(),
-		m_Queue.end(),
-		[=](const PriorityFileSystem& sysInQueue)
-	{
-		return FileSysEqual(sysInQueue, root, type);
-	});
+	ZERO_ARRAY_MEMORY(m_FileSystem);
+}
 
-	if(it != m_Queue.end())
+KFileSystemManager::~KFileSystemManager()
+{
+}
+
+bool KFileSystemManager::Init()
+{
+	UnInit();
+	for (IKFileSystemPtr& system : m_FileSystem)
 	{
-		it->system->UnInit();
-		m_Queue.erase(it);
+		ASSERT_RESULT(system);
+		system->Init();
 	}
-
 	return true;
 }
 
-IKFileSystemPtr KFileSystemManager::GetFileSystem(const char* root, FileSystemType type)
+bool KFileSystemManager::UnInit()
 {
-	auto it = std::find_if(m_Queue.begin(),
-		m_Queue.end(),
-		[=](const PriorityFileSystem& sysInQueue)
+	for (IKFileSystemPtr& system : m_FileSystem)
 	{
-		return FileSysEqual(sysInQueue, root, type);
-	});
-
-	if(it != m_Queue.end())
-	{
-		return it->system;
+		ASSERT_RESULT(system);
+		system->UnInit();
 	}
+	return true;
+}
 
+bool KFileSystemManager::SetFileSystem(FileSystemDomain domain, IKFileSystemPtr system)
+{
+	if (domain != FSD_UNKNOWN)
+	{
+		assert(system);
+		m_FileSystem[domain] = system;
+		return true;
+	}
+	return false;
+}
+
+bool KFileSystemManager::UnSetFileSystem(FileSystemDomain domain)
+{
+	if (domain != FSD_UNKNOWN)
+	{
+		m_FileSystem[domain] = nullptr;
+		return true;
+	}
+	return false;
+}
+
+bool KFileSystemManager::UnSetAllFileSystem()
+{
+	ZERO_ARRAY_MEMORY(m_FileSystem);
+	return true;
+}
+
+IKFileSystemPtr KFileSystemManager::GetFileSystem(FileSystemDomain domain)
+{
+	if (domain != FSD_UNKNOWN)
+	{
+		return m_FileSystem[domain];
+	}
 	return nullptr;
-}
-
-bool KFileSystemManager::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret)
-{
-	for(PriorityFileSystem& sys : m_Queue)
-	{
-		if(sys.system->Open(file, priorityType, ret))
-		{
-			return true;
-		}
-	}
-	KG_LOGE(LM_IO, "file [%s] can't to be found by file manager", file.c_str());
-	return false;
-}
-
-bool KFileSystemManager::IsFileExist(const std::string& file)
-{
-	for(PriorityFileSystem& sys : m_Queue)
-	{
-		if(sys.system->IsFileExist(file))
-		{
-			return true;
-		}
-	}
-	return false;
 }

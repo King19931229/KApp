@@ -20,12 +20,15 @@ FileSystemType KZipFileSystem::GetType()
 	return FST_ZIP;
 }
 
-bool KZipFileSystem::Init(const std::string& root)
+bool KZipFileSystem::Init()
 {
 	UnInit();
-	m_Root = root;
-	m_Zip = zip_open(m_Root.c_str(), ZIP_DEFAULT_COMPRESSION_LEVEL, 'r');
-	return m_Zip != nullptr;
+	if (!m_Root.empty())
+	{
+		m_Zip = zip_open(m_Root.c_str(), ZIP_DEFAULT_COMPRESSION_LEVEL, 'r');
+		return m_Zip != nullptr;
+	}
+	return false;
 }
 
 bool KZipFileSystem::UnInit()
@@ -35,13 +38,18 @@ bool KZipFileSystem::UnInit()
 		zip_close(m_Zip);
 		m_Zip = nullptr;
 	}
-	m_Root.clear();
+	return true;
+}
+
+bool KZipFileSystem::SetRoot(const std::string& root)
+{
+	m_Root = root;
 	return true;
 }
 
 bool KZipFileSystem::GetRoot(std::string& root)
 {
-	m_Root = root;
+	root = m_Root;
 	return true;
 }
 

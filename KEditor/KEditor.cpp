@@ -54,7 +54,7 @@ bool KEditor::Init()
 		
 		KEngineOptions options;
 		options.window.hwnd = (void*)m_RenderWidget->winId();
-		options.window.type = KEngineOptions::WindowInitializeInformation::EDITOR;
+		options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_EDITOR;
 
 		m_Engine = CreateEngine();
 		m_Engine->Init(std::move(window), options);

@@ -24,14 +24,13 @@ FileSystemType KApkFileSystem::GetType()
 	return FST_APK;
 }
 
-bool KApkFileSystem::Init(const std::string& root)
+bool KApkFileSystem::Init()
 {
 #ifdef __ANDROID__
 	assert(KPlatform::AndroidApp != nullptr && "androidApp is null");
 	if(KPlatform::AndroidApp)
 	{
 		m_AssetManager = KPlatform::AndroidApp->activity->assetManager;
-		m_Root = root;
 		return true;
 	}
 #endif
@@ -46,9 +45,15 @@ bool KApkFileSystem::UnInit()
 	return true;
 }
 
-bool KApkFileSystem::GetRoot(std::string& root)
+bool KApkFileSystem::SetRoot(const std::string& root)
 {
 	m_Root = root;
+	return true;
+}
+
+bool KApkFileSystem::GetRoot(std::string& root)
+{
+	root = m_Root;
 	return true;
 }
 
