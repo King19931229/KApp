@@ -24,6 +24,7 @@ include_directories(
     ${SRC_ROOT}/../Dependency/zip-0.1.16/src/
     ${SRC_ROOT}/../Dependency/rapidjson/include/
     ${SRC_ROOT}/../Dependency/tinyxml2/
+    ${SRC_ROOT}/../Dependency/glm-0.9.8.0/
     ${ANDROID_NDK}/sources/android/native_app_glue
 )
 

@@ -14,78 +14,98 @@ Java_com_king_kapp_MainActivity_stringFromJNI(
 #include <android_native_app_glue.h>
 
 #define MEMORY_DUMP_DEBUG
-
-#include "KBase/Publish/KLockFreeQueue.h"
-#include "KBase/Publish/KLockQueue.h"
-#include "KBase/Publish/KThreadPool.h"
-#include "KBase/Publish/KTimer.h"
-#include "KBase/Publish/KSemaphore.h"
-#include "KBase/Publish/KTaskExecutor.h"
-#include "KBase/Publish/KObjectPool.h"
-#include "KBase/Publish/KSystem.h"
-#include "KBase/Publish/KFileTool.h"
-#include "KBase/Publish/KStringUtil.h"
-
-#include "Interface/IKLog.h"
-#include "Interface/IKAssetLoader.h"
-#include "Publish/KHashString.h"
-#include "Publish/KDump.h"
-
-#include "Interface/IKCodec.h"
-#include "Interface/IKMemory.h"
-
+#include "KEngine/Interface/IKEngine.h"
 #include "KRender/Interface/IKRenderWindow.h"
-#include "KRender/Interface/IKRenderDevice.h"
-#include "KRender/Interface/IKShader.h"
-#include "KRender/Interface/IKRenderCore.h"
 
-#include <algorithm>
-
-#include "KBase/Publish/KNumerical.h"
-#include "KBase/Publish/KThreadPool.h"
-
-#include "KBase/Publish/KHash.h"
+#include "KBase/Interface/Entity/IKEntityManager.h"
+#include "KBase/Interface/Component/IKComponentManager.h"
+#include "KBase/Interface/Component/IKRenderComponent.h"
+#include "KBase/Interface/Component/IKTransformComponent.h"
 #include "KBase/Publish/KPlatform.h"
-
-#include "KRender/Internal/KDebugConsole.h"
-#include "Interface/IKFileSystem.h"
 
 void android_main(android_app *state)
 {
 	DUMP_MEMORY_LEAK_BEGIN();
 
 	KPlatform::AndroidApp = state;
-
-	KLog::CreateLogger();
-	KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
-
-	KFileSystem::CreateFileManager();
-	KFileSystem::Manager->AddSystem(KPlatform::GetExternalDataPath(), -1, FST_NATIVE);
-	std::string zipPath = std::string(KPlatform::GetExternalDataPath())  + "/Model/Sponza.zip";
-	KFileSystem::Manager->AddSystem(zipPath.c_str(), -3, FST_ZIP);
-	KFileSystem::Manager->AddSystem(".", -2, FST_APK);
+	IKEnginePtr engine = CreateEngine();
 
 	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_ANDROID_NATIVE);
-	IKRenderDevicePtr device = CreateRenderDevice(RENDER_DEVICE_VULKAN);
+	KEngineOptions options;
 
-	KAssetLoaderManager::CreateAssetLoader();
-	KCodec::CreateCodecManager();
+	options.window.app = state;
+	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_ANDROID;
 
-	window->Init(state);
-	window->SetRenderDevice(device.get());
+	engine->Init(std::move(window), options);
 
-	IKRenderCorePtr renderCore = CreateRenderCore();
+	bool first = true;
+	KRenderCoreInitCallback cb = [&engine, &first]()
+	{
+		if(first)
+		{
+			IKRenderScene *scene = engine->GetRenderCore()->GetRenderScene();
 
-	renderCore->Init(device, window);
+#define DRAW_SPIDER
+#define DRAW_SPONZA
 
-	renderCore->Loop();
-	renderCore->UnInit();
+#ifdef DRAW_SPIDER
+#ifdef _DEBUG
+			int width = 1, height = 1;
+#else
+			int width = 10, height = 10;
+#endif
+			int widthExtend = width * 8, heightExtend = height * 8;
+			for (int i = 0; i < width; ++i)
+			{
+				for (int j = 0; j < height; ++j)
+				{
+					IKEntityPtr entity = KECS::EntityManager->CreateEntity();
 
-	KAssetLoaderManager::DestroyAssetLoader();
-	KCodec::DestroyCodecManager();
+					IKComponentBase *component = nullptr;
+					if (entity->RegisterComponent(CT_RENDER, &component))
+					{
+						((IKRenderComponent *) component)->SetPathAsset("Model/OBJ/spider.obj");
+						((IKRenderComponent *) component)->Init();
+					}
 
-	KLog::Logger->UnInit();
-	KLog::DestroyLogger();
-	KFileSystem::Manager->UnInit();
-	KFileSystem::DestroyFileManager();
+					if (entity->RegisterComponent(CT_TRANSFORM, &component))
+					{
+						glm::vec3 pos = ((IKTransformComponent *) component)->GetPosition();
+						pos.x = (float) (i * 2 - width) / width * widthExtend;
+						pos.z = (float) (j * 2 - height) / height * heightExtend;
+						pos.y = 0;
+						((IKTransformComponent *) component)->SetPosition(pos);
+
+						glm::vec3 scale = ((IKTransformComponent *) component)->GetScale();
+						scale = glm::vec3(0.1f, 0.1f, 0.1f);
+						((IKTransformComponent *) component)->SetScale(scale);
+					}
+
+					scene->Add(entity);
+				}
+			}
+#endif
+
+#ifdef DRAW_SPONZA
+			IKEntityPtr entity = KECS::EntityManager->CreateEntity();
+
+			IKComponentBase *component = nullptr;
+			if (entity->RegisterComponent(CT_RENDER, &component))
+			{
+				((IKRenderComponent *) component)->SetPathMesh("Sponza/sponza.mesh");
+				((IKRenderComponent *) component)->Init();
+			}
+			entity->RegisterComponent(CT_TRANSFORM);
+
+			scene->Add(entity);
+#endif
+			first = false;
+		}
+	};
+	engine->GetRenderCore()->RegisterInitCallback(&cb);
+
+	engine->Loop();
+	engine->UnInit();
+
+	engine = nullptr;
 }

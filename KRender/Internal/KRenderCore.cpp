@@ -101,14 +101,11 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
 	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
 
-	KECSGlobal::Init();
 	return true;
 }
 
 bool KRenderCore::UnInitGlobalManager()
 {
-	KECSGlobal::UnInit();
-
 	KRenderGlobal::SkyBox.UnInit();
 	KRenderGlobal::ShadowMap.UnInit();
 
@@ -281,6 +278,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			UnInitGlobalManager();
 		};
 
+		KECSGlobal::Init();
 		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
 
 		m_Device->RegisterPresentCallback(&m_PresentCallback);
@@ -299,6 +297,7 @@ bool KRenderCore::UnInit()
 	if (m_bInit)
 	{
 		KRenderGlobal::Scene.UnInit();
+		KECSGlobal::UnInit();
 
 		m_DebugConsole->UnInit();
 		SAFE_DELETE(m_DebugConsole);

@@ -6,6 +6,7 @@
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Interface/IKCodec.h"
+#include "KBase/Publish/KPlatform.h"
 
 IKEnginePtr CreateEngine()
 {
@@ -36,7 +37,7 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 
 	if (window)
 	{
-		ASSERT_RESULT(options.window.type != KEngineOptions::WindowInitializeInformation::UNKNOWN);
+		ASSERT_RESULT(options.window.type != KEngineOptions::WindowInitializeInformation::TYPE_UNKNOWN);
 
 		KLog::CreateLogger();
 		KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
@@ -47,10 +48,17 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 		KFileSystem::CreateFileManager();
 		KFileSystem::Manager->Init();
 
-		// TODO ²ÎÊý»¯¿ØÖÆ
+		// TODO å‚æ•°åŒ–æŽ§åˆ¶
+#if defined(_WIN32)
 		KFileSystem::Manager->AddSystem("../Sponza.zip", -1, FST_ZIP);
 		KFileSystem::Manager->AddSystem(".", 0, FST_NATIVE);
 		KFileSystem::Manager->AddSystem("../", 1, FST_NATIVE);
+#elif defined(__ANDROID__)
+		std::string zipPath = std::string(KPlatform::GetExternalDataPath()) + "/Model/Sponza.zip";
+		KFileSystem::Manager->AddSystem(zipPath.c_str(), -1, FST_ZIP);
+		KFileSystem::Manager->AddSystem(".", 0, FST_APK);
+		KFileSystem::Manager->AddSystem(KPlatform::GetExternalDataPath(), 1, FST_NATIVE);
+#endif
 
 		KAssetLoaderManager::CreateAssetLoader();
 		KCodec::CreateCodecManager();
@@ -66,13 +74,13 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 		const auto& windowInfo = options.window;
 		switch (windowInfo.type)
 		{
-		case KEngineOptions::WindowInitializeInformation::DEFAULT:
+		case KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT:
 			m_Window->Init(windowInfo.top, windowInfo.left, windowInfo.width, windowInfo.height, windowInfo.resizable);
 			break;
-		case KEngineOptions::WindowInitializeInformation::ANDROID:
+		case KEngineOptions::WindowInitializeInformation::TYPE_ANDROID:
 			m_Window->Init(windowInfo.app);
 			break;
-		case KEngineOptions::WindowInitializeInformation::EDITOR:
+		case KEngineOptions::WindowInitializeInformation::TYPE_EDITOR:
 			m_Window->Init(windowInfo.hwnd);
 			break;
 		default:
