@@ -236,7 +236,10 @@ public:
 		if (boundEntity)
 		{
 			boundEntity->UnRegisterAllComponent();
-			KECS::EntityManager->ReleaseEntity(boundEntity);
+			if (KECS::EntityManager)
+			{
+				KECS::EntityManager->ReleaseEntity(boundEntity);
+			}
 			boundEntity = nullptr;
 		}
 	}

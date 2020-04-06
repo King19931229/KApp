@@ -16,8 +16,9 @@ public:
 	bool CloestPick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 
 
-	bool Init(const char* path);
-	bool InitFromAsset(const char* path);
+	bool Init(const char* path) override;
+	bool InitFromAsset(const char* path) override;
+
 	bool InitUtility(const KMeshUtilityInfoPtr& info);
 	bool UnInit();
 

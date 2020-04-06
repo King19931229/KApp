@@ -8,6 +8,8 @@
 #include "Internal/Controller/KUIOverlayController.h"
 #include "Internal/Controller/KGizmoController.h"
 
+#include <unordered_set>
+
 class KRenderCore : public IKRenderCore
 {
 protected:
@@ -28,6 +30,9 @@ protected:
 	KSwapChainRecreateCallback m_SwapChainCallback;
 	KDeviceInitCallback m_InitCallback;
 	KDeviceUnInitCallback m_UnitCallback;
+
+	typedef std::unordered_set<KRenderCoreInitCallback*> CallbackSet;
+	CallbackSet m_Callbacks;
 
 	bool m_MultiThreadSumbit;
 	bool m_OctreeDebugDraw;
@@ -68,6 +73,10 @@ public:
 	virtual bool UnInit();
 	virtual bool Loop();
 	virtual bool Tick();
+
+	virtual bool RegisterInitCallback(KRenderCoreInitCallback* callback);
+	virtual bool UnRegisterInitCallback(KRenderCoreInitCallback* callback);
+	virtual bool UnRegistertAllInitCallback();
 
 	virtual IKRenderScene* GetRenderScene();
 

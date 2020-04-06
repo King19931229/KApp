@@ -192,102 +192,6 @@ bool KRenderCore::UnInitGizmo()
 bool KRenderCore::InitScene()
 {
 	KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
-
-	const char* szPaths[] =
-	{
-		"Model/OBJ/spider.obj",
-		"../Sponza/sponza.obj"
-	};
-
-	const char* destPaths[] =
-	{
-		"../Dependency/assimp-3.3.1/test/models/OBJ/spider.mesh",
-		"../Sponza/sponza.mesh"
-	};
-
-#if 1
-#ifdef _DEBUG
-	int width = 1, height = 1;
-#else
-	int width = 10, height = 10;
-#endif
-	int widthExtend = width * 8, heightExtend = height * 8;
-	for (int i = 0; i < width; ++i)
-	{
-		for (int j = 0; j < height; ++j)
-		{
-			IKEntityPtr entity = KECS::EntityManager->CreateEntity();
-
-			IKComponentBase* component = nullptr;
-			if (entity->RegisterComponent(CT_RENDER, &component))
-			{
-				((KRenderComponent*)component)->InitFromAsset(szPaths[0]);
-			}
-
-			if (entity->RegisterComponent(CT_TRANSFORM, &component))
-			{
-				glm::vec3 pos = ((KTransformComponent*)component)->GetPosition();
-				pos.x = (float)(i * 2 - width) / width * widthExtend;
-				pos.z = (float)(j * 2 - height) / height * heightExtend;
-				pos.y = 0;
-				((KTransformComponent*)component)->SetPosition(pos);
-
-				glm::vec3 scale = ((KTransformComponent*)component)->GetScale();
-				scale = glm::vec3(0.1f, 0.1f, 0.1f);
-				((KTransformComponent*)component)->SetScale(scale);
-			}
-
-			KRenderGlobal::Scene.Add(entity);
-		}
-	}
-#endif
-#if 1
-	const uint32_t IDX = 1;
-
-	enum InitMode
-	{
-		IM_EXPORT,
-		IM_IMPORT,
-		IM_IMPORT_ZIP,
-	}mode = IM_IMPORT_ZIP;
-
-	for (size_t i = 0; i < 1; ++i)
-	{
-		IKEntityPtr entity = KECS::EntityManager->CreateEntity();
-
-		IKComponentBase* component = nullptr;
-		if (entity->RegisterComponent(CT_RENDER, &component))
-		{
-#if 1
-			if (mode == IM_EXPORT)
-			{
-				((KRenderComponent*)component)->InitFromAsset(szPaths[IDX]);
-
-				KMeshPtr mesh = ((KRenderComponent*)component)->GetMesh();
-				if (mesh && mesh->SaveAsFile(destPaths[IDX]))
-				{
-					((KRenderComponent*)component)->Init(destPaths[IDX]);
-				}
-			}
-			else if (mode == IM_IMPORT)
-			{
-				((KRenderComponent*)component)->Init(destPaths[IDX]);
-			}
-			else if (mode == IM_IMPORT_ZIP)
-			{
-				((KRenderComponent*)component)->Init("Sponza/sponza.mesh");
-			}
-#else
-			((KRenderComponent*)component)->InitFromAsset(szPaths[IDX]);
-			//((KRenderComponent*)component)->Init(destPaths[IDX]);
-#endif
-		}
-		entity->RegisterComponent(CT_TRANSFORM);
-
-		KRenderGlobal::Scene.Add(entity);
-	}
-#endif
-
 	return true;
 }
 
@@ -341,13 +245,17 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		m_InitCallback = [this]()
 		{
 			KRenderGlobal::TaskExecutor.Init(std::thread::hardware_concurrency());
-
 			InitGlobalManager();
 			InitPostProcess();
 			InitRenderDispatcher();
 			InitScene();
 			InitGizmo();
 			InitController();
+
+			for (KRenderCoreInitCallback* callback : m_Callbacks)
+			{
+				(*callback)();
+			}
 		};
 
 		m_UnitCallback = [this]()
@@ -395,6 +303,8 @@ bool KRenderCore::UnInit()
 		m_Device = nullptr;
 
 		m_bInit = false;
+
+		m_Callbacks.clear();
 	}
 	return true;
 }
@@ -417,6 +327,36 @@ bool KRenderCore::Tick()
 		return true;
 	}
 	return false;
+}
+
+bool KRenderCore::RegisterInitCallback(KRenderCoreInitCallback* callback)
+{
+	if (callback)
+	{
+		m_Callbacks.insert(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KRenderCore::UnRegisterInitCallback(KRenderCoreInitCallback* callback)
+{
+	if (callback)
+	{
+		auto it = m_Callbacks.find(callback);
+		if (it != m_Callbacks.end())
+		{
+			m_Callbacks.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KRenderCore::UnRegistertAllInitCallback()
+{
+	m_Callbacks.clear();
+	return true;
 }
 
 IKRenderScene* KRenderCore::GetRenderScene()

@@ -2,6 +2,8 @@
 #include "KRender/Interface/IKRenderConfig.h"
 #include "KRender/Interface/IKRenderScene.h"
 
+typedef std::function<void()> KRenderCoreInitCallback;
+
 struct IKRenderCore
 {
 	virtual ~IKRenderCore() {}
@@ -10,6 +12,10 @@ struct IKRenderCore
 	virtual bool UnInit() = 0;
 	virtual bool Loop() = 0;
 	virtual bool Tick() = 0;
+
+	virtual bool RegisterInitCallback(KRenderCoreInitCallback* callback) = 0;
+	virtual bool UnRegisterInitCallback(KRenderCoreInitCallback* callback) = 0;
+	virtual bool UnRegistertAllInitCallback() = 0;
 
 	virtual IKRenderScene* GetRenderScene() = 0;
 	virtual IKRenderWindow* GetRenderWindow() = 0;
