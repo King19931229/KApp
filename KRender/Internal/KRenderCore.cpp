@@ -189,16 +189,8 @@ bool KRenderCore::UnInitGizmo()
 	return true;
 }
 
-bool KRenderCore::InitScene()
+bool KRenderCore::InitRenderResource()
 {
-	KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
-	return true;
-}
-
-bool KRenderCore::UnInitScene()
-{
-	KRenderGlobal::Scene.UnInit();
-
 	if (KECS::EntityManager)
 	{
 		KECS::EntityManager->ViewAllEntity([](IKEntityPtr entity)
@@ -206,11 +198,24 @@ bool KRenderCore::UnInitScene()
 			KRenderComponent* component = nullptr;
 			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component))
 			{
-				KMeshPtr mesh = component->GetMesh();
-				if (mesh)
-				{
-					component->UnInit();
-				}
+				component->Init();
+			}
+		});
+	}
+
+	return true;
+}
+
+bool KRenderCore::UnInitRenderResource()
+{
+	if (KECS::EntityManager)
+	{
+		KECS::EntityManager->ViewAllEntity([](IKEntityPtr entity)
+		{
+			KRenderComponent* component = nullptr;
+			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component))
+			{
+				component->UnInit();
 			}
 		});
 	}
@@ -248,7 +253,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			InitGlobalManager();
 			InitPostProcess();
 			InitRenderDispatcher();
-			InitScene();
+			InitRenderResource();
 			InitGizmo();
 			InitController();
 
@@ -270,11 +275,13 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 			UnInitController();
 			UnInitGizmo();
-			UnInitScene();
+			UnInitRenderResource();
 			UnInitRenderDispatcher();
 			UnInitPostProcess();
 			UnInitGlobalManager();
 		};
+
+		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
 
 		m_Device->RegisterPresentCallback(&m_PresentCallback);
 		m_Device->RegisterSwapChainRecreateCallback(&m_SwapChainCallback);
@@ -291,6 +298,8 @@ bool KRenderCore::UnInit()
 {
 	if (m_bInit)
 	{
+		KRenderGlobal::Scene.UnInit();
+
 		m_DebugConsole->UnInit();
 		SAFE_DELETE(m_DebugConsole);
 

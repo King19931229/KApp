@@ -7,6 +7,15 @@ class KRenderComponent : public IKRenderComponent
 {
 protected:
 	KMeshPtr m_Mesh;
+	enum ResourceType
+	{
+		MESH,
+		ASSET,
+		UTILITY,
+		NONE
+	}m_Type;
+	std::string m_Path;
+	KMeshUtilityInfoPtr m_UtilityInfo;
 public:
 	KRenderComponent();
 	virtual ~KRenderComponent();
@@ -15,13 +24,13 @@ public:
 	bool Pick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 	bool CloestPick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 
+	bool SetPathMesh(const char* path) override;
+	bool SetPathAsset(const char* path) override;
 
-	bool Init(const char* path) override;
-	bool InitFromAsset(const char* path) override;
+	bool Init() override;
+	bool UnInit() override;
 
 	bool InitUtility(const KMeshUtilityInfoPtr& info);
-	bool UnInit();
-
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
 
 	inline KMeshPtr GetMesh() { return m_Mesh; }

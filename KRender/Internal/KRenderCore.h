@@ -54,8 +54,8 @@ protected:
 	bool UnInitController();
 	bool UnInitGizmo();
 
-	bool InitScene();
-	bool UnInitScene();
+	bool InitRenderResource();
+	bool UnInitRenderResource();
 
 	bool UpdateFrameTime();
 	bool UpdateCamera(size_t frameIndex);

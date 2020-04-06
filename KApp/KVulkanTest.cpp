@@ -24,10 +24,9 @@ int main()
 
 	engine->Init(std::move(window), options);
 
-	auto scene = engine->GetRenderCore()->GetRenderScene();
-
-	KRenderCoreInitCallback callback = [scene]()
 	{
+		IKRenderScene* scene = engine->GetRenderCore()->GetRenderScene();
+
 #define DRAW_SPIDER
 #define DRAW_SPONZA
 
@@ -47,7 +46,8 @@ int main()
 				IKComponentBase* component = nullptr;
 				if (entity->RegisterComponent(CT_RENDER, &component))
 				{
-					((IKRenderComponent*)component)->InitFromAsset("Model/OBJ/spider.obj");
+					((IKRenderComponent*)component)->SetPathAsset("Model/OBJ/spider.obj");
+					((IKRenderComponent*)component)->Init();
 				}
 
 				if (entity->RegisterComponent(CT_TRANSFORM, &component))
@@ -74,16 +74,14 @@ int main()
 		IKComponentBase* component = nullptr;
 		if (entity->RegisterComponent(CT_RENDER, &component))
 		{
-			((IKRenderComponent*)component)->Init("Sponza/sponza.mesh");
+			((IKRenderComponent*)component)->SetPathMesh("Sponza/sponza.mesh");
+			((IKRenderComponent*)component)->Init();
 		}
 		entity->RegisterComponent(CT_TRANSFORM);
 
 		scene->Add(entity);
 #endif
-	};
-
-	engine->GetRenderCore()->RegisterInitCallback(&callback);
-	callback();
+	}
 
 	engine->Loop();
 	engine->UnInit();
