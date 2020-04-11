@@ -3,8 +3,8 @@
 #include "PostProcess/KEPostProcessPassModel.h"
 #include "PostProcess/KEPostProcessTextureModel.h"
 
-KEPostProcessGraphWidget::KEPostProcessGraphWidget()
-	: KEGraphWidget()
+KEPostProcessGraphWidget::KEPostProcessGraphWidget(QWidget* parent)
+	: KEGraphWidget(parent)
 {
 }
 

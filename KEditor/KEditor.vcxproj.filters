@@ -137,6 +137,7 @@
       <Filter>Command</Filter>
     </ClCompile>
     <ClCompile Include="KEdtiorGlobal.cpp" />
+    <ClCompile Include="KEResourceBrowser.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -182,9 +183,13 @@
     <QtMoc Include="Widget\KEPropertyWidget.h">
       <Filter>Widget</Filter>
     </QtMoc>
+    <QtMoc Include="KEResourceBrowser.h" />
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="KEditor.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="KEResourceBrowser.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

@@ -6,8 +6,8 @@
 #include <QLayout>
 #include <assert.h>
 
-KEGraphWidget::KEGraphWidget()
-	: QWidget(),
+KEGraphWidget::KEGraphWidget(QWidget* parent)
+	: QWidget(parent),
 	m_MenuBar(nullptr),
 	m_View(nullptr),
 	m_bInit(false)

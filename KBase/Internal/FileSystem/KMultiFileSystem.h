@@ -38,6 +38,7 @@ public:
 	virtual bool AddSubFileSystem(IKFileSystemPtr system, int priority);
 	virtual bool RemoveSubFileSystem(IKFileSystemPtr system);
 	virtual bool RemoveAllSubFileSystem();
+	virtual bool GetAllSubFileSystem(KFileSystemPtrList& list);
 
 	virtual bool Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret);
 	virtual bool IsFileExist(const std::string& file);

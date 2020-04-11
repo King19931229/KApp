@@ -5,7 +5,7 @@ class KEPostProcessGraphWidget : public KEGraphWidget
 {
 protected:
 public:
-	KEPostProcessGraphWidget();
+	KEPostProcessGraphWidget(QWidget* parent = Q_NULLPTR);
 	~KEPostProcessGraphWidget();
 
 	KEGraphView* CreateViewImpl() override;

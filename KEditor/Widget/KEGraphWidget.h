@@ -11,7 +11,7 @@ protected:
 	KEGraphView* m_View;
 	bool m_bInit;
 public:
-	KEGraphWidget();
+	KEGraphWidget(QWidget* parent = Q_NULLPTR);
 	virtual ~KEGraphWidget();
 	virtual KEGraphView* CreateViewImpl() = 0;
 	virtual bool Init();

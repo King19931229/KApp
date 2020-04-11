@@ -109,6 +109,7 @@
     <ClCompile Include="Graph\Utility\KEGraphEmtpyNodeModel.cpp" />
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="KEdtiorGlobal.cpp" />
+    <ClCompile Include="KEResourceBrowser.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp" />
@@ -124,6 +125,7 @@
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="KEditor.ui" />
+    <QtUic Include="KEResourceBrowser.ui" />
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="KEditor.qrc" />
@@ -139,6 +141,7 @@
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h" />
     <ClInclude Include="Graph\Command\KEGraphNodeCommand.h" />
     <ClInclude Include="KEditorGlobal.h" />
+    <QtMoc Include="KEResourceBrowser.h" />
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />
     <ClInclude Include="Property\KEPropertyBaseView.h" />
     <ClInclude Include="Property\KEPropertyCheckBoxView.h" />

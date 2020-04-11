@@ -74,6 +74,17 @@ bool KMultiFileSystem::RemoveAllSubFileSystem()
 	return true;
 }
 
+bool KMultiFileSystem::GetAllSubFileSystem(KFileSystemPtrList& list)
+{
+	list.clear();
+	list.reserve(m_Queue.size());
+	for (PriorityFileSystem& sys : m_Queue)
+	{
+		list.push_back(sys.system);
+	}
+	return true;
+}
+
 bool KMultiFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret)
 {
 	for (PriorityFileSystem& sys : m_Queue)

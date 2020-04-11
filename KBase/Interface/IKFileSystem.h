@@ -1,12 +1,15 @@
 #pragma once
 #include "IKDataStream.h"
 #include <string>
+#include <vector>
 
 struct IKFileSystem;
 typedef std::shared_ptr<IKFileSystem> IKFileSystemPtr;
 
 struct IKFileSystemManager;
 typedef std::unique_ptr<IKFileSystemManager> IKFileSystemManagerPtr;
+
+typedef std::vector<IKFileSystemPtr> KFileSystemPtrList;
 
 enum FileSystemType
 {
@@ -30,6 +33,8 @@ struct IKFileSystem
 	virtual bool AddSubFileSystem(IKFileSystemPtr system, int priority) = 0;
 	virtual bool RemoveSubFileSystem(IKFileSystemPtr system) = 0;
 	virtual bool RemoveAllSubFileSystem() = 0;
+
+	virtual bool GetAllSubFileSystem(KFileSystemPtrList& list) = 0;
 
 	virtual bool Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret) = 0;
 	virtual bool IsFileExist(const std::string& file) = 0;
