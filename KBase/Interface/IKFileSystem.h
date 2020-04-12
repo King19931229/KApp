@@ -30,6 +30,11 @@ struct IKFileSystem
 	virtual bool SetRoot(const std::string& root) = 0;
 	virtual bool GetRoot(std::string& root) = 0;
 
+	virtual bool FullPath(const std::string& folder, const std::string& name, std::string& fullPath) = 0;
+	virtual bool ListDir(const std::string& subDir, std::vector<std::string>& listdir) = 0;
+	virtual bool IsFile(const std::string& name) = 0;
+	virtual bool IsDir(const std::string& name) = 0;
+
 	virtual bool AddSubFileSystem(IKFileSystemPtr system, int priority) = 0;
 	virtual bool RemoveSubFileSystem(IKFileSystemPtr system) = 0;
 	virtual bool RemoveAllSubFileSystem() = 0;
@@ -68,4 +73,31 @@ namespace KFileSystem
 	extern EXPORT_DLL bool DestroyFileManager();
 	extern EXPORT_DLL IKFileSystemManagerPtr Manager;
 	extern EXPORT_DLL IKFileSystemPtr CreateFileSystem(FileSystemType type);
+
+	inline const char* FileSystemTypeToString(FileSystemType format)
+	{
+#define ENUM(format) case FST_##format: return #format;
+		switch (format)
+		{
+			ENUM(NATIVE);
+			ENUM(ZIP);
+			ENUM(APK);
+			ENUM(MULTI);
+		};
+		// keep the compiler happy
+		return "UNKNOWN";
+#undef ENUM
+	}
+
+	inline FileSystemType StringToFileSystemType(const char* str)
+	{
+#define CMP(enum_string) if (!strcmp(str, #enum_string)) return FST_##enum_string;
+		CMP(NATIVE);
+		CMP(ZIP);
+		CMP(APK);
+		CMP(MULTI);
+		// keep the compiler happy
+		return FST_NATIVE;
+#undef CMP
+	}
 }

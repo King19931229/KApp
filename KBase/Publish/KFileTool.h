@@ -1,13 +1,20 @@
 #pragma once
 #include "KBase/Interface/IKDataStream.h"
 #include <string>
+#include <vector>
 
 namespace KFileTool
 {
 	EXPORT_DLL bool IsPathExist(const std::string& filePath);
+
 	EXPORT_DLL bool RemoveFile(const std::string& filePath);
 	EXPORT_DLL bool CreateFolder(const std::string& folder, bool bRecursive = false);
 	EXPORT_DLL bool RemoveFolder(const std::string& folder);
+
+	EXPORT_DLL bool IsFile(const std::string& filePath);
+	EXPORT_DLL bool IsDir(const std::string& filePath);
+	EXPORT_DLL bool ListDir(const std::string& dir, std::vector<std::string>& listdir);
+
 	EXPORT_DLL bool TrimPath(const std::string& srcPath, std::string& destPath, bool bTolower = false);
 	EXPORT_DLL bool PathJoin(const std::string& path, const std::string& subPath, std::string& destPath);
 	EXPORT_DLL bool ReplaceExt(const std::string& path, const std::string& ext, std::string& destPath);

@@ -4,6 +4,7 @@
 #ifdef _WIN32
 #include <io.h>
 #include <direct.h>
+#include <windows.h>
 #pragma warning (disable:4996)
 #else
 #include <sys/types.h>
@@ -101,6 +102,60 @@ namespace KFileTool
 			return RMDIR(str.c_str()) == 0;
 		}
 		return false;
+	}
+
+	bool IsFile(const std::string& filePath)
+	{
+#ifdef _WIN32
+		WIN32_FIND_DATAA FindFileData;
+		FindFirstFileA(filePath.c_str(), &FindFileData);
+		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE)
+		{
+			return true;
+		}
+		return false;
+#else
+		return false;
+#endif
+	}
+
+	bool IsDir(const std::string& filePath)
+	{
+#ifdef _WIN32
+		WIN32_FIND_DATAA FindFileData;
+		FindFirstFileA(filePath.c_str(), &FindFileData);
+		if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			return true;
+		}
+		return false;
+#else
+		return false;
+#endif
+	}
+
+	bool ListDir(const std::string& dir, std::vector<std::string>& listdir)
+	{
+		listdir.clear();
+#ifdef _WIN32
+		_finddata_t fileDir;
+		intptr_t lfDir = 0;
+		std::string target = dir + "/*";
+		if ((lfDir = _findfirst(target.c_str(), &fileDir)) != -1)
+		{
+			do
+			{
+				if (strcmp(fileDir.name, ".") == 0 || strcmp(fileDir.name, "..") == 0)
+					continue;
+				listdir.push_back(fileDir.name);
+			} while (_findnext(lfDir, &fileDir) == 0);
+			_findclose(lfDir);
+			return true;
+		}
+		return false;
+#else
+		return false;
+#endif
 	}
 
 	bool TrimPath(const std::string& srcPath, std::string& destPath, bool bTolower)
