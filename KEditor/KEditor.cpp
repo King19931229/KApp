@@ -66,7 +66,7 @@ bool KEditor::Init()
 		m_RenderWidget->Init(m_Engine);
 		setCentralWidget(m_RenderWidget);
 
-		m_GraphWidget = new KEPostProcessGraphWidget(this);
+		m_GraphWidget = new KEPostProcessGraphWidget(nullptr);
 		m_GraphWidget->Init();
 		m_GraphWidget->hide();
 

@@ -51,6 +51,9 @@
     <Filter Include="Graph\Command">
       <UniqueIdentifier>{85b93f1b-3344-407b-b328-4a82abf9b22e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Browser">
+      <UniqueIdentifier>{348d9772-5564-41ac-9c61-fd8476f961c7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />

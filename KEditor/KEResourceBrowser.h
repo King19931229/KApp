@@ -1,89 +1,91 @@
 #pragma once
 
 #include <QHBoxLayout>
+#include <QListView>
 #include "ui_KEResourceBrowser.h"
 #include "KBase/Interface/IKFileSystem.h"
 
-struct FileSystemComboData : public QObjectUserData
+struct KEFileSystemComboData : public QObjectUserData
 {
 	IKFileSystemPtr system;
 };
-Q_DECLARE_METATYPE(FileSystemComboData);
+Q_DECLARE_METATYPE(KEFileSystemComboData);
+
+struct KEFileSystemTreeItem
+{
+	std::string name;
+	std::string fullPath;
+	std::vector<KEFileSystemTreeItem*> children;
+
+	KEFileSystemTreeItem* parent;
+	int index;
+	bool isDir;
+
+	KEFileSystemTreeItem(IKFileSystemPtr system,
+		const std::string& _name,
+		const std::string& _fullPath,
+		KEFileSystemTreeItem* _parent,
+		int _index,
+		bool _isDir)
+	{
+		name = _name;
+		fullPath = _fullPath;
+		parent = _parent;
+		index = _index;
+		isDir = _isDir;
+
+		std::vector<std::string> listDir;
+		system->ListDir(fullPath, listDir);
+
+		int index = 0;
+		for (const std::string& subPath : listDir)
+		{
+			KEFileSystemTreeItem* newItem = nullptr;
+			std::string fullSubPath;
+			system->FullPath(fullPath, subPath, fullSubPath);
+			newItem = new KEFileSystemTreeItem(system,
+				subPath,
+				fullSubPath,
+				this,
+				index,
+				system->IsDir(fullSubPath));
+			++index;
+
+			children.push_back(newItem);
+		}
+	}
+
+	~KEFileSystemTreeItem()
+	{
+		for (KEFileSystemTreeItem* item : children)
+		{
+			SAFE_DELETE(item);
+		}
+		children.clear();
+	}
+
+	KEFileSystemTreeItem* GetChild(size_t index)
+	{
+		if (index < children.size())
+		{
+			return children[index];
+		}
+		return nullptr;
+	}
+};
 
 class KEFileSystemTreeModel : public QAbstractItemModel
 {
 	Q_OBJECT
-public:
-	struct FileSystemTreeItem
-	{
-		std::string name;
-		std::string fullPath;
-		std::vector<FileSystemTreeItem*> children;
-
-		FileSystemTreeItem* parent;
-		int index;
-		bool isDir;
-
-		FileSystemTreeItem(IKFileSystemPtr system,
-			const std::string& _name,
-			const std::string& _fullPath,
-			FileSystemTreeItem* _parent,
-			int _index,
-			bool _isDir)
-		{
-			name = _name;
-			fullPath = _fullPath;
-			parent = _parent;
-			index = _index;
-			isDir = _isDir;
-
-			std::vector<std::string> listDir;
-			system->ListDir(fullPath, listDir);
-
-			int index = 0;
-			for (const std::string& subPath : listDir)
-			{
-				FileSystemTreeItem* newItem = nullptr;
-				std::string fullSubPath;
-				system->FullPath(fullPath, subPath, fullSubPath);
-				newItem = new FileSystemTreeItem(system,
-					subPath,
-					fullSubPath,
-					this,
-					index,
-					system->IsDir(fullSubPath));
-				++index;
-
-				children.push_back(newItem);
-			}
-		}
-
-		~FileSystemTreeItem()
-		{
-			for (FileSystemTreeItem* item : children)
-			{
-				SAFE_DELETE(item);
-			}
-			children.clear();
-		}
-
-		FileSystemTreeItem* GetChild(size_t index)
-		{
-			if (index < children.size())
-			{
-				return children[index];
-			}
-			return nullptr;
-		}
-	};
 protected:
 	IKFileSystemPtr m_FileSys;
-	FileSystemTreeItem* m_RootItem;
+	KEFileSystemTreeItem* m_Item;
 public:
 	KEFileSystemTreeModel(QObject *parent = 0);
 	~KEFileSystemTreeModel();
 
-	bool Init(IKFileSystemPtr fileSys, const std::string& name);
+	void SetItem(KEFileSystemTreeItem* item);
+	KEFileSystemTreeItem* GetItem();
 
 	QVariant data(const QModelIndex &index, int role) const override;
 	Qt::ItemFlags flags(const QModelIndex &index) const override;
@@ -109,9 +111,12 @@ public:
 	bool UnInit();
 protected:
 	QWidget* m_MainWindow;
+	KEFileSystemTreeItem* m_RootItem;
 	KEFileSystemTreeModel m_TreeModel;
-protected slots:
+protected Q_SLOTS:
 	void OnComboIndexChanged(int index);
+	void OnTreeViewClicked(QModelIndex index);
+	void OnTreeViewBack(bool);
 private:
 	Ui::KEResourceBrowser ui;
 };

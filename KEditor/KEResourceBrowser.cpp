@@ -6,25 +6,22 @@
 
 KEFileSystemTreeModel::KEFileSystemTreeModel(QObject *parent)
 	: QAbstractItemModel(parent),
-	m_RootItem(nullptr)
+	m_Item(nullptr)
 {
 }
 
 KEFileSystemTreeModel::~KEFileSystemTreeModel()
 {
-	SAFE_DELETE(m_RootItem);
 }
 
-bool KEFileSystemTreeModel::Init(IKFileSystemPtr fileSys, const std::string& name)
+void KEFileSystemTreeModel::SetItem(KEFileSystemTreeItem* item)
 {
-	m_FileSys = fileSys;
-	SAFE_DELETE(m_RootItem);
+	m_Item = item;
+}
 
-	std::string fullPath;
-	m_FileSys->FullPath(".", name, fullPath);
-
-	m_RootItem = new FileSystemTreeItem(fileSys, name, fullPath, nullptr, 0, true);
-	return true;
+KEFileSystemTreeItem* KEFileSystemTreeModel::GetItem()
+{
+	return m_Item;
 }
 
 QVariant KEFileSystemTreeModel::data(const QModelIndex &index, int role) const
@@ -36,7 +33,7 @@ QVariant KEFileSystemTreeModel::data(const QModelIndex &index, int role) const
 
 	if (role == Qt::DisplayRole)
 	{
-		FileSystemTreeItem* item = static_cast<FileSystemTreeItem*>(index.internalPointer());
+		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
 		return QVariant(item->name.c_str());
 	}
 
@@ -64,17 +61,17 @@ QModelIndex KEFileSystemTreeModel::index(int row, int column,
 		return QModelIndex();
 	}
 
-	FileSystemTreeItem* item = nullptr;
+	KEFileSystemTreeItem* item = nullptr;
 	if (!parent.isValid())
 	{
-		item = m_RootItem;
+		item = m_Item;
 	}
 	else
 	{
-		item = static_cast<FileSystemTreeItem*>(parent.internalPointer());
+		item = static_cast<KEFileSystemTreeItem*>(parent.internalPointer());
 	}
 
-	FileSystemTreeItem* childItem = item->GetChild(static_cast<size_t>(row));
+	KEFileSystemTreeItem* childItem = item->GetChild(static_cast<size_t>(row));
 	if (childItem)
 	{
 		return createIndex(row, column, childItem);
@@ -92,10 +89,10 @@ QModelIndex KEFileSystemTreeModel::parent(const QModelIndex &index) const
 		return QModelIndex();
 	}
 
-	FileSystemTreeItem* childItem = static_cast<FileSystemTreeItem*>(index.internalPointer());
-	FileSystemTreeItem *parentItem = childItem->parent;
+	KEFileSystemTreeItem* childItem = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
+	KEFileSystemTreeItem *parentItem = childItem->parent;
 
-	if (parentItem == m_RootItem)
+	if (parentItem == m_Item)
 		return QModelIndex();
 
 	return createIndex(parentItem->index, 0, parentItem);
@@ -103,12 +100,12 @@ QModelIndex KEFileSystemTreeModel::parent(const QModelIndex &index) const
 
 int KEFileSystemTreeModel::rowCount(const QModelIndex &parent) const
 {
-	FileSystemTreeItem *parentItem = nullptr;
+	KEFileSystemTreeItem *parentItem = nullptr;
 
 	if (!parent.isValid())
-		parentItem = m_RootItem;
+		parentItem = m_Item;
 	else
-		parentItem = static_cast<FileSystemTreeItem*>(parent.internalPointer());
+		parentItem = static_cast<KEFileSystemTreeItem*>(parent.internalPointer());
 
 	return (int)parentItem->children.size();
 }
@@ -119,7 +116,8 @@ int KEFileSystemTreeModel::columnCount(const QModelIndex &parent) const
 }
 
 KEResourceBrowser::KEResourceBrowser(QWidget *parent)
-	: QWidget(parent)
+	: QWidget(parent),
+	m_RootItem(nullptr)
 {
 	m_MainWindow = parent;
 	ui.setupUi(this);
@@ -127,6 +125,7 @@ KEResourceBrowser::KEResourceBrowser(QWidget *parent)
 
 KEResourceBrowser::~KEResourceBrowser()
 {
+	SAFE_DELETE(m_RootItem);
 }
 
 QSize KEResourceBrowser::sizeHint() const
@@ -144,7 +143,14 @@ bool KEResourceBrowser::Init()
 	KFileSystemPtrList systems;
 	resSystem->GetAllSubFileSystem(systems);
 
-	QObject::connect(ui.m_SystemCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(OnComboIndexChanged(int)));
+	QObject::connect(ui.m_SystemCombo, SIGNAL(currentIndexChanged(int)),
+		this, SLOT(OnComboIndexChanged(int)));
+
+	QObject::connect(ui.m_TreeView, SIGNAL(doubleClicked(QModelIndex)),
+		this, SLOT(OnTreeViewClicked(QModelIndex)));
+
+	QObject::connect(ui.m_TreeBack, SIGNAL(clicked(bool)),
+		this, SLOT(OnTreeViewBack(bool)));
 
 	for (IKFileSystemPtr fileSys : systems)
 	{
@@ -153,7 +159,7 @@ bool KEResourceBrowser::Init()
 
 		QVariant userData;
 
-		FileSystemComboData comboData;
+		KEFileSystemComboData comboData;
 		comboData.system = fileSys;
 		userData.setValue(comboData);
 
@@ -166,7 +172,7 @@ bool KEResourceBrowser::Init()
 void KEResourceBrowser::OnComboIndexChanged(int index)
 {
 	QVariant userData = ui.m_SystemCombo->itemData(index);
-	FileSystemComboData comboData = userData.value<FileSystemComboData>();
+	KEFileSystemComboData comboData = userData.value<KEFileSystemComboData>();
 
 	IKFileSystemPtr system = comboData.system;
 
@@ -176,13 +182,42 @@ void KEResourceBrowser::OnComboIndexChanged(int index)
 	std::string root;
 	system->GetRoot(root);
 
-	m_TreeModel.Init(system, root);
+	std::string fullPath;
+	system->FullPath(".", root, fullPath);
 
-	ui.m_SystemView->setModel(nullptr);
-	ui.m_SystemView->setModel(&m_TreeModel);
+	SAFE_DELETE(m_RootItem);
+	m_RootItem = new KEFileSystemTreeItem(system, root, fullPath, nullptr, 0, true);
+
+	m_TreeModel.SetItem(m_RootItem);
+	ui.m_TreeView->setModel(nullptr);
+	ui.m_TreeView->setModel(&m_TreeModel);
+}
+
+void KEResourceBrowser::OnTreeViewClicked(QModelIndex index)
+{
+	KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
+	m_TreeModel.SetItem(item);
+	ui.m_TreeView->setModel(nullptr);
+	ui.m_TreeView->setModel(&m_TreeModel);
+}
+
+void KEResourceBrowser::OnTreeViewBack(bool)
+{
+	KEFileSystemTreeItem* item = m_TreeModel.GetItem();
+	if (item)
+	{
+		KEFileSystemTreeItem* parent = item->parent;
+		if (parent)
+		{
+			m_TreeModel.SetItem(parent);
+			ui.m_TreeView->setModel(nullptr);
+			ui.m_TreeView->setModel(&m_TreeModel);
+		}
+	}
 }
 
 bool KEResourceBrowser::UnInit()
 {
+	ui.m_SystemCombo->clear();
 	return true;
 }

@@ -40,7 +40,7 @@ bool KNativeFileSystem::GetRoot(std::string& root)
 bool KNativeFileSystem::FullPath(const std::string& subDir, const std::string& name, std::string& fullPath)
 {
 	std::string fullDir;
-	if (KFileTool::PathJoin(m_Root, name, fullDir) && KFileTool::PathJoin(fullDir, name, fullPath))
+	if (KFileTool::PathJoin(m_Root, subDir, fullDir) && KFileTool::PathJoin(fullDir, name, fullPath))
 	{
 		return true;
 	}

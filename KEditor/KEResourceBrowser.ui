@@ -32,20 +32,34 @@
       </sizepolicy>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
-      <item row="1" column="0">
-       <widget class="QListView" name="m_SystemView"/>
+      <item row="2" column="0">
+       <widget class="QListView" name="m_TreeView"/>
       </item>
       <item row="0" column="0">
        <layout class="QGridLayout" name="treeLayout">
         <item row="0" column="0">
          <layout class="QHBoxLayout" name="horizontalLayout">
           <item>
-           <widget class="QComboBox" name="m_SystemCombo"/>
+           <widget class="QComboBox" name="m_SystemCombo">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QLabel" name="m_SystemLabel">
             <property name="text">
              <string>Root</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="m_TreeBack">
+            <property name="text">
+             <string>../</string>
             </property>
            </widget>
           </item>
@@ -68,7 +82,7 @@
       <item row="0" column="0">
        <layout class="QGridLayout" name="gridLayout">
         <item row="0" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout" stretch="1,99">
+         <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0">
           <item>
            <widget class="QColumnView" name="m_PathView">
             <property name="sizePolicy">
