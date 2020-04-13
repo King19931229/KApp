@@ -248,6 +248,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
+      <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -270,6 +271,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
+      <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -295,6 +297,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
+      <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -319,6 +322,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
+      <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
