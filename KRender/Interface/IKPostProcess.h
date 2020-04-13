@@ -56,7 +56,7 @@ struct IKPostProcessNode
 	virtual IKPostProcessPass* CastPass() = 0;
 	virtual IKPostProcessTexture* CastTexture() = 0;
 
-	// ÄÚ²¿Ê¹ÓÃ ±à¼­Æ÷²»ÄÜµ÷ÓÃ
+	// å†…éƒ¨ä½¿ç”¨ ç¼–è¾‘å™¨ä¸èƒ½è°ƒç”¨
 	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;
 

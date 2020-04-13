@@ -51,7 +51,7 @@ bool KRenderDispatcher::CreateCommandBuffers()
 
 		m_CommandBuffers[i].threadDatas.resize(numThread);
 
-		// ´´½¨Ïß³ÌÃüÁî»º³åÓëÃüÁî³Ø
+		// åˆ›å»ºçº¿ç¨‹å‘½ä»¤ç¼“å†²ä¸å‘½ä»¤æ± 
 		for (size_t threadIdx = 0; threadIdx < numThread; ++threadIdx)
 		{
 			ThreadData& threadData = m_CommandBuffers[i].threadDatas[threadIdx];
@@ -112,7 +112,7 @@ void KRenderDispatcher::ThreadRenderObject(uint32_t frameIndex, uint32_t threadI
 
 	ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
 
-	// https://devblogs.nvidia.com/vulkan-dos-donts/ ResetCommandPoolÊÍ·ÅÄÚ´æ
+	// https://devblogs.nvidia.com/vulkan-dos-donts/ ResetCommandPoolé‡Šæ”¾å†…å­˜
 	threadData.commandPool->Reset();
 
 	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
@@ -174,7 +174,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 		primaryBuffer->BeginRenderPass(offscreenTarget, SUBPASS_CONTENTS_INLINE, clearValue);
 		{
 			primaryBuffer->SetViewport(offscreenTarget);
-			// ¿ªÊ¼äÖÈ¾SkyBox
+			// å¼€å§‹æ¸²æŸ“SkyBox
 			{
 				KRenderCommand command;
 				if (KRenderGlobal::SkyBox.GetRenderCommand(frameIndex, command))
@@ -188,7 +188,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 				}
 			}
 
-			// ¿ªÊ¼äÖÈ¾Îï¼ş
+			// å¼€å§‹æ¸²æŸ“ç‰©ä»¶
 			{
 				KRenderCommandList preZCommandList;
 				KRenderCommandList defaultCommandList;
@@ -363,16 +363,16 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 	KRenderStageStatistics defaultStatistics;
 	KRenderStageStatistics debugStatistics;
 
-	// ¿ªÊ¼äÖÈ¾¹ı³Ì
+	// å¼€å§‹æ¸²æŸ“è¿‡ç¨‹
 	primaryCommandBuffer->BeginPrimary();
 	{
-		// ÒõÓ°»æÖÆRenderPass
+		// é˜´å½±ç»˜åˆ¶RenderPass
 		{
 			{
 				primaryCommandBuffer->BeginRenderPass(shadowMapTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
 				{
 					shadowMapCommandBuffer->BeginSecondary(shadowMapTarget);
-					// TODO ½«Shadow CommandÄÃ³öÀ´²Ù×÷
+					// TODO å°†Shadow Commandæ‹¿å‡ºæ¥æ“ä½œ
 					KRenderGlobal::ShadowMap.UpdateShadowMap(m_Device, shadowMapCommandBuffer.get(), frameIndex);
 					shadowMapCommandBuffer->End();
 				}
@@ -380,14 +380,14 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 				primaryCommandBuffer->EndRenderPass();
 			}
 		}
-		// Îï¼ş»æÖÆRenderPass
+		// ç‰©ä»¶ç»˜åˆ¶RenderPass
 		{
 			primaryCommandBuffer->BeginRenderPass(offscreenTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
 
 			auto commandBuffers = m_CommandBuffers[frameIndex].commandBuffersExec;
 			commandBuffers.clear();
 
-			// »æÖÆSkyBox
+			// ç»˜åˆ¶SkyBox
 			{
 				skyBoxCommandBuffer->BeginSecondary(offscreenTarget);
 				skyBoxCommandBuffer->SetViewport(offscreenTarget);

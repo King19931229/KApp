@@ -148,9 +148,9 @@ void KEPostProcessPassModel::SetInData(KEGraphNodeDataPtr nodeData, PortIndexTyp
 			}
 			else
 			{
-				// 进入这个分支是正常的
-				// 1.节点数据输入可能促发多次
-				// 2.节点图抢在编辑器之前创建
+				// 杩涘叆杩欎釜鍒嗘敮鏄甯哥殑
+				// 1.鑺傜偣鏁版嵁杈撳叆鍙兘淇冨彂澶氭
+				// 2.鑺傜偣鍥炬姠鍦ㄧ紪杈戝櫒涔嬪墠鍒涘缓
 			}
 
 			m_InConn[port] = conn;

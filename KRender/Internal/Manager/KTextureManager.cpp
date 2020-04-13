@@ -70,7 +70,7 @@ bool KTextureManager::Release(IKTexturePtr& texture)
 
 			if(info.useCount == 0)
 			{
-				// µÈ´ýÉè±¸¿ÕÏÐ
+				// ç­‰å¾…è®¾å¤‡ç©ºé—²
 				m_Device->Wait();
 
 				texture->UnInit();
@@ -93,7 +93,7 @@ bool KTextureManager::DestroySampler(IKSamplerPtr& sampler)
 {
 	if(sampler)
 	{
-		// µÈ´ýÉè±¸¿ÕÏÐ
+		// ç­‰å¾…è®¾å¤‡ç©ºé—²
 		m_Device->Wait();
 
 		sampler->UnInit();

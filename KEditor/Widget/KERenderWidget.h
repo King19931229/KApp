@@ -24,7 +24,7 @@ public:
 	bool Init(IKEnginePtr& engine);
 	bool UnInit();
 
-	// 重写基类函数
+	// 閲嶅啓鍩虹被鍑芥暟
 public:
 	virtual QPaintEngine *paintEngine() const { return NULL; }
 protected:

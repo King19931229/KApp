@@ -26,7 +26,7 @@ public:
 	virtual ~KEPropertyBaseView() {}
 	virtual QLayout* GetLayout() = 0;
 
-	// ×ª»ù´¡ÅÉÉúÀà
+	// è½¬åŸºç¡€æ´¾ç”Ÿç±»
 	template<typename T, size_t DIMENSION = 1>
 	KEPropertyView<T, DIMENSION>* SafeCast()
 	{
@@ -41,7 +41,7 @@ public:
 		return static_cast<KEPropertyView<T, DIMENSION>*>(this);
 	}
 
-	// ×ªComboÅÉÉúÀà
+	// è½¬Comboæ´¾ç”Ÿç±»
 	template<typename T, size_t DIMENSION = 1>
 	KEPropertyComboView<T, DIMENSION>* SafeComboCast()
 	{
@@ -56,7 +56,7 @@ public:
 		return static_cast<KEPropertyComboView<T, DIMENSION>*>(this);
 	}
 
-	// ×ªSliderÅÉÉúÀà
+	// è½¬Slideræ´¾ç”Ÿç±»
 	template<typename T, size_t DIMENSION = 1>
 	KEPropertySliderView<T, DIMENSION>* SafeSliderCast()
 	{
@@ -71,7 +71,7 @@ public:
 		return static_cast<KEPropertySliderView<T, DIMENSION>*>(this);
 	}
 
-	// ×ªCheckBoxÅÉÉúÀà
+	// è½¬CheckBoxæ´¾ç”Ÿç±»
 	template<typename T, size_t DIMENSION = 1>
 	KEPropertyCheckBoxView<T, DIMENSION>* SafeCheckBoxCast()
 	{

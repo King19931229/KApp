@@ -40,16 +40,16 @@ protected:
 	PostProcessStage m_Stage;
 	bool m_bInit;
 
-	// ºó´¦ÀíÏà¹Ø×ÊÔ´
+	// åå¤„ç†ç›¸å…³èµ„æº
 	std::vector<IKTexturePtr> m_Textures;
 	std::vector<IKRenderTargetPtr> m_RenderTargets;
 	std::vector<IKPipelinePtr> m_Pipelines;
 	std::vector<IKPipelinePtr> m_ScreenDrawPipelines;
 	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 
-	// Ò»¸öÊä³ö²Û¿ÉÄÜÁ¬½Óµ½¶à¸ö½ÚµãÊä³ö
+	// ä¸€ä¸ªè¾“å‡ºæ§½å¯èƒ½è¿æ¥åˆ°å¤šä¸ªèŠ‚ç‚¹è¾“å‡º
 	std::unordered_set<IKPostProcessConnection*> m_OutputConnection[PostProcessPort::MAX_OUTPUT_SLOT_COUNT];
-	// Ò»¸öÊäÈë²ÛÖ»¿ÉÄÜ´ÓÒ»¸ö½ÚµãÊäÈë
+	// ä¸€ä¸ªè¾“å…¥æ§½åªå¯èƒ½ä»ä¸€ä¸ªèŠ‚ç‚¹è¾“å…¥
 	IKPostProcessConnection* m_InputConnection[PostProcessPort::MAX_INPUT_SLOT_COUNT];
 private:
 	KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage);

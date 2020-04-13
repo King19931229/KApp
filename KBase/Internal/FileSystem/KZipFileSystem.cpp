@@ -71,7 +71,7 @@ bool KZipFileSystem::Open(const std::string& file, IOType priorityType, IKDataSt
 			ret->Write(buf, bufsize);
 			ret->Seek(0);
 
-			// 这里一定要记得释放内存
+			// 杩欓噷涓�瀹氳璁板緱閲婃斁鍐呭瓨
 			free(buf);
 
 			KG_LOG(LM_IO, "[%s] file open in zip [%s]", file.c_str(), m_Root.c_str());

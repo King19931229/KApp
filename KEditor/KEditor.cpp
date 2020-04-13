@@ -33,7 +33,7 @@ KEditor::~KEditor()
 
 bool KEditor::SetupMenu()
 {
-	m_GraphAction = ui.menu->addAction(QString::fromLocal8Bit("½ÚµãÍ¼"));
+	m_GraphAction = ui.menu->addAction(QString::fromLocal8Bit("èŠ‚ç‚¹å›¾"));
 	QObject::connect(m_GraphAction, &QAction::triggered, this, &KEditor::OnOpenGraphWidget);
 	return true;
 }
@@ -48,7 +48,7 @@ bool KEditor::Init()
 {
 	if (!m_bInit)
 	{
-		// ²»ÔÊĞí¹¹½¨²Ù×÷½øÈë²Ù×÷Õ»
+		// ä¸å…è®¸æ„å»ºæ“ä½œè¿›å…¥æ“ä½œæ ˆ
 
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 
@@ -88,7 +88,7 @@ bool KEditor::UnInit()
 {
 	if (m_bInit)
 	{
-		// Çå¿Õ²Ù×÷Õ» Í¬Ê±²»ÔÊĞíÎö¹¹²Ù×÷½øÈë²Ù×÷Õ»
+		// æ¸…ç©ºæ“ä½œæ ˆ åŒæ—¶ä¸å…è®¸ææ„æ“ä½œè¿›å…¥æ“ä½œæ ˆ
 		KEditorGlobal::CommandInvoker.Clear();
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 

@@ -153,7 +153,7 @@ glm::mat3 KGizmoBase::TransformRotate() const
 
 	rotate = glm::mat3(xAxis, yAxis, zAxis);
 
-	// zÖá²»ÊÇx.cross(y) ÊÇ¸ºËõ·Åµ¼ÖÂµÄ
+	// zè½´ä¸æ˜¯x.cross(y) æ˜¯è´Ÿç¼©æ”¾å¯¼è‡´çš„
 	if (glm::dot(glm::cross(xAxis, yAxis), zAxis) < 0.0f)
 	{
 		rotate *= glm::mat3(-1.0f);

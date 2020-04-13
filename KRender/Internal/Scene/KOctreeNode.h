@@ -215,11 +215,11 @@ private:
 		}
 	}
 
-	// ÓÃÓÚ new []
+	// ç”¨äº new []
 	KOctreeNode()
 	{
 	}
-	// ½ûÖ¹¿½±´
+	// ç¦æ­¢æ‹·è´
 	KOctreeNode(const KOctreeNode& rhs) = delete;
 	KOctreeNode& operator=(const KOctreeNode& rhs) = delete;
 public:

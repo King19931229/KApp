@@ -29,7 +29,7 @@ KEPostProcessTextureModel::KEPostProcessTextureModel()
 
 KEPostProcessTextureModel::~KEPostProcessTextureModel()
 {
-	// m_EditWidget ÓÉNodeView³ÖÓĞÉ¾³ı
+	// m_EditWidget ç”±NodeViewæŒæœ‰åˆ é™¤
 }
 
 QString	KEPostProcessTextureModel::Caption() const

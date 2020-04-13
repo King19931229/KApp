@@ -43,7 +43,7 @@ void KEGraphConnectionControl::Exit(KEGraphScene* scene)
 {
 	if (m_View->scene() == scene)
 	{
-		// È¡ÏûÑ¡ÖÐÓëHover×´Ì¬
+		// å–æ¶ˆé€‰ä¸­ä¸ŽHoverçŠ¶æ€
 		m_View->setSelected(false);
 		m_ConnectionGeometry.SetHovered(false);
 

@@ -57,7 +57,7 @@ void KERenderWidget::resizeEvent(QResizeEvent *event)
 void KERenderWidget::paintEvent(QPaintEvent *event)
 {
 	m_Engine->Tick();
-	// 保证此函数体每一帧都调用
+	// 淇濊瘉姝ゅ嚱鏁颁綋姣忎竴甯ч兘璋冪敤
 	update();
 }
 

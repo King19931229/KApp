@@ -155,7 +155,7 @@ void KEPostProcessGraphView::PlaceNodeY(KEGraphNodeControl* node,
 	{
 		float childHeight = records.at(child);
 		auto childView = child->GetView();
-		// Ö»ÓĞÒ»¸ö×Ó½Úµã
+		// åªæœ‰ä¸€ä¸ªå­èŠ‚ç‚¹
 		if (children.size() == 1)
 		{
 			childView->setY(view->y());
@@ -273,17 +273,17 @@ QRectF KEPostProcessGraphView::AllNodeBoundingRect() const
 bool KEPostProcessGraphView::AutoLayout()
 {
 	std::unordered_set<KEGraphNodeControl*> noneInputNodes;
-	// 1.ÊÕ¼¯Èë¶ÈÎª0µÄ½Úµã
+	// 1.æ”¶é›†å…¥åº¦ä¸º0çš„èŠ‚ç‚¹
 	{
 		CollectNoneInputNode(noneInputNodes);
 	}
-	// 1.5 Èç¹ûÕÒ²»µ½Èë¶ÈÎª0µÄ½Úµã Ö±½Ó·µ»Ø
+	// 1.5 å¦‚æœæ‰¾ä¸åˆ°å…¥åº¦ä¸º0çš„èŠ‚ç‚¹ ç›´æ¥è¿”å›
 	if (noneInputNodes.empty())
 	{
 		return true;
 	}
 
-	// 2.ÊÕ¼¯ÔÚÅÅ°æºóÃ¿¸ö½ÚµãµÄ×Ó½Úµã
+	// 2.æ”¶é›†åœ¨æ’ç‰ˆåæ¯ä¸ªèŠ‚ç‚¹çš„å­èŠ‚ç‚¹
 	std::unordered_map<KEGraphNodeControl*, std::vector<KEGraphNodeControl*>> uniqueChilds;
 	{
 		std::unordered_set<KEGraphNodeControl*> visitNodes;
@@ -293,7 +293,7 @@ bool KEPostProcessGraphView::AutoLayout()
 		}
 	}
 
-	// 3.Ìí¼ÓÒ»¸öĞéÄâ¸ù½Úµã Á¬½Óµ½ËùÓĞÈë¶ÈÎª0µÄ½ÚµãÉÏ
+	// 3.æ·»åŠ ä¸€ä¸ªè™šæ‹Ÿæ ¹èŠ‚ç‚¹ è¿æ¥åˆ°æ‰€æœ‰å…¥åº¦ä¸º0çš„èŠ‚ç‚¹ä¸Š
 	KEGraphNodeControl* startNode = nullptr;
 	{
 		auto centerPos = mapToScene(width() / 2, height() / 2);
@@ -305,17 +305,17 @@ bool KEPostProcessGraphView::AutoLayout()
 			uniqueChilds[startNode].push_back(outNode);
 		}
 	}
-	// 4.ÅÅÁĞ½Úµã
+	// 4.æ’åˆ—èŠ‚ç‚¹
 	{
 		std::unordered_map<KEGraphNodeControl*, float> nodeChildHeight;
 		CalcOutputHeight(startNode, nodeChildHeight, uniqueChilds);
 		PlaceNode(startNode, nodeChildHeight, uniqueChilds);
 	}
 
-	// 5.ÒÆ³ıĞéÄâ¸ù½Úµã
+	// 5.ç§»é™¤è™šæ‹Ÿæ ¹èŠ‚ç‚¹
 	m_Scene->RemoveNode(startNode->ID());
 
-	// 6.µ÷ÕûviewÎ»ÖÃÓëËõ·Å
+	// 6.è°ƒæ•´viewä½ç½®ä¸ç¼©æ”¾
 	{
 		QRectF sceneBounding = AllNodeBoundingRect();
 		QPointF viewTopLeft = mapToScene(QPoint(0, 0));
