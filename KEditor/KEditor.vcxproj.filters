@@ -288,5 +288,8 @@
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h">
       <Filter>Graph\Command</Filter>
     </ClInclude>
+    <ClInclude Include="Browser\KEFileSystemTreeItem.h">
+      <Filter>Browser</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

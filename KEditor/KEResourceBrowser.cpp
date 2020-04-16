@@ -4,27 +4,28 @@
 
 #include <assert.h>
 
-KEFileSystemTreeModel::KEFileSystemTreeModel(QObject *parent)
+KEFileSystemModel::KEFileSystemModel(bool viewDir, QObject *parent)
 	: QAbstractItemModel(parent),
+	m_ViewDir(viewDir),
 	m_Item(nullptr)
 {
 }
 
-KEFileSystemTreeModel::~KEFileSystemTreeModel()
+KEFileSystemModel::~KEFileSystemModel()
 {
 }
 
-void KEFileSystemTreeModel::SetItem(KEFileSystemTreeItem* item)
+void KEFileSystemModel::SetItem(KEFileSystemTreeItem* item)
 {
 	m_Item = item;
 }
 
-KEFileSystemTreeItem* KEFileSystemTreeModel::GetItem()
+KEFileSystemTreeItem* KEFileSystemModel::GetItem()
 {
 	return m_Item;
 }
 
-QVariant KEFileSystemTreeModel::data(const QModelIndex &index, int role) const
+QVariant KEFileSystemModel::data(const QModelIndex &index, int role) const
 {
 	if (!index.isValid())
 	{
@@ -34,26 +35,26 @@ QVariant KEFileSystemTreeModel::data(const QModelIndex &index, int role) const
 	if (role == Qt::DisplayRole)
 	{
 		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
-		return QVariant(item->name.c_str());
+		return QVariant(item->GetName().c_str());
 	}
 
 	return QVariant();
 }
 
-Qt::ItemFlags KEFileSystemTreeModel::flags(const QModelIndex &index) const
+Qt::ItemFlags KEFileSystemModel::flags(const QModelIndex &index) const
 {
 	if (!index.isValid())
 		return 0;
 	return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-QVariant KEFileSystemTreeModel::headerData(int section, Qt::Orientation orientation,
+QVariant KEFileSystemModel::headerData(int section, Qt::Orientation orientation,
 	int role) const
 {
 	return QVariant();
 }
 
-QModelIndex KEFileSystemTreeModel::index(int row, int column,
+QModelIndex KEFileSystemModel::index(int row, int column,
 	const QModelIndex &parent) const
 {
 	if (!hasIndex(row, column, parent))
@@ -71,7 +72,7 @@ QModelIndex KEFileSystemTreeModel::index(int row, int column,
 		item = static_cast<KEFileSystemTreeItem*>(parent.internalPointer());
 	}
 
-	KEFileSystemTreeItem* childItem = item->GetChild(static_cast<size_t>(row));
+	KEFileSystemTreeItem* childItem = m_ViewDir ? item->GetDir(static_cast<size_t>(row)) : item->GetFile(static_cast<size_t>(row));
 	if (childItem)
 	{
 		return createIndex(row, column, childItem);
@@ -82,7 +83,7 @@ QModelIndex KEFileSystemTreeModel::index(int row, int column,
 	}
 }
 
-QModelIndex KEFileSystemTreeModel::parent(const QModelIndex &index) const
+QModelIndex KEFileSystemModel::parent(const QModelIndex &index) const
 {
 	if (!index.isValid())
 	{
@@ -90,15 +91,15 @@ QModelIndex KEFileSystemTreeModel::parent(const QModelIndex &index) const
 	}
 
 	KEFileSystemTreeItem* childItem = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
-	KEFileSystemTreeItem *parentItem = childItem->parent;
+	KEFileSystemTreeItem *parentItem = childItem->GetParent();
 
 	if (parentItem == m_Item)
 		return QModelIndex();
 
-	return createIndex(parentItem->index, 0, parentItem);
+	return createIndex(parentItem->GetIndex(), 0, parentItem);
 }
 
-int KEFileSystemTreeModel::rowCount(const QModelIndex &parent) const
+int KEFileSystemModel::rowCount(const QModelIndex &parent) const
 {
 	KEFileSystemTreeItem *parentItem = nullptr;
 
@@ -107,10 +108,10 @@ int KEFileSystemTreeModel::rowCount(const QModelIndex &parent) const
 	else
 		parentItem = static_cast<KEFileSystemTreeItem*>(parent.internalPointer());
 
-	return (int)parentItem->children.size();
+	return (int)(m_ViewDir ? parentItem->GetNumDir() : parentItem->GetNumFile());
 }
 
-int KEFileSystemTreeModel::columnCount(const QModelIndex &parent) const
+int KEFileSystemModel::columnCount(const QModelIndex &parent) const
 {
 	return 1;
 }
@@ -119,12 +120,16 @@ KEResourceBrowser::KEResourceBrowser(QWidget *parent)
 	: QWidget(parent),
 	m_RootItem(nullptr)
 {
+	m_TreeModel = new KEFileSystemModel(true);
+	m_ItemModel = new KEFileSystemModel(false);
 	m_MainWindow = parent;
 	ui.setupUi(this);
 }
 
 KEResourceBrowser::~KEResourceBrowser()
 {
+	SAFE_DELETE(m_TreeModel);
+	SAFE_DELETE(m_ItemModel);
 	SAFE_DELETE(m_RootItem);
 }
 
@@ -169,6 +174,15 @@ bool KEResourceBrowser::Init()
 	return true;
 }
 
+void KEResourceBrowser::RefreshView()
+{
+	ui.m_TreeView->setModel(nullptr);
+	ui.m_TreeView->setModel(m_TreeModel);
+
+	ui.m_ItemView->setModel(nullptr);
+	ui.m_ItemView->setModel(m_ItemModel);
+}
+
 void KEResourceBrowser::OnComboIndexChanged(int index)
 {
 	QVariant userData = ui.m_SystemCombo->itemData(index);
@@ -176,42 +190,45 @@ void KEResourceBrowser::OnComboIndexChanged(int index)
 
 	IKFileSystemPtr system = comboData.system;
 
-	const char* type = KFileSystem::FileSystemTypeToString(system->GetType());
-	ui.m_SystemLabel->setText(type);
+	if (system)
+	{
+		const char* type = KFileSystem::FileSystemTypeToString(system->GetType());
+		ui.m_SystemLabel->setText(type);
 
-	std::string root;
-	system->GetRoot(root);
+		std::string root;
+		system->GetRoot(root);
 
-	std::string fullPath;
-	system->FullPath(".", root, fullPath);
+		std::string fullPath;
+		system->FullPath(".", root, fullPath);
 
-	SAFE_DELETE(m_RootItem);
-	m_RootItem = new KEFileSystemTreeItem(system, root, fullPath, nullptr, 0, true);
+		SAFE_DELETE(m_RootItem);
+		m_RootItem = new KEFileSystemTreeItem(system.get(), root, fullPath, nullptr, 0, true);
 
-	m_TreeModel.SetItem(m_RootItem);
-	ui.m_TreeView->setModel(nullptr);
-	ui.m_TreeView->setModel(&m_TreeModel);
+		m_TreeModel->SetItem(m_RootItem);
+		m_ItemModel->SetItem(m_RootItem);
+		RefreshView();
+	}
 }
 
 void KEResourceBrowser::OnTreeViewClicked(QModelIndex index)
 {
 	KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
-	m_TreeModel.SetItem(item);
-	ui.m_TreeView->setModel(nullptr);
-	ui.m_TreeView->setModel(&m_TreeModel);
+	m_TreeModel->SetItem(item);
+	m_ItemModel->SetItem(item);
+	RefreshView();
 }
 
 void KEResourceBrowser::OnTreeViewBack(bool)
 {
-	KEFileSystemTreeItem* item = m_TreeModel.GetItem();
+	KEFileSystemTreeItem* item = m_TreeModel->GetItem();
 	if (item)
 	{
-		KEFileSystemTreeItem* parent = item->parent;
+		KEFileSystemTreeItem* parent = item->GetParent();
 		if (parent)
 		{
-			m_TreeModel.SetItem(parent);
-			ui.m_TreeView->setModel(nullptr);
-			ui.m_TreeView->setModel(&m_TreeModel);
+			m_TreeModel->SetItem(parent);
+			m_ItemModel->SetItem(parent);
+			RefreshView();
 		}
 	}
 }

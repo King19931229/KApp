@@ -138,6 +138,7 @@
   <ItemGroup>
     <QtMoc Include="Widget\KEPropertyWidget.h" />
     <QtMoc Include="Graph\Utility\KEGraphEmtpyNodeModel.h" />
+    <ClInclude Include="Browser\KEFileSystemTreeItem.h" />
     <ClInclude Include="Command\KECommand.h" />
     <ClInclude Include="Command\KECommandInvoker.h" />
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h" />

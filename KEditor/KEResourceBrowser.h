@@ -4,6 +4,7 @@
 #include <QListView>
 #include "ui_KEResourceBrowser.h"
 #include "KBase/Interface/IKFileSystem.h"
+#include "Browser/KEFileSystemTreeItem.h"
 
 struct KEFileSystemComboData : public QObjectUserData
 {
@@ -11,78 +12,15 @@ struct KEFileSystemComboData : public QObjectUserData
 };
 Q_DECLARE_METATYPE(KEFileSystemComboData);
 
-struct KEFileSystemTreeItem
-{
-	std::string name;
-	std::string fullPath;
-	std::vector<KEFileSystemTreeItem*> children;
-
-	KEFileSystemTreeItem* parent;
-	int index;
-	bool isDir;
-
-	KEFileSystemTreeItem(IKFileSystemPtr system,
-		const std::string& _name,
-		const std::string& _fullPath,
-		KEFileSystemTreeItem* _parent,
-		int _index,
-		bool _isDir)
-	{
-		name = _name;
-		fullPath = _fullPath;
-		parent = _parent;
-		index = _index;
-		isDir = _isDir;
-
-		std::vector<std::string> listDir;
-		system->ListDir(fullPath, listDir);
-
-		int index = 0;
-		for (const std::string& subPath : listDir)
-		{
-			KEFileSystemTreeItem* newItem = nullptr;
-			std::string fullSubPath;
-			system->FullPath(fullPath, subPath, fullSubPath);
-			newItem = new KEFileSystemTreeItem(system,
-				subPath,
-				fullSubPath,
-				this,
-				index,
-				system->IsDir(fullSubPath));
-			++index;
-
-			children.push_back(newItem);
-		}
-	}
-
-	~KEFileSystemTreeItem()
-	{
-		for (KEFileSystemTreeItem* item : children)
-		{
-			SAFE_DELETE(item);
-		}
-		children.clear();
-	}
-
-	KEFileSystemTreeItem* GetChild(size_t index)
-	{
-		if (index < children.size())
-		{
-			return children[index];
-		}
-		return nullptr;
-	}
-};
-
-class KEFileSystemTreeModel : public QAbstractItemModel
+class KEFileSystemModel : public QAbstractItemModel
 {
 	Q_OBJECT
 protected:
-	IKFileSystemPtr m_FileSys;
 	KEFileSystemTreeItem* m_Item;
+	bool m_ViewDir;
 public:
-	KEFileSystemTreeModel(QObject *parent = 0);
-	~KEFileSystemTreeModel();
+	KEFileSystemModel(bool viewDir, QObject *parent = nullptr);
+	~KEFileSystemModel();
 
 	void SetItem(KEFileSystemTreeItem* item);
 	KEFileSystemTreeItem* GetItem();
@@ -109,10 +47,13 @@ public:
 
 	bool Init();
 	bool UnInit();
+	void RefreshView();
 protected:
 	QWidget* m_MainWindow;
 	KEFileSystemTreeItem* m_RootItem;
-	KEFileSystemTreeModel m_TreeModel;
+
+	KEFileSystemModel* m_TreeModel;
+	KEFileSystemModel* m_ItemModel;
 protected Q_SLOTS:
 	void OnComboIndexChanged(int index);
 	void OnTreeViewClicked(QModelIndex index);
