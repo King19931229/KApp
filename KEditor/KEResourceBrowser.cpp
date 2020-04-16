@@ -45,7 +45,7 @@ Qt::ItemFlags KEFileSystemModel::flags(const QModelIndex &index) const
 {
 	if (!index.isValid())
 		return 0;
-	return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+	return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled;
 }
 
 QVariant KEFileSystemModel::headerData(int section, Qt::Orientation orientation,
@@ -151,7 +151,7 @@ bool KEResourceBrowser::Init()
 	QObject::connect(ui.m_SystemCombo, SIGNAL(currentIndexChanged(int)),
 		this, SLOT(OnComboIndexChanged(int)));
 
-	QObject::connect(ui.m_TreeView, SIGNAL(doubleClicked(QModelIndex)),
+	QObject::connect(ui.m_TreeView, SIGNAL(pressed(QModelIndex)),
 		this, SLOT(OnTreeViewClicked(QModelIndex)));
 
 	QObject::connect(ui.m_TreeBack, SIGNAL(clicked(bool)),
@@ -174,13 +174,22 @@ bool KEResourceBrowser::Init()
 	return true;
 }
 
-void KEResourceBrowser::RefreshView()
+void KEResourceBrowser::RefreshTreeView()
 {
 	ui.m_TreeView->setModel(nullptr);
 	ui.m_TreeView->setModel(m_TreeModel);
+}
 
+void KEResourceBrowser::RefreshItemView()
+{
 	ui.m_ItemView->setModel(nullptr);
 	ui.m_ItemView->setModel(m_ItemModel);
+}
+
+void KEResourceBrowser::RefreshView()
+{	
+	RefreshTreeView();
+	RefreshItemView();
 }
 
 void KEResourceBrowser::OnComboIndexChanged(int index)
@@ -213,22 +222,20 @@ void KEResourceBrowser::OnComboIndexChanged(int index)
 void KEResourceBrowser::OnTreeViewClicked(QModelIndex index)
 {
 	KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
-	m_TreeModel->SetItem(item);
 	m_ItemModel->SetItem(item);
-	RefreshView();
+	RefreshItemView();
 }
 
 void KEResourceBrowser::OnTreeViewBack(bool)
 {
-	KEFileSystemTreeItem* item = m_TreeModel->GetItem();
+	KEFileSystemTreeItem* item = m_ItemModel->GetItem();
 	if (item)
 	{
 		KEFileSystemTreeItem* parent = item->GetParent();
 		if (parent)
 		{
-			m_TreeModel->SetItem(parent);
 			m_ItemModel->SetItem(parent);
-			RefreshView();
+			RefreshItemView();
 		}
 	}
 }

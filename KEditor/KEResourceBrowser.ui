@@ -32,9 +32,6 @@
       </sizepolicy>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
-      <item row="2" column="0">
-       <widget class="QListView" name="m_TreeView"/>
-      </item>
       <item row="0" column="0">
        <layout class="QGridLayout" name="treeLayout">
         <item row="0" column="0">
@@ -67,6 +64,9 @@
         </item>
        </layout>
       </item>
+      <item row="2" column="0">
+       <widget class="QTreeView" name="m_TreeView"/>
+      </item>
      </layout>
     </widget>
    </item>
@@ -82,17 +82,7 @@
       <item row="0" column="0">
        <layout class="QGridLayout" name="gridLayout">
         <item row="0" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0">
-          <item>
-           <widget class="QColumnView" name="m_PathView">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-           </widget>
-          </item>
+         <layout class="QVBoxLayout" name="verticalLayout" stretch="0">
           <item>
            <widget class="QListView" name="m_ItemView">
             <property name="sizePolicy">

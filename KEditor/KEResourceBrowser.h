@@ -48,6 +48,9 @@ public:
 	bool Init();
 	bool UnInit();
 	void RefreshView();
+	void RefreshTreeView();
+	void RefreshItemView();
+
 protected:
 	QWidget* m_MainWindow;
 	KEFileSystemTreeItem* m_RootItem;
