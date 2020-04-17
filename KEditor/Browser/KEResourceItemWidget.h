@@ -1,25 +1,17 @@
 #pragma once
 #include "ui_KEResourceItemWidget.h"
+#include "Browser/KEResourceWidgetEventFilter.h"
 
 class KEResourceItemWidget : public QWidget
 {
 protected:
 	QWidget* m_Browser;
+	KEResourceWidgetEventFilter m_Filter;
 public:
 	Ui::KEResourceItemWidget ui;
-	KEResourceItemWidget(QWidget *parent = Q_NULLPTR)
-		: QWidget(parent),
-		m_Browser(parent)
-	{
-		ui.setupUi(this);
-	}
-	~KEResourceItemWidget()
-	{
-	}
+	KEResourceItemWidget(QWidget *parent = Q_NULLPTR);
+	~KEResourceItemWidget();
 
-	QSize sizeHint() const override
-	{
-		QSize masterSize = m_Browser->size();
-		return QSize(masterSize.width() * 4 / 5, masterSize.height());
-	}
+	QSize sizeHint() const override;
+	void resizeEvent(QResizeEvent* event) override;
 };

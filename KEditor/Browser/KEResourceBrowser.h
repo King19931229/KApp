@@ -24,6 +24,9 @@ public:
 	KEResourceBrowser(QWidget *parent = Q_NULLPTR);
 	~KEResourceBrowser();
 
+	QSize TreeWidgetSize() const;
+	QSize ItemWidgetSize() const;
+
 	QSize sizeHint() const override;
 	void resizeEvent(QResizeEvent* event) override;
 
@@ -32,7 +35,6 @@ public:
 	void RefreshView();
 	void RefreshTreeView();
 	void RefreshItemView();
-
 protected:
 	QWidget* m_MainWindow;
 	KEFileSystemTreeItem* m_RootItem;
@@ -45,6 +47,10 @@ protected:
 
 	KEFileSystemModel* m_TreeModel;
 	KEFileSystemModel* m_ItemModel;
+
+	float m_TreeWidgetRatio;
+	float m_ItemWidgetRatio;
+	bool m_Initing;
 protected Q_SLOTS:
 	void OnComboIndexChanged(int index);
 	void OnTreeViewClicked(QModelIndex index);

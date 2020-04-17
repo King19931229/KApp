@@ -54,6 +54,9 @@
     <Filter Include="Browser">
       <UniqueIdentifier>{348d9772-5564-41ac-9c61-fd8476f961c7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Custom">
+      <UniqueIdentifier>{055a1795-78f1-47a3-a259-29ddb8067e85}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -146,6 +149,12 @@
     <ClCompile Include="Browser\KEResourceBrowser.cpp">
       <Filter>Browser</Filter>
     </ClCompile>
+    <ClCompile Include="Browser\KEResourceTreeWidget.cpp">
+      <Filter>Browser</Filter>
+    </ClCompile>
+    <ClCompile Include="Browser\KEResourceItemWidget.cpp">
+      <Filter>Browser</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -195,6 +204,9 @@
       <Filter>Browser</Filter>
     </QtMoc>
     <QtMoc Include="Browser\KEResourceBrowser.h">
+      <Filter>Browser</Filter>
+    </QtMoc>
+    <QtMoc Include="Browser\KEResourceWidgetEventFilter.h">
       <Filter>Browser</Filter>
     </QtMoc>
   </ItemGroup>
@@ -298,6 +310,12 @@
     </ClInclude>
     <ClInclude Include="Browser\KEResourceTreeWidget.h">
       <Filter>Browser</Filter>
+    </ClInclude>
+    <ClInclude Include="Custom\KEResourceTreeView.h">
+      <Filter>Custom</Filter>
+    </ClInclude>
+    <ClInclude Include="Custom\KEResourceItemView.h">
+      <Filter>Custom</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

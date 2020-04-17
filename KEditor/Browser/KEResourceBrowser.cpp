@@ -13,8 +13,12 @@ KEResourceBrowser::KEResourceBrowser(QWidget *parent)
 	m_TreeDockWidget(nullptr),
 	m_ItemDockWidget(nullptr),
 	m_TreeModel(new KEFileSystemModel(true)),
-	m_ItemModel(new KEFileSystemModel(false))
+	m_ItemModel(new KEFileSystemModel(false)),
+	m_Initing(true)
 {
+	m_TreeWidgetRatio = 3.0f / 10.0f;
+	m_ItemWidgetRatio = 1.0f - m_TreeWidgetRatio;
+
 	ui.setupUi(this);
 
 	m_TreeWidget = new KEResourceTreeWidget(this);
@@ -30,6 +34,8 @@ KEResourceBrowser::KEResourceBrowser(QWidget *parent)
 
 	addDockWidget(Qt::LeftDockWidgetArea, m_TreeDockWidget);
 	addDockWidget(Qt::RightDockWidgetArea, m_ItemDockWidget);
+
+	m_Initing = false;
 }
 
 KEResourceBrowser::~KEResourceBrowser()
@@ -43,6 +49,18 @@ KEResourceBrowser::~KEResourceBrowser()
 	SAFE_DELETE(m_RootItem);
 }
 
+QSize KEResourceBrowser::TreeWidgetSize() const
+{
+	QSize ret = QSize((int)(width() * m_TreeWidgetRatio), height());
+	return ret;
+}
+
+QSize KEResourceBrowser::ItemWidgetSize() const
+{
+	QSize ret = QSize((int)(width() * m_ItemWidgetRatio), height());
+	return ret;
+}
+
 QSize KEResourceBrowser::sizeHint() const
 {
 	assert(m_MainWindow);
@@ -53,7 +71,9 @@ QSize KEResourceBrowser::sizeHint() const
 
 void KEResourceBrowser::resizeEvent(QResizeEvent* event)
 {
-
+	QSize treeSize = m_TreeWidget->sizeHint();
+	QSize itemSize = m_ItemWidget->sizeHint();
+	resizeDocks({ m_TreeDockWidget , m_ItemDockWidget }, { treeSize.width(), itemSize.width() }, Qt::Horizontal);
 }
 
 bool KEResourceBrowser::Init()

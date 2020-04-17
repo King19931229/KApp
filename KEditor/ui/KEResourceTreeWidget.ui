@@ -18,7 +18,7 @@
   </property>
   <layout class="QGridLayout" name="gridLayout_4">
    <item row="2" column="0">
-    <widget class="QTreeView" name="m_TreeView"/>
+    <widget class="KEResourceTreeView" name="m_TreeView"/>
    </item>
    <item row="0" column="0">
     <layout class="QGridLayout" name="gridLayout">
@@ -54,6 +54,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>KEResourceTreeView</class>
+   <extends>QTreeView</extends>
+   <header>KEResourceTreeView.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
