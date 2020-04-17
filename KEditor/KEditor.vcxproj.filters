@@ -140,7 +140,12 @@
       <Filter>Command</Filter>
     </ClCompile>
     <ClCompile Include="KEdtiorGlobal.cpp" />
-    <ClCompile Include="KEResourceBrowser.cpp" />
+    <ClCompile Include="Browser\KEFileSystemModel.cpp">
+      <Filter>Browser</Filter>
+    </ClCompile>
+    <ClCompile Include="Browser\KEResourceBrowser.cpp">
+      <Filter>Browser</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -186,15 +191,12 @@
     <QtMoc Include="Widget\KEPropertyWidget.h">
       <Filter>Widget</Filter>
     </QtMoc>
-    <QtMoc Include="KEResourceBrowser.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <QtUic Include="KEditor.ui">
-      <Filter>Form Files</Filter>
-    </QtUic>
-    <QtUic Include="KEResourceBrowser.ui">
-      <Filter>Form Files</Filter>
-    </QtUic>
+    <QtMoc Include="Browser\KEFileSystemModel.h">
+      <Filter>Browser</Filter>
+    </QtMoc>
+    <QtMoc Include="Browser\KEResourceBrowser.h">
+      <Filter>Browser</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="KEditor.qrc">
@@ -291,5 +293,25 @@
     <ClInclude Include="Browser\KEFileSystemTreeItem.h">
       <Filter>Browser</Filter>
     </ClInclude>
+    <ClInclude Include="Browser\KEResourceItemWidget.h">
+      <Filter>Browser</Filter>
+    </ClInclude>
+    <ClInclude Include="Browser\KEResourceTreeWidget.h">
+      <Filter>Browser</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="ui\KEditor.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ui\KEResourceBrowser.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ui\KEResourceItemWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ui\KEResourceTreeWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
 </Project>

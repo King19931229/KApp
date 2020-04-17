@@ -4,7 +4,7 @@
 #include "Widget/KEPostProcessGraphWidget.h"
 #include "Graph/KEGraphRegistrar.h"
 #include "Other/KEQtRenderWindow.h"
-#include "KEResourceBrowser.h"
+#include "Browser/KEResourceBrowser.h"
 #include <QTextCodec>
 #include <assert.h>
 

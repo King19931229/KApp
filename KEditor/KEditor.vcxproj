@@ -90,6 +90,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Browser\KEFileSystemModel.cpp" />
+    <ClCompile Include="Browser\KEResourceBrowser.cpp" />
     <ClCompile Include="Command\KECommandInvoker.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionControl.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionGeometry.cpp" />
@@ -111,7 +113,6 @@
     <ClCompile Include="Graph\Utility\KEGraphEmtpyNodeModel.cpp" />
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="KEdtiorGlobal.cpp" />
-    <ClCompile Include="KEResourceBrowser.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp" />
@@ -126,10 +127,6 @@
     <QtMoc Include="KEditor.h" />
   </ItemGroup>
   <ItemGroup>
-    <QtUic Include="KEditor.ui" />
-    <QtUic Include="KEResourceBrowser.ui" />
-  </ItemGroup>
-  <ItemGroup>
     <QtRcc Include="KEditor.qrc" />
   </ItemGroup>
   <ItemGroup>
@@ -138,13 +135,16 @@
   <ItemGroup>
     <QtMoc Include="Widget\KEPropertyWidget.h" />
     <QtMoc Include="Graph\Utility\KEGraphEmtpyNodeModel.h" />
+    <QtMoc Include="Browser\KEFileSystemModel.h" />
     <ClInclude Include="Browser\KEFileSystemTreeItem.h" />
+    <QtMoc Include="Browser\KEResourceBrowser.h" />
+    <ClInclude Include="Browser\KEResourceItemWidget.h" />
+    <ClInclude Include="Browser\KEResourceTreeWidget.h" />
     <ClInclude Include="Command\KECommand.h" />
     <ClInclude Include="Command\KECommandInvoker.h" />
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h" />
     <ClInclude Include="Graph\Command\KEGraphNodeCommand.h" />
     <ClInclude Include="KEditorGlobal.h" />
-    <QtMoc Include="KEResourceBrowser.h" />
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />
     <ClInclude Include="Property\KEPropertyBaseView.h" />
     <ClInclude Include="Property\KEPropertyCheckBoxView.h" />
@@ -181,6 +181,12 @@
     <ClInclude Include="KEditorConfig.h" />
     <ClInclude Include="Other\KEQtRenderWindow.h" />
     <QtMoc Include="Widget\KEGraphWidget.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="ui\KEditor.ui" />
+    <QtUic Include="ui\KEResourceBrowser.ui" />
+    <QtUic Include="ui\KEResourceItemWidget.ui" />
+    <QtUic Include="ui\KEResourceTreeWidget.ui" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
