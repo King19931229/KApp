@@ -9,8 +9,8 @@ public:
 	{
 	}
 
-	void focusInEvent(QFocusEvent *event) override
+	void mouseMoveEvent(QMouseEvent *event) override
 	{
 		event->ignore();
-	}	
+	}
 };

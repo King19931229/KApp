@@ -12,6 +12,19 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
+    <widget class="KEResourcePathView" name="m_PathView">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>30</height>
+      </size>
+     </property>
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="KEResourceItemView" name="m_ItemView">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -28,6 +41,11 @@
    <class>KEResourceItemView</class>
    <extends>QListView</extends>
    <header>KEResourceItemView.h</header>
+  </customwidget>
+  <customwidget>
+   <class>KEResourcePathView</class>
+   <extends>QColumnView</extends>
+   <header>KEResourcePathView.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

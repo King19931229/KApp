@@ -2,12 +2,14 @@
 
 #include <QMainWindow>
 #include <QDockWidget>
+#include <QStandardItemModel>
 #include "ui_KEResourceBrowser.h"
 
 #include "KBase/Interface/IKFileSystem.h"
 
 #include "Browser/KEFileSystemTreeItem.h"
 #include "Browser/KEFileSystemModel.h"
+#include "Browser/KEResourcePathModel.h"
 #include "Browser/KEResourceItemWidget.h"
 #include "Browser/KEResourceTreeWidget.h"
 
@@ -32,9 +34,9 @@ public:
 
 	bool Init();
 	bool UnInit();
-	void RefreshView();
-	void RefreshTreeView();
-	void RefreshItemView();
+	void RefreshPathView(KEFileSystemTreeItem* item);
+	void RefreshTreeView(KEFileSystemTreeItem* item);
+	void RefreshItemView(KEFileSystemTreeItem* item);
 protected:
 	QWidget* m_MainWindow;
 	KEFileSystemTreeItem* m_RootItem;
@@ -47,6 +49,7 @@ protected:
 
 	KEFileSystemModel* m_TreeModel;
 	KEFileSystemModel* m_ItemModel;
+	KEResourcePathModel* m_PathModel;
 
 	float m_TreeWidgetRatio;
 	float m_ItemWidgetRatio;
@@ -55,6 +58,7 @@ protected Q_SLOTS:
 	void OnComboIndexChanged(int index);
 	void OnTreeViewClicked(QModelIndex index);
 	void OnTreeViewBack(bool);
+	void OnPathViewClicked(QModelIndex index);
 private:
 	Ui::KEResourceBrowser ui;
 };

@@ -91,6 +91,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Browser\KEFileSystemModel.cpp" />
+    <ClCompile Include="Browser\KEResourcePathModel.cpp" />
     <ClCompile Include="Browser\KEResourceBrowser.cpp" />
     <ClCompile Include="Browser\KEResourceItemWidget.cpp" />
     <ClCompile Include="Browser\KEResourceTreeWidget.cpp" />
@@ -140,12 +141,15 @@
     <QtMoc Include="Browser\KEFileSystemModel.h" />
     <ClInclude Include="Browser\KEFileSystemTreeItem.h" />
     <QtMoc Include="Browser\KEResourceBrowser.h" />
+    <QtMoc Include="Browser\KEResourcePathModel.h" />
     <ClInclude Include="Browser\KEResourceItemWidget.h" />
+    <ClInclude Include="Browser\KEResourcePathItem.h" />
     <ClInclude Include="Browser\KEResourceTreeWidget.h" />
     <QtMoc Include="Browser\KEResourceWidgetEventFilter.h" />
     <ClInclude Include="Command\KECommand.h" />
     <ClInclude Include="Command\KECommandInvoker.h" />
     <ClInclude Include="Custom\KEResourceItemView.h" />
+    <ClInclude Include="Custom\KEResourcePathView.h" />
     <ClInclude Include="Custom\KEResourceTreeView.h" />
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h" />
     <ClInclude Include="Graph\Command\KEGraphNodeCommand.h" />

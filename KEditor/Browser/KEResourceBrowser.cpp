@@ -2,6 +2,7 @@
 #include "KEditorConfig.h"
 #include "KBase/Interface/IKFileSystem.h"
 
+#include <stack>
 #include <assert.h>
 
 KEResourceBrowser::KEResourceBrowser(QWidget *parent)
@@ -14,6 +15,7 @@ KEResourceBrowser::KEResourceBrowser(QWidget *parent)
 	m_ItemDockWidget(nullptr),
 	m_TreeModel(new KEFileSystemModel(true)),
 	m_ItemModel(new KEFileSystemModel(false)),
+	m_PathModel(new KEResourcePathModel()),
 	m_Initing(true)
 {
 	m_TreeWidgetRatio = 3.0f / 10.0f;
@@ -44,6 +46,7 @@ KEResourceBrowser::~KEResourceBrowser()
 	SAFE_DELETE(m_TreeWidget);
 	SAFE_DELETE(m_ItemDockWidget);
 	SAFE_DELETE(m_TreeDockWidget);
+	SAFE_DELETE(m_PathModel);
 	SAFE_DELETE(m_ItemModel);
 	SAFE_DELETE(m_TreeModel);
 	SAFE_DELETE(m_RootItem);
@@ -92,6 +95,9 @@ bool KEResourceBrowser::Init()
 	QObject::connect(m_TreeWidget->ui.m_TreeBack, SIGNAL(clicked(bool)),
 		this, SLOT(OnTreeViewBack(bool)));
 
+	QObject::connect(m_ItemWidget->ui.m_PathView, SIGNAL(clicked(QModelIndex)),
+		this , SLOT(OnPathViewClicked(QModelIndex)));
+
 	for (IKFileSystemPtr fileSys : systems)
 	{
 		std::string root;
@@ -109,22 +115,32 @@ bool KEResourceBrowser::Init()
 	return true;
 }
 
-void KEResourceBrowser::RefreshTreeView()
+void KEResourceBrowser::RefreshTreeView(KEFileSystemTreeItem* item)
 {
 	m_TreeWidget->ui.m_TreeView->setModel(nullptr);
-	m_TreeWidget->ui.m_TreeView->setModel(m_TreeModel);
+	m_TreeModel->SetItem(item);
+	m_TreeWidget->ui.m_TreeView->setModel(m_TreeModel);	
 }
 
-void KEResourceBrowser::RefreshItemView()
+void KEResourceBrowser::RefreshPathView(KEFileSystemTreeItem* item)
+{
+	m_ItemWidget->ui.m_PathView->setModel(nullptr);
+	m_PathModel->SetItem(item);
+	m_ItemWidget->ui.m_PathView->setModel(m_PathModel);
+
+	QModelIndex index = m_PathModel->index(0, 0);
+	while (index.isValid())
+	{
+		m_ItemWidget->ui.m_PathView->setCurrentIndex(index);
+		index = m_PathModel->index(0, 0, index);		
+	}
+}
+
+void KEResourceBrowser::RefreshItemView(KEFileSystemTreeItem* item)
 {
 	m_ItemWidget->ui.m_ItemView->setModel(nullptr);
+	m_ItemModel->SetItem(item);
 	m_ItemWidget->ui.m_ItemView->setModel(m_ItemModel);
-}
-
-void KEResourceBrowser::RefreshView()
-{	
-	RefreshTreeView();
-	RefreshItemView();
 }
 
 void KEResourceBrowser::OnComboIndexChanged(int index)
@@ -148,9 +164,9 @@ void KEResourceBrowser::OnComboIndexChanged(int index)
 		SAFE_DELETE(m_RootItem);
 		m_RootItem = new KEFileSystemTreeItem(system.get(), root, fullPath, nullptr, 0, true);
 
-		m_TreeModel->SetItem(m_RootItem);
-		m_ItemModel->SetItem(m_RootItem);
-		RefreshView();
+		RefreshTreeView(m_RootItem);
+		RefreshItemView(m_RootItem);
+		RefreshPathView(m_RootItem);
 	}
 }
 
@@ -158,7 +174,34 @@ void KEResourceBrowser::OnTreeViewClicked(QModelIndex index)
 {
 	KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
 	m_ItemModel->SetItem(item);
-	RefreshItemView();
+
+	RefreshPathView(item);
+	RefreshItemView(item);
+}
+
+void KEResourceBrowser::OnPathViewClicked(QModelIndex index)
+{
+	KEResourcePathItem* pathItem = static_cast<KEResourcePathItem*>(index.internalPointer());
+	KEFileSystemTreeItem* treeItem = pathItem->GetTreeItem();
+
+	while(true)
+	{
+		QModelIndex treeIndex = m_TreeWidget->ui.m_TreeView->currentIndex();
+		QModelIndex parentIndex = treeIndex.parent();
+		m_TreeWidget->ui.m_TreeView->setCurrentIndex(parentIndex);
+		if (!parentIndex.isValid())
+		{
+			break;
+		}
+		KEFileSystemTreeItem* parentTreeItem = static_cast<KEFileSystemTreeItem*>(parentIndex.internalPointer());
+		if (parentTreeItem == treeItem)
+		{
+			break;
+		}
+	}
+
+	RefreshPathView(treeItem);
+	RefreshItemView(treeItem);
 }
 
 void KEResourceBrowser::OnTreeViewBack(bool)
@@ -169,8 +212,14 @@ void KEResourceBrowser::OnTreeViewBack(bool)
 		KEFileSystemTreeItem* parent = item->GetParent();
 		if (parent)
 		{
-			m_ItemModel->SetItem(parent);
-			RefreshItemView();
+			{
+				QModelIndex treeIndex = m_TreeWidget->ui.m_TreeView->currentIndex();
+				QModelIndex parentIndex = treeIndex.parent();
+				m_TreeWidget->ui.m_TreeView->setCurrentIndex(parentIndex);
+			}
+
+			RefreshPathView(parent);
+			RefreshItemView(parent);
 		}
 	}
 }
