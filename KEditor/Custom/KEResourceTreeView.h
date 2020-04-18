@@ -1,6 +1,7 @@
 #pragma once
 #include <QTreeView>
 #include <QMouseEvent>
+
 class KEResourceTreeView : public QTreeView
 {
 public:

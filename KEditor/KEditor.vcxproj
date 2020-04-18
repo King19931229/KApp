@@ -96,6 +96,7 @@
     <ClCompile Include="Browser\KEResourceItemWidget.cpp" />
     <ClCompile Include="Browser\KEResourceTreeWidget.cpp" />
     <ClCompile Include="Command\KECommandInvoker.cpp" />
+    <ClCompile Include="Custom\KEResourceItemView.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionControl.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionGeometry.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionState.cpp" />
@@ -142,9 +143,9 @@
     <ClInclude Include="Browser\KEFileSystemTreeItem.h" />
     <QtMoc Include="Browser\KEResourceBrowser.h" />
     <QtMoc Include="Browser\KEResourcePathModel.h" />
-    <ClInclude Include="Browser\KEResourceItemWidget.h" />
+    <QtMoc Include="Browser\KEResourceItemWidget.h" />
     <ClInclude Include="Browser\KEResourcePathItem.h" />
-    <ClInclude Include="Browser\KEResourceTreeWidget.h" />
+    <QtMoc Include="Browser\KEResourceTreeWidget.h" />
     <QtMoc Include="Browser\KEResourceWidgetEventFilter.h" />
     <ClInclude Include="Command\KECommand.h" />
     <ClInclude Include="Command\KECommandInvoker.h" />

@@ -52,6 +52,7 @@ public:
 	~KEFileSystemTreeItem()
 	{
 		Clear();
+		m_System = nullptr;
 	}
 
 	void Refresh()
@@ -135,4 +136,5 @@ public:
 	inline int GetIndex() const { return m_Index; }
 	inline const std::string& GetName() const { return m_Name; }
 	inline const std::string& GetFullPath() const { return m_FullPath; }
+	inline IKFileSystem* GetSystem() const { return m_System; }
 };

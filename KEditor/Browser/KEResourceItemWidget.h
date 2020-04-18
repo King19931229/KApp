@@ -4,6 +4,7 @@
 
 class KEResourceItemWidget : public QWidget
 {
+	Q_OBJECT
 protected:
 	QWidget* m_Browser;
 	KEResourceWidgetEventFilter m_Filter;
@@ -14,4 +15,8 @@ public:
 
 	QSize sizeHint() const override;
 	void resizeEvent(QResizeEvent* event) override;
+protected Q_SLOTS:
+	void ShowContextMenu(const QPoint& pos);
+	void OnOpenFileExternal();
+	void OnOpenFileLocation();
 };

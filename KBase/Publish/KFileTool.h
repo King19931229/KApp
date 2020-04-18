@@ -5,6 +5,8 @@
 
 namespace KFileTool
 {
+	EXPORT_DLL bool ExecFolder(std::string& execPath);
+	EXPORT_DLL bool AbsPath(const std::string& relpath, std::string& absPath);
 	EXPORT_DLL bool IsPathExist(const std::string& filePath);
 
 	EXPORT_DLL bool RemoveFile(const std::string& filePath);

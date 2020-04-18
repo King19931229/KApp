@@ -158,6 +158,9 @@
     <ClCompile Include="Browser\KEResourcePathModel.cpp">
       <Filter>Browser</Filter>
     </ClCompile>
+    <ClCompile Include="Custom\KEResourceItemView.cpp">
+      <Filter>Custom</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -213,6 +216,12 @@
       <Filter>Browser</Filter>
     </QtMoc>
     <QtMoc Include="Browser\KEResourcePathModel.h">
+      <Filter>Browser</Filter>
+    </QtMoc>
+    <QtMoc Include="Browser\KEResourceItemWidget.h">
+      <Filter>Browser</Filter>
+    </QtMoc>
+    <QtMoc Include="Browser\KEResourceTreeWidget.h">
       <Filter>Browser</Filter>
     </QtMoc>
   </ItemGroup>
@@ -307,12 +316,6 @@
     </ClInclude>
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h">
       <Filter>Graph\Command</Filter>
-    </ClInclude>
-    <ClInclude Include="Browser\KEResourceItemWidget.h">
-      <Filter>Browser</Filter>
-    </ClInclude>
-    <ClInclude Include="Browser\KEResourceTreeWidget.h">
-      <Filter>Browser</Filter>
     </ClInclude>
     <ClInclude Include="Custom\KEResourceTreeView.h">
       <Filter>Custom</Filter>

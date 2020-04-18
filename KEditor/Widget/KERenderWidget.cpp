@@ -1,7 +1,8 @@
 #include "KERenderWidget.h"
 #include "Other/KEQtRenderWindow.h"
-#include <qevent.h>
-
+#include "Browser/KEFileSystemTreeItem.h"
+#include "Custom/KEResourceItemView.h"
+#include <QWheelEvent>
 #include <assert.h>
 
 KERenderWidget::KERenderWidget(QWidget* pParent)
@@ -13,6 +14,8 @@ KERenderWidget::KERenderWidget(QWidget* pParent)
 	setAttribute(Qt::WA_NativeWindow, true);
 	setMouseTracking(true);
 	setFocusPolicy(Qt::StrongFocus);
+
+	setAcceptDrops(true);
 }
 
 KERenderWidget::~KERenderWidget()
@@ -213,5 +216,32 @@ void KERenderWidget::wheelEvent(QWheelEvent *event)
 			KScrollCallbackType& callback = (*(*it));
 			callback((float)0, (float)delta);
 		}
+	}
+}
+
+void KERenderWidget::dragEnterEvent(QDragEnterEvent *event)
+{
+	event->setDropAction(Qt::MoveAction);
+	event->accept();
+}
+
+void KERenderWidget::dragMoveEvent(QDragMoveEvent *event)
+{
+	event->setDropAction(Qt::MoveAction);
+	event->accept();
+}
+
+void KERenderWidget::dragLeaveEvent(QDragLeaveEvent *event)
+{
+}
+
+void KERenderWidget::dropEvent(QDropEvent *event)
+{
+	QObjectUserData* userData = event->mimeData()->userData(0);
+	KEResourceItemDropData* resItemData = dynamic_cast<KEResourceItemDropData*>(userData);
+	if (resItemData)
+	{
+		KEFileSystemTreeItem* item = resItemData->item;
+		std::string fullPath = item->GetFullPath();
 	}
 }

@@ -29,6 +29,39 @@
 
 namespace KFileTool
 {
+	bool ExecFolder(std::string& execPath)
+	{
+#ifdef _WIN32
+		char szPath[1024] = { 0 };
+		if (GetModuleFileNameA(NULL, szPath, sizeof(szPath) - 1))
+		{
+			execPath = std::string(szPath);
+			std::replace(execPath.begin(), execPath.end(), '\\', '/');
+			const char* trimEnd = strrchr(execPath.c_str(), '/');
+			const char* trimBegin = execPath.c_str();
+			execPath = execPath.substr(0, trimEnd - trimBegin);
+			return true;
+		}
+		return false;
+#else
+		// TODO
+		return false;
+#endif
+	}
+
+	bool AbsPath(const std::string& relpath, std::string& absPath)
+	{
+		char szPath[1024] = { 0 };
+		if (getcwd(szPath, sizeof(szPath) - 1))
+		{
+			absPath = std::string(szPath);
+			std::replace(absPath.begin(), absPath.end(), '\\', '/');
+			absPath = absPath + "/" + relpath;
+			return true;
+		}
+		return false;
+	}
+
 	bool IsPathExist(const std::string& filePath)
 	{
 		const char* pFilePath = filePath.c_str();
@@ -115,6 +148,7 @@ namespace KFileTool
 		}
 		return false;
 #else
+		// TODO
 		return false;
 #endif
 	}
@@ -130,6 +164,7 @@ namespace KFileTool
 		}
 		return false;
 #else
+		// TODO
 		return false;
 #endif
 	}
@@ -154,6 +189,7 @@ namespace KFileTool
 		}
 		return false;
 #else
+		// TODO
 		return false;
 #endif
 	}
