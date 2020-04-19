@@ -17,7 +17,7 @@ KERenderWidget::KERenderWidget(QWidget* pParent)
 	setAttribute(Qt::WA_PaintOnScreen, true);
 	setAttribute(Qt::WA_NativeWindow, true);
 	setMouseTracking(true);
-	setFocusPolicy(Qt::StrongFocus);
+	setFocusPolicy(Qt::ClickFocus);
 
 	setAcceptDrops(true);
 }
@@ -221,6 +221,31 @@ void KERenderWidget::wheelEvent(QWheelEvent *event)
 			callback((float)0, (float)delta);
 		}
 	}
+}
+
+void KERenderWidget::HandleFocusEvent(QFocusEvent *event)
+{
+	bool gainFocus = event->gotFocus();
+	if (!m_RenderWindow->m_FocusCallbacks.empty())
+	{
+		for (auto it = m_RenderWindow->m_FocusCallbacks.begin(),
+			itEnd = m_RenderWindow->m_FocusCallbacks.end();
+			it != itEnd; ++it)
+		{
+			KFocusCallbackType& callback = (*(*it));
+			callback(gainFocus);
+		}
+	}
+}
+
+void KERenderWidget::focusInEvent(QFocusEvent *event)
+{
+	HandleFocusEvent(event);
+}
+
+void KERenderWidget::focusOutEvent(QFocusEvent *event)
+{
+	HandleFocusEvent(event);
 }
 
 void KERenderWidget::dragEnterEvent(QDragEnterEvent *event)

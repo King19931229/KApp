@@ -315,7 +315,14 @@ bool KAndroidRenderWindow::IsResizable()
 
 bool KAndroidRenderWindow::SetWindowTitle(const char* pName)
 {
+	assert(false && "Android window can not set window title");
 	return false;
+}
+
+bool KAndroidRenderWindow::SetRenderDevice(IKRenderDevice* device)
+{
+	m_Device = device;
+	return true;
 }
 
 bool KAndroidRenderWindow::RegisterKeyboardCallback(KKeyboardCallbackType* callback)
@@ -378,8 +385,14 @@ bool KAndroidRenderWindow::UnRegisterTouchCallback(KTouchCallbackType *callback)
 	return false;
 }
 
-bool KAndroidRenderWindow::SetRenderDevice(IKRenderDevice* device)
+bool KAndroidRenderWindow::RegisterFocusCallback(KFocusCallbackType* callback)
 {
-	m_Device = device;
-	return true;
+	assert(false && "Android window can not set focus callback");
+	return false;
+}
+
+bool KAndroidRenderWindow::UnRegisterFocusCallback(KFocusCallbackType* callback)
+{
+	assert(false && "Android window can not unset focus callback");
+	return false;
 }

@@ -7,7 +7,7 @@
 #include "android_native_app_glue.h"
 #endif
 
-class KAndroidRenderWindow : IKRenderWindow
+class KAndroidRenderWindow : public IKRenderWindow
 {
 protected:
 	IKRenderDevice* m_Device;
@@ -44,6 +44,7 @@ public:
 	virtual bool IsResizable();
 
 	virtual bool SetWindowTitle(const char* pName);
+	virtual bool SetRenderDevice(IKRenderDevice* device);
 
 	virtual bool RegisterKeyboardCallback(KKeyboardCallbackType* callback);
 	virtual bool RegisterMouseCallback(KMouseCallbackType* callback);
@@ -55,7 +56,8 @@ public:
 	virtual bool UnRegisterScrollCallback(KScrollCallbackType* callback);
 	virtual bool UnRegisterTouchCallback(KTouchCallbackType* callback);
 
-	virtual bool SetRenderDevice(IKRenderDevice* device);
+	virtual bool RegisterFocusCallback(KFocusCallbackType* callback);
+	virtual bool UnRegisterFocusCallback(KFocusCallbackType* callback);
 
 #ifdef __ANDROID__
 	void ShowAlert(const char* message);

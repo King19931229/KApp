@@ -17,6 +17,7 @@ protected:
 
 	void HandleMouseEvent(QMouseEvent *event, InputAction action);
 	void HandleKeyEvent(QKeyEvent *event, InputAction action);
+	void HandleFocusEvent(QFocusEvent *event);
 public:
 	KERenderWidget(QWidget* pParent = NULL);
 	~KERenderWidget();
@@ -37,6 +38,9 @@ protected:
 	virtual void mouseReleaseEvent(QMouseEvent *event) override;
 	virtual void mouseMoveEvent(QMouseEvent *event) override;
 	virtual void wheelEvent(QWheelEvent *event) override;
+
+	virtual void focusInEvent(QFocusEvent *event) override;
+	virtual void focusOutEvent(QFocusEvent *event) override;
 
 	virtual void dragEnterEvent(QDragEnterEvent *event) override;
 	virtual void dragMoveEvent(QDragMoveEvent *event) override;

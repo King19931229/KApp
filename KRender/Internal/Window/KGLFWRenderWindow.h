@@ -6,7 +6,7 @@
 #include "GLFW/glfw3.h"
 #endif
 
-class KGLFWRenderWindow : IKRenderWindow
+class KGLFWRenderWindow : public IKRenderWindow
 {
 protected:
 	IKRenderDevice* m_Device;
@@ -19,6 +19,7 @@ protected:
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
 	std::vector<KScrollCallbackType*> m_ScrollCallbacks;
+	std::vector<KFocusCallbackType*> m_FocusCallbacks;
 
 	static bool GLFWKeyToInputKeyboard(int key, InputKeyboard& keyboard);
 	static bool GLFWMouseButtonToInputMouseButton(int mouse, InputMouseButton& mouseButton);
@@ -28,6 +29,7 @@ protected:
 	static void KeyboardCallback(GLFWwindow* handle, int key, int scancode, int action, int mods);
 	static void MouseCallback(GLFWwindow* handle, int mouse, int action, int mods);
 	static void ScrollCallback(GLFWwindow* handle, double xoffset, double yoffset);
+	static void FocusCallback(GLFWwindow* handle, int focus);
 
 	void OnMouseMove();
 #endif
@@ -59,6 +61,7 @@ public:
 	virtual bool IsResizable();
 
 	virtual bool SetWindowTitle(const char* pName);
+	virtual bool SetRenderDevice(IKRenderDevice* device);
 
 	virtual bool RegisterKeyboardCallback(KKeyboardCallbackType* callback);
 	virtual bool RegisterMouseCallback(KMouseCallbackType* callback);
@@ -70,5 +73,6 @@ public:
 	virtual bool UnRegisterScrollCallback(KScrollCallbackType* callback);
 	virtual bool UnRegisterTouchCallback(KTouchCallbackType* callback);
 
-	virtual bool SetRenderDevice(IKRenderDevice* device);
+	virtual bool RegisterFocusCallback(KFocusCallbackType* callback);
+	virtual bool UnRegisterFocusCallback(KFocusCallbackType* callback);
 };

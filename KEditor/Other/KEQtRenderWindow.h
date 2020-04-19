@@ -11,6 +11,7 @@ protected:
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
 	std::vector<KScrollCallbackType*> m_ScrollCallbacks;
+	std::vector<KFocusCallbackType*> m_FocusCallbacks;
 public:
 	KEQtRenderWindow();
 	virtual ~KEQtRenderWindow();
@@ -39,6 +40,7 @@ public:
 	virtual bool IsResizable();
 
 	virtual bool SetWindowTitle(const char* pName);
+	virtual bool SetRenderDevice(IKRenderDevice* device);
 
 	virtual bool RegisterKeyboardCallback(KKeyboardCallbackType* callback);
 	virtual bool RegisterMouseCallback(KMouseCallbackType* callback);
@@ -50,5 +52,6 @@ public:
 	virtual bool UnRegisterScrollCallback(KScrollCallbackType* callback);
 	virtual bool UnRegisterTouchCallback(KTouchCallbackType* callback);
 
-	virtual bool SetRenderDevice(IKRenderDevice* device);
+	virtual bool RegisterFocusCallback(KFocusCallbackType* callback);
+	virtual bool UnRegisterFocusCallback(KFocusCallbackType* callback);
 };

@@ -197,6 +197,22 @@ void KGLFWRenderWindow::ScrollCallback(GLFWwindow* handle, double xoffset, doubl
 	}
 }
 
+void KGLFWRenderWindow::FocusCallback(GLFWwindow* handle, int focus)
+{
+	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
+	bool gainFocus = focus == GLFW_TRUE;
+	if (window && window->m_Device && !window->m_FocusCallbacks.empty())
+	{
+		for (auto it = window->m_FocusCallbacks.begin(),
+			itEnd = window->m_FocusCallbacks.end();
+			it != itEnd; ++it)
+		{
+			KFocusCallbackType& callback = (*(*it));
+			callback(gainFocus);
+		}
+	}
+}
+
 void KGLFWRenderWindow::OnMouseMove()
 {
 	if (!m_MouseCallbacks.empty())
@@ -240,6 +256,7 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 				glfwSetKeyCallback(m_window, KeyboardCallback);
 				glfwSetMouseButtonCallback(m_window, MouseCallback);
 				glfwSetScrollCallback(m_window, ScrollCallback);
+				glfwSetWindowFocusCallback(m_window, FocusCallback);
 			}
 			glfwSetWindowPos(m_window, (int)top, (int)left);
 #ifdef	_WIN32
@@ -293,6 +310,7 @@ bool KGLFWRenderWindow::UnInit()
 	m_KeyboardCallbacks.clear();
 	m_MouseCallbacks.clear();
 	m_ScrollCallbacks.clear();
+	m_FocusCallbacks.clear();
 #endif
 	return true;
 }
@@ -442,6 +460,12 @@ bool KGLFWRenderWindow::SetWindowTitle(const char* pName)
 	return false;
 }
 
+bool KGLFWRenderWindow::SetRenderDevice(IKRenderDevice* device)
+{
+	m_Device = device;
+	return true;
+}
+
 bool KGLFWRenderWindow::RegisterKeyboardCallback(KKeyboardCallbackType* callback)
 {
 #ifndef __ANDROID__
@@ -538,8 +562,30 @@ bool KGLFWRenderWindow::UnRegisterTouchCallback(KTouchCallbackType *callback)
 	return false;
 }
 
-bool KGLFWRenderWindow::SetRenderDevice(IKRenderDevice* device)
+bool KGLFWRenderWindow::RegisterFocusCallback(KFocusCallbackType* callback)
 {
-	m_Device = device;
-	return true;
+#ifndef __ANDROID__
+	if (callback && std::find(m_FocusCallbacks.begin(), m_FocusCallbacks.end(), callback) == m_FocusCallbacks.end())
+	{
+		m_FocusCallbacks.push_back(callback);
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool KGLFWRenderWindow::UnRegisterFocusCallback(KFocusCallbackType* callback)
+{
+#ifndef __ANDROID__
+	if (callback)
+	{
+		auto it = std::find(m_FocusCallbacks.begin(), m_FocusCallbacks.end(), callback);
+		if (it != m_FocusCallbacks.end())
+		{
+			m_FocusCallbacks.erase(it);
+			return true;
+		}
+	}
+#endif
+	return false;
 }

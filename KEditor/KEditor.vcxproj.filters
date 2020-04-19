@@ -60,6 +60,9 @@
     <Filter Include="Resource">
       <UniqueIdentifier>{854fe095-7534-4266-9202-315fe6df1e2a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Manipulator">
+      <UniqueIdentifier>{6a40a812-1396-4fcd-abc8-200111b685f8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -166,6 +169,9 @@
     </ClCompile>
     <ClCompile Include="Resource\KEResourceImporter.cpp">
       <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Manipulator\KEEntityManipulator.cpp">
+      <Filter>Manipulator</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -340,6 +346,9 @@
     </ClInclude>
     <ClInclude Include="Resource\KEResourceImporter.h">
       <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Manipulator\KEEntityManipulator.h">
+      <Filter>Manipulator</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

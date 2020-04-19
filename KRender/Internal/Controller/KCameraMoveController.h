@@ -12,6 +12,7 @@ protected:
 	KMouseCallbackType m_MouseCallback;
 	KScrollCallbackType m_ScrollCallback;
 	KTouchCallbackType m_TouchCallback;
+	KFocusCallbackType m_FocusCallback;
 
 	int m_Move[3];
 

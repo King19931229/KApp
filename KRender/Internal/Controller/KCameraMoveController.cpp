@@ -60,6 +60,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window)
 				sign = -1;
 			}
 
+			// TODO 判断key up之前是否已经key down
 			switch (key)
 			{
 			case INPUT_KEY_W:
@@ -245,10 +246,16 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window)
 			}
 		};
 
+		m_FocusCallback = [this](bool gainFocus)
+		{
+			ZeroData();
+		};
+
 #if defined(_WIN32)
 		m_Window->RegisterKeyboardCallback(&m_KeyCallback);
 		m_Window->RegisterMouseCallback(&m_MouseCallback);
 		m_Window->RegisterScrollCallback(&m_ScrollCallback);
+		m_Window->RegisterFocusCallback(&m_FocusCallback);
 #elif defined(__ANDROID__)
 		m_Window->RegisterTouchCallback(&m_TouchCallback);
 #endif
@@ -266,6 +273,7 @@ bool KCameraMoveController::UnInit()
 		m_Window->UnRegisterKeyboardCallback(&m_KeyCallback);
 		m_Window->UnRegisterMouseCallback(&m_MouseCallback);
 		m_Window->UnRegisterScrollCallback(&m_ScrollCallback);
+		m_Window->UnRegisterFocusCallback(&m_FocusCallback);
 #elif defined(__ANDROID__)
 		m_Window->UnRegisterTouchCallback(&m_TouchCallback);
 #endif

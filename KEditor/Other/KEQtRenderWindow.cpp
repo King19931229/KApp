@@ -41,11 +41,18 @@ bool KEQtRenderWindow::Init(void* hwnd)
 bool KEQtRenderWindow::UnInit()
 {
 	m_HWND = nullptr;
+
 	if (m_Device)
 	{
 		m_Device->UnInit();
 		m_Device = nullptr;
 	}
+
+	m_KeyboardCallbacks.clear();
+	m_MouseCallbacks.clear();
+	m_ScrollCallbacks.clear();
+	m_FocusCallbacks.clear();
+
 	return true;
 }
 
@@ -112,6 +119,12 @@ bool KEQtRenderWindow::IsResizable()
 bool KEQtRenderWindow::SetWindowTitle(const char* pName)
 {
 	return false;
+}
+
+bool KEQtRenderWindow::SetRenderDevice(IKRenderDevice* device)
+{
+	m_Device = device;
+	return true;
 }
 
 bool KEQtRenderWindow::RegisterKeyboardCallback(KKeyboardCallbackType* callback)
@@ -196,8 +209,26 @@ bool KEQtRenderWindow::UnRegisterTouchCallback(KTouchCallbackType* callback)
 	return false;
 }
 
-bool KEQtRenderWindow::SetRenderDevice(IKRenderDevice* device)
+bool KEQtRenderWindow::RegisterFocusCallback(KFocusCallbackType* callback)
 {
-	m_Device = device;
-	return true;
+	if (callback && std::find(m_FocusCallbacks.begin(), m_FocusCallbacks.end(), callback) == m_FocusCallbacks.end())
+	{
+		m_FocusCallbacks.push_back(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KEQtRenderWindow::UnRegisterFocusCallback(KFocusCallbackType* callback)
+{
+	if (callback)
+	{
+		auto it = std::find(m_FocusCallbacks.begin(), m_FocusCallbacks.end(), callback);
+		if (it != m_FocusCallbacks.end())
+		{
+			m_FocusCallbacks.erase(it);
+			return true;
+		}
+	}
+	return false;
 }

@@ -118,6 +118,7 @@
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="KEdtiorGlobal.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Manipulator\KEEntityManipulator.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessPassModel.cpp" />
@@ -156,6 +157,7 @@
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h" />
     <ClInclude Include="Graph\Command\KEGraphNodeCommand.h" />
     <ClInclude Include="KEditorGlobal.h" />
+    <ClInclude Include="Manipulator\KEEntityManipulator.h" />
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />
     <ClInclude Include="Property\KEPropertyBaseView.h" />
     <ClInclude Include="Property\KEPropertyCheckBoxView.h" />
