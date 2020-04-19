@@ -1,6 +1,7 @@
 #pragma once
 #include "KRender/Interface/IKRenderConfig.h"
 #include "KRender/Interface/IKRenderScene.h"
+#include "KRender/Publish/KCamera.h"
 
 typedef std::function<void()> KRenderCoreInitCallback;
 
@@ -20,6 +21,8 @@ struct IKRenderCore
 	virtual IKRenderScene* GetRenderScene() = 0;
 	virtual IKRenderWindow* GetRenderWindow() = 0;
 	virtual IKRenderDevice* GetRenderDevice() = 0;
+
+	virtual KCamera* GetCamera() = 0;
 };
 typedef std::unique_ptr<IKRenderCore> IKRenderCorePtr;
 

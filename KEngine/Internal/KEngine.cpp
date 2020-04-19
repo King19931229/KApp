@@ -8,9 +8,23 @@
 #include "KBase/Interface/IKCodec.h"
 #include "KBase/Publish/KPlatform.h"
 
-IKEnginePtr CreateEngine()
+namespace KEngineGlobal
 {
-	return IKEnginePtr(new KEngine());
+	void CreateEngine()
+	{
+		if (!Engine)
+		{
+			Engine = IKEnginePtr(new KEngine());
+		}
+	}
+	void DestroyEngine()
+	{
+		if (Engine)
+		{
+			Engine = nullptr;
+		}
+	}
+	IKEnginePtr Engine = nullptr;
 }
 
 KEngine::KEngine()

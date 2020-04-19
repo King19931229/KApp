@@ -88,7 +88,9 @@ bool KVulkanTexture::InitDevice(bool async)
 	auto waitImpl = [=]()->bool
 	{
 		WaitMemoryTask();
-		return true;
+		if (m_bCreateAsRt || m_ImageData.pData)
+			return true;
+		return false;
 	};
 
 	auto loadImpl = [=]()->bool

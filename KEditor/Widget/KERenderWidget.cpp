@@ -1,7 +1,11 @@
 #include "KERenderWidget.h"
 #include "Other/KEQtRenderWindow.h"
 #include "Browser/KEFileSystemTreeItem.h"
+
 #include "Custom/KEResourceItemView.h"
+#include "KEngine/Interface/IKEngine.h"
+#include "KEditorGlobal.h"
+
 #include <QWheelEvent>
 #include <assert.h>
 
@@ -243,5 +247,16 @@ void KERenderWidget::dropEvent(QDropEvent *event)
 	{
 		KEFileSystemTreeItem* item = resItemData->item;
 		std::string fullPath = item->GetFullPath();
+
+		IKEnginePtr engine = KEngineGlobal::Engine;
+		// TODO IKScene
+		IKRenderCore* renderCore = engine->GetRenderCore();
+		IKRenderScene* renderScene = renderCore->GetRenderScene();
+
+		IKEntityPtr entity = KEditorGlobal::ResourceImporter.Drop(renderCore->GetCamera(), fullPath);
+		if (entity)
+		{
+			renderScene->Add(entity);
+		}
 	}
 }

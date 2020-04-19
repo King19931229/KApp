@@ -57,6 +57,9 @@
     <Filter Include="Custom">
       <UniqueIdentifier>{055a1795-78f1-47a3-a259-29ddb8067e85}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{854fe095-7534-4266-9202-315fe6df1e2a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -160,6 +163,9 @@
     </ClCompile>
     <ClCompile Include="Custom\KEResourceItemView.cpp">
       <Filter>Custom</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\KEResourceImporter.cpp">
+      <Filter>Resource</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -331,6 +337,9 @@
     </ClInclude>
     <ClInclude Include="Custom\KEResourcePathView.h">
       <Filter>Custom</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\KEResourceImporter.h">
+      <Filter>Resource</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

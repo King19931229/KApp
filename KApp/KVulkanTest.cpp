@@ -10,7 +10,9 @@
 int main()
 {
 	DUMP_MEMORY_LEAK_BEGIN();
-	IKEnginePtr engine = CreateEngine();
+
+	KEngineGlobal::CreateEngine();
+	IKEnginePtr engine = KEngineGlobal::Engine;
 
 	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_GLFW);
 	KEngineOptions options;
@@ -85,6 +87,7 @@ int main()
 
 	engine->Loop();
 	engine->UnInit();
-
 	engine = nullptr;
+
+	KEngineGlobal::DestroyEngine();
 }

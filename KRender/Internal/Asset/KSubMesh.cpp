@@ -161,7 +161,6 @@ do\
 #	define PRE_Z_DISABLE
 #endif
 
-
 bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline)
 {
 	assert(m_pVertexData);

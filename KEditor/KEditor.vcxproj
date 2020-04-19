@@ -122,6 +122,7 @@
     <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessPassModel.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessTextureModel.cpp" />
+    <ClCompile Include="Resource\KEResourceImporter.cpp" />
     <ClCompile Include="Widget\KEGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPropertyWidget.cpp" />
@@ -162,6 +163,7 @@
     <ClInclude Include="Property\KEPropertyModel.h" />
     <ClInclude Include="Property\KEPropertyLineEditView.h" />
     <ClInclude Include="Property\KEPropertySliderView.h" />
+    <ClInclude Include="Resource\KEResourceImporter.h" />
     <ClInclude Include="Widget\KEPostProcessGraphWidget.h" />
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />
     <QtMoc Include="Graph\Connection\KEGraphConnectionControl.h" />

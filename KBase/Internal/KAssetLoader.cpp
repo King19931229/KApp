@@ -128,6 +128,10 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 		{
 			continue;
 		}
+		if (!paiMesh->HasNormals())
+		{
+			continue;
+		}
 
 		KAssetImportResult::ModelPart part;
 
@@ -286,7 +290,11 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 		memcpy(indicesData.data(), index32Buffer.data(), indicesData.size());
 	}
 
-	return true;
+	if (result.vertexCount > 0 && result.indexCount > 0)
+	{
+		return true;
+	}
+	return false;
 }
 
 bool KAssetLoader::ImportFromMemory(const char* pData, size_t dataSize, const KAssetImportOption& importOption, KAssetImportResult& result)
@@ -307,6 +315,7 @@ bool KAssetLoader::ImportFromMemory(const char* pData, size_t dataSize, const KA
 		return true;
 	}
 
+	LogError("Import of scene from memory failure.");
 	return false;
 }
 
@@ -328,9 +337,10 @@ bool KAssetLoader::Import(const char* pszFile, const KAssetImportOption& importO
 	// Now we can access the file's contents.
 	if(ImportAiScene(scene, importOption, result))
 	{
-		LogInfo("Import of scene from memory succeeded.");
+		LogInfo("Import of scene from file succeeded.");
 		return true;
 	}
 
+	LogError("Import of scene from file failure.");
 	return false;
 }

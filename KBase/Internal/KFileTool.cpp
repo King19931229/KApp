@@ -269,6 +269,22 @@ namespace KFileTool
 		return true;
 	}
 
+	bool SplitExt(const std::string& path, std::string& name, std::string& ext)
+	{
+		std::string::size_type pos = path.find_last_of(".");
+		if (pos != std::string::npos)
+		{
+			name = path.substr(0, pos);
+			ext = path.substr(pos);
+		}
+		else
+		{
+			name = path;
+			ext = "";
+		}
+		return true;
+	}
+
 	bool ParentFolder(const std::string& path, std::string& parentFolder)
 	{
 		if(!path.empty())

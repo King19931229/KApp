@@ -1,4 +1,5 @@
 #include "Publish/KStringUtil.h"
+#include <algorithm>
 
 namespace KStringUtil
 {
@@ -88,5 +89,19 @@ namespace KStringUtil
 		if(src.length() >= chars.length() && src.substr(src.length() - chars.length()) == chars)
 			return true;
 		return false;
+	}
+
+	bool Upper(const std::string& src, std::string& dest)
+	{
+		dest = src;
+		std::transform(dest.begin(), dest.end(), dest.begin(), toupper);
+		return true;
+	}
+
+	bool Lower(const std::string& src, std::string& dest)
+	{
+		dest = src;
+		std::transform(dest.begin(), dest.end(), dest.begin(), tolower);
+		return true;
 	}
 }

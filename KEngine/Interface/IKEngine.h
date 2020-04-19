@@ -46,6 +46,11 @@ struct IKEngine
 	virtual IKRenderCore* GetRenderCore() = 0;
 };
 
-typedef std::unique_ptr<IKEngine> IKEnginePtr;
+typedef std::shared_ptr<IKEngine> IKEnginePtr;
 
-EXPORT_DLL IKEnginePtr CreateEngine();
+namespace KEngineGlobal
+{
+	extern void CreateEngine();
+	extern void DestroyEngine();
+	extern IKEnginePtr Engine;
+}

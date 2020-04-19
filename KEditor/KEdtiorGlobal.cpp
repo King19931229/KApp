@@ -3,4 +3,5 @@
 namespace KEditorGlobal
 {
 	KECommandInvoker CommandInvoker;
+	KEResourceImporter ResourceImporter;
 }

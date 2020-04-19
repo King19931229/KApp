@@ -60,7 +60,8 @@ bool KEditor::Init()
 		options.window.hwnd = (void*)m_RenderWidget->winId();
 		options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_EDITOR;
 
-		m_Engine = CreateEngine();
+		KEngineGlobal::CreateEngine();
+		m_Engine = KEngineGlobal::Engine;
 		m_Engine->Init(std::move(window), options);
 
 		m_RenderWidget->Init(m_Engine);
@@ -94,6 +95,7 @@ bool KEditor::UnInit()
 
 		m_Engine->UnInit();
 		m_Engine = nullptr;
+		KEngineGlobal::DestroyEngine();
 
 		if (m_RenderWidget)
 		{
