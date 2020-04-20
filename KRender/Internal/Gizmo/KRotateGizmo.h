@@ -40,4 +40,6 @@ public:
 	void OnMouseDown(unsigned int x, unsigned int y) override;
 	void OnMouseMove(unsigned int x, unsigned int y) override;
 	void OnMouseUp(unsigned int x, unsigned int y) override;
+
+	bool IsTriggered() const final;
 };

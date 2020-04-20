@@ -83,5 +83,6 @@ public:
 	virtual IKRenderWindow* GetRenderWindow() { return m_Window; }
 	virtual IKRenderDevice* GetRenderDevice() { return m_Device; }
 
+	virtual IKGizmoPtr GetGizmo() { return m_Gizmo; }
 	virtual KCamera* GetCamera() { return &m_Camera; }
 };

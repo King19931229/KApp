@@ -360,8 +360,12 @@ void KMoveGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				}
 
 				moveVec = moveVec.x * xAxis + moveVec.y * yAxis + moveVec.z * zAxis;
-
 				m_Transform = glm::translate(glm::mat4(1.0f), moveVec) * m_Transform;
+
+				for (KGizmoTransformCallback* callback : m_TransformCallback)
+				{
+					(*callback)(m_Transform);
+				}
 
 				m_IntersectPos = intersectPos;
 			}
@@ -372,4 +376,9 @@ void KMoveGizmo::OnMouseMove(unsigned int x, unsigned int y)
 void KMoveGizmo::OnMouseUp(unsigned int x, unsigned int y)
 {
 	m_OperatorType = MoveOperator::MOVE_NONE;
+}
+
+bool KMoveGizmo::IsTriggered() const
+{
+	return m_OperatorType != MoveOperator::MOVE_NONE;
 }

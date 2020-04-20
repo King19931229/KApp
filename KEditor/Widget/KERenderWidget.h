@@ -11,6 +11,7 @@ protected:
 	IKEngine* m_Engine;
 	IKRenderDevice* m_RenderDevice;
 	KEQtRenderWindow* m_RenderWindow;
+	bool m_KeyDown[INPUT_KEY_COUNT];
 
 	static bool QtButtonToMouseButton(Qt::MouseButton button, InputMouseButton& mouseButton);
 	static bool QtKeyToInputKeyboard(Qt::Key button, InputKeyboard& keyboard);

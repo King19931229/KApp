@@ -18,8 +18,8 @@ KERenderWidget::KERenderWidget(QWidget* pParent)
 	setAttribute(Qt::WA_NativeWindow, true);
 	setMouseTracking(true);
 	setFocusPolicy(Qt::ClickFocus);
-
 	setAcceptDrops(true);
+	ZERO_ARRAY_MEMORY(m_KeyDown);
 }
 
 KERenderWidget::~KERenderWidget()
@@ -112,6 +112,9 @@ bool KERenderWidget::QtKeyToInputKeyboard(Qt::Key button, InputKeyboard& keyboar
 	case Qt::Key_Enter:
 		keyboard = INPUT_KEY_ENTER;
 		return true;
+	case Qt::Key_Control:
+		keyboard = INPUT_KEY_CTRL;
+		return true;
 
 	default:
 		return false;
@@ -120,12 +123,28 @@ bool KERenderWidget::QtKeyToInputKeyboard(Qt::Key button, InputKeyboard& keyboar
 
 void KERenderWidget::HandleKeyEvent(QKeyEvent *event, InputAction action)
 {
-	if (!m_RenderWindow->m_KeyboardCallbacks.empty())
-	{
-		Qt::Key key = (Qt::Key)event->key();
-		InputKeyboard keyboard;
+	Qt::Key key = (Qt::Key)event->key();
+	InputKeyboard keyboard;
 
-		if (QtKeyToInputKeyboard(key, keyboard))
+	if (QtKeyToInputKeyboard(key, keyboard))
+	{
+		if (action == INPUT_ACTION_RELEASE)
+		{
+			// 键盘按下消息在其他窗口促发
+			// 但是释放消息在这个窗口发生
+			// 该消息直接忽略
+			if (!m_KeyDown[keyboard])
+			{
+				return;
+			}
+			m_KeyDown[keyboard] = false;
+		}
+		else if (INPUT_ACTION_PRESS)
+		{
+			m_KeyDown[keyboard] = true;
+		}
+
+		if (!m_RenderWindow->m_KeyboardCallbacks.empty())
 		{
 			for (auto it = m_RenderWindow->m_KeyboardCallbacks.begin(),
 				itEnd = m_RenderWindow->m_KeyboardCallbacks.end();

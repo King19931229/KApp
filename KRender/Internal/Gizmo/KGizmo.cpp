@@ -82,7 +82,6 @@ bool KGizmo::UnInit()
 	}
 
 	return false;
-
 }
 
 void KGizmo::Enter()
@@ -156,4 +155,33 @@ void KGizmo::OnMouseMove(unsigned int x, unsigned int y)
 void KGizmo::OnMouseUp(unsigned int x, unsigned int y)
 {
 	m_CurrentGizmo->OnMouseUp(x, y);
+}
+
+bool KGizmo::RegisterTransformCallback(KGizmoTransformCallback* callback)
+{
+	if (callback)
+	{
+		m_TranslateGizmo->RegisterTransformCallback(callback);
+		m_RotateGizmo->RegisterTransformCallback(callback);
+		m_ScaleGizmo->RegisterTransformCallback(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KGizmo::UnRegisterTransformCallback(KGizmoTransformCallback* callback)
+{
+	if (callback)
+	{
+		m_TranslateGizmo->UnRegisterTransformCallback(callback);
+		m_RotateGizmo->UnRegisterTransformCallback(callback);
+		m_ScaleGizmo->UnRegisterTransformCallback(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KGizmo::IsTriggered() const
+{
+	return m_CurrentGizmo->IsTriggered();
 }

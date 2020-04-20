@@ -172,10 +172,7 @@ bool KRenderCore::InitGizmo()
 	m_Gizmo = CreateGizmo();
 	m_Gizmo->Init(&m_Camera);
 	m_Gizmo->SetManipulateMode(GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL);
-	m_Gizmo->SetMatrix(glm::rotate(glm::mat4(1.0f), glm::pi<float>() * 0.3f, glm::vec3(1.0f, 0.0f, 0.0f)) *
-		glm::translate(glm::mat4(1.0f), glm::vec3(30.0f, 30.0f, 0.0f)));
-	m_Gizmo->SetType(GizmoType::GIZMO_TYPE_ROTATE);
-	m_Gizmo->Enter();
+	m_Gizmo->SetType(GizmoType::GIZMO_TYPE_MOVE);
 	return true;
 }
 

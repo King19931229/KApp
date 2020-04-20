@@ -232,6 +232,11 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				glm::mat4 scale = glm::scale(glm::mat4(1.0f), TransformScale());
 
 				m_Transform = translate * rotate * scale;
+
+				for (KGizmoTransformCallback* callback : m_TransformCallback)
+				{
+					(*callback)(m_Transform);
+				}
 			}
 
 		}
@@ -242,4 +247,9 @@ void KRotateGizmo::OnMouseUp(unsigned int x, unsigned int y)
 {
 	m_OperatorType = RotateOperator::ROTATE_NONE;
 	SetEntityColor(m_RotateEntity, EMTPY_COLOR);
+}
+
+bool KRotateGizmo::IsTriggered() const
+{
+	return m_OperatorType != RotateOperator::ROTATE_NONE;
 }

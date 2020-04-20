@@ -72,11 +72,11 @@ bool KGizmoController::Init(IKGizmoPtr gizmo, KCamera* camera, IKRenderWindow* w
 				size_t width = 0;
 				size_t height = 0;
 				m_Window->GetSize(width, height);
-
 				m_Gizmo->SetScreenSize((unsigned int) width, (unsigned int) height);
 
 				if (action == INPUT_ACTION_PRESS)
 				{
+#if 0
 					IKEntityPtr entity = nullptr;
 					if (mouse == INPUT_MOUSE_BUTTON_LEFT)
 					{
@@ -91,6 +91,7 @@ bool KGizmoController::Init(IKGizmoPtr gizmo, KCamera* camera, IKRenderWindow* w
 							}
 						}
 					}
+#endif
 					m_Gizmo->OnMouseDown((unsigned int) xPos, (unsigned int) yPos);
 				}
 

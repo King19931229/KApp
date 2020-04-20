@@ -25,6 +25,7 @@ protected:
 	glm::vec3 GetAxis(GizmoAxis axis);
 
 	std::vector<IKEntityPtr> m_AllEntity;
+	std::vector<KGizmoTransformCallback*> m_TransformCallback;
 
 	virtual glm::mat3 GetRotate(IKEntityPtr entity, const glm::mat3& gizmoRotate);
 	virtual glm::vec3 GetScale();
@@ -56,4 +57,7 @@ public:
 	void SetDisplayScale(float scale) final;
 
 	void SetScreenSize(unsigned int width, unsigned int height) final;
+
+	bool RegisterTransformCallback(KGizmoTransformCallback* callback) final;
+	bool UnRegisterTransformCallback(KGizmoTransformCallback* callback) final;
 };

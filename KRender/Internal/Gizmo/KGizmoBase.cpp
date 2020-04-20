@@ -88,7 +88,32 @@ bool KGizmoBase::UnInit()
 			}
 		}
 	}
+	m_TransformCallback.clear();
 	return true;
+}
+
+bool KGizmoBase::RegisterTransformCallback(KGizmoTransformCallback* callback)
+{
+	if (callback && std::find(m_TransformCallback.begin(), m_TransformCallback.end(), callback) == m_TransformCallback.end())
+	{
+		m_TransformCallback.push_back(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KGizmoBase::UnRegisterTransformCallback(KGizmoTransformCallback* callback)
+{
+	if (callback)
+	{
+		auto it = std::find(m_TransformCallback.begin(), m_TransformCallback.end(), callback);
+		if (it != m_TransformCallback.end())
+		{
+			m_TransformCallback.erase(it);
+			return true;
+		}
+	}
+	return false;
 }
 
 void KGizmoBase::Enter()

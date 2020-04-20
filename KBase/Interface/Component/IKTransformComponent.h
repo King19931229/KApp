@@ -18,4 +18,5 @@ struct IKTransformComponent : public IKComponentBase
 	virtual void SetScale(const glm::vec3& scale) = 0;
 	virtual void SetPosition(const glm::vec3& position) = 0;
 	virtual const glm::mat4& GetFinal() const = 0;
+	virtual void SetFinal(const glm::mat4& final) = 0;
 };

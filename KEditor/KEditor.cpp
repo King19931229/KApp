@@ -49,12 +49,12 @@ bool KEditor::Init()
 	if (!m_bInit)
 	{
 		// 不允许构建操作进入操作栈
-
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 
 		m_RenderWidget = new KERenderWidget(this);
 
 		IKRenderWindowPtr window = IKRenderWindowPtr(new KEQtRenderWindow());
+		IKRenderWindow* rawWindow = window.get();
 		
 		KEngineOptions options;
 		options.window.hwnd = (void*)m_RenderWidget->winId();
@@ -78,6 +78,10 @@ bool KEditor::Init()
 		m_ResourceDock->setWidget(m_ResourceBrowser);
 		addDockWidget(Qt::BottomDockWidgetArea, m_ResourceDock);
 
+		IKRenderCore* renderCore = m_Engine->GetRenderCore();
+
+		KEditorGlobal::EntityManipulator.Init(renderCore->GetGizmo(), rawWindow, renderCore->GetCamera(), renderCore->GetRenderScene());
+
 		m_bInit = true;
 		return true;
 	}
@@ -92,6 +96,8 @@ bool KEditor::UnInit()
 		// 清空操作栈 同时不允许析构操作进入操作栈
 		KEditorGlobal::CommandInvoker.Clear();
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
+
+		KEditorGlobal::EntityManipulator.UnInit();
 
 		m_Engine->UnInit();
 		m_Engine = nullptr;

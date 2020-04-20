@@ -444,6 +444,10 @@ void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
 						fabs(newScale[2][2]) > zeroExp)
 					{
 						m_Transform = translate * rotate * newScale;
+						for (KGizmoTransformCallback* callback : m_TransformCallback)
+						{
+							(*callback)(m_Transform);
+						}
 					}
 
 					m_IntersectPos = intersectPos;
@@ -458,4 +462,9 @@ void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
 void KScaleGizmo::OnMouseUp(unsigned int x, unsigned int y)
 {
 	m_OperatorType = ScaleOperator::SCALE_NONE;
+}
+
+bool KScaleGizmo::IsTriggered() const
+{
+	return m_OperatorType != ScaleOperator::SCALE_NONE;
 }

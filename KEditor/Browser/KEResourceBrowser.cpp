@@ -89,7 +89,7 @@ bool KEResourceBrowser::Init()
 	QObject::connect(m_TreeWidget->ui.m_SystemCombo, SIGNAL(currentIndexChanged(int)),
 		this, SLOT(OnComboIndexChanged(int)));
 
-	QObject::connect(m_TreeWidget->ui.m_TreeView, SIGNAL(pressed(QModelIndex)),
+	QObject::connect(m_TreeWidget->ui.m_TreeView, SIGNAL(clicked(QModelIndex)),
 		this, SLOT(OnTreeViewClicked(QModelIndex)));
 
 	QObject::connect(m_TreeWidget->ui.m_TreeBack, SIGNAL(clicked(bool)),
@@ -117,15 +117,15 @@ bool KEResourceBrowser::Init()
 
 void KEResourceBrowser::RefreshTreeView(KEFileSystemTreeItem* item)
 {
-	m_TreeWidget->ui.m_TreeView->setModel(nullptr);
 	m_TreeModel->SetItem(item);
+	m_TreeWidget->ui.m_TreeView->setModel(nullptr);
 	m_TreeWidget->ui.m_TreeView->setModel(m_TreeModel);	
 }
 
 void KEResourceBrowser::RefreshPathView(KEFileSystemTreeItem* item)
 {
-	m_ItemWidget->ui.m_PathView->setModel(nullptr);
 	m_PathModel->SetItem(item);
+	m_ItemWidget->ui.m_PathView->setModel(nullptr);
 	m_ItemWidget->ui.m_PathView->setModel(m_PathModel);
 
 	QModelIndex index = m_PathModel->index(0, 0);
@@ -161,12 +161,14 @@ void KEResourceBrowser::OnComboIndexChanged(int index)
 		std::string fullPath;
 		system->FullPath(".", root, fullPath);
 
-		SAFE_DELETE(m_RootItem);
+		KEFileSystemTreeItem* previousItem = m_RootItem;
 		m_RootItem = new KEFileSystemTreeItem(system.get(), root, fullPath, nullptr, 0, true);
 
 		RefreshTreeView(m_RootItem);
 		RefreshItemView(m_RootItem);
 		RefreshPathView(m_RootItem);
+
+		SAFE_DELETE(previousItem);
 	}
 }
 

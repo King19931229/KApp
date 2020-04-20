@@ -2,6 +2,7 @@
 #include "glm/glm.hpp"
 #include "KRender/Publish/KCamera.h"
 #include <memory>
+#include <functional>
 
 enum class GizmoManipulateMode
 {
@@ -15,6 +16,8 @@ enum class GizmoType
 	GIZMO_TYPE_ROTATE,
 	GIZMO_TYPE_SCALE
 };
+
+typedef std::function<void(const glm::mat4& currentTransform)> KGizmoTransformCallback;
 
 struct IKGizmo
 {
@@ -44,6 +47,11 @@ struct IKGizmo
 	virtual void OnMouseDown(unsigned int x, unsigned int y) = 0;
 	virtual void OnMouseMove(unsigned int x, unsigned int y) = 0;
 	virtual void OnMouseUp(unsigned int x, unsigned int y) = 0;
+
+	virtual bool RegisterTransformCallback(KGizmoTransformCallback* callback) = 0;
+	virtual bool UnRegisterTransformCallback(KGizmoTransformCallback* callback) = 0;
+
+	virtual bool IsTriggered() const = 0;
 };
 
 typedef std::shared_ptr<IKGizmo> IKGizmoPtr;

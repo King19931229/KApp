@@ -62,6 +62,38 @@ public:
 		return m_FinalTransform.MODEL;
 	}
 
+	void SetFinal(const glm::mat4& final) override
+	{
+		m_Position = glm::vec3(final[3][0], final[3][1], final[3][2]);
+
+		glm::mat3 rotate;
+
+		glm::vec3 xAxis = final * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+		glm::vec3 yAxis = final * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+		glm::vec3 zAxis = final * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+
+		xAxis = glm::normalize(xAxis);
+		yAxis = glm::normalize(yAxis);
+		zAxis = glm::normalize(zAxis);
+
+		rotate = glm::mat3(xAxis, yAxis, zAxis);
+
+		// z轴不是x.cross(y) 是负缩放导致的
+		if (glm::dot(glm::cross(xAxis, yAxis), zAxis) < 0.0f)
+		{
+			rotate *= glm::mat3(-1.0f);
+		}
+
+		m_Rotate = glm::quat_cast(rotate);
+
+		glm::mat4 translate = glm::translate(glm::mat4(1.0f), m_Position);
+		glm::mat4 scale = glm::inverse(translate * glm::mat4(rotate)) * final;
+
+		m_Scale = glm::vec3(scale[0][0], scale[1][1], scale[2][2]);
+
+		UpdateTransform();
+	}
+
 	inline const KConstantDefinition::OBJECT& FinalTransform() const
 	{
 		return m_FinalTransform;
