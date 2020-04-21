@@ -78,6 +78,7 @@
     <ClInclude Include="Publish\KList.h" />
     <ClInclude Include="Publish\KLockFreeQueue.h" />
     <ClInclude Include="Publish\KLockQueue.h" />
+    <ClInclude Include="Publish\KMath.h" />
     <ClInclude Include="Publish\KNumerical.h" />
     <ClInclude Include="Publish\KObjectPool.h" />
     <ClInclude Include="Publish\KPlane.h" />

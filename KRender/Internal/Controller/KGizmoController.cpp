@@ -124,6 +124,7 @@ bool KGizmoController::UnInit()
 		m_Window->UnRegisterMouseCallback(&m_MouseCallback);
 #endif
 	}
+
 	m_Gizmo = nullptr;
 	m_Camera = nullptr;
 	m_Window = nullptr;

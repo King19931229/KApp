@@ -18,6 +18,7 @@ enum class GizmoType
 };
 
 typedef std::function<void(const glm::mat4& currentTransform)> KGizmoTransformCallback;
+typedef std::function<void(bool)> KGizmoTriggerCallback;
 
 struct IKGizmo
 {
@@ -50,6 +51,9 @@ struct IKGizmo
 
 	virtual bool RegisterTransformCallback(KGizmoTransformCallback* callback) = 0;
 	virtual bool UnRegisterTransformCallback(KGizmoTransformCallback* callback) = 0;
+
+	virtual bool RegisterTriggerCallback(KGizmoTriggerCallback* callback) = 0;
+	virtual bool UnRegisterTriggerCallback(KGizmoTriggerCallback* callback) = 0;
 
 	virtual bool IsTriggered() const = 0;
 };

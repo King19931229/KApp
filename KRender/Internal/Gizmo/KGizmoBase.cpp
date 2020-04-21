@@ -1,6 +1,7 @@
 #include "KGizmoBase.h"
 #include "KBase/Interface/Component/IKDebugComponent.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
+#include "KBase/Publish/KMath.h"
 #include "Internal/KRenderGlobal.h"
 
 KGizmoBase::KGizmoBase()
@@ -89,31 +90,44 @@ bool KGizmoBase::UnInit()
 		}
 	}
 	m_TransformCallback.clear();
+	m_TriggerCallback.clear();
 	return true;
+}
+
+void KGizmoBase::OnTriggerCallback(bool trigger)
+{
+	for (KGizmoTriggerCallback* callback : m_TriggerCallback)
+	{
+		(*callback)(trigger);
+	}
+}
+
+void KGizmoBase::OnTransformCallback(const glm::mat4& transform)
+{
+	for (KGizmoTransformCallback* callback : m_TransformCallback)
+	{
+		(*callback)(m_Transform);
+	}
 }
 
 bool KGizmoBase::RegisterTransformCallback(KGizmoTransformCallback* callback)
 {
-	if (callback && std::find(m_TransformCallback.begin(), m_TransformCallback.end(), callback) == m_TransformCallback.end())
-	{
-		m_TransformCallback.push_back(callback);
-		return true;
-	}
-	return false;
+	return RegisterCallback(m_TransformCallback, callback);
 }
 
 bool KGizmoBase::UnRegisterTransformCallback(KGizmoTransformCallback* callback)
 {
-	if (callback)
-	{
-		auto it = std::find(m_TransformCallback.begin(), m_TransformCallback.end(), callback);
-		if (it != m_TransformCallback.end())
-		{
-			m_TransformCallback.erase(it);
-			return true;
-		}
-	}
-	return false;
+	return UnRegisterCallback(m_TransformCallback, callback);
+}
+
+bool KGizmoBase::RegisterTriggerCallback(KGizmoTriggerCallback* callback)
+{
+	return RegisterCallback(m_TriggerCallback, callback);
+}
+
+bool KGizmoBase::UnRegisterTriggerCallback(KGizmoTriggerCallback* callback)
+{
+	return UnRegisterCallback(m_TriggerCallback, callback);
 }
 
 void KGizmoBase::Enter()
@@ -153,38 +167,17 @@ glm::vec3 KGizmoBase::GetScale()
 
 glm::vec3 KGizmoBase::TransformPos() const
 {
-	return glm::vec3(m_Transform[3][0], m_Transform[3][1], m_Transform[3][2]);
+	return KMath::ExtractPosition(m_Transform);
 }
 
 glm::vec3 KGizmoBase::TransformScale() const
 {
-	glm::mat4 rotate = TransformRotate();
-	glm::mat4 translate = glm::translate(glm::mat4(1.0f), TransformPos());
-	glm::mat4 scale = glm::inverse(translate * rotate) * m_Transform;
-	return glm::vec3(scale[0][0], scale[1][1], scale[2][2]);
+	return KMath::ExtractScale(m_Transform);
 }
 
 glm::mat3 KGizmoBase::TransformRotate() const
 {
-	glm::mat3 rotate;
-
-	glm::vec3 xAxis = m_Transform * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-	glm::vec3 yAxis = m_Transform * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-	glm::vec3 zAxis = m_Transform * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-
-	xAxis = glm::normalize(xAxis);
-	yAxis = glm::normalize(yAxis);
-	zAxis = glm::normalize(zAxis);
-
-	rotate = glm::mat3(xAxis, yAxis, zAxis);
-
-	// z轴不是x.cross(y) 是负缩放导致的
-	if (glm::dot(glm::cross(xAxis, yAxis), zAxis) < 0.0f)
-	{
-		rotate *= glm::mat3(-1.0f);
-	}
-
-	return rotate;
+	return KMath::ExtractRotate(m_Transform);
 }
 
 void KGizmoBase::Update()

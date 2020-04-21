@@ -139,7 +139,7 @@ bool KRenderCore::UnInitRenderDispatcher()
 bool KRenderCore::InitController()
 {
 	IKUIOverlayPtr ui = m_Device->GetUIOverlay();
-	m_CameraMoveController.Init(&m_Camera, m_Window);
+	m_CameraMoveController.Init(&m_Camera, m_Window, m_Gizmo);
 	m_UIController.Init(ui, m_Window);
 	m_GizmoContoller.Init(m_Gizmo, &m_Camera, m_Window);
 

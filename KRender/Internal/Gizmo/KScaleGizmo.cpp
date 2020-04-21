@@ -307,6 +307,10 @@ void KScaleGizmo::OnMouseDown(unsigned int x, unsigned int y)
 {
 	m_OperatorType = GetOperatorType(x, y, m_PickPlane, m_IntersectPos);
 	m_PickPos = glm::vec2(x, y);
+	if (IsTriggered())
+	{
+		OnTriggerCallback(true);
+	}
 }
 
 void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
@@ -444,10 +448,7 @@ void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
 						fabs(newScale[2][2]) > zeroExp)
 					{
 						m_Transform = translate * rotate * newScale;
-						for (KGizmoTransformCallback* callback : m_TransformCallback)
-						{
-							(*callback)(m_Transform);
-						}
+						OnTransformCallback(m_Transform);
 					}
 
 					m_IntersectPos = intersectPos;
@@ -461,6 +462,10 @@ void KScaleGizmo::OnMouseMove(unsigned int x, unsigned int y)
 
 void KScaleGizmo::OnMouseUp(unsigned int x, unsigned int y)
 {
+	if (IsTriggered())
+	{
+		OnTriggerCallback(false);
+	}
 	m_OperatorType = ScaleOperator::SCALE_NONE;
 }
 

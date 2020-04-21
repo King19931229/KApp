@@ -45,5 +45,8 @@ public:
 	bool RegisterTransformCallback(KGizmoTransformCallback* callback) override;
 	bool UnRegisterTransformCallback(KGizmoTransformCallback* callback) override;
 
+	bool RegisterTriggerCallback(KGizmoTriggerCallback* callback) override;
+	bool UnRegisterTriggerCallback(KGizmoTriggerCallback* callback) override;
+
 	bool IsTriggered() const override;
 };

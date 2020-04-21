@@ -181,6 +181,30 @@ bool KGizmo::UnRegisterTransformCallback(KGizmoTransformCallback* callback)
 	return false;
 }
 
+bool KGizmo::RegisterTriggerCallback(KGizmoTriggerCallback* callback)
+{
+	if (callback)
+	{
+		m_TranslateGizmo->RegisterTriggerCallback(callback);
+		m_RotateGizmo->RegisterTriggerCallback(callback);
+		m_ScaleGizmo->RegisterTriggerCallback(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KGizmo::UnRegisterTriggerCallback(KGizmoTriggerCallback* callback)
+{
+	if (callback)
+	{
+		m_TranslateGizmo->UnRegisterTriggerCallback(callback);
+		m_RotateGizmo->UnRegisterTriggerCallback(callback);
+		m_ScaleGizmo->UnRegisterTriggerCallback(callback);
+		return true;
+	}
+	return false;
+}
+
 bool KGizmo::IsTriggered() const
 {
 	return m_CurrentGizmo->IsTriggered();

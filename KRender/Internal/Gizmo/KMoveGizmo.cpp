@@ -274,6 +274,10 @@ KMoveGizmo::MoveOperator KMoveGizmo::GetOperatorType(unsigned int x, unsigned in
 void KMoveGizmo::OnMouseDown(unsigned int x, unsigned int y)
 {
 	m_OperatorType = GetOperatorType(x, y, m_PickPlane, m_IntersectPos);
+	if (IsTriggered())
+	{
+		OnTriggerCallback(true);
+	}
 }
 
 void KMoveGizmo::OnMouseMove(unsigned int x, unsigned int y)
@@ -362,10 +366,7 @@ void KMoveGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				moveVec = moveVec.x * xAxis + moveVec.y * yAxis + moveVec.z * zAxis;
 				m_Transform = glm::translate(glm::mat4(1.0f), moveVec) * m_Transform;
 
-				for (KGizmoTransformCallback* callback : m_TransformCallback)
-				{
-					(*callback)(m_Transform);
-				}
+				OnTransformCallback(m_Transform);
 
 				m_IntersectPos = intersectPos;
 			}
@@ -375,6 +376,10 @@ void KMoveGizmo::OnMouseMove(unsigned int x, unsigned int y)
 
 void KMoveGizmo::OnMouseUp(unsigned int x, unsigned int y)
 {
+	if (IsTriggered())
+	{
+		OnTriggerCallback(false);
+	}
 	m_OperatorType = MoveOperator::MOVE_NONE;
 }
 

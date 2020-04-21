@@ -1,5 +1,6 @@
 #include "KEEntityManipulator.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
+#include "KBase/Publish/KMath.h"
 #include <assert.h>
 
 KEEntityManipulator::KEEntityManipulator()
@@ -92,46 +93,55 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 	{
 		if (action == INPUT_ACTION_PRESS)
 		{
-			if (m_SelectType == SelectType::SELECT_TYPE_SINGLE)
+			m_MouseDownPos[0] = x;
+			m_MouseDownPos[1] = y;
+		}
+		else if (action == INPUT_ACTION_RELEASE)
+		{
+			if (m_Gizmo->IsTriggered())
 			{
-				if (m_Gizmo->IsTriggered())
-				{
-					return;
-				}
-
+				return;
+			}
+			// 点击操作
+			if (x == m_MouseDownPos[0] && y == m_MouseDownPos[1])
+			{
 				IKEntityPtr entity = nullptr;
 
 				size_t width = 0;
 				size_t height = 0;
 				m_Window->GetSize(width, height);
 
+				if (m_SelectType == SelectType::SELECT_TYPE_SINGLE)
+				{
+					m_Entities.clear();
+				}
+
 				if (m_Scene->CloestPick(*m_Camera, (size_t)x, (size_t)y,
 					width, height, entity))
 				{
-					auto it = m_Entities.find(entity);
-					if (it == m_Entities.end())
+					if (m_SelectType == SelectType::SELECT_TYPE_SINGLE)
 					{
-						m_Entities.insert(entity);
+						m_Entities.insert(entity);						
 					}
-					else
+					else if (m_SelectType == SelectType::SELECT_TYPE_MULTI)
 					{
-						m_Entities.erase(entity);
+						auto it = m_Entities.find(entity);
+						if (it == m_Entities.end())
+						{
+							m_Entities.insert(entity);
+						}
+						else
+						{
+							m_Entities.erase(it);
+						}
 					}
-
 					UpdateGizmoTransform();
 				}
 			}
-			else if (m_SelectType == SelectType::SELECT_TYPE_MULTI)
+			// 拉框多选
+			else
 			{
-				m_MouseDownPos[0] = x;
-				m_MouseDownPos[1] = y;
-			}
-		}
-		else if (action == INPUT_ACTION_RELEASE)
-		{
-			if (m_SelectType == SelectType::SELECT_TYPE_MULTI)
-			{
-				// 处理多选
+
 			}
 		}
 	}
@@ -150,16 +160,64 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 {
 	if (m_Entities.size() > 0)
 	{
+		glm::vec3 deltaTranslate = KMath::ExtractPosition(transform) - KMath::ExtractPosition(m_PreviousTransform);
+		glm::mat3 deltaRotate = KMath::ExtractRotate(transform) * glm::inverse(KMath::ExtractRotate(m_PreviousTransform));
+		glm::vec3 deltaScale = KMath::ExtractScale(transform) / KMath::ExtractScale(m_PreviousTransform);
+
+		/*
+		// 以下方法无效 由于整体变换 = T * R * S
+		// 不能直接用逆矩阵的提取
 		glm::mat4 deltaTransform = transform * glm::inverse(m_PreviousTransform);
+		glm::vec3 deltaTranslate = KMath::ExtractPosition(deltaTransform);
+		glm::mat3 deltaRotate = KMath::ExtractRotate(deltaTransform);
+		glm::vec3 deltaScale = KMath::ExtractScale(deltaTransform);
+		*/
+
+		GizmoManipulateMode mode = GetManipulateMode();
+		GizmoType type = GetGizmoType();
+
 		for (IKEntityPtr entity : m_Entities)
 		{
 			IKTransformComponent* transformComponent = nullptr;
 			if (entity->GetComponent(CT_TRANSFORM, &transformComponent))
 			{
-				transformComponent->SetFinal(transform);
+				if (type == GizmoType::GIZMO_TYPE_MOVE)
+				{
+					glm::vec3 pos = deltaTranslate + transformComponent->GetPosition();
+					transformComponent->SetPosition(pos);
+				}
+				else if (type == GizmoType::GIZMO_TYPE_SCALE)
+				{
+					glm::vec3 scale = deltaScale * transformComponent->GetScale();
+					transformComponent->SetScale(scale);
+				}
+				else if (type == GizmoType::GIZMO_TYPE_ROTATE)
+				{
+					if (mode == GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL)
+					{
+						glm::mat3 rotate = deltaRotate * glm::mat3_cast(transformComponent->GetRotate());
+						transformComponent->SetRotate(rotate);
+					}
+					else
+					{
+						
+						glm::vec3 gizmoPos = KMath::ExtractPosition(transform);
+						glm::vec3 releatedPos = transformComponent->GetPosition() - gizmoPos;
+						releatedPos = glm::mat4(deltaRotate) * glm::vec4(releatedPos, 1.0f);
+						transformComponent->SetPosition(glm::vec3(releatedPos) + gizmoPos);
+						/*
+						glm::mat4 mat = glm::translate(glm::mat4(1.0f), gizmoPos) * glm::mat4(deltaRotate) * glm::translate(glm::mat4(1.0f), -gizmoPos);
+						glm::vec4 pos = mat * glm::vec4(transformComponent->GetPosition(), 1.0f);
+						transformComponent->SetPosition(glm::vec3(pos));
+						*/
+					}
+				}
+				// 暂时先用这种方法更新场景图
+				m_Scene->Move(entity);
 			}
 		}
 	}
+
 	m_PreviousTransform = transform;
 }
 
@@ -196,6 +254,8 @@ void KEEntityManipulator::UpdateGizmoTransform()
 			m_Gizmo->SetMatrix(transformComponent->GetFinal());
 		}
 	}
+
+	m_PreviousTransform = m_Gizmo->GetMatrix();
 }
 
 SelectType KEEntityManipulator::GetSelectType() const

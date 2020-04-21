@@ -1,5 +1,6 @@
 #pragma once
 #include "Interface/IKRenderWindow.h"
+#include "Interface/IKGizmo.h"
 #include "Publish/KCamera.h"
 
 class KCameraMoveController
@@ -7,12 +8,14 @@ class KCameraMoveController
 protected:
 	KCamera* m_Camera;
 	IKRenderWindow* m_Window;
+	IKGizmoPtr m_Gizmo;
 
 	KKeyboardCallbackType m_KeyCallback;
 	KMouseCallbackType m_MouseCallback;
 	KScrollCallbackType m_ScrollCallback;
 	KTouchCallbackType m_TouchCallback;
 	KFocusCallbackType m_FocusCallback;
+	KGizmoTriggerCallback m_GizmoTriggerCallback;
 
 	int m_Move[3];
 
@@ -26,15 +29,17 @@ protected:
 	float m_TouchPos[2][2];
 
 	bool m_Enable;
+	bool m_GizmoTriggered;
 
 	void ZeroData();
+	inline bool IsEnable() const { return m_Enable && !m_GizmoTriggered; }
 public:
 	KCameraMoveController();
 	~KCameraMoveController();
 
 	void SetEnable(bool enable) { m_Enable = enable; }
 
-	bool Init(KCamera* camera, IKRenderWindow* window);
+	bool Init(KCamera* camera, IKRenderWindow* window, IKGizmoPtr gizmo);
 	bool UnInit();
 
 	bool Update(float dt);

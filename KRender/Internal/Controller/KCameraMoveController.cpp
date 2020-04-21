@@ -3,7 +3,8 @@
 KCameraMoveController::KCameraMoveController()
 	: m_Camera(nullptr),
 	m_Window(nullptr),
-	m_Enable(true)
+	m_Enable(true),
+	m_GizmoTriggered(false)
 {
 	ZeroData();
 }
@@ -38,14 +39,16 @@ void KCameraMoveController::ZeroData()
 	}
 }
 
-bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window)
+bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizmoPtr gizmo)
 {
 	UnInit();
 
-	if (camera && window)
+	if (camera && window && gizmo)
 	{
 		m_Camera = camera;
 		m_Window = window;
+		m_Gizmo = gizmo;
+
 		ZeroData();
 
 		m_KeyCallback = [this](InputKeyboard key, InputAction action)
@@ -102,7 +105,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window)
 			}
 			if (action == INPUT_ACTION_REPEAT)
 			{
-				if (m_Enable)
+				if (IsEnable())
 				{
 					float deltaX = xPos - m_MousePos[0];
 					float deltaY = yPos - m_MousePos[1];
@@ -197,7 +200,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window)
 
 			if (m_TouchAction == 1 && touchPositions.size() == 1)
 			{
-				if (m_Enable)
+				if (IsEnable())
 				{
 					float dx = std::get<0>(touchPositions[0]) - m_TouchPos[0][0];
 					float dy = std::get<1>(touchPositions[0]) - m_TouchPos[0][1];
@@ -251,6 +254,11 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window)
 			ZeroData();
 		};
 
+		m_GizmoTriggerCallback = [this](bool triggered)
+		{
+			m_GizmoTriggered = triggered;
+		};
+
 #if defined(_WIN32)
 		m_Window->RegisterKeyboardCallback(&m_KeyCallback);
 		m_Window->RegisterMouseCallback(&m_MouseCallback);
@@ -259,6 +267,8 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window)
 #elif defined(__ANDROID__)
 		m_Window->RegisterTouchCallback(&m_TouchCallback);
 #endif
+		m_Gizmo->RegisterTriggerCallback(&m_GizmoTriggerCallback);
+
 		return true;
 	}
 
@@ -277,10 +287,17 @@ bool KCameraMoveController::UnInit()
 #elif defined(__ANDROID__)
 		m_Window->UnRegisterTouchCallback(&m_TouchCallback);
 #endif
+		
+	}
+
+	if (m_Gizmo)
+	{
+		m_Gizmo->UnRegisterTriggerCallback(&m_GizmoTriggerCallback);
 	}
 
 	m_Camera = nullptr;
 	m_Window = nullptr;
+	m_Gizmo = nullptr;
 
 	return true;
 }
