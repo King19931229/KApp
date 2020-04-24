@@ -5,7 +5,8 @@
 #include "KRender/Interface/IKGizmo.h"
 #include "KRender/Publish/KCamera.h"
 #include "KRender/Interface/IKRenderScene.h"
-#include <set>
+#include "KEditorConfig.h"
+#include <unordered_set>
 
 enum class SelectType
 {
@@ -16,7 +17,7 @@ enum class SelectType
 class KEEntityManipulator
 {
 public:
-	typedef std::set<IKEntityPtr> EntityCollectionType;
+	typedef std::unordered_set<KEEntity> EntityCollectionType;
 protected:	
 	IKGizmoPtr m_Gizmo;
 	IKRenderWindow* m_Window;

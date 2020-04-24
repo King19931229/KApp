@@ -276,7 +276,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		};
 
 		KECSGlobal::Init();
-		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 2000.0f, glm::vec3(0.0f));
+		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 10000000.0f, glm::vec3(0.0f));
 
 		m_Device->RegisterPresentCallback(&m_PresentCallback);
 		m_Device->RegisterSwapChainRecreateCallback(&m_SwapChainCallback);

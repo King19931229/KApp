@@ -105,7 +105,7 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 			// 点击操作
 			if (x == m_MouseDownPos[0] && y == m_MouseDownPos[1])
 			{
-				IKEntityPtr entity = nullptr;
+				KEEntity entity;
 
 				size_t width = 0;
 				size_t height = 0;
@@ -117,7 +117,7 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 				}
 
 				if (m_Scene->CloestPick(*m_Camera, (size_t)x, (size_t)y,
-					width, height, entity))
+					width, height, entity.soul))
 				{
 					if (m_SelectType == SelectType::SELECT_TYPE_SINGLE)
 					{
@@ -176,10 +176,10 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 		GizmoManipulateMode mode = GetManipulateMode();
 		GizmoType type = GetGizmoType();
 
-		for (IKEntityPtr entity : m_Entities)
+		for (KEEntity entity : m_Entities)
 		{
 			IKTransformComponent* transformComponent = nullptr;
-			if (entity->GetComponent(CT_TRANSFORM, &transformComponent))
+			if (entity.soul->GetComponent(CT_TRANSFORM, &transformComponent))
 			{
 				if (type == GizmoType::GIZMO_TYPE_MOVE)
 				{
@@ -200,20 +200,22 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 					}
 					else
 					{
-						
-						glm::vec3 gizmoPos = KMath::ExtractPosition(transform);
-						glm::vec3 releatedPos = transformComponent->GetPosition() - gizmoPos;
-						releatedPos = glm::mat4(deltaRotate) * glm::vec4(releatedPos, 1.0f);
-						transformComponent->SetPosition(glm::vec3(releatedPos) + gizmoPos);
-						/*
-						glm::mat4 mat = glm::translate(glm::mat4(1.0f), gizmoPos) * glm::mat4(deltaRotate) * glm::translate(glm::mat4(1.0f), -gizmoPos);
-						glm::vec4 pos = mat * glm::vec4(transformComponent->GetPosition(), 1.0f);
-						transformComponent->SetPosition(glm::vec3(pos));
-						*/
+						//if (m_Entities.size() > 1)
+						{
+							glm::vec3 gizmoPos = KMath::ExtractPosition(transform);
+							glm::vec3 releatedPos = transformComponent->GetPosition() - gizmoPos;
+							releatedPos = glm::mat4(deltaRotate) * glm::vec4(releatedPos, 1.0f);
+							transformComponent->SetPosition(glm::vec3(releatedPos) + gizmoPos);
+						}
+						//else
+						{
+							glm::mat3 rotate = deltaRotate * glm::mat3_cast(transformComponent->GetRotate());
+							transformComponent->SetRotate(rotate);
+						}
 					}
 				}
 				// 暂时先用这种方法更新场景图
-				m_Scene->Move(entity);
+				m_Scene->Move(entity.soul);
 			}
 		}
 	}
@@ -230,10 +232,10 @@ void KEEntityManipulator::UpdateGizmoTransform()
 	{
 		glm::vec3 pos = glm::vec3(0.0f);
 		int num = 0;
-		for (IKEntityPtr entity : m_Entities)
+		for (KEEntity entity : m_Entities)
 		{
 			IKTransformComponent* transformComponent = nullptr;
-			if (entity->GetComponent(CT_TRANSFORM, &transformComponent))
+			if (entity.soul->GetComponent(CT_TRANSFORM, &transformComponent))
 			{
 				pos += transformComponent->GetPosition();
 				++num;
@@ -247,9 +249,9 @@ void KEEntityManipulator::UpdateGizmoTransform()
 	}
 	else
 	{
-		IKEntityPtr entity = *m_Entities.begin();
+		KEEntity entity = *m_Entities.begin();
 		IKTransformComponent* transformComponent = nullptr;
-		if (entity->GetComponent(CT_TRANSFORM, &transformComponent))
+		if (entity.soul->GetComponent(CT_TRANSFORM, &transformComponent))
 		{
 			m_Gizmo->SetMatrix(transformComponent->GetFinal());
 		}

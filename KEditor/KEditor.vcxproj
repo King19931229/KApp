@@ -157,6 +157,7 @@
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h" />
     <ClInclude Include="Graph\Command\KEGraphNodeCommand.h" />
     <ClInclude Include="KEditorGlobal.h" />
+    <ClInclude Include="Manipulator\KEEntityManipulateCommand.h" />
     <ClInclude Include="Manipulator\KEEntityManipulator.h" />
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />
     <ClInclude Include="Property\KEPropertyBaseView.h" />

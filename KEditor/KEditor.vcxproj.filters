@@ -350,6 +350,9 @@
     <ClInclude Include="Manipulator\KEEntityManipulator.h">
       <Filter>Manipulator</Filter>
     </ClInclude>
+    <ClInclude Include="Manipulator\KEEntityManipulateCommand.h">
+      <Filter>Manipulator</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="ui\KEditor.ui">
