@@ -26,6 +26,7 @@ public:
 	virtual void WaitForDevice();
 
 	virtual bool Init(unsigned short minMipmap, unsigned short maxMipmap);
+	// TODO 改为轮询重建
 	virtual bool Init(IKTexturePtr texture, bool async);
 
 	virtual bool UnInit();

@@ -15,6 +15,8 @@ public:
 	KEResourceImporter();
 	~KEResourceImporter();
 
+	bool InitEntity(const std::string& path, IKEntityPtr& entity);
+	bool UnInitEntity(IKEntityPtr& entity);
 	IKEntityPtr Drop(const KCamera* camera, const std::string& path);
 
 	inline void SetEntityDropDistance(float distance) { m_EntityDropDistance = distance; }

@@ -73,6 +73,7 @@ public:
 	virtual bool UnInit();
 	virtual bool Loop();
 	virtual bool Tick();
+	virtual bool Wait();
 
 	virtual bool RegisterInitCallback(KRenderCoreInitCallback* callback);
 	virtual bool UnRegisterInitCallback(KRenderCoreInitCallback* callback);

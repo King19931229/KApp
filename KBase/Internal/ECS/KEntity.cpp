@@ -117,6 +117,17 @@ bool KEntity::GetTransform(glm::mat4& transform)
 	return true;
 }
 
+bool KEntity::SetTransform(const glm::mat4& transform)
+{
+	IKTransformComponent* transformComponent = nullptr;
+	if (GetComponent(CT_TRANSFORM, &transformComponent))
+	{
+		transformComponent->SetFinal(transform);
+		return true;
+	}
+	return false;
+}
+
 bool KEntity::GetBound(KAABBBox& bound)
 {
 	IKComponentBase* component = nullptr;

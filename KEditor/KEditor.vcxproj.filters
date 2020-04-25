@@ -173,6 +173,9 @@
     <ClCompile Include="Manipulator\KEEntityManipulator.cpp">
       <Filter>Manipulator</Filter>
     </ClCompile>
+    <ClCompile Include="Manipulator\KEEntityManipulateCommand.cpp">
+      <Filter>Manipulator</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />

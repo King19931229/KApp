@@ -203,3 +203,13 @@ bool KEngine::Tick()
 	}
 	return false;
 }
+
+bool KEngine::Wait()
+{
+	if (m_RenderCore)
+	{
+		m_RenderCore->Wait();
+		return true;
+	}
+	return false;
+}

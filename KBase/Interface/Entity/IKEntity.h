@@ -8,6 +8,7 @@ struct IKEntity
 {
 	virtual ~IKEntity() {}
 
+	typedef size_t IDType;
 	virtual size_t GetID() const = 0;
 
 	// Component function
@@ -21,6 +22,7 @@ struct IKEntity
 	// Utility function
 	virtual bool GetBound(KAABBBox& bound) = 0;
 	virtual bool GetTransform(glm::mat4& transform) = 0;
+	virtual bool SetTransform(const glm::mat4& transform) = 0;
 	virtual bool Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result, const float* maxDistance = nullptr) = 0;
 
 	// Template function

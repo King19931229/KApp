@@ -118,6 +118,7 @@
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="KEdtiorGlobal.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Manipulator\KEEntityManipulateCommand.cpp" />
     <ClCompile Include="Manipulator\KEEntityManipulator.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp" />

@@ -43,6 +43,8 @@ struct IKEngine
 	virtual bool Loop() = 0;
 	virtual bool Tick() = 0;
 
+	virtual bool Wait() = 0;
+
 	virtual IKRenderCore* GetRenderCore() = 0;
 };
 

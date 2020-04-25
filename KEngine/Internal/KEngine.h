@@ -23,5 +23,7 @@ public:
 	virtual bool Loop();
 	virtual bool Tick();
 
+	virtual bool Wait();
+
 	virtual IKRenderCore* GetRenderCore();
 };

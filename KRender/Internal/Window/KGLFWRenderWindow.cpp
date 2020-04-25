@@ -95,6 +95,10 @@ bool KGLFWRenderWindow::GLFWKeyToInputKeyboard(int key, InputKeyboard& board)
 		board = INPUT_KEY_CTRL;
 		return true;
 
+	case GLFW_KEY_DELETE:
+		board = INPUT_KEY_DELETE;
+		return true;
+
 	default:
 		return false;
 	}

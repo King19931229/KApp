@@ -115,6 +115,9 @@ bool KERenderWidget::QtKeyToInputKeyboard(Qt::Key button, InputKeyboard& keyboar
 	case Qt::Key_Control:
 		keyboard = INPUT_KEY_CTRL;
 		return true;
+	case Qt::Key_Delete:
+		keyboard = INPUT_KEY_DELETE;
+		return true;
 
 	default:
 		return false;
@@ -160,6 +163,16 @@ void KERenderWidget::HandleKeyEvent(QKeyEvent *event, InputAction action)
 void KERenderWidget::keyPressEvent(QKeyEvent *event)
 {
 	HandleKeyEvent(event, INPUT_ACTION_PRESS);
+	if (event->key() == Qt::Key_Z && event->modifiers() == Qt::CTRL)
+	{
+		// TODO Domain
+		KEditorGlobal::CommandInvoker.Undo();
+	}
+	if (event->key() == Qt::Key_Y && event->modifiers() == Qt::CTRL)
+	{
+		// TODO Domain
+		KEditorGlobal::CommandInvoker.Redo();
+	}
 }
 
 void KERenderWidget::keyReleaseEvent(QKeyEvent *event)
@@ -291,16 +304,12 @@ void KERenderWidget::dropEvent(QDropEvent *event)
 	{
 		KEFileSystemTreeItem* item = resItemData->item;
 		std::string fullPath = item->GetFullPath();
-
 		IKEnginePtr engine = KEngineGlobal::Engine;
-		// TODO IKScene
 		IKRenderCore* renderCore = engine->GetRenderCore();
-		IKRenderScene* renderScene = renderCore->GetRenderScene();
-
 		IKEntityPtr entity = KEditorGlobal::ResourceImporter.Drop(renderCore->GetCamera(), fullPath);
 		if (entity)
 		{
-			renderScene->Add(entity);
+			KEditorGlobal::EntityManipulator.Join(entity, fullPath);
 		}
 	}
 }

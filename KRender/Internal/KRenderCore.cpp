@@ -50,7 +50,7 @@ bool KRenderCore::InitPostProcess()
 	uint32_t frameInFlight = m_Device->GetNumFramesInFlight();
 
 	KRenderGlobal::PostProcessManager.Init(m_Device, width, height, 2, EF_R16G16B16A16_FLOAT, frameInFlight);
-
+#if 0
 	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
 	auto pass = KRenderGlobal::PostProcessManager.CreatePass();
@@ -78,7 +78,7 @@ bool KRenderCore::InitPostProcess()
 	KRenderGlobal::PostProcessManager.Load("postprocess.json");
 #endif
 	KRenderGlobal::PostProcessManager.Construct();
-
+#endif
 	return true;
 }
 
@@ -329,6 +329,16 @@ bool KRenderCore::Tick()
 	if (m_bInit)
 	{
 		m_Device->Present();
+		return true;
+	}
+	return false;
+}
+
+bool KRenderCore::Wait()
+{
+	if (m_bInit)
+	{
+		m_Device->Wait();
 		return true;
 	}
 	return false;

@@ -11,7 +11,10 @@ protected:
 	bool m_bLock;
 public:
 	KECommandInvoker();
+	// push the command and execute
 	void Execute(KECommandPtr& command);
+	// push the command only
+	void Push(KECommandPtr& command);
 	void Undo();
 	void Redo();
 	void Clear();

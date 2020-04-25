@@ -9,16 +9,31 @@ KECommandInvoker::KECommandInvoker()
 
 void KECommandInvoker::Execute(KECommandPtr& command)
 {
-	if (m_CurrentPos != m_HistoryCommands.end())
-	{
-		m_CurrentPos = m_HistoryCommands.erase(m_CurrentPos, m_HistoryCommands.end());
-		assert(m_CurrentPos == m_HistoryCommands.end());
-	}
-
 	command->Execute();
 
 	if (!m_bLock)
 	{
+		if (m_CurrentPos != m_HistoryCommands.end())
+		{
+			m_CurrentPos = m_HistoryCommands.erase(m_CurrentPos, m_HistoryCommands.end());
+			assert(m_CurrentPos == m_HistoryCommands.end());
+		}
+
+		m_HistoryCommands.push_back(command);
+		m_CurrentPos = m_HistoryCommands.end();
+	}
+}
+
+void KECommandInvoker::Push(KECommandPtr& command)
+{
+	if (!m_bLock)
+	{
+		if (m_CurrentPos != m_HistoryCommands.end())
+		{
+			m_CurrentPos = m_HistoryCommands.erase(m_CurrentPos, m_HistoryCommands.end());
+			assert(m_CurrentPos == m_HistoryCommands.end());
+		}
+
 		m_HistoryCommands.push_back(command);
 		m_CurrentPos = m_HistoryCommands.end();
 	}

@@ -6,7 +6,7 @@
 #include "KRender/Publish/KCamera.h"
 #include "KRender/Interface/IKRenderScene.h"
 #include "KEditorConfig.h"
-#include <unordered_set>
+#include <unordered_map>
 
 enum class SelectType
 {
@@ -16,8 +16,11 @@ enum class SelectType
 
 class KEEntityManipulator
 {
+	friend class KEEntitySceneJoinCommand;
+	friend class KEEntitySceneEraseCommand;
+	friend class KEEntitySceneTransformCommand;
 public:
-	typedef std::unordered_set<KEEntity> EntityCollectionType;
+	typedef std::unordered_map<IKEntity::IDType, KEEntityPtr> EntityCollectionType;
 protected:	
 	IKGizmoPtr m_Gizmo;
 	IKRenderWindow* m_Window;
@@ -33,7 +36,10 @@ protected:
 	KMouseCallbackType m_MouseCallback;
 	KGizmoTransformCallback m_TransformCallback;
 
+	KGizmoTriggerCallback m_TriggerCallback;
+
 	EntityCollectionType m_Entities;
+	EntityCollectionType m_SelectEntites;
 
 	float m_MouseDownPos[2];
 	bool m_Enable;
@@ -42,12 +48,22 @@ protected:
 	void OnMouseListen(InputMouseButton key, InputAction action, float x, float y);
 	void OnGizmoTransformChange(const glm::mat4& transform);
 	void UpdateGizmoTransform();
+	void OnGizmoTrigger(bool trigger);
+
+	KEEntityPtr GetEditorEntity(IKEntityPtr entity);
+	void OnSelectionDelete();
+
+	void AddEditorEntity(KEEntityPtr editorEntity);
+	void RemoveEditorEntity(IKEntity::IDType id);
 public:
 	KEEntityManipulator();
 	~KEEntityManipulator();
 
 	bool Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKRenderScene* scene);
 	bool UnInit();
+
+	bool Join(IKEntityPtr entity, const std::string& path);
+	bool Erase(KEEntityPtr editorEntity);
 
 	SelectType GetSelectType() const;
 	bool SetSelectType(SelectType type);
@@ -57,6 +73,4 @@ public:
 
 	GizmoManipulateMode GetManipulateMode() const;
 	bool SetManipulateMode(GizmoManipulateMode mode);
-
-	inline const EntityCollectionType& GetEntites() const { return m_Entities; }
 };

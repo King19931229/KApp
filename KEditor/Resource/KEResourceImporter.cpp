@@ -6,6 +6,8 @@
 #include "KBase/Interface/Component/IKRenderComponent.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
 
+#include "KEngine/Interface/IKEngine.h"
+
 #include <assert.h>
 
 KEResourceImporter::KEResourceImporter()
@@ -50,9 +52,9 @@ bool KEResourceImporter::DropPosition(const KCamera* camera, const KAABBBox& loc
 	return false;
 }
 
-IKEntityPtr KEResourceImporter::Drop(const KCamera* camera, const std::string& path)
+bool KEResourceImporter::InitEntity(const std::string& path, IKEntityPtr& entity)
 {
-	if (camera)
+	if (entity)
 	{
 		std::string name;
 		std::string ext;
@@ -61,11 +63,11 @@ IKEntityPtr KEResourceImporter::Drop(const KCamera* camera, const std::string& p
 			KStringUtil::Lower(ext, ext);
 			const char* cExt = ext.c_str();
 
-			IKEntityPtr entity = nullptr;
+			entity->UnRegisterAllComponent();
+
 			IKRenderComponent* renderComponent = nullptr;
 			if (strcmp(cExt, ".mesh") == 0)
 			{
-				entity = KECS::EntityManager->CreateEntity();
 				if (entity->RegisterComponent(CT_RENDER, &renderComponent))
 				{
 					renderComponent->SetPathMesh(path.c_str());
@@ -74,7 +76,6 @@ IKEntityPtr KEResourceImporter::Drop(const KCamera* camera, const std::string& p
 			}
 			else if (IsSupportedMesh(cExt))
 			{
-				entity = KECS::EntityManager->CreateEntity();
 				if (entity->RegisterComponent(CT_RENDER, &renderComponent))
 				{
 					renderComponent->SetPathAsset(path.c_str());
@@ -82,13 +83,48 @@ IKEntityPtr KEResourceImporter::Drop(const KCamera* camera, const std::string& p
 				}
 			}
 
-			if (entity && renderComponent)
+			if (renderComponent)
+			{
+				IKTransformComponent* transformComponent = nullptr;
+				if (entity->RegisterComponent(CT_TRANSFORM, &transformComponent))
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool KEResourceImporter::UnInitEntity(IKEntityPtr& entity)
+{
+	if (entity)
+	{
+		IKEnginePtr engine = KEngineGlobal::Engine;
+		engine->Wait();
+
+		entity->UnRegisterAllComponent();
+		return true;
+	}
+	return false;
+}
+
+IKEntityPtr KEResourceImporter::Drop(const KCamera* camera, const std::string& path)
+{
+	if (camera)
+	{
+		IKEntityPtr entity = KECS::EntityManager->CreateEntity();
+
+		if (InitEntity(path, entity))
+		{
+			IKRenderComponent* renderComponent = nullptr;
+			if (entity->GetComponent(CT_RENDER, &renderComponent))
 			{
 				KAABBBox localBound;
 				if (renderComponent->GetLocalBound(localBound))
 				{
 					IKTransformComponent* transformComponent = nullptr;
-					if (entity->RegisterComponent(CT_TRANSFORM, &transformComponent))
+					if (entity->GetComponent(CT_TRANSFORM, &transformComponent))
 					{
 						glm::vec3 pos(0.0f);
 						DropPosition(camera, localBound, pos);
@@ -97,13 +133,14 @@ IKEntityPtr KEResourceImporter::Drop(const KCamera* camera, const std::string& p
 					}
 				}
 			}
+		}
 
-			if (entity)
-			{
-				entity->UnRegisterAllComponent();
-				KECS::EntityManager->ReleaseEntity(entity);
-			}
+		if (entity)
+		{
+			entity->UnRegisterAllComponent();
+			KECS::EntityManager->ReleaseEntity(entity);
 		}
 	}
+
 	return nullptr;
 }
