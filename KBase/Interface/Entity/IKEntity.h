@@ -1,6 +1,7 @@
 #pragma once
 #include "KBase/Interface/Component/IKComponentBase.h"
 #include "KBase/Interface/Component/IKComponentManager.h"
+#include "KBase/Interface/IKXML.h"
 #include "glm/glm.hpp"
 #include "KBase/Publish/KAABBBox.h"
 
@@ -24,6 +25,10 @@ struct IKEntity
 	virtual bool GetTransform(glm::mat4& transform) = 0;
 	virtual bool SetTransform(const glm::mat4& transform) = 0;
 	virtual bool Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result, const float* maxDistance = nullptr) = 0;
+
+	// Save load function
+	virtual bool Save(IKXMLElementPtr element) = 0;
+	virtual bool Load(IKXMLElementPtr element) = 0;
 
 	// Template function
 	template<typename T>

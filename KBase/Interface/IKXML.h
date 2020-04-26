@@ -7,12 +7,12 @@
 struct IKXMLDeclaration;
 struct IKXMLAttribute;
 struct IKXMLElement;
-struct IXMLDocument;
+struct IKXMLDocument;
 
 typedef std::shared_ptr<IKXMLDeclaration> IKXMLDeclarationPtr;
 typedef std::shared_ptr<IKXMLAttribute> IKXMLAttributePtr;
 typedef std::shared_ptr<IKXMLElement> IKXMLElementPtr;
-typedef std::shared_ptr<IXMLDocument> IKXMLDocumentPtr;
+typedef std::shared_ptr<IKXMLDocument> IKXMLDocumentPtr;
 
 struct IKXMLDeclaration
 {
@@ -71,9 +71,9 @@ struct IKXMLElement
 	virtual void LinkElementToEnd(IKXMLElementPtr& element) = 0;
 };
 
-struct IXMLDocument
+struct IKXMLDocument
 {
-	virtual ~IXMLDocument() {}
+	virtual ~IKXMLDocument() {}
 	virtual bool SaveFile(const char* fileName) = 0;
 	virtual bool ParseFromFile(const char* fileName) = 0;
 	virtual bool ParseFromString(const char* text) = 0;

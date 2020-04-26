@@ -220,3 +220,18 @@ bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3
 	}
 	return false;
 }
+
+bool KEntity::Save(IKXMLElementPtr element)
+{
+	for (auto& pair : m_Components)
+	{
+		ComponentType componentType = pair.first;
+		IKComponentBase* component = pair.second;
+	}
+	return true;
+}
+
+bool KEntity::Load(IKXMLElementPtr element)
+{
+	return false;
+}

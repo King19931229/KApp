@@ -11,6 +11,7 @@ protected:
 	IKRenderWindowPtr m_Window;
 	IKRenderDevicePtr m_Device;
 	IKRenderCorePtr m_RenderCore;
+	IKScenePtr m_Scene;
 
 	bool m_bInit;
 public:
@@ -26,4 +27,5 @@ public:
 	virtual bool Wait();
 
 	virtual IKRenderCore* GetRenderCore();
+	virtual IKScene* GetScene();
 };

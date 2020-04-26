@@ -26,5 +26,8 @@ public:
 	bool SetTransform(const glm::mat4& transform) override;
 	bool Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result, const float* maxDistance) override;
 
+	bool Save(IKXMLElementPtr element) override;
+	bool Load(IKXMLElementPtr element) override;
+
 	size_t GetID() const override { return m_Id; }
 };

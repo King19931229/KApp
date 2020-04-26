@@ -37,6 +37,10 @@ KEResourceBrowser::KEResourceBrowser(QWidget *parent)
 	addDockWidget(Qt::LeftDockWidgetArea, m_TreeDockWidget);
 	addDockWidget(Qt::RightDockWidgetArea, m_ItemDockWidget);
 
+	m_ItemWidget->ui.m_PathView->setModel(m_PathModel);
+	m_ItemWidget->ui.m_ItemView->setModel(m_ItemModel);
+	m_TreeWidget->ui.m_TreeView->setModel(m_TreeModel);
+
 	m_Initing = false;
 }
 

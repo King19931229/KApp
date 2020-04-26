@@ -1,5 +1,6 @@
 #define MEMORY_DUMP_DEBUG
 #include "KEngine.h"
+#include "KScene.h"
 #include "KBase/Interface/IKLog.h"
 #include "KBase/Interface/Component/IKComponentManager.h"
 #include "KBase/Interface/Entity/IKEntityManager.h"
@@ -37,12 +38,18 @@ KEngine::~KEngine()
 	ASSERT_RESULT(!m_Device);
 	ASSERT_RESULT(!m_Window);
 	ASSERT_RESULT(!m_RenderCore);
+	ASSERT_RESULT(!m_Scene);
 	ASSERT_RESULT(!m_bInit);
 }
 
 IKRenderCore* KEngine::GetRenderCore()
 {
 	return m_RenderCore ? m_RenderCore.get() : nullptr;
+}
+
+IKScene* KEngine::GetScene()
+{
+	return m_Scene ? m_Scene.get() : nullptr;
 }
 
 bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
@@ -145,6 +152,9 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 			break;
 		}
 
+		m_Scene = IKScenePtr(new KScene());
+		m_Scene->Init(m_RenderCore->GetRenderScene());
+
 		m_bInit = true;
 
 		return true;
@@ -160,6 +170,9 @@ bool KEngine::UnInit()
 		KECS::DestroyComponentManager();
 
 		m_Window->UnInit();
+
+		m_Scene->UnInit();
+		m_Scene = nullptr;
 
 		m_RenderCore->UnInit();
 		m_RenderCore = nullptr;

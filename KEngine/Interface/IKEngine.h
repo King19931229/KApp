@@ -1,6 +1,7 @@
 #pragma once
 #include "KRender/Interface/IKRenderCore.h"
 #include "KRender/Interface/IKRenderWindow.h"
+#include "KEngine/Interface/IKScene.h"
 
 struct KEngineOptions
 {
@@ -46,6 +47,7 @@ struct IKEngine
 	virtual bool Wait() = 0;
 
 	virtual IKRenderCore* GetRenderCore() = 0;
+	virtual IKScene* GetScene() = 0;
 };
 
 typedef std::shared_ptr<IKEngine> IKEnginePtr;

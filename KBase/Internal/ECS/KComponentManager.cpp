@@ -35,15 +35,16 @@ KComponentManager::~KComponentManager()
 {
 }
 
-bool KComponentManager::RegisterFunc(ComponentType type, IKComponentCreateDestroyFuncPair pair)
+bool KComponentManager::RegisterFunc(ComponentType type, IKComponentCreateDestroyFuncPair allocfree, IKComponentSaveLoadFuncPair saveload)
 {
 	if (type != CT_UNKNOWN)
 	{
-		FuncInfo& info = m_CreateDestroyFunc[type];
+		FuncInfo& info = m_FuncInfo[type];
 		if (!info.registered)
 		{
 			info.registered = true;
-			info.funcPair = pair;
+			info.allocfree = allocfree;
+			info.saveload = saveload;
 			return true;
 		}
 	}
@@ -54,7 +55,7 @@ bool KComponentManager::UnRegisterFunc(ComponentType type)
 {
 	if (type != CT_UNKNOWN)
 	{
-		FuncInfo& info = m_CreateDestroyFunc[type];
+		FuncInfo& info = m_FuncInfo[type];
 		info.registered = false;
 		return true;
 	}
@@ -65,7 +66,7 @@ bool KComponentManager::UnRegisterAllFunc()
 {
 	for (uint32_t i = 0; i < CT_COUNT; ++i)
 	{
-		m_CreateDestroyFunc[i].registered = false;
+		m_FuncInfo[i].registered = false;
 	}
 	return true;
 }
@@ -74,10 +75,10 @@ IKComponentBase* KComponentManager::Alloc(ComponentType type)
 {
 	if (type != CT_UNKNOWN)
 	{
-		FuncInfo& info = m_CreateDestroyFunc[type];
+		FuncInfo& info = m_FuncInfo[type];
 		if (info.registered)
 		{
-			IKComponentCreateFunc& createFunc = std::get<0>(info.funcPair);
+			IKComponentCreateFunc& createFunc = std::get<0>(info.allocfree);
 			return createFunc();
 		}
 	}
@@ -92,14 +93,52 @@ void KComponentManager::Free(IKComponentBase* component)
 		ComponentType type = component->GetType();
 		if (type != CT_UNKNOWN)
 		{
-			FuncInfo& info = m_CreateDestroyFunc[type];
+			FuncInfo& info = m_FuncInfo[type];
 			if (info.registered)
 			{
-				IKComponentDestroyFunc& destroyFunc = std::get<1>(info.funcPair);
+				IKComponentDestroyFunc& destroyFunc = std::get<1>(info.allocfree);
 				destroyFunc(component);
 				return;
 			}
 		}
 	}
 	assert(false && "fail to free component");
+}
+
+bool KComponentManager::Save(IKComponentBase* component, IKXMLElementPtr element)
+{
+	if (component)
+	{
+		ComponentType type = component->GetType();
+		if (type != CT_UNKNOWN)
+		{
+			FuncInfo& info = m_FuncInfo[type];
+			if (info.registered)
+			{
+				IKComponentSaveFunc& saveFunc = std::get<0>(info.saveload);
+				return saveFunc(component, element);
+			}
+		}
+	}
+	assert(false && "fail to save component");
+	return false;
+}
+
+bool KComponentManager::Load(IKComponentBase* component, IKXMLElementPtr element)
+{
+	if (component)
+	{
+		ComponentType type = component->GetType();
+		if (type != CT_UNKNOWN)
+		{
+			FuncInfo& info = m_FuncInfo[type];
+			if (info.registered)
+			{
+				IKComponentSaveFunc& loadFunc = std::get<1>(info.saveload);
+				return loadFunc(component, element);
+			}
+		}
+	}
+	assert(false && "fail to load component");
+	return false;
 }

@@ -3,7 +3,7 @@
 #include "KEditorGlobal.h"
 
 KEEntitySceneJoinCommand::KEEntitySceneJoinCommand(KEEntityPtr entity,
-	IKRenderScene* scene,
+	IKScene* scene,
 	KEEntityManipulator* manipulator)
 	: m_Entity(entity),
 	m_Scene(scene),
@@ -37,7 +37,7 @@ void KEEntitySceneJoinCommand::Undo()
 
 
 KEEntitySceneEraseCommand::KEEntitySceneEraseCommand(KEEntityPtr entity,
-	IKRenderScene* scene,
+	IKScene* scene,
 	KEEntityManipulator* manipulator)
 	: m_Entity(entity),
 	m_Scene(scene),
@@ -70,7 +70,7 @@ void KEEntitySceneEraseCommand::Undo()
 }
 
 KEEntitySceneTransformCommand::KEEntitySceneTransformCommand(KEEntityPtr entity,
-	IKRenderScene* scene,
+	IKScene* scene,
 	KEEntityManipulator* manipulator,
 	const glm::mat4& previous,
 	const glm::mat4& current)

@@ -25,7 +25,7 @@ KEEntityManipulator::~KEEntityManipulator()
 	assert(!m_Gizmo);
 }
 
-bool KEEntityManipulator::Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKRenderScene* scene)
+bool KEEntityManipulator::Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKScene* scene)
 {
 	if (gizmo && window && camera && scene)
 	{

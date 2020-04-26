@@ -28,10 +28,13 @@ QVariant KEFileSystemModel::data(const QModelIndex &index, int role) const
 		return QVariant();
 	}
 
-	if (role == Qt::DisplayRole)
+	if (hasIndex(index.row(), index.column()))
 	{
-		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
-		return QVariant(item->GetName().c_str());
+		if (role == Qt::DisplayRole)
+		{
+			KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
+			return QVariant(item->GetName().c_str());
+		}
 	}
 
 	return QVariant();
@@ -71,7 +74,8 @@ QModelIndex KEFileSystemModel::index(int row, int column,
 	KEFileSystemTreeItem* childItem = m_ViewDir ? item->GetDir(static_cast<size_t>(row)) : item->GetFile(static_cast<size_t>(row));
 	if (childItem)
 	{
-		return createIndex(row, column, childItem);
+		QModelIndex index = createIndex(row, column, childItem);
+		return index;
 	}
 	else
 	{
@@ -87,12 +91,17 @@ QModelIndex KEFileSystemModel::parent(const QModelIndex &index) const
 	}
 
 	KEFileSystemTreeItem* childItem = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
-	KEFileSystemTreeItem *parentItem = childItem->GetParent();
+	if (hasIndex(childItem->GetIndex(), 0))
+	{
+		KEFileSystemTreeItem *parentItem = childItem->GetParent();
 
-	if (parentItem == m_Item)
-		return QModelIndex();
+		if (parentItem == m_Item)
+			return QModelIndex();
 
-	return createIndex(parentItem->GetIndex(), 0, parentItem);
+		return createIndex(parentItem->GetIndex(), 0, parentItem);
+	}
+
+	return QModelIndex();
 }
 
 int KEFileSystemModel::rowCount(const QModelIndex &parent) const
@@ -104,7 +113,14 @@ int KEFileSystemModel::rowCount(const QModelIndex &parent) const
 	else
 		parentItem = static_cast<KEFileSystemTreeItem*>(parent.internalPointer());
 
-	return (int)(m_ViewDir ? parentItem->GetNumDir() : parentItem->GetNumFile());
+	if (parentItem)
+	{
+		return (int)(m_ViewDir ? parentItem->GetNumDir() : parentItem->GetNumFile());
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 int KEFileSystemModel::columnCount(const QModelIndex &parent) const

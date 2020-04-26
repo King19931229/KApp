@@ -80,7 +80,7 @@ bool KEditor::Init()
 
 		IKRenderCore* renderCore = m_Engine->GetRenderCore();
 
-		KEditorGlobal::EntityManipulator.Init(renderCore->GetGizmo(), rawWindow, renderCore->GetCamera(), renderCore->GetRenderScene());
+		KEditorGlobal::EntityManipulator.Init(renderCore->GetGizmo(), rawWindow, renderCore->GetCamera(), m_Engine->GetScene());
 
 		m_bInit = true;
 		return true;

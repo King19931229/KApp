@@ -25,8 +25,7 @@ protected:
 	IKGizmoPtr m_Gizmo;
 	IKRenderWindow* m_Window;
 	const KCamera* m_Camera;
-	// TODO IKScene
-	IKRenderScene* m_Scene;
+	IKScene* m_Scene;
 
 	SelectType m_SelectType;
 
@@ -59,7 +58,7 @@ public:
 	KEEntityManipulator();
 	~KEEntityManipulator();
 
-	bool Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKRenderScene* scene);
+	bool Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKScene* scene);
 	bool UnInit();
 
 	bool Join(IKEntityPtr entity, const std::string& path);

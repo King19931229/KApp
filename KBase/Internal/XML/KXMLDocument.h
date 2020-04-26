@@ -2,7 +2,7 @@
 #include "Interface/IKXML.h"
 #include "tinyxml2.h"
 
-class KXMLDocument : public IXMLDocument
+class KXMLDocument : public IKXMLDocument
 {
 protected:
 	tinyxml2::XMLDocument *m_Document;		

@@ -53,6 +53,7 @@ public:
 	{
 		Clear();
 		m_System = nullptr;
+		m_Parent = nullptr;		
 	}
 
 	void Refresh()
