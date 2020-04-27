@@ -173,6 +173,16 @@ void KERenderWidget::keyPressEvent(QKeyEvent *event)
 		// TODO Domain
 		KEditorGlobal::CommandInvoker.Redo();
 	}
+
+	// TODO 临时硬代码
+	if (event->key() == Qt::Key_J)
+	{
+		KEngineGlobal::Engine->GetScene()->Save("test.scene");
+	}
+	if (event->key() == Qt::Key_K)
+	{
+		KEngineGlobal::Engine->GetScene()->Load("test.scene");
+	}
 }
 
 void KERenderWidget::keyReleaseEvent(QKeyEvent *event)

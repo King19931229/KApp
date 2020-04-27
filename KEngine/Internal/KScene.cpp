@@ -54,6 +54,16 @@ bool KScene::Move(IKEntityPtr entity)
 	return false;
 }
 
+bool KScene::Clear()
+{
+	for (IKEntityPtr entity : m_Entities)
+	{
+		m_RenderScene->Remove(entity);
+	}
+	m_Entities.clear();
+	return true;
+}
+
 bool KScene::Pick(const KCamera& camera, size_t x, size_t y,
 	size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result)
 {
@@ -94,6 +104,8 @@ bool KScene::Save(const char* filename)
 
 bool KScene::Load(const char* filename)
 {
+	Clear();
+
 	IKXMLDocumentPtr root = GetXMLDocument();
 
 	if (root->ParseFromFile(filename))
@@ -105,10 +117,14 @@ bool KScene::Load(const char* filename)
 			while (entityEle && !entityEle->IsEmpty())
 			{
 				IKEntityPtr entity = KECS::EntityManager->CreateEntity();
-				entity->Load(entityEle);
-
-				Add(entity);
-
+				if (entity->Load(entityEle))
+				{
+					Add(entity);
+				}
+				else
+				{
+					KECS::EntityManager->ReleaseEntity(entity);
+				}
 				entityEle = entityEle->NextSiblingElement(msEntityKey);
 			}
 		}

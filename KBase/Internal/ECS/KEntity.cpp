@@ -221,17 +221,45 @@ bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3
 	return false;
 }
 
+const char* KEntity::msComponent = "component";
+const char* KEntity::msComponentType = "type";
+
 bool KEntity::Save(IKXMLElementPtr element)
 {
 	for (auto& pair : m_Components)
 	{
 		ComponentType componentType = pair.first;
 		IKComponentBase* component = pair.second;
+
+		IKXMLElementPtr componentEle = element->NewElement(msComponent);
+		componentEle->SetAttribute(msComponentType, KECS::ComponentTypeToString(componentType));
+
+		component->Save(componentEle);
 	}
 	return true;
 }
 
 bool KEntity::Load(IKXMLElementPtr element)
 {
-	return false;
+	UnRegisterAllComponent();
+
+	IKXMLElementPtr componentEle = element->FirstChildElement(msComponent);
+	while (componentEle && !componentEle->IsEmpty())
+	{
+		IKXMLAttributePtr attri = componentEle->FindAttribute(msComponentType);
+		if (attri && !attri->IsEmpty())
+		{
+			ComponentType componentType = KECS::StringToComponentType(attri->Value().c_str());
+			if (componentType != CT_UNKNOWN)
+			{
+				IKComponentBase* component = nullptr;
+				if (RegisterComponentBase(componentType, &component))
+				{
+					component->Load(componentEle);
+				}				
+			}
+		}
+		componentEle = componentEle->NextSiblingElement(msComponent);
+	}
+	return true;
 }

@@ -7,8 +7,10 @@ class KEntity : public IKEntity
 protected:
 	typedef std::unordered_map<ComponentType, IKComponentBase*> ComponentMap;
 	ComponentMap m_Components;
-
 	size_t m_Id;
+
+	static const char* msComponent;
+	static const char* msComponentType;
 public:
 	KEntity(size_t id);
 	~KEntity();

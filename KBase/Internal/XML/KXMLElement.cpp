@@ -55,6 +55,18 @@ std::string KXMLElement::GetText() const
 	return m_Element->GetText();
 }
 
+void KXMLElement::SetText(const char* text)
+{
+	ASSERT_RESULT(!IsEmpty());
+	m_Element->SetText(text);
+}
+
+void KXMLElement::SetText(int value)
+{
+	ASSERT_RESULT(!IsEmpty());
+	m_Element->SetText(value);
+}
+
 IKXMLAttributePtr KXMLElement::FirstAttribute() const
 {
 	ASSERT_RESULT(!IsEmpty());

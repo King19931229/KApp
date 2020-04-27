@@ -11,6 +11,70 @@ KRenderComponent::~KRenderComponent()
 	UnInit();
 }
 
+const char* KRenderComponent::ResourceTypeToString(KRenderComponent::ResourceType type)
+{
+#define ENUM(type) case type: return #type;
+	switch (type)
+	{
+		ENUM(MESH);
+		ENUM(ASSET);
+		ENUM(UTILITY);
+		ENUM(NONE);
+	default:
+		assert(false);
+		return "UNKNOWN";
+	}
+#undef ENUM
+}
+
+KRenderComponent::ResourceType KRenderComponent::StringToResourceType(const char* str)
+{
+#define CMP(enum_string) if (!strcmp(str, #enum_string)) return enum_string;
+	CMP(MESH);
+	CMP(ASSET);
+	CMP(UTILITY);
+	CMP(NONE);
+	return NONE;
+#undef CMP
+}
+
+bool KRenderComponent::Save(IKXMLElementPtr element)
+{
+	if (m_Type == MESH || m_Type == ASSET)
+	{
+		IKXMLElementPtr typeEle = element->NewElement(msType);
+		typeEle->SetText(ResourceTypeToString(m_Type));
+
+		IKXMLElementPtr pathEle = element->NewElement(msPath);
+		pathEle->SetText(m_Path.c_str());
+
+		return true;
+	}
+	return false;
+}
+
+bool KRenderComponent::Load(IKXMLElementPtr element)
+{
+	IKXMLElementPtr typeEle = element->FirstChildElement(msType);	
+	ACTION_ON_FAILURE(typeEle != nullptr && !typeEle->IsEmpty(), return false);
+
+	ResourceType type = StringToResourceType(typeEle->GetText().c_str());
+	ACTION_ON_FAILURE(type == MESH || type == ASSET, return false);
+
+	IKXMLElementPtr pathEle = element->FirstChildElement(msPath);
+	ACTION_ON_FAILURE(pathEle != nullptr && !pathEle->IsEmpty(), return false);
+
+	std::string path = pathEle->GetText();
+	ACTION_ON_FAILURE(!path.empty(), return false);
+
+	UnInit();
+
+	m_Type = type;
+	m_Path = path;
+
+	return Init();
+}
+
 bool KRenderComponent::GetLocalBound(KAABBBox& bound) const
 {
 	if (m_Mesh)

@@ -19,6 +19,8 @@ public:
 
 	virtual std::string GetValue() const override;
 	virtual std::string GetText() const override;
+	virtual void SetText(const char* text) override;
+	virtual void SetText(int value) override;
 
 	virtual IKXMLAttributePtr FirstAttribute() const override;
 	virtual IKXMLAttributePtr FindAttribute(const char* attribute) const override;

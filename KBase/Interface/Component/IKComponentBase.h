@@ -1,4 +1,5 @@
 #pragma once
+#include "KBase/Interface/IKXML.h"
 #include <vector>
 
 enum ComponentType
@@ -27,6 +28,9 @@ public:
 	{}
 
 	virtual ~IKComponentBase() {}
+
+	virtual bool Save(IKXMLElementPtr element) = 0;
+	virtual bool Load(IKXMLElementPtr element) = 0;
 
 	inline void RegisterEntityHandle(IKEntity* entity) { m_EntityHandle = entity; }
 	inline void UnRegisterEntityHandle() { m_EntityHandle = nullptr; }

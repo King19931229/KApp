@@ -55,6 +55,8 @@ struct IKXMLElement
 
 	virtual std::string GetValue() const = 0;
 	virtual std::string GetText() const = 0;
+	virtual void SetText(const char* text) = 0;
+	virtual void SetText(int value) = 0;
 
 	virtual IKXMLAttributePtr FirstAttribute() const = 0;
 	virtual IKXMLAttributePtr FindAttribute(const char* attribute) const = 0;

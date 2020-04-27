@@ -21,6 +21,8 @@ public:
 	virtual bool Remove(IKEntityPtr entity);
 	virtual bool Move(IKEntityPtr entity);
 
+	virtual bool Clear();
+
 	virtual bool Pick(const KCamera& camera, size_t x, size_t y,
 		size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result);
 	virtual bool CloestPick(const KCamera& camera, size_t x, size_t y,

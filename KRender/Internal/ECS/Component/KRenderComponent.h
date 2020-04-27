@@ -16,9 +16,18 @@ protected:
 	}m_Type;
 	std::string m_Path;
 	KMeshUtilityInfoPtr m_UtilityInfo;
+
+	static constexpr const char* msType = "type";
+	static constexpr const char* msPath = "path";
+
+	static const char* ResourceTypeToString(ResourceType type);
+	static ResourceType StringToResourceType(const char* str);
 public:
 	KRenderComponent();
 	virtual ~KRenderComponent();
+
+	bool Save(IKXMLElementPtr element) override;
+	bool Load(IKXMLElementPtr element) override;
 
 	bool GetLocalBound(KAABBBox& bound) const override;
 	bool Pick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;

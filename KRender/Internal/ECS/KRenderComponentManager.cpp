@@ -24,7 +24,7 @@ void KRenderComponentManager::Init()
 			[this](IKComponentBase* component)
 	{
 		m_TransformComponentPool.Free((KTransformComponent*)component);
-	}), IKComponentSaveLoadFuncPair());
+	}));
 
 	KECS::ComponentManager->RegisterFunc(CT_RENDER,
 		IKComponentCreateDestroyFuncPair(
@@ -35,7 +35,7 @@ void KRenderComponentManager::Init()
 			[this](IKComponentBase* component)
 	{
 		m_RenderComponentPool.Free((KRenderComponent*)component);
-	}), IKComponentSaveLoadFuncPair());
+	}));
 
 	KECS::ComponentManager->RegisterFunc(CT_DEBUG,
 		IKComponentCreateDestroyFuncPair(
@@ -46,7 +46,7 @@ void KRenderComponentManager::Init()
 			[this](IKComponentBase* component)
 	{
 		m_DebugComponentPool.Free((KDebugComponent*)component);
-	}), IKComponentSaveLoadFuncPair());
+	}));
 }
 
 void KRenderComponentManager::UnInit()
