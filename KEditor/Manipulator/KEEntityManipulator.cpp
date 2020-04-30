@@ -79,7 +79,7 @@ bool KEEntityManipulator::UnInit()
 		m_Window = nullptr;
 	}
 
-	m_SelectEntites.clear();
+	KEditorGlobal::EntitySelector.Clear();
 	m_Entities.clear();
 
 	m_Camera = nullptr;
@@ -101,7 +101,7 @@ void KEEntityManipulator::AddEditorEntity(KEEntityPtr editorEntity)
 
 void KEEntityManipulator::RemoveEditorEntity(IKEntity::IDType id)
 {
-	m_SelectEntites.erase(id);
+	KEditorGlobal::EntitySelector.Remove(id);
 	auto it = m_Entities.find(id);
 	if (it != m_Entities.end())
 	{
@@ -154,7 +154,7 @@ bool KEEntityManipulator::Erase(KEEntityPtr editorEntity)
 
 bool KEEntityManipulator::Load(const char* filename)
 {
-	m_SelectEntites.clear();
+	KEditorGlobal::EntitySelector.Clear();
 	m_Entities.clear();
 
 	m_SceneItemWidget->Clear();
@@ -211,11 +211,14 @@ KEEntityPtr KEEntityManipulator::GetEditorEntity(IKEntityPtr entity)
 void KEEntityManipulator::OnSelectionDelete()
 {
 	std::vector<KEEntityPtr> removeEntity;
-	removeEntity.reserve(m_SelectEntites.size());
 
-	for (auto& pair : m_SelectEntites)
 	{
-		removeEntity.push_back(pair.second);
+		const auto& selections = KEditorGlobal::EntitySelector.GetSelection();
+		removeEntity.reserve(selections.size());
+		for (auto& pair : selections)
+		{
+			removeEntity.push_back(pair.second);
+		}
 	}
 
 	for (KEEntityPtr editorEntity : removeEntity)
@@ -273,7 +276,7 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 
 				if (m_SelectType == SelectType::SELECT_TYPE_SINGLE)
 				{
-					m_SelectEntites.clear();
+					KEditorGlobal::EntitySelector.Clear();
 				}
 
 				if (m_Scene->CloestPick(*m_Camera, (size_t)x, (size_t)y,
@@ -281,18 +284,17 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 				{
 					if (m_SelectType == SelectType::SELECT_TYPE_SINGLE)
 					{
-						m_SelectEntites[entity->GetID()] = editorEntity;
+						KEditorGlobal::EntitySelector.Add(editorEntity);
 					}
 					else if (m_SelectType == SelectType::SELECT_TYPE_MULTI)
 					{
-						auto it = m_SelectEntites.find(entity->GetID());
-						if (it == m_SelectEntites.end())
+						if (!KEditorGlobal::EntitySelector.Contain(entity->GetID()))
 						{
-							m_SelectEntites[entity->GetID()] = editorEntity;
+							KEditorGlobal::EntitySelector.Add(editorEntity);
 						}
 						else
 						{
-							m_SelectEntites.erase(it);
+							KEditorGlobal::EntitySelector.Remove(editorEntity);
 						}
 					}
 					UpdateGizmoTransform();
@@ -306,7 +308,7 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 		}
 	}
 
-	if (m_SelectEntites.empty())
+	if (KEditorGlobal::EntitySelector.Empty())
 	{
 		m_Gizmo->Leave();
 	}
@@ -318,7 +320,7 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 
 void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 {
-	if (m_SelectEntites.size() > 0)
+	if (!KEditorGlobal::EntitySelector.Empty())
 	{
 		glm::vec3 deltaTranslate = KMath::ExtractPosition(transform) - KMath::ExtractPosition(m_PreviousTransform);
 		glm::mat3 deltaRotate = KMath::ExtractRotate(transform) * glm::inverse(KMath::ExtractRotate(m_PreviousTransform));
@@ -336,7 +338,8 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 		GizmoManipulateMode mode = GetManipulateMode();
 		GizmoType type = GetGizmoType();
 
-		for (auto& pair : m_SelectEntites)
+		const auto& selections = KEditorGlobal::EntitySelector.GetSelection();
+		for (auto& pair : selections)
 		{
 			KEEntityPtr editorEntity = pair.second;
 
@@ -384,14 +387,16 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 
 void KEEntityManipulator::UpdateGizmoTransform()
 {
-	if (m_SelectEntites.empty())
+	const auto& selections = KEditorGlobal::EntitySelector.GetSelection();
+
+	if (selections.empty())
 		return;
 
-	if (m_SelectEntites.size() > 1)
+	if (selections.size() > 1)
 	{
 		glm::vec3 pos = glm::vec3(0.0f);
 		int num = 0;
-		for (auto& pair : m_SelectEntites)
+		for (auto& pair : selections)
 		{
 			KEEntityPtr entity = pair.second;
 
@@ -410,7 +415,7 @@ void KEEntityManipulator::UpdateGizmoTransform()
 	}
 	else
 	{
-		KEEntityPtr entity = (*m_SelectEntites.begin()).second;
+		KEEntityPtr entity = (*selections.begin()).second;
 		IKTransformComponent* transformComponent = nullptr;
 		if (entity->soul->GetComponent(CT_TRANSFORM, &transformComponent))
 		{
@@ -423,9 +428,11 @@ void KEEntityManipulator::UpdateGizmoTransform()
 
 void KEEntityManipulator::OnGizmoTrigger(bool trigger)
 {
+	const auto& selections = KEditorGlobal::EntitySelector.GetSelection();
+
 	if (trigger)
 	{
-		for (auto& pair : m_SelectEntites)
+		for (auto& pair : selections)
 		{
 			KEEntityPtr editorEntity = pair.second;
 			editorEntity->soul->GetTransform(editorEntity->transformInfo.previous);
@@ -433,7 +440,7 @@ void KEEntityManipulator::OnGizmoTrigger(bool trigger)
 	}
 	else
 	{
-		for (auto& pair : m_SelectEntites)
+		for (auto& pair : selections)
 		{
 			KEEntityPtr editorEntity = pair.second;
 			editorEntity->soul->GetTransform(editorEntity->transformInfo.current);
@@ -497,4 +504,14 @@ bool KEEntityManipulator::SetManipulateMode(GizmoManipulateMode mode)
 		return true;
 	}
 	return false;
+}
+
+KEEntityPtr KEEntityManipulator::GetEntity(IKEntity::IDType id)
+{
+	auto it = m_Entities.find(id);
+	if (it != m_Entities.end())
+	{
+		return it->second;
+	}
+	return nullptr;
 }

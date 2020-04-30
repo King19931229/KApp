@@ -66,11 +66,6 @@ struct KEEntity
 	{
 		return soul == rhs.soul;
 	}
-
-	bool SetSelect(bool select)
-	{
-		// TODO
-	}
 };
 
 typedef std::shared_ptr<KEEntity> KEEntityPtr;

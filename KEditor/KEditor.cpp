@@ -90,6 +90,7 @@ bool KEditor::Init()
 		IKRenderCore* renderCore = m_Engine->GetRenderCore();
 
 		KEditorGlobal::EntityManipulator.Init(renderCore->GetGizmo(), rawWindow, renderCore->GetCamera(), m_Engine->GetScene(), m_SceneItemWidget);
+		KEditorGlobal::EntitySelector.Init(m_SceneItemWidget);
 
 		m_bInit = true;
 		return true;
@@ -106,6 +107,7 @@ bool KEditor::UnInit()
 		KEditorGlobal::CommandInvoker.Clear();
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 
+		KEditorGlobal::EntitySelector.UnInit();
 		KEditorGlobal::EntityManipulator.UnInit();
 
 		m_Engine->UnInit();

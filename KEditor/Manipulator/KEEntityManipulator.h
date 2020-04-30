@@ -20,6 +20,7 @@ class KEEntityManipulator
 	friend class KEEntitySceneJoinCommand;
 	friend class KEEntitySceneEraseCommand;
 	friend class KEEntitySceneTransformCommand;
+	friend class KEEntitySelector;
 public:
 	typedef std::unordered_map<IKEntity::IDType, KEEntityPtr> EntityCollectionType;
 protected:	
@@ -40,7 +41,6 @@ protected:
 	KGizmoTriggerCallback m_TriggerCallback;
 
 	EntityCollectionType m_Entities;
-	EntityCollectionType m_SelectEntites;
 
 	float m_MouseDownPos[2];
 	bool m_Enable;
@@ -77,4 +77,6 @@ public:
 
 	GizmoManipulateMode GetManipulateMode() const;
 	bool SetManipulateMode(GizmoManipulateMode mode);
+
+	KEEntityPtr GetEntity(IKEntity::IDType id);
 };

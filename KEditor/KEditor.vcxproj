@@ -120,6 +120,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Manipulator\KEEntityManipulateCommand.cpp" />
     <ClCompile Include="Manipulator\KEEntityManipulator.cpp" />
+    <ClCompile Include="Manipulator\KEEntitySelector.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessPassModel.cpp" />
@@ -162,6 +163,7 @@
     <ClInclude Include="KEditorGlobal.h" />
     <ClInclude Include="Manipulator\KEEntityManipulateCommand.h" />
     <ClInclude Include="Manipulator\KEEntityManipulator.h" />
+    <ClInclude Include="Manipulator\KEEntitySelector.h" />
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />
     <ClInclude Include="Property\KEPropertyBaseView.h" />
     <ClInclude Include="Property\KEPropertyCheckBoxView.h" />

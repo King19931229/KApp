@@ -1,4 +1,5 @@
 #include "KESceneItemWidget.h"
+#include "KEditorGlobal.h"
 #include <algorithm>
 
 KESceneItemModel::KESceneItemModel(QObject *parent)
@@ -139,12 +140,36 @@ KESceneItemWidget::KESceneItemWidget(QWidget *parent)
 	ui.setupUi(this);
 	m_Model = new KESceneItemModel(this);
 	ui.m_ItemView->setModel(m_Model);
+
+	// SIGNAL SLOT 可以不带const修饰符与引用修饰符 但是最好都带上 或者都不带上
+	// 不要只带const修饰符或者引用修饰符而不带其中另一个
+	// 尤其不要只带引用而缺少const修饰符
+	// 这里坑很多 最好用非宏版本连接信号槽
+	QObject::connect(ui.m_ItemView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
+		this, SLOT(OnSelectionChanged(const QItemSelection &, const QItemSelection &)));
 }
 
 KESceneItemWidget::~KESceneItemWidget()
 {
 	ui.m_ItemView->setModel(nullptr);
 	SAFE_DELETE(m_Model);
+}
+
+void KESceneItemWidget::OnSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
+{
+	for (QModelIndex& index : deselected.indexes())
+	{
+		KEEntity* entity = (KEEntity*)index.internalPointer();
+		KEEntityPtr entityPtr = KEditorGlobal::EntityManipulator.GetEntity(entity->soul->GetID());
+		KEditorGlobal::EntitySelector.Remove(entityPtr);
+	}
+
+	for (QModelIndex& index : selected.indexes())
+	{
+		KEEntity* entity = (KEEntity*)index.internalPointer();
+		KEEntityPtr entityPtr = KEditorGlobal::EntityManipulator.GetEntity(entity->soul->GetID());
+		KEditorGlobal::EntitySelector.Add(entityPtr);
+	}
 }
 
 bool KESceneItemWidget::Init()
@@ -163,6 +188,9 @@ void KESceneItemWidget::UpdateView()
 {
 	ui.m_ItemView->setModel(nullptr);
 	ui.m_ItemView->setModel(m_Model);
+	// 重设model selectionModel也被更替 需要重新绑定信号槽
+	QObject::connect(ui.m_ItemView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
+		this, SLOT(OnSelectionChanged(const QItemSelection &, const QItemSelection &)));
 }
 
 void KESceneItemWidget::Add(KEEntityPtr entity)
@@ -183,18 +211,23 @@ void KESceneItemWidget::Clear()
 	UpdateView();
 }
 
-bool KESceneItemWidget::Select(KEEntityPtr entity)
+bool KESceneItemWidget::Select(KEEntityPtr entity, bool select)
 {
 	size_t index;
 	if (m_Model->GetIndex(entity, index))
 	{
-		QModelIndex rootIndex = ui.m_ItemView->rootIndex();
-		QModelIndex childIndex = rootIndex.child((int)index, 0);
-		if (childIndex.isValid())
+		QModelIndex modeIndex = m_Model->index((int)index, 0);
+		if (modeIndex.isValid())
 		{
-			ui.m_ItemView->clicked(childIndex);
-			return true;
+			ui.m_ItemView->selectionModel()->select(modeIndex,
+				select ? QItemSelectionModel::Select : QItemSelectionModel::Deselect);
 		}
 	}
 	return false;
+}
+
+bool KESceneItemWidget::ClearSelection()
+{
+	ui.m_ItemView->clearSelection();
+	return true;
 }

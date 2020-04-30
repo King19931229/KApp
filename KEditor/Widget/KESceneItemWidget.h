@@ -50,5 +50,9 @@ public:
 	void Add(KEEntityPtr entity);
 	void Remove(KEEntityPtr entity);
 	void Clear();
-	bool Select(KEEntityPtr entity);
+
+	bool Select(KEEntityPtr entity, bool select);
+	bool ClearSelection();
+protected Q_SLOTS:
+	void OnSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
 };

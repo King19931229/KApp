@@ -179,6 +179,9 @@
     <ClCompile Include="Widget\KESceneItemWidget.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
+    <ClCompile Include="Manipulator\KEEntitySelector.cpp">
+      <Filter>Manipulator</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -360,6 +363,9 @@
       <Filter>Manipulator</Filter>
     </ClInclude>
     <ClInclude Include="Manipulator\KEEntityManipulateCommand.h">
+      <Filter>Manipulator</Filter>
+    </ClInclude>
+    <ClInclude Include="Manipulator\KEEntitySelector.h">
       <Filter>Manipulator</Filter>
     </ClInclude>
   </ItemGroup>
