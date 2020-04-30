@@ -7,7 +7,8 @@
 #include <assert.h>
 
 KEntity::KEntity(size_t id)
-	: m_Id(id)
+	: m_Id(id),
+	m_Name("Unnamed")
 {
 }
 
@@ -221,6 +222,7 @@ bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3
 	return false;
 }
 
+const char* KEntity::msName = "name";
 const char* KEntity::msComponent = "component";
 const char* KEntity::msComponentType = "type";
 
@@ -236,6 +238,8 @@ bool KEntity::Save(IKXMLElementPtr element)
 
 		component->Save(componentEle);
 	}
+	element->SetAttribute(msName, m_Name.c_str());
+
 	return true;
 }
 
@@ -243,10 +247,16 @@ bool KEntity::Load(IKXMLElementPtr element)
 {
 	UnRegisterAllComponent();
 
+	IKXMLAttributePtr attri = element->FindAttribute(msName);
+	if (attri && !attri->IsEmpty())
+	{
+		m_Name = attri->Value();
+	}
+
 	IKXMLElementPtr componentEle = element->FirstChildElement(msComponent);
 	while (componentEle && !componentEle->IsEmpty())
 	{
-		IKXMLAttributePtr attri = componentEle->FindAttribute(msComponentType);
+		attri = componentEle->FindAttribute(msComponentType);
 		if (attri && !attri->IsEmpty())
 		{
 			ComponentType componentType = KECS::StringToComponentType(attri->Value().c_str());
@@ -261,5 +271,6 @@ bool KEntity::Load(IKXMLElementPtr element)
 		}
 		componentEle = componentEle->NextSiblingElement(msComponent);
 	}
+
 	return true;
 }

@@ -10,6 +10,7 @@
 class KERenderWidget;
 class KEGraphWidget;
 class KEResourceBrowser;
+class KESceneItemWidget;
 
 class KEditor : public QMainWindow
 {
@@ -26,6 +27,9 @@ protected:
 
 	QDockWidget*  m_ResourceDock;
 	KEResourceBrowser* m_ResourceBrowser;
+
+	QDockWidget* m_SceneItemDock;
+	KESceneItemWidget* m_SceneItemWidget;
 
 	IKEnginePtr m_Engine;
 	bool m_bInit;

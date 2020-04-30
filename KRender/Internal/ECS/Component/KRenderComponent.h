@@ -35,6 +35,7 @@ public:
 
 	bool SetPathMesh(const char* path) override;
 	bool SetPathAsset(const char* path) override;
+	bool GetPath(std::string& path) const override;
 
 	bool Init() override;
 	bool UnInit() override;

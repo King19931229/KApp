@@ -50,7 +50,10 @@ struct KEEntity
 			}
 
 			soul->UnRegisterAllComponent();
-			KECS::EntityManager->ReleaseEntity(soul);
+			if (KECS::EntityManager)
+			{
+				KECS::EntityManager->ReleaseEntity(soul);
+			}
 		}
 	}
 
@@ -62,6 +65,11 @@ struct KEEntity
 	bool operator==(const KEEntity& rhs) const
 	{
 		return soul == rhs.soul;
+	}
+
+	bool SetSelect(bool select)
+	{
+		// TODO
 	}
 };
 

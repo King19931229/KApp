@@ -177,11 +177,11 @@ void KERenderWidget::keyPressEvent(QKeyEvent *event)
 	// TODO 临时硬代码
 	if (event->key() == Qt::Key_J)
 	{
-		KEngineGlobal::Engine->GetScene()->Save("test.scene");
+		KEditorGlobal::EntityManipulator.Save("test.scene");
 	}
 	if (event->key() == Qt::Key_K)
 	{
-		KEngineGlobal::Engine->GetScene()->Load("test.scene");
+		KEditorGlobal::EntityManipulator.Load("test.scene");
 	}
 }
 

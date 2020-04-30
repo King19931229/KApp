@@ -2,6 +2,7 @@
 #include "Command/KECommandInvoker.h"
 #include "Resource/KEResourceImporter.h"
 #include "Manipulator/KEEntityManipulator.h"
+#include "Widget/KESceneItemWidget.h"
 
 namespace KEditorGlobal
 {

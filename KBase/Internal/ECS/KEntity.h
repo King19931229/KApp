@@ -8,7 +8,9 @@ protected:
 	typedef std::unordered_map<ComponentType, IKComponentBase*> ComponentMap;
 	ComponentMap m_Components;
 	size_t m_Id;
+	std::string m_Name;
 
+	static const char* msName;
 	static const char* msComponent;
 	static const char* msComponentType;
 public:
@@ -32,4 +34,7 @@ public:
 	bool Load(IKXMLElementPtr element) override;
 
 	size_t GetID() const override { return m_Id; }
+
+	const std::string& GetName() const override  { return m_Name;}
+	void SetName(const std::string& name) override { m_Name = name; }
 };

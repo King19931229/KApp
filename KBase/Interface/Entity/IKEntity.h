@@ -12,6 +12,9 @@ struct IKEntity
 	typedef size_t IDType;
 	virtual size_t GetID() const = 0;
 
+	virtual const std::string& GetName() const = 0;
+	virtual void SetName(const std::string& name) = 0;
+
 	// Component function
 	virtual bool HasComponent(ComponentType type) = 0;
 	virtual bool HasComponents(const ComponentTypeList& components) = 0;

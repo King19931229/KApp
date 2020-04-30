@@ -18,6 +18,7 @@ struct IKRenderComponent : public IKComponentBase
 
 	virtual bool SetPathMesh(const char* path) = 0;
 	virtual bool SetPathAsset(const char* path) = 0;
+	virtual bool GetPath(std::string& path) const = 0;
 
 	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;

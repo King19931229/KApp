@@ -13,6 +13,8 @@
 #include "Browser/KEResourceItemWidget.h"
 #include "Browser/KEResourceTreeWidget.h"
 
+#include <unordered_map>
+
 struct KEFileSystemComboData : public QObjectUserData
 {
 	IKFileSystemPtr system;
@@ -39,7 +41,7 @@ public:
 	void RefreshItemView(KEFileSystemTreeItem* item);
 protected:
 	QWidget* m_MainWindow;
-	KEFileSystemTreeItem* m_RootItem;
+	std::unordered_map<int, KEFileSystemTreeItem*> m_RootItemMap;
 
 	QDockWidget* m_TreeDockWidget;
 	QDockWidget* m_ItemDockWidget;

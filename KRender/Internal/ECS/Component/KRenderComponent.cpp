@@ -133,6 +133,16 @@ bool KRenderComponent::SetPathAsset(const char* path)
 	return false;
 }
 
+bool KRenderComponent::GetPath(std::string& path) const
+{
+	if (m_Type == ASSET || m_Type == MESH)
+	{
+		path = m_Path;
+		return true;
+	}
+	return false;
+}
+
 bool KRenderComponent::Init()
 {
 	UnInit();

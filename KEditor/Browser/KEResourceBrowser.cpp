@@ -8,7 +8,6 @@
 KEResourceBrowser::KEResourceBrowser(QWidget *parent)
 	: QMainWindow(parent),
 	m_MainWindow(parent),
-	m_RootItem(nullptr),
 	m_TreeWidget(nullptr),
 	m_ItemWidget(nullptr),
 	m_TreeDockWidget(nullptr),
@@ -53,7 +52,7 @@ KEResourceBrowser::~KEResourceBrowser()
 	SAFE_DELETE(m_PathModel);
 	SAFE_DELETE(m_ItemModel);
 	SAFE_DELETE(m_TreeModel);
-	SAFE_DELETE(m_RootItem);
+	ASSERT_RESULT(m_RootItemMap.empty());
 }
 
 QSize KEResourceBrowser::TreeWidgetSize() const
@@ -85,6 +84,8 @@ void KEResourceBrowser::resizeEvent(QResizeEvent* event)
 
 bool KEResourceBrowser::Init()
 {
+	UnInit();
+
 	IKFileSystemPtr resSystem = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
 
 	KFileSystemPtrList systems;
@@ -165,14 +166,22 @@ void KEResourceBrowser::OnComboIndexChanged(int index)
 		std::string fullPath;
 		system->FullPath(".", root, fullPath);
 
-		KEFileSystemTreeItem* previousItem = m_RootItem;
-		m_RootItem = new KEFileSystemTreeItem(system.get(), root, fullPath, nullptr, 0, true);
+		KEFileSystemTreeItem* item = nullptr;
 
-		RefreshTreeView(m_RootItem);
-		RefreshItemView(m_RootItem);
-		RefreshPathView(m_RootItem);
+		auto it = m_RootItemMap.find(index);
+		if (it == m_RootItemMap.end())
+		{
+			item = new KEFileSystemTreeItem(system.get(), root, fullPath, nullptr, 0, true);
+			m_RootItemMap[index] = item;
+		}
+		else
+		{
+			item = it->second;
+		}
 
-		SAFE_DELETE(previousItem);
+		RefreshTreeView(item);
+		RefreshItemView(item);
+		RefreshPathView(item);
 	}
 }
 
@@ -233,5 +242,11 @@ void KEResourceBrowser::OnTreeViewBack(bool)
 bool KEResourceBrowser::UnInit()
 {
 	m_TreeWidget->ui.m_SystemCombo->clear();
+	for (auto& pair : m_RootItemMap)
+	{
+		KEFileSystemTreeItem* item = pair.second;
+		SAFE_DELETE(item);
+	}
+	m_RootItemMap.clear();
 	return true;
 }

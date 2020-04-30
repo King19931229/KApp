@@ -176,6 +176,9 @@
     <ClCompile Include="Manipulator\KEEntityManipulateCommand.cpp">
       <Filter>Manipulator</Filter>
     </ClCompile>
+    <ClCompile Include="Widget\KESceneItemWidget.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -238,6 +241,9 @@
     </QtMoc>
     <QtMoc Include="Browser\KEResourceTreeWidget.h">
       <Filter>Browser</Filter>
+    </QtMoc>
+    <QtMoc Include="Widget\KESceneItemWidget.h">
+      <Filter>Widget</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -368,6 +374,9 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="ui\KEResourceTreeWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ui\KESceneItemWidget.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

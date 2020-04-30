@@ -1,5 +1,6 @@
 #pragma once
 #include "KRender/Interface/IKRenderScene.h"
+#include <unordered_set>
 
 struct IKScene
 {
@@ -11,6 +12,9 @@ struct IKScene
 	virtual bool Add(IKEntityPtr entity) = 0;
 	virtual bool Remove(IKEntityPtr entity) = 0;
 	virtual bool Move(IKEntityPtr entity) = 0;
+
+	typedef std::unordered_set<IKEntityPtr> EntitySetType;
+	virtual const EntitySetType& GetEntities() const = 0;
 
 	virtual bool Clear() = 0;
 

@@ -14,6 +14,7 @@ enum class SelectType
 	SELECT_TYPE_MULTI
 };
 
+class KESceneItemWidget;
 class KEEntityManipulator
 {
 	friend class KEEntitySceneJoinCommand;
@@ -26,6 +27,7 @@ protected:
 	IKRenderWindow* m_Window;
 	const KCamera* m_Camera;
 	IKScene* m_Scene;
+	KESceneItemWidget* m_SceneItemWidget;
 
 	SelectType m_SelectType;
 
@@ -58,11 +60,14 @@ public:
 	KEEntityManipulator();
 	~KEEntityManipulator();
 
-	bool Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKScene* scene);
+	bool Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKScene* scene, KESceneItemWidget* sceneItemWidget);
 	bool UnInit();
 
 	bool Join(IKEntityPtr entity, const std::string& path);
-	bool Erase(KEEntityPtr editorEntity);
+	bool Erase(KEEntityPtr editorEntity);;
+
+	bool Load(const char* filename);
+	bool Save(const char* filename);
 
 	SelectType GetSelectType() const;
 	bool SetSelectType(SelectType type);

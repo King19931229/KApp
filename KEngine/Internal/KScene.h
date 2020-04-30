@@ -6,7 +6,7 @@ class KScene : public IKScene
 {
 protected:
 	IKRenderScene* m_RenderScene;
-	std::unordered_set<IKEntityPtr> m_Entities;
+	EntitySetType m_Entities;
 
 	static const char* msSceneKey;
 	static const char* msEntityKey;
@@ -20,6 +20,8 @@ public:
 	virtual bool Add(IKEntityPtr entity);
 	virtual bool Remove(IKEntityPtr entity);
 	virtual bool Move(IKEntityPtr entity);
+
+	virtual const EntitySetType& GetEntities() const;
 
 	virtual bool Clear();
 

@@ -129,6 +129,7 @@
     <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPropertyWidget.cpp" />
     <ClCompile Include="Widget\KERenderWidget.cpp" />
+    <ClCompile Include="Widget\KESceneItemWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -140,6 +141,7 @@
     <QtMoc Include="Widget\KERenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Widget\KESceneItemWidget.h" />
     <QtMoc Include="Widget\KEPropertyWidget.h" />
     <QtMoc Include="Graph\Utility\KEGraphEmtpyNodeModel.h" />
     <QtMoc Include="Browser\KEFileSystemModel.h" />
@@ -203,6 +205,7 @@
     <QtUic Include="ui\KEResourceBrowser.ui" />
     <QtUic Include="ui\KEResourceItemWidget.ui" />
     <QtUic Include="ui\KEResourceTreeWidget.ui" />
+    <QtUic Include="ui\KESceneItemWidget.ui" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

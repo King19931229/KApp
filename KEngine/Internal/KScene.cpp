@@ -54,6 +54,11 @@ bool KScene::Move(IKEntityPtr entity)
 	return false;
 }
 
+const KScene::EntitySetType& KScene::GetEntities() const
+{
+	return m_Entities;
+}
+
 bool KScene::Clear()
 {
 	for (IKEntityPtr entity : m_Entities)

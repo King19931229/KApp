@@ -3,6 +3,7 @@
 #include "KEditorGlobal.h"
 
 #include "KBase/Interface/Component/IKTransformComponent.h"
+#include "KBase/Interface/Component/IKRenderComponent.h"
 #include "KBase/Publish/KMath.h"
 
 #include <assert.h>
@@ -25,7 +26,7 @@ KEEntityManipulator::~KEEntityManipulator()
 	assert(!m_Gizmo);
 }
 
-bool KEEntityManipulator::Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKScene* scene)
+bool KEEntityManipulator::Init(IKGizmoPtr gizmo, IKRenderWindow* window, const KCamera* camera, IKScene* scene, KESceneItemWidget* sceneItemWidget)
 {
 	if (gizmo && window && camera && scene)
 	{
@@ -33,6 +34,7 @@ bool KEEntityManipulator::Init(IKGizmoPtr gizmo, IKRenderWindow* window, const K
 		m_Window = window;
 		m_Camera = camera;
 		m_Scene = scene;
+		m_SceneItemWidget = sceneItemWidget;
 
 		m_KeyboardCallback = [this](InputKeyboard key, InputAction action)
 		{
@@ -82,6 +84,7 @@ bool KEEntityManipulator::UnInit()
 
 	m_Camera = nullptr;
 	m_Scene = nullptr;
+	m_SceneItemWidget = nullptr;
 
 	return true;
 }
@@ -91,6 +94,7 @@ void KEEntityManipulator::AddEditorEntity(KEEntityPtr editorEntity)
 	if (editorEntity)
 	{
 		m_Scene->Add(editorEntity->soul);
+		m_SceneItemWidget->Add(editorEntity);
 		m_Entities[editorEntity->soul->GetID()] = editorEntity;
 	}
 }
@@ -102,9 +106,9 @@ void KEEntityManipulator::RemoveEditorEntity(IKEntity::IDType id)
 	if (it != m_Entities.end())
 	{
 		KEEntityPtr entity = it->second;
-
 		KEditorGlobal::ResourceImporter.UnInitEntity(entity->soul);
 		m_Scene->Remove(entity->soul);
+		m_SceneItemWidget->Remove(entity);
 		m_Entities.erase(it);
 	}
 }
@@ -121,7 +125,7 @@ bool KEEntityManipulator::Join(IKEntityPtr entity, const std::string& path)
 		glm::mat4 transform = glm::mat4(1.0f);
 		ASSERT_RESULT(entity->GetTransform(transform));
 		editorEntity->createInfo.transform = transform;
-		
+
 		AddEditorEntity(editorEntity);
 
 		KECommandPtr command = KECommandPtr(new KEEntitySceneJoinCommand(editorEntity,
@@ -146,6 +150,49 @@ bool KEEntityManipulator::Erase(KEEntityPtr editorEntity)
 		return true;
 	}
 	return false;
+}
+
+bool KEEntityManipulator::Load(const char* filename)
+{
+	m_SelectEntites.clear();
+	m_Entities.clear();
+
+	m_SceneItemWidget->Clear();
+	KEditorGlobal::CommandInvoker.Clear();
+
+	if (m_Scene->Load(filename))
+	{
+		auto entities = m_Scene->GetEntities();
+		for (IKEntityPtr entity : entities)
+		{
+			IKRenderComponent* renderComponent = nullptr;
+			if (entity->GetComponent(CT_RENDER, &renderComponent))
+			{
+				std::string path;
+				if (renderComponent->GetPath(path))
+				{
+					KEEntityPtr editorEntity = KEEntityPtr(new KEEntity());
+					editorEntity->soul = entity;
+
+					editorEntity->createInfo.path = path;
+
+					glm::mat4 transform = glm::mat4(1.0f);
+					ASSERT_RESULT(entity->GetTransform(transform));
+					editorEntity->createInfo.transform = transform;
+
+					m_Entities[editorEntity->soul->GetID()] = editorEntity;
+					m_SceneItemWidget->Add(editorEntity);
+				}
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+bool KEEntityManipulator::Save(const char* filename)
+{
+	return m_Scene->Save(filename);
 }
 
 KEEntityPtr KEEntityManipulator::GetEditorEntity(IKEntityPtr entity)

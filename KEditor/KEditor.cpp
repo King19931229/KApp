@@ -14,6 +14,8 @@ KEditor::KEditor(QWidget *parent)
 	m_GraphWidget(nullptr),
 	m_ResourceDock(nullptr),
 	m_ResourceBrowser(nullptr),
+	m_SceneItemDock(nullptr),
+	m_SceneItemWidget(nullptr),
 	m_Engine(nullptr),
 	m_bInit(false),
 	m_GraphAction(nullptr)
@@ -78,9 +80,16 @@ bool KEditor::Init()
 		m_ResourceDock->setWidget(m_ResourceBrowser);
 		addDockWidget(Qt::BottomDockWidgetArea, m_ResourceDock);
 
+		m_SceneItemWidget = new KESceneItemWidget(this);
+		m_SceneItemWidget->Init();
+
+		m_SceneItemDock = new QDockWidget(this);
+		m_SceneItemDock->setWidget(m_SceneItemWidget);
+		addDockWidget(Qt::LeftDockWidgetArea, m_SceneItemDock);
+
 		IKRenderCore* renderCore = m_Engine->GetRenderCore();
 
-		KEditorGlobal::EntityManipulator.Init(renderCore->GetGizmo(), rawWindow, renderCore->GetCamera(), m_Engine->GetScene());
+		KEditorGlobal::EntityManipulator.Init(renderCore->GetGizmo(), rawWindow, renderCore->GetCamera(), m_Engine->GetScene(), m_SceneItemWidget);
 
 		m_bInit = true;
 		return true;
@@ -123,6 +132,16 @@ bool KEditor::UnInit()
 			m_ResourceDock->setWidget(nullptr);
 			removeDockWidget(m_ResourceDock);
 			SAFE_DELETE(m_ResourceDock);
+		}
+
+		if (m_SceneItemWidget)
+		{
+			m_SceneItemWidget->UnInit();
+			SAFE_DELETE(m_SceneItemWidget);
+
+			m_SceneItemDock->setWidget(nullptr);
+			removeDockWidget(m_SceneItemDock);
+			SAFE_DELETE(m_SceneItemDock);
 		}
 
 		m_bInit = false;
