@@ -201,6 +201,12 @@ public:
 	inline float GetNear() const { return m_Near; }
 	inline float GetFar() const { return m_Far; }
 
+	void SetViewMatrix(const glm::mat4& viewMat)
+	{
+		// TODO
+		UpdateProperty();
+	}
+
 	void SetPosition(const glm::vec3& pos)
 	{
 		m_Pos = pos;

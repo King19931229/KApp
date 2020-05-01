@@ -1,6 +1,8 @@
 #include "KScene.h"
 #include "KBase/Interface/IKXML.h"
 #include "KBase/Interface/Entity/IKEntityManager.h"
+#include "KBase/Publish/KMath.h"
+#include "KEngine.h"
 
 KScene::KScene()
 	: m_RenderScene(nullptr)
@@ -90,6 +92,7 @@ bool KScene::CloestPick(const KCamera& camera, size_t x, size_t y,
 }
 
 const char* KScene::msSceneKey = "scene";
+const char* KScene::msCameraKey = "camera";
 const char* KScene::msEntityKey = "entity";
 
 bool KScene::Save(const char* filename)
@@ -104,6 +107,14 @@ bool KScene::Save(const char* filename)
 		entity->Save(entityEle);
 	}
 
+	KCamera* camera = KEngineGlobal::Engine->GetRenderCore()->GetCamera();
+	std::string viewMatrixText;
+	if (KMath::ToString(camera->GetViewMatrix(), viewMatrixText))
+	{
+		IKXMLElementPtr cameraEle = root->NewElement(msCameraKey);
+		cameraEle->SetText(viewMatrixText.c_str());
+	}
+
 	return root->SaveFile(filename);
 }
 
@@ -116,7 +127,7 @@ bool KScene::Load(const char* filename)
 	if (root->ParseFromFile(filename))
 	{
 		IKXMLElementPtr sceneEle = root->FirstChildElement(msSceneKey);
-		if (sceneEle)
+		if (sceneEle && !sceneEle->IsEmpty())
 		{
 			IKXMLElementPtr entityEle = sceneEle->FirstChildElement(msEntityKey);
 			while (entityEle && !entityEle->IsEmpty())
@@ -133,6 +144,21 @@ bool KScene::Load(const char* filename)
 				entityEle = entityEle->NextSiblingElement(msEntityKey);
 			}
 		}
+
+		IKXMLElementPtr cameraEle = root->FirstChildElement(msCameraKey);
+		if (cameraEle && !cameraEle->IsEmpty())
+		{
+			std::string viewMatrixText = cameraEle->GetText();
+			
+
+			glm::mat4 viewMatrix;
+			if (KMath::FromString(viewMatrixText, viewMatrix))
+			{
+				KCamera* camera = KEngineGlobal::Engine->GetRenderCore()->GetCamera();
+				camera->SetViewMatrix(viewMatrix);
+			}
+		}
+
 		return true;
 	}
 	return false;

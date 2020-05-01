@@ -173,13 +173,13 @@
     <ClCompile Include="Manipulator\KEEntityManipulator.cpp">
       <Filter>Manipulator</Filter>
     </ClCompile>
-    <ClCompile Include="Manipulator\KEEntityManipulateCommand.cpp">
-      <Filter>Manipulator</Filter>
-    </ClCompile>
     <ClCompile Include="Widget\KESceneItemWidget.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
     <ClCompile Include="Manipulator\KEEntitySelector.cpp">
+      <Filter>Manipulator</Filter>
+    </ClCompile>
+    <ClCompile Include="Manipulator\KEEntityCommand.cpp">
       <Filter>Manipulator</Filter>
     </ClCompile>
   </ItemGroup>
@@ -362,10 +362,10 @@
     <ClInclude Include="Manipulator\KEEntityManipulator.h">
       <Filter>Manipulator</Filter>
     </ClInclude>
-    <ClInclude Include="Manipulator\KEEntityManipulateCommand.h">
+    <ClInclude Include="Manipulator\KEEntitySelector.h">
       <Filter>Manipulator</Filter>
     </ClInclude>
-    <ClInclude Include="Manipulator\KEEntitySelector.h">
+    <ClInclude Include="Manipulator\KEEntityCommand.h">
       <Filter>Manipulator</Filter>
     </ClInclude>
   </ItemGroup>

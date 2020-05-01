@@ -34,6 +34,33 @@ QVariant KESceneItemModel::data(const QModelIndex &index, int role) const
 	return QVariant();
 }
 
+bool KESceneItemModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+	if (!index.isValid())
+	{
+		return false;
+	}
+
+	if (hasIndex(index.row(), index.column()))
+	{
+		if (role == Qt::EditRole)
+		{
+			QString newName = value.toString();
+			if (!newName.isEmpty())
+			{
+				KEEntity* item = static_cast<KEEntity*>(index.internalPointer());
+				item->soul->SetName(newName.toStdString());
+
+				KESceneItemWidget* sceneWidget = (KESceneItemWidget*)QObject::parent();
+				sceneWidget->UpdateView();
+			}
+			return true;
+		}
+	}
+
+	return QAbstractListModel::setData(index, value, role);
+}
+
 bool KESceneItemModel::Init()
 {
 	return true;
@@ -138,8 +165,17 @@ KESceneItemWidget::KESceneItemWidget(QWidget *parent)
 	m_Model(nullptr)
 {
 	ui.setupUi(this);
+
 	m_Model = new KESceneItemModel(this);
-	ui.m_ItemView->setModel(m_Model);
+
+	m_ProxyModel = new QSortFilterProxyModel(this);
+	m_ProxyModel->setSourceModel(m_Model);
+
+	m_ProxyModel->setDynamicSortFilter(true);
+	m_ProxyModel->setFilterRole(Qt::DisplayRole);
+	m_ProxyModel->setSortRole(Qt::DisplayRole);
+
+	ui.m_ItemView->setModel(m_ProxyModel);
 
 	// SIGNAL SLOT 可以不带const修饰符与引用修饰符 但是最好都带上 或者都不带上
 	// 不要只带const修饰符或者引用修饰符而不带其中另一个
@@ -147,29 +183,41 @@ KESceneItemWidget::KESceneItemWidget(QWidget *parent)
 	// 这里坑很多 最好用非宏版本连接信号槽
 	QObject::connect(ui.m_ItemView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
 		this, SLOT(OnSelectionChanged(const QItemSelection &, const QItemSelection &)));
+
+	QObject::connect(ui.m_SearchEdit, SIGNAL(textChanged(const QString &)), this, SLOT(OnSearchTextChanged(const QString &)));
 }
 
 KESceneItemWidget::~KESceneItemWidget()
 {
 	ui.m_ItemView->setModel(nullptr);
+	m_ProxyModel->setSourceModel(nullptr);
+	SAFE_DELETE(m_ProxyModel);
 	SAFE_DELETE(m_Model);
 }
 
 void KESceneItemWidget::OnSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
 {
-	for (QModelIndex& index : deselected.indexes())
+	QItemSelection sourceSelected = selected.empty() ? QItemSelection() : m_ProxyModel->mapSelectionToSource(selected);
+	QItemSelection sourceDeselected = deselected.empty() ? QItemSelection() : m_ProxyModel->mapSelectionToSource(deselected);
+
+	for (QModelIndex& index : sourceDeselected.indexes())
 	{
 		KEEntity* entity = (KEEntity*)index.internalPointer();
 		KEEntityPtr entityPtr = KEditorGlobal::EntityManipulator.GetEntity(entity->soul->GetID());
 		KEditorGlobal::EntitySelector.Remove(entityPtr);
 	}
 
-	for (QModelIndex& index : selected.indexes())
+	for (QModelIndex& index : sourceSelected.indexes())
 	{
 		KEEntity* entity = (KEEntity*)index.internalPointer();
 		KEEntityPtr entityPtr = KEditorGlobal::EntityManipulator.GetEntity(entity->soul->GetID());
 		KEditorGlobal::EntitySelector.Add(entityPtr);
 	}
+}
+
+void KESceneItemWidget::OnSearchTextChanged(const QString& newText)
+{
+	m_ProxyModel->setFilterRegExp(newText);
 }
 
 bool KESceneItemWidget::Init()
@@ -187,7 +235,10 @@ bool KESceneItemWidget::UnInit()
 void KESceneItemWidget::UpdateView()
 {
 	ui.m_ItemView->setModel(nullptr);
-	ui.m_ItemView->setModel(m_Model);
+	ui.m_ItemView->setModel(m_ProxyModel);	
+	m_ProxyModel->setSourceModel(m_Model);
+	m_ProxyModel->sort(0);
+
 	// 重设model selectionModel也被更替 需要重新绑定信号槽
 	QObject::connect(ui.m_ItemView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
 		this, SLOT(OnSelectionChanged(const QItemSelection &, const QItemSelection &)));
@@ -219,8 +270,12 @@ bool KESceneItemWidget::Select(KEEntityPtr entity, bool select)
 		QModelIndex modeIndex = m_Model->index((int)index, 0);
 		if (modeIndex.isValid())
 		{
-			ui.m_ItemView->selectionModel()->select(modeIndex,
-				select ? QItemSelectionModel::Select : QItemSelectionModel::Deselect);
+			QModelIndex proxyIndex = m_ProxyModel->mapFromSource(modeIndex);
+			if (proxyIndex.isValid())
+			{
+				ui.m_ItemView->selectionModel()->select(proxyIndex,
+					select ? QItemSelectionModel::Select : QItemSelectionModel::Deselect);
+			}
 		}
 	}
 	return false;

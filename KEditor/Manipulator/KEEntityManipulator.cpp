@@ -1,5 +1,5 @@
 #include "KEEntityManipulator.h"
-#include "KEEntityManipulateCommand.h"
+#include "KEEntityCommand.h"
 #include "KEditorGlobal.h"
 
 #include "KBase/Interface/Component/IKTransformComponent.h"
@@ -128,8 +128,7 @@ bool KEEntityManipulator::Join(IKEntityPtr entity, const std::string& path)
 
 		AddEditorEntity(editorEntity);
 
-		KECommandPtr command = KECommandPtr(new KEEntitySceneJoinCommand(editorEntity,
-			m_Scene, this));
+		KECommandPtr command = KECommandPtr(new KEEntitySceneJoinCommand(editorEntity, m_Scene, this));
 		KEditorGlobal::CommandInvoker.Push(command);
 
 		return true;
@@ -142,11 +141,28 @@ bool KEEntityManipulator::Erase(KEEntityPtr editorEntity)
 	if (editorEntity)
 	{
 		RemoveEditorEntity(editorEntity->soul->GetID());
-
 		KECommandPtr command = KECommandPtr(new KEEntitySceneEraseCommand(editorEntity,
 			m_Scene, this));
 		KEditorGlobal::CommandInvoker.Push(command);
+		return true;
+	}
+	return false;
+}
 
+bool KEEntityManipulator::Erase(const std::vector<KEEntityPtr>& entites)
+{
+	if (!entites.empty())
+	{
+		KECommandPtr command = KECommandPtr(new KEEntitySceneEraseCommand(m_Scene, this));
+		for (KEEntityPtr entity : entites)
+		{
+			if (entity)
+			{
+				RemoveEditorEntity(entity->soul->GetID());
+				command->Cast<KEEntitySceneEraseCommand>()->Append(entity);
+			}
+		}
+		KEditorGlobal::CommandInvoker.Push(command);
 		return true;
 	}
 	return false;
@@ -159,6 +175,8 @@ bool KEEntityManipulator::Load(const char* filename)
 
 	m_SceneItemWidget->Clear();
 	KEditorGlobal::CommandInvoker.Clear();
+
+	KECommandPtr command = KECommandPtr(new KEEntitySceneJoinCommand(m_Scene, this));
 
 	if (m_Scene->Load(filename))
 	{
@@ -182,9 +200,12 @@ bool KEEntityManipulator::Load(const char* filename)
 
 					m_Entities[editorEntity->soul->GetID()] = editorEntity;
 					m_SceneItemWidget->Add(editorEntity);
+
+					command->Cast<KEEntitySceneJoinCommand>()->Append(editorEntity);
 				}
 			}
 		}
+		KEditorGlobal::CommandInvoker.Push(command);
 		return true;
 	}
 	return false;
@@ -211,7 +232,6 @@ KEEntityPtr KEEntityManipulator::GetEditorEntity(IKEntityPtr entity)
 void KEEntityManipulator::OnSelectionDelete()
 {
 	std::vector<KEEntityPtr> removeEntity;
-
 	{
 		const auto& selections = KEditorGlobal::EntitySelector.GetSelection();
 		removeEntity.reserve(selections.size());
@@ -220,11 +240,7 @@ void KEEntityManipulator::OnSelectionDelete()
 			removeEntity.push_back(pair.second);
 		}
 	}
-
-	for (KEEntityPtr editorEntity : removeEntity)
-	{
-		Erase(editorEntity);
-	}
+	Erase(removeEntity);
 }
 
 void KEEntityManipulator::OnKeyboardListen(InputKeyboard key, InputAction action)
@@ -438,18 +454,18 @@ void KEEntityManipulator::OnGizmoTrigger(bool trigger)
 			editorEntity->soul->GetTransform(editorEntity->transformInfo.previous);
 		}
 	}
-	else
+	else if(!selections.empty())
 	{
+		KECommandPtr command = KECommandPtr(new KEEntitySceneTransformCommand(m_Scene, this));
 		for (auto& pair : selections)
 		{
 			KEEntityPtr editorEntity = pair.second;
 			editorEntity->soul->GetTransform(editorEntity->transformInfo.current);
 
 			// 创建Transform Command
-			KECommandPtr command = KECommandPtr(new KEEntitySceneTransformCommand(editorEntity,
-				m_Scene, this, editorEntity->transformInfo.previous, editorEntity->transformInfo.current));
-			KEditorGlobal::CommandInvoker.Push(command);
+			command->Cast<KEEntitySceneTransformCommand>()->Append(editorEntity, editorEntity->transformInfo.previous, editorEntity->transformInfo.current);
 		}
+		KEditorGlobal::CommandInvoker.Push(command);
 	}
 }
 

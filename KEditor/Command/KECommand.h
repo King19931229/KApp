@@ -7,6 +7,9 @@ public:
 	virtual ~KECommand() {}
 	virtual void Execute() {}
 	virtual void Undo() {}
+
+	template<typename T> T* Cast() { return static_cast<T*>(this); }
+	template<typename T> T* SafeCast() { return dynamic_cast<T*>(this); }
 };
 
 class KELambdaCommand : public KECommand

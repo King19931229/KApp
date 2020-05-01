@@ -9,6 +9,7 @@ protected:
 	EntitySetType m_Entities;
 
 	static const char* msSceneKey;
+	static const char* msCameraKey;
 	static const char* msEntityKey;
 public:
 	KScene();

@@ -64,7 +64,8 @@ public:
 	bool UnInit();
 
 	bool Join(IKEntityPtr entity, const std::string& path);
-	bool Erase(KEEntityPtr editorEntity);;
+	bool Erase(KEEntityPtr editorEntity);
+	bool Erase(const std::vector<KEEntityPtr>& entites);
 
 	bool Load(const char* filename);
 	bool Save(const char* filename);
