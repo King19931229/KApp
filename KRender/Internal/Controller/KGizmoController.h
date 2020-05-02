@@ -6,6 +6,7 @@ class KGizmoController
 {
 protected:
 	IKGizmoPtr m_Gizmo;
+	IKCameraCubePtr m_CameraCube;
 	KCamera* m_Camera;
 	IKRenderWindow* m_Window;
 
@@ -19,7 +20,7 @@ public:
 
 	void SetEnable(bool enable) { m_Enable = enable; }
 
-	bool Init(IKGizmoPtr gizmo, KCamera* camera, IKRenderWindow* window);
+	bool Init(IKGizmoPtr gizmo, IKCameraCubePtr cameraCube, KCamera* camera, IKRenderWindow* window);
 	bool UnInit();
 
 	bool Update(float dt);

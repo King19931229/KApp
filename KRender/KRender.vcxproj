@@ -56,6 +56,7 @@
     <ClInclude Include="Internal\ECS\KRenderComponentManager.h" />
     <ClInclude Include="Internal\ECS\KECSGlobal.h" />
     <ClInclude Include="Internal\ECS\System\KCullSystem.h" />
+    <ClInclude Include="Internal\Gizmo\KCameraCube.h" />
     <ClInclude Include="Internal\Gizmo\KGizmo.h" />
     <ClInclude Include="Internal\Gizmo\KGizmoBase.h" />
     <ClInclude Include="Internal\Gizmo\KMoveGizmo.h" />
@@ -124,6 +125,7 @@
     <ClCompile Include="Internal\ECS\KRenderComponentManager.cpp" />
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp" />
     <ClCompile Include="Internal\ECS\System\KCullSystem.cpp" />
+    <ClCompile Include="Internal\Gizmo\KCameraCube.cpp" />
     <ClCompile Include="Internal\Gizmo\KGizmo.cpp" />
     <ClCompile Include="Internal\Gizmo\KGizmoBase.cpp" />
     <ClCompile Include="Internal\Gizmo\KMoveGizmo.cpp" />

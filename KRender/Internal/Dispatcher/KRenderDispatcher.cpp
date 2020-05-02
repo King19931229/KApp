@@ -3,11 +3,13 @@
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "Internal/ECS/Component/KDebugComponent.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
+#include "Internal/Gizmo/KCameraCube.h"
 
 KRenderDispatcher::KRenderDispatcher()
 	: m_Device(nullptr),
 	m_SwapChain(nullptr),
 	m_UIOverlay(nullptr),
+	m_CameraCube(nullptr),
 	m_MaxRenderThreadNum(std::thread::hardware_concurrency()),
 	m_FrameInFlight(0),
 	m_MultiThreadSumbit(true)
@@ -19,6 +21,7 @@ KRenderDispatcher::~KRenderDispatcher()
 	ASSERT_RESULT(m_Device == nullptr);
 	ASSERT_RESULT(m_SwapChain == nullptr);
 	ASSERT_RESULT(m_UIOverlay == nullptr);
+	ASSERT_RESULT(m_CameraCube == nullptr);
 	ASSERT_RESULT(m_CommandBuffers.empty());
 }
 
@@ -45,6 +48,9 @@ bool KRenderDispatcher::CreateCommandBuffers()
 
 		m_Device->CreateCommandBuffer(m_CommandBuffers[i].shadowMapCommandBuffer);
 		m_CommandBuffers[i].shadowMapCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
+
+		m_Device->CreateCommandBuffer(m_CommandBuffers[i].gizmoCommandBuffer);
+		m_CommandBuffers[i].gizmoCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
 
 		m_Device->CreateCommandBuffer(m_CommandBuffers[i].clearCommandBuffer);
 		m_CommandBuffers[i].clearCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
@@ -95,6 +101,7 @@ bool KRenderDispatcher::DestroyCommandBuffers()
 		m_CommandBuffers[i].primaryCommandBuffer->UnInit();
 		m_CommandBuffers[i].skyBoxCommandBuffer->UnInit();
 		m_CommandBuffers[i].shadowMapCommandBuffer->UnInit();
+		m_CommandBuffers[i].gizmoCommandBuffer->UnInit();
 		m_CommandBuffers[i].clearCommandBuffer->UnInit();
 
 		m_CommandBuffers[i].commandPool->UnInit();
@@ -165,6 +172,8 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 	primaryBuffer->BeginPrimary();
 	{
 		KClearValue clearValue = { {0,0,0,0}, {1, 0} };
+
+		// 更新阴影
 		primaryBuffer->BeginRenderPass(KRenderGlobal::ShadowMap.GetShadowMapTarget(frameIndex), SUBPASS_CONTENTS_INLINE, clearValue);
 		{
 			KRenderGlobal::ShadowMap.UpdateShadowMap(m_Device, primaryBuffer.get(), frameIndex);
@@ -174,6 +183,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 		primaryBuffer->BeginRenderPass(offscreenTarget, SUBPASS_CONTENTS_INLINE, clearValue);
 		{
 			primaryBuffer->SetViewport(offscreenTarget);
+
 			// 开始渲染SkyBox
 			{
 				KRenderCommand command;
@@ -184,6 +194,25 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 					{
 						command.pipelineHandle = handle;
 						primaryBuffer->Render(command);
+					}
+				}
+			}
+
+			// 开始渲染Camera Gizmo
+			{
+				if (m_CameraCube)
+				{
+					KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
+					KRenderCommandList commandList;
+					cameraCube->GetRenderCommand(frameIndex, commandList);
+					for (KRenderCommand& command : commandList)
+					{
+						IKPipelineHandlePtr handle = nullptr;
+						if (command.pipeline->GetHandle(offscreenTarget, handle))
+						{
+							command.pipelineHandle = handle;
+							primaryBuffer->Render(command);
+						}
 					}
 				}
 			}
@@ -355,6 +384,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
 	IKCommandBufferPtr skyBoxCommandBuffer = m_CommandBuffers[frameIndex].skyBoxCommandBuffer;
 	IKCommandBufferPtr shadowMapCommandBuffer = m_CommandBuffers[frameIndex].shadowMapCommandBuffer;
+	IKCommandBufferPtr gizmoCommandBuffer = m_CommandBuffers[frameIndex].gizmoCommandBuffer;
 	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffers[frameIndex].clearCommandBuffer;
 
 	KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
@@ -405,6 +435,31 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 				skyBoxCommandBuffer->End();
 
 				commandBuffers.push_back(skyBoxCommandBuffer);
+			}
+
+			// 绘制Camera Gizmo
+			{
+				gizmoCommandBuffer->BeginSecondary(offscreenTarget);
+				gizmoCommandBuffer->SetViewport(offscreenTarget);
+
+				if (m_CameraCube)
+				{
+					KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
+					KRenderCommandList commandList;
+					cameraCube->GetRenderCommand(frameIndex, commandList);
+					for (KRenderCommand& command : commandList)
+					{
+						IKPipelineHandlePtr handle = nullptr;
+						if (command.pipeline->GetHandle(offscreenTarget, handle))
+						{
+							command.pipelineHandle = handle;
+							gizmoCommandBuffer->Render(command);
+						}
+					}
+				}
+				gizmoCommandBuffer->End();
+
+				commandBuffers.push_back(gizmoCommandBuffer);
 			}
 
 			size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
@@ -629,12 +684,13 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 	return true;
 }
 
-bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay)
+bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay, IKCameraCubePtr cameraCube)
 {
 	m_Device = device;
 	m_FrameInFlight = frameInFlight;
 	m_SwapChain = swapChain;
 	m_UIOverlay = uiOverlay;
+	m_CameraCube = cameraCube;
 	m_ThreadPool.Init(m_MaxRenderThreadNum);
 	CreateCommandBuffers();
 
@@ -654,6 +710,7 @@ bool KRenderDispatcher::UnInit()
 	m_Device = nullptr;
 	m_SwapChain = nullptr;
 	m_UIOverlay = nullptr;
+	m_CameraCube = nullptr;
 	m_ThreadPool.UnInit();
 	DestroyCommandBuffers();
 

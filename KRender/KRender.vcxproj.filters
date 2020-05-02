@@ -327,6 +327,9 @@
     <ClInclude Include="Internal\Scene\KRenderScene.h">
       <Filter>Internal\Scene</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Gizmo\KCameraCube.h">
+      <Filter>Internal\Gizmo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -520,6 +523,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Scene\KRenderScene.cpp">
       <Filter>Internal\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Gizmo\KCameraCube.cpp">
+      <Filter>Internal\Gizmo</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

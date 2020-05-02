@@ -21,7 +21,7 @@
     6-----7
 #endif
 
-KVertexDefinition::POS_3F_NORM_3F_UV_2F KSkyBox::ms_Positions[] =
+const KVertexDefinition::POS_3F_NORM_3F_UV_2F KSkyBox::ms_Positions[] =
 {
 	// Now position and normal is important. As for uv, we really don't care
 	{glm::vec3(-1.0, -1.0f, -1.0f), glm::vec3(-1.0, -1.0f, -1.0f), glm::vec2(1.0f, 0.0f)},
@@ -35,7 +35,7 @@ KVertexDefinition::POS_3F_NORM_3F_UV_2F KSkyBox::ms_Positions[] =
 	{glm::vec3(1.0f, -1.0f, 1.0f), glm::vec3(1.0f, -1.0f, 1.0f), glm::vec2(1.0f, 1.0f)}
 };
 
-uint16_t KSkyBox::ms_Indices[] =
+const uint16_t KSkyBox::ms_Indices[] =
 {
 	// back
 	0, 2, 1, 2, 0, 3,
@@ -51,7 +51,7 @@ uint16_t KSkyBox::ms_Indices[] =
 	6, 3, 0, 3, 6, 7
 };
 
-VertexFormat KSkyBox::ms_VertexFormats[] = {VF_POINT_NORMAL_UV};
+const VertexFormat KSkyBox::ms_VertexFormats[] = {VF_POINT_NORMAL_UV};
 
 KSkyBox::KSkyBox()
 {

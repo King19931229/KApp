@@ -19,6 +19,7 @@ protected:
 	KCamera m_Camera;
 
 	IKGizmoPtr m_Gizmo;
+	IKCameraCubePtr m_CameraCube;
 
 	KCameraMoveController m_CameraMoveController;
 	KUIOverlayController m_UIController;

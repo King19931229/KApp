@@ -6,9 +6,9 @@
 class KSkyBox
 {
 protected:
-	static KVertexDefinition::POS_3F_NORM_3F_UV_2F ms_Positions[8];
-	static uint16_t ms_Indices[36];
-	static VertexFormat  ms_VertexFormats[1];
+	static const KVertexDefinition::POS_3F_NORM_3F_UV_2F ms_Positions[8];
+	static const uint16_t ms_Indices[36];
+	static const VertexFormat ms_VertexFormats[1];
 
 	std::vector<IKPipelinePtr> m_Pipelines;
 

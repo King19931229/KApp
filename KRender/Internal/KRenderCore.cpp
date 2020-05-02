@@ -126,12 +126,18 @@ bool KRenderCore::InitRenderDispatcher()
 	IKSwapChainPtr swapChain = m_Device->GetSwapChain();
 	IKUIOverlayPtr ui = m_Device->GetUIOverlay();
 
-	KRenderGlobal::RenderDispatcher.Init(m_Device, frameInFlight, swapChain, ui);
+	m_CameraCube = CreateCameraCube();
+	m_CameraCube->Init(m_Device, frameInFlight, &m_Camera);
+
+	KRenderGlobal::RenderDispatcher.Init(m_Device, frameInFlight, swapChain, ui, m_CameraCube);
 	return true;
 }
 
 bool KRenderCore::UnInitRenderDispatcher()
 {
+	m_CameraCube->UnInit();
+	m_CameraCube = nullptr;
+
 	KRenderGlobal::RenderDispatcher.UnInit();
 	return true;
 }
@@ -141,7 +147,7 @@ bool KRenderCore::InitController()
 	IKUIOverlayPtr ui = m_Device->GetUIOverlay();
 	m_CameraMoveController.Init(&m_Camera, m_Window, m_Gizmo);
 	m_UIController.Init(ui, m_Window);
-	m_GizmoContoller.Init(m_Gizmo, &m_Camera, m_Window);
+	m_GizmoContoller.Init(m_Gizmo, m_CameraCube, &m_Camera, m_Window);
 
 	m_KeyCallback = [this](InputKeyboard key, InputAction action)
 	{
@@ -173,6 +179,7 @@ bool KRenderCore::InitGizmo()
 	m_Gizmo->Init(&m_Camera);
 	m_Gizmo->SetManipulateMode(GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL);
 	m_Gizmo->SetType(GizmoType::GIZMO_TYPE_MOVE);
+
 	return true;
 }
 

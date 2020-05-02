@@ -2,6 +2,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKCommandBuffer.h"
 #include "Interface/IKSwapChain.h"
+#include "Interface/IKGizmo.h"
 #include "Internal/Scene/KRenderScene.h"
 #include "KBase/Publish/KThreadPool.h"
 #include "Publish/KCamera.h"
@@ -12,6 +13,7 @@ protected:
 	IKRenderDevice* m_Device;
 	IKSwapChainPtr m_SwapChain;
 	IKUIOverlayPtr m_UIOverlay;
+	IKCameraCubePtr m_CameraCube;
 
 	uint32_t m_FrameInFlight;
 
@@ -35,6 +37,7 @@ protected:
 		IKCommandBufferPtr primaryCommandBuffer;
 		IKCommandBufferPtr skyBoxCommandBuffer;
 		IKCommandBufferPtr shadowMapCommandBuffer;
+		IKCommandBufferPtr gizmoCommandBuffer;
 
 		IKCommandBufferPtr clearCommandBuffer;
 
@@ -63,7 +66,7 @@ public:
 
 	inline void SetMultiThreadSumbit(bool multi) { m_MultiThreadSumbit = multi; }
 
-	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay);
+	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay, IKCameraCubePtr cameraCube);
 	bool UnInit();
 
 	bool Execute(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);

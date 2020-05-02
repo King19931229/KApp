@@ -7,6 +7,7 @@
 
 KGizmoController::KGizmoController()
 	: m_Gizmo(nullptr),
+	m_CameraCube(nullptr),
 	m_Camera(nullptr),
 	m_Window(nullptr),
 	m_Enable(true)
@@ -16,15 +17,17 @@ KGizmoController::KGizmoController()
 KGizmoController::~KGizmoController()
 {
 	ASSERT_RESULT(m_Gizmo == nullptr);
+	ASSERT_RESULT(m_CameraCube == nullptr);
 	ASSERT_RESULT(m_Camera == nullptr);
 	ASSERT_RESULT(m_Window == nullptr);
 }
 
-bool KGizmoController::Init(IKGizmoPtr gizmo, KCamera* camera, IKRenderWindow* window)
+bool KGizmoController::Init(IKGizmoPtr gizmo, IKCameraCubePtr cameraCube, KCamera* camera, IKRenderWindow* window)
 {
 	if (gizmo && camera && window)
 	{
 		m_Gizmo = gizmo;
+		m_CameraCube = cameraCube;
 		m_Camera = camera;
 		m_Window = window;
 
@@ -72,36 +75,24 @@ bool KGizmoController::Init(IKGizmoPtr gizmo, KCamera* camera, IKRenderWindow* w
 				size_t width = 0;
 				size_t height = 0;
 				m_Window->GetSize(width, height);
+
 				m_Gizmo->SetScreenSize((unsigned int) width, (unsigned int) height);
+				m_CameraCube->SetScreenSize((unsigned int) width, (unsigned int)height);
 
 				if (action == INPUT_ACTION_PRESS)
 				{
-#if 0
-					IKEntityPtr entity = nullptr;
-					if (mouse == INPUT_MOUSE_BUTTON_LEFT)
-					{
-						if (KRenderGlobal::Scene.CloestPick(*m_Camera, (size_t) xPos, (size_t) yPos,
-															width, height, entity))
-						{
-							IKTransformComponent* compoent = nullptr;
-							if (entity->GetComponent(CT_TRANSFORM, &compoent))
-							{
-								const glm::mat4& transform = compoent->GetFinal();
-								m_Gizmo->SetMatrix(transform);
-							}
-						}
-					}
-#endif
 					m_Gizmo->OnMouseDown((unsigned int) xPos, (unsigned int) yPos);
+					m_CameraCube->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
 				}
-
 				if (action == INPUT_ACTION_RELEASE)
 				{
 					m_Gizmo->OnMouseUp((unsigned int) xPos, (unsigned int) yPos);
+					m_CameraCube->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
 				}
 				if (action == INPUT_ACTION_REPEAT)
 				{
 					m_Gizmo->OnMouseMove((unsigned int) xPos, (unsigned int) yPos);
+					m_CameraCube->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
 				}
 			}
 		};
@@ -126,6 +117,7 @@ bool KGizmoController::UnInit()
 	}
 
 	m_Gizmo = nullptr;
+	m_CameraCube = nullptr;
 	m_Camera = nullptr;
 	m_Window = nullptr;
 

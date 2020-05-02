@@ -19,7 +19,7 @@ EXPORT_DLL IKPostProcessManager* GetProcessManager()
 	return &KRenderGlobal::PostProcessManager;
 }
 
-const KVertexDefinition::SCREENQUAD_POS_2F KPostProcessManager::ms_vertices[] = 
+const KVertexDefinition::SCREENQUAD_POS_2F KPostProcessManager::ms_Vertices[] =
 {
 	glm::vec2(-1.0f, -1.0f),
 	glm::vec2(1.0f, -1.0f),
@@ -72,7 +72,7 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
 
 	m_Device->CreateVertexBuffer(m_SharedVertexBuffer);
-	m_SharedVertexBuffer->InitMemory(ARRAY_SIZE(ms_vertices), sizeof(ms_vertices[0]), ms_vertices);
+	m_SharedVertexBuffer->InitMemory(ARRAY_SIZE(ms_Vertices), sizeof(ms_Vertices[0]), ms_Vertices);
 	m_SharedVertexBuffer->InitDevice(false);
 
 	m_Device->CreateIndexBuffer(m_SharedIndexBuffer);
@@ -80,7 +80,7 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_SharedIndexBuffer->InitDevice(false);
 
 	m_SharedVertexData.vertexStart = 0;
-	m_SharedVertexData.vertexCount = ARRAY_SIZE(ms_vertices);
+	m_SharedVertexData.vertexCount = ARRAY_SIZE(ms_Vertices);
 	m_SharedVertexData.vertexFormats = std::vector<VertexFormat>(1, VF_SCREENQUAD_POS);
 	m_SharedVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_SharedVertexBuffer);
 

@@ -60,3 +60,25 @@ struct IKGizmo
 
 typedef std::shared_ptr<IKGizmo> IKGizmoPtr;
 IKGizmoPtr CreateGizmo();
+
+#include "KRender/Interface/IKRenderDevice.h"
+
+struct IKCameraCube
+{
+	virtual ~IKCameraCube() {}
+
+	virtual bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, const KCamera* camera) = 0;
+	virtual bool UnInit() = 0;
+
+	virtual float GetDisplayScale() const = 0;
+	virtual void SetDisplayScale(float scale) = 0;
+
+	virtual void SetScreenSize(unsigned int width, unsigned int height) = 0;
+
+	virtual void OnMouseDown(unsigned int x, unsigned int y) = 0;
+	virtual void OnMouseMove(unsigned int x, unsigned int y) = 0;
+	virtual void OnMouseUp(unsigned int x, unsigned int y) = 0;
+};
+
+typedef std::shared_ptr<IKCameraCube> IKCameraCubePtr;
+IKCameraCubePtr CreateCameraCube();

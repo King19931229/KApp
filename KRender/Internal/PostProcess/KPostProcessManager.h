@@ -31,7 +31,7 @@ protected:
 	std::unordered_map<KPostProcessConnection::IDType, IKPostProcessConnectionPtr> m_AllConnections;
 	std::unordered_set<IKPostProcessConnectionPtr> m_DeletedConnections;
 
-	static const KVertexDefinition::SCREENQUAD_POS_2F ms_vertices[4];
+	static const KVertexDefinition::SCREENQUAD_POS_2F ms_Vertices[4];
 	static const uint32_t ms_Indices[6];
 
 	KVertexData m_SharedVertexData;
