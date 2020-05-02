@@ -161,41 +161,12 @@ bool KSkyBox::UnInit()
 	}
 	m_Pipelines.clear();
 
-	if(m_VertexBuffer)
-	{
-		m_VertexBuffer->UnInit();
-		m_VertexBuffer = nullptr;
-	}
-
-	if(m_IndexBuffer)
-	{
-		m_IndexBuffer->UnInit();
-		m_IndexBuffer = nullptr;
-	}
-
-	if(m_VertexShader)
-	{
-		m_VertexShader->UnInit();
-		m_VertexShader = nullptr;
-	}
-
-	if(m_FragmentShader)
-	{
-		m_FragmentShader->UnInit();
-		m_FragmentShader = nullptr;
-	}
-
-	if(m_CubeTexture)
-	{
-		m_CubeTexture->UnInit();
-		m_CubeTexture = nullptr;
-	}
-
-	if(m_CubeSampler)
-	{
-		m_CubeSampler->UnInit();
-		m_CubeSampler = nullptr;
-	}
+	SAFE_UNINIT(m_VertexBuffer);
+	SAFE_UNINIT(m_IndexBuffer);
+	SAFE_UNINIT(m_VertexShader);
+	SAFE_UNINIT(m_FragmentShader);
+	SAFE_UNINIT(m_CubeTexture);
+	SAFE_UNINIT(m_CubeSampler);
 
 	m_VertexData.Clear();
 	m_IndexData.Clear();

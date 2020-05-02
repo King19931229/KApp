@@ -48,16 +48,11 @@ bool KShadowMap::UnInit()
 {
 	for(IKRenderTargetPtr target : m_RenderTargets)
 	{
-		target->UnInit();
-		target = nullptr;
+		SAFE_UNINIT(target);
 	}
 	m_RenderTargets.clear();
 
-	if(m_ShadowSampler)
-	{
-		m_ShadowSampler->UnInit();
-		m_ShadowSampler = nullptr;
-	}
+	SAFE_UNINIT(m_ShadowSampler);
 
 	return true;
 }

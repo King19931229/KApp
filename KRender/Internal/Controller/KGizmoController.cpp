@@ -87,12 +87,12 @@ bool KGizmoController::Init(IKGizmoPtr gizmo, IKCameraCubePtr cameraCube, KCamer
 				if (action == INPUT_ACTION_RELEASE)
 				{
 					m_Gizmo->OnMouseUp((unsigned int) xPos, (unsigned int) yPos);
-					m_CameraCube->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
+					m_CameraCube->OnMouseUp((unsigned int)xPos, (unsigned int)yPos);
 				}
 				if (action == INPUT_ACTION_REPEAT)
 				{
 					m_Gizmo->OnMouseMove((unsigned int) xPos, (unsigned int) yPos);
-					m_CameraCube->OnMouseDown((unsigned int)xPos, (unsigned int)yPos);
+					m_CameraCube->OnMouseMove((unsigned int)xPos, (unsigned int)yPos);
 				}
 			}
 		};

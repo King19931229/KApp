@@ -203,7 +203,21 @@ public:
 
 	void SetViewMatrix(const glm::mat4& viewMat)
 	{
-		// TODO
+		glm::vec3 right = glm::vec3(viewMat[0][0], viewMat[1][0], viewMat[2][0]);
+		glm::vec3 up = glm::vec3(viewMat[0][1], viewMat[1][1], viewMat[2][1]);
+		glm::vec3 forward = -glm::vec3(viewMat[0][2], viewMat[1][2], viewMat[2][2]);
+
+		assert(fabs(1.0f - glm::dot(forward, -glm::cross(right, up))) < 0.001f);
+
+		glm::mat4 invView = glm::inverse(viewMat);
+		glm::vec3 pos = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+		m_Pos = pos;
+		m_Right = right;
+		m_Up = up;
+		m_Forward = forward;
+
+		m_InvaildView = true;
 		UpdateProperty();
 	}
 
@@ -395,12 +409,10 @@ public:
 		return m_Box.Intersect(box);
 	}
 
-	bool CalcPickRay(size_t x, size_t y, size_t screenWidth, size_t screenHeight,
-		glm::vec3& origin, glm::vec3& dir) const
+	// [x] [y] in extend of [-1,1]
+	bool CalcPickRay(float x, float y, glm::vec3& origin, glm::vec3& dir) const
 	{
-		glm::vec4 near = glm::vec4(
-			2.0f * ((float)x / (float)screenWidth) - 1.0f,
-			2.0f * ((float)y / (float)screenHeight) - 1.0f,
+		glm::vec4 near = glm::vec4(x, y,
 #ifdef GLM_FORCE_DEPTH_ZERO_TO_ONE
 			0.0f,
 #else
@@ -422,5 +434,18 @@ public:
 		origin = nearPos;
 		dir = glm::normalize(farPos - nearPos);
 		return true;
+	}
+
+	bool CalcPickRay(size_t x, size_t y, size_t screenWidth, size_t screenHeight,
+		glm::vec3& origin, glm::vec3& dir) const
+	{
+		if (screenWidth && screenHeight)
+		{
+			return CalcPickRay(
+				2.0f * ((float)x / (float)screenWidth) - 1.0f,
+				2.0f * ((float)y / (float)screenHeight) - 1.0f,
+				origin, dir);
+		}
+		return false;
 	}
 };
