@@ -1,4 +1,5 @@
 #include "KEQtRenderWindow.h"
+#include "KBase/Publish/KTemplate.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -52,6 +53,7 @@ bool KEQtRenderWindow::UnInit()
 	m_MouseCallbacks.clear();
 	m_ScrollCallbacks.clear();
 	m_FocusCallbacks.clear();
+	m_ResizeCallbacks.clear();
 
 	return true;
 }
@@ -129,32 +131,17 @@ bool KEQtRenderWindow::SetRenderDevice(IKRenderDevice* device)
 
 bool KEQtRenderWindow::RegisterKeyboardCallback(KKeyboardCallbackType* callback)
 {
-	if (callback && std::find(m_KeyboardCallbacks.begin(), m_KeyboardCallbacks.end(), callback) == m_KeyboardCallbacks.end())
-	{
-		m_KeyboardCallbacks.push_back(callback);
-		return true;
-	}
-	return false;
+	return KTemplate::RegisterCallback(m_KeyboardCallbacks, callback);
 }
 
 bool KEQtRenderWindow::RegisterMouseCallback(KMouseCallbackType* callback)
 {
-	if (callback && std::find(m_MouseCallbacks.begin(), m_MouseCallbacks.end(), callback) == m_MouseCallbacks.end())
-	{
-		m_MouseCallbacks.push_back(callback);
-		return true;
-	}
-	return false;
+	return KTemplate::RegisterCallback(m_MouseCallbacks, callback);
 }
 
 bool KEQtRenderWindow::RegisterScrollCallback(KScrollCallbackType* callback)
 {
-	if (callback && std::find(m_ScrollCallbacks.begin(), m_ScrollCallbacks.end(), callback) == m_ScrollCallbacks.end())
-	{
-		m_ScrollCallbacks.push_back(callback);
-		return true;
-	}
-	return false;
+	return KTemplate::RegisterCallback(m_ScrollCallbacks, callback);
 }
 
 bool KEQtRenderWindow::RegisterTouchCallback(KTouchCallbackType* callback)
@@ -164,44 +151,17 @@ bool KEQtRenderWindow::RegisterTouchCallback(KTouchCallbackType* callback)
 
 bool KEQtRenderWindow::UnRegisterKeyboardCallback(KKeyboardCallbackType* callback)
 {
-	if (callback)
-	{
-		auto it = std::find(m_KeyboardCallbacks.begin(), m_KeyboardCallbacks.end(), callback);
-		if (it != m_KeyboardCallbacks.end())
-		{
-			m_KeyboardCallbacks.erase(it);
-			return true;
-		}
-	}
-	return false;
+	return KTemplate::UnRegisterCallback(m_KeyboardCallbacks, callback);
 }
 
 bool KEQtRenderWindow::UnRegisterMouseCallback(KMouseCallbackType* callback)
 {
-	if (callback)
-	{
-		auto it = std::find(m_MouseCallbacks.begin(), m_MouseCallbacks.end(), callback);
-		if (it != m_MouseCallbacks.end())
-		{
-			m_MouseCallbacks.erase(it);
-			return true;
-		}
-	}
-	return false;
+	return KTemplate::UnRegisterCallback(m_MouseCallbacks, callback);
 }
 
 bool KEQtRenderWindow::UnRegisterScrollCallback(KScrollCallbackType* callback)
 {
-	if (callback)
-	{
-		auto it = std::find(m_ScrollCallbacks.begin(), m_ScrollCallbacks.end(), callback);
-		if (it != m_ScrollCallbacks.end())
-		{
-			m_ScrollCallbacks.erase(it);
-			return true;
-		}
-	}
-	return false;
+	return KTemplate::UnRegisterCallback(m_ScrollCallbacks, callback);
 }
 
 bool KEQtRenderWindow::UnRegisterTouchCallback(KTouchCallbackType* callback)
@@ -211,24 +171,20 @@ bool KEQtRenderWindow::UnRegisterTouchCallback(KTouchCallbackType* callback)
 
 bool KEQtRenderWindow::RegisterFocusCallback(KFocusCallbackType* callback)
 {
-	if (callback && std::find(m_FocusCallbacks.begin(), m_FocusCallbacks.end(), callback) == m_FocusCallbacks.end())
-	{
-		m_FocusCallbacks.push_back(callback);
-		return true;
-	}
-	return false;
+	return KTemplate::RegisterCallback(m_FocusCallbacks, callback);
 }
 
 bool KEQtRenderWindow::UnRegisterFocusCallback(KFocusCallbackType* callback)
 {
-	if (callback)
-	{
-		auto it = std::find(m_FocusCallbacks.begin(), m_FocusCallbacks.end(), callback);
-		if (it != m_FocusCallbacks.end())
-		{
-			m_FocusCallbacks.erase(it);
-			return true;
-		}
-	}
-	return false;
+	return KTemplate::UnRegisterCallback(m_FocusCallbacks, callback);
+}
+
+bool KEQtRenderWindow::RegisterResizeCallback(KResizeCallbackType* callback)
+{
+	return KTemplate::RegisterCallback(m_ResizeCallbacks, callback);
+}
+
+bool KEQtRenderWindow::UnRegisterResizeCallback(KResizeCallbackType* callback)
+{
+	return KTemplate::UnRegisterCallback(m_ResizeCallbacks, callback);
 }

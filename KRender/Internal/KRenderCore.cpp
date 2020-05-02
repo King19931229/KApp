@@ -481,6 +481,8 @@ bool KRenderCore::UpdateController()
 	m_MoveTimer.Reset();
 
 	m_CameraMoveController.Update(dt);
+	m_GizmoContoller.Update(dt);
+
 	return true;
 }
 

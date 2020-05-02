@@ -20,6 +20,7 @@ protected:
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
 	std::vector<KScrollCallbackType*> m_ScrollCallbacks;
 	std::vector<KFocusCallbackType*> m_FocusCallbacks;
+	std::vector<KResizeCallbackType*> m_ResizeCallbacks;
 
 	static bool GLFWKeyToInputKeyboard(int key, InputKeyboard& keyboard);
 	static bool GLFWMouseButtonToInputMouseButton(int mouse, InputMouseButton& mouseButton);
@@ -75,4 +76,7 @@ public:
 
 	virtual bool RegisterFocusCallback(KFocusCallbackType* callback);
 	virtual bool UnRegisterFocusCallback(KFocusCallbackType* callback);
+
+	virtual bool RegisterResizeCallback(KResizeCallbackType* callback);
+	virtual bool UnRegisterResizeCallback(KResizeCallbackType* callback);
 };

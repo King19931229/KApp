@@ -16,6 +16,7 @@ protected:
 	bool m_bFocus;
 #endif
 	std::vector<KTouchCallbackType*> m_TouchCallbacks;
+	std::vector<KResizeCallbackType*> m_ResizeCallbacks;
 public:
 	KAndroidRenderWindow();
 	virtual ~KAndroidRenderWindow();
@@ -59,6 +60,8 @@ public:
 	virtual bool RegisterFocusCallback(KFocusCallbackType* callback);
 	virtual bool UnRegisterFocusCallback(KFocusCallbackType* callback);
 
+	virtual bool RegisterResizeCallback(KResizeCallbackType* callback);
+	virtual bool UnRegisterResizeCallback(KResizeCallbackType* callback);
 #ifdef __ANDROID__
 	void ShowAlert(const char* message);
 	static int32_t HandleAppInput(struct android_app* app, AInputEvent* event);

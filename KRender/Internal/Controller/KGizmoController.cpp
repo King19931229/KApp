@@ -72,13 +72,6 @@ bool KGizmoController::Init(IKGizmoPtr gizmo, IKCameraCubePtr cameraCube, KCamer
 		{
 			if(m_Enable)
 			{
-				size_t width = 0;
-				size_t height = 0;
-				m_Window->GetSize(width, height);
-
-				m_Gizmo->SetScreenSize((unsigned int) width, (unsigned int) height);
-				m_CameraCube->SetScreenSize((unsigned int) width, (unsigned int)height);
-
 				if (action == INPUT_ACTION_PRESS)
 				{
 					m_Gizmo->OnMouseDown((unsigned int) xPos, (unsigned int) yPos);
@@ -126,5 +119,12 @@ bool KGizmoController::UnInit()
 
 bool KGizmoController::Update(float dt)
 {
+	size_t width = 0;
+	size_t height = 0;
+	m_Window->GetSize(width, height);
+
+	m_Gizmo->SetScreenSize((unsigned int)width, (unsigned int)height);
+	m_CameraCube->SetScreenSize((unsigned int)width, (unsigned int)height);
+
 	return true;
 }

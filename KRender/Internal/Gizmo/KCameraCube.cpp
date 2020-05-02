@@ -55,8 +55,8 @@ KCameraCube::KCameraCube()
 	m_DisplayHeight(0.0),
 	m_Camera(nullptr)
 {
-	SetDisplayScale(m_DisplayScale);
-	m_CubeCamera.SetPerspective(glm::radians(45.0f), 1.0f, 1.0f, 100.0f);
+	m_CubeCamera.SetPerspective(glm::radians(45.0f), 1.0f, 1.0f, 40.0f);
+	UpdateDisplaySize();
 }
 
 KCameraCube::~KCameraCube()
@@ -286,7 +286,7 @@ bool KCameraCube::GetRenderCommand(unsigned int imageIndex, KRenderCommandList& 
 			command.indexData = &m_CubeIndexData;
 			command.pipeline = m_Pipelines[imageIndex];
 			constant.viewprojclip = m_ClipMat * m_CubeCamera.GetProjectiveMatrix() * m_CubeCamera.GetViewMatrix();
-			constant.color = glm::vec4(1.0f, 1.0f, 1.0f, 0.8f);
+			constant.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			command.SetObjectData(constant);
 			command.indexDraw = true;
 			commands.push_back(std::move(command));

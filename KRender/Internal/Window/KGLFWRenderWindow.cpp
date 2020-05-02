@@ -1,5 +1,6 @@
 #include "KGLFWRenderWindow.h"
 #include "KBase/Interface/IKLog.h"
+#include "KBase/Publish/KTemplate.h"
 #include "Interface/IKRenderDevice.h"
 #include <assert.h>
 
@@ -320,6 +321,7 @@ bool KGLFWRenderWindow::UnInit()
 	m_MouseCallbacks.clear();
 	m_ScrollCallbacks.clear();
 	m_FocusCallbacks.clear();
+	m_ResizeCallbacks.clear();
 #endif
 	return true;
 }
@@ -478,11 +480,7 @@ bool KGLFWRenderWindow::SetRenderDevice(IKRenderDevice* device)
 bool KGLFWRenderWindow::RegisterKeyboardCallback(KKeyboardCallbackType* callback)
 {
 #ifndef __ANDROID__
-	if (callback && std::find(m_KeyboardCallbacks.begin(), m_KeyboardCallbacks.end(), callback) == m_KeyboardCallbacks.end())
-	{
-		m_KeyboardCallbacks.push_back(callback);
-		return true;
-	}
+	return KTemplate::RegisterCallback(m_KeyboardCallbacks, callback);
 #endif
 	return false;
 }
@@ -490,11 +488,7 @@ bool KGLFWRenderWindow::RegisterKeyboardCallback(KKeyboardCallbackType* callback
 bool KGLFWRenderWindow::RegisterMouseCallback(KMouseCallbackType* callback)
 {
 #ifndef __ANDROID__
-	if (callback && std::find(m_MouseCallbacks.begin(), m_MouseCallbacks.end(), callback) == m_MouseCallbacks.end())
-	{
-		m_MouseCallbacks.push_back(callback);
-		return true;
-	}
+	return KTemplate::RegisterCallback(m_MouseCallbacks, callback);
 #endif
 	return false;
 }
@@ -502,11 +496,7 @@ bool KGLFWRenderWindow::RegisterMouseCallback(KMouseCallbackType* callback)
 bool KGLFWRenderWindow::RegisterScrollCallback(KScrollCallbackType* callback)
 {
 #ifndef __ANDROID__
-	if (callback && std::find(m_ScrollCallbacks.begin(), m_ScrollCallbacks.end(), callback) == m_ScrollCallbacks.end())
-	{
-		m_ScrollCallbacks.push_back(callback);
-		return true;
-	}
+	return KTemplate::RegisterCallback(m_ScrollCallbacks, callback);
 #endif
 	return false;
 }
@@ -520,15 +510,7 @@ bool KGLFWRenderWindow::RegisterTouchCallback(KTouchCallbackType* callback)
 bool KGLFWRenderWindow::UnRegisterKeyboardCallback(KKeyboardCallbackType* callback)
 {
 #ifndef __ANDROID__
-	if (callback)
-	{
-		auto it = std::find(m_KeyboardCallbacks.begin(), m_KeyboardCallbacks.end(), callback);
-		if (it != m_KeyboardCallbacks.end())
-		{
-			m_KeyboardCallbacks.erase(it);
-			return true;
-		}
-	}
+	return KTemplate::UnRegisterCallback(m_KeyboardCallbacks, callback);
 #endif
 	return false;
 }
@@ -536,15 +518,7 @@ bool KGLFWRenderWindow::UnRegisterKeyboardCallback(KKeyboardCallbackType* callba
 bool KGLFWRenderWindow::UnRegisterMouseCallback(KMouseCallbackType* callback)
 {
 #ifndef __ANDROID__
-	if (callback)
-	{
-		auto it = std::find(m_MouseCallbacks.begin(), m_MouseCallbacks.end(), callback);
-		if (it != m_MouseCallbacks.end())
-		{
-			m_MouseCallbacks.erase(it);
-			return true;
-		}
-	}
+	return KTemplate::UnRegisterCallback(m_MouseCallbacks, callback);
 #endif
 	return false;
 }
@@ -552,15 +526,7 @@ bool KGLFWRenderWindow::UnRegisterMouseCallback(KMouseCallbackType* callback)
 bool KGLFWRenderWindow::UnRegisterScrollCallback(KScrollCallbackType* callback)
 {
 #ifndef __ANDROID__
-	if (callback)
-	{
-		auto it = std::find(m_ScrollCallbacks.begin(), m_ScrollCallbacks.end(), callback);
-		if (it != m_ScrollCallbacks.end())
-		{
-			m_ScrollCallbacks.erase(it);
-			return true;
-		}
-	}
+	return KTemplate::UnRegisterCallback(m_ScrollCallbacks, callback);
 #endif
 	return false;
 }
@@ -574,11 +540,7 @@ bool KGLFWRenderWindow::UnRegisterTouchCallback(KTouchCallbackType *callback)
 bool KGLFWRenderWindow::RegisterFocusCallback(KFocusCallbackType* callback)
 {
 #ifndef __ANDROID__
-	if (callback && std::find(m_FocusCallbacks.begin(), m_FocusCallbacks.end(), callback) == m_FocusCallbacks.end())
-	{
-		m_FocusCallbacks.push_back(callback);
-		return true;
-	}
+	return KTemplate::RegisterCallback(m_FocusCallbacks, callback);
 #endif
 	return false;
 }
@@ -586,15 +548,17 @@ bool KGLFWRenderWindow::RegisterFocusCallback(KFocusCallbackType* callback)
 bool KGLFWRenderWindow::UnRegisterFocusCallback(KFocusCallbackType* callback)
 {
 #ifndef __ANDROID__
-	if (callback)
-	{
-		auto it = std::find(m_FocusCallbacks.begin(), m_FocusCallbacks.end(), callback);
-		if (it != m_FocusCallbacks.end())
-		{
-			m_FocusCallbacks.erase(it);
-			return true;
-		}
-	}
+	return KTemplate::UnRegisterCallback(m_FocusCallbacks, callback);
 #endif
 	return false;
+}
+
+bool KGLFWRenderWindow::RegisterResizeCallback(KResizeCallbackType* callback)
+{
+	return KTemplate::RegisterCallback(m_ResizeCallbacks, callback);
+}
+
+bool KGLFWRenderWindow::UnRegisterResizeCallback(KResizeCallbackType* callback)
+{
+	return KTemplate::UnRegisterCallback(m_ResizeCallbacks, callback);
 }

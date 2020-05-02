@@ -1,6 +1,7 @@
 #include "KAndroidRenderWindow.h"
 #include "Interface/IKRenderDevice.h"
 #include "KBase/Interface/IKLog.h"
+#include "KBase/Publish/KTemplate.h"
 
 #ifdef __ANDROID__
 #include <android/native_activity.h>
@@ -60,8 +61,9 @@ bool KAndroidRenderWindow::UnInit()
 	m_Device = nullptr;
 #ifdef	__ANDROID__
 	m_app = nullptr;
-	m_TouchCallbacks.clear();
 #endif
+	m_TouchCallbacks.clear();
+	m_ResizeCallbacks.clear();
 	return true;
 }
 
@@ -345,12 +347,7 @@ bool KAndroidRenderWindow::RegisterScrollCallback(KScrollCallbackType* callback)
 
 bool KAndroidRenderWindow::RegisterTouchCallback(KTouchCallbackType* callback)
 {
-	if (callback && std::find(m_TouchCallbacks.begin(), m_TouchCallbacks.end(), callback) == m_TouchCallbacks.end())
-	{
-		m_TouchCallbacks.push_back(callback);
-		return true;
-	}
-	return false;
+	return KTemplate::RegisterCallback(m_TouchCallbacks, callback);
 }
 
 bool KAndroidRenderWindow::UnRegisterKeyboardCallback(KKeyboardCallbackType* callback)
@@ -373,16 +370,7 @@ bool KAndroidRenderWindow::UnRegisterScrollCallback(KScrollCallbackType* callbac
 
 bool KAndroidRenderWindow::UnRegisterTouchCallback(KTouchCallbackType *callback)
 {
-	if (callback)
-	{
-		auto it = std::find(m_TouchCallbacks.begin(), m_TouchCallbacks.end(), callback);
-		if (it != m_TouchCallbacks.end())
-		{
-			m_TouchCallbacks.erase(it);
-			return true;
-		}
-	}
-	return false;
+	return KTemplate::UnRegisterCallback(m_TouchCallbacks, callback);
 }
 
 bool KAndroidRenderWindow::RegisterFocusCallback(KFocusCallbackType* callback)
@@ -395,4 +383,14 @@ bool KAndroidRenderWindow::UnRegisterFocusCallback(KFocusCallbackType* callback)
 {
 	assert(false && "Android window can not unset focus callback");
 	return false;
+}
+
+bool KAndroidRenderWindow::RegisterResizeCallback(KResizeCallbackType* callback)
+{
+	return KTemplate::RegisterCallback(m_ResizeCallbacks, callback);
+}
+
+bool KAndroidRenderWindow::UnRegisterResizeCallback(KResizeCallbackType* callback)
+{
+	return KTemplate::UnRegisterCallback(m_ResizeCallbacks, callback);
 }

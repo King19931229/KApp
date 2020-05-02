@@ -89,6 +89,7 @@
     <ClInclude Include="Publish\KSpinLock.h" />
     <ClInclude Include="Publish\KStringParser.h" />
     <ClInclude Include="Publish\KTaskExecutor.h" />
+    <ClInclude Include="Publish\KTemplate.h" />
     <ClInclude Include="Publish\KThreadPool.h" />
     <ClInclude Include="Publish\KThreadTool.h" />
     <ClInclude Include="Publish\KTimer.h" />

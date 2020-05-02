@@ -223,6 +223,9 @@
     <ClInclude Include="Publish\KMath.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KTemplate.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">

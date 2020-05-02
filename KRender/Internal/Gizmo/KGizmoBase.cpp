@@ -2,6 +2,7 @@
 #include "KBase/Interface/Component/IKDebugComponent.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
 #include "KBase/Publish/KMath.h"
+#include "KBase/Publish/KTemplate.h"
 #include "Internal/KRenderGlobal.h"
 
 KGizmoBase::KGizmoBase()
@@ -112,22 +113,22 @@ void KGizmoBase::OnTransformCallback(const glm::mat4& transform)
 
 bool KGizmoBase::RegisterTransformCallback(KGizmoTransformCallback* callback)
 {
-	return RegisterCallback(m_TransformCallback, callback);
+	return KTemplate::RegisterCallback(m_TransformCallback, callback);
 }
 
 bool KGizmoBase::UnRegisterTransformCallback(KGizmoTransformCallback* callback)
 {
-	return UnRegisterCallback(m_TransformCallback, callback);
+	return KTemplate::UnRegisterCallback(m_TransformCallback, callback);
 }
 
 bool KGizmoBase::RegisterTriggerCallback(KGizmoTriggerCallback* callback)
 {
-	return RegisterCallback(m_TriggerCallback, callback);
+	return KTemplate::RegisterCallback(m_TriggerCallback, callback);
 }
 
 bool KGizmoBase::UnRegisterTriggerCallback(KGizmoTriggerCallback* callback)
 {
-	return UnRegisterCallback(m_TriggerCallback, callback);
+	return KTemplate::UnRegisterCallback(m_TriggerCallback, callback);
 }
 
 void KGizmoBase::Enter()

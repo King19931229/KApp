@@ -10,6 +10,7 @@ typedef std::function<void(InputMouseButton key, InputAction action, float x, fl
 typedef std::function<void(float x, float y)> KScrollCallbackType;
 typedef std::function<void(const std::vector<std::tuple<float, float>>& touchPositions, InputAction action)> KTouchCallbackType;
 typedef std::function<void(bool)> KFocusCallbackType;
+typedef std::function<void(size_t width, size_t height)> KResizeCallbackType;
 
 // 安卓专用
 struct ANativeWindow;
@@ -64,6 +65,10 @@ struct IKRenderWindow
 
 	virtual bool RegisterFocusCallback(KFocusCallbackType* callback) = 0;
 	virtual bool UnRegisterFocusCallback(KFocusCallbackType* callback) = 0;
+
+	// TODO
+	//virtual bool RegisterResizeCallback(KResizeCallbackType* callback) = 0;
+	//virtual bool UnRegisterResizeCallback(KResizeCallbackType* callback) = 0;
 };
 
 EXPORT_DLL IKRenderWindowPtr CreateRenderWindow(RenderWindowType windowType);
