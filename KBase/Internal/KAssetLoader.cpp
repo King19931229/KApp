@@ -71,7 +71,12 @@ KAssetLoader::~KAssetLoader()
 
 }
 
-#define IMPORT_FLAGS (aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices)
+#define IMPORT_FLAGS (\
+aiProcess_FlipWindingOrder |\
+aiProcess_Triangulate |aiProcess_SortByPType |\
+aiProcess_PreTransformVertices |\
+aiProcess_ValidateDataStructure | aiProcess_FindInvalidData\
+)
 
 uint32_t KAssetLoader::GetFlags(const KAssetImportOption& importOption)
 {
@@ -124,7 +129,11 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++)
 	{
 		const aiMesh* paiMesh = scene->mMeshes[i];
-		if(paiMesh->mNumVertices == 0 || paiMesh->mNumFaces == 0)
+		if (paiMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
+		{
+			continue;
+		}
+		if (paiMesh->mNumVertices == 0 || paiMesh->mNumFaces == 0)
 		{
 			continue;
 		}
@@ -239,18 +248,37 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 
 		part.vertexCount = paiMesh->mNumVertices;
 
-		uint32_t indexBase = static_cast<uint32_t>(index32Buffer.size());
+		uint32_t indexBase = part.vertexBase;
+
 		for (unsigned int j = 0; j < paiMesh->mNumFaces; j++)
 		{
 			const aiFace& Face = paiMesh->mFaces[j];
 			if (Face.mNumIndices != 3)
 				continue;
-			index32Buffer.push_back(indexBase + Face.mIndices[0]);
-			index32Buffer.push_back(indexBase + Face.mIndices[1]);
-			index32Buffer.push_back(indexBase + Face.mIndices[2]);
+
+			uint32_t idx[3] = { 0 };
+			bool valid = true;
+
+			for (int i = 0; i < 3; ++i)
+			{
+				idx[i] = indexBase + Face.mIndices[i];
+				if (idx[i] >= vertexCount)
+				{
+					valid = false;
+					break;
+				}
+			}
+
+			if (!valid)			
+				continue;
+
+			for (int i = 0; i < 3; ++i) { index32Buffer.push_back(idx[i]); }
 			part.indexCount += 3;
 			indexCount += 3;
 		}
+
+		if (!part.vertexCount || !part.indexCount)
+			continue;
 
 		parts.push_back(std::move(part));
 	}

@@ -35,9 +35,8 @@ protected:
 	bool m_bInit;
 private:
 	Ui::KEditorClass ui;
-	QAction* m_GraphAction;
-
 	bool SetupMenu();
-
 	bool OnOpenGraphWidget();
+	bool OnLoadScene();
+	bool OnSaveScene();
 };

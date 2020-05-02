@@ -6,6 +6,8 @@
 #include "Other/KEQtRenderWindow.h"
 #include "Browser/KEResourceBrowser.h"
 #include <QTextCodec>
+#include <QFileDialog>
+#include <QMessageBox>
 #include <assert.h>
 
 KEditor::KEditor(QWidget *parent)
@@ -17,8 +19,7 @@ KEditor::KEditor(QWidget *parent)
 	m_SceneItemDock(nullptr),
 	m_SceneItemWidget(nullptr),
 	m_Engine(nullptr),
-	m_bInit(false),
-	m_GraphAction(nullptr)
+	m_bInit(false)
 {
 	ui.setupUi(this);
 	QTextCodec::setCodecForLocale(QTextCodec::codecForName("GBK"));
@@ -35,8 +36,17 @@ KEditor::~KEditor()
 
 bool KEditor::SetupMenu()
 {
-	m_GraphAction = ui.menu->addAction(QString::fromLocal8Bit("节点图"));
-	QObject::connect(m_GraphAction, &QAction::triggered, this, &KEditor::OnOpenGraphWidget);
+	QAction *action = nullptr;
+	
+	action = ui.menu->addAction(QString::fromLocal8Bit("LoadScene"));
+	QObject::connect(action, &QAction::triggered, this, &KEditor::OnLoadScene);
+
+	action = ui.menu->addAction(QString::fromLocal8Bit("SaveScene"));
+	QObject::connect(action, &QAction::triggered, this, &KEditor::OnSaveScene);
+
+	action = ui.menu->addAction(QString::fromLocal8Bit("PostProcessGraph"));
+	QObject::connect(action, &QAction::triggered, this, &KEditor::OnOpenGraphWidget);
+	
 	return true;
 }
 
@@ -44,6 +54,36 @@ bool KEditor::OnOpenGraphWidget()
 {
 	m_GraphWidget->show();
 	return true;
+}
+
+bool KEditor::OnLoadScene()
+{
+	QString path = QFileDialog::getOpenFileName(this, tr("Load Scene"), ".", tr("Scene Files(*.scene)"));
+	if (!path.isEmpty())
+	{
+		KEditorGlobal::EntityManipulator.Load(path.toStdString().c_str());
+		return true;
+	}
+	else
+	{
+		//QMessageBox::critical(NULL, tr("Error"), tr("path<") + path + tr(">error"));
+		return false;
+	}
+}
+
+bool KEditor::OnSaveScene()
+{
+	QString path = QFileDialog::getSaveFileName(this, tr("Save Scene"), ".", tr("Scene Files(*.scene)"));
+	if (!path.isEmpty())
+	{
+		KEditorGlobal::EntityManipulator.Save(path.toStdString().c_str());
+		return true;
+	}
+	else
+	{
+		//QMessageBox::critical(NULL, tr("Error"), tr("path<") + path + tr(">error"));
+		return false;
+	}
 }
 
 bool KEditor::Init()
