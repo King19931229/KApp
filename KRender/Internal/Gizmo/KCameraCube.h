@@ -33,7 +33,8 @@ protected:
 
 	static const VertexFormat ms_VertexFormats[1];
 
-	std::vector<IKPipelinePtr> m_Pipelines;
+	std::vector<IKPipelinePtr> m_BackGroundPipelines;
+	std::vector<IKPipelinePtr> m_CubePipelines;
 
 	IKVertexBufferPtr m_BackGroundVertexBuffer;
 	IKIndexBufferPtr m_BackGroundIndexBuffer;
@@ -48,9 +49,79 @@ protected:
 	KIndexData m_BackGroundIndexData;
 
 	KVertexData m_CubeVertexData;
-	KIndexData m_CubeIndexData;
+	// top bottom left right front back
+	KIndexData m_CubeIndexData[6];
+
+	static const glm::vec3 CubeFaceColor[6];
+
+	enum class CubeFace : uint32_t
+	{
+		TOP,
+		BOTTOM,
+		LEFT,
+		RIGHT,
+		FRONT,
+		BACK
+	};
+	static const char* CubeFaceToString(CubeFace face);
+
+	enum class CubePart : uint32_t
+	{
+		// 6 face
+		TOP_FACE,
+		BOTTOM_FACE,
+		LEFT_FACE,
+		RIGHT_FACE,
+		FRONT_FACE,
+		BACK_FACE,
+		// 12 edge
+		TOP_LEFT_EDGE,
+		TOP_RIGHT_EDGE,
+		TOP_FRONT_EDGE,
+		TOP_BACK_EDGE,
+
+		BOTTOM_LEFT_EDGE,
+		BOTTOM_RIGHT_EDGE,
+		BOTTOM_FRONT_EDGE,
+		BOTTOM_BACK_EDGE,
+
+		FRONT_LEFT_EDGE,
+		FRONT_RIGHT_EDGE,
+
+		BACK_LEFT_EDGE,
+		BACK_RIGHT_EDGE,
+		// 8 corner
+		TOP_LEFT_FRONT_CORNER,
+		TOP_LEFT_BACK_CORNER,
+		TOP_RIGHT_FRONT_CORNER,
+		TOP_RIGHT_BACK_CORNER,
+
+		BOTTOM_LEFT_FRONT_CORNER,
+		BOTTOM_LEFT_BACK_CORNER,
+		BOTTOM_RIGHT_FRONT_CORNER,
+		BOTTOM_RIGHT_BACK_CORNER,
+	};
+	static const char* CubePartToString(CubePart part);
+
+	struct CubeFaceInformation
+	{
+		// [row0]->[x_positive]
+		// [row1]->[x_negative]
+		// [row2]->[y_positive]
+		// [row3]->[y_negative]
+		CubePart edge[4];
+
+		// [row0] [0]->[x_positive] [1]->[x_negative]
+		// [row1] [0]->[y_positive] [1]->[y_negative]
+		CubePart corner[2][2];
+
+		CubePart face;
+	};
+	static const CubeFaceInformation ms_CubeFaceInformation[6];
 
 	bool CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin, glm::vec3& dir);
+	bool PickCubeFace(const glm::vec3& origin, const glm::vec3& dir, CubeFace& face, glm::vec2& projPos);
+	bool PickCubePart(CubeFace face, const glm::vec2& projPos, CubePart& part);
 
 	void UpdateDisplaySize();
 	void LoadResource();

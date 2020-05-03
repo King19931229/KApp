@@ -198,25 +198,6 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 				}
 			}
 
-			// 开始渲染Camera Gizmo
-			{
-				if (m_CameraCube)
-				{
-					KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-					KRenderCommandList commandList;
-					cameraCube->GetRenderCommand(frameIndex, commandList);
-					for (KRenderCommand& command : commandList)
-					{
-						IKPipelineHandlePtr handle = nullptr;
-						if (command.pipeline->GetHandle(offscreenTarget, handle))
-						{
-							command.pipelineHandle = handle;
-							primaryBuffer->Render(command);
-						}
-					}
-				}
-			}
-
 			// 开始渲染物件
 			{
 				KRenderCommandList preZCommandList;
@@ -352,6 +333,26 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 						}
 					}
 				}
+
+				// 开始渲染Camera Gizmo
+				{
+					if (m_CameraCube)
+					{
+						ClearDepthStencil(primaryBuffer, offscreenTarget, clearValue.depthStencil);
+						KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
+						KRenderCommandList commandList;
+						cameraCube->GetRenderCommand(frameIndex, commandList);
+						for (KRenderCommand& command : commandList)
+						{
+							IKPipelineHandlePtr handle = nullptr;
+							if (command.pipeline->GetHandle(offscreenTarget, handle))
+							{
+								command.pipelineHandle = handle;
+								primaryBuffer->Render(command);
+							}
+						}
+					}
+				}
 			}
 		}
 		primaryBuffer->EndRenderPass();
@@ -435,31 +436,6 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 				skyBoxCommandBuffer->End();
 
 				commandBuffers.push_back(skyBoxCommandBuffer);
-			}
-
-			// 绘制Camera Gizmo
-			{
-				gizmoCommandBuffer->BeginSecondary(offscreenTarget);
-				gizmoCommandBuffer->SetViewport(offscreenTarget);
-
-				if (m_CameraCube)
-				{
-					KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-					KRenderCommandList commandList;
-					cameraCube->GetRenderCommand(frameIndex, commandList);
-					for (KRenderCommand& command : commandList)
-					{
-						IKPipelineHandlePtr handle = nullptr;
-						if (command.pipeline->GetHandle(offscreenTarget, handle))
-						{
-							command.pipelineHandle = handle;
-							gizmoCommandBuffer->Render(command);
-						}
-					}
-				}
-				gizmoCommandBuffer->End();
-
-				commandBuffers.push_back(gizmoCommandBuffer);
 			}
 
 			size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
@@ -646,6 +622,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 				commandBuffers.clear();
 			}
 
+			// 绘制Debug
 			for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
 			{
 				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
@@ -654,6 +631,44 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 					commandBuffers.push_back(threadData.debugCommandBuffer);
 					threadData.debugCommands.clear();
 				}
+			}
+
+			if (!commandBuffers.empty())
+			{
+				clearCommandBuffer->BeginSecondary(offscreenTarget);
+				clearCommandBuffer->SetViewport(offscreenTarget);
+				ClearDepthStencil(clearCommandBuffer, offscreenTarget, clearValue.depthStencil);
+				clearCommandBuffer->End();
+
+				primaryCommandBuffer->Execute(clearCommandBuffer);
+
+				primaryCommandBuffer->ExecuteAll(commandBuffers);
+				commandBuffers.clear();
+			}
+
+			// 绘制Camera Gizmo
+			{
+				gizmoCommandBuffer->BeginSecondary(offscreenTarget);
+				gizmoCommandBuffer->SetViewport(offscreenTarget);
+
+				if (m_CameraCube)
+				{
+					KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
+					KRenderCommandList commandList;
+					cameraCube->GetRenderCommand(frameIndex, commandList);
+					for (KRenderCommand& command : commandList)
+					{
+						IKPipelineHandlePtr handle = nullptr;
+						if (command.pipeline->GetHandle(offscreenTarget, handle))
+						{
+							command.pipelineHandle = handle;
+							gizmoCommandBuffer->Render(command);
+						}
+					}
+				}
+				gizmoCommandBuffer->End();
+
+				commandBuffers.push_back(gizmoCommandBuffer);
 			}
 
 			if (!commandBuffers.empty())

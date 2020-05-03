@@ -37,18 +37,18 @@ const KVertexDefinition::POS_3F_NORM_3F_UV_2F KSkyBox::ms_Positions[] =
 
 const uint16_t KSkyBox::ms_Indices[] =
 {
-	// back
-	0, 2, 1, 2, 0, 3,
-	// front
-	6, 5, 4, 6, 4, 7,
+	// up
+	5, 1, 2, 2, 4, 5,
+	// down
+	6, 3, 0, 3, 6, 7,
 	// left
 	0, 1, 5, 0, 5, 6,
 	// right
 	7, 4, 2, 7, 2, 3,
-	// up
-	5, 1, 2, 2, 4, 5,
-	// down
-	6, 3, 0, 3, 6, 7
+	// front
+	6, 5, 4, 6, 4, 7,
+	// back
+	0, 2, 1, 2, 0, 3,
 };
 
 const VertexFormat KSkyBox::ms_VertexFormats[] = {VF_POINT_NORMAL_UV};
