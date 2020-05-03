@@ -40,6 +40,7 @@ protected:
 		IKCommandBufferPtr gizmoCommandBuffer;
 
 		IKCommandBufferPtr clearCommandBuffer;
+		IKCommandBufferPtr clearCommandBuffer2;
 
 		std::vector<ThreadData> threadDatas;
 		KCommandBufferList commandBuffersExec;

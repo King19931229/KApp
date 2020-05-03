@@ -164,6 +164,42 @@ const char* KCameraCube::CubePartToString(KCameraCube::CubePart part)
 	return "UNKNOWN";
 }
 
+const uint16_t KCameraCube::ms_EdgeIndices[] =
+{
+	// up
+	0, 1, 2, 2, 3, 0,
+	// down
+	3, 2, 5, 5, 4, 3
+};
+
+const uint16_t KCameraCube::ms_CornerIndices[] =
+{
+	// up
+	0, 1, 2, 2, 3, 0,
+	// back
+	4, 3, 2, 4, 2, 5,
+	// right
+	5, 6, 1, 1, 2, 5
+};
+
+bool KCameraCube::ms_Init = false;
+KVertexDefinition::DEBUG_POS_3F KCameraCube::ms_EdgeVertices[12][6];
+KVertexDefinition::DEBUG_POS_3F KCameraCube::ms_CornerVertices[8][7];
+
+void KCameraCube::PopulateEdge(const glm::vec3& center, const glm::vec3& xAxis, const glm::vec3& yAxis, const glm::vec3& zAxis, KVertexDefinition::DEBUG_POS_3F edge[6])
+{
+
+}
+
+void KCameraCube::PopulateCorner(const glm::vec3& center, const glm::vec3& xAxis, const glm::vec3& yAxis, const glm::vec3& zAxis, KVertexDefinition::DEBUG_POS_3F corner[7])
+{
+
+}
+
+constexpr static glm::vec3 X_AXIS = glm::vec3(1.0f, 0.0f, 0.0f);
+constexpr static glm::vec3 Y_AXIS = glm::vec3(0.0f, 1.0f, 0.0f);
+constexpr static glm::vec3 Z_AXIS = glm::vec3(0.0f, 0.0f, 1.0f);
+
 KCameraCube::KCameraCube()
 	: m_ScreenWidth(0),
 	m_ScreenHeight(0),
@@ -174,6 +210,39 @@ KCameraCube::KCameraCube()
 {
 	m_CubeCamera.SetPerspective(glm::radians(45.0f), 1.0f, 1.0f, 40.0f);
 	UpdateDisplaySize();
+
+	if (!ms_Init)
+	{
+		// Populate Edge Vertex
+		PopulateEdge(glm::vec3(0.0f, FACE_SIZE, 0.0f), -X_AXIS, Z_AXIS, Y_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::TOP_LEFT]);
+		PopulateEdge(glm::vec3(0.0f, FACE_SIZE, 0.0f), X_AXIS, -Z_AXIS, Y_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::TOP_RIGHT]);
+		PopulateEdge(glm::vec3(0.0f, FACE_SIZE, 0.0f), Z_AXIS, X_AXIS, Y_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::TOP_FRONT]);
+		PopulateEdge(glm::vec3(0.0f, FACE_SIZE, 0.0f), -Z_AXIS, -X_AXIS, Y_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::TOP_BACK]);
+
+		PopulateEdge(glm::vec3(0.0f, -FACE_SIZE, 0.0f), -X_AXIS, Z_AXIS, -Y_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::BOTTOM_LEFT]);
+		PopulateEdge(glm::vec3(0.0f, -FACE_SIZE, 0.0f), X_AXIS, -Z_AXIS, -Y_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::BOTTOM_RIGHT]);
+		PopulateEdge(glm::vec3(0.0f, -FACE_SIZE, 0.0f), Z_AXIS, -X_AXIS, -Y_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::BOTTOM_FRONT]);
+		PopulateEdge(glm::vec3(0.0f, -FACE_SIZE, 0.0f), -Z_AXIS, X_AXIS, -Y_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::BOTTOM_BACK]);
+
+		PopulateEdge(glm::vec3(0.0f, 0.0, -FACE_SIZE), -X_AXIS, -Y_AXIS, Z_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::FRONT_LEFT]);
+		PopulateEdge(glm::vec3(0.0f, 0.0f, -FACE_SIZE), X_AXIS, Y_AXIS, Z_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::FRONT_RIGHT]);
+
+		PopulateEdge(glm::vec3(0.0f, 0.0f, FACE_SIZE), -X_AXIS, Y_AXIS, -Z_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::BACK_LEFT]);
+		PopulateEdge(glm::vec3(0.0f, 0.0f, FACE_SIZE), X_AXIS, -Y_AXIS, -Z_AXIS, ms_EdgeVertices[(uint32_t)CubeEdge::BACK_RIGHT]);
+
+		// Pupulate Corner Vertex
+		PopulateCorner(glm::vec3(0.0f, FACE_SIZE, 0.0f), -X_AXIS, Z_AXIS, Y_AXIS, ms_EdgeVertices[(uint32_t)CubeCorner::TOP_LEFT_FRONT]);
+		PopulateCorner(glm::vec3(0.0f, FACE_SIZE, 0.0f), -Z_AXIS, -X_AXIS, Y_AXIS, ms_EdgeVertices[(uint32_t)CubeCorner::TOP_LEFT_BACK]);
+		PopulateCorner(glm::vec3(0.0f, FACE_SIZE, 0.0f), Z_AXIS, X_AXIS, Y_AXIS, ms_EdgeVertices[(uint32_t)CubeCorner::TOP_RIGHT_FRONT]);
+		PopulateCorner(glm::vec3(0.0f, FACE_SIZE, 0.0f), X_AXIS, -Z_AXIS, Y_AXIS, ms_EdgeVertices[(uint32_t)CubeCorner::TOP_RIGHT_BACK]);
+
+		PopulateCorner(glm::vec3(0.0f, -FACE_SIZE, 0.0f), Z_AXIS, -X_AXIS, -Y_AXIS, ms_EdgeVertices[(uint32_t)CubeCorner::BOTTOM_LEFT_FRONT]);
+		PopulateCorner(glm::vec3(0.0f, -FACE_SIZE, 0.0f), -X_AXIS, -Z_AXIS, -Y_AXIS, ms_EdgeVertices[(uint32_t)CubeCorner::BOTTOM_LEFT_BACK]);
+		PopulateCorner(glm::vec3(0.0f, -FACE_SIZE, 0.0f), X_AXIS, Z_AXIS, -Y_AXIS, ms_EdgeVertices[(uint32_t)CubeCorner::BOTTOM_RIGHT_FRONT]);
+		PopulateCorner(glm::vec3(0.0f, -FACE_SIZE, 0.0f), -Z_AXIS, X_AXIS, -Y_AXIS, ms_EdgeVertices[(uint32_t)CubeCorner::BOTTOM_RIGHT_BACK]);
+
+		ms_Init = true;
+	}
 }
 
 KCameraCube::~KCameraCube()

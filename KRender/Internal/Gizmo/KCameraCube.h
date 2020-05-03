@@ -65,6 +65,38 @@ protected:
 	};
 	static const char* CubeFaceToString(CubeFace face);
 
+	enum class CubeEdge : uint32_t
+	{
+		TOP_LEFT,
+		TOP_RIGHT,
+		TOP_FRONT,
+		TOP_BACK,
+
+		BOTTOM_LEFT,
+		BOTTOM_RIGHT,
+		BOTTOM_FRONT,
+		BOTTOM_BACK,
+
+		FRONT_LEFT,
+		FRONT_RIGHT,
+
+		BACK_LEFT,
+		BACK_RIGHT,
+	};
+
+	enum class CubeCorner : uint32_t
+	{
+		TOP_LEFT_FRONT,
+		TOP_LEFT_BACK,
+		TOP_RIGHT_FRONT,
+		TOP_RIGHT_BACK,
+
+		BOTTOM_LEFT_FRONT,
+		BOTTOM_LEFT_BACK,
+		BOTTOM_RIGHT_FRONT,
+		BOTTOM_RIGHT_BACK,
+	};
+
 	enum class CubePart : uint32_t
 	{
 		// 6 face
@@ -118,6 +150,16 @@ protected:
 		CubePart face;
 	};
 	static const CubeFaceInformation ms_CubeFaceInformation[6];
+
+	static void PopulateEdge(const glm::vec3& center, const glm::vec3& xAxis, const glm::vec3& yAxis, const glm::vec3& zAxis, KVertexDefinition::DEBUG_POS_3F edge[6]);
+	static void PopulateCorner(const glm::vec3& center, const glm::vec3& xAxis, const glm::vec3& yAxis, const glm::vec3& zAxis, KVertexDefinition::DEBUG_POS_3F corner[7]);
+
+	static bool ms_Init;
+	static KVertexDefinition::DEBUG_POS_3F ms_EdgeVertices[12][6];
+	static KVertexDefinition::DEBUG_POS_3F ms_CornerVertices[8][7];
+
+	static const uint16_t ms_EdgeIndices[12];
+	static const uint16_t ms_CornerIndices[18];
 
 	bool CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin, glm::vec3& dir);
 	bool PickCubeFace(const glm::vec3& origin, const glm::vec3& dir, CubeFace& face, glm::vec2& projPos);

@@ -55,6 +55,9 @@ bool KRenderDispatcher::CreateCommandBuffers()
 		m_Device->CreateCommandBuffer(m_CommandBuffers[i].clearCommandBuffer);
 		m_CommandBuffers[i].clearCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
 
+		m_Device->CreateCommandBuffer(m_CommandBuffers[i].clearCommandBuffer2);
+		m_CommandBuffers[i].clearCommandBuffer2->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
+
 		m_CommandBuffers[i].threadDatas.resize(numThread);
 
 		// 创建线程命令缓冲与命令池
@@ -103,6 +106,7 @@ bool KRenderDispatcher::DestroyCommandBuffers()
 		m_CommandBuffers[i].shadowMapCommandBuffer->UnInit();
 		m_CommandBuffers[i].gizmoCommandBuffer->UnInit();
 		m_CommandBuffers[i].clearCommandBuffer->UnInit();
+		m_CommandBuffers[i].clearCommandBuffer2->UnInit();
 
 		m_CommandBuffers[i].commandPool->UnInit();
 		m_CommandBuffers[i].commandPool = nullptr;
@@ -387,6 +391,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 	IKCommandBufferPtr shadowMapCommandBuffer = m_CommandBuffers[frameIndex].shadowMapCommandBuffer;
 	IKCommandBufferPtr gizmoCommandBuffer = m_CommandBuffers[frameIndex].gizmoCommandBuffer;
 	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffers[frameIndex].clearCommandBuffer;
+	IKCommandBufferPtr clearCommandBuffer2 = m_CommandBuffers[frameIndex].clearCommandBuffer2;
 
 	KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 
@@ -641,7 +646,6 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 				clearCommandBuffer->End();
 
 				primaryCommandBuffer->Execute(clearCommandBuffer);
-
 				primaryCommandBuffer->ExecuteAll(commandBuffers);
 				commandBuffers.clear();
 			}
@@ -673,13 +677,12 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 
 			if (!commandBuffers.empty())
 			{
-				clearCommandBuffer->BeginSecondary(offscreenTarget);
-				clearCommandBuffer->SetViewport(offscreenTarget);
-				ClearDepthStencil(clearCommandBuffer, offscreenTarget, clearValue.depthStencil);
-				clearCommandBuffer->End();
+				clearCommandBuffer2->BeginSecondary(offscreenTarget);
+				clearCommandBuffer2->SetViewport(offscreenTarget);
+				ClearDepthStencil(clearCommandBuffer2, offscreenTarget, clearValue.depthStencil);
+				clearCommandBuffer2->End();
 
-				primaryCommandBuffer->Execute(clearCommandBuffer);
-
+				primaryCommandBuffer->Execute(clearCommandBuffer2);
 				primaryCommandBuffer->ExecuteAll(commandBuffers);
 				commandBuffers.clear();
 			}
