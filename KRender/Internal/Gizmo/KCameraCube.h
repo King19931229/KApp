@@ -33,24 +33,43 @@ protected:
 
 	static const VertexFormat ms_VertexFormats[1];
 
+	// pipeline
 	std::vector<IKPipelinePtr> m_BackGroundPipelines;
 	std::vector<IKPipelinePtr> m_CubePipelines;
+	std::vector<IKPipelinePtr> m_PickPipelines;
 
+	// buffer
 	IKVertexBufferPtr m_BackGroundVertexBuffer;
 	IKIndexBufferPtr m_BackGroundIndexBuffer;
 	
 	IKVertexBufferPtr m_CubeVertexBuffer;
 	IKIndexBufferPtr m_CubeIndexBuffer;
 
-	IKShaderPtr m_VertexShader;
-	IKShaderPtr m_FragmentShader;
+	IKVertexBufferPtr m_EdgeVertexBuffer[12];
+	IKIndexBufferPtr m_EdgeIndexBuffer;
 
+	IKVertexBufferPtr m_CornerVertexBuffer[8];
+	IKIndexBufferPtr m_CornerIndexBuffer;
+
+	// cube display
+	KVertexData m_CubeVertexData;
+	KIndexData m_CubeIndexData[6];
+
+	// hover display
 	KVertexData m_BackGroundVertexData;
 	KIndexData m_BackGroundIndexData;
 
-	KVertexData m_CubeVertexData;
-	// top bottom left right front back
-	KIndexData m_CubeIndexData[6];
+	KIndexData m_FaceIndexData[6];
+
+	KVertexData m_EdgeVertexData[12];
+	KIndexData m_EdgeIndexData;
+
+	KVertexData m_CornerVertexData[8];
+	KIndexData m_CornerIndexData;
+
+	// shader
+	IKShaderPtr m_VertexShader;
+	IKShaderPtr m_FragmentShader;
 
 	static const glm::vec3 CubeFaceColor[6];
 
@@ -122,6 +141,7 @@ protected:
 
 		BACK_LEFT_EDGE,
 		BACK_RIGHT_EDGE,
+
 		// 8 corner
 		TOP_LEFT_FRONT_CORNER,
 		TOP_LEFT_BACK_CORNER,
@@ -132,6 +152,8 @@ protected:
 		BOTTOM_LEFT_BACK_CORNER,
 		BOTTOM_RIGHT_FRONT_CORNER,
 		BOTTOM_RIGHT_BACK_CORNER,
+
+		NONE
 	};
 	static const char* CubePartToString(CubePart part);
 
@@ -161,9 +183,13 @@ protected:
 	static const uint16_t ms_EdgeIndices[12];
 	static const uint16_t ms_CornerIndices[18];
 
+	bool m_HoverIn;
+	CubePart m_CurrentPick;
+
 	bool CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin, glm::vec3& dir);
 	bool PickCubeFace(const glm::vec3& origin, const glm::vec3& dir, CubeFace& face, glm::vec2& projPos);
 	bool PickCubePart(CubeFace face, const glm::vec2& projPos, CubePart& part);
+	bool FindPickRenderData(CubePart part, KVertexData** ppVertexData, KIndexData** ppIndexData);
 
 	void UpdateDisplaySize();
 	void LoadResource();

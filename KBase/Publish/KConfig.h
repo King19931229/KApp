@@ -43,6 +43,16 @@
 #define SAFE_DELETE_ARRAY(ptr) { if(ptr) { delete[] ptr; ptr = nullptr; } }
 
 #define SAFE_UNINIT(ptr) { if(ptr) { ptr->UnInit(); ptr = nullptr; } }
+#define SAFE_UNINIT_ARRAY(ptr)\
+{\
+	for(size_t i = 0; i < ARRAY_SIZE(ptr); ++i)\
+	{\
+		if(ptr[i])\
+		{\
+			ptr[i]->UnInit(); \
+		}\
+	}\
+}
 
 #define ASSERT_RESULT(exp)\
 do\
