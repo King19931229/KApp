@@ -827,6 +827,7 @@ void KCameraCube::GetPickCubePart(unsigned int x, unsigned int y, bool& hoverIn,
 				return;
 			}
 		}
+		part = CubePart::NONE;
 		return;
 	}
 
