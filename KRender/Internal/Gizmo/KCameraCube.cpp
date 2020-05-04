@@ -186,8 +186,11 @@ const uint16_t KCameraCube::ms_CornerIndices[] =
 };
 
 bool KCameraCube::ms_Init = false;
+
 KVertexDefinition::DEBUG_POS_3F KCameraCube::ms_EdgeVertices[12][6];
 KVertexDefinition::DEBUG_POS_3F KCameraCube::ms_CornerVertices[8][7];
+
+glm::mat4 KCameraCube::ms_Transform[26];
 
 void KCameraCube::PopulateEdge(const glm::vec3& center, const glm::vec3& xAxis, const glm::vec3& yAxis, const glm::vec3& zAxis, KVertexDefinition::DEBUG_POS_3F edge[6])
 {
@@ -222,13 +225,16 @@ KCameraCube::KCameraCube()
 	m_DisplayHeight(0.0),
 	m_Camera(nullptr),
 	m_CurrentPick(CubePart::NONE),
-	m_HoverIn(false)
+	m_HoverIn(false),
+	m_MouseDown(false)
 {
 	m_CubeCamera.SetPerspective(glm::radians(45.0f), 1.0f, 1.0f, 40.0f);
 	UpdateDisplaySize();
 
 	ZERO_ARRAY_MEMORY(m_EdgeVertexBuffer);
 	ZERO_ARRAY_MEMORY(m_CornerVertexBuffer);
+	ZERO_ARRAY_MEMORY(m_LastMousePos);
+	ZERO_ARRAY_MEMORY(m_LastMouseDownPos);
 
 	if (!ms_Init)
 	{
@@ -259,6 +265,50 @@ KCameraCube::KCameraCube()
 		PopulateCorner(glm::vec3(0.0f, -FACE_SIZE, 0.0f), -X_AXIS, -Z_AXIS, -Y_AXIS, ms_CornerVertices[(uint32_t)CubeCorner::BOTTOM_LEFT_BACK]);
 		PopulateCorner(glm::vec3(0.0f, -FACE_SIZE, 0.0f), X_AXIS, Z_AXIS, -Y_AXIS, ms_CornerVertices[(uint32_t)CubeCorner::BOTTOM_RIGHT_FRONT]);
 		PopulateCorner(glm::vec3(0.0f, -FACE_SIZE, 0.0f), -Z_AXIS, X_AXIS, -Y_AXIS, ms_CornerVertices[(uint32_t)CubeCorner::BOTTOM_RIGHT_BACK]);
+
+#define MAKE_VIEW_TRANSFORM(forward, up, mat)\
+{\
+	glm::vec3 normForward = glm::normalize(forward);\
+	glm::vec3 normRight = glm::normalize(glm::cross(forward, up));\
+	glm::vec3 normUp = glm::normalize(glm::cross(normRight,normForward));\
+	mat = glm::lookAt(-normForward, glm::vec3(0.0f), normUp);\
+}
+		// 6 face
+		MAKE_VIEW_TRANSFORM(glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), ms_Transform[(uint32_t)CubePart::TOP_FACE]);
+		MAKE_VIEW_TRANSFORM(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_FACE]);
+
+		MAKE_VIEW_TRANSFORM(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::LEFT_FACE]);
+		MAKE_VIEW_TRANSFORM(glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::RIGHT_FACE]);
+		MAKE_VIEW_TRANSFORM(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::FRONT_FACE]);
+		MAKE_VIEW_TRANSFORM(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BACK_FACE]);
+
+		// 12 edge
+		MAKE_VIEW_TRANSFORM(-glm::vec3(-1.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::TOP_LEFT_EDGE]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(1.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::TOP_RIGHT_EDGE]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(0.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::TOP_FRONT_EDGE]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(0.0f, 1.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::TOP_BACK_EDGE]);
+
+		MAKE_VIEW_TRANSFORM(-glm::vec3(-1.0f, -1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_LEFT_EDGE]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(1.0f, -1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_RIGHT_EDGE]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(0.0f, -1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_FRONT_EDGE]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(0.0f, -1.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_BACK_EDGE]);
+
+		MAKE_VIEW_TRANSFORM(-glm::vec3(-1.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::FRONT_LEFT_EDGE]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(1.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::FRONT_RIGHT_EDGE]);
+
+		MAKE_VIEW_TRANSFORM(-glm::vec3(-1.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BACK_LEFT_EDGE]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(1.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BACK_RIGHT_EDGE]);
+
+		// 8 corner
+		MAKE_VIEW_TRANSFORM(-glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::TOP_LEFT_FRONT_CORNER]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(-1.0f, 1.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::TOP_LEFT_BACK_CORNER]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::TOP_RIGHT_FRONT_CORNER]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(1.0f, 1.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::TOP_RIGHT_BACK_CORNER]);
+
+		MAKE_VIEW_TRANSFORM(-glm::vec3(-1.0f, -1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_LEFT_FRONT_CORNER]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_LEFT_BACK_CORNER]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(1.0f, -1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_RIGHT_FRONT_CORNER]);
+		MAKE_VIEW_TRANSFORM(-glm::vec3(1.0f, -1.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_RIGHT_BACK_CORNER]);
 
 		ms_Init = true;
 	}
@@ -411,7 +461,7 @@ void KCameraCube::InitRenderData()
 	m_CornerIndexData.indexStart = 0;
 }
 
-bool KCameraCube::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const KCamera* camera)
+bool KCameraCube::Init(IKRenderDevice* renderDevice, size_t frameInFlight, KCamera* camera)
 {
 	ASSERT_RESULT(renderDevice != nullptr);
 	ASSERT_RESULT(frameInFlight > 0);
@@ -713,7 +763,7 @@ bool KCameraCube::FindPickRenderData(CubePart part, KVertexData** ppVertexData, 
 
 void KCameraCube::UpdateDisplaySize()
 {
-	m_DisplayWidth = std::min(std::max(0.001f, m_DisplayScale * 0.6f), 1.0f);
+	m_DisplayWidth = std::min(std::max(0.001f, m_DisplayScale * 0.45f), 1.0f);
 	m_DisplayHeight = m_DisplayWidth;
 
 	float aspect = m_ScreenHeight ? (float)m_ScreenWidth / m_ScreenHeight : 1;
@@ -748,7 +798,9 @@ void KCameraCube::SetScreenSize(unsigned int width, unsigned int height)
 
 void KCameraCube::OnMouseDown(unsigned int x, unsigned int y)
 {
-
+	m_LastMouseDownPos[0] = x;
+	m_LastMouseDownPos[1] = y;
+	m_MouseDown = true;
 }
 
 void KCameraCube::OnMouseMove(unsigned int x, unsigned int y)
@@ -758,32 +810,74 @@ void KCameraCube::OnMouseMove(unsigned int x, unsigned int y)
 
 	if (CalcPickRay(x, y, origin, dir))
 	{
-		m_HoverIn = true;
-		CubeFace face;
-		glm::vec2 projPos;
-		if (PickCubeFace(origin, dir, face, projPos))
+		if (x != m_LastMousePos[0] || y != m_LastMousePos[1])
 		{
-			KG_LOG(LM_DEFAULT, ">Pick face %s", CubeFaceToString(face));
-			CubePart part;
-			if (PickCubePart(face, projPos, part))
+			CubeFace face;
+			glm::vec2 projPos;
+			if (PickCubeFace(origin, dir, face, projPos))
 			{
-				m_CurrentPick = part;
-				KG_LOG(LM_DEFAULT, ">	Pick part %s", CubePartToString(part));
-				return;
+				KG_LOG(LM_DEFAULT, ">Pick face %s", CubeFaceToString(face));
+				CubePart part;
+				if (PickCubePart(face, projPos, part))
+				{
+					m_CurrentPick = part;
+					KG_LOG(LM_DEFAULT, ">	Pick part %s", CubePartToString(part));
+				}
+				else
+				{
+					m_CurrentPick = CubePart::NONE;
+				}
 			}
 		}
-		m_CurrentPick = CubePart::NONE;
+
+		if(m_MouseDown)
+		{
+			int deltaX = x - m_LastMousePos[0];
+			int deltaY = y - m_LastMousePos[1];
+
+			float width = m_DisplayWidth * m_ScreenWidth;
+			float height = m_DisplayHeight * m_ScreenHeight;
+
+			const float scale = 3.0f;
+			if (abs(deltaX) > 0)
+			{
+				m_Camera->Rotate(glm::vec3(0.0f, 1.0f, 0.0f), scale * -glm::quarter_pi<float>() * deltaX / width);
+			}
+			if (abs(deltaY) > 0)
+			{
+				m_Camera->RotateRight(scale * -glm::quarter_pi<float>() * deltaY / height);
+			}
+		}
+
+		m_HoverIn = true;
 	}
 	else
 	{
 		m_CurrentPick = CubePart::NONE;
 		m_HoverIn = false;
+		m_MouseDown = false;
 	}
+
+	m_LastMousePos[0] = x;
+	m_LastMousePos[1] = y;
 }
 
 void KCameraCube::OnMouseUp(unsigned int x, unsigned int y)
 {
-
+	if (m_Camera && m_MouseDown)
+	{
+		if (x == m_LastMouseDownPos[0] && y == m_LastMouseDownPos[1])
+		{
+			if (m_CurrentPick != CubePart::NONE)
+			{
+				const glm::mat4& viewMat = ms_Transform[(int32_t)m_CurrentPick];
+				glm::vec3 lastPos = m_Camera->GetPostion();
+				m_Camera->SetViewMatrix(viewMat);
+				m_Camera->SetPosition(lastPos);
+			}
+		}
+	}
+	m_MouseDown = false;
 }
 
 const glm::vec3 KCameraCube::CubeFaceColor[] =
@@ -806,6 +900,7 @@ bool KCameraCube::GetRenderCommand(unsigned int imageIndex, KRenderCommandList& 
 		m_CubeCamera.SetViewMatrix(m_Camera->GetViewMatrix());
 		m_CubeCamera.SetPosition(-m_CubeCamera.GetForward() * 5.0f);
 
+		// BackGround
 		if (m_HoverIn)
 		{
 			command.vertexData = &m_BackGroundVertexData;
@@ -828,7 +923,7 @@ bool KCameraCube::GetRenderCommand(unsigned int imageIndex, KRenderCommandList& 
 			for (uint32_t i = 0; i < ARRAY_SIZE(m_CubeIndexData); ++i)
 			{
 				command.indexData = &m_CubeIndexData[i];
-				constant.color = glm::vec4(CubeFaceColor[i], 0.95f);
+				constant.color = glm::vec4(CubeFaceColor[i], m_HoverIn ? 0.8f : 0.2f);
 				command.SetObjectData(constant);
 				commands.push_back(command);
 			}
@@ -845,7 +940,7 @@ bool KCameraCube::GetRenderCommand(unsigned int imageIndex, KRenderCommandList& 
 				command.indexData = indexData;
 				command.pipeline = m_PickPipelines[imageIndex];
 				constant.viewprojclip = m_ClipMat * m_CubeCamera.GetProjectiveMatrix() * m_CubeCamera.GetViewMatrix();
-				constant.color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+				constant.color = glm::vec4(0.8f, 0.8f, 0.8f, 0.8f);
 				command.SetObjectData(constant);
 				command.indexDraw = true;
 				commands.push_back(std::move(command));

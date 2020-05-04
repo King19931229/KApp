@@ -13,7 +13,7 @@ protected:
 	float m_DisplayWidth;
 	float m_DisplayHeight;
 
-	const KCamera* m_Camera;
+	KCamera* m_Camera;
 	KCamera m_CubeCamera;
 
 	glm::mat4 m_ClipMat;
@@ -183,8 +183,13 @@ protected:
 	static const uint16_t ms_EdgeIndices[12];
 	static const uint16_t ms_CornerIndices[18];
 
+	static glm::mat4 ms_Transform[26];
+
 	bool m_HoverIn;
+	bool m_MouseDown;
 	CubePart m_CurrentPick;
+	unsigned int m_LastMouseDownPos[2];
+	unsigned int m_LastMousePos[2];
 
 	bool CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin, glm::vec3& dir);
 	bool PickCubeFace(const glm::vec3& origin, const glm::vec3& dir, CubeFace& face, glm::vec2& projPos);
@@ -199,7 +204,7 @@ public:
 	KCameraCube();
 	~KCameraCube();
 
-	bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, const KCamera* camera) override;
+	bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, KCamera* camera) override;
 	bool UnInit() override;
 
 	float GetDisplayScale() const override;

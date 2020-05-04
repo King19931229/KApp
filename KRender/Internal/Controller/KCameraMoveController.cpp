@@ -130,11 +130,20 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 					{
 						const float fSpeed = 500.f;
 
-						glm::vec3 forward = m_Camera->GetForward(); forward.y = 0.0f; forward = glm::normalize(forward);
-						glm::vec3 right = m_Camera->GetRight(); right.y = 0.0f; right = glm::normalize(right);
+						glm::vec3 forward = m_Camera->GetForward(); forward.y = 0.0f;
+						if (glm::length(forward) > 0.001f)
+						{
+							forward = glm::normalize(forward);
+							m_Camera->Move(deltaY * fSpeed * forward / (float)width);
+						}
 
-						m_Camera->Move(deltaY * fSpeed * forward / (float)width);
-						m_Camera->Move(-deltaX * fSpeed * right / (float)height);
+						glm::vec3 right = m_Camera->GetRight();
+						right.y = 0.0f;
+						if (glm::length(right) > 0.001f)
+						{
+							right = glm::normalize(right);
+							m_Camera->Move(-deltaX * fSpeed * right / (float)height);
+						}
 					}
 				}
 
@@ -308,9 +317,12 @@ bool KCameraMoveController::Update(float dt)
 	{
 		constexpr float moveSpeed = 300.0f;
 
-		m_Camera->MoveRight(dt * moveSpeed * m_Move[0]);
-		m_Camera->Move(dt * moveSpeed * m_Move[1] * glm::vec3(0, 1, 0));
-		m_Camera->MoveForward(dt * moveSpeed * m_Move[2]);
+		if (m_Move[0])
+			m_Camera->MoveRight(dt * moveSpeed * m_Move[0]);
+		if (m_Move[1])
+			m_Camera->Move(dt * moveSpeed * m_Move[1] * glm::vec3(0, 1, 0));
+		if (m_Move[2])
+			m_Camera->MoveForward(dt * moveSpeed * m_Move[2]);
 
 		size_t width = 0;
 		size_t height = 0;
