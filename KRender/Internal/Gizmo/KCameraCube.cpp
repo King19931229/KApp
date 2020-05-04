@@ -276,8 +276,8 @@ KCameraCube::KCameraCube()
 	mat = glm::lookAt(-normForward, glm::vec3(0.0f), normUp);\
 }
 		// 6 face
-		MAKE_VIEW_TRANSFORM(glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), ms_Transform[(uint32_t)CubePart::TOP_FACE]);
-		MAKE_VIEW_TRANSFORM(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_FACE]);
+		MAKE_VIEW_TRANSFORM(glm::vec3(0.0f, -1.0f, 0.0f) - glm::vec3(0.0f, 0.0f, 0.0001f), glm::vec3(0.0f, 0.0f, -1.0f), ms_Transform[(uint32_t)CubePart::TOP_FACE]);
+		MAKE_VIEW_TRANSFORM(glm::vec3(0.0f, 1.0f, 0.0f) - glm::vec3(0.0f, 0.0f, 0.0001f), glm::vec3(0.0f, 0.0f, 1.0f), ms_Transform[(uint32_t)CubePart::BOTTOM_FACE]);
 
 		MAKE_VIEW_TRANSFORM(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::LEFT_FACE]);
 		MAKE_VIEW_TRANSFORM(glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), ms_Transform[(uint32_t)CubePart::RIGHT_FACE]);
@@ -808,62 +808,61 @@ void KCameraCube::OnMouseDown(unsigned int x, unsigned int y)
 	m_MouseDown = true;
 }
 
-void KCameraCube::OnMouseMove(unsigned int x, unsigned int y)
+void KCameraCube::GetPickCubePart(unsigned int x, unsigned int y, bool& hoverIn, CubePart& part)
 {
-	if (m_CameraLerping)
-		return;
-
 	glm::vec3 origin;
 	glm::vec3 dir;
 
 	if (CalcPickRay(x, y, origin, dir))
 	{
-		if (x != m_LastMousePos[0] || y != m_LastMousePos[1])
+		hoverIn = true;
+		CubeFace face;
+		glm::vec2 projPos;
+		if (PickCubeFace(origin, dir, face, projPos))
 		{
-			CubeFace face;
-			glm::vec2 projPos;
-			if (PickCubeFace(origin, dir, face, projPos))
+			KG_LOG(LM_DEFAULT, ">Pick face %s", CubeFaceToString(face));
+			if (PickCubePart(face, projPos, part))
 			{
-				KG_LOG(LM_DEFAULT, ">Pick face %s", CubeFaceToString(face));
-				CubePart part;
-				if (PickCubePart(face, projPos, part))
-				{
-					m_CurrentPick = part;
-					KG_LOG(LM_DEFAULT, ">	Pick part %s", CubePartToString(part));
-				}
-				else
-				{
-					m_CurrentPick = CubePart::NONE;
-				}
+				KG_LOG(LM_DEFAULT, ">	Pick part %s", CubePartToString(part));
+				return;
 			}
 		}
-
-		if(m_MouseDown)
-		{
-			int deltaX = x - m_LastMousePos[0];
-			int deltaY = y - m_LastMousePos[1];
-
-			float width = m_DisplayWidth * m_ScreenWidth;
-			float height = m_DisplayHeight * m_ScreenHeight;
-
-			const float scale = 3.0f;
-			if (abs(deltaX) > 0)
-			{
-				m_Camera->Rotate(glm::vec3(0.0f, 1.0f, 0.0f), scale * -glm::quarter_pi<float>() * deltaX / width);
-			}
-			if (abs(deltaY) > 0)
-			{
-				m_Camera->RotateRight(scale * -glm::quarter_pi<float>() * deltaY / height);
-			}
-		}
-
-		m_HoverIn = true;
+		return;
 	}
-	else
+
+	hoverIn = false;
+	part = CubePart::NONE;
+}
+
+void KCameraCube::OnMouseMove(unsigned int x, unsigned int y)
+{
+	if (m_CameraLerping)
+		return;
+
+	GetPickCubePart(x, y, m_HoverIn, m_CurrentPick);
+
+	if (!m_HoverIn)
 	{
-		m_CurrentPick = CubePart::NONE;
-		m_HoverIn = false;
 		m_MouseDown = false;
+	}
+
+	if (m_MouseDown)
+	{
+		int deltaX = x - m_LastMousePos[0];
+		int deltaY = y - m_LastMousePos[1];
+
+		float width = m_DisplayWidth * m_ScreenWidth;
+		float height = m_DisplayHeight * m_ScreenHeight;
+
+		const float scale = 3.0f;
+		if (abs(deltaX) > 0)
+		{
+			m_Camera->Rotate(glm::vec3(0.0f, 1.0f, 0.0f), scale * -glm::quarter_pi<float>() * deltaX / width);
+		}
+		if (abs(deltaY) > 0)
+		{
+			m_Camera->RotateRight(scale * -glm::quarter_pi<float>() * deltaY / height);
+		}
 	}
 
 	m_LastMousePos[0] = x;
@@ -918,6 +917,7 @@ void KCameraCube::Update(float dt)
 		m_LerpTime += dt;
 		if (m_LerpTime >= CAMERA_LERP_TIME)
 		{
+			GetPickCubePart(m_LastMousePos[0], m_LastMousePos[1], m_HoverIn, m_CurrentPick);
 			m_CameraLerping = false;
 		}
 	}

@@ -197,8 +197,10 @@ protected:
 
 	bool CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin, glm::vec3& dir);
 	bool PickCubeFace(const glm::vec3& origin, const glm::vec3& dir, CubeFace& face, glm::vec2& projPos);
-	bool PickCubePart(CubeFace face, const glm::vec2& projPos, CubePart& part);
+	bool PickCubePart(CubeFace face, const glm::vec2& projPos, CubePart& part);	
 	bool FindPickRenderData(CubePart part, KVertexData** ppVertexData, KIndexData** ppIndexData);
+
+	void GetPickCubePart(unsigned int x, unsigned int y, bool& hoverIn, CubePart& part);
 
 	void UpdateDisplaySize();
 	void LoadResource();
