@@ -125,6 +125,7 @@ bool KGizmoController::Update(float dt)
 
 	m_Gizmo->SetScreenSize((unsigned int)width, (unsigned int)height);
 	m_CameraCube->SetScreenSize((unsigned int)width, (unsigned int)height);
+	m_CameraCube->Update(dt);
 
 	return true;
 }

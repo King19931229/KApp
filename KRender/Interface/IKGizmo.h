@@ -75,6 +75,8 @@ struct IKCameraCube
 
 	virtual void SetScreenSize(unsigned int width, unsigned int height) = 0;
 
+	virtual void Update(float dt) = 0;
+
 	virtual void OnMouseDown(unsigned int x, unsigned int y) = 0;
 	virtual void OnMouseMove(unsigned int x, unsigned int y) = 0;
 	virtual void OnMouseUp(unsigned int x, unsigned int y) = 0;

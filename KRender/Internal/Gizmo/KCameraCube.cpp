@@ -225,8 +225,10 @@ KCameraCube::KCameraCube()
 	m_DisplayHeight(0.0),
 	m_Camera(nullptr),
 	m_CurrentPick(CubePart::NONE),
+	m_LerpTime(0.0f),
 	m_HoverIn(false),
-	m_MouseDown(false)
+	m_MouseDown(false),
+	m_CameraLerping(false)
 {
 	m_CubeCamera.SetPerspective(glm::radians(45.0f), 1.0f, 1.0f, 40.0f);
 	UpdateDisplaySize();
@@ -798,6 +800,9 @@ void KCameraCube::SetScreenSize(unsigned int width, unsigned int height)
 
 void KCameraCube::OnMouseDown(unsigned int x, unsigned int y)
 {
+	if (m_CameraLerping)
+		return;
+
 	m_LastMouseDownPos[0] = x;
 	m_LastMouseDownPos[1] = y;
 	m_MouseDown = true;
@@ -805,6 +810,9 @@ void KCameraCube::OnMouseDown(unsigned int x, unsigned int y)
 
 void KCameraCube::OnMouseMove(unsigned int x, unsigned int y)
 {
+	if (m_CameraLerping)
+		return;
+
 	glm::vec3 origin;
 	glm::vec3 dir;
 
@@ -864,20 +872,55 @@ void KCameraCube::OnMouseMove(unsigned int x, unsigned int y)
 
 void KCameraCube::OnMouseUp(unsigned int x, unsigned int y)
 {
+	if (m_CameraLerping)
+		return;
+
 	if (m_Camera && m_MouseDown)
 	{
 		if (x == m_LastMouseDownPos[0] && y == m_LastMouseDownPos[1])
 		{
 			if (m_CurrentPick != CubePart::NONE)
 			{
-				const glm::mat4& viewMat = ms_Transform[(int32_t)m_CurrentPick];
-				glm::vec3 lastPos = m_Camera->GetPostion();
-				m_Camera->SetViewMatrix(viewMat);
-				m_Camera->SetPosition(lastPos);
+				m_CameraLerping = true;
+				m_LerpTime = 0.0f;
 			}
 		}
 	}
 	m_MouseDown = false;
+}
+
+static constexpr float CAMERA_LERP_TIME = 0.2f;
+
+#include "glm/gtc/quaternion.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
+void KCameraCube::Update(float dt)
+{
+	if (m_CameraLerping)
+	{
+		float timeRemain = CAMERA_LERP_TIME - m_LerpTime;
+		assert(timeRemain >= 0.0f);
+
+		glm::vec3 lastPos = m_Camera->GetPostion();
+		m_Camera->SetPosition(glm::vec3(0.0f));
+
+		const glm::mat4& viewMat = ms_Transform[(int32_t)m_CurrentPick];
+
+		glm::quat beg = glm::quat_cast(glm::transpose(m_Camera->GetViewMatrix()));
+		glm::quat end = glm::quat_cast(glm::transpose(viewMat));
+		float lerpRatio = glm::clamp(dt / timeRemain, 0.0f, 1.0f);
+
+		glm::quat final = glm::slerp(beg, end, lerpRatio);
+
+		m_Camera->SetViewMatrix(glm::transpose(glm::mat4_cast(final)));
+		m_Camera->SetPosition(lastPos);
+
+		m_LerpTime += dt;
+		if (m_LerpTime >= CAMERA_LERP_TIME)
+		{
+			m_CameraLerping = false;
+		}
+	}
 }
 
 const glm::vec3 KCameraCube::CubeFaceColor[] =

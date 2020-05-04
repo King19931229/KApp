@@ -185,9 +185,13 @@ protected:
 
 	static glm::mat4 ms_Transform[26];
 
+	CubePart m_CurrentPick;
+	float m_LerpTime;
+
 	bool m_HoverIn;
 	bool m_MouseDown;
-	CubePart m_CurrentPick;
+	bool m_CameraLerping;
+
 	unsigned int m_LastMouseDownPos[2];
 	unsigned int m_LastMousePos[2];
 
@@ -211,6 +215,8 @@ public:
 	void SetDisplayScale(float scale) override;
 
 	void SetScreenSize(unsigned int width, unsigned int height) override;
+
+	void Update(float dt) override;
 
 	void OnMouseDown(unsigned int x, unsigned int y) override;
 	void OnMouseMove(unsigned int x, unsigned int y) override;
