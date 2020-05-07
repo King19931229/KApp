@@ -24,12 +24,13 @@
 #define OBJECT 0
 #define CAMERA 1
 #define SHADOW 2
+#define CASCADED_SHADOW 3
 
-#define TEXTURE_SLOT0 3
-#define TEXTURE_SLOT1 4
-#define TEXTURE_SLOT2 5
-#define TEXTURE_SLOT3 6
-#define TEXTURE_SLOT4 7
+#define TEXTURE_SLOT0 4
+#define TEXTURE_SLOT1 5
+#define TEXTURE_SLOT2 6
+#define TEXTURE_SLOT3 7
+#define TEXTURE_SLOT4 8
 
 #define CUBEMAP_UVW(uvw) vec3(-uvw.x, -uvw.y, -uvw.z)
 

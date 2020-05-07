@@ -820,10 +820,10 @@ void KCameraCube::GetPickCubePart(unsigned int x, unsigned int y, bool& hoverIn,
 		glm::vec2 projPos;
 		if (PickCubeFace(origin, dir, face, projPos))
 		{
-			KG_LOG(LM_DEFAULT, ">Pick face %s", CubeFaceToString(face));
+			//KG_LOG(LM_DEFAULT, ">Pick face %s", CubeFaceToString(face));
 			if (PickCubePart(face, projPos, part))
 			{
-				KG_LOG(LM_DEFAULT, ">	Pick part %s", CubePartToString(part));
+				//KG_LOG(LM_DEFAULT, ">	Pick part %s", CubePartToString(part));
 				return;
 			}
 		}

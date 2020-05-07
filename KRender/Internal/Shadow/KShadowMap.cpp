@@ -68,18 +68,20 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* 
 			glm::vec2 near_far = glm::vec2(m_Camera.GetNear(), m_Camera.GetFar());
 
 			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_SHADOW);
-			void* pWritePos = nullptr;
-			void* pData = KConstantGlobal::GetGlobalConstantData(CBT_SHADOW);	
+
+			void* pData = KConstantGlobal::GetGlobalConstantData(CBT_SHADOW);
 			const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_SHADOW);
-			for(KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
+
+			for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 			{
-				if(detail.semantic == CS_SHADOW_VIEW)
+				void* pWritePos = nullptr;
+				if (detail.semantic == CS_SHADOW_VIEW)
 				{
 					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					assert(sizeof(view) == detail.size);
 					memcpy(pWritePos, &view, sizeof(view));
 				}
-				else if(detail.semantic == CS_SHADOW_PROJ)
+				else if (detail.semantic == CS_SHADOW_PROJ)
 				{
 					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					assert(sizeof(proj) == detail.size);

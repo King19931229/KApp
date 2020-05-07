@@ -330,6 +330,9 @@
     <ClInclude Include="Internal\Gizmo\KCameraCube.h">
       <Filter>Internal\Gizmo</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Shadow\KCascadedShadowMap.h">
+      <Filter>Internal\Shadow</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -526,6 +529,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Gizmo\KCameraCube.cpp">
       <Filter>Internal\Gizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Shadow\KCascadedShadowMap.cpp">
+      <Filter>Internal\Shadow</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

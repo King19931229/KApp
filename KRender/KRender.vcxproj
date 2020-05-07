@@ -88,6 +88,7 @@
     <ClInclude Include="Internal\Scene\KOctreeSceneManager.h" />
     <ClInclude Include="Internal\Scene\KRenderScene.h" />
     <ClInclude Include="Internal\Scene\KSceneManagerBase.h" />
+    <ClInclude Include="Internal\Shadow\KCascadedShadowMap.h" />
     <ClInclude Include="Internal\Shadow\KShadowMap.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
@@ -158,6 +159,7 @@
     <ClCompile Include="Internal\PostProcess\KPostProcessTexture.cpp" />
     <ClCompile Include="Internal\Scene\KOctreeSceneManager.cpp" />
     <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
+    <ClCompile Include="Internal\Shadow\KCascadedShadowMap.cpp" />
     <ClCompile Include="Internal\Shadow\KShadowMap.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanCommandBuffer.cpp" />

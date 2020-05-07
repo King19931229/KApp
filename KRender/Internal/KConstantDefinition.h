@@ -40,6 +40,14 @@ namespace KConstantDefinition
 		glm::vec2 CAM_NEAR_FAR;
 	};
 
+	struct CASCADED_SHADOW
+	{
+		glm::mat4 LIGHT_VIEW;
+		glm::mat4 LIGHT_PROJ[4];
+		glm::vec2 CAM_NEAR_FAR[4];
+		float FRUSTRUM[4];
+	};
+
 	struct ConstantSemanticDetail
 	{
 		ConstantSemantic semantic;

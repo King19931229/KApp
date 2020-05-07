@@ -9,6 +9,7 @@ namespace KConstantGlobal
 		);
 
 	static const glm::vec2 VEC2_ZERO = glm::vec2(0.0f, 0.0f);
+	static const glm::vec4 VEC4_ZERO = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	KConstantDefinition::CAMERA Camera =
 	{
@@ -24,6 +25,14 @@ namespace KConstantGlobal
 		VEC2_ZERO
 	};
 
+	KConstantDefinition::CASCADED_SHADOW CascadedShadow =
+	{
+		{ MAT4X4_IDENTITY },
+		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY},
+		{ VEC2_ZERO, VEC2_ZERO, VEC2_ZERO, VEC2_ZERO },
+		{ 0.0f, 0.0f, 0.0f, 0.0f}
+	};
+
 	void* GetGlobalConstantData(ConstantBufferType bufferType)
 	{
 		switch (bufferType)
@@ -32,6 +41,8 @@ namespace KConstantGlobal
 			return &Camera;
 		case CBT_SHADOW:
 			return &Shadow;
+		case CBT_CASCADED_SHADOW:
+			return &CascadedShadow;
 		default:
 			assert(false && "UnSupported ConstantBufferType");
 			return nullptr;
