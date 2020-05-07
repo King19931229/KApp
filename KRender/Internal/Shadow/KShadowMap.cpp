@@ -19,26 +19,32 @@ KShadowMap::KShadowMap() :
 
 KShadowMap::~KShadowMap()
 {
-
 }
 
 bool KShadowMap::Init(IKRenderDevice* renderDevice,	size_t frameInFlight, size_t shadowMapSize)
 {
 	ASSERT_RESULT(UnInit());
 
+	renderDevice->CreateCommandPool(m_CommandPool);
+	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+
 	renderDevice->CreateSampler(m_ShadowSampler);
 	m_ShadowSampler->SetAddressMode(AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER);
 	m_ShadowSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_ShadowSampler->Init(0, 0);
 
-	size_t numImages = frameInFlight;
-	m_RenderTargets.resize(numImages);
+	m_RenderTargets.resize(frameInFlight);
+	m_CommandBuffers.resize(frameInFlight);
 
-	for(size_t i = 0; i < numImages; ++i)
+	for(size_t i = 0; i < frameInFlight; ++i)
 	{
 		IKRenderTargetPtr& target = m_RenderTargets[i];
 		ASSERT_RESULT(renderDevice->CreateRenderTarget(target));
 		ASSERT_RESULT(target->InitFromDepthStencil(shadowMapSize, shadowMapSize, false));
+
+		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
+		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
+		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
 	}
 
 	return true;
@@ -46,21 +52,36 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice,	size_t frameInFlight, size_t
 
 bool KShadowMap::UnInit()
 {
-	for(IKRenderTargetPtr target : m_RenderTargets)
+	for(IKRenderTargetPtr& target : m_RenderTargets)
 	{
 		SAFE_UNINIT(target);
 	}
 	m_RenderTargets.clear();
 
+	for (IKCommandBufferPtr& buffer : m_CommandBuffers)
+	{
+		SAFE_UNINIT(buffer);
+	}
+	m_CommandBuffers.clear();
+
 	SAFE_UNINIT(m_ShadowSampler);
+	SAFE_UNINIT(m_CommandPool);
 
 	return true;
 }
 
-bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* commandBuffer, size_t frameIndex)
+bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBuffer)
 {
 	if(frameIndex < m_RenderTargets.size())
 	{
+		IKRenderTargetPtr shadowMapTarget = m_RenderTargets[frameIndex];
+		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
+
+		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
+		primaryBuffer->BeginRenderPass(shadowMapTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);		
+		
+		commandBuffer->BeginSecondary(shadowMapTarget);
+
 		// 更新CBuffer
 		{
 			glm::mat4 view = m_Camera.GetViewMatrix();
@@ -136,6 +157,11 @@ bool KShadowMap::UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* 
 				}
 			}
 		}
+
+		commandBuffer->End();
+
+		primaryBuffer->Execute(commandBuffer);
+		primaryBuffer->EndRenderPass();
 
 		return true;
 	}

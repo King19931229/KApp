@@ -12,6 +12,9 @@ protected:
 
 	std::vector<IKPipelinePtr> m_Pipelines;
 
+	std::vector<IKCommandBufferPtr> m_CommandBuffers;
+	IKCommandPoolPtr m_CommandPool;
+
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 
@@ -34,7 +37,7 @@ public:
 	bool Init(IKRenderDevice* renderDevice,	size_t frameInFlight, const char* cubeTexPath);
 	bool UnInit();
 
-	bool GetRenderCommand(unsigned int imageIndex, KRenderCommand& command);
+	bool Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers);
 
 	inline IKTexturePtr GetCubeTexture() { return m_CubeTexture; }
 	inline IKSamplerPtr GetSampler() { return m_CubeSampler; }

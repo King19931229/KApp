@@ -9,6 +9,8 @@ class KShadowMap
 {
 protected:
 	std::vector<IKRenderTargetPtr> m_RenderTargets;
+	std::vector<IKCommandBufferPtr> m_CommandBuffers;
+	IKCommandPoolPtr m_CommandPool;
 
 	IKSamplerPtr m_ShadowSampler;
 	KCamera m_Camera;
@@ -26,7 +28,7 @@ public:
 	bool Init(IKRenderDevice* renderDevice,	size_t frameInFlight, size_t shadowMapSize);
 	bool UnInit();
 
-	bool UpdateShadowMap(IKRenderDevice* renderDevice, IKCommandBuffer* commandBuffer, size_t frameIndex);
+	bool UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBuffer);
 
 	IKRenderTargetPtr GetShadowMapTarget(size_t frameIndex);
 	inline IKSamplerPtr GetSampler() { return m_ShadowSampler; }

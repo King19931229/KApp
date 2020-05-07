@@ -55,12 +55,10 @@ const VertexFormat KSkyBox::ms_VertexFormats[] = {VF_POINT_NORMAL_UV};
 
 KSkyBox::KSkyBox()
 {
-
 }
 
 KSkyBox::~KSkyBox()
 {
-
 }
 
 void KSkyBox::LoadResource(const char* cubeTexPath)
@@ -128,6 +126,9 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 
 	ASSERT_RESULT(UnInit());
 
+	renderDevice->CreateCommandPool(m_CommandPool);
+	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+
 	renderDevice->CreateShader(m_VertexShader);
 	renderDevice->CreateShader(m_FragmentShader);
 
@@ -137,12 +138,16 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 	renderDevice->CreateVertexBuffer(m_VertexBuffer);
 	renderDevice->CreateIndexBuffer(m_IndexBuffer);
 
-	size_t numImages = frameInFlight;
-	m_Pipelines.resize(numImages);
+	m_Pipelines.resize(frameInFlight);
+	m_CommandBuffers.resize(frameInFlight);
 
-	for(size_t i = 0; i < numImages; ++i)
+	for(size_t i = 0; i < frameInFlight; ++i)
 	{
 		KRenderGlobal::PipelineManager.CreatePipeline(m_Pipelines[i]);
+
+		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
+		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
+		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
 	}
 
 	LoadResource(cubeTexPath);
@@ -161,6 +166,12 @@ bool KSkyBox::UnInit()
 	}
 	m_Pipelines.clear();
 
+	for (IKCommandBufferPtr& buffer : m_CommandBuffers)
+	{
+		SAFE_UNINIT(buffer);
+	}
+	m_CommandBuffers.clear();
+
 	SAFE_UNINIT(m_VertexBuffer);
 	SAFE_UNINIT(m_IndexBuffer);
 	SAFE_UNINIT(m_VertexShader);
@@ -168,20 +179,33 @@ bool KSkyBox::UnInit()
 	SAFE_UNINIT(m_CubeTexture);
 	SAFE_UNINIT(m_CubeSampler);
 
+	SAFE_UNINIT(m_CommandPool);
+
 	m_VertexData.Clear();
 	m_IndexData.Clear();
 
 	return true;
 }
 
-bool KSkyBox::GetRenderCommand(unsigned int imageIndex, KRenderCommand& command)
+bool KSkyBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers)
 {
-	if(imageIndex < m_Pipelines.size())
+	if (frameIndex < m_Pipelines.size())
 	{
+		KRenderCommand command;
 		command.vertexData = &m_VertexData;
 		command.indexData = &m_IndexData;
-		command.pipeline = m_Pipelines[imageIndex];
+		command.pipeline = m_Pipelines[frameIndex];
+		command.pipeline->GetHandle(target, command.pipelineHandle);
 		command.indexDraw = true;
+
+		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
+
+		commandBuffer->BeginSecondary(target);
+		commandBuffer->SetViewport(target);
+		commandBuffer->Render(command);
+		commandBuffer->End();
+
+		buffers.push_back(commandBuffer);
 		return true;
 	}
 	return false;

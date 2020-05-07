@@ -472,6 +472,9 @@ bool KCameraCube::Init(IKRenderDevice* renderDevice, size_t frameInFlight, KCame
 
 	m_Camera = camera;
 
+	renderDevice->CreateCommandPool(m_CommandPool);
+	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+
 	renderDevice->CreateShader(m_VertexShader);
 	renderDevice->CreateShader(m_FragmentShader);
 
@@ -493,16 +496,29 @@ bool KCameraCube::Init(IKRenderDevice* renderDevice, size_t frameInFlight, KCame
 	}
 	renderDevice->CreateIndexBuffer(m_CornerIndexBuffer);
 
-	size_t numImages = frameInFlight;
-	m_BackGroundPipelines.resize(numImages);
-	m_CubePipelines.resize(numImages);
-	m_PickPipelines.resize(numImages);
+	m_BackGroundPipelines.resize(frameInFlight);
+	m_CubePipelines.resize(frameInFlight);
+	m_PickPipelines.resize(frameInFlight);
+	m_CommandBuffers.resize(frameInFlight);
+	m_ClearCommandBuffers.resize(frameInFlight);
 
-	for (size_t i = 0; i < numImages; ++i)
+	for (size_t i = 0; i < frameInFlight; ++i)
 	{
 		KRenderGlobal::PipelineManager.CreatePipeline(m_BackGroundPipelines[i]);
 		KRenderGlobal::PipelineManager.CreatePipeline(m_CubePipelines[i]);
 		KRenderGlobal::PipelineManager.CreatePipeline(m_PickPipelines[i]);
+
+		{
+			IKCommandBufferPtr& buffer = m_CommandBuffers[i];
+			ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
+			ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
+		}
+
+		{
+			IKCommandBufferPtr& buffer = m_ClearCommandBuffers[i];
+			ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
+			ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
+		}
 	}
 
 	LoadResource();
@@ -537,6 +553,18 @@ bool KCameraCube::UnInit()
 	}
 	m_PickPipelines.clear();
 
+	for (IKCommandBufferPtr& buffer : m_CommandBuffers)
+	{
+		SAFE_UNINIT(buffer);
+	}
+	m_CommandBuffers.clear();
+
+	for (IKCommandBufferPtr& buffer : m_ClearCommandBuffers)
+	{
+		SAFE_UNINIT(buffer);
+	}
+	m_ClearCommandBuffers.clear();
+
 	SAFE_UNINIT(m_BackGroundVertexBuffer);
 	SAFE_UNINIT(m_BackGroundIndexBuffer);
 	SAFE_UNINIT(m_CubeVertexBuffer);
@@ -550,6 +578,8 @@ bool KCameraCube::UnInit()
 
 	SAFE_UNINIT(m_VertexShader);
 	SAFE_UNINIT(m_FragmentShader);
+
+	SAFE_UNINIT(m_CommandPool);
 
 	return true;
 }
@@ -934,9 +964,9 @@ const glm::vec3 KCameraCube::CubeFaceColor[] =
 	glm::vec3(0.0f, 0.0f, 0.54f)
 };
 
-bool KCameraCube::GetRenderCommand(unsigned int imageIndex, KRenderCommandList& commands)
+bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& commands)
 {
-	if (imageIndex < m_BackGroundPipelines.size())
+	if (frameIndex < m_BackGroundPipelines.size())
 	{
 		KRenderCommand command;
 		ConstantBlock constant;
@@ -949,7 +979,7 @@ bool KCameraCube::GetRenderCommand(unsigned int imageIndex, KRenderCommandList& 
 		{
 			command.vertexData = &m_BackGroundVertexData;
 			command.indexData = &m_BackGroundIndexData;
-			command.pipeline = m_BackGroundPipelines[imageIndex];
+			command.pipeline = m_BackGroundPipelines[frameIndex];
 			constant.viewprojclip = m_ClipMat;
 			constant.color = glm::vec4(0.5f, 0.5f, 0.5f, 0.5f);
 			command.SetObjectData(constant);
@@ -960,7 +990,7 @@ bool KCameraCube::GetRenderCommand(unsigned int imageIndex, KRenderCommandList& 
 		// Cube
 		{
 			command.vertexData = &m_CubeVertexData;
-			command.pipeline = m_CubePipelines[imageIndex];
+			command.pipeline = m_CubePipelines[frameIndex];
 			command.indexDraw = true;
 			constant.viewprojclip = m_ClipMat * m_CubeCamera.GetProjectiveMatrix() * m_CubeCamera.GetViewMatrix();
 
@@ -982,7 +1012,7 @@ bool KCameraCube::GetRenderCommand(unsigned int imageIndex, KRenderCommandList& 
 			{
 				command.vertexData = vertexData;
 				command.indexData = indexData;
-				command.pipeline = m_PickPipelines[imageIndex];
+				command.pipeline = m_PickPipelines[frameIndex];
 				constant.viewprojclip = m_ClipMat * m_CubeCamera.GetProjectiveMatrix() * m_CubeCamera.GetViewMatrix();
 				constant.color = glm::vec4(0.8f, 0.8f, 0.8f, 0.8f);
 				command.SetObjectData(constant);
@@ -991,6 +1021,50 @@ bool KCameraCube::GetRenderCommand(unsigned int imageIndex, KRenderCommandList& 
 			}
 		}
 
+		return true;
+	}
+	return false;
+}
+
+void KCameraCube::ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTargetPtr target, const KClearDepthStencil& value)
+{
+	KClearRect rect;
+
+	size_t width = 0;
+	size_t height = 0;
+	target->GetSize(width, height);
+
+	rect.width = static_cast<uint32_t>(width);
+	rect.height = static_cast<uint32_t>(height);
+
+	buffer->ClearDepthStencil(rect, value);
+}
+
+bool KCameraCube::Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers)
+{
+	KRenderCommandList commands;
+	if (GetRenderCommand(frameIndex, commands))
+	{
+		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
+
+		IKCommandBufferPtr clearCommandBuffer = m_ClearCommandBuffers[frameIndex];
+
+		clearCommandBuffer->BeginSecondary(target);
+		clearCommandBuffer->SetViewport(target);
+		ClearDepthStencil(clearCommandBuffer, target, clearValue.depthStencil);
+		clearCommandBuffer->End();
+		buffers.push_back(clearCommandBuffer);
+
+		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
+		commandBuffer->BeginSecondary(target);
+		commandBuffer->SetViewport(target);
+		for (KRenderCommand& command : commands)
+		{
+			command.pipeline->GetHandle(target, command.pipelineHandle);			
+			commandBuffer->Render(command);			
+		}
+		commandBuffer->End();
+		buffers.push_back(commandBuffer);
 		return true;
 	}
 	return false;

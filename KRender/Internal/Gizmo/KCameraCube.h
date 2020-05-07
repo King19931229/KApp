@@ -1,5 +1,6 @@
 #pragma once
 #include "Interface/IKGizmo.h"
+#include "Interface/IKCommandBuffer.h"
 #include "Internal/KVertexDefinition.h"
 
 class KCameraCube : public IKCameraCube
@@ -37,6 +38,10 @@ protected:
 	std::vector<IKPipelinePtr> m_BackGroundPipelines;
 	std::vector<IKPipelinePtr> m_CubePipelines;
 	std::vector<IKPipelinePtr> m_PickPipelines;
+
+	std::vector<IKCommandBufferPtr> m_CommandBuffers;
+	std::vector<IKCommandBufferPtr> m_ClearCommandBuffers;
+	IKCommandPoolPtr m_CommandPool;
 
 	// buffer
 	IKVertexBufferPtr m_BackGroundVertexBuffer;
@@ -206,6 +211,9 @@ protected:
 	void LoadResource();
 	void PreparePipeline();
 	void InitRenderData();
+
+	bool GetRenderCommand(size_t frameIndex, KRenderCommandList& commands);
+	void ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTargetPtr target, const KClearDepthStencil& value);
 public:
 	KCameraCube();
 	~KCameraCube();
@@ -224,5 +232,5 @@ public:
 	void OnMouseMove(unsigned int x, unsigned int y) override;
 	void OnMouseUp(unsigned int x, unsigned int y) override;
 
-	bool GetRenderCommand(unsigned int imageIndex, KRenderCommandList& commands);
+	bool Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers);
 };
