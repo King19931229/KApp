@@ -74,14 +74,6 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 {
 	if(frameIndex < m_RenderTargets.size())
 	{
-		IKRenderTargetPtr shadowMapTarget = m_RenderTargets[frameIndex];
-		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
-
-		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
-		primaryBuffer->BeginRenderPass(shadowMapTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);		
-		
-		commandBuffer->BeginSecondary(shadowMapTarget);
-
 		// 更新CBuffer
 		{
 			glm::mat4 view = m_Camera.GetViewMatrix();
@@ -95,23 +87,24 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 
 			for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 			{
+				assert(detail.offset % detail.size == 0);
 				void* pWritePos = nullptr;
 				if (detail.semantic == CS_SHADOW_VIEW)
 				{
-					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					assert(sizeof(view) == detail.size);
+					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					memcpy(pWritePos, &view, sizeof(view));
 				}
 				else if (detail.semantic == CS_SHADOW_PROJ)
 				{
-					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					assert(sizeof(proj) == detail.size);
+					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					memcpy(pWritePos, &proj, sizeof(proj));
 				}
-				else if(detail.semantic == CS_SHADOW_NEAR_FAR)
+				else if (detail.semantic == CS_SHADOW_NEAR_FAR)
 				{
-					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					assert(sizeof(near_far) == detail.size);
+					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					memcpy(pWritePos, &near_far, sizeof(near_far));
 				}
 			}
@@ -122,19 +115,25 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 			std::vector<KRenderComponent*> cullRes;
 			KRenderGlobal::Scene.GetRenderComponent(m_Camera, cullRes);
 
-			IKRenderTargetPtr shadowTarget = m_RenderTargets[frameIndex];
+			IKRenderTargetPtr shadowMapTarget = m_RenderTargets[frameIndex];
+			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
-			commandBuffer->SetViewport(shadowTarget);
+			KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
+			primaryBuffer->BeginRenderPass(shadowMapTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
+
+			commandBuffer->BeginSecondary(shadowMapTarget);			
+
+			commandBuffer->SetViewport(shadowMapTarget);
 			// Set depth bias (aka "Polygon offset")
 			// Required to avoid shadow mapping artefacts
 			commandBuffer->SetDepthBias(m_DepthBiasConstant, 0, m_DepthBiasSlope);
 			{
 				KRenderCommandList commandList;
-				for(KRenderComponent* component : cullRes)
+				for (KRenderComponent* component : cullRes)
 				{
 					IKEntity* entity = component->GetEntityHandle();
 					KTransformComponent* transform = nullptr;
-					if(entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
+					if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
 					{
 						KMeshPtr mesh = component->GetMesh();
 
@@ -146,22 +145,22 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 					}
 				}
 
-				for(KRenderCommand& command : commandList)
+				for (KRenderCommand& command : commandList)
 				{
 					IKPipelineHandlePtr handle = nullptr;
-					if (command.pipeline->GetHandle(shadowTarget, handle))
+					if (command.pipeline->GetHandle(shadowMapTarget, handle))
 					{
 						command.pipelineHandle = handle;
 						commandBuffer->Render(command);
 					}
 				}
 			}
+
+			commandBuffer->End();
+
+			primaryBuffer->Execute(commandBuffer);
+			primaryBuffer->EndRenderPass();
 		}
-
-		commandBuffer->End();
-
-		primaryBuffer->Execute(commandBuffer);
-		primaryBuffer->EndRenderPass();
 
 		return true;
 	}

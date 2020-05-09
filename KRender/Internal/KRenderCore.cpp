@@ -100,6 +100,7 @@ bool KRenderCore::InitGlobalManager()
 
 	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
 	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
+	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 4, 2048);
 
 	return true;
 }
@@ -108,6 +109,7 @@ bool KRenderCore::UnInitGlobalManager()
 {
 	KRenderGlobal::SkyBox.UnInit();
 	KRenderGlobal::ShadowMap.UnInit();
+	KRenderGlobal::CascadedShadowMap.UnInit();
 
 	KRenderGlobal::MeshManager.UnInit();
 
@@ -233,8 +235,8 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		m_DebugConsole = new KDebugConsole();
 		m_DebugConsole->Init();
 
-		m_Camera.SetPosition(glm::vec3(0, 400.0f, 400.0f));
-		m_Camera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//m_Camera.SetPosition(glm::vec3(0, 400.0f, 400.0f));
+		//m_Camera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
 		m_Camera.SetLockYEnable(true);
 
@@ -395,27 +397,27 @@ bool KRenderCore::UpdateCamera(size_t frameIndex)
 		glm::mat4 proj = m_Camera.GetProjectiveMatrix();
 		glm::mat4 viewInv = glm::inverse(view);
 
-		void* pWritePos = nullptr;
 		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);
 		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
 		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 		{
+			void* pWritePos = nullptr;
 			if (detail.semantic == CS_VIEW)
 			{
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				assert(sizeof(view) == detail.size);
+				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				memcpy(pWritePos, &view, sizeof(view));
 			}
 			else if (detail.semantic == CS_PROJ)
 			{
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				assert(sizeof(proj) == detail.size);
+				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				memcpy(pWritePos, &proj, sizeof(proj));
 			}
 			else if (detail.semantic == CS_VIEW_INV)
 			{
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				assert(sizeof(viewInv) == detail.size);
+				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				memcpy(pWritePos, &viewInv, sizeof(viewInv));
 			}
 		}

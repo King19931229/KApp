@@ -12,6 +12,7 @@ namespace KRenderGlobal
 
 	KSkyBox SkyBox;
 	KShadowMap ShadowMap;
+	KCascadedShadowMap CascadedShadowMap;
 
 	KRenderScene Scene;
 	KRenderDispatcher RenderDispatcher;

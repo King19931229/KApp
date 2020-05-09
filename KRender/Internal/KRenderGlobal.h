@@ -11,6 +11,7 @@
 
 #include "Internal/Object/KSkyBox.h"
 #include "Internal/Shadow/KShadowMap.h"
+#include "Internal/Shadow/KCascadedShadowMap.h"
 
 #include "Internal/Scene/KRenderScene.h"
 #include "Internal/Dispatcher/KRenderDispatcher.h"
@@ -31,6 +32,7 @@ namespace KRenderGlobal
 
 	extern KSkyBox SkyBox;
 	extern KShadowMap ShadowMap;
+	extern KCascadedShadowMap CascadedShadowMap;
 
 	extern KRenderScene Scene;
 	extern KRenderDispatcher RenderDispatcher;

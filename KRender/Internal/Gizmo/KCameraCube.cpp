@@ -324,7 +324,7 @@ void KCameraCube::LoadResource()
 {
 	ASSERT_RESULT(m_VertexShader->InitFromFile("Shaders/cameracube.vert", false));
 	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/cameracube.frag", false));
-	
+
 	m_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);
 	m_BackGroundVertexBuffer->InitDevice(false);
 
@@ -1060,8 +1060,8 @@ bool KCameraCube::Render(size_t frameIndex, IKRenderTargetPtr target, std::vecto
 		commandBuffer->SetViewport(target);
 		for (KRenderCommand& command : commands)
 		{
-			command.pipeline->GetHandle(target, command.pipelineHandle);			
-			commandBuffer->Render(command);			
+			command.pipeline->GetHandle(target, command.pipelineHandle);
+			commandBuffer->Render(command);
 		}
 		commandBuffer->End();
 		buffers.push_back(commandBuffer);

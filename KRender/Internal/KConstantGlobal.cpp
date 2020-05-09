@@ -27,10 +27,10 @@ namespace KConstantGlobal
 
 	KConstantDefinition::CASCADED_SHADOW CascadedShadow =
 	{
-		{ MAT4X4_IDENTITY },
 		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY},
-		{ VEC2_ZERO, VEC2_ZERO, VEC2_ZERO, VEC2_ZERO },
-		{ 0.0f, 0.0f, 0.0f, 0.0f}
+		{ 0.0f, 0.0f, 0.0f, 0.0f },
+		//{ VEC2_ZERO, VEC2_ZERO, VEC2_ZERO, VEC2_ZERO },
+		{ 1 }
 	};
 
 	void* GetGlobalConstantData(ConstantBufferType bufferType)

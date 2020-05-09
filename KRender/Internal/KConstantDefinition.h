@@ -20,6 +20,12 @@ namespace KConstantDefinition
 		glm::mat4 MODEL;
 	};
 
+	struct CSM_OBJECT
+	{
+		OBJECT MODEL;
+		uint32_t CASCADED_INDEX;
+	};
+
 	struct DEBUG
 	{
 		OBJECT MODEL;
@@ -42,10 +48,10 @@ namespace KConstantDefinition
 
 	struct CASCADED_SHADOW
 	{
-		glm::mat4 LIGHT_VIEW;
-		glm::mat4 LIGHT_PROJ[4];
-		glm::vec2 CAM_NEAR_FAR[4];
+		glm::mat4 LIGHT_VIEW_PROJ[4];
 		float FRUSTRUM[4];
+		//glm::vec2 CAM_NEAR_FAR[4];
+		uint32_t NUM_CASCADED;
 	};
 
 	struct ConstantSemanticDetail

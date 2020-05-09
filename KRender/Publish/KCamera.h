@@ -200,6 +200,7 @@ public:
 
 	inline float GetNear() const { return m_Near; }
 	inline float GetFar() const { return m_Far; }
+	inline float GetAspect() const { return m_Aspect; }
 
 	void SetViewMatrix(const glm::mat4& viewMat)
 	{
@@ -376,8 +377,7 @@ public:
 	{
 		assert(width > 0.0f && "width must bigger than 0");
 		assert(height > 0.0f && "height must bigger than 0");
-		assert(near > 0.0f && "near must bigger than 0");
-		assert(far > 0.0f && "far must bigger than 0");
+		assert(far >= near && "near must bigger than far");
 
 		m_Width = width;
 		m_Height = height;

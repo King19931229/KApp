@@ -34,8 +34,9 @@
 
 #define CUBEMAP_UVW(uvw) vec3(-uvw.x, -uvw.y, -uvw.z)
 
+#extension GL_EXT_scalar_block_layout : enable
 /*
-layout(binding = OBJECT)
+layout(std430, binding = OBJECT)
 uniform Object
 {
 	mat4 model;
@@ -51,11 +52,20 @@ uniform CameraInfo
 }camera;
 
 layout(binding = SHADOW)
-uniform ShdowInfo
+uniform ShadowInfo
 {
     mat4 light_view;
 	mat4 light_proj;
 	vec2 near_far;
 }shadow;
+
+layout(binding = CASCADED_SHADOW)
+uniform CascadedShadowInfo
+{
+    mat4 light_view_proj[4];
+	vec4 frustrum;
+	//vec2 near_far[4];
+	uint cascaded;
+}cascaded_shadow;
 
 #endif

@@ -19,19 +19,13 @@ uniform PushConstant
 }object;
 
 layout(location = 0) out vec2 uv;
-layout(location = 1) out vec4 shadowCoord;
-
-const mat4 biasMat = mat4(
-	0.5, 0.0, 0.0, 0.0,
-	0.0, 0.5, 0.0, 0.0,
-	0.0, 0.0, 1.0, 0.0,
-	0.5, 0.5, 0.0, 1.0 );
+layout(location = 1) out vec4 inWorldPos;
+layout(location = 2) out vec4 inViewPos;
 
 void main()
 {
 	uv = texcoord0;
-	shadowCoord = biasMat * shadow.light_proj * shadow.light_view * object.model * vec4(position, 1.0);
-	shadowCoord /= shadowCoord.w;
-
-	gl_Position = camera.proj * camera.view * object.model * vec4(position, 1.0);
+	inWorldPos = object.model * vec4(position, 1.0);
+	inViewPos = camera.view * inWorldPos;
+	gl_Position = camera.proj * inViewPos;
 }

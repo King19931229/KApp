@@ -3,36 +3,81 @@
 layout(early_fragment_tests) in;
 
 layout(location = 0) in vec2 uv;
-layout(location = 1) in vec4 shadowCoord;
+layout(location = 1) in vec4 inWorldPos;
+layout(location = 2) in vec4 inViewPos;
+
 layout(location = 0) out vec4 outColor;
 
 #include "public.glh"
 
 layout(binding = TEXTURE_SLOT0) uniform sampler2D texSampler;
-layout(binding = TEXTURE_SLOT3) uniform sampler2D shadowSampler;
+
+layout(binding = TEXTURE_SLOT1) uniform sampler2D cascadedShadowSampler0;
+layout(binding = TEXTURE_SLOT2) uniform sampler2D cascadedShadowSampler1;
+layout(binding = TEXTURE_SLOT3) uniform sampler2D cascadedShadowSampler2;
+layout(binding = TEXTURE_SLOT4) uniform sampler2D cascadedShadowSampler3;
 
 #define ambient 0.4
-float textureProj(vec4 shadowCoord, vec2 off)
+
+const mat4 biasMat = mat4(
+	0.5, 0.0, 0.0, 0.0,
+	0.0, 0.5, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0,
+	0.5, 0.5, 0.0, 1.0 );
+
+float textureProj(uint cascaded, vec2 off)
 {
 	float shadow = 1.0;
-	if ( shadowCoord.z > 0 && shadowCoord.z < 1.0 ) 
+	float dist = 0.0;
+
+	vec4 shadowCoord = (biasMat * cascaded_shadow.light_view_proj[cascaded]) * inWorldPos;	
+
+	if(cascaded == 0)
 	{
-		float dist = texture( shadowSampler, shadowCoord.xy + off ).r;
-		if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
-		{
-			shadow = ambient;
-		}
+		dist = texture( cascadedShadowSampler0, shadowCoord.xy + off ).r;
 	}
-	else
+	else if(cascaded == 1)
 	{
-		shadow = 0.1;
+		dist = texture( cascadedShadowSampler1, shadowCoord.xy + off ).r;
 	}
+	else if(cascaded == 2)
+	{
+		dist = texture( cascadedShadowSampler2, shadowCoord.xy + off ).r;
+	}
+	else if(cascaded == 3)
+	{
+		dist = texture( cascadedShadowSampler3, shadowCoord.xy + off ).r;
+	}
+
+	if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
+	{
+		shadow = ambient;
+	}
+	
 	return shadow;
 }
 
-float filterPCF(vec4 sc)
+float filterPCF(uint cascaded)
 {
-	ivec2 texDim = textureSize(shadowSampler, 0);
+	ivec2 texDim = ivec2(1,1);
+	
+	if(cascaded == 0)
+	{
+		texDim = textureSize(cascadedShadowSampler0, 0);
+	}
+	else if(cascaded == 1)
+	{
+		texDim = textureSize(cascadedShadowSampler1, 0);
+	}
+	else if(cascaded == 2)
+	{
+		texDim = textureSize(cascadedShadowSampler2, 0);
+	}
+	else if(cascaded == 3)
+	{
+		texDim = textureSize(cascadedShadowSampler3, 0);
+	}
+	
 	float scale = 1.0;
 	float dx = scale * 1.0 / float(texDim.x);
 	float dy = scale * 1.0 / float(texDim.y);
@@ -45,20 +90,11 @@ float filterPCF(vec4 sc)
 	{
 		for (int y = -range; y <= range; y++)
 		{
-			shadowFactor += textureProj(sc, vec2(dx*x, dy*y));
+			shadowFactor += textureProj(cascaded, vec2(dx*x, dy*y));
 			count++;
 		}
-	
 	}
 	return shadowFactor / count;
-}
-
-float LinearizeDepth(float depth)
-{
-	float n = shadow.near_far.x; // camera z near
-	float f = shadow.near_far.y; // camera z far
-	float z = depth;
-	return (2.0 * n) / (f + n - z * (f - n));	
 }
 
 const bool pcf = true;
@@ -66,19 +102,27 @@ const bool pcf = true;
 void main()
 {
 	float shadow = 0.0f;
-	
+
+	// Get cascade index for the current fragment's view position
+
+	uint cascaded = 0;
+	for(uint i = 0; i < cascaded_shadow.cascaded - 1; ++i)
+	{
+		if(inViewPos.z < cascaded_shadow.frustrum[i])
+		{
+			cascaded = i + 1;
+		}
+	}
+
 	if(pcf)
 	{
-		shadow = filterPCF(shadowCoord);
+		shadow = filterPCF(cascaded);
 	}
 	else
 	{
-		shadow = textureProj(shadowCoord, vec2(0.0f, 0.0f));
+		shadow = textureProj(cascaded, vec2(0.0f, 0.0f));
 	}
 
 	outColor = texture(texSampler, uv);
 	outColor.rgb *= shadow;
-
-	//float depth = texture(shadowSampler, shadowCoord.xy).r;
-	//outColor = vec4(vec3(1.0 - LinearizeDepth(depth)), 1.0);	
 }

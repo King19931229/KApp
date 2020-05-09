@@ -174,7 +174,8 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 	{
 		// 阴影绘制RenderPass
 		{
-			KRenderGlobal::ShadowMap.UpdateShadowMap(frameIndex, primaryCommandBuffer);
+			//KRenderGlobal::ShadowMap.UpdateShadowMap(frameIndex, primaryCommandBuffer);
+			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer);
 		}
 
 		// 物件绘制RenderPass
@@ -343,6 +344,13 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 						commandBuffers.clear();
 					}
 				}
+
+				KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
+				if (!commandBuffers.empty())
+				{
+					primaryCommandBuffer->ExecuteAll(commandBuffers);
+					commandBuffers.clear();
+				}
 			}
 		}
 		primaryCommandBuffer->EndRenderPass();
@@ -382,7 +390,8 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 	{
 		// 阴影绘制RenderPass
 		{
-			KRenderGlobal::ShadowMap.UpdateShadowMap(frameIndex, primaryCommandBuffer);
+			//KRenderGlobal::ShadowMap.UpdateShadowMap(frameIndex, primaryCommandBuffer);
+			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer);
 		}
 		// 物件绘制RenderPass
 		{
@@ -613,6 +622,13 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 					primaryCommandBuffer->ExecuteAll(commandBuffers);
 					commandBuffers.clear();
 				}
+			}
+
+			KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
+			if (!commandBuffers.empty())
+			{
+				primaryCommandBuffer->ExecuteAll(commandBuffers);
+				commandBuffers.clear();
 			}
 
 			primaryCommandBuffer->EndRenderPass();
