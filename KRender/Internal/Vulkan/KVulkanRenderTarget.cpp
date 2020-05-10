@@ -74,8 +74,12 @@ bool KVulkanRenderTarget::CreateImage(VkImageView imageView,
 
 	if(uMsaaCount > 1)
 	{
-		ASSERT_RESULT(KVulkanHelper::QueryMSAASupport(bDepth ? KVulkanHelper::MST_BOTH : KVulkanHelper::MST_COLOR,
-			uMsaaCount , m_MsaaFlag));
+		bool supported = KVulkanHelper::QueryMSAASupport(bDepth ? KVulkanHelper::MST_BOTH : KVulkanHelper::MST_COLOR, uMsaaCount , m_MsaaFlag);
+		ASSERT_RESULT(supported);
+		if (!supported)
+		{
+			return false;
+		}
 
 		KVulkanInitializer::CreateVkImage(m_Extend.width, m_Extend.height, 1,
 			1,1,
@@ -242,6 +246,7 @@ bool KVulkanRenderTarget::CreateFramebuffer(bool fromSwapChain)
 	renderPassInfo.pDependencies = dependencies;
 
 	VK_ASSERT_RESULT(vkCreateRenderPass(KVulkanGlobal::device, &renderPassInfo, nullptr, &m_RenderPass));
+	ASSERT_RESULT(m_RenderPass != VK_NULL_HANDLE);
 
 	std::vector<VkImageView> imageViews;
 

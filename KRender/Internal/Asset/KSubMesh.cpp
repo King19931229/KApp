@@ -262,10 +262,13 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		for (size_t i = 0; i < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++i)
 		{
 			IKRenderTargetPtr shadowTarget = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(i, frameIndex);
-			if (shadowTarget)
-			{
-				pipeline->SetSamplerDepthAttachment((unsigned int)(CBT_COUNT + 1 + i), shadowTarget, KRenderGlobal::CascadedShadowMap.GetSampler());
-			}
+			pipeline->SetSamplerDepthAttachment((unsigned int)(CBT_COUNT + 1 + i), shadowTarget, KRenderGlobal::CascadedShadowMap.GetSampler());
+		}
+
+		for (size_t i = KRenderGlobal::CascadedShadowMap.GetNumCascaded(); i < 4; ++i)
+		{
+			IKRenderTargetPtr shadowTarget = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, frameIndex);
+			pipeline->SetSamplerDepthAttachment((unsigned int)(CBT_COUNT + 1 + i), shadowTarget, KRenderGlobal::CascadedShadowMap.GetSampler());
 		}
 
 		ASSERT_RESULT(pipeline->Init());

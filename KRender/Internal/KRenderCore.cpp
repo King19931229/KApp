@@ -77,8 +77,9 @@ bool KRenderCore::InitPostProcess()
 	KRenderGlobal::PostProcessManager.Save("postprocess.json");
 	KRenderGlobal::PostProcessManager.Load("postprocess.json");
 #endif
-	KRenderGlobal::PostProcessManager.Construct();
+
 #endif
+	KRenderGlobal::PostProcessManager.Construct();
 	return true;
 }
 
@@ -100,7 +101,7 @@ bool KRenderCore::InitGlobalManager()
 
 	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
 	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
-	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 4, 2048);
+	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 3, 2048);
 
 	return true;
 }
@@ -462,8 +463,10 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 				ui->CheckBox("MouseCtrlCamera", &m_MouseCtrlCamera);
 				ui->CheckBox("OctreeDraw", &m_OctreeDebugDraw);
 				ui->CheckBox("MultiRender", &m_MultiThreadSumbit);
-				ui->SliderFloat("Shadow DepthBiasConstant", &KRenderGlobal::ShadowMap.GetDepthBiasConstant(), 0.0f, 5.0f);
-				ui->SliderFloat("Shadow DepthBiasSlope", &KRenderGlobal::ShadowMap.GetDepthBiasSlope(), 0.0f, 5.0f);
+				ui->SliderFloat("Shadow DepthBiasConstant", &KRenderGlobal::CascadedShadowMap.GetDepthBiasConstant(), 0.0f, 5.0f);
+				ui->SliderFloat("Shadow DepthBiasSlope", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(), 0.0f, 5.0f);
+				ui->CheckBox("Shadow FixToScene", &KRenderGlobal::CascadedShadowMap.GetFixToScene());
+				ui->CheckBox("Shadow FixTexel", &KRenderGlobal::CascadedShadowMap.GetFixTexel());
 			}
 			ui->PopItemWidth();
 		}

@@ -191,7 +191,7 @@ public:
 	inline void SetLockYEnable(bool enable) { m_EnableLockY = enable; }
 	inline void SetLockZEnable(bool enable) { m_EnableLockZ = enable; }
 
-	inline const glm::vec3& GetPostion() const { return m_Pos; }
+	inline const glm::vec3& GetPosition() const { return m_Pos; }
 	inline const glm::vec3& GetUp() const { return m_Up; }
 	inline const glm::vec3& GetForward() const { return m_Forward; }
 	inline const glm::vec3& GetRight() const { return m_Right; }

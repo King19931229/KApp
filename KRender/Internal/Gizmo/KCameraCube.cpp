@@ -931,7 +931,7 @@ void KCameraCube::Update(float dt)
 		float timeRemain = CAMERA_LERP_TIME - m_LerpTime;
 		assert(timeRemain >= 0.0f);
 
-		glm::vec3 lastPos = m_Camera->GetPostion();
+		glm::vec3 lastPos = m_Camera->GetPosition();
 		m_Camera->SetPosition(glm::vec3(0.0f));
 
 		const glm::mat4& viewMat = ms_Transform[(int32_t)m_CurrentPick];

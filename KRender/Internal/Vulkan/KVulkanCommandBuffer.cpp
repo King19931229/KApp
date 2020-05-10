@@ -321,6 +321,7 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderTargetPtr target)
 
 bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent, const KClearValue& clearValue)
 {
+	assert(target);
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	if(m_CommandBuffer != VK_NULL_HANDLE)
 	{

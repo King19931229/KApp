@@ -22,7 +22,9 @@ const uint16_t KCascadedShadowMap::ms_BackGroundIndices[] = { 0, 1, 2, 2, 3, 0 }
 
 KCascadedShadowMap::KCascadedShadowMap()
 	: m_DepthBiasConstant(1.25f),
-	m_DepthBiasSlope(1.75f)
+	m_DepthBiasSlope(1.75f),
+	m_FixToScene(true),
+	m_FixTexel(true)
 {
 	m_ShadowCamera.SetPosition(glm::vec3(1.0f, 1.0f, 1.0f));
 	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -117,33 +119,53 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* mainCamera)
 			minExtents = glm::min(minExtents, lightViewCorner);
 		}
 
-		float frustumLength = glm::length(frustumCorners[2] - frustumCorners[4]);
-		glm::vec3 borderOffset = (glm::vec3(frustumLength) - (maxExtents - minExtents)) * 0.5f;
-		borderOffset.z = 0.0f;
+		glm::vec3 worldUnitsPerTexel;
 
-		maxExtents += borderOffset;
-		minExtents -= borderOffset;
+		if (m_FixToScene)
+		{
+			glm::vec3 diagonal = frustumCorners[3] - frustumCorners[5];
+			diagonal = glm::vec3(glm::length(diagonal));
+			float cascadeBound = diagonal.x;
 
-		glm::vec2 sizePerTexel = (glm::vec2(maxExtents.x, maxExtents.y) - glm::vec2(minExtents.x, minExtents.y)) / (float)m_Cascadeds[i].shadowSize;
+			glm::vec3 borderOffset = (diagonal - (maxExtents - minExtents)) * 0.5f;
+			borderOffset.z = 0.0f;
 
-		maxExtents.x /= sizePerTexel.x;
-		maxExtents.x = glm::floor(maxExtents.x);
-		maxExtents.x *= sizePerTexel.x;
-		maxExtents.y /= sizePerTexel.y;
-		maxExtents.y = glm::floor(maxExtents.y);
-		maxExtents.y *= sizePerTexel.y;
+			maxExtents += borderOffset;
+			minExtents -= borderOffset;
 
-		minExtents.x /= sizePerTexel.x;
-		minExtents.x = glm::floor(minExtents.x);
-		minExtents.x *= sizePerTexel.x;
-		minExtents.y /= sizePerTexel.y;
-		minExtents.y = glm::floor(minExtents.y);
-		minExtents.y *= sizePerTexel.y;
+			worldUnitsPerTexel = glm::vec3(cascadeBound) / (float)m_Cascadeds[i].shadowSize;
+		}
+		else
+		{
+			worldUnitsPerTexel = (maxExtents - minExtents) / (float)m_Cascadeds[i].shadowSize;
+		}
 
-		float near = minExtents.z - 3000.0f;/*TODO*/
-		float far = maxExtents.z + 1000.0f;/*TODO*/
+		if (m_FixTexel)
+		{
+			maxExtents.x /= worldUnitsPerTexel.x;
+			maxExtents.x = glm::floor(maxExtents.x);
+			maxExtents.x *= worldUnitsPerTexel.x;
+			maxExtents.y /= worldUnitsPerTexel.y;
+			maxExtents.y = glm::floor(maxExtents.y);
+			maxExtents.y *= worldUnitsPerTexel.y;
 
-		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, near, far);
+			minExtents.x /= worldUnitsPerTexel.x;
+			minExtents.x = glm::floor(minExtents.x);
+			minExtents.x *= worldUnitsPerTexel.x;
+			minExtents.y /= worldUnitsPerTexel.y;
+			minExtents.y = glm::floor(minExtents.y);
+			minExtents.y *= worldUnitsPerTexel.y;
+		}
+
+		float near = minExtents.z - 2000.0f;/*TODO*/
+		float far = maxExtents.z;
+
+		lightViewMatrix = glm::lookAt(
+			m_ShadowCamera.GetPosition() + m_ShadowCamera.GetForward() * near,
+			m_ShadowCamera.GetPosition() + m_ShadowCamera.GetForward() * (far - near),
+			m_ShadowCamera.GetUp());
+
+		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, 2.0f * (far - near));
 
 		// Store split distance and matrix in cascade
 		m_Cascadeds[i].splitDepth = (mainCamera->GetNear() + splitDist * clipRange) * -1.0f;

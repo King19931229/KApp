@@ -886,6 +886,7 @@ bool KVulkanRenderDevice::Present()
 		return false;
 	}
 
+	Wait();
 	for (KDevicePresentCallback* callback : m_PresentCallback)
 	{
 		(*callback)(chainImageIndex, frameIndex);

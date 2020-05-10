@@ -52,6 +52,9 @@ protected:
 	// Slope depth bias factor, applied depending on polygon's slope
 	float m_DepthBiasSlope;
 
+	bool m_FixToScene;
+	bool m_FixTexel;
+
 	void UpdateCascades(const KCamera* mainCamera);
 	bool GetDebugRenderCommand(size_t frameIndex, KRenderCommandList& commands);
 public:
@@ -72,4 +75,7 @@ public:
 
 	inline float& GetDepthBiasConstant() { return m_DepthBiasConstant; }
 	inline float& GetDepthBiasSlope() { return m_DepthBiasSlope; }
+
+	inline bool& GetFixToScene() { return m_FixToScene; }
+	inline bool& GetFixTexel() { return m_FixTexel; }
 };

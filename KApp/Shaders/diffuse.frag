@@ -97,7 +97,8 @@ float filterPCF(uint cascaded)
 	return shadowFactor / count;
 }
 
-const bool pcf = true;
+const bool pcf = false;
+const bool debug_layer = false;
 
 void main()
 {
@@ -125,4 +126,23 @@ void main()
 
 	outColor = texture(texSampler, uv);
 	outColor.rgb *= shadow;
+	
+	if(debug_layer)
+	{
+		switch(cascaded)
+		{
+				case 0 : 
+					outColor.rgb *= vec3(1.0f, 0.25f, 0.25f);
+					break;
+				case 1 : 
+					outColor.rgb *= vec3(0.25f, 1.0f, 0.25f);
+					break;
+				case 2 : 
+					outColor.rgb *= vec3(0.25f, 0.25f, 1.0f);
+					break;
+				case 3 : 
+					outColor.rgb *= vec3(1.0f, 1.0f, 0.25f);
+					break;
+		}
+	}
 }

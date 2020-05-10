@@ -272,8 +272,6 @@ void KPostProcessManager::IterPostProcessGraph(std::function<void(IKPostProcessN
 
 bool KPostProcessManager::Resize(size_t width, size_t height)
 {
-	m_Device->Wait();
-
 	m_Width = width;
 	m_Height = height;
 
