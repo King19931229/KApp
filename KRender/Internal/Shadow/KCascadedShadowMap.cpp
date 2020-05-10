@@ -23,6 +23,8 @@ const uint16_t KCascadedShadowMap::ms_BackGroundIndices[] = { 0, 1, 2, 2, 3, 0 }
 KCascadedShadowMap::KCascadedShadowMap()
 	: m_DepthBiasConstant(1.25f),
 	m_DepthBiasSlope(1.75f),
+	m_ShadowRange(1000.0f),
+	m_SplitLambda(0.95f),
 	m_FixToScene(true),
 	m_FixTexel(true)
 {
@@ -35,9 +37,15 @@ KCascadedShadowMap::~KCascadedShadowMap()
 {
 }
 
-void KCascadedShadowMap::UpdateCascades(const KCamera* mainCamera)
+void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 {
-	ASSERT_RESULT(mainCamera);
+	ASSERT_RESULT(_mainCamera);
+
+	KCamera adjustCamera = *_mainCamera;
+	adjustCamera.SetNear(_mainCamera->GetNear());
+	adjustCamera.SetFar(_mainCamera->GetNear() + m_ShadowRange);
+
+	const KCamera* mainCamera = &adjustCamera;
 
 	float cascadeSplits[SHADOW_MAP_MAX_CASCADED];
 
@@ -56,14 +64,12 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* mainCamera)
 	// Based on method presentd in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
 
 	size_t numCascaded = m_Cascadeds.size();
-	float cascadeSplitLambda = 0.925f;
-
 	for (size_t i = 0; i < numCascaded; i++)
 	{
 		float p = (i + 1) / static_cast<float>(numCascaded);
 		float log = minZ * std::pow(ratio, p);
 		float uniform = minZ + range * p;
-		float d = cascadeSplitLambda * (log - uniform) + uniform;
+		float d = m_SplitLambda * (log - uniform) + uniform;
 		cascadeSplits[i] = (d - nearClip) / clipRange;
 	}
 
@@ -92,19 +98,46 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* mainCamera)
 			glm::vec3(-1.0f, -1.0f, 1.0f),
 		};
 
-		// Project frustum corners into world space
-		glm::mat4 invCam = glm::inverse(mainCamera->GetProjectiveMatrix() * mainCamera->GetViewMatrix());
-		for (uint32_t i = 0; i < 8; i++)
+		glm::vec3 diagonal = glm::vec3(0.0f);
+
+		// Project frustum corners into view space
 		{
-			glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
-			frustumCorners[i] = invCorner / invCorner.w;
+			glm::mat4 invCamProj = glm::inverse(mainCamera->GetProjectiveMatrix());
+			for (uint32_t i = 0; i < 8; i++)
+			{
+				glm::vec4 invCorner = invCamProj * glm::vec4(frustumCorners[i], 1.0f);
+				frustumCorners[i] = invCorner / invCorner.w;
+			}
+
+			for (uint32_t i = 0; i < 4; i++)
+			{
+				glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
+				frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
+				if (!m_FixToScene)
+				{
+					frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
+				}
+			}
 		}
 
-		for (uint32_t i = 0; i < 4; i++)
+		// 这里要小心 先把视锥点转化到view空间上计算视锥对角线
+		// 如果直接把视锥点转化到world空间上计算视锥对角线会因为镜头旋转导致对角线长度发生变化
+		// 进而导致整个FixToScene算法失败
+		if (m_FixToScene)
 		{
-			glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
-			frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
-			// frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
+			diagonal = glm::vec3(
+				glm::max(glm::length(frustumCorners[3] - frustumCorners[5]),
+					glm::length(frustumCorners[7] - frustumCorners[5])));
+		}
+
+		// Project frustum corners into world space
+		{
+			glm::mat4 invCamView = glm::inverse(mainCamera->GetViewMatrix());
+			for (uint32_t i = 0; i < 8; i++)
+			{
+				glm::vec4 invCorner = invCamView * glm::vec4(frustumCorners[i], 1.0f);
+				frustumCorners[i] = invCorner / invCorner.w;
+			}
 		}
 
 		glm::mat4 lightViewMatrix = m_ShadowCamera.GetViewMatrix();
@@ -123,8 +156,6 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* mainCamera)
 
 		if (m_FixToScene)
 		{
-			glm::vec3 diagonal = frustumCorners[3] - frustumCorners[5];
-			diagonal = glm::vec3(glm::length(diagonal));
 			float cascadeBound = diagonal.x;
 
 			glm::vec3 borderOffset = (diagonal - (maxExtents - minExtents)) * 0.5f;

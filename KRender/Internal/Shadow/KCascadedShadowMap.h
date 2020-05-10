@@ -52,6 +52,9 @@ protected:
 	// Slope depth bias factor, applied depending on polygon's slope
 	float m_DepthBiasSlope;
 
+	float m_ShadowRange;
+	float m_SplitLambda;
+
 	bool m_FixToScene;
 	bool m_FixTexel;
 
@@ -75,6 +78,9 @@ public:
 
 	inline float& GetDepthBiasConstant() { return m_DepthBiasConstant; }
 	inline float& GetDepthBiasSlope() { return m_DepthBiasSlope; }
+
+	inline float& GetShadowRange() { return m_ShadowRange; }
+	inline float& GetSplitLambda() { return m_SplitLambda; }
 
 	inline bool& GetFixToScene() { return m_FixToScene; }
 	inline bool& GetFixTexel() { return m_FixTexel; }

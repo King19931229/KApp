@@ -202,6 +202,34 @@ public:
 	inline float GetFar() const { return m_Far; }
 	inline float GetAspect() const { return m_Aspect; }
 
+	void SetNear(float near)
+	{
+		m_Near = near;
+		m_InvaildProj = true;
+		UpdateProperty();
+	}
+
+	void SetFar(float far)
+	{
+		m_Far = far;
+		m_InvaildProj = true;
+		UpdateProperty();
+	}
+
+	void SetFov(float fov)
+	{
+		m_Fov = fov;
+		m_InvaildProj = true;
+		UpdateProperty();
+	}
+
+	void SetAspect(float aspect)
+	{
+		m_Aspect = aspect;
+		m_InvaildProj = true;
+		UpdateProperty();
+	}
+
 	void SetViewMatrix(const glm::mat4& viewMat)
 	{
 		glm::vec3 right = glm::vec3(viewMat[0][0], viewMat[1][0], viewMat[2][0]);

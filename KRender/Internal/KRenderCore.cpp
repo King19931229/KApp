@@ -236,8 +236,8 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		m_DebugConsole = new KDebugConsole();
 		m_DebugConsole->Init();
 
-		//m_Camera.SetPosition(glm::vec3(0, 400.0f, 400.0f));
-		//m_Camera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m_Camera.SetNear(1.0f);
+		m_Camera.SetFar(5000.0f);
 		m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
 		m_Camera.SetLockYEnable(true);
 
@@ -465,6 +465,8 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 				ui->CheckBox("MultiRender", &m_MultiThreadSumbit);
 				ui->SliderFloat("Shadow DepthBiasConstant", &KRenderGlobal::CascadedShadowMap.GetDepthBiasConstant(), 0.0f, 5.0f);
 				ui->SliderFloat("Shadow DepthBiasSlope", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(), 0.0f, 5.0f);
+				ui->SliderFloat("Shadow ShadowRange", &KRenderGlobal::CascadedShadowMap.GetShadowRange(), 0.1f, 1000.0f);
+				ui->SliderFloat("Shadow SplitLambda", &KRenderGlobal::CascadedShadowMap.GetSplitLambda(), 0.001f, 1.0f);
 				ui->CheckBox("Shadow FixToScene", &KRenderGlobal::CascadedShadowMap.GetFixToScene());
 				ui->CheckBox("Shadow FixTexel", &KRenderGlobal::CascadedShadowMap.GetFixTexel());
 			}

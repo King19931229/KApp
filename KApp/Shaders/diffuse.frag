@@ -97,7 +97,7 @@ float filterPCF(uint cascaded)
 	return shadowFactor / count;
 }
 
-const bool pcf = false;
+const bool pcf = true;
 const bool debug_layer = false;
 
 void main()
