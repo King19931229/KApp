@@ -54,6 +54,8 @@ protected:
 
 	float m_ShadowRange;
 	float m_SplitLambda;
+	
+	float m_ShadowSizeRatio;
 
 	bool m_FixToScene;
 	bool m_FixTexel;
@@ -64,7 +66,7 @@ public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();
 
-	bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t numCascaded, size_t shadowMapSize);
+	bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t numCascaded, size_t shadowMapSize, float shadowSizeRatio);
 	bool UnInit();
 
 	bool UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer);

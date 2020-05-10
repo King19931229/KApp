@@ -24,7 +24,8 @@ KCascadedShadowMap::KCascadedShadowMap()
 	: m_DepthBiasConstant(1.25f),
 	m_DepthBiasSlope(1.75f),
 	m_ShadowRange(1000.0f),
-	m_SplitLambda(0.95f),
+	m_SplitLambda(0.5f),
+	m_ShadowSizeRatio(0.7f),
 	m_FixToScene(true),
 	m_FixTexel(true)
 {
@@ -188,8 +189,8 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 			minExtents.y *= worldUnitsPerTexel.y;
 		}
 
-		float near = minExtents.z - 2000.0f;/*TODO*/
-		float far = maxExtents.z;
+		float near = minExtents.z - 5000.0f;/*TODO*/
+		float far = maxExtents.z + 30.0f;
 
 		lightViewMatrix = glm::lookAt(
 			m_ShadowCamera.GetPosition() + m_ShadowCamera.GetForward() * near,
@@ -239,12 +240,14 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 	}
 }
 
-bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t numCascaded, size_t shadowMapSize)
+bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t numCascaded, size_t shadowMapSize, float shadowSizeRatio)
 {
 	ASSERT_RESULT(UnInit());
 
-	if (numCascaded <= SHADOW_MAP_MAX_CASCADED)
+	if (numCascaded >= 1 && numCascaded <= SHADOW_MAP_MAX_CASCADED && shadowSizeRatio > 0.0f)
 	{
+		m_ShadowSizeRatio = shadowSizeRatio;
+
 		renderDevice->CreateCommandPool(m_CommandPool);
 		m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
 
@@ -277,15 +280,17 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 			ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
 		}
 
+		size_t cascadedShadowSize = shadowMapSize;
+
 		m_Cascadeds.resize(numCascaded);
 		for (Cascade& cascaded : m_Cascadeds)
 		{
 			cascaded.renderTargets.resize(frameInFlight);
-			cascaded.shadowSize = shadowMapSize;
+			cascaded.shadowSize = cascadedShadowSize;
 			for (IKRenderTargetPtr& target : cascaded.renderTargets)
 			{
 				ASSERT_RESULT(renderDevice->CreateRenderTarget(target));
-				ASSERT_RESULT(target->InitFromDepthStencil(shadowMapSize, shadowMapSize, false));
+				ASSERT_RESULT(target->InitFromDepthStencil(cascadedShadowSize, cascadedShadowSize, false));
 			}
 
 			cascaded.commandBuffers.resize(numCascaded);
@@ -318,6 +323,8 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 
 				ASSERT_RESULT(pipeline->Init());
 			}
+
+			cascadedShadowSize = (size_t)(cascadedShadowSize * m_ShadowSizeRatio);
 		}
 
 		m_DebugVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_BackGroundVertexBuffer);
@@ -439,7 +446,7 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 	// 更新RenderTarget
 	{
 		std::vector<KRenderComponent*> cullRes;
-		KRenderGlobal::Scene.GetRenderComponent(m_ShadowCamera, cullRes);
+		KRenderGlobal::Scene.GetRenderComponent(*mainCamera, cullRes);
 
 		for (size_t i = 0; i < numCascaded; i++)
 		{

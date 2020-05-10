@@ -101,7 +101,7 @@ bool KRenderCore::InitGlobalManager()
 
 	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
 	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
-	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 3, 2048);
+	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 3, 2048, 0.85f);
 
 	return true;
 }
