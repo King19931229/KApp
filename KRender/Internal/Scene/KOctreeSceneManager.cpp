@@ -87,11 +87,31 @@ bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<IKE
 	return false;
 }
 
+bool KOctreeSceneManager::GetVisibleEntity(const KAABBBox* bound, std::deque<IKEntityPtr>& visibles)
+{
+	if (m_Root)
+	{
+		m_Root->GetColliding(*bound, visibles);
+		return true;
+	}
+	return false;
+}
+
 bool KOctreeSceneManager::GetDebugEntity(std::deque<IKEntityPtr>& debugVisibles)
 {
 	if (m_Root)
 	{
 		m_Root->GetDebugRender(debugVisibles);
+		return true;
+	}
+	return false;
+}
+
+bool KOctreeSceneManager::GetSceneBound(KAABBBox& box)
+{
+	if (m_Root)
+	{
+		m_Root->GetObjectBound(box);
 		return true;
 	}
 	return false;

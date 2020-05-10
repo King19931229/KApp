@@ -36,6 +36,8 @@ protected:
 		// debug
 		glm::mat4 debugClip;
 		std::vector<IKPipelinePtr> debugPipelines;
+		// scene clipping
+		KAABBBox litBox;
 	};
 	std::vector<Cascade> m_Cascadeds;
 

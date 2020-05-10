@@ -61,9 +61,11 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 	float range = maxZ - minZ;
 	float ratio = maxZ / minZ;
 
+	KAABBBox sceneBound;
+	KRenderGlobal::Scene.GetSceneObjectBound(sceneBound);
+
 	// Calculate split depths based on view camera furstum
 	// Based on method presentd in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
-
 	size_t numCascaded = m_Cascadeds.size();
 	for (size_t i = 0; i < numCascaded; i++)
 	{
@@ -189,15 +191,18 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 			minExtents.y *= worldUnitsPerTexel.y;
 		}
 
-		float near = minExtents.z - 5000.0f;/*TODO*/
-		float far = maxExtents.z + 30.0f;
+		KAABBBox sceneBoundInLight;
+		sceneBound.Transform(lightViewMatrix, sceneBoundInLight);
 
-		lightViewMatrix = glm::lookAt(
-			m_ShadowCamera.GetPosition() + m_ShadowCamera.GetForward() * near,
-			m_ShadowCamera.GetPosition() + m_ShadowCamera.GetForward() * (far - near),
-			m_ShadowCamera.GetUp());
+		float near = -sceneBoundInLight.GetMax().z;
+		float far = -sceneBoundInLight.GetMin().z;
+		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, near, far);
 
-		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, 2.0f * (far - near));
+		// Record the cascaded lit box for scene clipping
+		KAABBBox litBox;
+		litBox.InitFromMinMax(minExtents, maxExtents);
+		litBox.Transform(glm::inverse(lightViewMatrix), litBox);
+		m_Cascadeds[i].litBox = litBox;
 
 		// Store split distance and matrix in cascade
 		m_Cascadeds[i].splitDepth = (mainCamera->GetNear() + splitDist * clipRange) * -1.0f;
@@ -445,13 +450,13 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 	}
 	// 更新RenderTarget
 	{
-		std::vector<KRenderComponent*> cullRes;
-		KRenderGlobal::Scene.GetRenderComponent(*mainCamera, cullRes);
-
 		for (size_t i = 0; i < numCascaded; i++)
 		{
 			Cascade& cascaded = m_Cascadeds[i];
 			assert(frameIndex < cascaded.renderTargets.size());
+
+			std::vector<KRenderComponent*> cullRes;
+			KRenderGlobal::Scene.GetRenderComponent(cascaded.litBox, cullRes);
 
 			IKCommandBufferPtr commandBuffer = cascaded.commandBuffers[frameIndex];
 

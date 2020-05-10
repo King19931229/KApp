@@ -23,6 +23,9 @@ public:
 	bool Move(IKEntityPtr entity) override;
 
 	bool GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result);
+	bool GetRenderComponent(const KAABBBox& bound, std::vector<KRenderComponent*>& result);
+
+	bool GetSceneObjectBound(KAABBBox& box);
 
 	bool Pick(const KCamera& camera, size_t x, size_t y,
 		size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result) override;

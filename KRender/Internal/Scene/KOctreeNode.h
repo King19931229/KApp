@@ -389,6 +389,31 @@ public:
 		}
 	}
 
+	bool GetObjectBound(KAABBBox& bound)
+	{
+		KAABBBox result;
+
+		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
+		{
+			const auto& curObject = *it;
+			result.Merge(curObject.Bounds, result);
+		}
+
+		if (children)
+		{
+			for (auto i = 0; i < 8; i++)
+			{
+				KAABBBox childResult;
+				children[i].GetObjectBound(childResult);
+				result.Merge(childResult, result);
+			}
+		}
+
+		bound = result;
+
+		return true;
+	}
+
 	template<typename QueryResultType>
 	void GetDebugRender(QueryResultType& result)
 	{

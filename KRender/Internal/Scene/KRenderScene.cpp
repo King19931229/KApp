@@ -96,6 +96,44 @@ bool KRenderScene::GetRenderComponent(const KCamera& camera, std::vector<KRender
 	return false;
 }
 
+bool KRenderScene::GetRenderComponent(const KAABBBox& bound, std::vector<KRenderComponent*>& result)
+{
+	std::deque<IKEntityPtr> entities;
+	if (m_SceneMgr)
+	{
+		m_SceneMgr->GetVisibleEntity(&bound, entities);
+
+		if (m_EnableDebugRender)
+		{
+			m_SceneMgr->GetDebugEntity(entities);
+		}
+
+		result.clear();
+		result.reserve(entities.size());
+
+		for (IKEntityPtr entity : entities)
+		{
+			KRenderComponent* component = nullptr;
+			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component) && component)
+			{
+				result.push_back(component);
+			}
+		}
+
+		return true;
+	}
+	return false;
+}
+
+bool KRenderScene::GetSceneObjectBound(KAABBBox& box)
+{
+	if (m_SceneMgr)
+	{
+		return m_SceneMgr->GetSceneBound(box);
+	}
+	return false;
+}
+
 bool KRenderScene::Pick(const KCamera& camera, size_t x, size_t y,
 	size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result)
 {
