@@ -1,0 +1,398 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F0F0AF07-559A-3827-A86A-DDB6657556BE}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>x64</Platform>
+    <ProjectName>rttr</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.lib</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>Publish/Debug/x64/</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>Publish/Release/x64/</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>Publish/Release/x86/</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>Publish/Debug/x86/</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <WarningLevel>Level4</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <WarningLevel>Level4</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>false</OmitFramePointers>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <WarningLevel>Level4</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>
+      </AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <WarningLevel>Level4</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>false</OmitFramePointers>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>src\rttr\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>
+      </AdditionalOptions>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\rttr\constructor.cpp" />
+    <ClCompile Include="src\rttr\destructor.cpp" />
+    <ClCompile Include="src\rttr\enumeration.cpp" />
+    <ClCompile Include="src\rttr\library.cpp" />
+    <ClCompile Include="src\rttr\method.cpp" />
+    <ClCompile Include="src\rttr\parameter_info.cpp" />
+    <ClCompile Include="src\rttr\policy.cpp" />
+    <ClCompile Include="src\rttr\property.cpp" />
+    <ClCompile Include="src\rttr\registration.cpp" />
+    <ClCompile Include="src\rttr\type.cpp" />
+    <ClCompile Include="src\rttr\variant.cpp" />
+    <ClCompile Include="src\rttr\variant_associative_view.cpp" />
+    <ClCompile Include="src\rttr\variant_sequential_view.cpp" />
+    <ClCompile Include="src\rttr\visitor.cpp" />
+    <ClCompile Include="src\rttr\detail\comparison\compare_equal.cpp" />
+    <ClCompile Include="src\rttr\detail\comparison\compare_less.cpp" />
+    <ClCompile Include="src\rttr\detail\misc\standard_types.cpp" />
+    <ClCompile Include="src\rttr\detail\conversion\std_conversion_functions.cpp" />
+    <ClCompile Include="src\rttr\detail\constructor\constructor_wrapper_base.cpp" />
+    <ClCompile Include="src\rttr\detail\destructor\destructor_wrapper_base.cpp" />
+    <ClCompile Include="src\rttr\detail\enumeration\enumeration_helper.cpp" />
+    <ClCompile Include="src\rttr\detail\enumeration\enumeration_wrapper_base.cpp" />
+    <ClCompile Include="src\rttr\detail\library\library_win.cpp" />
+    <ClCompile Include="src\rttr\detail\library\library_unix.cpp" />
+    <ClCompile Include="src\rttr\detail\method\method_wrapper_base.cpp" />
+    <ClCompile Include="src\rttr\detail\parameter_info\parameter_info_wrapper_base.cpp" />
+    <ClCompile Include="src\rttr\detail\property\property_wrapper_base.cpp" />
+    <ClCompile Include="src\rttr\detail\registration\registration_executer.cpp" />
+    <ClCompile Include="src\rttr\detail\registration\registration_state_saver.cpp" />
+    <ClCompile Include="src\rttr\detail\type\type_data.cpp" />
+    <ClCompile Include="src\rttr\detail\type\type_register.cpp" />
+    <ClCompile Include="src\rttr\detail\variant\variant_compare.cpp" />
+    <ClInclude Include="src\rttr\detail\base\version.h" />
+    <ResourceCompile Include="src\rttr\detail\base\version.rc" />
+    <ClInclude Include="src\rttr\access_levels.h" />
+    <ClInclude Include="src\rttr\argument.h" />
+    <ClInclude Include="src\rttr\array_range.h" />
+    <ClInclude Include="src\rttr\associative_mapper.h" />
+    <ClInclude Include="src\rttr\constructor.h" />
+    <ClInclude Include="src\rttr\destructor.h" />
+    <ClInclude Include="src\rttr\enumeration.h" />
+    <ClInclude Include="src\rttr\enum_flags.h" />
+    <ClInclude Include="src\rttr\filter_item.h" />
+    <ClInclude Include="src\rttr\instance.h" />
+    <ClInclude Include="src\rttr\library.h" />
+    <ClInclude Include="src\rttr\method.h" />
+    <ClInclude Include="src\rttr\policy.h" />
+    <ClInclude Include="src\rttr\property.h" />
+    <ClInclude Include="src\rttr\parameter_info.h" />
+    <None Include="src\rttr\registration" />
+    <None Include="src\rttr\registration_friend" />
+    <ClInclude Include="src\rttr\registration.h" />
+    <ClInclude Include="src\rttr\registration_friend.h" />
+    <ClInclude Include="src\rttr\sequential_mapper.h" />
+    <ClInclude Include="src\rttr\string_view.h" />
+    <ClInclude Include="src\rttr\rttr_cast.h" />
+    <ClInclude Include="src\rttr\rttr_enable.h" />
+    <None Include="src\rttr\type" />
+    <ClInclude Include="src\rttr\type.h" />
+    <ClInclude Include="src\rttr\type_list.h" />
+    <ClInclude Include="src\rttr\variant.h" />
+    <ClInclude Include="src\rttr\variant_associative_view.h" />
+    <ClInclude Include="src\rttr\variant_sequential_view.h" />
+    <ClInclude Include="src\rttr\visitor.h" />
+    <ClInclude Include="src\rttr\wrapper_mapper.h" />
+    <ClInclude Include="src\rttr\detail\base\core_prerequisites.h" />
+    <ClInclude Include="src\rttr\detail\comparison\comparable_types.h" />
+    <ClInclude Include="src\rttr\detail\comparison\compare_array_less.h" />
+    <ClInclude Include="src\rttr\detail\comparison\compare_array_less_impl.h" />
+    <ClInclude Include="src\rttr\detail\comparison\compare_array_equal.h" />
+    <ClInclude Include="src\rttr\detail\comparison\compare_array_equal_impl.h" />
+    <ClInclude Include="src\rttr\detail\comparison\compare_equal.h" />
+    <ClInclude Include="src\rttr\detail\comparison\compare_equal_impl.h" />
+    <ClInclude Include="src\rttr\detail\comparison\compare_less.h" />
+    <ClInclude Include="src\rttr\detail\comparison\compare_less_impl.h" />
+    <ClInclude Include="src\rttr\detail\constructor\constructor_invoker.h" />
+    <ClInclude Include="src\rttr\detail\constructor\constructor_wrapper.h" />
+    <ClInclude Include="src\rttr\detail\constructor\constructor_wrapper_defaults.h" />
+    <ClInclude Include="src\rttr\detail\constructor\constructor_wrapper_base.h" />
+    <ClInclude Include="src\rttr\detail\conversion\std_conversion_functions.h" />
+    <ClInclude Include="src\rttr\detail\conversion\number_conversion.h" />
+    <ClInclude Include="src\rttr\detail\default_arguments\default_arguments.h" />
+    <ClInclude Include="src\rttr\detail\default_arguments\invoke_with_defaults.h" />
+    <ClInclude Include="src\rttr\detail\destructor\destructor_wrapper.h" />
+    <ClInclude Include="src\rttr\detail\destructor\destructor_wrapper_base.h" />
+    <ClInclude Include="src\rttr\detail\enumeration\enumeration_helper.h" />
+    <ClInclude Include="src\rttr\detail\enumeration\enumeration_wrapper.h" />
+    <ClInclude Include="src\rttr\detail\enumeration\enumeration_wrapper_base.h" />
+    <ClInclude Include="src\rttr\detail\enumeration\enum_data.h" />
+    <ClInclude Include="src\rttr\detail\filter\filter_item_funcs.h" />
+    <ClInclude Include="src\rttr\detail\impl\argument_impl.h" />
+    <ClInclude Include="src\rttr\detail\impl\array_range_impl.h" />
+    <ClInclude Include="src\rttr\detail\impl\associative_mapper_impl.h" />
+    <ClInclude Include="src\rttr\detail\impl\enum_flags_impl.h" />
+    <ClInclude Include="src\rttr\detail\impl\instance_impl.h" />
+    <ClInclude Include="src\rttr\detail\impl\rttr_cast_impl.h" />
+    <ClInclude Include="src\rttr\detail\impl\sequential_mapper_impl.h" />
+    <ClInclude Include="src\rttr\detail\impl\string_view_impl.h" />
+    <ClInclude Include="src\rttr\detail\impl\wrapper_mapper_impl.h" />
+    <ClInclude Include="src\rttr\detail\library\library_p.h" />
+    <ClInclude Include="src\rttr\detail\metadata\metadata.h" />
+    <ClInclude Include="src\rttr\detail\metadata\metadata_handler.h" />
+    <ClInclude Include="src\rttr\detail\method\method_accessor.h" />
+    <ClInclude Include="src\rttr\detail\method\method_invoker.h" />
+    <ClInclude Include="src\rttr\detail\method\method_wrapper.h" />
+    <ClInclude Include="src\rttr\detail\method\method_wrapper_base.h" />
+    <ClInclude Include="src\rttr\detail\misc\argument_wrapper.h" />
+    <ClInclude Include="src\rttr\detail\misc\argument_extractor.h" />
+    <ClInclude Include="src\rttr\detail\misc\class_item_mapper.h" />
+    <ClInclude Include="src\rttr\detail\misc\data_address_container.h" />
+    <ClInclude Include="src\rttr\detail\misc\flat_map.h" />
+    <ClInclude Include="src\rttr\detail\misc\flat_multimap.h" />
+    <ClInclude Include="src\rttr\detail\misc\function_traits.h" />
+    <ClInclude Include="src\rttr\detail\misc\iterator_wrapper.h" />
+    <ClInclude Include="src\rttr\detail\misc\misc_type_traits.h" />
+    <ClInclude Include="src\rttr\detail\misc\register_wrapper_mapper_conversion.h" />
+    <ClInclude Include="src\rttr\detail\misc\sequential_container_type_traits.h" />
+    <ClInclude Include="src\rttr\detail\misc\std_type_traits.h" />
+    <ClInclude Include="src\rttr\detail\misc\template_type_trait.h" />
+    <ClInclude Include="src\rttr\detail\misc\template_type_trait_impl.h" />
+    <ClInclude Include="src\rttr\detail\misc\utility.h" />
+    <ClInclude Include="src\rttr\detail\parameter_info\parameter_infos.h" />
+    <ClInclude Include="src\rttr\detail\parameter_info\parameter_infos_compare.h" />
+    <ClInclude Include="src\rttr\detail\parameter_info\parameter_names.h" />
+    <ClInclude Include="src\rttr\detail\parameter_info\parameter_info_wrapper_base.h" />
+    <ClInclude Include="src\rttr\detail\parameter_info\parameter_info_wrapper.h" />
+    <ClInclude Include="src\rttr\detail\policies\prop_policies.h" />
+    <ClInclude Include="src\rttr\detail\policies\meth_policies.h" />
+    <ClInclude Include="src\rttr\detail\policies\ctor_policies.h" />
+    <ClInclude Include="src\rttr\detail\property\property_accessor.h" />
+    <ClInclude Include="src\rttr\detail\property\property_wrapper.h" />
+    <ClInclude Include="src\rttr\detail\property\property_wrapper_base.h" />
+    <ClInclude Include="src\rttr\detail\property\property_wrapper_func.h" />
+    <ClInclude Include="src\rttr\detail\property\property_wrapper_member_func.h" />
+    <ClInclude Include="src\rttr\detail\property\property_wrapper_member_object.h" />
+    <ClInclude Include="src\rttr\detail\property\property_wrapper_object.h" />
+    <ClInclude Include="src\rttr\detail\registration\bind_types.h" />
+    <ClInclude Include="src\rttr\detail\registration\bind_impl.h" />
+    <ClInclude Include="src\rttr\detail\registration\register_base_class_from_accessor.h" />
+    <ClInclude Include="src\rttr\detail\registration\registration_impl.h" />
+    <ClInclude Include="src\rttr\detail\registration\registration_executer.h" />
+    <ClInclude Include="src\rttr\detail\registration\registration_manager.h" />
+    <ClInclude Include="src\rttr\detail\registration\registration_state_saver.h" />
+    <ClInclude Include="src\rttr\detail\type\accessor_type.h" />
+    <ClInclude Include="src\rttr\detail\type\base_classes.h" />
+    <ClInclude Include="src\rttr\detail\type\get_create_variant_func.h" />
+    <ClInclude Include="src\rttr\detail\type\get_derived_info_func.h" />
+    <ClInclude Include="src\rttr\detail\type\type_converter.h" />
+    <ClInclude Include="src\rttr\detail\type\type_comparator.h" />
+    <ClInclude Include="src\rttr\detail\type\type_data.h" />
+    <ClInclude Include="src\rttr\detail\type\type_register.h" />
+    <ClInclude Include="src\rttr\detail\type\type_impl.h" />
+    <ClInclude Include="src\rttr\detail\type\type_name.h" />
+    <ClInclude Include="src\rttr\detail\type\type_register_p.h" />
+    <ClInclude Include="src\rttr\detail\type\type_string_utils.h" />
+    <ClInclude Include="src\rttr\detail\variant\variant_compare.h" />
+    <ClInclude Include="src\rttr\detail\variant\variant_data.h" />
+    <ClInclude Include="src\rttr\detail\variant\variant_data_converter.h" />
+    <ClInclude Include="src\rttr\detail\variant\variant_data_policy.h" />
+    <ClInclude Include="src\rttr\detail\variant\variant_impl.h" />
+    <ClInclude Include="src\rttr\detail\variant_associative_view\variant_associative_view_private.h" />
+    <ClInclude Include="src\rttr\detail\variant_associative_view\variant_associative_view_creator.h" />
+    <ClInclude Include="src\rttr\detail\variant_associative_view\variant_associative_view_creator_impl.h" />
+    <ClInclude Include="src\rttr\detail\variant_sequential_view\variant_sequential_view_private.h" />
+    <ClInclude Include="src\rttr\detail\variant_sequential_view\variant_sequential_view_creator_impl.h" />
+    <ClInclude Include="src\rttr\detail\variant_sequential_view\variant_sequential_view_creator.h" />
+    <ClInclude Include="src\rttr\detail\visitor\visitor_iterator.h" />
+    <ClInclude Include="src\rttr\detail\visitor\create_type_visitor_func.h" />
+    <ClInclude Include="src\rttr\detail\visitor\create_type_visitor_func_impl.h" />
+    <ClInclude Include="src\rttr\detail\visitor\method_visitor_invoker.h" />
+    <ClInclude Include="src\rttr\detail\visitor\constructor_visitor_invoker.h" />
+    <ClInclude Include="src\rttr\detail\visitor\property_visitor_invoker.h" />
+    <ClInclude Include="src\rttr\detail\visitor\visitor_impl.h" />
+    <ClInclude Include="src\rttr\detail\visitor\type_visitor_invoker.h" />
+    <ClInclude Include="src\rttr\detail\visitor\visitor_registration.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -226,6 +226,9 @@
     <ClInclude Include="Publish\KTemplate.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKReflection.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">

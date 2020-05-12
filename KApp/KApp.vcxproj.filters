@@ -8,5 +8,6 @@
     <ClCompile Include="KSwapChainTest.cpp" />
     <ClCompile Include="KJsonTest.cpp" />
     <ClCompile Include="KXMLTest.cpp" />
+    <ClCompile Include="KReflectionTest.cpp" />
   </ItemGroup>
 </Project>
