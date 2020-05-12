@@ -23,7 +23,7 @@ const uint16_t KCascadedShadowMap::ms_BackGroundIndices[] = { 0, 1, 2, 2, 3, 0 }
 KCascadedShadowMap::KCascadedShadowMap()
 	: m_DepthBiasConstant(1.25f),
 	m_DepthBiasSlope(1.75f),
-	m_ShadowRange(1000.0f),
+	m_ShadowRange(3000.0f),
 	m_SplitLambda(0.5f),
 	m_ShadowSizeRatio(0.7f),
 	m_FixToScene(true),
@@ -200,6 +200,8 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 
 		// Record the cascaded lit box for scene clipping
 		KAABBBox litBox;
+		// minExtents.z = -far;
+		maxExtents.z = -near;
 		litBox.InitFromMinMax(minExtents, maxExtents);
 		litBox.Transform(glm::inverse(lightViewMatrix), litBox);
 		m_Cascadeds[i].litBox = litBox;
