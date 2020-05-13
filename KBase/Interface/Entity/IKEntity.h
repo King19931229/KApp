@@ -7,6 +7,9 @@
 
 struct IKEntity
 {
+	RTTR_ENABLE()
+	RTTR_REGISTRATION_FRIEND
+public:
 	virtual ~IKEntity() {}
 
 	typedef size_t IDType;

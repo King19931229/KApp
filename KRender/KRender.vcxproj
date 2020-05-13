@@ -122,7 +122,9 @@
     <ClCompile Include="Internal\Controller\KGizmoController.cpp" />
     <ClCompile Include="Internal\Controller\KUIOverlayController.cpp" />
     <ClCompile Include="Internal\Dispatcher\KRenderDispatcher.cpp" />
+    <ClCompile Include="Internal\ECS\Component\KDebugComponent.cpp" />
     <ClCompile Include="Internal\ECS\Component\KRenderComponent.cpp" />
+    <ClCompile Include="Internal\ECS\Component\KTransformComponent.cpp" />
     <ClCompile Include="Internal\ECS\KRenderComponentManager.cpp" />
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp" />
     <ClCompile Include="Internal\ECS\System\KCullSystem.cpp" />

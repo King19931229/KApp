@@ -1,0 +1,14 @@
+#include "KDebugComponent.h"
+
+RTTR_REGISTRATION
+{
+#define KRTTR_REG_CLASS_NAME KDebugComponent
+#define KRTTR_REG_CLASS_NAME_STR "DebugComponent"
+
+	KRTTR_REG_CLASS_BEGIN()
+	KRTTR_REG_PROPERTY_GET_SET("color", Color, SetColor, MDT_FLOAT4)
+	KRTTR_REG_CLASS_END()
+
+#undef KRTTR_REG_CLASS_NAME_STR
+#undef KRTTR_REG_CLASS_NAME
+}

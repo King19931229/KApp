@@ -14,17 +14,19 @@ KEntity::KEntity(size_t id)
 
 KEntity::~KEntity()
 {
-	assert(m_Components.empty() && "Components not empty");
+	for (uint32_t i = 0; i < CT_COUNT; ++i)
+	{
+		ASSERT_RESULT(!m_Components[i]);
+	}
 }
 
 bool KEntity::GetComponentBase(ComponentType type, IKComponentBase** pptr)
 {
 	if(pptr)
 	{
-		auto it = m_Components.find(type);
-		if(it != m_Components.end())
+		if (type != CT_UNKNOWN && m_Components[type])
 		{
-			*pptr = it->second;
+			*pptr = m_Components[type];
 			return true;
 		}
 		else
@@ -38,8 +40,11 @@ bool KEntity::GetComponentBase(ComponentType type, IKComponentBase** pptr)
 
 bool KEntity::HasComponent(ComponentType type)
 {
-	auto it = m_Components.find(type);
-	return it != m_Components.end();
+	if (type != CT_UNKNOWN && m_Components[type])
+	{
+		return true;
+	}
+	return false;
 }
 
 bool KEntity::HasComponents(const ComponentTypeList& components)
@@ -56,50 +61,47 @@ bool KEntity::HasComponents(const ComponentTypeList& components)
 
 bool KEntity::RegisterComponentBase(ComponentType type, IKComponentBase** pptr)
 {
-	auto it = m_Components.find(type);
-	if(it == m_Components.end())
+	if (type != CT_UNKNOWN && !m_Components[type])
 	{
 		IKComponentBase* component = KECS::ComponentManager->Alloc(type);
-		m_Components.insert(ComponentMap::value_type(type, component));
+		m_Components[type] = component;
 		component->RegisterEntityHandle(this);
-		if(pptr)
+		if (pptr)
 		{
 			*pptr = component;
 		}
 		return true;
 	}
-	else
-	{
-		return false;
-	}
+	return false;
 }
 
 bool KEntity::UnRegisterComponent(ComponentType type)
 {
-	auto it = m_Components.find(type);
-	if(it != m_Components.end())
+	if (type != CT_UNKNOWN && m_Components[type])
 	{
-		IKComponentBase*& component = it->second;
+		IKComponentBase* component = m_Components[type];
 		component->UnRegisterEntityHandle();
-		m_Components.erase(it);
 		KECS::ComponentManager->Free(component);
+		m_Components[type] = nullptr;
 		return true;
 	}
-	else
-	{
-		return false;
-	}
+
+	return false;
 }
 
 bool KEntity::UnRegisterAllComponent()
 {
-	for(auto it = m_Components.begin(), itEnd = m_Components.end(); it != itEnd; ++it)
+	for (uint32_t i = 0; i < CT_COUNT; ++i)
 	{
-		IKComponentBase*& component = it->second;
-		component->UnRegisterEntityHandle();
-		KECS::ComponentManager->Free(component);
+		IKComponentBase* component = m_Components[i];
+		if (component)
+		{
+			component->UnRegisterEntityHandle();
+			KECS::ComponentManager->Free(component);
+			m_Components[i] = nullptr;
+		}
 	}
-	m_Components.clear();
+
 	return true;
 }
 
@@ -228,15 +230,16 @@ const char* KEntity::msComponentType = "type";
 
 bool KEntity::Save(IKXMLElementPtr element)
 {
-	for (auto& pair : m_Components)
+	for (uint32_t i = 0; i < CT_COUNT; ++i)
 	{
-		ComponentType componentType = pair.first;
-		IKComponentBase* component = pair.second;
-
-		IKXMLElementPtr componentEle = element->NewElement(msComponent);
-		componentEle->SetAttribute(msComponentType, KECS::ComponentTypeToString(componentType));
-
-		component->Save(componentEle);
+		IKComponentBase* component = m_Components[i];
+		if (component)
+		{
+			ComponentType componentType = static_cast<ComponentType>(i);
+			IKXMLElementPtr componentEle = element->NewElement(msComponent);
+			componentEle->SetAttribute(msComponentType, KECS::ComponentTypeToString(componentType));
+			component->Save(componentEle);
+		}
 	}
 	element->SetAttribute(msName, m_Name.c_str());
 

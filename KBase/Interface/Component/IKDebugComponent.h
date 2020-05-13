@@ -4,6 +4,9 @@
 
 struct IKDebugComponent : public IKComponentBase
 {
+	RTTR_ENABLE(IKComponentBase)
+	RTTR_REGISTRATION_FRIEND
+public:
 	IKDebugComponent()
 		: IKComponentBase(CT_DEBUG)
 	{

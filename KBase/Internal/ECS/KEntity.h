@@ -4,9 +4,10 @@
 
 class KEntity : public IKEntity
 {
+	RTTR_ENABLE(IKEntity)
+	RTTR_REGISTRATION_FRIEND
 protected:
-	typedef std::unordered_map<ComponentType, IKComponentBase*> ComponentMap;
-	ComponentMap m_Components;
+	IKComponentBase* m_Components[CT_COUNT];
 	size_t m_Id;
 	std::string m_Name;
 

@@ -11,6 +11,8 @@
 
 class KTransformComponent : public IKTransformComponent
 {
+	RTTR_ENABLE(IKTransformComponent)
+	RTTR_REGISTRATION_FRIEND
 protected:
 	glm::vec3 m_Position;
 	glm::vec3 m_Scale;

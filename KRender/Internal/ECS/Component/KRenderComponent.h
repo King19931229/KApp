@@ -5,6 +5,8 @@
 
 class KRenderComponent : public IKRenderComponent
 {
+	RTTR_ENABLE(IKRenderComponent)
+	RTTR_REGISTRATION_FRIEND
 protected:
 	KMeshPtr m_Mesh;
 	enum ResourceType
@@ -22,6 +24,9 @@ protected:
 
 	static const char* ResourceTypeToString(ResourceType type);
 	static ResourceType StringToResourceType(const char* str);
+
+	const char* GetPathCStr() const { return m_Path.c_str(); }
+	const char* GetTypeCStr() const { return ResourceTypeToString(m_Type); }
 public:
 	KRenderComponent();
 	virtual ~KRenderComponent();

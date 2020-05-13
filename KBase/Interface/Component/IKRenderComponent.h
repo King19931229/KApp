@@ -4,6 +4,9 @@
 
 struct IKRenderComponent : public IKComponentBase
 {
+	RTTR_ENABLE(IKComponentBase)
+	RTTR_REGISTRATION_FRIEND
+public:
 	IKRenderComponent()
 		: IKComponentBase(CT_RENDER)
 	{

@@ -1,5 +1,6 @@
 #pragma once
 #include "KBase/Interface/IKXML.h"
+#include "KBase/Interface/IKReflection.h"
 #include <vector>
 
 enum ComponentType
@@ -18,6 +19,8 @@ struct IKEntity;
 
 class IKComponentBase
 {
+	RTTR_ENABLE()
+	RTTR_REGISTRATION_FRIEND
 protected:
 	ComponentType m_Type;
 	IKEntity* m_EntityHandle;

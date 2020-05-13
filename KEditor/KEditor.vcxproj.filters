@@ -57,11 +57,11 @@
     <Filter Include="Custom">
       <UniqueIdentifier>{055a1795-78f1-47a3-a259-29ddb8067e85}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource">
-      <UniqueIdentifier>{854fe095-7534-4266-9202-315fe6df1e2a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Manipulator">
       <UniqueIdentifier>{6a40a812-1396-4fcd-abc8-200111b685f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{854fe095-7534-4266-9202-315fe6df1e2a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

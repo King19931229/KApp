@@ -93,7 +93,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -116,7 +116,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -141,7 +141,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -167,7 +167,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>

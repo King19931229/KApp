@@ -1,6 +1,20 @@
 #include "KRenderComponent.h"
 #include "Internal/KRenderGlobal.h"
 
+RTTR_REGISTRATION
+{
+#define KRTTR_REG_CLASS_NAME KRenderComponent
+#define KRTTR_REG_CLASS_NAME_STR "RenderComponent"
+
+	KRTTR_REG_CLASS_BEGIN()
+	KRTTR_REG_PROPERTY_READ_ONLY(path, GetPathCStr, MDT_CSTR)
+	KRTTR_REG_PROPERTY_READ_ONLY(type, GetTypeCStr, MDT_CSTR)
+	KRTTR_REG_CLASS_END()
+
+#undef KRTTR_REG_CLASS_NAME_STR
+#undef KRTTR_REG_CLASS_NAME
+}
+
 KRenderComponent::KRenderComponent()
 	: m_Mesh(nullptr),
 	m_Type(NONE)

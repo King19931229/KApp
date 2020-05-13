@@ -4,6 +4,9 @@
 
 struct IKTransformComponent : public IKComponentBase
 {
+	RTTR_ENABLE(IKComponentBase)
+	RTTR_REGISTRATION_FRIEND
+public:
 	IKTransformComponent()
 		: IKComponentBase(CT_TRANSFORM)
 	{

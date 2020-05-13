@@ -533,5 +533,11 @@
     <ClCompile Include="Internal\Shadow\KCascadedShadowMap.cpp">
       <Filter>Internal\Shadow</Filter>
     </ClCompile>
+    <ClCompile Include="Internal\ECS\Component\KDebugComponent.cpp">
+      <Filter>Internal\ECS\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ECS\Component\KTransformComponent.cpp">
+      <Filter>Internal\ECS\Component</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

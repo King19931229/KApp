@@ -1,10 +1,12 @@
 #pragma once
 #include "KBase/Interface/Component/IKDebugComponent.h"
 #include "KBase/Publish/KStringParser.h"
-#include "Internal/Asset/KMesh.h"
+#include "KBase/Publish/KMath.h"
 
 class KDebugComponent : public IKDebugComponent
 {
+	RTTR_ENABLE(IKDebugComponent)
+	RTTR_REGISTRATION_FRIEND
 protected:
 	glm::vec4 m_Color;
 	static constexpr const char* msColor = "color";
