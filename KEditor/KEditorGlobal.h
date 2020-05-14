@@ -3,7 +3,7 @@
 #include "Resource/KEResourceImporter.h"
 #include "Manipulator/KEEntityManipulator.h"
 #include "Manipulator/KEEntitySelector.h"
-#include "Widget/KESceneItemWidget.h"
+#include "Reflection/KEReflectionManager.h"
 
 namespace KEditorGlobal
 {
@@ -11,4 +11,5 @@ namespace KEditorGlobal
 	extern KEResourceImporter ResourceImporter;
 	extern KEEntityManipulator EntityManipulator;
 	extern KEEntitySelector EntitySelector;
+	extern KEReflectionManager ReflectionManager;
 }

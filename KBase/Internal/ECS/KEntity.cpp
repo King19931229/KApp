@@ -6,10 +6,33 @@
 
 #include <assert.h>
 
+RTTR_REGISTRATION
+{
+#define KRTTR_REG_CLASS_NAME KEntity
+#define KRTTR_REG_CLASS_NAME_STR "Entity"
+
+	KRTTR_REG_CLASS_BEGIN()
+	KRTTR_REG_PROPERTY_READ_ONLY(render, GetRenderComponent, MDT_OBJECT)
+	KRTTR_REG_PROPERTY_READ_ONLY(debug, GetDebugComponent, MDT_OBJECT)
+	KRTTR_REG_PROPERTY_READ_ONLY(transform, GetTransformComponent, MDT_OBJECT)
+	KRTTR_REG_CLASS_END()
+
+#undef KRTTR_REG_CLASS_NAME_STR
+#undef KRTTR_REG_CLASS_NAME
+}
+
+KEntity::KEntity()
+	: m_Id(0),
+	m_Name("Unnamed")
+{
+	ZERO_ARRAY_MEMORY(m_Components);
+}
+
 KEntity::KEntity(size_t id)
 	: m_Id(id),
 	m_Name("Unnamed")
 {
+	ZERO_ARRAY_MEMORY(m_Components);
 }
 
 KEntity::~KEntity()

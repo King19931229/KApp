@@ -53,6 +53,8 @@ public:
 	{
 		return RegisterComponentBase(type, nullptr);
 	}
+
+	virtual bool QueryReflection(KReflectionObjectBase** ppObject) = 0;
 };
 
 typedef std::shared_ptr<IKEntity> IKEntityPtr;

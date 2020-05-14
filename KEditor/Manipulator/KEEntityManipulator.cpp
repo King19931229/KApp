@@ -1,6 +1,7 @@
 #include "KEEntityManipulator.h"
 #include "KEEntityCommand.h"
 #include "KEditorGlobal.h"
+#include "Widget/KESceneItemWidget.h"
 
 #include "KBase/Interface/Component/IKTransformComponent.h"
 #include "KBase/Interface/Component/IKRenderComponent.h"
@@ -94,8 +95,32 @@ void KEEntityManipulator::AddEditorEntity(KEEntityPtr editorEntity)
 	if (editorEntity)
 	{
 		m_Scene->Add(editorEntity->soul);
+		WatchEntity(editorEntity);
+	}
+}
+
+void KEEntityManipulator::WatchEntity(KEEntityPtr editorEntity)
+{
+	if (editorEntity)
+	{
+		KReflectionObjectBase* reflection = nullptr;
+		editorEntity->soul->QueryReflection(&reflection);
+		ASSERT_RESULT(reflection);
+		KEditorGlobal::ReflectionManager.Watch(reflection);
+
 		m_SceneItemWidget->Add(editorEntity);
 		m_Entities[editorEntity->soul->GetID()] = editorEntity;
+	}
+}
+
+void KEEntityManipulator::DiscardEntity(KEEntityPtr editorEntity)
+{
+	if (editorEntity)
+	{
+		KReflectionObjectBase* reflection = nullptr;
+		editorEntity->soul->QueryReflection(&reflection);
+		ASSERT_RESULT(reflection);
+		KEditorGlobal::ReflectionManager.Discard(reflection);
 	}
 }
 
@@ -105,10 +130,12 @@ void KEEntityManipulator::RemoveEditorEntity(IKEntity::IDType id)
 	auto it = m_Entities.find(id);
 	if (it != m_Entities.end())
 	{
-		KEEntityPtr entity = it->second;
-		KEditorGlobal::ResourceImporter.UnInitEntity(entity->soul);
-		m_Scene->Remove(entity->soul);
-		m_SceneItemWidget->Remove(entity);
+		KEEntityPtr editorEntity = it->second;
+		DiscardEntity(editorEntity);
+
+		KEditorGlobal::ResourceImporter.UnInitEntity(editorEntity->soul);
+		m_Scene->Remove(editorEntity->soul);
+		m_SceneItemWidget->Remove(editorEntity);
 		m_Entities.erase(it);
 	}
 }
@@ -170,6 +197,11 @@ bool KEEntityManipulator::Erase(const std::vector<KEEntityPtr>& entites)
 
 bool KEEntityManipulator::Load(const char* filename)
 {
+	for (auto& pair : m_Entities)
+	{
+		KEEntityPtr editorEntity = pair.second;
+		DiscardEntity(editorEntity);
+	}
 	KEditorGlobal::EntitySelector.Clear();
 	m_Entities.clear();
 
@@ -198,8 +230,7 @@ bool KEEntityManipulator::Load(const char* filename)
 					ASSERT_RESULT(entity->GetTransform(transform));
 					editorEntity->createInfo.transform = transform;
 
-					m_Entities[editorEntity->soul->GetID()] = editorEntity;
-					m_SceneItemWidget->Add(editorEntity);
+					WatchEntity(editorEntity);
 
 					command->Cast<KEEntitySceneJoinCommand>()->Append(editorEntity);
 				}

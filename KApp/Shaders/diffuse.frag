@@ -102,6 +102,12 @@ const bool debug_layer = false;
 
 void main()
 {
+	//outColor = texture(texSampler, uv);
+	//if(outColor.a == 0.0)
+	//{
+	//	discard;
+	//}
+
 	float shadow = 0.0f;
 
 	// Get cascade index for the current fragment's view position
@@ -124,7 +130,6 @@ void main()
 		shadow = textureProj(cascaded, vec2(0.0f, 0.0f));
 	}
 
-	outColor = texture(texSampler, uv);
 	outColor.rgb *= shadow;
 	
 	if(debug_layer)

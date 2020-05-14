@@ -10,6 +10,7 @@ enum MetaDataType
 {
 	MDT_INT,
 	MDT_FLOAT,
+	// TODO Abandon
 	MDT_CSTR,
 	MDT_STDSTRING,
 
@@ -17,13 +18,21 @@ enum MetaDataType
 	MDT_FLOAT3,
 	MDT_FLOAT4,
 
-	MDT_MATRIX3,
-	MDT_MATRIX4,
-
-	MDT_COMPONENT,
+	MDT_OBJECT,
 
 	MDT_UNKNOWN
 };
+
+struct KReflectionObjectBase
+{
+	RTTR_ENABLE()
+	RTTR_REGISTRATION_FRIEND
+public:
+	KReflectionObjectBase() {}
+	~KReflectionObjectBase() {}
+};
+
+#define KRTTR_GET_TYPE(obj) rttr::type::get(*obj)
 
 #define KRTTR_REG_CLASS_BEGIN rttr::registration::class_<KRTTR_REG_CLASS_NAME>(KRTTR_REG_CLASS_NAME_STR).constructor<>
 

@@ -14,7 +14,13 @@ struct TestBaseClass
 	RTTR_REGISTRATION_FRIEND
 };
 
-struct TestClass : public TestBaseClass
+struct TestBaseClass2
+{
+	RTTR_ENABLE()
+	RTTR_REGISTRATION_FRIEND
+};
+
+struct TestClass : public TestBaseClass, TestBaseClass2
 {
 	TestClass() {}
 
@@ -44,7 +50,7 @@ struct TestClass : public TestBaseClass
 		return value;
 	}
 
-	RTTR_ENABLE(TestBaseClass)
+	RTTR_ENABLE(TestBaseClass, TestBaseClass2)
 	RTTR_REGISTRATION_FRIEND
 };
 
@@ -92,7 +98,7 @@ int main()
 	}
 	*/
 
-	TestBaseClass* obj = new TestClass();
+	TestBaseClass2* obj = new TestClass();
 
 	auto type = rttr::type::get(*obj);
 
@@ -110,7 +116,7 @@ int main()
 		if (meta.is_valid())
 		{
 			MetaDataType metaDataType = meta.get_value<MetaDataType>();
-			std::cout << metaDataType << std::endl;
+			std::cout << "metaDataType " << metaDataType << std::endl;
 		}
 	}
 

@@ -3,18 +3,16 @@
 #include "KBase/Publish/KStringParser.h"
 #include "KBase/Publish/KMath.h"
 
-class KDebugComponent : public IKDebugComponent
+class KDebugComponent : public IKDebugComponent, public KReflectionObjectBase
 {
-	RTTR_ENABLE(IKDebugComponent)
+	RTTR_ENABLE(IKDebugComponent, KReflectionObjectBase)
 	RTTR_REGISTRATION_FRIEND
 protected:
 	glm::vec4 m_Color;
 	static constexpr const char* msColor = "color";
 public:
-	KDebugComponent()
-	{}
-	~KDebugComponent()
-	{}
+	KDebugComponent();
+	virtual ~KDebugComponent();
 
 	bool Save(IKXMLElementPtr element) override
 	{

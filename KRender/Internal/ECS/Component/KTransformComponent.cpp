@@ -13,3 +13,11 @@ RTTR_REGISTRATION
 #undef KRTTR_REG_CLASS_NAME_STR
 #undef KRTTR_REG_CLASS_NAME
 }
+
+KTransformComponent::KTransformComponent()
+	: m_Position(glm::vec3(0.0f)),
+	m_Scale(glm::vec3(1.0f)),
+	m_Rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f))
+{}
+
+KTransformComponent:: ~KTransformComponent() {}

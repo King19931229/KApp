@@ -12,3 +12,9 @@ RTTR_REGISTRATION
 #undef KRTTR_REG_CLASS_NAME_STR
 #undef KRTTR_REG_CLASS_NAME
 }
+
+KDebugComponent::KDebugComponent()
+{}
+
+KDebugComponent::~KDebugComponent()
+{}

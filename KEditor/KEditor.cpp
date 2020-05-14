@@ -2,6 +2,8 @@
 #include "KEditorGlobal.h"
 #include "Widget/KERenderWidget.h"
 #include "Widget/KEPostProcessGraphWidget.h"
+#include "Widget/KESceneItemWidget.h"
+#include "Widget/KEReflectPropertyWidget.h"
 #include "Graph/KEGraphRegistrar.h"
 #include "Other/KEQtRenderWindow.h"
 #include "Browser/KEResourceBrowser.h"
@@ -18,6 +20,8 @@ KEditor::KEditor(QWidget *parent)
 	m_ResourceBrowser(nullptr),
 	m_SceneItemDock(nullptr),
 	m_SceneItemWidget(nullptr),
+	m_PropertyDock(nullptr),
+	m_PropertyWidget(nullptr),
 	m_Engine(nullptr),
 	m_bInit(false)
 {
@@ -127,8 +131,16 @@ bool KEditor::Init()
 		m_SceneItemDock->setWidget(m_SceneItemWidget);
 		addDockWidget(Qt::LeftDockWidgetArea, m_SceneItemDock);
 
+		m_PropertyWidget = new KEReflectPropertyWidget(this);
+		m_PropertyWidget->Init();
+
+		m_PropertyDock = new QDockWidget(this);
+		m_PropertyDock->setWidget(m_PropertyWidget);
+		addDockWidget(Qt::RightDockWidgetArea, m_PropertyDock);
+
 		IKRenderCore* renderCore = m_Engine->GetRenderCore();
 
+		KEditorGlobal::ReflectionManager.Init();
 		KEditorGlobal::EntityManipulator.Init(renderCore->GetGizmo(), rawWindow, renderCore->GetCamera(), m_Engine->GetScene(), m_SceneItemWidget);
 		KEditorGlobal::EntitySelector.Init(m_SceneItemWidget);
 
@@ -147,6 +159,7 @@ bool KEditor::UnInit()
 		KEditorGlobal::CommandInvoker.Clear();
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 
+		KEditorGlobal::ReflectionManager.UnInit();
 		KEditorGlobal::EntitySelector.UnInit();
 		KEditorGlobal::EntityManipulator.UnInit();
 
@@ -184,6 +197,16 @@ bool KEditor::UnInit()
 			m_SceneItemDock->setWidget(nullptr);
 			removeDockWidget(m_SceneItemDock);
 			SAFE_DELETE(m_SceneItemDock);
+		}
+
+		if (m_PropertyWidget)
+		{
+			m_PropertyWidget->UnInit();
+			SAFE_DELETE(m_PropertyWidget);
+
+			m_PropertyDock->setWidget(nullptr);
+			removeDockWidget(m_PropertyDock);
+			SAFE_DELETE(m_PropertyDock);
 		}
 
 		m_bInit = false;

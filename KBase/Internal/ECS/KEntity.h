@@ -2,9 +2,9 @@
 #include "Interface/Entity/IKEntity.h"
 #include <unordered_map>
 
-class KEntity : public IKEntity
+class KEntity : public IKEntity, public KReflectionObjectBase
 {
-	RTTR_ENABLE(IKEntity)
+	RTTR_ENABLE(IKEntity, KReflectionObjectBase)
 	RTTR_REGISTRATION_FRIEND
 protected:
 	IKComponentBase* m_Components[CT_COUNT];
@@ -14,6 +14,22 @@ protected:
 	static const char* msName;
 	static const char* msComponent;
 	static const char* msComponentType;
+
+	IKComponentBase* SafeGetComponent(ComponentType type)
+	{
+		IKComponentBase* pRet = nullptr;
+		if (GetComponentBase(type, &pRet))
+		{
+			return pRet;
+		}
+		return nullptr;
+	}
+
+	IKComponentBase* GetRenderComponent() { return SafeGetComponent(CT_RENDER); }
+	IKComponentBase* GetDebugComponent() { return SafeGetComponent(CT_DEBUG); }
+	IKComponentBase* GetTransformComponent() { return SafeGetComponent(CT_TRANSFORM); }
+
+	KEntity();
 public:
 	KEntity(size_t id);
 	~KEntity();
@@ -38,4 +54,14 @@ public:
 
 	const std::string& GetName() const override  { return m_Name;}
 	void SetName(const std::string& name) override { m_Name = name; }
+
+	bool QueryReflection(KReflectionObjectBase** ppObject) override
+	{
+		if (ppObject)
+		{
+			*ppObject = static_cast<KReflectionObjectBase*>(this);
+			return true;
+		}
+		return false;
+	}
 };

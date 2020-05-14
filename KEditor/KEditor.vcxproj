@@ -127,10 +127,12 @@
     <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessPassModel.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessTextureModel.cpp" />
+    <ClCompile Include="Reflection\KEReflectionManager.cpp" />
     <ClCompile Include="Resource\KEResourceImporter.cpp" />
     <ClCompile Include="Widget\KEGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPropertyWidget.cpp" />
+    <ClCompile Include="Widget\KEReflectPropertyWidget.cpp" />
     <ClCompile Include="Widget\KERenderWidget.cpp" />
     <ClCompile Include="Widget\KESceneItemWidget.cpp" />
   </ItemGroup>
@@ -144,6 +146,7 @@
     <QtMoc Include="Widget\KERenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Widget\KEReflectPropertyWidget.h" />
     <QtMoc Include="Widget\KESceneItemWidget.h" />
     <QtMoc Include="Widget\KEPropertyWidget.h" />
     <QtMoc Include="Graph\Utility\KEGraphEmtpyNodeModel.h" />
@@ -173,6 +176,7 @@
     <ClInclude Include="Property\KEPropertyModel.h" />
     <ClInclude Include="Property\KEPropertyLineEditView.h" />
     <ClInclude Include="Property\KEPropertySliderView.h" />
+    <QtMoc Include="Reflection\KEReflectionManager.h" />
     <ClInclude Include="Resource\KEResourceImporter.h" />
     <ClInclude Include="Widget\KEPostProcessGraphWidget.h" />
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />

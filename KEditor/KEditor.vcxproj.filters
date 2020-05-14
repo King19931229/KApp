@@ -63,6 +63,9 @@
     <Filter Include="Resource">
       <UniqueIdentifier>{854fe095-7534-4266-9202-315fe6df1e2a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Reflection">
+      <UniqueIdentifier>{0b3c17b8-e746-46ce-8b6e-93daeeef474d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -182,6 +185,12 @@
     <ClCompile Include="Manipulator\KEEntityCommand.cpp">
       <Filter>Manipulator</Filter>
     </ClCompile>
+    <ClCompile Include="Reflection\KEReflectionManager.cpp">
+      <Filter>Reflection</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\KEReflectPropertyWidget.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -246,6 +255,12 @@
       <Filter>Browser</Filter>
     </QtMoc>
     <QtMoc Include="Widget\KESceneItemWidget.h">
+      <Filter>Widget</Filter>
+    </QtMoc>
+    <QtMoc Include="Reflection\KEReflectionManager.h">
+      <Filter>Reflection</Filter>
+    </QtMoc>
+    <QtMoc Include="Widget\KEReflectPropertyWidget.h">
       <Filter>Widget</Filter>
     </QtMoc>
   </ItemGroup>

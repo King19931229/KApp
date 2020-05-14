@@ -6,4 +6,5 @@ namespace KEditorGlobal
 	KEResourceImporter ResourceImporter;
 	KEEntityManipulator EntityManipulator;
 	KEEntitySelector EntitySelector;
+	KEReflectionManager ReflectionManager;
 }

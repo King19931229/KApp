@@ -3,9 +3,9 @@
 #include "Internal/Asset/KMesh.h"
 #include "Internal/Asset/Utility/KMeshUtilityInfo.h"
 
-class KRenderComponent : public IKRenderComponent
+class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 {
-	RTTR_ENABLE(IKRenderComponent)
+	RTTR_ENABLE(IKRenderComponent, KReflectionObjectBase)
 	RTTR_REGISTRATION_FRIEND
 protected:
 	KMeshPtr m_Mesh;

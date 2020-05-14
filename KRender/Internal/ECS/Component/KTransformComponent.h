@@ -9,9 +9,9 @@
 
 #include "KBase/Publish/KMath.h"
 
-class KTransformComponent : public IKTransformComponent
+class KTransformComponent : public IKTransformComponent, public KReflectionObjectBase
 {
-	RTTR_ENABLE(IKTransformComponent)
+	RTTR_ENABLE(IKTransformComponent, KReflectionObjectBase)
 	RTTR_REGISTRATION_FRIEND
 protected:
 	glm::vec3 m_Position;
@@ -33,12 +33,8 @@ protected:
 		m_FinalTransform.MODEL = translate * rotate * scale;
 	}
 public:
-	KTransformComponent()
-		: m_Position(glm::vec3(0.0f)),
-		m_Scale(glm::vec3(1.0f)),
-		m_Rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f))
-	{}
-	virtual ~KTransformComponent() {}
+	KTransformComponent();
+	virtual ~KTransformComponent();
 
 	bool Save(IKXMLElementPtr element) override
 	{

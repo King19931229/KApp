@@ -56,6 +56,9 @@ protected:
 
 	void AddEditorEntity(KEEntityPtr editorEntity);
 	void RemoveEditorEntity(IKEntity::IDType id);
+	
+	void WatchEntity(KEEntityPtr editorEntity);
+	void DiscardEntity(KEEntityPtr editorEntity);
 public:
 	KEEntityManipulator();
 	~KEEntityManipulator();
