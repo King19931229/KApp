@@ -1,127 +1,41 @@
-#include "KEReflectionManager.h"
+#include "KEReflectionObjectItem.h"
 
 #include "Property/KEPropertyComboView.h"
 #include "Property/KEPropertyLineEditView.h"
 #include "Property/KEPropertySliderView.h"
 #include "Property/KEPropertyCheckBoxView.h"
 
-#include "Widget/KEReflectPropertyWidget.h"
+#include <algorithm>
 
-#include <assert.h>
-
-KEReflectObjectWidget::KEReflectObjectWidget(const std::string& name)
-{
-	m_Layout = new QVBoxLayout(this);
-	setLayout(m_Layout);
-}
-
-KEReflectObjectWidget::~KEReflectObjectWidget()
-{
-	for (auto it = m_Properties.begin(), itEnd = m_Properties.end();
-		it != itEnd; ++it)
-	{
-		m_Layout->removeItem(it->layout);
-
-		it->layout->removeWidget(it->label);
-		it->layout->removeItem(it->propertyView->GetLayout());
-
-		SAFE_DELETE(it->layout);
-		SAFE_DELETE(it->label);
-	}
-	m_Properties.clear();
-
-	for (auto it = m_Objects.begin(), itEnd = m_Objects.end();
-		it != itEnd; ++it)
-	{
-		m_Layout->removeWidget(it->widget);
-		SAFE_DELETE(it->widget);
-	}
-	m_Objects.clear();
-
-	setLayout(nullptr);
-	SAFE_DELETE(m_Layout);
-}
-
-void KEReflectObjectWidget::AddProperty(const std::string& name, KEPropertyBaseView::BasePtr propertyView)
-{
-	auto it = std::find_if(m_Properties.begin(), m_Properties.end(), [&name](const PropertyItem& item)->bool
-	{
-		return item.name == name;
-	});
-
-	if (it == m_Properties.end())
-	{
-		PropertyItem newItem;
-
-		newItem.layout = new QHBoxLayout();
-		newItem.label = new QLabel(name.c_str());
-		newItem.name = name;
-		newItem.propertyView = propertyView;
-
-		static_cast<QHBoxLayout*>(newItem.layout)->addWidget(newItem.label);
-		static_cast<QHBoxLayout*>(newItem.layout)->addLayout(propertyView->GetLayout());
-
-		m_Layout->addLayout(newItem.layout);
-
-		m_Properties.push_back(std::move(newItem));
-	}
-	else
-	{
-		ASSERT_RESULT(false);
-	}
-}
-
-void KEReflectObjectWidget::AddObject(const std::string& name, KEReflectObjectWidget* widget)
-{
-	auto it = std::find_if(m_Objects.begin(), m_Objects.end(), [&name](const ObjectItem& item)->bool
-	{
-		return item.name == name;
-	});
-
-	if (it == m_Objects.end())
-	{
-		ObjectItem newItem;
-
-		newItem.name = name;
-		newItem.widget = widget;
-
-		m_Layout->addWidget(newItem.widget);
-
-		m_Objects.push_back(std::move(newItem));
-	}
-	else
-	{
-		ASSERT_RESULT(false);
-	}
-}
-
-KEReflectionManager::KEReflectionManager()
-	: m_PropertyWidget(nullptr)
+KEReflectionObjectItem::KEReflectionObjectItem()
+	: m_Parent(nullptr),
+	m_Object(nullptr),
+	m_PropertyView(nullptr),
+	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),
+	m_Children(nullptr),
+	m_NumChildren(0),
+	m_Index(-1)
 {
 }
 
-KEReflectionManager::~KEReflectionManager()
+KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, KReflectionObjectBase* object)
+	: m_Parent(parent),
+	m_Object(object),
+	m_PropertyView(nullptr),
+	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),
+	m_Children(nullptr),
+	m_NumChildren(0)
 {
-	assert(m_WidgetMap.empty());
-}
-
-KEReflectObjectWidget* KEReflectionManager::Build(KReflectionObjectBase* object)
-{
-	if (!object)
-	{
-		return nullptr;
-	}
-
 	auto type = KRTTR_GET_TYPE(object);
-	if (!type.is_valid())
-	{
-		return nullptr;
-	}
+	ASSERT_RESULT(type.is_valid());
 
-	auto object_name = type.get_name();
+	auto name = type.get_name();
+	m_Name = name.to_string();
 
-	KEReflectObjectWidget* widget = new KEReflectObjectWidget(object_name.to_string());
+	m_NumChildren = type.get_properties().size();
+	m_Children = new KEReflectionObjectItem[m_NumChildren];
 
+	size_t idx = 0;
 	for (auto& prop : type.get_properties())
 	{
 		auto prop_name = prop.get_name();
@@ -148,7 +62,7 @@ KEReflectObjectWidget* KEReflectionManager::Build(KReflectionObjectBase* object)
 					}
 				});
 
-				widget->AddProperty(prop_name.to_string(), intView);
+				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), intView);
 				break;
 			}
 
@@ -167,7 +81,7 @@ KEReflectObjectWidget* KEReflectionManager::Build(KReflectionObjectBase* object)
 					}
 				});
 
-				widget->AddProperty(prop_name.to_string(), floatView);
+				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), floatView);
 				break;
 			}
 
@@ -186,7 +100,7 @@ KEReflectObjectWidget* KEReflectionManager::Build(KReflectionObjectBase* object)
 					}
 				});
 
-				widget->AddProperty(prop_name.to_string(), cstrView);
+				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), cstrView);
 				break;
 			}
 
@@ -205,7 +119,7 @@ KEReflectObjectWidget* KEReflectionManager::Build(KReflectionObjectBase* object)
 					}
 				});
 
-				widget->AddProperty(prop_name.to_string(), stringView);
+				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), stringView);
 				break;
 			}
 
@@ -224,7 +138,7 @@ KEReflectObjectWidget* KEReflectionManager::Build(KReflectionObjectBase* object)
 					}
 				});
 
-				widget->AddProperty(prop_name.to_string(), vecView);
+				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), vecView);
 				break;
 			}
 
@@ -243,7 +157,7 @@ KEReflectObjectWidget* KEReflectionManager::Build(KReflectionObjectBase* object)
 					}
 				});
 
-				widget->AddProperty(prop_name.to_string(), vecView);
+				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), vecView);
 				break;
 			}
 
@@ -262,93 +176,68 @@ KEReflectObjectWidget* KEReflectionManager::Build(KReflectionObjectBase* object)
 					}
 				});
 
-				widget->AddProperty(prop_name.to_string(), vecView);
+				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), vecView);
 				break;
 			}
 
 			case MDT_OBJECT:
 			{
 				KReflectionObjectBase* subObject = prop_value.get_value<KReflectionObjectBase*>();
-				KEReflectObjectWidget* subWidget = Build(subObject);
-				if (subWidget)
+				if (subObject)
 				{
-					widget->AddObject(prop_name.to_string(), subWidget);
+					m_Children[idx] = KEReflectionObjectItem(this, subObject);
+				}
+				else
+				{
+					--m_NumChildren;
 				}
 				break;
 			}
 
 			default:
+				assert(false && "should not reach");
 				break;
-
 			}
 		}
+		++idx;
 	}
 
-	return widget;
-}
-
-bool KEReflectionManager::Init(KEReflectPropertyWidget* widget)
-{
-	m_PropertyWidget = widget;
-	return true;
-}
-
-bool KEReflectionManager::UnInit()
-{
-	for (auto& pair : m_WidgetMap)
+	std::sort(m_Children, m_Children + m_NumChildren, [](const KEReflectionObjectItem&lhs, const KEReflectionObjectItem& rhs)->bool
 	{
-		KEReflectObjectWidget* widget = pair.second;
-		SAFE_DELETE(widget);
-	}
-	m_WidgetMap.clear();
-
-	m_PropertyWidget = nullptr;
-	return true;
-}
-
-bool KEReflectionManager::Watch(KReflectionObjectBase* object)
-{
-	auto it = m_WidgetMap.find(object);
-	if (it == m_WidgetMap.end())
-	{
-		KEReflectObjectWidget* widget = Build(object);
-		if (widget)
+		if (lhs.m_Type != rhs.m_Type)
 		{
-			m_WidgetMap.insert({object, widget});
-			return true;
+			return lhs.m_Type < rhs.m_Type;
 		}
-		return false;
-	}
-	return true;
-}
+		return lhs.m_Name < rhs.m_Name;
+	});
 
-bool KEReflectionManager::Discard(KReflectionObjectBase* object)
-{
-	auto it = m_WidgetMap.find(object);
-	if (it != m_WidgetMap.end())
+	for (size_t i = 0; i < m_NumChildren; ++i)
 	{
-		KEReflectObjectWidget* widget = it->second;
-		SAFE_DELETE(widget);
-		m_WidgetMap.erase(it);
+		m_Children[i].m_Index = i;
 	}
-	return true;
 }
 
-bool KEReflectionManager::Refresh(KReflectionObjectBase* obect)
+KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, const std::string& name, KEPropertyBaseView::BasePtr view)
+	: m_Parent(parent),
+	m_Name(name),
+	m_Object(nullptr),
+	m_PropertyView(view),
+	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),
+	m_Children(nullptr),
+	m_NumChildren(0)
 {
-	return true;
 }
 
-void KEReflectionManager::SetCurrent(KReflectionObjectBase* object)
+KEReflectionObjectItem::~KEReflectionObjectItem()
 {
-	assert(m_PropertyWidget);
+	SAFE_DELETE_ARRAY(m_Children);
+}
 
-	auto it = m_WidgetMap.find(object);
-	if (it != m_WidgetMap.end())
+KEReflectionObjectItem* KEReflectionObjectItem::GetChild(size_t childIndex)
+{
+	if (childIndex < m_NumChildren)
 	{
-		KEReflectObjectWidget* widget = it->second;
-		m_PropertyWidget->SetWidget(widget);
+		return &m_Children[childIndex];
 	}
-
-	//m_PropertyWidget->SetObject(object);
+	return nullptr;
 }

@@ -128,6 +128,8 @@
     <ClCompile Include="PostProcess\KEPostProcessPassModel.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessTextureModel.cpp" />
     <ClCompile Include="Reflection\KEReflectionManager.cpp" />
+    <ClCompile Include="Reflection\KEReflectionObjectItem.cpp" />
+    <ClCompile Include="Reflection\KEReflectObjectTreeModel.cpp" />
     <ClCompile Include="Resource\KEResourceImporter.cpp" />
     <ClCompile Include="Widget\KEGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp" />
@@ -177,6 +179,9 @@
     <ClInclude Include="Property\KEPropertyLineEditView.h" />
     <ClInclude Include="Property\KEPropertySliderView.h" />
     <QtMoc Include="Reflection\KEReflectionManager.h" />
+    <ClInclude Include="Reflection\KEReflectionObjectItem.h" />
+    <QtMoc Include="Reflection\KEReflectObjectTreeModel.h" />
+    <ClInclude Include="Reflection\KEReflectObjectTreeView.h" />
     <ClInclude Include="Resource\KEResourceImporter.h" />
     <ClInclude Include="Widget\KEPostProcessGraphWidget.h" />
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />

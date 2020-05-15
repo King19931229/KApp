@@ -191,6 +191,12 @@
     <ClCompile Include="Widget\KEReflectPropertyWidget.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
+    <ClCompile Include="Reflection\KEReflectionObjectItem.cpp">
+      <Filter>Reflection</Filter>
+    </ClCompile>
+    <ClCompile Include="Reflection\KEReflectObjectTreeModel.cpp">
+      <Filter>Reflection</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -262,6 +268,9 @@
     </QtMoc>
     <QtMoc Include="Widget\KEReflectPropertyWidget.h">
       <Filter>Widget</Filter>
+    </QtMoc>
+    <QtMoc Include="Reflection\KEReflectObjectTreeModel.h">
+      <Filter>Reflection</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -382,6 +391,12 @@
     </ClInclude>
     <ClInclude Include="Manipulator\KEEntityCommand.h">
       <Filter>Manipulator</Filter>
+    </ClInclude>
+    <ClInclude Include="Reflection\KEReflectionObjectItem.h">
+      <Filter>Reflection</Filter>
+    </ClInclude>
+    <ClInclude Include="Reflection\KEReflectObjectTreeView.h">
+      <Filter>Reflection</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

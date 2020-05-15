@@ -140,7 +140,7 @@ bool KEditor::Init()
 
 		IKRenderCore* renderCore = m_Engine->GetRenderCore();
 
-		KEditorGlobal::ReflectionManager.Init();
+		KEditorGlobal::ReflectionManager.Init(m_PropertyWidget);
 		KEditorGlobal::EntityManipulator.Init(renderCore->GetGizmo(), rawWindow, renderCore->GetCamera(), m_Engine->GetScene(), m_SceneItemWidget);
 		KEditorGlobal::EntitySelector.Init(m_SceneItemWidget);
 

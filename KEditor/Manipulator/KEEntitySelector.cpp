@@ -38,6 +38,11 @@ bool KEEntitySelector::Add(KEEntityPtr entity)
 			if (m_SceneItemWidget)
 			{
 				m_SceneItemWidget->Select(entity, true);
+
+				// TODO 先看看效果
+				KReflectionObjectBase* reflection = nullptr;
+				entity->soul->QueryReflection(&reflection);
+				KEditorGlobal::ReflectionManager.SetCurrent(reflection);
 			}
 			KEditorGlobal::EntityManipulator.UpdateGizmoTransform();
 			return true;

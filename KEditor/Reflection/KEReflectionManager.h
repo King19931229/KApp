@@ -50,21 +50,26 @@ public:
 	~KEReflectObjectWidget();
 };
 
+class KEReflectPropertyWidget;
+
 class KEReflectionManager
 {
 public:
 	typedef std::unordered_map<KReflectionObjectBase*, KEReflectObjectWidget*> ObjectWidgetMap;
 	ObjectWidgetMap m_WidgetMap;
+	KEReflectPropertyWidget* m_PropertyWidget;
 
 	KEReflectObjectWidget* Build(KReflectionObjectBase* object);
 public:
 	KEReflectionManager();
 	~KEReflectionManager();
 
-	bool Init();
+	bool Init(KEReflectPropertyWidget* widget);
 	bool UnInit();
 
 	bool Watch(KReflectionObjectBase* object);
 	bool Discard(KReflectionObjectBase* object);
 	bool Refresh(KReflectionObjectBase* obect);
+
+	void SetCurrent(KReflectionObjectBase* object);
 };
