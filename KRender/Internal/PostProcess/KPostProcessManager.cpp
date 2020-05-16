@@ -88,7 +88,7 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_SharedIndexData.indexCount = ARRAY_SIZE(ms_Indices);
 	m_SharedIndexData.indexBuffer = m_SharedIndexBuffer;
 
-	m_StartPointPass = IKPostProcessNodePtr(new KPostProcessPass(this, frameInFlight, POST_PROCESS_STAGE_START_POINT));
+	m_StartPointPass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, frameInFlight, POST_PROCESS_STAGE_START_POINT));
 	KPostProcessPass* pass = static_cast<KPostProcessPass*>(m_StartPointPass.get());
 	pass->SetFormat(startFormat);
 	pass->SetMSAA(massCount);
@@ -362,7 +362,7 @@ bool KPostProcessManager::Load(const char* jsonFile)
 
 				if (type == PPNT_PASS)
 				{
-					node = IKPostProcessNodePtr(new KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR /* stage and will be overwrited */));
+					node = IKPostProcessNodePtr(KNEW KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR /* stage and will be overwrited */));
 					KPostProcessPass* pass = (KPostProcessPass*)node.get();
 					pass->Load(node_json);
 					pass->m_ID = id;
@@ -374,7 +374,7 @@ bool KPostProcessManager::Load(const char* jsonFile)
 				}
 				else
 				{
-					node = IKPostProcessNodePtr(new KPostProcessTexture());
+					node = IKPostProcessNodePtr(KNEW KPostProcessTexture());
 					KPostProcessTexture* texture = (KPostProcessTexture*)node.get();
 					texture->Load(node_json);
 					texture->m_ID = id;
@@ -390,7 +390,7 @@ bool KPostProcessManager::Load(const char* jsonFile)
 			for (size_t i = 0, count = connections->Size(); i < count; ++i)
 			{
 				auto conn_json = connections->GetArrayElement(i);
-				IKPostProcessConnectionPtr conn = IKPostProcessConnectionPtr(new KPostProcessConnection(this /* id will be overwrited */));
+				IKPostProcessConnectionPtr conn = IKPostProcessConnectionPtr(KNEW KPostProcessConnection(this /* id will be overwrited */));
 				((KPostProcessConnection*)conn.get())->Load(conn_json);
 
 				m_AllConnections[conn->ID()] = conn;
@@ -527,14 +527,14 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 
 IKPostProcessNodePtr KPostProcessManager::CreatePass()
 {
-	IKPostProcessNodePtr pass = IKPostProcessNodePtr(new KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR));
+	IKPostProcessNodePtr pass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, m_FrameInFlight, POST_PROCESS_STAGE_REGULAR));
 	ASSERT_RESULT(m_AllNodes.insert(std::make_pair(pass->ID(), pass)).second);
 	return pass;
 }
 
 IKPostProcessNodePtr KPostProcessManager::CreateTextrue()
 {
-	IKPostProcessNodePtr texture = IKPostProcessNodePtr(new KPostProcessTexture());
+	IKPostProcessNodePtr texture = IKPostProcessNodePtr(KNEW KPostProcessTexture());
 	ASSERT_RESULT(m_AllNodes.insert(std::make_pair(texture->ID(), texture)).second);
 	return texture;
 }
@@ -596,7 +596,7 @@ bool KPostProcessManager::GetAllNodes(KPostProcessNodeSet& set)
 
 IKPostProcessConnectionPtr KPostProcessManager::CreateConnection(IKPostProcessNodePtr outNode, int16_t outSlot, IKPostProcessNodePtr inNode, int16_t inSlot)
 {
-	IKPostProcessConnectionPtr conn = IKPostProcessConnectionPtr(new KPostProcessConnection(this));
+	IKPostProcessConnectionPtr conn = IKPostProcessConnectionPtr(KNEW KPostProcessConnection(this));
 
 	conn->SetInputPort(inNode.get(), inSlot);
 	conn->SetOutputPort(outNode.get(), outSlot);

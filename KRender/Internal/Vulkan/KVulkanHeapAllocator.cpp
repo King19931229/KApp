@@ -144,7 +144,7 @@ namespace KVulkanHeapAllocator
 				}
 #endif
 
-				pHead = new BlockInfo(this);
+				pHead = KNEW BlockInfo(this);
 				pHead->isFree = true;
 				pHead->offset = 0;
 				pHead->pPre = pHead->pNext = nullptr;
@@ -286,7 +286,7 @@ namespace KVulkanHeapAllocator
 			{
 				if(offset > 0)
 				{
-					BlockInfo* pPre = new BlockInfo(pBlock->pParent);
+					BlockInfo* pPre = KNEW BlockInfo(pBlock->pParent);
 
 					pPre->pPre = pBlock->pPre;
 					if(pPre->pPre)
@@ -321,7 +321,7 @@ namespace KVulkanHeapAllocator
 				else if(remainSize > 0)
 				{
 					// 把剩余的空间分配到新节点上
-					BlockInfo* pNewBlock = new BlockInfo(pBlock->pParent);
+					BlockInfo* pNewBlock = KNEW BlockInfo(pBlock->pParent);
 					pNewBlock->isFree = true;
 					pNewBlock->size = remainSize;
 					pNewBlock->offset = pBlock->offset + sizeToFit;
@@ -470,7 +470,7 @@ namespace KVulkanHeapAllocator
 			// 特殊情况只能独占一个vkAllocateMemory特殊处理
 			if(usage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 			{
-				PageInfo* pPage = new PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, memoryHeapIndex, true);
+				PageInfo* pPage = KNEW PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, memoryHeapIndex, true);
 				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
 
 				pPage->pNext = pNoShareHead;
@@ -508,7 +508,7 @@ namespace KVulkanHeapAllocator
 						lastPageSize = newSize;
 						totalPageSize += newSize;
 
-						PageInfo* pNewPage = new PageInfo(this, vkDevice, newSize, memoryTypeIndex, memoryHeapIndex, false);
+						PageInfo* pNewPage = KNEW PageInfo(this, vkDevice, newSize, memoryTypeIndex, memoryHeapIndex, false);
 
 						if(pPage)
 							pPage->pNext = pNewPage;
@@ -678,7 +678,7 @@ namespace KVulkanHeapAllocator
 				else if(remainSize > 0)
 				{
 					// 把剩余的空间分配到新节点上
-					PageInfo* pNewPage = new PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->memoryTypeIndex, pPage->memoryHeapIndex, false);
+					PageInfo* pNewPage = KNEW PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->memoryTypeIndex, pPage->memoryHeapIndex, false);
 					pNewPage->vkMemroy = VK_NULL_HANDLE;
 					pNewPage->size = remainSize;
 
@@ -724,7 +724,7 @@ namespace KVulkanHeapAllocator
 			for(uint32_t memTypeIdx = 0; memTypeIdx < memoryProperties.memoryTypeCount; ++memTypeIdx)
 			{
 				uint32_t memHeapIndex = memoryProperties.memoryTypes[memTypeIdx].heapIndex;
-				MEMORY_TYPE_TO_HEAP[memTypeIdx] = new MemoryHeap(KVulkanGlobal::device, memTypeIdx, memHeapIndex);
+				MEMORY_TYPE_TO_HEAP[memTypeIdx] = KNEW MemoryHeap(KVulkanGlobal::device, memTypeIdx, memHeapIndex);
 			}
 
 			HEAP_REMAIN_SIZE.resize(memoryProperties.memoryHeapCount);
@@ -745,7 +745,7 @@ namespace KVulkanHeapAllocator
 #else
 			MEMORY_TYPE_COUNT = 1;
 			MEMORY_TYPE_TO_HEAP.resize(1);
-			MEMORY_TYPE_TO_HEAP[0] = new MemoryHeap(KVulkanGlobal::device, 0, 0);
+			MEMORY_TYPE_TO_HEAP[0] = KNEW MemoryHeap(KVulkanGlobal::device, 0, 0);
 			HEAP_REMAIN_SIZE.resize(1);
 			HEAP_REMAIN_SIZE[0] = static_cast<VkDeviceSize>(512U * 1024U * 1024U);
 			MIN_PAGE_SIZE.resize(1);

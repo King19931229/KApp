@@ -10,12 +10,12 @@ decltype(KEPostProcessTextureModel::ModelName) KEPostProcessTextureModel::ModelN
 
 KEPostProcessTextureModel::KEPostProcessTextureModel()
 {
-	QVBoxLayout* layout = new QVBoxLayout();
+	QVBoxLayout* layout = KNEW QVBoxLayout();
 
 	{
-		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("Texture");
-		QLineEdit* lineEdit = new QLineEdit();
+		QHBoxLayout* lineLayout = KNEW QHBoxLayout();
+		QLabel* label = KNEW QLabel("Texture");
+		QLineEdit* lineEdit = KNEW QLineEdit();
 
 		lineLayout->addWidget(label);
 		lineLayout->addWidget(lineEdit);
@@ -23,7 +23,7 @@ KEPostProcessTextureModel::KEPostProcessTextureModel()
 		layout->addLayout(lineLayout);
 	}
 
-	m_EditWidget = new QWidget();
+	m_EditWidget = KNEW QWidget();
 	m_EditWidget->setLayout(layout);
 }
 

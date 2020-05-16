@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include <functional>
+#include "KBase/Publish/KConfig.h"
+
 class KECommand
 {
 public:
@@ -41,6 +43,6 @@ namespace KECommandUnility
 {
 	static inline KECommandPtr CreateLambdaCommand(std::function<void()> exec, std::function<void()> undo)
 	{
-		return KECommandPtr(new KELambdaCommand(exec, undo));
+		return KECommandPtr(KNEW KELambdaCommand(exec, undo));
 	}
 }

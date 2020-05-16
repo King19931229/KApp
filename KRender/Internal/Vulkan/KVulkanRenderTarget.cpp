@@ -9,7 +9,7 @@
 
 IKRenderTargetPtr KVulkanRenderTarget::CreateRenderTarget()
 {
-	return IKRenderTargetPtr(new KVulkanRenderTarget());
+	return IKRenderTargetPtr(KNEW KVulkanRenderTarget());
 }
 
 KVulkanRenderTarget::KVulkanRenderTarget()

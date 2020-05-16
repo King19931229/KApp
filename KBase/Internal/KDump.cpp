@@ -4,14 +4,14 @@
 static std::string gs_szDumpPath;
 
 #ifdef _WIN32
-
+#pragma warning(disable : 4091)
 #include <Windows.h>
 #include <DbgHelp.h>
 #include <tchar.h>
 #include <strsafe.h>
 
 // http://blog.csdn.net/whatday/article/details/44857921
-//生产DUMP文件
+// 生成DUMP文件
 int GenerateMiniDump(HANDLE hFile, PEXCEPTION_POINTERS pExceptionPointers, PCHAR pAppName)
 {
 	BOOL bOwnDumpFile = FALSE;

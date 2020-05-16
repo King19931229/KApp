@@ -114,7 +114,7 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 				assert(srcData);
 				unsigned int srcPitch = FreeImage_GetPitch(fiBitmap);
 				assert(srcPitch > 0);
-				KImageDataPtr pData = KImageDataPtr(new KImageData(srcPitch * result.uHeight));
+				KImageDataPtr pData = KImageDataPtr(KNEW KImageData(srcPitch * result.uHeight));
 				memcpy((void*)pData->GetData(), (const void*)srcData, pData->GetSize());
 				result.pData = pData;
 
@@ -164,7 +164,7 @@ bool KFreeImageCodec::Init()
 		pExts = FreeImage_GetFIFExtensionList((FREE_IMAGE_FORMAT)i);
 		assert(pExts);
 
-		IKCodecPtr pCodec = IKCodecPtr(new KFreeImageCodec(i));
+		IKCodecPtr pCodec = IKCodecPtr(KNEW KFreeImageCodec(i));
 		while(pExts)
 		{
 			pDotPos = strchr(pExts, ',');

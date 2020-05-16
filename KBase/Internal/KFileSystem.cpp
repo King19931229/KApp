@@ -40,22 +40,22 @@ namespace KFileSystem
 		{
 		case FST_NATIVE:
 		{
-			fileSys = IKFileSystemPtr(new KNativeFileSystem());
+			fileSys = IKFileSystemPtr(KNEW KNativeFileSystem());
 			break;
 		}
 		case FST_ZIP:
 		{
-			fileSys = IKFileSystemPtr(new KZipFileSystem());
+			fileSys = IKFileSystemPtr(KNEW KZipFileSystem());
 			break;
 		}
 		case FST_APK:
 		{
-			fileSys = IKFileSystemPtr(new KApkFileSystem());
+			fileSys = IKFileSystemPtr(KNEW KApkFileSystem());
 			break;
 		}
 		case FST_MULTI:
 		{
-			fileSys = IKFileSystemPtr(new KMultiFileSystem());
+			fileSys = IKFileSystemPtr(KNEW KMultiFileSystem());
 			break;
 		}
 		default:

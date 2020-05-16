@@ -30,7 +30,7 @@ KEGraphNodeView::KEGraphNodeView(KEGraphScene* scene, KEGraphNodeControl* contro
 
 	setCacheMode(QGraphicsItem::DeviceCoordinateCache);
 
-	auto effect = new QGraphicsDropShadowEffect;
+	auto effect = KNEW QGraphicsDropShadowEffect;
 	effect->setOffset(4, 4);
 	effect->setBlurRadius(20);
 	effect->setColor(KEGraphNodeStyle::ShadowColor);
@@ -189,7 +189,7 @@ void KEGraphNodeView::EmbedQWidget()
 
 	if (auto w = m_Node->GetModel()->EmbeddedWidget())
 	{
-		m_ProxyWidget = new QGraphicsProxyWidget(this);
+		m_ProxyWidget = KNEW QGraphicsProxyWidget(this);
 
 		m_ProxyWidget->setWidget(w);
 

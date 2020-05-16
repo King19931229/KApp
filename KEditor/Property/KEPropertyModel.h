@@ -78,14 +78,14 @@ protected:
 	}
 public:
 	KEPropertyModel() noexcept
-		: m_SelfValue(new T [DIMENSION]),
+		: m_SelfValue(KNEW T [DIMENSION]),
 		m_Value(m_SelfValue)
 	{
 		EmptyConstruct();
 	}
 
 	KEPropertyModel(const T& value) noexcept
-		: m_SelfValue(new T[DIMENSION]),
+		: m_SelfValue(KNEW T[DIMENSION]),
 		m_Value(m_SelfValue)
 	{
 		assert(DIMENSION == 1 && "dimension larger than 1 is not supported");
@@ -93,7 +93,7 @@ public:
 	}
 
 	KEPropertyModel(T&& value) noexcept
-		: m_SelfValue(new T[DIMENSION]),
+		: m_SelfValue(KNEW T[DIMENSION]),
 		m_Value(m_SelfValue)
 	{
 		assert(DIMENSION == 1 && "dimension larger than 1 is not supported");
@@ -101,14 +101,14 @@ public:
 	}
 
 	KEPropertyModel(std::initializer_list<T> list) noexcept
-		: m_SelfValue(new T[DIMENSION]),
+		: m_SelfValue(KNEW T[DIMENSION]),
 		m_Value(m_SelfValue)
 	{
 		Construct(list);
 	}
 
 	KEPropertyModel(const KEPropertyModel& rhs) noexcept
-		: m_SelfValue(new T[DIMENSION]),
+		: m_SelfValue(KNEW T[DIMENSION]),
 		m_Value(m_SelfValue)
 	{
 		Construct(rhs);
@@ -240,12 +240,12 @@ namespace KEditor
 	inline std::shared_ptr<KEPropertyModel<T, DIMENTSION>> MakePropertyModel(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyModel<T, DIMENTSION>>
-			(new KEPropertyModel<T, DIMENTSION>(std::forward<Types>(args)...));
+			(KNEW KEPropertyModel<T, DIMENTSION>(std::forward<Types>(args)...));
 	}
 
 	template<typename T, size_t DIMENTSION>
 	inline std::shared_ptr<KEPropertyModel<T, DIMENTSION>> MakePropertyModel(std::initializer_list<T>&& list)
 	{
-		return std::shared_ptr<KEPropertyModel<T, DIMENTSION>>(new KEPropertyModel<T, DIMENTSION>(std::forward<decltype(list)>(list)));
+		return std::shared_ptr<KEPropertyModel<T, DIMENTSION>>(KNEW KEPropertyModel<T, DIMENTSION>(std::forward<decltype(list)>(list)));
 	}
 }

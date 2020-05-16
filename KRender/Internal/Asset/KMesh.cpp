@@ -278,7 +278,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 		m_SubMeshes.resize(result.parts.size());
 		for(KSubMeshPtr& submesh : m_SubMeshes)
 		{
-			submesh = KSubMeshPtr(new KSubMesh(this));
+			submesh = KSubMeshPtr(KNEW KSubMesh(this));
 		}
 
 		IndexType indexType = result.index16Bit ? IT_16 : IT_32;
@@ -302,7 +302,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 				));
 			ASSERT_RESULT(indexData.indexBuffer->InitDevice(false));
 
-			KMaterialPtr material = KMaterialPtr(new KMaterial());
+			KMaterialPtr material = KMaterialPtr(KNEW KMaterial());
 			if(!subPart.material.diffuse.empty())
 			{
 				material->ResignTexture(MTS_DIFFUSE, subPart.material.diffuse.c_str());

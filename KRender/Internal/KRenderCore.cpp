@@ -22,7 +22,7 @@
 
 EXPORT_DLL IKRenderCorePtr CreateRenderCore()
 {
-	return IKRenderCorePtr(new KRenderCore());
+	return IKRenderCorePtr(KNEW KRenderCore());
 }
 
 KRenderCore::KRenderCore()
@@ -233,7 +233,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 	{
 		m_Device = device.get();
 		m_Window = window.get();
-		m_DebugConsole = new KDebugConsole();
+		m_DebugConsole = KNEW KDebugConsole();
 		m_DebugConsole->Init();
 
 		m_Camera.SetNear(1.0f);

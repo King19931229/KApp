@@ -92,7 +92,7 @@ public:
 	explicit KTaskUnitProcessor(KTaskUnitPtr pUnit)
 		: m_pTaskUnit(pUnit)
 	{
-		m_pSem = KSemaphorePtr(new KSemaphore);
+		m_pSem = KSemaphorePtr(KNEW KSemaphore);
 		m_eState.store(TS_PENDING_ASYNC);
 	}
 	explicit KTaskUnitProcessor(KTaskUnitPtr pUnit, KSemaphorePtr pSem)
@@ -161,7 +161,7 @@ protected:
 public:
 	KTaskUnitProcessorGroup()
 	{
-		m_pSem = KSemaphorePtr(new KSemaphore);
+		m_pSem = KSemaphorePtr(KNEW KSemaphore);
 	}
 	bool Cancel()
 	{
@@ -171,7 +171,7 @@ public:
 			pUnit->Cancel();
 		}
 		m_TaskList.clear();
-		m_pSem = KSemaphorePtr(new KSemaphore);
+		m_pSem = KSemaphorePtr(KNEW KSemaphore);
 		return true;
 	}
 	bool Wait()
@@ -182,7 +182,7 @@ public:
 			pUnit->WaitSem();
 		}
 		m_TaskList.clear();
-		m_pSem = KSemaphorePtr(new KSemaphore);
+		m_pSem = KSemaphorePtr(KNEW KSemaphore);
 		return true;
 	}
 };
@@ -284,7 +284,7 @@ public:
 		KTaskUnitProcessorPtr pTask = nullptr;
 		if(pUnit)
 		{
-			pTask = KTaskUnitProcessorPtr(new KTaskUnitProcessor(pUnit));
+			pTask = KTaskUnitProcessorPtr(KNEW KTaskUnitProcessor(pUnit));
 			if(pTask->HasSyncLoad())
 				m_ExecutePool.SubmitTask(
 				[this, pTask]() -> bool { return AsyncFunc(pTask); },
@@ -298,7 +298,7 @@ public:
 
 	KTaskUnitProcessorGroupPtr CreateGroup()
 	{
-		KTaskUnitProcessorGroupPtr pGroup = KTaskUnitProcessorGroupPtr(new KTaskUnitProcessorGroup());
+		KTaskUnitProcessorGroupPtr pGroup = KTaskUnitProcessorGroupPtr(KNEW KTaskUnitProcessorGroup());
 		return pGroup;
 	}
 
@@ -308,7 +308,7 @@ public:
 		if(pGroup && pUnit)
 		{
 			if(pUnit)
-				pTask = KTaskUnitProcessorPtr(new KTaskUnitProcessor(pUnit, pGroup->GetSemaphore()));
+				pTask = KTaskUnitProcessorPtr(KNEW KTaskUnitProcessor(pUnit, pGroup->GetSemaphore()));
 
 			if(pTask->HasSyncLoad())
 				m_ExecutePool.SubmitTask(

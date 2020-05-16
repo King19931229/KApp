@@ -59,7 +59,7 @@ bool KMeshManager::AcquireImpl(const char* path, bool fromAsset, KMeshPtr& ptr)
 		return true;
 	}
 
-	ptr = KMeshPtr(new KMesh());
+	ptr = KMeshPtr(KNEW KMesh());
 
 	bool bRetValue = false;
 	if(fromAsset)
@@ -137,7 +137,7 @@ bool KMeshManager::Release(KMeshPtr& ptr)
 
 bool KMeshManager::AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr)
 {
-	ptr = KMeshPtr(new KMesh());
+	ptr = KMeshPtr(KNEW KMesh());
 	if (ptr->InitUtility(info, m_Device, m_FrameInFlight))
 	{
 		m_SpecialMesh.insert(ptr);

@@ -6,7 +6,7 @@
 
 EXPORT_DLL IKJsonDocumentPtr GetJsonDocument()
 {
-	return IKJsonDocumentPtr(new KJsonDocument());
+	return IKJsonDocumentPtr(KNEW KJsonDocument());
 }
 
 KJsonDocument::KJsonDocument()
@@ -21,7 +21,7 @@ KJsonDocument::~KJsonDocument()
 
 IKJsonValuePtr KJsonDocument::GetRoot()
 {
-	return IKJsonValuePtr(new KJsonValue(m_Doc, m_Doc.GetAllocator()));
+	return IKJsonValuePtr(KNEW KJsonValue(m_Doc, m_Doc.GetAllocator()));
 }
 
 bool KJsonDocument::ParseFromDataStream(IKDataStreamPtr dataStream)
@@ -84,13 +84,13 @@ bool KJsonDocument::HasMember(const char* key)
 
 IKJsonValuePtr KJsonDocument::GetMember(const char* key)
 {
-	IKJsonValuePtr ret = IKJsonValuePtr(new KJsonValue(m_Doc[key], m_Doc.GetAllocator()));
+	IKJsonValuePtr ret = IKJsonValuePtr(KNEW KJsonValue(m_Doc[key], m_Doc.GetAllocator()));
 	return ret;
 }
 
 IKJsonValuePtr KJsonDocument::CreateObject()
 {
-	KJsonValue* jsonValue = new KJsonValue(m_Doc.GetAllocator());
+	KJsonValue* jsonValue = KNEW KJsonValue(m_Doc.GetAllocator());
 	jsonValue->SetObject();
 	IKJsonValuePtr ret = IKJsonValuePtr(jsonValue);
 	return ret;
@@ -98,7 +98,7 @@ IKJsonValuePtr KJsonDocument::CreateObject()
 
 IKJsonValuePtr KJsonDocument::CreateArray()
 {
-	KJsonValue* jsonValue = new KJsonValue(m_Doc.GetAllocator());
+	KJsonValue* jsonValue = KNEW KJsonValue(m_Doc.GetAllocator());
 	jsonValue->SetArray();
 	IKJsonValuePtr ret = IKJsonValuePtr(jsonValue);
 	return ret;
@@ -106,7 +106,7 @@ IKJsonValuePtr KJsonDocument::CreateArray()
 
 IKJsonValuePtr KJsonDocument::CreateBool(bool value)
 {
-	KJsonValue* jsonValue = new KJsonValue(m_Doc.GetAllocator());
+	KJsonValue* jsonValue = KNEW KJsonValue(m_Doc.GetAllocator());
 	jsonValue->SetBool(value);
 	IKJsonValuePtr ret = IKJsonValuePtr(jsonValue);
 	return ret;
@@ -114,7 +114,7 @@ IKJsonValuePtr KJsonDocument::CreateBool(bool value)
 
 IKJsonValuePtr KJsonDocument::CreateInt(int value)
 {
-	KJsonValue* jsonValue = new KJsonValue(m_Doc.GetAllocator());
+	KJsonValue* jsonValue = KNEW KJsonValue(m_Doc.GetAllocator());
 	jsonValue->SetInt(value);
 	IKJsonValuePtr ret = IKJsonValuePtr(jsonValue);
 	return ret;
@@ -122,7 +122,7 @@ IKJsonValuePtr KJsonDocument::CreateInt(int value)
 
 IKJsonValuePtr KJsonDocument::CreateFloat(float value)
 {
-	KJsonValue* jsonValue = new KJsonValue(m_Doc.GetAllocator());
+	KJsonValue* jsonValue = KNEW KJsonValue(m_Doc.GetAllocator());
 	jsonValue->SetFloat(value);
 	IKJsonValuePtr ret = IKJsonValuePtr(jsonValue);
 	return ret;

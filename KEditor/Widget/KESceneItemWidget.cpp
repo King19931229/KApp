@@ -166,9 +166,9 @@ KESceneItemWidget::KESceneItemWidget(QWidget *parent)
 {
 	ui.setupUi(this);
 
-	m_Model = new KESceneItemModel(this);
+	m_Model = KNEW KESceneItemModel(this);
 
-	m_ProxyModel = new QSortFilterProxyModel(this);
+	m_ProxyModel = KNEW QSortFilterProxyModel(this);
 	m_ProxyModel->setSourceModel(m_Model);
 
 	m_ProxyModel->setDynamicSortFilter(true);

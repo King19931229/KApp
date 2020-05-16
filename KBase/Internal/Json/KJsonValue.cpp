@@ -60,7 +60,7 @@ size_t KJsonValue::Size()
 
 IKJsonValuePtr KJsonValue::GetArrayElement(size_t index)
 {
-	return IKJsonValuePtr(new KJsonValue((*m_Value)[(rapidjson::SizeType)index], m_Allocator));
+	return IKJsonValuePtr(KNEW KJsonValue((*m_Value)[(rapidjson::SizeType)index], m_Allocator));
 }
 
 bool KJsonValue::IsArray()
@@ -128,7 +128,7 @@ bool KJsonValue::HasMember(const char* key)
 
 IKJsonValuePtr KJsonValue::GetMember(const char* key)
 {
-	return IKJsonValuePtr(new KJsonValue((*m_Value)[key], m_Allocator));
+	return IKJsonValuePtr(KNEW KJsonValue((*m_Value)[key], m_Allocator));
 }
 
 bool KJsonValue::AddMember(const char* key, IKJsonValuePtr value)

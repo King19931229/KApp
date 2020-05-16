@@ -121,11 +121,11 @@ bool KMeshSerializerV0::ReadString(IKDataStreamPtr& stream, std::string& value)
 	ACTION_ON_FAILURE(stream->Read(&len, sizeof(len)), return false);
 	if(len > 0)
 	{
-		char* temp = new char[len + 1];
-		ACTION_ON_FAILURE(stream->Read(temp, len), delete[] temp; return false);
+		char* temp = KNEW char[len + 1];
+		ACTION_ON_FAILURE(stream->Read(temp, len), KDELETE[] temp; return false);
 		temp[len] = '\0';
 		value = temp;
-		delete[] temp;
+		KDELETE[] temp;
 	}
 	else
 	{
@@ -539,7 +539,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 		const KIndexData& indexData = indexDatas[drawInfo.indexDataIdx];
 		const MaterialInfo& materialData = materialDatas[drawInfo.materialDataIdx];
 
-		KMaterialPtr material = KMaterialPtr(new KMaterial());
+		KMaterialPtr material = KMaterialPtr(KNEW KMaterial());
 		if(!materialData.diffuse.empty())
 		{
 			std::string diffusePath;
@@ -565,7 +565,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 			}
 		}
 
-		submesh = KSubMeshPtr(new KSubMesh(pMesh));
+		submesh = KSubMeshPtr(KNEW KSubMesh(pMesh));
 		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, material, frameInFlight));
 	}
 

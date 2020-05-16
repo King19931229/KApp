@@ -1,4 +1,5 @@
 #include "KDebugConsole.h"
+#include "KBase/Publish/KConfig.h"
 #include <stdio.h>
 #ifdef _WIN32
 #include <Windows.h>
@@ -41,7 +42,7 @@ bool KDebugConsole::Init()
 {
 	if(!m_Thread)
 	{
-		m_Thread = new std::thread(&KDebugConsole::ThreadFunc, this);
+		m_Thread = KNEW std::thread(&KDebugConsole::ThreadFunc, this);
 		return true;
 	}
 	return false;

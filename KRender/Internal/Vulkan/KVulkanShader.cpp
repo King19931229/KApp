@@ -233,7 +233,7 @@ bool KVulkanShader::InitFromFile(const std::string& path, bool async)
 	{
 		m_ResourceState = RS_PENDING;
 		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(KNEW KSampleAsyncTaskUnit(loadImpl)));
 		return true;
 	}
 	else
@@ -272,7 +272,7 @@ bool KVulkanShader::InitFromString(const std::vector<char>& code, bool async)
 	{
 		m_ResourceState = RS_PENDING;
 		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(KNEW KSampleAsyncTaskUnit(loadImpl)));
 		return true;
 	}
 	else

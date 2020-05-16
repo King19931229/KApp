@@ -3,7 +3,7 @@
 
 EXPORT_DLL IKSocketServerPtr GetSocketServer()
 {
-	return IKSocketServerPtr(new KSocketServer());
+	return IKSocketServerPtr(KNEW KSocketServer());
 }
 
 KSocketServer::KSocketServer()

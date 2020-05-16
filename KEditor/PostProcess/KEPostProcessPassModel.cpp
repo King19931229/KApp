@@ -49,7 +49,7 @@ KEPostProcessPassModel::KEPostProcessPassModel(IKPostProcessNodePtr pass)
 		m_Pass->CastPass()->SetFormat(value);
 	});
 
-	m_Widget = new KEPropertyWidget();
+	m_Widget = KNEW KEPropertyWidget();
 	m_Widget->Init();
 
 	m_Widget->AppendItem("Format", m_FormatView);
@@ -171,7 +171,7 @@ void KEPostProcessPassModel::SetInData(KEGraphNodeDataPtr nodeData, PortIndexTyp
 
 KEGraphNodeDataPtr KEPostProcessPassModel::OutData(PortIndexType port)
 {
-	KEGraphNodeDataPtr data = KEGraphNodeDataPtr(new KEPostProcessNodeData(m_Pass, port));
+	KEGraphNodeDataPtr data = KEGraphNodeDataPtr(KNEW KEPostProcessNodeData(m_Pass, port));
 	return data;
 }
 

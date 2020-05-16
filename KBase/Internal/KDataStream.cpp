@@ -8,13 +8,13 @@ EXPORT_DLL IKDataStreamPtr GetDataStream(IOType eType)
 	switch (eType)
 	{
 	case IT_MEMORY:
-		pRet = IKDataStreamPtr(new KMemoryDataStream());
+		pRet = IKDataStreamPtr(KNEW KMemoryDataStream());
 		break;
 	case IT_FILEHANDLE:
-		pRet = IKDataStreamPtr(new KFileHandleDataStream());
+		pRet = IKDataStreamPtr(KNEW KFileHandleDataStream());
 		break;
 	case IT_STREAM:
-		pRet = IKDataStreamPtr(new KFileDataStream());
+		pRet = IKDataStreamPtr(KNEW KFileDataStream());
 		break;
 	default:
 		break;
@@ -189,7 +189,7 @@ void KMemoryDataStream::ReleaseData()
 {
 	if(m_pDataBuffer)
 	{
-		delete[] m_pDataBuffer;
+		KDELETE[] m_pDataBuffer;
 		m_pDataBuffer = nullptr;
 	}
 	m_pCurPos = nullptr;

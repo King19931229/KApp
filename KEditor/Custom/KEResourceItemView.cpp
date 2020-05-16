@@ -17,12 +17,12 @@ void KEResourceItemView::mouseMoveEvent(QMouseEvent *event)
 	{
 		QModelIndex index = selectedIndexes[0];
 		KEFileSystemTreeItem* treeItem = (KEFileSystemTreeItem*)index.internalPointer();
-		QMimeData* mimeData = new QMimeData();
+		QMimeData* mimeData = KNEW QMimeData();
 
-		KEResourceItemDropData* dropData = new KEResourceItemDropData();
+		KEResourceItemDropData* dropData = KNEW KEResourceItemDropData();
 		dropData->item = treeItem;
 
-		QDrag* drag = new QDrag(this);
+		QDrag* drag = KNEW QDrag(this);
 		drag->setMimeData(mimeData);
 		mimeData->setUserData(0, dropData);
 

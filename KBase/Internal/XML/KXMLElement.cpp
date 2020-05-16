@@ -29,18 +29,18 @@ IKXMLElementPtr KXMLElement::NextSiblingElement(const char* name) const
 {
 	if (IsEmpty())
 	{
-		return IKXMLElementPtr(new KXMLElement(nullptr));
+		return IKXMLElementPtr(KNEW KXMLElement(nullptr));
 	}
-	return IKXMLElementPtr(new KXMLElement(m_Element->NextSiblingElement(name)));
+	return IKXMLElementPtr(KNEW KXMLElement(m_Element->NextSiblingElement(name)));
 }
 
 IKXMLElementPtr KXMLElement::FirstChildElement(const char* name) const
 {
 	if (IsEmpty())
 	{
-		return IKXMLElementPtr(new KXMLElement(nullptr));
+		return IKXMLElementPtr(KNEW KXMLElement(nullptr));
 	}
-	return IKXMLElementPtr(new KXMLElement(m_Element->FirstChildElement(name)));
+	return IKXMLElementPtr(KNEW KXMLElement(m_Element->FirstChildElement(name)));
 }
 
 std::string KXMLElement::GetValue() const
@@ -70,13 +70,13 @@ void KXMLElement::SetText(int value)
 IKXMLAttributePtr KXMLElement::FirstAttribute() const
 {
 	ASSERT_RESULT(!IsEmpty());
-	return IKXMLAttributePtr(new KXMLAttribute(m_Element->FirstAttribute()));
+	return IKXMLAttributePtr(KNEW KXMLAttribute(m_Element->FirstAttribute()));
 }
 
 IKXMLAttributePtr KXMLElement::FindAttribute(const char* attribute) const
 {
 	ASSERT_RESULT(!IsEmpty());
-	return IKXMLAttributePtr(new KXMLAttribute(m_Element->FindAttribute(attribute)));
+	return IKXMLAttributePtr(KNEW KXMLAttribute(m_Element->FindAttribute(attribute)));
 }
 
 void KXMLElement::DeleteAttribute(const char* attribute)
@@ -129,7 +129,7 @@ IKXMLElementPtr KXMLElement::NewElement(const char* element, bool linkAtOnce)
 	{
 		m_Element->LinkEndChild(pEle);
 	}
-	return IKXMLElementPtr(new KXMLElement(pEle));
+	return IKXMLElementPtr(KNEW KXMLElement(pEle));
 }
 
 void KXMLElement::LinkElementToEnd(IKXMLElementPtr& element)

@@ -178,7 +178,7 @@ bool KEGraphInteraction::TryConnect() const
 	// 5) Push a create command into stack (and that will also implicitly create an additional incomplete and compelete state change)
 	auto conn = m_Scene->GetConnection(m_Connection->ID());
 	assert(conn);
-	auto command = KECommandPtr(new	KEGraphConnectionCreateCommand(m_Scene, conn));
+	auto command = KECommandPtr(KNEW KEGraphConnectionCreateCommand(m_Scene, conn));
 	KEditorGlobal::CommandInvoker.Execute(command);
 
 	return true;

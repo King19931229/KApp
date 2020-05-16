@@ -144,7 +144,7 @@ bool KEEntityManipulator::Join(IKEntityPtr entity, const std::string& path)
 {
 	if (entity)
 	{
-		KEEntityPtr editorEntity = KEEntityPtr(new KEEntity());
+		KEEntityPtr editorEntity = KEEntityPtr(KNEW KEEntity());
 		editorEntity->soul = entity;
 
 		editorEntity->createInfo.path = path;
@@ -155,7 +155,7 @@ bool KEEntityManipulator::Join(IKEntityPtr entity, const std::string& path)
 
 		AddEditorEntity(editorEntity);
 
-		KECommandPtr command = KECommandPtr(new KEEntitySceneJoinCommand(editorEntity, m_Scene, this));
+		KECommandPtr command = KECommandPtr(KNEW KEEntitySceneJoinCommand(editorEntity, m_Scene, this));
 		KEditorGlobal::CommandInvoker.Push(command);
 
 		return true;
@@ -168,7 +168,7 @@ bool KEEntityManipulator::Erase(KEEntityPtr editorEntity)
 	if (editorEntity)
 	{
 		RemoveEditorEntity(editorEntity->soul->GetID());
-		KECommandPtr command = KECommandPtr(new KEEntitySceneEraseCommand(editorEntity,
+		KECommandPtr command = KECommandPtr(KNEW KEEntitySceneEraseCommand(editorEntity,
 			m_Scene, this));
 		KEditorGlobal::CommandInvoker.Push(command);
 		return true;
@@ -180,7 +180,7 @@ bool KEEntityManipulator::Erase(const std::vector<KEEntityPtr>& entites)
 {
 	if (!entites.empty())
 	{
-		KECommandPtr command = KECommandPtr(new KEEntitySceneEraseCommand(m_Scene, this));
+		KECommandPtr command = KECommandPtr(KNEW KEEntitySceneEraseCommand(m_Scene, this));
 		for (KEEntityPtr entity : entites)
 		{
 			if (entity)
@@ -208,7 +208,7 @@ bool KEEntityManipulator::Load(const char* filename)
 	m_SceneItemWidget->Clear();
 	KEditorGlobal::CommandInvoker.Clear();
 
-	KECommandPtr command = KECommandPtr(new KEEntitySceneJoinCommand(m_Scene, this));
+	KECommandPtr command = KECommandPtr(KNEW KEEntitySceneJoinCommand(m_Scene, this));
 
 	if (m_Scene->Load(filename))
 	{
@@ -221,7 +221,7 @@ bool KEEntityManipulator::Load(const char* filename)
 				std::string path;
 				if (renderComponent->GetPath(path))
 				{
-					KEEntityPtr editorEntity = KEEntityPtr(new KEEntity());
+					KEEntityPtr editorEntity = KEEntityPtr(KNEW KEEntity());
 					editorEntity->soul = entity;
 
 					editorEntity->createInfo.path = path;
@@ -492,7 +492,7 @@ void KEEntityManipulator::OnGizmoTrigger(bool trigger)
 	}
 	else if(!selections.empty())
 	{
-		KECommandPtr command = KECommandPtr(new KEEntitySceneTransformCommand(m_Scene, this));
+		KECommandPtr command = KECommandPtr(KNEW KEEntitySceneTransformCommand(m_Scene, this));
 		for (auto& pair : selections)
 		{
 			KEEntityPtr editorEntity = pair.second;

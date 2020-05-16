@@ -17,7 +17,7 @@ bool KEPropertyWidget::Init()
 {
 	if (!m_bInit)
 	{
-		m_Layout = new QVBoxLayout();
+		m_Layout = KNEW QVBoxLayout();
 		setLayout(m_Layout);
 		m_bInit = true;
 		return true;
@@ -61,8 +61,8 @@ bool KEPropertyWidget::AppendItem(const std::string& name, KEPropertyBaseView::B
 	{
 		PropertyItem newItem;
 
-		newItem.layout = new QHBoxLayout();
-		newItem.label = new QLabel(name.c_str());
+		newItem.layout = KNEW QHBoxLayout();
+		newItem.label = KNEW QLabel(name.c_str());
 		newItem.name = name;
 		newItem.propertyView = propertyView;
 

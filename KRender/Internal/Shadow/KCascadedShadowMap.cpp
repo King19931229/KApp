@@ -116,10 +116,7 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 			{
 				glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
 				frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
-				if (!m_FixToScene)
-				{
-					frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
-				}
+				frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
 			}
 		}
 

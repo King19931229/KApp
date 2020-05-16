@@ -135,7 +135,7 @@ bool KETCCodec::DecodePKM(const IKDataStreamPtr& stream, KCodecResult& result)
 	result.bCompressed = true;
 
 	// Calculate total size from number of mipmaps, faces and size
-	result.pData = KImageDataPtr(new KImageData((paddedWidth * paddedHeight) >> 1));
+	result.pData = KImageDataPtr(KNEW KImageData((paddedWidth * paddedHeight) >> 1));
 
 	// Now deal with the data
 	stream->Read((char*)result.pData->GetData(), result.pData->GetSize());
@@ -242,7 +242,7 @@ bool KETCCodec::DecodeKTX(const IKDataStreamPtr& stream, KCodecResult& result)
 		result.uWidth, result.uHeight, result.uDepth,
 		imageSize))
 	{
-		result.pData = KImageDataPtr(new KImageData(imageSize));
+		result.pData = KImageDataPtr(KNEW KImageData(imageSize));
 		// Skip key value data
 		stream->Skip(header.bytesOfKeyValueData);
 
@@ -322,7 +322,7 @@ bool KETCCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 
 bool KETCCodec::Init()
 {
-	IKCodecPtr pCodec = IKCodecPtr(new KETCCodec());
+	IKCodecPtr pCodec = IKCodecPtr(KNEW KETCCodec());
 	if(KCodecManager::AddCodec(KTX_EXT, pCodec) && KCodecManager::AddCodec(PKM_EXT, pCodec))
 	{
 		return true;

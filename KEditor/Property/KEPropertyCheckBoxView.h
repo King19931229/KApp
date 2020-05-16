@@ -41,15 +41,15 @@ public:
 	KEPropertyCheckBoxView(ModelPtrType model)
 		: KEPropertyView(model)
 	{
-		m_MainWidget = new QWidget();
+		m_MainWidget = KNEW QWidget();
 
 		TypeCheck(T());
 
-		m_Layout = new QHBoxLayout();
+		m_Layout = KNEW QHBoxLayout();
 
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_Widget[i] = new QCheckBox();
+			m_Widget[i] = KNEW QCheckBox();
 			m_Widget[i]->setTristate(false);
 
 			QObject::connect(m_Widget[i], &QCheckBox::stateChanged, [=, this](int newValue)
@@ -87,7 +87,7 @@ namespace KEditor
 	inline std::shared_ptr<KEPropertyBaseView> MakeCheckBoxViewByModel(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(new KEPropertyCheckBoxView<T>(
+			(KNEW KEPropertyCheckBoxView<T>(
 				std::forward<Types>(args)...));
 	}
 
@@ -95,7 +95,7 @@ namespace KEditor
 	inline std::shared_ptr<KEPropertyBaseView> MakeCheckBoxView(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(new KEPropertyCheckBoxView<T>(
+			(KNEW KEPropertyCheckBoxView<T>(
 				KEditor::MakePropertyModel<T, 1>(std::forward<Types>(args)...)));
 	}
 }

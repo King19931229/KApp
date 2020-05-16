@@ -42,7 +42,7 @@ namespace KLog
 		assert(Logger == nullptr);
 		if (!Logger)
 		{
-			Logger = IKLoggerPtr(new KLogger());
+			Logger = IKLoggerPtr(KNEW KLogger());
 		}
 		return true;
 	}

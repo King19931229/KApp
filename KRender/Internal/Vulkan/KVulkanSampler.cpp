@@ -199,7 +199,7 @@ bool KVulkanSampler::Init(IKTexturePtr texture, bool async)
 		{
 			m_ResourceState = RS_PENDING;
 			std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-			m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(waitAndLoadImpl)));
+			m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(KNEW KSampleAsyncTaskUnit(waitAndLoadImpl)));
 			return true;
 		}
 		else

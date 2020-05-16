@@ -10,7 +10,7 @@ namespace KECS
 		assert(!ComponentManager);
 		if (!ComponentManager)
 		{
-			ComponentManager = IKComponentManagerPtr(new KComponentManager());
+			ComponentManager = IKComponentManagerPtr(KNEW KComponentManager());
 			return true;
 		}
 		return false;

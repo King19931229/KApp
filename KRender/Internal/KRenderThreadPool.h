@@ -92,7 +92,7 @@ public:
 		m_Threads.clear();
 		for (size_t i = 0; i < count; i++)
 		{
-			m_Threads.push_back(std::shared_ptr<KRenderThread>(new KRenderThread()));
+			m_Threads.push_back(std::shared_ptr<KRenderThread>(KNEW KRenderThread()));
 		}
 	}
 

@@ -27,7 +27,7 @@ void KEResourceTreeWidget::ShowContextMenu(const QPoint& pos)
 {
 	if (!((ui.m_TreeView->selectionModel()->selectedIndexes()).empty()))
 	{
-		QMenu *menu = new QMenu(ui.m_TreeView);
+		QMenu *menu = KNEW QMenu(ui.m_TreeView);
 
 		QAction *openFileExternalAction = menu->addAction("Open Folder Location");
 		connect(openFileExternalAction, &QAction::triggered, this, &KEResourceTreeWidget::OnOpenFolderLocation);

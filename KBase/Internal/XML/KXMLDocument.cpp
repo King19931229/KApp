@@ -6,7 +6,7 @@
 
 EXPORT_DLL IKXMLDocumentPtr GetXMLDocument()
 {
-	return IKXMLDocumentPtr(new KXMLDocument());
+	return IKXMLDocumentPtr(KNEW KXMLDocument());
 }
 
 KXMLDocument::KXMLDocument()
@@ -55,7 +55,7 @@ IKXMLDeclarationPtr KXMLDocument::NewDeclaration(const char* decl, bool linkAtOn
 	{
 		m_Document->LinkEndChild(pDecl);
 	}
-	return IKXMLDeclarationPtr(new KXMLDeclaration(pDecl));
+	return IKXMLDeclarationPtr(KNEW KXMLDeclaration(pDecl));
 }
 
 IKXMLElementPtr KXMLDocument::NewElement(const char* element, bool linkAtOnce)
@@ -65,7 +65,7 @@ IKXMLElementPtr KXMLDocument::NewElement(const char* element, bool linkAtOnce)
 	{
 		m_Document->LinkEndChild(pEle);
 	}
-	return IKXMLElementPtr(new KXMLElement(pEle));
+	return IKXMLElementPtr(KNEW KXMLElement(pEle));
 }
 
 bool KXMLDocument::HasChildrenElement() const
@@ -75,7 +75,7 @@ bool KXMLDocument::HasChildrenElement() const
 
 IKXMLElementPtr KXMLDocument::FirstChildElement(const char* name) const
 {
-	return IKXMLElementPtr(new KXMLElement(m_Document->FirstChildElement(name)));
+	return IKXMLElementPtr(KNEW KXMLElement(m_Document->FirstChildElement(name)));
 }
 
 void KXMLDocument::LinkElementToEnd(IKXMLElementPtr& element)

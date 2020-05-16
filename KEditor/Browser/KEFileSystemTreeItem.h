@@ -80,7 +80,7 @@ public:
 
 					bool isDir = m_System->IsDir(fullSubPath);
 
-					newItem = new KEFileSystemTreeItem(m_System,
+					newItem = KNEW KEFileSystemTreeItem(m_System,
 						subPath,
 						fullSubPath,
 						this,

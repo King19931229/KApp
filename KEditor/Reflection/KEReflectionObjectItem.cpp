@@ -34,7 +34,7 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 
 	m_NumChildren = type.get_properties().size();
 
-	m_Children = new KEReflectionObjectItem*[m_NumChildren];
+	m_Children = KNEW KEReflectionObjectItem*[m_NumChildren];
 	ZERO_ARRAY_MEMORY(m_Children);
 
 	size_t idx = 0;
@@ -56,7 +56,7 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 				case MDT_FLOAT3:
 				case MDT_FLOAT4:
 				{
-					m_Children[idx++] = new KEReflectionObjectItem(this, prop_name.to_string());
+					m_Children[idx++] = KNEW KEReflectionObjectItem(this, prop_name.to_string());
 					break;
 				}
 
@@ -65,7 +65,7 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 					KReflectionObjectBase* subObject = prop_value.get_value<KReflectionObjectBase*>();
 					if (subObject)
 					{
-						m_Children[idx++] = new KEReflectionObjectItem(this, subObject, prop_name.to_string());
+						m_Children[idx++] = KNEW KEReflectionObjectItem(this, subObject, prop_name.to_string());
 					}
 					else
 					{

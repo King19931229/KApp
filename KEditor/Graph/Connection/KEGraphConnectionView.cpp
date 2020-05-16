@@ -38,13 +38,13 @@ KEGraphConnectionView::~KEGraphConnectionView()
 
 void KEGraphConnectionView::AddGraphicsEffect()
 {
-	auto effect = new QGraphicsBlurEffect;
+	auto effect = KNEW QGraphicsBlurEffect;
 
 	effect->setBlurRadius(5);
 	setGraphicsEffect(effect);
 
-	// QGraphicsDropShadowEffect* effect = new QGraphicsDropShadowEffect;
-	// ConnectionBlurEffect* effect = new ConnectionBlurEffect(this);
+	// QGraphicsDropShadowEffect* effect = KNEW QGraphicsDropShadowEffect;
+	// ConnectionBlurEffect* effect = KNEW ConnectionBlurEffect(this);
 	// effect->setOffset(4, 4);
 	// effect->setColor(QColor(Qt::gray).darker(800));
 }

@@ -233,7 +233,7 @@ bool KVulkanTexture::InitDevice(bool async)
 	if (async)
 	{
 		std::unique_lock<decltype(m_LoadTaskLock)> guard(m_LoadTaskLock);
-		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleTaskUnit(waitImpl, loadImpl)));
+		m_LoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(KNEW KSampleTaskUnit(waitImpl, loadImpl)));
 		return true;
 	}
 	else

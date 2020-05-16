@@ -34,7 +34,7 @@ bool KPythonCore::RunScriptFromPath(const char* pPath)
 			if(pData->GetSize() > 0)
 			{
 				size_t uSize = pData->GetSize();
-				std::shared_ptr<char> pContent(new char[uSize + 1], [](char* p)->void{ delete[] p; });
+				std::shared_ptr<char> pContent(KNEW char[uSize + 1], [](char* p)->void{ KDELETE[] p; });
 				if(pData->Read(pContent.get(), uSize))
 				{
 					pContent.get()[uSize] = 0;

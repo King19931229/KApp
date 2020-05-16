@@ -12,9 +12,9 @@ KEResourceBrowser::KEResourceBrowser(QWidget *parent)
 	m_ItemWidget(nullptr),
 	m_TreeDockWidget(nullptr),
 	m_ItemDockWidget(nullptr),
-	m_TreeModel(new KEFileSystemModel(true)),
-	m_ItemModel(new KEFileSystemModel(false)),
-	m_PathModel(new KEResourcePathModel()),
+	m_TreeModel(KNEW KEFileSystemModel(true)),
+	m_ItemModel(KNEW KEFileSystemModel(false)),
+	m_PathModel(KNEW KEResourcePathModel()),
 	m_Initing(true)
 {
 	m_TreeWidgetRatio = 3.0f / 10.0f;
@@ -22,14 +22,14 @@ KEResourceBrowser::KEResourceBrowser(QWidget *parent)
 
 	ui.setupUi(this);
 
-	m_TreeWidget = new KEResourceTreeWidget(this);
-	m_ItemWidget = new KEResourceItemWidget(this);
+	m_TreeWidget = KNEW KEResourceTreeWidget(this);
+	m_ItemWidget = KNEW KEResourceItemWidget(this);
 
-	m_TreeDockWidget = new QDockWidget(this);
+	m_TreeDockWidget = KNEW QDockWidget(this);
 	m_TreeDockWidget->setWidget(m_TreeWidget);
 	m_TreeDockWidget->setFeatures(QDockWidget::NoDockWidgetFeatures);
 
-	m_ItemDockWidget = new QDockWidget(this);
+	m_ItemDockWidget = KNEW QDockWidget(this);
 	m_ItemDockWidget->setWidget(m_ItemWidget);
 	m_ItemDockWidget->setFeatures(QDockWidget::NoDockWidgetFeatures);
 
@@ -171,7 +171,7 @@ void KEResourceBrowser::OnComboIndexChanged(int index)
 		auto it = m_RootItemMap.find(index);
 		if (it == m_RootItemMap.end())
 		{
-			item = new KEFileSystemTreeItem(system.get(), root, fullPath, nullptr, 0, true);
+			item = KNEW KEFileSystemTreeItem(system.get(), root, fullPath, nullptr, 0, true);
 			m_RootItemMap[index] = item;
 		}
 		else

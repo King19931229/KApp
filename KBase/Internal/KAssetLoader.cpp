@@ -26,7 +26,7 @@ namespace KAssetLoaderManager
 			// Now I am ready for logging my stuff
 			Assimp::DefaultLogger::get()->info("this is my info-call");
 
-			Loader = IKAssetLoaderPtr(new KAssetLoader());
+			Loader = IKAssetLoaderPtr(KNEW KAssetLoader());
 		}
 		return true;
 	}

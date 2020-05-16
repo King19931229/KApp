@@ -37,7 +37,7 @@ void KEResourceItemWidget::ShowContextMenu(const QPoint& pos)
 {
 	if (!((ui.m_ItemView->selectionModel()->selectedIndexes()).empty()))
 	{
-		QMenu *menu = new QMenu(ui.m_ItemView);
+		QMenu *menu = KNEW QMenu(ui.m_ItemView);
 
 		QAction *openFileExternalAction = menu->addAction("Open File External");
 		connect(openFileExternalAction, &QAction::triggered, this, &KEResourceItemWidget::OnOpenFileExternal);

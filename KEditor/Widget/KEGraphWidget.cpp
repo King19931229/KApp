@@ -26,10 +26,10 @@ bool KEGraphWidget::Init()
 {
 	if (!m_bInit)
 	{
-		m_MenuBar = new QMenuBar(this);
+		m_MenuBar = KNEW QMenuBar(this);
 		m_View = CreateViewImpl();
 
-		QVBoxLayout *layout = new QVBoxLayout(this);
+		QVBoxLayout *layout = KNEW QVBoxLayout(this);
 		layout->addWidget(m_MenuBar);
 		layout->addWidget(m_View);
 		layout->setContentsMargins(0, 0, 0, 0);

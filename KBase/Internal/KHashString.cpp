@@ -39,7 +39,7 @@ struct KHashStrChunk
 
 	~KHashStrChunk()
 	{
-		delete[] pData;
+		KDELETE[] pData;
 		pData = nullptr;
 	}
 
@@ -120,7 +120,7 @@ static KHashString _GetHashString(const char* pszStr)
 
 			if(it == g_Chunks.end())
 			{
-				g_Chunks.push_back(KHashStrChunkPtr(new KHashStrChunk));
+				g_Chunks.push_back(KHashStrChunkPtr(KNEW KHashStrChunk));
 				it = g_Chunks.end() - 1;
 			}
 

@@ -110,7 +110,7 @@ private:
 		glm::vec3 childActualSize = glm::vec3(childActualLength, childActualLength, childActualLength);
 
 		assert(!childBounds);
-		childBounds = new KAABBBox[8];
+		childBounds = KNEW KAABBBox[8];
 
 		childBounds[0].InitFromHalfExtent(center + glm::vec3(-quarter, quarter, -quarter), childActualSize);
 		childBounds[1].InitFromHalfExtent(center + glm::vec3(quarter, quarter, -quarter), childActualSize);
@@ -132,7 +132,7 @@ private:
 		float quarter = baseLength / 4.0f;
 		float newLength = baseLength / 2.0f;
 		assert(!children);
-		children = new KOctreeNode[8];
+		children = KNEW KOctreeNode[8];
 		children[0].SetValues(newLength, minSize, looseness, center + glm::vec3(-quarter, quarter, -quarter), sharedEntityToNode);
 		children[1].SetValues(newLength, minSize, looseness, center + glm::vec3(quarter, quarter, -quarter), sharedEntityToNode);
 		children[2].SetValues(newLength, minSize, looseness, center + glm::vec3(-quarter, quarter, quarter), sharedEntityToNode);
@@ -215,7 +215,7 @@ private:
 		}
 	}
 
-	// 用于 new []
+	// 用于 KNEW []
 	KOctreeNode()
 	{
 	}

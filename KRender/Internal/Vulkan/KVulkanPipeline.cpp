@@ -590,7 +590,7 @@ bool KVulkanPipeline::GetHandle(IKRenderTargetPtr target, IKPipelineHandlePtr& h
 			return true;
 		}
 
-		handle = IKPipelineHandlePtr(new KVulkanPipelineHandle());
+		handle = IKPipelineHandlePtr(KNEW KVulkanPipelineHandle());
 		handle->Init(this, target.get());
 
 		m_HandleMap[target] = handle;

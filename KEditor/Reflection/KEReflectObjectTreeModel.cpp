@@ -17,7 +17,7 @@ void KEReflectObjectTreeModel::AddReflection(KReflectionObjectBase* reflection)
 	m_Reflections.insert(reflection);
 	if (!m_RootItem)
 	{
-		m_RootItem = new KEReflectionObjectItem(nullptr, reflection, "");
+		m_RootItem = KNEW KEReflectionObjectItem(nullptr, reflection, "");
 	}
 	else
 	{
@@ -34,7 +34,7 @@ void KEReflectObjectTreeModel::RemoveReflection(KReflectionObjectBase* _reflecti
 	{
 		if (!m_RootItem)
 		{
-			m_RootItem = new KEReflectionObjectItem(nullptr, remain, "");
+			m_RootItem = KNEW KEReflectionObjectItem(nullptr, remain, "");
 		}
 		else
 		{
@@ -52,7 +52,7 @@ void KEReflectObjectTreeModel::RefreshReflection(KReflectionObjectBase* reflecti
 		{
 			if (!m_RootItem)
 			{
-				m_RootItem = new KEReflectionObjectItem(nullptr, remain, "");
+				m_RootItem = KNEW KEReflectionObjectItem(nullptr, remain, "");
 			}
 			else
 			{

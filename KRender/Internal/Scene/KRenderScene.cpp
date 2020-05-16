@@ -19,7 +19,7 @@ bool KRenderScene::Init(SceneManagerType type, float initialSize, const glm::vec
 	switch (type)
 	{
 	case SCENE_MANGER_TYPE_OCTREE:
-		m_SceneMgr = new KOctreeSceneManager();
+		m_SceneMgr = KNEW KOctreeSceneManager();
 		break;
 	default:
 		assert(false && "impossible");

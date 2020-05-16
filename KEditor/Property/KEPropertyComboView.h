@@ -24,7 +24,7 @@ protected:
 	void SetModelData(size_t index, const QString& text)
 	{
 		assert(index < DIMENSION);
-		if (text.size() > 0)
+		/*if (text.size() > 0)
 		{
 			std::string currentText = text.toStdString();
 			auto it = m_TextToEnum.find(currentText);
@@ -34,7 +34,7 @@ protected:
 				T newValue = it->second;
 				UpdateModelElement(index, newValue);
 			}
-		}
+		}*/
 	}
 
 	void SetWidgetValue(size_t index, const T& value) override
@@ -82,12 +82,12 @@ public:
 	KEPropertyComboView(ModelPtrType model)
 		: KEPropertyView(model)
 	{
-		m_MainWidget = new QWidget();
+		m_MainWidget = KNEW QWidget();
 
-		m_Layout = new QHBoxLayout(m_MainWidget);
+		m_Layout = KNEW QHBoxLayout(m_MainWidget);
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_Widget[i] = new QComboBox(m_MainWidget);
+			m_Widget[i] = KNEW QComboBox(m_MainWidget);
 			m_Widget[i]->setCurrentIndex(-1);
 
 			QObject::connect(m_Widget[i], &QComboBox::currentTextChanged,
@@ -160,7 +160,7 @@ namespace KEditor
 	inline std::shared_ptr<KEPropertyBaseView> MakeComboEditViewByModel(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(new KEPropertyComboView<T>(
+			(KNEW KEPropertyComboView<T>(
 				std::forward<Types>(args)...));
 	}
 
@@ -168,7 +168,7 @@ namespace KEditor
 	inline std::shared_ptr<KEPropertyBaseView> MakeComboEditView(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(new KEPropertyComboView<T>(
+			(KNEW KEPropertyComboView<T>(
 				KEditor::MakePropertyModel<T, 1>(std::forward<Types>(args)...)));
 	}
 }

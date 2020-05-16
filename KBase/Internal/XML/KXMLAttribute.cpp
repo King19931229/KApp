@@ -106,5 +106,5 @@ void KXMLAttribute::SetAttribute(const char* value)
 IKXMLAttributePtr KXMLAttribute::NextAttribute() const
 {
 	ASSERT_RESULT(!IsEmpty());
-	return IKXMLAttributePtr(new KXMLAttribute(m_ReadOnlyAttribute->Next()));
+	return IKXMLAttributePtr(KNEW KXMLAttribute(m_ReadOnlyAttribute->Next()));
 }

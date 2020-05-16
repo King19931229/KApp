@@ -23,14 +23,14 @@ protected:
 	template<>
 	void SetWidgetValidator(QLineEdit& widget, const float& default)
 	{
-		QDoubleValidator* validator = new QDoubleValidator(&widget);
+		QDoubleValidator* validator = KNEW QDoubleValidator(&widget);
 		widget.setValidator(validator);
 	}
 
 	template<>
 	void SetWidgetValidator(QLineEdit& widget, const int& default)
 	{
-		QIntValidator* validator = new QIntValidator(&widget);
+		QIntValidator* validator = KNEW QIntValidator(&widget);
 		widget.setValidator(validator);
 	}
 
@@ -98,11 +98,11 @@ public:
 	KEPropertyLineEditView(ModelPtrType model)
 		: KEPropertyView(model)
 	{
-		m_MainWidget = new QWidget();
+		m_MainWidget = KNEW QWidget();
 
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_Widget[i] = new QLineEdit(m_MainWidget);
+			m_Widget[i] = KNEW QLineEdit(m_MainWidget);
 			SetWidgetValidator(*m_Widget[i], T());
 			QObject::connect(m_Widget[i], &QLineEdit::textChanged, [=, this](const QString& newText)
 			{
@@ -110,7 +110,7 @@ public:
 			});
 		}
 
-		m_Layout = new QHBoxLayout(m_MainWidget);
+		m_Layout = KNEW QHBoxLayout(m_MainWidget);
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
 			m_Layout->addWidget(m_Widget[i]);
@@ -145,7 +145,7 @@ namespace KEditor
 	inline std::shared_ptr<KEPropertyBaseView> MakeLineEditViewByModel(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(new KEPropertyLineEditView<T, DIMENTSION>(
+			(KNEW KEPropertyLineEditView<T, DIMENTSION>(
 				std::forward<Types>(args)...));
 	}
 
@@ -153,7 +153,7 @@ namespace KEditor
 	inline std::shared_ptr<KEPropertyBaseView> MakeLineEditView(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(new KEPropertyLineEditView<T, DIMENTSION>(
+			(KNEW KEPropertyLineEditView<T, DIMENTSION>(
 				KEditor::MakePropertyModel<T, DIMENTSION>(std::forward<Types>(args)...)));
 	}
 
@@ -161,7 +161,7 @@ namespace KEditor
 	inline std::shared_ptr<KEPropertyBaseView> MakeLineEditView(std::initializer_list<T>&& list)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(new KEPropertyLineEditView<T, DIMENTSION>(KEditor::MakePropertyModel<T, DIMENTSION>(
+			(KNEW KEPropertyLineEditView<T, DIMENTSION>(KEditor::MakePropertyModel<T, DIMENTSION>(
 				std::forward<decltype(list)>(list))));
 	}
 }

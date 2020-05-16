@@ -6,7 +6,7 @@ IKRenderDevicePtr CreateRenderDevice(RenderDevice platform)
 	switch (platform)
 	{
 	case RENDER_DEVICE_VULKAN:
-		return IKRenderDevicePtr((IKRenderDevice*)new KVulkanRenderDevice());
+		return IKRenderDevicePtr((IKRenderDevice*) KNEW KVulkanRenderDevice());
 	default:
 		assert(false && "impossible to reach");
 		return IKRenderDevicePtr(nullptr);

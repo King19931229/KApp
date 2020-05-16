@@ -3,7 +3,7 @@
 
 EXPORT_DLL IKMemoryAllocatorPtr CreateAllocator()
 {
-	return IKMemoryAllocatorPtr(new KMemoryAllocator());
+	return IKMemoryAllocatorPtr(KNEW KMemoryAllocator());
 }
 
 KMemoryAllocator::KMemoryAllocator()

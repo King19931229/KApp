@@ -77,21 +77,21 @@ public:
 	KEPropertySliderView(ModelPtrType model)
 		: KEPropertyView(model)
 	{
-		m_MainWidget = new QWidget();
+		m_MainWidget = KNEW QWidget();
 
 		TypeCheck(T());
 
 		m_Min = FindMinValue();
 		m_Max = FindMaxValue();
 
-		m_Layout = new QVBoxLayout(m_MainWidget);
+		m_Layout = KNEW QVBoxLayout(m_MainWidget);
 
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_SubLayout[i] = new QHBoxLayout(m_MainWidget);
+			m_SubLayout[i] = KNEW QHBoxLayout(m_MainWidget);
 
-			m_Slider[i] = new QSlider(m_MainWidget);
-			m_SpinBox[i] = new QSpinBox(m_MainWidget);
+			m_Slider[i] = KNEW QSlider(m_MainWidget);
+			m_SpinBox[i] = KNEW QSpinBox(m_MainWidget);
 
 			m_Slider[i]->setOrientation(Qt::Horizontal);
 			m_Slider[i]->setSingleStep(1);
@@ -152,7 +152,7 @@ namespace KEditor
 	inline std::shared_ptr<KEPropertyBaseView> MakeSliderEditViewByModel(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(new KEPropertySliderView<T>(
+			(KNEW KEPropertySliderView<T>(
 				std::forward<Types>(args)...));
 	}
 
@@ -160,7 +160,7 @@ namespace KEditor
 	inline std::shared_ptr<KEPropertyBaseView> MakeSliderEditView(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(new KEPropertySliderView<T>(
+			(KNEW KEPropertySliderView<T>(
 				KEditor::MakePropertyModel<T, 1>(std::forward<Types>(args)...)));
 	}
 }

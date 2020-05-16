@@ -6,7 +6,7 @@ IKScriptCorePtr GetScriptCore(ScriptType type)
 	switch (type)
 	{
 	case ST_PYTHON27:
-		return IKScriptCorePtr(new KPythonCore());
+		return IKScriptCorePtr(KNEW KPythonCore());
 	default:
 		return IKScriptCorePtr(nullptr);
 	}

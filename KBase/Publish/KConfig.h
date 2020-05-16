@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 
+// TODO 追踪 new delete
+#define KNEW new
+#define KDELETE delete
+
 #ifdef DLL_EXPORT
 #	ifdef DLL_EXPORT
 #		define EXPORT_DLL _declspec(dllexport)
@@ -39,8 +43,8 @@
 #define ZERO_MEMORY(variable) { memset(&variable, 0, sizeof(variable)); }
 #define ZERO_ARRAY_MEMORY(arr) { memset(arr, 0, sizeof(arr)); }
 
-#define SAFE_DELETE(ptr) { if(ptr) { delete ptr; ptr = nullptr; } }
-#define SAFE_DELETE_ARRAY(ptr) { if(ptr) { delete[] ptr; ptr = nullptr; } }
+#define SAFE_DELETE(ptr) { if(ptr) { KDELETE ptr; ptr = nullptr; } }
+#define SAFE_DELETE_ARRAY(ptr) { if(ptr) { KDELETE[] ptr; ptr = nullptr; } }
 
 #define SAFE_UNINIT(ptr) { if(ptr) { ptr->UnInit(); ptr = nullptr; } }
 #define SAFE_UNINIT_ARRAY(ptr)\

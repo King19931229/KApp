@@ -14,7 +14,7 @@ KEPostProcessGraphWidget::~KEPostProcessGraphWidget()
 
 KEGraphView* KEPostProcessGraphWidget::CreateViewImpl()
 {
-	return new KEPostProcessGraphView();
+	return KNEW KEPostProcessGraphView();
 }
 
 bool KEPostProcessGraphWidget::Init()

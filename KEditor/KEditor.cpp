@@ -97,9 +97,9 @@ bool KEditor::Init()
 		// 不允许构建操作进入操作栈
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 
-		m_RenderWidget = new KERenderWidget(this);
+		m_RenderWidget = KNEW KERenderWidget(this);
 
-		IKRenderWindowPtr window = IKRenderWindowPtr(new KEQtRenderWindow());
+		IKRenderWindowPtr window = IKRenderWindowPtr(KNEW KEQtRenderWindow());
 		IKRenderWindow* rawWindow = window.get();
 		
 		KEngineOptions options;
@@ -113,28 +113,28 @@ bool KEditor::Init()
 		m_RenderWidget->Init(m_Engine);
 		setCentralWidget(m_RenderWidget);
 
-		m_GraphWidget = new KEPostProcessGraphWidget(nullptr);
+		m_GraphWidget = KNEW KEPostProcessGraphWidget(nullptr);
 		m_GraphWidget->Init();
 		m_GraphWidget->hide();
 
-		m_ResourceBrowser = new KEResourceBrowser(this);
+		m_ResourceBrowser = KNEW KEResourceBrowser(this);
 		m_ResourceBrowser->Init();
 
-		m_ResourceDock = new QDockWidget(this);
+		m_ResourceDock = KNEW QDockWidget(this);
 		m_ResourceDock->setWidget(m_ResourceBrowser);
 		addDockWidget(Qt::BottomDockWidgetArea, m_ResourceDock);
 
-		m_SceneItemWidget = new KESceneItemWidget(this);
+		m_SceneItemWidget = KNEW KESceneItemWidget(this);
 		m_SceneItemWidget->Init();
 
-		m_SceneItemDock = new QDockWidget(this);
+		m_SceneItemDock = KNEW QDockWidget(this);
 		m_SceneItemDock->setWidget(m_SceneItemWidget);
 		addDockWidget(Qt::LeftDockWidgetArea, m_SceneItemDock);
 
-		m_PropertyWidget = new KEReflectPropertyWidget(this);
+		m_PropertyWidget = KNEW KEReflectPropertyWidget(this);
 		m_PropertyWidget->Init();
 
-		m_PropertyDock = new QDockWidget(this);
+		m_PropertyDock = KNEW QDockWidget(this);
 		m_PropertyDock->setWidget(m_PropertyWidget);
 		addDockWidget(Qt::RightDockWidgetArea, m_PropertyDock);
 

@@ -8,12 +8,12 @@
 
 KEGraphNodeTestModel::KEGraphNodeTestModel()
 {
-	QVBoxLayout* layout = new QVBoxLayout();
+	QVBoxLayout* layout = KNEW QVBoxLayout();
 
 	{
-		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("Format");
-		QComboBox* combo = new QComboBox();
+		QHBoxLayout* lineLayout = KNEW QHBoxLayout();
+		QLabel* label = KNEW QLabel("Format");
+		QComboBox* combo = KNEW QComboBox();
 
 		lineLayout->addWidget(label);
 		lineLayout->addWidget(combo);
@@ -27,11 +27,11 @@ KEGraphNodeTestModel::KEGraphNodeTestModel()
 	}
 
 	{
-		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("Scale");
-		QLineEdit* lineEdit = new QLineEdit();
+		QHBoxLayout* lineLayout = KNEW QHBoxLayout();
+		QLabel* label = KNEW QLabel("Scale");
+		QLineEdit* lineEdit = KNEW QLineEdit();
 
-		QDoubleValidator* doubleValidator = new QDoubleValidator(0.0, 1.0, 2, lineEdit);
+		QDoubleValidator* doubleValidator = KNEW QDoubleValidator(0.0, 1.0, 2, lineEdit);
 		doubleValidator->setNotation(QDoubleValidator::StandardNotation);
 
 		lineEdit->setValidator(doubleValidator);
@@ -43,11 +43,11 @@ KEGraphNodeTestModel::KEGraphNodeTestModel()
 	}
 
 	{
-		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("MSAA");
-		QLineEdit* lineEdit = new QLineEdit();
+		QHBoxLayout* lineLayout = KNEW QHBoxLayout();
+		QLabel* label = KNEW QLabel("MSAA");
+		QLineEdit* lineEdit = KNEW QLineEdit();
 
-		QIntValidator* intValidator = new QIntValidator(1, 8, lineEdit);
+		QIntValidator* intValidator = KNEW QIntValidator(1, 8, lineEdit);
 		lineEdit->setValidator(intValidator);
 
 		lineLayout->addWidget(label);
@@ -57,9 +57,9 @@ KEGraphNodeTestModel::KEGraphNodeTestModel()
 	}
 
 	{
-		QHBoxLayout* lineLayout = new QHBoxLayout();
-		QLabel* label = new QLabel("Shader");
-		QLineEdit* lineEdit = new QLineEdit();
+		QHBoxLayout* lineLayout = KNEW QHBoxLayout();
+		QLabel* label = KNEW QLabel("Shader");
+		QLineEdit* lineEdit = KNEW QLineEdit();
 
 		lineLayout->addWidget(label);
 		lineLayout->addWidget(lineEdit);

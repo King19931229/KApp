@@ -12,7 +12,7 @@ KEPostProcessGraphView::KEPostProcessGraphView()
 {
 	RegisterModel(KEPostProcessPassModel::ModelName, []()->KEGraphNodeModelPtr
 	{
-		return KEGraphNodeModelPtr(new KEPostProcessPassModel(GetProcessManager()->CreatePass()));
+		return KEGraphNodeModelPtr(KNEW KEPostProcessPassModel(GetProcessManager()->CreatePass()));
 	});
 
 	Sync();
@@ -238,7 +238,7 @@ bool KEPostProcessGraphView::Sync()
 		if(nodeType == PPNT_PASS)
 		{
 			IKPostProcessPass* pass = node->CastPass();
-			KEGraphNodeModelPtr model = KEGraphNodeModelPtr(new KEPostProcessPassModel(node));
+			KEGraphNodeModelPtr model = KEGraphNodeModelPtr(KNEW KEPostProcessPassModel(node));
 			KEGraphNodeControl* graphNode = m_Scene->CreateNode(std::move(model));
 			graphNode->GetView()->setPos(centerPos);
 			node2GraphNode[node.get()] = graphNode;
@@ -297,7 +297,7 @@ bool KEPostProcessGraphView::AutoLayout()
 	KEGraphNodeControl* startNode = nullptr;
 	{
 		auto centerPos = mapToScene(width() / 2, height() / 2);
-		KEGraphNodeModelPtr model = KEGraphNodeModelPtr(new KEGraphEmtpyNodeModel(0, 1, false));
+		KEGraphNodeModelPtr model = KEGraphNodeModelPtr(KNEW KEGraphEmtpyNodeModel(0, 1, false));
 		startNode = m_Scene->CreateNode(std::move(model));
 		startNode->GetView()->setPos(centerPos);
 		for (KEGraphNodeControl* outNode : noneInputNodes)

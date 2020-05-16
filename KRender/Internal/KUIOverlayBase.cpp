@@ -164,7 +164,7 @@ void KUIOverlayBase::PrepareResources()
 	if (system && system->Open("Fonts/Roboto-Medium.ttf", IT_MEMORY, ttfDataStream))
 	{
 		size_t ttfDataSize = ttfDataStream->GetSize();
-		char* ttfData = new char[ttfDataSize];
+		char* ttfData = KNEW char[ttfDataSize];
 		// https://github.com/ocornut/imgui/issues/1259
 		if(ttfDataStream->Read(ttfData, ttfDataSize))
 		{
@@ -173,7 +173,7 @@ void KUIOverlayBase::PrepareResources()
 		}
 		else
 		{
-			delete[] ttfData;
+			KDELETE[] ttfData;
 		}
 	}
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <functional>
+#include "KBase/Publish/KConfig.h"
 
 enum PortType
 {

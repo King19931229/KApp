@@ -3,7 +3,7 @@
 
 EXPORT_DLL IKIniFilePtr GetIniFile()
 {
-	return IKIniFilePtr(new KIniFile());
+	return IKIniFilePtr(KNEW KIniFile());
 }
 
 void KIniFile::Clear()

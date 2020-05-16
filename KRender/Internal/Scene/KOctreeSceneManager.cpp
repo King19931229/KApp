@@ -24,9 +24,9 @@ bool KOctreeSceneManager::Init(float initialWorldSize, const glm::vec3& initialW
 	m_InitialSize = initialWorldSize;
 	m_MinSize = minNodeSize;
 	m_Looseness = glm::clamp(loosenessVal, 1.0f, 2.0f);
-	m_EntityToNode = new KEntityToNodeMap();
+	m_EntityToNode = KNEW KEntityToNodeMap();
 
-	m_Root = new KOctreeNode(m_InitialSize, m_MinSize, m_Looseness, initialWorldPos, m_EntityToNode);
+	m_Root = KNEW KOctreeNode(m_InitialSize, m_MinSize, m_Looseness, initialWorldPos, m_EntityToNode);
 
 	return true;
 }

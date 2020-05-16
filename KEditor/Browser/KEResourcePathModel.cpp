@@ -37,7 +37,7 @@ void KEResourcePathModel::SetItem(KEFileSystemTreeItem* item)
 	int depth = 0;
 	for (KEFileSystemTreeItem* item : m_TreeItems)
 	{
-		KEResourcePathItem* pathItem = new KEResourcePathItem(prePathItem,
+		KEResourcePathItem* pathItem = KNEW KEResourcePathItem(prePathItem,
 			item,
 			depth++);
 

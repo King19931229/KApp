@@ -4,7 +4,7 @@
 
 EXPORT_DLL IKSourceFilePtr GetSourceFile()
 {
-	IKSourceFilePtr pRet(new KSourceFile());
+	IKSourceFilePtr pRet(KNEW KSourceFile());
 	return pRet;
 }
 

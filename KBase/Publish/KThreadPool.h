@@ -247,7 +247,7 @@ public:
 		//assert(m_pSyncTaskThread);
 		if (m_pSyncTaskThread)
 		{
-			delete m_pSyncTaskThread;
+			KDELETE m_pSyncTaskThread;
 			m_pSyncTaskThread = nullptr;
 		}
 		for (auto it = m_Threads.begin(), itEnd = m_Threads.end();

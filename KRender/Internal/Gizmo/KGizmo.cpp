@@ -2,7 +2,7 @@
 
 IKGizmoPtr CreateGizmo()
 {
-	return IKGizmoPtr(new KGizmo());
+	return IKGizmoPtr(KNEW KGizmo());
 }
 
 KGizmo::KGizmo()
@@ -12,9 +12,9 @@ KGizmo::KGizmo()
 	m_CurrentGizmo(nullptr),
 	m_Enter(false)
 {
-	m_TranslateGizmo = IKGizmoPtr(new KMoveGizmo());
-	m_RotateGizmo = IKGizmoPtr(new KRotateGizmo());
-	m_ScaleGizmo = IKGizmoPtr(new KScaleGizmo());
+	m_TranslateGizmo = IKGizmoPtr(KNEW KMoveGizmo());
+	m_RotateGizmo = IKGizmoPtr(KNEW KRotateGizmo());
+	m_ScaleGizmo = IKGizmoPtr(KNEW KScaleGizmo());
 	m_CurrentGizmo = m_TranslateGizmo;
 }
 

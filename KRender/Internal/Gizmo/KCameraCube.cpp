@@ -4,7 +4,7 @@
 
 IKCameraCubePtr CreateCameraCube()
 {
-	return IKCameraCubePtr(new KCameraCube());
+	return IKCameraCubePtr(KNEW KCameraCube());
 }
 
 static constexpr float FACE_SIZE = 1.0f;

@@ -168,7 +168,7 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 	if (async)
 	{
 		std::unique_lock<decltype(m_MemoryLoadTaskLock)> guard(m_MemoryLoadTaskLock);
-		m_MemoryLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		m_MemoryLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(KNEW KSampleAsyncTaskUnit(loadImpl)));
 		return true;
 	}
 	else
@@ -189,7 +189,7 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t
 			size_t formatSize = 0;
 			if (ImageFormatToSize(format, formatSize))
 			{
-				KImageDataPtr pImageData = KImageDataPtr(new KImageData(width * height * formatSize));
+				KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(width * height * formatSize));
 				memcpy(pImageData->GetData(), pRawData, pImageData->GetSize());
 				m_ImageData.eFormat = format;
 				m_ImageData.uWidth = width;
@@ -227,7 +227,7 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t
 	{
 		m_ResourceState = RS_PENDING;
 		std::unique_lock<decltype(m_MemoryLoadTaskLock)> guard(m_MemoryLoadTaskLock);
-		m_MemoryLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(new KSampleAsyncTaskUnit(loadImpl)));
+		m_MemoryLoadTask = KRenderGlobal::TaskExecutor.Submit(KTaskUnitPtr(KNEW KSampleAsyncTaskUnit(loadImpl)));
 		return true;
 	}
 	else

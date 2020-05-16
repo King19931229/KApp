@@ -9,8 +9,8 @@ KEReflectPropertyWidget::KEReflectPropertyWidget(QWidget *parent)
 	: QMainWindow(parent),
 	m_MainWindow(parent)
 {
-	m_TreeView = new KEReflectObjectTreeView();
-	m_TreeModel = new KEReflectObjectTreeModel();
+	m_TreeView = KNEW KEReflectObjectTreeView();
+	m_TreeModel = KNEW KEReflectObjectTreeModel();
 	m_TreeView->setModel(m_TreeModel);
 	setCentralWidget(m_TreeView);
 }

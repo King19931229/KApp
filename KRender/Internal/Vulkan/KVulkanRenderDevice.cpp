@@ -801,43 +801,43 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 
 bool KVulkanRenderDevice::CreateShader(IKShaderPtr& shader)
 {
-	shader = IKShaderPtr(new KVulkanShader());
+	shader = IKShaderPtr(KNEW KVulkanShader());
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateVertexBuffer(IKVertexBufferPtr& buffer)
 {
-	buffer = IKVertexBufferPtr(static_cast<IKVertexBuffer*>(new KVulkanVertexBuffer()));
+	buffer = IKVertexBufferPtr(static_cast<IKVertexBuffer*>(KNEW KVulkanVertexBuffer()));
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateIndexBuffer(IKIndexBufferPtr& buffer)
 {
-	buffer = IKIndexBufferPtr(static_cast<IKIndexBuffer*>(new KVulkanIndexBuffer()));
+	buffer = IKIndexBufferPtr(static_cast<IKIndexBuffer*>(KNEW KVulkanIndexBuffer()));
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateUniformBuffer(IKUniformBufferPtr& buffer)
 {
-	buffer = IKUniformBufferPtr(static_cast<IKUniformBuffer*>(new KVulkanUniformBuffer()));
+	buffer = IKUniformBufferPtr(static_cast<IKUniformBuffer*>(KNEW KVulkanUniformBuffer()));
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateTexture(IKTexturePtr& texture)
 {
-	texture = IKTexturePtr(static_cast<IKTexture*>(new KVulkanTexture()));
+	texture = IKTexturePtr(static_cast<IKTexture*>(KNEW KVulkanTexture()));
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateSampler(IKSamplerPtr& sampler)
 {
-	sampler = IKSamplerPtr(static_cast<IKSampler*>(new KVulkanSampler()));
+	sampler = IKSamplerPtr(static_cast<IKSampler*>(KNEW KVulkanSampler()));
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateSwapChain(IKSwapChainPtr& swapChain)
 {
-	swapChain = IKSwapChainPtr(static_cast<IKSwapChain*>(new KVulkanSwapChain()));
+	swapChain = IKSwapChainPtr(static_cast<IKSwapChain*>(KNEW KVulkanSwapChain()));
 	return true;
 }
 
@@ -849,19 +849,19 @@ bool KVulkanRenderDevice::CreateRenderTarget(IKRenderTargetPtr& target)
 
 bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 {
-	pipeline = IKPipelinePtr(new KVulkanPipeline());
+	pipeline = IKPipelinePtr(KNEW KVulkanPipeline());
 	return true;
 }
 
 bool KVulkanRenderDevice::CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle)
 {
-	pipelineHandle = IKPipelineHandlePtr(static_cast<IKPipelineHandle*>(new KVulkanPipelineHandle()));
+	pipelineHandle = IKPipelineHandlePtr(static_cast<IKPipelineHandle*>(KNEW KVulkanPipelineHandle()));
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateUIOverlay(IKUIOverlayPtr& ui)
 {
-	ui = IKUIOverlayPtr(static_cast<IKUIOverlay*>(new KVulkanUIOverlay()));
+	ui = IKUIOverlayPtr(static_cast<IKUIOverlay*>(KNEW KVulkanUIOverlay()));
 	return true;
 }
 
@@ -903,13 +903,13 @@ bool KVulkanRenderDevice::Present()
 
 bool KVulkanRenderDevice::CreateCommandPool(IKCommandPoolPtr& pool)
 {
-	pool = IKCommandPoolPtr(new KVulkanCommandPool());
+	pool = IKCommandPoolPtr(KNEW KVulkanCommandPool());
 	return true;
 }
 
 bool KVulkanRenderDevice::CreateCommandBuffer(IKCommandBufferPtr& buffer)
 {
-	buffer = IKCommandBufferPtr(new KVulkanCommandBuffer());
+	buffer = IKCommandBufferPtr(KNEW KVulkanCommandBuffer());
 	return true;
 }
 

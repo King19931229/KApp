@@ -2,7 +2,7 @@
 
 EXPORT_DLL IKSocketClientPtr GetSocketClient()
 {
-	return IKSocketClientPtr(new KSocketClient());
+	return IKSocketClientPtr(KNEW KSocketClient());
 }
 
 KSocketClient::KSocketClient()

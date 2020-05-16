@@ -15,7 +15,7 @@
 
 KEGraphScene::KEGraphScene(QObject * parent)
 	: QGraphicsScene(parent),
-	m_Registrar(KEGraphRegistrarPtr(new KEGraphRegistrar()))
+	m_Registrar(KEGraphRegistrarPtr(KNEW KEGraphRegistrar()))
 {
 	setItemIndexMethod(QGraphicsScene::NoIndex);
 	m_Registrar->Init();
@@ -50,13 +50,13 @@ void KEGraphScene::ClearScene()
 
 KEGraphNodeControl* KEGraphScene::CreateNode(KEGraphNodeModelPtr&& model)
 {
-	KEGraphNodeControlPtr node = KEGraphNodeControlPtr(new KEGraphNodeControl(std::move(model)));
-	KEGraphNodeViewPtr view = KEGraphNodeViewPtr(new KEGraphNodeView(this, node.get()));
+	KEGraphNodeControlPtr node = KEGraphNodeControlPtr(KNEW KEGraphNodeControl(std::move(model)));
+	KEGraphNodeViewPtr view = KEGraphNodeViewPtr(KNEW KEGraphNodeView(this, node.get()));
 
 	KEGraphNodeControl* ret = node.get();
 	ret->SetView(std::move(view));
 
-	auto command = KECommandPtr(new	KEGraphNodeCreateCommand(this, node));
+	auto command = KECommandPtr(KNEW KEGraphNodeCreateCommand(this, node));
 	KEditorGlobal::CommandInvoker.Execute(command);
 
 	SingalNodeCreated(ret);
@@ -79,7 +79,7 @@ void KEGraphScene::RemoveNode(KEGraphNodeControlPtr node)
 		}
 	}
 
-	auto command = KECommandPtr(new	KEGraphNodeRemoveCommand(this, node));
+	auto command = KECommandPtr(KNEW KEGraphNodeRemoveCommand(this, node));
 	KEditorGlobal::CommandInvoker.Execute(command);
 }
 
@@ -103,13 +103,13 @@ KEGraphConnectionControl* KEGraphScene::CreateConnection(PortType connectedPort,
 	KEGraphNodeControl* node,
 	PortIndexType portIndex)
 {
-	KEGraphConnectionControlPtr connection = KEGraphConnectionControlPtr(new KEGraphConnectionControl(
+	KEGraphConnectionControlPtr connection = KEGraphConnectionControlPtr(KNEW KEGraphConnectionControl(
 		connectedPort,
 		node,
 		portIndex));
 
 	KEGraphConnectionControl* conn = connection.get();
-	KEGraphConnectionViewPtr view = KEGraphConnectionViewPtr(new KEGraphConnectionView(this, conn));
+	KEGraphConnectionViewPtr view = KEGraphConnectionViewPtr(KNEW KEGraphConnectionView(this, conn));
 
 	// after this function connection points are set to node port
 	connection->SetView(std::move(view));
@@ -127,7 +127,7 @@ KEGraphConnectionControl* KEGraphScene::CreateConnection(KEGraphNodeControl* nod
 	PortIndexType portIndexOut,
 	const GraphNodeDataConverterFunc& converter)
 {
-	KEGraphConnectionControlPtr connection = KEGraphConnectionControlPtr(new KEGraphConnectionControl(
+	KEGraphConnectionControlPtr connection = KEGraphConnectionControlPtr(KNEW KEGraphConnectionControl(
 		nodeIn,
 		portIndexIn,
 		nodeOut,
@@ -135,12 +135,12 @@ KEGraphConnectionControl* KEGraphScene::CreateConnection(KEGraphNodeControl* nod
 		converter));
 
 	KEGraphConnectionControl* conn = connection.get();
-	KEGraphConnectionViewPtr view = KEGraphConnectionViewPtr(new KEGraphConnectionView(this, conn));
+	KEGraphConnectionViewPtr view = KEGraphConnectionViewPtr(KNEW KEGraphConnectionView(this, conn));
 
 	// after this function connection points are set to node port
 	connection->SetView(std::move(view));
 
-	auto command = KECommandPtr(new	KEGraphConnectionCreateCommand(this, connection));
+	auto command = KECommandPtr(KNEW KEGraphConnectionCreateCommand(this, connection));
 	KEditorGlobal::CommandInvoker.Execute(command);
 
 	return conn;
@@ -150,7 +150,7 @@ void KEGraphScene::DeleteConnection(KEGraphConnectionControlPtr connection)
 {
 	if (connection)
 	{
-		auto command = KECommandPtr(new	KEGraphConnectionRemoveCommand(this, connection));
+		auto command = KECommandPtr(KNEW KEGraphConnectionRemoveCommand(this, connection));
 		if (connection->Complete())
 		{
 			KEditorGlobal::CommandInvoker.Execute(command);

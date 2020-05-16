@@ -491,7 +491,7 @@ bool KMeshUtilityImpl::CreateMesh(const std::vector<KVertexDefinition::DEBUG_POS
 		auto& subMeshes = pMesh->m_SubMeshes;
 		assert(subMeshes.empty());
 
-		KSubMeshPtr newSubMesh = KSubMeshPtr(new KSubMesh(pMesh));
+		KSubMeshPtr newSubMesh = KSubMeshPtr(KNEW KSubMesh(pMesh));
 
 		if (indices.empty())
 		{

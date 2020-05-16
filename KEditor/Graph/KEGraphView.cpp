@@ -35,15 +35,15 @@ KEGraphView::KEGraphView(QWidget *parent)
 	setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
 	setCacheMode(QGraphicsView::CacheBackground);
 
-	m_Scene = KEGraphScenePtr(new KEGraphScene(this));
+	m_Scene = KEGraphScenePtr(KNEW KEGraphScene(this));
 	this->setScene(m_Scene.get());
 
-	m_ClearSelectionAction = QActionPtr(new QAction(QStringLiteral("Clear Selection"), this));
+	m_ClearSelectionAction = QActionPtr(KNEW QAction(QStringLiteral("Clear Selection"), this));
 	m_ClearSelectionAction->setShortcut(Qt::Key_Escape);
 	connect(m_ClearSelectionAction.get(), &QAction::triggered, m_Scene.get(), &QGraphicsScene::clearSelection);
 	addAction(m_ClearSelectionAction.get());
 
-	m_DeleteSelectionAction = QActionPtr(new QAction(QStringLiteral("Delete Selection"), this));
+	m_DeleteSelectionAction = QActionPtr(KNEW QAction(QStringLiteral("Delete Selection"), this));
 	m_DeleteSelectionAction->setShortcut(Qt::Key_Delete);
 	connect(m_DeleteSelectionAction.get(), &QAction::triggered, this, &KEGraphView::DeleteSelectedNodes);
 	addAction(m_DeleteSelectionAction.get());
@@ -98,9 +98,9 @@ void KEGraphView::OnNodeContextMenu(KEGraphNodeControl* n, const QPointF& pos)
 {
 	QMenu nodeMenu;
 
-	QWidgetAction *treeAction = new QWidgetAction(&nodeMenu);
+	QWidgetAction *treeAction = KNEW QWidgetAction(&nodeMenu);
 
-	QTreeWidget *treeView = new QTreeWidget(&nodeMenu);
+	QTreeWidget *treeView = KNEW QTreeWidget(&nodeMenu);
 	treeView->header()->close();
 
 	treeAction->setDefaultWidget(treeView);
@@ -112,7 +112,7 @@ void KEGraphView::OnNodeContextMenu(KEGraphNodeControl* n, const QPointF& pos)
 
 	for (const QString& op : { /*copyOp, pasteOp,*/ deleteOp })
 	{
-		QTreeWidgetItem* item = new QTreeWidgetItem(treeView);
+		QTreeWidgetItem* item = KNEW QTreeWidgetItem(treeView);
 		item->setText(0, op);
 		item->setData(0, Qt::UserRole, op);
 	}
@@ -141,9 +141,9 @@ void KEGraphView::OnConnectionContextMenu(KEGraphConnectionControl* conn, const 
 {
 	QMenu connMenu;
 
-	QWidgetAction *treeAction = new QWidgetAction(&connMenu);
+	QWidgetAction *treeAction = KNEW QWidgetAction(&connMenu);
 
-	QTreeWidget *treeView = new QTreeWidget(&connMenu);
+	QTreeWidget *treeView = KNEW QTreeWidget(&connMenu);
 	treeView->header()->close();
 
 	treeAction->setDefaultWidget(treeView);
@@ -155,7 +155,7 @@ void KEGraphView::OnConnectionContextMenu(KEGraphConnectionControl* conn, const 
 
 	for (const QString& op : { /*copyOp, pasteOp,*/ deleteOp })
 	{
-		QTreeWidgetItem* item = new QTreeWidgetItem(treeView);
+		QTreeWidgetItem* item = KNEW QTreeWidgetItem(treeView);
 		item->setText(0, op);
 		item->setData(0, Qt::UserRole, op);
 	}
@@ -218,20 +218,20 @@ void KEGraphView::contextMenuEvent(QContextMenuEvent *event)
 	QMenu modelMenu;
 
 	//Add filterbox to the context menu
-	QLineEdit *txtBox = new QLineEdit(&modelMenu);
+	QLineEdit *txtBox = KNEW QLineEdit(&modelMenu);
 	txtBox->setPlaceholderText(QStringLiteral("Filter"));
 	txtBox->setClearButtonEnabled(true);
 
-	QWidgetAction *txtBoxAction = new QWidgetAction(&modelMenu);
+	QWidgetAction *txtBoxAction = KNEW QWidgetAction(&modelMenu);
 	txtBoxAction->setDefaultWidget(txtBox);
 
 	modelMenu.addAction(txtBoxAction);
 
 	//Add result treeview to the context menu
-	QTreeWidget *treeView = new QTreeWidget(&modelMenu);
+	QTreeWidget *treeView = KNEW QTreeWidget(&modelMenu);
 	treeView->header()->close();
 
-	QWidgetAction *treeViewAction = new QWidgetAction(&modelMenu);
+	QWidgetAction *treeViewAction = KNEW QWidgetAction(&modelMenu);
 	treeViewAction->setDefaultWidget(treeView);
 
 	modelMenu.addAction(treeViewAction);
@@ -239,7 +239,7 @@ void KEGraphView::contextMenuEvent(QContextMenuEvent *event)
 	m_Scene->GetRegistrar()->VisitModel([&](const QString& name, auto func)
 	{
 		QString testText = name;
-		QTreeWidgetItem* item = new QTreeWidgetItem(treeView);
+		QTreeWidgetItem* item = KNEW QTreeWidgetItem(treeView);
 		item->setText(0, name);
 		item->setData(0, Qt::UserRole, name);
 	});

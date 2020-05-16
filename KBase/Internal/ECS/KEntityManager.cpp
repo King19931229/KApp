@@ -12,7 +12,7 @@ namespace KECS
 		assert(!EntityManager);
 		if (!EntityManager)
 		{
-			EntityManager = IKEntityManagerPtr(new KEntityManager());
+			EntityManager = IKEntityManagerPtr(KNEW KEntityManager());
 			((KEntityManager*)EntityManager.get())->Init();
 			return true;
 		}
@@ -64,7 +64,7 @@ void KEntityManager::UnInit()
 IKEntityPtr KEntityManager::CreateEntity()
 {
 	size_t id = GetAvailibleID();
-	IKEntityPtr entity = IKEntityPtr(new KEntity(id));
+	IKEntityPtr entity = IKEntityPtr(KNEW KEntity(id));
 	assert(m_Entities.find(id) == m_Entities.end());
 	m_Entities[id] = entity;
 	return entity;

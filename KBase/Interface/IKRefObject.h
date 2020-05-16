@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include "KBase/Publish/KConfig.h"
 
 class IKRefObject
 {
@@ -17,7 +18,7 @@ public:
 		m_Ref -= 1;
 		if(m_Ref == 0)
 		{
-			delete this;
+			KDELETE this;
 		}
 	}
 };
