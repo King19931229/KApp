@@ -43,7 +43,8 @@ public:
 
 #define KRTTR_REG_METADATA rttr::metadata
 
-#define KRTTR_REG_PROPERTY(property_name, data_type) .property(#property_name, &KRTTR_REG_CLASS_NAME::##property_name)(KRTTR_REG_METADATA(META_DATA_TYPE, data_type))
+#define KRTTR_REG_PROPERTY_CUSTOM_NAME(property_name, member_name, data_type) .property(#property_name, &KRTTR_REG_CLASS_NAME::##member_name)(KRTTR_REG_METADATA(META_DATA_TYPE, data_type))
+#define KRTTR_REG_PROPERTY(property_name, data_type) KRTTR_REG_PROPERTY_CUSTOM_NAME(property_name, property_name, data_type)
 
 #define KRTTR_REG_PROPERTY_GET_SET_NOTIFY(property_name, getter, setter, data_type, notify_type) .property(#property_name, &KRTTR_REG_CLASS_NAME::##getter, &KRTTR_REG_CLASS_NAME::##setter)(KRTTR_REG_METADATA(META_DATA_TYPE, data_type), KRTTR_REG_METADATA(META_DATA_NOTIFY, notify_type))
 #define KRTTR_REG_PROPERTY_GET_SET(property_name, getter, setter, data_type) KRTTR_REG_PROPERTY_GET_SET_NOTIFY(property_name, getter, setter, data_type, MDN_NONE)

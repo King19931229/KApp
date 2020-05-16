@@ -12,12 +12,53 @@ KEReflectObjectTreeModel::~KEReflectObjectTreeModel()
 	SAFE_DELETE(m_RootItem);
 }
 
-void KEReflectObjectTreeModel::SetReflection(KReflectionObjectBase* reflection)
+void KEReflectObjectTreeModel::AddReflection(KReflectionObjectBase* reflection)
 {
-	SAFE_DELETE(m_RootItem);
-	if (reflection)
+	m_Reflections.insert(reflection);
+	if (!m_RootItem)
 	{
-		m_RootItem = new KEReflectionObjectItem(nullptr, reflection);
+		m_RootItem = new KEReflectionObjectItem(nullptr, reflection, "");
+	}
+	else
+	{
+		m_RootItem->Merge(reflection);
+	}
+}
+
+void KEReflectObjectTreeModel::RemoveReflection(KReflectionObjectBase* _reflection)
+{
+	m_Reflections.erase(_reflection);
+
+	SAFE_DELETE(m_RootItem);
+	for (KReflectionObjectBase* remain : m_Reflections)
+	{
+		if (!m_RootItem)
+		{
+			m_RootItem = new KEReflectionObjectItem(nullptr, remain, "");
+		}
+		else
+		{
+			m_RootItem->Merge(remain);
+		}
+	}
+}
+
+void KEReflectObjectTreeModel::RefreshReflection(KReflectionObjectBase* reflection)
+{
+	if (m_Reflections.find(reflection) != m_Reflections.end())
+	{
+		SAFE_DELETE(m_RootItem);
+		for (KReflectionObjectBase* remain : m_Reflections)
+		{
+			if (!m_RootItem)
+			{
+				m_RootItem = new KEReflectionObjectItem(nullptr, remain, "");
+			}
+			else
+			{
+				m_RootItem->Merge(remain);
+			}
+		}
 	}
 }
 
@@ -95,7 +136,7 @@ QModelIndex KEReflectObjectTreeModel::parent(const QModelIndex &index) const
 	{
 		KEReflectionObjectItem *parentItem = childItem->GetParent();
 
-		if (!parentItem || parentItem == m_RootItem)
+		if (parentItem == m_RootItem)
 			return QModelIndex();
 
 		return createIndex(parentItem->GetIndex(), 0, parentItem);

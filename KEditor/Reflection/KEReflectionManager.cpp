@@ -21,18 +21,8 @@ bool KEReflectionManager::Init(KEReflectPropertyWidget* widget)
 
 bool KEReflectionManager::UnInit()
 {
-	if (m_PropertyWidget)
-	{
-		m_PropertyWidget->SetObject(nullptr);
-	}
 	m_PropertyWidget = nullptr;
 	return true;
-}
-
-void KEReflectionManager::ClearProperty(KReflectionObjectBase* object)
-{
-	assert(m_PropertyWidget);
-	m_PropertyWidget->ClearObject(object);
 }
 
 void KEReflectionManager::NotifyToProperty(KReflectionObjectBase* object)
@@ -46,8 +36,14 @@ void KEReflectionManager::NotifyToEditor(KReflectionObjectBase* object)
 	KEditorGlobal::EntityManipulator.UpdateGizmoTransform();
 }
 
-void KEReflectionManager::SetCurrent(KReflectionObjectBase* object)
+void KEReflectionManager::Add(KReflectionObjectBase* object)
 {
 	assert(m_PropertyWidget);
-	m_PropertyWidget->SetObject(object);
+	m_PropertyWidget->AddObject(object);
+}
+
+void KEReflectionManager::Remove(KReflectionObjectBase* object)
+{
+	assert(m_PropertyWidget);
+	m_PropertyWidget->RemoveObject(object);
 }

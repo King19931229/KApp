@@ -22,9 +22,23 @@ protected:
 					// Qt这套规则setIndexWidget一定会持有对象
 					// 导致这套持有机制非常恶心
 					m_ViewHolders.push_back(view);
+					
+					QWidget* wholeWidget = new QWidget();
+
+					QLabel* label = new QLabel(wholeWidget);
+					label->setText(item->GetName().c_str());
+
 					QWidget* widget = view->MoveWidget();
+					widget->setParent(wholeWidget);
 					assert(widget);
-					setIndexWidget(index, widget);
+
+					QHBoxLayout* layout = new QHBoxLayout(wholeWidget);
+					layout->addWidget(label);
+					layout->addWidget(widget);
+
+					wholeWidget->setLayout(layout);
+
+					setIndexWidget(index, wholeWidget);
 				}
 			}
 

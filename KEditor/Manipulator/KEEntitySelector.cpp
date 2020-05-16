@@ -35,15 +35,16 @@ bool KEEntitySelector::Add(KEEntityPtr entity)
 		if (it == m_SelectEntites.end())
 		{
 			m_SelectEntites.insert(std::make_pair(entity->soul->GetID(), entity));
+
 			if (m_SceneItemWidget)
 			{
 				m_SceneItemWidget->Select(entity, true);
-
-				// TODO 先看看效果
-				KReflectionObjectBase* reflection = nullptr;
-				entity->soul->QueryReflection(&reflection);
-				KEditorGlobal::ReflectionManager.SetCurrent(reflection);
 			}
+
+			KReflectionObjectBase* reflection = nullptr;
+			entity->soul->QueryReflection(&reflection);
+			KEditorGlobal::ReflectionManager.Add(reflection);
+
 			KEditorGlobal::EntityManipulator.UpdateGizmoTransform();
 			return true;
 		}
@@ -67,7 +68,16 @@ bool KEEntitySelector::Remove(IKEntity::IDType id)
 	{
 		KEEntityPtr entity = it->second;
 		m_SelectEntites.erase(it);
-		m_SceneItemWidget->Select(entity, false);
+
+		if (m_SceneItemWidget)
+		{
+			m_SceneItemWidget->Select(entity, false);
+		}
+
+		KReflectionObjectBase* reflection = nullptr;
+		entity->soul->QueryReflection(&reflection);
+		KEditorGlobal::ReflectionManager.Remove(reflection);
+
 		KEditorGlobal::EntityManipulator.UpdateGizmoTransform();
 		return true;
 	}

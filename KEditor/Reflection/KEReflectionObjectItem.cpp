@@ -10,207 +10,27 @@
 #include <algorithm>
 
 KEReflectionObjectItem::KEReflectionObjectItem()
-	: m_Parent(nullptr),
-	m_Object(nullptr),
-	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),
-	m_Children(nullptr),
+	: m_Type(OBJECT_MEMBER_TYPE_SUB_NONE),
+	m_Index(0),
 	m_NumChildren(0),
-	m_Index(-1)
+	m_Object(nullptr),
+	m_Parent(nullptr),
+	m_Children(nullptr)	
 {
 }
 
-KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
-{
-	KEPropertyBaseView::BasePtr ret = nullptr;
-
-	KReflectionObjectBase* object = m_Parent->m_Object;
-
-	auto type = KRTTR_GET_TYPE(object);
-	ASSERT_RESULT(type.is_valid());
-
-	auto prop = type.get_property(m_Name);
-	ASSERT_RESULT(prop.is_valid());
-
-	auto prop_name = prop.get_name();
-	auto prop_value = prop.get_value(object);
-	auto prop_meta = prop.get_metadata(META_DATA_TYPE);
-
-	if (prop_value.is_valid() && prop_meta.is_valid())
-	{
-		MetaDataType metaDataType = prop_meta.get_value<MetaDataType>();
-		switch (metaDataType)
-		{
-			case MDT_INT:
-			{
-				int value = prop_value.get_value<int>();
-
-				auto intView = KEditor::MakeLineEditView<int>(value);
-				intView->Cast<int>()->AddListener([object, prop_name](int value)
-				{
-					auto type = KRTTR_GET_TYPE(object);
-					auto prop_write_value = type.get_property(prop_name);
-					if (!prop_write_value.is_readonly())
-					{
-						prop_write_value.set_value(*object, value);
-
-						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
-						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
-						{
-							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
-						}
-					}
-				});
-
-				ret = intView;
-				break;
-			}
-
-			case MDT_FLOAT:
-			{
-				int value = prop_value.get_value<float>();
-
-				auto floatView = KEditor::MakeLineEditView<float>(value);
-				floatView->Cast<float>()->AddListener([object, prop_name](float value)
-				{
-					auto type = KRTTR_GET_TYPE(object);
-					auto prop_write_value = type.get_property(prop_name);
-					if (!prop_write_value.is_readonly())
-					{
-						prop_write_value.set_value(*object, value);
-
-						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
-						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
-						{
-							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
-						}
-					}
-				});
-
-				ret = floatView;
-				break;
-			}
-
-			case MDT_STDSTRING:
-			{
-				std::string value = prop_value.get_value<std::string>();
-
-				auto stringView = KEditor::MakeLineEditView<std::string>(value);
-				stringView->Cast<std::string>()->AddListener([object, prop_name](const std::string& value)
-				{
-					auto type = KRTTR_GET_TYPE(object);
-					auto prop_write_value = type.get_property(prop_name);
-					if (!prop_write_value.is_readonly())
-					{
-						prop_write_value.set_value(*object, value);
-
-						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
-						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
-						{
-							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
-						}
-					}
-				});
-
-				ret = stringView;
-				break;
-			}
-
-			case MDT_FLOAT2:
-			{
-				glm::vec2 value = prop_value.get_value<glm::vec2>();
-
-				auto vecView = KEditor::MakeLineEditView<float, 2>({ value[0], value[1] });
-				vecView->Cast<float, 2>()->AddListener([object, prop_name](const auto& float2value)
-				{
-					auto type = KRTTR_GET_TYPE(object);
-					auto prop_write_value = type.get_property(prop_name);
-					if (!prop_write_value.is_readonly())
-					{
-						prop_write_value.set_value(*object, glm::vec2(float2value[0], float2value[1]));
-
-						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
-						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
-						{
-							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
-						}
-					}
-				});
-
-				ret = vecView;
-				break;
-			}
-
-			case MDT_FLOAT3:
-			{
-				glm::vec3 value = prop_value.get_value<glm::vec3>();
-
-				auto vecView = KEditor::MakeLineEditView<float, 3>({ value[0], value[1], value[2] });
-				vecView->Cast<float, 3>()->AddListener([object, prop_name](const auto& float3value)
-				{
-					auto type = KRTTR_GET_TYPE(object);
-					auto prop_write_value = type.get_property(prop_name);
-					if (!prop_write_value.is_readonly())
-					{
-						prop_write_value.set_value(*object, glm::vec3(float3value[0], float3value[1], float3value[2]));
-
-						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
-						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
-						{
-							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
-						}
-					}
-				});
-
-				ret = vecView;
-				break;
-			}
-
-			case MDT_FLOAT4:
-			{
-				glm::vec4 value = prop_value.get_value<glm::vec4>();
-
-				auto vecView = KEditor::MakeLineEditView<float, 4>({ value[0], value[1], value[2], value[3] });
-				vecView->Cast<float, 4>()->AddListener([object, prop_name](const auto& float4value)
-				{
-					auto type = KRTTR_GET_TYPE(object);
-					auto prop_write_value = type.get_property(prop_name);
-					if (!prop_write_value.is_readonly())
-					{
-						prop_write_value.set_value(*object, glm::vec4(float4value[0], float4value[1], float4value[2], float4value[3]));
-
-						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
-						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
-						{
-							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
-						}
-					}
-				});
-
-				ret = vecView;
-				break;
-			}
-
-			default:
-				assert(false && "should not reach");
-				break;
-			}
-	}
-
-	return ret;
-}
-
-KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, KReflectionObjectBase* object)
-	: m_Parent(parent),
+KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, KReflectionObjectBase* object, const std::string& name)
+	: m_Name(name),
+	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),	
+	m_Index(0),
+	m_NumChildren(0),
 	m_Object(object),
-	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),
+	m_ParentObjects(parent ? decltype(m_ParentObjects){ parent->m_Object } : decltype(m_ParentObjects){}),
 	m_Children(nullptr),
-	m_NumChildren(0)
+	m_Parent(parent)	
 {
 	auto type = KRTTR_GET_TYPE(object);
 	ASSERT_RESULT(type.is_valid());
-
-	auto name = type.get_name();
-	m_Name = name.to_string();
 
 	m_NumChildren = type.get_properties().size();
 
@@ -245,7 +65,7 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 					KReflectionObjectBase* subObject = prop_value.get_value<KReflectionObjectBase*>();
 					if (subObject)
 					{
-						m_Children[idx++] = new KEReflectionObjectItem(this, subObject);
+						m_Children[idx++] = new KEReflectionObjectItem(this, subObject, prop_name.to_string());
 					}
 					else
 					{
@@ -277,12 +97,14 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 }
 
 KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, const std::string& name)
-	: m_Parent(parent),
-	m_Name(name),
-	m_Object(nullptr),
+	: m_Name(name),
 	m_Type(OBJECT_MEMBER_TYPE_PROPERTY),
-	m_Children(nullptr),
-	m_NumChildren(0)
+	m_Index(0),
+	m_NumChildren(0),
+	m_Object(nullptr),	
+	m_ParentObjects(parent ? decltype(m_ParentObjects){ parent->m_Object } : decltype(m_ParentObjects){}),
+	m_Parent(parent),
+	m_Children(nullptr)	
 {
 }
 
@@ -305,4 +127,264 @@ KEReflectionObjectItem* KEReflectionObjectItem::GetChild(size_t childIndex)
 		return m_Children[childIndex];
 	}
 	return nullptr;
+}
+
+KEReflectionObjectItem* KEReflectionObjectItem::FindChild(const std::string& name)
+{
+	for (size_t i = 0; i < m_NumChildren; ++i)
+	{
+		if (m_Children[i]->m_Name == name)
+		{
+			return m_Children[i];
+		}
+	}
+	return nullptr;
+}
+
+void KEReflectionObjectItem::Merge(KReflectionObjectBase* object)
+{
+	auto type = KRTTR_GET_TYPE(m_Object);
+	ASSERT_RESULT(type.is_valid());
+
+	auto object_type = KRTTR_GET_TYPE(object);
+	ASSERT_RESULT(object_type.is_valid());
+
+	if (type != object_type)
+	{
+		return;
+	}
+
+	for (size_t i = 0; i < m_NumChildren;)
+	{
+		std::string propName = m_Children[i]->m_Name;
+		ObjectMemberType memberType = m_Children[i]->m_Type;
+
+		auto prop = type.get_property(propName);		
+		auto prop_meta = prop.get_metadata(META_DATA_TYPE);
+
+		if (prop.is_valid() && prop_meta.is_valid())
+		{
+			if (memberType == OBJECT_MEMBER_TYPE_PROPERTY)
+			{
+				m_Children[i]->m_ParentObjects.insert(object);
+			}
+			else if (memberType == OBJECT_MEMBER_TYPE_SUB_OBJECT)
+			{
+				auto prop_value = prop.get_value(object);
+				m_Children[i]->Merge(prop_value.get_value<KReflectionObjectBase*>());
+			}
+
+			++i;
+		}
+		else
+		{
+			--m_NumChildren;
+			if (m_NumChildren > 0)
+			{
+				for (size_t j = 0; i < m_NumChildren - 1; ++j)
+				{
+					m_Children[j] = m_Children[j + 1];
+				}
+			}
+		}
+	}
+}
+
+KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
+{
+	KEPropertyBaseView::BasePtr ret = nullptr;
+
+	ASSERT_RESULT(!m_ParentObjects.empty());
+	KReflectionObjectBase* object = *m_ParentObjects.begin();
+
+	auto type = KRTTR_GET_TYPE(object);
+	ASSERT_RESULT(type.is_valid());
+
+	auto prop = type.get_property(m_Name);
+	ASSERT_RESULT(prop.is_valid());
+
+	auto prop_name = prop.get_name();
+	auto prop_value = prop.get_value(object);
+	auto prop_meta = prop.get_metadata(META_DATA_TYPE);
+
+	if (prop_value.is_valid() && prop_meta.is_valid())
+	{
+		MetaDataType metaDataType = prop_meta.get_value<MetaDataType>();
+		switch (metaDataType)
+		{
+		case MDT_INT:
+		{
+			int value = prop_value.get_value<int>();
+
+			auto intView = KEditor::MakeLineEditView<int>(value);
+			intView->Cast<int>()->AddListener([this, prop_name](int value)
+			{
+				for (KReflectionObjectBase* object : m_ParentObjects)
+				{
+					auto type = KRTTR_GET_TYPE(object);
+					auto prop_write_value = type.get_property(prop_name);
+					if (!prop_write_value.is_readonly())
+					{
+						prop_write_value.set_value(*object, value);
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
+					}
+				}
+			});
+
+			ret = intView;
+			break;
+		}
+
+		case MDT_FLOAT:
+		{
+			int value = prop_value.get_value<float>();
+
+			auto floatView = KEditor::MakeLineEditView<float>(value);
+			floatView->Cast<float>()->AddListener([this, prop_name](float value)
+			{
+				for (KReflectionObjectBase* object : m_ParentObjects)
+				{
+					auto type = KRTTR_GET_TYPE(object);
+					auto prop_write_value = type.get_property(prop_name);
+					if (!prop_write_value.is_readonly())
+					{
+						prop_write_value.set_value(*object, value);
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
+					}
+				}
+			});
+
+			ret = floatView;
+			break;
+		}
+
+		case MDT_STDSTRING:
+		{
+			std::string value = prop_value.get_value<std::string>();
+
+			auto stringView = KEditor::MakeLineEditView<std::string>(value);
+			stringView->Cast<std::string>()->AddListener([this, prop_name](const std::string& value)
+			{
+				for (KReflectionObjectBase* object : m_ParentObjects)
+				{
+					auto type = KRTTR_GET_TYPE(object);
+					auto prop_write_value = type.get_property(prop_name);
+					if (!prop_write_value.is_readonly())
+					{
+						prop_write_value.set_value(*object, value);
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
+					}
+				}
+			});
+
+			ret = stringView;
+			break;
+		}
+
+		case MDT_FLOAT2:
+		{
+			glm::vec2 value = prop_value.get_value<glm::vec2>();
+
+			auto vecView = KEditor::MakeLineEditView<float, 2>({ value[0], value[1] });
+			vecView->Cast<float, 2>()->AddListener([this, prop_name](const auto& float2value)
+			{
+				for (KReflectionObjectBase* object : m_ParentObjects)
+				{
+					auto type = KRTTR_GET_TYPE(object);
+					auto prop_write_value = type.get_property(prop_name);
+					if (!prop_write_value.is_readonly())
+					{
+						prop_write_value.set_value(*object, glm::vec2(float2value[0], float2value[1]));
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
+					}
+				}
+			});
+
+			ret = vecView;
+			break;
+		}
+
+		case MDT_FLOAT3:
+		{
+			glm::vec3 value = prop_value.get_value<glm::vec3>();
+
+			auto vecView = KEditor::MakeLineEditView<float, 3>({ value[0], value[1], value[2] });
+			vecView->Cast<float, 3>()->AddListener([this, prop_name](const auto& float3value)
+			{
+				for (KReflectionObjectBase* object : m_ParentObjects)
+				{
+					auto type = KRTTR_GET_TYPE(object);
+					auto prop_write_value = type.get_property(prop_name);
+					if (!prop_write_value.is_readonly())
+					{
+						prop_write_value.set_value(*object, glm::vec3(float3value[0], float3value[1], float3value[2]));
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
+					}
+				}
+			});
+
+			ret = vecView;
+			break;
+		}
+
+		case MDT_FLOAT4:
+		{
+			glm::vec4 value = prop_value.get_value<glm::vec4>();
+
+			auto vecView = KEditor::MakeLineEditView<float, 4>({ value[0], value[1], value[2], value[3] });
+			vecView->Cast<float, 4>()->AddListener([this, prop_name](const auto& float4value)
+			{
+				for (KReflectionObjectBase* object : m_ParentObjects)
+				{
+					auto type = KRTTR_GET_TYPE(object);
+					auto prop_write_value = type.get_property(prop_name);
+					if (!prop_write_value.is_readonly())
+					{
+						prop_write_value.set_value(*object, glm::vec4(float4value[0], float4value[1], float4value[2], float4value[3]));
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
+					}
+				}
+			});
+
+			ret = vecView;
+			break;
+		}
+
+		default:
+			assert(false && "should not reach");
+			break;
+		}
+	}
+
+	return ret;
 }
