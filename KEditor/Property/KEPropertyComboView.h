@@ -14,6 +14,7 @@ public:
 	typedef std::unordered_map<std::string, T> TextToEnumMapType;
 	typedef std::unordered_map<T, std::string> EnumToTextMapType;
 protected:
+	QWidget* m_MainWidget;
 	QComboBox *m_Widget[DIMENSION];
 	QHBoxLayout *m_Layout;
 
@@ -81,10 +82,12 @@ public:
 	KEPropertyComboView(ModelPtrType model)
 		: KEPropertyView(model)
 	{
-		m_Layout = new QHBoxLayout();
+		m_MainWidget = new QWidget();
+
+		m_Layout = new QHBoxLayout(m_MainWidget);
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_Widget[i] = new QComboBox();
+			m_Widget[i] = new QComboBox(m_MainWidget);
 			m_Widget[i]->setCurrentIndex(-1);
 
 			QObject::connect(m_Widget[i], &QComboBox::currentTextChanged,
@@ -96,6 +99,7 @@ public:
 			m_Layout->addWidget(m_Widget[i]);
 		}
 
+		m_MainWidget->setLayout(m_Layout);
 		// UpdateView(*m_Model);
 	}
 
@@ -134,16 +138,19 @@ public:
 
 	~KEPropertyComboView()
 	{
-		SAFE_DELETE(m_Layout);
-		for (size_t i = 0; i < DIMENSION; ++i)
-		{
-			SAFE_DELETE(m_Widget[i]);
-		}
+		SAFE_DELETE(m_MainWidget);
 	}
 
-	QLayout* GetLayout() override
+	QWidget* GetWidget() override
 	{
-		return m_Layout;
+		return m_MainWidget;
+	}
+
+	QWidget* MoveWidget() override
+	{
+		QWidget* ret = m_MainWidget;
+		m_MainWidget = nullptr;
+		return ret;
 	}
 };
 

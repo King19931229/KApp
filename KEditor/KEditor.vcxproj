@@ -178,7 +178,7 @@
     <ClInclude Include="Property\KEPropertyModel.h" />
     <ClInclude Include="Property\KEPropertyLineEditView.h" />
     <ClInclude Include="Property\KEPropertySliderView.h" />
-    <QtMoc Include="Reflection\KEReflectionManager.h" />
+    <ClInclude Include="Reflection\KEReflectionManager.h" />
     <ClInclude Include="Reflection\KEReflectionObjectItem.h" />
     <QtMoc Include="Reflection\KEReflectObjectTreeModel.h" />
     <ClInclude Include="Reflection\KEReflectObjectTreeView.h" />

@@ -9,6 +9,7 @@ template<typename T, size_t DIMENSION = 1>
 class KEPropertyCheckBoxView : public KEPropertyView<T, DIMENSION>
 {
 protected:
+	QWidget* m_MainWidget;
 	QCheckBox* m_Widget[DIMENSION];
 	QHBoxLayout *m_Layout;
 
@@ -40,6 +41,8 @@ public:
 	KEPropertyCheckBoxView(ModelPtrType model)
 		: KEPropertyView(model)
 	{
+		m_MainWidget = new QWidget();
+
 		TypeCheck(T());
 
 		m_Layout = new QHBoxLayout();
@@ -56,6 +59,8 @@ public:
 			m_Layout->addWidget(m_Widget[i]);
 		}
 
+		m_MainWidget->setLayout(m_Layout);
+
 		UpdateView(*m_Model);
 	}
 
@@ -65,12 +70,14 @@ public:
 		{
 			SAFE_DELETE(m_Widget[i]);
 		}
+		m_MainWidget->setLayout(nullptr);
 		SAFE_DELETE(m_Layout);
+		SAFE_DELETE(m_MainWidget);
 	}
 
-	QLayout* GetLayout() override
+	QLayout* GetWidget() override
 	{
-		return m_Layout;
+		return m_MainWidget;
 	}
 };
 

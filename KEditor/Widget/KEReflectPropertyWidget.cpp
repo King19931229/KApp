@@ -34,15 +34,6 @@ QSize KEReflectPropertyWidget::sizeHint() const
 	return QSize(width, height);
 }
 
-void KEReflectPropertyWidget::SetWidget(KEReflectObjectWidget* widget)
-{
-	if (centralWidget())
-	{
-		centralWidget()->setParent(nullptr);
-	}
-	setCentralWidget(widget);
-}
-
 void KEReflectPropertyWidget::SetObject(KReflectionObjectBase* reflection)
 {
 	if (centralWidget())
@@ -53,6 +44,9 @@ void KEReflectPropertyWidget::SetObject(KReflectionObjectBase* reflection)
 	m_TreeView->setModel(nullptr);
 	m_TreeModel->SetReflection(reflection);
 	m_TreeView->setModel(m_TreeModel);
+
+	setCentralWidget(m_TreeView);
+	m_TreeView->expandAll();
 }
 
 bool KEReflectPropertyWidget::Init()

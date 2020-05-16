@@ -10,6 +10,7 @@ template<typename T, size_t DIMENSION = 1>
 class KEPropertyLineEditView : public KEPropertyView<T, DIMENSION>
 {
 protected:
+	QWidget* m_MainWidget;
 	QLineEdit *m_Widget[DIMENSION];
 	QHBoxLayout *m_Layout;
 
@@ -97,33 +98,44 @@ public:
 	KEPropertyLineEditView(ModelPtrType model)
 		: KEPropertyView(model)
 	{
-		m_Layout = new QHBoxLayout();
+		m_MainWidget = new QWidget();
+
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_Widget[i] = new QLineEdit();
+			m_Widget[i] = new QLineEdit(m_MainWidget);
 			SetWidgetValidator(*m_Widget[i], T());
-			m_Layout->addWidget(m_Widget[i]);
 			QObject::connect(m_Widget[i], &QLineEdit::textChanged, [=, this](const QString& newText)
 			{
 				SetModelData(i, newText);
 			});
 		}
 
+		m_Layout = new QHBoxLayout(m_MainWidget);
+		for (size_t i = 0; i < DIMENSION; ++i)
+		{
+			m_Layout->addWidget(m_Widget[i]);
+		}
+
+		m_MainWidget->setLayout(m_Layout);
+
 		UpdateView(*m_Model);
 	}
 
 	~KEPropertyLineEditView()
 	{
-		SAFE_DELETE(m_Layout);
-		for (size_t i = 0; i < DIMENSION; ++i)
-		{
-			SAFE_DELETE(m_Widget[i]);
-		}
+		SAFE_DELETE(m_MainWidget);
 	}
 
-	QLayout* GetLayout() override
+	QWidget* GetWidget() override
 	{
-		return m_Layout;
+		return m_MainWidget;
+	}
+
+	QWidget* MoveWidget() override
+	{
+		QWidget* ret = m_MainWidget;
+		m_MainWidget = nullptr;
+		return ret;
 	}
 };
 

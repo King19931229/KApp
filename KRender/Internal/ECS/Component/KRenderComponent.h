@@ -25,8 +25,8 @@ protected:
 	static const char* ResourceTypeToString(ResourceType type);
 	static ResourceType StringToResourceType(const char* str);
 
-	const char* GetPathCStr() const { return m_Path.c_str(); }
-	const char* GetTypeCStr() const { return ResourceTypeToString(m_Type); }
+	const std::string GetPathString() const { return m_Path; }
+	const std::string GetTypeString() const { return std::string(ResourceTypeToString(m_Type)); }
 public:
 	KRenderComponent();
 	virtual ~KRenderComponent();

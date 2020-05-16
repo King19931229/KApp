@@ -10,8 +10,6 @@ enum MetaDataType
 {
 	MDT_INT,
 	MDT_FLOAT,
-	// TODO Abandon
-	MDT_CSTR,
 	MDT_STDSTRING,
 
 	MDT_FLOAT2,

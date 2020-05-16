@@ -263,9 +263,6 @@
     <QtMoc Include="Widget\KESceneItemWidget.h">
       <Filter>Widget</Filter>
     </QtMoc>
-    <QtMoc Include="Reflection\KEReflectionManager.h">
-      <Filter>Reflection</Filter>
-    </QtMoc>
     <QtMoc Include="Widget\KEReflectPropertyWidget.h">
       <Filter>Widget</Filter>
     </QtMoc>
@@ -396,6 +393,9 @@
       <Filter>Reflection</Filter>
     </ClInclude>
     <ClInclude Include="Reflection\KEReflectObjectTreeView.h">
+      <Filter>Reflection</Filter>
+    </ClInclude>
+    <ClInclude Include="Reflection\KEReflectionManager.h">
       <Filter>Reflection</Filter>
     </ClInclude>
   </ItemGroup>

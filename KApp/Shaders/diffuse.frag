@@ -102,7 +102,7 @@ const bool debug_layer = false;
 
 void main()
 {
-	//outColor = texture(texSampler, uv);
+	outColor = texture(texSampler, uv);
 	//if(outColor.a == 0.0)
 	//{
 	//	discard;

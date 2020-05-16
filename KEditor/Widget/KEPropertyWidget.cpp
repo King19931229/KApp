@@ -35,7 +35,7 @@ bool KEPropertyWidget::UnInit()
 			m_Layout->removeItem(it->layout);
 
 			it->layout->removeWidget(it->label);
-			it->layout->removeItem(it->propertyView->GetLayout());
+			it->layout->removeWidget(it->propertyView->GetWidget());
 
 			SAFE_DELETE(it->layout);
 			SAFE_DELETE(it->label);
@@ -67,7 +67,7 @@ bool KEPropertyWidget::AppendItem(const std::string& name, KEPropertyBaseView::B
 		newItem.propertyView = propertyView;
 
 		static_cast<QHBoxLayout*>(newItem.layout)->addWidget(newItem.label);
-		static_cast<QHBoxLayout*>(newItem.layout)->addLayout(propertyView->GetLayout());
+		static_cast<QHBoxLayout*>(newItem.layout)->addWidget(propertyView->GetWidget());
 
 		m_Layout->addLayout(newItem.layout);
 
@@ -93,7 +93,7 @@ bool KEPropertyWidget::RemoveItem(const std::string& name)
 		m_Layout->removeItem(it->layout);
 
 		it->layout->removeWidget(it->label);
-		it->layout->removeItem(it->propertyView->GetLayout());
+		it->layout->removeWidget(it->propertyView->GetWidget());
 
 		SAFE_DELETE(it->layout);
 		SAFE_DELETE(it->label);

@@ -11,6 +11,7 @@ class KEPropertySliderView : public KEPropertyView<T, DIMENSION>
 {
 protected:
 	T m_Min, m_Max;
+	QWidget* m_MainWidget;
 	QSlider* m_Slider[DIMENSION];
 	QSpinBox* m_SpinBox[DIMENSION];
 	QHBoxLayout* m_SubLayout[DIMENSION];
@@ -76,19 +77,21 @@ public:
 	KEPropertySliderView(ModelPtrType model)
 		: KEPropertyView(model)
 	{
+		m_MainWidget = new QWidget();
+
 		TypeCheck(T());
 
 		m_Min = FindMinValue();
 		m_Max = FindMaxValue();
 
-		m_Layout = new QVBoxLayout();
+		m_Layout = new QVBoxLayout(m_MainWidget);
 
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_SubLayout[i] = new QHBoxLayout();
+			m_SubLayout[i] = new QHBoxLayout(m_MainWidget);
 
-			m_Slider[i] = new QSlider();
-			m_SpinBox[i] = new QSpinBox();
+			m_Slider[i] = new QSlider(m_MainWidget);
+			m_SpinBox[i] = new QSpinBox(m_MainWidget);
 
 			m_Slider[i]->setOrientation(Qt::Horizontal);
 			m_Slider[i]->setSingleStep(1);
@@ -109,6 +112,8 @@ public:
 			m_Layout->addLayout(m_SubLayout[i]);
 		}
 
+		m_MainWidget->setLayout(m_Layout);
+
 		OnRangeChange();
 		UpdateView(*m_Model);
 	}
@@ -125,18 +130,19 @@ public:
 
 	~KEPropertySliderView()
 	{
-		for (size_t i = 0; i < DIMENSION; ++i)
-		{
-			SAFE_DELETE(m_SubLayout[i]);
-			SAFE_DELETE(m_Slider[i]);
-			SAFE_DELETE(m_SpinBox[i]);
-		}
-		SAFE_DELETE(m_Layout);
+		SAFE_DELETE(m_MainWidget);
 	}
 
-	QLayout* GetLayout() override
+	QWidget* GetWidget() override
 	{
-		return m_Layout;
+		return m_MainWidget;
+	}
+
+	QWidget* MoveWidget() override
+	{
+		QWidget* ret = m_MainWidget;
+		m_MainWidget = nullptr;
+		return ret;
 	}
 };
 

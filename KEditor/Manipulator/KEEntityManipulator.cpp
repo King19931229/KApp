@@ -106,7 +106,6 @@ void KEEntityManipulator::WatchEntity(KEEntityPtr editorEntity)
 		KReflectionObjectBase* reflection = nullptr;
 		editorEntity->soul->QueryReflection(&reflection);
 		ASSERT_RESULT(reflection);
-		KEditorGlobal::ReflectionManager.Watch(reflection);
 
 		m_SceneItemWidget->Add(editorEntity);
 		m_Entities[editorEntity->soul->GetID()] = editorEntity;
@@ -120,7 +119,6 @@ void KEEntityManipulator::DiscardEntity(KEEntityPtr editorEntity)
 		KReflectionObjectBase* reflection = nullptr;
 		editorEntity->soul->QueryReflection(&reflection);
 		ASSERT_RESULT(reflection);
-		KEditorGlobal::ReflectionManager.Discard(reflection);
 	}
 }
 

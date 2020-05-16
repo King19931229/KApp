@@ -15,7 +15,10 @@ KEReflectObjectTreeModel::~KEReflectObjectTreeModel()
 void KEReflectObjectTreeModel::SetReflection(KReflectionObjectBase* reflection)
 {
 	SAFE_DELETE(m_RootItem);
-	m_RootItem = new KEReflectionObjectItem(nullptr, reflection);
+	if (reflection)
+	{
+		m_RootItem = new KEReflectionObjectItem(nullptr, reflection);
+	}
 }
 
 QVariant KEReflectObjectTreeModel::data(const QModelIndex &index, int role) const

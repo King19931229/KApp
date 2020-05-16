@@ -3,7 +3,6 @@
 #include <QMainWindow>
 #include <QVBoxLayout>
 
-class KEReflectObjectWidget;
 class KEReflectObjectTreeView;
 class KEReflectObjectTreeModel;
 
@@ -20,7 +19,6 @@ public:
 
 	QSize sizeHint() const override;
 
-	void SetWidget(KEReflectObjectWidget* widget);
 	void SetObject(KReflectionObjectBase* reflection);
 
 	bool Init();

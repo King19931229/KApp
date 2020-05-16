@@ -10,7 +10,6 @@
 KEReflectionObjectItem::KEReflectionObjectItem()
 	: m_Parent(nullptr),
 	m_Object(nullptr),
-	m_PropertyView(nullptr),
 	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),
 	m_Children(nullptr),
 	m_NumChildren(0),
@@ -18,35 +17,27 @@ KEReflectionObjectItem::KEReflectionObjectItem()
 {
 }
 
-KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, KReflectionObjectBase* object)
-	: m_Parent(parent),
-	m_Object(object),
-	m_PropertyView(nullptr),
-	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),
-	m_Children(nullptr),
-	m_NumChildren(0)
+KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
 {
+	KEPropertyBaseView::BasePtr ret = nullptr;
+
+	KReflectionObjectBase* object = m_Parent->m_Object;
+
 	auto type = KRTTR_GET_TYPE(object);
 	ASSERT_RESULT(type.is_valid());
 
-	auto name = type.get_name();
-	m_Name = name.to_string();
+	auto prop = type.get_property(m_Name);
+	ASSERT_RESULT(prop.is_valid());
 
-	m_NumChildren = type.get_properties().size();
-	m_Children = new KEReflectionObjectItem[m_NumChildren];
+	auto prop_name = prop.get_name();
+	auto prop_value = prop.get_value(object);
+	auto prop_meta = prop.get_metadata(META_DATA_TYPE);
 
-	size_t idx = 0;
-	for (auto& prop : type.get_properties())
+	if (prop_value.is_valid() && prop_meta.is_valid())
 	{
-		auto prop_name = prop.get_name();
-		auto prop_value = prop.get_value(object);
-		auto prop_meta = prop.get_metadata(META_DATA_TYPE);
-
-		if (prop_value.is_valid() && prop_meta.is_valid())
+		MetaDataType metaDataType = prop_meta.get_value<MetaDataType>();
+		switch (metaDataType)
 		{
-			MetaDataType metaDataType = prop_meta.get_value<MetaDataType>();
-			switch (metaDataType) {
-
 			case MDT_INT:
 			{
 				int value = prop_value.get_value<int>();
@@ -62,7 +53,7 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 					}
 				});
 
-				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), intView);
+				ret = intView;
 				break;
 			}
 
@@ -81,26 +72,7 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 					}
 				});
 
-				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), floatView);
-				break;
-			}
-
-			case MDT_CSTR:
-			{
-				const char* value = prop_value.get_value<const char*>();
-
-				auto cstrView = KEditor::MakeLineEditView<std::string>(value);
-				cstrView->Cast<std::string>()->AddListener([object, prop_name](const std::string& value)
-				{
-					auto type = KRTTR_GET_TYPE(object);
-					auto prop_write_value = type.get_property(prop_name);
-					if (!prop_write_value.is_readonly())
-					{
-						prop_write_value.set_value(*object, value);
-					}
-				});
-
-				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), cstrView);
+				ret = floatView;
 				break;
 			}
 
@@ -119,7 +91,7 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 					}
 				});
 
-				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), stringView);
+				ret = stringView;
 				break;
 			}
 
@@ -138,7 +110,7 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 					}
 				});
 
-				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), vecView);
+				ret = vecView;
 				break;
 			}
 
@@ -157,7 +129,7 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 					}
 				});
 
-				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), vecView);
+				ret = vecView;
 				break;
 			}
 
@@ -176,21 +148,7 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 					}
 				});
 
-				m_Children[idx] = KEReflectionObjectItem(this, prop_name.to_string(), vecView);
-				break;
-			}
-
-			case MDT_OBJECT:
-			{
-				KReflectionObjectBase* subObject = prop_value.get_value<KReflectionObjectBase*>();
-				if (subObject)
-				{
-					m_Children[idx] = KEReflectionObjectItem(this, subObject);
-				}
-				else
-				{
-					--m_NumChildren;
-				}
+				ret = vecView;
 				break;
 			}
 
@@ -198,31 +156,93 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 				assert(false && "should not reach");
 				break;
 			}
-		}
-		++idx;
 	}
 
-	std::sort(m_Children, m_Children + m_NumChildren, [](const KEReflectionObjectItem&lhs, const KEReflectionObjectItem& rhs)->bool
+	return ret;
+}
+
+KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, KReflectionObjectBase* object)
+	: m_Parent(parent),
+	m_Object(object),
+	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),
+	m_Children(nullptr),
+	m_NumChildren(0)
+{
+	auto type = KRTTR_GET_TYPE(object);
+	ASSERT_RESULT(type.is_valid());
+
+	auto name = type.get_name();
+	m_Name = name.to_string();
+
+	m_NumChildren = type.get_properties().size();
+
+	m_Children = new KEReflectionObjectItem*[m_NumChildren];
+	ZERO_ARRAY_MEMORY(m_Children);
+
+	size_t idx = 0;
+	for (auto& prop : type.get_properties())
 	{
-		if (lhs.m_Type != rhs.m_Type)
+		auto prop_name = prop.get_name();
+		auto prop_value = prop.get_value(object);
+		auto prop_meta = prop.get_metadata(META_DATA_TYPE);
+
+		if (prop_value.is_valid() && prop_meta.is_valid())
 		{
-			return lhs.m_Type < rhs.m_Type;
+			MetaDataType metaDataType = prop_meta.get_value<MetaDataType>();
+			switch (metaDataType)
+			{
+				case MDT_INT:
+				case MDT_FLOAT:
+				case MDT_STDSTRING:
+				case MDT_FLOAT2:
+				case MDT_FLOAT3:
+				case MDT_FLOAT4:
+				{
+					m_Children[idx++] = new KEReflectionObjectItem(this, prop_name.to_string());
+					break;
+				}
+
+				case MDT_OBJECT:
+				{
+					KReflectionObjectBase* subObject = prop_value.get_value<KReflectionObjectBase*>();
+					if (subObject)
+					{
+						m_Children[idx++] = new KEReflectionObjectItem(this, subObject);
+					}
+					else
+					{
+						--m_NumChildren;
+					}
+					break;
+				}
+
+				default:
+					assert(false && "should not reach");
+					break;
+			}
 		}
-		return lhs.m_Name < rhs.m_Name;
+	}
+
+	std::sort(m_Children, m_Children + m_NumChildren, [](const KEReflectionObjectItem* lhs, const KEReflectionObjectItem* rhs)->bool
+	{
+		if (lhs->m_Type != rhs->m_Type)
+		{
+			return lhs->m_Type < rhs->m_Type;
+		}
+		return lhs->m_Name < rhs->m_Name;
 	});
 
 	for (size_t i = 0; i < m_NumChildren; ++i)
 	{
-		m_Children[i].m_Index = i;
+		m_Children[i]->m_Index = i;
 	}
 }
 
-KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, const std::string& name, KEPropertyBaseView::BasePtr view)
+KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, const std::string& name)
 	: m_Parent(parent),
 	m_Name(name),
 	m_Object(nullptr),
-	m_PropertyView(view),
-	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),
+	m_Type(OBJECT_MEMBER_TYPE_PROPERTY),
 	m_Children(nullptr),
 	m_NumChildren(0)
 {
@@ -230,14 +250,21 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, c
 
 KEReflectionObjectItem::~KEReflectionObjectItem()
 {
-	SAFE_DELETE_ARRAY(m_Children);
+	if (m_Children)
+	{
+		for (size_t i = 0; i < m_NumChildren; ++i)
+		{
+			SAFE_DELETE(m_Children[i]);
+		}
+		SAFE_DELETE_ARRAY(m_Children);
+	}
 }
 
 KEReflectionObjectItem* KEReflectionObjectItem::GetChild(size_t childIndex)
 {
 	if (childIndex < m_NumChildren)
 	{
-		return &m_Children[childIndex];
+		return m_Children[childIndex];
 	}
 	return nullptr;
 }

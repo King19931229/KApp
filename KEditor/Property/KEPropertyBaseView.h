@@ -24,7 +24,9 @@ class KEPropertyBaseView
 public:
 	typedef std::shared_ptr<KEPropertyBaseView> BasePtr;
 	virtual ~KEPropertyBaseView() {}
-	virtual QLayout* GetLayout() = 0;
+
+	virtual QWidget* GetWidget() = 0;
+	virtual QWidget* MoveWidget() = 0;
 
 	// 转基础派生类
 	template<typename T, size_t DIMENSION = 1>
