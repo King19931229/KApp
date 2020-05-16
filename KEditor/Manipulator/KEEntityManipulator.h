@@ -48,7 +48,6 @@ protected:
 	void OnKeyboardListen(InputKeyboard key, InputAction action);
 	void OnMouseListen(InputMouseButton key, InputAction action, float x, float y);
 	void OnGizmoTransformChange(const glm::mat4& transform);
-	void UpdateGizmoTransform();
 	void OnGizmoTrigger(bool trigger);
 
 	KEEntityPtr GetEditorEntity(IKEntityPtr entity);
@@ -83,4 +82,6 @@ public:
 	bool SetManipulateMode(GizmoManipulateMode mode);
 
 	KEEntityPtr GetEntity(IKEntity::IDType id);
+
+	void UpdateGizmoTransform();
 };

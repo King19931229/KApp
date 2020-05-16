@@ -1,5 +1,6 @@
 #include "KEReflectionManager.h"
 #include "Widget/KEReflectPropertyWidget.h"
+#include "KEditorGlobal.h"
 #include <assert.h>
 
 KEReflectionManager::KEReflectionManager()
@@ -28,9 +29,21 @@ bool KEReflectionManager::UnInit()
 	return true;
 }
 
-bool KEReflectionManager::Refresh(KReflectionObjectBase* obect)
+void KEReflectionManager::ClearProperty(KReflectionObjectBase* object)
 {
-	return true;
+	assert(m_PropertyWidget);
+	m_PropertyWidget->ClearObject(object);
+}
+
+void KEReflectionManager::NotifyToProperty(KReflectionObjectBase* object)
+{
+	assert(m_PropertyWidget);
+	m_PropertyWidget->RefreshObject(object);
+}
+
+void KEReflectionManager::NotifyToEditor(KReflectionObjectBase* object)
+{
+	KEditorGlobal::EntityManipulator.UpdateGizmoTransform();
 }
 
 void KEReflectionManager::SetCurrent(KReflectionObjectBase* object)

@@ -7,7 +7,8 @@
 
 KEReflectPropertyWidget::KEReflectPropertyWidget(QWidget *parent)
 	: QMainWindow(parent),
-	m_MainWindow(parent)
+	m_MainWindow(parent),
+	m_Current(nullptr)
 {
 	m_TreeView = new KEReflectObjectTreeView();
 	m_TreeModel = new KEReflectObjectTreeModel();
@@ -47,6 +48,23 @@ void KEReflectPropertyWidget::SetObject(KReflectionObjectBase* reflection)
 
 	setCentralWidget(m_TreeView);
 	m_TreeView->expandAll();
+
+	m_Current = reflection;
+}
+
+void KEReflectPropertyWidget::RefreshObject(KReflectionObjectBase* reflection)
+{
+	// TODO 先这样解决
+	if (m_Current && m_Current == reflection)
+	{
+		SetObject(reflection);
+	}
+}
+
+void KEReflectPropertyWidget::ClearObject(KReflectionObjectBase* reflection)
+{
+	// TODO 先这样解决
+	SetObject(nullptr);
 }
 
 bool KEReflectPropertyWidget::Init()
@@ -56,5 +74,6 @@ bool KEReflectPropertyWidget::Init()
 
 bool KEReflectPropertyWidget::UnInit()
 {
+	m_Current = nullptr;
 	return true;
 }

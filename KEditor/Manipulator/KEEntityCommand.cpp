@@ -130,6 +130,12 @@ void KEEntitySceneTransformCommand::Execute()
 		KEEntityInfo& info = *it;
 		info.entity->createInfo.transform = info.currentTransform;
 		info.entity->soul->SetTransform(info.currentTransform);
+
+		KReflectionObjectBase* reflection = nullptr;
+		info.entity->soul->QueryReflection(&reflection);
+		ASSERT_RESULT(reflection);
+		KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
+
 		m_Scene->Move(info.entity->soul);
 		// 更新一下Gizmo的位置
 		m_Manipulator->UpdateGizmoTransform();
@@ -144,6 +150,12 @@ void KEEntitySceneTransformCommand::Undo()
 		KEEntityInfo& info = *it;
 		info.entity->createInfo.transform = info.previousTransform;
 		info.entity->soul->SetTransform(info.previousTransform);
+
+		KReflectionObjectBase* reflection = nullptr;
+		info.entity->soul->QueryReflection(&reflection);
+		ASSERT_RESULT(reflection);
+		KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
+
 		m_Scene->Move(info.entity->soul);
 		// 更新一下Gizmo的位置
 		m_Manipulator->UpdateGizmoTransform();

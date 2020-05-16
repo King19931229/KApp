@@ -13,6 +13,7 @@ protected:
 	QWidget* m_MainWindow;
 	KEReflectObjectTreeView* m_TreeView;
 	KEReflectObjectTreeModel* m_TreeModel;
+	KReflectionObjectBase* m_Current;
 public:
 	KEReflectPropertyWidget(QWidget *parent = Q_NULLPTR);
 	~KEReflectPropertyWidget();
@@ -20,6 +21,8 @@ public:
 	QSize sizeHint() const override;
 
 	void SetObject(KReflectionObjectBase* reflection);
+	void RefreshObject(KReflectionObjectBase* reflection);
+	void ClearObject(KReflectionObjectBase* reflection);
 
 	bool Init();
 	bool UnInit();

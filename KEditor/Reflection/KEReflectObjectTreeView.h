@@ -7,6 +7,8 @@
 class KEReflectObjectTreeView : public QTreeView
 {
 protected:
+	std::vector<KEPropertyBaseView::BasePtr> m_ViewHolders;
+
 	void SetupIndexWidget(QModelIndex index)
 	{
 		while (index.isValid())
@@ -16,8 +18,10 @@ protected:
 			{
 				KEPropertyBaseView::BasePtr view = item->CreateView();
 				if (view)
-				{
+				{				
 					// Qt这套规则setIndexWidget一定会持有对象
+					// 导致这套持有机制非常恶心
+					m_ViewHolders.push_back(view);
 					QWidget* widget = view->MoveWidget();
 					assert(widget);
 					setIndexWidget(index, widget);
@@ -56,6 +60,7 @@ public:
 
 		if (model)
 		{
+			m_ViewHolders.clear();
 			SetupIndexWidget(model->index(0, 0));
 		}
 	}

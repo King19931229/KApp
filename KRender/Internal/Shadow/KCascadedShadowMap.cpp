@@ -200,8 +200,12 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 
 		// Record the cascaded lit box for scene clipping
 		KAABBBox litBox;
-		// minExtents.z = -far;
 		maxExtents.z = -near;
+		// 这里主要是容错near far都为0的情况
+		if (maxExtents.z < minExtents.z)
+		{
+			minExtents.z = -far;
+		}
 		litBox.InitFromMinMax(minExtents, maxExtents);
 		litBox.Transform(glm::inverse(lightViewMatrix), litBox);
 		m_Cascadeds[i].litBox = litBox;

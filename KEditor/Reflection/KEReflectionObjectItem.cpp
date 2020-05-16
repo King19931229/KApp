@@ -5,6 +5,8 @@
 #include "Property/KEPropertySliderView.h"
 #include "Property/KEPropertyCheckBoxView.h"
 
+#include "KEditorGlobal.h"
+
 #include <algorithm>
 
 KEReflectionObjectItem::KEReflectionObjectItem()
@@ -50,6 +52,12 @@ KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
 					if (!prop_write_value.is_readonly())
 					{
 						prop_write_value.set_value(*object, value);
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
 					}
 				});
 
@@ -69,6 +77,12 @@ KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
 					if (!prop_write_value.is_readonly())
 					{
 						prop_write_value.set_value(*object, value);
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
 					}
 				});
 
@@ -88,6 +102,12 @@ KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
 					if (!prop_write_value.is_readonly())
 					{
 						prop_write_value.set_value(*object, value);
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
 					}
 				});
 
@@ -107,6 +127,12 @@ KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
 					if (!prop_write_value.is_readonly())
 					{
 						prop_write_value.set_value(*object, glm::vec2(float2value[0], float2value[1]));
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
 					}
 				});
 
@@ -126,6 +152,12 @@ KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
 					if (!prop_write_value.is_readonly())
 					{
 						prop_write_value.set_value(*object, glm::vec3(float3value[0], float3value[1], float3value[2]));
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
 					}
 				});
 
@@ -145,6 +177,12 @@ KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
 					if (!prop_write_value.is_readonly())
 					{
 						prop_write_value.set_value(*object, glm::vec4(float4value[0], float4value[1], float4value[2], float4value[3]));
+
+						auto notifyData = prop_write_value.get_metadata(META_DATA_NOTIFY);
+						if (notifyData.is_valid() && notifyData.get_value<MetaDataNotify>() == MDN_EDITOR)
+						{
+							KEditorGlobal::ReflectionManager.NotifyToEditor(object);
+						}
 					}
 				});
 

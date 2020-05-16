@@ -119,6 +119,8 @@ void KEEntityManipulator::DiscardEntity(KEEntityPtr editorEntity)
 		KReflectionObjectBase* reflection = nullptr;
 		editorEntity->soul->QueryReflection(&reflection);
 		ASSERT_RESULT(reflection);
+
+		KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
 	}
 }
 
@@ -421,6 +423,11 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 				}
 				// 覆盖初始位置 保证Undo Redo正确
 				editorEntity->soul->GetTransform(editorEntity->createInfo.transform);
+				// 暂时先用这种方法更新属性面板
+				KReflectionObjectBase* reflection = nullptr;
+				editorEntity->soul->QueryReflection(&reflection);
+				ASSERT_RESULT(reflection);
+				KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
 				// 暂时先用这种方法更新场景图
 				m_Scene->Move(editorEntity->soul);
 			}
