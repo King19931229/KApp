@@ -27,7 +27,8 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_SplitLambda(0.5f),
 	m_ShadowSizeRatio(0.7f),
 	m_FixToScene(true),
-	m_FixTexel(true)
+	m_FixTexel(true),
+	m_MinimizeShadowDraw(true)
 {
 	m_ShadowCamera.SetPosition(glm::vec3(1.0f, 1.0f, 1.0f));
 	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -131,14 +132,17 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 		}
 
 		// Project frustum corners into world space
+		KAABBBox frustumBox;
 		{
 			glm::mat4 invCamView = glm::inverse(mainCamera->GetViewMatrix());
 			for (uint32_t i = 0; i < 8; i++)
 			{
 				glm::vec4 invCorner = invCamView * glm::vec4(frustumCorners[i], 1.0f);
 				frustumCorners[i] = invCorner / invCorner.w;
+				frustumBox.Merge(invCorner, frustumBox);
 			}
 		}
+		m_Cascadeds[i].frustumBox = frustumBox;
 
 		glm::mat4 lightViewMatrix = m_ShadowCamera.GetViewMatrix();
 
@@ -458,8 +462,58 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 			Cascade& cascaded = m_Cascadeds[i];
 			assert(frameIndex < cascaded.renderTargets.size());
 
-			std::vector<KRenderComponent*> cullRes;
-			KRenderGlobal::Scene.GetRenderComponent(cascaded.litBox, cullRes);
+			std::vector<KRenderComponent*> litCullRes;
+			KRenderGlobal::Scene.GetRenderComponent(cascaded.litBox, litCullRes);
+
+			if (m_MinimizeShadowDraw)
+			{
+				std::vector<KRenderComponent*> frustumCullRes;
+				KRenderGlobal::Scene.GetRenderComponent(cascaded.frustumBox, frustumCullRes);
+
+				std::vector<KRenderComponent*> newLitCullRes;
+
+				KAABBBox receiverBox;
+				for (KRenderComponent* component : frustumCullRes)
+				{
+					KAABBBox bound;
+					IKEntity* entity = component->GetEntityHandle();
+					if (entity && entity->GetBound(bound))
+					{
+						receiverBox.Merge(bound, receiverBox);
+					}
+				}
+
+				receiverBox.Transform(cascaded.viewProjMatrix, receiverBox);
+
+				if (receiverBox.IsDefault())
+				{
+					newLitCullRes.reserve(litCullRes.size());
+					for (KRenderComponent* component : litCullRes)
+					{
+						KAABBBox bound;
+						IKEntity* entity = component->GetEntityHandle();
+						if (entity && entity->GetBound(bound))
+						{
+							bound.Transform(cascaded.viewProjMatrix, bound);
+							bound.InitFromHalfExtent(bound.GetCenter(), bound.GetExtend() * 0.5f * glm::vec3(1.0f, 1.0f, 0.0f));
+
+							const glm::vec3& receiverMin = receiverBox.GetMin();
+							const glm::vec3& receiverMax = receiverBox.GetMax();
+
+							const glm::vec3& casterMin = bound.GetMin();
+							const glm::vec3& casterMax = bound.GetMax();
+
+							if (casterMin.x <= receiverMax.x && casterMax.x >= receiverMin.x &&
+								casterMin.y <= receiverMax.y && casterMax.y >= receiverMin.y)
+							{
+								newLitCullRes.push_back(component);
+							}
+						}
+					}
+				}
+
+				litCullRes = newLitCullRes;
+			}
 
 			IKCommandBufferPtr commandBuffer = cascaded.commandBuffers[frameIndex];
 
@@ -476,7 +530,7 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 			commandBuffer->SetDepthBias(m_DepthBiasConstant, 0, m_DepthBiasSlope);
 			{
 				KRenderCommandList commandList;
-				for (KRenderComponent* component : cullRes)
+				for (KRenderComponent* component : litCullRes)
 				{
 					IKEntity* entity = component->GetEntityHandle();
 					KTransformComponent* transform = nullptr;

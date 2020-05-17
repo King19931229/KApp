@@ -469,6 +469,7 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 				ui->SliderFloat("Shadow SplitLambda", &KRenderGlobal::CascadedShadowMap.GetSplitLambda(), 0.001f, 1.0f);
 				ui->CheckBox("Shadow FixToScene", &KRenderGlobal::CascadedShadowMap.GetFixToScene());
 				ui->CheckBox("Shadow FixTexel", &KRenderGlobal::CascadedShadowMap.GetFixTexel());
+				ui->CheckBox("Shadow MinimizeShadowDraw", &KRenderGlobal::CascadedShadowMap.GetMinimizeShadowDraw());
 			}
 			ui->PopItemWidth();
 		}

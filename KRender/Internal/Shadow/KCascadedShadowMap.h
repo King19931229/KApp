@@ -37,6 +37,7 @@ protected:
 		glm::mat4 debugClip;
 		std::vector<IKPipelinePtr> debugPipelines;
 		// scene clipping
+		KAABBBox frustumBox;
 		KAABBBox litBox;
 	};
 	std::vector<Cascade> m_Cascadeds;
@@ -61,6 +62,8 @@ protected:
 
 	bool m_FixToScene;
 	bool m_FixTexel;
+
+	bool m_MinimizeShadowDraw;
 
 	void UpdateCascades(const KCamera* mainCamera);
 	bool GetDebugRenderCommand(size_t frameIndex, KRenderCommandList& commands);
@@ -88,4 +91,5 @@ public:
 
 	inline bool& GetFixToScene() { return m_FixToScene; }
 	inline bool& GetFixTexel() { return m_FixTexel; }
+	inline bool& GetMinimizeShadowDraw() { return m_MinimizeShadowDraw; }
 };
