@@ -1,10 +1,13 @@
 #include "KEFileSystemModel.h"
+#include "Custom/KEResourceTreeView.h"
+
+#include <assert.h>
 
 KEFileSystemModel::KEFileSystemModel(bool viewDir, QObject *parent)
 	: QAbstractItemModel(parent),
 	m_ViewDir(viewDir),
 	m_Item(nullptr)
-{
+{	
 }
 
 KEFileSystemModel::~KEFileSystemModel()
@@ -19,6 +22,16 @@ void KEFileSystemModel::SetItem(KEFileSystemTreeItem* item)
 KEFileSystemTreeItem* KEFileSystemModel::GetItem()
 {
 	return m_Item;
+}
+
+void KEFileSystemModel::BeginResetModel()
+{
+	beginResetModel();
+}
+
+void KEFileSystemModel::EndResetModel()
+{
+	endResetModel();
 }
 
 QVariant KEFileSystemModel::data(const QModelIndex &index, int role) const

@@ -197,6 +197,9 @@
     <ClCompile Include="Reflection\KEReflectObjectTreeModel.cpp">
       <Filter>Reflection</Filter>
     </ClCompile>
+    <ClCompile Include="Custom\KEResourceTreeView.cpp">
+      <Filter>Custom</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />

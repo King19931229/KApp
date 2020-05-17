@@ -1,7 +1,11 @@
 #pragma once
 #include <QAbstractItemModel>
+#include <QFileSystemWatcher>
+
 #include "KBase/Interface/IKFileSystem.h"
 #include "Browser/KEFileSystemTreeItem.h"
+
+class KEResourceItemView;
 
 class KEFileSystemModel : public QAbstractItemModel
 {
@@ -15,6 +19,9 @@ public:
 
 	void SetItem(KEFileSystemTreeItem* item);
 	KEFileSystemTreeItem* GetItem();
+
+	void BeginResetModel();
+	void EndResetModel();
 
 	QVariant data(const QModelIndex &index, int role) const override;
 	Qt::ItemFlags flags(const QModelIndex &index) const override;

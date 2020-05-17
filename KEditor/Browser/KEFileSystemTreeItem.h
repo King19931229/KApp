@@ -1,5 +1,6 @@
 #pragma once
 #include "KBase/Interface/IKFileSystem.h"
+#include "KBase/Publish/KStringUtil.h"
 
 class KEFileSystemTreeItem
 {
@@ -15,23 +16,6 @@ protected:
 	int m_Index;
 	bool m_IsDir;
 	bool m_NeedListDir;
-
-	void Clear()
-	{
-		for (KEFileSystemTreeItem* item : m_Files)
-		{
-			SAFE_DELETE(item);
-		}
-		m_Files.clear();
-
-		for (KEFileSystemTreeItem* item : m_Dirs)
-		{
-			SAFE_DELETE(item);
-		}
-		m_Dirs.clear();
-
-		m_NeedListDir = true;
-	}
 public:
 	KEFileSystemTreeItem(IKFileSystem* system,
 		const std::string& name,
@@ -59,6 +43,23 @@ public:
 	void Refresh()
 	{
 		Clear();
+	}
+
+	void Clear()
+	{
+		for (KEFileSystemTreeItem* item : m_Files)
+		{
+			SAFE_DELETE(item);
+		}
+		m_Files.clear();
+
+		for (KEFileSystemTreeItem* item : m_Dirs)
+		{
+			SAFE_DELETE(item);
+		}
+		m_Dirs.clear();
+
+		m_NeedListDir = true;
 	}
 
 	void ListDirInNeed()
@@ -131,6 +132,37 @@ public:
 	{
 		ListDirInNeed();
 		return m_Files.size();
+	}
+
+	KEFileSystemTreeItem* FindItem(const std::string& fullPath)
+	{
+		if (!KStringUtil::StartsWith(fullPath, m_FullPath))
+		{
+			return nullptr;
+		}
+
+		if (fullPath == m_FullPath)
+		{
+			return this;
+		}
+
+		for (KEFileSystemTreeItem* item : m_Dirs)
+		{
+			if (item->FindItem(fullPath))
+			{
+				return item;
+			}
+		}
+
+		for (KEFileSystemTreeItem* item : m_Files)
+		{
+			if (item->FindItem(fullPath))
+			{
+				return item;
+			}
+		}
+
+		return nullptr;
 	}
 
 	inline KEFileSystemTreeItem* GetParent() const { return m_Parent; }
