@@ -24,7 +24,7 @@ protected:
 	void SetModelData(size_t index, const QString& text)
 	{
 		assert(index < DIMENSION);
-		/*if (text.size() > 0)
+		if (text.size() > 0)
 		{
 			std::string currentText = text.toStdString();
 			auto it = m_TextToEnum.find(currentText);
@@ -34,7 +34,7 @@ protected:
 				T newValue = it->second;
 				UpdateModelElement(index, newValue);
 			}
-		}*/
+		}
 	}
 
 	void SetWidgetValue(size_t index, const T& value) override
@@ -45,11 +45,14 @@ protected:
 		if (it != m_EnumToText.end())
 		{
 			std::string newText = it->second;
-			int idx = m_Widget[index]->findText(newText.c_str());
-			assert(idx >= 0);
-			if (idx >= 0)
+			if (m_Widget[index])
 			{
-				m_Widget[index]->setCurrentIndex(idx);
+				int idx = m_Widget[index]->findText(newText.c_str());
+				assert(idx >= 0);
+				if (idx >= 0)
+				{
+					m_Widget[index]->setCurrentIndex(idx);
+				}
 			}
 		}
 	}
@@ -60,47 +63,34 @@ protected:
 		{
 			T value = GetModelElement(i);
 
-			m_Widget[i]->clear();
-			for (const auto& pair : m_TextToEnum)
+			if (m_Widget[i])
 			{
-				m_Widget[i]->addItem(pair.first.c_str());
-			}
-
-			auto it = m_EnumToText.find(value);
-			if (it != m_EnumToText.end())
-			{
-				const std::string& text = it->second;
-				int idx = m_Widget[i]->findText(text.c_str());
-				if (idx >= 0)
+				m_Widget[i]->clear();
+				for (const auto& pair : m_TextToEnum)
 				{
-					m_Widget[i]->setCurrentIndex(idx);
+					m_Widget[i]->addItem(pair.first.c_str());
+				}
+
+				auto it = m_EnumToText.find(value);
+				if (it != m_EnumToText.end())
+				{
+					const std::string& text = it->second;
+					int idx = m_Widget[i]->findText(text.c_str());
+					if (idx >= 0)
+					{
+						m_Widget[i]->setCurrentIndex(idx);
+					}
 				}
 			}
 		}
 	}
 public:
 	KEPropertyComboView(ModelPtrType model)
-		: KEPropertyView(model)
+		: KEPropertyView(model),
+		m_MainWidget(nullptr),
+		m_Layout(nullptr)
 	{
-		m_MainWidget = KNEW QWidget();
-
-		m_Layout = KNEW QHBoxLayout(m_MainWidget);
-		for (size_t i = 0; i < DIMENSION; ++i)
-		{
-			m_Widget[i] = KNEW QComboBox(m_MainWidget);
-			m_Widget[i]->setCurrentIndex(-1);
-
-			QObject::connect(m_Widget[i], &QComboBox::currentTextChanged,
-				[=, this](const QString& newText)
-			{
-				SetModelData(i, newText);
-			});
-
-			m_Layout->addWidget(m_Widget[i]);
-		}
-
-		m_MainWidget->setLayout(m_Layout);
-		// UpdateView(*m_Model);
+		ZERO_ARRAY_MEMORY(m_Widget);
 	}
 
 	void AppendMapping(T enumeration, const std::string& text)
@@ -138,19 +128,34 @@ public:
 
 	~KEPropertyComboView()
 	{
-		SAFE_DELETE(m_MainWidget);
 	}
 
-	QWidget* GetWidget() override
+	QWidget* AllocWidget() override
 	{
+		m_MainWidget = KNEW QWidget();
+
+		m_Layout = KNEW QHBoxLayout(m_MainWidget);
+		for (size_t i = 0; i < DIMENSION; ++i)
+		{
+			m_Widget[i] = KNEW QComboBox(m_MainWidget);
+			m_Widget[i]->setCurrentIndex(-1);
+
+			QObject::connect(m_Widget[i], &QComboBox::currentTextChanged,
+				[=, this](const QString& newText)
+			{
+				SetModelData(i, newText);
+			});
+
+			m_Layout->addWidget(m_Widget[i]);
+		}
+
+		m_MainWidget->setLayout(m_Layout);
+
+		RefreshComboItem();
+
+		// UpdateView(*m_Model);
+
 		return m_MainWidget;
-	}
-
-	QWidget* MoveWidget() override
-	{
-		QWidget* ret = m_MainWidget;
-		m_MainWidget = nullptr;
-		return ret;
 	}
 };
 

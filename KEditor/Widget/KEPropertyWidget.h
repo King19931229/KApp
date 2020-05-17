@@ -13,6 +13,7 @@ protected:
 	{
 		QLayout* layout;
 		QLabel* label;
+		QWidget* widget;
 		std::string name;
 		KEPropertyBaseView::BasePtr propertyView;
 
@@ -20,6 +21,7 @@ protected:
 		{
 			layout = nullptr;
 			label = nullptr;
+			widget = nullptr;
 		}
 	};
 	std::list<PropertyItem> m_Items;

@@ -45,20 +45,9 @@ void KEReflectObjectTreeModel::RemoveReflection(KReflectionObjectBase* _reflecti
 
 void KEReflectObjectTreeModel::RefreshReflection(KReflectionObjectBase* reflection)
 {
-	if (m_Reflections.find(reflection) != m_Reflections.end())
+	if (m_RootItem)
 	{
-		SAFE_DELETE(m_RootItem);
-		for (KReflectionObjectBase* remain : m_Reflections)
-		{
-			if (!m_RootItem)
-			{
-				m_RootItem = KNEW KEReflectionObjectItem(nullptr, remain, "");
-			}
-			else
-			{
-				m_RootItem->Merge(remain);
-			}
-		}
+		m_RootItem->RefreshAccuraetly(reflection);
 	}
 }
 

@@ -15,19 +15,21 @@ KEReflectionObjectItem::KEReflectionObjectItem()
 	m_NumChildren(0),
 	m_Object(nullptr),
 	m_Parent(nullptr),
-	m_Children(nullptr)	
+	m_Children(nullptr),
+	m_PropertyView(nullptr)
 {
 }
 
 KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, KReflectionObjectBase* object, const std::string& name)
 	: m_Name(name),
-	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),	
+	m_Type(OBJECT_MEMBER_TYPE_SUB_OBJECT),
 	m_Index(0),
 	m_NumChildren(0),
 	m_Object(object),
 	m_ParentObjects(parent ? decltype(m_ParentObjects){ parent->m_Object } : decltype(m_ParentObjects){}),
+	m_Parent(parent),
 	m_Children(nullptr),
-	m_Parent(parent)	
+	m_PropertyView(nullptr)
 {
 	auto type = KRTTR_GET_TYPE(object);
 	ASSERT_RESULT(type.is_valid());
@@ -49,34 +51,34 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, K
 			MetaDataType metaDataType = prop_meta.get_value<MetaDataType>();
 			switch (metaDataType)
 			{
-				case MDT_INT:
-				case MDT_FLOAT:
-				case MDT_STDSTRING:
-				case MDT_FLOAT2:
-				case MDT_FLOAT3:
-				case MDT_FLOAT4:
-				{
-					m_Children[idx++] = KNEW KEReflectionObjectItem(this, prop_name.to_string());
-					break;
-				}
+			case MDT_INT:
+			case MDT_FLOAT:
+			case MDT_STDSTRING:
+			case MDT_FLOAT2:
+			case MDT_FLOAT3:
+			case MDT_FLOAT4:
+			{
+				m_Children[idx++] = KNEW KEReflectionObjectItem(this, prop_name.to_string());
+				break;
+			}
 
-				case MDT_OBJECT:
+			case MDT_OBJECT:
+			{
+				KReflectionObjectBase* subObject = prop_value.get_value<KReflectionObjectBase*>();
+				if (subObject)
 				{
-					KReflectionObjectBase* subObject = prop_value.get_value<KReflectionObjectBase*>();
-					if (subObject)
-					{
-						m_Children[idx++] = KNEW KEReflectionObjectItem(this, subObject, prop_name.to_string());
-					}
-					else
-					{
-						--m_NumChildren;
-					}
-					break;
+					m_Children[idx++] = KNEW KEReflectionObjectItem(this, subObject, prop_name.to_string());
 				}
+				else
+				{
+					--m_NumChildren;
+				}
+				break;
+			}
 
-				default:
-					assert(false && "should not reach");
-					break;
+			default:
+				assert(false && "should not reach");
+				break;
 			}
 		}
 	}
@@ -101,11 +103,13 @@ KEReflectionObjectItem::KEReflectionObjectItem(KEReflectionObjectItem* parent, c
 	m_Type(OBJECT_MEMBER_TYPE_PROPERTY),
 	m_Index(0),
 	m_NumChildren(0),
-	m_Object(nullptr),	
+	m_Object(nullptr),
 	m_ParentObjects(parent ? decltype(m_ParentObjects){ parent->m_Object } : decltype(m_ParentObjects){}),
 	m_Parent(parent),
-	m_Children(nullptr)	
+	m_Children(nullptr),
+	m_PropertyView(nullptr)
 {
+	m_PropertyView = CreatePropertyView();
 }
 
 KEReflectionObjectItem::~KEReflectionObjectItem()
@@ -159,7 +163,7 @@ void KEReflectionObjectItem::Merge(KReflectionObjectBase* object)
 		std::string propName = m_Children[i]->m_Name;
 		ObjectMemberType memberType = m_Children[i]->m_Type;
 
-		auto prop = type.get_property(propName);		
+		auto prop = type.get_property(propName);
 		auto prop_meta = prop.get_metadata(META_DATA_TYPE);
 
 		if (prop.is_valid() && prop_meta.is_valid())
@@ -190,7 +194,50 @@ void KEReflectionObjectItem::Merge(KReflectionObjectBase* object)
 	}
 }
 
-KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
+void KEReflectionObjectItem::Refresh()
+{
+	if (m_Type == OBJECT_MEMBER_TYPE_PROPERTY)
+	{
+		RefreshPropertyView();
+	}
+	else if (m_Type == OBJECT_MEMBER_TYPE_SUB_OBJECT)
+	{
+		for (size_t i = 0; i < m_NumChildren; ++i)
+		{
+			m_Children[i]->Refresh();
+		}
+	}
+}
+
+void KEReflectionObjectItem::RefreshAccuraetly(KReflectionObjectBase* object)
+{
+	if (m_Type == OBJECT_MEMBER_TYPE_PROPERTY)
+	{
+		if (m_ParentObjects.find(object) != m_ParentObjects.end())
+		{
+			RefreshPropertyView();
+		}
+	}
+	else if (m_Type == OBJECT_MEMBER_TYPE_SUB_OBJECT)
+	{
+		if (m_Object == object)
+		{
+			for (size_t i = 0; i < m_NumChildren; ++i)
+			{
+				m_Children[i]->Refresh();
+			}
+		}
+		else
+		{
+			for (size_t i = 0; i < m_NumChildren; ++i)
+			{
+				m_Children[i]->RefreshAccuraetly(object);
+			}
+		}
+	}
+}
+
+KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreatePropertyView()
 {
 	KEPropertyBaseView::BasePtr ret = nullptr;
 
@@ -242,7 +289,7 @@ KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
 
 		case MDT_FLOAT:
 		{
-			int value = prop_value.get_value<float>();
+			float value = prop_value.get_value<float>();
 
 			auto floatView = KEditor::MakeLineEditView<float>(value);
 			floatView->Cast<float>()->AddListener([this, prop_name](float value)
@@ -387,4 +434,81 @@ KEPropertyBaseView::BasePtr KEReflectionObjectItem::CreateView()
 	}
 
 	return ret;
+}
+
+void KEReflectionObjectItem::RefreshPropertyView()
+{
+	ASSERT_RESULT(m_PropertyView);
+
+	ASSERT_RESULT(!m_ParentObjects.empty());
+	KReflectionObjectBase* object = *m_ParentObjects.begin();
+
+	auto type = KRTTR_GET_TYPE(object);
+	ASSERT_RESULT(type.is_valid());
+
+	auto prop = type.get_property(m_Name);
+	ASSERT_RESULT(prop.is_valid());
+
+	auto prop_value = prop.get_value(object);
+	auto prop_meta = prop.get_metadata(META_DATA_TYPE);
+
+	if (prop_value.is_valid() && prop_meta.is_valid())
+	{
+		MetaDataType metaDataType = prop_meta.get_value<MetaDataType>();
+		switch (metaDataType)
+		{
+		case MDT_INT:
+		{
+			int value = prop_value.get_value<int>();
+			// 这里考虑的原因比较复杂 总之就是不能够再调用listener 否则对多选属性面板与效率上都是问题
+			auto guard = m_PropertyView->CreateListenerMuteGuard();
+			m_PropertyView->Cast<int>()->SetValue(value);
+			break;
+		}
+
+		case MDT_FLOAT:
+		{
+			float value = prop_value.get_value<float>();
+			auto guard = m_PropertyView->CreateListenerMuteGuard();
+			m_PropertyView->Cast<float>()->SetValue(value);
+			break;
+		}
+
+		case MDT_STDSTRING:
+		{
+			std::string value = prop_value.get_value<std::string>();
+			auto guard = m_PropertyView->CreateListenerMuteGuard();
+			m_PropertyView->Cast<std::string>()->SetValue(value);
+			break;
+		}
+
+		case MDT_FLOAT2:
+		{
+			glm::vec2 value = prop_value.get_value<glm::vec2>();
+			auto guard = m_PropertyView->CreateListenerMuteGuard();
+			m_PropertyView->Cast<float, 2>()->SetValue({ value[0], value[1] });
+			break;
+		}
+
+		case MDT_FLOAT3:
+		{
+			glm::vec3 value = prop_value.get_value<glm::vec3>();
+			auto guard = m_PropertyView->CreateListenerMuteGuard();
+			m_PropertyView->Cast<float, 3>()->SetValue({ value[0], value[1], value[2] });
+			break;
+		}
+
+		case MDT_FLOAT4:
+		{
+			glm::vec4 value = prop_value.get_value<glm::vec4>();
+			auto guard = m_PropertyView->CreateListenerMuteGuard();
+			m_PropertyView->Cast<float, 4>()->SetValue({ value[0], value[1], value[2], value[3] });
+			break;
+		}
+
+		default:
+			assert(false && "should not reach");
+			break;
+		}
+	}
 }

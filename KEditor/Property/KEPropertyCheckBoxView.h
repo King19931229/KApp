@@ -35,16 +35,28 @@ protected:
 	{
 		bool bCheck = (bool)value;
 		assert(index < DIMENSION);
-		m_Widget[index]->setChecked(bCheck);
+		if (m_Widget[index])
+		{
+			m_Widget[index]->setChecked(bCheck);
+		}
 	}
 public:
 	KEPropertyCheckBoxView(ModelPtrType model)
 		: KEPropertyView(model)
+		m_MainWidget(nullptr),
+		m_Layout(nullptr)
+	{
+		ZERO_ARRAY_MEMROY(m_Widget);
+		TypeCheck(T());
+	}
+
+	~KEPropertyCheckBoxView()
+	{
+	}
+
+	QWidget* AllocWidget() override
 	{
 		m_MainWidget = KNEW QWidget();
-
-		TypeCheck(T());
-
 		m_Layout = KNEW QHBoxLayout();
 
 		for (size_t i = 0; i < DIMENSION; ++i)
@@ -62,21 +74,7 @@ public:
 		m_MainWidget->setLayout(m_Layout);
 
 		UpdateView(*m_Model);
-	}
 
-	~KEPropertyCheckBoxView()
-	{
-		for (size_t i = 0; i < DIMENSION; ++i)
-		{
-			SAFE_DELETE(m_Widget[i]);
-		}
-		m_MainWidget->setLayout(nullptr);
-		SAFE_DELETE(m_Layout);
-		SAFE_DELETE(m_MainWidget);
-	}
-
-	QLayout* GetWidget() override
-	{
 		return m_MainWidget;
 	}
 };

@@ -7,8 +7,6 @@
 class KEReflectObjectTreeView : public QTreeView
 {
 protected:
-	std::vector<KEPropertyBaseView::BasePtr> m_ViewHolders;
-
 	void SetupIndexWidget(QModelIndex index)
 	{
 		while (index.isValid())
@@ -16,19 +14,20 @@ protected:
 			KEReflectionObjectItem* item = static_cast<KEReflectionObjectItem*>(index.internalPointer());
 			if (item && item->GetType() == KEReflectionObjectItem::OBJECT_MEMBER_TYPE_PROPERTY)
 			{
-				KEPropertyBaseView::BasePtr view = item->CreateView();
+				KEPropertyBaseView::BasePtr view = item->GetPropertyView();
 				if (view)
-				{				
-					// Qt这套规则setIndexWidget一定会持有对象
-					// 导致这套持有机制非常恶心
-					m_ViewHolders.push_back(view);
-					
+				{
+					// 这里考虑的原因比较复杂 总之就是不能够再调用listener 否则对多选属性面板与效率上都是问题
+					auto guard = view->CreateListenerMuteGuard();
+
+					// Qt这套setIndexWidget规则一定会持有对象
+					// 导致这套持有机制非常恶心					
 					QWidget* wholeWidget = KNEW QWidget();
 
 					QLabel* label = KNEW QLabel(wholeWidget);
 					label->setText(item->GetName().c_str());
 
-					QWidget* widget = view->MoveWidget();
+					QWidget* widget = view->AllocWidget();
 					widget->setParent(wholeWidget);
 					assert(widget);
 
@@ -74,7 +73,6 @@ public:
 
 		if (model)
 		{
-			m_ViewHolders.clear();
 			SetupIndexWidget(model->index(0, 0));
 		}
 	}

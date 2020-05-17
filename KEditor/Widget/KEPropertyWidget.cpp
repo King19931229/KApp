@@ -35,10 +35,11 @@ bool KEPropertyWidget::UnInit()
 			m_Layout->removeItem(it->layout);
 
 			it->layout->removeWidget(it->label);
-			it->layout->removeWidget(it->propertyView->GetWidget());
+			it->layout->removeWidget(it->widget);
 
 			SAFE_DELETE(it->layout);
 			SAFE_DELETE(it->label);
+			SAFE_DELETE(it->widget);
 		}
 		m_Items.clear();
 
@@ -65,9 +66,10 @@ bool KEPropertyWidget::AppendItem(const std::string& name, KEPropertyBaseView::B
 		newItem.label = KNEW QLabel(name.c_str());
 		newItem.name = name;
 		newItem.propertyView = propertyView;
+		newItem.widget = propertyView->AllocWidget();
 
 		static_cast<QHBoxLayout*>(newItem.layout)->addWidget(newItem.label);
-		static_cast<QHBoxLayout*>(newItem.layout)->addWidget(propertyView->GetWidget());
+		static_cast<QHBoxLayout*>(newItem.layout)->addWidget(newItem.widget);
 
 		m_Layout->addLayout(newItem.layout);
 
@@ -93,10 +95,11 @@ bool KEPropertyWidget::RemoveItem(const std::string& name)
 		m_Layout->removeItem(it->layout);
 
 		it->layout->removeWidget(it->label);
-		it->layout->removeWidget(it->propertyView->GetWidget());
+		it->layout->removeWidget(it->widget);
 
 		SAFE_DELETE(it->layout);
 		SAFE_DELETE(it->label);
+		SAFE_DELETE(it->widget);
 		return true;
 	}
 	else

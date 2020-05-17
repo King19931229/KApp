@@ -27,10 +27,14 @@ protected:
 	KEReflectionObjectItem* m_Parent;
 	KEReflectionObjectItem** m_Children;
 
+	KEPropertyBaseView::BasePtr m_PropertyView;
+
 	KEReflectionObjectItem(const KEReflectionObjectItem& rhs) = delete;
 	KEReflectionObjectItem& operator=(const KEReflectionObjectItem& rhs) = delete;
 
 	KEReflectionObjectItem* FindChild(const std::string& name);
+	KEPropertyBaseView::BasePtr CreatePropertyView();
+	void RefreshPropertyView();
 public:
 	KEReflectionObjectItem();
 	KEReflectionObjectItem(KEReflectionObjectItem* parent, KReflectionObjectBase* object, const std::string& name);
@@ -44,7 +48,9 @@ public:
 	inline const std::string& GetName() const { return m_Name; }
 	inline size_t GetIndex() const { return m_Index; }
 	inline ObjectMemberType GetType() const { return m_Type; }
+	inline KEPropertyBaseView::BasePtr GetPropertyView() { return m_PropertyView; }
 
-	void Merge(KReflectionObjectBase* object);
-	KEPropertyBaseView::BasePtr CreateView();
+	void Merge(KReflectionObjectBase* object);	
+	void Refresh();
+	void RefreshAccuraetly(KReflectionObjectBase* object);
 };

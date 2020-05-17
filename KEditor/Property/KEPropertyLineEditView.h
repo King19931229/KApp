@@ -92,11 +92,25 @@ protected:
 	void SetWidgetValue(size_t index, const T& value) override
 	{
 		assert(index < DIMENSION);
-		SetWidgetText(*m_Widget[index], value);
+		if (m_Widget[index])
+		{
+			SetWidgetText(*m_Widget[index], value);
+		}
 	}
 public:
 	KEPropertyLineEditView(ModelPtrType model)
-		: KEPropertyView(model)
+		: KEPropertyView(model),
+		m_MainWidget(nullptr),
+		m_Layout(nullptr)
+	{
+		ZERO_ARRAY_MEMORY(m_Widget);
+	}
+
+	~KEPropertyLineEditView()
+	{
+	}
+
+	QWidget* AllocWidget() override
 	{
 		m_MainWidget = KNEW QWidget();
 
@@ -119,23 +133,8 @@ public:
 		m_MainWidget->setLayout(m_Layout);
 
 		UpdateView(*m_Model);
-	}
 
-	~KEPropertyLineEditView()
-	{
-		SAFE_DELETE(m_MainWidget);
-	}
-
-	QWidget* GetWidget() override
-	{
 		return m_MainWidget;
-	}
-
-	QWidget* MoveWidget() override
-	{
-		QWidget* ret = m_MainWidget;
-		m_MainWidget = nullptr;
-		return ret;
 	}
 };
 

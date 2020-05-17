@@ -50,11 +50,7 @@ void KEReflectPropertyWidget::RemoveObject(KReflectionObjectBase* reflection)
 
 void KEReflectPropertyWidget::RefreshObject(KReflectionObjectBase* reflection)
 {
-	m_TreeView->setModel(nullptr);
 	m_TreeModel->RefreshReflection(reflection);
-	m_TreeView->setModel(m_TreeModel);
-
-	m_TreeView->expandAll();
 }
 
 bool KEReflectPropertyWidget::Init()

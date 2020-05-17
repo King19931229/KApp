@@ -21,12 +21,39 @@ class KEPropertyCheckBoxView;
 
 class KEPropertyBaseView
 {
+protected:
+	bool m_MuteListener;
 public:
 	typedef std::shared_ptr<KEPropertyBaseView> BasePtr;
+
+	struct KEPropertyViewMuteListenerGuard
+	{
+		KEPropertyBaseView* parent;
+		KEPropertyViewMuteListenerGuard(KEPropertyBaseView* _parent)
+		{
+			parent = _parent;
+			parent->m_MuteListener = true;
+		}
+		~KEPropertyViewMuteListenerGuard()
+		{
+			parent->m_MuteListener = false;
+		}
+	};
+
+	KEPropertyBaseView()
+		: m_MuteListener(false)
+	{
+	}
+
 	virtual ~KEPropertyBaseView() {}
 
-	virtual QWidget* GetWidget() = 0;
-	virtual QWidget* MoveWidget() = 0;
+	virtual QWidget* AllocWidget() = 0;
+
+	// 禁用listener 在某些特殊情况有存在的必要
+	KEPropertyViewMuteListenerGuard CreateListenerMuteGuard()
+	{
+		return KEPropertyViewMuteListenerGuard(this);
+	}
 
 	// 转基础派生类
 	template<typename T, size_t DIMENSION = 1>
@@ -94,7 +121,7 @@ class KEPropertyView : public KEPropertyBaseView
 {
 public:
 	typedef KEPropertyModel<T, DIMENSION> ModelType;
-	typedef std::shared_ptr<ModelType> ModelPtrType;
+	typedef std::shared_ptr<ModelType> ModelPtrType;	
 protected:
 	ModelPtrType m_Model;
 	std::list<std::function<void(ModelType)>> m_Listener;
@@ -106,7 +133,10 @@ protected:
 		if (m_Model)
 		{
 			*m_Model = value;
-			CallListener();
+			if (!m_MuteListener)
+			{
+				CallListener();
+			}
 		}
 	}
 
@@ -116,7 +146,10 @@ protected:
 		{
 			assert(index < DIMENSION);
 			(*m_Model)[index] = value;
-			CallListener();
+			if (!m_MuteListener)
+			{
+				CallListener();
+			}
 		}
 	}
 

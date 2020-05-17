@@ -39,7 +39,10 @@ protected:
 		assert(value <= m_Max);
 		assert(index < DIMENSION);
 
-		m_SpinBox[index]->setValue((int)value);
+		if (m_SpinBox[index])
+		{
+			m_SpinBox[index]->setValue((int)value);
+		}
 	}
 
 	T FindMinValue()
@@ -66,23 +69,51 @@ protected:
 	{
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_Slider[i]->setMinimum((int)m_Min);
-			m_Slider[i]->setMaximum((int)m_Max);
+			if (m_Slider[i])
+			{
+				m_Slider[i]->setMinimum((int)m_Min);
+				m_Slider[i]->setMaximum((int)m_Max);
+			}
 
-			m_SpinBox[i]->setMinimum((int)m_Min);
-			m_SpinBox[i]->setMaximum((int)m_Max);
+			if (m_SpinBox[i])
+			{
+				m_SpinBox[i]->setMinimum((int)m_Min);
+				m_SpinBox[i]->setMaximum((int)m_Max);
+			}
 		}
 	}
 public:
 	KEPropertySliderView(ModelPtrType model)
-		: KEPropertyView(model)
+		: KEPropertyView(model),
+		m_MainWidget(nullptr),
+		m_Layout(nullptr)
 	{
-		m_MainWidget = KNEW QWidget();
-
-		TypeCheck(T());
+		ZERO_ARRAY_MEMORY(m_Slider);
+		ZERO_ARRAY_MEMORY(m_SpinBox);
+		ZERO_ARRAY_MEMORY(m_SubLayout);
+		TypeCheck(T());	
 
 		m_Min = FindMinValue();
 		m_Max = FindMaxValue();
+	}
+
+	void SetRange(T min, T max)
+	{
+		assert(max >= min);
+
+		m_Min = min;
+		m_Max = max;
+
+		OnRangeChange();
+	}
+
+	~KEPropertySliderView()
+	{
+	}
+
+	QWidget* AllocWidget() override
+	{
+		m_MainWidget = KNEW QWidget();
 
 		m_Layout = KNEW QVBoxLayout(m_MainWidget);
 
@@ -115,34 +146,10 @@ public:
 		m_MainWidget->setLayout(m_Layout);
 
 		OnRangeChange();
+
 		UpdateView(*m_Model);
-	}
 
-	void SetRange(T min, T max)
-	{
-		assert(max >= min);
-
-		m_Min = min;
-		m_Max = max;
-
-		OnRangeChange();
-	}
-
-	~KEPropertySliderView()
-	{
-		SAFE_DELETE(m_MainWidget);
-	}
-
-	QWidget* GetWidget() override
-	{
 		return m_MainWidget;
-	}
-
-	QWidget* MoveWidget() override
-	{
-		QWidget* ret = m_MainWidget;
-		m_MainWidget = nullptr;
-		return ret;
 	}
 };
 
