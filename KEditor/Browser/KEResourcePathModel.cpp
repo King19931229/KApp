@@ -12,10 +12,69 @@ KEResourcePathModel::~KEResourcePathModel()
 	SAFE_DELETE(m_Item);
 }
 
+bool KEResourcePathModel::FindIndex(QModelIndex parent, const std::string& path, QModelIndex& ret)
+{
+	if (parent.isValid())
+	{
+		KEResourcePathItem* item = static_cast<KEResourcePathItem*>(parent.internalPointer());
+		if (item->GetFullPath() == path)
+		{
+			ret = parent;
+			return true;
+		}
+	}
+	else
+	{
+		KEResourcePathItem* item = m_Item;
+		if (item->GetFullPath() == path)
+		{
+			ret = parent;
+			return true;
+		}
+	}
+
+	QModelIndex child;
+
+	if (parent.isValid())
+	{
+		child = parent.child(0, 0);
+	}
+	else
+	{
+		child = index(0, 0);
+	}
+
+	while (child.isValid())
+	{
+		KEResourcePathItem* item = static_cast<KEResourcePathItem*>(child.internalPointer());
+		if (KStringUtil::StartsWith(path, item->GetFullPath()))
+		{
+			if (FindIndex(child, path, ret))
+			{
+				return true;
+			}
+		}
+		child = child.sibling(child.row() + 1, child.column());
+	}
+
+	return false;
+}
+
+void KEResourcePathModel::BeginResetModel()
+{
+	beginResetModel();
+}
+
+void KEResourcePathModel::EndResetModel()
+{
+	endResetModel();
+}
+
 void KEResourcePathModel::SetItem(KEFileSystemTreeItem* item)
 {
 	SAFE_DELETE(m_Item);
-	m_TreeItems.clear();
+
+	std::vector<KEFileSystemTreeItem*> treeItems;
 
 	std::stack<KEFileSystemTreeItem*> pathStack;
 	KEFileSystemTreeItem* current = item;
@@ -29,13 +88,13 @@ void KEResourcePathModel::SetItem(KEFileSystemTreeItem* item)
 	while (!pathStack.empty())
 	{
 		KEFileSystemTreeItem* top = pathStack.top();
-		m_TreeItems.push_back(top);
+		treeItems.push_back(top);
 		pathStack.pop();
 	}
 
 	KEResourcePathItem* prePathItem = nullptr;
 	int depth = 0;
-	for (KEFileSystemTreeItem* item : m_TreeItems)
+	for (KEFileSystemTreeItem* item : treeItems)
 	{
 		KEResourcePathItem* pathItem = KNEW KEResourcePathItem(prePathItem,
 			item,
@@ -51,6 +110,11 @@ void KEResourcePathModel::SetItem(KEFileSystemTreeItem* item)
 		}
 		prePathItem = pathItem;
 	}
+}
+
+KEResourcePathItem* KEResourcePathModel::GetPathItem()
+{
+	return m_Item;
 }
 
 QVariant KEResourcePathModel::data(const QModelIndex &index, int role) const
@@ -128,18 +192,15 @@ QModelIndex KEResourcePathModel::parent(const QModelIndex &index) const
 }
 
 int KEResourcePathModel::rowCount(const QModelIndex &parent) const
-{
-	int maxDepth = (int)m_TreeItems.size();
-	
-
-	KEResourcePathItem *parentItem = nullptr;
+{	
+	KEResourcePathItem *item = nullptr;
 
 	if (!parent.isValid())
-		parentItem = m_Item;
+		item = m_Item;
 	else
-		parentItem = static_cast<KEResourcePathItem*>(parent.internalPointer());
+		item = static_cast<KEResourcePathItem*>(parent.internalPointer());
 
-	if (parentItem)
+	if (item)
 	{
 		return 1;
 	}

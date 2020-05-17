@@ -11,14 +11,19 @@ protected:
 
 	void OnFileChange(const QString& path);
 	void OnDirectoryChange(const QString& path);
-	bool FindIndex(QModelIndex parent, const std::string& path, QModelIndex& ret);
 
 	void SetupWatcher(const std::string& path);
+	void UninstallWatcher(const std::string& path);
+
+	void OnExpanded(const QModelIndex &index);
+	void OnCollapsed(const QModelIndex &index);
 public:
 	KEResourceTreeView(QWidget *parent = Q_NULLPTR)
 		: QTreeView(parent),
 		m_Watcher(nullptr)
 	{
+		connect(this, &KEResourceTreeView::expanded, this, &KEResourceTreeView::OnExpanded);
+		connect(this, &KEResourceTreeView::collapsed, this, &KEResourceTreeView::OnCollapsed);
 	}
 	
 	~KEResourceTreeView()

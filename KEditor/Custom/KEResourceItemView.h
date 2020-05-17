@@ -19,6 +19,7 @@ struct KEResourceItemDropData : public QObjectUserData
 	}
 };
 
+// TODO Ìí¼ÓÂ·¾¶¼àÌı
 class KEResourceItemView : public QListView
 {
 public:

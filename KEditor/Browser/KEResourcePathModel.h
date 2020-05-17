@@ -9,12 +9,17 @@ class KEResourcePathModel : public QAbstractItemModel
 	Q_OBJECT
 protected:
 	KEResourcePathItem* m_Item;
-	std::vector<KEFileSystemTreeItem*> m_TreeItems;
 public:
 	KEResourcePathModel(QObject *parent = nullptr);
 	~KEResourcePathModel();
 
+	bool FindIndex(QModelIndex parent, const std::string& path, QModelIndex& ret);
+
+	void BeginResetModel();
+	void EndResetModel();
+
 	void SetItem(KEFileSystemTreeItem* item);
+	KEResourcePathItem* GetPathItem();
 
 	QVariant data(const QModelIndex &index, int role) const override;
 	Qt::ItemFlags flags(const QModelIndex &index) const override;

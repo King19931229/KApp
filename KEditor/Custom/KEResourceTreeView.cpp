@@ -9,19 +9,18 @@ void KEResourceTreeView::OnFileChange(const QString& path)
 
 void KEResourceTreeView::OnDirectoryChange(const QString& path)
 {
+	KEFileSystemModel* fstModel = dynamic_cast<KEFileSystemModel*>(model());
+	ASSERT_RESULT(fstModel);
+
 	QModelIndex ret;
-	if (FindIndex(QModelIndex(), path.toStdString(), ret))
+	if (fstModel->FindIndex(QModelIndex(), path.toStdString(), ret))
 	{
-		KEFileSystemModel* fstModel = dynamic_cast<KEFileSystemModel*>(model());
 		KEFileSystemTreeItem* item = nullptr;
-
-		ASSERT_RESULT(fstModel);
-
 		if (ret.isValid())
 		{
 			item = static_cast<KEFileSystemTreeItem*>(ret.internalPointer());
 		}
-		else if (fstModel)
+		else
 		{
 			item = fstModel->GetItem();
 		}
@@ -29,6 +28,7 @@ void KEResourceTreeView::OnDirectoryChange(const QString& path)
 		ASSERT_RESULT(item);
 
 		// https://forum.qt.io/topic/52590/deleting-all-items-in-a-tree-view/4
+		// TODO 记录哪些项目被展开过重新展开
 		if (item)
 		{
 			fstModel->BeginResetModel();
@@ -38,52 +38,49 @@ void KEResourceTreeView::OnDirectoryChange(const QString& path)
 	}
 }
 
-bool KEResourceTreeView::FindIndex(QModelIndex parent, const std::string& path, QModelIndex& ret)
+void KEResourceTreeView::OnExpanded(const QModelIndex &index)
 {
-	if (parent.isValid())
+	if (index.isValid())
 	{
-		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(parent.internalPointer());
-		if (item->GetFullPath() == path)
+		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
+		ASSERT_RESULT(item);
+
+		if (m_Watcher)
 		{
-			ret = parent;
-			return true;
+			SetupWatcher(item->GetFullPath());
 		}
-		
 	}
-	else // Root
+}
+
+void KEResourceTreeView::OnCollapsed(const QModelIndex &index)
+{
+	if (index.isValid())
 	{
+		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
+		ASSERT_RESULT(item);
+
 		KEFileSystemModel* fstModel = dynamic_cast<KEFileSystemModel*>(model());
-		if (fstModel)
+		ASSERT_RESULT(fstModel);
+
+		fstModel->BeginResetModel();
+		item->Clear();
+		fstModel->EndResetModel();
+
+		if (m_Watcher)
 		{
-			KEFileSystemTreeItem* item = fstModel->GetItem();
-			if (item->GetFullPath() == path)
-			{
-				ret = parent;
-				return true;
-			}
+			UninstallWatcher(item->GetFullPath());
 		}
 	}
-
-	QModelIndex child = parent.child(0, 0);
-	while (child.isValid())
-	{
-		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(child.internalPointer());
-		if (KStringUtil::StartsWith(path, item->GetFullPath()))
-		{
-			if (FindIndex(child, path, ret))
-			{
-				return true;
-			}
-		}
-		child = child.sibling(child.row() + 1, child.column());
-	}
-
-	return false;
 }
 
 void KEResourceTreeView::SetupWatcher(const std::string& path)
 {
-	ASSERT_RESULT(m_Watcher->addPath(path.c_str()));
+	m_Watcher->addPath(path.c_str());
+}
+
+void KEResourceTreeView::UninstallWatcher(const std::string& path)
+{
+	m_Watcher->removePath(path.c_str());
 }
 
 void KEResourceTreeView::setModel(QAbstractItemModel *model)

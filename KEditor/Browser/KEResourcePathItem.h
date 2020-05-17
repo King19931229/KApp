@@ -19,7 +19,13 @@ public:
 		m_Depth(depth)
 	{
 	}
+
 	~KEResourcePathItem()
+	{
+		Clear();
+	}
+
+	void Clear()
 	{
 		SAFE_DELETE(m_Child);
 	}

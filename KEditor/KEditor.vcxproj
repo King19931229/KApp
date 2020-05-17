@@ -99,6 +99,7 @@
     <ClCompile Include="Browser\KEResourceTreeWidget.cpp" />
     <ClCompile Include="Command\KECommandInvoker.cpp" />
     <ClCompile Include="Custom\KEResourceItemView.cpp" />
+    <ClCompile Include="Custom\KEResourcePathView.cpp" />
     <ClCompile Include="Custom\KEResourceTreeView.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionControl.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionGeometry.cpp" />

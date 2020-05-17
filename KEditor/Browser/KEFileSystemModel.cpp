@@ -14,6 +14,55 @@ KEFileSystemModel::~KEFileSystemModel()
 {
 }
 
+bool KEFileSystemModel::FindIndex(QModelIndex parent, const std::string& path, QModelIndex& ret)
+{
+	if (parent.isValid())
+	{
+		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(parent.internalPointer());
+		if (item->GetFullPath() == path)
+		{
+			ret = parent;
+			return true;
+		}
+
+	}
+	else
+	{
+		KEFileSystemTreeItem* item = m_Item;
+		if (item->GetFullPath() == path)
+		{
+			ret = parent;
+			return true;
+		}
+	}
+
+	QModelIndex child;
+
+	if (parent.isValid())
+	{
+		child = parent.child(0, 0);
+	}
+	else
+	{
+		child = index(0, 0);
+	}
+
+	while (child.isValid())
+	{
+		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(child.internalPointer());
+		if (KStringUtil::StartsWith(path, item->GetFullPath()))
+		{
+			if (FindIndex(child, path, ret))
+			{
+				return true;
+			}
+		}
+		child = child.sibling(child.row() + 1, child.column());
+	}
+
+	return false;
+}
+
 void KEFileSystemModel::SetItem(KEFileSystemTreeItem* item)
 {
 	m_Item = item;

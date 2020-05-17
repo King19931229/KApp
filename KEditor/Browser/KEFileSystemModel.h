@@ -17,6 +17,8 @@ public:
 	KEFileSystemModel(bool viewDir, QObject *parent = nullptr);
 	~KEFileSystemModel();
 
+	bool FindIndex(QModelIndex parent, const std::string& path, QModelIndex& ret);
+
 	void SetItem(KEFileSystemTreeItem* item);
 	KEFileSystemTreeItem* GetItem();
 
