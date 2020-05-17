@@ -28,11 +28,11 @@ QVariant KEFileSystemModel::data(const QModelIndex &index, int role) const
 		return QVariant();
 	}
 
-	if (hasIndex(index.row(), index.column()))
+	if (role == Qt::DisplayRole)
 	{
-		if (role == Qt::DisplayRole)
+		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
+		if (item)
 		{
-			KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
 			return QVariant(item->GetName().c_str());
 		}
 	}
@@ -91,13 +91,11 @@ QModelIndex KEFileSystemModel::parent(const QModelIndex &index) const
 	}
 
 	KEFileSystemTreeItem* childItem = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
-	if (hasIndex(childItem->GetIndex(), 0))
+	if (childItem)
 	{
 		KEFileSystemTreeItem *parentItem = childItem->GetParent();
-
 		if (parentItem == m_Item)
 			return QModelIndex();
-
 		return createIndex(parentItem->GetIndex(), 0, parentItem);
 	}
 

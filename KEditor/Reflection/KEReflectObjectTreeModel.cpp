@@ -58,11 +58,11 @@ QVariant KEReflectObjectTreeModel::data(const QModelIndex &index, int role) cons
 		return QVariant();
 	}
 
-	if (hasIndex(index.row(), index.column()))
+	if (role == Qt::DisplayRole)
 	{
-		if (role == Qt::DisplayRole)
+		KEReflectionObjectItem* item = static_cast<KEReflectionObjectItem*>(index.internalPointer());
+		if (item)
 		{
-			KEReflectionObjectItem* item = static_cast<KEReflectionObjectItem*>(index.internalPointer());
 			return QVariant(item->GetName().c_str());
 		}
 	}
@@ -121,7 +121,7 @@ QModelIndex KEReflectObjectTreeModel::parent(const QModelIndex &index) const
 	}
 
 	KEReflectionObjectItem* childItem = static_cast<KEReflectionObjectItem*>(index.internalPointer());
-	if (hasIndex(childItem->GetIndex(), 0))
+	if (childItem)
 	{
 		KEReflectionObjectItem *parentItem = childItem->GetParent();
 
