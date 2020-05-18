@@ -4,6 +4,8 @@
 #include <QContextMenuEvent>
 #include <QMimeData>
 #include <QDrag>
+#include <QFileSystemWatcher>
+#include "KEditorConfig.h"
 
 class KEFileSystemTreeItem;
 struct KEResourceItemDropData : public QObjectUserData
@@ -19,11 +21,20 @@ struct KEResourceItemDropData : public QObjectUserData
 	}
 };
 
-// TODO Ìí¼ÓÂ·¾¶¼àÌý
 class KEResourceItemView : public QListView
 {
+protected:
+	QFileSystemWatcher* m_Watcher;
+	KEFileSystemTreeItem* m_RootItem;
+	std::string m_FullPath;
+
+	void OnFileChange(const QString& path);
+	void OnDirectoryChange(const QString& path);
+	void SetupWatcher(const std::string& path);
+	void UninstallWatcher(const std::string& path);
 public:
 	KEResourceItemView(QWidget *parent = Q_NULLPTR);
 	~KEResourceItemView();
 	void mouseMoveEvent(QMouseEvent *event) override;
+	void setModel(QAbstractItemModel *model) override;
 };

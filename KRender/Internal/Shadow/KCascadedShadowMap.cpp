@@ -399,7 +399,7 @@ bool KCascadedShadowMap::UnInit()
 	return true;
 }
 
-bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer)
+bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer, KRenderStageStatistics& statistics)
 {
 	UpdateCascades(mainCamera);
 
@@ -542,6 +542,17 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 						{
 							KConstantDefinition::CSM_OBJECT csmObject = { transform->FinalTransform(), (uint32_t)i};
 							command.SetObjectData(csmObject);
+
+							++statistics.drawcalls;
+							if (command.indexDraw)
+							{
+								statistics.faces += command.indexData->indexCount / 3;
+							}
+							else
+							{
+								statistics.faces += command.vertexData->vertexCount / 3;
+							}
+
 							commandList.push_back(command);
 						});
 					}

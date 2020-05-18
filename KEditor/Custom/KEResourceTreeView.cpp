@@ -28,12 +28,19 @@ void KEResourceTreeView::OnDirectoryChange(const QString& path)
 		ASSERT_RESULT(item);
 
 		// https://forum.qt.io/topic/52590/deleting-all-items-in-a-tree-view/4
-		// TODO 记录哪些项目被展开过重新展开
 		if (item)
 		{
 			fstModel->BeginResetModel();
 			item->Clear();
 			fstModel->EndResetModel();
+		}
+
+		for (const std::string& dir : m_ExpanedPaths)
+		{
+			if (fstModel->FindIndex(QModelIndex(), dir, ret))
+			{
+				expand(ret);
+			}
 		}
 	}
 }
@@ -44,6 +51,8 @@ void KEResourceTreeView::OnExpanded(const QModelIndex &index)
 	{
 		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
 		ASSERT_RESULT(item);
+
+		m_ExpanedPaths.insert(item->GetFullPath());
 
 		if (m_Watcher)
 		{
@@ -58,6 +67,8 @@ void KEResourceTreeView::OnCollapsed(const QModelIndex &index)
 	{
 		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
 		ASSERT_RESULT(item);
+
+		m_ExpanedPaths.erase(item->GetFullPath());
 
 		KEFileSystemModel* fstModel = dynamic_cast<KEFileSystemModel*>(model());
 		ASSERT_RESULT(fstModel);
@@ -88,6 +99,7 @@ void KEResourceTreeView::setModel(QAbstractItemModel *model)
 	QTreeView::setModel(model);
 
 	SAFE_DELETE(m_Watcher);
+	m_ExpanedPaths.clear();
 
 	KEFileSystemModel* fstModel = dynamic_cast<KEFileSystemModel*>(model);
 	if (fstModel)

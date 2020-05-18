@@ -1,6 +1,7 @@
 #pragma once
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Publish/KStringUtil.h"
+#include "KBase/Publish/KFileTool.h"
 
 class KEFileSystemTreeItem
 {
@@ -136,9 +137,22 @@ public:
 
 	KEFileSystemTreeItem* FindItem(const std::string& fullPath)
 	{
-		if (!KStringUtil::StartsWith(fullPath, m_FullPath))
+		ListDirInNeed();
+
+		// TODO
+		if (m_FullPath != ".")
 		{
-			return nullptr;
+			if (!KStringUtil::StartsWith(fullPath, m_FullPath))
+			{
+				return nullptr;
+			}
+		}
+		else
+		{
+			if (fullPath.empty())
+			{
+				return this;
+			}
 		}
 
 		if (fullPath == m_FullPath)
@@ -148,17 +162,19 @@ public:
 
 		for (KEFileSystemTreeItem* item : m_Dirs)
 		{
-			if (item->FindItem(fullPath))
+			KEFileSystemTreeItem* ret = item->FindItem(fullPath);
+			if (ret)
 			{
-				return item;
+				return ret;
 			}
 		}
 
 		for (KEFileSystemTreeItem* item : m_Files)
 		{
-			if (item->FindItem(fullPath))
+			KEFileSystemTreeItem* ret = item->FindItem(fullPath);
+			if (ret)
 			{
-				return item;
+				return ret;
 			}
 		}
 

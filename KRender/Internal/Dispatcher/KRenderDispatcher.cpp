@@ -28,6 +28,7 @@ KRenderDispatcher::~KRenderDispatcher()
 static const char* PRE_Z_STAGE = "PreZ";
 static const char* DEFAULT_STAGE = "Default";
 static const char* DEBUG_STAGE = "Debug";
+static const char* CSM_STAGE = "CascadedShadowMap";
 
 bool KRenderDispatcher::CreateCommandBuffers()
 {
@@ -157,6 +158,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 	KRenderStageStatistics preZStatistics;
 	KRenderStageStatistics defaultStatistics;
 	KRenderStageStatistics debugStatistics;
+	KRenderStageStatistics shadowStatistics;
 
 	assert(frameIndex < m_CommandBuffers.size());
 
@@ -175,7 +177,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 		// 阴影绘制RenderPass
 		{
 			//KRenderGlobal::ShadowMap.UpdateShadowMap(frameIndex, primaryCommandBuffer);
-			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer);
+			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer, shadowStatistics);
 		}
 
 		// 物件绘制RenderPass
@@ -345,7 +347,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 					}
 				}
 
-				KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
+				// KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
 				if (!commandBuffers.empty())
 				{
 					primaryCommandBuffer->ExecuteAll(commandBuffers);
@@ -363,6 +365,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(PRE_Z_STAGE, preZStatistics);
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEFAULT_STAGE, defaultStatistics);
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
 
 	return true;
 }
@@ -384,6 +387,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 	KRenderStageStatistics preZStatistics;
 	KRenderStageStatistics defaultStatistics;
 	KRenderStageStatistics debugStatistics;
+	KRenderStageStatistics shadowStatistics;
 
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
@@ -391,7 +395,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 		// 阴影绘制RenderPass
 		{
 			//KRenderGlobal::ShadowMap.UpdateShadowMap(frameIndex, primaryCommandBuffer);
-			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer);
+			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer, shadowStatistics);
 		}
 		// 物件绘制RenderPass
 		{
@@ -624,7 +628,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 				}
 			}
 
-			KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
+			// KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
 			if (!commandBuffers.empty())
 			{
 				primaryCommandBuffer->ExecuteAll(commandBuffers);
@@ -642,6 +646,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(PRE_Z_STAGE, preZStatistics);
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEFAULT_STAGE, defaultStatistics);
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
 
 	return true;
 }
@@ -659,6 +664,7 @@ bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKS
 	KRenderGlobal::Statistics.RegisterRenderStage(PRE_Z_STAGE);
 	KRenderGlobal::Statistics.RegisterRenderStage(DEFAULT_STAGE);
 	KRenderGlobal::Statistics.RegisterRenderStage(DEBUG_STAGE);
+	KRenderGlobal::Statistics.RegisterRenderStage(CSM_STAGE);
 
 	return true;
 }
@@ -679,6 +685,7 @@ bool KRenderDispatcher::UnInit()
 	KRenderGlobal::Statistics.UnRegisterRenderStage(PRE_Z_STAGE);
 	KRenderGlobal::Statistics.UnRegisterRenderStage(DEFAULT_STAGE);
 	KRenderGlobal::Statistics.UnRegisterRenderStage(DEBUG_STAGE);
+	KRenderGlobal::Statistics.UnRegisterRenderStage(CSM_STAGE);
 
 	return true;
 }

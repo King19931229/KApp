@@ -163,15 +163,15 @@ void KEResourceBrowser::OnComboIndexChanged(int index)
 		std::string root;
 		system->GetRoot(root);
 
-		std::string fullPath;
-		system->FullPath(".", root, fullPath);
+		//std::string fullPath;
+		//system->FullPath(".", root, fullPath);
 
 		KEFileSystemTreeItem* item = nullptr;
 
 		auto it = m_RootItemMap.find(index);
 		if (it == m_RootItemMap.end())
 		{
-			item = KNEW KEFileSystemTreeItem(system.get(), root, fullPath, nullptr, 0, true);
+			item = KNEW KEFileSystemTreeItem(system.get(), root, root, nullptr, 0, true);
 			m_RootItemMap[index] = item;
 		}
 		else

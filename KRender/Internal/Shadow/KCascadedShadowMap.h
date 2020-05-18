@@ -4,6 +4,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "Internal/KVertexDefinition.h"
 #include "Internal/ECS/System/KCullSystem.h"
+#include "Internal/KStatistics.h"
 
 class KCascadedShadowMap
 {
@@ -74,7 +75,7 @@ public:
 	bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t numCascaded, size_t shadowMapSize, float shadowSizeRatio);
 	bool UnInit();
 
-	bool UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer);
+	bool UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer, KRenderStageStatistics& statistics);
 	bool DebugRender(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers);
 
 	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex, size_t frameIndex);

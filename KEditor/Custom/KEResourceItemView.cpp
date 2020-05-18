@@ -1,13 +1,50 @@
 #include "KEResourceItemView.h"
 #include "Browser/KEFileSystemTreeItem.h"
+#include "Browser/KEFileSystemModel.h"
 
 KEResourceItemView::KEResourceItemView(QWidget *parent)
-	: QListView(parent)
+	: QListView(parent),
+	m_Watcher(nullptr),
+	m_RootItem(nullptr)
 {
 }
 
 KEResourceItemView::~KEResourceItemView()
 {
+	SAFE_DELETE(m_Watcher);
+}
+
+void KEResourceItemView::OnFileChange(const QString& path)
+{
+}
+
+void KEResourceItemView::OnDirectoryChange(const QString& path)
+{
+	KEFileSystemModel* fstModel = dynamic_cast<KEFileSystemModel*>(model());
+	ASSERT_RESULT(fstModel);
+
+	fstModel->BeginResetModel();
+
+	KEFileSystemTreeItem* changeItem = m_RootItem->FindItem(path.toStdString());
+	if (changeItem)
+		changeItem->Clear();
+	/*
+	KEFileSystemTreeItem* item = m_RootItem->FindItem(m_FullPath);
+	fstModel->SetItem(item);
+	*/
+	fstModel->SetItem(changeItem);
+
+	fstModel->EndResetModel();
+}
+
+void KEResourceItemView::SetupWatcher(const std::string& path)
+{
+	m_Watcher->addPath(path.c_str());
+}
+
+void KEResourceItemView::UninstallWatcher(const std::string& path)
+{
+	m_Watcher->removePath(path.c_str());
 }
 
 void KEResourceItemView::mouseMoveEvent(QMouseEvent *event)
@@ -30,4 +67,41 @@ void KEResourceItemView::mouseMoveEvent(QMouseEvent *event)
 		event->ignore();
 	}
 	QListView::mouseMoveEvent(event);
+}
+
+void KEResourceItemView::setModel(QAbstractItemModel *model)
+{
+	QListView::setModel(model);
+
+	SAFE_DELETE(m_Watcher);
+
+	KEFileSystemModel* fstModel = dynamic_cast<KEFileSystemModel*>(model);
+	if (fstModel)
+	{
+		m_Watcher = KNEW QFileSystemWatcher(this);
+
+		connect(m_Watcher, &QFileSystemWatcher::fileChanged, this, &KEResourceItemView::OnFileChange);
+		connect(m_Watcher, &QFileSystemWatcher::directoryChanged, this, &KEResourceItemView::OnDirectoryChange);
+
+		KEFileSystemTreeItem* item = fstModel->GetItem();
+
+		if (item)
+		{
+			m_FullPath = item->GetFullPath();
+		}
+		else
+		{
+			m_FullPath = "";
+		}
+
+		while (item)
+		{
+			if (item && item->GetSystem() && item->GetSystem()->GetType() == FST_NATIVE)
+			{
+				SetupWatcher(item->GetFullPath());
+			}
+			m_RootItem = item;
+			item = item->GetParent();
+		}
+	}
 }

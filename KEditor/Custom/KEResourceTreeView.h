@@ -3,11 +3,13 @@
 #include <QMouseEvent>
 #include <QFileSystemWatcher>
 #include "KEditorConfig.h"
+#include <unordered_set>
 
 class KEResourceTreeView : public QTreeView
 {
 protected:
 	QFileSystemWatcher* m_Watcher;
+	std::unordered_set<std::string> m_ExpanedPaths;
 
 	void OnFileChange(const QString& path);
 	void OnDirectoryChange(const QString& path);
