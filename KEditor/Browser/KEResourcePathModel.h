@@ -8,7 +8,9 @@ class KEResourcePathModel : public QAbstractItemModel
 {
 	Q_OBJECT
 protected:
-	KEResourcePathItem* m_Item;
+	KEFileSystemTreeItem* m_TreeItem;
+	KEResourcePathItem* m_PathItem;
+	std::string m_FullPath;
 public:
 	KEResourcePathModel(QObject *parent = nullptr);
 	~KEResourcePathModel();
@@ -18,7 +20,12 @@ public:
 	void BeginResetModel();
 	void EndResetModel();
 
-	void SetItem(KEFileSystemTreeItem* item);
+	void SetPath(const std::string& path);
+	inline const std::string& GetPath() const { return m_FullPath; }
+
+	void SetTreeItem(KEFileSystemTreeItem* item);
+	KEFileSystemTreeItem* GetTreeItem();
+
 	KEResourcePathItem* GetPathItem();
 
 	QVariant data(const QModelIndex &index, int role) const override;

@@ -34,6 +34,18 @@ public:
 	QSize sizeHint() const override;
 	void resizeEvent(QResizeEvent* event) override;
 
+	struct FileSystemItem
+	{
+		KEFileSystemTreeItem* tree;
+		KEFileSystemTreeItem* item;
+		KEFileSystemTreeItem* path;
+
+		FileSystemItem()
+		{
+			tree = item = path = nullptr;
+		}
+	};
+
 	bool Init();
 	bool UnInit();
 	void RefreshPathView(KEFileSystemTreeItem* item);
@@ -41,7 +53,7 @@ public:
 	void RefreshItemView(KEFileSystemTreeItem* item);
 protected:
 	QWidget* m_MainWindow;
-	std::unordered_map<int, KEFileSystemTreeItem*> m_RootItemMap;
+	std::unordered_map<int, FileSystemItem> m_RootItemMap;
 
 	QDockWidget* m_TreeDockWidget;
 	QDockWidget* m_ItemDockWidget;

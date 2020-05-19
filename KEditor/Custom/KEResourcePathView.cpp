@@ -24,11 +24,25 @@ void KEResourcePathView::OnDirectoryChange(const QString& path)
 			item = pathModel->GetPathItem();
 		}
 
+		KEFileSystemTreeItem* treeItem = pathModel->GetTreeItem();
+
+		pathModel->BeginResetModel();
 		if (item)
 		{
-			pathModel->BeginResetModel();
 			item->Clear();
-			pathModel->EndResetModel();
+		}
+		if (treeItem)
+		{
+			treeItem->Clear();
+		}
+		pathModel->SetPath(pathModel->GetPath());
+		pathModel->EndResetModel();
+
+		QModelIndex index = pathModel->index(0, 0);
+		while (index.isValid())
+		{
+			setCurrentIndex(index);
+			index = pathModel->index(0, 0, index);
 		}
 	}
 }

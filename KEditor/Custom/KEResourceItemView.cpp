@@ -27,12 +27,19 @@ void KEResourceItemView::OnDirectoryChange(const QString& path)
 
 	KEFileSystemTreeItem* changeItem = m_RootItem->FindItem(path.toStdString());
 	if (changeItem)
+	{
 		changeItem->Clear();
-	/*
+	}
+
 	KEFileSystemTreeItem* item = m_RootItem->FindItem(m_FullPath);
-	fstModel->SetItem(item);
-	*/
-	fstModel->SetItem(changeItem);
+	if (item)
+	{
+		fstModel->SetItem(item);
+	}
+	else
+	{
+		fstModel->SetItem(m_RootItem);
+	}
 
 	fstModel->EndResetModel();
 }

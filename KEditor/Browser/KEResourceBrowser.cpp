@@ -129,7 +129,9 @@ void KEResourceBrowser::RefreshTreeView(KEFileSystemTreeItem* item)
 
 void KEResourceBrowser::RefreshPathView(KEFileSystemTreeItem* item)
 {
-	m_PathModel->SetItem(item);
+	const std::string& fullPath = item->GetFullPath();
+
+	m_PathModel->SetPath(fullPath);
 	m_ItemWidget->ui.m_PathView->setModel(nullptr);
 	m_ItemWidget->ui.m_PathView->setModel(m_PathModel);
 
@@ -137,7 +139,7 @@ void KEResourceBrowser::RefreshPathView(KEFileSystemTreeItem* item)
 	while (index.isValid())
 	{
 		m_ItemWidget->ui.m_PathView->setCurrentIndex(index);
-		index = m_PathModel->index(0, 0, index);		
+		index = m_PathModel->index(0, 0, index);
 	}
 }
 
@@ -163,35 +165,82 @@ void KEResourceBrowser::OnComboIndexChanged(int index)
 		std::string root;
 		system->GetRoot(root);
 
-		//std::string fullPath;
-		//system->FullPath(".", root, fullPath);
-
-		KEFileSystemTreeItem* item = nullptr;
+		FileSystemItem fsItem;
 
 		auto it = m_RootItemMap.find(index);
 		if (it == m_RootItemMap.end())
 		{
-			item = KNEW KEFileSystemTreeItem(system.get(), root, root, nullptr, 0, true);
-			m_RootItemMap[index] = item;
+			KEFileSystemTreeItem* tree = KNEW KEFileSystemTreeItem(system.get(), root, root, nullptr, 0, true);
+			KEFileSystemTreeItem* item = KNEW KEFileSystemTreeItem(system.get(), root, root, nullptr, 0, true);
+			KEFileSystemTreeItem* path = KNEW KEFileSystemTreeItem(system.get(), root, root, nullptr, 0, true);
+
+			fsItem.tree = tree;
+			fsItem.item = item;
+			fsItem.path = path;
+
+			m_RootItemMap[index] = fsItem;
 		}
 		else
 		{
-			item = it->second;
+			fsItem = it->second;
 		}
 
-		RefreshTreeView(item);
-		RefreshItemView(item);
-		RefreshPathView(item);
+		m_PathModel->SetTreeItem(fsItem.path);
+
+		RefreshTreeView(fsItem.tree);
+		RefreshItemView(fsItem.item);
+		RefreshPathView(fsItem.path);
 	}
 }
 
 void KEResourceBrowser::OnTreeViewClicked(QModelIndex index)
 {
-	KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
-	m_ItemModel->SetItem(item);
+	std::string fullPath;
 
-	RefreshPathView(item);
-	RefreshItemView(item);
+	{
+		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
+		fullPath = item->GetFullPath();
+		
+	}
+
+	{
+		// 把根节点拿出来
+		KEFileSystemTreeItem* item = m_ItemModel->GetItem();
+		ASSERT_RESULT(item);
+		if (item)
+		{
+			KEFileSystemTreeItem* parent = item->GetParent();
+			while (parent)
+			{
+				item = parent;
+				parent = item->GetParent();
+			}
+			// 找到对应路径下的Item
+			item = item->FindItem(fullPath);
+		}
+		RefreshItemView(item);
+	}
+
+	{
+		// 把根节点拿出来
+		KEFileSystemTreeItem* item = m_PathModel->GetTreeItem();
+		ASSERT_RESULT(item);
+		if (item)
+		{
+			KEFileSystemTreeItem* parent = item->GetParent();
+			while (parent)
+			{
+				item = parent;
+				parent = item->GetParent();
+			}
+			// 找到对应路径下的Item
+			item = item->FindItem(fullPath);
+		}
+		if (item)
+		{
+			RefreshPathView(item);
+		}
+	}
 }
 
 void KEResourceBrowser::OnPathViewClicked(QModelIndex index)
@@ -244,8 +293,10 @@ bool KEResourceBrowser::UnInit()
 	m_TreeWidget->ui.m_SystemCombo->clear();
 	for (auto& pair : m_RootItemMap)
 	{
-		KEFileSystemTreeItem* item = pair.second;
-		SAFE_DELETE(item);
+		FileSystemItem& item = pair.second;
+		SAFE_DELETE(item.tree);
+		SAFE_DELETE(item.item);
+		SAFE_DELETE(item.path);
 	}
 	m_RootItemMap.clear();
 	return true;
