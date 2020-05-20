@@ -95,7 +95,7 @@ QVariant KEFileSystemModel::data(const QModelIndex &index, int role) const
 		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
 		if (item)
 		{
-			return QVariant(item->GetName().c_str());
+			return QVariant(QString::fromLocal8Bit(item->GetName().c_str()));
 		}
 	}
 

@@ -134,13 +134,6 @@ void KEResourceBrowser::RefreshPathView(KEFileSystemTreeItem* item)
 	m_PathModel->SetPath(fullPath);
 	m_ItemWidget->ui.m_PathView->setModel(nullptr);
 	m_ItemWidget->ui.m_PathView->setModel(m_PathModel);
-
-	QModelIndex index = m_PathModel->index(0, 0);
-	while (index.isValid())
-	{
-		m_ItemWidget->ui.m_PathView->setCurrentIndex(index);
-		index = m_PathModel->index(0, 0, index);
-	}
 }
 
 void KEResourceBrowser::RefreshItemView(KEFileSystemTreeItem* item)
@@ -200,46 +193,22 @@ void KEResourceBrowser::OnTreeViewClicked(QModelIndex index)
 	{
 		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
 		fullPath = item->GetFullPath();
-		
 	}
 
 	{
 		// 把根节点拿出来
-		KEFileSystemTreeItem* item = m_ItemModel->GetItem();
-		ASSERT_RESULT(item);
-		if (item)
-		{
-			KEFileSystemTreeItem* parent = item->GetParent();
-			while (parent)
-			{
-				item = parent;
-				parent = item->GetParent();
-			}
-			// 找到对应路径下的Item
-			item = item->FindItem(fullPath);
-		}
+		KEFileSystemTreeItem* item = m_ItemModel->GetItem()->FindRoot();
+		// 找到对应路径下的Item
+		item = item->FindItem(fullPath);
 		RefreshItemView(item);
 	}
 
 	{
 		// 把根节点拿出来
-		KEFileSystemTreeItem* item = m_PathModel->GetTreeItem();
-		ASSERT_RESULT(item);
-		if (item)
-		{
-			KEFileSystemTreeItem* parent = item->GetParent();
-			while (parent)
-			{
-				item = parent;
-				parent = item->GetParent();
-			}
-			// 找到对应路径下的Item
-			item = item->FindItem(fullPath);
-		}
-		if (item)
-		{
-			RefreshPathView(item);
-		}
+		KEFileSystemTreeItem* item = m_PathModel->GetTreeItem()->FindRoot();
+		// 找到对应路径下的Item
+		item = item->FindItem(fullPath);
+		RefreshPathView(item);
 	}
 }
 

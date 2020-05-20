@@ -19,6 +19,8 @@ protected:
 
 	void OnExpanded(const QModelIndex &index);
 	void OnCollapsed(const QModelIndex &index);
+
+	void ExpandIntoPreviousResult();
 public:
 	KEResourceTreeView(QWidget *parent = Q_NULLPTR)
 		: QTreeView(parent),

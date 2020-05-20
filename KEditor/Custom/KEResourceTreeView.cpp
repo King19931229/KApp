@@ -9,6 +9,14 @@ void KEResourceTreeView::OnFileChange(const QString& path)
 
 void KEResourceTreeView::OnDirectoryChange(const QString& path)
 {
+	/*if (m_Watcher)
+	{
+		for (QString path : m_Watcher->directories())
+		{
+			std::string watchPath = path.toStdString();
+		}
+	}*/
+
 	KEFileSystemModel* fstModel = dynamic_cast<KEFileSystemModel*>(model());
 	ASSERT_RESULT(fstModel);
 
@@ -35,14 +43,27 @@ void KEResourceTreeView::OnDirectoryChange(const QString& path)
 			fstModel->EndResetModel();
 		}
 
-		for (const std::string& dir : m_ExpanedPaths)
+		ExpandIntoPreviousResult();
+	}
+}
+
+void KEResourceTreeView::ExpandIntoPreviousResult()
+{
+	KEFileSystemModel* fstModel = dynamic_cast<KEFileSystemModel*>(model());
+	ASSERT_RESULT(fstModel);
+
+	QModelIndex ret;
+
+	std::unordered_set<std::string> vaildPaths;
+	for (const std::string& dir : m_ExpanedPaths)
+	{
+		if (fstModel->FindIndex(QModelIndex(), dir, ret))
 		{
-			if (fstModel->FindIndex(QModelIndex(), dir, ret))
-			{
-				expand(ret);
-			}
+			vaildPaths.insert(dir);
+			expand(ret);
 		}
 	}
+	m_ExpanedPaths = vaildPaths;
 }
 
 void KEResourceTreeView::OnExpanded(const QModelIndex &index)
@@ -81,17 +102,19 @@ void KEResourceTreeView::OnCollapsed(const QModelIndex &index)
 		{
 			UninstallWatcher(item->GetFullPath());
 		}
+
+		ExpandIntoPreviousResult();
 	}
 }
 
 void KEResourceTreeView::SetupWatcher(const std::string& path)
 {
-	m_Watcher->addPath(path.c_str());
+	m_Watcher->addPath(QString::fromLocal8Bit(path.c_str()));
 }
 
 void KEResourceTreeView::UninstallWatcher(const std::string& path)
 {
-	m_Watcher->removePath(path.c_str());
+	m_Watcher->removePath(QString::fromLocal8Bit(path.c_str()));
 }
 
 void KEResourceTreeView::setModel(QAbstractItemModel *model)

@@ -41,9 +41,11 @@ public:
 		m_Parent = nullptr;		
 	}
 
-	void Refresh()
+	KEFileSystemTreeItem* FindRoot()
 	{
-		Clear();
+		if (m_Parent == nullptr)
+			return this;
+		return m_Parent->FindRoot();
 	}
 
 	void Clear()

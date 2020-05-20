@@ -23,18 +23,14 @@ void KEResourcePathView::OnDirectoryChange(const QString& path)
 		{
 			item = pathModel->GetPathItem();
 		}
+		ASSERT_RESULT(item);
 
 		KEFileSystemTreeItem* treeItem = pathModel->GetTreeItem();
+		ASSERT_RESULT(treeItem);
 
 		pathModel->BeginResetModel();
-		if (item)
-		{
-			item->Clear();
-		}
-		if (treeItem)
-		{
-			treeItem->Clear();
-		}
+		treeItem->Clear();
+		item->Clear();
 		pathModel->SetPath(pathModel->GetPath());
 		pathModel->EndResetModel();
 
@@ -49,11 +45,7 @@ void KEResourcePathView::OnDirectoryChange(const QString& path)
 
 void KEResourcePathView::SetupWatcher(const std::string& path)
 {
-	m_Watcher->addPath(path.c_str());
-}
-
-void KEResourcePathView::OnExpanded(const QModelIndex &index)
-{
+	m_Watcher->addPath(QString::fromLocal8Bit(path.c_str()));
 }
 
 void KEResourcePathView::setModel(QAbstractItemModel *model)
@@ -83,6 +75,16 @@ void KEResourcePathView::setModel(QAbstractItemModel *model)
 					item = item->GetChild();
 				}
 			}
+		}
+	}
+
+	if (pathModel)
+	{
+		QModelIndex index = pathModel->index(0, 0);
+		while (index.isValid())
+		{
+			setCurrentIndex(index);
+			index = pathModel->index(0, 0, index);
 		}
 	}
 }

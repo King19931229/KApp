@@ -46,12 +46,12 @@ void KEResourceItemView::OnDirectoryChange(const QString& path)
 
 void KEResourceItemView::SetupWatcher(const std::string& path)
 {
-	m_Watcher->addPath(path.c_str());
+	m_Watcher->addPath(QString::fromLocal8Bit(path.c_str()));
 }
 
 void KEResourceItemView::UninstallWatcher(const std::string& path)
 {
-	m_Watcher->removePath(path.c_str());
+	m_Watcher->removePath(QString::fromLocal8Bit(path.c_str()));
 }
 
 void KEResourceItemView::mouseMoveEvent(QMouseEvent *event)
@@ -94,21 +94,22 @@ void KEResourceItemView::setModel(QAbstractItemModel *model)
 
 		if (item)
 		{
+			m_RootItem = item->FindRoot();
 			m_FullPath = item->GetFullPath();
 		}
 		else
 		{
+			m_RootItem = nullptr;
 			m_FullPath = "";
 		}
 
-		while (item)
+		if (item && item->GetSystem() && item->GetSystem()->GetType() == FST_NATIVE)
 		{
-			if (item && item->GetSystem() && item->GetSystem()->GetType() == FST_NATIVE)
+			while (item)
 			{
 				SetupWatcher(item->GetFullPath());
+				item = item->GetParent();
 			}
-			m_RootItem = item;
-			item = item->GetParent();
 		}
 	}
 }

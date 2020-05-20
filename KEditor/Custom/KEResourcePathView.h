@@ -12,13 +12,11 @@ protected:
 	void OnDirectoryChange(const QString& path);
 
 	void SetupWatcher(const std::string& path);
-	void OnExpanded(const QModelIndex &index);
 public:
 	KEResourcePathView(QWidget *parent = Q_NULLPTR)
 		: QColumnView(parent),
 		m_Watcher(nullptr)
 	{
-		connect(this, &KEResourcePathView::activated, this, &KEResourcePathView::OnExpanded);
 	}
 
 	~KEResourcePathView()

@@ -63,11 +63,11 @@ void KEResourceItemWidget::OnOpenFileExternal()
 			std::string absPath;
 			if (KFileTool::AbsPath(treeItem->GetFullPath(), absPath))
 			{
-				bool ok = QDesktopServices::openUrl(QUrl(absPath.c_str()));
+				bool ok = QDesktopServices::openUrl(QUrl(QString::fromLocal8Bit(absPath.c_str())));
 				if (!ok)
 				{
 					std::string failureMessage = std::string("File ") + absPath + " open failure";
-					QMessageBox::critical(this, "File open failure", failureMessage.c_str());
+					QMessageBox::critical(this, "File open failure", QString::fromLocal8Bit(failureMessage.c_str()));
 				}
 			}
 		}
@@ -90,18 +90,18 @@ void KEResourceItemWidget::OnOpenFileLocation()
 			{
 #ifdef _WIN32
 				QProcess process;
-				QString filePath = absPath.c_str();
+				QString filePath = QString::fromLocal8Bit(absPath.c_str());
 				filePath.replace("/", "\\");
 				QString cmd = QString("explorer.exe /select,\"%1\"").arg(filePath);
 				bool ok = process.startDetached(cmd);
 #else
 				KFileTool::ParentFolder(absPath, absPath);
-				bool ok = QDesktopServices::openUrl(QUrl(absPath.c_str()));
+				bool ok = QDesktopServices::openUrl(QUrl(QString::fromLocal8Bit(absPath.c_str())));
 #endif
 				if (!ok)
 				{
 					std::string failureMessage = std::string("File ") + absPath + " location open failure";
-					QMessageBox::critical(this, "File location open failure", failureMessage.c_str());
+					QMessageBox::critical(this, "File location open failure", QString::fromLocal8Bit(failureMessage.c_str()));
 				}
 			}
 		}

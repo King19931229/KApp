@@ -15,23 +15,20 @@ KEResourcePathModel::~KEResourcePathModel()
 
 bool KEResourcePathModel::FindIndex(QModelIndex parent, const std::string& path, QModelIndex& ret)
 {
+	KEResourcePathItem* item = nullptr;
 	if (parent.isValid())
 	{
-		KEResourcePathItem* item = static_cast<KEResourcePathItem*>(parent.internalPointer());
-		if (item->GetFullPath() == path)
-		{
-			ret = parent;
-			return true;
-		}
+		item = static_cast<KEResourcePathItem*>(parent.internalPointer());
 	}
 	else
 	{
-		KEResourcePathItem* item = m_PathItem;
-		if (item->GetFullPath() == path)
-		{
-			ret = parent;
-			return true;
-		}
+		item = m_PathItem;
+	}
+
+	if (item->GetFullPath() == path)
+	{
+		ret = parent;
+		return true;
 	}
 
 	QModelIndex child;
@@ -121,6 +118,10 @@ void KEResourcePathModel::SetPath(const std::string& path)
 				prePathItem = pathItem;
 			}
 		}
+		else
+		{
+			m_PathItem = KNEW KEResourcePathItem(nullptr, m_TreeItem, 0);
+		}
 	}
 }
 
@@ -150,7 +151,7 @@ QVariant KEResourcePathModel::data(const QModelIndex &index, int role) const
 	if (role == Qt::DisplayRole)
 	{
 		KEResourcePathItem* item = static_cast<KEResourcePathItem*>(index.internalPointer());
-		return QVariant(item->GetName().c_str());
+		return QVariant(QString::fromLocal8Bit(item->GetName().c_str()));
 	}
 
 	return QVariant();
@@ -206,7 +207,7 @@ QModelIndex KEResourcePathModel::parent(const QModelIndex &index) const
 	}
 
 	KEResourcePathItem* childItem = static_cast<KEResourcePathItem*>(index.internalPointer());
-	KEResourcePathItem *parentItem = childItem->GetParent();
+	KEResourcePathItem* parentItem = childItem->GetParent();
 
 	if (parentItem == m_PathItem)
 		return QModelIndex();
