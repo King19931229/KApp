@@ -333,6 +333,9 @@
     <ClInclude Include="Internal\Shadow\KCascadedShadowMap.h">
       <Filter>Internal\Shadow</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKCameraController.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">

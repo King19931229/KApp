@@ -1,9 +1,10 @@
 #pragma once
 #include "Interface/IKRenderWindow.h"
 #include "Interface/IKGizmo.h"
+#include "Interface/IKCameraController.h"
 #include "Publish/KCamera.h"
 
-class KCameraMoveController
+class KCameraMoveController : public IKCameraController
 {
 protected:
 	KCamera* m_Camera;
@@ -31,16 +32,18 @@ protected:
 	bool m_Enable;
 	bool m_GizmoTriggered;
 
+	float m_Speed;
+
 	void ZeroData();
 	inline bool IsEnable() const { return m_Enable && !m_GizmoTriggered; }
 public:
 	KCameraMoveController();
 	~KCameraMoveController();
 
-	void SetEnable(bool enable) { m_Enable = enable; }
-
-	bool Init(KCamera* camera, IKRenderWindow* window, IKGizmoPtr gizmo);
-	bool UnInit();
+	void SetEnable(bool enable) override { m_Enable = enable; }
+	void SetSpeed(float speed) override  { m_Speed = (speed > 0.0f) ? speed : m_Speed; }
+	bool Init(KCamera* camera, IKRenderWindow* window, IKGizmoPtr gizmo) override;
+	bool UnInit() override;
 
 	bool Update(float dt);
 };

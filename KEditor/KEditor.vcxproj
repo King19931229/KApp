@@ -133,6 +133,7 @@
     <ClCompile Include="Reflection\KEReflectionObjectItem.cpp" />
     <ClCompile Include="Reflection\KEReflectObjectTreeModel.cpp" />
     <ClCompile Include="Resource\KEResourceImporter.cpp" />
+    <ClCompile Include="ToolBar\KEManipulatorToolBar.cpp" />
     <ClCompile Include="Widget\KEGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPropertyWidget.cpp" />
@@ -185,6 +186,7 @@
     <QtMoc Include="Reflection\KEReflectObjectTreeModel.h" />
     <ClInclude Include="Reflection\KEReflectObjectTreeView.h" />
     <ClInclude Include="Resource\KEResourceImporter.h" />
+    <ClInclude Include="ToolBar\KEManipulatorToolBar.h" />
     <ClInclude Include="Widget\KEPostProcessGraphWidget.h" />
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />
     <QtMoc Include="Graph\Connection\KEGraphConnectionControl.h" />

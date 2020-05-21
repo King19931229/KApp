@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Interface\IKCameraController.h" />
     <ClInclude Include="Interface\IKCommandBuffer.h" />
     <ClInclude Include="Interface\IKGizmo.h" />
     <ClInclude Include="Interface\IKPipeline.h" />

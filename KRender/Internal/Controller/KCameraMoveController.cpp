@@ -4,7 +4,8 @@ KCameraMoveController::KCameraMoveController()
 	: m_Camera(nullptr),
 	m_Window(nullptr),
 	m_Enable(true),
-	m_GizmoTriggered(false)
+	m_GizmoTriggered(false),
+	m_Speed(1.0f)
 {
 	ZeroData();
 }
@@ -128,7 +129,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 					}
 					if (m_MouseDown[INPUT_MOUSE_BUTTON_LEFT])
 					{
-						const float fSpeed = 500.f;
+						const float fSpeed = 500.f * m_Speed;
 
 						glm::vec3 forward = m_Camera->GetForward(); forward.y = 0.0f;
 						if (glm::length(forward) > 0.001f)
@@ -154,7 +155,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 
 		m_ScrollCallback = [this](float xOffset, float yOffset)
 		{
-			const float fSpeed = 15.0f;
+			const float fSpeed = 15.0f * m_Speed;
 			m_Camera->MoveForward(fSpeed * yOffset);
 		};
 
@@ -232,7 +233,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 			{
 				float dx = std::get<0>(touchPositions[0]) - std::get<0>(touchPositions[1]);
 				float dy = std::get<1>(touchPositions[0]) - std::get<1>(touchPositions[1]);
-				const float fSpeed = 0.3f;
+				const float fSpeed = 0.3f * m_Speed;
 
 				float distance = sqrtf(dx * dx + dy * dy);
 
@@ -315,7 +316,7 @@ bool KCameraMoveController::Update(float dt)
 {
 	if (m_Camera && m_Window)
 	{
-		constexpr float moveSpeed = 300.0f;
+		const float moveSpeed = 300.0f * m_Speed;
 
 		if (m_Move[0])
 			m_Camera->MoveRight(dt * moveSpeed * m_Move[0]);

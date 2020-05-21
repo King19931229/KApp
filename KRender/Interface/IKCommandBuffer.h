@@ -13,7 +13,7 @@ struct KClearColor
 struct KClearDepthStencil
 {
 	float depth;
-	unsigned int stencil;;
+	unsigned int stencil;
 };
 
 struct KClearValue

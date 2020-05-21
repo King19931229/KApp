@@ -7,6 +7,7 @@
 #include "Graph/KEGraphRegistrar.h"
 #include "Other/KEQtRenderWindow.h"
 #include "Browser/KEResourceBrowser.h"
+#include "ToolBar/KEManipulatorToolBar.h"
 #include <QTextCodec>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -22,6 +23,7 @@ KEditor::KEditor(QWidget *parent)
 	m_SceneItemWidget(nullptr),
 	m_PropertyDock(nullptr),
 	m_PropertyWidget(nullptr),
+	m_ManipulatorToolBar(nullptr),
 	m_Engine(nullptr),
 	m_bInit(false)
 {
@@ -110,6 +112,8 @@ bool KEditor::Init()
 		m_Engine = KEngineGlobal::Engine;
 		m_Engine->Init(std::move(window), options);
 
+		IKRenderCore* renderCore = m_Engine->GetRenderCore();
+
 		m_RenderWidget->Init(m_Engine);
 		setCentralWidget(m_RenderWidget);
 
@@ -138,7 +142,9 @@ bool KEditor::Init()
 		m_PropertyDock->setWidget(m_PropertyWidget);
 		addDockWidget(Qt::RightDockWidgetArea, m_PropertyDock);
 
-		IKRenderCore* renderCore = m_Engine->GetRenderCore();
+		m_ManipulatorToolBar = KNEW KEManipulatorToolBar(this);
+		m_ManipulatorToolBar->Init(renderCore->GetCameraController());
+		addToolBar(Qt::TopToolBarArea, m_ManipulatorToolBar);
 
 		KEditorGlobal::ReflectionManager.Init(m_PropertyWidget);
 		KEditorGlobal::EntityManipulator.Init(renderCore->GetGizmo(), rawWindow, renderCore->GetCamera(), m_Engine->GetScene(), m_SceneItemWidget);
@@ -207,6 +213,12 @@ bool KEditor::UnInit()
 			m_PropertyDock->setWidget(nullptr);
 			removeDockWidget(m_PropertyDock);
 			SAFE_DELETE(m_PropertyDock);
+		}
+
+		if (m_ManipulatorToolBar)
+		{
+			m_ManipulatorToolBar->UnInit();
+			SAFE_DELETE(m_ManipulatorToolBar);
 		}
 
 		m_bInit = false;
