@@ -28,9 +28,9 @@ public:
 	inline const KAABBBox& GetLocalBound() const { return m_VertexData.bound; }
 	inline const KTriangleMesh& GetTriangleMesh() const { return m_TriangleMesh; }
 
-	bool SaveAsFile(const char* szPath);
-	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
-	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight);
+	bool SaveAsFile(const char* szPath) const;
+	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible = false);
+	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible = false);
 	bool InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
 	bool UnInit();
 

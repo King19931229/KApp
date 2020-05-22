@@ -3,7 +3,7 @@
 #include "KBase/Interface/Entity/IKEntity.h"
 #include "KRender/Publish/KCamera.h"
 
-class KEResourceImporter
+class KEResourcePorter
 {
 protected:
 	float m_EntityDropDistance;
@@ -12,11 +12,12 @@ protected:
 
 	bool DropPosition(const KCamera* camera, const KAABBBox& localBound, glm::vec3& pos);
 public:
-	KEResourceImporter();
-	~KEResourceImporter();
+	KEResourcePorter();
+	~KEResourcePorter();
 
-	bool InitEntity(const std::string& path, IKEntityPtr& entity);
+	bool InitEntity(const std::string& path, IKEntityPtr& entity, bool hostVisible = false);
 	bool UnInitEntity(IKEntityPtr& entity);
+	bool Convert(const std::string& assetPath, const std::string& meshPath);
 	IKEntityPtr Drop(const KCamera* camera, const std::string& path);
 
 	inline void SetEntityDropDistance(float distance) { m_EntityDropDistance = distance; }

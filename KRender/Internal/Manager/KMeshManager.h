@@ -22,7 +22,7 @@ protected:
 	IKRenderDevice* m_Device;
 	size_t m_FrameInFlight;
 
-	bool AcquireImpl(const char* path, bool fromAsset, KMeshPtr& ptr);
+	bool AcquireImpl(const char* path, bool fromAsset, bool hostVisible, KMeshPtr& ptr);
 public:
 	KMeshManager();
 	~KMeshManager();
@@ -30,8 +30,8 @@ public:
 	bool Init(IKRenderDevice* device, size_t frameInFlight);
 	bool UnInit();
 
-	bool Acquire(const char* path, KMeshPtr& ptr);
-	bool AcquireFromAsset(const char* path, KMeshPtr& ptr);
+	bool Acquire(const char* path, KMeshPtr& ptr, bool hostVisible = false);
+	bool AcquireFromAsset(const char* path, KMeshPtr& ptr, bool hostVisible = false);
 	bool AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr);
 	bool Release(KMeshPtr& ptr);
 

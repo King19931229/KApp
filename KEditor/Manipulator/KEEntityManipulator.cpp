@@ -133,7 +133,7 @@ void KEEntityManipulator::RemoveEditorEntity(IKEntity::IDType id)
 		KEEntityPtr editorEntity = it->second;
 		DiscardEntity(editorEntity);
 
-		KEditorGlobal::ResourceImporter.UnInitEntity(editorEntity->soul);
+		KEditorGlobal::ResourcePorter.UnInitEntity(editorEntity->soul);
 		m_Scene->Remove(editorEntity->soul);
 		m_SceneItemWidget->Remove(editorEntity);
 		m_Entities.erase(it);

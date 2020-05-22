@@ -316,7 +316,7 @@ void KERenderWidget::dropEvent(QDropEvent *event)
 		std::string fullPath = item->GetFullPath();
 		IKEnginePtr engine = KEngineGlobal::Engine;
 		IKRenderCore* renderCore = engine->GetRenderCore();
-		IKEntityPtr entity = KEditorGlobal::ResourceImporter.Drop(renderCore->GetCamera(), fullPath);
+		IKEntityPtr entity = KEditorGlobal::ResourcePorter.Drop(renderCore->GetCamera(), fullPath);
 		if (entity)
 		{
 			KEditorGlobal::EntityManipulator.Join(entity, fullPath);

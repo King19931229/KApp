@@ -17,7 +17,8 @@ RTTR_REGISTRATION
 
 KRenderComponent::KRenderComponent()
 	: m_Mesh(nullptr),
-	m_Type(NONE)
+	m_Type(NONE),
+	m_HostVisible(false)
 {}
 
 KRenderComponent::~KRenderComponent()
@@ -157,16 +158,31 @@ bool KRenderComponent::GetPath(std::string& path) const
 	return false;
 }
 
+bool KRenderComponent::SaveAsMesh(const char* path) const
+{
+	if (m_Type == ASSET || m_Type == MESH)
+	{
+		return m_Mesh->SaveAsFile(path);
+	}
+	return false;
+}
+
+bool KRenderComponent::SetHostVisible(bool hostVisible)
+{
+	m_HostVisible = hostVisible;
+	return true;
+}
+
 bool KRenderComponent::Init()
 {
 	UnInit();
 	if (m_Type == MESH)
 	{
-		return KRenderGlobal::MeshManager.Acquire(m_Path.c_str(), m_Mesh);
+		return KRenderGlobal::MeshManager.Acquire(m_Path.c_str(), m_Mesh, m_HostVisible);
 	}
 	else if (m_Type == ASSET)
 	{
-		return KRenderGlobal::MeshManager.AcquireFromAsset(m_Path.c_str(), m_Mesh);
+		return KRenderGlobal::MeshManager.AcquireFromAsset(m_Path.c_str(), m_Mesh, m_HostVisible);
 	}
 	else if (m_Type == UTILITY)
 	{

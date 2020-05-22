@@ -176,9 +176,6 @@
     <ClCompile Include="Custom\KEResourceItemView.cpp">
       <Filter>Custom</Filter>
     </ClCompile>
-    <ClCompile Include="Resource\KEResourceImporter.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
     <ClCompile Include="Manipulator\KEEntityManipulator.cpp">
       <Filter>Manipulator</Filter>
     </ClCompile>
@@ -211,6 +208,12 @@
     </ClCompile>
     <ClCompile Include="ToolBar\KEManipulatorToolBar.cpp">
       <Filter>ToolBar</Filter>
+    </ClCompile>
+    <ClCompile Include="Dialog\KEAssetConvertDialog.cpp">
+      <Filter>Dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\KEResourcePorter.cpp">
+      <Filter>Resource</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -286,6 +289,9 @@
     </QtMoc>
     <QtMoc Include="ToolBar\KEManipulatorToolBar.h">
       <Filter>ToolBar</Filter>
+    </QtMoc>
+    <QtMoc Include="Dialog\KEAssetConvertDialog.h">
+      <Filter>Dialog</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -395,9 +401,6 @@
     <ClInclude Include="Custom\KEResourcePathView.h">
       <Filter>Custom</Filter>
     </ClInclude>
-    <ClInclude Include="Resource\KEResourceImporter.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
     <ClInclude Include="Manipulator\KEEntityManipulator.h">
       <Filter>Manipulator</Filter>
     </ClInclude>
@@ -416,6 +419,9 @@
     <ClInclude Include="Reflection\KEReflectionManager.h">
       <Filter>Reflection</Filter>
     </ClInclude>
+    <ClInclude Include="Resource\KEResourcePorter.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="ui\KEditor.ui">
@@ -431,6 +437,9 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="ui\KESceneItemWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ui\KEAssetConvertDialog.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

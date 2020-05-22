@@ -1,6 +1,7 @@
 #include "KEResourceItemWidget.h"
 #include "KEResourceBrowser.h"
 #include "KEFileSystemTreeItem.h"
+#include "Dialog/KEAssetConvertDialog.h"
 #include <QMenu>
 #include <QDesktopServices>
 #include <QMessageBox>
@@ -44,6 +45,9 @@ void KEResourceItemWidget::ShowContextMenu(const QPoint& pos)
 
 		QAction *openFileLocationAction = menu->addAction("Open File Location");
 		connect(openFileLocationAction, &QAction::triggered, this, &KEResourceItemWidget::OnOpenFileLocation);
+
+		QAction *convertIntoMeshAction = menu->addAction("Convert Into Mesh");
+		connect(convertIntoMeshAction, &QAction::triggered, this, &KEResourceItemWidget::ConvertIntoMesh);
 
 		menu->exec(QCursor::pos());
 	}
@@ -102,6 +106,40 @@ void KEResourceItemWidget::OnOpenFileLocation()
 				{
 					std::string failureMessage = std::string("File ") + absPath + " location open failure";
 					QMessageBox::critical(this, "File location open failure", QString::fromLocal8Bit(failureMessage.c_str()));
+				}
+			}
+		}
+	}
+}
+
+void KEResourceItemWidget::ConvertIntoMesh()
+{
+	QModelIndexList selectedIndexes = ui.m_ItemView->selectionModel()->selectedIndexes();
+	if (selectedIndexes.size() > 0)
+	{
+		QModelIndex index = selectedIndexes[0];
+		KEFileSystemTreeItem* treeItem = (KEFileSystemTreeItem*)index.internalPointer();
+		IKFileSystem* system = treeItem->GetSystem();
+
+		if (system->GetType() == FST_NATIVE)
+		{
+			std::string assetPath;
+			std::string meshPath;
+			if (KFileTool::AbsPath(treeItem->GetFullPath(), assetPath) && KFileTool::ReplaceExt(assetPath, ".mesh", meshPath))
+			{
+				KEAssetConvertDialog dialog;
+				dialog.SetAssetPath(assetPath);
+				dialog.SetMeshPath(meshPath);
+				if (dialog.exec())
+				{
+					if (dialog.Process())
+					{
+						QMessageBox::information(this, "Convert mesh success", "Convert mesh success");
+					}
+					else
+					{
+						QMessageBox::critical(this, "Convert mesh failure", "Convert mesh failure");
+					}
 				}
 			}
 		}

@@ -3,7 +3,7 @@
 namespace KEditorGlobal
 {
 	KECommandInvoker CommandInvoker;
-	KEResourceImporter ResourceImporter;
+	KEResourcePorter ResourcePorter;
 	KEEntityManipulator EntityManipulator;
 	KEEntitySelector EntitySelector;
 	KEReflectionManager ReflectionManager;

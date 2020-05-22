@@ -1,4 +1,4 @@
-#include "KEResourceImporter.h"
+#include "KEResourcePorter.h"
 
 #include "KBase/Publish/KFileTool.h"
 #include "KBase/Publish/KStringUtil.h"
@@ -10,23 +10,23 @@
 
 #include <assert.h>
 
-KEResourceImporter::KEResourceImporter()
+KEResourcePorter::KEResourcePorter()
 	: m_EntityDropDistance(30.0f)
 {
 }
 
-KEResourceImporter::~KEResourceImporter()
+KEResourcePorter::~KEResourcePorter()
 {
 }
 
-const char* KEResourceImporter::ms_SupportedMeshExts[] =
+const char* KEResourcePorter::ms_SupportedMeshExts[] =
 {
 	".obj",
 	".3ds",
 	".fbx"
 };
 
-bool KEResourceImporter::IsSupportedMesh(const char* ext)
+bool KEResourcePorter::IsSupportedMesh(const char* ext)
 {
 	for (const char* meshExt : ms_SupportedMeshExts)
 	{
@@ -38,7 +38,7 @@ bool KEResourceImporter::IsSupportedMesh(const char* ext)
 	return false;
 }
 
-bool KEResourceImporter::DropPosition(const KCamera* camera, const KAABBBox& localBound, glm::vec3& pos)
+bool KEResourcePorter::DropPosition(const KCamera* camera, const KAABBBox& localBound, glm::vec3& pos)
 {
 	if (camera)
 	{
@@ -52,7 +52,7 @@ bool KEResourceImporter::DropPosition(const KCamera* camera, const KAABBBox& loc
 	return false;
 }
 
-bool KEResourceImporter::InitEntity(const std::string& path, IKEntityPtr& entity)
+bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity, bool hostVisible)
 {
 	if (entity)
 	{
@@ -71,6 +71,7 @@ bool KEResourceImporter::InitEntity(const std::string& path, IKEntityPtr& entity
 				if (entity->RegisterComponent(CT_RENDER, &renderComponent))
 				{
 					renderComponent->SetPathMesh(path.c_str());
+					renderComponent->SetHostVisible(hostVisible);
 					renderComponent->Init();
 				}
 			}
@@ -79,6 +80,7 @@ bool KEResourceImporter::InitEntity(const std::string& path, IKEntityPtr& entity
 				if (entity->RegisterComponent(CT_RENDER, &renderComponent))
 				{
 					renderComponent->SetPathAsset(path.c_str());
+					renderComponent->SetHostVisible(hostVisible);
 					renderComponent->Init();
 				}
 			}
@@ -96,7 +98,7 @@ bool KEResourceImporter::InitEntity(const std::string& path, IKEntityPtr& entity
 	return false;
 }
 
-bool KEResourceImporter::UnInitEntity(IKEntityPtr& entity)
+bool KEResourcePorter::UnInitEntity(IKEntityPtr& entity)
 {
 	if (entity)
 	{
@@ -109,7 +111,30 @@ bool KEResourceImporter::UnInitEntity(IKEntityPtr& entity)
 	return false;
 }
 
-IKEntityPtr KEResourceImporter::Drop(const KCamera* camera, const std::string& path)
+bool KEResourcePorter::Convert(const std::string& assetPath, const std::string& meshPath)
+{
+	bool bSuccess = false;
+
+	IKEntityPtr entity = KECS::EntityManager->CreateEntity();
+	if (InitEntity(assetPath, entity, true))
+	{
+		IKRenderComponent* renderComponent = nullptr;
+		if (entity->GetComponent(CT_RENDER, &renderComponent))
+		{
+			bSuccess = renderComponent->SaveAsMesh(meshPath.c_str());
+		}
+	}
+
+	if (entity)
+	{
+		entity->UnRegisterAllComponent();
+		KECS::EntityManager->ReleaseEntity(entity);
+	}
+
+	return bSuccess;
+}
+
+IKEntityPtr KEResourcePorter::Drop(const KCamera* camera, const std::string& path)
 {
 	if (camera)
 	{

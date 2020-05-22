@@ -17,7 +17,7 @@ KMesh::~KMesh()
 	ASSERT_RESULT(m_TriangleMesh.triangles.empty());
 }
 
-bool KMesh::SaveAsFile(const char* szPath)
+bool KMesh::SaveAsFile(const char* szPath) const
 {
 	assert(szPath);
 	if(!szPath)
@@ -31,7 +31,7 @@ bool KMesh::SaveAsFile(const char* szPath)
 	return false;
 }
 
-bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible)
 {
 	assert(szPath && device);
 	if(!szPath || !device)
@@ -41,7 +41,7 @@ bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t fram
 
 	UnInit();
 
-	if(KMeshSerializer::LoadFromFile(device, this, szPath, frameInFlight))
+	if(KMeshSerializer::LoadFromFile(device, this, szPath, hostVisible, frameInFlight))
 	{
 		m_Path = szPath;
 		UpdateTriangleMesh();
@@ -191,7 +191,7 @@ bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOptio
 	}
 }
 
-bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible)
 {
 	assert(szPath && device);
 	if(!szPath || !device)
@@ -242,7 +242,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 			KVertexDefinition::VertexDetail detail = KVertexDefinition::GetVertexDetail(format);
 
 			ASSERT_RESULT(buffer->InitMemory(result.vertexCount, detail.vertexSize, dataSource.data()));
-			ASSERT_RESULT(buffer->InitDevice(false));
+			ASSERT_RESULT(buffer->InitDevice(hostVisible));
 
 			if (format == VF_POINT_NORMAL_UV)
 			{
@@ -300,7 +300,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 				subPart.indexCount,
 				POINTER_OFFSET(result.indicesData.data(), indexSize * subPart.indexBase)
 				));
-			ASSERT_RESULT(indexData.indexBuffer->InitDevice(false));
+			ASSERT_RESULT(indexData.indexBuffer->InitDevice(hostVisible));
 
 			KMaterialPtr material = KMaterialPtr(KNEW KMaterial());
 			if(!subPart.material.diffuse.empty())

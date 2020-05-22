@@ -29,7 +29,7 @@ void KEEntitySceneJoinCommand::Execute()
 {
 	ForwardExecute([this](KEEntityPtr entity)
 	{
-		if (KEditorGlobal::ResourceImporter.InitEntity(
+		if (KEditorGlobal::ResourcePorter.InitEntity(
 			entity->createInfo.path,
 			entity->soul))
 		{
@@ -44,7 +44,7 @@ void KEEntitySceneJoinCommand::Undo()
 {
 	BackwardExecute([this](KEEntityPtr entity)
 	{
-		if (KEditorGlobal::ResourceImporter.UnInitEntity(entity->soul))
+		if (KEditorGlobal::ResourcePorter.UnInitEntity(entity->soul))
 		{
 			m_Scene->Remove(entity->soul);
 			m_Manipulator->RemoveEditorEntity(entity->soul->GetID());
@@ -78,7 +78,7 @@ void KEEntitySceneEraseCommand::Execute()
 {
 	ForwardExecute([this](KEEntityPtr entity)
 	{
-		if (KEditorGlobal::ResourceImporter.UnInitEntity(entity->soul))
+		if (KEditorGlobal::ResourcePorter.UnInitEntity(entity->soul))
 		{
 			m_Scene->Remove(entity->soul);
 			m_Manipulator->RemoveEditorEntity(entity->soul->GetID());
@@ -90,7 +90,7 @@ void KEEntitySceneEraseCommand::Undo()
 {
 	BackwardExecute([this](KEEntityPtr entity)
 	{
-		if (KEditorGlobal::ResourceImporter.InitEntity(
+		if (KEditorGlobal::ResourcePorter.InitEntity(
 			entity->createInfo.path,
 			entity->soul))
 		{

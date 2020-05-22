@@ -40,20 +40,34 @@ bool KEManipulatorToolBar::Init(IKCameraController* cameraControl, IKGizmoPtr gi
 	m_Gizmo = gizmo;
 
 	m_MoveGizmoAction = KNEW QAction(QIcon(":/images/move_gizmo.png"), "MoveGizmo", nullptr);
+	m_MoveGizmoAction->setCheckable(true);
+
 	m_RotateGizmoAction = KNEW QAction(QIcon(":/images/rotate_gizmo.png"), "RotateGizmo", nullptr);
+	m_RotateGizmoAction->setCheckable(true);
+
 	m_ScaleGizmoAction = KNEW QAction(QIcon(":/images/scale_gizmo.png"), "ScaleGizmo", nullptr);
+	m_ScaleGizmoAction->setCheckable(true);
 
 	QObject::connect(m_MoveGizmoAction, &QAction::triggered, [this](bool checked)
 	{
 		m_Gizmo->SetType(GizmoType::GIZMO_TYPE_MOVE);
+		m_MoveGizmoAction->setChecked(true);
+		m_RotateGizmoAction->setChecked(false);
+		m_ScaleGizmoAction->setChecked(false);
 	});
 	QObject::connect(m_RotateGizmoAction, &QAction::triggered, [this](bool checked)
 	{
 		m_Gizmo->SetType(GizmoType::GIZMO_TYPE_ROTATE);
+		m_MoveGizmoAction->setChecked(false);
+		m_RotateGizmoAction->setChecked(true);
+		m_ScaleGizmoAction->setChecked(false);
 	});
 	QObject::connect(m_ScaleGizmoAction, &QAction::triggered, [this](bool checked)
 	{
 		m_Gizmo->SetType(GizmoType::GIZMO_TYPE_SCALE);
+		m_MoveGizmoAction->setChecked(false);
+		m_RotateGizmoAction->setChecked(false);
+		m_ScaleGizmoAction->setChecked(true);
 	});
 	addActions({ m_MoveGizmoAction ,m_RotateGizmoAction, m_ScaleGizmoAction });
 

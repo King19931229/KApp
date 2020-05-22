@@ -101,6 +101,7 @@
     <ClCompile Include="Custom\KEResourceItemView.cpp" />
     <ClCompile Include="Custom\KEResourcePathView.cpp" />
     <ClCompile Include="Custom\KEResourceTreeView.cpp" />
+    <ClCompile Include="Dialog\KEAssetConvertDialog.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionControl.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionGeometry.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionState.cpp" />
@@ -132,7 +133,7 @@
     <ClCompile Include="Reflection\KEReflectionManager.cpp" />
     <ClCompile Include="Reflection\KEReflectionObjectItem.cpp" />
     <ClCompile Include="Reflection\KEReflectObjectTreeModel.cpp" />
-    <ClCompile Include="Resource\KEResourceImporter.cpp" />
+    <ClCompile Include="Resource\KEResourcePorter.cpp" />
     <ClCompile Include="ToolBar\KEManipulatorToolBar.cpp" />
     <ClCompile Include="Widget\KEGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp" />
@@ -168,6 +169,7 @@
     <ClInclude Include="Custom\KEResourceItemView.h" />
     <ClInclude Include="Custom\KEResourcePathView.h" />
     <ClInclude Include="Custom\KEResourceTreeView.h" />
+    <QtMoc Include="Dialog\KEAssetConvertDialog.h" />
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h" />
     <ClInclude Include="Graph\Command\KEGraphNodeCommand.h" />
     <ClInclude Include="KEditorGlobal.h" />
@@ -185,7 +187,7 @@
     <ClInclude Include="Reflection\KEReflectionObjectItem.h" />
     <QtMoc Include="Reflection\KEReflectObjectTreeModel.h" />
     <ClInclude Include="Reflection\KEReflectObjectTreeView.h" />
-    <ClInclude Include="Resource\KEResourceImporter.h" />
+    <ClInclude Include="Resource\KEResourcePorter.h" />
     <QtMoc Include="ToolBar\KEManipulatorToolBar.h" />
     <ClInclude Include="Widget\KEPostProcessGraphWidget.h" />
     <QtMoc Include="Graph\Test\KEGraphNodeTestModel.h" />
@@ -218,6 +220,7 @@
     <QtMoc Include="Widget\KEGraphWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtUic Include="ui\KEAssetConvertDialog.ui" />
     <QtUic Include="ui\KEditor.ui" />
     <QtUic Include="ui\KEResourceBrowser.ui" />
     <QtUic Include="ui\KEResourceItemWidget.ui" />

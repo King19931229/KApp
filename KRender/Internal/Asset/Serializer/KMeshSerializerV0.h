@@ -29,11 +29,11 @@ protected:
 	bool ReadMagic(IKDataStreamPtr& stream, uint32_t& magic);
 	bool ReadVersion(IKDataStreamPtr& stream, uint32_t& version);
 
-	bool ReadVertexData(IKDataStreamPtr& stream, KVertexData& vertexData);
-	bool ReadVertexElementData(IKDataStreamPtr& stream, VertexFormat& foramt, IKVertexBufferPtr& vertexBuffer, KAABBBox& bound);
+	bool ReadVertexData(IKDataStreamPtr& stream, KVertexData& vertexData, bool hostVisible);
+	bool ReadVertexElementData(IKDataStreamPtr& stream, VertexFormat& foramt, IKVertexBufferPtr& vertexBuffer, KAABBBox& bound, bool hostVisible);
 
-	bool ReadIndexData(IKDataStreamPtr& stream, std::vector<KIndexData>& indexDatas);
-	bool ReadIndexElementData(IKDataStreamPtr& stream, KIndexData& indexData);
+	bool ReadIndexData(IKDataStreamPtr& stream, std::vector<KIndexData>& indexDatas, bool hostVisible);
+	bool ReadIndexElementData(IKDataStreamPtr& stream, KIndexData& indexData, bool hostVisible);
 
 	bool ReadMaterialData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas);
 	bool ReadMaterialElementData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas);
@@ -66,6 +66,6 @@ public:
 	KMeshSerializerV0(IKRenderDevice* device);
 	~KMeshSerializerV0();
 
-	bool LoadFromStream(KMesh* pMesh, const std::string& meshPath, IKDataStreamPtr& stream, size_t frameInFlight);
-	bool SaveToStream(KMesh* pMesh, IKDataStreamPtr& stream);
+	bool LoadFromStream(KMesh* pMesh, const std::string& meshPath, IKDataStreamPtr& stream, bool hostVisible, size_t frameInFlight);
+	bool SaveToStream(const KMesh* pMesh, IKDataStreamPtr& stream);
 };

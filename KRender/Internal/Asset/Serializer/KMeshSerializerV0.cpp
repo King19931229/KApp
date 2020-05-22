@@ -172,7 +172,7 @@ bool KMeshSerializerV0::ReadVersion(IKDataStreamPtr& stream, uint32_t& version)
 	return false;
 }
 
-bool KMeshSerializerV0::ReadVertexData(IKDataStreamPtr& stream, KVertexData& vertexData)
+bool KMeshSerializerV0::ReadVertexData(IKDataStreamPtr& stream, KVertexData& vertexData, bool hostVisible)
 {
 	uint32_t flag = 0;
 
@@ -205,7 +205,7 @@ bool KMeshSerializerV0::ReadVertexData(IKDataStreamPtr& stream, KVertexData& ver
 		VertexFormat format = VF_UNKNOWN;
 		IKVertexBufferPtr buffer = nullptr;
 
-		if(!ReadVertexElementData(stream, format, buffer, bound))
+		if(!ReadVertexElementData(stream, format, buffer, bound, hostVisible))
 		{
 			releaseBuffers();
 			return false;
@@ -224,7 +224,7 @@ bool KMeshSerializerV0::ReadVertexData(IKDataStreamPtr& stream, KVertexData& ver
 	return true;
 }
 
-bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFormat& format, IKVertexBufferPtr& vertexBuffer, KAABBBox& bound)
+bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFormat& format, IKVertexBufferPtr& vertexBuffer, KAABBBox& bound, bool hostVisible)
 {
 	uint32_t flag = 0;
 
@@ -254,7 +254,7 @@ bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFor
 	m_Device->CreateVertexBuffer(vertexBuffer);
 
 	ASSERT_RESULT(vertexBuffer->InitMemory(vertexDataCount, vertexDataSize, vertexDatas.data()));
-	ASSERT_RESULT(vertexBuffer->InitDevice(false));
+	ASSERT_RESULT(vertexBuffer->InitDevice(hostVisible));
 
 	// bounding box
 	{
@@ -289,7 +289,7 @@ bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFor
 	return true;
 }
 
-bool KMeshSerializerV0::ReadIndexData(IKDataStreamPtr& stream, std::vector<KIndexData>& indexDatas)
+bool KMeshSerializerV0::ReadIndexData(IKDataStreamPtr& stream, std::vector<KIndexData>& indexDatas, bool hostVisible)
 {
 	uint32_t indexElementCount = 0;
 	ACTION_ON_FAILURE(stream->Read(&indexElementCount, sizeof(indexElementCount)), return false);
@@ -309,7 +309,7 @@ bool KMeshSerializerV0::ReadIndexData(IKDataStreamPtr& stream, std::vector<KInde
 	for(uint32_t i = 0; i < indexElementCount; ++i)
 	{
 		KIndexData indexData;
-		if(!ReadIndexElementData(stream, indexData))
+		if(!ReadIndexElementData(stream, indexData, hostVisible))
 		{
 			releaseBuffers();
 			return false;
@@ -322,7 +322,7 @@ bool KMeshSerializerV0::ReadIndexData(IKDataStreamPtr& stream, std::vector<KInde
 	return true;
 }
 
-bool KMeshSerializerV0::ReadIndexElementData(IKDataStreamPtr& stream, KIndexData& indexData)
+bool KMeshSerializerV0::ReadIndexElementData(IKDataStreamPtr& stream, KIndexData& indexData, bool hostVisible)
 {
 	uint32_t flag = 0;
 
@@ -349,7 +349,7 @@ bool KMeshSerializerV0::ReadIndexElementData(IKDataStreamPtr& stream, KIndexData
 	m_Device->CreateIndexBuffer(indexBuffer);
 
 	ASSERT_RESULT(indexBuffer->InitMemory(is16Format ? IT_16 : IT_32, indexCountInBuffer, indexDatas.data()));
-	ASSERT_RESULT(indexBuffer->InitDevice(false));
+	ASSERT_RESULT(indexBuffer->InitDevice(hostVisible));
 
 	indexData.indexStart = 0;
 	indexData.indexCount = indexCount;
@@ -446,7 +446,7 @@ bool KMeshSerializerV0::ReadDrawElementData(IKDataStreamPtr& stream, DrawElement
 	return true;
 }
 
-bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath, IKDataStreamPtr& stream, size_t frameInFlight)
+bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath, IKDataStreamPtr& stream, bool hostVisible, size_t frameInFlight)
 {
 	uint32_t head = 0;
 	uint32_t magic = 0;
@@ -482,14 +482,14 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 		{
 			// only one vertex data
 			ASSERT_RESULT(vertexData.vertexFormats.size() == 0 && vertexData.vertexBuffers.size() == 0);
-			if(!ReadVertexData(stream, vertexData))
+			if(!ReadVertexData(stream, vertexData, hostVisible))
 			{
 				RELEASE_ON_FAIL();
 			}
 		}
 		else if(flag == MSE_INDEX_DATA)
 		{
-			if(!ReadIndexData(stream, indexDatas))
+			if(!ReadIndexData(stream, indexDatas, hostVisible))
 			{
 				RELEASE_ON_FAIL();
 			}
@@ -762,7 +762,7 @@ bool KMeshSerializerV0::WriteDrawElementData(IKDataStreamPtr& stream, const Draw
 	return true;
 }
 
-bool KMeshSerializerV0::SaveToStream(KMesh* pMesh, IKDataStreamPtr& stream)
+bool KMeshSerializerV0::SaveToStream(const KMesh* pMesh, IKDataStreamPtr& stream)
 {
 	ACTION_ON_FAILURE(WriteHead(stream), return false);
 	ACTION_ON_FAILURE(WriteMagic(stream), return false);

@@ -23,6 +23,10 @@ public:
 	virtual bool SetPathAsset(const char* path) = 0;
 	virtual bool GetPath(std::string& path) const = 0;
 
+	virtual bool SaveAsMesh(const char* path) const = 0;
+
+	virtual bool SetHostVisible(bool hostVisible) = 0;
+
 	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;
 };

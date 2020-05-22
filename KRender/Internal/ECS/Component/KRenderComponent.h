@@ -18,6 +18,7 @@ protected:
 	}m_Type;
 	std::string m_Path;
 	KMeshUtilityInfoPtr m_UtilityInfo;
+	bool m_HostVisible;
 
 	static constexpr const char* msType = "type";
 	static constexpr const char* msPath = "path";
@@ -41,6 +42,10 @@ public:
 	bool SetPathMesh(const char* path) override;
 	bool SetPathAsset(const char* path) override;
 	bool GetPath(std::string& path) const override;
+
+	bool SaveAsMesh(const char* path) const override;
+
+	bool SetHostVisible(bool hostVisible) override;
 
 	bool Init() override;
 	bool UnInit() override;

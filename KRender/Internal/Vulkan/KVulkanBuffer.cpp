@@ -160,7 +160,7 @@ bool KVulkanVertexBuffer::Read(void* pData)
 			return true;
 		}
 	}
-	return true;
+	return false;
 }
 
 bool KVulkanVertexBuffer::CopyFrom(IKVertexBufferPtr pSource)
@@ -332,7 +332,7 @@ bool KVulkanIndexBuffer::Read(void* pData)
 			return true;
 		}
 	}
-	return true;
+	return false;
 }
 
 bool KVulkanIndexBuffer::CopyFrom(IKIndexBufferPtr pSource)
