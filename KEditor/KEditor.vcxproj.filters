@@ -69,6 +69,9 @@
     <Filter Include="ToolBar">
       <UniqueIdentifier>{377d5d5f-a6cb-48e1-86f4-f6cac7089256}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Dialog">
+      <UniqueIdentifier>{1367b392-3a24-46dd-a96f-192734b4094e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -281,6 +284,9 @@
     <QtMoc Include="Reflection\KEReflectObjectTreeModel.h">
       <Filter>Reflection</Filter>
     </QtMoc>
+    <QtMoc Include="ToolBar\KEManipulatorToolBar.h">
+      <Filter>ToolBar</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="KEditor.qrc">
@@ -409,9 +415,6 @@
     </ClInclude>
     <ClInclude Include="Reflection\KEReflectionManager.h">
       <Filter>Reflection</Filter>
-    </ClInclude>
-    <ClInclude Include="ToolBar\KEManipulatorToolBar.h">
-      <Filter>ToolBar</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

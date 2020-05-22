@@ -143,7 +143,7 @@ bool KEditor::Init()
 		addDockWidget(Qt::RightDockWidgetArea, m_PropertyDock);
 
 		m_ManipulatorToolBar = KNEW KEManipulatorToolBar(this);
-		m_ManipulatorToolBar->Init(renderCore->GetCameraController());
+		m_ManipulatorToolBar->Init(renderCore->GetCameraController(), renderCore->GetGizmo());
 		addToolBar(Qt::TopToolBarArea, m_ManipulatorToolBar);
 
 		KEditorGlobal::ReflectionManager.Init(m_PropertyWidget);

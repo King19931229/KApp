@@ -4,5 +4,8 @@
         <file alias="images/down_arrow.png">resources/images/down_arrow.png</file>
         <file alias="images/handle.png">resources/images/handle.png</file>
         <file alias="darkorange.qss">resources/darkorange.qss</file>
+        <file alias="images/move_gizmo.png">resources/images/move_gizmo.png</file>
+        <file alias="images/rotate_gizmo.png">resources/images/rotate_gizmo.png</file>
+        <file alias="images/scale_gizmo.png">resources/images/scale_gizmo.png</file>
     </qresource>
 </RCC>
