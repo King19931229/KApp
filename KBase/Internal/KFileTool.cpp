@@ -12,10 +12,10 @@
 #include <unistd.h>
 #endif
 
-#include <assert.h>
-
 #include <string>
 #include <algorithm>
+#include <stack>
+#include <assert.h>
 
 #ifdef _WIN32
 #define ACCESS(path, mode) _access(path, mode)
@@ -40,6 +40,7 @@ namespace KFileTool
 			const char* trimEnd = strrchr(execPath.c_str(), '/');
 			const char* trimBegin = execPath.c_str();
 			execPath = execPath.substr(0, trimEnd - trimBegin);
+			TrimPath(execPath, execPath);
 			return true;
 		}
 		return false;
@@ -57,6 +58,7 @@ namespace KFileTool
 			absPath = std::string(szPath);
 			std::replace(absPath.begin(), absPath.end(), '\\', '/');
 			absPath = absPath + "/" + relpath;
+			TrimPath(absPath, absPath);
 			return true;
 		}
 		return false;
@@ -67,6 +69,124 @@ namespace KFileTool
 		const char* pFilePath = filePath.c_str();
 		if(pFilePath && ACCESS(pFilePath, 0) != -1)
 		{
+			return true;
+		}
+		return false;
+	}
+
+	bool IsWindowStylePath(const std::string& path)
+	{
+		if (path.length() >= 2 && isalpha(path.at(0)) && path.at(1) == ':')
+		{
+			return true;
+		}
+		return false;
+	}
+
+	bool IsUnixStylePath(const std::string& path)
+	{
+		if (path.length() >= 2 && path.substr(0, 2) == "./")
+		{
+			return true;
+		}
+		if (path.length() >= 1 && path.substr(0, 1) == "/")
+		{
+			return true;
+		}
+		return false;
+	}
+
+	bool SimplifyPath(const std::string& path, std::string& destPath)
+	{
+		// https://www.geeksforgeeks.org/simplify-directory-path-unix-like/
+		if (!path.empty())
+		{
+			// stack to store the file's names. 
+			std::stack<std::string> st;
+
+			// temporary string which stores the extracted 
+			// directory name or commands("." / "..") 
+			// Eg. "/a/b/../." 
+			// dir will contain "a", "b", "..", "."; 
+			std::string dir;
+
+			// contains resultant simplifies string. 
+			std::string res;
+
+			// every string starts from root directory.
+#ifndef _WIN32
+			if(IsUnixStylePath(path))
+				res.append("/");
+#endif
+
+			// stores length of input string. 
+			size_t len_A = path.length();
+
+			for (int i = 0; i < len_A; i++)
+			{
+				// we will clear the temporary string 
+				// every time to accomodate new directory  
+				// name or command. 
+				dir.clear();
+
+				// skip all the multiple '/' Eg. "/////"" 
+				while (path[i] == '/')
+					i++;
+
+				// stores directory's name("a", "b" etc.) 
+				// or commands("."/"..") into dir 
+				while (i < len_A && path[i] != '/')
+				{
+					dir.push_back(path[i]);
+					i++;
+				}
+
+				// if dir has ".." just pop the topmost 
+				// element if the stack is not empty 
+				// otherwise ignore. 
+				if (dir.compare("..") == 0)
+				{
+					if (!st.empty())
+						st.pop();
+				}
+
+				// if dir has "." then simply continue 
+				// with the process. 
+				else if (dir.compare(".") == 0)
+					continue;
+
+				// pushes if it encounters directory's  
+				// name("a", "b"). 
+				else if (dir.length() != 0)
+					st.push(dir);
+			}
+
+			// a temporary stack  (st1) which will contain  
+			// the reverse of original stack(st). 
+			std::stack<std::string> st1;
+			while (!st.empty())
+			{
+				st1.push(st.top());
+				st.pop();
+			}
+
+			// the st1 will contain the actual res. 
+			while (!st1.empty())
+			{
+				std::string temp = st1.top();
+
+				// if it's the last element no need 
+				// to append "/" 
+				if (st1.size() != 1)
+					res.append(temp + "/");
+				else
+					res.append(temp);
+
+				st1.pop();
+			}
+
+			destPath = res;
+
 			return true;
 		}
 		return false;
@@ -194,18 +314,13 @@ namespace KFileTool
 #endif
 	}
 
-	bool TrimPath(const std::string& srcPath, std::string& destPath, bool bTolower)
+	bool TrimPath(const std::string& srcPath, std::string& destPath)
 	{
 		if(!srcPath.empty())
 		{
 			destPath = srcPath;
-
-			if(bTolower)
-			{
-				std::transform(destPath.begin(), destPath.end(), destPath.begin(), tolower);
-			}
-
 			std::replace(destPath.begin(), destPath.end(), '\\', '/');
+			SimplifyPath(destPath, destPath);
 			return true;
 		}
 		return false;
@@ -215,51 +330,27 @@ namespace KFileTool
 	{
 		if(!path.empty() && !subPath.empty())
 		{
-			std::string trimPath = path;
-			std::replace(trimPath.begin(), trimPath.end(), '\\', '/');
+			std::string trimPath;
+			TrimPath(path, trimPath);
 
-			std::string::size_type lastPos = trimPath.find_last_not_of("/");
-			if(lastPos != std::string::npos && lastPos != trimPath.length() - 1)
-			{
-				trimPath = trimPath.erase(lastPos + 1, trimPath.length() - lastPos);
-			}
+			std::string trimSubPath;
+			TrimPath(subPath, trimSubPath);
 
-			std::string trimSubPath = subPath;
-			std::replace(trimSubPath.begin(), trimSubPath.end(), '\\', '/');
-
-			// remove extra "./"
-			if(trimSubPath.substr(0, 2) == "./")
-			{
-				trimSubPath.erase(0, 2);
-			}
-
-			// remove extra "///////"
-			if(trimSubPath.at(0) == '/')
-			{
-				std::string::size_type firstPos = trimSubPath.find_first_not_of('/');
-				if(firstPos != std::string::npos)
-				{
-					trimSubPath = trimSubPath.erase(0, firstPos);
-				}
-			}
-
-			destPath = trimPath + "/" + trimSubPath;
-			// remove extra "./"
-			if(destPath.substr(0, 2) == "./")
-			{
-				destPath.erase(0, 2);
-			}
+			std::string trimJoinPath = trimPath + "/" + trimSubPath;
+			TrimPath(trimJoinPath, destPath);
 
 			return true;
 		}
 		else if (!path.empty())
 		{
-			destPath = path;
+			std::string trimJoinPath = path;
+			TrimPath(trimJoinPath, destPath);
 			return true;
 		}
 		else if (!subPath.empty())
 		{
-			destPath = subPath;
+			std::string trimJoinPath = subPath;
+			TrimPath(trimJoinPath, destPath);
 			return true;
 		}
 		return false;
@@ -315,6 +406,10 @@ namespace KFileTool
 		}
 		return false;
 	}
+
+#ifdef CopyFile
+#undef CopyFile
+#endif // CopyFile
 
 	bool CopyFile(const std::string& src, const std::string& dest)
 	{

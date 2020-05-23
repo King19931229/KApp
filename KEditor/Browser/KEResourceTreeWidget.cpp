@@ -47,15 +47,12 @@ void KEResourceTreeWidget::OnOpenFolderLocation()
 
 		if (system->GetType() == FST_NATIVE)
 		{
-			std::string absPath;
-			if (KFileTool::AbsPath(treeItem->GetSystemFullPath(), absPath))
+			std::string absPath = treeItem->GetSystemFullPath();
+			bool ok = QDesktopServices::openUrl(QUrl(QString::fromLocal8Bit(absPath.c_str()), QUrl::TolerantMode));
+			if (!ok)
 			{
-				bool ok = QDesktopServices::openUrl(QUrl(QString::fromLocal8Bit(absPath.c_str()), QUrl::TolerantMode));
-				if (!ok)
-				{
-					std::string failureMessage = std::string("Folder ") + absPath + " open failure";
-					QMessageBox::critical(this, "Folder open failure", QString::fromLocal8Bit(failureMessage.c_str()));
-				}
+				std::string failureMessage = std::string("Folder ") + absPath + " open failure";
+				QMessageBox::critical(this, "Folder open failure", QString::fromLocal8Bit(failureMessage.c_str()));
 			}
 		}
 	}

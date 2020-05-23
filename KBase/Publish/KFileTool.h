@@ -17,7 +17,7 @@ namespace KFileTool
 	EXPORT_DLL bool IsDir(const std::string& filePath);
 	EXPORT_DLL bool ListDir(const std::string& dir, std::vector<std::string>& listdir);
 
-	EXPORT_DLL bool TrimPath(const std::string& srcPath, std::string& destPath, bool bTolower = false);
+	EXPORT_DLL bool TrimPath(const std::string& srcPath, std::string& destPath);
 	EXPORT_DLL bool PathJoin(const std::string& path, const std::string& subPath, std::string& destPath);
 	EXPORT_DLL bool ReplaceExt(const std::string& path, const std::string& ext, std::string& destPath);
 	EXPORT_DLL bool SplitExt(const std::string& path, std::string& name, std::string& ext);

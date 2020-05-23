@@ -64,15 +64,12 @@ void KEResourceItemWidget::OnOpenFileExternal()
 
 		if (system->GetType() == FST_NATIVE)
 		{
-			std::string absPath;
-			if (KFileTool::AbsPath(treeItem->GetSystemFullPath(), absPath))
+			std::string absPath = treeItem->GetSystemFullPath();
+			bool ok = QDesktopServices::openUrl(QUrl(QString::fromLocal8Bit(absPath.c_str())));
+			if (!ok)
 			{
-				bool ok = QDesktopServices::openUrl(QUrl(QString::fromLocal8Bit(absPath.c_str())));
-				if (!ok)
-				{
-					std::string failureMessage = std::string("File ") + absPath + " open failure";
-					QMessageBox::critical(this, "File open failure", QString::fromLocal8Bit(failureMessage.c_str()));
-				}
+				std::string failureMessage = std::string("File ") + absPath + " open failure";
+				QMessageBox::critical(this, "File open failure", QString::fromLocal8Bit(failureMessage.c_str()));
 			}
 		}
 	}
@@ -89,24 +86,21 @@ void KEResourceItemWidget::OnOpenFileLocation()
 
 		if (system->GetType() == FST_NATIVE)
 		{
-			std::string absPath;
-			if (KFileTool::AbsPath(treeItem->GetSystemFullPath(), absPath))
-			{
+			std::string absPath = treeItem->GetSystemFullPath();
 #ifdef _WIN32
-				QProcess process;
-				QString filePath = QString::fromLocal8Bit(absPath.c_str());
-				filePath.replace("/", "\\");
-				QString cmd = QString("explorer.exe /select,\"%1\"").arg(filePath);
-				bool ok = process.startDetached(cmd);
+			QProcess process;
+			QString filePath = QString::fromLocal8Bit(absPath.c_str());
+			filePath.replace("/", "\\");
+			QString cmd = QString("explorer.exe /select,\"%1\"").arg(filePath);
+			bool ok = process.startDetached(cmd);
 #else
-				KFileTool::ParentFolder(absPath, absPath);
-				bool ok = QDesktopServices::openUrl(QUrl(QString::fromLocal8Bit(absPath.c_str())));
+			KFileTool::ParentFolder(absPath, absPath);
+			bool ok = QDesktopServices::openUrl(QUrl(QString::fromLocal8Bit(absPath.c_str())));
 #endif
-				if (!ok)
-				{
-					std::string failureMessage = std::string("File ") + absPath + " location open failure";
-					QMessageBox::critical(this, "File location open failure", QString::fromLocal8Bit(failureMessage.c_str()));
-				}
+			if (!ok)
+			{
+				std::string failureMessage = std::string("File ") + absPath + " location open failure";
+				QMessageBox::critical(this, "File location open failure", QString::fromLocal8Bit(failureMessage.c_str()));
 			}
 		}
 	}
@@ -123,13 +117,14 @@ void KEResourceItemWidget::ConvertIntoMesh()
 
 		if (system->GetType() == FST_NATIVE)
 		{
-			std::string assetPath;
+			std::string assetPath = treeItem->GetSystemFullPath();
 			std::string meshPath;
-			if (KFileTool::AbsPath(treeItem->GetSystemFullPath(), assetPath) && KFileTool::ReplaceExt(assetPath, ".mesh", meshPath))
+			if (KFileTool::ReplaceExt(assetPath, ".mesh", meshPath))
 			{
 				KEAssetConvertDialog dialog;
 				dialog.SetAssetPath(assetPath);
 				dialog.SetMeshPath(meshPath);
+				dialog.SetFileSystem(system);
 				if (dialog.exec())
 				{
 					if (dialog.Process())

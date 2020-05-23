@@ -313,7 +313,7 @@ void KERenderWidget::dropEvent(QDropEvent *event)
 	if (resItemData)
 	{
 		KEFileSystemTreeItem* item = resItemData->item;
-		std::string fullPath = item->GetSystemFullPath();
+		std::string fullPath = item->GetFullPath();
 		IKEnginePtr engine = KEngineGlobal::Engine;
 		IKRenderCore* renderCore = engine->GetRenderCore();
 		IKEntityPtr entity = KEditorGlobal::ResourcePorter.Drop(renderCore->GetCamera(), fullPath);

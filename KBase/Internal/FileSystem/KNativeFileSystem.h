@@ -5,6 +5,7 @@ class KNativeFileSystem : public IKFileSystem
 {
 protected:
 	std::string m_Root;
+	std::string m_AbsRoot;
 public:
 	KNativeFileSystem();
 	virtual ~KNativeFileSystem();
@@ -17,6 +18,7 @@ public:
 	virtual bool GetRoot(std::string& root);
 
 	virtual bool FullPath(const std::string& path, std::string& fullPath);
+	virtual bool RelPath(const std::string& fullPath, std::string& path);
 	virtual bool ListDir(const std::string& subDir, std::vector<std::string>& listdir);
 	virtual bool IsFile(const std::string& name);
 	virtual bool IsDir(const std::string& name);

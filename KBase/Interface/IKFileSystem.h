@@ -32,6 +32,8 @@ struct IKFileSystem
 	virtual bool GetRoot(std::string& root) = 0;
 
 	virtual bool FullPath(const std::string& path, std::string& fullPath) = 0;
+	virtual bool RelPath(const std::string& fullPath, std::string& path) = 0;
+
 	virtual bool ListDir(const std::string& subDir, std::vector<std::string>& listdir) = 0;
 	virtual bool IsFile(const std::string& name) = 0;
 	virtual bool IsDir(const std::string& name) = 0;

@@ -1,5 +1,6 @@
 #include "KNativeFileSystem.h"
 #include "Publish/KFileTool.h"
+#include "Publish/KStringUtil.h"
 #include "Interface/IKLog.h"
 
 KNativeFileSystem::KNativeFileSystem()
@@ -28,6 +29,7 @@ bool KNativeFileSystem::UnInit()
 bool KNativeFileSystem::SetRoot(const std::string& root)
 {
 	m_Root = root;
+	KFileTool::AbsPath(m_Root, m_AbsRoot);
 	return true;
 }
 
@@ -39,9 +41,23 @@ bool KNativeFileSystem::GetRoot(std::string& root)
 
 bool KNativeFileSystem::FullPath(const std::string& path, std::string& fullPath)
 {
-	if (KFileTool::PathJoin(m_Root, path, fullPath))
+	if (KFileTool::PathJoin(m_AbsRoot, path, fullPath))
 	{
 		return true;
+	}
+	return false;
+}
+
+bool KNativeFileSystem::RelPath(const std::string& fullPath, std::string& path)
+{
+	std::string absPath;
+	if (KFileTool::TrimPath(fullPath, absPath))
+	{
+		if (KStringUtil::StartsWith(absPath, m_AbsRoot) && absPath.length() > m_AbsRoot.length())
+		{
+			path = absPath.substr(m_AbsRoot.length() + 1);
+			return true;
+		}
 	}
 	return false;
 }
@@ -49,7 +65,7 @@ bool KNativeFileSystem::FullPath(const std::string& path, std::string& fullPath)
 bool KNativeFileSystem::ListDir(const std::string& subDir, std::vector<std::string>& listdir)
 {
 	std::string fullPath;
-	if (KFileTool::PathJoin(m_Root, subDir, fullPath))
+	if (KFileTool::PathJoin(m_AbsRoot, subDir, fullPath))
 	{
 		if (KFileTool::ListDir(fullPath, listdir))
 		{
@@ -62,7 +78,7 @@ bool KNativeFileSystem::ListDir(const std::string& subDir, std::vector<std::stri
 bool KNativeFileSystem::IsFile(const std::string& name)
 {
 	std::string fullPath;
-	if (KFileTool::PathJoin(m_Root, name, fullPath))
+	if (KFileTool::PathJoin(m_AbsRoot, name, fullPath))
 	{
 		if (KFileTool::IsFile(fullPath))
 		{
@@ -75,7 +91,7 @@ bool KNativeFileSystem::IsFile(const std::string& name)
 bool KNativeFileSystem::IsDir(const std::string& name)
 {
 	std::string fullPath;
-	if (KFileTool::PathJoin(m_Root, name, fullPath))
+	if (KFileTool::PathJoin(m_AbsRoot, name, fullPath))
 	{
 		if (KFileTool::IsDir(fullPath))
 		{
@@ -88,7 +104,7 @@ bool KNativeFileSystem::IsDir(const std::string& name)
 bool KNativeFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret)
 {
 	std::string fullPath;
-	if(KFileTool::PathJoin(m_Root, file, fullPath))
+	if(KFileTool::PathJoin(m_AbsRoot, file, fullPath))
 	{
 		if(KFileTool::IsPathExist(fullPath))
 		{
@@ -109,7 +125,7 @@ bool KNativeFileSystem::IsFileExist(const std::string& file)
 {
 	std::string fullPath;
 
-	if(KFileTool::PathJoin(m_Root, file, fullPath))
+	if(KFileTool::PathJoin(m_AbsRoot, file, fullPath))
 	{
 		return KFileTool::IsPathExist(fullPath);
 	}

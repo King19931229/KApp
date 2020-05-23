@@ -186,7 +186,7 @@ public:
 	inline KEFileSystemTreeItem* GetParent() const { return m_Parent; }
 	inline int GetIndex() const { return m_Index; }
 	inline const std::string& GetName() const { return m_Name; }
-	//inline const std::string& GetFullPath() const { return m_FullPath; }
+	inline const std::string& GetFullPath() const { return m_FullPath; }
 	inline const std::string& GetSystemFullPath() const { return m_SystemFullPath; }
 	inline IKFileSystem* GetSystem() const { return m_System; }
 };
