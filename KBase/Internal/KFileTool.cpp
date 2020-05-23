@@ -201,7 +201,20 @@ namespace KFileTool
 			{
 				return true;
 			}
+//#ifndef _WIN32
 			return remove(pFilePath) == 0;
+//#else
+//			SHFILEOPSTRUCTA lpfileop;
+//			lpfileop.hwnd = NULL;
+//			lpfileop.wFunc = FO_DELETE;
+//			lpfileop.pFrom = filePath.c_str();
+//			lpfileop.pTo = NULL;
+//			lpfileop.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION;
+//			lpfileop.hNameMappings = NULL;
+//			lpfileop.fAnyOperationsAborted = 0;
+//			int nok = SHFileOperationA(&lpfileop);
+//			return nok == 0;
+//#endif
 		}
 		return false;
 	}
@@ -252,7 +265,20 @@ namespace KFileTool
 			{
 				return true;
 			}
+//#ifndef _WIN32
 			return RMDIR(str.c_str()) == 0;
+//#else
+//			SHFILEOPSTRUCTA lpfileop;
+//			lpfileop.hwnd = NULL;
+//			lpfileop.wFunc = FO_DELETE;
+//			lpfileop.pFrom = folder.c_str();
+//			lpfileop.pTo = NULL;
+//			lpfileop.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION;
+//			lpfileop.hNameMappings = NULL;
+//			lpfileop.fAnyOperationsAborted = 0;
+//			int nok = SHFileOperationA(&lpfileop);
+//			return nok == 0;
+//#endif
 		}
 		return false;
 	}
@@ -407,9 +433,35 @@ namespace KFileTool
 		return false;
 	}
 
+	bool FileName(const std::string& path, std::string& fileName)
+	{
+		if (!path.empty())
+		{
+			std::string trimPath = path;
+			std::replace(trimPath.begin(), trimPath.end(), '\\', '/');
+			std::string::size_type lastPos = trimPath.find_last_of("/");
+
+			if (lastPos != std::string::npos && lastPos != fileName.length() - 1)
+			{
+				fileName = path.substr(lastPos + 1);
+			}
+			else
+			{
+				fileName = path;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	bool FolderName(const std::string& path, std::string& folder)
+	{
+		return FileName(path, folder);
+	}
+
 #ifdef CopyFile
-#undef CopyFile
-#endif // CopyFile
+#	undef CopyFile
+#endif
 
 	bool CopyFile(const std::string& src, const std::string& dest)
 	{
@@ -458,5 +510,38 @@ namespace KFileTool
 		}
 
 		return bRet;
+	}
+
+	bool CopyFolder(const std::string& srcFolder, const std::string& destFolder)
+	{
+		if (IsDir(srcFolder))
+		{
+			if (!IsPathExist(destFolder))
+			{
+				CreateFolder(destFolder, false);
+			}
+
+			std::vector<std::string> list;
+			ListDir(srcFolder, list);
+			for (const std::string& element : list)
+			{
+				std::string fullSrcPath;
+				std::string fullDestPath;
+
+				PathJoin(srcFolder, element, fullSrcPath);
+				PathJoin(destFolder, element, fullDestPath);
+
+				if (IsFile(fullSrcPath))
+				{
+					CopyFile(fullSrcPath, fullDestPath);
+				}
+				else
+				{
+					CopyFolder(fullSrcPath, fullDestPath);
+				}
+			}
+			return true;
+		}
+		return false;
 	}
 }

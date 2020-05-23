@@ -22,5 +22,8 @@ namespace KFileTool
 	EXPORT_DLL bool ReplaceExt(const std::string& path, const std::string& ext, std::string& destPath);
 	EXPORT_DLL bool SplitExt(const std::string& path, std::string& name, std::string& ext);
 	EXPORT_DLL bool ParentFolder(const std::string& path, std::string& parentFolder);
+	EXPORT_DLL bool FileName(const std::string& path, std::string& fileName);
+	EXPORT_DLL bool FolderName(const std::string& path, std::string& folder);
 	EXPORT_DLL bool CopyFile(const std::string& src, const std::string& dest);
+	EXPORT_DLL bool CopyFolder(const std::string& srcFolder, const std::string& destFolder);
 }

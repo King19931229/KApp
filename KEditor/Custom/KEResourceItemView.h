@@ -35,6 +35,12 @@ protected:
 public:
 	KEResourceItemView(QWidget *parent = Q_NULLPTR);
 	~KEResourceItemView();
+
 	void mouseMoveEvent(QMouseEvent *event) override;
 	void setModel(QAbstractItemModel *model) override;
+
+	void dragEnterEvent(QDragEnterEvent *event) override;
+	void dragMoveEvent(QDragMoveEvent *event) override;
+	void dragLeaveEvent(QDragLeaveEvent *event) override;
+	void dropEvent(QDropEvent *event) override;
 };

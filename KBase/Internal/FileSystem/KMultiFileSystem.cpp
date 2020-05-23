@@ -98,6 +98,24 @@ bool KMultiFileSystem::Open(const std::string& file, IOType priorityType, IKData
 	return false;
 }
 
+bool KMultiFileSystem::RemoveFile(const std::string& file)
+{
+	for (PriorityFileSystem& sys : m_Queue)
+	{
+		sys.system->RemoveFile(file);
+	}
+	return true;
+}
+
+bool KMultiFileSystem::RemoveDir(const std::string& folder)
+{
+	for (PriorityFileSystem& sys : m_Queue)
+	{
+		sys.system->RemoveDir(folder);
+	}
+	return true;
+}
+
 bool KMultiFileSystem::IsFileExist(const std::string& file)
 {
 	for (PriorityFileSystem& sys : m_Queue)

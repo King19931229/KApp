@@ -29,5 +29,7 @@ public:
 	virtual bool GetAllSubFileSystem(KFileSystemPtrList& list) { return false; }
 
 	virtual bool Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret);
+	virtual bool RemoveFile(const std::string& file);
+	virtual bool RemoveDir(const std::string& folder);
 	virtual bool IsFileExist(const std::string& file);
 };

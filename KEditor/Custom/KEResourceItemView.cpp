@@ -1,12 +1,14 @@
 #include "KEResourceItemView.h"
 #include "Browser/KEFileSystemTreeItem.h"
 #include "Browser/KEFileSystemModel.h"
+#include "KBase/Publish/KFileTool.h"
 
 KEResourceItemView::KEResourceItemView(QWidget *parent)
 	: QListView(parent),
 	m_Watcher(nullptr),
 	m_RootItem(nullptr)
 {
+	setAcceptDrops(true);
 }
 
 KEResourceItemView::~KEResourceItemView()
@@ -109,6 +111,55 @@ void KEResourceItemView::setModel(QAbstractItemModel *model)
 			{
 				SetupWatcher(item->GetSystemFullPath());
 				item = item->GetParent();
+			}
+		}
+	}
+}
+
+void KEResourceItemView::dragEnterEvent(QDragEnterEvent *event)
+{
+	if (event->mimeData()->hasFormat("text/uri-list"))
+		event->acceptProposedAction();
+}
+
+void KEResourceItemView::dragMoveEvent(QDragMoveEvent *event)
+{
+	event->setDropAction(Qt::MoveAction);
+	event->accept();
+}
+
+void KEResourceItemView::dragLeaveEvent(QDragLeaveEvent *event)
+{
+}
+
+void KEResourceItemView::dropEvent(QDropEvent *event)
+{
+	QList<QUrl> urls = event->mimeData()->urls();
+	if (urls.isEmpty())
+		return;
+
+	for (const QUrl& url : urls)
+	{
+		std::string fullSrcPath = url.toLocalFile().toStdString();
+
+		std::string fileName;
+		std::string folderName;
+		std::string fullDestPath;
+
+		if (KFileTool::IsFile(fullSrcPath))
+		{
+			if (KFileTool::FileName(fullSrcPath, fileName) &&
+				KFileTool::PathJoin(m_FullPath, fileName, fullDestPath))
+			{
+				KFileTool::CopyFile(fullSrcPath, fullDestPath);
+			}
+		}
+		else
+		{
+			if (KFileTool::FolderName(fullSrcPath, folderName) &&
+				KFileTool::PathJoin(m_FullPath, folderName, fullDestPath))
+			{
+				KFileTool::CopyFolder(fullSrcPath, fullDestPath);
 			}
 		}
 	}

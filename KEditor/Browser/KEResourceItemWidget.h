@@ -19,5 +19,6 @@ protected Q_SLOTS:
 	void ShowContextMenu(const QPoint& pos);
 	void OnOpenFileExternal();
 	void OnOpenFileLocation();
+	void OnDeleteFile();
 	void ConvertIntoMesh();
 };

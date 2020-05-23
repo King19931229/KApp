@@ -58,6 +58,9 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::SingleSelection</enum>
+     </property>
     </widget>
    </item>
   </layout>

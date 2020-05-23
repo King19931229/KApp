@@ -121,6 +121,32 @@ bool KNativeFileSystem::Open(const std::string& file, IOType priorityType, IKDat
 	return false;
 }
 
+bool KNativeFileSystem::RemoveFile(const std::string& file)
+{
+	std::string fullPath;
+	if (KFileTool::PathJoin(m_AbsRoot, file, fullPath))
+	{
+		if (KFileTool::IsPathExist(fullPath))
+		{
+			return KFileTool::RemoveFile(fullPath);
+		}
+	}
+	return false;
+}
+
+bool KNativeFileSystem::RemoveDir(const std::string& folder)
+{
+	std::string fullPath;
+	if (KFileTool::PathJoin(m_AbsRoot, folder, fullPath))
+	{
+		if (KFileTool::IsPathExist(fullPath))
+		{
+			return KFileTool::RemoveFolder(fullPath);
+		}
+	}
+	return false;
+}
+
 bool KNativeFileSystem::IsFileExist(const std::string& file)
 {
 	std::string fullPath;
