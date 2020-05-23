@@ -159,7 +159,6 @@ void KUIOverlayBase::PrepareResources()
 
 	IKDataStreamPtr ttfDataStream = nullptr;
 
-	// TODO FSD_ENGINE
 	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
 	if (system && system->Open("Fonts/Roboto-Medium.ttf", IT_MEMORY, ttfDataStream))
 	{

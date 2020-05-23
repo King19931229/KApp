@@ -7,6 +7,9 @@
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Interface/IKCodec.h"
+#include "KBase/Interface/IKDataStream.h"
+#include "KBase/Interface/IKIniFile.h"
+#include "KBase/Publish/KStringUtil.h"
 #include "KBase/Publish/KPlatform.h"
 
 namespace KEngineGlobal
@@ -52,6 +55,37 @@ IKScene* KEngine::GetScene()
 	return m_Scene ? m_Scene.get() : nullptr;
 }
 
+static bool ReadFileSystemPathElement(const std::string& element, FileSystemType& type, std::string& path)
+{
+	if (!element.empty() && element.substr(0, 1) == "[")
+	{
+		std::string::size_type pos = element.find_first_of("]", 0);
+		if (pos != std::string::npos && pos != element.length() - 1)
+		{
+			std::string typeString = element.substr(1, pos - 1);
+			std::string pathString = element.substr(pos + 1);
+
+			type = KFileSystem::StringToFileSystemType(typeString.c_str());
+			path = pathString;
+			return true;
+		}
+	}
+	return false;
+}
+
+static bool WriteFileSystemPathElement(std::string& element, const FileSystemType& type, const std::string& path)
+{
+	if (!path.empty() && type != FST_MULTI)
+	{
+		element = "[" + std::string(KFileSystem::FileSystemTypeToString(type)) + "]" + path;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 {
 	UnInit();
@@ -68,33 +102,64 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 
 		KFileSystem::CreateFileManager();
 
-		// TODO 参数化控制
 #if defined(_WIN32)
 		{
-			IKFileSystemPtr resourceFileSys = KFileSystem::CreateFileSystem(FST_MULTI);
+			IKIniFilePtr configIni = GetIniFile();
+			if (configIni->Open("../../../KConfig.ini"))
+			{
+				char szBuffer[1024] = { 0 };
+				// Resources [FST_MULTI]
+				{
+					IKFileSystemPtr resourceFileSys = KFileSystem::CreateFileSystem(FST_MULTI);
+					if (configIni->GetString("FileSystem", "Resources", szBuffer, sizeof(szBuffer) - 1))
+					{
+						std::string data = szBuffer;
+						std::vector<std::string> pathElements;
+						if (KStringUtil::Split(data, ";", pathElements))
+						{
+							for (const std::string& pathElement : pathElements)
+							{
+								int priority = 0;
+								FileSystemType type = FST_NATIVE;
+								std::string path;
 
-			IKFileSystemPtr subSystem = nullptr;
-
-			subSystem = KFileSystem::CreateFileSystem(FST_ZIP);
-			subSystem->SetRoot("../Sponza.zip");
-			resourceFileSys->AddSubFileSystem(subSystem, -1);
-
-			subSystem = KFileSystem::CreateFileSystem(FST_NATIVE);
-			subSystem->SetRoot(".");
-			resourceFileSys->AddSubFileSystem(subSystem, 0);
-
-			subSystem = KFileSystem::CreateFileSystem(FST_NATIVE);
-			subSystem->SetRoot("../");
-			resourceFileSys->AddSubFileSystem(subSystem, 1);
-
-			KFileSystem::Manager->SetFileSystem(FSD_RESOURCE, resourceFileSys);
+								if (ReadFileSystemPathElement(pathElement, type, path))
+								{
+									IKFileSystemPtr subSystem = nullptr;
+									subSystem = KFileSystem::CreateFileSystem(type);
+									subSystem->SetRoot(path);
+									resourceFileSys->AddSubFileSystem(subSystem, priority++);
+								}
+								else
+								{
+									assert(false && "configure file broken");
+								}
+							}
+						}
+					}
+					KFileSystem::Manager->SetFileSystem(FSD_RESOURCE, resourceFileSys);
+				}
+				// Shader [FST_NATIVE]
+				{
+					IKFileSystemPtr shaderFileSys = KFileSystem::CreateFileSystem(FST_NATIVE);
+					if (configIni->GetString("FileSystem", "Shader", szBuffer, sizeof(szBuffer) - 1))
+					{
+						std::string path = szBuffer;
+						shaderFileSys->SetRoot(path);
+					}
+					else
+					{
+						assert(false && "configure file broken");
+					}
+					KFileSystem::Manager->SetFileSystem(FSD_SHADER, shaderFileSys);
+				}
+			}
+			else
+			{
+				assert(false && "configure file not found");
+			}
 		}
-		{
-			IKFileSystemPtr shaderFileSys = KFileSystem::CreateFileSystem(FST_NATIVE);
-			shaderFileSys->SetRoot(".");
-			KFileSystem::Manager->SetFileSystem(FSD_SHADER, shaderFileSys);
-		}
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) //TODO
 		{
 			IKFileSystemPtr resourceFileSys = KFileSystem::CreateFileSystem(FST_MULTI);
 

@@ -63,14 +63,13 @@ KSkyBox::~KSkyBox()
 
 void KSkyBox::LoadResource(const char* cubeTexPath)
 {
-	ASSERT_RESULT(m_CubeTexture->InitMemoryFromFile(cubeTexPath, true, false));
-	ASSERT_RESULT(m_CubeTexture->InitDevice(false));
+	ASSERT_RESULT(KRenderGlobal::TextrueManager.Acquire(cubeTexPath, m_CubeTexture, false));
 
 	m_CubeSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_CubeSampler->Init(m_CubeTexture, false);
 
-	ASSERT_RESULT(m_VertexShader->InitFromFile("Shaders/cube.vert", false));
-	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/cube.frag", false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/cube.vert", m_VertexShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/cube.frag", m_FragmentShader, false));
 
 	m_VertexBuffer->InitMemory(ARRAY_SIZE(ms_Positions), sizeof(ms_Positions[0]), ms_Positions);
 	m_VertexBuffer->InitDevice(false);
@@ -129,12 +128,7 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 	renderDevice->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
 
-	renderDevice->CreateShader(m_VertexShader);
-	renderDevice->CreateShader(m_FragmentShader);
-
-	renderDevice->CreateTexture(m_CubeTexture);
 	renderDevice->CreateSampler(m_CubeSampler);
-
 	renderDevice->CreateVertexBuffer(m_VertexBuffer);
 	renderDevice->CreateIndexBuffer(m_IndexBuffer);
 
@@ -174,11 +168,21 @@ bool KSkyBox::UnInit()
 
 	SAFE_UNINIT(m_VertexBuffer);
 	SAFE_UNINIT(m_IndexBuffer);
-	SAFE_UNINIT(m_VertexShader);
-	SAFE_UNINIT(m_FragmentShader);
-	SAFE_UNINIT(m_CubeTexture);
-	SAFE_UNINIT(m_CubeSampler);
 
+	if (m_VertexShader)
+	{
+		KRenderGlobal::ShaderManager.Release(m_VertexShader);
+	}
+	if (m_FragmentShader)
+	{
+		KRenderGlobal::ShaderManager.Release(m_FragmentShader);
+	}
+	if (m_CubeTexture)
+	{
+		KRenderGlobal::TextrueManager.Release(m_CubeTexture);
+	}
+
+	SAFE_UNINIT(m_CubeSampler);
 	SAFE_UNINIT(m_CommandPool);
 
 	m_VertexData.Clear();

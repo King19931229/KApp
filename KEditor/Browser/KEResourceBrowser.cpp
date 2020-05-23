@@ -129,8 +129,7 @@ void KEResourceBrowser::RefreshTreeView(KEFileSystemTreeItem* item)
 
 void KEResourceBrowser::RefreshPathView(KEFileSystemTreeItem* item)
 {
-	const std::string& fullPath = item->GetFullPath();
-
+	const std::string& fullPath = item->GetSystemFullPath();
 	m_PathModel->SetPath(fullPath);
 	m_ItemWidget->ui.m_PathView->setModel(nullptr);
 	m_ItemWidget->ui.m_PathView->setModel(m_PathModel);
@@ -163,9 +162,9 @@ void KEResourceBrowser::OnComboIndexChanged(int index)
 		auto it = m_RootItemMap.find(index);
 		if (it == m_RootItemMap.end())
 		{
-			KEFileSystemTreeItem* tree = KNEW KEFileSystemTreeItem(system.get(), root, root, nullptr, 0, true);
-			KEFileSystemTreeItem* item = KNEW KEFileSystemTreeItem(system.get(), root, root, nullptr, 0, true);
-			KEFileSystemTreeItem* path = KNEW KEFileSystemTreeItem(system.get(), root, root, nullptr, 0, true);
+			KEFileSystemTreeItem* tree = KNEW KEFileSystemTreeItem(system.get(), "", "", nullptr, 0, true);
+			KEFileSystemTreeItem* item = KNEW KEFileSystemTreeItem(system.get(), "", "", nullptr, 0, true);
+			KEFileSystemTreeItem* path = KNEW KEFileSystemTreeItem(system.get(), "", "", nullptr, 0, true);
 
 			fsItem.tree = tree;
 			fsItem.item = item;
@@ -192,7 +191,7 @@ void KEResourceBrowser::OnTreeViewClicked(QModelIndex index)
 
 	{
 		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
-		fullPath = item->GetFullPath();
+		fullPath = item->GetSystemFullPath();
 	}
 
 	{

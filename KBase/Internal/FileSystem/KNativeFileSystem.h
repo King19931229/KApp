@@ -16,7 +16,7 @@ public:
 	virtual bool SetRoot(const std::string& root);
 	virtual bool GetRoot(std::string& root);
 
-	virtual bool FullPath(const std::string& subDir, const std::string& name, std::string& fullPath);
+	virtual bool FullPath(const std::string& path, std::string& fullPath);
 	virtual bool ListDir(const std::string& subDir, std::vector<std::string>& listdir);
 	virtual bool IsFile(const std::string& name);
 	virtual bool IsDir(const std::string& name);

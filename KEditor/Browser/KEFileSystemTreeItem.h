@@ -9,6 +9,7 @@ protected:
 	IKFileSystem* m_System;
 	std::string m_Name;
 	std::string m_FullPath;
+	std::string m_SystemFullPath;
 
 	std::vector<KEFileSystemTreeItem*> m_Files;
 	std::vector<KEFileSystemTreeItem*> m_Dirs;
@@ -32,6 +33,7 @@ public:
 		m_IsDir(isDir),
 		m_NeedListDir(true)
 	{
+		m_System->FullPath(m_FullPath, m_SystemFullPath);
 	}
 
 	~KEFileSystemTreeItem()
@@ -80,8 +82,7 @@ public:
 					KEFileSystemTreeItem* newItem = nullptr;
 
 					std::string fullSubPath;
-					m_System->FullPath(m_FullPath, subPath, fullSubPath);
-
+					KFileTool::PathJoin(m_FullPath, subPath, fullSubPath);
 					bool isDir = m_System->IsDir(fullSubPath);
 
 					newItem = KNEW KEFileSystemTreeItem(m_System,
@@ -141,10 +142,9 @@ public:
 	{
 		ListDirInNeed();
 
-		// TODO
-		if (m_FullPath != ".")
+		if (m_SystemFullPath != ".") // TODO "."
 		{
-			if (!KStringUtil::StartsWith(fullPath, m_FullPath))
+			if (!KStringUtil::StartsWith(fullPath, m_SystemFullPath))
 			{
 				return nullptr;
 			}
@@ -157,7 +157,7 @@ public:
 			}
 		}
 
-		if (fullPath == m_FullPath)
+		if (fullPath == m_SystemFullPath)
 		{
 			return this;
 		}
@@ -186,6 +186,7 @@ public:
 	inline KEFileSystemTreeItem* GetParent() const { return m_Parent; }
 	inline int GetIndex() const { return m_Index; }
 	inline const std::string& GetName() const { return m_Name; }
-	inline const std::string& GetFullPath() const { return m_FullPath; }
+	//inline const std::string& GetFullPath() const { return m_FullPath; }
+	inline const std::string& GetSystemFullPath() const { return m_SystemFullPath; }
 	inline IKFileSystem* GetSystem() const { return m_System; }
 };

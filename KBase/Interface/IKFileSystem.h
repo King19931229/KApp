@@ -2,6 +2,7 @@
 #include "IKDataStream.h"
 #include <string>
 #include <vector>
+#include <assert.h>
 
 struct IKFileSystem;
 typedef std::shared_ptr<IKFileSystem> IKFileSystemPtr;
@@ -30,7 +31,7 @@ struct IKFileSystem
 	virtual bool SetRoot(const std::string& root) = 0;
 	virtual bool GetRoot(std::string& root) = 0;
 
-	virtual bool FullPath(const std::string& folder, const std::string& name, std::string& fullPath) = 0;
+	virtual bool FullPath(const std::string& path, std::string& fullPath) = 0;
 	virtual bool ListDir(const std::string& subDir, std::vector<std::string>& listdir) = 0;
 	virtual bool IsFile(const std::string& name) = 0;
 	virtual bool IsDir(const std::string& name) = 0;
@@ -85,6 +86,7 @@ namespace KFileSystem
 			ENUM(MULTI);
 		};
 		// keep the compiler happy
+		assert(false && "should not reach");
 		return "UNKNOWN";
 #undef ENUM
 	}
@@ -97,6 +99,7 @@ namespace KFileSystem
 		CMP(APK);
 		CMP(MULTI);
 		// keep the compiler happy
+		assert(false && "should not reach");
 		return FST_NATIVE;
 #undef CMP
 	}

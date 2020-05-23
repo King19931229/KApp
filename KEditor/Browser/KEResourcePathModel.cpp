@@ -25,7 +25,7 @@ bool KEResourcePathModel::FindIndex(QModelIndex parent, const std::string& path,
 		item = m_PathItem;
 	}
 
-	if (item->GetFullPath() == path)
+	if (item->GetSystemFullPath() == path)
 	{
 		ret = parent;
 		return true;
@@ -45,7 +45,7 @@ bool KEResourcePathModel::FindIndex(QModelIndex parent, const std::string& path,
 	while (child.isValid())
 	{
 		KEResourcePathItem* item = static_cast<KEResourcePathItem*>(child.internalPointer());
-		if (KStringUtil::StartsWith(path, item->GetFullPath()))
+		if (KStringUtil::StartsWith(path, item->GetSystemFullPath()))
 		{
 			if (FindIndex(child, path, ret))
 			{

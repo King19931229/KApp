@@ -65,7 +65,7 @@ void KEResourceItemWidget::OnOpenFileExternal()
 		if (system->GetType() == FST_NATIVE)
 		{
 			std::string absPath;
-			if (KFileTool::AbsPath(treeItem->GetFullPath(), absPath))
+			if (KFileTool::AbsPath(treeItem->GetSystemFullPath(), absPath))
 			{
 				bool ok = QDesktopServices::openUrl(QUrl(QString::fromLocal8Bit(absPath.c_str())));
 				if (!ok)
@@ -90,7 +90,7 @@ void KEResourceItemWidget::OnOpenFileLocation()
 		if (system->GetType() == FST_NATIVE)
 		{
 			std::string absPath;
-			if (KFileTool::AbsPath(treeItem->GetFullPath(), absPath))
+			if (KFileTool::AbsPath(treeItem->GetSystemFullPath(), absPath))
 			{
 #ifdef _WIN32
 				QProcess process;
@@ -125,7 +125,7 @@ void KEResourceItemWidget::ConvertIntoMesh()
 		{
 			std::string assetPath;
 			std::string meshPath;
-			if (KFileTool::AbsPath(treeItem->GetFullPath(), assetPath) && KFileTool::ReplaceExt(assetPath, ".mesh", meshPath))
+			if (KFileTool::AbsPath(treeItem->GetSystemFullPath(), assetPath) && KFileTool::ReplaceExt(assetPath, ".mesh", meshPath))
 			{
 				KEAssetConvertDialog dialog;
 				dialog.SetAssetPath(assetPath);

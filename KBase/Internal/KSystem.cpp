@@ -13,11 +13,13 @@
 #include <errno.h>
 #include <vector>
 
-bool KSystem::WaitProcess(const std::string& path, const std::string& args, std::string& output)
+bool KSystem::WaitProcess(const std::string& path, const std::string& args, const std::string& workingDirectory, std::string& output)
 {
 	if(!path.empty())
 	{
 #ifndef _WIN32
+		// TODO workingDirectory
+
 		std::vector<const char*> c_argsList;
 		std::vector<std::string> argList;
 		if(!args.empty())
@@ -132,7 +134,8 @@ bool KSystem::WaitProcess(const std::string& path, const std::string& args, std:
 
 		if (!CreateProcessA(NULL,
 			szCommandLine,
-			NULL, NULL, TRUE, 0, NULL, NULL,
+			NULL, NULL, TRUE, 0, NULL,
+			!workingDirectory.empty() ? workingDirectory.c_str() : NULL,
 			&startupInfo, &processInfo))
 		{
 			dwErrorCode = GetLastError();

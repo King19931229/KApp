@@ -252,6 +252,16 @@ namespace KFileTool
 
 			return true;
 		}
+		else if (!path.empty())
+		{
+			destPath = path;
+			return true;
+		}
+		else if (!subPath.empty())
+		{
+			destPath = subPath;
+			return true;
+		}
 		return false;
 	}
 

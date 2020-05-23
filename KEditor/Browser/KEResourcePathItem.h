@@ -40,6 +40,7 @@ public:
 	inline KEResourcePathItem* GetChild() const { return m_Child; }
 	inline int GetDepth() const { return m_Depth; }
 	inline const std::string& GetName() const { return m_TreeItem->GetName(); }
-	inline const std::string& GetFullPath() const { return m_TreeItem->GetFullPath(); }
+	//inline const std::string& GetFullPath() const { return m_TreeItem->GetFullPath(); }
+	inline const std::string& GetSystemFullPath() const { return m_TreeItem->GetSystemFullPath();}
 	inline KEFileSystemTreeItem* GetTreeItem() const { return m_TreeItem; }
 };

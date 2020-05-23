@@ -35,7 +35,7 @@ public:
 	virtual bool SetRoot(const std::string& root) { return false; }
 	virtual bool GetRoot(std::string& root) { return false; }
 
-	virtual bool FullPath(const std::string& folder, const std::string& name, std::string& fullPath) { return false; }
+	virtual bool FullPath(const std::string& path, std::string& fullPath) { return false; }
 	virtual bool ListDir(const std::string& subDir, std::vector<std::string>& listdir) { return false; }
 	virtual bool IsFile(const std::string& name) { return false; }
 	virtual bool IsDir(const std::string& name) { return false; }

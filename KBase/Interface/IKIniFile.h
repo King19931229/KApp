@@ -1,5 +1,5 @@
 #pragma once
-#include "Interface/IKDataStream.h"
+#include "KBase/Interface/IKDataStream.h"
 
 struct IKIniFile;
 typedef std::shared_ptr<IKIniFile> IKIniFilePtr;

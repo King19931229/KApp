@@ -71,7 +71,7 @@ void KEResourcePathView::setModel(QAbstractItemModel *model)
 
 				while (item)
 				{
-					SetupWatcher(item->GetFullPath());
+					SetupWatcher(item->GetSystemFullPath());
 					item = item->GetChild();
 				}
 			}

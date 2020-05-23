@@ -95,7 +95,7 @@ void KEResourceItemView::setModel(QAbstractItemModel *model)
 		if (item)
 		{
 			m_RootItem = item->FindRoot();
-			m_FullPath = item->GetFullPath();
+			m_FullPath = item->GetSystemFullPath();
 		}
 		else
 		{
@@ -107,7 +107,7 @@ void KEResourceItemView::setModel(QAbstractItemModel *model)
 		{
 			while (item)
 			{
-				SetupWatcher(item->GetFullPath());
+				SetupWatcher(item->GetSystemFullPath());
 				item = item->GetParent();
 			}
 		}

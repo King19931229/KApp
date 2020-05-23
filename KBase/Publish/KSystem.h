@@ -4,5 +4,5 @@
 
 namespace KSystem
 {
-	EXPORT_DLL bool WaitProcess(const std::string& path, const std::string& args, std::string& output);
+	EXPORT_DLL bool WaitProcess(const std::string& path, const std::string& args, const std::string& workingDirectory, std::string& output);
 }

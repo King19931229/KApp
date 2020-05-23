@@ -73,11 +73,11 @@ void KEResourceTreeView::OnExpanded(const QModelIndex &index)
 		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
 		ASSERT_RESULT(item);
 
-		m_ExpanedPaths.insert(item->GetFullPath());
+		m_ExpanedPaths.insert(item->GetSystemFullPath());
 
 		if (m_Watcher)
 		{
-			SetupWatcher(item->GetFullPath());
+			SetupWatcher(item->GetSystemFullPath());
 		}
 	}
 }
@@ -89,7 +89,7 @@ void KEResourceTreeView::OnCollapsed(const QModelIndex &index)
 		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(index.internalPointer());
 		ASSERT_RESULT(item);
 
-		m_ExpanedPaths.erase(item->GetFullPath());
+		m_ExpanedPaths.erase(item->GetSystemFullPath());
 
 		KEFileSystemModel* fstModel = dynamic_cast<KEFileSystemModel*>(model());
 		ASSERT_RESULT(fstModel);
@@ -100,7 +100,7 @@ void KEResourceTreeView::OnCollapsed(const QModelIndex &index)
 
 		if (m_Watcher)
 		{
-			UninstallWatcher(item->GetFullPath());
+			UninstallWatcher(item->GetSystemFullPath());
 		}
 
 		ExpandIntoPreviousResult();
@@ -135,7 +135,7 @@ void KEResourceTreeView::setModel(QAbstractItemModel *model)
 		KEFileSystemTreeItem* item = fstModel->GetItem();
 		if (item && item->GetSystem() && item->GetSystem()->GetType() == FST_NATIVE)
 		{
-			SetupWatcher(item->GetFullPath());
+			SetupWatcher(item->GetSystemFullPath());
 		}
 	}
 }

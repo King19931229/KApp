@@ -19,7 +19,7 @@ bool KEFileSystemModel::FindIndex(QModelIndex parent, const std::string& path, Q
 	if (parent.isValid())
 	{
 		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(parent.internalPointer());
-		if (item->GetFullPath() == path)
+		if (item->GetSystemFullPath() == path)
 		{
 			ret = parent;
 			return true;
@@ -29,7 +29,7 @@ bool KEFileSystemModel::FindIndex(QModelIndex parent, const std::string& path, Q
 	else
 	{
 		KEFileSystemTreeItem* item = m_Item;
-		if (item->GetFullPath() == path)
+		if (item->GetSystemFullPath() == path)
 		{
 			ret = parent;
 			return true;
@@ -50,7 +50,7 @@ bool KEFileSystemModel::FindIndex(QModelIndex parent, const std::string& path, Q
 	while (child.isValid())
 	{
 		KEFileSystemTreeItem* item = static_cast<KEFileSystemTreeItem*>(child.internalPointer());
-		if (KStringUtil::StartsWith(path, item->GetFullPath()))
+		if (KStringUtil::StartsWith(path, item->GetSystemFullPath()))
 		{
 			if (FindIndex(child, path, ret))
 			{

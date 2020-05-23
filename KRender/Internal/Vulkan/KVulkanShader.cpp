@@ -151,12 +151,16 @@ bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* p
 				ASSERT_RESULT(KFileTool::CreateFolder(parentFolder, true));
 			}
 
+			std::string root;
+			IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
+			ASSERT_RESULT(system);
+			system->GetRoot(root);
+
 			std::string message;
-			if(KSystem::WaitProcess(shaderCompiler.c_str(), path + " --target-env=vulkan1.0 --target-spv=spv1.0 -o " + codePath, message))
+			if (KSystem::WaitProcess(shaderCompiler.c_str(), path + " --target-env=vulkan1.0 --target-spv=spv1.0 -o " + codePath, root, message))
 			{
 				IKDataStreamPtr pData = nullptr;
-				IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
-				if (system && system->Open(codePath, IT_FILEHANDLE, pData))
+				if (system->Open(codePath, IT_FILEHANDLE, pData))
 				{
 					size_t uSize = pData->GetSize();
 					std::vector<char> code;

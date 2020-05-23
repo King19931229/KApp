@@ -84,7 +84,6 @@ bool KShaderManager::Release(IKShaderPtr& shader)
 
 			if(info.useCount == 0)
 			{
-				// �ȴ��豸����
 				m_Device->Wait();
 
 				shader->UnInit();
