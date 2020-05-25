@@ -54,17 +54,17 @@ bool KRenderCore::InitPostProcess()
 	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
 	auto pass = KRenderGlobal::PostProcessManager.CreatePass();
-	pass->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess.frag");
+	pass->CastPass()->SetShader("Shaders/screenquad.vert", "postprocess.frag");
 	pass->CastPass()->SetScale(1.0f);
 	pass->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
 
 	auto pass2 = KRenderGlobal::PostProcessManager.CreatePass();
-	pass2->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess2.frag");
+	pass2->CastPass()->SetShader("Shaders/screenquad.vert", "postprocess2.frag");
 	pass2->CastPass()->SetScale(1.0f);
 	pass2->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
 
 	auto pass3 = KRenderGlobal::PostProcessManager.CreatePass();
-	pass3->CastPass()->SetShader("Shaders/screenquad.vert", "Shaders/postprocess3.frag");
+	pass3->CastPass()->SetShader("Shaders/screenquad.vert", "postprocess3.frag");
 	pass3->CastPass()->SetScale(1.0f);
 	pass3->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
 

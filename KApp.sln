@@ -469,6 +469,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "rttr", "rttr", "{F1B591A1-E
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rttr", "Dependency\rttr-0.9.7\rttr.vcxproj", "{F0F0AF07-559A-3827-A86A-DDB6657556BE}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RenderDoc", "RenderDoc", "{994F0F50-5FEC-455C-9E49-A7841699156E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "include", "include", "{78CA4849-3D88-4DE0-8FE2-17755FADA495}"
+	ProjectSection(SolutionItems) = preProject
+		Dependency\RenderDoc\include\renderdoc_app.h = Dependency\RenderDoc\include\renderdoc_app.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -717,6 +724,8 @@ Global
 		{71906CA7-EC0D-3007-B6DC-A09F6E068C08} = {BB6F826C-26CB-4BC7-B1BA-6240EC9F023F}
 		{F1B591A1-E282-4A48-AE8E-D3B545561F49} = {88511D86-7E5A-4AFB-81C3-95F8B8B93757}
 		{F0F0AF07-559A-3827-A86A-DDB6657556BE} = {F1B591A1-E282-4A48-AE8E-D3B545561F49}
+		{994F0F50-5FEC-455C-9E49-A7841699156E} = {88511D86-7E5A-4AFB-81C3-95F8B8B93757}
+		{78CA4849-3D88-4DE0-8FE2-17755FADA495} = {994F0F50-5FEC-455C-9E49-A7841699156E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1115F9E8-89D6-4C8C-B442-7129EDD27135}

@@ -5,6 +5,8 @@
 #include "KRender/Interface/IKRenderDevice.h"
 #include "KRender/Interface/IKRenderCore.h"
 
+#include "Internal/KRenderDocCapture.h"
+
 class KEngine : public IKEngine
 {
 protected:
@@ -12,6 +14,7 @@ protected:
 	IKRenderDevicePtr m_Device;
 	IKRenderCorePtr m_RenderCore;
 	IKScenePtr m_Scene;
+	KRenderDocCapture m_RenderDoc;
 
 	bool m_bInit;
 public:

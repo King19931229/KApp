@@ -32,18 +32,18 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 
 	m_IndexDraw = true;
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/prez.vert", m_PreZVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/prez.frag", m_PreZFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("prez.vert", m_PreZVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("prez.frag", m_PreZFSShader, true));
 
 	// TODO fetch it from material?
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.vert", m_SceneVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/diffuse.frag", m_SceneFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("diffuse.vert", m_SceneVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("diffuse.frag", m_SceneFSShader, true));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shadow.vert", m_ShadowVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shadow.frag", m_ShadowFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("shadow.vert", m_ShadowVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("shadow.frag", m_ShadowFSShader, true));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/cascadedshadow.vert", m_CascadedShadowVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/shadow.frag", m_CascadedShadowFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("cascadedshadow.vert", m_CascadedShadowVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("shadow.frag", m_CascadedShadowFSShader, true));
 
 	for(size_t i = 0; i < PIPELINE_STAGE_DEBUG_LINE; ++i)
 	{
@@ -77,8 +77,8 @@ bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData,
 		m_IndexDraw = false;
 	}
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/debug.vert", m_DebugVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("Shaders/debug.frag", m_DebugFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("debug.vert", m_DebugVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("debug.frag", m_DebugFSShader, true));
 
 	PipelineStage debugStage = PIPELINE_STAGE_UNKNOWWN;
 	switch (primtive)

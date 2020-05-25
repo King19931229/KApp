@@ -205,3 +205,25 @@ bool KSystem::WaitProcess(const std::string& path, const std::string& args, cons
 	}
 	return false;
  }
+
+ bool KSystem::QueryRegistryKey(const std::string& regKey, const std::string& regValue, std::string& value)
+ {
+	 bool bSuccess = false;
+#ifdef _WIN32
+	 DWORD dwType = REG_SZ;//定义数据类型
+	 HKEY hKey = NULL;
+	 char data[MAX_PATH] = { 0 };
+	 DWORD dwLen = ARRAYSIZE(data);	 
+
+	 if (ERROR_SUCCESS == RegOpenKeyA(HKEY_LOCAL_MACHINE, regKey.c_str(), &hKey))
+	 {
+		 if (ERROR_SUCCESS == RegQueryValueExA(hKey, regValue.c_str(), 0, &dwType, (LPBYTE)data, &dwLen))
+		 {
+			 value = data;
+			 bSuccess = true;
+		 }
+		 RegCloseKey(hKey);
+	 }
+#endif
+	 return bSuccess;
+ }

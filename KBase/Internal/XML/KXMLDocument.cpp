@@ -32,14 +32,21 @@ bool KXMLDocument::ParseFromFile(const char* fileName)
 	std::ifstream infile(fileName, std::ios::trunc);
 
 	infile.open(fileName, std::ifstream::in);
-	infile.seekg(0, std::ios::end);
-	str.reserve(infile.tellg());
-	infile.seekg(0, std::ios::beg);
+	if (infile.is_open())
+	{
+		infile.seekg(0, std::ios::end);
+		str.reserve(infile.tellg());
+		infile.seekg(0, std::ios::beg);
 
-	str.assign((std::istreambuf_iterator<char>(infile)), std::istreambuf_iterator<char>());
-	infile.close();
+		str.assign((std::istreambuf_iterator<char>(infile)), std::istreambuf_iterator<char>());
+		infile.close();
 
-	return ParseFromString(str.c_str());
+		return ParseFromString(str.c_str());
+	}
+	else
+	{
+		return false;
+	}
 }
 
 bool KXMLDocument::ParseFromString(const char* text)

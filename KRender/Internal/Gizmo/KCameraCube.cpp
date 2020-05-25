@@ -322,8 +322,8 @@ KCameraCube::~KCameraCube()
 
 void KCameraCube::LoadResource()
 {
-	ASSERT_RESULT(m_VertexShader->InitFromFile("Shaders/cameracube.vert", false));
-	ASSERT_RESULT(m_FragmentShader->InitFromFile("Shaders/cameracube.frag", false));
+	ASSERT_RESULT(m_VertexShader->InitFromFile("cameracube.vert", false));
+	ASSERT_RESULT(m_FragmentShader->InitFromFile("cameracube.frag", false));
 
 	m_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);
 	m_BackGroundVertexBuffer->InitDevice(false);

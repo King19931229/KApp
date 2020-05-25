@@ -21,12 +21,18 @@
     <ClInclude Include="Interface\IKScene.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\KRenderDocCapture.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KScene.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KEngine.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KRenderDocCapture.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
   </ItemGroup>

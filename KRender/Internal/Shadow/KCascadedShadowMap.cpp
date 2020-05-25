@@ -272,8 +272,8 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 		renderDevice->CreateShader(m_DebugVertexShader);
 		renderDevice->CreateShader(m_DebugFragmentShader);
 
-		ASSERT_RESULT(m_DebugVertexShader->InitFromFile("Shaders/debugquad.vert", false));
-		ASSERT_RESULT(m_DebugFragmentShader->InitFromFile("Shaders/debugquad.frag", false));
+		ASSERT_RESULT(m_DebugVertexShader->InitFromFile("debugquad.vert", false));
+		ASSERT_RESULT(m_DebugFragmentShader->InitFromFile("debugquad.frag", false));
 
 		renderDevice->CreateVertexBuffer(m_BackGroundVertexBuffer);
 		m_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);
