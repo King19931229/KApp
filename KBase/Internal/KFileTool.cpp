@@ -146,8 +146,10 @@ namespace KFileTool
 				// otherwise ignore. 
 				if (dir.compare("..") == 0)
 				{
-					if (!st.empty())
+					if (!st.empty() && st.top() != "..")
 						st.pop();
+					else
+						st.push(dir);
 				}
 
 				// if dir has "." then simply continue 

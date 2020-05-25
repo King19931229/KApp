@@ -14,7 +14,7 @@
 
 #include <assert.h>
 
-#define CACHE_PATH "ShaderCached"
+static const char* CACHE_PATH = "ShaderCached";
 
 KVulkanShader::KVulkanShader()
 	: m_ShaderModule(VK_NULL_HANDLE),
@@ -134,13 +134,12 @@ bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* p
 	else
 	{
 #ifdef _WIN32
-#pragma warning(disable: 4996)
-		std::string shaderCompiler = getenv("VULKAN_SDK");
 #ifdef _WIN64
-		if(KFileTool::PathJoin(shaderCompiler, "Bin/glslc.exe", shaderCompiler))
+		std::string shaderCompiler = "../../../External/x64/glslc.exe";
 #else
-		if(KFileTool::PathJoin(shaderCompiler, "Bin32/glslc.exe", shaderCompiler))
+		std::string shaderCompiler = "../../../External/x86/glslc.exe";
 #endif
+		if(KFileTool::IsPathExist(shaderCompiler))
 		{
 			std::string codePath = path + ".spv";
 			ASSERT_RESULT(KFileTool::PathJoin(CACHE_PATH, codePath, codePath));
@@ -155,6 +154,14 @@ bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* p
 			IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
 			ASSERT_RESULT(system);
 			system->GetRoot(root);
+
+			std::string cacheRoot;
+			ASSERT_RESULT(KFileTool::PathJoin(root, CACHE_PATH, cacheRoot));
+
+			if (!KFileTool::IsPathExist(cacheRoot))
+			{
+				KFileTool::CreateFolder(cacheRoot);
+			}
 
 			std::string message;
 			if (KSystem::WaitProcess(shaderCompiler.c_str(), path + " --target-env=vulkan1.0 --target-spv=spv1.0 -o " + codePath, root, message))
