@@ -56,6 +56,14 @@ namespace KVertexDefinition
 	{
 		glm::vec3 DEBUG_POSITION;
 	};
+
+	struct INSTANCE_DATA_MATRIX4F
+	{
+		glm::vec4 COLUMN0;
+		glm::vec4 COLUMN1;
+		glm::vec4 COLUMN2;
+		glm::vec4 COLUMN3;
+	};
 #pragma pack(pop)
 	struct VertexSemanticDetail
 	{

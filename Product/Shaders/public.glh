@@ -21,6 +21,11 @@
 
 #define SCREENQAUD_POS 13
 
+#define INSTANCE_COLUMN_0 14
+#define INSTANCE_COLUMN_1 15
+#define INSTANCE_COLUMN_2 16
+#define INSTANCE_COLUMN_3 17
+
 #define OBJECT 0
 #define CAMERA 1
 #define SHADOW 2

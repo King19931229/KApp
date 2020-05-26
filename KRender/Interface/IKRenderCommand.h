@@ -12,6 +12,7 @@ struct KVertexData
 	// 每个顶点格式占用一个顶点缓冲
 	std::vector<VertexFormat> vertexFormats;
 	std::vector<IKVertexBufferPtr> vertexBuffers;
+	IKVertexBufferPtr instanceBuffer;
 	uint32_t vertexStart;
 	uint32_t vertexCount;
 	KAABBBox bound;
@@ -20,6 +21,7 @@ struct KVertexData
 	{
 		vertexStart = 0;
 		vertexCount = 0;
+		instanceBuffer = nullptr;
 		bound.SetNull();
 	}
 
@@ -34,6 +36,7 @@ struct KVertexData
 		bound.SetNull();
 		vertexStart = 0;
 		vertexCount = 0;
+		instanceBuffer = nullptr;
 	}
 
 	void Destroy()
@@ -43,6 +46,11 @@ struct KVertexData
 		{
 			buffer->UnInit();
 			buffer = nullptr;
+		}
+		if (instanceBuffer)
+		{
+			instanceBuffer->UnInit();
+			instanceBuffer = nullptr;
 		}
 		vertexBuffers.clear();
 		vertexFormats.clear();

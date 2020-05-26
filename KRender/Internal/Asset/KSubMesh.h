@@ -30,6 +30,7 @@ protected:
 	IKShaderPtr				m_PreZFSShader;
 
 	IKShaderPtr				m_SceneVSShader;
+	IKShaderPtr				m_SceneVSInstanceShader;
 	IKShaderPtr				m_SceneFSShader;
 
 	IKShaderPtr				m_ShadowVSShader;

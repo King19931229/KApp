@@ -35,8 +35,8 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("prez.vert", m_PreZVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("prez.frag", m_PreZFSShader, true));
 
-	// TODO fetch it from material?
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("diffuse.vert", m_SceneVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("diffuseinstance.vert", m_SceneVSInstanceShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("diffuse.frag", m_SceneFSShader, true));
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("shadow.vert", m_ShadowVSShader, true));
@@ -80,7 +80,7 @@ bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData,
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("debug.vert", m_DebugVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("debug.frag", m_DebugFSShader, true));
 
-	PipelineStage debugStage = PIPELINE_STAGE_UNKNOWWN;
+	PipelineStage debugStage = PIPELINE_STAGE_UNKNOWN;
 	switch (primtive)
 	{
 	case DEBUG_PRIMITIVE_LINE:
@@ -129,6 +129,7 @@ do\
 	SAFE_RELEASE_SHADER(m_PreZFSShader);
 
 	SAFE_RELEASE_SHADER(m_SceneVSShader);
+	SAFE_RELEASE_SHADER(m_SceneVSInstanceShader);
 	SAFE_RELEASE_SHADER(m_SceneFSShader);
 
 	SAFE_RELEASE_SHADER(m_ShadowVSShader);
@@ -202,15 +203,25 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
-	else if(stage == PIPELINE_STAGE_OPAQUE)
+	else if(stage == PIPELINE_STAGE_OPAQUE || stage == PIPELINE_STAGE_OPAQUE_INSTANCE)
 	{
 		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
 
-		pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
+		if (stage == PIPELINE_STAGE_OPAQUE)
+		{
+			pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
+			pipeline->SetShader(ST_VERTEX, m_SceneVSShader);
+			pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
+		}
+		else if (stage == PIPELINE_STAGE_OPAQUE_INSTANCE)
+		{
+			std::vector<VertexFormat> instanceFormats = m_pVertexData->vertexFormats;
+			instanceFormats.push_back(VF_INSTANCE);
+			pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
+			pipeline->SetShader(ST_VERTEX, m_SceneVSInstanceShader);
+		}
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-
-		pipeline->SetShader(ST_VERTEX, m_SceneVSShader);
 		pipeline->SetShader(ST_FRAGMENT, m_SceneFSShader);
 
 		pipeline->SetBlendEnable(false);
@@ -225,8 +236,6 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 #else
 		pipeline->SetDepthFunc(CF_EQUAL, false, true);
 #endif
-
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);

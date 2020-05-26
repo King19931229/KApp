@@ -11,10 +11,11 @@ namespace KVertexDefinition
 	static VertexDetail GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS;
 	static VertexDetail SCREENQUAD_POS_2F_DETAILS;
 	static VertexDetail DEBUG_POS_3F_DETAILS;
+	static VertexDetail INSTANCE_DATA_DETAILS;
 	static VertexDetail EMPYT_DETAILS;
 	static bool VERTEX_DETAIL_INIT = false;
 
-	void SafeInit()
+	void StaticInit()
 	{
 		if(!VERTEX_DETAIL_INIT)
 		{
@@ -125,6 +126,30 @@ namespace KVertexDefinition
 				}
 				DEBUG_POS_3F_DETAILS.vertexSize = sizeof(DEBUG_POS_3F);
 			}
+			// INSTANCE_DATA_DETAILS
+			{
+				// VS_INSTANCE_COLUMN_0
+				{
+					VertexSemanticDetail DETAIL = { VS_INSTANCE_COLUMN_0, EF_R32G32B32A32_FLOAT, MEMBER_OFFSET(INSTANCE_DATA_MATRIX4F, COLUMN0) };
+					INSTANCE_DATA_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// VS_INSTANCE_COLUMN_1
+				{
+					VertexSemanticDetail DETAIL = { VS_INSTANCE_COLUMN_1, EF_R32G32B32A32_FLOAT, MEMBER_OFFSET(INSTANCE_DATA_MATRIX4F, COLUMN1) };
+					INSTANCE_DATA_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// VS_INSTANCE_COLUMN_2
+				{
+					VertexSemanticDetail DETAIL = { VS_INSTANCE_COLUMN_2, EF_R32G32B32A32_FLOAT, MEMBER_OFFSET(INSTANCE_DATA_MATRIX4F, COLUMN2) };
+					INSTANCE_DATA_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// VS_INSTANCE_COLUMN_3
+				{
+					VertexSemanticDetail DETAIL = { VS_INSTANCE_COLUMN_3, EF_R32G32B32A32_FLOAT, MEMBER_OFFSET(INSTANCE_DATA_MATRIX4F, COLUMN3) };
+					INSTANCE_DATA_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				INSTANCE_DATA_DETAILS.vertexSize = sizeof(INSTANCE_DATA_MATRIX4F);
+			}
 
 			VERTEX_DETAIL_INIT = true;
 		}
@@ -132,7 +157,7 @@ namespace KVertexDefinition
 
 	const VertexDetail& GetVertexDetail(VertexFormat format)
 	{
-		SafeInit();
+		StaticInit();
 		switch (format)
 		{
 		case VF_POINT_NORMAL_UV:
@@ -151,6 +176,8 @@ namespace KVertexDefinition
 			return SCREENQUAD_POS_2F_DETAILS;
 		case VF_DEBUG_POINT:
 			return DEBUG_POS_3F_DETAILS;
+		case VF_INSTANCE:
+			return INSTANCE_DATA_DETAILS;
 		default:
 			assert(false && "unknown format");
 			return EMPYT_DETAILS;

@@ -124,25 +124,26 @@ bool KEditor::Init()
 		m_ResourceBrowser = KNEW KEResourceBrowser(this);
 		m_ResourceBrowser->Init();
 
-		m_ResourceDock = KNEW QDockWidget(this);
+		m_ResourceDock = KNEW QDockWidget("Resource Browser", this);
 		m_ResourceDock->setWidget(m_ResourceBrowser);
 		addDockWidget(Qt::BottomDockWidgetArea, m_ResourceDock);
 
 		m_SceneItemWidget = KNEW KESceneItemWidget(this);
 		m_SceneItemWidget->Init();
 
-		m_SceneItemDock = KNEW QDockWidget(this);
+		m_SceneItemDock = KNEW QDockWidget("Scene", this);
 		m_SceneItemDock->setWidget(m_SceneItemWidget);
 		addDockWidget(Qt::LeftDockWidgetArea, m_SceneItemDock);
 
 		m_PropertyWidget = KNEW KEReflectPropertyWidget(this);
 		m_PropertyWidget->Init();
 
-		m_PropertyDock = KNEW QDockWidget(this);
+		m_PropertyDock = KNEW QDockWidget("Property", this);
 		m_PropertyDock->setWidget(m_PropertyWidget);
 		addDockWidget(Qt::RightDockWidgetArea, m_PropertyDock);
 
 		m_ManipulatorToolBar = KNEW KEManipulatorToolBar(this);
+		m_ManipulatorToolBar->setWindowTitle("Manipulator Tool Bar");
 		m_ManipulatorToolBar->Init(renderCore->GetCameraController(), renderCore->GetGizmo());
 		addToolBar(Qt::TopToolBarArea, m_ManipulatorToolBar);
 
