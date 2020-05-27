@@ -20,10 +20,15 @@ namespace KConstantDefinition
 		glm::mat4 MODEL;
 	};
 
+	struct CSM_OBJECT_INSTANCE
+	{
+		uint32_t CASCADED_INDEX;
+	};
+
 	struct CSM_OBJECT
 	{
 		OBJECT MODEL;
-		uint32_t CASCADED_INDEX;
+		CSM_OBJECT_INSTANCE CASCADED_INDEX;
 	};
 
 	struct DEBUG

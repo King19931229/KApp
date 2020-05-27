@@ -60,6 +60,9 @@ protected:
 
 	void ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTargetPtr target, const KClearDepthStencil& value);
 	void RenderSecondary(IKCommandBufferPtr buffer, IKRenderTargetPtr offscreenTarget, const std::vector<KRenderCommand>& commands);
+
+	void PopulateRenderCommand(size_t frameIndex, IKRenderTargetPtr offscreenTarget,
+		std::vector<KRenderComponent*>& cullRes, std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands);
 public:
 	KRenderDispatcher();
 	~KRenderDispatcher();
@@ -69,7 +72,7 @@ public:
 	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay, IKCameraCubePtr cameraCube);
 	bool UnInit();
 
-	bool AssignInstanceData(KVertexData* vertexData, InstanceBufferStage stage, const std::vector<KConstantDefinition::OBJECT>& objects);
+	static bool AssignInstanceData(IKRenderDevice* device, KVertexData* vertexData, InstanceBufferStage stage, const std::vector<KConstantDefinition::OBJECT>& objects);
 
 	bool Execute(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
 	IKCommandBufferPtr GetPrimaryCommandBuffer(uint32_t frameIndex);

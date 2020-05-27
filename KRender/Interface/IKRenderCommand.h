@@ -17,7 +17,8 @@ enum InstanceBufferStage
 	IBS_CSM2,
 	IBS_CSM3,
 
-	IBS_COUNT
+	IBS_COUNT,
+	IBS_UNKNOWN = IBS_COUNT
 };
 
 struct KVertexData

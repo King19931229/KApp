@@ -14,6 +14,8 @@ protected:
 	static const uint16_t ms_BackGroundIndices[6];
 	static const VertexFormat ms_VertexFormats[1];
 	
+	IKRenderDevice* m_Device;
+
 	// buffer
 	IKVertexBufferPtr m_BackGroundVertexBuffer;
 	IKIndexBufferPtr m_BackGroundIndexBuffer;
@@ -68,6 +70,8 @@ protected:
 
 	void UpdateCascades(const KCamera* mainCamera);
 	bool GetDebugRenderCommand(size_t frameIndex, KRenderCommandList& commands);
+	bool CascadedIndexToInstanceBufferStage(size_t cascadedIndex, InstanceBufferStage& stage);
+	void PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex, std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
 public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();

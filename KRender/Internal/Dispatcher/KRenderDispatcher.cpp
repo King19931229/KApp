@@ -155,15 +155,14 @@ void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderTarge
 	buffer->End();
 }
 
-
-bool KRenderDispatcher::AssignInstanceData(KVertexData* vertexData, InstanceBufferStage stage, const std::vector<KConstantDefinition::OBJECT>& objects)
+bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, KVertexData* vertexData, InstanceBufferStage stage, const std::vector<KConstantDefinition::OBJECT>& objects)
 {
 	if (vertexData && !objects.empty())
 	{
 		IKVertexBufferPtr& instanceBuffer = vertexData->instanceBuffers[stage];
 		if (!instanceBuffer)
 		{
-			m_Device->CreateVertexBuffer(instanceBuffer);
+			device->CreateVertexBuffer(instanceBuffer);
 		}
 
 		size_t dataSize = sizeof(KConstantDefinition::OBJECT) * objects.size();
@@ -211,13 +210,170 @@ bool KRenderDispatcher::AssignInstanceData(KVertexData* vertexData, InstanceBuff
 	return false;
 }
 
-bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
+void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetPtr offscreenTarget,
+	std::vector<KRenderComponent*>& cullRes, std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands)
 {
 	KRenderStageStatistics preZStatistics;
 	KRenderStageStatistics defaultStatistics;
 	KRenderStageStatistics debugStatistics;
-	KRenderStageStatistics shadowStatistics;
 
+	std::unordered_map<KMeshPtr, std::vector<KConstantDefinition::OBJECT>> meshGroups;
+
+	for (KRenderComponent* component : cullRes)
+	{
+		IKEntity* entity = component->GetEntityHandle();
+
+		KTransformComponent* transform = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, &transform))
+		{
+			KMeshPtr mesh = component->GetMesh();
+
+			auto it = meshGroups.find(mesh);
+			if (it != meshGroups.end())
+			{
+				it->second.push_back(transform->FinalTransform());
+			}
+			else
+			{
+				std::vector<KConstantDefinition::OBJECT> objects(1, transform->FinalTransform());
+				meshGroups[mesh] = objects;
+			}
+
+			KDebugComponent* debug = nullptr;
+			if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
+			{
+				KConstantDefinition::DEBUG objectData;
+				objectData.MODEL = transform->FinalTransform();
+				objectData.COLOR = debug->Color();
+
+				mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand&& command)
+				{
+					command.SetObjectData(objectData);
+
+					++debugStatistics.drawcalls;
+					if (command.indexDraw)
+					{
+						debugStatistics.faces += command.indexData->indexCount / 3;
+						debugStatistics.primtives += command.indexData->indexCount;
+					}
+					else
+					{
+						debugStatistics.faces += command.vertexData->vertexCount / 3;
+						debugStatistics.primtives += command.vertexData->vertexCount;
+					}
+
+					command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						defaultCommands.push_back(std::move(command));
+					}
+				});
+
+				mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand&& command)
+				{
+					command.SetObjectData(objectData);
+
+					++debugStatistics.drawcalls;
+					if (command.indexDraw)
+					{
+						debugStatistics.faces += command.indexData->indexCount / 2;
+						debugStatistics.primtives += command.indexData->indexCount;
+					}
+					else
+					{
+						debugStatistics.faces += command.vertexData->vertexCount / 2;
+						debugStatistics.primtives += command.vertexData->vertexCount;
+					}
+
+					command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						debugCommands.push_back(std::move(command));
+					}
+				});
+			}
+		}
+	}
+
+	// 准备Instance数据
+	for (auto& pair : meshGroups)
+	{
+		KMeshPtr mesh = pair.first;
+		std::vector<KConstantDefinition::OBJECT>& objects = pair.second;
+
+		ASSERT_RESULT(!objects.empty());
+
+		mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand&& _command)
+		{
+			KRenderCommand command = std::move(_command);
+		
+			for (size_t idx = 0; idx < objects.size(); ++idx)
+			{
+				++preZStatistics.drawcalls;
+				if (command.indexDraw)
+				{
+					preZStatistics.faces += command.indexData->indexCount / 3;
+				}
+				else
+				{
+					preZStatistics.faces += command.vertexData->vertexCount / 3;
+				}
+				command.SetObjectData(objects[idx]);
+
+				command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+				if (command.Complete())
+				{
+					preZcommands.push_back(command);
+				}
+			}
+		});
+
+		mesh->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand&& _command)
+		{
+			KRenderCommand command = std::move(_command);
+
+			++defaultStatistics.drawcalls;
+
+			KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
+			AssignInstanceData(m_Device, vertexData, IBS_OPAQUE, objects);
+
+			command.instanceDraw = true;
+			command.instanceBuffer = vertexData->instanceBuffers[IBS_OPAQUE];
+			command.instanceCount = (uint32_t)vertexData->instanceCount[IBS_OPAQUE];
+
+			for (size_t idx = 0; idx < objects.size(); ++idx)
+			{
+				if (command.indexDraw)
+				{
+					defaultStatistics.faces += command.indexData->indexCount / 3;
+					defaultStatistics.primtives += command.indexData->indexCount;
+				}
+				else
+				{
+					defaultStatistics.faces += command.vertexData->vertexCount / 3;
+					defaultStatistics.primtives += command.vertexData->vertexCount;
+				}
+			}
+
+			command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+			if (command.Complete())
+			{
+				defaultCommands.push_back(command);
+			}
+		});
+	}
+
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(PRE_Z_STAGE, preZStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEFAULT_STAGE, defaultStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
+}
+
+bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
+{
 	assert(frameIndex < m_CommandBuffers.size());
 
 	m_CommandBuffers[frameIndex].commandPool->Reset();
@@ -234,8 +390,9 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 	{
 		// 阴影绘制RenderPass
 		{
-			//KRenderGlobal::ShadowMap.UpdateShadowMap(frameIndex, primaryCommandBuffer);
+			KRenderStageStatistics shadowStatistics;
 			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer, shadowStatistics);
+			KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
 		}
 
 		// 物件绘制RenderPass
@@ -258,138 +415,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 				std::vector<KRenderComponent*> cullRes;
 				scene->GetRenderComponent(*camera, cullRes);
 
-				std::unordered_map<KMeshPtr, std::vector<KConstantDefinition::OBJECT>> meshGroups;
-
-				for (KRenderComponent* component : cullRes)
-				{
-					IKEntity* entity = component->GetEntityHandle();
-
-					KTransformComponent* transform = nullptr;
-					if (entity->GetComponent(CT_TRANSFORM, &transform))
-					{
-						KMeshPtr mesh = component->GetMesh();
-
-						auto it = meshGroups.find(mesh);
-						if (it != meshGroups.end())
-						{
-							it->second.push_back(transform->FinalTransform());
-						}
-						else
-						{
-							std::vector<KConstantDefinition::OBJECT> objects(1, transform->FinalTransform());
-							meshGroups[mesh] = objects;
-						}
-
-						KDebugComponent* debug = nullptr;
-						if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
-						{
-							KConstantDefinition::DEBUG objectData;
-							objectData.MODEL = transform->FinalTransform();
-							objectData.COLOR = debug->Color();
-
-							mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand&& command)
-							{
-								command.SetObjectData(objectData);
-
-								++debugStatistics.drawcalls;
-								if (command.indexDraw)
-								{
-									debugStatistics.faces += command.indexData->indexCount / 3;
-									debugStatistics.primtives += command.indexData->indexCount;
-								}
-								else
-								{
-									debugStatistics.faces += command.vertexData->vertexCount / 3;
-									debugStatistics.primtives += command.vertexData->vertexCount;
-								}
-								command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-
-								defaultCommands.push_back(std::move(command));
-							});
-
-							mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand&& command)
-							{
-								command.SetObjectData(objectData);
-
-								++debugStatistics.drawcalls;
-								if (command.indexDraw)
-								{
-									debugStatistics.faces += command.indexData->indexCount / 2;
-									debugStatistics.primtives += command.indexData->indexCount;
-								}
-								else
-								{
-									debugStatistics.faces += command.vertexData->vertexCount / 2;
-									debugStatistics.primtives += command.vertexData->vertexCount;
-								}
-								command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-
-								debugCommands.push_back(std::move(command));
-							});
-						}
-					}
-				}
-
-				// 准备Instance数据
-				for (auto& pair : meshGroups)
-				{
-					KMeshPtr mesh = pair.first;
-					std::vector<KConstantDefinition::OBJECT>& objects = pair.second;
-
-					ASSERT_RESULT(!objects.empty());
-
-					mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand&& _command)
-					{
-						KRenderCommand command = std::move(_command);
-						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-
-						for (size_t idx = 0; idx < objects.size(); ++idx)
-						{
-							++preZStatistics.drawcalls;
-							if (command.indexDraw)
-							{
-								preZStatistics.faces += command.indexData->indexCount / 3;
-							}
-							else
-							{
-								preZStatistics.faces += command.vertexData->vertexCount / 3;
-							}
-							command.SetObjectData(objects[idx]);
-							preZcommands.push_back(command);
-						}
-					});
-
-					mesh->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand&& _command)
-					{
-						KRenderCommand command = std::move(_command);
-
-						++defaultStatistics.drawcalls;
-
-						KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
-						AssignInstanceData(vertexData, IBS_OPAQUE, objects);
-
-						command.instanceDraw = true;
-						command.instanceBuffer = vertexData->instanceBuffers[IBS_OPAQUE];
-						command.instanceCount = (uint32_t)vertexData->instanceCount[IBS_OPAQUE];
-
-						for (size_t idx = 0; idx < objects.size(); ++idx)
-						{
-							if (command.indexDraw)
-							{
-								defaultStatistics.faces += command.indexData->indexCount / 3;
-								defaultStatistics.primtives += command.indexData->indexCount;
-							}
-							else
-							{
-								defaultStatistics.faces += command.vertexData->vertexCount / 3;
-								defaultStatistics.primtives += command.vertexData->vertexCount;
-							}
-						}
-
-						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-						defaultCommands.push_back(command);
-					});
-				}
+				PopulateRenderCommand(frameIndex, offscreenTarget, cullRes, preZcommands, defaultCommands, debugCommands);
 
 				RenderSecondary(preZcommandBuffer, offscreenTarget, preZcommands);
 				RenderSecondary(defaultCommandBuffer, offscreenTarget, defaultCommands);
@@ -457,11 +483,6 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 
 	primaryCommandBuffer->End();
 
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(PRE_Z_STAGE, preZStatistics);
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEFAULT_STAGE, defaultStatistics);
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
-
 	return true;
 }
 
@@ -489,7 +510,6 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 	{
 		// 阴影绘制RenderPass
 		{
-			//KRenderGlobal::ShadowMap.UpdateShadowMap(frameIndex, primaryCommandBuffer);
 			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer, shadowStatistics);
 		}
 		// 物件绘制RenderPass
@@ -508,149 +528,39 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 			std::vector<KRenderComponent*> cullRes;
 			scene->GetRenderComponent(*camera, cullRes);
 
-			size_t drawEachThread = cullRes.size() / threadCount;
-			size_t reaminCount = cullRes.size() % threadCount;
+			KRenderCommandList preZcommands;
+			KRenderCommandList defaultCommands;
+			KRenderCommandList debugCommands;
 
-			for (size_t i = 0; i < threadCount; ++i)
-			{
-				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[i];
-
-				threadData.preZcommands.clear();
-				threadData.defaultCommands.clear();
-				threadData.debugCommands.clear();
-
-				auto addMesh = [&](size_t index)
-				{
-					KRenderComponent* component = cullRes[index];
-					KMeshPtr mesh = component->GetMesh();
-
-					IKEntity* entity = component->GetEntityHandle();
-					KTransformComponent* transform = nullptr;
-					if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
-					{
-						KMeshPtr mesh = component->GetMesh();
-
-						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand&& command)
-						{
-							command.SetObjectData(transform->FinalTransform());
-
-							IKPipelineHandlePtr handle = nullptr;
-							if (command.pipeline->GetHandle(offscreenTarget, handle))
-							{
-								command.pipelineHandle = handle;
-
-								++preZStatistics.drawcalls;
-								if (command.indexDraw)
-								{
-									preZStatistics.faces += command.indexData->indexCount / 3;
-								}
-								else
-								{
-									preZStatistics.faces += command.vertexData->vertexCount / 3;
-								}
-
-								threadData.preZcommands.push_back(std::move(command));
-							}
-						});
-
-						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& command)
-						{
-							command.SetObjectData(transform->FinalTransform());
-
-							IKPipelineHandlePtr handle = nullptr;
-							if (command.pipeline->GetHandle(offscreenTarget, handle))
-							{
-								command.pipelineHandle = handle;
-
-								++defaultStatistics.drawcalls;
-								if (command.indexDraw)
-								{
-									defaultStatistics.faces += command.indexData->indexCount / 3;
-									defaultStatistics.primtives += command.indexData->indexCount;
-								}
-								else
-								{
-									defaultStatistics.faces += command.vertexData->vertexCount / 3;
-									defaultStatistics.primtives += command.vertexData->vertexCount;
-								}
-
-								threadData.defaultCommands.push_back(std::move(command));
-							}
-						});
-
-						KDebugComponent* debug = nullptr;
-						if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
-						{
-							KConstantDefinition::DEBUG objectData;
-							objectData.MODEL = transform->FinalTransform();
-							objectData.COLOR = debug->Color();
-
-							mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand&& command)
-							{
-								command.SetObjectData(objectData);
-
-								IKPipelineHandlePtr handle = nullptr;
-								if (command.pipeline->GetHandle(offscreenTarget, handle))
-								{
-									command.pipelineHandle = handle;
-
-									++debugStatistics.drawcalls;
-									if (command.indexDraw)
-									{
-										debugStatistics.faces += command.indexData->indexCount / 3;
-										debugStatistics.primtives += command.indexData->indexCount;
-									}
-									else
-									{
-										debugStatistics.faces += command.vertexData->vertexCount / 3;
-										debugStatistics.primtives += command.vertexData->vertexCount;
-									}
-
-									threadData.debugCommands.push_back(std::move(command));
-								}
-							});
-
-							mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand&& command)
-							{
-								command.SetObjectData(objectData);
-
-								IKPipelineHandlePtr handle = nullptr;
-								if (command.pipeline->GetHandle(offscreenTarget, handle))
-								{
-									command.pipelineHandle = handle;
-
-									++debugStatistics.drawcalls;
-									if (command.indexDraw)
-									{
-										debugStatistics.faces += command.indexData->indexCount / 2;
-										debugStatistics.primtives += command.indexData->indexCount;
-									}
-									else
-									{
-										debugStatistics.faces += command.vertexData->vertexCount / 2;
-										debugStatistics.primtives += command.vertexData->vertexCount;
-									}
-
-									threadData.debugCommands.push_back(std::move(command));
-								}
-							});
-						}
-					}
-				};
-
-				for (size_t st = i * drawEachThread, ed = st + drawEachThread; st < ed; ++st)
-				{
-					addMesh(st);
-				}
-
-				if (i == threadCount - 1)
-				{
-					for (size_t st = threadCount * drawEachThread, ed = st + reaminCount; st < ed; ++st)
-					{
-						addMesh(st);
-					}
-				}
+			PopulateRenderCommand(frameIndex, offscreenTarget, cullRes, preZcommands, defaultCommands, debugCommands);
+			
+#define ASSIGN_RENDER_COMMAND(command)\
+			{\
+				size_t drawEachThread = command.size() / threadCount;\
+				size_t reaminCount = command.size() % threadCount;\
+				for (size_t i = 0; i < threadCount; ++i)\
+				{\
+					ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[i];\
+					threadData.command.clear();\
+\
+					for (size_t idx = i * drawEachThread, ed = i * drawEachThread + drawEachThread; idx < ed; ++idx)\
+					{\
+						threadData.command.push_back(std::move(command[idx]));\
+					}\
+\
+					if (i == threadCount - 1)\
+					{\
+						for (size_t idx = threadCount * drawEachThread, ed = threadCount * drawEachThread + reaminCount; idx < ed; ++idx)\
+						{\
+							threadData.command.push_back(std::move(command[idx]));\
+						}\
+					}\
+				}\
 			}
+
+			ASSIGN_RENDER_COMMAND(preZcommands);
+			ASSIGN_RENDER_COMMAND(defaultCommands);
+			ASSIGN_RENDER_COMMAND(debugCommands);
 
 			for (size_t i = 0; i < threadCount; ++i)
 			{
@@ -738,9 +648,6 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 
 	primaryCommandBuffer->End();
 
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(PRE_Z_STAGE, preZStatistics);
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEFAULT_STAGE, defaultStatistics);
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
 
 	return true;

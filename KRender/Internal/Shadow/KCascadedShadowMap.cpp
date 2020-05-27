@@ -7,6 +7,7 @@
 #include "Internal/KConstantGlobal.h"
 
 #include "Internal/ECS/Component/KTransformComponent.h"
+#include "Internal/Dispatcher/KRenderDispatcher.h"
 
 const VertexFormat KCascadedShadowMap::ms_VertexFormats[] = { VF_SCREENQUAD_POS };
 
@@ -21,7 +22,8 @@ const KVertexDefinition::SCREENQUAD_POS_2F KCascadedShadowMap::ms_BackGroundVert
 const uint16_t KCascadedShadowMap::ms_BackGroundIndices[] = { 0, 1, 2, 2, 3, 0 };
 
 KCascadedShadowMap::KCascadedShadowMap()
-	: m_DepthBiasConstant(1.25f),
+	: m_Device(nullptr),
+	m_DepthBiasConstant(1.25f),
 	m_DepthBiasSlope(1.75f),
 	m_ShadowRange(3000.0f),
 	m_SplitLambda(0.5f),
@@ -258,6 +260,8 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 
 	if (numCascaded >= 1 && numCascaded <= SHADOW_MAP_MAX_CASCADED && shadowSizeRatio > 0.0f)
 	{
+		m_Device = renderDevice;
+
 		m_ShadowSizeRatio = shadowSizeRatio;
 
 		renderDevice->CreateCommandPool(m_CommandPool);
@@ -396,7 +400,105 @@ bool KCascadedShadowMap::UnInit()
 	SAFE_UNINIT(m_ShadowSampler);
 	SAFE_UNINIT(m_CommandPool);
 
+	m_Device = nullptr;
+
 	return true;
+}
+
+bool KCascadedShadowMap::CascadedIndexToInstanceBufferStage(size_t cascadedIndex, InstanceBufferStage& stage)
+{
+#define ENUM_INDEX(index)\
+	if (cascadedIndex == index)\
+	{\
+		stage = IBS_CSM##index;\
+		return true;\
+	}
+
+	ENUM_INDEX(0);
+	ENUM_INDEX(1);
+	ENUM_INDEX(2);
+	ENUM_INDEX(3);
+
+#undef ENUM_INDEX
+
+	return false;
+}
+
+void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex, std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
+{
+	ASSERT_RESULT(cascadedIndex < m_Cascadeds.size());
+	ASSERT_RESULT(frameIndex < m_Cascadeds[cascadedIndex].renderTargets.size());
+
+	IKRenderTargetPtr shadowTarget = m_Cascadeds[cascadedIndex].renderTargets[frameIndex];
+	InstanceBufferStage stage = IBS_UNKNOWN;
+
+	ASSERT_RESULT(CascadedIndexToInstanceBufferStage(cascadedIndex, stage));
+
+	std::unordered_map<KMeshPtr, std::vector<KConstantDefinition::OBJECT>> meshGroups;	
+
+	for (KRenderComponent* component : litCullRes)
+	{
+		IKEntity* entity = component->GetEntityHandle();
+		KTransformComponent* transform = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
+		{
+			KMeshPtr mesh = component->GetMesh();
+
+			auto it = meshGroups.find(mesh);
+			if (it != meshGroups.end())
+			{
+				it->second.push_back(transform->FinalTransform());
+			}
+			else
+			{
+				std::vector<KConstantDefinition::OBJECT> objects(1, transform->FinalTransform());
+				meshGroups[mesh] = objects;
+			}
+		}
+	}
+
+	// 准备Instance数据
+	for (auto& pair : meshGroups)
+	{
+		KMeshPtr mesh = pair.first;
+		std::vector<KConstantDefinition::OBJECT>& objects = pair.second;
+
+		ASSERT_RESULT(!objects.empty());
+
+		mesh->Visit(PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE, frameIndex, [&](KRenderCommand&& _command)
+		{
+			KRenderCommand command = std::move(_command);
+
+			KConstantDefinition::CSM_OBJECT_INSTANCE csmInstance = { (uint32_t)cascadedIndex };
+			command.SetObjectData(csmInstance);
+
+			++statistics.drawcalls;
+
+			KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
+
+			KRenderDispatcher::AssignInstanceData(m_Device, vertexData, stage, objects);
+
+			command.instanceDraw = true;
+			command.instanceBuffer = vertexData->instanceBuffers[stage];
+			command.instanceCount = (uint32_t)vertexData->instanceCount[stage];
+
+			if (command.indexDraw)
+			{
+				statistics.faces += command.indexData->indexCount / 3;
+			}
+			else
+			{
+				statistics.faces += command.vertexData->vertexCount / 3;
+			}
+
+			command.pipeline->GetHandle(shadowTarget, command.pipelineHandle);
+
+			if (command.Complete())
+			{
+				commands.push_back(command);
+			}
+		});
+	}
 }
 
 bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer, KRenderStageStatistics& statistics)
@@ -530,40 +632,14 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 			commandBuffer->SetDepthBias(m_DepthBiasConstant, 0, m_DepthBiasSlope);
 			{
 				KRenderCommandList commandList;
-				for (KRenderComponent* component : litCullRes)
-				{
-					IKEntity* entity = component->GetEntityHandle();
-					KTransformComponent* transform = nullptr;
-					if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
-					{
-						KMeshPtr mesh = component->GetMesh();
 
-						mesh->Visit(PIPELINE_STAGE_CASCADED_SHADOW_GEN, frameIndex, [&](KRenderCommand command)
-						{
-							KConstantDefinition::CSM_OBJECT csmObject = { transform->FinalTransform(), (uint32_t)i};
-							command.SetObjectData(csmObject);
-
-							++statistics.drawcalls;
-							if (command.indexDraw)
-							{
-								statistics.faces += command.indexData->indexCount / 3;
-							}
-							else
-							{
-								statistics.faces += command.vertexData->vertexCount / 3;
-							}
-
-							commandList.push_back(command);
-						});
-					}
-				}
+				PopulateRenderCommand(frameIndex, i, litCullRes, commandList, statistics);
 
 				for (KRenderCommand& command : commandList)
 				{
 					IKPipelineHandlePtr handle = nullptr;
 					if (command.pipeline->GetHandle(shadowMapTarget, handle))
 					{
-						command.pipelineHandle = handle;
 						commandBuffer->Render(command);
 					}
 				}
