@@ -165,8 +165,17 @@ bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, KVertexData* 
 			device->CreateVertexBuffer(instanceBuffer);
 		}
 
+		// CPU用Hash检查数据是否需要重新填充看起来是个负优化 起码在PC上是这样
+		// TODO 安卓待验证
+		bool ENABLE_CPU_HASH = false;
+
 		size_t dataSize = sizeof(KConstantDefinition::OBJECT) * objects.size();
-		uint32_t dataHash = KHash::BKDR((const char*)objects.data(), dataSize);
+		uint32_t dataHash = 0;
+		
+		if (ENABLE_CPU_HASH)
+		{
+			dataHash = KHash::BKDR((const char*)objects.data(), dataSize);
+		}
 
 		if (vertexData->instanceCount[stage] != objects.size())
 		{
@@ -192,7 +201,7 @@ bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, KVertexData* 
 		}
 		else // 检查是否需要重新填充instance buffer
 		{
-			if (vertexData->instanceDataHash[stage] != dataHash)
+			if (!ENABLE_CPU_HASH || vertexData->instanceDataHash[stage] != dataHash)
 			{
 				// 数据大小小于原来一半 instance buffer大小缩小到原来一半
 				if (dataSize < instanceBuffer->GetBufferSize() / 2)
