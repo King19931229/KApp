@@ -184,7 +184,11 @@ bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, KVertexData* 
 			ASSERT_RESULT(instanceBuffer->UnInit());
 			ASSERT_RESULT(instanceBuffer->InitMemory(vertexCount, vertexSize, nullptr));
 			ASSERT_RESULT(instanceBuffer->InitDevice(true));
-			ASSERT_RESULT(instanceBuffer->Write(objects.data()));
+
+			void* bufferData = nullptr;
+			ASSERT_RESULT(instanceBuffer->Map(&bufferData));
+			memcpy(bufferData, objects.data(), dataSize);
+			ASSERT_RESULT(instanceBuffer->UnMap());
 		}
 		else // 检查是否需要重新填充instance buffer
 		{
@@ -199,7 +203,11 @@ bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, KVertexData* 
 					ASSERT_RESULT(instanceBuffer->InitMemory(vertexCount, vertexSize, nullptr));
 					ASSERT_RESULT(instanceBuffer->InitDevice(true));
 				}
-				ASSERT_RESULT(instanceBuffer->Write(objects.data()));
+
+				void* bufferData = nullptr;
+				ASSERT_RESULT(instanceBuffer->Map(&bufferData));
+				memcpy(bufferData, objects.data(), dataSize);
+				ASSERT_RESULT(instanceBuffer->UnMap());
 			}
 		}
 
