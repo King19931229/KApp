@@ -4,6 +4,8 @@
 #include "Internal/ECS/Component/KDebugComponent.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/Gizmo/KCameraCube.h"
+#include "KBase/Publish/KHash.h"
+#include "KBase/Publish/KNumerical.h"
 
 KRenderDispatcher::KRenderDispatcher()
 	: m_Device(nullptr),
@@ -123,9 +125,9 @@ void KRenderDispatcher::ThreadRenderObject(uint32_t frameIndex, uint32_t threadI
 
 	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
 
-	BeginSecondary(threadData.preZcommandBuffer, offscreenTarget, threadData.preZcommands);
-	BeginSecondary(threadData.defaultCommandBuffer, offscreenTarget, threadData.defaultCommands);
-	BeginSecondary(threadData.debugCommandBuffer, offscreenTarget, threadData.debugCommands);
+	RenderSecondary(threadData.preZcommandBuffer, offscreenTarget, threadData.preZcommands);
+	RenderSecondary(threadData.defaultCommandBuffer, offscreenTarget, threadData.defaultCommands);
+	RenderSecondary(threadData.debugCommandBuffer, offscreenTarget, threadData.debugCommands);
 }
 
 void KRenderDispatcher::ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTargetPtr target, const KClearDepthStencil& value)
@@ -142,7 +144,7 @@ void KRenderDispatcher::ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTar
 	buffer->ClearDepthStencil(rect, value);
 }
 
-void KRenderDispatcher::BeginSecondary(IKCommandBufferPtr buffer, IKRenderTargetPtr offscreenTarget, const std::vector<KRenderCommand>& commands)
+void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderTargetPtr offscreenTarget, const std::vector<KRenderCommand>& commands)
 {
 	buffer->BeginSecondary(offscreenTarget);
 	buffer->SetViewport(offscreenTarget);
@@ -151,6 +153,62 @@ void KRenderDispatcher::BeginSecondary(IKCommandBufferPtr buffer, IKRenderTarget
 		buffer->Render(command);
 	}
 	buffer->End();
+}
+
+
+bool KRenderDispatcher::AssignInstanceData(KVertexData* vertexData, InstanceBufferStage stage, const std::vector<KConstantDefinition::OBJECT>& objects)
+{
+	if (vertexData && !objects.empty())
+	{
+		IKVertexBufferPtr& instanceBuffer = vertexData->instanceBuffers[stage];
+		if (!instanceBuffer)
+		{
+			m_Device->CreateVertexBuffer(instanceBuffer);
+		}
+
+		size_t dataSize = sizeof(KConstantDefinition::OBJECT) * objects.size();
+		uint32_t dataHash = KHash::BKDR((const char*)objects.data(), dataSize);
+
+		if (vertexData->instanceCount[stage] != objects.size())
+		{
+			vertexData->instanceCount[stage] = objects.size();
+			// 数量不一样需要重新填充instance buffer
+			vertexData->instanceDataHash[stage] = 0;
+		}
+
+		// instance buffer大小不够需要重新分配
+		if (dataSize > instanceBuffer->GetBufferSize())
+		{
+			size_t vertexCount = KNumerical::Factor2GreaterEqual(objects.size());
+			size_t vertexSize = sizeof(KConstantDefinition::OBJECT);
+
+			ASSERT_RESULT(instanceBuffer->UnInit());
+			ASSERT_RESULT(instanceBuffer->InitMemory(vertexCount, vertexSize, nullptr));
+			ASSERT_RESULT(instanceBuffer->InitDevice(true));
+			ASSERT_RESULT(instanceBuffer->Write(objects.data()));
+		}
+		else // 检查是否需要重新填充instance buffer
+		{
+			if (vertexData->instanceDataHash[stage] != dataHash)
+			{
+				// 数据大小小于原来一半 instance buffer大小缩小到原来一半
+				if (dataSize < instanceBuffer->GetBufferSize() / 2)
+				{
+					size_t vertexCount = instanceBuffer->GetVertexCount() / 2;
+					size_t vertexSize = instanceBuffer->GetVertexSize();
+					ASSERT_RESULT(instanceBuffer->UnInit());
+					ASSERT_RESULT(instanceBuffer->InitMemory(vertexCount, vertexSize, nullptr));
+					ASSERT_RESULT(instanceBuffer->InitDevice(true));
+				}
+				ASSERT_RESULT(instanceBuffer->Write(objects.data()));
+			}
+		}
+
+		vertexData->instanceDataHash[stage] = dataHash;
+
+		return true;
+	}
+	return false;
 }
 
 bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
@@ -200,51 +258,27 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 				std::vector<KRenderComponent*> cullRes;
 				scene->GetRenderComponent(*camera, cullRes);
 
+				std::unordered_map<KMeshPtr, std::vector<KConstantDefinition::OBJECT>> meshGroups;
+
 				for (KRenderComponent* component : cullRes)
 				{
 					IKEntity* entity = component->GetEntityHandle();
+
 					KTransformComponent* transform = nullptr;
 					if (entity->GetComponent(CT_TRANSFORM, &transform))
 					{
 						KMeshPtr mesh = component->GetMesh();
 
-						mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand&& command)
+						auto it = meshGroups.find(mesh);
+						if (it != meshGroups.end())
 						{
-							command.SetObjectData(transform->FinalTransform());
-
-							++preZStatistics.drawcalls;
-							if (command.indexDraw)
-							{
-								preZStatistics.faces += command.indexData->indexCount / 3;
-							}
-							else
-							{
-								preZStatistics.faces += command.vertexData->vertexCount / 3;
-							}
-							command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-
-							preZcommands.push_back(std::move(command));
-						});
-
-						mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& command)
+							it->second.push_back(transform->FinalTransform());
+						}
+						else
 						{
-							command.SetObjectData(transform->FinalTransform());
-
-							++defaultStatistics.drawcalls;
-							if (command.indexDraw)
-							{
-								defaultStatistics.faces += command.indexData->indexCount / 3;
-								defaultStatistics.primtives += command.indexData->indexCount;
-							}
-							else
-							{
-								defaultStatistics.faces += command.vertexData->vertexCount / 3;
-								defaultStatistics.primtives += command.vertexData->vertexCount;
-							}
-							command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-
-							defaultCommands.push_back(std::move(command));
-						});
+							std::vector<KConstantDefinition::OBJECT> objects(1, transform->FinalTransform());
+							meshGroups[mesh] = objects;
+						}
 
 						KDebugComponent* debug = nullptr;
 						if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
@@ -296,9 +330,70 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 					}
 				}
 
-				BeginSecondary(preZcommandBuffer, offscreenTarget, preZcommands);
-				BeginSecondary(defaultCommandBuffer, offscreenTarget, defaultCommands);
-				BeginSecondary(debugCommandBuffer, offscreenTarget, debugCommands);
+				// 准备Instance数据
+				for (auto& pair : meshGroups)
+				{
+					KMeshPtr mesh = pair.first;
+					std::vector<KConstantDefinition::OBJECT>& objects = pair.second;
+
+					ASSERT_RESULT(!objects.empty());
+
+					mesh->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand&& _command)
+					{
+						KRenderCommand command = std::move(_command);
+						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+						for (size_t idx = 0; idx < objects.size(); ++idx)
+						{
+							++preZStatistics.drawcalls;
+							if (command.indexDraw)
+							{
+								preZStatistics.faces += command.indexData->indexCount / 3;
+							}
+							else
+							{
+								preZStatistics.faces += command.vertexData->vertexCount / 3;
+							}
+							command.SetObjectData(objects[idx]);
+							preZcommands.push_back(command);
+						}
+					});
+
+					mesh->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand&& _command)
+					{
+						KRenderCommand command = std::move(_command);
+
+						++defaultStatistics.drawcalls;
+
+						KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
+						AssignInstanceData(vertexData, IBS_OPAQUE, objects);
+
+						command.instanceDraw = true;
+						command.instanceBuffer = vertexData->instanceBuffers[IBS_OPAQUE];
+						command.instanceCount = (uint32_t)vertexData->instanceCount[IBS_OPAQUE];
+
+						for (size_t idx = 0; idx < objects.size(); ++idx)
+						{
+							if (command.indexDraw)
+							{
+								defaultStatistics.faces += command.indexData->indexCount / 3;
+								defaultStatistics.primtives += command.indexData->indexCount;
+							}
+							else
+							{
+								defaultStatistics.faces += command.vertexData->vertexCount / 3;
+								defaultStatistics.primtives += command.vertexData->vertexCount;
+							}
+						}
+
+						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+						defaultCommands.push_back(command);
+					});
+				}
+
+				RenderSecondary(preZcommandBuffer, offscreenTarget, preZcommands);
+				RenderSecondary(defaultCommandBuffer, offscreenTarget, defaultCommands);
+				RenderSecondary(debugCommandBuffer, offscreenTarget, debugCommands);
 
 				if (!preZcommands.empty())
 				{

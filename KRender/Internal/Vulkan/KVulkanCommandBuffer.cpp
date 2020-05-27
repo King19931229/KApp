@@ -177,7 +177,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 	{
 		if(!command.Complete())
 		{
-			assert(false && "render command not complete. check the logic");
+			assert(false && "render command is not complete. check the logic");
 			return false;
 		}
 
@@ -205,8 +205,18 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		for(uint32_t i = 0; i < vertexBufferCount; ++i)
 		{
 			IKVertexBufferPtr vertexBuffer = command.vertexData->vertexBuffers[i];
+			ASSERT_RESULT(vertexBuffer);
 			vertexBuffers[i] = ((KVulkanVertexBuffer*)vertexBuffer.get())->GetVulkanHandle();
 			offsets[i] = 0;
+		}
+
+		if (command.instanceDraw)
+		{
+			IKVertexBufferPtr instanceBuffer = command.instanceBuffer;
+			ASSERT_RESULT(instanceBuffer);
+			vertexBuffers[vertexBufferCount] = ((KVulkanVertexBuffer*)instanceBuffer.get())->GetVulkanHandle();
+			offsets[vertexBufferCount] = 0;
+			++vertexBufferCount;
 		}
 
 		vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
@@ -221,11 +231,26 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			// 绑定索引缓冲
 			KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
 			vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-			vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+
+			if (command.instanceDraw)
+			{
+				vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, command.instanceCount, command.indexData->indexStart, 0, 0);
+			}
+			else
+			{
+				vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+			}
 		}
 		else
 		{
-			vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
+			if (command.instanceDraw)
+			{
+				vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, command.instanceCount, command.vertexData->vertexStart, 0);
+			}
+			else
+			{
+				vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
+			}
 		}
 
 		return true;

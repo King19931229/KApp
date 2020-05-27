@@ -7,21 +7,43 @@
 
 #include <assert.h>
 
+enum InstanceBufferStage
+{
+	IBS_PRE_Z,
+	IBS_OPAQUE,
+
+	IBS_CSM0,
+	IBS_CSM1,
+	IBS_CSM2,
+	IBS_CSM3,
+
+	IBS_COUNT
+};
+
 struct KVertexData
 {
 	// 每个顶点格式占用一个顶点缓冲
 	std::vector<VertexFormat> vertexFormats;
 	std::vector<IKVertexBufferPtr> vertexBuffers;
-	IKVertexBufferPtr instanceBuffer;
+
+	IKVertexBufferPtr instanceBuffers[IBS_COUNT];
+	size_t instanceDataHash[IBS_COUNT];
+	size_t instanceCount[IBS_COUNT];
+
+	// 顶点描述数据
 	uint32_t vertexStart;
 	uint32_t vertexCount;
+
+	// 包围盒
 	KAABBBox bound;
 
 	KVertexData()
 	{
 		vertexStart = 0;
 		vertexCount = 0;
-		instanceBuffer = nullptr;
+		ZERO_ARRAY_MEMORY(instanceBuffers);
+		ZERO_ARRAY_MEMORY(instanceDataHash);
+		ZERO_ARRAY_MEMORY(instanceCount);
 		bound.SetNull();
 	}
 
@@ -36,22 +58,18 @@ struct KVertexData
 		bound.SetNull();
 		vertexStart = 0;
 		vertexCount = 0;
-		instanceBuffer = nullptr;
+		ZERO_ARRAY_MEMORY(instanceBuffers);
+		ZERO_ARRAY_MEMORY(instanceDataHash);
+		ZERO_ARRAY_MEMORY(instanceCount);
 	}
 
 	void Destroy()
 	{
 		assert(vertexFormats.size() == vertexBuffers.size());
-		for (IKVertexBufferPtr& buffer : vertexBuffers)
-		{
-			buffer->UnInit();
-			buffer = nullptr;
-		}
-		if (instanceBuffer)
-		{
-			instanceBuffer->UnInit();
-			instanceBuffer = nullptr;
-		}
+		SAFE_UNINIT_CONTAINER(vertexBuffers);
+		SAFE_UNINIT_ARRAY(instanceBuffers);
+		ZERO_ARRAY_MEMORY(instanceDataHash);
+		ZERO_ARRAY_MEMORY(instanceCount);
 		vertexBuffers.clear();
 		vertexFormats.clear();
 		vertexStart = 0;
@@ -84,11 +102,7 @@ struct KIndexData
 
 	void Destroy()
 	{
-		if(indexBuffer)
-		{
-			indexBuffer->UnInit();
-			indexBuffer = nullptr;
-		}
+		SAFE_UNINIT(indexBuffer);
 		indexStart = 0;
 		indexCount = 0;
 	}
@@ -103,8 +117,13 @@ struct KRenderCommand
 	IKPipelinePtr pipeline;
 	IKPipelineHandlePtr pipelineHandle;
 
+	uint32_t instanceCount;
+	IKVertexBufferPtr instanceBuffer;
+
 	std::vector<char> objectData;
+
 	bool indexDraw;
+	bool instanceDraw;
 
 	KRenderCommand()
 	{
@@ -114,7 +133,11 @@ struct KRenderCommand
 		pipeline = nullptr;
 		pipelineHandle = nullptr;
 
+		instanceCount = 0;
+		instanceBuffer = nullptr;
+
 		indexDraw = false;
+		instanceDraw = false;
 	}
 
 	template<typename T>
@@ -137,6 +160,10 @@ struct KRenderCommand
 			return false;
 		}
 		if (indexDraw && !indexData)
+		{
+			return false;
+		}
+		if (instanceDraw && (!instanceBuffer || !instanceCount))
 		{
 			return false;
 		}

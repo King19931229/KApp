@@ -353,8 +353,9 @@ namespace KVulkanHelper
 
 			// 构造VkVertexInputBindingDescription
 			bindingDescription.binding = static_cast<uint32_t>(idx);
+
 			bindingDescription.stride = (uint32_t)vertexDetail.vertexSize;
-			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+			bindingDescription.inputRate = (format != VF_INSTANCE) ? VK_VERTEX_INPUT_RATE_VERTEX : VK_VERTEX_INPUT_RATE_INSTANCE;
 
 			// 构造VkVertexInputAttributeDescription
 			const VertexSemanticDetailList& semanticDetailList = vertexDetail.semanticDetails;
