@@ -48,7 +48,7 @@ int main()
 				IKComponentBase* component = nullptr;
 				if (entity->RegisterComponent(CT_RENDER, &component))
 				{
-					((IKRenderComponent*)component)->SetPathAsset("Model/OBJ/spider.obj");
+					((IKRenderComponent*)component)->SetPathMesh("Model/OBJ/spider.mesh");
 					((IKRenderComponent*)component)->Init();
 				}
 

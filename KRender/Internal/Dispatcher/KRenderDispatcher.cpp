@@ -408,6 +408,9 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 	IKCommandBufferPtr debugCommandBuffer = m_CommandBuffers[frameIndex].debugCommandBuffer;
 	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffers[frameIndex].clearCommandBuffer;
 
+	std::vector<KRenderComponent*> cullRes;
+	scene->GetRenderComponent(*camera, cullRes);
+
 	primaryCommandBuffer->BeginPrimary();
 	{
 		// 阴影绘制RenderPass
@@ -416,7 +419,9 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer, shadowStatistics);
 			KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
 		}
-
+		{
+			KRenderGlobal::OcclusionBox.Reset(frameIndex, cullRes, primaryCommandBuffer);
+		}
 		// 物件绘制RenderPass
 		{
 			KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
@@ -434,9 +439,6 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 				KRenderCommandList defaultCommands;
 				KRenderCommandList debugCommands;
 
-				std::vector<KRenderComponent*> cullRes;
-				scene->GetRenderComponent(*camera, cullRes);
-
 				PopulateRenderCommand(frameIndex, offscreenTarget, cullRes, preZcommands, defaultCommands, debugCommands);
 
 				RenderSecondary(preZcommandBuffer, offscreenTarget, preZcommands);
@@ -453,8 +455,13 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 					commandBuffers.push_back(defaultCommandBuffer);
 				}
 
-				KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, cullRes, commandBuffers);
+				if (!commandBuffers.empty())
+				{
+					primaryCommandBuffer->ExecuteAll(commandBuffers);
+					commandBuffers.clear();
+				}
 
+				KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, cullRes, commandBuffers);
 				if (!commandBuffers.empty())
 				{
 					primaryCommandBuffer->ExecuteAll(commandBuffers);
@@ -529,12 +536,18 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 	KRenderStageStatistics debugStatistics;
 	KRenderStageStatistics shadowStatistics;
 
+	std::vector<KRenderComponent*> cullRes;
+	scene->GetRenderComponent(*camera, cullRes);
+
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
 	{
 		// 阴影绘制RenderPass
 		{
 			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer, shadowStatistics);
+		}
+		{
+			KRenderGlobal::OcclusionBox.Reset(frameIndex, cullRes, primaryCommandBuffer);
 		}
 		// 物件绘制RenderPass
 		{
@@ -548,9 +561,6 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 			KRenderGlobal::SkyBox.Render(frameIndex, offscreenTarget, commandBuffers);
 
 			size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
-
-			std::vector<KRenderComponent*> cullRes;
-			scene->GetRenderComponent(*camera, cullRes);
 
 			KRenderCommandList preZcommands;
 			KRenderCommandList defaultCommands;
@@ -615,8 +625,13 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 				}
 			}
 
-			KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, cullRes, commandBuffers);
+			if (!commandBuffers.empty())
+			{
+				primaryCommandBuffer->ExecuteAll(commandBuffers);
+				commandBuffers.clear();
+			}
 
+			KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, cullRes, commandBuffers);
 			if (!commandBuffers.empty())
 			{
 				primaryCommandBuffer->ExecuteAll(commandBuffers);

@@ -232,8 +232,9 @@ enum QueryType
 enum QueryStatus
 {
 	QS_IDEL,
+	QS_QUERY_START,
 	QS_QUERYING,
-	QS_FINISH
+	QS_QUERY_END
 };
 
 enum RenderTargetComponent

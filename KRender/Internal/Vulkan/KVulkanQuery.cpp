@@ -66,7 +66,7 @@ bool KVulkanQuery::GetResultSync(uint32_t& result)
 		// VK_QUERY_RESULT_WAIT_BIT 返回值必须是 VK_SUCCESS
 		VK_ASSERT_RESULT(vkResult);
 		result = samples;
-		m_Status = QS_FINISH;
+		m_Status = QS_QUERY_END;
 		return true;
 	}
 	return false;
@@ -89,7 +89,7 @@ bool KVulkanQuery::GetResultAsync(uint32_t& result)
 
 		if (vkResult == VK_SUCCESS)
 		{
-			m_Status = QS_FINISH;
+			m_Status = QS_QUERY_END;
 			return true;
 		}
 		else
@@ -109,7 +109,7 @@ void KVulkanQuery::Begin(VkCommandBuffer commandBuffer)
 	if (commandBuffer != VK_NULL_HANDLE && m_QueryPool != VK_NULL_HANDLE)
 	{
 		vkCmdBeginQuery(commandBuffer, m_QueryPool, 0, VK_FLAGS_NONE);
-		m_Status = QS_QUERYING;
+		m_Status = QS_QUERY_START;
 	}
 }
 
@@ -118,7 +118,6 @@ void KVulkanQuery::End(VkCommandBuffer commandBuffer)
 	if (commandBuffer != VK_NULL_HANDLE && m_QueryPool != VK_NULL_HANDLE)
 	{
 		vkCmdEndQuery(commandBuffer, m_QueryPool, 0);
-		m_Status = QS_QUERYING;
 	}
 }
 

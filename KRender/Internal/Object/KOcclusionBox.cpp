@@ -204,9 +204,23 @@ bool KOcclusionBox::UnInit()
 	return true;
 }
 
+bool KOcclusionBox::Reset(size_t frameIndex, std::vector<KRenderComponent*>& cullRes, IKCommandBufferPtr primaryCommandBuffer)
+{
+	for (KRenderComponent* render : cullRes)
+	{
+		IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
+		QueryStatus status = ocQuery->GetStatus();
+		if (status == QS_IDEL || status == QS_QUERY_END)
+		{
+			primaryCommandBuffer->ResetQuery(ocQuery);
+		}
+	}
+	return true;
+}
+
 bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers)
 {
-	if (frameIndex < m_PipelinesFrontFace.size() && frameIndex < m_PipelinesBackFace.size())
+	if (frameIndex < m_CommandBuffers.size())
 	{
 		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
@@ -220,12 +234,8 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vec
 			IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
 			QueryStatus status = ocQuery->GetStatus();
 
-			if (status != QS_QUERYING)
+			if (status == QS_IDEL)
 			{
-				if (status == QS_FINISH)
-				{
-					commandBuffer->ResetQuery(ocQuery);
-				}
 				commandBuffer->BeginQuery(ocQuery);
 				{
 					KRenderCommand command;
@@ -278,20 +288,23 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vec
 					}
 				}
 				commandBuffer->EndQuery(ocQuery);
-				render->SetOcclusionVisible(true);
 			}
-			else
+			else if (status == QS_QUERY_START || status == QS_QUERYING)
 			{
-				uint32_t samples = 0;
-				ocQuery->GetResultSync(samples);
-				if(samples == 0)
+				if (status == QS_QUERY_START)
 				{
 					render->SetOcclusionVisible(false);
 				}
-				else
+				uint32_t samples = 0;
+				ocQuery->GetResultAsync(samples);
+				if (samples)
 				{
 					render->SetOcclusionVisible(true);
 				}
+			}
+			else if(status == QS_QUERY_END)
+			{
+				// Should be reset outside the renderpass
 			}
 		}
 
