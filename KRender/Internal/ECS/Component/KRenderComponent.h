@@ -1,4 +1,5 @@
 #pragma once
+#include "Interface/IKQuery.h"
 #include "KBase/Interface/Component/IKRenderComponent.h"
 #include "Internal/Asset/KMesh.h"
 #include "Internal/Asset/Utility/KMeshUtilityInfo.h"
@@ -8,17 +9,22 @@ class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 	RTTR_ENABLE(IKRenderComponent, KReflectionObjectBase)
 	RTTR_REGISTRATION_FRIEND
 protected:
-	KMeshPtr m_Mesh;
 	enum ResourceType
 	{
 		MESH,
 		ASSET,
 		UTILITY,
 		NONE
-	}m_Type;
+	};
+
+	KMeshPtr m_Mesh;
+	ResourceType m_Type;
 	std::string m_Path;
 	KMeshUtilityInfoPtr m_UtilityInfo;
 	bool m_HostVisible;
+	bool m_OcclusionVisible;
+
+	std::vector<IKQueryPtr> m_OCQueries;
 
 	static constexpr const char* msType = "type";
 	static constexpr const char* msPath = "path";
@@ -54,4 +60,8 @@ public:
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
 
 	inline KMeshPtr GetMesh() { return m_Mesh; }
+	inline IKQueryPtr GetOCQuery(size_t frameIndex) { return frameIndex < m_OCQueries.size() ? m_OCQueries[frameIndex] : nullptr; }
+	
+	inline void SetOcclusionVisible(bool visible) { m_OcclusionVisible = visible; }
+	inline bool IsOcclusionVisible() const { return m_OcclusionVisible; }
 };

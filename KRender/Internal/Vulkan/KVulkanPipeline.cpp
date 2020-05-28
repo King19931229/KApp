@@ -19,7 +19,7 @@ KVulkanPipeline::KVulkanPipeline() :
 	m_FrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE),
 	m_DepthWrite(VK_TRUE),
 	m_DepthTest(VK_TRUE),
-	m_DepthOp(VK_COMPARE_OP_LESS_OR_EQUAL),
+	m_DepthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL),
 	m_DescriptorSetLayout(VK_NULL_HANDLE),
 	m_DescriptorPool(VK_NULL_HANDLE),
 	m_DescriptorSet(VK_NULL_HANDLE),
@@ -29,7 +29,13 @@ KVulkanPipeline::KVulkanPipeline() :
 	m_DepthBiasClamp(0),
 	m_DepthBiasSlopeFactor(0),
 	*/
-	m_DepthBiasEnable(VK_FALSE)
+	m_DepthBiasEnable(VK_FALSE),
+	m_StencilFailOp(VK_STENCIL_OP_KEEP),
+	m_StencilDepthFailOp(VK_STENCIL_OP_KEEP),
+	m_StencilPassOp(VK_STENCIL_OP_KEEP),
+	m_StencilCompareOp(VK_COMPARE_OP_ALWAYS),
+	m_StencilRef(0),
+	m_StencilEnable(VK_FALSE)
 {
 	m_PushContant = { 0, 0 };
 }
@@ -149,7 +155,7 @@ bool KVulkanPipeline::SetPolygonMode(PolygonMode polygonMode)
 
 bool KVulkanPipeline::SetDepthFunc(CompareFunc func, bool depthWrtie, bool depthTest)
 {
-	ASSERT_RESULT(KVulkanHelper::CompareFuncToVkCompareOp(func, m_DepthOp));
+	ASSERT_RESULT(KVulkanHelper::CompareFuncToVkCompareOp(func, m_DepthCompareOp));
 	m_DepthWrite = (VkBool32)depthWrtie;
 	m_DepthTest = (VkBool32)depthTest;
 	return true;
@@ -168,6 +174,27 @@ bool KVulkanPipeline::SetDepthBias(float depthBiasConstantFactor, float depthBia
 bool KVulkanPipeline::SetDepthBiasEnable(bool enable)
 {
 	m_DepthBiasEnable = (VkBool32)enable;
+	return true;
+}
+
+bool KVulkanPipeline::SetStencilFunc(CompareFunc func, StencilOperator failOp, StencilOperator depthFailOp, StencilOperator passOp)
+{
+	ASSERT_RESULT(KVulkanHelper::CompareFuncToVkCompareOp(func, m_StencilCompareOp));	
+	ASSERT_RESULT(KVulkanHelper::StencilOperatorToVkStencilOp(failOp, m_StencilFailOp));
+	ASSERT_RESULT(KVulkanHelper::StencilOperatorToVkStencilOp(depthFailOp, m_StencilDepthFailOp));
+	ASSERT_RESULT(KVulkanHelper::StencilOperatorToVkStencilOp(passOp, m_StencilPassOp));
+	return true;
+}
+
+bool KVulkanPipeline::SetStencilRef(uint32_t ref)
+{
+	m_StencilRef = ref;
+	return true;
+}
+
+bool KVulkanPipeline::SetStencilEnable(bool enable)
+{
+	m_StencilEnable = (VkBool32)enable;
 	return true;
 }
 
@@ -700,17 +727,28 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	depthStencil.depthTestEnable = vulkanPipeline->m_DepthTest;
 	depthStencil.depthWriteEnable = vulkanPipeline->m_DepthWrite;
-	depthStencil.depthCompareOp = vulkanPipeline->m_DepthOp;
+	depthStencil.depthCompareOp = vulkanPipeline->m_DepthCompareOp;
 
 	depthStencil.depthBoundsTestEnable = VK_FALSE; // Optional
 	depthStencil.minDepthBounds = 0.0f; // Optional
 	depthStencil.maxDepthBounds = 1.0f; // Optional
-	// TODO
-	depthStencil.stencilTestEnable = VK_FALSE;
 
-	VkStencilOpState empty = {};
-	depthStencil.front = empty; // Optional
-	depthStencil.back = empty; // Optional
+	depthStencil.stencilTestEnable = vulkanPipeline->m_StencilEnable;
+
+	VkStencilOpState stencilState = {};
+	if (vulkanPipeline->m_StencilEnable)
+	{
+		stencilState.compareMask = 0xFF;
+		stencilState.writeMask = 0xFF;
+
+		stencilState.compareOp = vulkanPipeline->m_StencilCompareOp;
+		stencilState.failOp = vulkanPipeline->m_StencilFailOp;
+		stencilState.depthFailOp = vulkanPipeline->m_StencilDepthFailOp;
+		stencilState.passOp = vulkanPipeline->m_StencilPassOp;
+		stencilState.reference = vulkanPipeline->m_StencilRef;
+	}
+	depthStencil.front = stencilState;
+	depthStencil.back = stencilState;
 
 	// 配置多重采样信息
 	VkPipelineMultisampleStateCreateInfo multisampling = {};

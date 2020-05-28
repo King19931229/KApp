@@ -238,6 +238,11 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 
 	for (KRenderComponent* component : cullRes)
 	{
+		if (!component->IsOcclusionVisible())
+		{
+			continue;
+		}
+
 		IKEntity* entity = component->GetEntityHandle();
 
 		KTransformComponent* transform = nullptr;
@@ -448,6 +453,8 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 					commandBuffers.push_back(defaultCommandBuffer);
 				}
 
+				KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, cullRes, commandBuffers);
+
 				if (!commandBuffers.empty())
 				{
 					primaryCommandBuffer->ExecuteAll(commandBuffers);
@@ -607,6 +614,8 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 					threadData.defaultCommands.clear();
 				}
 			}
+
+			KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, cullRes, commandBuffers);
 
 			if (!commandBuffers.empty())
 			{

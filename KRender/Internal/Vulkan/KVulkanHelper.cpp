@@ -193,6 +193,31 @@ namespace KVulkanHelper
 		}
 	}
 
+	bool StencilOperatorToVkStencilOp(StencilOperator stencilOperator, VkStencilOp& vkStencilOp)
+	{
+		switch (stencilOperator)
+		{
+		case SO_KEEP:
+			vkStencilOp = VK_STENCIL_OP_KEEP;
+			return true;
+		case SO_ZERO:
+			vkStencilOp = VK_STENCIL_OP_ZERO;
+			return true;
+		case SO_REPLACE:
+			vkStencilOp = VK_STENCIL_OP_REPLACE;
+			return true;
+		case SO_INC:
+			vkStencilOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+			return true;
+		case SO_DEC:
+			vkStencilOp = VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+			return true;
+		default:
+			assert(false && "stencil operator not supported");
+			return false;
+		}
+	}
+
 	bool FilterModeToVkFilter(FilterMode filterMode, VkFilter& vkFilterkMode)
 	{
 		switch (filterMode)
@@ -285,6 +310,19 @@ namespace KVulkanHelper
 			return true;
 		default:
 			assert(false && "blend operator not supported");
+			return false;
+		}
+	}
+
+	bool QueryTypeToVkQueryType(QueryType queryType, VkQueryType& vkQueryType)
+	{
+		switch (queryType)
+		{
+		case QT_OCCLUSION:
+			vkQueryType = VK_QUERY_TYPE_OCCLUSION;
+			return true;
+		default:
+			assert(false && "queryType not supported");
 			return false;
 		}
 	}

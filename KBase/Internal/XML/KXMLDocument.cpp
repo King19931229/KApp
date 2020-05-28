@@ -35,7 +35,7 @@ bool KXMLDocument::ParseFromFile(const char* fileName)
 	if (infile.is_open())
 	{
 		infile.seekg(0, std::ios::end);
-		str.reserve(infile.tellg());
+		str.reserve((size_t)infile.tellg());
 		infile.seekg(0, std::ios::beg);
 
 		str.assign((std::istreambuf_iterator<char>(infile)), std::istreambuf_iterator<char>());

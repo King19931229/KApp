@@ -155,6 +155,8 @@ public:
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool);
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer);
 
+	virtual bool CreateQuery(IKQueryPtr& query);
+
 	virtual bool Present();
 	virtual bool Wait();
 

@@ -1,5 +1,6 @@
 #include "KMeshManager.h"
 #include "Internal/Asset/Utility/KMeshUtilityImpl.h"
+#include "Interface/IKQuery.h"
 
 KMeshManager::KMeshManager()
 	: m_Device(nullptr),
@@ -25,8 +26,6 @@ bool KMeshManager::Init(IKRenderDevice* device, size_t frameInFlight)
 
 bool KMeshManager::UnInit()
 {
-	// ASSERT_RESULT(m_Meshes.empty());
-
 	for(auto it = m_Meshes.begin(), itEnd = m_Meshes.end(); it != itEnd; ++it)
 	{
 		MeshUsingInfo& info = it->second;
@@ -108,6 +107,9 @@ bool KMeshManager::Release(KMeshPtr& ptr)
 
 				if (info.useCount == 0)
 				{
+					// 等待设备空闲
+					m_Device->Wait();
+
 					ptr->UnInit();
 					m_Meshes.erase(it);
 				}
@@ -155,4 +157,27 @@ bool KMeshManager::UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr)
 		return ptr->UpdateUnility(info, m_Device, m_FrameInFlight);
 	}
 	return false;
+}
+
+bool KMeshManager::AcquireOCQuery(std::vector<IKQueryPtr>& queries)
+{
+	ReleaseOCQuery(queries);
+	queries.resize(m_FrameInFlight);
+	for (IKQueryPtr& query : queries)
+	{
+		m_Device->CreateQuery(query);
+		query->Init(QT_OCCLUSION);
+	}
+	return true;
+}
+
+bool KMeshManager::ReleaseOCQuery(std::vector<IKQueryPtr>& queries)
+{
+	for (IKQueryPtr& query : queries)
+	{
+		query->UnInit();
+		query = nullptr;
+	}
+	queries.clear();
+	return true;
 }

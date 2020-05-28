@@ -11,6 +11,7 @@ namespace KRenderGlobal
 	KPostProcessManager PostProcessManager;
 
 	KSkyBox SkyBox;
+	KOcclusionBox OcclusionBox;
 	KShadowMap ShadowMap;
 	KCascadedShadowMap CascadedShadowMap;
 

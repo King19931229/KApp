@@ -336,6 +336,15 @@
     <ClInclude Include="Interface\IKCameraController.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKQuery.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanQuery.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Object\KOcclusionBox.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -541,6 +550,12 @@
     </ClCompile>
     <ClCompile Include="Internal\ECS\Component\KTransformComponent.cpp">
       <Filter>Internal\ECS\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanQuery.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Object\KOcclusionBox.cpp">
+      <Filter>Internal\Object</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

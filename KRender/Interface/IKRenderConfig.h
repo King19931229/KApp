@@ -215,6 +215,27 @@ enum BlendOperator
 	BO_SUBTRACT
 };
 
+enum StencilOperator
+{
+	SO_KEEP,
+	SO_ZERO,
+	SO_REPLACE,
+	SO_INC,
+	SO_DEC
+};
+
+enum QueryType
+{
+	QT_OCCLUSION
+};
+
+enum QueryStatus
+{
+	QS_IDEL,
+	QS_QUERYING,
+	QS_FINISH
+};
+
 enum RenderTargetComponent
 {
 	RTC_COLOR,
@@ -286,6 +307,9 @@ typedef std::shared_ptr<IKIndexBuffer> IKIndexBufferPtr;
 
 struct IKUniformBuffer;
 typedef std::shared_ptr<IKUniformBuffer> IKUniformBufferPtr;
+
+struct IKQuery;
+typedef std::shared_ptr<IKQuery> IKQueryPtr;
 
 struct IKTexture;
 typedef std::shared_ptr<IKTexture> IKTexturePtr;

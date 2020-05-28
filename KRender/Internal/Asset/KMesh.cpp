@@ -3,6 +3,7 @@
 #include "Utility/KMeshUtilityImpl.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKBuffer.h"
+#include "Interface/IKQuery.h"
 #include "Internal/KVertexDefinition.h"
 
 KMesh::KMesh()

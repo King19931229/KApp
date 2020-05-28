@@ -1,5 +1,5 @@
-#ifndef __PUBLIC__
-#define __PUBLIC__
+#ifndef __PUBLIC_HEADER__
+#define __PUBLIC_HEADER__
 
 #define POSITION 0
 #define NORMAL 1

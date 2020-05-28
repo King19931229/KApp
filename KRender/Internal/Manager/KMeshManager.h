@@ -36,4 +36,7 @@ public:
 	bool Release(KMeshPtr& ptr);
 
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr);
+
+	bool AcquireOCQuery(std::vector<IKQueryPtr>& queries);
+	bool ReleaseOCQuery(std::vector<IKQueryPtr>& queries);
 };

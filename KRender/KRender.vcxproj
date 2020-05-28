@@ -24,6 +24,7 @@
     <ClInclude Include="Interface\IKGizmo.h" />
     <ClInclude Include="Interface\IKPipeline.h" />
     <ClInclude Include="Interface\IKPostProcess.h" />
+    <ClInclude Include="Interface\IKQuery.h" />
     <ClInclude Include="Interface\IKRenderCommand.h" />
     <ClInclude Include="Interface\IKRenderCore.h" />
     <ClInclude Include="Interface\IKRenderDevice.h" />
@@ -79,6 +80,7 @@
     <ClInclude Include="Internal\Manager\KPipelineManager.h" />
     <ClInclude Include="Internal\Manager\KShaderManager.h" />
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
+    <ClInclude Include="Internal\Object\KOcclusionBox.h" />
     <ClInclude Include="Internal\Object\KSkyBox.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessConnection.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessData.h" />
@@ -98,6 +100,7 @@
     <ClInclude Include="Internal\Vulkan\KVulkanGlobal.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanHelper.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanPipeline.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanQuery.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderTarget.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanSampler.h" />
@@ -154,6 +157,7 @@
     <ClCompile Include="Internal\Manager\KPipelineManager.cpp" />
     <ClCompile Include="Internal\Manager\KShaderManager.cpp" />
     <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
+    <ClCompile Include="Internal\Object\KOcclusionBox.cpp" />
     <ClCompile Include="Internal\Object\KSkyBox.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessConnection.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessData.cpp" />
@@ -171,6 +175,7 @@
     <ClCompile Include="Internal\Vulkan\KVulkanHeapAllocator.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanHelper.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanPipeline.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanQuery.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderTarget.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanSampler.cpp" />

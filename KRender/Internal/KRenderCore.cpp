@@ -100,6 +100,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::TextrueManager.Init(m_Device);
 
 	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
+	KRenderGlobal::OcclusionBox.Init(m_Device, frameInFlight);
 	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
 	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 3, 2048, 0.85f);
 
@@ -109,6 +110,7 @@ bool KRenderCore::InitGlobalManager()
 bool KRenderCore::UnInitGlobalManager()
 {
 	KRenderGlobal::SkyBox.UnInit();
+	KRenderGlobal::OcclusionBox.UnInit();
 	KRenderGlobal::ShadowMap.UnInit();
 	KRenderGlobal::CascadedShadowMap.UnInit();
 

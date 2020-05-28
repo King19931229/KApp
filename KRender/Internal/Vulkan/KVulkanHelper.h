@@ -40,12 +40,15 @@ namespace KVulkanHelper
 	bool PolygonModeToVkPolygonMode(PolygonMode polygonMode, VkPolygonMode& vkPolygonMode);
 
 	bool CompareFuncToVkCompareOp(CompareFunc func, VkCompareOp& op);
+	bool StencilOperatorToVkStencilOp(StencilOperator stencilOperator, VkStencilOp& vkStencilOp);
 
 	bool CullModeToVkCullMode(CullMode cullMode, VkCullModeFlagBits& vkCullMode);
 	bool FrontFaceToVkFrontFace(FrontFace frontFace, VkFrontFace& vkFrontFace);
 
 	bool BlendFactorToVkBlendFactor(BlendFactor blendFactor, VkBlendFactor& vkBlendFactor);
 	bool BlendOperatorToVkBlendOp(BlendOperator blendOperator, VkBlendOp& vkBlendOp);
+
+	bool QueryTypeToVkQueryType(QueryType queryType, VkQueryType& vkQueryType);
 
 	bool ShaderTypeFlagToVkShaderStageFlagBits(ShaderTypeFlag shaderTypeFlag, VkShaderStageFlagBits& bit);
 	bool ShaderTypesToVkShaderStageFlag(ShaderTypes shaderTypes, VkFlags& flags);

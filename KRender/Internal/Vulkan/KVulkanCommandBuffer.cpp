@@ -2,8 +2,8 @@
 #include "KVulkanRenderTarget.h"
 #include "KVulkanPipeline.h"
 #include "KVulkanBuffer.h"
+#include "KVulkanQuery.h"
 #include "KVulkanGlobal.h"
-
 #include "Internal/KConstantDefinition.h"
 
 KVulkanCommandPool::KVulkanCommandPool()
@@ -479,6 +479,39 @@ bool KVulkanCommandBuffer::End()
 	if(m_CommandBuffer != VK_NULL_HANDLE)
 	{
 		VK_ASSERT_RESULT(vkEndCommandBuffer(m_CommandBuffer));
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanCommandBuffer::BeginQuery(IKQueryPtr query)
+{
+	if (query)
+	{
+		KVulkanQuery* vulkanQuery = (KVulkanQuery*)query.get();
+		vulkanQuery->Begin(m_CommandBuffer);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanCommandBuffer::EndQuery(IKQueryPtr query)
+{
+	if (query)
+	{
+		KVulkanQuery* vulkanQuery = (KVulkanQuery*)query.get();
+		vulkanQuery->End(m_CommandBuffer);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanCommandBuffer::ResetQuery(IKQueryPtr query)
+{
+	if (query)
+	{
+		KVulkanQuery* vulkanQuery = (KVulkanQuery*)query.get();
+		vulkanQuery->Reset(m_CommandBuffer);
 		return true;
 	}
 	return false;

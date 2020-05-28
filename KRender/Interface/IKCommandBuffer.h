@@ -63,4 +63,8 @@ struct IKCommandBuffer
 	virtual bool ClearDepthStencil(const KClearRect& rect, const KClearDepthStencil& depthStencil) = 0;
 
 	virtual bool EndRenderPass() = 0;
+
+	virtual bool BeginQuery(IKQueryPtr query) = 0;
+	virtual bool EndQuery(IKQueryPtr query) = 0;
+	virtual bool ResetQuery(IKQueryPtr query) = 0;
 };

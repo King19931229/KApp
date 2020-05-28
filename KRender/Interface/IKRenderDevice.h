@@ -31,6 +31,8 @@ struct IKRenderDevice
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool) = 0;
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer) = 0;
 
+	virtual bool CreateQuery(IKQueryPtr& query) = 0;
+
 	virtual bool Present() = 0;
 	virtual bool Wait() = 0;
 

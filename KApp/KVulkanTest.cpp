@@ -34,9 +34,9 @@ int main()
 
 #ifdef DRAW_SPIDER
 #ifdef _DEBUG
-		int width = 100, height = 100;
+		int width = 10, height = 10;
 #else
-		int width = 100, height = 100;
+		int width = 10, height = 10;
 #endif
 		int widthExtend = width * 8, heightExtend = height * 8;
 		for (int i = 0; i < width; ++i)
@@ -76,7 +76,7 @@ int main()
 		IKComponentBase* component = nullptr;
 		if (entity->RegisterComponent(CT_RENDER, &component))
 		{
-			((IKRenderComponent*)component)->SetPathAsset("Sponza/sponza.mesh");
+			((IKRenderComponent*)component)->SetPathMesh("Model/Sponza/sponza.mesh");
 			((IKRenderComponent*)component)->Init();
 		}
 		entity->RegisterComponent(CT_TRANSFORM);

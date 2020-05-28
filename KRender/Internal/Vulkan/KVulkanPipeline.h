@@ -45,7 +45,7 @@ protected:
 	// 深度信息
 	VkBool32 m_DepthWrite;
 	VkBool32 m_DepthTest;
-	VkCompareOp m_DepthOp;
+	VkCompareOp m_DepthCompareOp;
 
 	// 深度偏移
 	/*
@@ -54,6 +54,14 @@ protected:
 	float m_DepthBiasSlopeFactor;
 	*/
 	VkBool32 m_DepthBiasEnable;
+
+	// 模板信息
+	VkStencilOp m_StencilFailOp;
+	VkStencilOp m_StencilDepthFailOp;
+	VkStencilOp m_StencilPassOp;
+	VkCompareOp m_StencilCompareOp;
+	uint32_t m_StencilRef;
+	VkBool32 m_StencilEnable;
 
 	// Constant Buffer信息
 	struct UniformBufferBindingInfo
@@ -131,6 +139,10 @@ public:
 	virtual bool SetDepthFunc(CompareFunc func, bool depthWrtie, bool depthTest);
 	//virtual bool SetDepthBias(float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor);
 	virtual bool SetDepthBiasEnable(bool enable);
+
+	virtual bool SetStencilFunc(CompareFunc func, StencilOperator failOp, StencilOperator depthFailOp, StencilOperator passOp);
+	virtual bool SetStencilRef(uint32_t ref);
+	virtual bool SetStencilEnable(bool enable);
 
 	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader);
 

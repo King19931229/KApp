@@ -49,6 +49,10 @@ public:
 
 	virtual bool EndRenderPass();
 
+	virtual bool BeginQuery(IKQueryPtr query);
+	virtual bool EndQuery(IKQueryPtr query);
+	virtual bool ResetQuery(IKQueryPtr query);
+
 	inline VkCommandBuffer GetVkHandle() { return m_CommandBuffer; }
 	inline VkCommandBufferLevel GetVkBufferLevel() { return m_CommandLevel; }
 };

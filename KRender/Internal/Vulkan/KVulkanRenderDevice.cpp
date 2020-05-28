@@ -7,6 +7,7 @@
 #include "KVulkanRenderTarget.h"
 #include "KVulkanPipeline.h"
 #include "KVulkanCommandBuffer.h"
+#include "KVulkanQuery.h"
 
 #include "KVulkanUIOverlay.h"
 #include "KVulkanGlobal.h"
@@ -129,18 +130,6 @@ static void DestroyDebugReportCallbackEXT(
 		func(instance, debugReport, pAllocator);
 	}
 }
-
-/* TODO LIST
-材质文件
-场景文件
-深度排序
-场景渲染框架
-*/
-
-/* BUG LIST
-PC 阴影闪烁
-Android 镜头翻转
-*/
 
 //-------------------- KVulkanRenderDevice --------------------//
 KVulkanRenderDevice::KVulkanRenderDevice()
@@ -910,6 +899,12 @@ bool KVulkanRenderDevice::CreateCommandPool(IKCommandPoolPtr& pool)
 bool KVulkanRenderDevice::CreateCommandBuffer(IKCommandBufferPtr& buffer)
 {
 	buffer = IKCommandBufferPtr(KNEW KVulkanCommandBuffer());
+	return true;
+}
+
+bool KVulkanRenderDevice::CreateQuery(IKQueryPtr& query)
+{
+	query = IKQueryPtr(KNEW KVulkanQuery());
 	return true;
 }
 

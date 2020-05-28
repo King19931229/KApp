@@ -18,7 +18,9 @@ RTTR_REGISTRATION
 KRenderComponent::KRenderComponent()
 	: m_Mesh(nullptr),
 	m_Type(NONE),
-	m_HostVisible(false)
+	m_UtilityInfo(nullptr),
+	m_HostVisible(false),
+	m_OcclusionVisible(true)
 {}
 
 KRenderComponent::~KRenderComponent()
@@ -178,11 +180,13 @@ bool KRenderComponent::Init()
 	UnInit();
 	if (m_Type == MESH)
 	{
-		return KRenderGlobal::MeshManager.Acquire(m_Path.c_str(), m_Mesh, m_HostVisible);
+		return KRenderGlobal::MeshManager.Acquire(m_Path.c_str(), m_Mesh, m_HostVisible) &&
+			KRenderGlobal::MeshManager.AcquireOCQuery(m_OCQueries);
 	}
 	else if (m_Type == ASSET)
 	{
-		return KRenderGlobal::MeshManager.AcquireFromAsset(m_Path.c_str(), m_Mesh, m_HostVisible);
+		return KRenderGlobal::MeshManager.AcquireFromAsset(m_Path.c_str(), m_Mesh, m_HostVisible) &&
+			KRenderGlobal::MeshManager.AcquireOCQuery(m_OCQueries);
 	}
 	else if (m_Type == UTILITY)
 	{
@@ -200,7 +204,11 @@ bool KRenderComponent::UnInit()
 	{
 		KRenderGlobal::MeshManager.Release(m_Mesh);
 		m_Mesh = nullptr;
-		return true;
+	}
+	if (!m_OCQueries.empty())
+	{
+		KRenderGlobal::MeshManager.ReleaseOCQuery(m_OCQueries);
+		m_OCQueries.clear();
 	}
 	return true;
 }
