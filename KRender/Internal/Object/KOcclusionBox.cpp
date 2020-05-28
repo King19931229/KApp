@@ -42,6 +42,7 @@ const uint16_t KOcclusionBox::ms_Indices[] =
 const VertexFormat KOcclusionBox::ms_VertexFormats[] = { VF_POINT_NORMAL_UV };
 
 KOcclusionBox::KOcclusionBox()
+	: m_Enable(true)
 {
 }
 
@@ -206,13 +207,19 @@ bool KOcclusionBox::UnInit()
 
 bool KOcclusionBox::Reset(size_t frameIndex, std::vector<KRenderComponent*>& cullRes, IKCommandBufferPtr primaryCommandBuffer)
 {
-	for (KRenderComponent* render : cullRes)
+	if (m_Enable)
 	{
-		IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
-		QueryStatus status = ocQuery->GetStatus();
-		if (status == QS_IDEL || status == QS_QUERY_END)
+		for (KRenderComponent* render : cullRes)
 		{
-			primaryCommandBuffer->ResetQuery(ocQuery);
+			IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
+			if (ocQuery)
+			{
+				QueryStatus status = ocQuery->GetStatus();
+				if (status == QS_IDEL || status == QS_QUERY_END)
+				{
+					primaryCommandBuffer->ResetQuery(ocQuery);
+				}
+			}
 		}
 	}
 	return true;
@@ -222,95 +229,110 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vec
 {
 	if (frameIndex < m_CommandBuffers.size())
 	{
-		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
-
-		commandBuffer->BeginSecondary(target);
-		commandBuffer->SetViewport(target);
-		
-		for (KRenderComponent* render : cullRes)
+		if (m_Enable)
 		{
-			IKEntity* entity = render->GetEntityHandle();
+			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
-			IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
-			QueryStatus status = ocQuery->GetStatus();
+			commandBuffer->BeginSecondary(target);
+			commandBuffer->SetViewport(target);
 
-			if (status == QS_IDEL)
+			for (KRenderComponent* render : cullRes)
 			{
-				commandBuffer->BeginQuery(ocQuery);
+				IKEntity* entity = render->GetEntityHandle();
+				IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
+				if (ocQuery)
 				{
-					KRenderCommand command;
-					command.vertexData = &m_VertexData;
-					command.indexData = &m_IndexData;
-					command.indexDraw = true;
-
-					KAABBBox box;
-					ASSERT_RESULT(entity->GetBound(box));
-					KConstantDefinition::OBJECT transform;
-					transform.MODEL = glm::translate(glm::mat4(1.0f), box.GetCenter()) * glm::scale(glm::mat4(1.0f), box.GetExtend());
-					command.SetObjectData(transform);
-
-					// https://kayru.org/articles/deferred-stencil/
-					/*
-					Each light volume (low poly sphere) is rendered it two passes.
-
-					Pass 1:
-					•Front (near) faces only
-					•Colour write is disabled
-					•Z-write is disabled
-					•Z function is 'Less/Equal'
-					•Z-Fail writes non-zero value to Stencil buffer (for example, 'Increment-Saturate')
-					•Stencil test result does not modify Stencil buffer
-
-					This pass creates a Stencil mask for the areas of the light volume that are not occluded by scene geometry.
-
-					Pass 2:
-					•Back (far) faces only
-					•Colour write enabled
-					•Z-write is disabled
-					•Z function is 'Greater/Equal'
-					•Stencil function is 'Equal' (Stencil ref = zero)
-					•Always clears Stencil to zero
-
-					This pass is where lighting actually happens. Every pixel that passes Z and Stencil tests is then added to light accumulation buffer.
-
-					*/
-					// Front Face Pass
+					QueryStatus status = ocQuery->GetStatus();
+					if (status == QS_IDEL)
 					{
-						command.pipeline = m_PipelinesFrontFace[frameIndex];
-						command.pipeline->GetHandle(target, command.pipelineHandle);
-						commandBuffer->Render(command);
+						commandBuffer->BeginQuery(ocQuery);
+						{
+							KRenderCommand command;
+							command.vertexData = &m_VertexData;
+							command.indexData = &m_IndexData;
+							command.indexDraw = true;
+
+							KAABBBox box;
+							ASSERT_RESULT(entity->GetBound(box));
+							KConstantDefinition::OBJECT transform;
+							transform.MODEL = glm::translate(glm::mat4(1.0f), box.GetCenter()) * glm::scale(glm::mat4(1.0f), box.GetExtend());
+							command.SetObjectData(transform);
+
+							// https://kayru.org/articles/deferred-stencil/
+							/*
+							Each light volume (low poly sphere) is rendered it two passes.
+
+							Pass 1:
+							•Front (near) faces only
+							•Colour write is disabled
+							•Z-write is disabled
+							•Z function is 'Less/Equal'
+							•Z-Fail writes non-zero value to Stencil buffer (for example, 'Increment-Saturate')
+							•Stencil test result does not modify Stencil buffer
+
+							This pass creates a Stencil mask for the areas of the light volume that are not occluded by scene geometry.
+
+							Pass 2:
+							•Back (far) faces only
+							•Colour write enabled
+							•Z-write is disabled
+							•Z function is 'Greater/Equal'
+							•Stencil function is 'Equal' (Stencil ref = zero)
+							•Always clears Stencil to zero
+
+							This pass is where lighting actually happens. Every pixel that passes Z and Stencil tests is then added to light accumulation buffer.
+
+							*/
+							// Front Face Pass
+							{
+								command.pipeline = m_PipelinesFrontFace[frameIndex];
+								command.pipeline->GetHandle(target, command.pipelineHandle);
+								commandBuffer->Render(command);
+							}
+							// Back Face Pass
+							{
+								command.pipeline = m_PipelinesBackFace[frameIndex];
+								command.pipeline->GetHandle(target, command.pipelineHandle);
+								commandBuffer->Render(command);
+							}
+						}
+						commandBuffer->EndQuery(ocQuery);
 					}
-					// Back Face Pass
+					else if (status == QS_QUERY_START || status == QS_QUERYING)
 					{
-						command.pipeline = m_PipelinesBackFace[frameIndex];
-						command.pipeline->GetHandle(target, command.pipelineHandle);
-						commandBuffer->Render(command);
+						if (status == QS_QUERY_START)
+						{
+							render->SetOcclusionVisible(false);
+						}
+						uint32_t samples = 0;
+						ocQuery->GetResultAsync(samples);
+						if (samples)
+						{
+							render->SetOcclusionVisible(true);
+						}
+					}
+					else if (status == QS_QUERY_END)
+					{
+						// Should be reset outside the renderpass
 					}
 				}
-				commandBuffer->EndQuery(ocQuery);
-			}
-			else if (status == QS_QUERY_START || status == QS_QUERYING)
-			{
-				if (status == QS_QUERY_START)
-				{
-					render->SetOcclusionVisible(false);
-				}
-				uint32_t samples = 0;
-				ocQuery->GetResultAsync(samples);
-				if (samples)
+				else
 				{
 					render->SetOcclusionVisible(true);
 				}
 			}
-			else if(status == QS_QUERY_END)
+
+			commandBuffer->End();
+
+			buffers.push_back(commandBuffer);
+		}
+		else
+		{
+			for (KRenderComponent* render : cullRes)
 			{
-				// Should be reset outside the renderpass
+				render->SetOcclusionVisible(true);
 			}
 		}
-
-		commandBuffer->End();
-
-		buffers.push_back(commandBuffer);
 		return true;
 	}
 	return false;

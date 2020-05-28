@@ -26,6 +26,7 @@ protected:
 
 	KVertexData m_VertexData;
 	KIndexData m_IndexData;
+	bool m_Enable;
 
 	void LoadResource();
 	void PreparePipeline();
@@ -39,4 +40,6 @@ public:
 
 	bool Reset(size_t frameIndex, std::vector<KRenderComponent*>& cullRes, IKCommandBufferPtr primaryCommandBuffer);
 	bool Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers);
+	
+	bool& GetEnable() { return m_Enable; }
 };

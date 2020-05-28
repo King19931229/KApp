@@ -577,6 +577,10 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 				KAABBBox receiverBox;
 				for (KRenderComponent* component : frustumCullRes)
 				{
+					if (!component->IsOcclusionVisible())
+					{
+						continue;
+					}
 					KAABBBox bound;
 					IKEntity* entity = component->GetEntityHandle();
 					if (entity && entity->GetBound(bound))

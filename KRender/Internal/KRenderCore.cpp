@@ -472,6 +472,7 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 				ui->CheckBox("Shadow FixToScene", &KRenderGlobal::CascadedShadowMap.GetFixToScene());
 				ui->CheckBox("Shadow FixTexel", &KRenderGlobal::CascadedShadowMap.GetFixTexel());
 				ui->CheckBox("Shadow MinimizeShadowDraw", &KRenderGlobal::CascadedShadowMap.GetMinimizeShadowDraw());
+				ui->CheckBox("Hardware Occlusion Enable", &KRenderGlobal::OcclusionBox.GetEnable());
 			}
 			ui->PopItemWidth();
 		}
