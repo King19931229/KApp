@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 class KRenderComponent;
+class KCamera;
 
 class KOcclusionBox
 {
@@ -66,7 +67,7 @@ public:
 	bool UnInit();
 
 	bool Reset(size_t frameIndex, std::vector<KRenderComponent*>& cullRes, IKCommandBufferPtr primaryCommandBuffer);
-	bool Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers);
+	bool Render(size_t frameIndex, IKRenderTargetPtr target, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers);
 	
 	bool& GetEnable() { return m_Enable; }
 	float& GetInstanceGroupSize() { return m_InstanceGroupSize; }

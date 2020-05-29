@@ -394,7 +394,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
 }
 
-bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
+bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	assert(frameIndex < m_CommandBuffers.size());
 
@@ -461,7 +461,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 					commandBuffers.clear();
 				}
 
-				KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, cullRes, commandBuffers);
+				KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, camera, cullRes, commandBuffers);
 				if (!commandBuffers.empty())
 				{
 					primaryCommandBuffer->ExecuteAll(commandBuffers);
@@ -517,7 +517,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 	return true;
 }
 
-bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCamera* camera,
+bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, const KCamera* camera,
 	uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	IKPipelineHandlePtr pipelineHandle;
@@ -631,7 +631,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 				commandBuffers.clear();
 			}
 
-			KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, cullRes, commandBuffers);
+			KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, camera, cullRes, commandBuffers);
 			if (!commandBuffers.empty())
 			{
 				primaryCommandBuffer->ExecuteAll(commandBuffers);

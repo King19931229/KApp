@@ -1,4 +1,4 @@
-﻿#include "KOcclusionBox.h"
+#include "KOcclusionBox.h"
 
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKRenderTarget.h"
@@ -96,6 +96,8 @@ void KOcclusionBox::PreparePipeline()
 	This pass is where lighting actually happens. Every pixel that passes Z and Stencil tests is then added to light accumulation buffer.
 	*/
 
+//#define DEBUG_OCCLUSION_BOX
+
 	for (size_t i = 0; i < m_PipelinesFrontFace.size(); ++i)
 	{
 		IKPipelinePtr pipeline = m_PipelinesFrontFace[i];
@@ -112,8 +114,11 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetStencilEnable(true);
 		pipeline->SetStencilRef(0);
 		pipeline->SetStencilFunc(CF_ALWAYS, SO_KEEP, SO_INC, SO_KEEP);
-
+#ifdef DEBUG_OCCLUSION_BOX
+		pipeline->SetColorWrite(true, false, false, false);
+#else
 		pipeline->SetColorWrite(false, false, false, false);
+#endif
 		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
@@ -139,7 +144,11 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetStencilRef(0);
 		pipeline->SetStencilFunc(CF_ALWAYS, SO_KEEP, SO_INC, SO_KEEP);
 
+#ifdef DEBUG_OCCLUSION_BOX
+		pipeline->SetColorWrite(true, false, false, false);
+#else
 		pipeline->SetColorWrite(false, false, false, false);
+#endif
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
@@ -164,7 +173,11 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetStencilRef(0);
 		pipeline->SetStencilFunc(CF_EQUAL, SO_DEC, SO_KEEP, SO_KEEP);
 
+#ifdef DEBUG_OCCLUSION_BOX
+		pipeline->SetColorWrite(true, false, false, false);
+#else
 		pipeline->SetColorWrite(false, false, false, false);
+#endif
 		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
@@ -190,7 +203,11 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetStencilRef(0);
 		pipeline->SetStencilFunc(CF_EQUAL, SO_DEC, SO_KEEP, SO_KEEP);
 
+#ifdef DEBUG_OCCLUSION_BOX
+		pipeline->SetColorWrite(true, false, false, false);
+#else
 		pipeline->SetColorWrite(false, false, false, false);
+#endif
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
@@ -455,13 +472,13 @@ bool KOcclusionBox::MergeInstanceMap(KRenderComponent* renderComponent, const KA
 	return false;
 }
 
-bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers)
+bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers)
 {
-	if (frameIndex < m_CommandBuffers.size())
+	if (frameIndex < m_CommandBuffers.size() && camera)
 	{
 		if (m_Enable)
 		{
-			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
+			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];			
 
 			commandBuffer->BeginSecondary(target);
 			commandBuffer->SetViewport(target);
@@ -485,6 +502,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vec
 				IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
 				IKQueryPtr ocInstanceQuery = render->GetOCInstacneQuery(frameIndex);
 
+				// 注意一定要检查ocInstanceQuery的生命周期
 				if (ocInstanceQuery && (ocInstanceQuery->GetStatus() == QS_QUERY_START || ocInstanceQuery->GetStatus() == QS_QUERYING))
 				{
 					AddIntoQueryComponents(ocInstanceQuery, render);
@@ -518,7 +536,23 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vec
 						IKEntity* entity = render->GetEntityHandle();
 						KAABBBox bound;
 						entity->GetBound(bound);
-						MergeInstanceMap(render, bound, instanceMap);
+
+#define DONT_CARE_INSIDE_CAMERA_OBJECT
+
+						// 这里只能把物件先绘制上去 否则如果深度不写入
+						// Occlusion背面Pass查询将会一直失败导致物件永远绘制不上去
+						if (bound.Intersect(camera->GetPosition()))
+						{
+							render->SetOcclusionVisible(true);
+						}
+						// 这里干脆只把相机不在物件范围内的物件做Occlusion查询
+						// 否则帧率会一直波动
+#ifdef DONT_CARE_INSIDE_CAMERA_OBJECT
+						else
+#endif
+						{
+							MergeInstanceMap(render, bound, instanceMap);
+						}
 					}
 				}
 				else if (status == QS_QUERY_START || status == QS_QUERYING)
@@ -532,28 +566,19 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vec
 					}
 
 					constexpr const float MAX_QUERY_TIME = 0.5f;
+					float timeElapse = query->GetElapseTime();
+					//KG_LOGD(LM_RENDER, "Query time elapse %.2fs", timeElapse);
 
 					uint32_t samples = 0;
 					query->GetResultAsync(samples);
-					if (samples)
+
+					if (samples || timeElapse > MAX_QUERY_TIME)
 					{
 						for (KRenderComponent* render : componentList)
 						{
 							render->SetOcclusionVisible(true);
 						}
-					}
-					else
-					{
-						float timeElapse = query->GetElapseTime();
-						//KG_LOGD(LM_RENDER, "Query time elapse %.2fs", timeElapse);
-						if (timeElapse > MAX_QUERY_TIME)
-						{
-							for (KRenderComponent* render : componentList)
-							{
-								render->SetOcclusionVisible(true);
-							}
-							query->Abort();
-						}
+						query->Abort();
 					}
 				}
 				else if (status == QS_QUERY_END)

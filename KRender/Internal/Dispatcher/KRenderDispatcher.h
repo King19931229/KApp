@@ -52,8 +52,8 @@ protected:
 
 	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
 
-	bool SubmitCommandBufferSingleThread(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
-	bool SubmitCommandBufferMuitiThread(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
+	bool SubmitCommandBufferSingleThread(KRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
+	bool SubmitCommandBufferMuitiThread(KRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
 
 	bool CreateCommandBuffers();
 	bool DestroyCommandBuffers();
