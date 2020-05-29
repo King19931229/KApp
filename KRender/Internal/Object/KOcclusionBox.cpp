@@ -96,7 +96,7 @@ void KOcclusionBox::PreparePipeline()
 	This pass is where lighting actually happens. Every pixel that passes Z and Stencil tests is then added to light accumulation buffer.
 	*/
 
-//#define DEBUG_OCCLUSION_BOX
+	//#define DEBUG_OCCLUSION_BOX
 
 	for (size_t i = 0; i < m_PipelinesFrontFace.size(); ++i)
 	{
@@ -478,7 +478,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 	{
 		if (m_Enable)
 		{
-			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];			
+			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
 			commandBuffer->BeginSecondary(target);
 			commandBuffer->SetViewport(target);
@@ -565,20 +565,30 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 						}
 					}
 
-					constexpr const float MAX_QUERY_TIME = 0.5f;
-					float timeElapse = query->GetElapseTime();
-					//KG_LOGD(LM_RENDER, "Query time elapse %.2fs", timeElapse);
-
 					uint32_t samples = 0;
 					query->GetResultAsync(samples);
-
-					if (samples || timeElapse > MAX_QUERY_TIME)
+					if (samples)
 					{
+						// 这里把可见性设置为true即可 不要终止查询
+						// 否则会导致DrawCall波动
 						for (KRenderComponent* render : componentList)
 						{
 							render->SetOcclusionVisible(true);
 						}
-						query->Abort();
+					}
+					else
+					{
+						constexpr const float MAX_QUERY_TIME = 0.5f;
+						float timeElapse = query->GetElapseTime();
+						//KG_LOGD(LM_RENDER, "Query time elapse %.2fs", timeElapse);
+						if (timeElapse > MAX_QUERY_TIME)
+						{
+							for (KRenderComponent* render : componentList)
+							{
+								render->SetOcclusionVisible(true);
+							}
+							query->Abort();
+						}
 					}
 				}
 				else if (status == QS_QUERY_END)
