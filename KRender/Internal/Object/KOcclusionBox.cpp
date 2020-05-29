@@ -499,7 +499,6 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 					it->second.push_back(component);
 				};
 
-				IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
 				IKQueryPtr ocInstanceQuery = render->GetOCInstacneQuery(frameIndex);
 
 				// 注意一定要检查ocInstanceQuery的生命周期
@@ -509,6 +508,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 				}
 				else
 				{
+					IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
 					render->SetOCInstanceQuery(frameIndex, nullptr);
 					if (ocQuery)
 					{

@@ -1,4 +1,4 @@
-﻿#include "KCascadedShadowMap.h"
+#include "KCascadedShadowMap.h"
 #include "Interface/IKCommandBuffer.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKTexture.h"
@@ -8,6 +8,8 @@
 
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "Internal/Dispatcher/KRenderDispatcher.h"
+
+#include "KBase/Interface/IKLog.h"
 
 const VertexFormat KCascadedShadowMap::ms_VertexFormats[] = { VF_SCREENQUAD_POS };
 
@@ -141,7 +143,7 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 			{
 				glm::vec4 invCorner = invCamView * glm::vec4(frustumCorners[i], 1.0f);
 				frustumCorners[i] = invCorner / invCorner.w;
-				frustumBox.Merge(invCorner, frustumBox);
+				frustumBox.Merge(frustumCorners[i], frustumBox);
 			}
 		}
 		m_Cascadeds[i].frustumBox = frustumBox;
@@ -589,8 +591,27 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 					}
 				}
 
-				receiverBox.Transform(cascaded.viewProjMatrix, receiverBox);
+				// 这里算出的receiverBox要与frustumBox结合算出最紧密的receiverBox
+				if (receiverBox.IsDefault())
+				{
+					receiverBox.Transform(cascaded.viewProjMatrix, receiverBox);
 
+					KAABBBox frustumBox = cascaded.frustumBox;
+					frustumBox.Transform(cascaded.viewProjMatrix, frustumBox);
+
+					const glm::vec3& receiverMin = receiverBox.GetMin();
+					const glm::vec3& receiverMax = receiverBox.GetMax();
+
+					const glm::vec3& frustumBoxMin = frustumBox.GetMin();
+					const glm::vec3& frustumBoxMax = frustumBox.GetMax();
+
+					glm::vec3 min = glm::max(receiverMin, frustumBoxMin);
+					glm::vec3 max = glm::min(receiverMax, frustumBoxMax);
+
+					receiverBox.InitFromMinMax(min, max);
+				}
+
+				// 判断哪些caster会投影到receiverBox上
 				if (receiverBox.IsDefault())
 				{
 					newLitCullRes.reserve(litCullRes.size());
@@ -610,7 +631,8 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 							const glm::vec3& casterMax = bound.GetMax();
 
 							if (casterMin.x <= receiverMax.x && casterMax.x >= receiverMin.x &&
-								casterMin.y <= receiverMax.y && casterMax.y >= receiverMin.y && casterMin.z <= receiverMax.z)
+								casterMin.y <= receiverMax.y && casterMax.y >= receiverMin.y &&
+								casterMin.z <= receiverMax.z)
 							{
 								newLitCullRes.push_back(component);
 							}
