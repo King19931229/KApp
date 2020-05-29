@@ -6,7 +6,7 @@ KVulkanQuery::KVulkanQuery()
 	: m_QueryPool(VK_NULL_HANDLE),
 	m_QueryType(VK_QUERY_TYPE_MAX_ENUM),
 	samples(0),
-	m_Status(QS_IDEL)
+	m_Status(QS_INVAILD)
 {
 }
 
@@ -29,6 +29,7 @@ bool KVulkanQuery::Init(QueryType type)
 	VK_ASSERT_RESULT(vkCreateQueryPool(KVulkanGlobal::device, &queryPoolInfo, NULL, &m_QueryPool));
 
 	m_Status = QS_IDEL;
+	m_Timer.Reset();
 
 	return true;
 }
@@ -40,7 +41,8 @@ bool KVulkanQuery::UnInit()
 		ASSERT_RESULT(KVulkanGlobal::deviceReady);
 		vkDestroyQueryPool(KVulkanGlobal::device, m_QueryPool, nullptr);
 		m_QueryPool = VK_NULL_HANDLE;
-		m_Status = QS_IDEL;
+		m_Status = QS_INVAILD;
+		m_Timer.Reset();
 	}
 	return true;
 }
@@ -101,6 +103,20 @@ bool KVulkanQuery::GetResultAsync(uint32_t& result)
 	return false;
 }
 
+float KVulkanQuery::GetElapseTime()
+{
+	return m_Timer.GetSeconds();
+}
+
+bool KVulkanQuery::Abort()
+{
+	if (m_Status == QS_QUERY_START || m_Status == QS_QUERYING)
+	{
+		m_Status = QS_QUERY_END;
+	}
+	return true;
+}
+
 // Custom define for better code readability
 #define VK_FLAGS_NONE 0
 
@@ -118,6 +134,7 @@ void KVulkanQuery::End(VkCommandBuffer commandBuffer)
 	if (commandBuffer != VK_NULL_HANDLE && m_QueryPool != VK_NULL_HANDLE)
 	{
 		vkCmdEndQuery(commandBuffer, m_QueryPool, 0);
+		m_Timer.Reset();
 	}
 }
 
@@ -127,5 +144,6 @@ void KVulkanQuery::Reset(VkCommandBuffer commandBuffer)
 	{
 		vkCmdResetQueryPool(commandBuffer, m_QueryPool, 0, 1);
 		m_Status = QS_IDEL;
+		m_Timer.Reset();
 	}
 }

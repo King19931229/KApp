@@ -25,6 +25,7 @@ protected:
 	bool m_OcclusionVisible;
 
 	std::vector<IKQueryPtr> m_OCQueries;
+	std::vector<IKQueryPtr> m_OCInstanceQueries;
 
 	static constexpr const char* msType = "type";
 	static constexpr const char* msPath = "path";
@@ -60,8 +61,19 @@ public:
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
 
 	inline KMeshPtr GetMesh() { return m_Mesh; }
+
 	inline IKQueryPtr GetOCQuery(size_t frameIndex) { return frameIndex < m_OCQueries.size() ? m_OCQueries[frameIndex] : nullptr; }
-	
+	inline IKQueryPtr GetOCInstacneQuery(size_t frameIndex) { return frameIndex < m_OCInstanceQueries.size() ? m_OCInstanceQueries[frameIndex] : nullptr; }
+	inline bool SetOCInstanceQuery(size_t frameIndex, IKQueryPtr query)
+	{
+		if (frameIndex < m_OCInstanceQueries.size())
+		{
+			m_OCInstanceQueries[frameIndex] = query;
+			return true;
+		}
+		return false;
+	}
+
 	inline void SetOcclusionVisible(bool visible) { m_OcclusionVisible = visible; }
 	inline bool IsOcclusionVisible() const { return m_OcclusionVisible; }
 };

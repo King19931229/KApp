@@ -610,7 +610,7 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 							const glm::vec3& casterMax = bound.GetMax();
 
 							if (casterMin.x <= receiverMax.x && casterMax.x >= receiverMin.x &&
-								casterMin.y <= receiverMax.y && casterMax.y >= receiverMin.y)
+								casterMin.y <= receiverMax.y && casterMax.y >= receiverMin.y && casterMin.z <= receiverMax.z)
 							{
 								newLitCullRes.push_back(component);
 							}

@@ -499,7 +499,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, KCa
 					}
 				}
 
-				// KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
+				KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
 				if (!commandBuffers.empty())
 				{
 					primaryCommandBuffer->ExecuteAll(commandBuffers);
@@ -674,7 +674,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, KCam
 				}
 			}
 
-			// KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
+			KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
 			if (!commandBuffers.empty())
 			{
 				primaryCommandBuffer->ExecuteAll(commandBuffers);

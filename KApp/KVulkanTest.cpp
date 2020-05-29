@@ -36,7 +36,7 @@ int main()
 #ifdef _DEBUG
 		int width = 10, height = 10;
 #else
-		int width = 10, height = 10;
+		int width = 100, height = 100;
 #endif
 		int widthExtend = width * 8, heightExtend = height * 8;
 		for (int i = 0; i < width; ++i)

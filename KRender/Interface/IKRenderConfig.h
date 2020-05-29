@@ -231,6 +231,7 @@ enum QueryType
 
 enum QueryStatus
 {
+	QS_INVAILD,
 	QS_IDEL,
 	QS_QUERY_START,
 	QS_QUERYING,

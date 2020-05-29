@@ -180,22 +180,27 @@ bool KRenderComponent::Init()
 	UnInit();
 	if (m_Type == MESH)
 	{
-		return KRenderGlobal::MeshManager.Acquire(m_Path.c_str(), m_Mesh, m_HostVisible) &&
+		if(KRenderGlobal::MeshManager.Acquire(m_Path.c_str(), m_Mesh, m_HostVisible))			
+		{
 			KRenderGlobal::MeshManager.AcquireOCQuery(m_OCQueries);
+			m_OCInstanceQueries.resize(m_OCQueries.size());
+			return true;
+		}
 	}
 	else if (m_Type == ASSET)
 	{
-		return KRenderGlobal::MeshManager.AcquireFromAsset(m_Path.c_str(), m_Mesh, m_HostVisible) &&
+		if (KRenderGlobal::MeshManager.AcquireFromAsset(m_Path.c_str(), m_Mesh, m_HostVisible))
+		{
 			KRenderGlobal::MeshManager.AcquireOCQuery(m_OCQueries);
+			m_OCInstanceQueries.resize(m_OCQueries.size());
+			return true;
+		}
 	}
 	else if (m_Type == UTILITY)
 	{
 		return KRenderGlobal::MeshManager.AcquireAsUtility(m_UtilityInfo, m_Mesh);
 	}
-	else
-	{
-		return false;
-	}
+	return false;
 }
 
 bool KRenderComponent::UnInit()
@@ -210,6 +215,7 @@ bool KRenderComponent::UnInit()
 		KRenderGlobal::MeshManager.ReleaseOCQuery(m_OCQueries);
 		m_OCQueries.clear();
 	}
+	m_OCInstanceQueries.clear();
 	return true;
 }
 
