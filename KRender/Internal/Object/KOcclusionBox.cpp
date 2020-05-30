@@ -47,7 +47,7 @@ const VertexFormat KOcclusionBox::ms_VertexInstanceFormats[] = { VF_POINT_NORMAL
 KOcclusionBox::KOcclusionBox()
 	: m_Device(nullptr),
 	m_DepthBiasConstant(-3.25f),
-	m_DepthBiasSlope(-1.75f),
+	m_DepthBiasSlope(-3.25f),
 	m_InstanceGroupSize(1000.0f),
 	m_Enable(true)
 {
@@ -571,7 +571,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 				else if (status == QS_QUERY_START || status == QS_QUERYING)
 				{
 					uint32_t samples = 0;
-					bool success = query->GetResultAsync(samples);
+					bool success = query->GetResultSync(samples);
 					if (samples)
 					{
 						for (KRenderComponent* render : componentList)

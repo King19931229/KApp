@@ -21,15 +21,18 @@ enum InstanceBufferStage
 	IBS_UNKNOWN = IBS_COUNT
 };
 
+static constexpr const size_t MAX_FRAME_IN_FLIGHT_INSTANCE = 4;
+
 struct KVertexData
 {
 	// 每个顶点格式占用一个顶点缓冲
 	std::vector<VertexFormat> vertexFormats;
 	std::vector<IKVertexBufferPtr> vertexBuffers;
 
-	IKVertexBufferPtr instanceBuffers[IBS_COUNT];
-	size_t instanceDataHash[IBS_COUNT];
-	size_t instanceCount[IBS_COUNT];
+	// TODO 建立InstanceBuffer Manager管理
+	IKVertexBufferPtr instanceBuffers[MAX_FRAME_IN_FLIGHT_INSTANCE][IBS_COUNT];
+	size_t instanceDataHash[MAX_FRAME_IN_FLIGHT_INSTANCE][IBS_COUNT];
+	size_t instanceCount[MAX_FRAME_IN_FLIGHT_INSTANCE][IBS_COUNT];
 
 	// 顶点描述数据
 	uint32_t vertexStart;
@@ -42,9 +45,12 @@ struct KVertexData
 	{
 		vertexStart = 0;
 		vertexCount = 0;
-		ZERO_ARRAY_MEMORY(instanceBuffers);
-		ZERO_ARRAY_MEMORY(instanceDataHash);
-		ZERO_ARRAY_MEMORY(instanceCount);
+		for (uint32_t i = 0; i < MAX_FRAME_IN_FLIGHT_INSTANCE; ++i)
+		{
+			ZERO_ARRAY_MEMORY(instanceBuffers[i]);
+			ZERO_ARRAY_MEMORY(instanceDataHash[i]);
+			ZERO_ARRAY_MEMORY(instanceCount[i]);
+		}
 		bound.SetNull();
 	}
 
@@ -59,18 +65,24 @@ struct KVertexData
 		bound.SetNull();
 		vertexStart = 0;
 		vertexCount = 0;
-		ZERO_ARRAY_MEMORY(instanceBuffers);
-		ZERO_ARRAY_MEMORY(instanceDataHash);
-		ZERO_ARRAY_MEMORY(instanceCount);
+		for (uint32_t i = 0; i < MAX_FRAME_IN_FLIGHT_INSTANCE; ++i)
+		{
+			ZERO_ARRAY_MEMORY(instanceBuffers[i]);
+			ZERO_ARRAY_MEMORY(instanceDataHash[i]);
+			ZERO_ARRAY_MEMORY(instanceCount[i]);
+		}
 	}
 
 	void Destroy()
 	{
 		assert(vertexFormats.size() == vertexBuffers.size());
 		SAFE_UNINIT_CONTAINER(vertexBuffers);
-		SAFE_UNINIT_ARRAY(instanceBuffers);
-		ZERO_ARRAY_MEMORY(instanceDataHash);
-		ZERO_ARRAY_MEMORY(instanceCount);
+		for (uint32_t i = 0; i < MAX_FRAME_IN_FLIGHT_INSTANCE; ++i)
+		{
+			SAFE_UNINIT_CONTAINER(instanceBuffers[i]);
+			ZERO_ARRAY_MEMORY(instanceDataHash[i]);
+			ZERO_ARRAY_MEMORY(instanceCount[i]);
+		}
 		vertexBuffers.clear();
 		vertexFormats.clear();
 		vertexStart = 0;

@@ -385,6 +385,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		// TODO 检测
 		deviceFeatures.fillModeNonSolid = VK_TRUE;
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
+		deviceFeatures.inheritedQueries = VK_TRUE;
 
 		createInfo.pEnabledFeatures = &deviceFeatures;
 
@@ -856,7 +857,7 @@ bool KVulkanRenderDevice::CreateUIOverlay(IKUIOverlayPtr& ui)
 
 bool KVulkanRenderDevice::Present()
 {
-	VkResult vkResult;
+	VkResult vkResult = VK_RESULT_MAX_ENUM;
 
 	uint32_t frameIndex = 0;
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->WaitForInfightFrame(frameIndex);
@@ -875,7 +876,6 @@ bool KVulkanRenderDevice::Present()
 		return false;
 	}
 
-	Wait();
 	for (KDevicePresentCallback* callback : m_PresentCallback)
 	{
 		(*callback)(chainImageIndex, frameIndex);
@@ -887,6 +887,7 @@ bool KVulkanRenderDevice::Present()
 	{
 		RecreateSwapChain();
 	}
+
 	return true;
 }
 

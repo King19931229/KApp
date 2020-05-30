@@ -71,6 +71,8 @@ public:
 	bool Reset(size_t frameIndex, std::vector<KRenderComponent*>& cullRes, IKCommandBufferPtr primaryCommandBuffer);
 	bool Render(size_t frameIndex, IKRenderTargetPtr target, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers);
 	
-	bool& GetEnable() { return m_Enable; }
-	float& GetInstanceGroupSize() { return m_InstanceGroupSize; }
+	inline bool& GetEnable() { return m_Enable; }
+	inline float& GetDepthBiasConstant() { return m_DepthBiasConstant; }
+	inline float& GetDepthBiasSlope() { return m_DepthBiasSlope; }
+	inline float& GetInstanceGroupSize() { return m_InstanceGroupSize; }
 };

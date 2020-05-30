@@ -570,10 +570,10 @@ bool KCameraCube::UnInit()
 	SAFE_UNINIT(m_CubeVertexBuffer);
 	SAFE_UNINIT(m_CubeIndexBuffer);
 
-	SAFE_UNINIT_ARRAY(m_EdgeVertexBuffer);
+	SAFE_UNINIT_CONTAINER(m_EdgeVertexBuffer);
 	SAFE_UNINIT(m_EdgeIndexBuffer);
 
-	SAFE_UNINIT_ARRAY(m_CornerVertexBuffer);
+	SAFE_UNINIT_CONTAINER(m_CornerVertexBuffer);
 	SAFE_UNINIT(m_CornerIndexBuffer);
 
 	SAFE_UNINIT(m_VertexShader);

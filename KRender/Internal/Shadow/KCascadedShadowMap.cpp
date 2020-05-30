@@ -478,11 +478,11 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 
 			KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
 
-			KRenderDispatcher::AssignInstanceData(m_Device, vertexData, stage, objects);
+			KRenderDispatcher::AssignInstanceData(m_Device, (uint32_t)frameIndex, vertexData, stage, objects);
 
 			command.instanceDraw = true;
-			command.instanceBuffer = vertexData->instanceBuffers[stage];
-			command.instanceCount = (uint32_t)vertexData->instanceCount[stage];
+			command.instanceBuffer = vertexData->instanceBuffers[frameIndex][stage];
+			command.instanceCount = (uint32_t)vertexData->instanceCount[frameIndex][stage];
 
 			if (command.indexDraw)
 			{

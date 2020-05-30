@@ -330,6 +330,8 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderTargetPtr target)
 		inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
 		inheritanceInfo.renderPass = vulkanTarget->GetRenderPass();
 		inheritanceInfo.framebuffer = vulkanTarget->GetFrameBuffer();
+		inheritanceInfo.occlusionQueryEnable = VK_TRUE;
+		inheritanceInfo.queryFlags = 0;
 
 		// 命令开始时候创建需要一个命令开始信息
 		VkCommandBufferBeginInfo beginInfo = {};

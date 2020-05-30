@@ -141,11 +141,12 @@ void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderTarge
 	buffer->End();
 }
 
-bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, KVertexData* vertexData, InstanceBufferStage stage, const std::vector<KConstantDefinition::OBJECT>& objects)
+bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, uint32_t frameIndex, KVertexData* vertexData, InstanceBufferStage stage, const std::vector<KConstantDefinition::OBJECT>& objects)
 {
 	if (vertexData && !objects.empty())
 	{
-		IKVertexBufferPtr& instanceBuffer = vertexData->instanceBuffers[stage];
+		assert(frameIndex < MAX_FRAME_IN_FLIGHT_INSTANCE);
+		IKVertexBufferPtr& instanceBuffer = vertexData->instanceBuffers[frameIndex][stage];
 		if (!instanceBuffer)
 		{
 			device->CreateVertexBuffer(instanceBuffer);
@@ -163,11 +164,11 @@ bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, KVertexData* 
 			dataHash = KHash::BKDR((const char*)objects.data(), dataSize);
 		}
 
-		if (vertexData->instanceCount[stage] != objects.size())
+		if (vertexData->instanceCount[frameIndex][stage] != objects.size())
 		{
-			vertexData->instanceCount[stage] = objects.size();
+			vertexData->instanceCount[frameIndex][stage] = objects.size();
 			// 数量不一样需要重新填充instance buffer
-			vertexData->instanceDataHash[stage] = 0;
+			vertexData->instanceDataHash[frameIndex][stage] = 0;
 		}
 
 		// instance buffer大小不够需要重新分配
@@ -187,7 +188,7 @@ bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, KVertexData* 
 		}
 		else // 检查是否需要重新填充instance buffer
 		{
-			if (!ENABLE_CPU_HASH || vertexData->instanceDataHash[stage] != dataHash)
+			if (!ENABLE_CPU_HASH || vertexData->instanceDataHash[frameIndex][stage] != dataHash)
 			{
 				// 数据大小小于原来一半 instance buffer大小缩小到原来一半
 				if (dataSize < instanceBuffer->GetBufferSize() / 2)
@@ -206,7 +207,7 @@ bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, KVertexData* 
 			}
 		}
 
-		vertexData->instanceDataHash[stage] = dataHash;
+		vertexData->instanceDataHash[frameIndex][stage] = dataHash;
 
 		return true;
 	}
@@ -346,11 +347,11 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 			++defaultStatistics.drawcalls;
 
 			KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
-			AssignInstanceData(m_Device, vertexData, IBS_OPAQUE, objects);
+			AssignInstanceData(m_Device, (uint32_t)frameIndex, vertexData, IBS_OPAQUE, objects);
 
 			command.instanceDraw = true;
-			command.instanceBuffer = vertexData->instanceBuffers[IBS_OPAQUE];
-			command.instanceCount = (uint32_t)vertexData->instanceCount[IBS_OPAQUE];
+			command.instanceBuffer = vertexData->instanceBuffers[frameIndex][IBS_OPAQUE];
+			command.instanceCount = (uint32_t)vertexData->instanceCount[frameIndex][IBS_OPAQUE];
 
 			for (size_t idx = 0; idx < objects.size(); ++idx)
 			{

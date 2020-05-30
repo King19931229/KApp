@@ -47,18 +47,6 @@
 #define SAFE_DELETE_ARRAY(ptr) { if(ptr) { KDELETE[] ptr; ptr = nullptr; } }
 
 #define SAFE_UNINIT(ptr) { if(ptr) { ptr->UnInit(); ptr = nullptr; } }
-#define SAFE_UNINIT_ARRAY(arr)\
-{\
-	for(size_t i = 0; i < ARRAY_SIZE(arr); ++i)\
-	{\
-		if(arr[i])\
-		{\
-			arr[i]->UnInit(); \
-			arr[i] = nullptr;\
-		}\
-	}\
-}
-
 #define SAFE_UNINIT_CONTAINER(container)\
 {\
 	for(auto& ptr : container)\
