@@ -40,6 +40,8 @@ protected:
 
 	IKRenderDevice* m_Device;
 
+	float m_DepthBiasConstant;
+	float m_DepthBiasSlope;
 	float m_InstanceGroupSize;
 	bool m_Enable;
 

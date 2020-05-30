@@ -46,6 +46,8 @@ const VertexFormat KOcclusionBox::ms_VertexInstanceFormats[] = { VF_POINT_NORMAL
 
 KOcclusionBox::KOcclusionBox()
 	: m_Device(nullptr),
+	m_DepthBiasConstant(-3.25f),
+	m_DepthBiasSlope(-1.75f),
 	m_InstanceGroupSize(1000.0f),
 	m_Enable(true)
 {
@@ -96,7 +98,7 @@ void KOcclusionBox::PreparePipeline()
 	This pass is where lighting actually happens. Every pixel that passes Z and Stencil tests is then added to light accumulation buffer.
 	*/
 
-	//#define DEBUG_OCCLUSION_BOX
+//#define DEBUG_OCCLUSION_BOX
 
 	for (size_t i = 0; i < m_PipelinesFrontFace.size(); ++i)
 	{
@@ -110,6 +112,8 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, false, true);
 		pipeline->SetShader(ST_VERTEX, m_VertexShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+
+		pipeline->SetDepthBiasEnable(true);
 
 		pipeline->SetStencilEnable(true);
 		pipeline->SetStencilRef(0);
@@ -140,6 +144,8 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetShader(ST_VERTEX, m_VertexInstanceShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
 
+		pipeline->SetDepthBiasEnable(true);
+
 		pipeline->SetStencilEnable(true);
 		pipeline->SetStencilRef(0);
 		pipeline->SetStencilFunc(CF_ALWAYS, SO_KEEP, SO_INC, SO_KEEP);
@@ -168,6 +174,8 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetDepthFunc(CF_GREATER, false, true);
 		pipeline->SetShader(ST_VERTEX, m_VertexShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+
+		pipeline->SetDepthBiasEnable(true);
 
 		pipeline->SetStencilEnable(true);
 		pipeline->SetStencilRef(0);
@@ -198,6 +206,8 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetDepthFunc(CF_GREATER, false, true);
 		pipeline->SetShader(ST_VERTEX, m_VertexInstanceShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+
+		pipeline->SetDepthBiasEnable(true);
 
 		pipeline->SetStencilEnable(true);
 		pipeline->SetStencilRef(0);
@@ -482,6 +492,8 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 
 			commandBuffer->BeginSecondary(target);
 			commandBuffer->SetViewport(target);
+			// 解决Z-Fighting问题
+			commandBuffer->SetDepthBias(m_DepthBiasConstant, 0.0f, m_DepthBiasSlope);
 
 			MeshInstanceMap instanceMap;
 
@@ -537,7 +549,8 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 						KAABBBox bound;
 						entity->GetBound(bound);
 
-#define DONT_CARE_INSIDE_CAMERA_OBJECT
+#define DONT_CARE_CAMERA_INSIDE_OBJECT
+						bound.InitFromHalfExtent(bound.GetCenter(), bound.GetExtend() * 0.5f);
 
 						// 这里只能把物件先绘制上去 否则如果深度不写入
 						// Occlusion背面Pass查询将会一直失败导致物件永远绘制不上去
@@ -547,7 +560,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 						}
 						// 这里干脆只把相机不在物件范围内的物件做Occlusion查询
 						// 否则帧率会一直波动
-#ifdef DONT_CARE_INSIDE_CAMERA_OBJECT
+#ifdef DONT_CARE_CAMERA_INSIDE_OBJECT
 						else
 #endif
 						{
@@ -557,37 +570,38 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 				}
 				else if (status == QS_QUERY_START || status == QS_QUERYING)
 				{
-					if (status == QS_QUERY_START)
-					{
-						for (KRenderComponent* render : componentList)
-						{
-							render->SetOcclusionVisible(false);
-						}
-					}
-
 					uint32_t samples = 0;
-					query->GetResultAsync(samples);
+					bool success = query->GetResultAsync(samples);
 					if (samples)
 					{
-						// 这里把可见性设置为true即可 不要终止查询
-						// 否则会导致DrawCall波动
 						for (KRenderComponent* render : componentList)
 						{
 							render->SetOcclusionVisible(true);
 						}
+						query->Abort();
 					}
 					else
 					{
-						constexpr const float MAX_QUERY_TIME = 0.5f;
-						float timeElapse = query->GetElapseTime();
-						//KG_LOGD(LM_RENDER, "Query time elapse %.2fs", timeElapse);
-						if (timeElapse > MAX_QUERY_TIME)
+						if (success)
 						{
 							for (KRenderComponent* render : componentList)
 							{
-								render->SetOcclusionVisible(true);
+								render->SetOcclusionVisible(false);
 							}
-							query->Abort();
+						}
+						else
+						{
+							constexpr const float MAX_QUERY_TIME = 0.5f;
+							float timeElapse = query->GetElapseTime();
+							// KG_LOGD(LM_RENDER, "Query time elapse %.2fs", timeElapse);
+							if (timeElapse > MAX_QUERY_TIME)
+							{
+								for (KRenderComponent* render : componentList)
+								{
+									render->SetOcclusionVisible(true);
+								}
+								query->Abort();
+							}
 						}
 					}
 				}
