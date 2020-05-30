@@ -617,18 +617,17 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 					newLitCullRes.reserve(litCullRes.size());
 					for (KRenderComponent* component : litCullRes)
 					{
-						KAABBBox bound;
+						KAABBBox casterBound;
 						IKEntity* entity = component->GetEntityHandle();
-						if (entity && entity->GetBound(bound))
+						if (entity && entity->GetBound(casterBound))
 						{
-							bound.Transform(cascaded.viewProjMatrix, bound);
-							bound.InitFromHalfExtent(bound.GetCenter(), bound.GetExtend() * 0.5f * glm::vec3(1.0f, 1.0f, 0.0f));
+							casterBound.Transform(cascaded.viewProjMatrix, casterBound);
 
 							const glm::vec3& receiverMin = receiverBox.GetMin();
 							const glm::vec3& receiverMax = receiverBox.GetMax();
 
-							const glm::vec3& casterMin = bound.GetMin();
-							const glm::vec3& casterMax = bound.GetMax();
+							const glm::vec3& casterMin = casterBound.GetMin();
+							const glm::vec3& casterMax = casterBound.GetMax();
 
 							if (casterMin.x <= receiverMax.x && casterMax.x >= receiverMin.x &&
 								casterMin.y <= receiverMax.y && casterMax.y >= receiverMin.y &&

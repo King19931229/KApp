@@ -462,6 +462,24 @@ bool KVulkanCommandBuffer::ClearDepthStencil(const KClearRect& rect, const KClea
 	return true;
 }
 
+bool KVulkanCommandBuffer::ClearDepthStencilRTRect(IKRenderTargetPtr target, const KClearDepthStencil& value)
+{
+	if (target)
+	{
+		KClearRect rect;
+
+		size_t width = 0;
+		size_t height = 0;
+		if (target->GetSize(width, height))
+		{
+			rect.width = static_cast<uint32_t>(width);
+			rect.height = static_cast<uint32_t>(height);
+			return ClearDepthStencil(rect, value);
+		}
+	}
+	return false;
+}
+
 bool KVulkanCommandBuffer::EndRenderPass()
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);

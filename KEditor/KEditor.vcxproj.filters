@@ -57,9 +57,6 @@
     <Filter Include="Custom">
       <UniqueIdentifier>{055a1795-78f1-47a3-a259-29ddb8067e85}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Manipulator">
-      <UniqueIdentifier>{6a40a812-1396-4fcd-abc8-200111b685f8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resource">
       <UniqueIdentifier>{854fe095-7534-4266-9202-315fe6df1e2a}</UniqueIdentifier>
     </Filter>
@@ -71,6 +68,9 @@
     </Filter>
     <Filter Include="Dialog">
       <UniqueIdentifier>{1367b392-3a24-46dd-a96f-192734b4094e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entity">
+      <UniqueIdentifier>{6a40a812-1396-4fcd-abc8-200111b685f8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -176,17 +176,8 @@
     <ClCompile Include="Custom\KEResourceItemView.cpp">
       <Filter>Custom</Filter>
     </ClCompile>
-    <ClCompile Include="Manipulator\KEEntityManipulator.cpp">
-      <Filter>Manipulator</Filter>
-    </ClCompile>
     <ClCompile Include="Widget\KESceneItemWidget.cpp">
       <Filter>Widget</Filter>
-    </ClCompile>
-    <ClCompile Include="Manipulator\KEEntitySelector.cpp">
-      <Filter>Manipulator</Filter>
-    </ClCompile>
-    <ClCompile Include="Manipulator\KEEntityCommand.cpp">
-      <Filter>Manipulator</Filter>
     </ClCompile>
     <ClCompile Include="Reflection\KEReflectionManager.cpp">
       <Filter>Reflection</Filter>
@@ -214,6 +205,18 @@
     </ClCompile>
     <ClCompile Include="Resource\KEResourcePorter.cpp">
       <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Entity\KEEntityCommand.cpp">
+      <Filter>Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="Entity\KEEntityManipulator.cpp">
+      <Filter>Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="Entity\KEEntitySelector.cpp">
+      <Filter>Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="Entity\KEEntityNamePool.cpp">
+      <Filter>Entity</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -401,15 +404,6 @@
     <ClInclude Include="Custom\KEResourcePathView.h">
       <Filter>Custom</Filter>
     </ClInclude>
-    <ClInclude Include="Manipulator\KEEntityManipulator.h">
-      <Filter>Manipulator</Filter>
-    </ClInclude>
-    <ClInclude Include="Manipulator\KEEntitySelector.h">
-      <Filter>Manipulator</Filter>
-    </ClInclude>
-    <ClInclude Include="Manipulator\KEEntityCommand.h">
-      <Filter>Manipulator</Filter>
-    </ClInclude>
     <ClInclude Include="Reflection\KEReflectionObjectItem.h">
       <Filter>Reflection</Filter>
     </ClInclude>
@@ -421,6 +415,18 @@
     </ClInclude>
     <ClInclude Include="Resource\KEResourcePorter.h">
       <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity\KEEntityCommand.h">
+      <Filter>Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity\KEEntityManipulator.h">
+      <Filter>Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity\KEEntitySelector.h">
+      <Filter>Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity\KEEntityNamePool.h">
+      <Filter>Entity</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

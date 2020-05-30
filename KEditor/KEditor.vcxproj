@@ -108,6 +108,10 @@
     <ClCompile Include="Custom\KEResourcePathView.cpp" />
     <ClCompile Include="Custom\KEResourceTreeView.cpp" />
     <ClCompile Include="Dialog\KEAssetConvertDialog.cpp" />
+    <ClCompile Include="Entity\KEEntityCommand.cpp" />
+    <ClCompile Include="Entity\KEEntityManipulator.cpp" />
+    <ClCompile Include="Entity\KEEntityNamePool.cpp" />
+    <ClCompile Include="Entity\KEEntitySelector.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionControl.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionGeometry.cpp" />
     <ClCompile Include="Graph\Connection\KEGraphConnectionState.cpp" />
@@ -129,9 +133,6 @@
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="KEdtiorGlobal.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Manipulator\KEEntityCommand.cpp" />
-    <ClCompile Include="Manipulator\KEEntityManipulator.cpp" />
-    <ClCompile Include="Manipulator\KEEntitySelector.cpp" />
     <ClCompile Include="Other\KEQtRenderWindow.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessGraphView.cpp" />
     <ClCompile Include="PostProcess\KEPostProcessPassModel.cpp" />
@@ -176,12 +177,13 @@
     <ClInclude Include="Custom\KEResourcePathView.h" />
     <ClInclude Include="Custom\KEResourceTreeView.h" />
     <QtMoc Include="Dialog\KEAssetConvertDialog.h" />
+    <ClInclude Include="Entity\KEEntityCommand.h" />
+    <ClInclude Include="Entity\KEEntityManipulator.h" />
+    <ClInclude Include="Entity\KEEntityNamePool.h" />
+    <ClInclude Include="Entity\KEEntitySelector.h" />
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h" />
     <ClInclude Include="Graph\Command\KEGraphNodeCommand.h" />
     <ClInclude Include="KEditorGlobal.h" />
-    <ClInclude Include="Manipulator\KEEntityCommand.h" />
-    <ClInclude Include="Manipulator\KEEntityManipulator.h" />
-    <ClInclude Include="Manipulator\KEEntitySelector.h" />
     <ClInclude Include="PostProcess\KEPostProcessGraphView.h" />
     <ClInclude Include="Property\KEPropertyBaseView.h" />
     <ClInclude Include="Property\KEPropertyCheckBoxView.h" />

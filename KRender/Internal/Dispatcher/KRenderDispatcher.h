@@ -58,7 +58,6 @@ protected:
 	bool CreateCommandBuffers();
 	bool DestroyCommandBuffers();
 
-	void ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTargetPtr target, const KClearDepthStencil& value);
 	void RenderSecondary(IKCommandBufferPtr buffer, IKRenderTargetPtr offscreenTarget, const std::vector<KRenderCommand>& commands);
 
 	void PopulateRenderCommand(size_t frameIndex, IKRenderTargetPtr offscreenTarget,

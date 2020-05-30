@@ -6,5 +6,6 @@ namespace KEditorGlobal
 	KEResourcePorter ResourcePorter;
 	KEEntityManipulator EntityManipulator;
 	KEEntitySelector EntitySelector;
+	KEEntityNamePool EntityNamePool;
 	KEReflectionManager ReflectionManager;
 }

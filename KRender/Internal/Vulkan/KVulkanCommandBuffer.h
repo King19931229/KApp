@@ -46,6 +46,7 @@ public:
 
 	virtual bool ClearColor(const KClearRect& rect, const KClearColor& color);
 	virtual bool ClearDepthStencil(const KClearRect& rect, const KClearDepthStencil& depthStencil);
+	virtual bool ClearDepthStencilRTRect(IKRenderTargetPtr target, const KClearDepthStencil& value);
 
 	virtual bool EndRenderPass();
 

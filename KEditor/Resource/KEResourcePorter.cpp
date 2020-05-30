@@ -1,4 +1,5 @@
 #include "KEResourcePorter.h"
+#include "KEditorGlobal.h"
 
 #include "KBase/Publish/KFileTool.h"
 #include "KBase/Publish/KStringUtil.h"
@@ -52,6 +53,22 @@ bool KEResourcePorter::DropPosition(const KCamera* camera, const KAABBBox& local
 	return false;
 }
 
+bool KEResourcePorter::GetBaseName(const std::string& fullName, std::string& baseName)
+{
+	if (!fullName.empty())
+	{
+		std::string fileName;
+		std::string fileBaseName;
+		std::string fileExtName;
+		if (KFileTool::FileName(fullName, fileName) && KFileTool::SplitExt(fileName, fileBaseName, fileExtName))
+		{
+			baseName = std::move(fileBaseName);
+			return true;
+		}
+	}
+	return false;
+}
+
 bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity, bool hostVisible)
 {
 	if (entity)
@@ -90,6 +107,17 @@ bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity, 
 				IKTransformComponent* transformComponent = nullptr;
 				if (entity->RegisterComponent(CT_TRANSFORM, &transformComponent))
 				{
+					std::string baseName;
+					if (GetBaseName(path, baseName))
+					{
+						std::string entityName = KEditorGlobal::EntityNamePool.AllocName(baseName);
+						entity->SetName(std::move(entityName));
+					}
+					else
+					{
+						assert(false && "should not reach");
+						entity->SetName(std::move(name));
+					}
 					return true;
 				}
 			}
@@ -104,7 +132,7 @@ bool KEResourcePorter::UnInitEntity(IKEntityPtr& entity)
 	{
 		IKEnginePtr engine = KEngineGlobal::Engine;
 		engine->Wait();
-
+		KEditorGlobal::EntityNamePool.FreeName(entity->GetName());
 		entity->UnRegisterAllComponent();
 		return true;
 	}

@@ -150,6 +150,7 @@ bool KEditor::Init()
 		KEditorGlobal::ReflectionManager.Init(m_PropertyWidget);
 		KEditorGlobal::EntityManipulator.Init(renderCore->GetGizmo(), rawWindow, renderCore->GetCamera(), m_Engine->GetScene(), m_SceneItemWidget);
 		KEditorGlobal::EntitySelector.Init(m_SceneItemWidget);
+		KEditorGlobal::EntityNamePool.Init();
 
 		m_bInit = true;
 		return true;
@@ -169,6 +170,7 @@ bool KEditor::UnInit()
 		KEditorGlobal::ReflectionManager.UnInit();
 		KEditorGlobal::EntitySelector.UnInit();
 		KEditorGlobal::EntityManipulator.UnInit();
+		KEditorGlobal::EntityNamePool.UnInit();
 
 		m_Engine->UnInit();
 		m_Engine = nullptr;

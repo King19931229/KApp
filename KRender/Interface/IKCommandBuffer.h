@@ -61,6 +61,7 @@ struct IKCommandBuffer
 
 	virtual bool ClearColor(const KClearRect& rect, const KClearColor& color) = 0;
 	virtual bool ClearDepthStencil(const KClearRect& rect, const KClearDepthStencil& depthStencil) = 0;
+	virtual bool ClearDepthStencilRTRect(IKRenderTargetPtr target, const KClearDepthStencil& value) = 0;
 
 	virtual bool EndRenderPass() = 0;
 

@@ -1,7 +1,6 @@
 #include "KEEntityCommand.h"
-#include "Manipulator/KEEntityManipulator.h"
+#include "Entity/KEEntityManipulator.h"
 #include "KEditorGlobal.h"
-
 
 KEEntitySceneJoinCommand::KEEntitySceneJoinCommand(KEEntityPtr entity, IKScene* scene, KEEntityManipulator* manipulator)
 	: KEEntityGroupCommandBase(entity, scene),

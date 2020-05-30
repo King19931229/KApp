@@ -28,7 +28,7 @@ void KEManipulatorToolBar::SetCameraSpeed(int speed)
 	float moveSpeed = (float)speed / CAMERA_SPEED_DEFAULT_SPEED;
 	if (m_CameraControl)
 	{
-		m_CameraControl->SetSpeed(speed);
+		m_CameraControl->SetSpeed(moveSpeed);
 	}
 }
 

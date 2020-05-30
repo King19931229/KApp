@@ -130,20 +130,6 @@ void KRenderDispatcher::ThreadRenderObject(uint32_t frameIndex, uint32_t threadI
 	RenderSecondary(threadData.debugCommandBuffer, offscreenTarget, threadData.debugCommands);
 }
 
-void KRenderDispatcher::ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTargetPtr target, const KClearDepthStencil& value)
-{
-	KClearRect rect;
-
-	size_t width = 0;
-	size_t height = 0;
-	target->GetSize(width, height);
-
-	rect.width = static_cast<uint32_t>(width);
-	rect.height = static_cast<uint32_t>(height);
-
-	buffer->ClearDepthStencil(rect, value);
-}
-
 void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderTargetPtr offscreenTarget, const std::vector<KRenderCommand>& commands)
 {
 	buffer->BeginSecondary(offscreenTarget);
@@ -288,7 +274,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 
 					if (command.Complete())
 					{
-						defaultCommands.push_back(std::move(command));
+						debugCommands.push_back(std::move(command));
 					}
 				});
 
@@ -478,7 +464,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, con
 				{
 					clearCommandBuffer->BeginSecondary(offscreenTarget);
 					clearCommandBuffer->SetViewport(offscreenTarget);
-					ClearDepthStencil(clearCommandBuffer, offscreenTarget, clearValue.depthStencil);
+					clearCommandBuffer->ClearDepthStencilRTRect(offscreenTarget, clearValue.depthStencil);
 					clearCommandBuffer->End();
 
 					primaryCommandBuffer->Execute(clearCommandBuffer);
@@ -653,7 +639,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, cons
 			{
 				clearCommandBuffer->BeginSecondary(offscreenTarget);
 				clearCommandBuffer->SetViewport(offscreenTarget);
-				ClearDepthStencil(clearCommandBuffer, offscreenTarget, clearValue.depthStencil);
+				clearCommandBuffer->ClearDepthStencilRTRect(offscreenTarget, clearValue.depthStencil);
 				clearCommandBuffer->End();
 
 				primaryCommandBuffer->Execute(clearCommandBuffer);
