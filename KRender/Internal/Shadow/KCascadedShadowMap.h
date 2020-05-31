@@ -31,14 +31,17 @@ protected:
 	{
 		float splitDepth;
 		size_t shadowSize;
+		glm::mat4 viewMatrix;
 		glm::mat4 viewProjMatrix;
-		glm::vec2 viewNearFar;
+		glm::vec4 viewInfo;
 
 		std::vector<IKRenderTargetPtr> renderTargets;
 		std::vector<IKCommandBufferPtr> commandBuffers;
+
 		// debug
 		glm::mat4 debugClip;
 		std::vector<IKPipelinePtr> debugPipelines;
+
 		// scene clipping
 		KAABBBox frustumBox;
 		KAABBBox litBox;
@@ -58,6 +61,7 @@ protected:
 	// Slope depth bias factor, applied depending on polygon's slope
 	float m_DepthBiasSlope;
 
+	float m_LightSize;
 	float m_ShadowRange;
 	float m_SplitLambda;
 	
@@ -93,6 +97,7 @@ public:
 
 	inline float& GetShadowRange() { return m_ShadowRange; }
 	inline float& GetSplitLambda() { return m_SplitLambda; }
+	inline float& GetLightSize() { return m_LightSize; }
 
 	inline bool& GetFixToScene() { return m_FixToScene; }
 	inline bool& GetFixTexel() { return m_FixTexel; }

@@ -53,9 +53,10 @@ namespace KConstantDefinition
 
 	struct CASCADED_SHADOW
 	{
+		glm::mat4 LIGHT_VIEW[4];
 		glm::mat4 LIGHT_VIEW_PROJ[4];
-		float FRUSTRUM[4];
-		//glm::vec2 CAM_NEAR_FAR[4];
+		glm::vec4 LIGHT_INFO[4];
+		float FRUSTUM[4];
 		uint32_t NUM_CASCADED;
 	};
 

@@ -41,7 +41,7 @@
 
 #extension GL_EXT_scalar_block_layout : enable
 /*
-layout(std430, binding = OBJECT)
+layout(binding = OBJECT)
 uniform Object
 {
 	mat4 model;
@@ -67,9 +67,10 @@ uniform ShadowInfo
 layout(binding = CASCADED_SHADOW)
 uniform CascadedShadowInfo
 {
-    mat4 light_view_proj[4];
-	vec4 frustrum;
-	//vec2 near_far[4];
+	mat4 light_view[4];
+	mat4 light_view_proj[4];
+	vec4 lightInfo[4];
+	vec4 frustum;
 	uint cascaded;
 }cascaded_shadow;
 

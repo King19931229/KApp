@@ -471,12 +471,13 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 					ui->SliderFloat("Shadow DepthBiasSlope", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(), -5.0f, 5.0f);
 					ui->SliderFloat("Shadow ShadowRange", &KRenderGlobal::CascadedShadowMap.GetShadowRange(), 0.1f, 5000.0f);
 					ui->SliderFloat("Shadow SplitLambda", &KRenderGlobal::CascadedShadowMap.GetSplitLambda(), 0.001f, 1.0f);
+					ui->SliderFloat("Shadow LightSize", &KRenderGlobal::CascadedShadowMap.GetLightSize(), 0.0f, 1.0f);
 					ui->CheckBox("Shadow FixToScene", &KRenderGlobal::CascadedShadowMap.GetFixToScene());
 					ui->CheckBox("Shadow FixTexel", &KRenderGlobal::CascadedShadowMap.GetFixTexel());
-					ui->CheckBox("Shadow MinimizeShadowDraw", &KRenderGlobal::CascadedShadowMap.GetMinimizeShadowDraw());
+					ui->CheckBox("Shadow Minimize Draw", &KRenderGlobal::CascadedShadowMap.GetMinimizeShadowDraw());
 				}
 				if (ui->Header("Hardware Occlusion"))
-				{					
+				{
 					ui->CheckBox("Hardware Occlusion Enable", &KRenderGlobal::OcclusionBox.GetEnable());
 					ui->SliderFloat("Hardware Occlusion DepthBiasConstant", &KRenderGlobal::OcclusionBox.GetDepthBiasConstant(), -5.0f, 5.0f);
 					ui->SliderFloat("Hardware Occlusion DepthBiasSlope", &KRenderGlobal::OcclusionBox.GetDepthBiasSlope(), -5.0f, 5.0f);

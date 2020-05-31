@@ -28,6 +28,7 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_DepthBiasConstant(1.25f),
 	m_DepthBiasSlope(1.75f),
 	m_ShadowRange(3000.0f),
+	m_LightSize(0.01f),
 	m_SplitLambda(0.5f),
 	m_ShadowSizeRatio(0.7f),
 	m_FixToScene(true),
@@ -216,9 +217,10 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 		m_Cascadeds[i].litBox = litBox;
 
 		// Store split distance and matrix in cascade
+		m_Cascadeds[i].viewMatrix = lightViewMatrix;
 		m_Cascadeds[i].splitDepth = (mainCamera->GetNear() + splitDist * clipRange) * -1.0f;
 		m_Cascadeds[i].viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
-		m_Cascadeds[i].viewNearFar = glm::vec2(near, far);
+		m_Cascadeds[i].viewInfo = glm::vec4(m_LightSize, m_LightSize, near, far);
 
 		lastSplitDist = cascadeSplits[i];
 	}
@@ -519,6 +521,16 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 		{
 			void* pWritePos = nullptr;
+			if (detail.semantic == CS_CASCADED_SHADOW_VIEW)
+			{
+				assert(sizeof(glm::mat4) * 4 == detail.size);
+				pWritePos = POINTER_OFFSET(pData, detail.offset);
+				for (size_t i = 0; i < numCascaded; i++)
+				{
+					memcpy(pWritePos, &m_Cascadeds[i].viewMatrix, sizeof(glm::mat4));
+					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
+				}
+			}
 			if (detail.semantic == CS_CASCADED_SHADOW_VIEW_PROJ)
 			{
 				assert(sizeof(glm::mat4) * 4 == detail.size);
@@ -529,7 +541,17 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
 				}
 			}
-			if (detail.semantic == CS_CASCADED_SHADOW_FRUSTRUM)
+			if (detail.semantic == CS_CASCADED_SHADOW_LIGHT_INFO)
+			{
+				assert(sizeof(glm::vec4) * 4 == detail.size);
+				pWritePos = POINTER_OFFSET(pData, detail.offset);
+				for (size_t i = 0; i < numCascaded; i++)
+				{
+					memcpy(pWritePos, &m_Cascadeds[i].viewInfo, sizeof(glm::vec4));
+					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
+				}
+			}
+			if (detail.semantic == CS_CASCADED_SHADOW_FRUSTUM)
 			{
 				assert(sizeof(float) * 4 == detail.size);
 				pWritePos = POINTER_OFFSET(pData, detail.offset);
@@ -538,17 +560,7 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 					memcpy(pWritePos, &m_Cascadeds[i].splitDepth, sizeof(float));
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(float));
 				}
-			}
-			/*if (detail.semantic == CS_CASCADED_SHADOW_NEAR_FAR)
-			{
-				assert(sizeof(glm::vec2) * 4 == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				for (size_t i = 0; i < numCascaded; i++)
-				{
-					memcpy(pWritePos, &m_Cascadeds[i].viewNearFar, sizeof(glm::vec2));
-					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec2));
-				}
-			}*/
+			}			
 			if (detail.semantic == CS_CASCADED_SHADOW_NUM_CASCADED)
 			{
 				assert(sizeof(uint32_t) == detail.size);
