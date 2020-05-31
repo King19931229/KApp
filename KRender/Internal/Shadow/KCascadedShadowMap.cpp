@@ -25,8 +25,6 @@ const uint16_t KCascadedShadowMap::ms_BackGroundIndices[] = { 0, 1, 2, 2, 3, 0 }
 
 KCascadedShadowMap::KCascadedShadowMap()
 	: m_Device(nullptr),
-	m_DepthBiasConstant(1.25f),
-	m_DepthBiasSlope(1.75f),
 	m_ShadowRange(3000.0f),
 	m_LightSize(0.01f),
 	m_SplitLambda(0.5f),
@@ -35,6 +33,16 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_FixTexel(true),
 	m_MinimizeShadowDraw(true)
 {
+	m_DepthBiasConstant[0] = 0.0f;
+	m_DepthBiasConstant[1] = 0.0f;
+	m_DepthBiasConstant[2] = 0.0f;
+	m_DepthBiasConstant[3] = 0.0f;
+
+	m_DepthBiasSlope[0] = 5.0f;
+	m_DepthBiasSlope[1] = 3.5f;
+	m_DepthBiasSlope[2] = 1.75f;
+	m_DepthBiasSlope[3] = 1.0f;
+
 	m_ShadowCamera.SetPosition(glm::vec3(1.0f, 1.0f, 1.0f));
 	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	m_ShadowCamera.SetOrtho(2000.0f, 2000.0f, -1000.0f, 1000.0f);
@@ -220,7 +228,16 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 		m_Cascadeds[i].viewMatrix = lightViewMatrix;
 		m_Cascadeds[i].splitDepth = (mainCamera->GetNear() + splitDist * clipRange) * -1.0f;
 		m_Cascadeds[i].viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
-		m_Cascadeds[i].viewInfo = glm::vec4(m_LightSize, m_LightSize, near, far);
+		if (i == 0)
+		{
+			m_Cascadeds[i].viewInfo = glm::vec4(m_LightSize, m_LightSize, near, far);
+		}
+		else
+		{
+			glm::vec3 extendRatio = m_Cascadeds[i].litBox.GetExtend() / m_Cascadeds[0].litBox.GetExtend();
+			glm::vec2 lightSize = glm::vec2(m_LightSize) / glm::vec2(extendRatio.x, extendRatio.y);
+			m_Cascadeds[i].viewInfo = glm::vec4(lightSize, near, far);
+		}
 
 		lastSplitDist = cascadeSplits[i];
 	}
@@ -666,7 +683,7 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 			commandBuffer->SetViewport(shadowMapTarget);
 			// Set depth bias (aka "Polygon offset")
 			// Required to avoid shadow mapping artefacts
-			commandBuffer->SetDepthBias(m_DepthBiasConstant, 0, m_DepthBiasSlope);
+			commandBuffer->SetDepthBias(m_DepthBiasConstant[i], 0, m_DepthBiasSlope[i]);
 			{
 				KRenderCommandList commandList;
 

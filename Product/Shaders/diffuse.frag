@@ -17,7 +17,7 @@ layout(binding = TEXTURE_SLOT2) uniform sampler2D cascadedShadowSampler1;
 layout(binding = TEXTURE_SLOT3) uniform sampler2D cascadedShadowSampler2;
 layout(binding = TEXTURE_SLOT4) uniform sampler2D cascadedShadowSampler3;
 
-#define ambient 0.4
+const float ambient = 0.4;
 
 const mat4 biasMat = mat4(
 	0.5, 0.0, 0.0, 0.0,
@@ -102,7 +102,7 @@ float borderPCFTexture(sampler2D tex, vec3 uvz)
 {
 	if((uvz.x <= 1.0) && (uvz.y <= 1.0) && (uvz.x >= 0.0) && (uvz.y >= 0.0))
 	{
-		return textureLod(tex, uvz.xy, 0).x < uvz.z ? 1.0 : 0.0; 
+		return textureLod(tex, uvz.xy, 0).x <= uvz.z ? 1.0 : 0.0; 
 	}
 	return ((uvz.z <= 1.0) ? 1.0 : 0.0);
 }
@@ -126,7 +126,7 @@ void findBlocker(
 	for (int i = 0; i < 16; ++i)
 	{
 		vec2 offset = poisson16[i] * searchRegionRadiusUV;
-		float shadowMapDepth = borderDepthTexture(shadowMap, uv + offset);		
+		float shadowMapDepth = borderDepthTexture(shadowMap, uv + offset);
 		float z = biasedZ(z0, dz_duv, offset);
 		if (shadowMapDepth < z)
 		{
@@ -222,7 +222,7 @@ float calcCSMShadow(uint cascaded)
 	float z = shadowCoord.z;
 
 	// Compute gradient using ddx/ddy before any branching
-	vec2 dz_duv = vec2(0.0, 0.0);//depthGradient(uv, z);
+	vec2 dz_duv = vec2(0.0,0.0);//depthGradient(uv, z);
 	// Eye-space z from the light's point of view
 	float zEye = -(cascaded_shadow.light_view[cascaded] * inWorldPos).z;
 

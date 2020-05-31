@@ -102,7 +102,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
 	KRenderGlobal::OcclusionBox.Init(m_Device, frameInFlight);
 	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
-	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 3, 2048, 0.85f);
+	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 3, 2048, 1.0f);
 
 	return true;
 }
@@ -467,8 +467,11 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 				ui->CheckBox("MultiRender", &m_MultiThreadSumbit);
 				if (ui->Header("Shaodw"))
 				{
-					ui->SliderFloat("Shadow DepthBiasConstant", &KRenderGlobal::CascadedShadowMap.GetDepthBiasConstant(), -5.0f, 5.0f);
-					ui->SliderFloat("Shadow DepthBiasSlope", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(), -5.0f, 5.0f);
+					ui->SliderFloat("Shadow DepthBias Slope[0]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(0), 0.0f, 5.0f);
+					ui->SliderFloat("Shadow DepthBias Slope[1]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(1), 0.0f, 5.0f);
+					ui->SliderFloat("Shadow DepthBias Slope[2]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(2), 0.0f, 5.0f);
+					ui->SliderFloat("Shadow DepthBias Slope[3]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(3), 0.0f, 5.0f);
+
 					ui->SliderFloat("Shadow ShadowRange", &KRenderGlobal::CascadedShadowMap.GetShadowRange(), 0.1f, 5000.0f);
 					ui->SliderFloat("Shadow SplitLambda", &KRenderGlobal::CascadedShadowMap.GetSplitLambda(), 0.001f, 1.0f);
 					ui->SliderFloat("Shadow LightSize", &KRenderGlobal::CascadedShadowMap.GetLightSize(), 0.0f, 1.0f);

@@ -57,14 +57,14 @@ protected:
 
 	// Depth bias (and slope) are used to avoid shadowing artefacts
 	// Constant depth bias factor (always applied)
-	float m_DepthBiasConstant;
+	float m_DepthBiasConstant[SHADOW_MAP_MAX_CASCADED];
 	// Slope depth bias factor, applied depending on polygon's slope
-	float m_DepthBiasSlope;
+	float m_DepthBiasSlope[SHADOW_MAP_MAX_CASCADED];
 
 	float m_LightSize;
 	float m_ShadowRange;
 	float m_SplitLambda;
-	
+
 	float m_ShadowSizeRatio;
 
 	bool m_FixToScene;
@@ -92,8 +92,8 @@ public:
 	inline IKSamplerPtr GetSampler() { return m_ShadowSampler; }
 	KCamera& GetCamera() { return m_ShadowCamera; }
 
-	inline float& GetDepthBiasConstant() { return m_DepthBiasConstant; }
-	inline float& GetDepthBiasSlope() { return m_DepthBiasSlope; }
+	inline float& GetDepthBiasConstant(size_t index) { return m_DepthBiasConstant[index]; }
+	inline float& GetDepthBiasSlope(size_t index) { return m_DepthBiasSlope[index]; }
 
 	inline float& GetShadowRange() { return m_ShadowRange; }
 	inline float& GetSplitLambda() { return m_SplitLambda; }
