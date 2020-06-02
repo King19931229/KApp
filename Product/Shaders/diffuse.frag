@@ -136,19 +136,6 @@ void findBlocker(
 	}
 }
 
-// Performs PCF filtering on the shadow map using multiple taps in the filter region.
-float pcfFilter(sampler2D shadowMap, vec2 uv, float z0, vec2 dz_duv, vec2 filterRadiusUV)
-{
-	float sum = 0.0;
-	for (int i = 0; i < 16; ++i)
-	{
-		vec2 offset = poisson16[i] * filterRadiusUV;
-		float z = biasedZ(z0, dz_duv, offset);
-		sum += borderPCFTexture(shadowMap, vec3(uv + offset, z));
-	}
-	return sum / 16.0;
-}
-
 float pcf_4x4(sampler2D shadowMap, vec2 uv, float z0)
 {
 	vec2 vInvShadowMapWH = vec2(1.0) / vec2(textureSize(shadowMap, 0));
@@ -158,28 +145,26 @@ float pcf_4x4(sampler2D shadowMap, vec2 uv, float z0)
 	vec2 Sample00TexelCenter = (TexelCenter - vec2(1, 1)) * vInvShadowMapWH;
 	vec4 litZ = vec4(z0);
 
-	vec2 filterRadiusUV = vInvShadowMapWH;
-
 	vec4 Values0, Values1, Values2, Values3;// Valuesi in row i from left to right: x,y,z,w
-	Values0.x  = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(0,0) * filterRadiusUV));
-	Values0.y  = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(1,0) * filterRadiusUV));
-	Values0.z  = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(2,0) * filterRadiusUV));
-	Values0.w  = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(3,0) * filterRadiusUV));
+	Values0.x  = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(0,0) * vInvShadowMapWH));
+	Values0.y  = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(1,0) * vInvShadowMapWH));
+	Values0.z  = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(2,0) * vInvShadowMapWH));
+	Values0.w  = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(3,0) * vInvShadowMapWH));
 	Values0 = step(Values0, litZ.xxxx);
-	Values1.x = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(0,1) * filterRadiusUV));
-	Values1.y = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(1,1) * filterRadiusUV));
-	Values1.z = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(2,1) * filterRadiusUV));
-	Values1.w = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(3,1) * filterRadiusUV));
+	Values1.x = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(0,1) * vInvShadowMapWH));
+	Values1.y = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(1,1) * vInvShadowMapWH));
+	Values1.z = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(2,1) * vInvShadowMapWH));
+	Values1.w = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(3,1) * vInvShadowMapWH));
 	Values1 = step(Values1, litZ.xxxx);
-	Values2.x = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(0,2) * filterRadiusUV));
-	Values2.y = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(1,2) * filterRadiusUV));
-	Values2.z = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(2,2) * filterRadiusUV));
-	Values2.w = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(3,2) * filterRadiusUV));
+	Values2.x = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(0,2) * vInvShadowMapWH));
+	Values2.y = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(1,2) * vInvShadowMapWH));
+	Values2.z = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(2,2) * vInvShadowMapWH));
+	Values2.w = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(3,2) * vInvShadowMapWH));
 	Values2 = step(Values2, litZ.xxxx);
-	Values3.x = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(0,3) * filterRadiusUV));
-	Values3.y = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(1,3) * filterRadiusUV));
-	Values3.z = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(2,3) * filterRadiusUV));
-	Values3.w = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(3,3) * filterRadiusUV));
+	Values3.x = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(0,3) * vInvShadowMapWH));
+	Values3.y = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(1,3) * vInvShadowMapWH));
+	Values3.z = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(2,3) * vInvShadowMapWH));
+	Values3.w = borderDepthTexture(shadowMap, (Sample00TexelCenter + vec2(3,3) * vInvShadowMapWH));
 	Values3 = step(Values3, litZ.xxxx);
 
 	vec2 VerticalLerp00 = mix(vec2(Values0.x, Values1.x), vec2(Values0.y, Values1.y), Fraction.xx);
@@ -207,6 +192,48 @@ float pcf_4x4(sampler2D shadowMap, vec2 uv, float z0)
 	return inShadow;
 }
 
+float pcf_2x2(sampler2D shadowMap, vec2 uv, float z0)
+{
+	vec2 vInvShadowMapWH = vec2(1.0) / vec2(textureSize(shadowMap, 0));
+	vec2 fc = fract(uv / vInvShadowMapWH - 0.5);
+	vec2 tc0 = uv - (fc - vec2(0.5)) * vInvShadowMapWH;
+	vec2 tc1 = tc0 + vec2(vInvShadowMapWH.x, 0);
+	vec2 tc2 = tc0 + vec2(0, vInvShadowMapWH.y);
+	vec2 tc3 = tc1 + vec2(0, vInvShadowMapWH.y);
+
+	vec4 litZ = vec4(z0);
+
+	vec4 sampleDepth;
+	sampleDepth.x = borderDepthTexture(shadowMap, tc0);
+	sampleDepth.y = borderDepthTexture(shadowMap, tc1);
+	sampleDepth.z = borderDepthTexture(shadowMap, tc2);
+	sampleDepth.w = borderDepthTexture(shadowMap, tc3);
+
+	vec4 InShadow;
+	InShadow.x  = float(litZ.x > sampleDepth.x);
+	InShadow.y  = float(litZ.x > sampleDepth.y);
+	InShadow.z  = float(litZ.x > sampleDepth.z);
+	InShadow.w  = float(litZ.x > sampleDepth.w);
+
+	float inShadow01 = mix(InShadow.x, InShadow.y, fc.x);
+	float inShadow23 = mix(InShadow.z, InShadow.w, fc.x);
+	float inShadow = mix(inShadow01, inShadow23, fc.y);
+	return inShadow;
+}
+
+// Performs PCF filtering on the shadow map using multiple taps in the filter region.
+float pcfFilter(sampler2D shadowMap, vec2 uv, float z0, vec2 dz_duv, vec2 filterRadiusUV)
+{
+	float sum = 0.0;
+	for (int i = 0; i < 16; ++i)
+	{
+		vec2 offset = poisson16[i] * filterRadiusUV;
+		float z = biasedZ(z0, dz_duv, offset);
+		sum += pcf_2x2(shadowMap, uv + offset, z);
+	}
+	return sum / 16.0;
+}
+
 float pcssShadow(sampler2D shadowMap,
 	vec2 lightRadiusUV,
 	float lightZNear, float lightZFar,
@@ -221,7 +248,7 @@ float pcssShadow(sampler2D shadowMap,
 
 	// Early out if not in the penumbra
 	if (numBlockers == 0.0)
-		return 1.0;
+		return 0.0;
 
 	// ------------------------
 	// STEP 2: penumbra size
@@ -242,33 +269,40 @@ float pcfShadow(sampler2D shadowMap,
 	float lightZNear, float lightZFar,
 	vec2 uv, float z, vec2 dz_duv, float zEye)
 {
+#if 0
 	// Do a blocker search to enable early out
-	/*
 	float accumBlockerDepth, numBlockers, maxBlockers;
 	vec2 searchRegionRadius = searchRegionRadiusUV(lightRadiusUV, lightZNear, zEye);
 	findBlocker(accumBlockerDepth, numBlockers, maxBlockers, shadowMap, uv, z, dz_duv, searchRegionRadius);
 	if (numBlockers == 0.0)
-		return 1.0;
-
+		return 0.0;
+#endif
 	vec2 filterRadius = 0.1 * lightRadiusUV;
 	return pcfFilter(shadowMap, uv, z, dz_duv, filterRadius);
-	*/
-
-	return pcf_4x4(shadowMap, uv, z);
 }
 
 const bool pcss_shadow = false;
+const bool debug_layer = false;
+const bool light_size_shadow = false;
 
 float softShadow(sampler2D shadowMap,
 	vec2 lightRadiusUV,
 	float lightZNear, float lightZFar,
 	vec2 uv, float z, vec2 dz_duv, float zEye)
 {
-	return pcss_shadow ? pcssShadow(shadowMap,
+
+	if(light_size_shadow)
+	{
+		return pcss_shadow ? pcssShadow(shadowMap,
 			lightRadiusUV, lightZNear, lightZFar,
 			uv, z, dz_duv, zEye) : pcfShadow(shadowMap,
 			lightRadiusUV, lightZNear, lightZFar,
 			uv, z, dz_duv, zEye);
+	}
+	else
+	{
+		return pcf_4x4(shadowMap, uv, z);
+	}
 }
 
 float calcCSMShadow(uint cascaded)
@@ -283,11 +317,11 @@ float calcCSMShadow(uint cascaded)
 	float z = shadowCoord.z;
 
 	// Compute gradient using ddx/ddy before any branching
-	vec2 dz_duv = vec2(0.0,0.0);//depthGradient(uv, z);
+	vec2 dz_duv = depthGradient(uv, z);
 	// Eye-space z from the light's point of view
 	float zEye = -(cascaded_shadow.light_view[cascaded] * inWorldPos).z;
 
-	const float ZNEAR = 10.0;
+	const float ZNEAR = 1.0;
 	float translateZ = ZNEAR - lightZNear;
 	lightZNear += translateZ;
 	lightZFar += translateZ;
@@ -322,8 +356,6 @@ float calcCSMShadow(uint cascaded)
 
 	return 1.0 - shadow * (1.0 - ambient);
 }
-
-const bool debug_layer = false;
 
 void main()
 {

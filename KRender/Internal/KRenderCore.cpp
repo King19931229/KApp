@@ -474,7 +474,7 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 
 					ui->SliderFloat("Shadow ShadowRange", &KRenderGlobal::CascadedShadowMap.GetShadowRange(), 0.1f, 5000.0f);
 					ui->SliderFloat("Shadow SplitLambda", &KRenderGlobal::CascadedShadowMap.GetSplitLambda(), 0.001f, 1.0f);
-					ui->SliderFloat("Shadow LightSize", &KRenderGlobal::CascadedShadowMap.GetLightSize(), 0.0f, 1.0f);
+					ui->SliderFloat("Shadow LightSize", &KRenderGlobal::CascadedShadowMap.GetLightSize(), 0.0f, 0.1f);
 					ui->CheckBox("Shadow FixToScene", &KRenderGlobal::CascadedShadowMap.GetFixToScene());
 					ui->CheckBox("Shadow FixTexel", &KRenderGlobal::CascadedShadowMap.GetFixTexel());
 					ui->CheckBox("Shadow Minimize Draw", &KRenderGlobal::CascadedShadowMap.GetMinimizeShadowDraw());
