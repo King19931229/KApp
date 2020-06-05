@@ -267,8 +267,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\Dependency\glfw3\Publish\Debug\x86;..\Dependency\imgui\Publish\Debug\x86;..\Dependency\VulkanSDK-1.2.135.0\Lib32</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\Dependency\glfw3\Publish\Debug\x86;..\Dependency\imgui\Publish\Debug\x86;..\Dependency\VulkanSDK-1.2.135.0\Lib32;..\Dependency\glslang\Publish\Debug\x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -292,8 +292,8 @@
       <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;..\Dependency\imgui\Publish\Debug\x64;..\Dependency\Optick\lib\x64\debug\;..\Dependency\VulkanSDK-1.2.135.0\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;..\Dependency\imgui\Publish\Debug\x64;..\Dependency\Optick\lib\x64\debug\;..\Dependency\VulkanSDK-1.2.135.0\Lib;..\Dependency\glslang\Publish\Debug\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -318,8 +318,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\Dependency\glfw3\Publish\Release\x86;..\Dependency\imgui\Publish\Release\x86;..\Dependency\VulkanSDK-1.2.135.0\Lib32</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\Dependency\glfw3\Publish\Release\x86;..\Dependency\imgui\Publish\Release\x86;..\Dependency\VulkanSDK-1.2.135.0\Lib32;..\Dependency\glslang\Publish\Release\x86</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -343,8 +343,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;..\Dependency\imgui\Publish\Release\x64;..\Dependency\Optick\lib\x64\release\;..\Dependency\VulkanSDK-1.2.135.0\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;..\Dependency\imgui\Publish\Release\x64;..\Dependency\Optick\lib\x64\release\;..\Dependency\VulkanSDK-1.2.135.0\Lib;..\Dependency\glslang\Publish\Release\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

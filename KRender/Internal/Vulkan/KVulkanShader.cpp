@@ -4,6 +4,8 @@
 #include "KBase/Interface/IKLog.h"
 #include "KBase/Interface/IKDataStream.h"
 #include "KBase/Interface/IKFileSystem.h"
+#include "KBase/Interface/IKSourceFile.h"
+
 #include "KBase/Publish/KStringParser.h"
 #include "KBase/Publish/KStringUtil.h"
 #include "KBase/Publish/KFileTool.h"

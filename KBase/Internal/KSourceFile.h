@@ -13,6 +13,7 @@ protected:
 	std::string m_FileName;
 	std::string m_OriginalSource;
 	std::string m_FinalSource;
+	IOHookerPtr m_Hooker;
 
 	typedef std::set<std::string> IncludeFiles;
 
@@ -29,7 +30,7 @@ protected:
 	FileInfos m_FileInfos;
 
 	bool EarseComment(std::string& out, const std::string& in);
-	IKDataStreamPtr GetFileData(std::string &filePath);
+	IKDataStreamPtr GetFileData(const std::string &filePath);
 
 	bool Trim(std::string& input);
 	bool Parse(std::string& output, const std::string& dir, const std::string& file, FileInfo* pParent);
@@ -41,6 +42,7 @@ public:
 	virtual bool Reload();
 	virtual bool Clear();
 	virtual bool SaveAsFile(const char* pszFilePath, bool bUTF8BOM);
+	virtual bool SetIOHooker(IOHookerPtr hooker);
 	virtual const char* GetFilePath();
 	virtual const char* GetFileDirPath();
 	virtual const char* GetFileName();

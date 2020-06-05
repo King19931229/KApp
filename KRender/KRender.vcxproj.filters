@@ -336,14 +336,14 @@
     <ClInclude Include="Interface\IKCameraController.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\IKQuery.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Vulkan\KVulkanQuery.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Object\KOcclusionBox.h">
       <Filter>Internal\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKQuery.h">
+      <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

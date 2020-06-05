@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="GlslangToSpv.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="InReadableOrder.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Logger.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SpvBuilder.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SpvPostProcess.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="doc.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SpvTools.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="disassemble.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="bitutils.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="spirv.hpp">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="GLSL.std.450.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="GLSL.ext.EXT.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="GLSL.ext.KHR.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="GlslangToSpv.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="hex_float.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SpvBuilder.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="spvIR.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="doc.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SpvTools.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="disassemble.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="GLSL.ext.AMD.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="GLSL.ext.NV.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="NonSemanticDebugPrintf.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{456C339B-0597-3A44-9BC5-47244FBD8CF8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

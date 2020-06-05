@@ -122,7 +122,7 @@ namespace KFileTool
 			// stores length of input string. 
 			size_t len_A = path.length();
 
-			for (int i = 0; i < len_A; i++)
+			for (size_t i = 0; i < len_A; i++)
 			{
 				// we will clear the temporary string 
 				// every time to accomodate new directory  

@@ -48,7 +48,7 @@ bool KJsonDocument::ParseFromFile(const char* jsonFile)
 
 	infile.open(jsonFile, std::ifstream::in);
 	infile.seekg(0, std::ios::end);
-	str.reserve(infile.tellg());
+	str.reserve((size_t)infile.tellg());
 	infile.seekg(0, std::ios::beg);
 
 	str.assign((std::istreambuf_iterator<char>(infile)), std::istreambuf_iterator<char>());

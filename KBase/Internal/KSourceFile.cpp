@@ -9,6 +9,7 @@ EXPORT_DLL IKSourceFilePtr GetSourceFile()
 }
 
 KSourceFile::KSourceFile()
+	: m_Hooker(nullptr)
 {
 
 }
@@ -66,21 +67,35 @@ bool KSourceFile::EarseComment(std::string& out, const std::string& in)
 	return true;
 }
 
-IKDataStreamPtr KSourceFile::GetFileData(std::string &filePath)
+IKDataStreamPtr KSourceFile::GetFileData(const std::string &filePath)
 {
-	char szBuffer[1024] = {0};
+	char szBuffer[1024] = { 0 };
 	std::string rawFileData, fileData;
-	IKDataStreamPtr pData = GetDataStream(IT_MEMORY);
-	if(pData->Open(filePath.c_str(), IM_READ))
+
+	IKDataStreamPtr pData = nullptr;
+	if (m_Hooker == nullptr)
 	{
-		while(pData->ReadLine(szBuffer, sizeof(szBuffer)))
+		pData = GetDataStream(IT_MEMORY);
+		if (!pData->Open(filePath.c_str(), IM_READ))
+		{
+			pData = nullptr;
+		}
+	}
+	else
+	{
+		pData = m_Hooker->Open(filePath.c_str());
+	}
+
+	if (pData)
+	{
+		while (pData->ReadLine(szBuffer, sizeof(szBuffer)))
 		{
 			rawFileData += szBuffer;
 			rawFileData += "\n";
 		}
-		if(*rawFileData.rbegin() == '\n')
+		if (*rawFileData.rbegin() == '\n')
 			rawFileData.erase(rawFileData.end() - 1);
-		if(EarseComment(fileData, rawFileData))
+		if (EarseComment(fileData, rawFileData))
 		{
 			pData->Close();
 			pData = GetDataStream(IT_MEMORY);
@@ -88,9 +103,7 @@ IKDataStreamPtr KSourceFile::GetFileData(std::string &filePath)
 			pData->Write(fileData.c_str(), fileData.length() + 1);
 		}
 		pData->Seek(0);
-		return pData;
 	}
-	pData.reset();
 	return pData;
 }
 
@@ -109,10 +122,9 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 		char szInclude[64] = {0};
 
 		IKDataStreamPtr pData = GetFileData(filePath);
-		FileInfo *pFileInfo = nullptr;
-
 		if(pData)
 		{
+			FileInfo *pFileInfo = nullptr;
 			// 处理include信息
 			{
 				FileInfos::iterator it = m_FileInfos.find(file);
@@ -262,6 +274,12 @@ bool KSourceFile::SaveAsFile(const char* pszFilePath, bool bUTF8BOM)
 		}
 	}
 	return false;
+}
+
+bool KSourceFile::SetIOHooker(IOHookerPtr hooker)
+{
+	m_Hooker = hooker;
+	return true;
 }
 
 const char* KSourceFile::GetFilePath()
