@@ -114,6 +114,7 @@ protected:
 
 	bool CreateLayout();
 	bool CreateDestcription();
+	bool UpdateDestcription();
 	bool DestroyDevice();
 	bool ClearHandle();
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);

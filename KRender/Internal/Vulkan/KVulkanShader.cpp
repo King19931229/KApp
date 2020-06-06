@@ -13,6 +13,9 @@
 
 #include "Internal/KRenderGlobal.h"
 
+#include "SPIRV/GlslangToSpv.h"
+#include "spirv_cross.hpp"
+
 #include <assert.h>
 
 static const char* CACHE_PATH = "ShaderCached";
@@ -156,6 +159,13 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 	return true;
 }
 
+bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv)
+{
+	spirv_cross::Compiler compiler(spirv);
+	spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+	return true;
+}
+
 bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pModule)
 {
 	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
@@ -169,6 +179,8 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 		std::vector<unsigned int> spirv;
 		if (GenerateSpirV(m_Type, finalSource, spirv))
 		{
+			GenerateReflection(spirv);
+
 			std::string root;
 			system->GetRoot(root);
 

@@ -3,8 +3,6 @@
 #include "Interface/IKShader.h"
 
 #include "glslang/Public/ShaderLang.h"
-#include "SPIRV/GlslangToSpv.h"
-
 #include <unordered_map>
 
 class KSpirvBuiltInResource : public TBuiltInResource

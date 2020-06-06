@@ -434,6 +434,13 @@ bool KVulkanPipeline::CreateDestcription()
 
 	VK_ASSERT_RESULT(vkAllocateDescriptorSets(KVulkanGlobal::device, &allocInfo, &m_DescriptorSet));
 
+	return true;
+}
+
+bool KVulkanPipeline::UpdateDestcription()
+{
+	ASSERT_RESULT(m_DescriptorSet != VK_NULL_HANDLE);
+
 	// 更新描述集合
 	std::vector<VkWriteDescriptorSet> writeDescriptorSet;
 	std::vector<VkDescriptorBufferInfo> descBufferInfo;
@@ -443,7 +450,7 @@ bool KVulkanPipeline::CreateDestcription()
 	descBufferInfo.reserve(m_Uniforms.size());
 	descImageInfo.reserve(m_Samplers.size());
 
-	for(auto& pair : m_Uniforms)
+	for (auto& pair : m_Uniforms)
 	{
 		unsigned int location = pair.first;
 		UniformBufferBindingInfo& info = pair.second;
@@ -478,7 +485,7 @@ bool KVulkanPipeline::CreateDestcription()
 		writeDescriptorSet.push_back(uniformDescriptorWrite);
 	}
 
-	for(auto& pair : m_Samplers)
+	for (auto& pair : m_Samplers)
 	{
 		unsigned int location = pair.first;
 		SamplerBindingInfo& info = pair.second;
@@ -504,7 +511,7 @@ bool KVulkanPipeline::CreateDestcription()
 
 		VkWriteDescriptorSet samplerDescriptorWrite = {};
 
-		samplerDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET ;
+		samplerDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		// 写入的描述集合
 		samplerDescriptorWrite.dstSet = m_DescriptorSet;
 		// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
@@ -606,6 +613,7 @@ bool KVulkanPipeline::GetHandle(IKRenderTargetPtr target, IKPipelineHandlePtr& h
 	if (m_DescriptorSetLayout != VK_NULL_HANDLE && m_DescriptorPool == VK_NULL_HANDLE && m_DescriptorSet == VK_NULL_HANDLE)
 	{
 		CreateDestcription();
+		UpdateDestcription();
 	}
 
 	if (target)

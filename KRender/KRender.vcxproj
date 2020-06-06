@@ -255,7 +255,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/VulkanSDK-1.2.135.0/Include/;../Dependency/glslang/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/VulkanSDK-1.2.135.0/Include/;../Dependency/glslang/;../Dependency/SPIRV-Cross/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
@@ -267,8 +267,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\Dependency\glfw3\Publish\Debug\x86;..\Dependency\imgui\Publish\Debug\x86;..\Dependency\VulkanSDK-1.2.135.0\Lib32;..\Dependency\glslang\Publish\Debug\x86</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib;OGLCompilersDLL.lib;HLSL.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\Dependency\glfw3\Publish\Debug\x86;..\Dependency\imgui\Publish\Debug\x86;..\Dependency\VulkanSDK-1.2.135.0\Lib32;..\Dependency\glslang\Publish\Debug\x86;..\Dependency\SPIRV-Cross\Publish\Debug\x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib;OGLCompilersDLL.lib;HLSL.lib;SPIRV-Cross.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -278,7 +278,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/VulkanSDK-1.2.135.0/Include/;../Dependency/glslang/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/VulkanSDK-1.2.135.0/Include/;../Dependency/glslang/;../Dependency/SPIRV-Cross/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
@@ -292,8 +292,8 @@
       <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;..\Dependency\imgui\Publish\Debug\x64;..\Dependency\Optick\lib\x64\debug\;..\Dependency\VulkanSDK-1.2.135.0\Lib;..\Dependency\glslang\Publish\Debug\x64</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib;OGLCompilersDLL.lib;HLSL.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;..\Dependency\imgui\Publish\Debug\x64;..\Dependency\Optick\lib\x64\debug\;..\Dependency\VulkanSDK-1.2.135.0\Lib;..\Dependency\glslang\Publish\Debug\x64;..\Dependency\SPIRV-Cross\Publish\Debug\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib;OGLCompilersDLL.lib;HLSL.lib;SPIRV-Cross.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -305,7 +305,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/VulkanSDK-1.2.135.0/Include/;../Dependency/glslang/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/VulkanSDK-1.2.135.0/Include/;../Dependency/glslang/;../Dependency/SPIRV-Cross/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
@@ -318,8 +318,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib;OGLCompilersDLL.lib;HLSL.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\Dependency\glfw3\Publish\Release\x86;..\Dependency\imgui\Publish\Release\x86;..\Dependency\VulkanSDK-1.2.135.0\Lib32;..\Dependency\glslang\Publish\Release\x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib;OGLCompilersDLL.lib;HLSL.lib;SPIRV-Cross.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\Dependency\glfw3\Publish\Release\x86;..\Dependency\imgui\Publish\Release\x86;..\Dependency\VulkanSDK-1.2.135.0\Lib32;..\Dependency\glslang\Publish\Release\x86;..\Dependency\SPIRV-Cross\Publish\Release\x86</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -330,7 +330,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/VulkanSDK-1.2.135.0/Include/;../Dependency/glslang/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/VulkanSDK-1.2.135.0/Include/;../Dependency/glslang/;../Dependency/SPIRV-Cross/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
@@ -343,8 +343,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;..\Dependency\imgui\Publish\Release\x64;..\Dependency\Optick\lib\x64\release\;..\Dependency\VulkanSDK-1.2.135.0\Lib;..\Dependency\glslang\Publish\Release\x64</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib;OGLCompilersDLL.lib;HLSL.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;..\Dependency\imgui\Publish\Release\x64;..\Dependency\Optick\lib\x64\release\;..\Dependency\VulkanSDK-1.2.135.0\Lib;..\Dependency\glslang\Publish\Release\x64;..\Dependency\SPIRV-Cross\Publish\Release\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;SPIRV.lib;OGLCompilersDLL.lib;HLSL.lib;SPIRV-Cross.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
