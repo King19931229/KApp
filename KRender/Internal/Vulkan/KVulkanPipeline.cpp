@@ -198,7 +198,7 @@ bool KVulkanPipeline::SetStencilEnable(bool enable)
 	return true;
 }
 
-bool KVulkanPipeline::SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader)
+bool KVulkanPipeline::SetShader(ShaderType shaderType, IKShaderPtr shader)
 {
 	switch (shaderType)
 	{

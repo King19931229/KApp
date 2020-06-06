@@ -269,14 +269,6 @@ float pcfShadow(sampler2D shadowMap,
 	float lightZNear, float lightZFar,
 	vec2 uv, float z, vec2 dz_duv, float zEye)
 {
-#if 0
-	// Do a blocker search to enable early out
-	float accumBlockerDepth, numBlockers, maxBlockers;
-	vec2 searchRegionRadius = searchRegionRadiusUV(lightRadiusUV, lightZNear, zEye);
-	findBlocker(accumBlockerDepth, numBlockers, maxBlockers, shadowMap, uv, z, dz_duv, searchRegionRadius);
-	if (numBlockers == 0.0)
-		return 0.0;
-#endif
 	vec2 filterRadius = 0.1 * lightRadiusUV;
 	return pcfFilter(shadowMap, uv, z, dz_duv, filterRadius);
 }

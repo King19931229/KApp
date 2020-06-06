@@ -32,19 +32,19 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 
 	m_IndexDraw = true;
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("prez.vert", m_PreZVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("prez.frag", m_PreZFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "prez.vert", m_PreZVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "prez.frag", m_PreZFSShader, true));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("diffuse.vert", m_SceneVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("diffuseinstance.vert", m_SceneVSInstanceShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("diffuse.frag", m_SceneFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "diffuse.vert", m_SceneVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "diffuseinstance.vert", m_SceneVSInstanceShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "diffuse.frag", m_SceneFSShader, true));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("shadow.vert", m_ShadowVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("shadow.frag", m_ShadowFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow.vert", m_ShadowVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow.frag", m_ShadowFSShader, true));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("cascadedshadow.vert", m_CascadedShadowVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("cascadedshadowinstance.vert", m_CascadedShadowVSInstanceShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("shadow.frag", m_CascadedShadowFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "cascadedshadow.vert", m_CascadedShadowVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "cascadedshadowinstance.vert", m_CascadedShadowVSInstanceShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow.frag", m_CascadedShadowFSShader, true));
 
 	for(size_t i = 0; i < PIPELINE_STAGE_DEBUG_LINE; ++i)
 	{
@@ -78,8 +78,8 @@ bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData,
 		m_IndexDraw = false;
 	}
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("debug.vert", m_DebugVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("debug.frag", m_DebugFSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "debug.vert", m_DebugVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "debug.frag", m_DebugFSShader, true));
 
 	PipelineStage debugStage = PIPELINE_STAGE_UNKNOWN;
 	switch (primtive)

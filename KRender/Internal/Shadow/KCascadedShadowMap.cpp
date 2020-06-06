@@ -40,7 +40,7 @@ KCascadedShadowMap::KCascadedShadowMap()
 
 	m_DepthBiasSlope[0] = 5.0f;
 	m_DepthBiasSlope[1] = 3.5f;
-	m_DepthBiasSlope[2] = 1.75f;
+	m_DepthBiasSlope[2] = 3.25f;
 	m_DepthBiasSlope[3] = 1.0f;
 
 	m_ShadowCamera.SetPosition(glm::vec3(1.0f, 1.0f, 1.0f));
@@ -297,8 +297,8 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 		renderDevice->CreateShader(m_DebugVertexShader);
 		renderDevice->CreateShader(m_DebugFragmentShader);
 
-		ASSERT_RESULT(m_DebugVertexShader->InitFromFile("debugquad.vert", false));
-		ASSERT_RESULT(m_DebugFragmentShader->InitFromFile("debugquad.frag", false));
+		ASSERT_RESULT(m_DebugVertexShader->InitFromFile(ST_VERTEX, "debugquad.vert", false));
+		ASSERT_RESULT(m_DebugFragmentShader->InitFromFile(ST_FRAGMENT, "debugquad.frag", false));
 
 		renderDevice->CreateVertexBuffer(m_BackGroundVertexBuffer);
 		m_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);

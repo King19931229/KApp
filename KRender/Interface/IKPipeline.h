@@ -32,7 +32,7 @@ struct IKPipeline
 	virtual bool SetStencilRef(uint32_t ref) = 0;
 	virtual bool SetStencilEnable(bool enable) = 0;
 	
-	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader) = 0;
+	virtual bool SetShader(ShaderType shaderType, IKShaderPtr shader) = 0;
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
 	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler) = 0;
 	virtual bool SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler) = 0;

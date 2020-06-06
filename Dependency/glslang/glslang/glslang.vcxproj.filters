@@ -91,6 +91,9 @@
     <ClCompile Include="CInterface\glslang_c_interface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="OSDependent\Windows\ossource.cpp">
+      <Filter>OSDependent\Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Public\ShaderLang.h">
@@ -219,6 +222,12 @@
     </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{C350E9E6-AD9D-3588-927F-38D8DEFC8086}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OSDependent">
+      <UniqueIdentifier>{534f66dc-43ed-44e2-b40b-6b6970295c73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OSDependent\Windows">
+      <UniqueIdentifier>{99474c1b-4d0b-44ec-822e-b29279b4e17e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

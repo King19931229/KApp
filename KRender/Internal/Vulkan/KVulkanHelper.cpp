@@ -327,7 +327,7 @@ namespace KVulkanHelper
 		}
 	}
 
-	bool ShaderTypeFlagToVkShaderStageFlagBits(ShaderTypeFlag shaderTypeFlag, VkShaderStageFlagBits& bit)
+	bool ShaderTypeFlagToVkShaderStageFlagBits(ShaderType shaderTypeFlag, VkShaderStageFlagBits& bit)
 	{
 		switch (shaderTypeFlag)
 		{
@@ -347,8 +347,8 @@ namespace KVulkanHelper
 	bool ShaderTypesToVkShaderStageFlag(ShaderTypes shaderTypes, VkFlags& flags)
 	{
 		flags = 0;
-		const ShaderTypeFlag candidate[]  = {ST_VERTEX, ST_FRAGMENT};
-		for(ShaderTypeFlag c : candidate)
+		const ShaderType candidate[]  = {ST_VERTEX, ST_FRAGMENT};
+		for(ShaderType c : candidate)
 		{
 			if(shaderTypes & c)
 			{

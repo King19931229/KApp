@@ -4,7 +4,6 @@
 #include "KBase/Interface/IKLog.h"
 #include "KBase/Interface/IKDataStream.h"
 #include "KBase/Interface/IKFileSystem.h"
-#include "KBase/Interface/IKSourceFile.h"
 
 #include "KBase/Publish/KStringParser.h"
 #include "KBase/Publish/KStringUtil.h"
@@ -20,6 +19,7 @@ static const char* CACHE_PATH = "ShaderCached";
 
 KVulkanShader::KVulkanShader()
 	: m_ShaderModule(VK_NULL_HANDLE),
+	m_Type(ST_VERTEX),
 	m_ResourceState(RS_UNLOADED),
 	m_LoadTask(nullptr)
 {
@@ -106,106 +106,112 @@ bool KVulkanShader::SetConstantEntry(uint32_t constantID, uint32_t offset, size_
 	return false;	
 }
 
-bool KVulkanShader::InitFromFileImpl(const std::string& _path, VkShaderModule* pModule)
+static bool ShaderTypeToEShLanguage(ShaderType type, EShLanguage& language)
 {
-	std::string path = _path;
-#ifdef __ANDROID__
-	// TODO
-	path = path + ".spv";
-	ASSERT_RESULT(KFileTool::PathJoin(CACHE_PATH, path, path));
-#endif
-	if(KStringUtil::EndsWith(path, ".spv"))
+	switch (type)
 	{
-		IKDataStreamPtr pData = nullptr;
-
-		IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
-		if (system && system->Open(path, IT_FILEHANDLE, pData))
-		{
-			size_t uSize = pData->GetSize();
-			std::vector<char> code;
-			code.resize(uSize);
-			if(pData->Read(code.data(), uSize))
-			{
-				if(InitFromStringImpl(code, pModule))
-				{
-					return true;
-				}
-			}
-		}
+	case ST_VERTEX:
+		language = EShLangVertex;
+		return true;
+	case ST_FRAGMENT:
+		language = EShLangFragment;
+		return true;
+	default:
+		return false;
 	}
-	else
+}
+
+bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector<unsigned int>& spirv)
+{
+	static std::mutex sSpirVLock;
+
+	EShLanguage language = EShLangVertex;
+	ASSERT_RESULT(ShaderTypeToEShLanguage(type, language));
+
+	std::unique_ptr<glslang::TShader> shader(new glslang::TShader(language));
+	ASSERT_RESULT(code);
+	shader->setStrings(&code, 1);
+
+	EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
+
+	std::lock_guard<decltype(sSpirVLock)> lockGuard(sSpirVLock);
 	{
-#ifdef _WIN32
-#ifdef _WIN64
-		std::string shaderCompiler = "../../../External/x64/glslc.exe";
-#else
-		std::string shaderCompiler = "../../../External/x86/glslc.exe";
-#endif
-		if(KFileTool::IsPathExist(shaderCompiler))
+		if (!shader->parse(KRenderGlobal::ShaderManager.GetSpirVBuildInResource(), 310, false, messages))
 		{
-			std::string codePath = path + ".spv";
-			ASSERT_RESULT(KFileTool::PathJoin(CACHE_PATH, codePath, codePath));
+			KG_LOGE(LM_RENDER, "[Generate SpirV] Parse Failed %s", shader->getInfoLog());
+			KG_LOGE(LM_RENDER, "[Generate SpirV] Sources:\n%s", code);
+			return false;
+		}
 
-			std::string parentFolder;
-			if(KFileTool::ParentFolder(codePath, parentFolder))
-			{
-				ASSERT_RESULT(KFileTool::CreateFolder(parentFolder, true));
-			}
+		std::unique_ptr<glslang::TProgram> program(new glslang::TProgram());
+		program->addShader(shader.get());
+		if (!program->link(messages))
+		{
+			KG_LOGE(LM_RENDER, "[Generate SpirV] Link Failed %s", program->getInfoLog());
+			KG_LOGE(LM_RENDER, "[Generate SpirV] Sources:\n%s", code);
+			return false;
+		}
+		glslang::GlslangToSpv(*program->getIntermediate(language), spirv);
+	}
+	return true;
+}
 
+bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pModule)
+{
+	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
+	ASSERT_RESULT(system);
+
+	IKSourceFilePtr shaderSource = GetSourceFile();
+	shaderSource->SetIOHooker(IKSourceFile::IOHookerPtr(new KVulkanShaderSourceHooker(system)));
+	if (shaderSource->Open(path.c_str()))
+	{
+		const char* finalSource = shaderSource->GetFinalSource();
+		std::vector<unsigned int> spirv;
+		if (GenerateSpirV(m_Type, finalSource, spirv))
+		{
 			std::string root;
-			IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
-			ASSERT_RESULT(system);
 			system->GetRoot(root);
 
-			std::string cacheRoot;
-			ASSERT_RESULT(KFileTool::PathJoin(root, CACHE_PATH, cacheRoot));
-
-			if (!KFileTool::IsPathExist(cacheRoot))
 			{
-				KFileTool::CreateFolder(cacheRoot);
+				std::string cachePath = path + ".spv";
+				std::string cacheFolder;
+				KFileTool::PathJoin(root, CACHE_PATH, cacheFolder);
+				KFileTool::PathJoin(cacheFolder, cachePath, cachePath);
+				KFileTool::ParentFolder(cachePath, cacheFolder);
+				if (!KFileTool::IsPathExist(cacheFolder))
+				{
+					KFileTool::CreateFolder(cacheFolder, true);
+				}
+
+				IKDataStreamPtr writeFile = GetDataStream(IT_FILEHANDLE);
+				writeFile->Open(cachePath.c_str(), IM_WRITE);
+				writeFile->Write(spirv.data(), spirv.size() * sizeof(decltype(spirv[0])));
+				writeFile->Close();
 			}
 
-			std::string message;
-			if (KSystem::WaitProcess(shaderCompiler.c_str(), path + " --target-env=vulkan1.0 --target-spv=spv1.0 -o " + codePath, root, message))
+			if (InitFromStringImpl((const char*)spirv.data(),
+				spirv.size() * sizeof(decltype(spirv[0])),
+				pModule))
 			{
-				IKDataStreamPtr pData = nullptr;
-				if (system->Open(codePath, IT_FILEHANDLE, pData))
-				{
-					size_t uSize = pData->GetSize();
-					std::vector<char> code;
-					code.resize(uSize);
-					if(pData->Read(code.data(), uSize))
-					{
-						if(InitFromStringImpl(code, pModule))
-						{
-							return true;
-						}
-						else
-						{
-							return false;
-						}
-					}
-				}
+				return true;
 			}
 			else
 			{
-				KG_LOGE(LM_RENDER, "[Vulkan Shader Compile Error]: [%s]\n%s\n", path.c_str(), message.c_str());
 				return false;
 			}
 		}
-#endif
 	}
 	return false;
 }
 
-bool KVulkanShader::InitFromStringImpl(const std::vector<char>& code, VkShaderModule* pModule)
+bool KVulkanShader::InitFromStringImpl(const char* code, size_t len, VkShaderModule* pModule)
 {
 	using namespace KVulkanGlobal;
 
 	VkShaderModuleCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size();
-	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+	createInfo.codeSize = len;
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(code);
 
 	if (vkCreateShaderModule(device, &createInfo, nullptr, pModule) == VK_SUCCESS)
 	{
@@ -216,11 +222,12 @@ bool KVulkanShader::InitFromStringImpl(const std::vector<char>& code, VkShaderMo
 	return false;
 }
 
-bool KVulkanShader::InitFromFile(const std::string& path, bool async)
+bool KVulkanShader::InitFromFile(ShaderType type, const std::string& path, bool async)
 {
 	CancelDeviceTask();
 
 	m_Path = path;
+	m_Type = type;
 
 	auto loadImpl = [=]()->bool
 	{
@@ -255,18 +262,19 @@ bool KVulkanShader::InitFromFile(const std::string& path, bool async)
 	}
 }
 
-bool KVulkanShader::InitFromString(const std::vector<char>& code, bool async)
+bool KVulkanShader::InitFromString(ShaderType type, const std::vector<char>& code, bool async)
 {
 	CancelDeviceTask();
 
 	m_Path = "";
+	m_Type = type;
 
 	auto loadImpl = [=]()->bool
 	{
 		m_ResourceState = RS_DEVICE_LOADING;
 		VkShaderModule module = VK_NULL_HANDLE;
 		DestroyDevice(m_ShaderModule);
-		if (InitFromStringImpl(code, &module))
+		if (InitFromStringImpl(code.data(), code.size(), &module))
 		{
 			m_ShaderModule = module;
 			m_ResourceState = RS_DEVICE_LOADED;
@@ -350,6 +358,11 @@ bool KVulkanShader::UnInit()
 	m_ResourceState = RS_UNLOADED;
 
 	return true;
+}
+
+ShaderType KVulkanShader::GetType()
+{
+	return m_Type;
 }
 
 const char* KVulkanShader::GetPath()

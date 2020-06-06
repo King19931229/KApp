@@ -109,7 +109,7 @@ IKDataStreamPtr KSourceFile::GetFileData(const std::string &filePath)
 
 bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::string& file, FileInfo* pParent)
 {
-	if(!(dir.empty() || file.empty()))
+	if(!(file.empty()))
 	{
 		std::string filePath = dir + file;
 

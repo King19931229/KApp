@@ -1,8 +1,30 @@
 #pragma once
 #include "Interface/IKShader.h"
+#include "KBase/Interface/IKSourceFile.h"
+#include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Publish/KTaskExecutor.h"
 #include "KVulkanConfig.h"
 #include <map>
+
+class KVulkanShaderSourceHooker : public IKSourceFile::IOHooker
+{
+protected:
+	IKFileSystemPtr m_FileSys;
+public:
+	KVulkanShaderSourceHooker(IKFileSystemPtr fileSys)
+		: m_FileSys(fileSys)
+	{}
+
+	IKDataStreamPtr Open(const char* pszPath) override
+	{
+		IKDataStreamPtr ret = nullptr;
+		if (m_FileSys->Open(pszPath, IT_MEMORY, ret))
+		{
+			return ret;
+		}
+		return nullptr;
+	}
+};
 
 class KVulkanShader : public IKShader
 {
@@ -10,6 +32,7 @@ protected:
 	VkShaderModule m_ShaderModule;
 	std::vector<VkSpecializationMapEntry> m_SpecializationMapEntry;
 	VkSpecializationInfo m_SpecializationInfo;
+	ShaderType m_Type;
 
 	struct ConstantEntryInfo
 	{
@@ -28,19 +51,22 @@ protected:
 	bool InitConstant();
 	bool DestroyDevice(VkShaderModule& module);
 	bool InitFromFileImpl(const std::string& path, VkShaderModule* pModule);
-	bool InitFromStringImpl(const std::vector<char>& code, VkShaderModule* pModule);
+	bool InitFromStringImpl(const char* code, size_t len, VkShaderModule* pModule);
 
 	bool CancelDeviceTask();
 	bool WaitDeviceTask();
+
+	static bool GenerateSpirV(ShaderType type, const char* code, std::vector<unsigned int>& spirv);
 public:
 	KVulkanShader();
 	~KVulkanShader();
 
 	virtual bool SetConstantEntry(uint32_t constantID, uint32_t offset, size_t size, const void* data);
-	virtual bool InitFromFile(const std::string& path, bool async);
-	virtual bool InitFromString(const std::vector<char>& code, bool async);
+	virtual bool InitFromFile(ShaderType type, const std::string& path, bool async);
+	virtual bool InitFromString(ShaderType type, const std::vector<char>& code, bool async);
 	
 	virtual bool UnInit();
+	virtual ShaderType GetType();
 	virtual const char* GetPath();
 	virtual bool Reload();
 

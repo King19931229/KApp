@@ -210,6 +210,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="OSDependent\Windows\ossource.cpp" />
     <None Include="MachineIndependent\glslang.m4" />
     <None Include="MachineIndependent\glslang.y" />
     <ClCompile Include="MachineIndependent\glslang_tab.cpp" />

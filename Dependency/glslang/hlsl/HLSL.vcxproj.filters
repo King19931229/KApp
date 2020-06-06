@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="hlslAttributes.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="hlslGrammar.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="hlslOpMap.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="hlslParseables.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="hlslParseHelper.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="hlslScanContext.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="hlslTokenStream.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="hlslAttributes.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="hlslGrammar.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="hlslOpMap.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="hlslParseables.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="hlslParseHelper.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="hlslScanContext.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="hlslTokens.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="hlslTokenStream.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{992bf22f-0072-433a-a53c-19e48440c844}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -60,9 +60,9 @@ KOcclusionBox::~KOcclusionBox()
 
 void KOcclusionBox::LoadResource()
 {
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("occlusion.vert", m_VertexShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("occlusioninstance.vert", m_VertexInstanceShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire("occlusion.frag", m_FragmentShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "occlusion.vert", m_VertexShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "occlusioninstance.vert", m_VertexInstanceShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "occlusion.frag", m_FragmentShader, false));
 
 	m_VertexBuffer->InitMemory(ARRAY_SIZE(ms_Positions), sizeof(ms_Positions[0]), ms_Positions);
 	m_VertexBuffer->InitDevice(false);

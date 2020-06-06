@@ -9,7 +9,7 @@ enum RenderDevice
 	RENDER_DEVICE_VULKAN
 };
 
-enum ShaderTypeFlag
+enum ShaderType
 {
 	ST_VERTEX = 0x01,
 	ST_FRAGMENT = 0x02,

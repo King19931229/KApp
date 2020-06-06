@@ -144,7 +144,7 @@ public:
 	virtual bool SetStencilRef(uint32_t ref);
 	virtual bool SetStencilEnable(bool enable);
 
-	virtual bool SetShader(ShaderTypeFlag shaderType, IKShaderPtr shader);
+	virtual bool SetShader(ShaderType shaderType, IKShaderPtr shader);
 
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
 	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
