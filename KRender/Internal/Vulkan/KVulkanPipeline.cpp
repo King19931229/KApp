@@ -20,6 +20,8 @@ KVulkanPipeline::KVulkanPipeline() :
 	m_DepthWrite(VK_TRUE),
 	m_DepthTest(VK_TRUE),
 	m_DepthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL),
+	m_UniformBufferDescriptorCount(0),
+	m_SamplerDescriptorCount(0),
 	m_DescriptorSetLayout(VK_NULL_HANDLE),
 	m_DescriptorPool(VK_NULL_HANDLE),
 	m_DescriptorSet(VK_NULL_HANDLE),
@@ -311,48 +313,152 @@ bool KVulkanPipeline::CreateLayout()
 	ASSERT_RESULT(m_DescriptorSetLayout == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
 
+	m_UniformBufferDescriptorCount = 0;
+	m_SamplerDescriptorCount = 0;
+
 	/*
 	DescriptorSetLayout 仅仅声明UBO Sampler绑定的位置
 	实际UBO Sampler 句柄绑定在描述集合里指定
 	*/
 	std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
 
-	for(auto& pair : m_Uniforms)
+	auto IsDuplicateLayoutBinding = [](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs)->bool
 	{
-		unsigned int location = pair.first;
-		UniformBufferBindingInfo& info = pair.second;
+		if (lhs.binding != rhs.binding)
+			return false;
+		if (lhs.descriptorType != rhs.descriptorType)
+			return false;
+		if (lhs.descriptorCount != rhs.descriptorCount)
+			return false;
+		if (lhs.pImmutableSamplers != rhs.pImmutableSamplers)
+			return false;
+		return true;
+	};
 
-		VkFlags stageFlags = 0;
-		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(info.shaderTypes, stageFlags));
+	// VertexShader Binding
+	{
+		const KShaderInformation& vertexInformation = m_VertexShader->GetInformation();
 
-		VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-		// 与Shader中绑定位置对应
-		uboLayoutBinding.binding = location;
-		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		// 声明UBO Buffer数组长度 这里不使用数组
-		uboLayoutBinding.descriptorCount = 1;
-		// 声明哪个阶段Shader能够使用上此UBO
-		uboLayoutBinding.stageFlags = stageFlags; // VK_SHADER_STAGE_ALL_GRAPHICS
-		uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+		for (const KShaderInformation::Constant& constant : vertexInformation.constants)
+		{
+			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+			// 与Shader中绑定位置对应
+			uboLayoutBinding.binding = constant.bindingIndex;
+			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			// 声明UBO Buffer数组长度 这里不使用数组
+			uboLayoutBinding.descriptorCount = 1;
+			// 声明哪个阶段Shader能够使用上此UBO
+			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+			
+			auto it = std::find_if(layoutBindings.begin(), layoutBindings.end(),
+				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
+			{
+				return IsDuplicateLayoutBinding(lhs, uboLayoutBinding);
+			});
 
-		layoutBindings.push_back(uboLayoutBinding);
+			if (it == layoutBindings.end())
+			{
+				layoutBindings.push_back(uboLayoutBinding);
+				++m_UniformBufferDescriptorCount;
+			}
+			else
+			{
+				(*it).stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
+			}
+		}
+
+		for (const KShaderInformation::Texture& texture : vertexInformation.textures)
+		{
+			VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+			// 与Shader中绑定位置对应
+			samplerLayoutBinding.binding = texture.bindingIndex;
+			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			// 这里不使用数组
+			samplerLayoutBinding.descriptorCount = 1;
+			// 声明哪个阶段Shader能够使用上此Sampler
+			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+			auto it = std::find_if(layoutBindings.begin(), layoutBindings.end(),
+				[&samplerLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
+			{
+				return IsDuplicateLayoutBinding(lhs, samplerLayoutBinding);
+			});
+
+			if (it == layoutBindings.end())
+			{
+				layoutBindings.push_back(samplerLayoutBinding);
+				++m_SamplerDescriptorCount;
+			}
+			else
+			{
+				(*it).stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
+			}
+		}
 	}
 
-	for(auto& pair : m_Samplers)
+	// FragmentShader Binding
 	{
-		unsigned int location = pair.first;
+		const KShaderInformation& fragmentInformation = m_FragmentShader->GetInformation();
 
-		VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-		// 与Shader中绑定位置对应
-		samplerLayoutBinding.binding = location;
-		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		// 这里不使用数组
-		samplerLayoutBinding.descriptorCount = 1;
-		// 声明哪个阶段Shader能够使用上此Sampler
-		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-		samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
+		for (const KShaderInformation::Constant& constant : fragmentInformation.constants)
+		{
+			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+			// 与Shader中绑定位置对应
+			uboLayoutBinding.binding = constant.bindingIndex;
+			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			// 声明UBO Buffer数组长度 这里不使用数组
+			uboLayoutBinding.descriptorCount = 1;
+			// 声明哪个阶段Shader能够使用上此UBO
+			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+			
+			auto it = std::find_if(layoutBindings.begin(), layoutBindings.end(),
+				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
+			{
+				return IsDuplicateLayoutBinding(lhs, uboLayoutBinding);
+			});
 
-		layoutBindings.push_back(samplerLayoutBinding);
+			if (it == layoutBindings.end())
+			{
+				layoutBindings.push_back(uboLayoutBinding);
+				++m_UniformBufferDescriptorCount;
+			}
+			else
+			{
+				(*it).stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+			}
+		}
+
+		for (const KShaderInformation::Texture& texture : fragmentInformation.textures)
+		{
+			VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+			// 与Shader中绑定位置对应
+			samplerLayoutBinding.binding = texture.bindingIndex;
+			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			// 这里不使用数组
+			samplerLayoutBinding.descriptorCount = 1;
+			// 声明哪个阶段Shader能够使用上此Sampler
+			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+			auto it = std::find_if(layoutBindings.begin(), layoutBindings.end(),
+				[&samplerLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
+			{
+				return IsDuplicateLayoutBinding(lhs, samplerLayoutBinding);
+			});
+
+			if (it == layoutBindings.end())
+			{
+				layoutBindings.push_back(samplerLayoutBinding);
+				++m_SamplerDescriptorCount;
+			}
+			else
+			{
+				(*it).stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+			}
+		}
 	}
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -366,17 +472,70 @@ bool KVulkanPipeline::CreateLayout()
 	声明PushConstant
 	*/
 	std::vector<VkPushConstantRange> pushConstantRanges;
-	if(m_PushContant.size > 0)
+
+	auto IsDuplicatePushConstantRange = [](const VkPushConstantRange& lhs, const VkPushConstantRange& rhs)->bool
 	{
-		VkFlags stageFlags = 0;
-		ASSERT_RESULT(KVulkanHelper::ShaderTypesToVkShaderStageFlag(m_PushContant.shaderTypes, stageFlags));
+		if (lhs.offset != rhs.offset)
+			return false;
+		if (lhs.size != rhs.size)
+			return false;
+		return true;
+	};
 
-		VkPushConstantRange pushConstantRange = {};
-		pushConstantRange.stageFlags = stageFlags;
-		pushConstantRange.offset = 0;
-		pushConstantRange.size = m_PushContant.size;
+	// VertexShader Binding
+	{
+		const KShaderInformation& vertexInformation = m_VertexShader->GetInformation();
 
-		pushConstantRanges.push_back(pushConstantRange);
+		for (const KShaderInformation::Constant& constant : vertexInformation.pushConstants)
+		{
+			VkPushConstantRange pushConstantRange = {};
+			pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			pushConstantRange.offset = 0;
+			pushConstantRange.size = constant.size;
+
+			auto it = std::find_if(pushConstantRanges.begin(), pushConstantRanges.end(),
+				[&pushConstantRange, &IsDuplicatePushConstantRange](const VkPushConstantRange& lhs)->bool
+			{
+				return IsDuplicatePushConstantRange(lhs, pushConstantRange);
+			});
+
+			if (it == pushConstantRanges.end())
+			{
+				pushConstantRanges.push_back(pushConstantRange);
+			}
+			else
+			{
+				(*it).stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
+			}
+		}
+	}
+
+	// Fragment Binding
+	{
+		const KShaderInformation& fragmentInformation = m_FragmentShader->GetInformation();
+
+		for (const KShaderInformation::Constant& constant : fragmentInformation.pushConstants)
+		{
+			VkPushConstantRange pushConstantRange = {};
+			pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			pushConstantRange.offset = 0;
+			pushConstantRange.size = constant.size;
+
+			auto it = std::find_if(pushConstantRanges.begin(), pushConstantRanges.end(),
+				[&pushConstantRange, &IsDuplicatePushConstantRange](const VkPushConstantRange& lhs)->bool
+			{
+				return IsDuplicatePushConstantRange(lhs, pushConstantRange);
+			});
+
+			if (it == pushConstantRanges.end())
+			{
+				pushConstantRanges.push_back(pushConstantRange);
+			}
+			else
+			{
+				(*it).stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+			}
+		}
 	}
 
 	// 创建管线布局
@@ -403,12 +562,12 @@ bool KVulkanPipeline::CreateDestcription()
 	VkDescriptorPoolSize uniformPoolSize = {};
 	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)的描述集合数最大值
-	uniformPoolSize.descriptorCount = std::max(1U, static_cast<uint32_t>(m_Uniforms.size()));
+	uniformPoolSize.descriptorCount = std::max(1U, m_UniformBufferDescriptorCount);
 
 	VkDescriptorPoolSize samplerPoolSize = {};
 	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)的描述集合数最大值
-	samplerPoolSize.descriptorCount = std::max(1U, static_cast<uint32_t>(m_Samplers.size()));
+	samplerPoolSize.descriptorCount = std::max(1U, m_SamplerDescriptorCount);
 
 	VkDescriptorPoolSize poolSizes[] = {uniformPoolSize, samplerPoolSize};
 

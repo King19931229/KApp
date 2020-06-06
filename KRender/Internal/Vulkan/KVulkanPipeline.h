@@ -84,7 +84,6 @@ protected:
 	// Sampler 信息
 	struct SamplerBindingInfo
 	{
-
 		VkImageView vkImageView;
 		VkSampler vkSampler;
 
@@ -105,6 +104,9 @@ protected:
 		}
 	};
 	std::map<unsigned int, SamplerBindingInfo> m_Samplers;
+
+	uint32_t				m_UniformBufferDescriptorCount;
+	uint32_t				m_SamplerDescriptorCount;
 
 	// 设备句柄
 	VkDescriptorSetLayout	m_DescriptorSetLayout;

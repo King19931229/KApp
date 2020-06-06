@@ -33,6 +33,7 @@ protected:
 	std::vector<VkSpecializationMapEntry> m_SpecializationMapEntry;
 	VkSpecializationInfo m_SpecializationInfo;
 	ShaderType m_Type;
+	KShaderInformation m_Information;
 
 	struct ConstantEntryInfo
 	{
@@ -57,16 +58,18 @@ protected:
 	bool WaitDeviceTask();
 
 	static bool GenerateSpirV(ShaderType type, const char* code, std::vector<unsigned int>& spirv);
-	static bool GenerateReflection(const std::vector<unsigned int>& spirv);
+	static bool GenerateReflection(const std::vector<unsigned int>& spirv, KShaderInformation& information);
 public:
 	KVulkanShader();
 	~KVulkanShader();
 
 	virtual bool SetConstantEntry(uint32_t constantID, uint32_t offset, size_t size, const void* data);
 	virtual bool InitFromFile(ShaderType type, const std::string& path, bool async);
-	virtual bool InitFromString(ShaderType type, const std::vector<char>& code, bool async);
-	
+	virtual bool InitFromString(ShaderType type, const std::vector<char>& code, bool async);	
 	virtual bool UnInit();
+
+	virtual const KShaderInformation& GetInformation();
+
 	virtual ShaderType GetType();
 	virtual const char* GetPath();
 	virtual bool Reload();

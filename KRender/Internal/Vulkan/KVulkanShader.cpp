@@ -159,10 +159,87 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 	return true;
 }
 
-bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv)
+bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, KShaderInformation& information)
 {
 	spirv_cross::Compiler compiler(spirv);
 	spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+
+	information.constants.clear();
+	information.constants.reserve(resources.uniform_buffers.size());
+
+	for (const spirv_cross::Resource& block : resources.uniform_buffers)
+	{
+		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
+
+		KShaderInformation::Constant constant;
+		constant.descriptorSetIndex = compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
+		constant.bindingIndex = compiler.get_decoration(block.id, spv::DecorationBinding);
+		constant.size = (uint32_t)compiler.get_declared_struct_size(type);
+
+		uint32_t memberCount = (uint32_t)type.member_types.size();
+		constant.members.reserve(memberCount);
+		for (uint32_t i = 0; i < memberCount; ++i)
+		{
+			uint32_t memberTypeID = type.member_types[i];
+			const spirv_cross::SPIRType& memberType = compiler.get_type(memberTypeID);
+
+			KShaderInformation::Constant::ConstantMember member;
+			member.name = compiler.get_member_name(block.base_type_id, i);
+			member.offset = compiler.type_struct_member_offset(type, i);
+			member.size = (uint32_t)compiler.get_declared_struct_member_size(type, i);
+			member.arrayCount = memberType.array.empty() ? 0 : memberType.array[0];
+
+			constant.members.push_back(std::move(member));
+		}
+
+		information.constants.push_back(std::move(constant));
+	}
+
+	information.pushConstants.clear();
+	information.pushConstants.reserve(resources.push_constant_buffers.size());
+
+	for (const spirv_cross::Resource& block : resources.push_constant_buffers)
+	{
+		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
+
+		KShaderInformation::Constant constant;
+		constant.descriptorSetIndex = compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
+		constant.bindingIndex = compiler.get_decoration(block.id, spv::DecorationBinding);
+		constant.size = (uint32_t)compiler.get_declared_struct_size(type);
+
+		uint32_t memberCount = (uint32_t)type.member_types.size();
+		constant.members.reserve(memberCount);
+		for (uint32_t i = 0; i < memberCount; ++i)
+		{
+			uint32_t memberTypeID = type.member_types[i];
+			const spirv_cross::SPIRType& memberType = compiler.get_type(memberTypeID);
+
+			KShaderInformation::Constant::ConstantMember member;
+			member.name = compiler.get_member_name(block.base_type_id, i);
+			member.offset = compiler.type_struct_member_offset(type, i);
+			member.size = (uint32_t)compiler.get_declared_struct_member_size(type, i);
+			member.arrayCount = memberType.array.empty() ? 0 : memberType.array[0];
+
+			constant.members.push_back(std::move(member));
+		}
+
+		information.pushConstants.push_back(std::move(constant));
+	}
+
+	information.textures.clear();
+	information.textures.reserve(resources.sampled_images.size());
+
+	for (const spirv_cross::Resource& block : resources.sampled_images)
+	{
+		KShaderInformation::Texture texture;
+
+		texture.attachmentIndex = compiler.get_decoration(block.id, spv::DecorationInputAttachmentIndex);
+		texture.descriptorSetIndex = compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
+		texture.bindingIndex = compiler.get_decoration(block.id, spv::DecorationBinding);
+
+		information.textures.push_back(std::move(texture));
+	}
+
 	return true;
 }
 
@@ -179,7 +256,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 		std::vector<unsigned int> spirv;
 		if (GenerateSpirV(m_Type, finalSource, spirv))
 		{
-			GenerateReflection(spirv);
+			GenerateReflection(spirv, m_Information);
 
 			std::string root;
 			system->GetRoot(root);
@@ -370,6 +447,11 @@ bool KVulkanShader::UnInit()
 	m_ResourceState = RS_UNLOADED;
 
 	return true;
+}
+
+const KShaderInformation& KVulkanShader::GetInformation()
+{
+	return m_Information;
 }
 
 ShaderType KVulkanShader::GetType()
