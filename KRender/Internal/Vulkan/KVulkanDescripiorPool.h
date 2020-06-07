@@ -34,7 +34,7 @@ protected:
 	VkDescriptorSetLayout m_Layout;
 	std::vector<DescriptorSetBlockList> m_Descriptors;
 
-	std::vector<VkDescriptorBufferInfo> m_ImageWriteInfo;
+	std::vector<VkDescriptorImageInfo> m_ImageWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
 	std::vector<VkWriteDescriptorSet> m_DescriptorWriteInfo;
 
@@ -49,7 +49,9 @@ public:
 	KVulkanDescriptorPool();
 	~KVulkanDescriptorPool();
 
-	bool Init(VkDescriptorSetLayout layout, const std::vector<VkWriteDescriptorSet>& writeInfo, uint32_t uniformBufferCount, uint32_t samplerCount);
+	bool Init(VkDescriptorSetLayout layout,
+		const std::vector<VkDescriptorSetLayoutBinding>& m_DescriptorSetLayoutBinding,
+		const std::vector<VkWriteDescriptorSet>& writeInfo);
 	bool UnInit();
 
 	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame);

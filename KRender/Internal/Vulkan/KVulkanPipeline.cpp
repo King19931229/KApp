@@ -23,8 +23,6 @@ KVulkanPipeline::KVulkanPipeline() :
 	m_UniformBufferDescriptorCount(0),
 	m_SamplerDescriptorCount(0),
 	m_DescriptorSetLayout(VK_NULL_HANDLE),
-	m_DescriptorPool(VK_NULL_HANDLE),
-	m_DescriptorSet(VK_NULL_HANDLE),
 	m_PipelineLayout(VK_NULL_HANDLE),
 	/*
 	m_DepthBiasConstantFactor(0),
@@ -45,8 +43,6 @@ KVulkanPipeline::KVulkanPipeline() :
 KVulkanPipeline::~KVulkanPipeline()
 {
 	ASSERT_RESULT(m_DescriptorSetLayout == VK_NULL_HANDLE);
-	ASSERT_RESULT(m_DescriptorPool == VK_NULL_HANDLE);
-	ASSERT_RESULT(m_DescriptorSet == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_VertexShader == nullptr);
 	ASSERT_RESULT(m_FragmentShader == nullptr);
@@ -56,15 +52,6 @@ KVulkanPipeline::~KVulkanPipeline()
 
 bool KVulkanPipeline::DestroyDevice()
 {
-	if (m_DescriptorSet)
-	{
-		m_DescriptorSet = VK_NULL_HANDLE;
-	}
-	if (m_DescriptorPool)
-	{
-		vkDestroyDescriptorPool(KVulkanGlobal::device, m_DescriptorPool, nullptr);
-		m_DescriptorPool = VK_NULL_HANDLE;
-	}
 	if (m_DescriptorSetLayout)
 	{
 		vkDestroyDescriptorSetLayout(KVulkanGlobal::device, m_DescriptorSetLayout, nullptr);
@@ -313,15 +300,11 @@ bool KVulkanPipeline::CreateLayout()
 	ASSERT_RESULT(m_DescriptorSetLayout == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
 
-	m_UniformBufferDescriptorCount = 0;
-	m_SamplerDescriptorCount = 0;
-
-
 	/*
 	DescriptorSetLayout 仅仅声明UBO Sampler绑定的位置
 	实际UBO Sampler 句柄绑定在描述集合里指定
 	*/
-	std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+	m_DescriptorSetLayoutBinding.clear();
 
 	auto IsDuplicateLayoutBinding = [](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs)->bool
 	{
@@ -352,16 +335,15 @@ bool KVulkanPipeline::CreateLayout()
 			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 			
-			auto it = std::find_if(layoutBindings.begin(), layoutBindings.end(),
+			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
 				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
 			{
 				return IsDuplicateLayoutBinding(lhs, uboLayoutBinding);
 			});
 
-			if (it == layoutBindings.end())
+			if (it == m_DescriptorSetLayoutBinding.end())
 			{
-				layoutBindings.push_back(uboLayoutBinding);
-				++m_UniformBufferDescriptorCount;
+				m_DescriptorSetLayoutBinding.push_back(uboLayoutBinding);
 			}
 			else
 			{
@@ -381,16 +363,15 @@ bool KVulkanPipeline::CreateLayout()
 			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 			samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-			auto it = std::find_if(layoutBindings.begin(), layoutBindings.end(),
+			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
 				[&samplerLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
 			{
 				return IsDuplicateLayoutBinding(lhs, samplerLayoutBinding);
 			});
 
-			if (it == layoutBindings.end())
+			if (it == m_DescriptorSetLayoutBinding.end())
 			{
-				layoutBindings.push_back(samplerLayoutBinding);
-				++m_SamplerDescriptorCount;
+				m_DescriptorSetLayoutBinding.push_back(samplerLayoutBinding);
 			}
 			else
 			{
@@ -415,16 +396,15 @@ bool KVulkanPipeline::CreateLayout()
 			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 			
-			auto it = std::find_if(layoutBindings.begin(), layoutBindings.end(),
+			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
 				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
 			{
 				return IsDuplicateLayoutBinding(lhs, uboLayoutBinding);
 			});
 
-			if (it == layoutBindings.end())
+			if (it == m_DescriptorSetLayoutBinding.end())
 			{
-				layoutBindings.push_back(uboLayoutBinding);
-				++m_UniformBufferDescriptorCount;
+				m_DescriptorSetLayoutBinding.push_back(uboLayoutBinding);
 			}
 			else
 			{
@@ -444,16 +424,15 @@ bool KVulkanPipeline::CreateLayout()
 			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-			auto it = std::find_if(layoutBindings.begin(), layoutBindings.end(),
+			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
 				[&samplerLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
 			{
 				return IsDuplicateLayoutBinding(lhs, samplerLayoutBinding);
 			});
 
-			if (it == layoutBindings.end())
+			if (it == m_DescriptorSetLayoutBinding.end())
 			{
-				layoutBindings.push_back(samplerLayoutBinding);
-				++m_SamplerDescriptorCount;
+				m_DescriptorSetLayoutBinding.push_back(samplerLayoutBinding);
 			}
 			else
 			{
@@ -464,8 +443,8 @@ bool KVulkanPipeline::CreateLayout()
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
-	layoutInfo.pBindings = layoutBindings.data();
+	layoutInfo.bindingCount = static_cast<uint32_t>(m_DescriptorSetLayoutBinding.size());
+	layoutInfo.pBindings = m_DescriptorSetLayoutBinding.data();
 
 	VK_ASSERT_RESULT(vkCreateDescriptorSetLayout(KVulkanGlobal::device, &layoutInfo, nullptr, &m_DescriptorSetLayout));
 
@@ -554,58 +533,19 @@ bool KVulkanPipeline::CreateLayout()
 	return true;
 }
 
-bool KVulkanPipeline::CreateDestcription()
+bool KVulkanPipeline::CreateDestcriptionPool()
 {
-	ASSERT_RESULT(m_DescriptorSetLayout != VK_NULL_HANDLE);
-	ASSERT_RESULT(m_DescriptorPool == VK_NULL_HANDLE);
-	ASSERT_RESULT(m_DescriptorSet == VK_NULL_HANDLE);
-
-	VkDescriptorPoolSize uniformPoolSize = {};
-	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)的描述集合数最大值
-	uniformPoolSize.descriptorCount = std::max(1U, m_UniformBufferDescriptorCount);
-
-	VkDescriptorPoolSize samplerPoolSize = {};
-	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	// 该描述池创建该type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)的描述集合数最大值
-	samplerPoolSize.descriptorCount = std::max(1U, m_SamplerDescriptorCount);
-
-	VkDescriptorPoolSize poolSizes[] = {uniformPoolSize, samplerPoolSize};
-
-	VkDescriptorPoolCreateInfo poolInfo = {};
-	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = ARRAY_SIZE(poolSizes);
-	poolInfo.pPoolSizes = poolSizes;
-	poolInfo.maxSets = 1;
-
-	VK_ASSERT_RESULT(vkCreateDescriptorPool(KVulkanGlobal::device, &poolInfo, nullptr, &m_DescriptorPool));
-
-	VkDescriptorSetAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	// 指定该描述集合从哪个描述池创建
-	allocInfo.descriptorPool = m_DescriptorPool;
-	// 创建的描述集合数
-	allocInfo.descriptorSetCount = 1;
-	// 指定每个创建的描述集合对应的描述布局
-	allocInfo.pSetLayouts = &m_DescriptorSetLayout;
-
-	VK_ASSERT_RESULT(vkAllocateDescriptorSets(KVulkanGlobal::device, &allocInfo, &m_DescriptorSet));
-
-	return true;
-}
-
-bool KVulkanPipeline::UpdateDestcription()
-{
-	ASSERT_RESULT(m_DescriptorSet != VK_NULL_HANDLE);
-
 	// 更新描述集合	
 	m_WriteDescriptorSet.clear();
-	m_DescBufferInfo.clear();
-	m_DescImageInfo.clear();
+	m_ImageWriteInfo.clear();
+	m_BufferWriteInfo.clear();
 
 	m_WriteDescriptorSet.reserve(m_Uniforms.size());
-	m_DescBufferInfo.reserve(m_Uniforms.size());
-	m_DescImageInfo.reserve(m_Samplers.size());
+	m_ImageWriteInfo.resize(m_Samplers.size());
+	m_BufferWriteInfo.resize(m_Uniforms.size());
+
+	size_t bufferIdx = 0;
+	size_t imageIdx = 0;
 
 	for (auto& pair : m_Uniforms)
 	{
@@ -615,18 +555,16 @@ bool KVulkanPipeline::UpdateDestcription()
 		KVulkanUniformBuffer* uniformBuffer = static_cast<KVulkanUniformBuffer*>(info.buffer.get());
 		ASSERT_RESULT(uniformBuffer != nullptr);
 
-		VkDescriptorBufferInfo bufferInfo = {};
+		VkDescriptorBufferInfo& bufferInfo = m_BufferWriteInfo[bufferIdx++];
 		bufferInfo.buffer = uniformBuffer->GetVulkanHandle();
 		bufferInfo.offset = 0;
 		bufferInfo.range = uniformBuffer->GetBufferSize();
-
-		m_DescBufferInfo.push_back(bufferInfo);
 
 		VkWriteDescriptorSet uniformDescriptorWrite = {};
 
 		uniformDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		// 写入的描述集合
-		uniformDescriptorWrite.dstSet = m_DescriptorSet;
+		uniformDescriptorWrite.dstSet = VK_NULL_HANDLE;
 		// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
 		uniformDescriptorWrite.dstBinding = location;
 		// 写入索引与下面descriptorCount对应
@@ -635,7 +573,7 @@ bool KVulkanPipeline::UpdateDestcription()
 		uniformDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		uniformDescriptorWrite.descriptorCount = 1;
 
-		uniformDescriptorWrite.pBufferInfo = &m_DescBufferInfo.back();
+		uniformDescriptorWrite.pBufferInfo = &bufferInfo;
 		uniformDescriptorWrite.pImageInfo = nullptr; // Optional
 		uniformDescriptorWrite.pTexelBufferView = nullptr; // Optional
 
@@ -647,7 +585,7 @@ bool KVulkanPipeline::UpdateDestcription()
 		unsigned int location = pair.first;
 		SamplerBindingInfo& info = pair.second;
 
-		VkDescriptorImageInfo imageInfo = {};
+		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
 		imageInfo.imageLayout = info.depthStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		if (info.nakeInfo)
@@ -664,13 +602,11 @@ bool KVulkanPipeline::UpdateDestcription()
 		ASSERT_RESULT(imageInfo.imageView);
 		ASSERT_RESULT(imageInfo.sampler);
 
-		m_DescImageInfo.push_back(imageInfo);
-
 		VkWriteDescriptorSet samplerDescriptorWrite = {};
 
 		samplerDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		// 写入的描述集合
-		samplerDescriptorWrite.dstSet = m_DescriptorSet;
+		samplerDescriptorWrite.dstSet = VK_NULL_HANDLE;
 		// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
 		samplerDescriptorWrite.dstBinding = location;
 		// 写入索引与下面descriptorCount对应
@@ -680,13 +616,13 @@ bool KVulkanPipeline::UpdateDestcription()
 		samplerDescriptorWrite.descriptorCount = 1;
 
 		samplerDescriptorWrite.pBufferInfo = nullptr; // Optional
-		samplerDescriptorWrite.pImageInfo = &m_DescImageInfo.back();
+		samplerDescriptorWrite.pImageInfo = &imageInfo;
 		samplerDescriptorWrite.pTexelBufferView = nullptr; // Optional
 
 		m_WriteDescriptorSet.push_back(samplerDescriptorWrite);
 	}
 
-	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(m_WriteDescriptorSet.size()), m_WriteDescriptorSet.data(), 0, nullptr);
+	m_Pool.Init(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, m_WriteDescriptorSet);
 
 	return true;
 }
@@ -772,13 +708,7 @@ bool KVulkanPipeline::GetHandle(IKRenderTargetPtr target, IKPipelineHandlePtr& h
 	if (m_DescriptorSetLayout == VK_NULL_HANDLE && m_PipelineLayout == VK_NULL_HANDLE)
 	{
 		CreateLayout();
-	}
-
-	if (m_DescriptorSetLayout != VK_NULL_HANDLE && m_DescriptorPool == VK_NULL_HANDLE && m_DescriptorSet == VK_NULL_HANDLE)
-	{
-		CreateDestcription();
-		UpdateDestcription();
-		m_Pool.Init(m_DescriptorSetLayout, m_WriteDescriptorSet, m_UniformBufferDescriptorCount, m_SamplerDescriptorCount);
+		CreateDestcriptionPool();
 	}
 
 	if (target)

@@ -109,20 +109,19 @@ protected:
 	uint32_t				m_UniformBufferDescriptorCount;
 	uint32_t				m_SamplerDescriptorCount;
 
+	std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetLayoutBinding;
 	std::vector<VkWriteDescriptorSet> m_WriteDescriptorSet;
-	std::vector<VkDescriptorBufferInfo> m_DescBufferInfo;
-	std::vector<VkDescriptorImageInfo> m_DescImageInfo;
-	KVulkanDescriptorPool m_Pool;
+	std::vector<VkDescriptorImageInfo> m_ImageWriteInfo;
+	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
 
 	// 设备句柄
 	VkDescriptorSetLayout	m_DescriptorSetLayout;
-	VkDescriptorPool		m_DescriptorPool;
-	VkDescriptorSet			m_DescriptorSet;
 	VkPipelineLayout		m_PipelineLayout;
 
+	KVulkanDescriptorPool m_Pool;
+
 	bool CreateLayout();
-	bool CreateDestcription();
-	bool UpdateDestcription();
+	bool CreateDestcriptionPool();
 	bool DestroyDevice();
 	bool ClearHandle();
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
@@ -169,6 +168,5 @@ public:
 	virtual bool InvaildHandle(IKRenderTargetPtr target);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
-	inline VkDescriptorSet GetVkDescriptorSet() { return m_DescriptorSet; }
 	VkDescriptorSet AllocDescriptorSet();
 };

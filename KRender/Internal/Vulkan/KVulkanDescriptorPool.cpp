@@ -17,15 +17,31 @@ KVulkanDescriptorPool::~KVulkanDescriptorPool()
 	ASSERT_RESULT(m_Descriptors.empty());
 }
 
-bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout, const std::vector<VkWriteDescriptorSet>& writeInfo, uint32_t uniformBufferCount, uint32_t samplerCount)
+bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
+	const std::vector<VkDescriptorSetLayoutBinding>& m_DescriptorSetLayoutBinding,
+	const std::vector<VkWriteDescriptorSet>& writeInfo)
 {
 	UnInit();
-	ASSERT_RESULT(layout != VK_NULL_HANDLE);
 
 	m_Layout = layout;
+	m_SamplerCount = 0;
+	m_UniformBufferCount = 0;
 
-	m_UniformBufferCount = uniformBufferCount;
-	m_SamplerCount = samplerCount;
+	for (const VkDescriptorSetLayoutBinding& layoutBinding : m_DescriptorSetLayoutBinding)
+	{
+		if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+		{
+			m_SamplerCount += layoutBinding.descriptorCount;
+		}
+		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		{
+			m_UniformBufferCount += layoutBinding.descriptorCount;
+		}
+		else
+		{
+			ASSERT_RESULT(false && "not support now");
+		}
+	}
 
 	m_ImageWriteInfo.clear();
 	m_BufferWriteInfo.clear();
@@ -39,11 +55,11 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout, const std::vector
 	{
 		if (writeDescriptorSet.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 		{
-			++numSampler;
+			numSampler += writeDescriptorSet.descriptorCount;
 		}
 		else if (writeDescriptorSet.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
-			++numUniformBuffer;
+			numUniformBuffer += writeDescriptorSet.descriptorCount;
 		}
 		else
 		{
@@ -71,17 +87,19 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout, const std::vector
 
 		if (copy.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 		{
-			size_t writeOffset = samplerIdx++ * sizeof(m_ImageWriteInfo[0]);
+			size_t writeOffset = samplerIdx * sizeof(m_ImageWriteInfo[0]);
 			size_t writeSize = copy.descriptorCount * sizeof(m_ImageWriteInfo[0]);
 			memcpy(POINTER_OFFSET(m_ImageWriteInfo.data(), writeOffset), copy.pImageInfo, writeSize);
 			copy.pImageInfo = static_cast<const VkDescriptorImageInfo*>(POINTER_OFFSET(m_ImageWriteInfo.data(), writeOffset));
+			samplerIdx += copy.descriptorCount;
 		}
 		else if (copy.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
-			size_t writeOffset = uniformBufferIdx++ * sizeof(m_BufferWriteInfo[0]);
+			size_t writeOffset = uniformBufferIdx * sizeof(m_BufferWriteInfo[0]);
 			size_t writeSize = copy.descriptorCount * sizeof(m_BufferWriteInfo[0]);
 			memcpy(POINTER_OFFSET(m_BufferWriteInfo.data(), writeOffset), copy.pBufferInfo, writeSize);
 			copy.pBufferInfo = static_cast<const VkDescriptorBufferInfo*>(POINTER_OFFSET(m_BufferWriteInfo.data(), writeOffset));
+			uniformBufferIdx += copy.descriptorCount;
 		}
 
 		m_DescriptorWriteInfo.push_back(copy);
@@ -153,60 +171,54 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 {
 	ASSERT_RESULT(m_Layout != VK_NULL_HANDLE);
 
+	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+
+	if (frameIndex >= m_Descriptors.size())
 	{
-		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+		m_Descriptors.resize(frameIndex + 1);
+	}
 
-		if (frameIndex >= m_Descriptors.size())
+	DescriptorSetBlockList& blockList = m_Descriptors[frameIndex];
+
+	if (blockList.currentFrame != currentFrame)
+	{
+		blockList.currentFrame = currentFrame;
+		if (blockList.useCount < blockList.blocks.size() / 2)
 		{
-			m_Descriptors.resize(frameIndex + 1);
-		}
+			size_t clearIdx = 0;
+			size_t newCount = blockList.blocks.size() / 2;
 
-		DescriptorSetBlockList& blockList = m_Descriptors[frameIndex];
-
-		if (blockList.currentFrame != currentFrame)
-		{
-			blockList.currentFrame = currentFrame;
-			if (blockList.useCount < blockList.blocks.size() / 2)
+			if (blockList.useCount == 0 || newCount == 0)
 			{
-				size_t clearIdx = 0;
-				size_t newCount = blockList.blocks.size() / 2;
-
-				if (blockList.useCount == 0 || newCount == 0)
-				{
-					clearIdx = 0;
-					newCount = 0;
-				}
-				else
-				{
-					clearIdx = newCount;
-				}
-
-				for (size_t idx = clearIdx; idx < blockList.blocks.size(); ++idx)
-				{
-					DescriptorSetBlock& block = blockList.blocks[idx];
-					vkDestroyDescriptorPool(KVulkanGlobal::device, block.pool, nullptr);
-				}
-				blockList.blocks.resize(newCount);
+				clearIdx = 0;
+				newCount = 0;
 			}
-			blockList.useCount = 0;
-		}
+			else
+			{
+				clearIdx = newCount;
+			}
 
-		if (blockList.useCount < blockList.blocks.size())
-		{
-			return blockList.blocks[blockList.useCount++].set;
+			for (size_t idx = clearIdx; idx < blockList.blocks.size(); ++idx)
+			{
+				DescriptorSetBlock& block = blockList.blocks[idx];
+				vkDestroyDescriptorPool(KVulkanGlobal::device, block.pool, nullptr);
+			}
+			blockList.blocks.resize(newCount);
 		}
+		blockList.useCount = 0;
+	}
+
+	if (blockList.useCount < blockList.blocks.size())
+	{
+		return blockList.blocks[blockList.useCount++].set;
 	}
 
 	DescriptorSetBlock newBlock;
 	newBlock.pool = CreateDescriptorPool();
 	newBlock.set = AllocDescriptorSet(newBlock.pool);
 
-	{
-		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
-		DescriptorSetBlockList& blockList = m_Descriptors[frameIndex];
-		blockList.blocks.push_back(newBlock);
-		++blockList.useCount;
-	}
+	blockList.blocks.push_back(newBlock);
+	++blockList.useCount;
 
 	return newBlock.set;
 }
