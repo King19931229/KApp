@@ -7,6 +7,7 @@ namespace KRenderGlobal
 	KShaderManager ShaderManager;
 	KMeshManager MeshManager;
 	KTextureManager TextrueManager;
+	KDynamicConstantBufferManager DynamicConstantBufferManager;
 
 	KPostProcessManager PostProcessManager;
 

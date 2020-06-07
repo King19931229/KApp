@@ -75,6 +75,7 @@
     <ClInclude Include="Internal\KTextureBase.h" />
     <ClInclude Include="Internal\KUIOverlayBase.h" />
     <ClInclude Include="Internal\KVertexDefinition.h" />
+    <ClInclude Include="Internal\Manager\KDynamicConstantBufferManager.h" />
     <ClInclude Include="Internal\Manager\KFrameResourceManager.h" />
     <ClInclude Include="Internal\Manager\KMeshManager.h" />
     <ClInclude Include="Internal\Manager\KPipelineManager.h" />
@@ -153,6 +154,7 @@
     <ClCompile Include="Internal\KTextureBase.cpp" />
     <ClCompile Include="Internal\KUIOverlayBase.cpp" />
     <ClCompile Include="Internal\KVertexDefinition.cpp" />
+    <ClCompile Include="Internal\Manager\KDynamicConstantBufferManager.cpp" />
     <ClCompile Include="Internal\Manager\KFrameResourceManager.cpp" />
     <ClCompile Include="Internal\Manager\KMeshManager.cpp" />
     <ClCompile Include="Internal\Manager\KPipelineManager.cpp" />

@@ -21,10 +21,72 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout, const std::vector
 {
 	UnInit();
 	ASSERT_RESULT(layout != VK_NULL_HANDLE);
+
 	m_Layout = layout;
-	m_WriteInfo = writeInfo;
+
 	m_UniformBufferCount = uniformBufferCount;
 	m_SamplerCount = samplerCount;
+
+	m_ImageWriteInfo.clear();
+	m_BufferWriteInfo.clear();
+	m_DescriptorWriteInfo.clear();
+	m_DescriptorWriteInfo.reserve(writeInfo.size());
+
+	size_t numSampler = 0;
+	size_t numUniformBuffer = 0;
+
+	for (const VkWriteDescriptorSet& writeDescriptorSet : writeInfo)
+	{
+		if (writeDescriptorSet.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+		{
+			++numSampler;
+		}
+		else if (writeDescriptorSet.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		{
+			++numUniformBuffer;
+		}
+		else
+		{
+			ASSERT_RESULT(false && "not support now");
+		}
+	}
+
+	m_ImageWriteInfo.resize(numSampler);
+	m_BufferWriteInfo.resize(numUniformBuffer);
+
+	size_t samplerIdx = 0;
+	size_t uniformBufferIdx = 0;
+
+	for (const VkWriteDescriptorSet& writeDescriptorSet : writeInfo)
+	{
+		VkWriteDescriptorSet copy = writeDescriptorSet;
+
+		copy.sType = writeDescriptorSet.sType;
+		copy.pNext = writeDescriptorSet.pNext;
+		copy.dstSet = VK_NULL_HANDLE;
+		copy.dstBinding = writeDescriptorSet.dstBinding;
+		copy.dstArrayElement = writeDescriptorSet.dstArrayElement;
+		copy.descriptorCount = writeDescriptorSet.descriptorCount;
+		copy.descriptorType = writeDescriptorSet.descriptorType;
+
+		if (copy.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+		{
+			size_t writeOffset = samplerIdx++ * sizeof(m_ImageWriteInfo[0]);
+			size_t writeSize = copy.descriptorCount * sizeof(m_ImageWriteInfo[0]);
+			memcpy(POINTER_OFFSET(m_ImageWriteInfo.data(), writeOffset), copy.pImageInfo, writeSize);
+			copy.pImageInfo = static_cast<const VkDescriptorImageInfo*>(POINTER_OFFSET(m_ImageWriteInfo.data(), writeOffset));
+		}
+		else if (copy.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		{
+			size_t writeOffset = uniformBufferIdx++ * sizeof(m_BufferWriteInfo[0]);
+			size_t writeSize = copy.descriptorCount * sizeof(m_BufferWriteInfo[0]);
+			memcpy(POINTER_OFFSET(m_BufferWriteInfo.data(), writeOffset), copy.pBufferInfo, writeSize);
+			copy.pBufferInfo = static_cast<const VkDescriptorBufferInfo*>(POINTER_OFFSET(m_BufferWriteInfo.data(), writeOffset));
+		}
+
+		m_DescriptorWriteInfo.push_back(copy);
+	}
+
 	return true;
 }
 
@@ -43,8 +105,6 @@ bool KVulkanDescriptorPool::UnInit()
 	m_Descriptors.clear();
 
 	m_Layout = VK_NULL_HANDLE;
-	m_UniformBufferCount = 0;
-	m_SamplerCount = 0;
 	return true;
 }
 
@@ -59,7 +119,7 @@ VkDescriptorSet KVulkanDescriptorPool::AllocDescriptorSet(VkDescriptorPool pool)
 	VkDescriptorSet newSet = VK_NULL_HANDLE;
 	VK_ASSERT_RESULT(vkAllocateDescriptorSets(KVulkanGlobal::device, &allocInfo, &newSet));
 
-	std::vector<VkWriteDescriptorSet> writeInfo = m_WriteInfo;
+	std::vector<VkWriteDescriptorSet> writeInfo = m_DescriptorWriteInfo;
 	for (VkWriteDescriptorSet& info : writeInfo) { info.dstSet = newSet; }
 	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(writeInfo.size()), writeInfo.data(), 0, nullptr);
 	return newSet;

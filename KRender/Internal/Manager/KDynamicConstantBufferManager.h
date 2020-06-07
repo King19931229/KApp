@@ -1,0 +1,46 @@
+#pragma once
+#include "Interface/IKRenderDevice.h"
+#include "Interface/IKBuffer.h"
+#include <mutex>
+
+class KDynamicConstantBufferManager
+{
+protected:
+	struct ConstantBlock
+	{
+		IKUniformBufferPtr buffer;
+		size_t useSize;
+
+		ConstantBlock()
+		{
+			buffer = nullptr;
+			useSize = 0;
+		}
+	};
+
+	struct FrameConstantBlock
+	{
+		size_t frameNum;
+		std::vector<ConstantBlock> blocks;
+
+		FrameConstantBlock()
+		{
+			frameNum = 0;
+		}
+	};
+
+	std::vector<FrameConstantBlock> m_ConstantBlocks;
+	std::mutex m_Lock;
+	IKRenderDevice* m_Device;
+	size_t m_BlockSize;
+public:
+	KDynamicConstantBufferManager();
+	~KDynamicConstantBufferManager();
+
+	bool Init(IKRenderDevice* device, size_t frameInFlight, size_t blockSize = 512 * 1024);
+	bool UnInit();
+
+	bool Alloc(size_t size,
+		size_t frameIndex, size_t frameNum,
+		IKUniformBufferPtr& buffer, size_t& offset);
+};

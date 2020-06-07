@@ -33,7 +33,11 @@ protected:
 
 	VkDescriptorSetLayout m_Layout;
 	std::vector<DescriptorSetBlockList> m_Descriptors;
-	std::vector<VkWriteDescriptorSet> m_WriteInfo;
+
+	std::vector<VkDescriptorBufferInfo> m_ImageWriteInfo;
+	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
+	std::vector<VkWriteDescriptorSet> m_DescriptorWriteInfo;
+
 	size_t m_CurrentFrame;
 	uint32_t m_UniformBufferCount;
 	uint32_t m_SamplerCount;

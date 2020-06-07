@@ -348,6 +348,9 @@
     <ClInclude Include="Internal\Vulkan\KVulkanDescripiorPool.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Manager\KDynamicConstantBufferManager.h">
+      <Filter>Internal\Manager</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -562,6 +565,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanDescriptorPool.cpp">
       <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Manager\KDynamicConstantBufferManager.cpp">
+      <Filter>Internal\Manager</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
