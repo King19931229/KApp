@@ -345,6 +345,9 @@
     <ClInclude Include="Interface\IKQuery.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanDescripiorPool.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -556,6 +559,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Object\KOcclusionBox.cpp">
       <Filter>Internal\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanDescriptorPool.cpp">
+      <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

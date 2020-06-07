@@ -16,4 +16,7 @@ namespace KVulkanGlobal
 
 	extern uint32_t graphicsFamilyIndex;
 	extern uint32_t presentFamilyIndex;
+
+	extern uint32_t currentFrameIndex;
+	extern uint32_t currentFrameNum;
 }

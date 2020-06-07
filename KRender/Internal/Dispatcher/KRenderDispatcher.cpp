@@ -340,6 +340,33 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 			}
 		});
 
+		/*
+		mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& _command)
+		{
+			KRenderCommand command = std::move(_command);
+
+			for (size_t idx = 0; idx < objects.size(); ++idx)
+			{
+				++defaultStatistics.drawcalls;
+				if (command.indexDraw)
+				{
+					defaultStatistics.faces += command.indexData->indexCount / 3;
+				}
+				else
+				{
+					defaultStatistics.faces += command.vertexData->vertexCount / 3;
+				}
+				command.SetObjectData(objects[idx]);
+
+				command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+				if (command.Complete())
+				{
+					defaultCommands.push_back(command);
+				}
+			}
+		});
+		*/
 		mesh->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand&& _command)
 		{
 			KRenderCommand command = std::move(_command);

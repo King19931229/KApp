@@ -316,6 +316,7 @@ bool KVulkanPipeline::CreateLayout()
 	m_UniformBufferDescriptorCount = 0;
 	m_SamplerDescriptorCount = 0;
 
+
 	/*
 	DescriptorSetLayout 仅仅声明UBO Sampler绑定的位置
 	实际UBO Sampler 句柄绑定在描述集合里指定
@@ -575,10 +576,7 @@ bool KVulkanPipeline::CreateDestcription()
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = ARRAY_SIZE(poolSizes);
 	poolInfo.pPoolSizes = poolSizes;
-
-	// 创建的描述池各个type的描述集合数的总和
-	// 相当于所有pPoolSizes的descriptorCount总和
-	poolInfo.maxSets = poolInfo.poolSizeCount;
+	poolInfo.maxSets = 1;
 
 	VK_ASSERT_RESULT(vkCreateDescriptorPool(KVulkanGlobal::device, &poolInfo, nullptr, &m_DescriptorPool));
 
@@ -600,14 +598,14 @@ bool KVulkanPipeline::UpdateDestcription()
 {
 	ASSERT_RESULT(m_DescriptorSet != VK_NULL_HANDLE);
 
-	// 更新描述集合
-	std::vector<VkWriteDescriptorSet> writeDescriptorSet;
-	std::vector<VkDescriptorBufferInfo> descBufferInfo;
-	std::vector<VkDescriptorImageInfo> descImageInfo;
+	// 更新描述集合	
+	m_WriteDescriptorSet.clear();
+	m_DescBufferInfo.clear();
+	m_DescImageInfo.clear();
 
-	writeDescriptorSet.reserve(m_Uniforms.size());
-	descBufferInfo.reserve(m_Uniforms.size());
-	descImageInfo.reserve(m_Samplers.size());
+	m_WriteDescriptorSet.reserve(m_Uniforms.size());
+	m_DescBufferInfo.reserve(m_Uniforms.size());
+	m_DescImageInfo.reserve(m_Samplers.size());
 
 	for (auto& pair : m_Uniforms)
 	{
@@ -622,7 +620,7 @@ bool KVulkanPipeline::UpdateDestcription()
 		bufferInfo.offset = 0;
 		bufferInfo.range = uniformBuffer->GetBufferSize();
 
-		descBufferInfo.push_back(bufferInfo);
+		m_DescBufferInfo.push_back(bufferInfo);
 
 		VkWriteDescriptorSet uniformDescriptorWrite = {};
 
@@ -637,11 +635,11 @@ bool KVulkanPipeline::UpdateDestcription()
 		uniformDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		uniformDescriptorWrite.descriptorCount = 1;
 
-		uniformDescriptorWrite.pBufferInfo = &descBufferInfo.back();
+		uniformDescriptorWrite.pBufferInfo = &m_DescBufferInfo.back();
 		uniformDescriptorWrite.pImageInfo = nullptr; // Optional
 		uniformDescriptorWrite.pTexelBufferView = nullptr; // Optional
 
-		writeDescriptorSet.push_back(uniformDescriptorWrite);
+		m_WriteDescriptorSet.push_back(uniformDescriptorWrite);
 	}
 
 	for (auto& pair : m_Samplers)
@@ -666,7 +664,7 @@ bool KVulkanPipeline::UpdateDestcription()
 		ASSERT_RESULT(imageInfo.imageView);
 		ASSERT_RESULT(imageInfo.sampler);
 
-		descImageInfo.push_back(imageInfo);
+		m_DescImageInfo.push_back(imageInfo);
 
 		VkWriteDescriptorSet samplerDescriptorWrite = {};
 
@@ -682,15 +680,20 @@ bool KVulkanPipeline::UpdateDestcription()
 		samplerDescriptorWrite.descriptorCount = 1;
 
 		samplerDescriptorWrite.pBufferInfo = nullptr; // Optional
-		samplerDescriptorWrite.pImageInfo = &descImageInfo.back();
+		samplerDescriptorWrite.pImageInfo = &m_DescImageInfo.back();
 		samplerDescriptorWrite.pTexelBufferView = nullptr; // Optional
 
-		writeDescriptorSet.push_back(samplerDescriptorWrite);
+		m_WriteDescriptorSet.push_back(samplerDescriptorWrite);
 	}
 
-	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(writeDescriptorSet.size()), writeDescriptorSet.data(), 0, nullptr);
+	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(m_WriteDescriptorSet.size()), m_WriteDescriptorSet.data(), 0, nullptr);
 
 	return true;
+}
+
+VkDescriptorSet KVulkanPipeline::AllocDescriptorSet()
+{
+	return m_Pool.Alloc(KVulkanGlobal::currentFrameIndex, KVulkanGlobal::currentFrameNum);
 }
 
 bool KVulkanPipeline::Init()
@@ -710,6 +713,8 @@ bool KVulkanPipeline::UnInit()
 
 	m_Uniforms.clear();
 	m_Samplers.clear();
+
+	m_Pool.UnInit();
 
 	return true;
 }
@@ -773,6 +778,7 @@ bool KVulkanPipeline::GetHandle(IKRenderTargetPtr target, IKPipelineHandlePtr& h
 	{
 		CreateDestcription();
 		UpdateDestcription();
+		m_Pool.Init(m_DescriptorSetLayout, m_WriteDescriptorSet, m_UniformBufferDescriptorCount, m_SamplerDescriptorCount);
 	}
 
 	if (target)

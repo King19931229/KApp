@@ -187,7 +187,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		VkPipeline pipeline = pipelineHandle->GetVkPipeline();
 
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
-		VkDescriptorSet descriptorSet = vulkanPipeline->GetVkDescriptorSet();
+		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet();		
 
 		// 绑定管线
 		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);

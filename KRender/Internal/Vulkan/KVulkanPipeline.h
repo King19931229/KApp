@@ -2,6 +2,7 @@
 #include "Interface/IKPipeline.h"
 #include "Internal/KRenderGlobal.h"
 #include "KVulkanConfig.h"
+#include "KVulkanDescripiorPool.h"
 #include <map>
 
 class KVulkanRenderTarget;
@@ -108,6 +109,11 @@ protected:
 	uint32_t				m_UniformBufferDescriptorCount;
 	uint32_t				m_SamplerDescriptorCount;
 
+	std::vector<VkWriteDescriptorSet> m_WriteDescriptorSet;
+	std::vector<VkDescriptorBufferInfo> m_DescBufferInfo;
+	std::vector<VkDescriptorImageInfo> m_DescImageInfo;
+	KVulkanDescriptorPool m_Pool;
+
 	// 设备句柄
 	VkDescriptorSetLayout	m_DescriptorSetLayout;
 	VkDescriptorPool		m_DescriptorPool;
@@ -164,4 +170,5 @@ public:
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 	inline VkDescriptorSet GetVkDescriptorSet() { return m_DescriptorSet; }
+	VkDescriptorSet AllocDescriptorSet();
 };
