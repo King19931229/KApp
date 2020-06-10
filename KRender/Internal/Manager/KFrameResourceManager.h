@@ -4,12 +4,12 @@
 
 class KFrameResourceManager
 {
-protected:	
+protected:
 	IKRenderDevice* m_Device;
 	size_t m_FrameInFlight;
 
 	typedef std::vector<IKUniformBufferPtr> FrameBufferList;
-	FrameBufferList m_FrameContantBuffer[CBT_COUNT];
+	FrameBufferList m_FrameContantBuffer[CBT_STATIC_COUNT];
 public:
 	KFrameResourceManager();
 	~KFrameResourceManager();

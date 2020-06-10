@@ -354,7 +354,7 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 				pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 				pipeline->SetShader(ST_VERTEX, m_DebugVertexShader);
 				pipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader);
-				pipeline->SetSamplerDepthAttachment(0, cascaded.renderTargets[i], m_ShadowSampler);
+				pipeline->SetSamplerDepthAttachment(SB_TEXTURE0, cascaded.renderTargets[i], m_ShadowSampler);
 
 				pipeline->CreateConstantBlock(ST_VERTEX, sizeof(glm::mat4));
 

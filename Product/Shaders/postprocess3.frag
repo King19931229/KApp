@@ -3,9 +3,10 @@
 #include "public.glh"
 
 layout(location = 0) in vec2 uv;
-layout(binding = 0) uniform sampler2D texSampler0;
-layout(binding = 1) uniform sampler2D texSampler1;
 layout(location = 0) out vec4 outColor;
+
+layout(binding = BINDING_TEXTURE0) uniform sampler2D texSampler0;
+layout(binding = BINDING_TEXTURE1) uniform sampler2D texSampler1;
 
 void main()
 {

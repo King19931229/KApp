@@ -10,12 +10,11 @@ layout(location = 0) out vec4 outColor;
 
 #include "public.glh"
 
-layout(binding = TEXTURE_SLOT0) uniform sampler2D texSampler;
-
-layout(binding = TEXTURE_SLOT1) uniform sampler2D cascadedShadowSampler0;
-layout(binding = TEXTURE_SLOT2) uniform sampler2D cascadedShadowSampler1;
-layout(binding = TEXTURE_SLOT3) uniform sampler2D cascadedShadowSampler2;
-layout(binding = TEXTURE_SLOT4) uniform sampler2D cascadedShadowSampler3;
+layout(binding = BINDING_TEXTURE0) uniform sampler2D texSampler;
+layout(binding = BINDING_TEXTURE1) uniform sampler2D cascadedShadowSampler0;
+layout(binding = BINDING_TEXTURE2) uniform sampler2D cascadedShadowSampler1;
+layout(binding = BINDING_TEXTURE3) uniform sampler2D cascadedShadowSampler2;
+layout(binding = BINDING_TEXTURE4) uniform sampler2D cascadedShadowSampler3;
 
 const float ambient = 0.4;
 

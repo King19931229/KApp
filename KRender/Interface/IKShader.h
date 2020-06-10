@@ -30,11 +30,12 @@ struct KShaderInformation
 	};
 
 	std::vector<Constant> constants;
-	std::vector<Texture> textures;
 	std::vector<Constant> pushConstants;
+	std::vector<Constant> dynamicConstants;
+	std::vector<Texture> textures;
 };
 
-struct IKShader : IKResource
+struct IKShader : public IKResource
 {
 	virtual ~IKShader() {}
 	virtual bool SetConstantEntry(uint32_t constantID, uint32_t offset, size_t size, const void* data) = 0;

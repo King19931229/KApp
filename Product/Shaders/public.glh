@@ -26,29 +26,33 @@
 #define INSTANCE_COLUMN_2 16
 #define INSTANCE_COLUMN_3 17
 
-#define OBJECT 0
-#define CAMERA 1
-#define SHADOW 2
-#define CASCADED_SHADOW 3
+// Binding
+#define BINDING_CAMERA 0
+#define BINDING_SHADOW 1
+#define BINDING_CASCADED_SHADOW 2
 
-#define TEXTURE_SLOT0 4
-#define TEXTURE_SLOT1 5
-#define TEXTURE_SLOT2 6
-#define TEXTURE_SLOT3 7
-#define TEXTURE_SLOT4 8
+#define BINDING_OBJECT 3
+#define BINDING_VERTEX_SHADING 4
+#define BINDING_FRAGMENT_SHADING 5
+
+//
+// 6 - 7 reserved
+//
+
+#define BINDING_TEXTURE0 8
+#define BINDING_TEXTURE1 9
+#define BINDING_TEXTURE2 10
+#define BINDING_TEXTURE3 11
+#define BINDING_TEXTURE4 12
+#define BINDING_TEXTURE5 13
+#define BINDING_TEXTURE6 14
+#define BINDING_TEXTURE7 15
 
 #define CUBEMAP_UVW(uvw) vec3(-uvw.x, -uvw.y, -uvw.z)
 
 #extension GL_EXT_scalar_block_layout : enable
-/*
-layout(binding = OBJECT)
-uniform Object
-{
-	mat4 model;
-}object;
-*/
 
-layout(binding = CAMERA)
+layout(binding = BINDING_CAMERA)
 uniform CameraInfo
 {
     mat4 view;
@@ -56,7 +60,7 @@ uniform CameraInfo
 	mat4 viewInv;
 }camera;
 
-layout(binding = SHADOW)
+layout(binding = BINDING_SHADOW)
 uniform ShadowInfo
 {
     mat4 light_view;
@@ -64,7 +68,7 @@ uniform ShadowInfo
 	vec2 near_far;
 }shadow;
 
-layout(binding = CASCADED_SHADOW)
+layout(binding = BINDING_CASCADED_SHADOW)
 uniform CascadedShadowInfo
 {
 	mat4 light_view[4];
@@ -73,5 +77,13 @@ uniform CascadedShadowInfo
 	vec4 frustum;
 	uint cascaded;
 }cascaded_shadow;
+
+/*
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	mat4 model;
+}object;
+*/
 
 #endif

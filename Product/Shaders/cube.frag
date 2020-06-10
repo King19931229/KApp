@@ -6,7 +6,7 @@ layout(location = 0) out vec4 outColor;
 
 #include "public.glh"
 
-layout(binding = TEXTURE_SLOT0) uniform samplerCube samplerEnvMap;
+layout(binding = BINDING_TEXTURE0) uniform samplerCube samplerEnvMap;
 
 void main()
 {

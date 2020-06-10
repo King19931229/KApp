@@ -3,8 +3,9 @@
 #include "public.glh"
 
 layout(location = 0) in vec2 uv;
-layout(binding = 0) uniform sampler2D texSampler;
 layout(location = 0) out vec4 outColor;
+
+layout(binding = BINDING_TEXTURE0) uniform sampler2D texSampler;
 
 void main()
 {

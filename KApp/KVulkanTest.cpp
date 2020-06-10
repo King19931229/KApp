@@ -48,7 +48,7 @@ int main()
 				IKComponentBase* component = nullptr;
 				if (entity->RegisterComponent(CT_RENDER, &component))
 				{
-					((IKRenderComponent*)component)->SetPathMesh("Model/OBJ/spider.mesh");
+					((IKRenderComponent*)component)->SetPathAsset("OBJ/spider.obj");
 					((IKRenderComponent*)component)->Init();
 				}
 
@@ -76,7 +76,7 @@ int main()
 		IKComponentBase* component = nullptr;
 		if (entity->RegisterComponent(CT_RENDER, &component))
 		{
-			((IKRenderComponent*)component)->SetPathMesh("Model/Sponza/sponza.mesh");
+			((IKRenderComponent*)component)->SetPathMesh("Sponza/sponza.mesh");
 			((IKRenderComponent*)component)->Init();
 		}
 		entity->RegisterComponent(CT_TRANSFORM);

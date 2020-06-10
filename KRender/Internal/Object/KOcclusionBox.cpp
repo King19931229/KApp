@@ -126,7 +126,7 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -157,7 +157,7 @@ void KOcclusionBox::PreparePipeline()
 #endif
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -189,7 +189,7 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -220,7 +220,7 @@ void KOcclusionBox::PreparePipeline()
 #endif
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
-		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}

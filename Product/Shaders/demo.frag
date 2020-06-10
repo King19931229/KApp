@@ -10,8 +10,8 @@ layout(location = 0) out vec4 outColor;
 
 #include "public.glh"
 
-layout(binding = TEXTURE_SLOT0) uniform sampler2D texSampler;
-layout(binding = TEXTURE_SLOT1) uniform samplerCube samplerEnvMap;
+layout(binding = BINDING_TEXTURE0) uniform sampler2D texSampler;
+layout(binding = BINDING_TEXTURE1) uniform samplerCube samplerEnvMap;
 
 void main()
 {

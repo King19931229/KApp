@@ -231,7 +231,7 @@ bool KPostProcessPass::Init()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 
-		pipeline->SetSampler(0, m_Textures[i], m_Mgr->m_Sampler);
+		pipeline->SetSampler(SB_TEXTURE0, m_Textures[i], m_Mgr->m_Sampler);
 
 		pipeline->Init();
 	}
