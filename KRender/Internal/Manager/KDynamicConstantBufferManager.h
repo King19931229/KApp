@@ -33,6 +33,10 @@ protected:
 	std::mutex m_Lock;
 	IKRenderDevice* m_Device;
 	size_t m_BlockSize;
+
+	bool InternalAlloc(size_t size,
+		size_t frameIndex, size_t frameNum,
+		IKUniformBufferPtr& buffer, size_t& offset);
 public:
 	KDynamicConstantBufferManager();
 	~KDynamicConstantBufferManager();
@@ -40,7 +44,5 @@ public:
 	bool Init(IKRenderDevice* device, size_t frameInFlight, size_t blockSize = 512 * 1024);
 	bool UnInit();
 
-	bool Alloc(size_t size,
-		size_t frameIndex, size_t frameNum,
-		IKUniformBufferPtr& buffer, size_t& offset);
+	bool Alloc(const void* data, KDynamicConstantBufferUsage& usage);
 };

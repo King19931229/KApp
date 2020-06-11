@@ -866,8 +866,8 @@ bool KVulkanRenderDevice::Present()
 	uint32_t chainImageIndex = 0;
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->AcquireNextImage(chainImageIndex);
 
-	KVulkanGlobal::currentFrameIndex = frameIndex;
-	++KVulkanGlobal::currentFrameNum;
+	KRenderGlobal::CurrentFrameIndex = frameIndex;
+	++KRenderGlobal::CurrentFrameNum;
 
 	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
 	{

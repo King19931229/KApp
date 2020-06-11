@@ -73,6 +73,8 @@ public:
 	virtual bool InitDevice() = 0;
 	virtual bool UnInit() = 0;
 
+	virtual bool Map(void** ppData) = 0;
+	virtual bool UnMap() = 0;
 	virtual bool Write(const void* pData) = 0;
 	virtual bool Read(void* pData) = 0;
 

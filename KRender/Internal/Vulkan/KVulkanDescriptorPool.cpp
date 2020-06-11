@@ -1,4 +1,5 @@
 #include "KVulkanDescripiorPool.h"
+#include "KVulkanBuffer.h"
 #include "KVulkanGlobal.h"
 #include "KBase/Publish/KConfig.h"
 #include <algorithm>
@@ -8,6 +9,7 @@ KVulkanDescriptorPool::KVulkanDescriptorPool()
 	: m_Layout(VK_NULL_HANDLE),
 	m_CurrentFrame(0),
 	m_UniformBufferCount(0),
+	m_DyanmicUniformBufferCount(0),
 	m_SamplerCount(0)
 {
 }
@@ -25,6 +27,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 
 	m_Layout = layout;
 	m_SamplerCount = 0;
+	m_DyanmicUniformBufferCount = 0;
 	m_UniformBufferCount = 0;
 
 	for (const VkDescriptorSetLayoutBinding& layoutBinding : m_DescriptorSetLayoutBinding)
@@ -36,6 +39,10 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
 			m_UniformBufferCount += layoutBinding.descriptorCount;
+		}
+		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+		{
+			m_DyanmicUniformBufferCount += layoutBinding.descriptorCount;
 		}
 		else
 		{
@@ -61,6 +68,9 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		{
 			numUniformBuffer += writeDescriptorSet.descriptorCount;
 		}
+		else if (writeDescriptorSet.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+		{
+		}
 		else
 		{
 			ASSERT_RESULT(false && "not support now");
@@ -69,6 +79,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 
 	m_ImageWriteInfo.resize(numSampler);
 	m_BufferWriteInfo.resize(numUniformBuffer);
+	m_DynamicBufferWriteInfo.resize(m_DyanmicUniformBufferCount);
 
 	size_t samplerIdx = 0;
 	size_t uniformBufferIdx = 0;
@@ -104,6 +115,8 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 
 		m_DescriptorWriteInfo.push_back(copy);
 	}
+
+	m_DescriptorDynamicWriteInfo.resize(m_DyanmicUniformBufferCount);
 
 	return true;
 }
@@ -149,11 +162,15 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool()
 	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	uniformPoolSize.descriptorCount = std::max(1U, m_UniformBufferCount);
 
+	VkDescriptorPoolSize dynamicUniformPoolSize = {};
+	dynamicUniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	dynamicUniformPoolSize.descriptorCount = std::max(1U, m_DyanmicUniformBufferCount);
+
 	VkDescriptorPoolSize samplerPoolSize = {};
 	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerPoolSize.descriptorCount = std::max(1U, m_SamplerCount);
 
-	VkDescriptorPoolSize poolSizes[] = { uniformPoolSize, samplerPoolSize };
+	VkDescriptorPoolSize poolSizes[] = { uniformPoolSize, dynamicUniformPoolSize, samplerPoolSize };
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -167,7 +184,49 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool()
 	return newPool;
 }
 
-VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFrame)
+VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFrame, const KDynamicConstantBufferUsage** ppUsage, size_t count)
+{
+	VkDescriptorSet set = InternalAlloc(frameIndex, currentFrame);
+
+	ASSERT_RESULT(set != VK_NULL_HANDLE);
+
+	ASSERT_RESULT(!count || ppUsage);
+	ASSERT_RESULT(count <= m_DynamicBufferWriteInfo.size());
+	ASSERT_RESULT(count <= m_DescriptorDynamicWriteInfo.size());
+
+	std::lock_guard<decltype(m_DynamicWriteLock)> lockGuard(m_DynamicWriteLock);
+
+	for (size_t i = 0; i < count; ++i)
+	{
+		const KDynamicConstantBufferUsage* usage = ppUsage[i];
+
+		IKUniformBufferPtr uniformBuffer = usage->buffer;
+
+		VkDescriptorBufferInfo& bufferInfo = m_DynamicBufferWriteInfo[i];
+		bufferInfo.buffer = ((KVulkanUniformBuffer*)uniformBuffer.get())->GetVulkanHandle();
+		bufferInfo.offset = usage->offset;
+		bufferInfo.range = usage->range;
+
+		VkWriteDescriptorSet& dynamicUniformDescriptorWrite = m_DescriptorDynamicWriteInfo[i];
+
+		dynamicUniformDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		dynamicUniformDescriptorWrite.dstSet = set;
+		dynamicUniformDescriptorWrite.dstBinding = (uint32_t)usage->binding;
+		dynamicUniformDescriptorWrite.dstArrayElement = 0;
+		dynamicUniformDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		dynamicUniformDescriptorWrite.descriptorCount = 1;
+
+		dynamicUniformDescriptorWrite.pBufferInfo = &bufferInfo;
+		dynamicUniformDescriptorWrite.pImageInfo = nullptr;
+		dynamicUniformDescriptorWrite.pTexelBufferView = nullptr;
+	}
+
+	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(count), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+
+	return set;
+}
+
+VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t currentFrame)
 {
 	ASSERT_RESULT(m_Layout != VK_NULL_HANDLE);
 

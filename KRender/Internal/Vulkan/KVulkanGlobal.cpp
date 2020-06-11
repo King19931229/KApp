@@ -15,7 +15,4 @@ namespace KVulkanGlobal
 
 	uint32_t graphicsFamilyIndex = 0;
 	uint32_t presentFamilyIndex = 0;
-
-	uint32_t currentFrameIndex = 0;
-	uint32_t currentFrameNum = 0;
 }

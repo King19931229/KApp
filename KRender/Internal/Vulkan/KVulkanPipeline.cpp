@@ -351,6 +351,34 @@ bool KVulkanPipeline::CreateLayout()
 			}
 		}
 
+		for (const KShaderInformation::Constant& constant : vertexInformation.dynamicConstants)
+		{
+			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+			// 与Shader中绑定位置对应
+			uboLayoutBinding.binding = constant.bindingIndex;
+			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+			// 声明UBO Buffer数组长度 这里不使用数组
+			uboLayoutBinding.descriptorCount = 1;
+			// 声明哪个阶段Shader能够使用上此UBO
+			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
+				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
+			{
+				return IsDuplicateLayoutBinding(lhs, uboLayoutBinding);
+			});
+
+			if (it == m_DescriptorSetLayoutBinding.end())
+			{
+				m_DescriptorSetLayoutBinding.push_back(uboLayoutBinding);
+			}
+			else
+			{
+				(*it).stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
+			}
+		}
+
 		for (const KShaderInformation::Texture& texture : vertexInformation.textures)
 		{
 			VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
@@ -396,6 +424,34 @@ bool KVulkanPipeline::CreateLayout()
 			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 			
+			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
+				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
+			{
+				return IsDuplicateLayoutBinding(lhs, uboLayoutBinding);
+			});
+
+			if (it == m_DescriptorSetLayoutBinding.end())
+			{
+				m_DescriptorSetLayoutBinding.push_back(uboLayoutBinding);
+			}
+			else
+			{
+				(*it).stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+			}
+		}
+
+		for (const KShaderInformation::Constant& constant : fragmentInformation.dynamicConstants)
+		{
+			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+			// 与Shader中绑定位置对应
+			uboLayoutBinding.binding = constant.bindingIndex;
+			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+			// 声明UBO Buffer数组长度 这里不使用数组
+			uboLayoutBinding.descriptorCount = 1;
+			// 声明哪个阶段Shader能够使用上此UBO
+			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
 			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
 				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
 			{
@@ -627,9 +683,9 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 	return true;
 }
 
-VkDescriptorSet KVulkanPipeline::AllocDescriptorSet()
+VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(const KDynamicConstantBufferUsage** ppUsage, size_t count)
 {
-	return m_Pool.Alloc(KVulkanGlobal::currentFrameIndex, KVulkanGlobal::currentFrameNum);
+	return m_Pool.Alloc(KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, ppUsage, count);
 }
 
 bool KVulkanPipeline::Init()

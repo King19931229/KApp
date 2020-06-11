@@ -9,8 +9,8 @@ out gl_PerVertex
 	vec4 gl_Position;
 };
 
-layout(push_constant)
-uniform PushConstant
+layout(binding = BINDING_OBJECT)
+uniform Clip
 {
 	mat4 matrix;
 }clip;

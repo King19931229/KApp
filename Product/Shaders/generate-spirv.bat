@@ -2,7 +2,6 @@ set DIR="%cd%"
 echo DIR=%DIR%
 
 for /R %DIR% %%f in (*.vert,*.frag) do ( 
-echo %%f
 glslc %%f --target-env=vulkan1.0 --target-spv=spv1.0 -o %%f.spv
 )
 

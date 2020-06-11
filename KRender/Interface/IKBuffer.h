@@ -56,6 +56,9 @@ struct IKUniformBuffer
 	// 释放内存数据与设备相关句柄
 	virtual bool UnInit() = 0;
 
+	virtual bool Map(void** ppData) = 0;
+	virtual bool UnMap() = 0;
+
 	virtual bool Write(const void* pData) = 0;
 	virtual bool Read(void* pData) = 0;
 

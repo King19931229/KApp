@@ -165,6 +165,7 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 	spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
 	information.constants.clear();
+	information.dynamicConstants.clear();
 	information.constants.reserve(resources.uniform_buffers.size());
 
 	for (const spirv_cross::Resource& block : resources.uniform_buffers)
@@ -192,7 +193,14 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 			constant.members.push_back(std::move(member));
 		}
 
-		information.constants.push_back(std::move(constant));
+		if (constant.bindingIndex >= CBT_STATIC_BEGIN && constant.bindingIndex <= CBT_STATIC_END)
+		{
+			information.constants.push_back(std::move(constant));
+		}
+		else
+		{
+			information.dynamicConstants.push_back(std::move(constant));
+		}
 	}
 
 	information.pushConstants.clear();

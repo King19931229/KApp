@@ -44,4 +44,7 @@ namespace KRenderGlobal
 	extern KTaskExecutor<true> TaskExecutor;
 
 	extern KStatistics Statistics;
+
+	extern uint32_t CurrentFrameIndex;
+	extern uint32_t CurrentFrameNum;
 };

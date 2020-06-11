@@ -356,8 +356,6 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 				pipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader);
 				pipeline->SetSamplerDepthAttachment(SB_TEXTURE0, cascaded.renderTargets[i], m_ShadowSampler);
 
-				pipeline->CreateConstantBlock(ST_VERTEX, sizeof(glm::mat4));
-
 				ASSERT_RESULT(pipeline->Init());
 			}
 
@@ -718,8 +716,12 @@ bool KCascadedShadowMap::GetDebugRenderCommand(size_t frameIndex, KRenderCommand
 			command.vertexData = &m_DebugVertexData;
 			command.indexData = &m_DebugIndexData;
 			command.pipeline = cascaded.debugPipelines[frameIndex];
-			command.SetObjectData(cascaded.debugClip);
 			command.indexDraw = true;
+
+			command.objectUsage.binding = SB_OBJECT;
+			command.objectUsage.range = sizeof(cascaded.debugClip);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&cascaded.debugClip, command.objectUsage);
+
 			commands.push_back(std::move(command));
 		}
 	}

@@ -399,6 +399,30 @@ bool KVulkanUniformBuffer::UnInit()
 	return true;
 }
 
+bool KVulkanUniformBuffer::Map(void** ppData)
+{
+	ASSERT_RESULT(ppData != nullptr);
+
+	if (m_vkBuffer != VK_NULL_HANDLE)
+	{
+		using namespace KVulkanGlobal;
+		VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanUniformBuffer::UnMap()
+{
+	if (m_vkBuffer != VK_NULL_HANDLE)
+	{
+		using namespace KVulkanGlobal;
+		vkUnmapMemory(device, m_AllocInfo.vkMemroy);
+		return true;
+	}
+	return false;
+}
+
 bool KVulkanUniformBuffer::Write(const void* pData)
 {
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);

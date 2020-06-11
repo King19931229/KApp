@@ -168,5 +168,5 @@ public:
 	virtual bool InvaildHandle(IKRenderTargetPtr target);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
-	VkDescriptorSet AllocDescriptorSet();
+	VkDescriptorSet AllocDescriptorSet(const KDynamicConstantBufferUsage** ppUsage, size_t count);
 };

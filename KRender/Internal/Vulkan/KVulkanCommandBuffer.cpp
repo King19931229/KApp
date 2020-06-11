@@ -185,14 +185,35 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		KVulkanPipelineHandle* pipelineHandle = (KVulkanPipelineHandle*)command.pipelineHandle.get();
 
 		VkPipeline pipeline = pipelineHandle->GetVkPipeline();
-
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
-		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet();
+
+		const KDynamicConstantBufferUsage* dynamicUsages[3] = { nullptr };
+		uint32_t dynamicOffsets[3] = { 0 };
+		uint32_t dynamicBufferCount = 0;
+
+		if (command.objectUsage.buffer)
+		{
+			dynamicUsages[dynamicBufferCount++] = &(command.objectUsage);
+		}
+		if (command.vertexShadingUsage.buffer)
+		{
+			dynamicUsages[dynamicBufferCount++] = &(command.vertexShadingUsage);
+		}
+		if (command.fragmentShadingUsage.buffer)
+		{
+			dynamicUsages[dynamicBufferCount++] = &(command.fragmentShadingUsage);
+		}
+		for (uint32_t i = 0; i < dynamicBufferCount; ++i)
+		{
+			dynamicOffsets[i] = (uint32_t)dynamicUsages[i]->offset;
+		}
+
+		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(dynamicUsages, dynamicBufferCount);
 
 		// 绑定管线
 		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		// 绑定管线布局
-		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, dynamicBufferCount, dynamicOffsets);
 
 		// 绑定顶点缓冲
 		VkBuffer vertexBuffers[32] = {0};
@@ -223,7 +244,10 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 		if(!command.objectData.empty())
 		{
-			vkCmdPushConstants(m_CommandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)command.objectData.size(), command.objectData.data());
+			if(!command.objectUsage.buffer)
+			{
+				vkCmdPushConstants(m_CommandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)command.objectData.size(), command.objectData.data());
+			}
 		}
 
 		if(command.indexDraw)

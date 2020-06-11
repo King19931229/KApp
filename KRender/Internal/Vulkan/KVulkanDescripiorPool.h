@@ -1,5 +1,6 @@
 #pragma once
 #include "KVulkanConfig.h"
+#include "Interface/IKRenderCommand.h"
 #include <vector>
 #include <mutex>
 
@@ -36,15 +37,23 @@ protected:
 
 	std::vector<VkDescriptorImageInfo> m_ImageWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
+	std::vector<VkDescriptorBufferInfo> m_DynamicBufferWriteInfo;
+
 	std::vector<VkWriteDescriptorSet> m_DescriptorWriteInfo;
+	std::vector<VkWriteDescriptorSet> m_DescriptorDynamicWriteInfo;
 
 	size_t m_CurrentFrame;
 	uint32_t m_UniformBufferCount;
+	uint32_t m_DyanmicUniformBufferCount;
 	uint32_t m_SamplerCount;
+
+	std::mutex m_DynamicWriteLock;
 	std::mutex m_Lock;
 
 	VkDescriptorSet AllocDescriptorSet(VkDescriptorPool pool);
 	VkDescriptorPool CreateDescriptorPool();
+
+	VkDescriptorSet InternalAlloc(size_t frameIndex, size_t currentFrame);
 public:
 	KVulkanDescriptorPool();
 	~KVulkanDescriptorPool();
@@ -54,5 +63,5 @@ public:
 		const std::vector<VkWriteDescriptorSet>& writeInfo);
 	bool UnInit();
 
-	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame);
+	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, const KDynamicConstantBufferUsage** ppUsage, size_t count);
 };

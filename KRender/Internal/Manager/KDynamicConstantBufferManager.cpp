@@ -1,4 +1,5 @@
 #include "KDynamicConstantBufferManager.h"
+#include "Internal/KRenderGlobal.h"
 
 KDynamicConstantBufferManager::KDynamicConstantBufferManager()
 	: m_Device(nullptr),
@@ -43,7 +44,21 @@ bool KDynamicConstantBufferManager::UnInit()
 	return true;
 }
 
-bool KDynamicConstantBufferManager::Alloc(size_t size,
+bool KDynamicConstantBufferManager::Alloc(const void* data, KDynamicConstantBufferUsage& usage)
+{
+	if (InternalAlloc(usage.range, KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, usage.buffer, usage.offset))
+	{
+		ASSERT_RESULT(data);
+		void* pBufferData = nullptr;
+		ASSERT_RESULT(usage.buffer->Map(&pBufferData));
+		memcpy(POINTER_OFFSET(pBufferData, usage.offset), data, usage.range);
+		ASSERT_RESULT(usage.buffer->UnMap());
+		return true;
+	}
+	return false;
+}
+
+bool KDynamicConstantBufferManager::InternalAlloc(size_t size,
 	size_t frameIndex, size_t frameNum,
 	IKUniformBufferPtr& buffer, size_t& offset)
 {
@@ -88,6 +103,8 @@ bool KDynamicConstantBufferManager::Alloc(size_t size,
 		newBlock.useSize = 0;
 
 		buffer = newBlock.buffer;
+		ASSERT_RESULT(buffer->InitMemory(m_BlockSize, nullptr));
+		ASSERT_RESULT(buffer->InitDevice());
 		offset = 0;
 
 		newBlock.useSize += size;

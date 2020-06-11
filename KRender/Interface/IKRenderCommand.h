@@ -121,6 +121,22 @@ struct KIndexData
 	}
 };
 
+struct KDynamicConstantBufferUsage
+{
+	IKUniformBufferPtr buffer;
+	size_t offset;
+	size_t range;
+	size_t binding;
+
+	KDynamicConstantBufferUsage()
+	{
+		buffer = nullptr;
+		offset = 0;
+		range = 0;
+		binding = 0;
+	}
+};
+
 // TODO 分离KRenderData 与 KRenderCommand
 struct KRenderCommand
 {
@@ -137,6 +153,10 @@ struct KRenderCommand
 
 	bool indexDraw;
 	bool instanceDraw;
+
+	KDynamicConstantBufferUsage objectUsage;
+	KDynamicConstantBufferUsage vertexShadingUsage;
+	KDynamicConstantBufferUsage fragmentShadingUsage;
 
 	KRenderCommand()
 	{

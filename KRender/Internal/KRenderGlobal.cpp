@@ -22,4 +22,7 @@ namespace KRenderGlobal
 	KTaskExecutor<true> TaskExecutor;
 
 	KStatistics Statistics;
+
+	uint32_t CurrentFrameIndex = 0;
+	uint32_t CurrentFrameNum = 0;
 }
