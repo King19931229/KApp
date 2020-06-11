@@ -93,12 +93,16 @@ bool KRenderCore::InitGlobalManager()
 {
 	uint32_t frameInFlight = m_Device->GetNumFramesInFlight();
 
+	KRenderDeviceProperties property;
+	ASSERT_RESULT(m_Device->QueryProperty(property));
+
 	KRenderGlobal::PipelineManager.Init(m_Device);
 	KRenderGlobal::FrameResourceManager.Init(m_Device, frameInFlight);
 	KRenderGlobal::MeshManager.Init(m_Device, frameInFlight);
 	KRenderGlobal::ShaderManager.Init(m_Device);
 	KRenderGlobal::TextrueManager.Init(m_Device);
-	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, frameInFlight, 512 * 1024);
+
+	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, frameInFlight, property.uniformBufferOffsetAlignment, property.uniformBufferMaxRange);
 
 	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
 	KRenderGlobal::OcclusionBox.Init(m_Device, frameInFlight);

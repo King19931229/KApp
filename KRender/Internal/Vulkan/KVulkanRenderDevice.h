@@ -174,6 +174,8 @@ public:
 	virtual bool RegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback);
 	virtual bool UnRegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback);
 
+	virtual bool QueryProperty(KRenderDeviceProperties& property);
+
 	virtual IKSwapChainPtr GetSwapChain();
 	virtual IKUIOverlayPtr GetUIOverlay();
 	virtual uint32_t GetNumFramesInFlight();

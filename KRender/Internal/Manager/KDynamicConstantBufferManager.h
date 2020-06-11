@@ -33,6 +33,7 @@ protected:
 	std::mutex m_Lock;
 	IKRenderDevice* m_Device;
 	size_t m_BlockSize;
+	size_t m_Alignment;
 
 	bool InternalAlloc(size_t size,
 		size_t frameIndex, size_t frameNum,
@@ -41,7 +42,7 @@ public:
 	KDynamicConstantBufferManager();
 	~KDynamicConstantBufferManager();
 
-	bool Init(IKRenderDevice* device, size_t frameInFlight, size_t blockSize = 512 * 1024);
+	bool Init(IKRenderDevice* device, size_t frameInFlight, size_t aligment, size_t blockSize);
 	bool UnInit();
 
 	bool Alloc(const void* data, KDynamicConstantBufferUsage& usage);

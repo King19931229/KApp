@@ -8,6 +8,18 @@ typedef std::function<void(uint32_t width, uint32_t height)> KSwapChainRecreateC
 typedef std::function<void()> KDeviceInitCallback;
 typedef std::function<void()> KDeviceUnInitCallback;
 
+struct KRenderDeviceProperties
+{
+	size_t uniformBufferMaxRange;
+	size_t uniformBufferOffsetAlignment;
+
+	KRenderDeviceProperties()
+	{
+		uniformBufferMaxRange = 512;
+		uniformBufferOffsetAlignment = 8;
+	}
+};
+
 struct IKRenderDevice
 {
 	virtual ~IKRenderDevice() {}
@@ -53,6 +65,8 @@ struct IKRenderDevice
 
 	virtual bool RegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback) = 0;
 	virtual bool UnRegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback) = 0;
+
+	virtual bool QueryProperty(KRenderDeviceProperties& property) = 0;
 };
 
 EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform);

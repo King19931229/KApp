@@ -3,7 +3,8 @@
 
 KDynamicConstantBufferManager::KDynamicConstantBufferManager()
 	: m_Device(nullptr),
-	m_BlockSize(512 * 1024)
+	m_BlockSize(65536),
+	m_Alignment(256)
 {
 }
 
@@ -12,12 +13,13 @@ KDynamicConstantBufferManager::~KDynamicConstantBufferManager()
 	ASSERT_RESULT(m_ConstantBlocks.empty());
 }
 
-bool KDynamicConstantBufferManager::Init(IKRenderDevice* device, size_t frameInFlight, size_t blockSize)
+bool KDynamicConstantBufferManager::Init(IKRenderDevice* device, size_t frameInFlight, size_t alignment, size_t blockSize)
 {
 	UnInit();
 
 	m_Device = device;
 	m_ConstantBlocks.resize(frameInFlight);
+	m_Alignment = alignment;
 	m_BlockSize = blockSize;
 
 	for (FrameConstantBlock& frameBlock : m_ConstantBlocks)
@@ -46,7 +48,8 @@ bool KDynamicConstantBufferManager::UnInit()
 
 bool KDynamicConstantBufferManager::Alloc(const void* data, KDynamicConstantBufferUsage& usage)
 {
-	if (InternalAlloc(usage.range, KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, usage.buffer, usage.offset))
+	size_t alignment = (usage.range + m_Alignment - 1) & ~(m_Alignment - 1);
+	if (InternalAlloc(alignment, KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, usage.buffer, usage.offset))
 	{
 		ASSERT_RESULT(data);
 		void* pBufferData = nullptr;

@@ -383,6 +383,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 
 		// TODO 检测
+		ASSERT_RESULT(m_PhysicalDevice.deviceProperties.limits.maxSamplerAnisotropy > 0.0f);
 		deviceFeatures.fillModeNonSolid = VK_TRUE;
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
 		deviceFeatures.inheritedQueries = VK_TRUE;
@@ -891,6 +892,13 @@ bool KVulkanRenderDevice::Present()
 		RecreateSwapChain();
 	}
 
+	return true;
+}
+
+bool KVulkanRenderDevice::QueryProperty(KRenderDeviceProperties& property)
+{
+	property.uniformBufferMaxRange = m_PhysicalDevice.deviceProperties.limits.maxUniformBufferRange;
+	property.uniformBufferOffsetAlignment = m_PhysicalDevice.deviceProperties.limits.minUniformBufferOffsetAlignment;
 	return true;
 }
 
