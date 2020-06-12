@@ -489,7 +489,10 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 			KRenderCommand command = std::move(_command);
 
 			KConstantDefinition::CSM_OBJECT_INSTANCE csmInstance = { (uint32_t)cascadedIndex };
-			command.SetObjectData(csmInstance);
+
+			command.objectUsage.binding = SB_OBJECT;
+			command.objectUsage.range = sizeof(csmInstance);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&csmInstance, command.objectUsage);
 
 			++statistics.drawcalls;
 

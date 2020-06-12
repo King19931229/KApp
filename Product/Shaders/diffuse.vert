@@ -12,8 +12,8 @@ layout(location = TEXCOORD0) in vec2 texcoord0;
 //layout(location = TANGENT) in vec3 tangent;
 //layout(location = BINORMAL) in vec3 binormal;
 
-layout(push_constant)
-uniform PushConstant
+layout(binding = BINDING_OBJECT)
+uniform Object
 {
 	mat4 model;
 }object;

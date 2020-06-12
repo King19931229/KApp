@@ -123,7 +123,6 @@ void KOcclusionBox::PreparePipeline()
 #else
 		pipeline->SetColorWrite(false, false, false, false);
 #endif
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
 		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
@@ -186,7 +185,6 @@ void KOcclusionBox::PreparePipeline()
 #else
 		pipeline->SetColorWrite(false, false, false, false);
 #endif
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
 		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
@@ -636,7 +634,11 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 							KConstantDefinition::OBJECT transform;
 							KAABBBox &bound = group.bound;
 							transform.MODEL = glm::translate(glm::mat4(1.0f), bound.GetCenter()) * glm::scale(glm::mat4(1.0f), bound.GetExtend());
-							command.SetObjectData(transform);
+
+							command.objectUsage.binding = SB_OBJECT;
+							command.objectUsage.range = sizeof(transform);
+							KRenderGlobal::DynamicConstantBufferManager.Alloc(&transform, command.objectUsage);
+
 							// Front Face Pass
 							{
 								command.pipeline = m_PipelinesFrontFace[frameIndex];

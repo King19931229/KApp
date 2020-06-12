@@ -11,8 +11,8 @@ layout(location = INSTANCE_COLUMN_1) in vec4 world_col1;
 layout(location = INSTANCE_COLUMN_2) in vec4 world_col2;
 layout(location = INSTANCE_COLUMN_3) in vec4 world_col3;
 
-layout(push_constant)
-uniform PushConstant
+layout(binding = BINDING_OBJECT)
+uniform Object
 {
 	uint index;
 }object;

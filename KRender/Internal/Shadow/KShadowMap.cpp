@@ -139,7 +139,12 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 
 						mesh->Visit(PIPELINE_STAGE_SHADOW_GEN, frameIndex, [&](KRenderCommand command)
 						{
-							command.SetObjectData(transform->FinalTransform());
+							const KConstantDefinition::OBJECT& final = transform->FinalTransform();
+
+							command.objectUsage.binding = SB_OBJECT;
+							command.objectUsage.range = sizeof(final);
+							KRenderGlobal::DynamicConstantBufferManager.Alloc(&final, command.objectUsage);
+
 							commandList.push_back(command);
 						});
 					}

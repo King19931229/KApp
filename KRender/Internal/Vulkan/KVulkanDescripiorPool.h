@@ -47,7 +47,6 @@ protected:
 	uint32_t m_DyanmicUniformBufferCount;
 	uint32_t m_SamplerCount;
 
-	std::mutex m_DynamicWriteLock;
 	std::mutex m_Lock;
 
 	VkDescriptorSet AllocDescriptorSet(VkDescriptorPool pool);

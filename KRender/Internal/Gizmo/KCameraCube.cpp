@@ -208,7 +208,7 @@ void KCameraCube::PopulateCorner(const glm::vec3& center, const glm::vec3& xAxis
 	corner[1] = { center + xAxis * FACE_SIZE + yAxis * CORE_SIZE };
 	corner[2] = { center + xAxis * FACE_SIZE + yAxis * FACE_SIZE };
 	corner[3] = { center + xAxis * CORE_SIZE + yAxis * FACE_SIZE };
-	corner[4] = { center + xAxis * CORE_SIZE + yAxis * FACE_SIZE - zAxis * EDGE_SIZE};
+	corner[4] = { center + xAxis * CORE_SIZE + yAxis * FACE_SIZE - zAxis * EDGE_SIZE };
 	corner[5] = { center + xAxis * FACE_SIZE + yAxis * FACE_SIZE - zAxis * EDGE_SIZE };
 	corner[6] = { center + xAxis * FACE_SIZE + yAxis * CORE_SIZE - zAxis * EDGE_SIZE };
 }
@@ -370,8 +370,6 @@ void KCameraCube::PreparePipeline()
 		pipeline->SetShader(ST_VERTEX, m_VertexShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
 
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(ConstantBlock));
-
 		ASSERT_RESULT(pipeline->Init());
 	}
 
@@ -389,7 +387,6 @@ void KCameraCube::PreparePipeline()
 		pipeline->SetShader(ST_VERTEX, m_VertexShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
 
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(ConstantBlock));
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -407,8 +404,6 @@ void KCameraCube::PreparePipeline()
 		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 		pipeline->SetShader(ST_VERTEX, m_VertexShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
-
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(ConstantBlock));
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -596,7 +591,7 @@ bool KCameraCube::CalcPickRay(unsigned int x, unsigned int y, glm::vec3& origin,
 
 	glm::vec4 clipPos = m_InvClipMat * glm::vec4(normX, normY, 0.0f, 1.0f);
 
-	if(fabs(clipPos.z) < 0.0001f && fabs(clipPos.x) <= 1.0f && fabs(clipPos.y) <= 1.0f)
+	if (fabs(clipPos.z) < 0.0001f && fabs(clipPos.x) <= 1.0f && fabs(clipPos.y) <= 1.0f)
 	{
 		return m_CubeCamera.CalcPickRay(clipPos.x, clipPos.y, origin, dir);
 	}
@@ -700,7 +695,7 @@ bool KCameraCube::PickCubePart(CubeFace face, const glm::vec2& projPos, CubePart
 		return true;
 	}
 	// left edge
-	if (projPos[0] + FACE_SIZE  <= EDGE_SIZE)
+	if (projPos[0] + FACE_SIZE <= EDGE_SIZE)
 	{
 		// left top corner
 		if (FACE_SIZE - projPos[1] <= EDGE_SIZE)
@@ -724,9 +719,9 @@ bool KCameraCube::PickCubePart(CubeFace face, const glm::vec2& projPos, CubePart
 		part = information.edge[2];
 		return true;
 	}
-	
+
 	// bottom edge
-	if (projPos[1] + FACE_SIZE  <= EDGE_SIZE)
+	if (projPos[1] + FACE_SIZE <= EDGE_SIZE)
 	{
 		part = information.edge[3];
 		return true;
@@ -755,7 +750,7 @@ bool KCameraCube::FindPickRenderData(CubePart part, KVertexData** ppVertexData, 
 			*ppIndexData = &m_FaceIndexData[(uint32_t)part - (uint32_t)CubePart::TOP_FACE];
 			return true;
 		}
-		case KCameraCube::CubePart::TOP_LEFT_EDGE:			
+		case KCameraCube::CubePart::TOP_LEFT_EDGE:
 		case KCameraCube::CubePart::TOP_RIGHT_EDGE:
 		case KCameraCube::CubePart::TOP_FRONT_EDGE:
 		case KCameraCube::CubePart::TOP_BACK_EDGE:
@@ -772,8 +767,8 @@ bool KCameraCube::FindPickRenderData(CubePart part, KVertexData** ppVertexData, 
 			*ppIndexData = &m_EdgeIndexData;
 			return true;
 		}
-		case KCameraCube::CubePart::TOP_LEFT_FRONT_CORNER:			
-		case KCameraCube::CubePart::TOP_LEFT_BACK_CORNER:			
+		case KCameraCube::CubePart::TOP_LEFT_FRONT_CORNER:
+		case KCameraCube::CubePart::TOP_LEFT_BACK_CORNER:
 		case KCameraCube::CubePart::TOP_RIGHT_FRONT_CORNER:
 		case KCameraCube::CubePart::TOP_RIGHT_BACK_CORNER:
 		case KCameraCube::CubePart::BOTTOM_LEFT_FRONT_CORNER:
@@ -980,10 +975,14 @@ bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& comman
 			command.vertexData = &m_BackGroundVertexData;
 			command.indexData = &m_BackGroundIndexData;
 			command.pipeline = m_BackGroundPipelines[frameIndex];
+			command.indexDraw = true;
+
 			constant.viewprojclip = m_ClipMat;
 			constant.color = glm::vec4(0.5f, 0.5f, 0.5f, 0.5f);
-			command.SetObjectData(constant);
-			command.indexDraw = true;
+			command.objectUsage.binding = SB_OBJECT;
+			command.objectUsage.range = sizeof(constant);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, command.objectUsage);
+
 			commands.push_back(std::move(command));
 		}
 
@@ -998,7 +997,11 @@ bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& comman
 			{
 				command.indexData = &m_CubeIndexData[i];
 				constant.color = glm::vec4(CubeFaceColor[i], m_HoverIn ? 0.8f : 0.2f);
-				command.SetObjectData(constant);
+
+				command.objectUsage.binding = SB_OBJECT;
+				command.objectUsage.range = sizeof(constant);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, command.objectUsage);
+
 				commands.push_back(command);
 			}
 		}
@@ -1013,10 +1016,13 @@ bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& comman
 				command.vertexData = vertexData;
 				command.indexData = indexData;
 				command.pipeline = m_PickPipelines[frameIndex];
+				command.indexDraw = true;
 				constant.viewprojclip = m_ClipMat * m_CubeCamera.GetProjectiveMatrix() * m_CubeCamera.GetViewMatrix();
 				constant.color = glm::vec4(0.8f, 0.8f, 0.8f, 0.8f);
-				command.SetObjectData(constant);
-				command.indexDraw = true;
+				command.objectUsage.binding = SB_OBJECT;
+				command.objectUsage.range = sizeof(constant);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, command.objectUsage);
+
 				commands.push_back(std::move(command));
 			}
 		}

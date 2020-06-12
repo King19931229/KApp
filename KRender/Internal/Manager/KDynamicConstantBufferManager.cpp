@@ -51,6 +51,7 @@ bool KDynamicConstantBufferManager::Alloc(const void* data, KDynamicConstantBuff
 	size_t alignment = (usage.range + m_Alignment - 1) & ~(m_Alignment - 1);
 	if (InternalAlloc(alignment, KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, usage.buffer, usage.offset))
 	{
+		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 		ASSERT_RESULT(data);
 		void* pBufferData = nullptr;
 		ASSERT_RESULT(usage.buffer->Map(&pBufferData));

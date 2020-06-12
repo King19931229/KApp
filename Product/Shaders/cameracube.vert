@@ -4,8 +4,8 @@
 
 layout(location = POSITION) in vec3 position;
 
-layout(push_constant)
-uniform PushConstant
+layout(binding = BINDING_OBJECT)
+uniform Object
 {
 	mat4 viewprojclip;
 	vec4 color;

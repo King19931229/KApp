@@ -196,8 +196,6 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetColorWrite(false, false, false, false);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
-
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
 
@@ -212,7 +210,6 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		{
 			pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
 			pipeline->SetShader(ST_VERTEX, m_SceneVSShader);
-			pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
 		}
 		else if (stage == PIPELINE_STAGE_OPAQUE_INSTANCE)
 		{
@@ -319,7 +316,6 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		{
 			pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
 			pipeline->SetShader(ST_VERTEX, m_CascadedShadowVSShader);
-			pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::CSM_OBJECT));
 		}
 		else if (stage == PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE)
 		{
@@ -327,7 +323,6 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 			instanceFormats.push_back(VF_INSTANCE);
 			pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
 			pipeline->SetShader(ST_VERTEX, m_CascadedShadowVSInstanceShader);
-			pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::CSM_OBJECT_INSTANCE));
 		}
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
@@ -370,8 +365,6 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
 
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::DEBUG));
-
 		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
@@ -397,8 +390,6 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
-
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::DEBUG));
 
 		ASSERT_RESULT(pipeline->Init());
 		return true;

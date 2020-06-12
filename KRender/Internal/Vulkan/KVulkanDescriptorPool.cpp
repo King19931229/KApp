@@ -194,7 +194,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 	ASSERT_RESULT(count <= m_DynamicBufferWriteInfo.size());
 	ASSERT_RESULT(count <= m_DescriptorDynamicWriteInfo.size());
 
-	std::lock_guard<decltype(m_DynamicWriteLock)> lockGuard(m_DynamicWriteLock);
+	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 
 	for (size_t i = 0; i < count; ++i)
 	{
@@ -204,7 +204,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 
 		VkDescriptorBufferInfo& bufferInfo = m_DynamicBufferWriteInfo[i];
 		bufferInfo.buffer = ((KVulkanUniformBuffer*)uniformBuffer.get())->GetVulkanHandle();
-		bufferInfo.offset = usage->offset;
+		bufferInfo.offset = 0;
 		bufferInfo.range = usage->range;
 
 		VkWriteDescriptorSet& dynamicUniformDescriptorWrite = m_DescriptorDynamicWriteInfo[i];
