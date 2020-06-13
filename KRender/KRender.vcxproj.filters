@@ -363,6 +363,9 @@
     <ClInclude Include="Internal\Asset\KMeshTextureBinding.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Asset\KMaterial.h">
+      <Filter>Internal\Asset</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -582,6 +585,9 @@
       <Filter>Internal\Asset\Material</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Asset\KMeshTextureBinding.cpp">
+      <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\KMaterial.cpp">
       <Filter>Internal\Asset</Filter>
     </ClCompile>
   </ItemGroup>

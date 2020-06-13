@@ -168,14 +168,36 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 	information.dynamicConstants.clear();
 	information.constants.reserve(resources.uniform_buffers.size());
 
+	auto SPIRV_BaseType_To_ConstantMemberType =
+		[](spirv_cross::SPIRType::BaseType baseType)
+		->KShaderInformation::Constant::ConstantMemberType
+	{
+		if (baseType == spirv_cross::SPIRType::Boolean)
+		{
+			return KShaderInformation::Constant::CONSTANT_MEMBER_TYPE_BOOL;
+		}
+		else if (baseType == spirv_cross::SPIRType::Int)
+		{
+			return KShaderInformation::Constant::CONSTANT_MEMBER_TYPE_INT;
+		}
+		else if (baseType == spirv_cross::SPIRType::Float)
+		{
+			return KShaderInformation::Constant::CONSTANT_MEMBER_TYPE_FLOAT;
+		}
+		else
+		{
+			return KShaderInformation::Constant::CONSTANT_MEMBER_TYPE_UNKNOWN;
+		}
+	};
+
 	for (const spirv_cross::Resource& block : resources.uniform_buffers)
 	{
 		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
 
 		KShaderInformation::Constant constant;
-		constant.descriptorSetIndex = compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
-		constant.bindingIndex = compiler.get_decoration(block.id, spv::DecorationBinding);
-		constant.size = (uint32_t)compiler.get_declared_struct_size(type);
+		constant.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
+		constant.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
+		constant.size = (uint16_t)compiler.get_declared_struct_size(type);
 
 		uint32_t memberCount = (uint32_t)type.member_types.size();
 		constant.members.reserve(memberCount);
@@ -185,10 +207,13 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 			const spirv_cross::SPIRType& memberType = compiler.get_type(memberTypeID);
 
 			KShaderInformation::Constant::ConstantMember member;
+			member.type = SPIRV_BaseType_To_ConstantMemberType(memberType.basetype);
 			member.name = compiler.get_member_name(block.base_type_id, i);
-			member.offset = compiler.type_struct_member_offset(type, i);
-			member.size = (uint32_t)compiler.get_declared_struct_member_size(type, i);
-			member.arrayCount = memberType.array.empty() ? 0 : memberType.array[0];
+			member.offset = (uint16_t)compiler.type_struct_member_offset(type, i);
+			member.size = (uint16_t)compiler.get_declared_struct_member_size(type, i);
+			member.arrayCount = (uint8_t)memberType.array.empty() ? 0 : memberType.array[0];
+			member.vecSize = (uint8_t)memberType.vecsize;
+			member.dimension = (uint8_t)memberType.columns;
 
 			constant.members.push_back(std::move(member));
 		}
@@ -211,9 +236,9 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
 
 		KShaderInformation::Constant constant;
-		constant.descriptorSetIndex = compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
-		constant.bindingIndex = compiler.get_decoration(block.id, spv::DecorationBinding);
-		constant.size = (uint32_t)compiler.get_declared_struct_size(type);
+		constant.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
+		constant.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
+		constant.size = (uint16_t)compiler.get_declared_struct_size(type);
 
 		uint32_t memberCount = (uint32_t)type.member_types.size();
 		constant.members.reserve(memberCount);
@@ -223,10 +248,13 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 			const spirv_cross::SPIRType& memberType = compiler.get_type(memberTypeID);
 
 			KShaderInformation::Constant::ConstantMember member;
+			member.type = SPIRV_BaseType_To_ConstantMemberType(memberType.basetype);
 			member.name = compiler.get_member_name(block.base_type_id, i);
-			member.offset = compiler.type_struct_member_offset(type, i);
-			member.size = (uint32_t)compiler.get_declared_struct_member_size(type, i);
-			member.arrayCount = memberType.array.empty() ? 0 : memberType.array[0];
+			member.offset = (uint16_t)compiler.type_struct_member_offset(type, i);
+			member.size = (uint16_t)compiler.get_declared_struct_member_size(type, i);
+			member.arrayCount = (uint8_t)memberType.array.empty() ? 0 : memberType.array[0];
+			member.vecSize = (uint8_t)memberType.vecsize;
+			member.dimension = (uint8_t)memberType.columns;
 
 			constant.members.push_back(std::move(member));
 		}
@@ -241,9 +269,9 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 	{
 		KShaderInformation::Texture texture;
 
-		texture.attachmentIndex = compiler.get_decoration(block.id, spv::DecorationInputAttachmentIndex);
-		texture.descriptorSetIndex = compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
-		texture.bindingIndex = compiler.get_decoration(block.id, spv::DecorationBinding);
+		texture.attachmentIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationInputAttachmentIndex);
+		texture.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
+		texture.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
 
 		information.textures.push_back(std::move(texture));
 	}

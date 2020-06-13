@@ -21,8 +21,8 @@ public:
 	~KMaterialParameter();
 
 	bool HasValue(const std::string& name) const override;
-	IKMaterialValuePtr GetValue(const std::string& name) override;
-	const std::vector<IKMaterialValuePtr>& GetAllValues() override;
+	IKMaterialValuePtr GetValue(const std::string& name) const override;
+	const std::vector<IKMaterialValuePtr>& GetAllValues() const override;
 	bool CreateValue(const std::string& name, MaterialValueType type, uint8_t dimension, const void* initData = nullptr) override;
 	bool RemoveValue(const std::string& name) override;
 };

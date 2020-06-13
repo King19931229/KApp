@@ -1,13 +1,13 @@
 #pragma once
 #include "Interface/IKMaterial.h"
 
-template<typename T, uint8_t Dimension>
+template<typename T, uint8_t VecSize>
 class KMaterialValue : public IKMaterialValue
 {
-	static_assert(Dimension > 0 && Dimension <= 4, "dimension out of bound");
+	static_assert(VecSize >= 1 && VecSize <= 4, "dimension out of bound");
 protected:
 	std::string m_Name;
-	T m_Value[Dimension];
+	T m_Value[VecSize];
 
 	template<typename T2>
 	MaterialValueType GetValueType(T2) const
@@ -35,7 +35,7 @@ public:
 	KMaterialValue(const std::string& name)
 		: m_Name(name)
 	{
-		for (uint8_t i = 0; i < Dimension; ++i)
+		for (uint8_t i = 0; i < VecSize ; ++i)
 		{
 			m_Value[i] = static_cast<T>(0);
 		}
@@ -52,9 +52,9 @@ public:
 		return GetValueType(T());
 	}
 
-	uint8_t GetDimension() const override
+	uint8_t GetVecSize() const override
 	{
-		return Dimension;
+		return VecSize;
 	}
 
 	const void* GetData() const override
@@ -67,6 +67,13 @@ public:
 		if (data)
 		{
 			memcpy(m_Value, data, sizeof(m_Value));
+		}
+		else
+		{
+			for (uint8_t i = 0; i < VecSize; ++i)
+			{
+				m_Value[i] = static_cast<T>(0);
+			}
 		}
 	}
 };

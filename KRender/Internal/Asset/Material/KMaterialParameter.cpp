@@ -23,7 +23,7 @@ bool KMaterialParameter::HasValue(const std::string& name) const
 	return false;
 }
 
-IKMaterialValuePtr KMaterialParameter::GetValue(const std::string& name)
+IKMaterialValuePtr KMaterialParameter::GetValue(const std::string& name) const
 {
 	size_t hash = KHash::BKDR(name.c_str(), name.length());
 	Key ref = { hash, 0 };
@@ -35,7 +35,7 @@ IKMaterialValuePtr KMaterialParameter::GetValue(const std::string& name)
 	return nullptr;
 }
 
-const std::vector<IKMaterialValuePtr>& KMaterialParameter::GetAllValues()
+const std::vector<IKMaterialValuePtr>& KMaterialParameter::GetAllValues() const
 {
 	return m_ParameterValue;
 }
@@ -94,7 +94,7 @@ IKMaterialValuePtr KMaterialParameter::MakeValue(const std::string& name, Materi
 	return nullptr;
 }
 
-bool KMaterialParameter::CreateValue(const std::string& name, MaterialValueType type, uint8_t dimension, const void* initData)
+bool KMaterialParameter::CreateValue(const std::string& name, MaterialValueType type, uint8_t vecSize, const void* initData)
 {
 	size_t hash = KHash::BKDR(name.c_str(), name.length());
 	Key ref = { hash, 0 };
@@ -102,7 +102,7 @@ bool KMaterialParameter::CreateValue(const std::string& name, MaterialValueType 
 	auto it = std::lower_bound(m_ParameterKey.begin(), m_ParameterKey.end(), ref, [](const Key& lhs, const Key& rhs) { return lhs.hash < rhs.hash; });
 	if (it == m_ParameterKey.end() || it->hash != hash)
 	{
-		Value value = MakeValue(name, type, dimension);
+		Value value = MakeValue(name, type, vecSize);
 
 		for (auto itMod = it, itEnd = m_ParameterKey.end(); itMod != itEnd; ++itMod)
 		{

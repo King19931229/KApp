@@ -8,25 +8,46 @@ struct KShaderInformation
 {
 	struct Constant
 	{
-		uint32_t descriptorSetIndex;
-		uint32_t bindingIndex;
-		uint32_t size;
+		uint16_t descriptorSetIndex;
+		uint16_t bindingIndex;
+		uint16_t size;
+
+		enum ConstantMemberType : uint32_t
+		{
+			CONSTANT_MEMBER_TYPE_BOOL,
+			CONSTANT_MEMBER_TYPE_INT,
+			CONSTANT_MEMBER_TYPE_FLOAT,
+			CONSTANT_MEMBER_TYPE_UNKNOWN
+		};
 
 		struct ConstantMember
 		{
 			std::string name;
-			uint32_t offset;
-			uint32_t size;
-			uint32_t arrayCount;
+			ConstantMemberType type;
+			uint16_t offset;
+			uint16_t size;
+			uint8_t arrayCount;
+			uint8_t vecSize;
+			uint8_t dimension;
+
+			ConstantMember()
+			{
+				type = CONSTANT_MEMBER_TYPE_UNKNOWN;
+				offset = 0;
+				size = 0;
+				arrayCount = 0;
+				vecSize = 0;
+				dimension = 0;
+			}
 		};
 		std::vector<ConstantMember> members;
 	};
 
 	struct Texture
 	{
-		uint32_t attachmentIndex;
-		uint32_t descriptorSetIndex;
-		uint32_t bindingIndex;
+		uint16_t attachmentIndex;
+		uint16_t descriptorSetIndex;
+		uint16_t bindingIndex;
 	};
 
 	std::vector<Constant> constants;

@@ -104,13 +104,13 @@ namespace KStringParser
 		return bRet;
 	}
 
-	EXPORT_DLL bool ParseToFloat(const char* pStr, float* pOut, size_t uCount)
+	EXPORT_DLL bool ParseToFLOAT(const char* pStr, float* pOut, size_t uCount)
 	{
 		bool bRet = ParseTo(pStr, pOut, uCount);
 		return bRet;
 	}
 
-	EXPORT_DLL bool ParseToDouble(const char* pStr, double* pOut, size_t uCount)
+	EXPORT_DLL bool ParseToDOUBLE(const char* pStr, double* pOut, size_t uCount)
 	{
 		bool bRet = ParseTo(pStr, pOut, uCount);
 		return bRet;
@@ -176,13 +176,13 @@ namespace KStringParser
 		return bRet;
 	}
 
-	EXPORT_DLL bool ParseFromFloat(char* pOutStr, size_t uSize, const float* pIn, size_t uCount)
+	EXPORT_DLL bool ParseFromFLOAT(char* pOutStr, size_t uSize, const float* pIn, size_t uCount)
 	{
 		bool bRet = ParseFrom(pOutStr, uSize, pIn, uCount);
 		return bRet;
 	}
 
-	EXPORT_DLL bool ParseFromDouble(char* pOutStr, size_t uSize, const double* pIn, size_t uCount)
+	EXPORT_DLL bool ParseFromDOUBLE(char* pOutStr, size_t uSize, const double* pIn, size_t uCount)
 	{
 		bool bRet = ParseFrom(pOutStr, uSize, pIn, uCount);
 		return bRet;
