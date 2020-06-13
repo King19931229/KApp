@@ -539,13 +539,13 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 		const KIndexData& indexData = indexDatas[drawInfo.indexDataIdx];
 		const MaterialInfo& materialData = materialDatas[drawInfo.materialDataIdx];
 
-		KMaterialPtr material = KMaterialPtr(KNEW KMaterial());
+		KMeshTextureBinding textures;
 		if(!materialData.diffuse.empty())
 		{
 			std::string diffusePath;
 			if(CombinePath(meshPath, materialData.diffuse, diffusePath))
 			{
-				material->ResignTexture(MTS_DIFFUSE, diffusePath.c_str());
+				textures.AssignTexture(MTS_DIFFUSE, diffusePath.c_str());
 			}
 		}
 		if(!materialData.specular.empty())
@@ -553,7 +553,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 			std::string specularPath;
 			if(CombinePath(meshPath, materialData.specular, specularPath))
 			{
-				material->ResignTexture(MTS_SPECULAR, specularPath.c_str());
+				textures.AssignTexture(MTS_SPECULAR, specularPath.c_str());
 			}
 		}
 		if(!materialData.normal.empty())
@@ -561,12 +561,12 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 			std::string normalPath;
 			if(CombinePath(meshPath, materialData.normal, normalPath))
 			{
-				material->ResignTexture(MTS_SPECULAR, normalPath.c_str());
+				textures.AssignTexture(MTS_SPECULAR, normalPath.c_str());
 			}
 		}
 
 		submesh = KSubMeshPtr(KNEW KSubMesh(pMesh));
-		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, material, frameInFlight));
+		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, std::move(textures), frameInFlight));
 	}
 
 	return true;
@@ -774,25 +774,25 @@ bool KMeshSerializerV0::SaveToStream(const KMesh* pMesh, IKDataStreamPtr& stream
 	std::vector<MaterialInfo> materialDatas;
 	std::vector<DrawElementInfo> drawInfos;
 
-	for(size_t i = 0; i < pMesh->m_SubMeshes.size(); ++i)
+	for (size_t i = 0; i < pMesh->m_SubMeshes.size(); ++i)
 	{
 		KSubMeshPtr subMesh = pMesh->m_SubMeshes[i];
-		KMaterialPtr material = subMesh->m_Material;
+		KMeshTextureBinding& textures = subMesh->m_Texture;
 
-		KMaterialTextureInfo diffuseInfo = material->GetTexture(MTS_DIFFUSE);
-		KMaterialTextureInfo specularInfo = material->GetTexture(MTS_SPECULAR);
-		KMaterialTextureInfo normalInfo = material->GetTexture(MTS_NORMAL);
-		
+		KMeshTextureInfo diffuseInfo = textures.GetTexture(MTS_DIFFUSE);
+		KMeshTextureInfo specularInfo = textures.GetTexture(MTS_SPECULAR);
+		KMeshTextureInfo normalInfo = textures.GetTexture(MTS_NORMAL);
+
 		MaterialInfo mtlInfo;
-		if(diffuseInfo.IsComplete())
+		if (diffuseInfo.IsComplete())
 		{
 			ResolvePath(pMesh->m_Path, diffuseInfo.texture->GetPath(), mtlInfo.diffuse);
 		}
-		if(specularInfo.IsComplete())
+		if (specularInfo.IsComplete())
 		{
 			ResolvePath(pMesh->m_Path, specularInfo.texture->GetPath(), mtlInfo.specular);
 		}
-		if(normalInfo.IsComplete())
+		if (normalInfo.IsComplete())
 		{
 			ResolvePath(pMesh->m_Path, normalInfo.texture->GetPath(), mtlInfo.normal);
 		}

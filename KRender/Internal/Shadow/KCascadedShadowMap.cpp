@@ -354,7 +354,7 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 				pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 				pipeline->SetShader(ST_VERTEX, m_DebugVertexShader);
 				pipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader);
-				pipeline->SetSamplerDepthAttachment(SB_TEXTURE0, cascaded.renderTargets[i], m_ShadowSampler);
+				pipeline->SetSamplerDepthAttachment(SHADER_BINDING_TEXTURE0, cascaded.renderTargets[i], m_ShadowSampler);
 
 				ASSERT_RESULT(pipeline->Init());
 			}
@@ -490,7 +490,7 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 
 			KConstantDefinition::CSM_OBJECT_INSTANCE csmInstance = { (uint32_t)cascadedIndex };
 
-			command.objectUsage.binding = SB_OBJECT;
+			command.objectUsage.binding = SHADER_BINDING_OBJECT;
 			command.objectUsage.range = sizeof(csmInstance);
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&csmInstance, command.objectUsage);
 
@@ -721,7 +721,7 @@ bool KCascadedShadowMap::GetDebugRenderCommand(size_t frameIndex, KRenderCommand
 			command.pipeline = cascaded.debugPipelines[frameIndex];
 			command.indexDraw = true;
 
-			command.objectUsage.binding = SB_OBJECT;
+			command.objectUsage.binding = SHADER_BINDING_OBJECT;
 			command.objectUsage.range = sizeof(cascaded.debugClip);
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&cascaded.debugClip, command.objectUsage);
 

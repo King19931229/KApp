@@ -1,5 +1,5 @@
 #version 450
-#include "public.glh"
+#include "public.h"
 
 layout (location = SCREENQAUD_POS) in vec2 inPos;
 layout (location = 0) out vec2 outUV;

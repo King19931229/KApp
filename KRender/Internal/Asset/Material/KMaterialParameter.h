@@ -1,0 +1,28 @@
+#pragma once
+#include "Interface/IKMaterial.h"
+#include "KMaterialValue.h"
+
+class KMaterialParameter : public IKMaterialParameter
+{
+protected:
+	struct Key
+	{
+		size_t hash;
+		size_t index;
+	};
+
+	typedef IKMaterialValuePtr Value;
+	std::vector<Key> m_ParameterKey;
+	std::vector<Value> m_ParameterValue;
+
+	IKMaterialValuePtr MakeValue(const std::string& name, MaterialValueType type, uint8_t dimension);
+public:
+	KMaterialParameter();
+	~KMaterialParameter();
+
+	bool HasValue(const std::string& name) const override;
+	IKMaterialValuePtr GetValue(const std::string& name) override;
+	const std::vector<IKMaterialValuePtr>& GetAllValues() override;
+	bool CreateValue(const std::string& name, MaterialValueType type, uint8_t dimension, const void* initData = nullptr) override;
+	bool RemoveValue(const std::string& name) override;
+};

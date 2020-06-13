@@ -302,22 +302,22 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 				POINTER_OFFSET(result.indicesData.data(), indexSize * subPart.indexBase)
 				));
 			ASSERT_RESULT(indexData.indexBuffer->InitDevice(hostVisible));
-
-			KMaterialPtr material = KMaterialPtr(KNEW KMaterial());
+			
+			KMeshTextureBinding textures;
 			if(!subPart.material.diffuse.empty())
 			{
-				material->ResignTexture(MTS_DIFFUSE, subPart.material.diffuse.c_str());
+				textures.AssignTexture(MTS_DIFFUSE, subPart.material.diffuse.c_str());
 			}
 			if(!subPart.material.specular.empty())
 			{
-				material->ResignTexture(MTS_SPECULAR, subPart.material.specular.c_str());
+				textures.AssignTexture(MTS_SPECULAR, subPart.material.specular.c_str());
 			}
 			if(!subPart.material.normal.empty())
 			{
-				material->ResignTexture(MTS_NORMAL, subPart.material.normal.c_str());
+				textures.AssignTexture(MTS_NORMAL, subPart.material.normal.c_str());
 			}
 
-			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material, frameInFlight));
+			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, std::move(textures), frameInFlight));
 			indexData.Clear();
 		}
 		m_Path = szPath;

@@ -1,6 +1,6 @@
 #version 450
 
-#include "public.glh"
+#include "public.h"
 
 layout (location = 0) in vec2 inUV;
 layout (location = 1) in vec4 inColor;

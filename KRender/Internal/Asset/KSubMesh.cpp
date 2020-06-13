@@ -10,7 +10,6 @@
 KSubMesh::KSubMesh(KMesh* parent)
 	: m_pParent(parent),
 	m_pVertexData(nullptr),
-	m_Material(nullptr),
 	m_FrameInFlight(0),
 	m_IndexDraw(true)
 {
@@ -20,7 +19,7 @@ KSubMesh::~KSubMesh()
 {
 }
 
-bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialPtr material, size_t frameInFlight)
+bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMeshTextureBinding&& binding, size_t frameInFlight)
 {
 	UnInit();
 
@@ -28,7 +27,7 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	m_IndexData = indexData;
 	m_FrameInFlight = frameInFlight;
 
-	m_Material = material;
+	m_Texture = std::move(binding);
 
 	m_IndexDraw = true;
 
@@ -155,11 +154,7 @@ do\
 		pipelines.clear();
 	}
 
-	if(m_Material)
-	{
-		m_Material->UnInit();
-		m_Material = nullptr;
-	}
+	m_Texture.Release();
 
 	return true;
 }
@@ -197,7 +192,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
-		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 		return true;
@@ -236,30 +231,27 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 #endif
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
-		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		IKUniformBufferPtr shaodwBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_SHADOW);
-		pipeline->SetConstantBuffer(SB_SHADOW, ST_VERTEX | ST_FRAGMENT, shaodwBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_SHADOW, ST_VERTEX | ST_FRAGMENT, shaodwBuffer);
 
 		IKUniformBufferPtr cascadedShaodwBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CASCADED_SHADOW);
-		pipeline->SetConstantBuffer(SB_CASCADED_SHADOW, ST_VERTEX | ST_FRAGMENT, cascadedShaodwBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CASCADED_SHADOW, ST_VERTEX | ST_FRAGMENT, cascadedShaodwBuffer);
 
 		bool diffuseReady = false;
 
-		if(m_Material)
-		{
-			KMaterialTextureInfo diffuseMap = m_Material->GetTexture(MTS_DIFFUSE);
-			KMaterialTextureInfo specularMap = m_Material->GetTexture(MTS_SPECULAR);
-			KMaterialTextureInfo normalMap = m_Material->GetTexture(MTS_NORMAL);
+		KMeshTextureInfo diffuseMap = m_Texture.GetTexture(MTS_DIFFUSE);
+		KMeshTextureInfo specularMap = m_Texture.GetTexture(MTS_SPECULAR);
+		KMeshTextureInfo normalMap = m_Texture.GetTexture(MTS_NORMAL);
 
-			if(diffuseMap.texture && diffuseMap.sampler)
-			{
-				pipeline->SetSampler(SB_TEXTURE0, diffuseMap.texture, diffuseMap.sampler);
-				diffuseReady = true;
-			}
+		if (diffuseMap.texture && diffuseMap.sampler)
+		{
+			pipeline->SetSampler(SHADER_BINDING_DIFFUSE, diffuseMap.texture, diffuseMap.sampler);
+			diffuseReady = true;
 		}
 
-		if(!diffuseReady)
+		if (!diffuseReady)
 		{
 			KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
 			pipeline = nullptr;
@@ -269,13 +261,13 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		for (size_t i = 0; i < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++i)
 		{
 			IKRenderTargetPtr shadowTarget = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(i, frameIndex);
-			pipeline->SetSamplerDepthAttachment((unsigned int)(SB_TEXTURE1 + i), shadowTarget, KRenderGlobal::CascadedShadowMap.GetSampler());
+			pipeline->SetSamplerDepthAttachment((unsigned int)(SHADER_BINDING_CSM0 + i), shadowTarget, KRenderGlobal::CascadedShadowMap.GetSampler());
 		}
 
 		for (size_t i = KRenderGlobal::CascadedShadowMap.GetNumCascaded(); i < 4; ++i)
 		{
 			IKRenderTargetPtr shadowTarget = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, frameIndex);
-			pipeline->SetSamplerDepthAttachment((unsigned int)(SB_TEXTURE1 + i), shadowTarget, KRenderGlobal::CascadedShadowMap.GetSampler());
+			pipeline->SetSamplerDepthAttachment((unsigned int)(SHADER_BINDING_CSM0 + i), shadowTarget, KRenderGlobal::CascadedShadowMap.GetSampler());
 		}
 
 		ASSERT_RESULT(pipeline->Init());
@@ -363,7 +355,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetShader(ST_FRAGMENT, m_DebugFSShader);
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
-		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 		return true;
@@ -389,7 +381,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 		pipeline->SetShader(ST_FRAGMENT, m_DebugFSShader);
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
-		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 		return true;

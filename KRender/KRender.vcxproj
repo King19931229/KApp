@@ -22,6 +22,7 @@
     <ClInclude Include="Interface\IKCameraController.h" />
     <ClInclude Include="Interface\IKCommandBuffer.h" />
     <ClInclude Include="Interface\IKGizmo.h" />
+    <ClInclude Include="Interface\IKMaterial.h" />
     <ClInclude Include="Interface\IKPipeline.h" />
     <ClInclude Include="Interface\IKPostProcess.h" />
     <ClInclude Include="Interface\IKQuery.h" />
@@ -40,10 +41,12 @@
     <ClInclude Include="Interface\IKSwapChain.h" />
     <ClInclude Include="Interface\IKTexture.h" />
     <ClInclude Include="Interface\IKUIOverlay.h" />
-    <ClInclude Include="Internal\Asset\KMaterial.h" />
+    <ClInclude Include="Internal\Asset\KMeshTextureBinding.h" />
     <ClInclude Include="Internal\Asset\KMesh.h" />
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
     <ClInclude Include="Internal\Asset\KTriangleMesh.h" />
+    <ClInclude Include="Internal\Asset\Material\KMaterialParameter.h" />
+    <ClInclude Include="Internal\Asset\Material\KMaterialValue.h" />
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializer.h" />
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializerV0.h" />
     <ClInclude Include="Internal\Asset\Utility\KMeshUtilityInfo.h" />
@@ -117,9 +120,10 @@
     <ClInclude Include="Publish\KEnumString.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Internal\Asset\KMaterial.cpp" />
+    <ClCompile Include="Internal\Asset\KMeshTextureBinding.cpp" />
     <ClCompile Include="Internal\Asset\KMesh.cpp" />
     <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
+    <ClCompile Include="Internal\Asset\Material\KMaterialParameter.cpp" />
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializer.cpp" />
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializerV0.cpp" />
     <ClCompile Include="Internal\Asset\Utility\KMeshUtilityInfo.cpp" />

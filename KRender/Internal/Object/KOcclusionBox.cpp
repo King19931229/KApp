@@ -125,7 +125,7 @@ void KOcclusionBox::PreparePipeline()
 #endif
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
-		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -156,7 +156,7 @@ void KOcclusionBox::PreparePipeline()
 #endif
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
-		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -187,7 +187,7 @@ void KOcclusionBox::PreparePipeline()
 #endif
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
-		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -218,7 +218,7 @@ void KOcclusionBox::PreparePipeline()
 #endif
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
-		pipeline->SetConstantBuffer(SB_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
@@ -635,7 +635,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 							KAABBBox &bound = group.bound;
 							transform.MODEL = glm::translate(glm::mat4(1.0f), bound.GetCenter()) * glm::scale(glm::mat4(1.0f), bound.GetExtend());
 
-							command.objectUsage.binding = SB_OBJECT;
+							command.objectUsage.binding = SHADER_BINDING_OBJECT;
 							command.objectUsage.range = sizeof(transform);
 							KRenderGlobal::DynamicConstantBufferManager.Alloc(&transform, command.objectUsage);
 

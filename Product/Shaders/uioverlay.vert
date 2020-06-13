@@ -1,5 +1,5 @@
 #version 450
-#include "public.glh"
+#include "public.h"
 
 layout (location = GUI_POS) in vec2 inPos;
 layout (location = GUI_UV) in vec2 inUV;

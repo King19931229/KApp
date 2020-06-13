@@ -1,6 +1,7 @@
-#ifndef __PUBLIC_HEADER__
-#define __PUBLIC_HEADER__
+#ifndef PUBLIC_H
+#define PUBLIC_H
 
+// Semantic
 #define POSITION 0
 #define NORMAL 1
 #define TEXCOORD0 2
@@ -35,18 +36,27 @@
 #define BINDING_VERTEX_SHADING 4
 #define BINDING_FRAGMENT_SHADING 5
 
-//
-// 6 - 7 reserved
-//
+#define BINDING_TEXTURE0 6
+#define BINDING_TEXTURE1 7
+#define BINDING_TEXTURE2 8
+#define BINDING_TEXTURE3 9
+#define BINDING_TEXTURE4 10
+#define BINDING_TEXTURE5 11
+#define BINDING_TEXTURE6 12
+#define BINDING_TEXTURE7 13
+#define BINDING_TEXTURE8 14
+#define BINDING_TEXTURE9 15
 
-#define BINDING_TEXTURE0 8
-#define BINDING_TEXTURE1 9
-#define BINDING_TEXTURE2 10
-#define BINDING_TEXTURE3 11
-#define BINDING_TEXTURE4 12
-#define BINDING_TEXTURE5 13
-#define BINDING_TEXTURE6 14
-#define BINDING_TEXTURE7 15
+#define BINDING_DIFFUSE BINDING_TEXTURE0
+#define BINDING_SPECULAR BINDING_TEXTURE1
+#define BINDING_NORMAL BINDING_TEXTURE2
+
+#define BINDING_SM BINDING_TEXTURE9
+
+#define BINDING_CSM0 BINDING_TEXTURE6
+#define BINDING_CSM1 BINDING_TEXTURE7
+#define BINDING_CSM2 BINDING_TEXTURE8
+#define BINDING_CSM3 BINDING_TEXTURE9
 
 #define CUBEMAP_UVW(uvw) vec3(-uvw.x, -uvw.y, -uvw.z)
 
@@ -77,13 +87,5 @@ uniform CascadedShadowInfo
 	vec4 frustum;
 	uint cascaded;
 }cascaded_shadow;
-
-/*
-layout(binding = BINDING_OBJECT)
-uniform Object
-{
-	mat4 model;
-}object;
-*/
 
 #endif

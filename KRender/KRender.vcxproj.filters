@@ -58,6 +58,9 @@
     <Filter Include="Internal\Controller">
       <UniqueIdentifier>{02b90263-ebce-41ba-a4fb-1299848c2060}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Asset\Material">
+      <UniqueIdentifier>{426b495a-870c-4b3d-8cfe-92921e2da6b3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -86,9 +89,6 @@
     </ClInclude>
     <ClInclude Include="Interface\IKBuffer.h">
       <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\Asset\KMaterial.h">
-      <Filter>Internal\Asset</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Asset\KSubMesh.h">
       <Filter>Internal\Asset</Filter>
@@ -351,6 +351,18 @@
     <ClInclude Include="Internal\Manager\KDynamicConstantBufferManager.h">
       <Filter>Internal\Manager</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Asset\Material\KMaterialParameter.h">
+      <Filter>Internal\Asset\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Asset\Material\KMaterialValue.h">
+      <Filter>Internal\Asset\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKMaterial.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Asset\KMeshTextureBinding.h">
+      <Filter>Internal\Asset</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -426,9 +438,6 @@
       <Filter>Internal\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Asset\KMesh.cpp">
-      <Filter>Internal\Asset</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\Asset\KMaterial.cpp">
       <Filter>Internal\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KRenderGlobal.cpp">
@@ -568,6 +577,12 @@
     </ClCompile>
     <ClCompile Include="Internal\Manager\KDynamicConstantBufferManager.cpp">
       <Filter>Internal\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\Material\KMaterialParameter.cpp">
+      <Filter>Internal\Asset\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\KMeshTextureBinding.cpp">
+      <Filter>Internal\Asset</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -257,7 +257,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 
 				mesh->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand&& command)
 				{
-					command.objectUsage.binding = SB_OBJECT;
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
 					command.objectUsage.range = sizeof(objectData);
 					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
@@ -283,7 +283,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 
 				mesh->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand&& command)
 				{
-					command.objectUsage.binding = SB_OBJECT;
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
 					command.objectUsage.range = sizeof(objectData);
 					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
@@ -334,7 +334,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 					preZStatistics.faces += command.vertexData->vertexCount / 3;
 				}
 
-				command.objectUsage.binding = SB_OBJECT;
+				command.objectUsage.binding = SHADER_BINDING_OBJECT;
 				command.objectUsage.range = sizeof(objects[idx]);
 				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objects[idx], command.objectUsage);
 
