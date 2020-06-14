@@ -23,6 +23,7 @@ static const char* CACHE_PATH = "ShaderCached";
 KVulkanShader::KVulkanShader()
 	: m_ShaderModule(VK_NULL_HANDLE),
 	m_Type(ST_VERTEX),
+	m_SourceFile(GetSourceFile()),
 	m_ResourceState(RS_UNLOADED),
 	m_LoadTask(nullptr)
 {
@@ -131,7 +132,7 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 	EShLanguage language = EShLangVertex;
 	ASSERT_RESULT(ShaderTypeToEShLanguage(type, language));
 
-	std::unique_ptr<glslang::TShader> shader(new glslang::TShader(language));
+	std::unique_ptr<glslang::TShader> shader(KNEW glslang::TShader(language));
 	ASSERT_RESULT(code);
 	shader->setStrings(&code, 1);
 
@@ -146,7 +147,7 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 			return false;
 		}
 
-		std::unique_ptr<glslang::TProgram> program(new glslang::TProgram());
+		std::unique_ptr<glslang::TProgram> program(KNEW glslang::TProgram());
 		program->addShader(shader.get());
 		if (!program->link(messages))
 		{
@@ -284,11 +285,10 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
 	ASSERT_RESULT(system);
 
-	IKSourceFilePtr shaderSource = GetSourceFile();
-	shaderSource->SetIOHooker(IKSourceFile::IOHookerPtr(new KVulkanShaderSourceHooker(system)));
-	if (shaderSource->Open(path.c_str()))
+	m_SourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KVulkanShaderSourceHooker(system)));
+	if (m_SourceFile->Open(path.c_str()))
 	{
-		const char* finalSource = shaderSource->GetFinalSource();
+		const char* finalSource = m_SourceFile->GetFinalSource();
 		std::vector<unsigned int> spirv;
 		if (GenerateSpirV(m_Type, finalSource, spirv))
 		{
@@ -345,6 +345,33 @@ bool KVulkanShader::InitFromStringImpl(const char* code, size_t len, VkShaderMod
 	}
 
 	return false;
+}
+
+bool KVulkanShader::AddMacro(const MacroPair& macroPair)
+{
+	if (m_ResourceState == RS_UNLOADED)
+	{
+		ASSERT_RESULT(m_SourceFile);
+		return m_SourceFile->AddMacro(macroPair);
+	}
+	return false;
+}
+
+bool KVulkanShader::RemoveAllMacro()
+{
+	if (m_ResourceState == RS_UNLOADED)
+	{
+		ASSERT_RESULT(m_SourceFile);
+		return m_SourceFile->RemoveAllMacro();
+	}
+	return false;
+}
+
+bool KVulkanShader::GetAllMacro(std::vector<MacroPair>& macros)
+{
+	ASSERT_RESULT(m_SourceFile);
+	return m_SourceFile->GetAllMacro(macros);
+	return true;
 }
 
 bool KVulkanShader::InitFromFile(ShaderType type, const std::string& path, bool async)

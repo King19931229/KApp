@@ -21,7 +21,7 @@ KXMLDocument::~KXMLDocument()
 
 bool KXMLDocument::SaveFile(const char* fileName)
 {
-	bool ret = (tinyxml2::XML_SUCCESS == m_Document->SaveFile(fileName));
+	bool ret = (tinyxml2::XML_SUCCESS == m_Document->SaveFile(fileName, false));
 	return ret;
 }
 
@@ -51,7 +51,8 @@ bool KXMLDocument::ParseFromFile(const char* fileName)
 
 bool KXMLDocument::ParseFromString(const char* text)
 {
-	bool ret = (tinyxml2::XML_SUCCESS == m_Document->Parse(text));
+	tinyxml2::XMLError errorCode = m_Document->Parse(text);
+	bool ret = (tinyxml2::XML_SUCCESS == errorCode);
 	return ret;
 }
 

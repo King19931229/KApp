@@ -34,6 +34,7 @@ protected:
 	VkSpecializationInfo m_SpecializationInfo;
 	ShaderType m_Type;
 	KShaderInformation m_Information;
+	IKSourceFilePtr m_SourceFile;
 
 	struct ConstantEntryInfo
 	{
@@ -64,6 +65,11 @@ public:
 	~KVulkanShader();
 
 	virtual bool SetConstantEntry(uint32_t constantID, uint32_t offset, size_t size, const void* data);
+
+	virtual bool AddMacro(const MacroPair& macroPair);
+	virtual bool RemoveAllMacro();
+	virtual bool GetAllMacro(std::vector<MacroPair>& macros);
+
 	virtual bool InitFromFile(ShaderType type, const std::string& path, bool async);
 	virtual bool InitFromString(ShaderType type, const std::vector<char>& code, bool async);	
 	virtual bool UnInit();

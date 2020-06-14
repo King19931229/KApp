@@ -725,7 +725,7 @@ bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKS
 	m_SwapChain = swapChain;
 	m_UIOverlay = uiOverlay;
 	m_CameraCube = cameraCube;
-	m_ThreadPool.Init(m_MaxRenderThreadNum);
+	m_ThreadPool.Init("RenderThread", m_MaxRenderThreadNum);
 	CreateCommandBuffers();
 
 	KRenderGlobal::Statistics.RegisterRenderStage(PRE_Z_STAGE);

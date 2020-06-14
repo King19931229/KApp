@@ -1,6 +1,10 @@
 #pragma once
 #include "KBase/Interface/IKDataStream.h"
 
+#include <vector>
+#include <tuple>
+#include <string>
+
 struct IKSourceFile;
 typedef std::shared_ptr<IKSourceFile> IKSourceFilePtr;
 
@@ -19,6 +23,12 @@ struct IKSourceFile
 	virtual bool Clear() = 0;
 	virtual bool SaveAsFile(const char* pszFilePath, bool bUTF8BOM) = 0;
 	virtual bool SetIOHooker(IOHookerPtr hooker) = 0;
+
+	typedef std::tuple<std::string, std::string> MacroPair;
+	virtual bool AddMacro(const MacroPair& macroPair) = 0;
+	virtual bool RemoveAllMacro() = 0;	
+	virtual bool GetAllMacro(std::vector<MacroPair>& macros) = 0;
+
 	virtual const char* GetFilePath() = 0;
 	virtual const char* GetFileDirPath() = 0;
 	virtual const char* GetFileName() = 0;

@@ -30,7 +30,7 @@ int main()
 	KRenderCoreInitCallback callback = [scene]()
 	{
 #define DRAW_SPIDER
-#define DRAW_SPONZA
+//#define DRAW_SPONZA
 
 #ifdef DRAW_SPIDER
 #ifdef _DEBUG
@@ -48,7 +48,7 @@ int main()
 				IKComponentBase* component = nullptr;
 				if (entity->RegisterComponent(CT_RENDER, &component))
 				{
-					((IKRenderComponent*)component)->SetPathAsset("OBJ/spider.obj");
+					((IKRenderComponent*)component)->SetAssetPath("Model/OBJ/spider.obj");
 					((IKRenderComponent*)component)->Init();
 				}
 
@@ -76,7 +76,7 @@ int main()
 		IKComponentBase* component = nullptr;
 		if (entity->RegisterComponent(CT_RENDER, &component))
 		{
-			((IKRenderComponent*)component)->SetPathMesh("Sponza/sponza.mesh");
+			((IKRenderComponent*)component)->SetMeshPath("Model/Sponza/sponza.mesh");
 			((IKRenderComponent*)component)->Init();
 		}
 		entity->RegisterComponent(CT_TRANSFORM);

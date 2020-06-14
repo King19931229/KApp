@@ -3,6 +3,7 @@
 #include "KRender/Interface/IKResource.h"
 #include <string>
 #include <vector>
+#include <tuple>
 
 struct KShaderInformation
 {
@@ -59,12 +60,19 @@ struct KShaderInformation
 struct IKShader : public IKResource
 {
 	virtual ~IKShader() {}
-	virtual bool SetConstantEntry(uint32_t constantID, uint32_t offset, size_t size, const void* data) = 0;
+
+	typedef std::tuple<std::string, std::string> MacroPair;
+	virtual bool AddMacro(const MacroPair& macroPair) = 0;
+	virtual bool RemoveAllMacro() = 0;
+	virtual bool GetAllMacro(std::vector<MacroPair>& macros) = 0;
+
 	virtual bool InitFromFile(ShaderType type, const std::string& path, bool async) = 0;
 	virtual bool InitFromString(ShaderType type, const std::vector<char>& code, bool async) = 0;
 	virtual bool UnInit() = 0;
+
 	virtual const KShaderInformation& GetInformation() = 0;
 	virtual ShaderType GetType() = 0;
 	virtual const char* GetPath() = 0;
+
 	virtual bool Reload() = 0;
 };

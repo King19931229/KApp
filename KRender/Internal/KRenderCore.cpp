@@ -101,6 +101,15 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::MeshManager.Init(m_Device, frameInFlight);
 	KRenderGlobal::ShaderManager.Init(m_Device);
 	KRenderGlobal::TextrueManager.Init(m_Device);
+	KRenderGlobal::MaterialManager.Init(m_Device);
+
+#if 0
+	KMaterial material;
+	//material.Init("diffuse.vert", "diffuse.frag", false);
+	material.InitFromFile("test.mtl", false);
+	material.SaveAsFile("../../../test.mtl");
+	material.UnInit();
+#endif
 
 	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, frameInFlight, property.uniformBufferOffsetAlignment, property.uniformBufferMaxRange);
 
@@ -119,6 +128,7 @@ bool KRenderCore::UnInitGlobalManager()
 	KRenderGlobal::ShadowMap.UnInit();
 	KRenderGlobal::CascadedShadowMap.UnInit();
 
+	KRenderGlobal::MaterialManager.UnInit();
 	KRenderGlobal::MeshManager.UnInit();
 	KRenderGlobal::TextrueManager.UnInit();
 	KRenderGlobal::ShaderManager.UnInit();
@@ -259,7 +269,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 		m_InitCallback = [this]()
 		{
-			KRenderGlobal::TaskExecutor.Init(std::thread::hardware_concurrency());
+			KRenderGlobal::TaskExecutor.Init("RenderTaskThread", std::thread::hardware_concurrency());
 			InitGlobalManager();
 			InitPostProcess();
 			InitRenderDispatcher();
@@ -522,6 +532,8 @@ bool KRenderCore::UpdateGizmo()
 
 void KRenderCore::OnPresent(uint32_t chainIndex, uint32_t frameIndex)
 {
+	KRenderGlobal::CurrentFrameIndex = frameIndex;
+
 	KRenderGlobal::TaskExecutor.ProcessSyncTask();
 
 	UpdateFrameTime();
@@ -535,6 +547,8 @@ void KRenderCore::OnPresent(uint32_t chainIndex, uint32_t frameIndex)
 	m_CameraMoveController.SetEnable(m_MouseCtrlCamera);
 
 	KRenderGlobal::RenderDispatcher.Execute(&KRenderGlobal::Scene, &m_Camera, chainIndex, frameIndex);
+
+	++KRenderGlobal::CurrentFrameNum;
 }
 
 void KRenderCore::OnSwapChainRecreate(uint32_t width, uint32_t height)

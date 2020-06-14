@@ -128,7 +128,7 @@ bool KRenderComponent::CloestPick(const glm::vec3& localOrigin, const glm::vec3&
 	return false;
 }
 
-bool KRenderComponent::SetPathMesh(const char* path)
+bool KRenderComponent::SetMeshPath(const char* path)
 {
 	if (path)
 	{
@@ -139,7 +139,7 @@ bool KRenderComponent::SetPathMesh(const char* path)
 	return false;
 }
 
-bool KRenderComponent::SetPathAsset(const char* path)
+bool KRenderComponent::SetAssetPath(const char* path)
 {
 	if (path)
 	{

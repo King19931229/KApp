@@ -46,8 +46,8 @@ public:
 	bool Pick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 	bool CloestPick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 
-	bool SetPathMesh(const char* path) override;
-	bool SetPathAsset(const char* path) override;
+	bool SetMeshPath(const char* path) override;
+	bool SetAssetPath(const char* path) override;
 	bool GetPath(std::string& path) const override;
 
 	bool SaveAsMesh(const char* path) const override;

@@ -87,7 +87,7 @@ bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity, 
 			{
 				if (entity->RegisterComponent(CT_RENDER, &renderComponent))
 				{
-					renderComponent->SetPathMesh(path.c_str());
+					renderComponent->SetMeshPath(path.c_str());
 					renderComponent->SetHostVisible(hostVisible);
 					renderComponent->Init();
 				}
@@ -96,7 +96,7 @@ bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity, 
 			{
 				if (entity->RegisterComponent(CT_RENDER, &renderComponent))
 				{
-					renderComponent->SetPathAsset(path.c_str());
+					renderComponent->SetAssetPath(path.c_str());
 					renderComponent->SetHostVisible(hostVisible);
 					renderComponent->Init();
 				}

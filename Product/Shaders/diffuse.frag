@@ -13,6 +13,12 @@ layout(location = 0) out vec4 outColor;
 
 layout(binding = BINDING_DIFFUSE) uniform sampler2D diffuseSampler;
 
+// layout(binding = BINDING_FRAGMENT_SHADING)
+// uniform FSParameter
+// {
+// 	vec4 color;
+// }fsparameter;
+
 void main()
 {
 	outColor = texture(diffuseSampler, uv);	

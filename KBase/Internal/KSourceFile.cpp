@@ -107,6 +107,25 @@ IKDataStreamPtr KSourceFile::GetFileData(const std::string &filePath)
 	return pData;
 }
 
+bool KSourceFile::AddMacroDefine(std::string& out, const std::string& in)
+{
+	std::string input = in;
+	out.clear();
+	for (const MacroInfo& macroInfo : m_MacroInfos)
+	{
+		if (macroInfo.value.empty())
+		{
+			out += "#define " + macroInfo.marco + "\n";
+		}
+		else
+		{
+			out += "#define " + macroInfo.marco + " " + macroInfo.value + "\n";
+		}
+	}
+	out += input;
+	return true;
+}
+
 bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::string& file, FileInfo* pParent)
 {
 	if(!(file.empty()))
@@ -230,10 +249,15 @@ bool KSourceFile::Open(const char* pszFilePath)
 			m_FileDirPath.clear();
 			m_FileName = pszFilePath;
 		}
+
 		Trim(m_FileDirPath);
 		Trim(m_FileName);
-		if(Parse(m_FinalSource, m_FileDirPath, m_FileName, nullptr))
-				return true;
+		AddMacroDefine(m_FinalSource, "");
+
+		if (Parse(m_FinalSource, m_FileDirPath, m_FileName, nullptr))
+		{
+			return true;
+		}
 		Clear();
 	}
 	return false;
@@ -256,6 +280,7 @@ bool KSourceFile::Clear()
 	m_OriginalSource.clear();
 	m_FinalSource.clear();
 	m_FileInfos.clear();
+	// m_MacroInfos.clear();
 	return true;
 }
 
@@ -279,6 +304,43 @@ bool KSourceFile::SaveAsFile(const char* pszFilePath, bool bUTF8BOM)
 bool KSourceFile::SetIOHooker(IOHookerPtr hooker)
 {
 	m_Hooker = hooker;
+	return true;
+}
+
+bool KSourceFile::AddMacro(const MacroPair& macroPair)
+{
+	const std::string& macro = std::get<0>(macroPair);
+	const std::string& value = std::get<1>(macroPair);
+	if (!macro.empty())
+	{
+		auto it = std::find_if(m_MacroInfos.begin(), m_MacroInfos.end(), [macro](const MacroInfo& mac)
+		{
+			return strcmp(mac.marco.c_str(), macro.c_str()) == 0;
+		});
+
+		if (it == m_MacroInfos.end())
+		{
+			MacroInfo info = { macro, value };
+			m_MacroInfos.emplace_back(std::move(info));
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KSourceFile::RemoveAllMacro()
+{
+	m_MacroInfos.clear();
+	return true;
+}
+
+bool KSourceFile::GetAllMacro(std::vector<MacroPair>& macros)
+{
+	macros.clear();
+	for (const MacroInfo& macroInfo : m_MacroInfos)
+	{
+		macros.push_back(std::make_tuple(macroInfo.marco, macroInfo.value));
+	}
 	return true;
 }
 

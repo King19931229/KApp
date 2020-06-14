@@ -26,8 +26,7 @@ protected:
 	static MaterialValueType ShaderConstantTypeToMaterialType(KShaderInformation::Constant::ConstantMemberType type);
 	static MaterialValueType StringToMaterialValueType(const char* type);
 	static const char* MaterialValueTypeToString(MaterialValueType type);
-
-
+	
 	bool VerifyParameter(IKMaterialParameterPtr parameter, const KShaderInformation& information);
 	IKMaterialParameterPtr CreateParameter(const KShaderInformation& information);
 
@@ -49,5 +48,5 @@ public:
 
 	virtual const std::string& GetPath() const { return m_Path; }
 
-	virtual bool SaveAsFile(const std::string& path) const;
+	virtual bool SaveAsFile(const std::string& path);
 };

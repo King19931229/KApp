@@ -19,8 +19,8 @@ public:
 	virtual bool Pick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const = 0;
 	virtual bool CloestPick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const = 0;
 
-	virtual bool SetPathMesh(const char* path) = 0;
-	virtual bool SetPathAsset(const char* path) = 0;
+	virtual bool SetMeshPath(const char* path) = 0;
+	virtual bool SetAssetPath(const char* path) = 0;
 	virtual bool GetPath(std::string& path) const = 0;
 
 	virtual bool SaveAsMesh(const char* path) const = 0;

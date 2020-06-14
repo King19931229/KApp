@@ -2,6 +2,7 @@
 #include "Material/KMaterialParameter.h"
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Publish/KStringParser.h"
+#include "KBase/Interface/IKFileSystem.h"
 
 #include <assert.h>
 
@@ -70,6 +71,9 @@ bool KMaterial::VerifyParameter(IKMaterialParameterPtr parameter, const KShaderI
 			{
 				MaterialValueType type = ShaderConstantTypeToMaterialType(member.type);
 				IKMaterialValuePtr previousValue = parameter->GetValue(member.name);
+
+				ASSERT_RESULT(!previousValue || previousValue->GetName() == member.name);
+
 				if (previousValue && (previousValue->GetVecSize() != member.vecSize
 					|| previousValue->GetType() != type))
 				{
@@ -101,7 +105,7 @@ bool KMaterial::VerifyParameter(IKMaterialParameterPtr parameter, const KShaderI
 
 IKMaterialParameterPtr KMaterial::CreateParameter(const KShaderInformation& information)
 {
-	IKMaterialParameterPtr parameter = IKMaterialParameterPtr(new KMaterialParameter());
+	IKMaterialParameterPtr parameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
 	for (const KShaderInformation::Constant& constant : information.dynamicConstants)
 	{
 		if (constant.bindingIndex != SHADER_BINDING_VERTEX_SHADING && constant.bindingIndex != SHADER_BINDING_FRAGMENT_SHADING)
@@ -205,7 +209,7 @@ bool KMaterial::SaveParameterElement(const IKMaterialParameterPtr parameter, IKX
 			parameterEle->SetAttribute(msParameterValueTypeKey, MaterialValueTypeToString(type));
 			parameterEle->SetAttribute(msParameterValueVecSizeKey, vecSize);
 
-			char szBuffer[256] = { 0 };
+			char szBuffer[1024] = { 0 };
 			const void* rawData = value->GetData();
 
 			if (type == MaterialValueType::BOOL)
@@ -237,15 +241,16 @@ bool KMaterial::ReadParameterElement(IKMaterialParameterPtr parameter, const IKX
 	if (parameter)
 	{
 		IKXMLElementPtr parameterEle = elemment->FirstChildElement(msParameterValueKey);
-		while (parameterEle)
+		while (parameterEle && !parameterEle->IsEmpty())
 		{
 			IKXMLAttributePtr nameAttr = parameterEle->FindAttribute(msParameterValueNameKey);
 			IKXMLAttributePtr typeAttr = parameterEle->FindAttribute(msParameterValueTypeKey);
 			IKXMLAttributePtr vecSizeAttr = parameterEle->FindAttribute(msParameterValueVecSizeKey);
 			std::string data = parameterEle->GetText();
 
-			ASSERT_RESULT(nameAttr && typeAttr && vecSizeAttr);
-			if (nameAttr && typeAttr && vecSizeAttr)
+#define ATTR_FOUND ((nameAttr && !nameAttr->IsEmpty()) && (typeAttr && !typeAttr->IsEmpty()) && (vecSizeAttr && !vecSizeAttr->IsEmpty()))
+			ASSERT_RESULT(ATTR_FOUND);
+			if (ATTR_FOUND)
 			{
 				std::string name = nameAttr->Value();
 				MaterialValueType type = StringToMaterialValueType(typeAttr->Value().c_str());
@@ -284,7 +289,7 @@ bool KMaterial::ReadParameterElement(IKMaterialParameterPtr parameter, const IKX
 #undef VECSIZE_FIT
 #undef TYPE_FIT
 			}
-
+#undef ATTR_FOUND
 			parameterEle = parameterEle->NextSiblingElement(msParameterValueKey);
 		}
 		return true;
@@ -300,24 +305,92 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 	m_VSParameterVerified = false;
 	m_FSParameterVerified = false;
 
+	IKDataStreamPtr pData = nullptr;
+	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
+
+	if (system && system->Open(path, IT_FILEHANDLE, pData))
+	{
+		IKXMLDocumentPtr root = GetXMLDocument();
+
+		std::vector<char> fileData;
+		fileData.resize(pData->GetSize() + 1);
+		memset(fileData.data(), 0, fileData.size());
+		pData->Read(fileData.data(), pData->GetSize());
+		pData->Close();
+
+		if (root->ParseFromString(fileData.data()))
+		{
+			std::string vs;
+			std::string fs;
+
+			IKXMLElementPtr vsShaderEle = root->FirstChildElement(msVSKey);
+			if (vsShaderEle && !vsShaderEle->IsEmpty())
+			{
+				vs = vsShaderEle->GetText();
+			}
+
+			IKXMLElementPtr fsShaderEle = root->FirstChildElement(msFSKey);
+			if (fsShaderEle && !fsShaderEle->IsEmpty())
+			{
+				fs = fsShaderEle->GetText();
+			}
+
+			if (!vs.empty() && !fs.empty())
+			{
+				if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), m_VSShader, async) &&
+					KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, fs.c_str(), m_FSShader, async))
+				{
+					IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
+					IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
+
+					// 由于可能异步加载 无法在这里验证参数合法性
+					if (vsParameterEle && !vsParameterEle->IsEmpty())
+					{
+						m_VSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+						ReadParameterElement(m_VSParameter, vsParameterEle);
+					}
+
+					if (fsParameterEle && !fsParameterEle->IsEmpty())
+					{
+						m_FSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+						ReadParameterElement(m_FSParameter, fsParameterEle);
+					}
+
+					return true;
+				}
+			}
+		}
+	}
+
 	return false;
 }
 
-bool KMaterial::SaveAsFile(const std::string& path) const
+bool KMaterial::SaveAsFile(const std::string& path)
 {
 	IKXMLDocumentPtr root = GetXMLDocument();
 	root->NewDeclaration(R"(xml version="1.0" encoding="utf-8")");
 
-	root->NewElement(msVSKey)->SetText(m_VSShader->GetPath());
-	root->NewElement(msFSKey)->SetText(m_FSShader->GetPath());
+	if (m_VSShader && m_FSShader)
+	{
+		root->NewElement(msVSKey)->SetText(m_VSShader->GetPath());
+		root->NewElement(msFSKey)->SetText(m_FSShader->GetPath());
 
-	IKXMLElementPtr vsParameterEle = root->NewElement(msVSParameterKey);
-	SaveParameterElement(m_VSParameter, vsParameterEle);
+		// 创建参数(按必要)并验证合法性
+		GetVSParameter();
+		GetFSParameter();
 
-	IKXMLElementPtr fsParameterEle = root->NewElement(msFSParameterKey);
-	SaveParameterElement(m_FSParameter, fsParameterEle);
+		if (m_VSParameter && m_FSParameter)
+		{
+			IKXMLElementPtr vsParameterEle = root->NewElement(msVSParameterKey);
+			SaveParameterElement(m_VSParameter, vsParameterEle);
 
-	return root->SaveFile(path.c_str());
+			IKXMLElementPtr fsParameterEle = root->NewElement(msFSParameterKey);
+			SaveParameterElement(m_FSParameter, fsParameterEle);
+
+			return root->SaveFile(path.c_str());
+		}
+	}
+	return false;
 }
 
 bool KMaterial::Init(const std::string& vs, const std::string& fs, bool async)

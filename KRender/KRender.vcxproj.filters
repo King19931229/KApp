@@ -366,6 +366,9 @@
     <ClInclude Include="Internal\Asset\KMaterial.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Manager\KMaterialManager.h">
+      <Filter>Internal\Manager</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -589,6 +592,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\KMaterial.cpp">
       <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Manager\KMaterialManager.cpp">
+      <Filter>Internal\Manager</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

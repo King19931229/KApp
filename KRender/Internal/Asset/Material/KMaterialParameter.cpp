@@ -47,43 +47,43 @@ IKMaterialValuePtr KMaterialParameter::MakeValue(const std::string& name, Materi
 	case MaterialValueType::BOOL:
 		if (dimension == 1)
 		{
-			return IKMaterialValuePtr(new KMaterialBoolValue(name));
+			return IKMaterialValuePtr(KNEW KMaterialBoolValue(name));
 		}
 		break;
 	case MaterialValueType::INT:
 		if (dimension == 1)
 		{
-			return IKMaterialValuePtr(new KMaterialIntValue(name));
+			return IKMaterialValuePtr(KNEW KMaterialIntValue(name));
 		}
 		if (dimension == 2)
 		{
-			return IKMaterialValuePtr(new KMaterialInt2Value(name));
+			return IKMaterialValuePtr(KNEW KMaterialInt2Value(name));
 		}
 		if (dimension == 3)
 		{
-			return IKMaterialValuePtr(new KMaterialInt3Value(name));
+			return IKMaterialValuePtr(KNEW KMaterialInt3Value(name));
 		}
 		if (dimension == 4)
 		{
-			return IKMaterialValuePtr(new KMaterialInt4Value(name));
+			return IKMaterialValuePtr(KNEW KMaterialInt4Value(name));
 		}
 		break;
 	case MaterialValueType::FLOAT:
 		if (dimension == 1)
 		{
-			return IKMaterialValuePtr(new KMaterialFloatValue(name));
+			return IKMaterialValuePtr(KNEW KMaterialFloatValue(name));
 		}
 		if (dimension == 2)
 		{
-			return IKMaterialValuePtr(new KMaterialFloat2Value(name));
+			return IKMaterialValuePtr(KNEW KMaterialFloat2Value(name));
 		}
 		if (dimension == 3)
 		{
-			return IKMaterialValuePtr(new KMaterialFloat3Value(name));
+			return IKMaterialValuePtr(KNEW KMaterialFloat3Value(name));
 		}
 		if (dimension == 4)
 		{
-			return IKMaterialValuePtr(new KMaterialFloat4Value(name));
+			return IKMaterialValuePtr(KNEW KMaterialFloat4Value(name));
 		}
 		break;
 	default:
@@ -116,7 +116,7 @@ bool KMaterialParameter::CreateValue(const std::string& name, MaterialValueType 
 		}
 		else
 		{
-			ref.index = it->index;
+			ref.index = it->index - 1;
 			m_ParameterValue.insert(m_ParameterValue.begin() + ref.index, value);
 		}
 		m_ParameterKey.insert(it, ref);
