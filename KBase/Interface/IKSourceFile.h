@@ -24,6 +24,9 @@ struct IKSourceFile
 	virtual bool SaveAsFile(const char* pszFilePath, bool bUTF8BOM) = 0;
 	virtual bool SetIOHooker(IOHookerPtr hooker) = 0;
 
+	virtual bool SetHeaderText(const char* text) = 0;
+	virtual bool UnsetHeaderText() = 0;
+
 	typedef std::tuple<std::string, std::string> MacroPair;
 	virtual bool AddMacro(const MacroPair& macroPair) = 0;
 	virtual bool RemoveAllMacro() = 0;	
@@ -34,6 +37,7 @@ struct IKSourceFile
 	virtual const char* GetFileName() = 0;
 	virtual const char* GetOriginalSource() = 0;
 	virtual const char* GetFinalSource() = 0;
+	virtual const char* GetAnnotatedSource() = 0;
 };
 
 EXPORT_DLL IKSourceFilePtr GetSourceFile();

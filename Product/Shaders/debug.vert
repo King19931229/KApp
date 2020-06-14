@@ -1,5 +1,3 @@
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
 #include "public.h"
 
 layout(location = POSITION) in vec3 position;

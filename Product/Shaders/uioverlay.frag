@@ -1,5 +1,3 @@
-#version 450
-
 #include "public.h"
 
 layout (location = 0) in vec2 inUV;

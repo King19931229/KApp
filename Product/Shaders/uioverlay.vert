@@ -1,4 +1,3 @@
-#version 450
 #include "public.h"
 
 layout (location = GUI_POS) in vec2 inPos;

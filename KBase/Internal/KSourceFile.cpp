@@ -1,4 +1,5 @@
 #include "Internal/KSourceFile.h"
+#include "Publish/KStringUtil.h"
 #include <algorithm>
 #include <assert.h>
 
@@ -253,9 +254,21 @@ bool KSourceFile::Open(const char* pszFilePath)
 		Trim(m_FileDirPath);
 		Trim(m_FileName);
 		AddMacroDefine(m_FinalSource, "");
+		m_FinalSource = m_Header + m_FinalSource;
 
 		if (Parse(m_FinalSource, m_FileDirPath, m_FileName, nullptr))
 		{
+			m_AnnotatedSource.clear();
+			std::vector<std::string> splitResult;
+			if (KStringUtil::Split(m_FinalSource, "\n", splitResult))
+			{
+				m_AnnotatedSource.reserve(m_FinalSource.length() + splitResult.size() * 5);
+				for (size_t i = 0; i < splitResult.size(); ++i)
+				{
+					const std::string& line = splitResult[i];
+					m_AnnotatedSource = m_AnnotatedSource + std::to_string(i) + "> " + line + "\n";
+				}
+			}
 			return true;
 		}
 		Clear();
@@ -280,7 +293,6 @@ bool KSourceFile::Clear()
 	m_OriginalSource.clear();
 	m_FinalSource.clear();
 	m_FileInfos.clear();
-	// m_MacroInfos.clear();
 	return true;
 }
 
@@ -304,6 +316,18 @@ bool KSourceFile::SaveAsFile(const char* pszFilePath, bool bUTF8BOM)
 bool KSourceFile::SetIOHooker(IOHookerPtr hooker)
 {
 	m_Hooker = hooker;
+	return true;
+}
+
+bool KSourceFile::SetHeaderText(const char* text)
+{
+	m_Header = text;
+	return true;
+}
+
+bool KSourceFile::UnsetHeaderText()
+{
+	m_Header.clear();
 	return true;
 }
 
@@ -367,4 +391,9 @@ const char* KSourceFile::GetOriginalSource()
 const char* KSourceFile::GetFinalSource()
 {
 	return m_FinalSource.c_str();
+}
+
+const char* KSourceFile::GetAnnotatedSource()
+{
+	return m_AnnotatedSource.c_str();
 }

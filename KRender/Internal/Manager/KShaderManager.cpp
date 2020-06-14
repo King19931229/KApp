@@ -181,6 +181,10 @@ bool KShaderManager::AcquireImpl(ShaderType type, const char* path, const std::v
 	if (itVar == variantionMap.end())
 	{
 		m_Device->CreateShader(shader);
+		for (const IKShader::MacroPair& macroPair : macros)
+		{
+			shader->AddMacro(macroPair);
+		}		
 		if (shader->InitFromFile(type, path, async))
 		{
 			ShaderVariantionUsingInfo info = { 1, shader };

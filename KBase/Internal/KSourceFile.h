@@ -14,6 +14,8 @@ protected:
 	std::string m_FileName;
 	std::string m_OriginalSource;
 	std::string m_FinalSource;
+	std::string m_AnnotatedSource;
+	std::string m_Header;
 	IOHookerPtr m_Hooker;
 
 	typedef std::unordered_set<std::string> IncludeFiles;
@@ -53,6 +55,8 @@ public:
 	virtual bool Clear();
 	virtual bool SaveAsFile(const char* pszFilePath, bool bUTF8BOM);
 	virtual bool SetIOHooker(IOHookerPtr hooker);
+	virtual bool SetHeaderText(const char* text);
+	virtual bool UnsetHeaderText();
 	virtual bool AddMacro(const MacroPair& macroPair);
 	virtual bool RemoveAllMacro();
 	virtual bool GetAllMacro(std::vector<MacroPair>& macros);
@@ -61,4 +65,5 @@ public:
 	virtual const char* GetFileName();
 	virtual const char* GetOriginalSource();
 	virtual const char* GetFinalSource();
+	virtual const char* GetAnnotatedSource();
 };

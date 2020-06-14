@@ -315,6 +315,7 @@ bool KLogger::LogSuffix(LogLevel level, const char* pszSuffix, const char* pszFo
 
 bool KLogger::LogPrefixSuffix(LogLevel level, const char* pszPrefix, const char* pszSuffix, const char* pszFormat, ...)
 {
+	// TODO BUG FIX
 	bool bRet = false;
 	int nPos = 0;
 	va_list list;
