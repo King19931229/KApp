@@ -1,0 +1,58 @@
+#pragma once
+#include "KRender/Interface/IKShader.h"
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
+enum class MaterialValueType
+{
+	BOOL,
+	INT,
+	FLOAT,
+	UNKNOWN
+};
+
+struct IKMaterialValue
+{
+	virtual ~IKMaterialValue() {}
+	virtual const std::string& GetName() const = 0;
+	virtual MaterialValueType GetType() const = 0;
+	virtual uint8_t GetVecSize() const = 0;
+	virtual const void* GetData() const = 0;
+	virtual void SetData(const void* data) = 0;
+};
+
+typedef std::shared_ptr<IKMaterialValue> IKMaterialValuePtr;
+
+struct IKMaterialParameter
+{
+	virtual ~IKMaterialParameter() {}
+	virtual bool HasValue(const std::string& name) const = 0;
+	virtual IKMaterialValuePtr GetValue(const std::string& name) const = 0;
+	virtual const std::vector<IKMaterialValuePtr>& GetAllValues() const = 0;
+	virtual bool CreateValue(const std::string& name, MaterialValueType type, uint8_t vecSize, const void* initData = nullptr) = 0;
+	virtual bool RemoveValue(const std::string& name) = 0;
+};
+
+typedef std::shared_ptr<IKMaterialParameter> IKMaterialParameterPtr;
+
+struct IKMaterial
+{
+	virtual ~IKMaterial() {}
+
+	virtual const IKMaterialParameterPtr GetVSParameter() = 0;
+	virtual const IKMaterialParameterPtr GetFSParameter() = 0;
+
+	virtual const IKShaderPtr GetVSShader() = 0;
+	virtual const IKShaderPtr GetFSShader() = 0;
+
+	virtual bool InitFromFile(const std::string& path, bool async) = 0;
+	virtual bool Init(const std::string& vs, const std::string& fs, bool async) = 0;
+	virtual bool UnInit() = 0;
+
+	virtual const std::string& GetPath() const = 0;
+	virtual bool SaveAsFile(const std::string& path) = 0;
+};
+
+typedef std::shared_ptr<IKMaterial> IKMaterialPtr;
