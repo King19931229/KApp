@@ -1,7 +1,14 @@
 #include "vertexinput.h"
+
 layout(location = 0) out vec2 uv;
 layout(location = 1) out vec4 inWorldPos;
 layout(location = 2) out vec4 inViewPos;
+
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	mat4 model;
+}object;
 
 void main()
 {

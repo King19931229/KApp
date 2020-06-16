@@ -155,6 +155,20 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 					}
 					KFileSystem::Manager->SetFileSystem(FSD_SHADER, shaderFileSys);
 				}
+				// Backup [FST_NATIVE]
+				{
+					IKFileSystemPtr backupSys = KFileSystem::CreateFileSystem(FST_NATIVE);
+					if (configIni->GetString("FileSystem", "Backup", szBuffer, sizeof(szBuffer) - 1))
+					{
+						std::string path = szBuffer;
+						backupSys->SetRoot(path);
+					}
+					else
+					{
+						assert(false && "configure file broken");
+					}
+					KFileSystem::Manager->SetFileSystem(FSD_BACKUP, backupSys);
+				}
 			}
 			else
 			{
@@ -186,6 +200,11 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 			IKFileSystemPtr shaderFileSys = KFileSystem::CreateFileSystem(FST_APK);
 			shaderFileSys->SetRoot(".");
 			KFileSystem::Manager->SetFileSystem(FSD_SHADER, shaderFileSys);
+		}
+		{
+			IKFileSystemPtr backupFileSys = KFileSystem::CreateFileSystem(FST_APK);
+			backupFileSys->SetRoot(".");
+			KFileSystem::Manager->SetFileSystem(FSD_BACKUP, backupFileSys);
 		}
 #endif
 

@@ -20,7 +20,7 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 {
 	bool bSuccess = false;
 	
-	IKDataStreamPtr pData = nullptr;
+	IKDataStreamPtr stream = nullptr;
 	FIMEMORY *fiMem = nullptr;
 	FIBITMAP *fiBitmap = nullptr;
 
@@ -29,14 +29,22 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 	result.eFormat = IF_INVALID;
 
 	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
-	if (system && system->Open(pszFile, IT_FILEHANDLE, pData))
+	if (!system || !system->Open(pszFile, IT_FILEHANDLE, stream))
+	{
+		system = KFileSystem::Manager->GetFileSystem(FSD_BACKUP);
+		if (!system || !system->Open(pszFile, IT_FILEHANDLE, stream))
+		{
+			return false;
+		}
+	}
+
 	{
 		std::vector<char> buffer;
-		buffer.resize(pData->GetSize());
+		buffer.resize(stream->GetSize());
 
-		if(pData->Read(buffer.data(), buffer.size()))
+		if(stream->Read(buffer.data(), buffer.size()))
 		{
-			fiMem = FreeImage_OpenMemory((BYTE*)(buffer.data()), static_cast<DWORD>(pData->GetSize()));
+			fiMem = FreeImage_OpenMemory((BYTE*)(buffer.data()), static_cast<DWORD>(stream->GetSize()));
 			fiBitmap = FreeImage_LoadFromMemory((FREE_IMAGE_FORMAT)m_nType, fiMem);
 
 			unsigned bpp = FreeImage_GetBPP(fiBitmap);

@@ -14,6 +14,8 @@ protected:
 		IKTexturePtr texture;
 	};
 	typedef std::unordered_map<std::string, TextureUsingInfo> TextureMap;
+	IKTexturePtr m_ErrorTexture;
+	IKSamplerPtr m_ErrorSampler;
 	TextureMap m_Textures;
 	IKRenderDevice* m_Device;
 public:
@@ -25,8 +27,10 @@ public:
 
 	bool Acquire(const char* path, IKTexturePtr& texture, bool async);
 	bool Release(IKTexturePtr& texture);
+	bool GetErrorTexture(IKTexturePtr& texture);
 
 	// for now
 	bool CreateSampler(IKSamplerPtr& sampler);
 	bool DestroySampler(IKSamplerPtr& sampler);
+	bool GetErrorSampler(IKSamplerPtr& sampler);
 };

@@ -54,6 +54,7 @@ enum FileSystemDomain
 {
 	FSD_SHADER,
 	FSD_RESOURCE,
+	FSD_BACKUP,
 
 	FSD_COUNT,
 	FSD_UNKNOWN = FSD_COUNT

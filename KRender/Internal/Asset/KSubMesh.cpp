@@ -250,7 +250,16 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 			pipeline->SetSampler(SHADER_BINDING_DIFFUSE, diffuseMap.texture, diffuseMap.sampler);
 			diffuseReady = true;
 		}
-
+		else
+		{
+			IKTexturePtr texture = nullptr;
+			KRenderGlobal::TextrueManager.GetErrorTexture(texture);
+			IKSamplerPtr sampler = nullptr;
+			KRenderGlobal::TextrueManager.GetErrorSampler(sampler);
+			pipeline->SetSampler(SHADER_BINDING_DIFFUSE, texture, sampler);
+			diffuseReady = true;
+		}
+		
 		if (!diffuseReady)
 		{
 			KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);

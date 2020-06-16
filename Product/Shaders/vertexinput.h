@@ -28,12 +28,6 @@ layout(location = INSTANCE_COLUMN_3) in vec4 world_col3;
 
 #else
 
-layout(binding = BINDING_OBJECT)
-uniform Object
-{
-	mat4 model;
-}object;
-
 #define WORLD_MATRIX object.model
 
 #endif //INSTANCE_INPUT
