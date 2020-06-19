@@ -8,6 +8,7 @@ RTTR_REGISTRATION
 
 	KRTTR_REG_CLASS_BEGIN()
 	KRTTR_REG_PROPERTY_READ_ONLY(path, GetPathString, MDT_STDSTRING)
+	KRTTR_REG_PROPERTY_READ_ONLY(material, GetMaterialPathString, MDT_STDSTRING)
 	KRTTR_REG_PROPERTY_READ_ONLY(type, GetTypeString, MDT_STDSTRING)
 	KRTTR_REG_CLASS_END()
 
@@ -65,6 +66,9 @@ bool KRenderComponent::Save(IKXMLElementPtr element)
 		IKXMLElementPtr pathEle = element->NewElement(msPath);
 		pathEle->SetText(m_Path.c_str());
 
+		IKXMLElementPtr materialEle = element->NewElement(msMaterialPath);
+		materialEle->SetText(m_MaterialPath.c_str());
+
 		return true;
 	}
 	return false;
@@ -81,13 +85,20 @@ bool KRenderComponent::Load(IKXMLElementPtr element)
 	IKXMLElementPtr pathEle = element->FirstChildElement(msPath);
 	ACTION_ON_FAILURE(pathEle != nullptr && !pathEle->IsEmpty(), return false);
 
+	IKXMLElementPtr materialEle = element->FirstChildElement(msMaterialPath);
+	ACTION_ON_FAILURE(materialEle != nullptr && !materialEle->IsEmpty(), return false);
+
 	std::string path = pathEle->GetText();
 	ACTION_ON_FAILURE(!path.empty(), return false);
+
+	std::string materialPath = materialEle->GetText();
+	ACTION_ON_FAILURE(!materialPath.empty(), return false);
 
 	UnInit();
 
 	m_Type = type;
 	m_Path = path;
+	m_MaterialPath = materialPath;
 
 	return Init();
 }
@@ -150,6 +161,16 @@ bool KRenderComponent::SetAssetPath(const char* path)
 	return false;
 }
 
+bool KRenderComponent::SetMaterialPath(const char* path)
+{
+	if (path)
+	{
+		m_MaterialPath = path;
+		return true;
+	}
+	return false;
+}
+
 bool KRenderComponent::GetPath(std::string& path) const
 {
 	if (m_Type == ASSET || m_Type == MESH)
@@ -178,19 +199,24 @@ bool KRenderComponent::SetHostVisible(bool hostVisible)
 bool KRenderComponent::Init()
 {
 	UnInit();
-	if (m_Type == MESH)
+	if (m_Type == MESH || m_Type == ASSET)
 	{
-		if(KRenderGlobal::MeshManager.Acquire(m_Path.c_str(), m_Mesh, m_HostVisible))			
+		bool meshAcquire = false;
+		if (m_Type == MESH)
 		{
-			KRenderGlobal::MeshManager.AcquireOCQuery(m_OCQueries);
-			m_OCInstanceQueries.resize(m_OCQueries.size());
-			return true;
+			meshAcquire = KRenderGlobal::MeshManager.Acquire(m_Path.c_str(), m_Mesh, m_HostVisible);
 		}
-	}
-	else if (m_Type == ASSET)
-	{
-		if (KRenderGlobal::MeshManager.AcquireFromAsset(m_Path.c_str(), m_Mesh, m_HostVisible))
+		else
 		{
+			meshAcquire = KRenderGlobal::MeshManager.AcquireFromAsset(m_Path.c_str(), m_Mesh, m_HostVisible);
+		}
+		if(meshAcquire)
+		{
+			if (m_MaterialPath.empty() || !KRenderGlobal::MaterialManager.Acquire(m_MaterialPath.c_str(), m_Material, true))
+			{
+				KRenderGlobal::MaterialManager.GetMissingMaterial(m_Material);
+			}
+			m_Mesh->SetMaterial(m_Material.get());
 			KRenderGlobal::MeshManager.AcquireOCQuery(m_OCQueries);
 			m_OCInstanceQueries.resize(m_OCQueries.size());
 			return true;
@@ -209,6 +235,11 @@ bool KRenderComponent::UnInit()
 	{
 		KRenderGlobal::MeshManager.Release(m_Mesh);
 		m_Mesh = nullptr;
+	}
+	if (m_Material)
+	{
+		KRenderGlobal::MaterialManager.Release(m_Material);
+		m_Material = nullptr;
 	}
 	if (!m_OCQueries.empty())
 	{

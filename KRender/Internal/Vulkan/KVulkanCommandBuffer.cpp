@@ -242,14 +242,6 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 		vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
 
-		if(!command.objectData.empty())
-		{
-			if(!command.objectUsage.buffer)
-			{
-				vkCmdPushConstants(m_CommandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, (uint32_t)command.objectData.size(), command.objectData.data());
-			}
-		}
-
 		if(command.indexDraw)
 		{
 			// 绑定索引缓冲

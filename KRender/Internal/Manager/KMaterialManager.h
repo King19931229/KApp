@@ -12,6 +12,7 @@ protected:
 	};
 	typedef std::unordered_map<std::string, MaterialUsingInfo> MaterialMap;
 	MaterialMap m_Materials;
+	IKMaterialPtr m_MissingMaterial;
 	IKRenderDevice* m_Device;
 public:
 	KMaterialManager();
@@ -22,4 +23,6 @@ public:
 
 	bool Acquire(const char* path, IKMaterialPtr& material, bool async);
 	bool Release(IKMaterialPtr& material);
+
+	bool GetMissingMaterial(IKMaterialPtr& material);
 };

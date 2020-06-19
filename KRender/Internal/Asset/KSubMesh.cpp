@@ -9,6 +9,7 @@
 
 KSubMesh::KSubMesh(KMesh* parent)
 	: m_pParent(parent),
+	m_pMaterial(nullptr),
 	m_pVertexData(nullptr),
 	m_FrameInFlight(0),
 	m_IndexDraw(true)
@@ -23,6 +24,7 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 {
 	UnInit();
 
+	m_pMaterial = nullptr;
 	m_pVertexData = vertexData;
 	m_IndexData = indexData;
 	m_FrameInFlight = frameInFlight;
@@ -34,8 +36,8 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "prez.vert", m_PreZVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "prez.frag", m_PreZFSShader, true));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "diffuse.vert", m_SceneVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "diffuse.vert", { {"INSTANCE_INPUT", "1"} }, m_SceneVSInstanceShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "diffuse.vert", { { INSTANCE_INPUT_MACRO, "0" } }, m_SceneVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "diffuse.vert", { { INSTANCE_INPUT_MACRO, "1"} }, m_SceneVSInstanceShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "diffuse.frag", m_SceneFSShader, true));
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow.vert", m_ShadowVSShader, true));
@@ -64,6 +66,7 @@ bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData,
 {
 	UnInit();
 
+	m_pMaterial = nullptr;
 	m_pVertexData = vertexData;
 	m_FrameInFlight = frameInFlight;
 
@@ -109,6 +112,7 @@ bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData,
 bool KSubMesh::UnInit()
 {
 	m_pVertexData = nullptr;
+	m_pMaterial = nullptr;
 	m_IndexData.Destroy();
 	m_FrameInFlight = 0;
 
@@ -154,9 +158,95 @@ do\
 		pipelines.clear();
 	}
 
+	for (size_t i = 0; i < m_MaterialPipelines.size(); ++i)
+	{
+		KRenderGlobal::PipelineManager.DestroyPipeline(m_MaterialPipelines[i]);
+	}
+	m_MaterialPipelines.clear();
+
 	m_Texture.Release();
 
 	return true;
+}
+
+bool KSubMesh::SetMaterial(IKMaterial* material)
+{	
+	if (material)
+	{
+		IKShaderPtr vsShader = material->GetVSShader();
+		IKShaderPtr fsShader = material->GetFSShader();
+
+		if (vsShader && fsShader)
+		{
+			const KShaderInformation& vsInfo = vsShader->GetInformation();
+			const KShaderInformation& fsInfo = fsShader->GetInformation();
+
+			for (size_t i = 0; i < m_MaterialPipelines.size(); ++i)
+			{
+				KRenderGlobal::PipelineManager.DestroyPipeline(m_MaterialPipelines[i]);
+			}
+			m_MaterialPipelines.clear();
+
+			m_MaterialPipelines.resize(m_FrameInFlight);
+			for (size_t i = 0; i < m_MaterialPipelines.size(); ++i)
+			{
+				m_MaterialPipelines[i] = material->CreatePipeline(i, m_pVertexData->vertexFormats.data(), m_pVertexData->vertexFormats.size());
+			}
+
+			for (const KShaderInformation& info : {vsInfo, fsInfo})
+			{
+				for (const KShaderInformation::Texture& shaderTexture : info.textures)
+				{
+					if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE ||
+						shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR ||
+						shaderTexture.bindingIndex == SHADER_BINDING_NORMAL)
+					{
+						IKTexturePtr texture = nullptr;
+						IKSamplerPtr sampler = nullptr;
+
+						if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE)
+						{
+							KMeshTextureInfo diffuseInfo = m_Texture.GetTexture(MTS_DIFFUSE);
+							texture = diffuseInfo.texture;
+							sampler = diffuseInfo.sampler;
+						}
+						if (shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR)
+						{
+							KMeshTextureInfo specularInfo = m_Texture.GetTexture(MTS_SPECULAR);
+							texture = specularInfo.texture;
+							sampler = specularInfo.sampler;
+						}
+						if (shaderTexture.bindingIndex == SHADER_BINDING_NORMAL)
+						{
+							KMeshTextureInfo normalInfo = m_Texture.GetTexture(MTS_NORMAL);
+							texture = normalInfo.texture;
+							sampler = normalInfo.sampler;
+						}
+
+						if (!texture || !sampler)
+						{
+							KRenderGlobal::TextrueManager.GetErrorTexture(texture);
+							KRenderGlobal::TextrueManager.GetErrorSampler(sampler);
+						}
+
+						for (size_t i = 0; i < m_MaterialPipelines.size(); ++i)
+						{
+							m_MaterialPipelines[i]->SetSampler(shaderTexture.bindingIndex, texture, sampler);
+						}
+					} 
+				}
+			}
+
+			for (size_t i = 0; i < m_MaterialPipelines.size(); ++i)
+			{
+				ASSERT_RESULT(m_MaterialPipelines[i]->Init());
+			}
+
+			m_pMaterial = material;
+			return true;
+		}
+	}
+	return false;
 }
 
 // 安卓上还是有用的
@@ -259,7 +349,7 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 			pipeline->SetSampler(SHADER_BINDING_DIFFUSE, texture, sampler);
 			diffuseReady = true;
 		}
-		
+
 		if (!diffuseReady)
 		{
 			KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
@@ -434,8 +524,6 @@ bool KSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderC
 		command.indexData = &m_IndexData;
 		command.pipeline = pipeline;
 		command.indexDraw = m_IndexDraw;
-		command.objectData.clear();
-
 		return true;
 	}
 	else

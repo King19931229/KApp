@@ -1,5 +1,6 @@
 #pragma once
 #include "KRender/Interface/IKShader.h"
+#include "KRender/Interface/IKPipeline.h"
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -37,6 +38,12 @@ struct IKMaterialParameter
 
 typedef std::shared_ptr<IKMaterialParameter> IKMaterialParameterPtr;
 
+enum MaterialBlendMode
+{
+	OPAQUE,
+	TRANSRPANT
+};
+
 struct IKMaterial
 {
 	virtual ~IKMaterial() {}
@@ -45,7 +52,14 @@ struct IKMaterial
 	virtual const IKMaterialParameterPtr GetFSParameter() = 0;
 
 	virtual const IKShaderPtr GetVSShader() = 0;
+	virtual const IKShaderPtr GetVSInstanceShader() = 0;
 	virtual const IKShaderPtr GetFSShader() = 0;
+
+	virtual MaterialBlendMode GetBlendMode() const = 0;
+	virtual void SetBlendMode(MaterialBlendMode mode) = 0;
+
+	virtual IKPipelinePtr CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count) = 0;
+	virtual IKPipelinePtr CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count) = 0;
 
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;
 	virtual bool Init(const std::string& vs, const std::string& fs, bool async) = 0;

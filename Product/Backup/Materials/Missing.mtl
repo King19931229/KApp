@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vs>diffuse.vert</vs>
+
+<fs>diffuse.frag</fs>
+
+<vs_parameter/>
+
+<fs_parameter/>

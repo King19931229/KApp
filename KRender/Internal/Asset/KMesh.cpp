@@ -364,6 +364,15 @@ bool KMesh::UpdateUnility(const KMeshUtilityInfoPtr& info, IKRenderDevice* devic
 	return false;
 }
 
+bool KMesh::SetMaterial(IKMaterial* material)
+{
+	for (KSubMeshPtr subMesh : m_SubMeshes)
+	{
+		subMesh->SetMaterial(material);
+	}
+	return true;
+}
+
 bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func)
 {
 	for(KSubMeshPtr subMesh : m_SubMeshes)

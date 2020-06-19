@@ -20,7 +20,7 @@ bool KTextureManager::Init(IKRenderDevice* device)
 	m_Device = device;
 
 	m_Device->CreateTexture(m_ErrorTexture);
-	if (m_ErrorTexture->InitMemoryFromFile("Textures/Error.tga", true, false))
+	if (m_ErrorTexture->InitMemoryFromFile("Textures/Error.png", true, false))
 	{
 		m_ErrorTexture->InitDevice(false);
 		m_Device->CreateSampler(m_ErrorSampler);

@@ -3,6 +3,7 @@
 #include "KBase/Interface/Component/IKRenderComponent.h"
 #include "Internal/Asset/KMesh.h"
 #include "Internal/Asset/Utility/KMeshUtilityInfo.h"
+#include "Internal/Asset/KMaterial.h"
 
 class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 {
@@ -18,9 +19,15 @@ protected:
 	};
 
 	KMeshPtr m_Mesh;
+	IKMaterialPtr m_Material;
+
 	ResourceType m_Type;
+
 	std::string m_Path;
 	KMeshUtilityInfoPtr m_UtilityInfo;
+
+	std::string m_MaterialPath;
+
 	bool m_HostVisible;
 	bool m_OcclusionVisible;
 
@@ -29,11 +36,13 @@ protected:
 
 	static constexpr const char* msType = "type";
 	static constexpr const char* msPath = "path";
+	static constexpr const char* msMaterialPath = "material";
 
 	static const char* ResourceTypeToString(ResourceType type);
 	static ResourceType StringToResourceType(const char* str);
 
 	const std::string GetPathString() const { return m_Path; }
+	const std::string GetMaterialPathString() const { return m_MaterialPath; }
 	const std::string GetTypeString() const { return std::string(ResourceTypeToString(m_Type)); }
 public:
 	KRenderComponent();
@@ -48,6 +57,7 @@ public:
 
 	bool SetMeshPath(const char* path) override;
 	bool SetAssetPath(const char* path) override;
+	bool SetMaterialPath(const char* path) override;
 	bool GetPath(std::string& path) const override;
 
 	bool SaveAsMesh(const char* path) const override;

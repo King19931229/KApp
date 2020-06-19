@@ -3,19 +3,29 @@
 #include <assert.h>
 
 KMaterialManager::KMaterialManager()
-	: m_Device(nullptr)
+	: m_MissingMaterial(nullptr),
+	m_Device(nullptr)
 {
 }
 
 KMaterialManager::~KMaterialManager()
 {
 	ASSERT_RESULT(m_Device == nullptr);
+	ASSERT_RESULT(m_MissingMaterial == nullptr);
 	ASSERT_RESULT(m_Materials.empty());
 }
 
 bool KMaterialManager::Init(IKRenderDevice* device)
 {
+	UnInit();
 	m_Device = device;
+
+	m_MissingMaterial = IKMaterialPtr(KNEW KMaterial());
+	if (!m_MissingMaterial->InitFromFile("Materials/Missing.mtl", false))
+	{
+		m_MissingMaterial = nullptr;
+	}
+
 	return true;
 }
 
@@ -29,9 +39,21 @@ bool KMaterialManager::UnInit()
 	}
 	m_Materials.clear();
 
+	SAFE_UNINIT(m_MissingMaterial);
+
 	m_Device = nullptr;
 
 	return true;
+}
+
+bool KMaterialManager::GetMissingMaterial(IKMaterialPtr& material)
+{
+	if (m_MissingMaterial)
+	{
+		material = m_MissingMaterial;
+		return true;
+	}
+	return false;
 }
 
 bool KMaterialManager::Acquire(const char* path, IKMaterialPtr& material, bool async)

@@ -7,7 +7,8 @@
 #include <assert.h>
 
 KMaterial::KMaterial()
-	: m_VSParameterVerified(false),
+	: m_BlendMode(MaterialBlendMode::OPAQUE),
+	m_VSParameterVerified(false),
 	m_FSParameterVerified(false)
 {
 }
@@ -17,7 +18,10 @@ KMaterial::~KMaterial()
 	ASSERT_RESULT(m_VSParameter == nullptr);
 	ASSERT_RESULT(m_FSParameter == nullptr);
 	ASSERT_RESULT(m_VSShader == nullptr);
+	ASSERT_RESULT(m_VSInstanceShader == nullptr);
 	ASSERT_RESULT(m_FSShader == nullptr);
+	ASSERT_RESULT(m_Pipeline == nullptr);
+	ASSERT_RESULT(m_InstancePipeline == nullptr);
 }
 
 MaterialValueType KMaterial::ShaderConstantTypeToMaterialType(KShaderInformation::Constant::ConstantMemberType type)
@@ -54,6 +58,20 @@ const char* KMaterial::MaterialValueTypeToString(MaterialValueType type)
 	if (type == MaterialValueType::INT) { return "int"; }
 	if (type == MaterialValueType::FLOAT) { return "float"; }
 	return "unknown";
+}
+
+MaterialBlendMode KMaterial::StringToMaterialBlendMode(const char* mode)
+{
+	if (strcmp(mode, "opaque") == 0) { return MaterialBlendMode::OPAQUE; }
+	if (strcmp(mode, "transprant") == 0) { return MaterialBlendMode::TRANSRPANT; }
+	return MaterialBlendMode::OPAQUE;
+}
+
+const char* KMaterial::MaterialBlendModeToString(MaterialBlendMode mode)
+{
+	if (mode == MaterialBlendMode::OPAQUE) { return "opaque"; }
+	if (mode == MaterialBlendMode::TRANSRPANT) { return "transprant"; }
+	return "opaque";
 }
 
 bool KMaterial::VerifyParameter(IKMaterialParameterPtr parameter, const KShaderInformation& information)
@@ -184,8 +202,124 @@ const IKMaterialParameterPtr KMaterial::GetFSParameter()
 	return nullptr;
 }
 
+IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader)
+{
+	if (GetVSParameter() && GetFSParameter())
+	{
+		IKPipelinePtr pipeline = nullptr;
+		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+		pipeline->SetVertexBinding(formats, count);
+		pipeline->SetShader(ST_VERTEX, vertexShader);
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetShader(ST_FRAGMENT, fragmentShader);
+
+		if (m_BlendMode == MaterialBlendMode::OPAQUE)
+		{
+			pipeline->SetBlendEnable(false);
+		}
+		else
+		{
+			pipeline->SetBlendEnable(true);
+			pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
+		}
+
+		pipeline->SetCullMode(CM_BACK);
+		pipeline->SetFrontFace(FF_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+
+		pipeline->SetColorWrite(true, true, true, true);
+
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		const KShaderInformation& vsInfo = vertexShader->GetInformation();
+		const KShaderInformation& fsInfo = fragmentShader->GetInformation();
+
+		uint32_t bindingFlags[CBT_STATIC_COUNT] = { 0 };
+
+		for (const KShaderInformation::Constant& constant : vsInfo.constants)
+		{
+			if (constant.bindingIndex >= CBT_STATIC_BEGIN && constant.bindingIndex <= CBT_STATIC_END)
+			{
+				bindingFlags[constant.bindingIndex - CBT_STATIC_BEGIN] |= ST_VERTEX;
+			}
+		}
+
+		for (const KShaderInformation::Constant& constant : fsInfo.constants)
+		{
+			if (constant.bindingIndex >= CBT_STATIC_BEGIN && constant.bindingIndex <= CBT_STATIC_END)
+			{
+				bindingFlags[constant.bindingIndex - CBT_STATIC_BEGIN] |= ST_FRAGMENT;
+			}
+		}
+
+		for (uint32_t i = 0; i < CBT_STATIC_COUNT; ++i)
+		{
+			if (bindingFlags[i])
+			{
+				ConstantBufferType bufferType = (ConstantBufferType)(CBT_STATIC_BEGIN + i);
+				IKUniformBufferPtr staticConstantBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, bufferType);
+				pipeline->SetConstantBuffer(bufferType, bindingFlags[i], staticConstantBuffer);
+			}
+		}
+
+		for (const KShaderInformation& info : { vsInfo, fsInfo })
+		{
+			for (const KShaderInformation& info : { vsInfo, fsInfo })
+			{
+				for (const KShaderInformation::Texture& shaderTexture : info.textures)
+				{
+					if (shaderTexture.bindingIndex == SHADER_BINDING_SM)
+					{
+						IKSamplerPtr sampler = KRenderGlobal::ShadowMap.GetSampler();
+
+						IKRenderTargetPtr shadowRT = KRenderGlobal::ShadowMap.GetShadowMapTarget(frameIndex);
+						pipeline->SetSamplerDepthAttachment(shaderTexture.bindingIndex, shadowRT, sampler);
+					}
+					else if (shaderTexture.bindingIndex == SHADER_BINDING_CSM0 ||
+						shaderTexture.bindingIndex == SHADER_BINDING_CSM1 ||
+						shaderTexture.bindingIndex == SHADER_BINDING_CSM2 ||
+						shaderTexture.bindingIndex == SHADER_BINDING_CSM3)
+					{
+						IKSamplerPtr sampler = KRenderGlobal::CascadedShadowMap.GetSampler();
+
+						IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(shaderTexture.bindingIndex - SHADER_BINDING_CSM0, frameIndex);
+						if (!shadowRT)
+						{
+							shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, frameIndex);
+						}
+						pipeline->SetSamplerDepthAttachment(shaderTexture.bindingIndex, shadowRT, sampler);
+					}
+				}
+			}
+		}
+
+		return pipeline;
+	}
+
+	return nullptr;
+}
+
+IKPipelinePtr KMaterial::CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count)
+{
+	return CreatePipelineImpl(frameIndex, formats, count, m_VSShader, m_FSShader);
+}
+
+IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count)
+{
+	std::vector<VertexFormat> instanceFormats;
+	instanceFormats.reserve(count + 1);
+	for (size_t i = 0; i < count; ++i)
+	{
+		instanceFormats.push_back(formats[i]);
+	}
+	instanceFormats.push_back(VF_INSTANCE);
+
+	return CreatePipelineImpl(frameIndex, instanceFormats.data(), instanceFormats.size(), m_VSInstanceShader, m_FSShader);
+}
+
 const char* KMaterial::msVSKey = "vs";
 const char* KMaterial::msFSKey = "fs";
+const char* KMaterial::msBlendModeKey = "blend";
 const char* KMaterial::msVSParameterKey = "vs_parameter";
 const char* KMaterial::msFSParameterKey = "fs_parameter";
 const char* KMaterial::msParameterValueKey = "value";
@@ -308,56 +442,69 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 	IKDataStreamPtr pData = nullptr;
 	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
 
-	if (system && system->Open(path, IT_FILEHANDLE, pData))
+	if (!(system && system->Open(path, IT_FILEHANDLE, pData)))
 	{
-		IKXMLDocumentPtr root = GetXMLDocument();
-
-		std::vector<char> fileData;
-		fileData.resize(pData->GetSize() + 1);
-		memset(fileData.data(), 0, fileData.size());
-		pData->Read(fileData.data(), pData->GetSize());
-		pData->Close();
-
-		if (root->ParseFromString(fileData.data()))
+		system = KFileSystem::Manager->GetFileSystem(FSD_BACKUP);
+		if (!(system && system->Open(path, IT_FILEHANDLE, pData)))
 		{
-			std::string vs;
-			std::string fs;
+			return false;
+		}
+	}
 
-			IKXMLElementPtr vsShaderEle = root->FirstChildElement(msVSKey);
-			if (vsShaderEle && !vsShaderEle->IsEmpty())
-			{
-				vs = vsShaderEle->GetText();
-			}
+	IKXMLDocumentPtr root = GetXMLDocument();
 
-			IKXMLElementPtr fsShaderEle = root->FirstChildElement(msFSKey);
-			if (fsShaderEle && !fsShaderEle->IsEmpty())
-			{
-				fs = fsShaderEle->GetText();
-			}
+	std::vector<char> fileData;
+	fileData.resize(pData->GetSize() + 1);
+	memset(fileData.data(), 0, fileData.size());
+	pData->Read(fileData.data(), pData->GetSize());
+	pData->Close();
 
-			if (!vs.empty() && !fs.empty())
+	if (root->ParseFromString(fileData.data()))
+	{
+		std::string vs;
+		std::string fs;
+
+		IKXMLElementPtr blendModeEle = root->FirstChildElement(msBlendModeKey);
+		if (blendModeEle && !blendModeEle->IsEmpty())
+		{
+			m_BlendMode = StringToMaterialBlendMode(blendModeEle->GetText().c_str());
+		}
+
+		IKXMLElementPtr vsShaderEle = root->FirstChildElement(msVSKey);
+		if (vsShaderEle && !vsShaderEle->IsEmpty())
+		{
+			vs = vsShaderEle->GetText();
+		}
+
+		IKXMLElementPtr fsShaderEle = root->FirstChildElement(msFSKey);
+		if (fsShaderEle && !fsShaderEle->IsEmpty())
+		{
+			fs = fsShaderEle->GetText();
+		}
+
+		if (!vs.empty() && !fs.empty())
+		{
+			if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), { { INSTANCE_INPUT_MACRO, "0" } }, m_VSShader, async) &&
+				KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), { { INSTANCE_INPUT_MACRO, "1" } }, m_VSInstanceShader, async) &&
+				KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, fs.c_str(), m_FSShader, async))
 			{
-				if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), m_VSShader, async) &&
-					KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, fs.c_str(), m_FSShader, async))
+				IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
+				IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
+
+				// 由于可能异步加载 无法在这里验证参数合法性
+				if (vsParameterEle && !vsParameterEle->IsEmpty())
 				{
-					IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
-					IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
-
-					// 由于可能异步加载 无法在这里验证参数合法性
-					if (vsParameterEle && !vsParameterEle->IsEmpty())
-					{
-						m_VSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
-						ReadParameterElement(m_VSParameter, vsParameterEle);
-					}
-
-					if (fsParameterEle && !fsParameterEle->IsEmpty())
-					{
-						m_FSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
-						ReadParameterElement(m_FSParameter, fsParameterEle);
-					}
-
-					return true;
+					m_VSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+					ReadParameterElement(m_VSParameter, vsParameterEle);
 				}
+
+				if (fsParameterEle && !fsParameterEle->IsEmpty())
+				{
+					m_FSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+					ReadParameterElement(m_FSParameter, fsParameterEle);
+				}
+
+				return true;
 			}
 		}
 	}
@@ -372,6 +519,8 @@ bool KMaterial::SaveAsFile(const std::string& path)
 
 	if (m_VSShader && m_FSShader)
 	{
+		root->NewElement(msBlendModeKey)->SetText(MaterialBlendModeToString(m_BlendMode));
+
 		root->NewElement(msVSKey)->SetText(m_VSShader->GetPath());
 		root->NewElement(msFSKey)->SetText(m_FSShader->GetPath());
 
@@ -414,10 +563,28 @@ bool KMaterial::UnInit()
 		m_VSShader = nullptr;
 	}
 
+	if (m_VSInstanceShader)
+	{
+		KRenderGlobal::ShaderManager.Release(m_VSInstanceShader);
+		m_VSInstanceShader = nullptr;
+	}
+
 	if (m_FSShader)
 	{
 		KRenderGlobal::ShaderManager.Release(m_FSShader);
 		m_FSShader = nullptr;
+	}
+
+	if (m_Pipeline)
+	{
+		KRenderGlobal::PipelineManager.DestroyPipeline(m_Pipeline);
+		m_Pipeline = nullptr;
+	}
+
+	if (m_InstancePipeline)
+	{
+		KRenderGlobal::PipelineManager.DestroyPipeline(m_InstancePipeline);
+		m_InstancePipeline = nullptr;
 	}
 
 	m_VSParameter = nullptr;

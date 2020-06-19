@@ -2,6 +2,7 @@
 #include "Internal/KVertexDefinition.h"
 #include "Internal/KConstantDefinition.h"
 #include "Interface/IKRenderDevice.h"
+#include "Interface/IKMaterial.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KSubMesh.h"
 #include "KMaterial.h"
@@ -39,6 +40,7 @@ public:
 
 	bool UpdateUnility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
 
+	bool SetMaterial(IKMaterial* material);
 	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func);
 };
 

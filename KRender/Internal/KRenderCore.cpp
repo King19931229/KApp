@@ -105,9 +105,8 @@ bool KRenderCore::InitGlobalManager()
 
 #if 0
 	KMaterial material;
-	//material.Init("diffuse.vert", "diffuse.frag", false);
-	material.InitFromFile("test.mtl", false);
-	material.SaveAsFile("../../../test.mtl");
+	material.Init("diffuse.vert", "diffuse.frag", false);
+	material.SaveAsFile("../../../Missing.mtl");
 	material.UnInit();
 #endif
 

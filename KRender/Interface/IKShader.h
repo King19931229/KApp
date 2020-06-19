@@ -57,6 +57,8 @@ struct KShaderInformation
 	std::vector<Texture> textures;
 };
 
+static constexpr const char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
+
 struct IKShader : public IKResource
 {
 	virtual ~IKShader() {}

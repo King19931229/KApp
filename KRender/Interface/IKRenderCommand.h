@@ -149,8 +149,6 @@ struct KRenderCommand
 	uint32_t instanceCount;
 	IKVertexBufferPtr instanceBuffer;
 
-	std::vector<char> objectData;
-
 	bool indexDraw;
 	bool instanceDraw;
 
@@ -178,12 +176,6 @@ struct KRenderCommand
 	{
 		objectData.resize(sizeof(value));
 		memcpy(objectData.data(), &value, objectData.size());
-	}
-
-	void ClearObjectData()
-	{
-		objectData.clear();
-		objectData.shrink_to_fit();
 	}
 
 	bool Complete() const
