@@ -20,5 +20,5 @@ layout(binding = BINDING_DIFFUSE) uniform sampler2D diffuseSampler;
 void main()
 {
 	outColor = texture(diffuseSampler, uv);	
-	outColor *= calcCSM(inViewPos.xyz);		
+	outColor *= calcCSM(inViewPos.xyz, inWorldPos.xyz);		
 }

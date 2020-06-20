@@ -24,17 +24,12 @@ protected:
 
 	size_t					m_FrameInFlight;
 	FramePipelineList		m_Pipelines[PIPELINE_STAGE_COUNT];
-	FramePipelineList		m_MaterialPipelines;
 
 	IKShaderPtr				m_DebugVSShader;
 	IKShaderPtr				m_DebugFSShader;
 
 	IKShaderPtr				m_PreZVSShader;
 	IKShaderPtr				m_PreZFSShader;
-
-	IKShaderPtr				m_SceneVSShader;
-	IKShaderPtr				m_SceneVSInstanceShader;
-	IKShaderPtr				m_SceneFSShader;
 
 	IKShaderPtr				m_ShadowVSShader;
 	IKShaderPtr				m_ShadowFSShader;

@@ -92,7 +92,6 @@ bool KRenderComponent::Load(IKXMLElementPtr element)
 	ACTION_ON_FAILURE(!path.empty(), return false);
 
 	std::string materialPath = materialEle->GetText();
-	ACTION_ON_FAILURE(!materialPath.empty(), return false);
 
 	UnInit();
 
@@ -166,6 +165,27 @@ bool KRenderComponent::SetMaterialPath(const char* path)
 	if (path)
 	{
 		m_MaterialPath = path;
+		return true;
+	}
+	return false;
+}
+
+bool KRenderComponent::ReloadMaterial()
+{
+	if (m_Mesh)
+	{
+		if (m_Material)
+		{
+			KRenderGlobal::MaterialManager.Release(m_Material);
+			m_Material = nullptr;
+		}
+
+		if (m_MaterialPath.empty() || !KRenderGlobal::MaterialManager.Acquire(m_MaterialPath.c_str(), m_Material, true))
+		{
+			KRenderGlobal::MaterialManager.GetMissingMaterial(m_Material);
+		}
+		m_Mesh->SetMaterial(m_Material.get());
+
 		return true;
 	}
 	return false;

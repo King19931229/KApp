@@ -323,9 +323,9 @@ vec4 blendCSMColor(uint cascaded, vec4 inColor)
 	return outColor;
 }
 
-float calcCSMShadow(uint cascaded)
+float calcCSMShadow(uint cascaded, vec3 worldPos)
 {
-	vec4 shadowCoord = (biasMat * cascaded_shadow.light_view_proj[cascaded]) * inWorldPos;
+	vec4 shadowCoord = (biasMat * cascaded_shadow.light_view_proj[cascaded]) * vec4(worldPos, 1.0);
 
 	vec2 lightRadiusUV = cascaded_shadow.lightInfo[cascaded].xy;
 	float lightZNear = cascaded_shadow.lightInfo[cascaded].z;
@@ -337,7 +337,7 @@ float calcCSMShadow(uint cascaded)
 	// Compute gradient using ddx/ddy before any branching
 	vec2 dz_duv = depthGradient(uv, z);
 	// Eye-space z from the light's point of view
-	float zEye = -(cascaded_shadow.light_view[cascaded] * inWorldPos).z;
+	float zEye = -(cascaded_shadow.light_view[cascaded] * vec4(worldPos, 1.0)).z;
 
 	const float ZNEAR = 1.0;
 	float translateZ = ZNEAR - lightZNear;
@@ -377,11 +377,11 @@ float calcCSMShadow(uint cascaded)
 
 const bool debug_layer = false;
 
-vec4 calcCSM(vec3 viewPos)
+vec4 calcCSM(vec3 viewPos, vec3 worldPos)
 {
 	vec4 outColor;
-	uint cascaded = calcCSMIndex(inViewPos.xyz);
-	float shadow = calcCSMShadow(cascaded);
+	uint cascaded = calcCSMIndex(viewPos);
+	float shadow = calcCSMShadow(cascaded, worldPos);
 	if(debug_layer)
 	{
 		outColor = shadow * blendCSMColor(cascaded, vec4(1.0f));

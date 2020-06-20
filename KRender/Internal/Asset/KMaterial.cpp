@@ -8,6 +8,8 @@
 
 KMaterial::KMaterial()
 	: m_BlendMode(MaterialBlendMode::OPAQUE),
+	m_VSInfoCalced(false),
+	m_FSInfoCalced(false),
 	m_VSParameterVerified(false),
 	m_FSParameterVerified(false)
 {
@@ -200,6 +202,72 @@ const IKMaterialParameterPtr KMaterial::GetFSParameter()
 		return m_FSParameter;
 	}
 	return nullptr;
+}
+
+const KShaderInformation::Constant* KMaterial::GetVSShadingInfo()
+{
+	if (m_VSInfoCalced)
+	{
+		return &m_VSConstantInfo;
+	}
+	else
+	{
+		ResourceState vsState = m_VSShader->GetResourceState();
+		if (vsState == RS_DEVICE_LOADED)
+		{
+			m_VSConstantInfo.bindingIndex = SHADER_BINDING_VERTEX_SHADING;
+			m_VSConstantInfo.members.clear();
+			m_VSConstantInfo.size = 0;
+			m_VSConstantInfo.descriptorSetIndex = 0;
+
+			const KShaderInformation& vsInfo = m_VSShader->GetInformation();
+			for (const KShaderInformation::Constant& constant : vsInfo.dynamicConstants)
+			{
+				if (constant.bindingIndex == SHADER_BINDING_VERTEX_SHADING)
+				{
+					m_VSConstantInfo = constant;
+					break;
+				}
+			}
+
+			m_VSInfoCalced = true;
+			return &m_VSConstantInfo;
+		}
+		return nullptr;
+	}
+}
+
+const KShaderInformation::Constant* KMaterial::GetFSShadingInfo()
+{
+	if (m_FSInfoCalced)
+	{
+		return &m_FSConstantInfo;
+	}
+	else
+	{
+		ResourceState fsState = m_FSShader->GetResourceState();
+		if (fsState == RS_DEVICE_LOADED)
+		{
+			m_FSConstantInfo.bindingIndex = SHADER_BINDING_VERTEX_SHADING;
+			m_FSConstantInfo.members.clear();
+			m_FSConstantInfo.size = 0;
+			m_FSConstantInfo.descriptorSetIndex = 0;
+
+			const KShaderInformation& fsInfo = m_FSShader->GetInformation();
+			for (const KShaderInformation::Constant& constant : fsInfo.dynamicConstants)
+			{
+				if (constant.bindingIndex == SHADER_BINDING_FRAGMENT_SHADING)
+				{					
+					m_FSConstantInfo = constant;
+					break;
+				}
+			}
+
+			m_FSInfoCalced = true;
+			return &m_FSConstantInfo;
+		}
+		return nullptr;
+	}
 }
 
 IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader)
@@ -436,6 +504,10 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 	UnInit();
 
 	m_Path = path;
+
+	m_VSInfoCalced = false;
+	m_FSInfoCalced = false;
+
 	m_VSParameterVerified = false;
 	m_FSParameterVerified = false;
 
@@ -589,6 +661,12 @@ bool KMaterial::UnInit()
 
 	m_VSParameter = nullptr;
 	m_FSParameter = nullptr;
+
+	m_VSInfoCalced = false;
+	m_FSInfoCalced = false;
+
+	m_VSParameterVerified = false;
+	m_FSParameterVerified = false;
 
 	return true;
 }

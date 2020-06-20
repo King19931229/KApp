@@ -6,6 +6,7 @@ class KMaterial : public IKMaterial
 {
 protected:
 	std::string m_Path;
+	MaterialBlendMode m_BlendMode;
 
 	IKShaderPtr m_VSShader;
 	IKShaderPtr m_VSInstanceShader;
@@ -14,7 +15,10 @@ protected:
 	IKPipelinePtr m_InstancePipeline;
 	IKMaterialParameterPtr m_VSParameter;
 	IKMaterialParameterPtr m_FSParameter;
-	MaterialBlendMode m_BlendMode;
+	KShaderInformation::Constant m_VSConstantInfo;
+	KShaderInformation::Constant m_FSConstantInfo;
+	bool m_VSInfoCalced;
+	bool m_FSInfoCalced;
 	bool m_VSParameterVerified;
 	bool m_FSParameterVerified;
 
@@ -47,6 +51,9 @@ public:
 
 	virtual const IKMaterialParameterPtr GetVSParameter();
 	virtual const IKMaterialParameterPtr GetFSParameter();
+
+	virtual const KShaderInformation::Constant* GetVSShadingInfo();
+	virtual const KShaderInformation::Constant* GetFSShadingInfo();
 
 	virtual const IKShaderPtr GetVSShader() { return m_VSShader; }
 	virtual const IKShaderPtr GetVSInstanceShader() { return m_VSInstanceShader; }

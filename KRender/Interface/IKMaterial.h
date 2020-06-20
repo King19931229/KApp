@@ -51,6 +51,9 @@ struct IKMaterial
 	virtual const IKMaterialParameterPtr GetVSParameter() = 0;
 	virtual const IKMaterialParameterPtr GetFSParameter() = 0;
 
+	virtual const KShaderInformation::Constant* GetVSShadingInfo() = 0;
+	virtual const KShaderInformation::Constant* GetFSShadingInfo() = 0;
+
 	virtual const IKShaderPtr GetVSShader() = 0;
 	virtual const IKShaderPtr GetVSInstanceShader() = 0;
 	virtual const IKShaderPtr GetFSShader() = 0;

@@ -48,7 +48,8 @@ protected:
 	size_t m_MaxRenderThreadNum;
 	KThreadPool<std::function<void()>, true> m_ThreadPool;
 
-	bool m_MultiThreadSumbit;
+	bool m_MultiThreadSubmit;
+	bool m_InstanceSubmit;
 
 	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
 
@@ -66,12 +67,14 @@ public:
 	KRenderDispatcher();
 	~KRenderDispatcher();
 
-	inline void SetMultiThreadSumbit(bool multi) { m_MultiThreadSumbit = multi; }
+	inline void SetMultiThreadSubmit(bool multi) { m_MultiThreadSubmit = multi; }
+	inline void SetInstanceSubmit(bool instance) { m_InstanceSubmit = instance; }
 
 	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay, IKCameraCubePtr cameraCube);
 	bool UnInit();
 
 	static bool AssignInstanceData(IKRenderDevice* device, uint32_t frameIndex, KVertexData* vertexData, InstanceBufferStage stage, const std::vector<KConstantDefinition::OBJECT>& objects);
+	static bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material);
 
 	bool Execute(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
 	IKCommandBufferPtr GetPrimaryCommandBuffer(uint32_t frameIndex);

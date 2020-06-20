@@ -7,6 +7,7 @@
 #include "Internal/KVertexDefinition.h"
 
 KMesh::KMesh()
+	: m_Material(nullptr)
 {
 }
 
@@ -62,6 +63,7 @@ bool KMesh::UnInit()
 	m_SubMeshes.clear();
 	m_Path.clear();
 	m_TriangleMesh.Destroy();
+	m_Material = nullptr;
 	return true;
 }
 
@@ -370,7 +372,13 @@ bool KMesh::SetMaterial(IKMaterial* material)
 	{
 		subMesh->SetMaterial(material);
 	}
+	m_Material = material;
 	return true;
+}
+
+IKMaterial* KMesh::GetMaterial()
+{
+	return m_Material;
 }
 
 bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func)

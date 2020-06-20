@@ -14,7 +14,8 @@ KRenderDispatcher::KRenderDispatcher()
 	m_CameraCube(nullptr),
 	m_MaxRenderThreadNum(std::thread::hardware_concurrency()),
 	m_FrameInFlight(0),
-	m_MultiThreadSumbit(true)
+	m_MultiThreadSubmit(true),
+	m_InstanceSubmit(true)
 {
 }
 
@@ -214,6 +215,72 @@ bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, uint32_t fram
 	return false;
 }
 
+bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMaterial* material)
+{
+	if (material)
+	{
+		const IKMaterialParameterPtr vsParameter = material->GetVSParameter();
+		const IKMaterialParameterPtr fsParameter = material->GetFSParameter();
+		if (!(vsParameter && fsParameter))
+		{
+			return false;
+		}
+
+		const KShaderInformation::Constant* vsConstant = material->GetVSShadingInfo();
+		const KShaderInformation::Constant* fsConstant = material->GetFSShadingInfo();
+		if (!(vsConstant && fsConstant))
+		{
+			return false;
+		}
+
+		if (vsConstant->size)
+		{
+			static std::vector<char> vsShadingBuffer;
+
+			command.vertexShadingUsage.binding = SHADER_BINDING_VERTEX_SHADING;
+			command.vertexShadingUsage.range = vsConstant->size;
+
+			if (vsConstant->size > vsShadingBuffer.size())
+			{
+				vsShadingBuffer.resize(vsConstant->size);
+			}
+
+			for (const KShaderInformation::Constant::ConstantMember& member : vsConstant->members)
+			{
+				IKMaterialValuePtr value = vsParameter->GetValue(member.name);
+				ASSERT_RESULT(value);
+				memcpy(POINTER_OFFSET(vsShadingBuffer.data(), member.offset), value->GetData(), member.size);
+			}
+
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(vsShadingBuffer.data(), command.vertexShadingUsage);
+		}
+
+		if (fsConstant->size)
+		{
+			static std::vector<char> fsShadingBuffer;
+
+			command.fragmentShadingUsage.binding = SHADER_BINDING_FRAGMENT_SHADING;
+			command.fragmentShadingUsage.range = fsConstant->size;
+
+			if (fsConstant->size > fsShadingBuffer.size())
+			{
+				fsShadingBuffer.resize(fsConstant->size);
+			}
+
+			for (const KShaderInformation::Constant::ConstantMember& member : fsConstant->members)
+			{
+				IKMaterialValuePtr value = fsParameter->GetValue(member.name);
+				ASSERT_RESULT(value);
+				memcpy(POINTER_OFFSET(fsShadingBuffer.data(), member.offset), value->GetData(), member.size);
+			}
+
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(fsShadingBuffer.data(), command.fragmentShadingUsage);
+		}
+		return true;
+	}
+	return false;
+}
+
 void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetPtr offscreenTarget,
 	std::vector<KRenderComponent*>& cullRes, std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands)
 {
@@ -328,10 +395,12 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 				if (command.indexDraw)
 				{
 					preZStatistics.faces += command.indexData->indexCount / 3;
+					preZStatistics.primtives += command.indexData->indexCount;
 				}
 				else
 				{
 					preZStatistics.faces += command.vertexData->vertexCount / 3;
+					preZStatistics.primtives += command.vertexData->vertexCount;
 				}
 
 				command.objectUsage.binding = SHADER_BINDING_OBJECT;
@@ -347,70 +416,88 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 			}
 		});
 
-		/*
-		mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& _command)
+		if (!m_InstanceSubmit)
 		{
-			KRenderCommand command = std::move(_command);
-
-			for (size_t idx = 0; idx < objects.size(); ++idx)
+			mesh->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand&& _command)
 			{
+				KRenderCommand command = std::move(_command);
+
+				for (size_t idx = 0; idx < objects.size(); ++idx)
+				{
+					++defaultStatistics.drawcalls;
+					if (command.indexDraw)
+					{
+						defaultStatistics.faces += command.indexData->indexCount / 3;
+						defaultStatistics.primtives += command.indexData->indexCount;
+					}
+					else
+					{
+						defaultStatistics.faces += command.vertexData->vertexCount / 3;
+						defaultStatistics.primtives += command.vertexData->vertexCount;
+					}
+
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
+					command.objectUsage.range = sizeof(objects[idx]);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objects[idx], command.objectUsage);
+
+					IKMaterial* material = mesh->GetMaterial();
+					ASSERT_RESULT(material);
+					if (!AssignShadingParameter(command, material))
+					{
+						continue;
+					}
+
+					command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						defaultCommands.push_back(command);
+					}
+				}
+			});
+		}
+		else
+		{
+			mesh->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand&& _command)
+			{
+				KRenderCommand command = std::move(_command);
+
 				++defaultStatistics.drawcalls;
-				if (command.indexDraw)
+
+				KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
+				AssignInstanceData(m_Device, (uint32_t)frameIndex, vertexData, IBS_OPAQUE, objects);
+
+				command.instanceDraw = true;
+				command.instanceBuffer = vertexData->instanceBuffers[frameIndex][IBS_OPAQUE];
+				command.instanceCount = (uint32_t)vertexData->instanceCount[frameIndex][IBS_OPAQUE];
+
+				IKMaterial* material = mesh->GetMaterial();
+				ASSERT_RESULT(material);
+				if (AssignShadingParameter(command, material))
 				{
-					defaultStatistics.faces += command.indexData->indexCount / 3;
+					for (size_t idx = 0; idx < objects.size(); ++idx)
+					{
+						if (command.indexDraw)
+						{
+							defaultStatistics.faces += command.indexData->indexCount / 3;
+							defaultStatistics.primtives += command.indexData->indexCount;
+						}
+						else
+						{
+							defaultStatistics.faces += command.vertexData->vertexCount / 3;
+							defaultStatistics.primtives += command.vertexData->vertexCount;
+						}
+					}
+
+					command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						defaultCommands.push_back(command);
+					}
 				}
-				else
-				{
-					defaultStatistics.faces += command.vertexData->vertexCount / 3;
-				}
-
-				command.objectUsage.binding = SB_OBJECT;
-				command.objectUsage.range = sizeof(objects[idx]);
-				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objects[idx], command.objectUsage);
-
-				command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-
-				if (command.Complete())
-				{
-					defaultCommands.push_back(command);
-				}
-			}
-		});
-		*/
-		mesh->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand&& _command)
-		{
-			KRenderCommand command = std::move(_command);
-
-			++defaultStatistics.drawcalls;
-
-			KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
-			AssignInstanceData(m_Device, (uint32_t)frameIndex, vertexData, IBS_OPAQUE, objects);
-
-			command.instanceDraw = true;
-			command.instanceBuffer = vertexData->instanceBuffers[frameIndex][IBS_OPAQUE];
-			command.instanceCount = (uint32_t)vertexData->instanceCount[frameIndex][IBS_OPAQUE];
-
-			for (size_t idx = 0; idx < objects.size(); ++idx)
-			{
-				if (command.indexDraw)
-				{
-					defaultStatistics.faces += command.indexData->indexCount / 3;
-					defaultStatistics.primtives += command.indexData->indexCount;
-				}
-				else
-				{
-					defaultStatistics.faces += command.vertexData->vertexCount / 3;
-					defaultStatistics.primtives += command.vertexData->vertexCount;
-				}
-			}
-
-			command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-
-			if (command.Complete())
-			{
-				defaultCommands.push_back(command);
-			}
-		});
+			});
+		}
 	}
 
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(PRE_Z_STAGE, preZStatistics);
@@ -759,7 +846,7 @@ bool KRenderDispatcher::UnInit()
 
 bool KRenderDispatcher::Execute(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
 {
-	if (m_MultiThreadSumbit)
+	if (m_MultiThreadSubmit)
 	{
 		SubmitCommandBufferMuitiThread(scene, camera, chainImageIndex, frameIndex);
 	}

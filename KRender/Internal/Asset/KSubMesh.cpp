@@ -36,10 +36,6 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "prez.vert", m_PreZVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "prez.frag", m_PreZFSShader, true));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "diffuse.vert", { { INSTANCE_INPUT_MACRO, "0" } }, m_SceneVSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "diffuse.vert", { { INSTANCE_INPUT_MACRO, "1"} }, m_SceneVSInstanceShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "diffuse.frag", m_SceneFSShader, true));
-
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow.vert", m_ShadowVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow.frag", m_ShadowFSShader, true));
 
@@ -47,15 +43,15 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "cascadedshadowinstance.vert", m_CascadedShadowVSInstanceShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow.frag", m_CascadedShadowFSShader, true));
 
-	for(size_t i = 0; i < PIPELINE_STAGE_DEBUG_LINE; ++i)
+	for (PipelineStage stage : {PIPELINE_STAGE_PRE_Z, PIPELINE_STAGE_SHADOW_GEN, PIPELINE_STAGE_CASCADED_SHADOW_GEN, PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE})
 	{
-		FramePipelineList& pipelines = m_Pipelines[i];
+		FramePipelineList& pipelines = m_Pipelines[stage];
 		pipelines.resize(m_FrameInFlight);
 		for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
 		{
 			IKPipelinePtr& pipeline = pipelines[frameIndex];
 			assert(!pipeline);
-			CreatePipeline((PipelineStage)i, frameIndex, pipeline);
+			CreatePipeline(stage, frameIndex, pipeline);
 		}
 	}
 
@@ -117,24 +113,17 @@ bool KSubMesh::UnInit()
 	m_FrameInFlight = 0;
 
 #define SAFE_RELEASE_SHADER(shader)\
-do\
-{\
 	if(shader)\
 	{\
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(shader));\
 		shader = nullptr;\
-	}\
-}while(0);\
+	}
 
 	SAFE_RELEASE_SHADER(m_DebugVSShader);
 	SAFE_RELEASE_SHADER(m_DebugFSShader);
 
 	SAFE_RELEASE_SHADER(m_PreZVSShader);
 	SAFE_RELEASE_SHADER(m_PreZFSShader);
-
-	SAFE_RELEASE_SHADER(m_SceneVSShader);
-	SAFE_RELEASE_SHADER(m_SceneVSInstanceShader);
-	SAFE_RELEASE_SHADER(m_SceneFSShader);
 
 	SAFE_RELEASE_SHADER(m_ShadowVSShader);
 	SAFE_RELEASE_SHADER(m_ShadowFSShader);
@@ -158,12 +147,6 @@ do\
 		pipelines.clear();
 	}
 
-	for (size_t i = 0; i < m_MaterialPipelines.size(); ++i)
-	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(m_MaterialPipelines[i]);
-	}
-	m_MaterialPipelines.clear();
-
 	m_Texture.Release();
 
 	return true;
@@ -176,70 +159,113 @@ bool KSubMesh::SetMaterial(IKMaterial* material)
 		IKShaderPtr vsShader = material->GetVSShader();
 		IKShaderPtr fsShader = material->GetFSShader();
 
+		MaterialBlendMode blendMode = material->GetBlendMode();
+
+		for (PipelineStage stage : {PIPELINE_STAGE_OPAQUE, PIPELINE_STAGE_OPAQUE_INSTANCE, PIPELINE_STAGE_TRANSPRANT})
+		{
+			FramePipelineList& pipelineList = m_Pipelines[stage];
+			for (size_t frameIdx = 0; frameIdx < pipelineList.size(); ++frameIdx)
+			{
+				KRenderGlobal::PipelineManager.DestroyPipeline(pipelineList[frameIdx]);
+			}
+			pipelineList.clear();
+		}
+
+		FramePipelineList* pipelineLists[2] = { nullptr, nullptr };
+
+		switch (blendMode)
+		{
+		case OPAQUE:
+			pipelineLists[0] = &m_Pipelines[PIPELINE_STAGE_OPAQUE];
+			pipelineLists[1] = &m_Pipelines[PIPELINE_STAGE_OPAQUE_INSTANCE];
+			break;
+		case TRANSRPANT:
+			pipelineLists[0] = &m_Pipelines[PIPELINE_STAGE_TRANSPRANT];
+			pipelineLists[1] = nullptr;
+			break;
+		default:
+			break;
+		}
+
 		if (vsShader && fsShader)
 		{
 			const KShaderInformation& vsInfo = vsShader->GetInformation();
 			const KShaderInformation& fsInfo = fsShader->GetInformation();
 
-			for (size_t i = 0; i < m_MaterialPipelines.size(); ++i)
+			for (size_t i = 0; i < 2; ++i)
 			{
-				KRenderGlobal::PipelineManager.DestroyPipeline(m_MaterialPipelines[i]);
-			}
-			m_MaterialPipelines.clear();
-
-			m_MaterialPipelines.resize(m_FrameInFlight);
-			for (size_t i = 0; i < m_MaterialPipelines.size(); ++i)
-			{
-				m_MaterialPipelines[i] = material->CreatePipeline(i, m_pVertexData->vertexFormats.data(), m_pVertexData->vertexFormats.size());
-			}
-
-			for (const KShaderInformation& info : {vsInfo, fsInfo})
-			{
-				for (const KShaderInformation::Texture& shaderTexture : info.textures)
+				if (pipelineLists[i])
 				{
-					if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE ||
-						shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR ||
-						shaderTexture.bindingIndex == SHADER_BINDING_NORMAL)
+					FramePipelineList& pipelineList = *pipelineLists[i];
+
+					for (size_t frameIdx = 0; frameIdx < pipelineList.size(); ++frameIdx)
 					{
-						IKTexturePtr texture = nullptr;
-						IKSamplerPtr sampler = nullptr;
+						KRenderGlobal::PipelineManager.DestroyPipeline(pipelineList[frameIdx]);
+					}
+					pipelineList.clear();
 
-						if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE)
+					pipelineList.resize(m_FrameInFlight);
+					for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)
+					{
+						if (i == 0)
 						{
-							KMeshTextureInfo diffuseInfo = m_Texture.GetTexture(MTS_DIFFUSE);
-							texture = diffuseInfo.texture;
-							sampler = diffuseInfo.sampler;
+							pipelineList[frameIdx] = material->CreatePipeline(frameIdx, m_pVertexData->vertexFormats.data(), m_pVertexData->vertexFormats.size());
 						}
-						if (shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR)
+						else if (i == 1)
 						{
-							KMeshTextureInfo specularInfo = m_Texture.GetTexture(MTS_SPECULAR);
-							texture = specularInfo.texture;
-							sampler = specularInfo.sampler;
+							pipelineList[frameIdx] = material->CreateInstancePipeline(frameIdx, m_pVertexData->vertexFormats.data(), m_pVertexData->vertexFormats.size());
 						}
-						if (shaderTexture.bindingIndex == SHADER_BINDING_NORMAL)
-						{
-							KMeshTextureInfo normalInfo = m_Texture.GetTexture(MTS_NORMAL);
-							texture = normalInfo.texture;
-							sampler = normalInfo.sampler;
-						}
+					}
 
-						if (!texture || !sampler)
+					for (const KShaderInformation& info : { vsInfo, fsInfo })
+					{
+						for (const KShaderInformation::Texture& shaderTexture : info.textures)
 						{
-							KRenderGlobal::TextrueManager.GetErrorTexture(texture);
-							KRenderGlobal::TextrueManager.GetErrorSampler(sampler);
-						}
+							if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE ||
+								shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR ||
+								shaderTexture.bindingIndex == SHADER_BINDING_NORMAL)
+							{
+								IKTexturePtr texture = nullptr;
+								IKSamplerPtr sampler = nullptr;
 
-						for (size_t i = 0; i < m_MaterialPipelines.size(); ++i)
-						{
-							m_MaterialPipelines[i]->SetSampler(shaderTexture.bindingIndex, texture, sampler);
+								if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE)
+								{
+									KMeshTextureInfo diffuseInfo = m_Texture.GetTexture(MTS_DIFFUSE);
+									texture = diffuseInfo.texture;
+									sampler = diffuseInfo.sampler;
+								}
+								if (shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR)
+								{
+									KMeshTextureInfo specularInfo = m_Texture.GetTexture(MTS_SPECULAR);
+									texture = specularInfo.texture;
+									sampler = specularInfo.sampler;
+								}
+								if (shaderTexture.bindingIndex == SHADER_BINDING_NORMAL)
+								{
+									KMeshTextureInfo normalInfo = m_Texture.GetTexture(MTS_NORMAL);
+									texture = normalInfo.texture;
+									sampler = normalInfo.sampler;
+								}
+
+								if (!texture || !sampler)
+								{
+									KRenderGlobal::TextrueManager.GetErrorTexture(texture);
+									KRenderGlobal::TextrueManager.GetErrorSampler(sampler);
+								}
+
+								for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)
+								{
+									pipelineList[frameIdx]->SetSampler(shaderTexture.bindingIndex, texture, sampler);
+								}
+							}
 						}
-					} 
+					}
+
+					for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)
+					{
+						ASSERT_RESULT(pipelineList[frameIdx]->Init());
+					}
 				}
-			}
-
-			for (size_t i = 0; i < m_MaterialPipelines.size(); ++i)
-			{
-				ASSERT_RESULT(m_MaterialPipelines[i]->Init());
 			}
 
 			m_pMaterial = material;
@@ -283,91 +309,6 @@ bool KSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipeline
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
-
-		ASSERT_RESULT(pipeline->Init());
-		return true;
-	}
-	else if(stage == PIPELINE_STAGE_OPAQUE || stage == PIPELINE_STAGE_OPAQUE_INSTANCE)
-	{
-		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
-
-		if (stage == PIPELINE_STAGE_OPAQUE)
-		{
-			pipeline->SetVertexBinding((m_pVertexData->vertexFormats).data(), m_pVertexData->vertexFormats.size());
-			pipeline->SetShader(ST_VERTEX, m_SceneVSShader);
-		}
-		else if (stage == PIPELINE_STAGE_OPAQUE_INSTANCE)
-		{
-			std::vector<VertexFormat> instanceFormats = m_pVertexData->vertexFormats;
-			instanceFormats.push_back(VF_INSTANCE);
-			pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
-			pipeline->SetShader(ST_VERTEX, m_SceneVSInstanceShader);
-		}
-
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetShader(ST_FRAGMENT, m_SceneFSShader);
-
-		pipeline->SetBlendEnable(false);
-
-		pipeline->SetCullMode(CM_BACK);
-		pipeline->SetFrontFace(FF_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-
-		pipeline->SetColorWrite(true, true, true, true);
-#ifdef PRE_Z_DISABLE
-		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
-#else
-		pipeline->SetDepthFunc(CF_EQUAL, false, true);
-#endif
-
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
-		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
-
-		IKUniformBufferPtr shaodwBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_SHADOW);
-		pipeline->SetConstantBuffer(SHADER_BINDING_SHADOW, ST_VERTEX | ST_FRAGMENT, shaodwBuffer);
-
-		IKUniformBufferPtr cascadedShaodwBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CASCADED_SHADOW);
-		pipeline->SetConstantBuffer(SHADER_BINDING_CASCADED_SHADOW, ST_VERTEX | ST_FRAGMENT, cascadedShaodwBuffer);
-
-		bool diffuseReady = false;
-
-		KMeshTextureInfo diffuseMap = m_Texture.GetTexture(MTS_DIFFUSE);
-		KMeshTextureInfo specularMap = m_Texture.GetTexture(MTS_SPECULAR);
-		KMeshTextureInfo normalMap = m_Texture.GetTexture(MTS_NORMAL);
-
-		if (diffuseMap.texture && diffuseMap.sampler)
-		{
-			pipeline->SetSampler(SHADER_BINDING_DIFFUSE, diffuseMap.texture, diffuseMap.sampler);
-			diffuseReady = true;
-		}
-		else
-		{
-			IKTexturePtr texture = nullptr;
-			KRenderGlobal::TextrueManager.GetErrorTexture(texture);
-			IKSamplerPtr sampler = nullptr;
-			KRenderGlobal::TextrueManager.GetErrorSampler(sampler);
-			pipeline->SetSampler(SHADER_BINDING_DIFFUSE, texture, sampler);
-			diffuseReady = true;
-		}
-
-		if (!diffuseReady)
-		{
-			KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-			pipeline = nullptr;
-			return false;
-		}
-
-		for (size_t i = 0; i < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++i)
-		{
-			IKRenderTargetPtr shadowTarget = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(i, frameIndex);
-			pipeline->SetSamplerDepthAttachment((unsigned int)(SHADER_BINDING_CSM0 + i), shadowTarget, KRenderGlobal::CascadedShadowMap.GetSampler());
-		}
-
-		for (size_t i = KRenderGlobal::CascadedShadowMap.GetNumCascaded(); i < 4; ++i)
-		{
-			IKRenderTargetPtr shadowTarget = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, frameIndex);
-			pipeline->SetSamplerDepthAttachment((unsigned int)(SHADER_BINDING_CSM0 + i), shadowTarget, KRenderGlobal::CascadedShadowMap.GetSampler());
-		}
 
 		ASSERT_RESULT(pipeline->Init());
 		return true;

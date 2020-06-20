@@ -31,7 +31,8 @@ KRenderCore::KRenderCore()
 	m_Window(nullptr),
 	m_DebugConsole(nullptr),
 	m_Gizmo(nullptr),
-	m_MultiThreadSumbit(true),
+	m_MultiThreadSubmit(true),
+	m_InstanceSubmit(true),
 	m_OctreeDebugDraw(false),
 	m_MouseCtrlCamera(true)
 {
@@ -103,12 +104,12 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::TextrueManager.Init(m_Device);
 	KRenderGlobal::MaterialManager.Init(m_Device);
 
-#if 0
-	KMaterial material;
-	material.Init("diffuse.vert", "diffuse.frag", false);
-	material.SaveAsFile("../../../Missing.mtl");
-	material.UnInit();
-#endif
+//#if 1
+//	KMaterial material;
+//	material.Init("color.vert", "color.frag", false);
+//	material.SaveAsFile("../../../Missing.mtl");
+//	material.UnInit();
+//#endif
 
 	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, frameInFlight, property.uniformBufferOffsetAlignment, property.uniformBufferMaxRange);
 
@@ -301,7 +302,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		};
 
 		KECSGlobal::Init();
-		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 10000000.0f, glm::vec3(0.0f));
+		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
 
 		m_Device->RegisterPresentCallback(&m_PresentCallback);
 		m_Device->RegisterSwapChainRecreateCallback(&m_SwapChainCallback);
@@ -477,7 +478,8 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 			{
 				ui->CheckBox("MouseCtrlCamera", &m_MouseCtrlCamera);
 				ui->CheckBox("OctreeDraw", &m_OctreeDebugDraw);
-				ui->CheckBox("MultiRender", &m_MultiThreadSumbit);
+				ui->CheckBox("MultiRender", &m_MultiThreadSubmit);
+				ui->CheckBox("InstanceRender", &m_InstanceSubmit);
 				if (ui->Header("Shaodw"))
 				{
 					ui->SliderFloat("Shadow DepthBias Slope[0]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(0), 0.0f, 5.0f);
@@ -542,7 +544,8 @@ void KRenderCore::OnPresent(uint32_t chainIndex, uint32_t frameIndex)
 	UpdateGizmo();
 
 	KRenderGlobal::Scene.EnableDebugRender(m_OctreeDebugDraw);
-	KRenderGlobal::RenderDispatcher.SetMultiThreadSumbit(m_MultiThreadSumbit);
+	KRenderGlobal::RenderDispatcher.SetMultiThreadSubmit(m_MultiThreadSubmit);
+	KRenderGlobal::RenderDispatcher.SetInstanceSubmit(m_InstanceSubmit);
 	m_CameraMoveController.SetEnable(m_MouseCtrlCamera);
 
 	KRenderGlobal::RenderDispatcher.Execute(&KRenderGlobal::Scene, &m_Camera, chainIndex, frameIndex);

@@ -35,7 +35,8 @@ protected:
 	typedef std::unordered_set<KRenderCoreInitCallback*> CallbackSet;
 	CallbackSet m_Callbacks;
 
-	bool m_MultiThreadSumbit;
+	bool m_MultiThreadSubmit;
+	bool m_InstanceSubmit;
 	bool m_OctreeDebugDraw;
 	bool m_MouseCtrlCamera;
 

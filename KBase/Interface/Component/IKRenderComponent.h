@@ -21,8 +21,6 @@ public:
 
 	virtual bool SetMeshPath(const char* path) = 0;
 	virtual bool SetAssetPath(const char* path) = 0;
-	virtual bool SetMaterialPath(const char* path) = 0;
-	// Path of mesh or asset
 	virtual bool GetPath(std::string& path) const = 0;
 
 	virtual bool SaveAsMesh(const char* path) const = 0;
@@ -31,4 +29,7 @@ public:
 
 	virtual bool Init() = 0;
 	virtual bool UnInit() = 0;
+
+	virtual bool SetMaterialPath(const char* path) = 0;
+	virtual bool ReloadMaterial() = 0;
 };

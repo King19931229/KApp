@@ -56,16 +56,17 @@ public:
 	bool CloestPick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 
 	bool SetMeshPath(const char* path) override;
-	bool SetAssetPath(const char* path) override;
-	bool SetMaterialPath(const char* path) override;
+	bool SetAssetPath(const char* path) override;	
 	bool GetPath(std::string& path) const override;
 
 	bool SaveAsMesh(const char* path) const override;
-
 	bool SetHostVisible(bool hostVisible) override;
 
 	bool Init() override;
 	bool UnInit() override;
+
+	bool SetMaterialPath(const char* path) override;
+	bool ReloadMaterial() override;
 
 	bool InitUtility(const KMeshUtilityInfoPtr& info);
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);

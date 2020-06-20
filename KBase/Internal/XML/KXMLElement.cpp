@@ -46,13 +46,15 @@ IKXMLElementPtr KXMLElement::FirstChildElement(const char* name) const
 std::string KXMLElement::GetValue() const
 {
 	ASSERT_RESULT(!IsEmpty());
-	return m_Element->Value();
+	const char* value = m_Element->Value();
+	return value ? value : "";
 }
 
 std::string KXMLElement::GetText() const
 {
 	ASSERT_RESULT(!IsEmpty());
-	return m_Element->GetText();
+	const char* text = m_Element->GetText();
+	return text ? text : "";
 }
 
 void KXMLElement::SetText(const char* text)
