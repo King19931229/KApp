@@ -32,5 +32,5 @@ public:
 	bool Release();
 
 	bool AssignTexture(MeshTextureSemantic semantic, const char* path);
-	inline KMeshTextureInfo GetTexture(MeshTextureSemantic semantic) { return m_Textures[semantic]; }
+	inline KMeshTextureInfo GetTexture(MeshTextureSemantic semantic) const { return m_Textures[semantic]; }
 };

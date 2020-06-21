@@ -31,6 +31,7 @@ public:
 	inline const std::string& GetPath() const { return m_Path; }
 	inline const KAABBBox& GetLocalBound() const { return m_VertexData.bound; }
 	inline const KTriangleMesh& GetTriangleMesh() const { return m_TriangleMesh; }
+	inline const std::vector<KSubMeshPtr>& GetSubMeshes() const { return m_SubMeshes; }
 
 	bool SaveAsFile(const char* szPath) const;
 	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible = false);

@@ -42,6 +42,7 @@
     <ClInclude Include="Interface\IKTexture.h" />
     <ClInclude Include="Interface\IKUIOverlay.h" />
     <ClInclude Include="Internal\Asset\KMaterial.h" />
+    <ClInclude Include="Internal\Asset\KMaterialSubMesh.h" />
     <ClInclude Include="Internal\Asset\KMeshTextureBinding.h" />
     <ClInclude Include="Internal\Asset\KMesh.h" />
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
@@ -123,6 +124,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Asset\KMaterial.cpp" />
+    <ClCompile Include="Internal\Asset\KMaterialSubMesh.cpp" />
     <ClCompile Include="Internal\Asset\KMeshTextureBinding.cpp" />
     <ClCompile Include="Internal\Asset\KMesh.cpp" />
     <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
