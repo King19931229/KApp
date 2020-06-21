@@ -9,7 +9,7 @@
 #if defined(_WIN32)
 #	include <Windows.h>
 #	define SNPRINTF sprintf_s
-#	define VSNPRINTF _vsnprintf
+#	define VSNPRINTF vsnprintf
 #	pragma warning(disable : 4996)
 #else
 #	include <android/log.h>
@@ -168,6 +168,11 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 			char szBuffForTime[256]; szBuffForTime[0] = '\0';
 			char szBuffMessage[2048]; szBuffMessage[0] = '\0';
 
+			char* szBufferAlloc = nullptr;
+
+			char* szBufferWrite = szBuffMessage;
+			size_t bufferSize = sizeof(szBuffMessage);
+
 			if(m_bLogTime)
 			{
 				time_t tmtNow = time(nullptr);
@@ -182,7 +187,7 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 				}
 #endif
 				// [YEAR-MON-DAY] <HOUR-MIN-SEC>
-				nPos = SNPRINTF(szBuffForTime, sizeof(szBuffForTime),
+				nPos = SNPRINTF(szBuffForTime, sizeof(szBuffForTime) - 1,
 					"[%d-%02d-%02d] <%02d:%02d:%02d>",
 					tmNow.tm_year + 1900,
 					tmNow.tm_mon + 1,
@@ -192,29 +197,41 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 					tmNow.tm_sec);
 				assert(nPos > 0);
 
-				nPos = SNPRINTF(szBuffMessage, sizeof(szBuffMessage), "%s", szBuffForTime);
+				nPos = SNPRINTF(szBuffMessage, sizeof(szBuffMessage) - 1, "%s", szBuffForTime);
 				assert(nPos > 0);
 			}
 
 			if(LEVEL_DESC[level].nLen > 0)
 			{
-				nPos += SNPRINTF(szBuffMessage + nPos , sizeof(szBuffMessage) - nPos,
+				nPos += SNPRINTF(szBuffMessage + nPos, sizeof(szBuffMessage) - nPos - 1,
 					nPos > 0 ? " %s" : "%s",
 					LEVEL_DESC[level].pszDesc);
 				assert(nPos > 0);
 			}
 
-			nPos += SNPRINTF(szBuffMessage + nPos , sizeof(szBuffMessage) - nPos,
+			if (strlen(pszMessage) + 1 + nPos > sizeof(szBuffMessage) - 1)
+			{
+				szBufferAlloc = KNEW char[strlen(pszMessage) + 1 + nPos + 2048];
+				memcpy(szBufferAlloc, szBuffMessage, nPos);
+				szBufferWrite = szBufferAlloc;
+				bufferSize = strlen(pszMessage) + 1 + nPos + 2048;
+			}
+			else
+			{
+				szBufferWrite = szBuffMessage;
+				bufferSize = sizeof(szBuffMessage);
+			}
+
+			nPos += SNPRINTF(szBufferWrite + nPos, bufferSize - nPos - 1,
 				nPos > 0 ? " %s" : "%s",
 				pszMessage);
-			assert(nPos > 0);
 
 			// 锁的位置摆上来 以保证控制台输出顺序与文件输出顺序一致
 			std::lock_guard<decltype(m_Lock)> guard(m_Lock);
 
 			if(m_bLogFile)
 			{
-				bLogSuccess &= fprintf(m_pFile, "%s%s", szBuffMessage, LINE_DESCS[m_eLineMode].pszLine) > 0;
+				bLogSuccess &= fprintf(m_pFile, "%s%s", szBufferWrite, LINE_DESCS[m_eLineMode].pszLine) > 0;
 				fflush(m_pFile);
 			}
 
@@ -235,12 +252,11 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 					break;
 				}
 #endif
-				char szTmpBuff[2048]; szTmpBuff[0] = '\0';
-				nPos = SNPRINTF(szTmpBuff, sizeof(szTmpBuff), "[LOG] %s\n", szBuffMessage);
+				nPos = SNPRINTF(szBufferWrite, bufferSize - 1, "[LOG] %s\n", szBufferWrite);
 				assert(nPos > 0);
-				bLogSuccess &= fprintf(stdout, "%s", szTmpBuff) > 0;
+				bLogSuccess &= fprintf(stdout, "%s", szBufferWrite) > 0;
 #if defined(_WIN32)
-				OutputDebugStringA(szTmpBuff);
+				OutputDebugStringA(szBufferWrite);
 				SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x07, 0));
 #elif defined(__ANDROID__)
 				switch (level)
@@ -265,6 +281,7 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 				printf("%s", szTmpBuff);
 #endif
 			}
+			SAFE_DELETE_ARRAY(szBufferAlloc);
 			return bLogSuccess;
 		}
 	}
@@ -276,9 +293,23 @@ bool KLogger::Log(LogLevel level, const char* pszFormat, ...)
 	bool bRet = false;
 	va_list list;
 	va_start(list, pszFormat);
+
 	char szBuffer[2048]; szBuffer[0] = '\0';
-	VSNPRINTF(szBuffer, sizeof(szBuffer), pszFormat, list);
-	bRet = _Log(level, szBuffer);
+
+	int requireBufferSize = VSNPRINTF(szBuffer, sizeof(szBuffer) - 1, pszFormat, list);
+	if (requireBufferSize > sizeof(szBuffer) - 1)
+	{
+		char *szAllocBuffer = KNEW char[requireBufferSize + 1];
+		memset(szAllocBuffer, 0, requireBufferSize + 1);
+		VSNPRINTF(szAllocBuffer, requireBufferSize/* + 1 - 1 */, pszFormat, list);
+		bRet = _Log(level, szAllocBuffer);
+		KDELETE[] szAllocBuffer;
+	}
+	else
+	{
+		bRet = _Log(level, szBuffer);
+	}
+
 	va_end(list);
 	return bRet;
 }
@@ -289,11 +320,24 @@ bool KLogger::LogPrefix(LogLevel level, const char* pszPrefix, const char* pszFo
 	int nPos = 0;
 	va_list list;
 	va_start(list, pszFormat);	
+
 	char szBuffer[2048]; szBuffer[0] = '\0';
-	nPos += SNPRINTF(szBuffer, sizeof(szBuffer), "%s ", pszPrefix);
-	assert(nPos >= 0);
-	VSNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos, pszFormat, list);
-	bRet = Log(level, szBuffer);
+	nPos += SNPRINTF(szBuffer, sizeof(szBuffer) - nPos - 1, "%s ", pszPrefix);
+
+	int requireBufferSize = VSNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos - 1, pszFormat, list);
+	if (requireBufferSize > sizeof(szBuffer) - nPos - 1)
+	{
+		char *szAllocBuffer = KNEW char[requireBufferSize + 1 + 2048];
+		memcpy(szAllocBuffer, szBuffer, nPos);
+		VSNPRINTF(szAllocBuffer + nPos, requireBufferSize - nPos + 2048, pszFormat, list);
+		bRet = _Log(level, szAllocBuffer);
+		KDELETE[] szAllocBuffer;
+	}
+	else
+	{
+		bRet = _Log(level, szBuffer);
+	}
+
 	va_end(list);
 	return bRet;
 }
@@ -304,29 +348,58 @@ bool KLogger::LogSuffix(LogLevel level, const char* pszSuffix, const char* pszFo
 	int nPos = 0;
 	va_list list;
 	va_start(list, pszFormat);	
+
 	char szBuffer[2048]; szBuffer[0] = '\0';
-	nPos += VSNPRINTF(szBuffer + nPos, sizeof(szBuffer), pszFormat, list);
-	assert(nPos >= 0);
-	SNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos, " %s", pszSuffix);
-	bRet = Log(level, szBuffer);
+	int requireBufferSize = VSNPRINTF(szBuffer, sizeof(szBuffer) - 1, pszFormat, list);
+	if (requireBufferSize > sizeof(szBuffer) - 1)
+	{
+		char *szAllocBuffer = KNEW char[requireBufferSize + 1 + 2048];
+		memset(szAllocBuffer, 0, requireBufferSize + 1);
+
+		nPos = VSNPRINTF(szAllocBuffer, requireBufferSize + 2048, pszFormat, list);
+		nPos += SNPRINTF(szAllocBuffer + nPos, requireBufferSize - nPos + 2048, " %s", pszSuffix);
+
+		bRet = _Log(level, szAllocBuffer);
+		KDELETE[] szAllocBuffer;
+	}
+	else
+	{
+		nPos += requireBufferSize;
+		SNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos - 1, " %s", pszSuffix);
+		bRet = Log(level, szBuffer);
+	}
+
 	va_end(list);
 	return bRet;
 }
 
 bool KLogger::LogPrefixSuffix(LogLevel level, const char* pszPrefix, const char* pszSuffix, const char* pszFormat, ...)
 {
-	// TODO BUG FIX
 	bool bRet = false;
 	int nPos = 0;
 	va_list list;
 	va_start(list, pszFormat);	
+
 	char szBuffer[2048]; szBuffer[0] = '\0';
 	nPos += SNPRINTF(szBuffer, sizeof(szBuffer), "%s ", pszPrefix);
-	assert(nPos >= 0);
-	nPos += VSNPRINTF(szBuffer + nPos, sizeof(szBuffer), pszFormat, list);
-	assert(nPos >= 0);
-	SNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos, " %s", pszSuffix);
-	bRet = Log(level, szBuffer);
+
+	int requireBufferSize = VSNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos - 1, pszFormat, list);
+	if (requireBufferSize > sizeof(szBuffer) - nPos - 1)
+	{
+		char *szAllocBuffer = KNEW char[requireBufferSize + 1 + 2048];
+		memcpy(szAllocBuffer, szBuffer, nPos);
+		nPos += VSNPRINTF(szAllocBuffer + nPos, requireBufferSize - nPos + 2048, pszFormat, list);
+		SNPRINTF(szAllocBuffer + nPos, requireBufferSize - nPos + 2048, " %s", pszSuffix);
+		bRet = Log(level, szAllocBuffer);
+		KDELETE[] szAllocBuffer;
+	}
+	else
+	{
+		nPos += requireBufferSize;
+		SNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos - 1, " %s", pszSuffix);
+		bRet = Log(level, szBuffer);
+	}
+	
 	va_end(list);
 	return bRet;
 }

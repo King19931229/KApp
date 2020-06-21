@@ -9,32 +9,21 @@ namespace KStringUtil
 		if(!input.empty())
 		{
 			std::string::size_type offset = 0;
-			while(offset < input.length())
+			while (offset < input.length())
 			{
-				std::string::size_type nonSplit = input.find_first_not_of(splitChars, offset);
 				std::string::size_type split = input.find_first_of(splitChars, offset);
-				// both found
-				if(nonSplit != std::string::npos && split != std::string::npos)
+				if (split != std::string::npos)
 				{
-					// starts with split
-					if(nonSplit > split)
+					if (!(offset == split && offset == input.length() - 1))
 					{
-						offset = nonSplit;
-						continue;
+						splitResult.push_back(input.substr(offset, split - offset));
 					}
-					splitResult.push_back(input.substr(nonSplit, split - nonSplit));
 					offset = split + 1;
 				}
-				// non split not found. exit
-				else if(nonSplit == std::string::npos)
-				{
-					break;
-				}
-				// split not found
 				else
 				{
-					splitResult.push_back(input.substr(nonSplit));
-					break;
+					splitResult.push_back(input.substr(offset));
+					offset = input.length();
 				}
 			}
 			return true;

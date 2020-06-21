@@ -142,7 +142,7 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 	{
 		if (!shader->parse(KRenderGlobal::ShaderManager.GetSpirVBuildInResource(), 310, false, messages))
 		{
-			KG_LOGE(LM_RENDER, "[Generate SpirV] Parse Failed %s", shader->getInfoLog());
+			KG_LOGE(LM_RENDER, "[Generate SpirV] Parse Failed\n%s", shader->getInfoLog());
 			return false;
 		}
 
@@ -150,7 +150,7 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 		program->addShader(shader.get());
 		if (!program->link(messages))
 		{
-			KG_LOGE(LM_RENDER, "[Generate SpirV] Link Failed %s", program->getInfoLog());
+			KG_LOGE(LM_RENDER, "[Generate SpirV] Link Failed\n%s", program->getInfoLog());
 			return false;
 		}
 		glslang::GlslangToSpv(*program->getIntermediate(language), spirv);
@@ -327,7 +327,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 		else
 		{
 			const char* annotatedSource = m_SourceFile->GetAnnotatedSource();
-			KG_LOGE(LM_RENDER, "[Generate SpirV Failed]\n%s", annotatedSource);
+			KG_LOGE(LM_RENDER, "[Generate SpirV Failed]\n%s\n", annotatedSource);
 		}
 	}
 	return false;

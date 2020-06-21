@@ -266,7 +266,7 @@ bool KSourceFile::Open(const char* pszFilePath)
 				for (size_t i = 0; i < splitResult.size(); ++i)
 				{
 					const std::string& line = splitResult[i];
-					m_AnnotatedSource = m_AnnotatedSource + std::to_string(i) + "> " + line + "\n";
+					m_AnnotatedSource = m_AnnotatedSource + std::to_string(i + 1) + "> " + line + "\n";
 				}
 			}
 			return true;

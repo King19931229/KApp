@@ -10,24 +10,25 @@ protected:
 	struct DescriptorSetBlock
 	{
 		VkDescriptorPool pool;
-		VkDescriptorSet set;
+		std::vector<VkDescriptorSet> sets;
+		size_t useCount;
+		size_t maxCount;
 
 		DescriptorSetBlock()
 		{
+			useCount = 0;
+			maxCount = 512;
 			pool = VK_NULL_HANDLE;
-			set = VK_NULL_HANDLE;
 		}
 	};
 
 	struct DescriptorSetBlockList
 	{
 		std::vector<DescriptorSetBlock> blocks;
-		size_t useCount;
 		size_t currentFrame;
 
 		DescriptorSetBlockList()
 		{
-			useCount = 0;
 			currentFrame = 0;
 		}
 	};
@@ -43,6 +44,7 @@ protected:
 	std::vector<VkWriteDescriptorSet> m_DescriptorDynamicWriteInfo;
 
 	size_t m_CurrentFrame;
+	size_t m_BlockSize;
 	uint32_t m_UniformBufferCount;
 	uint32_t m_DyanmicUniformBufferCount;
 	uint32_t m_SamplerCount;
@@ -50,7 +52,7 @@ protected:
 	std::mutex m_Lock;
 
 	VkDescriptorSet AllocDescriptorSet(VkDescriptorPool pool);
-	VkDescriptorPool CreateDescriptorPool();
+	VkDescriptorPool CreateDescriptorPool(size_t maxCount);
 
 	VkDescriptorSet InternalAlloc(size_t frameIndex, size_t currentFrame);
 public:

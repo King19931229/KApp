@@ -8,6 +8,7 @@
 KVulkanDescriptorPool::KVulkanDescriptorPool()
 	: m_Layout(VK_NULL_HANDLE),
 	m_CurrentFrame(0),
+	m_BlockSize(512),
 	m_UniformBufferCount(0),
 	m_DyanmicUniformBufferCount(0),
 	m_SamplerCount(0)
@@ -129,7 +130,7 @@ bool KVulkanDescriptorPool::UnInit()
 		{
 			vkDestroyDescriptorPool(KVulkanGlobal::device, block.pool, nullptr);
 			block.pool = VK_NULL_HANDLE;
-			block.set = VK_NULL_HANDLE;
+			block.sets.clear();
 		}
 		blockList.blocks.clear();
 	}
@@ -156,27 +157,41 @@ VkDescriptorSet KVulkanDescriptorPool::AllocDescriptorSet(VkDescriptorPool pool)
 	return newSet;
 }
 
-VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool()
+VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 {
 	VkDescriptorPoolSize uniformPoolSize = {};
 	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uniformPoolSize.descriptorCount = std::max(1U, m_UniformBufferCount);
+	uniformPoolSize.descriptorCount = (uint32_t)maxCount * m_UniformBufferCount;
 
 	VkDescriptorPoolSize dynamicUniformPoolSize = {};
 	dynamicUniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	dynamicUniformPoolSize.descriptorCount = std::max(1U, m_DyanmicUniformBufferCount);
+	dynamicUniformPoolSize.descriptorCount = (uint32_t)maxCount * m_DyanmicUniformBufferCount;
 
 	VkDescriptorPoolSize samplerPoolSize = {};
 	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerPoolSize.descriptorCount = std::max(1U, m_SamplerCount);
+	samplerPoolSize.descriptorCount = (uint32_t)maxCount * m_SamplerCount;
 
-	VkDescriptorPoolSize poolSizes[] = { uniformPoolSize, dynamicUniformPoolSize, samplerPoolSize };
+	VkDescriptorPoolSize poolSizes[3];
+	uint32_t poolSizeCount = 0;
+
+	if (uniformPoolSize.descriptorCount > 0)
+	{
+		poolSizes[poolSizeCount++] = uniformPoolSize;
+	}
+	if (dynamicUniformPoolSize.descriptorCount > 0)
+	{
+		poolSizes[poolSizeCount++] = dynamicUniformPoolSize;
+	}
+	if (samplerPoolSize.descriptorCount > 0)
+	{
+		poolSizes[poolSizeCount++] = samplerPoolSize;
+	}
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = ARRAY_SIZE(poolSizes);
+	poolInfo.poolSizeCount = poolSizeCount;
 	poolInfo.pPoolSizes = poolSizes;
-	poolInfo.maxSets = 1;
+	poolInfo.maxSets = (uint32_t)maxCount;
 	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 	VkDescriptorPool newPool = VK_NULL_HANDLE;
@@ -242,42 +257,70 @@ VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t c
 	if (blockList.currentFrame != currentFrame)
 	{
 		blockList.currentFrame = currentFrame;
-		if (blockList.useCount < blockList.blocks.size() / 2)
-		{
-			size_t clearIdx = 0;
-			size_t newCount = blockList.blocks.size() / 2;
 
-			if (blockList.useCount == 0 || newCount == 0)
+		for (auto it = blockList.blocks.begin(); it != blockList.blocks.end();)
+		{
+			DescriptorSetBlock& block = *it;
+
+			if (block.useCount < block.sets.size() / 2)
 			{
-				clearIdx = 0;
-				newCount = 0;
+				size_t newCount = block.sets.size() / 2;
+				for (size_t idx = newCount; idx < block.sets.size(); ++idx)
+				{
+					vkFreeDescriptorSets(KVulkanGlobal::device, block.pool, 1, &block.sets[idx]);
+				}
+				block.sets.resize(newCount);
+
+				if (block.sets.size() == 0 && blockList.blocks.size() > 1)
+				{
+					vkDestroyDescriptorPool(KVulkanGlobal::device, block.pool, nullptr);
+					it = blockList.blocks.erase(it);
+				}
+				else
+				{
+					++it;
+				}
 			}
 			else
 			{
-				clearIdx = newCount;
+				++it;
 			}
-
-			for (size_t idx = clearIdx; idx < blockList.blocks.size(); ++idx)
-			{
-				DescriptorSetBlock& block = blockList.blocks[idx];
-				vkDestroyDescriptorPool(KVulkanGlobal::device, block.pool, nullptr);
-			}
-			blockList.blocks.resize(newCount);
 		}
-		blockList.useCount = 0;
+
+		for (auto it = blockList.blocks.begin(), itEnd = blockList.blocks.end(); it != itEnd; ++it)
+		{
+			it->useCount = 0;
+		}
 	}
 
-	if (blockList.useCount < blockList.blocks.size())
+	for (auto it = blockList.blocks.begin(), itEnd = blockList.blocks.end(); it != itEnd; ++it)
 	{
-		return blockList.blocks[blockList.useCount++].set;
+		DescriptorSetBlock& block = *it;
+		size_t newUseIndex = block.useCount++;
+		if (newUseIndex < block.maxCount)
+		{
+			if (newUseIndex >= block.sets.size())
+			{
+				VkDescriptorSet newSet = AllocDescriptorSet(block.pool);
+				block.sets.push_back(newSet);
+				return newSet;
+			}
+			else
+			{
+				return block.sets[newUseIndex];
+			}
+		}
 	}
 
 	DescriptorSetBlock newBlock;
-	newBlock.pool = CreateDescriptorPool();
-	newBlock.set = AllocDescriptorSet(newBlock.pool);
+	newBlock.useCount = 0;
+	newBlock.maxCount = m_BlockSize;
+	newBlock.pool = CreateDescriptorPool(newBlock.maxCount);
+
+	VkDescriptorSet newSet = AllocDescriptorSet(newBlock.pool);
+	newBlock.sets.push_back(newSet);
+	++newBlock.useCount;
 
 	blockList.blocks.push_back(newBlock);
-	++blockList.useCount;
-
-	return newBlock.set;
+	return newSet;
 }
