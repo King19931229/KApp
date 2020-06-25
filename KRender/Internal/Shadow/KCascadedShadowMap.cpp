@@ -453,26 +453,37 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 
 	ASSERT_RESULT(CascadedIndexToInstanceBufferStage(cascadedIndex, stage));
 
-	std::unordered_map<KMeshPtr, std::vector<KConstantDefinition::OBJECT>> meshGroups;	
+	struct InstanceGroup
+	{
+		KRenderComponent* render;
+		std::vector<KConstantDefinition::OBJECT> instance;
+	};
+	typedef std::shared_ptr<InstanceGroup> InstanceGroupPtr;
+	std::unordered_map<KMeshPtr, InstanceGroupPtr> meshGroups;
 
 	for (KRenderComponent* component : litCullRes)
 	{
 		IKEntity* entity = component->GetEntityHandle();
 		KTransformComponent* transform = nullptr;
-		if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
+		KRenderComponent* render = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform) && entity->GetComponent(CT_RENDER, (IKComponentBase**)&render))
 		{
+			InstanceGroupPtr instanceGroup = nullptr;
 			KMeshPtr mesh = component->GetMesh();
 
 			auto it = meshGroups.find(mesh);
 			if (it != meshGroups.end())
-			{
-				it->second.push_back(transform->FinalTransform());
+			{				
+				instanceGroup = it->second;
 			}
 			else
 			{
-				std::vector<KConstantDefinition::OBJECT> objects(1, transform->FinalTransform());
-				meshGroups[mesh] = objects;
+				instanceGroup = std::make_shared<InstanceGroup>();
+				meshGroups[mesh] = instanceGroup;
 			}
+
+			instanceGroup->render = render;
+			instanceGroup->instance.push_back({ transform->GetFinal() });
 		}
 	}
 
@@ -480,11 +491,15 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 	for (auto& pair : meshGroups)
 	{
 		KMeshPtr mesh = pair.first;
-		std::vector<KConstantDefinition::OBJECT>& objects = pair.second;
+		InstanceGroupPtr instanceGroup = pair.second;
 
-		ASSERT_RESULT(!objects.empty());
+		KRenderComponent* render = instanceGroup->render;
+		std::vector<KConstantDefinition::OBJECT>& instances = instanceGroup->instance;
 
-		mesh->Visit(PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE, frameIndex, [&](KRenderCommand&& _command)
+		ASSERT_RESULT(render);
+		ASSERT_RESULT(!instances.empty());
+
+		render->Visit(PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE, frameIndex, [&](KRenderCommand& _command)
 		{
 			KRenderCommand command = std::move(_command);
 
@@ -498,7 +513,7 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 
 			KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
 
-			KRenderDispatcher::AssignInstanceData(m_Device, (uint32_t)frameIndex, vertexData, stage, objects);
+			KRenderDispatcher::AssignInstanceData(m_Device, (uint32_t)frameIndex, vertexData, stage, instances);
 
 			command.instanceDraw = true;
 			command.instanceBuffer = vertexData->instanceBuffers[frameIndex][stage];

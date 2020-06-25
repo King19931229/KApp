@@ -19,8 +19,8 @@ protected:
 	std::vector<KSubMeshPtr> m_SubMeshes;
 	KTriangleMesh m_TriangleMesh;
 	std::string m_Path;
-
 	IKMaterial* m_Material;
+	size_t m_FrameInFlight;
 
 	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group);
 	void UpdateTriangleMesh();
@@ -41,10 +41,7 @@ public:
 
 	bool UpdateUnility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
 
-	// TODO Mesh与Material解耦
-	bool SetMaterial(IKMaterial* material);
-	IKMaterial* GetMaterial();
-	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func);
+	inline size_t GetFrameInFlight() const { return m_FrameInFlight; }
 };
 
 typedef std::shared_ptr<KMesh> KMeshPtr;

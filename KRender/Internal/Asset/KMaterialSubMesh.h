@@ -39,8 +39,9 @@ public:
 	KMaterialSubMesh(KSubMesh* subMesh);
 	~KMaterialSubMesh();
 	bool Init(IKMaterial* material, size_t frameInFlight);
+	bool InitDebug(DebugPrimitive primtive, size_t frameInFlight);
 	bool UnInit();
-	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func);
+	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&)> func);
 };
 
 typedef std::shared_ptr<KMaterialSubMesh> KMaterialSubMeshPtr;

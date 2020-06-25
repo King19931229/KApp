@@ -4,6 +4,7 @@
 #include "Internal/Asset/KMesh.h"
 #include "Internal/Asset/Utility/KMeshUtilityInfo.h"
 #include "Internal/Asset/KMaterial.h"
+#include "Internal/Asset/KMaterialSubMesh.h"
 
 class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 {
@@ -20,6 +21,7 @@ protected:
 
 	KMeshPtr m_Mesh;
 	IKMaterialPtr m_Material;
+	std::vector<KMaterialSubMeshPtr> m_MaterialSubMeshes;
 
 	ResourceType m_Type;
 
@@ -72,6 +74,7 @@ public:
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
 
 	inline KMeshPtr GetMesh() { return m_Mesh; }
+	inline IKMaterialPtr GetMaterial() { return m_Material; }
 
 	inline IKQueryPtr GetOCQuery(size_t frameIndex) { return frameIndex < m_OCQueries.size() ? m_OCQueries[frameIndex] : nullptr; }
 	inline IKQueryPtr GetOCInstacneQuery(size_t frameIndex) { return frameIndex < m_OCInstanceQueries.size() ? m_OCInstanceQueries[frameIndex] : nullptr; }
@@ -87,4 +90,6 @@ public:
 
 	inline void SetOcclusionVisible(bool visible) { m_OcclusionVisible = visible; }
 	inline bool IsOcclusionVisible() const { return m_OcclusionVisible; }
+
+	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&)> func);
 };

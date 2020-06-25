@@ -184,7 +184,12 @@ bool KRenderComponent::ReloadMaterial()
 		{
 			KRenderGlobal::MaterialManager.GetMissingMaterial(m_Material);
 		}
-		m_Mesh->SetMaterial(m_Material.get());
+		
+		for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
+		{
+			materialSubMesh->UnInit();
+			materialSubMesh->Init(m_Material.get(), m_Mesh->GetFrameInFlight());
+		}
 
 		return true;
 	}
@@ -230,13 +235,22 @@ bool KRenderComponent::Init()
 		{
 			meshAcquire = KRenderGlobal::MeshManager.AcquireFromAsset(m_Path.c_str(), m_Mesh, m_HostVisible);
 		}
-		if(meshAcquire)
+		if (meshAcquire)
 		{
 			if (m_MaterialPath.empty() || !KRenderGlobal::MaterialManager.Acquire(m_MaterialPath.c_str(), m_Material, true))
 			{
 				KRenderGlobal::MaterialManager.GetMissingMaterial(m_Material);
 			}
-			m_Mesh->SetMaterial(m_Material.get());
+
+			const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
+			m_MaterialSubMeshes.reserve(subMeshes.size());
+			for (KSubMeshPtr subMesh : subMeshes)
+			{
+				KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(new KMaterialSubMesh(subMesh.get()));
+				materialSubMesh->Init(m_Material.get(), subMesh->GetFrameInFlight());
+				m_MaterialSubMeshes.push_back(materialSubMesh);
+			}
+
 			KRenderGlobal::MeshManager.AcquireOCQuery(m_OCQueries);
 			m_OCInstanceQueries.resize(m_OCQueries.size());
 			return true;
@@ -244,13 +258,28 @@ bool KRenderComponent::Init()
 	}
 	else if (m_Type == UTILITY)
 	{
-		return KRenderGlobal::MeshManager.AcquireAsUtility(m_UtilityInfo, m_Mesh);
+		if (KRenderGlobal::MeshManager.AcquireAsUtility(m_UtilityInfo, m_Mesh))
+		{
+			const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
+			m_MaterialSubMeshes.reserve(subMeshes.size());
+			for (KSubMeshPtr subMesh : subMeshes)
+			{
+				KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(new KMaterialSubMesh(subMesh.get()));
+				materialSubMesh->InitDebug(subMesh->GetDebugPrimitive(), subMesh->GetFrameInFlight());
+				m_MaterialSubMeshes.push_back(materialSubMesh);
+			}
+		}
 	}
 	return false;
 }
 
 bool KRenderComponent::UnInit()
 {
+	for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
+	{
+		materialSubMesh->UnInit();
+	}
+	m_MaterialSubMeshes.clear();
 	if (m_Mesh)
 	{
 		KRenderGlobal::MeshManager.Release(m_Mesh);
@@ -284,4 +313,13 @@ bool KRenderComponent::UpdateUtility(const KMeshUtilityInfoPtr& info)
 	ASSERT_RESULT(m_UtilityInfo->GetType() == info->GetType());
 	m_UtilityInfo = info;
 	return KRenderGlobal::MeshManager.UpdateUtility(info, m_Mesh);
+}
+
+bool KRenderComponent::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&)> func)
+{
+	for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
+	{
+		materialSubMesh->Visit(stage, frameIndex, func);
+	}
+	return true;
 }

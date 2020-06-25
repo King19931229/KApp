@@ -60,6 +60,37 @@ bool KMaterialSubMesh::Init(IKMaterial* material, size_t frameInFlight)
 	return true;
 }
 
+bool KMaterialSubMesh::InitDebug(DebugPrimitive primtive, size_t frameInFlight)
+{
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "debug.vert", m_DebugVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "debug.frag", m_DebugFSShader, true));
+
+	PipelineStage debugStage = PIPELINE_STAGE_UNKNOWN;
+	switch (primtive)
+	{
+	case DEBUG_PRIMITIVE_LINE:
+		debugStage = PIPELINE_STAGE_DEBUG_LINE;
+		break;
+	case DEBUG_PRIMITIVE_TRIANGLE:
+		debugStage = PIPELINE_STAGE_DEBUG_TRIANGLE;
+		break;
+	default:
+		assert(false && "impossible to reach");
+		break;
+	}
+
+	FramePipelineList& pipelines = m_Pipelines[debugStage];
+	pipelines.resize(m_FrameInFlight);
+	for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
+	{
+		IKPipelinePtr& pipeline = pipelines[frameIndex];
+		assert(pipeline == nullptr);
+		CreatePipeline(debugStage, frameIndex, pipeline);
+	}
+
+	return true;
+}
+
 bool KMaterialSubMesh::UnInit()
 {
 	m_pMaterial = nullptr;
@@ -430,7 +461,7 @@ bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, 
 	}
 }
 
-bool KMaterialSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func)
+bool KMaterialSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&)> func)
 {
 	KRenderCommand command;
 	if (GetRenderCommand(stage, frameIndex, command))

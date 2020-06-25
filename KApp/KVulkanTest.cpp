@@ -30,7 +30,7 @@ int main()
 	KRenderCoreInitCallback callback = [scene]()
 	{
 #define DRAW_SPIDER
-//#define DRAW_SPONZA
+#define DRAW_SPONZA
 
 #ifdef DRAW_SPIDER
 #ifdef _DEBUG

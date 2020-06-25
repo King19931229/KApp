@@ -133,11 +133,12 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 				{
 					IKEntity* entity = component->GetEntityHandle();
 					KTransformComponent* transform = nullptr;
-					if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
+					KRenderComponent* render = nullptr;
+					if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform) && entity->GetComponent(CT_RENDER, (IKComponentBase**)&render))
 					{
 						KMeshPtr mesh = component->GetMesh();
 
-						mesh->Visit(PIPELINE_STAGE_SHADOW_GEN, frameIndex, [&](KRenderCommand command)
+						render->Visit(PIPELINE_STAGE_SHADOW_GEN, frameIndex, [&](KRenderCommand command)
 						{
 							const KConstantDefinition::OBJECT& final = transform->FinalTransform();
 

@@ -7,7 +7,8 @@
 #include "Internal/KVertexDefinition.h"
 
 KMesh::KMesh()
-	: m_Material(nullptr)
+	: m_Material(nullptr),
+	m_FrameInFlight(0)
 {
 }
 
@@ -64,6 +65,7 @@ bool KMesh::UnInit()
 	m_Path.clear();
 	m_TriangleMesh.Destroy();
 	m_Material = nullptr;
+	m_FrameInFlight = 0;
 	return true;
 }
 
@@ -203,6 +205,8 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 	}
 	UnInit();
 
+	m_FrameInFlight = frameInFlight;
+
 	IKAssetLoaderPtr& loader = KAssetLoaderManager::Loader;
 	if(loader)
 	{
@@ -340,6 +344,8 @@ bool KMesh::InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device,
 	}
 	UnInit();
 
+	m_FrameInFlight = frameInFlight;
+
 	if (KMeshUtility::CreateUtility(device, this, info, frameInFlight))
 	{
 		UpdateTriangleMesh();
@@ -357,6 +363,8 @@ bool KMesh::UpdateUnility(const KMeshUtilityInfoPtr& info, IKRenderDevice* devic
 		return false;
 	}
 
+	m_FrameInFlight = frameInFlight;
+
 	if (KMeshUtility::UpdateUtility(device, this, info, frameInFlight))
 	{
 		UpdateTriangleMesh();
@@ -364,28 +372,4 @@ bool KMesh::UpdateUnility(const KMeshUtilityInfoPtr& info, IKRenderDevice* devic
 	}
 
 	return false;
-}
-
-bool KMesh::SetMaterial(IKMaterial* material)
-{
-	for (KSubMeshPtr subMesh : m_SubMeshes)
-	{
-		subMesh->SetMaterial(material);
-	}
-	m_Material = material;
-	return true;
-}
-
-IKMaterial* KMesh::GetMaterial()
-{
-	return m_Material;
-}
-
-bool KMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&&)> func)
-{
-	for(KSubMeshPtr subMesh : m_SubMeshes)
-	{
-		subMesh->Visit(stage, frameIndex, func);
-	}
-	return true;
 }
