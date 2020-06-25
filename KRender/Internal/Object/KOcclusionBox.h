@@ -57,7 +57,6 @@ protected:
 	};
 	typedef std::list<InstanceGroup> InstanceGroupList;
 	typedef std::unordered_map<KMeshPtr, InstanceGroupList> MeshInstanceMap;
-	IKVertexBufferPtr SafeGetInstanceBuffer(size_t frameIndex, size_t idx, size_t instanceCount);
 	bool SafeFillInstanceData(IKVertexBufferPtr buffer, std::vector<KRenderComponent*>& renderComponents);
 	bool MergeInstanceGroup(KRenderComponent* renderComponent, const KAABBBox& bound, InstanceGroupList& groups);
 	bool MergeInstanceMap(KRenderComponent* renderComponent, const KAABBBox& bound, MeshInstanceMap& map);

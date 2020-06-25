@@ -9,6 +9,7 @@ namespace KRenderGlobal
 	KTextureManager TextrueManager;
 	KMaterialManager MaterialManager;
 	KDynamicConstantBufferManager DynamicConstantBufferManager;
+	KInstanceBufferManager InstanceBufferManager;
 
 	KPostProcessManager PostProcessManager;
 

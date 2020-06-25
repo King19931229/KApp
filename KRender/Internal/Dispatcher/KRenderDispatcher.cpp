@@ -142,79 +142,6 @@ void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderTarge
 	buffer->End();
 }
 
-bool KRenderDispatcher::AssignInstanceData(IKRenderDevice* device, uint32_t frameIndex, KVertexData* vertexData, InstanceBufferStage stage, const std::vector<KConstantDefinition::OBJECT>& objects)
-{
-	if (vertexData && !objects.empty())
-	{
-		assert(frameIndex < MAX_FRAME_IN_FLIGHT_INSTANCE);
-		IKVertexBufferPtr& instanceBuffer = vertexData->instanceBuffers[frameIndex][stage];
-		if (!instanceBuffer)
-		{
-			device->CreateVertexBuffer(instanceBuffer);
-		}
-
-		// CPU用Hash检查数据是否需要重新填充看起来是个负优化 起码在PC上是这样
-		// TODO 安卓待验证
-		bool ENABLE_CPU_HASH = false;
-
-		size_t dataSize = sizeof(KConstantDefinition::OBJECT) * objects.size();
-		uint32_t dataHash = 0;
-		
-		if (ENABLE_CPU_HASH)
-		{
-			dataHash = KHash::BKDR((const char*)objects.data(), dataSize);
-		}
-
-		if (vertexData->instanceCount[frameIndex][stage] != objects.size())
-		{
-			vertexData->instanceCount[frameIndex][stage] = objects.size();
-			// 数量不一样需要重新填充instance buffer
-			vertexData->instanceDataHash[frameIndex][stage] = 0;
-		}
-
-		// instance buffer大小不够需要重新分配
-		if (dataSize > instanceBuffer->GetBufferSize())
-		{
-			size_t vertexCount = KNumerical::Factor2GreaterEqual(objects.size());
-			size_t vertexSize = sizeof(KConstantDefinition::OBJECT);
-
-			ASSERT_RESULT(instanceBuffer->UnInit());
-			ASSERT_RESULT(instanceBuffer->InitMemory(vertexCount, vertexSize, nullptr));
-			ASSERT_RESULT(instanceBuffer->InitDevice(true));
-
-			void* bufferData = nullptr;
-			ASSERT_RESULT(instanceBuffer->Map(&bufferData));
-			memcpy(bufferData, objects.data(), dataSize);
-			ASSERT_RESULT(instanceBuffer->UnMap());
-		}
-		else // 检查是否需要重新填充instance buffer
-		{
-			if (!ENABLE_CPU_HASH || vertexData->instanceDataHash[frameIndex][stage] != dataHash)
-			{
-				// 数据大小小于原来一半 instance buffer大小缩小到原来一半
-				if (dataSize < instanceBuffer->GetBufferSize() / 2)
-				{
-					size_t vertexCount = instanceBuffer->GetVertexCount() / 2;
-					size_t vertexSize = instanceBuffer->GetVertexSize();
-					ASSERT_RESULT(instanceBuffer->UnInit());
-					ASSERT_RESULT(instanceBuffer->InitMemory(vertexCount, vertexSize, nullptr));
-					ASSERT_RESULT(instanceBuffer->InitDevice(true));
-				}
-
-				void* bufferData = nullptr;
-				ASSERT_RESULT(instanceBuffer->Map(&bufferData));
-				memcpy(bufferData, objects.data(), dataSize);
-				ASSERT_RESULT(instanceBuffer->UnMap());
-			}
-		}
-
-		vertexData->instanceDataHash[frameIndex][stage] = dataHash;
-
-		return true;
-	}
-	return false;
-}
-
 bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMaterial* material)
 {
 	if (material)
@@ -453,7 +380,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 
 					if (command.Complete())
 					{
-						preZcommands.push_back(command);
+						preZcommands.push_back(std::move(command));
 					}
 				}
 			});
@@ -491,7 +418,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 
 						if (command.Complete())
 						{
-							defaultCommands.push_back(command);
+							defaultCommands.push_back(std::move(command));
 						}
 					}
 				});
@@ -505,11 +432,21 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 					++defaultStatistics.drawcalls;
 
 					KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
-					AssignInstanceData(m_Device, (uint32_t)frameIndex, vertexData, IBS_OPAQUE, instances);
+
+					std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
 
 					command.instanceDraw = true;
-					command.instanceBuffer = vertexData->instanceBuffers[frameIndex][IBS_OPAQUE];
-					command.instanceCount = (uint32_t)vertexData->instanceCount[frameIndex][IBS_OPAQUE];
+					command.instanceUsages.resize(allocRes.size());
+					for (size_t i = 0; i < allocRes.size(); ++i)
+					{
+						KInstanceBufferUsage& usage = command.instanceUsages[i];
+						KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+						usage.buffer = allocResult.buffer;
+						usage.start = allocResult.start;
+						usage.count = allocResult.count;
+					}
 
 					if (AssignShadingParameter(command, material.get()))
 					{
@@ -531,7 +468,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 
 						if (command.Complete())
 						{
-							defaultCommands.push_back(command);
+							defaultCommands.push_back(std::move(command));
 						}
 					}
 				});

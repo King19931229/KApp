@@ -372,6 +372,9 @@
     <ClInclude Include="Internal\Asset\KMaterialSubMesh.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Manager\KInstanceBufferManager.h">
+      <Filter>Internal\Manager</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -601,6 +604,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\KMaterialSubMesh.cpp">
       <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Manager\KInstanceBufferManager.cpp">
+      <Filter>Internal\Manager</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

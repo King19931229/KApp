@@ -233,35 +233,40 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 		if (command.instanceDraw)
 		{
-			IKVertexBufferPtr instanceBuffer = command.instanceBuffer;
-			ASSERT_RESULT(instanceBuffer);
-			vertexBuffers[vertexBufferCount] = ((KVulkanVertexBuffer*)instanceBuffer.get())->GetVulkanHandle();
-			offsets[vertexBufferCount] = 0;
-			++vertexBufferCount;
-		}
+			uint32_t instanceSlot = vertexBufferCount++;
 
-		vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
-
-		if(command.indexDraw)
-		{
-			// 绑定索引缓冲
-			KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
-			vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-
-			if (command.instanceDraw)
+			for (const KInstanceBufferUsage& instanceUsage : command.instanceUsages)
 			{
-				vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, command.instanceCount, command.indexData->indexStart, 0, 0);
-			}
-			else
-			{
-				vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+				IKVertexBufferPtr instanceBuffer = instanceUsage.buffer;
+				ASSERT_RESULT(instanceBuffer);
+				vertexBuffers[instanceSlot] = ((KVulkanVertexBuffer*)instanceBuffer.get())->GetVulkanHandle();
+				offsets[instanceSlot] = 0;
+				vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
+
+				uint32_t instanceStart = static_cast<uint32_t>(instanceUsage.start);
+				uint32_t instanceCount = static_cast<uint32_t>(instanceUsage.count);
+
+				if (command.indexDraw)
+				{
+					KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
+					vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+					vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, instanceCount, command.indexData->indexStart, 0, instanceStart);
+				}
+				else
+				{
+					vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, instanceCount, command.vertexData->vertexStart, instanceStart);
+				}
 			}
 		}
 		else
 		{
-			if (command.instanceDraw)
+			vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
+
+			if (command.indexDraw)
 			{
-				vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, command.instanceCount, command.vertexData->vertexStart, 0);
+				KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
+				vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+				vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
 			}
 			else
 			{

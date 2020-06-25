@@ -63,6 +63,8 @@ protected:
 
 	void PopulateRenderCommand(size_t frameIndex, IKRenderTargetPtr offscreenTarget,
 		std::vector<KRenderComponent*>& cullRes, std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands);
+
+	bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material);
 public:
 	KRenderDispatcher();
 	~KRenderDispatcher();
@@ -72,9 +74,6 @@ public:
 
 	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay, IKCameraCubePtr cameraCube);
 	bool UnInit();
-
-	static bool AssignInstanceData(IKRenderDevice* device, uint32_t frameIndex, KVertexData* vertexData, InstanceBufferStage stage, const std::vector<KConstantDefinition::OBJECT>& objects);
-	static bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material);
 
 	bool Execute(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
 	IKCommandBufferPtr GetPrimaryCommandBuffer(uint32_t frameIndex);

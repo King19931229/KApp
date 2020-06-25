@@ -368,37 +368,6 @@ bool KOcclusionBox::Reset(size_t frameIndex, std::vector<KRenderComponent*>& cul
 	return true;
 }
 
-IKVertexBufferPtr KOcclusionBox::SafeGetInstanceBuffer(size_t frameIndex, size_t idx, size_t instanceCount)
-{
-	if (frameIndex < m_InstanceBuffers.size())
-	{
-		FrameInstanceBufferList& frameInstanceBuffer = m_InstanceBuffers[frameIndex];
-
-		if (frameInstanceBuffer.size() <= idx)
-		{
-			frameInstanceBuffer.resize(idx + 1);
-		}
-
-		IKVertexBufferPtr& buffer = frameInstanceBuffer[idx];
-
-		if (!buffer || buffer->GetVertexCount() < instanceCount)
-		{
-			if (!buffer)
-			{
-				m_Device->CreateVertexBuffer(buffer);
-			}
-			else
-			{
-				buffer->UnInit();
-			}
-			buffer->InitMemory(instanceCount, sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), nullptr);
-			buffer->InitDevice(true);
-		}
-		return buffer;
-	}
-	return nullptr;
-}
-
 bool KOcclusionBox::SafeFillInstanceData(IKVertexBufferPtr buffer, std::vector<KRenderComponent*>& renderComponents)
 {
 	if (buffer && !renderComponents.empty())
@@ -662,11 +631,33 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 						command.indexData = &m_IndexData;
 						command.indexDraw = true;
 
-						command.instanceDraw = true;
-						command.instanceCount = (uint32_t)renderComponents.size();
-						command.instanceBuffer = SafeGetInstanceBuffer(frameIndex, instanceIdx, command.instanceCount);
+						{
+							std::vector<glm::mat4> transforms;
+							transforms.reserve(renderComponents.size());
 
-						ASSERT_RESULT(SafeFillInstanceData(command.instanceBuffer, renderComponents));
+							for (KRenderComponent* render : renderComponents)
+							{
+								IKEntity* entity = render->GetEntityHandle();
+								KAABBBox bound;
+								entity->GetBound(bound);
+								transforms.push_back(glm::translate(glm::mat4(1.0f), bound.GetCenter()) * glm::scale(glm::mat4(1.0f), bound.GetExtend()));
+							}
+
+							std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+							ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(transforms[0]));
+							ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(transforms.size(), transforms.data(), allocRes));
+
+							command.instanceDraw = true;
+							command.instanceUsages.resize(allocRes.size());
+							for (size_t i = 0; i < allocRes.size(); ++i)
+							{
+								KInstanceBufferUsage& usage = command.instanceUsages[i];
+								KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+								usage.buffer = allocResult.buffer;
+								usage.start = allocResult.start;
+								usage.count = allocResult.count;
+							}
+						}
 
 						KRenderComponent* render = renderComponents[0];
 						IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);

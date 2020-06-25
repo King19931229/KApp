@@ -7,6 +7,7 @@
 #include "Internal/Manager/KTextureManager.h"
 #include "Internal/Manager/KMaterialManager.h"
 #include "Internal/Manager/KDynamicConstantBufferManager.h"
+#include "Internal/Manager/KInstanceBufferManager.h"
 
 #include "Internal/PostProcess/KPostProcessManager.h"
 #include "Internal/PostProcess/KPostProcessPass.h"
@@ -32,6 +33,7 @@ namespace KRenderGlobal
 	extern KTextureManager TextrueManager;
 	extern KMaterialManager MaterialManager;
 	extern KDynamicConstantBufferManager DynamicConstantBufferManager;
+	extern KInstanceBufferManager InstanceBufferManager;
 
 	extern KPostProcessManager PostProcessManager;
 

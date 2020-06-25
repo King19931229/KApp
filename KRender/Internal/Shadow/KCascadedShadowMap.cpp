@@ -424,34 +424,12 @@ bool KCascadedShadowMap::UnInit()
 	return true;
 }
 
-bool KCascadedShadowMap::CascadedIndexToInstanceBufferStage(size_t cascadedIndex, InstanceBufferStage& stage)
-{
-#define ENUM_INDEX(index)\
-	if (cascadedIndex == index)\
-	{\
-		stage = IBS_CSM##index;\
-		return true;\
-	}
-
-	ENUM_INDEX(0);
-	ENUM_INDEX(1);
-	ENUM_INDEX(2);
-	ENUM_INDEX(3);
-
-#undef ENUM_INDEX
-
-	return false;
-}
-
 void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex, std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
 	ASSERT_RESULT(cascadedIndex < m_Cascadeds.size());
 	ASSERT_RESULT(frameIndex < m_Cascadeds[cascadedIndex].renderTargets.size());
 
 	IKRenderTargetPtr shadowTarget = m_Cascadeds[cascadedIndex].renderTargets[frameIndex];
-	InstanceBufferStage stage = IBS_UNKNOWN;
-
-	ASSERT_RESULT(CascadedIndexToInstanceBufferStage(cascadedIndex, stage));
 
 	struct InstanceGroup
 	{
@@ -511,13 +489,20 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 
 			++statistics.drawcalls;
 
-			KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
-
-			KRenderDispatcher::AssignInstanceData(m_Device, (uint32_t)frameIndex, vertexData, stage, instances);
+			std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+			ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+			ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
 
 			command.instanceDraw = true;
-			command.instanceBuffer = vertexData->instanceBuffers[frameIndex][stage];
-			command.instanceCount = (uint32_t)vertexData->instanceCount[frameIndex][stage];
+			command.instanceUsages.resize(allocRes.size());
+			for (size_t i = 0; i < allocRes.size(); ++i)
+			{
+				KInstanceBufferUsage& usage = command.instanceUsages[i];
+				KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+				usage.buffer = allocResult.buffer;
+				usage.start = allocResult.start;
+				usage.count = allocResult.count;
+			}
 
 			if (command.indexDraw)
 			{
@@ -532,7 +517,7 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 
 			if (command.Complete())
 			{
-				commands.push_back(command);
+				commands.push_back(std::move(command));
 			}
 		});
 	}
