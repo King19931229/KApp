@@ -7,7 +7,8 @@
 
 KEQtRenderWindow::KEQtRenderWindow()
 	: m_Device(nullptr),
-	m_HWND(nullptr)
+	m_HWND(nullptr),
+	m_SwapChain(nullptr)
 {
 }
 
@@ -21,7 +22,7 @@ RenderWindowType KEQtRenderWindow::GetType()
 	return RENDER_WINDOW_EXTERNAL;
 }
 
-bool KEQtRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable)
+bool KEQtRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary)
 {
 	return false;
 }
@@ -63,6 +64,16 @@ android_app* KEQtRenderWindow::GetAndroidApp()
 	return nullptr;
 }
 
+bool KEQtRenderWindow::SetSwapChain(IKSwapChain* swapChain)
+{
+	m_SwapChain = swapChain;
+	return true;
+}
+
+IKSwapChain* KEQtRenderWindow::GetSwapChain()
+{
+	return m_SwapChain;
+}
 void* KEQtRenderWindow::GetHWND()
 {
 	return m_HWND;

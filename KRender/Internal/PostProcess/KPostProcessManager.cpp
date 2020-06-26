@@ -515,7 +515,10 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 			primaryCommandBuffer->Render(command);
 		}
 
-		ui->Draw(frameIndex, swapChainTarget, primaryCommandBuffer);
+		if (ui)
+		{
+			ui->Draw(frameIndex, swapChainTarget, primaryCommandBuffer);
+		}
 
 		primaryCommandBuffer->EndRenderPass();
 	}

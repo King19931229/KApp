@@ -339,7 +339,7 @@ struct IKSwapChain;
 typedef std::shared_ptr<IKSwapChain> IKSwapChainPtr;
 
 struct IKRenderWindow;
-typedef std::unique_ptr<IKRenderWindow> IKRenderWindowPtr;
+typedef std::shared_ptr<IKRenderWindow> IKRenderWindowPtr;
 
 struct IKRenderDevice;
 typedef std::unique_ptr<IKRenderDevice> IKRenderDevicePtr;

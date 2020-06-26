@@ -55,15 +55,17 @@ public:
 	KVulkanSwapChain();
 	~KVulkanSwapChain();
 
-	bool Init(IKRenderWindow* window, uint32_t frameInFlight);
-	bool UnInit();
+	virtual bool Init(IKRenderWindow* window, uint32_t frameInFlight);
+	virtual bool UnInit();
+	virtual IKRenderWindow* GetWindow();
+	virtual uint32_t GetFrameInFlight();
 
 	virtual uint32_t GetWidth() { return m_Extend.width; }
 	virtual uint32_t GetHeight() { return m_Extend.height; }
 
 	virtual IKRenderTargetPtr GetRenderTarget(uint32_t frameIndex);
 
-	VkResult WaitForInfightFrame(uint32_t& frameIndex);
+	VkResult WaitForInFightFrame(uint32_t& frameIndex);
 	VkResult AcquireNextImage(uint32_t& imageIndex);
 	VkResult PresentQueue(uint32_t imageIndex, VkCommandBuffer commandBuffer);
 

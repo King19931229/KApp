@@ -29,13 +29,16 @@ struct IKRenderWindow
 
 	virtual RenderWindowType GetType() = 0;
 
-	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable) = 0;
+	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary) = 0;
 	virtual bool Init(android_app* app) = 0;
 	virtual bool Init(void* HWND) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual android_app* GetAndroidApp() = 0;
 	virtual void* GetHWND() = 0;
+
+	virtual bool SetSwapChain(IKSwapChain* swapChain) = 0;
+	virtual IKSwapChain* GetSwapChain() = 0;
 
 	virtual bool Loop() = 0;
 

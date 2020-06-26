@@ -781,12 +781,10 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, cons
 	return true;
 }
 
-bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay, IKCameraCubePtr cameraCube)
+bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKCameraCubePtr cameraCube)
 {
 	m_Device = device;
 	m_FrameInFlight = frameInFlight;
-	m_SwapChain = swapChain;
-	m_UIOverlay = uiOverlay;
 	m_CameraCube = cameraCube;
 	m_ThreadPool.Init("RenderThread", m_MaxRenderThreadNum);
 	CreateCommandBuffers();
@@ -817,6 +815,13 @@ bool KRenderDispatcher::UnInit()
 	KRenderGlobal::Statistics.UnRegisterRenderStage(DEBUG_STAGE);
 	KRenderGlobal::Statistics.UnRegisterRenderStage(CSM_STAGE);
 
+	return true;
+}
+
+bool KRenderDispatcher::SetSwapChain(IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay)
+{
+	m_SwapChain = swapChain;
+	m_UIOverlay = uiOverlay;
 	return true;
 }
 

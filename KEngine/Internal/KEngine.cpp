@@ -11,6 +11,8 @@
 #include "KBase/Interface/IKIniFile.h"
 #include "KBase/Publish/KStringUtil.h"
 #include "KBase/Publish/KPlatform.h"
+#include "KRender/Interface/IKRenderWindow.h"
+#include "KRender/Interface/IKSwapChain.h"
 
 namespace KEngineGlobal
 {
@@ -38,6 +40,7 @@ KEngine::KEngine()
 
 KEngine::~KEngine()
 {
+	ASSERT_RESULT(m_SecordaryWindow.empty());
 	ASSERT_RESULT(!m_Device);
 	ASSERT_RESULT(!m_Window);
 	ASSERT_RESULT(!m_RenderCore);
@@ -225,7 +228,7 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 		switch (windowInfo.type)
 		{
 		case KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT:
-			m_Window->Init(windowInfo.top, windowInfo.left, windowInfo.width, windowInfo.height, windowInfo.resizable);
+			m_Window->Init(windowInfo.top, windowInfo.left, windowInfo.width, windowInfo.height, windowInfo.resizable, true);
 			break;
 		case KEngineOptions::WindowInitializeInformation::TYPE_ANDROID:
 			m_Window->Init(windowInfo.app);
@@ -255,6 +258,19 @@ bool KEngine::UnInit()
 		KECS::DestroyEntityManager();
 		KECS::DestroyComponentManager();
 
+		for (auto& pair : m_SecordaryWindow)
+		{
+			IKRenderWindowPtr window = pair.first;
+			IKSwapChainPtr swapChain = pair.second;
+
+			IKRenderDevice* renderDevice = m_RenderCore->GetRenderDevice();
+			ASSERT_RESULT(renderDevice->UnRegisterSecordarySwapChain(swapChain));
+
+			window->UnInit();
+			swapChain->UnInit();
+		}
+		m_SecordaryWindow.clear();
+
 		m_Window->UnInit();
 
 		m_Scene->UnInit();
@@ -281,6 +297,43 @@ bool KEngine::UnInit()
 		m_bInit = false;
 
 		return true;
+	}
+	return false;
+}
+
+bool KEngine::RegisterSecordaryWindow(IKRenderWindowPtr window)
+{
+	if (m_bInit)
+	{
+		if (m_SecordaryWindow.find(window) == m_SecordaryWindow.end())
+		{
+			IKRenderDevice* renderDevice = m_RenderCore->GetRenderDevice();
+			IKSwapChainPtr swapChain = nullptr;
+			ASSERT_RESULT(renderDevice->CreateSwapChain(swapChain));
+			swapChain->Init(window.get(), 1);
+			m_SecordaryWindow.insert({ window , swapChain });
+			ASSERT_RESULT(renderDevice->RegisterSecordarySwapChain(swapChain));
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KEngine::UnRegisterSecordaryWindow(IKRenderWindowPtr window)
+{
+	if (m_bInit)
+	{
+		auto it = m_SecordaryWindow.find(window);
+		if (it != m_SecordaryWindow.end())
+		{
+			IKSwapChainPtr& swapChain = it->second;
+			IKRenderDevice* renderDevice = m_RenderCore->GetRenderDevice();
+			ASSERT_RESULT(renderDevice->UnRegisterSecordarySwapChain(swapChain));
+			SAFE_UNINIT(swapChain);
+			m_SecordaryWindow.erase(it);
+			SAFE_UNINIT(window);
+			return true;
+		}
 	}
 	return false;
 }

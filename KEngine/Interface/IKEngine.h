@@ -41,6 +41,9 @@ struct IKEngine
 	virtual bool Init(IKRenderWindowPtr window, const KEngineOptions& options) = 0;
 	virtual bool UnInit() = 0;
 
+	virtual bool RegisterSecordaryWindow(IKRenderWindowPtr window) = 0;
+	virtual bool UnRegisterSecordaryWindow(IKRenderWindowPtr window) = 0;
+
 	virtual bool Loop() = 0;
 	virtual bool Tick() = 0;
 

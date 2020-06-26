@@ -30,7 +30,7 @@ int main()
 	KRenderCoreInitCallback callback = [scene]()
 	{
 #define DRAW_SPIDER
-#define DRAW_SPONZA
+//#define DRAW_SPONZA
 
 #ifdef DRAW_SPIDER
 #ifdef _DEBUG
@@ -88,7 +88,24 @@ int main()
 	engine->GetRenderCore()->RegisterInitCallback(&callback);
 	callback();
 
+	constexpr bool SECORDARY_WINDOW = false;
+
+	IKRenderWindowPtr secordaryWindow = nullptr;
+	if (SECORDARY_WINDOW)
+	{
+		CreateRenderWindow(RENDER_WINDOW_GLFW);
+		secordaryWindow->SetRenderDevice(engine->GetRenderCore()->GetRenderDevice());
+		secordaryWindow->Init(0, 0, 128, 128, true, false);
+		engine->RegisterSecordaryWindow(secordaryWindow);
+	}
+
 	engine->Loop();
+
+	if (SECORDARY_WINDOW)
+	{
+		engine->UnRegisterSecordaryWindow(secordaryWindow);
+	}
+
 	engine->UnInit();
 	engine = nullptr;
 

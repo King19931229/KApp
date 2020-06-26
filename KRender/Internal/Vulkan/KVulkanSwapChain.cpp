@@ -327,7 +327,9 @@ bool KVulkanSwapChain::Init(IKRenderWindow* window, uint32_t frameInFlight)
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
 
 	m_MaxFramesInFight = frameInFlight;
+
 	m_pWindow = window;
+	m_pWindow->SetSwapChain(this);
 
 	ASSERT_RESULT(CreateSurface());
 	ASSERT_RESULT(CreateSwapChain());
@@ -344,8 +346,22 @@ bool KVulkanSwapChain::UnInit()
 	ASSERT_RESULT(DestroySyncObjects());
 	ASSERT_RESULT(DestroyRenderTargets());
 	m_MaxFramesInFight = 0;
-	m_pWindow = nullptr;
+	if (m_pWindow)
+	{
+		m_pWindow->SetSwapChain(nullptr);
+		m_pWindow = nullptr;
+	}
 	return true;
+}
+
+IKRenderWindow* KVulkanSwapChain::GetWindow()
+{
+	return m_pWindow;
+}
+
+uint32_t KVulkanSwapChain::GetFrameInFlight()
+{
+	return m_MaxFramesInFight;
 }
 
 IKRenderTargetPtr KVulkanSwapChain::GetRenderTarget(uint32_t frameIndex)
@@ -353,7 +369,7 @@ IKRenderTargetPtr KVulkanSwapChain::GetRenderTarget(uint32_t frameIndex)
 	return frameIndex < m_SwapChainRenderTargets.size() ? m_SwapChainRenderTargets[frameIndex]->shared_from_this() : nullptr;
 }
 
-VkResult KVulkanSwapChain::WaitForInfightFrame(uint32_t& frameIndex)
+VkResult KVulkanSwapChain::WaitForInFightFrame(uint32_t& frameIndex)
 {
 	VkResult result = vkWaitForFences(KVulkanGlobal::device, 1, &m_InFlightFences[m_CurrentFlightIndex], VK_TRUE, UINT64_MAX);
 	frameIndex = m_CurrentFlightIndex;

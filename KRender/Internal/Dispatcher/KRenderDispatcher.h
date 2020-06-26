@@ -72,9 +72,10 @@ public:
 	inline void SetMultiThreadSubmit(bool multi) { m_MultiThreadSubmit = multi; }
 	inline void SetInstanceSubmit(bool instance) { m_InstanceSubmit = instance; }
 
-	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay, IKCameraCubePtr cameraCube);
+	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKCameraCubePtr cameraCube);
 	bool UnInit();
 
+	bool SetSwapChain(IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay);
 	bool Execute(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
 	IKCommandBufferPtr GetPrimaryCommandBuffer(uint32_t frameIndex);
 };

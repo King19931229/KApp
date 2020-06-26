@@ -15,6 +15,7 @@ protected:
 	IKRenderCorePtr m_RenderCore;
 	IKScenePtr m_Scene;
 	KRenderDocCapture m_RenderDoc;
+	std::unordered_map<IKRenderWindowPtr, IKSwapChainPtr> m_SecordaryWindow;
 
 	bool m_bInit;
 public:
@@ -23,6 +24,9 @@ public:
 
 	virtual bool Init(IKRenderWindowPtr window, const KEngineOptions& options);
 	virtual bool UnInit();
+
+	virtual bool RegisterSecordaryWindow(IKRenderWindowPtr window);
+	virtual bool UnRegisterSecordaryWindow(IKRenderWindowPtr window);
 
 	virtual bool Loop();
 	virtual bool Tick();

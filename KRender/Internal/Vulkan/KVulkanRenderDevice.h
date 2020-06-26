@@ -70,6 +70,7 @@ protected:
 	PhysicalDevice m_PhysicalDevice;
 
 	IKSwapChainPtr m_SwapChain;
+	std::vector<IKSwapChainPtr> m_SecordarySwapChains;
 	IKUIOverlayPtr m_UIOverlay;
 
 	typedef std::unordered_set<KDevicePresentCallback*> PresentCallbackSet;
@@ -98,7 +99,6 @@ protected:
 	bool CheckExtentionsSupported(PhysicalDevice& device);
 	PhysicalDevice GetPhysicalDeviceProperty(VkPhysicalDevice device);
 
-	bool CreateSwapChain(IKSwapChainPtr& swapChain);
 	bool CreateUIOverlay(IKUIOverlayPtr& ui);
 
 	bool PickPhysicsDevice();
@@ -154,11 +154,12 @@ public:
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer);
 
 	virtual bool CreateQuery(IKQueryPtr& query);
+	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain);
 
 	virtual bool Present();
 	virtual bool Wait();
 
-	virtual bool RecreateSwapChain();
+	virtual bool RecreateSwapChain(IKSwapChain* swapChain, IKUIOverlay* ui);
 
 	virtual bool RegisterPresentCallback(KDevicePresentCallback* callback);
 	virtual bool UnRegisterPresentCallback(KDevicePresentCallback* callback);
@@ -171,6 +172,9 @@ public:
 
 	virtual bool RegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback);
 	virtual bool UnRegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback);
+
+	virtual bool RegisterSecordarySwapChain(IKSwapChainPtr swapChain);
+	virtual bool UnRegisterSecordarySwapChain(IKSwapChainPtr swapChain);
 
 	virtual bool QueryProperty(KRenderDeviceProperties& property);
 

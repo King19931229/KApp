@@ -10,7 +10,9 @@
 #endif
 
 KGLFWRenderWindow::KGLFWRenderWindow()
-	: m_Device(nullptr)
+	: m_Device(nullptr),
+	m_SwapChain(nullptr),
+	m_bPrimary(true)
 {
 #ifndef __ANDROID__
 	m_LastMovePos[0] = -1.0f;
@@ -24,12 +26,22 @@ KGLFWRenderWindow::KGLFWRenderWindow()
 
 KGLFWRenderWindow::~KGLFWRenderWindow()
 {
-
 }
 
 RenderWindowType KGLFWRenderWindow::GetType()
 {
 	return RENDER_WINDOW_GLFW;
+}
+
+bool KGLFWRenderWindow::SetSwapChain(IKSwapChain* swapChain)
+{
+	m_SwapChain = swapChain;
+	return true;
+}
+
+IKSwapChain* KGLFWRenderWindow::GetSwapChain()
+{
+	return m_SwapChain;
 }
 
 #ifndef __ANDROID__
@@ -38,7 +50,10 @@ void KGLFWRenderWindow::FramebufferResizeCallback(GLFWwindow* handle, int width,
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
 	if (window && window->m_Device)
 	{
-		window->m_Device->RecreateSwapChain();
+		IKSwapChain* mainSwapChain = window->m_Device->GetSwapChain().get();
+		IKUIOverlay* mainUIOverlay = window->m_Device->GetUIOverlay().get();
+		// 主窗口才更新UI
+		window->m_Device->RecreateSwapChain(window->m_SwapChain, mainSwapChain == window->m_SwapChain ? mainUIOverlay : nullptr);
 	}
 }
 
@@ -247,7 +262,7 @@ void KGLFWRenderWindow::OnMouseMove()
 }
 #endif
 
-bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable)
+bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary)
 {
 #ifndef __ANDROID__
 	ASSERT_RESULT(m_Device);
@@ -275,7 +290,11 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 			m_LastMovePos[0] = -1.0f;
 			m_LastMovePos[1] = -1.0f;
 
-			m_Device->Init(this);
+			m_bPrimary = primary;
+			if (m_bPrimary)
+			{
+				m_Device->Init(this);
+			}
 
 			return true;
 		}
@@ -306,7 +325,10 @@ bool KGLFWRenderWindow::UnInit()
 #ifndef __ANDROID__
 	if (m_Device)
 	{
-		m_Device->UnInit();
+		if (m_bPrimary)
+		{
+			m_Device->UnInit();
+		}
 		m_Device = nullptr;
 	}
 
@@ -368,17 +390,19 @@ bool KGLFWRenderWindow::Loop()
 		while (!glfwWindowShouldClose(m_window))
 		{
 			glfwPollEvents();
-			if (m_Device)
+			OnMouseMove();
+
+			if (m_Device && m_bPrimary)
 			{
-				OnMouseMove();
 				m_Device->Present();
 			}
 		}
 
-		if (m_Device)
+		if (m_Device && m_bPrimary)
 		{
 			m_Device->Wait();
 		}
+
 		return true;
 	}
 	else

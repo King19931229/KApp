@@ -143,13 +143,11 @@ bool KRenderCore::UnInitGlobalManager()
 bool KRenderCore::InitRenderDispatcher()
 {
 	uint32_t frameInFlight = m_Device->GetNumFramesInFlight();
-	IKSwapChainPtr swapChain = m_Device->GetSwapChain();
-	IKUIOverlayPtr ui = m_Device->GetUIOverlay();
 
 	m_CameraCube = CreateCameraCube();
 	m_CameraCube->Init(m_Device, frameInFlight, &m_Camera);
 
-	KRenderGlobal::RenderDispatcher.Init(m_Device, frameInFlight, swapChain, ui, m_CameraCube);
+	KRenderGlobal::RenderDispatcher.Init(m_Device, frameInFlight, m_CameraCube);
 	return true;
 }
 

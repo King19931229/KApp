@@ -15,6 +15,7 @@ protected:
 	android_app* m_app;
 	bool m_bFocus;
 #endif
+	IKSwapChain* m_SwapChain;
 	std::vector<KTouchCallbackType*> m_TouchCallbacks;
 	std::vector<KResizeCallbackType*> m_ResizeCallbacks;
 public:
@@ -23,13 +24,16 @@ public:
 
 	virtual RenderWindowType GetType();
 
-	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable);
+	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary);
 	virtual bool Init(android_app* app);
 	virtual bool Init(void* hwnd);
 	virtual bool UnInit();
 
 	virtual android_app* GetAndroidApp();
 	virtual void* GetHWND();
+
+	virtual bool SetSwapChain(IKSwapChain* swapChain);
+	virtual IKSwapChain* GetSwapChain();
 
 	virtual bool Loop();
 

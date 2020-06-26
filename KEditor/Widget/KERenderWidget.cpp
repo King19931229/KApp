@@ -57,7 +57,10 @@ void KERenderWidget::resizeEvent(QResizeEvent *event)
 {
 	if (m_RenderDevice)
 	{
-		m_RenderDevice->RecreateSwapChain();
+		IKSwapChain* mainSwapChain = m_RenderDevice->GetSwapChain().get();
+		IKUIOverlay* mainUIOverlay = m_RenderDevice->GetUIOverlay().get();
+		// 主窗口才更新UI
+		m_RenderDevice->RecreateSwapChain(m_RenderWindow->m_SwapChain, mainSwapChain == m_RenderWindow->m_SwapChain ? mainUIOverlay : nullptr);
 	}
 }
 

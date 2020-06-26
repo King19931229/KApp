@@ -10,7 +10,8 @@
 #endif
 
 KAndroidRenderWindow::KAndroidRenderWindow()
-	: m_Device(nullptr)
+	: m_Device(nullptr),
+	m_SwapChain(nullptr)
 {
 #ifdef __ANDROID__
 	m_app = nullptr;
@@ -20,7 +21,6 @@ KAndroidRenderWindow::KAndroidRenderWindow()
 
 KAndroidRenderWindow::~KAndroidRenderWindow()
 {
-
 }
 
 RenderWindowType KAndroidRenderWindow::GetType()
@@ -28,7 +28,7 @@ RenderWindowType KAndroidRenderWindow::GetType()
 	return RENDER_WINDOW_ANDROID_NATIVE;
 }
 
-bool KAndroidRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable)
+bool KAndroidRenderWindow::Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary)
 {
 	assert(false && "android window can not inited by this call");
 	return false;
@@ -65,6 +65,17 @@ bool KAndroidRenderWindow::UnInit()
 	m_TouchCallbacks.clear();
 	m_ResizeCallbacks.clear();
 	return true;
+}
+
+bool KAndroidRenderWindow::SetSwapChain(IKSwapChain* swapChain)
+{
+	m_SwapChain = swapChain;
+	return true;
+}
+
+IKSwapChain* KAndroidRenderWindow::GetSwapChain()
+{
+	return m_SwapChain;
 }
 
 android_app* KAndroidRenderWindow::GetAndroidApp()

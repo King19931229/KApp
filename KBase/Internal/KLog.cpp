@@ -252,34 +252,51 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 					break;
 				}
 #endif
-				nPos = SNPRINTF(szBufferWrite, bufferSize - 1, "[LOG] %s\n", szBufferWrite);
+
+				char szTmpBuff[2048] = { 0 };
+				char* szTmpBufferWrite = nullptr;
+				char* szTempBufferAlloc = nullptr;
+
+				if (szBufferAlloc)
+				{
+					szTempBufferAlloc = KNEW char[bufferSize];
+					memset(szTempBufferAlloc, 0, bufferSize);
+					szTmpBufferWrite = szTempBufferAlloc;
+				}
+				else
+				{
+					szTmpBufferWrite = szTmpBuff;
+				}
+
+				nPos = SNPRINTF(szTmpBufferWrite, bufferSize - 1, "[LOG] %s\n", szBufferWrite);
 				assert(nPos > 0);
-				bLogSuccess &= fprintf(stdout, "%s", szBufferWrite) > 0;
+				bLogSuccess &= fprintf(stdout, "%s", szTmpBufferWrite) > 0;
 #if defined(_WIN32)
-				OutputDebugStringA(szBufferWrite);
+				OutputDebugStringA(szTmpBufferWrite);
 				SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x07, 0));
 #elif defined(__ANDROID__)
 				switch (level)
 				{
 				case LL_NORMAL:
-					__android_log_print(ANDROID_LOG_INFO, "ANDROID", "%s", szTmpBuff);
+					__android_log_print(ANDROID_LOG_INFO, "ANDROID", "%s", szTmpBufferWrite);
 					break;
 				case LL_WARNING:
-					__android_log_print(ANDROID_LOG_WARN, "ANDROID", "%s", szTmpBuff);
+					__android_log_print(ANDROID_LOG_WARN, "ANDROID", "%s", szTmpBufferWrite);
 					break;
 				case LL_DEBUG:
-					__android_log_print(ANDROID_LOG_DEBUG, "ANDROID", "%s", szTmpBuff);
+					__android_log_print(ANDROID_LOG_DEBUG, "ANDROID", "%s", szTmpBufferWrite);
 					break;
 				case LL_ERROR:
-					__android_log_print(ANDROID_LOG_ERROR, "ANDROID", "%s", szTmpBuff);
+					__android_log_print(ANDROID_LOG_ERROR, "ANDROID", "%s", szTmpBufferWrite);
 					break;
 				default:
 					assert(false && "unable to reach");
 					break;
 				}
 #else
-				printf("%s", szTmpBuff);
+				printf("%s", szTmpBufferWrite);
 #endif
+				SAFE_DELETE_ARRAY(szTempBufferAlloc);
 			}
 			SAFE_DELETE_ARRAY(szBufferAlloc);
 			return bLogSuccess;
