@@ -4,9 +4,9 @@ namespace KVulkanGlobal
 {
 	bool deviceReady = false;
 
+	VkInstance instance = VK_NULL_HANDLE;
 	VkDevice device = VK_NULL_HANDLE;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	VkSurfaceKHR surface = VK_NULL_HANDLE;
 	std::mutex graphicsPoolLock;
 	VkCommandPool graphicsCommandPool = VK_NULL_HANDLE;
 	std::mutex graphicsQueueLock;

@@ -1,15 +1,15 @@
 #include "KVulkanSwapChain.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanInitializer.h"
+#include "Interface/IKRenderWindow.h"
 #include "KBase/Publish/KConfig.h"
 #include <algorithm>
 
 KVulkanSwapChain::KVulkanSwapChain()
-	: m_MaxFramesInFight(0),
+	: m_PresentQueueIndex(0),
+	m_MaxFramesInFight(0),
 	m_CurrentFlightIndex(0)
 {
-	m_Device = VK_NULL_HANDLE;
-	m_PhysicalDevice = VK_NULL_HANDLE;
 	m_SwapChain = VK_NULL_HANDLE;
 
 	ZERO_MEMORY(m_Extend);
@@ -33,24 +33,24 @@ bool KVulkanSwapChain::QuerySwapChainSupport()
 {
 	SwapChainSupportDetails details = {};
 
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, m_Surface, &details.capabilities);
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(KVulkanGlobal::physicalDevice, m_Surface, &details.capabilities);
 
 	uint32_t formatCount = 0;
-	VK_ASSERT_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &formatCount, nullptr));
+	VK_ASSERT_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(KVulkanGlobal::physicalDevice, m_Surface, &formatCount, nullptr));
 
 	if (formatCount != 0)
 	{
 		details.formats.resize(formatCount);
-		VK_ASSERT_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &formatCount, details.formats.data()));
+		VK_ASSERT_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(KVulkanGlobal::physicalDevice, m_Surface, &formatCount, details.formats.data()));
 	}
 
 	uint32_t presentModeCount = 0;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_Surface, &presentModeCount, nullptr);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(KVulkanGlobal::physicalDevice, m_Surface, &presentModeCount, nullptr);
 
 	if (presentModeCount != 0)
 	{
 		details.presentModes.resize(presentModeCount);
-		VK_ASSERT_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_Surface, &presentModeCount, details.presentModes.data()));
+		VK_ASSERT_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(KVulkanGlobal::physicalDevice, m_Surface, &presentModeCount, details.presentModes.data()));
 	}
 
 	m_SwapChainSupportDetails = std::move(details);
@@ -123,9 +123,24 @@ bool KVulkanSwapChain::ChooseSwapExtent(uint32_t windowWidth, uint32_t windowHei
 	return true;
 }
 
-bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeight,
-	uint32_t graphIndex, uint32_t presentIndex)
+bool KVulkanSwapChain::CreateSwapChain()
 {
+	ASSERT_RESULT(QuerySwapChainSupport());
+	ASSERT_RESULT(ChooseQueue());
+
+	uint32_t windowWidth = 0;
+	uint32_t windowHeight = 0;
+
+	{
+		size_t width = 0, height = 0;
+		m_pWindow->GetSize(width, height);
+		windowWidth = (uint32_t)width;
+		windowHeight = (uint32_t)height;
+	}
+
+	uint32_t graphIndex = KVulkanGlobal::graphicsFamilyIndex;
+	uint32_t presentIndex = m_PresentQueueIndex;
+
 	ASSERT_RESULT(ChooseSwapSurfaceFormat());
 	ASSERT_RESULT(ChooseSwapPresentMode());
 	ASSERT_RESULT(ChooseSwapExtent(windowWidth, windowHeight));
@@ -142,7 +157,7 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 
 	// 询问交换链支持格式
 	VkSurfaceCapabilitiesKHR surfaceCapabilities = {};
-	VK_ASSERT_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, m_Surface, &surfaceCapabilities));
+	VK_ASSERT_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(KVulkanGlobal::physicalDevice, m_Surface, &surfaceCapabilities));
 
 	VkSwapchainCreateInfoKHR createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -200,11 +215,11 @@ bool KVulkanSwapChain::CreateSwapChain(uint32_t windowWidth, uint32_t windowHeig
 	// 这里第一次创建交换链 设置为空即可
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	VK_ASSERT_RESULT(vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &m_SwapChain));
+	VK_ASSERT_RESULT(vkCreateSwapchainKHR(KVulkanGlobal::device, &createInfo, nullptr, &m_SwapChain));
 
-	VK_ASSERT_RESULT(vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &imageCount, nullptr));
+	VK_ASSERT_RESULT(vkGetSwapchainImagesKHR(KVulkanGlobal::device, m_SwapChain, &imageCount, nullptr));
 	m_SwapChainImages.resize(imageCount);
-	VK_ASSERT_RESULT(vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &imageCount, m_SwapChainImages.data()));
+	VK_ASSERT_RESULT(vkGetSwapchainImagesKHR(KVulkanGlobal::device, m_SwapChain, &imageCount, m_SwapChainImages.data()));
 
 	// 创建ImageView
 	m_SwapChainImageViews.resize(imageCount);
@@ -236,9 +251,9 @@ bool KVulkanSwapChain::CreateSyncObjects()
 
 	for(size_t i = 0; i < m_MaxFramesInFight; ++i)
 	{
-		VK_ASSERT_RESULT(vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
-		VK_ASSERT_RESULT(vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
-		VK_ASSERT_RESULT(vkCreateFence(m_Device, &fenceInfo, nullptr, &m_InFlightFences[i]));
+		VK_ASSERT_RESULT(vkCreateSemaphore(KVulkanGlobal::device, &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
+		VK_ASSERT_RESULT(vkCreateSemaphore(KVulkanGlobal::device, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
+		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &m_InFlightFences[i]));
 	}
 	return true;
 }
@@ -256,13 +271,18 @@ bool KVulkanSwapChain::CreateRenderTargets()
 
 bool KVulkanSwapChain::CleanupSwapChain()
 {
+	if (m_Surface != VK_NULL_HANDLE)
+	{
+		vkDestroySurfaceKHR(KVulkanGlobal::instance, m_Surface, nullptr);
+		m_Surface = VK_NULL_HANDLE;
+	}
 	for(VkImageView vkImageView : m_SwapChainImageViews)
 	{
 		vkDestroyImageView(KVulkanGlobal::device, vkImageView, nullptr);
 	}
 	m_SwapChainImageViews.clear();
 	m_SwapChainImages.clear();
-	vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
+	vkDestroySwapchainKHR(KVulkanGlobal::device, m_SwapChain, nullptr);
 	m_SwapChain = VK_NULL_HANDLE;
 	return true;
 }
@@ -271,19 +291,19 @@ bool KVulkanSwapChain::DestroySyncObjects()
 {
 	for(size_t i = 0; i < m_ImageAvailableSemaphores.size(); ++i)
 	{
-		vkDestroySemaphore(m_Device, m_ImageAvailableSemaphores[i], nullptr);
+		vkDestroySemaphore(KVulkanGlobal::device, m_ImageAvailableSemaphores[i], nullptr);
 	}
 	m_ImageAvailableSemaphores.clear();
 
 	for(size_t i = 0; i < m_RenderFinishedSemaphores.size(); ++i)
 	{
-		vkDestroySemaphore(m_Device, m_RenderFinishedSemaphores[i], nullptr);
+		vkDestroySemaphore(KVulkanGlobal::device, m_RenderFinishedSemaphores[i], nullptr);
 	}
 	m_RenderFinishedSemaphores.clear();
 
 	for(size_t i = 0; i < m_InFlightFences.size(); ++i)
 	{
-		vkDestroyFence(m_Device, m_InFlightFences[i], nullptr);
+		vkDestroyFence(KVulkanGlobal::device, m_InFlightFences[i], nullptr);
 	}
 	m_InFlightFences.clear();
 
@@ -301,18 +321,16 @@ bool KVulkanSwapChain::DestroyRenderTargets()
 	return true;
 }
 
-bool KVulkanSwapChain::Init(uint32_t width, uint32_t height, uint32_t frameInFlight)
+bool KVulkanSwapChain::Init(IKRenderWindow* window, uint32_t frameInFlight)
 {
 	ASSERT_RESULT(m_SwapChain == VK_NULL_HANDLE);
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
 
-	m_Device = KVulkanGlobal::device;
-	m_PhysicalDevice = KVulkanGlobal::physicalDevice;
-	m_Surface = KVulkanGlobal::surface;
 	m_MaxFramesInFight = frameInFlight;
+	m_pWindow = window;
 
-	ASSERT_RESULT(QuerySwapChainSupport());
-	ASSERT_RESULT(CreateSwapChain(width, height, KVulkanGlobal::graphicsFamilyIndex, KVulkanGlobal::presentFamilyIndex));
+	ASSERT_RESULT(CreateSurface());
+	ASSERT_RESULT(CreateSwapChain());
 	ASSERT_RESULT(CreateSyncObjects());
 	ASSERT_RESULT(CreateRenderTargets());
 
@@ -325,7 +343,8 @@ bool KVulkanSwapChain::UnInit()
 	ASSERT_RESULT(CleanupSwapChain());
 	ASSERT_RESULT(DestroySyncObjects());
 	ASSERT_RESULT(DestroyRenderTargets());
-
+	m_MaxFramesInFight = 0;
+	m_pWindow = nullptr;
 	return true;
 }
 
@@ -336,7 +355,7 @@ IKRenderTargetPtr KVulkanSwapChain::GetRenderTarget(uint32_t frameIndex)
 
 VkResult KVulkanSwapChain::WaitForInfightFrame(uint32_t& frameIndex)
 {
-	VkResult result = vkWaitForFences(m_Device, 1, &m_InFlightFences[m_CurrentFlightIndex], VK_TRUE, UINT64_MAX);
+	VkResult result = vkWaitForFences(KVulkanGlobal::device, 1, &m_InFlightFences[m_CurrentFlightIndex], VK_TRUE, UINT64_MAX);
 	frameIndex = m_CurrentFlightIndex;
 	return result;
 }
@@ -344,11 +363,11 @@ VkResult KVulkanSwapChain::WaitForInfightFrame(uint32_t& frameIndex)
 VkResult KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
 {
 	// 获取可用交换链Image索引 同时促发Image可用信号量
-	VkResult result = vkAcquireNextImageKHR(m_Device, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFlightIndex], VK_NULL_HANDLE, &imageIndex);
+	VkResult result = vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFlightIndex], VK_NULL_HANDLE, &imageIndex);
 	return result;
 }
 
-VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQueue, uint32_t imageIndex, VkCommandBuffer commandBuffer)
+VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex, VkCommandBuffer commandBuffer)
 {
 	VkResult vkResult = VK_RESULT_MAX_ENUM;
 
@@ -372,10 +391,10 @@ VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQu
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
 	// vkResetFences放置到vkQueueSubmit之前 保证调用vkWaitForFences都不会无限死锁
-	vkResetFences(m_Device, 1, &m_InFlightFences[m_CurrentFlightIndex]);
+	vkResetFences(KVulkanGlobal::device, 1, &m_InFlightFences[m_CurrentFlightIndex]);
 
 	// 提交该绘制命令
-	vkResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]);
+	vkResult = vkQueueSubmit(KVulkanGlobal::graphicsQueue, 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]);
 	VK_ASSERT_RESULT(vkResult);	
 
 	VkPresentInfoKHR presentInfo = {};
@@ -391,7 +410,7 @@ VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQu
 	presentInfo.pImageIndices = &imageIndex;
 
 	presentInfo.pResults = nullptr;
-	vkResult = vkQueuePresentKHR(presentQueue, &presentInfo);
+	vkResult = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
 
 #if 0
 	/*
@@ -408,4 +427,70 @@ VkResult KVulkanSwapChain::PresentQueue(VkQueue graphicsQueue, VkQueue presentQu
 	m_CurrentFlightIndex = (m_CurrentFlightIndex + 1) %  m_MaxFramesInFight;
 
 	return vkResult;
+}
+
+bool KVulkanSwapChain::ChooseQueue()
+{
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(KVulkanGlobal::physicalDevice, &queueFamilyCount, nullptr);
+
+	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(KVulkanGlobal::physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+	uint32_t idx = -1;
+	for (const auto& queueFamily : queueFamilies)
+	{
+		++idx;
+		VkBool32 presentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(KVulkanGlobal::physicalDevice, idx, m_Surface, &presentSupport);
+		if (presentSupport)
+		{
+			m_PresentQueueIndex = idx;
+			vkGetDeviceQueue(KVulkanGlobal::device, m_PresentQueueIndex, 0, &m_PresentQueue);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+#if defined(_WIN32)
+#	pragma warning (disable : 4005)
+#	include <Windows.h>
+#	include "vulkan/vulkan_win32.h"
+#elif defined(__ANDROID__)
+#	include "vulkan/vulkan_android.h"
+#	include "android_native_app_glue.h"
+#endif
+
+bool KVulkanSwapChain::CreateSurface()
+{
+#ifdef _WIN32
+	HWND hwnd = (HWND)(m_pWindow->GetHWND());
+	HINSTANCE hInstance = GetModuleHandle(NULL);
+	if (hwnd != NULL && hInstance != NULL)
+	{
+		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
+		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+		surfaceCreateInfo.hinstance = (HINSTANCE)hInstance;
+		surfaceCreateInfo.hwnd = (HWND)hwnd;
+		if (vkCreateWin32SurfaceKHR(KVulkanGlobal::instance, &surfaceCreateInfo, nullptr, &m_Surface) == VK_SUCCESS)
+		{
+			return true;
+		}
+	}
+#else
+	android_app* app = m_pWindow->GetAndroidApp();
+	if (app)
+	{
+		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
+		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+		surfaceCreateInfo.window = app->window;
+		if (vkCreateAndroidSurfaceKHR(m_Instance, &surfaceCreateInfo, NULL, &m_Surface) == VK_SUCCESS)
+		{
+			return true;
+		}
+	}
+#endif
+	return false;
 }

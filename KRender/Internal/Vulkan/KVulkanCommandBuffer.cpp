@@ -30,9 +30,11 @@ bool KVulkanCommandPool::Init(QueueFamilyIndex familyIndex)
 	case QUEUE_FAMILY_INDEX_GRAPHICS:
 		poolInfo.queueFamilyIndex = KVulkanGlobal::graphicsFamilyIndex;
 		break;
+		/*
 	case QUEUE_FAMILY_INDEX_PRESENT:
 		poolInfo.queueFamilyIndex = KVulkanGlobal::presentFamilyIndex;
 		break;
+		*/
 	default:
 		assert(false && "impossible to reach");
 		break;

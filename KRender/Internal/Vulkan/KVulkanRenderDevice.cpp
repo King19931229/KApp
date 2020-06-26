@@ -214,6 +214,7 @@ KVulkanRenderDevice::QueueFamilyIndices KVulkanRenderDevice::FindQueueFamilies(V
 			familyIndices.graphicsFamily.first = idx;
 			familyIndices.graphicsFamily.second = true;
 		}
+#if 0
 		// 检查表现索引
 		VkBool32 presentSupport = false;
 		vkGetPhysicalDeviceSurfaceSupportKHR(vkDevice, idx, m_Surface, &presentSupport);
@@ -222,7 +223,12 @@ KVulkanRenderDevice::QueueFamilyIndices KVulkanRenderDevice::FindQueueFamilies(V
 			familyIndices.presentFamily.first = idx;
 			familyIndices.presentFamily.second = true;
 		}
-
+#else
+		{
+			familyIndices.presentFamily.first = idx;
+			familyIndices.presentFamily.second = true;
+		}
+#endif
 		if(familyIndices.IsComplete())
 			break;
 	}
@@ -342,15 +348,15 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 
 bool KVulkanRenderDevice::CreateLogicalDevice()
 {
-	QueueFamilyIndices indices = m_PhysicalDevice.queueFamilyIndices;
-
+	const QueueFamilyIndices& indices = m_PhysicalDevice.queueFamilyIndices;
+	// TODO 用所有索引去创建队列 一定能够保证交换链获得需要的队列
 	if(indices.IsComplete())
 	{
 		std::set<QueueFamilyIndices::QueueFamilyIndex> uniqueIndices;
 		uniqueIndices.insert(indices.graphicsFamily);
 		uniqueIndices.insert(indices.presentFamily);
 
-		std::vector<VkDeviceQueueCreateInfo> DeviceQueueCreateInfos;
+		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos;
 
 		for(auto& index : uniqueIndices)
 		{
@@ -365,7 +371,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			float queuePriority = 1.0f;
 			queueCreateInfo.pQueuePriorities = &queuePriority;
 
-			DeviceQueueCreateInfos.push_back(queueCreateInfo);
+			deviceQueueCreateInfos.push_back(queueCreateInfo);
 		}
 		VkResult RES = VK_TIMEOUT;
 
@@ -374,8 +380,8 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-		createInfo.pQueueCreateInfos = DeviceQueueCreateInfos.data();
-		createInfo.queueCreateInfoCount = (uint32_t)DeviceQueueCreateInfos.size();
+		createInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
+		createInfo.queueCreateInfoCount = (uint32_t)deviceQueueCreateInfos.size();
 
 		createInfo.enabledExtensionCount = DEVICE_EXTENSIONS_COUNT;
 		createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS;
@@ -615,8 +621,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	{
 		if(!SetupDebugMessenger())
 			return false;
-		if(!CreateSurface())
-			return false;
 		if(!PickPhysicsDevice())
 			return false;
 		if(!CreateLogicalDevice())
@@ -662,7 +666,7 @@ bool KVulkanRenderDevice::InitSwapChain()
 	ASSERT_RESULT(m_pWindow->GetSize(windowWidth, windowHeight));
 
 	ASSERT_RESULT(m_SwapChain);
-	ASSERT_RESULT(m_SwapChain->Init((uint32_t)windowWidth, (uint32_t)windowHeight, m_FrameInFlight));
+	ASSERT_RESULT(m_SwapChain->Init(m_pWindow, m_FrameInFlight));
 
 	ASSERT_RESULT(m_UIOverlay);
 	m_UIOverlay->Init(this, m_FrameInFlight);
@@ -712,12 +716,6 @@ bool KVulkanRenderDevice::UnInit()
 		m_GraphicCommandPool = VK_NULL_HANDLE;
 	}
 
-	if (m_Surface != VK_NULL_HANDLE)
-	{
-		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
-		m_Surface = VK_NULL_HANDLE;
-	}
-
 	UnInitHeapAllocator();
 
 	UnsetDebugMessenger();
@@ -757,8 +755,8 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 bool KVulkanRenderDevice::InitDeviceGlobal()
 {
 	KVulkanGlobal::device = m_Device;
+	KVulkanGlobal::instance = m_Instance;
 	KVulkanGlobal::physicalDevice = m_PhysicalDevice.device;
-	KVulkanGlobal::surface = m_Surface;
 	KVulkanGlobal::graphicsCommandPool = m_GraphicCommandPool;
 	KVulkanGlobal::graphicsQueue = m_GraphicsQueue;
 	KVulkanGlobal::pipelineCache = m_PipelineCache;
@@ -766,7 +764,6 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	assert(m_PhysicalDevice.queueFamilyIndices.IsComplete());
 
 	KVulkanGlobal::graphicsFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
-	KVulkanGlobal::presentFamilyIndex = m_PhysicalDevice.queueFamilyIndices.presentFamily.first;
 
 	KVulkanGlobal::deviceReady = true;
 
@@ -777,15 +774,14 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 {
 	KVulkanGlobal::deviceReady = false;
 
+	KVulkanGlobal::instance = VK_NULL_HANDLE;
 	KVulkanGlobal::device = VK_NULL_HANDLE;
 	KVulkanGlobal::physicalDevice = VK_NULL_HANDLE;
-	KVulkanGlobal::surface = VK_NULL_HANDLE;
 	KVulkanGlobal::graphicsCommandPool = VK_NULL_HANDLE;
 	KVulkanGlobal::graphicsQueue = VK_NULL_HANDLE;
 	KVulkanGlobal::pipelineCache = VK_NULL_HANDLE;
 
 	KVulkanGlobal::graphicsFamilyIndex = 0;
-	KVulkanGlobal::presentFamilyIndex = 0;
 
 	return true;
 }
@@ -883,7 +879,7 @@ bool KVulkanRenderDevice::Present()
 	}
 
 	VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer(frameIndex).get())->GetVkHandle();
-	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(m_GraphicsQueue, m_PresentQueue, chainImageIndex, primaryCommandBuffer);
+	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(chainImageIndex, primaryCommandBuffer);
 	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
 	{
 		RecreateSwapChain();
@@ -1051,11 +1047,8 @@ bool KVulkanRenderDevice::RecreateSwapChain()
 	m_pWindow->IdleUntilForeground();
 	vkDeviceWaitIdle(m_Device);
 
-	size_t width = 0, height = 0;
-	m_pWindow->GetSize(width, height);
-
 	m_SwapChain->UnInit();
-	m_SwapChain->Init((uint32_t)width, (uint32_t)height, m_FrameInFlight);
+	m_SwapChain->Init(m_pWindow, m_FrameInFlight);
 
 	m_UIOverlay->UnInit();
 	m_UIOverlay->Init(this, m_FrameInFlight);
@@ -1064,7 +1057,7 @@ bool KVulkanRenderDevice::RecreateSwapChain()
 
 	for (KSwapChainRecreateCallback* callback : m_SwapChainCallback)
 	{
-		(*callback)((uint32_t)width, (uint32_t)height);
+		(*callback)((uint32_t)m_SwapChain->GetWidth(), (uint32_t)m_SwapChain->GetHeight());
 	}
 
 	return true;
@@ -1103,36 +1096,4 @@ bool KVulkanRenderDevice::PopulateInstanceExtensions(std::vector<const char*>& e
 #else
 	return false;
 #endif	
-}
-
-bool KVulkanRenderDevice::CreateSurface()
-{
-#ifdef _WIN32
-	HWND hwnd = (HWND)(m_pWindow->GetHWND());
-	HINSTANCE hInstance = GetModuleHandle(NULL);
-	if (hwnd != NULL && hInstance != NULL)
-	{
-		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-		surfaceCreateInfo.hinstance = (HINSTANCE)hInstance;
-		surfaceCreateInfo.hwnd = (HWND)hwnd;
-		if (vkCreateWin32SurfaceKHR(m_Instance, &surfaceCreateInfo, nullptr, &m_Surface) == VK_SUCCESS)
-		{
-			return true;
-		}
-	}
-#else
-	android_app* app = m_pWindow->GetAndroidApp();
-	if (app)
-	{
-		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-		surfaceCreateInfo.window = app->window;
-		if (vkCreateAndroidSurfaceKHR(m_Instance, &surfaceCreateInfo, NULL, &m_Surface) == VK_SUCCESS)
-		{
-			return true;
-		}
-	}
-#endif
-	return false;
 }

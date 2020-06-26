@@ -156,17 +156,21 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 			pipelineList.clear();
 		}
 
-		FramePipelineList* pipelineLists[2] = { nullptr, nullptr };
+		const size_t DEFAULT_IDX = 0;
+		const size_t INSTANCE_IDX = 1;
+		const size_t IDX_COUNT = 2;
 
+		FramePipelineList* pipelineLists[IDX_COUNT] = { nullptr, nullptr };
+		
 		switch (blendMode)
 		{
 		case OPAQUE:
-			pipelineLists[0] = &m_Pipelines[PIPELINE_STAGE_OPAQUE];
-			pipelineLists[1] = &m_Pipelines[PIPELINE_STAGE_OPAQUE_INSTANCE];
+			pipelineLists[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE];
+			pipelineLists[INSTANCE_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE_INSTANCE];
 			break;
 		case TRANSRPANT:
-			pipelineLists[0] = &m_Pipelines[PIPELINE_STAGE_TRANSPRANT];
-			pipelineLists[1] = nullptr;
+			pipelineLists[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_TRANSPRANT];
+			pipelineLists[INSTANCE_IDX] = nullptr;
 			break;
 		default:
 			break;
@@ -177,7 +181,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 			const KShaderInformation& vsInfo = vsShader->GetInformation();
 			const KShaderInformation& fsInfo = fsShader->GetInformation();
 
-			for (size_t i = 0; i < 2; ++i)
+			for (size_t i = 0; i < IDX_COUNT; ++i)
 			{
 				if (pipelineLists[i])
 				{
@@ -192,11 +196,11 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 					pipelineList.resize(m_FrameInFlight);
 					for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)
 					{
-						if (i == 0)
+						if (i == DEFAULT_IDX)
 						{
 							pipelineList[frameIdx] = m_pMaterial->CreatePipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 						}
-						else if (i == 1)
+						else if (i == INSTANCE_IDX)
 						{
 							pipelineList[frameIdx] = m_pMaterial->CreateInstancePipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 						}

@@ -59,7 +59,6 @@ protected:
 	VkDevice m_Device;
 	VkQueue m_GraphicsQueue;
 	VkQueue m_PresentQueue;
-	VkSurfaceKHR m_Surface;
 	VkPipelineCache m_PipelineCache;
 	VkCommandPool m_GraphicCommandPool;
 	int32_t m_ValidationLayerIdx;
@@ -102,7 +101,6 @@ protected:
 	bool CreateSwapChain(IKSwapChainPtr& swapChain);
 	bool CreateUIOverlay(IKUIOverlayPtr& ui);
 
-	bool CreateSurface();
 	bool PickPhysicsDevice();
 	bool CreateLogicalDevice();
 	bool CreatePipelineCache();

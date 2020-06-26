@@ -14,17 +14,17 @@ class KVulkanSwapChain : public IKSwapChain
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 protected:
-	VkDevice m_Device;
-	VkPhysicalDevice m_PhysicalDevice;
+	IKRenderWindow* m_pWindow;
 
-	VkSwapchainKHR  m_SwapChain;
-
-	VkExtent2D m_Extend;
 	VkSurfaceKHR m_Surface;
+	VkSwapchainKHR  m_SwapChain;
+	VkExtent2D m_Extend;
+	VkQueue m_PresentQueue;
 
 	VkPresentModeKHR m_PresentMode;
 	VkSurfaceFormatKHR m_SurfaceFormat;
 
+	uint32_t m_PresentQueueIndex;
 	uint32_t m_MaxFramesInFight;
 	uint32_t m_CurrentFlightIndex;
 
@@ -42,8 +42,9 @@ protected:
 	bool ChooseSwapPresentMode();
 	bool ChooseSwapExtent(uint32_t windowWidth, uint32_t windowHeight);
 
-	bool CreateSwapChain(uint32_t windowWidth, uint32_t windowHeight,
-		uint32_t graphIndex, uint32_t presentIndex);
+	bool ChooseQueue();
+	bool CreateSurface();
+	bool CreateSwapChain();
 	bool CreateSyncObjects();
 	bool CreateRenderTargets();
 
@@ -54,7 +55,7 @@ public:
 	KVulkanSwapChain();
 	~KVulkanSwapChain();
 
-	bool Init(uint32_t width, uint32_t height, uint32_t frameInFlight);
+	bool Init(IKRenderWindow* window, uint32_t frameInFlight);
 	bool UnInit();
 
 	virtual uint32_t GetWidth() { return m_Extend.width; }
@@ -64,7 +65,7 @@ public:
 
 	VkResult WaitForInfightFrame(uint32_t& frameIndex);
 	VkResult AcquireNextImage(uint32_t& imageIndex);
-	VkResult PresentQueue(VkQueue graphicsQueue, VkQueue presentQueue, uint32_t imageIndex, VkCommandBuffer commandBuffer);
+	VkResult PresentQueue(uint32_t imageIndex, VkCommandBuffer commandBuffer);
 
 	inline VkImageView GetImageView(size_t imageIndex) { return (imageIndex >= m_SwapChainImageViews.size()) ? VK_NULL_HANDLE : m_SwapChainImageViews[imageIndex]; }
 	inline size_t GetImageCount() { return m_SwapChainImages.size(); }

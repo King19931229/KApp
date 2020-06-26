@@ -319,8 +319,8 @@ enum DebugPrimitive
 
 enum QueueFamilyIndex
 {
-	QUEUE_FAMILY_INDEX_GRAPHICS,
-	QUEUE_FAMILY_INDEX_PRESENT
+	QUEUE_FAMILY_INDEX_GRAPHICS
+	// QUEUE_FAMILY_INDEX_PRESENT
 };
 
 enum CommandBufferLevel

@@ -380,7 +380,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 
 					if (command.Complete())
 					{
-						preZcommands.push_back(std::move(command));
+						preZcommands.push_back(command);
 					}
 				}
 			});
@@ -418,7 +418,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 
 						if (command.Complete())
 						{
-							defaultCommands.push_back(std::move(command));
+							defaultCommands.push_back(command);
 						}
 					}
 				});
