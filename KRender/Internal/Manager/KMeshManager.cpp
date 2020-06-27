@@ -154,7 +154,7 @@ bool KMeshManager::UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr)
 	if (ptr)
 	{
 		m_Device->Wait();
-		return ptr->UpdateUnility(info, m_Device, m_FrameInFlight);
+		return ptr->UpdateUtility(info, m_Device, m_FrameInFlight);
 	}
 	return false;
 }

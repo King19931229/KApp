@@ -79,6 +79,8 @@ bool KMaterialSubMesh::InitDebug(DebugPrimitive primtive, size_t frameInFlight)
 		break;
 	}
 
+	m_FrameInFlight = frameInFlight;
+
 	FramePipelineList& pipelines = m_Pipelines[debugStage];
 	pipelines.resize(m_FrameInFlight);
 	for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)

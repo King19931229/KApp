@@ -344,18 +344,17 @@ bool KMesh::InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device,
 	}
 	UnInit();
 
-	m_FrameInFlight = frameInFlight;
-
 	if (KMeshUtility::CreateUtility(device, this, info, frameInFlight))
 	{
 		UpdateTriangleMesh();
+		m_FrameInFlight = frameInFlight;
 		return true;
 	}
 
 	return false;
 }
 
-bool KMesh::UpdateUnility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight)
 {
 	assert(device);
 	if (!device)
@@ -363,11 +362,10 @@ bool KMesh::UpdateUnility(const KMeshUtilityInfoPtr& info, IKRenderDevice* devic
 		return false;
 	}
 
-	m_FrameInFlight = frameInFlight;
-
 	if (KMeshUtility::UpdateUtility(device, this, info, frameInFlight))
 	{
 		UpdateTriangleMesh();
+		m_FrameInFlight = frameInFlight;
 		return true;
 	}
 

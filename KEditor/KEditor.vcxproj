@@ -146,6 +146,7 @@
     <ClCompile Include="Widget\KEPostProcessGraphWidget.cpp" />
     <ClCompile Include="Widget\KEPropertyWidget.cpp" />
     <ClCompile Include="Widget\KEReflectPropertyWidget.cpp" />
+    <ClCompile Include="Widget\KEMainRenderWidget.cpp" />
     <ClCompile Include="Widget\KERenderWidget.cpp" />
     <ClCompile Include="Widget\KESceneItemWidget.cpp" />
   </ItemGroup>
@@ -156,9 +157,10 @@
     <QtRcc Include="KEditor.qrc" />
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="Widget\KERenderWidget.h" />
+    <QtMoc Include="Widget\KEMainRenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Widget\KERenderWidget.h" />
     <QtMoc Include="Widget\KEReflectPropertyWidget.h" />
     <QtMoc Include="Widget\KESceneItemWidget.h" />
     <QtMoc Include="Widget\KEPropertyWidget.h" />

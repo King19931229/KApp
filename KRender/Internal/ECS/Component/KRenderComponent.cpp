@@ -304,7 +304,19 @@ bool KRenderComponent::InitUtility(const KMeshUtilityInfoPtr& info)
 	UnInit();
 	m_Type = UTILITY;
 	m_UtilityInfo = info;
-	return KRenderGlobal::MeshManager.AcquireAsUtility(info, m_Mesh);
+	if (KRenderGlobal::MeshManager.AcquireAsUtility(info, m_Mesh))
+	{
+		const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
+		m_MaterialSubMeshes.reserve(subMeshes.size());
+		for (KSubMeshPtr subMesh : subMeshes)
+		{
+			KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(new KMaterialSubMesh(subMesh.get()));
+			materialSubMesh->InitDebug(subMesh->GetDebugPrimitive(), subMesh->GetFrameInFlight());
+			m_MaterialSubMeshes.push_back(materialSubMesh);
+		}
+		return true;
+	}
+	return false;
 }
 
 bool KRenderComponent::UpdateUtility(const KMeshUtilityInfoPtr& info)

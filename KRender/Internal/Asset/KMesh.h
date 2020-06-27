@@ -39,7 +39,7 @@ public:
 	bool InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
 	bool UnInit();
 
-	bool UpdateUnility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
+	bool UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
 
 	inline size_t GetFrameInFlight() const { return m_FrameInFlight; }
 };

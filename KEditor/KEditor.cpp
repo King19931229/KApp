@@ -1,6 +1,6 @@
 #include "KEditor.h"
 #include "KEditorGlobal.h"
-#include "Widget/KERenderWidget.h"
+#include "Widget/KEMainRenderWidget.h"
 #include "Widget/KEPostProcessGraphWidget.h"
 #include "Widget/KESceneItemWidget.h"
 #include "Widget/KEReflectPropertyWidget.h"
@@ -99,7 +99,7 @@ bool KEditor::Init()
 		// 不允许构建操作进入操作栈
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();
 
-		m_RenderWidget = KNEW KERenderWidget(this);
+		m_RenderWidget = KNEW KEMainRenderWidget(this);
 
 		IKRenderWindowPtr window = IKRenderWindowPtr(KNEW KEQtRenderWindow());
 		IKRenderWindow* rawWindow = window.get();

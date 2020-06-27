@@ -7,7 +7,7 @@
 
 #include "KEngine/Interface/IKEngine.h"
 
-class KERenderWidget;
+class KEMainRenderWidget;
 class KEGraphWidget;
 class KEResourceBrowser;
 class KESceneItemWidget;
@@ -24,7 +24,7 @@ public:
 	bool Init();
 	bool UnInit();
 protected:
-	KERenderWidget*	m_RenderWidget;
+	KEMainRenderWidget*	m_RenderWidget;
 	KEGraphWidget* m_GraphWidget; 
 
 	QDockWidget*  m_ResourceDock;

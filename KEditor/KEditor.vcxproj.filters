@@ -76,9 +76,6 @@
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Widget\KERenderWidget.cpp">
-      <Filter>Widget</Filter>
-    </ClCompile>
     <ClCompile Include="Other\KEQtRenderWindow.cpp">
       <Filter>Other</Filter>
     </ClCompile>
@@ -218,12 +215,15 @@
     <ClCompile Include="Entity\KEEntityNamePool.cpp">
       <Filter>Entity</Filter>
     </ClCompile>
+    <ClCompile Include="Widget\KEMainRenderWidget.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\KERenderWidget.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
-    <QtMoc Include="Widget\KERenderWidget.h">
-      <Filter>Widget</Filter>
-    </QtMoc>
     <QtMoc Include="Widget\KEGraphWidget.h">
       <Filter>Widget</Filter>
     </QtMoc>
@@ -295,6 +295,12 @@
     </QtMoc>
     <QtMoc Include="Dialog\KEAssetConvertDialog.h">
       <Filter>Dialog</Filter>
+    </QtMoc>
+    <QtMoc Include="Widget\KEMainRenderWidget.h">
+      <Filter>Widget</Filter>
+    </QtMoc>
+    <QtMoc Include="Widget\KERenderWidget.h">
+      <Filter>Widget</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

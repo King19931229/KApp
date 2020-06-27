@@ -1,10 +1,6 @@
 #include "KERenderWidget.h"
 #include "Other/KEQtRenderWindow.h"
-#include "Browser/KEFileSystemTreeItem.h"
-
-#include "Custom/KEResourceItemView.h"
 #include "KEngine/Interface/IKEngine.h"
-#include "KEditorGlobal.h"
 
 #include <QWheelEvent>
 #include <assert.h>
@@ -29,30 +25,6 @@ KERenderWidget::~KERenderWidget()
 	ASSERT_RESULT(m_RenderWindow == nullptr);
 }
 
-bool KERenderWidget::Init(IKEnginePtr& engine)
-{
-	if (engine)
-	{
-		m_Engine = engine.get();
-		IKRenderCore* render = m_Engine->GetRenderCore();
-		if (render)
-		{
-			m_RenderWindow = (KEQtRenderWindow*)(render->GetRenderWindow());
-			m_RenderDevice = render->GetRenderDevice();
-			return true;
-		}
-	}
-	return false;
-}
-
-bool KERenderWidget::UnInit()
-{
-	m_Engine = nullptr;
-	m_RenderDevice = nullptr;
-	m_RenderWindow = nullptr;
-	return true;
-}
-
 void KERenderWidget::resizeEvent(QResizeEvent *event)
 {
 	if (m_RenderDevice)
@@ -66,7 +38,6 @@ void KERenderWidget::resizeEvent(QResizeEvent *event)
 
 void KERenderWidget::paintEvent(QPaintEvent *event)
 {
-	m_Engine->Tick();
 	// 保证此函数体每一帧都调用
 	update();
 }
@@ -166,26 +137,6 @@ void KERenderWidget::HandleKeyEvent(QKeyEvent *event, InputAction action)
 void KERenderWidget::keyPressEvent(QKeyEvent *event)
 {
 	HandleKeyEvent(event, INPUT_ACTION_PRESS);
-	if (event->key() == Qt::Key_Z && event->modifiers() == Qt::CTRL)
-	{
-		// TODO Domain
-		KEditorGlobal::CommandInvoker.Undo();
-	}
-	if (event->key() == Qt::Key_Y && event->modifiers() == Qt::CTRL)
-	{
-		// TODO Domain
-		KEditorGlobal::CommandInvoker.Redo();
-	}
-
-	// TODO 临时硬代码
-	if (event->key() == Qt::Key_J)
-	{
-		KEditorGlobal::EntityManipulator.Save("test.scene");
-	}
-	if (event->key() == Qt::Key_K)
-	{
-		KEditorGlobal::EntityManipulator.Load("test.scene");
-	}
 }
 
 void KERenderWidget::keyReleaseEvent(QKeyEvent *event)
@@ -307,22 +258,4 @@ void KERenderWidget::dragMoveEvent(QDragMoveEvent *event)
 
 void KERenderWidget::dragLeaveEvent(QDragLeaveEvent *event)
 {
-}
-
-void KERenderWidget::dropEvent(QDropEvent *event)
-{
-	QObjectUserData* userData = event->mimeData()->userData(0);
-	KEResourceItemDropData* resItemData = dynamic_cast<KEResourceItemDropData*>(userData);
-	if (resItemData)
-	{
-		KEFileSystemTreeItem* item = resItemData->item;
-		std::string fullPath = item->GetFullPath();
-		IKEnginePtr engine = KEngineGlobal::Engine;
-		IKRenderCore* renderCore = engine->GetRenderCore();
-		IKEntityPtr entity = KEditorGlobal::ResourcePorter.Drop(renderCore->GetCamera(), fullPath);
-		if (entity)
-		{
-			KEditorGlobal::EntityManipulator.Join(entity, fullPath);
-		}
-	}
 }
