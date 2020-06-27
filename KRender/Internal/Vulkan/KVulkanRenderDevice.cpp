@@ -879,13 +879,19 @@ bool KVulkanRenderDevice::Present()
 	{
 		KRenderGlobal::RenderDispatcher.SetSwapChain(m_SwapChain, m_UIOverlay);
 
-		for (KDevicePresentCallback* callback : m_PresentCallback)
+		for (KDevicePresentCallback* callback : m_PrePresentCallback)
 		{
 			(*callback)(chainImageIndex, frameIndex);
 		}
 
+		KRenderGlobal::RenderDispatcher.Execute(chainImageIndex, frameIndex);
 		VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer(frameIndex).get())->GetVkHandle();
 		vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(chainImageIndex, primaryCommandBuffer);
+
+		for (KDevicePresentCallback* callback : m_PostPresentCallback)
+		{
+			(*callback)(chainImageIndex, frameIndex);
+		}
 
 		if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
 		{
@@ -918,12 +924,8 @@ bool KVulkanRenderDevice::Present()
 		else
 		{
 			KRenderGlobal::RenderDispatcher.SetSwapChain(secordarySwapChain, nullptr);
-
-			for (KDevicePresentCallback* callback : m_PresentCallback)
-			{
-				(*callback)(chainImageIndex, frameIndex);
-			}
-
+		
+			KRenderGlobal::RenderDispatcher.Execute(chainImageIndex, frameIndex);
 			VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer(frameIndex).get())->GetVkHandle();
 			vkResult = ((KVulkanSwapChain*)secordarySwapChain.get())->PresentQueue(chainImageIndex, primaryCommandBuffer);
 
@@ -995,24 +997,48 @@ bool KVulkanRenderDevice::Wait()
 	return false;
 }
 
-bool KVulkanRenderDevice::RegisterPresentCallback(KDevicePresentCallback* callback)
+bool KVulkanRenderDevice::RegisterPrePresentCallback(KDevicePresentCallback* callback)
 {
 	if (callback)
 	{
-		m_PresentCallback.insert(callback);
+		m_PrePresentCallback.insert(callback);
 		return true;
 	}
 	return false;
 }
 
-bool KVulkanRenderDevice::UnRegisterPresentCallback(KDevicePresentCallback* callback)
+bool KVulkanRenderDevice::UnRegisterPrePresentCallback(KDevicePresentCallback* callback)
 {
 	if (callback)
 	{
-		auto it = m_PresentCallback.find(callback);
-		if (it != m_PresentCallback.end())
+		auto it = m_PrePresentCallback.find(callback);
+		if (it != m_PrePresentCallback.end())
 		{
-			m_PresentCallback.erase(it);
+			m_PrePresentCallback.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KVulkanRenderDevice::RegisterPostPresentCallback(KDevicePresentCallback* callback)
+{
+	if (callback)
+	{
+		m_PostPresentCallback.insert(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanRenderDevice::UnRegisterPostPresentCallback(KDevicePresentCallback* callback)
+{
+	if (callback)
+	{
+		auto it = m_PostPresentCallback.find(callback);
+		if (it != m_PostPresentCallback.end())
+		{
+			m_PostPresentCallback.erase(it);
 			return true;
 		}
 	}
@@ -1121,7 +1147,21 @@ bool KVulkanRenderDevice::RecreateSwapChain(IKSwapChain* swapChain, IKUIOverlay*
 		IKRenderWindow* window = swapChain->GetWindow();
 		uint32_t frameInFlight = swapChain->GetFrameInFlight();
 
-		window->IdleUntilForeground();
+		// 主交换链必须等到撤销最小化
+		if (swapChain == m_SwapChain.get())
+		{
+			window->IdleUntilForeground();
+		}
+		else
+		{
+			size_t width = 0, height = 0;
+			window->GetSize(width, height);
+			if (width == 0 && height == 0)
+			{
+				return true;
+			}
+		}
+
 		vkDeviceWaitIdle(m_Device);
 
 		swapChain->UnInit();
@@ -1134,7 +1174,7 @@ bool KVulkanRenderDevice::RecreateSwapChain(IKSwapChain* swapChain, IKUIOverlay*
 			ui->Resize(swapChain->GetWidth(), swapChain->GetHeight());
 		}
 
-		// 主交换链
+		// 只对主交换链促发回调
 		if (swapChain == m_SwapChain.get())
 		{
 			for (KSwapChainRecreateCallback* callback : m_SwapChainCallback)

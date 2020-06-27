@@ -13,6 +13,8 @@ protected:
 	IKRenderDevice* m_Device;
 	IKSwapChainPtr m_SwapChain;
 	IKUIOverlayPtr m_UIOverlay;
+	KRenderScene* m_Scene;
+	const KCamera* m_Camera;
 	IKCameraCubePtr m_CameraCube;
 
 	uint32_t m_FrameInFlight;
@@ -76,6 +78,8 @@ public:
 	bool UnInit();
 
 	bool SetSwapChain(IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay);
-	bool Execute(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
+	bool SetSceneCamera(KRenderScene* scene, const KCamera* camera);
+
+	bool Execute(uint32_t chainImageIndex, uint32_t frameIndex);
 	IKCommandBufferPtr GetPrimaryCommandBuffer(uint32_t frameIndex);
 };

@@ -11,6 +11,8 @@ KRenderDispatcher::KRenderDispatcher()
 	: m_Device(nullptr),
 	m_SwapChain(nullptr),
 	m_UIOverlay(nullptr),
+	m_Scene(nullptr),
+	m_Camera(nullptr),
 	m_CameraCube(nullptr),
 	m_MaxRenderThreadNum(std::thread::hardware_concurrency()),
 	m_FrameInFlight(0),
@@ -825,15 +827,34 @@ bool KRenderDispatcher::SetSwapChain(IKSwapChainPtr swapChain, IKUIOverlayPtr ui
 	return true;
 }
 
-bool KRenderDispatcher::Execute(KRenderScene* scene, KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
+bool KRenderDispatcher::SetSceneCamera(KRenderScene* scene, const KCamera* camera)
 {
-	if (m_MultiThreadSubmit)
+	m_Scene = scene;
+	m_Camera = camera;
+	return true;
+}
+
+bool KRenderDispatcher::Execute(uint32_t chainImageIndex, uint32_t frameIndex)
+{
+	if (m_SwapChain && m_Scene && m_Camera)
 	{
-		SubmitCommandBufferMuitiThread(scene, camera, chainImageIndex, frameIndex);
-	}
-	else
-	{
-		SubmitCommandBufferSingleThread(scene, camera, chainImageIndex, frameIndex);
+		IKRenderWindow* window = m_SwapChain->GetWindow();
+		ASSERT_RESULT(window);
+		size_t windowWidth = 0, windowHeight = 0;
+		ASSERT_RESULT(window->GetSize(windowWidth, windowHeight));
+
+		// 窗口最小化后就干脆不提交了
+		if (windowWidth && windowHeight)
+		{
+			if (m_MultiThreadSubmit)
+			{
+				SubmitCommandBufferMuitiThread(m_Scene, m_Camera, chainImageIndex, frameIndex);
+			}
+			else
+			{
+				SubmitCommandBufferSingleThread(m_Scene, m_Camera, chainImageIndex, frameIndex);
+			}
+		}
 	}
 
 	return true;

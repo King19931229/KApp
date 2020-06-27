@@ -55,8 +55,10 @@ struct IKRenderDevice
 	virtual IKUIOverlayPtr GetUIOverlay() = 0;
 	virtual uint32_t GetNumFramesInFlight() = 0;
 
-	virtual bool RegisterPresentCallback(KDevicePresentCallback* callback) = 0;
-	virtual bool UnRegisterPresentCallback(KDevicePresentCallback* callback) = 0;
+	virtual bool RegisterPrePresentCallback(KDevicePresentCallback* callback) = 0;
+	virtual bool UnRegisterPrePresentCallback(KDevicePresentCallback* callback) = 0;
+	virtual bool RegisterPostPresentCallback(KDevicePresentCallback* callback) = 0;
+	virtual bool UnRegisterPostPresentCallback(KDevicePresentCallback* callback) = 0;
 
 	virtual bool RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback) = 0;
 	virtual bool UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback) = 0;

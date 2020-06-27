@@ -27,10 +27,13 @@ protected:
 
 	KKeyboardCallbackType m_KeyCallback;
 
-	KDevicePresentCallback m_PresentCallback;
+	KDevicePresentCallback m_PrePresentCallback;
+	KDevicePresentCallback m_PostPresentCallback;
 	KSwapChainRecreateCallback m_SwapChainCallback;
 	KDeviceInitCallback m_InitCallback;
 	KDeviceUnInitCallback m_UnitCallback;
+
+	std::unordered_map<IKRenderWindow*, IKSwapChainPtr> m_SecordaryWindow;
 
 	typedef std::unordered_set<KRenderCoreInitCallback*> CallbackSet;
 	CallbackSet m_Callbacks;
@@ -41,6 +44,7 @@ protected:
 	bool m_MouseCtrlCamera;
 
 	bool m_bInit;
+	bool m_bTickShouldEnd;
 
 	bool InitPostProcess();
 	bool UnInitPostProcess();
@@ -65,7 +69,8 @@ protected:
 	bool UpdateController();
 	bool UpdateGizmo();
 
-	void OnPresent(uint32_t chainIndex, uint32_t frameIndex);
+	void OnPrePresent(uint32_t chainIndex, uint32_t frameIndex);
+	void OnPostPresent(uint32_t chainIndex, uint32_t frameIndex);
 	void OnSwapChainRecreate(uint32_t width, uint32_t height);
 public:
 	KRenderCore();
@@ -73,9 +78,14 @@ public:
 
 	virtual bool Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window);
 	virtual bool UnInit();
+
 	virtual bool Loop();
+	virtual bool TickShouldEnd();
 	virtual bool Tick();
 	virtual bool Wait();
+
+	virtual bool RegisterSecordaryWindow(IKRenderWindowPtr& window);
+	virtual bool UnRegisterSecordaryWindow(IKRenderWindowPtr& window);
 
 	virtual bool RegisterInitCallback(KRenderCoreInitCallback* callback);
 	virtual bool UnRegisterInitCallback(KRenderCoreInitCallback* callback);

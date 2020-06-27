@@ -35,6 +35,7 @@ public:
 	virtual bool SetSwapChain(IKSwapChain* swapChain);
 	virtual IKSwapChain* GetSwapChain();
 
+	virtual bool Tick();
 	virtual bool Loop();
 
 	virtual bool IdleUntilForeground();

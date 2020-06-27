@@ -30,13 +30,14 @@ int main()
 	KRenderCoreInitCallback callback = [scene]()
 	{
 #define DRAW_SPIDER
-//#define DRAW_SPONZA
-
+#ifndef _DEBUG
+#	define DRAW_SPONZA
+#endif
 #ifdef DRAW_SPIDER
 #ifdef _DEBUG
 		int width = 10, height = 10;
 #else
-		int width = 100, height = 100;
+		int width = 10, height = 10;
 #endif
 		int widthExtend = width * 8, heightExtend = height * 8;
 		for (int i = 0; i < width; ++i)
@@ -88,23 +89,27 @@ int main()
 	engine->GetRenderCore()->RegisterInitCallback(&callback);
 	callback();
 
-	constexpr bool SECORDARY_WINDOW = false;
+	constexpr bool SECORDARY_WINDOW = true;
 
 	IKRenderWindowPtr secordaryWindow = nullptr;
-	if (SECORDARY_WINDOW)
+
+#define SECORDARY_WINDOW
+#ifdef SECORDARY_WINDOW
 	{
-		CreateRenderWindow(RENDER_WINDOW_GLFW);
+		secordaryWindow = CreateRenderWindow(RENDER_WINDOW_GLFW);
 		secordaryWindow->SetRenderDevice(engine->GetRenderCore()->GetRenderDevice());
-		secordaryWindow->Init(0, 0, 128, 128, true, false);
-		engine->RegisterSecordaryWindow(secordaryWindow);
+		secordaryWindow->Init(30, 30, 256, 256, true, false);
+		engine->GetRenderCore()->RegisterSecordaryWindow(secordaryWindow);
 	}
+#endif
 
 	engine->Loop();
 
-	if (SECORDARY_WINDOW)
+#ifdef SECORDARY_WINDOW
 	{
-		engine->UnRegisterSecordaryWindow(secordaryWindow);
+		engine->GetRenderCore()->UnRegisterSecordaryWindow(secordaryWindow);
 	}
+#endif
 
 	engine->UnInit();
 	engine = nullptr;

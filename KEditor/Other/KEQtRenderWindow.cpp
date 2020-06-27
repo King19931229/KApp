@@ -74,9 +74,15 @@ IKSwapChain* KEQtRenderWindow::GetSwapChain()
 {
 	return m_SwapChain;
 }
+
 void* KEQtRenderWindow::GetHWND()
 {
 	return m_HWND;
+}
+
+bool KEQtRenderWindow::Tick()
+{
+	return true;
 }
 
 bool KEQtRenderWindow::Loop()

@@ -229,6 +229,40 @@ void KAndroidRenderWindow::HandleAppCommand(android_app* app, int32_t cmd)
 }
 #endif
 
+bool KAndroidRenderWindow::Tick()
+{
+#ifdef	__ANDROID__
+	if (m_app)
+	{
+		int ident = 0;
+		int events = 0;
+		struct android_poll_source *source;
+
+		while ((ident = ALooper_pollAll(m_bFocus ? 0 : -1, NULL, &events, (void **)&source)) >= 0)
+		{
+			if (source != NULL)
+			{
+				source->process(m_app, source);
+			}
+			// App destruction requested
+			// Exit loop, example will be destroyed in application main
+			if (m_app->destroyRequested != 0)
+			{
+				KG_LOG(LM_RENDER, "%s", "Android app destroy requested");
+				if (m_Device)
+				{
+					m_Device->Wait();
+				}
+				ANativeActivity_finish(m_app->activity);
+				return false;
+			}
+		}
+		return true;
+	}
+#endif
+	return false;
+}
+
 bool KAndroidRenderWindow::Loop()
 {
 #ifdef	__ANDROID__
@@ -236,47 +270,19 @@ bool KAndroidRenderWindow::Loop()
 	{
 		while (true)
 		{
-			int ident = 0;
-			int events = 0;
-			struct android_poll_source *source;
-			bool destroy = false;
-
-			while ((ident = ALooper_pollAll(m_bFocus ? 0 : -1, NULL, &events, (void **)&source)) >= 0)
+			if (Tick())
 			{
-				if (source != NULL)
+				if (m_Device && m_bFocus)
 				{
-					source->process(m_app, source);
-				}
-				if (m_app->destroyRequested != 0)
-				{
-					KG_LOG(LM_RENDER, "%s", "Android app destroy requested");
-					destroy = true;
-					break;
+					m_Device->Present();
 				}
 			}
-
-			if (m_Device && m_bFocus)
+			else
 			{
-				m_Device->Present();
-			}
-
-			// App destruction requested
-			// Exit loop, example will be destroyed in application main
-			if (destroy)
-			{
-				if (m_Device)
-				{
-					m_Device->Wait();
-				}
-				ANativeActivity_finish(m_app->activity);
-				break;
+				return true;
 			}
 		}
 		return true;
-	}
-	else
-	{
-		return false;
 	}
 #endif
 	return false;

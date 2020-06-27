@@ -11,8 +11,6 @@
 #include "KBase/Interface/IKIniFile.h"
 #include "KBase/Publish/KStringUtil.h"
 #include "KBase/Publish/KPlatform.h"
-#include "KRender/Interface/IKRenderWindow.h"
-#include "KRender/Interface/IKSwapChain.h"
 
 namespace KEngineGlobal
 {
@@ -40,7 +38,6 @@ KEngine::KEngine()
 
 KEngine::~KEngine()
 {
-	ASSERT_RESULT(m_SecordaryWindow.empty());
 	ASSERT_RESULT(!m_Device);
 	ASSERT_RESULT(!m_Window);
 	ASSERT_RESULT(!m_RenderCore);
@@ -258,19 +255,6 @@ bool KEngine::UnInit()
 		KECS::DestroyEntityManager();
 		KECS::DestroyComponentManager();
 
-		for (auto& pair : m_SecordaryWindow)
-		{
-			IKRenderWindowPtr window = pair.first;
-			IKSwapChainPtr swapChain = pair.second;
-
-			IKRenderDevice* renderDevice = m_RenderCore->GetRenderDevice();
-			ASSERT_RESULT(renderDevice->UnRegisterSecordarySwapChain(swapChain));
-
-			window->UnInit();
-			swapChain->UnInit();
-		}
-		m_SecordaryWindow.clear();
-
 		m_Window->UnInit();
 
 		m_Scene->UnInit();
@@ -301,51 +285,13 @@ bool KEngine::UnInit()
 	return false;
 }
 
-bool KEngine::RegisterSecordaryWindow(IKRenderWindowPtr window)
-{
-	if (m_bInit)
-	{
-		if (m_SecordaryWindow.find(window) == m_SecordaryWindow.end())
-		{
-			IKRenderDevice* renderDevice = m_RenderCore->GetRenderDevice();
-			IKSwapChainPtr swapChain = nullptr;
-			ASSERT_RESULT(renderDevice->CreateSwapChain(swapChain));
-			swapChain->Init(window.get(), 1);
-			m_SecordaryWindow.insert({ window , swapChain });
-			ASSERT_RESULT(renderDevice->RegisterSecordarySwapChain(swapChain));
-			return true;
-		}
-	}
-	return false;
-}
-
-bool KEngine::UnRegisterSecordaryWindow(IKRenderWindowPtr window)
-{
-	if (m_bInit)
-	{
-		auto it = m_SecordaryWindow.find(window);
-		if (it != m_SecordaryWindow.end())
-		{
-			IKSwapChainPtr& swapChain = it->second;
-			IKRenderDevice* renderDevice = m_RenderCore->GetRenderDevice();
-			ASSERT_RESULT(renderDevice->UnRegisterSecordarySwapChain(swapChain));
-			SAFE_UNINIT(swapChain);
-			m_SecordaryWindow.erase(it);
-			SAFE_UNINIT(window);
-			return true;
-		}
-	}
-	return false;
-}
-
 bool KEngine::Loop()
 {
-	if (m_RenderCore)
+	while (!m_RenderCore->TickShouldEnd())
 	{
-		m_RenderCore->Loop();
-		return true;
+		m_RenderCore->Tick();
 	}
-	return false;
+	return true;
 }
 
 bool KEngine::Tick()

@@ -13,9 +13,14 @@ struct IKRenderCore
 
 	virtual bool Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window) = 0;
 	virtual bool UnInit() = 0;
-	virtual bool Loop() = 0;
+
+	// virtual bool Loop() = 0;
+	virtual bool TickShouldEnd() = 0;
 	virtual bool Tick() = 0;
 	virtual bool Wait() = 0;
+
+	virtual bool RegisterSecordaryWindow(IKRenderWindowPtr& window) = 0;
+	virtual bool UnRegisterSecordaryWindow(IKRenderWindowPtr& window) = 0;
 
 	virtual bool RegisterInitCallback(KRenderCoreInitCallback* callback) = 0;
 	virtual bool UnRegisterInitCallback(KRenderCoreInitCallback* callback) = 0;

@@ -40,6 +40,7 @@ KRenderCore::KRenderCore()
 
 KRenderCore::~KRenderCore()
 {
+	ASSERT_RESULT(m_SecordaryWindow.empty());
 	assert(!m_DebugConsole);
 }
 
@@ -256,9 +257,14 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
 		m_Camera.SetLockYEnable(true);
 
-		m_PresentCallback = [this](uint32_t chainIndex, uint32_t frameIndex)
+		m_PrePresentCallback = [this](uint32_t chainIndex, uint32_t frameIndex)
 		{
-			OnPresent(chainIndex, frameIndex);
+			OnPrePresent(chainIndex, frameIndex);
+		};
+
+		m_PostPresentCallback = [this](uint32_t chainIndex, uint32_t frameIndex)
+		{
+			OnPostPresent(chainIndex, frameIndex);
 		};
 
 		m_SwapChainCallback = [this](uint32_t width, uint32_t height)
@@ -302,13 +308,17 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 		KECSGlobal::Init();
 		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
+		KRenderGlobal::RenderDispatcher.SetSceneCamera(&KRenderGlobal::Scene, &m_Camera);
 
-		m_Device->RegisterPresentCallback(&m_PresentCallback);
+		m_Device->RegisterPrePresentCallback(&m_PrePresentCallback);
+		m_Device->RegisterPostPresentCallback(&m_PostPresentCallback);
 		m_Device->RegisterSwapChainRecreateCallback(&m_SwapChainCallback);
 		m_Device->RegisterDeviceInitCallback(&m_InitCallback);
 		m_Device->RegisterDeviceUnInitCallback(&m_UnitCallback);
 
 		m_bInit = true;
+		m_bTickShouldEnd = false;
+
 		return true;
 	}
 	return false;
@@ -318,13 +328,26 @@ bool KRenderCore::UnInit()
 {
 	if (m_bInit)
 	{
+		for (auto& pair : m_SecordaryWindow)
+		{
+			IKRenderWindow* window = pair.first;
+			IKSwapChainPtr swapChain = pair.second;
+
+			ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain));
+
+			window->UnInit();
+			swapChain->UnInit();
+		}
+		m_SecordaryWindow.clear();
+
 		KRenderGlobal::Scene.UnInit();
 		KECSGlobal::UnInit();
 
 		m_DebugConsole->UnInit();
 		SAFE_DELETE(m_DebugConsole);
 
-		m_Device->UnRegisterPresentCallback(&m_PresentCallback);
+		m_Device->UnRegisterPrePresentCallback(&m_PrePresentCallback);
+		m_Device->UnRegisterPostPresentCallback(&m_PostPresentCallback);
 		m_Device->UnRegisterSwapChainRecreateCallback(&m_SwapChainCallback);
 		m_Device->UnRegisterDeviceInitCallback(&m_InitCallback);
 		m_Device->UnRegisterDeviceUnInitCallback(&m_UnitCallback);
@@ -333,12 +356,14 @@ bool KRenderCore::UnInit()
 		m_Device = nullptr;
 
 		m_bInit = false;
+		m_bTickShouldEnd = true;
 
 		m_Callbacks.clear();
 	}
 	return true;
 }
 
+// 只能Loop到主窗口 废弃该做法
 bool KRenderCore::Loop()
 {
 	if (m_bInit)
@@ -349,12 +374,42 @@ bool KRenderCore::Loop()
 	return false;
 }
 
+bool KRenderCore::TickShouldEnd()
+{
+	return m_bTickShouldEnd;
+}
+
 bool KRenderCore::Tick()
 {
-	if (m_bInit)
+	if (m_bInit && !m_bTickShouldEnd)
 	{
-		m_Device->Present();
-		return true;
+		if (m_Window->Tick())
+		{
+			for (auto it = m_SecordaryWindow.begin(), itEnd = m_SecordaryWindow.end();
+				it != itEnd;)
+			{
+				IKRenderWindow* window = it->first;
+				if (!window->Tick())
+				{
+					IKSwapChainPtr swapChain = it->second;
+					ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain));
+					window->UnInit();
+					swapChain->UnInit();
+					it = m_SecordaryWindow.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+			m_Device->Present();
+			return true;
+		}
+		else
+		{
+			m_bTickShouldEnd = true;
+			return false;
+		}
 	}
 	return false;
 }
@@ -365,6 +420,41 @@ bool KRenderCore::Wait()
 	{
 		m_Device->Wait();
 		return true;
+	}
+	return false;
+}
+
+bool KRenderCore::RegisterSecordaryWindow(IKRenderWindowPtr& window)
+{
+	if (m_bInit)
+	{
+		if (m_SecordaryWindow.find(window.get()) == m_SecordaryWindow.end())
+		{
+			IKSwapChainPtr swapChain = nullptr;
+			ASSERT_RESULT(m_Device->CreateSwapChain(swapChain));
+			swapChain->Init(window.get(), 1);
+			m_SecordaryWindow.insert({ window.get() , swapChain });
+			ASSERT_RESULT(m_Device->RegisterSecordarySwapChain(swapChain));
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KRenderCore::UnRegisterSecordaryWindow(IKRenderWindowPtr& window)
+{
+	if (m_bInit)
+	{
+		auto it = m_SecordaryWindow.find(window.get());
+		if (it != m_SecordaryWindow.end())
+		{
+			IKSwapChainPtr& swapChain = it->second;
+			ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain));
+			SAFE_UNINIT(swapChain);
+			m_SecordaryWindow.erase(it);
+			SAFE_UNINIT(window);
+			return true;
+		}
 	}
 	return false;
 }
@@ -530,7 +620,7 @@ bool KRenderCore::UpdateGizmo()
 	return true;
 }
 
-void KRenderCore::OnPresent(uint32_t chainIndex, uint32_t frameIndex)
+void KRenderCore::OnPrePresent(uint32_t chainIndex, uint32_t frameIndex)
 {
 	KRenderGlobal::CurrentFrameIndex = frameIndex;
 
@@ -546,9 +636,10 @@ void KRenderCore::OnPresent(uint32_t chainIndex, uint32_t frameIndex)
 	KRenderGlobal::RenderDispatcher.SetMultiThreadSubmit(m_MultiThreadSubmit);
 	KRenderGlobal::RenderDispatcher.SetInstanceSubmit(m_InstanceSubmit);
 	m_CameraMoveController.SetEnable(m_MouseCtrlCamera);
+}
 
-	KRenderGlobal::RenderDispatcher.Execute(&KRenderGlobal::Scene, &m_Camera, chainIndex, frameIndex);
-
+void KRenderCore::OnPostPresent(uint32_t chainIndex, uint32_t frameIndex)
+{
 	++KRenderGlobal::CurrentFrameNum;
 }
 

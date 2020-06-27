@@ -14,7 +14,7 @@ protected:
 #if defined(_WIN32)
 	void* m_HWND;
 #endif
-	GLFWwindow* m_window;
+	GLFWwindow* m_Window;
 	IKSwapChain* m_SwapChain;
 	double m_LastMovePos[2];
 	bool m_bPrimary;
@@ -53,6 +53,7 @@ public:
 	virtual bool SetSwapChain(IKSwapChain* swapChain);
 	virtual IKSwapChain* GetSwapChain();
 
+	virtual bool Tick();
 	virtual bool Loop();
 
 	virtual bool IdleUntilForeground();

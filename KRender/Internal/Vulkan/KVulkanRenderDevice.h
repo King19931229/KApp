@@ -74,7 +74,8 @@ protected:
 	IKUIOverlayPtr m_UIOverlay;
 
 	typedef std::unordered_set<KDevicePresentCallback*> PresentCallbackSet;
-	PresentCallbackSet m_PresentCallback;
+	PresentCallbackSet m_PrePresentCallback;
+	PresentCallbackSet m_PostPresentCallback;
 
 	typedef std::unordered_set<KSwapChainRecreateCallback*> SwapChainCallbackSet;
 	SwapChainCallbackSet m_SwapChainCallback;
@@ -161,8 +162,10 @@ public:
 
 	virtual bool RecreateSwapChain(IKSwapChain* swapChain, IKUIOverlay* ui);
 
-	virtual bool RegisterPresentCallback(KDevicePresentCallback* callback);
-	virtual bool UnRegisterPresentCallback(KDevicePresentCallback* callback);
+	virtual bool RegisterPrePresentCallback(KDevicePresentCallback* callback);
+	virtual bool UnRegisterPrePresentCallback(KDevicePresentCallback* callback);
+	virtual bool RegisterPostPresentCallback(KDevicePresentCallback* callback);
+	virtual bool UnRegisterPostPresentCallback(KDevicePresentCallback* callback);
 
 	virtual bool RegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);
 	virtual bool UnRegisterSwapChainRecreateCallback(KSwapChainRecreateCallback* callback);

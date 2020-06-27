@@ -40,6 +40,7 @@ struct IKRenderWindow
 	virtual bool SetSwapChain(IKSwapChain* swapChain) = 0;
 	virtual IKSwapChain* GetSwapChain() = 0;
 
+	virtual bool Tick() = 0;
 	virtual bool Loop() = 0;
 
 	virtual bool IdleUntilForeground() = 0;

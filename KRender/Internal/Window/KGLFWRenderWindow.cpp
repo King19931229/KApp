@@ -17,7 +17,7 @@ KGLFWRenderWindow::KGLFWRenderWindow()
 #ifndef __ANDROID__
 	m_LastMovePos[0] = -1.0f;
 	m_LastMovePos[1] = -1.0f;
-	m_window = nullptr;
+	m_Window = nullptr;
 #if defined(_WIN32)
 	m_HWND = NULL;
 #endif
@@ -192,7 +192,7 @@ void KGLFWRenderWindow::MouseCallback(GLFWwindow* handle, int mouse, int action,
 		InputAction inputAction;
 
 		double xpos = 0, ypos = 0;
-		glfwGetCursorPos(window->m_window, &xpos, &ypos);
+		glfwGetCursorPos(window->m_Window, &xpos, &ypos);
 
 		if (GLFWMouseButtonToInputMouseButton(mouse, mouseButton) && GLFWActionToInputAction(action, inputAction))
 		{
@@ -243,7 +243,7 @@ void KGLFWRenderWindow::OnMouseMove()
 	if (!m_MouseCallbacks.empty())
 	{
 		double xpos = 0, ypos = 0;
-		glfwGetCursorPos(m_window, &xpos, &ypos);
+		glfwGetCursorPos(m_Window, &xpos, &ypos);
 
 		constexpr float exp = 0.001f;
 		if (fabs(xpos - m_LastMovePos[0]) > exp || fabs(ypos - m_LastMovePos[1]) > exp)
@@ -267,30 +267,36 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 #ifndef __ANDROID__
 	ASSERT_RESULT(m_Device);
 
-	if (glfwInit() == GLFW_TRUE)
+	m_bPrimary = primary;
+	m_Window = nullptr;
+
+	if (m_bPrimary)
+	{
+		ASSERT_RESULT(glfwInit() == GLFW_TRUE);
+	}
+
 	{
 		glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		m_window = glfwCreateWindow((int)width, (int)height, "Vulkan window", nullptr, nullptr);
-		if (m_window)
+		m_Window = glfwCreateWindow((int)width, (int)height, "Vulkan window", nullptr, nullptr);
+		if (m_Window)
 		{
-			glfwSetWindowUserPointer(m_window, this);
+			glfwSetWindowUserPointer(m_Window, this);
 			if (resizable)
 			{
-				glfwSetFramebufferSizeCallback(m_window, FramebufferResizeCallback);
-				glfwSetKeyCallback(m_window, KeyboardCallback);
-				glfwSetMouseButtonCallback(m_window, MouseCallback);
-				glfwSetScrollCallback(m_window, ScrollCallback);
-				glfwSetWindowFocusCallback(m_window, FocusCallback);
+				glfwSetFramebufferSizeCallback(m_Window, FramebufferResizeCallback);
+				glfwSetKeyCallback(m_Window, KeyboardCallback);
+				glfwSetMouseButtonCallback(m_Window, MouseCallback);
+				glfwSetScrollCallback(m_Window, ScrollCallback);
+				glfwSetWindowFocusCallback(m_Window, FocusCallback);
 			}
-			glfwSetWindowPos(m_window, (int)top, (int)left);
+			glfwSetWindowPos(m_Window, (int)top, (int)left);
 #ifdef	_WIN32
-			m_HWND = glfwGetWin32Window(m_window);
+			m_HWND = glfwGetWin32Window(m_Window);
 #endif
 			m_LastMovePos[0] = -1.0f;
 			m_LastMovePos[1] = -1.0f;
 
-			m_bPrimary = primary;
 			if (m_bPrimary)
 			{
 				m_Device->Init(this);
@@ -298,10 +304,6 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 
 			return true;
 		}
-	}
-	else
-	{
-		m_window = nullptr;
 	}
 #endif
 	return false;
@@ -332,11 +334,14 @@ bool KGLFWRenderWindow::UnInit()
 		m_Device = nullptr;
 	}
 
-	if (m_window)
+	if (m_Window)
 	{
-		glfwDestroyWindow(m_window);
-		glfwTerminate();
-		m_window = nullptr;
+		glfwDestroyWindow(m_Window);
+		if (m_bPrimary)
+		{
+			glfwTerminate();
+		}
+		m_Window = nullptr;
 	}
 
 	m_KeyboardCallbacks.clear();
@@ -368,14 +373,31 @@ void* KGLFWRenderWindow::GetHWND()
 bool KGLFWRenderWindow::IdleUntilForeground()
 {
 #ifndef __ANDROID__
-	if (m_window)
+	if (m_Window)
 	{
 		int width = 0, height = 0;
 		while (width == 0 || height == 0)
 		{
-			glfwGetFramebufferSize(m_window, &width, &height);
+			glfwGetFramebufferSize(m_Window, &width, &height);
 			glfwWaitEvents();
 		}
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool KGLFWRenderWindow::Tick()
+{
+#ifndef __ANDROID__
+	if (m_Window)
+	{
+		if (glfwWindowShouldClose(m_Window))
+		{
+			return false;
+		}
+		glfwPollEvents();
+		OnMouseMove();
 		return true;
 	}
 #endif
@@ -385,20 +407,18 @@ bool KGLFWRenderWindow::IdleUntilForeground()
 bool KGLFWRenderWindow::Loop()
 {
 #ifndef __ANDROID__
-	if (m_window)
+	if (m_Window)
 	{
-		while (!glfwWindowShouldClose(m_window))
+		while (!glfwWindowShouldClose(m_Window))
 		{
-			glfwPollEvents();
-			OnMouseMove();
-
+			Tick();
 			if (m_Device && m_bPrimary)
 			{
 				m_Device->Present();
 			}
 		}
 
-		if (m_Device && m_bPrimary)
+		if (m_Device)
 		{
 			m_Device->Wait();
 		}
@@ -417,10 +437,10 @@ bool KGLFWRenderWindow::Loop()
 bool KGLFWRenderWindow::GetPosition(size_t &top, size_t &left)
 {
 #ifndef __ANDROID__
-	if (m_window)
+	if (m_Window)
 	{
 		int xPos = -1, yPos = -1;
-		glfwGetWindowPos(m_window, &xPos, &yPos);
+		glfwGetWindowPos(m_Window, &xPos, &yPos);
 		top = (size_t)xPos, left = (size_t)yPos;
 		return true;
 	}
@@ -431,9 +451,9 @@ bool KGLFWRenderWindow::GetPosition(size_t &top, size_t &left)
 bool KGLFWRenderWindow::SetPosition(size_t top, size_t left)
 {
 #ifndef __ANDROID__
-	if (m_window)
+	if (m_Window)
 	{
-		glfwSetWindowPos(m_window, (int)top, (int)left);
+		glfwSetWindowPos(m_Window, (int)top, (int)left);
 		return true;
 	}
 #endif
@@ -443,10 +463,10 @@ bool KGLFWRenderWindow::SetPosition(size_t top, size_t left)
 bool KGLFWRenderWindow::GetSize(size_t &width, size_t &height)
 {
 #ifndef __ANDROID__
-	if (m_window)
+	if (m_Window)
 	{
 		int nWidth = -1, nHeight = -1;
-		glfwGetWindowSize(m_window, &nWidth, &nHeight);
+		glfwGetWindowSize(m_Window, &nWidth, &nHeight);
 		width = (size_t) nWidth, height = (size_t) nHeight;
 		return true;
 	}
@@ -457,9 +477,9 @@ bool KGLFWRenderWindow::GetSize(size_t &width, size_t &height)
 bool KGLFWRenderWindow::SetSize(size_t width, size_t height)
 {
 #ifndef __ANDROID__
-	if (m_window)
+	if (m_Window)
 	{
-		glfwSetWindowSize(m_window, (int)width, (int)height);
+		glfwSetWindowSize(m_Window, (int)width, (int)height);
 		return true;
 	}
 #endif
@@ -474,9 +494,9 @@ bool KGLFWRenderWindow::SetResizable(bool resizable)
 bool KGLFWRenderWindow::IsResizable()
 {
 #ifndef __ANDROID__
-	if (m_window)
+	if (m_Window)
 	{
-		int hint = glfwGetWindowAttrib(m_window, GLFW_RESIZABLE);
+		int hint = glfwGetWindowAttrib(m_Window, GLFW_RESIZABLE);
 		return hint == GLFW_TRUE;
 	}
 #endif
@@ -486,9 +506,9 @@ bool KGLFWRenderWindow::IsResizable()
 bool KGLFWRenderWindow::SetWindowTitle(const char* pName)
 {
 #ifndef __ANDROID__
-	if (m_window)
+	if (m_Window)
 	{
-		glfwSetWindowTitle(m_window, pName);
+		glfwSetWindowTitle(m_Window, pName);
 		return true;
 	}
 #endif
