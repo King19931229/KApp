@@ -15,8 +15,10 @@ public:
 
 	QSize sizeHint() const override;
 	void resizeEvent(QResizeEvent* event) override;
+	void mousePressEvent(QMouseEvent* event) override;
 protected Q_SLOTS:
 	void ShowContextMenu(const QPoint& pos);
+	void OnOpenItemEditor();
 	void OnOpenFileExternal();
 	void OnOpenFileLocation();
 	void OnDeleteFile();

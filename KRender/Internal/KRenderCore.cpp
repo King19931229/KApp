@@ -290,6 +290,18 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 		m_UnitCallback = [this]()
 		{
+			for (auto& pair : m_SecordaryWindow)
+			{
+				IKRenderWindow* window = pair.first;
+				IKSwapChainPtr swapChain = pair.second;
+
+				ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain));
+
+				window->UnInit();
+				swapChain->UnInit();
+			}
+			m_SecordaryWindow.clear();
+
 			while (!KRenderGlobal::TaskExecutor.AllTaskDone())
 			{
 				KRenderGlobal::TaskExecutor.ProcessSyncTask();
@@ -328,18 +340,6 @@ bool KRenderCore::UnInit()
 {
 	if (m_bInit)
 	{
-		for (auto& pair : m_SecordaryWindow)
-		{
-			IKRenderWindow* window = pair.first;
-			IKSwapChainPtr swapChain = pair.second;
-
-			ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain));
-
-			window->UnInit();
-			swapChain->UnInit();
-		}
-		m_SecordaryWindow.clear();
-
 		KRenderGlobal::Scene.UnInit();
 		KECSGlobal::UnInit();
 

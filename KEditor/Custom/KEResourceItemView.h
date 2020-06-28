@@ -23,6 +23,7 @@ struct KEResourceItemDropData : public QObjectUserData
 
 class KEResourceItemView : public QListView
 {
+	Q_OBJECT
 protected:
 	QFileSystemWatcher* m_Watcher;
 	KEFileSystemTreeItem* m_RootItem;
@@ -43,4 +44,7 @@ public:
 	void dragMoveEvent(QDragMoveEvent *event) override;
 	void dragLeaveEvent(QDragLeaveEvent *event) override;
 	void dropEvent(QDropEvent *event) override;
+
+public Q_SLOTS:
+	void OnOpenItemEditor(const QModelIndex &index);
 };

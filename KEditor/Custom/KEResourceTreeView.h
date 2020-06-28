@@ -7,6 +7,7 @@
 
 class KEResourceTreeView : public QTreeView
 {
+	Q_OBJECT
 protected:
 	QFileSystemWatcher* m_Watcher;
 	std::unordered_set<std::string> m_ExpanedPaths;

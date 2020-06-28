@@ -149,6 +149,8 @@
     <ClCompile Include="Widget\KEMainRenderWidget.cpp" />
     <ClCompile Include="Widget\KERenderWidget.cpp" />
     <ClCompile Include="Widget\KESceneItemWidget.cpp" />
+    <ClCompile Include="Widget\Material\KEMaterialRenderWidget.cpp" />
+    <ClCompile Include="Window\KEMaterialEditWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -160,6 +162,8 @@
     <QtMoc Include="Widget\KEMainRenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Widget\Material\KEMaterialRenderWidget.h" />
+    <QtMoc Include="Window\KEMaterialEditWindow.h" />
     <QtMoc Include="Widget\KERenderWidget.h" />
     <QtMoc Include="Widget\KEReflectPropertyWidget.h" />
     <QtMoc Include="Widget\KESceneItemWidget.h" />
@@ -175,9 +179,9 @@
     <QtMoc Include="Browser\KEResourceWidgetEventFilter.h" />
     <ClInclude Include="Command\KECommand.h" />
     <ClInclude Include="Command\KECommandInvoker.h" />
-    <ClInclude Include="Custom\KEResourceItemView.h" />
-    <ClInclude Include="Custom\KEResourcePathView.h" />
-    <ClInclude Include="Custom\KEResourceTreeView.h" />
+    <QtMoc Include="Custom\KEResourceItemView.h" />
+    <QtMoc Include="Custom\KEResourcePathView.h" />
+    <QtMoc Include="Custom\KEResourceTreeView.h" />
     <QtMoc Include="Dialog\KEAssetConvertDialog.h" />
     <ClInclude Include="Entity\KEEntityCommand.h" />
     <ClInclude Include="Entity\KEEntityManipulator.h" />

@@ -8,7 +8,8 @@
 KEQtRenderWindow::KEQtRenderWindow()
 	: m_Device(nullptr),
 	m_HWND(nullptr),
-	m_SwapChain(nullptr)
+	m_SwapChain(nullptr),
+	m_bPrimary(true)
 {
 }
 
@@ -32,11 +33,15 @@ bool KEQtRenderWindow::Init(android_app* app)
 	return false;
 }
 
-bool KEQtRenderWindow::Init(void* hwnd)
+bool KEQtRenderWindow::Init(void* hwnd, bool primary)
 {
 	ASSERT_RESULT(m_Device);
 	m_HWND = hwnd;
-	m_Device->Init(this);
+	m_bPrimary = primary;
+	if (m_Device && m_bPrimary)
+	{
+		m_Device->Init(this);
+	}
 	return true;
 }
 
@@ -46,7 +51,10 @@ bool KEQtRenderWindow::UnInit()
 
 	if (m_Device)
 	{
-		m_Device->UnInit();
+		if (m_bPrimary)
+		{
+			m_Device->UnInit();
+		}
 		m_Device = nullptr;
 	}
 

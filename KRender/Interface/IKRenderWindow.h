@@ -31,7 +31,7 @@ struct IKRenderWindow
 
 	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary) = 0;
 	virtual bool Init(android_app* app) = 0;
-	virtual bool Init(void* HWND) = 0;
+	virtual bool Init(void* HWND, bool primary) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual android_app* GetAndroidApp() = 0;

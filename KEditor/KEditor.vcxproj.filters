@@ -72,6 +72,12 @@
     <Filter Include="Entity">
       <UniqueIdentifier>{6a40a812-1396-4fcd-abc8-200111b685f8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Widget\Material">
+      <UniqueIdentifier>{a43fe0ed-e76b-48ea-a32a-a3fc3602af21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Window">
+      <UniqueIdentifier>{4bb17a2e-e864-4b83-9b64-0fa2fc1161b3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -221,6 +227,12 @@
     <ClCompile Include="Widget\KERenderWidget.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
+    <ClCompile Include="Widget\Material\KEMaterialRenderWidget.cpp">
+      <Filter>Widget\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Window\KEMaterialEditWindow.cpp">
+      <Filter>Window</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -301,6 +313,21 @@
     </QtMoc>
     <QtMoc Include="Widget\KERenderWidget.h">
       <Filter>Widget</Filter>
+    </QtMoc>
+    <QtMoc Include="Window\KEMaterialEditWindow.h">
+      <Filter>Window</Filter>
+    </QtMoc>
+    <QtMoc Include="Widget\Material\KEMaterialRenderWidget.h">
+      <Filter>Widget\Material</Filter>
+    </QtMoc>
+    <QtMoc Include="Custom\KEResourceItemView.h">
+      <Filter>Custom</Filter>
+    </QtMoc>
+    <QtMoc Include="Custom\KEResourceTreeView.h">
+      <Filter>Custom</Filter>
+    </QtMoc>
+    <QtMoc Include="Custom\KEResourcePathView.h">
+      <Filter>Custom</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -395,20 +422,11 @@
     <ClInclude Include="Graph\Command\KEGraphConnectionCommand.h">
       <Filter>Graph\Command</Filter>
     </ClInclude>
-    <ClInclude Include="Custom\KEResourceTreeView.h">
-      <Filter>Custom</Filter>
-    </ClInclude>
-    <ClInclude Include="Custom\KEResourceItemView.h">
-      <Filter>Custom</Filter>
-    </ClInclude>
     <ClInclude Include="Browser\KEFileSystemTreeItem.h">
       <Filter>Browser</Filter>
     </ClInclude>
     <ClInclude Include="Browser\KEResourcePathItem.h">
       <Filter>Browser</Filter>
-    </ClInclude>
-    <ClInclude Include="Custom\KEResourcePathView.h">
-      <Filter>Custom</Filter>
     </ClInclude>
     <ClInclude Include="Reflection\KEReflectionObjectItem.h">
       <Filter>Reflection</Filter>

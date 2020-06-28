@@ -315,7 +315,7 @@ bool KGLFWRenderWindow::Init(android_app* app)
 	return false;
 }
 
-bool KGLFWRenderWindow::Init(void* hwnd)
+bool KGLFWRenderWindow::Init(void* hwnd, bool primary)
 {
 	// https://github.com/glfw/glfw/issues/25
 	assert(false && "GLFW window can not inited by hwnd");

@@ -5,6 +5,7 @@
 
 class KEResourcePathView : public QColumnView
 {
+	Q_OBJECT
 protected:
 	QFileSystemWatcher* m_Watcher;
 

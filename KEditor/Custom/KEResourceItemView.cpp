@@ -1,6 +1,8 @@
 #include "KEResourceItemView.h"
+#include "KEditorGlobal.h"
 #include "Browser/KEFileSystemTreeItem.h"
 #include "Browser/KEFileSystemModel.h"
+#include "Window/KEMaterialEditWindow.h"
 #include "KBase/Publish/KFileTool.h"
 
 KEResourceItemView::KEResourceItemView(QWidget *parent)
@@ -9,11 +11,33 @@ KEResourceItemView::KEResourceItemView(QWidget *parent)
 	m_RootItem(nullptr)
 {
 	setAcceptDrops(true);
+	setMouseTracking(true);
+	setFocusPolicy(Qt::ClickFocus);
+	// 连接信号槽的时候别带变量名
+	connect(this, SIGNAL(doubleClicked(const QModelIndex &)),
+		this, SLOT(OnOpenItemEditor(const QModelIndex &)));
 }
 
 KEResourceItemView::~KEResourceItemView()
 {
 	SAFE_DELETE(m_Watcher);
+}
+
+void KEResourceItemView::OnOpenItemEditor(const QModelIndex &index)
+{
+	KEFileSystemTreeItem* treeItem = (KEFileSystemTreeItem*)index.internalPointer();
+	IKFileSystem* system = treeItem->GetSystem();
+
+	if (system->GetType() == FST_NATIVE)
+	{
+		std::string absPath = treeItem->GetSystemFullPath();
+		if (KStringUtil::EndsWith(absPath, ".mtl"))
+		{
+			KEMaterialEditWindow* materialWindow = KNEW KEMaterialEditWindow(KEditorGlobal::MainWindow);
+			materialWindow->SetEditTarget(absPath);
+			materialWindow->show();
+		}
+	}
 }
 
 void KEResourceItemView::OnFileChange(const QString& path)

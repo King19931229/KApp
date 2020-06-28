@@ -231,7 +231,7 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 			m_Window->Init(windowInfo.app);
 			break;
 		case KEngineOptions::WindowInitializeInformation::TYPE_EDITOR:
-			m_Window->Init(windowInfo.hwnd);
+			m_Window->Init(windowInfo.hwnd, true);
 			break;
 		default:
 			assert(false && "should not reach");

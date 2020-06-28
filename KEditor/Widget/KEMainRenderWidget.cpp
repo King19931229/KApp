@@ -6,9 +6,6 @@
 #include "KEngine/Interface/IKEngine.h"
 #include "KEditorGlobal.h"
 
-#include <QWheelEvent>
-#include <assert.h>
-
 KEMainRenderWidget::KEMainRenderWidget(QWidget* pParent)
 	: KERenderWidget(pParent)
 {
@@ -20,6 +17,8 @@ KEMainRenderWidget::~KEMainRenderWidget()
 
 bool KEMainRenderWidget::Init(IKEnginePtr& engine)
 {
+	UnInit();
+
 	if (engine)
 	{
 		m_Engine = engine.get();

@@ -8,6 +8,7 @@
 #include "Other/KEQtRenderWindow.h"
 #include "Browser/KEResourceBrowser.h"
 #include "ToolBar/KEManipulatorToolBar.h"
+#include "Window/KEMaterialEditWindow.h"
 #include <QTextCodec>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -27,6 +28,7 @@ KEditor::KEditor(QWidget *parent)
 	m_Engine(nullptr),
 	m_bInit(false)
 {
+	KEditorGlobal::MainWindow = this;
 	ui.setupUi(this);
 	QTextCodec::setCodecForLocale(QTextCodec::codecForName("GBK"));
 	SetupMenu();
@@ -34,6 +36,7 @@ KEditor::KEditor(QWidget *parent)
 
 KEditor::~KEditor()
 {
+	KEditorGlobal::MainWindow = nullptr;
 	assert(m_RenderWidget == nullptr);
 	assert(m_GraphWidget == nullptr);
 	assert(m_ResourceBrowser == nullptr);
@@ -163,6 +166,17 @@ bool KEditor::UnInit()
 {
 	if (m_bInit)
 	{
+		// 用RTTI删掉正在打开的其它子窗口
+		auto childrenList = children();
+		for (QObject* object : childrenList)
+		{
+			KEMaterialEditWindow* materialWindow = dynamic_cast<KEMaterialEditWindow*>(object);
+			if (materialWindow)
+			{
+				SAFE_DELETE(materialWindow);
+			}
+		}
+
 		// 清空操作栈 同时不允许析构操作进入操作栈
 		KEditorGlobal::CommandInvoker.Clear();
 		auto commandLockGuard = KEditorGlobal::CommandInvoker.CreateLockGurad();

@@ -694,16 +694,16 @@ bool KVulkanRenderDevice::UnInit()
 {
 	Wait();
 
+	for (KDeviceUnInitCallback* callback : m_UnInitCallback)
+	{
+		(*callback)();
+	}
+
 	for (IKSwapChainPtr& swapChain : m_SecordarySwapChains)
 	{
 		SAFE_UNINIT(swapChain);
 	}
 	m_SecordarySwapChains.clear();
-
-	for (KDeviceUnInitCallback* callback : m_UnInitCallback)
-	{
-		(*callback)();
-	}
 
 	CleanupSwapChain();
 

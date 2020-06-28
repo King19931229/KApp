@@ -50,7 +50,7 @@ bool KAndroidRenderWindow::Init(android_app* app)
 #endif
 }
 
-bool KAndroidRenderWindow::Init(void* hwnd)
+bool KAndroidRenderWindow::Init(void* hwnd, bool primary)
 {
 	assert(false && "android window can not inited by this call");
 	return false;

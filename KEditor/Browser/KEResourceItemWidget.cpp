@@ -1,12 +1,14 @@
 #include "KEResourceItemWidget.h"
 #include "KEResourceBrowser.h"
 #include "KEFileSystemTreeItem.h"
+#include "KEditorGlobal.h"
 #include "Dialog/KEAssetConvertDialog.h"
+#include "KBase/Publish/KFileTool.h"
+#include "KBase/Publish/KStringUtil.h"
 #include <QMenu>
 #include <QDesktopServices>
 #include <QMessageBox>
 #include <QProcess>
-#include "KBase/Publish/KFileTool.h"
 #include <tuple>
 
 KEResourceItemWidget::KEResourceItemWidget(QWidget *parent)
@@ -14,7 +16,6 @@ KEResourceItemWidget::KEResourceItemWidget(QWidget *parent)
 	m_Browser(parent)
 {
 	ui.setupUi(this);
-
 	ui.m_ItemView->installEventFilter(&m_Filter);
 	ui.m_ItemView->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(ui.m_ItemView, SIGNAL(customContextMenuRequested(const QPoint&)),
@@ -42,6 +43,9 @@ void KEResourceItemWidget::ShowContextMenu(const QPoint& pos)
 		QAction *openFileLocationAction = menu->addAction("Open File Location");
 		connect(openFileLocationAction, &QAction::triggered, this, &KEResourceItemWidget::OnOpenFileLocation);
 
+		QAction *openEditorAction = menu->addAction("Open Editor");
+		connect(openEditorAction, &QAction::triggered, this, &KEResourceItemWidget::OnOpenItemEditor);
+
 		QAction *deleteFileAction = menu->addAction("Delete File");
 		connect(deleteFileAction, &QAction::triggered, this, &KEResourceItemWidget::OnDeleteFile);
 
@@ -49,6 +53,18 @@ void KEResourceItemWidget::ShowContextMenu(const QPoint& pos)
 		connect(convertIntoMeshAction, &QAction::triggered, this, &KEResourceItemWidget::ConvertIntoMesh);
 
 		menu->exec(QCursor::pos());
+	}
+}
+
+void KEResourceItemWidget::OnOpenItemEditor()
+{
+	QModelIndexList selectedIndexes = ui.m_ItemView->selectionModel()->selectedIndexes();
+	if (selectedIndexes.size() > 0)
+	{
+		for (QModelIndex& index : selectedIndexes)
+		{
+			ui.m_ItemView->OnOpenItemEditor(index);
+		}
 	}
 }
 
@@ -181,4 +197,9 @@ QSize KEResourceItemWidget::sizeHint() const
 
 void KEResourceItemWidget::resizeEvent(QResizeEvent* event)
 {
+}
+
+void KEResourceItemWidget::mousePressEvent(QMouseEvent* event)
+{
+	OnOpenItemEditor();
 }

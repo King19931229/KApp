@@ -9,6 +9,7 @@ protected:
 	IKRenderDevice* m_Device;
 	void* m_HWND;
 	IKSwapChain* m_SwapChain;
+	bool m_bPrimary;
 	std::vector<KKeyboardCallbackType*> m_KeyboardCallbacks;
 	std::vector<KMouseCallbackType*> m_MouseCallbacks;
 	std::vector<KScrollCallbackType*> m_ScrollCallbacks;
@@ -22,7 +23,7 @@ public:
 
 	virtual bool Init(size_t top, size_t left, size_t width, size_t height, bool resizable, bool primary);
 	virtual bool Init(android_app* app);
-	virtual bool Init(void* hwnd);
+	virtual bool Init(void* hwnd, bool primary);
 	virtual bool UnInit();
 
 	virtual android_app* GetAndroidApp();
