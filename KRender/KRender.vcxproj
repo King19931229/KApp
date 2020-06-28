@@ -29,6 +29,7 @@
     <ClInclude Include="Interface\IKRenderCommand.h" />
     <ClInclude Include="Interface\IKRenderCore.h" />
     <ClInclude Include="Interface\IKRenderDevice.h" />
+    <ClInclude Include="Interface\IKRenderDispatcher.h" />
     <ClInclude Include="Interface\IKRenderTarget.h" />
     <ClInclude Include="Interface\IKRenderWindow.h" />
     <ClInclude Include="Interface\IKResource.h" />

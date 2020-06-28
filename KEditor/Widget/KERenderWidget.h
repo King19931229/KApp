@@ -1,6 +1,7 @@
 #pragma once
 #include <QWidget>
 #include "KEngine/Interface/IKEngine.h"
+#include "KRender/Interface/IKRenderWindow.h"
 #include "KBase/Publish/KInput.h"
 
 class KEQtRenderWindow;
@@ -22,6 +23,7 @@ protected:
 public:
 	KERenderWidget(QWidget* pParent = NULL);
 	~KERenderWidget();
+	IKRenderWindow* GetRenderWindow();
 
 	// 重写基类函数
 public:

@@ -11,8 +11,6 @@
 #include "KBase/Publish/KPlatform.h"
 #include "KBase/Publish/KTimer.h"
 
-#include "Dispatcher/KRenderDispatcher.h"
-
 #include "Internal/KConstantGlobal.h"
 #include "Internal/ECS/KECSGlobal.h"
 
@@ -163,7 +161,7 @@ bool KRenderCore::UnInitRenderDispatcher()
 
 bool KRenderCore::InitController()
 {
-	IKUIOverlayPtr ui = m_Device->GetUIOverlay();
+	IKUIOverlay* ui = m_Device->GetUIOverlay();
 	m_CameraMoveController.Init(&m_Camera, m_Window, m_Gizmo);
 	m_UIController.Init(ui, m_Window);
 	m_GizmoContoller.Init(m_Gizmo, m_CameraCube, &m_Camera, m_Window);
@@ -293,9 +291,9 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			for (auto& pair : m_SecordaryWindow)
 			{
 				IKRenderWindow* window = pair.first;
-				IKSwapChainPtr swapChain = pair.second;
+				IKSwapChainPtr& swapChain = pair.second;
 
-				ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain));
+				ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain.get()));
 
 				window->UnInit();
 				swapChain->UnInit();
@@ -318,9 +316,14 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			UnInitGlobalManager();
 		};
 
+		m_MainWindowRenderCB = [this](IKRenderDispatcher* dispatcher, uint32_t chainImageIndex, uint32_t frameIndex)
+		{
+			dispatcher->SetSceneCamera(&KRenderGlobal::Scene, &m_Camera);
+		};
+
 		KECSGlobal::Init();
 		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
-		KRenderGlobal::RenderDispatcher.SetSceneCamera(&KRenderGlobal::Scene, &m_Camera);
+		KRenderGlobal::RenderDispatcher.SetCallback(m_Window, &m_MainWindowRenderCB);
 
 		m_Device->RegisterPrePresentCallback(&m_PrePresentCallback);
 		m_Device->RegisterPostPresentCallback(&m_PostPresentCallback);
@@ -340,6 +343,8 @@ bool KRenderCore::UnInit()
 {
 	if (m_bInit)
 	{
+		KRenderGlobal::RenderDispatcher.RemoveCallback(m_Window);
+
 		KRenderGlobal::Scene.UnInit();
 		KECSGlobal::UnInit();
 
@@ -391,8 +396,8 @@ bool KRenderCore::Tick()
 				IKRenderWindow* window = it->first;
 				if (!window->Tick())
 				{
-					IKSwapChainPtr swapChain = it->second;
-					ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain));
+					IKSwapChainPtr& swapChain = it->second;
+					ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain.get()));
 					window->UnInit();
 					swapChain->UnInit();
 					it = m_SecordaryWindow.erase(it);
@@ -433,8 +438,8 @@ bool KRenderCore::RegisterSecordaryWindow(IKRenderWindowPtr& window)
 			IKSwapChainPtr swapChain = nullptr;
 			ASSERT_RESULT(m_Device->CreateSwapChain(swapChain));
 			swapChain->Init(window.get(), 1);
-			m_SecordaryWindow.insert({ window.get() , swapChain });
-			ASSERT_RESULT(m_Device->RegisterSecordarySwapChain(swapChain));
+			ASSERT_RESULT(m_Device->RegisterSecordarySwapChain(swapChain.get()));
+			m_SecordaryWindow.insert({ window.get() , std::move(swapChain) });
 			return true;
 		}
 	}
@@ -449,7 +454,7 @@ bool KRenderCore::UnRegisterSecordaryWindow(IKRenderWindowPtr& window)
 		if (it != m_SecordaryWindow.end())
 		{
 			IKSwapChainPtr& swapChain = it->second;
-			ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain));
+			ASSERT_RESULT(m_Device->UnRegisterSecordarySwapChain(swapChain.get()));
 			SAFE_UNINIT(swapChain);
 			m_SecordaryWindow.erase(it);
 			SAFE_UNINIT(window);
@@ -492,6 +497,11 @@ bool KRenderCore::UnRegistertAllInitCallback()
 IKRenderScene* KRenderCore::GetRenderScene()
 {
 	return &KRenderGlobal::Scene;
+}
+
+IKRenderDispatcher* KRenderCore::GetRenderDispatcher()
+{
+	return &KRenderGlobal::RenderDispatcher;
 }
 
 bool KRenderCore::UpdateCamera(size_t frameIndex)
@@ -549,7 +559,7 @@ bool KRenderCore::UpdateFrameTime()
 
 bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 {
-	IKUIOverlayPtr ui = m_Device->GetUIOverlay();
+	IKUIOverlay* ui = m_Device->GetUIOverlay();
 
 	ui->StartNewFrame();
 	{

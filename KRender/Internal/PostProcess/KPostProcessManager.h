@@ -91,7 +91,7 @@ public:
 	IKPostProcessNodePtr GetStartPointPass() override;
 
 	bool Construct() override;
-	bool Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChainPtr& swapChain, IKUIOverlayPtr& ui, IKCommandBufferPtr primaryCommandBuffer);
+	bool Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChain* swapChain, IKUIOverlay* ui, IKCommandBufferPtr primaryCommandBuffer);
 
 	inline IKRenderDevice* GetDevice() { return m_Device; }	
 };

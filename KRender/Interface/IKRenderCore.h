@@ -3,6 +3,7 @@
 #include "KRender/Interface/IKRenderScene.h"
 #include "KRender/Interface/IKGizmo.h"
 #include "KRender/Interface/IKCameraController.h"
+#include "KRender/Interface/IKRenderDispatcher.h"
 #include "KRender/Publish/KCamera.h"
 
 typedef std::function<void()> KRenderCoreInitCallback;
@@ -26,7 +27,9 @@ struct IKRenderCore
 	virtual bool UnRegisterInitCallback(KRenderCoreInitCallback* callback) = 0;
 	virtual bool UnRegistertAllInitCallback() = 0;
 
+	// 获取主场景
 	virtual IKRenderScene* GetRenderScene() = 0;
+	virtual IKRenderDispatcher* GetRenderDispatcher() = 0;
 	virtual IKRenderWindow* GetRenderWindow() = 0;
 	virtual IKRenderDevice* GetRenderDevice() = 0;
 

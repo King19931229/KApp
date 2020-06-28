@@ -70,7 +70,7 @@ protected:
 	PhysicalDevice m_PhysicalDevice;
 
 	IKSwapChainPtr m_SwapChain;
-	std::vector<IKSwapChainPtr> m_SecordarySwapChains;
+	std::vector<IKSwapChain*> m_SecordarySwapChains;
 	IKUIOverlayPtr m_UIOverlay;
 
 	typedef std::unordered_set<KDevicePresentCallback*> PresentCallbackSet;
@@ -176,12 +176,12 @@ public:
 	virtual bool RegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback);
 	virtual bool UnRegisterDeviceUnInitCallback(KDeviceUnInitCallback* callback);
 
-	virtual bool RegisterSecordarySwapChain(IKSwapChainPtr swapChain);
-	virtual bool UnRegisterSecordarySwapChain(IKSwapChainPtr swapChain);
+	virtual bool RegisterSecordarySwapChain(IKSwapChain* swapChain);
+	virtual bool UnRegisterSecordarySwapChain(IKSwapChain* swapChain);
 
 	virtual bool QueryProperty(KRenderDeviceProperties& property);
 
-	virtual IKSwapChainPtr GetSwapChain();
-	virtual IKUIOverlayPtr GetUIOverlay();
+	virtual IKSwapChain* GetSwapChain();
+	virtual IKUIOverlay* GetUIOverlay();
 	virtual uint32_t GetNumFramesInFlight();
 };

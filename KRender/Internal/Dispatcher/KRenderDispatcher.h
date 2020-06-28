@@ -3,21 +3,23 @@
 #include "Interface/IKCommandBuffer.h"
 #include "Interface/IKSwapChain.h"
 #include "Interface/IKGizmo.h"
+#include "Interface/IKRenderDispatcher.h"
 #include "Internal/Scene/KRenderScene.h"
 #include "KBase/Publish/KThreadPool.h"
 #include "Publish/KCamera.h"
 
-class KRenderDispatcher
+class KRenderDispatcher : public IKRenderDispatcher
 {
 protected:
 	IKRenderDevice* m_Device;
-	IKSwapChainPtr m_SwapChain;
-	IKUIOverlayPtr m_UIOverlay;
-	KRenderScene* m_Scene;
+	IKSwapChain* m_SwapChain;
+	IKUIOverlay* m_UIOverlay;
+	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
 	IKCameraCubePtr m_CameraCube;
-
 	uint32_t m_FrameInFlight;
+
+	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
 
 	struct ThreadData
 	{
@@ -55,8 +57,8 @@ protected:
 
 	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
 
-	bool SubmitCommandBufferSingleThread(KRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
-	bool SubmitCommandBufferMuitiThread(KRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
+	bool SubmitCommandBufferSingleThread(IKRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
+	bool SubmitCommandBufferMuitiThread(IKRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
 
 	bool CreateCommandBuffers();
 	bool DestroyCommandBuffers();
@@ -77,8 +79,10 @@ public:
 	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKCameraCubePtr cameraCube);
 	bool UnInit();
 
-	bool SetSwapChain(IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay);
-	bool SetSceneCamera(KRenderScene* scene, const KCamera* camera);
+	bool SetSwapChain(IKSwapChain* swapChain, IKUIOverlay* uiOverlay);
+	bool SetSceneCamera(IKRenderScene* scene, const KCamera* camera) override;
+	bool SetCallback(IKRenderWindow* window, OnWindowRenderCallback* callback) override;
+	bool RemoveCallback(IKRenderWindow* window) override;
 
 	bool Execute(uint32_t chainImageIndex, uint32_t frameIndex);
 	IKCommandBufferPtr GetPrimaryCommandBuffer(uint32_t frameIndex);

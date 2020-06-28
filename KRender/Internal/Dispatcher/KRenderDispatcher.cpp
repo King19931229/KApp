@@ -483,7 +483,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
 }
 
-bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
+bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	assert(frameIndex < m_CommandBuffers.size());
 
@@ -498,7 +498,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, con
 	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffers[frameIndex].clearCommandBuffer;
 
 	std::vector<KRenderComponent*> cullRes;
-	scene->GetRenderComponent(*camera, cullRes);
+	((KRenderScene*)scene)->GetRenderComponent(*camera, cullRes);
 
 	primaryCommandBuffer->BeginPrimary();
 	{
@@ -606,7 +606,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(KRenderScene* scene, con
 	return true;
 }
 
-bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, const KCamera* camera,
+bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, const KCamera* camera,
 	uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	IKPipelineHandlePtr pipelineHandle;
@@ -626,7 +626,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(KRenderScene* scene, cons
 	KRenderStageStatistics shadowStatistics;
 
 	std::vector<KRenderComponent*> cullRes;
-	scene->GetRenderComponent(*camera, cullRes);
+	((KRenderScene*)scene)->GetRenderComponent(*camera, cullRes);
 
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
@@ -820,39 +820,74 @@ bool KRenderDispatcher::UnInit()
 	return true;
 }
 
-bool KRenderDispatcher::SetSwapChain(IKSwapChainPtr swapChain, IKUIOverlayPtr uiOverlay)
+bool KRenderDispatcher::SetSwapChain(IKSwapChain* swapChain, IKUIOverlay* uiOverlay)
 {
 	m_SwapChain = swapChain;
 	m_UIOverlay = uiOverlay;
 	return true;
 }
 
-bool KRenderDispatcher::SetSceneCamera(KRenderScene* scene, const KCamera* camera)
+bool KRenderDispatcher::SetSceneCamera(IKRenderScene* scene, const KCamera* camera)
 {
 	m_Scene = scene;
 	m_Camera = camera;
 	return true;
 }
 
+bool KRenderDispatcher::SetCallback(IKRenderWindow* window, OnWindowRenderCallback* callback)
+{
+	if (window && callback)
+	{
+		m_WindowRenderCB[window] = callback;
+		return true;
+	}
+	return false;
+}
+
+bool KRenderDispatcher::RemoveCallback(IKRenderWindow* window)
+{
+	if (window)
+	{
+		if (m_WindowRenderCB.erase(window))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 bool KRenderDispatcher::Execute(uint32_t chainImageIndex, uint32_t frameIndex)
 {
-	if (m_SwapChain && m_Scene && m_Camera)
+	if (m_SwapChain)
 	{
 		IKRenderWindow* window = m_SwapChain->GetWindow();
 		ASSERT_RESULT(window);
+
 		size_t windowWidth = 0, windowHeight = 0;
 		ASSERT_RESULT(window->GetSize(windowWidth, windowHeight));
 
 		// 窗口最小化后就干脆不提交了
 		if (windowWidth && windowHeight)
 		{
-			if (m_MultiThreadSubmit)
+			// 促发绘制回调
 			{
-				SubmitCommandBufferMuitiThread(m_Scene, m_Camera, chainImageIndex, frameIndex);
+				auto it = m_WindowRenderCB.find(window);
+				if (it != m_WindowRenderCB.end())
+				{
+					(*(it->second))(this, chainImageIndex, frameIndex);
+				}
 			}
-			else
+
+			if (m_Scene && m_Camera)
 			{
-				SubmitCommandBufferSingleThread(m_Scene, m_Camera, chainImageIndex, frameIndex);
+				if (m_MultiThreadSubmit)
+				{
+					SubmitCommandBufferMuitiThread(m_Scene, m_Camera, chainImageIndex, frameIndex);
+				}
+				else
+				{
+					SubmitCommandBufferSingleThread(m_Scene, m_Camera, chainImageIndex, frameIndex);
+				}
 			}
 		}
 	}

@@ -42,6 +42,7 @@ namespace KRenderGlobal
 	extern KShadowMap ShadowMap;
 	extern KCascadedShadowMap CascadedShadowMap;
 
+	// TODO 多场景去掉全局场景
 	extern KRenderScene Scene;
 	extern KRenderDispatcher RenderDispatcher;
 

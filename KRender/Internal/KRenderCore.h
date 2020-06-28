@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKRenderCore.h"
 #include "Interface/IKRenderDevice.h"
+#include "Interface/IKRenderDispatcher.h"
 
 #include "KRender/Internal/KDebugConsole.h"
 
@@ -32,6 +33,8 @@ protected:
 	KSwapChainRecreateCallback m_SwapChainCallback;
 	KDeviceInitCallback m_InitCallback;
 	KDeviceUnInitCallback m_UnitCallback;
+
+	IKRenderDispatcher::OnWindowRenderCallback m_MainWindowRenderCB;
 
 	std::unordered_map<IKRenderWindow*, IKSwapChainPtr> m_SecordaryWindow;
 
@@ -92,6 +95,7 @@ public:
 	virtual bool UnRegistertAllInitCallback();
 
 	virtual IKRenderScene* GetRenderScene();
+	virtual IKRenderDispatcher* GetRenderDispatcher();
 
 	virtual IKRenderWindow* GetRenderWindow() { return m_Window; }
 	virtual IKRenderDevice* GetRenderDevice() { return m_Device; }

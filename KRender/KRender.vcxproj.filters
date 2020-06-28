@@ -375,6 +375,9 @@
     <ClInclude Include="Internal\Manager\KInstanceBufferManager.h">
       <Filter>Internal\Manager</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKRenderDispatcher.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">

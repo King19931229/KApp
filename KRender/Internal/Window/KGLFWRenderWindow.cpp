@@ -50,8 +50,8 @@ void KGLFWRenderWindow::FramebufferResizeCallback(GLFWwindow* handle, int width,
 	KGLFWRenderWindow* window = (KGLFWRenderWindow*)glfwGetWindowUserPointer(handle);
 	if (window && window->m_Device)
 	{
-		IKSwapChain* mainSwapChain = window->m_Device->GetSwapChain().get();
-		IKUIOverlay* mainUIOverlay = window->m_Device->GetUIOverlay().get();
+		IKSwapChain* mainSwapChain = window->m_Device->GetSwapChain();
+		IKUIOverlay* mainUIOverlay = window->m_Device->GetUIOverlay();
 		// 主窗口才更新UI
 		window->m_Device->RecreateSwapChain(window->m_SwapChain, mainSwapChain == window->m_SwapChain ? mainUIOverlay : nullptr);
 	}

@@ -14,7 +14,7 @@ KUIOverlayController::~KUIOverlayController()
 	ASSERT_RESULT(m_Window == nullptr);
 }
 
-bool KUIOverlayController::Init(IKUIOverlayPtr ui, IKRenderWindow* window)
+bool KUIOverlayController::Init(IKUIOverlay* ui, IKRenderWindow* window)
 {
 	if (ui && window)
 	{

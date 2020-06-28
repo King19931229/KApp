@@ -5,7 +5,7 @@
 class KUIOverlayController
 {
 protected:
-	IKUIOverlayPtr m_UIOverlay;
+	IKUIOverlay* m_UIOverlay;
 	IKRenderWindow* m_Window;
 
 	KMouseCallbackType m_MouseCallback;
@@ -18,7 +18,7 @@ public:
 
 	void SetEnable(bool enable) { m_Enable = enable; }
 
-	bool Init(IKUIOverlayPtr ui, IKRenderWindow* window);
+	bool Init(IKUIOverlay* ui, IKRenderWindow* window);
 	bool UnInit();
 
 	bool Update(float dt);

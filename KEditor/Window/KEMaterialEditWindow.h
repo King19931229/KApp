@@ -9,6 +9,7 @@ class KEMaterialEditWindow : public QMainWindow
 protected:
 	QWidget* m_MainWindow;
 	KEMaterialRenderWidget* m_RenderWidget;
+	IKRenderDispatcher::OnWindowRenderCallback m_OnRenderCallBack;
 
 	bool Init();
 	bool UnInit();

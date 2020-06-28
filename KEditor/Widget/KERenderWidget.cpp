@@ -25,12 +25,17 @@ KERenderWidget::~KERenderWidget()
 	ASSERT_RESULT(m_RenderWindow == nullptr);
 }
 
+IKRenderWindow* KERenderWidget::GetRenderWindow()
+{
+	return m_RenderWindow;
+}
+
 void KERenderWidget::resizeEvent(QResizeEvent *event)
 {
 	if (m_RenderDevice)
 	{
-		IKSwapChain* mainSwapChain = m_RenderDevice->GetSwapChain().get();
-		IKUIOverlay* mainUIOverlay = m_RenderDevice->GetUIOverlay().get();
+		IKSwapChain* mainSwapChain = m_RenderDevice->GetSwapChain();
+		IKUIOverlay* mainUIOverlay = m_RenderDevice->GetUIOverlay();
 		// 主窗口才更新UI
 		m_RenderDevice->RecreateSwapChain(m_RenderWindow->m_SwapChain, mainSwapChain == m_RenderWindow->m_SwapChain ? mainUIOverlay : nullptr);
 	}

@@ -29,16 +29,33 @@ void KEMaterialEditWindow::resizeEvent(QResizeEvent* event)
 bool KEMaterialEditWindow::Init()
 {
 	UnInit();
+
 	m_RenderWidget = KNEW KEMaterialRenderWidget();
 	m_RenderWidget->Init(KEngineGlobal::Engine);
 	setCentralWidget(m_RenderWidget);
+
+	IKRenderCore* renderCore = KEngineGlobal::Engine->GetRenderCore();
+	IKRenderDispatcher* renderer = renderCore->GetRenderDispatcher();
+	renderer->SetCallback(m_RenderWidget->GetRenderWindow(), &m_OnRenderCallBack);
+
+	m_OnRenderCallBack = [this](IKRenderDispatcher* dispatcher, uint32_t chainImageIndex, uint32_t frameIndex)
+	{
+		// TODO Set MiniScene and MiniCamera
+	};
+
 	return true;
 }
 
 bool KEMaterialEditWindow::UnInit()
 {
 	setCentralWidget(nullptr);
-	SAFE_UNINIT(m_RenderWidget);
+	if (m_RenderWidget)
+	{
+		IKRenderCore* renderCore = KEngineGlobal::Engine->GetRenderCore();
+		IKRenderDispatcher* renderer = renderCore->GetRenderDispatcher();
+		renderer->RemoveCallback(m_RenderWidget->GetRenderWindow());
+		m_RenderWidget->UnInit();
+	}
 	SAFE_DELETE(m_RenderWidget);
 	return true;
 }
