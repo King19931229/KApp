@@ -378,6 +378,9 @@
     <ClInclude Include="Interface\IKRenderDispatcher.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Controller\KCameraPreviewController.h">
+      <Filter>Internal\Controller</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -610,6 +613,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Manager\KInstanceBufferManager.cpp">
       <Filter>Internal\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Controller\KCameraPreviewController.cpp">
+      <Filter>Internal\Controller</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

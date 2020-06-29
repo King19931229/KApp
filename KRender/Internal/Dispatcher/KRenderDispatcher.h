@@ -54,6 +54,7 @@ protected:
 
 	bool m_MultiThreadSubmit;
 	bool m_InstanceSubmit;
+	bool m_DisplayCameraCube;
 
 	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
 
@@ -69,6 +70,7 @@ protected:
 		std::vector<KRenderComponent*>& cullRes, std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands);
 
 	bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material);
+	bool UpdateCamera(size_t frameIndex);
 public:
 	KRenderDispatcher();
 	~KRenderDispatcher();
@@ -79,6 +81,10 @@ public:
 	bool Init(IKRenderDevice* device, uint32_t frameInFlight, IKCameraCubePtr cameraCube);
 	bool UnInit();
 
+	IKRenderScene* GetScene() override { return m_Scene; }
+	const KCamera* GetCamera() override { return m_Camera; }
+
+	bool SetCameraCubeDisplay(bool display) override;
 	bool SetSwapChain(IKSwapChain* swapChain, IKUIOverlay* uiOverlay);
 	bool SetSceneCamera(IKRenderScene* scene, const KCamera* camera) override;
 	bool SetCallback(IKRenderWindow* window, OnWindowRenderCallback* callback) override;

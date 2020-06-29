@@ -4,7 +4,7 @@
 #include "Interface/IKCameraController.h"
 #include "Publish/KCamera.h"
 
-class KCameraMoveController : public IKCameraController
+class KCameraMoveController : public IKCameraMoveController
 {
 protected:
 	KCamera* m_Camera;

@@ -67,7 +67,6 @@ protected:
 	bool UnInitRenderResource();
 
 	bool UpdateFrameTime();
-	bool UpdateCamera(size_t frameIndex);
 	bool UpdateUIOverlay(size_t frameIndex);
 	bool UpdateController();
 	bool UpdateGizmo();
@@ -102,5 +101,5 @@ public:
 
 	virtual IKGizmoPtr GetGizmo() { return m_Gizmo; }
 	virtual KCamera* GetCamera() { return &m_Camera; }
-	virtual IKCameraController* GetCameraController() { return &m_CameraMoveController; }
+	virtual IKCameraMoveController* GetCameraController() { return &m_CameraMoveController; }
 };

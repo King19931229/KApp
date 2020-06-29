@@ -4,6 +4,7 @@
 #include "Internal/ECS/Component/KDebugComponent.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/Gizmo/KCameraCube.h"
+#include "Internal/KConstantGlobal.h"
 #include "KBase/Publish/KHash.h"
 #include "KBase/Publish/KNumerical.h"
 
@@ -576,19 +577,22 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, co
 				}
 
 				// 绘制Camera Gizmo
-				if (m_CameraCube)
+				if (m_DisplayCameraCube)
 				{
-					KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-					cameraCube->Render(frameIndex, offscreenTarget, commandBuffers);
-
-					if (!commandBuffers.empty())
+					if (m_CameraCube)
 					{
-						primaryCommandBuffer->ExecuteAll(commandBuffers);
-						commandBuffers.clear();
+						KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
+						cameraCube->Render(frameIndex, offscreenTarget, commandBuffers);
+
+						if (!commandBuffers.empty())
+						{
+							primaryCommandBuffer->ExecuteAll(commandBuffers);
+							commandBuffers.clear();
+						}
 					}
 				}
 
-				KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
+				// KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
 				if (!commandBuffers.empty())
 				{
 					primaryCommandBuffer->ExecuteAll(commandBuffers);
@@ -751,19 +755,22 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 			}
 
 			// 绘制Camera Gizmo
-			if (m_CameraCube)
+			if (m_DisplayCameraCube)
 			{
-				KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-				cameraCube->Render(frameIndex, offscreenTarget, commandBuffers);
-
-				if (!commandBuffers.empty())
+				if (m_CameraCube)
 				{
-					primaryCommandBuffer->ExecuteAll(commandBuffers);
-					commandBuffers.clear();
+					KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
+					cameraCube->Render(frameIndex, offscreenTarget, commandBuffers);
+
+					if (!commandBuffers.empty())
+					{
+						primaryCommandBuffer->ExecuteAll(commandBuffers);
+						commandBuffers.clear();
+					}
 				}
 			}
 
-			KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
+			// KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
 			if (!commandBuffers.empty())
 			{
 				primaryCommandBuffer->ExecuteAll(commandBuffers);
@@ -820,6 +827,12 @@ bool KRenderDispatcher::UnInit()
 	return true;
 }
 
+bool KRenderDispatcher::SetCameraCubeDisplay(bool display)
+{
+	m_DisplayCameraCube = display;
+	return true;
+}
+
 bool KRenderDispatcher::SetSwapChain(IKSwapChain* swapChain, IKUIOverlay* uiOverlay)
 {
 	m_SwapChain = swapChain;
@@ -856,6 +869,48 @@ bool KRenderDispatcher::RemoveCallback(IKRenderWindow* window)
 	return false;
 }
 
+bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
+{
+	if (m_Camera)
+	{
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
+		if (cameraBuffer)
+		{
+			glm::mat4 view = m_Camera->GetViewMatrix();
+			glm::mat4 proj = m_Camera->GetProjectiveMatrix();
+			glm::mat4 viewInv = glm::inverse(view);
+
+			void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);
+			const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
+			for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
+			{
+				void* pWritePos = nullptr;
+				if (detail.semantic == CS_VIEW)
+				{
+					assert(sizeof(view) == detail.size);
+					pWritePos = POINTER_OFFSET(pData, detail.offset);
+					memcpy(pWritePos, &view, sizeof(view));
+				}
+				else if (detail.semantic == CS_PROJ)
+				{
+					assert(sizeof(proj) == detail.size);
+					pWritePos = POINTER_OFFSET(pData, detail.offset);
+					memcpy(pWritePos, &proj, sizeof(proj));
+				}
+				else if (detail.semantic == CS_VIEW_INV)
+				{
+					assert(sizeof(viewInv) == detail.size);
+					pWritePos = POINTER_OFFSET(pData, detail.offset);
+					memcpy(pWritePos, &viewInv, sizeof(viewInv));
+				}
+			}
+			cameraBuffer->Write(pData);
+			return true;
+		}
+	}
+	return false;
+}
+
 bool KRenderDispatcher::Execute(uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	if (m_SwapChain)
@@ -880,6 +935,8 @@ bool KRenderDispatcher::Execute(uint32_t chainImageIndex, uint32_t frameIndex)
 
 			if (m_Scene && m_Camera)
 			{
+				UpdateCamera(frameIndex);
+
 				if (m_MultiThreadSubmit)
 				{
 					SubmitCommandBufferMuitiThread(m_Scene, m_Camera, chainImageIndex, frameIndex);

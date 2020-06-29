@@ -97,7 +97,6 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 			{
 				m_MousePos[0] = xPos;
 				m_MousePos[1] = yPos;
-
 				m_MouseDown[mouse] = true;
 			}
 			if (action == INPUT_ACTION_RELEASE)
@@ -155,8 +154,11 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 
 		m_ScrollCallback = [this](float xOffset, float yOffset)
 		{
-			const float fSpeed = 15.0f * m_Speed;
-			m_Camera->MoveForward(fSpeed * yOffset);
+			if (IsEnable())
+			{
+				const float fSpeed = 15.0f * m_Speed;
+				m_Camera->MoveForward(fSpeed * yOffset);
+			}
 		};
 
 		m_TouchCallback = [this](const std::vector<std::tuple<float, float>>& touchPositions, InputAction action)
@@ -239,7 +241,7 @@ bool KCameraMoveController::Init(KCamera* camera, IKRenderWindow* window, IKGizm
 
 				if (m_LastTouchDistance > 0.0f)
 				{
-					if (m_Enable)
+					if (IsEnable())
 					{
 						m_Camera->MoveForward((distance - m_LastTouchDistance) * fSpeed);
 					}

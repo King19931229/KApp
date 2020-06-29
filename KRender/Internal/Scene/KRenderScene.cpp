@@ -1,6 +1,11 @@
 #include "KRenderScene.h"
 #include "KOctreeSceneManager.h"
 
+EXPORT_DLL IKRenderScenePtr CreateRenderScene()
+{
+	return IKRenderScenePtr(new KRenderScene());
+}
+
 KRenderScene::KRenderScene()
 	: m_SceneMgr(nullptr),
 	m_EnableDebugRender(false)

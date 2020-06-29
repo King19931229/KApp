@@ -319,6 +319,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		m_MainWindowRenderCB = [this](IKRenderDispatcher* dispatcher, uint32_t chainImageIndex, uint32_t frameIndex)
 		{
 			dispatcher->SetSceneCamera(&KRenderGlobal::Scene, &m_Camera);
+			dispatcher->SetCameraCubeDisplay(true);
 		};
 
 		KECSGlobal::Init();
@@ -504,45 +505,6 @@ IKRenderDispatcher* KRenderCore::GetRenderDispatcher()
 	return &KRenderGlobal::RenderDispatcher;
 }
 
-bool KRenderCore::UpdateCamera(size_t frameIndex)
-{
-	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
-	if (cameraBuffer)
-	{
-		glm::mat4 view = m_Camera.GetViewMatrix();
-		glm::mat4 proj = m_Camera.GetProjectiveMatrix();
-		glm::mat4 viewInv = glm::inverse(view);
-
-		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);
-		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
-		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
-		{
-			void* pWritePos = nullptr;
-			if (detail.semantic == CS_VIEW)
-			{
-				assert(sizeof(view) == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				memcpy(pWritePos, &view, sizeof(view));
-			}
-			else if (detail.semantic == CS_PROJ)
-			{
-				assert(sizeof(proj) == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				memcpy(pWritePos, &proj, sizeof(proj));
-			}
-			else if (detail.semantic == CS_VIEW_INV)
-			{
-				assert(sizeof(viewInv) == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
-				memcpy(pWritePos, &viewInv, sizeof(viewInv));
-			}
-		}
-		cameraBuffer->Write(pData);
-		return true;
-	}
-	return false;
-}
-
 bool KRenderCore::UpdateFrameTime()
 {
 	KRenderGlobal::Statistics.Update();
@@ -637,7 +599,6 @@ void KRenderCore::OnPrePresent(uint32_t chainIndex, uint32_t frameIndex)
 	KRenderGlobal::TaskExecutor.ProcessSyncTask();
 
 	UpdateFrameTime();
-	UpdateCamera(frameIndex);
 	UpdateUIOverlay(frameIndex);
 	UpdateController();
 	UpdateGizmo();

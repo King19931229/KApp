@@ -28,3 +28,7 @@ struct IKRenderScene
 
 	virtual void EnableDebugRender(bool enable) = 0;
 };
+
+typedef std::unique_ptr<IKRenderScene> IKRenderScenePtr;
+
+EXPORT_DLL IKRenderScenePtr CreateRenderScene();

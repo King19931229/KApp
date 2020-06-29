@@ -35,7 +35,7 @@ struct IKRenderCore
 
 	virtual IKGizmoPtr GetGizmo() = 0;
 	virtual KCamera* GetCamera() = 0;
-	virtual IKCameraController* GetCameraController() = 0;
+	virtual IKCameraMoveController* GetCameraController() = 0;
 };
 typedef std::unique_ptr<IKRenderCore> IKRenderCorePtr;
 

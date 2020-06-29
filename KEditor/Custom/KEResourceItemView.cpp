@@ -34,7 +34,7 @@ void KEResourceItemView::OnOpenItemEditor(const QModelIndex &index)
 		if (KStringUtil::EndsWith(absPath, ".mtl"))
 		{
 			KEMaterialEditWindow* materialWindow = KNEW KEMaterialEditWindow(KEditorGlobal::MainWindow);
-			materialWindow->SetEditTarget(absPath);
+			materialWindow->SetEditTarget(treeItem->GetFullPath());
 			materialWindow->show();
 		}
 	}

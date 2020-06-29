@@ -55,6 +55,7 @@
     <ClInclude Include="Internal\Asset\Utility\KMeshUtilityInfo.h" />
     <ClInclude Include="Internal\Asset\Utility\KMeshUtilityImpl.h" />
     <ClInclude Include="Internal\Controller\KCameraMoveController.h" />
+    <ClInclude Include="Internal\Controller\KCameraPreviewController.h" />
     <ClInclude Include="Internal\Controller\KGizmoController.h" />
     <ClInclude Include="Internal\Controller\KUIOverlayController.h" />
     <ClInclude Include="Internal\Dispatcher\KRenderDispatcher.h" />
@@ -136,6 +137,7 @@
     <ClCompile Include="Internal\Asset\Utility\KMeshUtilityInfo.cpp" />
     <ClCompile Include="Internal\Asset\Utility\KMeshUtilityImpl.cpp" />
     <ClCompile Include="Internal\Controller\KCameraMoveController.cpp" />
+    <ClCompile Include="Internal\Controller\KCameraPreviewController.cpp" />
     <ClCompile Include="Internal\Controller\KGizmoController.cpp" />
     <ClCompile Include="Internal\Controller\KUIOverlayController.cpp" />
     <ClCompile Include="Internal\Dispatcher\KRenderDispatcher.cpp" />

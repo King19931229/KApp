@@ -201,10 +201,12 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 						if (i == DEFAULT_IDX)
 						{
 							pipelineList[frameIdx] = m_pMaterial->CreatePipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+							ASSERT_RESULT(pipelineList[frameIdx]);
 						}
 						else if (i == INSTANCE_IDX)
 						{
 							pipelineList[frameIdx] = m_pMaterial->CreateInstancePipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+							ASSERT_RESULT(pipelineList[frameIdx]);
 						}
 					}
 

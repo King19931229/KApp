@@ -93,7 +93,15 @@ KAssetIOHooker::~KAssetIOHooker()
 bool KAssetIOHooker::Exists(const char* pFile) const
 {
 	IKFileSystemPtr system = m_FileSystemManager->GetFileSystem(FSD_RESOURCE);
-	return system && system->IsFileExist(pFile);
+	if (!(system && system->IsFileExist(pFile)))
+	{
+		system = m_FileSystemManager->GetFileSystem(FSD_BACKUP);
+		if (system && system->IsFileExist(pFile))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 char KAssetIOHooker::getOsSeparator() const
@@ -103,21 +111,26 @@ char KAssetIOHooker::getOsSeparator() const
 
 Assimp::IOStream* KAssetIOHooker::Open(const char* pFile, const char* pMode)
 {
-	if(strstr(pMode, "w"))
+	if (strstr(pMode, "w"))
 	{
 		assert(false && "write operation not supported now");
 		return nullptr;
 	}
 
 	IKDataStreamPtr dataStream = nullptr;
-	IKFileSystemPtr system = m_FileSystemManager->GetFileSystem(FSD_RESOURCE);		
-	if(system && system->Open(pFile, IT_FILEHANDLE, dataStream))
+	IKFileSystemPtr system = m_FileSystemManager->GetFileSystem(FSD_RESOURCE);
+
+	if (!(system && system->Open(pFile, IT_FILEHANDLE, dataStream)))
 	{
-		Assimp::IOStream* stream = new KAssetIOStream(dataStream);
-		return stream;
+		system = m_FileSystemManager->GetFileSystem(FSD_BACKUP);
+		if (!(system && system->Open(pFile, IT_FILEHANDLE, dataStream)))
+		{
+			return nullptr;
+		}
 	}
 
-	return nullptr;
+	Assimp::IOStream* stream = new KAssetIOStream(dataStream);
+	return stream;
 }
 
 void KAssetIOHooker::Close(Assimp::IOStream* pFile)

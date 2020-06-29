@@ -9,15 +9,19 @@ namespace KMeshSerializer
 	{
 		IKDataStreamPtr pData = nullptr;
 		IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
-		if(system && system->Open(path, IT_FILEHANDLE, pData))
+		if (!(system && system->Open(path, IT_FILEHANDLE, pData)))
 		{
-			// no need to judge version now
-			KMeshSerializerV0 reader(device);
-			bool bRet = reader.LoadFromStream(pMesh, path, pData, hostVisible, frameInFlight);
-			pData->Close();
-			return bRet;
+			system = KFileSystem::Manager->GetFileSystem(FSD_BACKUP);
+			if (!(system && system->Open(path, IT_FILEHANDLE, pData)))
+			{
+				return false;
+			}
 		}
-		return false;
+		// no need to judge version now
+		KMeshSerializerV0 reader(device);
+		bool bRet = reader.LoadFromStream(pMesh, path, pData, hostVisible, frameInFlight);
+		pData->Close();
+		return bRet;
 	}
 
 	bool SaveAsFile(const KMesh* pMesh, const char* path, MeshSerializerVersion version)

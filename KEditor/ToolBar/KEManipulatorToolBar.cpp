@@ -32,7 +32,7 @@ void KEManipulatorToolBar::SetCameraSpeed(int speed)
 	}
 }
 
-bool KEManipulatorToolBar::Init(IKCameraController* cameraControl, IKGizmoPtr gizmo)
+bool KEManipulatorToolBar::Init(IKCameraMoveController* cameraControl, IKGizmoPtr gizmo)
 {
 	UnInit();
 

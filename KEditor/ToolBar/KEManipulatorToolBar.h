@@ -20,7 +20,7 @@ protected:
 	QSpinBox* m_CameraSpeedSpinBox;
 
 	IKGizmoPtr m_Gizmo;
-	IKCameraController* m_CameraControl;
+	IKCameraMoveController* m_CameraControl;
 
 	static constexpr int CAMERA_SPEED_MIN_SPEED = 1;
 	static constexpr int CAMERA_SPEED_MAX_SPEED = 100;
@@ -34,6 +34,6 @@ public:
 	KEManipulatorToolBar(QWidget *parent = Q_NULLPTR);
 	~KEManipulatorToolBar();
 
-	bool Init(IKCameraController* cameraControl, IKGizmoPtr gizmo);
+	bool Init(IKCameraMoveController* cameraControl, IKGizmoPtr gizmo);
 	bool UnInit();
 };

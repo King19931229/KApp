@@ -501,6 +501,9 @@ bool KMaterial::ReadParameterElement(IKMaterialParameterPtr parameter, const IKX
 
 bool KMaterial::InitFromFile(const std::string& path, bool async)
 {
+	// TODO 修复异步加载BUG
+	async = false;
+
 	UnInit();
 
 	m_Path = path;
