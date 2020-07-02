@@ -3,7 +3,7 @@
 
 KEMaterialRenderWidget::KEMaterialRenderWidget(QWidget* pParent)
 	: KERenderWidget(pParent)
-{
+{	
 }
 
 KEMaterialRenderWidget::~KEMaterialRenderWidget()

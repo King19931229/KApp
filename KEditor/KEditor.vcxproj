@@ -149,7 +149,10 @@
     <ClCompile Include="Widget\KEMainRenderWidget.cpp" />
     <ClCompile Include="Widget\KERenderWidget.cpp" />
     <ClCompile Include="Widget\KESceneItemWidget.cpp" />
+    <ClCompile Include="Widget\Material\KEMaterialPropertyWidget.cpp" />
     <ClCompile Include="Widget\Material\KEMaterialRenderWidget.cpp" />
+    <ClCompile Include="Widget\Material\ModelView\KEMaterialPropertyItem.cpp" />
+    <ClCompile Include="Widget\Material\ModelView\KEMaterialPropertyTreeModel.cpp" />
     <ClCompile Include="Window\KEMaterialEditWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -162,6 +165,9 @@
     <QtMoc Include="Widget\KEMainRenderWidget.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Widget\Material\ModelView\KEMaterialPropertyTreeModel.h" />
+    <ClInclude Include="Widget\Material\ModelView\KEMaterialPropertyItem.h" />
+    <QtMoc Include="Widget\Material\KEMaterialPropertyWidget.h" />
     <QtMoc Include="Widget\Material\KEMaterialRenderWidget.h" />
     <QtMoc Include="Window\KEMaterialEditWindow.h" />
     <QtMoc Include="Widget\KERenderWidget.h" />

@@ -2,8 +2,6 @@
 #include <QTreeView>
 #include <QMouseEvent>
 
-#include "KEReflectObjectTreeModel.h"
-
 class KEReflectObjectTreeView : public QTreeView
 {
 protected:
@@ -21,7 +19,7 @@ protected:
 					auto guard = view->CreateListenerMuteGuard();
 
 					// Qt这套setIndexWidget规则一定会持有对象
-					// 导致这套持有机制非常恶心					
+					// 导致这套持有机制非常恶心
 					QWidget* wholeWidget = KNEW QWidget();
 
 					QLabel* label = KNEW QLabel(wholeWidget);

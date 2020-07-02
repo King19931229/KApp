@@ -2,6 +2,7 @@
 #include <QDockWidget>
 #include <QMainWindow>
 #include "Widget/Material/KEMaterialRenderWidget.h"
+#include "Widget/Material/KEMaterialPropertyWidget.h"
 #include "KRender/Interface/IKRenderScene.h"
 #include "KRender/Interface/IKCameraController.h"
 
@@ -11,6 +12,10 @@ class KEMaterialEditWindow : public QMainWindow
 protected:
 	QWidget* m_MainWindow;
 	KEMaterialRenderWidget* m_RenderWidget;
+
+	KEMaterialPropertyWidget* m_PropertyWidget;
+	QDockWidget* m_PropertyDockWidget;
+
 	IKRenderScenePtr m_MiniScene;
 	KCamera m_MiniCamera;
 	IKRenderDispatcher::OnWindowRenderCallback m_OnRenderCallBack;

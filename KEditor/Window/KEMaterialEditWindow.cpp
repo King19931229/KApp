@@ -9,6 +9,8 @@ KEMaterialEditWindow::KEMaterialEditWindow(QWidget *parent)
 	: QMainWindow(parent),
 	m_MainWindow(parent),
 	m_RenderWidget(nullptr),
+	m_PropertyWidget(nullptr),
+	m_PropertyDockWidget(nullptr),
 	m_EntityIdx(0)
 {
 	Init();
@@ -86,9 +88,15 @@ bool KEMaterialEditWindow::Init()
 
 	InitToolBar();
 
+	m_PropertyDockWidget = KNEW QDockWidget();
+	addDockWidget(Qt::RightDockWidgetArea, m_PropertyDockWidget);
+
 	m_RenderWidget = KNEW KEMaterialRenderWidget();
 	m_RenderWidget->Init(KEngineGlobal::Engine);
 	setCentralWidget(m_RenderWidget);
+
+	m_PropertyWidget = KNEW KEMaterialPropertyWidget(this);
+	m_PropertyDockWidget->setWidget(m_PropertyWidget);
 
 	IKRenderCore* renderCore = KEngineGlobal::Engine->GetRenderCore();
 	IKRenderDispatcher* renderer = renderCore->GetRenderDispatcher();
@@ -118,6 +126,9 @@ bool KEMaterialEditWindow::Init()
 bool KEMaterialEditWindow::UnInit()
 {
 	SAFE_UNINIT(m_CameraController);
+
+	SAFE_DELETE(m_PropertyWidget);
+	SAFE_DELETE(m_PropertyDockWidget);
 
 	setCentralWidget(nullptr);
 	if (m_RenderWidget)

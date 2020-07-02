@@ -78,6 +78,9 @@
     <Filter Include="Window">
       <UniqueIdentifier>{4bb17a2e-e864-4b83-9b64-0fa2fc1161b3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Widget\Material\ModelView">
+      <UniqueIdentifier>{037503fc-5ddd-4d01-bee9-3cf972e31fc0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KEditor.cpp" />
@@ -233,6 +236,15 @@
     <ClCompile Include="Window\KEMaterialEditWindow.cpp">
       <Filter>Window</Filter>
     </ClCompile>
+    <ClCompile Include="Widget\Material\KEMaterialPropertyWidget.cpp">
+      <Filter>Widget\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\Material\ModelView\KEMaterialPropertyItem.cpp">
+      <Filter>Widget\Material\ModelView</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\Material\ModelView\KEMaterialPropertyTreeModel.cpp">
+      <Filter>Widget\Material\ModelView</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="KEditor.h" />
@@ -328,6 +340,9 @@
     </QtMoc>
     <QtMoc Include="Custom\KEResourcePathView.h">
       <Filter>Custom</Filter>
+    </QtMoc>
+    <QtMoc Include="Widget\Material\KEMaterialPropertyWidget.h">
+      <Filter>Widget\Material</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -451,6 +466,12 @@
     </ClInclude>
     <ClInclude Include="Entity\KEEntityNamePool.h">
       <Filter>Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\Material\ModelView\KEMaterialPropertyTreeModel.h">
+      <Filter>Widget\Material\ModelView</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\Material\ModelView\KEMaterialPropertyItem.h">
+      <Filter>Widget\Material\ModelView</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
