@@ -28,6 +28,9 @@ protected:
 	bool Init();
 	bool UnInit();
 	bool RefreshPreview();
+	
+	void OnSave();
+	void OnReload();
 public:
 	KEMaterialEditWindow(QWidget *parent = Q_NULLPTR);
 	~KEMaterialEditWindow();

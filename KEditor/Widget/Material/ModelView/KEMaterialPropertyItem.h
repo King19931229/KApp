@@ -8,7 +8,9 @@ class KEMaterialPropertyItem
 public:
 	enum MaterialMemberType
 	{
-		MATERIAL_MEMBER_TYPE_SHADER_PARAMETER,
+		MATERIAL_MEMBER_TYPE_ROOT,
+		MATERIAL_MEMBER_TYPE_VERTEX_SHADER_PARAMETER,
+		MATERIAL_MEMBER_TYPE_FRAGMENT_SHADER_PARAMETER,
 		MATERIAL_MEMBER_TYPE_MATERIAL_VALUE,
 		MATERIAL_MEMBER_TYPE_BLEND_MODE,
 		MATERIAL_MEMBER_TYPE_NONE
@@ -34,9 +36,11 @@ public:
 	~KEMaterialPropertyItem();
 
 	KEMaterialPropertyItem* GetChild(size_t childIndex);
-
-	void InitAsParameter(IKMaterialParameter* shaderParameter);
-	void InitAsValue(IKMaterialValue* value);
+	
+	void UnInit();
+	void InitAsMaterial(IKMaterial* material);
+	void InitAsParameter(IKMaterial* material, IKMaterialParameter* shaderParameter, bool vsShader);
+	void InitAsValue(IKMaterial* material, IKMaterialValue* value);
 	void InitAsBlendMode(IKMaterial* material);
 
 	inline KEMaterialPropertyItem* GetParent() { return m_Parent; }

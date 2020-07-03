@@ -1,5 +1,6 @@
 #pragma once
 #include "IKComponentBase.h"
+#include "KRender/Interface/IKMaterial.h"
 #include "KBase/Publish/KAABBBox.h"
 
 struct IKRenderComponent : public IKComponentBase
@@ -32,4 +33,6 @@ public:
 
 	virtual bool SetMaterialPath(const char* path) = 0;
 	virtual bool ReloadMaterial() = 0;
+
+	virtual IKMaterialPtr GetMaterial() = 0;
 };

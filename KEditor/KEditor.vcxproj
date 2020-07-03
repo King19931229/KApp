@@ -167,6 +167,7 @@
   <ItemGroup>
     <ClInclude Include="Widget\Material\ModelView\KEMaterialPropertyTreeModel.h" />
     <ClInclude Include="Widget\Material\ModelView\KEMaterialPropertyItem.h" />
+    <ClInclude Include="Widget\Material\ModelView\KEMaterialPropertyTreeView.h" />
     <QtMoc Include="Widget\Material\KEMaterialPropertyWidget.h" />
     <QtMoc Include="Widget\Material\KEMaterialRenderWidget.h" />
     <QtMoc Include="Window\KEMaterialEditWindow.h" />

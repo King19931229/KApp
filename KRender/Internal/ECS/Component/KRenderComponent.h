@@ -74,7 +74,7 @@ public:
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
 
 	inline KMeshPtr GetMesh() { return m_Mesh; }
-	inline IKMaterialPtr GetMaterial() { return m_Material; }
+	IKMaterialPtr GetMaterial() override { return m_Material; }
 
 	inline IKQueryPtr GetOCQuery(size_t frameIndex) { return frameIndex < m_OCQueries.size() ? m_OCQueries[frameIndex] : nullptr; }
 	inline IKQueryPtr GetOCInstacneQuery(size_t frameIndex) { return frameIndex < m_OCInstanceQueries.size() ? m_OCInstanceQueries[frameIndex] : nullptr; }

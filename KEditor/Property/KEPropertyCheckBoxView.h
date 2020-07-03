@@ -42,11 +42,11 @@ protected:
 	}
 public:
 	KEPropertyCheckBoxView(ModelPtrType model)
-		: KEPropertyView(model)
+		: KEPropertyView(model),
 		m_MainWidget(nullptr),
 		m_Layout(nullptr)
 	{
-		ZERO_ARRAY_MEMROY(m_Widget);
+		ZERO_ARRAY_MEMORY(m_Widget);
 		TypeCheck(T());
 	}
 
@@ -81,19 +81,19 @@ public:
 
 namespace KEditor
 {
-	template<typename T, typename... Types>
+	template<typename T, size_t DIMENSION = 1, typename... Types>
 	inline std::shared_ptr<KEPropertyBaseView> MakeCheckBoxViewByModel(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(KNEW KEPropertyCheckBoxView<T>(
+			(KNEW KEPropertyCheckBoxView<T, DIMENSION>(
 				std::forward<Types>(args)...));
 	}
 
-	template<typename T, typename... Types>
+	template<typename T, size_t DIMENSION = 1, typename... Types>
 	inline std::shared_ptr<KEPropertyBaseView> MakeCheckBoxView(Types&&... args)
 	{
 		return std::shared_ptr<KEPropertyBaseView>
-			(KNEW KEPropertyCheckBoxView<T>(
-				KEditor::MakePropertyModel<T, 1>(std::forward<Types>(args)...)));
+			(KNEW KEPropertyCheckBoxView<T, DIMENSION>(
+				KEditor::MakePropertyModel<T, DIMENSION>(std::forward<Types>(args)...)));
 	}
 }

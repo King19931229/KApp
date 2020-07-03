@@ -59,6 +59,22 @@ bool KEMaterialEditWindow::InitToolBar()
 
 	toolBar->addWidget(previewCombo);
 
+	QAction* saveAction = KNEW QAction(QIcon(":/images/save.png"), "Save", toolBar);
+	toolBar->addAction(saveAction);
+
+	QAction* reloadAction = KNEW QAction(QIcon(":/images/reload.png"), "Reload", toolBar);
+	toolBar->addAction(reloadAction);
+
+	QObject::connect(saveAction, &QAction::triggered, [this](bool checked)
+	{
+		OnSave();
+	});
+
+	QObject::connect(reloadAction, &QAction::triggered, [this](bool checked)
+	{
+		OnReload();
+	});
+
 	for (const ComboPreviewInfo& info : PREVIEW_INFO)
 	{
 		previewCombo->addItem(info.item);
@@ -127,7 +143,7 @@ bool KEMaterialEditWindow::UnInit()
 {
 	SAFE_UNINIT(m_CameraController);
 
-	SAFE_DELETE(m_PropertyWidget);
+	SAFE_UNINIT(m_PropertyWidget);
 	SAFE_DELETE(m_PropertyDockWidget);
 
 	setCentralWidget(nullptr);
@@ -140,7 +156,7 @@ bool KEMaterialEditWindow::UnInit()
 	}
 
 	SAFE_UNINIT(m_MiniScene);
-	SAFE_DELETE(m_RenderWidget);
+	SAFE_UNINIT(m_RenderWidget);
 
 	if (m_PreviewEntity)
 	{
@@ -190,6 +206,11 @@ bool KEMaterialEditWindow::RefreshPreview()
 			{
 				renderComponent->SetMaterialPath(m_MaterialPath.c_str());
 				renderComponent->Init();
+
+				IKMaterialPtr material = renderComponent->GetMaterial();
+				ASSERT_RESULT(material);
+				m_PropertyWidget->Init(material ? material.get() : nullptr);
+
 				m_MiniScene->Add(m_PreviewEntity);
 				return true;
 			}
@@ -204,4 +225,14 @@ bool KEMaterialEditWindow::SetEditTarget(const std::string& path)
 	m_MaterialPath = path;
 	RefreshPreview();
 	return true;
+}
+
+void KEMaterialEditWindow::OnSave()
+{
+
+}
+
+void KEMaterialEditWindow::OnReload()
+{
+
 }

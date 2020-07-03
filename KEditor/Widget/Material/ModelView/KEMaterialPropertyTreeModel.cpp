@@ -11,8 +11,14 @@ KEMaterialPropertyTreeModel::~KEMaterialPropertyTreeModel()
 	SAFE_DELETE(m_RootItem);
 }
 
-void KEMaterialPropertyTreeModel::SetMaterial(IKMaterialPtr material)
+void KEMaterialPropertyTreeModel::SetMaterial(IKMaterial* material)
 {
+	SAFE_DELETE(m_RootItem);
+	if (material)
+	{
+		m_RootItem = KNEW KEMaterialPropertyItem(nullptr);
+		m_RootItem->InitAsMaterial(material);
+	}
 }
 
 QVariant KEMaterialPropertyTreeModel::data(const QModelIndex &index, int role) const

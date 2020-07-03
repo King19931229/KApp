@@ -473,6 +473,9 @@
     <ClInclude Include="Widget\Material\ModelView\KEMaterialPropertyItem.h">
       <Filter>Widget\Material\ModelView</Filter>
     </ClInclude>
+    <ClInclude Include="Widget\Material\ModelView\KEMaterialPropertyTreeView.h">
+      <Filter>Widget\Material\ModelView</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="ui\KEditor.ui">

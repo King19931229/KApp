@@ -94,10 +94,14 @@ bool KMaterial::VerifyParameter(IKMaterialParameterPtr parameter, const KShaderI
 
 				ASSERT_RESULT(!previousValue || previousValue->GetName() == member.name);
 
-				if (previousValue && (previousValue->GetVecSize() != member.vecSize
-					|| previousValue->GetType() != type))
+				if (!previousValue ||
+					previousValue->GetVecSize() != member.vecSize ||
+					previousValue->GetType() != type)
 				{
-					parameter->RemoveValue(member.name);
+					if (previousValue)
+					{
+						parameter->RemoveValue(member.name);
+					}
 
 #define TYPE_FIT (member.type != KShaderInformation::Constant::CONSTANT_MEMBER_TYPE_UNKNOWN)
 #define DIMENSION_FIT (member.dimension == 1)

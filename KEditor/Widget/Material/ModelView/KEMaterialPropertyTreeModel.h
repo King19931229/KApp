@@ -11,7 +11,7 @@ public:
 	KEMaterialPropertyTreeModel(QObject *parent = nullptr);
 	~KEMaterialPropertyTreeModel();
 
-	void SetMaterial(IKMaterialPtr material);
+	void SetMaterial(IKMaterial* material);
 
 	QVariant data(const QModelIndex &index, int role) const override;
 	Qt::ItemFlags flags(const QModelIndex &index) const override;
