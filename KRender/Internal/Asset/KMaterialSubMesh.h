@@ -30,6 +30,8 @@ protected:
 	IKShaderPtr				m_CascadedShadowVSInstanceShader;
 	IKShaderPtr				m_CascadedShadowFSShader;
 
+	bool					m_MaterialPipelineCreated;
+
 	bool CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline);
 	bool GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderCommand& command);
 

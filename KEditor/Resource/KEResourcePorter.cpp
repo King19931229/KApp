@@ -89,7 +89,7 @@ bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity, 
 				{
 					renderComponent->SetMeshPath(path.c_str());
 					renderComponent->SetHostVisible(hostVisible);
-					renderComponent->Init();
+					renderComponent->Init(true);
 				}
 			}
 			else if (IsSupportedMesh(cExt))
@@ -98,7 +98,7 @@ bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity, 
 				{
 					renderComponent->SetAssetPath(path.c_str());
 					renderComponent->SetHostVisible(hostVisible);
-					renderComponent->Init();
+					renderComponent->Init(true);
 				}
 			}
 

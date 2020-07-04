@@ -28,7 +28,7 @@ public:
 
 	virtual bool SetHostVisible(bool hostVisible) = 0;
 
-	virtual bool Init() = 0;
+	virtual bool Init(bool async) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool SetMaterialPath(const char* path) = 0;

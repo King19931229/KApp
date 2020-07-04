@@ -10,7 +10,8 @@
 KMaterialSubMesh::KMaterialSubMesh(KSubMesh* mesh)
 	: m_pSubMesh(mesh),
 	m_pMaterial(nullptr),
-	m_FrameInFlight(0)
+	m_FrameInFlight(0),
+	m_MaterialPipelineCreated(false)
 {
 }
 
@@ -53,9 +54,9 @@ bool KMaterialSubMesh::Init(IKMaterial* material, size_t frameInFlight)
 
 	m_pMaterial = material;
 	m_FrameInFlight = frameInFlight;
+	m_MaterialPipelineCreated = false;
 
 	ASSERT_RESULT(CreateFixedPipeline());
-	ASSERT_RESULT(CreateMaterialPipeline());
 
 	return true;
 }
@@ -133,6 +134,8 @@ bool KMaterialSubMesh::UnInit()
 		pipelines.clear();
 	}
 
+	m_MaterialPipelineCreated = false;
+
 	return true;
 }
 
@@ -145,6 +148,11 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 		IKShaderPtr vsShader = m_pMaterial->GetVSShader();
 		IKShaderPtr fsShader = m_pMaterial->GetFSShader();
+
+		if (vsShader->GetResourceState() != RS_DEVICE_LOADED || fsShader->GetResourceState() != RS_DEVICE_LOADED)
+		{
+			return false;
+		}
 
 		MaterialBlendMode blendMode = m_pMaterial->GetBlendMode();
 
@@ -471,6 +479,19 @@ bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, 
 
 bool KMaterialSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&)> func)
 {
+	if (m_pMaterial && !m_MaterialPipelineCreated)
+	{
+		if (CreateMaterialPipeline())
+		{
+			m_MaterialPipelineCreated = true;
+		}
+	}
+
+	if (m_pMaterial && !m_MaterialPipelineCreated)
+	{
+		return false;
+	}
+
 	KRenderCommand command;
 	if (GetRenderCommand(stage, frameIndex, command))
 	{

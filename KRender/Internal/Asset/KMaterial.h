@@ -11,8 +11,6 @@ protected:
 	IKShaderPtr m_VSShader;
 	IKShaderPtr m_VSInstanceShader;
 	IKShaderPtr m_FSShader;
-	IKPipelinePtr m_Pipeline;
-	IKPipelinePtr m_InstancePipeline;
 	IKMaterialParameterPtr m_VSParameter;
 	IKMaterialParameterPtr m_FSParameter;
 	KShaderInformation::Constant m_VSConstantInfo;
@@ -21,6 +19,8 @@ protected:
 	bool m_FSInfoCalced;
 	bool m_VSParameterVerified;
 	bool m_FSParameterVerified;
+
+	bool m_ParameterReload;
 
 	static const char* msVSKey;
 	static const char* msFSKey;
@@ -39,12 +39,14 @@ protected:
 	static const char* MaterialBlendModeToString(MaterialBlendMode mode);
 
 	bool VerifyParameter(IKMaterialParameterPtr parameter, const KShaderInformation& information);
-	IKMaterialParameterPtr CreateParameter(const KShaderInformation& information);
+	bool CreateParameter(const KShaderInformation& information, IKMaterialParameterPtr& parameter);
 
 	IKPipelinePtr CreatePipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);
 
 	bool SaveParameterElement(const IKMaterialParameterPtr parameter, IKXMLElementPtr elemment) const;
-	bool ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr elemment);
+	bool ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr elemment, bool createNewParameter);
+
+	bool ReadXMLContent(std::vector<char>& content);
 public:
 	KMaterial();
 	~KMaterial();
@@ -72,4 +74,6 @@ public:
 	virtual const std::string& GetPath() const { return m_Path; }
 
 	virtual bool SaveAsFile(const std::string& path);
+
+	virtual bool Reload();
 };

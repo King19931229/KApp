@@ -216,7 +216,7 @@ bool KRenderCore::InitRenderResource()
 			KRenderComponent* component = nullptr;
 			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component))
 			{
-				component->Init();
+				component->Init(true);
 			}
 		});
 	}

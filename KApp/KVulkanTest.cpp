@@ -50,7 +50,7 @@ int main()
 				if (entity->RegisterComponent(CT_RENDER, &component))
 				{
 					((IKRenderComponent*)component)->SetAssetPath("Model/OBJ/spider.obj");
-					((IKRenderComponent*)component)->Init();
+					((IKRenderComponent*)component)->Init(true);
 				}
 
 				if (entity->RegisterComponent(CT_TRANSFORM, &component))
@@ -78,7 +78,7 @@ int main()
 		if (entity->RegisterComponent(CT_RENDER, &component))
 		{
 			((IKRenderComponent*)component)->SetMeshPath("Model/Sponza/sponza.mesh");
-			((IKRenderComponent*)component)->Init();
+			((IKRenderComponent*)component)->Init(true);
 		}
 		entity->RegisterComponent(CT_TRANSFORM);
 

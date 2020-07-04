@@ -64,7 +64,7 @@ public:
 	bool SaveAsMesh(const char* path) const override;
 	bool SetHostVisible(bool hostVisible) override;
 
-	bool Init() override;
+	bool Init(bool async) override;
 	bool UnInit() override;
 
 	bool SetMaterialPath(const char* path) override;

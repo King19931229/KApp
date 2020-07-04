@@ -14,6 +14,9 @@ enum class MaterialValueType
 	UNKNOWN
 };
 
+struct IKMaterialValue;
+typedef std::shared_ptr<IKMaterialValue> IKMaterialValuePtr;
+
 struct IKMaterialValue
 {
 	virtual ~IKMaterialValue() {}
@@ -24,7 +27,8 @@ struct IKMaterialValue
 	virtual void SetData(const void* data) = 0;
 };
 
-typedef std::shared_ptr<IKMaterialValue> IKMaterialValuePtr;
+struct IKMaterialParameter;
+typedef std::shared_ptr<IKMaterialParameter> IKMaterialParameterPtr;
 
 struct IKMaterialParameter
 {
@@ -34,15 +38,20 @@ struct IKMaterialParameter
 	virtual const std::vector<IKMaterialValuePtr>& GetAllValues() const = 0;
 	virtual bool CreateValue(const std::string& name, MaterialValueType type, uint8_t vecSize, const void* initData = nullptr) = 0;
 	virtual bool RemoveValue(const std::string& name) = 0;
-};
+	virtual bool RemoveAllValues() = 0;
 
-typedef std::shared_ptr<IKMaterialParameter> IKMaterialParameterPtr;
+	virtual bool Duplicate(IKMaterialParameterPtr& parameter) = 0;
+	virtual bool Paste(const IKMaterialParameterPtr& parameter) = 0;
+};
 
 enum MaterialBlendMode
 {
 	OPAQUE,
 	TRANSRPANT
 };
+
+struct IKMaterial;
+typedef std::shared_ptr<IKMaterial> IKMaterialPtr;
 
 struct IKMaterial
 {
@@ -70,6 +79,6 @@ struct IKMaterial
 
 	virtual const std::string& GetPath() const = 0;
 	virtual bool SaveAsFile(const std::string& path) = 0;
-};
 
-typedef std::shared_ptr<IKMaterial> IKMaterialPtr;
+	virtual bool Reload() = 0;
+};

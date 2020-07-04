@@ -99,7 +99,7 @@ bool KRenderComponent::Load(IKXMLElementPtr element)
 	m_Path = path;
 	m_MaterialPath = materialPath;
 
-	return Init();
+	return Init(true);
 }
 
 bool KRenderComponent::GetLocalBound(KAABBBox& bound) const
@@ -221,7 +221,7 @@ bool KRenderComponent::SetHostVisible(bool hostVisible)
 	return true;
 }
 
-bool KRenderComponent::Init()
+bool KRenderComponent::Init(bool async)
 {
 	UnInit();
 	if (m_Type == MESH || m_Type == ASSET)
@@ -237,7 +237,7 @@ bool KRenderComponent::Init()
 		}
 		if (meshAcquire)
 		{
-			if (m_MaterialPath.empty() || !KRenderGlobal::MaterialManager.Acquire(m_MaterialPath.c_str(), m_Material, true))
+			if (m_MaterialPath.empty() || !KRenderGlobal::MaterialManager.Acquire(m_MaterialPath.c_str(), m_Material, async))
 			{
 				KRenderGlobal::MaterialManager.GetMissingMaterial(m_Material);
 			}

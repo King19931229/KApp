@@ -8,5 +8,5 @@
 <vs_parameter/>
 
 <fs_parameter>
-  <value name="color" type="float" size="4">1 1 1 1</value>
+    <value name="color" type="float" size="4">1 1 1 1</value>
 </fs_parameter>

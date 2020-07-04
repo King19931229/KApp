@@ -11,7 +11,8 @@ KMaterial::KMaterial()
 	m_VSInfoCalced(false),
 	m_FSInfoCalced(false),
 	m_VSParameterVerified(false),
-	m_FSParameterVerified(false)
+	m_FSParameterVerified(false),
+	m_ParameterReload(false)
 {
 }
 
@@ -22,8 +23,6 @@ KMaterial::~KMaterial()
 	ASSERT_RESULT(m_VSShader == nullptr);
 	ASSERT_RESULT(m_VSInstanceShader == nullptr);
 	ASSERT_RESULT(m_FSShader == nullptr);
-	ASSERT_RESULT(m_Pipeline == nullptr);
-	ASSERT_RESULT(m_InstancePipeline == nullptr);
 }
 
 MaterialValueType KMaterial::ShaderConstantTypeToMaterialType(KShaderInformation::Constant::ConstantMemberType type)
@@ -87,6 +86,7 @@ bool KMaterial::VerifyParameter(IKMaterialParameterPtr parameter, const KShaderI
 				continue;
 			}
 
+			// 没有的值要补上
 			for (const KShaderInformation::Constant::ConstantMember& member : constant.members)
 			{
 				MaterialValueType type = ShaderConstantTypeToMaterialType(member.type);
@@ -127,9 +127,17 @@ bool KMaterial::VerifyParameter(IKMaterialParameterPtr parameter, const KShaderI
 	return false;
 }
 
-IKMaterialParameterPtr KMaterial::CreateParameter(const KShaderInformation& information)
+bool KMaterial::CreateParameter(const KShaderInformation& information, IKMaterialParameterPtr& parameter)
 {
-	IKMaterialParameterPtr parameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+	if (!parameter)
+	{
+		parameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+	}
+	else
+	{
+		parameter->RemoveAllValues();
+	}
+
 	for (const KShaderInformation::Constant& constant : information.dynamicConstants)
 	{
 		if (constant.bindingIndex != SHADER_BINDING_VERTEX_SHADING && constant.bindingIndex != SHADER_BINDING_FRAGMENT_SHADING)
@@ -159,7 +167,7 @@ IKMaterialParameterPtr KMaterial::CreateParameter(const KShaderInformation& info
 #undef TYPE_FIT
 		}
 	}
-	return parameter;
+	return true;
 }
 
 const IKMaterialParameterPtr KMaterial::GetVSParameter()
@@ -169,9 +177,9 @@ const IKMaterialParameterPtr KMaterial::GetVSParameter()
 	{
 		const KShaderInformation& vsInfo = m_VSShader->GetInformation();
 
-		if (!m_VSParameter)
+		if (!m_VSParameter || m_ParameterReload)
 		{
-			m_VSParameter = CreateParameter(vsInfo);
+			CreateParameter(vsInfo, m_VSParameter);
 		}
 
 		if (!m_VSParameterVerified)
@@ -192,9 +200,9 @@ const IKMaterialParameterPtr KMaterial::GetFSParameter()
 	{
 		const KShaderInformation& fsInfo = m_FSShader->GetInformation();
 
-		if (!m_FSParameter)
+		if (!m_FSParameter || m_ParameterReload)
 		{
-			m_FSParameter = CreateParameter(fsInfo);
+			CreateParameter(fsInfo, m_FSParameter);
 		}
 
 		if (!m_FSParameterVerified)
@@ -442,7 +450,7 @@ bool KMaterial::SaveParameterElement(const IKMaterialParameterPtr parameter, IKX
 	return false;
 }
 
-bool KMaterial::ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr elemment)
+bool KMaterial::ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr elemment, bool createNewParameter)
 {
 	if (parameter)
 	{
@@ -470,25 +478,29 @@ bool KMaterial::ReadParameterElement(IKMaterialParameterPtr parameter, const IKX
 
 				if (TYPE_FIT && VECSIZE_FIT)
 				{
-					ASSERT_RESULT(parameter->CreateValue(name, type, vecSize));
+					if (createNewParameter)
+					{
+						ASSERT_RESULT(parameter->CreateValue(name, type, vecSize));
+					}
 					auto value = parameter->GetValue(name);
-					ASSERT_RESULT(value);
-
-					if (type == MaterialValueType::BOOL)
+					if (value)
 					{
-						KStringParser::ParseToBOOL(data.c_str(), (bool*)value->GetData(), vecSize);
-					}
-					else if (type == MaterialValueType::INT)
-					{
-						KStringParser::ParseToINT(data.c_str(), (int*)value->GetData(), vecSize);
-					}
-					else if (type == MaterialValueType::FLOAT)
-					{
-						KStringParser::ParseToFLOAT(data.c_str(), (float*)value->GetData(), vecSize);
-					}
-					else
-					{
-						ASSERT_RESULT(false && "unknown type");
+						if (type == MaterialValueType::BOOL)
+						{
+							KStringParser::ParseToBOOL(data.c_str(), (bool*)value->GetData(), vecSize);
+						}
+						else if (type == MaterialValueType::INT)
+						{
+							KStringParser::ParseToINT(data.c_str(), (int*)value->GetData(), vecSize);
+						}
+						else if (type == MaterialValueType::FLOAT)
+						{
+							KStringParser::ParseToFLOAT(data.c_str(), (float*)value->GetData(), vecSize);
+						}
+						else
+						{
+							ASSERT_RESULT(false && "unknown type");
+						}
 					}
 				}
 
@@ -503,11 +515,31 @@ bool KMaterial::ReadParameterElement(IKMaterialParameterPtr parameter, const IKX
 	return false;
 }
 
+
+bool KMaterial::ReadXMLContent(std::vector<char>& content)
+{
+	IKDataStreamPtr pData = nullptr;
+	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
+
+	if (!(system && system->Open(m_Path, IT_FILEHANDLE, pData)))
+	{
+		system = KFileSystem::Manager->GetFileSystem(FSD_BACKUP);
+		if (!(system && system->Open(m_Path, IT_FILEHANDLE, pData)))
+		{
+			return false;
+		}
+	}
+
+	content.resize(pData->GetSize() + 1);
+	memset(content.data(), 0, content.size());
+	pData->Read(content.data(), pData->GetSize());
+	pData->Close();
+
+	return true;
+}
+
 bool KMaterial::InitFromFile(const std::string& path, bool async)
 {
-	// TODO 修复异步加载BUG
-	async = false;
-
 	UnInit();
 
 	m_Path = path;
@@ -518,27 +550,9 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 	m_VSParameterVerified = false;
 	m_FSParameterVerified = false;
 
-	IKDataStreamPtr pData = nullptr;
-	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
-
-	if (!(system && system->Open(path, IT_FILEHANDLE, pData)))
-	{
-		system = KFileSystem::Manager->GetFileSystem(FSD_BACKUP);
-		if (!(system && system->Open(path, IT_FILEHANDLE, pData)))
-		{
-			return false;
-		}
-	}
-
+	std::vector<char> content;
 	IKXMLDocumentPtr root = GetXMLDocument();
-
-	std::vector<char> fileData;
-	fileData.resize(pData->GetSize() + 1);
-	memset(fileData.data(), 0, fileData.size());
-	pData->Read(fileData.data(), pData->GetSize());
-	pData->Close();
-
-	if (root->ParseFromString(fileData.data()))
+	if (ReadXMLContent(content) && root->ParseFromString(content.data()))
 	{
 		std::string vs;
 		std::string fs;
@@ -569,18 +583,31 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 			{
 				IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
 				IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
-
-				// 由于可能异步加载 无法在这里验证参数合法性
+				
 				if (vsParameterEle && !vsParameterEle->IsEmpty())
 				{
-					m_VSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
-					ReadParameterElement(m_VSParameter, vsParameterEle);
+					if (GetVSParameter())
+					{
+						ReadParameterElement(m_VSParameter, vsParameterEle, false);
+					}
+					else
+					{
+						m_VSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+						ReadParameterElement(m_VSParameter, vsParameterEle, true);
+					}
 				}
 
 				if (fsParameterEle && !fsParameterEle->IsEmpty())
 				{
-					m_FSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
-					ReadParameterElement(m_FSParameter, fsParameterEle);
+					if (GetFSParameter())
+					{
+						ReadParameterElement(m_FSParameter, fsParameterEle, false);
+					}
+					else
+					{
+						m_FSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+						ReadParameterElement(m_FSParameter, fsParameterEle, true);
+					}
 				}
 
 				return true;
@@ -603,7 +630,7 @@ bool KMaterial::SaveAsFile(const std::string& path)
 		root->NewElement(msVSKey)->SetText(m_VSShader->GetPath());
 		root->NewElement(msFSKey)->SetText(m_FSShader->GetPath());
 
-		// 创建参数(按必要)并验证合法性
+		// 创建参数
 		GetVSParameter();
 		GetFSParameter();
 
@@ -618,6 +645,63 @@ bool KMaterial::SaveAsFile(const std::string& path)
 			return root->SaveFile(path.c_str());
 		}
 	}
+	return false;
+}
+
+bool KMaterial::Reload()
+{
+	// TODO
+	// 1.Pipeline Rebuild
+	// 2.Info not match
+
+	std::vector<char> content;
+	IKXMLDocumentPtr root = GetXMLDocument();
+
+	if (ReadXMLContent(content) && root->ParseFromString(content.data()))
+	{
+		m_VSInfoCalced = false;
+		m_FSInfoCalced = false;
+		m_VSParameterVerified = false;
+		m_FSParameterVerified = false;
+
+		if (m_VSShader)
+		{
+			m_VSShader->Reload();
+		}
+		if (m_VSInstanceShader)
+		{
+			m_VSInstanceShader->Reload();
+		}
+		if (m_FSShader)
+		{
+			m_FSShader->Reload();
+		}
+
+		m_ParameterReload = true;
+
+		ASSERT_RESULT(GetVSParameter());
+		ASSERT_RESULT(GetFSParameter());
+
+		ASSERT_RESULT(GetVSShadingInfo());
+		ASSERT_RESULT(GetFSShadingInfo());
+
+		IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
+		IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
+
+		if (vsParameterEle && !vsParameterEle->IsEmpty())
+		{
+			ReadParameterElement(m_VSParameter, vsParameterEle, false);
+		}
+		if (fsParameterEle && !fsParameterEle->IsEmpty())
+		{
+			ReadParameterElement(m_FSParameter, fsParameterEle, false);
+		}
+
+		m_ParameterReload = false;
+
+		return true;
+	}
+
 	return false;
 }
 
@@ -652,18 +736,6 @@ bool KMaterial::UnInit()
 	{
 		KRenderGlobal::ShaderManager.Release(m_FSShader);
 		m_FSShader = nullptr;
-	}
-
-	if (m_Pipeline)
-	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(m_Pipeline);
-		m_Pipeline = nullptr;
-	}
-
-	if (m_InstancePipeline)
-	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(m_InstancePipeline);
-		m_InstancePipeline = nullptr;
 	}
 
 	m_VSParameter = nullptr;

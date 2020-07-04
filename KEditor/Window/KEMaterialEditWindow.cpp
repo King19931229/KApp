@@ -11,6 +11,7 @@ KEMaterialEditWindow::KEMaterialEditWindow(QWidget *parent)
 	m_RenderWidget(nullptr),
 	m_PropertyWidget(nullptr),
 	m_PropertyDockWidget(nullptr),
+	m_FileSys(nullptr),
 	m_EntityIdx(0)
 {
 	Init();
@@ -39,14 +40,13 @@ struct ComboPreviewInfo
 	const char* item;
 	const char* path;
 	bool asset;
-	float scale;
 };
 
 const ComboPreviewInfo PREVIEW_INFO[] =
 {
-	{ "Sphere", "Models/sphere.obj", true, 1.0f },
-	{ "Torusknot", "Models/torusknot.obj", true, 1.0f },
-	{ "Venus", "Models/venus.fbx", true, 1.0f }
+	{ "Sphere", "Models/sphere.obj", true},
+	{ "Torusknot", "Models/torusknot.obj", true},
+	{ "Venus", "Models/venus.fbx", true,}
 };
 
 bool KEMaterialEditWindow::InitToolBar()
@@ -183,15 +183,31 @@ bool KEMaterialEditWindow::RefreshPreview()
 
 		m_MiniScene->Remove(m_PreviewEntity);
 
-		IKTransformComponent* transformComponent = nullptr;
-		if (m_PreviewEntity->GetComponent(CT_TRANSFORM, &transformComponent))
-		{
-			transformComponent->SetScale(glm::vec3(previewItem.scale));
-		}
-
 		IKRenderComponent* renderComponent = nullptr;
 		if (m_PreviewEntity->GetComponent(CT_RENDER, &renderComponent))
 		{
+			IKMaterialParameterPtr vsPreParameter = nullptr;
+			IKMaterialParameterPtr fsPreParameter = nullptr;
+
+			// 拷贝过去的参数
+			{
+				IKMaterialPtr material = renderComponent->GetMaterial();
+				if (material)
+				{
+					IKMaterialParameterPtr vsParameter = material->GetVSParameter();
+					if (vsParameter)
+					{
+						vsParameter->Duplicate(vsPreParameter);
+					}
+
+					IKMaterialParameterPtr fsParameter = material->GetFSParameter();
+					if (fsParameter)
+					{
+						fsParameter->Duplicate(fsPreParameter);
+					}
+				}
+			}
+
 			renderComponent->UnInit();
 			if (previewItem.asset)
 			{
@@ -205,13 +221,45 @@ bool KEMaterialEditWindow::RefreshPreview()
 			if (!m_MaterialPath.empty())
 			{
 				renderComponent->SetMaterialPath(m_MaterialPath.c_str());
-				renderComponent->Init();
+				renderComponent->Init(false);
 
 				IKMaterialPtr material = renderComponent->GetMaterial();
 				ASSERT_RESULT(material);
+
+				// 复制过去的参数
+				{
+					IKMaterialParameterPtr vsParameter = material->GetVSParameter();
+					if (vsParameter)
+					{
+						vsParameter->Paste(vsPreParameter);
+					}
+					IKMaterialParameterPtr fsParameter = material->GetFSParameter();
+					if (fsParameter)
+					{
+						fsParameter->Paste(fsPreParameter);
+					}
+				}
+
 				m_PropertyWidget->Init(material ? material.get() : nullptr);
 
+				KAABBBox bound;
+
+				m_PreviewEntity->GetBound(bound);
+				float extend = glm::length(bound.GetExtend());
+				constexpr float INITIAL_EXTEND = 68.0f;
+				float scale = INITIAL_EXTEND / extend;
+
+				IKTransformComponent* transformComponent = nullptr;
+				if (m_PreviewEntity->GetComponent(CT_TRANSFORM, &transformComponent))
+				{
+					transformComponent->SetScale(transformComponent->GetScale() * glm::vec3(scale));
+				}
+
+				m_PreviewEntity->GetBound(bound);
+				m_CameraController->SetPreviewCenter(bound.GetCenter());
+
 				m_MiniScene->Add(m_PreviewEntity);
+
 				return true;
 			}
 		}
@@ -219,20 +267,43 @@ bool KEMaterialEditWindow::RefreshPreview()
 	return false;
 }
 
-bool KEMaterialEditWindow::SetEditTarget(const std::string& path)
+bool KEMaterialEditWindow::SetEditTarget(IKFileSystem* fileSys, const std::string& path)
 {
 	setWindowTitle(path.c_str());
+	m_FileSys = fileSys;
 	m_MaterialPath = path;
 	RefreshPreview();
 	return true;
 }
 
-void KEMaterialEditWindow::OnSave()
+bool KEMaterialEditWindow::OnSave()
 {
+	IKRenderComponent* renderComponent = nullptr;
+	if (m_PreviewEntity->GetComponent(CT_RENDER, &renderComponent))
+	{
+		IKMaterialPtr material = renderComponent->GetMaterial();
+		ASSERT_RESULT(material);
 
+		std::string fullPath;
+		m_FileSys->FullPath(m_MaterialPath, fullPath);
+		material->SaveAsFile(fullPath);
+
+		return true;
+	}
+	return false;
 }
 
-void KEMaterialEditWindow::OnReload()
+bool KEMaterialEditWindow::OnReload()
 {
-
+	IKRenderComponent* renderComponent = nullptr;
+	if (m_PreviewEntity->GetComponent(CT_RENDER, &renderComponent))
+	{
+		IKMaterialPtr material = renderComponent->GetMaterial();
+		ASSERT_RESULT(material);
+		m_PropertyWidget->UnInit();
+		material->Reload();
+		m_PropertyWidget->Init(material.get());
+		return true;
+	}
+	return false;
 }

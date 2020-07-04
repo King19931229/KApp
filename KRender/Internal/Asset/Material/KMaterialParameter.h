@@ -25,4 +25,8 @@ public:
 	const std::vector<IKMaterialValuePtr>& GetAllValues() const override;
 	bool CreateValue(const std::string& name, MaterialValueType type, uint8_t dimension, const void* initData = nullptr) override;
 	bool RemoveValue(const std::string& name) override;
+	bool RemoveAllValues() override;
+
+	bool Duplicate(IKMaterialParameterPtr& parameter) override;
+	bool Paste(const IKMaterialParameterPtr& parameter) override;
 };

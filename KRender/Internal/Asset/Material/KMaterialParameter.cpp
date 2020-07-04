@@ -152,3 +152,32 @@ bool KMaterialParameter::RemoveValue(const std::string& name)
 
 	return false;
 }
+
+bool KMaterialParameter::RemoveAllValues()
+{
+	m_ParameterKey.clear();
+	m_ParameterValue.clear();
+	return true;
+}
+
+// TODO 逐 Key->Value 验证拷贝
+bool KMaterialParameter::Duplicate(IKMaterialParameterPtr& parameter)
+{
+	parameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+	KMaterialParameter* pParameter = (KMaterialParameter*)parameter.get();
+	pParameter->m_ParameterKey = m_ParameterKey;
+	pParameter->m_ParameterValue = m_ParameterValue;
+	return true;
+}
+
+// TODO 逐 Key->Value 验证拷贝
+bool KMaterialParameter::Paste(const IKMaterialParameterPtr& parameter)
+{
+	if (parameter)
+	{
+		m_ParameterKey = ((KMaterialParameter*)parameter.get())->m_ParameterKey;
+		m_ParameterValue = ((KMaterialParameter*)parameter.get())->m_ParameterValue;
+		return true;
+	}
+	return false;
+}
