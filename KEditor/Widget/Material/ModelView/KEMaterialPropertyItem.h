@@ -9,10 +9,16 @@ public:
 	enum MaterialMemberType
 	{
 		MATERIAL_MEMBER_TYPE_ROOT,
+
+		MATERIAL_MEMBER_TYPE_MATERIAL_TEXTURE,
+		MATERIAL_MEMBER_TYPE_MATERIAL_TEXTURE_SLOT,
+
 		MATERIAL_MEMBER_TYPE_VERTEX_SHADER_PARAMETER,
 		MATERIAL_MEMBER_TYPE_FRAGMENT_SHADER_PARAMETER,
-		MATERIAL_MEMBER_TYPE_MATERIAL_VALUE,
+		MATERIAL_MEMBER_TYPE_MATERIAL_PARAMETER_VALUE,
+
 		MATERIAL_MEMBER_TYPE_BLEND_MODE,
+
 		MATERIAL_MEMBER_TYPE_NONE
 	};
 protected:
@@ -23,6 +29,7 @@ protected:
 
 	IKMaterial* m_Material;
 	IKMaterialParameter* m_ShaderParameter;
+	IKMaterialTextureBinding* m_TextureBinding;
 	IKMaterialValue* m_MaterialValue;
 
 	KEMaterialPropertyItem* m_Parent;
@@ -31,6 +38,12 @@ protected:
 	KEPropertyBaseView::BasePtr m_PropertyView;
 	KEPropertyBaseView::BasePtr CreatePropertyView();
 	void RefreshPropertyView();
+
+	void InitAsTextureBinding(IKMaterial* material, IKMaterialTextureBinding* textureBinding);
+	void InitAsTextureBindingSlot(IKMaterial* material, IKMaterialTextureBinding* textureBinding, size_t slot);
+	void InitAsParameter(IKMaterial* material, IKMaterialParameter* shaderParameter, bool vsShader);
+	void InitAsParameterValue(IKMaterial* material, IKMaterialValue* value);
+	void InitAsBlendMode(IKMaterial* material);
 public:
 	KEMaterialPropertyItem(KEMaterialPropertyItem* parent);
 	~KEMaterialPropertyItem();
@@ -38,10 +51,8 @@ public:
 	KEMaterialPropertyItem* GetChild(size_t childIndex);
 	
 	void UnInit();
+
 	void InitAsMaterial(IKMaterial* material);
-	void InitAsParameter(IKMaterial* material, IKMaterialParameter* shaderParameter, bool vsShader);
-	void InitAsValue(IKMaterial* material, IKMaterialValue* value);
-	void InitAsBlendMode(IKMaterial* material);
 
 	inline KEMaterialPropertyItem* GetParent() { return m_Parent; }
 	inline size_t GetChildCount() const { return m_NumChildren; }

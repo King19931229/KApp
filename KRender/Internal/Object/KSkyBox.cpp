@@ -63,7 +63,7 @@ KSkyBox::~KSkyBox()
 
 void KSkyBox::LoadResource(const char* cubeTexPath)
 {
-	ASSERT_RESULT(KRenderGlobal::TextrueManager.Acquire(cubeTexPath, m_CubeTexture, false));
+	ASSERT_RESULT(KRenderGlobal::TextureManager.Acquire(cubeTexPath, m_CubeTexture, false));
 
 	m_CubeSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_CubeSampler->Init(m_CubeTexture, false);
@@ -177,7 +177,7 @@ bool KSkyBox::UnInit()
 	}
 	if (m_CubeTexture)
 	{
-		KRenderGlobal::TextrueManager.Release(m_CubeTexture);
+		KRenderGlobal::TextureManager.Release(m_CubeTexture);
 	}
 
 	SAFE_UNINIT(m_CubeSampler);

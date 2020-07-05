@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<blend>opaque</blend>
-
-<vs>color.vert</vs>
-
-<fs>color.frag</fs>
-
-<vs_parameter/>
-
-<fs_parameter>
-    <value name="color" type="float" size="4">1 1 1 1</value>
-</fs_parameter>
+<material>
+    <blend>opaque</blend>
+    <vs>color.vert</vs>
+    <fs>color.frag</fs>
+    <vs_parameter/>
+    <fs_parameter>
+        <value name="color" type="float" size="4">1 1 1 1</value>
+    </fs_parameter>
+    <material_texture/>
+</material>

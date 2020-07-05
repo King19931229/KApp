@@ -1,5 +1,6 @@
 #pragma once
 #include "KRender/Interface/IKShader.h"
+#include "KRender/Interface/IKTexture.h"
 #include "KRender/Interface/IKPipeline.h"
 #include <cstdint>
 #include <memory>
@@ -44,6 +45,23 @@ struct IKMaterialParameter
 	virtual bool Paste(const IKMaterialParameterPtr& parameter) = 0;
 };
 
+struct IKMaterialTextureBinding;
+typedef std::shared_ptr<IKMaterialTextureBinding> IKMaterialTextureBindingPtr;
+
+struct IKMaterialTextureBinding
+{
+	virtual ~IKMaterialTextureBinding() {}
+
+	virtual uint8_t GetNumSlot() const = 0;
+
+	virtual bool SetTextrue(uint8_t slot, const std::string& path) = 0;
+
+	virtual IKTexturePtr GetTexture(uint8_t slot) = 0;
+	virtual IKSamplerPtr GetSampler(uint8_t slot) = 0;
+
+	virtual bool Clear() = 0;
+};
+
 enum MaterialBlendMode
 {
 	OPAQUE,
@@ -59,6 +77,8 @@ struct IKMaterial
 
 	virtual const IKMaterialParameterPtr GetVSParameter() = 0;
 	virtual const IKMaterialParameterPtr GetFSParameter() = 0;
+
+	virtual const IKMaterialTextureBindingPtr GetDefaultMaterialTexture() = 0;
 
 	virtual const KShaderInformation::Constant* GetVSShadingInfo() = 0;
 	virtual const KShaderInformation::Constant* GetFSShadingInfo() = 0;

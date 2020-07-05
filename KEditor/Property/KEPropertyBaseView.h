@@ -19,6 +19,9 @@ class KEPropertySliderView;
 template<typename T, size_t DIMENSION>
 class KEPropertyCheckBoxView;
 
+template<typename T, size_t DIMENSION>
+class KEPropertyLineEditView;
+
 class KEPropertyBaseView
 {
 protected:
@@ -113,6 +116,21 @@ public:
 	KEPropertyCheckBoxView<T, DIMENSION>* CheckBoxCast()
 	{
 		return static_cast<KEPropertyCheckBoxView<T, DIMENSION>*>(this);
+	}
+
+	// 转LineEdit派生类
+	template<typename T, size_t DIMENSION = 1>
+	KEPropertyLineEditView<T, DIMENSION>* SafeLineEditCast()
+	{
+		KEPropertyLineEditView<T, DIMENSION>* ret = dynamic_cast<KEPropertyLineEditView<T, DIMENSION>*>(this);
+		assert(ret);
+		return ret;
+	}
+
+	template<typename T, size_t DIMENSION = 1>
+	KEPropertyLineEditView<T, DIMENSION>* LineEditCast()
+	{
+		return static_cast<KEPropertyLineEditView<T, DIMENSION>*>(this);
 	}
 };
 

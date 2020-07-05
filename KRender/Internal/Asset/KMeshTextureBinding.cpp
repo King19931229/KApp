@@ -18,12 +18,12 @@ bool KMeshTextureBinding::Release()
 
 		if (info.texture)
 		{
-			KRenderGlobal::TextrueManager.Release(info.texture);
+			KRenderGlobal::TextureManager.Release(info.texture);
 			info.texture = nullptr;
 		}
 		if (info.sampler)
 		{
-			KRenderGlobal::TextrueManager.DestroySampler(info.sampler);
+			KRenderGlobal::TextureManager.DestroySampler(info.sampler);
 			info.sampler = nullptr;
 		}
 	}
@@ -39,18 +39,18 @@ bool KMeshTextureBinding::AssignTexture(MeshTextureSemantic semantic, const char
 
 	if (info.texture)
 	{
-		KRenderGlobal::TextrueManager.Release(info.texture);
+		KRenderGlobal::TextureManager.Release(info.texture);
 		info.texture = nullptr;
 	}
 	if (info.sampler)
 	{
-		KRenderGlobal::TextrueManager.DestroySampler(info.sampler);
+		KRenderGlobal::TextureManager.DestroySampler(info.sampler);
 		info.sampler = nullptr;
 	}
 
-	if(KRenderGlobal::TextrueManager.Acquire(path, info.texture, true))
+	if(KRenderGlobal::TextureManager.Acquire(path, info.texture, true))
 	{
-		ASSERT_RESULT(KRenderGlobal::TextrueManager.CreateSampler(info.sampler));
+		ASSERT_RESULT(KRenderGlobal::TextureManager.CreateSampler(info.sampler));
 
 		info.sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 		ASSERT_RESULT(info.sampler->Init(info.texture, true));

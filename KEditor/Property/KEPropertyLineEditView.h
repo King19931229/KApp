@@ -13,6 +13,7 @@ protected:
 	QWidget* m_MainWidget;
 	QLineEdit *m_Widget[DIMENSION];
 	QHBoxLayout *m_Layout;
+	bool m_LazyUpdate;
 
 	template<typename T2>
 	void SetWidgetValidator(QLineEdit& widget, const T2& default)
@@ -101,7 +102,8 @@ public:
 	KEPropertyLineEditView(ModelPtrType model)
 		: KEPropertyView(model),
 		m_MainWidget(nullptr),
-		m_Layout(nullptr)
+		m_Layout(nullptr),
+		m_LazyUpdate(false)
 	{
 		ZERO_ARRAY_MEMORY(m_Widget);
 	}
@@ -109,6 +111,8 @@ public:
 	~KEPropertyLineEditView()
 	{
 	}
+
+	inline void SetLazyUpdate(bool lazyUpdate) { m_LazyUpdate = lazyUpdate; }
 
 	QWidget* AllocWidget() override
 	{
@@ -118,10 +122,22 @@ public:
 		{
 			m_Widget[i] = KNEW QLineEdit(m_MainWidget);
 			SetWidgetValidator(*m_Widget[i], T());
-			QObject::connect(m_Widget[i], &QLineEdit::textChanged, [=, this](const QString& newText)
+
+			if (m_LazyUpdate)
 			{
-				SetModelData(i, newText);
-			});
+				QObject::connect(m_Widget[i], &QLineEdit::editingFinished, [=, this]()
+				{
+					QString newText = m_Widget[i]->text();
+					SetModelData(i, newText);
+				});
+			}
+			else
+			{
+				QObject::connect(m_Widget[i], &QLineEdit::textEdited, [=, this](const QString& newText)
+				{
+					SetModelData(i, newText);
+				});
+			}
 		}
 
 		m_Layout = KNEW QHBoxLayout(m_MainWidget);

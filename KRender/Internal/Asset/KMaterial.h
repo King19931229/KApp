@@ -13,6 +13,7 @@ protected:
 	IKShaderPtr m_FSShader;
 	IKMaterialParameterPtr m_VSParameter;
 	IKMaterialParameterPtr m_FSParameter;
+	IKMaterialTextureBindingPtr m_MaterialTexture;
 	KShaderInformation::Constant m_VSConstantInfo;
 	KShaderInformation::Constant m_FSConstantInfo;
 	bool m_VSInfoCalced;
@@ -22,9 +23,18 @@ protected:
 
 	bool m_ParameterReload;
 
+	static const char* msMaterialRootKey;
+
 	static const char* msVSKey;
 	static const char* msFSKey;
+
+	static const char* msMaterialTextureBindingKey;
+	static const char* msMaterialTextureSlotKey;
+	static const char* msMaterialTextureSlotIndexKey;
+	static const char* msMaterialTextureSlotPathKey;
+
 	static const char* msBlendModeKey;
+
 	static const char* msVSParameterKey;
 	static const char* msFSParameterKey;
 	static const char* msParameterValueKey;
@@ -43,8 +53,11 @@ protected:
 
 	IKPipelinePtr CreatePipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);
 
-	bool SaveParameterElement(const IKMaterialParameterPtr parameter, IKXMLElementPtr elemment) const;
-	bool ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr elemment, bool createNewParameter);
+	bool SaveParameterElement(const IKMaterialParameterPtr parameter, IKXMLElementPtr element) const;
+	bool ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr element, bool createNewParameter);
+
+	bool SaveMaterialTexture(const IKMaterialTextureBindingPtr materialTexture, IKXMLElementPtr element) const;
+	bool ReadMaterialTexture(IKMaterialTextureBindingPtr parameter, const IKXMLElementPtr elemment);
 
 	bool ReadXMLContent(std::vector<char>& content);
 public:
@@ -53,6 +66,8 @@ public:
 
 	virtual const IKMaterialParameterPtr GetVSParameter();
 	virtual const IKMaterialParameterPtr GetFSParameter();
+
+	virtual const IKMaterialTextureBindingPtr GetDefaultMaterialTexture();
 
 	virtual const KShaderInformation::Constant* GetVSShadingInfo();
 	virtual const KShaderInformation::Constant* GetFSShadingInfo();

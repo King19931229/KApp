@@ -8,15 +8,23 @@
 class KEMaterialPropertyTreeView : public QTreeView
 {
 protected:
+	bool IsLabelItem(KEMaterialPropertyItem* item)
+	{
+		if (item->GetType() == KEMaterialPropertyItem::MATERIAL_MEMBER_TYPE_MATERIAL_PARAMETER_VALUE ||
+			item->GetType() == KEMaterialPropertyItem::MATERIAL_MEMBER_TYPE_BLEND_MODE ||
+			item->GetType() == KEMaterialPropertyItem::MATERIAL_MEMBER_TYPE_MATERIAL_TEXTURE_SLOT)
+		{
+			return true;
+		}
+		return false;
+	}
+
 	void SetupIndexWidget(QModelIndex index)
 	{
 		while (index.isValid())
 		{
 			KEMaterialPropertyItem* item = static_cast<KEMaterialPropertyItem*>(index.internalPointer());
-			if (item && (
-				item->GetType() == KEMaterialPropertyItem::MATERIAL_MEMBER_TYPE_MATERIAL_VALUE ||
-				item->GetType() == KEMaterialPropertyItem::MATERIAL_MEMBER_TYPE_BLEND_MODE)
-				)
+			if (item && IsLabelItem(item))
 			{
 				KEPropertyBaseView::BasePtr view = item->GetPropertyView();
 				if (view)

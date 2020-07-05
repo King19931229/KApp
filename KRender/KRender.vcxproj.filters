@@ -381,6 +381,9 @@
     <ClInclude Include="Internal\Controller\KCameraPreviewController.h">
       <Filter>Internal\Controller</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Asset\Material\KMaterialTextureBinding.h">
+      <Filter>Internal\Asset\Material</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -616,6 +619,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Controller\KCameraPreviewController.cpp">
       <Filter>Internal\Controller</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\Material\KMaterialTextureBinding.cpp">
+      <Filter>Internal\Asset\Material</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -100,7 +100,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::FrameResourceManager.Init(m_Device, frameInFlight);
 	KRenderGlobal::MeshManager.Init(m_Device, frameInFlight);
 	KRenderGlobal::ShaderManager.Init(m_Device);
-	KRenderGlobal::TextrueManager.Init(m_Device);
+	KRenderGlobal::TextureManager.Init(m_Device);
 	KRenderGlobal::MaterialManager.Init(m_Device);
 	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, frameInFlight, property.uniformBufferOffsetAlignment, property.uniformBufferMaxRange);
 	KRenderGlobal::InstanceBufferManager.Init(m_Device, frameInFlight, sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
@@ -129,7 +129,7 @@ bool KRenderCore::UnInitGlobalManager()
 
 	KRenderGlobal::MaterialManager.UnInit();
 	KRenderGlobal::MeshManager.UnInit();
-	KRenderGlobal::TextrueManager.UnInit();
+	KRenderGlobal::TextureManager.UnInit();
 	KRenderGlobal::ShaderManager.UnInit();
 	KRenderGlobal::PipelineManager.UnInit();
 	KRenderGlobal::FrameResourceManager.UnInit();

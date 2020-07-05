@@ -45,6 +45,7 @@ struct ComboPreviewInfo
 const ComboPreviewInfo PREVIEW_INFO[] =
 {
 	{ "Sphere", "Models/sphere.obj", true},
+	{ "Plane", "Models/plane.obj", true},
 	{ "Torusknot", "Models/torusknot.obj", true},
 	{ "Venus", "Models/venus.fbx", true,}
 };

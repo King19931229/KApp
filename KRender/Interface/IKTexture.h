@@ -1,6 +1,6 @@
 #pragma once
-#include "Interface/IKRenderConfig.h"
-#include "Interface/IKResource.h"
+#include "KRender/Interface/IKRenderConfig.h"
+#include "KRender/Interface/IKResource.h"
 #include "KBase/Interface/IKCodec.h"
 
 struct IKTexture : public IKResource

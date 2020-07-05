@@ -250,8 +250,8 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 								if (!texture || !sampler)
 								{
-									KRenderGlobal::TextrueManager.GetErrorTexture(texture);
-									KRenderGlobal::TextrueManager.GetErrorSampler(sampler);
+									KRenderGlobal::TextureManager.GetErrorTexture(texture);
+									KRenderGlobal::TextureManager.GetErrorSampler(sampler);
 								}
 
 								for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)

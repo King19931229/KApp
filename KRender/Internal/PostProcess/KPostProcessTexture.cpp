@@ -123,11 +123,11 @@ bool KPostProcessTexture::Init()
 	{
 		if (m_Texture)
 		{
-			KRenderGlobal::TextrueManager.Release(m_Texture);
+			KRenderGlobal::TextureManager.Release(m_Texture);
 			m_Texture = nullptr;
 		}
 
-		KRenderGlobal::TextrueManager.Acquire(m_Path.c_str(), m_Texture, false);
+		KRenderGlobal::TextureManager.Acquire(m_Path.c_str(), m_Texture, false);
 		return m_Texture != nullptr;
 	}
 	return false;
@@ -137,7 +137,7 @@ bool KPostProcessTexture::UnInit()
 {
 	if (m_Texture)
 	{
-		KRenderGlobal::TextrueManager.Release(m_Texture);
+		KRenderGlobal::TextureManager.Release(m_Texture);
 		m_Texture = nullptr;
 	}
 

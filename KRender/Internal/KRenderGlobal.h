@@ -30,7 +30,7 @@ namespace KRenderGlobal
 	extern KFrameResourceManager FrameResourceManager;
 	extern KShaderManager ShaderManager;
 	extern KMeshManager MeshManager;
-	extern KTextureManager TextrueManager;
+	extern KTextureManager TextureManager;
 	extern KMaterialManager MaterialManager;
 	extern KDynamicConstantBufferManager DynamicConstantBufferManager;
 	extern KInstanceBufferManager InstanceBufferManager;

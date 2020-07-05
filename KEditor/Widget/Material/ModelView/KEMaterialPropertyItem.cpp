@@ -10,6 +10,7 @@ KEMaterialPropertyItem::KEMaterialPropertyItem(KEMaterialPropertyItem* parent)
 	m_Index(0),
 	m_NumChildren(0),
 	m_Material(nullptr),
+	m_TextureBinding(nullptr),
 	m_ShaderParameter(nullptr),
 	m_MaterialValue(nullptr),
 	m_Parent(parent),
@@ -26,7 +27,7 @@ KEPropertyBaseView::BasePtr KEMaterialPropertyItem::CreatePropertyView()
 {
 	switch (m_Type)
 	{
-		case MATERIAL_MEMBER_TYPE_MATERIAL_VALUE:
+		case MATERIAL_MEMBER_TYPE_MATERIAL_PARAMETER_VALUE:
 		{
 			MaterialValueType valueType = m_MaterialValue->GetType();
 			uint8_t vecSize = m_MaterialValue->GetVecSize();
@@ -195,6 +196,26 @@ KEPropertyBaseView::BasePtr KEMaterialPropertyItem::CreatePropertyView()
 
 			return blendView;
 		}
+		case MATERIAL_MEMBER_TYPE_MATERIAL_TEXTURE_SLOT:
+		{
+			std::shared_ptr<KEPropertyBaseView> textureSlotView = nullptr;
+			textureSlotView = KEditor::MakeLineEditView<std::string, 1>();
+
+			textureSlotView->SafeLineEditCast<std::string, 1>()->SetLazyUpdate(true);
+
+			IKTexturePtr texture = m_TextureBinding->GetTexture((uint8_t)m_Index);
+			if (texture)
+			{
+				textureSlotView->SafeLineEditCast<std::string, 1>()->SetValue(std::string(texture->GetPath()));
+			}
+
+			textureSlotView->Cast<std::string, 1>()->AddListener([this](const std::string& newValue)
+			{
+				m_TextureBinding->SetTextrue((uint8_t)m_Index, newValue);
+			});
+
+			return textureSlotView;
+		}
 	}
 	assert(false && "impossible to reach");
 	return nullptr;
@@ -229,6 +250,7 @@ void KEMaterialPropertyItem::UnInit()
 	}
 
 	m_Material = nullptr;
+	m_TextureBinding = nullptr;
 	m_ShaderParameter = nullptr;
 	m_MaterialValue = nullptr;
 }
@@ -245,20 +267,52 @@ void KEMaterialPropertyItem::InitAsMaterial(IKMaterial* material)
 	KEMaterialPropertyItem* fsParameterItem = KNEW KEMaterialPropertyItem(this);
 	fsParameterItem->InitAsParameter(material, material->GetFSParameter().get(), false);
 
+	KEMaterialPropertyItem* textureBindingItem = KNEW KEMaterialPropertyItem(this);
+	textureBindingItem->InitAsTextureBinding(material, material->GetDefaultMaterialTexture().get());
+
 	KEMaterialPropertyItem* blendItem = KNEW KEMaterialPropertyItem(this);
 	blendItem->InitAsBlendMode(material);
 
-	m_NumChildren = 3;
+	m_NumChildren = 4;
 	m_Children = KNEW KEMaterialPropertyItem*[m_NumChildren];
 
 	m_Children[0] = vsParameterItem;
 	m_Children[1] = fsParameterItem;
-	m_Children[2] = blendItem;
+	m_Children[2] = textureBindingItem;
+	m_Children[3] = blendItem;
 
 	for (size_t i = 0; i < m_NumChildren; ++i)
 	{
 		m_Children[i]->m_Index = i;
 	}
+}
+
+void KEMaterialPropertyItem::InitAsTextureBinding(IKMaterial* material, IKMaterialTextureBinding* textureBinding)
+{
+	m_Type = MATERIAL_MEMBER_TYPE_MATERIAL_TEXTURE;
+	m_Name = "Texture";
+	m_Material = m_Material;
+	m_TextureBinding = textureBinding;
+
+	m_NumChildren = textureBinding->GetNumSlot();
+	m_Children = KNEW KEMaterialPropertyItem*[m_NumChildren];
+
+	for (size_t i = 0; i < m_NumChildren; ++i)
+	{
+		m_Children[i] = KNEW KEMaterialPropertyItem(this);
+		m_Children[i]->InitAsTextureBindingSlot(material, textureBinding, i);
+		m_Children[i]->m_Index = i;
+	}
+}
+
+void KEMaterialPropertyItem::InitAsTextureBindingSlot(IKMaterial* material, IKMaterialTextureBinding* textureBinding, size_t slot)
+{
+	m_Type = MATERIAL_MEMBER_TYPE_MATERIAL_TEXTURE_SLOT;
+	m_Name = std::to_string(slot);
+	m_Material = m_Material;
+	m_TextureBinding = textureBinding;
+	m_Index = slot;
+	m_PropertyView = CreatePropertyView();
 }
 
 void KEMaterialPropertyItem::InitAsParameter(IKMaterial* material, IKMaterialParameter* shaderParameter, bool vsShader)
@@ -277,14 +331,14 @@ void KEMaterialPropertyItem::InitAsParameter(IKMaterial* material, IKMaterialPar
 	{
 		IKMaterialValuePtr value = values[i];
 		m_Children[i] = KNEW KEMaterialPropertyItem(this);
-		m_Children[i]->InitAsValue(material, value.get());
+		m_Children[i]->InitAsParameterValue(material, value.get());
 		m_Children[i]->m_Index = i;
 	}
 }
 
-void KEMaterialPropertyItem::InitAsValue(IKMaterial* material, IKMaterialValue* value)
+void KEMaterialPropertyItem::InitAsParameterValue(IKMaterial* material, IKMaterialValue* value)
 {
-	m_Type = MATERIAL_MEMBER_TYPE_MATERIAL_VALUE;
+	m_Type = MATERIAL_MEMBER_TYPE_MATERIAL_PARAMETER_VALUE;
 	m_Name = value->GetName();
 	m_Material = material;
 	m_MaterialValue = value;

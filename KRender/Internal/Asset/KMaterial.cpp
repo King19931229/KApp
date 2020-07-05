@@ -1,5 +1,6 @@
 #include "KMaterial.h"
 #include "Material/KMaterialParameter.h"
+#include "Material/KMaterialTextureBinding.h"
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Publish/KStringParser.h"
 #include "KBase/Interface/IKFileSystem.h"
@@ -14,6 +15,7 @@ KMaterial::KMaterial()
 	m_FSParameterVerified(false),
 	m_ParameterReload(false)
 {
+	m_MaterialTexture = IKMaterialTextureBindingPtr(KNEW KMaterialTextureBinding());
 }
 
 KMaterial::~KMaterial()
@@ -191,6 +193,11 @@ const IKMaterialParameterPtr KMaterial::GetVSParameter()
 		return m_VSParameter;
 	}
 	return nullptr;
+}
+
+const IKMaterialTextureBindingPtr KMaterial::GetDefaultMaterialTexture()
+{
+	return m_MaterialTexture;
 }
 
 const IKMaterialParameterPtr KMaterial::GetFSParameter()
@@ -397,9 +404,18 @@ IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexF
 	return CreatePipelineImpl(frameIndex, instanceFormats.data(), instanceFormats.size(), m_VSInstanceShader, m_FSShader);
 }
 
+const char* KMaterial::msMaterialRootKey = "material";
+
 const char* KMaterial::msVSKey = "vs";
 const char* KMaterial::msFSKey = "fs";
+
+const char* KMaterial::msMaterialTextureBindingKey = "material_texture";
+const char* KMaterial::msMaterialTextureSlotKey = "slot";
+const char* KMaterial::msMaterialTextureSlotIndexKey = "index";
+const char* KMaterial::msMaterialTextureSlotPathKey = "path";
+
 const char* KMaterial::msBlendModeKey = "blend";
+
 const char* KMaterial::msVSParameterKey = "vs_parameter";
 const char* KMaterial::msFSParameterKey = "fs_parameter";
 const char* KMaterial::msParameterValueKey = "value";
@@ -407,9 +423,9 @@ const char* KMaterial::msParameterValueNameKey = "name";
 const char* KMaterial::msParameterValueTypeKey = "type";
 const char* KMaterial::msParameterValueVecSizeKey = "size";
 
-bool KMaterial::SaveParameterElement(const IKMaterialParameterPtr parameter, IKXMLElementPtr elemment) const
+bool KMaterial::SaveParameterElement(const IKMaterialParameterPtr parameter, IKXMLElementPtr element) const
 {
-	if (elemment)
+	if (element)
 	{
 		const auto& values = parameter->GetAllValues();
 		for (const auto& value : values)
@@ -418,7 +434,7 @@ bool KMaterial::SaveParameterElement(const IKMaterialParameterPtr parameter, IKX
 			auto type = value->GetType();
 			uint8_t vecSize = value->GetVecSize();
 
-			IKXMLElementPtr parameterEle = elemment->NewElement(msParameterValueKey);
+			IKXMLElementPtr parameterEle = element->NewElement(msParameterValueKey);
 			parameterEle->SetAttribute(msParameterValueNameKey, name.c_str());
 			parameterEle->SetAttribute(msParameterValueTypeKey, MaterialValueTypeToString(type));
 			parameterEle->SetAttribute(msParameterValueVecSizeKey, vecSize);
@@ -450,11 +466,11 @@ bool KMaterial::SaveParameterElement(const IKMaterialParameterPtr parameter, IKX
 	return false;
 }
 
-bool KMaterial::ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr elemment, bool createNewParameter)
+bool KMaterial::ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr element, bool createNewParameter)
 {
 	if (parameter)
 	{
-		IKXMLElementPtr parameterEle = elemment->FirstChildElement(msParameterValueKey);
+		IKXMLElementPtr parameterEle = element->FirstChildElement(msParameterValueKey);
 		while (parameterEle && !parameterEle->IsEmpty())
 		{
 			IKXMLAttributePtr nameAttr = parameterEle->FindAttribute(msParameterValueNameKey);
@@ -515,6 +531,58 @@ bool KMaterial::ReadParameterElement(IKMaterialParameterPtr parameter, const IKX
 	return false;
 }
 
+bool KMaterial::SaveMaterialTexture(const IKMaterialTextureBindingPtr materialTexture, IKXMLElementPtr element) const
+{
+	if (materialTexture && element)
+	{
+		uint8_t numSlots = materialTexture->GetNumSlot();
+		for (uint8_t i = 0; i < numSlots; ++i)
+		{
+			IKTexturePtr texturePtr = materialTexture->GetTexture(i);
+			if (texturePtr)
+			{
+				const char* path = texturePtr->GetPath();
+				IKXMLElementPtr textureSlotEle = element->NewElement(msMaterialTextureSlotKey);
+				textureSlotEle->SetAttribute(msMaterialTextureSlotIndexKey, i);
+				textureSlotEle->SetAttribute(msMaterialTextureSlotPathKey, path);
+			}
+		}
+
+		return true;
+	}
+	return false;
+}
+
+bool KMaterial::ReadMaterialTexture(IKMaterialTextureBindingPtr parameter, const IKXMLElementPtr element)
+{
+	if (parameter && element)
+	{
+		if (element && !element->IsEmpty())
+		{
+			IKXMLElementPtr textureSlotEle = element->FirstChildElement(msMaterialTextureSlotKey);
+			while (textureSlotEle && !textureSlotEle->IsEmpty())
+			{
+				IKXMLAttributePtr indexAttr = textureSlotEle->FindAttribute(msMaterialTextureSlotIndexKey);
+				IKXMLAttributePtr pathAttr = textureSlotEle->FindAttribute(msMaterialTextureSlotPathKey);
+
+				if (indexAttr && !indexAttr->IsEmpty() && pathAttr && !pathAttr->IsEmpty())
+				{
+					uint8_t index = (uint8_t)indexAttr->IntValue();
+					std::string path = pathAttr->Value();
+
+					if (index < parameter->GetNumSlot() && !path.empty())
+					{
+						parameter->SetTextrue(index, path);
+					}
+				}
+
+				textureSlotEle = textureSlotEle->NextSiblingElement(msMaterialTextureSlotKey);
+			}
+		}
+		return true;
+	}
+	return false;
+}
 
 bool KMaterial::ReadXMLContent(std::vector<char>& content)
 {
@@ -551,66 +619,76 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 	m_FSParameterVerified = false;
 
 	std::vector<char> content;
-	IKXMLDocumentPtr root = GetXMLDocument();
-	if (ReadXMLContent(content) && root->ParseFromString(content.data()))
+	IKXMLDocumentPtr doc = GetXMLDocument();
+	if (ReadXMLContent(content) && doc->ParseFromString(content.data()))
 	{
-		std::string vs;
-		std::string fs;
-
-		IKXMLElementPtr blendModeEle = root->FirstChildElement(msBlendModeKey);
-		if (blendModeEle && !blendModeEle->IsEmpty())
+		IKXMLElementPtr	root = doc->FirstChildElement(msMaterialRootKey);
+		if (root && !root->IsEmpty())
 		{
-			m_BlendMode = StringToMaterialBlendMode(blendModeEle->GetText().c_str());
-		}
+			std::string vs;
+			std::string fs;
 
-		IKXMLElementPtr vsShaderEle = root->FirstChildElement(msVSKey);
-		if (vsShaderEle && !vsShaderEle->IsEmpty())
-		{
-			vs = vsShaderEle->GetText();
-		}
-
-		IKXMLElementPtr fsShaderEle = root->FirstChildElement(msFSKey);
-		if (fsShaderEle && !fsShaderEle->IsEmpty())
-		{
-			fs = fsShaderEle->GetText();
-		}
-
-		if (!vs.empty() && !fs.empty())
-		{
-			if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), { { INSTANCE_INPUT_MACRO, "0" } }, m_VSShader, async) &&
-				KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), { { INSTANCE_INPUT_MACRO, "1" } }, m_VSInstanceShader, async) &&
-				KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, fs.c_str(), m_FSShader, async))
+			IKXMLElementPtr blendModeEle = root->FirstChildElement(msBlendModeKey);
+			if (blendModeEle && !blendModeEle->IsEmpty())
 			{
-				IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
-				IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
-				
-				if (vsParameterEle && !vsParameterEle->IsEmpty())
-				{
-					if (GetVSParameter())
-					{
-						ReadParameterElement(m_VSParameter, vsParameterEle, false);
-					}
-					else
-					{
-						m_VSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
-						ReadParameterElement(m_VSParameter, vsParameterEle, true);
-					}
-				}
+				m_BlendMode = StringToMaterialBlendMode(blendModeEle->GetText().c_str());
+			}
 
-				if (fsParameterEle && !fsParameterEle->IsEmpty())
-				{
-					if (GetFSParameter())
-					{
-						ReadParameterElement(m_FSParameter, fsParameterEle, false);
-					}
-					else
-					{
-						m_FSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
-						ReadParameterElement(m_FSParameter, fsParameterEle, true);
-					}
-				}
+			IKXMLElementPtr vsShaderEle = root->FirstChildElement(msVSKey);
+			if (vsShaderEle && !vsShaderEle->IsEmpty())
+			{
+				vs = vsShaderEle->GetText();
+			}
 
-				return true;
+			IKXMLElementPtr fsShaderEle = root->FirstChildElement(msFSKey);
+			if (fsShaderEle && !fsShaderEle->IsEmpty())
+			{
+				fs = fsShaderEle->GetText();
+			}
+
+			IKXMLElementPtr materialTextureEle = root->FirstChildElement(msMaterialTextureBindingKey);
+			if (materialTextureEle && !materialTextureEle->IsEmpty())
+			{
+				ReadMaterialTexture(m_MaterialTexture, materialTextureEle);
+			}
+
+			if (!vs.empty() && !fs.empty())
+			{
+				if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), { { INSTANCE_INPUT_MACRO, "0" } }, m_VSShader, async) &&
+					KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), { { INSTANCE_INPUT_MACRO, "1" } }, m_VSInstanceShader, async) &&
+					KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, fs.c_str(), m_FSShader, async))
+				{
+					IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
+					IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
+
+					if (vsParameterEle && !vsParameterEle->IsEmpty())
+					{
+						if (GetVSParameter())
+						{
+							ReadParameterElement(m_VSParameter, vsParameterEle, false);
+						}
+						else
+						{
+							m_VSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+							ReadParameterElement(m_VSParameter, vsParameterEle, true);
+						}
+					}
+
+					if (fsParameterEle && !fsParameterEle->IsEmpty())
+					{
+						if (GetFSParameter())
+						{
+							ReadParameterElement(m_FSParameter, fsParameterEle, false);
+						}
+						else
+						{
+							m_FSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
+							ReadParameterElement(m_FSParameter, fsParameterEle, true);
+						}
+					}
+
+					return true;
+				}
 			}
 		}
 	}
@@ -620,11 +698,13 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 
 bool KMaterial::SaveAsFile(const std::string& path)
 {
-	IKXMLDocumentPtr root = GetXMLDocument();
-	root->NewDeclaration(R"(xml version="1.0" encoding="utf-8")");
+	IKXMLDocumentPtr doc = GetXMLDocument();
+	doc->NewDeclaration(R"(xml version="1.0" encoding="utf-8")");
 
 	if (m_VSShader && m_FSShader)
 	{
+		IKXMLElementPtr root = doc->NewElement(msMaterialRootKey);
+
 		root->NewElement(msBlendModeKey)->SetText(MaterialBlendModeToString(m_BlendMode));
 
 		root->NewElement(msVSKey)->SetText(m_VSShader->GetPath());
@@ -642,7 +722,10 @@ bool KMaterial::SaveAsFile(const std::string& path)
 			IKXMLElementPtr fsParameterEle = root->NewElement(msFSParameterKey);
 			SaveParameterElement(m_FSParameter, fsParameterEle);
 
-			return root->SaveFile(path.c_str());
+			IKXMLElementPtr materialTextureEle = root->NewElement(msMaterialTextureBindingKey);
+			SaveMaterialTexture(m_MaterialTexture, materialTextureEle);
+
+			return doc->SaveFile(path.c_str());
 		}
 	}
 	return false;
@@ -738,6 +821,12 @@ bool KMaterial::UnInit()
 		m_FSShader = nullptr;
 	}
 
+	if (m_MaterialTexture)
+	{
+		m_MaterialTexture->Clear();
+	}
+
+	// TODO 持久创建
 	m_VSParameter = nullptr;
 	m_FSParameter = nullptr;
 
