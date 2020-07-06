@@ -206,6 +206,25 @@ bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMateri
 
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(fsShadingBuffer.data(), command.fragmentShadingUsage);
 		}
+
+		const IKMaterialTextureBinding* textureBinding = material->GetDefaultMaterialTexture().get();
+		uint8_t numSlot = textureBinding->GetNumSlot();
+		for (uint8_t i = 0; i < numSlot; ++i)
+		{
+			IKTexturePtr texture = textureBinding->GetTexture(i);
+			IKSamplerPtr sampler = textureBinding->GetSampler(i);
+			if (texture && sampler)
+			{
+				KDynamicTextureUsage usage;
+
+				usage.binding = SHADER_BINDING_MATERIAL_BEGIN + i;
+				usage.texture = texture;
+				usage.sampler = sampler;
+
+				command.dynamicTextureUsages.push_back(usage);
+			}
+		}
+
 		return true;
 	}
 	return false;

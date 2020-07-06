@@ -572,7 +572,7 @@ bool KMaterial::ReadMaterialTexture(IKMaterialTextureBindingPtr parameter, const
 
 					if (index < parameter->GetNumSlot() && !path.empty())
 					{
-						parameter->SetTextrue(index, path);
+						parameter->SetTexture(index, path);
 					}
 				}
 
@@ -738,51 +738,55 @@ bool KMaterial::Reload()
 	// 2.Info not match
 
 	std::vector<char> content;
-	IKXMLDocumentPtr root = GetXMLDocument();
+	IKXMLDocumentPtr doc = GetXMLDocument();
 
-	if (ReadXMLContent(content) && root->ParseFromString(content.data()))
+	if (ReadXMLContent(content) && doc->ParseFromString(content.data()))
 	{
-		m_VSInfoCalced = false;
-		m_FSInfoCalced = false;
-		m_VSParameterVerified = false;
-		m_FSParameterVerified = false;
-
-		if (m_VSShader)
+		IKXMLElementPtr	root = doc->FirstChildElement(msMaterialRootKey);
+		if (root && !root->IsEmpty())
 		{
-			m_VSShader->Reload();
+			m_VSInfoCalced = false;
+			m_FSInfoCalced = false;
+			m_VSParameterVerified = false;
+			m_FSParameterVerified = false;
+
+			if (m_VSShader)
+			{
+				m_VSShader->Reload();
+			}
+			if (m_VSInstanceShader)
+			{
+				m_VSInstanceShader->Reload();
+			}
+			if (m_FSShader)
+			{
+				m_FSShader->Reload();
+			}
+
+			m_ParameterReload = true;
+
+			ASSERT_RESULT(GetVSParameter());
+			ASSERT_RESULT(GetFSParameter());
+
+			ASSERT_RESULT(GetVSShadingInfo());
+			ASSERT_RESULT(GetFSShadingInfo());
+
+			IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
+			IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
+
+			if (vsParameterEle && !vsParameterEle->IsEmpty())
+			{
+				ReadParameterElement(m_VSParameter, vsParameterEle, false);
+			}
+			if (fsParameterEle && !fsParameterEle->IsEmpty())
+			{
+				ReadParameterElement(m_FSParameter, fsParameterEle, false);
+			}
+
+			m_ParameterReload = false;
+
+			return true;
 		}
-		if (m_VSInstanceShader)
-		{
-			m_VSInstanceShader->Reload();
-		}
-		if (m_FSShader)
-		{
-			m_FSShader->Reload();
-		}
-
-		m_ParameterReload = true;
-
-		ASSERT_RESULT(GetVSParameter());
-		ASSERT_RESULT(GetFSParameter());
-
-		ASSERT_RESULT(GetVSShadingInfo());
-		ASSERT_RESULT(GetFSShadingInfo());
-
-		IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
-		IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
-
-		if (vsParameterEle && !vsParameterEle->IsEmpty())
-		{
-			ReadParameterElement(m_VSParameter, vsParameterEle, false);
-		}
-		if (fsParameterEle && !fsParameterEle->IsEmpty())
-		{
-			ReadParameterElement(m_FSParameter, fsParameterEle, false);
-		}
-
-		m_ParameterReload = false;
-
-		return true;
 	}
 
 	return false;

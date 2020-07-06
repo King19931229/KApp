@@ -4,16 +4,66 @@
 #include "KEPropertyModel.h"
 #include <QLineEdit>
 #include <QValidator>
+#include <QMimeData>
+#include <QUrl>
+#include <QDropEvent>
 #include <assert.h>
+
+class KEPropertyLineEdit : public QLineEdit
+{
+protected:
+	bool m_AcceptDrop;
+public:
+	explicit KEPropertyLineEdit(QWidget *parent = Q_NULLPTR)
+		: QLineEdit(parent)
+	{}
+
+	explicit KEPropertyLineEdit(const QString& name, QWidget *parent = Q_NULLPTR)
+		: QLineEdit(name, parent)
+	{}
+
+	~KEPropertyLineEdit() {}
+
+	inline void SetAcceptDrop(bool acceptDrop) { m_AcceptDrop = acceptDrop; }
+
+	void dragEnterEvent(QDragEnterEvent *event) override
+	{
+		event->setDropAction(Qt::MoveAction);
+		event->accept();
+	}
+
+	void dragMoveEvent(QDragMoveEvent *event) override
+	{
+		event->setDropAction(Qt::MoveAction);
+		event->accept();
+	}
+
+	void dropEvent(QDropEvent *event) override
+	{
+		const QMimeData* mineData = event->mimeData();
+		if (mineData)
+		{
+			QList<QUrl> urls = mineData->urls();
+			if (urls.length() == 1)
+			{
+				const QUrl& url = urls[0];
+				QString urlStr = url.toString();
+				setText(urlStr);
+				emit editingFinished();
+			}
+		}
+	}
+};
 
 template<typename T, size_t DIMENSION = 1>
 class KEPropertyLineEditView : public KEPropertyView<T, DIMENSION>
 {
 protected:
 	QWidget* m_MainWidget;
-	QLineEdit *m_Widget[DIMENSION];
+	KEPropertyLineEdit *m_Widget[DIMENSION];
 	QHBoxLayout *m_Layout;
 	bool m_LazyUpdate;
+	bool m_AcceptDrop;
 
 	template<typename T2>
 	void SetWidgetValidator(QLineEdit& widget, const T2& default)
@@ -103,7 +153,8 @@ public:
 		: KEPropertyView(model),
 		m_MainWidget(nullptr),
 		m_Layout(nullptr),
-		m_LazyUpdate(false)
+		m_LazyUpdate(false),
+		m_AcceptDrop(false)
 	{
 		ZERO_ARRAY_MEMORY(m_Widget);
 	}
@@ -113,6 +164,7 @@ public:
 	}
 
 	inline void SetLazyUpdate(bool lazyUpdate) { m_LazyUpdate = lazyUpdate; }
+	inline void SetAcceptDrop(bool acceptDrop) { m_AcceptDrop = acceptDrop; }
 
 	QWidget* AllocWidget() override
 	{
@@ -120,12 +172,13 @@ public:
 
 		for (size_t i = 0; i < DIMENSION; ++i)
 		{
-			m_Widget[i] = KNEW QLineEdit(m_MainWidget);
+			m_Widget[i] = KNEW KEPropertyLineEdit(m_MainWidget);
+			m_Widget[i]->SetAcceptDrop(m_AcceptDrop);
 			SetWidgetValidator(*m_Widget[i], T());
 
 			if (m_LazyUpdate)
 			{
-				QObject::connect(m_Widget[i], &QLineEdit::editingFinished, [=, this]()
+				QObject::connect(m_Widget[i], &KEPropertyLineEdit::editingFinished, [=, this]()
 				{
 					QString newText = m_Widget[i]->text();
 					SetModelData(i, newText);
@@ -133,7 +186,7 @@ public:
 			}
 			else
 			{
-				QObject::connect(m_Widget[i], &QLineEdit::textEdited, [=, this](const QString& newText)
+				QObject::connect(m_Widget[i], &KEPropertyLineEdit::textEdited, [=, this](const QString& newText)
 				{
 					SetModelData(i, newText);
 				});

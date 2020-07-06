@@ -30,7 +30,7 @@ uint8_t KMaterialTextureBinding::GetNumSlot() const
 	return ARRAY_SIZE(m_Textures);
 }
 
-bool KMaterialTextureBinding::SetTextrue(uint8_t slot, const std::string& path)
+bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path)
 {
 	if (!path.empty() && slot < GetNumSlot())
 	{
@@ -57,7 +57,7 @@ bool KMaterialTextureBinding::SetTextrue(uint8_t slot, const std::string& path)
 	return false;
 }
 
-IKTexturePtr KMaterialTextureBinding::GetTexture(uint8_t slot)
+IKTexturePtr KMaterialTextureBinding::GetTexture(uint8_t slot) const
 {
 	if (slot < GetNumSlot())
 	{
@@ -66,13 +66,46 @@ IKTexturePtr KMaterialTextureBinding::GetTexture(uint8_t slot)
 	return nullptr;
 }
 
-IKSamplerPtr KMaterialTextureBinding::GetSampler(uint8_t slot)
+IKSamplerPtr KMaterialTextureBinding::GetSampler(uint8_t slot) const
 {
 	if (slot < GetNumSlot())
 	{
 		return m_Samplers[slot];
 	}
 	return nullptr;
+}
+
+bool KMaterialTextureBinding::Duplicate(IKMaterialTextureBindingPtr& parameter)
+{
+	parameter = IKMaterialTextureBindingPtr(KNEW KMaterialTextureBinding());
+	for (size_t i = 0; i < ARRAY_SIZE(m_Textures); ++i)
+	{
+		if (m_Textures[i] && m_Samplers[i])
+		{
+			parameter->SetTexture((uint8_t)i, m_Textures[i]->GetPath());
+		}
+	}
+	return true;
+}
+
+bool KMaterialTextureBinding::Paste(const IKMaterialTextureBindingPtr& parameter)
+{
+	if (parameter)
+	{
+		Clear();
+
+		KMaterialTextureBinding* source = (KMaterialTextureBinding*)parameter.get();
+		for (size_t i = 0; i < ARRAY_SIZE(source->m_Textures); ++i)
+		{
+			if (source->m_Textures[i] && source->m_Samplers[i])
+			{
+				SetTexture((uint8_t)i, source->m_Textures[i]->GetPath());
+			}
+		}
+
+		return true;
+	}
+	return false;
 }
 
 bool KMaterialTextureBinding::Clear()

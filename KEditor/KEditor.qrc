@@ -7,7 +7,7 @@
         <file alias="images/move_gizmo.png">resources/images/move_gizmo.png</file>
         <file alias="images/rotate_gizmo.png">resources/images/rotate_gizmo.png</file>
         <file alias="images/scale_gizmo.png">resources/images/scale_gizmo.png</file>
-		<file alias="images/save.png">resources/images/save.png</file>
-		<file alias="images/reload.png">resources/images/reload.png</file>
+        <file alias="images/save.png">resources/images/save.png</file>
+        <file alias="images/reload.png">resources/images/reload.png</file>
     </qresource>
 </RCC>

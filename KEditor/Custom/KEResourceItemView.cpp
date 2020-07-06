@@ -94,6 +94,9 @@ void KEResourceItemView::mouseMoveEvent(QMouseEvent *event)
 
 		QDrag* drag = KNEW QDrag(this);
 		drag->setMimeData(mimeData);
+
+		mimeData->setText(treeItem->GetFullPath().c_str());
+		mimeData->setUrls({ QUrl(treeItem->GetFullPath().c_str()) });
 		mimeData->setUserData(0, dropData);
 
 		Qt::DropAction action = drag->exec(Qt::MoveAction);

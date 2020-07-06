@@ -77,7 +77,6 @@ KEPropertyBaseView::BasePtr KEMaterialPropertyItem::CreatePropertyView()
 						});
 					}
 					ASSERT_RESULT(boolView);
-
 					return boolView;
 				}
 				case MaterialValueType::INT:
@@ -202,6 +201,7 @@ KEPropertyBaseView::BasePtr KEMaterialPropertyItem::CreatePropertyView()
 			textureSlotView = KEditor::MakeLineEditView<std::string, 1>();
 
 			textureSlotView->SafeLineEditCast<std::string, 1>()->SetLazyUpdate(true);
+			textureSlotView->SafeLineEditCast<std::string, 1>()->SetAcceptDrop(true);
 
 			IKTexturePtr texture = m_TextureBinding->GetTexture((uint8_t)m_Index);
 			if (texture)
@@ -211,7 +211,7 @@ KEPropertyBaseView::BasePtr KEMaterialPropertyItem::CreatePropertyView()
 
 			textureSlotView->Cast<std::string, 1>()->AddListener([this](const std::string& newValue)
 			{
-				m_TextureBinding->SetTextrue((uint8_t)m_Index, newValue);
+				m_TextureBinding->SetTexture((uint8_t)m_Index, newValue);
 			});
 
 			return textureSlotView;

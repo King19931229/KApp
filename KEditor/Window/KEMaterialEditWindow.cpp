@@ -189,6 +189,7 @@ bool KEMaterialEditWindow::RefreshPreview()
 		{
 			IKMaterialParameterPtr vsPreParameter = nullptr;
 			IKMaterialParameterPtr fsPreParameter = nullptr;
+			IKMaterialTextureBindingPtr preTextureBinding = nullptr;
 
 			// 拷贝过去的参数
 			{
@@ -205,6 +206,12 @@ bool KEMaterialEditWindow::RefreshPreview()
 					if (fsParameter)
 					{
 						fsParameter->Duplicate(fsPreParameter);
+					}
+
+					IKMaterialTextureBindingPtr textureBinding = material->GetDefaultMaterialTexture();
+					if (textureBinding)
+					{
+						textureBinding->Duplicate(preTextureBinding);
 					}
 				}
 			}
@@ -239,6 +246,11 @@ bool KEMaterialEditWindow::RefreshPreview()
 					{
 						fsParameter->Paste(fsPreParameter);
 					}
+					IKMaterialTextureBindingPtr textureBinding = material->GetDefaultMaterialTexture();
+					if (textureBinding)
+					{
+						textureBinding->Paste(preTextureBinding);
+					}
 				}
 
 				m_PropertyWidget->Init(material ? material.get() : nullptr);
@@ -260,6 +272,11 @@ bool KEMaterialEditWindow::RefreshPreview()
 				m_CameraController->SetPreviewCenter(bound.GetCenter());
 
 				m_MiniScene->Add(m_PreviewEntity);
+
+				if (preTextureBinding)
+				{
+					preTextureBinding->Clear();
+				}
 
 				return true;
 			}

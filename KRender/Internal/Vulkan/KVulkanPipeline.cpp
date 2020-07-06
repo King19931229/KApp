@@ -683,9 +683,9 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 	return true;
 }
 
-VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(const KDynamicConstantBufferUsage** ppUsage, size_t count)
+VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount, const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount)
 {
-	return m_Pool.Alloc(KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, ppUsage, count);
+	return m_Pool.Alloc(KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, ppBufferUsage, dynamicBufferUsageCount, pTextureUsage, dynamicTextureUsageCount);
 }
 
 bool KVulkanPipeline::Init()

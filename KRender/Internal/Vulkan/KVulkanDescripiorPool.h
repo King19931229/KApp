@@ -41,6 +41,7 @@ protected:
 	std::vector<VkDescriptorBufferInfo> m_DynamicBufferWriteInfo;
 
 	std::vector<VkWriteDescriptorSet> m_DescriptorWriteInfo;
+	// 持久化的临时容器
 	std::vector<VkWriteDescriptorSet> m_DescriptorDynamicWriteInfo;
 
 	size_t m_CurrentFrame;
@@ -64,5 +65,5 @@ public:
 		const std::vector<VkWriteDescriptorSet>& writeInfo);
 	bool UnInit();
 
-	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, const KDynamicConstantBufferUsage** ppUsage, size_t count);
+	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount, const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount);
 };
