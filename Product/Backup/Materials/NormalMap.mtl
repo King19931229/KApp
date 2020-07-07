@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<material>
+    <blend>opaque</blend>
+    <vs>normalmap.vert</vs>
+    <fs>normalmap.frag</fs>
+    <vs_parameter/>
+    <fs_parameter>
+        <value name="numLayers" type="float" size="1">48</value>
+        <value name="parallaxBias" type="float" size="1">-0.02</value>
+        <value name="mappingMode" type="int" size="1">4</value>
+        <value name="heightScale" type="float" size="1">0.1</value>
+    </fs_parameter>
+    <material_texture/>
+</material>

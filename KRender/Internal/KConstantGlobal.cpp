@@ -34,6 +34,11 @@ namespace KConstantGlobal
 		{ 1 }
 	};
 
+	KConstantDefinition::GLOBAL Global =
+	{
+		glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)
+	};
+
 	void* GetGlobalConstantData(ConstantBufferType bufferType)
 	{
 		switch (bufferType)
@@ -44,6 +49,8 @@ namespace KConstantGlobal
 			return &Shadow;
 		case CBT_CASCADED_SHADOW:
 			return &CascadedShadow;
+		case CBT_GLOBAL:
+			return &Global;
 		default:
 			assert(false && "UnSupported ConstantBufferType");
 			return nullptr;

@@ -85,13 +85,17 @@ void KEMainRenderWidget::dropEvent(QDropEvent *event)
 	if (resItemData)
 	{
 		KEFileSystemTreeItem* item = resItemData->item;
-		std::string fullPath = item->GetFullPath();
+		const std::string& fullPath = item->GetFullPath();
 		IKEnginePtr engine = KEngineGlobal::Engine;
 		IKRenderCore* renderCore = engine->GetRenderCore();
-		IKEntityPtr entity = KEditorGlobal::ResourcePorter.Drop(renderCore->GetCamera(), fullPath);
-		if (entity)
+
+		if (resItemData->dropType == KEResourceItemDropData::DT_MODEL)
 		{
-			KEditorGlobal::EntityManipulator.Join(entity, fullPath);
+			KEditorGlobal::ResourcePorter.ModelDrop(renderCore->GetCamera(), fullPath);
+		}
+		else
+		{
+			KEditorGlobal::ResourcePorter.MaterialDrop(renderCore->GetCamera(), fullPath);
 		}
 	}
 }

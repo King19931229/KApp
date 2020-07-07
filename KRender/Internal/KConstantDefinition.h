@@ -60,6 +60,11 @@ namespace KConstantDefinition
 		uint32_t NUM_CASCADED;
 	};
 
+	struct GLOBAL
+	{
+		glm::vec4 SUN_LIGHT_DIR;
+	};
+
 	struct ConstantSemanticDetail
 	{
 		ConstantSemantic semantic;

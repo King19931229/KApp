@@ -89,14 +89,25 @@ void KEResourceItemView::mouseMoveEvent(QMouseEvent *event)
 		KEFileSystemTreeItem* treeItem = (KEFileSystemTreeItem*)index.internalPointer();
 		QMimeData* mimeData = KNEW QMimeData();
 
+		const std::string& fullPath = treeItem->GetFullPath();
+
 		KEResourceItemDropData* dropData = KNEW KEResourceItemDropData();
 		dropData->item = treeItem;
+
+		if (KStringUtil::EndsWith(fullPath, ".mtl"))
+		{
+			dropData->dropType = KEResourceItemDropData::DT_MATERIAL;
+		}
+		else
+		{
+			dropData->dropType = KEResourceItemDropData::DT_MODEL;
+		}
 
 		QDrag* drag = KNEW QDrag(this);
 		drag->setMimeData(mimeData);
 
-		mimeData->setText(treeItem->GetFullPath().c_str());
-		mimeData->setUrls({ QUrl(treeItem->GetFullPath().c_str()) });
+		mimeData->setText(fullPath.c_str());
+		mimeData->setUrls({ QUrl(fullPath.c_str()) });
 		mimeData->setUserData(0, dropData);
 
 		Qt::DropAction action = drag->exec(Qt::MoveAction);

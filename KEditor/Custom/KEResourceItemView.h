@@ -11,9 +11,16 @@ class KEFileSystemTreeItem;
 struct KEResourceItemDropData : public QObjectUserData
 {
 	KEFileSystemTreeItem* item;
+	enum DropType
+	{
+		DT_MODEL,
+		DT_MATERIAL
+	}dropType;
+
 	KEResourceItemDropData()
 	{
 		item = nullptr;
+		dropType = DT_MODEL;
 	}
 	~KEResourceItemDropData()
 	{

@@ -23,7 +23,8 @@ public:
 	bool UnInitEntity(IKEntityPtr& entity);
 
 	bool Convert(const std::string& assetPath, const std::string& meshPath);
-	IKEntityPtr Drop(const KCamera* camera, const std::string& path);
+	bool ModelDrop(const KCamera* camera, const std::string& path);
+	bool MaterialDrop(const KCamera* camera, const std::string& path);
 
 	inline void SetEntityDropDistance(float distance) { m_EntityDropDistance = distance; }
 	inline float GetEntityDropDistance() const { return m_EntityDropDistance; }

@@ -930,6 +930,36 @@ bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 	return false;
 }
 
+bool KRenderDispatcher::UpdateGlobal(size_t frameIndex)
+{
+	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_GLOBAL);
+	if (globalBuffer)
+	{
+		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_GLOBAL);
+		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_GLOBAL);
+		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
+		{
+			void* pWritePos = nullptr;
+			if (detail.semantic == CS_SUN_LIGHT_DIRECTION)
+			{
+				glm::vec4 sunLightDir = glm::vec4(KRenderGlobal::CascadedShadowMap.GetCamera().GetForward(), 0.0f);
+				assert(sizeof(sunLightDir) == detail.size);
+				pWritePos = POINTER_OFFSET(pData, detail.offset);
+				memcpy(pWritePos, &sunLightDir, sizeof(sunLightDir));
+			}
+		}
+		globalBuffer->Write(pData);
+		return true;
+	}
+	return false;
+}
+
+bool KRenderDispatcher::Update(uint32_t frameIndex)
+{
+	UpdateGlobal(frameIndex);
+	return true;
+}
+
 bool KRenderDispatcher::Execute(uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	if (m_SwapChain)

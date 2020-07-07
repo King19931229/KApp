@@ -5,6 +5,7 @@ namespace KConstantDefinition
 	static ConstantBufferDetail CAMERA_DETAILS;
 	static ConstantBufferDetail SHADOW_DETAILS;
 	static ConstantBufferDetail CASCADED_SHADOW_DETAILS;
+	static ConstantBufferDetail GLOBAL_DETAILS;
 	static ConstantBufferDetail EMPYT_DETAILS;
 
 	void SafeInit()
@@ -81,6 +82,17 @@ namespace KConstantDefinition
 				}
 				CASCADED_SHADOW_DETAILS.bufferSize = sizeof(CASCADED_SHADOW);
 			}
+			
+			// GLOBAL
+			{
+				// SUN_LIGHT_DIR
+				{
+					ConstantSemanticDetail DETAIL = { CS_SUN_LIGHT_DIRECTION, EF_R32G32B32A32_FLOAT, 1, MEMBER_SIZE(GLOBAL, SUN_LIGHT_DIR), MEMBER_OFFSET(GLOBAL, SUN_LIGHT_DIR) };
+					GLOBAL_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				GLOBAL_DETAILS.bufferSize = sizeof(GLOBAL);
+			}
+
 			CONSTANT_DETAIL_INIT = true;
 		}
 	}
@@ -97,6 +109,8 @@ namespace KConstantDefinition
 			return SHADOW_DETAILS;
 		case CBT_CASCADED_SHADOW:
 			return CASCADED_SHADOW_DETAILS;
+		case CBT_GLOBAL:
+			return GLOBAL_DETAILS;
 		default:
 			assert(false && "Unknown ConstantBufferType");
 			return EMPYT_DETAILS;

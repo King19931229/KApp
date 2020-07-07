@@ -96,12 +96,12 @@ bool KAssetIOHooker::Exists(const char* pFile) const
 	if (!(system && system->IsFileExist(pFile)))
 	{
 		system = m_FileSystemManager->GetFileSystem(FSD_BACKUP);
-		if (system && system->IsFileExist(pFile))
+		if (!(system && system->IsFileExist(pFile)))
 		{
-			return true;
+			return false;
 		}
 	}
-	return false;
+	return true;
 }
 
 char KAssetIOHooker::getOsSeparator() const

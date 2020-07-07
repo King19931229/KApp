@@ -71,6 +71,7 @@ protected:
 
 	bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material);
 	bool UpdateCamera(size_t frameIndex);
+	bool UpdateGlobal(size_t frameIndex);
 public:
 	KRenderDispatcher();
 	~KRenderDispatcher();
@@ -90,6 +91,7 @@ public:
 	bool SetCallback(IKRenderWindow* window, OnWindowRenderCallback* callback) override;
 	bool RemoveCallback(IKRenderWindow* window) override;
 
+	bool Update(uint32_t frameIndex);
 	bool Execute(uint32_t chainImageIndex, uint32_t frameIndex);
 	IKCommandBufferPtr GetPrimaryCommandBuffer(uint32_t frameIndex);
 };

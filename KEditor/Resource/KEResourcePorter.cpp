@@ -162,7 +162,7 @@ bool KEResourcePorter::Convert(const std::string& assetPath, const std::string& 
 	return bSuccess;
 }
 
-IKEntityPtr KEResourcePorter::Drop(const KCamera* camera, const std::string& path)
+bool KEResourcePorter::ModelDrop(const KCamera* camera, const std::string& path)
 {
 	if (camera)
 	{
@@ -182,7 +182,9 @@ IKEntityPtr KEResourcePorter::Drop(const KCamera* camera, const std::string& pat
 						glm::vec3 pos(0.0f);
 						DropPosition(camera, localBound, pos);
 						transformComponent->SetPosition(pos);
-						return entity;
+
+						KEditorGlobal::EntityManipulator.Join(entity, path);
+						return true;
 					}
 				}
 			}
@@ -195,5 +197,11 @@ IKEntityPtr KEResourcePorter::Drop(const KCamera* camera, const std::string& pat
 		}
 	}
 
-	return nullptr;
+	return false;
+}
+
+bool KEResourcePorter::MaterialDrop(const KCamera* camera, const std::string& path)
+{
+	// TODO Pick the model and repalce the material
+	return true;
 }

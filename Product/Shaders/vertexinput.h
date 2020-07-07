@@ -14,8 +14,10 @@ layout(location = TEXCOORD0) in vec2 texcoord0;
 //layout(location = DIFFUSE) in vec3 diffuse;
 //layout(location = SPECULAR) in vec3 specular;
 
-//layout(location = TANGENT) in vec3 tangent;
-//layout(location = BINORMAL) in vec3 binormal;
+#if TANGENT_BINORMAL_INPUT
+layout(location = TANGENT) in vec3 tangent;
+layout(location = BINORMAL) in vec3 binormal;
+#endif
 
 #if INSTANCE_INPUT
 

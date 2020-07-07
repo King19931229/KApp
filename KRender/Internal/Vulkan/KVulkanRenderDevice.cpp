@@ -866,6 +866,8 @@ bool KVulkanRenderDevice::Present()
 	uint32_t chainImageIndex = 0;
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->AcquireNextImage(chainImageIndex);
 
+	KRenderGlobal::RenderDispatcher.Update(frameIndex);
+
 	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		RecreateSwapChain(m_SwapChain.get(), m_UIOverlay.get());
