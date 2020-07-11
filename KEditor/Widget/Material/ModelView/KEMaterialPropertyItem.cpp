@@ -211,7 +211,14 @@ KEPropertyBaseView::BasePtr KEMaterialPropertyItem::CreatePropertyView()
 
 			textureSlotView->Cast<std::string, 1>()->AddListener([this](const std::string& newValue)
 			{
-				m_TextureBinding->SetTexture((uint8_t)m_Index, newValue);
+				if (!newValue.empty())
+				{
+					m_TextureBinding->SetTexture((uint8_t)m_Index, newValue);
+				}
+				else
+				{
+					m_TextureBinding->UnsetTextrue((uint8_t)m_Index);
+				}
 			});
 
 			return textureSlotView;

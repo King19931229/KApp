@@ -152,8 +152,15 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 	m_Height = m_ImageData.uHeight;
 	m_Depth = 1;
 
-	// 已经存在mipmap数据就不需要硬生成mipmap
-	m_bGenerateMipmap = m_ImageData.uMipmap > 1 ? false : generateMipmap;
+	// 已经存在mipmap数据或者格式为压缩格式就不硬生成mipmap
+	if (m_ImageData.uMipmap > 1 || m_ImageData.bCompressed)
+	{
+		m_bGenerateMipmap = false;
+	}
+	else
+	{
+		m_bGenerateMipmap = generateMipmap;
+	}
 	// 如果硬生成mipmap mipmap层数与尺寸相关 否则从mipmap数据中获取
 	m_Mipmaps = (unsigned short)(m_bGenerateMipmap ? (unsigned short)std::floor(std::log(std::min(m_Width, m_Height)) / std::log(2)) + 1 : m_ImageData.uMipmap);
 

@@ -115,41 +115,45 @@ void main()
 {
 	vec3 V = inTangentViewDir.xyz;
 	vec2 uv = inUV;
+	
+	switch(parameter.mappingMode)
+	{
+		case 2:
+			uv = parallaxMapping(inUV, V);
+			break;
+		case 3:
+			uv = steepParallaxMapping(inUV, V);
+			break;
+		case 4:
+			uv = parallaxOcclusionMapping(inUV, V);
+			break;
+	}
+
+	// Discard fragments at texture border
+	if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
+	{
+		discard;
+	}
+
+	vec3 N;
 
 	if (parameter.mappingMode == 0)
 	{
-		outColor = texture(diffuseSampler, inUV);
+		N = vec3(0,1,0);
 	}
 	else
 	{
-		switch(parameter.mappingMode)
-		{
-			case 2:
-				uv = parallaxMapping(inUV, V);
-				break;
-			case 3:
-				uv = steepParallaxMapping(inUV, V);
-				break;
-			case 4:
-				uv = parallaxOcclusionMapping(inUV, V);
-				break;
-		}
-
-		// Discard fragments at texture border
-		if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
-		{
-			discard;
-		}
-
-		vec3 N = normalize(textureLod(normalSampler, uv, 0.0).rgb * 2.0 - 1.0);
-		vec3 L = -inTangentLightDir.xyz;
-		//vec3 R = reflect(-L, N);
-		//vec3 H = normalize(L + V);
-
-		float NDotL = max(dot(N, L), 0.0);
-		float ambient = 0.5f;
-
-		outColor = texture(diffuseSampler, inUV) * (NDotL + ambient);
+		N = normalize(textureLod(normalSampler, uv, 0.0).rgb * 2.0 - 1.0);
 	}
+
+	vec3 L = -inTangentLightDir.xyz;
+	//vec3 R = reflect(-L, N);
+	//vec3 H = normalize(L + V);
+
+	float NDotL = max(dot(N, L), 0.0);
+	float ambient = 0.5f;
+
+	outColor = texture(diffuseSampler, inUV) * (NDotL + ambient);
+	
 	outColor *= calcCSM(inViewPos.xyz, inWorldPos.xyz);		
 }

@@ -34,6 +34,23 @@ bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path)
 {
 	if (!path.empty() && slot < GetNumSlot())
 	{
+		UnsetTextrue(slot);
+
+		if (KRenderGlobal::TextureManager.Acquire(path.c_str(), m_Textures[slot], false))
+		{
+			ASSERT_RESULT(KRenderGlobal::TextureManager.CreateSampler(m_Samplers[slot]));
+			m_Samplers[slot]->SetFilterMode(FM_LINEAR, FM_LINEAR);
+			ASSERT_RESULT(m_Samplers[slot]->Init(m_Textures[slot], false));
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KMaterialTextureBinding::UnsetTextrue(uint8_t slot)
+{
+	if (slot < GetNumSlot())
+	{
 		if (m_Textures[slot])
 		{
 			KRenderGlobal::TextureManager.Release(m_Textures[slot]);
@@ -45,14 +62,7 @@ bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path)
 			KRenderGlobal::TextureManager.DestroySampler(m_Samplers[slot]);
 			m_Samplers[slot] = nullptr;
 		}
-
-		if (KRenderGlobal::TextureManager.Acquire(path.c_str(), m_Textures[slot], false))
-		{
-			ASSERT_RESULT(KRenderGlobal::TextureManager.CreateSampler(m_Samplers[slot]));
-			m_Samplers[slot]->SetFilterMode(FM_LINEAR, FM_LINEAR);
-			ASSERT_RESULT(m_Samplers[slot]->Init(m_Textures[slot], false));
-			return true;
-		}
+		return true;
 	}
 	return false;
 }

@@ -735,6 +735,11 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 				sourceFormat = IF_R16_FLOAT;
 				break;
 
+			case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+			case DXGI_FORMAT_R8G8B8A8_UNORM:
+				sourceFormat = IF_R8G8B8A8;
+				break;
+
 			default:
 				KG_LOGE(LM_RENDER, "The DXGI format is not supported!");
 				return false;
@@ -758,7 +763,7 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 	KImageHelper::GetIsCompress(sourceFormat, isCompress);
 	if (isCompress)
 	{
-		if (!KCodec::BCHardwareCodec/* || result.b3DTexture*/)
+		if (!KCodec::BCHardwareCodec || result.uMipmap == 1/* || result.b3DTexture*/)
 		{
 			// We'll need to decompress
 			decompressDXT = true;
@@ -788,6 +793,7 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 				{
 					result.eFormat = forceAlpha ? IF_R8G8B8A8 : IF_R8G8B8;
 				}
+				result.bCompressed = false;
 				break;
 			case IF_DXT2:
 			case IF_DXT3:
@@ -795,12 +801,14 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 			case IF_DXT5:
 				// full alpha present, formats vary only in encoding
 				result.eFormat = IF_R8G8B8A8;
+				result.bCompressed = false;
 				break;
 			default:
-				// all other cases need no special format handling
+				// unable to decompress
+				decompressDXT = false;
+				result.bCompressed = true;
 				break;
 			}
-			result.bCompressed = false;
 		}
 		else
 		{
@@ -816,6 +824,12 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 		// just derive any other kind of format
 		result.eFormat = sourceFormat;
 		result.bCompressed = false;
+	}
+
+	if (result.bCompressed && !KCodec::BCHardwareCodec)
+	{
+		KG_LOGE(LM_RENDER, "The DXGI format is compressed but hardware codec is not supported!");
+		return false;
 	}
 
 	size_t imageSize = 0;
@@ -836,8 +850,10 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 	// Now deal with the data
 	void *destPtr = result.pData->GetData();
 
+	KSubImageInfoList& subImageInfoList = result.pData->GetSubImageInfo();
+
 	// all mips for a face, then each face
-	for (uint16_t i = 0; i < numFaces; ++i)
+	for (uint16_t face = 0; face < numFaces; ++face)
 	{
 		size_t width = result.uWidth;
 		size_t height = result.uHeight;
@@ -983,6 +999,16 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 					}
 				}
 			}
+
+			KSubImageInfo subImageInfo;
+			subImageInfo.uFaceIndex = face;
+			subImageInfo.uMipmapIndex = mip;
+			subImageInfo.uOffset = (size_t)srcData - (size_t)result.pData->GetData();
+			subImageInfo.uSize = (size_t)destPtr - (size_t)srcData;
+			subImageInfo.uWidth = width;
+			subImageInfo.uHeight = height;
+
+			subImageInfoList.push_back(subImageInfo);
 
 			/// Next mip
 			if (width != 1) width /= 2;

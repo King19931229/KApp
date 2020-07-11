@@ -5,10 +5,13 @@
     <fs>normalmap.frag</fs>
     <vs_parameter/>
     <fs_parameter>
-        <value name="numLayers" type="float" size="1">48</value>
+        <value name="numLayers" type="float" size="1">24</value>
         <value name="parallaxBias" type="float" size="1">-0.02</value>
-        <value name="mappingMode" type="int" size="1">4</value>
+        <value name="mappingMode" type="int" size="1">1</value>
         <value name="heightScale" type="float" size="1">0.1</value>
     </fs_parameter>
-    <material_texture/>
+    <material_texture>
+        <slot index="0" path="Textures/rocks_color_bc3_unorm.dds"/>
+        <slot index="2" path="Textures/rocks_normal_height_rgba.dds"/>
+    </material_texture>
 </material>

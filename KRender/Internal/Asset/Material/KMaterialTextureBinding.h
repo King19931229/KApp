@@ -12,6 +12,7 @@ public:
 	virtual ~KMaterialTextureBinding();
 	uint8_t GetNumSlot() const override;
 	bool SetTexture(uint8_t slot, const std::string& path) override;
+	bool UnsetTextrue(uint8_t slot) override;
 	IKTexturePtr GetTexture(uint8_t slot) const override;
 	IKSamplerPtr GetSampler(uint8_t slot) const override;
 	bool Duplicate(IKMaterialTextureBindingPtr& parameter) override;

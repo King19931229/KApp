@@ -55,6 +55,7 @@ struct IKMaterialTextureBinding
 	virtual uint8_t GetNumSlot() const = 0;
 
 	virtual bool SetTexture(uint8_t slot, const std::string& path) = 0;
+	virtual bool UnsetTextrue(uint8_t slot) = 0;
 
 	virtual IKTexturePtr GetTexture(uint8_t slot) const = 0;
 	virtual IKSamplerPtr GetSampler(uint8_t slot) const = 0;
