@@ -40,6 +40,11 @@ struct IKCodec
 
 namespace KCodec
 {
+	extern bool ETC1HardwareCodec;
+	extern bool ETC2HardwareCodec;
+	extern bool ASTCHardwareCodec;
+	extern bool BCHardwareCodec;
+
 	extern bool CreateCodecManager();
 	extern bool DestroyCodecManager();
 	extern IKCodecPtr GetCodec(const char* pszFile);

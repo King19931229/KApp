@@ -299,6 +299,8 @@ bool KETCCodec::DecodeKTX(const IKDataStreamPtr& stream, KCodecResult& result)
 
 bool KETCCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result)
 {
+	// TODO 判断硬件解码支持
+
 	IKDataStreamPtr stream = nullptr;
 
 	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);

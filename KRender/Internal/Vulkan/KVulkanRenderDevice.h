@@ -54,7 +54,8 @@ class KVulkanRenderDevice : public IKRenderDevice
 		int score;
 	};
 protected:
-	IKRenderWindow* m_pWindow;
+	KRenderDeviceProperties m_Properties;
+	IKRenderWindow* m_pWindow;	
 	VkInstance m_Instance;
 	VkDevice m_Device;
 	VkQueue m_GraphicsQueue;

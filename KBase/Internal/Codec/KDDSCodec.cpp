@@ -1,6 +1,7 @@
 #include "KDDSCodec.h"
 #include "Interface/IKFileSystem.h"
 #include "Interface/IKLog.h"
+#include <algorithm>
 
 // Algorithm Copy From OGRE
 
@@ -17,6 +18,22 @@ struct ColourValue
 	float g;
 	float b;
 	float a;
+
+	ColourValue()
+	{
+		r = 0.0f;
+		g = 0.0f;
+		b = 0.0f;
+		a = 0.0f;
+	}
+
+	ColourValue(float _r, float _g, float _b, float _a)
+	{
+		r = _r;
+		g = _g;
+		b = _b;
+		a = _a;
+	}
 
 	inline ColourValue operator+ (const ColourValue &rkVector) const
 	{
@@ -368,12 +385,12 @@ void KDDSCodec::UnpackR5G6B5Colour(const void* src, ColourValue *pCol) const
 	uint32_t intValue =
 #ifdef NEED_FLIP_ENDIAN
 	((uint32_t)((uint8_t *)src)[0] << 16) |
-	((uint32_t)((uint8_t *)src)[1] << 8) |
-	((uint32_t)((uint8_t *)src)[2]);
+		((uint32_t)((uint8_t *)src)[1] << 8) |
+		((uint32_t)((uint8_t *)src)[2]);
 #else
-	((uint32_t)((uint8_t *)src)[0]) |
-	((uint32_t)((uint8_t *)src)[1] << 8) |
-	((uint32_t)((uint8_t *)src)[2] << 16);
+		((uint32_t)((uint8_t *)src)[0]) |
+		((uint32_t)((uint8_t *)src)[1] << 8) |
+		((uint32_t)((uint8_t *)src)[2] << 16);
 #endif
 	pCol->r = FIX_TO_FLOAT((intValue & 0xF800) >> 11, 5);
 	pCol->g = FIX_TO_FLOAT((intValue & 0x07E0) >> 5, 6);
@@ -459,7 +476,6 @@ void KDDSCodec::UnpackDXTAlpha(const DXTInterpolatedAlphaBlock &block, ColourVal
 	// Explicit extremes
 	derivedAlphas[0] = block.alpha_0 / (float)0xFF;
 	derivedAlphas[1] = block.alpha_1 / (float)0xFF;
-
 
 	if (block.alpha_0 <= block.alpha_1)
 	{
@@ -561,10 +577,14 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 	uint16_t numFaces = 1; // assume one face until we know otherwise
 
 	if (header.caps.caps1 & DDSCAPS_MIPMAP)
-		result.uMipmap = header.mipMapCount - 1;
+	{
+		result.uMipmap = header.mipMapCount;
+	}
 	else
-		result.uMipmap = 0;
-	
+	{
+		result.uMipmap = 1;
+	}
+
 	result.bCompressed = false;
 	result.bCubemap = false;
 
@@ -734,8 +754,244 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 			header.pixelFormat.alphaMask : 0);
 	}
 
-	// TODO
-	return false;
+	bool isCompress = false;
+	KImageHelper::GetIsCompress(sourceFormat, isCompress);
+	if (isCompress)
+	{
+		if (!KCodec::BCHardwareCodec/* || result.b3DTexture*/)
+		{
+			// We'll need to decompress
+			decompressDXT = true;
+			// Convert format
+			switch (sourceFormat)
+			{
+			case IF_DXT1:
+				// source can be either 565 or 5551 depending on whether alpha present
+				// unfortunately you have to read a block to figure out which
+				// Note that we upgrade to 32-bit pixel formats here, even
+				// though the source is 16-bit; this is because the interpolated
+				// values will benefit from the 32-bit results, and the source
+				// from which the 16-bit samples are calculated may have been
+				// 32-bit so can benefit from this.
+				DXTColourBlock block;
+				stream->Read(&block, sizeof(DXTColourBlock));
+				FlipEndian(&(block.colour_0), sizeof(uint16_t), 1);
+				FlipEndian(&(block.colour_1), sizeof(uint16_t), 1);
+				// skip back since we'll need to read this again
+				stream->Skip(0 - (long)sizeof(DXTColourBlock));
+				// colour_0 <= colour_1 means transparency in DXT1
+				if (block.colour_0 <= block.colour_1)
+				{
+					result.eFormat = IF_R8G8B8A8;
+				}
+				else
+				{
+					result.eFormat = forceAlpha ? IF_R8G8B8A8 : IF_R8G8B8;
+				}
+				break;
+			case IF_DXT2:
+			case IF_DXT3:
+			case IF_DXT4:
+			case IF_DXT5:
+				// full alpha present, formats vary only in encoding
+				result.eFormat = IF_R8G8B8A8;
+				break;
+			default:
+				// all other cases need no special format handling
+				break;
+			}
+			result.bCompressed = false;
+		}
+		else
+		{
+			// Use original format
+			result.eFormat = sourceFormat;
+			// Keep DXT data compressed
+			result.bCompressed = true;
+		}
+	}
+	else // not compressed
+	{
+		// Don't test against DDPF_RGB since greyscale DDS doesn't set this
+		// just derive any other kind of format
+		result.eFormat = sourceFormat;
+		result.bCompressed = false;
+	}
+
+	size_t imageSize = 0;
+	if (!KImageHelper::GetByteSize(result.eFormat,
+		result.uMipmap,
+		numFaces,
+		result.uWidth,
+		result.uHeight,
+		result.uDepth,
+		imageSize))
+	{
+		KG_LOGE(LM_RENDER, "DDS get byte size failure!");
+		return false;
+	}
+
+	result.pData = KImageDataPtr(KNEW KImageData(imageSize));
+
+	// Now deal with the data
+	void *destPtr = result.pData->GetData();
+
+	// all mips for a face, then each face
+	for (uint16_t i = 0; i < numFaces; ++i)
+	{
+		size_t width = result.uWidth;
+		size_t height = result.uHeight;
+		size_t depth = result.uDepth;
+
+		for (size_t mip = 0; mip < result.uMipmap; ++mip)
+		{
+			void *srcData = destPtr;
+
+			if (isCompress)
+			{
+				// Compressed data
+				if (decompressDXT)
+				{
+					// Get the byte size of the dest format element
+					size_t elementByteSize = 0;
+					ASSERT_RESULT(KImageHelper::GetElementByteSize(result.eFormat, elementByteSize));
+					size_t dstPitch = width * elementByteSize;
+
+					DXTColourBlock col;
+					DXTInterpolatedAlphaBlock iAlpha;
+					DXTExplicitAlphaBlock eAlpha;
+					// 4x4 block of decompressed colour
+					ColourValue tempColours[16];
+					size_t destBpp = elementByteSize;
+					size_t sx = std::min(width, (size_t)4);
+					size_t sy = std::min(height, (size_t)4);
+					size_t destPitchMinus4 = dstPitch - destBpp * sx;
+					// slices are done individually
+					for (size_t z = 0; z < depth; ++z)
+					{
+						// 4x4 blocks in x/y
+						for (size_t y = 0; y < height; y += 4)
+						{
+							for (size_t x = 0; x < width; x += 4)
+							{
+								if (sourceFormat == IF_DXT2 || sourceFormat == IF_DXT3)
+								{
+									// explicit alpha
+									stream->Read(&eAlpha, sizeof(DXTExplicitAlphaBlock));
+									FlipEndian(eAlpha.alphaRow, sizeof(uint16_t), 4);
+									UnpackDXTAlpha(eAlpha, tempColours);
+								}
+								else if (sourceFormat == IF_DXT4 || sourceFormat == IF_DXT5)
+								{
+									// interpolated alpha
+									stream->Read(&iAlpha, sizeof(DXTInterpolatedAlphaBlock));
+									FlipEndian(&(iAlpha.alpha_0), sizeof(uint16_t), 1);
+									FlipEndian(&(iAlpha.alpha_1), sizeof(uint16_t), 1);
+									UnpackDXTAlpha(iAlpha, tempColours);
+								}
+								// always read colour
+								stream->Read(&col, sizeof(DXTColourBlock));
+								FlipEndian(&(col.colour_0), sizeof(uint16_t), 1);
+								FlipEndian(&(col.colour_1), sizeof(uint16_t), 1);
+								UnpackDXTColour(sourceFormat, col, tempColours);
+
+								// write 4x4 block to uncompressed version
+								for (size_t by = 0; by < sy; ++by)
+								{
+									for (size_t bx = 0; bx < sx; ++bx)
+									{
+										auto PACK_COLOR = [](const ColourValue& value, ImageFormat format, void* dest)->bool
+										{
+											if (format == IF_R8G8B8)
+											{
+												uint32_t intValue = (uint32_t)(value.r * 0xFF) | ((uint32_t)(value.g * 0xFF) << 8) | ((uint32_t)(value.b * 0xFF) << 16);
+												memcpy(dest, &intValue, sizeof(uint8_t) * 3);
+												return true;
+											}
+											else if (format == IF_R8G8B8A8)
+											{
+												uint32_t intValue = (uint32_t)(value.r * 0xFF) | ((uint32_t)(value.g * 0xFF) << 8) | ((uint32_t)(value.b * 0xFF) << 16) | ((uint32_t)(value.a * 0xFF) << 24);
+												memcpy(dest, &intValue, sizeof(uint8_t) * 4);
+												return true;
+											}
+											return false;
+										};
+										ASSERT_RESULT(PACK_COLOR(tempColours[by * 4 + bx], result.eFormat, destPtr));
+										destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) + destBpp);
+									}
+									// advance to next row
+									destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) + destPitchMinus4);
+								}
+								// next block. Our dest pointer is 4 lines down
+								// from where it started
+								if (x + 4 >= width)
+								{
+									// Jump back to the start of the line
+									destPtr = static_cast<void *>(static_cast<unsigned char*>(destPtr) - destPitchMinus4);
+								}
+								else
+								{
+									// Jump back up 4 rows and 4 pixels to the
+									// right to be at the next block to the right
+									destPtr = static_cast<void *>(static_cast<unsigned char*>(destPtr) - dstPitch * sy + destBpp * sx);
+								}
+							}
+						}
+					}
+				}
+				else
+				{
+					// load directly
+					// DDS format lies! sizeOrPitch is not always set for DXT!!						
+					size_t dxtSize = 0;
+					ASSERT_RESULT(KImageHelper::GetByteSize(result.eFormat, width, height, depth, dxtSize));
+					stream->Read(destPtr, dxtSize);
+					destPtr = static_cast<void *>(static_cast<unsigned char*>(destPtr) + dxtSize);
+				}
+			}
+			else // isCompress
+			{
+				// Get the byte size of the dest format element
+				size_t elementByteSize = 0;
+				ASSERT_RESULT(KImageHelper::GetElementByteSize(result.eFormat, elementByteSize));
+				size_t dstPitch = width * elementByteSize;
+
+				// Final data - trim incoming pitch
+				size_t srcPitch;
+				if (header.flags & DDSD_PITCH)
+				{
+					srcPitch = header.sizeOrPitch / std::max((size_t)1, mip * 2);
+				}
+				else
+				{
+					// assume same as final pitch
+					srcPitch = dstPitch;
+				}
+				ASSERT_RESULT(dstPitch <= srcPitch);
+
+				long srcAdvance = static_cast<long>(srcPitch) - static_cast<long>(dstPitch);
+				for (size_t z = 0; z < depth; ++z)
+				{
+					for (size_t y = 0; y < height; ++y)
+					{
+						stream->Read(destPtr, dstPitch);
+						if (srcAdvance > 0)
+						{
+							stream->Skip(srcAdvance);
+						}
+						destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) + dstPitch);
+					}
+				}
+			}
+
+			/// Next mip
+			if (width != 1) width /= 2;
+			if (height != 1) height /= 2;
+			if (depth != 1) depth /= 2;
+		}
+	}
+
+	return true;
 }
 
 void KDDSCodec::FlipEndian(void *pData, size_t size, size_t count) const
@@ -744,7 +1000,7 @@ void KDDSCodec::FlipEndian(void *pData, size_t size, size_t count) const
 	for (size_t index = 0; index < count; index++)
 	{
 		FlipEndian((void *)((size_t)pData + (index * size)), size);
-}
+	}
 #endif
 }
 

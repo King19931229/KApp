@@ -10,11 +10,21 @@ typedef std::function<void()> KDeviceUnInitCallback;
 
 struct KRenderDeviceProperties
 {
+	bool anisotropySupport;
+	bool bcSupport;
+	bool etc1Support;
+	bool etc2Support;
+	bool astcSupport;
 	size_t uniformBufferMaxRange;
 	size_t uniformBufferOffsetAlignment;
 
 	KRenderDeviceProperties()
 	{
+		anisotropySupport = false;
+		bcSupport = false;
+		etc1Support = false;
+		etc2Support = false;
+		astcSupport = false;
 		uniformBufferMaxRange = 512;
 		uniformBufferOffsetAlignment = 8;
 	}

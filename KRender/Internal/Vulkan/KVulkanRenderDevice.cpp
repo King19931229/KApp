@@ -388,11 +388,188 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 
-		// TODO 检测
-		ASSERT_RESULT(m_PhysicalDevice.deviceProperties.limits.maxSamplerAnisotropy > 0.0f);
-		deviceFeatures.fillModeNonSolid = VK_TRUE;
-		deviceFeatures.samplerAnisotropy = VK_TRUE;
-		deviceFeatures.inheritedQueries = VK_TRUE;
+		// 查询有哪些Features可以被打开
+		// https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkPhysicalDeviceFeatures.html
+
+		// 查询各项异性支持
+		if (m_PhysicalDevice.deviceProperties.limits.maxSamplerAnisotropy > 0.0f)
+		{
+			m_Properties.anisotropySupport = true;
+			deviceFeatures.samplerAnisotropy = VK_TRUE;
+		}
+		else
+		{
+			m_Properties.anisotropySupport = false;
+			deviceFeatures.samplerAnisotropy = VK_FALSE;
+		}
+
+		// 查询DDS支持
+		{
+			VkFormat bcFormats[] = 
+			{
+				VK_FORMAT_BC1_RGB_UNORM_BLOCK,
+				VK_FORMAT_BC1_RGB_SRGB_BLOCK,
+				VK_FORMAT_BC1_RGBA_UNORM_BLOCK,
+				VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
+				VK_FORMAT_BC2_UNORM_BLOCK,
+				VK_FORMAT_BC2_SRGB_BLOCK,
+				VK_FORMAT_BC3_UNORM_BLOCK,
+				VK_FORMAT_BC3_SRGB_BLOCK,
+				VK_FORMAT_BC4_UNORM_BLOCK,
+				VK_FORMAT_BC4_SNORM_BLOCK,
+				VK_FORMAT_BC5_UNORM_BLOCK,
+				VK_FORMAT_BC5_SNORM_BLOCK,
+				VK_FORMAT_BC6H_UFLOAT_BLOCK,
+				VK_FORMAT_BC6H_SFLOAT_BLOCK,
+				VK_FORMAT_BC7_UNORM_BLOCK,
+				VK_FORMAT_BC7_SRGB_BLOCK
+			};
+
+			bool ddsSupport = true;
+			for (VkFormat format : bcFormats)
+			{
+				VkFormatProperties props;
+				vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice.device, format, &props);
+				if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) ||
+					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
+					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+				{
+					ddsSupport = false;
+					break;
+				}
+			}
+
+			if (ddsSupport)
+			{
+				m_Properties.bcSupport = true;
+				deviceFeatures.textureCompressionBC = VK_TRUE;
+			}
+			else
+			{
+				m_Properties.bcSupport = false;
+			}
+		}
+
+		// Query 查询ETC2支持
+		{
+			VkFormat etc2Formats[] =
+			{
+				VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK,
+				VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK,				
+				VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK,
+				VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK,
+				VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK,
+				VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK,
+				VK_FORMAT_EAC_R11_UNORM_BLOCK,
+				VK_FORMAT_EAC_R11_SNORM_BLOCK,
+				VK_FORMAT_EAC_R11G11_UNORM_BLOCK,
+				VK_FORMAT_EAC_R11G11_SNORM_BLOCK
+			};
+
+			bool etc2Support = true;
+			for (VkFormat format : etc2Formats)
+			{
+				VkFormatProperties props;
+				vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice.device, format, &props);
+				if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) ||
+					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
+					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+				{
+					etc2Support = false;
+					break;
+				}
+			}
+
+			if (etc2Support)
+			{
+				m_Properties.etc2Support = true;
+				deviceFeatures.textureCompressionETC2 = VK_TRUE;
+			}
+			else
+			{
+				m_Properties.etc2Support = false;
+			}
+		}
+
+		// 查询ASTC支持
+		{
+			VkFormat astcFormats[] =
+			{
+				VK_FORMAT_ASTC_4x4_UNORM_BLOCK,
+				VK_FORMAT_ASTC_4x4_SRGB_BLOCK,
+				VK_FORMAT_ASTC_5x4_UNORM_BLOCK,
+				VK_FORMAT_ASTC_5x4_SRGB_BLOCK,
+				VK_FORMAT_ASTC_5x5_UNORM_BLOCK,
+				VK_FORMAT_ASTC_5x5_SRGB_BLOCK,
+				VK_FORMAT_ASTC_6x5_UNORM_BLOCK,
+				VK_FORMAT_ASTC_6x5_SRGB_BLOCK,
+				VK_FORMAT_ASTC_6x6_UNORM_BLOCK,
+				VK_FORMAT_ASTC_6x6_SRGB_BLOCK,
+				VK_FORMAT_ASTC_8x5_UNORM_BLOCK,
+				VK_FORMAT_ASTC_8x5_SRGB_BLOCK,
+				VK_FORMAT_ASTC_8x6_UNORM_BLOCK,
+				VK_FORMAT_ASTC_8x6_SRGB_BLOCK,
+				VK_FORMAT_ASTC_8x8_UNORM_BLOCK,
+				VK_FORMAT_ASTC_8x8_SRGB_BLOCK,
+				VK_FORMAT_ASTC_10x5_UNORM_BLOCK,
+				VK_FORMAT_ASTC_10x5_SRGB_BLOCK,
+				VK_FORMAT_ASTC_10x6_UNORM_BLOCK,
+				VK_FORMAT_ASTC_10x6_SRGB_BLOCK,
+				VK_FORMAT_ASTC_10x8_UNORM_BLOCK,
+				VK_FORMAT_ASTC_10x8_SRGB_BLOCK,
+				VK_FORMAT_ASTC_10x10_UNORM_BLOCK,
+				VK_FORMAT_ASTC_10x10_SRGB_BLOCK,
+				VK_FORMAT_ASTC_12x10_UNORM_BLOCK,
+				VK_FORMAT_ASTC_12x10_SRGB_BLOCK,
+				VK_FORMAT_ASTC_12x12_UNORM_BLOCK,
+				VK_FORMAT_ASTC_12x12_SRGB_BLOCK
+			};
+
+			bool astcSupport = true;
+			for (VkFormat format : astcFormats)
+			{
+				VkFormatProperties props;
+				vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice.device, format, &props);
+				if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) ||
+					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
+					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+				{
+					astcSupport = false;
+					break;
+				}
+			}
+
+			if (astcSupport)
+			{
+				m_Properties.astcSupport = true;
+				deviceFeatures.textureCompressionASTC_LDR = VK_TRUE;
+			}
+			else
+			{
+				m_Properties.astcSupport = false;
+			}
+		}
+
+		m_Properties.etc1Support = true;
+
+		{
+			KCodec::ETC1HardwareCodec = m_Properties.etc1Support;
+			KCodec::ETC2HardwareCodec = m_Properties.etc2Support;
+			KCodec::ASTCHardwareCodec = m_Properties.astcSupport;
+			KCodec::BCHardwareCodec = m_Properties.bcSupport;
+		}
+
+		// 不用查询的东西
+		{
+			deviceFeatures.fillModeNonSolid = VK_TRUE;
+			deviceFeatures.inheritedQueries = VK_TRUE;
+		}
+
+		// 记录其它设备属性
+		{
+			m_Properties.uniformBufferMaxRange = m_PhysicalDevice.deviceProperties.limits.maxUniformBufferRange;
+			m_Properties.uniformBufferOffsetAlignment = m_PhysicalDevice.deviceProperties.limits.minUniformBufferOffsetAlignment;
+		}
 
 		createInfo.pEnabledFeatures = &deviceFeatures;
 
@@ -966,8 +1143,7 @@ bool KVulkanRenderDevice::UnRegisterSecordarySwapChain(IKSwapChain* swapChain)
 
 bool KVulkanRenderDevice::QueryProperty(KRenderDeviceProperties& property)
 {
-	property.uniformBufferMaxRange = m_PhysicalDevice.deviceProperties.limits.maxUniformBufferRange;
-	property.uniformBufferOffsetAlignment = m_PhysicalDevice.deviceProperties.limits.minUniformBufferOffsetAlignment;
+	property = m_Properties;
 	return true;
 }
 

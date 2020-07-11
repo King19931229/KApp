@@ -2,6 +2,7 @@
 
 #include "Codec/KFreeImageCodec.h"
 #include "Codec/KETCCodec.h"
+#include "Codec/KDDSCodec.h"
 
 #include <string>
 #include <algorithm>
@@ -9,6 +10,11 @@
 
 namespace KCodec
 {
+	bool ETC1HardwareCodec = false;
+	bool ETC2HardwareCodec = false;
+	bool ASTCHardwareCodec = false;
+	bool BCHardwareCodec = false;
+
 	bool CreateCodecManager()
 	{
 		bool bRet = KCodecManager::Init();
@@ -44,7 +50,7 @@ KCodecManager::~KCodecManager()
 
 bool KCodecManager::Init()
 {
-	if(KFreeImageCodec::Init() && KETCCodec::Init())
+	if(KFreeImageCodec::Init() && KETCCodec::Init() && KDDSCodec::Init())
 	{
 		return true;
 	}
@@ -53,7 +59,7 @@ bool KCodecManager::Init()
 
 bool KCodecManager::UnInit()
 {
-	if(KFreeImageCodec::UnInit() && KETCCodec::UnInit())
+	if(KFreeImageCodec::UnInit() && KETCCodec::UnInit() && KDDSCodec::UnInit())
 	{
 		return true;
 	}
