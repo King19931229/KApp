@@ -40,6 +40,7 @@
     <ClInclude Include="Interface\IKSocket.h" />
     <ClInclude Include="Interface\IKSourceFile.h" />
     <ClInclude Include="Interface\IKXML.h" />
+    <ClInclude Include="Internal\Codec\KDDSCodec.h" />
     <ClInclude Include="Internal\Codec\KETCCodec.h" />
     <ClInclude Include="Internal\Codec\KFreeImageCodec.h" />
     <ClInclude Include="Internal\ECS\KComponentManager.h" />
@@ -97,6 +98,7 @@
     <ClInclude Include="Publish\KTriangle.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Internal\Codec\KDDSCodec.cpp" />
     <ClCompile Include="Internal\Codec\KETCCodec.cpp" />
     <ClCompile Include="Internal\Codec\KFreeImageCodec.cpp" />
     <ClCompile Include="Internal\ECS\KComponentManager.cpp" />

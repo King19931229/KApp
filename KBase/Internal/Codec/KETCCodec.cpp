@@ -1,10 +1,12 @@
 #include "KETCCodec.h"
 #include "Interface/IKFileSystem.h"
+#include "Interface/IKLog.h"
+
+// Algorithm Copy From OGRE
 
 #define KTX_EXT "ktx"
 #define PKM_EXT "pkm"
 
-// Copy From OGRE
 #define FOURCC(c0, c1, c2, c3) (c0 | (c1 << 8) | (c2 << 16) | (c3 << 24))
 #define KTX_ENDIAN_REF      (0x04030201)
 #define KTX_ENDIAN_REF_REV  (0x01020304)
@@ -199,17 +201,17 @@ bool KETCCodec::DecodeKTX(const IKDataStreamPtr& stream, KCodecResult& result)
 		break;
 
 	case 0x881B: // GL_RGB16F
-		result.eFormat = IF_R16G16G16_FLOAT;
+		result.eFormat = IF_R16G16B16_FLOAT;
 		break;
 	case 0x881A: // GL_RGBA16F
-		result.eFormat = IF_R16G16G16A16_FLOAT;
+		result.eFormat = IF_R16G16B16A16_FLOAT;
 		break;
 
 	case 0x8815: // GL_RGB32F
-		result.eFormat = IF_R32G32G32_FLOAT;
+		result.eFormat = IF_R32G32B32_FLOAT;
 		break;
 	case 0x8814: // GL_RGBA32F
-		result.eFormat = IF_R32G32G32A32_FLOAT;
+		result.eFormat = IF_R32G32B32A32_FLOAT;
 		break;
 
 	case 0x8058: // GL_RGBA8
@@ -321,6 +323,7 @@ bool KETCCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 		return true;
 	}
 
+	KG_LOGE(LM_RENDER, "This is not a ETC file!");
 	return false;
 }
 

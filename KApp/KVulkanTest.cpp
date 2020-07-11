@@ -93,7 +93,7 @@ int main()
 
 	IKRenderWindowPtr secordaryWindow = nullptr;
 
-#define SECORDARY_WINDOW
+//#define SECORDARY_WINDOW
 #ifdef SECORDARY_WINDOW
 	{
 		secordaryWindow = CreateRenderWindow(RENDER_WINDOW_GLFW);

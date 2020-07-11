@@ -14,6 +14,7 @@ struct KCodecResult
 
 	bool bCompressed;
 	bool bCubemap;
+	bool b3DTexture;
 
 	KCodecResult()
 	{
@@ -25,6 +26,7 @@ struct KCodecResult
 		uMipmap = 1;
 		bCompressed = false;
 		bCubemap = false;
+		b3DTexture = false;
 	}
 };
 

@@ -15,17 +15,29 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 		elementFormat = EF_R8GB8B8_UNORM;
 		return true;
 
-	case IF_R16G16G16_FLOAT:
+	case IF_R16_FLOAT:
+		elementFormat = EF_R16_FLOAT;
+		return true;
+	case IF_R16G16_FLOAT:
+		elementFormat = EF_R16G16_FLOAT;
+		return true;
+	case IF_R16G16B16_FLOAT:
 		elementFormat = EF_R16G16B16_FLOAT;
 		return true;
-	case IF_R16G16G16A16_FLOAT:
+	case IF_R16G16B16A16_FLOAT:
 		elementFormat = EF_R16G16B16A16_FLOAT;
 		return true;
 
-	case IF_R32G32G32_FLOAT:
+	case IF_R32_FLOAT:
+		elementFormat = EF_R32_FLOAT;
+		return true;
+	case IF_R32G32_FLOAT:
+		elementFormat = EF_R32G32_FLOAT;
+		return true;
+	case IF_R32G32B32_FLOAT:
 		elementFormat = EF_R32G32B32_FLOAT;
 		return true;
-	case IF_R32G32G32A32_FLOAT:
+	case IF_R32G32B32A32_FLOAT:
 		elementFormat = EF_R32G32B32A32_FLOAT;
 		return true;
 
@@ -42,6 +54,48 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 		elementFormat = EF_ETC2_R8G8B8A1_UNORM;
 		return true;
 
+	case IF_DXT1:
+		// https://en.wikipedia.org/wiki/S3_Texture_Compression#DXT1
+		// TODO Correct?
+		elementFormat = EF_BC1_RGBA_UNORM;
+		return true;
+	case IF_DXT2:
+		elementFormat = EF_BC2_UNORM;
+		return true;
+	case IF_DXT3:
+		elementFormat = EF_BC2_UNORM;
+		return true;
+	case IF_DXT4:
+		elementFormat = EF_BC3_UNORM;
+		return true;
+	case IF_DXT5:
+		elementFormat = EF_BC3_UNORM;
+		return true;
+	case IF_BC4_UNORM:
+		elementFormat = EF_BC4_UNORM;
+		return true;
+	case IF_BC4_SNORM:
+		elementFormat = EF_BC4_SNORM;
+		return true;
+	case IF_BC5_UNORM:
+		elementFormat = EF_BC5_SNORM;
+		return true;
+	case IF_BC5_SNORM:
+		elementFormat = EF_BC5_SNORM;
+		return true;
+	case IF_BC6H_UF16:
+		elementFormat = EF_BC6H_UFLOAT;
+		return true;
+	case IF_BC6H_SF16:
+		elementFormat = EF_BC6H_SFLOAT;
+		return true;
+	case IF_BC7_UNORM:
+		elementFormat = EF_BC7_UNORM;
+		return true;
+	case IF_BC7_UNORM_SRGB:
+		elementFormat = EF_BC7_SRGB;
+		return true;
+
 	case IF_COUNT:
 	default:
 		assert(false && "unsupport format");
@@ -50,6 +104,7 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 	}
 }
 
+// TODO 补充float?
 static bool ImageFormatToSize(ImageFormat format, size_t& size)
 {
 	switch (format)

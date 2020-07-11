@@ -56,6 +56,7 @@ namespace KVulkanHelper
 		case EF_R8GB8B8_UNORM:
 			vkFormat = VK_FORMAT_R8G8B8_UNORM;
 			return true;
+
 		case EF_R16_FLOAT:
 			vkFormat = VK_FORMAT_R16_SFLOAT;
 			return true;
@@ -68,6 +69,7 @@ namespace KVulkanHelper
 		case EF_R16G16B16A16_FLOAT:
 			vkFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 			return true;
+
 		case EF_R32_FLOAT:
 			vkFormat = VK_FORMAT_R32_SFLOAT;
 			return true;
@@ -80,9 +82,11 @@ namespace KVulkanHelper
 		case EF_R32G32B32A32_FLOAT:
 			vkFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 			return true;
+
 		case EF_R32_UINT:
 			vkFormat = VK_FORMAT_R32_UINT;
 			return true;
+
 		case EF_ETC1_R8G8B8_UNORM:
 			// TODO Correct?
 			vkFormat = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
@@ -96,6 +100,56 @@ namespace KVulkanHelper
 		case EF_ETC2_R8G8B8A8_UNORM:
 			vkFormat = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
 			return true;
+
+		case EF_BC1_RGB_UNORM:
+			vkFormat = VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+			return true;
+		case EF_BC1_RGB_SRGB:
+			vkFormat = VK_FORMAT_BC1_RGB_SRGB_BLOCK;
+			return true;
+		case EF_BC1_RGBA_UNORM:
+			vkFormat = VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+			return true;
+		case EF_BC1_RGBA_SRGB:
+			vkFormat = VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+			return true;
+		case EF_BC2_UNORM:
+			vkFormat = VK_FORMAT_BC2_UNORM_BLOCK;
+			return true;
+		case EF_BC2_SRGB:
+			vkFormat = VK_FORMAT_BC2_SRGB_BLOCK;
+			return true;
+		case EF_BC3_UNORM:
+			vkFormat = VK_FORMAT_BC3_UNORM_BLOCK;
+			return true;
+		case EF_BC3_SRGB:
+			vkFormat = VK_FORMAT_BC3_SRGB_BLOCK;
+			return true;
+		case EF_BC4_UNORM:
+			vkFormat = VK_FORMAT_BC4_UNORM_BLOCK;
+			return true;
+		case EF_BC4_SNORM:
+			vkFormat = VK_FORMAT_BC4_SNORM_BLOCK;
+			return true;
+		case EF_BC5_UNORM:
+			vkFormat = VK_FORMAT_BC5_UNORM_BLOCK;
+			return true;
+		case EF_BC5_SNORM:
+			vkFormat = VK_FORMAT_BC5_SNORM_BLOCK;
+			return true;
+		case EF_BC6H_UFLOAT:
+			vkFormat = VK_FORMAT_BC6H_UFLOAT_BLOCK;
+			return true;
+		case EF_BC6H_SFLOAT:
+			vkFormat = VK_FORMAT_BC6H_SFLOAT_BLOCK;
+			return true;
+		case EF_BC7_UNORM:
+			vkFormat = VK_FORMAT_BC7_UNORM_BLOCK;
+			return true;
+		case EF_BC7_SRGB:
+			vkFormat = VK_FORMAT_BC7_SRGB_BLOCK;
+			return true;
+
 		default:
 			vkFormat = VK_FORMAT_UNDEFINED;
 			assert(false && "Unknown format");

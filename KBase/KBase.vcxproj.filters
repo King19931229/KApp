@@ -229,6 +229,9 @@
     <ClInclude Include="Interface\IKReflection.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Codec\KDDSCodec.h">
+      <Filter>Internal\Codec</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -379,6 +382,9 @@
     </ClCompile>
     <ClCompile Include="Internal\FileSystem\KMultiFileSystem.cpp">
       <Filter>Internal\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Codec\KDDSCodec.cpp">
+      <Filter>Internal\Codec</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
