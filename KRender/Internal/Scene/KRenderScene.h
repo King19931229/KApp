@@ -32,5 +32,8 @@ public:
 	bool CloestPick(const KCamera& camera, size_t x, size_t y,
 		size_t screenWidth, size_t screenHeight, IKEntityPtr& result) override;
 
+	bool RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result) override;
+	bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result) override;
+
 	void EnableDebugRender(bool enable) override { m_EnableDebugRender = enable; }
 };

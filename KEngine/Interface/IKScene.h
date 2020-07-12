@@ -23,6 +23,9 @@ struct IKScene
 	virtual bool CloestPick(const KCamera& camera, size_t x, size_t y,
 		size_t screenWidth, size_t screenHeight, IKEntityPtr& result) = 0;
 
+	virtual bool RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result) = 0;
+	virtual bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result) = 0;
+
 	virtual bool Save(const char* filename) = 0;
 	virtual bool Load(const char* filename) = 0;
 };

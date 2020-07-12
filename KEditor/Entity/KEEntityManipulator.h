@@ -82,6 +82,7 @@ public:
 	bool SetManipulateMode(GizmoManipulateMode mode);
 
 	KEEntityPtr GetEntity(IKEntity::IDType id);
+	KEEntityPtr CloestPickEntity(size_t x, size_t y);
 
 	void UpdateGizmoTransform();
 };

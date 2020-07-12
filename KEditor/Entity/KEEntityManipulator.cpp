@@ -567,3 +567,23 @@ KEEntityPtr KEEntityManipulator::GetEntity(IKEntity::IDType id)
 	}
 	return nullptr;
 }
+
+KEEntityPtr KEEntityManipulator::CloestPickEntity(size_t x, size_t y)
+{
+	if (m_Scene && m_Camera)
+	{
+		IKEntityPtr entity;
+		KEEntityPtr editorEntity;
+
+		size_t width = 0;
+		size_t height = 0;
+		m_Window->GetSize(width, height);
+
+		if (m_Scene->CloestPick(*m_Camera, x, y,
+			width, height, entity) && (editorEntity = GetEditorEntity(entity)))
+		{
+			return editorEntity;
+		}
+	}
+	return nullptr;
+}

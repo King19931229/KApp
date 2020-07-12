@@ -142,6 +142,9 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 			continue;
 		}
 
+		aiString name;
+		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_NAME, name);
+
 		KAssetImportResult::ModelPart part;
 
 		part.vertexBase = vertexCount;
@@ -168,7 +171,15 @@ bool KAssetLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption&
 		}
 
 		aiString normalMap;
-		if(aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_NORMALS, 0, &normalMap))
+		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_NORMALS, 0, &normalMap))
+		{
+			KFileTool::PathJoin(m_AssetFolder, normalMap.C_Str(), part.material.normal);
+		}
+		else if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_DISPLACEMENT, 0, &normalMap))
+		{
+			KFileTool::PathJoin(m_AssetFolder, normalMap.C_Str(), part.material.normal);
+		}
+		else if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_HEIGHT, 0, &normalMap))
 		{
 			KFileTool::PathJoin(m_AssetFolder, normalMap.C_Str(), part.material.normal);
 		}

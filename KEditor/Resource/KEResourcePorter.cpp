@@ -200,8 +200,22 @@ bool KEResourcePorter::ModelDrop(const KCamera* camera, const std::string& path)
 	return false;
 }
 
-bool KEResourcePorter::MaterialDrop(const KCamera* camera, const std::string& path)
+bool KEResourcePorter::MaterialDrop(size_t x, size_t y, const std::string& path)
 {
-	// TODO Pick the model and repalce the material
-	return true;
+	KEEntityPtr editorEntity = KEditorGlobal::EntityManipulator.CloestPickEntity(x, y);
+	if (editorEntity)
+	{
+		IKEntityPtr entity = editorEntity->soul;
+		if (entity)
+		{
+			IKRenderComponent* renderComponent = nullptr;
+			if (entity->GetComponent(CT_RENDER, &renderComponent))
+			{
+				renderComponent->SetMaterialPath(path.c_str());
+				renderComponent->ReloadMaterial();
+				return true;
+			}
+		}
+	}
+	return false;
 }

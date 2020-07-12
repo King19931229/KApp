@@ -561,7 +561,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 			std::string normalPath;
 			if(CombinePath(meshPath, materialData.normal, normalPath))
 			{
-				textures.AssignTexture(MTS_SPECULAR, normalPath.c_str());
+				textures.AssignTexture(MTS_NORMAL, normalPath.c_str());
 			}
 		}
 

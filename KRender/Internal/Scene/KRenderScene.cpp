@@ -146,26 +146,10 @@ bool KRenderScene::Pick(const KCamera& camera, size_t x, size_t y,
 	{
 		glm::vec3 origin;
 		glm::vec3 dir;
-		glm::vec3 resultPoint;
 
 		if (camera.CalcPickRay(x, y, screenWidth, screenHeight, origin, dir))
 		{
-			std::vector<IKEntityPtr> entities;
-			if (m_SceneMgr->Pick(origin, dir, entities))
-			{
-				result.clear();
-				result.reserve(entities.size());
-
-				for (IKEntityPtr entity : entities)
-				{
-					if (entity->Intersect(origin, dir, resultPoint))
-					{
-						result.push_back(entity);
-					}
-				}
-
-				return !result.empty();
-			}
+			return RayPick(origin, dir, result);
 		}
 	}
 
@@ -179,30 +163,64 @@ bool KRenderScene::CloestPick(const KCamera& camera, size_t x, size_t y,
 	{
 		glm::vec3 origin;
 		glm::vec3 dir;
-		glm::vec3 resultPoint;
-
-		float maxDistance = std::numeric_limits<float>::max();
-		result = nullptr;
 
 		if (camera.CalcPickRay(x, y, screenWidth, screenHeight, origin, dir))
 		{
-			std::vector<IKEntityPtr> entities;
-			if (m_SceneMgr->Pick(origin, dir, entities))
-			{
-				for (IKEntityPtr entity : entities)
-				{
-					if (entity->Intersect(origin, dir, resultPoint, &maxDistance))
-					{
-						maxDistance = glm::dot(resultPoint - origin, dir);
-						assert(maxDistance >= 0.0f);
-						result = entity;
-					}
-				}
-
-				return result != nullptr;
-			}
+			return CloestRayPick(origin, dir, result);
 		}
 	}
 
+	return false;
+}
+
+bool KRenderScene::RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result)
+{
+	if (m_SceneMgr)
+	{
+		std::vector<IKEntityPtr> entities;
+		if (m_SceneMgr->Pick(origin, dir, entities))
+		{
+			result.clear();
+			result.reserve(entities.size());
+
+			for (IKEntityPtr entity : entities)
+			{
+				glm::vec3 resultPoint;
+				if (entity->Intersect(origin, dir, resultPoint))
+				{
+					result.push_back(entity);
+				}
+			}
+
+			return !result.empty();
+		}
+	}
+	return false;
+}
+
+bool KRenderScene::CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result)
+{
+	if (m_SceneMgr)
+	{
+		std::vector<IKEntityPtr> entities;
+		if (m_SceneMgr->Pick(origin, dir, entities))
+		{
+			for (IKEntityPtr entity : entities)
+			{
+				glm::vec3 resultPoint;
+				float maxDistance = std::numeric_limits<float>::max();
+				result = nullptr;
+
+				if (entity->Intersect(origin, dir, resultPoint, &maxDistance))
+				{
+					maxDistance = glm::dot(resultPoint - origin, dir);
+					assert(maxDistance >= 0.0f);
+					result = entity;
+				}
+			}
+
+			return result != nullptr;
+		}
+	}
 	return false;
 }

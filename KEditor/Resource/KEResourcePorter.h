@@ -24,7 +24,7 @@ public:
 
 	bool Convert(const std::string& assetPath, const std::string& meshPath);
 	bool ModelDrop(const KCamera* camera, const std::string& path);
-	bool MaterialDrop(const KCamera* camera, const std::string& path);
+	bool MaterialDrop(size_t x, size_t y, const std::string& path);
 
 	inline void SetEntityDropDistance(float distance) { m_EntityDropDistance = distance; }
 	inline float GetEntityDropDistance() const { return m_EntityDropDistance; }

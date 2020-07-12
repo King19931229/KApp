@@ -91,6 +91,24 @@ bool KScene::CloestPick(const KCamera& camera, size_t x, size_t y,
 	return false;
 }
 
+bool KScene::RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result)
+{
+	if (m_RenderScene)
+	{
+		return m_RenderScene->RayPick(origin, dir, result);
+	}
+	return false;
+}
+
+bool KScene::CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result)
+{
+	if (m_RenderScene)
+	{
+		return m_RenderScene->CloestRayPick(origin, dir, result);
+	}
+	return false;
+}
+
 const char* KScene::msSceneKey = "scene";
 const char* KScene::msCameraKey = "camera";
 const char* KScene::msEntityKey = "entity";

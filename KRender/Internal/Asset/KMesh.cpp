@@ -44,6 +44,8 @@ bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t fram
 
 	UnInit();
 
+	m_FrameInFlight = frameInFlight;
+
 	if(KMeshSerializer::LoadFromFile(device, this, szPath, hostVisible, frameInFlight))
 	{
 		m_Path = szPath;

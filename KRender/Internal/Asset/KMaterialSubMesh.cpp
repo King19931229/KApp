@@ -248,12 +248,12 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 								}
 
 								// TODO 是否考虑非编辑器运行时默认贴图被改变可能
-								if (!texture || !sampler)
+								/*if (!texture || !sampler)
 								{
 									IKMaterialTextureBinding* defaultTexture = m_pMaterial->GetDefaultMaterialTexture().get();
-									texture = defaultTexture->GetTexture((uint8_t)shaderTexture.bindingIndex);
-									sampler = defaultTexture->GetSampler((uint8_t)shaderTexture.bindingIndex);
-								}
+									texture = defaultTexture->GetTexture((uint8_t)shaderTexture.bindingIndex - SHADER_BINDING_MATERIAL_BEGIN);
+									sampler = defaultTexture->GetSampler((uint8_t)shaderTexture.bindingIndex - SHADER_BINDING_MATERIAL_BEGIN);
+								}*/
 
 								if (!texture || !sampler)
 								{
