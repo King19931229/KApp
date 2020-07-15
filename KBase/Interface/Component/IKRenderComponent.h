@@ -27,6 +27,8 @@ public:
 	virtual bool SaveAsMesh(const char* path) const = 0;
 
 	virtual bool SetHostVisible(bool hostVisible) = 0;
+	virtual bool SetUseMaterialTexture(bool useMaterialTex) = 0;
+	virtual bool GetUseMaterialTexture() const = 0;
 
 	virtual bool Init(bool async) = 0;
 	virtual bool UnInit() = 0;

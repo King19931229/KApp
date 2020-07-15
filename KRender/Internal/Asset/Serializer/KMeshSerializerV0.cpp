@@ -539,13 +539,13 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 		const KIndexData& indexData = indexDatas[drawInfo.indexDataIdx];
 		const MaterialInfo& materialData = materialDatas[drawInfo.materialDataIdx];
 
-		KMeshTextureBinding textures;
+		KMaterialTextureBinding textures;
 		if(!materialData.diffuse.empty())
 		{
 			std::string diffusePath;
 			if(CombinePath(meshPath, materialData.diffuse, diffusePath))
 			{
-				textures.AssignTexture(MTS_DIFFUSE, diffusePath.c_str());
+				textures.SetTexture(MTS_DIFFUSE, diffusePath.c_str());
 			}
 		}
 		if(!materialData.specular.empty())
@@ -553,7 +553,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 			std::string specularPath;
 			if(CombinePath(meshPath, materialData.specular, specularPath))
 			{
-				textures.AssignTexture(MTS_SPECULAR, specularPath.c_str());
+				textures.SetTexture(MTS_SPECULAR, specularPath.c_str());
 			}
 		}
 		if(!materialData.normal.empty())
@@ -561,7 +561,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 			std::string normalPath;
 			if(CombinePath(meshPath, materialData.normal, normalPath))
 			{
-				textures.AssignTexture(MTS_NORMAL, normalPath.c_str());
+				textures.SetTexture(MTS_NORMAL, normalPath.c_str());
 			}
 		}
 
@@ -777,24 +777,24 @@ bool KMeshSerializerV0::SaveToStream(const KMesh* pMesh, IKDataStreamPtr& stream
 	for (size_t i = 0; i < pMesh->m_SubMeshes.size(); ++i)
 	{
 		KSubMeshPtr subMesh = pMesh->m_SubMeshes[i];
-		KMeshTextureBinding& textures = subMesh->m_Texture;
+		KMaterialTextureBinding& textures = subMesh->m_Texture;
 
-		KMeshTextureInfo diffuseInfo = textures.GetTexture(MTS_DIFFUSE);
-		KMeshTextureInfo specularInfo = textures.GetTexture(MTS_SPECULAR);
-		KMeshTextureInfo normalInfo = textures.GetTexture(MTS_NORMAL);
+		IKTexturePtr diffuseTexture = textures.GetTexture(MTS_DIFFUSE);
+		IKTexturePtr specularTexture = textures.GetTexture(MTS_SPECULAR);
+		IKTexturePtr normalTexture = textures.GetTexture(MTS_NORMAL);
 
 		MaterialInfo mtlInfo;
-		if (diffuseInfo.IsComplete())
+		if (diffuseTexture)
 		{
-			ResolvePath(pMesh->m_Path, diffuseInfo.texture->GetPath(), mtlInfo.diffuse);
+			ResolvePath(pMesh->m_Path, diffuseTexture->GetPath(), mtlInfo.diffuse);
 		}
-		if (specularInfo.IsComplete())
+		if (specularTexture)
 		{
-			ResolvePath(pMesh->m_Path, specularInfo.texture->GetPath(), mtlInfo.specular);
+			ResolvePath(pMesh->m_Path, specularTexture->GetPath(), mtlInfo.specular);
 		}
-		if (normalInfo.IsComplete())
+		if (normalTexture)
 		{
-			ResolvePath(pMesh->m_Path, normalInfo.texture->GetPath(), mtlInfo.normal);
+			ResolvePath(pMesh->m_Path, normalTexture->GetPath(), mtlInfo.normal);
 		}
 
 		DrawElementInfo drawInfo = {(uint32_t)i, (uint32_t)i};

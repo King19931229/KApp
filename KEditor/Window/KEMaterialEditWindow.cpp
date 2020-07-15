@@ -226,6 +226,8 @@ bool KEMaterialEditWindow::RefreshPreview()
 				renderComponent->SetMeshPath(previewItem.path);
 			}
 
+			renderComponent->SetUseMaterialTexture(true);
+
 			if (!m_MaterialPath.empty())
 			{
 				renderComponent->SetMaterialPath(m_MaterialPath.c_str());

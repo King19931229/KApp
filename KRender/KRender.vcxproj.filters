@@ -360,9 +360,6 @@
     <ClInclude Include="Interface\IKMaterial.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Asset\KMeshTextureBinding.h">
-      <Filter>Internal\Asset</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Asset\KMaterial.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>
@@ -601,9 +598,6 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\Material\KMaterialParameter.cpp">
       <Filter>Internal\Asset\Material</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\Asset\KMeshTextureBinding.cpp">
-      <Filter>Internal\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Asset\KMaterial.cpp">
       <Filter>Internal\Asset</Filter>

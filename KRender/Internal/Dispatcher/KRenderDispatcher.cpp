@@ -145,7 +145,7 @@ void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderTarge
 	buffer->End();
 }
 
-bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMaterial* material)
+bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMaterial* material, bool useMaterialTex)
 {
 	if (material)
 	{
@@ -206,25 +206,27 @@ bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMateri
 
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(fsShadingBuffer.data(), command.fragmentShadingUsage);
 		}
-		/*
-		const IKMaterialTextureBinding* textureBinding = material->GetDefaultMaterialTexture().get();
-		uint8_t numSlot = textureBinding->GetNumSlot();
-		for (uint8_t i = 0; i < numSlot; ++i)
+		
+		if (useMaterialTex)
 		{
-			IKTexturePtr texture = textureBinding->GetTexture(i);
-			IKSamplerPtr sampler = textureBinding->GetSampler(i);
-			if (texture && sampler)
+			const IKMaterialTextureBinding* textureBinding = material->GetDefaultMaterialTexture().get();
+			uint8_t numSlot = textureBinding->GetNumSlot();
+			for (uint8_t i = 0; i < numSlot; ++i)
 			{
-				KDynamicTextureUsage usage;
+				IKTexturePtr texture = textureBinding->GetTexture(i);
+				IKSamplerPtr sampler = textureBinding->GetSampler(i);
+				if (texture && sampler)
+				{
+					KDynamicTextureUsage usage;
 
-				usage.binding = SHADER_BINDING_MATERIAL_BEGIN + i;
-				usage.texture = texture;
-				usage.sampler = sampler;
+					usage.binding = SHADER_BINDING_MATERIAL_BEGIN + i;
+					usage.texture = texture;
+					usage.sampler = sampler;
 
-				command.dynamicTextureUsages.push_back(usage);
+					command.dynamicTextureUsages.push_back(usage);
+				}
 			}
 		}
-		*/
 		return true;
 	}
 	return false;
@@ -248,232 +250,204 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 		std::unordered_map<IKMaterialPtr, InstanceArrayPtr> mapping;
 	};
 	typedef std::shared_ptr<MaterialMap> MaterialMapPtr;
+
 	std::unordered_map<KMeshPtr, MaterialMapPtr> meshGroups;
+	std::unordered_map<KMeshPtr, MaterialMapPtr> meshMaterialGroups;
 
-	for (KRenderComponent* component : cullRes)
+	for (bool useMateiralTex : {true, false})
 	{
-		if (!component->IsOcclusionVisible())
+		for (KRenderComponent* render : cullRes)
 		{
-			continue;
-		}
-
-		IKEntity* entity = component->GetEntityHandle();
-
-		KTransformComponent* transform = nullptr;
-		if (entity->GetComponent(CT_TRANSFORM, &transform))
-		{
-			MaterialMapPtr mateiralMap = nullptr;
-			InstanceArrayPtr instanceArray = nullptr;
-
-			KMeshPtr mesh = component->GetMesh();
-
-			auto itMesh = meshGroups.find(mesh);
-
-			if (itMesh != meshGroups.end())
+			if (!render->IsOcclusionVisible())
 			{
-				mateiralMap = itMesh->second;
-			}
-			else
-			{
-				mateiralMap = std::make_shared<MaterialMap>();
-				meshGroups[mesh] = mateiralMap;
-			}
-			ASSERT_RESULT(mateiralMap);
-
-			IKMaterialPtr material = component->GetMaterial();
-
-			auto itMat = mateiralMap->mapping.find(material);
-			if (itMat == mateiralMap->mapping.end())
-			{
-				instanceArray = std::make_shared<InstanceArray>();
-				(mateiralMap->mapping)[material] = instanceArray;
-			}
-			else
-			{
-				instanceArray = itMat->second;
+				continue;
 			}
 
-			instanceArray->render = component;
-			instanceArray->instances.push_back({ transform->GetFinal() });
-
-			KDebugComponent* debug = nullptr;
-			KRenderComponent* render = nullptr;
-			if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug) && entity->GetComponent(CT_RENDER, (IKComponentBase**)&render))
+			if (render->GetUseMaterialTexture() != useMateiralTex)
 			{
-				KConstantDefinition::DEBUG objectData;
-				objectData.MODEL = transform->FinalTransform();
-				objectData.COLOR = debug->Color();
+				continue;
+			}
 
-				render->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand& command)
+			IKEntity* entity = render->GetEntityHandle();
+
+			KTransformComponent* transform = nullptr;
+			if (entity->GetComponent(CT_TRANSFORM, &transform))
+			{
+				MaterialMapPtr mateiralMap = nullptr;
+				InstanceArrayPtr instanceArray = nullptr;
+
+				KMeshPtr mesh = render->GetMesh();
+
+				std::unordered_map<KMeshPtr, MaterialMapPtr>* meshMap = nullptr;
+				if (useMateiralTex)
 				{
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(objectData);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
-
-					++debugStatistics.drawcalls;
-					if (command.indexDraw)
-					{
-						debugStatistics.faces += command.indexData->indexCount / 3;
-						debugStatistics.primtives += command.indexData->indexCount;
-					}
-					else
-					{
-						debugStatistics.faces += command.vertexData->vertexCount / 3;
-						debugStatistics.primtives += command.vertexData->vertexCount;
-					}
-
-					command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-
-					if (command.Complete())
-					{
-						debugCommands.push_back(std::move(command));
-					}
-				});
-
-				render->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand& command)
-				{
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(objectData);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
-
-					++debugStatistics.drawcalls;
-					if (command.indexDraw)
-					{
-						debugStatistics.faces += command.indexData->indexCount / 2;
-						debugStatistics.primtives += command.indexData->indexCount;
-					}
-					else
-					{
-						debugStatistics.faces += command.vertexData->vertexCount / 2;
-						debugStatistics.primtives += command.vertexData->vertexCount;
-					}
-
-					command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-
-					if (command.Complete())
-					{
-						debugCommands.push_back(std::move(command));
-					}
-				});
-			}
-		}
-	}
-
-	 // 准备Instance数据
-	for (auto& meshPair : meshGroups)
-	{
-		KMeshPtr mesh = meshPair.first;
-		MaterialMapPtr materialMap = meshPair.second;
-
-		for (auto& materialPair : materialMap->mapping)
-		{
-			IKMaterialPtr material = materialPair.first;
-			InstanceArrayPtr instanceArray = materialPair.second;
-			KRenderComponent* render = instanceArray->render;
-			std::vector<KConstantDefinition::OBJECT>& instances = instanceArray->instances;
-
-			ASSERT_RESULT(render);
-			ASSERT_RESULT(instances.size() > 0);
-
-			// TODO PIPELINE_STAGE_PRE_Z Instance
-			render->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand& _command)
-			{
-				KRenderCommand command = std::move(_command);
-
-				for (size_t idx = 0; idx < instances.size(); ++idx)
-				{
-					++preZStatistics.drawcalls;
-					if (command.indexDraw)
-					{
-						preZStatistics.faces += command.indexData->indexCount / 3;
-						preZStatistics.primtives += command.indexData->indexCount;
-					}
-					else
-					{
-						preZStatistics.faces += command.vertexData->vertexCount / 3;
-						preZStatistics.primtives += command.vertexData->vertexCount;
-					}
-
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(instances[idx]);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&instances[idx], command.objectUsage);
-
-					command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
-
-					if (command.Complete())
-					{
-						preZcommands.push_back(command);
-					}
+					meshMap = &meshMaterialGroups;
 				}
-			});
-
-			if (!m_InstanceSubmit)
-			{
-				render->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand& _command)
+				else
 				{
-					KRenderCommand command = std::move(_command);
+					meshMap = &meshGroups;
+				}
 
-					for (size_t idx = 0; idx < instances.size(); ++idx)
+				auto itMesh = meshMap->find(mesh);
+				if (itMesh != meshMap->end())
+				{
+					mateiralMap = itMesh->second;
+				}
+				else
+				{
+					mateiralMap = std::make_shared<MaterialMap>();
+					(*meshMap)[mesh] = mateiralMap;
+				}
+				ASSERT_RESULT(mateiralMap);
+
+				IKMaterialPtr material = render->GetMaterial();
+
+				auto itMat = mateiralMap->mapping.find(material);
+				if (itMat == mateiralMap->mapping.end())
+				{
+					instanceArray = std::make_shared<InstanceArray>();
+					(mateiralMap->mapping)[material] = instanceArray;
+				}
+				else
+				{
+					instanceArray = itMat->second;
+				}
+
+				instanceArray->render = render;
+				instanceArray->instances.push_back({ transform->GetFinal() });
+
+				KDebugComponent* debug = nullptr;
+				if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
+				{
+					KConstantDefinition::DEBUG objectData;
+					objectData.MODEL = transform->FinalTransform();
+					objectData.COLOR = debug->Color();
+
+					render->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand& command)
 					{
-						++defaultStatistics.drawcalls;
+						command.objectUsage.binding = SHADER_BINDING_OBJECT;
+						command.objectUsage.range = sizeof(objectData);
+						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+						++debugStatistics.drawcalls;
 						if (command.indexDraw)
 						{
-							defaultStatistics.faces += command.indexData->indexCount / 3;
-							defaultStatistics.primtives += command.indexData->indexCount;
+							debugStatistics.faces += command.indexData->indexCount / 3;
+							debugStatistics.primtives += command.indexData->indexCount;
 						}
 						else
 						{
-							defaultStatistics.faces += command.vertexData->vertexCount / 3;
-							defaultStatistics.primtives += command.vertexData->vertexCount;
-						}
-
-						command.objectUsage.binding = SHADER_BINDING_OBJECT;
-						command.objectUsage.range = sizeof(instances[idx]);
-						KRenderGlobal::DynamicConstantBufferManager.Alloc(&instances[idx], command.objectUsage);
-
-						if (!AssignShadingParameter(command, material.get()))
-						{
-							continue;
+							debugStatistics.faces += command.vertexData->vertexCount / 3;
+							debugStatistics.primtives += command.vertexData->vertexCount;
 						}
 
 						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
 
 						if (command.Complete())
 						{
-							defaultCommands.push_back(command);
+							debugCommands.push_back(std::move(command));
 						}
-					}
-				});
+					});
+
+					render->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand& command)
+					{
+						command.objectUsage.binding = SHADER_BINDING_OBJECT;
+						command.objectUsage.range = sizeof(objectData);
+						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+						++debugStatistics.drawcalls;
+						if (command.indexDraw)
+						{
+							debugStatistics.faces += command.indexData->indexCount / 2;
+							debugStatistics.primtives += command.indexData->indexCount;
+						}
+						else
+						{
+							debugStatistics.faces += command.vertexData->vertexCount / 2;
+							debugStatistics.primtives += command.vertexData->vertexCount;
+						}
+
+						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+						if (command.Complete())
+						{
+							debugCommands.push_back(std::move(command));
+						}
+					});
+				}
 			}
-			else
+		}
+	}
+
+	for (bool useMateiralTex : {true, false})
+	{
+		std::unordered_map<KMeshPtr, MaterialMapPtr>* meshMap = nullptr;
+		if (useMateiralTex)
+		{
+			meshMap = &meshMaterialGroups;
+		}
+		else
+		{
+			meshMap = &meshGroups;
+		}
+
+		// 准备Instance数据
+		for (auto& meshPair : *meshMap)
+		{
+			KMeshPtr mesh = meshPair.first;
+			MaterialMapPtr materialMap = meshPair.second;
+
+			for (auto& materialPair : materialMap->mapping)
 			{
-				render->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand& _command)
+				IKMaterialPtr material = materialPair.first;
+				InstanceArrayPtr instanceArray = materialPair.second;
+				KRenderComponent* render = instanceArray->render;
+				std::vector<KConstantDefinition::OBJECT>& instances = instanceArray->instances;
+
+				ASSERT_RESULT(render);
+				ASSERT_RESULT(instances.size() > 0);
+
+				// TODO PIPELINE_STAGE_PRE_Z Instance
+				render->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand& _command)
 				{
 					KRenderCommand command = std::move(_command);
 
-					++defaultStatistics.drawcalls;
-
-					KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
-
-					std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
-					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
-					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
-
-					command.instanceDraw = true;
-					command.instanceUsages.resize(allocRes.size());
-					for (size_t i = 0; i < allocRes.size(); ++i)
+					for (size_t idx = 0; idx < instances.size(); ++idx)
 					{
-						KInstanceBufferUsage& usage = command.instanceUsages[i];
-						KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
-						usage.buffer = allocResult.buffer;
-						usage.start = allocResult.start;
-						usage.count = allocResult.count;
+						++preZStatistics.drawcalls;
+						if (command.indexDraw)
+						{
+							preZStatistics.faces += command.indexData->indexCount / 3;
+							preZStatistics.primtives += command.indexData->indexCount;
+						}
+						else
+						{
+							preZStatistics.faces += command.vertexData->vertexCount / 3;
+							preZStatistics.primtives += command.vertexData->vertexCount;
+						}
+
+						command.objectUsage.binding = SHADER_BINDING_OBJECT;
+						command.objectUsage.range = sizeof(instances[idx]);
+						KRenderGlobal::DynamicConstantBufferManager.Alloc(&instances[idx], command.objectUsage);
+
+						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+						if (command.Complete())
+						{
+							preZcommands.push_back(command);
+						}
 					}
+				});
 
-					if (AssignShadingParameter(command, material.get()))
+				if (!m_InstanceSubmit)
+				{
+					render->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand& _command)
 					{
+						KRenderCommand command = std::move(_command);
+
 						for (size_t idx = 0; idx < instances.size(); ++idx)
 						{
+							++defaultStatistics.drawcalls;
 							if (command.indexDraw)
 							{
 								defaultStatistics.faces += command.indexData->indexCount / 3;
@@ -484,16 +458,75 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 								defaultStatistics.faces += command.vertexData->vertexCount / 3;
 								defaultStatistics.primtives += command.vertexData->vertexCount;
 							}
+
+							command.objectUsage.binding = SHADER_BINDING_OBJECT;
+							command.objectUsage.range = sizeof(instances[idx]);
+							KRenderGlobal::DynamicConstantBufferManager.Alloc(&instances[idx], command.objectUsage);
+
+							if (!AssignShadingParameter(command, material.get(), false))
+							{
+								continue;
+							}
+
+							command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+							if (command.Complete())
+							{
+								defaultCommands.push_back(command);
+							}
 						}
+					});
+				}
+				else
+				{
+					render->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand& _command)
+					{
+						KRenderCommand command = std::move(_command);
 
-						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+						++defaultStatistics.drawcalls;
 
-						if (command.Complete())
+						KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
+
+						std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+						ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+						ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+
+						command.instanceDraw = true;
+						command.instanceUsages.resize(allocRes.size());
+						for (size_t i = 0; i < allocRes.size(); ++i)
 						{
-							defaultCommands.push_back(std::move(command));
+							KInstanceBufferUsage& usage = command.instanceUsages[i];
+							KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+							usage.buffer = allocResult.buffer;
+							usage.start = allocResult.start;
+							usage.count = allocResult.count;
 						}
-					}
-				});
+
+						if (AssignShadingParameter(command, material.get(), useMateiralTex))
+						{
+							for (size_t idx = 0; idx < instances.size(); ++idx)
+							{
+								if (command.indexDraw)
+								{
+									defaultStatistics.faces += command.indexData->indexCount / 3;
+									defaultStatistics.primtives += command.indexData->indexCount;
+								}
+								else
+								{
+									defaultStatistics.faces += command.vertexData->vertexCount / 3;
+									defaultStatistics.primtives += command.vertexData->vertexCount;
+								}
+							}
+
+							command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+
+							if (command.Complete())
+							{
+								defaultCommands.push_back(std::move(command));
+							}
+						}
+					});
+				}
 			}
 		}
 	}

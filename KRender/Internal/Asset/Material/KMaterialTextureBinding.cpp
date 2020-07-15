@@ -1,4 +1,5 @@
 #include "KMaterialTextureBinding.h"
+#include "Internal/KRenderGlobal.h"
 #include <assert.h>
 
 KMaterialTextureBinding::KMaterialTextureBinding()

@@ -31,6 +31,7 @@ protected:
 	std::string m_MaterialPath;
 
 	bool m_HostVisible;
+	bool m_UseMaterialTexture;
 	bool m_OcclusionVisible;
 
 	std::vector<IKQueryPtr> m_OCQueries;
@@ -63,6 +64,8 @@ public:
 
 	bool SaveAsMesh(const char* path) const override;
 	bool SetHostVisible(bool hostVisible) override;
+	bool SetUseMaterialTexture(bool useMaterialTex) override;
+	bool GetUseMaterialTexture() const override;
 
 	bool Init(bool async) override;
 	bool UnInit() override;

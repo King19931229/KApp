@@ -1,6 +1,15 @@
-#pragma once
+﻿#pragma once
 #include "Interface/IKMaterial.h"
-#include "Internal/KRenderGlobal.h"
+
+enum MeshTextureSemantic
+{
+	MTS_DIFFUSE,
+	MTS_SPECULAR,
+	MTS_NORMAL,
+	MTS_COUNT
+};
+
+static_assert(MTS_COUNT <= SHADER_BINDING_MATERIAL_COUNT, "Semantic count out of bound");
 
 class KMaterialTextureBinding : public IKMaterialTextureBinding
 {
@@ -10,6 +19,14 @@ protected:
 public:
 	KMaterialTextureBinding();
 	virtual ~KMaterialTextureBinding();
+
+	// C++11定义析构函数将会压制移动(move)成员函数的自动生成
+	KMaterialTextureBinding(KMaterialTextureBinding&& rhs) = default;
+	KMaterialTextureBinding& operator=(KMaterialTextureBinding&& rhs) = default;
+	// 类定义移动构造函数后 默认的复制构造函数会被删除
+	// KMaterialTextureBinding(const KMaterialTextureBinding& rhs) = delete;
+	// KMaterialTextureBinding& operator=(const KMaterialTextureBinding& rhs) = delete;
+
 	uint8_t GetNumSlot() const override;
 	bool SetTexture(uint8_t slot, const std::string& path) override;
 	bool UnsetTextrue(uint8_t slot) override;

@@ -1,4 +1,5 @@
 #include "KMesh.h"
+#include "KSubMesh.h"
 #include "Serializer/KMeshSerializer.h"
 #include "Utility/KMeshUtilityImpl.h"
 #include "Interface/IKRenderDevice.h"
@@ -308,21 +309,21 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 				indexType,
 				subPart.indexCount,
 				POINTER_OFFSET(result.indicesData.data(), indexSize * subPart.indexBase)
-				));
+			));
 			ASSERT_RESULT(indexData.indexBuffer->InitDevice(hostVisible));
-			
-			KMeshTextureBinding textures;
-			if(!subPart.material.diffuse.empty())
+
+			KMaterialTextureBinding textures;
+			if (!subPart.material.diffuse.empty())
 			{
-				textures.AssignTexture(MTS_DIFFUSE, subPart.material.diffuse.c_str());
+				textures.SetTexture(MTS_DIFFUSE, subPart.material.diffuse.c_str());
 			}
-			if(!subPart.material.specular.empty())
+			if (!subPart.material.specular.empty())
 			{
-				textures.AssignTexture(MTS_SPECULAR, subPart.material.specular.c_str());
+				textures.SetTexture(MTS_SPECULAR, subPart.material.specular.c_str());
 			}
-			if(!subPart.material.normal.empty())
+			if (!subPart.material.normal.empty())
 			{
-				textures.AssignTexture(MTS_NORMAL, subPart.material.normal.c_str());
+				textures.SetTexture(MTS_NORMAL, subPart.material.normal.c_str());
 			}
 
 			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, std::move(textures), frameInFlight));

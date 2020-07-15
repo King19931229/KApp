@@ -1,11 +1,7 @@
 #include "KSubMesh.h"
-#include "KMesh.h"
-
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKSampler.h"
-
-#include "Internal/KRenderGlobal.h"
 
 KSubMesh::KSubMesh(KMesh* parent)
 	: m_pParent(parent),
@@ -21,7 +17,7 @@ KSubMesh::~KSubMesh()
 {
 }
 
-bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMeshTextureBinding&& binding, size_t frameInFlight)
+bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialTextureBinding&& binding, size_t frameInFlight)
 {
 	UnInit();
 
@@ -63,7 +59,7 @@ bool KSubMesh::UnInit()
 	m_pMaterial = nullptr;
 	m_IndexData.Destroy();
 	m_FrameInFlight = 0;
-	m_Texture.Release();
+	m_Texture.Clear();
 
 	return true;
 }

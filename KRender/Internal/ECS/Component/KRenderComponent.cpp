@@ -21,6 +21,7 @@ KRenderComponent::KRenderComponent()
 	m_Type(NONE),
 	m_UtilityInfo(nullptr),
 	m_HostVisible(false),
+	m_UseMaterialTexture(false),
 	m_OcclusionVisible(true)
 {}
 
@@ -219,6 +220,17 @@ bool KRenderComponent::SetHostVisible(bool hostVisible)
 {
 	m_HostVisible = hostVisible;
 	return true;
+}
+
+bool KRenderComponent::SetUseMaterialTexture(bool useMaterialTex)
+{
+	m_UseMaterialTexture = useMaterialTex;
+	return true;
+}
+
+bool KRenderComponent::GetUseMaterialTexture() const
+{
+	return m_UseMaterialTexture;
 }
 
 bool KRenderComponent::Init(bool async)

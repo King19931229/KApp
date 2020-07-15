@@ -1,8 +1,8 @@
 #pragma once
-#include "Internal/KVertexDefinition.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKMaterial.h"
-#include "KMeshTextureBinding.h"
+#include "Internal/KVertexDefinition.h"
+#include "Internal/Asset/Material/KMaterialTextureBinding.h"
 
 #include <functional>
 
@@ -17,7 +17,7 @@ protected:
 
 	KMesh*					m_pParent;
 	IKMaterial*				m_pMaterial;
-	KMeshTextureBinding		m_Texture;
+	KMaterialTextureBinding	m_Texture;
 	DebugPrimitive			m_DebugPrimitive;
 
 	const KVertexData*		m_pVertexData;
@@ -29,7 +29,7 @@ public:
 	KSubMesh(KMesh* parent);
 	~KSubMesh();
 
-	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMeshTextureBinding&& binding, size_t frameInFlight);
+	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialTextureBinding&& binding, size_t frameInFlight);
 	bool InitDebug(DebugPrimitive primtive, const KVertexData* vertexData, const KIndexData* indexData, size_t frameInFlight);
 	bool UnInit();
 

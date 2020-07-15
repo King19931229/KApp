@@ -144,7 +144,6 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 	if (m_pSubMesh && m_pMaterial)
 	{
 		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
-		const KMeshTextureBinding& textureBinding = m_pSubMesh->m_Texture;
 
 		IKShaderPtr vsShader = m_pMaterial->GetVSShader();
 		IKShaderPtr fsShader = m_pMaterial->GetFSShader();
@@ -220,6 +219,63 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 					for (const KShaderInformation& info : { vsInfo, fsInfo })
 					{
+						auto BINDING_TO_SLOT = [](uint16_t bindingIndex)->uint8_t
+						{
+							uint8_t slot = 0;
+							if (bindingIndex == SHADER_BINDING_DIFFUSE)
+							{
+								slot = MTS_DIFFUSE;
+							}
+							else if (bindingIndex == SHADER_BINDING_SPECULAR)
+							{
+								slot = MTS_SPECULAR;
+							}
+							else if (bindingIndex == SHADER_BINDING_NORMAL)
+							{
+								slot = MTS_NORMAL;
+							}
+							return slot;
+						};
+
+						bool meshTextureComplete = true;
+						// 优先使用Mesh贴图
+						{
+							const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
+							for (const KShaderInformation::Texture& shaderTexture : info.textures)
+							{
+								if (shaderTexture.bindingIndex >= SHADER_BINDING_MATERIAL_BEGIN && shaderTexture.bindingIndex <= SHADER_BINDING_MATERIAL_END)
+								{
+									IKTexturePtr texture = textureBinding.GetTexture(BINDING_TO_SLOT(shaderTexture.bindingIndex));
+									IKSamplerPtr sampler = textureBinding.GetSampler(BINDING_TO_SLOT(shaderTexture.bindingIndex));
+									if (!texture || !sampler)
+									{
+										meshTextureComplete = false;
+										break;
+									}
+								}
+							}
+						}
+
+						bool materialTextureComplete = true;
+						// Mesh贴图不完全 使用材质贴图
+						if (!meshTextureComplete)
+						{
+							IKMaterialTextureBinding* materialTexture = m_pMaterial->GetDefaultMaterialTexture().get();
+							for (const KShaderInformation::Texture& shaderTexture : info.textures)
+							{
+								if (shaderTexture.bindingIndex >= SHADER_BINDING_MATERIAL_BEGIN && shaderTexture.bindingIndex <= SHADER_BINDING_MATERIAL_END)
+								{
+									IKTexturePtr texture = materialTexture->GetTexture(BINDING_TO_SLOT(shaderTexture.bindingIndex));
+									IKSamplerPtr sampler = materialTexture->GetSampler(BINDING_TO_SLOT(shaderTexture.bindingIndex));
+									if (!texture || !sampler)
+									{
+										materialTextureComplete = false;
+										break;
+									}
+								}
+							}
+						}
+
 						for (const KShaderInformation::Texture& shaderTexture : info.textures)
 						{
 							if (shaderTexture.bindingIndex >= SHADER_BINDING_MATERIAL_BEGIN && shaderTexture.bindingIndex <= SHADER_BINDING_MATERIAL_END)
@@ -227,39 +283,25 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 								IKTexturePtr texture = nullptr;
 								IKSamplerPtr sampler = nullptr;
 
-								// TODO 重构 KMeshTextureBinding
-								if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE)
+								if (meshTextureComplete)
 								{
-									KMeshTextureInfo diffuseInfo = textureBinding.GetTexture(MTS_DIFFUSE);
-									texture = diffuseInfo.texture;
-									sampler = diffuseInfo.sampler;
+									const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
+									texture = textureBinding.GetTexture(BINDING_TO_SLOT(shaderTexture.bindingIndex));
+									sampler = textureBinding.GetSampler(BINDING_TO_SLOT(shaderTexture.bindingIndex));
 								}
-								if (shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR)
+								else if (materialTextureComplete)
 								{
-									KMeshTextureInfo specularInfo = textureBinding.GetTexture(MTS_SPECULAR);
-									texture = specularInfo.texture;
-									sampler = specularInfo.sampler;
+									IKMaterialTextureBinding* materialTexture = m_pMaterial->GetDefaultMaterialTexture().get();
+									texture = materialTexture->GetTexture(BINDING_TO_SLOT(shaderTexture.bindingIndex));
+									sampler = materialTexture->GetSampler(BINDING_TO_SLOT(shaderTexture.bindingIndex));
 								}
-								if (shaderTexture.bindingIndex == SHADER_BINDING_NORMAL)
-								{
-									KMeshTextureInfo normalInfo = textureBinding.GetTexture(MTS_NORMAL);
-									texture = normalInfo.texture;
-									sampler = normalInfo.sampler;
-								}
-
-								// TODO 是否考虑非编辑器运行时默认贴图被改变可能
-								/*if (!texture || !sampler)
-								{
-									IKMaterialTextureBinding* defaultTexture = m_pMaterial->GetDefaultMaterialTexture().get();
-									texture = defaultTexture->GetTexture((uint8_t)shaderTexture.bindingIndex - SHADER_BINDING_MATERIAL_BEGIN);
-									sampler = defaultTexture->GetSampler((uint8_t)shaderTexture.bindingIndex - SHADER_BINDING_MATERIAL_BEGIN);
-								}*/
-
-								if (!texture || !sampler)
+								else
 								{
 									KRenderGlobal::TextureManager.GetErrorTexture(texture);
 									KRenderGlobal::TextureManager.GetErrorSampler(sampler);
 								}
+
+								ASSERT_RESULT(texture && sampler);
 
 								for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)
 								{

@@ -69,7 +69,7 @@ protected:
 	void PopulateRenderCommand(size_t frameIndex, IKRenderTargetPtr offscreenTarget,
 		std::vector<KRenderComponent*>& cullRes, std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands);
 
-	bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material);
+	bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material, bool useMaterialTex);
 	bool UpdateCamera(size_t frameIndex);
 	bool UpdateGlobal(size_t frameIndex);
 public:
