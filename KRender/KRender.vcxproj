@@ -48,6 +48,7 @@
     <ClInclude Include="Internal\Asset\KSubMesh.h" />
     <ClInclude Include="Internal\Asset\KTriangleMesh.h" />
     <ClInclude Include="Internal\Asset\Material\KMaterialParameter.h" />
+    <ClInclude Include="Internal\Asset\Material\KMaterialShader.h" />
     <ClInclude Include="Internal\Asset\Material\KMaterialTextureBinding.h" />
     <ClInclude Include="Internal\Asset\Material\KMaterialValue.h" />
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializer.h" />
@@ -131,6 +132,7 @@
     <ClCompile Include="Internal\Asset\KMesh.cpp" />
     <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
     <ClCompile Include="Internal\Asset\Material\KMaterialParameter.cpp" />
+    <ClCompile Include="Internal\Asset\Material\KMaterialShader.cpp" />
     <ClCompile Include="Internal\Asset\Material\KMaterialTextureBinding.cpp" />
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializer.cpp" />
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializerV0.cpp" />

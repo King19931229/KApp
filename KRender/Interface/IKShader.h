@@ -58,6 +58,10 @@ struct KShaderInformation
 };
 
 static constexpr const char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
+static constexpr const char* TANGENT_BINORMAL_INPUT_MACRO = "TANGENT_BINORMAL_INPUT";
+static constexpr const char* DIFFUSE_SPECULAR_INPUT_MACRO = "DIFFUSE_SPECULAR_INPUT";
+static constexpr const char* UV2_INPUT_MACRO = "UV2_INPUT";
+static constexpr const char* BLEND_WEIGHT_INPUT_MACRO = "BLEND_WEIGHT_INPUT";
 
 struct IKShader : public IKResource
 {

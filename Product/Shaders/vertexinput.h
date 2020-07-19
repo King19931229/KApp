@@ -11,8 +11,10 @@ layout(location = POSITION) in vec3 position;
 layout(location = NORMAL) in vec3 normal;
 layout(location = TEXCOORD0) in vec2 texcoord0;
 
-//layout(location = DIFFUSE) in vec3 diffuse;
-//layout(location = SPECULAR) in vec3 specular;
+#if DIFFUSE_SPECULAR_INPUT
+layout(location = DIFFUSE) in vec3 diffuse;
+layout(location = SPECULAR) in vec3 specular;
+#endif
 
 #if TANGENT_BINORMAL_INPUT
 layout(location = TANGENT) in vec3 tangent;

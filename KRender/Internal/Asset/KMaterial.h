@@ -1,16 +1,15 @@
 #pragma once
 #include "Interface/IKMaterial.h"
 #include "KBase/Interface/IKXML.h"
+#include "Material/KMaterialShader.h"
 
 class KMaterial : public IKMaterial
 {
 protected:
 	std::string m_Path;
 	MaterialBlendMode m_BlendMode;
-
-	IKShaderPtr m_VSShader;
-	IKShaderPtr m_VSInstanceShader;
-	IKShaderPtr m_FSShader;
+	KMaterialShader m_Shader;
+	
 	IKMaterialParameterPtr m_VSParameter;
 	IKMaterialParameterPtr m_FSParameter;
 	IKMaterialTextureBindingPtr m_MaterialTexture;
@@ -64,6 +63,12 @@ public:
 	KMaterial();
 	~KMaterial();
 
+	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
+	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
+	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count);
+
+	virtual bool IsAllShaderLoaded();
+
 	virtual const IKMaterialParameterPtr GetVSParameter();
 	virtual const IKMaterialParameterPtr GetFSParameter();
 
@@ -71,10 +76,6 @@ public:
 
 	virtual const KShaderInformation::Constant* GetVSShadingInfo();
 	virtual const KShaderInformation::Constant* GetFSShadingInfo();
-
-	virtual const IKShaderPtr GetVSShader() { return m_VSShader; }
-	virtual const IKShaderPtr GetVSInstanceShader() { return m_VSInstanceShader; }
-	virtual const IKShaderPtr GetFSShader() { return m_FSShader; }
 
 	virtual MaterialBlendMode GetBlendMode() const { return m_BlendMode; }
 	virtual void SetBlendMode(MaterialBlendMode mode) { m_BlendMode = mode; }

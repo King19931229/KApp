@@ -346,8 +346,13 @@ bool KSourceFile::AddMacro(const MacroPair& macroPair)
 		{
 			MacroInfo info = { macro, value };
 			m_MacroInfos.emplace_back(std::move(info));
-			return true;
 		}
+		// 覆盖掉之前的值
+		else
+		{
+			it->value = value;
+		}
+		return true;
 	}
 	return false;
 }

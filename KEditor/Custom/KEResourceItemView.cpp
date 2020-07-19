@@ -11,7 +11,6 @@ KEResourceItemView::KEResourceItemView(QWidget *parent)
 	m_RootItem(nullptr)
 {
 	setAcceptDrops(true);
-	setMouseTracking(true);
 	setFocusPolicy(Qt::ClickFocus);
 	// 连接信号槽的时候别带变量名
 	connect(this, SIGNAL(doubleClicked(const QModelIndex &)),

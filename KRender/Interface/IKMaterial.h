@@ -79,6 +79,12 @@ struct IKMaterial
 {
 	virtual ~IKMaterial() {}
 
+	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count) = 0;
+	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count) = 0;
+	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count) = 0;
+
+	virtual bool IsAllShaderLoaded() = 0;
+
 	virtual const IKMaterialParameterPtr GetVSParameter() = 0;
 	virtual const IKMaterialParameterPtr GetFSParameter() = 0;
 
@@ -86,10 +92,6 @@ struct IKMaterial
 
 	virtual const KShaderInformation::Constant* GetVSShadingInfo() = 0;
 	virtual const KShaderInformation::Constant* GetFSShadingInfo() = 0;
-
-	virtual const IKShaderPtr GetVSShader() = 0;
-	virtual const IKShaderPtr GetVSInstanceShader() = 0;
-	virtual const IKShaderPtr GetFSShader() = 0;
 
 	virtual MaterialBlendMode GetBlendMode() const = 0;
 	virtual void SetBlendMode(MaterialBlendMode mode) = 0;

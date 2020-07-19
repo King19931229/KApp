@@ -22,9 +22,6 @@ KMaterial::~KMaterial()
 {
 	ASSERT_RESULT(m_VSParameter == nullptr);
 	ASSERT_RESULT(m_FSParameter == nullptr);
-	ASSERT_RESULT(m_VSShader == nullptr);
-	ASSERT_RESULT(m_VSInstanceShader == nullptr);
-	ASSERT_RESULT(m_FSShader == nullptr);
 }
 
 MaterialValueType KMaterial::ShaderConstantTypeToMaterialType(KShaderInformation::Constant::ConstantMemberType type)
@@ -172,12 +169,31 @@ bool KMaterial::CreateParameter(const KShaderInformation& information, IKMateria
 	return true;
 }
 
+IKShaderPtr KMaterial::GetVSShader(const VertexFormat* formats, size_t count)
+{
+	return m_Shader.GetVSShader(formats, count);
+}
+
+IKShaderPtr KMaterial::GetVSInstanceShader(const VertexFormat* formats, size_t count)
+{
+	return m_Shader.GetVSInstanceShader(formats, count);
+}
+
+IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count)
+{
+	return m_Shader.GetFSShader(formats, count);
+}
+
+bool KMaterial::IsAllShaderLoaded()
+{
+	return m_Shader.IsVSLoaded() && m_Shader.IsFSLoaded();
+}
+
 const IKMaterialParameterPtr KMaterial::GetVSParameter()
 {
-	ResourceState vsState = m_VSShader->GetResourceState();
-	if (vsState == RS_DEVICE_LOADED)
+	if (m_Shader.IsVSLoaded())
 	{
-		const KShaderInformation& vsInfo = m_VSShader->GetInformation();
+		const KShaderInformation& vsInfo = *m_Shader.GetVSInformation();
 
 		if (!m_VSParameter || m_ParameterReload)
 		{
@@ -202,10 +218,9 @@ const IKMaterialTextureBindingPtr KMaterial::GetDefaultMaterialTexture()
 
 const IKMaterialParameterPtr KMaterial::GetFSParameter()
 {
-	ResourceState fsState = m_FSShader->GetResourceState();
-	if (fsState == RS_DEVICE_LOADED)
+	if (m_Shader.IsFSLoaded())
 	{
-		const KShaderInformation& fsInfo = m_FSShader->GetInformation();
+		const KShaderInformation& fsInfo = *m_Shader.GetFSInformation();
 
 		if (!m_FSParameter || m_ParameterReload)
 		{
@@ -231,15 +246,14 @@ const KShaderInformation::Constant* KMaterial::GetVSShadingInfo()
 	}
 	else
 	{
-		ResourceState vsState = m_VSShader->GetResourceState();
-		if (vsState == RS_DEVICE_LOADED)
+		if (m_Shader.IsVSLoaded())
 		{
 			m_VSConstantInfo.bindingIndex = SHADER_BINDING_VERTEX_SHADING;
 			m_VSConstantInfo.members.clear();
 			m_VSConstantInfo.size = 0;
 			m_VSConstantInfo.descriptorSetIndex = 0;
 
-			const KShaderInformation& vsInfo = m_VSShader->GetInformation();
+			const KShaderInformation& vsInfo = *m_Shader.GetVSInformation();
 			for (const KShaderInformation::Constant& constant : vsInfo.dynamicConstants)
 			{
 				if (constant.bindingIndex == SHADER_BINDING_VERTEX_SHADING)
@@ -264,15 +278,14 @@ const KShaderInformation::Constant* KMaterial::GetFSShadingInfo()
 	}
 	else
 	{
-		ResourceState fsState = m_FSShader->GetResourceState();
-		if (fsState == RS_DEVICE_LOADED)
+		if (m_Shader.IsFSLoaded())
 		{
 			m_FSConstantInfo.bindingIndex = SHADER_BINDING_VERTEX_SHADING;
 			m_FSConstantInfo.members.clear();
 			m_FSConstantInfo.size = 0;
 			m_FSConstantInfo.descriptorSetIndex = 0;
 
-			const KShaderInformation& fsInfo = m_FSShader->GetInformation();
+			const KShaderInformation& fsInfo = *m_Shader.GetFSInformation();
 			for (const KShaderInformation::Constant& constant : fsInfo.dynamicConstants)
 			{
 				if (constant.bindingIndex == SHADER_BINDING_FRAGMENT_SHADING)
@@ -388,7 +401,13 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexForma
 
 IKPipelinePtr KMaterial::CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count)
 {
-	return CreatePipelineImpl(frameIndex, formats, count, m_VSShader, m_FSShader);
+	IKShaderPtr vsShader = m_Shader.GetVSShader(formats, count);
+	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count);
+	if (vsShader && fsShader)
+	{
+		return CreatePipelineImpl(frameIndex, formats, count, vsShader, fsShader);
+	}
+	return nullptr;
 }
 
 IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count)
@@ -401,7 +420,13 @@ IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexF
 	}
 	instanceFormats.push_back(VF_INSTANCE);
 
-	return CreatePipelineImpl(frameIndex, instanceFormats.data(), instanceFormats.size(), m_VSInstanceShader, m_FSShader);
+	IKShaderPtr vsInstanceShader = m_Shader.GetVSInstanceShader(formats, count);
+	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count);
+	if (vsInstanceShader && fsShader)
+	{
+		return CreatePipelineImpl(frameIndex, instanceFormats.data(), instanceFormats.size(), vsInstanceShader, fsShader);
+	}
+	return nullptr;
 }
 
 const char* KMaterial::msMaterialRootKey = "material";
@@ -654,9 +679,7 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 
 			if (!vs.empty() && !fs.empty())
 			{
-				if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), { { INSTANCE_INPUT_MACRO, "0" } }, m_VSShader, async) &&
-					KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), { { INSTANCE_INPUT_MACRO, "1" } }, m_VSInstanceShader, async) &&
-					KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, fs.c_str(), m_FSShader, async))
+				if (m_Shader.Init(vs, fs, async))
 				{
 					IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
 					IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
@@ -701,14 +724,14 @@ bool KMaterial::SaveAsFile(const std::string& path)
 	IKXMLDocumentPtr doc = GetXMLDocument();
 	doc->NewDeclaration(R"(xml version="1.0" encoding="utf-8")");
 
-	if (m_VSShader && m_FSShader)
+	if (m_Shader.IsInit())
 	{
 		IKXMLElementPtr root = doc->NewElement(msMaterialRootKey);
 
 		root->NewElement(msBlendModeKey)->SetText(MaterialBlendModeToString(m_BlendMode));
 
-		root->NewElement(msVSKey)->SetText(m_VSShader->GetPath());
-		root->NewElement(msFSKey)->SetText(m_FSShader->GetPath());
+		root->NewElement(msVSKey)->SetText(m_Shader.GetVSPath().c_str());
+		root->NewElement(msFSKey)->SetText(m_Shader.GetFSPath().c_str());
 
 		// 创建参数
 		GetVSParameter();
@@ -750,18 +773,7 @@ bool KMaterial::Reload()
 			m_VSParameterVerified = false;
 			m_FSParameterVerified = false;
 
-			if (m_VSShader)
-			{
-				m_VSShader->Reload();
-			}
-			if (m_VSInstanceShader)
-			{
-				m_VSInstanceShader->Reload();
-			}
-			if (m_FSShader)
-			{
-				m_FSShader->Reload();
-			}
+			m_Shader.Reload();
 
 			m_ParameterReload = true;
 
@@ -796,8 +808,7 @@ bool KMaterial::Init(const std::string& vs, const std::string& fs, bool async)
 {
 	UnInit();
 
-	if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, vs.c_str(), m_VSShader, async) &&
-		KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, fs.c_str(), m_FSShader, async))
+	if (m_Shader.Init(vs, fs, async))
 	{
 		return true;
 	}
@@ -807,23 +818,7 @@ bool KMaterial::Init(const std::string& vs, const std::string& fs, bool async)
 
 bool KMaterial::UnInit()
 {
-	if (m_VSShader)
-	{
-		KRenderGlobal::ShaderManager.Release(m_VSShader);
-		m_VSShader = nullptr;
-	}
-
-	if (m_VSInstanceShader)
-	{
-		KRenderGlobal::ShaderManager.Release(m_VSInstanceShader);
-		m_VSInstanceShader = nullptr;
-	}
-
-	if (m_FSShader)
-	{
-		KRenderGlobal::ShaderManager.Release(m_FSShader);
-		m_FSShader = nullptr;
-	}
+	m_Shader.UnInit();
 
 	if (m_MaterialTexture)
 	{

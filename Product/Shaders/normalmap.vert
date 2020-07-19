@@ -1,4 +1,3 @@
-#define TANGENT_BINORMAL_INPUT 1
 #include "vertexinput.h"
 
 layout(location = 0) out vec2 uv;
@@ -25,10 +24,14 @@ void main()
 
 	mat4 worldMatrix = WORLD_MATRIX;
 
+#if TANGENT_BINORMAL_INPUT
 	vec3 T = normalize(mat3(worldMatrix) * tangent);
 	vec3 B = normalize(mat3(worldMatrix) * binormal);
 	vec3 N = normalize(mat3(worldMatrix) * normal);
 	mat3 TBN = transpose(mat3(T, B, N));
+#else
+	mat3 TBN = mat3(1.0);
+#endif
 
 	vec4 cameraPos = camera.viewInv * vec4(0.0, 0.0, 0.0, 1.0);
 

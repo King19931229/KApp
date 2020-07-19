@@ -145,8 +145,8 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 	{
 		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
 
-		IKShaderPtr vsShader = m_pMaterial->GetVSShader();
-		IKShaderPtr fsShader = m_pMaterial->GetFSShader();
+		IKShaderPtr vsShader = m_pMaterial->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr fsShader = m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 
 		if (vsShader->GetResourceState() != RS_DEVICE_LOADED || fsShader->GetResourceState() != RS_DEVICE_LOADED)
 		{
@@ -530,7 +530,7 @@ bool KMaterialSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::functi
 {
 	if (m_pMaterial && !m_MaterialPipelineCreated)
 	{
-		if (CreateMaterialPipeline())
+		if (m_pMaterial->IsAllShaderLoaded() && CreateMaterialPipeline())
 		{
 			m_MaterialPipelineCreated = true;
 		}
