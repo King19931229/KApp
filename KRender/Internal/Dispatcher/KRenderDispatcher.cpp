@@ -149,12 +149,6 @@ bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMateri
 {
 	if (material)
 	{
-		// TODO
-		if (!material->IsAllShaderLoaded())
-		{
-			return false;
-		}
-
 		const IKMaterialParameterPtr vsParameter = material->GetVSParameter();
 		const IKMaterialParameterPtr fsParameter = material->GetFSParameter();
 		if (!(vsParameter && fsParameter))

@@ -1,7 +1,9 @@
 #pragma once
 #include "Interface/IKShader.h"
 #include "Interface/IKRenderCommand.h"
+#include "KMaterialTextureBinding.h"
 #include <unordered_map>
+#include <mutex>
 
 class KMaterialShader
 {
@@ -17,14 +19,26 @@ protected:
 	std::string m_VSFile;
 	std::string m_FSFile;
 
-	size_t GenHash(const bool* macrosToEnable, size_t macrosSize);
-	size_t CalcHash(const VertexFormat* formats, size_t count);
-	void PermutateShader(const char** marcosToPermutate,
+	bool m_Async;
+
+	typedef std::vector<IKShader::MacroPair> Macros;
+	typedef std::shared_ptr<Macros> MacrosPtr;
+	typedef std::unordered_map<size_t, MacrosPtr> MacrosMap;
+
+	static std::mutex STATIC_RESOURCE_LOCK;
+	static const char* PERMUTATING_MACRO[8];
+	static MacrosMap VS_MACROS_MAP;
+	static MacrosMap VS_INSTANCE_MACROS_MAP;
+	static MacrosMap FS_MACROS_MAP;
+
+	static size_t GenHash(const bool* macrosToEnable, size_t macrosSize, size_t vsMacrosSize, bool vsOnly);
+	static size_t CalcHash(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+
+	static void PermutateMacro(const char** marcosToPermutate,
 		bool* macrosToEnable,
 		size_t macrosSize,
-		size_t permutateIndex,
-		bool async
-	);
+		size_t vsMacrosSize,
+		size_t permutateIndex);
 public:
 	KMaterialShader();
 	~KMaterialShader();
@@ -35,8 +49,11 @@ public:
 
 	bool IsInit();
 
-	bool IsVSLoaded();
-	bool IsFSLoaded();
+	bool IsAllVSLoaded();
+	bool IsAllFSLoaded();
+	bool IsVSTemplateLoaded();
+	bool IsFSTemplateLoaded();
+	bool IsBothLoaded(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 
 	const std::string& GetVSPath() const { return m_VSFile; }
 	const std::string& GetFSPath() const { return m_FSFile; }
@@ -46,5 +63,5 @@ public:
 
 	IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
 	IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
-	IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count);
+	IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 };

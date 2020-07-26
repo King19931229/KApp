@@ -179,19 +179,20 @@ IKShaderPtr KMaterial::GetVSInstanceShader(const VertexFormat* formats, size_t c
 	return m_Shader.GetVSInstanceShader(formats, count);
 }
 
-IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count)
+IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
-	return m_Shader.GetFSShader(formats, count);
+	ASSERT_RESULT(textureBinding);
+	return m_Shader.GetFSShader(formats, count, textureBinding);
 }
 
-bool KMaterial::IsAllShaderLoaded()
+bool KMaterial::IsShaderLoaded(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
-	return m_Shader.IsVSLoaded() && m_Shader.IsFSLoaded();
+	return m_Shader.IsBothLoaded(formats, count, textureBinding);
 }
 
 const IKMaterialParameterPtr KMaterial::GetVSParameter()
 {
-	if (m_Shader.IsVSLoaded())
+	if (m_Shader.IsVSTemplateLoaded())
 	{
 		const KShaderInformation& vsInfo = *m_Shader.GetVSInformation();
 
@@ -218,7 +219,7 @@ const IKMaterialTextureBindingPtr KMaterial::GetDefaultMaterialTexture()
 
 const IKMaterialParameterPtr KMaterial::GetFSParameter()
 {
-	if (m_Shader.IsFSLoaded())
+	if (m_Shader.IsFSTemplateLoaded())
 	{
 		const KShaderInformation& fsInfo = *m_Shader.GetFSInformation();
 
@@ -246,7 +247,7 @@ const KShaderInformation::Constant* KMaterial::GetVSShadingInfo()
 	}
 	else
 	{
-		if (m_Shader.IsVSLoaded())
+		if (m_Shader.IsVSTemplateLoaded())
 		{
 			m_VSConstantInfo.bindingIndex = SHADER_BINDING_VERTEX_SHADING;
 			m_VSConstantInfo.members.clear();
@@ -278,7 +279,7 @@ const KShaderInformation::Constant* KMaterial::GetFSShadingInfo()
 	}
 	else
 	{
-		if (m_Shader.IsFSLoaded())
+		if (m_Shader.IsFSTemplateLoaded())
 		{
 			m_FSConstantInfo.bindingIndex = SHADER_BINDING_VERTEX_SHADING;
 			m_FSConstantInfo.members.clear();
@@ -399,10 +400,10 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexForma
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
 	IKShaderPtr vsShader = m_Shader.GetVSShader(formats, count);
-	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count);
+	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding);
 	if (vsShader && fsShader)
 	{
 		return CreatePipelineImpl(frameIndex, formats, count, vsShader, fsShader);
@@ -410,7 +411,7 @@ IKPipelinePtr KMaterial::CreatePipeline(size_t frameIndex, const VertexFormat* f
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count)
+IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
 	std::vector<VertexFormat> instanceFormats;
 	instanceFormats.reserve(count + 1);
@@ -421,7 +422,7 @@ IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexF
 	instanceFormats.push_back(VF_INSTANCE);
 
 	IKShaderPtr vsInstanceShader = m_Shader.GetVSInstanceShader(formats, count);
-	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count);
+	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding);
 	if (vsInstanceShader && fsShader)
 	{
 		return CreatePipelineImpl(frameIndex, instanceFormats.data(), instanceFormats.size(), vsInstanceShader, fsShader);

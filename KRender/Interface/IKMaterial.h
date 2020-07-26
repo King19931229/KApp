@@ -81,9 +81,9 @@ struct IKMaterial
 
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count) = 0;
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count) = 0;
-	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count) = 0;
+	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
 
-	virtual bool IsAllShaderLoaded() = 0;
+	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
 
 	virtual const IKMaterialParameterPtr GetVSParameter() = 0;
 	virtual const IKMaterialParameterPtr GetFSParameter() = 0;
@@ -96,8 +96,8 @@ struct IKMaterial
 	virtual MaterialBlendMode GetBlendMode() const = 0;
 	virtual void SetBlendMode(MaterialBlendMode mode) = 0;
 
-	virtual IKPipelinePtr CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count) = 0;
-	virtual IKPipelinePtr CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count) = 0;
+	virtual IKPipelinePtr CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
+	virtual IKPipelinePtr CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
 
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;
 	virtual bool Init(const std::string& vs, const std::string& fs, bool async) = 0;

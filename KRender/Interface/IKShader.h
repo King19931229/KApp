@@ -63,6 +63,11 @@ static constexpr const char* DIFFUSE_SPECULAR_INPUT_MACRO = "DIFFUSE_SPECULAR_IN
 static constexpr const char* UV2_INPUT_MACRO = "UV2_INPUT";
 static constexpr const char* BLEND_WEIGHT_INPUT_MACRO = "BLEND_WEIGHT_INPUT";
 
+static constexpr const char* HAS_MATERIAL_TEXTURE0_MACRO = "HAS_MATERIAL_TEXTURE0";
+static constexpr const char* HAS_MATERIAL_TEXTURE1_MACRO = "HAS_MATERIAL_TEXTURE1";
+static constexpr const char* HAS_MATERIAL_TEXTURE2_MACRO = "HAS_MATERIAL_TEXTURE2";
+static constexpr const char* HAS_MATERIAL_TEXTURE3_MACRO = "HAS_MATERIAL_TEXTURE3";
+
 struct IKShader : public IKResource
 {
 	virtual ~IKShader() {}

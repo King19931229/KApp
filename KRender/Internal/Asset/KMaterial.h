@@ -65,9 +65,9 @@ public:
 
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
-	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count);
+	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 
-	virtual bool IsAllShaderLoaded();
+	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 
 	virtual const IKMaterialParameterPtr GetVSParameter();
 	virtual const IKMaterialParameterPtr GetFSParameter();
@@ -80,8 +80,8 @@ public:
 	virtual MaterialBlendMode GetBlendMode() const { return m_BlendMode; }
 	virtual void SetBlendMode(MaterialBlendMode mode) { m_BlendMode = mode; }
 
-	virtual IKPipelinePtr CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count);
-	virtual IKPipelinePtr CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count);
+	virtual IKPipelinePtr CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+	virtual IKPipelinePtr CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 
 	virtual bool InitFromFile(const std::string& path, bool async);
 	virtual bool Init(const std::string& vs, const std::string& fs, bool async);

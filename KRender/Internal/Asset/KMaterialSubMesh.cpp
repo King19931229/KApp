@@ -55,6 +55,7 @@ bool KMaterialSubMesh::Init(IKMaterial* material, size_t frameInFlight)
 	m_pMaterial = material;
 	m_FrameInFlight = frameInFlight;
 	m_MaterialPipelineCreated = false;
+	m_MateriaShaderTriggerLoaded = false;
 
 	ASSERT_RESULT(CreateFixedPipeline());
 
@@ -146,7 +147,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
 
 		IKShaderPtr vsShader = m_pMaterial->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fsShader = m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr fsShader = m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
 
 		if (vsShader->GetResourceState() != RS_DEVICE_LOADED || fsShader->GetResourceState() != RS_DEVICE_LOADED)
 		{
@@ -207,12 +208,12 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 					{
 						if (i == DEFAULT_IDX)
 						{
-							pipelineList[frameIdx] = m_pMaterial->CreatePipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+							pipelineList[frameIdx] = m_pMaterial->CreatePipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
 							ASSERT_RESULT(pipelineList[frameIdx]);
 						}
 						else if (i == INSTANCE_IDX)
 						{
-							pipelineList[frameIdx] = m_pMaterial->CreateInstancePipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+							pipelineList[frameIdx] = m_pMaterial->CreateInstancePipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
 							ASSERT_RESULT(pipelineList[frameIdx]);
 						}
 					}
@@ -237,45 +238,6 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 							return slot;
 						};
 
-						bool meshTextureComplete = true;
-						// 优先使用Mesh贴图
-						{
-							const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
-							for (const KShaderInformation::Texture& shaderTexture : info.textures)
-							{
-								if (shaderTexture.bindingIndex >= SHADER_BINDING_MATERIAL_BEGIN && shaderTexture.bindingIndex <= SHADER_BINDING_MATERIAL_END)
-								{
-									IKTexturePtr texture = textureBinding.GetTexture(BINDING_TO_SLOT(shaderTexture.bindingIndex));
-									IKSamplerPtr sampler = textureBinding.GetSampler(BINDING_TO_SLOT(shaderTexture.bindingIndex));
-									if (!texture || !sampler)
-									{
-										meshTextureComplete = false;
-										break;
-									}
-								}
-							}
-						}
-
-						bool materialTextureComplete = true;
-						// Mesh贴图不完全 使用材质贴图
-						if (!meshTextureComplete)
-						{
-							IKMaterialTextureBinding* materialTexture = m_pMaterial->GetDefaultMaterialTexture().get();
-							for (const KShaderInformation::Texture& shaderTexture : info.textures)
-							{
-								if (shaderTexture.bindingIndex >= SHADER_BINDING_MATERIAL_BEGIN && shaderTexture.bindingIndex <= SHADER_BINDING_MATERIAL_END)
-								{
-									IKTexturePtr texture = materialTexture->GetTexture(BINDING_TO_SLOT(shaderTexture.bindingIndex));
-									IKSamplerPtr sampler = materialTexture->GetSampler(BINDING_TO_SLOT(shaderTexture.bindingIndex));
-									if (!texture || !sampler)
-									{
-										materialTextureComplete = false;
-										break;
-									}
-								}
-							}
-						}
-
 						for (const KShaderInformation::Texture& shaderTexture : info.textures)
 						{
 							if (shaderTexture.bindingIndex >= SHADER_BINDING_MATERIAL_BEGIN && shaderTexture.bindingIndex <= SHADER_BINDING_MATERIAL_END)
@@ -283,29 +245,16 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 								IKTexturePtr texture = nullptr;
 								IKSamplerPtr sampler = nullptr;
 
-								if (meshTextureComplete)
-								{
-									const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
-									texture = textureBinding.GetTexture(BINDING_TO_SLOT(shaderTexture.bindingIndex));
-									sampler = textureBinding.GetSampler(BINDING_TO_SLOT(shaderTexture.bindingIndex));
-								}
-								else if (materialTextureComplete)
-								{
-									IKMaterialTextureBinding* materialTexture = m_pMaterial->GetDefaultMaterialTexture().get();
-									texture = materialTexture->GetTexture(BINDING_TO_SLOT(shaderTexture.bindingIndex));
-									sampler = materialTexture->GetSampler(BINDING_TO_SLOT(shaderTexture.bindingIndex));
-								}
-								else
-								{
-									KRenderGlobal::TextureManager.GetErrorTexture(texture);
-									KRenderGlobal::TextureManager.GetErrorSampler(sampler);
-								}
+								const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
+								texture = textureBinding.GetTexture(BINDING_TO_SLOT(shaderTexture.bindingIndex));
+								sampler = textureBinding.GetSampler(BINDING_TO_SLOT(shaderTexture.bindingIndex));
 
-								ASSERT_RESULT(texture && sampler);
-
-								for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)
+								if (texture && sampler)
 								{
-									pipelineList[frameIdx]->SetSampler(shaderTexture.bindingIndex, texture, sampler);
+									for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)
+									{
+										pipelineList[frameIdx]->SetSampler(shaderTexture.bindingIndex, texture, sampler);
+									}
 								}
 							}
 						}
@@ -530,13 +479,30 @@ bool KMaterialSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::functi
 {
 	if (m_pMaterial && !m_MaterialPipelineCreated)
 	{
-		if (m_pMaterial->IsAllShaderLoaded() && CreateMaterialPipeline())
+		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
+
+		// 促发一下加载
+		if (!m_MateriaShaderTriggerLoaded)
 		{
-			m_MaterialPipelineCreated = true;
+			m_pMaterial->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			m_pMaterial->GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+			m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
+			m_MateriaShaderTriggerLoaded = true;
+		}
+
+		if (m_pMaterial->IsShaderLoaded(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture))
+		{
+			if (!m_MaterialPipelineCreated)
+			{
+				if (CreateMaterialPipeline())
+				{
+					m_MaterialPipelineCreated = true;
+				}
+			}
 		}
 	}
 
-	if (m_pMaterial && !m_MaterialPipelineCreated)
+	if (!m_MaterialPipelineCreated)
 	{
 		return false;
 	}
