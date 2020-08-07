@@ -3,7 +3,7 @@
 #include "Internal/KRenderGlobal.h"
 #include "KVulkanConfig.h"
 #include "KVulkanDescripiorPool.h"
-#include <map>
+#include <unordered_map>
 
 class KVulkanRenderTarget;
 class KVulkanPipeline;
@@ -25,6 +25,7 @@ public:
 class KVulkanPipeline : public IKPipeline
 {
 	friend class KVulkanPipelineHandle;
+	friend class KVulkanDescriptorPool;
 protected:
 	// 顶点装配信息
 	std::vector<VkVertexInputBindingDescription> m_BindingDescriptions;
@@ -70,7 +71,7 @@ protected:
 		ShaderTypes shaderTypes;
 		IKUniformBufferPtr buffer;
 	};
-	std::map<unsigned int, UniformBufferBindingInfo> m_Uniforms;
+	std::unordered_map<unsigned int, UniformBufferBindingInfo> m_Uniforms;
 
 	struct PushConstantBindingInfo
 	{
@@ -93,6 +94,7 @@ protected:
 
 		bool nakeInfo;
 		bool depthStencil;
+		bool dynamicWrite;
 
 		SamplerBindingInfo()
 		{
@@ -102,9 +104,10 @@ protected:
 			sampler = nullptr;
 			nakeInfo = false;
 			depthStencil = false;
+			dynamicWrite = false;
 		}
 	};
-	std::map<unsigned int, SamplerBindingInfo> m_Samplers;
+	std::unordered_map<unsigned int, SamplerBindingInfo> m_Samplers;
 
 	uint32_t				m_UniformBufferDescriptorCount;
 	uint32_t				m_SamplerDescriptorCount;
@@ -125,6 +128,9 @@ protected:
 	bool DestroyDevice();
 	bool ClearHandle();
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
+	bool SetSamplerImpl(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler, bool dynamic);
+	bool SetSamplerDepthAttachmentImpl(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynamic);
+
 	bool CheckDependencyResource();
 
 	typedef std::unordered_map<IKRenderTargetPtr, IKPipelineHandlePtr> RtPipelineHandleMap;
@@ -145,7 +151,6 @@ public:
 	virtual bool SetPolygonMode(PolygonMode polygonMode);
 
 	virtual bool SetDepthFunc(CompareFunc func, bool depthWrtie, bool depthTest);
-	//virtual bool SetDepthBias(float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor);
 	virtual bool SetDepthBiasEnable(bool enable);
 
 	virtual bool SetStencilFunc(CompareFunc func, StencilOperator failOp, StencilOperator depthFailOp, StencilOperator passOp);
@@ -155,8 +160,13 @@ public:
 	virtual bool SetShader(ShaderType shaderType, IKShaderPtr shader);
 
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
+
 	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
 	virtual bool SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler);
+
+	virtual bool SetSamplerDynamic(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
+	virtual bool SetSamplerDepthAttachmentDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler);
+
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size);
 	virtual bool DestroyConstantBlock();
 

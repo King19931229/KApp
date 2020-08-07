@@ -241,9 +241,9 @@ bool KVulkanPipeline::BindSampler(unsigned int location, const SamplerBindingInf
 	return true;
 }
 
-bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler)
+bool KVulkanPipeline::SetSamplerImpl(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler, bool dynamic)
 {
-	if(texture && sampler)
+	if (texture && sampler)
 	{
 		SamplerBindingInfo info;
 
@@ -251,6 +251,7 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IK
 		info.sampler = sampler;
 		info.nakeInfo = false;
 		info.depthStencil = false;
+		info.dynamicWrite = dynamic;
 
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
@@ -258,9 +259,9 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IK
 	return false;
 }
 
-bool KVulkanPipeline::SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler)
+bool KVulkanPipeline::SetSamplerDepthAttachmentImpl(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynamic)
 {
-	if(target && sampler)
+	if (target && sampler)
 	{
 		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target.get();
 
@@ -276,9 +277,46 @@ bool KVulkanPipeline::SetSamplerDepthAttachment(unsigned int location, IKRenderT
 		info.vkSampler = ((KVulkanSampler*)sampler.get())->GetVkSampler();
 		info.nakeInfo = true;
 		info.depthStencil = true;
+		info.dynamicWrite = dynamic;
 
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
+	}
+	return false;
+}
+
+bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler)
+{
+	if(texture && sampler)
+	{
+		return SetSamplerImpl(location, texture, sampler, false);
+	}
+	return false;
+}
+
+bool KVulkanPipeline::SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler)
+{
+	if(target && sampler)
+	{
+		return SetSamplerDepthAttachmentImpl(location, target, sampler, false);
+	}
+	return false;
+}
+
+bool KVulkanPipeline::SetSamplerDynamic(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler)
+{
+	if (texture && sampler)
+	{
+		return SetSamplerImpl(location, texture, sampler, true);
+	}
+	return false;
+}
+
+bool KVulkanPipeline::SetSamplerDepthAttachmentDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler)
+{
+	if (target && sampler)
+	{
+		return SetSamplerDepthAttachmentImpl(location, target, sampler, true);
 	}
 	return false;
 }
@@ -685,7 +723,7 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 
 VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount, const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount)
 {
-	return m_Pool.Alloc(KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, ppBufferUsage, dynamicBufferUsageCount, pTextureUsage, dynamicTextureUsageCount);
+	return m_Pool.Alloc(KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppBufferUsage, dynamicBufferUsageCount, pTextureUsage, dynamicTextureUsageCount);
 }
 
 bool KVulkanPipeline::Init()

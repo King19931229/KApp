@@ -2,6 +2,7 @@
 #include "KVulkanBuffer.h"
 #include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
+#include "KVulkanPipeline.h"
 #include "KVulkanGlobal.h"
 #include "KBase/Publish/KConfig.h"
 #include <algorithm>
@@ -202,7 +203,7 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 	return newPool;
 }
 
-VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFrame, const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount, const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount)
+VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline, const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount, const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount)
 {
 	VkDescriptorSet set = InternalAlloc(frameIndex, currentFrame);
 
@@ -217,6 +218,49 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 	ASSERT_RESULT(dynamicTextureUsageCount <= m_DescriptorDynamicWriteInfo.size());
 
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+
+	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline);
+	if (vulkanPipeline)
+	{
+		const std::unordered_map<unsigned int, KVulkanPipeline::SamplerBindingInfo>& samplers = vulkanPipeline->m_Samplers;
+		ASSERT_RESULT(samplers.size() <= m_ImageWriteInfo.size());
+		ASSERT_RESULT(samplers.size() <= m_DescriptorDynamicWriteInfo.size());
+
+		size_t idx = 0;
+		for (const auto& pair : samplers)
+		{
+			unsigned int binding = pair.first;
+			const KVulkanPipeline::SamplerBindingInfo& info = pair.second;
+
+			if (!info.dynamicWrite)
+			{
+				continue;
+			}
+
+			VkDescriptorImageInfo &imageInfo = m_ImageWriteInfo[idx];
+
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = info.vkImageView;
+			imageInfo.sampler = info.vkSampler;
+
+			VkWriteDescriptorSet& samplerDescriptorWrite = m_DescriptorDynamicWriteInfo[idx];
+
+			samplerDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			samplerDescriptorWrite.dstSet = set;
+			samplerDescriptorWrite.dstBinding = (uint32_t)binding;
+			samplerDescriptorWrite.dstArrayElement = 0;
+			samplerDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			samplerDescriptorWrite.descriptorCount = 1;
+
+			samplerDescriptorWrite.pBufferInfo = nullptr;
+			samplerDescriptorWrite.pImageInfo = &imageInfo;
+			samplerDescriptorWrite.pTexelBufferView = nullptr;
+
+			++idx;
+		}
+
+		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(idx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+	}
 
 	for (size_t i = 0; i < dynamicBufferUsageCount; ++i)
 	{

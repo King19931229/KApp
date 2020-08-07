@@ -66,6 +66,11 @@
     <ClInclude Include="Internal\ECS\KRenderComponentManager.h" />
     <ClInclude Include="Internal\ECS\KECSGlobal.h" />
     <ClInclude Include="Internal\ECS\System\KCullSystem.h" />
+    <ClInclude Include="Internal\FrameGraph\KFrameGraph.h" />
+    <ClInclude Include="Internal\FrameGraph\KFrameGraphBuilder.h" />
+    <ClInclude Include="Internal\FrameGraph\KFrameGraphHandle.h" />
+    <ClInclude Include="Internal\FrameGraph\KFrameGraphPass.h" />
+    <ClInclude Include="Internal\FrameGraph\KFrameGraphResource.h" />
     <ClInclude Include="Internal\Gizmo\KCameraCube.h" />
     <ClInclude Include="Internal\Gizmo\KGizmo.h" />
     <ClInclude Include="Internal\Gizmo\KGizmoBase.h" />
@@ -149,6 +154,8 @@
     <ClCompile Include="Internal\ECS\KRenderComponentManager.cpp" />
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp" />
     <ClCompile Include="Internal\ECS\System\KCullSystem.cpp" />
+    <ClCompile Include="Internal\FrameGraph\KFrameGraphBuilder.cpp" />
+    <ClCompile Include="Internal\FrameGraph\KFrameGraphResource.cpp" />
     <ClCompile Include="Internal\Gizmo\KCameraCube.cpp" />
     <ClCompile Include="Internal\Gizmo\KGizmo.cpp" />
     <ClCompile Include="Internal\Gizmo\KGizmoBase.cpp" />

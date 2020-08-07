@@ -65,5 +65,8 @@ public:
 		const std::vector<VkWriteDescriptorSet>& writeInfo);
 	bool UnInit();
 
-	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount, const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount);
+	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame,
+		IKPipeline* pipeline,
+		const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount,
+		const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount);
 };

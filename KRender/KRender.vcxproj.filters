@@ -61,6 +61,9 @@
     <Filter Include="Internal\Asset\Material">
       <UniqueIdentifier>{426b495a-870c-4b3d-8cfe-92921e2da6b3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\FrameGraph">
+      <UniqueIdentifier>{4f6ce8f6-11bd-4d7f-8852-cbba5123146d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -384,6 +387,21 @@
     <ClInclude Include="Internal\Asset\Material\KMaterialShader.h">
       <Filter>Internal\Asset\Material</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\FrameGraph\KFrameGraphPass.h">
+      <Filter>Internal\FrameGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\FrameGraph\KFrameGraphHandle.h">
+      <Filter>Internal\FrameGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\FrameGraph\KFrameGraphResource.h">
+      <Filter>Internal\FrameGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\FrameGraph\KFrameGraph.h">
+      <Filter>Internal\FrameGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\FrameGraph\KFrameGraphBuilder.h">
+      <Filter>Internal\FrameGraph</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -622,6 +640,12 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\Material\KMaterialShader.cpp">
       <Filter>Internal\Asset\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\FrameGraph\KFrameGraphBuilder.cpp">
+      <Filter>Internal\FrameGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\FrameGraph\KFrameGraphResource.cpp">
+      <Filter>Internal\FrameGraph</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

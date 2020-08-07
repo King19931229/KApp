@@ -25,7 +25,6 @@ struct IKPipeline
 	virtual bool SetPolygonMode(PolygonMode polygonMode) = 0;
 
 	virtual bool SetDepthFunc(CompareFunc func, bool depthWrtie, bool depthTest) = 0;
-	//virtual bool SetDepthBias(float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor) = 0;
 	virtual bool SetDepthBiasEnable(bool enable) = 0;
 
 	virtual bool SetStencilFunc(CompareFunc func, StencilOperator failOp, StencilOperator depthFailOp, StencilOperator passOp) = 0;
@@ -34,8 +33,12 @@ struct IKPipeline
 	
 	virtual bool SetShader(ShaderType shaderType, IKShaderPtr shader) = 0;
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
+
 	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler) = 0;
 	virtual bool SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler) = 0;
+
+	virtual bool SetSamplerDynamic(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler) = 0;
+	virtual bool SetSamplerDepthAttachmentDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler) = 0;
 
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size) = 0;
 	virtual bool DestroyConstantBlock() = 0;
