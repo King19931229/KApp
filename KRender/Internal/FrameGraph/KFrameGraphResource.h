@@ -9,9 +9,14 @@ enum class FrameGraphResourceType
 	RENDER_TARGET
 };
 
+class KFrameGraphPass;
+
 class KFrameGraphResource
 {
+	friend class KFrameGraphBuilder;
 protected:
+	std::vector<KFrameGraphPass*> m_Readers;
+	KFrameGraphPass* m_Writer;
 	FrameGraphResourceType m_Type;
 	unsigned int m_Ref;
 	bool m_Imported;
@@ -20,8 +25,11 @@ public:
 	KFrameGraphResource(FrameGraphResourceType type);
 	virtual ~KFrameGraphResource();
 
+	bool Clear();
+
 	virtual bool Alloc(KFrameGraphBuilder& builder) = 0;
 	virtual bool Release(KFrameGraphBuilder& builder) = 0;
+	virtual bool Destroy(KFrameGraphBuilder& builder) = 0;
 
 	inline FrameGraphResourceType GetType() const { return m_Type; }
 	inline bool IsImported() const { return m_Imported; }
@@ -34,21 +42,22 @@ typedef std::shared_ptr<KFrameGraphResource> KFrameGraphResourcePtr;
 class KFrameGraphTexture : public KFrameGraphResource
 {
 protected:
-	IKTexture* m_Texture;
+	IKTexturePtr m_Texture;
 public:
 	KFrameGraphTexture();
 	~KFrameGraphTexture();
 
-	bool Alloc(KFrameGraphBuilder& builder) override { return false; }
-	bool Release(KFrameGraphBuilder& builder) override { return false; }
+	bool Alloc(KFrameGraphBuilder& builder) override { return true; }
+	bool Release(KFrameGraphBuilder& builder) override { return true; }
+	bool Destroy(KFrameGraphBuilder& builder) override;
 
-	inline bool SetTexture(IKTexture* texture) { m_Texture = texture; }
-	inline const IKTexture* GetTexture() const { return m_Texture; }
+	inline void SetTexture(IKTexturePtr texture) { m_Texture = texture; }
+	inline const IKTexturePtr GetTexture() const { return m_Texture; }
 };
 
 enum class FrameGraphRenderTargetType
 {
-	TEXTURE_TARGET,
+	COLOR_TARGET,
 	DEPTH_STENCIL_TARGET,
 	EXTERNAL_TARGET,
 	UNKNOWN_TARGET
@@ -59,16 +68,15 @@ class KFrameGraphRenderTarget : public KFrameGraphResource
 	friend class KFrameGraphBuilder;
 protected:
 	IKRenderTargetPtr m_RenderTarget;
-	// Allocate Parameters
+	IKTexturePtr m_Texture;
 	FrameGraphRenderTargetType m_TargetType;
-	IKTexture* m_Texture;
+	// Allocate Parameters
 	size_t m_Width;
 	size_t m_Height;
 	ElementFormat m_Format;
 	unsigned short m_MsaaCount;
 	bool m_Depth;
 	bool m_Stencil;
-	bool m_External;
 
 	bool ResetParameters();
 	bool AllocResource(IKRenderDevice* device);
@@ -80,9 +88,10 @@ public:
 	bool Alloc(KFrameGraphBuilder& builder) override;
 	bool Release(KFrameGraphBuilder& builder) override;
 
-	bool InitFromTexture(IKTexture* texture, bool bDepth, bool bStencil, unsigned short uMsaaCount);
-	bool InitFromDepthStencil(size_t width, size_t height, bool bStencil);
-	bool InitFromImportTarget(IKRenderTargetPtr target);
+	bool CreateAsColor(KFrameGraphBuilder& builder, size_t width, size_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount);
+	bool CreateAsDepthStencil(KFrameGraphBuilder& builder, size_t width, size_t height, bool bStencil);
+	bool CreateFromImportTarget(KFrameGraphBuilder& builder, IKRenderTargetPtr target);
+	bool Destroy(KFrameGraphBuilder& builder) override;
 
 	const IKRenderTargetPtr GetTarget() const { return m_RenderTarget; }
 	const FrameGraphRenderTargetType GetTargetType() const { return m_TargetType; }

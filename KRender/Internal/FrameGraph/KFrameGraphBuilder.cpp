@@ -1,5 +1,6 @@
 #include "KFrameGraphBuilder.h"
 #include "KFrameGraphResource.h"
+#include "KFrameGraphPass.h"
 
 KFrameGraphBuilder::KFrameGraphBuilder()
 	: m_Device(nullptr)
@@ -25,21 +26,16 @@ bool KFrameGraphBuilder::UnInit()
 
 bool KFrameGraphBuilder::Alloc(KFrameGraphResource* resource)
 {
-	if (m_Device && resource)
+	if (resource)
 	{
-		if (resource->IsImported())
+		if (!resource->IsImported())
 		{
-			return false;
-		}
-
-		if (resource->IsVaild())
-		{
-			Release(resource);
-		}
-
-		if (resource->GetType() == FrameGraphResourceType::RENDER_TARGET)
-		{
-			KFrameGraphRenderTarget* target = static_cast<KFrameGraphRenderTarget*>(resource);
+			if (resource->IsVaild())
+			{
+				Release(resource);
+			}
+			resource->Alloc(*this);
+			return true;
 		}
 	}
 
@@ -48,10 +44,30 @@ bool KFrameGraphBuilder::Alloc(KFrameGraphResource* resource)
 
 bool KFrameGraphBuilder::Release(KFrameGraphResource* resource)
 {
-	if (m_Device && resource)
+	if (resource)
 	{
+		resource->Release(*this);
+		return false;
+	}	
+	return false;
+}
 
+bool KFrameGraphBuilder::Read(KFrameGraphPass* pass, KFrameGraphHandlePtr handle)
+{
+	if (pass && handle)
+	{
+		pass->ReadImpl(*this, handle);
+		return true;
 	}
-	
+	return false;
+}
+
+bool KFrameGraphBuilder::Write(KFrameGraphPass* pass, KFrameGraphHandlePtr handle)
+{
+	if (pass && handle)
+	{
+		pass->WriteImpl(*this, handle);
+		return true;
+	}
 	return false;
 }

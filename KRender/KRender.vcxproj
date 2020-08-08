@@ -154,7 +154,9 @@
     <ClCompile Include="Internal\ECS\KRenderComponentManager.cpp" />
     <ClCompile Include="Internal\ECS\KECSGlobal.cpp" />
     <ClCompile Include="Internal\ECS\System\KCullSystem.cpp" />
+    <ClCompile Include="Internal\FrameGraph\KFrameGraph.cpp" />
     <ClCompile Include="Internal\FrameGraph\KFrameGraphBuilder.cpp" />
+    <ClCompile Include="Internal\FrameGraph\KFrameGraphPass.cpp" />
     <ClCompile Include="Internal\FrameGraph\KFrameGraphResource.cpp" />
     <ClCompile Include="Internal\Gizmo\KCameraCube.cpp" />
     <ClCompile Include="Internal\Gizmo\KGizmo.cpp" />

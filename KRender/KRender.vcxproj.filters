@@ -647,5 +647,11 @@
     <ClCompile Include="Internal\FrameGraph\KFrameGraphResource.cpp">
       <Filter>Internal\FrameGraph</Filter>
     </ClCompile>
+    <ClCompile Include="Internal\FrameGraph\KFrameGraphPass.cpp">
+      <Filter>Internal\FrameGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\FrameGraph\KFrameGraph.cpp">
+      <Filter>Internal\FrameGraph</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
