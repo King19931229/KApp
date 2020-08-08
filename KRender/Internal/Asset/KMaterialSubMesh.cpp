@@ -502,7 +502,7 @@ bool KMaterialSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::functi
 		}
 	}
 
-	if (!m_MaterialPipelineCreated)
+	if (m_pMaterial && !m_MaterialPipelineCreated)
 	{
 		return false;
 	}

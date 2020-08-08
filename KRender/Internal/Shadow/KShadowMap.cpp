@@ -21,7 +21,7 @@ KShadowMap::~KShadowMap()
 {
 }
 
-bool KShadowMap::Init(IKRenderDevice* renderDevice,	size_t frameInFlight, size_t shadowMapSize)
+bool KShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t shadowMapSize)
 {
 	ASSERT_RESULT(UnInit());
 
@@ -33,15 +33,12 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice,	size_t frameInFlight, size_t
 	m_ShadowSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_ShadowSampler->Init(0, 0);
 
-	m_RenderTargets.resize(frameInFlight);
+	ASSERT_RESULT(renderDevice->CreateRenderTarget(m_RenderTarget));
+	ASSERT_RESULT(m_RenderTarget->InitFromDepthStencil(shadowMapSize, shadowMapSize, false));
+
 	m_CommandBuffers.resize(frameInFlight);
-
-	for(size_t i = 0; i < frameInFlight; ++i)
+	for (size_t i = 0; i < frameInFlight; ++i)
 	{
-		IKRenderTargetPtr& target = m_RenderTargets[i];
-		ASSERT_RESULT(renderDevice->CreateRenderTarget(target));
-		ASSERT_RESULT(target->InitFromDepthStencil(shadowMapSize, shadowMapSize, false));
-
 		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
 		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
 		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
@@ -52,11 +49,7 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice,	size_t frameInFlight, size_t
 
 bool KShadowMap::UnInit()
 {
-	for(IKRenderTargetPtr& target : m_RenderTargets)
-	{
-		SAFE_UNINIT(target);
-	}
-	m_RenderTargets.clear();
+	SAFE_UNINIT(m_RenderTarget);
 
 	for (IKCommandBufferPtr& buffer : m_CommandBuffers)
 	{
@@ -72,7 +65,7 @@ bool KShadowMap::UnInit()
 
 bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBuffer)
 {
-	if(frameIndex < m_RenderTargets.size())
+	if(frameIndex < m_CommandBuffers.size())
 	{
 		// 更新CBuffer
 		{
@@ -115,7 +108,7 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 			std::vector<KRenderComponent*> cullRes;
 			KRenderGlobal::Scene.GetRenderComponent(m_Camera, cullRes);
 
-			IKRenderTargetPtr shadowMapTarget = m_RenderTargets[frameIndex];
+			IKRenderTargetPtr shadowMapTarget = m_RenderTarget;
 			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
 			KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
@@ -173,11 +166,11 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 	return false;
 }
 
-IKRenderTargetPtr KShadowMap::GetShadowMapTarget(size_t frameIndex)
+IKRenderTargetPtr KShadowMap::GetShadowMapTarget()
 {
-	if(frameIndex < m_RenderTargets.size())
+	if(m_RenderTarget)
 	{
-		return m_RenderTargets[frameIndex];
+		return m_RenderTarget;
 	}
 	return nullptr;
 }

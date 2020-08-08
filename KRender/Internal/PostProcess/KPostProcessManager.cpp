@@ -482,7 +482,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 			}
 
 			IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer(frameIndex);
-			IKRenderTargetPtr renderTarget = pass->GetRenderTarget(frameIndex);
+			IKRenderTargetPtr renderTarget = pass->GetRenderTarget();
 
 			primaryCommandBuffer->BeginRenderPass(renderTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
 			{
@@ -491,7 +491,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 
 				KRenderCommand command;
 
-				if (PopulateRenderCommand(command, pass->GetPipeline(frameIndex), renderTarget))
+				if (PopulateRenderCommand(command, pass->GetPipeline(), renderTarget))
 				{
 					commandBuffer->Render(command);
 				}
@@ -510,7 +510,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 		primaryCommandBuffer->SetViewport(swapChainTarget);
 
 		KRenderCommand command;
-		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(frameIndex), swapChainTarget))
+		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(), swapChainTarget))
 		{
 			primaryCommandBuffer->Render(command);
 		}

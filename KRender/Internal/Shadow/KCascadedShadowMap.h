@@ -35,12 +35,12 @@ protected:
 		glm::mat4 viewProjMatrix;
 		glm::vec4 viewInfo;
 
-		std::vector<IKRenderTargetPtr> renderTargets;
+		IKRenderTargetPtr renderTarget;
 		std::vector<IKCommandBufferPtr> commandBuffers;
 
 		// debug
 		glm::mat4 debugClip;
-		std::vector<IKPipelinePtr> debugPipelines;
+		IKPipelinePtr debugPipeline;
 
 		// scene clipping
 		KAABBBox frustumBox;
@@ -73,7 +73,7 @@ protected:
 	bool m_MinimizeShadowDraw;
 
 	void UpdateCascades(const KCamera* mainCamera);
-	bool GetDebugRenderCommand(size_t frameIndex, KRenderCommandList& commands);
+	bool GetDebugRenderCommand(KRenderCommandList& commands);
 	void PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex, std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
 public:
 	KCascadedShadowMap();
@@ -85,7 +85,7 @@ public:
 	bool UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer, KRenderStageStatistics& statistics);
 	bool DebugRender(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers);
 
-	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex, size_t frameIndex);
+	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex);
 
 	inline size_t GetNumCascaded() const { return m_Cascadeds.size(); }
 	inline IKSamplerPtr GetSampler() { return m_ShadowSampler; }

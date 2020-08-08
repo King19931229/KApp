@@ -41,10 +41,10 @@ protected:
 	bool m_bInit;
 
 	// 后处理相关资源
-	std::vector<IKTexturePtr> m_Textures;
-	std::vector<IKRenderTargetPtr> m_RenderTargets;
-	std::vector<IKPipelinePtr> m_Pipelines;
-	std::vector<IKPipelinePtr> m_ScreenDrawPipelines;
+	IKTexturePtr m_Texture;
+	IKRenderTargetPtr m_RenderTarget;
+	IKPipelinePtr m_Pipeline;
+	IKPipelinePtr m_ScreenDrawPipeline;
 	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 
 	// 一个输出槽可能连接到多个节点输出
@@ -94,10 +94,10 @@ public:
 	bool GetInputConnection(IKPostProcessConnection*&conn, int16_t slot) override;
 
 	inline void SetAsEndPoint() { m_Stage = POST_PROCESS_STAGE_END_POINT; }
-	inline IKTexturePtr GetTexture(size_t frameIndex) { return m_Textures.size() > frameIndex ? m_Textures[frameIndex] : nullptr; }
-	inline IKRenderTargetPtr GetRenderTarget(size_t frameIndex) { return m_RenderTargets.size() > frameIndex ? m_RenderTargets[frameIndex] : nullptr; } 
-	inline IKPipelinePtr GetPipeline(size_t frameIndex) { return m_Pipelines.size() > frameIndex ? m_Pipelines[frameIndex] : nullptr; }
-	inline IKPipelinePtr GetScreenDrawPipeline(size_t frameIndex) { return m_ScreenDrawPipelines.size() > frameIndex ? m_ScreenDrawPipelines[frameIndex] : nullptr; }
+	inline IKTexturePtr GetTexture() { return m_Texture; }
+	inline IKRenderTargetPtr GetRenderTarget() { return m_RenderTarget; }
+	inline IKPipelinePtr GetPipeline() { return m_Pipeline; }
+	inline IKPipelinePtr GetScreenDrawPipeline() { return m_ScreenDrawPipeline; }
 	inline IKCommandBufferPtr GetCommandBuffer(size_t frameIndex) { return m_CommandBuffers.size() > frameIndex ? m_CommandBuffers[frameIndex] : nullptr; }
 	inline bool IsInit() { return m_bInit; }
 };

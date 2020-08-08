@@ -322,12 +322,11 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 		m_Cascadeds.resize(numCascaded);
 		for (Cascade& cascaded : m_Cascadeds)
 		{
-			cascaded.renderTargets.resize(frameInFlight);
 			cascaded.shadowSize = cascadedShadowSize;
-			for (IKRenderTargetPtr& target : cascaded.renderTargets)
+
 			{
-				ASSERT_RESULT(renderDevice->CreateRenderTarget(target));
-				ASSERT_RESULT(target->InitFromDepthStencil(cascadedShadowSize, cascadedShadowSize, false));
+				ASSERT_RESULT(renderDevice->CreateRenderTarget(cascaded.renderTarget));
+				ASSERT_RESULT(cascaded.renderTarget->InitFromDepthStencil(cascadedShadowSize, cascadedShadowSize, false));
 			}
 
 			cascaded.commandBuffers.resize(numCascaded);
@@ -338,12 +337,11 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 				ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
 			}
 
-			cascaded.debugPipelines.resize(frameInFlight);
-			for (size_t i = 0; i < frameInFlight; ++i)
-			{
-				KRenderGlobal::PipelineManager.CreatePipeline(cascaded.debugPipelines[i]);
 
-				IKPipelinePtr pipeline = cascaded.debugPipelines[i];
+			{
+				KRenderGlobal::PipelineManager.CreatePipeline(cascaded.debugPipeline);
+
+				IKPipelinePtr pipeline = cascaded.debugPipeline;
 				pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
 				pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
@@ -354,7 +352,7 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 				pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 				pipeline->SetShader(ST_VERTEX, m_DebugVertexShader);
 				pipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader);
-				pipeline->SetSamplerDepthAttachment(SHADER_BINDING_TEXTURE0, cascaded.renderTargets[i], m_ShadowSampler);
+				pipeline->SetSamplerDepthAttachment(SHADER_BINDING_TEXTURE0, cascaded.renderTarget, m_ShadowSampler);
 
 				ASSERT_RESULT(pipeline->Init());
 			}
@@ -383,11 +381,7 @@ bool KCascadedShadowMap::UnInit()
 {
 	for (Cascade& cascaded : m_Cascadeds)
 	{
-		for (IKRenderTargetPtr& target : cascaded.renderTargets)
-		{
-			SAFE_UNINIT(target);
-		}
-		cascaded.renderTargets.clear();
+		SAFE_UNINIT(cascaded.renderTarget);
 
 		for (IKCommandBufferPtr& buffer : cascaded.commandBuffers)
 		{
@@ -395,12 +389,7 @@ bool KCascadedShadowMap::UnInit()
 		}
 		cascaded.commandBuffers.clear();
 
-		for (IKPipelinePtr pipeline : cascaded.debugPipelines)
-		{
-			KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-			pipeline = nullptr;
-		}
-		cascaded.debugPipelines.clear();
+		KRenderGlobal::PipelineManager.DestroyPipeline(cascaded.debugPipeline);
 	}
 	m_Cascadeds.clear();
 
@@ -427,9 +416,8 @@ bool KCascadedShadowMap::UnInit()
 void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex, std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
 	ASSERT_RESULT(cascadedIndex < m_Cascadeds.size());
-	ASSERT_RESULT(frameIndex < m_Cascadeds[cascadedIndex].renderTargets.size());
 
-	IKRenderTargetPtr shadowTarget = m_Cascadeds[cascadedIndex].renderTargets[frameIndex];
+	IKRenderTargetPtr shadowTarget = m_Cascadeds[cascadedIndex].renderTarget;
 
 	struct InstanceGroup
 	{
@@ -594,7 +582,6 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 		for (size_t i = 0; i < numCascaded; i++)
 		{
 			Cascade& cascaded = m_Cascadeds[i];
-			assert(frameIndex < cascaded.renderTargets.size());
 
 			std::vector<KRenderComponent*> litCullRes;
 			KRenderGlobal::Scene.GetRenderComponent(cascaded.litBox, litCullRes);
@@ -674,7 +661,7 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 
 			IKCommandBufferPtr commandBuffer = cascaded.commandBuffers[frameIndex];
 
-			IKRenderTargetPtr shadowMapTarget = cascaded.renderTargets[frameIndex];
+			IKRenderTargetPtr shadowMapTarget = cascaded.renderTarget;
 
 			KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 			primaryBuffer->BeginRenderPass(shadowMapTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
@@ -709,16 +696,16 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 	return true;
 }
 
-bool KCascadedShadowMap::GetDebugRenderCommand(size_t frameIndex, KRenderCommandList& commands)
+bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands)
 {
 	KRenderCommand command;
 	for (Cascade& cascaded : m_Cascadeds)
 	{
-		if (frameIndex < cascaded.debugPipelines.size())
+		if(cascaded.debugPipeline)
 		{
 			command.vertexData = &m_DebugVertexData;
 			command.indexData = &m_DebugIndexData;
-			command.pipeline = cascaded.debugPipelines[frameIndex];
+			command.pipeline = cascaded.debugPipeline;
 			command.indexDraw = true;
 
 			command.objectUsage.binding = SHADER_BINDING_OBJECT;
@@ -734,7 +721,7 @@ bool KCascadedShadowMap::GetDebugRenderCommand(size_t frameIndex, KRenderCommand
 bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers)
 {
 	KRenderCommandList commands;
-	if (GetDebugRenderCommand(frameIndex, commands))
+	if (GetDebugRenderCommand(commands))
 	{
 		IKCommandBufferPtr commandBuffer = m_DebugCommandBuffers[frameIndex];
 		commandBuffer->BeginSecondary(target);
@@ -751,14 +738,14 @@ bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderTargetPtr target
 	return false;
 }
 
-IKRenderTargetPtr KCascadedShadowMap::GetShadowMapTarget(size_t cascadedIndex, size_t frameIndex)
+IKRenderTargetPtr KCascadedShadowMap::GetShadowMapTarget(size_t cascadedIndex)
 {
 	if (cascadedIndex < m_Cascadeds.size())
 	{
 		Cascade& cascaded = m_Cascadeds[cascadedIndex];
-		if (frameIndex < cascaded.renderTargets.size())
+		if(cascaded.renderTarget)
 		{
-			return cascaded.renderTargets[frameIndex];
+			return cascaded.renderTarget;
 		}
 	}
 	return nullptr;

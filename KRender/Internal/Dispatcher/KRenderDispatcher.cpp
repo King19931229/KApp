@@ -127,7 +127,7 @@ void KRenderDispatcher::ThreadRenderObject(uint32_t frameIndex, uint32_t threadI
 	// https://devblogs.nvidia.com/vulkan-dos-donts/ ResetCommandPool释放内存
 	threadData.commandPool->Reset();
 
-	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
+	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 
 	RenderSecondary(threadData.preZcommandBuffer, offscreenTarget, threadData.preZcommands);
 	RenderSecondary(threadData.defaultCommandBuffer, offscreenTarget, threadData.defaultCommands);
@@ -542,7 +542,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, co
 
 	m_CommandBuffers[frameIndex].commandPool->Reset();
 
-	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
+	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 
 	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
 	IKCommandBufferPtr preZcommandBuffer = m_CommandBuffers[frameIndex].preZcommandBuffer;
@@ -671,7 +671,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 
 	m_CommandBuffers[frameIndex].commandPool->Reset();
 
-	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget(frameIndex);
+	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 
 	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
 	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffers[frameIndex].clearCommandBuffer;

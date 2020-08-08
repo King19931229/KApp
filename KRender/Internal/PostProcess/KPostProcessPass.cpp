@@ -43,7 +43,9 @@ KPostProcessPass::~KPostProcessPass()
 {
 	assert(m_VSShader == nullptr);
 	assert(m_FSShader == nullptr);
-	assert(m_Textures.empty());
+	assert(m_Texture == nullptr);
+	assert(m_RenderTarget == nullptr);
+
 	for (auto& conn : m_InputConnection)
 	{
 		assert(!conn);
@@ -52,7 +54,7 @@ KPostProcessPass::~KPostProcessPass()
 	{
 		assert(connSet.empty());
 	}
-	assert(m_RenderTargets.empty());
+	
 	assert(m_CommandBuffers.empty());
 }
 
@@ -129,12 +131,10 @@ bool KPostProcessPass::Init()
 			m_CommandBuffers[i]->Init(m_Mgr->m_CommandPool, CBL_SECONDARY);
 		}
 
-		m_Pipelines.resize(m_FrameInFlight);
-		for(size_t i = 0; i < m_Pipelines.size(); ++i)
 		{
-			KRenderGlobal::PipelineManager.CreatePipeline(m_Pipelines[i]);
+			KRenderGlobal::PipelineManager.CreatePipeline(m_Pipeline);
 
-			IKPipelinePtr pipeline = m_Pipelines[i];
+			IKPipelinePtr pipeline = m_Pipeline;
 
 			VertexFormat formats[] = { VF_SCREENQUAD_POS };
 
@@ -178,7 +178,7 @@ bool KPostProcessPass::Init()
 					else if (outputType == PPNT_PASS)
 					{
 						KPostProcessPass* outPass = (KPostProcessPass*)outputNode;
-						pipeline->SetSampler((unsigned int)location, outPass->GetTexture(i), sampler);
+						pipeline->SetSampler((unsigned int)location, outPass->GetTexture(), sampler);
 					}
 					else
 					{
@@ -194,29 +194,19 @@ bool KPostProcessPass::Init()
 	size_t width = static_cast<size_t>(m_Mgr->m_Width * m_Scale);
 	size_t height = static_cast<size_t>(m_Mgr->m_Height * m_Scale);
 
-	m_Textures.resize(m_FrameInFlight);
-	for(size_t i = 0; i < m_Textures.size(); ++i)
+	device->CreateTexture(m_Texture);
+	m_Texture->InitMemeoryAsRT(width, height, m_Format);
+	m_Texture->InitDevice(false);
+
+	device->CreateRenderTarget(m_RenderTarget);
+	m_RenderTarget->InitFromTexture(m_Texture.get(), true, true, m_MsaaCount);
+
 	{
-		device->CreateTexture(m_Textures[i]);
-		m_Textures[i]->InitMemeoryAsRT(width, height, m_Format);
-		m_Textures[i]->InitDevice(false);
-	}
+		KRenderGlobal::PipelineManager.CreatePipeline(m_ScreenDrawPipeline);
 
-	m_RenderTargets.resize(m_FrameInFlight);
-	for(size_t i = 0; i < m_RenderTargets.size(); ++i)
-	{
-		device->CreateRenderTarget(m_RenderTargets[i]);
-		m_RenderTargets[i]->InitFromTexture(m_Textures[i].get(), true, true, m_MsaaCount);
-	}
+		IKPipelinePtr pipeline = m_ScreenDrawPipeline;
 
-	m_ScreenDrawPipelines.resize(m_FrameInFlight);
-	for(size_t i = 0; i < m_ScreenDrawPipelines.size(); ++i)
-	{
-		KRenderGlobal::PipelineManager.CreatePipeline(m_ScreenDrawPipelines[i]);
-
-		IKPipelinePtr pipeline = m_ScreenDrawPipelines[i];
-
-		VertexFormat formats[] = {VF_SCREENQUAD_POS};
+		VertexFormat formats[] = { VF_SCREENQUAD_POS };
 
 		pipeline->SetVertexBinding(formats, 1);
 
@@ -231,7 +221,7 @@ bool KPostProcessPass::Init()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_Textures[i], m_Mgr->m_Sampler);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_Texture, m_Mgr->m_Sampler);
 
 		pipeline->Init();
 	}
@@ -265,33 +255,10 @@ bool KPostProcessPass::UnInit()
 		connSet.clear();
 	}
 
-	for(IKTexturePtr& texture : m_Textures)
-	{
-		texture->UnInit();
-		texture = nullptr;
-	}
-	m_Textures.clear();
-
-	for(IKRenderTargetPtr& target : m_RenderTargets)
-	{
-		target->UnInit();
-		target = nullptr;
-	}
-	m_RenderTargets.clear();
-
-	for(IKPipelinePtr& pipeline : m_Pipelines)
-	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-		pipeline = nullptr;
-	}
-	m_Pipelines.clear();
-
-	for(IKPipelinePtr& pipeline : m_ScreenDrawPipelines)
-	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-		pipeline = nullptr;
-	}
-	m_ScreenDrawPipelines.clear();
+	SAFE_UNINIT(m_Texture);
+	SAFE_UNINIT(m_RenderTarget);
+	SAFE_UNINIT(m_Pipeline);
+	SAFE_UNINIT(m_ScreenDrawPipeline);
 
 	for(IKCommandBufferPtr& buffer : m_CommandBuffers)
 	{
