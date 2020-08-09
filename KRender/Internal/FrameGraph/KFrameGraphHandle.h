@@ -1,6 +1,7 @@
 #pragma once
 #include <mutex>
 #include <queue>
+#include <unordered_map>
 
 typedef unsigned int FrameGraphHandleType;
 
@@ -60,3 +61,8 @@ public:
 };
 
 typedef std::shared_ptr<KFrameGraphHandle> KFrameGraphHandlePtr;
+
+class KFrameGraphResource;
+typedef std::shared_ptr<KFrameGraphResource> KFrameGraphResourcePtr;
+
+typedef std::unordered_map<KFrameGraphHandlePtr, KFrameGraphResourcePtr> ResourceMap;

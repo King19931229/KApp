@@ -2,11 +2,12 @@
 #include "Interface/IKSwapChain.h"
 
 KFrameGraphResource::KFrameGraphResource(FrameGraphResourceType type)
-	: m_Writer(nullptr),
-	m_Type(type),
+	: m_Type(type),
+	m_Writer(nullptr),
 	m_Ref(0),
 	m_Imported(true),
-	m_Vaild(false)
+	m_Vaild(false),
+	m_Executed(false)
 {
 }
 
@@ -15,11 +16,32 @@ KFrameGraphResource::~KFrameGraphResource()
 	ASSERT_RESULT(m_Imported || !m_Vaild);
 }
 
+bool KFrameGraphResource::AddReaderImpl(KFrameGraphPass* pass)
+{
+	if (pass)
+	{
+		auto it = std::find(m_Readers.begin(), m_Readers.end(), pass);
+		if (it == m_Readers.end())
+		{
+			m_Readers.push_back(pass);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool KFrameGraphResource::SetWriterImpl(KFrameGraphPass* pass)
+{
+	m_Writer = pass;
+	return true;
+}
+
 bool KFrameGraphResource::Clear()
 {
-	m_Readers.clear();
 	m_Writer = nullptr;
+	m_Readers.clear();
 	m_Ref = 0;
+	m_Executed = false;
 	return true;
 }
 
@@ -35,7 +57,7 @@ KFrameGraphTexture::~KFrameGraphTexture()
 	ASSERT_RESULT(!m_Texture);
 }
 
-bool KFrameGraphTexture::Destroy(KFrameGraphBuilder& builder)
+bool KFrameGraphTexture::Destroy(IKRenderDevice* device)
 {
 	m_Texture = nullptr;
 	return true;
@@ -73,9 +95,9 @@ bool KFrameGraphRenderTarget::ResetParameters()
 	return true;
 }
 
-bool KFrameGraphRenderTarget::CreateAsColor(KFrameGraphBuilder& builder, size_t width, size_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
+bool KFrameGraphRenderTarget::CreateAsColor(IKRenderDevice* device, size_t width, size_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
 {
-	Destroy(builder);
+	Destroy(device);
 	ResetParameters();
 	m_Imported = false;
 	m_Vaild = false;
@@ -88,9 +110,9 @@ bool KFrameGraphRenderTarget::CreateAsColor(KFrameGraphBuilder& builder, size_t 
 	return true;
 }
 
-bool KFrameGraphRenderTarget::CreateAsDepthStencil(KFrameGraphBuilder& builder, size_t width, size_t height, bool bStencil)
+bool KFrameGraphRenderTarget::CreateAsDepthStencil(IKRenderDevice* device, size_t width, size_t height, bool bStencil)
 {
-	Destroy(builder);
+	Destroy(device);
 	ResetParameters();
 	m_Imported = false;
 	m_Vaild = false;
@@ -103,9 +125,9 @@ bool KFrameGraphRenderTarget::CreateAsDepthStencil(KFrameGraphBuilder& builder, 
 	return true;
 }
 
-bool KFrameGraphRenderTarget::CreateFromImportTarget(KFrameGraphBuilder& builder, IKRenderTargetPtr target)
+bool KFrameGraphRenderTarget::CreateFromImportTarget(IKRenderDevice* device, IKRenderTargetPtr target)
 {
-	Destroy(builder);
+	Destroy(device);
 	ResetParameters();
 	m_Imported = true;
 	m_Vaild = true;
@@ -116,7 +138,7 @@ bool KFrameGraphRenderTarget::CreateFromImportTarget(KFrameGraphBuilder& builder
 	return true;
 }
 
-bool KFrameGraphRenderTarget::Destroy(KFrameGraphBuilder& builder)
+bool KFrameGraphRenderTarget::Destroy(IKRenderDevice* device)
 {
 	if (!m_Imported)
 	{
@@ -130,20 +152,26 @@ bool KFrameGraphRenderTarget::Destroy(KFrameGraphBuilder& builder)
 	return true;
 }
 
-bool KFrameGraphRenderTarget::Alloc(KFrameGraphBuilder& builder)
+bool KFrameGraphRenderTarget::Alloc(IKRenderDevice* device)
 {
 	if (!m_Imported)
 	{
-		builder.Alloc(this);
+		if (m_Vaild)
+		{
+			Release(device);
+		}
+		AllocResource(device);
+		ASSERT_RESULT(m_Vaild);
 	}
 	return true;
 }
 
-bool KFrameGraphRenderTarget::Release(KFrameGraphBuilder& builder)
+bool KFrameGraphRenderTarget::Release(IKRenderDevice* device)
 {
 	if (!m_Imported)
 	{
-		builder.Release(this);
+		ReleaseResource(device);
+		ASSERT_RESULT(!m_Vaild);
 	}
 	return true;
 }

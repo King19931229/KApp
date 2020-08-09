@@ -4,21 +4,17 @@
 
 class KFrameGraphResource;
 class KFrameGraphPass;
+class KFrameGraph;
 
 class KFrameGraphBuilder
 {
 protected:
-	IKRenderDevice* m_Device;
+	KFrameGraphPass* m_Pass;
+	KFrameGraph* m_MasterGraph;
 public:
-	KFrameGraphBuilder();
+	KFrameGraphBuilder(KFrameGraphPass* pass, KFrameGraph* master);
 	~KFrameGraphBuilder();
 
-	bool Init(IKRenderDevice* device);
-	bool UnInit();
-
-	bool Alloc(KFrameGraphResource* resource);
-	bool Release(KFrameGraphResource* resource);
-
-	bool Read(KFrameGraphPass* pass, KFrameGraphHandlePtr handle);
-	bool Write(KFrameGraphPass* pass, KFrameGraphHandlePtr handle);
+	bool Read(KFrameGraphHandlePtr handle);
+	bool Write(KFrameGraphHandlePtr handle);
 };

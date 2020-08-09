@@ -1,15 +1,21 @@
 #pragma once
 #include "KFrameGraphHandle.h"
 #include "KFrameGraphResource.h"
+#include "KFrameGraphPass.h"
 #include "KFrameGraphBuilder.h"
-#include <unordered_map>
+
+#include <unordered_set>
 
 class KFrameGraph
 {
+	friend class KFrameGraphBuilder;
 protected:
 	KFrameGraphHandlePool m_HandlePool;
-	KFrameGraphBuilder m_Builder;
-	std::unordered_map<KFrameGraphHandlePtr, KFrameGraphResourcePtr> m_Resources;
+	ResourceMap m_Resources;
+	IKRenderDevice* m_Device;
+	std::unordered_set<KFrameGraphPass*> m_Passes;
+
+	KFrameGraphResourcePtr GetResource(KFrameGraphHandlePtr handle);
 public:
 	KFrameGraph();
 	~KFrameGraph();
@@ -23,6 +29,9 @@ public:
 	bool RecreateColorRenderTarget(KFrameGraphHandlePtr handle, size_t width, size_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount);
 	bool RecreateDepthStecnilRenderTarget(KFrameGraphHandlePtr handle, size_t width, size_t height, bool bStencil);
 	bool Destroy(KFrameGraphHandlePtr handle);
+
+	bool RegisterPass(KFrameGraphPass* pass);
+	bool UnRegisterPass(KFrameGraphPass* pass);
 
 	bool Compile();
 	bool Execute();

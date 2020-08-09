@@ -1,73 +1,45 @@
 #include "KFrameGraphBuilder.h"
 #include "KFrameGraphResource.h"
 #include "KFrameGraphPass.h"
+#include "KFrameGraph.h"
 
-KFrameGraphBuilder::KFrameGraphBuilder()
-	: m_Device(nullptr)
+KFrameGraphBuilder::KFrameGraphBuilder(KFrameGraphPass* pass, KFrameGraph* master)
+	: m_Pass(pass),
+	m_MasterGraph(master)
 {
 }
 
 KFrameGraphBuilder::~KFrameGraphBuilder()
 {
-	ASSERT_RESULT(!m_Device);
 }
 
-bool KFrameGraphBuilder::Init(IKRenderDevice* device)
+bool KFrameGraphBuilder::Read(KFrameGraphHandlePtr handle)
 {
-	m_Device = device;
-	return true;
-}
-
-bool KFrameGraphBuilder::UnInit()
-{
-	m_Device = nullptr;
-	return true;
-}
-
-bool KFrameGraphBuilder::Alloc(KFrameGraphResource* resource)
-{
-	if (resource)
+	if (m_Pass && m_MasterGraph && handle)
 	{
-		if (!resource->IsImported())
+		KFrameGraphResourcePtr resource = m_MasterGraph->GetResource(handle);
+		if (resource)
 		{
-			if (resource->IsVaild())
-			{
-				Release(resource);
-			}
-			resource->Alloc(*this);
+			m_Pass->ReadImpl(*this, handle);
+			resource->AddReaderImpl(m_Pass);
 			return true;
 		}
 	}
-
 	return false;
 }
 
-bool KFrameGraphBuilder::Release(KFrameGraphResource* resource)
+bool KFrameGraphBuilder::Write(KFrameGraphHandlePtr handle)
 {
-	if (resource)
+	if (m_Pass && m_MasterGraph && handle)
 	{
-		resource->Release(*this);
-		return false;
-	}	
-	return false;
-}
-
-bool KFrameGraphBuilder::Read(KFrameGraphPass* pass, KFrameGraphHandlePtr handle)
-{
-	if (pass && handle)
-	{
-		pass->ReadImpl(*this, handle);
-		return true;
-	}
-	return false;
-}
-
-bool KFrameGraphBuilder::Write(KFrameGraphPass* pass, KFrameGraphHandlePtr handle)
-{
-	if (pass && handle)
-	{
-		pass->WriteImpl(*this, handle);
-		return true;
+		KFrameGraphResourcePtr resource = m_MasterGraph->GetResource(handle);
+		if (resource)
+		{
+			// TODO 暂时不支持多次写入一个Resource
+			m_Pass->WriteImpl(*this, handle);
+			resource->SetWriterImpl(m_Pass);
+			return true;
+		}
 	}
 	return false;
 }

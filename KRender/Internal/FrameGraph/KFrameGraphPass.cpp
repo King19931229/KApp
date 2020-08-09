@@ -1,7 +1,10 @@
 #include "KFrameGraphPass.h"
 
-KFrameGraphPass::KFrameGraphPass()
-	: m_Ref(0)
+KFrameGraphPass::KFrameGraphPass(const std::string& name)
+	: m_Name(name),
+	m_Ref(0),
+	m_ExecutedDenpencies(0),
+	m_Executed(false)
 {
 }
 
@@ -43,5 +46,7 @@ bool KFrameGraphPass::Clear()
 	m_ReadResources.clear();
 	m_WriteResources.clear();
 	m_Ref = 0;
+	m_ExecutedDenpencies = 0;
+	m_Executed = false;
 	return true;
 }
