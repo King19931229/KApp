@@ -1,5 +1,6 @@
 #pragma once
 #include "KRender/Interface/IKRenderConfig.h"
+#include "KRender/Interface/IKFrameBuffer.h"
 #include "KRender/Interface/IKResource.h"
 #include "KBase/Interface/IKCodec.h"
 

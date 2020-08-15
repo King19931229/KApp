@@ -176,7 +176,7 @@ bool KFrameGraph::Compile()
 	// 计算引用计数
 	for (KFrameGraphPass* pass : m_Passes)
 	{
-		pass->m_Ref = pass->m_WriteResources.size() + (size_t)pass->HasSideEffect();
+		pass->m_Ref = (unsigned int)pass->m_WriteResources.size() + (unsigned int)pass->HasSideEffect();
 
 		for (KFrameGraphHandlePtr handle : pass->m_ReadResources)
 		{

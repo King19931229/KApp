@@ -2,6 +2,7 @@
 #include "Interface/IKRenderTarget.h"
 #include "KVulkanConfig.h"
 #include "KVulkanHeapAllocator.h"
+#include "KVulkanFrameBuffer.h"
 
 class KVulkanRenderTarget : public IKRenderTarget
 {
@@ -24,8 +25,6 @@ protected:
 	VkImage			m_MsaaImage;
 	VkImageView		m_MsaaImageView;
 	KVulkanHeapAllocator::AllocInfo m_MsaaAlloc;
-
-	static VkFormat FindDepthFormat(bool bStencil);
 
 	bool CreateImage(VkImageView imageView, VkFormat imageForamt,bool bDepth, bool bStencil, unsigned short uMsaaCount);
 	bool CreateFramebuffer(bool fromSwapChain);

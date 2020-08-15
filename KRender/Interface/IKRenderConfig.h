@@ -412,3 +412,9 @@ typedef std::shared_ptr<IKCommandPool> IKCommandPoolPtr;
 
 struct IKCommandBuffer;
 typedef std::shared_ptr<IKCommandBuffer> IKCommandBufferPtr;
+
+struct IKFrameBuffer;
+typedef std::shared_ptr<IKFrameBuffer> IKFrameBufferPtr;
+
+struct IKRenderPass;
+typedef std::shared_ptr<IKRenderPass> IKRenderPassPtr;

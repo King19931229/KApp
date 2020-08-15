@@ -43,23 +43,6 @@ KVulkanRenderTarget::~KVulkanRenderTarget()
 	ASSERT_RESULT(m_DepthImageView == VK_NULL_HANDLE);	
 }
 
-VkFormat KVulkanRenderTarget::FindDepthFormat(bool bStencil)
-{
-	VkFormat format = VK_FORMAT_MAX_ENUM;
-	std::vector<VkFormat> candidates;
-
-	if(!bStencil)
-	{
-		candidates.push_back(VK_FORMAT_D32_SFLOAT);
-	}
-	candidates.push_back(VK_FORMAT_D32_SFLOAT_S8_UINT);
-	candidates.push_back(VK_FORMAT_D24_UNORM_S8_UINT);
-
-	ASSERT_RESULT(KVulkanHelper::FindSupportedFormat(candidates, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, format));
-
-	return format;
-}
-
 bool KVulkanRenderTarget::CreateImage(VkImageView imageView,
 									  VkFormat imageForamt,
 									  bool bDepth,
@@ -105,7 +88,7 @@ bool KVulkanRenderTarget::CreateImage(VkImageView imageView,
 
 	if(bDepth)
 	{
-		m_DepthFormat = FindDepthFormat(bStencil);
+		KVulkanHelper::FindBestDepthFormat(bStencil, m_DepthFormat);
 
 		KVulkanInitializer::CreateVkImage(m_Extend.width,
 			m_Extend.height,
@@ -334,7 +317,7 @@ bool KVulkanRenderTarget::CreateDepthImage(bool bStencil)
 	m_MsaaFlag = VK_SAMPLE_COUNT_1_BIT;
 	m_MsaaImage = VK_NULL_HANDLE;
 
-	m_DepthFormat = FindDepthFormat(bStencil);
+	KVulkanHelper::FindBestDepthFormat(bStencil, m_DepthFormat);
 
 	KVulkanInitializer::CreateVkImage(m_Extend.width,
 		m_Extend.height,

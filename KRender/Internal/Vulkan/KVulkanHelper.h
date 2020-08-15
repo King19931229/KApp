@@ -68,6 +68,7 @@ namespace KVulkanHelper
 
 	bool FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features, VkFormat& vkFormat);
 	bool HasStencilComponent(VkFormat format);
+	bool FindBestDepthFormat(bool bStencil, VkFormat& format);
 
 	bool QueryMSAASupport(MSAASupportTarget target, uint32_t msaaCount, VkSampleCountFlagBits& flag);
 }

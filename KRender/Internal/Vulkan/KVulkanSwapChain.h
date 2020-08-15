@@ -13,6 +13,12 @@ class KVulkanSwapChain : public IKSwapChain
 		std::vector<VkSurfaceFormatKHR> formats;
 		std::vector<VkPresentModeKHR> presentModes;
 	};
+
+	struct FrameBuffer
+	{
+		IKFrameBufferPtr colorFrameBuffer;
+		IKFrameBufferPtr depthStencilFrameBuffer;
+	};
 protected:
 	IKRenderWindow* m_pWindow;
 
@@ -36,6 +42,7 @@ protected:
 	SwapChainSupportDetails m_SwapChainSupportDetails;
 
 	std::vector<IKRenderTargetPtr> m_SwapChainRenderTargets;
+	std::vector<FrameBuffer> m_FrameBuffers;
 
 	bool QuerySwapChainSupport();
 	bool ChooseSwapSurfaceFormat();
@@ -46,11 +53,11 @@ protected:
 	bool CreateSurface();
 	bool CreateSwapChain();
 	bool CreateSyncObjects();
-	bool CreateRenderTargets();
+	bool CreateFrameBuffers();
 
 	bool CleanupSwapChain();
 	bool DestroySyncObjects();
-	bool DestroyRenderTargets();
+	bool DestroyFrameBuffers();
 public:
 	KVulkanSwapChain();
 	~KVulkanSwapChain();
@@ -64,6 +71,9 @@ public:
 	virtual uint32_t GetHeight() { return m_Extend.height; }
 
 	virtual IKRenderTargetPtr GetRenderTarget(uint32_t frameIndex);
+
+	virtual IKFrameBufferPtr GetColorFrameBuffer(uint32_t frameIndex);
+	virtual IKFrameBufferPtr GetDepthStencilFrameBuffer(uint32_t frameIndex);
 
 	VkResult WaitForInFightFrame(uint32_t& frameIndex);
 	VkResult AcquireNextImage(uint32_t& imageIndex);

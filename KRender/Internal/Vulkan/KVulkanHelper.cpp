@@ -834,6 +834,24 @@ namespace KVulkanHelper
 		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 	}
 
+	bool FindBestDepthFormat(bool bStencil, VkFormat& format)
+	{
+		format = VK_FORMAT_MAX_ENUM;
+		std::vector<VkFormat> candidates;
+
+		if (!bStencil)
+		{
+			candidates.push_back(VK_FORMAT_D32_SFLOAT);
+		}
+		candidates.push_back(VK_FORMAT_D32_SFLOAT_S8_UINT);
+		candidates.push_back(VK_FORMAT_D24_UNORM_S8_UINT);
+		candidates.push_back(VK_FORMAT_D16_UNORM_S8_UINT);
+
+		ASSERT_RESULT(KVulkanHelper::FindSupportedFormat(candidates, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, format));
+
+		return true;
+	}
+
 	bool QueryMSAASupport(MSAASupportTarget target, uint32_t msaaCount, VkSampleCountFlagBits& flag)
 	{
 		using namespace KVulkanGlobal;

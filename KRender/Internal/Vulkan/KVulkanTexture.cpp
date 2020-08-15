@@ -75,7 +75,9 @@ bool KVulkanTexture::ReleaseDevice()
 	{
 		using namespace KVulkanGlobal;
 		vkDestroyImageView(device, m_TextureImageView, nullptr);
+		m_TextureImageView = VK_NULL_HANDLE;
 		KVulkanInitializer::FreeVkImage(m_TextureImage, m_AllocInfo);
+		m_TextureImage = VK_NULL_HANDLE;
 		m_bDeviceInit = false;
 	}
 	return true;

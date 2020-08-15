@@ -402,6 +402,15 @@
     <ClInclude Include="Internal\FrameGraph\KFrameGraphBuilder.h">
       <Filter>Internal\FrameGraph</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKFrameBuffer.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanFrameBuffer.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanRenderPass.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -652,6 +661,12 @@
     </ClCompile>
     <ClCompile Include="Internal\FrameGraph\KFrameGraph.cpp">
       <Filter>Internal\FrameGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanFrameBuffer.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanRenderPass.cpp">
+      <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

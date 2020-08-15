@@ -1,6 +1,7 @@
 #include "KVulkanSwapChain.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanInitializer.h"
+#include "KVulkanFrameBuffer.h"
 #include "Interface/IKRenderWindow.h"
 #include "KBase/Publish/KConfig.h"
 #include <algorithm>
@@ -258,7 +259,7 @@ bool KVulkanSwapChain::CreateSyncObjects()
 	return true;
 }
 
-bool KVulkanSwapChain::CreateRenderTargets()
+bool KVulkanSwapChain::CreateFrameBuffers()
 {
 	m_SwapChainRenderTargets.resize(m_SwapChainImages.size());
 	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
@@ -266,6 +267,20 @@ bool KVulkanSwapChain::CreateRenderTargets()
 		m_SwapChainRenderTargets[i] = KVulkanRenderTarget::CreateRenderTarget();
 		m_SwapChainRenderTargets[i]->InitFromSwapChain(this, i, true, true, 1);
 	}
+
+	m_FrameBuffers.resize(m_SwapChainImages.size());
+	for (size_t i = 0; i < m_FrameBuffers.size(); ++i)
+	{
+		FrameBuffer& frameBuffer = m_FrameBuffers[i];
+
+		frameBuffer.colorFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+		((KVulkanFrameBuffer*)frameBuffer.colorFrameBuffer.get())->InitExternal(m_SwapChainImages[i], m_SwapChainImageViews[i],
+			m_SurfaceFormat.format, m_Extend.width, m_Extend.height, 1, 1);
+
+		frameBuffer.depthStencilFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+		((KVulkanFrameBuffer*)frameBuffer.depthStencilFrameBuffer.get())->InitDepthStencil(m_Extend.width, m_Extend.height, 1, true);
+	}
+
 	return true;
 }
 
@@ -310,7 +325,7 @@ bool KVulkanSwapChain::DestroySyncObjects()
 	return true;
 }
 
-bool KVulkanSwapChain::DestroyRenderTargets()
+bool KVulkanSwapChain::DestroyFrameBuffers()
 {
 	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
 	{
@@ -318,6 +333,15 @@ bool KVulkanSwapChain::DestroyRenderTargets()
 		m_SwapChainRenderTargets[i] = nullptr;
 	}
 	m_SwapChainRenderTargets.clear();
+
+	for (size_t i = 0; i < m_FrameBuffers.size(); ++i)
+	{
+		FrameBuffer& frameBuffer = m_FrameBuffers[i];
+		((KVulkanFrameBuffer*)frameBuffer.colorFrameBuffer.get())->UnInit();
+		((KVulkanFrameBuffer*)frameBuffer.depthStencilFrameBuffer.get())->UnInit();
+	}
+	m_SwapChainImages.clear();
+
 	return true;
 }
 
@@ -334,7 +358,7 @@ bool KVulkanSwapChain::Init(IKRenderWindow* window, uint32_t frameInFlight)
 	ASSERT_RESULT(CreateSurface());
 	ASSERT_RESULT(CreateSwapChain());
 	ASSERT_RESULT(CreateSyncObjects());
-	ASSERT_RESULT(CreateRenderTargets());
+	ASSERT_RESULT(CreateFrameBuffers());
 
 	return true;
 }
@@ -344,7 +368,7 @@ bool KVulkanSwapChain::UnInit()
 	ASSERT_RESULT(m_SwapChain != VK_NULL_HANDLE);
 	ASSERT_RESULT(CleanupSwapChain());
 	ASSERT_RESULT(DestroySyncObjects());
-	ASSERT_RESULT(DestroyRenderTargets());
+	ASSERT_RESULT(DestroyFrameBuffers());
 	m_MaxFramesInFight = 0;
 	if (m_pWindow)
 	{
@@ -367,6 +391,24 @@ uint32_t KVulkanSwapChain::GetFrameInFlight()
 IKRenderTargetPtr KVulkanSwapChain::GetRenderTarget(uint32_t frameIndex)
 {
 	return frameIndex < m_SwapChainRenderTargets.size() ? m_SwapChainRenderTargets[frameIndex]->shared_from_this() : nullptr;
+}
+
+IKFrameBufferPtr KVulkanSwapChain::GetColorFrameBuffer(uint32_t frameIndex)
+{
+	if (frameIndex < m_FrameBuffers.size())
+	{
+		return m_FrameBuffers[frameIndex].colorFrameBuffer;
+	}
+	return nullptr;
+}
+
+IKFrameBufferPtr KVulkanSwapChain::GetDepthStencilFrameBuffer(uint32_t frameIndex)
+{
+	if (frameIndex < m_FrameBuffers.size())
+	{
+		return m_FrameBuffers[frameIndex].depthStencilFrameBuffer;
+	}
+	return nullptr;
 }
 
 VkResult KVulkanSwapChain::WaitForInFightFrame(uint32_t& frameIndex)

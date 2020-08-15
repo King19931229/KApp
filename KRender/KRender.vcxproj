@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="Interface\IKCameraController.h" />
     <ClInclude Include="Interface\IKCommandBuffer.h" />
+    <ClInclude Include="Interface\IKFrameBuffer.h" />
     <ClInclude Include="Interface\IKGizmo.h" />
     <ClInclude Include="Interface\IKMaterial.h" />
     <ClInclude Include="Interface\IKPipeline.h" />
@@ -112,6 +113,7 @@
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanDescripiorPool.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanFrameBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanInitializer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanHeapAllocator.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanGlobal.h" />
@@ -119,6 +121,7 @@
     <ClInclude Include="Internal\Vulkan\KVulkanPipeline.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanQuery.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanRenderPass.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderTarget.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanSampler.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanShader.h" />
@@ -200,6 +203,7 @@
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanCommandBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanDescriptorPool.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanFrameBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanInitializer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanGlobal.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanHeapAllocator.cpp" />
@@ -207,6 +211,7 @@
     <ClCompile Include="Internal\Vulkan\KVulkanPipeline.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanQuery.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanRenderPass.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderTarget.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanSampler.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanShader.cpp" />
