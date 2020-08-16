@@ -19,9 +19,11 @@ public:
 	bool SetColor(IKFrameBufferPtr color);
 	bool SetDepthStencil(IKFrameBufferPtr depthStencil);
 	bool SetAsSwapChainPass(bool swapChain);
+	bool HasColorAttachment();
+	bool HasDepthStencilAttachment();
 	bool Init();
 	bool UnInit();
 
-	inline VkRenderPass GetVkRenderPass() { return m_RenderPass; }
+	inline VkRenderPass GetVkRenderPass() {	return m_RenderPass; }
 	inline VkFramebuffer GetVkFrameBuffer() { return m_FrameBuffer; }
 };

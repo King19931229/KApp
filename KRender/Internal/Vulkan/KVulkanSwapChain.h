@@ -79,6 +79,7 @@ public:
 	VkResult AcquireNextImage(uint32_t& imageIndex);
 	VkResult PresentQueue(uint32_t imageIndex, VkCommandBuffer commandBuffer);
 
+	inline VkImage GetImage(size_t imageIndex) { return (imageIndex >= m_SwapChainImages.size()) ? VK_NULL_HANDLE : m_SwapChainImages[imageIndex]; }
 	inline VkImageView GetImageView(size_t imageIndex) { return (imageIndex >= m_SwapChainImageViews.size()) ? VK_NULL_HANDLE : m_SwapChainImageViews[imageIndex]; }
 	inline size_t GetImageCount() { return m_SwapChainImages.size(); }
 	inline VkExtent2D GetExtent() { return m_Extend; }

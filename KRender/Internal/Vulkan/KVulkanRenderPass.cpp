@@ -35,6 +35,16 @@ bool KVulkanRenderPass::SetAsSwapChainPass(bool swapChain)
 	return true;
 }
 
+bool KVulkanRenderPass::HasColorAttachment()
+{
+	return m_ColorFrameBuffer != nullptr;
+}
+
+bool KVulkanRenderPass::HasDepthStencilAttachment()
+{
+	return m_DepthFrameBuffer != nullptr;
+}
+
 bool KVulkanRenderPass::Init()
 {
 	UnInit();
@@ -43,6 +53,10 @@ bool KVulkanRenderPass::Init()
 	{
 		if (m_ColorFrameBuffer && m_DepthFrameBuffer)
 		{
+			ASSERT_RESULT(m_ColorFrameBuffer->GetWidth() == m_DepthFrameBuffer->GetWidth());
+			ASSERT_RESULT(m_ColorFrameBuffer->GetHeight() == m_DepthFrameBuffer->GetHeight());
+			ASSERT_RESULT(m_ColorFrameBuffer->GetMSAA() == m_DepthFrameBuffer->GetMSAA());
+
 			if (m_ColorFrameBuffer->GetWidth() != m_DepthFrameBuffer->GetWidth())
 				return false;
 			if (m_ColorFrameBuffer->GetHeight() != m_DepthFrameBuffer->GetHeight())
@@ -77,8 +91,8 @@ bool KVulkanRenderPass::Init()
 
 			// 声明 Depth Attachment (不一定用到)
 			VkAttachmentDescription depthAttachment = {};
-			depthAttachment.format = depthBuffer ? depthBuffer->GetForamt() : colorBuffer->GetForamt() /*让编译器开心*/;
-			depthAttachment.samples = depthBuffer ? depthBuffer->GetMSAAFlag() : colorBuffer->GetMSAAFlag() /*其实两个一定是一样的*/;
+			depthAttachment.format = depthBuffer ? depthBuffer->GetForamt() : VK_FORMAT_UNDEFINED;
+			depthAttachment.samples = depthBuffer ? depthBuffer->GetMSAAFlag() : VK_SAMPLE_COUNT_1_BIT;
 
 			depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -258,6 +272,7 @@ bool KVulkanRenderPass::Init()
 			renderPassInfo.pDependencies = dependencies;
 
 			VK_ASSERT_RESULT(vkCreateRenderPass(KVulkanGlobal::device, &renderPassInfo, nullptr, &m_RenderPass));
+			ASSERT_RESULT(m_RenderPass != VK_NULL_HANDLE);
 
 			VkImageView imageViews[] = { depthBuffer->GetImageView() };
 

@@ -2,35 +2,13 @@
 #include "Interface/IKRenderTarget.h"
 #include "KVulkanConfig.h"
 #include "KVulkanHeapAllocator.h"
-#include "KVulkanFrameBuffer.h"
 
 class KVulkanRenderTarget : public IKRenderTarget
 {
 protected:
-	VkRenderPass	m_RenderPass;
-	VkFramebuffer	m_FrameBuffer;
-
-	VkExtent2D		m_Extend;
-
-	VkImageView		m_ColorImageView;
-	VkFormat		m_ColorFormat;
-
-	VkFormat		m_DepthFormat;
-
-	VkImage			m_DepthImage;
-	VkImageView		m_DepthImageView;
-	KVulkanHeapAllocator::AllocInfo m_DepthAlloc;
-
-	VkSampleCountFlagBits m_MsaaFlag;
-	VkImage			m_MsaaImage;
-	VkImageView		m_MsaaImageView;
-	KVulkanHeapAllocator::AllocInfo m_MsaaAlloc;
-
-	bool CreateImage(VkImageView imageView, VkFormat imageForamt,bool bDepth, bool bStencil, unsigned short uMsaaCount);
-	bool CreateFramebuffer(bool fromSwapChain);
-
-	bool CreateDepthImage(bool bStencil);
-	bool CreateDepthBuffer();
+	IKFrameBufferPtr m_ColorFrameBuffer;
+	IKFrameBufferPtr m_DepthFrameBuffer;
+	IKRenderPassPtr m_RenderPass;
 
 	KVulkanRenderTarget();
 public:
@@ -48,10 +26,10 @@ public:
 	virtual bool HasColorAttachment();
 	virtual bool HasDepthStencilAttachment();
 
-	inline VkRenderPass GetRenderPass() { return m_RenderPass; }
-	inline VkFramebuffer GetFrameBuffer() { return m_FrameBuffer; }
-	inline VkSampleCountFlagBits GetMsaaFlag(){ return m_MsaaFlag; }
-	inline VkExtent2D GetExtend() { return m_Extend; }
+	VkRenderPass GetRenderPass();
+	VkFramebuffer GetFrameBuffer();
+	VkExtent2D GetExtend();
+	VkSampleCountFlagBits GetMsaaFlag();
 
 	bool GetImageViewInformation(RenderTargetComponent component, VkFormat& format, VkImageView& imageView);
 };

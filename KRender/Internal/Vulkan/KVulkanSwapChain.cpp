@@ -267,7 +267,7 @@ bool KVulkanSwapChain::CreateFrameBuffers()
 		m_SwapChainRenderTargets[i] = KVulkanRenderTarget::CreateRenderTarget();
 		m_SwapChainRenderTargets[i]->InitFromSwapChain(this, i, true, true, 1);
 	}
-
+	/*
 	m_FrameBuffers.resize(m_SwapChainImages.size());
 	for (size_t i = 0; i < m_FrameBuffers.size(); ++i)
 	{
@@ -275,17 +275,22 @@ bool KVulkanSwapChain::CreateFrameBuffers()
 
 		frameBuffer.colorFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
 		((KVulkanFrameBuffer*)frameBuffer.colorFrameBuffer.get())->InitExternal(m_SwapChainImages[i], m_SwapChainImageViews[i],
-			m_SurfaceFormat.format, m_Extend.width, m_Extend.height, 1, 1);
+			m_SurfaceFormat.format, m_Extend.width, m_Extend.height, 1, 1, 1);
 
 		frameBuffer.depthStencilFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
 		((KVulkanFrameBuffer*)frameBuffer.depthStencilFrameBuffer.get())->InitDepthStencil(m_Extend.width, m_Extend.height, 1, true);
 	}
-
+	*/
 	return true;
 }
 
 bool KVulkanSwapChain::CleanupSwapChain()
 {
+	if (m_SwapChain != VK_NULL_HANDLE)
+	{
+		vkDestroySwapchainKHR(KVulkanGlobal::device, m_SwapChain, nullptr);
+		m_SwapChain = VK_NULL_HANDLE;
+	}
 	if (m_Surface != VK_NULL_HANDLE)
 	{
 		vkDestroySurfaceKHR(KVulkanGlobal::instance, m_Surface, nullptr);
@@ -297,8 +302,6 @@ bool KVulkanSwapChain::CleanupSwapChain()
 	}
 	m_SwapChainImageViews.clear();
 	m_SwapChainImages.clear();
-	vkDestroySwapchainKHR(KVulkanGlobal::device, m_SwapChain, nullptr);
-	m_SwapChain = VK_NULL_HANDLE;
 	return true;
 }
 
@@ -333,15 +336,15 @@ bool KVulkanSwapChain::DestroyFrameBuffers()
 		m_SwapChainRenderTargets[i] = nullptr;
 	}
 	m_SwapChainRenderTargets.clear();
-
+	/*
 	for (size_t i = 0; i < m_FrameBuffers.size(); ++i)
 	{
 		FrameBuffer& frameBuffer = m_FrameBuffers[i];
 		((KVulkanFrameBuffer*)frameBuffer.colorFrameBuffer.get())->UnInit();
 		((KVulkanFrameBuffer*)frameBuffer.depthStencilFrameBuffer.get())->UnInit();
 	}
-	m_SwapChainImages.clear();
-
+	m_FrameBuffers.clear();
+	*/
 	return true;
 }
 
@@ -366,9 +369,9 @@ bool KVulkanSwapChain::Init(IKRenderWindow* window, uint32_t frameInFlight)
 bool KVulkanSwapChain::UnInit()
 {
 	ASSERT_RESULT(m_SwapChain != VK_NULL_HANDLE);
+	ASSERT_RESULT(DestroyFrameBuffers());
 	ASSERT_RESULT(CleanupSwapChain());
 	ASSERT_RESULT(DestroySyncObjects());
-	ASSERT_RESULT(DestroyFrameBuffers());
 	m_MaxFramesInFight = 0;
 	if (m_pWindow)
 	{

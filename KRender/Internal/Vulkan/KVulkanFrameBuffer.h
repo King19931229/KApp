@@ -31,7 +31,7 @@ public:
 
 	// 创建为持有外部句柄
 	bool InitExternal(VkImage image, VkImageView imageView, VkFormat format,
-		uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
+		uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, uint32_t msaa);
 	// 创建为ColorAttachment
 	bool InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t msaa);
 	// 创建为DepthStencilAttachment
