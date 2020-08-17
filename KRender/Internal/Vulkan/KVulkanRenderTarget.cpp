@@ -44,7 +44,7 @@ bool KVulkanRenderTarget::InitFromSwapChain(IKSwapChain* swapChain, size_t image
 	((KVulkanFrameBuffer*)m_DepthFrameBuffer.get())->InitDepthStencil(m_ColorFrameBuffer->GetWidth(), m_ColorFrameBuffer->GetHeight(), uMsaaCount, bStencil);
 
 	m_RenderPass = IKRenderPassPtr(KNEW KVulkanRenderPass());
-	m_RenderPass->SetColor(m_ColorFrameBuffer);
+	m_RenderPass->SetColor(0, m_ColorFrameBuffer);
 	m_RenderPass->SetDepthStencil(m_DepthFrameBuffer);
 	m_RenderPass->SetAsSwapChainPass(true);
 	m_RenderPass->Init();
@@ -83,7 +83,7 @@ bool KVulkanRenderTarget::InitFromTexture(IKTexture* texture, bool bDepth, bool 
 	}
 
 	m_RenderPass = IKRenderPassPtr(KNEW KVulkanRenderPass());
-	m_RenderPass->SetColor(m_ColorFrameBuffer);
+	m_RenderPass->SetColor(0, m_ColorFrameBuffer);
 	if (bDepth)
 		m_RenderPass->SetDepthStencil(m_DepthFrameBuffer);
 	m_RenderPass->Init();
@@ -160,7 +160,7 @@ VkRenderPass KVulkanRenderTarget::GetRenderPass()
 VkFramebuffer KVulkanRenderTarget::GetFrameBuffer()
 {
 	ASSERT_RESULT(m_RenderPass);
-	return ((KVulkanRenderPass*)m_RenderPass.get())->GetVkFrameBuffer();
+	return ((KVulkanRenderPass*)m_RenderPass.get())->GetVkFrameBuffer(0);
 }
 
 VkExtent2D KVulkanRenderTarget::GetExtend()

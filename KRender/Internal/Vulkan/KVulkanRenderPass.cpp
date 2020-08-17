@@ -5,10 +5,13 @@
 KVulkanRenderPass::KVulkanRenderPass()
 	: m_RenderPass(VK_NULL_HANDLE),
 	m_FrameBuffer(VK_NULL_HANDLE),
-	m_ColorFrameBuffer(nullptr),
 	m_DepthFrameBuffer(nullptr),
 	m_ToSwapChain(false)
 {
+	for (uint32_t attachment = 0; attachment < MAX_ATTACHMENT; ++attachment)
+	{
+		m_ColorFrameBuffers[attachment] = nullptr;
+	}
 }
 
 KVulkanRenderPass::~KVulkanRenderPass()
@@ -17,9 +20,12 @@ KVulkanRenderPass::~KVulkanRenderPass()
 	ASSERT_RESULT(m_FrameBuffer == VK_NULL_HANDLE);
 }
 
-bool KVulkanRenderPass::SetColor(IKFrameBufferPtr color)
+bool KVulkanRenderPass::SetColor(uint32_t attachment, IKFrameBufferPtr color)
 {
-	m_ColorFrameBuffer = color;
+	if (attachment < MAX_ATTACHMENT)
+	{
+		m_ColorFrameBuffers[attachment] = color;
+	}
 	return true;
 }
 
@@ -37,7 +43,14 @@ bool KVulkanRenderPass::SetAsSwapChainPass(bool swapChain)
 
 bool KVulkanRenderPass::HasColorAttachment()
 {
-	return m_ColorFrameBuffer != nullptr;
+	for (uint32_t attachment = 0; attachment < MAX_ATTACHMENT; ++attachment)
+	{
+		if (m_ColorFrameBuffers[attachment] != nullptr)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool KVulkanRenderPass::HasDepthStencilAttachment()
@@ -49,175 +62,104 @@ bool KVulkanRenderPass::Init()
 {
 	UnInit();
 
-	if (m_ColorFrameBuffer || m_DepthFrameBuffer)
+	if (HasColorAttachment() || HasDepthStencilAttachment())
 	{
-		if (m_ColorFrameBuffer && m_DepthFrameBuffer)
-		{
-			ASSERT_RESULT(m_ColorFrameBuffer->GetWidth() == m_DepthFrameBuffer->GetWidth());
-			ASSERT_RESULT(m_ColorFrameBuffer->GetHeight() == m_DepthFrameBuffer->GetHeight());
-			ASSERT_RESULT(m_ColorFrameBuffer->GetMSAA() == m_DepthFrameBuffer->GetMSAA());
+		IKFrameBufferPtr compareRef = nullptr;
 
-			if (m_ColorFrameBuffer->GetWidth() != m_DepthFrameBuffer->GetWidth())
-				return false;
-			if (m_ColorFrameBuffer->GetHeight() != m_DepthFrameBuffer->GetHeight())
-				return false;
-			if (m_ColorFrameBuffer->GetMSAA() != m_DepthFrameBuffer->GetMSAA())
-				return false;
+		if (m_DepthFrameBuffer)
+		{
+			compareRef = m_DepthFrameBuffer;
 		}
 
-		KVulkanFrameBuffer* colorBuffer = m_ColorFrameBuffer ? (KVulkanFrameBuffer*)(m_ColorFrameBuffer.get()) : nullptr;
-		KVulkanFrameBuffer* depthBuffer = m_DepthFrameBuffer ? (KVulkanFrameBuffer*)(m_DepthFrameBuffer.get()) : nullptr;
-
-		if (m_ColorFrameBuffer)
+		if (!compareRef)
 		{
-			VkImageLayout finalLayout = m_ToSwapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			for (uint32_t attachment = 0; attachment < MAX_ATTACHMENT; ++attachment)
+			{
+				if (m_ColorFrameBuffers[attachment])
+				{
+					compareRef = m_ColorFrameBuffers[attachment];
+					break;
+				}
+			}
+		}
 
-			bool massCreated = m_ColorFrameBuffer->GetMSAA() > 1;
-			bool depthStencilCreated = m_DepthFrameBuffer != nullptr;
+#define ASSERT_AND_RETURN(expr)	if(!(expr)) { ASSERT_RESULT(false); return false;}		
 
+		for (uint32_t attachment = 0; attachment < MAX_ATTACHMENT; ++attachment)
+		{
+			if (m_ColorFrameBuffers[attachment])
+			{
+				ASSERT_AND_RETURN(m_ColorFrameBuffers[attachment]->GetWidth() == compareRef->GetWidth());
+				ASSERT_AND_RETURN(m_ColorFrameBuffers[attachment]->GetHeight() == compareRef->GetHeight());
+				ASSERT_AND_RETURN(m_ColorFrameBuffers[attachment]->GetMSAA() == compareRef->GetMSAA());
+			}
+		}
+
+		ASSERT_AND_RETURN(m_DepthFrameBuffer->GetWidth() == compareRef->GetWidth());
+		ASSERT_AND_RETURN(m_DepthFrameBuffer->GetHeight() == compareRef->GetHeight());
+		ASSERT_AND_RETURN(m_DepthFrameBuffer->GetMSAA() == compareRef->GetMSAA());
+
+#undef ASSERT_AND_RETURN
+
+		VkImageLayout color_0_finalLayout = m_ToSwapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		VkImageLayout color_x_finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		bool massCreated = compareRef->GetMSAA() > 1;
+		bool depthStencilCreated = m_DepthFrameBuffer != nullptr;
+
+		std::vector<VkAttachmentDescription> descs;
+		std::vector<VkImageView> imageViews;
+
+		uint32_t maxAttachment = 0;
+		uint32_t maxColorAttachment = 0;
+
+		uint32_t colorRefCounts = 0;
+		std::array<VkAttachmentReference, MAX_ATTACHMENT> colorRefs;
+		for (uint32_t i = 0; i < MAX_ATTACHMENT; ++i)
+		{
 			// 声明 Color Attachment
-			VkAttachmentDescription colorAttachment = {};
-			colorAttachment.format = colorBuffer->GetForamt();
-			colorAttachment.samples = colorBuffer->GetMSAAFlag();
-
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			colorAttachment.finalLayout = massCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : finalLayout;
-
-			// 声明 Depth Attachment (不一定用到)
-			VkAttachmentDescription depthAttachment = {};
-			depthAttachment.format = depthBuffer ? depthBuffer->GetForamt() : VK_FORMAT_UNDEFINED;
-			depthAttachment.samples = depthBuffer ? depthBuffer->GetMSAAFlag() : VK_SAMPLE_COUNT_1_BIT;
-
-			depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-			depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-			depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-
-			// 声明 MSAA Resolve Attachment (不一定用到)
-			VkAttachmentDescription colorAttachmentResolve = {};
-			colorAttachmentResolve.format = colorBuffer->GetForamt();
-			colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-
-			colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-			colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-			colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			colorAttachmentResolve.finalLayout = finalLayout;
-
-			// 声明Attachment引用结构
-			VkAttachmentReference colorAttachmentRef = {};
-			colorAttachmentRef.attachment = 0;
-			colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-			VkAttachmentReference depthAttachmentRef = {};
-			depthAttachmentRef.attachment = 1;
-			depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-			VkAttachmentReference colorAttachmentResolveRef = {};
-			colorAttachmentResolveRef.attachment = depthStencilCreated ? 2 : 1;
-			colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-			// 声明子通道
-			VkSubpassDescription subpass = {};
-			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-			subpass.colorAttachmentCount = 1;
-			subpass.pColorAttachments = &colorAttachmentRef;
-			subpass.pDepthStencilAttachment = depthStencilCreated ? &depthAttachmentRef : nullptr;
-			subpass.pResolveAttachments = massCreated ? &colorAttachmentResolveRef : nullptr;
-
-			// 从属依赖
-			VkSubpassDependency dependencies[2] = {};
-
-			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-			dependencies[0].dstSubpass = 0;
-			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-			dependencies[1].srcSubpass = 0;
-			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-			// 创建渲染通道	
-			std::vector<VkAttachmentDescription> descs;
-			descs.push_back(colorAttachment);
-			if (depthStencilCreated)
+			if (m_ColorFrameBuffers[i])
 			{
-				descs.push_back(depthAttachment);
+				KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)m_ColorFrameBuffers[i].get();
+
+				VkAttachmentDescription colorAttachment = {};
+				colorAttachment.format = vulkanFrameBuffer->GetForamt();
+				colorAttachment.samples = vulkanFrameBuffer->GetMSAAFlag();
+
+				colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+				colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+				colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				colorAttachment.finalLayout = massCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : (i == 0 ? color_0_finalLayout : color_x_finalLayout);
+
+				descs.push_back(colorAttachment);
+				imageViews.push_back(vulkanFrameBuffer->GetImageView());
+
+				VkAttachmentReference colorAttachmentRef = {};
+				colorAttachmentRef.attachment = i;
+				colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				colorRefs[colorRefCounts++] = colorAttachmentRef;
+				maxColorAttachment = i;
+
+				maxAttachment = maxColorAttachment;
 			}
-			if (massCreated)
-			{
-				descs.push_back(colorAttachmentResolve);
-			}
+		}	
 
-			VkRenderPassCreateInfo renderPassInfo = {};
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			renderPassInfo.attachmentCount = (uint32_t)descs.size();
-			renderPassInfo.pAttachments = descs.data();
-			renderPassInfo.subpassCount = 1;
-			renderPassInfo.pSubpasses = &subpass;
-			renderPassInfo.dependencyCount = ARRAY_SIZE(dependencies);
-			renderPassInfo.pDependencies = dependencies;
-
-			VK_ASSERT_RESULT(vkCreateRenderPass(KVulkanGlobal::device, &renderPassInfo, nullptr, &m_RenderPass));
-			ASSERT_RESULT(m_RenderPass != VK_NULL_HANDLE);
-
-			std::vector<VkImageView> imageViews;
-
-			if (massCreated)
-			{
-				imageViews.push_back(colorBuffer->GetMSAAImageView());
-				if (depthStencilCreated)
-				{
-					imageViews.push_back(depthBuffer->GetImageView());
-				}
-				imageViews.push_back(colorBuffer->GetImageView());
-			}
-			else
-			{
-				imageViews.push_back(colorBuffer->GetImageView());
-				if (depthStencilCreated)
-				{
-					imageViews.push_back(depthBuffer->GetImageView());
-				}
-			}
-
-			VkFramebufferCreateInfo framebufferInfo = {};
-			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.renderPass = m_RenderPass;
-			framebufferInfo.attachmentCount = (uint32_t)imageViews.size();
-			framebufferInfo.pAttachments = imageViews.data();
-			framebufferInfo.width = colorBuffer->GetWidth();
-			framebufferInfo.height = colorBuffer->GetHeight();
-			framebufferInfo.layers = 1;
-
-			VK_ASSERT_RESULT(vkCreateFramebuffer(KVulkanGlobal::device, &framebufferInfo, nullptr, &m_FrameBuffer));
-		}
-		else if (m_DepthFrameBuffer)
+		VkAttachmentReference depthAttachmentRef = {};
+		// 先判断有没有color attachment
+		depthAttachmentRef.attachment = colorRefCounts ? maxColorAttachment + 1 : 0;
+		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		if (m_DepthFrameBuffer)
 		{
+			KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)m_DepthFrameBuffer.get();
+
+			// 声明 Depth Attachment
 			VkAttachmentDescription depthAttachment = {};
-			depthAttachment.format = depthBuffer->GetForamt();
-			depthAttachment.samples = depthBuffer->GetMSAAFlag();
+			depthAttachment.format = vulkanFrameBuffer->GetForamt();
+			depthAttachment.samples = vulkanFrameBuffer->GetMSAAFlag();
 
 			depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -228,68 +170,115 @@ bool KVulkanRenderPass::Init()
 			depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
-			// 声明Attachment引用结构
-			VkAttachmentReference depthAttachmentRef = {};
-			depthAttachmentRef.attachment = 0;
-			depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			descs.push_back(depthAttachment);
+			imageViews.push_back(vulkanFrameBuffer->GetImageView());
 
-			// 声明子通道
-			VkSubpassDescription subpass = {};
-			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-			subpass.colorAttachmentCount = 0;
-			subpass.pColorAttachments = nullptr;
-			subpass.pDepthStencilAttachment = &depthAttachmentRef;
-			subpass.pResolveAttachments = nullptr;
-
-			// 从属依赖
-			VkSubpassDependency dependencies[2] = {};
-
-			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-			dependencies[0].dstSubpass = 0;
-			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-			dependencies[1].srcSubpass = 0;
-			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-			// 创建渲染通道	
-			VkRenderPassCreateInfo renderPassInfo = {};
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			renderPassInfo.attachmentCount = 1;
-			renderPassInfo.pAttachments = &depthAttachment;
-			renderPassInfo.subpassCount = 1;
-			renderPassInfo.pSubpasses = &subpass;
-			renderPassInfo.dependencyCount = ARRAY_SIZE(dependencies);
-			renderPassInfo.pDependencies = dependencies;
-
-			VK_ASSERT_RESULT(vkCreateRenderPass(KVulkanGlobal::device, &renderPassInfo, nullptr, &m_RenderPass));
-			ASSERT_RESULT(m_RenderPass != VK_NULL_HANDLE);
-
-			VkImageView imageViews[] = { depthBuffer->GetImageView() };
-
-			VkFramebufferCreateInfo framebufferInfo = {};
-			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.renderPass = m_RenderPass;
-			framebufferInfo.attachmentCount = 1;
-			framebufferInfo.pAttachments = imageViews;
-			framebufferInfo.width = depthBuffer->GetWidth();
-			framebufferInfo.height = depthBuffer->GetHeight();
-			framebufferInfo.layers = 1;
-
-			VK_ASSERT_RESULT(vkCreateFramebuffer(KVulkanGlobal::device, &framebufferInfo, nullptr, &m_FrameBuffer));
+			maxAttachment = depthAttachmentRef.attachment;
 		}
+
+		// 不过maxAttachment也没可能0吧...
+		uint32_t colorResolveAttachmentBegin = maxAttachment ? maxAttachment + 1 : 0;
+		uint32_t colorResolveRefCounts = 0;
+		std::array<VkAttachmentReference, MAX_ATTACHMENT> colorResolveRefs;
+		if (massCreated)
+		{
+			for (uint32_t i = 0; i < MAX_ATTACHMENT; ++i)
+			{
+				// 声明 MSAA Resolve Attachment
+				if (m_ColorFrameBuffers[i])
+				{
+					KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)m_ColorFrameBuffers[i].get();
+
+					VkAttachmentDescription colorAttachmentResolve = {};
+					colorAttachmentResolve.format = vulkanFrameBuffer->GetForamt();
+					colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+
+					colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+					colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+					colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+					colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+					colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+					colorAttachmentResolve.finalLayout = (i == 0 ? color_0_finalLayout : color_x_finalLayout);
+
+					descs.push_back(colorAttachmentResolve);
+					imageViews.push_back(vulkanFrameBuffer->GetMSAAImageView());
+
+					VkAttachmentReference colorAttachmentResolveRef = {};
+					colorAttachmentResolveRef.attachment = colorResolveAttachmentBegin + i;
+					colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+					colorResolveRefs[colorResolveRefCounts++] = colorAttachmentResolveRef;
+
+					maxAttachment = colorAttachmentResolveRef.attachment;
+				}
+			}
+		}
+
+		// 声明子通道
+		VkSubpassDescription subpass = {};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+		subpass.colorAttachmentCount = colorRefCounts;
+		subpass.pColorAttachments = &colorRefs[0];
+		subpass.pDepthStencilAttachment = depthStencilCreated ? &depthAttachmentRef : nullptr;
+		subpass.pResolveAttachments = massCreated ? &colorResolveRefs[0] : nullptr;
+
+		// 从属依赖
+		VkSubpassDependency dependencies[2] = {};
+
+		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[0].dstSubpass = 0;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		dependencies[1].srcSubpass = 0;
+		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		VkRenderPassCreateInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.attachmentCount = (uint32_t)descs.size();
+		renderPassInfo.pAttachments = descs.data();
+		renderPassInfo.subpassCount = 1;
+		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = ARRAY_SIZE(dependencies);
+		renderPassInfo.pDependencies = dependencies;
+
+		VK_ASSERT_RESULT(vkCreateRenderPass(KVulkanGlobal::device, &renderPassInfo, nullptr, &m_RenderPass));
+		ASSERT_RESULT(m_RenderPass != VK_NULL_HANDLE);
+
+		// 这里不要忘了颠倒过来
+		if (massCreated)
+		{
+			for (uint32_t i = 0; i < colorRefCounts; ++i)
+			{
+				std::swap(imageViews[i], imageViews[i + colorRefCounts + 1]);
+			}
+		}
+
+		VkFramebufferCreateInfo framebufferInfo = {};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = m_RenderPass;
+		framebufferInfo.attachmentCount = (uint32_t)imageViews.size();
+		framebufferInfo.pAttachments = imageViews.data();
+		framebufferInfo.width = compareRef->GetWidth();
+		framebufferInfo.height = compareRef->GetHeight();
+		framebufferInfo.layers = 1;
+
+		VK_ASSERT_RESULT(vkCreateFramebuffer(KVulkanGlobal::device, &framebufferInfo, nullptr, &m_FrameBuffer));
+		ASSERT_RESULT(m_FrameBuffer != VK_NULL_HANDLE);
 
 		return true;
 	}
+
 	return false;
 }
 
