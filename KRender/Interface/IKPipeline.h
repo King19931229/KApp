@@ -35,10 +35,10 @@ struct IKPipeline
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
 
 	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler) = 0;
-	virtual bool SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler) = 0;
+	virtual bool SetSampler(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler) = 0;
 
 	virtual bool SetSamplerDynamic(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler) = 0;
-	virtual bool SetSamplerDepthAttachmentDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler) = 0;
+	virtual bool SetSamplerDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler) = 0;
 
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size) = 0;
 	virtual bool DestroyConstantBlock() = 0;

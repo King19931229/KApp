@@ -41,7 +41,6 @@ protected:
 	bool m_bInit;
 
 	// 后处理相关资源
-	IKTexturePtr m_Texture;
 	IKRenderTargetPtr m_RenderTarget;
 	IKPipelinePtr m_Pipeline;
 	IKPipelinePtr m_ScreenDrawPipeline;
@@ -94,7 +93,6 @@ public:
 	bool GetInputConnection(IKPostProcessConnection*&conn, int16_t slot) override;
 
 	inline void SetAsEndPoint() { m_Stage = POST_PROCESS_STAGE_END_POINT; }
-	inline IKTexturePtr GetTexture() { return m_Texture; }
 	inline IKRenderTargetPtr GetRenderTarget() { return m_RenderTarget; }
 	inline IKPipelinePtr GetPipeline() { return m_Pipeline; }
 	inline IKPipelinePtr GetScreenDrawPipeline() { return m_ScreenDrawPipeline; }

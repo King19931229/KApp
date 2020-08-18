@@ -17,7 +17,6 @@ protected:
 	unsigned short m_Mipmaps;
 	// 是否需要硬生成mipmap
 	bool m_bGenerateMipmap;
-	bool m_bCreateAsRt;
 
 	ResourceState m_ResourceState;
 
@@ -36,7 +35,6 @@ public:
 
 	virtual bool InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap, bool async);
 	virtual bool InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap, bool async);
-	virtual bool InitMemeoryAsRT(size_t width, size_t height, ElementFormat format);
 	virtual bool InitDevice(bool async) = 0;
 	virtual bool UnInit();
 

@@ -43,7 +43,6 @@ KPostProcessPass::~KPostProcessPass()
 {
 	assert(m_VSShader == nullptr);
 	assert(m_FSShader == nullptr);
-	assert(m_Texture == nullptr);
 	assert(m_RenderTarget == nullptr);
 
 	for (auto& conn : m_InputConnection)
@@ -178,7 +177,7 @@ bool KPostProcessPass::Init()
 					else if (outputType == PPNT_PASS)
 					{
 						KPostProcessPass* outPass = (KPostProcessPass*)outputNode;
-						pipeline->SetSampler((unsigned int)location, outPass->GetTexture(), sampler);
+						pipeline->SetSampler((unsigned int)location, outPass->GetRenderTarget(), sampler);
 					}
 					else
 					{
@@ -194,12 +193,8 @@ bool KPostProcessPass::Init()
 	size_t width = static_cast<size_t>(m_Mgr->m_Width * m_Scale);
 	size_t height = static_cast<size_t>(m_Mgr->m_Height * m_Scale);
 
-	device->CreateTexture(m_Texture);
-	m_Texture->InitMemeoryAsRT(width, height, m_Format);
-	m_Texture->InitDevice(false);
-
 	device->CreateRenderTarget(m_RenderTarget);
-	m_RenderTarget->InitFromTexture(m_Texture.get(), true, true, m_MsaaCount);
+	m_RenderTarget->InitFromColor(width, height, m_MsaaCount, m_Format);
 
 	{
 		KRenderGlobal::PipelineManager.CreatePipeline(m_ScreenDrawPipeline);
@@ -221,7 +216,7 @@ bool KPostProcessPass::Init()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_Texture, m_Mgr->m_Sampler);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_RenderTarget, m_Mgr->m_Sampler);
 
 		pipeline->Init();
 	}
@@ -255,7 +250,6 @@ bool KPostProcessPass::UnInit()
 		connSet.clear();
 	}
 
-	SAFE_UNINIT(m_Texture);
 	SAFE_UNINIT(m_RenderTarget);
 	SAFE_UNINIT(m_Pipeline);
 	SAFE_UNINIT(m_ScreenDrawPipeline);

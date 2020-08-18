@@ -259,7 +259,7 @@ bool KVulkanPipeline::SetSamplerImpl(unsigned int location, IKTexturePtr texture
 	return false;
 }
 
-bool KVulkanPipeline::SetSamplerDepthAttachmentImpl(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynamic)
+bool KVulkanPipeline::SetSamplerAttachmentImpl(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynamic)
 {
 	if (target && sampler)
 	{
@@ -268,15 +268,24 @@ bool KVulkanPipeline::SetSamplerDepthAttachmentImpl(unsigned int location, IKRen
 		VkFormat format = VK_FORMAT_UNDEFINED;
 		VkImageView imageView = VK_NULL_HANDLE;
 
-		ASSERT_RESULT(vulkanTarget->GetImageViewInformation(RTC_DEPTH_STENCIL, format, imageView));
+		SamplerBindingInfo info;
+
+		if (!vulkanTarget->GetImageViewInformation(RTC_COLOR, format, imageView))
+		{
+			ASSERT_RESULT(vulkanTarget->GetImageViewInformation(RTC_DEPTH_STENCIL, format, imageView));
+			info.depthStencil = true;
+		}
+		else
+		{
+			info.depthStencil = false;
+		}
 
 		ASSERT_RESULT(imageView != VK_NULL_HANDLE);
-		SamplerBindingInfo info;
+		
 
 		info.vkImageView = imageView;
 		info.vkSampler = ((KVulkanSampler*)sampler.get())->GetVkSampler();
 		info.nakeInfo = true;
-		info.depthStencil = true;
 		info.dynamicWrite = dynamic;
 
 		ASSERT_RESULT(BindSampler(location, info));
@@ -294,11 +303,11 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IK
 	return false;
 }
 
-bool KVulkanPipeline::SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler)
+bool KVulkanPipeline::SetSampler(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler)
 {
 	if(target && sampler)
 	{
-		return SetSamplerDepthAttachmentImpl(location, target, sampler, false);
+		return SetSamplerAttachmentImpl(location, target, sampler, false);
 	}
 	return false;
 }
@@ -312,11 +321,11 @@ bool KVulkanPipeline::SetSamplerDynamic(unsigned int location, IKTexturePtr text
 	return false;
 }
 
-bool KVulkanPipeline::SetSamplerDepthAttachmentDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler)
+bool KVulkanPipeline::SetSamplerDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler)
 {
 	if (target && sampler)
 	{
-		return SetSamplerDepthAttachmentImpl(location, target, sampler, true);
+		return SetSamplerAttachmentImpl(location, target, sampler, true);
 	}
 	return false;
 }

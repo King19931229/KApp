@@ -90,7 +90,7 @@ bool KVulkanTexture::InitDevice(bool async)
 	auto waitImpl = [=]()->bool
 	{
 		WaitMemoryTask();
-		if (m_bCreateAsRt || m_ImageData.pData)
+		if (m_ImageData.pData)
 			return true;
 		return false;
 	};
@@ -113,113 +113,88 @@ bool KVulkanTexture::InitDevice(bool async)
 		ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(m_TextureType, imageType, imageViewType));
 		ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(m_Format, m_TextureFormat));
 
-		if (m_bCreateAsRt)
+		if (m_ImageData.pData && m_ImageData.pData->GetSize() > 0)
 		{
-			KVulkanInitializer::CreateVkImage((uint32_t)m_Width,
-				(uint32_t)m_Height,
-				(uint32_t)m_Depth,
-				(uint32_t)layerCounts,
-				1,
-				VK_SAMPLE_COUNT_1_BIT,
-				imageType,
-				m_TextureFormat,
-				VK_IMAGE_TILING_OPTIMAL,
-				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				createFlags,
-				m_TextureImage, m_AllocInfo);
+			size_t imageSize = m_ImageData.pData->GetSize();
 
-			KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_TextureImageView);
-			m_bDeviceInit = true;
-			m_ImageData.pData = nullptr;
+			VkBuffer stagingBuffer;
+			KVulkanHeapAllocator::AllocInfo stagingAllocInfo;
 
-			m_ResourceState = RS_DEVICE_LOADED;
-			return true;
-		}
-		else
-		{
-			if (m_ImageData.pData && m_ImageData.pData->GetSize() > 0)
+			KVulkanInitializer::CreateVkBuffer((VkDeviceSize)imageSize,
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				stagingBuffer, stagingAllocInfo);
 			{
-				size_t imageSize = m_ImageData.pData->GetSize();
+				void* pixels = m_ImageData.pData->GetData();
+				assert(pixels);
 
-				VkBuffer stagingBuffer;
-				KVulkanHeapAllocator::AllocInfo stagingAllocInfo;
+				void* data = nullptr;
+				VK_ASSERT_RESULT(vkMapMemory(device, stagingAllocInfo.vkMemroy, stagingAllocInfo.vkOffset, imageSize, 0, &data));
+				memcpy(data, pixels, static_cast<size_t>(imageSize));
+				vkUnmapMemory(device, stagingAllocInfo.vkMemroy);
 
-				KVulkanInitializer::CreateVkBuffer((VkDeviceSize)imageSize,
-					VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-					stagingBuffer, stagingAllocInfo);
+				KVulkanInitializer::CreateVkImage((uint32_t)m_Width,
+					(uint32_t)m_Height,
+					(uint32_t)m_Depth,
+					(uint32_t)layerCounts,
+					(uint32_t)m_Mipmaps,
+					VK_SAMPLE_COUNT_1_BIT,
+					imageType,
+					m_TextureFormat,
+					VK_IMAGE_TILING_OPTIMAL,
+					VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+					createFlags,
+					m_TextureImage, m_AllocInfo);
 				{
-					void* pixels = m_ImageData.pData->GetData();
-					assert(pixels);
-
-					void* data = nullptr;
-					VK_ASSERT_RESULT(vkMapMemory(device, stagingAllocInfo.vkMemroy, stagingAllocInfo.vkOffset, imageSize, 0, &data));
-					memcpy(data, pixels, static_cast<size_t>(imageSize));
-					vkUnmapMemory(device, stagingAllocInfo.vkMemroy);
-
-					KVulkanInitializer::CreateVkImage((uint32_t)m_Width,
-						(uint32_t)m_Height,
-						(uint32_t)m_Depth,
+					// 先转换image layout为之后buffer拷贝数据到image作准备
+					KVulkanHelper::TransitionImageLayout(m_TextureImage,
+						m_TextureFormat,
 						(uint32_t)layerCounts,
 						(uint32_t)m_Mipmaps,
-						VK_SAMPLE_COUNT_1_BIT,
-						imageType,
-						m_TextureFormat,
-						VK_IMAGE_TILING_OPTIMAL,
-						VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-						VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-						createFlags,
-						m_TextureImage, m_AllocInfo);
+						VK_IMAGE_LAYOUT_UNDEFINED,
+						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+					const KSubImageInfoList& subImageInfo = m_ImageData.pData->GetSubImageInfo();
+					KVulkanHelper::SubRegionCopyInfoList copyInfo;
+					copyInfo.reserve(subImageInfo.size());
+
+					for (const KSubImageInfo& info : subImageInfo)
 					{
-						// 先转换image layout为之后buffer拷贝数据到image作准备
+						KVulkanHelper::SubRegionCopyInfo copy;
+
+						copy.offset = static_cast<uint32_t>(info.uOffset);
+						copy.width = static_cast<uint32_t>(info.uWidth);
+						copy.height = static_cast<uint32_t>(info.uHeight);
+						copy.mipLevel = static_cast<uint32_t>(info.uMipmapIndex);
+						copy.layer = static_cast<uint32_t>(info.uFaceIndex);
+						copyInfo.push_back(copy);
+					}
+
+					// 拷贝buffer数据到image
+					KVulkanHelper::CopyVkBufferToVkImageByRegion(stagingBuffer, m_TextureImage, layerCounts, copyInfo);
+
+					if (m_bGenerateMipmap)
+					{
+						KVulkanHelper::GenerateMipmaps(m_TextureImage, m_TextureFormat, static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), layerCounts, static_cast<int32_t>(m_Mipmaps));
+					}
+					else
+					{
+						// 再转换image layout为之后shader使用image数据作准备
 						KVulkanHelper::TransitionImageLayout(m_TextureImage,
 							m_TextureFormat,
 							(uint32_t)layerCounts,
 							(uint32_t)m_Mipmaps,
-							VK_IMAGE_LAYOUT_UNDEFINED,
-							VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-						const KSubImageInfoList& subImageInfo = m_ImageData.pData->GetSubImageInfo();
-						KVulkanHelper::SubRegionCopyInfoList copyInfo;
-						copyInfo.reserve(subImageInfo.size());
-
-						for (const KSubImageInfo& info : subImageInfo)
-						{
-							KVulkanHelper::SubRegionCopyInfo copy;
-
-							copy.offset = static_cast<uint32_t>(info.uOffset);
-							copy.width = static_cast<uint32_t>(info.uWidth);
-							copy.height = static_cast<uint32_t>(info.uHeight);
-							copy.mipLevel = static_cast<uint32_t>(info.uMipmapIndex);
-							copy.layer = static_cast<uint32_t>(info.uFaceIndex);
-							copyInfo.push_back(copy);
-						}
-
-						// 拷贝buffer数据到image
-						KVulkanHelper::CopyVkBufferToVkImageByRegion(stagingBuffer, m_TextureImage, layerCounts, copyInfo);
-
-						if (m_bGenerateMipmap)
-						{
-							KVulkanHelper::GenerateMipmaps(m_TextureImage, m_TextureFormat, static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), layerCounts, static_cast<int32_t>(m_Mipmaps));
-						}
-						else
-						{
-							// 再转换image layout为之后shader使用image数据作准备
-							KVulkanHelper::TransitionImageLayout(m_TextureImage,
-								m_TextureFormat,
-								(uint32_t)layerCounts,
-								(uint32_t)m_Mipmaps,
-								VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-								VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-						}
-
-						// 创建imageview
-						KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)m_Mipmaps, m_TextureImageView);
-
-						KVulkanInitializer::FreeVkBuffer(stagingBuffer, stagingAllocInfo);
+							VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 					}
+
+					// 创建imageview
+					KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)m_Mipmaps, m_TextureImageView);
+
+					KVulkanInitializer::FreeVkBuffer(stagingBuffer, stagingAllocInfo);
 				}
+
 				m_bDeviceInit = true;
 				m_ImageData.pData = nullptr;
 

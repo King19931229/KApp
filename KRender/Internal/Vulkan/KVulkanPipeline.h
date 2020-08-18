@@ -129,7 +129,7 @@ protected:
 	bool ClearHandle();
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
 	bool SetSamplerImpl(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler, bool dynamic);
-	bool SetSamplerDepthAttachmentImpl(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynamic);
+	bool SetSamplerAttachmentImpl(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynamic);
 
 	bool CheckDependencyResource();
 
@@ -162,10 +162,10 @@ public:
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
 
 	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
-	virtual bool SetSamplerDepthAttachment(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler);
+	virtual bool SetSampler(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler);
 
 	virtual bool SetSamplerDynamic(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
-	virtual bool SetSamplerDepthAttachmentDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler);
+	virtual bool SetSamplerDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler);
 
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size);
 	virtual bool DestroyConstantBlock();

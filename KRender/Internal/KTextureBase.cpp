@@ -133,11 +133,9 @@ KTextureBase::KTextureBase()
 	m_Format(EF_UNKNOWN),
 	m_TextureType(TT_UNKNOWN),
 	m_bGenerateMipmap(false),
-	m_bCreateAsRt(false),
 	m_ResourceState(RS_UNLOADED),
 	m_MemoryLoadTask(nullptr)
 {
-
 }
 
 KTextureBase::~KTextureBase()
@@ -215,7 +213,6 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 		{
 			if (InitProperty(bGenerateMipmap))
 			{
-				m_bCreateAsRt = false;
 				m_Path = filePath;
 				m_ResourceState = RS_MEMORY_LOADED;
 				return true;
@@ -273,7 +270,6 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t
 
 				if (InitProperty(bGenerateMipmap))
 				{
-					m_bCreateAsRt = false;
 					m_ResourceState = RS_MEMORY_LOADED;
 					return true;
 				}
@@ -296,21 +292,6 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t
 	{
 		return loadImpl();
 	}
-}
-
-bool KTextureBase::InitMemeoryAsRT(size_t width, size_t height, ElementFormat format)
-{
-	WaitMemoryTask();
-	m_Width = width;
-	m_Height = height;
-	m_Depth = 1;
-	m_Mipmaps = 1;
-	m_Format = format;
-	m_TextureType = TT_TEXTURE_2D;
-	m_bCreateAsRt = true;
-	m_ImageData.pData = nullptr;
-	m_ResourceState = RS_MEMORY_LOADED;
-	return true;
 }
 
 bool KTextureBase::UnInit()

@@ -69,7 +69,6 @@ class KFrameGraphRenderTarget : public KFrameGraphResource
 {
 protected:
 	IKRenderTargetPtr m_RenderTarget;
-	IKTexturePtr m_Texture;
 	FrameGraphRenderTargetType m_TargetType;
 	// Allocate Parameters
 	size_t m_Width;

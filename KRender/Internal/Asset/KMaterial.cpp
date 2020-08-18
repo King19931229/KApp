@@ -374,7 +374,7 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexForma
 						IKSamplerPtr sampler = KRenderGlobal::ShadowMap.GetSampler();
 
 						IKRenderTargetPtr shadowRT = KRenderGlobal::ShadowMap.GetShadowMapTarget();
-						pipeline->SetSamplerDepthAttachment(shaderTexture.bindingIndex, shadowRT, sampler);
+						pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT, sampler);
 					}
 					else if (shaderTexture.bindingIndex == SHADER_BINDING_CSM0 ||
 						shaderTexture.bindingIndex == SHADER_BINDING_CSM1 ||
@@ -388,7 +388,7 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexForma
 						{
 							shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0);
 						}
-						pipeline->SetSamplerDepthAttachment(shaderTexture.bindingIndex, shadowRT, sampler);
+						pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT, sampler);
 					}
 				}
 			}

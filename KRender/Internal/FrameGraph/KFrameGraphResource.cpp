@@ -67,7 +67,6 @@ KFrameGraphRenderTarget::KFrameGraphRenderTarget()
 	: KFrameGraphResource(FrameGraphResourceType::RENDER_TARGET),
 	m_RenderTarget(nullptr),
 	m_TargetType(FrameGraphRenderTargetType::UNKNOWN_TARGET),
-	m_Texture(nullptr),
 	m_Format(EF_R8GB8BA8_UNORM),
 	m_Width(0),
 	m_Height(0),
@@ -80,13 +79,11 @@ KFrameGraphRenderTarget::KFrameGraphRenderTarget()
 KFrameGraphRenderTarget::~KFrameGraphRenderTarget()
 {
 	ASSERT_RESULT(!m_RenderTarget);
-	ASSERT_RESULT(!m_Texture);
 }
 
 bool KFrameGraphRenderTarget::ResetParameters()
 {
 	m_TargetType = FrameGraphRenderTargetType::UNKNOWN_TARGET;
-	m_Texture = nullptr;
 	m_Width = 0;
 	m_Height = 0;
 	m_MsaaCount = 1;
@@ -148,7 +145,6 @@ bool KFrameGraphRenderTarget::Destroy(IKRenderDevice* device)
 	{
 		m_RenderTarget = nullptr;
 	}
-	SAFE_UNINIT(m_Texture);
 	return true;
 }
 
@@ -183,14 +179,9 @@ bool KFrameGraphRenderTarget::AllocResource(IKRenderDevice* device)
 	{
 		case FrameGraphRenderTargetType::COLOR_TARGET:
 		{
-			ASSERT_RESULT(!m_Texture && !m_RenderTarget);
-			device->CreateTexture(m_Texture);
+			ASSERT_RESULT(!m_RenderTarget);
 			device->CreateRenderTarget(m_RenderTarget);
-
-			m_Texture->InitMemeoryAsRT(m_Width, m_Height, m_Format);
-			m_Texture->InitDevice(false);
-			m_RenderTarget->InitFromTexture(m_Texture.get(), m_Depth, m_Stencil, m_MsaaCount);
-
+			m_RenderTarget->InitFromColor(m_Width, m_Height, 1, m_Format);
 			m_Vaild = true;
 			return true;
 		}
@@ -198,9 +189,7 @@ bool KFrameGraphRenderTarget::AllocResource(IKRenderDevice* device)
 		{
 			ASSERT_RESULT(!m_RenderTarget);
 			device->CreateRenderTarget(m_RenderTarget);
-
 			m_RenderTarget->InitFromDepthStencil(m_Width, m_Height, m_Stencil);
-
 			m_Vaild = true;
 			return true;
 		}
@@ -226,7 +215,6 @@ bool KFrameGraphRenderTarget::ReleaseResource(IKRenderDevice* device)
 		case FrameGraphRenderTargetType::COLOR_TARGET:
 		case FrameGraphRenderTargetType::DEPTH_STENCIL_TARGET:
 		{
-			SAFE_UNINIT(m_Texture);
 			SAFE_UNINIT(m_RenderTarget);
 			m_Vaild = false;
 			return true;

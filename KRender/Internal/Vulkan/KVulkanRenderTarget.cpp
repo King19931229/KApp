@@ -59,14 +59,6 @@ bool KVulkanRenderTarget::InitFromTexture(IKTexture* texture, bool bDepth, bool 
 	KVulkanTexture* vulkanTexture = (KVulkanTexture*)texture;
 
 	m_ColorFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
-	/*
-	((KVulkanFrameBuffer*)m_ColorFrameBuffer.get())->InitColor(
-		vulkanTexture->GetImageFormat(),
-		vulkanTexture->GetTextureType(),
-		(uint32_t)vulkanTexture->GetWidth(),
-		(uint32_t)vulkanTexture->GetHeight(),
-		uMsaaCount);
-	*/
 
 	((KVulkanFrameBuffer*)m_ColorFrameBuffer.get())->InitExternal(
 		vulkanTexture->GetImage(),
@@ -100,6 +92,35 @@ bool KVulkanRenderTarget::InitFromDepthStencil(size_t width, size_t height, bool
 
 	m_RenderPass = IKRenderPassPtr(KNEW KVulkanRenderPass());
 	m_RenderPass->SetDepthStencil(m_DepthFrameBuffer);
+	m_RenderPass->Init();
+
+	return true;
+}
+
+bool KVulkanRenderTarget::InitFromColor(size_t width, size_t height, unsigned short uMsaaCount, ElementFormat format)
+{
+	UnInit();
+
+	m_ColorFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+
+	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
+	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
+
+	((KVulkanFrameBuffer*)m_ColorFrameBuffer.get())->InitColor(
+		vkFormat,
+		TT_TEXTURE_2D,
+		(uint32_t)width,
+		(uint32_t)height,
+		uMsaaCount);
+
+	m_RenderPass = IKRenderPassPtr(KNEW KVulkanRenderPass());
+	m_RenderPass->SetColor(0, m_ColorFrameBuffer);
+
+	// 临时代码兼容之前的逻辑 之后会干掉
+	m_DepthFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+	((KVulkanFrameBuffer*)m_DepthFrameBuffer.get())->InitDepthStencil((uint32_t)width, (uint32_t)height, uMsaaCount, true);
+	m_RenderPass->SetDepthStencil(m_DepthFrameBuffer);
+
 	m_RenderPass->Init();
 
 	return true;

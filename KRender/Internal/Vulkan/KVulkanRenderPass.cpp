@@ -95,9 +95,12 @@ bool KVulkanRenderPass::Init()
 			}
 		}
 
-		ASSERT_AND_RETURN(m_DepthFrameBuffer->GetWidth() == compareRef->GetWidth());
-		ASSERT_AND_RETURN(m_DepthFrameBuffer->GetHeight() == compareRef->GetHeight());
-		ASSERT_AND_RETURN(m_DepthFrameBuffer->GetMSAA() == compareRef->GetMSAA());
+		if (m_DepthFrameBuffer)
+		{
+			ASSERT_AND_RETURN(m_DepthFrameBuffer->GetWidth() == compareRef->GetWidth());
+			ASSERT_AND_RETURN(m_DepthFrameBuffer->GetHeight() == compareRef->GetHeight());
+			ASSERT_AND_RETURN(m_DepthFrameBuffer->GetMSAA() == compareRef->GetMSAA());
+		}
 
 #undef ASSERT_AND_RETURN
 
