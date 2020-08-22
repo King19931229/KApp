@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Internal/Manager/KPipelineManager.h"
 #include "Internal/Manager/KFrameResourceManager.h"
 #include "Internal/Manager/KShaderManager.h"
 #include "Internal/Manager/KMeshManager.h"
@@ -26,7 +25,6 @@
 
 namespace KRenderGlobal
 {
-	extern KPipelineManager PipelineManager;
 	extern KFrameResourceManager FrameResourceManager;
 	extern KShaderManager ShaderManager;
 	extern KMeshManager MeshManager;
@@ -52,4 +50,7 @@ namespace KRenderGlobal
 
 	extern uint32_t CurrentFrameIndex;
 	extern uint32_t CurrentFrameNum;
+
+	// Render Context
+	extern IKRenderDevice* RenderDevice;
 };

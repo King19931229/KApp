@@ -21,7 +21,7 @@ KShadowMap::~KShadowMap()
 {
 }
 
-bool KShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t shadowMapSize)
+bool KShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight, uint32_t shadowMapSize)
 {
 	ASSERT_RESULT(UnInit());
 
@@ -35,6 +35,11 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t
 
 	ASSERT_RESULT(renderDevice->CreateRenderTarget(m_RenderTarget));
 	ASSERT_RESULT(m_RenderTarget->InitFromDepthStencil(shadowMapSize, shadowMapSize, false));
+
+	ASSERT_RESULT(renderDevice->CreateRenderPass(m_RenderPass));
+	m_RenderPass->SetDepthStencilAttachment(m_RenderTarget->GetFrameBuffer());
+	m_RenderPass->SetClearDepthStencil({ 1.0f, 0 });
+	ASSERT_RESULT(m_RenderPass->Init());
 
 	m_CommandBuffers.resize(frameInFlight);
 	for (size_t i = 0; i < frameInFlight; ++i)
@@ -50,6 +55,7 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t
 bool KShadowMap::UnInit()
 {
 	SAFE_UNINIT(m_RenderTarget);
+	SAFE_UNINIT(m_RenderPass);
 
 	for (IKCommandBufferPtr& buffer : m_CommandBuffers)
 	{
@@ -108,15 +114,13 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 			std::vector<KRenderComponent*> cullRes;
 			KRenderGlobal::Scene.GetRenderComponent(m_Camera, cullRes);
 
-			IKRenderTargetPtr shadowMapTarget = m_RenderTarget;
 			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
-			KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
-			primaryBuffer->BeginRenderPass(shadowMapTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
+			primaryBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_SECONDARY);
 
-			commandBuffer->BeginSecondary(shadowMapTarget);			
+			commandBuffer->BeginSecondary(m_RenderPass);
+			commandBuffer->SetViewport(m_RenderPass);
 
-			commandBuffer->SetViewport(shadowMapTarget);
 			// Set depth bias (aka "Polygon offset")
 			// Required to avoid shadow mapping artefacts
 			commandBuffer->SetDepthBias(m_DepthBiasConstant, 0, m_DepthBiasSlope);
@@ -147,7 +151,7 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 				for (KRenderCommand& command : commandList)
 				{
 					IKPipelineHandlePtr handle = nullptr;
-					if (command.pipeline->GetHandle(shadowMapTarget, handle))
+					if (command.pipeline->GetHandle(m_RenderPass, handle))
 					{
 						command.pipelineHandle = handle;
 						commandBuffer->Render(command);

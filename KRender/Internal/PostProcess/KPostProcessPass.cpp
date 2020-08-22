@@ -131,9 +131,9 @@ bool KPostProcessPass::Init()
 		}
 
 		{
-			KRenderGlobal::PipelineManager.CreatePipeline(m_Pipeline);
+			device->CreatePipeline(m_Pipeline);
 
-			IKPipelinePtr pipeline = m_Pipeline;
+			IKPipelinePtr& pipeline = m_Pipeline;
 
 			VertexFormat formats[] = { VF_SCREENQUAD_POS };
 
@@ -190,16 +190,23 @@ bool KPostProcessPass::Init()
 		}
 	}
 
-	size_t width = static_cast<size_t>(m_Mgr->m_Width * m_Scale);
-	size_t height = static_cast<size_t>(m_Mgr->m_Height * m_Scale);
+	{
+		uint32_t width = static_cast<uint32_t>(m_Mgr->m_Width * m_Scale);
+		uint32_t height = static_cast<uint32_t>(m_Mgr->m_Height * m_Scale);
 
-	device->CreateRenderTarget(m_RenderTarget);
-	m_RenderTarget->InitFromColor(width, height, m_MsaaCount, m_Format);
+		device->CreateRenderTarget(m_RenderTarget);
+		m_RenderTarget->InitFromColor(width, height, m_MsaaCount, m_Format);
+
+		device->CreateRenderPass(m_RenderPass);
+		m_RenderPass->SetColorAttachment(0, m_RenderTarget->GetFrameBuffer());
+		m_RenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		m_RenderPass->Init();
+	}
 
 	{
-		KRenderGlobal::PipelineManager.CreatePipeline(m_ScreenDrawPipeline);
+		device->CreatePipeline(m_ScreenDrawPipeline);
 
-		IKPipelinePtr pipeline = m_ScreenDrawPipeline;
+		IKPipelinePtr& pipeline = m_ScreenDrawPipeline;
 
 		VertexFormat formats[] = { VF_SCREENQUAD_POS };
 
@@ -251,6 +258,7 @@ bool KPostProcessPass::UnInit()
 	}
 
 	SAFE_UNINIT(m_RenderTarget);
+	SAFE_UNINIT(m_RenderPass);
 	SAFE_UNINIT(m_Pipeline);
 	SAFE_UNINIT(m_ScreenDrawPipeline);
 

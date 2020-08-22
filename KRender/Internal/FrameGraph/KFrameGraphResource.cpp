@@ -92,7 +92,7 @@ bool KFrameGraphRenderTarget::ResetParameters()
 	return true;
 }
 
-bool KFrameGraphRenderTarget::CreateAsColor(IKRenderDevice* device, size_t width, size_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
+bool KFrameGraphRenderTarget::CreateAsColor(IKRenderDevice* device, uint32_t width, uint32_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
 {
 	Destroy(device);
 	ResetParameters();
@@ -107,7 +107,7 @@ bool KFrameGraphRenderTarget::CreateAsColor(IKRenderDevice* device, size_t width
 	return true;
 }
 
-bool KFrameGraphRenderTarget::CreateAsDepthStencil(IKRenderDevice* device, size_t width, size_t height, bool bStencil)
+bool KFrameGraphRenderTarget::CreateAsDepthStencil(IKRenderDevice* device, uint32_t width, uint32_t height, bool bStencil)
 {
 	Destroy(device);
 	ResetParameters();

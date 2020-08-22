@@ -54,7 +54,7 @@ KFrameGraphHandlePtr KFrameGraph::CreateTexture(IKTexturePtr texture)
 	return handle;
 }
 
-KFrameGraphHandlePtr KFrameGraph::CreateColorRenderTarget(size_t width, size_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
+KFrameGraphHandlePtr KFrameGraph::CreateColorRenderTarget(uint32_t width, uint32_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
 {
 	KFrameGraphResourcePtr resource = KFrameGraphResourcePtr(KNEW KFrameGraphTexture());
 	KFrameGraphRenderTarget* targetResource = static_cast<KFrameGraphRenderTarget*>(resource.get());
@@ -67,7 +67,7 @@ KFrameGraphHandlePtr KFrameGraph::CreateColorRenderTarget(size_t width, size_t h
 	return handle;
 }
 
-KFrameGraphHandlePtr KFrameGraph::CreateDepthStecnilRenderTarget(size_t width, size_t height, bool bStencil)
+KFrameGraphHandlePtr KFrameGraph::CreateDepthStecnilRenderTarget(uint32_t width, uint32_t height, bool bStencil)
 {
 	KFrameGraphResourcePtr resource = KFrameGraphResourcePtr(KNEW KFrameGraphTexture());
 	KFrameGraphRenderTarget* targetResource = static_cast<KFrameGraphRenderTarget*>(resource.get());
@@ -80,7 +80,7 @@ KFrameGraphHandlePtr KFrameGraph::CreateDepthStecnilRenderTarget(size_t width, s
 	return handle;
 }
 
-bool KFrameGraph::RecreateColorRenderTarget(KFrameGraphHandlePtr handle, size_t width, size_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
+bool KFrameGraph::RecreateColorRenderTarget(KFrameGraphHandlePtr handle, uint32_t width, uint32_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
 {
 	if (handle)
 	{
@@ -98,7 +98,7 @@ bool KFrameGraph::RecreateColorRenderTarget(KFrameGraphHandlePtr handle, size_t 
 	return false;
 }
 
-bool KFrameGraph::RecreateDepthStecnilRenderTarget(KFrameGraphHandlePtr handle, size_t width, size_t height, bool bStencil)
+bool KFrameGraph::RecreateDepthStecnilRenderTarget(KFrameGraphHandlePtr handle, uint32_t width, uint32_t height, bool bStencil)
 {
 	if (handle)
 	{

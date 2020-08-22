@@ -499,9 +499,9 @@ bool KCameraCube::Init(IKRenderDevice* renderDevice, size_t frameInFlight, KCame
 
 	for (size_t i = 0; i < frameInFlight; ++i)
 	{
-		KRenderGlobal::PipelineManager.CreatePipeline(m_BackGroundPipelines[i]);
-		KRenderGlobal::PipelineManager.CreatePipeline(m_CubePipelines[i]);
-		KRenderGlobal::PipelineManager.CreatePipeline(m_PickPipelines[i]);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_BackGroundPipelines[i]);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_CubePipelines[i]);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_PickPipelines[i]);
 
 		{
 			IKCommandBufferPtr& buffer = m_CommandBuffers[i];
@@ -527,24 +527,21 @@ bool KCameraCube::UnInit()
 {
 	m_Camera = nullptr;
 
-	for (IKPipelinePtr pipeline : m_BackGroundPipelines)
+	for (IKPipelinePtr& pipeline : m_BackGroundPipelines)
 	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-		pipeline = nullptr;
+		SAFE_UNINIT(pipeline);
 	}
 	m_BackGroundPipelines.clear();
 
-	for (IKPipelinePtr pipeline : m_CubePipelines)
+	for (IKPipelinePtr& pipeline : m_CubePipelines)
 	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-		pipeline = nullptr;
+		SAFE_UNINIT(pipeline);
 	}
 	m_CubePipelines.clear();
 
-	for (IKPipelinePtr pipeline : m_PickPipelines)
+	for (IKPipelinePtr& pipeline : m_PickPipelines)
 	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-		pipeline = nullptr;
+		SAFE_UNINIT(pipeline);
 	}
 	m_PickPipelines.clear();
 
@@ -1032,13 +1029,13 @@ bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& comman
 	return false;
 }
 
-void KCameraCube::ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTargetPtr target, const KClearDepthStencil& value)
+void KCameraCube::ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const KClearDepthStencil& value)
 {
 	KClearRect rect;
 
-	size_t width = 0;
-	size_t height = 0;
-	target->GetSize(width, height);
+	uint32_t width = 0;
+	uint32_t height = 0;
+	renderPass->GetSize(width, height);
 
 	rect.width = static_cast<uint32_t>(width);
 	rect.height = static_cast<uint32_t>(height);
@@ -1046,7 +1043,7 @@ void KCameraCube::ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTargetPtr
 	buffer->ClearDepthStencil(rect, value);
 }
 
-bool KCameraCube::Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers)
+bool KCameraCube::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
 	KRenderCommandList commands;
 	if (GetRenderCommand(frameIndex, commands))
@@ -1055,18 +1052,19 @@ bool KCameraCube::Render(size_t frameIndex, IKRenderTargetPtr target, std::vecto
 
 		IKCommandBufferPtr clearCommandBuffer = m_ClearCommandBuffers[frameIndex];
 
-		clearCommandBuffer->BeginSecondary(target);
-		clearCommandBuffer->SetViewport(target);
-		ClearDepthStencil(clearCommandBuffer, target, clearValue.depthStencil);
+		clearCommandBuffer->BeginSecondary(renderPass);
+		clearCommandBuffer->SetViewport(renderPass);
+		if (renderPass->HasDepthStencilAttachment())
+			ClearDepthStencil(clearCommandBuffer, renderPass, clearValue.depthStencil);
 		clearCommandBuffer->End();
 		buffers.push_back(clearCommandBuffer);
 
 		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
-		commandBuffer->BeginSecondary(target);
-		commandBuffer->SetViewport(target);
+		commandBuffer->BeginSecondary(renderPass);
+		commandBuffer->SetViewport(renderPass);
 		for (KRenderCommand& command : commands)
 		{
-			command.pipeline->GetHandle(target, command.pipelineHandle);
+			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 			commandBuffer->Render(command);
 		}
 		commandBuffer->End();

@@ -1,5 +1,6 @@
 #include "KVulkanCommandBuffer.h"
 #include "KVulkanRenderTarget.h"
+#include "KVulkanRenderPass.h"
 #include "KVulkanPipeline.h"
 #include "KVulkanBuffer.h"
 #include "KVulkanQuery.h"
@@ -132,16 +133,16 @@ bool KVulkanCommandBuffer::UnInit()
 	return true;
 }
 
-bool KVulkanCommandBuffer::SetViewport(IKRenderTargetPtr target)
+bool KVulkanCommandBuffer::SetViewport(IKRenderPassPtr renderPass)
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	if(m_CommandBuffer != VK_NULL_HANDLE)
 	{
-		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target.get();
+		KVulkanRenderPass* vulkanRenderPass = (KVulkanRenderPass*)renderPass.get();
 
 		// 设置视口与裁剪
 		VkOffset2D offset = {0, 0};
-		VkExtent2D extent = vulkanTarget->GetExtend();
+		VkExtent2D extent = vulkanRenderPass->GetVkExtent();
 
 		VkRect2D scissorRect = { offset, extent};
 		VkViewport viewPort = 
@@ -340,19 +341,19 @@ bool KVulkanCommandBuffer::BeginPrimary()
 	return false;
 }
 
-bool KVulkanCommandBuffer::BeginSecondary(IKRenderTargetPtr target)
+bool KVulkanCommandBuffer::BeginSecondary(IKRenderPassPtr renderPass)
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 
-	if(m_CommandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+	if (m_CommandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
 	{
-		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target.get();
+		KVulkanRenderPass* vulkanRenderPass = (KVulkanRenderPass*)renderPass.get();
 
 		VkCommandBufferInheritanceInfo inheritanceInfo = {};
 		inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-		inheritanceInfo.renderPass = vulkanTarget->GetRenderPass();
-		inheritanceInfo.framebuffer = vulkanTarget->GetFrameBuffer();
+		inheritanceInfo.renderPass = vulkanRenderPass->GetVkRenderPass();
+		inheritanceInfo.framebuffer = vulkanRenderPass->GetVkFrameBuffer();
 		inheritanceInfo.occlusionQueryEnable = VK_TRUE;
 		inheritanceInfo.queryFlags = 0;
 
@@ -369,67 +370,45 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderTargetPtr target)
 	return false;
 }
 
-bool KVulkanCommandBuffer::BeginRenderPass(IKRenderTargetPtr target, SubpassContents conent, const KClearValue& clearValue)
+bool KVulkanCommandBuffer::BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent)
 {
-	assert(target);
+	assert(renderPass);
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
-	if(m_CommandBuffer != VK_NULL_HANDLE)
+	if (m_CommandBuffer != VK_NULL_HANDLE)
 	{
-		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target.get();
+		KVulkanRenderPass* vulkanRenderPass = (KVulkanRenderPass*)renderPass.get();
 
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		// 指定渲染通道
-		renderPassInfo.renderPass = vulkanTarget->GetRenderPass();
+		renderPassInfo.renderPass = vulkanRenderPass->GetVkRenderPass();
 		// 指定帧缓冲
-		renderPassInfo.framebuffer = vulkanTarget->GetFrameBuffer();
+		renderPassInfo.framebuffer = vulkanRenderPass->GetVkFrameBuffer();
 
 		renderPassInfo.renderArea.offset.x = 0;
 		renderPassInfo.renderArea.offset.y = 0;
-		renderPassInfo.renderArea.extent = vulkanTarget->GetExtend();
+		renderPassInfo.renderArea.extent = vulkanRenderPass->GetVkExtent();
 
+
+		KVulkanRenderPass::VkClearValueArray clearValues;
+		vulkanRenderPass->GetVkClearValues(clearValues);
 		// 注意清理缓冲值的顺序要和RenderPass绑定Attachment的顺序一致
-		VkClearValue clearValues[2];
-		uint32_t clearValueCount = 0;
-		if (vulkanTarget->HasColorAttachment())
-		{
-			clearValues[0].color.float32[0] = clearValue.color.r;
-			clearValues[0].color.float32[1] = clearValue.color.g;
-			clearValues[0].color.float32[2] = clearValue.color.b;
-			clearValues[0].color.float32[3] = clearValue.color.a;
-			if (vulkanTarget->HasDepthStencilAttachment())
-			{
-				clearValues[1].depthStencil.depth = clearValue.depthStencil.depth;
-				clearValues[1].depthStencil.stencil = clearValue.depthStencil.stencil;
-				clearValueCount = 2;
-			}
-			else
-			{
-				clearValueCount = 1;
-			}
-		}
-		else if (vulkanTarget->HasDepthStencilAttachment())
-		{
-			clearValues[0].depthStencil.depth = clearValue.depthStencil.depth;
-			clearValues[0].depthStencil.stencil = clearValue.depthStencil.stencil;
-			clearValueCount = 1;
-		}
 
-		renderPassInfo.pClearValues = clearValues;
-		renderPassInfo.clearValueCount = clearValueCount;
+		renderPassInfo.pClearValues = clearValues.data();
+		renderPassInfo.clearValueCount = (uint32_t)clearValues.size();
 
 		VkSubpassContents subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
 		switch (conent)
 		{
-		case SUBPASS_CONTENTS_INLINE:
-			subpassContents = VK_SUBPASS_CONTENTS_INLINE;
-			break;
-		case SUBPASS_CONTENTS_SECONDARY:
-			subpassContents = VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS;
-			break;
-		default:
-			assert(false && "unable to reach");
-			break;
+			case SUBPASS_CONTENTS_INLINE:
+				subpassContents = VK_SUBPASS_CONTENTS_INLINE;
+				break;
+			case SUBPASS_CONTENTS_SECONDARY:
+				subpassContents = VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS;
+				break;
+			default:
+				assert(false && "unable to reach");
+				break;
 		}
 
 		vkCmdBeginRenderPass(m_CommandBuffer, &renderPassInfo, subpassContents);

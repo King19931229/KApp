@@ -135,7 +135,7 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 
 	for(size_t i = 0; i < frameInFlight; ++i)
 	{
-		KRenderGlobal::PipelineManager.CreatePipeline(m_Pipelines[i]);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_Pipelines[i]);
 
 		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
 		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
@@ -151,10 +151,9 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 
 bool KSkyBox::UnInit()
 {
-	for(IKPipelinePtr pipeline : m_Pipelines)
+	for(IKPipelinePtr& pipeline : m_Pipelines)
 	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-		pipeline = nullptr;
+		SAFE_UNINIT(pipeline);
 	}
 	m_Pipelines.clear();
 
@@ -189,7 +188,7 @@ bool KSkyBox::UnInit()
 	return true;
 }
 
-bool KSkyBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers)
+bool KSkyBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
 	if (frameIndex < m_Pipelines.size())
 	{
@@ -197,13 +196,13 @@ bool KSkyBox::Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<IK
 		command.vertexData = &m_VertexData;
 		command.indexData = &m_IndexData;
 		command.pipeline = m_Pipelines[frameIndex];
-		command.pipeline->GetHandle(target, command.pipelineHandle);
+		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		command.indexDraw = true;
 
 		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
-		commandBuffer->BeginSecondary(target);
-		commandBuffer->SetViewport(target);
+		commandBuffer->BeginSecondary(renderPass);
+		commandBuffer->SetViewport(renderPass);
 		commandBuffer->Render(command);
 		commandBuffer->End();
 

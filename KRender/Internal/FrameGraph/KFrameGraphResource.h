@@ -71,8 +71,8 @@ protected:
 	IKRenderTargetPtr m_RenderTarget;
 	FrameGraphRenderTargetType m_TargetType;
 	// Allocate Parameters
-	size_t m_Width;
-	size_t m_Height;
+	uint32_t m_Width;
+	uint32_t m_Height;
 	ElementFormat m_Format;
 	unsigned short m_MsaaCount;
 	bool m_Depth;
@@ -89,8 +89,8 @@ public:
 	bool Release(IKRenderDevice* device) override;
 	bool Destroy(IKRenderDevice* device) override;
 
-	bool CreateAsColor(IKRenderDevice* device, size_t width, size_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount);
-	bool CreateAsDepthStencil(IKRenderDevice* device, size_t width, size_t height, bool bStencil);
+	bool CreateAsColor(IKRenderDevice* device, uint32_t width, uint32_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount);
+	bool CreateAsDepthStencil(IKRenderDevice* device, uint32_t width, uint32_t height, bool bStencil);
 	bool CreateFromImportTarget(IKRenderDevice* device, IKRenderTargetPtr target);
 
 	const IKRenderTargetPtr GetTarget() const { return m_RenderTarget; }

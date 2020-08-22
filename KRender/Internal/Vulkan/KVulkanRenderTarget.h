@@ -6,32 +6,20 @@
 class KVulkanRenderTarget : public IKRenderTarget
 {
 protected:
-	IKFrameBufferPtr m_ColorFrameBuffer;
-	IKFrameBufferPtr m_DepthFrameBuffer;
-	IKRenderPassPtr m_RenderPass;
-
+	IKFrameBufferPtr m_FrameBuffer;
+	bool m_DepthStencil;
+public:
 	KVulkanRenderTarget();
-public:
-	static IKRenderTargetPtr CreateRenderTarget();
-public:
 	~KVulkanRenderTarget();
 
-	virtual bool InitFromSwapChain(IKSwapChain* swapChain, size_t imageIndex, bool bDepth, bool bStencil, unsigned short uMsaaCount);
-	virtual bool InitFromTexture(IKTexture* texture, bool bDepth, bool bStencil, unsigned short uMsaaCount);
-
-	virtual bool InitFromDepthStencil(size_t width, size_t height, bool bStencil);
-	virtual bool InitFromColor(size_t width, size_t height, unsigned short uMsaaCount, ElementFormat format);
+	virtual bool InitFromDepthStencil(uint32_t width, uint32_t height, bool bStencil);
+	virtual bool InitFromColor(uint32_t width, uint32_t height, unsigned short uMsaaCount, ElementFormat format);
 	virtual bool UnInit();
+	virtual bool IsDepthStencil();
 
 	virtual bool GetSize(size_t& width, size_t& height);
+	virtual IKFrameBufferPtr GetFrameBuffer();
 
-	virtual bool HasColorAttachment();
-	virtual bool HasDepthStencilAttachment();
-
-	VkRenderPass GetRenderPass();
-	VkFramebuffer GetFrameBuffer();
 	VkExtent2D GetExtend();
 	VkSampleCountFlagBits GetMsaaFlag();
-
-	bool GetImageViewInformation(RenderTargetComponent component, VkFormat& format, VkImageView& imageView);
 };

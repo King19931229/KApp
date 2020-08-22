@@ -183,9 +183,6 @@
     <ClInclude Include="Internal\Manager\KMeshManager.h">
       <Filter>Internal\Manager</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Manager\KPipelineManager.h">
-      <Filter>Internal\Manager</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Manager\KShaderManager.h">
       <Filter>Internal\Manager</Filter>
     </ClInclude>
@@ -495,9 +492,6 @@
       <Filter>Internal\Manager</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Manager\KMeshManager.cpp">
-      <Filter>Internal\Manager</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\Manager\KPipelineManager.cpp">
       <Filter>Internal\Manager</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Manager\KShaderManager.cpp">

@@ -5,7 +5,7 @@
 struct IKPipelineHandle
 {
 	virtual ~IKPipelineHandle() {}
-	virtual bool Init(IKPipeline* pipeline, IKRenderTarget* target) = 0;
+	virtual bool Init(IKPipeline* pipeline, IKRenderPass* renderPass) = 0;
 	virtual bool UnInit() = 0;
 };
 
@@ -47,6 +47,5 @@ struct IKPipeline
 	virtual bool UnInit() = 0;
 	virtual bool Reload() = 0;
 
-	virtual bool GetHandle(IKRenderTargetPtr target, IKPipelineHandlePtr& handle) = 0;
-	virtual bool InvaildHandle(IKRenderTargetPtr target) = 0;
+	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle) = 0;
 };

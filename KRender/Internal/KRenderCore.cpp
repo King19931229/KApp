@@ -96,7 +96,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderDeviceProperties property;
 	ASSERT_RESULT(m_Device->QueryProperty(property));
 
-	KRenderGlobal::PipelineManager.Init(m_Device);
+	KRenderGlobal::RenderDevice = m_Device;
 	KRenderGlobal::FrameResourceManager.Init(m_Device, frameInFlight);
 	KRenderGlobal::MeshManager.Init(m_Device, frameInFlight);
 	KRenderGlobal::ShaderManager.Init(m_Device);
@@ -131,10 +131,11 @@ bool KRenderCore::UnInitGlobalManager()
 	KRenderGlobal::MeshManager.UnInit();
 	KRenderGlobal::TextureManager.UnInit();
 	KRenderGlobal::ShaderManager.UnInit();
-	KRenderGlobal::PipelineManager.UnInit();
 	KRenderGlobal::FrameResourceManager.UnInit();
 	KRenderGlobal::DynamicConstantBufferManager.UnInit();
 	KRenderGlobal::InstanceBufferManager.UnInit();
+
+	KRenderGlobal::RenderDevice = nullptr;
 
 	return true;
 }
@@ -172,7 +173,7 @@ bool KRenderCore::InitController()
 		{
 			m_Device->Wait();
 			KRenderGlobal::ShaderManager.Reload();
-			KRenderGlobal::PipelineManager.Reload();
+			// TODO 通知回Pipeline
 		}
 	};
 

@@ -5,6 +5,8 @@
 #include "KVulkanHelper.h"
 #include "KVulkanShader.h"
 #include "KVulkanRenderTarget.h"
+#include "KVulkanRenderPass.h"
+#include "KVulkanFrameBuffer.h"
 #include "KVulkanGlobal.h"
 
 KVulkanPipeline::KVulkanPipeline() :
@@ -38,6 +40,11 @@ KVulkanPipeline::KVulkanPipeline() :
 	m_StencilEnable(VK_FALSE)
 {
 	m_PushContant = { 0, 0 };
+
+	m_RenderPassInvalidCB = [this](IKRenderPass* renderPass)
+	{
+		InvaildHandle(renderPass);
+	};
 }
 
 KVulkanPipeline::~KVulkanPipeline()
@@ -48,6 +55,21 @@ KVulkanPipeline::~KVulkanPipeline()
 	ASSERT_RESULT(m_FragmentShader == nullptr);
 	ASSERT_RESULT(m_Uniforms.empty());
 	ASSERT_RESULT(m_Samplers.empty());
+}
+
+bool KVulkanPipeline::InvaildHandle(IKRenderPass* renderPass)
+{
+	if (renderPass)
+	{
+		auto it = m_HandleMap.find(renderPass);
+		if (it != m_HandleMap.end())
+		{
+			IKPipelineHandlePtr handle = it->second;
+			handle->UnInit();
+			m_HandleMap.erase(it);
+		}
+	}
+	return true;
 }
 
 bool KVulkanPipeline::DestroyDevice()
@@ -70,7 +92,9 @@ bool KVulkanPipeline::ClearHandle()
 {
 	for (auto& pair : m_HandleMap)
 	{
+		IKRenderPass* pass = pair.first;
 		IKPipelineHandlePtr handle = pair.second;
+		pass->UnRegisterInvalidCallback(&m_RenderPassInvalidCB);
 		handle->UnInit();
 	}
 	m_HandleMap.clear();
@@ -264,28 +288,17 @@ bool KVulkanPipeline::SetSamplerAttachmentImpl(unsigned int location, IKRenderTa
 	if (target && sampler)
 	{
 		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target.get();
+		KVulkanFrameBuffer* frameBuffer = (KVulkanFrameBuffer*)vulkanTarget->GetFrameBuffer().get();
 
 		VkFormat format = VK_FORMAT_UNDEFINED;
 		VkImageView imageView = VK_NULL_HANDLE;
 
 		SamplerBindingInfo info;
 
-		if (!vulkanTarget->GetImageViewInformation(RTC_COLOR, format, imageView))
-		{
-			ASSERT_RESULT(vulkanTarget->GetImageViewInformation(RTC_DEPTH_STENCIL, format, imageView));
-			info.depthStencil = true;
-		}
-		else
-		{
-			info.depthStencil = false;
-		}
-
-		ASSERT_RESULT(imageView != VK_NULL_HANDLE);
-		
-
-		info.vkImageView = imageView;
+		info.vkImageView = frameBuffer->GetImageView();
 		info.vkSampler = ((KVulkanSampler*)sampler.get())->GetVkSampler();
 		info.nakeInfo = true;
+		info.depthStencil = vulkanTarget->IsDepthStencil();
 		info.dynamicWrite = dynamic;
 
 		ASSERT_RESULT(BindSampler(location, info));
@@ -801,7 +814,7 @@ bool KVulkanPipeline::CheckDependencyResource()
 	return true;
 }
 
-bool KVulkanPipeline::GetHandle(IKRenderTargetPtr target, IKPipelineHandlePtr& handle)
+bool KVulkanPipeline::GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle)
 {
 	if (!CheckDependencyResource())
 	{
@@ -814,38 +827,23 @@ bool KVulkanPipeline::GetHandle(IKRenderTargetPtr target, IKPipelineHandlePtr& h
 		CreateDestcriptionPool();
 	}
 
-	if (target)
+	if (renderPass)
 	{
-		auto it = m_HandleMap.find(target);
+		auto it = m_HandleMap.find(renderPass.get());
 		if (it != m_HandleMap.end())
 		{
 			handle = it->second;
 			return true;
 		}
 
+		renderPass->RegisterInvalidCallback(&m_RenderPassInvalidCB);
 		handle = IKPipelineHandlePtr(KNEW KVulkanPipelineHandle());
-		handle->Init(this, target.get());
-
-		m_HandleMap[target] = handle;
+		handle->Init(this, renderPass.get());
+		m_HandleMap[renderPass.get()] = handle;
 
 		return true;
 	}
 	return false;
-}
-
-bool KVulkanPipeline::InvaildHandle(IKRenderTargetPtr target)
-{
-	if (target)
-	{
-		auto it = m_HandleMap.find(target);
-		if (it != m_HandleMap.end())
-		{
-			IKPipelineHandlePtr handle = it->second;
-			handle->UnInit();
-			m_HandleMap.erase(it);
-		}
-	}
-	return true;
 }
 
 KVulkanPipelineHandle::KVulkanPipelineHandle()
@@ -858,23 +856,23 @@ KVulkanPipelineHandle::~KVulkanPipelineHandle()
 	ASSERT_RESULT(m_GraphicsPipeline == VK_NULL_HANDLE);
 }
 
-bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
+bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 {
 	UnInit();
 
 	ASSERT_RESULT(pipeline);
-	ASSERT_RESULT(target);
+	ASSERT_RESULT(renderPass);
 
 	ASSERT_RESULT(m_GraphicsPipeline == VK_NULL_HANDLE);
 
 	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline);
-	KVulkanRenderTarget* vulkanTarget = static_cast<KVulkanRenderTarget*>(target);
+	KVulkanRenderPass* vulkanRenderPass = static_cast<KVulkanRenderPass*>(renderPass);
 
 	ASSERT_RESULT(vulkanPipeline->m_VertexShader && vulkanPipeline->m_FragmentShader);
 	ASSERT_RESULT(vulkanPipeline->m_PipelineLayout);
 
-	VkSampleCountFlagBits msaaFlag = vulkanTarget->GetMsaaFlag();
-	VkExtent2D extend = vulkanTarget->GetExtend();
+	VkSampleCountFlagBits msaaFlag = vulkanRenderPass->GetMSAAFlag();
+	VkExtent2D extend = vulkanRenderPass->GetVkExtent();
 
 	// 配置顶点输入信息
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
@@ -984,20 +982,9 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	colorBlending.logicOpEnable = VK_FALSE;
 	colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
 
-	{
-		VkFormat colorForamt = VK_FORMAT_UNDEFINED;
-		VkImageView colorImageView = VK_NULL_HANDLE;
-		if (vulkanTarget->GetImageViewInformation(RTC_COLOR, colorForamt, colorImageView))
-		{
-			colorBlending.attachmentCount = 1;
-			colorBlending.pAttachments = &colorBlendAttachment;
-		}
-		else
-		{
-			colorBlending.attachmentCount = 0;
-			colorBlending.pAttachments = nullptr;
-		}
-	}
+	colorBlending.attachmentCount = vulkanRenderPass->GetColorAttachmentCount();
+	colorBlending.pAttachments = &colorBlendAttachment;
+
 	colorBlending.blendConstants[0] = 0.0f; // Optional
 	colorBlending.blendConstants[1] = 0.0f; // Optional
 	colorBlending.blendConstants[2] = 0.0f; // Optional
@@ -1064,7 +1051,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderTarget* target)
 	// 指定管线布局
 	pipelineInfo.layout = vulkanPipeline->m_PipelineLayout;
 	// 指定渲染通道
-	pipelineInfo.renderPass = vulkanTarget->GetRenderPass();
+	pipelineInfo.renderPass = vulkanRenderPass->GetVkRenderPass();
 	pipelineInfo.subpass = 0;
 
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional

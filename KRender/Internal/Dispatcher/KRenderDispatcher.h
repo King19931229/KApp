@@ -64,9 +64,9 @@ protected:
 	bool CreateCommandBuffers();
 	bool DestroyCommandBuffers();
 
-	void RenderSecondary(IKCommandBufferPtr buffer, IKRenderTargetPtr offscreenTarget, const std::vector<KRenderCommand>& commands);
+	void RenderSecondary(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const std::vector<KRenderCommand>& commands);
 
-	void PopulateRenderCommand(size_t frameIndex, IKRenderTargetPtr offscreenTarget,
+	void PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass,
 		std::vector<KRenderComponent*>& cullRes, std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands);
 
 	bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material, bool useMaterialTex);

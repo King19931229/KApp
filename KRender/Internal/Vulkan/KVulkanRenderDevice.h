@@ -150,13 +150,14 @@ public:
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target);
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline);
-	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle);
 
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool);
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer);
 
 	virtual bool CreateQuery(IKQueryPtr& query);
 	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain);
+
+	virtual bool CreateRenderPass(IKRenderPassPtr& renderPass);
 
 	virtual bool Present();
 	virtual bool Wait();

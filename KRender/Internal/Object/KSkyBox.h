@@ -37,7 +37,7 @@ public:
 	bool Init(IKRenderDevice* renderDevice,	size_t frameInFlight, const char* cubeTexPath);
 	bool UnInit();
 
-	bool Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers);
+	bool Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 
 	inline IKTexturePtr GetCubeTexture() { return m_CubeTexture; }
 	inline IKSamplerPtr GetSampler() { return m_CubeSampler; }

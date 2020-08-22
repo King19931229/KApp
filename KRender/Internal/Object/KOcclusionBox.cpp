@@ -261,11 +261,11 @@ bool KOcclusionBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 
 	for (size_t i = 0; i < frameInFlight; ++i)
 	{
-		KRenderGlobal::PipelineManager.CreatePipeline(m_PipelinesFrontFace[i]);
-		KRenderGlobal::PipelineManager.CreatePipeline(m_PipelinesBackFace[i]);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_PipelinesFrontFace[i]);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_PipelinesBackFace[i]);
 
-		KRenderGlobal::PipelineManager.CreatePipeline(m_PipelinesInstanceFrontFace[i]);
-		KRenderGlobal::PipelineManager.CreatePipeline(m_PipelinesInstanceBackFace[i]);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_PipelinesInstanceFrontFace[i]);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_PipelinesInstanceBackFace[i]);
 
 		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
 		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
@@ -281,31 +281,27 @@ bool KOcclusionBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 
 bool KOcclusionBox::UnInit()
 {
-	for (IKPipelinePtr pipeline : m_PipelinesFrontFace)
+	for (IKPipelinePtr& pipeline : m_PipelinesFrontFace)
 	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-		pipeline = nullptr;
+		SAFE_UNINIT(pipeline);
 	}
 	m_PipelinesFrontFace.clear();
 
-	for (IKPipelinePtr pipeline : m_PipelinesBackFace)
+	for (IKPipelinePtr& pipeline : m_PipelinesBackFace)
 	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-		pipeline = nullptr;
+		SAFE_UNINIT(pipeline);
 	}
 	m_PipelinesBackFace.clear();
 
-	for (IKPipelinePtr pipeline : m_PipelinesInstanceFrontFace)
+	for (IKPipelinePtr& pipeline : m_PipelinesInstanceFrontFace)
 	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-		pipeline = nullptr;
+		SAFE_UNINIT(pipeline);
 	}
 	m_PipelinesInstanceFrontFace.clear();
 
-	for (IKPipelinePtr pipeline : m_PipelinesInstanceBackFace)
+	for (IKPipelinePtr& pipeline : m_PipelinesInstanceBackFace)
 	{
-		KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-		pipeline = nullptr;
+		SAFE_UNINIT(pipeline);
 	}
 	m_PipelinesInstanceBackFace.clear();
 
@@ -449,7 +445,7 @@ bool KOcclusionBox::MergeInstanceMap(KRenderComponent* renderComponent, const KA
 	return false;
 }
 
-bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers)
+bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers)
 {
 	if (frameIndex < m_CommandBuffers.size() && camera)
 	{
@@ -457,8 +453,8 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 		{
 			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
-			commandBuffer->BeginSecondary(target);
-			commandBuffer->SetViewport(target);
+			commandBuffer->BeginSecondary(renderPass);
+			commandBuffer->SetViewport(renderPass);
 			// 解决Z-Fighting问题
 			commandBuffer->SetDepthBias(m_DepthBiasConstant, 0.0f, m_DepthBiasSlope);
 
@@ -611,13 +607,13 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 							// Front Face Pass
 							{
 								command.pipeline = m_PipelinesFrontFace[frameIndex];
-								command.pipeline->GetHandle(target, command.pipelineHandle);
+								command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 								commandBuffer->Render(command);
 							}
 							// Back Face Pass
 							{
 								command.pipeline = m_PipelinesBackFace[frameIndex];
-								command.pipeline->GetHandle(target, command.pipelineHandle);
+								command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 								commandBuffer->Render(command);
 							}
 						}
@@ -674,13 +670,13 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderTargetPtr target, const KC
 						// Front Face Pass
 						{
 							command.pipeline = m_PipelinesInstanceFrontFace[frameIndex];
-							command.pipeline->GetHandle(target, command.pipelineHandle);
+							command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 							commandBuffer->Render(command);
 						}
 						// Back Face Pass
 						{
 							command.pipeline = m_PipelinesInstanceBackFace[frameIndex];
-							command.pipeline->GetHandle(target, command.pipelineHandle);
+							command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 							commandBuffer->Render(command);
 						}
 

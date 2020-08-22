@@ -6,6 +6,7 @@
 #include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
 #include "KVulkanCommandBuffer.h"
+#include "KVulkanRenderPass.h"
 
 #include "Internal/KRenderGlobal.h"
 
@@ -21,7 +22,7 @@ KVulkanUIOverlay::~KVulkanUIOverlay()
 
 }
 
-bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderTargetPtr target, IKCommandBufferPtr commandBuffer)
+bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderPassPtr renderPass, IKCommandBufferPtr commandBuffer)
 {
 	if(imageIndex < m_Pipelines.size())
 	{
@@ -40,10 +41,10 @@ bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderTargetPtr target, I
 		KVulkanPipeline* vulkanPipeline = (KVulkanPipeline*)m_Pipelines[imageIndex].get();
 		KVulkanVertexBuffer* vulkanVertexBuffer = (KVulkanVertexBuffer*)m_VertexBuffers[imageIndex].get();
 		KVulkanIndexBuffer* vulkanIndexBuffer = (KVulkanIndexBuffer*)m_IndexBuffers[imageIndex].get();
-		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)(target.get());
+		KVulkanRenderPass* vulkanRenderPass = (KVulkanRenderPass*)(renderPass.get());
 
 		IKPipelineHandlePtr pipelineHandle = nullptr;
-		if (vulkanPipeline->GetHandle(target, pipelineHandle))
+		if (vulkanPipeline->GetHandle(renderPass, pipelineHandle))
 		{
 			VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
 

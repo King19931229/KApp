@@ -9,5 +9,5 @@ public:
 	KVulkanUIOverlay();
 	virtual ~KVulkanUIOverlay();
 
-	virtual bool Draw(unsigned int imageIndex, IKRenderTargetPtr target, IKCommandBufferPtr commandBufferPtr);
+	virtual bool Draw(unsigned int imageIndex, IKRenderPassPtr renderPass, IKCommandBufferPtr commandBufferPtr);
 };

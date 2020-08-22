@@ -42,6 +42,7 @@ protected:
 
 	// 后处理相关资源
 	IKRenderTargetPtr m_RenderTarget;
+	IKRenderPassPtr	m_RenderPass;
 	IKPipelinePtr m_Pipeline;
 	IKPipelinePtr m_ScreenDrawPipeline;
 	std::vector<IKCommandBufferPtr> m_CommandBuffers;
@@ -94,6 +95,7 @@ public:
 
 	inline void SetAsEndPoint() { m_Stage = POST_PROCESS_STAGE_END_POINT; }
 	inline IKRenderTargetPtr GetRenderTarget() { return m_RenderTarget; }
+	inline IKRenderPassPtr GetRenderPass() { return m_RenderPass; }
 	inline IKPipelinePtr GetPipeline() { return m_Pipeline; }
 	inline IKPipelinePtr GetScreenDrawPipeline() { return m_ScreenDrawPipeline; }
 	inline IKCommandBufferPtr GetCommandBuffer(size_t frameIndex) { return m_CommandBuffers.size() > frameIndex ? m_CommandBuffers[frameIndex] : nullptr; }

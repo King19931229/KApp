@@ -16,7 +16,7 @@ public:
 	KVulkanPipelineHandle();
 	virtual~KVulkanPipelineHandle();
 
-	virtual bool Init(IKPipeline* pipeline, IKRenderTarget* target);
+	virtual bool Init(IKPipeline* pipeline, IKRenderPass* renderPass);
 	virtual bool UnInit();
 
 	inline VkPipeline GetVkPipeline() { return m_GraphicsPipeline; }
@@ -121,7 +121,7 @@ protected:
 	VkDescriptorSetLayout	m_DescriptorSetLayout;
 	VkPipelineLayout		m_PipelineLayout;
 
-	KVulkanDescriptorPool m_Pool;
+	KVulkanDescriptorPool	m_Pool;
 
 	bool CreateLayout();
 	bool CreateDestcriptionPool();
@@ -133,8 +133,11 @@ protected:
 
 	bool CheckDependencyResource();
 
-	typedef std::unordered_map<IKRenderTargetPtr, IKPipelineHandlePtr> RtPipelineHandleMap;
-	RtPipelineHandleMap m_HandleMap;
+	typedef std::unordered_map<IKRenderPass*, IKPipelineHandlePtr> PipelineHandleMap;
+	PipelineHandleMap m_HandleMap;
+
+	RenderPassInvalidCallback m_RenderPassInvalidCB;
+	bool InvaildHandle(IKRenderPass* target);
 public:
 	KVulkanPipeline();
 	virtual ~KVulkanPipeline();
@@ -174,8 +177,7 @@ public:
 	virtual bool UnInit();
 	virtual bool Reload();
 
-	virtual bool GetHandle(IKRenderTargetPtr target, IKPipelineHandlePtr& handle);
-	virtual bool InvaildHandle(IKRenderTargetPtr target);
+	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 	VkDescriptorSet AllocDescriptorSet(const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount, const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount);

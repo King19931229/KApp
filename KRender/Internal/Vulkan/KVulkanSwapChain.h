@@ -40,9 +40,8 @@ protected:
 	std::vector<VkSemaphore> m_RenderFinishedSemaphores;
 	std::vector<VkFence> m_InFlightFences;
 	SwapChainSupportDetails m_SwapChainSupportDetails;
-
-	std::vector<IKRenderTargetPtr> m_SwapChainRenderTargets;
 	std::vector<FrameBuffer> m_FrameBuffers;
+	std::vector<IKRenderPassPtr> m_RenderPasses;
 
 	bool QuerySwapChainSupport();
 	bool ChooseSwapSurfaceFormat();
@@ -70,8 +69,7 @@ public:
 	virtual uint32_t GetWidth() { return m_Extend.width; }
 	virtual uint32_t GetHeight() { return m_Extend.height; }
 
-	virtual IKRenderTargetPtr GetRenderTarget(uint32_t frameIndex);
-
+	virtual IKRenderPassPtr GetRenderPass(uint32_t frameIndex);
 	virtual IKFrameBufferPtr GetColorFrameBuffer(uint32_t frameIndex);
 	virtual IKFrameBufferPtr GetDepthStencilFrameBuffer(uint32_t frameIndex);
 

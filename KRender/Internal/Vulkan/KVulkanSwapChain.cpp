@@ -2,6 +2,7 @@
 #include "KVulkanGlobal.h"
 #include "KVulkanInitializer.h"
 #include "KVulkanFrameBuffer.h"
+#include "KVulkanRenderPass.h"
 #include "Interface/IKRenderWindow.h"
 #include "KBase/Publish/KConfig.h"
 #include <algorithm>
@@ -27,7 +28,6 @@ KVulkanSwapChain::~KVulkanSwapChain()
 	ASSERT_RESULT(m_ImageAvailableSemaphores.empty());
 	ASSERT_RESULT(m_RenderFinishedSemaphores.empty());
 	ASSERT_RESULT(m_InFlightFences.empty());
-	ASSERT_RESULT(m_SwapChainRenderTargets.empty());
 }
 
 bool KVulkanSwapChain::QuerySwapChainSupport()
@@ -261,14 +261,9 @@ bool KVulkanSwapChain::CreateSyncObjects()
 
 bool KVulkanSwapChain::CreateFrameBuffers()
 {
-	m_SwapChainRenderTargets.resize(m_SwapChainImages.size());
-	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
-	{
-		m_SwapChainRenderTargets[i] = KVulkanRenderTarget::CreateRenderTarget();
-		m_SwapChainRenderTargets[i]->InitFromSwapChain(this, i, true, true, 1);
-	}
-	/*
 	m_FrameBuffers.resize(m_SwapChainImages.size());
+	m_RenderPasses.resize(m_SwapChainImages.size());
+
 	for (size_t i = 0; i < m_FrameBuffers.size(); ++i)
 	{
 		FrameBuffer& frameBuffer = m_FrameBuffers[i];
@@ -279,8 +274,18 @@ bool KVulkanSwapChain::CreateFrameBuffers()
 
 		frameBuffer.depthStencilFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
 		((KVulkanFrameBuffer*)frameBuffer.depthStencilFrameBuffer.get())->InitDepthStencil(m_Extend.width, m_Extend.height, 1, true);
+		
+		IKRenderPassPtr& renderPass = m_RenderPasses[i];
+
+		renderPass = IKRenderPassPtr(KNEW KVulkanRenderPass());
+		renderPass->SetAsSwapChainPass(true);
+		renderPass->SetColorAttachment(0, frameBuffer.colorFrameBuffer);
+		renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		renderPass->SetDepthStencilAttachment(frameBuffer.depthStencilFrameBuffer);
+		renderPass->SetClearDepthStencil({ 1.0f, 0 });
+		renderPass->Init();
 	}
-	*/
+
 	return true;
 }
 
@@ -330,13 +335,6 @@ bool KVulkanSwapChain::DestroySyncObjects()
 
 bool KVulkanSwapChain::DestroyFrameBuffers()
 {
-	for(size_t i = 0; i < m_SwapChainRenderTargets.size(); ++i)
-	{
-		m_SwapChainRenderTargets[i]->UnInit();
-		m_SwapChainRenderTargets[i] = nullptr;
-	}
-	m_SwapChainRenderTargets.clear();
-	/*
 	for (size_t i = 0; i < m_FrameBuffers.size(); ++i)
 	{
 		FrameBuffer& frameBuffer = m_FrameBuffers[i];
@@ -344,7 +342,13 @@ bool KVulkanSwapChain::DestroyFrameBuffers()
 		((KVulkanFrameBuffer*)frameBuffer.depthStencilFrameBuffer.get())->UnInit();
 	}
 	m_FrameBuffers.clear();
-	*/
+
+	for (size_t i = 0; i < m_RenderPasses.size(); ++i)
+	{
+		SAFE_UNINIT(m_RenderPasses[i]);
+	}
+	m_RenderPasses.clear();
+
 	return true;
 }
 
@@ -391,9 +395,13 @@ uint32_t KVulkanSwapChain::GetFrameInFlight()
 	return m_MaxFramesInFight;
 }
 
-IKRenderTargetPtr KVulkanSwapChain::GetRenderTarget(uint32_t frameIndex)
+IKRenderPassPtr KVulkanSwapChain::GetRenderPass(uint32_t frameIndex)
 {
-	return frameIndex < m_SwapChainRenderTargets.size() ? m_SwapChainRenderTargets[frameIndex]->shared_from_this() : nullptr;
+	if (frameIndex < m_RenderPasses.size())
+	{
+		return m_RenderPasses[frameIndex];
+	}
+	return nullptr;
 }
 
 IKFrameBufferPtr KVulkanSwapChain::GetColorFrameBuffer(uint32_t frameIndex)

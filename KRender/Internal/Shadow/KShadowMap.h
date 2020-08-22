@@ -9,6 +9,7 @@ class KShadowMap
 {
 protected:
 	IKRenderTargetPtr m_RenderTarget;
+	IKRenderPassPtr m_RenderPass;
 	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 	IKCommandPoolPtr m_CommandPool;
 
@@ -25,7 +26,7 @@ public:
 	KShadowMap();
 	~KShadowMap();
 
-	bool Init(IKRenderDevice* renderDevice,	size_t frameInFlight, size_t shadowMapSize);
+	bool Init(IKRenderDevice* renderDevice,	size_t frameInFlight, uint32_t shadowMapSize);
 	bool UnInit();
 
 	bool UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBuffer);

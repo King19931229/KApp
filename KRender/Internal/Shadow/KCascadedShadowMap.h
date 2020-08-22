@@ -30,11 +30,12 @@ protected:
 	struct Cascade
 	{
 		float splitDepth;
-		size_t shadowSize;
+		uint32_t shadowSize;
 		glm::mat4 viewMatrix;
 		glm::mat4 viewProjMatrix;
 		glm::vec4 viewInfo;
 
+		IKRenderPassPtr renderPass;
 		IKRenderTargetPtr renderTarget;
 		std::vector<IKCommandBufferPtr> commandBuffers;
 
@@ -79,11 +80,11 @@ public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();
 
-	bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t numCascaded, size_t shadowMapSize, float shadowSizeRatio);
+	bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio);
 	bool UnInit();
 
 	bool UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer, KRenderStageStatistics& statistics);
-	bool DebugRender(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers);
+	bool DebugRender(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 
 	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex);
 

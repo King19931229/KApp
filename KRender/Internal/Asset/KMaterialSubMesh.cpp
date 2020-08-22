@@ -128,8 +128,7 @@ bool KMaterialSubMesh::UnInit()
 		{
 			if (pipeline)
 			{
-				KRenderGlobal::PipelineManager.DestroyPipeline(pipeline);
-				pipeline = nullptr;
+				SAFE_UNINIT(pipeline);
 			}
 		}
 		pipelines.clear();
@@ -161,7 +160,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 			FramePipelineList& pipelineList = m_Pipelines[stage];
 			for (size_t frameIdx = 0; frameIdx < pipelineList.size(); ++frameIdx)
 			{
-				KRenderGlobal::PipelineManager.DestroyPipeline(pipelineList[frameIdx]);
+				SAFE_UNINIT(pipelineList[frameIdx]);
 			}
 			pipelineList.clear();
 		}
@@ -199,7 +198,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 					for (size_t frameIdx = 0; frameIdx < pipelineList.size(); ++frameIdx)
 					{
-						KRenderGlobal::PipelineManager.DestroyPipeline(pipelineList[frameIdx]);
+						SAFE_UNINIT(pipelineList[frameIdx]);
 					}
 					pipelineList.clear();
 
@@ -285,7 +284,7 @@ bool KMaterialSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IK
 
 	if (stage == PIPELINE_STAGE_PRE_Z)
 	{
-		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
@@ -310,7 +309,7 @@ bool KMaterialSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IK
 	}
 	else if (stage == PIPELINE_STAGE_SHADOW_GEN)
 	{
-		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
 		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
 
@@ -337,7 +336,7 @@ bool KMaterialSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IK
 	}
 	else if (stage == PIPELINE_STAGE_CASCADED_SHADOW_GEN || stage == PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE)
 	{
-		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
 		if (stage == PIPELINE_STAGE_CASCADED_SHADOW_GEN)
 		{
@@ -371,7 +370,7 @@ bool KMaterialSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IK
 	}
 	else if (stage == PIPELINE_STAGE_DEBUG_LINE)
 	{
-		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
 		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
 
@@ -397,7 +396,7 @@ bool KMaterialSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IK
 	}
 	else if (stage == PIPELINE_STAGE_DEBUG_TRIANGLE)
 	{
-		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
 		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
 

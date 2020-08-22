@@ -11,8 +11,7 @@ struct IKSwapChain
 	virtual uint32_t GetWidth() = 0;
 	virtual uint32_t GetHeight() = 0;
 
-	virtual IKRenderTargetPtr GetRenderTarget(uint32_t frameIndex) = 0;
-
+	virtual IKRenderPassPtr GetRenderPass(uint32_t frameIndex) = 0;
 	virtual IKFrameBufferPtr GetColorFrameBuffer(uint32_t frameIndex) = 0;
 	virtual IKFrameBufferPtr GetDepthStencilFrameBuffer(uint32_t frameIndex) = 0;
 };

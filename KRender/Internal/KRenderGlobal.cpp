@@ -2,7 +2,6 @@
 
 namespace KRenderGlobal
 {
-	KPipelineManager PipelineManager;
 	KFrameResourceManager FrameResourceManager;
 	KShaderManager ShaderManager;
 	KMeshManager MeshManager;
@@ -27,4 +26,6 @@ namespace KRenderGlobal
 
 	uint32_t CurrentFrameIndex = 0;
 	uint32_t CurrentFrameNum = 0;
+
+	IKRenderDevice* RenderDevice = nullptr;
 }

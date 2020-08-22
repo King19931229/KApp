@@ -308,7 +308,7 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexForma
 	if (GetVSParameter() && GetFSParameter())
 	{
 		IKPipelinePtr pipeline = nullptr;
-		KRenderGlobal::PipelineManager.CreatePipeline(pipeline);
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 		pipeline->SetVertexBinding(formats, count);
 		pipeline->SetShader(ST_VERTEX, vertexShader);
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);

@@ -8,6 +8,7 @@
 #include "KVulkanPipeline.h"
 #include "KVulkanCommandBuffer.h"
 #include "KVulkanQuery.h"
+#include "KVulkanRenderPass.h"
 
 #include "KVulkanUIOverlay.h"
 #include "KVulkanGlobal.h"
@@ -1008,21 +1009,21 @@ bool KVulkanRenderDevice::CreateSwapChain(IKSwapChainPtr& swapChain)
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateRenderPass(IKRenderPassPtr& renderPass)
+{
+	renderPass = IKRenderPassPtr(static_cast<IKRenderPass*>(KNEW KVulkanRenderPass()));
+	return true;
+}
+
 bool KVulkanRenderDevice::CreateRenderTarget(IKRenderTargetPtr& target)
 {
-	target = KVulkanRenderTarget::CreateRenderTarget();
+	target = IKRenderTargetPtr(KNEW KVulkanRenderTarget());
 	return true;
 }
 
 bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 {
 	pipeline = IKPipelinePtr(KNEW KVulkanPipeline());
-	return true;
-}
-
-bool KVulkanRenderDevice::CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle)
-{
-	pipelineHandle = IKPipelineHandlePtr(static_cast<IKPipelineHandle*>(KNEW KVulkanPipelineHandle()));
 	return true;
 }
 

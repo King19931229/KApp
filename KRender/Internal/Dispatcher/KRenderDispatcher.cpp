@@ -128,16 +128,17 @@ void KRenderDispatcher::ThreadRenderObject(uint32_t frameIndex, uint32_t threadI
 	threadData.commandPool->Reset();
 
 	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
+	IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
 
-	RenderSecondary(threadData.preZcommandBuffer, offscreenTarget, threadData.preZcommands);
-	RenderSecondary(threadData.defaultCommandBuffer, offscreenTarget, threadData.defaultCommands);
-	RenderSecondary(threadData.debugCommandBuffer, offscreenTarget, threadData.debugCommands);
+	RenderSecondary(threadData.preZcommandBuffer, renderPass, threadData.preZcommands);
+	RenderSecondary(threadData.defaultCommandBuffer, renderPass, threadData.defaultCommands);
+	RenderSecondary(threadData.debugCommandBuffer, renderPass, threadData.debugCommands);
 }
 
-void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderTargetPtr offscreenTarget, const std::vector<KRenderCommand>& commands)
+void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const std::vector<KRenderCommand>& commands)
 {
-	buffer->BeginSecondary(offscreenTarget);
-	buffer->SetViewport(offscreenTarget);
+	buffer->BeginSecondary(renderPass);
+	buffer->SetViewport(renderPass);
 	for (const KRenderCommand& command : commands)
 	{
 		buffer->Render(command);
@@ -232,7 +233,7 @@ bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMateri
 	return false;
 }
 
-void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetPtr offscreenTarget,
+void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass,
 	std::vector<KRenderComponent*>& cullRes, std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands)
 {
 	KRenderStageStatistics preZStatistics;
@@ -341,7 +342,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 							debugStatistics.primtives += command.vertexData->vertexCount;
 						}
 
-						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+						command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 
 						if (command.Complete())
 						{
@@ -367,7 +368,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 							debugStatistics.primtives += command.vertexData->vertexCount;
 						}
 
-						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+						command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 
 						if (command.Complete())
 						{
@@ -430,7 +431,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 						command.objectUsage.range = sizeof(instances[idx]);
 						KRenderGlobal::DynamicConstantBufferManager.Alloc(&instances[idx], command.objectUsage);
 
-						command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+						command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 
 						if (command.Complete())
 						{
@@ -468,7 +469,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 								continue;
 							}
 
-							command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+							command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 
 							if (command.Complete())
 							{
@@ -518,7 +519,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderTargetP
 								}
 							}
 
-							command.pipeline->GetHandle(offscreenTarget, command.pipelineHandle);
+							command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 
 							if (command.Complete())
 							{
@@ -543,6 +544,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, co
 	m_CommandBuffers[frameIndex].commandPool->Reset();
 
 	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
+	IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
 
 	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
 	IKCommandBufferPtr preZcommandBuffer = m_CommandBuffers[frameIndex].preZcommandBuffer;
@@ -568,12 +570,12 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, co
 		{
 			KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 
-			primaryCommandBuffer->BeginRenderPass(offscreenTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
+			primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 
 			KCommandBufferList commandBuffers;
 
 			// 绘制SkyBox
-			KRenderGlobal::SkyBox.Render(frameIndex, offscreenTarget, commandBuffers);
+			KRenderGlobal::SkyBox.Render(frameIndex, renderPass, commandBuffers);
 
 			// 开始渲染物件
 			{
@@ -581,11 +583,11 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, co
 				KRenderCommandList defaultCommands;
 				KRenderCommandList debugCommands;
 
-				PopulateRenderCommand(frameIndex, offscreenTarget, cullRes, preZcommands, defaultCommands, debugCommands);
+				PopulateRenderCommand(frameIndex, renderPass, cullRes, preZcommands, defaultCommands, debugCommands);
 
-				RenderSecondary(preZcommandBuffer, offscreenTarget, preZcommands);
-				RenderSecondary(defaultCommandBuffer, offscreenTarget, defaultCommands);
-				RenderSecondary(debugCommandBuffer, offscreenTarget, debugCommands);
+				RenderSecondary(preZcommandBuffer, renderPass, preZcommands);
+				RenderSecondary(defaultCommandBuffer, renderPass, defaultCommands);
+				RenderSecondary(debugCommandBuffer, renderPass, debugCommands);
 
 				if (!preZcommands.empty())
 				{
@@ -603,7 +605,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, co
 					commandBuffers.clear();
 				}
 
-				KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, camera, cullRes, commandBuffers);
+				KRenderGlobal::OcclusionBox.Render(frameIndex, renderPass, camera, cullRes, commandBuffers);
 				if (!commandBuffers.empty())
 				{
 					primaryCommandBuffer->ExecuteAll(commandBuffers);
@@ -618,8 +620,8 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, co
 
 				if (!commandBuffers.empty())
 				{
-					clearCommandBuffer->BeginSecondary(offscreenTarget);
-					clearCommandBuffer->SetViewport(offscreenTarget);
+					clearCommandBuffer->BeginSecondary(renderPass);
+					clearCommandBuffer->SetViewport(renderPass);
 					clearCommandBuffer->ClearDepthStencilRTRect(offscreenTarget, clearValue.depthStencil);
 					clearCommandBuffer->End();
 
@@ -634,7 +636,7 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, co
 					if (m_CameraCube)
 					{
 						KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-						cameraCube->Render(frameIndex, offscreenTarget, commandBuffers);
+						cameraCube->Render(frameIndex, renderPass, commandBuffers);
 
 						if (!commandBuffers.empty())
 						{
@@ -672,6 +674,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 	m_CommandBuffers[frameIndex].commandPool->Reset();
 
 	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
+	IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
 
 	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
 	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffers[frameIndex].clearCommandBuffer;
@@ -698,12 +701,12 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 		{
 			KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 
-			primaryCommandBuffer->BeginRenderPass(offscreenTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
+			primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 
 			KCommandBufferList commandBuffers;
 
 			// 绘制SkyBox
-			KRenderGlobal::SkyBox.Render(frameIndex, offscreenTarget, commandBuffers);
+			KRenderGlobal::SkyBox.Render(frameIndex, renderPass, commandBuffers);
 
 			size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
 
@@ -711,7 +714,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 			KRenderCommandList defaultCommands;
 			KRenderCommandList debugCommands;
 
-			PopulateRenderCommand(frameIndex, offscreenTarget, cullRes, preZcommands, defaultCommands, debugCommands);
+			PopulateRenderCommand(frameIndex, renderPass, cullRes, preZcommands, defaultCommands, debugCommands);
 			
 #define ASSIGN_RENDER_COMMAND(command)\
 			{\
@@ -776,7 +779,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 				commandBuffers.clear();
 			}
 
-			KRenderGlobal::OcclusionBox.Render(frameIndex, offscreenTarget, camera, cullRes, commandBuffers);
+			KRenderGlobal::OcclusionBox.Render(frameIndex, renderPass, camera, cullRes, commandBuffers);
 			if (!commandBuffers.empty())
 			{
 				primaryCommandBuffer->ExecuteAll(commandBuffers);
@@ -796,8 +799,8 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 
 			if (!commandBuffers.empty())
 			{
-				clearCommandBuffer->BeginSecondary(offscreenTarget);
-				clearCommandBuffer->SetViewport(offscreenTarget);
+				clearCommandBuffer->BeginSecondary(renderPass);
+				clearCommandBuffer->SetViewport(renderPass);
 				clearCommandBuffer->ClearDepthStencilRTRect(offscreenTarget, clearValue.depthStencil);
 				clearCommandBuffer->End();
 
@@ -812,7 +815,7 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 				if (m_CameraCube)
 				{
 					KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-					cameraCube->Render(frameIndex, offscreenTarget, commandBuffers);
+					cameraCube->Render(frameIndex, renderPass, commandBuffers);
 
 					if (!commandBuffers.empty())
 					{

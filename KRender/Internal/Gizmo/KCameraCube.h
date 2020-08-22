@@ -213,7 +213,7 @@ protected:
 	void InitRenderData();
 
 	bool GetRenderCommand(size_t frameIndex, KRenderCommandList& commands);
-	void ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderTargetPtr target, const KClearDepthStencil& value);
+	void ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const KClearDepthStencil& value);
 public:
 	KCameraCube();
 	~KCameraCube();
@@ -232,5 +232,5 @@ public:
 	void OnMouseMove(unsigned int x, unsigned int y) override;
 	void OnMouseUp(unsigned int x, unsigned int y) override;
 
-	bool Render(size_t frameIndex, IKRenderTargetPtr target, std::vector<IKCommandBufferPtr>& buffers);
+	bool Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 };

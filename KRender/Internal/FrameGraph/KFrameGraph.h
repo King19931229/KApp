@@ -24,10 +24,10 @@ public:
 	bool UnInit();
 
 	KFrameGraphHandlePtr CreateTexture(IKTexturePtr texture);
-	KFrameGraphHandlePtr CreateColorRenderTarget(size_t width, size_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount);
-	KFrameGraphHandlePtr CreateDepthStecnilRenderTarget(size_t width, size_t height, bool bStencil);
-	bool RecreateColorRenderTarget(KFrameGraphHandlePtr handle, size_t width, size_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount);
-	bool RecreateDepthStecnilRenderTarget(KFrameGraphHandlePtr handle, size_t width, size_t height, bool bStencil);
+	KFrameGraphHandlePtr CreateColorRenderTarget(uint32_t width, uint32_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount);
+	KFrameGraphHandlePtr CreateDepthStecnilRenderTarget(uint32_t width, uint32_t height, bool bStencil);
+	bool RecreateColorRenderTarget(KFrameGraphHandlePtr handle, uint32_t width, uint32_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount);
+	bool RecreateDepthStecnilRenderTarget(KFrameGraphHandlePtr handle, uint32_t width, uint32_t height, bool bStencil);
 	bool Destroy(KFrameGraphHandlePtr handle);
 
 	bool RegisterPass(KFrameGraphPass* pass);

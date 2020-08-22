@@ -94,7 +94,6 @@
     <ClInclude Include="Internal\Manager\KInstanceBufferManager.h" />
     <ClInclude Include="Internal\Manager\KMaterialManager.h" />
     <ClInclude Include="Internal\Manager\KMeshManager.h" />
-    <ClInclude Include="Internal\Manager\KPipelineManager.h" />
     <ClInclude Include="Internal\Manager\KShaderManager.h" />
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
     <ClInclude Include="Internal\Object\KOcclusionBox.h" />
@@ -186,7 +185,6 @@
     <ClCompile Include="Internal\Manager\KInstanceBufferManager.cpp" />
     <ClCompile Include="Internal\Manager\KMaterialManager.cpp" />
     <ClCompile Include="Internal\Manager\KMeshManager.cpp" />
-    <ClCompile Include="Internal\Manager\KPipelineManager.cpp" />
     <ClCompile Include="Internal\Manager\KShaderManager.cpp" />
     <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
     <ClCompile Include="Internal\Object\KOcclusionBox.cpp" />

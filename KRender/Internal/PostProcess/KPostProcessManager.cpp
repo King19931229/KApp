@@ -403,10 +403,10 @@ bool KPostProcessManager::Load(const char* jsonFile)
 	return false;
 }
 
-bool KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderTargetPtr target)
+bool KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderPassPtr renderPass)
 {
 	IKPipelineHandlePtr pipeHandle = nullptr;
-	if (pipeline->GetHandle(target, pipeHandle))
+	if (pipeline->GetHandle(renderPass, pipeHandle))
 	{
 		command.vertexData = &m_SharedVertexData;
 		command.indexData = &m_SharedIndexData;
@@ -482,16 +482,16 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 			}
 
 			IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer(frameIndex);
-			IKRenderTargetPtr renderTarget = pass->GetRenderTarget();
+			IKRenderPassPtr renderPass = pass->GetRenderPass();
 
-			primaryCommandBuffer->BeginRenderPass(renderTarget, SUBPASS_CONTENTS_SECONDARY, clearValue);
+			primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 			{
-				commandBuffer->BeginSecondary(renderTarget);
-				commandBuffer->SetViewport(renderTarget);
+				commandBuffer->BeginSecondary(renderPass);
+				commandBuffer->SetViewport(renderPass);
 
 				KRenderCommand command;
 
-				if (PopulateRenderCommand(command, pass->GetPipeline(), renderTarget))
+				if (PopulateRenderCommand(command, pass->GetPipeline(), renderPass))
 				{
 					commandBuffer->Render(command);
 				}
@@ -504,20 +504,20 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 
 	if (endPass)
 	{
-		IKRenderTargetPtr swapChainTarget = swapChain->GetRenderTarget(chainImageIndex);
-		primaryCommandBuffer->BeginRenderPass(swapChainTarget, SUBPASS_CONTENTS_INLINE, clearValue);
+		IKRenderPassPtr renderPass = swapChain->GetRenderPass(chainImageIndex);
+		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 
-		primaryCommandBuffer->SetViewport(swapChainTarget);
+		primaryCommandBuffer->SetViewport(renderPass);
 
 		KRenderCommand command;
-		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(), swapChainTarget))
+		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(), renderPass))
 		{
 			primaryCommandBuffer->Render(command);
 		}
 
 		if (ui)
 		{
-			ui->Draw(frameIndex, swapChainTarget, primaryCommandBuffer);
+			ui->Draw(frameIndex, renderPass, primaryCommandBuffer);
 		}
 
 		primaryCommandBuffer->EndRenderPass();

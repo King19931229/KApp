@@ -6,12 +6,14 @@ KVulkanRenderPass::KVulkanRenderPass()
 	: m_RenderPass(VK_NULL_HANDLE),
 	m_FrameBuffer(VK_NULL_HANDLE),
 	m_DepthFrameBuffer(nullptr),
+	m_MSAAFlag(VK_SAMPLE_COUNT_1_BIT),
 	m_ToSwapChain(false)
 {
 	for (uint32_t attachment = 0; attachment < MAX_ATTACHMENT; ++attachment)
 	{
 		m_ColorFrameBuffers[attachment] = nullptr;
 	}
+	ZERO_MEMORY(m_Extent);
 }
 
 KVulkanRenderPass::~KVulkanRenderPass()
@@ -20,18 +22,35 @@ KVulkanRenderPass::~KVulkanRenderPass()
 	ASSERT_RESULT(m_FrameBuffer == VK_NULL_HANDLE);
 }
 
-bool KVulkanRenderPass::SetColor(uint32_t attachment, IKFrameBufferPtr color)
+bool KVulkanRenderPass::SetColorAttachment(uint32_t attachment, IKFrameBufferPtr color)
 {
 	if (attachment < MAX_ATTACHMENT)
 	{
 		m_ColorFrameBuffers[attachment] = color;
+		return true;
 	}
+	return false;
+}
+
+bool KVulkanRenderPass::SetDepthStencilAttachment(IKFrameBufferPtr depthStencil)
+{
+	m_DepthFrameBuffer = depthStencil;
 	return true;
 }
 
-bool KVulkanRenderPass::SetDepthStencil(IKFrameBufferPtr depthStencil)
+bool KVulkanRenderPass::SetClearColor(uint32_t attachment, const KClearColor& clearColor)
 {
-	m_DepthFrameBuffer = depthStencil;
+	if (attachment < MAX_ATTACHMENT)
+	{
+		m_ClearColors[attachment] = clearColor;
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanRenderPass::SetClearDepthStencil(const KClearDepthStencil& clearDepthStencil)
+{
+	m_ClearDepthStencil = clearDepthStencil;
 	return true;
 }
 
@@ -56,6 +75,54 @@ bool KVulkanRenderPass::HasColorAttachment()
 bool KVulkanRenderPass::HasDepthStencilAttachment()
 {
 	return m_DepthFrameBuffer != nullptr;
+}
+
+uint32_t KVulkanRenderPass::GetColorAttachmentCount()
+{
+	uint32_t count = 0;
+	for (uint32_t attachment = 0; attachment < MAX_ATTACHMENT; ++attachment)
+	{
+		if (m_ColorFrameBuffers[attachment] != nullptr)
+		{
+			++count;
+		}
+	}
+	return count;
+}
+
+bool KVulkanRenderPass::GetSize(uint32_t& width, uint32_t& height)
+{
+	width = m_Extent.width;
+	height = m_Extent.height;
+	return true;
+}
+
+bool KVulkanRenderPass::RegisterInvalidCallback(RenderPassInvalidCallback* callback)
+{
+	if (callback)
+	{
+		auto it = std::find(m_InvalidCallbacks.begin(), m_InvalidCallbacks.end(), callback);
+		if (it == m_InvalidCallbacks.end())
+		{
+			m_InvalidCallbacks.push_back(callback);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanRenderPass::UnRegisterInvalidCallback(RenderPassInvalidCallback* callback)
+{
+	if (callback)
+	{
+		auto it = std::find(m_InvalidCallbacks.begin(), m_InvalidCallbacks.end(), callback);
+		if (it != m_InvalidCallbacks.end())
+		{
+			m_InvalidCallbacks.erase(it);
+		}
+		return true;
+	}
+	return false;
 }
 
 bool KVulkanRenderPass::Init()
@@ -101,6 +168,10 @@ bool KVulkanRenderPass::Init()
 			ASSERT_AND_RETURN(m_DepthFrameBuffer->GetHeight() == compareRef->GetHeight());
 			ASSERT_AND_RETURN(m_DepthFrameBuffer->GetMSAA() == compareRef->GetMSAA());
 		}
+
+		m_Extent.width = compareRef->GetWidth();
+		m_Extent.height = compareRef->GetHeight();
+		m_MSAAFlag = ((KVulkanFrameBuffer*)compareRef.get())->GetMSAAFlag();
 
 #undef ASSERT_AND_RETURN
 
@@ -179,8 +250,7 @@ bool KVulkanRenderPass::Init()
 			maxAttachment = depthAttachmentRef.attachment;
 		}
 
-		// 不过maxAttachment也没可能0吧...
-		uint32_t colorResolveAttachmentBegin = maxAttachment ? maxAttachment + 1 : 0;
+		uint32_t colorResolveAttachmentBegin = maxAttachment + 1;
 		uint32_t colorResolveRefCounts = 0;
 		std::array<VkAttachmentReference, MAX_ATTACHMENT> colorResolveRefs;
 		if (massCreated)
@@ -263,7 +333,7 @@ bool KVulkanRenderPass::Init()
 		{
 			for (uint32_t i = 0; i < colorRefCounts; ++i)
 			{
-				std::swap(imageViews[i], imageViews[i + colorRefCounts + 1]);
+				std::swap(imageViews[i], imageViews[i + colorRefCounts + (m_DepthFrameBuffer ? 1 : 0)]);
 			}
 		}
 
@@ -287,6 +357,11 @@ bool KVulkanRenderPass::Init()
 
 bool KVulkanRenderPass::UnInit()
 {
+	for (RenderPassInvalidCallback* callback : m_InvalidCallbacks)
+	{
+		(*callback)(this);
+	}
+
 	if (m_RenderPass != VK_NULL_HANDLE)
 	{
 		vkDestroyRenderPass(KVulkanGlobal::device, m_RenderPass, nullptr);
@@ -297,6 +372,31 @@ bool KVulkanRenderPass::UnInit()
 	{
 		vkDestroyFramebuffer(KVulkanGlobal::device, m_FrameBuffer, nullptr);
 		m_FrameBuffer = VK_NULL_HANDLE;
+	}
+
+	return true;
+}
+
+bool KVulkanRenderPass::GetVkClearValues(VkClearValueArray& clearValues)
+{
+	clearValues.clear();
+	clearValues.reserve(MAX_ATTACHMENT + 1);
+
+	for (uint32_t i = 0; i < MAX_ATTACHMENT; ++i)
+	{
+		if (m_ColorFrameBuffers[i])
+		{
+			VkClearValue vkClearValue;
+			vkClearValue.color = { m_ClearColors[i].r, m_ClearColors[i].g, m_ClearColors[i].b, m_ClearColors[i].a };
+			clearValues.push_back(vkClearValue);
+		}
+	}
+
+	if (m_DepthFrameBuffer)
+	{
+		VkClearValue vkClearValue;
+		vkClearValue.depthStencil = { m_ClearDepthStencil.depth, (uint32_t)m_ClearDepthStencil.stencil };
+		clearValues.push_back(vkClearValue);
 	}
 
 	return true;
