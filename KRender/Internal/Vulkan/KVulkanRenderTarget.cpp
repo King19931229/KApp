@@ -18,19 +18,19 @@ KVulkanRenderTarget::~KVulkanRenderTarget()
 	ASSERT_RESULT(m_FrameBuffer == nullptr);
 }
 
-bool KVulkanRenderTarget::InitFromDepthStencil(uint32_t width, uint32_t height, bool bStencil)
+bool KVulkanRenderTarget::InitFromDepthStencil(uint32_t width, uint32_t height, uint32_t msaaCount, bool bStencil)
 {
 	UnInit();
 
 	m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
-	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitDepthStencil((uint32_t)width, (uint32_t)height, 1, bStencil);
+	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitDepthStencil(width, height, msaaCount, bStencil);
 
 	m_DepthStencil = true;
 
 	return true;
 }
 
-bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, unsigned short uMsaaCount, ElementFormat format)
+bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_t msaaCount, ElementFormat format)
 {
 	UnInit();
 
@@ -44,7 +44,7 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, unsigne
 		TT_TEXTURE_2D,
 		(uint32_t)width,
 		(uint32_t)height,
-		uMsaaCount);
+		msaaCount);
 
 	m_DepthStencil = false;
 

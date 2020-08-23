@@ -218,7 +218,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 	ASSERT_RESULT(dynamicTextureUsageCount <= m_DescriptorDynamicWriteInfo.size());
 
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
-
+#if 0
 	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline);
 	if (vulkanPipeline)
 	{
@@ -261,6 +261,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 
 		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(idx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
 	}
+#endif
 
 	for (size_t i = 0; i < dynamicBufferUsageCount; ++i)
 	{

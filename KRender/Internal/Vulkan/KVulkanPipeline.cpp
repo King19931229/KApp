@@ -270,13 +270,8 @@ bool KVulkanPipeline::SetSamplerImpl(unsigned int location, IKTexturePtr texture
 	if (texture && sampler)
 	{
 		SamplerBindingInfo info;
-
 		info.texture = texture;
 		info.sampler = sampler;
-		info.nakeInfo = false;
-		info.depthStencil = false;
-		info.dynamicWrite = dynamic;
-
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
 	}
@@ -287,20 +282,9 @@ bool KVulkanPipeline::SetSamplerAttachmentImpl(unsigned int location, IKRenderTa
 {
 	if (target && sampler)
 	{
-		KVulkanRenderTarget* vulkanTarget = (KVulkanRenderTarget*)target.get();
-		KVulkanFrameBuffer* frameBuffer = (KVulkanFrameBuffer*)vulkanTarget->GetFrameBuffer().get();
-
-		VkFormat format = VK_FORMAT_UNDEFINED;
-		VkImageView imageView = VK_NULL_HANDLE;
-
 		SamplerBindingInfo info;
-
-		info.vkImageView = frameBuffer->GetImageView();
-		info.vkSampler = ((KVulkanSampler*)sampler.get())->GetVkSampler();
-		info.nakeInfo = true;
-		info.depthStencil = vulkanTarget->IsDepthStencil();
-		info.dynamicWrite = dynamic;
-
+		info.frameBuffer = target->GetFrameBuffer();
+		info.sampler = sampler;
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
 	}
@@ -702,18 +686,15 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		SamplerBindingInfo& info = pair.second;
 
 		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
-		imageInfo.imageLayout = info.depthStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		if (info.nakeInfo)
+		if (!info.frameBuffer && info.texture)
 		{
-			imageInfo.imageView = info.vkImageView;
-			imageInfo.sampler = info.vkSampler;
+			info.frameBuffer = info.texture->GetFrameBuffer();
 		}
-		else
-		{
-			imageInfo.imageView = ((KVulkanTexture*)info.texture.get())->GetImageView();
-			imageInfo.sampler = ((KVulkanSampler*)info.sampler.get())->GetVkSampler();
-		}
+
+		imageInfo.imageLayout = info.frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;		
+		imageInfo.imageView = ((KVulkanFrameBuffer*)info.frameBuffer.get())->GetImageView();
+		imageInfo.sampler = ((KVulkanSampler*)info.sampler.get())->GetVkSampler();
 
 		ASSERT_RESULT(imageInfo.imageView);
 		ASSERT_RESULT(imageInfo.sampler);
@@ -795,19 +776,17 @@ bool KVulkanPipeline::CheckDependencyResource()
 		unsigned int location = pair.first;
 		SamplerBindingInfo& info = pair.second;
 
-		VkDescriptorImageInfo imageInfo = {};
-		imageInfo.imageLayout = info.depthStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-		if (!info.nakeInfo)
+		if (info.texture)
 		{
 			if (info.texture->GetResourceState() != RS_DEVICE_LOADED)
 			{
 				return false;
 			}
-			if (info.sampler->GetResourceState() != RS_DEVICE_LOADED)
-			{
-				return false;
-			}
+		}
+
+		if (info.sampler->GetResourceState() != RS_DEVICE_LOADED)
+		{
+			return false;
 		}
 	}
 
@@ -872,7 +851,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 	ASSERT_RESULT(vulkanPipeline->m_PipelineLayout);
 
 	VkSampleCountFlagBits msaaFlag = vulkanRenderPass->GetMSAAFlag();
-	VkExtent2D extend = vulkanRenderPass->GetVkExtent();
+	const KViewPortArea& area = vulkanRenderPass->GetViewPort();
 
 	// 配置顶点输入信息
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
@@ -891,17 +870,17 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 
 	// 配置视口裁剪
 	VkViewport viewport = {};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = (float)extend.width;
-	viewport.height = (float)extend.height;
+	viewport.x = (float)area.x;
+	viewport.y = (float)area.y;
+	viewport.width = (float)area.width;
+	viewport.height = (float)area.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor =
 	{
-		{0, 0},
-		extend
+		{ (int32_t)area.x, (int32_t)area.y },
+		{ (uint32_t)area.width, (uint32_t)area.height }
 	};
 
 	VkPipelineViewportStateCreateInfo viewportState = {};

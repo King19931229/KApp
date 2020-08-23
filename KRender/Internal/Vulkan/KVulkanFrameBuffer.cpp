@@ -15,7 +15,8 @@ KVulkanFrameBuffer::KVulkanFrameBuffer()
 	m_Depth(0),
 	m_Mipmaps(0),
 	m_MSAA(1),
-	m_External(true)
+	m_External(true),
+	m_DepthStencil(false)
 {
 }
 
@@ -41,6 +42,7 @@ bool KVulkanFrameBuffer::InitExternal(VkImage image, VkImageView imageView, VkFo
 	m_Mipmaps = mipmaps;
 	m_MSAA = msaa;
 	m_External = true;
+	m_DepthStencil = false;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	if (msaa > 1)
@@ -92,6 +94,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 	m_Mipmaps = 1;
 	m_MSAA = msaa;
 	m_External = false;
+	m_DepthStencil = false;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	if (msaa > 1)
@@ -162,6 +165,7 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	m_Mipmaps = 1;
 	m_MSAA = msaa;
 	m_External = false;
+	m_DepthStencil = true;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	if (msaa > 1)

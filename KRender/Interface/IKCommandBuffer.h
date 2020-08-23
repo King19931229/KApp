@@ -1,19 +1,7 @@
 #pragma once
 
 #include "IKRenderCommand.h"
-#include "IKFrameBuffer.h"
-
-struct KClearValue
-{
-	KClearColor color;
-	KClearDepthStencil depthStencil;
-};
-
-struct KClearRect
-{
-	uint32_t width;
-	uint32_t height;
-};
+#include "IKRenderPass.h"
 
 struct IKCommandPool
 {
@@ -32,7 +20,7 @@ struct IKCommandBuffer
 	virtual bool Init(IKCommandPoolPtr pool, CommandBufferLevel level) = 0;
 	virtual bool UnInit() = 0;
 
-	virtual bool SetViewport(IKRenderPassPtr renderPass) = 0;
+	virtual bool SetViewport(const KViewPortArea& area) = 0;
 	virtual bool SetDepthBias(float depthBiasConstant, float depthBiasClamp, float depthBiasSlope) = 0;
 
 	virtual bool Render(const KRenderCommand& command) = 0;
@@ -46,9 +34,8 @@ struct IKCommandBuffer
 
 	virtual bool BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent) = 0;
 
-	virtual bool ClearColor(const KClearRect& rect, const KClearColor& color) = 0;
-	virtual bool ClearDepthStencil(const KClearRect& rect, const KClearDepthStencil& depthStencil) = 0;
-	virtual bool ClearDepthStencilRTRect(IKRenderTargetPtr target, const KClearDepthStencil& value) = 0;
+	virtual bool ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color) = 0;
+	virtual bool ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil) = 0;
 
 	virtual bool EndRenderPass() = 0;
 

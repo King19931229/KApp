@@ -408,6 +408,9 @@
     <ClInclude Include="Internal\Vulkan\KVulkanRenderPass.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKRenderPass.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">

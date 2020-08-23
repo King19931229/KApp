@@ -1,5 +1,5 @@
 #pragma once
-#include "Interface/IKFrameBuffer.h"
+#include "Interface/IKRenderPass.h"
 #include "KVulkanConfig.h"
 #include <array>
 
@@ -15,7 +15,7 @@ protected:
 	std::vector<RenderPassInvalidCallback*>		m_InvalidCallbacks;
 	IKFrameBufferPtr							m_DepthFrameBuffer;
 	KClearDepthStencil							m_ClearDepthStencil;
-	VkExtent2D									m_Extent;
+	KViewPortArea								m_ViewPortArea;
 	VkSampleCountFlagBits						m_MSAAFlag;
 	bool										m_ToSwapChain;
 public:
@@ -33,7 +33,7 @@ public:
 	bool HasDepthStencilAttachment() override;
 	uint32_t GetColorAttachmentCount() override;
 
-	bool GetSize(uint32_t& width, uint32_t& height) override;
+	const KViewPortArea& GetViewPort() override;
 
 	bool RegisterInvalidCallback(RenderPassInvalidCallback* callback) override;
 	bool UnRegisterInvalidCallback(RenderPassInvalidCallback* callback) override;
@@ -43,7 +43,6 @@ public:
 
 	inline VkRenderPass GetVkRenderPass() const { return m_RenderPass; }
 	inline VkFramebuffer GetVkFrameBuffer() const { return m_FrameBuffer; }
-	inline VkExtent2D GetVkExtent() const { return m_Extent; }
 	inline VkSampleCountFlagBits GetMSAAFlag() const { return m_MSAAFlag; }
 
 	typedef std::vector<VkClearValue> VkClearValueArray;

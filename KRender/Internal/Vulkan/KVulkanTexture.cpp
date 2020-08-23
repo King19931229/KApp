@@ -2,6 +2,7 @@
 #include "KVulkanInitializer.h"
 #include "KVulkanHelper.h"
 #include "KVulkanGlobal.h"
+#include "KVulkanFrameBuffer.h"
 #include "Internal/KRenderGlobal.h"
 
 KVulkanTexture::KVulkanTexture()
@@ -78,6 +79,11 @@ bool KVulkanTexture::ReleaseDevice()
 		m_TextureImageView = VK_NULL_HANDLE;
 		KVulkanInitializer::FreeVkImage(m_TextureImage, m_AllocInfo);
 		m_TextureImage = VK_NULL_HANDLE;
+		if (m_FrameBuffer)
+		{
+			((KVulkanFrameBuffer*)m_FrameBuffer.get())->UnInit();
+			m_FrameBuffer = nullptr;
+		}
 		m_bDeviceInit = false;
 	}
 	return true;
@@ -199,6 +205,11 @@ bool KVulkanTexture::InitDevice(bool async)
 				m_ImageData.pData = nullptr;
 
 				m_ResourceState = RS_DEVICE_LOADED;
+
+				m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+				((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitExternal(m_TextureImage, m_TextureImageView, m_TextureFormat,
+					(uint32_t)m_Width, (uint32_t)m_Height, (uint32_t)m_Depth, m_Mipmaps, 1);
+
 				return true;
 			}
 		}
@@ -229,4 +240,9 @@ bool KVulkanTexture::UnInit()
 	KTextureBase::UnInit();
 	ReleaseDevice();
 	return true;
+}
+
+IKFrameBufferPtr KVulkanTexture::GetFrameBuffer()
+{
+	return m_FrameBuffer;
 }

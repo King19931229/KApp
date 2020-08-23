@@ -454,7 +454,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
 			commandBuffer->BeginSecondary(renderPass);
-			commandBuffer->SetViewport(renderPass);
+			commandBuffer->SetViewport(renderPass->GetViewPort());
 			// 解决Z-Fighting问题
 			commandBuffer->SetDepthBias(m_DepthBiasConstant, 0.0f, m_DepthBiasSlope);
 

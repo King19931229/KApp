@@ -2,6 +2,7 @@
 #include "KRender/Interface/IKRenderConfig.h"
 #include "KRender/Interface/IKFrameBuffer.h"
 #include "KRender/Interface/IKResource.h"
+#include "KRender/Interface/IKFrameBuffer.h"
 #include "KBase/Interface/IKCodec.h"
 
 struct IKTexture : public IKResource
@@ -12,6 +13,8 @@ struct IKTexture : public IKResource
 	virtual bool InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap, bool async) = 0;
 	virtual bool InitDevice(bool async) = 0;
 	virtual bool UnInit() = 0;
+
+	virtual IKFrameBufferPtr GetFrameBuffer() = 0;
 
 	virtual size_t GetWidth() = 0;
 	virtual size_t GetHeight() = 0;

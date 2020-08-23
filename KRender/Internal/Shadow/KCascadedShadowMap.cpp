@@ -326,7 +326,7 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 
 			{
 				ASSERT_RESULT(renderDevice->CreateRenderTarget(cascaded.renderTarget));
-				ASSERT_RESULT(cascaded.renderTarget->InitFromDepthStencil(cascadedShadowSize, cascadedShadowSize, false));
+				ASSERT_RESULT(cascaded.renderTarget->InitFromDepthStencil(cascadedShadowSize, cascadedShadowSize, 1, false));
 			}
 
 			{
@@ -674,7 +674,7 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 
 			commandBuffer->BeginSecondary(renderPass);
-			commandBuffer->SetViewport(renderPass);
+			commandBuffer->SetViewport(renderPass->GetViewPort());
 
 			// Set depth bias (aka "Polygon offset")
 			// Required to avoid shadow mapping artefacts
@@ -732,7 +732,7 @@ bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderPassPtr renderPa
 	{
 		IKCommandBufferPtr commandBuffer = m_DebugCommandBuffers[frameIndex];
 		commandBuffer->BeginSecondary(renderPass);
-		commandBuffer->SetViewport(renderPass);
+		commandBuffer->SetViewport(renderPass->GetViewPort());
 		for (KRenderCommand& command : commands)
 		{
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);

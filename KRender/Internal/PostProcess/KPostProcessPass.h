@@ -42,6 +42,7 @@ protected:
 
 	// 后处理相关资源
 	IKRenderTargetPtr m_RenderTarget;
+	IKRenderTargetPtr m_DepthStencilTarget;
 	IKRenderPassPtr	m_RenderPass;
 	IKPipelinePtr m_Pipeline;
 	IKPipelinePtr m_ScreenDrawPipeline;

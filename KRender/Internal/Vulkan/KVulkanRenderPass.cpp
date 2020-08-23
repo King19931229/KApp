@@ -13,7 +13,6 @@ KVulkanRenderPass::KVulkanRenderPass()
 	{
 		m_ColorFrameBuffers[attachment] = nullptr;
 	}
-	ZERO_MEMORY(m_Extent);
 }
 
 KVulkanRenderPass::~KVulkanRenderPass()
@@ -90,11 +89,9 @@ uint32_t KVulkanRenderPass::GetColorAttachmentCount()
 	return count;
 }
 
-bool KVulkanRenderPass::GetSize(uint32_t& width, uint32_t& height)
+const KViewPortArea& KVulkanRenderPass::GetViewPort()
 {
-	width = m_Extent.width;
-	height = m_Extent.height;
-	return true;
+	return m_ViewPortArea;
 }
 
 bool KVulkanRenderPass::RegisterInvalidCallback(RenderPassInvalidCallback* callback)
@@ -169,8 +166,10 @@ bool KVulkanRenderPass::Init()
 			ASSERT_AND_RETURN(m_DepthFrameBuffer->GetMSAA() == compareRef->GetMSAA());
 		}
 
-		m_Extent.width = compareRef->GetWidth();
-		m_Extent.height = compareRef->GetHeight();
+		m_ViewPortArea.x = 0;
+		m_ViewPortArea.y = 0;
+		m_ViewPortArea.width = compareRef->GetWidth();
+		m_ViewPortArea.height = compareRef->GetHeight();
 		m_MSAAFlag = ((KVulkanFrameBuffer*)compareRef.get())->GetMSAAFlag();
 
 #undef ASSERT_AND_RETURN

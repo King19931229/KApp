@@ -138,7 +138,7 @@ void KRenderDispatcher::ThreadRenderObject(uint32_t frameIndex, uint32_t threadI
 void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const std::vector<KRenderCommand>& commands)
 {
 	buffer->BeginSecondary(renderPass);
-	buffer->SetViewport(renderPass);
+	buffer->SetViewport(renderPass->GetViewPort());
 	for (const KRenderCommand& command : commands)
 	{
 		buffer->Render(command);
@@ -621,8 +621,8 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, co
 				if (!commandBuffers.empty())
 				{
 					clearCommandBuffer->BeginSecondary(renderPass);
-					clearCommandBuffer->SetViewport(renderPass);
-					clearCommandBuffer->ClearDepthStencilRTRect(offscreenTarget, clearValue.depthStencil);
+					clearCommandBuffer->SetViewport(renderPass->GetViewPort());
+					clearCommandBuffer->ClearDepthStencil(renderPass->GetViewPort(), clearValue.depthStencil);
 					clearCommandBuffer->End();
 
 					primaryCommandBuffer->Execute(clearCommandBuffer);
@@ -800,8 +800,8 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 			if (!commandBuffers.empty())
 			{
 				clearCommandBuffer->BeginSecondary(renderPass);
-				clearCommandBuffer->SetViewport(renderPass);
-				clearCommandBuffer->ClearDepthStencilRTRect(offscreenTarget, clearValue.depthStencil);
+				clearCommandBuffer->SetViewport(renderPass->GetViewPort());
+				clearCommandBuffer->ClearDepthStencil(renderPass->GetViewPort(), clearValue.depthStencil);
 				clearCommandBuffer->End();
 
 				primaryCommandBuffer->Execute(clearCommandBuffer);

@@ -30,7 +30,7 @@ public:
 	virtual bool Init(IKCommandPoolPtr pool, CommandBufferLevel level);
 	virtual bool UnInit();
 
-	virtual bool SetViewport(IKRenderPassPtr renderPass);
+	virtual bool SetViewport(const KViewPortArea& area);
 	virtual bool SetDepthBias(float depthBiasConstant, float depthBiasClamp, float depthBiasSlope);
 
 	virtual bool Render(const KRenderCommand& command);
@@ -44,9 +44,8 @@ public:
 
 	virtual bool BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent);
 
-	virtual bool ClearColor(const KClearRect& rect, const KClearColor& color);
-	virtual bool ClearDepthStencil(const KClearRect& rect, const KClearDepthStencil& depthStencil);
-	virtual bool ClearDepthStencilRTRect(IKRenderTargetPtr target, const KClearDepthStencil& value);
+	virtual bool ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color);
+	virtual bool ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil);
 
 	virtual bool EndRenderPass();
 

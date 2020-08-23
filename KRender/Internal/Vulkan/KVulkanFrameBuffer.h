@@ -25,6 +25,7 @@ protected:
 	uint32_t m_MSAA;
 
 	bool m_External;
+	bool m_DepthStencil;
 public:
 	KVulkanFrameBuffer();
 	~KVulkanFrameBuffer();
@@ -44,6 +45,7 @@ public:
 	uint32_t GetDepth() const override { return m_Depth; }
 	uint32_t GetMipmaps() const override { return m_Mipmaps; }
 	uint32_t GetMSAA() const override { return m_MSAA; }
+	bool IsDepthStencil() const { return m_DepthStencil; }
 
 	inline VkImage GetImage() const { return m_Image; }
 	inline VkImageView GetImageView() const { return m_ImageView; }

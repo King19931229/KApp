@@ -487,7 +487,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 			primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 			{
 				commandBuffer->BeginSecondary(renderPass);
-				commandBuffer->SetViewport(renderPass);
+				commandBuffer->SetViewport(renderPass->GetViewPort());
 
 				KRenderCommand command;
 
@@ -507,7 +507,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 		IKRenderPassPtr renderPass = swapChain->GetRenderPass(chainImageIndex);
 		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 
-		primaryCommandBuffer->SetViewport(renderPass);
+		primaryCommandBuffer->SetViewport(renderPass->GetViewPort());
 
 		KRenderCommand command;
 		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(), renderPass))

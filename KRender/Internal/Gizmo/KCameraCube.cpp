@@ -1029,20 +1029,6 @@ bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& comman
 	return false;
 }
 
-void KCameraCube::ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const KClearDepthStencil& value)
-{
-	KClearRect rect;
-
-	uint32_t width = 0;
-	uint32_t height = 0;
-	renderPass->GetSize(width, height);
-
-	rect.width = static_cast<uint32_t>(width);
-	rect.height = static_cast<uint32_t>(height);
-
-	buffer->ClearDepthStencil(rect, value);
-}
-
 bool KCameraCube::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
 	KRenderCommandList commands;
@@ -1053,15 +1039,15 @@ bool KCameraCube::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vec
 		IKCommandBufferPtr clearCommandBuffer = m_ClearCommandBuffers[frameIndex];
 
 		clearCommandBuffer->BeginSecondary(renderPass);
-		clearCommandBuffer->SetViewport(renderPass);
+		clearCommandBuffer->SetViewport(renderPass->GetViewPort());
 		if (renderPass->HasDepthStencilAttachment())
-			ClearDepthStencil(clearCommandBuffer, renderPass, clearValue.depthStencil);
+			clearCommandBuffer->ClearDepthStencil(renderPass->GetViewPort(), clearValue.depthStencil);
 		clearCommandBuffer->End();
 		buffers.push_back(clearCommandBuffer);
 
 		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 		commandBuffer->BeginSecondary(renderPass);
-		commandBuffer->SetViewport(renderPass);
+		commandBuffer->SetViewport(renderPass->GetViewPort());
 		for (KRenderCommand& command : commands)
 		{
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);

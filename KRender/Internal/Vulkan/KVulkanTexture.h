@@ -10,6 +10,7 @@ protected:
 	VkImageView m_TextureImageView;
 	VkFormat m_TextureFormat;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
+	IKFrameBufferPtr m_FrameBuffer;
 	bool m_bDeviceInit;
 
 	std::mutex m_LoadTaskLock;
@@ -28,6 +29,8 @@ public:
 
 	virtual bool InitDevice(bool async);
 	virtual bool UnInit();
+
+	virtual IKFrameBufferPtr GetFrameBuffer();
 
 	inline VkImage GetImage() { return m_TextureImage; }
 	inline VkImageView GetImageView() { return m_TextureImageView; }

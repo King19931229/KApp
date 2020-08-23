@@ -86,25 +86,15 @@ protected:
 	// Sampler 信息
 	struct SamplerBindingInfo
 	{
-		VkImageView vkImageView;
-		VkSampler vkSampler;
-
 		IKTexturePtr texture;
+		IKFrameBufferPtr frameBuffer;
 		IKSamplerPtr sampler;
-
-		bool nakeInfo;
-		bool depthStencil;
-		bool dynamicWrite;
 
 		SamplerBindingInfo()
 		{
-			vkImageView = VK_NULL_HANDLE;
-			vkSampler = VK_NULL_HANDLE;
 			texture = nullptr;
+			frameBuffer = nullptr;
 			sampler = nullptr;
-			nakeInfo = false;
-			depthStencil = false;
-			dynamicWrite = false;
 		}
 	};
 	std::unordered_map<unsigned int, SamplerBindingInfo> m_Samplers;

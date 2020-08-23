@@ -133,27 +133,26 @@ bool KVulkanCommandBuffer::UnInit()
 	return true;
 }
 
-bool KVulkanCommandBuffer::SetViewport(IKRenderPassPtr renderPass)
+bool KVulkanCommandBuffer::SetViewport(const KViewPortArea& area)
 {
 	assert(m_CommandBuffer != VK_NULL_HANDLE);
 	if(m_CommandBuffer != VK_NULL_HANDLE)
 	{
-		KVulkanRenderPass* vulkanRenderPass = (KVulkanRenderPass*)renderPass.get();
-
 		// 设置视口与裁剪
-		VkOffset2D offset = {0, 0};
-		VkExtent2D extent = vulkanRenderPass->GetVkExtent();
+		VkOffset2D offset = { (int32_t)area.x, (int32_t)area.y };
+		VkExtent2D extent = { area.width, area.height };
 
 		VkRect2D scissorRect = { offset, extent};
 		VkViewport viewPort = 
 		{
-			0.0f,
-			0.0f,
+			(float)offset.x,
+			(float)offset.y,
 			(float)extent.width,
 			(float)extent.height,
 			0.0f,
 			1.0f 
 		};
+
 		vkCmdSetViewport(m_CommandBuffer, 0, 1, &viewPort);
 		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissorRect);
 
@@ -385,10 +384,9 @@ bool KVulkanCommandBuffer::BeginRenderPass(IKRenderPassPtr renderPass, SubpassCo
 		// 指定帧缓冲
 		renderPassInfo.framebuffer = vulkanRenderPass->GetVkFrameBuffer();
 
-		renderPassInfo.renderArea.offset.x = 0;
-		renderPassInfo.renderArea.offset.y = 0;
-		renderPassInfo.renderArea.extent = vulkanRenderPass->GetVkExtent();
-
+		const KViewPortArea& area = renderPass->GetViewPort();
+		renderPassInfo.renderArea.offset = { (int32_t)area.x, (int32_t)area.y };
+		renderPassInfo.renderArea.extent = { area.width, area.height };
 
 		KVulkanRenderPass::VkClearValueArray clearValues;
 		vulkanRenderPass->GetVkClearValues(clearValues);
@@ -418,9 +416,10 @@ bool KVulkanCommandBuffer::BeginRenderPass(IKRenderPassPtr renderPass, SubpassCo
 	return false;
 }
 
-bool KVulkanCommandBuffer::ClearColor(const KClearRect& rect, const KClearColor& color)
+bool KVulkanCommandBuffer::ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color)
 {
 	VkClearValue clearValue;
+
 	VkClearAttachment clearAttachment;
 
 	clearValue.color.float32[0] = color.r;
@@ -429,21 +428,21 @@ bool KVulkanCommandBuffer::ClearColor(const KClearRect& rect, const KClearColor&
 	clearValue.color.float32[3] = color.a;
 
 	clearAttachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	clearAttachment.colorAttachment = 0;
+	clearAttachment.colorAttachment = attachment;
 	clearAttachment.clearValue = clearValue;
 
 	VkClearRect clearRect;
 	clearRect.baseArrayLayer = 0;
 	clearRect.layerCount = 1;
-	clearRect.rect.offset = { 0 , 0 };
-	clearRect.rect.extent = { rect.width, rect.height };
+	clearRect.rect.offset = { (int32_t)area.x, (int32_t)area.y };
+	clearRect.rect.extent = { area.width, area.height };
 
 	vkCmdClearAttachments(m_CommandBuffer, 1, &clearAttachment, 1, &clearRect);
 
 	return true;
 }
 
-bool KVulkanCommandBuffer::ClearDepthStencil(const KClearRect& rect, const KClearDepthStencil& depthStencil)
+bool KVulkanCommandBuffer::ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil)
 {
 	VkClearValue clearValue;
 	VkClearAttachment clearAttachment;
@@ -458,30 +457,12 @@ bool KVulkanCommandBuffer::ClearDepthStencil(const KClearRect& rect, const KClea
 	VkClearRect clearRect;
 	clearRect.baseArrayLayer = 0;
 	clearRect.layerCount = 1;
-	clearRect.rect.offset = { 0 , 0 };
-	clearRect.rect.extent = { rect.width, rect.height };
+	clearRect.rect.offset = { (int32_t)area.x, (int32_t)area.y };
+	clearRect.rect.extent = { area.width, area.height };
 
 	vkCmdClearAttachments(m_CommandBuffer, 1, &clearAttachment, 1, &clearRect);
 
 	return true;
-}
-
-bool KVulkanCommandBuffer::ClearDepthStencilRTRect(IKRenderTargetPtr target, const KClearDepthStencil& value)
-{
-	if (target)
-	{
-		KClearRect rect;
-
-		size_t width = 0;
-		size_t height = 0;
-		if (target->GetSize(width, height))
-		{
-			rect.width = static_cast<uint32_t>(width);
-			rect.height = static_cast<uint32_t>(height);
-			return ClearDepthStencil(rect, value);
-		}
-	}
-	return false;
 }
 
 bool KVulkanCommandBuffer::EndRenderPass()

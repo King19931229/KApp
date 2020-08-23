@@ -202,7 +202,7 @@ bool KSkyBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<
 		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
 		commandBuffer->BeginSecondary(renderPass);
-		commandBuffer->SetViewport(renderPass);
+		commandBuffer->SetViewport(renderPass->GetViewPort());
 		commandBuffer->Render(command);
 		commandBuffer->End();
 

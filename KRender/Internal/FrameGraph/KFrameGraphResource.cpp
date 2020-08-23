@@ -189,7 +189,7 @@ bool KFrameGraphRenderTarget::AllocResource(IKRenderDevice* device)
 		{
 			ASSERT_RESULT(!m_RenderTarget);
 			device->CreateRenderTarget(m_RenderTarget);
-			m_RenderTarget->InitFromDepthStencil(m_Width, m_Height, m_Stencil);
+			m_RenderTarget->InitFromDepthStencil(m_Width, m_Height, 1, m_Stencil);
 			m_Vaild = true;
 			return true;
 		}

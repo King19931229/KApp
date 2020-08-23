@@ -213,7 +213,6 @@ protected:
 	void InitRenderData();
 
 	bool GetRenderCommand(size_t frameIndex, KRenderCommandList& commands);
-	void ClearDepthStencil(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const KClearDepthStencil& value);
 public:
 	KCameraCube();
 	~KCameraCube();

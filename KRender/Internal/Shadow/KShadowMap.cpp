@@ -34,7 +34,7 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight, uint32
 	m_ShadowSampler->Init(0, 0);
 
 	ASSERT_RESULT(renderDevice->CreateRenderTarget(m_RenderTarget));
-	ASSERT_RESULT(m_RenderTarget->InitFromDepthStencil(shadowMapSize, shadowMapSize, false));
+	ASSERT_RESULT(m_RenderTarget->InitFromDepthStencil(shadowMapSize, shadowMapSize, 1, false));
 
 	ASSERT_RESULT(renderDevice->CreateRenderPass(m_RenderPass));
 	m_RenderPass->SetDepthStencilAttachment(m_RenderTarget->GetFrameBuffer());
@@ -119,7 +119,7 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 			primaryBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_SECONDARY);
 
 			commandBuffer->BeginSecondary(m_RenderPass);
-			commandBuffer->SetViewport(m_RenderPass);
+			commandBuffer->SetViewport(m_RenderPass->GetViewPort());
 
 			// Set depth bias (aka "Polygon offset")
 			// Required to avoid shadow mapping artefacts
