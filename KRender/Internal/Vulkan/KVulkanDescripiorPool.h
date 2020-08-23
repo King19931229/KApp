@@ -67,6 +67,5 @@ public:
 
 	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame,
 		IKPipeline* pipeline,
-		const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount,
-		const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount);
+		const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount);
 };

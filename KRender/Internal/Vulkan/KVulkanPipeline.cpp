@@ -265,64 +265,32 @@ bool KVulkanPipeline::BindSampler(unsigned int location, const SamplerBindingInf
 	return true;
 }
 
-bool KVulkanPipeline::SetSamplerImpl(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler, bool dynamic)
+bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler, bool dynimicWrite)
 {
 	if (texture && sampler)
 	{
 		SamplerBindingInfo info;
 		info.texture = texture;
 		info.sampler = sampler;
+		info.dynamicWrite = dynimicWrite;
+		info.onceWrite = false;
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
 	}
 	return false;
 }
 
-bool KVulkanPipeline::SetSamplerAttachmentImpl(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynamic)
+bool KVulkanPipeline::SetSampler(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynimicWrite)
 {
 	if (target && sampler)
 	{
 		SamplerBindingInfo info;
 		info.frameBuffer = target->GetFrameBuffer();
 		info.sampler = sampler;
+		info.dynamicWrite = dynimicWrite;
+		info.onceWrite = false;
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
-	}
-	return false;
-}
-
-bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler)
-{
-	if(texture && sampler)
-	{
-		return SetSamplerImpl(location, texture, sampler, false);
-	}
-	return false;
-}
-
-bool KVulkanPipeline::SetSampler(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler)
-{
-	if(target && sampler)
-	{
-		return SetSamplerAttachmentImpl(location, target, sampler, false);
-	}
-	return false;
-}
-
-bool KVulkanPipeline::SetSamplerDynamic(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler)
-{
-	if (texture && sampler)
-	{
-		return SetSamplerImpl(location, texture, sampler, true);
-	}
-	return false;
-}
-
-bool KVulkanPipeline::SetSamplerDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler)
-{
-	if (target && sampler)
-	{
-		return SetSamplerAttachmentImpl(location, target, sampler, true);
 	}
 	return false;
 }
@@ -350,17 +318,30 @@ bool KVulkanPipeline::CreateLayout()
 	*/
 	m_DescriptorSetLayoutBinding.clear();
 
-	auto IsDuplicateLayoutBinding = [](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs)->bool
+	auto AddLayoutBinding = [](std::vector<VkDescriptorSetLayoutBinding>& bindings, VkDescriptorSetLayoutBinding newBinding)
 	{
-		if (lhs.binding != rhs.binding)
-			return false;
-		if (lhs.descriptorType != rhs.descriptorType)
-			return false;
-		if (lhs.descriptorCount != rhs.descriptorCount)
-			return false;
-		if (lhs.pImmutableSamplers != rhs.pImmutableSamplers)
-			return false;
-		return true;
+		auto it = std::find_if(bindings.begin(), bindings.end(),
+			[&newBinding](const VkDescriptorSetLayoutBinding& reference)->bool
+		{
+			if (newBinding.binding != reference.binding)
+				return false;
+			if (newBinding.descriptorType != reference.descriptorType)
+				return false;
+			if (newBinding.descriptorCount != reference.descriptorCount)
+				return false;
+			if (newBinding.pImmutableSamplers != reference.pImmutableSamplers)
+				return false;
+			return true;
+		});
+
+		if (it == bindings.end())
+		{
+			bindings.push_back(newBinding);
+		}
+		else
+		{
+			(*it).stageFlags |= newBinding.stageFlags;
+		}
 	};
 
 	// VertexShader Binding
@@ -379,20 +360,7 @@ bool KVulkanPipeline::CreateLayout()
 			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 			
-			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
-				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
-			{
-				return IsDuplicateLayoutBinding(lhs, uboLayoutBinding);
-			});
-
-			if (it == m_DescriptorSetLayoutBinding.end())
-			{
-				m_DescriptorSetLayoutBinding.push_back(uboLayoutBinding);
-			}
-			else
-			{
-				(*it).stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
-			}
+			AddLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
 		}
 
 		for (const KShaderInformation::Constant& constant : vertexInformation.dynamicConstants)
@@ -407,20 +375,7 @@ bool KVulkanPipeline::CreateLayout()
 			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
-				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
-			{
-				return IsDuplicateLayoutBinding(lhs, uboLayoutBinding);
-			});
-
-			if (it == m_DescriptorSetLayoutBinding.end())
-			{
-				m_DescriptorSetLayoutBinding.push_back(uboLayoutBinding);
-			}
-			else
-			{
-				(*it).stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
-			}
+			AddLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
 		}
 
 		for (const KShaderInformation::Texture& texture : vertexInformation.textures)
@@ -435,20 +390,7 @@ bool KVulkanPipeline::CreateLayout()
 			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 			samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
-				[&samplerLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
-			{
-				return IsDuplicateLayoutBinding(lhs, samplerLayoutBinding);
-			});
-
-			if (it == m_DescriptorSetLayoutBinding.end())
-			{
-				m_DescriptorSetLayoutBinding.push_back(samplerLayoutBinding);
-			}
-			else
-			{
-				(*it).stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
-			}
+			AddLayoutBinding(m_DescriptorSetLayoutBinding, samplerLayoutBinding);
 		}
 	}
 
@@ -468,20 +410,7 @@ bool KVulkanPipeline::CreateLayout()
 			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 			
-			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
-				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
-			{
-				return IsDuplicateLayoutBinding(lhs, uboLayoutBinding);
-			});
-
-			if (it == m_DescriptorSetLayoutBinding.end())
-			{
-				m_DescriptorSetLayoutBinding.push_back(uboLayoutBinding);
-			}
-			else
-			{
-				(*it).stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-			}
+			AddLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
 		}
 
 		for (const KShaderInformation::Constant& constant : fragmentInformation.dynamicConstants)
@@ -496,20 +425,7 @@ bool KVulkanPipeline::CreateLayout()
 			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
-				[&uboLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
-			{
-				return IsDuplicateLayoutBinding(lhs, uboLayoutBinding);
-			});
-
-			if (it == m_DescriptorSetLayoutBinding.end())
-			{
-				m_DescriptorSetLayoutBinding.push_back(uboLayoutBinding);
-			}
-			else
-			{
-				(*it).stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-			}
+			AddLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
 		}
 
 		for (const KShaderInformation::Texture& texture : fragmentInformation.textures)
@@ -524,20 +440,7 @@ bool KVulkanPipeline::CreateLayout()
 			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-			auto it = std::find_if(m_DescriptorSetLayoutBinding.begin(), m_DescriptorSetLayoutBinding.end(),
-				[&samplerLayoutBinding, &IsDuplicateLayoutBinding](const VkDescriptorSetLayoutBinding& lhs)->bool
-			{
-				return IsDuplicateLayoutBinding(lhs, samplerLayoutBinding);
-			});
-
-			if (it == m_DescriptorSetLayoutBinding.end())
-			{
-				m_DescriptorSetLayoutBinding.push_back(samplerLayoutBinding);
-			}
-			else
-			{
-				(*it).stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-			}
+			AddLayoutBinding(m_DescriptorSetLayoutBinding, samplerLayoutBinding);
 		}
 	}
 
@@ -553,13 +456,26 @@ bool KVulkanPipeline::CreateLayout()
 	*/
 	std::vector<VkPushConstantRange> pushConstantRanges;
 
-	auto IsDuplicatePushConstantRange = [](const VkPushConstantRange& lhs, const VkPushConstantRange& rhs)->bool
+	auto AddPushConstantRange = [](std::vector<VkPushConstantRange>& ranges, VkPushConstantRange range)
 	{
-		if (lhs.offset != rhs.offset)
-			return false;
-		if (lhs.size != rhs.size)
-			return false;
-		return true;
+		auto it = std::find_if(ranges.begin(), ranges.end(),
+			[&range](const VkPushConstantRange& reference)->bool
+		{
+			if (range.offset != reference.offset)
+				return false;
+			if (range.size != reference.size)
+				return false;
+			return true;
+		});
+
+		if (it == ranges.end())
+		{
+			ranges.push_back(range);
+		}
+		else
+		{
+			(*it).stageFlags |= range.stageFlags;
+		}
 	};
 
 	// VertexShader Binding
@@ -573,20 +489,7 @@ bool KVulkanPipeline::CreateLayout()
 			pushConstantRange.offset = 0;
 			pushConstantRange.size = constant.size;
 
-			auto it = std::find_if(pushConstantRanges.begin(), pushConstantRanges.end(),
-				[&pushConstantRange, &IsDuplicatePushConstantRange](const VkPushConstantRange& lhs)->bool
-			{
-				return IsDuplicatePushConstantRange(lhs, pushConstantRange);
-			});
-
-			if (it == pushConstantRanges.end())
-			{
-				pushConstantRanges.push_back(pushConstantRange);
-			}
-			else
-			{
-				(*it).stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
-			}
+			AddPushConstantRange(pushConstantRanges, pushConstantRange);
 		}
 	}
 
@@ -601,20 +504,7 @@ bool KVulkanPipeline::CreateLayout()
 			pushConstantRange.offset = 0;
 			pushConstantRange.size = constant.size;
 
-			auto it = std::find_if(pushConstantRanges.begin(), pushConstantRanges.end(),
-				[&pushConstantRange, &IsDuplicatePushConstantRange](const VkPushConstantRange& lhs)->bool
-			{
-				return IsDuplicatePushConstantRange(lhs, pushConstantRange);
-			});
-
-			if (it == pushConstantRanges.end())
-			{
-				pushConstantRanges.push_back(pushConstantRange);
-			}
-			else
-			{
-				(*it).stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-			}
+			AddPushConstantRange(pushConstantRanges, pushConstantRange);
 		}
 	}
 
@@ -724,9 +614,9 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 	return true;
 }
 
-VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount, const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount)
+VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount)
 {
-	return m_Pool.Alloc(KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppBufferUsage, dynamicBufferUsageCount, pTextureUsage, dynamicTextureUsageCount);
+	return m_Pool.Alloc(KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppBufferUsage, dynamicBufferUsageCount);
 }
 
 bool KVulkanPipeline::Init()

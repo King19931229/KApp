@@ -89,12 +89,16 @@ protected:
 		IKTexturePtr texture;
 		IKFrameBufferPtr frameBuffer;
 		IKSamplerPtr sampler;
+		bool dynamicWrite;
+		bool onceWrite;
 
 		SamplerBindingInfo()
 		{
 			texture = nullptr;
 			frameBuffer = nullptr;
 			sampler = nullptr;
+			dynamicWrite = false;
+			onceWrite = false;
 		}
 	};
 	std::unordered_map<unsigned int, SamplerBindingInfo> m_Samplers;
@@ -118,8 +122,6 @@ protected:
 	bool DestroyDevice();
 	bool ClearHandle();
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
-	bool SetSamplerImpl(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler, bool dynamic);
-	bool SetSamplerAttachmentImpl(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynamic);
 
 	bool CheckDependencyResource();
 
@@ -154,11 +156,8 @@ public:
 
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
 
-	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
-	virtual bool SetSampler(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler);
-
-	virtual bool SetSamplerDynamic(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler);
-	virtual bool SetSamplerDynamic(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler);
+	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler, bool dynimicWrite);
+	virtual bool SetSampler(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynimicWrite);
 
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size);
 	virtual bool DestroyConstantBlock();
@@ -170,5 +169,5 @@ public:
 	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
-	VkDescriptorSet AllocDescriptorSet(const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount, const KDynamicTextureUsage* pTextureUsage, size_t dynamicTextureUsageCount);
+	VkDescriptorSet AllocDescriptorSet(const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount);
 };

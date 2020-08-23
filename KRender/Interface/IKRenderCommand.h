@@ -109,20 +109,6 @@ struct KInstanceBufferUsage
 	}
 };
 
-struct KDynamicTextureUsage
-{
-	IKTexturePtr texture;
-	IKSamplerPtr sampler;
-	size_t binding;
-
-	KDynamicTextureUsage()
-	{
-		texture = nullptr;
-		sampler = nullptr;
-		binding = 0;
-	}
-};
-
 struct KRenderCommand
 {
 	const KVertexData* vertexData;
@@ -138,8 +124,6 @@ struct KRenderCommand
 	KDynamicConstantBufferUsage vertexShadingUsage;
 	KDynamicConstantBufferUsage fragmentShadingUsage;
 	std::vector<KInstanceBufferUsage> instanceUsages;
-	// 每帧都需要重新绑定的贴图
-	std::vector<KDynamicTextureUsage> dynamicTextureUsages;
 
 	KRenderCommand()
 	{

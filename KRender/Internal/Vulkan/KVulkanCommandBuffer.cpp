@@ -210,7 +210,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			dynamicOffsets[i] = (uint32_t)dynamicUsages[i]->offset;
 		}
 
-		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(dynamicUsages, dynamicBufferCount, command.dynamicTextureUsages.data(), command.dynamicTextureUsages.size());
+		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(dynamicUsages, dynamicBufferCount);
 
 		// 绑定管线
 		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
