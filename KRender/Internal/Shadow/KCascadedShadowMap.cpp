@@ -11,6 +11,94 @@
 
 #include "KBase/Interface/IKLog.h"
 
+KCascadedShadowMapPass::KCascadedShadowMapPass(KCascadedShadowMap& master)
+	: KFrameGraphPass("CascadedShadowMap"),
+	m_Master(master)
+{}
+
+KCascadedShadowMapPass::~KCascadedShadowMapPass()
+{
+	ASSERT_RESULT(m_TargetIDs.empty());
+}
+
+bool KCascadedShadowMapPass::Init()
+{
+	UnInit();
+
+	m_TargetIDs.reserve(m_Master.m_Cascadeds.size());
+
+	for (size_t i = 0; i < m_Master.m_Cascadeds.size(); ++i)
+	{
+		KFrameGraph::RenderTargetCreateParameter parameter;
+		parameter.width = m_Master.m_Cascadeds[i].shadowSize;
+		parameter.height = m_Master.m_Cascadeds[i].shadowSize;
+		parameter.msaaCount = 1;
+		parameter.bDepth = true;
+		parameter.bStencil = false;
+
+		KFrameGraphID rtID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
+		m_TargetIDs.push_back(rtID);
+	}
+
+	KRenderGlobal::FrameGraph.RegisterPass(this);
+
+	return true;
+}
+
+bool KCascadedShadowMapPass::UnInit()
+{
+	for (KFrameGraphID& id : m_TargetIDs)
+	{
+		KRenderGlobal::FrameGraph.Destroy(id);
+	}
+	m_TargetIDs.clear();
+
+	KRenderGlobal::FrameGraph.UnRegisterPass(this);
+
+	return true;
+}
+
+bool KCascadedShadowMapPass::Setup(KFrameGraphBuilder& builder)
+{
+	for (KFrameGraphID& id : m_TargetIDs)
+	{
+		builder.Write(id);
+	}
+	return true;
+}
+
+IKRenderTargetPtr KCascadedShadowMapPass::GetTarget(size_t cascadedIndex)
+{
+	if (cascadedIndex < m_TargetIDs.size())
+	{
+		return KRenderGlobal::FrameGraph.GetTarget(m_TargetIDs[cascadedIndex]);
+	}
+	return nullptr;
+}
+
+bool KCascadedShadowMapPass::Execute()
+{
+	if (m_TargetIDs.size() != m_Master.m_Cascadeds.size())
+	{
+		return false;
+	}
+
+	for (size_t i = 0; i < m_Master.m_Cascadeds.size(); ++i)
+	{
+		IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_TargetIDs[i]);
+		IKRenderPassPtr renderPass = m_Master.m_Cascadeds[i].renderPasses[m_CurrentFrameIndex];
+
+		ASSERT_RESULT(shadowTarget);
+		renderPass->SetDepthStencilAttachment(shadowTarget->GetFrameBuffer());
+		renderPass->SetClearDepthStencil({ 1.0f, 0 });
+		ASSERT_RESULT(renderPass->Init());
+	
+		m_Master.UpdateRT(i, m_CurrentFrameIndex, m_PriamryCommandBuffer, shadowTarget, renderPass);
+	}
+
+	return true;
+}
+
 const VertexFormat KCascadedShadowMap::ms_VertexFormats[] = { VF_SCREENQUAD_POS };
 
 const KVertexDefinition::SCREENQUAD_POS_2F KCascadedShadowMap::ms_BackGroundVertices[] =
@@ -320,23 +408,27 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 		uint32_t cascadedShadowSize = shadowMapSize;
 
 		m_Cascadeds.resize(numCascaded);
-		for (Cascade& cascaded : m_Cascadeds)
+		for (size_t i = 0; i < m_Cascadeds.size(); ++i)
 		{
+			Cascade& cascaded = m_Cascadeds[i];
 			cascaded.shadowSize = cascadedShadowSize;
 
+			cascaded.renderPasses.resize(frameInFlight);
+			for (size_t i = 0; i < frameInFlight; ++i)
 			{
-				ASSERT_RESULT(renderDevice->CreateRenderTarget(cascaded.renderTarget));
-				ASSERT_RESULT(cascaded.renderTarget->InitFromDepthStencil(cascadedShadowSize, cascadedShadowSize, 1, false));
+				IKRenderPassPtr& renderPass = cascaded.renderPasses[i];
+				ASSERT_RESULT(renderDevice->CreateRenderPass(renderPass));
 			}
 
+			cascaded.commandBuffers.resize(frameInFlight);
+			for (size_t i = 0; i < frameInFlight; ++i)
 			{
-				ASSERT_RESULT(renderDevice->CreateRenderPass(cascaded.renderPass));
-				cascaded.renderPass->SetDepthStencilAttachment(cascaded.renderTarget->GetFrameBuffer());
-				cascaded.renderPass->SetClearDepthStencil({ 1.0f, 0 });
-				ASSERT_RESULT(cascaded.renderPass->Init());
+				IKCommandBufferPtr& buffer = cascaded.commandBuffers[i];
+				ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
+				ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
 			}
 
-			cascaded.commandBuffers.resize(numCascaded);
+			cascaded.commandBuffers.resize(frameInFlight);
 			for (size_t i = 0; i < frameInFlight; ++i)
 			{
 				IKCommandBufferPtr& buffer = cascaded.commandBuffers[i];
@@ -358,13 +450,16 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 				pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 				pipeline->SetShader(ST_VERTEX, m_DebugVertexShader);
 				pipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader);
-				pipeline->SetSampler(SHADER_BINDING_TEXTURE0, cascaded.renderTarget, m_ShadowSampler);
+			//	TODO pipeline->SetSampler(SHADER_BINDING_TEXTURE0, cascaded.renderTarget, m_ShadowSampler);
 
 				ASSERT_RESULT(pipeline->Init());
 			}
 
 			cascadedShadowSize = (size_t)(cascadedShadowSize * m_ShadowSizeRatio);
 		}
+
+		m_Pass = KCascadedShadowMapPassPtr(KNEW KCascadedShadowMapPass(*this));
+		m_Pass->Init();
 
 		m_DebugVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_BackGroundVertexBuffer);
 		m_DebugVertexData.vertexFormats = std::vector<VertexFormat>(ms_VertexFormats, ms_VertexFormats + ARRAY_SIZE(ms_VertexFormats));
@@ -387,9 +482,13 @@ bool KCascadedShadowMap::UnInit()
 {
 	for (Cascade& cascaded : m_Cascadeds)
 	{
-		SAFE_UNINIT(cascaded.renderTarget);
-		SAFE_UNINIT(cascaded.renderPass);
 		SAFE_UNINIT(cascaded.debugPipeline);
+		
+		for (IKRenderPassPtr& renderPass : cascaded.renderPasses)
+		{
+			SAFE_UNINIT(renderPass);
+		}
+		cascaded.renderPasses.clear();
 
 		for (IKCommandBufferPtr& buffer : cascaded.commandBuffers)
 		{
@@ -414,18 +513,17 @@ bool KCascadedShadowMap::UnInit()
 	SAFE_UNINIT(m_ShadowSampler);
 	SAFE_UNINIT(m_CommandPool);
 
+	SAFE_UNINIT(m_Pass);
+
 	m_Device = nullptr;
 
 	return true;
 }
 
-void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex, std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
+void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex,
+	IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass, 
+	std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
-	ASSERT_RESULT(cascadedIndex < m_Cascadeds.size());
-
-	IKRenderTargetPtr shadowTarget = m_Cascadeds[cascadedIndex].renderTarget;
-	IKRenderPassPtr renderPass = m_Cascadeds[cascadedIndex].renderPass;
-
 	struct InstanceGroup
 	{
 		KRenderComponent* render;
@@ -518,7 +616,130 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 	}
 }
 
-bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer, KRenderStageStatistics& statistics)
+bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass)
+{
+	m_Statistics.Reset();
+
+	size_t numCascaded = m_Cascadeds.size();
+	// 更新RenderTarget
+	if (cascadedIndex < m_Cascadeds.size())
+	{
+		Cascade& cascaded = m_Cascadeds[cascadedIndex];
+
+		std::vector<KRenderComponent*> litCullRes;
+		KRenderGlobal::Scene.GetRenderComponent(cascaded.litBox, litCullRes);
+
+		if (m_MinimizeShadowDraw)
+		{
+			std::vector<KRenderComponent*> frustumCullRes;
+			KRenderGlobal::Scene.GetRenderComponent(cascaded.frustumBox, frustumCullRes);
+
+			std::vector<KRenderComponent*> newLitCullRes;
+
+			KAABBBox receiverBox;
+			for (KRenderComponent* component : frustumCullRes)
+			{
+				if (!component->IsOcclusionVisible())
+				{
+					continue;
+				}
+				KAABBBox bound;
+				IKEntity* entity = component->GetEntityHandle();
+				if (entity && entity->GetBound(bound))
+				{
+					receiverBox.Merge(bound, receiverBox);
+				}
+			}
+
+			// 这里算出的receiverBox要与frustumBox结合算出最紧密的receiverBox
+			if (receiverBox.IsDefault())
+			{
+				receiverBox.Transform(cascaded.viewProjMatrix, receiverBox);
+
+				KAABBBox frustumBox = cascaded.frustumBox;
+				frustumBox.Transform(cascaded.viewProjMatrix, frustumBox);
+
+				const glm::vec3& receiverMin = receiverBox.GetMin();
+				const glm::vec3& receiverMax = receiverBox.GetMax();
+
+				const glm::vec3& frustumBoxMin = frustumBox.GetMin();
+				const glm::vec3& frustumBoxMax = frustumBox.GetMax();
+
+				glm::vec3 min = glm::max(receiverMin, frustumBoxMin);
+				glm::vec3 max = glm::min(receiverMax, frustumBoxMax);
+
+				receiverBox.InitFromMinMax(min, max);
+			}
+
+			// 判断哪些caster会投影到receiverBox上
+			if (receiverBox.IsDefault())
+			{
+				newLitCullRes.reserve(litCullRes.size());
+				for (KRenderComponent* component : litCullRes)
+				{
+					KAABBBox casterBound;
+					IKEntity* entity = component->GetEntityHandle();
+					if (entity && entity->GetBound(casterBound))
+					{
+						casterBound.Transform(cascaded.viewProjMatrix, casterBound);
+
+						const glm::vec3& receiverMin = receiverBox.GetMin();
+						const glm::vec3& receiverMax = receiverBox.GetMax();
+
+						const glm::vec3& casterMin = casterBound.GetMin();
+						const glm::vec3& casterMax = casterBound.GetMax();
+
+						if (casterMin.x <= receiverMax.x && casterMax.x >= receiverMin.x &&
+							casterMin.y <= receiverMax.y && casterMax.y >= receiverMin.y &&
+							casterMin.z <= receiverMax.z)
+						{
+							newLitCullRes.push_back(component);
+						}
+					}
+				}
+			}
+
+			litCullRes = newLitCullRes;
+		}
+
+		IKCommandBufferPtr commandBuffer = cascaded.commandBuffers[frameIndex];
+
+		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
+		primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
+
+		commandBuffer->BeginSecondary(renderPass);
+		commandBuffer->SetViewport(renderPass->GetViewPort());
+
+		// Set depth bias (aka "Polygon offset")
+		// Required to avoid shadow mapping artefacts
+		commandBuffer->SetDepthBias(m_DepthBiasConstant[cascadedIndex], 0, m_DepthBiasSlope[cascadedIndex]);
+		{
+			KRenderCommandList commandList;
+
+			PopulateRenderCommand(frameIndex, cascadedIndex,
+				shadowMapTarget, renderPass,
+				litCullRes, commandList, m_Statistics);
+
+			for (KRenderCommand& command : commandList)
+			{
+				IKPipelineHandlePtr handle = nullptr;
+				if (command.pipeline->GetHandle(renderPass, handle))
+				{
+					commandBuffer->Render(command);
+				}
+			}
+		}
+
+		commandBuffer->End();
+
+		primaryBuffer->Execute(commandBuffer);
+		primaryBuffer->EndRenderPass();
+		return true;
+	}
+	return false;
+}
+
+bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer)
 {
 	UpdateCascades(mainCamera);
 
@@ -584,122 +805,6 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 		}
 		shadowBuffer->Write(pData);
 	}
-	// 更新RenderTarget
-	{
-		for (size_t i = 0; i < numCascaded; i++)
-		{
-			Cascade& cascaded = m_Cascadeds[i];
-
-			std::vector<KRenderComponent*> litCullRes;
-			KRenderGlobal::Scene.GetRenderComponent(cascaded.litBox, litCullRes);
-
-			if (m_MinimizeShadowDraw)
-			{
-				std::vector<KRenderComponent*> frustumCullRes;
-				KRenderGlobal::Scene.GetRenderComponent(cascaded.frustumBox, frustumCullRes);
-
-				std::vector<KRenderComponent*> newLitCullRes;
-
-				KAABBBox receiverBox;
-				for (KRenderComponent* component : frustumCullRes)
-				{
-					if (!component->IsOcclusionVisible())
-					{
-						continue;
-					}
-					KAABBBox bound;
-					IKEntity* entity = component->GetEntityHandle();
-					if (entity && entity->GetBound(bound))
-					{
-						receiverBox.Merge(bound, receiverBox);
-					}
-				}
-
-				// 这里算出的receiverBox要与frustumBox结合算出最紧密的receiverBox
-				if (receiverBox.IsDefault())
-				{
-					receiverBox.Transform(cascaded.viewProjMatrix, receiverBox);
-
-					KAABBBox frustumBox = cascaded.frustumBox;
-					frustumBox.Transform(cascaded.viewProjMatrix, frustumBox);
-
-					const glm::vec3& receiverMin = receiverBox.GetMin();
-					const glm::vec3& receiverMax = receiverBox.GetMax();
-
-					const glm::vec3& frustumBoxMin = frustumBox.GetMin();
-					const glm::vec3& frustumBoxMax = frustumBox.GetMax();
-
-					glm::vec3 min = glm::max(receiverMin, frustumBoxMin);
-					glm::vec3 max = glm::min(receiverMax, frustumBoxMax);
-
-					receiverBox.InitFromMinMax(min, max);
-				}
-
-				// 判断哪些caster会投影到receiverBox上
-				if (receiverBox.IsDefault())
-				{
-					newLitCullRes.reserve(litCullRes.size());
-					for (KRenderComponent* component : litCullRes)
-					{
-						KAABBBox casterBound;
-						IKEntity* entity = component->GetEntityHandle();
-						if (entity && entity->GetBound(casterBound))
-						{
-							casterBound.Transform(cascaded.viewProjMatrix, casterBound);
-
-							const glm::vec3& receiverMin = receiverBox.GetMin();
-							const glm::vec3& receiverMax = receiverBox.GetMax();
-
-							const glm::vec3& casterMin = casterBound.GetMin();
-							const glm::vec3& casterMax = casterBound.GetMax();
-
-							if (casterMin.x <= receiverMax.x && casterMax.x >= receiverMin.x &&
-								casterMin.y <= receiverMax.y && casterMax.y >= receiverMin.y &&
-								casterMin.z <= receiverMax.z)
-							{
-								newLitCullRes.push_back(component);
-							}
-						}
-					}
-				}
-
-				litCullRes = newLitCullRes;
-			}
-
-			IKCommandBufferPtr commandBuffer = cascaded.commandBuffers[frameIndex];
-			IKRenderTargetPtr shadowMapTarget = cascaded.renderTarget;
-			IKRenderPassPtr renderPass = cascaded.renderPass;
-
-			KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
-			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
-
-			commandBuffer->BeginSecondary(renderPass);
-			commandBuffer->SetViewport(renderPass->GetViewPort());
-
-			// Set depth bias (aka "Polygon offset")
-			// Required to avoid shadow mapping artefacts
-			commandBuffer->SetDepthBias(m_DepthBiasConstant[i], 0, m_DepthBiasSlope[i]);
-			{
-				KRenderCommandList commandList;
-
-				PopulateRenderCommand(frameIndex, i, litCullRes, commandList, statistics);
-
-				for (KRenderCommand& command : commandList)
-				{
-					IKPipelineHandlePtr handle = nullptr;
-					if (command.pipeline->GetHandle(renderPass, handle))
-					{
-						commandBuffer->Render(command);
-					}
-				}
-			}
-
-			commandBuffer->End();
-
-			primaryBuffer->Execute(commandBuffer);
-			primaryBuffer->EndRenderPass();
-		}
-	}
 	return true;
 }
 
@@ -727,6 +832,8 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands)
 
 bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
+	return false;
+	// TODO
 	KRenderCommandList commands;
 	if (GetDebugRenderCommand(commands))
 	{
@@ -747,13 +854,9 @@ bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderPassPtr renderPa
 
 IKRenderTargetPtr KCascadedShadowMap::GetShadowMapTarget(size_t cascadedIndex)
 {
-	if (cascadedIndex < m_Cascadeds.size())
+	if (m_Pass)
 	{
-		Cascade& cascaded = m_Cascadeds[cascadedIndex];
-		if(cascaded.renderTarget)
-		{
-			return cascaded.renderTarget;
-		}
+		return m_Pass->GetTarget(cascadedIndex);
 	}
 	return nullptr;
 }

@@ -6,18 +6,21 @@ class KFrameGraphPass
 {
 	friend class KFrameGraph;
 private:
-	std::vector<KFrameGraphHandlePtr> m_ReadResources;
-	std::vector<KFrameGraphHandlePtr> m_WriteResources;
+	std::vector<KFrameGraphID> m_ReadResources;
+	std::vector<KFrameGraphID> m_WriteResources;
 	std::string m_Name;
 	unsigned int m_Ref;
 	unsigned int m_ExecutedDenpencies;
 	bool m_Executed;
+protected:
+	IKCommandBufferPtr m_PriamryCommandBuffer;
+	uint32_t m_CurrentFrameIndex;
 public:
 	KFrameGraphPass(const std::string& name);
 	~KFrameGraphPass();
 
-	bool ReadImpl(KFrameGraphBuilder& builder, KFrameGraphHandlePtr handle);
-	bool WriteImpl(KFrameGraphBuilder& builder, KFrameGraphHandlePtr handle);
+	bool ReadImpl(KFrameGraphBuilder& builder, KFrameGraphID handle);
+	bool WriteImpl(KFrameGraphBuilder& builder, KFrameGraphID handle);
 	bool Clear();
 
 	inline unsigned int GetRef() const { return m_Ref; }

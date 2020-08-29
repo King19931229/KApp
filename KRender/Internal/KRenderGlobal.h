@@ -20,6 +20,7 @@
 #include "Internal/Dispatcher/KRenderDispatcher.h"
 
 #include "Internal/KStatistics.h"
+#include "Internal/FrameGraph/KFrameGraph.h"
 
 #include "KBase/Publish/KTaskExecutor.h"
 
@@ -39,6 +40,8 @@ namespace KRenderGlobal
 	extern KOcclusionBox OcclusionBox;
 	extern KShadowMap ShadowMap;
 	extern KCascadedShadowMap CascadedShadowMap;
+
+	extern KFrameGraph FrameGraph;
 
 	// TODO 多场景去掉全局场景
 	extern KRenderScene Scene;

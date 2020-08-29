@@ -2,6 +2,7 @@
 #include <mutex>
 #include <queue>
 #include <unordered_map>
+#include "KBase/Publish/KConfig.h"
 
 typedef unsigned int FrameGraphHandleType;
 
@@ -13,7 +14,7 @@ protected:
 	FrameGraphHandleType m_HandleCounter;
 public:
 	KFrameGraphHandlePool()
-		: m_HandleCounter(0)
+		: m_HandleCounter(1)
 	{}
 
 	~KFrameGraphHandlePool() {}
@@ -54,6 +55,8 @@ public:
 		m_Pool.RecyleHandle(m_Handle);
 	}
 
+	unsigned int GetSoul() const { return m_Handle; }
+
 	KFrameGraphHandle(const KFrameGraphHandle&) = delete;
 	KFrameGraphHandle(KFrameGraphHandle&&) = delete;
 	KFrameGraphHandle& operator=(const KFrameGraphHandle&) = delete;
@@ -62,7 +65,74 @@ public:
 
 typedef std::shared_ptr<KFrameGraphHandle> KFrameGraphHandlePtr;
 
+class KFrameGraphID
+{
+protected:
+	KFrameGraphHandlePtr m_HandlePtr;
+public:
+	KFrameGraphID(KFrameGraphHandlePool& pool)
+		: m_HandlePtr(KNEW KFrameGraphHandle(pool))
+	{}
+	KFrameGraphID()
+		: m_HandlePtr(nullptr)
+	{}
+
+	bool operator==(const KFrameGraphID& rhs) const
+	{
+		if (IsVaild() == rhs.IsVaild())
+		{
+			if (IsVaild())
+			{
+				return GetSoul() == rhs.GetSoul();
+			}
+			return true;
+		}
+		return false;
+	}
+	bool operator!=(const KFrameGraphID& rhs) const { return !(operator==(rhs)); }
+
+	bool operator<(const KFrameGraphID& rhs) const
+	{
+		if (IsVaild() == rhs.IsVaild())
+		{
+			if (IsVaild())
+			{
+				return GetSoul() < rhs.GetSoul();
+			}
+		}
+		return false;
+	}
+	bool operator>=(const KFrameGraphID& rhs) const { return !(operator<(rhs)); }
+
+	bool operator>(const KFrameGraphID& rhs) const
+	{
+		if (IsVaild() == rhs.IsVaild())
+		{
+			if (IsVaild())
+			{
+				return GetSoul() < rhs.GetSoul();
+			}
+		}
+		return false;
+	}
+	bool operator<=(const KFrameGraphID& rhs) const { return !(operator>(rhs)); }
+
+	size_t GetSoul() const { return m_HandlePtr->GetSoul(); }
+	bool IsVaild() const { return m_HandlePtr != nullptr; }	
+};
+
+template<>
+struct std::hash<KFrameGraphID>
+{
+	inline std::size_t operator()(const KFrameGraphID& handle) const
+	{
+		if (handle.IsVaild())
+			return handle.GetSoul();
+		return 0;
+	}
+};
+
 class KFrameGraphResource;
 typedef std::shared_ptr<KFrameGraphResource> KFrameGraphResourcePtr;
 
-typedef std::unordered_map<KFrameGraphHandlePtr, KFrameGraphResourcePtr> ResourceMap;
+typedef std::unordered_map<KFrameGraphID, KFrameGraphResourcePtr> ResourceMap;

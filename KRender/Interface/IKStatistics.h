@@ -21,6 +21,11 @@ struct KRenderStageStatistics
 
 	KRenderStageStatistics()
 	{
+		Reset();
+	}
+
+	void Reset()
+	{
 		faces = 0;
 		primtives = 0;
 		drawcalls = 0;

@@ -550,8 +550,10 @@ bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, co
 	{
 		// 阴影绘制RenderPass
 		{
-			KRenderStageStatistics shadowStatistics;
-			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer, shadowStatistics);
+			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer);
+			KRenderGlobal::FrameGraph.Compile();
+			KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex);
+			const KRenderStageStatistics& shadowStatistics = KRenderGlobal::CascadedShadowMap.GetStatistics();
 			KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
 		}
 		{
@@ -683,7 +685,11 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 	{
 		// 阴影绘制RenderPass
 		{
-			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer, shadowStatistics);
+			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer);
+			KRenderGlobal::FrameGraph.Compile();
+			KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex);
+			const KRenderStageStatistics& shadowStatistics = KRenderGlobal::CascadedShadowMap.GetStatistics();
+			KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
 		}
 		{
 			KRenderGlobal::OcclusionBox.Reset(frameIndex, cullRes, primaryCommandBuffer);

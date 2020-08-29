@@ -5,9 +5,33 @@
 #include "Internal/KVertexDefinition.h"
 #include "Internal/ECS/System/KCullSystem.h"
 #include "Internal/KStatistics.h"
+#include "Internal/FrameGraph/KFrameGraph.h"
+
+class KCascadedShadowMap;
+class KCascadedShadowMapPass : public KFrameGraphPass
+{
+protected:
+	KCascadedShadowMap& m_Master;
+	std::vector<KFrameGraphID> m_TargetIDs;
+public:
+	KCascadedShadowMapPass(KCascadedShadowMap& master);
+	~KCascadedShadowMapPass();
+
+	bool Init();
+	bool UnInit();
+
+	bool HasSideEffect() const override { return true; }
+
+	bool Setup(KFrameGraphBuilder& builder) override;
+	bool Execute() override;
+
+	IKRenderTargetPtr GetTarget(size_t cascadedIndex);
+};
+typedef std::shared_ptr<KCascadedShadowMapPass> KCascadedShadowMapPassPtr;
 
 class KCascadedShadowMap
 {
+	friend class KCascadedShadowMapPass;
 protected:
 	static constexpr size_t SHADOW_MAP_MAX_CASCADED = 4;
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_BackGroundVertices[4];
@@ -35,8 +59,7 @@ protected:
 		glm::mat4 viewProjMatrix;
 		glm::vec4 viewInfo;
 
-		IKRenderPassPtr renderPass;
-		IKRenderTargetPtr renderTarget;
+		std::vector<IKRenderPassPtr> renderPasses;
 		std::vector<IKCommandBufferPtr> commandBuffers;
 
 		// debug
@@ -48,6 +71,9 @@ protected:
 		KAABBBox litBox;
 	};
 	std::vector<Cascade> m_Cascadeds;
+
+	KRenderStageStatistics m_Statistics;
+	KCascadedShadowMapPassPtr m_Pass;
 
 	std::vector<IKCommandBufferPtr> m_DebugCommandBuffers;
 	IKCommandPoolPtr m_CommandPool;
@@ -75,7 +101,11 @@ protected:
 
 	void UpdateCascades(const KCamera* mainCamera);
 	bool GetDebugRenderCommand(KRenderCommandList& commands);
-	void PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex, std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
+	void PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex,
+		IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass,
+		std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
+
+	bool UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass);
 public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();
@@ -83,7 +113,7 @@ public:
 	bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio);
 	bool UnInit();
 
-	bool UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer, KRenderStageStatistics& statistics);
+	bool UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer);
 	bool DebugRender(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 
 	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex);
@@ -102,4 +132,6 @@ public:
 	inline bool& GetFixToScene() { return m_FixToScene; }
 	inline bool& GetFixTexel() { return m_FixTexel; }
 	inline bool& GetMinimizeShadowDraw() { return m_MinimizeShadowDraw; }
+
+	inline const KRenderStageStatistics& GetStatistics() const { return m_Statistics; }
 };

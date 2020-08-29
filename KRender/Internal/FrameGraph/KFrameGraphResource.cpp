@@ -92,7 +92,7 @@ bool KFrameGraphRenderTarget::ResetParameters()
 	return true;
 }
 
-bool KFrameGraphRenderTarget::CreateAsColor(IKRenderDevice* device, uint32_t width, uint32_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
+bool KFrameGraphRenderTarget::CreateAsColor(IKRenderDevice* device, uint32_t width, uint32_t height, uint32_t msaa, ElementFormat format)
 {
 	Destroy(device);
 	ResetParameters();
@@ -100,14 +100,15 @@ bool KFrameGraphRenderTarget::CreateAsColor(IKRenderDevice* device, uint32_t wid
 	m_Vaild = false;
 
 	m_TargetType = FrameGraphRenderTargetType::COLOR_TARGET;
-	m_Depth = bDepth;
-	m_Stencil = bStencil;
-	m_MsaaCount = uMsaaCount;
+	m_Width = width;
+	m_Height = height;
+	m_MsaaCount = msaa;
+	m_Format = format;
 
 	return true;
 }
 
-bool KFrameGraphRenderTarget::CreateAsDepthStencil(IKRenderDevice* device, uint32_t width, uint32_t height, bool bStencil)
+bool KFrameGraphRenderTarget::CreateAsDepthStencil(IKRenderDevice* device, uint32_t width, uint32_t height, uint32_t msaa, bool bStencil)
 {
 	Destroy(device);
 	ResetParameters();
@@ -117,6 +118,7 @@ bool KFrameGraphRenderTarget::CreateAsDepthStencil(IKRenderDevice* device, uint3
 	m_TargetType = FrameGraphRenderTargetType::DEPTH_STENCIL_TARGET;
 	m_Width = width;
 	m_Height = height;
+	m_MsaaCount = msaa;
 	m_Stencil = bStencil;
 
 	return true;
@@ -140,6 +142,7 @@ bool KFrameGraphRenderTarget::Destroy(IKRenderDevice* device)
 	if (!m_Imported)
 	{
 		SAFE_UNINIT(m_RenderTarget);
+		m_Vaild = false;
 	}
 	else
 	{

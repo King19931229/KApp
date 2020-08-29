@@ -11,7 +11,7 @@ KFrameGraph::~KFrameGraph()
 	ASSERT_RESULT(m_Device == nullptr);
 }
 
-KFrameGraphResourcePtr KFrameGraph::GetResource(KFrameGraphHandlePtr handle)
+KFrameGraphResourcePtr KFrameGraph::GetResource(const KFrameGraphID& handle)
 {
 	auto it = m_Resources.find(handle);
 	if (it != m_Resources.end())
@@ -23,8 +23,8 @@ KFrameGraphResourcePtr KFrameGraph::GetResource(KFrameGraphHandlePtr handle)
 
 bool KFrameGraph::Init(IKRenderDevice* device)
 {
-	m_Device = device;
 	UnInit();
+	m_Device = device;
 	return true;
 }
 
@@ -41,96 +41,59 @@ bool KFrameGraph::UnInit()
 	return true;
 }
 
-KFrameGraphHandlePtr KFrameGraph::CreateTexture(IKTexturePtr texture)
+KFrameGraphID KFrameGraph::CreateTexture(IKTexturePtr texture)
 {
 	KFrameGraphResourcePtr resource = KFrameGraphResourcePtr(KNEW KFrameGraphTexture());
 	KFrameGraphTexture* textureResource = static_cast<KFrameGraphTexture*>(resource.get());
 	textureResource->SetTexture(texture);
 
-	KFrameGraphHandlePtr handle = KFrameGraphHandlePtr(KNEW KFrameGraphHandle(m_HandlePool));
-
+	KFrameGraphID handle(m_HandlePool);
 	m_Resources[handle] = resource;
-
 	return handle;
 }
 
-KFrameGraphHandlePtr KFrameGraph::CreateColorRenderTarget(uint32_t width, uint32_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
+KFrameGraphID KFrameGraph::CreateRenderTarget(const RenderTargetCreateParameter& parameter)
 {
-	KFrameGraphResourcePtr resource = KFrameGraphResourcePtr(KNEW KFrameGraphTexture());
+	KFrameGraphResourcePtr resource = KFrameGraphResourcePtr(KNEW KFrameGraphRenderTarget());
 	KFrameGraphRenderTarget* targetResource = static_cast<KFrameGraphRenderTarget*>(resource.get());
-	targetResource->CreateAsColor(m_Device, width, height, bDepth, bStencil, uMsaaCount);
+	if (parameter.bDepth)
+	{		
+		targetResource->CreateAsDepthStencil(m_Device, parameter.width, parameter.height, parameter.msaaCount, parameter.bStencil);
+	}
+	else
+	{
+		targetResource->CreateAsColor(m_Device, parameter.width, parameter.height, parameter.msaaCount, parameter.format);
+	}
 
-	KFrameGraphHandlePtr handle = KFrameGraphHandlePtr(KNEW KFrameGraphHandle(m_HandlePool));
-
+	KFrameGraphID handle(m_HandlePool);
 	m_Resources[handle] = resource;
-
 	return handle;
 }
 
-KFrameGraphHandlePtr KFrameGraph::CreateDepthStecnilRenderTarget(uint32_t width, uint32_t height, bool bStencil)
+bool KFrameGraph::Destroy(const KFrameGraphID& handle)
 {
-	KFrameGraphResourcePtr resource = KFrameGraphResourcePtr(KNEW KFrameGraphTexture());
-	KFrameGraphRenderTarget* targetResource = static_cast<KFrameGraphRenderTarget*>(resource.get());
-	targetResource->CreateAsDepthStencil(m_Device, width, height, bStencil);
-
-	KFrameGraphHandlePtr handle = KFrameGraphHandlePtr(KNEW KFrameGraphHandle(m_HandlePool));
-
-	m_Resources[handle] = resource;
-
-	return handle;
-}
-
-bool KFrameGraph::RecreateColorRenderTarget(KFrameGraphHandlePtr handle, uint32_t width, uint32_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount)
-{
-	if (handle)
+	auto it = m_Resources.find(handle);
+	assert(it != m_Resources.end());
+	if (it != m_Resources.end())
 	{
-		auto it = m_Resources.find(handle);
-		assert(it != m_Resources.end());
-		if (it != m_Resources.end())
-		{
-			KFrameGraphResourcePtr resource = it->second;
-			KFrameGraphRenderTarget* targetResource = static_cast<KFrameGraphRenderTarget*>(resource.get());
-			targetResource->Destroy(m_Device);
-			targetResource->CreateAsColor(m_Device, width, height, bDepth, bStencil, uMsaaCount);
-			return true;
-		}
+		KFrameGraphResourcePtr resource = it->second;
+		resource->Destroy(m_Device);
+		m_Resources.erase(it);
+		return true;
 	}
+
 	return false;
 }
 
-bool KFrameGraph::RecreateDepthStecnilRenderTarget(KFrameGraphHandlePtr handle, uint32_t width, uint32_t height, bool bStencil)
+const IKRenderTargetPtr KFrameGraph::GetTarget(const KFrameGraphID& handle)
 {
-	if (handle)
+	KFrameGraphResourcePtr resource = GetResource(handle);
+	if (resource->GetType() == FrameGraphResourceType::RENDER_TARGET)
 	{
-		auto it = m_Resources.find(handle);
-		assert(it != m_Resources.end());
-		if (it != m_Resources.end())
-		{
-			KFrameGraphResourcePtr resource = it->second;
-			KFrameGraphRenderTarget* targetResource = static_cast<KFrameGraphRenderTarget*>(resource.get());
-			targetResource->Destroy(m_Device);
-			targetResource->CreateAsDepthStencil(m_Device, width, height, bStencil);
-			return true;
-		}
+		KFrameGraphRenderTarget* targetResource = static_cast<KFrameGraphRenderTarget*>(resource.get());
+		return targetResource->GetTarget();
 	}
-	return false;
-}
-
-bool KFrameGraph::Destroy(KFrameGraphHandlePtr handle)
-{
-	if (handle)
-	{
-		auto it = m_Resources.find(handle);
-		assert(it != m_Resources.end());
-		if (it != m_Resources.end())
-		{
-			KFrameGraphResourcePtr resource = it->second;
-			resource->Destroy(m_Device);
-			m_Resources.erase(it);
-			return true;
-		}
-	}
-	return false;
+	return nullptr;
 }
 
 bool KFrameGraph::RegisterPass(KFrameGraphPass* pass)
@@ -178,16 +141,20 @@ bool KFrameGraph::Compile()
 	{
 		pass->m_Ref = (unsigned int)pass->m_WriteResources.size() + (unsigned int)pass->HasSideEffect();
 
-		for (KFrameGraphHandlePtr handle : pass->m_ReadResources)
+		for (KFrameGraphID handle : pass->m_ReadResources)
 		{
 			KFrameGraphResourcePtr resource = GetResource(handle);
 			++resource->m_Ref;
 		}
 
-		for (KFrameGraphHandlePtr handle : pass->m_WriteResources)
+		for (KFrameGraphID handle : pass->m_WriteResources)
 		{
 			KFrameGraphResourcePtr resource = GetResource(handle);
 			ASSERT_RESULT(resource->m_Writer == pass);
+			if (pass->HasSideEffect())
+			{
+				++resource->m_Ref;
+			}
 		}
 	}
 
@@ -215,7 +182,7 @@ bool KFrameGraph::Compile()
 				if (--writer->m_Ref == 0)
 				{
 					assert(!writer->HasSideEffect());
-					for (KFrameGraphHandlePtr handle : writer->m_ReadResources)
+					for (KFrameGraphID handle : writer->m_ReadResources)
 					{
 						KFrameGraphResourcePtr readResource = GetResource(handle); 
 						if (--readResource->m_Ref == 0)
@@ -254,7 +221,7 @@ bool KFrameGraph::Compile()
 	return true;
 }
 
-bool KFrameGraph::Execute()
+bool KFrameGraph::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 {
 	enum class ExecuteNodeType
 	{
@@ -342,10 +309,13 @@ bool KFrameGraph::Execute()
 			assert(!pass->m_Executed);
 
 			// 执行这个Pass
+			pass->m_PriamryCommandBuffer = primaryBuffer;
+			pass->m_CurrentFrameIndex = frameIndex;
 			pass->Execute();
 			pass->m_Executed = true;
+			pass->m_PriamryCommandBuffer = nullptr;
 
-			for (KFrameGraphHandlePtr handle : pass->m_WriteResources)
+			for (KFrameGraphID handle : pass->m_WriteResources)
 			{
 				KFrameGraphResourcePtr resource = GetResource(handle);
 				assert(resource->m_Writer == pass);

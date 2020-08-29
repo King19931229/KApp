@@ -15,6 +15,6 @@ public:
 	KFrameGraphBuilder(KFrameGraphPass* pass, KFrameGraph* master);
 	~KFrameGraphBuilder();
 
-	bool Read(KFrameGraphHandlePtr handle);
-	bool Write(KFrameGraphHandlePtr handle);
+	bool Read(const KFrameGraphID& handle);
+	bool Write(const KFrameGraphID& handle);
 };

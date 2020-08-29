@@ -17,6 +17,8 @@ namespace KRenderGlobal
 	KShadowMap ShadowMap;
 	KCascadedShadowMap CascadedShadowMap;
 
+	KFrameGraph FrameGraph;
+
 	KRenderScene Scene;
 	KRenderDispatcher RenderDispatcher;
 

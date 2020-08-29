@@ -18,6 +18,9 @@ protected:
 	KViewPortArea								m_ViewPortArea;
 	VkSampleCountFlagBits						m_MSAAFlag;
 	bool										m_ToSwapChain;
+	size_t										m_AttachmentHash;
+
+	size_t CalcAttachmentHash();
 public:
 	KVulkanRenderPass();
 	~KVulkanRenderPass();

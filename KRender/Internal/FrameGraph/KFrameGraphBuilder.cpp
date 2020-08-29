@@ -13,9 +13,9 @@ KFrameGraphBuilder::~KFrameGraphBuilder()
 {
 }
 
-bool KFrameGraphBuilder::Read(KFrameGraphHandlePtr handle)
+bool KFrameGraphBuilder::Read(const KFrameGraphID& handle)
 {
-	if (m_Pass && m_MasterGraph && handle)
+	if (m_Pass && m_MasterGraph && handle.IsVaild())
 	{
 		KFrameGraphResourcePtr resource = m_MasterGraph->GetResource(handle);
 		if (resource)
@@ -28,9 +28,9 @@ bool KFrameGraphBuilder::Read(KFrameGraphHandlePtr handle)
 	return false;
 }
 
-bool KFrameGraphBuilder::Write(KFrameGraphHandlePtr handle)
+bool KFrameGraphBuilder::Write(const KFrameGraphID& handle)
 {
-	if (m_Pass && m_MasterGraph && handle)
+	if (m_Pass && m_MasterGraph && handle.IsVaild())
 	{
 		KFrameGraphResourcePtr resource = m_MasterGraph->GetResource(handle);
 		if (resource)

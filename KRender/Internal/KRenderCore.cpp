@@ -105,17 +105,15 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, frameInFlight, property.uniformBufferOffsetAlignment, property.uniformBufferMaxRange);
 	KRenderGlobal::InstanceBufferManager.Init(m_Device, frameInFlight, sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
 
-//#if 1
-//	KMaterial material;
-//	material.Init("color.vert", "color.frag", false);
-//	material.SaveAsFile("../../../Missing.mtl");
-//	material.UnInit();
-//#endif
+	KRenderGlobal::FrameGraph.Init(m_Device);
 
 	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
 	KRenderGlobal::OcclusionBox.Init(m_Device, frameInFlight);
 	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
 	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 3, 2048, 1.0f);
+
+	// TODO
+	KRenderGlobal::FrameGraph.Compile();
 
 	return true;
 }
@@ -126,6 +124,8 @@ bool KRenderCore::UnInitGlobalManager()
 	KRenderGlobal::OcclusionBox.UnInit();
 	KRenderGlobal::ShadowMap.UnInit();
 	KRenderGlobal::CascadedShadowMap.UnInit();
+
+	KRenderGlobal::FrameGraph.UnInit();
 
 	KRenderGlobal::MaterialManager.UnInit();
 	KRenderGlobal::MeshManager.UnInit();

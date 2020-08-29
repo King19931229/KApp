@@ -89,8 +89,8 @@ public:
 	bool Release(IKRenderDevice* device) override;
 	bool Destroy(IKRenderDevice* device) override;
 
-	bool CreateAsColor(IKRenderDevice* device, uint32_t width, uint32_t height, bool bDepth, bool bStencil, unsigned short uMsaaCount);
-	bool CreateAsDepthStencil(IKRenderDevice* device, uint32_t width, uint32_t height, bool bStencil);
+	bool CreateAsColor(IKRenderDevice* device, uint32_t width, uint32_t height, uint32_t msaa, ElementFormat format);
+	bool CreateAsDepthStencil(IKRenderDevice* device, uint32_t width, uint32_t height, uint32_t msaa, bool bStencil);
 	bool CreateFromImportTarget(IKRenderDevice* device, IKRenderTargetPtr target);
 
 	const IKRenderTargetPtr GetTarget() const { return m_RenderTarget; }
