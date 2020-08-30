@@ -53,7 +53,11 @@ public:
 	bool Release(IKRenderDevice* device) override { return true; }
 	bool Destroy(IKRenderDevice* device) override;
 
-	inline void SetTexture(IKTexturePtr texture) { m_Texture = texture; }
+	inline void SetTexture(IKTexturePtr texture)
+	{
+		m_Texture = texture;
+		m_Vaild = m_Texture != nullptr;
+	}
 	inline const IKTexturePtr GetTexture() const { return m_Texture; }
 };
 

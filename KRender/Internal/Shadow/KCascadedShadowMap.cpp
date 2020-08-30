@@ -99,6 +99,34 @@ bool KCascadedShadowMapPass::Execute()
 	return true;
 }
 
+KCascadedShadowMapDebugPass::KCascadedShadowMapDebugPass(KCascadedShadowMap& master)
+	: KFrameGraphPass("CascadedShadowMapDebug"),
+	m_Master(master)
+{
+}
+
+KCascadedShadowMapDebugPass::~KCascadedShadowMapDebugPass()
+{
+}
+
+bool KCascadedShadowMapDebugPass::Setup(KFrameGraphBuilder& builder)
+{
+	if (m_Master.m_Pass)
+	{
+		const std::vector<KFrameGraphID>& ids = m_Master.m_Pass->GetAllTargetID();
+		for (const KFrameGraphID& id : ids)
+		{
+			builder.Read(id);
+		}
+	}
+	return true;
+}
+
+bool KCascadedShadowMapDebugPass::Execute()
+{
+	return true;
+}
+
 const VertexFormat KCascadedShadowMap::ms_VertexFormats[] = { VF_SCREENQUAD_POS };
 
 const KVertexDefinition::SCREENQUAD_POS_2F KCascadedShadowMap::ms_BackGroundVertices[] =
@@ -373,9 +401,6 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 
 		m_ShadowSizeRatio = shadowSizeRatio;
 
-		renderDevice->CreateCommandPool(m_CommandPool);
-		m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
-
 		renderDevice->CreateSampler(m_ShadowSampler);
 		m_ShadowSampler->SetAddressMode(AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER);
 		m_ShadowSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
@@ -396,15 +421,6 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 		m_BackGroundIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_BackGroundIndices), ms_BackGroundIndices);
 		m_BackGroundIndexBuffer->InitDevice(false);
 
-		m_DebugCommandBuffers.resize(frameInFlight);
-
-		for (size_t i = 0; i < frameInFlight; ++i)
-		{
-			IKCommandBufferPtr& buffer = m_DebugCommandBuffers[i];
-			ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-			ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
-		}
-
 		uint32_t cascadedShadowSize = shadowMapSize;
 
 		m_Cascadeds.resize(numCascaded);
@@ -418,41 +434,6 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 			{
 				IKRenderPassPtr& renderPass = cascaded.renderPasses[i];
 				ASSERT_RESULT(renderDevice->CreateRenderPass(renderPass));
-			}
-
-			cascaded.commandBuffers.resize(frameInFlight);
-			for (size_t i = 0; i < frameInFlight; ++i)
-			{
-				IKCommandBufferPtr& buffer = cascaded.commandBuffers[i];
-				ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-				ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
-			}
-
-			cascaded.commandBuffers.resize(frameInFlight);
-			for (size_t i = 0; i < frameInFlight; ++i)
-			{
-				IKCommandBufferPtr& buffer = cascaded.commandBuffers[i];
-				ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-				ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
-			}
-
-			{
-				renderDevice->CreatePipeline(cascaded.debugPipeline);
-
-				IKPipelinePtr pipeline = cascaded.debugPipeline;
-				pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
-				pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-
-				pipeline->SetBlendEnable(true);
-				pipeline->SetCullMode(CM_BACK);
-				pipeline->SetFrontFace(FF_CLOCKWISE);
-
-				pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-				pipeline->SetShader(ST_VERTEX, m_DebugVertexShader);
-				pipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader);
-			//	TODO pipeline->SetSampler(SHADER_BINDING_TEXTURE0, cascaded.renderTarget, m_ShadowSampler);
-
-				ASSERT_RESULT(pipeline->Init());
 			}
 
 			cascadedShadowSize = (size_t)(cascadedShadowSize * m_ShadowSizeRatio);
@@ -489,20 +470,8 @@ bool KCascadedShadowMap::UnInit()
 			SAFE_UNINIT(renderPass);
 		}
 		cascaded.renderPasses.clear();
-
-		for (IKCommandBufferPtr& buffer : cascaded.commandBuffers)
-		{
-			SAFE_UNINIT(buffer);
-		}
-		cascaded.commandBuffers.clear();
 	}
 	m_Cascadeds.clear();
-
-	for (IKCommandBufferPtr& buffer : m_DebugCommandBuffers)
-	{
-		SAFE_UNINIT(buffer);
-	}
-	m_DebugCommandBuffers.clear();
 
 	SAFE_UNINIT(m_BackGroundVertexBuffer);
 	SAFE_UNINIT(m_BackGroundIndexBuffer);
@@ -511,7 +480,6 @@ bool KCascadedShadowMap::UnInit()
 	SAFE_UNINIT(m_DebugFragmentShader);
 
 	SAFE_UNINIT(m_ShadowSampler);
-	SAFE_UNINIT(m_CommandPool);
 
 	SAFE_UNINIT(m_Pass);
 
@@ -702,17 +670,13 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 			litCullRes = newLitCullRes;
 		}
 
-		IKCommandBufferPtr commandBuffer = cascaded.commandBuffers[frameIndex];
-
 		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
-		primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
-
-		commandBuffer->BeginSecondary(renderPass);
-		commandBuffer->SetViewport(renderPass->GetViewPort());
+		primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(renderPass->GetViewPort());
 
 		// Set depth bias (aka "Polygon offset")
 		// Required to avoid shadow mapping artefacts
-		commandBuffer->SetDepthBias(m_DepthBiasConstant[cascadedIndex], 0, m_DepthBiasSlope[cascadedIndex]);
+		primaryBuffer->SetDepthBias(m_DepthBiasConstant[cascadedIndex], 0, m_DepthBiasSlope[cascadedIndex]);
 		{
 			KRenderCommandList commandList;
 
@@ -725,14 +689,10 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 				IKPipelineHandlePtr handle = nullptr;
 				if (command.pipeline->GetHandle(renderPass, handle))
 				{
-					commandBuffer->Render(command);
+					primaryBuffer->Render(command);
 				}
 			}
 		}
-
-		commandBuffer->End();
-
-		primaryBuffer->Execute(commandBuffer);
 		primaryBuffer->EndRenderPass();
 		return true;
 	}
@@ -811,21 +771,42 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands)
 {
 	KRenderCommand command;
-	for (Cascade& cascaded : m_Cascadeds)
+	for (size_t cascadedIndex = 0; cascadedIndex < m_Cascadeds.size(); ++cascadedIndex)
 	{
-		if(cascaded.debugPipeline)
+		Cascade& cascaded = m_Cascadeds[cascadedIndex];
+		IKRenderTargetPtr shadowTarget = m_Pass->GetTarget(cascadedIndex);
+
+		if (!cascaded.debugPipeline)
 		{
-			command.vertexData = &m_DebugVertexData;
-			command.indexData = &m_DebugIndexData;
-			command.pipeline = cascaded.debugPipeline;
-			command.indexDraw = true;
+			IKPipelinePtr& pipeline = cascaded.debugPipeline;
 
-			command.objectUsage.binding = SHADER_BINDING_OBJECT;
-			command.objectUsage.range = sizeof(cascaded.debugClip);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&cascaded.debugClip, command.objectUsage);
+			m_Device->CreatePipeline(pipeline);
 
-			commands.push_back(std::move(command));
+			pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
+			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+
+			pipeline->SetBlendEnable(true);
+			pipeline->SetCullMode(CM_BACK);
+			pipeline->SetFrontFace(FF_CLOCKWISE);
+
+			pipeline->SetDepthFunc(CF_ALWAYS, false, false);
+			pipeline->SetShader(ST_VERTEX, m_DebugVertexShader);
+			pipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader);
+			pipeline->SetSampler(SHADER_BINDING_TEXTURE0, shadowTarget, m_ShadowSampler);
+
+			ASSERT_RESULT(pipeline->Init());
 		}
+		
+		command.vertexData = &m_DebugVertexData;
+		command.indexData = &m_DebugIndexData;
+		command.pipeline = cascaded.debugPipeline;
+		command.indexDraw = true;
+
+		command.objectUsage.binding = SHADER_BINDING_OBJECT;
+		command.objectUsage.range = sizeof(cascaded.debugClip);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&cascaded.debugClip, command.objectUsage);
+
+		commands.push_back(std::move(command));
 	}
 	return true;
 }
@@ -834,6 +815,7 @@ bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderPassPtr renderPa
 {
 	return false;
 	// TODO
+	/*
 	KRenderCommandList commands;
 	if (GetDebugRenderCommand(commands))
 	{
@@ -850,6 +832,7 @@ bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderPassPtr renderPa
 		return true;
 	}
 	return false;
+	*/
 }
 
 IKRenderTargetPtr KCascadedShadowMap::GetShadowMapTarget(size_t cascadedIndex)

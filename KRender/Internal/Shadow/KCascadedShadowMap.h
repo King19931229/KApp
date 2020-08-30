@@ -8,6 +8,7 @@
 #include "Internal/FrameGraph/KFrameGraph.h"
 
 class KCascadedShadowMap;
+
 class KCascadedShadowMapPass : public KFrameGraphPass
 {
 protected:
@@ -26,12 +27,29 @@ public:
 	bool Execute() override;
 
 	IKRenderTargetPtr GetTarget(size_t cascadedIndex);
+	const std::vector<KFrameGraphID>& GetAllTargetID() const { return m_TargetIDs; }
+};
+typedef std::shared_ptr<KCascadedShadowMapPass> KCascadedShadowMapPassPtr;
+
+class KCascadedShadowMapDebugPass : public KFrameGraphPass
+{
+protected:
+	KCascadedShadowMap& m_Master;
+public:
+	KCascadedShadowMapDebugPass(KCascadedShadowMap& master);
+	~KCascadedShadowMapDebugPass();
+
+	bool HasSideEffect() const override { return false; }
+
+	bool Setup(KFrameGraphBuilder& builder) override;
+	bool Execute() override;
 };
 typedef std::shared_ptr<KCascadedShadowMapPass> KCascadedShadowMapPassPtr;
 
 class KCascadedShadowMap
 {
 	friend class KCascadedShadowMapPass;
+	friend class KCascadedShadowMapDebugPass;
 protected:
 	static constexpr size_t SHADOW_MAP_MAX_CASCADED = 4;
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_BackGroundVertices[4];
@@ -58,14 +76,11 @@ protected:
 		glm::mat4 viewMatrix;
 		glm::mat4 viewProjMatrix;
 		glm::vec4 viewInfo;
-
+		// renderPass
 		std::vector<IKRenderPassPtr> renderPasses;
-		std::vector<IKCommandBufferPtr> commandBuffers;
-
 		// debug
 		glm::mat4 debugClip;
 		IKPipelinePtr debugPipeline;
-
 		// scene clipping
 		KAABBBox frustumBox;
 		KAABBBox litBox;
@@ -74,9 +89,6 @@ protected:
 
 	KRenderStageStatistics m_Statistics;
 	KCascadedShadowMapPassPtr m_Pass;
-
-	std::vector<IKCommandBufferPtr> m_DebugCommandBuffers;
-	IKCommandPoolPtr m_CommandPool;
 
 	IKSamplerPtr m_ShadowSampler;
 	KCamera m_ShadowCamera;
@@ -105,7 +117,7 @@ protected:
 		IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass,
 		std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
 
-	bool UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass);
+	bool UpdateRT(size_t frameIndex, size_t cascadedIndex, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass);
 public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();

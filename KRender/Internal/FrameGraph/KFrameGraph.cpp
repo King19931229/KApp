@@ -260,7 +260,7 @@ bool KFrameGraph::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 		{
 			continue;
 		}
-		if (pass->m_ReadResources.size() == pass->m_ExecutedDenpencies)
+		if (pass->m_ReadResources.size() == 0)
 		{
 			executeNodes.push_back(ExecuteNode(pass));
 		}

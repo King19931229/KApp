@@ -119,6 +119,7 @@ public:
 
 	size_t GetSoul() const { return m_HandlePtr->GetSoul(); }
 	bool IsVaild() const { return m_HandlePtr != nullptr; }	
+	void Clear() { m_HandlePtr = nullptr; }
 };
 
 template<>

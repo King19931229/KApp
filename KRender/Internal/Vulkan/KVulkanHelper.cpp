@@ -368,6 +368,41 @@ namespace KVulkanHelper
 		}
 	}
 
+	bool LoadOpToVkAttachmentLoadOp(LoadOperation op, VkAttachmentLoadOp& vkLoadOp)
+	{
+		switch (op)
+		{
+			case LO_LOAD:
+				vkLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+				return true;
+			case LO_DONT_CARE:
+				vkLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				return true;
+			case LO_CLEAR:
+				vkLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				return true;
+			default:
+				assert(false && "load operation not supported");
+				return false;
+		}
+	}
+
+	bool StoreOpToVkAttachmentStoreOp(StoreOperation op, VkAttachmentStoreOp& vkStoreOp)
+	{
+		switch (op)
+		{
+			case SO_STORE:
+				vkStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+				return true;
+			case SO_DONT_CARE:
+				vkStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				return true;
+			default:
+				assert(false && "load operation not supported");
+				return false;
+		}
+	}
+
 	bool QueryTypeToVkQueryType(QueryType queryType, VkQueryType& vkQueryType)
 	{
 		switch (queryType)

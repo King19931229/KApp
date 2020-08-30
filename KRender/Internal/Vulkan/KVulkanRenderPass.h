@@ -6,19 +6,27 @@
 class KVulkanRenderPass : public IKRenderPass
 {
 	static const uint32_t MAX_ATTACHMENT = 8;
+	
 protected:
 	// Vulkan里面RenderPass与Framebuffer是绑死在一起的
-	VkRenderPass								m_RenderPass;
-	VkFramebuffer								m_FrameBuffer;
-	std::array<IKFrameBufferPtr, MAX_ATTACHMENT>m_ColorFrameBuffers;
-	std::array<KClearColor, MAX_ATTACHMENT>		m_ClearColors;
-	std::vector<RenderPassInvalidCallback*>		m_InvalidCallbacks;
-	IKFrameBufferPtr							m_DepthFrameBuffer;
-	KClearDepthStencil							m_ClearDepthStencil;
-	KViewPortArea								m_ViewPortArea;
-	VkSampleCountFlagBits						m_MSAAFlag;
-	bool										m_ToSwapChain;
-	size_t										m_AttachmentHash;
+	VkRenderPass										m_RenderPass;
+	VkFramebuffer										m_FrameBuffer;
+
+	std::array<IKFrameBufferPtr, MAX_ATTACHMENT>		m_ColorFrameBuffers;
+	std::array<KClearColor, MAX_ATTACHMENT>				m_ClearColors;
+	std::array<KRenderPassOperation, MAX_ATTACHMENT>	m_OpColors;
+
+	std::vector<RenderPassInvalidCallback*>				m_InvalidCallbacks;
+
+	IKFrameBufferPtr									m_DepthFrameBuffer;
+	KClearDepthStencil									m_ClearDepthStencil;
+	KRenderPassOperation								m_OpDepth;
+	KRenderPassOperation								m_OpStencil;
+
+	KViewPortArea										m_ViewPortArea;
+	VkSampleCountFlagBits								m_MSAAFlag;
+	bool												m_ToSwapChain;
+	size_t												m_AttachmentHash;
 
 	size_t CalcAttachmentHash();
 public:
@@ -30,6 +38,9 @@ public:
 
 	bool SetClearColor(uint32_t attachment, const KClearColor& clearColor) override;
 	bool SetClearDepthStencil(const KClearDepthStencil& clearDepthStencil) override;
+
+	bool SetOpColor(uint32_t attachment, LoadOperation loadOp, StoreOperation storeOp) override;;
+	bool SetOpDepthStencil(LoadOperation depthLoadOp, StoreOperation depthStoreOp, LoadOperation stencilLoadOp, StoreOperation stencilStoreOp) override;
 
 	bool SetAsSwapChainPass(bool swapChain) override;
 	bool HasColorAttachment() override;

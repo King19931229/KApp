@@ -129,6 +129,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			m_Image, m_AllocInfo);
 
 		KVulkanInitializer::CreateVkImageView(m_Image, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_ImageView);
+		KVulkanHelper::TransitionImageLayout(m_Image, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	}
 
 	if (msaa > 1)
@@ -198,6 +199,8 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 		VK_IMAGE_ASPECT_DEPTH_BIT,
 		1,
 		m_ImageView);
+
+	KVulkanHelper::TransitionImageLayout(m_Image, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 	return true;
 }

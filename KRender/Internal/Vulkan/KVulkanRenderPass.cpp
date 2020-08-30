@@ -1,6 +1,7 @@
 #include "KVulkanRenderPass.h"
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanGlobal.h"
+#include "KVulkanHelper.h"
 #include "KBase/Publish/KHash.h"
 
 KVulkanRenderPass::KVulkanRenderPass()
@@ -52,6 +53,23 @@ bool KVulkanRenderPass::SetClearColor(uint32_t attachment, const KClearColor& cl
 bool KVulkanRenderPass::SetClearDepthStencil(const KClearDepthStencil& clearDepthStencil)
 {
 	m_ClearDepthStencil = clearDepthStencil;
+	return true;
+}
+
+bool KVulkanRenderPass::SetOpColor(uint32_t attachment, LoadOperation loadOp, StoreOperation storeOp)
+{
+	if (attachment < MAX_ATTACHMENT)
+	{
+		m_OpColors[attachment] = KRenderPassOperation(loadOp , storeOp);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanRenderPass::SetOpDepthStencil(LoadOperation depthLoadOp, StoreOperation depthStoreOp, LoadOperation stencilLoadOp, StoreOperation stencilStoreOp)
+{
+	m_OpDepth = KRenderPassOperation(depthLoadOp, depthStoreOp);
+	m_OpStencil = KRenderPassOperation(stencilLoadOp, stencilStoreOp);
 	return true;
 }
 
@@ -144,6 +162,8 @@ size_t KVulkanRenderPass::CalcAttachmentHash()
 			hash ^= HashCompute(vulkanFrameBuffer->GetImageView());
 			hash ^= HashCompute(vulkanFrameBuffer->GetMSAAImage());
 			hash ^= HashCompute(vulkanFrameBuffer->GetMSAAImageView());
+
+			hash ^= HashCompute(m_OpColors[attachment]);
 		}
 		else
 		{
@@ -159,6 +179,9 @@ size_t KVulkanRenderPass::CalcAttachmentHash()
 		hash ^= HashCompute(vulkanFrameBuffer->GetImageView());
 		hash ^= HashCompute(vulkanFrameBuffer->GetMSAAImage());
 		hash ^= HashCompute(vulkanFrameBuffer->GetMSAAImageView());
+
+		hash ^= HashCompute(m_OpDepth);
+		hash ^= HashCompute(m_OpStencil);
 	}
 	else
 	{
@@ -253,13 +276,13 @@ bool KVulkanRenderPass::Init()
 					colorAttachment.format = vulkanFrameBuffer->GetForamt();
 					colorAttachment.samples = vulkanFrameBuffer->GetMSAAFlag();
 
-					colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-					colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+					KVulkanHelper::LoadOpToVkAttachmentLoadOp(m_OpColors[i].loadOp, colorAttachment.loadOp);
+					KVulkanHelper::StoreOpToVkAttachmentStoreOp(m_OpColors[i].storeOp, colorAttachment.storeOp);
 
 					colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-					colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+					colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;// VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 					colorAttachment.finalLayout = massCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : (i == 0 ? color_0_finalLayout : color_x_finalLayout);
 
 					descs.push_back(colorAttachment);
@@ -288,13 +311,13 @@ bool KVulkanRenderPass::Init()
 				depthAttachment.format = vulkanFrameBuffer->GetForamt();
 				depthAttachment.samples = vulkanFrameBuffer->GetMSAAFlag();
 
-				depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				KVulkanHelper::LoadOpToVkAttachmentLoadOp(m_OpDepth.loadOp, depthAttachment.loadOp);
+				KVulkanHelper::StoreOpToVkAttachmentStoreOp(m_OpDepth.storeOp, depthAttachment.storeOp);
 
-				depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-				depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				KVulkanHelper::LoadOpToVkAttachmentLoadOp(m_OpStencil.loadOp, depthAttachment.stencilLoadOp);
+				KVulkanHelper::StoreOpToVkAttachmentStoreOp(m_OpStencil.storeOp, depthAttachment.stencilStoreOp);
 
-				depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;// VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 				depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
 				descs.push_back(depthAttachment);
@@ -319,13 +342,13 @@ bool KVulkanRenderPass::Init()
 						colorAttachmentResolve.format = vulkanFrameBuffer->GetForamt();
 						colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
 
-						colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-						colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+						KVulkanHelper::LoadOpToVkAttachmentLoadOp(m_OpColors[i].loadOp, colorAttachmentResolve.loadOp);
+						KVulkanHelper::StoreOpToVkAttachmentStoreOp(m_OpColors[i].storeOp, colorAttachmentResolve.storeOp);
 
 						colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 						colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-						colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+						colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;// VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 						colorAttachmentResolve.finalLayout = (i == 0 ? color_0_finalLayout : color_x_finalLayout);
 
 						descs.push_back(colorAttachmentResolve);

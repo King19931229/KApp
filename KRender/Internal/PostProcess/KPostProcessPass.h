@@ -96,6 +96,7 @@ public:
 
 	inline void SetAsEndPoint() { m_Stage = POST_PROCESS_STAGE_END_POINT; }
 	inline IKRenderTargetPtr GetRenderTarget() { return m_RenderTarget; }
+	inline IKRenderTargetPtr GetDepthStencilTarget() { return m_DepthStencilTarget; }
 	inline IKRenderPassPtr GetRenderPass() { return m_RenderPass; }
 	inline IKPipelinePtr GetPipeline() { return m_Pipeline; }
 	inline IKPipelinePtr GetScreenDrawPipeline() { return m_ScreenDrawPipeline; }

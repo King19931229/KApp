@@ -60,6 +60,22 @@ struct KViewPortArea
 	}
 };
 
+struct KRenderPassOperation
+{
+	LoadOperation loadOp;
+	StoreOperation storeOp;
+	KRenderPassOperation()
+	{
+		loadOp = LO_CLEAR;
+		storeOp = SO_STORE;
+	}
+	KRenderPassOperation(LoadOperation _loadOp, StoreOperation _storeOp)
+	{
+		loadOp = _loadOp;
+		storeOp = _storeOp;
+	}
+};
+
 typedef std::function<void(IKRenderPass*)> RenderPassInvalidCallback;
 
 struct IKRenderPass
@@ -71,6 +87,9 @@ struct IKRenderPass
 
 	virtual bool SetClearColor(uint32_t attachment, const KClearColor& clearColor) = 0;
 	virtual bool SetClearDepthStencil(const KClearDepthStencil& clearDepthStencil) = 0;
+
+	virtual bool SetOpColor(uint32_t attachment, LoadOperation loadOp, StoreOperation storeOp) = 0;
+	virtual bool SetOpDepthStencil(LoadOperation depthLoadOp, StoreOperation depthStoreOp, LoadOperation stencilLoadOp, StoreOperation stencilStoreOp) = 0;
 
 	virtual bool SetAsSwapChainPass(bool swapChain) = 0;
 

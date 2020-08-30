@@ -302,6 +302,19 @@ enum StencilOperator
 	SO_DEC
 };
 
+enum LoadOperation
+{
+	LO_LOAD,
+	LO_DONT_CARE,
+	LO_CLEAR
+};
+
+enum StoreOperation
+{
+	SO_STORE,
+	SO_DONT_CARE
+};
+
 enum QueryType
 {
 	QT_OCCLUSION
