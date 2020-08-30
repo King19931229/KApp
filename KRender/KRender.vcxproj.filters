@@ -411,6 +411,9 @@
     <ClInclude Include="Interface\IKRenderPass.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\FrameGraph\KFrameGraphExecutor.h">
+      <Filter>Internal\FrameGraph</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -664,6 +667,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanRenderPass.cpp">
       <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\FrameGraph\KFrameGraphExecutor.cpp">
+      <Filter>Internal\FrameGraph</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

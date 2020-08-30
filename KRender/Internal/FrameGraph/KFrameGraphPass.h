@@ -1,6 +1,7 @@
 #pragma once
 #include "KFrameGraphHandle.h"
 #include "KFrameGraphBuilder.h"
+#include "KFrameGraphExecutor.h"
 
 class KFrameGraphPass
 {
@@ -12,9 +13,6 @@ private:
 	unsigned int m_Ref;
 	unsigned int m_ExecutedDenpencies;
 	bool m_Executed;
-protected:
-	IKCommandBufferPtr m_PriamryCommandBuffer;
-	uint32_t m_CurrentFrameIndex;
 public:
 	KFrameGraphPass(const std::string& name);
 	~KFrameGraphPass();
@@ -29,5 +27,5 @@ public:
 	virtual bool HasSideEffect() const { return false; }
 
 	virtual bool Setup(KFrameGraphBuilder& builder) = 0;
-	virtual bool Execute() = 0;
+	virtual bool Execute(KFrameGraphExecutor& executor) = 0;
 };

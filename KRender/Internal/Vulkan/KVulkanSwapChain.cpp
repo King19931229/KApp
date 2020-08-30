@@ -1,6 +1,7 @@
 #include "KVulkanSwapChain.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanInitializer.h"
+#include "KVulkanHelper.h"
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanRenderPass.h"
 #include "Interface/IKRenderWindow.h"
@@ -226,6 +227,7 @@ bool KVulkanSwapChain::CreateSwapChain()
 	m_SwapChainImageViews.resize(imageCount);
 	for(size_t i = 0; i < m_SwapChainImageViews.size(); ++i)
 	{
+		KVulkanInitializer::TransitionImageLayout(m_SwapChainImages[i], m_SurfaceFormat.format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		KVulkanInitializer::CreateVkImageView(m_SwapChainImages[i], VK_IMAGE_VIEW_TYPE_2D, m_SurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_SwapChainImageViews[i]);
 	}
 

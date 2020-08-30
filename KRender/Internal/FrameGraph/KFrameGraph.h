@@ -3,6 +3,7 @@
 #include "KFrameGraphResource.h"
 #include "KFrameGraphPass.h"
 #include "KFrameGraphBuilder.h"
+#include "KFrameGraphExecutor.h"
 
 #include <unordered_set>
 
@@ -12,6 +13,7 @@ class KFrameGraph
 protected:
 	KFrameGraphHandlePool m_HandlePool;
 	ResourceMap m_Resources;
+	KFrameGraphRenderPassMap m_RenderPassMap;
 	IKRenderDevice* m_Device;
 	std::unordered_set<KFrameGraphPass*> m_Passes;
 

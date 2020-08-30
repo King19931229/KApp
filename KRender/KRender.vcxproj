@@ -70,6 +70,7 @@
     <ClInclude Include="Internal\ECS\System\KCullSystem.h" />
     <ClInclude Include="Internal\FrameGraph\KFrameGraph.h" />
     <ClInclude Include="Internal\FrameGraph\KFrameGraphBuilder.h" />
+    <ClInclude Include="Internal\FrameGraph\KFrameGraphExecutor.h" />
     <ClInclude Include="Internal\FrameGraph\KFrameGraphHandle.h" />
     <ClInclude Include="Internal\FrameGraph\KFrameGraphPass.h" />
     <ClInclude Include="Internal\FrameGraph\KFrameGraphResource.h" />
@@ -159,6 +160,7 @@
     <ClCompile Include="Internal\ECS\System\KCullSystem.cpp" />
     <ClCompile Include="Internal\FrameGraph\KFrameGraph.cpp" />
     <ClCompile Include="Internal\FrameGraph\KFrameGraphBuilder.cpp" />
+    <ClCompile Include="Internal\FrameGraph\KFrameGraphExecutor.cpp" />
     <ClCompile Include="Internal\FrameGraph\KFrameGraphPass.cpp" />
     <ClCompile Include="Internal\FrameGraph\KFrameGraphResource.cpp" />
     <ClCompile Include="Internal\Gizmo\KCameraCube.cpp" />

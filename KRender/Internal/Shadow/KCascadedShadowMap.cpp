@@ -76,24 +76,27 @@ IKRenderTargetPtr KCascadedShadowMapPass::GetTarget(size_t cascadedIndex)
 	return nullptr;
 }
 
-bool KCascadedShadowMapPass::Execute()
+bool KCascadedShadowMapPass::Execute(KFrameGraphExecutor& executor)
 {
 	if (m_TargetIDs.size() != m_Master.m_Cascadeds.size())
 	{
 		return false;
 	}
 
+	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
+	size_t frameIndex = executor.GetFrameIndex();
+
 	for (size_t i = 0; i < m_Master.m_Cascadeds.size(); ++i)
 	{
 		IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_TargetIDs[i]);
-		IKRenderPassPtr renderPass = m_Master.m_Cascadeds[i].renderPasses[m_CurrentFrameIndex];
+		IKRenderPassPtr renderPass = m_Master.m_Cascadeds[i].renderPasses[frameIndex];
 
 		ASSERT_RESULT(shadowTarget);
 		renderPass->SetDepthStencilAttachment(shadowTarget->GetFrameBuffer());
 		renderPass->SetClearDepthStencil({ 1.0f, 0 });
 		ASSERT_RESULT(renderPass->Init());
 	
-		m_Master.UpdateRT(i, m_CurrentFrameIndex, m_PriamryCommandBuffer, shadowTarget, renderPass);
+		m_Master.UpdateRT(i, frameIndex, primaryBuffer, shadowTarget, renderPass);
 	}
 
 	return true;
@@ -122,7 +125,7 @@ bool KCascadedShadowMapDebugPass::Setup(KFrameGraphBuilder& builder)
 	return true;
 }
 
-bool KCascadedShadowMapDebugPass::Execute()
+bool KCascadedShadowMapDebugPass::Execute(KFrameGraphExecutor& executor)
 {
 	return true;
 }

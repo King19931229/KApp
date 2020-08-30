@@ -24,7 +24,7 @@ public:
 	bool HasSideEffect() const override { return true; }
 
 	bool Setup(KFrameGraphBuilder& builder) override;
-	bool Execute() override;
+	bool Execute(KFrameGraphExecutor& executor) override;
 
 	IKRenderTargetPtr GetTarget(size_t cascadedIndex);
 	const std::vector<KFrameGraphID>& GetAllTargetID() const { return m_TargetIDs; }
@@ -42,7 +42,7 @@ public:
 	bool HasSideEffect() const override { return false; }
 
 	bool Setup(KFrameGraphBuilder& builder) override;
-	bool Execute() override;
+	bool Execute(KFrameGraphExecutor& executor) override;
 };
 typedef std::shared_ptr<KCascadedShadowMapPass> KCascadedShadowMapPassPtr;
 

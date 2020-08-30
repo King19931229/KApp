@@ -279,6 +279,9 @@ bool KFrameGraph::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 		}
 	}
 
+	m_RenderPassMap.clear();
+	KFrameGraphExecutor executor(m_RenderPassMap, primaryBuffer, frameIndex);
+
 	while (!executeNodes.empty())
 	{
 		ExecuteNode node = *executeNodes.rbegin();
@@ -309,11 +312,8 @@ bool KFrameGraph::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 			assert(!pass->m_Executed);
 
 			// 执行这个Pass
-			pass->m_PriamryCommandBuffer = primaryBuffer;
-			pass->m_CurrentFrameIndex = frameIndex;
-			pass->Execute();
+			pass->Execute(executor);
 			pass->m_Executed = true;
-			pass->m_PriamryCommandBuffer = nullptr;
 
 			for (KFrameGraphID handle : pass->m_WriteResources)
 			{

@@ -59,7 +59,7 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 			m_vkBuffer,
 			m_AllocInfo);
 
-		KVulkanHelper::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)m_BufferSize);
+		KVulkanInitializer::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)m_BufferSize);
 		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
 	}
 
@@ -231,7 +231,7 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 			m_vkBuffer,
 			m_AllocInfo);
 
-		KVulkanHelper::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)m_BufferSize);
+		KVulkanInitializer::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)m_BufferSize);
 		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
 	}
 

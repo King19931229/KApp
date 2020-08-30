@@ -4,8 +4,6 @@ KFrameGraphPass::KFrameGraphPass(const std::string& name)
 	: m_Name(name),
 	m_Ref(0),
 	m_ExecutedDenpencies(0),
-	m_PriamryCommandBuffer(nullptr),
-	m_CurrentFrameIndex(0),
 	m_Executed(false)
 {
 }

@@ -76,8 +76,8 @@ bool KVulkanFrameBuffer::InitExternal(VkImage image, VkImageView imageView, VkFo
 			createFlags,
 			m_MSAAImage, m_MSAAAllocInfo);
 
+		KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		KVulkanInitializer::CreateVkImageView(m_MSAAImage, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_MSAAImageView);
-		KVulkanHelper::TransitionImageLayout(m_MSAAImage, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	}
 
 	return true;
@@ -128,8 +128,8 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			createFlags,
 			m_Image, m_AllocInfo);
 
+		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		KVulkanInitializer::CreateVkImageView(m_Image, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_ImageView);
-		KVulkanHelper::TransitionImageLayout(m_Image, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	}
 
 	if (msaa > 1)
@@ -148,8 +148,8 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			createFlags,
 			m_MSAAImage, m_MSAAAllocInfo);
 
+		KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		KVulkanInitializer::CreateVkImageView(m_MSAAImage, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_MSAAImageView);
-		KVulkanHelper::TransitionImageLayout(m_MSAAImage, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	}
 
 	return true;
@@ -193,14 +193,14 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 		m_Image,
 		m_AllocInfo);
 
+	KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
 	KVulkanInitializer::CreateVkImageView(m_Image,
 		VK_IMAGE_VIEW_TYPE_2D,
 		m_Format,
 		VK_IMAGE_ASPECT_DEPTH_BIT,
 		1,
 		m_ImageView);
-
-	KVulkanHelper::TransitionImageLayout(m_Image, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 	return true;
 }

@@ -154,7 +154,7 @@ bool KVulkanTexture::InitDevice(bool async)
 					m_TextureImage, m_AllocInfo);
 				{
 					// 先转换image layout为之后buffer拷贝数据到image作准备
-					KVulkanHelper::TransitionImageLayout(m_TextureImage,
+					KVulkanInitializer::TransitionImageLayout(m_TextureImage,
 						m_TextureFormat,
 						(uint32_t)layerCounts,
 						(uint32_t)m_Mipmaps,
@@ -162,12 +162,12 @@ bool KVulkanTexture::InitDevice(bool async)
 						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
 					const KSubImageInfoList& subImageInfo = m_ImageData.pData->GetSubImageInfo();
-					KVulkanHelper::SubRegionCopyInfoList copyInfo;
+					KVulkanInitializer::SubRegionCopyInfoList copyInfo;
 					copyInfo.reserve(subImageInfo.size());
 
 					for (const KSubImageInfo& info : subImageInfo)
 					{
-						KVulkanHelper::SubRegionCopyInfo copy;
+						KVulkanInitializer::SubRegionCopyInfo copy;
 
 						copy.offset = static_cast<uint32_t>(info.uOffset);
 						copy.width = static_cast<uint32_t>(info.uWidth);
@@ -178,16 +178,16 @@ bool KVulkanTexture::InitDevice(bool async)
 					}
 
 					// 拷贝buffer数据到image
-					KVulkanHelper::CopyVkBufferToVkImageByRegion(stagingBuffer, m_TextureImage, layerCounts, copyInfo);
+					KVulkanInitializer::CopyVkBufferToVkImageByRegion(stagingBuffer, m_TextureImage, layerCounts, copyInfo);
 
 					if (m_bGenerateMipmap)
 					{
-						KVulkanHelper::GenerateMipmaps(m_TextureImage, m_TextureFormat, static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), layerCounts, static_cast<int32_t>(m_Mipmaps));
+						KVulkanInitializer::GenerateMipmaps(m_TextureImage, m_TextureFormat, static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), layerCounts, static_cast<int32_t>(m_Mipmaps));
 					}
 					else
 					{
 						// 再转换image layout为之后shader使用image数据作准备
-						KVulkanHelper::TransitionImageLayout(m_TextureImage,
+						KVulkanInitializer::TransitionImageLayout(m_TextureImage,
 							m_TextureFormat,
 							(uint32_t)layerCounts,
 							(uint32_t)m_Mipmaps,
