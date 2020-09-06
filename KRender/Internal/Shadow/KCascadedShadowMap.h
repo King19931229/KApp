@@ -146,4 +146,5 @@ public:
 	inline bool& GetMinimizeShadowDraw() { return m_MinimizeShadowDraw; }
 
 	inline const KRenderStageStatistics& GetStatistics() const { return m_Statistics; }
+	inline KCascadedShadowMapPassPtr GetPass() { return m_Pass; }
 };

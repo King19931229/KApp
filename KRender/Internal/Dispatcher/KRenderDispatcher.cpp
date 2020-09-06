@@ -8,6 +8,48 @@
 #include "KBase/Publish/KHash.h"
 #include "KBase/Publish/KNumerical.h"
 
+KMainBasePass::KMainBasePass(KRenderDispatcher& master)
+	: m_Master(master),
+	KFrameGraphPass("MainPass")
+{
+}
+
+KMainBasePass::~KMainBasePass()
+{
+}
+
+bool KMainBasePass::Init()
+{
+	KRenderGlobal::FrameGraph.RegisterPass(this);
+	return true;
+}
+
+bool KMainBasePass::UnInit()
+{
+	KRenderGlobal::FrameGraph.UnRegisterPass(this);
+	return true;
+}
+
+bool KMainBasePass::Setup(KFrameGraphBuilder& builder)
+{
+	KCascadedShadowMapPassPtr shadowPass = KRenderGlobal::CascadedShadowMap.GetPass();
+	const std::vector<KFrameGraphID>& shadowRts = shadowPass->GetAllTargetID();
+	for (const KFrameGraphID& id : shadowRts)
+	{
+		builder.Read(id);
+	}
+	return true;
+}
+
+bool KMainBasePass::Execute(KFrameGraphExecutor& executor)
+{
+	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
+	uint32_t frameIndex = executor.GetFrameIndex();
+	uint32_t chainIndex = executor.GetChainIndex();
+	m_Master.UpdateBasePass(chainIndex, frameIndex);
+	return true;
+}
+
 KRenderDispatcher::KRenderDispatcher()
 	: m_Device(nullptr),
 	m_SwapChain(nullptr),
@@ -49,15 +91,6 @@ bool KRenderDispatcher::CreateCommandBuffers()
 
 		m_Device->CreateCommandBuffer(m_CommandBuffers[i].primaryCommandBuffer);
 		m_CommandBuffers[i].primaryCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_PRIMARY);
-
-		m_Device->CreateCommandBuffer(m_CommandBuffers[i].preZcommandBuffer);
-		m_CommandBuffers[i].preZcommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
-
-		m_Device->CreateCommandBuffer(m_CommandBuffers[i].defaultCommandBuffer);
-		m_CommandBuffers[i].defaultCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
-
-		m_Device->CreateCommandBuffer(m_CommandBuffers[i].debugCommandBuffer);
-		m_CommandBuffers[i].debugCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
 
 		m_Device->CreateCommandBuffer(m_CommandBuffers[i].clearCommandBuffer);
 		m_CommandBuffers[i].clearCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
@@ -106,9 +139,6 @@ bool KRenderDispatcher::DestroyCommandBuffers()
 		}
 
 		m_CommandBuffers[i].primaryCommandBuffer->UnInit();
-		m_CommandBuffers[i].preZcommandBuffer->UnInit();
-		m_CommandBuffers[i].defaultCommandBuffer->UnInit();
-		m_CommandBuffers[i].debugCommandBuffer->UnInit();
 		m_CommandBuffers[i].clearCommandBuffer->UnInit();
 
 		m_CommandBuffers[i].commandPool->UnInit();
@@ -528,137 +558,207 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
 }
 
-bool KRenderDispatcher::SubmitCommandBufferSingleThread(IKRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex)
+void KRenderDispatcher::AssignRenderCommand(size_t frameIndex,
+	const std::vector<KRenderCommand>& preZcommands, const std::vector<KRenderCommand>& defaultCommands, const std::vector<KRenderCommand>& debugCommands)
 {
-	assert(frameIndex < m_CommandBuffers.size());
+	if (m_MultiThreadSubmit)
+	{
+		size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
 
-	m_CommandBuffers[frameIndex].commandPool->Reset();
+#define ASSIGN_RENDER_COMMAND(command)\
+	{\
+		size_t drawEachThread = command.size() / threadCount;\
+		size_t reaminCount = command.size() % threadCount;\
+		for (size_t i = 0; i < threadCount; ++i)\
+		{\
+			ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[i];\
+			threadData.command.clear();\
+\
+			for (size_t idx = i * drawEachThread, ed = i * drawEachThread + drawEachThread; idx < ed; ++idx)\
+			{\
+				threadData.command.push_back(std::move(command[idx]));\
+			}\
+\
+			if (i == threadCount - 1)\
+			{\
+				for (size_t idx = threadCount * drawEachThread, ed = threadCount * drawEachThread + reaminCount; idx < ed; ++idx)\
+				{\
+					threadData.command.push_back(std::move(command[idx]));\
+				}\
+			}\
+		}\
+	}
+		ASSIGN_RENDER_COMMAND(preZcommands);
+		ASSIGN_RENDER_COMMAND(defaultCommands);
+		ASSIGN_RENDER_COMMAND(debugCommands);
 
+#undef ASSIGN_RENDER_COMMAND
+	}
+	else
+	{
+		ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[0];
+		threadData.preZcommands = preZcommands;
+		threadData.defaultCommands = defaultCommands;
+		threadData.debugCommands = debugCommands;
+	}
+}
+
+void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, std::vector<IKCommandBufferPtr>& preZBuffers, std::vector<IKCommandBufferPtr>& defaultBuffers, std::vector<IKCommandBufferPtr>& debugBuffers)
+{
+	if (m_MultiThreadSubmit)
+	{
+		size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
+
+		for (size_t i = 0; i < threadCount; ++i)
+		{
+			m_ThreadPool.SubmitTask([=]()
+			{
+				ThreadRenderObject((uint32_t)frameIndex, (uint32_t)i);
+			});
+		}
+		m_ThreadPool.WaitAllAsyncTaskDone();
+
+		for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
+		{
+			ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
+			if (!threadData.preZcommands.empty())
+			{
+				preZBuffers.push_back(threadData.preZcommandBuffer);
+				threadData.preZcommands.clear();
+			}
+
+			if (!threadData.defaultCommands.empty())
+			{
+				defaultBuffers.push_back(threadData.defaultCommandBuffer);
+				threadData.defaultCommands.clear();
+			}
+
+			if (!threadData.debugCommands.empty())
+			{
+				debugBuffers.push_back(threadData.debugCommandBuffer);
+				threadData.debugCommands.clear();
+			}
+		}
+	}
+	else
+	{
+		ThreadRenderObject((uint32_t)frameIndex, 0);
+
+		ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[0];
+		if (!threadData.preZcommands.empty())
+		{
+			preZBuffers.push_back(threadData.preZcommandBuffer);
+			threadData.preZcommands.clear();
+		}
+
+		if (!threadData.defaultCommands.empty())
+		{
+			defaultBuffers.push_back(threadData.defaultCommandBuffer);
+			threadData.defaultCommands.clear();
+		}
+
+		if (!threadData.debugCommands.empty())
+		{
+			debugBuffers.push_back(threadData.debugCommandBuffer);
+			threadData.debugCommands.clear();
+		}
+	}
+}
+
+bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameIndex)
+{
 	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 	IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
 
 	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
-	IKCommandBufferPtr preZcommandBuffer = m_CommandBuffers[frameIndex].preZcommandBuffer;
-	IKCommandBufferPtr defaultCommandBuffer = m_CommandBuffers[frameIndex].defaultCommandBuffer;
-	IKCommandBufferPtr debugCommandBuffer = m_CommandBuffers[frameIndex].debugCommandBuffer;
 	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffers[frameIndex].clearCommandBuffer;
 
 	std::vector<KRenderComponent*> cullRes;
-	((KRenderScene*)scene)->GetRenderComponent(*camera, cullRes);
+	((KRenderScene*)m_Scene)->GetRenderComponent(*m_Camera, cullRes);
 
-	primaryCommandBuffer->BeginPrimary();
+	// 物件绘制RenderPass
 	{
-		// 阴影绘制RenderPass
+		KRenderGlobal::OcclusionBox.Reset(frameIndex, cullRes, primaryCommandBuffer);
+
+		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
+
+		KRenderCommandList preZcommands;
+		KRenderCommandList defaultCommands;
+		KRenderCommandList debugCommands;
+
+		std::vector<IKCommandBufferPtr> tempBuffers;
+		std::vector<IKCommandBufferPtr> preZBuffers;
+		std::vector<IKCommandBufferPtr> defaultBuffers;
+		std::vector<IKCommandBufferPtr> debugBuffers;
+
+		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
+
+		// 绘制SkyBox
+		KRenderGlobal::SkyBox.Render(frameIndex, renderPass, tempBuffers);
+		if (!tempBuffers.empty())
 		{
-			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer);
-			KRenderGlobal::FrameGraph.Compile();
-			KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex);
-			const KRenderStageStatistics& shadowStatistics = KRenderGlobal::CascadedShadowMap.GetStatistics();
-			KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
+			primaryCommandBuffer->ExecuteAll(tempBuffers);
+			tempBuffers.clear();
 		}
+
+		PopulateRenderCommand(frameIndex, renderPass, cullRes, preZcommands, defaultCommands, debugCommands);
+		AssignRenderCommand(frameIndex, preZcommands, defaultCommands, debugCommands);
+		SumbitRenderCommand(frameIndex, preZBuffers, defaultBuffers, debugBuffers);
+
+		if (!preZBuffers.empty())
 		{
-			KRenderGlobal::OcclusionBox.Reset(frameIndex, cullRes, primaryCommandBuffer);
+			primaryCommandBuffer->ExecuteAll(preZBuffers);
 		}
-		// 物件绘制RenderPass
+		if (!defaultBuffers.empty())
 		{
-			KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
+			primaryCommandBuffer->ExecuteAll(defaultBuffers);
+		}
 
-			primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
+		KRenderGlobal::OcclusionBox.Render(frameIndex, renderPass, m_Camera, cullRes, tempBuffers);
+		if (!tempBuffers.empty())
+		{
+			primaryCommandBuffer->ExecuteAll(tempBuffers);
+			tempBuffers.clear();
+		}
 
-			KCommandBufferList commandBuffers;
+		if (!debugBuffers.empty())
+		{
+			primaryCommandBuffer->ExecuteAll(debugBuffers);
+		}
 
-			// 绘制SkyBox
-			KRenderGlobal::SkyBox.Render(frameIndex, renderPass, commandBuffers);
-
-			// 开始渲染物件
+		// 绘制Camera Gizmo
+		if (m_DisplayCameraCube)
+		{
+			if (m_CameraCube)
 			{
-				KRenderCommandList preZcommands;
-				KRenderCommandList defaultCommands;
-				KRenderCommandList debugCommands;
+				KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
+				cameraCube->Render(frameIndex, renderPass, tempBuffers);
 
-				PopulateRenderCommand(frameIndex, renderPass, cullRes, preZcommands, defaultCommands, debugCommands);
-
-				RenderSecondary(preZcommandBuffer, renderPass, preZcommands);
-				RenderSecondary(defaultCommandBuffer, renderPass, defaultCommands);
-				RenderSecondary(debugCommandBuffer, renderPass, debugCommands);
-
-				if (!preZcommands.empty())
+				if (!tempBuffers.empty())
 				{
-					commandBuffers.push_back(preZcommandBuffer);
-				}
-
-				if (!defaultCommands.empty())
-				{
-					commandBuffers.push_back(defaultCommandBuffer);
-				}
-
-				if (!commandBuffers.empty())
-				{
-					primaryCommandBuffer->ExecuteAll(commandBuffers);
-					commandBuffers.clear();
-				}
-
-				KRenderGlobal::OcclusionBox.Render(frameIndex, renderPass, camera, cullRes, commandBuffers);
-				if (!commandBuffers.empty())
-				{
-					primaryCommandBuffer->ExecuteAll(commandBuffers);
-					commandBuffers.clear();
-				}
-
-				// 绘制Debug
-				if (!debugCommands.empty())
-				{
-					commandBuffers.push_back(debugCommandBuffer);
-				}
-
-				if (!commandBuffers.empty())
-				{
-					clearCommandBuffer->BeginSecondary(renderPass);
-					clearCommandBuffer->SetViewport(renderPass->GetViewPort());
-					clearCommandBuffer->ClearDepthStencil(renderPass->GetViewPort(), clearValue.depthStencil);
-					clearCommandBuffer->End();
-
-					primaryCommandBuffer->Execute(clearCommandBuffer);
-					primaryCommandBuffer->ExecuteAll(commandBuffers);
-					commandBuffers.clear();
-				}
-
-				// 绘制Camera Gizmo
-				if (m_DisplayCameraCube)
-				{
-					if (m_CameraCube)
+					// Clear the depth stencil
 					{
-						KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-						cameraCube->Render(frameIndex, renderPass, commandBuffers);
-
-						if (!commandBuffers.empty())
-						{
-							primaryCommandBuffer->ExecuteAll(commandBuffers);
-							commandBuffers.clear();
-						}
+						clearCommandBuffer->BeginSecondary(renderPass);
+						clearCommandBuffer->SetViewport(renderPass->GetViewPort());
+						clearCommandBuffer->ClearDepthStencil(renderPass->GetViewPort(), clearValue.depthStencil);
+						clearCommandBuffer->End();
+						primaryCommandBuffer->Execute(clearCommandBuffer);
 					}
-				}
 
-				// KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
-				if (!commandBuffers.empty())
-				{
-					primaryCommandBuffer->ExecuteAll(commandBuffers);
-					commandBuffers.clear();
+					primaryCommandBuffer->ExecuteAll(tempBuffers);
+					tempBuffers.clear();
 				}
 			}
 		}
+
 		primaryCommandBuffer->EndRenderPass();
 	}
 
 	KRenderGlobal::PostProcessManager.Execute(chainImageIndex, frameIndex, m_SwapChain, m_UIOverlay, primaryCommandBuffer);
-
-	primaryCommandBuffer->End();
-
 	return true;
 }
 
-bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, const KCamera* camera,
-	uint32_t chainImageIndex, uint32_t frameIndex)
+bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t frameIndex)
 {
 	IKPipelineHandlePtr pipelineHandle;
 
@@ -666,178 +766,15 @@ bool KRenderDispatcher::SubmitCommandBufferMuitiThread(IKRenderScene* scene, con
 
 	m_CommandBuffers[frameIndex].commandPool->Reset();
 
-	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
-	IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
-
 	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
-	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffers[frameIndex].clearCommandBuffer;
-
-	KRenderStageStatistics preZStatistics;
-	KRenderStageStatistics defaultStatistics;
-	KRenderStageStatistics debugStatistics;
-	KRenderStageStatistics shadowStatistics;
-
-	std::vector<KRenderComponent*> cullRes;
-	((KRenderScene*)scene)->GetRenderComponent(*camera, cullRes);
-
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
 	{
-		// 阴影绘制RenderPass
-		{
-			KRenderGlobal::CascadedShadowMap.UpdateShadowMap(camera, frameIndex, primaryCommandBuffer);
-			KRenderGlobal::FrameGraph.Compile();
-			KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex);
-			const KRenderStageStatistics& shadowStatistics = KRenderGlobal::CascadedShadowMap.GetStatistics();
-			KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
-		}
-		{
-			KRenderGlobal::OcclusionBox.Reset(frameIndex, cullRes, primaryCommandBuffer);
-		}
-		// 物件绘制RenderPass
-		{
-			KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
-
-			primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
-
-			KCommandBufferList commandBuffers;
-
-			// 绘制SkyBox
-			KRenderGlobal::SkyBox.Render(frameIndex, renderPass, commandBuffers);
-
-			size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
-
-			KRenderCommandList preZcommands;
-			KRenderCommandList defaultCommands;
-			KRenderCommandList debugCommands;
-
-			PopulateRenderCommand(frameIndex, renderPass, cullRes, preZcommands, defaultCommands, debugCommands);
-			
-#define ASSIGN_RENDER_COMMAND(command)\
-			{\
-				size_t drawEachThread = command.size() / threadCount;\
-				size_t reaminCount = command.size() % threadCount;\
-				for (size_t i = 0; i < threadCount; ++i)\
-				{\
-					ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[i];\
-					threadData.command.clear();\
-\
-					for (size_t idx = i * drawEachThread, ed = i * drawEachThread + drawEachThread; idx < ed; ++idx)\
-					{\
-						threadData.command.push_back(std::move(command[idx]));\
-					}\
-\
-					if (i == threadCount - 1)\
-					{\
-						for (size_t idx = threadCount * drawEachThread, ed = threadCount * drawEachThread + reaminCount; idx < ed; ++idx)\
-						{\
-							threadData.command.push_back(std::move(command[idx]));\
-						}\
-					}\
-				}\
-			}
-
-			ASSIGN_RENDER_COMMAND(preZcommands);
-			ASSIGN_RENDER_COMMAND(defaultCommands);
-			ASSIGN_RENDER_COMMAND(debugCommands);
-
-			for (size_t i = 0; i < threadCount; ++i)
-			{
-				m_ThreadPool.SubmitTask([=]()
-				{
-					ThreadRenderObject(frameIndex, (uint32_t)i);
-				});
-			}
-			m_ThreadPool.WaitAllAsyncTaskDone();
-
-			for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
-			{
-				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
-				if (!threadData.preZcommands.empty())
-				{
-					commandBuffers.push_back(threadData.preZcommandBuffer);
-					threadData.preZcommands.clear();
-				}
-			}
-
-			for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
-			{
-				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
-				if (!threadData.defaultCommands.empty())
-				{
-					commandBuffers.push_back(threadData.defaultCommandBuffer);
-					threadData.defaultCommands.clear();
-				}
-			}
-
-			if (!commandBuffers.empty())
-			{
-				primaryCommandBuffer->ExecuteAll(commandBuffers);
-				commandBuffers.clear();
-			}
-
-			KRenderGlobal::OcclusionBox.Render(frameIndex, renderPass, camera, cullRes, commandBuffers);
-			if (!commandBuffers.empty())
-			{
-				primaryCommandBuffer->ExecuteAll(commandBuffers);
-				commandBuffers.clear();
-			}
-
-			// 绘制Debug
-			for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
-			{
-				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
-				if (!threadData.debugCommands.empty())
-				{
-					commandBuffers.push_back(threadData.debugCommandBuffer);
-					threadData.debugCommands.clear();
-				}
-			}
-
-			if (!commandBuffers.empty())
-			{
-				clearCommandBuffer->BeginSecondary(renderPass);
-				clearCommandBuffer->SetViewport(renderPass->GetViewPort());
-				clearCommandBuffer->ClearDepthStencil(renderPass->GetViewPort(), clearValue.depthStencil);
-				clearCommandBuffer->End();
-
-				primaryCommandBuffer->Execute(clearCommandBuffer);
-				primaryCommandBuffer->ExecuteAll(commandBuffers);
-				commandBuffers.clear();
-			}
-
-			// 绘制Camera Gizmo
-			if (m_DisplayCameraCube)
-			{
-				if (m_CameraCube)
-				{
-					KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-					cameraCube->Render(frameIndex, renderPass, commandBuffers);
-
-					if (!commandBuffers.empty())
-					{
-						primaryCommandBuffer->ExecuteAll(commandBuffers);
-						commandBuffers.clear();
-					}
-				}
-			}
-
-			// KRenderGlobal::CascadedShadowMap.DebugRender(frameIndex, offscreenTarget, commandBuffers);
-			if (!commandBuffers.empty())
-			{
-				primaryCommandBuffer->ExecuteAll(commandBuffers);
-				commandBuffers.clear();
-			}
-
-			primaryCommandBuffer->EndRenderPass();
-		}
+		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_Camera, frameIndex, primaryCommandBuffer);
+		KRenderGlobal::FrameGraph.Compile();
+		KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);
 	}
-
-	KRenderGlobal::PostProcessManager.Execute(chainImageIndex, frameIndex, m_SwapChain, m_UIOverlay, primaryCommandBuffer);
-
 	primaryCommandBuffer->End();
-
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(CSM_STAGE, shadowStatistics);
 
 	return true;
 }
@@ -848,6 +785,8 @@ bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKC
 	m_FrameInFlight = frameInFlight;
 	m_CameraCube = cameraCube;
 	m_ThreadPool.Init("RenderThread", m_MaxRenderThreadNum);
+	m_Pass = KMainBasePassPtr(KNEW KMainBasePass(*this));
+	m_Pass->Init();
 	CreateCommandBuffers();
 
 	KRenderGlobal::Statistics.RegisterRenderStage(PRE_Z_STAGE);
@@ -868,6 +807,7 @@ bool KRenderDispatcher::UnInit()
 	m_SwapChain = nullptr;
 	m_UIOverlay = nullptr;
 	m_CameraCube = nullptr;
+	SAFE_UNINIT(m_Pass);
 	m_ThreadPool.UnInit();
 	DestroyCommandBuffers();
 
@@ -1018,15 +958,7 @@ bool KRenderDispatcher::Execute(uint32_t chainImageIndex, uint32_t frameIndex)
 			if (m_Scene && m_Camera)
 			{
 				UpdateCamera(frameIndex);
-
-				if (m_MultiThreadSubmit)
-				{
-					SubmitCommandBufferMuitiThread(m_Scene, m_Camera, chainImageIndex, frameIndex);
-				}
-				else
-				{
-					SubmitCommandBufferSingleThread(m_Scene, m_Camera, chainImageIndex, frameIndex);
-				}
+				SubmitCommandBuffers(chainImageIndex, frameIndex);
 			}
 		}
 	}

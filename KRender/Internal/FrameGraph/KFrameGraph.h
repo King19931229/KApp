@@ -55,5 +55,5 @@ public:
 	bool UnRegisterPass(KFrameGraphPass* pass);
 
 	bool Compile();
-	bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+	bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex, uint32_t chainIndex);
 };

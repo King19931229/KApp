@@ -252,6 +252,8 @@ bool KEngine::UnInit()
 {
 	if (m_bInit)
 	{
+		m_Device->Wait();
+
 		KECS::DestroyEntityManager();
 		KECS::DestroyComponentManager();
 

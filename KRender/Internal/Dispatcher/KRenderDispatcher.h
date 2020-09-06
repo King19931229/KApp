@@ -5,11 +5,33 @@
 #include "Interface/IKGizmo.h"
 #include "Interface/IKRenderDispatcher.h"
 #include "Internal/Scene/KRenderScene.h"
+#include "Internal/FrameGraph/KFrameGraph.h"
 #include "KBase/Publish/KThreadPool.h"
 #include "Publish/KCamera.h"
 
+class KRenderDispatcher;
+
+class KMainBasePass : public KFrameGraphPass
+{
+protected:
+	KRenderDispatcher& m_Master;
+public:
+	KMainBasePass(KRenderDispatcher& master);
+	~KMainBasePass();
+
+	bool Init();
+	bool UnInit();
+
+	bool HasSideEffect() const override { return true; }
+
+	bool Setup(KFrameGraphBuilder& builder) override;
+	bool Execute(KFrameGraphExecutor& executor) override;
+};
+typedef std::shared_ptr<KMainBasePass> KMainBasePassPtr;
+
 class KRenderDispatcher : public IKRenderDispatcher
 {
+	friend class KMainBasePass;
 protected:
 	IKRenderDevice* m_Device;
 	IKSwapChain* m_SwapChain;
@@ -17,6 +39,7 @@ protected:
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
 	IKCameraCubePtr m_CameraCube;
+	KMainBasePassPtr m_Pass;
 	uint32_t m_FrameInFlight;
 
 	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
@@ -26,12 +49,11 @@ protected:
 		IKCommandPoolPtr commandPool;
 
 		IKCommandBufferPtr preZcommandBuffer;
-		std::vector<KRenderCommand> preZcommands;
-
 		IKCommandBufferPtr defaultCommandBuffer;
-		std::vector<KRenderCommand> defaultCommands;
-
 		IKCommandBufferPtr debugCommandBuffer;
+
+		std::vector<KRenderCommand> preZcommands;
+		std::vector<KRenderCommand> defaultCommands;
 		std::vector<KRenderCommand> debugCommands;
 	};
 
@@ -40,9 +62,6 @@ protected:
 		IKCommandPoolPtr commandPool;
 
 		IKCommandBufferPtr primaryCommandBuffer;
-		IKCommandBufferPtr preZcommandBuffer;
-		IKCommandBufferPtr defaultCommandBuffer;
-		IKCommandBufferPtr debugCommandBuffer;
 		IKCommandBufferPtr clearCommandBuffer;
 
 		std::vector<ThreadData> threadDatas;
@@ -58,8 +77,8 @@ protected:
 
 	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
 
-	bool SubmitCommandBufferSingleThread(IKRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
-	bool SubmitCommandBufferMuitiThread(IKRenderScene* scene, const KCamera* camera, uint32_t chainImageIndex, uint32_t frameIndex);
+	bool UpdateBasePass(uint32_t chainImageIndex, uint32_t frameIndex);
+	bool SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t frameIndex);
 
 	bool CreateCommandBuffers();
 	bool DestroyCommandBuffers();
@@ -67,7 +86,12 @@ protected:
 	void RenderSecondary(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const std::vector<KRenderCommand>& commands);
 
 	void PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass,
-		std::vector<KRenderComponent*>& cullRes, std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands);
+		std::vector<KRenderComponent*>& cullRes,
+		std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands);
+	void AssignRenderCommand(size_t frameIndex,
+		const std::vector<KRenderCommand>& preZcommands, const std::vector<KRenderCommand>& defaultCommands, const std::vector<KRenderCommand>& debugCommands);
+	void SumbitRenderCommand(size_t frameIndex,
+		std::vector<IKCommandBufferPtr>& preZBuffers, std::vector<IKCommandBufferPtr>& defaultBuffers, std::vector<IKCommandBufferPtr>& debugBuffers);
 
 	bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material, bool useMaterialTex);
 	bool UpdateCamera(size_t frameIndex);
