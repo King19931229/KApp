@@ -676,6 +676,8 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 	std::vector<KRenderComponent*> cullRes;
 	((KRenderScene*)m_Scene)->GetRenderComponent(*m_Camera, cullRes);
 
+	KRenderGlobal::CubeMap.Render(frameIndex, primaryCommandBuffer);
+
 	// 物件绘制RenderPass
 	{
 		KRenderGlobal::OcclusionBox.Reset(frameIndex, cullRes, primaryCommandBuffer);

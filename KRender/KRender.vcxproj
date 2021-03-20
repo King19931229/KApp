@@ -99,6 +99,7 @@
     <ClInclude Include="Internal\Manager\KShaderManager.h" />
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
     <ClInclude Include="Internal\Object\KOcclusionBox.h" />
+    <ClInclude Include="Internal\Object\KPrefiterCubeMap.h" />
     <ClInclude Include="Internal\Object\KSkyBox.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessConnection.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessData.h" />
@@ -191,6 +192,7 @@
     <ClCompile Include="Internal\Manager\KShaderManager.cpp" />
     <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
     <ClCompile Include="Internal\Object\KOcclusionBox.cpp" />
+    <ClCompile Include="Internal\Object\KPrefiterCubeMap.cpp" />
     <ClCompile Include="Internal\Object\KSkyBox.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessConnection.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessData.cpp" />

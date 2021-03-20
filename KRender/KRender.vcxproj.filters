@@ -414,6 +414,9 @@
     <ClInclude Include="Internal\FrameGraph\KFrameGraphExecutor.h">
       <Filter>Internal\FrameGraph</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Object\KPrefiterCubeMap.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -670,6 +673,9 @@
     </ClCompile>
     <ClCompile Include="Internal\FrameGraph\KFrameGraphExecutor.cpp">
       <Filter>Internal\FrameGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Object\KPrefiterCubeMap.cpp">
+      <Filter>Internal\Object</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
