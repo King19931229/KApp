@@ -435,6 +435,54 @@ namespace KFileTool
 		return false;
 	}
 
+	bool RelativePath(const std::string& fullPath, const std::string& root, std::string& relPath)
+	{
+		if (!fullPath.empty() && !root.empty())
+		{
+			std::string trimFullPath = fullPath;
+			std::string trimRoot = root;
+
+			std::replace(trimFullPath.begin(), trimFullPath.end(), '\\', '/');
+			std::replace(trimRoot.begin(), trimRoot.end(), '\\', '/');
+			if (SimplifyPath(trimFullPath, trimFullPath) && SimplifyPath(trimRoot, trimRoot))
+			{
+				std::vector<std::string> fullSplitRes;
+				KStringUtil::Split(trimFullPath, "/", fullSplitRes);
+
+				std::vector<std::string> rootSplitRes;
+				KStringUtil::Split(trimRoot, "/", rootSplitRes);
+
+				if (fullSplitRes.size() >= rootSplitRes.size())
+				{
+					for (size_t i = 0; i < rootSplitRes.size(); ++i)
+					{
+						if (fullSplitRes[i] != rootSplitRes[i])
+							return false;
+					}
+
+					if (fullSplitRes.size() == rootSplitRes.size())
+					{
+						relPath = "";
+						return true;
+					}
+					else
+					{
+						relPath = "";
+						for (size_t i = rootSplitRes.size(); i < fullSplitRes.size(); ++i)
+						{
+							relPath += fullSplitRes[i];
+							if (i != fullSplitRes.size() - 1)
+							{
+								relPath += "/";
+							}
+						}
+						return true;
+					}
+				}
+			}
+		}
+	}
+
 	bool FileName(const std::string& path, std::string& fileName)
 	{
 		if (!path.empty())
