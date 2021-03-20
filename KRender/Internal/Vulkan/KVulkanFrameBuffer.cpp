@@ -77,7 +77,7 @@ bool KVulkanFrameBuffer::InitExternal(VkImage image, VkImageView imageView, VkFo
 			m_MSAAImage, m_MSAAAllocInfo);
 
 		KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-		KVulkanInitializer::CreateVkImageView(m_MSAAImage, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_MSAAImageView);
+		KVulkanInitializer::CreateVkImageView(m_MSAAImage, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, m_MSAAImageView);
 	}
 
 	return true;
@@ -129,7 +129,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			m_Image, m_AllocInfo);
 
 		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-		KVulkanInitializer::CreateVkImageView(m_Image, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_ImageView);
+		KVulkanInitializer::CreateVkImageView(m_Image, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, m_ImageView);
 	}
 
 	if (msaa > 1)
@@ -149,7 +149,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			m_MSAAImage, m_MSAAAllocInfo);
 
 		KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 1, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-		KVulkanInitializer::CreateVkImageView(m_MSAAImage, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_MSAAImageView);
+		KVulkanInitializer::CreateVkImageView(m_MSAAImage, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, m_MSAAImageView);
 	}
 
 	return true;
@@ -199,6 +199,7 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 		VK_IMAGE_VIEW_TYPE_2D,
 		m_Format,
 		VK_IMAGE_ASPECT_DEPTH_BIT,
+		1,
 		1,
 		m_ImageView);
 

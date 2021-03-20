@@ -481,6 +481,7 @@ namespace KFileTool
 				}
 			}
 		}
+		return false;
 	}
 
 	bool FileName(const std::string& path, std::string& fileName)

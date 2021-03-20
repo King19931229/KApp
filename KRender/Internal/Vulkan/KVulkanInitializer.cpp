@@ -114,6 +114,7 @@ namespace KVulkanInitializer
 		VkFormat format,
 		VkImageAspectFlags aspectFlags,
 		uint32_t mipLevels,
+		uint32_t layerCounts,
 		VkImageView& vkImageView)
 	{
 		ASSERT_RESULT(KVulkanGlobal::deviceReady);
@@ -135,7 +136,7 @@ namespace KVulkanInitializer
 		createInfo.subresourceRange.baseMipLevel = 0;
 		createInfo.subresourceRange.levelCount = mipLevels;
 		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
+		createInfo.subresourceRange.layerCount = layerCounts;
 		VK_ASSERT_RESULT(vkCreateImageView(KVulkanGlobal::device, &createInfo, nullptr, &vkImageView));
 	}
 

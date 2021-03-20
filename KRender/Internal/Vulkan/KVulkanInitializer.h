@@ -47,6 +47,7 @@ namespace KVulkanInitializer
 		VkFormat format,
 		VkImageAspectFlags aspectFlags,
 		uint32_t mipLevels,
+		uint32_t layerCount,
 		VkImageView& vkImageView);
 
 	VkCommandBufferAllocateInfo CommandBufferAllocateInfo(VkCommandPool pool);

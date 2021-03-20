@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdio.h>
-#include <string.h>
+#include <string>
 
 // TODO 追踪 new delete
 #define KNEW new

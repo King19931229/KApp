@@ -2,6 +2,7 @@
 #include "KBase/Publish/KThreadPool.h"
 #include "KBase/Publish/KSpinLock.h"
 #include <memory>
+#include <functional>
 #include <assert.h>
 
 enum TaskState

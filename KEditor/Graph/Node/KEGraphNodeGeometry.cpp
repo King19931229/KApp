@@ -3,6 +3,7 @@
 #include "KEGraphNodeStyle.h"
 
 #include <algorithm>
+#include <cmath>
 
 KEGraphNodeGeometry::KEGraphNodeGeometry(KEGraphNodeModelPtr& model)
 	: m_Width(100),

@@ -58,11 +58,14 @@ ValidationLayerCandidate VALIDATION_LAYER_CANDIDATE[] =
 static void PopulateDebugUtilsMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo, PFN_vkDebugUtilsMessengerCallbackEXT pCallBack)
 {
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	createInfo.pNext = nullptr;
+	createInfo.flags = 0;
 	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 	createInfo.pfnUserCallback = pCallBack;
+	createInfo.pUserData = nullptr;
 }
 
 static VkResult CreateDebugUtilsMessengerEXT(
@@ -770,12 +773,13 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		{
 			createInfo.enabledLayerCount = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].arraySize;
 			createInfo.ppEnabledLayerNames = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].layers;
+#if 0
 			// 这是为了检查vkCreateInstance与SetupDebugMessenger之间的错误
 #ifndef __ANDROID__	
 			PopulateDebugUtilsMessengerCreateInfo(debugCreateInfo, DebugUtilsMessengerCallback);
 			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
 #else
-
+#endif
 #endif
 			for(uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
 			{

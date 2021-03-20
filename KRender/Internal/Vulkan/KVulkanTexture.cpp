@@ -196,7 +196,7 @@ bool KVulkanTexture::InitDevice(bool async)
 					}
 
 					// 创建imageview
-					KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)m_Mipmaps, m_TextureImageView);
+					KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)m_Mipmaps, layerCounts, m_TextureImageView);
 
 					KVulkanInitializer::FreeVkBuffer(stagingBuffer, stagingAllocInfo);
 				}
