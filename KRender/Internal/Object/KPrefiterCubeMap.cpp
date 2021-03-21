@@ -1,4 +1,4 @@
-#include "KPrefiterCubeMap.h"
+﻿#include "KPrefiterCubeMap.h"
 
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKRenderTarget.h"
@@ -47,6 +47,14 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 	m_CubeMap->InitMemoryFromFile("Textures/uffizi_cube.ktx", true, false);
 	m_CubeMap->InitDevice(false);
 
+	renderDevice->CreateTexture(m_SrcCubeMap);
+	m_SrcCubeMap->InitMemoryFromFile("Textures/uffizi_cube.ktx", true, false);
+	m_SrcCubeMap->InitDevice(false);
+
+	renderDevice->CreateSampler(m_CubeSampler);
+	m_CubeSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
+	m_CubeSampler->Init(m_SrcCubeMap, false);
+
 	AllocateTempResource(renderDevice, width, height, mipmaps, materialPath);
 	Draw();
 	FreeTempResource();
@@ -61,7 +69,7 @@ bool KPrefilerCubeMap::UnInit()
 	return true;
 }
 
-bool KPrefilerCubeMap::PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderPassPtr renderPass)
+bool KPrefilerCubeMap::PopulateRenderCommand(KRenderCommand& command, uint32_t faceIndex, IKPipelinePtr pipeline, IKRenderPassPtr renderPass)
 {
 	IKPipelineHandlePtr pipeHandle = nullptr;
 	if (pipeline->GetHandle(renderPass, pipeHandle))
@@ -70,6 +78,66 @@ bool KPrefilerCubeMap::PopulateRenderCommand(KRenderCommand& command, IKPipeline
 		command.indexData = &m_SharedIndexData;
 		command.pipeline = pipeline;
 		command.pipelineHandle = pipeHandle;
+
+		ConstantBlock constant;
+
+		// 参考 https://learnopengl.com/Advanced-OpenGL/Cubemaps 与 https://learnopengl.com/PBR/IBL/Diffuse-irradiance
+		// Y这里的处理有点特殊 需要翻转过来
+		switch (faceIndex)
+		{
+			// POSITIVE_X
+			case 0:
+			{
+				constant.center = glm::vec4(1, 0, 0, 0);
+				constant.right = glm::vec4(0, 0, -1, 0);
+				constant.up = glm::vec4(0, -1, 0, 0);
+				break;
+			}
+			// NEGATIVE_X
+			case 1:
+			{
+				constant.center = glm::vec4(-1, 0, 0, 0);
+				constant.right = glm::vec4(0, 0, 1, 0);
+				constant.up = glm::vec4(0, -1, 0, 0);
+				break;
+			}
+			// POSITIVE_Y
+			case 2:
+			{
+				constant.center = glm::vec4(0, 1, 0, 0);
+				constant.right = glm::vec4(1, 0, 0, 0);
+				constant.up = glm::vec4(0, 0, 1, 0);
+				break;
+			}
+			// NEGATIVE_Y
+			case 3:
+			{
+				constant.center = glm::vec4(0, -1, 0, 0);
+				constant.right = glm::vec4(1, 0, 0, 0);
+				constant.up = glm::vec4(0, 0, -1, 0);
+				break;
+			}
+			// POSITIVE_Z
+			case 4:
+			{
+				constant.center = glm::vec4(0, 0, 1, 0);
+				constant.right = glm::vec4(1, 0, 0, 0);
+				constant.up = glm::vec4(0, -1, 0, 0);
+				break;
+			}
+			// NEGATIVE_Z
+			case 5:
+			{
+				constant.center = glm::vec4(0, 0, -1, 0);
+				constant.right = glm::vec4(-1, 0, 0, 0);
+				constant.up = glm::vec4(0, -1, 0, 0);
+				break;
+			}
+		}
+
+		command.objectUsage.binding = SHADER_BINDING_OBJECT;
+		command.objectUsage.range = sizeof(constant);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, command.objectUsage);
 
 		command.indexDraw = true;
 
@@ -126,6 +194,8 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice,
 
 		pipeline->SetBlendEnable(false);
 
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_SrcCubeMap, m_CubeSampler);
+
 		pipeline->SetCullMode(CM_BACK);
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
@@ -162,6 +232,8 @@ bool KPrefilerCubeMap::FreeTempResource()
 	SAFE_UNINIT(m_SharedVertexBuffer);
 	SAFE_UNINIT(m_SharedIndexBuffer);
 	SAFE_UNINIT(m_Pipeline);
+	SAFE_UNINIT(m_SrcCubeMap);
+	SAFE_UNINIT(m_CubeSampler);
 
 	for (size_t mipLevel = 0; mipLevel < m_MipmapTargets.size(); ++mipLevel)
 	{
@@ -184,23 +256,23 @@ bool KPrefilerCubeMap::Draw()
 		IKRenderTargetPtr& target = mipTarget.target;
 		IKRenderPassPtr& pass = mipTarget.pass;
 
-		m_CommandBuffer->BeginPrimary();
-		m_CommandBuffer->BeginRenderPass(pass, SUBPASS_CONTENTS_INLINE);
-		m_CommandBuffer->SetViewport(pass->GetViewPort());
-
-		KRenderCommand command;
-		if (PopulateRenderCommand(command, m_Pipeline, pass))
-		{
-			m_CommandBuffer->Render(command);
-		}
-
-		m_CommandBuffer->EndRenderPass();
-		m_CommandBuffer->End();
-
-		m_CommandBuffer->Flush();
-
 		for (int i = 0; i < 6; ++i)
 		{
+			m_CommandBuffer->BeginPrimary();
+			m_CommandBuffer->BeginRenderPass(pass, SUBPASS_CONTENTS_INLINE);
+			m_CommandBuffer->SetViewport(pass->GetViewPort());
+
+			KRenderCommand command;
+			if (PopulateRenderCommand(command, i, m_Pipeline, pass))
+			{
+				m_CommandBuffer->Render(command);
+			}
+
+			m_CommandBuffer->EndRenderPass();
+			m_CommandBuffer->End();
+
+			m_CommandBuffer->Flush();
+
 			m_CubeMap->CopyFromFrameBuffer(target->GetFrameBuffer(), i, mipLevel);
 		}
 	}

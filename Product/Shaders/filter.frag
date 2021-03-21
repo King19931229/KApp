@@ -1,9 +1,12 @@
 #include "public.h"
 
 layout(location = 0) in vec2 uv;
+layout(location = 1) in vec3 uvw;
 layout(location = 0) out vec4 outColor;
+
+layout(binding = BINDING_TEXTURE0) uniform samplerCube samplerEnvMap;
 
 void main()
 {
-	outColor = vec4(1,1,1,1);
+	outColor = texture(samplerEnvMap, uvw);
 }

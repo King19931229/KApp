@@ -14,6 +14,13 @@ protected:
 	static const uint32_t ms_Indices[6];
 
 	// 预处理相关资源
+	struct ConstantBlock
+	{
+		glm::vec4 up;
+		glm::vec4 right;
+		glm::vec4 center;
+	};
+
 	KMaterialTextureBinding m_TextureBinding;
 	struct MipmapTarget
 	{
@@ -37,9 +44,11 @@ protected:
 	IKMaterialPtr m_Material;
 
 	// CubeMap
+	IKTexturePtr m_SrcCubeMap;
 	IKTexturePtr m_CubeMap;
+	IKSamplerPtr m_CubeSampler;
 
-	bool PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderPassPtr renderPass);
+	bool PopulateRenderCommand(KRenderCommand& command, uint32_t faceIndex, IKPipelinePtr pipeline, IKRenderPassPtr renderPass);
 	bool AllocateTempResource(IKRenderDevice* renderDevice,
 		uint32_t width, uint32_t height,
 		size_t mipmaps,

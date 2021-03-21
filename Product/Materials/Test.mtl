@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <material>
     <blend>opaque</blend>
-    <vs>screenquad.vert</vs>
+    <vs>filter.vert</vs>
     <fs>filter.frag</fs>
     <vs_parameter/>
     <fs_parameter/>
