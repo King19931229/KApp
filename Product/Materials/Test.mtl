@@ -2,7 +2,7 @@
 <material>
     <blend>opaque</blend>
     <vs>screenquad.vert</vs>
-    <fs>screenquad.frag</fs>
+    <fs>filter.frag</fs>
     <vs_parameter/>
     <fs_parameter/>
     <material_texture/>

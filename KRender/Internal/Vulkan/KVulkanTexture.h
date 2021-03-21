@@ -31,6 +31,7 @@ public:
 	virtual bool UnInit();
 
 	virtual IKFrameBufferPtr GetFrameBuffer();
+	virtual bool CopyFromFrameBuffer(IKFrameBufferPtr srcFrameBuffer, uint32_t dstfaceIndex, uint32_t dstmipLevel);
 
 	inline VkImage GetImage() { return m_TextureImage; }
 	inline VkImageView GetImageView() { return m_TextureImageView; }

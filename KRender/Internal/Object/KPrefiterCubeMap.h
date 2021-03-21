@@ -14,9 +14,14 @@ protected:
 	static const uint32_t ms_Indices[6];
 
 	// 预处理相关资源
-	KMaterialTextureBinding m_Texture;
-	IKRenderTargetPtr m_RenderTargets[6];
-	IKRenderPassPtr	m_RenderPass[6];
+	IKTexturePtr m_CubeMap;
+	KMaterialTextureBinding m_TextureBinding;
+	struct MipmapTarget
+	{
+		IKRenderTargetPtr target;
+		IKRenderPassPtr	pass;
+	};
+	std::vector<MipmapTarget> m_MipmapTargets;
 	IKPipelinePtr m_Pipeline;
 	std::vector<std::array<IKCommandBufferPtr, 6>> m_CommandBuffers;
 	IKCommandPoolPtr m_CommandPool;
@@ -31,6 +36,8 @@ protected:
 	IKIndexBufferPtr m_SharedIndexBuffer;
 
 	IKMaterialPtr m_Material;
+
+	bool PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderPassPtr renderPass);
 public:
 	KPrefilerCubeMap();
 	~KPrefilerCubeMap();

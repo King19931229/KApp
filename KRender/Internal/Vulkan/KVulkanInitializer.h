@@ -5,7 +5,7 @@
 
 namespace KVulkanInitializer
 {
-	struct SubRegionCopyInfo
+	struct BufferSubRegionCopyInfo
 	{
 		uint32_t offset;
 		uint32_t width;
@@ -13,7 +13,17 @@ namespace KVulkanInitializer
 		uint32_t mipLevel;
 		uint32_t layer;
 	};
-	typedef std::vector<SubRegionCopyInfo> SubRegionCopyInfoList;
+	typedef std::vector<BufferSubRegionCopyInfo> BufferSubRegionCopyInfoList;
+
+	struct ImageSubRegionCopyInfo
+	{
+		uint32_t width;
+		uint32_t height;
+		uint32_t srcFaceIndex;
+		uint32_t dstFaceIndex;
+		uint32_t srcMipLevel;
+		uint32_t dstMipLevel;
+	};
 
 	void CreateVkBuffer(VkDeviceSize size,
 		VkBufferUsageFlags usage,
@@ -55,9 +65,15 @@ namespace KVulkanInitializer
 	void CopyVkBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
 	void CopyVkBufferToVkImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-	void CopyVkBufferToVkImageByRegion(VkBuffer buffer, VkImage image, uint32_t layers, const SubRegionCopyInfoList& copyInfo);
+	void CopyVkBufferToVkImageByRegion(VkBuffer buffer, VkImage image, uint32_t layers, const BufferSubRegionCopyInfoList& copyInfo);
 
-	void TransitionImageLayout(VkImage image, VkFormat format, uint32_t layers, uint32_t mipLevels, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void CopyVkImageToVkImage(VkImage srcImage, VkImage dstImage, const ImageSubRegionCopyInfo& copyInfo);
+
+	void TransitionImageLayout(VkImage image, VkFormat format,
+		uint32_t baseLayer, uint32_t layers,
+		uint32_t baseMipLevel, uint32_t mipLevels,
+		VkImageLayout oldLayout, VkImageLayout newLayout);
+
 	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, uint32_t layers, uint32_t mipLevels);
 
 	void BeginSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);

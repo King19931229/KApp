@@ -29,9 +29,6 @@ KPrefilerCubeMap::KPrefilerCubeMap()
 	, m_SharedIndexBuffer(nullptr)
 	, m_Material(nullptr)
 {
-	ZERO_ARRAY_MEMORY(m_RenderTargets);
-	ZERO_ARRAY_MEMORY(m_RenderPass);
-
 	ZERO_MEMORY(m_SharedVertexData);
 	ZERO_MEMORY(m_SharedIndexData);
 }
@@ -47,6 +44,12 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 	const char* materialPath)
 {
 	VertexFormat formats[] = { VF_SCREENQUAD_POS };
+
+	{
+		renderDevice->CreateTexture(m_CubeMap);
+		m_CubeMap->InitMemoryFromFile("Textures/uffizi_cube.ktx", true, false);
+		m_CubeMap->InitDevice(false);
+	}
 
 	{
 		renderDevice->CreateVertexBuffer(m_SharedVertexBuffer);
@@ -72,7 +75,7 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 		ASSERT_RESULT(m_Material);
 
 		IKShaderPtr vertexShader = m_Material->GetVSShader(formats, 1);
-		IKShaderPtr fragmentShader = m_Material->GetFSShader(formats, 1, &m_Texture);
+		IKShaderPtr fragmentShader = m_Material->GetFSShader(formats, 1, &m_TextureBinding);
 
 		renderDevice->CreatePipeline(m_Pipeline);
 
@@ -94,14 +97,20 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 		pipeline->Init();
 	}
 
-	for(int i = 0; i < 6; ++i)
+	m_MipmapTargets.resize(m_CubeMap->GetMipmaps());
+	for (uint32_t mipLevel = 0; mipLevel < (uint32_t)m_MipmapTargets.size(); ++mipLevel)
 	{
-		renderDevice->CreateRenderPass(m_RenderPass[i]);
-		renderDevice->CreateRenderTarget(m_RenderTargets[i]);
-		m_RenderTargets[i]->InitFromColor(width, height, 1, EF_R16G16B16A16_FLOAT);
-		m_RenderPass[i]->SetColorAttachment(0, m_RenderTargets[i]->GetFrameBuffer());
-		m_RenderPass[i]->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
-		m_RenderPass[i]->Init();
+		MipmapTarget& mipTarget = m_MipmapTargets[mipLevel];
+
+		IKRenderPassPtr& pass = mipTarget.pass;
+		IKRenderTargetPtr& target = mipTarget.target;
+
+		renderDevice->CreateRenderPass(pass);
+		renderDevice->CreateRenderTarget(target);
+		target->InitFromColor((uint32_t)m_CubeMap->GetWidth() >> mipLevel, (uint32_t)m_CubeMap->GetHeight() >> mipLevel, 1, m_CubeMap->GetTextureFormat());
+		pass->SetColorAttachment(0, target->GetFrameBuffer());
+		pass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		pass->Init();
 	}
 
 	renderDevice->CreateCommandPool(m_CommandPool);
@@ -117,20 +126,34 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 		}
 	}
 
+	for (size_t mipLevel = 0; mipLevel < m_MipmapTargets.size(); ++mipLevel)
+	{
+		MipmapTarget& mipTarget = m_MipmapTargets[mipLevel];
+		IKRenderTargetPtr& target = mipTarget.target;
+		for (int i = 0; i < 6; ++i)
+		{
+			m_CubeMap->CopyFromFrameBuffer(target->GetFrameBuffer(), i, mipLevel);
+		}
+	}
+
 	return true;
 }
 
 bool KPrefilerCubeMap::UnInit()
 {
+	SAFE_UNINIT(m_CubeMap);
+
 	SAFE_UNINIT(m_SharedVertexBuffer);
 	SAFE_UNINIT(m_SharedIndexBuffer);
 	SAFE_UNINIT(m_Pipeline);
 
-	for (int i = 0; i < 6; ++i)
+	for (size_t mipLevel = 0; mipLevel < m_MipmapTargets.size(); ++mipLevel)
 	{
-		SAFE_UNINIT(m_RenderTargets[i]);
-		SAFE_UNINIT(m_RenderPass[i]);
+		MipmapTarget& mipTarget = m_MipmapTargets[mipLevel];
+		SAFE_UNINIT(mipTarget.pass);
+		SAFE_UNINIT(mipTarget.target);
 	}
+	m_MipmapTargets.clear();
 
 	for (auto& buffers : m_CommandBuffers)
 	{
@@ -147,9 +170,26 @@ bool KPrefilerCubeMap::UnInit()
 	return true;
 }
 
+bool KPrefilerCubeMap::PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderPassPtr renderPass)
+{
+	IKPipelineHandlePtr pipeHandle = nullptr;
+	if (pipeline->GetHandle(renderPass, pipeHandle))
+	{
+		command.vertexData = &m_SharedVertexData;
+		command.indexData = &m_SharedIndexData;
+		command.pipeline = pipeline;
+		command.pipelineHandle = pipeHandle;
+
+		command.indexDraw = true;
+
+		return true;
+	}
+	return false;
+}
+
 bool KPrefilerCubeMap::Render(size_t frameIndex, IKCommandBufferPtr primaryCommandBuffer)
 {
-	for (int i = 0; i < 6; ++i)
+	/*for (int i = 0; i < 6; ++i)
 	{
 		primaryCommandBuffer->BeginRenderPass(m_RenderPass[i], SUBPASS_CONTENTS_SECONDARY);
 		{
@@ -158,15 +198,15 @@ bool KPrefilerCubeMap::Render(size_t frameIndex, IKCommandBufferPtr primaryComma
 
 			KRenderCommand command;
 
-			/*if (PopulateRenderCommand(command, m_Pipeline, m_RenderPass[i]))
+			if (PopulateRenderCommand(command, m_Pipeline, m_RenderPass[i]))
 			{
-				m_CommandBuffers[frameIndex]->Render(command);
-			}*/
+				m_CommandBuffers[frameIndex][i]->Render(command);
+			}
 			m_CommandBuffers[frameIndex][i]->End();
 		}
 		primaryCommandBuffer->Execute(m_CommandBuffers[frameIndex][i]);
 		primaryCommandBuffer->EndRenderPass();
-	}
+	}*/
 
 	return true;
 }

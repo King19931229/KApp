@@ -15,6 +15,7 @@ struct IKTexture : public IKResource
 	virtual bool UnInit() = 0;
 
 	virtual IKFrameBufferPtr GetFrameBuffer() = 0;
+	virtual bool CopyFromFrameBuffer(IKFrameBufferPtr srcFrameBuffer, uint32_t dstfaceIndex, uint32_t dstmipLevel) = 0;
 
 	virtual size_t GetWidth() = 0;
 	virtual size_t GetHeight() = 0;

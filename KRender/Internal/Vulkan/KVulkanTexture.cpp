@@ -156,18 +156,18 @@ bool KVulkanTexture::InitDevice(bool async)
 					// 先转换image layout为之后buffer拷贝数据到image作准备
 					KVulkanInitializer::TransitionImageLayout(m_TextureImage,
 						m_TextureFormat,
-						(uint32_t)layerCounts,
-						(uint32_t)m_Mipmaps,
+						0, (uint32_t)layerCounts,
+						0, (uint32_t)m_Mipmaps,
 						VK_IMAGE_LAYOUT_UNDEFINED,
 						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
 					const KSubImageInfoList& subImageInfo = m_ImageData.pData->GetSubImageInfo();
-					KVulkanInitializer::SubRegionCopyInfoList copyInfo;
+					KVulkanInitializer::BufferSubRegionCopyInfoList copyInfo;
 					copyInfo.reserve(subImageInfo.size());
 
 					for (const KSubImageInfo& info : subImageInfo)
 					{
-						KVulkanInitializer::SubRegionCopyInfo copy;
+						KVulkanInitializer::BufferSubRegionCopyInfo copy;
 
 						copy.offset = static_cast<uint32_t>(info.uOffset);
 						copy.width = static_cast<uint32_t>(info.uWidth);
@@ -189,8 +189,8 @@ bool KVulkanTexture::InitDevice(bool async)
 						// 再转换image layout为之后shader使用image数据作准备
 						KVulkanInitializer::TransitionImageLayout(m_TextureImage,
 							m_TextureFormat,
-							(uint32_t)layerCounts,
-							(uint32_t)m_Mipmaps,
+							0, (uint32_t)layerCounts,
+							0, (uint32_t)m_Mipmaps,
 							VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 					}
@@ -245,4 +245,56 @@ bool KVulkanTexture::UnInit()
 IKFrameBufferPtr KVulkanTexture::GetFrameBuffer()
 {
 	return m_FrameBuffer;
+}
+
+bool KVulkanTexture::CopyFromFrameBuffer(IKFrameBufferPtr src, uint32_t faceIndex, uint32_t mipLevel)
+{
+	if (src && mipLevel < m_Mipmaps)
+	{
+		KVulkanFrameBuffer* frameBufer = (KVulkanFrameBuffer*)src.get();
+		VkImage srcImage = frameBufer->GetImage();
+
+		// TODO 从FrameBuffer里获取ATTACHMENT类型
+		KVulkanInitializer::TransitionImageLayout(srcImage,
+			m_TextureFormat,
+			0, 1,
+			0, 1,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+		KVulkanInitializer::TransitionImageLayout(m_TextureImage,
+			m_TextureFormat,
+			faceIndex, 1,
+			mipLevel, 1,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+		KVulkanInitializer::ImageSubRegionCopyInfo copyInfo = {};
+
+		copyInfo.width = frameBufer->GetWidth();
+		copyInfo.height = frameBufer->GetHeight();
+		copyInfo.srcMipLevel = 0;
+		copyInfo.srcFaceIndex = 0;
+		copyInfo.dstMipLevel = mipLevel;
+		copyInfo.dstFaceIndex = faceIndex;
+
+		KVulkanInitializer::CopyVkImageToVkImage(srcImage, m_TextureImage, copyInfo);
+
+		KVulkanInitializer::TransitionImageLayout(srcImage,
+			m_TextureFormat,
+			0, 1,
+			0, 1,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+		KVulkanInitializer::TransitionImageLayout(m_TextureImage,
+			m_TextureFormat,
+			faceIndex, 1,
+			mipLevel, 1,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		return true;
+	}
+	return false;
 }
