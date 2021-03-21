@@ -487,6 +487,34 @@ bool KVulkanCommandBuffer::End()
 	return false;
 }
 
+bool KVulkanCommandBuffer::Flush()
+{
+	assert(m_CommandBuffer != VK_NULL_HANDLE);
+	if (m_CommandBuffer != VK_NULL_HANDLE)
+	{
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_CommandBuffer;
+
+		VkFenceCreateInfo fenceInfo = {};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = VK_FLAGS_NONE;
+		fenceInfo.pNext = nullptr;
+
+		VkFence fence;
+
+		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &fence));
+		// Wait for the fence to signal that command buffer has finished executing
+		VK_ASSERT_RESULT(vkQueueSubmit(KVulkanGlobal::graphicsQueue, 1, &submitInfo, fence));
+		VK_ASSERT_RESULT(vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
+		vkDestroyFence(KVulkanGlobal::device, fence, nullptr);
+
+		return true;
+	}
+	return false;
+}
+
 bool KVulkanCommandBuffer::BeginQuery(IKQueryPtr query)
 {
 	if (query)

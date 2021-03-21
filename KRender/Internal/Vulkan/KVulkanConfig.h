@@ -6,6 +6,14 @@
 #include <stdio.h>
 #include <assert.h>
 
+
+// Custom define for better code readability
+#define VK_FLAGS_NONE 0
+// Default fence timeout in nanoseconds
+#define DEFAULT_FENCE_TIMEOUT 100000000000
+
+#define VK_NULL_HANDEL 0
+
 static const char* VK_ERROR_STRING(VkResult errorCode)
 {
 	switch (errorCode)

@@ -773,14 +773,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		{
 			createInfo.enabledLayerCount = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].arraySize;
 			createInfo.ppEnabledLayerNames = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].layers;
-#if 0
-			// 这是为了检查vkCreateInstance与SetupDebugMessenger之间的错误
-#ifndef __ANDROID__	
-			PopulateDebugUtilsMessengerCreateInfo(debugCreateInfo, DebugUtilsMessengerCallback);
-			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
-#else
-#endif
-#endif
+
 			for(uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
 			{
 				KG_LOG(LM_RENDER, "Vulkan validation layer picked [%s]\n", createInfo.ppEnabledLayerNames[i]);

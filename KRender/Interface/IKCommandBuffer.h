@@ -32,6 +32,8 @@ struct IKCommandBuffer
 	virtual bool BeginSecondary(IKRenderPassPtr renderPass) = 0;
 	virtual bool End() = 0;
 
+	virtual bool Flush() = 0;
+
 	virtual bool BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent) = 0;
 
 	virtual bool ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color) = 0;

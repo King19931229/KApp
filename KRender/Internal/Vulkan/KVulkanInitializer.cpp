@@ -573,8 +573,19 @@ namespace KVulkanInitializer
 		submitInfo.pCommandBuffers = &commandBuffer;
 
 		VkQueue queue = KVulkanGlobal::graphicsQueue;
-		VK_ASSERT_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VK_ASSERT_RESULT(vkQueueWaitIdle(queue));
+
+		VkFenceCreateInfo fenceInfo = {};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = VK_FLAGS_NONE;
+		fenceInfo.pNext = nullptr;
+
+		VkFence fence;
+
+		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &fence));
+		// Wait for the fence to signal that command buffer has finished executing
+		VK_ASSERT_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
+		VK_ASSERT_RESULT(vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
+		vkDestroyFence(KVulkanGlobal::device, fence, nullptr);
 
 		vkFreeCommandBuffers(KVulkanGlobal::device, commandPool, 1, &commandBuffer);
 	}

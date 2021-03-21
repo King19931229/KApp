@@ -43,14 +43,49 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 	size_t mipmaps,
 	const char* materialPath)
 {
+	renderDevice->CreateTexture(m_CubeMap);
+	m_CubeMap->InitMemoryFromFile("Textures/uffizi_cube.ktx", true, false);
+	m_CubeMap->InitDevice(false);
+
+	AllocateTempResource(renderDevice, width, height, mipmaps, materialPath);
+	Draw();
+	FreeTempResource();
+
+	return true;
+}
+
+bool KPrefilerCubeMap::UnInit()
+{
+	FreeTempResource();
+	SAFE_UNINIT(m_CubeMap);
+	return true;
+}
+
+bool KPrefilerCubeMap::PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderPassPtr renderPass)
+{
+	IKPipelineHandlePtr pipeHandle = nullptr;
+	if (pipeline->GetHandle(renderPass, pipeHandle))
+	{
+		command.vertexData = &m_SharedVertexData;
+		command.indexData = &m_SharedIndexData;
+		command.pipeline = pipeline;
+		command.pipelineHandle = pipeHandle;
+
+		command.indexDraw = true;
+
+		return true;
+	}
+	return false;
+}
+
+bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice,
+	uint32_t width, uint32_t height,
+	size_t mipmaps,
+	const char* materialPath)
+{
 	VertexFormat formats[] = { VF_SCREENQUAD_POS };
 
-	{
-		renderDevice->CreateTexture(m_CubeMap);
-		m_CubeMap->InitMemoryFromFile("Textures/uffizi_cube.ktx", true, false);
-		m_CubeMap->InitDevice(false);
-	}
-
+	// VertexData
 	{
 		renderDevice->CreateVertexBuffer(m_SharedVertexBuffer);
 		m_SharedVertexBuffer->InitMemory(ARRAY_SIZE(ms_Vertices), sizeof(ms_Vertices[0]), ms_Vertices);
@@ -70,6 +105,7 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 		m_SharedIndexData.indexBuffer = m_SharedIndexBuffer;
 	}
 
+	// Material
 	{
 		KRenderGlobal::MaterialManager.Acquire(materialPath, m_Material, false);
 		ASSERT_RESULT(m_Material);
@@ -115,34 +151,14 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 
 	renderDevice->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
-
-	m_CommandBuffers.resize(frameInFlight);
-	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
-	{
-		for (IKCommandBufferPtr& buffer : m_CommandBuffers[i])
-		{
-			renderDevice->CreateCommandBuffer(buffer);
-			buffer->Init(m_CommandPool, CBL_SECONDARY);
-		}
-	}
-
-	for (size_t mipLevel = 0; mipLevel < m_MipmapTargets.size(); ++mipLevel)
-	{
-		MipmapTarget& mipTarget = m_MipmapTargets[mipLevel];
-		IKRenderTargetPtr& target = mipTarget.target;
-		for (int i = 0; i < 6; ++i)
-		{
-			m_CubeMap->CopyFromFrameBuffer(target->GetFrameBuffer(), i, mipLevel);
-		}
-	}
+	renderDevice->CreateCommandBuffer(m_CommandBuffer);
+	m_CommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
 
 	return true;
 }
 
-bool KPrefilerCubeMap::UnInit()
+bool KPrefilerCubeMap::FreeTempResource()
 {
-	SAFE_UNINIT(m_CubeMap);
-
 	SAFE_UNINIT(m_SharedVertexBuffer);
 	SAFE_UNINIT(m_SharedIndexBuffer);
 	SAFE_UNINIT(m_Pipeline);
@@ -155,58 +171,38 @@ bool KPrefilerCubeMap::UnInit()
 	}
 	m_MipmapTargets.clear();
 
-	for (auto& buffers : m_CommandBuffers)
-	{
-		for (IKCommandBufferPtr& buffer : buffers)
-		{
-			buffer->UnInit();
-			buffer = nullptr;
-		}
-	}
-	m_CommandBuffers.clear();
-
+	SAFE_UNINIT(m_CommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
-
 	return true;
 }
 
-bool KPrefilerCubeMap::PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderPassPtr renderPass)
+bool KPrefilerCubeMap::Draw()
 {
-	IKPipelineHandlePtr pipeHandle = nullptr;
-	if (pipeline->GetHandle(renderPass, pipeHandle))
+	for (uint32_t mipLevel = 0; mipLevel < (uint32_t)m_MipmapTargets.size(); ++mipLevel)
 	{
-		command.vertexData = &m_SharedVertexData;
-		command.indexData = &m_SharedIndexData;
-		command.pipeline = pipeline;
-		command.pipelineHandle = pipeHandle;
+		MipmapTarget& mipTarget = m_MipmapTargets[mipLevel];
+		IKRenderTargetPtr& target = mipTarget.target;
+		IKRenderPassPtr& pass = mipTarget.pass;
 
-		command.indexDraw = true;
+		m_CommandBuffer->BeginPrimary();
+		m_CommandBuffer->BeginRenderPass(pass, SUBPASS_CONTENTS_INLINE);
+		m_CommandBuffer->SetViewport(pass->GetViewPort());
 
-		return true;
-	}
-	return false;
-}
-
-bool KPrefilerCubeMap::Render(size_t frameIndex, IKCommandBufferPtr primaryCommandBuffer)
-{
-	/*for (int i = 0; i < 6; ++i)
-	{
-		primaryCommandBuffer->BeginRenderPass(m_RenderPass[i], SUBPASS_CONTENTS_SECONDARY);
+		KRenderCommand command;
+		if (PopulateRenderCommand(command, m_Pipeline, pass))
 		{
-			m_CommandBuffers[frameIndex][i]->BeginSecondary(m_RenderPass[i]);
-			m_CommandBuffers[frameIndex][i]->SetViewport(m_RenderPass[i]->GetViewPort());
-
-			KRenderCommand command;
-
-			if (PopulateRenderCommand(command, m_Pipeline, m_RenderPass[i]))
-			{
-				m_CommandBuffers[frameIndex][i]->Render(command);
-			}
-			m_CommandBuffers[frameIndex][i]->End();
+			m_CommandBuffer->Render(command);
 		}
-		primaryCommandBuffer->Execute(m_CommandBuffers[frameIndex][i]);
-		primaryCommandBuffer->EndRenderPass();
-	}*/
 
+		m_CommandBuffer->EndRenderPass();
+		m_CommandBuffer->End();
+
+		m_CommandBuffer->Flush();
+
+		for (int i = 0; i < 6; ++i)
+		{
+			m_CubeMap->CopyFromFrameBuffer(target->GetFrameBuffer(), i, mipLevel);
+		}
+	}
 	return true;
 }

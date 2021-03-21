@@ -42,6 +42,8 @@ public:
 	virtual bool BeginSecondary(IKRenderPassPtr renderPass);
 	virtual bool End();
 
+	virtual bool Flush();
+
 	virtual bool BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent);
 
 	virtual bool ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color);

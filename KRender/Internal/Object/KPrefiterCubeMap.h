@@ -14,7 +14,6 @@ protected:
 	static const uint32_t ms_Indices[6];
 
 	// 预处理相关资源
-	IKTexturePtr m_CubeMap;
 	KMaterialTextureBinding m_TextureBinding;
 	struct MipmapTarget
 	{
@@ -23,7 +22,7 @@ protected:
 	};
 	std::vector<MipmapTarget> m_MipmapTargets;
 	IKPipelinePtr m_Pipeline;
-	std::vector<std::array<IKCommandBufferPtr, 6>> m_CommandBuffers;
+	IKCommandBufferPtr m_CommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
 	IKVertexBufferPtr m_VertexBuffer;
@@ -37,7 +36,16 @@ protected:
 
 	IKMaterialPtr m_Material;
 
+	// CubeMap
+	IKTexturePtr m_CubeMap;
+
 	bool PopulateRenderCommand(KRenderCommand& command, IKPipelinePtr pipeline, IKRenderPassPtr renderPass);
+	bool AllocateTempResource(IKRenderDevice* renderDevice,
+		uint32_t width, uint32_t height,
+		size_t mipmaps,
+		const char* materialPath);
+	bool FreeTempResource();
+	bool Draw();
 public:
 	KPrefilerCubeMap();
 	~KPrefilerCubeMap();
@@ -49,5 +57,5 @@ public:
 		const char* materialPath);
 	bool UnInit();
 
-	bool Render(size_t frameIndex, IKCommandBufferPtr primaryCommandBuffer);
+	IKTexturePtr GetCubeMap() { return m_CubeMap; }
 };
