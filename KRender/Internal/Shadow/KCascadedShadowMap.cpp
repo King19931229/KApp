@@ -329,6 +329,9 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 
 		float near = -sceneBoundInLight.GetMax().z;
 		float far = -sceneBoundInLight.GetMin().z;
+
+		if (far - near < 0.001f) far = near + 0.001f;
+
 		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, near, far);
 
 		// Record the cascaded lit box for scene clipping
@@ -413,8 +416,8 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 		renderDevice->CreateShader(m_DebugVertexShader);
 		renderDevice->CreateShader(m_DebugFragmentShader);
 
-		ASSERT_RESULT(m_DebugVertexShader->InitFromFile(ST_VERTEX, "debugquad.vert", false));
-		ASSERT_RESULT(m_DebugFragmentShader->InitFromFile(ST_FRAGMENT, "debugquad.frag", false));
+		ASSERT_RESULT(m_DebugVertexShader->InitFromFile(ST_VERTEX, "others/debugquad.vert", false));
+		ASSERT_RESULT(m_DebugFragmentShader->InitFromFile(ST_FRAGMENT, "others/debugquad.frag", false));
 
 		renderDevice->CreateVertexBuffer(m_BackGroundVertexBuffer);
 		m_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);

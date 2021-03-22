@@ -16,6 +16,7 @@ protected:
 	std::string m_FinalSource;
 	std::string m_AnnotatedSource;
 	std::string m_Header;
+	std::vector<std::string> m_IncludePath;
 	IOHookerPtr m_Hooker;
 
 	typedef std::unordered_set<std::string> IncludeFiles;

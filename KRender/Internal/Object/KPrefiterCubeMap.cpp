@@ -82,7 +82,6 @@ bool KPrefilerCubeMap::PopulateRenderCommand(KRenderCommand& command, uint32_t f
 		ConstantBlock constant;
 
 		// 参考 https://learnopengl.com/Advanced-OpenGL/Cubemaps 与 https://learnopengl.com/PBR/IBL/Diffuse-irradiance
-		// Y这里的处理有点特殊 需要翻转过来
 		switch (faceIndex)
 		{
 			// POSITIVE_X

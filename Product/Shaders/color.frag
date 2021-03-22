@@ -3,7 +3,7 @@ layout(early_fragment_tests) in;
 layout(location = 0) out vec4 outColor;
 
 #include "public.h"
-#include "shadow.h"
+#include "shadow/shadow.h"
 
 layout(location = 0) in vec4 inWorldPos;
 layout(location = 1) in vec4 inViewPos;

@@ -12,7 +12,7 @@ EXPORT_DLL IKSourceFilePtr GetSourceFile()
 KSourceFile::KSourceFile()
 	: m_Hooker(nullptr)
 {
-
+	m_IncludePath = { "" };
 }
 
 KSourceFile::~KSourceFile()
@@ -203,8 +203,24 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 						}
 
 						std::string includeFileData;
-						if(!Parse(includeFileData, dir, includeFile, pFileInfo))
-							return false;
+						// 尝试文件自身路径
+						if (!Parse(includeFileData, dir, includeFile, pFileInfo))
+						{
+							bool Success = false;
+							// 尝试额外include路径
+							for (const std::string& includePath : m_IncludePath)
+							{
+								if (includePath == dir) continue;
+								if (Parse(includeFileData, includePath, includeFile, pFileInfo))
+								{
+									Success = true;
+									break;
+								}
+							}
+							if (!Success)
+								return false;
+						}
+							
 						if(!includeFileData.empty())
 							curFileData += includeFileData;
 					}
