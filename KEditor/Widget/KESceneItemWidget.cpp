@@ -83,6 +83,9 @@ void KESceneItemModel::Add(KEEntityPtr entity)
 		}
 	}
 	m_Entities.insert(it, entity);
+
+	beginResetModel();
+	endResetModel();
 }
 
 void KESceneItemModel::Erase(KEEntityPtr entity)
@@ -95,6 +98,10 @@ void KESceneItemModel::Erase(KEEntityPtr entity)
 			m_Entities.erase(it);
 		}
 	}
+
+	// https://wiki.qt.io/How_to_use_QAbstractListModel
+	beginResetModel();
+	endResetModel();
 }
 
 void KESceneItemModel::Clear()
