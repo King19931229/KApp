@@ -390,6 +390,18 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexForma
 						}
 						pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT, sampler);
 					}
+					else if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE_IRRADIANCE)
+					{
+						pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetDiffuseIrradiance(), KRenderGlobal::CubeMap.GetDiffuseIrradianceSampler());
+					}
+					else if (shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR_IRRADIANCE)
+					{
+						pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetSpecularIrradiance(), KRenderGlobal::CubeMap.GetSpecularIrradianceSampler());
+					}
+					else if (shaderTexture.bindingIndex == SHADER_BINDING_INTEGRATE_BRDF)
+					{
+						pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetIntegrateBRDF(), KRenderGlobal::CubeMap.GetIntegrateBRDFSampler());
+					}
 				}
 			}
 		}

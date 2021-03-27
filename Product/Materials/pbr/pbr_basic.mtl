@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<material>
+    <blend>opaque</blend>
+    <vs>pbr/basic.vert</vs>
+    <fs>pbr/basic.frag</fs>
+    <vs_parameter/>
+    <fs_parameter>
+        <value name="attr" type="float" size="4">1 0 1 11</value>
+        <value name="lightPos" type="float" size="4">20 20 20 1</value>
+        <value name="albedo" type="float" size="4">1 1 1 1</value>
+        <value name="lightColor" type="float" size="4">1 1 1 0</value>
+    </fs_parameter>
+    <material_texture/>
+</material>

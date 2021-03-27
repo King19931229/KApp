@@ -330,7 +330,8 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 		float near = -sceneBoundInLight.GetMax().z;
 		float far = -sceneBoundInLight.GetMin().z;
 
-		if (far - near < 0.001f) far = near + 0.001f;
+		if (far - near < 5.f)
+			far = near + 5.f;
 
 		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, near, far);
 

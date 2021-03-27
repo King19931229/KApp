@@ -267,6 +267,7 @@ bool KVulkanPipeline::BindSampler(unsigned int location, const SamplerBindingInf
 
 bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler, bool dynimicWrite)
 {
+	ASSERT_RESULT(texture && sampler);
 	if (texture && sampler)
 	{
 		SamplerBindingInfo info;

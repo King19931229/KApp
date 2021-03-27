@@ -245,8 +245,11 @@ bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMateri
 			for (uint8_t i = 0; i < numSlot; ++i)
 			{
 				IKTexturePtr texture = textureBinding->GetTexture(i);
-				IKSamplerPtr sampler = textureBinding->GetSampler(i);			
-				command.pipeline->SetSampler(SHADER_BINDING_MATERIAL_BEGIN + i, texture, sampler, true);
+				IKSamplerPtr sampler = textureBinding->GetSampler(i);
+				if (texture && sampler)
+				{
+					command.pipeline->SetSampler(SHADER_BINDING_MATERIAL_BEGIN + i, texture, sampler, true);
+				}
 			}
 		}
 		return true;

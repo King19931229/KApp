@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<material>
-    <blend>opaque</blend>
-    <vs>PBR/filter.vert</vs>
-    <fs>PBR/filter.frag</fs>
-    <vs_parameter/>
-    <fs_parameter/>
-    <material_texture/>
-</material>

@@ -19,6 +19,7 @@ protected:
 		glm::vec4 up;
 		glm::vec4 right;
 		glm::vec4 center;
+		glm::vec4 roughness;
 	};
 
 	KMaterialTextureBinding m_TextureBinding;
@@ -28,7 +29,9 @@ protected:
 		IKRenderPassPtr	pass;
 	};
 	std::vector<MipmapTarget> m_MipmapTargets;
-	IKPipelinePtr m_Pipeline;
+	IKPipelinePtr m_DiffuseIrradiancePipeline;
+	IKPipelinePtr m_SpecularIrradiancePipeline;
+	IKPipelinePtr m_IntegrateBRDFPipeline;
 	IKCommandBufferPtr m_CommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
@@ -41,18 +44,31 @@ protected:
 	IKVertexBufferPtr m_SharedVertexBuffer;
 	IKIndexBufferPtr m_SharedIndexBuffer;
 
-	IKMaterialPtr m_Material;
+	IKMaterialPtr m_DiffuseIrradianceMaterial;
+	IKMaterialPtr m_SpecularIrradianceMaterial;
+	IKMaterialPtr m_IntegrateBRDFMaterial;
 
-	// CubeMap
+	// Texture
 	IKTexturePtr m_SrcCubeMap;
-	IKTexturePtr m_CubeMap;
-	IKSamplerPtr m_CubeSampler;
+	IKSamplerPtr m_SrcCubeSampler;
 
-	bool PopulateRenderCommand(KRenderCommand& command, uint32_t faceIndex, IKPipelinePtr pipeline, IKRenderPassPtr renderPass);
+	IKTexturePtr m_DiffuseIrradianceMap;
+	IKSamplerPtr m_DiffuseIrradianceSampler;
+
+	IKTexturePtr m_SpecularIrradianceMap;
+	IKSamplerPtr m_SpecularIrradianceSampler;
+
+	IKRenderTargetPtr m_IntegrateBRDFTarget;
+	IKRenderPassPtr m_IntegrateBRDFPass;
+	IKSamplerPtr m_IntegrateBRDFSampler;
+
+	bool PopulateCubeMapRenderCommand(KRenderCommand& command, uint32_t faceIndex, float roughtness, IKPipelinePtr pipeline, IKRenderPassPtr renderPass);
 	bool AllocateTempResource(IKRenderDevice* renderDevice,
 		uint32_t width, uint32_t height,
 		size_t mipmaps,
-		const char* materialPath);
+		const char* diffuseIrradiance,
+		const char* specularIrradiance,
+		const char* integrateBRDF);
 	bool FreeTempResource();
 	bool Draw();
 public:
@@ -63,8 +79,17 @@ public:
 		size_t frameInFlight,
 		uint32_t width, uint32_t height,
 		size_t mipmaps,
-		const char* materialPath);
+		const char* cubemapPath,
+		const char* diffuseIrradiance,
+		const char* specularIrradiance,
+		const char* integrateBRDF);
 	bool UnInit();
 
-	IKTexturePtr GetCubeMap() { return m_CubeMap; }
+	IKTexturePtr GetDiffuseIrradiance() { return m_DiffuseIrradianceMap; }
+	IKTexturePtr GetSpecularIrradiance() { return m_SpecularIrradianceMap; }
+	IKRenderTargetPtr GetIntegrateBRDF() { return m_IntegrateBRDFTarget; }
+
+	IKSamplerPtr GetDiffuseIrradianceSampler() { return m_DiffuseIrradianceSampler; }
+	IKSamplerPtr GetSpecularIrradianceSampler() { return m_SpecularIrradianceSampler; }
+	IKSamplerPtr GetIntegrateBRDFSampler() { return m_IntegrateBRDFSampler; }
 };

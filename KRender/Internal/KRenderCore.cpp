@@ -107,7 +107,12 @@ bool KRenderCore::InitGlobalManager()
 
 	KRenderGlobal::FrameGraph.Init(m_Device);
 
-	KRenderGlobal::CubeMap.Init(m_Device, frameInFlight, 128, 128, 8, "Materials/Test.mtl");
+	KRenderGlobal::CubeMap.Init(m_Device, frameInFlight, 128, 128, 8,
+		"Textures/uffizi_cube.ktx",
+		"Materials/pbr/diffuse_irradiance.mtl",
+		"Materials/pbr/specular_irradiance.mtl",
+		"Materials/pbr/integrate_brdf.mtl"
+	);
 	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
 
 	KRenderGlobal::OcclusionBox.Init(m_Device, frameInFlight);

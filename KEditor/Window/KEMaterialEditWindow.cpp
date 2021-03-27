@@ -323,6 +323,7 @@ bool KEMaterialEditWindow::OnReload()
 		m_PropertyWidget->UnInit();
 		material->Reload();
 		m_PropertyWidget->Init(material.get());
+		renderComponent->ReloadMaterial();
 		return true;
 	}
 	return false;
