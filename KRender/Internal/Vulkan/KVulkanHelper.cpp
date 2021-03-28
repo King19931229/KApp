@@ -167,6 +167,9 @@ namespace KVulkanHelper
 		case AM_CLAMP_TO_BORDER:
 			vkAddressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
 			return true;
+		case AM_CLAMP_TO_EDGE:
+			vkAddressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			return true;
 		case AM_UNKNOWN:
 		default:
 			vkAddressMode = VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;

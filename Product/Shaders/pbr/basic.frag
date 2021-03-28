@@ -16,7 +16,7 @@ uniform Shading
 	vec4 lightPos;
 	vec4 lightColor;
 	vec4 albedo;
-	// metallic,roughness,ao
+	// metallic,roughness,ao,mipmap
 	vec4 attr;
 }shading;
 
@@ -59,11 +59,11 @@ void main()
 	kD *= 1.0 - metallic;
 
 	// IBL
-	vec3 irradiance = texture(diffuseIrradiance, CUBEMAP_UVW(N)).rgb;
+	vec3 irradiance = TextureCubeFixed(diffuseIrradiance, CUBEMAP_UVW(N)).rgb;
 	vec3 diffuse    = irradiance * albedo;
 
 	vec3 prefilteredColor = textureLod(specularIrradiance, CUBEMAP_UVW(R), roughness * MAX_REFLECTION_LOD).rgb;   
-	vec2 envBRDF  = texture(integrateBRDF, vec2(max(dot(N, V), 0.0), roughness)).rg;
+	vec2 envBRDF  = texture(integrateBRDF, vec2(min(max(dot(N, V), 0.0), 1.0), roughness)).rg;
 	vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
   
 	vec3 ambient = (kD * diffuse + specular) * ao;

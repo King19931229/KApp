@@ -409,7 +409,7 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 		m_ShadowSizeRatio = shadowSizeRatio;
 
 		renderDevice->CreateSampler(m_ShadowSampler);
-		m_ShadowSampler->SetAddressMode(AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER);
+		m_ShadowSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 		m_ShadowSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 		m_ShadowSampler->Init(0, 0);
 

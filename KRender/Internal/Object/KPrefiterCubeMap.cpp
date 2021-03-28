@@ -58,12 +58,12 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 
 	renderDevice->CreateSampler(m_DiffuseIrradianceSampler);
 	m_DiffuseIrradianceSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_DiffuseIrradianceSampler->SetAddressMode(AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER);
+	m_DiffuseIrradianceSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 	m_DiffuseIrradianceSampler->Init(m_DiffuseIrradianceMap, false);
 
 	renderDevice->CreateSampler(m_SpecularIrradianceSampler);
 	m_SpecularIrradianceSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_SpecularIrradianceSampler->SetAddressMode(AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER);
+	m_SpecularIrradianceSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 	m_SpecularIrradianceSampler->Init(m_SpecularIrradianceMap, false);
 
 	renderDevice->CreateTexture(m_SrcCubeMap);
@@ -72,7 +72,7 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 
 	renderDevice->CreateSampler(m_SrcCubeSampler);
 	m_SrcCubeSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_SrcCubeSampler->SetAddressMode(AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER, AM_CLAMP_TO_BORDER);
+	m_SrcCubeSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 	m_SrcCubeSampler->Init(m_SrcCubeMap, false);
 
 	renderDevice->CreateRenderTarget(m_IntegrateBRDFTarget);
@@ -83,6 +83,7 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 	m_IntegrateBRDFPass->Init();
 	renderDevice->CreateSampler(m_IntegrateBRDFSampler);
 	m_IntegrateBRDFSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
+	m_IntegrateBRDFSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 	m_IntegrateBRDFSampler->Init(0, 0);
 
 	AllocateTempResource(renderDevice, width, height, mipmaps,

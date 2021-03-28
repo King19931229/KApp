@@ -21,7 +21,7 @@ uniform Object
 void main() 
 {
 	outUV = (inPos + vec2(1.0, 1.0)) * 0.5;
-	outPos = (object.center + object.right * inPos.x + object.up *inPos.y).xyz;
+	outPos = normalize((object.center + object.right * inPos.x + object.up * inPos.y).xyz);
 	roughness = object.roughness.x;
 	gl_Position = vec4(inPos, 0.0, 1.0);
 }

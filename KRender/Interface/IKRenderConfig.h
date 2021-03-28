@@ -228,6 +228,7 @@ enum TextureType
 enum AddressMode
 {
 	AM_REPEAT,
+	AM_CLAMP_TO_EDGE,
 	AM_CLAMP_TO_BORDER,
 
 	AM_UNKNOWN,
