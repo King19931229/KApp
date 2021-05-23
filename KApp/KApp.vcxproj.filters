@@ -9,5 +9,6 @@
     <ClCompile Include="KJsonTest.cpp" />
     <ClCompile Include="KXMLTest.cpp" />
     <ClCompile Include="KReflectionTest.cpp" />
+    <ClCompile Include="KCodecTest.cpp" />
   </ItemGroup>
 </Project>

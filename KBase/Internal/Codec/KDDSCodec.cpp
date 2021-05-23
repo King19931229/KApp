@@ -1020,6 +1020,11 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 	return true;
 }
 
+bool KDDSCodec::Save(const KCodecResult& source, const char* pszFile)
+{
+	return false;
+}
+
 void KDDSCodec::FlipEndian(void *pData, size_t size, size_t count) const
 {
 #if NEED_FLIP_ENDIAN

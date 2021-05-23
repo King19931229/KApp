@@ -36,6 +36,7 @@ typedef std::shared_ptr<IKCodec> IKCodecPtr;
 struct IKCodec
 {
 	virtual bool Codec(const char* pszFile, bool forceAlpha, KCodecResult& result) = 0;
+	virtual bool Save(const KCodecResult& source, const char* pszFile) = 0;
 };
 
 namespace KCodec

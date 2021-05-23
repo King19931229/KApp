@@ -30,6 +30,7 @@ public:
 	void UnpackDXTAlpha(const DXTInterpolatedAlphaBlock &block, ColourValue *pCol) const;
 
 	virtual bool Codec(const char* pszFile, bool forceAlpha, KCodecResult& result);
+	virtual bool Save(const KCodecResult& source, const char* pszFile);
 
 	static bool Init();
 	static bool UnInit();

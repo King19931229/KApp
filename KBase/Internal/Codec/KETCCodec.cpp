@@ -329,6 +329,11 @@ bool KETCCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 	return false;
 }
 
+bool KETCCodec::Save(const KCodecResult& source, const char* pszFile)
+{
+	return false;
+}
+
 bool KETCCodec::Init()
 {
 	IKCodecPtr pCodec = IKCodecPtr(KNEW KETCCodec());

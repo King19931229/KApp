@@ -2,6 +2,8 @@
 #include "FreeImage.h"
 #include "Interface/IKDataStream.h"
 #include "Interface/IKFileSystem.h"
+#include "Publish/KStringUtil.h"
+#include "Publish/KFileTool.h"
 
 // KFreeImageCodec
 KFreeImageCodec::SupportExt KFreeImageCodec::ms_SupportExts;
@@ -155,6 +157,60 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 		result.pData->GetSubImageInfo().push_back(subImageInfo);
 	}
 
+	return bSuccess;
+}
+
+static FREE_IMAGE_FORMAT ExtToFreeImageFormat(const char* pszExt)
+{
+	if (strcmp(pszExt, "png") == 0) return FIF_PNG;
+	if (strcmp(pszExt, "jpeg") == 0) return FIF_JPEG;
+	if (strcmp(pszExt, "tga") == 0) return FIF_TARGA;
+	return FIF_UNKNOWN;
+}
+
+bool KFreeImageCodec::Save(const KCodecResult& source, const char* pszFile)
+{
+	bool bSuccess = false;
+
+	std::string name, ext;
+
+	ASSERT_RESULT(pszFile && KFileTool::SplitExt(pszFile, name, ext));
+	ASSERT_RESULT(KStringUtil::Lower(ext, ext));
+
+	if (ext.length() && ext[0] == '.')
+		ext = ext.substr(1);
+
+	FREE_IMAGE_FORMAT fif = ExtToFreeImageFormat(ext.c_str());
+
+	if (source.eFormat == IF_R8G8B8A8 && fif != FIF_UNKNOWN && ms_SupportExts.find(ext) != ms_SupportExts.end())
+	{
+		size_t byteSize = 0;
+		ASSERT_RESULT(KImageHelper::GetElementByteSize(source.eFormat, byteSize));
+		BYTE* bits = source.pData->GetData();
+
+		int bpp = (int)byteSize * 8;
+		int width = (int)source.uWidth;
+		int height = (int)source.uHeight;
+		int pitch = width * (int)byteSize;
+
+		FIBITMAP* dib = FreeImage_ConvertFromRawBits(bits, width, height, pitch, bpp, 0, 0, 0);
+		FIMEMORY* foMem = FreeImage_OpenMemory();
+
+		if (FreeImage_SaveToMemory(fif, dib, foMem))
+		{
+			BYTE* writeData = NULL;
+			DWORD writeSize = 0;
+			FreeImage_AcquireMemory(foMem, &writeData, &writeSize);
+			IKDataStreamPtr stream = GetDataStream(IT_FILEHANDLE);
+			stream->Open(pszFile, IM_WRITE);
+			stream->Write(writeData, writeSize);
+			stream->Close();
+			bSuccess = true;
+		}
+
+		FreeImage_Unload(dib);
+		FreeImage_CloseMemory(foMem);
+	}
 	return bSuccess;
 }
 
