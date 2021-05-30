@@ -13,7 +13,7 @@ int main()
 	sys->Init();
 	KFileSystem::Manager->SetFileSystem(FSD_RESOURCE, sys);
 
-	IKCodecPtr codec = KCodec::GetCodec("C:/Users/Admin/Desktop/source.png");
+	IKCodecPtr codec = KCodec::GetCodec("C:/Users/Admin/Desktop/source2.png");
 	KCodecResult input;
 	if (codec->Codec("C:/Users/Admin/Desktop/source.png", true, input))
 	{
@@ -59,7 +59,7 @@ int main()
 			memset(distanceMap[i], 0, sizeof(int) * output.uHeight);
 		}
 
-		int maxSearchDis = 64;
+		int maxSearchDis = 32;
 
 		int maxValue = std::numeric_limits<int>::min();
 		int minValue = std::numeric_limits<int>::max();
@@ -72,7 +72,7 @@ int main()
 				int sy = dy * grap;
 
 				SampleRes refSample = Sample(sx, sy);
-				int ref = refSample.r + refSample.g + refSample.b;
+				int ref = (refSample.r + refSample.g + refSample.b) == 765 ? 1 : 0;
 
 				int startX = (sx >= maxSearchDis) ? (sx - maxSearchDis) : 0;
 				int startY = (sy >= maxSearchDis) ? (sy - maxSearchDis) : 0;
@@ -89,7 +89,7 @@ int main()
 						int curDistance = (x - sx) * (x - sx) + (y - sy) * (y - sy);
 						if (curDistance > distance) continue;
 						SampleRes sample = Sample(x, y);
-						int val = sample.r + sample.g + sample.b;
+						int val = (sample.r + sample.g + sample.b) == 765 ? 1 : 0;
 						if (ref != val)
 						{
 							distance = curDistance;
@@ -111,23 +111,25 @@ int main()
 		}
 
 		size_t destPitch = elementSize * output.uWidth;
-		auto Write = [destImage, destPitch, elementSize](size_t x, size_t y, unsigned char val)
+		auto Write = [destImage, destPitch, elementSize](size_t x, size_t y, int val)
 		{
-			unsigned char* data = (unsigned char*)((size_t)destImage + y * destPitch + x * elementSize);			
-			data[0] = data[1] = data[2] = val;
+			unsigned char cVal = (int)std::max(0, std::min(val, 255));
+			unsigned char* data = (unsigned char*)((size_t)destImage + y * destPitch + x * elementSize);
+			data[0] = data[1] = data[2] = cVal;
 			data[3] = 255;
 		};
 
 		minValue = -(int)sqrt(-minValue);
 		maxValue = (int)sqrt(maxValue);
 
+		const int e = -1;
+
 		for (int dx = 0; dx < (int)output.uWidth; ++dx)
 		{
 			for (int dy = 0; dy < (int)output.uHeight; ++dy)
 			{
 				distanceMap[dx][dy] = (distanceMap[dx][dy] > 0) ? (int)sqrt(distanceMap[dx][dy]) : -(int)sqrt(-distanceMap[dx][dy]);
-				distanceMap[dx][dy] -= minValue;
-				unsigned char val = distanceMap[dx][dy] * 255 / (maxValue - minValue);
+				int val = (2 * distanceMap[dx][dy] - 2 * e + maxValue - minValue) * 255 / (2 * (maxValue - minValue));
 				Write(dx, dy, val);
 			}
 		}
@@ -138,7 +140,7 @@ int main()
 		}
 		KDELETE[] distanceMap;
 
-		codec->Save(output, "C:/Users/Admin/Desktop/sdf.png");
+		codec->Save(output, "C:/Users/Admin/Desktop/SDF/textures/sdf.png");
 	}
 
 	sys->UnInit();
