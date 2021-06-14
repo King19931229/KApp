@@ -25,14 +25,14 @@ namespace KVulkanInitializer
 		uint32_t dstMipLevel;
 	};
 
-	struct VulkanASHandle
+	struct AccelerationStructureHandle
 	{
 		KVulkanHeapAllocator::AllocInfo allocInfo;
 		VkAccelerationStructureKHR handle;
 		VkDeviceAddress deviceAddress;
 		VkBuffer buffer;
 
-		VulkanASHandle()
+		AccelerationStructureHandle()
 		{
 			handle = VK_NULL_HANDEL;
 			deviceAddress = VK_NULL_HANDEL;
@@ -75,7 +75,8 @@ namespace KVulkanInitializer
 		uint32_t layerCount,
 		VkImageView& vkImageView);
 
-	void CreateVkAccelerationStructure(VkAccelerationStructureTypeKHR type, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo, VulkanASHandle& accelerationStructure);
+	void CreateVkAccelerationStructure(VkAccelerationStructureTypeKHR type, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo, AccelerationStructureHandle& accelerationStructure);
+	void BuildVkAccelerationStructure(VkAccelerationStructureGeometryKHR accelerationStructureGeometry, VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo, uint32_t numTriangles, AccelerationStructureHandle& accelerationStructure);
 
 	VkCommandBufferAllocateInfo CommandBufferAllocateInfo(VkCommandPool pool);
 

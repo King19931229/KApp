@@ -63,6 +63,7 @@ bool KVulkanAccelerationStructure::Init(VertexFormat format, IKVertexBufferPtr v
 			&accelerationStructureBuildSizesInfo);
 
 		KVulkanInitializer::CreateVkAccelerationStructure(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR, accelerationStructureBuildSizesInfo, m_BottomUpAS);
+		KVulkanInitializer::BuildVkAccelerationStructure(accelerationStructureGeometry, accelerationStructureBuildSizesInfo, numTriangles, m_BottomUpAS);
 
 		return true;
 	}
@@ -72,5 +73,13 @@ bool KVulkanAccelerationStructure::Init(VertexFormat format, IKVertexBufferPtr v
 
 bool KVulkanAccelerationStructure::UnInit()
 {
+	if (m_BottomUpAS.handle)
+	{
+		vkDestroyBuffer(KVulkanGlobal::device, m_BottomUpAS.buffer, nullptr);
+		m_BottomUpAS.buffer = VK_NULL_HANDEL;
+		KVulkanGlobal::vkDestroyAccelerationStructureKHR(KVulkanGlobal::device, m_BottomUpAS.handle, nullptr);
+		m_BottomUpAS.handle = VK_NULL_HANDEL;
+		KVulkanHeapAllocator::Free(m_BottomUpAS.allocInfo);
+	}
 	return true;
 }

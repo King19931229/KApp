@@ -6,7 +6,7 @@
 class KVulkanAccelerationStructure : public IKAccelerationStructure
 {
 protected:
-	KVulkanInitializer::VulkanASHandle m_BottomUpAS;
+	KVulkanInitializer::AccelerationStructureHandle m_BottomUpAS;
 public:
 	KVulkanAccelerationStructure();
 	~KVulkanAccelerationStructure();
