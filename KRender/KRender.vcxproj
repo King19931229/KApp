@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Interface\IKAccelerationStructure.h" />
     <ClInclude Include="Interface\IKCameraController.h" />
     <ClInclude Include="Interface\IKCommandBuffer.h" />
     <ClInclude Include="Interface\IKFrameBuffer.h" />
@@ -112,6 +113,7 @@
     <ClInclude Include="Internal\Scene\KSceneManagerBase.h" />
     <ClInclude Include="Internal\Shadow\KCascadedShadowMap.h" />
     <ClInclude Include="Internal\Shadow\KShadowMap.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanAccelerationStructure.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanConfig.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanDescripiorPool.h" />
@@ -203,6 +205,7 @@
     <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
     <ClCompile Include="Internal\Shadow\KCascadedShadowMap.cpp" />
     <ClCompile Include="Internal\Shadow\KShadowMap.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanAccelerationStructure.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanCommandBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanDescriptorPool.cpp" />

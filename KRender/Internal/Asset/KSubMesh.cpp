@@ -2,14 +2,17 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKPipeline.h"
 #include "Interface/IKSampler.h"
+#include "Internal/KRenderGlobal.h"
 
 KSubMesh::KSubMesh(KMesh* parent)
 	: m_pParent(parent),
 	m_pMaterial(nullptr),
 	m_DebugPrimitive(DEBUG_PRIMITIVE_TRIANGLE),
 	m_pVertexData(nullptr),
+	m_AccelerationStructure(nullptr),
 	m_FrameInFlight(0),
-	m_IndexDraw(true)
+	m_IndexDraw(true),
+	m_NeedAccelerationStructure(true)
 {
 }
 
@@ -27,6 +30,11 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	m_FrameInFlight = frameInFlight;
 	m_Texture = std::move(binding);
 	m_IndexDraw = true;
+
+	if (m_NeedAccelerationStructure)
+	{
+		CreateAccelerationStructure();
+	}
 
 	return true;
 }
@@ -60,6 +68,29 @@ bool KSubMesh::UnInit()
 	m_IndexData.Destroy();
 	m_FrameInFlight = 0;
 	m_Texture.Clear();
+	SAFE_UNINIT(m_AccelerationStructure);
+
+	return true;
+}
+
+bool KSubMesh::CreateAccelerationStructure()
+{
+	m_NeedAccelerationStructure = true;
+	if (m_AccelerationStructure)
+		return true;
+
+	KRenderGlobal::RenderDevice->CreateAccelerationStructure(m_AccelerationStructure);
+	m_AccelerationStructure->Init(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer);
+
+	return true;
+}
+
+bool KSubMesh::DestroyAccelerationStructure()
+{
+	m_NeedAccelerationStructure = false;
+	if (!m_AccelerationStructure)
+		return true;
+	SAFE_UNINIT(m_AccelerationStructure);
 
 	return true;
 }

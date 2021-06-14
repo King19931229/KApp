@@ -417,6 +417,12 @@
     <ClInclude Include="Internal\Object\KPrefiterCubeMap.h">
       <Filter>Internal\Object</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKAccelerationStructure.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanAccelerationStructure.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -676,6 +682,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Object\KPrefiterCubeMap.cpp">
       <Filter>Internal\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanAccelerationStructure.cpp">
+      <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

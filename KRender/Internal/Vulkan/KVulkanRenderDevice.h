@@ -101,6 +101,8 @@ protected:
 	bool CheckExtentionsSupported(PhysicalDevice& device);
 	PhysicalDevice GetPhysicalDeviceProperty(VkPhysicalDevice device);
 
+	void* GetEnabledFeatures();
+
 	bool CreateUIOverlay(IKUIOverlayPtr& ui);
 
 	bool PickPhysicsDevice();
@@ -144,6 +146,8 @@ public:
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer);
 	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer);
 	virtual bool CreateUniformBuffer(IKUniformBufferPtr& buffer);
+
+	virtual bool CreateAccelerationStructure(IKAccelerationStructurePtr& as);
 
 	virtual bool CreateTexture(IKTexturePtr& texture);
 	virtual bool CreateSampler(IKSamplerPtr& sampler);

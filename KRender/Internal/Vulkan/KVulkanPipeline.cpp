@@ -936,6 +936,8 @@ bool KVulkanPipelineHandle::UnInit()
 {
 	if (m_GraphicsPipeline != VK_NULL_HANDLE)
 	{
+		// Cannot call vkDestroyPipeline on VkPipeline  that is currently in use by a command buffer
+		vkDeviceWaitIdle(KVulkanGlobal::device);
 		vkDestroyPipeline(KVulkanGlobal::device, m_GraphicsPipeline, nullptr);
 		m_GraphicsPipeline = VK_NULL_HANDLE;
 	}

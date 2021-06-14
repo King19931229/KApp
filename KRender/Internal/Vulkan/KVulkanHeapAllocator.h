@@ -9,6 +9,13 @@ namespace KVulkanHeapAllocator
 		VkDeviceSize vkOffset;
 		// 内部释放使用 不要修改其内容
 		void* internalData;
+
+		AllocInfo()
+		{
+			vkMemroy = VK_NULL_HANDEL;
+			vkOffset = 0;
+			internalData = nullptr;
+		}
 	};
 
 	bool Init();

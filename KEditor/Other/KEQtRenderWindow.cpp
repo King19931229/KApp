@@ -40,9 +40,9 @@ bool KEQtRenderWindow::Init(void* hwnd, bool primary)
 	m_bPrimary = primary;
 	if (m_Device && m_bPrimary)
 	{
-		m_Device->Init(this);
+		return m_Device->Init(this);
 	}
-	return true;
+	return m_Device != nullptr;
 }
 
 bool KEQtRenderWindow::UnInit()

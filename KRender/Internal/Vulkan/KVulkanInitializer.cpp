@@ -140,6 +140,49 @@ namespace KVulkanInitializer
 		VK_ASSERT_RESULT(vkCreateImageView(KVulkanGlobal::device, &createInfo, nullptr, &vkImageView));
 	}
 
+	void CreateVkAccelerationStructure(VkAccelerationStructureTypeKHR type, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo, VulkanASHandle& accelerationStructure)
+	{
+		// Buffer and memory
+		VkBufferCreateInfo bufferCreateInfo = {};
+		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferCreateInfo.size = buildSizeInfo.accelerationStructureSize;
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferCreateInfo, nullptr, &accelerationStructure.buffer));
+
+		VkMemoryRequirements memoryRequirements = {};
+		vkGetBufferMemoryRequirements(KVulkanGlobal::device, accelerationStructure.buffer, &memoryRequirements);
+
+		VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		uint32_t memoryTypeIndex = 0;
+
+		ASSERT_RESULT(KVulkanHelper::FindMemoryType(
+			KVulkanGlobal::physicalDevice,
+			memoryRequirements.memoryTypeBits,
+			properties,
+			memoryTypeIndex));
+
+		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment,
+			memoryTypeIndex, properties, accelerationStructure.allocInfo));
+
+		VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, accelerationStructure.buffer,
+			accelerationStructure.allocInfo.vkMemroy,
+			accelerationStructure.allocInfo.vkOffset));
+
+		// Acceleration structure
+		VkAccelerationStructureCreateInfoKHR accelerationStructureCreate_info = {};
+		accelerationStructureCreate_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+		accelerationStructureCreate_info.buffer = accelerationStructure.buffer;
+		accelerationStructureCreate_info.size = buildSizeInfo.accelerationStructureSize;
+		accelerationStructureCreate_info.type = type;
+		KVulkanGlobal::vkCreateAccelerationStructureKHR(KVulkanGlobal::device, &accelerationStructureCreate_info, nullptr, &accelerationStructure.handle);
+
+		// AS device address
+		VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
+		accelerationDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+		accelerationDeviceAddressInfo.accelerationStructure = accelerationStructure.handle;
+		accelerationStructure.deviceAddress = KVulkanGlobal::vkGetAccelerationStructureDeviceAddressKHR(KVulkanGlobal::device, &accelerationDeviceAddressInfo);
+	}
+
 	VkCommandBufferAllocateInfo CommandBufferAllocateInfo(VkCommandPool pool)
 	{
 		VkCommandBufferAllocateInfo allocInfo = {};

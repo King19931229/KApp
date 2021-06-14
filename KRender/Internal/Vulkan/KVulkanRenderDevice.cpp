@@ -2,6 +2,7 @@
 
 #include "KVulkanShader.h"
 #include "KVulkanBuffer.h"
+#include "KVulkanAccelerationStructure.h"
 #include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
 #include "KVulkanRenderTarget.h"
@@ -22,9 +23,27 @@
 #include <assert.h>
 
 //-------------------- Extensions --------------------//
+
+
+// Ray tracing related extensions
+
 const char* DEVICE_EXTENSIONS[] =
 {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifdef _WIN32
+	// Ray tracing related extensions
+	VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+	VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+	VK_KHR_RAY_QUERY_EXTENSION_NAME,
+	// Required by VK_KHR_acceleration_structure
+	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+	VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+	// Required for VK_KHR_ray_tracing_pipeline
+	VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+	// Required by VK_KHR_spirv_1_4
+	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+#endif
 };
 #define DEVICE_EXTENSIONS_COUNT (sizeof(DEVICE_EXTENSIONS) / sizeof(const char*))
 
@@ -350,6 +369,27 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 	return false;
 }
 
+void* KVulkanRenderDevice::GetEnabledFeatures()
+{
+	static VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddresFeatures = {};
+	static VkPhysicalDeviceRayTracingPipelineFeaturesKHR enabledRayTracingPipelineFeatures = {};
+	static VkPhysicalDeviceAccelerationStructureFeaturesKHR enabledAccelerationStructureFeatures = {};
+
+	// Enable features required for ray tracing using feature chaining via pNext
+	enabledBufferDeviceAddresFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+	enabledBufferDeviceAddresFeatures.bufferDeviceAddress = VK_TRUE;
+
+	enabledRayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+	enabledRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
+	enabledRayTracingPipelineFeatures.pNext = &enabledBufferDeviceAddresFeatures;
+
+	enabledAccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+	enabledAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
+	enabledAccelerationStructureFeatures.pNext = &enabledRayTracingPipelineFeatures;
+
+	return &enabledAccelerationStructureFeatures;
+}
+
 bool KVulkanRenderDevice::CreateLogicalDevice()
 {
 	const QueueFamilyIndices& indices = m_PhysicalDevice.queueFamilyIndices;
@@ -577,6 +617,19 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		createInfo.pEnabledFeatures = &deviceFeatures;
 
+		VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = {};
+
+		void* pNextChain = GetEnabledFeatures();
+		// If a pNext(Chain) has been passed, we need to add it to the device creation info
+		if (pNextChain)
+		{
+			physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+			physicalDeviceFeatures2.features = deviceFeatures;
+			physicalDeviceFeatures2.pNext = pNextChain;
+			createInfo.pEnabledFeatures = nullptr;
+			createInfo.pNext = &physicalDeviceFeatures2;
+		}
+
 		// 尽管最新Vulkan实例验证层与设备验证层已经统一
 		// 但是最好保留代码兼容性
 		if (m_EnableValidationLayer && m_ValidationLayerIdx >= 0)
@@ -753,10 +806,10 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	// 描述实例
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = "KVulkan";
-	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+	appInfo.applicationVersion = VK_MAKE_VERSION(1, 1, 0);
 	appInfo.pEngineName = "KVulkanEngine";
-	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.apiVersion = VK_API_VERSION_1_0;
+	appInfo.engineVersion = VK_MAKE_VERSION(1, 1, 0);
+	appInfo.apiVersion = VK_API_VERSION_1_1;
 
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -943,6 +996,18 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 
 	KVulkanGlobal::graphicsFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
 
+	// Function pointers for ray tracing related stuff
+	KVulkanGlobal::vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(m_Device, "vkGetBufferDeviceAddressKHR"));
+	KVulkanGlobal::vkCmdBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(m_Device, "vkCmdBuildAccelerationStructuresKHR"));
+	KVulkanGlobal::vkBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(m_Device, "vkBuildAccelerationStructuresKHR"));
+	KVulkanGlobal::vkCreateAccelerationStructureKHR = reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(vkGetDeviceProcAddr(m_Device, "vkCreateAccelerationStructureKHR"));
+	KVulkanGlobal::vkDestroyAccelerationStructureKHR = reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(vkGetDeviceProcAddr(m_Device, "vkDestroyAccelerationStructureKHR"));
+	KVulkanGlobal::vkGetAccelerationStructureBuildSizesKHR = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(vkGetDeviceProcAddr(m_Device, "vkGetAccelerationStructureBuildSizesKHR"));
+	KVulkanGlobal::vkGetAccelerationStructureDeviceAddressKHR = reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(vkGetDeviceProcAddr(m_Device, "vkGetAccelerationStructureDeviceAddressKHR"));
+	KVulkanGlobal::vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(m_Device, "vkCmdTraceRaysKHR"));
+	KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(vkGetDeviceProcAddr(m_Device, "vkGetRayTracingShaderGroupHandlesKHR"));
+	KVulkanGlobal::vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(m_Device, "vkCreateRayTracingPipelinesKHR"));
+
 	KVulkanGlobal::deviceReady = true;
 
 	return true;
@@ -958,6 +1023,17 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 	KVulkanGlobal::graphicsCommandPool = VK_NULL_HANDLE;
 	KVulkanGlobal::graphicsQueue = VK_NULL_HANDLE;
 	KVulkanGlobal::pipelineCache = VK_NULL_HANDLE;
+
+	KVulkanGlobal::vkGetBufferDeviceAddressKHR = VK_NULL_HANDLE;
+	KVulkanGlobal::vkCreateAccelerationStructureKHR = VK_NULL_HANDLE;
+	KVulkanGlobal::vkDestroyAccelerationStructureKHR = VK_NULL_HANDLE;
+	KVulkanGlobal::vkGetAccelerationStructureBuildSizesKHR = VK_NULL_HANDLE;
+	KVulkanGlobal::vkGetAccelerationStructureDeviceAddressKHR = VK_NULL_HANDLE;
+	KVulkanGlobal::vkBuildAccelerationStructuresKHR = VK_NULL_HANDLE;
+	KVulkanGlobal::vkCmdBuildAccelerationStructuresKHR = VK_NULL_HANDLE;
+	KVulkanGlobal::vkCmdTraceRaysKHR = VK_NULL_HANDLE;
+	KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR = VK_NULL_HANDLE;
+	KVulkanGlobal::vkCreateRayTracingPipelinesKHR = VK_NULL_HANDLE;
 
 	KVulkanGlobal::graphicsFamilyIndex = 0;
 
@@ -985,6 +1061,12 @@ bool KVulkanRenderDevice::CreateIndexBuffer(IKIndexBufferPtr& buffer)
 bool KVulkanRenderDevice::CreateUniformBuffer(IKUniformBufferPtr& buffer)
 {
 	buffer = IKUniformBufferPtr(static_cast<IKUniformBuffer*>(KNEW KVulkanUniformBuffer()));
+	return true;
+}
+
+bool KVulkanRenderDevice::CreateAccelerationStructure(IKAccelerationStructurePtr& as)
+{
+	as = IKAccelerationStructurePtr(static_cast<IKAccelerationStructure*>(KNEW KVulkanAccelerationStructure()));
 	return true;
 }
 

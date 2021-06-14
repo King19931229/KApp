@@ -225,13 +225,13 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 		switch (windowInfo.type)
 		{
 		case KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT:
-			m_Window->Init(windowInfo.top, windowInfo.left, windowInfo.width, windowInfo.height, windowInfo.resizable, true);
+			ASSERT_RESULT(m_Window->Init(windowInfo.top, windowInfo.left, windowInfo.width, windowInfo.height, windowInfo.resizable, true));
 			break;
 		case KEngineOptions::WindowInitializeInformation::TYPE_ANDROID:
-			m_Window->Init(windowInfo.app);
+			ASSERT_RESULT(m_Window->Init(windowInfo.app));
 			break;
 		case KEngineOptions::WindowInitializeInformation::TYPE_EDITOR:
-			m_Window->Init(windowInfo.hwnd, true);
+			ASSERT_RESULT(m_Window->Init(windowInfo.hwnd, true));
 			break;
 		default:
 			assert(false && "should not reach");

@@ -404,6 +404,9 @@ typedef std::shared_ptr<IKShader> IKShaderPtr;
 struct IKVertexBuffer;
 typedef std::shared_ptr<IKVertexBuffer> IKVertexBufferPtr;
 
+struct IKAccelerationStructure;
+typedef std::shared_ptr<IKAccelerationStructure> IKAccelerationStructurePtr;
+
 struct IKIndexBuffer;
 typedef std::shared_ptr<IKIndexBuffer> IKIndexBufferPtr;
 

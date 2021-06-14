@@ -105,7 +105,7 @@ void KMesh::UpdateTriangleMesh()
 					const KIndexData& indexData = subMesh->m_IndexData;
 					IKIndexBufferPtr indexBuffer = indexData.indexBuffer;
 
-					assert(indexBuffer->GetIndexCount() % 3 == 0);
+					ASSERT_RESULT(indexBuffer->GetIndexCount() % 3 == 0);
 
 					std::vector<uint32_t> indices;
 

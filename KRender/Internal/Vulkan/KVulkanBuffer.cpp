@@ -54,7 +54,9 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 		vkUnmapMemory(device, stageAllocInfo.vkMemroy);
 
 		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize,
-			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+			// Ray tracing
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			m_vkBuffer,
 			m_AllocInfo);
@@ -226,7 +228,9 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 
 		KVulkanInitializer::CreateVkBuffer(
 			(VkDeviceSize)m_BufferSize,
-			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+			// Ray tracing
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			m_vkBuffer,
 			m_AllocInfo);

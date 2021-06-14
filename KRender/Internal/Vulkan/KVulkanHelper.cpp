@@ -614,4 +614,13 @@ default:\
 
 		return flag != VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
 	}
+
+	bool GetBufferDeviceAddress(VkBuffer buffer, VkDeviceAddress& address)
+	{
+		VkBufferDeviceAddressInfoKHR bufferDeviceAI{};
+		bufferDeviceAI.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+		bufferDeviceAI.buffer = buffer;
+		address = KVulkanGlobal::vkGetBufferDeviceAddressKHR(KVulkanGlobal::device, &bufferDeviceAI);
+		return true;
+	}
 }

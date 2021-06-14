@@ -53,4 +53,6 @@ namespace KVulkanHelper
 	bool FindBestDepthFormat(bool bStencil, VkFormat& format);
 
 	bool QueryMSAASupport(MSAASupportTarget target, uint32_t msaaCount, VkSampleCountFlagBits& flag);
+
+	bool GetBufferDeviceAddress(VkBuffer buffer, VkDeviceAddress& address);
 }
