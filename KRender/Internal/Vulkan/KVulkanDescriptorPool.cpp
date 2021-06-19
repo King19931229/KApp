@@ -24,7 +24,7 @@ KVulkanDescriptorPool::~KVulkanDescriptorPool()
 }
 
 bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
-	const std::vector<VkDescriptorSetLayoutBinding>& m_DescriptorSetLayoutBinding,
+	const std::vector<VkDescriptorSetLayoutBinding>& descriptorSetLayoutBinding,
 	const std::vector<VkWriteDescriptorSet>& writeInfo)
 {
 	UnInit();
@@ -34,7 +34,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	m_DyanmicUniformBufferCount = 0;
 	m_UniformBufferCount = 0;
 
-	for (const VkDescriptorSetLayoutBinding& layoutBinding : m_DescriptorSetLayoutBinding)
+	for (const VkDescriptorSetLayoutBinding& layoutBinding : descriptorSetLayoutBinding)
 	{
 		if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 		{
@@ -47,6 +47,18 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 		{
 			m_DyanmicUniformBufferCount += layoutBinding.descriptorCount;
+		}
+		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+		{
+
+		}
+		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+		{
+
+		}
+		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+		{
+
 		}
 		else
 		{

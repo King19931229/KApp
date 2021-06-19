@@ -73,6 +73,7 @@
     <ClInclude Include="Publish\KConfig.h" />
     <ClInclude Include="Publish\KDump.h" />
     <ClInclude Include="Publish\KFileTool.h" />
+    <ClInclude Include="Publish\KHandleRetriever.h" />
     <ClInclude Include="Publish\KHash.h" />
     <ClInclude Include="Publish\KHashString.h" />
     <ClInclude Include="Publish\KImage.h" />

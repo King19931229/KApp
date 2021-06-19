@@ -51,6 +51,25 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_
 	return true;
 }
 
+bool KVulkanRenderTarget::InitFromStroge(uint32_t width, uint32_t height, ElementFormat format)
+{
+	UnInit();
+
+	m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+
+	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
+	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
+
+	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorge(
+		vkFormat,
+		(uint32_t)width,
+		(uint32_t)height);
+
+	m_DepthStencil = false;
+
+	return true;
+}
+
 bool KVulkanRenderTarget::UnInit()
 {
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);

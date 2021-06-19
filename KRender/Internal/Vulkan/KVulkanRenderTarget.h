@@ -14,6 +14,7 @@ public:
 
 	virtual bool InitFromDepthStencil(uint32_t width, uint32_t height, uint32_t msaaCount, bool bStencil);
 	virtual bool InitFromColor(uint32_t width, uint32_t height, uint32_t msaaCount, ElementFormat format);
+	virtual bool InitFromStroge(uint32_t width, uint32_t height, ElementFormat format);
 	virtual bool UnInit();
 	virtual bool IsDepthStencil();
 

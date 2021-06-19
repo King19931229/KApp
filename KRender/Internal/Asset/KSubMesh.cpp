@@ -80,7 +80,7 @@ bool KSubMesh::CreateAccelerationStructure()
 		return true;
 
 	KRenderGlobal::RenderDevice->CreateAccelerationStructure(m_AccelerationStructure);
-	m_AccelerationStructure->Init(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer);
+	m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer);
 
 	return true;
 }

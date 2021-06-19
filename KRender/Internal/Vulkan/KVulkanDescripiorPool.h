@@ -61,7 +61,7 @@ public:
 	~KVulkanDescriptorPool();
 
 	bool Init(VkDescriptorSetLayout layout,
-		const std::vector<VkDescriptorSetLayoutBinding>& m_DescriptorSetLayoutBinding,
+		const std::vector<VkDescriptorSetLayoutBinding>& descriptorSetLayoutBinding,
 		const std::vector<VkWriteDescriptorSet>& writeInfo);
 	bool UnInit();
 

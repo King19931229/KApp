@@ -37,6 +37,8 @@ public:
 	bool InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t msaa);
 	// 创建为DepthStencilAttachment
 	bool InitDepthStencil(uint32_t width, uint32_t height, uint32_t msaa, bool stencil);
+	// 创建为RayTracingStorge
+	bool InitStorge(VkFormat format, uint32_t width, uint32_t height);
 
 	bool UnInit();
 

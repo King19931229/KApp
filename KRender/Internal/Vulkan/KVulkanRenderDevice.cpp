@@ -1106,6 +1106,11 @@ bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateRayTracePipeline(IKRayTracePipeline& raytrace)
+{
+	return false;
+}
+
 bool KVulkanRenderDevice::CreateUIOverlay(IKUIOverlayPtr& ui)
 {
 	ui = IKUIOverlayPtr(static_cast<IKUIOverlay*>(KNEW KVulkanUIOverlay()));

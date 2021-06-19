@@ -22,6 +22,9 @@ public:
 	bool Remove(IKEntityPtr entity) override;
 	bool Move(IKEntityPtr entity) override;
 
+	bool RegisterEntityObserver(EntityObserverFunc* func) override;
+	bool UnRegisterEntityObserver(EntityObserverFunc* func) override;
+
 	bool GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result);
 	bool GetRenderComponent(const KAABBBox& bound, std::vector<KRenderComponent*>& result);
 

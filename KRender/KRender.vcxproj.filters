@@ -423,6 +423,12 @@
     <ClInclude Include="Internal\Vulkan\KVulkanAccelerationStructure.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKRayTracePipline.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanRayTracePipeline.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -684,6 +690,9 @@
       <Filter>Internal\Object</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanAccelerationStructure.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanRayTracePipeline.cpp">
       <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>

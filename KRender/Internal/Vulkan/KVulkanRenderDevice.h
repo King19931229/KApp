@@ -154,6 +154,7 @@ public:
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target);
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline);
+	virtual bool CreateRayTracePipeline(IKRayTracePipeline& raytrace);
 
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool);
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer);

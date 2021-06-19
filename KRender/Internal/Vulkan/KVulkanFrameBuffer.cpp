@@ -206,6 +206,47 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	return true;
 }
 
+bool KVulkanFrameBuffer::InitStorge(VkFormat format, uint32_t width, uint32_t height)
+{
+	m_Format = format;
+	m_Width = width;
+	m_Height = height;
+	m_Depth = 1;
+	m_Mipmaps = 1;
+	m_MSAA = 1;
+	m_External = false;
+	m_DepthStencil = false;
+
+	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
+
+	VkImageType imageType = VK_IMAGE_TYPE_2D;
+	VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D;
+	uint32_t layerCounts = 1;
+	VkImageCreateFlags createFlags = 0;
+	ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(TT_TEXTURE_2D, imageType, imageViewType));
+
+	{
+		KVulkanInitializer::CreateVkImage(m_Width,
+			m_Height,
+			m_Depth,
+			layerCounts,
+			1,
+			VK_SAMPLE_COUNT_1_BIT,
+			imageType,
+			m_Format,
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			createFlags,
+			m_Image, m_AllocInfo);
+
+		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+		KVulkanInitializer::CreateVkImageView(m_Image, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, m_ImageView);
+	}
+
+	return true;
+}
+
 bool KVulkanFrameBuffer::UnInit()
 {
 	if (!m_External)

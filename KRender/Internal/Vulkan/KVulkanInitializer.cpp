@@ -183,21 +183,21 @@ namespace KVulkanInitializer
 		accelerationStructure.deviceAddress = KVulkanGlobal::vkGetAccelerationStructureDeviceAddressKHR(KVulkanGlobal::device, &accelerationDeviceAddressInfo);
 	}
 
-	void BuildVkAccelerationStructure(VkAccelerationStructureGeometryKHR accelerationStructureGeometry, VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo, uint32_t numTriangles, AccelerationStructureHandle& accelerationStructure)
+	void BuildBottomUpVkAccelerationStructure(VkAccelerationStructureGeometryKHR accelerationStructureGeometry, VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo, uint32_t numTriangles, AccelerationStructureHandle& accelerationStructure)
 	{
 		VkBuffer scratchBufferHandle = VK_NULL_HANDEL;
 		VkDeviceAddress scratchBufferAddress = VK_NULL_HANDEL;
 
-		VkBufferCreateInfo bufferCreateInfo{};
+		VkBufferCreateInfo bufferCreateInfo = {};
 		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferCreateInfo.size = accelerationStructureBuildSizesInfo.buildScratchSize;
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 		VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferCreateInfo, nullptr, &scratchBufferHandle));
 
-		VkMemoryRequirements memoryRequirements{};
+		VkMemoryRequirements memoryRequirements = {};
 		vkGetBufferMemoryRequirements(KVulkanGlobal::device, scratchBufferHandle, &memoryRequirements);
 
-		VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{};
+		VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo = {};
 		memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
 		memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
 
@@ -226,6 +226,70 @@ namespace KVulkanInitializer
 
 		VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo = {};
 		accelerationStructureBuildRangeInfo.primitiveCount = numTriangles;
+		accelerationStructureBuildRangeInfo.primitiveOffset = 0;
+		accelerationStructureBuildRangeInfo.firstVertex = 0;
+		accelerationStructureBuildRangeInfo.transformOffset = 0;
+		std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
+
+		VkCommandBuffer commandBuffer;
+		BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
+		{
+			KVulkanGlobal::vkCmdBuildAccelerationStructuresKHR(
+				commandBuffer,
+				1,
+				&accelerationBuildGeometryInfo,
+				accelerationBuildStructureRangeInfos.data());
+		}
+		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
+
+		vkDestroyBuffer(KVulkanGlobal::device, scratchBufferHandle, nullptr);
+		KVulkanHeapAllocator::Free(stageAlloc);
+	}
+
+	void BuildTopDownVkAccelerationStructure(VkAccelerationStructureGeometryKHR accelerationStructureGeometry, VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo,
+		uint32_t numInstances, AccelerationStructureHandle& accelerationStructure)
+	{
+		VkBuffer scratchBufferHandle = VK_NULL_HANDEL;
+		VkDeviceAddress scratchBufferAddress = VK_NULL_HANDEL;
+
+		VkBufferCreateInfo bufferCreateInfo{};
+		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferCreateInfo.size = accelerationStructureBuildSizesInfo.buildScratchSize;
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferCreateInfo, nullptr, &scratchBufferHandle));
+
+		VkMemoryRequirements memoryRequirements = {};
+		vkGetBufferMemoryRequirements(KVulkanGlobal::device, scratchBufferHandle, &memoryRequirements);
+
+		VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo = {};
+		memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+		memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+
+		uint32_t memoryTypeIndex = 0;
+		ASSERT_RESULT(KVulkanHelper::FindMemoryType(KVulkanGlobal::physicalDevice,
+			memoryRequirements.memoryTypeBits,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			memoryTypeIndex));
+
+		KVulkanHeapAllocator::AllocInfo stageAlloc;
+		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, stageAlloc));
+		VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, scratchBufferHandle, stageAlloc.vkMemroy, stageAlloc.vkOffset));
+
+		// Buffer device address
+		ASSERT_RESULT(KVulkanHelper::GetBufferDeviceAddress(scratchBufferHandle, scratchBufferAddress));
+
+		VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo = {};
+		accelerationBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+		accelerationBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+		accelerationBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+		accelerationBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+		accelerationBuildGeometryInfo.dstAccelerationStructure = accelerationStructure.handle;
+		accelerationBuildGeometryInfo.geometryCount = 1;
+		accelerationBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
+		accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBufferAddress;
+
+		VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
+		accelerationStructureBuildRangeInfo.primitiveCount = numInstances;
 		accelerationStructureBuildRangeInfo.primitiveOffset = 0;
 		accelerationStructureBuildRangeInfo.firstVertex = 0;
 		accelerationStructureBuildRangeInfo.transformOffset = 0;

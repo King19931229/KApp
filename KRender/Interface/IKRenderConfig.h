@@ -11,8 +11,15 @@ enum RenderDevice
 
 enum ShaderType
 {
-	ST_VERTEX = 0x01,
-	ST_FRAGMENT = 0x02,
+	// Tradition
+	ST_VERTEX = 1,
+	ST_FRAGMENT = 1 << 1,
+
+	// RayTracing
+	ST_RAYGEN = 1 << 2,
+	ST_ANY_HIT = 1 << 3,
+	ST_CLOSEST_HIT = 1 << 4,
+	ST_MISS = 1 << 5
 };
 typedef unsigned short ShaderTypes;
 
@@ -430,6 +437,9 @@ typedef std::shared_ptr<IKPipeline> IKPipelinePtr;
 
 struct IKPipelineHandle;
 typedef std::shared_ptr<IKPipelineHandle> IKPipelineHandlePtr;
+
+struct IKRayTracePipeline;
+typedef std::shared_ptr<IKRayTracePipeline> IKRayTracePipelinePtr;
 
 struct IKCommandPool;
 typedef std::shared_ptr<IKCommandPool> IKCommandPoolPtr;

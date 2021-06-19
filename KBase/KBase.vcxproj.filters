@@ -232,6 +232,9 @@
     <ClInclude Include="Internal\Codec\KDDSCodec.h">
       <Filter>Internal\Codec</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KHandleRetriever.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">

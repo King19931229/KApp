@@ -141,4 +141,35 @@ namespace KNumerical
 	{
 		return a * b / GCD(a, b);
 	}
+
+	template<typename T>
+	T AlignedSize(T value, T alignment)
+	{
+		return (value + alignment - 1) & ~(alignment - 1);
+	}
+
+	// 把模板参数当做返回值技巧是把返回值作为第一个模板参数
+	template<typename T2, typename T1>
+	T2 Morton(T1 row, T1 col)
+	{
+		T2 morton = 0;
+		T2 a = 0, b = 0;
+		for (int i = 0; i < sizeof(uint32_t) * 8; i++)
+		{
+			a = (row & (uint64_t)1 << i);
+			b = (col & (uint64_t)1 << i);
+			morton |= a << (i + 1) | b << (i);
+		}
+		/*
+		T2 c = 1;
+		for (int i = 0; i < sizeof(uint32_t) * 8; i++)
+		{
+			a |= (row >> i & 1) * c;
+			b |= (col >> i & 1) * c;
+			c <<= 2;
+		}
+		morton = a * 2 + b;
+		*/
+		return morton;
+	}
 }

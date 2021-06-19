@@ -72,6 +72,16 @@ bool KRenderScene::Move(IKEntityPtr entity)
 	return m_SceneMgr && m_SceneMgr->Move(entity);
 }
 
+bool KRenderScene::RegisterEntityObserver(EntityObserverFunc* func)
+{
+	return false;
+}
+
+bool KRenderScene::UnRegisterEntityObserver(EntityObserverFunc* func)
+{
+	return false;
+}
+
 bool KRenderScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result)
 {
 	std::deque<IKEntityPtr> entities;

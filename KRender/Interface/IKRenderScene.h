@@ -8,6 +8,15 @@ enum SceneManagerType
 	SCENE_MANGER_TYPE_OCTREE
 };
 
+enum EntitySceneOp
+{
+	ESO_ADD,
+	ESO_REMOVE,
+	RES_REMOVE
+};
+
+typedef std::function<void(EntitySceneOp, IKEntityPtr)> EntityObserverFunc;
+
 struct IKRenderScene
 {
 	virtual ~IKRenderScene() {}
@@ -15,9 +24,13 @@ struct IKRenderScene
 	virtual bool Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos) = 0;
 	virtual bool UnInit() = 0;
 
+	// TODO
 	virtual bool Add(IKEntityPtr entity) = 0;
 	virtual bool Remove(IKEntityPtr entity) = 0;
 	virtual bool Move(IKEntityPtr entity) = 0;
+
+	virtual bool RegisterEntityObserver(EntityObserverFunc* func) = 0;
+	virtual bool UnRegisterEntityObserver(EntityObserverFunc* func) = 0;
 
 	virtual bool GetSceneObjectBound(KAABBBox& box) = 0;
 
