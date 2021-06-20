@@ -504,6 +504,11 @@ bool KRenderCore::UnRegistertAllInitCallback()
 	return true;
 }
 
+IKRayTraceManager* KRenderCore::GetRayTraceMgr()
+{
+	return &KRenderGlobal::RayTraceManager;
+}
+
 IKRenderScene* KRenderCore::GetRenderScene()
 {
 	return &KRenderGlobal::Scene;

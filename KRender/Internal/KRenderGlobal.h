@@ -23,6 +23,8 @@
 #include "Internal/KStatistics.h"
 #include "Internal/FrameGraph/KFrameGraph.h"
 
+#include "Internal/RayTrace/KRayTraceManager.h"
+
 #include "KBase/Publish/KTaskExecutor.h"
 
 namespace KRenderGlobal
@@ -36,6 +38,7 @@ namespace KRenderGlobal
 	extern KInstanceBufferManager InstanceBufferManager;
 
 	extern KPostProcessManager PostProcessManager;
+	extern KRayTraceManager RayTraceManager;
 
 	extern KSkyBox SkyBox;
 	extern KPrefilerCubeMap CubeMap;
@@ -47,6 +50,7 @@ namespace KRenderGlobal
 
 	// TODO 多场景去掉全局场景
 	extern KRenderScene Scene;
+
 	extern KRenderDispatcher RenderDispatcher;
 
 	extern KTaskExecutor<true> TaskExecutor;

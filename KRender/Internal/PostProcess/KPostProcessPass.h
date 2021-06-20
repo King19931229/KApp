@@ -11,7 +11,7 @@
 
 class KPostProcessManager;
 
-enum PostProcessStage : uint16_t
+enum PostProcessStage
 {
 	POST_PROCESS_STAGE_REGULAR,
 	POST_PROCESS_STAGE_START_POINT,

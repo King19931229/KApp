@@ -28,6 +28,7 @@
     <ClInclude Include="Interface\IKPipeline.h" />
     <ClInclude Include="Interface\IKPostProcess.h" />
     <ClInclude Include="Interface\IKQuery.h" />
+    <ClInclude Include="Interface\IKRayTrace.h" />
     <ClInclude Include="Interface\IKRayTracePipline.h" />
     <ClInclude Include="Interface\IKRenderCommand.h" />
     <ClInclude Include="Interface\IKRenderCore.h" />
@@ -108,6 +109,8 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessManager.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessPass.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessTexture.h" />
+    <ClInclude Include="Internal\RayTrace\KRayTraceManager.h" />
+    <ClInclude Include="Internal\RayTrace\KRayTraceScene.h" />
     <ClInclude Include="Internal\Scene\KOctreeNode.h" />
     <ClInclude Include="Internal\Scene\KOctreeSceneManager.h" />
     <ClInclude Include="Internal\Scene\KRenderScene.h" />
@@ -203,6 +206,8 @@
     <ClCompile Include="Internal\PostProcess\KPostProcessManager.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessPass.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessTexture.cpp" />
+    <ClCompile Include="Internal\RayTrace\KRayTraceManager.cpp" />
+    <ClCompile Include="Internal\RayTrace\KRayTraceScene.cpp" />
     <ClCompile Include="Internal\Scene\KOctreeSceneManager.cpp" />
     <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
     <ClCompile Include="Internal\Shadow\KCascadedShadowMap.cpp" />

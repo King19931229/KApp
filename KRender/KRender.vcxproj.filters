@@ -64,6 +64,9 @@
     <Filter Include="Internal\FrameGraph">
       <UniqueIdentifier>{4f6ce8f6-11bd-4d7f-8852-cbba5123146d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\RayTrace">
+      <UniqueIdentifier>{56e8c0fe-0753-4f9a-9da7-ded5ae38147b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -429,6 +432,15 @@
     <ClInclude Include="Internal\Vulkan\KVulkanRayTracePipeline.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\RayTrace\KRayTraceManager.h">
+      <Filter>Internal\RayTrace</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\RayTrace\KRayTraceScene.h">
+      <Filter>Internal\RayTrace</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKRayTrace.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -694,6 +706,12 @@
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanRayTracePipeline.cpp">
       <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\RayTrace\KRayTraceManager.cpp">
+      <Filter>Internal\RayTrace</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\RayTrace\KRayTraceScene.cpp">
+      <Filter>Internal\RayTrace</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

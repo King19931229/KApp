@@ -11,6 +11,7 @@ namespace KRenderGlobal
 	KInstanceBufferManager InstanceBufferManager;
 
 	KPostProcessManager PostProcessManager;
+	KRayTraceManager RayTraceManager;
 
 	KSkyBox SkyBox;
 	KPrefilerCubeMap CubeMap;
