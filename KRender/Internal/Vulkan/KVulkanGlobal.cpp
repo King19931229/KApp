@@ -13,6 +13,9 @@ namespace KVulkanGlobal
 	VkQueue graphicsQueue = VK_NULL_HANDLE;
 	VkPipelineCache pipelineCache = VK_NULL_HANDLE;
 
+	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties = {};
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = {};
+
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR = VK_NULL_HANDLE;
 	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR = VK_NULL_HANDLE;
 	PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR = VK_NULL_HANDLE;

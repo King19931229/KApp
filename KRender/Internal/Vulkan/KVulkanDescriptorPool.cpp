@@ -48,18 +48,6 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		{
 			m_DyanmicUniformBufferCount += layoutBinding.descriptorCount;
 		}
-		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-		{
-
-		}
-		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
-		{
-
-		}
-		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
-		{
-
-		}
 		else
 		{
 			ASSERT_RESULT(false && "not support now");

@@ -16,6 +16,9 @@ namespace KVulkanGlobal
 
 	extern uint32_t graphicsFamilyIndex;
 
+	extern VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties;
+	extern VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
+
 	// Function pointers for ray tracing related stuff
 	extern PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
 	extern PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;

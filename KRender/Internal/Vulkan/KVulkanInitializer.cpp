@@ -152,18 +152,14 @@ namespace KVulkanInitializer
 		VkMemoryRequirements memoryRequirements = {};
 		vkGetBufferMemoryRequirements(KVulkanGlobal::device, accelerationStructure.buffer, &memoryRequirements);
 
-		VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 		uint32_t memoryTypeIndex = 0;
-
 		ASSERT_RESULT(KVulkanHelper::FindMemoryType(
 			KVulkanGlobal::physicalDevice,
 			memoryRequirements.memoryTypeBits,
-			properties,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			memoryTypeIndex));
 
-		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment,
-			memoryTypeIndex, properties, accelerationStructure.allocInfo));
-
+		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, accelerationStructure.allocInfo));
 		VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, accelerationStructure.buffer,
 			accelerationStructure.allocInfo.vkMemroy,
 			accelerationStructure.allocInfo.vkOffset));
@@ -196,10 +192,6 @@ namespace KVulkanInitializer
 
 		VkMemoryRequirements memoryRequirements = {};
 		vkGetBufferMemoryRequirements(KVulkanGlobal::device, scratchBufferHandle, &memoryRequirements);
-
-		VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo = {};
-		memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
-		memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
 
 		uint32_t memoryTypeIndex = 0;
 		ASSERT_RESULT(KVulkanHelper::FindMemoryType(KVulkanGlobal::physicalDevice,

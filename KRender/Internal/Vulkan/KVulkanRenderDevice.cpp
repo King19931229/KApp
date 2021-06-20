@@ -996,6 +996,18 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 
 	KVulkanGlobal::graphicsFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
 
+	// Get properties and features
+	KVulkanGlobal::rayTracingPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+	VkPhysicalDeviceProperties2 deviceProperties2 = {};
+	deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	deviceProperties2.pNext = &KVulkanGlobal::rayTracingPipelineProperties;
+	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.device, &deviceProperties2);
+	KVulkanGlobal::accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+	VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
+	deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	deviceFeatures2.pNext = &KVulkanGlobal::accelerationStructureFeatures;
+	vkGetPhysicalDeviceFeatures2(m_PhysicalDevice.device, &deviceFeatures2);
+
 	// Function pointers for ray tracing related stuff
 	KVulkanGlobal::vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(m_Device, "vkGetBufferDeviceAddressKHR"));
 	KVulkanGlobal::vkCmdBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(m_Device, "vkCmdBuildAccelerationStructuresKHR"));

@@ -3,7 +3,6 @@
 #include "Interface/IKAccelerationStructure.h"
 #include "KBase/Publish/KHandleRetriever.h"
 #include "KVulkanConfig.h"
-#include "KVulkanDescripiorPool.h"
 #include "KVulkanInitializer.h"
 #include <unordered_map>
 
@@ -13,7 +12,58 @@ protected:
 	IKAccelerationStructurePtr m_TopDown;
 	KHandleRetriever<uint32_t> m_Handles;
 	std::unordered_map<uint32_t, IKAccelerationStructure::BottomASTransformTuple> m_BottomASMap;
-	KVulkanDescriptorPool m_Pool;
+	std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_ShaderGroups;
+
+	struct Descriptor
+	{
+		VkDescriptorSetLayout layout;
+		VkDescriptorPool pool;
+		VkDescriptorSet set;
+
+		Descriptor()
+		{
+			layout = VK_NULL_HANDEL;
+			pool = VK_NULL_HANDEL;
+			set = VK_NULL_HANDEL;
+		}
+	};
+	Descriptor m_Descriptor;
+
+	struct Pipeline
+	{
+		VkPipelineLayout layout;
+		VkPipeline pipline;
+
+		Pipeline()
+		{
+			layout = VK_NULL_HANDEL;
+			pipline = VK_NULL_HANDEL;
+		}
+	};
+	Pipeline m_Pipeline;
+
+	struct ShaderBindingTable
+	{
+		VkBuffer buffer;
+		KVulkanHeapAllocator::AllocInfo allocInfo;
+		void* mapped;
+		VkStridedDeviceAddressRegionKHR stridedDeviceAddressRegion;
+
+		ShaderBindingTable()
+		{
+			buffer = VK_NULL_HANDEL;
+			mapped = nullptr;
+			stridedDeviceAddressRegion = {};
+		}
+	};
+	struct ShaderBindingTables
+	{
+		ShaderBindingTable raygen;
+		ShaderBindingTable miss;
+		ShaderBindingTable hit;
+		ShaderBindingTable callable;
+	};
+	ShaderBindingTables m_ShaderBindingTables;
 
 	IKRenderTargetPtr m_StorgeRT;
 
@@ -32,8 +82,13 @@ protected:
 	void DestroyAccelerationStructure();
 	void CreateStorgeImage();
 	void DestroyStorgeImage();
+	void CreateDescriptorSet();
+	void DestroyDescriptorSet();
 	void CreateShaderBindingTables();
 	void DestroyShaderBindingTables();
+
+	void CreateShaderBindingTable(ShaderBindingTable& shaderBindingTable, uint32_t handleCount);
+	void DestroyShaderBindingTable(ShaderBindingTable& shaderBindingTable);
 public:
 	KVulkanRayTracePipeline();
 	~KVulkanRayTracePipeline();
