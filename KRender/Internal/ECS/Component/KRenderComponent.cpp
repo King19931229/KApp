@@ -258,7 +258,7 @@ bool KRenderComponent::Init(bool async)
 			m_MaterialSubMeshes.reserve(subMeshes.size());
 			for (KSubMeshPtr subMesh : subMeshes)
 			{
-				KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(new KMaterialSubMesh(subMesh.get()));
+				KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh(subMesh.get()));
 				materialSubMesh->Init(m_Material.get(), subMesh->GetFrameInFlight());
 				m_MaterialSubMeshes.push_back(materialSubMesh);
 			}
@@ -276,7 +276,7 @@ bool KRenderComponent::Init(bool async)
 			m_MaterialSubMeshes.reserve(subMeshes.size());
 			for (KSubMeshPtr subMesh : subMeshes)
 			{
-				KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(new KMaterialSubMesh(subMesh.get()));
+				KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh(subMesh.get()));
 				materialSubMesh->InitDebug(subMesh->GetDebugPrimitive(), subMesh->GetFrameInFlight());
 				m_MaterialSubMeshes.push_back(materialSubMesh);
 			}
@@ -322,7 +322,7 @@ bool KRenderComponent::InitUtility(const KMeshUtilityInfoPtr& info)
 		m_MaterialSubMeshes.reserve(subMeshes.size());
 		for (KSubMeshPtr subMesh : subMeshes)
 		{
-			KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(new KMaterialSubMesh(subMesh.get()));
+			KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh(subMesh.get()));
 			materialSubMesh->InitDebug(subMesh->GetDebugPrimitive(), subMesh->GetFrameInFlight());
 			m_MaterialSubMeshes.push_back(materialSubMesh);
 		}

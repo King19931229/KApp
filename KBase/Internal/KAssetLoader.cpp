@@ -62,7 +62,7 @@ static void LogError(const std::string& logString)
 
 KAssetLoader::KAssetLoader()
 {
-	KAssetIOHooker* hooker = new KAssetIOHooker(KFileSystem::Manager.get());
+	KAssetIOHooker* hooker = KNEW KAssetIOHooker(KFileSystem::Manager.get());
 	m_Importer.SetIOHandler(hooker);
 }
 

@@ -129,7 +129,7 @@ Assimp::IOStream* KAssetIOHooker::Open(const char* pFile, const char* pMode)
 		}
 	}
 
-	Assimp::IOStream* stream = new KAssetIOStream(dataStream);
+	Assimp::IOStream* stream = KNEW KAssetIOStream(dataStream);
 	return stream;
 }
 

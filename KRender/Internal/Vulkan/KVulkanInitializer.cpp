@@ -588,6 +588,10 @@ namespace KVulkanInitializer
 					}
 					barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 					break;
+
+				case VK_IMAGE_LAYOUT_GENERAL:
+					break;
+
 				default:
 					// Other source layouts aren't handled (yet)
 					ASSERT_RESULT(false && "not yet handled");

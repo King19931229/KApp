@@ -75,7 +75,7 @@ public:
 		: m_uSize(uSize)
 	{
 		assert(m_uSize > 0);
-		m_pData = new unsigned char[m_uSize];
+		m_pData = KNEW unsigned char[m_uSize];
 		memset(m_pData, 0, m_uSize);
 	}
 	~KImageData()

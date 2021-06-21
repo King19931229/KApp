@@ -207,7 +207,7 @@ bool KMemoryDataStream::Open(const char* pszFilePath, IOMode mode)
 			size_t uDataSize = pData->GetSize();
 			if(uDataSize > 0)
 			{
-				m_pDataBuffer = new char[uDataSize];
+				m_pDataBuffer = KNEW char[uDataSize];
 				memset(m_pDataBuffer, 0, sizeof(m_pDataBuffer[0]) * uDataSize);
 				m_pCurPos = m_pDataBuffer;
 				m_uBufferSize = uDataSize;
@@ -230,7 +230,7 @@ bool KMemoryDataStream::Open(const char* pDataBuffer, size_t uDataSize, IOMode m
 	ReleaseData();
 	if(pDataBuffer && uDataSize > 0)
 	{
-		m_pDataBuffer = new char[uDataSize];
+		m_pDataBuffer = KNEW char[uDataSize];
 		memcpy(m_pDataBuffer, pDataBuffer, sizeof(pDataBuffer[0]) * uDataSize);
 		m_pCurPos = m_pDataBuffer;
 		m_uBufferSize = uDataSize;
@@ -245,7 +245,7 @@ bool KMemoryDataStream::Open(size_t uDataSize, IOMode mode)
 	ReleaseData();
 	if(uDataSize > 0)
 	{
-		m_pDataBuffer = new char[uDataSize];
+		m_pDataBuffer = KNEW char[uDataSize];
 		memset(m_pDataBuffer, 0, sizeof(m_pDataBuffer[0]) * uDataSize);
 		m_pCurPos = m_pDataBuffer;
 		m_uBufferSize = uDataSize;

@@ -98,7 +98,7 @@ int main()
 	}
 	*/
 
-	TestBaseClass* obj = new TestClass();
+	TestBaseClass* obj = KNEW TestClass();
 
 	auto type = rttr::type::get(*obj);
 

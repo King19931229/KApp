@@ -133,10 +133,12 @@ enum ShaderBinding
 enum ConstantSemantic
 {
 	CS_MODEL,
-	CS_VIEW,
 
+	CS_VIEW,
 	CS_PROJ,
+
 	CS_VIEW_INV,
+	CS_PROJ_INV,
 
 	CS_SHADOW_VIEW,
 	CS_SHADOW_PROJ,

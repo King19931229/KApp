@@ -426,9 +426,6 @@
     <ClInclude Include="Internal\Vulkan\KVulkanAccelerationStructure.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\IKRayTracePipline.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Vulkan\KVulkanRayTracePipeline.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
@@ -439,6 +436,9 @@
       <Filter>Internal\RayTrace</Filter>
     </ClInclude>
     <ClInclude Include="Interface\IKRayTrace.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKRayTracePipeline.h">
       <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>

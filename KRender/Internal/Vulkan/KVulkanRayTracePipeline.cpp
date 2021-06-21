@@ -69,10 +69,10 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 	storageImageBinding.descriptorCount = 1;
 
 	VkDescriptorSetLayoutBinding uniformBinding = {};
-	storageImageBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	storageImageBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
-	storageImageBinding.binding = 2;
-	storageImageBinding.descriptorCount = 1;
+	uniformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uniformBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
+	uniformBinding.binding = 2;
+	uniformBinding.descriptorCount = 1;
 
 	VkDescriptorSetLayoutBinding setLayoutBindings[] =
 	{
@@ -284,7 +284,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 	rayTracingPipelineCI.pGroups = m_ShaderGroups.data();
 	rayTracingPipelineCI.maxPipelineRayRecursionDepth = 4;
 	rayTracingPipelineCI.layout = m_Pipeline.layout;
-	VK_ASSERT_RESULT(vkCreateRayTracingPipelinesKHR(KVulkanGlobal::device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &m_Pipeline.pipline));
+	VK_ASSERT_RESULT(KVulkanGlobal::vkCreateRayTracingPipelinesKHR(KVulkanGlobal::device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &m_Pipeline.pipline));
 
 	const uint32_t handleSize = KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize;
 	const uint32_t handleSizeAligned = KNumerical::AlignedSize(KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize, KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleAlignment);
@@ -400,8 +400,13 @@ bool KVulkanRayTracePipeline::RecreateAS()
 {
 	if (m_Inited)
 	{
+		DestroyShaderBindingTables();
+		DestroyDescriptorSet();
 		DestroyAccelerationStructure();
+
 		CreateAccelerationStructure();
+		CreateDescriptorSet();
+		CreateShaderBindingTables();
 		return true;
 	}
 	return false;
@@ -412,7 +417,12 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 	if (m_Inited)
 	{
 		DestroyStorgeImage();
+		DestroyDescriptorSet();
+		DestroyAccelerationStructure();
+
 		CreateStorgeImage();
+		CreateDescriptorSet();
+		CreateShaderBindingTables();
 		return true;
 	}
 	return false;

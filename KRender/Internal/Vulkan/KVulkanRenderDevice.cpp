@@ -3,6 +3,7 @@
 #include "KVulkanShader.h"
 #include "KVulkanBuffer.h"
 #include "KVulkanAccelerationStructure.h"
+#include "KVulkanRayTracePipeline.h"
 #include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
 #include "KVulkanRenderTarget.h"
@@ -1118,8 +1119,9 @@ bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 	return true;
 }
 
-bool KVulkanRenderDevice::CreateRayTracePipeline(IKRayTracePipeline& raytrace)
+bool KVulkanRenderDevice::CreateRayTracePipeline(IKRayTracePipelinePtr& raytrace)
 {
+	raytrace = IKRayTracePipelinePtr(KNEW KVulkanRayTracePipeline());
 	return false;
 }
 

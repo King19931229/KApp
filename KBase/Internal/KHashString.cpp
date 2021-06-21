@@ -29,7 +29,7 @@ struct KHashStrChunk
 
 	KHashStrChunk()
 	{
-		pData = new char[CHUNK_LEN];
+		pData = KNEW char[CHUNK_LEN];
 		assert(pData);
 		memset(pData, 0, sizeof(*pData) * CHUNK_LEN);
 		pCurPos = pData;

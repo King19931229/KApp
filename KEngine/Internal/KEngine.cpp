@@ -18,7 +18,7 @@ namespace KEngineGlobal
 	{
 		if (!Engine)
 		{
-			Engine = IKEnginePtr(new KEngine());
+			Engine = IKEnginePtr(KNEW KEngine());
 		}
 	}
 	void DestroyEngine()
@@ -238,7 +238,7 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 			break;
 		}
 
-		m_Scene = IKScenePtr(new KScene());
+		m_Scene = IKScenePtr(KNEW KScene());
 		m_Scene->Init(m_RenderCore->GetRenderScene());
 
 		m_bInit = true;

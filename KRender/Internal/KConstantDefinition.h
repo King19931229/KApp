@@ -42,6 +42,7 @@ namespace KConstantDefinition
 		glm::mat4 VIEW;
 		glm::mat4 PROJ;
 		glm::mat4 VIEW_INV;
+		glm::mat4 PROJ_INV;
 	};
 
 	struct SHADOW

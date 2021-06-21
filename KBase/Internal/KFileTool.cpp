@@ -538,7 +538,7 @@ namespace KFileTool
 				char* buffer = nullptr;
 				if (size > 0)
 				{
-					buffer = new char[size];
+					buffer = KNEW char[size];
 					size_t readCount = fread(buffer, 1, size, srcHandle);
 					assert(readCount == (size_t)size);
 				}

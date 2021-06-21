@@ -11,7 +11,7 @@ EXPORT_DLL IKXMLDocumentPtr GetXMLDocument()
 
 KXMLDocument::KXMLDocument()
 {
-	m_Document = new tinyxml2::XMLDocument();
+	m_Document = KNEW tinyxml2::XMLDocument();
 }
 
 KXMLDocument::~KXMLDocument()

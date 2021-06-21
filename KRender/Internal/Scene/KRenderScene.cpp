@@ -3,7 +3,7 @@
 
 EXPORT_DLL IKRenderScenePtr CreateRenderScene()
 {
-	return IKRenderScenePtr(new KRenderScene());
+	return IKRenderScenePtr(KNEW KRenderScene());
 }
 
 KRenderScene::KRenderScene()

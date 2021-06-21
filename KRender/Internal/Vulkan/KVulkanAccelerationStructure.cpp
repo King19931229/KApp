@@ -109,6 +109,8 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 	VkBufferCreateInfo bufferCreateInfo = {};
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufferCreateInfo.size = sizeof(VkAccelerationStructureInstanceKHR) * instances.size();
+	// 以防instances为空
+	bufferCreateInfo.size = std::max(bufferCreateInfo.size, sizeof(VkAccelerationStructureInstanceKHR));
 	bufferCreateInfo.usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 	VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferCreateInfo, nullptr, &instanceBufferHandle));
 

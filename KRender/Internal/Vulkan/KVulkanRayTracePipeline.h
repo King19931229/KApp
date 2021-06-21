@@ -1,12 +1,12 @@
 #pragma once
-#include "Interface/IKRayTracePipline.h"
+#include "Interface/IKRayTracePipeline.h"
 #include "Interface/IKAccelerationStructure.h"
 #include "KBase/Publish/KHandleRetriever.h"
 #include "KVulkanConfig.h"
 #include "KVulkanInitializer.h"
 #include <unordered_map>
 
-class KVulkanRayTracePipeline : public IKRayTracePipline
+class KVulkanRayTracePipeline : public IKRayTracePipeline
 {
 protected:
 	IKAccelerationStructurePtr m_TopDown;

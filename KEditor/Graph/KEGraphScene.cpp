@@ -114,7 +114,7 @@ KEGraphConnectionControl* KEGraphScene::CreateConnection(PortType connectedPort,
 	// after this function connection points are set to node port
 	connection->SetView(std::move(view));
 
-	auto command = KECommandPtr(new	KEGraphConnectionCreateCommand(this, connection));
+	auto command = KECommandPtr(KNEW KEGraphConnectionCreateCommand(this, connection));
 	// Don't push into stack. A completed command will be pushed inside KEGraphInteraction
 	command->Execute();
 

@@ -2,7 +2,7 @@
 
 EXPORT_DLL IKCameraPreviewControllerPtr CreateCameraPreviewController()
 {
-	return IKCameraPreviewControllerPtr(new KCameraPreviewController());
+	return IKCameraPreviewControllerPtr(KNEW KCameraPreviewController());
 }
 
 KCameraPreviewController::KCameraPreviewController()

@@ -44,7 +44,7 @@ protected:
 	{
 		++m_uBlockNum;
 
-		BlockItem* pBlockItem = new BlockItem();
+		BlockItem* pBlockItem = KNEW BlockItem();
 
 		KLIST_INIT(&(pBlockItem->node));
 		pBlockItem->items = (ObjectItem*)malloc(m_uCountInBlock * sizeof(ObjectItem));
@@ -197,7 +197,7 @@ public:
 		}
 
 		pRet = &(pObjectItem->object);
-		new (pRet) OBJECT_TYPE;
+		KNEW (pRet) OBJECT_TYPE;
 		return pRet;
 	}
 

@@ -29,7 +29,7 @@
     <ClInclude Include="Interface\IKPostProcess.h" />
     <ClInclude Include="Interface\IKQuery.h" />
     <ClInclude Include="Interface\IKRayTrace.h" />
-    <ClInclude Include="Interface\IKRayTracePipline.h" />
+    <ClInclude Include="Interface\IKRayTracePipeline.h" />
     <ClInclude Include="Interface\IKRenderCommand.h" />
     <ClInclude Include="Interface\IKRenderCore.h" />
     <ClInclude Include="Interface\IKRenderDevice.h" />

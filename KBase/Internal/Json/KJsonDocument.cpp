@@ -130,7 +130,7 @@ IKJsonValuePtr KJsonDocument::CreateFloat(float value)
 
 IKJsonValuePtr KJsonDocument::CreateString(const char* value)
 {
-	KJsonValue* jsonValue = new KJsonValue(m_Doc.GetAllocator());
+	KJsonValue* jsonValue = KNEW KJsonValue(m_Doc.GetAllocator());
 	jsonValue->SetString(value);
 	IKJsonValuePtr ret = IKJsonValuePtr(jsonValue);
 	return ret;

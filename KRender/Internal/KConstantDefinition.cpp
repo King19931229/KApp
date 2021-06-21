@@ -30,6 +30,11 @@ namespace KConstantDefinition
 					ConstantSemanticDetail DETAIL = { CS_VIEW_INV, EF_R32G32B32A32_FLOAT, 4, MEMBER_SIZE(CAMERA, VIEW_INV), MEMBER_OFFSET(CAMERA, VIEW_INV) };
 					CAMERA_DETAILS.semanticDetails.push_back(DETAIL);
 				}
+				// PROJ_INV
+				{
+					ConstantSemanticDetail DETAIL = { CS_PROJ_INV, EF_R32G32B32A32_FLOAT, 4, MEMBER_SIZE(CAMERA, PROJ_INV), MEMBER_OFFSET(CAMERA, PROJ_INV) };
+					CAMERA_DETAILS.semanticDetails.push_back(DETAIL);
+				}
 				CAMERA_DETAILS.bufferSize = sizeof(CAMERA);
 			}
 

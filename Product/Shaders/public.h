@@ -81,6 +81,7 @@ uniform CameraInfo
     mat4 view;
     mat4 proj;
 	mat4 viewInv;
+	mat4 projInv;
 }camera;
 
 layout(binding = BINDING_SHADOW)

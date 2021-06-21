@@ -66,8 +66,8 @@ public:
 	{
 		for(size_t i = 0; i < nSwapChainNum; ++i)
 		{
-			m_presentDoneSem.push_back(KSemaphorePtr(new KSemaphore()));
-			m_drawDoneSem.push_back(KSemaphorePtr(new KSemaphore()));
+			m_presentDoneSem.push_back(KSemaphorePtr(KNEW KSemaphore()));
+			m_drawDoneSem.push_back(KSemaphorePtr(KNEW KSemaphore()));
 
 			if(i != m_nDrawIdx)
 			{
@@ -117,7 +117,7 @@ public:
 				{
 					{
 						std::lock_guard<decltype(m_vsyncLock)> guard(m_vsyncLock);
-						m_vsyncSem = KSemaphorePtr(new KSemaphore()); 
+						m_vsyncSem = KSemaphorePtr(KNEW KSemaphore());
 					}
 
 					m_vsyncSem->Wait();
