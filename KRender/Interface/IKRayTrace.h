@@ -7,6 +7,7 @@ struct IKRayTraceScene
 	virtual ~IKRayTraceScene() {}
 	virtual bool Init(IKRenderScene* scene, const KCamera* camera, IKRayTracePipelinePtr& pipeline) = 0;
 	virtual bool UnInit() = 0;
+	virtual bool UpdateCamera(uint32_t frameIndex) = 0;
 };
 
 typedef std::shared_ptr<IKRayTraceScene> IKRayTraceScenePtr;

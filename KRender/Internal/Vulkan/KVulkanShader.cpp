@@ -120,6 +120,18 @@ static bool ShaderTypeToEShLanguage(ShaderType type, EShLanguage& language)
 	case ST_FRAGMENT:
 		language = EShLangFragment;
 		return true;
+	case ST_RAYGEN:
+		language = EShLangRayGen;
+		return true;
+	case ST_ANY_HIT:
+		language = EShLangAnyHit;
+		return true;
+	case ST_CLOSEST_HIT:
+		language = EShLangClosestHit;
+		return true;
+	case ST_MISS:
+		language = EShLangMiss;
+		return true;
 	default:
 		return false;
 	}
@@ -283,7 +295,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
 	ASSERT_RESULT(system);
 
-	m_SourceFile->SetHeaderText("#version 450\n");
+	m_SourceFile->SetHeaderText("#version 460\n");
 	m_SourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KVulkanShaderSourceHooker(system)));
 	if (m_SourceFile->Open(path.c_str()))
 	{

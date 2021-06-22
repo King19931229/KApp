@@ -26,6 +26,15 @@ bool KRayTraceManager::Execute(unsigned int chainImageIndex, unsigned int frameI
 	return true;
 }
 
+bool KRayTraceManager::UpdateCamera(uint32_t frameIndex)
+{
+	for (IKRayTraceScenePtr scene : m_Scenes)
+	{
+		scene->UpdateCamera(frameIndex);
+	}
+	return true;
+}
+
 bool KRayTraceManager::AcquireRayTraceScene(IKRayTraceScenePtr& scene)
 {
 	scene = IKRayTraceScenePtr(KNEW KRayTraceScene());

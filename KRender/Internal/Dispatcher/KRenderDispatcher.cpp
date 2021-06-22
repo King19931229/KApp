@@ -866,6 +866,8 @@ bool KRenderDispatcher::RemoveCallback(IKRenderWindow* window)
 
 bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 {
+	// KRenderGlobal::RayTraceManager.
+
 	if (m_Camera)
 	{
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);

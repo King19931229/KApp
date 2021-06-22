@@ -14,17 +14,18 @@ protected:
 	std::unordered_map<uint32_t, IKAccelerationStructure::BottomASTransformTuple> m_BottomASMap;
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_ShaderGroups;
 
+	std::vector<IKUniformBufferPtr> m_CameraBuffers;
+
 	struct Descriptor
 	{
 		VkDescriptorSetLayout layout;
 		VkDescriptorPool pool;
-		VkDescriptorSet set;
+		std::vector<VkDescriptorSet> sets;
 
 		Descriptor()
 		{
 			layout = VK_NULL_HANDEL;
 			pool = VK_NULL_HANDEL;
-			set = VK_NULL_HANDEL;
 		}
 	};
 	Descriptor m_Descriptor;
@@ -53,7 +54,6 @@ protected:
 		{
 			buffer = VK_NULL_HANDEL;
 			mapped = nullptr;
-			stridedDeviceAddressRegion = {};
 		}
 	};
 	struct ShaderBindingTables
@@ -103,6 +103,6 @@ public:
 	virtual bool RecreateAS();
 	virtual bool ResizeImage(uint32_t width, uint32_t height);
 
-	virtual bool Init();
+	virtual bool Init(const std::vector<IKUniformBufferPtr>& cameraBuffers);
 	virtual bool UnInit();
 };

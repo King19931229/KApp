@@ -13,8 +13,8 @@ protected:
 	{
 		glm::mat4 view;
 		glm::mat4 proj;
-		glm::mat4 invView;
-		glm::mat4 invProj;
+		glm::mat4 viewInv;
+		glm::mat4 projInv;
 	};
 public:
 	KRayTraceScene();
@@ -22,4 +22,5 @@ public:
 
 	virtual bool Init(IKRenderScene* scene, const KCamera* camera, IKRayTracePipelinePtr& pipeline);
 	virtual bool UnInit();
+	virtual bool UpdateCamera(uint32_t frameIndex);
 };

@@ -429,6 +429,18 @@ namespace KVulkanHelper
 		case ST_FRAGMENT:
 			bit = VK_SHADER_STAGE_FRAGMENT_BIT;
 			return true;
+		case ST_RAYGEN:
+			bit = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+			return true;
+		case ST_ANY_HIT:
+			bit = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+			return true;
+		case ST_CLOSEST_HIT:
+			bit = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+			return true;
+		case ST_MISS:
+			bit = VK_SHADER_STAGE_MISS_BIT_KHR;
+			return true;
 		default:
 			assert(false && "Unknown shader type flag");
 			return false;
@@ -439,7 +451,7 @@ namespace KVulkanHelper
 	bool ShaderTypesToVkShaderStageFlag(ShaderTypes shaderTypes, VkFlags& flags)
 	{
 		flags = 0;
-		const ShaderType candidate[]  = {ST_VERTEX, ST_FRAGMENT};
+		const ShaderType candidate[]  = {ST_VERTEX, ST_FRAGMENT, ST_RAYGEN, ST_ANY_HIT, ST_CLOSEST_HIT , ST_MISS };
 		for(ShaderType c : candidate)
 		{
 			if(shaderTypes & c)

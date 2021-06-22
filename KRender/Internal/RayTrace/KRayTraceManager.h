@@ -13,6 +13,7 @@ public:
 	bool Init();
 	bool UnInit();
 	bool Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChain* swapChain, IKCommandBufferPtr primaryCommandBuffer);
+	bool UpdateCamera(uint32_t frameIndex);
 
 	virtual bool AcquireRayTraceScene(IKRayTraceScenePtr& scene);
 	virtual bool RemoveRayTraceScene(IKRayTraceScenePtr& scene);
