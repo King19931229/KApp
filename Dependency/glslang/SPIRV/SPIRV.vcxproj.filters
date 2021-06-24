@@ -1,84 +1,90 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="GlslangToSpv.cpp">
+    <ClCompile Include="F:\KApp\Dependency\glslang\SPIRV\GlslangToSpv.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="InReadableOrder.cpp">
+    <ClCompile Include="F:\KApp\Dependency\glslang\SPIRV\InReadableOrder.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Logger.cpp">
+    <ClCompile Include="F:\KApp\Dependency\glslang\SPIRV\Logger.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="SpvBuilder.cpp">
+    <ClCompile Include="F:\KApp\Dependency\glslang\SPIRV\SpvBuilder.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="SpvPostProcess.cpp">
+    <ClCompile Include="F:\KApp\Dependency\glslang\SPIRV\SpvPostProcess.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="doc.cpp">
+    <ClCompile Include="F:\KApp\Dependency\glslang\SPIRV\doc.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="SpvTools.cpp">
+    <ClCompile Include="F:\KApp\Dependency\glslang\SPIRV\SpvTools.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="disassemble.cpp">
+    <ClCompile Include="F:\KApp\Dependency\glslang\SPIRV\disassemble.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\KApp\Dependency\glslang\SPIRV\CInterface\spirv_c_interface.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="bitutils.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\bitutils.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="spirv.hpp">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\spirv.hpp">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="GLSL.std.450.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\GLSL.std.450.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="GLSL.ext.EXT.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\GLSL.ext.EXT.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="GLSL.ext.KHR.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\GLSL.ext.KHR.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="GlslangToSpv.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\GlslangToSpv.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="hex_float.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\hex_float.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="Logger.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\Logger.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="SpvBuilder.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\SpvBuilder.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="spvIR.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\spvIR.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="doc.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\doc.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="SpvTools.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\SpvTools.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="disassemble.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\disassemble.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="GLSL.ext.AMD.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\GLSL.ext.AMD.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="GLSL.ext.NV.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\GLSL.ext.NV.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="NonSemanticDebugPrintf.h">
+    <ClInclude Include="F:\KApp\Dependency\glslang\SPIRV\NonSemanticDebugPrintf.h">
       <Filter>Source</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="F:\KApp\Dependency\glslang\SPIRV\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
-      <UniqueIdentifier>{456C339B-0597-3A44-9BC5-47244FBD8CF8}</UniqueIdentifier>
+      <UniqueIdentifier>{1D6E9D85-C878-3F52-9EE1-4DD47316D9D3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -472,10 +472,10 @@ gl_FragCoord origin is upper left
 0:117      Sequence
 0:117        move second child to first child ( temp 2-component vector of int)
 0:117          'r016' ( temp 2-component vector of int)
-0:?           bitCount ( temp 2-component vector of int)
-0:?             Constant:
-0:?               7 (const int)
-0:?               3 (const int)
+0:117          bitCount ( temp 2-component vector of int)
+0:117            Constant:
+0:117              7 (const int)
+0:117              3 (const int)
 0:118      Sequence
 0:118        move second child to first child ( temp 2-component vector of float)
 0:118          'r017' ( temp 2-component vector of float)
@@ -543,17 +543,17 @@ gl_FragCoord origin is upper left
 0:136      Sequence
 0:136        move second child to first child ( temp 2-component vector of uint)
 0:136          'r031' ( temp 2-component vector of uint)
-0:?           findMSB ( temp 2-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               8 (const uint)
+0:136          findMSB ( temp 2-component vector of uint)
+0:136            Constant:
+0:136              7 (const uint)
+0:136              8 (const uint)
 0:137      Sequence
 0:137        move second child to first child ( temp 2-component vector of uint)
 0:137          'r032' ( temp 2-component vector of uint)
-0:?           findLSB ( temp 2-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               8 (const uint)
+0:137          findLSB ( temp 2-component vector of uint)
+0:137            Constant:
+0:137              7 (const uint)
+0:137              8 (const uint)
 0:138      Sequence
 0:138        move second child to first child ( temp 2-component vector of float)
 0:138          'r033' ( temp 2-component vector of float)
@@ -673,10 +673,10 @@ gl_FragCoord origin is upper left
 0:159      Sequence
 0:159        move second child to first child ( temp 2-component vector of uint)
 0:159          'r054' ( temp 2-component vector of uint)
-0:?           bitFieldReverse ( temp 2-component vector of uint)
-0:?             Constant:
-0:?               1 (const uint)
-0:?               2 (const uint)
+0:159          bitFieldReverse ( temp 2-component vector of uint)
+0:159            Constant:
+0:159              1 (const uint)
+0:159              2 (const uint)
 0:160      Sequence
 0:160        move second child to first child ( temp 2-component vector of float)
 0:160          'r055' ( temp 2-component vector of float)
@@ -754,9 +754,9 @@ gl_FragCoord origin is upper left
 0:173          trunc ( temp 2-component vector of float)
 0:173            'inF0' ( in 2-component vector of float)
 0:176      Branch: Return with expression
-0:?         Constant:
-0:?           1.000000
-0:?           2.000000
+0:176        Constant:
+0:176          1.000000
+0:176          2.000000
 0:180  Function Definition: PixelShaderFunction3(vf3;vf3;vf3;vu3;vu3; ( temp 3-component vector of float)
 0:180    Function Parameters: 
 0:180      'inF0' ( in 3-component vector of float)
@@ -865,11 +865,11 @@ gl_FragCoord origin is upper left
 0:200      Sequence
 0:200        move second child to first child ( temp 3-component vector of uint)
 0:200          'r015' ( temp 3-component vector of uint)
-0:?           bitCount ( temp 3-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               3 (const uint)
-0:?               5 (const uint)
+0:200          bitCount ( temp 3-component vector of uint)
+0:200            Constant:
+0:200              7 (const uint)
+0:200              3 (const uint)
+0:200              5 (const uint)
 0:201      Sequence
 0:201        move second child to first child ( temp 3-component vector of float)
 0:201          'r016' ( temp 3-component vector of float)
@@ -943,19 +943,19 @@ gl_FragCoord origin is upper left
 0:217      Sequence
 0:217        move second child to first child ( temp 3-component vector of uint)
 0:217          'r032' ( temp 3-component vector of uint)
-0:?           findMSB ( temp 3-component vector of uint)
-0:?             Constant:
-0:?               2 (const uint)
-0:?               3 (const uint)
-0:?               4 (const uint)
+0:217          findMSB ( temp 3-component vector of uint)
+0:217            Constant:
+0:217              2 (const uint)
+0:217              3 (const uint)
+0:217              4 (const uint)
 0:218      Sequence
 0:218        move second child to first child ( temp 3-component vector of uint)
 0:218          'r033' ( temp 3-component vector of uint)
-0:?           findLSB ( temp 3-component vector of uint)
-0:?             Constant:
-0:?               2 (const uint)
-0:?               3 (const uint)
-0:?               4 (const uint)
+0:218          findLSB ( temp 3-component vector of uint)
+0:218            Constant:
+0:218              2 (const uint)
+0:218              3 (const uint)
+0:218              4 (const uint)
 0:219      Sequence
 0:219        move second child to first child ( temp 3-component vector of float)
 0:219          'r034' ( temp 3-component vector of float)
@@ -1083,11 +1083,11 @@ gl_FragCoord origin is upper left
 0:241      Sequence
 0:241        move second child to first child ( temp 3-component vector of uint)
 0:241          'r055' ( temp 3-component vector of uint)
-0:?           bitFieldReverse ( temp 3-component vector of uint)
-0:?             Constant:
-0:?               1 (const uint)
-0:?               2 (const uint)
-0:?               3 (const uint)
+0:241          bitFieldReverse ( temp 3-component vector of uint)
+0:241            Constant:
+0:241              1 (const uint)
+0:241              2 (const uint)
+0:241              3 (const uint)
 0:242      Sequence
 0:242        move second child to first child ( temp 3-component vector of float)
 0:242          'r056' ( temp 3-component vector of float)
@@ -1165,10 +1165,10 @@ gl_FragCoord origin is upper left
 0:255          trunc ( temp 3-component vector of float)
 0:255            'inF0' ( in 3-component vector of float)
 0:258      Branch: Return with expression
-0:?         Constant:
-0:?           1.000000
-0:?           2.000000
-0:?           3.000000
+0:258        Constant:
+0:258          1.000000
+0:258          2.000000
+0:258          3.000000
 0:262  Function Definition: PixelShaderFunction(vf4;vf4;vf4;vu4;vu4; ( temp 4-component vector of float)
 0:262    Function Parameters: 
 0:262      'inF0' ( in 4-component vector of float)
@@ -1279,12 +1279,12 @@ gl_FragCoord origin is upper left
 0:282      Sequence
 0:282        move second child to first child ( temp 4-component vector of uint)
 0:282          'r015' ( temp 4-component vector of uint)
-0:?           bitCount ( temp 4-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               3 (const uint)
-0:?               5 (const uint)
-0:?               2 (const uint)
+0:282          bitCount ( temp 4-component vector of uint)
+0:282            Constant:
+0:282              7 (const uint)
+0:282              3 (const uint)
+0:282              5 (const uint)
+0:282              2 (const uint)
 0:283      Sequence
 0:283        move second child to first child ( temp 4-component vector of float)
 0:283          'r016' ( temp 4-component vector of float)
@@ -1375,21 +1375,21 @@ gl_FragCoord origin is upper left
 0:299      Sequence
 0:299        move second child to first child ( temp 4-component vector of uint)
 0:299          'r032' ( temp 4-component vector of uint)
-0:?           findMSB ( temp 4-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               8 (const uint)
-0:?               9 (const uint)
-0:?               10 (const uint)
+0:299          findMSB ( temp 4-component vector of uint)
+0:299            Constant:
+0:299              7 (const uint)
+0:299              8 (const uint)
+0:299              9 (const uint)
+0:299              10 (const uint)
 0:300      Sequence
 0:300        move second child to first child ( temp 4-component vector of uint)
 0:300          'r033' ( temp 4-component vector of uint)
-0:?           findLSB ( temp 4-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               8 (const uint)
-0:?               9 (const uint)
-0:?               10 (const uint)
+0:300          findLSB ( temp 4-component vector of uint)
+0:300            Constant:
+0:300              7 (const uint)
+0:300              8 (const uint)
+0:300              9 (const uint)
+0:300              10 (const uint)
 0:301      Sequence
 0:301        move second child to first child ( temp 4-component vector of float)
 0:301          'r034' ( temp 4-component vector of float)
@@ -1509,12 +1509,12 @@ gl_FragCoord origin is upper left
 0:322      Sequence
 0:322        move second child to first child ( temp 4-component vector of uint)
 0:322          'r055' ( temp 4-component vector of uint)
-0:?           bitFieldReverse ( temp 4-component vector of uint)
-0:?             Constant:
-0:?               1 (const uint)
-0:?               2 (const uint)
-0:?               3 (const uint)
-0:?               4 (const uint)
+0:322          bitFieldReverse ( temp 4-component vector of uint)
+0:322            Constant:
+0:322              1 (const uint)
+0:322              2 (const uint)
+0:322              3 (const uint)
+0:322              4 (const uint)
 0:323      Sequence
 0:323        move second child to first child ( temp 4-component vector of float)
 0:323          'r056' ( temp 4-component vector of float)
@@ -1592,11 +1592,11 @@ gl_FragCoord origin is upper left
 0:336          trunc ( temp 4-component vector of float)
 0:336            'inF0' ( in 4-component vector of float)
 0:339      Branch: Return with expression
-0:?         Constant:
-0:?           1.000000
-0:?           2.000000
-0:?           3.000000
-0:?           4.000000
+0:339        Constant:
+0:339          1.000000
+0:339          2.000000
+0:339          3.000000
+0:339          4.000000
 0:402  Function Definition: PixelShaderFunction2x2(mf22;mf22;mf22; ( temp 2X2 matrix of float)
 0:402    Function Parameters: 
 0:402      'inF0' ( in 2X2 matrix of float)
@@ -1876,11 +1876,11 @@ gl_FragCoord origin is upper left
 0:404          trunc ( temp 2X2 matrix of float)
 0:404            'inF0' ( in 2X2 matrix of float)
 0:407      Branch: Return with expression
-0:?         Constant:
-0:?           2.000000
-0:?           2.000000
-0:?           2.000000
-0:?           2.000000
+0:407        Constant:
+0:407          2.000000
+0:407          2.000000
+0:407          2.000000
+0:407          2.000000
 0:411  Function Definition: PixelShaderFunction3x3(mf33;mf33;mf33; ( temp 3X3 matrix of float)
 0:411    Function Parameters: 
 0:411      'inF0' ( in 3X3 matrix of float)
@@ -2165,16 +2165,16 @@ gl_FragCoord origin is upper left
 0:413          trunc ( temp 3X3 matrix of float)
 0:413            'inF0' ( in 3X3 matrix of float)
 0:416      Branch: Return with expression
-0:?         Constant:
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
+0:416        Constant:
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
 0:420  Function Definition: PixelShaderFunction4x4(mf44;mf44;mf44; ( temp 4X4 matrix of float)
 0:420    Function Parameters: 
 0:420      'inF0' ( in 4X4 matrix of float)
@@ -2466,23 +2466,23 @@ gl_FragCoord origin is upper left
 0:422          trunc ( temp 4X4 matrix of float)
 0:422            'inF0' ( in 4X4 matrix of float)
 0:425      Branch: Return with expression
-0:?         Constant:
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
+0:425        Constant:
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
 0:443  Function Definition: TestGenMul2(f1;f1;vf2;vf2;mf22;mf22; ( temp void)
 0:443    Function Parameters: 
 0:443      'inF0' ( in float)
@@ -3303,10 +3303,10 @@ gl_FragCoord origin is upper left
 0:117      Sequence
 0:117        move second child to first child ( temp 2-component vector of int)
 0:117          'r016' ( temp 2-component vector of int)
-0:?           bitCount ( temp 2-component vector of int)
-0:?             Constant:
-0:?               7 (const int)
-0:?               3 (const int)
+0:117          bitCount ( temp 2-component vector of int)
+0:117            Constant:
+0:117              7 (const int)
+0:117              3 (const int)
 0:118      Sequence
 0:118        move second child to first child ( temp 2-component vector of float)
 0:118          'r017' ( temp 2-component vector of float)
@@ -3374,17 +3374,17 @@ gl_FragCoord origin is upper left
 0:136      Sequence
 0:136        move second child to first child ( temp 2-component vector of uint)
 0:136          'r031' ( temp 2-component vector of uint)
-0:?           findMSB ( temp 2-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               8 (const uint)
+0:136          findMSB ( temp 2-component vector of uint)
+0:136            Constant:
+0:136              7 (const uint)
+0:136              8 (const uint)
 0:137      Sequence
 0:137        move second child to first child ( temp 2-component vector of uint)
 0:137          'r032' ( temp 2-component vector of uint)
-0:?           findLSB ( temp 2-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               8 (const uint)
+0:137          findLSB ( temp 2-component vector of uint)
+0:137            Constant:
+0:137              7 (const uint)
+0:137              8 (const uint)
 0:138      Sequence
 0:138        move second child to first child ( temp 2-component vector of float)
 0:138          'r033' ( temp 2-component vector of float)
@@ -3504,10 +3504,10 @@ gl_FragCoord origin is upper left
 0:159      Sequence
 0:159        move second child to first child ( temp 2-component vector of uint)
 0:159          'r054' ( temp 2-component vector of uint)
-0:?           bitFieldReverse ( temp 2-component vector of uint)
-0:?             Constant:
-0:?               1 (const uint)
-0:?               2 (const uint)
+0:159          bitFieldReverse ( temp 2-component vector of uint)
+0:159            Constant:
+0:159              1 (const uint)
+0:159              2 (const uint)
 0:160      Sequence
 0:160        move second child to first child ( temp 2-component vector of float)
 0:160          'r055' ( temp 2-component vector of float)
@@ -3585,9 +3585,9 @@ gl_FragCoord origin is upper left
 0:173          trunc ( temp 2-component vector of float)
 0:173            'inF0' ( in 2-component vector of float)
 0:176      Branch: Return with expression
-0:?         Constant:
-0:?           1.000000
-0:?           2.000000
+0:176        Constant:
+0:176          1.000000
+0:176          2.000000
 0:180  Function Definition: PixelShaderFunction3(vf3;vf3;vf3;vu3;vu3; ( temp 3-component vector of float)
 0:180    Function Parameters: 
 0:180      'inF0' ( in 3-component vector of float)
@@ -3696,11 +3696,11 @@ gl_FragCoord origin is upper left
 0:200      Sequence
 0:200        move second child to first child ( temp 3-component vector of uint)
 0:200          'r015' ( temp 3-component vector of uint)
-0:?           bitCount ( temp 3-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               3 (const uint)
-0:?               5 (const uint)
+0:200          bitCount ( temp 3-component vector of uint)
+0:200            Constant:
+0:200              7 (const uint)
+0:200              3 (const uint)
+0:200              5 (const uint)
 0:201      Sequence
 0:201        move second child to first child ( temp 3-component vector of float)
 0:201          'r016' ( temp 3-component vector of float)
@@ -3774,19 +3774,19 @@ gl_FragCoord origin is upper left
 0:217      Sequence
 0:217        move second child to first child ( temp 3-component vector of uint)
 0:217          'r032' ( temp 3-component vector of uint)
-0:?           findMSB ( temp 3-component vector of uint)
-0:?             Constant:
-0:?               2 (const uint)
-0:?               3 (const uint)
-0:?               4 (const uint)
+0:217          findMSB ( temp 3-component vector of uint)
+0:217            Constant:
+0:217              2 (const uint)
+0:217              3 (const uint)
+0:217              4 (const uint)
 0:218      Sequence
 0:218        move second child to first child ( temp 3-component vector of uint)
 0:218          'r033' ( temp 3-component vector of uint)
-0:?           findLSB ( temp 3-component vector of uint)
-0:?             Constant:
-0:?               2 (const uint)
-0:?               3 (const uint)
-0:?               4 (const uint)
+0:218          findLSB ( temp 3-component vector of uint)
+0:218            Constant:
+0:218              2 (const uint)
+0:218              3 (const uint)
+0:218              4 (const uint)
 0:219      Sequence
 0:219        move second child to first child ( temp 3-component vector of float)
 0:219          'r034' ( temp 3-component vector of float)
@@ -3914,11 +3914,11 @@ gl_FragCoord origin is upper left
 0:241      Sequence
 0:241        move second child to first child ( temp 3-component vector of uint)
 0:241          'r055' ( temp 3-component vector of uint)
-0:?           bitFieldReverse ( temp 3-component vector of uint)
-0:?             Constant:
-0:?               1 (const uint)
-0:?               2 (const uint)
-0:?               3 (const uint)
+0:241          bitFieldReverse ( temp 3-component vector of uint)
+0:241            Constant:
+0:241              1 (const uint)
+0:241              2 (const uint)
+0:241              3 (const uint)
 0:242      Sequence
 0:242        move second child to first child ( temp 3-component vector of float)
 0:242          'r056' ( temp 3-component vector of float)
@@ -3996,10 +3996,10 @@ gl_FragCoord origin is upper left
 0:255          trunc ( temp 3-component vector of float)
 0:255            'inF0' ( in 3-component vector of float)
 0:258      Branch: Return with expression
-0:?         Constant:
-0:?           1.000000
-0:?           2.000000
-0:?           3.000000
+0:258        Constant:
+0:258          1.000000
+0:258          2.000000
+0:258          3.000000
 0:262  Function Definition: PixelShaderFunction(vf4;vf4;vf4;vu4;vu4; ( temp 4-component vector of float)
 0:262    Function Parameters: 
 0:262      'inF0' ( in 4-component vector of float)
@@ -4110,12 +4110,12 @@ gl_FragCoord origin is upper left
 0:282      Sequence
 0:282        move second child to first child ( temp 4-component vector of uint)
 0:282          'r015' ( temp 4-component vector of uint)
-0:?           bitCount ( temp 4-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               3 (const uint)
-0:?               5 (const uint)
-0:?               2 (const uint)
+0:282          bitCount ( temp 4-component vector of uint)
+0:282            Constant:
+0:282              7 (const uint)
+0:282              3 (const uint)
+0:282              5 (const uint)
+0:282              2 (const uint)
 0:283      Sequence
 0:283        move second child to first child ( temp 4-component vector of float)
 0:283          'r016' ( temp 4-component vector of float)
@@ -4206,21 +4206,21 @@ gl_FragCoord origin is upper left
 0:299      Sequence
 0:299        move second child to first child ( temp 4-component vector of uint)
 0:299          'r032' ( temp 4-component vector of uint)
-0:?           findMSB ( temp 4-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               8 (const uint)
-0:?               9 (const uint)
-0:?               10 (const uint)
+0:299          findMSB ( temp 4-component vector of uint)
+0:299            Constant:
+0:299              7 (const uint)
+0:299              8 (const uint)
+0:299              9 (const uint)
+0:299              10 (const uint)
 0:300      Sequence
 0:300        move second child to first child ( temp 4-component vector of uint)
 0:300          'r033' ( temp 4-component vector of uint)
-0:?           findLSB ( temp 4-component vector of uint)
-0:?             Constant:
-0:?               7 (const uint)
-0:?               8 (const uint)
-0:?               9 (const uint)
-0:?               10 (const uint)
+0:300          findLSB ( temp 4-component vector of uint)
+0:300            Constant:
+0:300              7 (const uint)
+0:300              8 (const uint)
+0:300              9 (const uint)
+0:300              10 (const uint)
 0:301      Sequence
 0:301        move second child to first child ( temp 4-component vector of float)
 0:301          'r034' ( temp 4-component vector of float)
@@ -4340,12 +4340,12 @@ gl_FragCoord origin is upper left
 0:322      Sequence
 0:322        move second child to first child ( temp 4-component vector of uint)
 0:322          'r055' ( temp 4-component vector of uint)
-0:?           bitFieldReverse ( temp 4-component vector of uint)
-0:?             Constant:
-0:?               1 (const uint)
-0:?               2 (const uint)
-0:?               3 (const uint)
-0:?               4 (const uint)
+0:322          bitFieldReverse ( temp 4-component vector of uint)
+0:322            Constant:
+0:322              1 (const uint)
+0:322              2 (const uint)
+0:322              3 (const uint)
+0:322              4 (const uint)
 0:323      Sequence
 0:323        move second child to first child ( temp 4-component vector of float)
 0:323          'r056' ( temp 4-component vector of float)
@@ -4423,11 +4423,11 @@ gl_FragCoord origin is upper left
 0:336          trunc ( temp 4-component vector of float)
 0:336            'inF0' ( in 4-component vector of float)
 0:339      Branch: Return with expression
-0:?         Constant:
-0:?           1.000000
-0:?           2.000000
-0:?           3.000000
-0:?           4.000000
+0:339        Constant:
+0:339          1.000000
+0:339          2.000000
+0:339          3.000000
+0:339          4.000000
 0:402  Function Definition: PixelShaderFunction2x2(mf22;mf22;mf22; ( temp 2X2 matrix of float)
 0:402    Function Parameters: 
 0:402      'inF0' ( in 2X2 matrix of float)
@@ -4707,11 +4707,11 @@ gl_FragCoord origin is upper left
 0:404          trunc ( temp 2X2 matrix of float)
 0:404            'inF0' ( in 2X2 matrix of float)
 0:407      Branch: Return with expression
-0:?         Constant:
-0:?           2.000000
-0:?           2.000000
-0:?           2.000000
-0:?           2.000000
+0:407        Constant:
+0:407          2.000000
+0:407          2.000000
+0:407          2.000000
+0:407          2.000000
 0:411  Function Definition: PixelShaderFunction3x3(mf33;mf33;mf33; ( temp 3X3 matrix of float)
 0:411    Function Parameters: 
 0:411      'inF0' ( in 3X3 matrix of float)
@@ -4996,16 +4996,16 @@ gl_FragCoord origin is upper left
 0:413          trunc ( temp 3X3 matrix of float)
 0:413            'inF0' ( in 3X3 matrix of float)
 0:416      Branch: Return with expression
-0:?         Constant:
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
-0:?           3.000000
+0:416        Constant:
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
+0:416          3.000000
 0:420  Function Definition: PixelShaderFunction4x4(mf44;mf44;mf44; ( temp 4X4 matrix of float)
 0:420    Function Parameters: 
 0:420      'inF0' ( in 4X4 matrix of float)
@@ -5297,23 +5297,23 @@ gl_FragCoord origin is upper left
 0:422          trunc ( temp 4X4 matrix of float)
 0:422            'inF0' ( in 4X4 matrix of float)
 0:425      Branch: Return with expression
-0:?         Constant:
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
-0:?           4.000000
+0:425        Constant:
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
+0:425          4.000000
 0:443  Function Definition: TestGenMul2(f1;f1;vf2;vf2;mf22;mf22; ( temp void)
 0:443    Function Parameters: 
 0:443      'inF0' ( in float)
@@ -5659,7 +5659,7 @@ gl_FragCoord origin is upper left
 
 Validation failed
 // Module Version 10000
-// Generated by (magic number): 80008
+// Generated by (magic number): 8000a
 // Id's are bound by 1839
 
                               Capability Shader
@@ -6389,7 +6389,7 @@ Validation failed
        341(r060):      7(ptr) Variable Function
        344(r061):      7(ptr) Variable Function
              140:    6(float) Load 13(inF0)
-             142:   137(bool) FOrdNotEqual 140 141
+             142:   137(bool) FUnordNotEqual 140 141
              143:   137(bool) All 142
                               Store 139(r000) 143
              145:    6(float) Load 13(inF0)
@@ -6399,7 +6399,7 @@ Validation failed
              149:    6(float) ExtInst 1(GLSL.std.450) 17(Acos) 148
                               Store 147(r002) 149
              151:    6(float) Load 13(inF0)
-             152:   137(bool) FOrdNotEqual 151 141
+             152:   137(bool) FUnordNotEqual 151 141
              153:   137(bool) Any 152
                               Store 150(r003) 153
              155:    6(float) Load 13(inF0)
@@ -6674,7 +6674,7 @@ Validation failed
        583(r065):     27(ptr) Variable Function
        586(r066):     27(ptr) Variable Function
              352:   26(fvec2) Load 31(inF0)
-             355:  353(bvec2) FOrdNotEqual 352 354
+             355:  353(bvec2) FUnordNotEqual 352 354
              356:   137(bool) All 355
                               Store 351(r000) 356
              358:   26(fvec2) Load 31(inF0)
@@ -6684,7 +6684,7 @@ Validation failed
              362:   26(fvec2) ExtInst 1(GLSL.std.450) 17(Acos) 361
                               Store 360(r002) 362
              364:   26(fvec2) Load 31(inF0)
-             365:  353(bvec2) FOrdNotEqual 364 354
+             365:  353(bvec2) FUnordNotEqual 364 354
              366:   137(bool) Any 365
                               Store 363(r003) 366
              368:   26(fvec2) Load 31(inF0)
@@ -6976,7 +6976,7 @@ Validation failed
        831(r066):     39(ptr) Variable Function
        834(r067):     39(ptr) Variable Function
              593:   38(fvec3) Load 43(inF0)
-             596:  594(bvec3) FOrdNotEqual 593 595
+             596:  594(bvec3) FUnordNotEqual 593 595
              597:   137(bool) All 596
                               Store 592(r000) 597
              599:   38(fvec3) Load 43(inF0)
@@ -6986,7 +6986,7 @@ Validation failed
              603:   38(fvec3) ExtInst 1(GLSL.std.450) 17(Acos) 602
                               Store 601(r002) 603
              605:   38(fvec3) Load 43(inF0)
-             606:  594(bvec3) FOrdNotEqual 605 595
+             606:  594(bvec3) FUnordNotEqual 605 595
              607:   137(bool) Any 606
                               Store 604(r003) 607
              609:   38(fvec3) Load 43(inF0)
@@ -7286,7 +7286,7 @@ Validation failed
       1080(r066):     51(ptr) Variable Function
       1083(r067):     51(ptr) Variable Function
              842:   50(fvec4) Load 55(inF0)
-             845:  843(bvec4) FOrdNotEqual 842 844
+             845:  843(bvec4) FUnordNotEqual 842 844
              846:   137(bool) All 845
                               Store 841(r000) 846
              848:   50(fvec4) Load 55(inF0)
@@ -7296,7 +7296,7 @@ Validation failed
              852:   50(fvec4) ExtInst 1(GLSL.std.450) 17(Acos) 851
                               Store 850(r002) 852
              854:   50(fvec4) Load 55(inF0)
-             855:  843(bvec4) FOrdNotEqual 854 844
+             855:  843(bvec4) FUnordNotEqual 854 844
              856:   137(bool) Any 855
                               Store 853(r003) 856
              858:   50(fvec4) Load 55(inF0)
@@ -7578,7 +7578,7 @@ Validation failed
       1257(r044):     63(ptr) Variable Function
       1262(r046):     63(ptr) Variable Function
             1091:          62 Load 65(inF0)
-            1093:        1092 FOrdNotEqual 1091 141
+            1093:        1092 FUnordNotEqual 1091 141
             1094:   137(bool) All 1093
                               Store 1090(r000) 1094
             1096:          62 Load 65(inF0)
@@ -7587,7 +7587,7 @@ Validation failed
             1098:          62 Load 65(inF0)
             1099:          62 ExtInst 1(GLSL.std.450) 17(Acos) 1098
             1101:          62 Load 65(inF0)
-            1102:        1092 FOrdNotEqual 1101 141
+            1102:        1092 FUnordNotEqual 1101 141
             1103:   137(bool) Any 1102
                               Store 1100(r003) 1103
             1105:          62 Load 65(inF0)
@@ -7807,7 +7807,7 @@ Validation failed
       1439(r044):     71(ptr) Variable Function
       1444(r046):     71(ptr) Variable Function
             1270:          70 Load 73(inF0)
-            1272:        1271 FOrdNotEqual 1270 141
+            1272:        1271 FUnordNotEqual 1270 141
             1273:   137(bool) All 1272
                               Store 1269(r000) 1273
             1275:          70 Load 73(inF0)
@@ -7816,7 +7816,7 @@ Validation failed
             1277:          70 Load 73(inF0)
             1278:          70 ExtInst 1(GLSL.std.450) 17(Acos) 1277
             1280:          70 Load 73(inF0)
-            1281:        1271 FOrdNotEqual 1280 141
+            1281:        1271 FUnordNotEqual 1280 141
             1282:   137(bool) Any 1281
                               Store 1279(r003) 1282
             1284:          70 Load 73(inF0)
@@ -8039,7 +8039,7 @@ Validation failed
       1624(r044):     79(ptr) Variable Function
       1629(r046):     79(ptr) Variable Function
             1452:          78 Load 81(inF0)
-            1454:        1453 FOrdNotEqual 1452 141
+            1454:        1453 FUnordNotEqual 1452 141
             1455:   137(bool) All 1454
                               Store 1451(r000) 1455
             1457:          78 Load 81(inF0)
@@ -8048,7 +8048,7 @@ Validation failed
             1459:          78 Load 81(inF0)
             1460:          78 ExtInst 1(GLSL.std.450) 17(Acos) 1459
             1462:          78 Load 81(inF0)
-            1463:        1453 FOrdNotEqual 1462 141
+            1463:        1453 FUnordNotEqual 1462 141
             1464:   137(bool) Any 1463
                               Store 1461(r003) 1464
             1466:          78 Load 81(inF0)
