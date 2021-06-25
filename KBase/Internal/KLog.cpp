@@ -342,7 +342,7 @@ bool KLogger::LogPrefix(LogLevel level, const char* pszPrefix, const char* pszFo
 	nPos += SNPRINTF(szBuffer, sizeof(szBuffer) - nPos - 1, "%s ", pszPrefix);
 
 	int requireBufferSize = VSNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos - 1, pszFormat, list);
-	if (requireBufferSize > sizeof(szBuffer) - nPos - 1)
+	if (requireBufferSize > (int)sizeof(szBuffer) - nPos - 1)
 	{
 		char *szAllocBuffer = KNEW char[requireBufferSize + 1 + 2048];
 		memcpy(szAllocBuffer, szBuffer, nPos);
@@ -401,7 +401,7 @@ bool KLogger::LogPrefixSuffix(LogLevel level, const char* pszPrefix, const char*
 	nPos += SNPRINTF(szBuffer, sizeof(szBuffer), "%s ", pszPrefix);
 
 	int requireBufferSize = VSNPRINTF(szBuffer + nPos, sizeof(szBuffer) - nPos - 1, pszFormat, list);
-	if (requireBufferSize > sizeof(szBuffer) - nPos - 1)
+	if (requireBufferSize > (int)sizeof(szBuffer) - nPos - 1)
 	{
 		char *szAllocBuffer = KNEW char[requireBufferSize + 1 + 2048];
 		memcpy(szAllocBuffer, szBuffer, nPos);
