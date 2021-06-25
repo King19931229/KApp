@@ -1,59 +1,51 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\CInterface\glslang_c_interface.cpp">
-      <Filter>CInterface</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Public\ShaderLang.h">
+    <ClInclude Include="Public\ShaderLang.h">
       <Filter>Public</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\arrays.h">
+    <ClInclude Include="Include\glslang_c_interface.h">
+      <Filter>CInterface</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\arrays.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\BaseTypes.h">
+    <ClInclude Include="Include\BaseTypes.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\Common.h">
+    <ClInclude Include="Include\Common.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\ConstantUnion.h">
+    <ClInclude Include="Include\ConstantUnion.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\glslang_c_interface.h">
+    <ClInclude Include="Include\glslang_c_shader_types.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\glslang_c_shader_types.h">
+    <ClInclude Include="Include\InfoSink.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\InfoSink.h">
+    <ClInclude Include="Include\InitializeGlobals.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\InitializeGlobals.h">
+    <ClInclude Include="Include\intermediate.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\intermediate.h">
+    <ClInclude Include="Include\PoolAlloc.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\PoolAlloc.h">
+    <ClInclude Include="Include\ResourceLimits.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\ResourceLimits.h">
+    <ClInclude Include="Include\ShHandle.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\ShHandle.h">
+    <ClInclude Include="Include\SpirvIntrinsics.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\SpirvIntrinsics.h">
+    <ClInclude Include="Include\Types.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\Types.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="F:\KApp\Dependency\glslang\glslang\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="CInterface">
@@ -65,5 +57,10 @@
     <Filter Include="Public">
       <UniqueIdentifier>{8EDA4753-81F4-3D09-A68F-5F385D7FD89B}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CInterface\glslang_c_interface.cpp">
+      <Filter>Include</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

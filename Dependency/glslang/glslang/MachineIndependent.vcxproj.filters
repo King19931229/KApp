@@ -1,215 +1,197 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\CMakeFiles\MachineIndependent.dir\cmake_pch.cxx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\glslang_tab.cpp">
+    <ClCompile Include="MachineIndependent\glslang_tab.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\attribute.cpp">
+    <ClCompile Include="MachineIndependent\attribute.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\Constant.cpp">
+    <ClCompile Include="MachineIndependent\Constant.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\iomapper.cpp">
+    <ClCompile Include="MachineIndependent\iomapper.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\InfoSink.cpp">
+    <ClCompile Include="MachineIndependent\InfoSink.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\Initialize.cpp">
+    <ClCompile Include="MachineIndependent\Initialize.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\IntermTraverse.cpp">
+    <ClCompile Include="MachineIndependent\IntermTraverse.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\Intermediate.cpp">
+    <ClCompile Include="MachineIndependent\Intermediate.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\ParseContextBase.cpp">
+    <ClCompile Include="MachineIndependent\ParseContextBase.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\ParseHelper.cpp">
+    <ClCompile Include="MachineIndependent\ParseHelper.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\PoolAlloc.cpp">
+    <ClCompile Include="MachineIndependent\PoolAlloc.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\RemoveTree.cpp">
+    <ClCompile Include="MachineIndependent\RemoveTree.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\Scan.cpp">
+    <ClCompile Include="MachineIndependent\Scan.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\ShaderLang.cpp">
+    <ClCompile Include="MachineIndependent\ShaderLang.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\SpirvIntrinsics.cpp">
+    <ClCompile Include="MachineIndependent\SpirvIntrinsics.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\SymbolTable.cpp">
+    <ClCompile Include="MachineIndependent\SymbolTable.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\Versions.cpp">
+    <ClCompile Include="MachineIndependent\Versions.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\intermOut.cpp">
+    <ClCompile Include="MachineIndependent\intermOut.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\limits.cpp">
+    <ClCompile Include="MachineIndependent\limits.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\linkValidate.cpp">
+    <ClCompile Include="MachineIndependent\linkValidate.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\parseConst.cpp">
+    <ClCompile Include="MachineIndependent\parseConst.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\reflection.cpp">
+    <ClCompile Include="MachineIndependent\reflection.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\Pp.cpp">
+    <ClCompile Include="MachineIndependent\preprocessor\Pp.cpp">
       <Filter>MachineIndependent\Preprocessor</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpAtom.cpp">
+    <ClCompile Include="MachineIndependent\preprocessor\PpAtom.cpp">
       <Filter>MachineIndependent\Preprocessor</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpContext.cpp">
+    <ClCompile Include="MachineIndependent\preprocessor\PpContext.cpp">
       <Filter>MachineIndependent\Preprocessor</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpScanner.cpp">
+    <ClCompile Include="MachineIndependent\preprocessor\PpScanner.cpp">
       <Filter>MachineIndependent\Preprocessor</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpTokens.cpp">
+    <ClCompile Include="MachineIndependent\preprocessor\PpTokens.cpp">
       <Filter>MachineIndependent\Preprocessor</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\propagateNoContraction.cpp">
+    <ClCompile Include="MachineIndependent\propagateNoContraction.cpp">
       <Filter>MachineIndependent</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslAttributes.cpp">
+    <ClCompile Include="HLSL\hlslAttributes.cpp">
       <Filter>HLSL</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslParseHelper.cpp">
+    <ClCompile Include="HLSL\hlslParseHelper.cpp">
       <Filter>HLSL</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslScanContext.cpp">
+    <ClCompile Include="HLSL\hlslScanContext.cpp">
       <Filter>HLSL</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslOpMap.cpp">
+    <ClCompile Include="HLSL\hlslOpMap.cpp">
       <Filter>HLSL</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslTokenStream.cpp">
+    <ClCompile Include="HLSL\hlslTokenStream.cpp">
       <Filter>HLSL</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslGrammar.cpp">
+    <ClCompile Include="HLSL\hlslGrammar.cpp">
       <Filter>HLSL</Filter>
     </ClCompile>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslParseables.cpp">
+    <ClCompile Include="HLSL\hlslParseables.cpp">
       <Filter>HLSL</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\attribute.h">
+    <ClInclude Include="MachineIndependent\attribute.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\glslang_tab.cpp.h">
+    <ClInclude Include="MachineIndependent\glslang_tab.cpp.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\gl_types.h">
+    <ClInclude Include="MachineIndependent\gl_types.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\Initialize.h">
+    <ClInclude Include="MachineIndependent\Initialize.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\iomapper.h">
+    <ClInclude Include="MachineIndependent\iomapper.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\LiveTraverser.h">
+    <ClInclude Include="MachineIndependent\LiveTraverser.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\localintermediate.h">
+    <ClInclude Include="MachineIndependent\localintermediate.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\ParseHelper.h">
+    <ClInclude Include="MachineIndependent\ParseHelper.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\reflection.h">
+    <ClInclude Include="MachineIndependent\reflection.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\RemoveTree.h">
+    <ClInclude Include="MachineIndependent\RemoveTree.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\Scan.h">
+    <ClInclude Include="MachineIndependent\Scan.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\ScanContext.h">
+    <ClInclude Include="MachineIndependent\ScanContext.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\SymbolTable.h">
+    <ClInclude Include="MachineIndependent\SymbolTable.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\Versions.h">
+    <ClInclude Include="MachineIndependent\Versions.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\parseVersions.h">
+    <ClInclude Include="MachineIndependent\parseVersions.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\propagateNoContraction.h">
+    <ClInclude Include="MachineIndependent\propagateNoContraction.h">
       <Filter>MachineIndependent</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpContext.h">
+    <ClInclude Include="MachineIndependent\preprocessor\PpContext.h">
       <Filter>MachineIndependent\Preprocessor</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpTokens.h">
+    <ClInclude Include="MachineIndependent\preprocessor\PpTokens.h">
       <Filter>MachineIndependent\Preprocessor</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslAttributes.h">
+    <ClInclude Include="HLSL\hlslAttributes.h">
       <Filter>HLSL</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslParseHelper.h">
+    <ClInclude Include="HLSL\hlslParseHelper.h">
       <Filter>HLSL</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslTokens.h">
+    <ClInclude Include="HLSL\hlslTokens.h">
       <Filter>HLSL</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslScanContext.h">
+    <ClInclude Include="HLSL\hlslScanContext.h">
       <Filter>HLSL</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslOpMap.h">
+    <ClInclude Include="HLSL\hlslOpMap.h">
       <Filter>HLSL</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslTokenStream.h">
+    <ClInclude Include="HLSL\hlslTokenStream.h">
       <Filter>HLSL</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslGrammar.h">
+    <ClInclude Include="HLSL\hlslGrammar.h">
       <Filter>HLSL</Filter>
     </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\HLSL\hlslParseables.h">
+    <ClInclude Include="HLSL\hlslParseables.h">
       <Filter>HLSL</Filter>
-    </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\CMakeFiles\MachineIndependent.dir\Debug\cmake_pch.hxx">
-      <Filter>Precompile Header File</Filter>
-    </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\CMakeFiles\MachineIndependent.dir\Release\cmake_pch.hxx">
-      <Filter>Precompile Header File</Filter>
-    </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\CMakeFiles\MachineIndependent.dir\MinSizeRel\cmake_pch.hxx">
-      <Filter>Precompile Header File</Filter>
-    </ClInclude>
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\CMakeFiles\MachineIndependent.dir\RelWithDebInfo\cmake_pch.hxx">
-      <Filter>Precompile Header File</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="F:\KApp\Dependency\glslang\glslang\CMakeLists.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\glslang.m4">
+    <None Include="MachineIndependent\glslang.m4">
       <Filter>MachineIndependent</Filter>
     </None>
-    <None Include="F:\KApp\Dependency\glslang\glslang\MachineIndependent\glslang.y">
+    <None Include="MachineIndependent\glslang.y">
       <Filter>MachineIndependent</Filter>
     </None>
   </ItemGroup>

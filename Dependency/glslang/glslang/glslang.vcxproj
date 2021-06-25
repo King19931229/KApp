@@ -12,17 +12,9 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="MinSizeRel|x64">
-      <Configuration>MinSizeRel</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="RelWithDebInfo|x64">
-      <Configuration>RelWithDebInfo</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{11A68310-B0B8-3460-9D6A-1444A607CFDC}</ProjectGuid>
+    <ProjectGuid>{A9AC8101-2371-39CE-AEB5-DA2CB073C4C8}</ProjectGuid>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <Keyword>Win32Proj</Keyword>
     <Platform>x64</Platform>
@@ -63,14 +55,6 @@
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../Publish/Release/x64/</OutDir>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">F:\KApp\Dependency\glslang\glslang\MinSizeRel\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">glslang.dir\MinSizeRel\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">glslang</TargetName>
-    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.lib</TargetExt>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">F:\KApp\Dependency\glslang\glslang\RelWithDebInfo\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">glslang.dir\RelWithDebInfo\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">glslang</TargetName>
-    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.lib</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -125,18 +109,6 @@
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
-    <ResourceCompile>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=0;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>F:\KApp\Dependency\glslang\glslang\..;F:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-    <Midl>
-      <AdditionalIncludeDirectories>F:\KApp\Dependency\glslang\glslang\..;F:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
-      <HeaderFileName>%(Filename).h</HeaderFileName>
-      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
-      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
-      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
-    </Midl>
     <Lib>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
     </Lib>
@@ -209,79 +181,22 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="F:\KApp\Dependency\glslang\glslang\CMakeLists.txt">
-      <StdOutEncoding>UTF-8</StdOutEncoding>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule F:/KApp/Dependency/glslang/glslang/CMakeLists.txt</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
-"D:\Program Files\CMake\bin\cmake.exe" -SF:/KApp/Dependency/glslang -BF:/KApp/Dependency/glslang --check-stamp-file F:/KApp/Dependency/glslang/glslang/CMakeFiles/generate.stamp
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">F:\KApp\Dependency\glslang\glslang\CMakeFiles\generate.stamp</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule F:/KApp/Dependency/glslang/glslang/CMakeLists.txt</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
-"D:\Program Files\CMake\bin\cmake.exe" -SF:/KApp/Dependency/glslang -BF:/KApp/Dependency/glslang --check-stamp-file F:/KApp/Dependency/glslang/glslang/CMakeFiles/generate.stamp
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">F:\KApp\Dependency\glslang\glslang\CMakeFiles\generate.stamp</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule F:/KApp/Dependency/glslang/glslang/CMakeLists.txt</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
-"D:\Program Files\CMake\bin\cmake.exe" -SF:/KApp/Dependency/glslang -BF:/KApp/Dependency/glslang --check-stamp-file F:/KApp/Dependency/glslang/glslang/CMakeFiles/generate.stamp
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">F:\KApp\Dependency\glslang\glslang\CMakeFiles\generate.stamp</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule F:/KApp/Dependency/glslang/glslang/CMakeLists.txt</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
-"D:\Program Files\CMake\bin\cmake.exe" -SF:/KApp/Dependency/glslang -BF:/KApp/Dependency/glslang --check-stamp-file F:/KApp/Dependency/glslang/glslang/CMakeFiles/generate.stamp
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">F:\KApp\Dependency\glslang\glslang\CMakeFiles\generate.stamp</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="F:\KApp\Dependency\glslang\glslang\CInterface\glslang_c_interface.cpp" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Public\ShaderLang.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\arrays.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\BaseTypes.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\Common.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\ConstantUnion.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\glslang_c_interface.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\glslang_c_shader_types.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\InfoSink.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\InitializeGlobals.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\intermediate.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\PoolAlloc.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\ResourceLimits.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\ShHandle.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\SpirvIntrinsics.h" />
-    <ClInclude Include="F:\KApp\Dependency\glslang\glslang\Include\Types.h" />
+    <ClCompile Include="CInterface\glslang_c_interface.cpp" />
+    <ClInclude Include="Public\ShaderLang.h" />
+    <ClInclude Include="Include\arrays.h" />
+    <ClInclude Include="Include\BaseTypes.h" />
+    <ClInclude Include="Include\Common.h" />
+    <ClInclude Include="Include\ConstantUnion.h" />
+    <ClInclude Include="Include\glslang_c_interface.h" />
+    <ClInclude Include="Include\glslang_c_shader_types.h" />
+    <ClInclude Include="Include\InfoSink.h" />
+    <ClInclude Include="Include\InitializeGlobals.h" />
+    <ClInclude Include="Include\intermediate.h" />
+    <ClInclude Include="Include\PoolAlloc.h" />
+    <ClInclude Include="Include\ResourceLimits.h" />
+    <ClInclude Include="Include\ShHandle.h" />
+    <ClInclude Include="Include\SpirvIntrinsics.h" />
+    <ClInclude Include="Include\Types.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="F:\KApp\Dependency\glslang\ZERO_CHECK.vcxproj">
