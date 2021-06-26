@@ -47,7 +47,7 @@ int main()
 			return res;
 		};
 
-		output.pData = KImageDataPtr(new KImageData(destImageSize));
+		output.pData = KImageDataPtr(KNEW KImageData(destImageSize));
 		output.pData->GetSubImageInfo().push_back(KSubImageInfo());
 
 		unsigned char* destImage = output.pData->GetData();

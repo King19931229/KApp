@@ -175,6 +175,19 @@ bool KVulkanVertexBuffer::CopyTo(IKVertexBufferPtr pDest)
 	return false;
 }
 
+VkDeviceAddress KVulkanVertexBuffer::GetDeviceAddress() const
+{
+	VkDeviceAddress address = VK_NULL_HANDEL;
+	if (KVulkanHelper::GetBufferDeviceAddress(m_vkBuffer, address))
+	{
+		return address;
+	}
+	else
+	{
+		return VK_NULL_HANDEL;
+	}
+}
+
 // KVulkanIndexBuffer
 KVulkanIndexBuffer::KVulkanIndexBuffer()
 	: KIndexBufferBase(),
@@ -347,6 +360,19 @@ bool KVulkanIndexBuffer::CopyFrom(IKIndexBufferPtr pSource)
 bool KVulkanIndexBuffer::CopyTo(IKIndexBufferPtr pDest)
 {
 	return false;
+}
+
+VkDeviceAddress KVulkanIndexBuffer::GetDeviceAddress() const
+{
+	VkDeviceAddress address = VK_NULL_HANDEL;
+	if (KVulkanHelper::GetBufferDeviceAddress(m_vkBuffer, address))
+	{
+		return address;
+	}
+	else
+	{
+		return VK_NULL_HANDEL;
+	}
 }
 
 // KVulkanUniformBuffer

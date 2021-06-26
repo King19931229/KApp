@@ -72,11 +72,11 @@ int main()
 
 			for (int i = 0; i < nTaskCount; ++i)
 			{
-				KTaskUnitPtr pUnit0(new Func0(2 * i));
+				KTaskUnitPtr pUnit0(KNEW Func0(2 * i));
 				KTaskUnitProcessorPtr ptr0 = Exc.Submit(pUnit0);
 				allPtr0.push_back(ptr0);
 
-				KTaskUnitPtr pUnit1(new Func1(ptr0, 2 * i + 1));
+				KTaskUnitPtr pUnit1(KNEW Func1(ptr0, 2 * i + 1));
 				KTaskUnitProcessorPtr ptr1 = Exc.Submit(pUnit1);
 				allPtr1.push_back(ptr1);
 			}

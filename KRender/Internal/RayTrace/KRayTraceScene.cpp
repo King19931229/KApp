@@ -50,7 +50,8 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTrac
 bool KRayTraceScene::UnInit()
 {
 	m_Scene = nullptr;
-	m_Pipeline = nullptr;
+	m_Camera = nullptr;
+	SAFE_UNINIT(m_Pipeline);
 	SAFE_UNINIT_CONTAINER(m_CameraBuffers);
 	return true;
 }

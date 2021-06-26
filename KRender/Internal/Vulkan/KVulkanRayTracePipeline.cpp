@@ -24,6 +24,11 @@ KVulkanRayTracePipeline::KVulkanRayTracePipeline()
 
 KVulkanRayTracePipeline::~KVulkanRayTracePipeline()
 {
+	// 暂时先认为Shader不是通过Manager创建的
+	SAFE_UNINIT(m_AnyHitShader);
+	SAFE_UNINIT(m_ClosestHitShader);
+	SAFE_UNINIT(m_RayGenShader);
+	SAFE_UNINIT(m_MissShader);
 	ASSERT_RESULT(!m_Inited && "should be destoryed");
 }
 
@@ -55,6 +60,54 @@ void KVulkanRayTracePipeline::DestroyStorgeImage()
 	SAFE_UNINIT(m_StorgeRT);
 }
 
+void KVulkanRayTracePipeline::CreateStrogeScene()
+{
+	KVulkanAccelerationStructure* vulkanAS = (KVulkanAccelerationStructure*)m_TopDown.get();
+	const std::vector<KVulkanRayTraceInstance>& instances = vulkanAS->GetInstances();
+
+	VkDeviceSize size = (VkDeviceSize)(instances.size() * sizeof(KVulkanRayTraceInstance));
+
+	KVulkanInitializer::CreateVkBuffer(
+		(VkDeviceSize)std::max(sizeof(KVulkanRayTraceInstance), size),
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+		// Ray tracing
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		m_Scene.buffer,
+		m_Scene.allocInfo);
+
+	if (size)
+	{
+		VkBuffer vkStageBuffer = VK_NULL_HANDEL;
+		KVulkanHeapAllocator::AllocInfo stageAllocInfo;
+
+		KVulkanInitializer::CreateVkBuffer(
+			size,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			vkStageBuffer,
+			stageAllocInfo);
+
+		void* data = nullptr;
+		VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, stageAllocInfo.vkMemroy, stageAllocInfo.vkOffset, size, 0, &data));
+		memcpy(data, instances.data(), (size_t)size);
+		vkUnmapMemory(KVulkanGlobal::device, stageAllocInfo.vkMemroy);
+
+		KVulkanInitializer::CopyVkBuffer(vkStageBuffer, m_Scene.buffer, size);
+		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
+	}
+}
+
+void KVulkanRayTracePipeline::DestroyStrogeScene()
+{
+	if (m_Scene.buffer != VK_NULL_HANDEL)
+	{
+		vkDestroyBuffer(KVulkanGlobal::device, m_Scene.buffer, nullptr);
+		KVulkanHeapAllocator::Free(m_Scene.allocInfo);
+		m_Scene.buffer = VK_NULL_HANDEL;
+	}
+}
+
 void KVulkanRayTracePipeline::CreateDescriptorSet()
 {
 	uint32_t frames = KRenderGlobal::RenderDevice->GetNumFramesInFlight();
@@ -80,11 +133,18 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 	uniformBinding.binding = 2;
 	uniformBinding.descriptorCount = 1;
 
+	VkDescriptorSetLayoutBinding sceneBinding = {};
+	sceneBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	sceneBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
+	sceneBinding.binding = 3;
+	sceneBinding.descriptorCount = 1;
+
 	VkDescriptorSetLayoutBinding setLayoutBindings[] =
 	{
 		accelerationStructureBinding,
 		storageImageBinding,
-		uniformBinding
+		uniformBinding,
+		sceneBinding
 	};
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = {};
@@ -105,7 +165,8 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 	{
 		{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
 		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 }
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 }
 	};
 
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
@@ -148,8 +209,8 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 
 		KVulkanRenderTarget* vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(m_StorgeRT.get());
 		KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(vulkanRenderTarget->GetFrameBuffer().get());
-		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };
-	
+
+		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };	
 		VkWriteDescriptorSet storageImageWrite = {};
 		storageImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		storageImageWrite.dstSet = m_Descriptor.sets[frameIndex];
@@ -160,18 +221,31 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 
 		KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(m_CameraBuffers[frameIndex].get());
 
-		VkDescriptorBufferInfo bufferInfo = {};
-		bufferInfo.buffer = vulkanUniformBuffer->GetVulkanHandle();
-		bufferInfo.offset = 0;
-		bufferInfo.range = vulkanUniformBuffer->GetBufferSize();
+		VkDescriptorBufferInfo uniformBufferInfo = {};
+		uniformBufferInfo.buffer = vulkanUniformBuffer->GetVulkanHandle();
+		uniformBufferInfo.offset = 0;
+		uniformBufferInfo.range = vulkanUniformBuffer->GetBufferSize();
 
 		VkWriteDescriptorSet uniformWrite = {};
 		uniformWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		uniformWrite.dstSet = m_Descriptor.sets[frameIndex];
 		uniformWrite.dstBinding = 2;
 		uniformWrite.descriptorCount = 1;
-		uniformWrite.pBufferInfo = &bufferInfo;
+		uniformWrite.pBufferInfo = &uniformBufferInfo;
 		uniformWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+		VkDescriptorBufferInfo sceneBufferInfo;
+		sceneBufferInfo.buffer = m_Scene.buffer;
+		sceneBufferInfo.offset = 0;
+		sceneBufferInfo.range = VK_WHOLE_SIZE;
+
+		VkWriteDescriptorSet sceneWrite = {};
+		sceneWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		sceneWrite.dstSet = m_Descriptor.sets[frameIndex];
+		sceneWrite.dstBinding = 3;
+		sceneWrite.descriptorCount = 1;
+		sceneWrite.pBufferInfo = &sceneBufferInfo;
+		sceneWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 
 		VkWriteDescriptorSet writeDescriptorSets[] =
 		{
@@ -181,6 +255,8 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 			storageImageWrite,
 			// Binding 2: Uniform data
 			uniformWrite,
+			// Binding 3: Scene data
+			sceneWrite
 		};
 
 		vkUpdateDescriptorSets(KVulkanGlobal::device, ARRAY_SIZE(writeDescriptorSets), writeDescriptorSets, 0, VK_NULL_HANDLE);
@@ -228,8 +304,6 @@ void KVulkanRayTracePipeline::CreateShaderBindingTable(ShaderBindingTable& shade
 	stridedDeviceAddressRegionKHR.size = static_cast<VkDeviceSize>(handleCount) * handleSizeAligned;
 
 	shaderBindingTable.stridedDeviceAddressRegion = stridedDeviceAddressRegionKHR;
-
-	vkMapMemory(KVulkanGlobal::device, shaderBindingTable.allocInfo.vkMemroy, shaderBindingTable.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &shaderBindingTable.mapped);
 }
 
 void KVulkanRayTracePipeline::DestroyShaderBindingTable(ShaderBindingTable& shaderBindingTable)
@@ -239,6 +313,7 @@ void KVulkanRayTracePipeline::DestroyShaderBindingTable(ShaderBindingTable& shad
 		vkDestroyBuffer(KVulkanGlobal::device, shaderBindingTable.buffer, nullptr);
 		KVulkanHeapAllocator::Free(shaderBindingTable.allocInfo);
 		shaderBindingTable.mapped = nullptr;
+		shaderBindingTable.buffer = VK_NULL_HANDEL;
 	}
 }
 
@@ -298,6 +373,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 	// TODO m_AnyHitShader
 
 	VkRayTracingPipelineCreateInfoKHR rayTracingPipelineCI = {};
+	rayTracingPipelineCI.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
 	rayTracingPipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 	rayTracingPipelineCI.pStages = shaderStages.data();
 	rayTracingPipelineCI.groupCount = static_cast<uint32_t>(m_ShaderGroups.size());
@@ -321,17 +397,23 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 	// Copy handles
 	uint32_t handleIndex = 0;
 	{
+		vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.raygen.allocInfo.vkMemroy, m_ShaderBindingTables.raygen.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.raygen.mapped);
 		memcpy(m_ShaderBindingTables.raygen.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
+		vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.raygen.allocInfo.vkMemroy);
 		++handleIndex;
 	}
 	if (m_MissShader)
 	{
+		vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy, m_ShaderBindingTables.miss.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.miss.mapped);
 		memcpy(m_ShaderBindingTables.miss.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, handleSize);
+		vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy);
 		++handleIndex;
 	}
 	if (m_ClosestHitShader)
 	{
+		vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.hit.allocInfo.vkMemroy, m_ShaderBindingTables.hit.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.hit.mapped);
 		memcpy(m_ShaderBindingTables.hit.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, handleSize);
+		vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.hit.allocInfo.vkMemroy);
 		++handleIndex;
 	}
 }
@@ -421,9 +503,11 @@ bool KVulkanRayTracePipeline::RecreateAS()
 	{
 		DestroyShaderBindingTables();
 		DestroyDescriptorSet();
+		DestroyStrogeScene();
 		DestroyAccelerationStructure();
 
 		CreateAccelerationStructure();
+		CreateStrogeScene();
 		CreateDescriptorSet();
 		CreateShaderBindingTables();
 		return true;
@@ -455,6 +539,7 @@ bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& camera
 
 	CreateStorgeImage();
 	CreateAccelerationStructure();
+	CreateStrogeScene();
 	CreateDescriptorSet();
 	CreateShaderBindingTables();
 
@@ -466,6 +551,7 @@ bool KVulkanRayTracePipeline::UnInit()
 {
 	DestroyStorgeImage();
 	DestroyAccelerationStructure();
+	DestroyStrogeScene();
 	DestroyShaderBindingTables();
 	DestroyDescriptorSet();
 

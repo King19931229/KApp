@@ -17,6 +17,10 @@ bool KRayTraceManager::Init()
 
 bool KRayTraceManager::UnInit()
 {
+	for (IKRayTraceScenePtr scene : m_Scenes)
+	{
+		scene->UnInit();
+	}
 	m_Scenes.clear();
 	return true;
 }

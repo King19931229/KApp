@@ -16,6 +16,18 @@ protected:
 
 	std::vector<IKUniformBufferPtr> m_CameraBuffers;
 
+	struct Scene
+	{
+		VkBuffer buffer;
+		KVulkanHeapAllocator::AllocInfo allocInfo;
+
+		Scene()
+		{
+			buffer = VK_NULL_HANDEL;
+		}
+	};
+	Scene m_Scene;
+
 	struct Descriptor
 	{
 		VkDescriptorSetLayout layout;
@@ -82,6 +94,8 @@ protected:
 	void DestroyAccelerationStructure();
 	void CreateStorgeImage();
 	void DestroyStorgeImage();
+	void CreateStrogeScene();
+	void DestroyStrogeScene();
 	void CreateDescriptorSet();
 	void DestroyDescriptorSet();
 	void CreateShaderBindingTables();

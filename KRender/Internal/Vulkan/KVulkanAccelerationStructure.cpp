@@ -4,11 +4,15 @@
 #include "KVulkanGlobal.h"
 
 KVulkanAccelerationStructure::KVulkanAccelerationStructure()
+	: m_IndexBuffer(nullptr)
+	, m_VertexBuffer(nullptr)
 {
 }
 
 KVulkanAccelerationStructure::~KVulkanAccelerationStructure()
 {
+	ASSERT_RESULT(!m_IndexBuffer);
+	ASSERT_RESULT(!m_VertexBuffer);
 }
 
 bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer)
@@ -17,6 +21,9 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 	{
 		KVulkanVertexBuffer* vulkanVertexBuffer = static_cast<KVulkanVertexBuffer*>(vertexBuffer.get());
 		KVulkanIndexBuffer* vulkanIndexBuffer = static_cast<KVulkanIndexBuffer*>(indexBuffer.get());
+
+		m_IndexBuffer = vulkanIndexBuffer;
+		m_VertexBuffer = vulkanVertexBuffer;
 
 		VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress = {};
 		VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress = {};
@@ -73,11 +80,15 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 
 bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransformTuple>& bottomASs)
 {
+	m_Instances.clear();
+	m_Instances.reserve(bottomASs.size());
+
 	std::vector<VkAccelerationStructureInstanceKHR> instances;
 	instances.reserve(bottomASs.size());
 
-	for (const BottomASTransformTuple& asTuple : bottomASs)
+	for (size_t index = 0; index < bottomASs.size(); ++index)
 	{
+		const BottomASTransformTuple& asTuple = bottomASs[index];
 		IKAccelerationStructurePtr as = std::get<0>(asTuple);
 		const glm::mat4& transform = std::get<1>(asTuple);
 
@@ -93,13 +104,24 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 
 		VkAccelerationStructureInstanceKHR instance = {};
 		instance.transform = transformMatrix;
-		instance.instanceCustomIndex = 0;
+		instance.instanceCustomIndex = (uint32_t)index;
 		instance.mask = 0xFF;
 		instance.instanceShaderBindingTableRecordOffset = 0;
 		instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
 		instance.accelerationStructureReference = vulkanAS->GetBottomUp().deviceAddress;
 
 		instances.push_back(instance);
+
+		KVulkanRayTraceInstance rayInstance = {};
+		rayInstance.transform = transform;
+		rayInstance.transformIT = glm::inverse(glm::transpose(transform));
+		rayInstance.objIndex = (uint32_t)index;
+		rayInstance.txtOffset = 0;
+		rayInstance.vertices = vulkanAS->GetVertexBuffer()->GetDeviceAddress();
+		rayInstance.indices = vulkanAS->GetIndexBuffer()->GetDeviceAddress();
+		rayInstance.materials = VK_NULL_HANDEL;
+		rayInstance.materialIndices = VK_NULL_HANDEL;
+		m_Instances.push_back(rayInstance);
 	}
 
 	// Buffer for instance data
@@ -190,5 +212,9 @@ bool KVulkanAccelerationStructure::UnInit()
 		m_TopDownAS.handle = VK_NULL_HANDEL;
 		KVulkanHeapAllocator::Free(m_TopDownAS.allocInfo);
 	}
+
+	m_IndexBuffer = nullptr;
+	m_VertexBuffer = nullptr;
+
 	return true;
 }

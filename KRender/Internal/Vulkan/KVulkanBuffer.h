@@ -28,6 +28,7 @@ public:
 	virtual bool CopyTo(IKVertexBufferPtr pDest);
 
 	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
+	VkDeviceAddress GetDeviceAddress() const;
 };
 
 class KVulkanIndexBuffer : public KIndexBufferBase
@@ -56,6 +57,7 @@ public:
 
 	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
 	inline VkIndexType GetVulkanIndexType() { return m_IndexType == IT_16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32; }
+	VkDeviceAddress GetDeviceAddress() const;
 };
 
 class KVulkanUniformBuffer : public KUniformBufferBase

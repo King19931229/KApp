@@ -866,7 +866,7 @@ bool KRenderDispatcher::RemoveCallback(IKRenderWindow* window)
 
 bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 {
-	// KRenderGlobal::RayTraceManager.
+	KRenderGlobal::RayTraceManager.UpdateCamera((uint32_t)frameIndex);
 
 	if (m_Camera)
 	{

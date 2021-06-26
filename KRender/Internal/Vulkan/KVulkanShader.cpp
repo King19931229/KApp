@@ -147,12 +147,14 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 	std::unique_ptr<glslang::TShader> shader(KNEW glslang::TShader(language));
 	ASSERT_RESULT(code);
 	shader->setStrings(&code, 1);
+	shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
+	shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_4);
 
 	EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
 
 	std::lock_guard<decltype(sSpirVLock)> lockGuard(sSpirVLock);
 	{
-		if (!shader->parse(KRenderGlobal::ShaderManager.GetSpirVBuildInResource(), 310, false, messages))
+		if (!shader->parse(KRenderGlobal::ShaderManager.GetSpirVBuildInResource(), 460, false, messages))
 		{
 			KG_LOGE(LM_RENDER, "[Generate SpirV] Parse Failed\n%s", shader->getInfoLog());
 			return false;
@@ -295,12 +297,13 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
 	ASSERT_RESULT(system);
 
-	m_SourceFile->SetHeaderText("#version 460\n");
+	m_SourceFile->SetHeaderText("#version 460 core\n");
 	m_SourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KVulkanShaderSourceHooker(system)));
 	if (m_SourceFile->Open(path.c_str()))
 	{
 		const char* finalSource = m_SourceFile->GetFinalSource();
 		std::vector<unsigned int> spirv;
+
 		if (GenerateSpirV(m_Type, finalSource, spirv))
 		{
 			GenerateReflection(spirv, m_Information);

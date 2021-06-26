@@ -7,26 +7,9 @@
 #include "KBase/Interface/Component/IKRenderComponent.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
 
-int main()
+void InitSponza(IKEnginePtr engine)
 {
-	DUMP_MEMORY_LEAK_BEGIN();
-
-	KEngineGlobal::CreateEngine();
-	IKEnginePtr engine = KEngineGlobal::Engine;
-
-	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_GLFW);
-	KEngineOptions options;
-
-	options.window.top = 60;
-	options.window.left = 60;
-	options.window.width = 1280;
-	options.window.height = 720;
-	options.window.resizable = true;
-	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
-
-	engine->Init(std::move(window), options);
 	auto scene = engine->GetRenderCore()->GetRenderScene();
-
 	KRenderCoreInitCallback callback = [scene]()
 	{
 #define DRAW_SPIDER
@@ -86,6 +69,49 @@ int main()
 #endif
 	};
 
+	engine->GetRenderCore()->RegisterInitCallback(&callback);
+}
+
+int main()
+{
+	DUMP_MEMORY_LEAK_BEGIN();
+
+	KEngineGlobal::CreateEngine();
+	IKEnginePtr engine = KEngineGlobal::Engine;
+
+	IKRenderWindowPtr window = CreateRenderWindow(RENDER_WINDOW_GLFW);
+	KEngineOptions options;
+
+	options.window.top = 60;
+	options.window.left = 60;
+	options.window.width = 1280;
+	options.window.height = 720;
+	options.window.resizable = true;
+	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
+
+	engine->Init(std::move(window), options);
+	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray.scene");
+
+	KRenderCoreInitCallback callback = [engine]()
+	{
+		auto renderScene = engine->GetRenderCore()->GetRenderScene();
+		auto rayTraceMgr = engine->GetRenderCore()->GetRayTraceMgr();
+		auto device = engine->GetRenderCore()->GetRenderDevice();
+
+		IKRayTraceScenePtr rayTraceScene = nullptr;
+		rayTraceMgr->AcquireRayTraceScene(rayTraceScene);
+
+		IKRayTracePipelinePtr rayPipeline;
+		device->CreateRayTracePipeline(rayPipeline);
+
+		IKShaderPtr rayGenShader;
+		device->CreateShader(rayGenShader);
+		rayGenShader->InitFromFile(ST_RAYGEN, "raytrace/raygen.rgen", false);
+		rayPipeline->SetStorgeImage(EF_R8GB8BA8_UNORM, 1024, 1024);
+		rayPipeline->SetShaderTable(ST_RAYGEN, rayGenShader);
+
+		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
+	};
 	engine->GetRenderCore()->RegisterInitCallback(&callback);
 	callback();
 
