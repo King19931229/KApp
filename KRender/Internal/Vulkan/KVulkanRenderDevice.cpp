@@ -44,6 +44,8 @@ const char* DEVICE_EXTENSIONS[] =
 	VK_KHR_SPIRV_1_4_EXTENSION_NAME,
 	// Required by VK_KHR_spirv_1_4
 	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+	//
+	VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
 #endif
 };
 #define DEVICE_EXTENSIONS_COUNT (sizeof(DEVICE_EXTENSIONS) / sizeof(const char*))
@@ -435,6 +437,9 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		// 查询有哪些Features可以被打开
 		// https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkPhysicalDeviceFeatures.html
+
+		// RayTrace Shader引用DeviceAddress需要Int64
+		deviceFeatures.shaderInt64 = VK_TRUE;
 
 		// 查询各项异性支持
 		if (m_PhysicalDevice.deviceProperties.limits.maxSamplerAnisotropy > 0.0f)

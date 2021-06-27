@@ -107,8 +107,14 @@ int main()
 		IKShaderPtr rayGenShader;
 		device->CreateShader(rayGenShader);
 		rayGenShader->InitFromFile(ST_RAYGEN, "raytrace/raygen.rgen", false);
+
+		IKShaderPtr cloestHitShader;
+		device->CreateShader(cloestHitShader);
+		cloestHitShader->InitFromFile(ST_CLOSEST_HIT, "raytrace/raytrace.rchit", false);
+
 		rayPipeline->SetStorgeImage(EF_R8GB8BA8_UNORM, 1024, 1024);
 		rayPipeline->SetShaderTable(ST_RAYGEN, rayGenShader);
+		rayPipeline->SetShaderTable(ST_CLOSEST_HIT, cloestHitShader);
 
 		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
 	};

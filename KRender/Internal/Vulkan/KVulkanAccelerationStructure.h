@@ -7,12 +7,10 @@ struct KVulkanRayTraceInstance
 {
 	glm::mat4		transform;
 	glm::mat4		transformIT;
-	uint32_t		objIndex;
-	uint32_t		txtOffset;
+	uint64_t		objIndex;
+	uint64_t		placeholder;
 	VkDeviceAddress vertices;
 	VkDeviceAddress indices;
-	VkDeviceAddress materials;
-	VkDeviceAddress materialIndices;
 };
 
 class KVulkanAccelerationStructure : public IKAccelerationStructure

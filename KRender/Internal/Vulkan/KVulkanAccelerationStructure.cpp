@@ -116,11 +116,9 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 		rayInstance.transform = transform;
 		rayInstance.transformIT = glm::inverse(glm::transpose(transform));
 		rayInstance.objIndex = (uint32_t)index;
-		rayInstance.txtOffset = 0;
+		rayInstance.placeholder = 0;
 		rayInstance.vertices = vulkanAS->GetVertexBuffer()->GetDeviceAddress();
 		rayInstance.indices = vulkanAS->GetIndexBuffer()->GetDeviceAddress();
-		rayInstance.materials = VK_NULL_HANDEL;
-		rayInstance.materialIndices = VK_NULL_HANDEL;
 		m_Instances.push_back(rayInstance);
 	}
 
