@@ -97,7 +97,7 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 		KLog::CreateLogger();
 		KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
 
-		//m_RenderDoc.Init();
+		m_RenderDoc.Init();
 
 		KECS::CreateComponentManager();
 		KECS::CreateEntityManager();
@@ -278,7 +278,7 @@ bool KEngine::UnInit()
 		KFileSystem::Manager->UnSetAllFileSystem();
 		KFileSystem::DestroyFileManager();
 
-		//m_RenderDoc.UnInit();
+		m_RenderDoc.UnInit();
 
 		m_bInit = false;
 

@@ -347,3 +347,12 @@ bool KRenderComponent::Visit(PipelineStage stage, size_t frameIndex, std::functi
 	}
 	return true;
 }
+
+bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as)
+{
+	if (m_Mesh)
+	{
+		return m_Mesh->GetAllAccelerationStructure(as);
+	}
+	return false;
+}

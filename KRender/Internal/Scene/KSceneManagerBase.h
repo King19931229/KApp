@@ -14,6 +14,7 @@ public:
 	virtual bool Move(IKEntityPtr entity) = 0;
 	virtual bool GetVisibleEntity(const KCamera* camera, std::deque<IKEntityPtr>& visibles) = 0;
 	virtual bool GetVisibleEntity(const KAABBBox* bound, std::deque<IKEntityPtr>& visibles) = 0;
+	virtual bool GetAllEntity(std::deque<IKEntityPtr>& visibles) = 0;
 	virtual bool GetDebugEntity(std::deque<IKEntityPtr>& debugVisibles) = 0;
 	virtual bool GetSceneBound(KAABBBox& box) = 0;
 

@@ -39,4 +39,6 @@ public:
 	bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result) override;
 
 	void EnableDebugRender(bool enable) override { m_EnableDebugRender = enable; }
+
+	bool GetAllEntities(std::vector<IKEntityPtr>& result) override;
 };

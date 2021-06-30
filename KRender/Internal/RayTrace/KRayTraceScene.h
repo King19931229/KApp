@@ -9,6 +9,10 @@ protected:
 	IKRayTracePipelinePtr m_Pipeline;
 	std::vector<IKUniformBufferPtr> m_CameraBuffers;
 
+	typedef std::tuple<std::vector<IKAccelerationStructurePtr>, glm::mat4> ASTransforms;
+	typedef std::unordered_map<IKEntity*, ASTransforms> EntityTransform;
+	EntityTransform m_Entites;
+
 	struct Camera
 	{
 		glm::mat4 view;
@@ -23,4 +27,5 @@ public:
 	virtual bool Init(IKRenderScene* scene, const KCamera* camera, IKRayTracePipelinePtr& pipeline);
 	virtual bool UnInit();
 	virtual bool UpdateCamera(uint32_t frameIndex);
+	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
 };

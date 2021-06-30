@@ -41,6 +41,7 @@ public:
 
 	inline size_t GetFrameInFlight() const { return m_FrameInFlight; }
 	inline DebugPrimitive GetDebugPrimitive() const { return m_DebugPrimitive; }
+	inline IKAccelerationStructurePtr GetIKAccelerationStructure() { return m_AccelerationStructure; }
 };
 
 typedef std::shared_ptr<KSubMesh> KSubMeshPtr;

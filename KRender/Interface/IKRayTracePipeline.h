@@ -17,4 +17,6 @@ struct IKRayTracePipeline
 
 	virtual bool Init(const std::vector<IKUniformBufferPtr>& cameraBuffers) = 0;
 	virtual bool UnInit() = 0;
+
+	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex) = 0;
 };

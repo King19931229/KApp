@@ -13,8 +13,9 @@ protected:
 	KHandleRetriever<uint32_t> m_Handles;
 	std::unordered_map<uint32_t, IKAccelerationStructure::BottomASTransformTuple> m_BottomASMap;
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_ShaderGroups;
-
 	std::vector<IKUniformBufferPtr> m_CameraBuffers;
+	IKCommandPoolPtr m_CommandPool;
+	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 
 	struct Scene
 	{
@@ -100,6 +101,8 @@ protected:
 	void DestroyDescriptorSet();
 	void CreateShaderBindingTables();
 	void DestroyShaderBindingTables();
+	void CreateCommandBuffers();
+	void DestroyCommandBuffers();
 
 	void CreateShaderBindingTable(ShaderBindingTable& shaderBindingTable, uint32_t handleCount);
 	void DestroyShaderBindingTable(ShaderBindingTable& shaderBindingTable);
@@ -119,4 +122,6 @@ public:
 
 	virtual bool Init(const std::vector<IKUniformBufferPtr>& cameraBuffers);
 	virtual bool UnInit();
+
+	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
 };

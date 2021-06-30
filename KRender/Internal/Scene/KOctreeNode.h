@@ -281,6 +281,24 @@ public:
 		return removed;
 	}
 
+	template<typename QueryResultType>
+	void GetAll(QueryResultType& result)
+	{
+		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
+		{
+			const auto& curObject = *it;
+			result.push_back(curObject.Obj);
+		}
+
+		if (children)
+		{
+			for (auto i = 0; i < 8; i++)
+			{
+				children[i].GetAll(result);
+			}
+		}
+	}
+
 	bool IsColliding(const KAABBBox& checkBounds)
 	{
 		if (!bounds.Intersect(checkBounds))
@@ -334,7 +352,6 @@ public:
 				children[i].GetColliding(origin, dir, result);
 			}
 		}
-
 	}
 
 	template<typename QueryResultType>

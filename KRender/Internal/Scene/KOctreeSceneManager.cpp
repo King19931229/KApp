@@ -97,6 +97,16 @@ bool KOctreeSceneManager::GetVisibleEntity(const KAABBBox* bound, std::deque<IKE
 	return false;
 }
 
+bool KOctreeSceneManager::GetAllEntity(std::deque<IKEntityPtr>& visibles)
+{
+	if (m_Root)
+	{
+		m_Root->GetAll(visibles);
+		return true;
+	}
+	return false;
+}
+
 bool KOctreeSceneManager::GetDebugEntity(std::deque<IKEntityPtr>& debugVisibles)
 {
 	if (m_Root)

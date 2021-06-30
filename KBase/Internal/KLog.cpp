@@ -312,7 +312,7 @@ bool KLogger::Log(LogLevel level, const char* pszFormat, ...)
 	va_start(list, pszFormat);
 
 	char szBuffer[2048]; szBuffer[0] = '\0';
-
+	puts(pszFormat);
 	int requireBufferSize = VSNPRINTF(szBuffer, sizeof(szBuffer) - 1, pszFormat, list);
 	if (requireBufferSize > sizeof(szBuffer) - 1)
 	{

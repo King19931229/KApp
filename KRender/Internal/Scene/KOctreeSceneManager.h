@@ -30,6 +30,7 @@ public:
 	bool Move(IKEntityPtr entity) override;
 	bool GetVisibleEntity(const KCamera* camera, std::deque<IKEntityPtr>& visibles) override;
 	bool GetVisibleEntity(const KAABBBox* bound, std::deque<IKEntityPtr>& visibles) override;
+	bool GetAllEntity(std::deque<IKEntityPtr>& visibles) override;
 	bool GetDebugEntity(std::deque<IKEntityPtr>& debugVisibles) override;
 	bool GetSceneBound(KAABBBox& box) override;
 

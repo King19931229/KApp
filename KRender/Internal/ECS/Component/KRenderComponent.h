@@ -76,6 +76,8 @@ public:
 	bool InitUtility(const KMeshUtilityInfoPtr& info);
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
 
+	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as);
+
 	inline KMeshPtr GetMesh() { return m_Mesh; }
 	IKMaterialPtr GetMaterial() override { return m_Material; }
 

@@ -299,7 +299,7 @@ bool KGLFWRenderWindow::Init(size_t top, size_t left, size_t width, size_t heigh
 
 			if (m_bPrimary)
 			{
-				m_Device->Init(this);
+				return m_Device->Init(this);
 			}
 
 			return true;

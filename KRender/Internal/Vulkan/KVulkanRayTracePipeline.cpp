@@ -2,6 +2,7 @@
 #include "KVulkanAccelerationStructure.h"
 #include "KVulkanRenderTarget.h"
 #include "KVulkanFrameBuffer.h"
+#include "KVulkanCommandBuffer.h"
 #include "KVulkanBuffer.h"
 #include "KVulkanShader.h"
 #include "KVulkanHelper.h"
@@ -10,7 +11,9 @@
 #include "KBase/Publish/KNumerical.h"
 
 KVulkanRayTracePipeline::KVulkanRayTracePipeline()
-	: m_StorgeRT(nullptr)
+	: m_TopDown(nullptr)
+	, m_CommandPool(nullptr)
+	, m_StorgeRT(nullptr)
 	, m_AnyHitShader(nullptr)
 	, m_ClosestHitShader(nullptr)
 	, m_RayGenShader(nullptr)
@@ -435,6 +438,29 @@ void KVulkanRayTracePipeline::DestroyShaderBindingTables()
 	}
 }
 
+void KVulkanRayTracePipeline::CreateCommandBuffers()
+{
+	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
+	uint32_t frames = renderDevice->GetNumFramesInFlight();
+
+	renderDevice->CreateCommandPool(m_CommandPool);
+	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandBuffers.resize(frames);
+
+	for (size_t i = 0; i < frames; ++i)
+	{
+		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
+		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
+		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
+	}
+}
+
+void KVulkanRayTracePipeline::DestroyCommandBuffers()
+{
+	SAFE_UNINIT_CONTAINER(m_CommandBuffers);
+	SAFE_UNINIT(m_CommandPool);
+}
+
 bool KVulkanRayTracePipeline::SetShaderTable(ShaderType type, IKShaderPtr shader)
 {
 	if (type == ST_ANY_HIT)
@@ -542,6 +568,7 @@ bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& camera
 	CreateStrogeScene();
 	CreateDescriptorSet();
 	CreateShaderBindingTables();
+	CreateCommandBuffers();
 
 	m_Inited = true;
 	return true;
@@ -554,9 +581,38 @@ bool KVulkanRayTracePipeline::UnInit()
 	DestroyStrogeScene();
 	DestroyShaderBindingTables();
 	DestroyDescriptorSet();
+	DestroyCommandBuffers();
 
 	m_CameraBuffers.clear();
 
 	m_Inited = false;
 	return true;
+}
+
+bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+{
+	if(primaryBuffer && frameIndex < m_Descriptor.sets.size())
+	{
+		IKCommandBufferPtr commandBuffer = primaryBuffer;
+		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)(commandBuffer.get());
+		VkCommandBuffer vkCommandBuffer = vulkanCommandBuffer->GetVkHandle();
+
+		vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_Pipeline.pipline);
+		vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_Pipeline.layout, 0, 1, &m_Descriptor.sets[frameIndex], 0, 0);
+
+		VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
+		KVulkanGlobal::vkCmdTraceRaysKHR(
+			vkCommandBuffer,
+			&m_ShaderBindingTables.raygen.stridedDeviceAddressRegion,
+			&m_ShaderBindingTables.miss.stridedDeviceAddressRegion,
+			&m_ShaderBindingTables.hit.stridedDeviceAddressRegion,
+			&emptySbtEntry,
+			m_Width,
+			m_Height,
+			1);
+
+		return true;
+	}
+
+	return false;
 }

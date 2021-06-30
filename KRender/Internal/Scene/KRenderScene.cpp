@@ -234,3 +234,20 @@ bool KRenderScene::CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, 
 	}
 	return false;
 }
+
+bool KRenderScene::GetAllEntities(std::vector<IKEntityPtr>& result)
+{
+	result.clear();
+	if (m_SceneMgr)
+	{
+		std::deque<IKEntityPtr> entities;
+		m_SceneMgr->GetAllEntity(entities);
+		result.reserve(entities.size());
+		for (IKEntityPtr entity : entities)
+		{
+			result.push_back(entity);
+		}
+		return true;
+	}
+	return false;
+}

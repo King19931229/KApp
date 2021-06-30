@@ -776,6 +776,7 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_Camera, frameIndex, primaryCommandBuffer);
 		KRenderGlobal::FrameGraph.Compile();
 		KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);
+		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);
 	}
 	primaryCommandBuffer->End();
 

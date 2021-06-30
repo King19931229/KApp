@@ -37,4 +37,5 @@ public:
 	virtual bool ReloadMaterial() = 0;
 
 	virtual IKMaterialPtr GetMaterial() = 0;
+	virtual bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) = 0;
 };

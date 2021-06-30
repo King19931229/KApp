@@ -38,8 +38,8 @@ public:
 	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible = false);
 	bool InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
 	bool UnInit();
-
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
+	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as);
 
 	inline size_t GetFrameInFlight() const { return m_FrameInFlight; }
 };

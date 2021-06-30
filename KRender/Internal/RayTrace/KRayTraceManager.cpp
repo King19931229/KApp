@@ -25,8 +25,12 @@ bool KRayTraceManager::UnInit()
 	return true;
 }
 
-bool KRayTraceManager::Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChain* swapChain, IKCommandBufferPtr primaryCommandBuffer)
+bool KRayTraceManager::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex, uint32_t chainIndex)
 {
+	for (IKRayTraceScenePtr scene : m_Scenes)
+	{
+		scene->Execute(primaryBuffer, frameIndex);
+	}
 	return true;
 }
 

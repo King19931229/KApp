@@ -201,7 +201,8 @@ bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOptio
 
 bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible)
 {
-	assert(szPath && device);
+	assert(szPath);
+	assert(device);
 	if(!szPath || !device)
 	{
 		return false;
@@ -373,4 +374,19 @@ bool KMesh::UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* devic
 	}
 
 	return false;
+}
+
+bool KMesh::GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as)
+{
+	as.clear();
+	as.reserve(m_SubMeshes.size());
+	for (KSubMeshPtr subMesh : m_SubMeshes)
+	{
+		IKAccelerationStructurePtr _as = subMesh->GetIKAccelerationStructure();
+		if (_as)
+		{
+			as.push_back(_as);
+		}
+	}
+	return true;
 }

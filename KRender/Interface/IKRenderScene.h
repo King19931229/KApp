@@ -24,7 +24,6 @@ struct IKRenderScene
 	virtual bool Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos) = 0;
 	virtual bool UnInit() = 0;
 
-	// TODO
 	virtual bool Add(IKEntityPtr entity) = 0;
 	virtual bool Remove(IKEntityPtr entity) = 0;
 	virtual bool Move(IKEntityPtr entity) = 0;
@@ -43,6 +42,8 @@ struct IKRenderScene
 	virtual bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result) = 0;
 
 	virtual void EnableDebugRender(bool enable) = 0;
+
+	virtual bool GetAllEntities(std::vector<IKEntityPtr>& result) = 0;
 };
 
 typedef std::unique_ptr<IKRenderScene> IKRenderScenePtr;
