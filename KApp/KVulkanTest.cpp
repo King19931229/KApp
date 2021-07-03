@@ -112,11 +112,16 @@ int main()
 		device->CreateShader(cloestHitShader);
 		cloestHitShader->InitFromFile(ST_CLOSEST_HIT, "raytrace/raytrace.rchit", false);
 
+		IKShaderPtr missShader;
+		device->CreateShader(missShader);
+		missShader->InitFromFile(ST_MISS, "raytrace/raytrace.rmiss", false);
+
 		rayPipeline->SetStorageImage(EF_R8GB8BA8_UNORM, 1024, 1024);
 		rayPipeline->SetShaderTable(ST_RAYGEN, rayGenShader);
 		rayPipeline->SetShaderTable(ST_CLOSEST_HIT, cloestHitShader);
+		rayPipeline->SetShaderTable(ST_MISS, missShader);
 
-		rayTraceScene->EnableDebugDraw(0, 0, 0.2f, 0.2f);
+		rayTraceScene->EnableDebugDraw(0, 0, 1, 1);
 		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
 	};
 	engine->GetRenderCore()->RegisterInitCallback(&callback);

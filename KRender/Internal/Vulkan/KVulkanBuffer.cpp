@@ -26,11 +26,13 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 	if(hostVisible)
 	{
 		KVulkanInitializer::CreateVkBuffer(
-			(VkDeviceSize)m_BufferSize,
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			m_vkBuffer,
-			m_AllocInfo);
+			(VkDeviceSize)m_BufferSize
+			, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+			// Ray tracing
+			| VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			, m_vkBuffer
+			, m_AllocInfo);
 
 		void* data = nullptr;
 		VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, &data));
@@ -42,24 +44,24 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 		VkBuffer vkStageBuffer;
 		KVulkanHeapAllocator::AllocInfo stageAllocInfo;
 
-		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize,
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			vkStageBuffer,
-			stageAllocInfo);
+		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize
+			, VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			, vkStageBuffer
+			, stageAllocInfo);
 
 		void* data = nullptr;
 		VK_ASSERT_RESULT(vkMapMemory(device, stageAllocInfo.vkMemroy, stageAllocInfo.vkOffset, m_BufferSize, 0, &data));
 		memcpy(data, m_Data.data(), (size_t) m_BufferSize);
 		vkUnmapMemory(device, stageAllocInfo.vkMemroy);
 
-		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize,
-			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize
+			, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
 			// Ray tracing
-			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			m_vkBuffer,
-			m_AllocInfo);
+			| VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+			, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			, m_vkBuffer
+			, m_AllocInfo);
 
 		KVulkanInitializer::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)m_BufferSize);
 		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
@@ -211,11 +213,13 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 	if(hostVisible)
 	{
 		KVulkanInitializer::CreateVkBuffer(
-			(VkDeviceSize)m_BufferSize,
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			m_vkBuffer,
-			m_AllocInfo);
+			(VkDeviceSize)m_BufferSize
+			, VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+			// Ray tracing
+			| VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			, m_vkBuffer
+			, m_AllocInfo);
 
 		void* data = nullptr;
 		VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, &data));
@@ -240,13 +244,13 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 		vkUnmapMemory(device, stageAllocInfo.vkMemroy);
 
 		KVulkanInitializer::CreateVkBuffer(
-			(VkDeviceSize)m_BufferSize,
-			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+			(VkDeviceSize)m_BufferSize
+			, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT
 			// Ray tracing
-			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			m_vkBuffer,
-			m_AllocInfo);
+			| VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+			, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			, m_vkBuffer
+			, m_AllocInfo);
 
 		KVulkanInitializer::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)m_BufferSize);
 		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
@@ -350,6 +354,11 @@ bool KVulkanIndexBuffer::Read(void* pData)
 		}
 	}
 	return false;
+}
+
+bool KVulkanIndexBuffer::IsHostVisible() const
+{
+	return m_bHostVisible;
 }
 
 bool KVulkanIndexBuffer::CopyFrom(IKIndexBufferPtr pSource)

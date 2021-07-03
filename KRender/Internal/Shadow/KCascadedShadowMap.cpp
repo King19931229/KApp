@@ -536,6 +536,8 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 	// 准备Instance数据
 	for (auto& pair : meshGroups)
 	{
+		// TODO BUG
+		continue;
 		KMeshPtr mesh = pair.first;
 		InstanceGroupPtr instanceGroup = pair.second;
 

@@ -147,8 +147,17 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 	std::unique_ptr<glslang::TShader> shader(KNEW glslang::TShader(language));
 	ASSERT_RESULT(code);
 	shader->setStrings(&code, 1);
-	shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
-	shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_4);
+
+	if (type & (ST_RAYGEN | ST_ANY_HIT | ST_CLOSEST_HIT | ST_MISS))
+	{
+		shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
+		shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_4);
+	}
+	else
+	{
+		shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_0);
+		shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_0);
+	}
 
 	EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
 

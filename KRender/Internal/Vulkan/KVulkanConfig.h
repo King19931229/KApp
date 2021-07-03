@@ -59,3 +59,5 @@ do\
 	}\
 }\
 while(false);
+
+#define SUPPORT_RAY_TRACING_ENABLE

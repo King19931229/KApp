@@ -17,7 +17,8 @@ KVulkanAccelerationStructure::~KVulkanAccelerationStructure()
 
 bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer)
 {
-	if (format != VF_UNKNOWN && vertexBuffer && indexBuffer)
+#ifdef SUPPORT_RAY_TRACING_ENABLE
+	if (format == VF_POINT_NORMAL_UV && vertexBuffer && indexBuffer)
 	{
 		KVulkanVertexBuffer* vulkanVertexBuffer = static_cast<KVulkanVertexBuffer*>(vertexBuffer.get());
 		KVulkanIndexBuffer* vulkanIndexBuffer = static_cast<KVulkanIndexBuffer*>(indexBuffer.get());
@@ -41,7 +42,7 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 		accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
 		accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
 		accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-		accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+		accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 		accelerationStructureGeometry.geometry.triangles.vertexData = vertexBufferDeviceAddress;
 		accelerationStructureGeometry.geometry.triangles.maxVertex = (uint32_t)vulkanVertexBuffer->GetVertexCount();
 		accelerationStructureGeometry.geometry.triangles.vertexStride = (uint32_t)vulkanVertexBuffer->GetVertexSize();
@@ -74,12 +75,13 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 
 		return true;
 	}
-
+#endif
 	return false;
 }
 
 bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransformTuple>& bottomASs)
 {
+#ifdef SUPPORT_RAY_TRACING_ENABLE
 	m_Instances.clear();
 	m_Instances.reserve(bottomASs.size());
 
@@ -126,9 +128,11 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 	VkBuffer instanceBufferHandle = VK_NULL_HANDEL;
 	KVulkanHeapAllocator::AllocInfo instanceAlloc;
 
+	size_t instanceSize = sizeof(VkAccelerationStructureInstanceKHR) * instances.size();
+
 	VkBufferCreateInfo bufferCreateInfo = {};
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferCreateInfo.size = sizeof(VkAccelerationStructureInstanceKHR) * instances.size();
+	bufferCreateInfo.size = instanceSize;
 	// 以防instances为空
 	bufferCreateInfo.size = std::max((size_t)bufferCreateInfo.size, sizeof(VkAccelerationStructureInstanceKHR));
 	bufferCreateInfo.usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
@@ -148,6 +152,13 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 		memoryTypeIndex));
 
 	ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, instanceAlloc));
+
+	// 这里没有拷贝数据导致数据为空验证层居然在之后不报错
+	void* instanceData = nullptr;
+	VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, instanceAlloc.vkMemroy, instanceAlloc.vkOffset, instanceSize, 0, &instanceData));
+	memcpy(instanceData, instances.data(), instanceSize);
+	vkUnmapMemory(KVulkanGlobal::device, instanceAlloc.vkMemroy);
+
 	VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, instanceBufferHandle, instanceAlloc.vkMemroy, instanceAlloc.vkOffset));
 
 	VkDeviceOrHostAddressConstKHR instanceDataDeviceAddress{};
@@ -189,10 +200,14 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 	KVulkanHeapAllocator::Free(instanceAlloc);
 
 	return true;
+#else
+	return false;
+#endif
 }
 
 bool KVulkanAccelerationStructure::UnInit()
 {
+#ifdef SUPPORT_RAY_TRACING_ENABLE
 	if (m_BottomUpAS.handle)
 	{
 		vkDestroyBuffer(KVulkanGlobal::device, m_BottomUpAS.buffer, nullptr);
@@ -210,6 +225,7 @@ bool KVulkanAccelerationStructure::UnInit()
 		m_TopDownAS.handle = VK_NULL_HANDEL;
 		KVulkanHeapAllocator::Free(m_TopDownAS.allocInfo);
 	}
+#endif
 
 	m_IndexBuffer = nullptr;
 	m_VertexBuffer = nullptr;

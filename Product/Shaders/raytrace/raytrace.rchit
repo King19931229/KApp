@@ -39,12 +39,12 @@ void main()
 	// Computing the normal at hit position
 	vec3 normal = v0.nrm * barycentrics.x + v1.nrm * barycentrics.y + v2.nrm * barycentrics.z;
 	// Transforming the normal to world space
-	normal = normalize(vec3(sceneDesc.i[gl_InstanceCustomIndexEXT].transfoIT * vec4(normal, 0.0)));
+	normal = normalize(vec3(objResource.transfoIT * vec4(normal, 0.0)));
 
 	// Computing the coordinates of the hit position
 	vec3 worldPos = v0.pos * barycentrics.x + v1.pos * barycentrics.y + v2.pos * barycentrics.z;
 	// Transforming the position to world space
-	worldPos = vec3(sceneDesc.i[gl_InstanceCustomIndexEXT].transfo * vec4(worldPos, 1.0));
+	worldPos = vec3(objResource.transfo * vec4(worldPos, 1.0));
 
 	// Vector toward the light
 	vec3 L = normalize(vec3(1) - vec3(0));

@@ -36,7 +36,7 @@ bool KRenderDocCapture::Init()
 		if (GetModuleHandleA(renderDocDLL.c_str()))
 		{
 			pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress((HMODULE)m_Module, "RENDERDOC_GetAPI");
-			int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_0_0, (void**)&m_rdoc_api);
+			int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_4_1, (void**)&m_rdoc_api);
 			if (ret == 0)
 			{
 				m_rdoc_api = nullptr;

@@ -34,6 +34,8 @@ struct IKIndexBuffer
 	virtual bool InitDevice(bool hostVisible) = 0;
 	virtual bool UnInit() = 0;
 
+	virtual bool IsHostVisible() const = 0;
+
 	virtual bool DiscardMemory() = 0;
 
 	virtual bool Map(void** ppData) = 0;

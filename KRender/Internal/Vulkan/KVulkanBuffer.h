@@ -52,6 +52,8 @@ public:
 	virtual bool Write(const void* pData);
 	virtual bool Read(void* pData);
 
+	virtual bool IsHostVisible() const;
+
 	virtual bool CopyFrom(IKIndexBufferPtr pSource);
 	virtual bool CopyTo(IKIndexBufferPtr pDest);
 

@@ -353,7 +353,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 
 	if (m_MissShader)
 	{
-		shaderStages.push_back(PopulateShaderCreateInfo(m_ClosestHitShader, VK_SHADER_STAGE_MISS_BIT_KHR));
+		shaderStages.push_back(PopulateShaderCreateInfo(m_MissShader, VK_SHADER_STAGE_MISS_BIT_KHR));
 		shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
 		shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
 		shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;

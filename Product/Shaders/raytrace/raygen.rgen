@@ -30,7 +30,7 @@ void main()
 	vec3 hitValue = vec3(0);
 	for(;;)
 	{
-		traceRayEXT(topLevelAS,     // acceleration structure
+		traceRayEXT(topLevelAS, // acceleration structure
 				rayFlags,       // rayFlags
 				0xFF,           // cullMask
 				0,              // sbtRecordOffset

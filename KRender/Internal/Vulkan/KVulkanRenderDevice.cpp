@@ -24,28 +24,26 @@
 #include <assert.h>
 
 //-------------------- Extensions --------------------//
-
-
-// Ray tracing related extensions
-
 const char* DEVICE_EXTENSIONS[] =
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	// Required by VK_KHR_acceleration_structure
+	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+	// Required by VK_KHR_spirv_1_4
+	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+#ifdef SUPPORT_RAY_TRACING_ENABLE
 #ifdef _WIN32
 	// Ray tracing related extensions
 	VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
 	VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
 	VK_KHR_RAY_QUERY_EXTENSION_NAME,
-	// Required by VK_KHR_acceleration_structure
-	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 	VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
 	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
 	// Required for VK_KHR_ray_tracing_pipeline
 	VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-	// Required by VK_KHR_spirv_1_4
-	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
 	//
 	VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
+#endif
 #endif
 };
 #define DEVICE_EXTENSIONS_COUNT (sizeof(DEVICE_EXTENSIONS) / sizeof(const char*))
@@ -382,6 +380,7 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 	enabledBufferDeviceAddresFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
 	enabledBufferDeviceAddresFeatures.bufferDeviceAddress = VK_TRUE;
 
+#ifdef SUPPORT_RAY_TRACING_ENABLE
 	enabledRayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
 	enabledRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
 	enabledRayTracingPipelineFeatures.pNext = &enabledBufferDeviceAddresFeatures;
@@ -391,6 +390,9 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 	enabledAccelerationStructureFeatures.pNext = &enabledRayTracingPipelineFeatures;
 
 	return &enabledAccelerationStructureFeatures;
+#else
+	return &enabledBufferDeviceAddresFeatures;
+#endif
 }
 
 bool KVulkanRenderDevice::CreateLogicalDevice()
@@ -440,7 +442,8 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		// RayTrace Shader引用DeviceAddress需要Int64
 		deviceFeatures.shaderInt64 = VK_TRUE;
-
+		// 即使没有使用MSAA的StorageImage 验证层还是会报错
+		deviceFeatures.shaderStorageImageMultisample = VK_TRUE;
 		// 查询各项异性支持
 		if (m_PhysicalDevice.deviceProperties.limits.maxSamplerAnisotropy > 0.0f)
 		{

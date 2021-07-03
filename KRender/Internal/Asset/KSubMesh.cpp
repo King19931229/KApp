@@ -80,7 +80,27 @@ bool KSubMesh::CreateAccelerationStructure()
 		return true;
 
 	KRenderGlobal::RenderDevice->CreateAccelerationStructure(m_AccelerationStructure);
-	m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer);
+
+	if (m_IndexData.indexBuffer->GetIndexType() == IT_16)
+	{
+		IKIndexBufferPtr newIndexBuffer = nullptr;
+
+		KRenderGlobal::RenderDevice->CreateIndexBuffer(newIndexBuffer);
+		size_t count = m_IndexData.indexBuffer->GetIndexCount();
+
+		std::vector<uint16_t> srcData; srcData.resize(count);
+		ASSERT_RESULT(m_IndexData.indexBuffer->Read(srcData.data()));
+
+		std::vector<uint32_t> destData; destData.resize(count);
+		for (size_t i = 0; i < count; ++i) destData[i] = srcData[i];
+
+		ASSERT_RESULT(newIndexBuffer->InitMemory(IT_32, count, destData.data()));
+		ASSERT_RESULT(newIndexBuffer->InitDevice(m_IndexData.indexBuffer->IsHostVisible()));
+		SAFE_UNINIT(m_IndexData.indexBuffer);
+		m_IndexData.indexBuffer = newIndexBuffer;
+	}
+
+	 m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer);
 
 	return true;
 }

@@ -700,7 +700,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		}
 
 		PopulateRenderCommand(frameIndex, renderPass, cullRes, preZcommands, defaultCommands, debugCommands);
-		/*
+
 		KRenderCommandList rayCommands;
 		KRenderGlobal::RayTraceManager.GetDebugRenderCommand(rayCommands);
 		for (KRenderCommand& command : rayCommands)
@@ -708,7 +708,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		}
 		debugCommands.insert(debugCommands.end(), rayCommands.begin(), rayCommands.end());
-		*/
+
 		AssignRenderCommand(frameIndex, preZcommands, defaultCommands, debugCommands);
 		SumbitRenderCommand(frameIndex, preZBuffers, defaultBuffers, debugBuffers);
 

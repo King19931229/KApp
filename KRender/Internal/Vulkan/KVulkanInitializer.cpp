@@ -280,7 +280,7 @@ namespace KVulkanInitializer
 		accelerationBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
 		accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBufferAddress;
 
-		VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
+		VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo = {};
 		accelerationStructureBuildRangeInfo.primitiveCount = numInstances;
 		accelerationStructureBuildRangeInfo.primitiveOffset = 0;
 		accelerationStructureBuildRangeInfo.firstVertex = 0;
