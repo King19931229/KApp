@@ -62,4 +62,12 @@ namespace KRenderGlobal
 
 	// Render Context
 	extern IKRenderDevice* RenderDevice;
+
+	// Render Stage
+	extern const char* PRE_Z_STAGE;
+	extern const char* DEFAULT_STAGE;
+	extern const char* DEBUG_STAGE;
+	extern const char* CSM_STAGE;
+
+	static const char* ALL_STAGES[] = { PRE_Z_STAGE, DEFAULT_STAGE, DEBUG_STAGE, CSM_STAGE };
 };

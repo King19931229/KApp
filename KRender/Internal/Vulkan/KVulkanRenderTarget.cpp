@@ -60,7 +60,7 @@ bool KVulkanRenderTarget::InitFromStroge(uint32_t width, uint32_t height, Elemen
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
 
-	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorge(
+	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorage(
 		vkFormat,
 		(uint32_t)width,
 		(uint32_t)height);

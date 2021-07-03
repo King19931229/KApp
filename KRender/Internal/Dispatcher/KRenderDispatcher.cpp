@@ -73,11 +73,6 @@ KRenderDispatcher::~KRenderDispatcher()
 	ASSERT_RESULT(m_CommandBuffers.empty());
 }
 
-static const char* PRE_Z_STAGE = "PreZ";
-static const char* DEFAULT_STAGE = "Default";
-static const char* DEBUG_STAGE = "Debug";
-static const char* CSM_STAGE = "CascadedShadowMap";
-
 bool KRenderDispatcher::CreateCommandBuffers()
 {
 	m_CommandBuffers.resize(m_FrameInFlight);
@@ -556,9 +551,9 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 		}
 	}
 
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(PRE_Z_STAGE, preZStatistics);
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEFAULT_STAGE, defaultStatistics);
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(DEBUG_STAGE, debugStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::PRE_Z_STAGE, preZStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::DEFAULT_STAGE, defaultStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::DEBUG_STAGE, debugStatistics);
 }
 
 void KRenderDispatcher::AssignRenderCommand(size_t frameIndex,
@@ -705,6 +700,15 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		}
 
 		PopulateRenderCommand(frameIndex, renderPass, cullRes, preZcommands, defaultCommands, debugCommands);
+		/*
+		KRenderCommandList rayCommands;
+		KRenderGlobal::RayTraceManager.GetDebugRenderCommand(rayCommands);
+		for (KRenderCommand& command : rayCommands)
+		{
+			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+		}
+		debugCommands.insert(debugCommands.end(), rayCommands.begin(), rayCommands.end());
+		*/
 		AssignRenderCommand(frameIndex, preZcommands, defaultCommands, debugCommands);
 		SumbitRenderCommand(frameIndex, preZBuffers, defaultBuffers, debugBuffers);
 
@@ -773,10 +777,10 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
 	{
+		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_Camera, frameIndex, primaryCommandBuffer);
 		KRenderGlobal::FrameGraph.Compile();
 		KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);
-		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);
 	}
 	primaryCommandBuffer->End();
 
@@ -793,10 +797,10 @@ bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKC
 	m_Pass->Init();
 	CreateCommandBuffers();
 
-	KRenderGlobal::Statistics.RegisterRenderStage(PRE_Z_STAGE);
-	KRenderGlobal::Statistics.RegisterRenderStage(DEFAULT_STAGE);
-	KRenderGlobal::Statistics.RegisterRenderStage(DEBUG_STAGE);
-	KRenderGlobal::Statistics.RegisterRenderStage(CSM_STAGE);
+	for (const char* stage : KRenderGlobal::ALL_STAGES)
+	{
+		KRenderGlobal::Statistics.RegisterRenderStage(stage);
+	}
 
 	return true;
 }
@@ -815,10 +819,10 @@ bool KRenderDispatcher::UnInit()
 	m_ThreadPool.UnInit();
 	DestroyCommandBuffers();
 
-	KRenderGlobal::Statistics.UnRegisterRenderStage(PRE_Z_STAGE);
-	KRenderGlobal::Statistics.UnRegisterRenderStage(DEFAULT_STAGE);
-	KRenderGlobal::Statistics.UnRegisterRenderStage(DEBUG_STAGE);
-	KRenderGlobal::Statistics.UnRegisterRenderStage(CSM_STAGE);
+	for (const char* stage : KRenderGlobal::ALL_STAGES)
+	{
+		KRenderGlobal::Statistics.UnRegisterRenderStage(stage);
+	}
 
 	return true;
 }

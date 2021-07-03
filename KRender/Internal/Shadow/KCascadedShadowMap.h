@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Publish/KCamera.h"
 #include "Interface/IKRenderDevice.h"
@@ -51,12 +51,13 @@ class KCascadedShadowMap
 	friend class KCascadedShadowMapPass;
 	friend class KCascadedShadowMapDebugPass;
 protected:
-	static constexpr size_t SHADOW_MAP_MAX_CASCADED = 4;
+	static constexpr size_t SHADOW_MAP_MAX_CASCADED = 4;	
+	IKRenderDevice* m_Device;
+
+	// TODO 以下Debug数据需要共享
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_BackGroundVertices[4];
 	static const uint16_t ms_BackGroundIndices[6];
 	static const VertexFormat ms_VertexFormats[1];
-	
-	IKRenderDevice* m_Device;
 
 	// buffer
 	IKVertexBufferPtr m_BackGroundVertexBuffer;

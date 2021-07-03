@@ -13,7 +13,7 @@
 KVulkanRayTracePipeline::KVulkanRayTracePipeline()
 	: m_TopDown(nullptr)
 	, m_CommandPool(nullptr)
-	, m_StorgeRT(nullptr)
+	, m_StorageRT(nullptr)
 	, m_AnyHitShader(nullptr)
 	, m_ClosestHitShader(nullptr)
 	, m_RayGenShader(nullptr)
@@ -52,15 +52,15 @@ void KVulkanRayTracePipeline::DestroyAccelerationStructure()
 	SAFE_UNINIT(m_TopDown);
 }
 
-void KVulkanRayTracePipeline::CreateStorgeImage()
+void KVulkanRayTracePipeline::CreateStorageImage()
 {
-	ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_StorgeRT));
-	ASSERT_RESULT(m_StorgeRT->InitFromStroge(m_Width, m_Height, m_Format));
+	ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_StorageRT));
+	ASSERT_RESULT(m_StorageRT->InitFromStroge(m_Width, m_Height, m_Format));
 }
 
-void KVulkanRayTracePipeline::DestroyStorgeImage()
+void KVulkanRayTracePipeline::DestroyStorageImage()
 {
-	SAFE_UNINIT(m_StorgeRT);
+	SAFE_UNINIT(m_StorageRT);
 }
 
 void KVulkanRayTracePipeline::CreateStrogeScene()
@@ -210,7 +210,7 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		accelerationStructureWrite.descriptorCount = 1;
 		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
-		KVulkanRenderTarget* vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(m_StorgeRT.get());
+		KVulkanRenderTarget* vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(m_StorageRT.get());
 		KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(vulkanRenderTarget->GetFrameBuffer().get());
 
 		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };	
@@ -490,7 +490,7 @@ bool KVulkanRayTracePipeline::SetShaderTable(ShaderType type, IKShaderPtr shader
 	}
 }
 
-bool KVulkanRayTracePipeline::SetStorgeImage(ElementFormat format, uint32_t width, uint32_t height)
+bool KVulkanRayTracePipeline::SetStorageImage(ElementFormat format, uint32_t width, uint32_t height)
 {
 	m_Format = format;
 	m_Width = width;
@@ -545,16 +545,21 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 {
 	if (m_Inited)
 	{
-		DestroyStorgeImage();
+		DestroyStorageImage();
 		DestroyDescriptorSet();
 		DestroyAccelerationStructure();
 
-		CreateStorgeImage();
+		CreateStorageImage();
 		CreateDescriptorSet();
 		CreateShaderBindingTables();
 		return true;
 	}
 	return false;
+}
+
+IKRenderTargetPtr KVulkanRayTracePipeline::GetStorageTarget()
+{
+	return m_StorageRT;
 }
 
 bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& cameraBuffers)
@@ -563,7 +568,7 @@ bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& camera
 
 	m_CameraBuffers = cameraBuffers;
 
-	CreateStorgeImage();
+	CreateStorageImage();
 	CreateAccelerationStructure();
 	CreateStrogeScene();
 	CreateDescriptorSet();
@@ -576,7 +581,7 @@ bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& camera
 
 bool KVulkanRayTracePipeline::UnInit()
 {
-	DestroyStorgeImage();
+	DestroyStorageImage();
 	DestroyAccelerationStructure();
 	DestroyStrogeScene();
 	DestroyShaderBindingTables();
@@ -591,7 +596,7 @@ bool KVulkanRayTracePipeline::UnInit()
 
 bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 {
-	if(primaryBuffer && frameIndex < m_Descriptor.sets.size())
+	if (primaryBuffer && frameIndex < m_Descriptor.sets.size())
 	{
 		IKCommandBufferPtr commandBuffer = primaryBuffer;
 		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)(commandBuffer.get());

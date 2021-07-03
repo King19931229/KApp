@@ -583,7 +583,8 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 			info.frameBuffer = info.texture->GetFrameBuffer();
 		}
 
-		imageInfo.imageLayout = info.frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;		
+		imageInfo.imageLayout = info.frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;	
+		// imageInfo.imageLayout = info.frameBuffer->IsStroageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = ((KVulkanFrameBuffer*)info.frameBuffer.get())->GetImageView();
 		imageInfo.sampler = ((KVulkanSampler*)info.sampler.get())->GetVkSampler();
 

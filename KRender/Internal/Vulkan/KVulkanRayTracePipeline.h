@@ -78,7 +78,7 @@ protected:
 	};
 	ShaderBindingTables m_ShaderBindingTables;
 
-	IKRenderTargetPtr m_StorgeRT;
+	IKRenderTargetPtr m_StorageRT;
 
 	IKShaderPtr m_AnyHitShader;
 	IKShaderPtr m_ClosestHitShader;
@@ -93,8 +93,8 @@ protected:
 
 	void CreateAccelerationStructure();
 	void DestroyAccelerationStructure();
-	void CreateStorgeImage();
-	void DestroyStorgeImage();
+	void CreateStorageImage();
+	void DestroyStorageImage();
 	void CreateStrogeScene();
 	void DestroyStrogeScene();
 	void CreateDescriptorSet();
@@ -111,7 +111,7 @@ public:
 	~KVulkanRayTracePipeline();
 
 	virtual bool SetShaderTable(ShaderType type, IKShaderPtr shader);
-	virtual bool SetStorgeImage(ElementFormat format, uint32_t width, uint32_t height);
+	virtual bool SetStorageImage(ElementFormat format, uint32_t width, uint32_t height);
 
 	virtual uint32_t AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform);
 	virtual bool RemoveBottomLevelAS(uint32_t handle);
@@ -119,6 +119,8 @@ public:
 
 	virtual bool RecreateAS();
 	virtual bool ResizeImage(uint32_t width, uint32_t height);
+
+	virtual IKRenderTargetPtr GetStorageTarget();
 
 	virtual bool Init(const std::vector<IKUniformBufferPtr>& cameraBuffers);
 	virtual bool UnInit();

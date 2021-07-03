@@ -26,6 +26,7 @@ protected:
 
 	bool m_External;
 	bool m_DepthStencil;
+	bool m_Storage;
 public:
 	KVulkanFrameBuffer();
 	~KVulkanFrameBuffer();
@@ -37,8 +38,8 @@ public:
 	bool InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t msaa);
 	// 创建为DepthStencilAttachment
 	bool InitDepthStencil(uint32_t width, uint32_t height, uint32_t msaa, bool stencil);
-	// 创建为RayTracingStorge
-	bool InitStorge(VkFormat format, uint32_t width, uint32_t height);
+	// 创建为RayTracingStorage
+	bool InitStorage(VkFormat format, uint32_t width, uint32_t height);
 
 	bool UnInit();
 
@@ -47,7 +48,11 @@ public:
 	uint32_t GetDepth() const override { return m_Depth; }
 	uint32_t GetMipmaps() const override { return m_Mipmaps; }
 	uint32_t GetMSAA() const override { return m_MSAA; }
-	bool IsDepthStencil() const { return m_DepthStencil; }
+	bool IsDepthStencil() const override { return m_DepthStencil; }
+	bool IsStroageImage() const override { return m_Storage; }
+
+	bool TranslateToStorage(IKCommandBufferPtr commandBuffer) override;
+	bool TranslateToShader(IKCommandBufferPtr commandBuffer) override;
 
 	inline VkImage GetImage() const { return m_Image; }
 	inline VkImageView GetImageView() const { return m_ImageView; }

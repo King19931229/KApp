@@ -32,4 +32,9 @@ namespace KRenderGlobal
 	uint32_t CurrentFrameNum = 0;
 
 	IKRenderDevice* RenderDevice = nullptr;
+
+	const char* PRE_Z_STAGE = "PreZ";
+	const char* DEFAULT_STAGE = "Default";
+	const char* DEBUG_STAGE = "Debug";
+	const char* CSM_STAGE = "CascadedShadowMap";
 }

@@ -702,8 +702,7 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 		}
 		primaryBuffer->EndRenderPass();
 
-		// TODO
-		//KRenderGlobal::Statistics.UpdateRenderStageStatistics(/*CSM_STAGE*/, m_Statistics);
+		KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::CSM_STAGE, m_Statistics);
 
 		return true;
 	}
@@ -824,8 +823,6 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands)
 
 bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
-	return false;
-	// TODO
 	/*
 	KRenderCommandList commands;
 	if (GetDebugRenderCommand(commands))
@@ -844,6 +841,7 @@ bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderPassPtr renderPa
 	}
 	return false;
 	*/
+	return false;
 }
 
 IKRenderTargetPtr KCascadedShadowMap::GetShadowMapTarget(size_t cascadedIndex)

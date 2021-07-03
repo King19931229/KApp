@@ -2,6 +2,7 @@
 #include "KVulkanInitializer.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanHelper.h"
+#include "KVulkanCommandBuffer.h"
 
 KVulkanFrameBuffer::KVulkanFrameBuffer()
 	: m_MSAAFlag(VK_SAMPLE_COUNT_1_BIT),
@@ -16,7 +17,8 @@ KVulkanFrameBuffer::KVulkanFrameBuffer()
 	m_Mipmaps(0),
 	m_MSAA(1),
 	m_External(true),
-	m_DepthStencil(false)
+	m_DepthStencil(false),
+	m_Storage(false)
 {
 }
 
@@ -43,6 +45,7 @@ bool KVulkanFrameBuffer::InitExternal(VkImage image, VkImageView imageView, VkFo
 	m_MSAA = msaa;
 	m_External = true;
 	m_DepthStencil = false;
+	m_Storage = false;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	if (msaa > 1)
@@ -95,6 +98,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 	m_MSAA = msaa;
 	m_External = false;
 	m_DepthStencil = false;
+	m_Storage = false;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	if (msaa > 1)
@@ -167,6 +171,7 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	m_MSAA = msaa;
 	m_External = false;
 	m_DepthStencil = true;
+	m_Storage = false;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 	if (msaa > 1)
@@ -206,7 +211,7 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	return true;
 }
 
-bool KVulkanFrameBuffer::InitStorge(VkFormat format, uint32_t width, uint32_t height)
+bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t height)
 {
 	m_Format = format;
 	m_Width = width;
@@ -216,6 +221,7 @@ bool KVulkanFrameBuffer::InitStorge(VkFormat format, uint32_t width, uint32_t he
 	m_MSAA = 1;
 	m_External = false;
 	m_DepthStencil = false;
+	m_Storage = true;
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 
@@ -235,7 +241,7 @@ bool KVulkanFrameBuffer::InitStorge(VkFormat format, uint32_t width, uint32_t he
 			imageType,
 			m_Format,
 			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			createFlags,
 			m_Image, m_AllocInfo);
@@ -275,5 +281,35 @@ bool KVulkanFrameBuffer::UnInit()
 		m_MSAAImage = VK_NULL_HANDLE;
 	}
 
+	return true;
+}
+
+bool KVulkanFrameBuffer::TranslateToStorage(IKCommandBufferPtr commandBuffer)
+{
+	if (commandBuffer)
+	{
+		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)commandBuffer.get();
+		VkCommandBuffer buffer = vulkanCommandBuffer->GetVkHandle();
+		KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, buffer);
+	}
+	else
+	{
+		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+	}
+	return true;
+}
+
+bool KVulkanFrameBuffer::TranslateToShader(IKCommandBufferPtr commandBuffer)
+{
+	if (commandBuffer)
+	{
+		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)commandBuffer.get();
+		VkCommandBuffer buffer = vulkanCommandBuffer->GetVkHandle();
+		KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, buffer);
+	}
+	else
+	{
+		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
 	return true;
 }

@@ -162,7 +162,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 	: m_pWindow(nullptr),
 	m_EnableValidationLayer(
 #if defined(_WIN32) && defined(_DEBUG)
-	false//true
+	true
 #elif defined(__ANDROID__)
 	false
 #else
