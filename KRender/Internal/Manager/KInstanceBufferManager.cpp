@@ -108,6 +108,7 @@ bool KInstanceBufferManager::InternalAlloc(size_t count,
 					resultBlock.buffer = block.buffer;
 					resultBlock.count = useCount;
 					resultBlock.start = block.useCount;
+					resultBlock.offset = block.useCount * m_VertexSize;
 					results.push_back(resultBlock);
 
 					block.useCount += useCount;
@@ -133,6 +134,7 @@ bool KInstanceBufferManager::InternalAlloc(size_t count,
 					resultBlock.buffer = newBlock.buffer;
 					resultBlock.count = useCount;
 					resultBlock.start = newBlock.useCount;
+					resultBlock.offset = newBlock.useCount * m_VertexSize;
 					results.push_back(resultBlock);
 
 					newBlock.useCount += useCount;

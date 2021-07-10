@@ -250,9 +250,11 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 				if (command.indexDraw)
 				{
-					KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
+					KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());					
 					vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 					vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, instanceCount, command.indexData->indexStart, 0, instanceStart);
+					// FIXME 难道这是NV驱动的BUG 开启Drawinstance功能之后如果Indexbuffer是32bit需要把Indexbuffer按16bit绑定一次
+					vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, VK_INDEX_TYPE_UINT16);
 				}
 				else
 				{

@@ -267,6 +267,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 
 		VkDescriptorBufferInfo& bufferInfo = m_DynamicBufferWriteInfo[i];
 		bufferInfo.buffer = ((KVulkanUniformBuffer*)uniformBuffer.get())->GetVulkanHandle();
+		// offset 不在这里绑定 在KVulkanCommandBuffer::Render时候绑定
 		bufferInfo.offset = 0;
 		bufferInfo.range = usage->range;
 

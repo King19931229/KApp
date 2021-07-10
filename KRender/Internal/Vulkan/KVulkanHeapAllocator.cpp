@@ -135,11 +135,14 @@ namespace KVulkanHeapAllocator
 					allocInfo.pNext = nullptr;
 					allocInfo.memoryTypeIndex = memoryTypeIndex;
 
+					// TODO 分配时作区分
+#ifdef SUPPORT_RAY_TRACING_ENABLE
 					// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
 					VkMemoryAllocateFlagsInfoKHR allocFlagsInfo = {};
 					allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
 					allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
 					allocInfo.pNext = &allocFlagsInfo;
+#endif
 
 					VK_ASSERT_RESULT(vkAllocateMemory(DEVICE, &allocInfo, nullptr, &vkMemroy));
 					HEAP_REMAIN_SIZE[memoryHeapIndex] -= size;

@@ -520,6 +520,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 							usage.buffer = allocResult.buffer;
 							usage.start = allocResult.start;
 							usage.count = allocResult.count;
+							usage.offset = allocResult.offset;
 						}
 
 						if (AssignShadingParameter(command, material.get(), useMateiralTex))

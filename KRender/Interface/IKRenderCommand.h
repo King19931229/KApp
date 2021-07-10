@@ -100,12 +100,14 @@ struct KInstanceBufferUsage
 	IKVertexBufferPtr buffer;
 	size_t start;
 	size_t count;
+	size_t offset;
 
 	KInstanceBufferUsage()
 	{
 		buffer = nullptr;
 		start = 0;
 		count = 0;
+		offset = 0;
 	}
 };
 

@@ -507,11 +507,10 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 		IKRenderPassPtr renderPass = swapChain->GetRenderPass(chainImageIndex);
 		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 
-		primaryCommandBuffer->SetViewport(renderPass->GetViewPort());
-
 		KRenderCommand command;
 		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(), renderPass))
 		{
+			primaryCommandBuffer->SetViewport(renderPass->GetViewPort());
 			primaryCommandBuffer->Render(command);
 		}
 

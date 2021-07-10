@@ -652,6 +652,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 								usage.buffer = allocResult.buffer;
 								usage.start = allocResult.start;
 								usage.count = allocResult.count;
+								usage.offset = allocResult.offset;
 							}
 						}
 

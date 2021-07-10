@@ -11,6 +11,7 @@ public:
 		IKVertexBufferPtr buffer;
 		size_t start;
 		size_t count;
+		size_t offset;
 	};
 protected:
 	struct InstanceBlock
