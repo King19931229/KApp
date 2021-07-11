@@ -10,8 +10,13 @@ KRayTraceScene::KRayTraceScene()
 	, m_Pipeline(nullptr)
 	, m_DebugPipeline(nullptr)
 	, m_DebugClip(glm::mat4(1.0f))
+	, m_Width(1024)
+	, m_Height(1024)
+	, m_ImageScale(1.0f)
 	, m_DebugEnable(false)
+	, m_AutoUpdateImageSize(false)
 {
+	m_OnSceneChangedFunc = std::bind(&KRayTraceScene::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 KRayTraceScene::~KRayTraceScene()
@@ -54,10 +59,12 @@ bool KRayTraceScene::GetDebugRenderCommand(KRenderCommandList& commands)
 				pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 				pipeline->SetShader(ST_VERTEX, KRenderGlobal::RayTraceManager.m_DebugVertexShader);
 				pipeline->SetShader(ST_FRAGMENT, KRenderGlobal::RayTraceManager.m_DebugFragmentShader);
-				pipeline->SetSampler(SHADER_BINDING_TEXTURE0, rayTraceTarget, KRenderGlobal::RayTraceManager.m_DebugSampler);
+				pipeline->SetSampler(SHADER_BINDING_TEXTURE0, rayTraceTarget, KRenderGlobal::RayTraceManager.m_DebugSampler, true);
 
 				ASSERT_RESULT(pipeline->Init());
 			}
+
+			m_DebugPipeline->SetSampler(SHADER_BINDING_TEXTURE0, rayTraceTarget, KRenderGlobal::RayTraceManager.m_DebugSampler, true);
 
 			command.vertexData = &KRenderGlobal::RayTraceManager.m_DebugVertexData;
 			command.indexData = &KRenderGlobal::RayTraceManager.m_DebugIndexData;
@@ -73,6 +80,48 @@ bool KRayTraceScene::GetDebugRenderCommand(KRenderCommandList& commands)
 		return true;
 	}
 	return false;
+}
+
+void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
+{
+	if (m_Pipeline)
+	{
+		IKRenderComponent* renderComponent = nullptr;
+		IKTransformComponent* transformComponent = nullptr;
+		if (entity->GetComponentBase(CT_RENDER, (IKComponentBase**)&renderComponent) && entity->GetComponentBase(CT_TRANSFORM, (IKComponentBase**)&transformComponent))
+		{
+			std::vector<IKAccelerationStructurePtr> subAS;
+			renderComponent->GetAllAccelerationStructure(subAS);
+			const glm::mat4& transform = transformComponent->GetFinal();
+			m_Entites[entity.get()] = std::make_tuple(subAS, transform);
+
+			for (IKAccelerationStructurePtr as : subAS)
+			{
+				if (op == ESO_ADD)
+				{
+					uint32_t handle = m_Pipeline->AddBottomLevelAS(as, transform);
+					m_ASHandles[as].insert(handle);
+					m_Pipeline->MarkASNeedUpdate();
+				}
+				else if(op == ESO_REMOVE || op == ESO_MOVE)
+				{
+					auto it = m_ASHandles.find(as);
+					if (it != m_ASHandles.end())
+					{
+						if (op == ESO_REMOVE)
+						{
+							for (uint32_t handle : it->second)
+							{
+								m_Pipeline->RemoveBottomLevelAS(handle);
+							}
+							m_ASHandles.erase(it);
+						}
+						m_Pipeline->MarkASNeedUpdate();
+					}
+				}
+			}
+		}
+	}
 }
 
 bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTracePipelinePtr& pipeline)
@@ -109,24 +158,11 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTrac
 
 		for (IKEntityPtr& entity : entites)
 		{
-			IKRenderComponent* renderComponent = nullptr;
-			IKTransformComponent* transformComponent = nullptr;
-			if (entity->GetComponentBase(CT_RENDER, (IKComponentBase**)&renderComponent) && entity->GetComponentBase(CT_TRANSFORM, (IKComponentBase**)&transformComponent))
-			{
-				std::vector<IKAccelerationStructurePtr> subAS;
-				renderComponent->GetAllAccelerationStructure(subAS);
-				const glm::mat4& transform = transformComponent->GetFinal();
-				m_Entites[entity.get()] = std::make_tuple(subAS, transform);
-
-				for (IKAccelerationStructurePtr as : subAS)
-				{
-					pipeline->AddBottomLevelAS(as, transform);
-				}
-			}
+			OnSceneChanged(ESO_ADD, entity);
 		}
 
-		pipeline->Init(m_CameraBuffers);
-
+		pipeline->Init(m_CameraBuffers, m_Width, m_Height);
+		m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
 		return true;
 	}
 	return false;
@@ -134,9 +170,14 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTrac
 
 bool KRayTraceScene::UnInit()
 {
+	if (m_Scene)
+	{
+		m_Scene->UnRegisterEntityObserver(&m_OnSceneChangedFunc);
+	}
 	m_Scene = nullptr;
 	m_Camera = nullptr;
 	m_Entites.clear();
+	m_ASHandles.clear();
 	SAFE_UNINIT(m_Pipeline);
 	SAFE_UNINIT(m_DebugPipeline);
 	SAFE_UNINIT_CONTAINER(m_CameraBuffers);
@@ -176,6 +217,39 @@ bool KRayTraceScene::DisableDebugDraw()
 {
 	m_DebugEnable = false;
 	return true;
+}
+
+bool KRayTraceScene::EnableAutoUpdateImageSize(float scale)
+{
+	m_ImageScale = scale;
+	m_AutoUpdateImageSize = true;
+	UpdateSize();
+	return true;
+}
+
+bool KRayTraceScene::EnableCustomImageSize(uint32_t width, uint32_t height)
+{
+	m_Width = width;
+	m_Height = height;
+	m_AutoUpdateImageSize = false;
+	return true;
+}
+
+void KRayTraceScene::UpdateSize()
+{
+	if (m_AutoUpdateImageSize)
+	{
+		IKSwapChain* chain = KRenderGlobal::RenderDevice->GetSwapChain();
+		if (chain->GetWidth() && chain->GetHeight())
+		{
+			m_Width = static_cast<uint32_t>(static_cast<float>(chain->GetWidth()) * m_ImageScale);
+			m_Height = static_cast<uint32_t>(static_cast<float>(chain->GetHeight()) * m_ImageScale);
+			if (m_Pipeline)
+			{
+				m_Pipeline->ResizeImage(m_Width, m_Height);
+			}
+		}
+	}
 }
 
 bool KRayTraceScene::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)

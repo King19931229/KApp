@@ -90,6 +90,7 @@ protected:
 	uint32_t m_Height;
 
 	bool m_Inited;
+	bool m_ASNeedUpdate;
 
 	void CreateAccelerationStructure();
 	void DestroyAccelerationStructure();
@@ -111,7 +112,7 @@ public:
 	~KVulkanRayTracePipeline();
 
 	virtual bool SetShaderTable(ShaderType type, IKShaderPtr shader);
-	virtual bool SetStorageImage(ElementFormat format, uint32_t width, uint32_t height);
+	virtual bool SetStorageImage(ElementFormat format);
 
 	virtual uint32_t AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform);
 	virtual bool RemoveBottomLevelAS(uint32_t handle);
@@ -122,8 +123,9 @@ public:
 
 	virtual IKRenderTargetPtr GetStorageTarget();
 
-	virtual bool Init(const std::vector<IKUniformBufferPtr>& cameraBuffers);
+	virtual bool Init(const std::vector<IKUniformBufferPtr>& cameraBuffers, uint32_t width, uint32_t height);
 	virtual bool UnInit();
+	virtual bool MarkASNeedUpdate();
 
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
 };

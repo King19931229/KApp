@@ -9,8 +9,13 @@ protected:
 	const KCamera* m_Camera;
 	IKRayTracePipelinePtr m_Pipeline;
 	IKPipelinePtr m_DebugPipeline;
+	uint32_t m_Width;
+	uint32_t m_Height;
+	float m_ImageScale;
 	bool m_DebugEnable;
+	bool m_AutoUpdateImageSize;
 	std::vector<IKUniformBufferPtr> m_CameraBuffers;
+	std::unordered_map<IKAccelerationStructurePtr, std::unordered_set<uint32_t>> m_ASHandles;
 
 	typedef std::tuple<std::vector<IKAccelerationStructurePtr>, glm::mat4> ASTransforms;
 	typedef std::unordered_map<IKEntity*, ASTransforms> EntityTransform;
@@ -41,6 +46,9 @@ protected:
 	};
 
 	glm::mat4 m_DebugClip;
+
+	EntityObserverFunc m_OnSceneChangedFunc;
+	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
 public:
 	KRayTraceScene();
 	~KRayTraceScene();
@@ -50,6 +58,10 @@ public:
 	virtual bool UpdateCamera(uint32_t frameIndex);
 	virtual bool EnableDebugDraw(float x, float y, float width, float height);
 	virtual bool DisableDebugDraw();
+	virtual bool EnableAutoUpdateImageSize(float scale);
+	virtual bool EnableCustomImageSize(uint32_t width, uint32_t height);
 	virtual bool GetDebugRenderCommand(KRenderCommandList& commands);
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+
+	void UpdateSize();
 };

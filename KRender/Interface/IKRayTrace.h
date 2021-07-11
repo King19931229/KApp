@@ -11,6 +11,8 @@ struct IKRayTraceScene
 	virtual bool UpdateCamera(uint32_t frameIndex) = 0;
 	virtual bool EnableDebugDraw(float x, float y, float width, float height) = 0;
 	virtual bool DisableDebugDraw() = 0;
+	virtual bool EnableAutoUpdateImageSize(float scale) = 0;
+	virtual bool EnableCustomImageSize(uint32_t width, uint32_t height) = 0;
 	virtual bool GetDebugRenderCommand(KRenderCommandList& commands) = 0;
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex) = 0;
 };

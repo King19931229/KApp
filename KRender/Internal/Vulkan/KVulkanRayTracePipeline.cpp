@@ -22,6 +22,7 @@ KVulkanRayTracePipeline::KVulkanRayTracePipeline()
 	, m_Width(0)
 	, m_Height(0)
 	, m_Inited(false)
+	, m_ASNeedUpdate(false)
 {
 }
 
@@ -490,11 +491,9 @@ bool KVulkanRayTracePipeline::SetShaderTable(ShaderType type, IKShaderPtr shader
 	}
 }
 
-bool KVulkanRayTracePipeline::SetStorageImage(ElementFormat format, uint32_t width, uint32_t height)
+bool KVulkanRayTracePipeline::SetStorageImage(ElementFormat format)
 {
 	m_Format = format;
-	m_Width = width;
-	m_Height = height;
 	return true;
 }
 
@@ -527,15 +526,55 @@ bool KVulkanRayTracePipeline::RecreateAS()
 {
 	if (m_Inited)
 	{
-		DestroyShaderBindingTables();
-		DestroyDescriptorSet();
-		DestroyStrogeScene();
-		DestroyAccelerationStructure();
+		KRenderGlobal::RenderDevice->Wait();
 
+		DestroyAccelerationStructure();
 		CreateAccelerationStructure();
+		DestroyStrogeScene();
 		CreateStrogeScene();
-		CreateDescriptorSet();
-		CreateShaderBindingTables();
+
+		KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDown.get());
+
+		VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = {};
+		descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+		descriptorAccelerationStructureInfo.pAccelerationStructures = &topDown->GetTopDown().handle;
+
+		uint32_t frames = KRenderGlobal::RenderDevice->GetNumFramesInFlight();
+		for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
+		{
+			VkWriteDescriptorSet accelerationStructureWrite = {};
+			accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			// The specialized acceleration structure descriptor has to be chained
+			accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
+			accelerationStructureWrite.dstSet = m_Descriptor.sets[frameIndex];
+			accelerationStructureWrite.dstBinding = 0;
+			accelerationStructureWrite.descriptorCount = 1;
+			accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+
+			VkDescriptorBufferInfo sceneBufferInfo;
+			sceneBufferInfo.buffer = m_Scene.buffer;
+			sceneBufferInfo.offset = 0;
+			sceneBufferInfo.range = VK_WHOLE_SIZE;
+
+			VkWriteDescriptorSet sceneWrite = {};
+			sceneWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			sceneWrite.dstSet = m_Descriptor.sets[frameIndex];
+			sceneWrite.dstBinding = 3;
+			sceneWrite.descriptorCount = 1;
+			sceneWrite.pBufferInfo = &sceneBufferInfo;
+			sceneWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+			VkWriteDescriptorSet writeDescriptorSets[] =
+			{
+				// Binding 0: Top level acceleration structure
+				accelerationStructureWrite,
+				// Binding 3: Scene data
+				sceneWrite
+			};
+
+			vkUpdateDescriptorSets(KVulkanGlobal::device, ARRAY_SIZE(writeDescriptorSets), writeDescriptorSets, 0, VK_NULL_HANDLE);
+		}
 		return true;
 	}
 	return false;
@@ -543,15 +582,40 @@ bool KVulkanRayTracePipeline::RecreateAS()
 
 bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 {
+	m_Width = width;
+	m_Height = height;
+
 	if (m_Inited)
 	{
-		DestroyStorageImage();
-		DestroyDescriptorSet();
-		DestroyAccelerationStructure();
+		KRenderGlobal::RenderDevice->Wait();
 
-		CreateStorageImage();
-		CreateDescriptorSet();
-		CreateShaderBindingTables();
+		m_StorageRT->UnInit();
+		m_StorageRT->InitFromStroge(m_Width, m_Height, m_Format);
+
+		uint32_t frames = KRenderGlobal::RenderDevice->GetNumFramesInFlight();
+		for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
+		{
+			KVulkanRenderTarget* vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(m_StorageRT.get());
+			KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(vulkanRenderTarget->GetFrameBuffer().get());
+
+			VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };
+			VkWriteDescriptorSet storageImageWrite = {};
+			storageImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			storageImageWrite.dstSet = m_Descriptor.sets[frameIndex];
+			storageImageWrite.dstBinding = 1;
+			storageImageWrite.descriptorCount = 1;
+			storageImageWrite.pImageInfo = &storageImageDescriptor;
+			storageImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+
+			VkWriteDescriptorSet writeDescriptorSets[] =
+			{
+				// Binding 1: Ray tracing result image
+				storageImageWrite
+			};
+
+			vkUpdateDescriptorSets(KVulkanGlobal::device, ARRAY_SIZE(writeDescriptorSets), writeDescriptorSets, 0, VK_NULL_HANDLE);
+		}
+
 		return true;
 	}
 	return false;
@@ -562,11 +626,13 @@ IKRenderTargetPtr KVulkanRayTracePipeline::GetStorageTarget()
 	return m_StorageRT;
 }
 
-bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& cameraBuffers)
+bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& cameraBuffers, uint32_t width, uint32_t height)
 {
 	UnInit();
 
 	m_CameraBuffers = cameraBuffers;
+	m_Width = width;
+	m_Height = height;
 
 	CreateStorageImage();
 	CreateAccelerationStructure();
@@ -576,6 +642,7 @@ bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& camera
 	CreateCommandBuffers();
 
 	m_Inited = true;
+	m_ASNeedUpdate = false;
 	return true;
 }
 
@@ -594,10 +661,22 @@ bool KVulkanRayTracePipeline::UnInit()
 	return true;
 }
 
+bool KVulkanRayTracePipeline::MarkASNeedUpdate()
+{
+	m_ASNeedUpdate = true;
+	return true;
+}
+
 bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 {
 	if (primaryBuffer && frameIndex < m_Descriptor.sets.size())
 	{
+		if (m_ASNeedUpdate)
+		{
+			m_ASNeedUpdate = false;
+			RecreateAS();
+		}
+
 		IKCommandBufferPtr commandBuffer = primaryBuffer;
 		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)(commandBuffer.get());
 		VkCommandBuffer vkCommandBuffer = vulkanCommandBuffer->GetVkHandle();

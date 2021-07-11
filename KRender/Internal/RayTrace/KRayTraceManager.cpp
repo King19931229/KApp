@@ -90,6 +90,16 @@ bool KRayTraceManager::UpdateCamera(uint32_t frameIndex)
 	return true;
 }
 
+bool KRayTraceManager::Resize(size_t width, size_t height)
+{
+	for (IKRayTraceScenePtr scene : m_Scenes)
+	{
+		KRayTraceScene* traceScene = (KRayTraceScene*)scene.get();
+		traceScene->UpdateSize();
+	}
+	return true;
+}
+
 bool KRayTraceManager::AcquireRayTraceScene(IKRayTraceScenePtr& scene)
 {
 	scene = IKRayTraceScenePtr(KNEW KRayTraceScene());

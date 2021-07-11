@@ -57,29 +57,71 @@ bool KRenderScene::UnInit()
 	return true;
 }
 
+void KRenderScene::OnEntityChange(EntitySceneOp op, IKEntityPtr entity)
+{
+	for (EntityObserverFunc* observer : m_Observers)
+	{
+		(*observer)(op, entity);
+	}
+}
+
 bool KRenderScene::Add(IKEntityPtr entity)
 {
-	return m_SceneMgr && m_SceneMgr->Add(entity);
+	if (m_SceneMgr)
+	{
+		// TODO处理返回值
+		m_SceneMgr->Add(entity);
+		OnEntityChange(ESO_ADD, entity);
+		return true;
+	}
+	return false;
 }
 
 bool KRenderScene::Remove(IKEntityPtr entity)
 {
-	return m_SceneMgr && m_SceneMgr->Remove(entity);
+	if (m_SceneMgr)
+	{
+		// TODO处理返回值
+		m_SceneMgr->Remove(entity);
+		OnEntityChange(ESO_REMOVE, entity);
+		return true;
+	}
+	return false;
 }
 
 bool KRenderScene::Move(IKEntityPtr entity)
 {
-	return m_SceneMgr && m_SceneMgr->Move(entity);
+	if(m_SceneMgr)
+	{
+		// TODO处理返回值
+		m_SceneMgr->Move(entity);
+		OnEntityChange(ESO_MOVE, entity);
+		return true;
+	}
+	return false;
 }
 
 bool KRenderScene::RegisterEntityObserver(EntityObserverFunc* func)
 {
+	if (func)
+	{
+		m_Observers.insert(func);
+		return true;
+	}
 	return false;
 }
 
 bool KRenderScene::UnRegisterEntityObserver(EntityObserverFunc* func)
 {
-	return false;
+	if (func)
+	{
+		m_Observers.erase(func);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 bool KRenderScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result)

@@ -11,6 +11,9 @@ class KRenderScene : public IKRenderScene
 protected:
 	KSceneManagerBase* m_SceneMgr;
 	bool m_EnableDebugRender;
+	std::unordered_set<EntityObserverFunc*> m_Observers;
+
+	void OnEntityChange(EntitySceneOp op, IKEntityPtr entity);
 public:
 	KRenderScene();
 	virtual ~KRenderScene();

@@ -12,7 +12,7 @@ enum EntitySceneOp
 {
 	ESO_ADD,
 	ESO_REMOVE,
-	RES_REMOVE
+	ESO_MOVE
 };
 
 typedef std::function<void(EntitySceneOp, IKEntityPtr)> EntityObserverFunc;

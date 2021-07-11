@@ -154,11 +154,13 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 	ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, instanceAlloc));
 
 	// 这里没有拷贝数据导致数据为空验证层居然在之后不报错
-	void* instanceData = nullptr;
-	VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, instanceAlloc.vkMemroy, instanceAlloc.vkOffset, instanceSize, 0, &instanceData));
-	memcpy(instanceData, instances.data(), instanceSize);
-	vkUnmapMemory(KVulkanGlobal::device, instanceAlloc.vkMemroy);
-
+	if (instanceSize)
+	{
+		void* instanceData = nullptr;
+		VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, instanceAlloc.vkMemroy, instanceAlloc.vkOffset, instanceSize, 0, &instanceData));
+		memcpy(instanceData, instances.data(), instanceSize);
+		vkUnmapMemory(KVulkanGlobal::device, instanceAlloc.vkMemroy);
+	}
 	VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, instanceBufferHandle, instanceAlloc.vkMemroy, instanceAlloc.vkOffset));
 
 	VkDeviceOrHostAddressConstKHR instanceDataDeviceAddress{};
