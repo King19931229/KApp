@@ -88,36 +88,34 @@ void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 	{
 		IKRenderComponent* renderComponent = nullptr;
 		IKTransformComponent* transformComponent = nullptr;
-		if (entity->GetComponentBase(CT_RENDER, (IKComponentBase**)&renderComponent) && entity->GetComponentBase(CT_TRANSFORM, (IKComponentBase**)&transformComponent))
-		{
-			std::vector<IKAccelerationStructurePtr> subAS;
-			renderComponent->GetAllAccelerationStructure(subAS);
-			const glm::mat4& transform = transformComponent->GetFinal();
-			m_Entites[entity.get()] = std::make_tuple(subAS, transform);
 
-			for (IKAccelerationStructurePtr as : subAS)
+		if (op == ESO_REMOVE || op == ESO_MOVE)
+		{
+			auto it = m_ASHandles.find(entity);
+			if (it != m_ASHandles.end())
 			{
-				if (op == ESO_ADD)
+				for (uint32_t handle : it->second)
+				{
+					m_Pipeline->RemoveBottomLevelAS(handle);
+				}
+				m_ASHandles.erase(it);
+				m_Pipeline->MarkASNeedUpdate();
+			}
+		}
+
+		if (op != ESO_REMOVE)
+		{
+			if (entity->GetComponentBase(CT_RENDER, (IKComponentBase**)&renderComponent) && entity->GetComponentBase(CT_TRANSFORM, (IKComponentBase**)&transformComponent))
+			{
+				std::vector<IKAccelerationStructurePtr> subAS;
+				renderComponent->GetAllAccelerationStructure(subAS);
+				const glm::mat4& transform = transformComponent->GetFinal();
+
+				for (IKAccelerationStructurePtr as : subAS)
 				{
 					uint32_t handle = m_Pipeline->AddBottomLevelAS(as, transform);
-					m_ASHandles[as].insert(handle);
+					m_ASHandles[entity].insert(handle);
 					m_Pipeline->MarkASNeedUpdate();
-				}
-				else if(op == ESO_REMOVE || op == ESO_MOVE)
-				{
-					auto it = m_ASHandles.find(as);
-					if (it != m_ASHandles.end())
-					{
-						if (op == ESO_REMOVE)
-						{
-							for (uint32_t handle : it->second)
-							{
-								m_Pipeline->RemoveBottomLevelAS(handle);
-							}
-							m_ASHandles.erase(it);
-						}
-						m_Pipeline->MarkASNeedUpdate();
-					}
 				}
 			}
 		}
@@ -176,7 +174,6 @@ bool KRayTraceScene::UnInit()
 	}
 	m_Scene = nullptr;
 	m_Camera = nullptr;
-	m_Entites.clear();
 	m_ASHandles.clear();
 	SAFE_UNINIT(m_Pipeline);
 	SAFE_UNINIT(m_DebugPipeline);

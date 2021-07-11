@@ -34,7 +34,7 @@ public:
 
 	void Clear()
 	{
-		m_HandleCounter = 9;
+		m_HandleCounter = 0;
 		m_RetrieveQueue.swap(std::queue<T>());
 	}
 

@@ -15,11 +15,9 @@ protected:
 	bool m_DebugEnable;
 	bool m_AutoUpdateImageSize;
 	std::vector<IKUniformBufferPtr> m_CameraBuffers;
-	std::unordered_map<IKAccelerationStructurePtr, std::unordered_set<uint32_t>> m_ASHandles;
+	std::unordered_map<IKEntityPtr, std::unordered_set<uint32_t>> m_ASHandles;
 
 	typedef std::tuple<std::vector<IKAccelerationStructurePtr>, glm::mat4> ASTransforms;
-	typedef std::unordered_map<IKEntity*, ASTransforms> EntityTransform;
-	EntityTransform m_Entites;
 
 	struct Rect
 	{
