@@ -104,4 +104,7 @@ namespace KVulkanInitializer
 
 	void BeginSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
 	void EndSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
+
+	void CreateStroageBuffer(VkDeviceSize size, const void* pSrcData, VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
+	void DestroyStroageBuffer(VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
 }

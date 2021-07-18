@@ -2,10 +2,16 @@
 #include "KVulkanBuffer.h"
 #include "KVulkanHelper.h"
 #include "KVulkanGlobal.h"
+#include "KVulkanTexture.h"
+#include "KVulkanSampler.h"
+#include "Internal/Asset/Material/KMaterialTextureBinding.h"
+#include "KBase/Publish/KHash.h"
+#include <unordered_map>
 
 KVulkanAccelerationStructure::KVulkanAccelerationStructure()
 	: m_IndexBuffer(nullptr)
 	, m_VertexBuffer(nullptr)
+	, m_TextureBinding(nullptr)
 {
 }
 
@@ -13,18 +19,21 @@ KVulkanAccelerationStructure::~KVulkanAccelerationStructure()
 {
 	ASSERT_RESULT(!m_IndexBuffer);
 	ASSERT_RESULT(!m_VertexBuffer);
+	ASSERT_RESULT(!m_TextureBinding);
 }
 
-bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer)
+bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer, IKMaterialTextureBinding* textureBinding)
 {
 #ifdef SUPPORT_RAY_TRACING_ENABLE
 	if (format == VF_POINT_NORMAL_UV && vertexBuffer && indexBuffer)
 	{
 		KVulkanVertexBuffer* vulkanVertexBuffer = static_cast<KVulkanVertexBuffer*>(vertexBuffer.get());
 		KVulkanIndexBuffer* vulkanIndexBuffer = static_cast<KVulkanIndexBuffer*>(indexBuffer.get());
+		KMaterialTextureBinding* matTextureBinding = static_cast<KMaterialTextureBinding*>(textureBinding);
 
 		m_IndexBuffer = vulkanIndexBuffer;
 		m_VertexBuffer = vulkanVertexBuffer;
+		m_TextureBinding = matTextureBinding;
 
 		VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress = {};
 		VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress = {};
@@ -72,7 +81,6 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 
 		KVulkanInitializer::CreateVkAccelerationStructure(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR, accelerationStructureBuildSizesInfo, m_BottomUpAS);
 		KVulkanInitializer::BuildBottomUpVkAccelerationStructure(accelerationStructureGeometry, accelerationStructureBuildSizesInfo, numTriangles, m_BottomUpAS);
-
 		return true;
 	}
 #endif
@@ -87,6 +95,10 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 
 	std::vector<VkAccelerationStructureInstanceKHR> instances;
 	instances.reserve(bottomASs.size());
+
+	std::unordered_map<IKTexturePtr, uint32_t> textures;
+	std::unordered_map<uint32_t, MaterialBuffer> mtlBuffers;
+	m_Textures.clear();
 
 	for (size_t index = 0; index < bottomASs.size(); ++index)
 	{
@@ -114,11 +126,76 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 
 		instances.push_back(instance);
 
+		const KMaterialTextureBinding* textureBinding = vulkanAS->GetTextureBinding();
+
+		KVulkanRayTraceMaterial material = {};
+		material.diffuseTex = material.normalTex = material.specularTex = -1;
+		material.placeholder = -1;
+		if (textureBinding)
+		{
+			for (uint32_t i = 0; i < MTS_COUNT; ++i)
+			{
+				int32_t idx = -1;
+
+				IKTexturePtr texture = textureBinding->GetTexture(i);
+				IKSamplerPtr sampler = textureBinding->GetSampler(i);
+				if (texture && sampler)
+				{
+					auto it = textures.find(texture);
+					if (it == textures.end())
+					{
+						VkDescriptorImageInfo image = {};
+						KVulkanTexture* vulkanTexture = static_cast<KVulkanTexture*>(texture.get());
+						KVulkanSampler* vulkanSampler = static_cast<KVulkanSampler*>(sampler.get());
+						image.imageView = vulkanTexture->GetImageView();
+						image.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+						image.sampler = vulkanSampler->GetVkSampler();
+
+						idx = (int32_t)m_Textures.size();
+						textures.insert({ texture,idx });
+						m_Textures.push_back(std::move(image));
+					}
+					else
+					{
+						idx = it->second;
+					}
+				}
+
+				if (i == MTS_DIFFUSE) material.diffuseTex = idx;
+				if (i == MTS_SPECULAR) material.specularTex = idx;
+				if (i == MTS_NORMAL) material.normalTex = idx;
+			}
+		}
+
+		uint32_t mtlHash = 0;
+		KHash::HashCombine(mtlHash, material.diffuseTex);
+		KHash::HashCombine(mtlHash, material.specularTex);
+		KHash::HashCombine(mtlHash, material.normalTex);
+		KHash::HashCombine(mtlHash, material.placeholder);
+
+		MaterialBuffer materialBuffer;
+		VkDeviceAddress materialAddress = VK_NULL_HANDEL;
+		/*
+		auto it = mtlBuffers.find(mtlHash);
+		if (it == mtlBuffers.end())
+		{
+			// 创建材质Buffer
+			KVulkanInitializer::CreateStroageBuffer(sizeof(KVulkanRayTraceMaterial), &material, materialBuffer.buffer, materialBuffer.allocInfo);
+			mtlBuffers.insert({ mtlHash, materialBuffer });
+			m_Materials.push_back(materialBuffer);
+		}
+		else
+		{
+			materialBuffer = it->second;
+		}
+		ASSERT_RESULT(KVulkanHelper::GetBufferDeviceAddress(materialBuffer.buffer, materialAddress));
+		*/
+		// 创建场景Instance
 		KVulkanRayTraceInstance rayInstance = {};
 		rayInstance.transform = transform;
 		rayInstance.transformIT = glm::inverse(glm::transpose(transform));
 		rayInstance.objIndex = (uint32_t)index;
-		rayInstance.placeholder = 0;
+		rayInstance.materials = materialAddress;
 		rayInstance.vertices = vulkanAS->GetVertexBuffer()->GetDeviceAddress();
 		rayInstance.indices = vulkanAS->GetIndexBuffer()->GetDeviceAddress();
 		m_Instances.push_back(rayInstance);
@@ -210,7 +287,7 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 bool KVulkanAccelerationStructure::UnInit()
 {
 #ifdef SUPPORT_RAY_TRACING_ENABLE
-	if (m_BottomUpAS.handle)
+	if (m_BottomUpAS.handle != VK_NULL_HANDEL)
 	{
 		vkDestroyBuffer(KVulkanGlobal::device, m_BottomUpAS.buffer, nullptr);
 		m_BottomUpAS.buffer = VK_NULL_HANDEL;
@@ -219,7 +296,7 @@ bool KVulkanAccelerationStructure::UnInit()
 		KVulkanHeapAllocator::Free(m_BottomUpAS.allocInfo);
 	}
 
-	if (m_TopDownAS.handle)
+	if (m_TopDownAS.handle != VK_NULL_HANDEL)
 	{
 		vkDestroyBuffer(KVulkanGlobal::device, m_TopDownAS.buffer, nullptr);
 		m_TopDownAS.buffer = VK_NULL_HANDEL;
@@ -227,10 +304,19 @@ bool KVulkanAccelerationStructure::UnInit()
 		m_TopDownAS.handle = VK_NULL_HANDEL;
 		KVulkanHeapAllocator::Free(m_TopDownAS.allocInfo);
 	}
+
+	for (MaterialBuffer& material : m_Materials)
+	{
+		KVulkanInitializer::DestroyStroageBuffer(material.buffer, material.allocInfo);
+	}
 #endif
 
+	m_Materials.clear();
+	m_Instances.clear();
+	m_Textures.clear();
 	m_IndexBuffer = nullptr;
 	m_VertexBuffer = nullptr;
+	m_TextureBinding = nullptr;
 
 	return true;
 }

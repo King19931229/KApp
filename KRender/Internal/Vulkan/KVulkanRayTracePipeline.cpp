@@ -68,48 +68,13 @@ void KVulkanRayTracePipeline::CreateStrogeScene()
 {
 	KVulkanAccelerationStructure* vulkanAS = (KVulkanAccelerationStructure*)m_TopDown.get();
 	const std::vector<KVulkanRayTraceInstance>& instances = vulkanAS->GetInstances();
-
 	VkDeviceSize size = (VkDeviceSize)(instances.size() * sizeof(KVulkanRayTraceInstance));
-
-	KVulkanInitializer::CreateVkBuffer(
-		(VkDeviceSize)std::max(sizeof(KVulkanRayTraceInstance), size),
-		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-		// Ray tracing
-		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		m_Scene.buffer,
-		m_Scene.allocInfo);
-
-	if (size)
-	{
-		VkBuffer vkStageBuffer = VK_NULL_HANDEL;
-		KVulkanHeapAllocator::AllocInfo stageAllocInfo;
-
-		KVulkanInitializer::CreateVkBuffer(
-			size,
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			vkStageBuffer,
-			stageAllocInfo);
-
-		void* data = nullptr;
-		VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, stageAllocInfo.vkMemroy, stageAllocInfo.vkOffset, size, 0, &data));
-		memcpy(data, instances.data(), (size_t)size);
-		vkUnmapMemory(KVulkanGlobal::device, stageAllocInfo.vkMemroy);
-
-		KVulkanInitializer::CopyVkBuffer(vkStageBuffer, m_Scene.buffer, size);
-		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
-	}
+	KVulkanInitializer::CreateStroageBuffer(size, instances.data(), m_Scene.buffer, m_Scene.allocInfo);
 }
 
 void KVulkanRayTracePipeline::DestroyStrogeScene()
 {
-	if (m_Scene.buffer != VK_NULL_HANDEL)
-	{
-		vkDestroyBuffer(KVulkanGlobal::device, m_Scene.buffer, nullptr);
-		KVulkanHeapAllocator::Free(m_Scene.allocInfo);
-		m_Scene.buffer = VK_NULL_HANDEL;
-	}
+	KVulkanInitializer::DestroyStroageBuffer(m_Scene.buffer, m_Scene.allocInfo);
 }
 
 void KVulkanRayTracePipeline::CreateDescriptorSet()

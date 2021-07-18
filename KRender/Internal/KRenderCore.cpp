@@ -633,4 +633,5 @@ void KRenderCore::OnPostPresent(uint32_t chainIndex, uint32_t frameIndex)
 void KRenderCore::OnSwapChainRecreate(uint32_t width, uint32_t height)
 {
 	KRenderGlobal::PostProcessManager.Resize(width, height);
+	KRenderGlobal::RayTraceManager.Resize(width, height);
 }

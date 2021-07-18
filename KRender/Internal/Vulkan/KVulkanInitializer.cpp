@@ -43,6 +43,7 @@ namespace KVulkanInitializer
 	{
 		ASSERT_RESULT(KVulkanGlobal::deviceReady);
 		vkDestroyBuffer(KVulkanGlobal::device, vkBuffer, nullptr);
+		vkBuffer = VK_NULL_HANDEL;
 		KVulkanHeapAllocator::Free(heapAllocInfo);
 	}
 
@@ -273,7 +274,7 @@ namespace KVulkanInitializer
 		VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo = {};
 		accelerationBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
 		accelerationBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-		accelerationBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+		accelerationBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_KHR;
 		accelerationBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 		accelerationBuildGeometryInfo.dstAccelerationStructure = accelerationStructure.handle;
 		accelerationBuildGeometryInfo.geometryCount = 1;
@@ -764,5 +765,48 @@ namespace KVulkanInitializer
 		vkDestroyFence(KVulkanGlobal::device, fence, nullptr);
 
 		vkFreeCommandBuffers(KVulkanGlobal::device, commandPool, 1, &commandBuffer);
+	}
+
+	void CreateStroageBuffer(VkDeviceSize size, const void* pSrcData, VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
+	{
+		KVulkanInitializer::CreateVkBuffer(
+			(VkDeviceSize)std::max((VkDeviceSize)1, size),
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+			// Ray tracing
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			vkBuffer,
+			heapAllocInfo);
+
+		if (size && pSrcData)
+		{
+			VkBuffer vkStageBuffer = VK_NULL_HANDEL;
+			KVulkanHeapAllocator::AllocInfo stageAllocInfo;
+
+			KVulkanInitializer::CreateVkBuffer(
+				size,
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				vkStageBuffer,
+				stageAllocInfo);
+
+			void* data = nullptr;
+			VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, stageAllocInfo.vkMemroy, stageAllocInfo.vkOffset, size, 0, &data));
+			memcpy(data, pSrcData, (size_t)size);
+			vkUnmapMemory(KVulkanGlobal::device, stageAllocInfo.vkMemroy);
+
+			KVulkanInitializer::CopyVkBuffer(vkStageBuffer, vkBuffer, size);
+			KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
+		}
+	}
+
+	void DestroyStroageBuffer(VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
+	{
+		if (vkBuffer != VK_NULL_HANDEL)
+		{
+			vkDestroyBuffer(KVulkanGlobal::device, vkBuffer, nullptr);
+			KVulkanHeapAllocator::Free(heapAllocInfo);
+			vkBuffer = VK_NULL_HANDEL;
+		}
 	}
 }

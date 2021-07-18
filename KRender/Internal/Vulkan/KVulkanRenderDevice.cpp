@@ -18,6 +18,10 @@
 
 #include "KBase/Interface/IKLog.h"
 
+#if defined(_WIN32)
+#include "GFSDK_Aftermath_GpuCrashDump.h"
+#endif
+
 #include <algorithm>
 #include <set>
 #include <functional>
@@ -43,6 +47,9 @@ const char* DEVICE_EXTENSIONS[] =
 	VK_KHR_SPIRV_1_4_EXTENSION_NAME,
 	//
 	VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
+
+	// VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
+	// VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME
 #endif
 #endif
 };
@@ -795,6 +802,19 @@ bool KVulkanRenderDevice::UnInitHeapAllocator()
 	return true;
 }
 
+#if defined(_WIN32)
+static void OnAftermath_GpuCrashDumpCb(const void* pGpuCrashDump, const uint32_t gpuCrashDumpSize, void* pUserData)
+{
+	FILE* fp = NULL;
+	fopen_s(&fp, "crash.nv-gpudmp", "wb");
+	if (fp)
+	{
+		fwrite(pGpuCrashDump, 1, gpuCrashDumpSize, fp);
+		fclose(fp);
+	}
+}
+#endif
+
 bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 {
 	if(window == nullptr
@@ -809,6 +829,13 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	}
 
 	m_pWindow = window;
+
+#if defined(_WIN32)
+	GFSDK_Aftermath_EnableGpuCrashDumps(GFSDK_Aftermath_Version_API,
+		GFSDK_Aftermath_GpuCrashDumpWatchedApiFlags_Vulkan,
+		GFSDK_Aftermath_GpuCrashDumpFeatureFlags_Default,
+		&OnAftermath_GpuCrashDumpCb, NULL, NULL, nullptr);
+#endif
 
 	VkApplicationInfo appInfo = {};
 

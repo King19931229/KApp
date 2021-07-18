@@ -100,7 +100,7 @@ bool KSubMesh::CreateAccelerationStructure()
 		m_IndexData.indexBuffer = newIndexBuffer;
 	}
 
-	 m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer);
+	 m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer, &m_Texture);
 
 	return true;
 }

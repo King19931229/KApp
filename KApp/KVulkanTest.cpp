@@ -90,7 +90,7 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray.scene");
+	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray2.scene");
 
 	KRenderCoreInitCallback callback = [engine]()
 	{
@@ -116,11 +116,11 @@ int main()
 		device->CreateShader(missShader);
 		missShader->InitFromFile(ST_MISS, "raytrace/raytrace.rmiss", false);
 
-		rayPipeline->SetStorageImage(EF_R8GB8BA8_UNORM, 1024, 1024);
+		rayPipeline->SetStorageImage(EF_R8GB8BA8_UNORM);
 		rayPipeline->SetShaderTable(ST_RAYGEN, rayGenShader);
 		rayPipeline->SetShaderTable(ST_CLOSEST_HIT, cloestHitShader);
 		rayPipeline->SetShaderTable(ST_MISS, missShader);
-
+		rayTraceScene->EnableAutoUpdateImageSize(1.0f);
 		rayTraceScene->EnableDebugDraw(0, 0, 1, 1);
 		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
 	};

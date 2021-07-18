@@ -70,8 +70,10 @@ bool KMeshSerializerV0::ResolvePath(const std::string& meshPath, const std::stri
 
 	if(KStringUtil::Split(trimedMeshPath, "/", meshSplitResult) && KStringUtil::Split(trimedtexturePath, "/", textureSplitResult))
 	{
-		meshSplitResult.erase(std::remove_if(meshSplitResult.begin(), meshSplitResult.end(), [](const std::string& elem) { return elem == "."; }));
-		meshSplitResult.erase(std::remove_if(textureSplitResult.begin(), textureSplitResult.end(), [](const std::string& elem) { return elem == "."; }));
+		meshSplitResult.erase(std::remove_if(meshSplitResult.begin(), meshSplitResult.end(), [](const std::string& elem) { return elem == "."; }),
+			meshSplitResult.end());
+		textureSplitResult.erase(std::remove_if(textureSplitResult.begin(), textureSplitResult.end(), [](const std::string& elem) { return elem == "."; }),
+			textureSplitResult.end());
 
 		std::string commandFolder = "";
 
