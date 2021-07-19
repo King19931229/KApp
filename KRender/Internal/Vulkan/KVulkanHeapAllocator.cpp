@@ -31,6 +31,13 @@ namespace KVulkanHeapAllocator
 
 	static std::mutex ALLOC_FREE_LOCK;
 
+	enum MemoryAllocateType
+	{
+		MAT_DEFAULT,
+		MAT_DEVICE_ADDRESS,
+		MAT_COUNT
+	};
+
 	struct BlockInfo
 	{
 		// 本block在page的偏移量
@@ -67,6 +74,8 @@ namespace KVulkanHeapAllocator
 #endif
 		VkDeviceSize size;
 
+		MemoryAllocateType type;
+
 		uint32_t memoryTypeIndex;
 		uint32_t memoryHeapIndex;
 
@@ -80,10 +89,11 @@ namespace KVulkanHeapAllocator
 		int noShare;
 
 		PageInfo(MemoryHeap* _pParent, VkDevice _vkDevice, VkDeviceSize _size,
-			uint32_t _memoryTypeIndex, uint32_t _memoryHeapIndex, int _noShare)
+			MemoryAllocateType _type, uint32_t _memoryTypeIndex, uint32_t _memoryHeapIndex, int _noShare)
 		{
 			vkDevice = _vkDevice;
 			size = _size;
+			type = _type;
 
 			memoryTypeIndex = _memoryTypeIndex;
 			memoryHeapIndex = _memoryHeapIndex;
@@ -135,14 +145,14 @@ namespace KVulkanHeapAllocator
 					allocInfo.pNext = nullptr;
 					allocInfo.memoryTypeIndex = memoryTypeIndex;
 
-					// TODO 分配时作区分
-#ifdef SUPPORT_RAY_TRACING_ENABLE
-					// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
-					VkMemoryAllocateFlagsInfoKHR allocFlagsInfo = {};
-					allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
-					allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
-					allocInfo.pNext = &allocFlagsInfo;
-#endif
+					if (type == MAT_DEVICE_ADDRESS)
+					{
+						// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+						VkMemoryAllocateFlagsInfoKHR allocFlagsInfo = {};
+						allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
+						allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+						allocInfo.pNext = &allocFlagsInfo;
+					}
 
 					VK_ASSERT_RESULT(vkAllocateMemory(DEVICE, &allocInfo, nullptr, &vkMemroy));
 					HEAP_REMAIN_SIZE[memoryHeapIndex] -= size;
@@ -398,36 +408,41 @@ namespace KVulkanHeapAllocator
 		VkDevice vkDevice;
 		uint32_t memoryTypeIndex;
 		uint32_t memoryHeapIndex;
-		PageInfo* pHead;
-		PageInfo* pNoShareHead;
 
-		VkDeviceSize lastPageSize;
-		VkDeviceSize totalPageSize;
+		PageInfo* pHead[MAT_COUNT];
+		PageInfo* pNoShareHead[MAT_COUNT];
+		VkDeviceSize lastPageSize[MAT_COUNT];
+		VkDeviceSize totalPageSize[MAT_COUNT];
 
 		MemoryHeap(VkDevice _device, uint32_t _memoryTypeIndex, uint32_t _memoryHeapIndex)
 		{
 			vkDevice = _device;
 			memoryTypeIndex = _memoryTypeIndex;
 			memoryHeapIndex = _memoryHeapIndex;
-			pHead = nullptr;
-			pNoShareHead = nullptr;
-
-			lastPageSize = 0;
-			totalPageSize = 0;
+			for (uint32_t i = 0; i < MAT_COUNT; ++i)
+			{
+				pHead[i] = nullptr;
+				pNoShareHead[i] = nullptr;
+				lastPageSize[i] = 0;
+				totalPageSize[i] = 0;
+			}
 		}
 
 		void Check()
 		{
 #ifdef KVUALKAN_HEAP_BRUTE_CHECK
-			if(pHead)
+			for (uint32_t i = 0; i < MAT_COUNT; ++i)
 			{
-				VkDeviceSize sum = 0;
-				for(PageInfo* p = pHead; p; p = p->pNext)
+				if (pHead[i])
 				{
-					p->Check();
-					sum += p->size;
+					VkDeviceSize sum = 0;
+					for (PageInfo* p = pHead[i]; p; p = p->pNext)
+					{
+						p->Check();
+						sum += p->size;
+					}
+					assert(sum == totalPageSize[i]);
 				}
-				assert(sum == totalPageSize);
 			}
 #endif
 		}
@@ -436,30 +451,33 @@ namespace KVulkanHeapAllocator
 		{
 			PageInfo* pTemp = nullptr;
 
-			lastPageSize = totalPageSize = 0;
-
-			pTemp = pHead;
-			while(pTemp)
+			for (uint32_t i = 0; i < MAT_COUNT; ++i)
 			{
-				PageInfo* pNext = pTemp->pNext;
-				pTemp->Clear();
-				SAFE_DELETE(pTemp);
-				pTemp = pNext;
-			}
+				lastPageSize[i] = totalPageSize[i] = 0;
 
-			pTemp = pNoShareHead;
-			while(pTemp)
-			{
-				PageInfo* pNext = pTemp->pNext;
-				pTemp->Clear();
-				SAFE_DELETE(pTemp);
-				pTemp = pNext;
+				pTemp = pHead[i];
+				while (pTemp)
+				{
+					PageInfo* pNext = pTemp->pNext;
+					pTemp->Clear();
+					SAFE_DELETE(pTemp);
+					pTemp = pNext;
+				}
+
+				pTemp = pNoShareHead[i];
+				while (pTemp)
+				{
+					PageInfo* pNext = pTemp->pNext;
+					pTemp->Clear();
+					SAFE_DELETE(pTemp);
+					pTemp = pNext;
+				}
 			}
 		}
 
-		VkDeviceSize NewPageSize()
+		VkDeviceSize NewPageSize(MemoryAllocateType type)
 		{
-			VkDeviceSize newSize = lastPageSize ? lastPageSize << 1 : MIN_PAGE_SIZE[memoryHeapIndex];
+			VkDeviceSize newSize = lastPageSize[type] ? lastPageSize[type] << 1 : MIN_PAGE_SIZE[memoryHeapIndex];
 			newSize = std::max(MIN_PAGE_SIZE[memoryHeapIndex], newSize);
 			return newSize;
 		}
@@ -472,22 +490,21 @@ namespace KVulkanHeapAllocator
 			return newPageSize;
 		}
 
-		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment, VkMemoryPropertyFlags usage)
+		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment, bool noShared, MemoryAllocateType type)
 		{
 			std::lock_guard<decltype(ALLOC_FREE_LOCK)> guard(ALLOC_FREE_LOCK);
 
-			// 特殊情况只能独占一个vkAllocateMemory特殊处理
-			if(usage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+			if(noShared)
 			{
-				PageInfo* pPage = KNEW PageInfo(this, vkDevice, sizeToFit, memoryTypeIndex, memoryHeapIndex, true);
+				PageInfo* pPage = KNEW PageInfo(this, vkDevice, sizeToFit, type, memoryTypeIndex, memoryHeapIndex, true);
 				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
 
-				pPage->pNext = pNoShareHead;
-				if(pNoShareHead)
+				pPage->pNext = pNoShareHead[type];
+				if(pNoShareHead[type])
 				{
-					pNoShareHead->pPre = pPage;
+					pNoShareHead[type]->pPre = pPage;
 				}
-				pNoShareHead = pPage;
+				pNoShareHead[type] = pPage;
 
 				assert(pBlock && !pBlock->isFree);
 				return pBlock;
@@ -505,19 +522,19 @@ namespace KVulkanHeapAllocator
 				sizeToFit = ((sizeToFit + allocFactor - 1) / allocFactor) * allocFactor;
 				assert(sizeToFit % allocFactor == 0);
 
-				PageInfo* pPage = Find(sizeToFit, alignment);
+				PageInfo* pPage = Find(sizeToFit, alignment, type);
 				if(!pPage)
 				{
 					// 当前所有page里找不到足够空间 分配一个新的插入到最后 保证heap总空间2倍递增
 					while (true)
 					{
-						pPage = Nail();
-						VkDeviceSize newSize = NewPageSize();
+						pPage = Nail(type);
+						VkDeviceSize newSize = NewPageSize(type);
 
-						lastPageSize = newSize;
-						totalPageSize += newSize;
+						lastPageSize[type] = newSize;
+						totalPageSize[type] += newSize;
 
-						PageInfo* pNewPage = KNEW PageInfo(this, vkDevice, newSize, memoryTypeIndex, memoryHeapIndex, false);
+						PageInfo* pNewPage = KNEW PageInfo(this, vkDevice, newSize, type, memoryTypeIndex, memoryHeapIndex, false);
 
 						if(pPage)
 							pPage->pNext = pNewPage;
@@ -525,9 +542,9 @@ namespace KVulkanHeapAllocator
 						pNewPage->pNext = nullptr;
 
 						// 头结点
-						if(pHead == nullptr)
+						if(pHead[type] == nullptr)
 						{
-							pHead = pNewPage;
+							pHead[type] = pNewPage;
 						}
 
 						if(pNewPage->size >= sizeToFit)
@@ -560,12 +577,13 @@ namespace KVulkanHeapAllocator
 			PageInfo* pPage = pBlock->pParent;
 			assert(pPage->pParent == this);
 
+			MemoryAllocateType type = pPage->type;
 			// 特殊情况只能独占一个vkAllocateMemory特殊处理 这里连同page同时删除
 			if(pPage->noShare)
 			{
-				if(pPage == pNoShareHead)
+				if(pPage == pNoShareHead[type])
 				{
-					pNoShareHead = pPage->pNext;
+					pNoShareHead[type] = pPage->pNext;
 				}
 				if(pPage->pPre)
 				{
@@ -592,10 +610,10 @@ namespace KVulkanHeapAllocator
 			}
 		}
 
-		PageInfo* Find(VkDeviceSize sizeToFit, VkDeviceSize alignment)
+		PageInfo* Find(VkDeviceSize sizeToFit, VkDeviceSize alignment, MemoryAllocateType type)
 		{
-			PageInfo* pTemp = pHead;
-			while(pTemp && pTemp)
+			PageInfo* pTemp = pHead[type];
+			while(pTemp)
 			{
 				if(pTemp->size >= sizeToFit)
 				{
@@ -609,9 +627,9 @@ namespace KVulkanHeapAllocator
 			return nullptr;
 		}
 
-		PageInfo* Nail()
+		PageInfo* Nail(MemoryAllocateType type)
 		{
-			PageInfo* pTemp = pHead;
+			PageInfo* pTemp = pHead[type];
 			while(pTemp && pTemp->pNext)
 			{
 				pTemp = pTemp->pNext;
@@ -659,7 +677,8 @@ namespace KVulkanHeapAllocator
 				if(pPage->pPre == nullptr)
 				{
 					assert(pPage->pParent);
-					pPage->pParent->pHead = pPage;
+					MemoryAllocateType type = pPage->type;
+					pPage->pParent->pHead[type] = pPage;
 				}
 			}
 		}
@@ -687,7 +706,7 @@ namespace KVulkanHeapAllocator
 				else if(remainSize > 0)
 				{
 					// 把剩余的空间分配到新节点上
-					PageInfo* pNewPage = KNEW PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->memoryTypeIndex, pPage->memoryHeapIndex, false);
+					PageInfo* pNewPage = KNEW PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->type, pPage->memoryTypeIndex, pPage->memoryHeapIndex, false);
 					pNewPage->vkMemroy = VK_NULL_HANDLE;
 					pNewPage->size = remainSize;
 
@@ -786,13 +805,16 @@ namespace KVulkanHeapAllocator
 		return true;
 	}
 
-	bool Alloc(VkDeviceSize size, VkDeviceSize alignment, uint32_t memoryTypeIndex, VkMemoryPropertyFlags usage, AllocInfo& info)
+	bool Alloc(VkDeviceSize size, VkDeviceSize alignment, uint32_t memoryTypeIndex, VkMemoryPropertyFlags memoryUsage, VkBufferUsageFlags bufferUsage, AllocInfo& info)
 	{
 		if(memoryTypeIndex < MEMORY_TYPE_COUNT)
 		{
 			MemoryHeap* pHeap = MEMORY_TYPE_TO_HEAP[memoryTypeIndex];
 
-			info.internalData = pHeap->Alloc(size, alignment, usage);
+			info.internalData = pHeap->Alloc(size, alignment,
+				// 特殊情况只能独占一个vkAllocateMemory特殊处理
+				(memoryUsage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) ? true : false,
+				(bufferUsage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) ? MAT_DEVICE_ADDRESS : MAT_DEFAULT);
 			if(info.internalData)
 			{
 				BlockInfo* pBlock = (BlockInfo*)info.internalData;

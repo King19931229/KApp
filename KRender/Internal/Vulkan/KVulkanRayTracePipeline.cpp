@@ -262,7 +262,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTable(ShaderBindingTable& shade
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		memoryTypeIndex));
 
-	ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shaderBindingTable.allocInfo));
+	ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bufferCreateInfo.usage, shaderBindingTable.allocInfo));
 	VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, shaderBindingTable.buffer, shaderBindingTable.allocInfo.vkMemroy, shaderBindingTable.allocInfo.vkOffset));
 
 	const uint32_t handleSizeAligned = KNumerical::AlignedSize(KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize,

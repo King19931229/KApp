@@ -33,7 +33,7 @@ namespace KVulkanInitializer
 				properties,
 				allocInfo.memoryTypeIndex));
 			{
-				ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, memRequirements.alignment, allocInfo.memoryTypeIndex, properties, heapAllocInfo));
+				ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, memRequirements.alignment, allocInfo.memoryTypeIndex, properties, usage, heapAllocInfo));
 				VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, vkBuffer, heapAllocInfo.vkMemroy, heapAllocInfo.vkOffset));
 			}
 		}
@@ -97,7 +97,7 @@ namespace KVulkanInitializer
 				properties,
 				allocInfo.memoryTypeIndex));
 
-			ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, memRequirements.alignment, allocInfo.memoryTypeIndex, properties, heapAllocInfo));
+			ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, memRequirements.alignment, allocInfo.memoryTypeIndex, properties, VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM, heapAllocInfo));
 			VK_ASSERT_RESULT(vkBindImageMemory(KVulkanGlobal::device, image, heapAllocInfo.vkMemroy, heapAllocInfo.vkOffset));
 		}
 	}
@@ -160,7 +160,7 @@ namespace KVulkanInitializer
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			memoryTypeIndex));
 
-		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, accelerationStructure.allocInfo));
+		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bufferCreateInfo.usage, accelerationStructure.allocInfo));
 		VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, accelerationStructure.buffer,
 			accelerationStructure.allocInfo.vkMemroy,
 			accelerationStructure.allocInfo.vkOffset));
@@ -201,7 +201,7 @@ namespace KVulkanInitializer
 			memoryTypeIndex));
 
 		KVulkanHeapAllocator::AllocInfo stageAlloc;
-		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, stageAlloc));
+		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bufferCreateInfo.usage, stageAlloc));
 		VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, scratchBufferHandle, stageAlloc.vkMemroy, stageAlloc.vkOffset));
 
 		// Buffer device address
@@ -265,7 +265,7 @@ namespace KVulkanInitializer
 			memoryTypeIndex));
 
 		KVulkanHeapAllocator::AllocInfo stageAlloc;
-		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, stageAlloc));
+		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bufferCreateInfo.usage, stageAlloc));
 		VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, scratchBufferHandle, stageAlloc.vkMemroy, stageAlloc.vkOffset));
 
 		// Buffer device address
