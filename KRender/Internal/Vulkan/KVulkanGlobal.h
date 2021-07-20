@@ -16,6 +16,9 @@ namespace KVulkanGlobal
 
 	extern uint32_t graphicsFamilyIndex;
 
+	extern VkPhysicalDeviceProperties deviceProperties;
+	extern VkPhysicalDeviceFeatures deviceFeatures;
+
 	extern VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties;
 	extern VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
 

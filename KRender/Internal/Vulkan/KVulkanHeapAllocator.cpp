@@ -811,10 +811,19 @@ namespace KVulkanHeapAllocator
 		{
 			MemoryHeap* pHeap = MEMORY_TYPE_TO_HEAP[memoryTypeIndex];
 
-			info.internalData = pHeap->Alloc(size, alignment,
-				// 特殊情况只能独占一个vkAllocateMemory特殊处理
-				(memoryUsage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) ? true : false,
+			bool noShared = false;
+
+			if (memoryUsage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT ||
+				// FIXME AccelerationStructure只能够独占一个内存分配创建 这是否是驱动的BUG
+				bufferUsage & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
+				)
+			{
+				noShared = true;
+			}
+
+			info.internalData = pHeap->Alloc(size, alignment, noShared,
 				(bufferUsage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) ? MAT_DEVICE_ADDRESS : MAT_DEFAULT);
+
 			if(info.internalData)
 			{
 				BlockInfo* pBlock = (BlockInfo*)info.internalData;

@@ -12,6 +12,9 @@ namespace KVulkanGlobal
 	std::mutex graphicsQueueLock;
 	VkQueue graphicsQueue = VK_NULL_HANDLE;
 	VkPipelineCache pipelineCache = VK_NULL_HANDLE;
+ 
+	VkPhysicalDeviceProperties deviceProperties = {};
+	VkPhysicalDeviceFeatures deviceFeatures = {};
 
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties = {};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = {};

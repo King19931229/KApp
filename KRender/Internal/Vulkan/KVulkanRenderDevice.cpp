@@ -628,6 +628,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		{
 			m_Properties.uniformBufferMaxRange = (size_t)m_PhysicalDevice.deviceProperties.limits.maxUniformBufferRange;
 			m_Properties.uniformBufferOffsetAlignment = (size_t)m_PhysicalDevice.deviceProperties.limits.minUniformBufferOffsetAlignment;
+			m_Properties.storageBufferOffsetAlignment = (size_t)m_PhysicalDevice.deviceProperties.limits.minStorageBufferOffsetAlignment;
 		}
 
 		createInfo.pEnabledFeatures = &deviceFeatures;
@@ -1023,6 +1024,9 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	KVulkanGlobal::device = m_Device;
 	KVulkanGlobal::instance = m_Instance;
 	KVulkanGlobal::physicalDevice = m_PhysicalDevice.device;
+	KVulkanGlobal::deviceProperties = m_PhysicalDevice.deviceProperties;
+	KVulkanGlobal::deviceFeatures = m_PhysicalDevice.deviceFeatures;
+
 	KVulkanGlobal::graphicsCommandPool = m_GraphicCommandPool;
 	KVulkanGlobal::graphicsQueue = m_GraphicsQueue;
 	KVulkanGlobal::pipelineCache = m_PipelineCache;

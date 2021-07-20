@@ -17,6 +17,7 @@ struct KRenderDeviceProperties
 	bool astcSupport;
 	size_t uniformBufferMaxRange;
 	size_t uniformBufferOffsetAlignment;
+	size_t storageBufferOffsetAlignment;
 
 	KRenderDeviceProperties()
 	{
@@ -27,6 +28,7 @@ struct KRenderDeviceProperties
 		astcSupport = false;
 		uniformBufferMaxRange = 512;
 		uniformBufferOffsetAlignment = 8;
+		storageBufferOffsetAlignment = 8;
 	}
 };
 

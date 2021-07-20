@@ -1,6 +1,7 @@
 #include "KVulkanInitializer.h"
 #include "KVulkanHelper.h"
 #include "KVulkanGlobal.h"
+#include "KBase/Publish/KNumerical.h"
 
 namespace KVulkanInitializer
 {
@@ -33,6 +34,14 @@ namespace KVulkanInitializer
 				properties,
 				allocInfo.memoryTypeIndex));
 			{
+				if (usage | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+				{
+					memRequirements.alignment = KNumerical::LCM(memRequirements.alignment, KVulkanGlobal::deviceProperties.limits.minUniformBufferOffsetAlignment);
+				}
+				if (usage | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
+				{
+					memRequirements.alignment = KNumerical::LCM(memRequirements.alignment, KVulkanGlobal::deviceProperties.limits.minStorageBufferOffsetAlignment);
+				}
 				ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, memRequirements.alignment, allocInfo.memoryTypeIndex, properties, usage, heapAllocInfo));
 				VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, vkBuffer, heapAllocInfo.vkMemroy, heapAllocInfo.vkOffset));
 			}
@@ -97,7 +106,7 @@ namespace KVulkanInitializer
 				properties,
 				allocInfo.memoryTypeIndex));
 
-			ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, memRequirements.alignment, allocInfo.memoryTypeIndex, properties, VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM, heapAllocInfo));
+			ASSERT_RESULT(KVulkanHeapAllocator::Alloc(allocInfo.allocationSize, memRequirements.alignment, allocInfo.memoryTypeIndex, properties, 0, heapAllocInfo));
 			VK_ASSERT_RESULT(vkBindImageMemory(KVulkanGlobal::device, image, heapAllocInfo.vkMemroy, heapAllocInfo.vkOffset));
 		}
 	}

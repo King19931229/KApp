@@ -175,7 +175,7 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 
 		MaterialBuffer materialBuffer;
 		VkDeviceAddress materialAddress = VK_NULL_HANDEL;
-		/*
+
 		auto it = mtlBuffers.find(mtlHash);
 		if (it == mtlBuffers.end())
 		{
@@ -189,7 +189,7 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 			materialBuffer = it->second;
 		}
 		ASSERT_RESULT(KVulkanHelper::GetBufferDeviceAddress(materialBuffer.buffer, materialAddress));
-		*/
+
 		// 创建场景Instance
 		KVulkanRayTraceInstance rayInstance = {};
 		rayInstance.transform = transform;
