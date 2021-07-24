@@ -35,6 +35,8 @@ const char* DEVICE_EXTENSIONS[] =
 	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 	// Required by VK_KHR_spirv_1_4
 	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+	// Required for descriptor indexing
+	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
 #ifdef SUPPORT_RAY_TRACING_ENABLE
 #ifdef _WIN32
 	// Ray tracing related extensions
@@ -45,8 +47,9 @@ const char* DEVICE_EXTENSIONS[] =
 	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
 	// Required for VK_KHR_ray_tracing_pipeline
 	VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-	//
-	// VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
+	// Required for relaxed block layout
+	VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
+	// Required for Nvidia Aftermatch
 	// VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
 	// VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME
 #endif
@@ -378,26 +381,33 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 
 void* KVulkanRenderDevice::GetEnabledFeatures()
 {
-	static VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddresFeatures = {};
-	static VkPhysicalDeviceRayTracingPipelineFeaturesKHR enabledRayTracingPipelineFeatures = {};
-	static VkPhysicalDeviceAccelerationStructureFeaturesKHR enabledAccelerationStructureFeatures = {};
-
 	// Enable features required for ray tracing using feature chaining via pNext
+
+	static VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddresFeatures = {};
 	enabledBufferDeviceAddresFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
 	enabledBufferDeviceAddresFeatures.bufferDeviceAddress = VK_TRUE;
 
+	static VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
+	physicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+	physicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+	physicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
+	physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+	physicalDeviceDescriptorIndexingFeatures.pNext = &enabledBufferDeviceAddresFeatures;
+
 #ifdef SUPPORT_RAY_TRACING_ENABLE
+	static VkPhysicalDeviceRayTracingPipelineFeaturesKHR enabledRayTracingPipelineFeatures = {};
 	enabledRayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
 	enabledRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
-	enabledRayTracingPipelineFeatures.pNext = &enabledBufferDeviceAddresFeatures;
+	enabledRayTracingPipelineFeatures.pNext = &physicalDeviceDescriptorIndexingFeatures;
 
+	static VkPhysicalDeviceAccelerationStructureFeaturesKHR enabledAccelerationStructureFeatures = {};
 	enabledAccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
 	enabledAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
 	enabledAccelerationStructureFeatures.pNext = &enabledRayTracingPipelineFeatures;
 
 	return &enabledAccelerationStructureFeatures;
 #else
-	return &enabledBufferDeviceAddresFeatures;
+	return &physicalDeviceDescriptorIndexingFeatures;
 #endif
 }
 
@@ -842,10 +852,10 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	// 描述实例
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = "KVulkan";
-	appInfo.applicationVersion = VK_MAKE_VERSION(1, 1, 0);
+	appInfo.applicationVersion = VK_MAKE_VERSION(1, 2, 0);
 	appInfo.pEngineName = "KVulkanEngine";
-	appInfo.engineVersion = VK_MAKE_VERSION(1, 1, 0);
-	appInfo.apiVersion = VK_API_VERSION_1_1;
+	appInfo.engineVersion = VK_MAKE_VERSION(1, 2, 0);
+	appInfo.apiVersion = VK_API_VERSION_1_2;
 
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

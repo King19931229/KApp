@@ -84,36 +84,46 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 
 	ASSERT_RESULT(m_CameraBuffers.size() == frames);
 
+	KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDown.get());
+	const std::vector<VkDescriptorImageInfo>& textures = topDown->GetTextureDescriptors();
+
 	VkDescriptorSetLayoutBinding accelerationStructureBinding = {};
 	accelerationStructureBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 	accelerationStructureBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR; // TODO
-	accelerationStructureBinding.binding = 0;
+	accelerationStructureBinding.binding = RAYTRACE_BINDING_AS;
 	accelerationStructureBinding.descriptorCount = 1;
 
 	VkDescriptorSetLayoutBinding storageImageBinding = {};
 	storageImageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	storageImageBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-	storageImageBinding.binding = 1;
+	storageImageBinding.binding = RAYTRACE_BINDING_IMAGE;
 	storageImageBinding.descriptorCount = 1;
 
 	VkDescriptorSetLayoutBinding uniformBinding = {};
 	uniformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	uniformBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
-	uniformBinding.binding = 2;
+	uniformBinding.binding = RAYTRACE_BINDING_CAMERA;
 	uniformBinding.descriptorCount = 1;
 
 	VkDescriptorSetLayoutBinding sceneBinding = {};
 	sceneBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	sceneBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
-	sceneBinding.binding = 3;
+	sceneBinding.binding = RAYTRACE_BINDING_SCENE;
 	sceneBinding.descriptorCount = 1;
+
+	VkDescriptorSetLayoutBinding textureBinding = {};
+	textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+	textureBinding.binding = RAYTRACE_BINDING_TEXTURES;
+	textureBinding.descriptorCount = (uint32_t)textures.size();
 
 	VkDescriptorSetLayoutBinding setLayoutBindings[] =
 	{
 		accelerationStructureBinding,
 		storageImageBinding,
 		uniformBinding,
-		sceneBinding
+		sceneBinding,
+		textureBinding
 	};
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = {};
@@ -135,7 +145,8 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
 		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 }
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
 	};
 
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
@@ -158,8 +169,6 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		VK_ASSERT_RESULT(vkAllocateDescriptorSets(KVulkanGlobal::device, &descriptorSetAllocateInfo, &m_Descriptor.sets[frameIndex]));
 	}
 
-	KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDown.get());
-
 	VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = {};
 	descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
 	descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
@@ -167,12 +176,13 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 
 	for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
 	{
+		// TODO 实现一个接口返回这些VkWriteDescriptorSet
 		VkWriteDescriptorSet accelerationStructureWrite = {};
 		accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		// The specialized acceleration structure descriptor has to be chained
 		accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
 		accelerationStructureWrite.dstSet = m_Descriptor.sets[frameIndex];
-		accelerationStructureWrite.dstBinding = 0;
+		accelerationStructureWrite.dstBinding = RAYTRACE_BINDING_AS;
 		accelerationStructureWrite.descriptorCount = 1;
 		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
@@ -183,7 +193,7 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		VkWriteDescriptorSet storageImageWrite = {};
 		storageImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		storageImageWrite.dstSet = m_Descriptor.sets[frameIndex];
-		storageImageWrite.dstBinding = 1;
+		storageImageWrite.dstBinding = RAYTRACE_BINDING_IMAGE;
 		storageImageWrite.descriptorCount = 1;
 		storageImageWrite.pImageInfo = &storageImageDescriptor;
 		storageImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -198,7 +208,7 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		VkWriteDescriptorSet uniformWrite = {};
 		uniformWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		uniformWrite.dstSet = m_Descriptor.sets[frameIndex];
-		uniformWrite.dstBinding = 2;
+		uniformWrite.dstBinding = RAYTRACE_BINDING_CAMERA;
 		uniformWrite.descriptorCount = 1;
 		uniformWrite.pBufferInfo = &uniformBufferInfo;
 		uniformWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -211,10 +221,18 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		VkWriteDescriptorSet sceneWrite = {};
 		sceneWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		sceneWrite.dstSet = m_Descriptor.sets[frameIndex];
-		sceneWrite.dstBinding = 3;
+		sceneWrite.dstBinding = RAYTRACE_BINDING_SCENE;
 		sceneWrite.descriptorCount = 1;
 		sceneWrite.pBufferInfo = &sceneBufferInfo;
 		sceneWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+		VkWriteDescriptorSet textureWrite = {};
+		textureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		textureWrite.dstSet = m_Descriptor.sets[frameIndex];
+		textureWrite.dstBinding = RAYTRACE_BINDING_TEXTURES;
+		textureWrite.descriptorCount = textureBinding.descriptorCount;
+		textureWrite.pImageInfo = textures.data();
+		textureWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
 		VkWriteDescriptorSet writeDescriptorSets[] =
 		{
@@ -225,7 +243,9 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 			// Binding 2: Uniform data
 			uniformWrite,
 			// Binding 3: Scene data
-			sceneWrite
+			sceneWrite,
+			// Binding 4: Texture data
+			textureWrite
 		};
 
 		vkUpdateDescriptorSets(KVulkanGlobal::device, ARRAY_SIZE(writeDescriptorSets), writeDescriptorSets, 0, VK_NULL_HANDLE);

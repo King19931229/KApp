@@ -7,7 +7,8 @@ struct KVulkanRayTraceInstance
 {
 	glm::mat4		transform;
 	glm::mat4		transformIT;
-	uint64_t		objIndex;
+	int32_t			objIndex;
+	int32_t			mtlIndex;
 	VkDeviceAddress	materials;
 	VkDeviceAddress vertices;
 	VkDeviceAddress indices;
@@ -55,6 +56,7 @@ public:
 
 	const KVulkanInitializer::AccelerationStructureHandle& GetTopDown() const { return m_TopDownAS; }
 	const std::vector<KVulkanRayTraceInstance>& GetInstances() const { return m_Instances; }
+	const std::vector<VkDescriptorImageInfo>& GetTextureDescriptors() const { return m_Textures; }
 
 	virtual bool InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer, IKMaterialTextureBinding* textureBinding);
 	virtual bool InitTopDown(const std::vector<BottomASTransformTuple>& bottomASs);

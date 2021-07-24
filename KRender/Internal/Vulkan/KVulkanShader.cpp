@@ -151,7 +151,7 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 	if (type & (ST_RAYGEN | ST_ANY_HIT | ST_CLOSEST_HIT | ST_MISS))
 	{
 		shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
-		shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_4);
+		shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_5);
 	}
 	else
 	{

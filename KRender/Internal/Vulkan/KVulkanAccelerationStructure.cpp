@@ -96,36 +96,18 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 	std::vector<VkAccelerationStructureInstanceKHR> instances;
 	instances.reserve(bottomASs.size());
 
-	std::unordered_map<IKTexturePtr, uint32_t> textures;
-	std::unordered_map<uint32_t, MaterialBuffer> mtlBuffers;
+	std::unordered_map<IKTexturePtr, uint32_t> texturesMap;
+	std::unordered_map<uint32_t, uint32_t> mtlBuffersMap;
 	m_Textures.clear();
 
-	for (size_t index = 0; index < bottomASs.size(); ++index)
+	for (uint32_t objIndex = 0; objIndex < (uint32_t)bottomASs.size(); ++objIndex)
 	{
-		const BottomASTransformTuple& asTuple = bottomASs[index];
+		const BottomASTransformTuple& asTuple = bottomASs[objIndex];
+
 		IKAccelerationStructurePtr as = std::get<0>(asTuple);
 		const glm::mat4& transform = std::get<1>(asTuple);
 
-		// glm matrix column major
-		VkTransformMatrixKHR transformMatrix =
-		{
-			transform[0][0], transform[1][0], transform[2][0], transform[3][0],
-			transform[0][1], transform[1][1], transform[2][1], transform[3][1],
-			transform[0][2], transform[1][2], transform[2][2], transform[3][2]
-		};
-
 		KVulkanAccelerationStructure* vulkanAS = static_cast<KVulkanAccelerationStructure*>(as.get());
-
-		VkAccelerationStructureInstanceKHR instance = {};
-		instance.transform = transformMatrix;
-		instance.instanceCustomIndex = (uint32_t)index;
-		instance.mask = 0xFF;
-		instance.instanceShaderBindingTableRecordOffset = 0;
-		instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-		instance.accelerationStructureReference = vulkanAS->GetBottomUp().deviceAddress;
-
-		instances.push_back(instance);
-
 		const KMaterialTextureBinding* textureBinding = vulkanAS->GetTextureBinding();
 
 		KVulkanRayTraceMaterial material = {};
@@ -141,8 +123,8 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 				IKSamplerPtr sampler = textureBinding->GetSampler(i);
 				if (texture && sampler)
 				{
-					auto it = textures.find(texture);
-					if (it == textures.end())
+					auto it = texturesMap.find(texture);
+					if (it == texturesMap.end())
 					{
 						VkDescriptorImageInfo image = {};
 						KVulkanTexture* vulkanTexture = static_cast<KVulkanTexture*>(texture.get());
@@ -152,7 +134,7 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 						image.sampler = vulkanSampler->GetVkSampler();
 
 						idx = (int32_t)m_Textures.size();
-						textures.insert({ texture,idx });
+						texturesMap.insert({ texture,idx });
 						m_Textures.push_back(std::move(image));
 					}
 					else
@@ -167,6 +149,8 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 			}
 		}
 
+		uint32_t mtlIndex = 0;
+
 		uint32_t mtlHash = 0;
 		KHash::HashCombine(mtlHash, material.diffuseTex);
 		KHash::HashCombine(mtlHash, material.specularTex);
@@ -176,17 +160,19 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 		MaterialBuffer materialBuffer;
 		VkDeviceAddress materialAddress = VK_NULL_HANDEL;
 
-		auto it = mtlBuffers.find(mtlHash);
-		if (it == mtlBuffers.end())
+		auto it = mtlBuffersMap.find(mtlHash);
+		if (it == mtlBuffersMap.end())
 		{
 			// 创建材质Buffer
 			KVulkanInitializer::CreateStroageBuffer(sizeof(KVulkanRayTraceMaterial), &material, materialBuffer.buffer, materialBuffer.allocInfo);
-			mtlBuffers.insert({ mtlHash, materialBuffer });
+			mtlIndex = (uint32_t)m_Materials.size();
 			m_Materials.push_back(materialBuffer);
+			mtlBuffersMap.insert({ mtlHash, mtlIndex });
 		}
 		else
 		{
-			materialBuffer = it->second;
+			mtlIndex = it->second;
+			materialBuffer = m_Materials[mtlIndex];
 		}
 		ASSERT_RESULT(KVulkanHelper::GetBufferDeviceAddress(materialBuffer.buffer, materialAddress));
 
@@ -194,11 +180,30 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 		KVulkanRayTraceInstance rayInstance = {};
 		rayInstance.transform = transform;
 		rayInstance.transformIT = glm::inverse(glm::transpose(transform));
-		rayInstance.objIndex = (uint32_t)index;
+		rayInstance.objIndex = (uint32_t)objIndex;
+		rayInstance.mtlIndex = (uint32_t)mtlIndex;
 		rayInstance.materials = materialAddress;
 		rayInstance.vertices = vulkanAS->GetVertexBuffer()->GetDeviceAddress();
 		rayInstance.indices = vulkanAS->GetIndexBuffer()->GetDeviceAddress();
 		m_Instances.push_back(rayInstance);
+
+		// glm matrix column major
+		VkTransformMatrixKHR transformMatrix =
+		{
+			transform[0][0], transform[1][0], transform[2][0], transform[3][0],
+			transform[0][1], transform[1][1], transform[2][1], transform[3][1],
+			transform[0][2], transform[1][2], transform[2][2], transform[3][2]
+		};
+
+		VkAccelerationStructureInstanceKHR instance = {};
+		instance.transform = transformMatrix;
+		instance.instanceCustomIndex = (uint32_t)objIndex;
+		instance.mask = 0xFF;
+		instance.instanceShaderBindingTableRecordOffset = 0;
+		instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+		instance.accelerationStructureReference = vulkanAS->GetBottomUp().deviceAddress;
+
+		instances.push_back(instance);
 	}
 
 	// Buffer for instance data

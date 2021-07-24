@@ -14,10 +14,19 @@ struct SceneDesc
 {
 	mat4 transfo;
 	mat4 transfoIT;
-	uint64_t objId;
-	uint64_t placeholder;
+	int objId;
+	int mtlId;
+	uint64_t materialAddress;
 	uint64_t vertexAddress;
 	uint64_t indexAddress;
+};
+
+struct RayTraceMaterial
+{
+	int diffuseTex;
+	int specularTex;
+	int normalTex;
+	int placeholder;
 };
 
 #endif

@@ -2,9 +2,9 @@
 
 #include "raycommon.h"
 
-layout(binding = 0) uniform accelerationStructureEXT topLevelAS;
-layout(binding = 1, rgba8) uniform image2D image;
-layout(binding = 2) uniform CameraProperties 
+layout(binding = RAYTRACE_BINDING_AS) uniform accelerationStructureEXT topLevelAS;
+layout(binding = RAYTRACE_BINDING_IMAGE, rgba8) uniform image2D image;
+layout(binding = RAYTRACE_BINDING_CAMERA) uniform CameraProperties 
 {
 	mat4 view;
 	mat4 proj;

@@ -9,7 +9,6 @@
 
 #define KVUALKAN_HEAP_TRUELY_ALLOC
 //#define KVUALKAN_HEAP_BRUTE_CHECK
-//#define KVUALKAN_HEAP_LCM_ALIGNMENT_FACTOR
 
 namespace KVulkanHeapAllocator
 {
@@ -28,14 +27,31 @@ namespace KVulkanHeapAllocator
 
 	static VkDeviceSize ALLOC_FACTOR = 1024;
 	static VkDeviceSize MAX_ALLOC_COUNT = 0;
+	static VkDeviceSize BLOCK_SIZE_FACTOR = 4;
 
 	static std::mutex ALLOC_FREE_LOCK;
 
 	enum MemoryAllocateType
 	{
 		MAT_DEFAULT,
+		MAT_ACCELERATION_STRUCTURE,
 		MAT_DEVICE_ADDRESS,
 		MAT_COUNT
+	};
+
+	struct MemoryAllocateTypeProperty
+	{
+		bool needDeviceAddress;
+	};
+
+	static MemoryAllocateTypeProperty MEMORY_ALLOCATE_TYPE_PROPERITES[MAT_COUNT] =
+	{
+		// MAT_DEFAULT
+		{ false },
+		// MAT_ACCELERATION_STRUCTURE
+		{ true },
+		// MAT_DEVICE_ADDRESS
+		{ true },
 	};
 
 	struct BlockInfo
@@ -145,7 +161,7 @@ namespace KVulkanHeapAllocator
 					allocInfo.pNext = nullptr;
 					allocInfo.memoryTypeIndex = memoryTypeIndex;
 
-					if (type == MAT_DEVICE_ADDRESS)
+					if (MEMORY_ALLOCATE_TYPE_PROPERITES[type].needDeviceAddress)
 					{
 						// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
 						VkMemoryAllocateFlagsInfoKHR allocFlagsInfo = {};
@@ -512,15 +528,13 @@ namespace KVulkanHeapAllocator
 			else
 			{
 				VkDeviceSize allocFactor = ALLOC_FACTOR;
-#ifdef KVUALKAN_HEAP_LCM_ALIGNMENT_FACTOR
-				allocFactor = KNumerical::LCM(alignment, ALLOC_FACTOR);
-#else
-				allocFactor = ALLOC_FACTOR;
-#endif
+
 				// 分配大小必须是allocFactor的整数倍
 				// 当每次分配都是allocFactor的整数倍时候 就能保证同一个page里的offset也是allocFactor的整数倍
-				sizeToFit = ((sizeToFit + allocFactor - 1) / allocFactor) * allocFactor;
-				assert(sizeToFit % allocFactor == 0);
+				// sizeToFit = ((sizeToFit + ALLOC_FACTOR - 1) / ALLOC_FACTOR) * ALLOC_FACTOR;
+				// assert(sizeToFit % ALLOC_FACTOR == 0);
+
+				alignment = KNumerical::LCM(alignment, ALLOC_FACTOR);
 
 				PageInfo* pPage = Find(sizeToFit, alignment, type);
 				if(!pPage)
@@ -761,7 +775,11 @@ namespace KVulkanHeapAllocator
 			for(uint32_t memHeapIdx = 0; memHeapIdx < memoryProperties.memoryHeapCount; ++memHeapIdx)
 			{
 				HEAP_REMAIN_SIZE[memHeapIdx] = memoryProperties.memoryHeaps[memHeapIdx].size;
-				MIN_PAGE_SIZE[memHeapIdx] = KNumerical::Pow2GreaterEqual(memoryProperties.memoryHeaps[memHeapIdx].size * memoryProperties.memoryHeapCount/ MAX_ALLOC_COUNT);
+				MIN_PAGE_SIZE[memHeapIdx] = std::min
+				(
+					HEAP_REMAIN_SIZE[memHeapIdx],
+					BLOCK_SIZE_FACTOR * KNumerical::Pow2GreaterEqual(memoryProperties.memoryHeaps[memHeapIdx].size * memoryProperties.memoryHeapCount / MAX_ALLOC_COUNT)
+				);
 			}
 
 			return true;
@@ -812,17 +830,23 @@ namespace KVulkanHeapAllocator
 			MemoryHeap* pHeap = MEMORY_TYPE_TO_HEAP[memoryTypeIndex];
 
 			bool noShared = false;
+			MemoryAllocateType type = MAT_DEFAULT;
 
-			if (memoryUsage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT ||
-				// FIXME AccelerationStructure只能够独占一个内存分配创建 这是否是驱动的BUG
-				bufferUsage & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
-				)
+			if (memoryUsage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 			{
 				noShared = true;
 			}
+			if (bufferUsage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+			{
+				type = MAT_DEVICE_ADDRESS;
+			}
+			// 光追加速结构不能够与其他资源共享VkDeviceMemory 这是否是驱动的BUG
+			if (bufferUsage & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR)
+			{
+				type = MAT_ACCELERATION_STRUCTURE;
+			}
 
-			info.internalData = pHeap->Alloc(size, alignment, noShared,
-				(bufferUsage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) ? MAT_DEVICE_ADDRESS : MAT_DEFAULT);
+			info.internalData = pHeap->Alloc(size, alignment, noShared, type);
 
 			if(info.internalData)
 			{
