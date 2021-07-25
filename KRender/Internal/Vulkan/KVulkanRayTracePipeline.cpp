@@ -5,6 +5,8 @@
 #include "KVulkanCommandBuffer.h"
 #include "KVulkanBuffer.h"
 #include "KVulkanShader.h"
+#include "KVulkanSampler.h"
+#include "KVulkanTexture.h"
 #include "KVulkanHelper.h"
 #include "Internal/KRenderGlobal.h"
 #include "Internal/Vulkan/KVulkanGlobal.h"
@@ -115,7 +117,7 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 	textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
 	textureBinding.binding = RAYTRACE_BINDING_TEXTURES;
-	textureBinding.descriptorCount = (uint32_t)textures.size();
+	textureBinding.descriptorCount = (uint32_t)std::max(textures.size(), (size_t)1);
 
 	VkDescriptorSetLayoutBinding setLayoutBindings[] =
 	{
@@ -226,12 +228,24 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		sceneWrite.pBufferInfo = &sceneBufferInfo;
 		sceneWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 
+		// Keep vulkan happy
+		VkDescriptorImageInfo emptyImageInfo;
+		IKSamplerPtr errorSampler;
+		ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorSampler(errorSampler));
+		KVulkanSampler* vkSampler = (KVulkanSampler*)errorSampler.get();
+		IKTexturePtr errorTexture;
+		ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorTexture(errorTexture));
+		KVulkanTexture* vkTexture = (KVulkanTexture*)errorTexture.get();
+		emptyImageInfo.sampler = vkSampler->GetVkSampler();
+		emptyImageInfo.imageView = vkTexture->GetImageView();
+		emptyImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
 		VkWriteDescriptorSet textureWrite = {};
 		textureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		textureWrite.dstSet = m_Descriptor.sets[frameIndex];
 		textureWrite.dstBinding = RAYTRACE_BINDING_TEXTURES;
-		textureWrite.descriptorCount = textureBinding.descriptorCount;
-		textureWrite.pImageInfo = textures.data();
+		textureWrite.descriptorCount = textures.size() ? textureBinding.descriptorCount : 1;
+		textureWrite.pImageInfo = textures.size() ? textures.data() : &emptyImageInfo;
 		textureWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
 		VkWriteDescriptorSet writeDescriptorSets[] =

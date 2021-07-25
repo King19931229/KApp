@@ -57,9 +57,6 @@ void main()
 	// Transforming the position to world space
 	worldPos = vec3(objResource.transfo * vec4(worldPos, 1.0));
 
-	// Vector toward the light
-	vec3 L = normalize(vec3(1) - vec3(0));
-
 	if(mat.diffuseTex > -1)
   	{
  		int txtId = mat.diffuseTex;
@@ -69,6 +66,9 @@ void main()
 	{
 		prd.hitValue = normal;
 	}
-	prd.attenuation = vec3(1,1,1);//vec3(dot(L, normal));
-	prd.done = 1;
+
+	prd.rayOrigin = prd.rayOrigin + prd.rayDir * gl_HitTEXT;
+	prd.rayDir = reflect(prd.rayDir, normal);
+	prd.rayOrigin += prd.rayDir * 0.001;
+	prd.done = 0;
 }

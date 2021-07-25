@@ -12,6 +12,6 @@ void main()
 	vec3 unitDir = normalize(gl_WorldRayDirectionEXT);
 	float t = 0.5 * (unitDir.y + 1.0);
 	prd.hitValue = (1.0-t) * gradientStart + t * gradientEnd;
-	prd.attenuation = vec3(1,1,1);
+	prd.attenuation = vec3(1.0) - prd.sum;
 	prd.done = 1;
 }
