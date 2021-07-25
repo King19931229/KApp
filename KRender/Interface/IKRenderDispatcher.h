@@ -1,6 +1,24 @@
 #pragma once
 
 #include "KRender/Interface/IKRenderScene.h"
+#include "KRender/Interface/IKStatistics.h"
+
+enum RenderStage
+{
+	RENDER_STAGE_PRE_Z,
+	RENDER_STAGE_DEFAULT,
+	RENDER_STAGE_DEBUG,
+	RENDER_STAGE_CSM,
+
+	RENDER_STAGE_NUM
+};
+
+struct KRenderStageContext
+{
+	KRenderCommandList				command[RENDER_STAGE_NUM];
+	KRenderStageStatistics			statistics[RENDER_STAGE_NUM];
+	std::vector<IKCommandBufferPtr> buffer[RENDER_STAGE_NUM];
+};
 
 class IKRenderDispatcher
 {

@@ -33,8 +33,11 @@ namespace KRenderGlobal
 
 	IKRenderDevice* RenderDevice = nullptr;
 
-	const char* PRE_Z_STAGE = "PreZ";
-	const char* DEFAULT_STAGE = "Default";
-	const char* DEBUG_STAGE = "Debug";
-	const char* CSM_STAGE = "CascadedShadowMap";
+	const char* ALL_STAGE_NAMES[RENDER_STAGE_NUM] =
+	{
+		"PreZ",
+		"Default",
+		"Debug",
+		"CascadedShadowMap"
+	};
 }

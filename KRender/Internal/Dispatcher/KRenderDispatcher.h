@@ -46,15 +46,9 @@ protected:
 
 	struct ThreadData
 	{
-		IKCommandPoolPtr commandPool;
-
-		IKCommandBufferPtr preZcommandBuffer;
-		IKCommandBufferPtr defaultCommandBuffer;
-		IKCommandBufferPtr debugCommandBuffer;
-
-		std::vector<KRenderCommand> preZcommands;
-		std::vector<KRenderCommand> defaultCommands;
-		std::vector<KRenderCommand> debugCommands;
+		IKCommandPoolPtr			commandPool;
+		IKCommandBufferPtr			commandBuffers[RENDER_STAGE_NUM];
+		std::vector<KRenderCommand> renderCommands[RENDER_STAGE_NUM];
 	};
 
 	struct CommandBuffer
@@ -85,13 +79,9 @@ protected:
 
 	void RenderSecondary(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const std::vector<KRenderCommand>& commands);
 
-	void PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass,
-		std::vector<KRenderComponent*>& cullRes,
-		std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands);
-	void AssignRenderCommand(size_t frameIndex,
-		const std::vector<KRenderCommand>& preZcommands, const std::vector<KRenderCommand>& defaultCommands, const std::vector<KRenderCommand>& debugCommands);
-	void SumbitRenderCommand(size_t frameIndex,
-		std::vector<IKCommandBufferPtr>& preZBuffers, std::vector<IKCommandBufferPtr>& defaultBuffers, std::vector<IKCommandBufferPtr>& debugBuffers);
+	void PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<KRenderComponent*>& cullRes, KRenderStageContext& context);
+	void AssignRenderCommand(size_t frameIndex, KRenderStageContext& context);
+	void SumbitRenderCommand(size_t frameIndex, KRenderStageContext& context);
 
 	bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material, bool useMaterialTex);
 	bool UpdateCamera(size_t frameIndex);

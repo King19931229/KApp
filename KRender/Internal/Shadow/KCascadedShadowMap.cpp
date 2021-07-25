@@ -703,7 +703,7 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 		}
 		primaryBuffer->EndRenderPass();
 
-		KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::CSM_STAGE, m_Statistics);
+		KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::ALL_STAGE_NAMES[RENDER_STAGE_CSM], m_Statistics);
 
 		return true;
 	}

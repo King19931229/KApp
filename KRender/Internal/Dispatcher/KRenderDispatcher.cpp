@@ -100,14 +100,11 @@ bool KRenderDispatcher::CreateCommandBuffers()
 			m_Device->CreateCommandPool(threadData.commandPool);
 			threadData.commandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
 
-			m_Device->CreateCommandBuffer(threadData.preZcommandBuffer);
-			threadData.preZcommandBuffer->Init(threadData.commandPool, CBL_SECONDARY);
-
-			m_Device->CreateCommandBuffer(threadData.defaultCommandBuffer);
-			threadData.defaultCommandBuffer->Init(threadData.commandPool, CBL_SECONDARY);
-
-			m_Device->CreateCommandBuffer(threadData.debugCommandBuffer);
-			threadData.debugCommandBuffer->Init(threadData.commandPool, CBL_SECONDARY);
+			for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
+			{
+				m_Device->CreateCommandBuffer(threadData.commandBuffers[i]);
+				threadData.commandBuffers[i]->Init(threadData.commandPool, CBL_SECONDARY);
+			}
 		}
 	}
 	return true;
@@ -120,15 +117,11 @@ bool KRenderDispatcher::DestroyCommandBuffers()
 	{
 		for (ThreadData& thread : m_CommandBuffers[i].threadDatas)
 		{
-			thread.preZcommandBuffer->UnInit();
-			thread.preZcommandBuffer = nullptr;
-
-			thread.defaultCommandBuffer->UnInit();
-			thread.defaultCommandBuffer = nullptr;
-
-			thread.debugCommandBuffer->UnInit();
-			thread.debugCommandBuffer = nullptr;
-
+			for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
+			{
+				thread.commandBuffers[i]->UnInit();
+				thread.commandBuffers[i] = nullptr;
+			}
 			thread.commandPool->UnInit();
 			thread.commandPool = nullptr;
 		}
@@ -155,9 +148,10 @@ void KRenderDispatcher::ThreadRenderObject(uint32_t frameIndex, uint32_t threadI
 	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 	IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
 
-	RenderSecondary(threadData.preZcommandBuffer, renderPass, threadData.preZcommands);
-	RenderSecondary(threadData.defaultCommandBuffer, renderPass, threadData.defaultCommands);
-	RenderSecondary(threadData.debugCommandBuffer, renderPass, threadData.debugCommands);
+	for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
+	{
+		RenderSecondary(threadData.commandBuffers[i], renderPass, threadData.renderCommands[i]);
+	}
 }
 
 void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const std::vector<KRenderCommand>& commands)
@@ -252,13 +246,8 @@ bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMateri
 	return false;
 }
 
-void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass,
-	std::vector<KRenderComponent*>& cullRes, std::vector<KRenderCommand>& preZcommands, std::vector<KRenderCommand>& defaultCommands, std::vector<KRenderCommand>& debugCommands)
+void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<KRenderComponent*>& cullRes, KRenderStageContext& context)
 {
-	KRenderStageStatistics preZStatistics;
-	KRenderStageStatistics defaultStatistics;
-	KRenderStageStatistics debugStatistics;
-
 	struct InstanceArray
 	{
 		KRenderComponent* render;
@@ -349,23 +338,23 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 						command.objectUsage.range = sizeof(objectData);
 						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-						++debugStatistics.drawcalls;
+						++context.statistics[RENDER_STAGE_DEBUG].drawcalls;
 						if (command.indexDraw)
 						{
-							debugStatistics.faces += command.indexData->indexCount / 3;
-							debugStatistics.primtives += command.indexData->indexCount;
+							context.statistics[RENDER_STAGE_DEBUG].faces += command.indexData->indexCount / 3;
+							context.statistics[RENDER_STAGE_DEBUG].primtives += command.indexData->indexCount;
 						}
 						else
 						{
-							debugStatistics.faces += command.vertexData->vertexCount / 3;
-							debugStatistics.primtives += command.vertexData->vertexCount;
+							context.statistics[RENDER_STAGE_DEBUG].faces += command.vertexData->vertexCount / 3;
+							context.statistics[RENDER_STAGE_DEBUG].primtives += command.vertexData->vertexCount;
 						}
 
 						command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 
 						if (command.Complete())
 						{
-							debugCommands.push_back(std::move(command));
+							context.command[RENDER_STAGE_DEBUG].push_back(std::move(command));
 						}
 					});
 
@@ -375,23 +364,23 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 						command.objectUsage.range = sizeof(objectData);
 						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-						++debugStatistics.drawcalls;
+						++context.statistics[RENDER_STAGE_DEBUG].drawcalls;
 						if (command.indexDraw)
 						{
-							debugStatistics.faces += command.indexData->indexCount / 2;
-							debugStatistics.primtives += command.indexData->indexCount;
+							context.statistics[RENDER_STAGE_DEBUG].faces += command.indexData->indexCount / 2;
+							context.statistics[RENDER_STAGE_DEBUG].primtives += command.indexData->indexCount;
 						}
 						else
 						{
-							debugStatistics.faces += command.vertexData->vertexCount / 2;
-							debugStatistics.primtives += command.vertexData->vertexCount;
+							context.statistics[RENDER_STAGE_DEBUG].faces += command.vertexData->vertexCount / 2;
+							context.statistics[RENDER_STAGE_DEBUG].primtives += command.vertexData->vertexCount;
 						}
 
 						command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 
 						if (command.Complete())
 						{
-							debugCommands.push_back(std::move(command));
+							context.command[RENDER_STAGE_DEBUG].push_back(std::move(command));
 						}
 					});
 				}
@@ -434,16 +423,16 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 					for (size_t idx = 0; idx < instances.size(); ++idx)
 					{
-						++preZStatistics.drawcalls;
+						++context.statistics[RENDER_STAGE_PRE_Z].drawcalls;
 						if (command.indexDraw)
 						{
-							preZStatistics.faces += command.indexData->indexCount / 3;
-							preZStatistics.primtives += command.indexData->indexCount;
+							context.statistics[RENDER_STAGE_PRE_Z].faces += command.indexData->indexCount / 3;
+							context.statistics[RENDER_STAGE_PRE_Z].primtives += command.indexData->indexCount;
 						}
 						else
 						{
-							preZStatistics.faces += command.vertexData->vertexCount / 3;
-							preZStatistics.primtives += command.vertexData->vertexCount;
+							context.statistics[RENDER_STAGE_PRE_Z].faces += command.vertexData->vertexCount / 3;
+							context.statistics[RENDER_STAGE_PRE_Z].primtives += command.vertexData->vertexCount;
 						}
 
 						command.objectUsage.binding = SHADER_BINDING_OBJECT;
@@ -454,7 +443,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 						if (command.Complete())
 						{
-							preZcommands.push_back(command);
+							context.command[RENDER_STAGE_PRE_Z].push_back(command);
 						}
 					}
 				});
@@ -467,16 +456,16 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 						for (size_t idx = 0; idx < instances.size(); ++idx)
 						{
-							++defaultStatistics.drawcalls;
+							++context.statistics[RENDER_STAGE_DEFAULT].drawcalls;
 							if (command.indexDraw)
 							{
-								defaultStatistics.faces += command.indexData->indexCount / 3;
-								defaultStatistics.primtives += command.indexData->indexCount;
+								context.statistics[RENDER_STAGE_DEFAULT].faces += command.indexData->indexCount / 3;
+								context.statistics[RENDER_STAGE_DEFAULT].primtives += command.indexData->indexCount;
 							}
 							else
 							{
-								defaultStatistics.faces += command.vertexData->vertexCount / 3;
-								defaultStatistics.primtives += command.vertexData->vertexCount;
+								context.statistics[RENDER_STAGE_DEFAULT].faces += command.vertexData->vertexCount / 3;
+								context.statistics[RENDER_STAGE_DEFAULT].primtives += command.vertexData->vertexCount;
 							}
 
 							command.objectUsage.binding = SHADER_BINDING_OBJECT;
@@ -492,7 +481,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 							if (command.Complete())
 							{
-								defaultCommands.push_back(command);
+								context.command[RENDER_STAGE_DEFAULT].push_back(command);
 							}
 						}
 					});
@@ -503,7 +492,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 					{
 						KRenderCommand command = std::move(_command);
 
-						++defaultStatistics.drawcalls;
+						++context.statistics[RENDER_STAGE_DEFAULT].drawcalls;
 
 						KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
 
@@ -529,13 +518,13 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 							{
 								if (command.indexDraw)
 								{
-									defaultStatistics.faces += command.indexData->indexCount / 3;
-									defaultStatistics.primtives += command.indexData->indexCount;
+									context.statistics[RENDER_STAGE_DEFAULT].faces += command.indexData->indexCount / 3;
+									context.statistics[RENDER_STAGE_DEFAULT].primtives += command.indexData->indexCount;
 								}
 								else
 								{
-									defaultStatistics.faces += command.vertexData->vertexCount / 3;
-									defaultStatistics.primtives += command.vertexData->vertexCount;
+									context.statistics[RENDER_STAGE_DEFAULT].faces += command.vertexData->vertexCount / 3;
+									context.statistics[RENDER_STAGE_DEFAULT].primtives += command.vertexData->vertexCount;
 								}
 							}
 
@@ -543,7 +532,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 							if (command.Complete())
 							{
-								defaultCommands.push_back(std::move(command));
+								context.command[RENDER_STAGE_DEFAULT].push_back(std::move(command));
 							}
 						}
 					});
@@ -552,57 +541,60 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 		}
 	}
 
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::PRE_Z_STAGE, preZStatistics);
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::DEFAULT_STAGE, defaultStatistics);
-	KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::DEBUG_STAGE, debugStatistics);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::ALL_STAGE_NAMES[RENDER_STAGE_PRE_Z], context.statistics[RENDER_STAGE_PRE_Z]);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::ALL_STAGE_NAMES[RENDER_STAGE_DEFAULT], context.statistics[RENDER_STAGE_DEFAULT]);
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::ALL_STAGE_NAMES[RENDER_STAGE_DEBUG], context.statistics[RENDER_STAGE_DEBUG]);
 }
 
-void KRenderDispatcher::AssignRenderCommand(size_t frameIndex,
-	const std::vector<KRenderCommand>& preZcommands, const std::vector<KRenderCommand>& defaultCommands, const std::vector<KRenderCommand>& debugCommands)
+void KRenderDispatcher::AssignRenderCommand(size_t frameIndex, KRenderStageContext& context)
 {
 	if (m_MultiThreadSubmit)
 	{
 		size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
 
-#define ASSIGN_RENDER_COMMAND(command)\
-	{\
-		size_t drawEachThread = command.size() / threadCount;\
-		size_t reaminCount = command.size() % threadCount;\
-		for (size_t i = 0; i < threadCount; ++i)\
-		{\
-			ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[i];\
-			threadData.command.clear();\
-\
-			for (size_t idx = i * drawEachThread, ed = i * drawEachThread + drawEachThread; idx < ed; ++idx)\
-			{\
-				threadData.command.push_back(std::move(command[idx]));\
-			}\
-\
-			if (i == threadCount - 1)\
-			{\
-				for (size_t idx = threadCount * drawEachThread, ed = threadCount * drawEachThread + reaminCount; idx < ed; ++idx)\
-				{\
-					threadData.command.push_back(std::move(command[idx]));\
-				}\
-			}\
-		}\
-	}
-		ASSIGN_RENDER_COMMAND(preZcommands);
-		ASSIGN_RENDER_COMMAND(defaultCommands);
-		ASSIGN_RENDER_COMMAND(debugCommands);
+		auto AssignRenderCommand = [this, frameIndex, threadCount, &context](RenderStage stage)
+		{
+			const KRenderCommandList& command = context.command[stage];
 
-#undef ASSIGN_RENDER_COMMAND
+			size_t drawEachThread = command.size() / threadCount;
+			size_t reaminCount = command.size() % threadCount;
+
+			for (size_t i = 0; i < threadCount; ++i)
+			{
+				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[i];
+				std::vector<KRenderCommand>& renderCommands = threadData.renderCommands[stage];
+				renderCommands.clear();
+
+				for (size_t idx = i * drawEachThread, ed = i * drawEachThread + drawEachThread; idx < ed; ++idx)
+				{
+					renderCommands.push_back(std::move(command[idx]));
+				}
+
+				if (i == threadCount - 1)
+				{
+					for (size_t idx = threadCount * drawEachThread, ed = threadCount * drawEachThread + reaminCount; idx < ed; ++idx)
+					{
+						renderCommands.push_back(std::move(command[idx]));
+					}
+				}
+			}
+		};
+		AssignRenderCommand(RENDER_STAGE_PRE_Z);
+		AssignRenderCommand(RENDER_STAGE_DEFAULT);
+		AssignRenderCommand(RENDER_STAGE_DEBUG);
 	}
 	else
 	{
 		ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[0];
-		threadData.preZcommands = preZcommands;
-		threadData.defaultCommands = defaultCommands;
-		threadData.debugCommands = debugCommands;
+
+		for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
+		{
+			threadData.renderCommands[i] = context.command[i];
+		}
 	}
 }
 
-void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, std::vector<IKCommandBufferPtr>& preZBuffers, std::vector<IKCommandBufferPtr>& defaultBuffers, std::vector<IKCommandBufferPtr>& debugBuffers)
+void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, KRenderStageContext& context)
 {
 	if (m_MultiThreadSubmit)
 	{
@@ -620,22 +612,14 @@ void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, std::vector<IKCom
 		for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
 		{
 			ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
-			if (!threadData.preZcommands.empty())
-			{
-				preZBuffers.push_back(threadData.preZcommandBuffer);
-				threadData.preZcommands.clear();
-			}
 
-			if (!threadData.defaultCommands.empty())
+			for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
 			{
-				defaultBuffers.push_back(threadData.defaultCommandBuffer);
-				threadData.defaultCommands.clear();
-			}
-
-			if (!threadData.debugCommands.empty())
-			{
-				debugBuffers.push_back(threadData.debugCommandBuffer);
-				threadData.debugCommands.clear();
+				if (!threadData.renderCommands[i].empty())
+				{
+					context.buffer[i].push_back(threadData.commandBuffers[i]);
+					threadData.renderCommands[i].clear();
+				}
 			}
 		}
 	}
@@ -644,28 +628,21 @@ void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, std::vector<IKCom
 		ThreadRenderObject((uint32_t)frameIndex, 0);
 
 		ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[0];
-		if (!threadData.preZcommands.empty())
+		for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
 		{
-			preZBuffers.push_back(threadData.preZcommandBuffer);
-			threadData.preZcommands.clear();
-		}
-
-		if (!threadData.defaultCommands.empty())
-		{
-			defaultBuffers.push_back(threadData.defaultCommandBuffer);
-			threadData.defaultCommands.clear();
-		}
-
-		if (!threadData.debugCommands.empty())
-		{
-			debugBuffers.push_back(threadData.debugCommandBuffer);
-			threadData.debugCommands.clear();
+			if (!threadData.renderCommands[i].empty())
+			{
+				context.buffer[i].push_back(threadData.commandBuffers[i]);
+				threadData.renderCommands[i].clear();
+			}
 		}
 	}
 }
 
 bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameIndex)
 {
+	KRenderStageContext context;
+
 	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 	IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
 
@@ -681,18 +658,10 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 
 		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 
-		KRenderCommandList preZcommands;
-		KRenderCommandList defaultCommands;
-		KRenderCommandList debugCommands;
-
-		std::vector<IKCommandBufferPtr> tempBuffers;
-		std::vector<IKCommandBufferPtr> preZBuffers;
-		std::vector<IKCommandBufferPtr> defaultBuffers;
-		std::vector<IKCommandBufferPtr> debugBuffers;
-
 		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 
 		// 绘制SkyBox
+		KCommandBufferList tempBuffers;
 		KRenderGlobal::SkyBox.Render(frameIndex, renderPass, tempBuffers);
 		if (!tempBuffers.empty())
 		{
@@ -700,26 +669,26 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 			tempBuffers.clear();
 		}
 
-		PopulateRenderCommand(frameIndex, renderPass, cullRes, preZcommands, defaultCommands, debugCommands);
+		PopulateRenderCommand(frameIndex, renderPass, cullRes, context);
 
+		// 绘制光追结果
 		KRenderCommandList rayCommands;
 		KRenderGlobal::RayTraceManager.GetDebugRenderCommand(rayCommands);
 		for (KRenderCommand& command : rayCommands)
 		{
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		}
-		debugCommands.insert(debugCommands.end(), rayCommands.begin(), rayCommands.end());
+		context.command[RENDER_STAGE_DEBUG].insert(context.command[RENDER_STAGE_DEBUG].end(), rayCommands.begin(), rayCommands.end());
 
-		AssignRenderCommand(frameIndex, preZcommands, defaultCommands, debugCommands);
-		SumbitRenderCommand(frameIndex, preZBuffers, defaultBuffers, debugBuffers);
+		AssignRenderCommand(frameIndex, context);
+		SumbitRenderCommand(frameIndex, context);
 
-		if (!preZBuffers.empty())
+		for (RenderStage stage : {RENDER_STAGE_PRE_Z, RENDER_STAGE_DEFAULT})
 		{
-			primaryCommandBuffer->ExecuteAll(preZBuffers);
-		}
-		if (!defaultBuffers.empty())
-		{
-			primaryCommandBuffer->ExecuteAll(defaultBuffers);
+			if (!context.buffer[stage].empty())
+			{
+				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
+			}
 		}
 
 		KRenderGlobal::OcclusionBox.Render(frameIndex, renderPass, m_Camera, cullRes, tempBuffers);
@@ -729,9 +698,12 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 			tempBuffers.clear();
 		}
 
-		if (!debugBuffers.empty())
+		for (RenderStage stage : {RENDER_STAGE_DEBUG})
 		{
-			primaryCommandBuffer->ExecuteAll(debugBuffers);
+			if (!context.buffer[stage].empty())
+			{
+				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
+			}
 		}
 
 		// 绘制Camera Gizmo
@@ -798,7 +770,7 @@ bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKC
 	m_Pass->Init();
 	CreateCommandBuffers();
 
-	for (const char* stage : KRenderGlobal::ALL_STAGES)
+	for (const char* stage : KRenderGlobal::ALL_STAGE_NAMES)
 	{
 		KRenderGlobal::Statistics.RegisterRenderStage(stage);
 	}
@@ -820,7 +792,7 @@ bool KRenderDispatcher::UnInit()
 	m_ThreadPool.UnInit();
 	DestroyCommandBuffers();
 
-	for (const char* stage : KRenderGlobal::ALL_STAGES)
+	for (const char* stage : KRenderGlobal::ALL_STAGE_NAMES)
 	{
 		KRenderGlobal::Statistics.UnRegisterRenderStage(stage);
 	}

@@ -1,5 +1,5 @@
 #pragma once
-#include "Interface/IKRenderConfig.h"
+#include "KRender/Interface/IKRenderConfig.h"
 
 struct KRenderFrameStatistics
 {
