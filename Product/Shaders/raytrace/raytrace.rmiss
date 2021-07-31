@@ -2,7 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "raycommon.h"
 
-layout(location = 0) rayPayloadInEXT hitPayload prd;
+layout(location = 0) rayPayloadInEXT HitPayload prd;
 
 void main()
 {

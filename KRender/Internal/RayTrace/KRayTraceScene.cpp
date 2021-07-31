@@ -144,6 +144,7 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTrac
 			cam.proj = m_Camera->GetProjectiveMatrix();
 			cam.viewInv = glm::inverse(cam.view);
 			cam.projInv = glm::inverse(cam.proj);
+			cam.parameters = glm::vec4(m_Camera->GetNear(), m_Camera->GetFar(), m_Camera->GetFov(), m_Camera->GetAspect());
 
 			ASSERT_RESULT(cameraBuffer->InitMemory(sizeof(cam), &cam));
 			ASSERT_RESULT(cameraBuffer->InitDevice());

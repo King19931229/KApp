@@ -13,7 +13,9 @@ KGBuffer::KGBuffer()
 
 KGBuffer::~KGBuffer()
 {
-	ASSERT_RESULT(m_RenderTarget == nullptr);
+	ASSERT_RESULT(m_RenderTarget0 == nullptr);
+	ASSERT_RESULT(m_RenderTarget1 == nullptr);
+	ASSERT_RESULT(m_DepthStencilTarget == nullptr);	
 	ASSERT_RESULT(m_RenderPass == nullptr);
 	ASSERT_RESULT(m_GBufferSampler == nullptr);
 	ASSERT_RESULT(m_CommandBuffers.empty());
@@ -49,7 +51,8 @@ bool KGBuffer::Init(IKRenderDevice* renderDevice, const KCamera* camera, uint32_
 
 bool KGBuffer::UnInit()
 {
-	SAFE_UNINIT(m_RenderTarget);
+	SAFE_UNINIT(m_RenderTarget0);
+	SAFE_UNINIT(m_RenderTarget1);
 	SAFE_UNINIT(m_DepthStencilTarget);
 	SAFE_UNINIT(m_RenderPass);
 
@@ -72,14 +75,21 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 {
 	if (width && height && m_RenderDevice)
 	{
-		SAFE_UNINIT(m_RenderTarget);
+		SAFE_UNINIT(m_RenderTarget0);
+		SAFE_UNINIT(m_RenderTarget1);
+		SAFE_UNINIT(m_DepthStencilTarget);
+		SAFE_UNINIT(m_RenderPass);
 
-		ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget));
-		ASSERT_RESULT(m_RenderTarget->InitFromColor(width, height, 1, EF_R16G16B16A16_FLOAT));
+		ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget0));
+		ASSERT_RESULT(m_RenderTarget0->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
+
+		ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget1));
+		ASSERT_RESULT(m_RenderTarget1->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
 
 		ASSERT_RESULT(m_RenderDevice->CreateRenderPass(m_RenderPass));
-		m_RenderPass->SetColorAttachment(0, m_RenderTarget->GetFrameBuffer());
-		m_RenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		m_RenderPass->SetColorAttachment(0, m_RenderTarget0->GetFrameBuffer());
+		m_RenderPass->SetColorAttachment(1, m_RenderTarget1->GetFrameBuffer());
+		m_RenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 1.0f });
 
 		m_RenderDevice->CreateRenderTarget(m_DepthStencilTarget);
 		m_DepthStencilTarget->InitFromDepthStencil(width, height, 1, true);

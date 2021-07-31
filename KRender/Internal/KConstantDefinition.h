@@ -43,13 +43,14 @@ namespace KConstantDefinition
 		glm::mat4 PROJ;
 		glm::mat4 VIEW_INV;
 		glm::mat4 PROJ_INV;
+		glm::vec4 PARAMETERS;
 	};
 
 	struct SHADOW
 	{
 		glm::mat4 LIGHT_VIEW;
 		glm::mat4 LIGHT_PROJ;
-		glm::vec2 CAM_NEAR_FAR;
+		glm::vec4 PARAMETERS;
 	};
 
 	struct CASCADED_SHADOW

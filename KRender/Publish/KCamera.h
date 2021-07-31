@@ -200,6 +200,7 @@ public:
 
 	inline float GetNear() const { return m_Near; }
 	inline float GetFar() const { return m_Far; }
+	inline float GetFov() const { return m_Fov; }
 	inline float GetAspect() const { return m_Aspect; }
 
 	void SetNear(float near)

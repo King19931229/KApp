@@ -1,11 +1,15 @@
 layout(early_fragment_tests) in;
 
-layout(location = 0) in vec3 worldNormal;
-layout(location = 0) out vec4 outColor;
+layout(location = 0) in vec4 encoded0;
+layout(location = 1) in vec4 encoded1;
+
+layout(location = 0) out vec4 out0;
+layout(location = 1) out vec4 out1;
 
 #include "public.h"
 
 void main()
 {
-	outColor = vec4(worldNormal, 1.0);
+	out0 = encoded0;
+	out1 = encoded1;
 }

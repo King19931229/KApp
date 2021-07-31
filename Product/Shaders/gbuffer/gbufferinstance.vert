@@ -9,11 +9,14 @@ layout(location = INSTANCE_COLUMN_1) in vec4 world_col1;
 layout(location = INSTANCE_COLUMN_2) in vec4 world_col2;
 layout(location = INSTANCE_COLUMN_3) in vec4 world_col3;
 
-layout(location = 0) out vec3 worldNormal;
+layout(location = 0) out vec4 encoded0;
+layout(location = 1) out vec4 encoded1;
 
 void main()
 {
 	mat4 model =  mat4(world_col0, world_col1, world_col2, world_col3);
-	worldNormal = mat3(model) * normal;
-	gl_Position = camera.proj * camera.view * model * vec4(position, 1.0);
+	encoded0.rgb = mat3(model) * normal;
+	encoded1 = model * vec4(position, 1.0);
+	gl_Position = camera.proj * camera.view * encoded1;
+	encoded0.a = gl_Position.z / gl_Position.w;
 }

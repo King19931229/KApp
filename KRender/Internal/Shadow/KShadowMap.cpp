@@ -77,7 +77,7 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 		{
 			glm::mat4 view = m_Camera.GetViewMatrix();
 			glm::mat4 proj = m_Camera.GetProjectiveMatrix();
-			glm::vec2 near_far = glm::vec2(m_Camera.GetNear(), m_Camera.GetFar());
+			glm::vec4 parameters = glm::vec4(m_Camera.GetNear(), m_Camera.GetFar(), m_Camera.GetFov(), m_Camera.GetAspect());
 
 			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_SHADOW);
 
@@ -100,11 +100,11 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					memcpy(pWritePos, &proj, sizeof(proj));
 				}
-				else if (detail.semantic == CS_SHADOW_NEAR_FAR)
+				else if (detail.semantic == CS_SHADOW_CAMERA_PARAMETERS)
 				{
-					assert(sizeof(near_far) == detail.size);
+					assert(sizeof(parameters) == detail.size);
 					pWritePos = POINTER_OFFSET(pData, detail.offset);
-					memcpy(pWritePos, &near_far, sizeof(near_far));
+					memcpy(pWritePos, &parameters, sizeof(parameters));
 				}
 			}
 			shadowBuffer->Write(pData);

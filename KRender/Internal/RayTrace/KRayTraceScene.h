@@ -37,9 +37,11 @@ protected:
 		glm::mat4 proj;
 		glm::mat4 viewInv;
 		glm::mat4 projInv;
+		glm::vec4 parameters;
 		Camera()
 		{
 			view = proj = viewInv = projInv = glm::mat4(1.0f);
+			parameters = glm::vec4(0.0f);
 		}
 	};
 

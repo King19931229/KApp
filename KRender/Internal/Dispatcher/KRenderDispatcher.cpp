@@ -856,6 +856,7 @@ bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 			glm::mat4 proj = m_Camera->GetProjectiveMatrix();
 			glm::mat4 viewInv = glm::inverse(view);
 			glm::mat4 projInv = glm::inverse(proj);
+			glm::vec4 parameters = glm::vec4(m_Camera->GetNear(), m_Camera->GetFar(), m_Camera->GetFov(), m_Camera->GetAspect());
 
 			void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);
 			const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
@@ -885,6 +886,12 @@ bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 					assert(sizeof(projInv) == detail.size);
 					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					memcpy(pWritePos, &projInv, sizeof(projInv));
+				}
+				else if (detail.semantic == CS_CAMERA_PARAMETERS)
+				{
+					assert(sizeof(parameters) == detail.size);
+					pWritePos = POINTER_OFFSET(pData, detail.offset);
+					memcpy(pWritePos, &parameters, sizeof(parameters));
 				}
 			}
 			cameraBuffer->Write(pData);

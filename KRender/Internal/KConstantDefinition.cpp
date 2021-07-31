@@ -35,6 +35,11 @@ namespace KConstantDefinition
 					ConstantSemanticDetail DETAIL = { CS_PROJ_INV, EF_R32G32B32A32_FLOAT, 4, MEMBER_SIZE(CAMERA, PROJ_INV), MEMBER_OFFSET(CAMERA, PROJ_INV) };
 					CAMERA_DETAILS.semanticDetails.push_back(DETAIL);
 				}
+				// PARAMETERS
+				{
+					ConstantSemanticDetail DETAIL = { CS_CAMERA_PARAMETERS, EF_R32G32B32A32_FLOAT, 1, MEMBER_SIZE(CAMERA, PARAMETERS), MEMBER_OFFSET(CAMERA, PARAMETERS) };
+					CAMERA_DETAILS.semanticDetails.push_back(DETAIL);
+				}
 				CAMERA_DETAILS.bufferSize = sizeof(CAMERA);
 			}
 
@@ -52,7 +57,7 @@ namespace KConstantDefinition
 				}
 				// CAM_NEAR_FAR
 				{
-					ConstantSemanticDetail DETAIL = { CS_SHADOW_NEAR_FAR, EF_R32G32_FLOAT, 1, MEMBER_SIZE(SHADOW, CAM_NEAR_FAR), MEMBER_OFFSET(SHADOW, CAM_NEAR_FAR) };
+					ConstantSemanticDetail DETAIL = { CS_SHADOW_CAMERA_PARAMETERS, EF_R32G32B32A32_FLOAT, 1, MEMBER_SIZE(SHADOW, PARAMETERS), MEMBER_OFFSET(SHADOW, PARAMETERS) };
 					SHADOW_DETAILS.semanticDetails.push_back(DETAIL);
 				}
 				SHADOW_DETAILS.bufferSize = sizeof(SHADOW);
