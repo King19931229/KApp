@@ -10,10 +10,10 @@ class KShadowMap
 protected:
 	IKRenderTargetPtr m_RenderTarget;
 	IKRenderPassPtr m_RenderPass;
+	IKSamplerPtr m_ShadowSampler;
 	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 	IKCommandPoolPtr m_CommandPool;
 
-	IKSamplerPtr m_ShadowSampler;
 	KCamera m_Camera;
 	KCullSystem m_CullSystem;
 
@@ -31,9 +31,9 @@ public:
 
 	bool UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBuffer);
 
-	IKRenderTargetPtr GetShadowMapTarget();
+	inline IKRenderTargetPtr GetShadowMapTarget() { return m_RenderTarget; }
 	inline IKSamplerPtr GetSampler() { return m_ShadowSampler; }
-	KCamera& GetCamera() { return m_Camera; }
+	inline KCamera& GetCamera() { return m_Camera; }
 
 	inline float& GetDepthBiasConstant() { return m_DepthBiasConstant; }
 	inline float& GetDepthBiasSlope() { return m_DepthBiasSlope; }

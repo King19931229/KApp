@@ -11,6 +11,7 @@ layout(binding = RAYTRACE_BINDING_CAMERA) uniform CameraProperties
 	mat4 viewInverse;
 	mat4 projInverse;
 } cam;
+layout(binding = RAYTRACE_BINDING_NORMAL) uniform sampler2D normal;
 
 layout(location = 0) rayPayloadEXT hitPayload prd;
 

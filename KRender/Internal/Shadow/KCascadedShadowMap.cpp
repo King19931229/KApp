@@ -6,8 +6,8 @@
 #include "Internal/KRenderGlobal.h"
 #include "Internal/KConstantGlobal.h"
 
-#include "Internal/ECS/Component/KTransformComponent.h"
 #include "Internal/Dispatcher/KRenderDispatcher.h"
+#include "Internal/Dispatcher/KInstancePreparer.h"
 
 #include "KBase/Interface/IKLog.h"
 
@@ -499,45 +499,14 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 	IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass, 
 	std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
-	struct InstanceGroup
-	{
-		KRenderComponent* render;
-		std::vector<KConstantDefinition::OBJECT> instance;
-	};
-	typedef std::shared_ptr<InstanceGroup> InstanceGroupPtr;
-	std::unordered_map<KMeshPtr, InstanceGroupPtr> meshGroups;
-
-	for (KRenderComponent* component : litCullRes)
-	{
-		IKEntity* entity = component->GetEntityHandle();
-		KTransformComponent* transform = nullptr;
-		KRenderComponent* render = nullptr;
-		if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform) && entity->GetComponent(CT_RENDER, (IKComponentBase**)&render))
-		{
-			InstanceGroupPtr instanceGroup = nullptr;
-			KMeshPtr mesh = component->GetMesh();
-
-			auto it = meshGroups.find(mesh);
-			if (it != meshGroups.end())
-			{				
-				instanceGroup = it->second;
-			}
-			else
-			{
-				instanceGroup = std::make_shared<InstanceGroup>();
-				meshGroups[mesh] = instanceGroup;
-			}
-
-			instanceGroup->render = render;
-			instanceGroup->instance.push_back({ transform->GetFinal() });
-		}
-	}
+	KInstancePreparer::MeshGroups meshGroups;
+	KInstancePreparer::CalculateByMesh(litCullRes, meshGroups);
 
 	// 准备Instance数据
 	for (auto& pair : meshGroups)
 	{
 		KMeshPtr mesh = pair.first;
-		InstanceGroupPtr instanceGroup = pair.second;
+		KInstancePreparer::InstanceGroupPtr instanceGroup = pair.second;
 
 		KRenderComponent* render = instanceGroup->render;
 		std::vector<KConstantDefinition::OBJECT>& instances = instanceGroup->instance;

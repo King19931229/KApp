@@ -72,7 +72,7 @@ bool KRayTraceManager::UnInit()
 	return true;
 }
 
-bool KRayTraceManager::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex, uint32_t chainIndex)
+bool KRayTraceManager::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 {
 	for (IKRayTraceScenePtr scene : m_Scenes)
 	{

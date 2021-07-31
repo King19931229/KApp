@@ -169,12 +169,3 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 	}
 	return false;
 }
-
-IKRenderTargetPtr KShadowMap::GetShadowMapTarget()
-{
-	if(m_RenderTarget)
-	{
-		return m_RenderTarget;
-	}
-	return nullptr;
-}

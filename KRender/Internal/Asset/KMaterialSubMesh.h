@@ -23,12 +23,15 @@ protected:
 	IKShaderPtr				m_PreZVSShader;
 	IKShaderPtr				m_PreZFSShader;
 
+	IKShaderPtr				m_GBufferVSShader;
+	IKShaderPtr				m_GBufferVSInstanceShader;
+	IKShaderPtr				m_GBufferFSShader;
+
 	IKShaderPtr				m_ShadowVSShader;
 	IKShaderPtr				m_ShadowFSShader;
 
 	IKShaderPtr				m_CascadedShadowVSShader;
 	IKShaderPtr				m_CascadedShadowVSInstanceShader;
-	IKShaderPtr				m_CascadedShadowFSShader;
 
 	bool					m_MateriaShaderTriggerLoaded;
 	bool					m_MaterialPipelineCreated;

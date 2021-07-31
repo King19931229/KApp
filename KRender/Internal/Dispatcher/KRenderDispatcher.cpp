@@ -416,7 +416,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 				ASSERT_RESULT(render);
 				ASSERT_RESULT(instances.size() > 0);
 
-				// TODO PIPELINE_STAGE_PRE_Z Instance
+				// TODO PIPELINE_STAGE_PRE_Z_INSTANCE
 				render->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand& _command)
 				{
 					KRenderCommand command = std::move(_command);
@@ -750,7 +750,8 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
 	{
-		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);
+		KRenderGlobal::GBuffer.UpdateGBuffer(primaryCommandBuffer, frameIndex);
+		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_Camera, frameIndex, primaryCommandBuffer);
 		KRenderGlobal::FrameGraph.Compile();
 		KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);

@@ -14,6 +14,7 @@
 #include "Internal/Object/KSkyBox.h"
 #include "Internal/Object/KOcclusionBox.h"
 #include "Internal/Object/KPrefiterCubeMap.h"
+#include "Internal/Object/KGBuffer.h"
 #include "Internal/Shadow/KShadowMap.h"
 #include "Internal/Shadow/KCascadedShadowMap.h"
 
@@ -42,6 +43,7 @@ namespace KRenderGlobal
 
 	extern KSkyBox SkyBox;
 	extern KPrefilerCubeMap CubeMap;
+	extern KGBuffer GBuffer;
 	extern KOcclusionBox OcclusionBox;
 	extern KShadowMap ShadowMap;
 	extern KCascadedShadowMap CascadedShadowMap;

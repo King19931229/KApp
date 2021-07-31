@@ -441,6 +441,12 @@
     <ClInclude Include="Interface\IKRayTracePipeline.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Object\KGBuffer.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Dispatcher\KInstancePreparer.h">
+      <Filter>Internal\Dispatcher</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -712,6 +718,9 @@
     </ClCompile>
     <ClCompile Include="Internal\RayTrace\KRayTraceScene.cpp">
       <Filter>Internal\RayTrace</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Object\KGBuffer.cpp">
+      <Filter>Internal\Object</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

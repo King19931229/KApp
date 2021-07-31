@@ -31,7 +31,7 @@ public:
 
 	bool Init();
 	bool UnInit();
-	bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex, uint32_t chainIndex);
+	bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
 	bool UpdateCamera(uint32_t frameIndex);
 	bool Resize(size_t width, size_t height);
 

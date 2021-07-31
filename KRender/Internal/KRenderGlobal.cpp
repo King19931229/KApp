@@ -15,6 +15,7 @@ namespace KRenderGlobal
 
 	KSkyBox SkyBox;
 	KPrefilerCubeMap CubeMap;
+	KGBuffer GBuffer;
 	KOcclusionBox OcclusionBox;
 	KShadowMap ShadowMap;
 	KCascadedShadowMap CascadedShadowMap;
@@ -33,9 +34,10 @@ namespace KRenderGlobal
 
 	IKRenderDevice* RenderDevice = nullptr;
 
-	const char* ALL_STAGE_NAMES[RENDER_STAGE_NUM] =
+	const char* ALL_STAGE_NAMES[] =
 	{
 		"PreZ",
+		"GBuffer"
 		"Default",
 		"Debug",
 		"CascadedShadowMap"

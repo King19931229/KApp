@@ -29,9 +29,12 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadow.vert", m_CascadedShadowVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadowinstance.vert", m_CascadedShadowVSInstanceShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/shadow.frag", m_CascadedShadowFSShader, true));
 
-	for (PipelineStage stage : {PIPELINE_STAGE_PRE_Z, PIPELINE_STAGE_SHADOW_GEN, PIPELINE_STAGE_CASCADED_SHADOW_GEN, PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE})
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "gbuffer/gbuffer.vert", m_GBufferVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "gbuffer/gbufferinstance.vert", m_GBufferVSInstanceShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "gbuffer/gbuffer.frag", m_GBufferFSShader, true));
+
+	for (PipelineStage stage : {PIPELINE_STAGE_GBUFFER, PIPELINE_STAGE_GBUFFER_INSTANCE, PIPELINE_STAGE_PRE_Z, PIPELINE_STAGE_SHADOW_GEN, PIPELINE_STAGE_CASCADED_SHADOW_GEN, PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE})
 	{
 		FramePipelineList& pipelines = m_Pipelines[stage];
 		pipelines.resize(m_FrameInFlight);
@@ -113,11 +116,15 @@ bool KMaterialSubMesh::UnInit()
 	SAFE_RELEASE_SHADER(m_PreZVSShader);
 	SAFE_RELEASE_SHADER(m_PreZFSShader);
 
+	SAFE_RELEASE_SHADER(m_GBufferVSShader);
+	SAFE_RELEASE_SHADER(m_GBufferVSInstanceShader);
+	SAFE_RELEASE_SHADER(m_GBufferFSShader);
+
 	SAFE_RELEASE_SHADER(m_ShadowVSShader);
 	SAFE_RELEASE_SHADER(m_ShadowFSShader);
 
 	SAFE_RELEASE_SHADER(m_CascadedShadowVSShader);
-	SAFE_RELEASE_SHADER(m_CascadedShadowFSShader);
+	SAFE_RELEASE_SHADER(m_CascadedShadowVSInstanceShader);
 
 #undef SAFE_RELEASE_SHADER
 
@@ -165,24 +172,28 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 			pipelineList.clear();
 		}
 
-		const size_t DEFAULT_IDX = 0;
-		const size_t INSTANCE_IDX = 1;
-		const size_t IDX_COUNT = 2;
+		enum
+		{
+			DEFAULT_IDX,
+			INSTANCE_IDX,
+			IDX_COUNT
+		};
 
-		FramePipelineList* pipelineLists[IDX_COUNT] = { nullptr, nullptr };
+		// 构造所需要的Pipeline
+		FramePipelineList* pipelineLists[IDX_COUNT] = { nullptr };
 		
 		switch (blendMode)
 		{
-		case OPAQUE:
-			pipelineLists[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE];
-			pipelineLists[INSTANCE_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE_INSTANCE];
-			break;
-		case TRANSRPANT:
-			pipelineLists[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_TRANSPRANT];
-			pipelineLists[INSTANCE_IDX] = nullptr;
-			break;
-		default:
-			break;
+			case OPAQUE:
+				pipelineLists[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE];
+				pipelineLists[INSTANCE_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE_INSTANCE];
+				break;
+			case TRANSRPANT:
+				pipelineLists[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_TRANSPRANT];
+				pipelineLists[INSTANCE_IDX] = nullptr;
+				break;
+			default:
+				break;
 		}
 
 		if (vsShader && fsShader)
@@ -360,10 +371,43 @@ bool KMaterialSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IK
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		pipeline->SetDepthBiasEnable(true);
-		pipeline->SetShader(ST_FRAGMENT, m_CascadedShadowFSShader);
+		pipeline->SetShader(ST_FRAGMENT, m_ShadowFSShader);
 
 		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CASCADED_SHADOW);
 		pipeline->SetConstantBuffer(CBT_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
+
+		ASSERT_RESULT(pipeline->Init());
+		return true;
+	}
+	else if (stage == PIPELINE_STAGE_GBUFFER || stage == PIPELINE_STAGE_GBUFFER_INSTANCE)
+	{
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+
+		if (stage == PIPELINE_STAGE_GBUFFER)
+		{
+			pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+			pipeline->SetShader(ST_VERTEX, m_GBufferVSShader);
+		}
+		else if (stage == PIPELINE_STAGE_GBUFFER_INSTANCE)
+		{
+			std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
+			instanceFormats.push_back(VF_INSTANCE);
+			pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
+			pipeline->SetShader(ST_VERTEX, m_GBufferVSInstanceShader);
+		}
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		pipeline->SetShader(ST_FRAGMENT, m_GBufferFSShader);
+
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 		return true;

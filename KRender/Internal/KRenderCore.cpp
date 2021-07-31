@@ -93,6 +93,9 @@ bool KRenderCore::InitGlobalManager()
 {
 	uint32_t frameInFlight = m_Device->GetNumFramesInFlight();
 
+	size_t width = 0, height = 0;
+	m_Window->GetSize(width, height);
+
 	KRenderDeviceProperties property;
 	ASSERT_RESULT(m_Device->QueryProperty(property));
 
@@ -106,7 +109,8 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::InstanceBufferManager.Init(m_Device, frameInFlight, sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
 
 	KRenderGlobal::FrameGraph.Init(m_Device);
-	KRenderGlobal::RayTraceManager.Init();
+	KRenderGlobal::GBuffer.Init(m_Device, &m_Camera, (uint32_t)width, (uint32_t)height, frameInFlight);
+	KRenderGlobal::RayTraceManager.Init();;
 
 	KRenderGlobal::CubeMap.Init(m_Device, frameInFlight, 128, 128, 8,
 		"Textures/uffizi_cube.ktx",
@@ -135,6 +139,7 @@ bool KRenderCore::UnInitGlobalManager()
 	KRenderGlobal::CascadedShadowMap.UnInit();
 
 	KRenderGlobal::RayTraceManager.UnInit();
+	KRenderGlobal::GBuffer.UnInit();
 	KRenderGlobal::FrameGraph.UnInit();
 
 	KRenderGlobal::MaterialManager.UnInit();

@@ -12,6 +12,7 @@ protected:
 	ShaderMap m_VSShaderMap;
 	ShaderMap m_VSInstanceShaderMap;
 	ShaderMap m_FSShaderMap;
+	ShaderMap m_FSGBufferShaderMap;
 
 	IKShaderPtr m_VSTemplateShader;
 	IKShaderPtr m_FSTemplateShader;
@@ -39,6 +40,7 @@ protected:
 		size_t macrosSize,
 		size_t vsMacrosSize,
 		size_t permutateIndex);
+
 public:
 	KMaterialShader();
 	~KMaterialShader();

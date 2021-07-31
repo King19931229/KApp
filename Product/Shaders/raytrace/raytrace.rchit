@@ -19,6 +19,8 @@ layout(buffer_reference, scalar) readonly buffer Materials { RayTraceMaterial m[
 layout(binding = RAYTRACE_BINDING_AS) uniform accelerationStructureEXT topLevelAS;
 layout(binding = RAYTRACE_BINDING_SCENE, scalar) readonly buffer SceneDesc_ { SceneDesc i[]; } sceneDesc;
 layout(binding = RAYTRACE_BINDING_TEXTURES) uniform sampler2D texturesMap[]; // all textures
+layout(binding = RAYTRACE_BINDING_NORMAL) uniform sampler2D normal;
+
 // clang-format on
 
 void main()

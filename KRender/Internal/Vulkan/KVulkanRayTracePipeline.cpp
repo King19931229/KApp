@@ -115,9 +115,15 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 
 	VkDescriptorSetLayoutBinding textureBinding = {};
 	textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+	textureBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
 	textureBinding.binding = RAYTRACE_BINDING_TEXTURES;
 	textureBinding.descriptorCount = (uint32_t)std::max(textures.size(), (size_t)1);
+
+	VkDescriptorSetLayoutBinding normalBinding = {};
+	normalBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	normalBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+	normalBinding.binding = RAYTRACE_BINDING_NORMAL;
+	normalBinding.descriptorCount = 1;
 
 	VkDescriptorSetLayoutBinding setLayoutBindings[] =
 	{
@@ -125,7 +131,8 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		storageImageBinding,
 		uniformBinding,
 		sceneBinding,
-		textureBinding
+		textureBinding,
+		normalBinding
 	};
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = {};
@@ -148,6 +155,7 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
 	};
 
@@ -232,12 +240,10 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		VkDescriptorImageInfo emptyImageInfo;
 		IKSamplerPtr errorSampler;
 		ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorSampler(errorSampler));
-		KVulkanSampler* vkSampler = (KVulkanSampler*)errorSampler.get();
 		IKTexturePtr errorTexture;
 		ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorTexture(errorTexture));
-		KVulkanTexture* vkTexture = (KVulkanTexture*)errorTexture.get();
-		emptyImageInfo.sampler = vkSampler->GetVkSampler();
-		emptyImageInfo.imageView = vkTexture->GetImageView();
+		emptyImageInfo.sampler = ((KVulkanSampler*)errorSampler.get())->GetVkSampler();
+		emptyImageInfo.imageView = ((KVulkanTexture*)errorTexture.get())->GetImageView();
 		emptyImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		VkWriteDescriptorSet textureWrite = {};
@@ -247,6 +253,21 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		textureWrite.descriptorCount = textures.size() ? textureBinding.descriptorCount : 1;
 		textureWrite.pImageInfo = textures.size() ? textures.data() : &emptyImageInfo;
 		textureWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+		VkDescriptorImageInfo normalImageInfo;
+		IKSamplerPtr normalSampler = KRenderGlobal::GBuffer.GetSampler();
+		IKRenderTargetPtr normalTarget = KRenderGlobal::GBuffer.GetGBufferTarget();
+		normalImageInfo.sampler = ((KVulkanSampler*)normalSampler.get())->GetVkSampler();
+		normalImageInfo.imageView = ((KVulkanFrameBuffer*)normalTarget->GetFrameBuffer().get())->GetImageView();
+		normalImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		VkWriteDescriptorSet normalWrite = {};
+		normalWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		normalWrite.dstSet = m_Descriptor.sets[frameIndex];
+		normalWrite.dstBinding = RAYTRACE_BINDING_NORMAL;
+		normalWrite.descriptorCount = 1;
+		normalWrite.pImageInfo = &normalImageInfo;
+		normalWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
 		VkWriteDescriptorSet writeDescriptorSets[] =
 		{
@@ -259,7 +280,9 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 			// Binding 3: Scene data
 			sceneWrite,
 			// Binding 4: Texture data
-			textureWrite
+			textureWrite,
+			// Binding 5: Normal data
+			normalWrite
 		};
 
 		vkUpdateDescriptorSets(KVulkanGlobal::device, ARRAY_SIZE(writeDescriptorSets), writeDescriptorSets, 0, VK_NULL_HANDLE);
