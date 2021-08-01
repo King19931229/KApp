@@ -64,4 +64,5 @@ public:
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
 
 	void UpdateSize();
+	void ReloadShader();
 };

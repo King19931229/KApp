@@ -81,10 +81,10 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 		SAFE_UNINIT(m_RenderPass);
 
 		ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget0));
-		ASSERT_RESULT(m_RenderTarget0->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
+		ASSERT_RESULT(m_RenderTarget0->InitFromColor(width, height, 1, EF_R16G16B16A16_FLOAT));
 
 		ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget1));
-		ASSERT_RESULT(m_RenderTarget1->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
+		ASSERT_RESULT(m_RenderTarget1->InitFromColor(width, height, 1, EF_R16G16B16A16_FLOAT));
 
 		ASSERT_RESULT(m_RenderDevice->CreateRenderPass(m_RenderPass));
 		m_RenderPass->SetColorAttachment(0, m_RenderTarget0->GetFrameBuffer());

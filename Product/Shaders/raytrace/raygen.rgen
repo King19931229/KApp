@@ -20,8 +20,8 @@ void main()
 	float tMax = 10000.0;
 	vec3 hitValue = vec3(0);
 
-	int MAX_RECURSION = 1;
-	float attenuation = 0.2;
+	int MAX_RECURSION = 3;
+	float attenuation = 0.3;
 	float initial = (attenuation - 1.0) / (pow(attenuation, MAX_RECURSION) - 1);
 
 	prd.attenuation = vec3(initial);
@@ -29,8 +29,8 @@ void main()
 	prd.rayDir = direction.xyz;
 	prd.sum = vec3(0.0);
 	prd.depth = 0;	
-	prd.surf = InitializeSurfaceHit(origin.xyz, uv);
-	prd.cone = ComputeRayConeFromGBuffer(prd.surf);
+	SurfaceHit surf = InitializeSurfaceHit(origin.xyz, uv);
+	prd.cone = ComputeRayConeFromGBuffer(surf, distance(prd.rayOrigin, DecodePosition(uv)));
 
 	while(prd.depth < MAX_RECURSION)
 	{
@@ -54,6 +54,7 @@ void main()
 		prd.attenuation *= attenuation;
 		++prd.depth;
 	}
-
+	
+	// hitValue = vec3(prd.cone.spreadAngle);
 	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(hitValue, 1.0));
 }

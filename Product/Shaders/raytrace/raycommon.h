@@ -23,10 +23,8 @@ struct Ray
 
 struct SurfaceHit
 {
-	vec3 position;
 	vec3 normal;
 	float surfaceSpreadAngle; // Initialized according to Eq. 32
-	float distance; // Distance to first hit
 };
 
 struct Pixel
@@ -46,7 +44,6 @@ struct HitPayload
 	int  depth;
 	int  done;
 
-	SurfaceHit surf;
 	RayCone cone;
 };
 

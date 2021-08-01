@@ -324,6 +324,12 @@ void KVulkanRayTracePipeline::DestroyDescriptorSet()
 		m_Descriptor.pool = VK_NULL_HANDEL;
 		m_Descriptor.sets.clear();
 	}
+
+	if (m_Pipeline.layout != VK_NULL_HANDEL)
+	{
+		vkDestroyPipelineLayout(KVulkanGlobal::device, m_Pipeline.layout, nullptr);
+		m_Pipeline.layout = VK_NULL_HANDEL;
+	}
 }
 
 void KVulkanRayTracePipeline::CreateShaderBindingTable(ShaderBindingTable& shaderBindingTable, uint32_t handleCount)
@@ -475,12 +481,9 @@ void KVulkanRayTracePipeline::DestroyShaderBindingTables()
 	DestroyShaderBindingTable(m_ShaderBindingTables.hit);
 	DestroyShaderBindingTable(m_ShaderBindingTables.callable);
 
-	if (m_Pipeline.layout != VK_NULL_HANDEL)
+	if (m_Pipeline.pipline != VK_NULL_HANDEL)
 	{
-		vkDestroyPipelineLayout(KVulkanGlobal::device, m_Pipeline.layout, nullptr);
 		vkDestroyPipeline(KVulkanGlobal::device, m_Pipeline.pipline, nullptr);
-
-		m_Pipeline.layout = VK_NULL_HANDEL;
 		m_Pipeline.pipline = VK_NULL_HANDEL;
 	}
 }
@@ -695,6 +698,23 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 
 			vkUpdateDescriptorSets(KVulkanGlobal::device, ARRAY_SIZE(writeDescriptorSets), writeDescriptorSets, 0, VK_NULL_HANDLE);
 		}
+
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanRayTracePipeline::ReloadShader()
+{
+	if (m_AnyHitShader || m_ClosestHitShader || m_RayGenShader || m_MissShader)
+	{
+		if (m_AnyHitShader) m_AnyHitShader->Reload();
+		if (m_ClosestHitShader) m_ClosestHitShader->Reload();
+		if (m_RayGenShader) m_RayGenShader->Reload();
+		if (m_MissShader) m_MissShader->Reload();
+
+		DestroyShaderBindingTables();
+		CreateShaderBindingTables();
 
 		return true;
 	}

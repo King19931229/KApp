@@ -100,6 +100,16 @@ bool KRayTraceManager::Resize(size_t width, size_t height)
 	return true;
 }
 
+bool KRayTraceManager::ReloadShader()
+{
+	for (IKRayTraceScenePtr scene : m_Scenes)
+	{
+		KRayTraceScene* traceScene = (KRayTraceScene*)scene.get();
+		traceScene->ReloadShader();
+	}
+	return true;
+}
+
 bool KRayTraceManager::AcquireRayTraceScene(IKRayTraceScenePtr& scene)
 {
 	scene = IKRayTraceScenePtr(KNEW KRayTraceScene());

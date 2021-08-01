@@ -190,6 +190,11 @@ bool KRenderCore::InitController()
 			KRenderGlobal::ShaderManager.Reload();
 			// TODO 通知回Pipeline
 		}
+		if (key == INPUT_KEY_R)
+		{
+			m_Device->Wait();
+			KRenderGlobal::RayTraceManager.ReloadShader();
+		}
 	};
 
 #if defined(_WIN32)

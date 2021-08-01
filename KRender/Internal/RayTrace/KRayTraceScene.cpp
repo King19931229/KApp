@@ -250,6 +250,14 @@ void KRayTraceScene::UpdateSize()
 	}
 }
 
+void KRayTraceScene::ReloadShader()
+{
+	if (m_Pipeline)
+	{
+		m_Pipeline->ReloadShader();
+	}
+}
+
 bool KRayTraceScene::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 {
 	if (m_Pipeline)

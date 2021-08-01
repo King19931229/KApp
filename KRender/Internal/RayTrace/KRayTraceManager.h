@@ -34,6 +34,7 @@ public:
 	bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
 	bool UpdateCamera(uint32_t frameIndex);
 	bool Resize(size_t width, size_t height);
+	bool ReloadShader();
 
 	virtual bool AcquireRayTraceScene(IKRayTraceScenePtr& scene);
 	virtual bool RemoveRayTraceScene(IKRayTraceScenePtr& scene);

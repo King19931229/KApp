@@ -14,6 +14,7 @@ struct IKRayTracePipeline
 
 	virtual bool RecreateAS() = 0;
 	virtual bool ResizeImage(uint32_t width, uint32_t height) = 0;
+	virtual bool ReloadShader() = 0;
 
 	virtual IKRenderTargetPtr GetStorageTarget() = 0;
 

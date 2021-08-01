@@ -56,37 +56,41 @@ void main()
 	const vec3 p2        = vec3(objResource.transfo * vec4(v2.pos, 1.0));
 	const vec3 worldPos  = v0.pos * barycentrics.x + v1.pos * barycentrics.y + v2.pos * barycentrics.z;
 
-	// vec4 screen_p0       = cam.proj * cam.view * vec4(p0, 1.0); screen_p0 /= screen_p0.w;
-	// vec4 screen_p1       = cam.proj * cam.view * vec4(p1, 1.0); screen_p1 /= screen_p1.w;
-	// vec4 screen_p2       = cam.proj * cam.view * vec4(p2, 1.0); screen_p2 /= screen_p2.w;
-
 	// Using 0 since no curvature measure at second hit
-	prd.cone = Propagate(prd.cone, 0, gl_HitTEXT);
+	prd.cone = Propagate(prd.cone, 0, distance(worldPos, prd.rayOrigin));
+
 	float lambda = 0;
 	if(mat.diffuseTex > -1)
 	{
 		int txtId = mat.diffuseTex;
 		vec2 texSize = vec2(textureSize(texturesMap[nonuniformEXT(txtId)], 0));
-		float numMipmap = float(textureQueryLevels(texturesMap[nonuniformEXT(txtId)]));
-		Ray ray;
-		ray.origin = prd.rayOrigin;
-		ray.direction = prd.rayOrigin;
 		Pixel pixel;
-		pixel.wh = texSize.x * texSize.y;
 		pixel.t0 = uv0; pixel.t1 = uv1; pixel.t2 = uv2;
-		// pixel.p0 = screen_p0.xy; pixel.p1 = screen_p1.xy; pixel.p2 = screen_p2.xy;
 		pixel.p0 = p0; pixel.p1 = p1; pixel.p2 = p2;
+		pixel.wh = texSize.x * texSize.y;
+		float numMipmap = float(textureQueryLevels(texturesMap[nonuniformEXT(txtId)]));
 
-		lambda = ComputeTextureLOD(ray, prd.surf, prd.cone, pixel) / numMipmap;
-
+		lambda = ComputeTextureLOD(prd.rayDir, normal, prd.cone, pixel);
+		// lambda = 0;
 		prd.hitValue = textureLod(texturesMap[nonuniformEXT(txtId)], texcoord, lambda).xyz;
+		lambda /= numMipmap;
 	}
 	else
 	{
+		float numMipmap = 3;
+		vec2 texSize = vec2(pow(2, numMipmap));
+		/*
+		Pixel pixel;
+		pixel.t0 = uv0; pixel.t1 = uv1; pixel.t2 = uv2;
+		pixel.p0 = p0; pixel.p1 = p1; pixel.p2 = p2;
+		pixel.wh = texSize.x * texSize.y;
+		lambda = ComputeTextureLOD(prd.rayDir, normal, prd.cone, pixel);
+		lambda /= numMipmap;
+		*/
 		prd.hitValue = normal;
 	}
 
-	prd.hitValue = vec3(lambda);
+	// prd.hitValue = vec3(lambda);
 	prd.rayOrigin = prd.rayOrigin + prd.rayDir * gl_HitTEXT;
 	prd.rayDir = reflect(prd.rayDir, normal);
 	prd.rayOrigin += prd.rayDir * 0.001;
