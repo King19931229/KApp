@@ -89,7 +89,7 @@ namespace KVulkanInitializer
 		imageInfo.usage = usage;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.samples = numSamples;
-		imageInfo.flags = flags; 
+		imageInfo.flags = flags;
 
 		VK_ASSERT_RESULT(vkCreateImage(KVulkanGlobal::device, &imageInfo, nullptr, &image));
 		{
@@ -817,5 +817,80 @@ namespace KVulkanInitializer
 			KVulkanHeapAllocator::Free(heapAllocInfo);
 			vkBuffer = VK_NULL_HANDEL;
 		}
+	}
+
+	VkDescriptorSetLayoutBinding CreateDescriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t binding, uint32_t descriptorCount)
+	{
+		VkDescriptorSetLayoutBinding layoutBinding = {};
+		layoutBinding.descriptorType = type;
+		layoutBinding.stageFlags = stageFlags;
+		layoutBinding.binding = binding;
+		layoutBinding.descriptorCount = descriptorCount;
+		return layoutBinding;
+	}
+
+	VkDescriptorBufferInfo CreateBufferIntfo(VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range)
+	{
+		VkDescriptorBufferInfo bufferInfo = {};
+
+		bufferInfo.buffer = buffer;
+		bufferInfo.offset = offset;
+		bufferInfo.range = range;
+
+		return bufferInfo;
+	}
+
+	VkDescriptorImageInfo CreateImageInfo(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout)
+	{
+		VkDescriptorImageInfo imageInfo = {};
+
+		imageInfo.sampler = sampler;
+		imageInfo.imageView = imageView;
+		imageInfo.imageLayout = imageLayout;
+
+		return imageInfo;
+	}
+
+	VkWriteDescriptorSet CreateAccelerationStructureWrite(const VkWriteDescriptorSetAccelerationStructureKHR* descriptorAccelerationStructureInfo, VkDescriptorSet dstSet, uint32_t dstBinding, uint32_t descriptorCount)
+	{
+		VkWriteDescriptorSet accelerationStructureWrite = {};
+
+		accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		// The specialized acceleration structure descriptor has to be chained
+		accelerationStructureWrite.pNext = descriptorAccelerationStructureInfo;
+		accelerationStructureWrite.dstSet = dstSet;
+		accelerationStructureWrite.dstBinding = dstBinding;
+		accelerationStructureWrite.descriptorCount = descriptorCount;
+		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+
+		return accelerationStructureWrite;
+	}
+
+	VkWriteDescriptorSet CreateImageWrite(const VkDescriptorImageInfo* imageInfo, VkDescriptorType descriptorType, VkDescriptorSet dstSet, uint32_t dstBinding, uint32_t descriptorCount)
+	{
+		VkWriteDescriptorSet imageWrite = {};
+
+		imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		imageWrite.dstSet = dstSet;
+		imageWrite.dstBinding = dstBinding;
+		imageWrite.descriptorCount = descriptorCount;
+		imageWrite.pImageInfo = imageInfo;
+		imageWrite.descriptorType = descriptorType;
+
+		return imageWrite;
+	}
+
+	VkWriteDescriptorSet CreateBufferWrite(const VkDescriptorBufferInfo* bufferInfo, VkDescriptorType descriptorType, VkDescriptorSet dstSet, uint32_t dstBinding, uint32_t descriptorCount)
+	{
+		VkWriteDescriptorSet bufferWrite = {};
+
+		bufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		bufferWrite.dstSet = dstSet;
+		bufferWrite.dstBinding = dstBinding;
+		bufferWrite.descriptorCount = descriptorCount;
+		bufferWrite.pBufferInfo = bufferInfo;
+		bufferWrite.descriptorType = descriptorType;
+
+		return bufferWrite;
 	}
 }
