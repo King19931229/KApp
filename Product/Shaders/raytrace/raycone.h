@@ -16,23 +16,23 @@ vec3 DecodePosition(vec2 uv)
 vec3 DD_Normal(vec2 uv, vec2 axis)
 {
 	vec2 eps = sign(axis) / vec2(textureSize(encodedGBuffer0, 0));
-	vec3 center = DecodeNormal(uv);
-	vec3 d_0 = DecodeNormal(uv + eps) - center;
-	vec3 d_1 = center - DecodeNormal(uv - eps);
-	vec3 d = (d_0 + d_1) * 0.5;
-	// vec3 d = mix(d_0, d_1, (dot(d_0, d_0) < dot(d_1, d_1)) ? 0.0 : 1.0);
-	return d;
+	vec3 d = vec3(0.0);
+	vec3 center;
+	center = DecodeNormal(uv);
+	d += DecodeNormal(uv + eps) - center;
+	d += center - DecodeNormal(uv - eps);
+	return d * 0.5;
 }
 
 vec3 DD_Position(vec2 uv, vec2 axis)
 {
 	vec2 eps = sign(axis) / vec2(textureSize(encodedGBuffer1, 0));
-	vec3 center = DecodePosition(uv);
-	vec3 d_0 = DecodePosition(uv + eps) - center;
-	vec3 d_1 = center - DecodePosition(uv - eps);
-	vec3 d = (d_0 + d_1) * 0.5;
-	// vec3 d = mix(d_0, d_1, (dot(d_0, d_0) < dot(d_1, d_1)) ? 0.0 : 1.0);
-	return d;
+	vec3 d = vec3(0.0);
+	vec3 center;
+	center = DecodePosition(uv);
+	d += DecodePosition(uv + eps) - center;
+	d += center - DecodePosition(uv - eps);
+	return d * 0.5;
 }
 
 float PixelSpreadAngle()

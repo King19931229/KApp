@@ -19,7 +19,10 @@ enum ShaderType
 	ST_RAYGEN = 1 << 2,
 	ST_ANY_HIT = 1 << 3,
 	ST_CLOSEST_HIT = 1 << 4,
-	ST_MISS = 1 << 5
+	ST_MISS = 1 << 5,
+
+	// Compute
+	ST_COMPUTE = 1 << 6,
 };
 typedef unsigned short ShaderTypes;
 
@@ -455,6 +458,9 @@ typedef std::shared_ptr<IKPipelineHandle> IKPipelineHandlePtr;
 
 struct IKRayTracePipeline;
 typedef std::shared_ptr<IKRayTracePipeline> IKRayTracePipelinePtr;
+
+struct IKComputePipeline;
+typedef std::shared_ptr<IKComputePipeline> IKComputePipelinePtr;
 
 struct IKCommandPool;
 typedef std::shared_ptr<IKCommandPool> IKCommandPoolPtr;

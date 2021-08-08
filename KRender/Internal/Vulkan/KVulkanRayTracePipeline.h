@@ -46,12 +46,12 @@ protected:
 	struct Pipeline
 	{
 		VkPipelineLayout layout;
-		VkPipeline pipline;
+		VkPipeline pipeline;
 
 		Pipeline()
 		{
 			layout = VK_NULL_HANDEL;
-			pipline = VK_NULL_HANDEL;
+			pipeline = VK_NULL_HANDEL;
 		}
 	};
 	Pipeline m_Pipeline;
@@ -67,6 +67,7 @@ protected:
 		{
 			buffer = VK_NULL_HANDEL;
 			mapped = nullptr;
+			ZERO_MEMORY(stridedDeviceAddressRegion);
 		}
 	};
 	struct ShaderBindingTables
@@ -80,10 +81,21 @@ protected:
 
 	IKRenderTargetPtr m_StorageRT;
 
-	IKShaderPtr m_AnyHitShader;
-	IKShaderPtr m_ClosestHitShader;
-	IKShaderPtr m_RayGenShader;
-	IKShaderPtr m_MissShader;
+	struct ShaderInfo
+	{
+		IKShaderPtr shader;
+		std::string path;
+
+		ShaderInfo()
+		{
+			shader = nullptr;
+		}
+	};
+
+	ShaderInfo m_AnyHitShader;
+	ShaderInfo m_ClosestHitShader;
+	ShaderInfo m_RayGenShader;
+	ShaderInfo m_MissShader;
 
 	ElementFormat m_Format;
 	uint32_t m_Width;
@@ -100,6 +112,8 @@ protected:
 	void DestroyStrogeScene();
 	void CreateDescriptorSet();
 	void DestroyDescriptorSet();
+	void CreateShader();
+	void DestroyShader();
 	void CreateShaderBindingTables();
 	void DestroyShaderBindingTables();
 	void CreateCommandBuffers();
@@ -111,7 +125,7 @@ public:
 	KVulkanRayTracePipeline();
 	~KVulkanRayTracePipeline();
 
-	virtual bool SetShaderTable(ShaderType type, IKShaderPtr shader);
+	virtual bool SetShaderTable(ShaderType type, const char* szShader);
 	virtual bool SetStorageImage(ElementFormat format);
 
 	virtual uint32_t AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform);
@@ -123,6 +137,7 @@ public:
 	virtual bool ReloadShader();
 
 	virtual IKRenderTargetPtr GetStorageTarget();
+	virtual IKAccelerationStructurePtr GetTopdownAS();
 
 	virtual bool Init(const std::vector<IKUniformBufferPtr>& cameraBuffers, uint32_t width, uint32_t height);
 	virtual bool UnInit();

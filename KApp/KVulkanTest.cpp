@@ -1,6 +1,8 @@
 #define MEMORY_DUMP_DEBUG
 #include "KEngine/Interface/IKEngine.h"
 #include "KRender/Interface/IKRenderWindow.h"
+#include "KRender/Interface/IKComputePipeline.h"
+#include "KRender/Interface/IKRenderTarget.h"
 
 #include "KBase/Interface/Entity/IKEntityManager.h"
 #include "KBase/Interface/Component/IKComponentManager.h"
@@ -90,7 +92,7 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray2.scene");
+	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray.scene");
 
 	KRenderCoreInitCallback callback = [engine]()
 	{
@@ -104,25 +106,30 @@ int main()
 		IKRayTracePipelinePtr rayPipeline;
 		device->CreateRayTracePipeline(rayPipeline);
 
-		IKShaderPtr rayGenShader;
-		device->CreateShader(rayGenShader);
-		rayGenShader->InitFromFile(ST_RAYGEN, "raytrace/raygen.rgen", false);
-
-		IKShaderPtr cloestHitShader;
-		device->CreateShader(cloestHitShader);
-		cloestHitShader->InitFromFile(ST_CLOSEST_HIT, "raytrace/raytrace.rchit", false);
-
-		IKShaderPtr missShader;
-		device->CreateShader(missShader);
-		missShader->InitFromFile(ST_MISS, "raytrace/raytrace.rmiss", false);
-
 		rayPipeline->SetStorageImage(EF_R8GB8BA8_UNORM);
-		rayPipeline->SetShaderTable(ST_RAYGEN, rayGenShader);
-		rayPipeline->SetShaderTable(ST_CLOSEST_HIT, cloestHitShader);
-		rayPipeline->SetShaderTable(ST_MISS, missShader);
+		rayPipeline->SetShaderTable(ST_RAYGEN, "raytrace/raygen.rgen");
+		rayPipeline->SetShaderTable(ST_CLOSEST_HIT, "raytrace/raytrace.rchit");
+		rayPipeline->SetShaderTable(ST_MISS, "raytrace/raytrace.rmiss");
 		rayTraceScene->EnableAutoUpdateImageSize(1.0f);
 		rayTraceScene->EnableDebugDraw(0, 0, 1, 1);
 		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
+
+		/*
+		IKComputePipelinePtr compute;
+		device->CreateComputePipeline(compute);
+
+		IKRenderTargetPtr input = rayPipeline->GetStorageTarget();
+		size_t width = 0, height = 0;
+		input->GetSize(width, height);
+
+		IKRenderTargetPtr output;
+		device->CreateRenderTarget(output);
+		output->InitFromStorage((uint32_t)width, (uint32_t)height, EF_R8GB8BA8_UNORM);
+
+		compute->SetStorageImage(0, input, true);
+		compute->SetAccelerationStructure(1, rayPipeline->GetTopdownAS(), true);
+		compute->Init();
+		*/
 	};
 	engine->GetRenderCore()->RegisterInitCallback(&callback);
 	callback();

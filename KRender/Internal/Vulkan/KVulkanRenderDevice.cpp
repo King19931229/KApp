@@ -11,6 +11,7 @@
 #include "KVulkanCommandBuffer.h"
 #include "KVulkanQuery.h"
 #include "KVulkanRenderPass.h"
+#include "KVulkanComputePipeline.h"
 
 #include "KVulkanUIOverlay.h"
 #include "KVulkanGlobal.h"
@@ -1170,7 +1171,13 @@ bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 bool KVulkanRenderDevice::CreateRayTracePipeline(IKRayTracePipelinePtr& raytrace)
 {
 	raytrace = IKRayTracePipelinePtr(KNEW KVulkanRayTracePipeline());
-	return false;
+	return true;
+}
+
+bool KVulkanRenderDevice::CreateComputePipeline(IKComputePipelinePtr& compute)
+{
+	compute = IKComputePipelinePtr(KNEW KVulkanComputePipeline());
+	return true;
 }
 
 bool KVulkanRenderDevice::CreateUIOverlay(IKUIOverlayPtr& ui)

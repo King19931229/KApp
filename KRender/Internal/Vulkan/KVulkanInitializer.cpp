@@ -829,7 +829,7 @@ namespace KVulkanInitializer
 		return layoutBinding;
 	}
 
-	VkDescriptorBufferInfo CreateBufferIntfo(VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range)
+	VkDescriptorBufferInfo CreateDescriptorBufferIntfo(VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range)
 	{
 		VkDescriptorBufferInfo bufferInfo = {};
 
@@ -840,7 +840,7 @@ namespace KVulkanInitializer
 		return bufferInfo;
 	}
 
-	VkDescriptorImageInfo CreateImageInfo(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout)
+	VkDescriptorImageInfo CreateDescriptorImageInfo(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout)
 	{
 		VkDescriptorImageInfo imageInfo = {};
 
@@ -851,7 +851,7 @@ namespace KVulkanInitializer
 		return imageInfo;
 	}
 
-	VkWriteDescriptorSet CreateAccelerationStructureWrite(const VkWriteDescriptorSetAccelerationStructureKHR* descriptorAccelerationStructureInfo, VkDescriptorSet dstSet, uint32_t dstBinding, uint32_t descriptorCount)
+	VkWriteDescriptorSet CreateDescriptorAccelerationStructureWrite(const VkWriteDescriptorSetAccelerationStructureKHR* descriptorAccelerationStructureInfo, VkDescriptorSet dstSet, uint32_t dstBinding, uint32_t descriptorCount)
 	{
 		VkWriteDescriptorSet accelerationStructureWrite = {};
 
@@ -866,7 +866,7 @@ namespace KVulkanInitializer
 		return accelerationStructureWrite;
 	}
 
-	VkWriteDescriptorSet CreateImageWrite(const VkDescriptorImageInfo* imageInfo, VkDescriptorType descriptorType, VkDescriptorSet dstSet, uint32_t dstBinding, uint32_t descriptorCount)
+	VkWriteDescriptorSet CreateDescriptorImageWrite(const VkDescriptorImageInfo* imageInfo, VkDescriptorType descriptorType, VkDescriptorSet dstSet, uint32_t dstBinding, uint32_t descriptorCount)
 	{
 		VkWriteDescriptorSet imageWrite = {};
 
@@ -880,7 +880,7 @@ namespace KVulkanInitializer
 		return imageWrite;
 	}
 
-	VkWriteDescriptorSet CreateBufferWrite(const VkDescriptorBufferInfo* bufferInfo, VkDescriptorType descriptorType, VkDescriptorSet dstSet, uint32_t dstBinding, uint32_t descriptorCount)
+	VkWriteDescriptorSet CreateDescriptorBufferWrite(const VkDescriptorBufferInfo* bufferInfo, VkDescriptorType descriptorType, VkDescriptorSet dstSet, uint32_t dstBinding, uint32_t descriptorCount)
 	{
 		VkWriteDescriptorSet bufferWrite = {};
 

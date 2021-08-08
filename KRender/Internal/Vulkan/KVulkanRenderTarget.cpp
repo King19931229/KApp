@@ -51,7 +51,7 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_
 	return true;
 }
 
-bool KVulkanRenderTarget::InitFromStroge(uint32_t width, uint32_t height, ElementFormat format)
+bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, ElementFormat format)
 {
 	UnInit();
 

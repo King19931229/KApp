@@ -218,7 +218,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 			unsigned int binding = pair.first;
 			KVulkanPipeline::SamplerBindingInfo& info = pair.second;
 
-			if (!info.dynamicWrite & info.onceWrite)
+			if (!info.dynamicWrite && info.onceWrite)
 			{
 				continue;
 			}

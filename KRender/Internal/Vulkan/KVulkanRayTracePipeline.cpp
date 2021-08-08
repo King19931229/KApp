@@ -16,10 +16,6 @@ KVulkanRayTracePipeline::KVulkanRayTracePipeline()
 	: m_TopDown(nullptr)
 	, m_CommandPool(nullptr)
 	, m_StorageRT(nullptr)
-	, m_AnyHitShader(nullptr)
-	, m_ClosestHitShader(nullptr)
-	, m_RayGenShader(nullptr)
-	, m_MissShader(nullptr)
 	, m_Format(EF_R8GB8BA8_UNORM)
 	, m_Width(0)
 	, m_Height(0)
@@ -30,10 +26,6 @@ KVulkanRayTracePipeline::KVulkanRayTracePipeline()
 
 KVulkanRayTracePipeline::~KVulkanRayTracePipeline()
 {
-	SAFE_UNINIT(m_AnyHitShader);
-	SAFE_UNINIT(m_ClosestHitShader);
-	SAFE_UNINIT(m_RayGenShader);
-	SAFE_UNINIT(m_MissShader);
 	ASSERT_RESULT(!m_Inited && "should be destoryed");
 }
 
@@ -57,7 +49,7 @@ void KVulkanRayTracePipeline::DestroyAccelerationStructure()
 void KVulkanRayTracePipeline::CreateStorageImage()
 {
 	ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_StorageRT));
-	ASSERT_RESULT(m_StorageRT->InitFromStroge(m_Width, m_Height, m_Format));
+	ASSERT_RESULT(m_StorageRT->InitFromStorage(m_Width, m_Height, m_Format));
 }
 
 void KVulkanRayTracePipeline::DestroyStorageImage()
@@ -159,48 +151,48 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
 		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
 		descriptorAccelerationStructureInfo.pAccelerationStructures = &topDown->GetTopDown().handle;
-		VkWriteDescriptorSet accelerationStructureWrite = KVulkanInitializer::CreateAccelerationStructureWrite(&descriptorAccelerationStructureInfo, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_AS);
+		VkWriteDescriptorSet accelerationStructureWrite = KVulkanInitializer::CreateDescriptorAccelerationStructureWrite(&descriptorAccelerationStructureInfo, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_AS);
 
 		KVulkanRenderTarget* vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(m_StorageRT.get());
 		KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(vulkanRenderTarget->GetFrameBuffer().get());
 		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };	
-		VkWriteDescriptorSet storageImageWrite = KVulkanInitializer::CreateImageWrite(&storageImageDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_IMAGE);
+		VkWriteDescriptorSet storageImageWrite = KVulkanInitializer::CreateDescriptorImageWrite(&storageImageDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_IMAGE);
 
 		KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(m_CameraBuffers[frameIndex].get());
-		VkDescriptorBufferInfo uniformBufferInfo = KVulkanInitializer::CreateBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
-		VkWriteDescriptorSet uniformWrite = KVulkanInitializer::CreateBufferWrite(&uniformBufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_CAMERA);
+		VkDescriptorBufferInfo uniformBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
+		VkWriteDescriptorSet uniformWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&uniformBufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_CAMERA);
 
-		VkDescriptorBufferInfo sceneBufferInfo = KVulkanInitializer::CreateBufferIntfo(m_Scene.buffer, 0, VK_WHOLE_SIZE);
-		VkWriteDescriptorSet sceneWrite = KVulkanInitializer::CreateBufferWrite(&sceneBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_SCENE);
+		VkDescriptorBufferInfo sceneBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(m_Scene.buffer, 0, VK_WHOLE_SIZE);
+		VkWriteDescriptorSet sceneWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&sceneBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_SCENE);
 
 		// Keep VK happy
 		IKSamplerPtr errorSampler; ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorSampler(errorSampler));
 		IKTexturePtr errorTexture; ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorTexture(errorTexture));
-		VkDescriptorImageInfo emptyImageInfo = KVulkanInitializer::CreateImageInfo(
+		VkDescriptorImageInfo emptyImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
 			((KVulkanSampler*)errorSampler.get())->GetVkSampler(),
 			((KVulkanTexture*)errorTexture.get())->GetImageView(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		);
-		VkWriteDescriptorSet textureWrite = KVulkanInitializer::CreateImageWrite(textures.size() ? textures.data() : &emptyImageInfo,
+		VkWriteDescriptorSet textureWrite = KVulkanInitializer::CreateDescriptorImageWrite(textures.size() ? textures.data() : &emptyImageInfo,
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_TEXTURES, textures.size() ? textureBinding.descriptorCount : 1);
 
 		IKSamplerPtr normalSampler = KRenderGlobal::GBuffer.GetSampler();
 		IKRenderTargetPtr normalTarget = KRenderGlobal::GBuffer.GetGBufferTarget0();
-		VkDescriptorImageInfo normaImageInfo = KVulkanInitializer::CreateImageInfo(
+		VkDescriptorImageInfo normaImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
 			((KVulkanSampler*)normalSampler.get())->GetVkSampler(),
 			((KVulkanFrameBuffer*)normalTarget->GetFrameBuffer().get())->GetImageView(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		);
-		VkWriteDescriptorSet normalWrite = KVulkanInitializer::CreateImageWrite(&normaImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER0);
+		VkWriteDescriptorSet normalWrite = KVulkanInitializer::CreateDescriptorImageWrite(&normaImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER0);
 
 		IKSamplerPtr positionSampler = KRenderGlobal::GBuffer.GetSampler();
 		IKRenderTargetPtr positionTarget = KRenderGlobal::GBuffer.GetGBufferTarget1();
-		VkDescriptorImageInfo positionImageInfo = KVulkanInitializer::CreateImageInfo(
+		VkDescriptorImageInfo positionImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
 			((KVulkanSampler*)positionSampler.get())->GetVkSampler(),
 			((KVulkanFrameBuffer*)positionTarget->GetFrameBuffer().get())->GetImageView(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		);
-		VkWriteDescriptorSet positionWrite = KVulkanInitializer::CreateImageWrite(&positionImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER1);
+		VkWriteDescriptorSet positionWrite = KVulkanInitializer::CreateDescriptorImageWrite(&positionImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER1);
 
 		VkWriteDescriptorSet writeDescriptorSets[] =
 		{
@@ -304,9 +296,9 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 		return shaderCreateInfo;
 	};
 
-	ASSERT_RESULT(m_RayGenShader && "ray gen shader should always exists");
+	ASSERT_RESULT(m_RayGenShader.shader && "ray gen shader should always exists");
 	{
-		shaderStages.push_back(PopulateShaderCreateInfo(m_RayGenShader, VK_SHADER_STAGE_RAYGEN_BIT_KHR));
+		shaderStages.push_back(PopulateShaderCreateInfo(m_RayGenShader.shader, VK_SHADER_STAGE_RAYGEN_BIT_KHR));
 		shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
 		shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
 		shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
@@ -315,9 +307,9 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 		m_ShaderGroups.push_back(shaderGroup);
 	}
 
-	if (m_MissShader)
+	if (m_MissShader.shader)
 	{
-		shaderStages.push_back(PopulateShaderCreateInfo(m_MissShader, VK_SHADER_STAGE_MISS_BIT_KHR));
+		shaderStages.push_back(PopulateShaderCreateInfo(m_MissShader.shader, VK_SHADER_STAGE_MISS_BIT_KHR));
 		shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
 		shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
 		shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
@@ -326,9 +318,9 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 		m_ShaderGroups.push_back(shaderGroup);
 	}
 
-	if (m_ClosestHitShader)
+	if (m_ClosestHitShader.shader)
 	{
-		shaderStages.push_back(PopulateShaderCreateInfo(m_ClosestHitShader, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR));
+		shaderStages.push_back(PopulateShaderCreateInfo(m_ClosestHitShader.shader, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR));
 		shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
 		shaderGroup.generalShader = VK_SHADER_UNUSED_KHR;
 		shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;
@@ -347,7 +339,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 	rayTracingPipelineCI.pGroups = m_ShaderGroups.data();
 	rayTracingPipelineCI.maxPipelineRayRecursionDepth = 4;
 	rayTracingPipelineCI.layout = m_Pipeline.layout;
-	VK_ASSERT_RESULT(KVulkanGlobal::vkCreateRayTracingPipelinesKHR(KVulkanGlobal::device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &m_Pipeline.pipline));
+	VK_ASSERT_RESULT(KVulkanGlobal::vkCreateRayTracingPipelinesKHR(KVulkanGlobal::device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &m_Pipeline.pipeline));
 
 	const uint32_t handleSize = KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize;
 	const uint32_t handleSizeAligned = KNumerical::AlignedSize(KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize, KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleAlignment);
@@ -355,7 +347,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 	const uint32_t sbtSize = groupCount * handleSizeAligned;
 
 	std::vector<uint8_t> shaderHandleStorage(sbtSize);
-	VK_ASSERT_RESULT(KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR(KVulkanGlobal::device, m_Pipeline.pipline, 0, groupCount, sbtSize, shaderHandleStorage.data()));
+	VK_ASSERT_RESULT(KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR(KVulkanGlobal::device, m_Pipeline.pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data()));
 
 	CreateShaderBindingTable(m_ShaderBindingTables.raygen, 1);
 	CreateShaderBindingTable(m_ShaderBindingTables.miss, 1);
@@ -369,14 +361,14 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 		vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.raygen.allocInfo.vkMemroy);
 		++handleIndex;
 	}
-	if (m_MissShader)
+	if (m_MissShader.shader)
 	{
 		vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy, m_ShaderBindingTables.miss.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.miss.mapped);
 		memcpy(m_ShaderBindingTables.miss.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, handleSize);
 		vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy);
 		++handleIndex;
 	}
-	if (m_ClosestHitShader)
+	if (m_ClosestHitShader.shader)
 	{
 		vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.hit.allocInfo.vkMemroy, m_ShaderBindingTables.hit.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.hit.mapped);
 		memcpy(m_ShaderBindingTables.hit.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, handleSize);
@@ -392,10 +384,10 @@ void KVulkanRayTracePipeline::DestroyShaderBindingTables()
 	DestroyShaderBindingTable(m_ShaderBindingTables.hit);
 	DestroyShaderBindingTable(m_ShaderBindingTables.callable);
 
-	if (m_Pipeline.pipline != VK_NULL_HANDEL)
+	if (m_Pipeline.pipeline != VK_NULL_HANDEL)
 	{
-		vkDestroyPipeline(KVulkanGlobal::device, m_Pipeline.pipline, nullptr);
-		m_Pipeline.pipline = VK_NULL_HANDEL;
+		vkDestroyPipeline(KVulkanGlobal::device, m_Pipeline.pipeline, nullptr);
+		m_Pipeline.pipeline = VK_NULL_HANDEL;
 	}
 }
 
@@ -422,33 +414,30 @@ void KVulkanRayTracePipeline::DestroyCommandBuffers()
 	SAFE_UNINIT(m_CommandPool);
 }
 
-bool KVulkanRayTracePipeline::SetShaderTable(ShaderType type, IKShaderPtr shader)
+bool KVulkanRayTracePipeline::SetShaderTable(ShaderType type, const char* szShader)
 {
 	if (type == ST_ANY_HIT)
 	{
-		m_AnyHitShader = shader;
-		return true;
+		m_AnyHitShader.path = szShader;
 	}
 	else if (type == ST_CLOSEST_HIT)
 	{
-		m_ClosestHitShader = shader;
-		return true;
+		m_ClosestHitShader.path = szShader;
 	}
 	else if (type == ST_RAYGEN)
 	{
-		m_RayGenShader = shader;
-		return true;
+		m_RayGenShader.path = szShader;
 	}
 	else if (type == ST_MISS)
 	{
-		m_MissShader = shader;
-		return true;
+		m_MissShader.path = szShader;
 	}
 	else
 	{
 		assert(false && "should not reach");
 		return false;
 	}
+	return true;
 }
 
 bool KVulkanRayTracePipeline::SetStorageImage(ElementFormat format)
@@ -502,10 +491,10 @@ bool KVulkanRayTracePipeline::RecreateAS()
 			descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
 			descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
 			descriptorAccelerationStructureInfo.pAccelerationStructures = &topDown->GetTopDown().handle;
-			VkWriteDescriptorSet accelerationStructureWrite = KVulkanInitializer::CreateAccelerationStructureWrite(&descriptorAccelerationStructureInfo, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_AS);
+			VkWriteDescriptorSet accelerationStructureWrite = KVulkanInitializer::CreateDescriptorAccelerationStructureWrite(&descriptorAccelerationStructureInfo, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_AS);
 
-			VkDescriptorBufferInfo sceneBufferInfo = KVulkanInitializer::CreateBufferIntfo(m_Scene.buffer, 0, VK_WHOLE_SIZE);
-			VkWriteDescriptorSet sceneWrite = KVulkanInitializer::CreateBufferWrite(&sceneBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_SCENE);
+			VkDescriptorBufferInfo sceneBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(m_Scene.buffer, 0, VK_WHOLE_SIZE);
+			VkWriteDescriptorSet sceneWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&sceneBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_SCENE);
 
 			VkWriteDescriptorSet writeDescriptorSets[] =
 			{
@@ -532,7 +521,7 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 		KRenderGlobal::RenderDevice->Wait();
 
 		m_StorageRT->UnInit();
-		m_StorageRT->InitFromStroge(m_Width, m_Height, m_Format);
+		m_StorageRT->InitFromStorage(m_Width, m_Height, m_Format);
 
 		uint32_t frames = KRenderGlobal::RenderDevice->GetNumFramesInFlight();
 		for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
@@ -540,25 +529,25 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 			KVulkanRenderTarget* vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(m_StorageRT.get());
 			KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(vulkanRenderTarget->GetFrameBuffer().get());
 			VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };
-			VkWriteDescriptorSet storageImageWrite = KVulkanInitializer::CreateImageWrite(&storageImageDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_IMAGE);
+			VkWriteDescriptorSet storageImageWrite = KVulkanInitializer::CreateDescriptorImageWrite(&storageImageDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_IMAGE);
 
 			IKSamplerPtr normalSampler = KRenderGlobal::GBuffer.GetSampler();
 			IKRenderTargetPtr normalTarget = KRenderGlobal::GBuffer.GetGBufferTarget0();
-			VkDescriptorImageInfo normaImageInfo = KVulkanInitializer::CreateImageInfo(
+			VkDescriptorImageInfo normaImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
 				((KVulkanSampler*)normalSampler.get())->GetVkSampler(),
 				((KVulkanFrameBuffer*)normalTarget->GetFrameBuffer().get())->GetImageView(),
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			);
-			VkWriteDescriptorSet normalWrite = KVulkanInitializer::CreateImageWrite(&normaImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER0);
+			VkWriteDescriptorSet normalWrite = KVulkanInitializer::CreateDescriptorImageWrite(&normaImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER0);
 
 			IKSamplerPtr positionSampler = KRenderGlobal::GBuffer.GetSampler();
 			IKRenderTargetPtr positionTarget = KRenderGlobal::GBuffer.GetGBufferTarget1();
-			VkDescriptorImageInfo positionImageInfo = KVulkanInitializer::CreateImageInfo(
+			VkDescriptorImageInfo positionImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
 				((KVulkanSampler*)positionSampler.get())->GetVkSampler(),
 				((KVulkanFrameBuffer*)positionTarget->GetFrameBuffer().get())->GetImageView(),
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			);
-			VkWriteDescriptorSet positionWrite = KVulkanInitializer::CreateImageWrite(&positionImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER1);
+			VkWriteDescriptorSet positionWrite = KVulkanInitializer::CreateDescriptorImageWrite(&positionImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER1);
 
 			VkWriteDescriptorSet writeDescriptorSets[] =
 			{
@@ -578,14 +567,46 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 	return false;
 }
 
+void KVulkanRayTracePipeline::CreateShader()
+{
+	auto AcquireShader = [](ShaderInfo& shaderInfo, ShaderType type)
+	{
+		if (!shaderInfo.path.empty())
+		{
+			ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(type, shaderInfo.path.c_str(), shaderInfo.shader, false));
+		}
+	};
+	AcquireShader(m_AnyHitShader, ST_ANY_HIT);
+	AcquireShader(m_ClosestHitShader, ST_CLOSEST_HIT);
+	AcquireShader(m_RayGenShader, ST_RAYGEN);
+	AcquireShader(m_MissShader, ST_MISS);
+}
+
+void KVulkanRayTracePipeline::DestroyShader()
+{
+	auto ReleaseShader = [](ShaderInfo& shaderInfo)
+	{
+		if (shaderInfo.shader)
+		{
+			KRenderGlobal::ShaderManager.Release(shaderInfo.shader);
+			shaderInfo.shader = nullptr;
+		}
+	};
+
+	ReleaseShader(m_AnyHitShader);
+	ReleaseShader(m_ClosestHitShader);
+	ReleaseShader(m_RayGenShader);
+	ReleaseShader(m_MissShader);
+}
+
 bool KVulkanRayTracePipeline::ReloadShader()
 {
-	if (m_AnyHitShader || m_ClosestHitShader || m_RayGenShader || m_MissShader)
+	if (m_AnyHitShader.shader|| m_ClosestHitShader.shader || m_RayGenShader.shader || m_MissShader.shader)
 	{
-		if (m_AnyHitShader) m_AnyHitShader->Reload();
-		if (m_ClosestHitShader) m_ClosestHitShader->Reload();
-		if (m_RayGenShader) m_RayGenShader->Reload();
-		if (m_MissShader) m_MissShader->Reload();
+		if (m_AnyHitShader.shader) m_AnyHitShader.shader->Reload();
+		if (m_ClosestHitShader.shader) m_ClosestHitShader.shader->Reload();
+		if (m_RayGenShader.shader) m_RayGenShader.shader->Reload();
+		if (m_MissShader.shader) m_MissShader.shader->Reload();
 
 		DestroyShaderBindingTables();
 		CreateShaderBindingTables();
@@ -600,6 +621,11 @@ IKRenderTargetPtr KVulkanRayTracePipeline::GetStorageTarget()
 	return m_StorageRT;
 }
 
+IKAccelerationStructurePtr KVulkanRayTracePipeline::GetTopdownAS()
+{
+	return m_TopDown;
+}
+
 bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& cameraBuffers, uint32_t width, uint32_t height)
 {
 	UnInit();
@@ -612,6 +638,7 @@ bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& camera
 	CreateAccelerationStructure();
 	CreateStrogeScene();
 	CreateDescriptorSet();
+	CreateShader();
 	CreateShaderBindingTables();
 	CreateCommandBuffers();
 
@@ -628,6 +655,7 @@ bool KVulkanRayTracePipeline::UnInit()
 	DestroyShaderBindingTables();
 	DestroyDescriptorSet();
 	DestroyCommandBuffers();
+	DestroyShader();
 
 	m_CameraBuffers.clear();
 
@@ -655,7 +683,7 @@ bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t
 		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)(commandBuffer.get());
 		VkCommandBuffer vkCommandBuffer = vulkanCommandBuffer->GetVkHandle();
 
-		vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_Pipeline.pipline);
+		vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_Pipeline.pipeline);
 		vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_Pipeline.layout, 0, 1, &m_Descriptor.sets[frameIndex], 0, 0);
 
 		VkStridedDeviceAddressRegionKHR emptySbtEntry = {};

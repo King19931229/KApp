@@ -54,6 +54,8 @@ struct IKRenderDevice
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline) = 0;
 	virtual bool CreateRayTracePipeline(IKRayTracePipelinePtr& raytrace) = 0;
 
+	virtual bool CreateComputePipeline(IKComputePipelinePtr& compute) = 0;
+
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool) = 0;
 	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer) = 0;
 

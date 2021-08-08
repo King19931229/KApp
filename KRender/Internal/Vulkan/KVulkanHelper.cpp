@@ -441,6 +441,9 @@ namespace KVulkanHelper
 		case ST_MISS:
 			bit = VK_SHADER_STAGE_MISS_BIT_KHR;
 			return true;
+		case ST_COMPUTE:
+			bit = VK_SHADER_STAGE_COMPUTE_BIT;
+			return true;
 		default:
 			assert(false && "Unknown shader type flag");
 			return false;

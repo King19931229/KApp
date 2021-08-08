@@ -447,6 +447,12 @@
     <ClInclude Include="Internal\Dispatcher\KInstancePreparer.h">
       <Filter>Internal\Dispatcher</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKComputePipeline.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanComputePipeline.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -721,6 +727,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Object\KGBuffer.cpp">
       <Filter>Internal\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanComputePipeline.cpp">
+      <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
