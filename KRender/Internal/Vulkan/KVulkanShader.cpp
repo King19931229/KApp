@@ -132,7 +132,11 @@ static bool ShaderTypeToEShLanguage(ShaderType type, EShLanguage& language)
 	case ST_MISS:
 		language = EShLangMiss;
 		return true;
+	case ST_COMPUTE:
+		language = EShLangCompute;
+		return true;
 	default:
+		assert(false && "should not reach");
 		return false;
 	}
 }
@@ -148,7 +152,7 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 	ASSERT_RESULT(code);
 	shader->setStrings(&code, 1);
 
-	if (type & (ST_RAYGEN | ST_ANY_HIT | ST_CLOSEST_HIT | ST_MISS))
+	if (type & (ST_RAYGEN | ST_ANY_HIT | ST_CLOSEST_HIT | ST_MISS | ST_COMPUTE))
 	{
 		shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
 		shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_5);
@@ -317,29 +321,7 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 		{
 			GenerateReflection(spirv, m_Information);
 
-			std::string root;
-			system->GetRoot(root);
-
-			{
-				std::string cachePath = path + ".spv";
-				std::string cacheFolder;
-				KFileTool::PathJoin(root, CACHE_PATH, cacheFolder);
-				KFileTool::PathJoin(cacheFolder, cachePath, cachePath);
-				KFileTool::ParentFolder(cachePath, cacheFolder);
-				if (!KFileTool::IsPathExist(cacheFolder))
-				{
-					KFileTool::CreateFolder(cacheFolder, true);
-				}
-
-				IKDataStreamPtr writeFile = GetDataStream(IT_FILEHANDLE);
-				writeFile->Open(cachePath.c_str(), IM_WRITE);
-				writeFile->Write(spirv.data(), spirv.size() * sizeof(decltype(spirv[0])));
-				writeFile->Close();
-			}
-
-			if (InitFromStringImpl((const char*)spirv.data(),
-				spirv.size() * sizeof(decltype(spirv[0])),
-				pModule))
+			if (InitFromStringImpl((const char*)spirv.data(), spirv.size() * sizeof(decltype(spirv[0])), pModule))
 			{
 				return true;
 			}

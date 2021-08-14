@@ -75,15 +75,27 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 {
 	if (width && height && m_RenderDevice)
 	{
-		SAFE_UNINIT(m_RenderTarget0);
-		SAFE_UNINIT(m_RenderTarget1);
+		if (m_RenderTarget0)
+		{
+			m_RenderTarget0->UnInit();
+		}
+		else
+		{
+			ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget0));
+		}
+
+		if (m_RenderTarget1)
+		{
+			m_RenderTarget1->UnInit();
+		}
+		else
+		{
+			ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget1));
+		}
+
 		SAFE_UNINIT(m_DepthStencilTarget);
 		SAFE_UNINIT(m_RenderPass);
-
-		ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget0));
 		ASSERT_RESULT(m_RenderTarget0->InitFromColor(width, height, 1, EF_R16G16B16A16_FLOAT));
-
-		ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget1));
 		ASSERT_RESULT(m_RenderTarget1->InitFromColor(width, height, 1, EF_R16G16B16A16_FLOAT));
 
 		ASSERT_RESULT(m_RenderDevice->CreateRenderPass(m_RenderPass));

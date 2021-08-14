@@ -50,6 +50,7 @@ const char* DEVICE_EXTENSIONS[] =
 	VK_KHR_SPIRV_1_4_EXTENSION_NAME,
 	// Required for relaxed block layout
 	VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
+
 	// Required for Nvidia Aftermatch
 	// VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
 	// VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME
@@ -406,7 +407,12 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 	enabledAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
 	enabledAccelerationStructureFeatures.pNext = &enabledRayTracingPipelineFeatures;
 
-	return &enabledAccelerationStructureFeatures;
+	static VkPhysicalDeviceRayQueryFeaturesKHR enabledRayqueryFeatures = {};
+	enabledRayqueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+	enabledRayqueryFeatures.rayQuery = VK_TRUE;
+	enabledRayqueryFeatures.pNext = &enabledAccelerationStructureFeatures;
+
+	return &enabledRayqueryFeatures;
 #else
 	return &physicalDeviceDescriptorIndexingFeatures;
 #endif

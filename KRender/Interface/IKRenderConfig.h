@@ -23,6 +23,8 @@ enum ShaderType
 
 	// Compute
 	ST_COMPUTE = 1 << 6,
+
+	ST_ENDENUM
 };
 typedef unsigned short ShaderTypes;
 

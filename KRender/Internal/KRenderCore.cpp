@@ -11,6 +11,8 @@
 #include "KBase/Publish/KPlatform.h"
 #include "KBase/Publish/KTimer.h"
 
+#include "Internal/Object/KDebugDrawer.h"
+
 #include "Internal/KConstantGlobal.h"
 #include "Internal/ECS/KECSGlobal.h"
 
@@ -110,7 +112,7 @@ bool KRenderCore::InitGlobalManager()
 
 	KRenderGlobal::FrameGraph.Init(m_Device);
 	KRenderGlobal::GBuffer.Init(m_Device, &m_Camera, (uint32_t)width, (uint32_t)height, frameInFlight);
-	KRenderGlobal::RayTraceManager.Init();;
+	KRenderGlobal::RayTraceManager.Init();
 
 	KRenderGlobal::CubeMap.Init(m_Device, frameInFlight, 128, 128, 8,
 		"Textures/uffizi_cube.ktx",
@@ -127,16 +129,21 @@ bool KRenderCore::InitGlobalManager()
 	// TODO
 	KRenderGlobal::FrameGraph.Compile();
 
+	KDebugDrawSharedData::Init();
+
 	return true;
 }
 
 bool KRenderCore::UnInitGlobalManager()
 {
+	KDebugDrawSharedData::UnInit();
+
 	KRenderGlobal::CubeMap.UnInit();
 	KRenderGlobal::SkyBox.UnInit();
 	KRenderGlobal::OcclusionBox.UnInit();
 	KRenderGlobal::ShadowMap.UnInit();
 	KRenderGlobal::CascadedShadowMap.UnInit();
+	KRenderGlobal::RTAO.UnInit();
 
 	KRenderGlobal::RayTraceManager.UnInit();
 	KRenderGlobal::GBuffer.UnInit();
@@ -516,6 +523,13 @@ bool KRenderCore::UnRegistertAllInitCallback()
 	return true;
 }
 
+bool KRenderCore::InitRTAO(IKRayTraceScenePtr scene)
+{
+	KRenderGlobal::RTAO.Init(scene.get());
+	KRenderGlobal::RTAO.EnableDebugDraw(0.0f, 0.0f, 1.0f, 1.0f);
+	return true;
+}
+
 IKRayTraceManager* KRenderCore::GetRayTraceMgr()
 {
 	return &KRenderGlobal::RayTraceManager;
@@ -645,4 +659,5 @@ void KRenderCore::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::PostProcessManager.Resize(width, height);
 	KRenderGlobal::GBuffer.Resize(width, height);
 	KRenderGlobal::RayTraceManager.Resize(width, height);
+	KRenderGlobal::RTAO.UpdateSize();
 }

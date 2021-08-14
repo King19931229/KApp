@@ -35,14 +35,27 @@ protected:
 
 	struct BindingInfo
 	{
-		IKRenderTargetPtr target;
+		IKRenderTargetPtr imageInput;
+		IKRenderTargetPtr imageOutput;
+		VkDescriptorImageInfo imageDescriptor;
+
 		IKAccelerationStructurePtr as;
+		VkWriteDescriptorSetAccelerationStructureKHR accelerationStructuredescriptor;
+
+		IKUniformBufferPtr buffer;
+		VkDescriptorBufferInfo bufferDescriptor;
+
 		bool dynamicWrite;
 
 		BindingInfo()
 		{
-			target = nullptr;
+			imageDescriptor = {};
+			accelerationStructuredescriptor = {};
+			bufferDescriptor = {};
+			imageInput = nullptr;
+			imageOutput = nullptr;
 			as = nullptr;
+			buffer = nullptr;
 			dynamicWrite = false;
 		}
 	};
@@ -55,18 +68,21 @@ protected:
 	void DestroyDescriptorSet();
 	void DestroyPipeline();
 
-	VkWriteDescriptorSet PopulateImageWrite(IKRenderTargetPtr target, VkDescriptorSet dstSet, uint32_t dstBinding);
-	VkWriteDescriptorSet PopulateTopdownASWrite(IKAccelerationStructurePtr as, VkDescriptorSet dstSet, uint32_t dstBinding);
+	VkWriteDescriptorSet PopulateImageWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding);
+	VkWriteDescriptorSet PopulateTopdownASWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding);
+	VkWriteDescriptorSet PopulateUniformBufferWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding);
 
 	bool UpdateDynamicWrite(uint32_t frameIndex);
+	bool SetupImageBarrier(IKCommandBufferPtr buffer, bool input);
 public:
 	KVulkanComputePipeline();
 	~KVulkanComputePipeline();
 
-	virtual void SetStorageImage(uint32_t location, IKRenderTargetPtr target, bool dynimicWrite);
-	virtual void SetAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynimicWrite);
+	virtual void BindStorageImage(uint32_t location,IKRenderTargetPtr target, bool input, bool dynimicWrite);
+	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynimicWrite);
+	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer, bool dynimicWrite);
 
 	virtual bool Init(const char* szShader);
 	virtual bool UnInit();
-	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, uint32_t frameIndex);
 };

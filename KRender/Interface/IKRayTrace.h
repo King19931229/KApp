@@ -15,6 +15,9 @@ struct IKRayTraceScene
 	virtual bool EnableCustomImageSize(uint32_t width, uint32_t height) = 0;
 	virtual bool GetDebugRenderCommand(KRenderCommandList& commands) = 0;
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex) = 0;
+
+	virtual IKRayTracePipeline* GetRayTracePipeline() = 0;
+	virtual const KCamera* GetCamera() = 0;
 };
 
 typedef std::shared_ptr<IKRayTraceScene> IKRayTraceScenePtr;
@@ -24,5 +27,6 @@ struct IKRayTraceManager
 	virtual ~IKRayTraceManager() {}
 	virtual bool AcquireRayTraceScene(IKRayTraceScenePtr& scene) = 0;
 	virtual bool RemoveRayTraceScene(IKRayTraceScenePtr& scene) = 0;
+	virtual bool GetAllRayTraceScene(std::unordered_set<IKRayTraceScenePtr>& scenes) = 0;
 	virtual bool GetDebugRenderCommand(KRenderCommandList& commands) = 0;
 };

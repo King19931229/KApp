@@ -19,6 +19,7 @@ namespace KRenderGlobal
 	KOcclusionBox OcclusionBox;
 	KShadowMap ShadowMap;
 	KCascadedShadowMap CascadedShadowMap;
+	KRTAO RTAO;
 
 	KFrameGraph FrameGraph;
 

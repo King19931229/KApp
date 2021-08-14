@@ -4,17 +4,16 @@
 #extension GL_EXT_scalar_block_layout : enable
 #extension GL_EXT_ray_tracing : enable
 #extension GL_EXT_ray_query : enable
-#include "raytrace/raycommon.glsl"
 
 const int GROUP_SIZE = 16;
-layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
-layout(binding = 0, rgba32f) uniform image2D inImage0;
-layout(binding = 1, rgba32f) uniform image2D inImage1;
-layout(binding = 2, r32f) uniform image2D outImage;
-layout(binding = 3) uniform accelerationStructureEXT topLevelAS;
 
-// See AoControl
-layout(binding = 0) uniform AOProperties 
+#include "sampling.h"
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+layout(binding = 0, rgba16f) uniform image2D inImage0;
+layout(binding = 1, rgba16f) uniform image2D inImage1;
+layout(binding = 2) uniform accelerationStructureEXT topLevelAS;
+layout(binding = 3) uniform AOProperties 
 {
 	float rtao_radius;
 	int   rtao_samples;
@@ -23,6 +22,7 @@ layout(binding = 0) uniform AOProperties
 	int   frame_number;
 	int   max_samples;
 };
+layout(binding = 4, r32f) uniform image2D outImage;
 
 //----------------------------------------------------------------------------
 // Tracing a ray and returning the weight based on the distance of the hit
@@ -58,13 +58,13 @@ void main()
 {
 	float occlusion = 0.0;
 
-	ivec2 size = imageSize(inImage);
+	ivec2 size = imageSize(outImage);
 	// Check if not outside boundaries
 	if(gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y)
 		return;
 
 	// Initialize the random number
-	uint seed = tea(size.x * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x, frame_number);
+	uint seed = TEA(size.x * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x, frame_number);
 
 	// Retrieving position and normal
 	vec4 gBuffer0 = imageLoad(inImage0, ivec2(gl_GlobalInvocationID.xy));
@@ -88,8 +88,8 @@ void main()
 		for(int i = 0; i < rtao_samples; i++)
 		{
 			// Cosine sampling
-			float r1        = rnd(seed);
-			float r2        = rnd(seed);
+			float r1        = RND(seed);
+			float r2        = RND(seed);
 			float sq        = sqrt(1.0 - r2);
 			float phi       = 2 * M_PI * r1;
 			vec3  direction = vec3(cos(phi) * sq, sin(phi) * sq, sqrt(r2));

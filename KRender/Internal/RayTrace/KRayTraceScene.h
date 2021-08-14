@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKRayTrace.h"
 #include "Interface/IKRenderCommand.h"
+#include "Internal/Object/KDebugDrawer.h"
 
 class KRayTraceScene : public IKRayTraceScene
 {
@@ -8,7 +9,6 @@ protected:
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
 	IKRayTracePipelinePtr m_Pipeline;
-	IKPipelinePtr m_DebugPipeline;
 	uint32_t m_Width;
 	uint32_t m_Height;
 	float m_ImageScale;
@@ -19,17 +19,7 @@ protected:
 
 	typedef std::tuple<std::vector<IKAccelerationStructurePtr>, glm::mat4> ASTransforms;
 
-	struct Rect
-	{
-		float x;
-		float y;
-		float w;
-		float h;
-		Rect()
-		{
-			x = y = w = h = 0;
-		}
-	}m_DebugRect;
+	KRTDebugDrawer m_DebugDrawer;
 
 	struct Camera
 	{
@@ -62,6 +52,9 @@ public:
 	virtual bool EnableCustomImageSize(uint32_t width, uint32_t height);
 	virtual bool GetDebugRenderCommand(KRenderCommandList& commands);
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+
+	virtual IKRayTracePipeline* GetRayTracePipeline();
+	virtual const KCamera* GetCamera();
 
 	void UpdateSize();
 	void ReloadShader();

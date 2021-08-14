@@ -92,7 +92,7 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray.scene");
+	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray3.scene");
 
 	KRenderCoreInitCallback callback = [engine]()
 	{
@@ -114,22 +114,7 @@ int main()
 		rayTraceScene->EnableDebugDraw(0, 0, 1, 1);
 		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
 
-		/*
-		IKComputePipelinePtr compute;
-		device->CreateComputePipeline(compute);
-
-		IKRenderTargetPtr input = rayPipeline->GetStorageTarget();
-		size_t width = 0, height = 0;
-		input->GetSize(width, height);
-
-		IKRenderTargetPtr output;
-		device->CreateRenderTarget(output);
-		output->InitFromStorage((uint32_t)width, (uint32_t)height, EF_R8GB8BA8_UNORM);
-
-		compute->SetStorageImage(0, input, true);
-		compute->SetAccelerationStructure(1, rayPipeline->GetTopdownAS(), true);
-		compute->Init();
-		*/
+		engine->GetRenderCore()->InitRTAO(rayTraceScene);
 	};
 	engine->GetRenderCore()->RegisterInitCallback(&callback);
 	callback();

@@ -1,5 +1,6 @@
 #include "Internal/KSourceFile.h"
 #include "Publish/KStringUtil.h"
+#include "Interface/IKLog.h"
 #include <algorithm>
 #include <assert.h>
 
@@ -129,7 +130,7 @@ bool KSourceFile::AddMacroDefine(std::string& out, const std::string& in)
 
 bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::string& file, FileInfo* pParent)
 {
-	if(!(file.empty()))
+	if(!file.empty())
 	{
 		std::string filePath = dir + file;
 
@@ -240,6 +241,7 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 			return true;
 		}
 	}
+	KG_LOGE(LM_IO, "Could not find file %s", file.c_str());
 	return false;
 }
 

@@ -680,6 +680,14 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		}
 		context.command[RENDER_STAGE_DEBUG].insert(context.command[RENDER_STAGE_DEBUG].end(), rayCommands.begin(), rayCommands.end());
 
+		KRenderCommandList aoCommands;
+		KRenderGlobal::RTAO.GetDebugRenderCommand(aoCommands);
+		for (KRenderCommand& command : aoCommands)
+		{
+			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+		}
+		context.command[RENDER_STAGE_DEBUG].insert(context.command[RENDER_STAGE_DEBUG].end(), aoCommands.begin(), aoCommands.end());
+
 		AssignRenderCommand(frameIndex, context);
 		SumbitRenderCommand(frameIndex, context);
 
@@ -752,6 +760,7 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 	{
 		KRenderGlobal::GBuffer.UpdateGBuffer(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex);
+		KRenderGlobal::RTAO.Execute(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_Camera, frameIndex, primaryCommandBuffer);
 		KRenderGlobal::FrameGraph.Compile();
 		KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);

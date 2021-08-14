@@ -106,6 +106,8 @@
     <ClInclude Include="Internal\Object\KGBuffer.h" />
     <ClInclude Include="Internal\Object\KOcclusionBox.h" />
     <ClInclude Include="Internal\Object\KPrefiterCubeMap.h" />
+    <ClInclude Include="Internal\Object\KRTAO.h" />
+    <ClInclude Include="Internal\Object\KDebugDrawer.h" />
     <ClInclude Include="Internal\Object\KSkyBox.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessConnection.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessData.h" />
@@ -205,6 +207,8 @@
     <ClCompile Include="Internal\Object\KGBuffer.cpp" />
     <ClCompile Include="Internal\Object\KOcclusionBox.cpp" />
     <ClCompile Include="Internal\Object\KPrefiterCubeMap.cpp" />
+    <ClCompile Include="Internal\Object\KRTAO.cpp" />
+    <ClCompile Include="Internal\Object\KDebugDrawer.cpp" />
     <ClCompile Include="Internal\Object\KSkyBox.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessConnection.cpp" />
     <ClCompile Include="Internal\PostProcess\KPostProcessData.cpp" />

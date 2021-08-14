@@ -71,9 +71,8 @@ void main()
 		float numMipmap = float(textureQueryLevels(texturesMap[nonuniformEXT(txtId)]));
 
 		lambda = ComputeTextureLOD(prd.rayDir, normal, prd.cone, pixel);
-		// lambda = 0;
 		prd.hitValue = textureLod(texturesMap[nonuniformEXT(txtId)], texcoord, lambda).xyz;
-		lambda /= numMipmap;
+		// lambda /= numMipmap;
 	}
 	else
 	{

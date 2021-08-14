@@ -87,7 +87,7 @@ protected:
 	struct SamplerBindingInfo
 	{
 		IKTexturePtr texture;
-		IKFrameBufferPtr frameBuffer;
+		IKRenderTargetPtr target;
 		IKSamplerPtr sampler;
 		bool dynamicWrite;
 		bool onceWrite;
@@ -95,7 +95,7 @@ protected:
 		SamplerBindingInfo()
 		{
 			texture = nullptr;
-			frameBuffer = nullptr;
+			target = nullptr;
 			sampler = nullptr;
 			dynamicWrite = false;
 			onceWrite = false;

@@ -25,6 +25,7 @@
 #include "Internal/FrameGraph/KFrameGraph.h"
 
 #include "Internal/RayTrace/KRayTraceManager.h"
+#include "Internal/Object/KRTAO.h"
 
 #include "KBase/Publish/KTaskExecutor.h"
 
@@ -47,6 +48,7 @@ namespace KRenderGlobal
 	extern KOcclusionBox OcclusionBox;
 	extern KShadowMap ShadowMap;
 	extern KCascadedShadowMap CascadedShadowMap;
+	extern KRTAO RTAO;
 
 	extern KFrameGraph FrameGraph;
 

@@ -8,7 +8,6 @@ KRayTraceScene::KRayTraceScene()
 	: m_Scene(nullptr)
 	, m_Camera(nullptr)
 	, m_Pipeline(nullptr)
-	, m_DebugPipeline(nullptr)
 	, m_DebugClip(glm::mat4(1.0f))
 	, m_Width(1024)
 	, m_Height(1024)
@@ -28,58 +27,7 @@ KRayTraceScene::~KRayTraceScene()
 
 bool KRayTraceScene::GetDebugRenderCommand(KRenderCommandList& commands)
 {
-	if (m_Pipeline)
-	{
-		if (m_DebugEnable)
-		{
-			m_DebugClip = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 0.0f));
-			m_DebugClip = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 1.0f)) * m_DebugClip;
-			m_DebugClip = glm::scale(glm::mat4(1.0f), glm::vec3(m_DebugRect.w, m_DebugRect.h, 1.0f)) * m_DebugClip;
-			m_DebugClip = glm::translate(glm::mat4(1.0f), glm::vec3(m_DebugRect.x, m_DebugRect.y, 0.0f)) * m_DebugClip;
-			m_DebugClip = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 1.0f)) * m_DebugClip;
-			m_DebugClip = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -1.0f, 0.0f)) * m_DebugClip;
-
-			KRenderCommand command;
-
-			IKRenderTargetPtr rayTraceTarget = m_Pipeline->GetStorageTarget();
-
-			if (!m_DebugPipeline)
-			{
-				IKPipelinePtr& pipeline = m_DebugPipeline;
-
-				KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
-
-				pipeline->SetVertexBinding(KRenderGlobal::RayTraceManager.ms_VertexFormats, ARRAY_SIZE(KRenderGlobal::RayTraceManager.ms_VertexFormats));
-				pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-
-				pipeline->SetBlendEnable(true);
-				pipeline->SetCullMode(CM_BACK);
-				pipeline->SetFrontFace(FF_CLOCKWISE);
-
-				pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-				pipeline->SetShader(ST_VERTEX, KRenderGlobal::RayTraceManager.m_DebugVertexShader);
-				pipeline->SetShader(ST_FRAGMENT, KRenderGlobal::RayTraceManager.m_DebugFragmentShader);
-				pipeline->SetSampler(SHADER_BINDING_TEXTURE0, rayTraceTarget, KRenderGlobal::RayTraceManager.m_DebugSampler, true);
-
-				ASSERT_RESULT(pipeline->Init());
-			}
-
-			m_DebugPipeline->SetSampler(SHADER_BINDING_TEXTURE0, rayTraceTarget, KRenderGlobal::RayTraceManager.m_DebugSampler, true);
-
-			command.vertexData = &KRenderGlobal::RayTraceManager.m_DebugVertexData;
-			command.indexData = &KRenderGlobal::RayTraceManager.m_DebugIndexData;
-			command.pipeline = m_DebugPipeline;
-			command.indexDraw = true;
-
-			command.objectUsage.binding = SHADER_BINDING_OBJECT;
-			command.objectUsage.range = sizeof(m_DebugClip);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_DebugClip, command.objectUsage);
-
-			commands.push_back(std::move(command));
-		}
-		return true;
-	}
-	return false;
+	return m_DebugDrawer.GetDebugRenderCommand(commands);
 }
 
 void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
@@ -162,6 +110,9 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTrac
 
 		pipeline->Init(m_CameraBuffers, m_Width, m_Height);
 		m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
+
+		m_DebugDrawer.Init(m_Pipeline->GetStorageTarget());
+
 		return true;
 	}
 	return false;
@@ -169,6 +120,7 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTrac
 
 bool KRayTraceScene::UnInit()
 {
+	m_DebugDrawer.UnInit();
 	if (m_Scene)
 	{
 		m_Scene->UnRegisterEntityObserver(&m_OnSceneChangedFunc);
@@ -177,7 +129,6 @@ bool KRayTraceScene::UnInit()
 	m_Camera = nullptr;
 	m_ASHandles.clear();
 	SAFE_UNINIT(m_Pipeline);
-	SAFE_UNINIT(m_DebugPipeline);
 	SAFE_UNINIT_CONTAINER(m_CameraBuffers);
 	return true;
 }
@@ -203,17 +154,13 @@ bool KRayTraceScene::UpdateCamera(uint32_t frameIndex)
 
 bool KRayTraceScene::EnableDebugDraw(float x, float y, float width, float height)
 {
-	m_DebugRect.x = x;
-	m_DebugRect.y = y;
-	m_DebugRect.w = width;
-	m_DebugRect.h = height;
-	m_DebugEnable = true;
+	m_DebugDrawer.EnableDraw(x, y, width, height);
 	return true;
 }
 
 bool KRayTraceScene::DisableDebugDraw()
 {
-	m_DebugEnable = false;
+	m_DebugDrawer.DisableDraw();
 	return true;
 }
 
@@ -265,4 +212,14 @@ bool KRayTraceScene::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 		return m_Pipeline->Execute(primaryBuffer, frameIndex);
 	}
 	return false;
+}
+
+IKRayTracePipeline* KRayTraceScene::GetRayTracePipeline()
+{
+	return m_Pipeline ? m_Pipeline.get() : nullptr;
+}
+
+const KCamera* KRayTraceScene::GetCamera()
+{
+	return m_Camera;
 }

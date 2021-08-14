@@ -28,6 +28,8 @@ struct IKRenderCore
 	virtual bool UnRegisterInitCallback(KRenderCoreInitCallback* callback) = 0;
 	virtual bool UnRegistertAllInitCallback() = 0;
 
+	// TODO
+	virtual bool InitRTAO(IKRayTraceScenePtr scene) = 0;
 	// 获取RayTrace
 	virtual IKRayTraceManager* GetRayTraceMgr() = 0;
 	// 获取主场景

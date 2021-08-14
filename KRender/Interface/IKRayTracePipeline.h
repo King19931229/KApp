@@ -10,6 +10,7 @@ struct IKRayTracePipeline
 	virtual bool SetShaderTable(ShaderType type, const char* szShader) = 0;
 	virtual bool SetStorageImage(ElementFormat format) = 0;
 
+	// TODO 场景加速结构不由Pipeline持有
 	virtual uint32_t AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform) = 0;
 	virtual bool RemoveBottomLevelAS(uint32_t handle) = 0;
 	virtual bool ClearBottomLevelAS() = 0;

@@ -286,7 +286,7 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKRenderTargetPtr target
 	if (target && sampler)
 	{
 		SamplerBindingInfo info;
-		info.frameBuffer = target->GetFrameBuffer();
+		info.target = target;
 		info.sampler = sampler;
 		info.dynamicWrite = dynimicWrite;
 		info.onceWrite = false;
@@ -578,14 +578,21 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 
 		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
 
-		if (!info.frameBuffer && info.texture)
+		IKFrameBufferPtr frameBuffer = nullptr;
+		if (info.texture)
 		{
-			info.frameBuffer = info.texture->GetFrameBuffer();
+			frameBuffer = info.texture->GetFrameBuffer();
+		}
+		else if (info.target)
+		{
+			frameBuffer = info.target->GetFrameBuffer();
 		}
 
-		imageInfo.imageLayout = info.frameBuffer->IsStroageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageLayout = info.frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : imageInfo.imageLayout;
-		imageInfo.imageView = ((KVulkanFrameBuffer*)info.frameBuffer.get())->GetImageView();
+		ASSERT_RESULT(frameBuffer);
+
+		imageInfo.imageLayout = frameBuffer->IsStroageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageLayout = frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : imageInfo.imageLayout;
+		imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
 		imageInfo.sampler = ((KVulkanSampler*)info.sampler.get())->GetVkSampler();
 
 		ASSERT_RESULT(imageInfo.imageView);

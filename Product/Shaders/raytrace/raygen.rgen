@@ -20,8 +20,8 @@ void main()
 	float tMax = 10000.0;
 	vec3 hitValue = vec3(0);
 
-	int MAX_RECURSION = 3;
-	float attenuation = 0.3;
+	int MAX_RECURSION = 2;
+	float attenuation = 0.8;
 	float initial = (attenuation - 1.0) / (pow(attenuation, MAX_RECURSION) - 1);
 
 	prd.attenuation = vec3(initial);
@@ -54,7 +54,6 @@ void main()
 		prd.attenuation *= attenuation;
 		++prd.depth;
 	}
-	
-	// hitValue = vec3(prd.cone.spreadAngle);
+
 	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(hitValue, 1.0));
 }
