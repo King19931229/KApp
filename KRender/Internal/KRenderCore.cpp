@@ -602,6 +602,14 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 					ui->SliderFloat("Hardware Occlusion DepthBiasSlope", &KRenderGlobal::OcclusionBox.GetDepthBiasSlope(), -5.0f, 5.0f);
 					ui->SliderFloat("Hardware Occlusion Instance Size", &KRenderGlobal::OcclusionBox.GetInstanceGroupSize(), 10.0f, 100000.0f);
 				}
+				if (ui->Header("RTAO"))
+				{
+					ui->SliderFloat("Length of the ray", &KRenderGlobal::RTAO.GetAoParameters().rtao_radius, 0.0f, 20.0f);
+					ui->SliderInt("Number of samples at each iteration", &KRenderGlobal::RTAO.GetAoParameters().rtao_samples, 0, 32);
+					ui->SliderFloat("Strenth of darkness", &KRenderGlobal::RTAO.GetAoParameters().rtao_power, 0.0f, 10.0f);
+					ui->SliderInt("Attenuate based on distance", &KRenderGlobal::RTAO.GetAoParameters().rtao_distance_based, 0, 1);
+					ui->SliderInt("Max samples before it stops", &KRenderGlobal::RTAO.GetAoParameters().max_samples, 0, 100000);
+				}
 			}
 			ui->PopItemWidth();
 		}

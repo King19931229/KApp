@@ -21,10 +21,14 @@ void KRTAO::UpdateUniform()
 {
 	if (m_UniformBuffer)
 	{
+		constexpr size_t SIZE = sizeof(AoControl) - MEMBER_SIZE(AoControl, frame);
+
 		glm::mat4 camMat = m_Camera->GetViewMatrix();
-		if (memcmp(&m_PrevCamMat, &camMat, sizeof(camMat)) != 0)
+		if (memcmp(&m_PrevCamMat, &camMat, sizeof(camMat)) != 0 ||
+			memcmp(&m_PrevParameters, &m_AOParameters, SIZE) != 0)
 		{
 			m_PrevCamMat = camMat;
+			memcpy(&m_PrevParameters, &m_AOParameters, SIZE);
 			m_AOParameters.frame = 0;
 		}
 		else
@@ -109,16 +113,38 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 	return true;
 }
 
+bool KRTAO::Reload()
+{
+	if (m_ComputePipeline)
+	{
+		//
+		return true;
+	}
+	return false;
+}
+
 void KRTAO::UpdateSize()
 {
 	if (m_RenderTarget)
 	{
 		IKSwapChain* chain = KRenderGlobal::RenderDevice->GetSwapChain();		
+
+		uint32_t newWidth = m_Width;
+		uint32_t newHeight = m_Height;
+
 		if (chain->GetWidth() && chain->GetHeight())
 		{
-			m_Width = chain->GetWidth();
-			m_Height = chain->GetHeight();
+			newWidth = chain->GetWidth();
+			newHeight = chain->GetHeight();
 		}
+
+		if (m_Width != newWidth || m_Height != newHeight)
+		{
+			m_PrevCamMat = glm::mat4(0.0f);
+			m_Width = newWidth;
+			m_Height = newHeight;
+		}
+
 		m_RenderTarget->UnInit();
 		m_RenderTarget->InitFromStorage(m_Width, m_Height, EF_R32_FLOAT);
 	}
