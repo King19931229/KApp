@@ -374,9 +374,7 @@ bool KOcclusionBox::SafeFillInstanceData(IKVertexBufferPtr buffer, std::vector<K
 			return false;
 		}
 
-		static_assert(sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F) == sizeof(glm::mat4), "Size mush match");
-
-		std::vector<glm::mat4> transforms;
+		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F> transforms;
 		transforms.reserve(renderComponents.size());
 
 		for (KRenderComponent* render : renderComponents)
@@ -384,7 +382,8 @@ bool KOcclusionBox::SafeFillInstanceData(IKVertexBufferPtr buffer, std::vector<K
 			IKEntity* entity = render->GetEntityHandle();
 			KAABBBox bound;
 			entity->GetBound(bound);
-			transforms.push_back(glm::translate(glm::mat4(1.0f), bound.GetCenter()) * glm::scale(glm::mat4(1.0f), bound.GetExtend()));
+			glm::mat4 mat = transpose(glm::translate(glm::mat4(1.0f), bound.GetCenter()) * glm::scale(glm::mat4(1.0f), bound.GetExtend()));
+			transforms.push_back({ mat[0], mat[1], mat[2], mat[0], mat[1], mat[2] });
 		}
 
 		void* pData = nullptr;
@@ -598,7 +597,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 
 							KConstantDefinition::OBJECT transform;
 							KAABBBox &bound = group.bound;
-							transform.MODEL = glm::translate(glm::mat4(1.0f), bound.GetCenter()) * glm::scale(glm::mat4(1.0f), bound.GetExtend());
+							transform.PRVE_MODEL = transform.MODEL = glm::translate(glm::mat4(1.0f), bound.GetCenter()) * glm::scale(glm::mat4(1.0f), bound.GetExtend());
 
 							command.objectUsage.binding = SHADER_BINDING_OBJECT;
 							command.objectUsage.range = sizeof(transform);
@@ -628,7 +627,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 						command.indexDraw = true;
 
 						{
-							std::vector<glm::mat4> transforms;
+							std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F> transforms;
 							transforms.reserve(renderComponents.size());
 
 							for (KRenderComponent* render : renderComponents)
@@ -636,7 +635,10 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 								IKEntity* entity = render->GetEntityHandle();
 								KAABBBox bound;
 								entity->GetBound(bound);
-								transforms.push_back(glm::translate(glm::mat4(1.0f), bound.GetCenter()) * glm::scale(glm::mat4(1.0f), bound.GetExtend()));
+
+								glm::mat4 transform = glm::translate(glm::mat4(1.0f), bound.GetCenter()) * glm::scale(glm::mat4(1.0f), bound.GetExtend());
+								transform = glm::transpose(transform);
+								transforms.push_back({ transform[0], transform[1], transform[2],transform[0], transform[1], transform[2] });
 							}
 
 							std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;

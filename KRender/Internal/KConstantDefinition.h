@@ -18,6 +18,7 @@ namespace KConstantDefinition
 	struct OBJECT
 	{
 		glm::mat4 MODEL;
+		glm::mat4 PRVE_MODEL;
 	};
 
 	struct CSM_OBJECT_INSTANCE

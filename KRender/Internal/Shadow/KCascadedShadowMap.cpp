@@ -509,7 +509,7 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 		KInstancePreparer::InstanceGroupPtr instanceGroup = pair.second;
 
 		KRenderComponent* render = instanceGroup->render;
-		std::vector<KConstantDefinition::OBJECT>& instances = instanceGroup->instance;
+		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instanceGroup->instance;
 
 		ASSERT_RESULT(render);
 		ASSERT_RESULT(!instances.empty());

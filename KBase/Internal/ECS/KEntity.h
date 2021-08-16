@@ -50,6 +50,9 @@ public:
 	bool Save(IKXMLElementPtr element) override;
 	bool Load(IKXMLElementPtr element) override;
 
+	bool PreTick() override;
+	bool PostTick() override;
+
 	size_t GetID() const override { return m_Id; }
 
 	const std::string& GetName() const override  { return m_Name;}

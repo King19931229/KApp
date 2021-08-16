@@ -419,6 +419,11 @@ bool KRenderCore::Tick()
 	{
 		if (m_Window->Tick())
 		{
+			if (KECS::EntityManager)
+			{
+				KECS::EntityManager->ViewAllEntity([](IKEntityPtr entity) { entity->PreTick(); });
+			}
+
 			for (auto it = m_SecordaryWindow.begin(), itEnd = m_SecordaryWindow.end();
 				it != itEnd;)
 			{
@@ -437,6 +442,12 @@ bool KRenderCore::Tick()
 				}
 			}
 			m_Device->Present();
+
+			if (KECS::EntityManager)
+			{
+				KECS::EntityManager->ViewAllEntity([](IKEntityPtr entity) { entity->PostTick(); });
+			}
+
 			return true;
 		}
 		else
@@ -605,7 +616,7 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 				if (ui->Header("RTAO"))
 				{
 					ui->SliderFloat("Length of the ray", &KRenderGlobal::RTAO.GetAoParameters().rtao_radius, 0.0f, 20.0f);
-					ui->SliderInt("Number of samples at each iteration", &KRenderGlobal::RTAO.GetAoParameters().rtao_samples, 0, 32);
+					ui->SliderInt("Number of samples at each iteration", &KRenderGlobal::RTAO.GetAoParameters().rtao_samples, 1, 32);
 					ui->SliderFloat("Strenth of darkness", &KRenderGlobal::RTAO.GetAoParameters().rtao_power, 0.0f, 10.0f);
 					ui->SliderInt("Attenuate based on distance", &KRenderGlobal::RTAO.GetAoParameters().rtao_distance_based, 0, 1);
 					ui->SliderInt("Max samples before it stops", &KRenderGlobal::RTAO.GetAoParameters().max_samples, 0, 100000);

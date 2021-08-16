@@ -17,7 +17,11 @@ RTTR_REGISTRATION
 KTransformComponent::KTransformComponent()
 	: m_Position(glm::vec3(0.0f)),
 	m_Scale(glm::vec3(1.0f)),
-	m_Rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f))
-{}
+	m_Rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f)),
+	m_FirstTick(true)
+{
+	m_FinalTransform.MODEL = glm::mat4(1.0f);
+	m_FinalTransform.PRVE_MODEL = glm::mat4(1.0f);
+}
 
 KTransformComponent:: ~KTransformComponent() {}
