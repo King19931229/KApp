@@ -51,7 +51,17 @@ class KVulkanRenderDevice : public IKRenderDevice
 		std::vector<std::string> supportedExtensions;
 
 		bool suitable;
+		bool supportNvExtension;
+		bool supportRaytraceExtension;
 		int score;
+
+		PhysicalDevice()
+		{
+			suitable = false;
+			supportNvExtension = false;
+			supportRaytraceExtension = false;
+			score = 0;
+		}
 	};
 protected:
 	KRenderDeviceProperties m_Properties;
@@ -188,7 +198,7 @@ public:
 	virtual bool RegisterSecordarySwapChain(IKSwapChain* swapChain);
 	virtual bool UnRegisterSecordarySwapChain(IKSwapChain* swapChain);
 
-	virtual bool QueryProperty(KRenderDeviceProperties& property);
+	virtual bool QueryProperty(KRenderDeviceProperties** ppProperty);
 
 	virtual IKSwapChain* GetSwapChain();
 	virtual IKUIOverlay* GetUIOverlay();

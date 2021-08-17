@@ -98,8 +98,8 @@ bool KRenderCore::InitGlobalManager()
 	size_t width = 0, height = 0;
 	m_Window->GetSize(width, height);
 
-	KRenderDeviceProperties property;
-	ASSERT_RESULT(m_Device->QueryProperty(property));
+	KRenderDeviceProperties* property = nullptr;
+	ASSERT_RESULT(m_Device->QueryProperty(&property));
 
 	KRenderGlobal::RenderDevice = m_Device;
 	KRenderGlobal::FrameResourceManager.Init(m_Device, frameInFlight);
@@ -107,7 +107,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::ShaderManager.Init(m_Device);
 	KRenderGlobal::TextureManager.Init(m_Device);
 	KRenderGlobal::MaterialManager.Init(m_Device);
-	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, frameInFlight, property.uniformBufferOffsetAlignment, property.uniformBufferMaxRange);
+	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, frameInFlight, property->uniformBufferOffsetAlignment, property->uniformBufferMaxRange);
 	KRenderGlobal::InstanceBufferManager.Init(m_Device, frameInFlight, sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
 
 	KRenderGlobal::FrameGraph.Init(m_Device);

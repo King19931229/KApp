@@ -57,13 +57,19 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 		IKRenderTargetPtr normalBuffer = KRenderGlobal::GBuffer.GetGBufferTarget0();
 		IKRenderTargetPtr positionBuffer = KRenderGlobal::GBuffer.GetGBufferTarget1();
 
-		renderDevice->CreateComputePipeline(m_ComputePipeline);
-		m_ComputePipeline->BindStorageImage(BINDING_GBUFFER_NORMAL, normalBuffer, true, true);
-		m_ComputePipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer, true, true);
-		m_ComputePipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
-		m_ComputePipeline->BindUniformBuffer(BDINING_UNIFORM, m_UniformBuffer, false);
-		m_ComputePipeline->BindStorageImage(BINDING_OUT, m_RenderTarget, false, true);
-		m_ComputePipeline->Init("ao/rtao.comp");
+		KRenderDeviceProperties* property = nullptr;
+		renderDevice->QueryProperty(&property);
+
+		if (property->raytraceSupport)
+		{
+			renderDevice->CreateComputePipeline(m_ComputePipeline);
+			m_ComputePipeline->BindStorageImage(BINDING_GBUFFER_NORMAL, normalBuffer, true, true);
+			m_ComputePipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer, true, true);
+			m_ComputePipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
+			m_ComputePipeline->BindUniformBuffer(BDINING_UNIFORM, m_UniformBuffer, false);
+			m_ComputePipeline->BindStorageImage(BINDING_OUT, m_RenderTarget, false, true);
+			m_ComputePipeline->Init("ao/rtao.comp");
+		}
 	}
 	m_DebugDrawer.Init(m_RenderTarget);
 	return true;

@@ -2,6 +2,7 @@
 #include "KVulkanHelper.h"
 #include "KVulkanGlobal.h"
 #include "KBase/Publish/KNumerical.h"
+#include <algorithm>
 
 namespace KVulkanInitializer
 {

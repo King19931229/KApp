@@ -152,15 +152,23 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 	ASSERT_RESULT(code);
 	shader->setStrings(&code, 1);
 
-	if (type & (ST_RAYGEN | ST_ANY_HIT | ST_CLOSEST_HIT | ST_MISS | ST_COMPUTE))
+	if (type & (ST_RAYGEN | ST_ANY_HIT | ST_CLOSEST_HIT | ST_MISS))
 	{
 		shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
 		shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_5);
 	}
 	else
 	{
-		shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_0);
-		shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_0);
+		if ((type & ST_COMPUTE) && KVulkanGlobal::supportRaytrace)
+		{
+			shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
+			shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_5);
+		}
+		else
+		{
+			shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_0);
+			shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_0);
+		}
 	}
 
 	EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);

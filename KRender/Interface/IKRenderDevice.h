@@ -15,6 +15,7 @@ struct KRenderDeviceProperties
 	bool etc1Support;
 	bool etc2Support;
 	bool astcSupport;
+	bool raytraceSupport;
 	size_t uniformBufferMaxRange;
 	size_t uniformBufferOffsetAlignment;
 	size_t storageBufferOffsetAlignment;
@@ -26,6 +27,7 @@ struct KRenderDeviceProperties
 		etc1Support = false;
 		etc2Support = false;
 		astcSupport = false;
+		raytraceSupport = false;
 		uniformBufferMaxRange = 512;
 		uniformBufferOffsetAlignment = 8;
 		storageBufferOffsetAlignment = 8;
@@ -83,7 +85,7 @@ struct IKRenderDevice
 	virtual bool RegisterSecordarySwapChain(IKSwapChain* swapChain) = 0;
 	virtual bool UnRegisterSecordarySwapChain(IKSwapChain* swapChain) = 0;
 
-	virtual bool QueryProperty(KRenderDeviceProperties& property) = 0;
+	virtual bool QueryProperty(KRenderDeviceProperties** ppProperty) = 0;
 
 	virtual bool RecreateSwapChain(IKSwapChain* swapChain, IKUIOverlay* ui) = 0;
 	virtual IKSwapChain* GetSwapChain() = 0;

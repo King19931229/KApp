@@ -25,13 +25,15 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 
 	if(hostVisible)
 	{
+		VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		if(KVulkanGlobal::supportRaytrace)
+		{
+			usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+		}
+
 		KVulkanInitializer::CreateVkBuffer(
 			(VkDeviceSize)m_BufferSize
-			, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-			// Ray tracing
-#ifdef SUPPORT_RAY_TRACING_ENABLE
-			| VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
-#endif
+			, usageFlags
 			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 			, m_vkBuffer
 			, m_AllocInfo);
@@ -57,12 +59,14 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 		memcpy(data, m_Data.data(), (size_t) m_BufferSize);
 		vkUnmapMemory(device, stageAllocInfo.vkMemroy);
 
+		VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		if (KVulkanGlobal::supportRaytrace)
+		{
+			usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+		}
+
 		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize
-			, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-			// Ray tracing
-#ifdef SUPPORT_RAY_TRACING_ENABLE
-			| VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
-#endif
+			, usageFlags
 			, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 			, m_vkBuffer
 			, m_AllocInfo);
@@ -216,13 +220,15 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 
 	if(hostVisible)
 	{
+		VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+		if (KVulkanGlobal::supportRaytrace)
+		{
+			usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+		}
+
 		KVulkanInitializer::CreateVkBuffer(
 			(VkDeviceSize)m_BufferSize
-			, VK_BUFFER_USAGE_INDEX_BUFFER_BIT
-			// Ray tracing
-#ifdef SUPPORT_RAY_TRACING_ENABLE
-			| VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
-#endif
+			, usageFlags
 			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 			, m_vkBuffer
 			, m_AllocInfo);
@@ -249,13 +255,15 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 		memcpy(data, m_Data.data(), (size_t) m_BufferSize);
 		vkUnmapMemory(device, stageAllocInfo.vkMemroy);
 
+		VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+		if (KVulkanGlobal::supportRaytrace)
+		{
+			usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+		}
+
 		KVulkanInitializer::CreateVkBuffer(
 			(VkDeviceSize)m_BufferSize
-			, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT
-			// Ray tracing
-#ifdef SUPPORT_RAY_TRACING_ENABLE
-			| VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
-#endif
+			, usageFlags
 			, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 			, m_vkBuffer
 			, m_AllocInfo);
