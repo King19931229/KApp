@@ -9,7 +9,7 @@ struct KInstancePreparer
 	struct InstanceGroup
 	{
 		KRenderComponent* render;
-		std::vector<KConstantDefinition::OBJECT> instance;
+		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F> instance;
 
 		InstanceGroup()
 		{
@@ -43,8 +43,10 @@ struct KInstancePreparer
 					meshGroups[mesh] = instanceGroup;
 				}
 
-				instanceGroup->render = render;
-				instanceGroup->instance.push_back({ transform->GetFinal() });
+				glm::mat4 finalMat = transpose(transform->GetFinal());
+
+				instanceGroup->render = render;			
+				instanceGroup->instance.push_back({ finalMat[0], finalMat[1], finalMat[2]});
 			}
 		}
 	}

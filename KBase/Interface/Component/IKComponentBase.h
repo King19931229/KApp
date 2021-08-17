@@ -35,6 +35,9 @@ public:
 	virtual bool Save(IKXMLElementPtr element) = 0;
 	virtual bool Load(IKXMLElementPtr element) = 0;
 
+	virtual bool PreTick() { return true; }
+	virtual bool PostTick() { return true; }
+
 	inline void RegisterEntityHandle(IKEntity* entity) { m_EntityHandle = entity; }
 	inline void UnRegisterEntityHandle() { m_EntityHandle = nullptr; }
 

@@ -95,8 +95,8 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 
 		SAFE_UNINIT(m_DepthStencilTarget);
 		SAFE_UNINIT(m_RenderPass);
-		ASSERT_RESULT(m_RenderTarget0->InitFromColor(width, height, 1, EF_R16G16B16A16_FLOAT));
-		ASSERT_RESULT(m_RenderTarget1->InitFromColor(width, height, 1, EF_R16G16B16A16_FLOAT));
+		ASSERT_RESULT(m_RenderTarget0->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
+		ASSERT_RESULT(m_RenderTarget1->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
 
 		ASSERT_RESULT(m_RenderDevice->CreateRenderPass(m_RenderPass));
 		m_RenderPass->SetColorAttachment(0, m_RenderTarget0->GetFrameBuffer());
@@ -135,7 +135,8 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 			KInstancePreparer::InstanceGroupPtr instanceGroup = pair.second;
 
 			KRenderComponent* render = instanceGroup->render;
-			std::vector<KConstantDefinition::OBJECT>& instances = instanceGroup->instance;
+
+			const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instanceGroup->instance;
 
 			ASSERT_RESULT(render);
 			ASSERT_RESULT(!instances.empty());
@@ -189,11 +190,14 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 
 					++m_Statistics.drawcalls;
 
-					const KConstantDefinition::OBJECT & final = instances[0];
+					const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[0];
 
+					KConstantDefinition::OBJECT objectData;
+					objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+					objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
 					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(final);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&final, command.objectUsage);
+					command.objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
 					if (command.indexDraw)
 					{

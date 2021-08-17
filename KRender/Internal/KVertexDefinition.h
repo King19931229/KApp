@@ -59,10 +59,12 @@ namespace KVertexDefinition
 
 	struct INSTANCE_DATA_MATRIX4F
 	{
-		glm::vec4 COLUMN0;
-		glm::vec4 COLUMN1;
-		glm::vec4 COLUMN2;
-		glm::vec4 COLUMN3;
+		glm::vec4 ROW0;
+		glm::vec4 ROW1;
+		glm::vec4 ROW2;
+		glm::vec4 PREV_ROW0;
+		glm::vec4 PREV_ROW1;
+		glm::vec4 PREV_ROW2;
 	};
 #pragma pack(pop)
 	struct VertexSemanticDetail

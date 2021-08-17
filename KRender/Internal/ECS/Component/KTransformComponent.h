@@ -17,6 +17,7 @@ protected:
 	glm::vec3 m_Position;
 	glm::vec3 m_Scale;
 	glm::quat m_Rotate;	
+	bool m_FirstTick;
 	
 	KConstantDefinition::OBJECT m_FinalTransform;
 
@@ -31,6 +32,10 @@ protected:
 		glm::mat4 translate = glm::translate(glm::mat4(1.0f), m_Position);
 
 		m_FinalTransform.MODEL = translate * rotate * scale;
+		if (m_FirstTick)
+		{
+			m_FinalTransform.PRVE_MODEL = m_FinalTransform.MODEL;
+		}
 	}
 public:
 	KTransformComponent();
@@ -83,6 +88,13 @@ public:
 
 		UpdateTransform();
 
+		return true;
+	}
+
+	bool PostTick() override
+	{
+		m_FinalTransform.PRVE_MODEL = m_FinalTransform.MODEL;
+		m_FirstTick = false;
 		return true;
 	}
 

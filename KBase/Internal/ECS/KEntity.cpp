@@ -248,6 +248,32 @@ bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3
 	return false;
 }
 
+bool KEntity::PreTick()
+{
+	for (uint32_t i = 0; i < CT_COUNT; ++i)
+	{
+		IKComponentBase* component = m_Components[i];
+		if (component)
+		{
+			component->PreTick();
+		}
+	}
+	return true;
+}
+
+bool KEntity::PostTick()
+{
+	for (uint32_t i = 0; i < CT_COUNT; ++i)
+	{
+		IKComponentBase* component = m_Components[i];
+		if (component)
+		{
+			component->PostTick();
+		}
+	}
+	return true;
+}
+
 const char* KEntity::msName = "name";
 const char* KEntity::msComponent = "component";
 const char* KEntity::msComponentType = "type";

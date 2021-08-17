@@ -251,7 +251,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 	struct InstanceArray
 	{
 		KRenderComponent* render;
-		std::vector<KConstantDefinition::OBJECT> instances;
+		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F> instances;
 	};
 	typedef std::shared_ptr<InstanceArray> InstanceArrayPtr;
 	struct MaterialMap
@@ -323,7 +323,9 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 				}
 
 				instanceArray->render = render;
-				instanceArray->instances.push_back({ transform->GetFinal() });
+
+				glm::mat4 finalMat = transpose(transform->GetFinal());
+				instanceArray->instances.push_back({ finalMat[0], finalMat[1], finalMat[2] });
 
 				KDebugComponent* debug = nullptr;
 				if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
@@ -411,7 +413,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 				IKMaterialPtr material = materialPair.first;
 				InstanceArrayPtr instanceArray = materialPair.second;
 				KRenderComponent* render = instanceArray->render;
-				std::vector<KConstantDefinition::OBJECT>& instances = instanceArray->instances;
+				std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instanceArray->instances;
 
 				ASSERT_RESULT(render);
 				ASSERT_RESULT(instances.size() > 0);
@@ -435,9 +437,15 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 							context.statistics[RENDER_STAGE_PRE_Z].primtives += command.vertexData->vertexCount;
 						}
 
+						const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+						KConstantDefinition::OBJECT objectData;
+						objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+						objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
 						command.objectUsage.binding = SHADER_BINDING_OBJECT;
-						command.objectUsage.range = sizeof(instances[idx]);
-						KRenderGlobal::DynamicConstantBufferManager.Alloc(&instances[idx], command.objectUsage);
+						command.objectUsage.range = sizeof(objectData);
+
+						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
 						command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 
@@ -468,9 +476,15 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 								context.statistics[RENDER_STAGE_DEFAULT].primtives += command.vertexData->vertexCount;
 							}
 
+							const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+							KConstantDefinition::OBJECT objectData;
+							objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+							objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
 							command.objectUsage.binding = SHADER_BINDING_OBJECT;
-							command.objectUsage.range = sizeof(instances[idx]);
-							KRenderGlobal::DynamicConstantBufferManager.Alloc(&instances[idx], command.objectUsage);
+							command.objectUsage.range = sizeof(objectData);
+
+							KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
 							if (!AssignShadingParameter(command, material.get(), false))
 							{

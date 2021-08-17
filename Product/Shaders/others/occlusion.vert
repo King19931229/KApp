@@ -8,6 +8,7 @@ layout(binding = BINDING_OBJECT)
 uniform Object
 {
 	mat4 model;
+	mat4 prev_model;
 }object;
 
 void main()
