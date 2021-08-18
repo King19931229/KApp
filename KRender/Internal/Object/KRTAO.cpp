@@ -60,6 +60,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 
 		IKRenderTargetPtr normalBuffer = KRenderGlobal::GBuffer.GetGBufferTarget0();
 		IKRenderTargetPtr positionBuffer = KRenderGlobal::GBuffer.GetGBufferTarget1();
+		IKRenderTargetPtr velocityBuffer = KRenderGlobal::GBuffer.GetGBufferTarget2();
 
 		KRenderDeviceProperties* property = nullptr;
 		renderDevice->QueryProperty(&property);
@@ -69,6 +70,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			renderDevice->CreateComputePipeline(m_ComputePipeline);
 			m_ComputePipeline->BindStorageImage(BINDING_GBUFFER_NORMAL, normalBuffer, true, true);
 			m_ComputePipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer, true, true);
+			m_ComputePipeline->BindStorageImage(BINDING_VELOCITY, velocityBuffer, true, true);
 			m_ComputePipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
 			m_ComputePipeline->BindUniformBuffer(BDINING_UNIFORM, m_UniformBuffer, false);
 			m_ComputePipeline->BindStorageImage(BINDING_OUT, m_RenderTarget, false, true);

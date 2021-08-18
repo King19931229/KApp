@@ -13,8 +13,6 @@ KGBuffer::KGBuffer()
 
 KGBuffer::~KGBuffer()
 {
-	ASSERT_RESULT(m_RenderTarget0 == nullptr);
-	ASSERT_RESULT(m_RenderTarget1 == nullptr);
 	ASSERT_RESULT(m_DepthStencilTarget == nullptr);	
 	ASSERT_RESULT(m_RenderPass == nullptr);
 	ASSERT_RESULT(m_GBufferSampler == nullptr);
@@ -51,8 +49,10 @@ bool KGBuffer::Init(IKRenderDevice* renderDevice, const KCamera* camera, uint32_
 
 bool KGBuffer::UnInit()
 {
-	SAFE_UNINIT(m_RenderTarget0);
-	SAFE_UNINIT(m_RenderTarget1);
+	for (uint32_t i = 0; i < RT_COUNT; ++i)
+	{
+		SAFE_UNINIT(m_RenderTarget[i]);
+	}
 	SAFE_UNINIT(m_DepthStencilTarget);
 	SAFE_UNINIT(m_RenderPass);
 
@@ -75,32 +75,33 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 {
 	if (width && height && m_RenderDevice)
 	{
-		if (m_RenderTarget0)
+		auto SAFE_CREATE_RT = [this](IKRenderTargetPtr& target)
 		{
-			m_RenderTarget0->UnInit();
-		}
-		else
-		{
-			ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget0));
-		}
+			if (target)
+			{
+				target->UnInit();
+			}
+			else
+			{
+				ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(target));
+			}
+		};
 
-		if (m_RenderTarget1)
+		for (uint32_t i = 0; i < RT_COUNT; ++i)
 		{
-			m_RenderTarget1->UnInit();
-		}
-		else
-		{
-			ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_RenderTarget1));
+			SAFE_CREATE_RT(m_RenderTarget[i]);
 		}
 
 		SAFE_UNINIT(m_DepthStencilTarget);
 		SAFE_UNINIT(m_RenderPass);
-		ASSERT_RESULT(m_RenderTarget0->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
-		ASSERT_RESULT(m_RenderTarget1->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
+		ASSERT_RESULT(m_RenderTarget[0]->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
+		ASSERT_RESULT(m_RenderTarget[1]->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
+		ASSERT_RESULT(m_RenderTarget[2]->InitFromColor(width, height, 1, EF_R32G32_FLOAT));
 
 		ASSERT_RESULT(m_RenderDevice->CreateRenderPass(m_RenderPass));
-		m_RenderPass->SetColorAttachment(0, m_RenderTarget0->GetFrameBuffer());
-		m_RenderPass->SetColorAttachment(1, m_RenderTarget1->GetFrameBuffer());
+		m_RenderPass->SetColorAttachment(0, m_RenderTarget[0]->GetFrameBuffer());
+		m_RenderPass->SetColorAttachment(1, m_RenderTarget[1]->GetFrameBuffer());
+		m_RenderPass->SetColorAttachment(2, m_RenderTarget[2]->GetFrameBuffer());
 		m_RenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 1.0f });
 
 		m_RenderDevice->CreateRenderTarget(m_DepthStencilTarget);

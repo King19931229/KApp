@@ -7,6 +7,7 @@
 #include "Internal/KConstantGlobal.h"
 #include "KBase/Publish/KHash.h"
 #include "KBase/Publish/KNumerical.h"
+#include "KBase/Interface/IKLog.h"
 
 KMainBasePass::KMainBasePass(KRenderDispatcher& master)
 	: m_Master(master),
@@ -60,7 +61,8 @@ KRenderDispatcher::KRenderDispatcher()
 	m_MaxRenderThreadNum(std::thread::hardware_concurrency()),
 	m_FrameInFlight(0),
 	m_MultiThreadSubmit(true),
-	m_InstanceSubmit(true)
+	m_InstanceSubmit(true),
+	m_CameraOutdate(true)
 {
 }
 
@@ -840,6 +842,10 @@ bool KRenderDispatcher::SetSwapChain(IKSwapChain* swapChain, IKUIOverlay* uiOver
 bool KRenderDispatcher::SetSceneCamera(IKRenderScene* scene, const KCamera* camera)
 {
 	m_Scene = scene;
+	if (camera && m_Camera != camera)
+	{
+		m_CameraOutdate = true;
+	}
 	m_Camera = camera;
 	return true;
 }
@@ -880,40 +886,53 @@ bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 			glm::mat4 viewInv = glm::inverse(view);
 			glm::mat4 projInv = glm::inverse(proj);
 			glm::vec4 parameters = glm::vec4(m_Camera->GetNear(), m_Camera->GetFar(), m_Camera->GetFov(), m_Camera->GetAspect());
+			glm::mat4 prevViewProj = glm::mat4(0.0f);
+
+			if (m_CameraOutdate)
+			{
+				prevViewProj = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
+				m_CameraOutdate = false;
+			}
+			else
+			{
+				prevViewProj = m_PrevViewProj;
+			}
+
+			m_PrevViewProj = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
 
 			void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);
 			const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
 			for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 			{
-				void* pWritePos = nullptr;
+				void* pWritePos = POINTER_OFFSET(pData, detail.offset);
 				if (detail.semantic == CS_VIEW)
 				{
-					assert(sizeof(view) == detail.size);
-					pWritePos = POINTER_OFFSET(pData, detail.offset);
+					assert(sizeof(view) == detail.size);					
 					memcpy(pWritePos, &view, sizeof(view));
 				}
 				else if (detail.semantic == CS_PROJ)
 				{
 					assert(sizeof(proj) == detail.size);
-					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					memcpy(pWritePos, &proj, sizeof(proj));
 				}
 				else if (detail.semantic == CS_VIEW_INV)
 				{
 					assert(sizeof(viewInv) == detail.size);
-					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					memcpy(pWritePos, &viewInv, sizeof(viewInv));
 				}
 				else if (detail.semantic == CS_PROJ_INV)
 				{
 					assert(sizeof(projInv) == detail.size);
-					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					memcpy(pWritePos, &projInv, sizeof(projInv));
+				}
+				else if (detail.semantic == CS_PREV_VIEW_PROJ)
+				{
+					assert(sizeof(prevViewProj) == detail.size);
+					memcpy(pWritePos, &prevViewProj, sizeof(prevViewProj));
 				}
 				else if (detail.semantic == CS_CAMERA_PARAMETERS)
 				{
 					assert(sizeof(parameters) == detail.size);
-					pWritePos = POINTER_OFFSET(pData, detail.offset);
 					memcpy(pWritePos, &parameters, sizeof(parameters));
 				}
 			}

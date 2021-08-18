@@ -12,14 +12,22 @@ layout(location = INSTANCE_PREV_ROW_0) in vec4 world_prev_row0;
 layout(location = INSTANCE_PREV_ROW_1) in vec4 world_prev_row1;
 layout(location = INSTANCE_PREV_ROW_2) in vec4 world_prev_row2;
 
-layout(location = 0) out vec4 encoded0;
-layout(location = 1) out vec4 encoded1;
+layout(location = 0) out vec4 worldNormal;
+layout(location = 1) out vec4 worldPos;
+layout(location = 2) out vec2 vel;
 
 void main()
 {
 	mat4 model = transpose(mat4(world_row0, world_row1, world_row2, vec4(0, 0, 0, 1)));
-	encoded0.rgb = mat3(model) * normal;
-	encoded1 = model * vec4(position, 1.0);
-	gl_Position = camera.proj * camera.view * encoded1;
-	encoded0.a = gl_Position.z / gl_Position.w;
+	mat4 prev_model = transpose(mat4(world_prev_row0, world_prev_row1, world_prev_row2, vec4(0, 0, 0, 1)));
+
+	worldPos = model * vec4(position, 1.0);
+
+	vec4 curPos = camera.proj * camera.view * worldPos;
+	vec4 prevPos = camera.prevViewProj * prev_model * vec4(position, 1.0);
+
+	worldNormal.rgb = mat3(model) * normal;
+	worldNormal.a = curPos.z / curPos.w;
+	vel = (prevPos.xy / prevPos.w - curPos.xy / curPos.w) * 0.5;
+	gl_Position = curPos;
 }

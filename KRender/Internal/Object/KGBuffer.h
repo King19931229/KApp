@@ -6,8 +6,11 @@
 class KGBuffer
 {
 protected:
-	IKRenderTargetPtr m_RenderTarget0;
-	IKRenderTargetPtr m_RenderTarget1;
+	enum
+	{
+		RT_COUNT = 3
+	};
+	IKRenderTargetPtr m_RenderTarget[RT_COUNT];
 	IKRenderTargetPtr m_DepthStencilTarget;
 	IKRenderPassPtr m_RenderPass;
 	IKSamplerPtr m_GBufferSampler;
@@ -26,7 +29,8 @@ public:
 	bool Resize(uint32_t width, uint32_t height);
 	bool UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
 
-	inline IKRenderTargetPtr GetGBufferTarget0() { return m_RenderTarget0; }
-	inline IKRenderTargetPtr GetGBufferTarget1() { return m_RenderTarget1; }
+	inline IKRenderTargetPtr GetGBufferTarget0() { return m_RenderTarget[0]; }
+	inline IKRenderTargetPtr GetGBufferTarget1() { return m_RenderTarget[1]; }
+	inline IKRenderTargetPtr GetGBufferTarget2() { return m_RenderTarget[2]; }
 	inline IKSamplerPtr GetSampler() { return m_GBufferSampler; }
 };

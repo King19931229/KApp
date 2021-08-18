@@ -11,14 +11,19 @@ uniform Object
 	mat4 prev_model;
 }object;
 
-layout(location = 0) out vec4 encoded0;
-layout(location = 1) out vec4 encoded1;
+layout(location = 0) out vec4 worldNormal;
+layout(location = 1) out vec4 worldPos;
+layout(location = 2) out vec2 vel;
 
 void main()
 {
-	encoded0.rgb = mat3(object.model) * normal;
-	encoded1 = object.model * vec4(position, 1.0);
-	gl_Position = camera.proj * camera.view * encoded1;
-	encoded0.a = gl_Position.z / gl_Position.w;
-	
+	worldPos = object.model * vec4(position, 1.0);
+
+	vec4 curPos =  camera.proj * camera.view * worldPos;
+	vec4 prevPos = camera.prevViewProj * object.prev_model * vec4(position, 1.0);
+
+	worldNormal.rgb = mat3(object.model) * normal;
+	worldNormal.a = curPos.z / curPos.w;
+	vel = (prevPos.xy / prevPos.w - curPos.xy / curPos.w) * 0.5;
+	gl_Position = curPos;
 }

@@ -17,7 +17,7 @@ protected:
 	glm::vec3 m_Position;
 	glm::vec3 m_Scale;
 	glm::quat m_Rotate;	
-	bool m_FirstTick;
+	bool m_EverTicked;
 	
 	KConstantDefinition::OBJECT m_FinalTransform;
 
@@ -32,7 +32,7 @@ protected:
 		glm::mat4 translate = glm::translate(glm::mat4(1.0f), m_Position);
 
 		m_FinalTransform.MODEL = translate * rotate * scale;
-		if (m_FirstTick)
+		if (!m_EverTicked)
 		{
 			m_FinalTransform.PRVE_MODEL = m_FinalTransform.MODEL;
 		}
@@ -94,7 +94,7 @@ public:
 	bool PostTick() override
 	{
 		m_FinalTransform.PRVE_MODEL = m_FinalTransform.MODEL;
-		m_FirstTick = false;
+		m_EverTicked = true;
 		return true;
 	}
 
@@ -129,6 +129,11 @@ public:
 	const glm::mat4& GetFinal() const override
 	{
 		return m_FinalTransform.MODEL;
+	}
+
+	const glm::mat4& GetPrevFinal() const override
+	{
+		return m_FinalTransform.PRVE_MODEL;
 	}
 
 	void SetFinal(const glm::mat4& transform) override

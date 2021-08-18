@@ -1051,6 +1051,7 @@ bool KVulkanRenderDevice::UnInit()
 bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 {
 	// 确保Vulkan具有我们需要的必要扩展
+	device.suitable = true;
 	for (const char *requiredExt : DEVICE_DEFAULT_EXTENSIONS)
 	{
 		if(std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
@@ -1060,6 +1061,7 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 		}
 	}
 
+	device.supportNvExtension = true;
 	for (const char* requiredExt : DEVICE_NV_EXTENSIONS)
 	{
 		if (std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
@@ -1069,6 +1071,7 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 		}
 	}
 
+	device.supportRaytraceExtension = true;
 	for (const char* requiredExt : DEVICE_RAYTRACE_EXTENSIONS)
 	{
 		if (std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())

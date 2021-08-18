@@ -58,6 +58,7 @@ protected:
 	const KCamera* m_Camera;
 	IKCameraCubePtr m_CameraCube;
 	KMainBasePassPtr m_Pass;
+	glm::mat4 m_PrevViewProj;
 	uint32_t m_FrameInFlight;
 
 	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
@@ -86,6 +87,7 @@ protected:
 	bool m_MultiThreadSubmit;
 	bool m_InstanceSubmit;
 	bool m_DisplayCameraCube;
+	bool m_CameraOutdate;
 
 	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
 

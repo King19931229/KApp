@@ -12,8 +12,9 @@ const int GROUP_SIZE = 16;
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 layout(binding = 0, rgba32f) uniform image2D inImage0;
 layout(binding = 1, rgba32f) uniform image2D inImage1;
-layout(binding = 2) uniform accelerationStructureEXT topLevelAS;
-layout(binding = 3) uniform AOProperties 
+layout(binding = 2, rg32f) uniform image2D inImage2;
+layout(binding = 3) uniform accelerationStructureEXT topLevelAS;
+layout(binding = 4) uniform AOProperties 
 {
 	float rtao_radius;
 	int   rtao_samples;
@@ -22,7 +23,7 @@ layout(binding = 3) uniform AOProperties
 	int   max_samples;
 	int   frame_number;
 };
-layout(binding = 4, r32f) uniform image2D outImage;
+layout(binding = 5, r32f) uniform image2D outImage;
 
 //----------------------------------------------------------------------------
 // Tracing a ray and returning the weight based on the distance of the hit
@@ -53,7 +54,6 @@ float TraceRay(in rayQueryEXT rayQuery, in vec3 origin, in vec3 direction)
 	return 0;
 }
 
-
 void main()
 {
 	float occlusion = 0.0;
@@ -69,6 +69,8 @@ void main()
 	// Retrieving position and normal
 	vec4 gBuffer0 = imageLoad(inImage0, ivec2(gl_GlobalInvocationID.xy));
 	vec4 gBuffer1 = imageLoad(inImage1, ivec2(gl_GlobalInvocationID.xy));
+
+	vec2 velocity = imageLoad(inImage2, ivec2(gl_GlobalInvocationID.xy)).rg;
 
 	// Shooting rays only if a fragment was rendered
 	if(gBuffer0 != vec4(0))
@@ -117,4 +119,6 @@ void main()
 		float new_result = mix(old_ao, occlusion, 1.0f / float(frame_number + 1));
 		imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), vec4(new_result));
 	}
+
+	// imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), vec4(velocity, 0.0, 0.0));
 }

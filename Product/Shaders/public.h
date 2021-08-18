@@ -85,6 +85,7 @@ uniform CameraInfo
     mat4 proj;
 	mat4 viewInv;
 	mat4 projInv;
+	mat4 prevViewProj;
 	// near, far, fov, aspect
 	vec4 parameters;
 }camera;
