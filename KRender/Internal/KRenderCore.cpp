@@ -201,6 +201,7 @@ bool KRenderCore::InitController()
 		{
 			m_Device->Wait();
 			KRenderGlobal::RayTraceManager.ReloadShader();
+			KRenderGlobal::RTAO.ReloadShader();
 		}
 	};
 
@@ -619,7 +620,7 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 					ui->SliderInt("Number of samples at each iteration", &KRenderGlobal::RTAO.GetAoParameters().rtao_samples, 1, 32);
 					ui->SliderFloat("Strenth of darkness", &KRenderGlobal::RTAO.GetAoParameters().rtao_power, 0.0f, 10.0f);
 					ui->SliderInt("Attenuate based on distance", &KRenderGlobal::RTAO.GetAoParameters().rtao_distance_based, 0, 1);
-					ui->SliderInt("Max samples before it stops", &KRenderGlobal::RTAO.GetAoParameters().max_samples, 0, 100000);
+					ui->SliderInt("Max samples before it stops", &KRenderGlobal::RTAO.GetAoParameters().max_samples, 1, 1000);
 				}
 			}
 			ui->PopItemWidth();

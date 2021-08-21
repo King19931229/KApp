@@ -14,6 +14,7 @@ KRTAO::~KRTAO()
 {
 	ASSERT_RESULT(!m_ComputePipeline);
 	ASSERT_RESULT(!m_RenderTarget);
+	ASSERT_RESULT(!m_PrevRenderTarget);
 	ASSERT_RESULT(!m_UniformBuffer);
 }
 
@@ -47,6 +48,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 		IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
 		renderDevice->CreateRenderTarget(m_RenderTarget);
+		renderDevice->CreateRenderTarget(m_PrevRenderTarget);
 		UpdateSize();
 
 		m_Camera = scene->GetCamera();
@@ -73,6 +75,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_ComputePipeline->BindStorageImage(BINDING_VELOCITY, velocityBuffer, true, true);
 			m_ComputePipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
 			m_ComputePipeline->BindUniformBuffer(BDINING_UNIFORM, m_UniformBuffer, false);
+			m_ComputePipeline->BindStorageImage(BINDING_PREV, m_PrevRenderTarget, true, true);
 			m_ComputePipeline->BindStorageImage(BINDING_OUT, m_RenderTarget, false, true);
 			m_ComputePipeline->Init("ao/rtao.comp");
 		}
@@ -86,6 +89,7 @@ bool KRTAO::UnInit()
 	m_DebugDrawer.UnInit();
 	SAFE_UNINIT(m_ComputePipeline);
 	SAFE_UNINIT(m_RenderTarget);
+	SAFE_UNINIT(m_PrevRenderTarget);
 	SAFE_UNINIT(m_UniformBuffer);
 	m_Camera = nullptr;
 	return true;
@@ -117,15 +121,16 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 		uint32_t groupX = (m_Width + (GROUP_SIZE - 1)) / GROUP_SIZE;
 		uint32_t groupY = (m_Height + (GROUP_SIZE - 1)) / GROUP_SIZE;
 		m_ComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
+		primaryBuffer->Blit(m_RenderTarget->GetFrameBuffer(), m_PrevRenderTarget->GetFrameBuffer());
 	}
 	return true;
 }
 
-bool KRTAO::Reload()
+bool KRTAO::ReloadShader()
 {
 	if (m_ComputePipeline)
 	{
-		//
+		m_ComputePipeline->ReloadShader();
 		return true;
 	}
 	return false;
@@ -133,7 +138,7 @@ bool KRTAO::Reload()
 
 void KRTAO::UpdateSize()
 {
-	if (m_RenderTarget)
+	if (m_RenderTarget && m_PrevRenderTarget)
 	{
 		IKSwapChain* chain = KRenderGlobal::RenderDevice->GetSwapChain();		
 
@@ -142,8 +147,8 @@ void KRTAO::UpdateSize()
 
 		if (chain->GetWidth() && chain->GetHeight())
 		{
-			newWidth = chain->GetWidth();
-			newHeight = chain->GetHeight();
+			newWidth = chain->GetWidth() / 2;
+			newHeight = chain->GetHeight() / 2;
 		}
 
 		if (m_Width != newWidth || m_Height != newHeight)
@@ -154,6 +159,9 @@ void KRTAO::UpdateSize()
 		}
 
 		m_RenderTarget->UnInit();
-		m_RenderTarget->InitFromStorage(m_Width, m_Height, EF_R32_FLOAT);
+		m_RenderTarget->InitFromStorage(m_Width, m_Height, EF_R32G32_FLOAT);
+
+		m_PrevRenderTarget->UnInit();
+		m_PrevRenderTarget->InitFromStorage(m_Width, m_Height, EF_R32G32_FLOAT);
 	}
 }

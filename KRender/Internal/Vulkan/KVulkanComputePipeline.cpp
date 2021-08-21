@@ -315,23 +315,22 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 		}
 	}
 
-	std::vector<KVulkanFrameBuffer*> translatedFrameBuffers;
+	std::vector<IKFrameBufferPtr> translatedFrameBuffers;
 	for (auto& pair : m_Bindings)
 	{
 		BindingInfo& binding = pair.second;
 		if (binding.imageInput)
 		{
 			KVulkanRenderTarget* target = static_cast<KVulkanRenderTarget*>(binding.imageInput.get());
-			KVulkanFrameBuffer* frameBuffer = static_cast<KVulkanFrameBuffer*>(target->GetFrameBuffer().get());
-			translatedFrameBuffers.push_back(frameBuffer);
+			translatedFrameBuffers.push_back(target->GetFrameBuffer());
 		}
 	}
 
 	if (input)
 	{
-		for (KVulkanFrameBuffer* frameBuffer : translatedFrameBuffers)
+		for (IKFrameBufferPtr frameBuffer : translatedFrameBuffers)
 		{
-			frameBuffer->TranslateToStorage(buffer);
+			buffer->TranslateToStorage(frameBuffer);
 		}
 		vkCmdPipelineBarrier(cmdBuf, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 			VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(), barriers.data());
@@ -340,9 +339,9 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 	{
 		vkCmdPipelineBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 			VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(), barriers.data());
-		for (KVulkanFrameBuffer* frameBuffer : translatedFrameBuffers)
+		for (IKFrameBufferPtr frameBuffer : translatedFrameBuffers)
 		{
-			frameBuffer->TranslateToShader(buffer);
+			buffer->TranslateToShader(frameBuffer);
 		}
 	}
 
@@ -371,6 +370,17 @@ bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t 
 		// Adding a barrier to be sure the compute shader has finished
 		SetupImageBarrier(primaryBuffer, false);
 
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanComputePipeline::ReloadShader()
+{
+	if (m_ComputeShader && m_ComputeShader->Reload())
+	{
+		DestroyPipeline();
+		CreatePipeline();
 		return true;
 	}
 	return false;

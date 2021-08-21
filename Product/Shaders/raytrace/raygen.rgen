@@ -21,7 +21,7 @@ void main()
 	vec3 hitValue = vec3(0);
 
 	int MAX_RECURSION = 2;
-	float attenuation = 0.8;
+	float attenuation = 0.2;
 	float initial = (attenuation - 1.0) / (pow(attenuation, MAX_RECURSION) - 1);
 
 	prd.attenuation = vec3(initial);

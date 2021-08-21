@@ -11,7 +11,4 @@ struct IKFrameBuffer
 	virtual uint32_t GetMSAA() const = 0;
 	virtual bool IsDepthStencil() const = 0;
 	virtual bool IsStroageImage() const = 0;
-
-	virtual bool TranslateToStorage(IKCommandBufferPtr commandBuffer = nullptr) = 0;
-	virtual bool TranslateToShader(IKCommandBufferPtr commandBuffer = nullptr) = 0;
 };

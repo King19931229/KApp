@@ -17,17 +17,18 @@ public:
 
 		AoControl()
 		{
-			rtao_radius = 10.0f;//2.0f;
-			rtao_samples = 16;
-			rtao_power = 1.0f;//3.0f;
+			rtao_radius = 10.0f;
+			rtao_samples = 1;
+			rtao_power = 1.0f;
 			rtao_distance_based = 1;
-			max_samples = 100000;
+			max_samples = 1000;
 			frame = 0;
 		}
 	};
 protected:
 	IKComputePipelinePtr m_ComputePipeline;
 	IKRenderTargetPtr m_RenderTarget;
+	IKRenderTargetPtr m_PrevRenderTarget;
 	IKUniformBufferPtr m_UniformBuffer;
 	KRTDebugDrawer m_DebugDrawer;
 
@@ -38,6 +39,7 @@ protected:
 		BINDING_VELOCITY,
 		BINDING_AS,
 		BDINING_UNIFORM,
+		BINDING_PREV,
 		BINDING_OUT
 	};
 
@@ -66,6 +68,6 @@ public:
 
 	AoControl& GetAoParameters() { return m_AOParameters; }
 
-	bool Reload();
+	bool ReloadShader();
 	void UpdateSize();
 };

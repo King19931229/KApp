@@ -407,7 +407,7 @@ bool KMaterialSubMesh::CreatePipeline(PipelineStage stage, size_t frameIndex, IK
 		pipeline->SetShader(ST_FRAGMENT, m_GBufferFSShader);
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
-		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
+		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 		return true;

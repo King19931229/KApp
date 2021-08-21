@@ -886,11 +886,12 @@ bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 			glm::mat4 viewInv = glm::inverse(view);
 			glm::mat4 projInv = glm::inverse(proj);
 			glm::vec4 parameters = glm::vec4(m_Camera->GetNear(), m_Camera->GetFar(), m_Camera->GetFov(), m_Camera->GetAspect());
+			glm::mat4 viewProj = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
 			glm::mat4 prevViewProj = glm::mat4(0.0f);
 
 			if (m_CameraOutdate)
 			{
-				prevViewProj = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
+				prevViewProj = viewProj;
 				m_CameraOutdate = false;
 			}
 			else
@@ -898,7 +899,7 @@ bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 				prevViewProj = m_PrevViewProj;
 			}
 
-			m_PrevViewProj = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
+			m_PrevViewProj = viewProj;
 
 			void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CAMERA);
 			const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CAMERA);
@@ -924,6 +925,11 @@ bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 				{
 					assert(sizeof(projInv) == detail.size);
 					memcpy(pWritePos, &projInv, sizeof(projInv));
+				}
+				else if (detail.semantic == CS_VIEW_PROJ)
+				{
+					assert(sizeof(viewProj) == detail.size);
+					memcpy(pWritePos, &viewProj, sizeof(viewProj));
 				}
 				else if (detail.semantic == CS_PREV_VIEW_PROJ)
 				{

@@ -13,17 +13,14 @@ uniform Object
 
 layout(location = 0) out vec4 worldNormal;
 layout(location = 1) out vec4 worldPos;
-layout(location = 2) out vec2 vel;
+layout(location = 2) out vec4 prevWorldPos;
 
 void main()
 {
 	worldPos = object.model * vec4(position, 1.0);
+	prevWorldPos = object.prev_model * vec4(position, 1.0);
+	worldNormal.rgb = normalize(mat3(object.model) * normal);
+	worldNormal.a = -(camera.view * worldPos).a;
 
-	vec4 curPos =  camera.proj * camera.view * worldPos;
-	vec4 prevPos = camera.prevViewProj * object.prev_model * vec4(position, 1.0);
-
-	worldNormal.rgb = mat3(object.model) * normal;
-	worldNormal.a = curPos.z / curPos.w;
-	vel = (prevPos.xy / prevPos.w - curPos.xy / curPos.w) * 0.5;
-	gl_Position = curPos;
+	gl_Position = camera.viewProj * object.model * vec4(position, 1.0);
 }

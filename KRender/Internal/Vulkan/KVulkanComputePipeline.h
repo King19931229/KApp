@@ -85,4 +85,5 @@ public:
 	virtual bool Init(const char* szShader);
 	virtual bool UnInit();
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, uint32_t frameIndex);
+	virtual bool ReloadShader();
 };

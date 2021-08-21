@@ -44,6 +44,7 @@ namespace KConstantDefinition
 		glm::mat4 PROJ;
 		glm::mat4 VIEW_INV;
 		glm::mat4 PROJ_INV;
+		glm::mat4 VIEW_PROJ;
 		glm::mat4 PREV_VIEW_PROJ;
 		glm::vec4 PARAMETERS;
 	};

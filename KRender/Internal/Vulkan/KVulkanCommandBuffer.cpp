@@ -3,8 +3,10 @@
 #include "KVulkanRenderPass.h"
 #include "KVulkanPipeline.h"
 #include "KVulkanBuffer.h"
+#include "KVulkanFrameBuffer.h"
 #include "KVulkanQuery.h"
 #include "KVulkanGlobal.h"
+#include "KVulkanInitializer.h"
 #include "Internal/KConstantDefinition.h"
 
 KVulkanCommandPool::KVulkanCommandPool()
@@ -546,6 +548,71 @@ bool KVulkanCommandBuffer::ResetQuery(IKQueryPtr query)
 		KVulkanQuery* vulkanQuery = (KVulkanQuery*)query.get();
 		vulkanQuery->Reset(m_CommandBuffer);
 		return true;
+	}
+	return false;
+}
+
+bool KVulkanCommandBuffer::TranslateToStorage(IKFrameBufferPtr buf)
+{
+	if (buf)
+	{
+		KVulkanFrameBuffer* srcBuffer = (KVulkanFrameBuffer*)buf.get();
+		KVulkanInitializer::TransitionImageLayoutCmdBuffer(srcBuffer->GetImage(), srcBuffer->GetForamt(), 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, m_CommandBuffer);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanCommandBuffer::TranslateToShader(IKFrameBufferPtr buf)
+{
+	if (buf)
+	{
+		KVulkanFrameBuffer* srcBuffer = (KVulkanFrameBuffer*)buf.get();
+		KVulkanInitializer::TransitionImageLayoutCmdBuffer(srcBuffer->GetImage(), srcBuffer->GetForamt(), 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CommandBuffer);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanCommandBuffer::Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest)
+{
+	if (src && dest)
+	{
+		KVulkanFrameBuffer* srcBuffer = (KVulkanFrameBuffer*)src.get();
+		KVulkanFrameBuffer* destBuffer = (KVulkanFrameBuffer*)dest.get();
+		
+		VkImageBlit blit = {};
+
+		VkOffset3D srcOffsets[] = { { 0, 0, 0 },{ (int32_t)srcBuffer->GetWidth(), (int32_t)srcBuffer->GetHeight(), (int32_t)srcBuffer->GetDepth() } };
+		blit.srcOffsets[0] = srcOffsets[0];
+		blit.srcOffsets[1] = srcOffsets[1];
+
+		blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit.srcSubresource.mipLevel = 0;
+		blit.srcSubresource.baseArrayLayer = 0;
+		blit.srcSubresource.layerCount = 1;
+
+		VkOffset3D dstOffsets[] = { { 0, 0, 0 },{ (int32_t)destBuffer->GetWidth(), (int32_t)destBuffer->GetHeight(), (int32_t)destBuffer->GetDepth() } };
+		blit.dstOffsets[0] = dstOffsets[0];
+		blit.dstOffsets[1] = dstOffsets[1];
+
+		blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit.dstSubresource.mipLevel = 0;
+		blit.dstSubresource.baseArrayLayer = 0;
+		blit.dstSubresource.layerCount = 1;
+
+		TranslateToStorage(src);
+		TranslateToStorage(dest);
+
+		vkCmdBlitImage(m_CommandBuffer,
+			srcBuffer->GetImage(), VK_IMAGE_LAYOUT_GENERAL,
+			destBuffer->GetImage(), VK_IMAGE_LAYOUT_GENERAL,
+			1, &blit,
+			VK_FILTER_LINEAR);
+		return true;
+
+		TranslateToShader(src);
+		TranslateToShader(dest);
 	}
 	return false;
 }

@@ -283,33 +283,3 @@ bool KVulkanFrameBuffer::UnInit()
 
 	return true;
 }
-
-bool KVulkanFrameBuffer::TranslateToStorage(IKCommandBufferPtr commandBuffer)
-{
-	if (commandBuffer)
-	{
-		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)commandBuffer.get();
-		VkCommandBuffer buffer = vulkanCommandBuffer->GetVkHandle();
-		KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, buffer);
-	}
-	else
-	{
-		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-	}
-	return true;
-}
-
-bool KVulkanFrameBuffer::TranslateToShader(IKCommandBufferPtr commandBuffer)
-{
-	if (commandBuffer)
-	{
-		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)commandBuffer.get();
-		VkCommandBuffer buffer = vulkanCommandBuffer->GetVkHandle();
-		KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, buffer);
-	}
-	else
-	{
-		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	}
-	return true;
-}

@@ -51,9 +51,6 @@ public:
 	bool IsDepthStencil() const override { return m_DepthStencil; }
 	bool IsStroageImage() const override { return m_Storage; }
 
-	bool TranslateToStorage(IKCommandBufferPtr commandBuffer) override;
-	bool TranslateToShader(IKCommandBufferPtr commandBuffer) override;
-
 	inline VkImage GetImage() const { return m_Image; }
 	inline VkImageView GetImageView() const { return m_ImageView; }
 	inline VkImage GetMSAAImage() const { return m_MSAAImage; }

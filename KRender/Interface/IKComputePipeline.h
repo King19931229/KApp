@@ -12,4 +12,5 @@ struct IKComputePipeline
 	virtual bool Init(const char* szShader) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, uint32_t frameIndex) = 0;
+	virtual bool ReloadShader() = 0;
 };
