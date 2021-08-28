@@ -5,6 +5,7 @@
 
 class KVulkanFrameBuffer : public IKFrameBuffer
 {
+	// TODO 持有ImageLayout
 protected:
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	KVulkanHeapAllocator::AllocInfo m_MSAAAllocInfo;

@@ -248,6 +248,7 @@ bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t h
 
 		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 		KVulkanInitializer::CreateVkImageView(m_Image, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, m_ImageView);
+		KVulkanInitializer::ZeroVkImage(m_Image, VK_IMAGE_LAYOUT_GENERAL);
 	}
 
 	return true;

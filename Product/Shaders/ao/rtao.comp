@@ -104,10 +104,20 @@ vec3 ClipAABB(vec3 aabbMin, vec3 aabbMax, vec3 prevSample, vec3 avg)
 #endif
 }
 
-const ivec2 offset[4] = 
+// #define SMALL_OFFSET
+
+#ifdef SMALL_OFFSET
+#define OFFSET_ARRAY_SIZE 4
+#else
+#define OFFSET_ARRAY_SIZE 8
+#endif
+
+const ivec2 offset[OFFSET_ARRAY_SIZE] = 
 {
 	ivec2(-1, -1), ivec2(-1, 1),
-	//ivec2(0, -1), ivec2(0, 1), ivec2(-1, 0), ivec2(1, 0),
+#ifndef SMALL_OFFSET
+	ivec2(0, -1), ivec2(0, 1), ivec2(-1, 0), ivec2(1, 0),
+#endif
 	ivec2(1, -1), ivec2(1, 1)
 };
 
@@ -119,18 +129,18 @@ bool IsWithinBounds(ivec2 pos, ivec2 size)
 // https://zhuanlan.zhihu.com/p/64993622
 float FetchPrevResult(ivec2 prevSamplePos, ivec2 curSamplePos, ivec2 outSize)
 {
-	vec3 prevSample = imageLoad(prevImage, prevSamplePos).rgb;
-	vec3 curSample = imageLoad(prevImage, curSamplePos).rgb;
+	vec3 prevSample = imageLoad(prevImage, prevSamplePos).rrr;
+	vec3 curSample = imageLoad(prevImage, curSamplePos).rrr;
 	vec3 sumSample = curSample;
 	vec3 squareSumSample = curSample * curSample;
 
 	float N = 1;
-	for(int i = 0; i < 4; ++i)
+	for(int i = 0; i < OFFSET_ARRAY_SIZE; ++i)
 	{
 		ivec2 samplePos = curSamplePos + offset[i];
 		if(IsWithinBounds(samplePos, outSize))
 		{
-			vec3 result = imageLoad(prevImage, samplePos).rgb;
+			vec3 result = imageLoad(prevImage, samplePos).rrr;
 			sumSample += result;
 			squareSumSample += result * result;
 			++N;
@@ -159,7 +169,7 @@ vec2 FetchMotionVector(ivec2 curSampleGPos, ivec2 inSize, ivec2 outSize)
 	ivec2 minSamplePos = curSampleGPos;
 	float minDepth = imageLoad(inImage0, curSampleGPos).a;
 
-	for(int i = 0; i < 4; ++i)
+	for(int i = 0; i < OFFSET_ARRAY_SIZE; ++i)
 	{
 		ivec2 samplePos = curSampleGPos + offset[i];
 		if(IsWithinBounds(samplePos, inSize))
@@ -178,6 +188,19 @@ vec2 FetchMotionVector(ivec2 curSampleGPos, ivec2 inSize, ivec2 outSize)
 	return motion;
 }
 
+vec2 DDXYDepth(ivec2 curSampleGPos, ivec2 inSize)
+{
+	float depth = imageLoad(inImage0, curSampleGPos).a;
+
+	ivec2 xBiasSampleGPos = curSampleGPos + ivec2(1, 0);
+	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, inSize) ? imageLoad(inImage0, xBiasSampleGPos).a : depth;
+
+	ivec2 yBiasSampleGPos = curSampleGPos + ivec2(0, 1);
+	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, inSize) ? imageLoad(inImage0, yBiasSampleGPos).a : depth;
+
+	return vec2(xBiasDepth - depth, yBiasDepth - depth);
+}
+
 void main()
 {
 	float occlusion = 0.0;
@@ -186,13 +209,7 @@ void main()
 	ivec2 outSize = imageSize(outImage);
 
 	// Check if not outside boundaries
-	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y)
-	{
-		return;
-	}
-
-	// Initialize the random number
-	uint seed = TEA(outSize.x * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x, frame_number);
+	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
 
 	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
 	ivec2 curSamplePos = ivec2(round(curTexPos * vec2(outSize) - vec2(0.5)));
@@ -202,21 +219,47 @@ void main()
 	vec2 preTexPos = curTexPos - motion;
 	ivec2 prevSamplePos = ivec2(round(preTexPos * vec2(outSize) - vec2(0.5)));
 	ivec2 prevSampleGPos = ivec2(round(preTexPos * vec2(inSize) - vec2(0.5)));
-	float prev_result = 0.0;
 
 	vec4 prev_normal_depth = imageLoad(inImage0, curSampleGPos);
 	vec4 cur_normal_depth = imageLoad(inImage0, prevSampleGPos);
 
-	if(dot(motion, motion) < 1e-4
-	&& dot(cur_normal_depth.rgb, prev_normal_depth.rgb) > 0.1
-	&& abs(cur_normal_depth.a - prev_normal_depth.a) < 0.5)
+	uint tspp = floatBitsToUint(imageLoad(outImage, prevSamplePos).g);
+	float prev = 0.0;
+	float weight = 0.0;
+
+	if(dot(motion, motion) < 1e-4)
 	{
-		prev_result = FetchPrevResult(prevSamplePos, curSamplePos, outSize).r;
+		prev = FetchPrevResult(prevSamplePos, curSamplePos, outSize).r;
+		float normalWeight = clamp(dot(cur_normal_depth.rgb, prev_normal_depth.rgb), 0.0, 1.0);
+		normalWeight = pow(normalWeight, 1.0);
+
+		vec2 ddxyDepth = DDXYDepth(curSampleGPos, inSize);
+		float precisionNum = 1e-10;
+		float depthThreshold = dot(vec2(1.0), abs(ddxyDepth));
+		float depthTolerance = 1e5 * depthThreshold + precisionNum;
+
+		float depthWeight = min(depthTolerance / (abs(prev_normal_depth.a - cur_normal_depth.a) + precisionNum), 1);
+		// FIXME: Why Jitter happens when precisionNum is 0
+		depthWeight = max(depthWeight, 0.0);
+		depthWeight = pow(depthWeight, 1.0);
+
+		weight = normalWeight * depthWeight;
 	}
+
+	if(weight < 1e-4)
+	{
+		tspp = 0;
+	}
+	tspp = uint(round(float(tspp) * weight));
+
+	// if(tspp >= max_samples && dot(motion, motion) < 1e-4) return;
 
 	vec3 normal = imageLoad(inImage0, curSampleGPos).rgb;
 	if(normal != vec3(0))
 	{
+		// Initialize the random number
+		uint seed = TEA(outSize.x * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x, frame_number);
+
 		vec3 origin = imageLoad(inImage1, curSampleGPos).rgb;
 		vec3 direction;
 
@@ -252,18 +295,20 @@ void main()
 		occlusion = 1.0;
 	}
 
-	// Accumulating over time
-	if(prev_result > 0.0)
+	if(tspp == 0)
 	{
-		float old_ao     = prev_result;
-		float new_result = mix(old_ao, occlusion, 0.02);
-		imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), vec4(new_result));
+		imageStore(outImage, curSamplePos, vec4(occlusion, uintBitsToFloat(tspp + 1), 0, 0));
 	}
 	else
 	{
-		imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), vec4(occlusion));
+		const float maxBlend = 0.2;
+		const float minBlend = 0.00002;
+		float blend = max(minBlend, min(1.0 / (tspp + 1), maxBlend));
+		blend = mix(blend, maxBlend, clamp(length(motion * vec2(outSize) * 1.0), 0.0, 1.0));
+		blend = mix(blend, 1.0, 1.0 - weight);
+		occlusion = mix(prev, occlusion, blend);
+		imageStore(outImage, curSamplePos, vec4(occlusion, uintBitsToFloat(tspp + 1), 0, 0));
 	}
 
-	// imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), sign(imageLoad(inImage2, curSampleGPos)));
-	// imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), prev_normal_depth);
+	// imageStore(outImage, curSamplePos, vec4(100000000 * DDXYDepth(curSampleGPos, inSize), 0.0, 0.0));
 }

@@ -301,7 +301,7 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 			KVulkanRenderTarget* target = static_cast<KVulkanRenderTarget*>(input ? binding.imageInput.get() : binding.imageOutput.get());
 			KVulkanFrameBuffer* frameBuffer = static_cast<KVulkanFrameBuffer*>(target->GetFrameBuffer().get());
 
-			VkImageSubresourceRange range{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 			VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 			imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
