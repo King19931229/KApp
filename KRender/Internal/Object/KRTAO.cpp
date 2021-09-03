@@ -12,15 +12,14 @@ KRTAO::KRTAO()
 
 KRTAO::~KRTAO()
 {
-	ASSERT_RESULT(!m_ComputePipeline);
-	ASSERT_RESULT(!m_RenderTarget);
-	ASSERT_RESULT(!m_PrevRenderTarget);
-	ASSERT_RESULT(!m_UniformBuffer);
+	ASSERT_RESULT(!m_AOComputePipeline);
+	ASSERT_RESULT(!m_RenderTarget[0]);
+	ASSERT_RESULT(!m_AOUniformBuffer);
 }
 
-void KRTAO::UpdateUniform()
+void KRTAO::UpdateAOUniform()
 {
-	if (m_UniformBuffer)
+	if (m_AOUniformBuffer)
 	{
 		constexpr size_t SIZE = sizeof(AoControl) - MEMBER_SIZE(AoControl, frame);
 
@@ -30,14 +29,17 @@ void KRTAO::UpdateUniform()
 		{
 			m_PrevCamMat = camMat;
 			memcpy(&m_PrevParameters, &m_AOParameters, SIZE);
-			m_AOParameters.frame = 0;
 		}
-		else
-		{
-			++m_AOParameters.frame;
-		}
+		m_AOUniformBuffer->Write(&m_AOParameters);
+		++m_AOParameters.frame;
+	}
+}
 
-		m_UniformBuffer->Write(&m_AOParameters);
+void KRTAO::UpdateMeanUniform()
+{
+	if (m_MeanUniformBuffer)
+	{
+		m_MeanUniformBuffer->Write(&m_MeanParameters);
 	}
 }
 
@@ -47,16 +49,23 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 	{
 		IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
-		renderDevice->CreateRenderTarget(m_RenderTarget);
-		renderDevice->CreateRenderTarget(m_PrevRenderTarget);
+		renderDevice->CreateRenderTarget(m_RenderTarget[0]);
+		renderDevice->CreateRenderTarget(m_RenderTarget[1]);
+		renderDevice->CreateRenderTarget(m_MeanVarianceTarget[0]);
+		renderDevice->CreateRenderTarget(m_MeanVarianceTarget[1]);
+		renderDevice->CreateRenderTarget(m_CurrentTarget);
 		UpdateSize();
 
 		m_Camera = scene->GetCamera();
 		m_PrevCamMat = glm::mat4(0.0f);
 
-		renderDevice->CreateUniformBuffer(m_UniformBuffer);
-		m_UniformBuffer->InitMemory(sizeof(m_AOParameters), &m_AOParameters);
-		m_UniformBuffer->InitDevice();
+		renderDevice->CreateUniformBuffer(m_AOUniformBuffer);
+		m_AOUniformBuffer->InitMemory(sizeof(m_AOParameters), &m_AOParameters);
+		m_AOUniformBuffer->InitDevice();
+
+		renderDevice->CreateUniformBuffer(m_MeanUniformBuffer);
+		m_MeanUniformBuffer->InitMemory(sizeof(m_MeanParameters), &m_MeanParameters);
+		m_MeanUniformBuffer->InitDevice();
 
 		IKRayTracePipeline* rayPipeline = scene->GetRayTracePipeline();
 
@@ -69,28 +78,60 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 
 		if (property->raytraceSupport)
 		{
-			renderDevice->CreateComputePipeline(m_ComputePipeline);
-			m_ComputePipeline->BindStorageImage(BINDING_GBUFFER_NORMAL, normalBuffer, true, true);
-			m_ComputePipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer, true, true);
-			m_ComputePipeline->BindStorageImage(BINDING_VELOCITY, velocityBuffer, true, true);
-			m_ComputePipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
-			m_ComputePipeline->BindUniformBuffer(BDINING_UNIFORM, m_UniformBuffer, false);
-			m_ComputePipeline->BindStorageImage(BINDING_PREV, m_PrevRenderTarget, true, true);
-			m_ComputePipeline->BindStorageImage(BINDING_OUT, m_RenderTarget, false, true);
-			m_ComputePipeline->Init("ao/rtao.comp");
+			renderDevice->CreateComputePipeline(m_AOComputePipeline);
+			m_AOComputePipeline->BindStorageImage(BINDING_GBUFFER_NORMAL, normalBuffer, true, true);
+			m_AOComputePipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer, true, true);
+			m_AOComputePipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
+			m_AOComputePipeline->BindUniformBuffer(BDINING_UNIFORM, m_AOUniformBuffer, false);
+			m_AOComputePipeline->BindStorageImage(BINDING_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1], false, true);
+			m_AOComputePipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget, true, true);
+			m_AOComputePipeline->Init("ao/rtao.comp");
+
+			renderDevice->CreateComputePipeline(m_AOTemporalPipeline);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_GBUFFER_NORMAL, normalBuffer, true, true);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer, true, true);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_VELOCITY, velocityBuffer, true, true);
+			m_AOTemporalPipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
+			m_AOTemporalPipeline->BindUniformBuffer(BDINING_UNIFORM, m_AOUniformBuffer, false);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_MEAN_VARIANCE_INPUT, m_MeanVarianceTarget[0], true, true);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1], false, true);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_PREV, m_RenderTarget[0], true, true);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_FINAL, m_RenderTarget[1], false, true);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget, true, true);
+			m_AOTemporalPipeline->Init("ao/rtao_temp.comp");
+
+			renderDevice->CreateComputePipeline(m_MeanHorizontalComputePipeline);
+			m_MeanHorizontalComputePipeline->BindStorageImage(0, m_MeanVarianceTarget[1], true, true);
+			m_MeanHorizontalComputePipeline->BindStorageImage(1, m_MeanVarianceTarget[0], false, true);
+			m_MeanHorizontalComputePipeline->BindUniformBuffer(2, m_MeanUniformBuffer, false);
+			m_MeanHorizontalComputePipeline->Init("ao/mean_h.comp");
+
+			renderDevice->CreateComputePipeline(m_MeanVerticalComputePipeline);
+			m_MeanVerticalComputePipeline->BindStorageImage(0, m_MeanVarianceTarget[0], true, true);
+			m_MeanVerticalComputePipeline->BindStorageImage(1, m_MeanVarianceTarget[1], false, true);
+			m_MeanVerticalComputePipeline->BindUniformBuffer(2, m_MeanUniformBuffer, false);
+			m_MeanVerticalComputePipeline->Init("ao/mean_v.comp");
 		}
 	}
-	m_DebugDrawer.Init(m_RenderTarget);
+
+	m_DebugDrawer.Init(m_RenderTarget[1]);
 	return true;
 }
 
 bool KRTAO::UnInit()
 {
 	m_DebugDrawer.UnInit();
-	SAFE_UNINIT(m_ComputePipeline);
-	SAFE_UNINIT(m_RenderTarget);
-	SAFE_UNINIT(m_PrevRenderTarget);
-	SAFE_UNINIT(m_UniformBuffer);
+	SAFE_UNINIT(m_AOComputePipeline);
+	SAFE_UNINIT(m_AOTemporalPipeline);
+	SAFE_UNINIT(m_MeanHorizontalComputePipeline);
+	SAFE_UNINIT(m_MeanVerticalComputePipeline);
+	SAFE_UNINIT(m_RenderTarget[0]);
+	SAFE_UNINIT(m_RenderTarget[1]);
+	SAFE_UNINIT(m_MeanVarianceTarget[0]);
+	SAFE_UNINIT(m_MeanVarianceTarget[1]);
+	SAFE_UNINIT(m_CurrentTarget);
+	SAFE_UNINIT(m_AOUniformBuffer);
+	SAFE_UNINIT(m_MeanUniformBuffer);
 	m_Camera = nullptr;
 	return true;
 }
@@ -114,23 +155,41 @@ bool KRTAO::GetDebugRenderCommand(KRenderCommandList& commands)
 
 bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 {
-	if (m_ComputePipeline)
+	if (m_AOComputePipeline)
 	{
-		UpdateUniform();
-		const uint32_t GROUP_SIZE = 16;
+		UpdateAOUniform();
+		const uint32_t GROUP_SIZE = 32;
+
 		uint32_t groupX = (m_Width + (GROUP_SIZE - 1)) / GROUP_SIZE;
 		uint32_t groupY = (m_Height + (GROUP_SIZE - 1)) / GROUP_SIZE;
-		m_ComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
-		primaryBuffer->Blit(m_RenderTarget->GetFrameBuffer(), m_PrevRenderTarget->GetFrameBuffer());
+
+		m_AOComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
+
+		UpdateMeanUniform();
+		m_MeanHorizontalComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
+		m_MeanVerticalComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
+
+		primaryBuffer->TranslateToShader(m_MeanVarianceTarget[1]->GetFrameBuffer());
+		primaryBuffer->TranslateToShader(m_MeanVarianceTarget[0]->GetFrameBuffer());
+		primaryBuffer->Blit(m_MeanVarianceTarget[1]->GetFrameBuffer(), m_MeanVarianceTarget[0]->GetFrameBuffer());
+		primaryBuffer->TranslateToStorage(m_MeanVarianceTarget[1]->GetFrameBuffer());
+		primaryBuffer->TranslateToStorage(m_MeanVarianceTarget[0]->GetFrameBuffer());
+
+		m_AOTemporalPipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
+
+		primaryBuffer->Blit(m_RenderTarget[1]->GetFrameBuffer(), m_RenderTarget[0]->GetFrameBuffer());
 	}
 	return true;
 }
 
 bool KRTAO::ReloadShader()
 {
-	if (m_ComputePipeline)
+	if (m_AOComputePipeline)
 	{
-		m_ComputePipeline->ReloadShader();
+		m_AOComputePipeline->ReloadShader();
+		m_AOTemporalPipeline->ReloadShader();
+		m_MeanHorizontalComputePipeline->ReloadShader();
+		m_MeanVerticalComputePipeline->ReloadShader();
 		return true;
 	}
 	return false;
@@ -138,7 +197,7 @@ bool KRTAO::ReloadShader()
 
 void KRTAO::UpdateSize()
 {
-	if (m_RenderTarget && m_PrevRenderTarget)
+	if (m_RenderTarget[0])
 	{
 		IKSwapChain* chain = KRenderGlobal::RenderDevice->GetSwapChain();		
 
@@ -158,10 +217,16 @@ void KRTAO::UpdateSize()
 			m_Height = newHeight;
 		}
 
-		m_RenderTarget->UnInit();
-		m_RenderTarget->InitFromStorage(m_Width, m_Height, EF_R32G32_FLOAT);
+		m_RenderTarget[0]->UnInit();
+		m_RenderTarget[0]->InitFromStorage(m_Width, m_Height, EF_R32G32_FLOAT);
+		m_RenderTarget[1]->UnInit();
+		m_RenderTarget[1]->InitFromStorage(m_Width, m_Height, EF_R32G32_FLOAT);
+		m_CurrentTarget->UnInit();
+		m_CurrentTarget->InitFromStorage(m_Width, m_Height, EF_R32G32_FLOAT);
 
-		m_PrevRenderTarget->UnInit();
-		m_PrevRenderTarget->InitFromStorage(m_Width, m_Height, EF_R32G32_FLOAT);
+		m_MeanVarianceTarget[0]->UnInit();
+		m_MeanVarianceTarget[0]->InitFromStorage(m_Width, m_Height, EF_R32G32_FLOAT);
+		m_MeanVarianceTarget[1]->UnInit();
+		m_MeanVarianceTarget[1]->InitFromStorage(m_Width, m_Height, EF_R32G32_FLOAT);
 	}
 }

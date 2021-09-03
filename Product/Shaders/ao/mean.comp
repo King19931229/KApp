@@ -1,0 +1,70 @@
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
+
+const int GROUP_SIZE = 32;
+
+layout(binding = 0, rg32f) uniform image2D inImage;
+layout(binding = 1, rg32f) uniform image2D outImage;
+layout(binding = 2) uniform MeanProperties
+{
+	int mean_width;
+};
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+bool IsWithinBounds(ivec2 pos, ivec2 size)
+{
+	return pos.x >= 0 && pos.y >= 0 && pos.x < size.x && pos.y < size.y;
+}
+
+void main()
+{
+	ivec2 size = imageSize(inImage);
+	// Check if not outside boundaries
+	if(gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y) return;
+
+	int width = mean_width;
+
+	float weight = 1.0 / float(width);
+#ifdef HORIZONTAL
+	ivec2 sampleStep = ivec2(1, 0);
+#else
+	ivec2 sampleStep = ivec2(0, 1);
+#endif
+	ivec2 sampleCenter = ivec2(gl_GlobalInvocationID.xy);
+
+	vec2 centerValue = imageLoad(inImage, sampleCenter).rg;
+
+	float mean = centerValue.r * weight;
+	float squaredMean = centerValue.g * weight;
+
+	for(int i = 1 ; i <= (width - 1) / 2; ++i)
+	{
+		for(int j = -1; j <= 1; j += 2)
+		{
+			ivec2 samplePos = sampleCenter + i * j * sampleStep;
+
+			vec2 value = centerValue;
+			if(IsWithinBounds(samplePos, size))
+			{
+				value = imageLoad(inImage, samplePos).rg;
+			}
+
+			mean += value.r * weight;
+			squaredMean += value.g * weight;
+		}
+	}
+
+	// Apply Bessel's correction to the estimated variance, multiply by N/N-1, 
+	// since the true population mean is not known; it is only estimated as the sample mean.
+	const float numValues = float(width);
+	const float besselCorrection = numValues / float(max(numValues, 2) - 1);
+	const float variance = besselCorrection * (squaredMean - mean * mean);
+
+	// imageStore(outImage, sampleCenter, vec4(centerValue, 0, 0));
+	imageStore(outImage, sampleCenter, vec4(mean, variance, 0, 0));
+}

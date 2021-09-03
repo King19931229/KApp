@@ -1,0 +1,2 @@
+#define HORIZONTAL
+#include "mean.comp"

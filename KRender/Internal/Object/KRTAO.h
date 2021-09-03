@@ -25,11 +25,29 @@ public:
 			frame = 0;
 		}
 	};
+
+	struct MeanControl
+	{
+		int mean_width;
+
+		MeanControl()
+		{
+			mean_width = 9;
+		}
+	};
 protected:
-	IKComputePipelinePtr m_ComputePipeline;
-	IKRenderTargetPtr m_RenderTarget;
-	IKRenderTargetPtr m_PrevRenderTarget;
-	IKUniformBufferPtr m_UniformBuffer;
+	IKComputePipelinePtr m_AOComputePipeline;
+	IKComputePipelinePtr m_AOTemporalPipeline;
+	IKComputePipelinePtr m_MeanHorizontalComputePipeline;
+	IKComputePipelinePtr m_MeanVerticalComputePipeline;
+
+	IKRenderTargetPtr m_RenderTarget[2];
+	IKRenderTargetPtr m_MeanVarianceTarget[2];
+	IKRenderTargetPtr m_CurrentTarget;
+
+	IKUniformBufferPtr m_AOUniformBuffer;
+	IKUniformBufferPtr m_MeanUniformBuffer;
+
 	KRTDebugDrawer m_DebugDrawer;
 
 	enum
@@ -39,12 +57,16 @@ protected:
 		BINDING_VELOCITY,
 		BINDING_AS,
 		BDINING_UNIFORM,
+		BINDING_MEAN_VARIANCE_INPUT,
+		BINDING_MEAN_VARIANCE_OUTPUT,
 		BINDING_PREV,
-		BINDING_OUT
+		BINDING_FINAL,
+		BINDING_CUR,
 	};
 
 	AoControl m_PrevParameters;
 	AoControl m_AOParameters;
+	MeanControl m_MeanParameters;
 
 	const KCamera* m_Camera;
 	glm::mat4 m_PrevCamMat;
@@ -52,7 +74,8 @@ protected:
 	uint32_t m_Width;
 	uint32_t m_Height;
 
-	void UpdateUniform();
+	void UpdateAOUniform();
+	void UpdateMeanUniform();
 public:
 	KRTAO();
 	~KRTAO();

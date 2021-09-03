@@ -322,7 +322,10 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 		if (binding.imageInput)
 		{
 			KVulkanRenderTarget* target = static_cast<KVulkanRenderTarget*>(binding.imageInput.get());
-			translatedFrameBuffers.push_back(target->GetFrameBuffer());
+			if (!target->GetFrameBuffer()->IsStroageImage())
+			{
+				translatedFrameBuffers.push_back(target->GetFrameBuffer());
+			}
 		}
 	}
 

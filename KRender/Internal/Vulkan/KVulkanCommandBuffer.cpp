@@ -608,7 +608,7 @@ bool KVulkanCommandBuffer::Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest)
 			srcBuffer->GetImage(), VK_IMAGE_LAYOUT_GENERAL,
 			destBuffer->GetImage(), VK_IMAGE_LAYOUT_GENERAL,
 			1, &blit,
-			VK_FILTER_LINEAR);
+			VK_FILTER_NEAREST);
 		return true;
 
 		TranslateToShader(src);
