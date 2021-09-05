@@ -1,0 +1,194 @@
+const int GROUP_SIZE = 32;
+
+#include "rtao_define.h"
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+layout(binding = BINDING_GBUFFER_NORMAL, rgba32f) uniform image2D normalImage;
+layout(binding = BINDING_GBUFFER_POSITION, rgba32f) uniform image2D positionImage;
+layout(binding = BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, rg16f) uniform image2D sqaredMeanVarianceImage;
+layout(binding = BINDING_CUR, rg16f) uniform image2D curImage;
+layout(binding = BINDING_FINAL, rg32f) uniform image2D finalImage;
+layout(binding = BINDING_ATROUS, r16f) uniform image2D outImage;
+
+#if 1
+const uint Radius = 1;
+const uint Width = 1 + 2 * Radius;
+const float Kernel1D[Width] = { 0.27901, 0.44198, 0.27901 };
+const float Kernel[Width][Width] =
+{
+	{ Kernel1D[0] * Kernel1D[0], Kernel1D[0] * Kernel1D[1], Kernel1D[0] * Kernel1D[2] },
+	{ Kernel1D[1] * Kernel1D[0], Kernel1D[1] * Kernel1D[1], Kernel1D[1] * Kernel1D[2] },
+	{ Kernel1D[2] * Kernel1D[0], Kernel1D[2] * Kernel1D[1], Kernel1D[2] * Kernel1D[2] },
+};
+#else
+const uint Radius = 2;
+const uint Width = 1 + 2 * Radius;
+const float Kernel1D[Width] = { 1. / 16, 1. / 4, 3. / 8, 1. / 4, 1. / 16 };
+const float Kernel[Width][Width] =
+{
+	{ Kernel1D[0] * Kernel1D[0], Kernel1D[0] * Kernel1D[1], Kernel1D[0] * Kernel1D[2], Kernel1D[0] * Kernel1D[3], Kernel1D[0] * Kernel1D[4] },
+	{ Kernel1D[1] * Kernel1D[0], Kernel1D[1] * Kernel1D[1], Kernel1D[1] * Kernel1D[2], Kernel1D[1] * Kernel1D[3], Kernel1D[1] * Kernel1D[4] },
+	{ Kernel1D[2] * Kernel1D[0], Kernel1D[2] * Kernel1D[1], Kernel1D[2] * Kernel1D[2], Kernel1D[2] * Kernel1D[3], Kernel1D[2] * Kernel1D[4] },
+	{ Kernel1D[3] * Kernel1D[0], Kernel1D[3] * Kernel1D[1], Kernel1D[3] * Kernel1D[2], Kernel1D[3] * Kernel1D[3], Kernel1D[3] * Kernel1D[4] },
+	{ Kernel1D[4] * Kernel1D[0], Kernel1D[4] * Kernel1D[1], Kernel1D[4] * Kernel1D[2], Kernel1D[4] * Kernel1D[3], Kernel1D[4] * Kernel1D[4] },
+};
+#endif
+
+vec2 DDXYDepth(ivec2 curSampleGPos, ivec2 inSize)
+{
+	float depth = imageLoad(normalImage, curSampleGPos).a;
+
+	ivec2 xBiasSampleGPos = curSampleGPos + ivec2(1, 0);
+	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, inSize) ? imageLoad(normalImage, xBiasSampleGPos).a : depth;
+
+	ivec2 yBiasSampleGPos = curSampleGPos + ivec2(0, 1);
+	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, inSize) ? imageLoad(normalImage, yBiasSampleGPos).a : depth;
+
+	return vec2(xBiasDepth - depth, yBiasDepth - depth);
+}
+
+void AddFilterContribution(
+	in out float weightedValueSum, 
+	in out float weightSum, 
+	float value, 
+	float stdDeviation,
+	float depth, 
+	vec3 normal, 
+	vec2 ddxy,
+	uint row, 
+	uint col,
+	ivec2 curSamplePos,
+	ivec2 curSampleGPos,
+	ivec2 kernelStep,
+	ivec2 inSize,
+	ivec2 outSize
+	)
+{
+ 	const float valueSigma = 1.0;
+	const float normalSigma = 64.0;
+	const float depthSigma = 1.0;
+
+	float kernelWidth;
+	float varianceScale = 1;
+
+	ivec2 pixelOffset = ivec2(vec2(row - Radius, col - Radius) * vec2(kernelStep));
+	ivec2 pixelGOffset = ivec2(vec2(pixelOffset) * vec2(inSize) / vec2(outSize));
+
+	ivec2 samplePos = curSamplePos + pixelOffset;
+	ivec2 sampleGPos = curSampleGPos + pixelGOffset;
+	if (IsWithinBounds(samplePos, outSize) && IsWithinBounds(sampleGPos, inSize))
+	{
+		vec4 sample_normal_depth = imageLoad(normalImage, sampleGPos);
+		float sample_value = imageLoad(finalImage, samplePos).r;
+		if(sample_normal_depth.rgb == vec3(0.0))
+		{
+			return;
+		}
+
+		// Calculate a weight for the neighbor's contribtuion.
+		// Ref:[SVGF]
+		float w;
+		{
+			// Value based weight.
+			// Lower value tolerance for the neighbors further apart. Prevents overbluring sharp value transitions.
+			// Ref: [Dammertz2010]
+			const float errorOffset = 0.005f;
+			float valueSigmaDistCoef = 1.0 / length(vec2(pixelOffset));
+			float e_x = -abs(value - sample_value) / (valueSigmaDistCoef * valueSigma * stdDeviation + errorOffset);
+			float w_x = exp(e_x);
+
+			// Normal based weight.
+			float w_n = pow(max(0, dot(normal, sample_normal_depth.rgb)), normalSigma);
+
+			// Depth based weight.
+			float w_d;
+			{
+				vec2 pixelOffsetForDepth = pixelOffset;
+				float depthFloatPrecision = 1e-5;
+				float depthThreshold = dot(vec2(1.0), abs(pixelGOffset * ddxy));
+				float depthTolerance = depthSigma * depthThreshold + depthFloatPrecision;
+				float delta = abs(depth - sample_normal_depth.a);
+				delta = max(0, delta - depthFloatPrecision); // Avoid distinguising initial values up to the float precision. Gets rid of banding due to low depth precision format.
+				w_d = exp(-delta / depthTolerance);
+				// Scale down contributions for samples beyond tolerance, but completely disable contribution for samples too far away.
+				const float depthWeightCutoff = 0.2;
+				w_d *= float(w_d >= depthWeightCutoff);
+			}
+
+			// Filter kernel weight.
+			float w_h = Kernel[row][col];
+
+			// Final weight.
+			w = w_h * w_n * w_x * w_d;
+		}
+
+		weightedValueSum += w * sample_value;
+		weightSum += w;
+	}
+}
+
+void main()
+{
+	ivec2 inSize = imageSize(normalImage);
+	ivec2 outSize = imageSize(outImage);
+
+	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
+
+	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
+	ivec2 curSamplePos = ivec2(round(curTexPos * vec2(outSize) - vec2(0.5)));
+	ivec2 curSampleGPos = ivec2(round(curTexPos * vec2(inSize) - vec2(0.5)));
+
+	float value = imageLoad(finalImage, curSamplePos).r;
+	float variance = imageLoad(sqaredMeanVarianceImage, curSamplePos).g;
+	vec2 ddxy = DDXYDepth(curSampleGPos, inSize);
+	vec4 normal_depth = imageLoad(normalImage, curSampleGPos);
+
+	float weightSum = 0;
+	float weightedValueSum = 0;
+	float stdDeviation = 1;
+
+	float filteredValue = value;
+
+	float w = Kernel[Radius][Radius];
+	weightSum = w;
+	weightedValueSum = weightSum * value;
+	stdDeviation = sqrt(variance);
+
+	const float minVarianceToDenoise = 1.0;
+	ivec2 kernelStep = ivec2(1.0);
+
+#if 1
+	for (uint r = 0; r < Width; r++)
+	{
+		for (uint c = 0; c < Width; c++)
+		{
+			if (r != Radius || c != Radius)
+			{
+				AddFilterContribution(
+					weightedValueSum, 
+					weightSum, 
+					value, 
+					stdDeviation,
+					normal_depth.a, 
+					normal_depth.rgb, 
+					ddxy,
+					r, 
+					c,
+					curSamplePos,
+					curSampleGPos,
+					kernelStep,
+					inSize,
+					outSize);
+			}
+		}
+	}
+#endif
+
+	float smallValue = 1e-6f;
+	if (weightSum > smallValue)
+	{
+		filteredValue = weightedValueSum / weightSum;
+	}
+
+	imageStore(outImage, curSamplePos, vec4(filteredValue));
+}

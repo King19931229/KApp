@@ -45,6 +45,7 @@ protected:
 
 	IKRenderTargetPtr m_RenderTarget[2];
 	IKRenderTargetPtr m_MeanVarianceTarget[2];
+	IKRenderTargetPtr m_NormalDepthTarget[2];
 	IKRenderTargetPtr m_CurrentTarget;
 	IKRenderTargetPtr m_TemporalMeanSqaredMean;
 	IKRenderTargetPtr m_AtrousTarget;
@@ -67,6 +68,8 @@ protected:
 		BINDING_TEMPORAL_SQAREDMEAN_VARIANCE,
 		BINDING_PREV,
 		BINDING_FINAL,
+		BINDING_PREV_NORMAL_DEPTH,
+		BINDING_CUR_NORMAL_DEPTH,
 		BINDING_CUR,
 		BINDING_ATROUS,
 		BINDING_COMPOSED,

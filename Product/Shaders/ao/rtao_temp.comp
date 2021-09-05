@@ -6,6 +6,8 @@ const int GROUP_SIZE = 32;
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 layout(binding = BINDING_GBUFFER_NORMAL, rgba32f) uniform image2D normalImage;
 layout(binding = BINDING_GBUFFER_POSITION, rgba32f) uniform image2D positionImage;
+layout(binding = BINDING_PREV_NORMAL_DEPTH, rgba32f) uniform image2D prevNormalDepthImage;
+layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba32f) uniform image2D curNormalDepthImage;
 layout(binding = BINDING_VELOCITY, rg32f) uniform image2D motionImage;
 layout(binding = BDINING_UNIFORM) uniform AOProperties 
 {
@@ -23,8 +25,8 @@ layout(binding = BINDING_CUR, rg16f) uniform image2D curImage;
 layout(binding = BINDING_LOCAL_MEAN_VARIANCE_INPUT, rg16f) uniform image2D meanInputImage;
 layout(binding = BINDING_FINAL, rg32f) uniform image2D outImage;
 
-//#define PREFER_CLIP_THAN_CLAMP
-//#define CLIP_TO_CENTER
+#define PREFER_CLIP_THAN_CLAMP
+#define CLIP_TO_CENTER
 
 vec3 ClipAABB(vec3 aabbMin, vec3 aabbMax, vec3 prevSample, vec3 avg)
 {
@@ -125,9 +127,9 @@ void main()
 	ivec2 outSize = imageSize(outImage);
 
 	// Check if not outside boundaries
-	// if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
+	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
 
-	bool pixelSkip = false;//mod(gl_GlobalInvocationID.x + gl_GlobalInvocationID.y, 2) == mod(frame_number, 2);
+	bool pixelSkip = false; //mod(gl_GlobalInvocationID.x + gl_GlobalInvocationID.y, 2) == mod(frame_number, 2);
 
 	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
 	ivec2 curSamplePos = ivec2(round(curTexPos * vec2(outSize) - vec2(0.5)));
@@ -145,27 +147,26 @@ void main()
 		imageStore(sqaredMeanVarianceImage, curSamplePos, imageLoad(sqaredMeanVarianceImage, prevSamplePos));
 	}
 
-	vec4 prev_normal_depth = imageLoad(normalImage, prevSampleGPos);
+	vec4 prev_normal_depth = imageLoad(prevNormalDepthImage, prevSamplePos);
 	vec4 cur_normal_depth = imageLoad(normalImage, curSampleGPos);
 
 	uint tspp = floatBitsToUint(imageLoad(prevImage, prevSamplePos).g);
 	float weight = 0.0;
 
-	if(dot(motion, motion) < 1e-4)
+	if(dot(motion, motion) < 1e-2)
 	{
 		const float normalCutStrength = 1.0;
-		float normalWeight = clamp(dot(cur_normal_depth.rgb, prev_normal_depth.rgb) + 1e-2, 0.0, 1.0);
+		float normalWeight = clamp(dot(cur_normal_depth.rgb, prev_normal_depth.rgb) + 1e-5, 0.0, 1.0);
 		normalWeight = pow(normalWeight, normalCutStrength);
 
 		vec2 ddxyDepth = DDXYDepth(curSampleGPos, inSize);
-		float depthFloatPrecision = 1e-2;
+		float depthFloatPrecision = 1e-5;
 		float depthThreshold = dot(vec2(1.0), abs(ddxyDepth));
 		float depthTolerance = depthThreshold + depthFloatPrecision;
 		float dpethDelta = abs(prev_normal_depth.a - cur_normal_depth.a);
 		dpethDelta = max(0, dpethDelta - depthFloatPrecision);
 		float depthWeight = exp(-dpethDelta / depthTolerance);
 		weight = normalWeight * depthWeight;
-		weight = 1.0;
 	}
 
 	tspp = uint(float(tspp) * weight);
@@ -199,7 +200,7 @@ void main()
 		// blend = mix(blend, maxBlend, clamp(length(motion * vec2(outSize) / 40.0), 0.0, 1.0));
 		occlusion = mix(prev_occlusion, occlusion, blend);
 		sqaredmean = mix(prev_sqaredmean_variance.r, sqaredmean, blend);
-		if(tspp > 0)
+		if(tspp > 4)
 		{
 			variance = sqaredmean - occlusion * occlusion;
 		}
@@ -207,4 +208,6 @@ void main()
 
 	imageStore(outImage, curSamplePos, vec4(occlusion, uintBitsToFloat(tspp), 0, 0));
 	imageStore(sqaredMeanVarianceImage, curSamplePos, vec4(sqaredmean, variance, 0, 0));
+	imageStore(curNormalDepthImage, curSamplePos, cur_normal_depth);
+	// imageStore(outImage, curSamplePos, vec4(weight));
 }
