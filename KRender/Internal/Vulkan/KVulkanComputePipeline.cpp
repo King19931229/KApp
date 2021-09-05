@@ -304,8 +304,16 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 			VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 			VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-			imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-			imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			if (input)
+			{
+				imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			}
+			else
+			{
+				imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+			}
 			imgMemBarrier.image = frameBuffer->GetImage();
 			imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
 			imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;

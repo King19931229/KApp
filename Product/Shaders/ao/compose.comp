@@ -1,0 +1,21 @@
+const int GROUP_SIZE = 32;
+
+#include "rtao_define.h"
+
+layout(binding = BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, rg16f) uniform image2D sqaredMeanVarianceImage;
+layout(binding = BINDING_PREV, rg32f) uniform image2D prevImage;
+layout(binding = BINDING_CUR, rg16f) uniform image2D curImage;
+layout(binding = BINDING_LOCAL_MEAN_VARIANCE_INPUT, rg16f) uniform image2D meanInputImage;
+layout(binding = BINDING_FINAL, rg32f) uniform image2D finalImage;
+layout(binding = BINDING_ATROUS, r16f) uniform image2D atrousImage;
+layout(binding = BINDING_COMPOSED, rgba16f) uniform image2D outImage;
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+	ivec2 size = imageSize(outImage);
+	// Check if not outside boundaries
+	if(gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y) return;
+    imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), imageLoad(atrousImage, ivec2(gl_GlobalInvocationID.xy)));
+}

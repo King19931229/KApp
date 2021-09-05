@@ -92,7 +92,7 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray3.scene");
+	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray4.scene");
 
 	KRenderCoreInitCallback callback = [engine]()
 	{

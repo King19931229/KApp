@@ -38,12 +38,17 @@ public:
 protected:
 	IKComputePipelinePtr m_AOComputePipeline;
 	IKComputePipelinePtr m_AOTemporalPipeline;
+	IKComputePipelinePtr m_ComposePipeline;
 	IKComputePipelinePtr m_MeanHorizontalComputePipeline;
 	IKComputePipelinePtr m_MeanVerticalComputePipeline;
+	IKComputePipelinePtr m_AtrousComputePipeline;
 
 	IKRenderTargetPtr m_RenderTarget[2];
 	IKRenderTargetPtr m_MeanVarianceTarget[2];
 	IKRenderTargetPtr m_CurrentTarget;
+	IKRenderTargetPtr m_TemporalMeanSqaredMean;
+	IKRenderTargetPtr m_AtrousTarget;
+	IKRenderTargetPtr m_ComposedTarget;
 
 	IKUniformBufferPtr m_AOUniformBuffer;
 	IKUniformBufferPtr m_MeanUniformBuffer;
@@ -57,11 +62,14 @@ protected:
 		BINDING_VELOCITY,
 		BINDING_AS,
 		BDINING_UNIFORM,
-		BINDING_MEAN_VARIANCE_INPUT,
-		BINDING_MEAN_VARIANCE_OUTPUT,
+		BINDING_LOCAL_MEAN_VARIANCE_INPUT,
+		BINDING_LOCAL_MEAN_VARIANCE_OUTPUT,
+		BINDING_TEMPORAL_SQAREDMEAN_VARIANCE,
 		BINDING_PREV,
 		BINDING_FINAL,
 		BINDING_CUR,
+		BINDING_ATROUS,
+		BINDING_COMPOSED,
 	};
 
 	AoControl m_PrevParameters;
