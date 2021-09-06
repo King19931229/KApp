@@ -19,6 +19,4 @@ void main()
 	vec2 prevUV = 0.5 * (prev.xy / prev.w + vec2(1, 1));
 	vec2 currUV = 0.5 * (curr.xy / curr.w + vec2(1, 1));
 	out2 = currUV - prevUV;
-	if(abs(out2.x) < 0.0001) out2.x = 0;
-	if(abs(out2.y) < 0.0001) out2.y = 0;
 }
