@@ -22,4 +22,31 @@ bool IsWithinBounds(ivec2 pos, ivec2 size)
 	return pos.x >= 0 && pos.y >= 0 && pos.x < size.x && pos.y < size.y;
 }
 
+vec4 GetBilinearWeights(in vec2 targetOffset)
+{
+	vec4 bilinearWeights = vec4
+	(
+			(1 - targetOffset.x) * (1 - targetOffset.y),
+			targetOffset.x * (1 - targetOffset.y),
+			(1 - targetOffset.x) * targetOffset.y,
+			targetOffset.x * targetOffset.y
+	);
+	return bilinearWeights;
+}
+
+void ComputeWeights(vec2 targetOffset, ivec2 size, ivec2 samplePos[4], in out vec4 weights)
+{
+	vec4 isWithinBounds = vec4(
+		IsWithinBounds(samplePos[0], size),
+		IsWithinBounds(samplePos[1], size),
+		IsWithinBounds(samplePos[2], size),
+		IsWithinBounds(samplePos[3], size));
+
+	weights = GetBilinearWeights(targetOffset);
+	weights *= isWithinBounds;
+}
+
+const int GROUP_SIZE = 32;
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
 #endif

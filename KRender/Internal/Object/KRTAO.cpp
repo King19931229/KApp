@@ -91,6 +91,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_AOComputePipeline->BindUniformBuffer(BDINING_UNIFORM, m_AOUniformBuffer, false);
 			m_AOComputePipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget, false, true);
 			m_AOComputePipeline->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1], false, true);
+			m_AOComputePipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[1], false, true);
 			m_AOComputePipeline->Init("ao/rtao.comp");
 
 			renderDevice->CreateComputePipeline(m_MeanHorizontalComputePipeline);
@@ -114,11 +115,11 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_AOTemporalPipeline->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_INPUT, m_MeanVarianceTarget[0], true, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_PREV, m_RenderTarget[0], true, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_NormalDepthTarget[0], true, true);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[1], true, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget, true, true);
 
 			m_AOTemporalPipeline->BindStorageImage(BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, m_TemporalMeanSqaredMean, false, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_FINAL, m_RenderTarget[1], false, true);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[1], false, true);
 			m_AOTemporalPipeline->Init("ao/rtao_temp.comp");
 
 			renderDevice->CreateComputePipeline(m_AtrousComputePipeline);

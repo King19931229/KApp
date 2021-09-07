@@ -1,12 +1,9 @@
 #extension GL_EXT_ray_tracing : enable
 #extension GL_EXT_ray_query : enable
 
-const int GROUP_SIZE = 32;
-
 #include "sampling.h"
 #include "rtao_define.h"
 
-layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 layout(binding = BINDING_GBUFFER_NORMAL, rgba32f) uniform image2D normalImage;
 layout(binding = BINDING_GBUFFER_POSITION, rgba32f) uniform image2D positionImage;
 layout(binding = BINDING_AS) uniform accelerationStructureEXT topLevelAS;
@@ -21,6 +18,7 @@ layout(binding = BDINING_UNIFORM) uniform AOProperties
 };
 layout(binding = BINDING_CUR, rg16f) uniform image2D outImage;
 layout(binding = BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, rg16f) uniform image2D meanOutputImage;
+layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba32f) uniform image2D curNormalDepthImage;
 
 //----------------------------------------------------------------------------
 // Tracing a ray and returning the weight based on the distance of the hit
@@ -54,41 +52,80 @@ float TraceRay(in rayQueryEXT rayQuery, in vec3 origin, in vec3 direction, in ou
 	return 0;
 }
 
+void ComputeValues(vec2 p, in out vec4 normalDepth, in out vec3 origin)
+{
+	const ivec2 offsets[4] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
+	ivec2 topLeft = ivec2(floor(p));
+	ivec2 closest = ivec2(round(p));
+
+	ivec2 samplePos[4];
+	for(int i = 0; i < 4; ++i)
+	{
+		samplePos[i] = topLeft + offsets[i];
+	}
+
+	vec4 sampleNormalDepth[4];
+	for(int i = 0; i < 4; ++i)
+	{
+		sampleNormalDepth[i] = imageLoad(normalImage, samplePos[i]).rgba;
+	}
+
+	vec2 targetOffset = p - vec2(topLeft);
+	ivec2 size = imageSize(normalImage);
+
+	vec4 weights;
+	ComputeWeights(targetOffset, size, samplePos, weights);
+	weights /= dot(vec4(1.0), weights);
+
+	vec3 normal = vec3(0.0);
+	float depth = 0.0;
+	
+	for(int i = 0; i < 4; ++i)
+	{
+		normal += sampleNormalDepth[i].rgb * weights[i];
+		depth += sampleNormalDepth[i].a * weights[i];
+	}
+
+	normalDepth = vec4(normalize(normal), depth);
+	origin = imageLoad(positionImage, closest).rgb;
+}
+
 void main()
 {
 	float occlusion = 0.0;
 
-	ivec2 inSize = imageSize(normalImage);
 	ivec2 outSize = imageSize(outImage);
 
 	// Check if not outside boundaries
 	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
 
-	bool pixelSkip = false; //mod(gl_GlobalInvocationID.x + gl_GlobalInvocationID.y, 2) == mod(frame_number, 2);
+	bool pixelSkip = false;//mod(gl_GlobalInvocationID.x + gl_GlobalInvocationID.y, 2) == mod(frame_number, 2);
 	if(pixelSkip)
 	{
 		return;
 	}
 
+	ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
 	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
-	ivec2 curSamplePos = ivec2(round(curTexPos * vec2(outSize) - vec2(0.5)));
-	ivec2 curSampleGPos = ivec2(round(curTexPos * vec2(inSize) - vec2(0.5)));
+	vec2 curSampleGPos = vec2(curTexPos * vec2(imageSize(normalImage)) - vec2(0.5));
 
-	vec3 normal = imageLoad(normalImage, curSampleGPos).rgb;
+	vec4 normalDepth;
+	vec3 origin;
+	ComputeValues(curSampleGPos, normalDepth, origin);
+
 	float hitDistance = 0.0;
-	if(normal != vec3(0))
+	if(normalDepth.rgb != vec3(0))
 	{
 		// Initialize the random number
 		uint seed = TEA(outSize.x * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x, frame_number);
-		vec3 origin = imageLoad(positionImage, curSampleGPos).rgb;
 		vec3 direction;
 
 		// Move origin slightly away from the surface to avoid self-occlusion
-		origin = OffsetRay(origin, normal);
+		origin = OffsetRay(origin, normalDepth.rgb);
 
 		// Finding the basis (tangent and bitangent) from the normal
 		vec3 n, tangent, bitangent;
-		ComputeDefaultBasis(normal, tangent, bitangent);
+		ComputeDefaultBasis(normalDepth.rgb, tangent, bitangent);
 
 		// Sampling hemiphere n-time
 		for(int i = 0; i < rtao_samples; i++)
@@ -99,7 +136,7 @@ void main()
 			float sq        = sqrt(1.0 - r2);
 			float phi       = 2 * M_PI * r1;
 			vec3  direction = vec3(cos(phi) * sq, sin(phi) * sq, sqrt(r2));
-			direction       = direction.x * tangent + direction.y * bitangent + direction.z * normal;
+			direction       = direction.x * tangent + direction.y * bitangent + direction.z * normalDepth.rgb;
 			// Initializes a ray query object but does not start traversal
 			rayQueryEXT rayQuery;
 
@@ -118,6 +155,7 @@ void main()
 		occlusion = 1.0;
 	}
 
-	imageStore(outImage, curSamplePos, vec4(occlusion, hitDistance, 0, 0));
-	imageStore(meanOutputImage, curSamplePos, vec4(occlusion, occlusion * occlusion, 0, 0));
+	imageStore(outImage, storePos, vec4(occlusion, hitDistance, 0, 0));
+	imageStore(meanOutputImage, storePos, vec4(occlusion, occlusion * occlusion, 0, 0));
+	imageStore(curNormalDepthImage, storePos, normalDepth);
 }

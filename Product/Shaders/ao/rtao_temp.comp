@@ -1,9 +1,6 @@
-const int GROUP_SIZE = 32;
-
 #include "sampling.h"
 #include "rtao_define.h"
 
-layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 layout(binding = BINDING_GBUFFER_NORMAL, rgba32f) uniform image2D normalImage;
 layout(binding = BINDING_GBUFFER_POSITION, rgba32f) uniform image2D positionImage;
 layout(binding = BINDING_PREV_NORMAL_DEPTH, rgba32f) uniform image2D prevNormalDepthImage;
@@ -115,30 +112,6 @@ vec2 DDXYDepth(ivec2 curSampleGPos, ivec2 inSize)
 	return vec2(xBiasDepth - depth, yBiasDepth - depth);
 }
 
-vec4 GetBilinearWeights(in vec2 targetOffset)
-{
-	vec4 bilinearWeights = vec4
-	(
-			(1 - targetOffset.x) * (1 - targetOffset.y),
-			targetOffset.x * (1 - targetOffset.y),
-			(1 - targetOffset.x) * targetOffset.y,
-			targetOffset.x * targetOffset.y
-	);
-	return bilinearWeights;
-}
-
-void ComputeWeights(vec2 targetOffset, ivec2 size, ivec2 samplePos[4], in out vec4 weights)
-{
-	vec4 isWithinBounds = vec4(
-		IsWithinBounds(samplePos[0], size),
-		IsWithinBounds(samplePos[1], size),
-		IsWithinBounds(samplePos[2], size),
-		IsWithinBounds(samplePos[3], size));
-
-	weights = GetBilinearWeights(targetOffset);
-	weights *= isWithinBounds;
-}
-
 void ComputeValues(vec2 p, in out vec4 prevNormalDepth, in out vec2 sqaredMeanVariance, in out vec2 prevValue)
 {
 	const ivec2 offsets[4] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
@@ -183,6 +156,32 @@ void ComputeValues(vec2 p, in out vec4 prevNormalDepth, in out vec2 sqaredMeanVa
 	sqaredMeanVariance = imageLoad(sqaredMeanVarianceImage, closest).rg;
 }
 
+vec2 ComputeMotion(vec2 p)
+{
+	const ivec2 offsets[4] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
+	ivec2 topLeft = ivec2(floor(p));
+
+	ivec2 samplePos[4];
+	for(int i = 0; i < 4; ++i)
+	{
+		samplePos[i] = topLeft + offsets[i];
+	}
+
+	vec2 targetOffset = p - vec2(topLeft);
+	ivec2 size = imageSize(motionImage);
+
+	vec4 weights;
+	ComputeWeights(targetOffset, size, samplePos, weights);
+	weights /= dot(vec4(1.0), weights);
+
+	vec2 motion = vec2(0);
+	for(int i = 0; i < 4; ++i)
+	{
+		motion += imageLoad(motionImage, samplePos[i]).rg * weights[i];
+	}
+	return motion;
+}
+
 void main()
 {
 	ivec2 inSize = imageSize(normalImage);
@@ -192,11 +191,11 @@ void main()
 	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
 	ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
 
-	bool pixelSkip = false; //mod(gl_GlobalInvocationID.x + gl_GlobalInvocationID.y, 2) == mod(frame_number, 2);
+	bool pixelSkip = false;//mod(gl_GlobalInvocationID.x + gl_GlobalInvocationID.y, 2) == mod(frame_number, 2);
 
 	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
-	ivec2 curSampleGPos = ivec2(round(curTexPos * vec2(inSize) - vec2(0.5)));
-	vec2 motion = imageLoad(motionImage, curSampleGPos).rg;
+	vec2 curSampleGPos = vec2(curTexPos * vec2(inSize) - vec2(0.5));
+	vec2 motion = ComputeMotion(curSampleGPos);
 	vec2 preTexPos = curTexPos - motion;
 
 	vec2 reprojectPos = vec2(preTexPos * vec2(outSize) - vec2(0.5));
@@ -207,6 +206,7 @@ void main()
 
 	ComputeValues(reprojectPos, prevNormalDepth, sqaredMeanVariance, prevValue);
 
+	vec4 cur_normal_depth = imageLoad(curNormalDepthImage, storePos);
 	// TODO setup a reproject pass
 	if(pixelSkip)
 	{
@@ -215,7 +215,6 @@ void main()
 	}
 
 	vec4 prev_normal_depth = prevNormalDepth;
-	vec4 cur_normal_depth = imageLoad(normalImage, curSampleGPos);
 
 	uint tspp = floatBitsToUint(prevValue.g);
 	float weight = 0.0;
@@ -227,7 +226,7 @@ void main()
 		float normalWeight = clamp(dot(cur_normal_depth.rgb, prev_normal_depth.rgb) + eps, 0.0, 1.0);
 		normalWeight = pow(normalWeight, normalCutStrength);
 
-		vec2 ddxyDepth = DDXYDepth(curSampleGPos, inSize);
+		vec2 ddxyDepth = DDXYDepth(ivec2(round(curSampleGPos)), inSize);
 		float depthFloatPrecision = eps;
 		float depthThreshold = dot(vec2(1.0), abs(ddxyDepth));
 		float depthTolerance = depthThreshold + depthFloatPrecision;
@@ -272,5 +271,4 @@ void main()
 
 	imageStore(outImage, storePos, vec4(occlusion, uintBitsToFloat(tspp), 0, 0));
 	imageStore(sqaredMeanVarianceImage, storePos, vec4(sqaredmean, variance, 0, 0));
-	imageStore(curNormalDepthImage, storePos, cur_normal_depth);
 }

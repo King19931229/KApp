@@ -1,5 +1,3 @@
-const int GROUP_SIZE = 32;
-
 #include "rtao_define.h"
 
 layout(binding = BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, rg16f) uniform image2D sqaredMeanVarianceImage;

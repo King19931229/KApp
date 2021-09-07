@@ -1,5 +1,3 @@
-const int GROUP_SIZE = 32;
-
 #include "rtao_define.h"
 
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
