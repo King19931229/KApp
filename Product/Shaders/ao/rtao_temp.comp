@@ -91,23 +91,22 @@ float ClampPrevResult(float unclamp, vec2 localMeanVariance)
 {
 	const vec3 VarianceClipGamma = vec3(1.0);
 	float sigma = sqrt(localMeanVariance.g);
-	vec3 prevSample = vec3(unclamp);
 	vec3 mu = vec3(localMeanVariance.r);
 	vec3 minc = mu - VarianceClipGamma * sigma;
 	vec3 maxc = mu + VarianceClipGamma * sigma;
-	prevSample = ClipAABB(minc, maxc, prevSample, mu);
+	vec3 prevSample = ClipAABB(minc, maxc, vec3(unclamp), mu);
 	return prevSample.r;
 }
 
-vec2 DDXYDepth(ivec2 curSampleGPos, ivec2 inSize)
+vec2 DDXYDepth(ivec2 curSamplePos, ivec2 outSize)
 {
-	float depth = imageLoad(normalImage, curSampleGPos).a;
+	float depth = imageLoad(curNormalDepthImage, curSamplePos).a;
 
-	ivec2 xBiasSampleGPos = curSampleGPos + ivec2(1, 0);
-	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, inSize) ? imageLoad(normalImage, xBiasSampleGPos).a : depth;
+	ivec2 xBiasSampleGPos = curSamplePos + ivec2(1, 0);
+	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, outSize) ? imageLoad(curNormalDepthImage, xBiasSampleGPos).a : depth;
 
-	ivec2 yBiasSampleGPos = curSampleGPos + ivec2(0, 1);
-	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, inSize) ? imageLoad(normalImage, yBiasSampleGPos).a : depth;
+	ivec2 yBiasSampleGPos = curSamplePos + ivec2(0, 1);
+	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, outSize) ? imageLoad(curNormalDepthImage, yBiasSampleGPos).a : depth;
 
 	return vec2(xBiasDepth - depth, yBiasDepth - depth);
 }
@@ -200,74 +199,70 @@ void main()
 
 	vec2 reprojectPos = vec2(preTexPos * vec2(outSize) - vec2(0.5));
 
-	vec4 prevNormalDepth;
-	vec2 sqaredMeanVariance;
-	vec2 prevValue;
+	vec4 prevNormalDepth = vec4(0.0);
+	vec2 prevSqaredmeanVariance = vec2(0.0);
+	vec2 prevValue = vec2(0.0);
 
-	ComputeValues(reprojectPos, prevNormalDepth, sqaredMeanVariance, prevValue);
+	ComputeValues(reprojectPos, prevNormalDepth, prevSqaredmeanVariance, prevValue);
 
 	vec4 cur_normal_depth = imageLoad(curNormalDepthImage, storePos);
 	// TODO setup a reproject pass
 	if(pixelSkip)
 	{
 		imageStore(outImage, storePos, vec4(prevValue, 0, 0));
-		imageStore(sqaredMeanVarianceImage, storePos, vec4(sqaredMeanVariance, 0, 0));
+		imageStore(sqaredMeanVarianceImage, storePos, vec4(prevSqaredmeanVariance, 0, 0));
 	}
-
-	vec4 prev_normal_depth = prevNormalDepth;
 
 	uint tspp = floatBitsToUint(prevValue.g);
 	float weight = 0.0;
 
-	if(dot(motion, motion) < 1e-2)
+	if(/*dot(motion, motion) < 1e-4)*/ abs(motion.x) < 1e-2)
 	{
 		const float eps = 1e-5;
 		const float normalCutStrength = 1.0;
-		float normalWeight = clamp(dot(cur_normal_depth.rgb, prev_normal_depth.rgb) + eps, 0.0, 1.0);
+		float normalWeight = clamp(dot(cur_normal_depth.rgb, prevNormalDepth.rgb) + eps, 0.0, 1.0);
 		normalWeight = pow(normalWeight, normalCutStrength);
 
-		vec2 ddxyDepth = DDXYDepth(ivec2(round(curSampleGPos)), inSize);
+		vec2 ddxyDepth = DDXYDepth(ivec2(gl_GlobalInvocationID.xy), outSize);
 		float depthFloatPrecision = eps;
 		float depthThreshold = dot(vec2(1.0), abs(ddxyDepth));
 		float depthTolerance = depthThreshold + depthFloatPrecision;
-		float dpethDelta = abs(prev_normal_depth.a - cur_normal_depth.a);
+		float dpethDelta = abs(prevNormalDepth.a - cur_normal_depth.a);
 		dpethDelta = max(0, dpethDelta - depthFloatPrecision);
 		float depthWeight = exp(-dpethDelta / depthTolerance);
 		weight = normalWeight * depthWeight;
 	}
 
 	tspp = uint(float(tspp) * weight);
-	float prev_occlusion = 0.0;
-	vec2 prev_sqaredmean_variance = vec2(0.0);
+	float prevOcclusion = 0.0;
 	vec2 localMeanVariance = vec2(0.0);
 	if(tspp > 0)
 	{
 		localMeanVariance = imageLoad(meanInputImage, storePos).rg;
-		prev_occlusion = ClampPrevResult(prevValue.r, localMeanVariance).r;
+		prevOcclusion = ClampPrevResult(prevValue.r, localMeanVariance).r;
 		// Scale down the tspp based on how strongly the cached value got clamped to give more weight to new samples.
 		const float clampDifferenceToTsppScale = 4.0;
-		tspp = uint(mix(float(tspp), 0.0, clamp(clampDifferenceToTsppScale * abs(prevValue.r - prev_occlusion), 0.0, 1.0)));
-		prev_sqaredmean_variance = sqaredMeanVariance;
+		tspp = uint(mix(float(tspp), 0.0, clamp(clampDifferenceToTsppScale * abs(prevValue.r - prevOcclusion), 0.0, 1.0)));
 	}
-
-	const uint maxTspp = 100;
-	tspp = min(tspp + 1, maxTspp);
 
 	float occlusion = imageLoad(curImage, storePos).r;
 	float sqaredmean = occlusion * occlusion;
 	float variance = localMeanVariance.g;
+
+	const uint maxTspp = 100;
 	if(tspp > 0)
 	{
 		const float maxBlend = 1.0;
 		const float minBlend = 1.0 / float(maxTspp);
-		float blend = max(minBlend, min(1.0 / float(tspp), maxBlend));
-		occlusion = mix(prev_occlusion, occlusion, blend);
-		sqaredmean = mix(prev_sqaredmean_variance.r, sqaredmean, blend);
+		float blend = max(minBlend, min(1.0 / float(tspp + 1), maxBlend));
+		occlusion = mix(prevOcclusion, occlusion, blend);
+		sqaredmean = mix(prevSqaredmeanVariance.r, sqaredmean, blend);
 		if(tspp > 4)
 		{
 			variance = sqaredmean - occlusion * occlusion;
 		}
 	}
+	tspp = min(tspp + 1, maxTspp);
 
 	imageStore(outImage, storePos, vec4(occlusion, uintBitsToFloat(tspp), 0, 0));
 	imageStore(sqaredMeanVarianceImage, storePos, vec4(sqaredmean, variance, 0, 0));

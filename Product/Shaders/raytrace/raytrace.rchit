@@ -8,16 +8,15 @@
 
 #include "rayinput.h"
 #include "raycone.h"
+#include "sampling.h"
 
 hitAttributeEXT vec2 attribs;
 
-// clang-format off
 layout(binding = RAYTRACE_BINDING_SCENE, scalar) readonly buffer SceneDesc_ { SceneDesc i[]; } sceneDesc;
 layout(location = 0) rayPayloadInEXT HitPayload prd;
 layout(buffer_reference, scalar) readonly buffer Vertices {Vertex v[]; }; // Positions of an object
 layout(buffer_reference, scalar) readonly buffer Indices {ivec3 i[]; }; // Triangle indices
 layout(buffer_reference, scalar) readonly buffer Materials { RayTraceMaterial m[]; };
-// clang-format on
 
 void main()
 {
@@ -54,7 +53,7 @@ void main()
 	const vec3 p0        = vec3(objResource.transfo * vec4(v0.pos, 1.0));
 	const vec3 p1        = vec3(objResource.transfo * vec4(v1.pos, 1.0));
 	const vec3 p2        = vec3(objResource.transfo * vec4(v2.pos, 1.0));
-	const vec3 worldPos  = v0.pos * barycentrics.x + v1.pos * barycentrics.y + v2.pos * barycentrics.z;
+	const vec3 worldPos  = p0 * barycentrics.x + p1 * barycentrics.y + p2 * barycentrics.z;
 
 	// Using 0 since no curvature measure at second hit
 	prd.cone = Propagate(prd.cone, 0, distance(worldPos, prd.rayOrigin));
@@ -76,22 +75,20 @@ void main()
 	}
 	else
 	{
+		/*
 		float numMipmap = 3;
 		vec2 texSize = vec2(pow(2, numMipmap));
-		/*
 		Pixel pixel;
 		pixel.t0 = uv0; pixel.t1 = uv1; pixel.t2 = uv2;
 		pixel.p0 = p0; pixel.p1 = p1; pixel.p2 = p2;
 		pixel.wh = texSize.x * texSize.y;
 		lambda = ComputeTextureLOD(prd.rayDir, normal, prd.cone, pixel);
-		lambda /= numMipmap;
 		*/
+		// lambda /= numMipmap;
 		prd.hitValue = normal;
 	}
 
-	// prd.hitValue = vec3(lambda);
-	prd.rayOrigin = prd.rayOrigin + prd.rayDir * gl_HitTEXT;
+	prd.rayOrigin = OffsetRay(worldPos, normal);
 	prd.rayDir = reflect(prd.rayDir, normal);
-	prd.rayOrigin += prd.rayDir * 0.001;
 	prd.done = 0;
 }

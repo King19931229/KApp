@@ -4,7 +4,7 @@
 // Generate a random unsigned int from two unsigned int values, using 16 pairs
 // of rounds of the Tiny Encryption Algorithm. See Zafar, Olano, and Curtis,
 // "GPU Random Numbers via the Tiny Encryption Algorithm"
-uint TEA(uint val0, uint val1)
+uint TEA(const uint val0, const uint val1)
 {
 	uint v0 = val0;
 	uint v1 = val1;
@@ -41,7 +41,7 @@ float RND(inout uint prev)
 //-------------------------------------------------------------------------------------------------
 
 // Randomly sampling around +Z
-vec3 SamplingHemisphere(inout uint seed, in vec3 x, in vec3 y, in vec3 z)
+vec3 SamplingHemisphere(inout uint seed, const vec3 x, const vec3 y, const vec3 z)
 {
 #define M_PI 3.141592
 
@@ -56,7 +56,7 @@ vec3 SamplingHemisphere(inout uint seed, in vec3 x, in vec3 y, in vec3 z)
 }
 
 // Return the tangent and binormal from the incoming normal
-void CreateCoordinateSystem(in vec3 N, out vec3 Nt, out vec3 Nb)
+void CreateCoordinateSystem(const vec3 N, out vec3 Nt, out vec3 Nb)
 {
 	if(abs(N.x) > abs(N.y))
 		Nt = vec3(N.z, 0, -N.x) / sqrt(N.x * N.x + N.z * N.z);
@@ -65,7 +65,7 @@ void CreateCoordinateSystem(in vec3 N, out vec3 Nt, out vec3 Nb)
 	Nb = cross(N, Nt);
 }
 
-vec3 OffsetRay(in vec3 p, in vec3 n)
+vec3 OffsetRay(const vec3 p, const vec3 n)
 {
 	const float intScale   = 256.0f;
 	const float floatScale = 1.0f / 65536.0f;
@@ -77,8 +77,8 @@ vec3 OffsetRay(in vec3 p, in vec3 n)
 				intBitsToFloat(floatBitsToInt(p.y) + ((p.y < 0) ? -of_i.y : of_i.y)),
 				intBitsToFloat(floatBitsToInt(p.z) + ((p.z < 0) ? -of_i.z : of_i.z)));
 
-	return vec3(abs(p.x) < origin ? p.x + floatScale * n.x : p_i.x,  //
-			abs(p.y) < origin ? p.y + floatScale * n.y : p_i.y,  //
+	return vec3(abs(p.x) < origin ? p.x + floatScale * n.x : p_i.x,
+			abs(p.y) < origin ? p.y + floatScale * n.y : p_i.y,
 			abs(p.z) < origin ? p.z + floatScale * n.z : p_i.z);
 }
 
