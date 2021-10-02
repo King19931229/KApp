@@ -45,7 +45,7 @@ const char* DEVICE_RAYTRACE_EXTENSIONS[] =
 {
 	// Required by VK_KHR_acceleration_structure
 	VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-	// Required by Ray tracing
+	// Required by Ray Tracing
 	VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
 	VK_KHR_RAY_QUERY_EXTENSION_NAME,
 	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
@@ -57,6 +57,13 @@ const char* DEVICE_RAYTRACE_EXTENSIONS[] =
 	VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
 	// Required by VK_KHR_spirv_1_4
 	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
+};
+
+const char* DEVICE_MESHSHADER_EXTENSIONS[] =
+{
+	// Required by Mesh Shader (Only _NV_ for now, _KHR_ may be added in the future)
+	VK_NV_MESH_SHADER_EXTENSION_NAME,
+	VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME,
 };
 
 //-------------------- Validation Layer --------------------//
@@ -306,7 +313,7 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 		std::vector<VkExtensionProperties> extensions(extCount);
 		if (vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
 		{
-			for (auto ext : extensions)
+			for (const auto& ext : extensions)
 			{
 				device.supportedExtensions.push_back(ext.extensionName);
 			}
@@ -322,13 +329,19 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 		// Discrete GPUs have a significant performance advantage
 		if (device.deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
-			device.score += 1000;
+			device.score += 5000;
 		}
 
 		// Support raytracing
-		if(device.supportRaytraceExtension)
+		if (device.supportRaytraceExtension)
 		{
-			device.score += 200;
+			device.score += 500;
+		}
+
+		// Support meshshader
+		if (device.supportMeshShaderExtension)
+		{
+			device.score += 50;
 		}
 	}
 	else
@@ -387,42 +400,62 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 
 void* KVulkanRenderDevice::GetEnabledFeatures()
 {
-	// Enable features required for ray tracing using feature chaining via pNext
+	void* pNext = nullptr;
 
+	// Enable features required for ray tracing using feature chaining via pNext
 	static VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddresFeatures = {};
 	enabledBufferDeviceAddresFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
 	enabledBufferDeviceAddresFeatures.bufferDeviceAddress = VK_TRUE;
+	enabledBufferDeviceAddresFeatures.pNext = pNext;
+	pNext = &enabledBufferDeviceAddresFeatures;
 
 	static VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
 	physicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
 	physicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 	physicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
 	physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
-	physicalDeviceDescriptorIndexingFeatures.pNext = &enabledBufferDeviceAddresFeatures;
+	physicalDeviceDescriptorIndexingFeatures.pNext = pNext;
+	pNext = &physicalDeviceDescriptorIndexingFeatures;
 
 	if (m_PhysicalDevice.supportRaytraceExtension)
 	{
 		static VkPhysicalDeviceRayTracingPipelineFeaturesKHR enabledRayTracingPipelineFeatures = {};
 		enabledRayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
 		enabledRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
-		enabledRayTracingPipelineFeatures.pNext = &physicalDeviceDescriptorIndexingFeatures;
+		enabledRayTracingPipelineFeatures.pNext = pNext;
+		pNext = &enabledRayTracingPipelineFeatures;
 
 		static VkPhysicalDeviceAccelerationStructureFeaturesKHR enabledAccelerationStructureFeatures = {};
 		enabledAccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
 		enabledAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
-		enabledAccelerationStructureFeatures.pNext = &enabledRayTracingPipelineFeatures;
+		enabledAccelerationStructureFeatures.pNext = pNext;
+		pNext = &enabledAccelerationStructureFeatures;
 
 		static VkPhysicalDeviceRayQueryFeaturesKHR enabledRayqueryFeatures = {};
 		enabledRayqueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
 		enabledRayqueryFeatures.rayQuery = VK_TRUE;
-		enabledRayqueryFeatures.pNext = &enabledAccelerationStructureFeatures;
+		enabledRayqueryFeatures.pNext = pNext;
+		pNext = &enabledRayqueryFeatures;
+	}
 
-		return &enabledRayqueryFeatures;
-	}
-	else
+	if (m_PhysicalDevice.supportMeshShaderExtension)
 	{
-		return &physicalDeviceDescriptorIndexingFeatures;
+		static VkPhysicalDeviceMeshShaderFeaturesNV meshFeatures = {};
+		meshFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+		meshFeatures.taskShader = VK_TRUE;
+		meshFeatures.meshShader = VK_TRUE;
+		meshFeatures.pNext = pNext;
+		pNext = &meshFeatures;
+
+		static VkPhysicalDeviceFloat16Int8FeaturesKHR float16int8Features = {};
+		float16int8Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR;
+		float16int8Features.shaderFloat16 = VK_TRUE;
+		float16int8Features.shaderInt8 = VK_TRUE;
+		float16int8Features.pNext = pNext;
+		pNext = &float16int8Features;
 	}
+
+	return pNext;
 }
 
 bool KVulkanRenderDevice::CreateLogicalDevice()
@@ -650,6 +683,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		{
 			extensionNames.insert(extensionNames.end(), DEVICE_NV_EXTENSIONS, DEVICE_NV_EXTENSIONS + ARRAY_SIZE(DEVICE_NV_EXTENSIONS));
 		}
+
 		if (m_PhysicalDevice.supportRaytraceExtension)
 		{
 			extensionNames.insert(extensionNames.end(), DEVICE_RAYTRACE_EXTENSIONS, DEVICE_RAYTRACE_EXTENSIONS + ARRAY_SIZE(DEVICE_RAYTRACE_EXTENSIONS));
@@ -658,6 +692,16 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		else
 		{
 			m_Properties.raytraceSupport = false;
+		}
+
+		if (m_PhysicalDevice.supportMeshShaderExtension)
+		{
+			extensionNames.insert(extensionNames.end(), DEVICE_MESHSHADER_EXTENSIONS, DEVICE_MESHSHADER_EXTENSIONS + ARRAY_SIZE(DEVICE_MESHSHADER_EXTENSIONS));
+			m_Properties.meshShaderSupport = true;
+		}
+		else
+		{
+			m_Properties.meshShaderSupport = false;
 		}
 
 		// 填充VkDeviceCreateInfo
@@ -1081,6 +1125,16 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 		}
 	}
 
+	device.supportMeshShaderExtension = true;
+	for (const char* requiredExt : DEVICE_MESHSHADER_EXTENSIONS)
+	{
+		if (std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
+		{
+			device.supportMeshShaderExtension = false;
+			break;
+		}
+	}
+
 	return true;
 }
 
@@ -1088,6 +1142,7 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 {
 	KVulkanGlobal::device = m_Device;
 	KVulkanGlobal::supportRaytrace = m_PhysicalDevice.supportRaytraceExtension;
+	KVulkanGlobal::supportMeshShader = m_PhysicalDevice.supportMeshShaderExtension;
 	KVulkanGlobal::instance = m_Instance;
 	KVulkanGlobal::physicalDevice = m_PhysicalDevice.device;
 	KVulkanGlobal::deviceProperties = m_PhysicalDevice.deviceProperties;
@@ -1134,6 +1189,7 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 {
 	KVulkanGlobal::deviceReady = false;
 	KVulkanGlobal::supportRaytrace = false;
+	KVulkanGlobal::supportMeshShader = false;
 	KVulkanGlobal::instance = VK_NULL_HANDLE;
 	KVulkanGlobal::device = VK_NULL_HANDLE;
 	KVulkanGlobal::physicalDevice = VK_NULL_HANDLE;

@@ -4,6 +4,7 @@
 #include "Interface/IKAccelerationStructure.h"
 #include "Internal/KVertexDefinition.h"
 #include "Internal/Asset/Material/KMaterialTextureBinding.h"
+#include "Meshlet/KMeshlet.h"
 
 #include <functional>
 
@@ -23,9 +24,13 @@ protected:
 
 	const KVertexData*			m_pVertexData;
 	KIndexData					m_IndexData;
-	IKAccelerationStructurePtr	m_AccelerationStructure;
 	bool						m_IndexDraw;
+
+	IKAccelerationStructurePtr	m_AccelerationStructure;
 	bool						m_NeedAccelerationStructure;
+
+	KMeshletGeometry			m_Meshlet;
+	bool						m_NeedMeshlet;
 
 	size_t						m_FrameInFlight;
 public:
@@ -38,6 +43,9 @@ public:
 
 	bool CreateAccelerationStructure();
 	bool DestroyAccelerationStructure();
+
+	bool CreateMeshlet();
+	bool DestroyMeshlet();
 
 	inline size_t GetFrameInFlight() const { return m_FrameInFlight; }
 	inline DebugPrimitive GetDebugPrimitive() const { return m_DebugPrimitive; }

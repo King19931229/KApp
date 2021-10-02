@@ -1,6 +1,5 @@
 #include "rtao_define.h"
 
-layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 layout(binding = BINDING_GBUFFER_NORMAL, rgba32f) uniform image2D normalImage;
 layout(binding = BINDING_GBUFFER_POSITION, rgba32f) uniform image2D positionImage;
 layout(binding = BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, rg16f) uniform image2D sqaredMeanVarianceImage;

@@ -92,10 +92,11 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray4.scene");
+	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray.scene");
 
 	KRenderCoreInitCallback callback = [engine]()
 	{
+		/*
 		auto renderScene = engine->GetRenderCore()->GetRenderScene();
 		auto rayTraceMgr = engine->GetRenderCore()->GetRayTraceMgr();
 		auto device = engine->GetRenderCore()->GetRenderDevice();
@@ -115,6 +116,7 @@ int main()
 		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
 
 		engine->GetRenderCore()->InitRTAO(rayTraceScene);
+		*/
 	};
 	engine->GetRenderCore()->RegisterInitCallback(&callback);
 	callback();

@@ -29,7 +29,7 @@ struct KVertexData
 	{
 	}
 
-	void Clear()
+	void Reset()
 	{
 		vertexBuffers.clear();
 		vertexFormats.clear();
@@ -64,7 +64,7 @@ struct KIndexData
 	{
 	}
 
-	void Clear()
+	void Reset()
 	{
 		indexBuffer = nullptr;
 		indexStart = 0;

@@ -64,6 +64,10 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 		{
 			usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 		}
+		if (KVulkanGlobal::supportMeshShader)
+		{
+			usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		}
 
 		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize
 			, usageFlags

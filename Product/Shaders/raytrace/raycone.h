@@ -97,7 +97,7 @@ SurfaceHit InitializeSurfaceHit(in vec3 camera, in vec2 uv)
 	SurfaceHit gbuffer;
 
 	float K_1 = 0.003;
-	float K_2 = 0.00005;
+	float K_2 = 0.0003;
 
 	vec3 DDP_X = DD_Position(uv, vec2(1.0, 0.0));
 	vec3 DDP_Y = DD_Position(uv, vec2(0.0, 1.0));

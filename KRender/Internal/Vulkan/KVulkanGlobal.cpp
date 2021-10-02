@@ -4,6 +4,7 @@ namespace KVulkanGlobal
 {
 	bool deviceReady = false;
 	bool supportRaytrace = false;
+	bool supportMeshShader = false;
 
 	VkInstance instance = VK_NULL_HANDLE;
 	VkDevice device = VK_NULL_HANDLE;

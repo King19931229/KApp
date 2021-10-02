@@ -205,29 +205,29 @@ void main()
 
 	ComputeValues(reprojectPos, prevNormalDepth, prevSqaredmeanVariance, prevValue);
 
-	vec4 cur_normal_depth = imageLoad(curNormalDepthImage, storePos);
-	// TODO setup a reproject pass
 	if(pixelSkip)
 	{
 		imageStore(outImage, storePos, vec4(prevValue, 0, 0));
 		imageStore(sqaredMeanVarianceImage, storePos, vec4(prevSqaredmeanVariance, 0, 0));
 	}
 
+	vec4 curNormalDepth = imageLoad(curNormalDepthImage, storePos);
+
 	uint tspp = floatBitsToUint(prevValue.g);
 	float weight = 0.0;
 
-	if(/*dot(motion, motion) < 1e-4)*/ abs(motion.x) < 1e-2)
+	if(abs(motion.x) < 1e-2)
 	{
 		const float eps = 1e-5;
 		const float normalCutStrength = 1.0;
-		float normalWeight = clamp(dot(cur_normal_depth.rgb, prevNormalDepth.rgb) + eps, 0.0, 1.0);
+		float normalWeight = clamp(dot(curNormalDepth.rgb, prevNormalDepth.rgb) + eps, 0.0, 1.0);
 		normalWeight = pow(normalWeight, normalCutStrength);
 
 		vec2 ddxyDepth = DDXYDepth(ivec2(gl_GlobalInvocationID.xy), outSize);
 		float depthFloatPrecision = eps;
 		float depthThreshold = dot(vec2(1.0), abs(ddxyDepth));
 		float depthTolerance = depthThreshold + depthFloatPrecision;
-		float dpethDelta = abs(prevNormalDepth.a - cur_normal_depth.a);
+		float dpethDelta = abs(prevNormalDepth.a - curNormalDepth.a);
 		dpethDelta = max(0, dpethDelta - depthFloatPrecision);
 		float depthWeight = exp(-dpethDelta / depthTolerance);
 		weight = normalWeight * depthWeight;

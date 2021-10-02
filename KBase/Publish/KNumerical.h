@@ -1,3 +1,4 @@
+#pragma once
 #include <assert.h>
 
 namespace KNumerical
@@ -84,36 +85,34 @@ namespace KNumerical
 
 	// 从0开始计算
 	template<typename T>
-	T HighestBinaryBit(T num)
+	int32_t FindMSB(T num)
 	{
 		if(num > 0)
 		{
-			T val = 0;
+			int32_t val = 0;
 			for(T n = num; n > 0; n >>= (T)1)
 				++val;
-			return val - (T)1;
+			return val - 1;
 		}
 		else
 		{
-			assert(false && "num is not greater than 0");
-			return 0;
+			return -1;
 		}
 	}
 
 	template<typename T>
-	T LowestBinaryBit(T num)
+	int32_t FindLSB(T num)
 	{
 		if(num > 0)
 		{
-			T val = 0;
+			int32_t val = 0;
 			for(T n = num; (n & (T)1) == 0 ; n >>= (T)1)
 				++val;
 			return val;
 		}
 		else
 		{
-			assert(false && "num is not greater than 0");
-			return 0;
+			return -1;
 		}
 	}
 

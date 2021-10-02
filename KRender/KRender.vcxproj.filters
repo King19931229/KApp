@@ -67,6 +67,9 @@
     <Filter Include="Internal\RayTrace">
       <UniqueIdentifier>{56e8c0fe-0753-4f9a-9da7-ded5ae38147b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Asset\Meshlet">
+      <UniqueIdentifier>{92ff14c0-0d03-4bac-b20c-78455bcc2f16}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -458,6 +461,9 @@
     </ClInclude>
     <ClInclude Include="Internal\Object\KDebugDrawer.h">
       <Filter>Internal\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Asset\Meshlet\KMeshlet.h">
+      <Filter>Internal\Asset\Meshlet</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -57,6 +57,7 @@
     <ClInclude Include="Internal\Asset\Material\KMaterialShader.h" />
     <ClInclude Include="Internal\Asset\Material\KMaterialTextureBinding.h" />
     <ClInclude Include="Internal\Asset\Material\KMaterialValue.h" />
+    <ClInclude Include="Internal\Asset\Meshlet\KMeshlet.h" />
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializer.h" />
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializerV0.h" />
     <ClInclude Include="Internal\Asset\Utility\KMeshUtilityInfo.h" />

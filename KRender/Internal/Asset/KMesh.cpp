@@ -328,7 +328,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 			}
 
 			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, std::move(textures), frameInFlight));
-			indexData.Clear();
+			indexData.Reset();
 		}
 		m_Path = szPath;
 

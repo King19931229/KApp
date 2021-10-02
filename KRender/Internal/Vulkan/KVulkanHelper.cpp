@@ -454,7 +454,7 @@ namespace KVulkanHelper
 	bool ShaderTypesToVkShaderStageFlag(ShaderTypes shaderTypes, VkFlags& flags)
 	{
 		flags = 0;
-		const ShaderType candidate[] = { ST_VERTEX, ST_FRAGMENT, ST_RAYGEN, ST_ANY_HIT, ST_CLOSEST_HIT , ST_MISS, ST_COMPUTE };
+		const ShaderType candidate[] = { ST_VERTEX, ST_FRAGMENT, ST_RAYGEN, ST_ANY_HIT, ST_CLOSEST_HIT , ST_MISS, ST_COMPUTE, ST_TASK, ST_MESH };
 		static_assert((1 << (ARRAY_SIZE(candidate) - 1)) + 1 == ST_ENDENUM, "Array size should match");
 		for(ShaderType c : candidate)
 		{

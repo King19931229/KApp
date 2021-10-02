@@ -16,6 +16,7 @@ struct KRenderDeviceProperties
 	bool etc2Support;
 	bool astcSupport;
 	bool raytraceSupport;
+	bool meshShaderSupport;
 	size_t uniformBufferMaxRange;
 	size_t uniformBufferOffsetAlignment;
 	size_t storageBufferOffsetAlignment;
@@ -28,6 +29,7 @@ struct KRenderDeviceProperties
 		etc2Support = false;
 		astcSupport = false;
 		raytraceSupport = false;
+		meshShaderSupport = false;
 		uniformBufferMaxRange = 512;
 		uniformBufferOffsetAlignment = 8;
 		storageBufferOffsetAlignment = 8;

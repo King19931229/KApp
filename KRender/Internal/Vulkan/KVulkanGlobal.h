@@ -7,6 +7,7 @@ namespace KVulkanGlobal
 {
 	extern bool deviceReady;
 	extern bool supportRaytrace;
+	extern bool supportMeshShader;
 
 	extern VkInstance instance;
 	extern VkDevice device;

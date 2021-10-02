@@ -335,8 +335,8 @@ bool KOcclusionBox::UnInit()
 
 	SAFE_UNINIT(m_CommandPool);
 
-	m_VertexData.Clear();
-	m_IndexData.Clear();
+	m_VertexData.Reset();
+	m_IndexData.Reset();
 
 	m_Device = nullptr;
 

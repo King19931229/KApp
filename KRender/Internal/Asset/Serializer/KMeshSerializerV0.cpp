@@ -221,7 +221,7 @@ bool KMeshSerializerV0::ReadVertexData(IKDataStreamPtr& stream, KVertexData& ver
 	vertexData.vertexBuffers = std::move(vertexBuffers);
 	vertexData.vertexStart = vertexStart;
 	vertexData.vertexCount = vertexCount;
-	vertexData.bound = std::move(bound);
+	vertexData.bound = bound;
 
 	return true;
 }
@@ -317,7 +317,7 @@ bool KMeshSerializerV0::ReadIndexData(IKDataStreamPtr& stream, std::vector<KInde
 			return false;
 		}
 		tempIndexDatas.push_back(indexData);
-		indexData.Clear();
+		indexData.Reset();
 	};
 
 	indexDatas = std::move(tempIndexDatas);

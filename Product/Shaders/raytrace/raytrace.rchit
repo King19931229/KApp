@@ -39,11 +39,6 @@ void main()
 
 	const vec3 barycentrics = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
 
-	// Computing the normal at hit position
-	vec3 normal = v0.nrm * barycentrics.x + v1.nrm * barycentrics.y + v2.nrm * barycentrics.z;
-	// Transforming the normal to world space
-	normal = normalize(vec3(objResource.transfoIT * vec4(normal, 0.0)));
-
 	const vec2 uv0       = v0.texCoord;
 	const vec2 uv1       = v1.texCoord;
 	const vec2 uv2       = v2.texCoord;
@@ -54,6 +49,23 @@ void main()
 	const vec3 p1        = vec3(objResource.transfo * vec4(v1.pos, 1.0));
 	const vec3 p2        = vec3(objResource.transfo * vec4(v2.pos, 1.0));
 	const vec3 worldPos  = p0 * barycentrics.x + p1 * barycentrics.y + p2 * barycentrics.z;
+
+	// Computing the normal at hit position
+	// vec3 normal = v0.nrm * barycentrics.x + v1.nrm * barycentrics.y + v2.nrm * barycentrics.z;
+	// Transforming the normal to world space
+	// normal = normalize(vec3(objResource.transfoIT * vec4(normal, 0.0)));
+	vec3 normal			= vec3(0.0);
+	const float smallArea = 5.0;
+	vec3 crossProduct = cross(p2 - p1, p2 - p0);
+	if(length(crossProduct) > smallArea)
+	{
+		normal = normalize(crossProduct);
+	}
+	else
+	{
+		normal = v0.nrm * barycentrics.x + v1.nrm * barycentrics.y + v2.nrm * barycentrics.z;
+		normal = normalize(vec3(objResource.transfoIT * vec4(normal, 0.0)));
+	}
 
 	// Using 0 since no curvature measure at second hit
 	prd.cone = Propagate(prd.cone, 0, distance(worldPos, prd.rayOrigin));

@@ -9,10 +9,11 @@ KSubMesh::KSubMesh(KMesh* parent)
 	m_pMaterial(nullptr),
 	m_DebugPrimitive(DEBUG_PRIMITIVE_TRIANGLE),
 	m_pVertexData(nullptr),
-	m_AccelerationStructure(nullptr),
 	m_FrameInFlight(0),
 	m_IndexDraw(true),
-	m_NeedAccelerationStructure(true)
+	m_AccelerationStructure(nullptr),
+	m_NeedAccelerationStructure(true),
+	m_NeedMeshlet(true)
 {
 }
 
@@ -34,6 +35,11 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	if (m_NeedAccelerationStructure)
 	{
 		CreateAccelerationStructure();
+	}
+
+	if (m_NeedMeshlet)
+	{
+		CreateMeshlet();
 	}
 
 	return true;
@@ -68,14 +74,13 @@ bool KSubMesh::UnInit()
 	m_IndexData.Destroy();
 	m_FrameInFlight = 0;
 	m_Texture.Clear();
-	SAFE_UNINIT(m_AccelerationStructure);
-
+	DestroyAccelerationStructure();
+	DestroyMeshlet();
 	return true;
 }
 
 bool KSubMesh::CreateAccelerationStructure()
 {
-	m_NeedAccelerationStructure = true;
 	if (m_AccelerationStructure)
 		return true;
 
@@ -107,10 +112,80 @@ bool KSubMesh::CreateAccelerationStructure()
 
 bool KSubMesh::DestroyAccelerationStructure()
 {
-	m_NeedAccelerationStructure = false;
 	if (!m_AccelerationStructure)
 		return true;
 	SAFE_UNINIT(m_AccelerationStructure);
+	return true;
+}
 
+bool KSubMesh::CreateMeshlet()
+{
+	if (m_IndexData.indexBuffer && m_pVertexData)
+	{
+		ASSERT_RESULT(m_pVertexData->vertexFormats[0] == VF_POINT_NORMAL_UV);
+
+		KMeshletPackBasicBuilder buider;
+		buider.Setup(32, 84, false);
+
+		std::vector<char> indices;
+		std::vector<char> vertices;
+
+		indices.resize(m_IndexData.indexBuffer->GetBufferSize());
+		vertices.resize(m_pVertexData->vertexBuffers[0]->GetBufferSize());
+
+		ASSERT_RESULT(m_IndexData.indexBuffer->Read(indices.data()));
+		ASSERT_RESULT(m_pVertexData->vertexBuffers[0]->Read(vertices.data()));
+
+		uint32_t minVertex = UINT32_MAX;
+		uint32_t maxVertex = 0;
+
+		void* pIndices = indices.data();
+		void* pVertices = vertices.data();
+
+		if (m_IndexData.indexBuffer->GetIndexType() == IT_16)
+		{
+			pIndices = POINTER_OFFSET(pIndices, 2 * m_IndexData.indexStart);
+			ASSERT_RESULT(buider.BuildMeshlets(m_Meshlet, m_IndexData.indexCount, (uint16_t*)pIndices) == m_IndexData.indexCount);
+			for (size_t i = 0; i < m_IndexData.indexCount; ++i)
+			{
+				uint16_t vertex = *(uint16_t*)POINTER_OFFSET(pIndices, 2 * i);
+				minVertex = std::min((uint32_t)vertex, minVertex);
+				maxVertex = std::max((uint32_t)vertex, maxVertex);
+			}
+		}
+		else
+		{
+			pIndices = POINTER_OFFSET(pIndices, 4 * m_IndexData.indexStart);
+			ASSERT_RESULT(buider.BuildMeshlets(m_Meshlet, m_IndexData.indexCount, (uint32_t*)pIndices) == m_IndexData.indexCount);
+			for (size_t i = 0; i < m_IndexData.indexCount; ++i)
+			{
+				uint32_t vertex = *(uint32_t*)POINTER_OFFSET(pIndices, 4 * i);
+				minVertex = std::min((uint32_t)vertex, minVertex);
+				maxVertex = std::max((uint32_t)vertex, maxVertex);
+			}
+		}
+
+		size_t positionStride = m_pVertexData->vertexBuffers[0]->GetVertexSize();
+		buider.BuildMeshletEarlyCulling(m_Meshlet, m_pVertexData->bound.GetMin(), m_pVertexData->bound.GetMax(), (const float*)pVertices, positionStride);
+
+		if (m_IndexData.indexBuffer->GetIndexType() == IT_16)
+		{
+			ASSERT_RESULT(buider.ErrorCheck(m_Meshlet, minVertex, maxVertex, m_IndexData.indexCount, (uint16_t*)pIndices) == KMESHLET_STATUS_NO_ERROR);
+		}
+		else
+		{
+			ASSERT_RESULT(buider.ErrorCheck(m_Meshlet, minVertex, maxVertex, m_IndexData.indexCount, (uint32_t*)pIndices) == KMESHLET_STATUS_NO_ERROR);
+		}
+
+		buider.PadTaskMeshlets(m_Meshlet);
+
+		return true;
+	}
+	return false;
+}
+
+bool KSubMesh::DestroyMeshlet()
+{
+	m_Meshlet.Reset();
 	return true;
 }
