@@ -26,6 +26,15 @@ class KVulkanPipeline : public IKPipeline
 {
 	friend class KVulkanPipelineHandle;
 	friend class KVulkanDescriptorPool;
+public:
+	enum
+	{
+		VERTEX,
+		FRAGMENT,
+		TASK,
+		MESH,
+		COUNT
+	};
 protected:
 	// 顶点装配信息
 	std::vector<VkVertexInputBindingDescription> m_BindingDescriptions;
@@ -49,12 +58,6 @@ protected:
 	VkBool32 m_DepthTest;
 	VkCompareOp m_DepthCompareOp;
 
-	// 深度偏移
-	/*
-	float m_DepthBiasConstantFactor;
-	float m_DepthBiasClamp;
-	float m_DepthBiasSlopeFactor;
-	*/
 	VkBool32 m_DepthBiasEnable;
 
 	// 模板信息
@@ -80,9 +83,6 @@ protected:
 	};
 	PushConstantBindingInfo m_PushContant;
 
-	IKShaderPtr m_VertexShader;
-	IKShaderPtr m_FragmentShader;
-
 	// Sampler 信息
 	struct SamplerBindingInfo
 	{
@@ -103,10 +103,18 @@ protected:
 	};
 	std::unordered_map<unsigned int, SamplerBindingInfo> m_Samplers;
 
-	uint32_t				m_UniformBufferDescriptorCount;
-	uint32_t				m_SamplerDescriptorCount;
+	// Storage Buffer信息
+	struct StorageBufferBindingInfo
+	{
+		ShaderTypes shaderTypes;
+	};
+	std::unordered_map<unsigned int, StorageBufferBindingInfo> m_Storages;
+
+	IKShaderPtr m_Shaders[COUNT];
 
 	std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetLayoutBinding;
+
+	// 以下数据需要被持有
 	std::vector<VkWriteDescriptorSet> m_WriteDescriptorSet;
 	std::vector<VkDescriptorImageInfo> m_ImageWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
@@ -169,5 +177,6 @@ public:
 	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
-	VkDescriptorSet AllocDescriptorSet(const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount);
+	VkDescriptorSet AllocDescriptorSet(const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
+		const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
 };

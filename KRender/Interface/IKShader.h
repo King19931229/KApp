@@ -7,6 +7,13 @@
 
 struct KShaderInformation
 {
+	struct Storage
+	{
+		uint16_t descriptorSetIndex;
+		uint16_t bindingIndex;
+		uint16_t size;
+	};
+
 	struct Constant
 	{
 		uint16_t descriptorSetIndex;
@@ -51,6 +58,7 @@ struct KShaderInformation
 		uint16_t bindingIndex;
 	};
 
+	std::vector<Storage> storages;
 	std::vector<Constant> constants;
 	std::vector<Constant> pushConstants;
 	std::vector<Constant> dynamicConstants;

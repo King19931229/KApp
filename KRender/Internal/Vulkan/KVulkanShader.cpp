@@ -224,6 +224,21 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 		}
 	};
 
+	for (const spirv_cross::Resource& block : resources.storage_buffers)
+	{
+		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
+
+		KShaderInformation::Storage storage;
+		storage.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
+		storage.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
+		storage.size = (uint16_t)compiler.get_declared_struct_size(type);
+
+		if (storage.bindingIndex >= SBT_BEGIN && storage.bindingIndex <= SBT_END)
+		{
+			information.storages.push_back(storage);
+		}
+	}
+
 	for (const spirv_cross::Resource& block : resources.uniform_buffers)
 	{
 		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
@@ -249,16 +264,16 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 			member.vecSize = (uint8_t)memberType.vecsize;
 			member.dimension = (uint8_t)memberType.columns;
 
-			constant.members.push_back(std::move(member));
+			constant.members.push_back(member);
 		}
 
 		if (constant.bindingIndex >= CBT_STATIC_BEGIN && constant.bindingIndex <= CBT_STATIC_END)
 		{
-			information.constants.push_back(std::move(constant));
+			information.constants.push_back(constant);
 		}
 		else
 		{
-			information.dynamicConstants.push_back(std::move(constant));
+			information.dynamicConstants.push_back(constant);
 		}
 	}
 
@@ -290,10 +305,10 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 			member.vecSize = (uint8_t)memberType.vecsize;
 			member.dimension = (uint8_t)memberType.columns;
 
-			constant.members.push_back(std::move(member));
+			constant.members.push_back(member);
 		}
 
-		information.pushConstants.push_back(std::move(constant));
+		information.pushConstants.push_back(constant);
 	}
 
 	information.textures.clear();
@@ -307,7 +322,7 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 		texture.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
 		texture.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
 
-		information.textures.push_back(std::move(texture));
+		information.textures.push_back(texture);
 	}
 
 	return true;

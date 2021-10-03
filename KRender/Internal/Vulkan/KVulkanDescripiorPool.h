@@ -36,9 +36,10 @@ protected:
 	VkDescriptorSetLayout m_Layout;
 	std::vector<DescriptorSetBlockList> m_Descriptors;
 
-	std::vector<VkDescriptorImageInfo> m_ImageWriteInfo;
-	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
-	std::vector<VkDescriptorBufferInfo> m_DynamicBufferWriteInfo;
+	std::vector<VkDescriptorImageInfo> m_DynamicImageWriteInfo;
+	std::vector<VkDescriptorBufferInfo> m_StaticUniformBufferWriteInfo;
+	std::vector<VkDescriptorBufferInfo> m_DynamicUniformBufferWriteInfo;
+	std::vector<VkDescriptorBufferInfo> m_DynamicStorageBufferWriteInfo;
 
 	std::vector<VkWriteDescriptorSet> m_DescriptorWriteInfo;
 	// 持久化的临时容器
@@ -46,8 +47,9 @@ protected:
 
 	size_t m_CurrentFrame;
 	size_t m_BlockSize;
-	uint32_t m_UniformBufferCount;
-	uint32_t m_DyanmicUniformBufferCount;
+	uint32_t m_StaticUniformBufferCount;
+	uint32_t m_DynamicUniformBufferCount;
+	uint32_t m_StorageBufferCount;
 	uint32_t m_SamplerCount;
 
 	std::mutex m_Lock;
@@ -65,7 +67,7 @@ public:
 		const std::vector<VkWriteDescriptorSet>& writeInfo);
 	bool UnInit();
 
-	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame,
-		IKPipeline* pipeline,
-		const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount);
+	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,
+		const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
+		const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
 };

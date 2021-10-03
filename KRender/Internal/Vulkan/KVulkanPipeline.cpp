@@ -22,15 +22,8 @@ KVulkanPipeline::KVulkanPipeline() :
 	m_DepthWrite(VK_TRUE),
 	m_DepthTest(VK_TRUE),
 	m_DepthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL),
-	m_UniformBufferDescriptorCount(0),
-	m_SamplerDescriptorCount(0),
 	m_DescriptorSetLayout(VK_NULL_HANDLE),
 	m_PipelineLayout(VK_NULL_HANDLE),
-	/*
-	m_DepthBiasConstantFactor(0),
-	m_DepthBiasClamp(0),
-	m_DepthBiasSlopeFactor(0),
-	*/
 	m_DepthBiasEnable(VK_FALSE),
 	m_StencilFailOp(VK_STENCIL_OP_KEEP),
 	m_StencilDepthFailOp(VK_STENCIL_OP_KEEP),
@@ -51,8 +44,10 @@ KVulkanPipeline::~KVulkanPipeline()
 {
 	ASSERT_RESULT(m_DescriptorSetLayout == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
-	ASSERT_RESULT(m_VertexShader == nullptr);
-	ASSERT_RESULT(m_FragmentShader == nullptr);
+	for (uint32_t i = 0; i < COUNT; ++i)
+	{
+		ASSERT_RESULT(m_Shaders[i] == nullptr);
+	}
 	ASSERT_RESULT(m_Uniforms.empty());
 	ASSERT_RESULT(m_Samplers.empty());
 }
@@ -120,7 +115,7 @@ bool KVulkanPipeline::SetVertexBinding(const VertexFormat* formats, size_t count
 			detail.attributeDescriptions.begin(),
 			detail.attributeDescriptions.end()
 			);
-	}	
+	}
 	return true;
 }
 
@@ -174,16 +169,6 @@ bool KVulkanPipeline::SetDepthFunc(CompareFunc func, bool depthWrtie, bool depth
 	return true;
 }
 
-/*
-bool KVulkanPipeline::SetDepthBias(float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor)
-{
-	m_DepthBiasConstantFactor = depthBiasConstantFactor;
-	m_DepthBiasClamp = depthBiasClamp;
-	m_DepthBiasSlopeFactor = depthBiasSlopeFactor;
-	return true;
-}
-*/
-
 bool KVulkanPipeline::SetDepthBiasEnable(bool enable)
 {
 	m_DepthBiasEnable = (VkBool32)enable;
@@ -216,10 +201,16 @@ bool KVulkanPipeline::SetShader(ShaderType shaderType, IKShaderPtr shader)
 	switch (shaderType)
 	{
 	case ST_VERTEX:
-		m_VertexShader = shader;
+		m_Shaders[VERTEX] = shader;
 		return true;
 	case ST_FRAGMENT:
-		m_FragmentShader = shader;
+		m_Shaders[FRAGMENT] = shader;
+		return true;
+	case ST_TASK:
+		m_Shaders[TASK] = shader;
+		return true;
+	case ST_MESH:
+		m_Shaders[MESH] = shader;
 		return true;
 	default:
 		assert(false && "unknown shader");
@@ -319,7 +310,7 @@ bool KVulkanPipeline::CreateLayout()
 	*/
 	m_DescriptorSetLayoutBinding.clear();
 
-	auto AddLayoutBinding = [](std::vector<VkDescriptorSetLayoutBinding>& bindings, VkDescriptorSetLayoutBinding newBinding)
+	auto MergeLayoutBinding = [](std::vector<VkDescriptorSetLayoutBinding>& bindings, const VkDescriptorSetLayoutBinding& newBinding)
 	{
 		auto it = std::find_if(bindings.begin(), bindings.end(),
 			[&newBinding](const VkDescriptorSetLayoutBinding& reference)->bool
@@ -345,11 +336,24 @@ bool KVulkanPipeline::CreateLayout()
 		}
 	};
 
-	// VertexShader Binding
+	auto AddLayoutBinding = [this, MergeLayoutBinding](const KShaderInformation& information, VkShaderStageFlags stageFlag)
 	{
-		const KShaderInformation& vertexInformation = m_VertexShader->GetInformation();
+		for (const KShaderInformation::Storage& storage : information.storages)
+		{
+			VkDescriptorSetLayoutBinding sboLayoutBinding = {};
+			// 与Shader中绑定位置对应
+			sboLayoutBinding.binding = storage.bindingIndex;
+			sboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			// 声明SBO Buffer数组长度 这里不使用数组
+			sboLayoutBinding.descriptorCount = 1;
+			// 声明哪个阶段Shader能够使用上此UBO
+			sboLayoutBinding.stageFlags = stageFlag;
+			sboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-		for (const KShaderInformation::Constant& constant : vertexInformation.constants)
+			MergeLayoutBinding(m_DescriptorSetLayoutBinding, sboLayoutBinding);
+		}
+
+		for (const KShaderInformation::Constant& constant : information.constants)
 		{
 			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
 			// 与Shader中绑定位置对应
@@ -358,13 +362,13 @@ bool KVulkanPipeline::CreateLayout()
 			// 声明UBO Buffer数组长度 这里不使用数组
 			uboLayoutBinding.descriptorCount = 1;
 			// 声明哪个阶段Shader能够使用上此UBO
-			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			uboLayoutBinding.stageFlags = stageFlag;
 			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-			
-			AddLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
+
+			MergeLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
 		}
 
-		for (const KShaderInformation::Constant& constant : vertexInformation.dynamicConstants)
+		for (const KShaderInformation::Constant& constant : information.dynamicConstants)
 		{
 			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
 			// 与Shader中绑定位置对应
@@ -373,13 +377,13 @@ bool KVulkanPipeline::CreateLayout()
 			// 声明UBO Buffer数组长度 这里不使用数组
 			uboLayoutBinding.descriptorCount = 1;
 			// 声明哪个阶段Shader能够使用上此UBO
-			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			uboLayoutBinding.stageFlags = stageFlag;
 			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-			AddLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
+			MergeLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
 		}
 
-		for (const KShaderInformation::Texture& texture : vertexInformation.textures)
+		for (const KShaderInformation::Texture& texture : information.textures)
 		{
 			VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 			// 与Shader中绑定位置对应
@@ -388,61 +392,28 @@ bool KVulkanPipeline::CreateLayout()
 			// 这里不使用数组
 			samplerLayoutBinding.descriptorCount = 1;
 			// 声明哪个阶段Shader能够使用上此Sampler
-			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			samplerLayoutBinding.stageFlags = stageFlag;
 			samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-			AddLayoutBinding(m_DescriptorSetLayoutBinding, samplerLayoutBinding);
+			MergeLayoutBinding(m_DescriptorSetLayoutBinding, samplerLayoutBinding);
 		}
+	};
+
+	if (m_Shaders[TASK])
+	{
+		AddLayoutBinding(m_Shaders[TASK]->GetInformation(), VK_SHADER_STAGE_TASK_BIT_NV);
 	}
-
-	// FragmentShader Binding
+	if (m_Shaders[MESH])
 	{
-		const KShaderInformation& fragmentInformation = m_FragmentShader->GetInformation();
-
-		for (const KShaderInformation::Constant& constant : fragmentInformation.constants)
-		{
-			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-			// 与Shader中绑定位置对应
-			uboLayoutBinding.binding = constant.bindingIndex;
-			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			// 声明UBO Buffer数组长度 这里不使用数组
-			uboLayoutBinding.descriptorCount = 1;
-			// 声明哪个阶段Shader能够使用上此UBO
-			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-			
-			AddLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
-		}
-
-		for (const KShaderInformation::Constant& constant : fragmentInformation.dynamicConstants)
-		{
-			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-			// 与Shader中绑定位置对应
-			uboLayoutBinding.binding = constant.bindingIndex;
-			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-			// 声明UBO Buffer数组长度 这里不使用数组
-			uboLayoutBinding.descriptorCount = 1;
-			// 声明哪个阶段Shader能够使用上此UBO
-			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-			AddLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
-		}
-
-		for (const KShaderInformation::Texture& texture : fragmentInformation.textures)
-		{
-			VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-			// 与Shader中绑定位置对应
-			samplerLayoutBinding.binding = texture.bindingIndex;
-			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			// 这里不使用数组
-			samplerLayoutBinding.descriptorCount = 1;
-			// 声明哪个阶段Shader能够使用上此Sampler
-			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-			samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-			AddLayoutBinding(m_DescriptorSetLayoutBinding, samplerLayoutBinding);
-		}
+		AddLayoutBinding(m_Shaders[MESH]->GetInformation(), VK_SHADER_STAGE_MESH_BIT_NV);
+	}
+	if (m_Shaders[VERTEX])
+	{
+		AddLayoutBinding(m_Shaders[VERTEX]->GetInformation(), VK_SHADER_STAGE_VERTEX_BIT);
+	}
+	if (m_Shaders[FRAGMENT])
+	{
+		AddLayoutBinding(m_Shaders[FRAGMENT]->GetInformation(), VK_SHADER_STAGE_FRAGMENT_BIT);
 	}
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -457,57 +428,38 @@ bool KVulkanPipeline::CreateLayout()
 	*/
 	std::vector<VkPushConstantRange> pushConstantRanges;
 
-	auto AddPushConstantRange = [](std::vector<VkPushConstantRange>& ranges, VkPushConstantRange range)
+	auto AddPushConstantRange = [](std::vector<VkPushConstantRange>& ranges, const KShaderInformation& information, VkShaderStageFlags stageFlag)
 	{
-		auto it = std::find_if(ranges.begin(), ranges.end(),
-			[&range](const VkPushConstantRange& reference)->bool
+		for (const KShaderInformation::Constant& constant : information.pushConstants)
 		{
-			if (range.offset != reference.offset)
-				return false;
-			if (range.size != reference.size)
-				return false;
-			return true;
-		});
+			VkPushConstantRange range = {};
+			range.stageFlags = stageFlag;
+			range.offset = 0;
+			range.size = constant.size;
 
-		if (it == ranges.end())
-		{
-			ranges.push_back(range);
-		}
-		else
-		{
-			(*it).stageFlags |= range.stageFlags;
+			auto it = std::find_if(ranges.begin(), ranges.end(), 
+				[&range](const VkPushConstantRange& reference)->bool
+				{
+					if (range.offset != reference.offset)
+						return false;
+					if (range.size != reference.size)
+						return false;
+					return true;
+				});
+
+			if (it == ranges.end())
+			{
+				ranges.push_back(range);
+			}
+			else
+			{
+				(*it).stageFlags |= range.stageFlags;
+			}
 		}
 	};
 
-	// VertexShader Binding
-	{
-		const KShaderInformation& vertexInformation = m_VertexShader->GetInformation();
-
-		for (const KShaderInformation::Constant& constant : vertexInformation.pushConstants)
-		{
-			VkPushConstantRange pushConstantRange = {};
-			pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-			pushConstantRange.offset = 0;
-			pushConstantRange.size = constant.size;
-
-			AddPushConstantRange(pushConstantRanges, pushConstantRange);
-		}
-	}
-
-	// Fragment Binding
-	{
-		const KShaderInformation& fragmentInformation = m_FragmentShader->GetInformation();
-
-		for (const KShaderInformation::Constant& constant : fragmentInformation.pushConstants)
-		{
-			VkPushConstantRange pushConstantRange = {};
-			pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-			pushConstantRange.offset = 0;
-			pushConstantRange.size = constant.size;
-
-			AddPushConstantRange(pushConstantRanges, pushConstantRange);
-		}
-	}
+	AddPushConstantRange(pushConstantRanges, m_Shaders[VERTEX]->GetInformation(), VK_SHADER_STAGE_VERTEX_BIT);
+	AddPushConstantRange(pushConstantRanges, m_Shaders[FRAGMENT]->GetInformation(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	// 创建管线布局
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -623,9 +575,10 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 	return true;
 }
 
-VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount)
+VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
+	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
 {
-	return m_Pool.Alloc(KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppBufferUsage, dynamicBufferUsageCount);
+	return m_Pool.Alloc(KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppConstantUsage, dynamicBufferUsageCount, ppStorageUsage, storageBufferUsageCount);
 }
 
 bool KVulkanPipeline::Init()
@@ -638,8 +591,10 @@ bool KVulkanPipeline::UnInit()
 	DestroyDevice();
 	ClearHandle();
 
-	m_VertexShader = nullptr;
-	m_FragmentShader = nullptr;
+	for (uint32_t i = 0; i < COUNT; ++i)
+	{
+		m_Shaders[i] = nullptr;
+	}
 
 	m_PushContant = { 0, 0 };
 
@@ -660,14 +615,20 @@ bool KVulkanPipeline::Reload()
 
 bool KVulkanPipeline::CheckDependencyResource()
 {
-	if (!m_VertexShader || m_VertexShader->GetResourceState() != RS_DEVICE_LOADED)
+	if (!m_Shaders[VERTEX] && !m_Shaders[MESH])
 	{
 		return false;
 	}
 
-	if (!m_FragmentShader || m_FragmentShader->GetResourceState() != RS_DEVICE_LOADED)
+	if (!m_Shaders[FRAGMENT])
 	{
 		return false;
+	}
+
+	for (uint32_t i = 0; i < COUNT; ++i)
+	{
+		if (m_Shaders[i] && m_Shaders[i]->GetResourceState() != RS_DEVICE_LOADED)
+			return false;
 	}
 
 	for (auto& pair : m_Samplers)
@@ -746,7 +707,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline);
 	KVulkanRenderPass* vulkanRenderPass = static_cast<KVulkanRenderPass*>(renderPass);
 
-	ASSERT_RESULT(vulkanPipeline->m_VertexShader && vulkanPipeline->m_FragmentShader);
+	ASSERT_RESULT(vulkanPipeline->m_Shaders[KVulkanPipeline::VERTEX] && vulkanPipeline->m_Shaders[KVulkanPipeline::FRAGMENT]);
 	ASSERT_RESULT(vulkanPipeline->m_PipelineLayout);
 
 	VkSampleCountFlagBits msaaFlag = vulkanRenderPass->GetMSAAFlag();
@@ -892,7 +853,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 
 	// vs
 	VkPipelineShaderStageCreateInfo vsShaderCreateInfo = {};
-	vulkanShader = (KVulkanShader*)vulkanPipeline->m_VertexShader.get();
+	vulkanShader = (KVulkanShader*)vulkanPipeline->m_Shaders[KVulkanPipeline::VERTEX].get();
 	vsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vsShaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
 	vsShaderCreateInfo.module = vulkanShader->GetShaderModule();
@@ -903,7 +864,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 
 	// fs
 	VkPipelineShaderStageCreateInfo fsShaderCreateInfo = {};
-	vulkanShader = (KVulkanShader*)vulkanPipeline->m_FragmentShader.get();
+	vulkanShader = (KVulkanShader*)vulkanPipeline->m_Shaders[KVulkanPipeline::FRAGMENT].get();
 	fsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	fsShaderCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 	fsShaderCreateInfo.module = vulkanShader->GetShaderModule();

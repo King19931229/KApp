@@ -111,6 +111,18 @@ struct KInstanceBufferUsage
 	}
 };
 
+struct KStorageBufferUsage
+{
+	IKVertexBufferPtr buffer;
+	size_t binding;
+
+	KStorageBufferUsage()
+	{
+		buffer = nullptr;
+		binding = 0;
+	}
+};
+
 struct KRenderCommand
 {
 	const KVertexData* vertexData;

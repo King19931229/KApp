@@ -12,8 +12,9 @@ KVulkanDescriptorPool::KVulkanDescriptorPool()
 	: m_Layout(VK_NULL_HANDLE),
 	m_CurrentFrame(0),
 	m_BlockSize(512),
-	m_UniformBufferCount(0),
-	m_DyanmicUniformBufferCount(0),
+	m_StaticUniformBufferCount(0),
+	m_DynamicUniformBufferCount(0),
+	m_StorageBufferCount(0),
 	m_SamplerCount(0)
 {
 }
@@ -31,8 +32,9 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 
 	m_Layout = layout;
 	m_SamplerCount = 0;
-	m_DyanmicUniformBufferCount = 0;
-	m_UniformBufferCount = 0;
+	m_DynamicUniformBufferCount = 0;
+	m_StaticUniformBufferCount = 0;
+	m_StorageBufferCount = 0;
 
 	for (const VkDescriptorSetLayoutBinding& layoutBinding : descriptorSetLayoutBinding)
 	{
@@ -42,11 +44,15 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		}
 		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
-			m_UniformBufferCount += layoutBinding.descriptorCount;
+			m_StaticUniformBufferCount += layoutBinding.descriptorCount;
 		}
 		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 		{
-			m_DyanmicUniformBufferCount += layoutBinding.descriptorCount;
+			m_DynamicUniformBufferCount += layoutBinding.descriptorCount;
+		}
+		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+		{
+			m_StorageBufferCount += layoutBinding.descriptorCount;
 		}
 		else
 		{
@@ -54,38 +60,15 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		}
 	}
 
-	m_ImageWriteInfo.clear();
-	m_BufferWriteInfo.clear();
+	m_DynamicImageWriteInfo.clear();
+	m_StaticUniformBufferWriteInfo.clear();
 	m_DescriptorWriteInfo.clear();
 	m_DescriptorWriteInfo.reserve(writeInfo.size());
 
-	size_t numSampler = 0;
-	size_t numUniformBuffer = 0;
+	m_DynamicImageWriteInfo.resize(m_SamplerCount);
+	m_StaticUniformBufferWriteInfo.resize(m_StaticUniformBufferCount);
+	m_DynamicUniformBufferWriteInfo.resize(m_DynamicUniformBufferCount);
 
-	for (const VkWriteDescriptorSet& writeDescriptorSet : writeInfo)
-	{
-		if (writeDescriptorSet.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-		{
-			numSampler += writeDescriptorSet.descriptorCount;
-		}
-		else if (writeDescriptorSet.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-		{
-			numUniformBuffer += writeDescriptorSet.descriptorCount;
-		}
-		else if (writeDescriptorSet.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-		{
-		}
-		else
-		{
-			ASSERT_RESULT(false && "not support now");
-		}
-	}
-
-	m_ImageWriteInfo.resize(numSampler);
-	m_BufferWriteInfo.resize(numUniformBuffer);
-	m_DynamicBufferWriteInfo.resize(m_DyanmicUniformBufferCount);
-
-	size_t samplerIdx = 0;
 	size_t uniformBufferIdx = 0;
 
 	for (const VkWriteDescriptorSet& writeDescriptorSet : writeInfo)
@@ -99,19 +82,21 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		copy.dstArrayElement = writeDescriptorSet.dstArrayElement;
 		copy.descriptorCount = writeDescriptorSet.descriptorCount;
 		copy.descriptorType = writeDescriptorSet.descriptorType;
+
 		if (copy.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
-			size_t writeOffset = uniformBufferIdx * sizeof(m_BufferWriteInfo[0]);
-			size_t writeSize = copy.descriptorCount * sizeof(m_BufferWriteInfo[0]);
-			memcpy(POINTER_OFFSET(m_BufferWriteInfo.data(), writeOffset), copy.pBufferInfo, writeSize);
-			copy.pBufferInfo = static_cast<const VkDescriptorBufferInfo*>(POINTER_OFFSET(m_BufferWriteInfo.data(), writeOffset));
+			size_t writeOffset = uniformBufferIdx * sizeof(m_StaticUniformBufferWriteInfo[0]);
+			size_t writeSize = copy.descriptorCount * sizeof(m_StaticUniformBufferWriteInfo[0]);
+			memcpy(POINTER_OFFSET(m_StaticUniformBufferWriteInfo.data(), writeOffset), copy.pBufferInfo, writeSize);
+			copy.pBufferInfo = static_cast<const VkDescriptorBufferInfo*>(POINTER_OFFSET(m_StaticUniformBufferWriteInfo.data(), writeOffset));
 			uniformBufferIdx += copy.descriptorCount;
 		}
+
 		m_DescriptorWriteInfo.push_back(copy);
 	}
 
-	// 取Image与DynamicBuffer最大值
-	m_DescriptorDynamicWriteInfo.resize(std::max(m_DyanmicUniformBufferCount, m_SamplerCount));
+	// 取最大值
+	m_DescriptorDynamicWriteInfo.resize(std::max(std::max(m_DynamicUniformBufferCount, m_SamplerCount), m_StorageBufferCount));
 
 	return true;
 }
@@ -153,21 +138,29 @@ VkDescriptorSet KVulkanDescriptorPool::AllocDescriptorSet(VkDescriptorPool pool)
 
 VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 {
+	VkDescriptorPoolSize storagePoolSize = {};
+	storagePoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	storagePoolSize.descriptorCount = (uint32_t)maxCount * m_StorageBufferCount;
+
 	VkDescriptorPoolSize uniformPoolSize = {};
 	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uniformPoolSize.descriptorCount = (uint32_t)maxCount * m_UniformBufferCount;
+	uniformPoolSize.descriptorCount = (uint32_t)maxCount * m_StaticUniformBufferCount;
 
 	VkDescriptorPoolSize dynamicUniformPoolSize = {};
 	dynamicUniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	dynamicUniformPoolSize.descriptorCount = (uint32_t)maxCount * m_DyanmicUniformBufferCount;
+	dynamicUniformPoolSize.descriptorCount = (uint32_t)maxCount * m_DynamicUniformBufferCount;
 
 	VkDescriptorPoolSize samplerPoolSize = {};
 	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerPoolSize.descriptorCount = (uint32_t)maxCount * m_SamplerCount;
 
-	VkDescriptorPoolSize poolSizes[3];
+	VkDescriptorPoolSize poolSizes[4];
 	uint32_t poolSizeCount = 0;
 
+	if (storagePoolSize.descriptorCount > 0)
+	{
+		poolSizes[poolSizeCount++] = storagePoolSize;
+	}
 	if (uniformPoolSize.descriptorCount > 0)
 	{
 		poolSizes[poolSizeCount++] = uniformPoolSize;
@@ -193,14 +186,16 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 	return newPool;
 }
 
-VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline, const KDynamicConstantBufferUsage** ppBufferUsage, size_t dynamicBufferUsageCount)
+VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,
+	const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
+	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
 {
 	VkDescriptorSet set = InternalAlloc(frameIndex, currentFrame);
 
 	ASSERT_RESULT(set != VK_NULL_HANDLE);
 
-	ASSERT_RESULT(!dynamicBufferUsageCount || ppBufferUsage);
-	ASSERT_RESULT(dynamicBufferUsageCount <= m_DynamicBufferWriteInfo.size());
+	ASSERT_RESULT(!dynamicBufferUsageCount || ppConstantUsage);
+	ASSERT_RESULT(dynamicBufferUsageCount <= m_DynamicUniformBufferWriteInfo.size());
 	ASSERT_RESULT(dynamicBufferUsageCount <= m_DescriptorDynamicWriteInfo.size());
 
 	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
@@ -209,7 +204,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 	if (vulkanPipeline)
 	{
 		std::unordered_map<unsigned int, KVulkanPipeline::SamplerBindingInfo>& samplers = vulkanPipeline->m_Samplers;
-		ASSERT_RESULT(samplers.size() <= m_ImageWriteInfo.size());
+		ASSERT_RESULT(samplers.size() <= m_DynamicImageWriteInfo.size());
 		ASSERT_RESULT(samplers.size() <= m_DescriptorDynamicWriteInfo.size());
 
 		size_t idx = 0;
@@ -223,7 +218,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 				continue;
 			}
 
-			VkDescriptorImageInfo &imageInfo = m_ImageWriteInfo[idx];
+			VkDescriptorImageInfo &imageInfo = m_DynamicImageWriteInfo[idx];
 
 			IKFrameBufferPtr frameBuffer = nullptr;
 			if (info.texture)
@@ -267,11 +262,11 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 
 	for (size_t i = 0; i < dynamicBufferUsageCount; ++i)
 	{
-		const KDynamicConstantBufferUsage* usage = ppBufferUsage[i];
+		const KDynamicConstantBufferUsage* usage = ppConstantUsage[i];
 
 		IKUniformBufferPtr uniformBuffer = usage->buffer;
 
-		VkDescriptorBufferInfo& bufferInfo = m_DynamicBufferWriteInfo[i];
+		VkDescriptorBufferInfo& bufferInfo = m_DynamicUniformBufferWriteInfo[i];
 		bufferInfo.buffer = ((KVulkanUniformBuffer*)uniformBuffer.get())->GetVulkanHandle();
 		// offset 不在这里绑定 在KVulkanCommandBuffer::Render时候绑定
 		bufferInfo.offset = 0;
@@ -292,6 +287,33 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 	}
 
 	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(dynamicBufferUsageCount), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+
+	for (size_t i = 0; i < storageBufferUsageCount; ++i)
+	{
+		const KStorageBufferUsage* usage = ppStorageUsage[i];
+
+		IKVertexBufferPtr buffer = usage->buffer;
+
+		VkDescriptorBufferInfo& bufferInfo = m_DynamicStorageBufferWriteInfo[i];
+		bufferInfo.buffer = ((KVulkanVertexBuffer*)buffer.get())->GetVulkanHandle();
+		bufferInfo.offset = 0;
+		bufferInfo.range = VK_WHOLE_SIZE;
+
+		VkWriteDescriptorSet& storageDescriptorWrite = m_DescriptorDynamicWriteInfo[i];
+
+		storageDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		storageDescriptorWrite.dstSet = set;
+		storageDescriptorWrite.dstBinding = (uint32_t)usage->binding;
+		storageDescriptorWrite.dstArrayElement = 0;
+		storageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		storageDescriptorWrite.descriptorCount = 1;
+
+		storageDescriptorWrite.pBufferInfo = &bufferInfo;
+		storageDescriptorWrite.pImageInfo = nullptr;
+		storageDescriptorWrite.pTexelBufferView = nullptr;
+	}
+
+	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(storageBufferUsageCount), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
 
 	return set;
 }
