@@ -503,6 +503,7 @@ public:
 private:
 	void AddMeshlet(KMeshletGeometry& geometry, const KMeshletPrimitiveCache& cache) const
 	{
+		// offset in bytes of 4
 		uint32_t packOffset = uint32_t(geometry.meshletPacks.size());
 		uint32_t vertexPack = cache.numVertexAllBits <= 16 ? 2 : 1;
 
@@ -519,7 +520,8 @@ private:
 		uint32_t primSize = meshlet.GetPrimSize();
 
 		assert(primStart + primSize > vertexStart + vertexSize);
-		uint32_t packedSize = primStart + primSize;//std::max(vertexStart + vertexSize, primStart + primSize);
+		// packedSize will always be primStart + primSize for now
+		uint32_t packedSize = std::max(vertexStart + vertexSize, primStart + primSize);
 		packedSize = KNumerical::AlignedSize<uint32_t>(packedSize, KMESHLETS_PACKBASIC_ALIGN);
 
 		geometry.meshletPacks.resize(geometry.meshletPacks.size() + packedSize, 0);

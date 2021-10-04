@@ -25,6 +25,7 @@ protected:
 	static const char* msMaterialRootKey;
 
 	static const char* msVSKey;
+	static const char* msMSKey;
 	static const char* msFSKey;
 
 	static const char* msMaterialTextureBindingKey;
@@ -81,10 +82,11 @@ public:
 	virtual void SetBlendMode(MaterialBlendMode mode) { m_BlendMode = mode; }
 
 	virtual IKPipelinePtr CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+	virtual IKPipelinePtr CreateMeshPipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 	virtual IKPipelinePtr CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 
 	virtual bool InitFromFile(const std::string& path, bool async);
-	virtual bool Init(const std::string& vs, const std::string& fs, bool async);
+	virtual bool Init(const std::string& vs, const std::string& fs, const std::string& ms, bool async);
 	virtual bool UnInit();
 
 	virtual const std::string& GetPath() const { return m_Path; }

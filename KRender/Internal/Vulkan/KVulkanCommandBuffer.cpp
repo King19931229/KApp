@@ -192,7 +192,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 
 		const KDynamicConstantBufferUsage* dynamicUsages[3] = { nullptr };
-		uint32_t dynamicOffsets[3] = { 0 };
+		uint32_t dynamicOffsets[CBT_DYNAMIC_COUNT] = { 0 };
 		uint32_t dynamicBufferCount = 0;
 
 		if (command.objectUsage.buffer)
@@ -212,7 +212,14 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			dynamicOffsets[i] = (uint32_t)dynamicUsages[i]->offset;
 		}
 
-		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(dynamicUsages, dynamicBufferCount, nullptr, 0);
+		const KStorageBufferUsage* storageUsages[SBT_COUNT] = {};
+		uint32_t storageBufferCount = 0;
+		for (size_t i = 0; i < command.meshStorageUsages.size(); ++i)
+		{
+			storageUsages[storageBufferCount++] = &(command.meshStorageUsages[i]);
+		}
+
+		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(dynamicUsages, dynamicBufferCount, storageUsages, storageBufferCount);
 
 		// 绑定管线
 		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -235,48 +242,55 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			offsets[i] = 0;
 		}
 
-		if (command.instanceDraw)
+		if (command.meshShaderDraw)
 		{
-			uint32_t instanceSlot = vertexBufferCount++;
 
-			for (const KInstanceBufferUsage& instanceUsage : command.instanceUsages)
-			{
-				IKVertexBufferPtr instanceBuffer = instanceUsage.buffer;
-				ASSERT_RESULT(instanceBuffer);
-				vertexBuffers[instanceSlot] = ((KVulkanVertexBuffer*)instanceBuffer.get())->GetVulkanHandle();
-				offsets[instanceSlot] = 0;
-				vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
-
-				uint32_t instanceStart = static_cast<uint32_t>(instanceUsage.start);
-				uint32_t instanceCount = static_cast<uint32_t>(instanceUsage.count);
-
-				if (command.indexDraw)
-				{
-					KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());					
-					vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-					vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, instanceCount, command.indexData->indexStart, 0, instanceStart);
-					// FIXME 难道这是NV驱动的BUG 开启Drawinstance功能之后如果Indexbuffer是32bit需要把Indexbuffer按16bit绑定一次
-					vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, VK_INDEX_TYPE_UINT16);
-				}
-				else
-				{
-					vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, instanceCount, command.vertexData->vertexStart, instanceStart);
-				}
-			}
 		}
 		else
 		{
-			vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
-
-			if (command.indexDraw)
+			if (command.instanceDraw)
 			{
-				KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
-				vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-				vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+				uint32_t instanceSlot = vertexBufferCount++;
+
+				for (const KInstanceBufferUsage& instanceUsage : command.instanceUsages)
+				{
+					IKVertexBufferPtr instanceBuffer = instanceUsage.buffer;
+					ASSERT_RESULT(instanceBuffer);
+					vertexBuffers[instanceSlot] = ((KVulkanVertexBuffer*)instanceBuffer.get())->GetVulkanHandle();
+					offsets[instanceSlot] = 0;
+					vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
+
+					uint32_t instanceStart = static_cast<uint32_t>(instanceUsage.start);
+					uint32_t instanceCount = static_cast<uint32_t>(instanceUsage.count);
+
+					if (command.indexDraw)
+					{
+						KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
+						vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+						vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, instanceCount, command.indexData->indexStart, 0, instanceStart);
+						// FIXME 难道这是NV驱动的BUG 开启Drawinstance功能之后如果Indexbuffer是32bit需要把Indexbuffer按16bit绑定一次
+						vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, VK_INDEX_TYPE_UINT16);
+					}
+					else
+					{
+						vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, instanceCount, command.vertexData->vertexStart, instanceStart);
+					}
+				}
 			}
 			else
 			{
-				vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
+				vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
+
+				if (command.indexDraw)
+				{
+					KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
+					vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+					vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+				}
+				else
+				{
+					vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
+				}
 			}
 		}
 

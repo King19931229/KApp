@@ -97,10 +97,11 @@ struct IKMaterial
 	virtual void SetBlendMode(MaterialBlendMode mode) = 0;
 
 	virtual IKPipelinePtr CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
+	virtual IKPipelinePtr CreateMeshPipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
 	virtual IKPipelinePtr CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
 
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;
-	virtual bool Init(const std::string& vs, const std::string& fs, bool async) = 0;
+	virtual bool Init(const std::string& vs, const std::string& fs, const std::string& ms, bool async) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual const std::string& GetPath() const = 0;

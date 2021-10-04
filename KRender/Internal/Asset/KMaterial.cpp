@@ -423,6 +423,11 @@ IKPipelinePtr KMaterial::CreatePipeline(size_t frameIndex, const VertexFormat* f
 	return nullptr;
 }
 
+IKPipelinePtr KMaterial::CreateMeshPipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
+{
+	return nullptr;
+}
+
 IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
 	std::vector<VertexFormat> instanceFormats;
@@ -445,6 +450,7 @@ IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexF
 const char* KMaterial::msMaterialRootKey = "material";
 
 const char* KMaterial::msVSKey = "vs";
+const char* KMaterial::msMSKey = "ms";
 const char* KMaterial::msFSKey = "fs";
 
 const char* KMaterial::msMaterialTextureBindingKey = "material_texture";
@@ -665,6 +671,7 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 		{
 			std::string vs;
 			std::string fs;
+			std::string ms;
 
 			IKXMLElementPtr blendModeEle = root->FirstChildElement(msBlendModeKey);
 			if (blendModeEle && !blendModeEle->IsEmpty())
@@ -684,6 +691,12 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 				fs = fsShaderEle->GetText();
 			}
 
+			IKXMLElementPtr msShaderEle = root->FirstChildElement(msMSKey);
+			if (msShaderEle && !msShaderEle->IsEmpty())
+			{
+				ms = msShaderEle->GetText();
+			}
+
 			IKXMLElementPtr materialTextureEle = root->FirstChildElement(msMaterialTextureBindingKey);
 			if (materialTextureEle && !materialTextureEle->IsEmpty())
 			{
@@ -692,7 +705,12 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 
 			if (!vs.empty() && !fs.empty())
 			{
-				if (m_Shader.Init(vs, fs, async))
+				KMaterialShader::InitContext initContext;
+				initContext.vsFile = vs;
+				initContext.fsFile = fs;
+				initContext.msFile = ms;
+
+				if (m_Shader.Init(initContext, async))
 				{
 					IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
 					IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
@@ -745,6 +763,7 @@ bool KMaterial::SaveAsFile(const std::string& path)
 
 		root->NewElement(msVSKey)->SetText(m_Shader.GetVSPath().c_str());
 		root->NewElement(msFSKey)->SetText(m_Shader.GetFSPath().c_str());
+		root->NewElement(msMSKey)->SetText(m_Shader.GetMSPath().c_str());
 
 		// 创建参数
 		GetVSParameter();
@@ -817,11 +836,16 @@ bool KMaterial::Reload()
 	return false;
 }
 
-bool KMaterial::Init(const std::string& vs, const std::string& fs, bool async)
+bool KMaterial::Init(const std::string& vs, const std::string& fs, const std::string& ms, bool async)
 {
 	UnInit();
 
-	if (m_Shader.Init(vs, fs, async))
+	KMaterialShader::InitContext initContext;
+	initContext.vsFile = vs;
+	initContext.fsFile = fs;
+	initContext.msFile = ms;
+
+	if (m_Shader.Init(initContext, async))
 	{
 		return true;
 	}

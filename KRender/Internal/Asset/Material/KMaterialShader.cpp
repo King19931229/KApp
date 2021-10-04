@@ -11,9 +11,21 @@ static const size_t MATERIAL_TEXTURE1_INDEX = 5;
 static const size_t MATERIAL_TEXTURE2_INDEX = 6;
 static const size_t MATERIAL_TEXTURE3_INDEX = 7;
 
+static constexpr const char* MESHLET_INPUT_MACRO = "MESHLET_INPUT";
+static constexpr const char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
+static constexpr const char* TANGENT_BINORMAL_INPUT_MACRO = "TANGENT_BINORMAL_INPUT";
+static constexpr const char* DIFFUSE_SPECULAR_INPUT_MACRO = "DIFFUSE_SPECULAR_INPUT";
+static constexpr const char* UV2_INPUT_MACRO = "UV2_INPUT";
+static constexpr const char* BLEND_WEIGHT_INPUT_MACRO = "BLEND_WEIGHT_INPUT";
+
+static constexpr const char* HAS_MATERIAL_TEXTURE0_MACRO = "HAS_MATERIAL_TEXTURE0";
+static constexpr const char* HAS_MATERIAL_TEXTURE1_MACRO = "HAS_MATERIAL_TEXTURE1";
+static constexpr const char* HAS_MATERIAL_TEXTURE2_MACRO = "HAS_MATERIAL_TEXTURE2";
+static constexpr const char* HAS_MATERIAL_TEXTURE3_MACRO = "HAS_MATERIAL_TEXTURE3";
+
 // VS不需要贴图绑定宏
 static const size_t VS_MACRO_SIZE = BLEND_WEIGHT_INPUT_MACRO_INDEX - TANGENT_BINORMAL_INPUT_MACRO_INDEX + 1;
-// FS也需要用到顶点输入宏
+// FS却需要用到顶点输入宏
 static const size_t FS_MACRO_SIZE = MATERIAL_TEXTURE3_INDEX - TANGENT_BINORMAL_INPUT_MACRO_INDEX + 1;
 
 static bool PERMUTATING_ARRAY_INIT = false;
@@ -84,6 +96,7 @@ std::mutex KMaterialShader::STATIC_RESOURCE_LOCK;
 const char* KMaterialShader::PERMUTATING_MACRO[8];
 KMaterialShader::MacrosMap KMaterialShader::VS_MACROS_MAP;
 KMaterialShader::MacrosMap KMaterialShader::VS_INSTANCE_MACROS_MAP;
+KMaterialShader::MacrosMap KMaterialShader::MS_MACROS_MAP;
 KMaterialShader::MacrosMap KMaterialShader::FS_MACROS_MAP;
 
 KMaterialShader::KMaterialShader()
@@ -134,6 +147,7 @@ void KMaterialShader::PermutateMacro(const char** marcosToPermutate,
 		Macros vsNoninstanceMacros;
 		Macros vsInstanceMacros;
 		Macros fsMacros;
+		Macros msMacros;
 
 		vsNoninstanceMacros.reserve(macrosSize + 1);
 		vsInstanceMacros.reserve(macrosSize + 1);
@@ -142,35 +156,34 @@ void KMaterialShader::PermutateMacro(const char** marcosToPermutate,
 		{
 			if (macrosToEnable[i])
 			{
+				vsInstanceMacros.push_back({ marcosToPermutate[i], "1" });
 				vsNoninstanceMacros.push_back({ marcosToPermutate[i], "1" });
-			}
-			else
-			{
-				vsNoninstanceMacros.push_back({ marcosToPermutate[i], "0" });
-			}
-		}
-
-		for (size_t i = 0; i < macrosSize; ++i)
-		{
-			if (macrosToEnable[i])
-			{
 				fsMacros.push_back({ marcosToPermutate[i], "1" });
+				msMacros.push_back({ marcosToPermutate[i], "1" });
 			}
 			else
 			{
+				vsInstanceMacros.push_back({ marcosToPermutate[i], "0" });
+				vsNoninstanceMacros.push_back({ marcosToPermutate[i], "0" });
 				fsMacros.push_back({ marcosToPermutate[i], "0" });
+				msMacros.push_back({ marcosToPermutate[i], "0" });
 			}
 		}
 
-		vsInstanceMacros = vsNoninstanceMacros;
 		vsNoninstanceMacros.push_back({ INSTANCE_INPUT_MACRO, "0" });
 		vsInstanceMacros.push_back({ INSTANCE_INPUT_MACRO, "1" });
+
+		vsNoninstanceMacros.push_back({ MESHLET_INPUT_MACRO, "0" });
+		vsInstanceMacros.push_back({ MESHLET_INPUT_MACRO, "0" });
+
+		msMacros.push_back({ MESHLET_INPUT_MACRO, "1" });
 
 		size_t vsHash = GenHash(macrosToEnable, macrosSize, vsMacrosSize, true);
 		size_t fsHash = GenHash(macrosToEnable, macrosSize, vsMacrosSize, false);
 
 		VS_MACROS_MAP[vsHash] = std::make_shared<Macros>(std::move(vsNoninstanceMacros));
 		VS_INSTANCE_MACROS_MAP[vsHash] = std::make_shared<Macros>(std::move(vsInstanceMacros));
+		MS_MACROS_MAP[vsHash] = std::make_shared<Macros>(std::move(msMacros));
 		FS_MACROS_MAP[fsHash] = std::make_shared<Macros>(std::move(fsMacros));
 
 		return;
@@ -183,18 +196,21 @@ void KMaterialShader::PermutateMacro(const char** marcosToPermutate,
 	}
 }
 
-bool KMaterialShader::Init(const std::string& vsFile, const std::string& fsFile, bool async)
+bool KMaterialShader::Init(const InitContext& context, bool async)
 {
 	UnInit();
 
-	m_VSFile = vsFile;
-	m_FSFile = fsFile;
+	m_VSFile = context.vsFile;
+	m_FSFile = context.fsFile;
+	m_MSFile = context.msFile;
 
 	m_Async = false;
 
 	VertexFormat templateFormat[] = { VF_POINT_NORMAL_UV };
+
 	m_VSTemplateShader = GetVSShader(templateFormat, ARRAY_SIZE(templateFormat));
 	m_FSTemplateShader = GetFSShader(templateFormat, ARRAY_SIZE(templateFormat), nullptr);
+	if(!m_MSFile.empty()) m_MSTemplateShader = GetMSShader(templateFormat, ARRAY_SIZE(templateFormat));
 
 	m_Async = async;
 
@@ -205,11 +221,13 @@ bool KMaterialShader::UnInit()
 {
 	m_VSTemplateShader = nullptr;
 	m_FSTemplateShader = nullptr;
+	m_MSTemplateShader = nullptr;
 
 	m_VSFile.clear();
 	m_FSFile.clear();
+	m_MSFile.clear();
 
-	for (ShaderMap* shadermap : { &m_VSShaderMap, &m_VSInstanceShaderMap, &m_FSShaderMap })
+	for (ShaderMap* shadermap : { &m_VSShaderMap, &m_VSInstanceShaderMap, &m_FSShaderMap, &m_MSShaderMap })
 	{
 		for (auto& pair : *shadermap)
 		{
@@ -225,7 +243,7 @@ bool KMaterialShader::UnInit()
 
 bool KMaterialShader::Reload()
 {
-	for (ShaderMap* shadermap : { &m_VSShaderMap, &m_VSInstanceShaderMap, &m_FSShaderMap })
+	for (ShaderMap* shadermap : { &m_VSShaderMap, &m_VSInstanceShaderMap, &m_FSShaderMap, &m_MSShaderMap })
 	{
 		for (auto& pair : *shadermap)
 		{
@@ -333,6 +351,15 @@ const KShaderInformation* KMaterialShader::GetFSInformation()
 	return nullptr;
 }
 
+const KShaderInformation* KMaterialShader::GetMSInformation()
+{
+	if (m_MSTemplateShader)
+	{
+		return &m_MSTemplateShader->GetInformation();
+	}
+	return nullptr;
+}
+
 IKShaderPtr KMaterialShader::GetVSShader(const VertexFormat* formats, size_t count)
 {
 	if (formats && count)
@@ -382,6 +409,34 @@ IKShaderPtr KMaterialShader::GetVSInstanceShader(const VertexFormat* formats, si
 				{
 					m_VSInstanceShaderMap[hash] = vsInstanceShader;
 					return vsInstanceShader;
+				}
+			}
+		}
+	}
+	return nullptr;
+}
+
+IKShaderPtr KMaterialShader::GetMSShader(const VertexFormat* formats, size_t count)
+{
+	if (formats && count)
+	{
+		size_t hash = CalcHash(formats, count, nullptr);
+		auto it = m_MSShaderMap.find(hash);
+		if (it != m_MSShaderMap.end())
+		{
+			return it->second;
+		}
+		else
+		{
+			auto itMacro = MS_MACROS_MAP.find(hash);
+			if (itMacro != MS_MACROS_MAP.end())
+			{
+				const Macros& macros = *itMacro->second;
+				IKShaderPtr msShader;
+				if (KRenderGlobal::ShaderManager.Acquire(ST_MESH, m_MSFile.c_str(), macros, msShader, m_Async))
+				{
+					m_MSShaderMap[hash] = msShader;
+					return msShader;
 				}
 			}
 		}

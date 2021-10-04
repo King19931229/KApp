@@ -133,11 +133,14 @@ struct KRenderCommand
 
 	bool indexDraw;
 	bool instanceDraw;
+	bool meshShaderDraw;
 
 	KDynamicConstantBufferUsage objectUsage;
 	KDynamicConstantBufferUsage vertexShadingUsage;
 	KDynamicConstantBufferUsage fragmentShadingUsage;
+
 	std::vector<KInstanceBufferUsage> instanceUsages;
+	std::vector<KStorageBufferUsage> meshStorageUsages;
 
 	KRenderCommand()
 	{
@@ -149,6 +152,7 @@ struct KRenderCommand
 
 		indexDraw = false;
 		instanceDraw = false;
+		meshShaderDraw = false;
 	}
 
 	bool Complete() const
@@ -162,6 +166,10 @@ struct KRenderCommand
 			return false;
 		}
 		if (instanceDraw && instanceUsages.empty())
+		{
+			return false;
+		}
+		if (meshShaderDraw && meshStorageUsages.empty())
 		{
 			return false;
 		}

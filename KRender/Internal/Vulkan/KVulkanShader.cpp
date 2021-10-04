@@ -135,6 +135,12 @@ static bool ShaderTypeToEShLanguage(ShaderType type, EShLanguage& language)
 	case ST_COMPUTE:
 		language = EShLangCompute;
 		return true;
+	case ST_TASK:
+		language = EShLangTaskNV;
+		return true;
+	case ST_MESH:
+		language = EShLangMeshNV;
+		return true;
 	default:
 		assert(false && "should not reach");
 		return false;
@@ -160,6 +166,11 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 	else
 	{
 		if ((type & ST_COMPUTE) && KVulkanGlobal::supportRaytrace)
+		{
+			shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
+			shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_5);
+		}
+		else if ((type & (ST_TASK | ST_MESH)) && KVulkanGlobal::supportMeshShader)
 		{
 			shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
 			shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_5);

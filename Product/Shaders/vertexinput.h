@@ -5,6 +5,10 @@
 #	define INSTANCE_INPUT 0
 #endif
 
+#ifndef MESHLET_INPUT
+#	define MESHLET_INPUT 0
+#endif
+
 #include "public.h"
 
 #if MESHLET_INPUT
@@ -16,7 +20,7 @@ struct VertexPack
 	vec2 texcoord0;
 };
 
-layout(binding = BINDING_POSITION_NORMAL_UV, scalar) readonly buffer VertexPack_ { VertexPack i[]; } meshletVertex;
+layout(binding = BINDING_POSITION_NORMAL_UV, scalar) readonly buffer VertexPackBuffer { VertexPack meshletVertex[]; };
 
 #if DIFFUSE_SPECULAR_INPUT
 struct DiffuseSpecularPack
@@ -24,7 +28,7 @@ struct DiffuseSpecularPack
 	vec3 diffuse;
 	vec3 specular;
 };
-layout(binding = BINDING_DIFFUSE_SPECULAR, scalar) readonly buffer DiffuseSpecularPack_ { DiffuseSpecularPack i[]; } meshletDiffuseSpecular;
+layout(binding = BINDING_DIFFUSE_SPECULAR, scalar) readonly buffer DiffuseSpecularPackBuffer { DiffuseSpecularPack meshletDiffuseSpecular[]; };
 #endif
 
 #if TANGENT_BINORMAL_INPUT
@@ -33,8 +37,12 @@ struct TangentBinormalPack
 	vec3 tangent;
 	vec3 binormal;
 };
-layout(binding = BINDING_TANGENT_BINORMAL, scalar) readonly buffer TangentBinormalPack_ { TangentBinormalPack i[]; } meshletTangentBinormal;
+layout(binding = BINDING_TANGENT_BINORMAL, scalar) readonly buffer TangentBinormalPackBuffer { TangentBinormalPack meshletTangentBinormal[]; };
 #endif
+
+layout(std430, binding = BINDING_MESHLET_DESC) buffer MeshletDescBuffer { uvec4 meshletDescs[]; };
+layout(std430, binding = BINDING_MESHLET_PRIM) buffer PrimIndexBuffer1 { uint primIndices1[]; };
+layout(std430, binding = BINDING_MESHLET_PRIM) buffer PrimIndexBuffer2 { uvec2 primIndices2[]; };
 
 #else
 
