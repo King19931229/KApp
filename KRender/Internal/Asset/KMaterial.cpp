@@ -185,6 +185,16 @@ IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count, co
 	return m_Shader.GetFSShader(formats, count, textureBinding);
 }
 
+IKShaderPtr KMaterial::GetMSShader(const VertexFormat* formats, size_t count)
+{
+	return m_Shader.GetMSShader(formats, count);
+}
+
+bool KMaterial::HasMSShader() const
+{
+	return m_Shader.HasMSShader();
+}
+
 bool KMaterial::IsShaderLoaded(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
 	return m_Shader.IsBothLoaded(formats, count, textureBinding);
@@ -303,6 +313,46 @@ const KShaderInformation::Constant* KMaterial::GetFSShadingInfo()
 	}
 }
 
+void KMaterial::BindSampler(IKPipelinePtr pipeline, const KShaderInformation& info)
+{
+	for (const KShaderInformation::Texture& shaderTexture : info.textures)
+	{
+		if (shaderTexture.bindingIndex == SHADER_BINDING_SM)
+		{
+			IKSamplerPtr sampler = KRenderGlobal::ShadowMap.GetSampler();
+
+			IKRenderTargetPtr shadowRT = KRenderGlobal::ShadowMap.GetShadowMapTarget();
+			pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT, sampler);
+		}
+		else if (shaderTexture.bindingIndex == SHADER_BINDING_CSM0 ||
+			shaderTexture.bindingIndex == SHADER_BINDING_CSM1 ||
+			shaderTexture.bindingIndex == SHADER_BINDING_CSM2 ||
+			shaderTexture.bindingIndex == SHADER_BINDING_CSM3)
+		{
+			IKSamplerPtr sampler = KRenderGlobal::CascadedShadowMap.GetSampler();
+
+			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(shaderTexture.bindingIndex - SHADER_BINDING_CSM0);
+			if (!shadowRT)
+			{
+				shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0);
+			}
+			pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT, sampler);
+		}
+		else if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE_IRRADIANCE)
+		{
+			pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetDiffuseIrradiance(), KRenderGlobal::CubeMap.GetDiffuseIrradianceSampler());
+		}
+		else if (shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR_IRRADIANCE)
+		{
+			pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetSpecularIrradiance(), KRenderGlobal::CubeMap.GetSpecularIrradianceSampler());
+		}
+		else if (shaderTexture.bindingIndex == SHADER_BINDING_INTEGRATE_BRDF)
+		{
+			pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetIntegrateBRDF(), KRenderGlobal::CubeMap.GetIntegrateBRDFSampler());
+		}
+	}
+}
+
 IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader)
 {
 	if (GetVSParameter() && GetFSParameter())
@@ -365,45 +415,69 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexForma
 
 		for (const KShaderInformation& info : { vsInfo, fsInfo })
 		{
-			for (const KShaderInformation& info : { vsInfo, fsInfo })
+			BindSampler(pipeline, info);
+		}
+
+		return pipeline;
+	}
+
+	return nullptr;
+}
+
+IKPipelinePtr KMaterial::CreateMeshPipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr meshShader, IKShaderPtr fragmentShader)
+{
+	if (GetFSParameter())
+	{
+		IKPipelinePtr pipeline = nullptr;
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+		pipeline->SetVertexBinding(formats, count);
+		pipeline->SetShader(ST_MESH, meshShader);
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetShader(ST_FRAGMENT, fragmentShader);
+
+		if (m_BlendMode == MaterialBlendMode::OPAQUE)
+		{
+			pipeline->SetBlendEnable(false);
+		}
+		else
+		{
+			pipeline->SetBlendEnable(true);
+			pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
+		}
+
+		pipeline->SetCullMode(CM_BACK);
+		pipeline->SetFrontFace(FF_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+
+		pipeline->SetColorWrite(true, true, true, true);
+
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		const KShaderInformation& fsInfo = fragmentShader->GetInformation();
+
+		uint32_t bindingFlags[CBT_STATIC_COUNT] = { 0 };
+
+		for (const KShaderInformation::Constant& constant : fsInfo.constants)
+		{
+			if (constant.bindingIndex >= CBT_STATIC_BEGIN && constant.bindingIndex <= CBT_STATIC_END)
 			{
-				for (const KShaderInformation::Texture& shaderTexture : info.textures)
-				{
-					if (shaderTexture.bindingIndex == SHADER_BINDING_SM)
-					{
-						IKSamplerPtr sampler = KRenderGlobal::ShadowMap.GetSampler();
-
-						IKRenderTargetPtr shadowRT = KRenderGlobal::ShadowMap.GetShadowMapTarget();
-						pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT, sampler);
-					}
-					else if (shaderTexture.bindingIndex == SHADER_BINDING_CSM0 ||
-						shaderTexture.bindingIndex == SHADER_BINDING_CSM1 ||
-						shaderTexture.bindingIndex == SHADER_BINDING_CSM2 ||
-						shaderTexture.bindingIndex == SHADER_BINDING_CSM3)
-					{
-						IKSamplerPtr sampler = KRenderGlobal::CascadedShadowMap.GetSampler();
-
-						IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(shaderTexture.bindingIndex - SHADER_BINDING_CSM0);
-						if (!shadowRT)
-						{
-							shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0);
-						}
-						pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT, sampler);
-					}
-					else if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE_IRRADIANCE)
-					{
-						pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetDiffuseIrradiance(), KRenderGlobal::CubeMap.GetDiffuseIrradianceSampler());
-					}
-					else if (shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR_IRRADIANCE)
-					{
-						pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetSpecularIrradiance(), KRenderGlobal::CubeMap.GetSpecularIrradianceSampler());
-					}
-					else if (shaderTexture.bindingIndex == SHADER_BINDING_INTEGRATE_BRDF)
-					{
-						pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetIntegrateBRDF(), KRenderGlobal::CubeMap.GetIntegrateBRDFSampler());
-					}
-				}
+				bindingFlags[constant.bindingIndex - CBT_STATIC_BEGIN] |= ST_FRAGMENT;
 			}
+		}
+
+		for (uint32_t i = 0; i < CBT_STATIC_COUNT; ++i)
+		{
+			if (bindingFlags[i])
+			{
+				ConstantBufferType bufferType = (ConstantBufferType)(CBT_STATIC_BEGIN + i);
+				IKUniformBufferPtr staticConstantBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, bufferType);
+				pipeline->SetConstantBuffer(bufferType, bindingFlags[i], staticConstantBuffer);
+			}
+		}
+
+		for (const KShaderInformation& info : { fsInfo })
+		{
+			BindSampler(pipeline, info);
 		}
 
 		return pipeline;
@@ -425,6 +499,12 @@ IKPipelinePtr KMaterial::CreatePipeline(size_t frameIndex, const VertexFormat* f
 
 IKPipelinePtr KMaterial::CreateMeshPipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
+	IKShaderPtr msShader = m_Shader.GetMSShader(formats, count);
+	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding);
+	if (msShader && fsShader)
+	{
+		return CreateMeshPipelineImpl(frameIndex, formats, count, msShader, fsShader);
+	}
 	return nullptr;
 }
 

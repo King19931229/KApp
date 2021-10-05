@@ -174,7 +174,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\KRender\Publish\Debug\x64;..\KEngine\Publish\Debug\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>KEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>

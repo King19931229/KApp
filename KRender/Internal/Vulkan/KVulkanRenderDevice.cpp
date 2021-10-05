@@ -61,9 +61,9 @@ const char* DEVICE_RAYTRACE_EXTENSIONS[] =
 
 const char* DEVICE_MESHSHADER_EXTENSIONS[] =
 {
-	// Required by Mesh Shader (Only _NV_ for now, _KHR_ may be added in the future)
+	// VK_NV_GLSL_SHADER_EXTENSION_NAME,
 	VK_NV_MESH_SHADER_EXTENSION_NAME,
-	VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME,
+	VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME
 };
 
 //-------------------- Validation Layer --------------------//
@@ -1157,16 +1157,22 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	KVulkanGlobal::graphicsFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
 
 	// Get properties and features
-	KVulkanGlobal::rayTracingPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
 	VkPhysicalDeviceProperties2 deviceProperties2 = {};
 	deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-	deviceProperties2.pNext = &KVulkanGlobal::rayTracingPipelineProperties;
-	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.device, &deviceProperties2);
-	KVulkanGlobal::accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
 	VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
 	deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+
+	KVulkanGlobal::rayTracingPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+	deviceProperties2.pNext = &KVulkanGlobal::rayTracingPipelineProperties;
+	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.device, &deviceProperties2);
+
+	KVulkanGlobal::accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
 	deviceFeatures2.pNext = &KVulkanGlobal::accelerationStructureFeatures;
 	vkGetPhysicalDeviceFeatures2(m_PhysicalDevice.device, &deviceFeatures2);
+
+	KVulkanGlobal::meshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
+	deviceProperties2.pNext = &KVulkanGlobal::meshShaderFeatures;
+	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.device, &deviceProperties2);
 
 	// Function pointers for ray tracing related stuff
 	KVulkanGlobal::vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(m_Device, "vkGetBufferDeviceAddressKHR"));
@@ -1179,6 +1185,8 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	KVulkanGlobal::vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(m_Device, "vkCmdTraceRaysKHR"));
 	KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(vkGetDeviceProcAddr(m_Device, "vkGetRayTracingShaderGroupHandlesKHR"));
 	KVulkanGlobal::vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(m_Device, "vkCreateRayTracingPipelinesKHR"));
+
+	KVulkanGlobal::vkCmdDrawMeshTasksNV = reinterpret_cast<PFN_vkCmdDrawMeshTasksNV>(vkGetDeviceProcAddr(m_Device, "vkCmdDrawMeshTasksNV"));
 
 	KVulkanGlobal::deviceReady = true;
 
@@ -1656,6 +1664,7 @@ bool KVulkanRenderDevice::PopulateInstanceExtensions(std::vector<const char*>& e
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 	}
+	extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 	return true;
 #elif defined(__ANDROID__)
 	extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);

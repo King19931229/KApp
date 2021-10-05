@@ -1,0 +1,128 @@
+#include "vertexinput.h"
+
+#extension GL_NV_mesh_shader : require
+
+// one of them provides uint8_t
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
+// #extension GL_NV_gpu_shader5 : enable
+
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_vote : require
+
+/*
+Pack
+// x
+unsigned  bboxMinX : 8;
+unsigned  bboxMinY : 8;
+unsigned  bboxMinZ : 8;
+unsigned  vertexMax : 8;
+
+// y
+unsigned  bboxMaxX : 8;
+unsigned  bboxMaxY : 8;
+unsigned  bboxMaxZ : 8;
+unsigned  primMax : 8;
+
+// z
+signed  coneOctX : 8;
+signed  coneOctY : 8;
+signed  coneAngle : 8;
+unsigned  vertexBits : 8;
+
+// w
+unsigned  packOffset : 32;
+*/
+
+#if !INSTANCE_INPUT
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	mat4 model;
+	mat4 prev_model;
+}object;
+#endif
+
+void decodeMeshlet( uvec4 meshletDesc, 
+	out uint vertMax, out uint primMax,
+	out uint primStart, out uint primDiv,
+	out uint vidxStart, out uint vidxBits, out uint vidxDiv)
+{
+	uint vMax  = (meshletDesc.x >> 24);
+	uint packOffset = meshletDesc.w;
+
+	vertMax    = vMax;
+	primMax    = (meshletDesc.y >> 24);
+
+	vidxStart  =  packOffset;
+	vidxDiv    = (meshletDesc.z >> 24);
+	vidxBits   = vidxDiv == 2 ? 16 : 0;
+
+	primDiv    = 4;
+	primStart  =  (packOffset + ((vMax + 1 + vidxDiv - 1) / vidxDiv) + 1) & ~1;
+}
+
+#define WARP_SIZE  32
+#define WARP_STEPS 5
+
+#define GROUP_SIZE WARP_SIZE
+
+#ifndef NVMESHLET_VERTEX_COUNT
+// primitive count should be 40, 84 or 126
+// vertex count should be 32 or 64
+// 64 & 126 is the preferred size
+#define NVMESHLET_VERTEX_COUNT      64
+#define NVMESHLET_PRIMITIVE_COUNT   126
+#endif
+
+#define NVMSH_BARRIER() \
+memoryBarrierShared(); \
+barrier();
+
+#define NVMSH_INDEX_BITS      8
+#define NVMSH_PACKED4X8_GET(packed, idx)   (((packed) >> (NVMSH_INDEX_BITS * (idx))) & 255)
+
+// only for tight packing case, 8 indices are loaded per thread
+#define NVMSH_PRIMITIVE_INDICES_RUNS  ((NVMESHLET_PRIMITIVE_COUNT * 3 + GROUP_SIZE * 8 - 1) / (GROUP_SIZE * 8))
+
+// processing loops
+#define NVMSH_VERTEX_RUNS     ((NVMESHLET_VERTEX_COUNT + GROUP_SIZE - 1) / GROUP_SIZE)
+#define NVMSH_PRIMITIVE_RUNS  ((NVMESHLET_PRIMITIVE_COUNT + GROUP_SIZE - 1) / GROUP_SIZE)
+
+#if 1
+#define nvmsh_writePackedPrimitiveIndices4x8NV writePackedPrimitiveIndices4x8NV
+#else
+#define nvmsh_writePackedPrimitiveIndices4x8NV(idx, topology) {\
+	gl_PrimitiveIndicesNV[ (idx) + 0 ] = (NVMSH_PACKED4X8_GET((topology), 0)); \
+	gl_PrimitiveIndicesNV[ (idx) + 1 ] = (NVMSH_PACKED4X8_GET((topology), 1)); \
+	gl_PrimitiveIndicesNV[ (idx) + 2 ] = (NVMSH_PACKED4X8_GET((topology), 2)); \
+	gl_PrimitiveIndicesNV[ (idx) + 3 ] = (NVMSH_PACKED4X8_GET((topology), 3));} 
+#endif
+
+layout(local_size_x = GROUP_SIZE) in;
+layout(max_vertices = NVMESHLET_VERTEX_COUNT, max_primitives = NVMESHLET_PRIMITIVE_COUNT) out;
+layout(triangles) out;
+
+uint meshletID = gl_WorkGroupID.x;
+uint laneID = gl_LocalInvocationID.x;
+uvec4 geometryOffsets = uvec4(0, 0, 0, 0);
+
+void main()
+{
+	uvec4 desc = meshletDescs[meshletID + geometryOffsets.x];
+
+	uint vertMax;
+	uint primMax;
+	uint vidxStart;
+	uint vidxBits;
+	uint vidxDiv;
+	uint primStart;
+	uint primDiv;
+	decodeMeshlet(desc, vertMax, primMax, primStart, primDiv, vidxStart, vidxBits, vidxDiv);
+
+	vidxStart += geometryOffsets.y / 4;
+	primStart += geometryOffsets.y / 4;
+
+	uint primCount = primMax + 1;
+	uint vertCount = vertMax + 1;
+}

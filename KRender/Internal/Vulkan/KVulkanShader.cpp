@@ -172,7 +172,7 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 		}
 		else if ((type & (ST_TASK | ST_MESH)) && KVulkanGlobal::supportMeshShader)
 		{
-			shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
+			shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_1);
 			shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_5);
 		}
 		else

@@ -71,6 +71,8 @@ public:
 	const std::string& GetMSPath() const { return m_MSFile; }
 	const std::string& GetFSPath() const { return m_FSFile; }
 
+	bool HasMSShader() const { return !m_MSFile.empty(); }
+
 	const KShaderInformation* GetVSInformation();
 	const KShaderInformation* GetFSInformation();
 	const KShaderInformation* GetMSInformation();

@@ -87,6 +87,20 @@ KSpirvBuiltInResource::KSpirvBuiltInResource()
 	maxCullDistances = 8;
 	maxCombinedClipAndCullDistances = 8;
 	maxSamples = 4;
+
+	maxMeshOutputVerticesNV = 256;
+	maxMeshOutputPrimitivesNV = 512;
+	maxMeshWorkGroupSizeX_NV = 32;
+	maxMeshWorkGroupSizeY_NV = 1;
+	maxMeshWorkGroupSizeZ_NV = 1;
+	maxTaskWorkGroupSizeX_NV = 32;
+	maxTaskWorkGroupSizeY_NV = 1;
+	maxTaskWorkGroupSizeZ_NV = 1;
+	maxMeshViewCountNV = 4;
+
+	// TODO compile-time glslang version check
+	// maxDualSourceDrawBuffersEXT = 1;
+
 	limits.nonInductiveForLoops = 1;
 	limits.whileLoops = 1;
 	limits.doWhileLoops = 1;

@@ -51,7 +51,9 @@ protected:
 	bool VerifyParameter(IKMaterialParameterPtr parameter, const KShaderInformation& information);
 	bool CreateParameter(const KShaderInformation& information, IKMaterialParameterPtr& parameter);
 
+	void BindSampler(IKPipelinePtr pipeline, const KShaderInformation& info);
 	IKPipelinePtr CreatePipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);
+	IKPipelinePtr CreateMeshPipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr meshShader, IKShaderPtr fragmentShader);
 
 	bool SaveParameterElement(const IKMaterialParameterPtr parameter, IKXMLElementPtr element) const;
 	bool ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr element, bool createNewParameter);
@@ -67,7 +69,9 @@ public:
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
 	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+	virtual IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count);
 
+	virtual bool HasMSShader() const;
 	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 
 	virtual const IKMaterialParameterPtr GetVSParameter();

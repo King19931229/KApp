@@ -9,6 +9,16 @@
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanGlobal.h"
 
+static VkShaderStageFlagBits SHADER_STAGE_FLAGS[] =
+{
+	VK_SHADER_STAGE_VERTEX_BIT,
+	VK_SHADER_STAGE_FRAGMENT_BIT,
+	VK_SHADER_STAGE_TASK_BIT_NV,
+	VK_SHADER_STAGE_MESH_BIT_NV
+};
+
+static_assert(ARRAY_SIZE(SHADER_STAGE_FLAGS) == KVulkanPipeline::COUNT, "size must match");
+
 KVulkanPipeline::KVulkanPipeline() :
 	m_PrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
 	m_ColorWriteMask(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT),
@@ -399,21 +409,12 @@ bool KVulkanPipeline::CreateLayout()
 		}
 	};
 
-	if (m_Shaders[TASK])
+	for (uint32_t i = 0; i < COUNT; ++i)
 	{
-		AddLayoutBinding(m_Shaders[TASK]->GetInformation(), VK_SHADER_STAGE_TASK_BIT_NV);
-	}
-	if (m_Shaders[MESH])
-	{
-		AddLayoutBinding(m_Shaders[MESH]->GetInformation(), VK_SHADER_STAGE_MESH_BIT_NV);
-	}
-	if (m_Shaders[VERTEX])
-	{
-		AddLayoutBinding(m_Shaders[VERTEX]->GetInformation(), VK_SHADER_STAGE_VERTEX_BIT);
-	}
-	if (m_Shaders[FRAGMENT])
-	{
-		AddLayoutBinding(m_Shaders[FRAGMENT]->GetInformation(), VK_SHADER_STAGE_FRAGMENT_BIT);
+		if (m_Shaders[i])
+		{
+			AddLayoutBinding(m_Shaders[i]->GetInformation(), SHADER_STAGE_FLAGS[i]);
+		}
 	}
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -458,8 +459,8 @@ bool KVulkanPipeline::CreateLayout()
 		}
 	};
 
-	AddPushConstantRange(pushConstantRanges, m_Shaders[VERTEX]->GetInformation(), VK_SHADER_STAGE_VERTEX_BIT);
-	AddPushConstantRange(pushConstantRanges, m_Shaders[FRAGMENT]->GetInformation(), VK_SHADER_STAGE_FRAGMENT_BIT);
+	if (m_Shaders[VERTEX]) AddPushConstantRange(pushConstantRanges, m_Shaders[VERTEX]->GetInformation(), VK_SHADER_STAGE_VERTEX_BIT);
+	if (m_Shaders[FRAGMENT]) AddPushConstantRange(pushConstantRanges, m_Shaders[FRAGMENT]->GetInformation(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	// 创建管线布局
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -707,7 +708,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline);
 	KVulkanRenderPass* vulkanRenderPass = static_cast<KVulkanRenderPass*>(renderPass);
 
-	ASSERT_RESULT(vulkanPipeline->m_Shaders[KVulkanPipeline::VERTEX] && vulkanPipeline->m_Shaders[KVulkanPipeline::FRAGMENT]);
+	ASSERT_RESULT((vulkanPipeline->m_Shaders[KVulkanPipeline::VERTEX] || vulkanPipeline->m_Shaders[KVulkanPipeline::MESH]) && vulkanPipeline->m_Shaders[KVulkanPipeline::FRAGMENT]);
 	ASSERT_RESULT(vulkanPipeline->m_PipelineLayout);
 
 	VkSampleCountFlagBits msaaFlag = vulkanRenderPass->GetMSAAFlag();
@@ -851,27 +852,21 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStageInfo;
 	KVulkanShader* vulkanShader = nullptr;
 
-	// vs
-	VkPipelineShaderStageCreateInfo vsShaderCreateInfo = {};
-	vulkanShader = (KVulkanShader*)vulkanPipeline->m_Shaders[KVulkanPipeline::VERTEX].get();
-	vsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vsShaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vsShaderCreateInfo.module = vulkanShader->GetShaderModule();
-	vsShaderCreateInfo.pSpecializationInfo = vulkanShader->GetSpecializationInfo();
-	vsShaderCreateInfo.pName = "main";
+	for (uint32_t i = 0; i < KVulkanPipeline::COUNT; ++i)
+	{
+		if (vulkanPipeline->m_Shaders[i])
+		{
+			VkPipelineShaderStageCreateInfo shaderCreateInfo = {};
+			vulkanShader = (KVulkanShader*)vulkanPipeline->m_Shaders[i].get();
+			shaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			shaderCreateInfo.stage = SHADER_STAGE_FLAGS[i];
+			shaderCreateInfo.module = vulkanShader->GetShaderModule();
+			shaderCreateInfo.pSpecializationInfo = vulkanShader->GetSpecializationInfo();
+			shaderCreateInfo.pName = "main";
 
-	shaderStageInfo.push_back(vsShaderCreateInfo);
-
-	// fs
-	VkPipelineShaderStageCreateInfo fsShaderCreateInfo = {};
-	vulkanShader = (KVulkanShader*)vulkanPipeline->m_Shaders[KVulkanPipeline::FRAGMENT].get();
-	fsShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fsShaderCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fsShaderCreateInfo.module = vulkanShader->GetShaderModule();
-	fsShaderCreateInfo.pSpecializationInfo = vulkanShader->GetSpecializationInfo();
-	fsShaderCreateInfo.pName = "main";
-
-	shaderStageInfo.push_back(fsShaderCreateInfo);
+			shaderStageInfo.push_back(shaderCreateInfo);
+		}
+	}
 
 	// 创建管线
 	VkGraphicsPipelineCreateInfo pipelineInfo = {};

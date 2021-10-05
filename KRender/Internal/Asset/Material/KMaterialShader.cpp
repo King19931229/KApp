@@ -156,17 +156,23 @@ void KMaterialShader::PermutateMacro(const char** marcosToPermutate,
 		{
 			if (macrosToEnable[i])
 			{
-				vsInstanceMacros.push_back({ marcosToPermutate[i], "1" });
-				vsNoninstanceMacros.push_back({ marcosToPermutate[i], "1" });
+				if (i < vsMacrosSize)
+				{
+					vsInstanceMacros.push_back({ marcosToPermutate[i], "1" });
+					vsNoninstanceMacros.push_back({ marcosToPermutate[i], "1" });
+					msMacros.push_back({ marcosToPermutate[i], "1" });
+				}
 				fsMacros.push_back({ marcosToPermutate[i], "1" });
-				msMacros.push_back({ marcosToPermutate[i], "1" });
 			}
 			else
 			{
-				vsInstanceMacros.push_back({ marcosToPermutate[i], "0" });
-				vsNoninstanceMacros.push_back({ marcosToPermutate[i], "0" });
+				if (i < vsMacrosSize)
+				{
+					vsInstanceMacros.push_back({ marcosToPermutate[i], "0" });
+					vsNoninstanceMacros.push_back({ marcosToPermutate[i], "0" });
+					msMacros.push_back({ marcosToPermutate[i], "0" });
+				}
 				fsMacros.push_back({ marcosToPermutate[i], "0" });
-				msMacros.push_back({ marcosToPermutate[i], "0" });
 			}
 		}
 

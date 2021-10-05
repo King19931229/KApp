@@ -20,9 +20,7 @@ struct KVertexData
 
 	KVertexData()
 	{
-		vertexStart = 0;
-		vertexCount = 0;
-		bound.SetNull();
+		Reset();
 	}
 
 	~KVertexData()
@@ -56,8 +54,7 @@ struct KIndexData
 
 	KIndexData()
 	{
-		indexStart = 0;
-		indexCount = 0;
+		Reset();
 	}
 
 	~KIndexData()
@@ -76,6 +73,33 @@ struct KIndexData
 		SAFE_UNINIT(indexBuffer);
 		indexStart = 0;
 		indexCount = 0;
+	}
+};
+
+struct KMeshData
+{
+	IKVertexBufferPtr meshletDescBuffer;
+	IKVertexBufferPtr meshletPrimBuffer;
+
+	KMeshData()
+	{
+		Reset();
+	}
+
+	~KMeshData()
+	{
+	}
+
+	void Reset()
+	{
+		meshletDescBuffer = nullptr;
+		meshletPrimBuffer = nullptr;
+	}
+
+	void Destroy()
+	{
+		SAFE_UNINIT(meshletDescBuffer);
+		SAFE_UNINIT(meshletPrimBuffer);
 	}
 };
 
@@ -127,6 +151,7 @@ struct KRenderCommand
 {
 	const KVertexData* vertexData;
 	const KIndexData* indexData;
+	const KMeshData* meshData;
 
 	IKPipelinePtr pipeline;
 	IKPipelineHandlePtr pipelineHandle;
@@ -146,6 +171,7 @@ struct KRenderCommand
 	{
 		vertexData = nullptr;
 		indexData = nullptr;
+		meshData = nullptr;
 
 		pipeline = nullptr;
 		pipelineHandle = nullptr;
@@ -169,7 +195,7 @@ struct KRenderCommand
 		{
 			return false;
 		}
-		if (meshShaderDraw && meshStorageUsages.empty())
+		if (meshShaderDraw && (meshStorageUsages.empty() || !meshData))
 		{
 			return false;
 		}

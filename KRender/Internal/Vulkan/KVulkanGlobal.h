@@ -23,6 +23,7 @@ namespace KVulkanGlobal
 
 	extern VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties;
 	extern VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
+	extern VkPhysicalDeviceMeshShaderPropertiesNV meshShaderFeatures;
 
 	// Function pointers for ray tracing related stuff
 	extern PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
@@ -35,4 +36,6 @@ namespace KVulkanGlobal
 	extern PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR;
 	extern PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR;
 	extern PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
+
+	extern PFN_vkCmdDrawMeshTasksNV vkCmdDrawMeshTasksNV;
 }

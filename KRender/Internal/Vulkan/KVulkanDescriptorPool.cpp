@@ -14,7 +14,7 @@ KVulkanDescriptorPool::KVulkanDescriptorPool()
 	m_BlockSize(512),
 	m_StaticUniformBufferCount(0),
 	m_DynamicUniformBufferCount(0),
-	m_StorageBufferCount(0),
+	m_DynamicStorageBufferCount(0),
 	m_SamplerCount(0)
 {
 }
@@ -34,7 +34,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	m_SamplerCount = 0;
 	m_DynamicUniformBufferCount = 0;
 	m_StaticUniformBufferCount = 0;
-	m_StorageBufferCount = 0;
+	m_DynamicStorageBufferCount = 0;
 
 	for (const VkDescriptorSetLayoutBinding& layoutBinding : descriptorSetLayoutBinding)
 	{
@@ -52,7 +52,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		}
 		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
 		{
-			m_StorageBufferCount += layoutBinding.descriptorCount;
+			m_DynamicStorageBufferCount += layoutBinding.descriptorCount;
 		}
 		else
 		{
@@ -68,6 +68,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	m_DynamicImageWriteInfo.resize(m_SamplerCount);
 	m_StaticUniformBufferWriteInfo.resize(m_StaticUniformBufferCount);
 	m_DynamicUniformBufferWriteInfo.resize(m_DynamicUniformBufferCount);
+	m_DynamicStorageBufferWriteInfo.resize(m_DynamicStorageBufferCount);
 
 	size_t uniformBufferIdx = 0;
 
@@ -96,7 +97,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	}
 
 	// 取最大值
-	m_DescriptorDynamicWriteInfo.resize(std::max(std::max(m_DynamicUniformBufferCount, m_SamplerCount), m_StorageBufferCount));
+	m_DescriptorDynamicWriteInfo.resize(std::max(std::max(m_DynamicUniformBufferCount, m_SamplerCount), m_DynamicStorageBufferCount));
 
 	return true;
 }
@@ -140,7 +141,7 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 {
 	VkDescriptorPoolSize storagePoolSize = {};
 	storagePoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	storagePoolSize.descriptorCount = (uint32_t)maxCount * m_StorageBufferCount;
+	storagePoolSize.descriptorCount = (uint32_t)maxCount * m_DynamicStorageBufferCount;
 
 	VkDescriptorPoolSize uniformPoolSize = {};
 	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;

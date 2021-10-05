@@ -36,7 +36,7 @@ protected:
 	bool					m_MateriaShaderTriggerLoaded;
 	bool					m_MaterialPipelineCreated;
 
-	bool CreatePipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline);
+	bool CreateFixedPipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline);
 	bool GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderCommand& command);
 
 	bool CreateFixedPipeline();

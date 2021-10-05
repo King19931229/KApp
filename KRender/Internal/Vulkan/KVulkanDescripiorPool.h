@@ -49,7 +49,7 @@ protected:
 	size_t m_BlockSize;
 	uint32_t m_StaticUniformBufferCount;
 	uint32_t m_DynamicUniformBufferCount;
-	uint32_t m_StorageBufferCount;
+	uint32_t m_DynamicStorageBufferCount;
 	uint32_t m_SamplerCount;
 
 	std::mutex m_Lock;

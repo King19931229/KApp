@@ -104,7 +104,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(Qt_LIBPATH_);..\KBase\Publish\Debug\x64;..\KRender\Publish\Debug\x64;..\KEngine\Publish\Debug\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(Qt_LIBS_);KEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>

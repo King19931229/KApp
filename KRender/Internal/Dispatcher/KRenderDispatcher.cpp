@@ -248,6 +248,51 @@ bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMateri
 	return false;
 }
 
+bool KRenderDispatcher::AssignMeshStorageParameter(KRenderCommand& command)
+{
+	KStorageBufferUsage usage;
+
+	for (size_t i = 0; i < command.vertexData->vertexFormats.size(); ++i)
+	{
+		VertexFormat format = command.vertexData->vertexFormats[i];
+		IKVertexBufferPtr buffer = command.vertexData->vertexBuffers[i];
+
+		uint32_t binding = ~0;
+
+		switch (format)
+		{
+			case VF_POINT_NORMAL_UV:
+				binding = SBT_POSITION_NORMAL_UV;
+				break;
+			case VF_DIFFUSE_SPECULAR:
+				binding = SBT_DIFFUSE_SPECULAR;
+				break;
+			case VF_TANGENT_BINORMAL:
+				binding = SBT_TANGENT_BINORMAL;
+				break;
+			default:
+				break;
+		}
+
+		if (binding != ~0)
+		{
+			usage.binding = binding;
+			usage.buffer = buffer;
+			command.meshStorageUsages.push_back(usage);
+		}
+	}
+
+	usage.binding = SBT_MESHLET_DESC;
+	usage.buffer = command.meshData->meshletDescBuffer;
+	command.meshStorageUsages.push_back(usage);
+
+	usage.binding = SBT_MESHLET_PRIM;
+	usage.buffer = command.meshData->meshletPrimBuffer;
+	command.meshStorageUsages.push_back(usage);
+
+	return true;
+}
+
 void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<KRenderComponent*>& cullRes, KRenderStageContext& context)
 {
 	struct InstanceArray
@@ -460,7 +505,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 				if (!m_InstanceSubmit)
 				{
-					render->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand& _command)
+					bool hasMeshPipeline = render->Visit(PIPELINE_STAGE_OPAQUE_MESH, frameIndex, [&](KRenderCommand& _command)
 					{
 						KRenderCommand command = std::move(_command);
 
@@ -488,7 +533,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 							KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-							if (!AssignShadingParameter(command, material.get(), false))
+							if (!AssignShadingParameter(command, material.get(), false) || !AssignMeshStorageParameter(command))
 							{
 								continue;
 							}
@@ -501,6 +546,50 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 							}
 						}
 					});
+					if(!hasMeshPipeline)
+					{
+						render->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand& _command)
+						{
+							KRenderCommand command = std::move(_command);
+
+							for (size_t idx = 0; idx < instances.size(); ++idx)
+							{
+								++context.statistics[RENDER_STAGE_DEFAULT].drawcalls;
+								if (command.indexDraw)
+								{
+									context.statistics[RENDER_STAGE_DEFAULT].faces += command.indexData->indexCount / 3;
+									context.statistics[RENDER_STAGE_DEFAULT].primtives += command.indexData->indexCount;
+								}
+								else
+								{
+									context.statistics[RENDER_STAGE_DEFAULT].faces += command.vertexData->vertexCount / 3;
+									context.statistics[RENDER_STAGE_DEFAULT].primtives += command.vertexData->vertexCount;
+								}
+
+								const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+								KConstantDefinition::OBJECT objectData;
+								objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+								objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+								command.objectUsage.binding = SHADER_BINDING_OBJECT;
+								command.objectUsage.range = sizeof(objectData);
+
+								KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+								if (!AssignShadingParameter(command, material.get(), false))
+								{
+									continue;
+								}
+
+								command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+								if (command.Complete())
+								{
+									context.command[RENDER_STAGE_DEFAULT].push_back(command);
+								}
+							}
+						});
+					}
 				}
 				else
 				{

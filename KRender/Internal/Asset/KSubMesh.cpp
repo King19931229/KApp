@@ -179,6 +179,14 @@ bool KSubMesh::CreateMeshlet()
 
 		buider.PadTaskMeshlets(m_Meshlet);
 
+		KRenderGlobal::RenderDevice->CreateVertexBuffer(m_MeshData.meshletDescBuffer);
+		m_MeshData.meshletDescBuffer->InitMemory(m_Meshlet.meshletDescriptors.size(), sizeof(KMeshletPackBasicDesc), m_Meshlet.meshletDescriptors.data());
+		m_MeshData.meshletDescBuffer->InitDevice(false);
+
+		KRenderGlobal::RenderDevice->CreateVertexBuffer(m_MeshData.meshletPrimBuffer);
+		m_MeshData.meshletPrimBuffer->InitMemory(m_Meshlet.meshletPacks.size(), sizeof(KMeshletPackBasicType), m_Meshlet.meshletPacks.data());
+		m_MeshData.meshletPrimBuffer->InitDevice(false);
+
 		return true;
 	}
 	return false;
@@ -187,5 +195,6 @@ bool KSubMesh::CreateMeshlet()
 bool KSubMesh::DestroyMeshlet()
 {
 	m_Meshlet.Reset();
+	m_MeshData.Destroy();
 	return true;
 }
