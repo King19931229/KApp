@@ -10,6 +10,15 @@
 #extension GL_KHR_shader_subgroup_ballot : require
 #extension GL_KHR_shader_subgroup_vote : require
 
+#if !INSTANCE_INPUT
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	mat4 model;
+	mat4 prev_model;
+}object;
+#endif
+
 /*
 Pack
 // x
@@ -33,16 +42,6 @@ unsigned  vertexBits : 8;
 // w
 unsigned  packOffset : 32;
 */
-
-#if !INSTANCE_INPUT
-layout(binding = BINDING_OBJECT)
-uniform Object
-{
-	mat4 model;
-	mat4 prev_model;
-}object;
-#endif
-
 void decodeMeshlet( uvec4 meshletDesc, 
 	out uint vertMax, out uint primMax,
 	out uint primStart, out uint primDiv,
@@ -107,6 +106,80 @@ uint meshletID = gl_WorkGroupID.x;
 uint laneID = gl_LocalInvocationID.x;
 uvec4 geometryOffsets = uvec4(0, 0, 0, 0);
 
+layout(location=0) out Interpolants
+{
+	flat uint meshletID;
+	vec2 uv;
+	vec4 worldPos;
+	vec4 viewPos;
+	vec4 viewNormal;
+	vec4 viewLightDir;
+#if TANGENT_BINORMAL_INPUT
+	vec4 viewTangent;
+	vec4 viewBinormal;
+#endif
+}OUT[];
+
+void getPNT(uint vidx, out vec3 pos, out vec3 normal, out vec2 uv)
+{
+	const uint stride = 3 + 3 + 2;
+	pos = vec3(meshletVertex[vidx * stride + 0], meshletVertex[vidx * stride + 1], meshletVertex[vidx * stride + 2]);
+	normal = vec3(meshletVertex[vidx * stride + 3], meshletVertex[vidx * stride + 4], meshletVertex[vidx * stride + 5]);
+	uv = vec2(meshletVertex[vidx * stride + 6], meshletVertex[vidx * stride + 7]);
+}
+
+#if TANGENT_BINORMAL_INPUT
+void getTB(uint vidx, out vec3 tangent, out vec3 binormal)
+{
+	const uint stride = 3 + 3;
+	tangent = vec3(meshletTangentBinormal[vidx * stride + 0], meshletTangentBinormal[vidx * stride + 1], meshletTangentBinormal[vidx * stride + 2]);
+	binormal = vec3(meshletTangentBinormal[vidx * stride + 3], meshletTangentBinormal[vidx * stride + 4], meshletTangentBinormal[vidx * stride + 5]);
+}
+#endif
+
+vec4 procVertex(const uint vert, uint vidx)
+{
+	vec3 position;
+	vec3 normal;
+	vec2 uv;
+
+	getPNT(vidx, position, normal, uv);
+
+	mat4 worldMatrix = object.model;
+	vec4 worldNormal = worldMatrix * vec4(normal, 0.0);
+
+	OUT[vert].meshletID = meshletID;
+	OUT[vert].uv = uv;
+
+#if TANGENT_BINORMAL_INPUT
+	vec3 tangent;
+	vec3 binormal;
+
+	getTB(vidx, tangent, binormal);
+
+	vec4 worldTangent = worldMatrix * vec4(tangent, 0.0);
+	vec4 worldBinormal = worldMatrix * vec4(binormal, 0.0);
+	OUT[vert].viewTangent = camera.view * worldTangent;
+	OUT[vert].viewBinormal = camera.view * worldBinormal;
+#endif
+
+	OUT[vert].worldPos = worldMatrix * vec4(position, 1.0);
+	OUT[vert].viewPos = camera.view * OUT[vert].worldPos;
+
+	OUT[vert].viewNormal = camera.view * worldNormal;
+	OUT[vert].viewLightDir = camera.view * global.sunLightDir;
+
+	gl_MeshVerticesNV[vert].gl_Position = camera.proj * OUT[vert].viewPos;
+#if USE_CLIPPING
+	// spir-v annoyance, doesn't unroll the loop and therefore cannot derive the number of clip distances used
+	gl_MeshVerticesNV[vert].gl_ClipDistance[0] = dot(scene.wClipPlanes[0], vec4(wPos,1));
+	gl_MeshVerticesNV[vert].gl_ClipDistance[1] = dot(scene.wClipPlanes[1], vec4(wPos,1));
+	gl_MeshVerticesNV[vert].gl_ClipDistance[2] = dot(scene.wClipPlanes[2], vec4(wPos,1));
+#endif
+
+	return gl_MeshVerticesNV[vert].gl_Position;
+}
+
 void main()
 {
 	uvec4 desc = meshletDescs[meshletID + geometryOffsets.x];
@@ -125,4 +198,48 @@ void main()
 
 	uint primCount = primMax + 1;
 	uint vertCount = vertMax + 1;
+
+	for (uint i = 0; i < uint(NVMSH_VERTEX_RUNS); i++) 
+	{
+		uint vert = laneID + i * GROUP_SIZE;
+		uint vertLoad = min(vert, vertMax);
+
+		uint idx   = (vertLoad) / vidxDiv;
+		uint shift = (vertLoad) & (vidxDiv-1);
+
+		uint vidx = primIndices1[idx + vidxStart];
+		vidx <<= vidxBits * (1-shift); 
+		vidx >>= vidxBits;
+
+		vidx += geometryOffsets.w;
+
+		vec4 hPos = procVertex(vert, vidx);
+		// setVertexClip(vert, getCullBits(hPos));
+
+	// #if USE_EARLY_ATTRIBUTES
+		// 	procAttributes(vert, vidx);
+	// #else
+		// 	writeVertexIndex(vert, vidx);
+	// #endif
+	}
+
+	// PRIMITIVE TOPOLOGY  
+	{
+		uint readBegin = primStart / 2;
+		uint readIndex = primCount * 3 - 1;
+		uint readMax   = readIndex / 8;
+
+		for (uint i = 0; i < uint(NVMSH_PRIMITIVE_INDICES_RUNS); i++)
+		{
+			uint read = laneID + i * GROUP_SIZE;
+			uint readUsed = min(read, readMax);
+			uvec2 topology = primIndices2[readBegin + readUsed];
+			nvmsh_writePackedPrimitiveIndices4x8NV(readUsed * 8 + 0, topology.x);
+			nvmsh_writePackedPrimitiveIndices4x8NV(readUsed * 8 + 4, topology.y);
+		}	
+	}
+
+	if (laneID == 0) {
+    gl_PrimitiveCountNV = primCount;
+	}
 }

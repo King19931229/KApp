@@ -187,6 +187,9 @@ bool KSubMesh::CreateMeshlet()
 		m_MeshData.meshletPrimBuffer->InitMemory(m_Meshlet.meshletPacks.size(), sizeof(KMeshletPackBasicType), m_Meshlet.meshletPacks.data());
 		m_MeshData.meshletPrimBuffer->InitDevice(false);
 
+		m_MeshData.count = (uint32_t)m_Meshlet.meshletDescriptors.size();
+		m_MeshData.offset = 0;
+
 		return true;
 	}
 	return false;

@@ -80,6 +80,8 @@ struct KMeshData
 {
 	IKVertexBufferPtr meshletDescBuffer;
 	IKVertexBufferPtr meshletPrimBuffer;
+	uint32_t offset;
+	uint32_t count;
 
 	KMeshData()
 	{
@@ -94,6 +96,8 @@ struct KMeshData
 	{
 		meshletDescBuffer = nullptr;
 		meshletPrimBuffer = nullptr;
+		offset = 0;
+		count = 0;
 	}
 
 	void Destroy()

@@ -153,8 +153,9 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
 
 		IKShaderPtr vsShader = m_pMaterial->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fsShader = m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
+		IKShaderPtr fsShader = m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture, false);
 		IKShaderPtr msShader = m_pMaterial->GetMSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr mfsShader = m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture, true);
 
 		if (vsShader->GetResourceState() != RS_DEVICE_LOADED || fsShader->GetResourceState() != RS_DEVICE_LOADED)
 		{
@@ -162,6 +163,11 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		}
 
 		if (msShader && msShader->GetResourceState() != RS_DEVICE_LOADED)
+		{
+			return false;
+		}
+
+		if (mfsShader && mfsShader->GetResourceState() != RS_DEVICE_LOADED)
 		{
 			return false;
 		}
@@ -547,9 +553,12 @@ bool KMaterialSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::functi
 		{
 			m_pMaterial->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 			m_pMaterial->GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-			m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
+			m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture, false);
 			if (m_pMaterial->HasMSShader())
+			{
 				m_pMaterial->GetMSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+				m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture, true);
+			}
 			m_MateriaShaderTriggerLoaded = true;
 		}
 

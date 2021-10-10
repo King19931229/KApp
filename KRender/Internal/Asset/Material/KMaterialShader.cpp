@@ -11,44 +11,44 @@ static const size_t MATERIAL_TEXTURE1_INDEX = 5;
 static const size_t MATERIAL_TEXTURE2_INDEX = 6;
 static const size_t MATERIAL_TEXTURE3_INDEX = 7;
 
-static constexpr const char* MESHLET_INPUT_MACRO = "MESHLET_INPUT";
-static constexpr const char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
-static constexpr const char* TANGENT_BINORMAL_INPUT_MACRO = "TANGENT_BINORMAL_INPUT";
-static constexpr const char* DIFFUSE_SPECULAR_INPUT_MACRO = "DIFFUSE_SPECULAR_INPUT";
-static constexpr const char* UV2_INPUT_MACRO = "UV2_INPUT";
-static constexpr const char* BLEND_WEIGHT_INPUT_MACRO = "BLEND_WEIGHT_INPUT";
+static const size_t MESHLET_INPUT_INDEX = 8;
 
-static constexpr const char* HAS_MATERIAL_TEXTURE0_MACRO = "HAS_MATERIAL_TEXTURE0";
-static constexpr const char* HAS_MATERIAL_TEXTURE1_MACRO = "HAS_MATERIAL_TEXTURE1";
-static constexpr const char* HAS_MATERIAL_TEXTURE2_MACRO = "HAS_MATERIAL_TEXTURE2";
-static constexpr const char* HAS_MATERIAL_TEXTURE3_MACRO = "HAS_MATERIAL_TEXTURE3";
+static const char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
+
+static const char* TANGENT_BINORMAL_INPUT_MACRO = "TANGENT_BINORMAL_INPUT";
+static const char* DIFFUSE_SPECULAR_INPUT_MACRO = "DIFFUSE_SPECULAR_INPUT";
+static const char* UV2_INPUT_MACRO = "UV2_INPUT";
+static const char* BLEND_WEIGHT_INPUT_MACRO = "BLEND_WEIGHT_INPUT";
+
+static const char* HAS_MATERIAL_TEXTURE0_MACRO = "HAS_MATERIAL_TEXTURE0";
+static const char* HAS_MATERIAL_TEXTURE1_MACRO = "HAS_MATERIAL_TEXTURE1";
+static const char* HAS_MATERIAL_TEXTURE2_MACRO = "HAS_MATERIAL_TEXTURE2";
+static const char* HAS_MATERIAL_TEXTURE3_MACRO = "HAS_MATERIAL_TEXTURE3";
+
+static const char* MESHLET_INPUT_MACRO = "MESHLET_INPUT";
 
 // VS不需要贴图绑定宏
 static const size_t VS_MACRO_SIZE = BLEND_WEIGHT_INPUT_MACRO_INDEX - TANGENT_BINORMAL_INPUT_MACRO_INDEX + 1;
 // FS却需要用到顶点输入宏
-static const size_t FS_MACRO_SIZE = MATERIAL_TEXTURE3_INDEX - TANGENT_BINORMAL_INPUT_MACRO_INDEX + 1;
+static const size_t FS_MACRO_SIZE = MESHLET_INPUT_INDEX - TANGENT_BINORMAL_INPUT_MACRO_INDEX + 1;
 
 static bool PERMUTATING_ARRAY_INIT = false;
 
-size_t KMaterialShader::GenHash(const bool* macrosToEnable, size_t macrosSize, size_t vsMacrosSize, bool vsOnly)
+size_t KMaterialShader::GenHash(const bool* macrosToEnable, size_t macrosSize)
 {
 	size_t hash = 0;
-
 	for (size_t i = 0; i < macrosSize; ++i)
 	{
-		if (!vsOnly || i < vsMacrosSize)
+		if (macrosToEnable[i])
 		{
-			if (macrosToEnable[i])
-			{
-				hash |= 0x01;
-			}
+			hash |= 0x01;
 		}
 		hash <<= 1;
 	}
 	return hash;
 }
 
-size_t KMaterialShader::CalcHash(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
+size_t KMaterialShader::CalcHash(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding, bool meshletInput)
 {
 	ASSERT_RESULT(formats);
 	ASSERT_RESULT(count);
@@ -89,11 +89,16 @@ size_t KMaterialShader::CalcHash(const VertexFormat* formats, size_t count, cons
 #undef ASSIGN_TEXTURE_MACRO
 	}
 
-	return GenHash(macrosToEnable, ARRAY_SIZE(PERMUTATING_MACRO), VS_MACRO_SIZE, false);
+	if (meshletInput)
+	{
+		macrosToEnable[MESHLET_INPUT_INDEX] = true;
+	}
+
+	return GenHash(macrosToEnable, ARRAY_SIZE(PERMUTATING_MACRO));
 }
 
 std::mutex KMaterialShader::STATIC_RESOURCE_LOCK;
-const char* KMaterialShader::PERMUTATING_MACRO[8];
+const char* KMaterialShader::PERMUTATING_MACRO[9];
 KMaterialShader::MacrosMap KMaterialShader::VS_MACROS_MAP;
 KMaterialShader::MacrosMap KMaterialShader::VS_INSTANCE_MACROS_MAP;
 KMaterialShader::MacrosMap KMaterialShader::MS_MACROS_MAP;
@@ -116,6 +121,8 @@ KMaterialShader::KMaterialShader()
 		PERMUTATING_MACRO[MATERIAL_TEXTURE1_INDEX] = HAS_MATERIAL_TEXTURE1_MACRO;
 		PERMUTATING_MACRO[MATERIAL_TEXTURE2_INDEX] = HAS_MATERIAL_TEXTURE2_MACRO;
 		PERMUTATING_MACRO[MATERIAL_TEXTURE3_INDEX] = HAS_MATERIAL_TEXTURE3_MACRO;
+
+		PERMUTATING_MACRO[MESHLET_INPUT_INDEX] = MESHLET_INPUT_MACRO;
 
 		bool macrosToEnable[ARRAY_SIZE(PERMUTATING_MACRO)] = { false };
 		PermutateMacro(PERMUTATING_MACRO, macrosToEnable, ARRAY_SIZE(PERMUTATING_MACRO), VS_MACRO_SIZE, 0);
@@ -178,14 +185,15 @@ void KMaterialShader::PermutateMacro(const char** marcosToPermutate,
 
 		vsNoninstanceMacros.push_back({ INSTANCE_INPUT_MACRO, "0" });
 		vsInstanceMacros.push_back({ INSTANCE_INPUT_MACRO, "1" });
+		msMacros.push_back({ INSTANCE_INPUT_MACRO, "0" });
 
+		assert(MESHLET_INPUT_INDEX >= vsMacrosSize);
 		vsNoninstanceMacros.push_back({ MESHLET_INPUT_MACRO, "0" });
 		vsInstanceMacros.push_back({ MESHLET_INPUT_MACRO, "0" });
-
 		msMacros.push_back({ MESHLET_INPUT_MACRO, "1" });
 
-		size_t vsHash = GenHash(macrosToEnable, macrosSize, vsMacrosSize, true);
-		size_t fsHash = GenHash(macrosToEnable, macrosSize, vsMacrosSize, false);
+		size_t vsHash = GenHash(macrosToEnable, macrosSize);
+		size_t fsHash = GenHash(macrosToEnable, macrosSize);
 
 		VS_MACROS_MAP[vsHash] = std::make_shared<Macros>(std::move(vsNoninstanceMacros));
 		VS_INSTANCE_MACROS_MAP[vsHash] = std::make_shared<Macros>(std::move(vsInstanceMacros));
@@ -215,7 +223,7 @@ bool KMaterialShader::Init(const InitContext& context, bool async)
 	VertexFormat templateFormat[] = { VF_POINT_NORMAL_UV };
 
 	m_VSTemplateShader = GetVSShader(templateFormat, ARRAY_SIZE(templateFormat));
-	m_FSTemplateShader = GetFSShader(templateFormat, ARRAY_SIZE(templateFormat), nullptr);
+	m_FSTemplateShader = GetFSShader(templateFormat, ARRAY_SIZE(templateFormat), nullptr, false);
 	if(!m_MSFile.empty()) m_MSTemplateShader = GetMSShader(templateFormat, ARRAY_SIZE(templateFormat));
 
 	m_Async = async;
@@ -329,11 +337,11 @@ bool KMaterialShader::IsAllFSLoaded()
 
 bool KMaterialShader::IsBothLoaded(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
-	size_t vsHash = CalcHash(formats, count, nullptr);
+	size_t vsHash = CalcHash(formats, count, nullptr, false);
 	if (m_VSShaderMap.find(vsHash) == m_VSShaderMap.end()) return false;
 	if (m_VSInstanceShaderMap.find(vsHash) == m_VSInstanceShaderMap.end()) return false;
 
-	size_t fsHash = CalcHash(formats, count, textureBinding);
+	size_t fsHash = CalcHash(formats, count, textureBinding, false);
 	if (m_FSShaderMap.find(fsHash) == m_FSShaderMap.end()) return false;
 
 	return true;
@@ -370,7 +378,7 @@ IKShaderPtr KMaterialShader::GetVSShader(const VertexFormat* formats, size_t cou
 {
 	if (formats && count)
 	{
-		size_t hash = CalcHash(formats, count, nullptr);
+		size_t hash = CalcHash(formats, count, nullptr, false);
 		auto it = m_VSShaderMap.find(hash);
 		if (it != m_VSShaderMap.end())
 		{
@@ -398,7 +406,7 @@ IKShaderPtr KMaterialShader::GetVSInstanceShader(const VertexFormat* formats, si
 {
 	if (formats && count)
 	{
-		size_t hash = CalcHash(formats, count, nullptr);
+		size_t hash = CalcHash(formats, count, nullptr, false);
 		auto it = m_VSInstanceShaderMap.find(hash);
 		if (it != m_VSInstanceShaderMap.end())
 		{
@@ -426,7 +434,7 @@ IKShaderPtr KMaterialShader::GetMSShader(const VertexFormat* formats, size_t cou
 {
 	if (formats && count)
 	{
-		size_t hash = CalcHash(formats, count, nullptr);
+		size_t hash = CalcHash(formats, count, nullptr, false);
 		auto it = m_MSShaderMap.find(hash);
 		if (it != m_MSShaderMap.end())
 		{
@@ -450,11 +458,11 @@ IKShaderPtr KMaterialShader::GetMSShader(const VertexFormat* formats, size_t cou
 	return nullptr;
 }
 
-IKShaderPtr KMaterialShader::GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
+IKShaderPtr KMaterialShader::GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding, bool meshletInput)
 {
 	if (formats && count)
 	{
-		size_t hash = CalcHash(formats, count, textureBinding);
+		size_t hash = CalcHash(formats, count, textureBinding, meshletInput);
 		auto it = m_FSShaderMap.find(hash);
 		if (it != m_FSShaderMap.end())
 		{

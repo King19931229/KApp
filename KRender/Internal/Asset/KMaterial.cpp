@@ -179,10 +179,10 @@ IKShaderPtr KMaterial::GetVSInstanceShader(const VertexFormat* formats, size_t c
 	return m_Shader.GetVSInstanceShader(formats, count);
 }
 
-IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
+IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding, bool meshletInput)
 {
 	ASSERT_RESULT(textureBinding);
-	return m_Shader.GetFSShader(formats, count, textureBinding);
+	return m_Shader.GetFSShader(formats, count, textureBinding, meshletInput);
 }
 
 IKShaderPtr KMaterial::GetMSShader(const VertexFormat* formats, size_t count)
@@ -430,7 +430,6 @@ IKPipelinePtr KMaterial::CreateMeshPipelineImpl(size_t frameIndex, const VertexF
 	{
 		IKPipelinePtr pipeline = nullptr;
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
-		pipeline->SetVertexBinding(formats, count);
 		pipeline->SetShader(ST_MESH, meshShader);
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetShader(ST_FRAGMENT, fragmentShader);
@@ -489,7 +488,7 @@ IKPipelinePtr KMaterial::CreateMeshPipelineImpl(size_t frameIndex, const VertexF
 IKPipelinePtr KMaterial::CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
 	IKShaderPtr vsShader = m_Shader.GetVSShader(formats, count);
-	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding);
+	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding, false);
 	if (vsShader && fsShader)
 	{
 		return CreatePipelineImpl(frameIndex, formats, count, vsShader, fsShader);
@@ -500,7 +499,7 @@ IKPipelinePtr KMaterial::CreatePipeline(size_t frameIndex, const VertexFormat* f
 IKPipelinePtr KMaterial::CreateMeshPipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
 	IKShaderPtr msShader = m_Shader.GetMSShader(formats, count);
-	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding);
+	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding, true);
 	if (msShader && fsShader)
 	{
 		return CreateMeshPipelineImpl(frameIndex, formats, count, msShader, fsShader);
@@ -519,7 +518,7 @@ IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexF
 	instanceFormats.push_back(VF_INSTANCE);
 
 	IKShaderPtr vsInstanceShader = m_Shader.GetVSInstanceShader(formats, count);
-	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding);
+	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding, false);
 	if (vsInstanceShader && fsShader)
 	{
 		return CreatePipelineImpl(frameIndex, instanceFormats.data(), instanceFormats.size(), vsInstanceShader, fsShader);

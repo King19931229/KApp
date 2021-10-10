@@ -81,7 +81,7 @@ struct IKMaterial
 
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count) = 0;
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count) = 0;
-	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
+	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding, bool meshletInput) = 0;
 	virtual IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count) = 0;
 
 	virtual bool HasMSShader() const = 0;

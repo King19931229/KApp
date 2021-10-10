@@ -244,7 +244,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 		if (command.meshShaderDraw)
 		{
-
+			KVulkanGlobal::vkCmdDrawMeshTasksNV(m_CommandBuffer, command.meshData->count, command.meshData->offset);
 		}
 		else
 		{

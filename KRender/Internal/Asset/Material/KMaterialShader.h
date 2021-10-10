@@ -29,14 +29,14 @@ protected:
 	typedef std::unordered_map<size_t, MacrosPtr> MacrosMap;
 
 	static std::mutex STATIC_RESOURCE_LOCK;
-	static const char* PERMUTATING_MACRO[8];
+	static const char* PERMUTATING_MACRO[9];
 	static MacrosMap VS_MACROS_MAP;
 	static MacrosMap VS_INSTANCE_MACROS_MAP;
 	static MacrosMap MS_MACROS_MAP;
 	static MacrosMap FS_MACROS_MAP;
 
-	static size_t GenHash(const bool* macrosToEnable, size_t macrosSize, size_t vsMacrosSize, bool vsOnly);
-	static size_t CalcHash(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+	static size_t GenHash(const bool* macrosToEnable, size_t macrosSize);
+	static size_t CalcHash(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding, bool meshletInput);
 
 	static void PermutateMacro(const char** marcosToPermutate,
 		bool* macrosToEnable,
@@ -80,5 +80,5 @@ public:
 	IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
 	IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
 	IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count);
-	IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+	IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding, bool meshletInput);
 };
