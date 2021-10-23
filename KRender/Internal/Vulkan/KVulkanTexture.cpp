@@ -182,7 +182,8 @@ bool KVulkanTexture::InitDevice(bool async)
 
 					if (m_bGenerateMipmap)
 					{
-						KVulkanInitializer::GenerateMipmaps(m_TextureImage, m_TextureFormat, static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), layerCounts, static_cast<int32_t>(m_Mipmaps));
+						KVulkanInitializer::GenerateMipmaps(m_TextureImage, m_TextureFormat, static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), static_cast<int32_t>(m_Depth),
+							layerCounts, static_cast<int32_t>(m_Mipmaps));
 					}
 					else
 					{

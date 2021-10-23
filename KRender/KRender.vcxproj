@@ -123,6 +123,7 @@
     <ClInclude Include="Internal\Scene\KSceneManagerBase.h" />
     <ClInclude Include="Internal\Shadow\KCascadedShadowMap.h" />
     <ClInclude Include="Internal\Shadow\KShadowMap.h" />
+    <ClInclude Include="Internal\Voxilzer\KVoxilzer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanAccelerationStructure.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanComputePipeline.h" />
@@ -222,6 +223,7 @@
     <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
     <ClCompile Include="Internal\Shadow\KCascadedShadowMap.cpp" />
     <ClCompile Include="Internal\Shadow\KShadowMap.cpp" />
+    <ClCompile Include="Internal\Voxilzer\KVoxilzer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanAccelerationStructure.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanCommandBuffer.cpp" />

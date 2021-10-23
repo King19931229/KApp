@@ -14,19 +14,20 @@ enum ShaderType
 	// Tradition
 	ST_VERTEX = 1 << 0,
 	ST_FRAGMENT = 1 << 1,
+	ST_GEOMETRY = 1 << 2,
 
 	// RayTracing
-	ST_RAYGEN = 1 << 2,
-	ST_ANY_HIT = 1 << 3,
-	ST_CLOSEST_HIT = 1 << 4,
-	ST_MISS = 1 << 5,
+	ST_RAYGEN = 1 << 3,
+	ST_ANY_HIT = 1 << 4,
+	ST_CLOSEST_HIT = 1 << 5,
+	ST_MISS = 1 << 6,
 
 	// Compute
-	ST_COMPUTE = 1 << 6,
+	ST_COMPUTE = 1 << 7,
 
 	// Mesh
-	ST_TASK = 1 << 7,
-	ST_MESH = 1 << 8,
+	ST_TASK = 1 << 8,
+	ST_MESH = 1 << 9,
 
 	ST_ENDENUM
 };
@@ -229,6 +230,8 @@ enum ElementFormat
 	EF_R8G8B8A8_SNORM,
 
 	EF_R8GB8B8_UNORM,
+	EF_R8G8_UNORM,
+	EF_R8_UNORM,
 
 	EF_R16_FLOAT,
 	EF_R16G16_FLOAT,
@@ -277,6 +280,7 @@ enum IndexType
 enum TextureType
 {
 	TT_TEXTURE_2D,
+	TT_TEXTURE_3D,
 	TT_TEXTURE_CUBE_MAP,
 
 	TT_UNKNOWN,

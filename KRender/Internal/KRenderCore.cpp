@@ -126,6 +126,8 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
 	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 3, 2048, 1.0f);
 
+	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, 256);
+
 	// TODO
 	KRenderGlobal::FrameGraph.Compile();
 
@@ -144,6 +146,7 @@ bool KRenderCore::UnInitGlobalManager()
 	KRenderGlobal::ShadowMap.UnInit();
 	KRenderGlobal::CascadedShadowMap.UnInit();
 	KRenderGlobal::RTAO.UnInit();
+	KRenderGlobal::Voxilzer.UnInit();
 
 	KRenderGlobal::RayTraceManager.UnInit();
 	KRenderGlobal::GBuffer.UnInit();

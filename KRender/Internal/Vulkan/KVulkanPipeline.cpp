@@ -13,6 +13,7 @@ static VkShaderStageFlagBits SHADER_STAGE_FLAGS[] =
 {
 	VK_SHADER_STAGE_VERTEX_BIT,
 	VK_SHADER_STAGE_FRAGMENT_BIT,
+	VK_SHADER_STAGE_GEOMETRY_BIT,
 	VK_SHADER_STAGE_TASK_BIT_NV,
 	VK_SHADER_STAGE_MESH_BIT_NV
 };
@@ -215,6 +216,9 @@ bool KVulkanPipeline::SetShader(ShaderType shaderType, IKShaderPtr shader)
 		return true;
 	case ST_FRAGMENT:
 		m_Shaders[FRAGMENT] = shader;
+		return true;
+	case ST_GEOMETRY:
+		m_Shaders[GEOMETRY] = shader;
 		return true;
 	case ST_TASK:
 		m_Shaders[TASK] = shader;

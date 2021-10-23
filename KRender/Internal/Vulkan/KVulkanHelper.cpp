@@ -30,6 +30,10 @@ namespace KVulkanHelper
 			imageType = VK_IMAGE_TYPE_2D;
 			imageViewType = VK_IMAGE_VIEW_TYPE_2D;
 			return true;
+		case TT_TEXTURE_3D:
+			imageType = VK_IMAGE_TYPE_3D;
+			imageViewType = VK_IMAGE_VIEW_TYPE_3D;
+			return true;
 		case TT_TEXTURE_CUBE_MAP:
 			imageType = VK_IMAGE_TYPE_2D;
 			imageViewType = VK_IMAGE_VIEW_TYPE_CUBE;
@@ -55,6 +59,12 @@ namespace KVulkanHelper
 			return true;
 		case EF_R8GB8B8_UNORM:
 			vkFormat = VK_FORMAT_R8G8B8_UNORM;
+			return true;
+		case EF_R8G8_UNORM:
+			vkFormat = VK_FORMAT_R8G8_UNORM;
+			return true;
+		case EF_R8_UNORM:
+			vkFormat = VK_FORMAT_R8_UNORM;
 			return true;
 
 		case EF_R16_FLOAT:
@@ -429,6 +439,9 @@ namespace KVulkanHelper
 		case ST_FRAGMENT:
 			bit = VK_SHADER_STAGE_FRAGMENT_BIT;
 			return true;
+		case ST_GEOMETRY:
+			bit = VK_SHADER_STAGE_GEOMETRY_BIT;
+			return true;
 		case ST_RAYGEN:
 			bit = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
 			return true;
@@ -454,7 +467,7 @@ namespace KVulkanHelper
 	bool ShaderTypesToVkShaderStageFlag(ShaderTypes shaderTypes, VkFlags& flags)
 	{
 		flags = 0;
-		const ShaderType candidate[] = { ST_VERTEX, ST_FRAGMENT, ST_RAYGEN, ST_ANY_HIT, ST_CLOSEST_HIT , ST_MISS, ST_COMPUTE, ST_TASK, ST_MESH };
+		const ShaderType candidate[] = { ST_VERTEX, ST_FRAGMENT, ST_GEOMETRY, ST_RAYGEN, ST_ANY_HIT, ST_CLOSEST_HIT , ST_MISS, ST_COMPUTE, ST_TASK, ST_MESH };
 		static_assert((1 << (ARRAY_SIZE(candidate) - 1)) + 1 == ST_ENDENUM, "Array size should match");
 		for(ShaderType c : candidate)
 		{

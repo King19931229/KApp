@@ -120,6 +120,9 @@ static bool ShaderTypeToEShLanguage(ShaderType type, EShLanguage& language)
 	case ST_FRAGMENT:
 		language = EShLangFragment;
 		return true;
+	case ST_GEOMETRY:
+		language = EShLangGeometry;
+		return true;
 	case ST_RAYGEN:
 		language = EShLangRayGen;
 		return true;

@@ -20,6 +20,7 @@ namespace KRenderGlobal
 	KShadowMap ShadowMap;
 	KCascadedShadowMap CascadedShadowMap;
 	KRTAO RTAO;
+	KVoxilzer Voxilzer;
 
 	KFrameGraph FrameGraph;
 

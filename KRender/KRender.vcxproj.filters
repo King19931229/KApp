@@ -70,6 +70,9 @@
     <Filter Include="Internal\Asset\Meshlet">
       <UniqueIdentifier>{92ff14c0-0d03-4bac-b20c-78455bcc2f16}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Voxilzer">
+      <UniqueIdentifier>{e4a63dbf-ca52-4caa-ab5c-e1cb983db3b6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -465,6 +468,9 @@
     <ClInclude Include="Internal\Asset\Meshlet\KMeshlet.h">
       <Filter>Internal\Asset\Meshlet</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Voxilzer\KVoxilzer.h">
+      <Filter>Internal\Voxilzer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -748,6 +754,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Object\KDebugDrawer.cpp">
       <Filter>Internal\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Voxilzer\KVoxilzer.cpp">
+      <Filter>Internal\Voxilzer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

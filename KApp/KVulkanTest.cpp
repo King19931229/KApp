@@ -96,7 +96,6 @@ int main()
 
 	KRenderCoreInitCallback callback = [engine]()
 	{
-		/*
 		auto renderScene = engine->GetRenderCore()->GetRenderScene();
 		auto rayTraceMgr = engine->GetRenderCore()->GetRayTraceMgr();
 		auto device = engine->GetRenderCore()->GetRenderDevice();
@@ -115,8 +114,7 @@ int main()
 		rayTraceScene->EnableDebugDraw(0, 0, 1, 1);
 		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
 
-		engine->GetRenderCore()->InitRTAO(rayTraceScene);
-		*/
+		// engine->GetRenderCore()->InitRTAO(rayTraceScene);
 	};
 	engine->GetRenderCore()->RegisterInitCallback(&callback);
 	callback();

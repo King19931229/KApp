@@ -9,6 +9,8 @@ enum ImageFormat
 	// 常规格式
 	IF_R8G8B8A8,
 	IF_R8G8B8,
+	IF_R8G8,
+	IF_R8,
 	// 16bit浮点格式
 	IF_R16_FLOAT,
 	IF_R16G16_FLOAT,
@@ -19,6 +21,8 @@ enum ImageFormat
 	IF_R32G32_FLOAT,
 	IF_R32G32B32_FLOAT,
 	IF_R32G32B32A32_FLOAT,
+	// 整型格式
+	IF_R32_UINT,
 	// ETC压缩格式
 	IF_ETC1_RGB8,
 	IF_ETC2_RGB8,

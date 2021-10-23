@@ -102,7 +102,7 @@ namespace KVulkanInitializer
 		uint32_t baseMipLevel, uint32_t mipLevels,
 		VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer commandBuffer);
 
-	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, uint32_t layers, uint32_t mipLevels);
+	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, int32_t texDepth, uint32_t layers, uint32_t mipLevels);
 
 	void BeginSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
 	void EndSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);

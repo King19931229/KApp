@@ -644,7 +644,7 @@ namespace KVulkanInitializer
 		);
 	}
 
-	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, uint32_t layers, uint32_t mipLevels)
+	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, int32_t texDepth, uint32_t layers, uint32_t mipLevels)
 	{
 		// 检查该format是否支持线性过滤
 		VkFormatProperties formatProperties;
@@ -672,6 +672,7 @@ namespace KVulkanInitializer
 			{
 				int32_t mipWidth = texWidth;
 				int32_t mipHeight = texHeight;
+				int32_t mipDepth = texDepth;
 
 				for (uint32_t mipmapLevel = 1; mipmapLevel < mipLevels; mipmapLevel++)
 				{
@@ -690,7 +691,7 @@ namespace KVulkanInitializer
 
 					VkImageBlit blit = {};
 
-					VkOffset3D srcOffsets[] = { { 0, 0, 0 },{ mipWidth, mipHeight, 1 } };
+					VkOffset3D srcOffsets[] = { { 0, 0, 0 },{ mipWidth, mipHeight, mipDepth } };
 					blit.srcOffsets[0] = srcOffsets[0];
 					blit.srcOffsets[1] = srcOffsets[1];
 
@@ -699,7 +700,7 @@ namespace KVulkanInitializer
 					blit.srcSubresource.baseArrayLayer = layer;
 					blit.srcSubresource.layerCount = 1;
 
-					VkOffset3D dstOffsets[] = { { 0, 0, 0 },{ mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 } };
+					VkOffset3D dstOffsets[] = { { 0, 0, 0 },{ mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, mipDepth > 1 ? mipDepth / 2 : 1 } };
 					blit.dstOffsets[0] = dstOffsets[0];
 					blit.dstOffsets[1] = dstOffsets[1];
 
@@ -730,6 +731,7 @@ namespace KVulkanInitializer
 
 					if (mipWidth > 1) mipWidth /= 2;
 					if (mipHeight > 1) mipHeight /= 2;
+					if (mipDepth > 1) mipDepth /= 2;
 				}
 
 				// 把遗留下来的最后一层mipmap执行Transition 从Transfer目标转换到Shader可读

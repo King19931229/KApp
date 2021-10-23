@@ -31,6 +31,7 @@ public:
 	{
 		VERTEX,
 		FRAGMENT,
+		GEOMETRY,
 		TASK,
 		MESH,
 		COUNT

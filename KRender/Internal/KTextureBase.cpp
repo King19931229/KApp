@@ -14,6 +14,12 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 	case IF_R8G8B8:
 		elementFormat = EF_R8GB8B8_UNORM;
 		return true;
+	case IF_R8G8:
+		elementFormat = EF_R8G8_UNORM;
+		return true;
+	case IF_R8:
+		elementFormat = EF_R8_UNORM;
+		return true;
 
 	case IF_R16_FLOAT:
 		elementFormat = EF_R16_FLOAT;
@@ -39,6 +45,10 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 		return true;
 	case IF_R32G32B32A32_FLOAT:
 		elementFormat = EF_R32G32B32A32_FLOAT;
+		return true;
+
+	case IF_R32_UINT:
+		elementFormat = EF_R32_UINT;
 		return true;
 
 	case IF_ETC1_RGB8:
@@ -115,6 +125,12 @@ static bool ImageFormatToSize(ImageFormat format, size_t& size)
 	case IF_R8G8B8:
 		size = 3;
 		return true;
+	case IF_R8G8:
+		size = 2;
+		return true;
+	case IF_R8:
+		size = 1;
+		return true;
 	case IF_COUNT:
 		break;
 	default:
@@ -148,7 +164,7 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 {
 	m_Width = m_ImageData.uWidth;
 	m_Height = m_ImageData.uHeight;
-	m_Depth = 1;
+	m_Depth = m_ImageData.uDepth;
 
 	// 已经存在mipmap数据或者格式为压缩格式就不硬生成mipmap
 	if (m_ImageData.uMipmap > 1 || m_ImageData.bCompressed)
@@ -160,9 +176,22 @@ bool KTextureBase::InitProperty(bool generateMipmap)
 		m_bGenerateMipmap = generateMipmap;
 	}
 	// 如果硬生成mipmap mipmap层数与尺寸相关 否则从mipmap数据中获取
-	m_Mipmaps = (unsigned short)(m_bGenerateMipmap ? (unsigned short)std::floor(std::log(std::min(m_Width, m_Height)) / std::log(2)) + 1 : m_ImageData.uMipmap);
+	m_Mipmaps = (unsigned short)(m_bGenerateMipmap ?
+		(unsigned short)std::floor(std::log(std::max(std::max(m_Width, m_Height), m_Depth)) / std::log(2)) + 1 :
+		m_ImageData.uMipmap);
 
-	m_TextureType = m_ImageData.bCubemap ? TT_TEXTURE_CUBE_MAP : TT_TEXTURE_2D;
+	if (m_ImageData.bCubemap)
+	{
+		m_TextureType = TT_TEXTURE_CUBE_MAP;
+	}
+	else if (m_Depth ==	1)
+	{
+		m_TextureType = TT_TEXTURE_2D;
+	}
+	else
+	{
+		m_TextureType = TT_TEXTURE_3D;
+	}
 
 	if(ImageFormatToElementFormat(m_ImageData.eFormat, m_Format))
 	{
@@ -236,43 +265,49 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 	}
 }
 
-bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t height, ImageFormat format, bool bGenerateMipmap, bool async)
+bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t height, size_t depth, ImageFormat format, bool bGenerateMipmap, bool async)
 {
 	ReleaseMemory();
 	auto loadImpl = [=]()->bool
 	{
 		m_ResourceState = RS_MEMORY_LOADING;
 
-		if (pRawData)
+		size_t formatSize = 0;
+		if (ImageFormatToSize(format, formatSize))
 		{
-			size_t formatSize = 0;
-			if (ImageFormatToSize(format, formatSize))
+			KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(width * height * formatSize));
+
+			if (pRawData)
 			{
-				KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(width * height * formatSize));
 				memcpy(pImageData->GetData(), pRawData, pImageData->GetSize());
-				m_ImageData.eFormat = format;
-				m_ImageData.uWidth = width;
-				m_ImageData.uHeight = height;
-				m_ImageData.uDepth = 1;
-				m_ImageData.uMipmap = 1;
-				m_ImageData.bCompressed = false;
-				m_ImageData.bCubemap = false;
-				m_ImageData.pData = pImageData;
+			}
+			else
+			{
+				memset(pImageData->GetData(), 0, pImageData->GetSize());
+			}
 
-				KSubImageInfo subImageInfo;
-				subImageInfo.uWidth = width;
-				subImageInfo.uHeight = height;
-				subImageInfo.uOffset = 0;
-				subImageInfo.uSize = pImageData->GetSize();
-				subImageInfo.uFaceIndex = 0;
-				subImageInfo.uMipmapIndex = 0;
-				m_ImageData.pData->GetSubImageInfo().push_back(subImageInfo);
+			m_ImageData.eFormat = format;
+			m_ImageData.uWidth = width;
+			m_ImageData.uHeight = height;
+			m_ImageData.uDepth = depth;
+			m_ImageData.uMipmap = 1;
+			m_ImageData.bCompressed = false;
+			m_ImageData.bCubemap = false;
+			m_ImageData.pData = pImageData;
 
-				if (InitProperty(bGenerateMipmap))
-				{
-					m_ResourceState = RS_MEMORY_LOADED;
-					return true;
-				}
+			KSubImageInfo subImageInfo;
+			subImageInfo.uWidth = width;
+			subImageInfo.uHeight = height;
+			subImageInfo.uOffset = 0;
+			subImageInfo.uSize = pImageData->GetSize();
+			subImageInfo.uFaceIndex = 0;
+			subImageInfo.uMipmapIndex = 0;
+			m_ImageData.pData->GetSubImageInfo().push_back(subImageInfo);
+
+			if (InitProperty(bGenerateMipmap))
+			{
+				m_ResourceState = RS_MEMORY_LOADED;
+				return true;
 			}
 		}
 
