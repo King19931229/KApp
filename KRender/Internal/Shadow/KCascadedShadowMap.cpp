@@ -767,7 +767,7 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands)
 			pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 			pipeline->SetShader(ST_VERTEX, m_DebugVertexShader);
 			pipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader);
-			pipeline->SetSampler(SHADER_BINDING_TEXTURE0, shadowTarget, m_ShadowSampler);
+			pipeline->SetSampler(SHADER_BINDING_TEXTURE0, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
 
 			ASSERT_RESULT(pipeline->Init());
 		}

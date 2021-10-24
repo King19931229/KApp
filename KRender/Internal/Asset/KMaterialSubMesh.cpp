@@ -290,7 +290,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 							{
 								for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)
 								{
-									pipelineList[frameIdx]->SetSampler(shaderTexture.bindingIndex, texture, sampler);
+									pipelineList[frameIdx]->SetSampler(shaderTexture.bindingIndex, texture->GetFrameBuffer(), sampler);
 								}
 							}
 						}

@@ -97,7 +97,7 @@ void KSkyBox::PreparePipeline()
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
 
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_CubeTexture, m_CubeSampler);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_CubeTexture->GetFrameBuffer(), m_CubeSampler);
 
 		ASSERT_RESULT(pipeline->Init());
 	}

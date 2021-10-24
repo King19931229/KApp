@@ -270,13 +270,12 @@ bool KVulkanPipeline::BindSampler(unsigned int location, const SamplerBindingInf
 	return true;
 }
 
-bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler, bool dynimicWrite)
+bool KVulkanPipeline::SetSampler(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, bool dynimicWrite)
 {
-	ASSERT_RESULT(texture && sampler);
-	if (texture && sampler)
+	if (image && sampler)
 	{
 		SamplerBindingInfo info;
-		info.texture = texture;
+		info.image = image;
 		info.sampler = sampler;
 		info.dynamicWrite = dynimicWrite;
 		info.onceWrite = false;
@@ -286,16 +285,13 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKTexturePtr texture, IK
 	return false;
 }
 
-bool KVulkanPipeline::SetSampler(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynimicWrite)
+bool KVulkanPipeline::SetStorageImage(unsigned int location, IKFrameBufferPtr image)
 {
-	if (target && sampler)
+	if (image)
 	{
-		SamplerBindingInfo info;
-		info.target = target;
-		info.sampler = sampler;
-		info.dynamicWrite = dynimicWrite;
-		info.onceWrite = false;
-		ASSERT_RESULT(BindSampler(location, info));
+		StorageBufferBindingInfo info;
+		info.image = image;
+		m_Storages[location] = info;
 		return true;
 	}
 	return false;
@@ -489,7 +485,7 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 	m_BufferWriteInfo.clear();
 
 	m_WriteDescriptorSet.reserve(m_Uniforms.size());
-	m_ImageWriteInfo.resize(m_Samplers.size());
+	m_ImageWriteInfo.resize(m_Samplers.size() + m_Storages.size());
 	m_BufferWriteInfo.resize(m_Uniforms.size());
 
 	size_t bufferIdx = 0;
@@ -535,16 +531,7 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 
 		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
 
-		IKFrameBufferPtr frameBuffer = nullptr;
-		if (info.texture)
-		{
-			frameBuffer = info.texture->GetFrameBuffer();
-		}
-		else if (info.target)
-		{
-			frameBuffer = info.target->GetFrameBuffer();
-		}
-
+		IKFrameBufferPtr frameBuffer = info.image;
 		ASSERT_RESULT(frameBuffer);
 
 		imageInfo.imageLayout = frameBuffer->IsStroageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -573,6 +560,40 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		samplerDescriptorWrite.pTexelBufferView = nullptr; // Optional
 
 		m_WriteDescriptorSet.push_back(samplerDescriptorWrite);
+	}
+
+	for (auto& pair : m_Storages)
+	{
+		unsigned int location = pair.first;
+		StorageBufferBindingInfo& info = pair.second;
+
+		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
+		IKFrameBufferPtr frameBuffer = info.image;
+
+		ASSERT_RESULT(frameBuffer->IsStroageImage());
+
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
+		imageInfo.sampler = VK_NULL_HANDEL;
+
+		VkWriteDescriptorSet storageDescriptorWrite = {};
+
+		storageDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		// 写入的描述集合
+		storageDescriptorWrite.dstSet = VK_NULL_HANDLE;
+		// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
+		storageDescriptorWrite.dstBinding = location;
+		// 写入索引与下面descriptorCount对应
+		storageDescriptorWrite.dstArrayElement = 0;
+
+		storageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		storageDescriptorWrite.descriptorCount = 1;
+
+		storageDescriptorWrite.pBufferInfo = nullptr; // Optional
+		storageDescriptorWrite.pImageInfo = &imageInfo;
+		storageDescriptorWrite.pTexelBufferView = nullptr; // Optional
+
+		m_WriteDescriptorSet.push_back(storageDescriptorWrite);
 	}
 
 	m_Pool.Init(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, m_WriteDescriptorSet);
@@ -641,15 +662,8 @@ bool KVulkanPipeline::CheckDependencyResource()
 		unsigned int location = pair.first;
 		SamplerBindingInfo& info = pair.second;
 
-		if (info.texture)
-		{
-			if (info.texture->GetResourceState() != RS_DEVICE_LOADED)
-			{
-				return false;
-			}
-		}
-
-		if (info.sampler->GetResourceState() != RS_DEVICE_LOADED)
+		// TODO Image被初始化
+		if (!info.image)
 		{
 			return false;
 		}

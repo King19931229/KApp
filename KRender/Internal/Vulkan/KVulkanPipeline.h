@@ -87,16 +87,14 @@ protected:
 	// Sampler 信息
 	struct SamplerBindingInfo
 	{
-		IKTexturePtr texture;
-		IKRenderTargetPtr target;
+		IKFrameBufferPtr image;
 		IKSamplerPtr sampler;
 		bool dynamicWrite;
 		bool onceWrite;
 
 		SamplerBindingInfo()
 		{
-			texture = nullptr;
-			target = nullptr;
+			image = nullptr;
 			sampler = nullptr;
 			dynamicWrite = false;
 			onceWrite = false;
@@ -104,10 +102,10 @@ protected:
 	};
 	std::unordered_map<unsigned int, SamplerBindingInfo> m_Samplers;
 
-	// Storage Buffer信息
+	// Storage Image信息
 	struct StorageBufferBindingInfo
 	{
-		ShaderTypes shaderTypes;
+		IKFrameBufferPtr image;
 	};
 	std::unordered_map<unsigned int, StorageBufferBindingInfo> m_Storages;
 
@@ -165,8 +163,8 @@ public:
 
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
 
-	virtual bool SetSampler(unsigned int location, IKTexturePtr texture, IKSamplerPtr sampler, bool dynimicWrite);
-	virtual bool SetSampler(unsigned int location, IKRenderTargetPtr target, IKSamplerPtr sampler, bool dynimicWrite);
+	virtual bool SetSampler(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, bool dynimicWrite);
+	virtual bool SetStorageImage(unsigned int location, IKFrameBufferPtr image);
 
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size);
 	virtual bool DestroyConstantBlock();

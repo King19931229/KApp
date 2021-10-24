@@ -172,12 +172,12 @@ bool KPostProcessPass::Init()
 					if (outputType == PPNT_TEXTURE)
 					{
 						KPostProcessTexture* outTexture = (KPostProcessTexture*)outputNode;
-						pipeline->SetSampler((unsigned int)location, outTexture->GetTexture(), sampler);
+						pipeline->SetSampler((unsigned int)location, outTexture->GetTexture()->GetFrameBuffer(), sampler);
 					}
 					else if (outputType == PPNT_PASS)
 					{
 						KPostProcessPass* outPass = (KPostProcessPass*)outputNode;
-						pipeline->SetSampler((unsigned int)location, outPass->GetRenderTarget(), sampler);
+						pipeline->SetSampler((unsigned int)location, outPass->GetRenderTarget()->GetFrameBuffer(), sampler);
 					}
 					else
 					{
@@ -232,7 +232,7 @@ bool KPostProcessPass::Init()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_RenderTarget, m_Mgr->m_Sampler);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_RenderTarget->GetFrameBuffer(), m_Mgr->m_Sampler);
 
 		pipeline->Init();
 	}

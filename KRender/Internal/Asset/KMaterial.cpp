@@ -322,7 +322,7 @@ void KMaterial::BindSampler(IKPipelinePtr pipeline, const KShaderInformation& in
 			IKSamplerPtr sampler = KRenderGlobal::ShadowMap.GetSampler();
 
 			IKRenderTargetPtr shadowRT = KRenderGlobal::ShadowMap.GetShadowMapTarget();
-			pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT, sampler);
+			pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT->GetFrameBuffer(), sampler);
 		}
 		else if (shaderTexture.bindingIndex == SHADER_BINDING_CSM0 ||
 			shaderTexture.bindingIndex == SHADER_BINDING_CSM1 ||
@@ -336,19 +336,19 @@ void KMaterial::BindSampler(IKPipelinePtr pipeline, const KShaderInformation& in
 			{
 				shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0);
 			}
-			pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT, sampler);
+			pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT->GetFrameBuffer(), sampler);
 		}
 		else if (shaderTexture.bindingIndex == SHADER_BINDING_DIFFUSE_IRRADIANCE)
 		{
-			pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetDiffuseIrradiance(), KRenderGlobal::CubeMap.GetDiffuseIrradianceSampler());
+			pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetDiffuseIrradiance()->GetFrameBuffer(), KRenderGlobal::CubeMap.GetDiffuseIrradianceSampler());
 		}
 		else if (shaderTexture.bindingIndex == SHADER_BINDING_SPECULAR_IRRADIANCE)
 		{
-			pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetSpecularIrradiance(), KRenderGlobal::CubeMap.GetSpecularIrradianceSampler());
+			pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer(), KRenderGlobal::CubeMap.GetSpecularIrradianceSampler());
 		}
 		else if (shaderTexture.bindingIndex == SHADER_BINDING_INTEGRATE_BRDF)
 		{
-			pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetIntegrateBRDF(), KRenderGlobal::CubeMap.GetIntegrateBRDFSampler());
+			pipeline->SetSampler(shaderTexture.bindingIndex, KRenderGlobal::CubeMap.GetIntegrateBRDF()->GetFrameBuffer(), KRenderGlobal::CubeMap.GetIntegrateBRDFSampler());
 		}
 	}
 }

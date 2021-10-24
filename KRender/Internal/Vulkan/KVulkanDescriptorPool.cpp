@@ -221,15 +221,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 
 			VkDescriptorImageInfo &imageInfo = m_DynamicImageWriteInfo[idx];
 
-			IKFrameBufferPtr frameBuffer = nullptr;
-			if (info.texture)
-			{
-				frameBuffer = info.texture->GetFrameBuffer();
-			}
-			else if (info.target)
-			{
-				frameBuffer = info.target->GetFrameBuffer();
-			}
+			IKFrameBufferPtr frameBuffer = info.image;
 			ASSERT_RESULT(frameBuffer);
 
 			imageInfo.imageLayout = frameBuffer->IsStroageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

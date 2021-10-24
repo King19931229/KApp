@@ -98,7 +98,7 @@ bool KRTDebugDrawer::Init(IKRenderTargetPtr target)
 	m_Pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 	m_Pipeline->SetShader(ST_VERTEX, KDebugDrawSharedData::m_DebugVertexShader);
 	m_Pipeline->SetShader(ST_FRAGMENT, KDebugDrawSharedData::m_DebugFragmentShader);
-	m_Pipeline->SetSampler(SHADER_BINDING_TEXTURE0, target, KDebugDrawSharedData::m_DebugSampler, true);
+	m_Pipeline->SetSampler(SHADER_BINDING_TEXTURE0, target->GetFrameBuffer(), KDebugDrawSharedData::m_DebugSampler, true);
 
 	ASSERT_RESULT(m_Pipeline->Init());
 

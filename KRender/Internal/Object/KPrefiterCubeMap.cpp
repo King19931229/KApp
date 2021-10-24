@@ -234,7 +234,7 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice,
 
 		pipeline->SetBlendEnable(false);
 
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_SrcCubeMap, m_SrcCubeSampler);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_SrcCubeMap->GetFrameBuffer(), m_SrcCubeSampler);
 
 		pipeline->SetCullMode(CM_BACK);
 		pipeline->SetFrontFace(FF_CLOCKWISE);
