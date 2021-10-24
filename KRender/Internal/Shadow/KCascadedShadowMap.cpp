@@ -694,11 +694,10 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 
 		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 		{
-			void* pWritePos = nullptr;
+			void* pWritePos = POINTER_OFFSET(pData, detail.offset);
 			if (detail.semantic == CS_CASCADED_SHADOW_VIEW)
 			{
 				assert(sizeof(glm::mat4) * 4 == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				for (size_t i = 0; i < numCascaded; i++)
 				{
 					memcpy(pWritePos, &m_Cascadeds[i].viewMatrix, sizeof(glm::mat4));
@@ -708,7 +707,6 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 			if (detail.semantic == CS_CASCADED_SHADOW_VIEW_PROJ)
 			{
 				assert(sizeof(glm::mat4) * 4 == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				for (size_t i = 0; i < numCascaded; i++)
 				{
 					memcpy(pWritePos, &m_Cascadeds[i].viewProjMatrix, sizeof(glm::mat4));
@@ -718,7 +716,6 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 			if (detail.semantic == CS_CASCADED_SHADOW_LIGHT_INFO)
 			{
 				assert(sizeof(glm::vec4) * 4 == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				for (size_t i = 0; i < numCascaded; i++)
 				{
 					memcpy(pWritePos, &m_Cascadeds[i].viewInfo, sizeof(glm::vec4));
@@ -728,7 +725,6 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 			if (detail.semantic == CS_CASCADED_SHADOW_FRUSTUM)
 			{
 				assert(sizeof(float) * 4 == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				for (size_t i = 0; i < numCascaded; i++)
 				{
 					memcpy(pWritePos, &m_Cascadeds[i].splitDepth, sizeof(float));
@@ -738,7 +734,6 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 			if (detail.semantic == CS_CASCADED_SHADOW_NUM_CASCADED)
 			{
 				assert(sizeof(uint32_t) == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				uint32_t num = (uint32_t)numCascaded;
 				memcpy(pWritePos, &num, sizeof(uint32_t));
 			}

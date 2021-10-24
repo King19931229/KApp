@@ -6,6 +6,7 @@ namespace KConstantDefinition
 	static ConstantBufferDetail SHADOW_DETAILS;
 	static ConstantBufferDetail CASCADED_SHADOW_DETAILS;
 	static ConstantBufferDetail GLOBAL_DETAILS;
+	static ConstantBufferDetail VOXEL_DETAILS;
 	static ConstantBufferDetail EMPYT_DETAILS;
 
 	void SafeInit()
@@ -102,6 +103,31 @@ namespace KConstantDefinition
 				}
 				CASCADED_SHADOW_DETAILS.bufferSize = sizeof(CASCADED_SHADOW);
 			}
+
+			// VOXEL_DETAILS
+			{
+				// VIEW_PROJ
+				{
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_VIEW_PROJ, EF_R32G32B32A32_FLOAT, 4 * 3, MEMBER_SIZE(VOXEL, VIEW_PROJ), MEMBER_OFFSET(VOXEL, VIEW_PROJ) };
+					VOXEL_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// VIEW_PROJ_INV
+				{
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_VIEW_PROJ_INV, EF_R32G32B32A32_FLOAT, 4 * 3, MEMBER_SIZE(VOXEL, VIEW_PROJ_INV), MEMBER_OFFSET(VOXEL, VIEW_PROJ_INV) };
+					VOXEL_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// MIDPOINT_SCALE
+				{
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_MIDPOINT_SCALE, EF_R32G32B32A32_FLOAT, 1, MEMBER_SIZE(VOXEL, MIDPOINT_SCALE), MEMBER_OFFSET(VOXEL, MIDPOINT_SCALE) };
+					VOXEL_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// DIMENSION
+				{
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_DIMENSION, EF_R32_UINT, 1, MEMBER_SIZE(VOXEL, DIMENSION), MEMBER_OFFSET(VOXEL, DIMENSION) };
+					VOXEL_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				VOXEL_DETAILS.bufferSize = sizeof(VOXEL);
+			}
 			
 			// GLOBAL
 			{
@@ -129,6 +155,8 @@ namespace KConstantDefinition
 			return SHADOW_DETAILS;
 		case CBT_CASCADED_SHADOW:
 			return CASCADED_SHADOW_DETAILS;
+		case CBT_VOXEL:
+			return VOXEL_DETAILS;
 		case CBT_GLOBAL:
 			return GLOBAL_DETAILS;
 		default:

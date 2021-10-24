@@ -37,6 +37,14 @@ namespace KConstantGlobal
 		{ 1 }
 	};
 
+	KConstantDefinition::VOXEL Voxel
+	{
+		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY },
+		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY },
+		{ 0, 0, 0, 0},
+		{ 0 }
+	};
+
 	KConstantDefinition::GLOBAL Global =
 	{
 		glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)
@@ -52,6 +60,8 @@ namespace KConstantGlobal
 			return &Shadow;
 		case CBT_CASCADED_SHADOW:
 			return &CascadedShadow;
+		case CBT_VOXEL:
+			return &Voxel;
 		case CBT_GLOBAL:
 			return &Global;
 		default:

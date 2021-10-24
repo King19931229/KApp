@@ -33,6 +33,10 @@ protected:
 	IKShaderPtr				m_CascadedShadowVSShader;
 	IKShaderPtr				m_CascadedShadowVSInstanceShader;
 
+	IKShaderPtr				m_VoxelVSShader;
+	IKShaderPtr				m_VoxelGSShader;
+	IKShaderPtr				m_VoxelFSShader;
+
 	bool					m_MateriaShaderTriggerLoaded;
 	bool					m_MaterialPipelineCreated;
 

@@ -34,7 +34,16 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "gbuffer/gbufferinstance.vert", m_GBufferVSInstanceShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "gbuffer/gbuffer.frag", m_GBufferFSShader, true));
 
-	for (PipelineStage stage : {PIPELINE_STAGE_GBUFFER, PIPELINE_STAGE_GBUFFER_INSTANCE, PIPELINE_STAGE_PRE_Z, PIPELINE_STAGE_SHADOW_GEN, PIPELINE_STAGE_CASCADED_SHADOW_GEN, PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE})
+	for (PipelineStage stage : 
+	{
+			PIPELINE_STAGE_VOXEL,
+			PIPELINE_STAGE_GBUFFER,
+			PIPELINE_STAGE_GBUFFER_INSTANCE,
+			PIPELINE_STAGE_PRE_Z,
+			PIPELINE_STAGE_SHADOW_GEN,
+			PIPELINE_STAGE_CASCADED_SHADOW_GEN,
+			PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE
+	})
 	{
 		FramePipelineList& pipelines = m_Pipelines[stage];
 		pipelines.resize(m_FrameInFlight);
@@ -426,6 +435,32 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameInde
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
+		return true;
+	}
+	else if (stage == PIPELINE_STAGE_VOXEL)
+	{
+		/*
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+
+		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+		pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_NEVER, false, false);
+
+		pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
+		pipeline->SetShader(ST_FRAGMENT, m_VoxelFSShader);
+
+		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CASCADED_VOXEL);
+		pipeline->SetConstantBuffer(CBT_CASCADED_SHADOW, ST_VERTEX | ST_FRAGMENT, voxelBuffer);
+
+		ASSERT_RESULT(pipeline->Init());
+		*/
 		return true;
 	}
 	else if (stage == PIPELINE_STAGE_DEBUG_LINE)

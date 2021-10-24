@@ -22,10 +22,21 @@ protected:
 	uint32_t m_VoxelCount;
 	float m_VolumeGridSize;
 	float m_VoxelSize;
-	glm::mat4 m_VoxelViewProj[3];
-	glm::mat4 m_VoxelViewProjI[3];
 
+	glm::mat4 m_ViewProjectionMatrix[3];
+	glm::mat4 m_ViewProjectionMatrixI[3];
+
+	IKCommandBufferPtr m_CommandBuffer;
+	IKCommandPoolPtr m_CommandPool;
+	IKRenderTargetPtr m_RenderPassTarget;
+	IKRenderPassPtr m_RenderPass;
+
+	EntityObserverFunc m_OnSceneChangedFunc;
+
+	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
+	void UpdateProjectionMatrices();
 	void SetupVoxelVolumes(uint32_t dimension);
+	void VoxelizeStaticScene();
 public:
 	KVoxilzer();
 	~KVoxilzer();

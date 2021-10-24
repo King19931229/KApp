@@ -65,6 +65,14 @@ namespace KConstantDefinition
 		uint32_t NUM_CASCADED;
 	};
 
+	struct VOXEL
+	{
+		glm::mat4 VIEW_PROJ[3];
+		glm::mat4 VIEW_PROJ_INV[3];
+		glm::vec4 MIDPOINT_SCALE;
+		uint32_t DIMENSION;
+	};
+
 	struct GLOBAL
 	{
 		glm::vec4 SUN_LIGHT_DIR;
