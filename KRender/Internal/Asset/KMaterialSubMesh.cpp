@@ -34,6 +34,10 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "gbuffer/gbufferinstance.vert", m_GBufferVSInstanceShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "gbuffer/gbuffer.frag", m_GBufferFSShader, true));
 
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/voxelzation.vert", m_VoxelVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/voxelzation.geom", m_VoxelGSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/voxelzation.frag", m_VoxelFSShader, true));
+
 	for (PipelineStage stage : 
 	{
 			PIPELINE_STAGE_VOXEL,
@@ -439,7 +443,6 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameInde
 	}
 	else if (stage == PIPELINE_STAGE_VOXEL)
 	{
-		/*
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
 		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
@@ -456,11 +459,13 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameInde
 		pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
 		pipeline->SetShader(ST_FRAGMENT, m_VoxelFSShader);
 
-		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CASCADED_VOXEL);
-		pipeline->SetConstantBuffer(CBT_CASCADED_SHADOW, ST_VERTEX | ST_FRAGMENT, voxelBuffer);
+		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_VOXEL);
+		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
+
+		pipeline->SetStorageImage(3, KRenderGlobal::Voxilzer.GetStaticFlag());
 
 		ASSERT_RESULT(pipeline->Init());
-		*/
+
 		return true;
 	}
 	else if (stage == PIPELINE_STAGE_DEBUG_LINE)

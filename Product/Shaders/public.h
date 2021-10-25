@@ -119,10 +119,11 @@ uniform CascadedShadowInfo
 layout(binding = BINDING_VOXEL)
 uniform VoxelInfo
 {
-	mat4 viewproj[4];
-	mat4 viewproj_inv[4];
+	mat4 viewproj[3];
+	mat4 viewproj_inv[3];
 	vec4 midpoint_scale;
-	uint dimension;
+	// dimension flagStaticVoxels
+	uint miscs[4];
 }voxel;
 
 layout(binding = BINDING_GLOBAL)

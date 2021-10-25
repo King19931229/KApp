@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IKRenderScene.h"
 #include "Interface/IKRenderConfig.h"
+#include "Interface/IKTexture.h"
 
 class KVoxilzer
 {
@@ -40,6 +41,13 @@ protected:
 public:
 	KVoxilzer();
 	~KVoxilzer();
+
+	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }
+	IKFrameBufferPtr GetVoxelAlbedo() { return m_VoxelAlbedo ? m_VoxelAlbedo->GetFrameBuffer() : nullptr; }
+	IKFrameBufferPtr GetVoxelNormal() { return m_VoxelNormal ? m_VoxelNormal->GetFrameBuffer() : nullptr; }
+	IKFrameBufferPtr GetVoxelEmissive() { return m_VoxelEmissive ? m_VoxelEmissive->GetFrameBuffer() : nullptr; }
+	IKFrameBufferPtr GetVoxelRadiance() { return m_VoxelRadiance ? m_VoxelRadiance->GetFrameBuffer() : nullptr; }
+	IKFrameBufferPtr GetVoxelTexMipmap(uint32_t mipmap) { return (mipmap < 6 && m_VoxelTexMipmap[mipmap]) ? m_VoxelTexMipmap[mipmap]->GetFrameBuffer() : nullptr; }
 
 	bool Init(IKRenderScene* scene, uint32_t dimension);
 	bool UnInit();

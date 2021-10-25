@@ -91,10 +91,13 @@ void KVoxilzer::UpdateProjectionMatrices()
 				glm::vec4 midpointScale(center, 1.0f / m_VolumeGridSize);
 				memcpy(pWritePos, &midpointScale, sizeof(glm::vec4));
 			}
-			if(detail.semantic == CS_VOXEL_DIMENSION)
+			if(detail.semantic == CS_VOXEL_MISCS)
 			{
-				assert(sizeof(uint32_t) == detail.size);
-				memcpy(pWritePos, &m_VolumeDimension, sizeof(uint32_t));
+				assert(sizeof(uint32_t) * 4 == detail.size);
+				glm::uvec4 miscs;
+				miscs.x = m_VolumeDimension;
+				miscs.y = 1;
+				memcpy(pWritePos, &miscs, sizeof(uint32_t) * 4);
 			}
 		}
 	}
@@ -107,6 +110,8 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 	m_VoxelSize = m_VolumeGridSize / m_VolumeDimension;
 
 	UpdateProjectionMatrices();
+
+	m_CommandBuffer->BeginPrimary();
 
 	m_VoxelAlbedo->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, false, false);
 	m_VoxelAlbedo->InitDevice(false);
@@ -129,6 +134,8 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 	m_StaticFlag->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8, false, false);
 	m_StaticFlag->InitDevice(false);
 
+	m_CommandBuffer->TranslateToStorage(m_StaticFlag->GetFrameBuffer());
+
 	m_CloestSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 	m_CloestSampler->SetFilterMode(FM_NEAREST, FM_NEAREST);
 	m_CloestSampler->Init(0, 0);
@@ -145,6 +152,9 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 	m_RenderPass->SetColorAttachment(0, m_RenderPassTarget->GetFrameBuffer());
 	m_RenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_RenderPass->Init();
+
+	m_CommandBuffer->End();
+	m_CommandBuffer->Flush();
 }
 
 void KVoxilzer::VoxelizeStaticScene()
