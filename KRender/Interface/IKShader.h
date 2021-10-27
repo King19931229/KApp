@@ -58,7 +58,8 @@ struct KShaderInformation
 		uint16_t bindingIndex;
 	};
 
-	std::vector<Storage> storages;
+	std::vector<Storage> storageBuffers;
+	std::vector<Storage> storageImages;
 	std::vector<Constant> constants;
 	std::vector<Constant> pushConstants;
 	std::vector<Constant> dynamicConstants;

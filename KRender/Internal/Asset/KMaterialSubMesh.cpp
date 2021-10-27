@@ -40,7 +40,6 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 
 	for (PipelineStage stage : 
 	{
-			PIPELINE_STAGE_VOXEL,
 			PIPELINE_STAGE_GBUFFER,
 			PIPELINE_STAGE_GBUFFER_INSTANCE,
 			PIPELINE_STAGE_PRE_Z,
@@ -312,6 +311,70 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 	return false;
 }
 
+bool KMaterialSubMesh::CreateVoxelPipeline()
+{
+	FramePipelineList& pipelines = m_Pipelines[PIPELINE_STAGE_VOXEL];
+
+	for (size_t i = 0; i < pipelines.size(); ++i)
+	{
+		SAFE_UNINIT(pipelines[i]);
+	}
+
+	pipelines.resize(m_FrameInFlight);
+
+	for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
+	{
+		IKPipelinePtr& pipeline = pipelines[frameIndex];
+		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
+
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+
+		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+		pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_NEVER, false, false);
+
+		pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
+		pipeline->SetShader(ST_FRAGMENT, m_VoxelFSShader);
+
+		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_VOXEL);
+		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
+
+		pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, KRenderGlobal::Voxilzer.GetVoxelAlbedo());
+		pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal());
+		pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive());
+		pipeline->SetStorageImage(VOXEL_BINDING_STATIC_FLAG, KRenderGlobal::Voxilzer.GetStaticFlag());
+
+		const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
+		for (uint8_t i = 0; i < textureBinding.GetNumSlot(); ++i)
+		{
+			IKTexturePtr texture = textureBinding.GetTexture(i);
+			IKSamplerPtr sampler = textureBinding.GetSampler(i);
+
+			if (!texture || !sampler)
+			{
+				KRenderGlobal::TextureManager.GetErrorTexture(texture);
+				KRenderGlobal::TextureManager.GetErrorSampler(sampler);
+			}
+
+			if (i == MTS_DIFFUSE)
+			{
+				pipeline->SetSampler(VOXEL_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
+			}
+		}
+
+		ASSERT_RESULT(pipeline->Init());
+	}
+
+	return true;
+}
+
 // 安卓上还是有用的
 #ifndef __ANDROID__
 #	define PRE_Z_DISABLE
@@ -439,33 +502,6 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameInde
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
-		return true;
-	}
-	else if (stage == PIPELINE_STAGE_VOXEL)
-	{
-		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
-
-		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
-		pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
-
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_NEVER, false, false);
-
-		pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
-		pipeline->SetShader(ST_FRAGMENT, m_VoxelFSShader);
-
-		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_VOXEL);
-		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
-
-		pipeline->SetStorageImage(3, KRenderGlobal::Voxilzer.GetStaticFlag());
-
-		ASSERT_RESULT(pipeline->Init());
-
 		return true;
 	}
 	else if (stage == PIPELINE_STAGE_DEBUG_LINE)
@@ -606,7 +642,7 @@ bool KMaterialSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::functi
 		{
 			if (!m_MaterialPipelineCreated)
 			{
-				if (CreateMaterialPipeline())
+				if (CreateMaterialPipeline() && CreateVoxelPipeline())
 				{
 					m_MaterialPipelineCreated = true;
 				}

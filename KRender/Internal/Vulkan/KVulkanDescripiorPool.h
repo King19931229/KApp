@@ -50,7 +50,7 @@ protected:
 	uint32_t m_StaticUniformBufferCount;
 	uint32_t m_DynamicUniformBufferCount;
 	uint32_t m_DynamicStorageBufferCount;
-	uint32_t m_SamplerCount;
+	uint32_t m_ImageCount;
 
 	std::mutex m_Lock;
 

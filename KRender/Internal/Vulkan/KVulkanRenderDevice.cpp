@@ -492,6 +492,9 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		// 查询有哪些Features可以被打开
 		// https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkPhysicalDeviceFeatures.html
 
+		// Voxel Shader
+		deviceFeatures.geometryShader = VK_TRUE;
+		deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
 		// RayTrace Shader引用DeviceAddress需要Int64
 		deviceFeatures.shaderInt64 = VK_TRUE;
 		// 即使没有使用MSAA的StorageImage 验证层还是会报错

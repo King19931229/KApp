@@ -348,12 +348,27 @@ bool KVulkanPipeline::CreateLayout()
 
 	auto AddLayoutBinding = [this, MergeLayoutBinding](const KShaderInformation& information, VkShaderStageFlags stageFlag)
 	{
-		for (const KShaderInformation::Storage& storage : information.storages)
+		for (const KShaderInformation::Storage& storage : information.storageBuffers)
 		{
 			VkDescriptorSetLayoutBinding sboLayoutBinding = {};
 			// 与Shader中绑定位置对应
 			sboLayoutBinding.binding = storage.bindingIndex;
 			sboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			// 声明SBO Buffer数组长度 这里不使用数组
+			sboLayoutBinding.descriptorCount = 1;
+			// 声明哪个阶段Shader能够使用上此UBO
+			sboLayoutBinding.stageFlags = stageFlag;
+			sboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+			MergeLayoutBinding(m_DescriptorSetLayoutBinding, sboLayoutBinding);
+		}
+
+		for (const KShaderInformation::Storage& storage : information.storageImages)
+		{
+			VkDescriptorSetLayoutBinding sboLayoutBinding = {};
+			// 与Shader中绑定位置对应
+			sboLayoutBinding.binding = storage.bindingIndex;
+			sboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 			// 声明SBO Buffer数组长度 这里不使用数组
 			sboLayoutBinding.descriptorCount = 1;
 			// 声明哪个阶段Shader能够使用上此UBO
@@ -460,6 +475,7 @@ bool KVulkanPipeline::CreateLayout()
 	};
 
 	if (m_Shaders[VERTEX]) AddPushConstantRange(pushConstantRanges, m_Shaders[VERTEX]->GetInformation(), VK_SHADER_STAGE_VERTEX_BIT);
+	if (m_Shaders[GEOMETRY]) AddPushConstantRange(pushConstantRanges, m_Shaders[GEOMETRY]->GetInformation(), VK_SHADER_STAGE_GEOMETRY_BIT);
 	if (m_Shaders[FRAGMENT]) AddPushConstantRange(pushConstantRanges, m_Shaders[FRAGMENT]->GetInformation(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	// 创建管线布局
@@ -570,7 +586,8 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
 		IKFrameBufferPtr frameBuffer = info.image;
 
-		ASSERT_RESULT(frameBuffer->IsStroageImage());
+		// TODO 重构FrameBuffer
+		// ASSERT_RESULT(frameBuffer->IsStroageImage());
 
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 		imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();

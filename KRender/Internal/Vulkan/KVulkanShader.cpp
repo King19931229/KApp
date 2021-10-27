@@ -245,12 +245,22 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 		KShaderInformation::Storage storage;
 		storage.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
 		storage.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
-		storage.size = (uint16_t)compiler.get_declared_struct_size(type);
+		// https://techblog.sega.jp/entry/2017/03/27/100000
+		// storage.size = (uint16_t)(type.basetype == spirv_cross::SPIRType::Struct ? compiler.get_declared_struct_size(type) : 0);
+		
+		information.storageBuffers.push_back(storage);
+	}
 
-		if (storage.bindingIndex >= SBT_BEGIN && storage.bindingIndex <= SBT_END)
-		{
-			information.storages.push_back(storage);
-		}
+	for (const spirv_cross::Resource& block : resources.storage_images)
+	{
+		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
+
+		KShaderInformation::Storage storage;
+		storage.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
+		storage.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
+		// storage.size = (uint16_t)(type.basetype == spirv_cross::SPIRType::Struct ? compiler.get_declared_struct_size(type) : 0);
+
+		information.storageImages.push_back(storage);
 	}
 
 	for (const spirv_cross::Resource& block : resources.uniform_buffers)

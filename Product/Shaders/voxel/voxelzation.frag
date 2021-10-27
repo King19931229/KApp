@@ -1,4 +1,6 @@
 #include "public.h"
+#include "voxelcommon.h"
+
 #extension GL_ARB_shader_image_load_store : require
 #extension GL_EXT_shader_image_load_formatted : require
 
@@ -14,19 +16,13 @@ layout(location = 0) in GeometryOut
 layout (location = 0) out vec4 fragColor;
 /*layout (pixel_center_integer)*/ in vec4 gl_FragCoord;
 
-#if 0
-layout(binding = 0, r32ui) uniform volatile coherent uimage3D voxelAlbedo;
-layout(binding = 1, r32ui) uniform volatile coherent uimage3D voxelNormal;
-layout(binding = 2, r32ui) uniform volatile coherent uimage3D voxelEmission;
-#endif
-
-layout(binding = 3, r8) uniform image3D staticVoxelFlag;
-
-#if 0
-layout(binding = 4) uniform sampler2D diffuseMap;
-layout(binding = 5) uniform sampler2D opacityMap;
-layout(binding = 6) uniform sampler2D emissiveMap;
-#endif
+layout(binding = VOXEL_BINDING_ALBEDO, r32ui) uniform volatile coherent uimage3D voxelAlbedo;
+layout(binding = VOXEL_BINDING_NORMAL, r32ui) uniform volatile coherent uimage3D voxelNormal;
+layout(binding = VOXEL_BINDING_EMISSION, r32ui) uniform volatile coherent uimage3D voxelEmission;
+layout(binding = VOXEL_BINDING_STATIC_FLAG, r8) uniform image3D staticVoxelFlag;
+layout(binding = VOXEL_BINDING_DIFFUSE_MAP) uniform sampler2D diffuseMap;
+// layout(binding = VOXEL_BINDING_OPACITY_MAP) uniform sampler2D opacityMap;
+// layout(binding = VOXEL_BINDING_EMISSION_MAP) uniform sampler2D emissiveMap;
 
 #if 0
 uniform struct Material
@@ -98,11 +94,12 @@ void main()
 	// writing coords position
 	ivec3 position = ivec3(In.wsPosition);
 	// fragment albedo
-#if 0
 	vec4 albedo = texture(diffuseMap, In.texCoord.xy);
+#if 0
 	float opacity = min(albedo.a, texture(opacityMap, In.texCoord.xy).r);
+#else
+	float opacity = albedo.a;
 #endif
-	float opacity = 1.0;
 
 	if(voxel.miscs[1] == 0)
 	{

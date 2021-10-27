@@ -45,6 +45,7 @@ protected:
 
 	bool CreateFixedPipeline();
 	bool CreateMaterialPipeline();
+	bool CreateVoxelPipeline();
 public:
 	KMaterialSubMesh(KSubMesh* subMesh);
 	~KMaterialSubMesh();

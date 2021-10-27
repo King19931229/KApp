@@ -1,6 +1,9 @@
 #include "KVoxilzer.h"
 #include "Internal/KRenderGlobal.h"
 #include "Internal/KConstantGlobal.h"
+#include "Internal/ECS/Component/KDebugComponent.h"
+#include "Internal/ECS/Component/KRenderComponent.h"
+#include "Internal/ECS/Component/KTransformComponent.h"
 
 KVoxilzer::KVoxilzer()
 	: m_Scene(nullptr)
@@ -116,20 +119,30 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 	m_VoxelAlbedo->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, false, false);
 	m_VoxelAlbedo->InitDevice(false);
 
+	m_CommandBuffer->TranslateToStorage(m_VoxelAlbedo->GetFrameBuffer());
+
 	m_VoxelNormal->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, false, false);
 	m_VoxelNormal->InitDevice(false);
 
+	m_CommandBuffer->TranslateToStorage(m_VoxelNormal->GetFrameBuffer());
+
 	m_VoxelRadiance->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, false, false);
 	m_VoxelRadiance->InitDevice(false);
+
+	m_CommandBuffer->TranslateToStorage(m_VoxelRadiance->GetFrameBuffer());
 
 	for (uint32_t i = 0; i < 6; ++i)
 	{
 		m_VoxelTexMipmap[i]->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, true, false);
 		m_VoxelTexMipmap[i]->InitDevice(false);
+
+		m_CommandBuffer->TranslateToStorage(m_VoxelTexMipmap[i]->GetFrameBuffer());
 	}
 
 	m_VoxelEmissive->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, false, false);
 	m_VoxelEmissive->InitDevice(false);
+
+	m_CommandBuffer->TranslateToStorage(m_VoxelEmissive->GetFrameBuffer());
 
 	m_StaticFlag->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8, false, false);
 	m_StaticFlag->InitDevice(false);
@@ -159,6 +172,51 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 
 void KVoxilzer::VoxelizeStaticScene()
 {
+	KAABBBox sceneBox;
+	m_Scene->GetSceneObjectBound(sceneBox);
+
+	std::vector<KRenderComponent*> cullRes;
+	((KRenderScene*)m_Scene)->GetRenderComponent(sceneBox, cullRes);
+
+	if (cullRes.size() == 0) return;
+
+	m_CommandBuffer->BeginPrimary();
+
+	m_CommandBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_INLINE);
+	m_CommandBuffer->SetViewport(m_RenderPass->GetViewPort());
+
+	std::vector<KRenderCommand> commands;
+	for (KRenderComponent* render : cullRes)
+	{
+		render->Visit(PIPELINE_STAGE_VOXEL, 0, [&](KRenderCommand& command)
+		{
+			IKEntity* entity = render->GetEntityHandle();
+
+			KTransformComponent* transform = nullptr;
+			if (entity->GetComponent(CT_TRANSFORM, &transform))
+			{
+				const glm::mat4& finalTran = transform->GetFinal();
+				const glm::mat4& prevFinalTran = transform->GetPrevFinal();
+
+				KConstantDefinition::OBJECT objectData;
+				objectData.MODEL = finalTran;
+				objectData.PRVE_MODEL = prevFinalTran;
+				command.objectUsage.binding = SHADER_BINDING_OBJECT;
+				command.objectUsage.range = sizeof(objectData);
+
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+				command.pipeline->GetHandle(m_RenderPass, command.pipelineHandle);
+
+				commands.push_back(command);
+			}
+		});
+	}
+
+	m_CommandBuffer->EndRenderPass();
+	m_CommandBuffer->End();
+
+	m_CommandBuffer->Flush();
 }
 
 bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension)

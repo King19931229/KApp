@@ -15,7 +15,7 @@ KVulkanDescriptorPool::KVulkanDescriptorPool()
 	m_StaticUniformBufferCount(0),
 	m_DynamicUniformBufferCount(0),
 	m_DynamicStorageBufferCount(0),
-	m_SamplerCount(0)
+	m_ImageCount(0)
 {
 }
 
@@ -31,7 +31,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	UnInit();
 
 	m_Layout = layout;
-	m_SamplerCount = 0;
+	m_ImageCount = 0;
 	m_DynamicUniformBufferCount = 0;
 	m_StaticUniformBufferCount = 0;
 	m_DynamicStorageBufferCount = 0;
@@ -40,7 +40,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	{
 		if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 		{
-			m_SamplerCount += layoutBinding.descriptorCount;
+			m_ImageCount += layoutBinding.descriptorCount;
 		}
 		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
@@ -54,6 +54,10 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		{
 			m_DynamicStorageBufferCount += layoutBinding.descriptorCount;
 		}
+		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+		{
+			m_ImageCount += layoutBinding.descriptorCount;
+		}
 		else
 		{
 			ASSERT_RESULT(false && "not support now");
@@ -65,7 +69,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	m_DescriptorWriteInfo.clear();
 	m_DescriptorWriteInfo.reserve(writeInfo.size());
 
-	m_DynamicImageWriteInfo.resize(m_SamplerCount);
+	m_DynamicImageWriteInfo.resize(m_ImageCount);
 	m_StaticUniformBufferWriteInfo.resize(m_StaticUniformBufferCount);
 	m_DynamicUniformBufferWriteInfo.resize(m_DynamicUniformBufferCount);
 	m_DynamicStorageBufferWriteInfo.resize(m_DynamicStorageBufferCount);
@@ -97,7 +101,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	}
 
 	// 取最大值
-	m_DescriptorDynamicWriteInfo.resize(std::max(std::max(m_DynamicUniformBufferCount, m_SamplerCount), m_DynamicStorageBufferCount));
+	m_DescriptorDynamicWriteInfo.resize(std::max(std::max(m_DynamicUniformBufferCount, m_ImageCount), m_DynamicStorageBufferCount));
 
 	return true;
 }
@@ -153,7 +157,7 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 
 	VkDescriptorPoolSize samplerPoolSize = {};
 	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerPoolSize.descriptorCount = (uint32_t)maxCount * m_SamplerCount;
+	samplerPoolSize.descriptorCount = (uint32_t)maxCount * m_ImageCount;
 
 	VkDescriptorPoolSize poolSizes[4];
 	uint32_t poolSizeCount = 0;
