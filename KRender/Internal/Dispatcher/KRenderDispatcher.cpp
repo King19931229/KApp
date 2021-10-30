@@ -800,7 +800,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		{
 			if (!context.buffer[stage].empty())
 			{
-				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
+				// primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
 			}
 		}
 
@@ -817,6 +817,14 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 			{
 				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
 			}
+		}
+
+		// 绘制VoxelBox
+		KRenderGlobal::Voxilzer.RenderVoxel(frameIndex, renderPass, tempBuffers);
+		if (!tempBuffers.empty())
+		{
+			primaryCommandBuffer->ExecuteAll(tempBuffers);
+			tempBuffers.clear();
 		}
 
 		// 绘制Camera Gizmo

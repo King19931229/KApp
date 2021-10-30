@@ -2,18 +2,21 @@
 #include "Interface/IKRenderScene.h"
 #include "Interface/IKRenderConfig.h"
 #include "Interface/IKTexture.h"
+#include "Interface/IKRenderTarget.h"
 
 class KVoxilzer
 {
 protected:
+	static const VertexFormat ms_VertexFormats[1];
+
 	IKRenderScene* m_Scene;
 
-	IKTexturePtr m_StaticFlag;
-	IKTexturePtr m_VoxelAlbedo;
-	IKTexturePtr m_VoxelNormal;
-	IKTexturePtr m_VoxelEmissive;
-	IKTexturePtr m_VoxelRadiance;
-	IKTexturePtr m_VoxelTexMipmap[6];
+	IKRenderTargetPtr m_StaticFlag;
+	IKRenderTargetPtr m_VoxelAlbedo;
+	IKRenderTargetPtr m_VoxelNormal;
+	IKRenderTargetPtr m_VoxelEmissive;
+	IKRenderTargetPtr m_VoxelRadiance;
+	IKRenderTargetPtr m_VoxelTexMipmap[6];
 
 	IKSamplerPtr m_CloestSampler;
 	IKSamplerPtr m_LinearSampler;
@@ -27,27 +30,38 @@ protected:
 	glm::mat4 m_ViewProjectionMatrix[3];
 	glm::mat4 m_ViewProjectionMatrixI[3];
 
-	IKCommandBufferPtr m_CommandBuffer;
+	IKCommandBufferPtr m_PrimaryCommandBuffer;
+	std::vector<IKCommandBufferPtr> m_CommandBuffers;
 	IKCommandPoolPtr m_CommandPool;
 	IKRenderTargetPtr m_RenderPassTarget;
 	IKRenderPassPtr m_RenderPass;
+
+	IKShaderPtr m_VoxelDrawVS;
+	IKShaderPtr m_VoxelDrawGS;
+	IKShaderPtr m_VoxelDrawFS;
+	std::vector<IKPipelinePtr> m_VoxelDrawPipelines;
+	IKVertexBufferPtr m_VoxelDrawVB;
+	KVertexData m_VoxelDrawVertexData;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 
 	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
 	void UpdateProjectionMatrices();
 	void SetupVoxelVolumes(uint32_t dimension);
+	void SetupVoxelDrawPipeline();
 	void VoxelizeStaticScene();
 public:
 	KVoxilzer();
 	~KVoxilzer();
+
+	bool RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 
 	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelAlbedo() { return m_VoxelAlbedo ? m_VoxelAlbedo->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelNormal() { return m_VoxelNormal ? m_VoxelNormal->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelEmissive() { return m_VoxelEmissive ? m_VoxelEmissive->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelRadiance() { return m_VoxelRadiance ? m_VoxelRadiance->GetFrameBuffer() : nullptr; }
-	IKFrameBufferPtr GetVoxelTexMipmap(uint32_t mipmap) { return (mipmap < 6 && m_VoxelTexMipmap[mipmap]) ? m_VoxelTexMipmap[mipmap]->GetFrameBuffer() : nullptr; }
+	IKFrameBufferPtr GetVoxelTexMipmap(uint32_t face) { return (face < 6 && m_VoxelTexMipmap[face]) ? m_VoxelTexMipmap[face]->GetFrameBuffer() : nullptr; }
 
 	bool Init(IKRenderScene* scene, uint32_t dimension);
 	bool UnInit();

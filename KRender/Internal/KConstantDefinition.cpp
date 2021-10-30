@@ -123,7 +123,12 @@ namespace KConstantDefinition
 				}
 				// MISCS
 				{
-					ConstantSemanticDetail DETAIL = { CS_VOXEL_MISCS, EF_R32_UINT, 4, MEMBER_SIZE(VOXEL, MISCS), MEMBER_OFFSET(VOXEL, MISCS) };
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_MISCS, EF_R32G32B32A32_UINT, 1, MEMBER_SIZE(VOXEL, MISCS), MEMBER_OFFSET(VOXEL, MISCS) };
+					VOXEL_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// MISCS2
+				{
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_MISCS2, EF_R32G32B32A32_FLOAT, 1, MEMBER_SIZE(VOXEL, MISCS2), MEMBER_OFFSET(VOXEL, MISCS2) };
 					VOXEL_DETAILS.semanticDetails.push_back(DETAIL);
 				}
 				VOXEL_DETAILS.bufferSize = sizeof(VOXEL);

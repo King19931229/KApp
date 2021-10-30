@@ -122,8 +122,10 @@ uniform VoxelInfo
 	mat4 viewproj[3];
 	mat4 viewproj_inv[3];
 	vec4 midpoint_scale;
-	// dimension flagStaticVoxels
-	uint miscs[4];
+	// dimension
+	uvec4 miscs;
+	// voxelSize
+	vec4 miscs2;
 }voxel;
 
 layout(binding = BINDING_GLOBAL)

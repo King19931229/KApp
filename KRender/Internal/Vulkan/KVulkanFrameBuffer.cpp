@@ -111,10 +111,12 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 		}
 	}
 
-	VkImageType imageType = VK_IMAGE_TYPE_2D;
-	VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D;
+	VkImageType imageType = VK_IMAGE_TYPE_MAX_ENUM;
+	VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+
 	uint32_t layerCounts = textureType == TT_TEXTURE_CUBE_MAP ? 6 : 1;
 	VkImageCreateFlags createFlags = textureType == TT_TEXTURE_CUBE_MAP ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
+
 	ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(textureType, imageType, imageViewType));
 
 	{
@@ -211,12 +213,12 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	return true;
 }
 
-bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t height)
+bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t depth)
 {
 	m_Format = format;
 	m_Width = width;
 	m_Height = height;
-	m_Depth = 1;
+	m_Depth = depth;
 	m_Mipmaps = 1;
 	m_MSAA = 1;
 	m_External = false;
@@ -225,11 +227,15 @@ bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t h
 
 	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
 
-	VkImageType imageType = VK_IMAGE_TYPE_2D;
-	VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D;
+	VkImageType imageType = VK_IMAGE_TYPE_MAX_ENUM;
+	VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+
 	uint32_t layerCounts = 1;
 	VkImageCreateFlags createFlags = 0;
-	ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(TT_TEXTURE_2D, imageType, imageViewType));
+
+	ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(
+		m_Depth > 1 ? TT_TEXTURE_3D : TT_TEXTURE_2D,
+		imageType, imageViewType));
 
 	{
 		KVulkanInitializer::CreateVkImage(m_Width,

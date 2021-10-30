@@ -5,6 +5,8 @@
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
 
+const VertexFormat KVoxilzer::ms_VertexFormats[1] = { VF_DEBUG_POINT };
+
 KVoxilzer::KVoxilzer()
 	: m_Scene(nullptr)
 	, m_StaticFlag(nullptr)
@@ -61,7 +63,7 @@ void KVoxilzer::UpdateProjectionMatrices()
 
 	for (uint32_t frameIndex = 0; frameIndex < KRenderGlobal::RenderDevice->GetNumFramesInFlight(); ++frameIndex)
 	{
-		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_VOXEL);
+		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_VOXEL);
 
 		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_VOXEL);
 		const KConstantDefinition::ConstantBufferDetail& details = KConstantDefinition::GetConstantBufferDetail(CBT_VOXEL);
@@ -97,12 +99,20 @@ void KVoxilzer::UpdateProjectionMatrices()
 			if(detail.semantic == CS_VOXEL_MISCS)
 			{
 				assert(sizeof(uint32_t) * 4 == detail.size);
-				glm::uvec4 miscs;
+				glm::uvec4 miscs(0);
 				miscs.x = m_VolumeDimension;
-				miscs.y = 1;
 				memcpy(pWritePos, &miscs, sizeof(uint32_t) * 4);
 			}
+			if (detail.semantic == CS_VOXEL_MISCS2)
+			{
+				assert(sizeof(float) * 4 == detail.size);
+				glm::vec4 miscs2(0);
+				miscs2.x = m_VoxelSize;
+				memcpy(pWritePos, &miscs2, sizeof(float) * 4);
+			}
 		}
+
+		voxelBuffer->Write(pData);
 	}
 }
 
@@ -114,40 +124,15 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 
 	UpdateProjectionMatrices();
 
-	m_CommandBuffer->BeginPrimary();
-
-	m_VoxelAlbedo->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, false, false);
-	m_VoxelAlbedo->InitDevice(false);
-
-	m_CommandBuffer->TranslateToStorage(m_VoxelAlbedo->GetFrameBuffer());
-
-	m_VoxelNormal->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, false, false);
-	m_VoxelNormal->InitDevice(false);
-
-	m_CommandBuffer->TranslateToStorage(m_VoxelNormal->GetFrameBuffer());
-
-	m_VoxelRadiance->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, false, false);
-	m_VoxelRadiance->InitDevice(false);
-
-	m_CommandBuffer->TranslateToStorage(m_VoxelRadiance->GetFrameBuffer());
-
+	m_VoxelAlbedo->InitFromStorage(dimension, dimension, dimension, EF_R32_UINT);
+	m_VoxelNormal->InitFromStorage(dimension, dimension, dimension, EF_R32_UINT);
+	m_VoxelRadiance->InitFromStorage(dimension, dimension, dimension, EF_R8GB8BA8_UNORM);
 	for (uint32_t i = 0; i < 6; ++i)
 	{
-		m_VoxelTexMipmap[i]->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, true, false);
-		m_VoxelTexMipmap[i]->InitDevice(false);
-
-		m_CommandBuffer->TranslateToStorage(m_VoxelTexMipmap[i]->GetFrameBuffer());
+		m_VoxelTexMipmap[i]->InitFromStorage(dimension, dimension, dimension, EF_R8GB8BA8_UNORM);
 	}
-
-	m_VoxelEmissive->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8G8B8A8, false, false);
-	m_VoxelEmissive->InitDevice(false);
-
-	m_CommandBuffer->TranslateToStorage(m_VoxelEmissive->GetFrameBuffer());
-
-	m_StaticFlag->InitMemoryFromData(nullptr, dimension, dimension, dimension, IF_R8, false, false);
-	m_StaticFlag->InitDevice(false);
-
-	m_CommandBuffer->TranslateToStorage(m_StaticFlag->GetFrameBuffer());
+	m_VoxelEmissive->InitFromStorage(dimension, dimension, dimension, EF_R32_UINT);
+	m_StaticFlag->InitFromStorage(dimension, dimension, dimension, EF_R8_UNORM);
 
 	m_CloestSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 	m_CloestSampler->SetFilterMode(FM_NEAREST, FM_NEAREST);
@@ -159,15 +144,74 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 
 	m_MipmapSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 	m_MipmapSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_MipmapSampler->Init(0, m_VoxelTexMipmap[0]->GetMipmaps());
+	m_MipmapSampler->Init(0, 0);
 
 	m_RenderPassTarget->InitFromColor(dimension, dimension, 1, EF_R8_UNORM);
 	m_RenderPass->SetColorAttachment(0, m_RenderPassTarget->GetFrameBuffer());
 	m_RenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_RenderPass->Init();
+}
 
-	m_CommandBuffer->End();
-	m_CommandBuffer->Flush();
+void KVoxilzer::SetupVoxelDrawPipeline()
+{
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/draw_voxels.vert", m_VoxelDrawVS, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/draw_voxels.geom", m_VoxelDrawGS, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/draw_voxels.frag", m_VoxelDrawFS, true));
+
+	for (size_t frameIndex = 0; frameIndex < m_VoxelDrawPipelines.size(); ++frameIndex)
+	{
+		IKPipelinePtr& pipeline = m_VoxelDrawPipelines[frameIndex];
+
+		// pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
+
+		pipeline->SetShader(ST_VERTEX, m_VoxelDrawVS);
+
+		pipeline->SetPrimitiveTopology(PT_POINT_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_NEVER, false, false);
+
+		pipeline->SetShader(ST_GEOMETRY, m_VoxelDrawGS);
+		pipeline->SetShader(ST_FRAGMENT, m_VoxelDrawFS);
+
+		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_VOXEL);
+		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
+
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
+		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, cameraBuffer);
+
+		pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, KRenderGlobal::Voxilzer.GetVoxelAlbedo());
+		pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal());
+		pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive());
+
+		pipeline->Init();
+	}
+	/*
+	std::vector<glm::vec3> points;
+	points.resize(m_VolumeDimension * m_VolumeDimension * m_VolumeDimension);
+	for (uint32_t z = 0; z < m_VolumeDimension; ++z)
+	{
+		for (uint32_t y = 0; y < m_VolumeDimension; ++y)
+		{
+			for (uint32_t x = 0; x < m_VolumeDimension; ++x)
+			{
+				points[z * m_VolumeDimension * m_VolumeDimension + y * m_VolumeDimension + x] = glm::vec3(x, y, z);
+			}
+		}
+	}
+
+	m_VoxelDrawVB->InitMemory(points.size(), sizeof(glm::vec3), points.data());
+	m_VoxelDrawVB->InitDevice(false);
+
+	m_VoxelDrawVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_VoxelDrawVB);
+	m_VoxelDrawVertexData.vertexFormats = std::vector<VertexFormat>(ms_VertexFormats, ms_VertexFormats + ARRAY_SIZE(ms_VertexFormats));
+	*/
+
+	m_VoxelDrawVertexData.vertexCount = (uint32_t)(m_VolumeDimension * m_VolumeDimension * m_VolumeDimension);
+	m_VoxelDrawVertexData.vertexStart = 0;
 }
 
 void KVoxilzer::VoxelizeStaticScene()
@@ -180,10 +224,10 @@ void KVoxilzer::VoxelizeStaticScene()
 
 	if (cullRes.size() == 0) return;
 
-	m_CommandBuffer->BeginPrimary();
+	m_PrimaryCommandBuffer->BeginPrimary();
 
-	m_CommandBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_INLINE);
-	m_CommandBuffer->SetViewport(m_RenderPass->GetViewPort());
+	m_PrimaryCommandBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_INLINE);
+	m_PrimaryCommandBuffer->SetViewport(m_RenderPass->GetViewPort());
 
 	std::vector<KRenderCommand> commands;
 	for (KRenderComponent* render : cullRes)
@@ -213,10 +257,39 @@ void KVoxilzer::VoxelizeStaticScene()
 		});
 	}
 
-	m_CommandBuffer->EndRenderPass();
-	m_CommandBuffer->End();
+	for (KRenderCommand& command : commands)
+	{
+		m_PrimaryCommandBuffer->Render(command);
+	}
 
-	m_CommandBuffer->Flush();
+	m_PrimaryCommandBuffer->EndRenderPass();
+	m_PrimaryCommandBuffer->End();
+
+	m_PrimaryCommandBuffer->Flush();
+}
+
+bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+{
+	if (frameIndex < m_VoxelDrawPipelines.size())
+	{
+		KRenderCommand command;
+		command.vertexData = &m_VoxelDrawVertexData;
+		command.indexData = nullptr;
+		command.pipeline = m_VoxelDrawPipelines[frameIndex];
+		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+		command.indexDraw = false;
+
+		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
+
+		commandBuffer->BeginSecondary(renderPass);
+		commandBuffer->SetViewport(renderPass->GetViewPort());
+		commandBuffer->Render(command);
+		commandBuffer->End();
+
+		buffers.push_back(commandBuffer);
+		return true;
+	}
+	return false;
 }
 
 bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension)
@@ -227,15 +300,15 @@ bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension)
 
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
-	renderDevice->CreateTexture(m_StaticFlag);
-	renderDevice->CreateTexture(m_VoxelAlbedo);
-	renderDevice->CreateTexture(m_VoxelNormal);
-	renderDevice->CreateTexture(m_VoxelEmissive);
-	renderDevice->CreateTexture(m_VoxelRadiance);
+	renderDevice->CreateRenderTarget(m_StaticFlag);
+	renderDevice->CreateRenderTarget(m_VoxelAlbedo);
+	renderDevice->CreateRenderTarget(m_VoxelNormal);
+	renderDevice->CreateRenderTarget(m_VoxelEmissive);
+	renderDevice->CreateRenderTarget(m_VoxelRadiance);
 
 	for (uint32_t i = 0; i < 6; ++i)
 	{
-		renderDevice->CreateTexture(m_VoxelTexMipmap[i]);
+		renderDevice->CreateRenderTarget(m_VoxelTexMipmap[i]);
 	}
 
 	renderDevice->CreateSampler(m_CloestSampler);
@@ -244,13 +317,31 @@ bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension)
 
 	renderDevice->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
-	renderDevice->CreateCommandBuffer(m_CommandBuffer);
-	m_CommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
+
+	renderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer);
+	m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
 
 	renderDevice->CreateRenderTarget(m_RenderPassTarget);
 	renderDevice->CreateRenderPass(m_RenderPass);
 
+	renderDevice->CreateShader(m_VoxelDrawVS);
+	renderDevice->CreateShader(m_VoxelDrawGS);
+	renderDevice->CreateShader(m_VoxelDrawFS);
+
+	renderDevice->CreateVertexBuffer(m_VoxelDrawVB);
+
+	m_VoxelDrawPipelines.resize(renderDevice->GetNumFramesInFlight());
+	m_CommandBuffers.resize(renderDevice->GetNumFramesInFlight());
+
+	for (size_t frameIndex = 0; frameIndex < m_VoxelDrawPipelines.size(); ++frameIndex)
+	{
+		renderDevice->CreatePipeline(m_VoxelDrawPipelines[frameIndex]);
+		renderDevice->CreateCommandBuffer(m_CommandBuffers[frameIndex]);
+		m_CommandBuffers[frameIndex]->Init(m_CommandPool, CBL_SECONDARY);
+	}
+
 	SetupVoxelVolumes(dimension);
+	SetupVoxelDrawPipeline();
 
 	m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
 
@@ -265,9 +356,17 @@ bool KVoxilzer::UnInit()
 	}
 	m_Scene = nullptr;
 
+	SAFE_UNINIT_CONTAINER(m_VoxelDrawPipelines);
+	SAFE_UNINIT(m_VoxelDrawVB);
+
+	SAFE_UNINIT(m_VoxelDrawVS);
+	SAFE_UNINIT(m_VoxelDrawGS);
+	SAFE_UNINIT(m_VoxelDrawFS);
+
 	SAFE_UNINIT(m_RenderPass);
 	SAFE_UNINIT(m_RenderPassTarget);
-	SAFE_UNINIT(m_CommandBuffer);
+	SAFE_UNINIT_CONTAINER(m_CommandBuffers);
+	SAFE_UNINIT(m_PrimaryCommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
 
 	SAFE_UNINIT(m_StaticFlag);

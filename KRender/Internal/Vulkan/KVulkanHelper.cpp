@@ -97,6 +97,10 @@ namespace KVulkanHelper
 			vkFormat = VK_FORMAT_R32_UINT;
 			return true;
 
+		case EF_R32G32B32A32_UINT:
+			vkFormat = VK_FORMAT_R32G32B32A32_UINT;
+			return true;
+
 		case EF_ETC1_R8G8B8_UNORM:
 			// TODO Correct?
 			vkFormat = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
@@ -192,6 +196,9 @@ namespace KVulkanHelper
 	{
 		switch (topology)
 		{
+		case PT_POINT_LIST:
+			vkPrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+			return true;
 		case PT_TRIANGLE_LIST:
 			vkPrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 			return true;

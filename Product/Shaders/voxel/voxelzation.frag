@@ -32,46 +32,35 @@ uniform struct Material
 } material;
 #endif
 
-vec4 convRGBA8ToVec4(uint val)
-{
-	return vec4(float((val & 0x000000FF)), 
-	float((val & 0x0000FF00) >> 8U), 
-	float((val & 0x00FF0000) >> 16U), 
-	float((val & 0xFF000000) >> 24U));
+#define IMAGE_ATOMIC_RGBA_AVG_DECL(grid)\
+void imageAtomicRGBA8Avg__##grid(ivec3 coords, vec4 value)\
+{\
+	value.rgb *= 255.0;\
+	uint newVal = convVec4ToRGBA8(value);\
+	uint prevStoredVal = 0;\
+	uint curStoredVal;\
+	uint numIterations = 0;\
+\
+	while((curStoredVal = imageAtomicCompSwap(grid, coords, prevStoredVal, newVal))\
+			!= prevStoredVal\
+			&& numIterations < 255)\
+	{\
+		prevStoredVal = curStoredVal;\
+		vec4 rval = convRGBA8ToVec4(curStoredVal);\
+		rval.rgb = (rval.rgb * rval.a);\
+		vec4 curValF = rval + value;\
+		curValF.rgb /= curValF.a;\
+		newVal = convVec4ToRGBA8(curValF);\
+\
+		++numIterations;\
+	}\
 }
 
-uint convVec4ToRGBA8(vec4 val)
-{
-	return (uint(val.w) & 0x000000FF) << 24U | 
-	(uint(val.z) & 0x000000FF) << 16U | 
-	(uint(val.y) & 0x000000FF) << 8U | 
-	(uint(val.x) & 0x000000FF);
-}
+IMAGE_ATOMIC_RGBA_AVG_DECL(voxelAlbedo);
+IMAGE_ATOMIC_RGBA_AVG_DECL(voxelNormal);
+IMAGE_ATOMIC_RGBA_AVG_DECL(voxelEmission);
 
-/*
-void imageAtomicRGBA8Avg(layout(r32ui) volatile coherent uimage3D grid, ivec3 coords, vec4 value)
-{
-	value.rgb *= 255.0;                 // optimize following calculations
-	uint newVal = convVec4ToRGBA8(value);
-	uint prevStoredVal = 0;
-	uint curStoredVal;
-	uint numIterations = 0;
-
-	while((curStoredVal = imageAtomicCompSwap(grid, coords, prevStoredVal, newVal)) 
-			!= prevStoredVal
-			&& numIterations < 255)
-	{
-		prevStoredVal = curStoredVal;
-		vec4 rval = convRGBA8ToVec4(curStoredVal);
-		rval.rgb = (rval.rgb * rval.a); // Denormalize
-		vec4 curValF = rval + value;    // Add
-		curValF.rgb /= curValF.a;       // Renormalize
-		newVal = convVec4ToRGBA8(curValF);
-
-		++numIterations;
-	}
-}
-*/
+#define IMAGE_ATOMIC_RGBA_AVG_CALL(grid, coords, value) imageAtomicRGBA8Avg__##grid(coords, value)
 
 vec3 EncodeNormal(vec3 normal)
 {
@@ -98,10 +87,11 @@ void main()
 #if 0
 	float opacity = min(albedo.a, texture(opacityMap, In.texCoord.xy).r);
 #else
-	float opacity = albedo.a;
+	float opacity = 1.0;
 #endif
 
-	if(voxel.miscs[1] == 0)
+	//if(voxel.miscs[1] == 0)
+	if(true)
 	{
 		bool isStatic = imageLoad(staticVoxelFlag, position).r > 0.0f;
 
@@ -112,27 +102,27 @@ void main()
 	// alpha cutoff
 	if(opacity > 0.0f)
 	{
-#if 0
 		// albedo is in srgb space, bring back to linear
 		albedo.rgb = albedo.rgb;// * material.diffuse;
 		// premultiplied alpha
 		albedo.rgb *= opacity;
 		albedo.a = 1.0f;
 		// emission value
-		vec4 emissive = texture(emissiveMap, In.texCoord.xy);
+		vec4 emissive = vec4(0);//texture(emissiveMap, In.texCoord.xy);
 		emissive.rgb = emissive.rgb;// * material.emissive;
 		emissive.a = 1.0f;
 		// bring normal to 0-1 range
 		vec4 normal = vec4(EncodeNormal(normalize(In.normal)), 1.0f);
 		// average normal per fragments sorrounding the voxel volume
-		imageAtomicRGBA8Avg(voxelNormal, position, normal);
+		IMAGE_ATOMIC_RGBA_AVG_CALL(voxelNormal, position, normal);
 		// average albedo per fragments sorrounding the voxel volume
-		imageAtomicRGBA8Avg(voxelAlbedo, position, albedo);
+		IMAGE_ATOMIC_RGBA_AVG_CALL(voxelAlbedo, position, albedo);
 		// average emission per fragments sorrounding the voxel volume
-		imageAtomicRGBA8Avg(voxelEmission, position, emissive);
+		IMAGE_ATOMIC_RGBA_AVG_CALL(voxelEmission, position, emissive);
 		// doing a static flagging pass for static geometry voxelization
-#endif
-		if(voxel.miscs[1] == 1)
+
+		//if(voxel.miscs[1] == 1)
+		if(true)
 		{
 			imageStore(staticVoxelFlag, position, vec4(1.0));
 		}

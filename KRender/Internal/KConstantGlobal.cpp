@@ -42,7 +42,7 @@ namespace KConstantGlobal
 		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY },
 		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY },
 		{ 0, 0, 0, 0},
-		{ 0 }
+		{ 0, 0, 0, 0},
 	};
 
 	KConstantDefinition::GLOBAL Global =

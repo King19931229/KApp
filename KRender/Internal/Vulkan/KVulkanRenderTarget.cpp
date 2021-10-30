@@ -15,14 +15,18 @@ KVulkanRenderTarget::KVulkanRenderTarget()
 
 KVulkanRenderTarget::~KVulkanRenderTarget()
 {
-	ASSERT_RESULT(m_FrameBuffer == nullptr);
+	// ASSERT_RESULT(m_FrameBuffer == nullptr);
 }
 
 bool KVulkanRenderTarget::InitFromDepthStencil(uint32_t width, uint32_t height, uint32_t msaaCount, bool bStencil)
 {
 	UnInit();
 
-	m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+	if (!m_FrameBuffer)
+	{
+		m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+	}
+
 	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitDepthStencil(width, height, msaaCount, bStencil);
 
 	m_DepthStencil = true;
@@ -34,7 +38,10 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_
 {
 	UnInit();
 
-	m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+	if (!m_FrameBuffer)
+	{
+		m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+	}
 
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
@@ -51,11 +58,14 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_
 	return true;
 }
 
-bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, ElementFormat format)
+bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint32_t depth, ElementFormat format)
 {
 	UnInit();
 
-	m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+	if (!m_FrameBuffer)
+	{
+		m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
+	}
 
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
@@ -63,7 +73,8 @@ bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, Eleme
 	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorage(
 		vkFormat,
 		(uint32_t)width,
-		(uint32_t)height);
+		(uint32_t)height,
+		(uint32_t)depth);
 
 	m_DepthStencil = false;
 
@@ -77,7 +88,6 @@ bool KVulkanRenderTarget::UnInit()
 	if (m_FrameBuffer)
 	{
 		((KVulkanFrameBuffer*)m_FrameBuffer.get())->UnInit();
-		m_FrameBuffer = nullptr;
 	}
 
 	return true;

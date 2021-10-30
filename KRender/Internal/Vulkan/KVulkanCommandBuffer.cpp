@@ -279,7 +279,10 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			}
 			else
 			{
-				vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
+				if (vertexBufferCount > 0)
+				{
+					vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
+				}
 
 				if (command.indexDraw)
 				{

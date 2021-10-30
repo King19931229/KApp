@@ -70,7 +70,8 @@ namespace KConstantDefinition
 		glm::mat4 VIEW_PROJ[3];
 		glm::mat4 VIEW_PROJ_INV[3];
 		glm::vec4 MIDPOINT_SCALE;
-		uint32_t MISCS[4];
+		glm::uvec4 MISCS;
+		glm::vec4 MISCS2;
 	};
 
 	struct GLOBAL

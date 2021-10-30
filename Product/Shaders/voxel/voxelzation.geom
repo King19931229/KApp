@@ -12,10 +12,10 @@ layout(triangle_strip, max_vertices = 3) out;
 layout(location = 0) out GeometryOut
 {
 	vec3 wsPosition;
-    vec3 position;
-    vec3 normal;
-    vec2 texCoord;
-    flat vec4 triangleAABB;
+	vec3 position;
+	vec3 normal;
+	vec2 texCoord;
+	flat vec4 triangleAABB;
 } Out;
 
 int CalculateAxis()
