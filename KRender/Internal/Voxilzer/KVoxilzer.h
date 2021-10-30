@@ -40,10 +40,11 @@ protected:
 	IKShaderPtr m_VoxelDrawGS;
 	IKShaderPtr m_VoxelDrawFS;
 	std::vector<IKPipelinePtr> m_VoxelDrawPipelines;
-	IKVertexBufferPtr m_VoxelDrawVB;
 	KVertexData m_VoxelDrawVertexData;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
+
+	bool m_VoxelDrawEnable;
 
 	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
 	void UpdateProjectionMatrices();
@@ -53,6 +54,9 @@ protected:
 public:
 	KVoxilzer();
 	~KVoxilzer();
+
+	inline bool IsVoxelDrawEnable() const { return m_VoxelDrawEnable; }
+	inline void SetVoxelDrawEnable(bool enable) { m_VoxelDrawEnable = enable; }
 
 	bool RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 

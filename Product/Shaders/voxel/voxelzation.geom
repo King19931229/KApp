@@ -129,8 +129,8 @@ void main()
 	{
 		vec4 voxelPos = viewProjectionI * pos[i];
 		voxelPos.xyz /= voxelPos.w;
-		voxelPos.xyz -= voxel.midpoint_scale.xyz;
-		voxelPos *= voxel.midpoint_scale.w;
+		voxelPos.xyz -= voxel.minpoint_scale.xyz;
+		voxelPos *= voxel.minpoint_scale.w;
 
 		gl_Position = pos[i];
 		Out.position = pos[i].xyz;

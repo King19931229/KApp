@@ -121,10 +121,10 @@ uniform VoxelInfo
 {
 	mat4 viewproj[3];
 	mat4 viewproj_inv[3];
-	vec4 midpoint_scale;
+	vec4 minpoint_scale;
 	// dimension
 	uvec4 miscs;
-	// voxelSize
+	// voxelSize volumeSize
 	vec4 miscs2;
 }voxel;
 

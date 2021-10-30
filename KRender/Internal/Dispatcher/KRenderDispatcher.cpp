@@ -800,7 +800,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		{
 			if (!context.buffer[stage].empty())
 			{
-				// primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
+				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
 			}
 		}
 

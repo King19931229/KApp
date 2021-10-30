@@ -25,7 +25,7 @@ void main()
 	);
 
 	ivec3 texPos = ivec3(position);
-	albedo = convRGBA8ToVec4(imageLoad(voxelAlbedo, texPos).r);
+	albedo = convRGBA8ToVec4(imageLoad(voxelAlbedo, texPos).r) / 255.0;
 
 	uvec4 channels = uvec4(floor(colorChannels));
 

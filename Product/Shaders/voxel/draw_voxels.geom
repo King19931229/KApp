@@ -36,8 +36,7 @@ vec3 VoxelToWorld(vec3 pos)
 {
 	vec3 result = pos;
 	result *= voxel.miscs2[0];
-
-	return result + voxel.midpoint_scale.xyz;
+	return result + voxel.minpoint_scale.xyz;
 }
 
 void main()
@@ -74,7 +73,7 @@ void main()
 	for(int i = 0; i < 8; ++i)
 	{
 		vec4 vertex = gl_in[0].gl_Position + cubeVertices[i];
-		projectedVertices[i] = camera.viewProj * vertex;
+		projectedVertices[i] = camera.viewProj * vec4(VoxelToWorld(vertex.xyz), 1.0);
 	}
 
 	for(int face = 0; face < 6; ++face)

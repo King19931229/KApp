@@ -18,6 +18,7 @@ KVoxilzer::KVoxilzer()
 	, m_VoxelCount(0)
 	, m_VolumeGridSize(0)
 	, m_VoxelSize(0)
+	, m_VoxelDrawEnable(false)
 {
 	m_OnSceneChangedFunc = std::bind(&KVoxilzer::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
 }
@@ -37,15 +38,16 @@ void KVoxilzer::UpdateProjectionMatrices()
 	KAABBBox sceneBox;
 	m_Scene->GetSceneObjectBound(sceneBox);
 
-	glm::vec3 axisSize = sceneBox.GetExtend() * 2.0f;
+	glm::vec3 axisSize = sceneBox.GetExtend();
 	const glm::vec3& center = sceneBox.GetCenter();
+	const glm::vec3 min = sceneBox.GetMin();
 
 	m_VolumeGridSize = glm::max(axisSize.x, glm::max(axisSize.y, axisSize.z));
 	m_VoxelSize = m_VolumeGridSize / m_VolumeDimension;
-	auto halfSize = m_VolumeGridSize / 2.0f;
+	float halfSize = m_VolumeGridSize / 2.0f;
 
 	// projection matrices
-	auto projection = glm::ortho(-halfSize, halfSize, -halfSize, halfSize, 0.0f, m_VolumeGridSize);
+	glm::mat4 projection = glm::ortho(-halfSize, halfSize, -halfSize, halfSize, 0.0f, m_VolumeGridSize);
 
 	// view matrices
 	m_ViewProjectionMatrix[0] = lookAt(center + glm::vec3(halfSize, 0.0f, 0.0f),
@@ -90,10 +92,10 @@ void KVoxilzer::UpdateProjectionMatrices()
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
 				}
 			}
-			if (detail.semantic == CS_VOXEL_MIDPOINT_SCALE)
+			if (detail.semantic == CS_VOXEL_MINPOINT_SCALE)
 			{
 				assert(sizeof(glm::vec4) == detail.size);
-				glm::vec4 midpointScale(center, 1.0f / m_VolumeGridSize);
+				glm::vec4 midpointScale(min, 1.0f / m_VolumeGridSize);
 				memcpy(pWritePos, &midpointScale, sizeof(glm::vec4));
 			}
 			if(detail.semantic == CS_VOXEL_MISCS)
@@ -108,6 +110,7 @@ void KVoxilzer::UpdateProjectionMatrices()
 				assert(sizeof(float) * 4 == detail.size);
 				glm::vec4 miscs2(0);
 				miscs2.x = m_VoxelSize;
+				miscs2.y = m_VolumeGridSize;
 				memcpy(pWritePos, &miscs2, sizeof(float) * 4);
 			}
 		}
@@ -172,7 +175,7 @@ void KVoxilzer::SetupVoxelDrawPipeline()
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_NEVER, false, false);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		pipeline->SetShader(ST_GEOMETRY, m_VoxelDrawGS);
 		pipeline->SetShader(ST_FRAGMENT, m_VoxelDrawFS);
@@ -189,26 +192,6 @@ void KVoxilzer::SetupVoxelDrawPipeline()
 
 		pipeline->Init();
 	}
-	/*
-	std::vector<glm::vec3> points;
-	points.resize(m_VolumeDimension * m_VolumeDimension * m_VolumeDimension);
-	for (uint32_t z = 0; z < m_VolumeDimension; ++z)
-	{
-		for (uint32_t y = 0; y < m_VolumeDimension; ++y)
-		{
-			for (uint32_t x = 0; x < m_VolumeDimension; ++x)
-			{
-				points[z * m_VolumeDimension * m_VolumeDimension + y * m_VolumeDimension + x] = glm::vec3(x, y, z);
-			}
-		}
-	}
-
-	m_VoxelDrawVB->InitMemory(points.size(), sizeof(glm::vec3), points.data());
-	m_VoxelDrawVB->InitDevice(false);
-
-	m_VoxelDrawVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_VoxelDrawVB);
-	m_VoxelDrawVertexData.vertexFormats = std::vector<VertexFormat>(ms_VertexFormats, ms_VertexFormats + ARRAY_SIZE(ms_VertexFormats));
-	*/
 
 	m_VoxelDrawVertexData.vertexCount = (uint32_t)(m_VolumeDimension * m_VolumeDimension * m_VolumeDimension);
 	m_VoxelDrawVertexData.vertexStart = 0;
@@ -270,6 +253,9 @@ void KVoxilzer::VoxelizeStaticScene()
 
 bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
+	if (!m_VoxelDrawEnable)
+		return true;
+
 	if (frameIndex < m_VoxelDrawPipelines.size())
 	{
 		KRenderCommand command;
@@ -328,8 +314,6 @@ bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension)
 	renderDevice->CreateShader(m_VoxelDrawGS);
 	renderDevice->CreateShader(m_VoxelDrawFS);
 
-	renderDevice->CreateVertexBuffer(m_VoxelDrawVB);
-
 	m_VoxelDrawPipelines.resize(renderDevice->GetNumFramesInFlight());
 	m_CommandBuffers.resize(renderDevice->GetNumFramesInFlight());
 
@@ -357,7 +341,6 @@ bool KVoxilzer::UnInit()
 	m_Scene = nullptr;
 
 	SAFE_UNINIT_CONTAINER(m_VoxelDrawPipelines);
-	SAFE_UNINIT(m_VoxelDrawVB);
 
 	SAFE_UNINIT(m_VoxelDrawVS);
 	SAFE_UNINIT(m_VoxelDrawGS);
