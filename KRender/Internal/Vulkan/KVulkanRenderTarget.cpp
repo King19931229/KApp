@@ -58,7 +58,7 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_
 	return true;
 }
 
-bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint32_t depth, ElementFormat format)
+bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, ElementFormat format)
 {
 	UnInit();
 
@@ -74,7 +74,8 @@ bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint3
 		vkFormat,
 		(uint32_t)width,
 		(uint32_t)height,
-		(uint32_t)depth);
+		(uint32_t)depth,
+		(uint32_t)mipmaps);
 
 	m_DepthStencil = false;
 

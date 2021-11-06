@@ -464,13 +464,13 @@ namespace KVulkanInitializer
 		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
-	void ZeroVkImage(VkImage image, VkImageLayout imageLayout)
+	void ZeroVkImage(VkImage image, VkImageLayout imageLayout, uint32_t baseLayer, uint32_t layers, uint32_t baseMipLevel, uint32_t mipLevels)
 	{
 		VkCommandBuffer commandBuffer;
 		BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 		{
 			VkClearColorValue clear = { 0.0f, 0.0f, 0.0f, 0.0f };
-			VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, baseMipLevel, mipLevels, baseLayer, layers };
 			vkCmdClearColorImage(commandBuffer, image, imageLayout, &clear, 1, &range);
 		}
 		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);

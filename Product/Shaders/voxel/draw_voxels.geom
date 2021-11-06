@@ -4,11 +4,8 @@ layout(points) in;
 // outputs voxels as cubes
 layout(triangle_strip, max_vertices = 24) out;
 
-// uniform vec4 frustumPlanes[6];
-// uniform float voxelSize;
-// uniform vec3 worldMinPoint;
-
 /*
+// uniform vec4 frustumPlanes[6];
 bool VoxelInFrustum(vec3 center, vec3 extent)
 {
 	vec4 plane;

@@ -238,6 +238,8 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 		}
 	};
 
+	// https://techblog.sega.jp/entry/2017/03/27/100000
+
 	for (const spirv_cross::Resource& block : resources.storage_buffers)
 	{
 		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
@@ -245,8 +247,8 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 		KShaderInformation::Storage storage;
 		storage.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
 		storage.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
-		// https://techblog.sega.jp/entry/2017/03/27/100000
-		// storage.size = (uint16_t)(type.basetype == spirv_cross::SPIRType::Struct ? compiler.get_declared_struct_size(type) : 0);
+		storage.size = (uint16_t)(type.basetype == spirv_cross::SPIRType::Struct ? compiler.get_declared_struct_size(type) : 0);
+		storage.arraysize = type.array.empty() ? 0 : type.array[0];
 		
 		information.storageBuffers.push_back(storage);
 	}
@@ -258,7 +260,8 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 		KShaderInformation::Storage storage;
 		storage.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
 		storage.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
-		// storage.size = (uint16_t)(type.basetype == spirv_cross::SPIRType::Struct ? compiler.get_declared_struct_size(type) : 0);
+		storage.size = (uint16_t)(type.basetype == spirv_cross::SPIRType::Struct ? compiler.get_declared_struct_size(type) : 0);
+		storage.arraysize = type.array.empty() ? 0 : type.array[0];
 
 		information.storageImages.push_back(storage);
 	}
@@ -340,11 +343,14 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 
 	for (const spirv_cross::Resource& block : resources.sampled_images)
 	{
+		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
+
 		KShaderInformation::Texture texture;
 
-		texture.attachmentIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationInputAttachmentIndex);
 		texture.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
 		texture.bindingIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationBinding);
+		texture.attachmentIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationInputAttachmentIndex);
+		texture.arraysize = type.array.empty() ? 0 : type.array[0];
 
 		information.textures.push_back(texture);
 	}

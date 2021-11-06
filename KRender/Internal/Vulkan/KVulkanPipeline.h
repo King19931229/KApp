@@ -166,6 +166,9 @@ public:
 	virtual bool SetSampler(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, bool dynimicWrite);
 	virtual bool SetStorageImage(unsigned int location, IKFrameBufferPtr image);
 
+	virtual bool SetSamplers(unsigned int location, const std::vector<IKFrameBufferPtr>& images, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite);
+	virtual bool SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images);
+
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size);
 	virtual bool DestroyConstantBlock();
 

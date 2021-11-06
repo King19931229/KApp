@@ -35,12 +35,13 @@ protected:
 
 	struct BindingInfo
 	{
-		IKRenderTargetPtr imageInput;
-		IKRenderTargetPtr imageOutput;
+		IKFrameBufferPtr imageInput;
+		IKFrameBufferPtr imageOutput;
+		IKSamplerPtr sampler;
 		VkDescriptorImageInfo imageDescriptor;
 
 		IKAccelerationStructurePtr as;
-		VkWriteDescriptorSetAccelerationStructureKHR accelerationStructuredescriptor;
+		VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptor;
 
 		IKUniformBufferPtr buffer;
 		VkDescriptorBufferInfo bufferDescriptor;
@@ -50,10 +51,11 @@ protected:
 		BindingInfo()
 		{
 			imageDescriptor = {};
-			accelerationStructuredescriptor = {};
+			accelerationStructureDescriptor = {};
 			bufferDescriptor = {};
 			imageInput = nullptr;
 			imageOutput = nullptr;
+			sampler = nullptr;
 			as = nullptr;
 			buffer = nullptr;
 			dynamicWrite = false;
@@ -78,7 +80,8 @@ public:
 	KVulkanComputePipeline();
 	~KVulkanComputePipeline();
 
-	virtual void BindStorageImage(uint32_t location,IKRenderTargetPtr target, bool input, bool dynimicWrite);
+	virtual void BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynimicWrite);
+	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, bool input, bool dynimicWrite);
 	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynimicWrite);
 	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer, bool dynimicWrite);
 

@@ -297,6 +297,16 @@ bool KVulkanPipeline::SetStorageImage(unsigned int location, IKFrameBufferPtr im
 	return false;
 }
 
+bool KVulkanPipeline::SetSamplers(unsigned int location, const std::vector<IKFrameBufferPtr>& images, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite)
+{
+	return false;
+}
+
+bool KVulkanPipeline::SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images)
+{
+	return false;
+}
+
 bool KVulkanPipeline::CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size)
 {
 	m_PushContant = { shaderTypes, size };
@@ -355,7 +365,7 @@ bool KVulkanPipeline::CreateLayout()
 			sboLayoutBinding.binding = storage.bindingIndex;
 			sboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			// 声明SBO Buffer数组长度 这里不使用数组
-			sboLayoutBinding.descriptorCount = 1;
+			sboLayoutBinding.descriptorCount = storage.arraysize > 1 ? storage.arraysize : 1;
 			// 声明哪个阶段Shader能够使用上此UBO
 			sboLayoutBinding.stageFlags = stageFlag;
 			sboLayoutBinding.pImmutableSamplers = nullptr; // Optional
@@ -370,7 +380,7 @@ bool KVulkanPipeline::CreateLayout()
 			sboLayoutBinding.binding = storage.bindingIndex;
 			sboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 			// 声明SBO Buffer数组长度 这里不使用数组
-			sboLayoutBinding.descriptorCount = 1;
+			sboLayoutBinding.descriptorCount = storage.arraysize > 1 ? storage.arraysize : 1;
 			// 声明哪个阶段Shader能够使用上此UBO
 			sboLayoutBinding.stageFlags = stageFlag;
 			sboLayoutBinding.pImmutableSamplers = nullptr; // Optional
@@ -415,7 +425,7 @@ bool KVulkanPipeline::CreateLayout()
 			samplerLayoutBinding.binding = texture.bindingIndex;
 			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			// 这里不使用数组
-			samplerLayoutBinding.descriptorCount = 1;
+			samplerLayoutBinding.descriptorCount = texture.arraysize > 1 ? texture.arraysize : 1;
 			// 声明哪个阶段Shader能够使用上此Sampler
 			samplerLayoutBinding.stageFlags = stageFlag;
 			samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
@@ -586,8 +596,7 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
 		IKFrameBufferPtr frameBuffer = info.image;
 
-		// TODO 重构FrameBuffer
-		// ASSERT_RESULT(frameBuffer->IsStroageImage());
+		ASSERT_RESULT(frameBuffer->IsStroageImage());
 
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 		imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();

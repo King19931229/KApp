@@ -40,7 +40,7 @@ public:
 	// 创建为DepthStencilAttachment
 	bool InitDepthStencil(uint32_t width, uint32_t height, uint32_t msaa, bool stencil);
 	// 创建为RayTracingStorage
-	bool InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t depth);
+	bool InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
 
 	bool UnInit();
 

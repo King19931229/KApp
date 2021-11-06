@@ -90,7 +90,7 @@ namespace KVulkanInitializer
 
 	void CopyVkImageToVkImage(VkImage srcImage, VkImage dstImage, const ImageSubRegionCopyInfo& copyInfo);
 
-	void ZeroVkImage(VkImage image, VkImageLayout imageLayout);
+	void ZeroVkImage(VkImage image, VkImageLayout imageLayout, uint32_t baseLayer, uint32_t layers, uint32_t baseMipLevel, uint32_t mipLevels);
 
 	void TransitionImageLayout(VkImage image, VkFormat format,
 		uint32_t baseLayer, uint32_t layers,

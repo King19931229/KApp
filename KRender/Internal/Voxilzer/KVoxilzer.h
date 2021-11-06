@@ -3,6 +3,7 @@
 #include "Interface/IKRenderConfig.h"
 #include "Interface/IKTexture.h"
 #include "Interface/IKRenderTarget.h"
+#include "Interface/IKComputePipeline.h"
 
 class KVoxilzer
 {
@@ -24,6 +25,7 @@ protected:
 
 	uint32_t m_VolumeDimension;
 	uint32_t m_VoxelCount;
+	uint32_t m_NumMipmap;
 	float m_VolumeGridSize;
 	float m_VoxelSize;
 
@@ -39,7 +41,11 @@ protected:
 	IKShaderPtr m_VoxelDrawVS;
 	IKShaderPtr m_VoxelDrawGS;
 	IKShaderPtr m_VoxelDrawFS;
+
 	std::vector<IKPipelinePtr> m_VoxelDrawPipelines;
+	IKComputePipelinePtr m_InjectRadiancePipeline;
+	IKComputePipelinePtr m_InjectPropagationPipeline;
+
 	KVertexData m_VoxelDrawVertexData;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
@@ -50,6 +56,7 @@ protected:
 	void UpdateProjectionMatrices();
 	void SetupVoxelVolumes(uint32_t dimension);
 	void SetupVoxelDrawPipeline();
+	void SetupRadiancePipeline();
 	void VoxelizeStaticScene();
 public:
 	KVoxilzer();

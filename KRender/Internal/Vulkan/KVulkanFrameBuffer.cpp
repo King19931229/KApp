@@ -213,13 +213,13 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	return true;
 }
 
-bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t depth)
+bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps)
 {
 	m_Format = format;
 	m_Width = width;
 	m_Height = height;
 	m_Depth = depth;
-	m_Mipmaps = 1;
+	m_Mipmaps = mipmaps;
 	m_MSAA = 1;
 	m_External = false;
 	m_DepthStencil = false;
@@ -242,7 +242,7 @@ bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t h
 			m_Height,
 			m_Depth,
 			layerCounts,
-			1,
+			m_Mipmaps,
 			VK_SAMPLE_COUNT_1_BIT,
 			imageType,
 			m_Format,
@@ -252,9 +252,9 @@ bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t h
 			createFlags,
 			m_Image, m_AllocInfo);
 
-		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, layerCounts, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 		KVulkanInitializer::CreateVkImageView(m_Image, imageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, m_ImageView);
-		KVulkanInitializer::ZeroVkImage(m_Image, VK_IMAGE_LAYOUT_GENERAL);
+		KVulkanInitializer::ZeroVkImage(m_Image, VK_IMAGE_LAYOUT_GENERAL, 0, layerCounts, 0, m_Mipmaps);
 	}
 
 	return true;

@@ -21,8 +21,8 @@ layout(binding = VOXEL_BINDING_NORMAL, r32ui) uniform volatile coherent uimage3D
 layout(binding = VOXEL_BINDING_EMISSION, r32ui) uniform volatile coherent uimage3D voxelEmission;
 layout(binding = VOXEL_BINDING_STATIC_FLAG, r8) uniform image3D staticVoxelFlag;
 layout(binding = VOXEL_BINDING_DIFFUSE_MAP) uniform sampler2D diffuseMap;
-// layout(binding = VOXEL_BINDING_OPACITY_MAP) uniform sampler2D opacityMap;
-// layout(binding = VOXEL_BINDING_EMISSION_MAP) uniform sampler2D emissiveMap;
+layout(binding = VOXEL_BINDING_OPACITY_MAP) uniform sampler2D opacityMap;
+layout(binding = VOXEL_BINDING_EMISSION_MAP) uniform sampler2D emissiveMap;
 
 #if 0
 uniform struct Material

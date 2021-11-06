@@ -8,6 +8,7 @@ namespace KConstantGlobal
 		glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
 		);
 
+	static const glm::vec4 UVEC4_ZERO = glm::uvec4(0, 0, 0, 0);
 	static const glm::vec4 VEC4_ZERO = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	KConstantDefinition::CAMERA Camera =
@@ -41,8 +42,9 @@ namespace KConstantGlobal
 	{
 		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY },
 		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY },
-		{ 0, 0, 0, 0},
-		{ 0, 0, 0, 0},
+		UVEC4_ZERO,
+		VEC4_ZERO,
+		VEC4_ZERO
 	};
 
 	KConstantDefinition::GLOBAL Global =

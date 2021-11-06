@@ -12,6 +12,15 @@ struct KShaderInformation
 		uint16_t descriptorSetIndex;
 		uint16_t bindingIndex;
 		uint16_t size;
+		uint16_t arraysize;
+
+		Storage()
+		{
+			descriptorSetIndex = 0;
+			bindingIndex = 0;
+			size = 0;
+			arraysize = 0;
+		}
 	};
 
 	struct Constant
@@ -19,6 +28,7 @@ struct KShaderInformation
 		uint16_t descriptorSetIndex;
 		uint16_t bindingIndex;
 		uint16_t size;
+		uint16_t arraysize;
 
 		enum ConstantMemberType : uint32_t
 		{
@@ -53,9 +63,18 @@ struct KShaderInformation
 
 	struct Texture
 	{
-		uint16_t attachmentIndex;
 		uint16_t descriptorSetIndex;
 		uint16_t bindingIndex;
+		uint16_t attachmentIndex;
+		uint16_t arraysize;
+
+		Texture()
+		{
+			descriptorSetIndex = 0;
+			bindingIndex = 0;
+			attachmentIndex = 0;
+			arraysize = 0;
+		}
 	};
 
 	std::vector<Storage> storageBuffers;

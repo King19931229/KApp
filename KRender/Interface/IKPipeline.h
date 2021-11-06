@@ -37,6 +37,9 @@ struct IKPipeline
 	virtual bool SetSampler(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, bool dynimicWrite = false) = 0;
 	virtual bool SetStorageImage(unsigned int location, IKFrameBufferPtr image) = 0;
 
+	virtual bool SetSamplers(unsigned int location, const std::vector<IKFrameBufferPtr>& images, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite = false) = 0;
+	virtual bool SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images) = 0;
+
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size) = 0;
 	virtual bool DestroyConstantBlock() = 0;
 

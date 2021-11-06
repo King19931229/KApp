@@ -4,6 +4,7 @@
 #include "KVulkanAccelerationStructure.h"
 #include "KVulkanBuffer.h"
 #include "KVulkanShader.h"
+#include "KVulkanSampler.h"
 #include "KVulkanCommandBuffer.h"
 #include "KVulkanInitializer.h"
 #include "KVulkanGlobal.h"
@@ -17,7 +18,16 @@ KVulkanComputePipeline::~KVulkanComputePipeline()
 {
 }
 
-void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKRenderTargetPtr target, bool input, bool dynimicWrite)
+void KVulkanComputePipeline::BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynimicWrite)
+{
+	BindingInfo newBinding;
+	newBinding.imageInput = target;
+	newBinding.sampler = sampler;
+	newBinding.dynamicWrite = dynimicWrite;
+	m_Bindings[location] = newBinding;
+}
+
+void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, bool input, bool dynimicWrite)
 {
 	BindingInfo newBinding;
 	if (input)
@@ -46,25 +56,41 @@ void KVulkanComputePipeline::BindUniformBuffer(uint32_t location, IKUniformBuffe
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding)
 {
-	VkDescriptorType type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	KVulkanRenderTarget* vulkanRenderTarget = nullptr;
+	KVulkanFrameBuffer* vulkanFrameBuffer = nullptr;
 	if (binding.imageInput)
-		vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(binding.imageInput.get());
+	{
+		vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.imageInput.get());
+	}
 	else
-		vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(binding.imageOutput.get());
-	KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(vulkanRenderTarget->GetFrameBuffer().get());
-	binding.imageDescriptor = { VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };
+	{
+		vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.imageOutput.get());
+	}
+
+	VkDescriptorType type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
+	if (binding.sampler)
+	{
+		ASSERT_RESULT(binding.imageInput && !binding.imageOutput);
+		KVulkanSampler* vulkanSampler = static_cast<KVulkanSampler*>(binding.sampler.get());
+		type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		binding.imageDescriptor = { vulkanSampler->GetVkSampler(), vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+	}
+	else
+	{
+		type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		binding.imageDescriptor = { VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };
+	}
+
 	return KVulkanInitializer::CreateDescriptorImageWrite(&binding.imageDescriptor, type, dstSet, dstBinding, 1);
 }
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateTopdownASWrite(BindingInfo & binding, VkDescriptorSet dstSet, uint32_t dstBinding)
 {
 	KVulkanAccelerationStructure* vulkanAccelerationStructure = static_cast<KVulkanAccelerationStructure*>(binding.as.get());
-	binding.accelerationStructuredescriptor = {};
-	binding.accelerationStructuredescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-	binding.accelerationStructuredescriptor.accelerationStructureCount = 1;
-	binding.accelerationStructuredescriptor.pAccelerationStructures = &vulkanAccelerationStructure->GetTopDown().handle;
-	return KVulkanInitializer::CreateDescriptorAccelerationStructureWrite(&binding.accelerationStructuredescriptor, dstSet, dstBinding, 1);
+	binding.accelerationStructureDescriptor = {};
+	binding.accelerationStructureDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+	binding.accelerationStructureDescriptor.accelerationStructureCount = 1;
+	binding.accelerationStructureDescriptor.pAccelerationStructures = &vulkanAccelerationStructure->GetTopDown().handle;
+	return KVulkanInitializer::CreateDescriptorAccelerationStructureWrite(&binding.accelerationStructureDescriptor, dstSet, dstBinding, 1);
 }
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateUniformBufferWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding)
@@ -99,7 +125,10 @@ void KVulkanComputePipeline::CreateDescriptorSet()
 
 		if (binding.imageInput || binding.imageOutput)
 		{
-			type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+			if(binding.sampler)
+				type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			else
+				type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 			newWrite = PopulateImageWrite(binding, VK_NULL_HANDLE, location);
 		}
 		else if (binding.as)
@@ -298,8 +327,11 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 		BindingInfo& binding = pair.second;
 		if ((binding.imageInput && input) || (binding.imageOutput && !input))
 		{
-			KVulkanRenderTarget* target = static_cast<KVulkanRenderTarget*>(input ? binding.imageInput.get() : binding.imageOutput.get());
-			KVulkanFrameBuffer* frameBuffer = static_cast<KVulkanFrameBuffer*>(target->GetFrameBuffer().get());
+			KVulkanFrameBuffer* vulkanFrameBuffer = nullptr;
+			if (binding.imageInput)
+				vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.imageInput.get());
+			else
+				vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.imageOutput.get());
 
 			VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
@@ -314,7 +346,7 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 				imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 			}
-			imgMemBarrier.image = frameBuffer->GetImage();
+			imgMemBarrier.image = vulkanFrameBuffer->GetImage();
 			imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
 			imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
 			imgMemBarrier.subresourceRange = range;
@@ -329,10 +361,10 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 		BindingInfo& binding = pair.second;
 		if (binding.imageInput)
 		{
-			KVulkanRenderTarget* target = static_cast<KVulkanRenderTarget*>(binding.imageInput.get());
-			if (!target->GetFrameBuffer()->IsStroageImage())
+			KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.imageInput.get());
+			if (!vulkanFrameBuffer->IsStroageImage())
 			{
-				translatedFrameBuffers.push_back(target->GetFrameBuffer());
+				translatedFrameBuffers.push_back(binding.imageInput);
 			}
 		}
 	}

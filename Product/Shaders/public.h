@@ -1,7 +1,7 @@
 #ifndef PUBLIC_H
 #define PUBLIC_H
 
-// TODO C++ Generate info
+// TODO C++ Generate information
 
 // Semantic
 #define POSITION 0
@@ -61,6 +61,13 @@
 #define BINDING_TEXTURE9 22
 #define BINDING_TEXTURE10 23
 #define BINDING_TEXTURE11 24
+#define BINDING_TEXTURE12 25
+#define BINDING_TEXTURE13 26
+#define BINDING_TEXTURE14 27
+#define BINDING_TEXTURE15 28
+#define BINDING_TEXTURE16 29
+#define BINDING_TEXTURE17 30
+#define BINDING_TEXTURE18 31
 
 #define BINDING_DIFFUSE BINDING_TEXTURE0
 #define BINDING_SPECULAR BINDING_TEXTURE1
@@ -122,10 +129,12 @@ uniform VoxelInfo
 	mat4 viewproj[3];
 	mat4 viewproj_inv[3];
 	vec4 minpoint_scale;
-	// dimension
+	// dimension:1 storeVisibility:1 normalWeightedLambert:1 checkBoundaries:1
 	uvec4 miscs;
-	// voxelSize volumeSize
+	// voxelSize:1 volumeSize:1 exponents:2
 	vec4 miscs2;
+	// lightBleedingReduction:1 traceShadowHit:1 maxTracingDistanceGlobal:1
+	vec4 miscs3;
 }voxel;
 
 layout(binding = BINDING_GLOBAL)
@@ -133,6 +142,8 @@ uniform GlobalInfo
 {
 	vec4 sunLightDir;
 }global;
+
+const float PI = 3.14159265f;
 
 #include "pbr.h"
 

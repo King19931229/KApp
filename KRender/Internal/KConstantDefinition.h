@@ -72,6 +72,7 @@ namespace KConstantDefinition
 		glm::vec4 MINPOINT_SCALE;
 		glm::uvec4 MISCS;
 		glm::vec4 MISCS2;
+		glm::vec4 MISCS3;
 	};
 
 	struct GLOBAL
