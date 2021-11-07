@@ -21,42 +21,79 @@ KVulkanComputePipeline::~KVulkanComputePipeline()
 void KVulkanComputePipeline::BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynimicWrite)
 {
 	BindingInfo newBinding;
-	newBinding.imageInput = target;
-	newBinding.sampler = sampler;
+	newBinding.image.images = { target };
+	newBinding.image.samplers = { sampler };
+	newBinding.image.imageDescriptors = { {} };
+	newBinding.image.flag = COMPUTE_IMAGE_IN;
+	newBinding.image.format = EF_UNKNOWN;
 	newBinding.dynamicWrite = dynimicWrite;
+	newBinding.type = BindingInfo::SAMPLER;
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, bool input, bool dynimicWrite)
+void KVulkanComputePipeline::BindSamplers(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite)
 {
 	BindingInfo newBinding;
-	if (input)
-		newBinding.imageInput = target;
-	else
-		newBinding.imageOutput = target;
+	newBinding.image.images = targets;
+	newBinding.image.samplers = samplers;
+	newBinding.image.imageDescriptors.resize(targets.size());
+	newBinding.image.flag = COMPUTE_IMAGE_IN;
+	newBinding.image.format = EF_UNKNOWN;
 	newBinding.dynamicWrite = dynimicWrite;
+	newBinding.type = BindingInfo::SAMPLER;
+	m_Bindings[location] = newBinding;
+}
+
+void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, ComputeImageFlag flag, bool dynimicWrite)
+{
+	BindingInfo newBinding;
+	newBinding.image.images = { target };
+	newBinding.image.samplers = {};
+	newBinding.image.imageDescriptors = { {} };
+	newBinding.image.flag = flag;
+	newBinding.image.format = EF_UNKNOWN;
+	newBinding.dynamicWrite = dynimicWrite;
+	newBinding.type = BindingInfo::IMAGE;
+	m_Bindings[location] = newBinding;
+}
+
+void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ComputeImageFlag flag, bool dynimicWrite)
+{
+	BindingInfo newBinding;
+	newBinding.image.images = targets;
+	newBinding.image.samplers = {};
+	newBinding.image.imageDescriptors.resize(targets.size());
+	newBinding.image.flag = flag;
+	newBinding.image.format = EF_UNKNOWN;
+	newBinding.dynamicWrite = dynimicWrite;
+	newBinding.type = BindingInfo::IMAGE;
 	m_Bindings[location] = newBinding;
 }
 
 void KVulkanComputePipeline::BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynimicWrite)
 {
 	BindingInfo newBinding;
-	newBinding.as = as;
+	newBinding.as.as = as;
 	newBinding.dynamicWrite = dynimicWrite;
+	newBinding.type = BindingInfo::AS;
 	m_Bindings[location] = newBinding;
 }
 
 void KVulkanComputePipeline::BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer, bool dynimicWrite)
 {
 	BindingInfo newBinding;
-	newBinding.buffer = buffer;
+	newBinding.buffer.buffer = buffer;
 	newBinding.dynamicWrite = dynimicWrite;
+	newBinding.type = BindingInfo::BUFFER;
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr> targets, bool input, bool dynimicWrite)
+void KVulkanComputePipeline::BindDyanmicUniformBuffer(uint32_t location)
 {
-
+	BindingInfo newBinding;
+	newBinding.type = BindingInfo::DYNAMIC_BUFFER;
+	newBinding.dynamicWrite = true;
+	m_Bindings[location] = newBinding;
 }
 
 void KVulkanComputePipeline::ReinterpretImageFormat(uint32_t location, ElementFormat format)
@@ -64,64 +101,79 @@ void KVulkanComputePipeline::ReinterpretImageFormat(uint32_t location, ElementFo
 	auto it = m_Bindings.find(location);
 	if (it != m_Bindings.end())
 	{
-		it->second.format = format;
+		BindingInfo& binding = it->second;
+		binding.image.format = format;
 	}
 }
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding)
 {
-	KVulkanFrameBuffer* vulkanFrameBuffer = nullptr;
-	if (binding.imageInput)
-	{
-		vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.imageInput.get());
-	}
-	else
-	{
-		vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.imageOutput.get());
-	}
-
+	auto& image = binding.image;
 	VkDescriptorType type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
-	if (binding.sampler)
+
+	if (binding.type == BindingInfo::SAMPLER)
 	{
-		ASSERT_RESULT(binding.imageInput && !binding.imageOutput);
-		KVulkanSampler* vulkanSampler = static_cast<KVulkanSampler*>(binding.sampler.get());
 		type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		binding.imageDescriptor = 
-		{
-			vulkanSampler->GetVkSampler(),
-			binding.format == EF_UNKNOWN ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(binding.format),
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-		};
+		ASSERT_RESULT(image.images.size() == image.samplers.size());
 	}
 	else
 	{
 		type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		binding.imageDescriptor =
-		{
-			VK_NULL_HANDLE,
-			binding.format == EF_UNKNOWN ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(binding.format),
-			VK_IMAGE_LAYOUT_GENERAL
-		};
 	}
 
-	return KVulkanInitializer::CreateDescriptorImageWrite(&binding.imageDescriptor, type, dstSet, dstBinding, 1);
+	for (size_t i = 0; i < image.images.size(); ++i)
+	{
+		IKFrameBufferPtr frameBuffer = image.images[i];
+		KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(frameBuffer.get());
+
+		if(type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+		{
+			KVulkanSampler* vulkanSampler = static_cast<KVulkanSampler*>(image.samplers[i].get());
+			type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			image.imageDescriptors[i] =
+			{
+				vulkanSampler->GetVkSampler(),
+				image.format == EF_UNKNOWN ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(image.format),
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
+		}
+		else
+		{
+			image.imageDescriptors[i] =
+			{
+				VK_NULL_HANDLE,
+				image.format == EF_UNKNOWN ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(image.format),
+				VK_IMAGE_LAYOUT_GENERAL
+			};
+		}
+	}
+
+	return KVulkanInitializer::CreateDescriptorImageWrite(binding.image.imageDescriptors.data(), type, dstSet, dstBinding, (uint32_t)binding.image.images.size());
 }
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateTopdownASWrite(BindingInfo & binding, VkDescriptorSet dstSet, uint32_t dstBinding)
 {
-	KVulkanAccelerationStructure* vulkanAccelerationStructure = static_cast<KVulkanAccelerationStructure*>(binding.as.get());
-	binding.accelerationStructureDescriptor = {};
-	binding.accelerationStructureDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-	binding.accelerationStructureDescriptor.accelerationStructureCount = 1;
-	binding.accelerationStructureDescriptor.pAccelerationStructures = &vulkanAccelerationStructure->GetTopDown().handle;
-	return KVulkanInitializer::CreateDescriptorAccelerationStructureWrite(&binding.accelerationStructureDescriptor, dstSet, dstBinding, 1);
+	KVulkanAccelerationStructure* vulkanAccelerationStructure = static_cast<KVulkanAccelerationStructure*>(binding.as.as.get());
+	binding.as.accelerationStructureDescriptor = {};
+	binding.as.accelerationStructureDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+	binding.as.accelerationStructureDescriptor.accelerationStructureCount = 1;
+	binding.as.accelerationStructureDescriptor.pAccelerationStructures = &vulkanAccelerationStructure->GetTopDown().handle;
+	return KVulkanInitializer::CreateDescriptorAccelerationStructureWrite(&binding.as.accelerationStructureDescriptor, dstSet, dstBinding, 1);
 }
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateUniformBufferWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding)
 {
-	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(binding.buffer.get());
-	binding.bufferDescriptor = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
-	return KVulkanInitializer::CreateDescriptorBufferWrite(&binding.bufferDescriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, dstSet, dstBinding, 1);
+	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(binding.buffer.buffer.get());
+	binding.buffer.bufferDescriptor = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
+	return KVulkanInitializer::CreateDescriptorBufferWrite(&binding.buffer.bufferDescriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, dstSet, dstBinding, 1);
+}
+
+VkWriteDescriptorSet KVulkanComputePipeline::PopulateDynamicUniformBufferWrite(BindingInfo& binding, const KDynamicConstantBufferUsage& usage, VkDescriptorSet dstSet)
+{
+	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(usage.buffer.get());
+	uint32_t dstBinding = (uint32_t)usage.binding;
+	binding.buffer.bufferDescriptor = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, usage.range);
+	return KVulkanInitializer::CreateDescriptorBufferWrite(&binding.buffer.bufferDescriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, dstSet, dstBinding, 1);
 }
 
 void KVulkanComputePipeline::CreateDescriptorSet()
@@ -147,31 +199,38 @@ void KVulkanComputePipeline::CreateDescriptorSet()
 		VkDescriptorType type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
 		VkWriteDescriptorSet newWrite = {};
 
-		if (binding.imageInput || binding.imageOutput)
+		if (binding.type == BindingInfo::SAMPLER)
 		{
-			if(binding.sampler)
-				type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			else
-				type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+			type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			newWrite = PopulateImageWrite(binding, VK_NULL_HANDLE, location);
 		}
-		else if (binding.as)
+		else if (binding.type == BindingInfo::IMAGE)
+		{
+			type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+			newWrite = PopulateImageWrite(binding, VK_NULL_HANDLE, location);
+		}
+		else if (binding.type == BindingInfo::AS)
 		{
 			type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 			newWrite = PopulateTopdownASWrite(binding, VK_NULL_HANDLE, location);
 		}
-		else if (binding.buffer)
+		else if (binding.type == BindingInfo::BUFFER)
 		{
 			type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			newWrite = PopulateUniformBufferWrite(binding, VK_NULL_HANDLE, location);
+		}
+		else if (binding.type == BindingInfo::DYNAMIC_BUFFER)
+		{
+			type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+			newWrite.descriptorCount = 1;
 		}
 		else
 		{
 			continue;
 		}
 
-		VkDescriptorSetLayoutBinding newBinding = KVulkanInitializer::CreateDescriptorSetLayoutBinding(type, stageFlags, location);
-		VkDescriptorPoolSize newPoolSize = { type, 1};
+		VkDescriptorSetLayoutBinding newBinding = KVulkanInitializer::CreateDescriptorSetLayoutBinding(type, stageFlags, location, newWrite.descriptorCount);
+		VkDescriptorPoolSize newPoolSize = { type, 1 };
 
 		layoutBindings.push_back(newBinding);
 		poolSizes.push_back(newPoolSize);
@@ -295,7 +354,7 @@ bool KVulkanComputePipeline::UnInit()
 	return true;
 }
 
-bool KVulkanComputePipeline::UpdateDynamicWrite(uint32_t frameIndex)
+bool KVulkanComputePipeline::UpdateDynamicWrite(uint32_t frameIndex, const KDynamicConstantBufferUsage* usage)
 {
 	if (frameIndex < m_Descriptor.sets.size())
 	{
@@ -314,17 +373,26 @@ bool KVulkanComputePipeline::UpdateDynamicWrite(uint32_t frameIndex)
 
 			VkWriteDescriptorSet newWrite = {};
 
-			if (binding.imageInput || binding.imageOutput)
+			if (binding.type == BindingInfo::SAMPLER)
 			{
 				newWrite = PopulateImageWrite(binding, m_Descriptor.sets[frameIndex], location);
 			}
-			else if (binding.as)
+			else if (binding.type == BindingInfo::IMAGE)
+			{
+				newWrite = PopulateImageWrite(binding, m_Descriptor.sets[frameIndex], location);
+			}
+			else if (binding.type == BindingInfo::AS)
 			{
 				newWrite = PopulateTopdownASWrite(binding, m_Descriptor.sets[frameIndex], location);
 			}
-			else if (binding.buffer)
+			else if (binding.type == BindingInfo::BUFFER)
 			{
 				newWrite = PopulateUniformBufferWrite(binding, m_Descriptor.sets[frameIndex], location);
+			}
+			else if (binding.type == BindingInfo::DYNAMIC_BUFFER)
+			{
+				ASSERT_RESULT(usage && usage->binding == location);
+				newWrite = PopulateDynamicUniformBufferWrite(binding, *usage, m_Descriptor.sets[frameIndex]);
 			}
 			else
 			{
@@ -350,33 +418,34 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 	{
 		BindingInfo& binding = pair.second;
 
-		if (((binding.imageInput && input) || (binding.imageOutput && !input)) && !binding.sampler)
+		if (binding.type == BindingInfo::IMAGE)
 		{
-			KVulkanFrameBuffer* vulkanFrameBuffer = nullptr;
-			if (binding.imageInput)
-				vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.imageInput.get());
-			else
-				vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.imageOutput.get());
-
-			VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-			VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-			if (input)
+			for (size_t i = 0; i < binding.image.images.size(); ++i)
 			{
-				imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-			}
-			else
-			{
-				imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-			}
-			imgMemBarrier.image = vulkanFrameBuffer->GetImage();
-			imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-			imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-			imgMemBarrier.subresourceRange = range;
+				KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.image.images[i].get());
 
-			barriers.push_back(imgMemBarrier);
+				VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+
+				if (binding.image.flag == COMPUTE_IMAGE_IN)
+				{
+					imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+					imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				}
+				else if (binding.image.flag == COMPUTE_IMAGE_OUT)
+				{
+					imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+					imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+				}
+
+				imgMemBarrier.image = vulkanFrameBuffer->GetImage();
+				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+				imgMemBarrier.subresourceRange = range;
+
+				barriers.push_back(imgMemBarrier);
+			}
 		}
 	}
 
@@ -384,12 +453,16 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 	for (auto& pair : m_Bindings)
 	{
 		BindingInfo& binding = pair.second;
-		if (binding.imageInput)
+
+		if (binding.type == BindingInfo::IMAGE && binding.image.flag == COMPUTE_IMAGE_IN)
 		{
-			KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.imageInput.get());
-			if (!vulkanFrameBuffer->IsStroageImage())
+			for (size_t i = 0; i < binding.image.images.size(); ++i)
 			{
-				translatedFrameBuffers.push_back(binding.imageInput);
+				KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.image.images[i].get());
+				if (!vulkanFrameBuffer->IsStroageImage())
+				{
+					translatedFrameBuffers.push_back(binding.image.images[i]);
+				}
 			}
 		}
 	}
@@ -416,22 +489,31 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 	return true;
 }
 
-bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, uint32_t frameIndex)
+bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, uint32_t frameIndex, const KDynamicConstantBufferUsage* usage)
 {
 	if (primaryBuffer && frameIndex < m_Descriptor.sets.size())
 	{
 		KVulkanCommandBuffer* commandBuffer = static_cast<KVulkanCommandBuffer*>(primaryBuffer.get());
 		VkCommandBuffer cmdBuf = commandBuffer->GetVkHandle();
 
+		uint32_t dynamicOffsets = 0;
+		uint32_t dynamicBufferCount = 0;
+
+		if (usage)
+		{
+			dynamicOffsets = (uint32_t)usage->offset;
+			dynamicBufferCount = 1;
+		}
+
 		// Update the descriptor
-		UpdateDynamicWrite(frameIndex);
+		UpdateDynamicWrite(frameIndex, usage);
 
 		// Adding a barrier to be sure the fragment has finished writing
 		SetupImageBarrier(primaryBuffer, true);
 
 		// Preparing for the compute shader
 		vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline.pipeline);
-		vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline.layout, 0, 1, &m_Descriptor.sets[frameIndex], 0, nullptr);
+		vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline.layout, 0, 1, &m_Descriptor.sets[frameIndex], dynamicBufferCount, &dynamicOffsets);
 		// Dispatching the shader
 		vkCmdDispatch(cmdBuf, groupX, groupY, groupZ);
 

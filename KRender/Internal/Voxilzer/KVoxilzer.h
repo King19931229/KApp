@@ -8,6 +8,11 @@
 class KVoxilzer
 {
 protected:
+	enum
+	{
+		GROUP_SIZE = 8
+	};
+
 	static const VertexFormat ms_VertexFormats[1];
 
 	IKRenderScene* m_Scene;
@@ -43,8 +48,12 @@ protected:
 	IKShaderPtr m_VoxelDrawFS;
 
 	std::vector<IKPipelinePtr> m_VoxelDrawPipelines;
+
 	IKComputePipelinePtr m_InjectRadiancePipeline;
 	IKComputePipelinePtr m_InjectPropagationPipeline;
+
+	IKComputePipelinePtr m_MipmapBasePipeline;
+	IKComputePipelinePtr m_MipmapVolumePipeline;
 
 	KVertexData m_VoxelDrawVertexData;
 
@@ -57,10 +66,13 @@ protected:
 	void SetupVoxelVolumes(uint32_t dimension);
 	void SetupVoxelDrawPipeline();
 	void SetupRadiancePipeline();
+	void SetupMipmapPipeline();
 	void VoxelizeStaticScene();
 	void UpdateRadiance();
 	void InjectRadiance();
+
 	void GenerateMipmap();
+	void GenerateMipmapBase();
 	void GenerateMipmapVolume();
 public:
 	KVoxilzer();

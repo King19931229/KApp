@@ -9,6 +9,7 @@ layout(binding = VOXEL_BINDING_ALBEDO, r32ui) uniform readonly uimage3D voxelAlb
 layout(binding = VOXEL_BINDING_NORMAL, r32ui) uniform readonly uimage3D voxelNormal;
 layout(binding = VOXEL_BINDING_EMISSION, r32ui) uniform readonly uimage3D voxelEmission;
 layout(binding = VOXEL_BINDING_RADIANCE, rgba8) uniform readonly image3D voxelRadiance;
+layout(binding = VOXEL_BINDING_TEXMIPMAP_OUT, rgba8) uniform readonly image3D voxelMipmap;
 
 const vec4 colorChannels = vec4(1.0);
 

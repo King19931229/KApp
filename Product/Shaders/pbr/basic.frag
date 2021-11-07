@@ -8,6 +8,7 @@ layout(location = 3) in vec4 cameraPos;
 layout(location = 0) out vec4 outColor;
 
 #include "public.h"
+#include "pbr.h"
 #include "shadow/shadow.h"
 
 layout(binding = BINDING_FRAGMENT_SHADING)

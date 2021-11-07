@@ -68,6 +68,7 @@
 #define BINDING_TEXTURE16 29
 #define BINDING_TEXTURE17 30
 #define BINDING_TEXTURE18 31
+#define BINDING_TEXTURE19 32
 
 #define BINDING_DIFFUSE BINDING_TEXTURE0
 #define BINDING_SPECULAR BINDING_TEXTURE1
@@ -144,7 +145,5 @@ uniform GlobalInfo
 }global;
 
 const float PI = 3.14159265f;
-
-#include "pbr.h"
 
 #endif

@@ -35,31 +35,52 @@ protected:
 
 	struct BindingInfo
 	{
-		IKFrameBufferPtr imageInput;
-		IKFrameBufferPtr imageOutput;
-		IKSamplerPtr sampler;
-		VkDescriptorImageInfo imageDescriptor;
+		struct
+		{
+			ComputeImageFlag flag;
+			ElementFormat format;
+			std::vector<IKFrameBufferPtr> images;
+			std::vector<IKSamplerPtr> samplers;
+			std::vector<VkDescriptorImageInfo> imageDescriptors;
+		}image;
 
-		IKAccelerationStructurePtr as;
-		VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptor;
+		struct
+		{
+			IKAccelerationStructurePtr as;
+			VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptor;
+		}as;
 
-		IKUniformBufferPtr buffer;
-		VkDescriptorBufferInfo bufferDescriptor;
+		struct
+		{
+			IKUniformBufferPtr buffer;
+			VkDescriptorBufferInfo bufferDescriptor;
+		}buffer;
 
-		ElementFormat format;
+		enum
+		{
+			SAMPLER,
+			IMAGE,
+			AS,
+			BUFFER,
+			DYNAMIC_BUFFER,
+			UNKNOWN
+		}type;
+
 		bool dynamicWrite;
 
 		BindingInfo()
 		{
-			imageDescriptor = {};
-			accelerationStructureDescriptor = {};
-			bufferDescriptor = {};
-			imageInput = nullptr;
-			imageOutput = nullptr;
-			sampler = nullptr;
-			as = nullptr;
-			buffer = nullptr;
-			format = EF_UNKNOWN;
+			image.flag = COMPUTE_IMAGE_IN;
+			image.format = EF_UNKNOWN;
+			image.imageDescriptors = {};
+
+			as.as = nullptr;
+			as.accelerationStructureDescriptor = {};
+
+			buffer.buffer = nullptr;
+			buffer.bufferDescriptor = {};
+
+			type = UNKNOWN;
 			dynamicWrite = false;
 		}
 	};
@@ -76,23 +97,28 @@ protected:
 	VkWriteDescriptorSet PopulateTopdownASWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding);
 	VkWriteDescriptorSet PopulateUniformBufferWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding);
 
-	bool UpdateDynamicWrite(uint32_t frameIndex);
+	VkWriteDescriptorSet PopulateDynamicUniformBufferWrite(BindingInfo& binding, const KDynamicConstantBufferUsage& usage, VkDescriptorSet dstSet);
+
+	bool UpdateDynamicWrite(uint32_t frameIndex, const KDynamicConstantBufferUsage* usage = nullptr);
 	bool SetupImageBarrier(IKCommandBufferPtr buffer, bool input);
 public:
 	KVulkanComputePipeline();
 	~KVulkanComputePipeline();
 
 	virtual void BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynimicWrite);
-	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, bool input, bool dynimicWrite);
+	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, ComputeImageFlag flag, bool dynimicWrite);
 	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynimicWrite);
 	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer, bool dynimicWrite);
 
-	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr> targets, bool input, bool dynimicWrite);
+	virtual void BindSamplers(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite);
+	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ComputeImageFlag flag, bool dynimicWrite);
+
+	virtual void BindDyanmicUniformBuffer(uint32_t location);
 
 	virtual void ReinterpretImageFormat(uint32_t location, ElementFormat format);
 
 	virtual bool Init(const char* szShader);
 	virtual bool UnInit();
-	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, uint32_t frameIndex);
+	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, uint32_t frameIndex, const KDynamicConstantBufferUsage* usage);
 	virtual bool ReloadShader();
 };

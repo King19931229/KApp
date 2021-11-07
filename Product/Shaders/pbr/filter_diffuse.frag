@@ -1,4 +1,5 @@
 #include "public.h"
+#include "pbr.h"
 
 layout(location = 0) in vec2 uv;
 layout(location = 1) in vec3 uvw;
