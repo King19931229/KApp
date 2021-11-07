@@ -46,6 +46,7 @@ protected:
 		IKUniformBufferPtr buffer;
 		VkDescriptorBufferInfo bufferDescriptor;
 
+		ElementFormat format;
 		bool dynamicWrite;
 
 		BindingInfo()
@@ -58,6 +59,7 @@ protected:
 			sampler = nullptr;
 			as = nullptr;
 			buffer = nullptr;
+			format = EF_UNKNOWN;
 			dynamicWrite = false;
 		}
 	};
@@ -84,6 +86,10 @@ public:
 	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, bool input, bool dynimicWrite);
 	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynimicWrite);
 	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer, bool dynimicWrite);
+
+	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr> targets, bool input, bool dynimicWrite);
+
+	virtual void ReinterpretImageFormat(uint32_t location, ElementFormat format);
 
 	virtual bool Init(const char* szShader);
 	virtual bool UnInit();

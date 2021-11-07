@@ -19,7 +19,7 @@ KVoxilzer::KVoxilzer()
 	, m_NumMipmap(1)
 	, m_VolumeGridSize(0)
 	, m_VoxelSize(0)
-	, m_VoxelDrawEnable(false)
+	, m_VoxelDrawEnable(true)
 {
 	m_OnSceneChangedFunc = std::bind(&KVoxilzer::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
 }
@@ -32,6 +32,7 @@ void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 {
 	UpdateProjectionMatrices();
 	VoxelizeStaticScene();
+	UpdateRadiance();
 }
 
 void KVoxilzer::UpdateProjectionMatrices()
@@ -103,6 +104,7 @@ void KVoxilzer::UpdateProjectionMatrices()
 			{
 				assert(sizeof(uint32_t) * 4 == detail.size);
 				glm::uvec4 miscs(0);
+				// volumeDimension
 				miscs.x = m_VolumeDimension;
 				// storeVisibility
 				miscs.y = 1;
@@ -129,8 +131,11 @@ void KVoxilzer::UpdateProjectionMatrices()
 				assert(sizeof(float) * 4 == detail.size);
 				glm::vec4 miscs3(0);
 				// lightBleedingReduction
+				miscs3.x = 0;
 				// traceShadowHit
+				miscs3.y = 0.5f;
 				// maxTracingDistanceGlobal
+				miscs3.w = 1.0f;
 				memcpy(pWritePos, &miscs3, sizeof(float) * 4);
 			}
 		}
@@ -208,6 +213,7 @@ void KVoxilzer::SetupVoxelDrawPipeline()
 		pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, KRenderGlobal::Voxilzer.GetVoxelAlbedo());
 		pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal());
 		pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive());
+		pipeline->SetStorageImage(VOXEL_BINDING_RADIANCE, KRenderGlobal::Voxilzer.GetVoxelRadiance());
 
 		pipeline->Init();
 	}
@@ -218,18 +224,23 @@ void KVoxilzer::SetupVoxelDrawPipeline()
 
 void KVoxilzer::SetupRadiancePipeline()
 {
-	// ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_COMPUTE, "voxel/inject_radiance.comp", m_InjectRadianceCS, true));
-	// ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_COMPUTE, "voxel/inject_propagation.comp", m_InjectPropagationCS, true));
-
 	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(0, CBT_GLOBAL);
 	IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(0, CBT_VOXEL);
 
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL, voxelBuffer);
+
 	m_InjectRadiancePipeline->BindStorageImage(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), true);
+	m_InjectRadiancePipeline->ReinterpretImageFormat(VOXEL_BINDING_NORMAL, EF_R8GB8BA8_UNORM);
+
 	m_InjectRadiancePipeline->BindStorageImage(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), false);
+
 	m_InjectRadiancePipeline->BindStorageImage(VOXEL_BINDING_EMISSION_MAP, m_VoxelEmissive->GetFrameBuffer(), true);
+	m_InjectRadiancePipeline->ReinterpretImageFormat(VOXEL_BINDING_EMISSION_MAP, EF_R8GB8BA8_UNORM);
+
 	m_InjectRadiancePipeline->BindSampler(VOXEL_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), m_LinearSampler);
+	m_InjectRadiancePipeline->ReinterpretImageFormat(VOXEL_BINDING_ALBEDO, EF_R8GB8BA8_UNORM);
+
 	m_InjectRadiancePipeline->Init("voxel/inject_radiance.comp");
 }
 
@@ -282,9 +293,41 @@ void KVoxilzer::VoxelizeStaticScene()
 	}
 
 	m_PrimaryCommandBuffer->EndRenderPass();
+
 	m_PrimaryCommandBuffer->End();
 
 	m_PrimaryCommandBuffer->Flush();
+}
+
+void KVoxilzer::UpdateRadiance()
+{
+	InjectRadiance();
+	GenerateMipmap();
+}
+
+void KVoxilzer::InjectRadiance()
+{
+	const uint32_t GROUP_SIZE = 8;
+
+	uint32_t group = (m_VolumeDimension + (GROUP_SIZE - 1)) / GROUP_SIZE;
+
+	m_PrimaryCommandBuffer->BeginPrimary();
+	m_PrimaryCommandBuffer->TranslateToShader(m_VoxelAlbedo->GetFrameBuffer());
+	m_InjectRadiancePipeline->Execute(m_PrimaryCommandBuffer, group, group, group, 0);
+	m_PrimaryCommandBuffer->TranslateToStorage(m_VoxelAlbedo->GetFrameBuffer());
+	m_PrimaryCommandBuffer->End();
+
+	m_PrimaryCommandBuffer->Flush();
+}
+
+void KVoxilzer::GenerateMipmap()
+{
+
+}
+
+void KVoxilzer::GenerateMipmapVolume()
+{
+
 }
 
 bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
@@ -295,7 +338,7 @@ bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::
 	if (frameIndex < m_VoxelDrawPipelines.size())
 	{
 		KRenderCommand command;
-		command.vertexData = nullptr;
+		command.vertexData = &m_VoxelDrawVertexData;
 		command.indexData = nullptr;
 		command.pipeline = m_VoxelDrawPipelines[frameIndex];
 		command.pipeline->GetHandle(renderPass, command.pipelineHandle);

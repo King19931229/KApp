@@ -58,6 +58,10 @@ protected:
 	void SetupVoxelDrawPipeline();
 	void SetupRadiancePipeline();
 	void VoxelizeStaticScene();
+	void UpdateRadiance();
+	void InjectRadiance();
+	void GenerateMipmap();
+	void GenerateMipmapVolume();
 public:
 	KVoxilzer();
 	~KVoxilzer();

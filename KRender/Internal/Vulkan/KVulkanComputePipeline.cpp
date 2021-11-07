@@ -54,6 +54,20 @@ void KVulkanComputePipeline::BindUniformBuffer(uint32_t location, IKUniformBuffe
 	m_Bindings[location] = newBinding;
 }
 
+void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr> targets, bool input, bool dynimicWrite)
+{
+
+}
+
+void KVulkanComputePipeline::ReinterpretImageFormat(uint32_t location, ElementFormat format)
+{
+	auto it = m_Bindings.find(location);
+	if (it != m_Bindings.end())
+	{
+		it->second.format = format;
+	}
+}
+
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding)
 {
 	KVulkanFrameBuffer* vulkanFrameBuffer = nullptr;
@@ -72,12 +86,22 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& bin
 		ASSERT_RESULT(binding.imageInput && !binding.imageOutput);
 		KVulkanSampler* vulkanSampler = static_cast<KVulkanSampler*>(binding.sampler.get());
 		type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		binding.imageDescriptor = { vulkanSampler->GetVkSampler(), vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+		binding.imageDescriptor = 
+		{
+			vulkanSampler->GetVkSampler(),
+			binding.format == EF_UNKNOWN ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(binding.format),
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		};
 	}
 	else
 	{
 		type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		binding.imageDescriptor = { VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };
+		binding.imageDescriptor =
+		{
+			VK_NULL_HANDLE,
+			binding.format == EF_UNKNOWN ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(binding.format),
+			VK_IMAGE_LAYOUT_GENERAL
+		};
 	}
 
 	return KVulkanInitializer::CreateDescriptorImageWrite(&binding.imageDescriptor, type, dstSet, dstBinding, 1);
@@ -325,7 +349,8 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 	for (auto& pair : m_Bindings)
 	{
 		BindingInfo& binding = pair.second;
-		if ((binding.imageInput && input) || (binding.imageOutput && !input))
+
+		if (((binding.imageInput && input) || (binding.imageOutput && !input)) && !binding.sampler)
 		{
 			KVulkanFrameBuffer* vulkanFrameBuffer = nullptr;
 			if (binding.imageInput)

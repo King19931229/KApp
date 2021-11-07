@@ -129,7 +129,7 @@ uniform VoxelInfo
 	mat4 viewproj[3];
 	mat4 viewproj_inv[3];
 	vec4 minpoint_scale;
-	// dimension:1 storeVisibility:1 normalWeightedLambert:1 checkBoundaries:1
+	// volumeDimension:1 storeVisibility:1 normalWeightedLambert:1 checkBoundaries:1
 	uvec4 miscs;
 	// voxelSize:1 volumeSize:1 exponents:2
 	vec4 miscs2;

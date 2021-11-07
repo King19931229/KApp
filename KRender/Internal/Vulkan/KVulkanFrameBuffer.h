@@ -2,13 +2,16 @@
 #include "KRender/Interface/IKFrameBuffer.h"
 #include "KVulkanConfig.h"
 #include "KVulkanHeapAllocator.h"
+#include <unordered_map>
 
 class KVulkanFrameBuffer : public IKFrameBuffer
 {
-	// TODO 持有ImageLayout
 protected:
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	KVulkanHeapAllocator::AllocInfo m_MSAAAllocInfo;
+
+	VkImageType m_ImageType;
+	VkImageViewType m_ImageViewType;
 
 	VkImage m_Image;
 	VkImageView m_ImageView;
@@ -24,10 +27,13 @@ protected:
 	uint32_t m_Depth;
 	uint32_t m_Mipmaps;
 	uint32_t m_MSAA;
+	uint32_t m_Layers;
 
 	bool m_External;
 	bool m_DepthStencil;
 	bool m_Storage;
+
+	std::unordered_map<ElementFormat, VkImageView> m_ReinterpretImageView;
 public:
 	KVulkanFrameBuffer();
 	~KVulkanFrameBuffer();
@@ -57,6 +63,7 @@ public:
 	inline VkImage GetMSAAImage() const { return m_MSAAImage; }
 	inline VkImageView GetMSAAImageView() const { return m_MSAAImageView; }
 	inline VkSampleCountFlagBits GetMSAAFlag() const { return m_MSAAFlag; }
-
 	inline VkFormat GetForamt() const { return m_Format; }
+
+	VkImageView GetReinterpretImageView(ElementFormat format);
 };
