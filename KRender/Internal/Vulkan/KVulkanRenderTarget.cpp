@@ -9,7 +9,6 @@
 #include "Internal/KRenderGlobal.h"
 
 KVulkanRenderTarget::KVulkanRenderTarget()
-	: m_DepthStencil(false)
 {
 }
 
@@ -28,8 +27,6 @@ bool KVulkanRenderTarget::InitFromDepthStencil(uint32_t width, uint32_t height, 
 	}
 
 	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitDepthStencil(width, height, msaaCount, bStencil);
-
-	m_DepthStencil = true;
 
 	return true;
 }
@@ -53,8 +50,6 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_
 		(uint32_t)height,
 		msaaCount);
 
-	m_DepthStencil = false;
-
 	return true;
 }
 
@@ -77,8 +72,6 @@ bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint3
 		(uint32_t)depth,
 		(uint32_t)mipmaps);
 
-	m_DepthStencil = false;
-
 	return true;
 }
 
@@ -92,11 +85,6 @@ bool KVulkanRenderTarget::UnInit()
 	}
 
 	return true;
-}
-
-bool KVulkanRenderTarget::IsDepthStencil()
-{
-	return m_DepthStencil;
 }
 
 bool KVulkanRenderTarget::GetSize(size_t& width, size_t& height)

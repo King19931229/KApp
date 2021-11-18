@@ -569,24 +569,12 @@ bool KVulkanCommandBuffer::ResetQuery(IKQueryPtr query)
 	return false;
 }
 
-bool KVulkanCommandBuffer::TranslateToStorage(IKFrameBufferPtr buf)
-{
-	if (buf)
-	{
-		KVulkanFrameBuffer* srcBuffer = (KVulkanFrameBuffer*)buf.get();
-		KVulkanInitializer::TransitionImageLayoutCmdBuffer(srcBuffer->GetImage(), srcBuffer->GetForamt(), 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, m_CommandBuffer);
-		return true;
-	}
-	return false;
-}
 
-bool KVulkanCommandBuffer::TranslateToShader(IKFrameBufferPtr buf)
+bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, ImageLayout layout)
 {
-	if (buf)
+	if(buf)
 	{
-		KVulkanFrameBuffer* srcBuffer = (KVulkanFrameBuffer*)buf.get();
-		KVulkanInitializer::TransitionImageLayoutCmdBuffer(srcBuffer->GetImage(), srcBuffer->GetForamt(), 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CommandBuffer);
-		return true;
+		return buf->Translate(this, layout);
 	}
 	return false;
 }
@@ -618,18 +606,13 @@ bool KVulkanCommandBuffer::Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest)
 		blit.dstSubresource.baseArrayLayer = 0;
 		blit.dstSubresource.layerCount = 1;
 
-		TranslateToStorage(src);
-		TranslateToStorage(dest);
-
 		vkCmdBlitImage(m_CommandBuffer,
-			srcBuffer->GetImage(), VK_IMAGE_LAYOUT_GENERAL,
-			destBuffer->GetImage(), VK_IMAGE_LAYOUT_GENERAL,
+			srcBuffer->GetImage(), srcBuffer->GetImageLayout(),
+			destBuffer->GetImage(), destBuffer->GetImageLayout(),
 			1, &blit,
 			VK_FILTER_NEAREST);
-		return true;
 
-		TranslateToShader(src);
-		TranslateToShader(dest);
+		return true;
 	}
 	return false;
 }

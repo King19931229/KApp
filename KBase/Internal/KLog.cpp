@@ -209,12 +209,14 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 				assert(nPos > 0);
 			}
 
-			if (strlen(pszMessage) + 1 + nPos > sizeof(szBuffMessage) - 1)
+			size_t msgLen = strlen(pszMessage);
+
+			if (msgLen + nPos + 2 >= sizeof(szBuffMessage))
 			{
-				szBufferAlloc = KNEW char[strlen(pszMessage) + 1 + nPos + 2048];
+				szBufferAlloc = KNEW char[msgLen + 1 + nPos + 2048];
 				memcpy(szBufferAlloc, szBuffMessage, nPos);
 				szBufferWrite = szBufferAlloc;
-				bufferSize = strlen(pszMessage) + 1 + nPos + 2048;
+				bufferSize = msgLen + 1 + nPos + 2048;
 			}
 			else
 			{
@@ -222,7 +224,7 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 				bufferSize = sizeof(szBuffMessage);
 			}
 
-			nPos += SNPRINTF(szBufferWrite + nPos, bufferSize - nPos - 1,
+			nPos += SNPRINTF(szBufferWrite + nPos, bufferSize - nPos,
 				nPos > 0 ? " %s" : "%s",
 				pszMessage);
 

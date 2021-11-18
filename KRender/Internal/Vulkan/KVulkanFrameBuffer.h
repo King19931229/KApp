@@ -20,6 +20,7 @@ protected:
 	VkImageView m_MSAAImageView;
 
 	VkSampleCountFlagBits m_MSAAFlag;
+	VkImageLayout m_ImageLayout;
 
 	VkFormat m_Format;
 	uint32_t m_Width;
@@ -30,8 +31,6 @@ protected:
 	uint32_t m_Layers;
 
 	bool m_External;
-	bool m_DepthStencil;
-	bool m_Storage;
 
 	std::unordered_map<ElementFormat, VkImageView> m_ReinterpretImageView;
 public:
@@ -50,13 +49,16 @@ public:
 
 	bool UnInit();
 
+	bool Translate(IKCommandBuffer* cmd, ImageLayout layout) override;
+
 	uint32_t GetWidth() const override { return m_Width; }
 	uint32_t GetHeight() const override { return m_Height; }
 	uint32_t GetDepth() const override { return m_Depth; }
 	uint32_t GetMipmaps() const override { return m_Mipmaps; }
 	uint32_t GetMSAA() const override { return m_MSAA; }
-	bool IsDepthStencil() const override { return m_DepthStencil; }
-	bool IsStroageImage() const override { return m_Storage; }
+
+	bool IsDepthStencil() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL; }
+	bool IsStroageImage() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_GENERAL; }
 
 	inline VkImage GetImage() const { return m_Image; }
 	inline VkImageView GetImageView() const { return m_ImageView; }
@@ -64,6 +66,7 @@ public:
 	inline VkImageView GetMSAAImageView() const { return m_MSAAImageView; }
 	inline VkSampleCountFlagBits GetMSAAFlag() const { return m_MSAAFlag; }
 	inline VkFormat GetForamt() const { return m_Format; }
+	inline VkImageLayout GetImageLayout() const { return m_ImageLayout; }
 
 	VkImageView GetReinterpretImageView(ElementFormat format);
 };

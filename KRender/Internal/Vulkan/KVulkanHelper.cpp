@@ -467,7 +467,6 @@ namespace KVulkanHelper
 		default:
 			assert(false && "Unknown shader type flag");
 			return false;
-			break;
 		}
 	}
 
@@ -492,6 +491,31 @@ namespace KVulkanHelper
 			}
 		}
 		return true;
+	}
+
+	bool ImageLayoutToVkImageLayout(ImageLayout layout, VkImageLayout vkImageLayout)
+	{
+		switch (layout)
+		{
+			case IMAGE_LAYOUT_GENERAL:
+				vkImageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				return true;
+			case IMAGE_LAYOUT_COLOR_ATTACHMENT:
+				vkImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				return true;
+			case IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT:
+				vkImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				return true;
+			case IMAGE_LAYOUT_SHADER_READ_ONLY:
+				vkImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				return true;
+			case IMAGE_LAYOUT_UNDEFINED:
+				vkImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				return true;
+			default:
+				assert(false && "Unknown image layout");
+				return false;
+		}
 	}
 
 	bool PopulateInputBindingDescription(const VertexFormat* pData, size_t uCount, VulkanBindingDetailList& detailList)

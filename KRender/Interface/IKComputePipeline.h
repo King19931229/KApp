@@ -12,15 +12,15 @@ struct IKComputePipeline
 {
 	virtual ~IKComputePipeline() {}
 
-	virtual void BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynimicWrite = true) = 0;
-	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, ComputeImageFlag flag, bool dynimicWrite = true) = 0;
-	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynimicWrite = true) = 0;
-	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer, bool dynimicWrite = false) = 0;
+	virtual void BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynamicWrite = false) = 0;
+	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, ComputeImageFlag flag, bool dynamicWrite = false) = 0;
+	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynamicWrite = false) = 0;
+	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer) = 0;
 
-	virtual void BindSamplers(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite = true) = 0;
-	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ComputeImageFlag flag, bool dynimicWrite = true) = 0;
+	virtual void BindSamplers(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, const std::vector<IKSamplerPtr>& samplers, bool dynamicWrite = true) = 0;
+	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ComputeImageFlag flag, bool dynamicWrite = true) = 0;
 
-	virtual void BindDyanmicUniformBuffer(uint32_t location) = 0;
+	virtual void BindDynamicUniformBuffer(uint32_t location) = 0;
 
 	virtual void ReinterpretImageFormat(uint32_t location, ElementFormat format) = 0;
 

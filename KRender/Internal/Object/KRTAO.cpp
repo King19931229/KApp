@@ -88,7 +88,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_AOComputePipeline->BindStorageImage(BINDING_GBUFFER_NORMAL, normalBuffer->GetFrameBuffer(), COMPUTE_IMAGE_IN, true);
 			m_AOComputePipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer->GetFrameBuffer(), COMPUTE_IMAGE_IN, true);
 			m_AOComputePipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
-			m_AOComputePipeline->BindUniformBuffer(BDINING_UNIFORM, m_AOUniformBuffer, false);
+			m_AOComputePipeline->BindUniformBuffer(BDINING_UNIFORM, m_AOUniformBuffer);
 			m_AOComputePipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget->GetFrameBuffer(), COMPUTE_IMAGE_OUT, true);
 			m_AOComputePipeline->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1]->GetFrameBuffer(), COMPUTE_IMAGE_OUT, true);
 			m_AOComputePipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[1]->GetFrameBuffer(), COMPUTE_IMAGE_OUT, true);
@@ -96,13 +96,13 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 
 			renderDevice->CreateComputePipeline(m_MeanHorizontalComputePipeline);
 			m_MeanHorizontalComputePipeline->BindStorageImage(0, m_MeanVarianceTarget[1]->GetFrameBuffer(), COMPUTE_IMAGE_IN, true);
-			m_MeanHorizontalComputePipeline->BindUniformBuffer(2, m_MeanUniformBuffer, false);
+			m_MeanHorizontalComputePipeline->BindUniformBuffer(2, m_MeanUniformBuffer);
 			m_MeanHorizontalComputePipeline->BindStorageImage(1, m_MeanVarianceTarget[0]->GetFrameBuffer(), COMPUTE_IMAGE_OUT, true);
 			m_MeanHorizontalComputePipeline->Init("ao/mean_h.comp");
 
 			renderDevice->CreateComputePipeline(m_MeanVerticalComputePipeline);
 			m_MeanVerticalComputePipeline->BindStorageImage(0, m_MeanVarianceTarget[0]->GetFrameBuffer(), COMPUTE_IMAGE_IN, true);
-			m_MeanVerticalComputePipeline->BindUniformBuffer(2, m_MeanUniformBuffer, false);
+			m_MeanVerticalComputePipeline->BindUniformBuffer(2, m_MeanUniformBuffer);
 			m_MeanVerticalComputePipeline->BindStorageImage(1, m_MeanVarianceTarget[1]->GetFrameBuffer(), COMPUTE_IMAGE_OUT, true);
 			m_MeanVerticalComputePipeline->Init("ao/mean_v.comp");
 
@@ -111,7 +111,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_AOTemporalPipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer->GetFrameBuffer(), COMPUTE_IMAGE_IN, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_VELOCITY, velocityBuffer->GetFrameBuffer(), COMPUTE_IMAGE_IN, true);
 			m_AOTemporalPipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
-			m_AOTemporalPipeline->BindUniformBuffer(BDINING_UNIFORM, m_AOUniformBuffer, false);
+			m_AOTemporalPipeline->BindUniformBuffer(BDINING_UNIFORM, m_AOUniformBuffer);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_INPUT, m_MeanVarianceTarget[0]->GetFrameBuffer(), COMPUTE_IMAGE_IN, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_PREV, m_RenderTarget[0]->GetFrameBuffer(), COMPUTE_IMAGE_IN, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_NormalDepthTarget[0]->GetFrameBuffer(), COMPUTE_IMAGE_IN, true);
@@ -206,11 +206,11 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 		m_MeanHorizontalComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
 		m_MeanVerticalComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
 
-		primaryBuffer->TranslateToShader(m_MeanVarianceTarget[1]->GetFrameBuffer());
-		primaryBuffer->TranslateToShader(m_MeanVarianceTarget[0]->GetFrameBuffer());
+		primaryBuffer->Translate(m_MeanVarianceTarget[1]->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_MeanVarianceTarget[0]->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
 		primaryBuffer->Blit(m_MeanVarianceTarget[1]->GetFrameBuffer(), m_MeanVarianceTarget[0]->GetFrameBuffer());
-		primaryBuffer->TranslateToStorage(m_MeanVarianceTarget[1]->GetFrameBuffer());
-		primaryBuffer->TranslateToStorage(m_MeanVarianceTarget[0]->GetFrameBuffer());
+		primaryBuffer->Translate(m_MeanVarianceTarget[1]->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
+		primaryBuffer->Translate(m_MeanVarianceTarget[0]->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
 
 		m_AOTemporalPipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
 

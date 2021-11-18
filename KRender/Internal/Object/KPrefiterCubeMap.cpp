@@ -90,7 +90,7 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 		diffuseIrradiance,
 		specularIrradiance,
 		integrateBRDF);
-	Draw();
+	// Draw();
 	FreeTempResource();
 
 	return true;

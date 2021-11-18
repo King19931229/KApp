@@ -7,7 +7,6 @@ class KVulkanRenderTarget : public IKRenderTarget
 {
 protected:
 	IKFrameBufferPtr m_FrameBuffer;
-	bool m_DepthStencil;
 public:
 	KVulkanRenderTarget();
 	~KVulkanRenderTarget();
@@ -16,7 +15,6 @@ public:
 	virtual bool InitFromColor(uint32_t width, uint32_t height, uint32_t msaaCount, ElementFormat format);
 	virtual bool InitFromStorage(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, ElementFormat format);
 	virtual bool UnInit();
-	virtual bool IsDepthStencil();
 
 	virtual bool GetSize(size_t& width, size_t& height);
 	virtual IKFrameBufferPtr GetFrameBuffer();

@@ -6,32 +6,41 @@
 class KVulkanComputePipeline : public IKComputePipeline
 {
 protected:
-	struct Descriptor
+	struct DescriptorSetBlock
 	{
-		VkDescriptorSetLayout layout;
 		VkDescriptorPool pool;
 		std::vector<VkDescriptorSet> sets;
+		uint32_t useCount;
+		uint32_t maxCount;
 
-		Descriptor()
+		DescriptorSetBlock()
 		{
-			layout = VK_NULL_HANDEL;
-			pool = VK_NULL_HANDEL;
+			useCount = 0;
+			maxCount = 8;
+			pool = VK_NULL_HANDLE;
 		}
 	};
-	Descriptor m_Descriptor;
 
-	struct Pipeline
+	struct DescriptorSetBlockList
 	{
-		VkPipelineLayout layout;
-		VkPipeline pipeline;
+		std::vector<DescriptorSetBlock> blocks;
+		size_t currentFrame;
 
-		Pipeline()
+		DescriptorSetBlockList()
 		{
-			layout = VK_NULL_HANDEL;
-			pipeline = VK_NULL_HANDEL;
+			currentFrame = 0;
 		}
 	};
-	Pipeline m_Pipeline;
+
+	VkDescriptorSetLayout m_DescriptorLayout;
+	std::vector<DescriptorSetBlockList> m_Descriptors;
+
+	std::vector<VkDescriptorSetLayoutBinding> m_LayoutBindings;
+	std::vector<VkDescriptorPoolSize> m_PoolSizes;
+	std::vector<VkWriteDescriptorSet> m_StaticWrites;
+
+	VkPipelineLayout m_PipelineLayout;
+	VkPipeline m_Pipeline;
 
 	struct BindingInfo
 	{
@@ -87,7 +96,7 @@ protected:
 	std::unordered_map<unsigned int, BindingInfo> m_Bindings;
 	IKShaderPtr m_ComputeShader;
 
-	void CreateDescriptorSet();
+	void CreateLayout();
 	void CreatePipeline();
 
 	void DestroyDescriptorSet();
@@ -99,21 +108,25 @@ protected:
 
 	VkWriteDescriptorSet PopulateDynamicUniformBufferWrite(BindingInfo& binding, const KDynamicConstantBufferUsage& usage, VkDescriptorSet dstSet);
 
-	bool UpdateDynamicWrite(uint32_t frameIndex, const KDynamicConstantBufferUsage* usage = nullptr);
+	VkDescriptorPool CreateDescriptorPool(uint32_t maxCount);
+	VkDescriptorSet AllocDescriptorSet(VkDescriptorPool pool);
+	VkDescriptorSet Alloc(size_t frameIndex, size_t frameNum);
+
+	bool UpdateDynamicWrite(VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage = nullptr);
 	bool SetupImageBarrier(IKCommandBufferPtr buffer, bool input);
 public:
 	KVulkanComputePipeline();
 	~KVulkanComputePipeline();
 
-	virtual void BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynimicWrite);
-	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, ComputeImageFlag flag, bool dynimicWrite);
-	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynimicWrite);
-	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer, bool dynimicWrite);
+	virtual void BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynamicWrite);
+	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, ComputeImageFlag flag, bool dynamicWrite);
+	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynamicWrite);
+	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer);
 
 	virtual void BindSamplers(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite);
 	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ComputeImageFlag flag, bool dynimicWrite);
 
-	virtual void BindDyanmicUniformBuffer(uint32_t location);
+	virtual void BindDynamicUniformBuffer(uint32_t location);
 
 	virtual void ReinterpretImageFormat(uint32_t location, ElementFormat format);
 

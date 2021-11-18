@@ -55,8 +55,7 @@ public:
 	virtual bool EndQuery(IKQueryPtr query);
 	virtual bool ResetQuery(IKQueryPtr query);
 
-	virtual bool TranslateToStorage(IKFrameBufferPtr buf);
-	virtual bool TranslateToShader(IKFrameBufferPtr buf);
+	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout layout);
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest);
 
 	inline VkCommandBuffer GetVkHandle() { return m_CommandBuffer; }

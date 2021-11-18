@@ -67,13 +67,13 @@ protected:
 	void SetupVoxelDrawPipeline();
 	void SetupRadiancePipeline();
 	void SetupMipmapPipeline();
-	void VoxelizeStaticScene();
-	void UpdateRadiance();
-	void InjectRadiance();
 
-	void GenerateMipmap();
-	void GenerateMipmapBase();
-	void GenerateMipmapVolume();
+	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
+	void UpdateRadiance(IKCommandBufferPtr commandBuffer);
+	void InjectRadiance(IKCommandBufferPtr commandBuffer);
+	void GenerateMipmap(IKCommandBufferPtr commandBuffer);
+	void GenerateMipmapBase(IKCommandBufferPtr commandBuffer);
+	void GenerateMipmapVolume(IKCommandBufferPtr commandBuffer);
 public:
 	KVoxilzer();
 	~KVoxilzer();

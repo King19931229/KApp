@@ -45,8 +45,6 @@ struct IKCommandBuffer
 	virtual bool EndQuery(IKQueryPtr query) = 0;
 	virtual bool ResetQuery(IKQueryPtr query) = 0;
 
-	// TODO: Use enum
-	virtual bool TranslateToStorage(IKFrameBufferPtr buf) = 0;
-	virtual bool TranslateToShader(IKFrameBufferPtr buf) = 0;
+	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout layout) = 0;
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest) = 0;
 };
