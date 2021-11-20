@@ -124,7 +124,9 @@ namespace KVulkanInitializer
 		VkImageViewType imageViewType,
 		VkFormat format,
 		VkImageAspectFlags aspectFlags,
+		uint32_t baseLevel,
 		uint32_t mipLevels,
+		uint32_t baseLayer,
 		uint32_t layerCounts,
 		VkImageView& vkImageView)
 	{
@@ -144,9 +146,9 @@ namespace KVulkanInitializer
 		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 		// 指定View访问范围
 		createInfo.subresourceRange.aspectMask = aspectFlags;
-		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.baseMipLevel = baseLevel;
 		createInfo.subresourceRange.levelCount = mipLevels;
-		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.baseArrayLayer = baseLayer;
 		createInfo.subresourceRange.layerCount = layerCounts;
 		VK_ASSERT_RESULT(vkCreateImageView(KVulkanGlobal::device, &createInfo, nullptr, &vkImageView));
 	}

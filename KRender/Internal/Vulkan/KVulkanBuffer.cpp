@@ -66,12 +66,7 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 		}
 		if (KVulkanGlobal::supportMeshShader)
 		{
-			// FIXME
-#if _DEBUG
 			usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-#else
-			usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-#endif
 		}
 
 		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize

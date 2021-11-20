@@ -32,14 +32,21 @@ protected:
 
 	bool m_External;
 
+	std::vector<VkImageView> m_MipmapImageViews;
 	std::unordered_map<ElementFormat, VkImageView> m_ReinterpretImageView;
+
+	std::vector<VkImageView> CreateMipmapImageViews(VkFormat format);
 public:
 	KVulkanFrameBuffer();
 	~KVulkanFrameBuffer();
 
 	// 创建为持有外部句柄
-	bool InitExternal(VkImage image, VkImageView imageView, VkFormat format,
-		uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, uint32_t msaa);
+	enum ExternalType
+	{
+		ET_SWAPCHAIN,
+		ET_TEXTUREIMAGE
+	};
+	bool InitExternal(ExternalType type, VkImage image, VkImageView imageView, VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, uint32_t msaa);
 	// 创建为ColorAttachment
 	bool InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t msaa);
 	// 创建为DepthStencilAttachment
@@ -68,5 +75,6 @@ public:
 	inline VkFormat GetForamt() const { return m_Format; }
 	inline VkImageLayout GetImageLayout() const { return m_ImageLayout; }
 
+	VkImageView GetMipmapImageView(uint32_t mipmap);
 	VkImageView GetReinterpretImageView(ElementFormat format);
 };

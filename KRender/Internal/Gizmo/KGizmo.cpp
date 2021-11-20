@@ -98,7 +98,10 @@ void KGizmo::Leave()
 
 void KGizmo::Update()
 {
-	m_CurrentGizmo->Update();
+	if (m_Enter)
+	{
+		m_CurrentGizmo->Update();
+	}
 }
 
 const glm::mat4& KGizmo::GetMatrix() const

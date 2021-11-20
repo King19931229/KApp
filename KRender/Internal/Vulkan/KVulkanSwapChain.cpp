@@ -228,7 +228,7 @@ bool KVulkanSwapChain::CreateSwapChain()
 	for(size_t i = 0; i < m_SwapChainImageViews.size(); ++i)
 	{
 		KVulkanInitializer::TransitionImageLayout(m_SwapChainImages[i], m_SurfaceFormat.format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-		KVulkanInitializer::CreateVkImageView(m_SwapChainImages[i], VK_IMAGE_VIEW_TYPE_2D, m_SurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, m_SwapChainImageViews[i]);
+		KVulkanInitializer::CreateVkImageView(m_SwapChainImages[i], VK_IMAGE_VIEW_TYPE_2D, m_SurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, m_SwapChainImageViews[i]);
 	}
 
 	return true;
@@ -271,7 +271,7 @@ bool KVulkanSwapChain::CreateFrameBuffers()
 		FrameBuffer& frameBuffer = m_FrameBuffers[i];
 
 		frameBuffer.colorFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
-		((KVulkanFrameBuffer*)frameBuffer.colorFrameBuffer.get())->InitExternal(m_SwapChainImages[i], m_SwapChainImageViews[i],
+		((KVulkanFrameBuffer*)frameBuffer.colorFrameBuffer.get())->InitExternal(KVulkanFrameBuffer::ET_SWAPCHAIN, m_SwapChainImages[i], m_SwapChainImageViews[i],
 			m_SurfaceFormat.format, m_Extend.width, m_Extend.height, 1, 1, 1);
 
 		frameBuffer.depthStencilFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());

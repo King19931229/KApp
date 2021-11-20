@@ -47,7 +47,7 @@ void KVulkanComputePipeline::BindSamplers(uint32_t location, const std::vector<I
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, ComputeImageFlag flag, bool dynamicWrite)
+void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite)
 {
 	BindingInfo newBinding;
 	newBinding.image.images = { target };
@@ -55,12 +55,13 @@ void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPt
 	newBinding.image.imageDescriptors = { {} };
 	newBinding.image.flag = flag;
 	newBinding.image.format = EF_UNKNOWN;
+	newBinding.image.mipmap = mipmap;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::IMAGE;
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ComputeImageFlag flag, bool dynamicWrite)
+void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite)
 {
 	BindingInfo newBinding;
 	newBinding.image.images = targets;
@@ -68,6 +69,7 @@ void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vec
 	newBinding.image.imageDescriptors.resize(targets.size());
 	newBinding.image.flag = flag;
 	newBinding.image.format = EF_UNKNOWN;
+	newBinding.image.mipmap = mipmap;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::IMAGE;
 	m_Bindings[location] = newBinding;
@@ -145,7 +147,8 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& bin
 			image.imageDescriptors[i] =
 			{
 				VK_NULL_HANDLE,
-				image.format == EF_UNKNOWN ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(image.format),
+				// TODO GetReinterpretImageView for mipmap
+				image.format == EF_UNKNOWN ? vulkanFrameBuffer->GetMipmapImageView(image.mipmap) : vulkanFrameBuffer->GetReinterpretImageView(image.format),
 				vulkanFrameBuffer->GetImageLayout()
 			};
 		}
@@ -511,7 +514,7 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 					imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 				}
 			}
-			else if(binding.type == BindingInfo::IMAGE)
+			else if(binding.type == BindingInfo::SAMPLER)
 			{
 				imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;

@@ -30,8 +30,6 @@ KVoxilzer::~KVoxilzer()
 
 void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 {
-	return;
-
 	UpdateProjectionMatrices();
 
 	m_PrimaryCommandBuffer->BeginPrimary();
@@ -157,7 +155,9 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 	m_VolumeDimension = dimension;
 	m_VoxelCount = m_VolumeDimension * m_VolumeDimension * m_VolumeDimension;
 	m_VoxelSize = m_VolumeGridSize / m_VolumeDimension;
-	m_NumMipmap = (uint32_t)(std::floor(std::log(dimension) / std::log(2)) + 1);
+
+	uint32_t baseMipmapDimension = (dimension + 1) / 2;
+	m_NumMipmap = (uint32_t)(std::floor(std::log(baseMipmapDimension) / std::log(2)) + 1);
 
 	UpdateProjectionMatrices();
 
@@ -166,7 +166,7 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 	m_VoxelRadiance->InitFromStorage(dimension, dimension, dimension, 1, EF_R8GB8BA8_UNORM);
 	for (uint32_t i = 0; i < 6; ++i)
 	{
-		m_VoxelTexMipmap[i]->InitFromStorage(dimension, dimension, dimension, m_NumMipmap, EF_R8GB8BA8_UNORM);
+		m_VoxelTexMipmap[i]->InitFromStorage(baseMipmapDimension, baseMipmapDimension, baseMipmapDimension, m_NumMipmap, EF_R8GB8BA8_UNORM);
 	}
 	m_VoxelEmissive->InitFromStorage(dimension, dimension, dimension, 1, EF_R32_UINT);
 	m_StaticFlag->InitFromStorage(dimension, dimension, dimension, 1, EF_R8_UNORM);
@@ -222,7 +222,7 @@ void KVoxilzer::SetupVoxelDrawPipeline()
 		pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal());
 		pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive());
 		pipeline->SetStorageImage(VOXEL_BINDING_RADIANCE, KRenderGlobal::Voxilzer.GetVoxelRadiance());
-		pipeline->SetStorageImage(VOXEL_BINDING_TEXMIPMAP_OUT, KRenderGlobal::Voxilzer.GetVoxelTexMipmap(0));
+		pipeline->SetStorageImage(VOXEL_BINDING_TEXMIPMAP_OUT, KRenderGlobal::Voxilzer.GetVoxelTexMipmap(3));
 
 		pipeline->Init();
 	}
@@ -239,12 +239,12 @@ void KVoxilzer::SetupRadiancePipeline()
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL, voxelBuffer);
 
-	m_InjectRadiancePipeline->BindStorageImage(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), COMPUTE_IMAGE_IN, false);
+	m_InjectRadiancePipeline->BindStorageImage(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), COMPUTE_IMAGE_IN, 0, false);
 	m_InjectRadiancePipeline->ReinterpretImageFormat(VOXEL_BINDING_NORMAL, EF_R8GB8BA8_UNORM);
 
-	m_InjectRadiancePipeline->BindStorageImage(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), COMPUTE_IMAGE_OUT, false);
+	m_InjectRadiancePipeline->BindStorageImage(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), COMPUTE_IMAGE_OUT, 0, false);
 
-	m_InjectRadiancePipeline->BindStorageImage(VOXEL_BINDING_EMISSION_MAP, m_VoxelEmissive->GetFrameBuffer(), COMPUTE_IMAGE_IN);
+	m_InjectRadiancePipeline->BindStorageImage(VOXEL_BINDING_EMISSION_MAP, m_VoxelEmissive->GetFrameBuffer(),COMPUTE_IMAGE_IN, 0, false);
 	m_InjectRadiancePipeline->ReinterpretImageFormat(VOXEL_BINDING_EMISSION_MAP, EF_R8GB8BA8_UNORM);
 
 	m_InjectRadiancePipeline->BindSampler(VOXEL_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), m_LinearSampler, false);
@@ -267,7 +267,7 @@ void KVoxilzer::SetupMipmapPipeline()
 
 		m_MipmapBasePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 		m_MipmapBasePipeline->BindSampler(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), m_LinearSampler, false);
-		m_MipmapBasePipeline->BindStorageImages(VOXEL_BINDING_TEXMIPMAP_OUT, targets, COMPUTE_IMAGE_OUT, false);
+		m_MipmapBasePipeline->BindStorageImages(VOXEL_BINDING_TEXMIPMAP_OUT, targets, COMPUTE_IMAGE_OUT, 0, true);
 
 		m_MipmapBasePipeline->Init("voxel/aniso_mipmapbase.comp");
 	}
@@ -285,7 +285,7 @@ void KVoxilzer::SetupMipmapPipeline()
 
 		m_MipmapVolumePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 		m_MipmapVolumePipeline->BindSamplers(VOXEL_BINDING_TEXMIPMAP_IN, targets, samplers, false);
-		m_MipmapVolumePipeline->BindStorageImages(VOXEL_BINDING_TEXMIPMAP_OUT, targets, COMPUTE_IMAGE_OUT, false);
+		m_MipmapVolumePipeline->BindStorageImages(VOXEL_BINDING_TEXMIPMAP_OUT, targets, COMPUTE_IMAGE_OUT, 0, true);
 
 		m_MipmapVolumePipeline->Init("voxel/aniso_mipmapvolume.comp");
 	}
@@ -379,19 +379,27 @@ void KVoxilzer::GenerateMipmapVolume(IKCommandBufferPtr commandBuffer)
 	uint32_t dimension = m_VolumeDimension / 4;
 	uint32_t mipmap = 1;
 
+	std::vector<IKFrameBufferPtr> targets;
+	targets.resize(ARRAY_SIZE(m_VoxelTexMipmap));
+	for (size_t i = 0; i < ARRAY_SIZE(m_VoxelTexMipmap); ++i)
+	{
+		targets[i] = m_VoxelTexMipmap[i]->GetFrameBuffer();
+	}
+
 	while (dimension > 0)
 	{
 		uint32_t group = (dimension + (GROUP_SIZE - 1)) / GROUP_SIZE;
 
 		for (size_t idx = 0; idx < ARRAY_SIZE(m_VoxelTexMipmap); ++idx)
 		{
-			glm::uvec4 constant = glm::uvec4(dimension, dimension, dimension, mipmap);
+			glm::uvec4 constant = glm::uvec4(dimension, dimension, dimension, mipmap - 1);
 
 			KDynamicConstantBufferUsage usage;
 			usage.binding = SHADER_BINDING_OBJECT;
 			usage.range = sizeof(constant);
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, usage);
 
+			m_MipmapVolumePipeline->BindStorageImages(VOXEL_BINDING_TEXMIPMAP_OUT, targets, COMPUTE_IMAGE_OUT, mipmap, true);
 			m_MipmapVolumePipeline->Execute(commandBuffer, group, group, group, 0, &usage);
 		}
 
@@ -399,7 +407,7 @@ void KVoxilzer::GenerateMipmapVolume(IKCommandBufferPtr commandBuffer)
 		++mipmap;
 	}
 
-	ASSERT_RESULT(mipmap + 1 == m_NumMipmap);
+	ASSERT_RESULT(mipmap == m_NumMipmap);
 }
 
 bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)

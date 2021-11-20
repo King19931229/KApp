@@ -4,6 +4,7 @@
 #extension GL_ARB_shader_image_load_store : require
 
 layout(location = 0) out vec4 albedo;
+layout(location = 1) out flat uint level;
 
 layout(binding = VOXEL_BINDING_ALBEDO, r32ui) uniform readonly uimage3D voxelAlbedo;
 layout(binding = VOXEL_BINDING_NORMAL, r32ui) uniform readonly uimage3D voxelNormal;
@@ -15,9 +16,9 @@ const vec4 colorChannels = vec4(1.0);
 
 void main()
 {
-	uint volumeDimension = voxel.miscs[0];
+	level = 1;
 
-	float volumeDimensionF = float(volumeDimension);
+	uint volumeDimension = voxel.miscs[0] / (level + 1);
 
 	vec3 position = vec3
 	(
@@ -28,7 +29,8 @@ void main()
 
 	ivec3 texPos = ivec3(position);
 	// albedo = convRGBA8ToVec4(imageLoad(voxelAlbedo, texPos).r) / 255.0;
-	albedo = imageLoad(voxelRadiance, texPos).rgba;
+	// albedo = imageLoad(voxelRadiance, texPos).rgba;
+	albedo = imageLoad(voxelMipmap, texPos).rgba;
 
 	uvec4 channels = uvec4(floor(colorChannels));
 

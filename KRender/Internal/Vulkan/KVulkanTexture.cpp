@@ -197,7 +197,7 @@ bool KVulkanTexture::InitDevice(bool async)
 					}
 
 					// 创建imageview
-					KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)m_Mipmaps, layerCounts, m_TextureImageView);
+					KVulkanInitializer::CreateVkImageView(m_TextureImage, imageViewType, m_TextureFormat, VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)m_Mipmaps, 0, layerCounts, m_TextureImageView);
 
 					KVulkanInitializer::FreeVkBuffer(stagingBuffer, stagingAllocInfo);
 				}
@@ -208,7 +208,7 @@ bool KVulkanTexture::InitDevice(bool async)
 				m_ResourceState = RS_DEVICE_LOADED;
 
 				m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
-				((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitExternal(m_TextureImage, m_TextureImageView, m_TextureFormat,
+				((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitExternal(KVulkanFrameBuffer::ET_TEXTUREIMAGE, m_TextureImage, m_TextureImageView, m_TextureFormat,
 					(uint32_t)m_Width, (uint32_t)m_Height, (uint32_t)m_Depth, m_Mipmaps, 1);
 
 				return true;

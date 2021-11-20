@@ -71,7 +71,9 @@ namespace KVulkanInitializer
 		VkImageViewType imageViewType,
 		VkFormat format,
 		VkImageAspectFlags aspectFlags,
+		uint32_t baseLevel,
 		uint32_t mipLevels,
+		uint32_t baseLayer,
 		uint32_t layerCount,
 		VkImageView& vkImageView);
 

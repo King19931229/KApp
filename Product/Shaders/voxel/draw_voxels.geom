@@ -27,12 +27,13 @@ bool VoxelInFrustum(vec3 center, vec3 extent)
 */
 
 layout(location = 0) in vec4 albedo[];
+layout(location = 1) in flat uint level[];
 layout(location = 0) out vec4 voxelColor;
 
 vec3 VoxelToWorld(vec3 pos)
 {
 	vec3 result = pos;
-	result *= voxel.miscs2[0];
+	result *= voxel.miscs2[0] * exp2(float(level[0]));
 	return result + voxel.minpoint_scale.xyz;
 }
 
@@ -61,7 +62,7 @@ void main()
 	);
 
 	vec3 center = VoxelToWorld(gl_in[0].gl_Position.xyz);
-	vec3 extent = vec3(voxel.miscs2[0]);
+	vec3 extent = vec3(voxel.miscs2[0]) * exp2(float(level[0]));
 
 	if(albedo[0].a == 0.0f /*|| !VoxelInFrustum(center, extent)*/) { return; }
 
