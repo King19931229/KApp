@@ -47,7 +47,7 @@ void KVulkanComputePipeline::BindSamplers(uint32_t location, const std::vector<I
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite)
+void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, ElementFormat format, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite)
 {
 	BindingInfo newBinding;
 	newBinding.image.images = { target };
@@ -56,12 +56,13 @@ void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPt
 	newBinding.image.flag = flag;
 	newBinding.image.format = EF_UNKNOWN;
 	newBinding.image.mipmap = mipmap;
+	newBinding.image.format = format;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::IMAGE;
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite)
+void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ElementFormat format, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite)
 {
 	BindingInfo newBinding;
 	newBinding.image.images = targets;
@@ -70,6 +71,7 @@ void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vec
 	newBinding.image.flag = flag;
 	newBinding.image.format = EF_UNKNOWN;
 	newBinding.image.mipmap = mipmap;
+	newBinding.image.format = format;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::IMAGE;
 	m_Bindings[location] = newBinding;
@@ -99,16 +101,6 @@ void KVulkanComputePipeline::BindDynamicUniformBuffer(uint32_t location)
 	newBinding.type = BindingInfo::DYNAMIC_BUFFER;
 	newBinding.dynamicWrite = true;
 	m_Bindings[location] = newBinding;
-}
-
-void KVulkanComputePipeline::ReinterpretImageFormat(uint32_t location, ElementFormat format)
-{
-	auto it = m_Bindings.find(location);
-	if (it != m_Bindings.end())
-	{
-		BindingInfo& binding = it->second;
-		binding.image.format = format;
-	}
 }
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding)

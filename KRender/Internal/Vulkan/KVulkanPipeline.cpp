@@ -285,12 +285,13 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKFrameBufferPtr image, 
 	return false;
 }
 
-bool KVulkanPipeline::SetStorageImage(unsigned int location, IKFrameBufferPtr image)
+bool KVulkanPipeline::SetStorageImage(unsigned int location, IKFrameBufferPtr image, ElementFormat format)
 {
 	if (image)
 	{
 		StorageBufferBindingInfo info;
 		info.image = image;
+		info.format = format;
 		m_Storages[location] = info;
 		return true;
 	}
@@ -595,11 +596,12 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 
 		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
 		IKFrameBufferPtr frameBuffer = info.image;
+		KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)frameBuffer.get();
 
 		ASSERT_RESULT(frameBuffer->IsStroageImage());
 
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
+		imageInfo.imageView = (info.format == EF_UNKNOWN) ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(info.format);
 		imageInfo.sampler = VK_NULL_HANDEL;
 
 		VkWriteDescriptorSet storageDescriptorWrite = {};

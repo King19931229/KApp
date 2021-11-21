@@ -6,9 +6,9 @@
 layout(location = 0) out vec4 albedo;
 layout(location = 1) out flat uint level;
 
-layout(binding = VOXEL_BINDING_ALBEDO, r32ui) uniform readonly uimage3D voxelAlbedo;
-layout(binding = VOXEL_BINDING_NORMAL, r32ui) uniform readonly uimage3D voxelNormal;
-layout(binding = VOXEL_BINDING_EMISSION, r32ui) uniform readonly uimage3D voxelEmission;
+layout(binding = VOXEL_BINDING_ALBEDO, rgba8) uniform readonly image3D voxelAlbedo;
+layout(binding = VOXEL_BINDING_NORMAL, rgba8) uniform readonly image3D voxelNormal;
+layout(binding = VOXEL_BINDING_EMISSION, rgba8) uniform readonly image3D voxelEmission;
 layout(binding = VOXEL_BINDING_RADIANCE, rgba8) uniform readonly image3D voxelRadiance;
 layout(binding = VOXEL_BINDING_TEXMIPMAP_OUT, rgba8) uniform readonly image3D voxelMipmap;
 
@@ -16,7 +16,7 @@ const vec4 colorChannels = vec4(1.0);
 
 void main()
 {
-	level = 1;
+	level = 0;
 
 	uint volumeDimension = voxel.miscs[0] / (level + 1);
 
@@ -28,9 +28,7 @@ void main()
 	);
 
 	ivec3 texPos = ivec3(position);
-	// albedo = convRGBA8ToVec4(imageLoad(voxelAlbedo, texPos).r) / 255.0;
-	// albedo = imageLoad(voxelRadiance, texPos).rgba;
-	albedo = imageLoad(voxelMipmap, texPos).rgba;
+	albedo = imageLoad(voxelRadiance, texPos).rgba;
 
 	uvec4 channels = uvec4(floor(colorChannels));
 

@@ -205,6 +205,7 @@ bool KRenderCore::InitController()
 			m_Device->Wait();
 			KRenderGlobal::RayTraceManager.ReloadShader();
 			KRenderGlobal::RTAO.ReloadShader();
+			KRenderGlobal::Voxilzer.ReloadShader();
 		}
 	};
 

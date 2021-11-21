@@ -42,6 +42,7 @@ namespace KConstantGlobal
 	{
 		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY },
 		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY },
+		VEC4_ZERO,
 		UVEC4_ZERO,
 		VEC4_ZERO,
 		VEC4_ZERO
@@ -51,6 +52,8 @@ namespace KConstantGlobal
 	{
 		glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)
 	};
+
+	// TODO 与KConstantDefinition放在一起定义
 
 	void* GetGlobalConstantData(ConstantBufferType bufferType)
 	{

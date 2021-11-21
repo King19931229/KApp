@@ -69,6 +69,7 @@ namespace KConstantDefinition
 	{
 		glm::mat4 VIEW_PROJ[3];
 		glm::mat4 VIEW_PROJ_INV[3];
+		glm::vec4 SUNLIGHT;
 		glm::vec4 MINPOINT_SCALE;
 		glm::uvec4 MISCS;
 		glm::vec4 MISCS2;

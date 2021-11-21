@@ -346,10 +346,10 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_VOXEL);
 		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
 
-		pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, KRenderGlobal::Voxilzer.GetVoxelAlbedo());
-		pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal());
-		pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive());
-		pipeline->SetStorageImage(VOXEL_BINDING_STATIC_FLAG, KRenderGlobal::Voxilzer.GetStaticFlag());
+		pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, KRenderGlobal::Voxilzer.GetVoxelAlbedo(), EF_R32_UINT);
+		pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal(), EF_R32_UINT);
+		pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive(), EF_R32_UINT);
+		pipeline->SetStorageImage(VOXEL_BINDING_STATIC_FLAG, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
 
 		const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
 		for (uint8_t i = 0; i < textureBinding.GetNumSlot(); ++i)

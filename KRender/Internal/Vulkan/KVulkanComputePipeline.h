@@ -121,16 +121,14 @@ public:
 	~KVulkanComputePipeline();
 
 	virtual void BindSampler(uint32_t location, IKFrameBufferPtr target, IKSamplerPtr sampler, bool dynamicWrite);
-	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite);
+	virtual void BindStorageImage(uint32_t location, IKFrameBufferPtr target, ElementFormat format, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite);
 	virtual void BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynamicWrite);
 	virtual void BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer);
 
 	virtual void BindSamplers(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite);
-	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ComputeImageFlag flag, uint32_t mipmap, bool dynimicWrite);
+	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ElementFormat format, ComputeImageFlag flag, uint32_t mipmap, bool dynimicWrite);
 
 	virtual void BindDynamicUniformBuffer(uint32_t location);
-
-	virtual void ReinterpretImageFormat(uint32_t location, ElementFormat format);
 
 	virtual bool Init(const char* szShader);
 	virtual bool UnInit();

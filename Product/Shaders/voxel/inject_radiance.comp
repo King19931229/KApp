@@ -282,7 +282,7 @@ vec4 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo)
 	{
 		Light sunLight;
 		sunLight.diffuse = vec3(1.0);
-		sunLight.direction = global.sunLightDir.xyz;
+		sunLight.direction = voxel.sunlight.xyz;
 		sunLight.shadowingMethod = 2;
 		directLighting = CalculateDirectional(sunLight, normal, position, albedo);
 		++count;

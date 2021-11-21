@@ -7,7 +7,7 @@ layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 layout(binding = VOXEL_BINDING_COMPOSITE, rgba8) uniform image3D voxelComposite;
 layout(binding = VOXEL_BINDING_ALBEDO) uniform sampler3D voxelAlbedo;
 layout(binding = VOXEL_BINDING_NORMAL) uniform sampler3D voxelNormal;
-layout(binding = VOXEL_BINDING_TEXMIAMAP) uniform sampler3D voxelTexMipmap[6];
+layout(binding = VOXEL_BINDING_TEXMIPMAP_IN) uniform sampler3D voxelTexMipmap[6];
 
 const float EPSILON = 1e-30;
 
@@ -105,8 +105,9 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal)
 
 	for(int i = 0; i < 4; i++)
 	{
-		vec3 coneDirection = normal;
-		coneDirection += propagationDirections[i].x * right + propagationDirections[i].z * up;
+		vec3 coneDirection = propagationDirections[i].y * normal
+		+ propagationDirections[i].x * right
+		+ propagationDirections[i].z * up;
 		coneDirection = normalize(coneDirection);
 
 		diffuseTrace += TraceCone(position, coneDirection, aperture) * diffuseConeWeights[i];

@@ -820,6 +820,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		}
 
 		// 绘制VoxelBox
+		KRenderGlobal::Voxilzer.Update();
 		KRenderGlobal::Voxilzer.RenderVoxel(frameIndex, renderPass, tempBuffers);
 		if (!tempBuffers.empty())
 		{
@@ -1055,12 +1056,11 @@ bool KRenderDispatcher::UpdateGlobal(size_t frameIndex)
 		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_GLOBAL);
 		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 		{
-			void* pWritePos = nullptr;
+			void* pWritePos = POINTER_OFFSET(pData, detail.offset);
 			if (detail.semantic == CS_SUN_LIGHT_DIRECTION)
 			{
 				glm::vec4 sunLightDir = glm::vec4(KRenderGlobal::CascadedShadowMap.GetCamera().GetForward(), 0.0f);
 				assert(sizeof(sunLightDir) == detail.size);
-				pWritePos = POINTER_OFFSET(pData, detail.offset);
 				memcpy(pWritePos, &sunLightDir, sizeof(sunLightDir));
 			}
 		}

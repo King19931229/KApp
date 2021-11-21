@@ -59,7 +59,9 @@ protected:
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 
+	bool m_InjectFirstBounce;
 	bool m_VoxelDrawEnable;
+	bool m_VoxelDebugUpdate;
 
 	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
 	void UpdateProjectionMatrices();
@@ -74,9 +76,14 @@ protected:
 	void GenerateMipmap(IKCommandBufferPtr commandBuffer);
 	void GenerateMipmapBase(IKCommandBufferPtr commandBuffer);
 	void GenerateMipmapVolume(IKCommandBufferPtr commandBuffer);
+
+	void UpdateInternal();
 public:
 	KVoxilzer();
 	~KVoxilzer();
+
+	void Update();
+	void ReloadShader();
 
 	inline bool IsVoxelDrawEnable() const { return m_VoxelDrawEnable; }
 	inline void SetVoxelDrawEnable(bool enable) { m_VoxelDrawEnable = enable; }
