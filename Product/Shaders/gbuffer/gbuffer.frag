@@ -5,8 +5,8 @@ layout(location = 1) in vec4 worldPos;
 layout(location = 2) in vec4 prevWorldPos;
 layout(location = 3) in vec2 texcoord;
 #if TANGENT_BINORMAL_INPUT
-layout(location = 4) out vec4 worldTangent;
-layout(location = 5) out vec4 worldBinormal;
+layout(location = 4) in vec4 worldTangent;
+layout(location = 5) in vec4 worldBinormal;
 #endif
 
 layout(location = 0) out vec4 normal;

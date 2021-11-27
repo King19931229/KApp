@@ -2,6 +2,7 @@
 #include "Internal/KVertexDefinition.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKMaterial.h"
+#include "Internal/Asset/Material/KMaterialShader.h"
 #include "KSubMesh.h"
 
 #include <functional>
@@ -23,10 +24,6 @@ protected:
 	IKShaderPtr				m_PreZVSShader;
 	IKShaderPtr				m_PreZFSShader;
 
-	IKShaderPtr				m_GBufferVSShader;
-	IKShaderPtr				m_GBufferVSInstanceShader;
-	IKShaderPtr				m_GBufferFSShader;
-
 	IKShaderPtr				m_ShadowVSShader;
 	IKShaderPtr				m_ShadowFSShader;
 
@@ -37,6 +34,8 @@ protected:
 	IKShaderPtr				m_VoxelGSShader;
 	IKShaderPtr				m_VoxelFSShader;
 
+	KMaterialShader			m_GBufferShaderGroup;
+
 	bool					m_MateriaShaderTriggerLoaded;
 	bool					m_MaterialPipelineCreated;
 
@@ -45,6 +44,7 @@ protected:
 
 	bool CreateFixedPipeline();
 	bool CreateMaterialPipeline();
+	bool CreateGBufferPipeline();
 	bool CreateVoxelPipeline();
 public:
 	KMaterialSubMesh(KSubMesh* subMesh);
