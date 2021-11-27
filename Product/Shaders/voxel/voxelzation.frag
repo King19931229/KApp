@@ -62,16 +62,6 @@ IMAGE_ATOMIC_RGBA_AVG_DECL(voxelEmission);
 
 #define IMAGE_ATOMIC_RGBA_AVG_CALL(grid, coords, value) imageAtomicRGBA8Avg__##grid(coords, value)
 
-vec3 EncodeNormal(vec3 normal)
-{
-	return normal * 0.5f + vec3(0.5f);
-}
-
-vec3 DecodeNormal(vec3 normal)
-{
-	return normal * 2.0f - vec3(1.0f);
-}
-
 void main()
 {
 	if( In.position.x < In.triangleAABB.x || In.position.y < In.triangleAABB.y || 

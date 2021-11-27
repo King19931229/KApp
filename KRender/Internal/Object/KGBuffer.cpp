@@ -4,7 +4,7 @@
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKStatistics.h"
 #include "Internal/KRenderGlobal.h"
-#include "Internal/Dispatcher/KInstancePreparer.h"
+#include "Internal/Dispatcher/KRenderUtil.h"
 
 KGBuffer::KGBuffer()
 	: m_RenderDevice(nullptr)
@@ -94,15 +94,24 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 
 		SAFE_UNINIT(m_DepthStencilTarget);
 		SAFE_UNINIT(m_RenderPass);
-		ASSERT_RESULT(m_RenderTarget[0]->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
-		ASSERT_RESULT(m_RenderTarget[1]->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
-		ASSERT_RESULT(m_RenderTarget[2]->InitFromColor(width, height, 1, EF_R32G32_FLOAT));
+		ASSERT_RESULT(m_RenderTarget[RT_NORMAL]->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
+		ASSERT_RESULT(m_RenderTarget[RT_POSITION]->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
+		ASSERT_RESULT(m_RenderTarget[RT_MOTION]->InitFromColor(width, height, 1, EF_R32G32_FLOAT));
+		ASSERT_RESULT(m_RenderTarget[RT_DIFFUSE]->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
+		ASSERT_RESULT(m_RenderTarget[RT_SPECULAR]->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
 
 		ASSERT_RESULT(m_RenderDevice->CreateRenderPass(m_RenderPass));
-		m_RenderPass->SetColorAttachment(0, m_RenderTarget[0]->GetFrameBuffer());
-		m_RenderPass->SetColorAttachment(1, m_RenderTarget[1]->GetFrameBuffer());
-		m_RenderPass->SetColorAttachment(2, m_RenderTarget[2]->GetFrameBuffer());
-		m_RenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 1.0f });
+		m_RenderPass->SetColorAttachment(RT_NORMAL, m_RenderTarget[RT_NORMAL]->GetFrameBuffer());
+		m_RenderPass->SetColorAttachment(RT_POSITION, m_RenderTarget[RT_POSITION]->GetFrameBuffer());
+		m_RenderPass->SetColorAttachment(RT_MOTION, m_RenderTarget[RT_MOTION]->GetFrameBuffer());
+		m_RenderPass->SetColorAttachment(RT_DIFFUSE, m_RenderTarget[RT_DIFFUSE]->GetFrameBuffer());
+		m_RenderPass->SetColorAttachment(RT_SPECULAR, m_RenderTarget[RT_SPECULAR]->GetFrameBuffer());
+
+		m_RenderPass->SetClearColor(RT_NORMAL, { 0.0f, 0.0f, 0.0f, 1.0f });
+		m_RenderPass->SetClearColor(RT_POSITION, { 0.0f, 0.0f, 0.0f, 1.0f });
+		m_RenderPass->SetClearColor(RT_MOTION, { 0.0f, 0.0f, 0.0f, 1.0f });
+		m_RenderPass->SetClearColor(RT_DIFFUSE, { 0.0f, 0.0f, 0.0f, 1.0f });
+		m_RenderPass->SetClearColor(RT_SPECULAR, { 0.0f, 0.0f, 0.0f, 1.0f });
 
 		m_RenderDevice->CreateRenderTarget(m_DepthStencilTarget);
 		m_DepthStencilTarget->InitFromDepthStencil(width, height, 1, true);
@@ -127,95 +136,109 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 		std::vector<KRenderComponent*> cullRes;
 		KRenderGlobal::Scene.GetRenderComponent(*m_Camera, cullRes);
 
-		KInstancePreparer::MeshGroups meshGroups;
-		KInstancePreparer::CalculateByMesh(cullRes, meshGroups);
+		KRenderUtil::MeshMaterialInstanceGroup meshMaterialGroups;
+		KRenderUtil::CalculateInstanceGroupByMaterial(cullRes, false, meshMaterialGroups);
 
-		for (auto& pair : meshGroups)
+		for (auto& meshPair : meshMaterialGroups)
 		{
-			KMeshPtr mesh = pair.first;
-			KInstancePreparer::InstanceGroupPtr instanceGroup = pair.second;
+			KMeshPtr mesh = meshPair.first;
+			KRenderUtil::MaterialMapPtr materialMap = meshPair.second;
 
-			KRenderComponent* render = instanceGroup->render;
-
-			const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instanceGroup->instance;
-
-			ASSERT_RESULT(render);
-			ASSERT_RESULT(!instances.empty());
-
-			if (instances.size() > 1)
+			for (auto& materialPair : materialMap->mapping)
 			{
-				render->Visit(PIPELINE_STAGE_GBUFFER_INSTANCE, frameIndex, [&](KRenderCommand& _command)
+				IKMaterialPtr material = materialPair.first;
+				KRenderUtil::InstanceGroupPtr instanceGroup = materialPair.second;
+				KRenderComponent* render = instanceGroup->render;
+				const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instanceGroup->instance;
+
+				ASSERT_RESULT(render);
+				ASSERT_RESULT(!instances.empty());
+
+				if (instances.size() > 1)
 				{
-					KRenderCommand command = std::move(_command);
-
-					++m_Statistics.drawcalls;
-
-					std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
-					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
-					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
-
-					command.instanceDraw = true;
-					command.instanceUsages.resize(allocRes.size());
-					for (size_t i = 0; i < allocRes.size(); ++i)
+					render->Visit(PIPELINE_STAGE_GBUFFER_INSTANCE, frameIndex, [&](KRenderCommand& _command)
 					{
-						KInstanceBufferUsage& usage = command.instanceUsages[i];
-						KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
-						usage.buffer = allocResult.buffer;
-						usage.start = allocResult.start;
-						usage.count = allocResult.count;
-						usage.offset = allocResult.offset;
-					}
+						KRenderCommand command = std::move(_command);
 
-					if (command.indexDraw)
-					{
-						m_Statistics.faces += command.indexData->indexCount / 3;
-					}
-					else
-					{
-						m_Statistics.faces += command.vertexData->vertexCount / 3;
-					}
+						if (!KRenderUtil::AssignShadingParameter(command, material.get(), false))
+						{
+							return;
+						}
 
-					command.pipeline->GetHandle(m_RenderPass, command.pipelineHandle);
+						++m_Statistics.drawcalls;
 
-					if (command.Complete())
-					{
-						commands.push_back(std::move(command));
-					}
-				});
-			}
-			else
-			{
-				render->Visit(PIPELINE_STAGE_GBUFFER, frameIndex, [&](KRenderCommand& _command)
+						std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+						ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+						ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+
+						command.instanceDraw = true;
+						command.instanceUsages.resize(allocRes.size());
+						for (size_t i = 0; i < allocRes.size(); ++i)
+						{
+							KInstanceBufferUsage& usage = command.instanceUsages[i];
+							KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+							usage.buffer = allocResult.buffer;
+							usage.start = allocResult.start;
+							usage.count = allocResult.count;
+							usage.offset = allocResult.offset;
+						}
+
+						if (command.indexDraw)
+						{
+							m_Statistics.faces += command.indexData->indexCount / 3;
+						}
+						else
+						{
+							m_Statistics.faces += command.vertexData->vertexCount / 3;
+						}
+
+						command.pipeline->GetHandle(m_RenderPass, command.pipelineHandle);
+
+						if (command.Complete())
+						{
+							commands.push_back(std::move(command));
+						}
+					});
+				}
+				else
 				{
-					KRenderCommand command = std::move(_command);
-
-					++m_Statistics.drawcalls;
-
-					const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[0];
-
-					KConstantDefinition::OBJECT objectData;
-					objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
-					objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(objectData);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
-
-					if (command.indexDraw)
+					render->Visit(PIPELINE_STAGE_GBUFFER, frameIndex, [&](KRenderCommand& _command)
 					{
-						m_Statistics.faces += command.indexData->indexCount / 3;
-					}
-					else
-					{
-						m_Statistics.faces += command.vertexData->vertexCount / 3;
-					}
+						KRenderCommand command = std::move(_command);
 
-					command.pipeline->GetHandle(m_RenderPass, command.pipelineHandle);
+						if (!KRenderUtil::AssignShadingParameter(command, material.get(), false))
+						{
+							return;
+						}
 
-					if (command.Complete())
-					{
-						commands.push_back(std::move(command));
-					}
-				});
+						++m_Statistics.drawcalls;
+
+						const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[0];
+
+						KConstantDefinition::OBJECT objectData;
+						objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+						objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+						command.objectUsage.binding = SHADER_BINDING_OBJECT;
+						command.objectUsage.range = sizeof(objectData);
+						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+						if (command.indexDraw)
+						{
+							m_Statistics.faces += command.indexData->indexCount / 3;
+						}
+						else
+						{
+							m_Statistics.faces += command.vertexData->vertexCount / 3;
+						}
+
+						command.pipeline->GetHandle(m_RenderPass, command.pipelineHandle);
+
+						if (command.Complete())
+						{
+							commands.push_back(std::move(command));
+						}
+					});
+				}
 			}
 		}
 

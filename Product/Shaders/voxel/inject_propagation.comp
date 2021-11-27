@@ -2,7 +2,7 @@
 #include "voxelcommon.h"
 
 #extension GL_ARB_shader_image_load_store : require
-layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout (local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROUP_SIZE) in;
 
 layout(binding = VOXEL_BINDING_COMPOSITE, rgba8) uniform image3D voxelComposite;
 layout(binding = VOXEL_BINDING_ALBEDO) uniform sampler3D voxelAlbedo;
@@ -114,16 +114,6 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal)
 	}
 
 	return clamp(diffuseTrace, 0.0f, 1.0f);
-}
-
-vec3 EncodeNormal(vec3 normal)
-{
-	return normal * 0.5f + vec3(0.5f);
-}
-
-vec3 DecodeNormal(vec3 normal)
-{
-	return normal * 2.0f - vec3(1.0f);
 }
 
 void main()

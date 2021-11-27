@@ -186,5 +186,5 @@ public:
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 	VkDescriptorSet AllocDescriptorSet(const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-		const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
+		const KStroageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
 };

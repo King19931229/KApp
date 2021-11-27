@@ -64,7 +64,7 @@ public:
 	uint32_t GetMipmaps() const override { return m_Mipmaps; }
 	uint32_t GetMSAA() const override { return m_MSAA; }
 
-	bool IsDepthStencil() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL; }
+	bool IsDepthStencil() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; }
 	bool IsStroageImage() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_GENERAL; }
 
 	inline VkImage GetImage() const { return m_Image; }

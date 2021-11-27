@@ -1,4 +1,5 @@
 #include "KRenderDispatcher.h"
+#include "KRenderUtil.h"
 #include "Internal/KRenderGlobal.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "Internal/ECS/Component/KDebugComponent.h"
@@ -167,279 +168,91 @@ void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderPassP
 	buffer->End();
 }
 
-bool KRenderDispatcher::AssignShadingParameter(KRenderCommand& command, IKMaterial* material, bool useMaterialTex)
-{
-	if (material)
-	{
-		const IKMaterialParameterPtr vsParameter = material->GetVSParameter();
-		const IKMaterialParameterPtr fsParameter = material->GetFSParameter();
-		if (!(vsParameter && fsParameter))
-		{
-			return false;
-		}
-
-		const KShaderInformation::Constant* vsConstant = material->GetVSShadingInfo();
-		const KShaderInformation::Constant* fsConstant = material->GetFSShadingInfo();
-		if (!(vsConstant && fsConstant))
-		{
-			return false;
-		}
-
-		if (vsConstant->size)
-		{
-			static std::vector<char> vsShadingBuffer;
-
-			command.vertexShadingUsage.binding = SHADER_BINDING_VERTEX_SHADING;
-			command.vertexShadingUsage.range = vsConstant->size;
-
-			if (vsConstant->size > vsShadingBuffer.size())
-			{
-				vsShadingBuffer.resize(vsConstant->size);
-			}
-
-			for (const KShaderInformation::Constant::ConstantMember& member : vsConstant->members)
-			{
-				IKMaterialValuePtr value = vsParameter->GetValue(member.name);
-				ASSERT_RESULT(value);
-				memcpy(POINTER_OFFSET(vsShadingBuffer.data(), member.offset), value->GetData(), member.size);
-			}
-
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(vsShadingBuffer.data(), command.vertexShadingUsage);
-		}
-
-		if (fsConstant->size)
-		{
-			static std::vector<char> fsShadingBuffer;
-
-			command.fragmentShadingUsage.binding = SHADER_BINDING_FRAGMENT_SHADING;
-			command.fragmentShadingUsage.range = fsConstant->size;
-
-			if (fsConstant->size > fsShadingBuffer.size())
-			{
-				fsShadingBuffer.resize(fsConstant->size);
-			}
-
-			for (const KShaderInformation::Constant::ConstantMember& member : fsConstant->members)
-			{
-				IKMaterialValuePtr value = fsParameter->GetValue(member.name);
-				ASSERT_RESULT(value);
-				memcpy(POINTER_OFFSET(fsShadingBuffer.data(), member.offset), value->GetData(), member.size);
-			}
-
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(fsShadingBuffer.data(), command.fragmentShadingUsage);
-		}
-		
-		if (useMaterialTex)
-		{
-			const IKMaterialTextureBinding* textureBinding = material->GetDefaultMaterialTexture().get();
-			uint8_t numSlot = textureBinding->GetNumSlot();
-			for (uint8_t i = 0; i < numSlot; ++i)
-			{
-				IKTexturePtr texture = textureBinding->GetTexture(i);
-				IKSamplerPtr sampler = textureBinding->GetSampler(i);
-				if (texture && sampler)
-				{
-					command.pipeline->SetSampler(SHADER_BINDING_MATERIAL_BEGIN + i, texture->GetFrameBuffer(), sampler, true);
-				}
-			}
-		}
-		return true;
-	}
-	return false;
-}
-
-bool KRenderDispatcher::AssignMeshStorageParameter(KRenderCommand& command)
-{
-	KStorageBufferUsage usage;
-
-	for (size_t i = 0; i < command.vertexData->vertexFormats.size(); ++i)
-	{
-		VertexFormat format = command.vertexData->vertexFormats[i];
-		IKVertexBufferPtr buffer = command.vertexData->vertexBuffers[i];
-
-		uint32_t binding = ~0;
-
-		switch (format)
-		{
-			case VF_POINT_NORMAL_UV:
-				binding = SBT_POSITION_NORMAL_UV;
-				break;
-			case VF_DIFFUSE_SPECULAR:
-				binding = SBT_DIFFUSE_SPECULAR;
-				break;
-			case VF_TANGENT_BINORMAL:
-				binding = SBT_TANGENT_BINORMAL;
-				break;
-			default:
-				break;
-		}
-
-		if (binding != ~0)
-		{
-			usage.binding = binding;
-			usage.buffer = buffer;
-			command.meshStorageUsages.push_back(usage);
-		}
-	}
-
-	usage.binding = SBT_MESHLET_DESC;
-	usage.buffer = command.meshData->meshletDescBuffer;
-	command.meshStorageUsages.push_back(usage);
-
-	usage.binding = SBT_MESHLET_PRIM;
-	usage.buffer = command.meshData->meshletPrimBuffer;
-	command.meshStorageUsages.push_back(usage);
-
-	return true;
-}
-
 void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<KRenderComponent*>& cullRes, KRenderStageContext& context)
 {
-	struct InstanceArray
-	{
-		KRenderComponent* render;
-		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F> instances;
-	};
-	typedef std::shared_ptr<InstanceArray> InstanceArrayPtr;
-	struct MaterialMap
-	{
-		std::unordered_map<IKMaterialPtr, InstanceArrayPtr> mapping;
-	};
-	typedef std::shared_ptr<MaterialMap> MaterialMapPtr;
+	KRenderUtil::MeshMaterialInstanceGroup meshGroups;
+	KRenderUtil::MeshMaterialInstanceGroup meshMaterialGroups;
 
-	std::unordered_map<KMeshPtr, MaterialMapPtr> meshGroups;
-	std::unordered_map<KMeshPtr, MaterialMapPtr> meshMaterialGroups;
+	KRenderUtil::CalculateInstanceGroupByMaterial(cullRes, false, meshGroups);
+	KRenderUtil::CalculateInstanceGroupByMaterial(cullRes, true, meshMaterialGroups);
 
-	for (bool useMateiralTex : {true, false})
+	for (KRenderComponent* render : cullRes)
 	{
-		for (KRenderComponent* render : cullRes)
+		if (!render->IsOcclusionVisible())
 		{
-			if (!render->IsOcclusionVisible())
+			continue;
+		}
+
+		IKEntity* entity = render->GetEntityHandle();
+
+		KTransformComponent* transform = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, &transform))
+		{
+			KDebugComponent* debug = nullptr;
+			if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
 			{
-				continue;
-			}
+				KConstantDefinition::DEBUG objectData;
+				objectData.MODEL = transform->FinalTransform();
+				objectData.COLOR = debug->Color();
 
-			if (render->GetUseMaterialTexture() != useMateiralTex)
-			{
-				continue;
-			}
-
-			IKEntity* entity = render->GetEntityHandle();
-
-			KTransformComponent* transform = nullptr;
-			if (entity->GetComponent(CT_TRANSFORM, &transform))
-			{
-				MaterialMapPtr mateiralMap = nullptr;
-				InstanceArrayPtr instanceArray = nullptr;
-
-				KMeshPtr mesh = render->GetMesh();
-
-				std::unordered_map<KMeshPtr, MaterialMapPtr>* meshMap = nullptr;
-				if (useMateiralTex)
+				render->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand& command)
 				{
-					meshMap = &meshMaterialGroups;
-				}
-				else
-				{
-					meshMap = &meshGroups;
-				}
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
+					command.objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-				auto itMesh = meshMap->find(mesh);
-				if (itMesh != meshMap->end())
-				{
-					mateiralMap = itMesh->second;
-				}
-				else
-				{
-					mateiralMap = std::make_shared<MaterialMap>();
-					(*meshMap)[mesh] = mateiralMap;
-				}
-				ASSERT_RESULT(mateiralMap);
-
-				IKMaterialPtr material = render->GetMaterial();
-
-				auto itMat = mateiralMap->mapping.find(material);
-				if (itMat == mateiralMap->mapping.end())
-				{
-					instanceArray = std::make_shared<InstanceArray>();
-					(mateiralMap->mapping)[material] = instanceArray;
-				}
-				else
-				{
-					instanceArray = itMat->second;
-				}
-
-				instanceArray->render = render;
-
-				glm::mat4 finalMat = transpose(transform->GetFinal());
-				instanceArray->instances.push_back({ finalMat[0], finalMat[1], finalMat[2] });
-
-				KDebugComponent* debug = nullptr;
-				if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
-				{
-					KConstantDefinition::DEBUG objectData;
-					objectData.MODEL = transform->FinalTransform();
-					objectData.COLOR = debug->Color();
-
-					render->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand& command)
+					++context.statistics[RENDER_STAGE_DEBUG].drawcalls;
+					if (command.indexDraw)
 					{
-						command.objectUsage.binding = SHADER_BINDING_OBJECT;
-						command.objectUsage.range = sizeof(objectData);
-						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
-
-						++context.statistics[RENDER_STAGE_DEBUG].drawcalls;
-						if (command.indexDraw)
-						{
-							context.statistics[RENDER_STAGE_DEBUG].faces += command.indexData->indexCount / 3;
-							context.statistics[RENDER_STAGE_DEBUG].primtives += command.indexData->indexCount;
-						}
-						else
-						{
-							context.statistics[RENDER_STAGE_DEBUG].faces += command.vertexData->vertexCount / 3;
-							context.statistics[RENDER_STAGE_DEBUG].primtives += command.vertexData->vertexCount;
-						}
-
-						command.pipeline->GetHandle(renderPass, command.pipelineHandle);
-
-						if (command.Complete())
-						{
-							context.command[RENDER_STAGE_DEBUG].push_back(std::move(command));
-						}
-					});
-
-					render->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand& command)
+						context.statistics[RENDER_STAGE_DEBUG].faces += command.indexData->indexCount / 3;
+						context.statistics[RENDER_STAGE_DEBUG].primtives += command.indexData->indexCount;
+					}
+					else
 					{
-						command.objectUsage.binding = SHADER_BINDING_OBJECT;
-						command.objectUsage.range = sizeof(objectData);
-						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+						context.statistics[RENDER_STAGE_DEBUG].faces += command.vertexData->vertexCount / 3;
+						context.statistics[RENDER_STAGE_DEBUG].primtives += command.vertexData->vertexCount;
+					}
 
-						++context.statistics[RENDER_STAGE_DEBUG].drawcalls;
-						if (command.indexDraw)
-						{
-							context.statistics[RENDER_STAGE_DEBUG].faces += command.indexData->indexCount / 2;
-							context.statistics[RENDER_STAGE_DEBUG].primtives += command.indexData->indexCount;
-						}
-						else
-						{
-							context.statistics[RENDER_STAGE_DEBUG].faces += command.vertexData->vertexCount / 2;
-							context.statistics[RENDER_STAGE_DEBUG].primtives += command.vertexData->vertexCount;
-						}
+					command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 
-						command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+					if (command.Complete())
+					{
+						context.command[RENDER_STAGE_DEBUG].push_back(std::move(command));
+					}
+				});
 
-						if (command.Complete())
-						{
-							context.command[RENDER_STAGE_DEBUG].push_back(std::move(command));
-						}
-					});
-				}
+				render->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand& command)
+				{
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
+					command.objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+					++context.statistics[RENDER_STAGE_DEBUG].drawcalls;
+					if (command.indexDraw)
+					{
+						context.statistics[RENDER_STAGE_DEBUG].faces += command.indexData->indexCount / 2;
+						context.statistics[RENDER_STAGE_DEBUG].primtives += command.indexData->indexCount;
+					}
+					else
+					{
+						context.statistics[RENDER_STAGE_DEBUG].faces += command.vertexData->vertexCount / 2;
+						context.statistics[RENDER_STAGE_DEBUG].primtives += command.vertexData->vertexCount;
+					}
+
+					command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						context.command[RENDER_STAGE_DEBUG].push_back(std::move(command));
+					}
+				});
 			}
 		}
 	}
 
 	for (bool useMateiralTex : {true, false})
 	{
-		std::unordered_map<KMeshPtr, MaterialMapPtr>* meshMap = nullptr;
+		KRenderUtil::MeshMaterialInstanceGroup* meshMap = nullptr;
 		if (useMateiralTex)
 		{
 			meshMap = &meshMaterialGroups;
@@ -453,19 +266,18 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 		for (auto& meshPair : *meshMap)
 		{
 			KMeshPtr mesh = meshPair.first;
-			MaterialMapPtr materialMap = meshPair.second;
+			KRenderUtil::MaterialMapPtr materialMap = meshPair.second;
 
 			for (auto& materialPair : materialMap->mapping)
 			{
 				IKMaterialPtr material = materialPair.first;
-				InstanceArrayPtr instanceArray = materialPair.second;
-				KRenderComponent* render = instanceArray->render;
-				std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instanceArray->instances;
+				KRenderUtil::InstanceGroupPtr instanceGroup = materialPair.second;
+				KRenderComponent* render = instanceGroup->render;
+				std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instanceGroup->instance;
 
 				ASSERT_RESULT(render);
 				ASSERT_RESULT(instances.size() > 0);
 
-				// TODO PIPELINE_STAGE_PRE_Z_INSTANCE
 				render->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand& _command)
 				{
 					KRenderCommand command = std::move(_command);
@@ -533,7 +345,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 							KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-							if (!AssignShadingParameter(command, material.get(), false) || !AssignMeshStorageParameter(command))
+							if (!KRenderUtil::AssignShadingParameter(command, material.get(), false) || !KRenderUtil::AssignMeshStroageParameter(command))
 							{
 								continue;
 							}
@@ -576,7 +388,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 								KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-								if (!AssignShadingParameter(command, material.get(), false))
+								if (!KRenderUtil::AssignShadingParameter(command, material.get(), false))
 								{
 									continue;
 								}
@@ -617,7 +429,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 							usage.offset = allocResult.offset;
 						}
 
-						if (AssignShadingParameter(command, material.get(), useMateiralTex))
+						if (KRenderUtil::AssignShadingParameter(command, material.get(), useMateiralTex))
 						{
 							for (size_t idx = 0; idx < instances.size(); ++idx)
 							{
@@ -800,7 +612,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		{
 			if (!context.buffer[stage].empty())
 			{
-			//	primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
+				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
 			}
 		}
 

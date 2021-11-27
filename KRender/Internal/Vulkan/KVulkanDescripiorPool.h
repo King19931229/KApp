@@ -69,7 +69,7 @@ public:
 
 	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,
 		const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-		const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
+		const KStroageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
 
 	// TODO 加上Compute Pipeline支持
 };

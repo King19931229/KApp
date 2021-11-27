@@ -177,7 +177,7 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_TEXTURES, textures.size() ? textureBinding.descriptorCount : 1);
 
 		IKSamplerPtr normalSampler = KRenderGlobal::GBuffer.GetSampler();
-		IKRenderTargetPtr normalTarget = KRenderGlobal::GBuffer.GetGBufferTarget0();
+		IKRenderTargetPtr normalTarget = KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL);
 		VkDescriptorImageInfo normaImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
 			((KVulkanSampler*)normalSampler.get())->GetVkSampler(),
 			((KVulkanFrameBuffer*)normalTarget->GetFrameBuffer().get())->GetImageView(),
@@ -186,7 +186,7 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		VkWriteDescriptorSet normalWrite = KVulkanInitializer::CreateDescriptorImageWrite(&normaImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER0);
 
 		IKSamplerPtr positionSampler = KRenderGlobal::GBuffer.GetSampler();
-		IKRenderTargetPtr positionTarget = KRenderGlobal::GBuffer.GetGBufferTarget1();
+		IKRenderTargetPtr positionTarget = KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION);
 		VkDescriptorImageInfo positionImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
 			((KVulkanSampler*)positionSampler.get())->GetVkSampler(),
 			((KVulkanFrameBuffer*)positionTarget->GetFrameBuffer().get())->GetImageView(),
@@ -532,7 +532,7 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 			VkWriteDescriptorSet storageImageWrite = KVulkanInitializer::CreateDescriptorImageWrite(&storageImageDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_IMAGE);
 
 			IKSamplerPtr normalSampler = KRenderGlobal::GBuffer.GetSampler();
-			IKRenderTargetPtr normalTarget = KRenderGlobal::GBuffer.GetGBufferTarget0();
+			IKRenderTargetPtr normalTarget = KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL);
 			VkDescriptorImageInfo normaImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
 				((KVulkanSampler*)normalSampler.get())->GetVkSampler(),
 				((KVulkanFrameBuffer*)normalTarget->GetFrameBuffer().get())->GetImageView(),
@@ -541,7 +541,7 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 			VkWriteDescriptorSet normalWrite = KVulkanInitializer::CreateDescriptorImageWrite(&normaImageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_GBUFFER0);
 
 			IKSamplerPtr positionSampler = KRenderGlobal::GBuffer.GetSampler();
-			IKRenderTargetPtr positionTarget = KRenderGlobal::GBuffer.GetGBufferTarget1();
+			IKRenderTargetPtr positionTarget = KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION);
 			VkDescriptorImageInfo positionImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
 				((KVulkanSampler*)positionSampler.get())->GetVkSampler(),
 				((KVulkanFrameBuffer*)positionTarget->GetFrameBuffer().get())->GetImageView(),

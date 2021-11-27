@@ -15,6 +15,38 @@
 
 #define GROUP_SIZE 8
 
+const float SQRT_3 = 1.73205080f;
+const uint MAX_DIRECTIONAL_LIGHTS = 3;
+const uint MAX_POINT_LIGHTS = 6;
+const uint MAX_SPOT_LIGHTS = 6;
+
+struct Attenuation
+{
+	float constant;
+	float linear;
+	float quadratic;
+};
+
+struct Light
+{
+	float angleInnerCone;
+	float angleOuterCone;
+	vec3 diffuse;
+	vec3 position;
+	vec3 direction;
+	uint shadowingMethod;
+	Attenuation attenuation;
+};
+
+#if 0
+uniform Light directionalLight[MAX_DIRECTIONAL_LIGHTS];
+uniform Light pointLight[MAX_POINT_LIGHTS];
+uniform Light spotLight[MAX_SPOT_LIGHTS];
+uniform uint lightTypeCount[3];
+uniform mat4 lightViewProjection;
+uniform sampler2D shadowMap;
+#endif
+
 vec4 convRGBA8ToVec4(uint val)
 {
 	return vec4(float((val & 0x000000FF)), 
@@ -29,6 +61,16 @@ uint convVec4ToRGBA8(vec4 val)
 	(uint(val.z) & 0x000000FF) << 16U | 
 	(uint(val.y) & 0x000000FF) << 8U | 
 	(uint(val.x) & 0x000000FF);
+}
+
+vec3 EncodeNormal(vec3 normal)
+{
+	return normal * 0.5f + vec3(0.5f);
+}
+
+vec3 DecodeNormal(vec3 normal)
+{
+	return normal * 2.0f - vec3(1.0f);
 }
 
 #endif

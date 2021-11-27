@@ -103,8 +103,6 @@ protected:
 	void AssignRenderCommand(size_t frameIndex, KRenderStageContext& context);
 	void SumbitRenderCommand(size_t frameIndex, KRenderStageContext& context);
 
-	bool AssignShadingParameter(KRenderCommand& command, IKMaterial* material, bool useMaterialTex);
-	bool AssignMeshStorageParameter(KRenderCommand& command);
 	bool UpdateCamera(size_t frameIndex);
 	bool UpdateGlobal(size_t frameIndex);
 public:

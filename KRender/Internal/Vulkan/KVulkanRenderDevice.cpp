@@ -187,7 +187,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 #elif defined(__ANDROID__)
 	false
 #else
-	true
+	false
 #endif
 	),
 	m_ValidationLayerIdx(-1),

@@ -450,9 +450,6 @@
     <ClInclude Include="Internal\Object\KGBuffer.h">
       <Filter>Internal\Object</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Dispatcher\KInstancePreparer.h">
-      <Filter>Internal\Dispatcher</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\IKComputePipeline.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -470,6 +467,9 @@
     </ClInclude>
     <ClInclude Include="Internal\Voxilzer\KVoxilzer.h">
       <Filter>Internal\Voxilzer</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Dispatcher\KRenderUtil.h">
+      <Filter>Internal\Dispatcher</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

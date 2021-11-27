@@ -193,7 +193,7 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 
 VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,
 	const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
+	const KStroageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
 {
 	VkDescriptorSet set = InternalAlloc(frameIndex, currentFrame);
 
@@ -287,7 +287,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 
 	for (size_t i = 0; i < storageBufferUsageCount; ++i)
 	{
-		const KStorageBufferUsage* usage = ppStorageUsage[i];
+		const KStroageBufferUsage* usage = ppStorageUsage[i];
 
 		IKVertexBufferPtr buffer = usage->buffer;
 

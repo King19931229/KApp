@@ -7,7 +7,7 @@
 #include "Internal/KConstantGlobal.h"
 
 #include "Internal/Dispatcher/KRenderDispatcher.h"
-#include "Internal/Dispatcher/KInstancePreparer.h"
+#include "Internal/Dispatcher/KRenderUtil.h"
 
 #include "KBase/Interface/IKLog.h"
 
@@ -499,14 +499,14 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 	IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass, 
 	std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
-	KInstancePreparer::MeshGroups meshGroups;
-	KInstancePreparer::CalculateByMesh(litCullRes, meshGroups);
+	KRenderUtil::MeshInstanceGroup meshGroups;
+	KRenderUtil::CalculateInstanceGroupByMesh(litCullRes, meshGroups);
 
 	// 准备Instance数据
 	for (auto& pair : meshGroups)
 	{
 		KMeshPtr mesh = pair.first;
-		KInstancePreparer::InstanceGroupPtr instanceGroup = pair.second;
+		KRenderUtil::InstanceGroupPtr instanceGroup = pair.second;
 
 		KRenderComponent* render = instanceGroup->render;
 		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instanceGroup->instance;

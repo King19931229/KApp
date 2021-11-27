@@ -594,6 +594,7 @@ bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, 
 		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
 		const KIndexData* indexData = &m_pSubMesh->m_IndexData;
 		const KMeshData* meshData = &m_pSubMesh->m_MeshData;
+		const IKMaterialTextureBinding* textureBinding = &m_pSubMesh->m_Texture;
 		const bool& indexDraw = m_pSubMesh->m_IndexDraw;
 
 		ASSERT_RESULT(vertexData);
@@ -602,6 +603,7 @@ bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, 
 		command.vertexData = vertexData;
 		command.indexData = indexData;
 		command.meshData = meshData;
+		command.textureBinding = textureBinding;
 		command.pipeline = pipeline;
 		command.indexDraw = indexDraw;
 

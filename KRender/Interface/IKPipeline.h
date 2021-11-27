@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IKRenderConfig.h"
+#include "KRender/Interface/IKRenderConfig.h"
 
 struct IKPipelineHandle
 {

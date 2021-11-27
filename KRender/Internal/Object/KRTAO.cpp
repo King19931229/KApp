@@ -75,9 +75,9 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 
 		IKRayTracePipeline* rayPipeline = scene->GetRayTracePipeline();
 
-		IKRenderTargetPtr normalBuffer = KRenderGlobal::GBuffer.GetGBufferTarget0();
-		IKRenderTargetPtr positionBuffer = KRenderGlobal::GBuffer.GetGBufferTarget1();
-		IKRenderTargetPtr velocityBuffer = KRenderGlobal::GBuffer.GetGBufferTarget2();
+		IKRenderTargetPtr normalBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL);
+		IKRenderTargetPtr positionBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION);
+		IKRenderTargetPtr velocityBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_MOTION);
 
 		KRenderDeviceProperties* property = nullptr;
 		renderDevice->QueryProperty(&property);
@@ -194,9 +194,9 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 {
 	if (m_AOComputePipeline)
 	{
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget0()->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget1()->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget2()->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_MOTION)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
 
 		UpdateAOUniform();
 		const uint32_t GROUP_SIZE = 32;

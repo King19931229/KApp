@@ -20,7 +20,7 @@ KVoxilzer::KVoxilzer()
 	, m_VolumeGridSize(0)
 	, m_VoxelSize(0)
 	, m_InjectFirstBounce(true)
-	, m_VoxelDrawEnable(true)
+	, m_VoxelDrawEnable(false)
 	, m_VoxelDebugUpdate(true)
 {
 	m_OnSceneChangedFunc = std::bind(&KVoxilzer::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
@@ -59,6 +59,9 @@ void KVoxilzer::Update()
 
 void KVoxilzer::ReloadShader()
 {
+	m_VoxelDrawVS->Reload();
+	m_VoxelDrawGS->Reload();
+	m_VoxelDrawFS->Reload();
 	for (IKPipelinePtr& pipeline : m_VoxelDrawPipelines)
 	{
 		pipeline->Reload();
