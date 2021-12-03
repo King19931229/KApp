@@ -77,9 +77,13 @@ bool KVulkanVertexBuffer::InitDevice(bool hostVisible)
 
 		KVulkanInitializer::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)m_BufferSize);
 		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
+
+		// m_ShadowData = std::move(m_Data);
 	}
 
-	m_ShadowData = std::move(m_Data);
+	// 把之前存在内存里的数据丢掉
+	m_Data.resize(0);
+	m_Data.shrink_to_fit();
 
 	m_bHostVisible = hostVisible;
 
@@ -274,9 +278,13 @@ bool KVulkanIndexBuffer::InitDevice(bool hostVisible)
 
 		KVulkanInitializer::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)m_BufferSize);
 		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
+
+		// m_ShadowData = std::move(m_Data);
 	}
 
-	m_ShadowData = std::move(m_Data);
+	// 把之前存在内存里的数据丢掉
+	m_Data.resize(0);
+	m_Data.shrink_to_fit();
 
 	m_bHostVisible = hostVisible;
 
@@ -438,6 +446,7 @@ bool KVulkanUniformBuffer::InitDevice()
 	// 把之前存在内存里的数据丢掉
 	m_Data.resize(0);
 	m_Data.shrink_to_fit();
+
 	m_bDeviceInit = true;
 
 	return true;

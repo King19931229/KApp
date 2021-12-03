@@ -163,9 +163,9 @@ namespace KVulkanHeapAllocator
 
 					if (MEMORY_ALLOCATE_TYPE_PROPERITES[type].needDeviceAddress)
 					{
+						static VkMemoryAllocateFlagsInfo allocFlagsInfo = {};
 						// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
-						VkMemoryAllocateFlagsInfoKHR allocFlagsInfo = {};
-						allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
+						allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
 						allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
 						allocInfo.pNext = &allocFlagsInfo;
 					}

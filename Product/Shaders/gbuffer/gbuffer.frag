@@ -25,7 +25,7 @@ void main()
 {
 	// 0
 #if (TANGENT_BINORMAL_INPUT && HAS_MATERIAL_TEXTURE2)
-	vec4 normalmap = 2.0 * texture(normalSampler, uv) - vec4(1.0);
+	vec4 normalmap = 2.0 * texture(normalSampler, texcoord) - vec4(1.0);
 	normal.xyz =
 	normalize(worldTangent.xyz) * normalmap.r +
 	normalize(worldBinormal.xyz) * normalmap.g +
