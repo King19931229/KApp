@@ -80,7 +80,7 @@ void main()
 	float opacity = 1.0;
 #endif
 
-	//if(voxel.miscs[1] == 0)
+	// if(storeVisibility == 0)
 	if(true)
 	{
 		bool isStatic = imageLoad(staticVoxelFlag, position).r > 0.0f;
@@ -111,7 +111,7 @@ void main()
 		IMAGE_ATOMIC_RGBA_AVG_CALL(voxelEmission, position, emissive);
 		// doing a static flagging pass for static geometry voxelization
 
-		//if(voxel.miscs[1] == 1)
+		// if(storeVisibility == 1)
 		if(true)
 		{
 			imageStore(staticVoxelFlag, position, vec4(1.0));

@@ -225,13 +225,14 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 
 			VkDescriptorImageInfo &imageInfo = m_DynamicImageWriteInfo[idx];
 
-			IKFrameBufferPtr frameBuffer = info.image;
+			// TODO
+			IKFrameBufferPtr frameBuffer = info.images[0];
 			ASSERT_RESULT(frameBuffer);
 
 			imageInfo.imageLayout = frameBuffer->IsStroageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo.imageLayout = frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : imageInfo.imageLayout;
 			imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
-			imageInfo.sampler = ((KVulkanSampler*)info.sampler.get())->GetVkSampler();
+			imageInfo.sampler = ((KVulkanSampler*)info.samplers[0].get())->GetVkSampler();
 
 			ASSERT_RESULT(imageInfo.imageView);
 			ASSERT_RESULT(imageInfo.sampler);

@@ -20,7 +20,7 @@ KRenderComponent::KRenderComponent()
 	: m_Mesh(nullptr),
 	m_Type(NONE),
 	m_UtilityInfo(nullptr),
-	m_HostVisible(false),
+	m_HostVisible(true),
 	m_UseMaterialTexture(false),
 	m_OcclusionVisible(true)
 {}

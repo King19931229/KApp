@@ -4,6 +4,7 @@
 #include "Interface/IKTexture.h"
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKComputePipeline.h"
+#include "Internal/KVertexDefinition.h"
 
 class KVoxilzer
 {
@@ -15,6 +16,16 @@ protected:
 
 	static const VertexFormat ms_VertexFormats[1];
 
+	static const KVertexDefinition::SCREENQUAD_POS_2F ms_QuadVertices[4];
+	static const uint16_t ms_QuadIndices[6];
+	static const VertexFormat ms_QuadFormats[1];
+
+	IKVertexBufferPtr m_QuadVertexBuffer;
+	IKIndexBufferPtr m_QuadIndexBuffer;
+
+	KVertexData m_QuadVertexData;
+	KIndexData m_QuadIndexData;
+
 	IKRenderScene* m_Scene;
 
 	IKRenderTargetPtr m_StaticFlag;
@@ -23,6 +34,8 @@ protected:
 	IKRenderTargetPtr m_VoxelEmissive;
 	IKRenderTargetPtr m_VoxelRadiance;
 	IKRenderTargetPtr m_VoxelTexMipmap[6];
+
+	IKRenderTargetPtr m_LightPassTarget;
 
 	IKSamplerPtr m_CloestSampler;
 	IKSamplerPtr m_LinearSampler;
@@ -55,6 +68,10 @@ protected:
 	IKComputePipelinePtr m_MipmapBasePipeline;
 	IKComputePipelinePtr m_MipmapVolumePipeline;
 
+	IKShaderPtr m_LightPassVS;
+	IKShaderPtr m_LightPassFS;
+	std::vector<IKPipelinePtr> m_LightPassPipelines;
+
 	KVertexData m_VoxelDrawVertexData;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
@@ -69,6 +86,7 @@ protected:
 	void SetupVoxelDrawPipeline();
 	void SetupRadiancePipeline();
 	void SetupMipmapPipeline();
+	void SetupLightPassPipeline();
 
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
 	void UpdateRadiance(IKCommandBufferPtr commandBuffer);

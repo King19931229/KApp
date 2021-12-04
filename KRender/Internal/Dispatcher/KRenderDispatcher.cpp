@@ -608,11 +608,14 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		AssignRenderCommand(frameIndex, context);
 		SumbitRenderCommand(frameIndex, context);
 
-		for (RenderStage stage : {RENDER_STAGE_PRE_Z, RENDER_STAGE_DEFAULT})
+		if (!KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
 		{
-			if (!context.buffer[stage].empty())
+			for (RenderStage stage : {RENDER_STAGE_PRE_Z, RENDER_STAGE_DEFAULT})
 			{
-				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
+				if (!context.buffer[stage].empty())
+				{
+					primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
+				}
 			}
 		}
 
@@ -633,11 +636,14 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 
 		// 绘制VoxelBox
 		KRenderGlobal::Voxilzer.Update();
-		KRenderGlobal::Voxilzer.RenderVoxel(frameIndex, renderPass, tempBuffers);
-		if (!tempBuffers.empty())
+		if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
 		{
-			primaryCommandBuffer->ExecuteAll(tempBuffers);
-			tempBuffers.clear();
+			KRenderGlobal::Voxilzer.RenderVoxel(frameIndex, renderPass, tempBuffers);
+			if (!tempBuffers.empty())
+			{
+				primaryCommandBuffer->ExecuteAll(tempBuffers);
+				tempBuffers.clear();
+			}
 		}
 
 		// 绘制Camera Gizmo

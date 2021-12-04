@@ -1,4 +1,5 @@
 #include "public.h"
+#include "voxelcommon.h"
 
 layout(location = 0) in Vertex
 {
@@ -94,7 +95,7 @@ void main()
 		texCoord[1] = texCoordTemp;
 	}
 
-	vec2 halfPixel = vec2(1.0f / voxel.miscs[0]);
+	vec2 halfPixel = vec2(1.0f / volumeDimension);
 
 	if(trianglePlane.z == 0.0f) return;
 	// expanded aabb for triangle
@@ -136,7 +137,7 @@ void main()
 		Out.position = pos[i].xyz;
 		Out.normal = In[i].normal;
 		Out.texCoord = texCoord[i];
-		Out.wsPosition = voxelPos.xyz * voxel.miscs[0];
+		Out.wsPosition = voxelPos.xyz * volumeDimension;
 
 		EmitVertex();
 	}

@@ -87,15 +87,15 @@ protected:
 	// Sampler 信息
 	struct SamplerBindingInfo
 	{
-		IKFrameBufferPtr image;
-		IKSamplerPtr sampler;
+		std::vector<IKFrameBufferPtr> images;
+		std::vector<IKSamplerPtr> samplers;
 		bool dynamicWrite;
 		bool onceWrite;
 
 		SamplerBindingInfo()
 		{
-			image = nullptr;
-			sampler = nullptr;
+			images = {};
+			samplers = {};
 			dynamicWrite = false;
 			onceWrite = false;
 		}

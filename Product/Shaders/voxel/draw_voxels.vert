@@ -18,16 +18,17 @@ void main()
 {
 	level = 0;
 
-	uint volumeDimension = voxel.miscs[0] / (level + 1);
+	uint drawVolumeDimension = volumeDimension / (level + 1);
 
 	vec3 position = vec3
 	(
-		gl_VertexIndex % volumeDimension,
-		(gl_VertexIndex / volumeDimension) % volumeDimension,
-		gl_VertexIndex / (volumeDimension * volumeDimension)
+		gl_VertexIndex % drawVolumeDimension,
+		(gl_VertexIndex / drawVolumeDimension) % drawVolumeDimension,
+		gl_VertexIndex / (drawVolumeDimension * drawVolumeDimension)
 	);
 
 	ivec3 texPos = ivec3(position);
+	// albedo = imageLoad(voxelAlbedo, texPos).rgba;
 	albedo = imageLoad(voxelRadiance, texPos).rgba;
 
 	uvec4 channels = uvec4(floor(colorChannels));

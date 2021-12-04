@@ -69,6 +69,10 @@
 #define BINDING_TEXTURE17 30
 #define BINDING_TEXTURE18 31
 #define BINDING_TEXTURE19 32
+#define BINDING_TEXTURE20 33
+#define BINDING_TEXTURE21 34
+#define BINDING_TEXTURE22 35
+#define BINDING_TEXTURE23 36
 
 #define BINDING_DIFFUSE BINDING_TEXTURE0
 #define BINDING_SPECULAR BINDING_TEXTURE1
@@ -130,7 +134,9 @@ uniform VoxelInfo
 	mat4 viewproj[3];
 	mat4 viewproj_inv[3];
 	vec4 sunlight;
+	// scale: 1.0 / volumeSize
 	vec4 minpoint_scale;
+	vec4 maxpoint_scale;
 	// volumeDimension:1 storeVisibility:1 normalWeightedLambert:1 checkBoundaries:1
 	uvec4 miscs;
 	// voxelSize:1 volumeSize:1 exponents:2
@@ -146,5 +152,6 @@ uniform GlobalInfo
 }global;
 
 const float PI = 3.14159265f;
+const float HALF_PI = 1.57079f;
 
 #endif

@@ -275,8 +275,8 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKFrameBufferPtr image, 
 	if (image && sampler)
 	{
 		SamplerBindingInfo info;
-		info.image = image;
-		info.sampler = sampler;
+		info.images = { image };
+		info.samplers = { sampler };
 		info.dynamicWrite = dynimicWrite;
 		info.onceWrite = false;
 		ASSERT_RESULT(BindSampler(location, info));
@@ -300,11 +300,22 @@ bool KVulkanPipeline::SetStorageImage(unsigned int location, IKFrameBufferPtr im
 
 bool KVulkanPipeline::SetSamplers(unsigned int location, const std::vector<IKFrameBufferPtr>& images, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite)
 {
+	if (samplers.size() == images.size() && samplers.size() > 0)
+	{
+		SamplerBindingInfo info;
+		info.images = images;
+		info.samplers = samplers;
+		info.dynamicWrite = dynimicWrite;
+		info.onceWrite = false;
+		ASSERT_RESULT(BindSampler(location, info));
+		return true;
+	}
 	return false;
 }
 
 bool KVulkanPipeline::SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images)
 {
+	assert(false && "todo");
 	return false;
 }
 
@@ -558,13 +569,14 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 
 		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
 
-		IKFrameBufferPtr frameBuffer = info.image;
+		IKFrameBufferPtr frameBuffer = info.images[0];
 		ASSERT_RESULT(frameBuffer);
 
 		imageInfo.imageLayout = frameBuffer->IsStroageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageLayout = frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : imageInfo.imageLayout;
+		// TODO
 		imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
-		imageInfo.sampler = ((KVulkanSampler*)info.sampler.get())->GetVkSampler();
+		imageInfo.sampler = ((KVulkanSampler*)info.samplers[0].get())->GetVkSampler();
 
 		ASSERT_RESULT(imageInfo.imageView);
 		ASSERT_RESULT(imageInfo.sampler);
@@ -691,7 +703,7 @@ bool KVulkanPipeline::CheckDependencyResource()
 		SamplerBindingInfo& info = pair.second;
 
 		// TODO Image被初始化
-		if (!info.image)
+		if (!info.images[0])
 		{
 			return false;
 		}
