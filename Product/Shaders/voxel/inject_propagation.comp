@@ -92,7 +92,7 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal)
 	const float aperture = 1.0f;
 	vec3 guide = vec3(0.0f, 1.0f, 0.0f);
 
-	if (abs(dot(normal, guide)) == 1.0f)
+	if (abs(abs(dot(normal, guide)) - 1.0) < 1e-2)
 	{
 		guide = vec3(0.0f, 0.0f, 1.0f);
 	}
