@@ -105,7 +105,7 @@ protected:
 	// Storage Image信息
 	struct StorageBufferBindingInfo
 	{
-		IKFrameBufferPtr image;
+		std::vector<IKFrameBufferPtr> images;
 		ElementFormat format;
 
 		StorageBufferBindingInfo()
@@ -173,7 +173,7 @@ public:
 	virtual bool SetStorageImage(unsigned int location, IKFrameBufferPtr image, ElementFormat format);
 
 	virtual bool SetSamplers(unsigned int location, const std::vector<IKFrameBufferPtr>& images, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite);
-	virtual bool SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images);
+	virtual bool SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images, ElementFormat format);
 
 	virtual bool CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size);
 	virtual bool DestroyConstantBlock();
@@ -186,5 +186,5 @@ public:
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 	VkDescriptorSet AllocDescriptorSet(const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-		const KStroageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
+		const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
 };

@@ -130,6 +130,8 @@ bool KRTDebugDrawer::GetDebugRenderCommand(KRenderCommandList& commands)
 {
 	if (m_Enable)
 	{
+		ASSERT_RESULT(m_Pipeline);
+
 		m_Clip = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 0.0f));
 		m_Clip = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 1.0f)) * m_Clip;
 		m_Clip = glm::scale(glm::mat4(1.0f), glm::vec3(m_Rect.w, m_Rect.h, 1.0f)) * m_Clip;

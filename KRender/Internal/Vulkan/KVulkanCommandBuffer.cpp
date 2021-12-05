@@ -212,7 +212,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			dynamicOffsets[i] = (uint32_t)dynamicUsages[i]->offset;
 		}
 
-		const KStroageBufferUsage* storageUsages[SBT_COUNT] = {};
+		const KStorageBufferUsage* storageUsages[SBT_COUNT] = {};
 		uint32_t storageBufferCount = 0;
 		for (size_t i = 0; i < command.meshStorageUsages.size(); ++i)
 		{

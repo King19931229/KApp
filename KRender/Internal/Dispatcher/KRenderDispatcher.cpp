@@ -345,7 +345,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 							KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-							if (!KRenderUtil::AssignShadingParameter(command, material.get(), false) || !KRenderUtil::AssignMeshStroageParameter(command))
+							if (!KRenderUtil::AssignShadingParameter(command, material.get(), false) || !KRenderUtil::AssignMeshStorageParameter(command))
 							{
 								continue;
 							}
@@ -597,13 +597,14 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		}
 		context.command[RENDER_STAGE_DEBUG].insert(context.command[RENDER_STAGE_DEBUG].end(), rayCommands.begin(), rayCommands.end());
 
-		KRenderCommandList aoCommands;
-		KRenderGlobal::RTAO.GetDebugRenderCommand(aoCommands);
-		for (KRenderCommand& command : aoCommands)
+		KRenderCommandList debugDrawCommands;
+		KRenderGlobal::RTAO.GetDebugRenderCommand(debugDrawCommands);
+		KRenderGlobal::Voxilzer.GetLightDebugRenderCommand(debugDrawCommands);
+		for (KRenderCommand& command : debugDrawCommands)
 		{
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		}
-		context.command[RENDER_STAGE_DEBUG].insert(context.command[RENDER_STAGE_DEBUG].end(), aoCommands.begin(), aoCommands.end());
+		context.command[RENDER_STAGE_DEBUG].insert(context.command[RENDER_STAGE_DEBUG].end(), debugDrawCommands.begin(), debugDrawCommands.end());
 
 		AssignRenderCommand(frameIndex, context);
 		SumbitRenderCommand(frameIndex, context);
@@ -691,6 +692,7 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 	primaryCommandBuffer->BeginPrimary();
 	{
 		KRenderGlobal::GBuffer.UpdateGBuffer(primaryCommandBuffer, frameIndex);
+		KRenderGlobal::Voxilzer.UpdateLighting(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::RTAO.Execute(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_Camera, frameIndex, primaryCommandBuffer);

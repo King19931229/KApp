@@ -14,8 +14,6 @@ layout(binding = VOXEL_BINDING_NORMAL) uniform sampler3D voxelVisibility;
 layout(binding = VOXEL_BINDING_RADIANCE) uniform sampler3D voxelTex;
 layout(binding = VOXEL_BINDING_TEXMIPMAP_IN) uniform sampler3D voxelTexMipmap[6];
 
-#define mode 0
-
 vec4 cameraPosition = camera.viewInv * vec4(0.0, 0.0, 0.0, 1.0);
 
 const vec3 diffuseConeDirections[] =
@@ -402,6 +400,8 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 
 	return vec4(result, ambientOcclusion ? clamp(1.0f - diffuseTrace.a + aoAlpha, 0.0f, 1.0f) : 1.0f);
 }
+
+const uint mode = 1;
 
 void main()
 {

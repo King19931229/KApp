@@ -173,7 +173,7 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 			if (it == mtlBuffersMap.end())
 			{
 				// 创建材质Buffer
-				KVulkanInitializer::CreateStroageBuffer(sizeof(KVulkanRayTraceMaterial), &material, materialBuffer.buffer, materialBuffer.allocInfo);
+				KVulkanInitializer::CreateStorageBuffer(sizeof(KVulkanRayTraceMaterial), &material, materialBuffer.buffer, materialBuffer.allocInfo);
 				mtlIndex = (uint32_t)m_Materials.size();
 				m_Materials.push_back(materialBuffer);
 				mtlBuffersMap.insert({ mtlHash, mtlIndex });
@@ -319,7 +319,7 @@ bool KVulkanAccelerationStructure::UnInit()
 
 		for (MaterialBuffer& material : m_Materials)
 		{
-			KVulkanInitializer::DestroyStroageBuffer(material.buffer, material.allocInfo);
+			KVulkanInitializer::DestroyStorageBuffer(material.buffer, material.allocInfo);
 		}
 	}
 

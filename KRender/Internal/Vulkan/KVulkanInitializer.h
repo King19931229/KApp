@@ -109,8 +109,8 @@ namespace KVulkanInitializer
 	void BeginSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
 	void EndSingleTimeCommand(VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
 
-	void CreateStroageBuffer(VkDeviceSize size, const void* pSrcData, VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
-	void DestroyStroageBuffer(VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
+	void CreateStorageBuffer(VkDeviceSize size, const void* pSrcData, VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
+	void DestroyStorageBuffer(VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo);
 
 	VkDescriptorSetLayoutBinding CreateDescriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t binding, uint32_t descriptorCount = 1);
 

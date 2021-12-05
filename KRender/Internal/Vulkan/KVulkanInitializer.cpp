@@ -793,7 +793,7 @@ namespace KVulkanInitializer
 		vkFreeCommandBuffers(KVulkanGlobal::device, commandPool, 1, &commandBuffer);
 	}
 
-	void CreateStroageBuffer(VkDeviceSize size, const void* pSrcData, VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
+	void CreateStorageBuffer(VkDeviceSize size, const void* pSrcData, VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
 	{
 		KVulkanInitializer::CreateVkBuffer(
 			(VkDeviceSize)std::max((VkDeviceSize)1, size),
@@ -826,7 +826,7 @@ namespace KVulkanInitializer
 		}
 	}
 
-	void DestroyStroageBuffer(VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
+	void DestroyStorageBuffer(VkBuffer& vkBuffer, KVulkanHeapAllocator::AllocInfo& heapAllocInfo)
 	{
 		if (vkBuffer != VK_NULL_HANDEL)
 		{

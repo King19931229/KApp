@@ -208,9 +208,9 @@ struct KRenderUtil
 		return false;
 	}
 
-	static bool AssignMeshStroageParameter(KRenderCommand& command)
+	static bool AssignMeshStorageParameter(KRenderCommand& command)
 	{
-		KStroageBufferUsage usage;
+		KStorageBufferUsage usage;
 
 		for (size_t i = 0; i < command.vertexData->vertexFormats.size(); ++i)
 		{

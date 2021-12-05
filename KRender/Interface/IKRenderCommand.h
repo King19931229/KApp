@@ -139,12 +139,12 @@ struct KInstanceBufferUsage
 	}
 };
 
-struct KStroageBufferUsage
+struct KStorageBufferUsage
 {
 	IKVertexBufferPtr buffer;
 	size_t binding;
 
-	KStroageBufferUsage()
+	KStorageBufferUsage()
 	{
 		buffer = nullptr;
 		binding = 0;
@@ -170,7 +170,7 @@ struct KRenderCommand
 	KDynamicConstantBufferUsage fragmentShadingUsage;
 
 	std::vector<KInstanceBufferUsage> instanceUsages;
-	std::vector<KStroageBufferUsage> meshStorageUsages;
+	std::vector<KStorageBufferUsage> meshStorageUsages;
 
 	KRenderCommand()
 	{

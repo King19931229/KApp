@@ -5,6 +5,7 @@
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKComputePipeline.h"
 #include "Internal/KVertexDefinition.h"
+#include "Internal/Object/KDebugDrawer.h"
 
 class KVoxilzer
 {
@@ -36,6 +37,7 @@ protected:
 	IKRenderTargetPtr m_VoxelTexMipmap[6];
 
 	IKRenderTargetPtr m_LightPassTarget;
+	IKRenderPassPtr m_LightPassRenderPass;
 
 	IKSamplerPtr m_CloestSampler;
 	IKSamplerPtr m_LinearSampler;
@@ -51,10 +53,12 @@ protected:
 	glm::mat4 m_ViewProjectionMatrixI[3];
 
 	IKCommandBufferPtr m_PrimaryCommandBuffer;
-	std::vector<IKCommandBufferPtr> m_CommandBuffers;
+	std::vector<IKCommandBufferPtr> m_DrawCommandBuffers;
+	std::vector<IKCommandBufferPtr> m_LightingCommandBuffers;
 	IKCommandPoolPtr m_CommandPool;
-	IKRenderTargetPtr m_RenderPassTarget;
-	IKRenderPassPtr m_RenderPass;
+
+	IKRenderTargetPtr m_VoxelRenderPassTarget;
+	IKRenderPassPtr m_VoxelRenderPass;
 
 	IKShaderPtr m_VoxelDrawVS;
 	IKShaderPtr m_VoxelDrawGS;
@@ -80,13 +84,15 @@ protected:
 	bool m_VoxelDrawEnable;
 	bool m_VoxelDebugUpdate;
 
+	KRTDebugDrawer m_LightDebugDrawer;
+
 	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
 	void UpdateProjectionMatrices();
 	void SetupVoxelVolumes(uint32_t dimension);
 	void SetupVoxelDrawPipeline();
 	void SetupRadiancePipeline();
 	void SetupMipmapPipeline();
-	void SetupLightPassPipeline();
+	void SetupLightPassPipeline(uint32_t width, uint32_t height);
 
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
 	void UpdateRadiance(IKCommandBufferPtr commandBuffer);
@@ -106,7 +112,13 @@ public:
 	inline bool IsVoxelDrawEnable() const { return m_VoxelDrawEnable; }
 	inline void SetVoxelDrawEnable(bool enable) { m_VoxelDrawEnable = enable; }
 
+	bool EnableLightDebugDraw(float x, float y, float width, float height);
+	bool DisableLightDebugDraw();
+	bool GetLightDebugRenderCommand(KRenderCommandList& commands);
+
+	void Resize(uint32_t width, uint32_t height);
 	bool RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool UpdateLighting(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
 
 	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelAlbedo() { return m_VoxelAlbedo ? m_VoxelAlbedo->GetFrameBuffer() : nullptr; }
@@ -115,6 +127,6 @@ public:
 	IKFrameBufferPtr GetVoxelRadiance() { return m_VoxelRadiance ? m_VoxelRadiance->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelTexMipmap(uint32_t face) { return (face < 6 && m_VoxelTexMipmap[face]) ? m_VoxelTexMipmap[face]->GetFrameBuffer() : nullptr; }
 
-	bool Init(IKRenderScene* scene, uint32_t dimension);
+	bool Init(IKRenderScene* scene, uint32_t dimension, uint32_t width, uint32_t height);
 	bool UnInit();
 };

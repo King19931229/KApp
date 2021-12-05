@@ -110,6 +110,8 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, frameInFlight, property->uniformBufferOffsetAlignment, property->uniformBufferMaxRange);
 	KRenderGlobal::InstanceBufferManager.Init(m_Device, frameInFlight, sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
 
+	KDebugDrawSharedData::Init();
+
 	KRenderGlobal::FrameGraph.Init(m_Device);
 	KRenderGlobal::GBuffer.Init(m_Device, &m_Camera, (uint32_t)width, (uint32_t)height, frameInFlight);
 	KRenderGlobal::RayTraceManager.Init();
@@ -126,12 +128,10 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
 	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 3, 2048, 1.0f);
 
-	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, 256);
+	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, 256, (uint32_t)width, (uint32_t)height);
 
 	// TODO
 	KRenderGlobal::FrameGraph.Compile();
-
-	KDebugDrawSharedData::Init();
 
 	return true;
 }
@@ -682,6 +682,7 @@ void KRenderCore::OnSwapChainRecreate(uint32_t width, uint32_t height)
 {
 	KRenderGlobal::PostProcessManager.Resize(width, height);
 	KRenderGlobal::GBuffer.Resize(width, height);
+	KRenderGlobal::Voxilzer.Resize(width, height);
 	KRenderGlobal::RayTraceManager.Resize(width, height);
 	KRenderGlobal::RTAO.UpdateSize();
 }

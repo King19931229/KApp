@@ -290,7 +290,7 @@ bool KVulkanPipeline::SetStorageImage(unsigned int location, IKFrameBufferPtr im
 	if (image)
 	{
 		StorageBufferBindingInfo info;
-		info.image = image;
+		info.images = { image };
 		info.format = format;
 		m_Storages[location] = info;
 		return true;
@@ -313,9 +313,16 @@ bool KVulkanPipeline::SetSamplers(unsigned int location, const std::vector<IKFra
 	return false;
 }
 
-bool KVulkanPipeline::SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images)
+bool KVulkanPipeline::SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images, ElementFormat format)
 {
-	assert(false && "todo");
+	if (images.size() > 0)
+	{
+		StorageBufferBindingInfo info;
+		info.images = images;
+		info.format = format;
+		m_Storages[location] = info;
+		return true;
+	}
 	return false;
 }
 
@@ -376,7 +383,6 @@ bool KVulkanPipeline::CreateLayout()
 			// 与Shader中绑定位置对应
 			sboLayoutBinding.binding = storage.bindingIndex;
 			sboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			// 声明SBO Buffer数组长度 这里不使用数组
 			sboLayoutBinding.descriptorCount = storage.arraysize > 1 ? storage.arraysize : 1;
 			// 声明哪个阶段Shader能够使用上此UBO
 			sboLayoutBinding.stageFlags = stageFlag;
@@ -391,7 +397,6 @@ bool KVulkanPipeline::CreateLayout()
 			// 与Shader中绑定位置对应
 			sboLayoutBinding.binding = storage.bindingIndex;
 			sboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-			// 声明SBO Buffer数组长度 这里不使用数组
 			sboLayoutBinding.descriptorCount = storage.arraysize > 1 ? storage.arraysize : 1;
 			// 声明哪个阶段Shader能够使用上此UBO
 			sboLayoutBinding.stageFlags = stageFlag;
@@ -406,7 +411,6 @@ bool KVulkanPipeline::CreateLayout()
 			// 与Shader中绑定位置对应
 			uboLayoutBinding.binding = constant.bindingIndex;
 			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			// 声明UBO Buffer数组长度 这里不使用数组
 			uboLayoutBinding.descriptorCount = 1;
 			// 声明哪个阶段Shader能够使用上此UBO
 			uboLayoutBinding.stageFlags = stageFlag;
@@ -421,7 +425,6 @@ bool KVulkanPipeline::CreateLayout()
 			// 与Shader中绑定位置对应
 			uboLayoutBinding.binding = constant.bindingIndex;
 			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-			// 声明UBO Buffer数组长度 这里不使用数组
 			uboLayoutBinding.descriptorCount = 1;
 			// 声明哪个阶段Shader能够使用上此UBO
 			uboLayoutBinding.stageFlags = stageFlag;
@@ -436,7 +439,6 @@ bool KVulkanPipeline::CreateLayout()
 			// 与Shader中绑定位置对应
 			samplerLayoutBinding.binding = texture.bindingIndex;
 			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			// 这里不使用数组
 			samplerLayoutBinding.descriptorCount = texture.arraysize > 1 ? texture.arraysize : 1;
 			// 声明哪个阶段Shader能够使用上此Sampler
 			samplerLayoutBinding.stageFlags = stageFlag;
@@ -522,9 +524,19 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 	m_ImageWriteInfo.clear();
 	m_BufferWriteInfo.clear();
 
-	m_WriteDescriptorSet.reserve(m_Uniforms.size());
-	m_ImageWriteInfo.resize(m_Samplers.size() + m_Storages.size());
-	m_BufferWriteInfo.resize(m_Uniforms.size());
+	size_t imageWriteCount = 0;
+	for (auto& pair : m_Samplers)
+	{
+		imageWriteCount += pair.second.images.size();
+	}
+	for (auto& pair : m_Storages)
+	{
+		imageWriteCount += pair.second.images.size();
+	}
+	m_ImageWriteInfo.resize(imageWriteCount);
+
+	size_t uniformWriteCount = m_Uniforms.size();
+	m_BufferWriteInfo.resize(uniformWriteCount);
 
 	size_t bufferIdx = 0;
 	size_t imageIdx = 0;
@@ -567,19 +579,24 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		unsigned int location = pair.first;
 		SamplerBindingInfo& info = pair.second;
 
-		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
+		VkDescriptorImageInfo& imageInfoStart = m_ImageWriteInfo[imageIdx];
 
-		IKFrameBufferPtr frameBuffer = info.images[0];
-		ASSERT_RESULT(frameBuffer);
+		for (size_t i = 0; i < info.images.size(); ++i)
+		{
+			VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
 
-		imageInfo.imageLayout = frameBuffer->IsStroageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageLayout = frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : imageInfo.imageLayout;
-		// TODO
-		imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
-		imageInfo.sampler = ((KVulkanSampler*)info.samplers[0].get())->GetVkSampler();
+			IKFrameBufferPtr frameBuffer = info.images[0];
+			ASSERT_RESULT(frameBuffer);
 
-		ASSERT_RESULT(imageInfo.imageView);
-		ASSERT_RESULT(imageInfo.sampler);
+			imageInfo.imageLayout = frameBuffer->IsStorageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageLayout = frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : imageInfo.imageLayout;
+
+			imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
+			imageInfo.sampler = ((KVulkanSampler*)info.samplers[i].get())->GetVkSampler();
+
+			ASSERT_RESULT(imageInfo.imageView);
+			ASSERT_RESULT(imageInfo.sampler);
+		}
 
 		VkWriteDescriptorSet samplerDescriptorWrite = {};
 
@@ -592,10 +609,10 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		samplerDescriptorWrite.dstArrayElement = 0;
 
 		samplerDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerDescriptorWrite.descriptorCount = 1;
+		samplerDescriptorWrite.descriptorCount = (uint32_t)info.images.size();
 
 		samplerDescriptorWrite.pBufferInfo = nullptr; // Optional
-		samplerDescriptorWrite.pImageInfo = &imageInfo;
+		samplerDescriptorWrite.pImageInfo = &imageInfoStart;
 		samplerDescriptorWrite.pTexelBufferView = nullptr; // Optional
 
 		m_WriteDescriptorSet.push_back(samplerDescriptorWrite);
@@ -606,15 +623,20 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		unsigned int location = pair.first;
 		StorageBufferBindingInfo& info = pair.second;
 
-		VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
-		IKFrameBufferPtr frameBuffer = info.image;
-		KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)frameBuffer.get();
+		VkDescriptorImageInfo& imageInfoStart = m_ImageWriteInfo[imageIdx];
 
-		ASSERT_RESULT(frameBuffer->IsStroageImage());
+		for (size_t i = 0; i < info.images.size(); ++i)
+		{
+			VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
+			IKFrameBufferPtr frameBuffer = info.images[i];
+			KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)frameBuffer.get();
 
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		imageInfo.imageView = (info.format == EF_UNKNOWN) ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(info.format);
-		imageInfo.sampler = VK_NULL_HANDEL;
+			ASSERT_RESULT(frameBuffer->IsStorageImage());
+
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			imageInfo.imageView = (info.format == EF_UNKNOWN) ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(info.format);
+			imageInfo.sampler = VK_NULL_HANDEL;
+		}
 
 		VkWriteDescriptorSet storageDescriptorWrite = {};
 
@@ -627,10 +649,10 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		storageDescriptorWrite.dstArrayElement = 0;
 
 		storageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		storageDescriptorWrite.descriptorCount = 1;
+		storageDescriptorWrite.descriptorCount = (uint32_t)info.images.size();
 
 		storageDescriptorWrite.pBufferInfo = nullptr; // Optional
-		storageDescriptorWrite.pImageInfo = &imageInfo;
+		storageDescriptorWrite.pImageInfo = &imageInfoStart;
 		storageDescriptorWrite.pTexelBufferView = nullptr; // Optional
 
 		m_WriteDescriptorSet.push_back(storageDescriptorWrite);
@@ -642,7 +664,7 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 }
 
 VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
-	const KStroageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
+	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
 {
 	return m_Pool.Alloc(KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppConstantUsage, dynamicBufferUsageCount, ppStorageUsage, storageBufferUsageCount);
 }

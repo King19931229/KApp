@@ -32,7 +32,7 @@ KVoxilzer::KVoxilzer()
 	, m_VolumeGridSize(0)
 	, m_VoxelSize(0)
 	, m_InjectFirstBounce(true)
-	, m_VoxelDrawEnable(true)
+	, m_VoxelDrawEnable(false)
 	, m_VoxelDebugUpdate(false)
 {
 	m_OnSceneChangedFunc = std::bind(&KVoxilzer::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
@@ -245,10 +245,10 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 	m_MipmapSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_MipmapSampler->Init(0, m_NumMipmap - 1);
 
-	m_RenderPassTarget->InitFromColor(dimension, dimension, 1, EF_R8_UNORM);
-	m_RenderPass->SetColorAttachment(0, m_RenderPassTarget->GetFrameBuffer());
-	m_RenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
-	m_RenderPass->Init();
+	m_VoxelRenderPassTarget->InitFromColor(dimension, dimension, 1, EF_R8_UNORM);
+	m_VoxelRenderPass->SetColorAttachment(0, m_VoxelRenderPassTarget->GetFrameBuffer());
+	m_VoxelRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+	m_VoxelRenderPass->Init();
 }
 
 void KVoxilzer::SetupVoxelDrawPipeline()
@@ -371,7 +371,18 @@ void KVoxilzer::SetupMipmapPipeline()
 	}
 }
 
-void KVoxilzer::SetupLightPassPipeline()
+void KVoxilzer::Resize(uint32_t width, uint32_t height)
+{
+	m_LightPassTarget->UnInit();
+	m_LightPassRenderPass->UnInit();
+
+	m_LightPassTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM);
+	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
+	m_LightPassRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+	m_LightPassRenderPass->Init();
+}
+
+void KVoxilzer::SetupLightPassPipeline(uint32_t width, uint32_t height)
 {
 	m_QuadVertexBuffer->InitMemory(ARRAY_SIZE(ms_QuadVertices), sizeof(ms_QuadVertices[0]), ms_QuadVertices);
 	m_QuadVertexBuffer->InitDevice(false);
@@ -387,6 +398,10 @@ void KVoxilzer::SetupLightPassPipeline()
 	m_QuadIndexData.indexBuffer = m_QuadIndexBuffer;
 	m_QuadIndexData.indexCount = ARRAY_SIZE(ms_QuadIndices);
 	m_QuadIndexData.indexStart = 0;
+
+	Resize(width, height);
+	m_LightDebugDrawer.Init(m_LightPassTarget);
+	m_LightDebugDrawer.EnableDraw(0, 0, 1, 1);
 
 	std::vector<IKFrameBufferPtr> targets;
 	std::vector<IKSamplerPtr> samplers;
@@ -406,7 +421,7 @@ void KVoxilzer::SetupLightPassPipeline()
 		pipeline->SetShader(ST_VERTEX, m_LightPassVS);
 		pipeline->SetShader(ST_FRAGMENT, m_LightPassFS);
 
-		pipeline->SetPrimitiveTopology(PT_POINT_LIST);
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
 		pipeline->SetCullMode(CM_NONE);
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
@@ -423,19 +438,19 @@ void KVoxilzer::SetupLightPassPipeline()
 		pipeline->SetSampler(VOXEL_BINDING_GBUFFER_NORMAL,
 			KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL)->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
-			false);
+			true);
 		pipeline->SetSampler(VOXEL_BINDING_GBUFFER_POSITION,
 			KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION)->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
-			false);
+			true);
 		pipeline->SetSampler(VOXEL_BINDING_GBUFFER_ALBEDO,
 			KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_DIFFUSE)->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
-			false);
+			true);
 		pipeline->SetSampler(VOXEL_BINDING_GBUFFER_SPECULAR,
 			KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_SPECULAR)->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
-			false);
+			true);
 		pipeline->SetSampler(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), m_LinearSampler, false);
 		pipeline->SetSampler(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), m_LinearSampler, false);
 		pipeline->SetSamplers(VOXEL_BINDING_TEXMIPMAP_IN, targets, samplers, false);
@@ -454,8 +469,8 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 
 	if (cullRes.size() == 0) return;
 
-	commandBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_INLINE);
-	commandBuffer->SetViewport(m_RenderPass->GetViewPort());
+	commandBuffer->BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
+	commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
 
 	std::vector<KRenderCommand> commands;
 	for (KRenderComponent* render : cullRes)
@@ -478,7 +493,7 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 
 				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-				command.pipeline->GetHandle(m_RenderPass, command.pipelineHandle);
+				command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
 
 				commands.push_back(command);
 			}
@@ -570,6 +585,23 @@ void KVoxilzer::GenerateMipmapVolume(IKCommandBufferPtr commandBuffer)
 	ASSERT_RESULT(mipmap == m_NumMipmap);
 }
 
+bool KVoxilzer::EnableLightDebugDraw(float x, float y, float width, float height)
+{
+	m_LightDebugDrawer.EnableDraw(x, y, width, height);
+	return true;
+}
+
+bool KVoxilzer::DisableLightDebugDraw()
+{
+	m_LightDebugDrawer.DisableDraw();
+	return true;
+}
+
+bool KVoxilzer::GetLightDebugRenderCommand(KRenderCommandList& commands)
+{
+	return m_LightDebugDrawer.GetDebugRenderCommand(commands);
+}
+
 bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
 	if (!m_VoxelDrawEnable)
@@ -584,7 +616,7 @@ bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::
 		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		command.indexDraw = false;
 
-		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
+		IKCommandBufferPtr commandBuffer = m_DrawCommandBuffers[frameIndex];
 
 		commandBuffer->BeginSecondary(renderPass);
 		commandBuffer->SetViewport(renderPass->GetViewPort());
@@ -592,12 +624,41 @@ bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::
 		commandBuffer->End();
 
 		buffers.push_back(commandBuffer);
+
 		return true;
 	}
 	return false;
 }
 
-bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension)
+bool KVoxilzer::UpdateLighting(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+{
+	if (frameIndex < m_LightPassPipelines.size())
+	{
+		IKCommandBufferPtr commandBuffer = m_LightingCommandBuffers[frameIndex];
+
+		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_SECONDARY);
+
+		KRenderCommand command;
+		command.vertexData = &m_QuadVertexData;
+		command.indexData = &m_QuadIndexData;
+		command.pipeline = m_LightPassPipelines[frameIndex];
+		command.pipeline->GetHandle(m_LightPassRenderPass, command.pipelineHandle);
+		command.indexDraw = true;
+
+		commandBuffer->BeginSecondary(m_LightPassRenderPass);
+		commandBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
+		commandBuffer->Render(command);
+		commandBuffer->End();
+
+		primaryBuffer->Execute(commandBuffer);
+		primaryBuffer->EndRenderPass();
+
+		return true;
+	}
+	return false;
+}
+
+bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension, uint32_t width, uint32_t height)
 {
 	UnInit();
 
@@ -615,6 +676,7 @@ bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension)
 	renderDevice->CreateRenderTarget(m_VoxelRadiance);
 
 	renderDevice->CreateRenderTarget(m_LightPassTarget);
+	renderDevice->CreateRenderPass(m_LightPassRenderPass);
 
 	for (uint32_t i = 0; i < 6; ++i)
 	{
@@ -631,21 +693,26 @@ bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension)
 	renderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer);
 	m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
 
-	renderDevice->CreateRenderTarget(m_RenderPassTarget);
-	renderDevice->CreateRenderPass(m_RenderPass);
+	renderDevice->CreateRenderTarget(m_VoxelRenderPassTarget);
+	renderDevice->CreateRenderPass(m_VoxelRenderPass);
 
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/light_pass.vert", m_LightPassVS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/light_pass.frag", m_LightPassFS, false);
 
 	m_VoxelDrawPipelines.resize(renderDevice->GetNumFramesInFlight());
 	m_LightPassPipelines.resize(renderDevice->GetNumFramesInFlight());
-	m_CommandBuffers.resize(renderDevice->GetNumFramesInFlight());
+	m_DrawCommandBuffers.resize(renderDevice->GetNumFramesInFlight());
+	m_LightingCommandBuffers.resize(renderDevice->GetNumFramesInFlight());
 
 	for (size_t frameIndex = 0; frameIndex < m_VoxelDrawPipelines.size(); ++frameIndex)
 	{
 		renderDevice->CreatePipeline(m_VoxelDrawPipelines[frameIndex]);
-		renderDevice->CreateCommandBuffer(m_CommandBuffers[frameIndex]);
-		m_CommandBuffers[frameIndex]->Init(m_CommandPool, CBL_SECONDARY);
+
+		renderDevice->CreateCommandBuffer(m_DrawCommandBuffers[frameIndex]);
+		m_DrawCommandBuffers[frameIndex]->Init(m_CommandPool, CBL_SECONDARY);
+
+		renderDevice->CreateCommandBuffer(m_LightingCommandBuffers[frameIndex]);
+		m_LightingCommandBuffers[frameIndex]->Init(m_CommandPool, CBL_SECONDARY);
 	}
 
 	for (size_t frameIndex = 0; frameIndex < m_LightPassPipelines.size(); ++frameIndex)
@@ -663,7 +730,7 @@ bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension)
 	SetupVoxelDrawPipeline();
 	SetupRadiancePipeline();
 	SetupMipmapPipeline();
-	SetupLightPassPipeline();
+	SetupLightPassPipeline(width, height);
 
 	m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
 
@@ -678,6 +745,8 @@ bool KVoxilzer::UnInit()
 	}
 	m_Scene = nullptr;
 
+	m_LightDebugDrawer.UnInit();
+
 	KRenderGlobal::ShaderManager.Release(m_LightPassVS);
 	m_LightPassVS = nullptr;
 	KRenderGlobal::ShaderManager.Release(m_LightPassFS);
@@ -687,6 +756,7 @@ bool KVoxilzer::UnInit()
 	SAFE_UNINIT(m_QuadVertexBuffer);
 
 	SAFE_UNINIT(m_LightPassTarget);
+	SAFE_UNINIT(m_LightPassRenderPass);
 
 	SAFE_UNINIT_CONTAINER(m_VoxelDrawPipelines);
 	SAFE_UNINIT_CONTAINER(m_LightPassPipelines);
@@ -701,9 +771,10 @@ bool KVoxilzer::UnInit()
 	SAFE_UNINIT(m_VoxelDrawGS);
 	SAFE_UNINIT(m_VoxelDrawFS);
 
-	SAFE_UNINIT(m_RenderPass);
-	SAFE_UNINIT(m_RenderPassTarget);
-	SAFE_UNINIT_CONTAINER(m_CommandBuffers);
+	SAFE_UNINIT(m_VoxelRenderPass);
+	SAFE_UNINIT(m_VoxelRenderPassTarget);
+	SAFE_UNINIT_CONTAINER(m_DrawCommandBuffers);
+	SAFE_UNINIT_CONTAINER(m_LightingCommandBuffers);
 	SAFE_UNINIT(m_PrimaryCommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
 

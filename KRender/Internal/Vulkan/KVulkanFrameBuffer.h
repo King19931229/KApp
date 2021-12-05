@@ -65,7 +65,7 @@ public:
 	uint32_t GetMSAA() const override { return m_MSAA; }
 
 	bool IsDepthStencil() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; }
-	bool IsStroageImage() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_GENERAL; }
+	bool IsStorageImage() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_GENERAL; }
 
 	inline VkImage GetImage() const { return m_Image; }
 	inline VkImageView GetImageView() const { return m_ImageView; }

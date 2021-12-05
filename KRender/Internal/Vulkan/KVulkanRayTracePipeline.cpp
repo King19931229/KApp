@@ -62,12 +62,12 @@ void KVulkanRayTracePipeline::CreateStrogeScene()
 	KVulkanAccelerationStructure* vulkanAS = (KVulkanAccelerationStructure*)m_TopDown.get();
 	const std::vector<KVulkanRayTraceInstance>& instances = vulkanAS->GetInstances();
 	VkDeviceSize size = (VkDeviceSize)(instances.size() * sizeof(KVulkanRayTraceInstance));
-	KVulkanInitializer::CreateStroageBuffer(size, instances.data(), m_Scene.buffer, m_Scene.allocInfo);
+	KVulkanInitializer::CreateStorageBuffer(size, instances.data(), m_Scene.buffer, m_Scene.allocInfo);
 }
 
 void KVulkanRayTracePipeline::DestroyStrogeScene()
 {
-	KVulkanInitializer::DestroyStroageBuffer(m_Scene.buffer, m_Scene.allocInfo);
+	KVulkanInitializer::DestroyStorageBuffer(m_Scene.buffer, m_Scene.allocInfo);
 }
 
 void KVulkanRayTracePipeline::CreateDescriptorSet()

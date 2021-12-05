@@ -242,7 +242,7 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 
 	for (const spirv_cross::Resource& block : resources.storage_buffers)
 	{
-		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
+		const spirv_cross::SPIRType& type = compiler.get_type(block.type_id);
 
 		KShaderInformation::Storage storage;
 		storage.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
@@ -255,7 +255,7 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 
 	for (const spirv_cross::Resource& block : resources.storage_images)
 	{
-		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
+		const spirv_cross::SPIRType& type = compiler.get_type(block.type_id);
 
 		KShaderInformation::Storage storage;
 		storage.descriptorSetIndex = (uint16_t)compiler.get_decoration(block.id, spv::DecorationDescriptorSet);
@@ -343,7 +343,7 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 
 	for (const spirv_cross::Resource& block : resources.sampled_images)
 	{
-		const spirv_cross::SPIRType& type = compiler.get_type(block.base_type_id);
+		const spirv_cross::SPIRType& type = compiler.get_type(block.type_id);
 
 		KShaderInformation::Texture texture;
 
