@@ -78,6 +78,48 @@ bool KIndexBufferBase::UnInit()
 	return true;
 }
 
+KIndirectBufferBase::KIndirectBufferBase()
+	: m_BufferSize(0)
+{
+
+}
+
+KIndirectBufferBase::~KIndirectBufferBase()
+{
+
+}
+
+bool KIndirectBufferBase::InitMemory(size_t bufferSize, const void* pInitData)
+{
+	m_BufferSize = bufferSize;
+	if (bufferSize > 0)
+	{
+		m_Data.resize(bufferSize);
+		if (pInitData)
+		{
+			memcpy(m_Data.data(), pInitData, bufferSize);
+		}
+		else
+		{
+			memset(m_Data.data(), 0, bufferSize);
+		}
+		return true;
+	}
+	else
+	{
+		m_Data.clear();
+		return false;
+	}
+}
+
+bool KIndirectBufferBase::UnInit()
+{
+	m_BufferSize = 0;
+	m_Data.clear();
+	return true;
+}
+
+
 KUniformBufferBase::KUniformBufferBase()
 	: m_BufferSize(0)
 {

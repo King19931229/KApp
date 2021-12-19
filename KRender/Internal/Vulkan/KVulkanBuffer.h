@@ -3,13 +3,37 @@
 #include "KVulkanConfig.h"
 #include "KVulkanHeapAllocator.h"
 
-class KVulkanVertexBuffer : public KVertexBufferBase
+class KVulkanBuffer
 {
 protected:
 	VkBuffer m_vkBuffer;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
 	std::vector<char> m_ShadowData;
+	uint32_t m_BufferSize;
 	bool m_bHostVisible;
+public:
+	KVulkanBuffer();
+	~KVulkanBuffer();
+
+	bool InitDevice(VkBufferUsageFlags usages, const void* pData, uint32_t bufferSize, bool hostVisible);
+	bool UnInit();
+
+	bool DiscardMemory();
+
+	bool Map(void** ppData);
+	bool UnMap();
+	bool Write(const void* pData);
+	bool Read(void* pData);
+
+	inline bool IsHostVisible() const { return m_bHostVisible; }
+	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
+	VkDeviceAddress GetDeviceAddress() const;
+};
+
+class KVulkanVertexBuffer : public KVertexBufferBase
+{
+protected:
+	KVulkanBuffer m_Buffer;
 public:
 	KVulkanVertexBuffer();
 	~KVulkanVertexBuffer();
@@ -27,17 +51,14 @@ public:
 	virtual bool CopyFrom(IKVertexBufferPtr pSource);
 	virtual bool CopyTo(IKVertexBufferPtr pDest);
 
-	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
+	VkBuffer GetVulkanHandle();
 	VkDeviceAddress GetDeviceAddress() const;
 };
 
 class KVulkanIndexBuffer : public KIndexBufferBase
 {
 protected:
-	VkBuffer m_vkBuffer;
-	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
-	std::vector<char> m_ShadowData;
-	bool m_bHostVisible;
+	KVulkanBuffer m_Buffer;
 public:
 	KVulkanIndexBuffer();
 	virtual ~KVulkanIndexBuffer();
@@ -57,17 +78,38 @@ public:
 	virtual bool CopyFrom(IKIndexBufferPtr pSource);
 	virtual bool CopyTo(IKIndexBufferPtr pDest);
 
-	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
 	inline VkIndexType GetVulkanIndexType() { return m_IndexType == IT_16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32; }
+
+	VkBuffer GetVulkanHandle();
 	VkDeviceAddress GetDeviceAddress() const;
+};
+
+class KVulkanIndirectBuffer : public KIndirectBufferBase
+{
+protected:
+	KVulkanBuffer m_Buffer;
+public:
+	KVulkanIndirectBuffer();
+	virtual ~KVulkanIndirectBuffer();
+
+	virtual bool InitDevice();
+	virtual bool UnInit();
+
+	virtual bool Map(void** ppData);
+	virtual bool UnMap();
+	virtual bool Write(const void* pData);
+	virtual bool Read(void* pData);
+
+	virtual bool CopyFrom(IKIndirectBufferPtr pSource);
+	virtual bool CopyTo(IKIndirectBufferPtr pDest);
+
+	VkBuffer GetVulkanHandle();
 };
 
 class KVulkanUniformBuffer : public KUniformBufferBase
 {
 protected:
-	VkBuffer m_vkBuffer;
-	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
-	bool m_bDeviceInit;
+	KVulkanBuffer m_Buffer;
 public:
 	KVulkanUniformBuffer();
 	virtual ~KVulkanUniformBuffer();
@@ -85,5 +127,5 @@ public:
 	virtual bool CopyFrom(IKUniformBufferPtr pSource);
 	virtual bool CopyTo(IKUniformBufferPtr pDest);
 
-	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
+	VkBuffer GetVulkanHandle();
 };

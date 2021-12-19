@@ -1247,6 +1247,12 @@ bool KVulkanRenderDevice::CreateIndexBuffer(IKIndexBufferPtr& buffer)
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateIndirectBuffer(IKIndirectBufferPtr& buffer)
+{
+	buffer = IKIndirectBufferPtr(static_cast<IKIndirectBuffer*>(KNEW KVulkanIndirectBuffer()));
+	return true;
+}
+
 bool KVulkanRenderDevice::CreateUniformBuffer(IKUniformBufferPtr& buffer)
 {
 	buffer = IKUniformBufferPtr(static_cast<IKUniformBuffer*>(KNEW KVulkanUniformBuffer()));

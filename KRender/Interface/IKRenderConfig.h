@@ -530,6 +530,9 @@ typedef std::shared_ptr<IKAccelerationStructure> IKAccelerationStructurePtr;
 struct IKIndexBuffer;
 typedef std::shared_ptr<IKIndexBuffer> IKIndexBufferPtr;
 
+struct IKIndirectBuffer;
+typedef std::shared_ptr<IKIndirectBuffer> IKIndirectBufferPtr;
+
 struct IKUniformBuffer;
 typedef std::shared_ptr<IKUniformBuffer> IKUniformBufferPtr;
 

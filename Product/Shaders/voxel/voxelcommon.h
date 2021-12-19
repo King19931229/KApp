@@ -30,7 +30,7 @@ float lightBleedingReduction = voxel.miscs3[0];
 float traceShadowHit = voxel.miscs3[1];
 float maxTracingDistanceGlobal = voxel.miscs3[2];
 
-float bounceStrength = 1.0;
+float bounceStrength = 1.0f;
 float aoFalloff = 725.0f;
 float aoAlpha = 0.01f;
 float samplingFactor = 0.5f;
