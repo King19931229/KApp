@@ -1,5 +1,5 @@
 #include "public.h"
-#include "voxelcommon.h"
+#include "voxel_common.h"
 
 // receive voxels points position
 layout(points) in;

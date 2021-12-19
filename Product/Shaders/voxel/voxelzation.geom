@@ -1,5 +1,5 @@
 #include "public.h"
-#include "voxelcommon.h"
+#include "voxel_common.h"
 
 layout(location = 0) in Vertex
 {

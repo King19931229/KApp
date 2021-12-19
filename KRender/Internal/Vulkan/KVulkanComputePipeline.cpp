@@ -77,6 +77,11 @@ void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vec
 	m_Bindings[location] = newBinding;
 }
 
+void KVulkanComputePipeline::BindStorageBuffer(uint32_t location, IKStorageBufferPtr buffer, bool dynamicWrite)
+{
+
+}
+
 void KVulkanComputePipeline::BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynamicWrite)
 {
 	BindingInfo newBinding;
@@ -89,16 +94,16 @@ void KVulkanComputePipeline::BindAccelerationStructure(uint32_t location, IKAcce
 void KVulkanComputePipeline::BindUniformBuffer(uint32_t location, IKUniformBufferPtr buffer)
 {
 	BindingInfo newBinding;
-	newBinding.buffer.buffer = buffer;
+	newBinding.uniform.buffer = buffer;
 	newBinding.dynamicWrite = false;
-	newBinding.type = BindingInfo::BUFFER;
+	newBinding.type = BindingInfo::UNIFROM_BUFFER;
 	m_Bindings[location] = newBinding;
 }
 
 void KVulkanComputePipeline::BindDynamicUniformBuffer(uint32_t location)
 {
 	BindingInfo newBinding;
-	newBinding.type = BindingInfo::DYNAMIC_BUFFER;
+	newBinding.type = BindingInfo::DYNAMIC_UNIFROM_BUFFER;
 	newBinding.dynamicWrite = true;
 	m_Bindings[location] = newBinding;
 }
@@ -161,17 +166,17 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateTopdownASWrite(BindingInfo 
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateUniformBufferWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding)
 {
-	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(binding.buffer.buffer.get());
-	binding.buffer.bufferDescriptor = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
-	return KVulkanInitializer::CreateDescriptorBufferWrite(&binding.buffer.bufferDescriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, dstSet, dstBinding, 1);
+	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(binding.uniform.buffer.get());
+	binding.uniform.bufferDescriptor = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
+	return KVulkanInitializer::CreateDescriptorBufferWrite(&binding.uniform.bufferDescriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, dstSet, dstBinding, 1);
 }
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateDynamicUniformBufferWrite(BindingInfo& binding, const KDynamicConstantBufferUsage& usage, VkDescriptorSet dstSet)
 {
 	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(usage.buffer.get());
 	uint32_t dstBinding = (uint32_t)usage.binding;
-	binding.buffer.bufferDescriptor = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, usage.range);
-	return KVulkanInitializer::CreateDescriptorBufferWrite(&binding.buffer.bufferDescriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, dstSet, dstBinding, 1);
+	binding.uniform.bufferDescriptor = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, usage.range);
+	return KVulkanInitializer::CreateDescriptorBufferWrite(&binding.uniform.bufferDescriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, dstSet, dstBinding, 1);
 }
 
 VkDescriptorPool KVulkanComputePipeline::CreateDescriptorPool(uint32_t maxCount)
@@ -298,12 +303,12 @@ void KVulkanComputePipeline::CreateLayout()
 			type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 			newWrite = PopulateTopdownASWrite(binding, VK_NULL_HANDLE, location);
 		}
-		else if (binding.type == BindingInfo::BUFFER)
+		else if (binding.type == BindingInfo::UNIFROM_BUFFER)
 		{
 			type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			newWrite = PopulateUniformBufferWrite(binding, VK_NULL_HANDLE, location);
 		}
-		else if (binding.type == BindingInfo::DYNAMIC_BUFFER)
+		else if (binding.type == BindingInfo::DYNAMIC_UNIFROM_BUFFER)
 		{
 			type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 			// hack
@@ -449,11 +454,11 @@ bool KVulkanComputePipeline::UpdateDynamicWrite(VkDescriptorSet dstSet, const KD
 		{
 			newWrite = PopulateTopdownASWrite(binding, dstSet, location);
 		}
-		else if (binding.type == BindingInfo::BUFFER)
+		else if (binding.type == BindingInfo::UNIFROM_BUFFER)
 		{
 			newWrite = PopulateUniformBufferWrite(binding, dstSet, location);
 		}
-		else if (binding.type == BindingInfo::DYNAMIC_BUFFER)
+		else if (binding.type == BindingInfo::DYNAMIC_UNIFROM_BUFFER)
 		{
 			ASSERT_RESULT(usage && usage->binding == location);
 			newWrite = PopulateDynamicUniformBufferWrite(binding, *usage, dstSet);

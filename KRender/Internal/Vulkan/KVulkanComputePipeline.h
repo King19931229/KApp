@@ -64,15 +64,15 @@ protected:
 		{
 			IKUniformBufferPtr buffer;
 			VkDescriptorBufferInfo bufferDescriptor;
-		}buffer;
+		}uniform;
 
 		enum
 		{
 			SAMPLER,
 			IMAGE,
 			AS,
-			BUFFER,
-			DYNAMIC_BUFFER,
+			UNIFROM_BUFFER,
+			DYNAMIC_UNIFROM_BUFFER,
 			UNKNOWN
 		}type;
 
@@ -88,8 +88,8 @@ protected:
 			as.as = nullptr;
 			as.accelerationStructureDescriptor = {};
 
-			buffer.buffer = nullptr;
-			buffer.bufferDescriptor = {};
+			uniform.buffer = nullptr;
+			uniform.bufferDescriptor = {};
 
 			type = UNKNOWN;
 			dynamicWrite = false;
@@ -127,6 +127,8 @@ public:
 
 	virtual void BindSamplers(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite);
 	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ElementFormat format, ComputeImageFlag flag, uint32_t mipmap, bool dynimicWrite);
+
+	virtual void BindStorageBuffer(uint32_t location, IKStorageBufferPtr buffer, bool dynamicWrite);
 
 	virtual void BindDynamicUniformBuffer(uint32_t location);
 

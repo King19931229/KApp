@@ -12,7 +12,21 @@ class KVoxilzer
 protected:
 	enum
 	{
-		GROUP_SIZE = 8
+		GROUP_SIZE = 8,
+		OCTREE_LEVEL_MIN = 1,
+		OCTREE_LEVEL_MAX = 12,
+		OCTREE_NODE_NUM_MIN = 1000000,
+		OCTREE_NODE_NUM_MAX = 500000000,
+		BEAM_SIZE = 8
+	};
+
+	enum OctreeBuildBinding
+	{
+		OCTREE_BINDING_COUNTER,
+		OCTREE_BINDING_OCTTREE,
+		OCTREE_BINDING_FRAGMENTLIST,
+		OCTREE_BINDING_BUILDINFO,
+		OCTREE_BINDING_INDIRECT,
 	};
 
 	static const VertexFormat ms_VertexFormats[1];
@@ -46,6 +60,15 @@ protected:
 	IKStorageBufferPtr m_CounterBuffer;
 	IKStorageBufferPtr m_FragmentlistBuffer;
 	IKStorageBufferPtr m_CountOnlyBuffer;
+
+	IKStorageBufferPtr m_OctreeBuffer;
+	IKStorageBufferPtr m_BuildInfoBuffer;
+	IKStorageBufferPtr m_BuildIndirectBuffer;
+
+	IKComputePipelinePtr m_OctreeTagNodePipeline;
+	IKComputePipelinePtr m_OctreeInitNodePipeline;
+	IKComputePipelinePtr m_OctreeAllocNodePipeline;
+	IKComputePipelinePtr m_OctreeModifyArgPipeline;
 
 	uint32_t m_VolumeDimension;
 	uint32_t m_VoxelCount;
@@ -98,8 +121,6 @@ protected:
 	void SetupMipmapPipeline();
 	void SetupLightPassPipeline(uint32_t width, uint32_t height);
 
-	void SetupSparseVoxelBuffer();
-
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
 	void UpdateRadiance(IKCommandBufferPtr commandBuffer);
 	void InjectRadiance(IKCommandBufferPtr commandBuffer);
@@ -107,7 +128,10 @@ protected:
 	void GenerateMipmapBase(IKCommandBufferPtr commandBuffer);
 	void GenerateMipmapVolume(IKCommandBufferPtr commandBuffer);
 
+	void SetupSparseVoxelBuffer();
+	void SetupOctreeBuildPipeline();
 	void VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, bool countOnly);
+	void BuildOctree(IKCommandBufferPtr commandBuffer);
 
 	void UpdateInternal();
 public:

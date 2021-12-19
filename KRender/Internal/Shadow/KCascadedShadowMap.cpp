@@ -162,8 +162,8 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_DepthBiasSlope[2] = 3.25f;
 	m_DepthBiasSlope[3] = 1.0f;
 
-	m_ShadowCamera.SetPosition(glm::vec3(1.0f, 1.0f, 1.0f));
-	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	m_ShadowCamera.SetPosition(glm::vec3(0.0f, 1.0f, 0.0f));
+	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	m_ShadowCamera.SetOrtho(2000.0f, 2000.0f, -1000.0f, 1000.0f);
 }
 

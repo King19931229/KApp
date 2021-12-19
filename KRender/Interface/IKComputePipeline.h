@@ -20,6 +20,8 @@ struct IKComputePipeline
 	virtual void BindSamplers(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, const std::vector<IKSamplerPtr>& samplers, bool dynamicWrite) = 0;
 	virtual void BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ElementFormat format, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite) = 0;
 
+	virtual void BindStorageBuffer(uint32_t location, IKStorageBufferPtr buffer, bool dynamicWrite) = 0;
+
 	virtual void BindDynamicUniformBuffer(uint32_t location) = 0;
 
 	virtual bool Init(const char* szShader) = 0;

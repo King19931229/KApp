@@ -1,5 +1,5 @@
 #include "public.h"
-#include "voxelcommon.h"
+#include "voxel_common.h"
 
 layout(location = 0) out vec4 fragColor;
 
@@ -87,7 +87,7 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 	// weight per axis for aniso sampling
 	vec3 weight = direction * direction;
 	// move further to avoid self collision
-	float dst = 1.0 * voxelWorldSize;
+	float dst = voxelWorldSize;
 	vec3 startPosition = position + normal * dst;
 	// final results
 	vec4 coneSample = vec4(0.0f);
@@ -142,7 +142,7 @@ float TraceShadowCone(vec3 position, vec3 direction, float aperture, float maxTr
 	// weight per axis for aniso sampling
 	vec3 weight = direction * direction;
 	// move further to avoid self collision
-	float dst = 1.0 * voxelWorldSize;
+	float dst = voxelWorldSize;
 	vec3 startPosition = position + direction * dst;
 	// control vars
 	float mipMaxLevel = log2(volumeDimension) - 1.0f;
@@ -402,7 +402,7 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 	return vec4(result, ambientOcclusion ? clamp(1.0f - diffuseTrace.a + aoAlpha, 0.0f, 1.0f) : 1.0f);
 }
 
-const uint mode = 1;
+const uint mode = 0;
 
 void main()
 {

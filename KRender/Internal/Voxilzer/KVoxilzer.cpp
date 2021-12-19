@@ -71,12 +71,12 @@ void KVoxilzer::UpdateInternal()
 		m_PrimaryCommandBuffer->End();
 		m_PrimaryCommandBuffer->Flush();
 
-		size_t bufferSize = 0;
-		bufferSize = m_FragmentlistBuffer->GetBufferSize();
-		std::vector<char> buffers;
-		buffers.resize(bufferSize);
-		m_FragmentlistBuffer->Read(buffers.data());
-		bufferSize = 0;
+		m_PrimaryCommandBuffer->BeginPrimary();
+
+		BuildOctree(m_PrimaryCommandBuffer);
+
+		m_PrimaryCommandBuffer->End();
+		m_PrimaryCommandBuffer->Flush();
 	}
 }
 
@@ -607,6 +607,24 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 	commandBuffer->EndRenderPass();
 }
 
+void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
+{
+	uint32_t fragmentCount = 0;
+	m_CounterBuffer->Read(&fragmentCount);
+
+	// Estimate octree buffer size
+	uint32_t octreeNodeNum = std::max((uint32_t)OCTREE_LEVEL_MIN, fragmentCount << 2u);
+	octreeNodeNum = std::min(octreeNodeNum, (uint32_t)OCTREE_LEVEL_MAX);
+
+	uint32_t preOctreeNodeNum = (uint32_t)m_OctreeBuffer->GetBufferSize() / sizeof(uint32_t);
+	if (octreeNodeNum > preOctreeNodeNum)
+	{
+		m_OctreeBuffer->UnInit();
+		m_OctreeBuffer->InitMemory(octreeNodeNum * sizeof(uint32_t), nullptr);
+		m_OctreeBuffer->InitDevice(false);
+	}
+}
+
 void KVoxilzer::UpdateRadiance(IKCommandBufferPtr commandBuffer)
 {
 	InjectRadiance(commandBuffer);
@@ -765,12 +783,33 @@ void KVoxilzer::SetupSparseVoxelBuffer()
 	m_CounterBuffer->InitMemory(sizeof(counter), &counter);
 	m_CounterBuffer->InitDevice(false);
 
-	glm::uvec2 dummy(0, 0);
-	m_FragmentlistBuffer->InitMemory(sizeof(dummy), &dummy);
+	uint32_t dummy[] = { 0, 0 };
+	m_FragmentlistBuffer->InitMemory(sizeof(dummy), dummy);
 	m_FragmentlistBuffer->InitDevice(false);
 
 	m_CountOnlyBuffer->InitMemory(sizeof(countOnly), &countOnly);
 	m_CountOnlyBuffer->InitDevice(false);
+
+	uint32_t buildinfo[] = { 0, 8 };
+	m_BuildInfoBuffer->InitMemory(sizeof(buildinfo), buildinfo);
+	m_BuildInfoBuffer->InitDevice(false);
+
+	uint32_t indirectinfo[] = { 0, 0, 0 };
+	m_BuildIndirectBuffer->InitMemory(sizeof(indirectinfo), indirectinfo);
+	m_BuildIndirectBuffer->InitDevice(true);
+
+	m_OctreeBuffer->InitMemory(sizeof(dummy), dummy);
+	m_OctreeBuffer->InitDevice(false);
+}
+
+void KVoxilzer::SetupOctreeBuildPipeline()
+{
+	/*
+	m_OctreeTagNodePipeline->Init("octree_tag_node.comp");
+	m_OctreeInitNodePipeline->Init("octree_init_node.comp");
+	m_OctreeAllocNodePipeline->Init("octree_alloc_node.comp");
+	m_OctreeModifyArgPipeline->Init("octree_modify_arg.comp");
+	*/
 }
 
 bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension, uint32_t width, uint32_t height)
@@ -845,6 +884,15 @@ bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension, uint32_t width, u
 	renderDevice->CreateStorageBuffer(m_FragmentlistBuffer);
 	renderDevice->CreateStorageBuffer(m_CountOnlyBuffer);
 
+	renderDevice->CreateStorageBuffer(m_OctreeBuffer);
+	renderDevice->CreateStorageBuffer(m_BuildInfoBuffer);
+	renderDevice->CreateStorageBuffer(m_BuildIndirectBuffer);
+
+	renderDevice->CreateComputePipeline(m_OctreeTagNodePipeline);
+	renderDevice->CreateComputePipeline(m_OctreeInitNodePipeline);
+	renderDevice->CreateComputePipeline(m_OctreeAllocNodePipeline);
+	renderDevice->CreateComputePipeline(m_OctreeModifyArgPipeline);
+
 	SetupVoxelVolumes(dimension);
 	SetupVoxelDrawPipeline();
 	SetupRadiancePipeline();
@@ -852,6 +900,7 @@ bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension, uint32_t width, u
 	SetupLightPassPipeline(width, height);
 
 	SetupSparseVoxelBuffer();
+	SetupOctreeBuildPipeline();
 
 	m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
 
@@ -917,6 +966,15 @@ bool KVoxilzer::UnInit()
 	SAFE_UNINIT(m_CounterBuffer);
 	SAFE_UNINIT(m_FragmentlistBuffer);
 	SAFE_UNINIT(m_CountOnlyBuffer);
+
+	SAFE_UNINIT(m_OctreeBuffer);
+	SAFE_UNINIT(m_BuildInfoBuffer);
+	SAFE_UNINIT(m_BuildIndirectBuffer);
+
+	SAFE_UNINIT(m_OctreeTagNodePipeline);
+	SAFE_UNINIT(m_OctreeInitNodePipeline);
+	SAFE_UNINIT(m_OctreeAllocNodePipeline);
+	SAFE_UNINIT(m_OctreeModifyArgPipeline);
 
 	return true;
 }
