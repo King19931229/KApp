@@ -103,17 +103,31 @@ protected:
 	std::unordered_map<unsigned int, SamplerBindingInfo> m_Samplers;
 
 	// Storage Image信息
-	struct StorageBufferBindingInfo
+	struct StorageImageBindingInfo
 	{
 		std::vector<IKFrameBufferPtr> images;
 		ElementFormat format;
 
-		StorageBufferBindingInfo()
+		StorageImageBindingInfo()
 		{
 			format = EF_UNKNOWN;
 		}
 	};
-	std::unordered_map<unsigned int, StorageBufferBindingInfo> m_Storages;
+	std::unordered_map<unsigned int, StorageImageBindingInfo> m_StorageImages;
+
+	// Storage Buffer信息
+	struct StorageBufferBindingInfo
+	{
+		ShaderTypes shaderTypes;
+		IKStorageBufferPtr buffer;
+
+		StorageBufferBindingInfo()
+		{
+			shaderTypes = 0;
+			buffer = nullptr;
+		}
+	};
+	std::unordered_map<unsigned int, StorageBufferBindingInfo> m_StorageBuffers;
 
 	IKShaderPtr m_Shaders[COUNT];
 
@@ -171,6 +185,8 @@ public:
 
 	virtual bool SetSampler(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, bool dynimicWrite);
 	virtual bool SetStorageImage(unsigned int location, IKFrameBufferPtr image, ElementFormat format);
+
+	virtual bool SetStorageBuffer(unsigned int location, ShaderTypes shaderTypes, IKStorageBufferPtr buffer);
 
 	virtual bool SetSamplers(unsigned int location, const std::vector<IKFrameBufferPtr>& images, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite);
 	virtual bool SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images, ElementFormat format);

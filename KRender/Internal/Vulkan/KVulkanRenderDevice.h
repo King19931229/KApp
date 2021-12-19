@@ -157,7 +157,7 @@ public:
 
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer);
 	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer);
-	virtual bool CreateIndirectBuffer(IKIndirectBufferPtr& buffer);
+	virtual bool CreateStorageBuffer(IKStorageBufferPtr& buffer);
 	virtual bool CreateUniformBuffer(IKUniformBufferPtr& buffer);
 
 	virtual bool CreateAccelerationStructure(IKAccelerationStructurePtr& as);

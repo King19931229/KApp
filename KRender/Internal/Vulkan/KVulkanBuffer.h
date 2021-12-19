@@ -84,15 +84,15 @@ public:
 	VkDeviceAddress GetDeviceAddress() const;
 };
 
-class KVulkanIndirectBuffer : public KIndirectBufferBase
+class KVulkanStorageBuffer : public KStorageBufferBase
 {
 protected:
 	KVulkanBuffer m_Buffer;
 public:
-	KVulkanIndirectBuffer();
-	virtual ~KVulkanIndirectBuffer();
+	KVulkanStorageBuffer();
+	virtual ~KVulkanStorageBuffer();
 
-	virtual bool InitDevice();
+	virtual bool InitDevice(bool indirect);
 	virtual bool UnInit();
 
 	virtual bool Map(void** ppData);
@@ -100,8 +100,8 @@ public:
 	virtual bool Write(const void* pData);
 	virtual bool Read(void* pData);
 
-	virtual bool CopyFrom(IKIndirectBufferPtr pSource);
-	virtual bool CopyTo(IKIndirectBufferPtr pDest);
+	virtual bool CopyFrom(IKStorageBufferPtr pSource);
+	virtual bool CopyTo(IKStorageBufferPtr pDest);
 
 	VkBuffer GetVulkanHandle();
 };

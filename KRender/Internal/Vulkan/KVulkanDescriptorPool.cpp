@@ -213,7 +213,9 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 		ASSERT_RESULT(samplerBindings.size() <= m_DescriptorDynamicWriteInfo.size());
 
 		size_t imageWriteIdx = 0;
+		size_t bufferWriteIdx = 0;
 		size_t descriptorWriteIdx = 0;
+
 		for (auto& pair : samplerBindings)
 		{
 			unsigned int binding = pair.first;
@@ -259,6 +261,35 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 		}
 
 		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(descriptorWriteIdx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+		descriptorWriteIdx = 0;
+
+		auto& storageBufferBindings = vulkanPipeline->m_StorageBuffers;
+		for (auto& pair : storageBufferBindings)
+		{
+			unsigned int binding = pair.first;
+			KVulkanPipeline::StorageBufferBindingInfo& info = pair.second;
+
+			VkDescriptorBufferInfo& bufferInfo = m_DynamicStorageBufferWriteInfo[bufferWriteIdx++];
+			bufferInfo.buffer = ((KVulkanStorageBuffer*)info.buffer.get())->GetVulkanHandle();
+			bufferInfo.offset = 0;
+			bufferInfo.range = VK_WHOLE_SIZE;
+
+			VkWriteDescriptorSet& storageDescriptorWrite = m_DescriptorDynamicWriteInfo[descriptorWriteIdx++];
+
+			storageDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			storageDescriptorWrite.dstSet = set;
+			storageDescriptorWrite.dstBinding = (uint32_t)binding;
+			storageDescriptorWrite.dstArrayElement = 0;
+			storageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			storageDescriptorWrite.descriptorCount = 1;
+
+			storageDescriptorWrite.pBufferInfo = &bufferInfo;
+			storageDescriptorWrite.pImageInfo = nullptr;
+			storageDescriptorWrite.pTexelBufferView = nullptr;
+		}
+
+		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(descriptorWriteIdx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+		descriptorWriteIdx = 0;
 	}
 
 	for (size_t i = 0; i < dynamicBufferUsageCount; ++i)

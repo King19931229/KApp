@@ -19,6 +19,8 @@ KVulkanBuffer::~KVulkanBuffer()
 
 bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uint32_t bufferSize, bool hostVisible)
 {
+	ASSERT_RESULT(UnInit());
+
 	using namespace KVulkanGlobal;
 	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
 
@@ -337,58 +339,62 @@ VkDeviceAddress KVulkanIndexBuffer::GetDeviceAddress() const
 	return m_Buffer.GetDeviceAddress();
 }
 
-// KVulkanIndirectBuffer
-KVulkanIndirectBuffer::KVulkanIndirectBuffer()
-	: KIndirectBufferBase()
+// KVulkanStorageBuffer
+KVulkanStorageBuffer::KVulkanStorageBuffer()
+	: KStorageBufferBase()
 {
 }
 
-KVulkanIndirectBuffer::~KVulkanIndirectBuffer()
+KVulkanStorageBuffer::~KVulkanStorageBuffer()
 {
 }
 
-bool KVulkanIndirectBuffer::InitDevice()
+bool KVulkanStorageBuffer::InitDevice(bool indirect)
 {
-	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	if (indirect)
+	{
+		usageFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+	}
 	return m_Buffer.InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, true);
 }
 
-bool KVulkanIndirectBuffer::UnInit()
+bool KVulkanStorageBuffer::UnInit()
 {
 	return m_Buffer.UnInit();
 }
 
-bool KVulkanIndirectBuffer::Map(void** ppData)
+bool KVulkanStorageBuffer::Map(void** ppData)
 {
 	return m_Buffer.Map(ppData);
 }
 
-bool KVulkanIndirectBuffer::UnMap()
+bool KVulkanStorageBuffer::UnMap()
 {
 	return m_Buffer.UnMap();
 }
 
-bool KVulkanIndirectBuffer::Write(const void* pData)
+bool KVulkanStorageBuffer::Write(const void* pData)
 {
 	return m_Buffer.Write(pData);
 }
 
-bool KVulkanIndirectBuffer::Read(void* pData)
+bool KVulkanStorageBuffer::Read(void* pData)
 {
 	return m_Buffer.Read(pData);
 }
 
-bool KVulkanIndirectBuffer::CopyFrom(IKIndirectBufferPtr pSource)
+bool KVulkanStorageBuffer::CopyFrom(IKStorageBufferPtr pSource)
 {
 	return false;
 }
 
-bool KVulkanIndirectBuffer::CopyTo(IKIndirectBufferPtr pDest)
+bool KVulkanStorageBuffer::CopyTo(IKStorageBufferPtr pDest)
 {
 	return false;
 }
 
-VkBuffer KVulkanIndirectBuffer::GetVulkanHandle()
+VkBuffer KVulkanStorageBuffer::GetVulkanHandle()
 {
 	return m_Buffer.GetVulkanHandle();
 }

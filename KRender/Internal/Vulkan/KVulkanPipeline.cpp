@@ -289,10 +289,32 @@ bool KVulkanPipeline::SetStorageImage(unsigned int location, IKFrameBufferPtr im
 {
 	if (image)
 	{
-		StorageBufferBindingInfo info;
+		StorageImageBindingInfo info;
 		info.images = { image };
 		info.format = format;
-		m_Storages[location] = info;
+		m_StorageImages[location] = info;
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanPipeline::SetStorageBuffer(unsigned int location, ShaderTypes shaderTypes, IKStorageBufferPtr buffer)
+{
+	if (buffer)
+	{
+		StorageBufferBindingInfo info;
+		info.shaderTypes = shaderTypes;
+		info.buffer = buffer;
+	
+		auto it = m_StorageBuffers.find(location);
+		if (it == m_StorageBuffers.end())
+		{
+			m_StorageBuffers[location] = info;
+		}
+		else
+		{
+			it->second = info;
+		}
 		return true;
 	}
 	return false;
@@ -317,10 +339,10 @@ bool KVulkanPipeline::SetStorageImages(unsigned int location, const std::vector<
 {
 	if (images.size() > 0)
 	{
-		StorageBufferBindingInfo info;
+		StorageImageBindingInfo info;
 		info.images = images;
 		info.format = format;
-		m_Storages[location] = info;
+		m_StorageImages[location] = info;
 		return true;
 	}
 	return false;
@@ -529,14 +551,14 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 	{
 		imageWriteCount += pair.second.images.size();
 	}
-	for (auto& pair : m_Storages)
+	for (auto& pair : m_StorageImages)
 	{
 		imageWriteCount += pair.second.images.size();
 	}
 	m_ImageWriteInfo.resize(imageWriteCount);
 
-	size_t uniformWriteCount = m_Uniforms.size();
-	m_BufferWriteInfo.resize(uniformWriteCount);
+	size_t bufferWriteCount = m_Uniforms.size() + m_StorageBuffers.size();
+	m_BufferWriteInfo.resize(bufferWriteCount);
 
 	size_t bufferIdx = 0;
 	size_t imageIdx = 0;
@@ -573,6 +595,41 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 
 		m_WriteDescriptorSet.push_back(uniformDescriptorWrite);
 	}
+
+	/*
+	for (auto& pair : m_StorageBuffers)
+	{
+		unsigned int location = pair.first;
+		StorageBufferBindingInfo& info = pair.second;
+
+		KVulkanStorageBuffer* storageBuffer = static_cast<KVulkanStorageBuffer*>(info.buffer.get());
+		ASSERT_RESULT(storageBuffer != nullptr);
+
+		VkDescriptorBufferInfo& bufferInfo = m_BufferWriteInfo[bufferIdx++];
+		bufferInfo.buffer = storageBuffer->GetVulkanHandle();
+		bufferInfo.offset = 0;
+		bufferInfo.range = storageBuffer->GetBufferSize();
+
+		VkWriteDescriptorSet storageDescriptorWrite = {};
+
+		storageDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		// 写入的描述集合
+		storageDescriptorWrite.dstSet = VK_NULL_HANDLE;
+		// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
+		storageDescriptorWrite.dstBinding = location;
+		// 写入索引与下面descriptorCount对应
+		storageDescriptorWrite.dstArrayElement = 0;
+
+		storageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		storageDescriptorWrite.descriptorCount = 1;
+
+		storageDescriptorWrite.pBufferInfo = &bufferInfo;
+		storageDescriptorWrite.pImageInfo = nullptr; // Optional
+		storageDescriptorWrite.pTexelBufferView = nullptr; // Optional
+
+		m_WriteDescriptorSet.push_back(storageDescriptorWrite);
+	}
+	*/
 
 	for (auto& pair : m_Samplers)
 	{
@@ -618,10 +675,10 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		m_WriteDescriptorSet.push_back(samplerDescriptorWrite);
 	}
 
-	for (auto& pair : m_Storages)
+	for (auto& pair : m_StorageImages)
 	{
 		unsigned int location = pair.first;
-		StorageBufferBindingInfo& info = pair.second;
+		StorageImageBindingInfo& info = pair.second;
 
 		VkDescriptorImageInfo& imageInfoStart = m_ImageWriteInfo[imageIdx];
 

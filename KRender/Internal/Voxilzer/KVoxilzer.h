@@ -43,6 +43,10 @@ protected:
 	IKSamplerPtr m_LinearSampler;
 	IKSamplerPtr m_MipmapSampler;
 
+	IKStorageBufferPtr m_CounterBuffer;
+	IKStorageBufferPtr m_FragmentlistBuffer;
+	IKStorageBufferPtr m_CountOnlyBuffer;
+
 	uint32_t m_VolumeDimension;
 	uint32_t m_VoxelCount;
 	uint32_t m_NumMipmap;
@@ -94,12 +98,16 @@ protected:
 	void SetupMipmapPipeline();
 	void SetupLightPassPipeline(uint32_t width, uint32_t height);
 
+	void SetupSparseVoxelBuffer();
+
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
 	void UpdateRadiance(IKCommandBufferPtr commandBuffer);
 	void InjectRadiance(IKCommandBufferPtr commandBuffer);
 	void GenerateMipmap(IKCommandBufferPtr commandBuffer);
 	void GenerateMipmapBase(IKCommandBufferPtr commandBuffer);
 	void GenerateMipmapVolume(IKCommandBufferPtr commandBuffer);
+
+	void VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, bool countOnly);
 
 	void UpdateInternal();
 public:
@@ -126,6 +134,10 @@ public:
 	IKFrameBufferPtr GetVoxelEmissive() { return m_VoxelEmissive ? m_VoxelEmissive->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelRadiance() { return m_VoxelRadiance ? m_VoxelRadiance->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelTexMipmap(uint32_t face) { return (face < 6 && m_VoxelTexMipmap[face]) ? m_VoxelTexMipmap[face]->GetFrameBuffer() : nullptr; }
+
+	IKStorageBufferPtr GetCounterBuffer() { return m_CounterBuffer; }
+	IKStorageBufferPtr GetFragmentlistBuffer() { return m_FragmentlistBuffer; }
+	IKStorageBufferPtr GetCountOnlyBuffer() { return m_CountOnlyBuffer; }
 
 	bool Init(IKRenderScene* scene, uint32_t dimension, uint32_t width, uint32_t height);
 	bool UnInit();

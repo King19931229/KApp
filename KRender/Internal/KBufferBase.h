@@ -57,20 +57,20 @@ public:
 	virtual bool CopyTo(IKIndexBufferPtr pDest) = 0;
 };
 
-class KIndirectBufferBase : public IKIndirectBuffer
+class KStorageBufferBase : public IKStorageBuffer
 {
 protected:
 	size_t m_BufferSize;
 	std::vector<char> m_Data;
 public:
-	KIndirectBufferBase();
-	virtual ~KIndirectBufferBase();
+	KStorageBufferBase();
+	virtual ~KStorageBufferBase();
 
 	virtual size_t GetBufferSize() { return m_BufferSize; }
 	// 初始化内存数据 通常用于异步IO
 	virtual bool InitMemory(size_t bufferSize, const void* pInitData);
 
-	virtual bool InitDevice() = 0;
+	virtual bool InitDevice(bool indirect) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool Map(void** ppData) = 0;
@@ -78,8 +78,8 @@ public:
 	virtual bool Write(const void* pData) = 0;
 	virtual bool Read(void* pData) = 0;
 
-	virtual bool CopyFrom(IKIndirectBufferPtr pSource) = 0;
-	virtual bool CopyTo(IKIndirectBufferPtr pDest) = 0;
+	virtual bool CopyFrom(IKStorageBufferPtr pSource) = 0;
+	virtual bool CopyTo(IKStorageBufferPtr pDest) = 0;
 };
 
 class KUniformBufferBase : public IKUniformBuffer

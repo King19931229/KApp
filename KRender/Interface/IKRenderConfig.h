@@ -195,8 +195,14 @@ enum RayTraceBinding
 enum VoxelBinding
 {
 	VOXEL_BINDING_ALBEDO = SHADER_BINDING_TEXTURE9,
+	VOXEL_BINDING_COUNTER = VOXEL_BINDING_ALBEDO,
+
 	VOXEL_BINDING_NORMAL,
+	VOXEL_BINDING_FRAGMENTLIST = VOXEL_BINDING_NORMAL,
+
 	VOXEL_BINDING_EMISSION,
+	VOXEL_BINDING_COUNTONLY = VOXEL_BINDING_EMISSION,
+
 	VOXEL_BINDING_STATIC_FLAG,
 	VOXEL_BINDING_DIFFUSE_MAP,
 	VOXEL_BINDING_OPACITY_MAP,
@@ -460,6 +466,7 @@ enum PipelineStage
 	PIPELINE_STAGE_CASCADED_SHADOW_GEN,
 	// VOXEL
 	PIPELINE_STAGE_VOXEL,
+	PIPELINE_STAGE_SPARSE_VOXEL,
 	// MESH
 	PIPELINE_STAGE_OPAQUE_MESH,
 	// INSTANCE
@@ -530,8 +537,8 @@ typedef std::shared_ptr<IKAccelerationStructure> IKAccelerationStructurePtr;
 struct IKIndexBuffer;
 typedef std::shared_ptr<IKIndexBuffer> IKIndexBufferPtr;
 
-struct IKIndirectBuffer;
-typedef std::shared_ptr<IKIndirectBuffer> IKIndirectBufferPtr;
+struct IKStorageBuffer;
+typedef std::shared_ptr<IKStorageBuffer> IKStorageBufferPtr;
 
 struct IKUniformBuffer;
 typedef std::shared_ptr<IKUniformBuffer> IKUniformBufferPtr;

@@ -47,7 +47,7 @@ struct IKRenderDevice
 
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer) = 0;
 	virtual bool CreateIndexBuffer(IKIndexBufferPtr& buffer) = 0;
-	virtual bool CreateIndirectBuffer(IKIndirectBufferPtr& buffer) = 0;
+	virtual bool CreateStorageBuffer(IKStorageBufferPtr& buffer) = 0;
 	virtual bool CreateUniformBuffer(IKUniformBufferPtr& buffer) = 0;
 
 	virtual bool CreateAccelerationStructure(IKAccelerationStructurePtr& as) = 0;

@@ -46,13 +46,38 @@ void KVoxilzer::UpdateInternal()
 {
 	UpdateProjectionMatrices();
 
-	m_PrimaryCommandBuffer->BeginPrimary();
+	{
+		m_PrimaryCommandBuffer->BeginPrimary();
 
-	VoxelizeStaticScene(m_PrimaryCommandBuffer);
-	UpdateRadiance(m_PrimaryCommandBuffer);
+		VoxelizeStaticScene(m_PrimaryCommandBuffer);
+		UpdateRadiance(m_PrimaryCommandBuffer);
 
-	m_PrimaryCommandBuffer->End();
-	m_PrimaryCommandBuffer->Flush();
+		m_PrimaryCommandBuffer->End();
+		m_PrimaryCommandBuffer->Flush();
+	}
+
+	{
+		m_PrimaryCommandBuffer->BeginPrimary();
+
+		VoxelizeStaticSceneCounter(m_PrimaryCommandBuffer, true);
+
+		m_PrimaryCommandBuffer->End();
+		m_PrimaryCommandBuffer->Flush();
+
+		m_PrimaryCommandBuffer->BeginPrimary();
+
+		VoxelizeStaticSceneCounter(m_PrimaryCommandBuffer, false);
+
+		m_PrimaryCommandBuffer->End();
+		m_PrimaryCommandBuffer->Flush();
+
+		size_t bufferSize = 0;
+		bufferSize = m_FragmentlistBuffer->GetBufferSize();
+		std::vector<char> buffers;
+		buffers.resize(bufferSize);
+		m_FragmentlistBuffer->Read(buffers.data());
+		bufferSize = 0;
+	}
 }
 
 void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
@@ -508,6 +533,80 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 	commandBuffer->EndRenderPass();
 }
 
+void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, bool bCountOnly)
+{
+	KAABBBox sceneBox;
+	m_Scene->GetSceneObjectBound(sceneBox);
+
+	std::vector<KRenderComponent*> cullRes;
+	((KRenderScene*)m_Scene)->GetRenderComponent(sceneBox, cullRes);
+
+	if (cullRes.size() == 0) return;
+
+	commandBuffer->BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
+	commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
+
+	uint32_t counter = 0;
+	uint32_t countOnly = bCountOnly;
+
+	if (!bCountOnly)
+	{
+		m_CounterBuffer->Read(&counter);
+		if (counter == 0)
+		{
+			return;
+		}
+
+		uint32_t bufferSize = counter * sizeof(glm::uvec2);
+		if (m_FragmentlistBuffer->GetBufferSize() != bufferSize)
+		{
+			m_FragmentlistBuffer->UnInit();
+			m_FragmentlistBuffer->InitMemory(bufferSize, nullptr);
+			m_FragmentlistBuffer->InitDevice(false);
+		}
+
+		counter = 0;
+	}
+
+	m_CounterBuffer->Write(&counter);
+	m_CountOnlyBuffer->Write(&countOnly);
+
+	std::vector<KRenderCommand> commands;
+	for (KRenderComponent* render : cullRes)
+	{
+		render->Visit(PIPELINE_STAGE_SPARSE_VOXEL, 0, [&](KRenderCommand& command)
+		{
+			IKEntity* entity = render->GetEntityHandle();
+
+			KTransformComponent* transform = nullptr;
+			if (entity->GetComponent(CT_TRANSFORM, &transform))
+			{
+				const glm::mat4& finalTran = transform->GetFinal();
+				const glm::mat4& prevFinalTran = transform->GetPrevFinal();
+
+				KConstantDefinition::OBJECT objectData;
+				objectData.MODEL = finalTran;
+				objectData.PRVE_MODEL = prevFinalTran;
+				command.objectUsage.binding = SHADER_BINDING_OBJECT;
+				command.objectUsage.range = sizeof(objectData);
+
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+				command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
+
+				commands.push_back(command);
+			}
+		});
+	}
+
+	for (KRenderCommand& command : commands)
+	{
+		commandBuffer->Render(command);
+	}
+
+	commandBuffer->EndRenderPass();
+}
+
 void KVoxilzer::UpdateRadiance(IKCommandBufferPtr commandBuffer)
 {
 	InjectRadiance(commandBuffer);
@@ -658,6 +757,22 @@ bool KVoxilzer::UpdateLighting(IKCommandBufferPtr primaryBuffer, uint32_t frameI
 	return false;
 }
 
+void KVoxilzer::SetupSparseVoxelBuffer()
+{
+	uint32_t counter = 0;
+	uint32_t countOnly = 1;
+
+	m_CounterBuffer->InitMemory(sizeof(counter), &counter);
+	m_CounterBuffer->InitDevice(false);
+
+	glm::uvec2 dummy(0, 0);
+	m_FragmentlistBuffer->InitMemory(sizeof(dummy), &dummy);
+	m_FragmentlistBuffer->InitDevice(false);
+
+	m_CountOnlyBuffer->InitMemory(sizeof(countOnly), &countOnly);
+	m_CountOnlyBuffer->InitDevice(false);
+}
+
 bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension, uint32_t width, uint32_t height)
 {
 	UnInit();
@@ -726,11 +841,17 @@ bool KVoxilzer::Init(IKRenderScene* scene, uint32_t dimension, uint32_t width, u
 	renderDevice->CreateComputePipeline(m_MipmapBasePipeline);
 	renderDevice->CreateComputePipeline(m_MipmapVolumePipeline);
 
+	renderDevice->CreateStorageBuffer(m_CounterBuffer);
+	renderDevice->CreateStorageBuffer(m_FragmentlistBuffer);
+	renderDevice->CreateStorageBuffer(m_CountOnlyBuffer);
+
 	SetupVoxelVolumes(dimension);
 	SetupVoxelDrawPipeline();
 	SetupRadiancePipeline();
 	SetupMipmapPipeline();
 	SetupLightPassPipeline(width, height);
+
+	SetupSparseVoxelBuffer();
 
 	m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
 
@@ -792,6 +913,10 @@ bool KVoxilzer::UnInit()
 	SAFE_UNINIT(m_CloestSampler);
 	SAFE_UNINIT(m_LinearSampler);
 	SAFE_UNINIT(m_MipmapSampler);
+
+	SAFE_UNINIT(m_CounterBuffer);
+	SAFE_UNINIT(m_FragmentlistBuffer);
+	SAFE_UNINIT(m_CountOnlyBuffer);
 
 	return true;
 }

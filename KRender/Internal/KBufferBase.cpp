@@ -78,18 +78,18 @@ bool KIndexBufferBase::UnInit()
 	return true;
 }
 
-KIndirectBufferBase::KIndirectBufferBase()
+KStorageBufferBase::KStorageBufferBase()
 	: m_BufferSize(0)
 {
 
 }
 
-KIndirectBufferBase::~KIndirectBufferBase()
+KStorageBufferBase::~KStorageBufferBase()
 {
 
 }
 
-bool KIndirectBufferBase::InitMemory(size_t bufferSize, const void* pInitData)
+bool KStorageBufferBase::InitMemory(size_t bufferSize, const void* pInitData)
 {
 	m_BufferSize = bufferSize;
 	if (bufferSize > 0)
@@ -112,7 +112,7 @@ bool KIndirectBufferBase::InitMemory(size_t bufferSize, const void* pInitData)
 	}
 }
 
-bool KIndirectBufferBase::UnInit()
+bool KStorageBufferBase::UnInit()
 {
 	m_BufferSize = 0;
 	m_Data.clear();

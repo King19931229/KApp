@@ -33,6 +33,7 @@ protected:
 	IKShaderPtr				m_VoxelVSShader;
 	IKShaderPtr				m_VoxelGSShader;
 	IKShaderPtr				m_VoxelFSShader;
+	IKShaderPtr				m_VoxelSparseFSShader;
 
 	KMaterialShader			m_GBufferShaderGroup;
 
