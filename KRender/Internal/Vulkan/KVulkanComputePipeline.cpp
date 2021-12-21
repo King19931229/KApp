@@ -79,7 +79,11 @@ void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vec
 
 void KVulkanComputePipeline::BindStorageBuffer(uint32_t location, IKStorageBufferPtr buffer, bool dynamicWrite)
 {
-
+	BindingInfo newBinding;
+	newBinding.storage.buffer = buffer;
+	newBinding.dynamicWrite = dynamicWrite;
+	newBinding.type = BindingInfo::STORAGE_BUFFER;
+	m_Bindings[location] = newBinding;
 }
 
 void KVulkanComputePipeline::BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynamicWrite)
@@ -169,6 +173,13 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateUniformBufferWrite(BindingI
 	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(binding.uniform.buffer.get());
 	binding.uniform.bufferDescriptor = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
 	return KVulkanInitializer::CreateDescriptorBufferWrite(&binding.uniform.bufferDescriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, dstSet, dstBinding, 1);
+}
+
+VkWriteDescriptorSet KVulkanComputePipeline::PopulateStorageBufferWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding)
+{
+	KVulkanStorageBuffer* vulkanStorageBuffer = static_cast<KVulkanStorageBuffer*>(binding.storage.buffer.get());
+	binding.storage.bufferDescriptor = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanStorageBuffer->GetVulkanHandle(), 0, vulkanStorageBuffer->GetBufferSize());
+	return KVulkanInitializer::CreateDescriptorBufferWrite(&binding.storage.bufferDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dstSet, dstBinding, 1);
 }
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateDynamicUniformBufferWrite(BindingInfo& binding, const KDynamicConstantBufferUsage& usage, VkDescriptorSet dstSet)
@@ -307,6 +318,11 @@ void KVulkanComputePipeline::CreateLayout()
 		{
 			type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			newWrite = PopulateUniformBufferWrite(binding, VK_NULL_HANDLE, location);
+		}
+		else if(binding.type == BindingInfo::STORAGE_BUFFER)
+		{
+			type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			newWrite = PopulateStorageBufferWrite(binding, VK_NULL_HANDLE, location);
 		}
 		else if (binding.type == BindingInfo::DYNAMIC_UNIFROM_BUFFER)
 		{
@@ -458,6 +474,10 @@ bool KVulkanComputePipeline::UpdateDynamicWrite(VkDescriptorSet dstSet, const KD
 		{
 			newWrite = PopulateUniformBufferWrite(binding, dstSet, location);
 		}
+		else if (binding.type == BindingInfo::STORAGE_BUFFER)
+		{
+			newWrite = PopulateStorageBufferWrite(binding, dstSet, location);
+		}
 		else if (binding.type == BindingInfo::DYNAMIC_UNIFROM_BUFFER)
 		{
 			ASSERT_RESULT(usage && usage->binding == location);
@@ -532,37 +552,76 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 	return true;
 }
 
+void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage)
+{
+	KVulkanCommandBuffer* commandBuffer = static_cast<KVulkanCommandBuffer*>(primaryBuffer.get());
+	VkCommandBuffer cmdBuf = commandBuffer->GetVkHandle();
+
+	uint32_t dynamicOffsets = 0;
+	uint32_t dynamicBufferCount = 0;
+
+	if (usage)
+	{
+		dynamicOffsets = (uint32_t)usage->offset;
+		dynamicBufferCount = 1;
+	}
+
+	// Update the descriptor
+	UpdateDynamicWrite(dstSet, usage);
+
+	// Adding a barrier to be sure the fragment has finished writing
+	SetupImageBarrier(primaryBuffer, true);
+
+	// Preparing for the compute shader
+	vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
+	vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_PipelineLayout, 0, 1, &dstSet, dynamicBufferCount, &dynamicOffsets);
+
+}
+
+void KVulkanComputePipeline::PostDispatch(IKCommandBufferPtr primaryBuffer)
+{
+	// Adding a barrier to be sure the compute shader has finished
+	SetupImageBarrier(primaryBuffer, false);
+}
+
 bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, uint32_t frameIndex, const KDynamicConstantBufferUsage* usage)
 {
 	if (primaryBuffer && frameIndex < m_Descriptors.size())
 	{
 		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameIndex);
+
+		PreDispatch(primaryBuffer, dstSet, usage);
+
+		// Dispatching the shader
+		KVulkanCommandBuffer* commandBuffer = static_cast<KVulkanCommandBuffer*>(primaryBuffer.get());
+		VkCommandBuffer cmdBuf = commandBuffer->GetVkHandle();
+		vkCmdDispatch(cmdBuf, groupX, groupY, groupZ);
+
+		PostDispatch(primaryBuffer);
+
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, uint32_t frameIndex, const KDynamicConstantBufferUsage* usage)
+{
+	if (primaryBuffer && frameIndex < m_Descriptors.size())
+	{
+		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameIndex);
+
+		PreDispatch(primaryBuffer, dstSet, usage);
+
+		// Dispatching the shader
 		KVulkanCommandBuffer* commandBuffer = static_cast<KVulkanCommandBuffer*>(primaryBuffer.get());
 		VkCommandBuffer cmdBuf = commandBuffer->GetVkHandle();
 
-		uint32_t dynamicOffsets = 0;
-		uint32_t dynamicBufferCount = 0;
+		KVulkanStorageBuffer* storageBuffer = static_cast<KVulkanStorageBuffer*>(indirectBuffer.get());
+		VkBuffer indirectBuf = storageBuffer->GetVulkanHandle();
 
-		if (usage)
-		{
-			dynamicOffsets = (uint32_t)usage->offset;
-			dynamicBufferCount = 1;
-		}
+		vkCmdDispatchIndirect(cmdBuf, indirectBuf, 0);
 
-		// Update the descriptor
-		UpdateDynamicWrite(dstSet, usage);
-
-		// Adding a barrier to be sure the fragment has finished writing
-		SetupImageBarrier(primaryBuffer, true);
-
-		// Preparing for the compute shader
-		vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
-		vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_PipelineLayout, 0, 1, &dstSet, dynamicBufferCount, &dynamicOffsets);
-		// Dispatching the shader
-		vkCmdDispatch(cmdBuf, groupX, groupY, groupZ);
-
-		// Adding a barrier to be sure the compute shader has finished
-		SetupImageBarrier(primaryBuffer, false);
+		PostDispatch(primaryBuffer);
 
 		return true;
 	}

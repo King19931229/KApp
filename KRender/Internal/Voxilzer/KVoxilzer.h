@@ -27,6 +27,7 @@ protected:
 		OCTREE_BINDING_FRAGMENTLIST,
 		OCTREE_BINDING_BUILDINFO,
 		OCTREE_BINDING_INDIRECT,
+		OCTREE_BINDING_OBJECT,
 	};
 
 	static const VertexFormat ms_VertexFormats[1];
@@ -73,6 +74,7 @@ protected:
 	uint32_t m_VolumeDimension;
 	uint32_t m_VoxelCount;
 	uint32_t m_NumMipmap;
+	uint32_t m_OctreeLevel;
 	float m_VolumeGridSize;
 	float m_VoxelSize;
 

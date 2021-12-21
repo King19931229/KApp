@@ -597,7 +597,7 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 				ui->CheckBox("OctreeDraw", &m_OctreeDebugDraw);
 				ui->CheckBox("MultiRender", &m_MultiThreadSubmit);
 				ui->CheckBox("InstanceRender", &m_InstanceSubmit);
-				if (ui->Header("Shaodw"))
+				if (ui->Header("Shadow"))
 				{
 					ui->SliderFloat("Shadow DepthBias Slope[0]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(0), 0.0f, 5.0f);
 					ui->SliderFloat("Shadow DepthBias Slope[1]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(1), 0.0f, 5.0f);

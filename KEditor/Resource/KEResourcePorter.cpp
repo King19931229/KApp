@@ -168,7 +168,7 @@ bool KEResourcePorter::ModelDrop(const KCamera* camera, const std::string& path)
 	{
 		IKEntityPtr entity = KECS::EntityManager->CreateEntity();
 
-		if (InitEntity(path, entity))
+		if (InitEntity(path, entity, true))
 		{
 			IKRenderComponent* renderComponent = nullptr;
 			if (entity->GetComponent(CT_RENDER, &renderComponent))

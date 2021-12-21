@@ -66,12 +66,19 @@ protected:
 			VkDescriptorBufferInfo bufferDescriptor;
 		}uniform;
 
+		struct
+		{
+			IKStorageBufferPtr buffer;
+			VkDescriptorBufferInfo bufferDescriptor;
+		}storage;
+
 		enum
 		{
 			SAMPLER,
 			IMAGE,
 			AS,
 			UNIFROM_BUFFER,
+			STORAGE_BUFFER,
 			DYNAMIC_UNIFROM_BUFFER,
 			UNKNOWN
 		}type;
@@ -91,6 +98,9 @@ protected:
 			uniform.buffer = nullptr;
 			uniform.bufferDescriptor = {};
 
+			storage.buffer = nullptr;
+			storage.bufferDescriptor = {};
+
 			type = UNKNOWN;
 			dynamicWrite = false;
 		}
@@ -107,6 +117,7 @@ protected:
 	VkWriteDescriptorSet PopulateImageWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding);
 	VkWriteDescriptorSet PopulateTopdownASWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding);
 	VkWriteDescriptorSet PopulateUniformBufferWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding);
+	VkWriteDescriptorSet PopulateStorageBufferWrite(BindingInfo& binding, VkDescriptorSet dstSet, uint32_t dstBinding);
 
 	VkWriteDescriptorSet PopulateDynamicUniformBufferWrite(BindingInfo& binding, const KDynamicConstantBufferUsage& usage, VkDescriptorSet dstSet);
 
@@ -116,6 +127,9 @@ protected:
 
 	bool UpdateDynamicWrite(VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage = nullptr);
 	bool SetupImageBarrier(IKCommandBufferPtr buffer, bool input);
+
+	void PreDispatch(IKCommandBufferPtr primaryBuffer, VkDescriptorSet dstSet, const KDynamicConstantBufferUsage* usage);
+	void PostDispatch(IKCommandBufferPtr primaryBuffer);
 public:
 	KVulkanComputePipeline();
 	~KVulkanComputePipeline();
@@ -135,5 +149,6 @@ public:
 	virtual bool Init(const char* szShader);
 	virtual bool UnInit();
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, uint32_t frameIndex, const KDynamicConstantBufferUsage* usage);
+	virtual bool ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, uint32_t frameIndex, const KDynamicConstantBufferUsage* usage);
 	virtual bool ReloadShader();
 };
