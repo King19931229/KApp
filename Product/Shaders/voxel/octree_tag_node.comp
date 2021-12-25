@@ -1,8 +1,8 @@
 #include "octree_common.h"
 layout(local_size_x = GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = OCTREE_BINDING_OCTTREE) buffer uuOctree { uint uOctree[]; };
-layout(binding = OCTREE_BINDING_FRAGMENTLIST) readonly buffer uuFragmentList { uvec2 uFragmentList[]; };
+layout(std430, binding = OCTREE_BINDING_OCTTREE) buffer uuOctree { uint uOctree[]; };
+layout(std140, binding = OCTREE_BINDING_FRAGMENTLIST) readonly buffer uuFragmentList { uvec2 uFragmentList[]; };
 
 layout(binding = OCTREE_BINDING_OBJECT)
 uniform Object
@@ -52,7 +52,8 @@ void main()
 		// atomic moving average
 		uint prev_val = 0, cur_val, new_val = 0xC1000000u | (ufragment.y & 0xffffffu);
 		uvec4 rgba = LeafToUvec4(new_val);
-		while ((cur_val = atomicCompSwap(uOctree[idx], prev_val, new_val)) != prev_val)
+		uint numIterations = 0;
+		while ((cur_val = atomicCompSwap(uOctree[idx], prev_val, new_val)) != prev_val && numIterations < 255)
 		{
 			prev_val = cur_val;
 			uvec4 prev_rgba = LeafToUvec4(prev_val);
@@ -60,6 +61,7 @@ void main()
 			uvec4 cur_rgba = prev_rgba + rgba;
 			cur_rgba.xyz /= cur_rgba.w;
 			new_val = Uvec4ToLeaf(cur_rgba);
+			++numIterations;
 		}
 	}
 }

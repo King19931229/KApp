@@ -351,6 +351,8 @@ KVulkanStorageBuffer::~KVulkanStorageBuffer()
 
 bool KVulkanStorageBuffer::InitDevice(bool indirect)
 {
+	KStorageBufferBase::InitDevice(indirect);
+
 	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	if (indirect)
 	{
@@ -362,6 +364,11 @@ bool KVulkanStorageBuffer::InitDevice(bool indirect)
 bool KVulkanStorageBuffer::UnInit()
 {
 	return m_Buffer.UnInit();
+}
+
+bool KVulkanStorageBuffer::IsIndirect()
+{
+	return m_bIndirect;
 }
 
 bool KVulkanStorageBuffer::Map(void** ppData)

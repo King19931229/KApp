@@ -27,8 +27,8 @@ void KVulkanComputePipeline::BindSampler(uint32_t location, IKFrameBufferPtr tar
 	newBinding.image.images = { target };
 	newBinding.image.samplers = { sampler };
 	newBinding.image.imageDescriptors = { {} };
-	newBinding.image.flag = COMPUTE_IMAGE_IN;
 	newBinding.image.format = EF_UNKNOWN;
+	newBinding.flags = COMPUTE_RESOURCE_IN;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::SAMPLER;
 	m_Bindings[location] = newBinding;
@@ -40,47 +40,48 @@ void KVulkanComputePipeline::BindSamplers(uint32_t location, const std::vector<I
 	newBinding.image.images = targets;
 	newBinding.image.samplers = samplers;
 	newBinding.image.imageDescriptors.resize(targets.size());
-	newBinding.image.flag = COMPUTE_IMAGE_IN;
 	newBinding.image.format = EF_UNKNOWN;
+	newBinding.flags = COMPUTE_RESOURCE_IN;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::SAMPLER;
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, ElementFormat format, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite)
+void KVulkanComputePipeline::BindStorageImage(uint32_t location, IKFrameBufferPtr target, ElementFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite)
 {
 	BindingInfo newBinding;
 	newBinding.image.images = { target };
 	newBinding.image.samplers = {};
 	newBinding.image.imageDescriptors = { {} };
-	newBinding.image.flag = flag;
 	newBinding.image.format = EF_UNKNOWN;
 	newBinding.image.mipmap = mipmap;
 	newBinding.image.format = format;
+	newBinding.flags = flags;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::IMAGE;
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ElementFormat format, ComputeImageFlag flag, uint32_t mipmap, bool dynamicWrite)
+void KVulkanComputePipeline::BindStorageImages(uint32_t location, const std::vector<IKFrameBufferPtr>& targets, ElementFormat format, ComputeResourceFlags flags, uint32_t mipmap, bool dynamicWrite)
 {
 	BindingInfo newBinding;
 	newBinding.image.images = targets;
 	newBinding.image.samplers = {};
 	newBinding.image.imageDescriptors.resize(targets.size());
-	newBinding.image.flag = flag;
 	newBinding.image.format = EF_UNKNOWN;
 	newBinding.image.mipmap = mipmap;
 	newBinding.image.format = format;
+	newBinding.flags = flags;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::IMAGE;
 	m_Bindings[location] = newBinding;
 }
 
-void KVulkanComputePipeline::BindStorageBuffer(uint32_t location, IKStorageBufferPtr buffer, bool dynamicWrite)
+void KVulkanComputePipeline::BindStorageBuffer(uint32_t location, IKStorageBufferPtr buffer, ComputeResourceFlags flags, bool dynamicWrite)
 {
 	BindingInfo newBinding;
 	newBinding.storage.buffer = buffer;
+	newBinding.flags = flags;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::STORAGE_BUFFER;
 	m_Bindings[location] = newBinding;
@@ -500,15 +501,26 @@ bool KVulkanComputePipeline::UpdateDynamicWrite(VkDescriptorSet dstSet, const KD
 }
 
 // https://gpuopen.com/learn/vulkan-barriers-explained/
-bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool input)
+bool KVulkanComputePipeline::SetupBarrier(IKCommandBufferPtr buffer, bool input)
 {
 	KVulkanCommandBuffer* commandBuffer = static_cast<KVulkanCommandBuffer*>(buffer.get());
 	VkCommandBuffer cmdBuf = commandBuffer->GetVkHandle();
 
-	std::vector<VkImageMemoryBarrier> barriers;
+	std::vector<VkImageMemoryBarrier> imageBarriers;
+	std::vector<VkBufferMemoryBarrier> buffBarriers;
+
 	for (auto& pair : m_Bindings)
 	{
 		BindingInfo& binding = pair.second;
+
+		if (input && !(binding.flags & COMPUTE_RESOURCE_IN))
+		{
+			continue;
+		}
+		if (!input && !(binding.flags & COMPUTE_RESOURCE_OUT))
+		{
+			continue;
+		}
 
 		for (size_t i = 0; i < binding.image.images.size(); ++i)
 		{
@@ -520,12 +532,12 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 
 			if (binding.type == BindingInfo::IMAGE)
 			{
-				if (binding.image.flag == COMPUTE_IMAGE_IN)
+				if (input)
 				{
 					imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 					imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				}
-				else if (binding.image.flag == COMPUTE_IMAGE_OUT)
+				else
 				{
 					imgMemBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 					imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -542,12 +554,38 @@ bool KVulkanComputePipeline::SetupImageBarrier(IKCommandBufferPtr buffer, bool i
 			imgMemBarrier.newLayout = vulkanFrameBuffer->GetImageLayout();
 			imgMemBarrier.subresourceRange = range;
 
-			barriers.push_back(imgMemBarrier);
+			imageBarriers.push_back(imgMemBarrier);
+		}
+
+		if (binding.storage.buffer)
+		{
+			KVulkanStorageBuffer* vulkanStorageBuffer = static_cast<KVulkanStorageBuffer*>(binding.storage.buffer.get());
+
+			VkBufferMemoryBarrier bufMemBarrier = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+			bufMemBarrier.size = vulkanStorageBuffer->GetBufferSize();
+			bufMemBarrier.buffer = vulkanStorageBuffer->GetVulkanHandle();
+			bufMemBarrier.offset = 0;
+
+			if (input)
+			{
+				bufMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+				bufMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			}
+			else
+			{
+				bufMemBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				bufMemBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+			}
+
+			bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+			buffBarriers.push_back(bufMemBarrier);
 		}
 	}
 
 	VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-	vkCmdPipelineBarrier(cmdBuf, stageFlags, stageFlags, VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, 0, nullptr, (uint32_t)barriers.size(), barriers.data());
+	vkCmdPipelineBarrier(cmdBuf, stageFlags, stageFlags, VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, (uint32_t)buffBarriers.size(), buffBarriers.data(), (uint32_t)imageBarriers.size(), imageBarriers.data());
 
 	return true;
 }
@@ -570,7 +608,7 @@ void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDes
 	UpdateDynamicWrite(dstSet, usage);
 
 	// Adding a barrier to be sure the fragment has finished writing
-	SetupImageBarrier(primaryBuffer, true);
+	SetupBarrier(primaryBuffer, true);
 
 	// Preparing for the compute shader
 	vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
@@ -581,7 +619,7 @@ void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDes
 void KVulkanComputePipeline::PostDispatch(IKCommandBufferPtr primaryBuffer)
 {
 	// Adding a barrier to be sure the compute shader has finished
-	SetupImageBarrier(primaryBuffer, false);
+	SetupBarrier(primaryBuffer, false);
 }
 
 bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, uint32_t frameIndex, const KDynamicConstantBufferUsage* usage)
@@ -618,6 +656,24 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 
 		KVulkanStorageBuffer* storageBuffer = static_cast<KVulkanStorageBuffer*>(indirectBuffer.get());
 		VkBuffer indirectBuf = storageBuffer->GetVulkanHandle();
+		VkDeviceSize indirectSize = storageBuffer->GetBufferSize();
+
+		// Setup the indirect buffer biarrier
+		{
+			VkBufferMemoryBarrier bufMemBarrier = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+			bufMemBarrier.size = indirectSize;
+			bufMemBarrier.buffer = indirectBuf;
+			bufMemBarrier.offset = 0;
+
+			bufMemBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+			bufMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+
+			bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+			VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			vkCmdPipelineBarrier(cmdBuf, stageFlags, stageFlags, VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
+		}
 
 		vkCmdDispatchIndirect(cmdBuf, indirectBuf, 0);
 

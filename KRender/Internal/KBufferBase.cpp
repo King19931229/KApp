@@ -80,6 +80,7 @@ bool KIndexBufferBase::UnInit()
 
 KStorageBufferBase::KStorageBufferBase()
 	: m_BufferSize(0)
+	, m_bIndirect(false)
 {
 
 }
@@ -110,6 +111,12 @@ bool KStorageBufferBase::InitMemory(size_t bufferSize, const void* pInitData)
 		m_Data.clear();
 		return false;
 	}
+}
+
+bool KStorageBufferBase::InitDevice(bool indirect)
+{
+	m_bIndirect = indirect;
+	return true;
 }
 
 bool KStorageBufferBase::UnInit()

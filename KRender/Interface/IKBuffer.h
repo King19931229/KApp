@@ -59,6 +59,8 @@ struct IKStorageBuffer
 	// 释放内存数据与设备相关句柄
 	virtual bool UnInit() = 0;
 
+	virtual bool IsIndirect() = 0;
+
 	virtual bool Map(void** ppData) = 0;
 	virtual bool UnMap() = 0;
 

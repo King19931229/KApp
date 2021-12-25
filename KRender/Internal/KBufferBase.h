@@ -62,6 +62,7 @@ class KStorageBufferBase : public IKStorageBuffer
 protected:
 	size_t m_BufferSize;
 	std::vector<char> m_Data;
+	bool m_bIndirect;
 public:
 	KStorageBufferBase();
 	virtual ~KStorageBufferBase();
@@ -72,6 +73,8 @@ public:
 
 	virtual bool InitDevice(bool indirect) = 0;
 	virtual bool UnInit() = 0;
+
+	virtual bool IsIndirect() { return m_bIndirect; }
 
 	virtual bool Map(void** ppData) = 0;
 	virtual bool UnMap() = 0;

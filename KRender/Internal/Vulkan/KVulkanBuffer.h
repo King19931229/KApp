@@ -95,6 +95,8 @@ public:
 	virtual bool InitDevice(bool indirect);
 	virtual bool UnInit();
 
+	virtual bool IsIndirect();
+
 	virtual bool Map(void** ppData);
 	virtual bool UnMap();
 	virtual bool Write(const void* pData);

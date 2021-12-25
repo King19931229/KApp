@@ -71,7 +71,7 @@ void main()
 		// set fragment list
 		if (uCountOnly == 0)
 		{
-			uvec3 uvoxel_pos = clamp(uvec3(position * volumeDimension), uvec3(0u), uvec3(volumeDimension - 1u));
+			uvec3 uvoxel_pos = clamp(uvec3(position), uvec3(0u), uvec3(volumeDimension - 1u));
 			 // only have the last 8 bits of uvoxel_pos.z
 			uFragmentList[cur].x = uvoxel_pos.x | (uvoxel_pos.y << 12u) | ((uvoxel_pos.z & 0xffu) << 24u);
 			uFragmentList[cur].y = ((uvoxel_pos.z >> 8u) << 28u) | (ucolor & 0x00ffffffu);
