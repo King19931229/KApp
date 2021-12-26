@@ -3,7 +3,7 @@
 
 layout(location = 0) out vec4 fragColor;
 
-layout (location = 0) in vec2 texCoord;
+layout(location = 0) in vec2 texCoord;
 
 layout(binding = VOXEL_BINDING_GBUFFER_NORMAL) uniform sampler2D gNormal;
 layout(binding = VOXEL_BINDING_GBUFFER_POSITION) uniform sampler2D gPosition;

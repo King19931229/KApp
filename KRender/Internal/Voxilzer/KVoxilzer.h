@@ -28,6 +28,7 @@ protected:
 		OCTREE_BINDING_BUILDINFO,
 		OCTREE_BINDING_INDIRECT,
 		OCTREE_BINDING_OBJECT,
+		OCTREE_BINDING_CAMERA
 	};
 
 	static const VertexFormat ms_VertexFormats[1];
@@ -43,6 +44,7 @@ protected:
 	KIndexData m_QuadIndexData;
 
 	IKRenderScene* m_Scene;
+	const KCamera* m_Camera;
 
 	IKRenderTargetPtr m_StaticFlag;
 	IKRenderTargetPtr m_VoxelAlbedo;
@@ -53,6 +55,9 @@ protected:
 
 	IKRenderTargetPtr m_LightPassTarget;
 	IKRenderPassPtr m_LightPassRenderPass;
+
+	IKRenderTargetPtr m_OctreeRayTestTarget;
+	IKRenderPassPtr m_OctreeRayTestPass;
 
 	IKSamplerPtr m_CloestSampler;
 	IKSamplerPtr m_LinearSampler;
@@ -65,6 +70,7 @@ protected:
 	IKStorageBufferPtr m_OctreeBuffer;
 	IKStorageBufferPtr m_BuildInfoBuffer;
 	IKStorageBufferPtr m_BuildIndirectBuffer;
+	std::vector<IKStorageBufferPtr> m_OctreeCameraBuffers;
 
 	IKComputePipelinePtr m_OctreeTagNodePipeline;
 	IKComputePipelinePtr m_OctreeInitNodePipeline;
@@ -75,6 +81,7 @@ protected:
 	uint32_t m_VoxelCount;
 	uint32_t m_NumMipmap;
 	uint32_t m_OctreeLevel;
+	glm::vec3 m_VolumeCenter;
 	float m_VolumeGridSize;
 	float m_VoxelSize;
 
@@ -84,6 +91,7 @@ protected:
 	IKCommandBufferPtr m_PrimaryCommandBuffer;
 	std::vector<IKCommandBufferPtr> m_DrawCommandBuffers;
 	std::vector<IKCommandBufferPtr> m_LightingCommandBuffers;
+	std::vector<IKCommandBufferPtr> m_OctreeRayTestCommandBuffers;
 	IKCommandPoolPtr m_CommandPool;
 
 	IKRenderTargetPtr m_VoxelRenderPassTarget;
@@ -101,9 +109,12 @@ protected:
 	IKComputePipelinePtr m_MipmapBasePipeline;
 	IKComputePipelinePtr m_MipmapVolumePipeline;
 
-	IKShaderPtr m_LightPassVS;
+	IKShaderPtr m_QuadVS;
 	IKShaderPtr m_LightPassFS;
+	IKShaderPtr m_OctreeRayTestFS;
+
 	std::vector<IKPipelinePtr> m_LightPassPipelines;
+	std::vector<IKPipelinePtr> m_OctreeRayTestPipelines;
 
 	KVertexData m_VoxelDrawVertexData;
 
@@ -114,6 +125,7 @@ protected:
 	bool m_VoxelDebugUpdate;
 
 	KRTDebugDrawer m_LightDebugDrawer;
+	KRTDebugDrawer m_OctreeRayTestDebugDrawer;
 
 	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
 	void UpdateProjectionMatrices();
@@ -121,6 +133,7 @@ protected:
 	void SetupVoxelDrawPipeline();
 	void SetupRadiancePipeline();
 	void SetupMipmapPipeline();
+	void SetupQuadDrawData();
 	void SetupLightPassPipeline(uint32_t width, uint32_t height);
 
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
@@ -132,10 +145,14 @@ protected:
 
 	void SetupSparseVoxelBuffer();
 	void SetupOctreeBuildPipeline();
+	void SetupRayTestPipeline(uint32_t width, uint32_t height);
 	void VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, bool countOnly);
 	void BuildOctree(IKCommandBufferPtr commandBuffer);
 
 	void UpdateInternal();
+
+	bool UpdateLightingResult(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+	bool UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
 public:
 	KVoxilzer();
 	~KVoxilzer();
@@ -150,9 +167,13 @@ public:
 	bool DisableLightDebugDraw();
 	bool GetLightDebugRenderCommand(KRenderCommandList& commands);
 
+	bool EnableOctreeRayTestDebugDraw(float x, float y, float width, float height);
+	bool DisableOctreeRayTestDebugDraw();
+	bool GetOctreeRayTestRenderCommand(KRenderCommandList& commands);
+
 	void Resize(uint32_t width, uint32_t height);
 	bool RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
-	bool UpdateLighting(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+	bool UpdateFrame(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
 
 	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelAlbedo() { return m_VoxelAlbedo ? m_VoxelAlbedo->GetFrameBuffer() : nullptr; }
@@ -165,6 +186,6 @@ public:
 	IKStorageBufferPtr GetFragmentlistBuffer() { return m_FragmentlistBuffer; }
 	IKStorageBufferPtr GetCountOnlyBuffer() { return m_CountOnlyBuffer; }
 
-	bool Init(IKRenderScene* scene, uint32_t dimension, uint32_t width, uint32_t height);
+	bool Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t width, uint32_t height);
 	bool UnInit();
 };

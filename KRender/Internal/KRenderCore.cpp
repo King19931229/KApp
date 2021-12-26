@@ -128,7 +128,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
 	KRenderGlobal::CascadedShadowMap.Init(m_Device, frameInFlight, 3, 2048, 1.0f);
 
-	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, 128, (uint32_t)width, (uint32_t)height);
+	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 128, (uint32_t)width, (uint32_t)height);
 
 	// TODO
 	KRenderGlobal::FrameGraph.Compile();

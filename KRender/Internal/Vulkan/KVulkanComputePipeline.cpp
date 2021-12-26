@@ -658,7 +658,7 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 		VkBuffer indirectBuf = storageBuffer->GetVulkanHandle();
 		VkDeviceSize indirectSize = storageBuffer->GetBufferSize();
 
-		// Setup the indirect buffer biarrier
+		// Setup the indirect buffer barrier
 		{
 			VkBufferMemoryBarrier bufMemBarrier = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
 			bufMemBarrier.size = indirectSize;

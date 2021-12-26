@@ -600,6 +600,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		KRenderCommandList debugDrawCommands;
 		KRenderGlobal::RTAO.GetDebugRenderCommand(debugDrawCommands);
 		KRenderGlobal::Voxilzer.GetLightDebugRenderCommand(debugDrawCommands);
+		KRenderGlobal::Voxilzer.GetOctreeRayTestRenderCommand(debugDrawCommands);
 		for (KRenderCommand& command : debugDrawCommands)
 		{
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
@@ -692,7 +693,7 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 	primaryCommandBuffer->BeginPrimary();
 	{
 		KRenderGlobal::GBuffer.UpdateGBuffer(primaryCommandBuffer, frameIndex);
-		KRenderGlobal::Voxilzer.UpdateLighting(primaryCommandBuffer, frameIndex);
+		KRenderGlobal::Voxilzer.UpdateFrame(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::RTAO.Execute(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_Camera, frameIndex, primaryCommandBuffer);
