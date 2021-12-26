@@ -82,6 +82,8 @@ protected:
 	uint32_t m_NumMipmap;
 	uint32_t m_OctreeLevel;
 	glm::vec3 m_VolumeCenter;
+	glm::vec3 m_VolumeMin;
+	glm::vec3 m_VolumeMax;
 	float m_VolumeGridSize;
 	float m_VoxelSize;
 
@@ -160,6 +162,7 @@ public:
 	void Update();
 	void ReloadShader();
 
+	bool& VoxelDrawEnable() { return m_VoxelDrawEnable; }
 	inline bool IsVoxelDrawEnable() const { return m_VoxelDrawEnable; }
 	inline void SetVoxelDrawEnable(bool enable) { m_VoxelDrawEnable = enable; }
 

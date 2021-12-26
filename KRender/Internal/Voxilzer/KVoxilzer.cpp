@@ -112,6 +112,10 @@ void KVoxilzer::ReloadShader()
 	{
 		pipeline->Reload();
 	}
+	for (IKPipelinePtr& pipeline : m_OctreeRayTestPipelines)
+	{
+		pipeline->Reload();
+	}
 	m_InjectRadiancePipeline->ReloadShader();
 	m_InjectPropagationPipeline->ReloadShader();
 	m_MipmapBasePipeline->ReloadShader();
@@ -129,6 +133,9 @@ void KVoxilzer::UpdateProjectionMatrices()
 	const glm::vec3 max = sceneBox.GetMax();
 
 	m_VolumeCenter = center;
+	m_VolumeMin = min;
+	m_VolumeMax = max;
+
 	m_VolumeGridSize = glm::max(axisSize.x, glm::max(axisSize.y, axisSize.z));
 	m_VoxelSize = m_VolumeGridSize / m_VolumeDimension;
 	float halfSize = m_VolumeGridSize / 2.0f;
@@ -876,20 +883,22 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint3
 
 		IKStorageBufferPtr cameraBuffer = m_OctreeCameraBuffers[frameIndex];
 
-		glm::vec4 cameraInfo[4] = {};
+		glm::vec4 cameraInfo[5] = {};
 		cameraInfo[0] = glm::vec4(m_Camera->GetPosition(), 1.0f);
 		cameraInfo[1] = glm::vec4(m_Camera->GetForward(), 0.0f);
-		cameraInfo[2] = glm::vec4(-m_Camera->GetRight(), 0.0f);
+		cameraInfo[2] = glm::vec4(m_Camera->GetRight(), 0.0f);
 		cameraInfo[3] = glm::vec4(m_Camera->GetUp(), 0.0f);
 
-		glm::mat4 transform = glm::translate(glm::mat4(1.0f), -m_VolumeCenter);
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), -m_VolumeMin);
 		transform = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / m_VolumeGridSize)) * transform;
-		transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f)) * transform;
+		transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f)) * transform;
 
 		cameraInfo[0] = transform * cameraInfo[0];
 		cameraInfo[1] = glm::normalize(transform * cameraInfo[1]);
 		cameraInfo[2] = glm::normalize(transform * cameraInfo[2]);
 		cameraInfo[3] = glm::normalize(transform * cameraInfo[3]);
+		cameraInfo[4][0] = m_Camera->GetAspect();
+		cameraInfo[4][1] = tan(m_Camera->GetFov() * 0.5f);
 
 		cameraBuffer->Write(cameraInfo);
 
@@ -950,7 +959,7 @@ void KVoxilzer::SetupSparseVoxelBuffer()
 	m_OctreeBuffer->InitMemory(sizeof(fragmentDummy), fragmentDummy);
 	m_OctreeBuffer->InitDevice(false);
 
-	glm::vec4 cameraDummy[4] = { glm::vec4(0, 0, 0, 0), glm::vec4(0, 0, -1, 0), glm::vec4(1, 0, 0, 0), glm::vec4(0, 1, 0, 0) };
+	glm::vec4 cameraDummy[5] = { glm::vec4(0, 0, 0, 0), glm::vec4(0, 0, -1, 0), glm::vec4(1, 0, 0, 0), glm::vec4(0, 1, 0, 0), glm::vec4(0, 0, 0, 0) };
 	for (IKStorageBufferPtr buff : m_OctreeCameraBuffers)
 	{
 		buff->InitMemory(sizeof(cameraDummy), cameraDummy);

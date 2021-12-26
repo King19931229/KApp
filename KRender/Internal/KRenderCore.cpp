@@ -626,6 +626,10 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 					ui->SliderInt("Attenuate based on distance", &KRenderGlobal::RTAO.GetAoParameters().rtao_distance_based, 0, 1);
 					ui->SliderInt("Max samples before it stops", &KRenderGlobal::RTAO.GetAoParameters().max_samples, 1, 1000);
 				}
+				if (ui->Header("VXGI"))
+				{
+					ui->CheckBox("VoxelDraw", &KRenderGlobal::Voxilzer.VoxelDrawEnable());
+				}
 			}
 			ui->PopItemWidth();
 		}
