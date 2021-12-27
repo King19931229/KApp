@@ -137,7 +137,7 @@ void main()
 		Out.position = pos[i].xyz;
 		Out.normal = In[i].normal;
 		Out.texCoord = texCoord[i];
-		Out.wsPosition = voxelPos.xyz * (volumeDimension - 1);
+		Out.wsPosition = voxelPos.xyz * volumeDimension;
 
 		EmitVertex();
 	}

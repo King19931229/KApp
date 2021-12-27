@@ -889,16 +889,20 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint3
 		cameraInfo[2] = glm::vec4(m_Camera->GetRight(), 0.0f);
 		cameraInfo[3] = glm::vec4(m_Camera->GetUp(), 0.0f);
 
+		// 转换到[0,1]空间里
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), -m_VolumeMin);
 		transform = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / m_VolumeGridSize)) * transform;
+		// 平移到[1,2]空间里
 		transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f)) * transform;
 
 		cameraInfo[0] = transform * cameraInfo[0];
 		cameraInfo[1] = glm::normalize(transform * cameraInfo[1]);
 		cameraInfo[2] = glm::normalize(transform * cameraInfo[2]);
 		cameraInfo[3] = glm::normalize(transform * cameraInfo[3]);
-		cameraInfo[4][0] = m_Camera->GetAspect();
+
+		cameraInfo[4][0] = m_Camera->GetNear();
 		cameraInfo[4][1] = tan(m_Camera->GetFov() * 0.5f);
+		cameraInfo[4][2] = m_Camera->GetAspect();
 
 		cameraBuffer->Write(cameraInfo);
 

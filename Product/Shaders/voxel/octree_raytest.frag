@@ -8,10 +8,19 @@ layout(binding = OCTREE_BINDING_CAMERA) readonly buffer uuCamera { vec4 uPositio
 
 #include "octree_util.h"
 
+#define near uMiscs[0]
+#define tanHalfFov uMiscs[1]
+#define aspect uMiscs[2]
+
 vec3 GenRay()
 {
 	vec2 coord = texCoord * 2.0f - 1.0f;
-	return normalize(uLook.xyz + uSide.xyz * coord.x * 0.5 * uMiscs[0] - uUp.xyz * coord.y * uMiscs[1]);
+
+	float yLen = near * tanHalfFov;
+	float xLen = yLen * aspect;
+	float zLen = near;
+
+	return normalize(uLook.xyz * zLen + uSide.xyz * coord.x * xLen - uUp.xyz * coord.y * yLen);
 }
 
 void main()
