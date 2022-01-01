@@ -36,6 +36,7 @@ protected:
 	std::unordered_map<ElementFormat, VkImageView> m_ReinterpretImageView;
 
 	std::vector<VkImageView> CreateMipmapImageViews(VkFormat format);
+	bool InitStorageInternal(VkFormat format, TextureType type, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
 public:
 	KVulkanFrameBuffer();
 	~KVulkanFrameBuffer();
@@ -51,8 +52,9 @@ public:
 	bool InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t msaa);
 	// 创建为DepthStencilAttachment
 	bool InitDepthStencil(uint32_t width, uint32_t height, uint32_t msaa, bool stencil);
-	// 创建为RayTracingStorage
-	bool InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
+	// 创建为StorageImage
+	bool InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t mipmaps);
+	bool InitStorage3D(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
 
 	bool UnInit();
 

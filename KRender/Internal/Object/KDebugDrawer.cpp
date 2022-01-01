@@ -80,11 +80,16 @@ KRTDebugDrawer::~KRTDebugDrawer()
 	ASSERT_RESULT(!m_Target);
 }
 
-bool KRTDebugDrawer::Init(IKRenderTargetPtr target)
+bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float width, float height)
 {
 	UnInit();
 
 	m_Target = target;
+
+	m_Rect.x = x;
+	m_Rect.y = y;
+	m_Rect.w = width;
+	m_Rect.h = height;
 
 	KRenderGlobal::RenderDevice->CreatePipeline(m_Pipeline);
 
@@ -112,12 +117,8 @@ bool KRTDebugDrawer::UnInit()
 	return true;
 }
 
-void KRTDebugDrawer::EnableDraw(float x, float y, float width, float height)
+void KRTDebugDrawer::EnableDraw()
 {
-	m_Rect.x = x;
-	m_Rect.y = y;
-	m_Rect.w = width;
-	m_Rect.h = height;
 	m_Enable = true;
 }
 

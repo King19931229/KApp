@@ -9,7 +9,7 @@ struct IKRayTraceScene
 	virtual bool Init(IKRenderScene* scene, const KCamera* camera, IKRayTracePipelinePtr& pipeline) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool UpdateCamera(uint32_t frameIndex) = 0;
-	virtual bool EnableDebugDraw(float x, float y, float width, float height) = 0;
+	virtual bool EnableDebugDraw() = 0;
 	virtual bool DisableDebugDraw() = 0;
 	virtual bool EnableAutoUpdateImageSize(float scale) = 0;
 	virtual bool EnableCustomImageSize(uint32_t width, uint32_t height) = 0;

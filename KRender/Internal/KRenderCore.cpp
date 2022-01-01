@@ -542,7 +542,7 @@ bool KRenderCore::UnRegistertAllInitCallback()
 bool KRenderCore::InitRTAO(IKRayTraceScenePtr scene)
 {
 	KRenderGlobal::RTAO.Init(scene.get());
-	KRenderGlobal::RTAO.EnableDebugDraw(0.0f, 0.0f, 1.0f, 1.0f);
+	KRenderGlobal::RTAO.EnableDebugDraw();
 	return true;
 }
 
@@ -628,7 +628,11 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 				}
 				if (ui->Header("VXGI"))
 				{
-					ui->CheckBox("VoxelDraw", &KRenderGlobal::Voxilzer.VoxelDrawEnable());
+					ui->CheckBox("DebugUpdate", &KRenderGlobal::Voxilzer.GetVoxelDebugUpdate());
+					ui->CheckBox("VoxelDraw", &KRenderGlobal::Voxilzer.GetVoxelDrawEnable());
+					ui->CheckBox("VoxelDrawWireFrame", &KRenderGlobal::Voxilzer.GetVoxelDrawWireFrame());
+					ui->CheckBox("LightDraw", &KRenderGlobal::Voxilzer.GetLightDebugDrawEnable());
+					ui->CheckBox("OctreeRayTestDraw", &KRenderGlobal::Voxilzer.GetOctreeRayTestDrawEnable());
 				}
 			}
 			ui->PopItemWidth();

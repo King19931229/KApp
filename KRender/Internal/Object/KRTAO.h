@@ -94,7 +94,7 @@ public:
 	bool Init(IKRayTraceScene* scene);
 	bool UnInit();
 
-	virtual bool EnableDebugDraw(float x, float y, float width, float height);
+	virtual bool EnableDebugDraw();
 	virtual bool DisableDebugDraw();
 
 	virtual bool GetDebugRenderCommand(KRenderCommandList& commands);

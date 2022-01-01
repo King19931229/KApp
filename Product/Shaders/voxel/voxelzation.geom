@@ -100,6 +100,8 @@ void main()
 	if(trianglePlane.z == 0.0f) return;
 	// expanded aabb for triangle
 	Out.triangleAABB = AxisAlignedBoundingBox(pos, halfPixel);
+#if 0
+	// https://github.com/AdamYuan/SparseVoxelOctree/blob/master/shader/voxelizer.geom
 	// calculate the plane through each edge of the triangle
 	// in normal form for dilatation of the triangle
 	vec3 planes[3];
@@ -125,6 +127,22 @@ void main()
 	pos[0].xyz = vec3(intersection[0].xy, z[0]);
 	pos[1].xyz = vec3(intersection[1].xy, z[1]);
 	pos[2].xyz = vec3(intersection[2].xy, z[2]);
+#else
+	// https://github.com/otaku690/SparseVoxelOctree/blob/master/WIN/SVO/shader/voxelize.geom.glsl
+	float pl = 1.4142135637309 / volumeDimension;
+
+	vec3 e0 = vec3(pos[1].xy - pos[0].xy, 0);
+	vec3 e1 = vec3(pos[2].xy - pos[1].xy, 0);
+	vec3 e2 = vec3(pos[0].xy - pos[2].xy, 0);
+	vec3 n0 = cross(e0, vec3(0, 0, 1));
+	vec3 n1 = cross(e1, vec3(0, 0, 1));
+	vec3 n2 = cross(e2, vec3(0, 0, 1));
+
+	// dilate the triangle
+	pos[0].xy = pos[0].xy + pl * ((e2.xy / dot(e2.xy, n0.xy)) + (e0.xy / dot(e0.xy, n2.xy)));
+	pos[1].xy = pos[1].xy + pl * ((e0.xy / dot(e0.xy, n1.xy)) + (e1.xy / dot(e1.xy, n0.xy)));
+	pos[2].xy = pos[2].xy + pl * ((e1.xy / dot(e1.xy, n2.xy)) + (e2.xy / dot(e2.xy, n1.xy)));
+#endif
 
 	for(int i = 0; i < 3; ++i)
 	{

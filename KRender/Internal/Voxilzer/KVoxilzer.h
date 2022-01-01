@@ -101,9 +101,11 @@ protected:
 
 	IKShaderPtr m_VoxelDrawVS;
 	IKShaderPtr m_VoxelDrawGS;
+	IKShaderPtr m_VoxelWireFrameDrawGS;
 	IKShaderPtr m_VoxelDrawFS;
 
 	std::vector<IKPipelinePtr> m_VoxelDrawPipelines;
+	std::vector<IKPipelinePtr> m_VoxelWireFrameDrawPipelines;
 
 	IKComputePipelinePtr m_InjectRadiancePipeline;
 	IKComputePipelinePtr m_InjectPropagationPipeline;
@@ -124,6 +126,7 @@ protected:
 
 	bool m_InjectFirstBounce;
 	bool m_VoxelDrawEnable;
+	bool m_VoxelDrawWireFrame;
 	bool m_VoxelDebugUpdate;
 
 	KRTDebugDrawer m_LightDebugDrawer;
@@ -162,15 +165,26 @@ public:
 	void Update();
 	void ReloadShader();
 
-	bool& VoxelDrawEnable() { return m_VoxelDrawEnable; }
+	bool& GetVoxelDebugUpdate() { return m_VoxelDebugUpdate; }
+	bool& GetVoxelDrawEnable() { return m_VoxelDrawEnable; }
+	bool& GetVoxelDrawWireFrame() { return m_VoxelDrawWireFrame; }
+	bool& GetLightDebugDrawEnable() { return m_LightDebugDrawer.GetEnable(); }
+	bool& GetOctreeRayTestDrawEnable() { return m_OctreeRayTestDebugDrawer.GetEnable(); }
+
+	inline bool IsVoxelDebugUpdate() const { return m_VoxelDebugUpdate; }
+	inline void SetVoxelDebugUpdate(bool enable) { m_VoxelDebugUpdate = enable; }
+
 	inline bool IsVoxelDrawEnable() const { return m_VoxelDrawEnable; }
 	inline void SetVoxelDrawEnable(bool enable) { m_VoxelDrawEnable = enable; }
 
-	bool EnableLightDebugDraw(float x, float y, float width, float height);
+	inline bool IsVoxelDrawWireFrame() const { return m_VoxelDrawWireFrame; }
+	inline void SetVoxelDrawWireFrame(bool wireframe) { m_VoxelDrawWireFrame = wireframe; }
+
+	bool EnableLightDebugDraw();
 	bool DisableLightDebugDraw();
 	bool GetLightDebugRenderCommand(KRenderCommandList& commands);
 
-	bool EnableOctreeRayTestDebugDraw(float x, float y, float width, float height);
+	bool EnableOctreeRayTestDebugDraw();
 	bool DisableOctreeRayTestDebugDraw();
 	bool GetOctreeRayTestRenderCommand(KRenderCommandList& commands);
 

@@ -49,7 +49,7 @@ void KVulkanRayTracePipeline::DestroyAccelerationStructure()
 void KVulkanRayTracePipeline::CreateStorageImage()
 {
 	ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_StorageRT));
-	ASSERT_RESULT(m_StorageRT->InitFromStorage(m_Width, m_Height, 1, 1, m_Format));
+	ASSERT_RESULT(m_StorageRT->InitFromStorage(m_Width, m_Height, 1, m_Format));
 }
 
 void KVulkanRayTracePipeline::DestroyStorageImage()
@@ -521,7 +521,7 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 		KRenderGlobal::RenderDevice->Wait();
 
 		m_StorageRT->UnInit();
-		m_StorageRT->InitFromStorage(m_Width, m_Height, 1, 1, m_Format);
+		m_StorageRT->InitFromStorage(m_Width, m_Height, 1, m_Format);
 
 		uint32_t frames = KRenderGlobal::RenderDevice->GetNumFramesInFlight();
 		for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)

@@ -144,7 +144,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 		}
 	}
 
-	m_DebugDrawer.Init(m_ComposedTarget);
+	m_DebugDrawer.Init(m_ComposedTarget, 0, 0, 1, 1);
 	return true;
 }
 
@@ -173,9 +173,9 @@ bool KRTAO::UnInit()
 	return true;
 }
 
-bool KRTAO::EnableDebugDraw(float x, float y, float width, float height)
+bool KRTAO::EnableDebugDraw()
 {
-	m_DebugDrawer.EnableDraw(x, y, width, height);
+	m_DebugDrawer.EnableDraw();
 	return true;
 }
 
@@ -262,30 +262,30 @@ void KRTAO::UpdateSize()
 		}
 
 		m_NormalDepthTarget[0]->UnInit();
-		m_NormalDepthTarget[0]->InitFromStorage(m_Width, m_Height, 1, 1, EF_R32G32B32A32_FLOAT);
+		m_NormalDepthTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R32G32B32A32_FLOAT);
 		m_NormalDepthTarget[1]->UnInit();
-		m_NormalDepthTarget[1]->InitFromStorage(m_Width, m_Height, 1, 1, EF_R32G32B32A32_FLOAT);
+		m_NormalDepthTarget[1]->InitFromStorage(m_Width, m_Height, 1, EF_R32G32B32A32_FLOAT);
 
 		m_RenderTarget[0]->UnInit();
-		m_RenderTarget[0]->InitFromStorage(m_Width, m_Height, 1, 1, EF_R32G32_FLOAT);
+		m_RenderTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R32G32_FLOAT);
 		m_RenderTarget[1]->UnInit();
-		m_RenderTarget[1]->InitFromStorage(m_Width, m_Height, 1, 1, EF_R32G32_FLOAT);
+		m_RenderTarget[1]->InitFromStorage(m_Width, m_Height, 1, EF_R32G32_FLOAT);
 
 		m_CurrentTarget->UnInit();
-		m_CurrentTarget->InitFromStorage(m_Width, m_Height, 1, 1, EF_R16G16_FLOAT);
+		m_CurrentTarget->InitFromStorage(m_Width, m_Height, 1,EF_R16G16_FLOAT);
 
 		m_AtrousTarget->UnInit();
-		m_AtrousTarget->InitFromStorage(m_Width, m_Height, 1, 1, EF_R16_FLOAT);
+		m_AtrousTarget->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
 
 		m_ComposedTarget->UnInit();
-		m_ComposedTarget->InitFromStorage(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+		m_ComposedTarget->InitFromStorage(m_Width, m_Height, 1, EF_R16G16B16A16_FLOAT);
 
 		m_TemporalMeanSqaredMean->UnInit();
-		m_TemporalMeanSqaredMean->InitFromStorage(m_Width, m_Height, 1, 1, EF_R16G16_FLOAT);
+		m_TemporalMeanSqaredMean->InitFromStorage(m_Width, m_Height, 1, EF_R16G16_FLOAT);
 
 		m_MeanVarianceTarget[0]->UnInit();
-		m_MeanVarianceTarget[0]->InitFromStorage(m_Width, m_Height, 1, 1, EF_R16G16_FLOAT);
+		m_MeanVarianceTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16_FLOAT);
 		m_MeanVarianceTarget[1]->UnInit();
-		m_MeanVarianceTarget[1]->InitFromStorage(m_Width, m_Height, 1, 1, EF_R16G16_FLOAT);
+		m_MeanVarianceTarget[1]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16_FLOAT);
 	}
 }

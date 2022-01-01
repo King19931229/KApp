@@ -111,7 +111,7 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTrac
 		pipeline->Init(m_CameraBuffers, m_Width, m_Height);
 		m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
 
-		m_DebugDrawer.Init(m_Pipeline->GetStorageTarget());
+		m_DebugDrawer.Init(m_Pipeline->GetStorageTarget(), 0, 0, 1, 1);
 
 		return true;
 	}
@@ -152,9 +152,9 @@ bool KRayTraceScene::UpdateCamera(uint32_t frameIndex)
 	return false;
 }
 
-bool KRayTraceScene::EnableDebugDraw(float x, float y, float width, float height)
+bool KRayTraceScene::EnableDebugDraw()
 {
-	m_DebugDrawer.EnableDraw(x, y, width, height);
+	m_DebugDrawer.EnableDraw();
 	return true;
 }
 

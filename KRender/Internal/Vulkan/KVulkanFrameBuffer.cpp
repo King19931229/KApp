@@ -212,7 +212,7 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	return true;
 }
 
-bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps)
+bool KVulkanFrameBuffer::InitStorageInternal(VkFormat format, TextureType type, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps)
 {
 	UnInit();
 
@@ -234,10 +234,7 @@ bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t h
 
 	m_ImageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-	ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(
-		m_Depth > 1 ? TT_TEXTURE_3D : TT_TEXTURE_2D,
-		m_ImageType,
-		m_ImageViewType));
+	ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(type, m_ImageType, m_ImageViewType));
 
 	{
 		KVulkanInitializer::CreateVkImage(m_Width,
@@ -261,6 +258,16 @@ bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t h
 	}
 
 	return true;
+}
+
+bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t mipmaps)
+{
+	return InitStorageInternal(format, TT_TEXTURE_2D, width, height, 1, mipmaps);
+}
+
+bool KVulkanFrameBuffer::InitStorage3D(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps)
+{
+	return InitStorageInternal(format, TT_TEXTURE_3D, width, height, depth, mipmaps);
 }
 
 std::vector<VkImageView> KVulkanFrameBuffer::CreateMipmapImageViews(VkFormat vkFormat)

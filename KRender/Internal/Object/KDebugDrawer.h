@@ -48,10 +48,11 @@ public:
 	KRTDebugDrawer();
 	~KRTDebugDrawer();
 
-	bool Init(IKRenderTargetPtr target);
+	bool Init(IKRenderTargetPtr target, float x, float y, float width, float height);
 	bool UnInit();
 
-	void EnableDraw(float x, float y, float width, float height);
+	bool& GetEnable() { return m_Enable; }
+	void EnableDraw();
 	void DisableDraw();
 
 	bool GetDebugRenderCommand(KRenderCommandList& commands);

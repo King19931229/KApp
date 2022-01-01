@@ -610,14 +610,11 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		AssignRenderCommand(frameIndex, context);
 		SumbitRenderCommand(frameIndex, context);
 
-		if (!KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
+		for (RenderStage stage : {RENDER_STAGE_PRE_Z, RENDER_STAGE_DEFAULT})
 		{
-			for (RenderStage stage : {RENDER_STAGE_PRE_Z, RENDER_STAGE_DEFAULT})
+			if (!context.buffer[stage].empty())
 			{
-				if (!context.buffer[stage].empty())
-				{
-					primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
-				}
+				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
 			}
 		}
 
