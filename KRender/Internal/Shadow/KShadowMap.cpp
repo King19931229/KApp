@@ -112,7 +112,7 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 		// 更新RenderTarget
 		{
 			std::vector<KRenderComponent*> cullRes;
-			KRenderGlobal::Scene.GetRenderComponent(m_Camera, cullRes);
+			KRenderGlobal::Scene.GetRenderComponent(m_Camera, false, cullRes);
 
 			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 

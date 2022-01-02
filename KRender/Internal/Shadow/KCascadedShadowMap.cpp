@@ -572,12 +572,12 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 		Cascade& cascaded = m_Cascadeds[cascadedIndex];
 
 		std::vector<KRenderComponent*> litCullRes;
-		KRenderGlobal::Scene.GetRenderComponent(cascaded.litBox, litCullRes);
+		KRenderGlobal::Scene.GetRenderComponent(cascaded.litBox, false, litCullRes);
 
 		if (m_MinimizeShadowDraw)
 		{
 			std::vector<KRenderComponent*> frustumCullRes;
-			KRenderGlobal::Scene.GetRenderComponent(cascaded.frustumBox, frustumCullRes);
+			KRenderGlobal::Scene.GetRenderComponent(cascaded.frustumBox, false, frustumCullRes);
 
 			std::vector<KRenderComponent*> newLitCullRes;
 

@@ -10,7 +10,6 @@ class KRenderScene : public IKRenderScene
 {
 protected:
 	KSceneManagerBase* m_SceneMgr;
-	bool m_EnableDebugRender;
 	std::unordered_set<EntityObserverFunc*> m_Observers;
 
 	void OnEntityChange(EntitySceneOp op, IKEntityPtr entity);
@@ -28,8 +27,8 @@ public:
 	bool RegisterEntityObserver(EntityObserverFunc* func) override;
 	bool UnRegisterEntityObserver(EntityObserverFunc* func) override;
 
-	bool GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result);
-	bool GetRenderComponent(const KAABBBox& bound, std::vector<KRenderComponent*>& result);
+	bool GetRenderComponent(const KCamera& camera, bool withDebug, std::vector<KRenderComponent*>& result);
+	bool GetRenderComponent(const KAABBBox& bound, bool withDebug, std::vector<KRenderComponent*>& result);
 
 	bool GetSceneObjectBound(KAABBBox& box);
 
@@ -40,8 +39,6 @@ public:
 
 	bool RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result) override;
 	bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result) override;
-
-	void EnableDebugRender(bool enable) override { m_EnableDebugRender = enable; }
 
 	bool GetAllEntities(std::vector<IKEntityPtr>& result) override;
 };

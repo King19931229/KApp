@@ -64,6 +64,8 @@ namespace KRenderGlobal
 
 	extern KStatistics Statistics;
 
+	extern bool EnableDebugRender;
+
 	extern uint32_t CurrentFrameIndex;
 	extern uint32_t CurrentFrameNum;
 

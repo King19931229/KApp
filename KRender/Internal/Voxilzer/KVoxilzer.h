@@ -107,6 +107,8 @@ protected:
 	std::vector<IKPipelinePtr> m_VoxelDrawPipelines;
 	std::vector<IKPipelinePtr> m_VoxelWireFrameDrawPipelines;
 
+	IKComputePipelinePtr m_ClearDynamicPipeline;
+
 	IKComputePipelinePtr m_InjectRadiancePipeline;
 	IKComputePipelinePtr m_InjectPropagationPipeline;
 
@@ -128,6 +130,7 @@ protected:
 	bool m_VoxelDrawEnable;
 	bool m_VoxelDrawWireFrame;
 	bool m_VoxelDebugUpdate;
+	bool m_VoxelNeedUpdate;
 
 	KRTDebugDrawer m_LightDebugDrawer;
 	KRTDebugDrawer m_OctreeRayTestDebugDrawer;
@@ -136,11 +139,13 @@ protected:
 	void UpdateProjectionMatrices();
 	void SetupVoxelVolumes(uint32_t dimension);
 	void SetupVoxelDrawPipeline();
+	void SetupClearDynamicPipeline();
 	void SetupRadiancePipeline();
 	void SetupMipmapPipeline();
 	void SetupQuadDrawData();
 	void SetupLightPassPipeline(uint32_t width, uint32_t height);
 
+	void ClearDynamicScene(IKCommandBufferPtr commandBuffer);
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
 	void UpdateRadiance(IKCommandBufferPtr commandBuffer);
 	void InjectRadiance(IKCommandBufferPtr commandBuffer);
@@ -162,7 +167,7 @@ public:
 	KVoxilzer();
 	~KVoxilzer();
 
-	void Update();
+	void UpdateVoxel();
 	void ReloadShader();
 
 	bool& GetVoxelDebugUpdate() { return m_VoxelDebugUpdate; }

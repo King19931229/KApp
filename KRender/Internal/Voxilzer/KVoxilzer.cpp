@@ -85,15 +85,20 @@ void KVoxilzer::UpdateInternal()
 
 void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 {
-	// TODO 每帧只更新一次
-	UpdateInternal();
+	// TODO
+	if (!entity->HasComponent(CT_RENDER))
+	{
+		return;
+	}
+	m_VoxelNeedUpdate = true;
 }
 
-void KVoxilzer::Update()
+void KVoxilzer::UpdateVoxel()
 {
-	if (m_VoxelDebugUpdate)
+	if (m_VoxelDebugUpdate || m_VoxelNeedUpdate)
 	{
 		UpdateInternal();
+		m_VoxelNeedUpdate = false;
 	}
 }
 
@@ -122,6 +127,7 @@ void KVoxilzer::ReloadShader()
 	{
 		pipeline->Reload();
 	}
+	m_ClearDynamicPipeline->ReloadShader();
 	m_InjectRadiancePipeline->ReloadShader();
 	m_InjectPropagationPipeline->ReloadShader();
 	m_MipmapBasePipeline->ReloadShader();
@@ -343,6 +349,20 @@ void KVoxilzer::SetupVoxelDrawPipeline()
 	m_VoxelDrawVertexData.vertexStart = 0;
 }
 
+void KVoxilzer::SetupClearDynamicPipeline()
+{
+	IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(0, CBT_VOXEL);
+
+	m_ClearDynamicPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL, voxelBuffer);
+
+	m_ClearDynamicPipeline->BindStorageImage(VOXEL_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
+	m_ClearDynamicPipeline->BindStorageImage(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
+	m_ClearDynamicPipeline->BindStorageImage(VOXEL_BINDING_EMISSION, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
+	m_ClearDynamicPipeline->BindStorageImage(VOXEL_BINDING_STATIC_FLAG, m_StaticFlag->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
+
+	m_ClearDynamicPipeline->Init("voxel/clear_dynamic.comp");
+}
+
 void KVoxilzer::SetupRadiancePipeline()
 {
 	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(0, CBT_GLOBAL);
@@ -438,6 +458,18 @@ void KVoxilzer::Resize(uint32_t width, uint32_t height)
 	m_OctreeRayTestPass->SetColorAttachment(0, m_OctreeRayTestTarget->GetFrameBuffer());
 	m_OctreeRayTestPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_OctreeRayTestPass->Init();
+
+	// 清空RenderTarget同时Translate Layout到Shader可读
+	m_PrimaryCommandBuffer->BeginPrimary();
+
+	m_PrimaryCommandBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
+	m_PrimaryCommandBuffer->EndRenderPass();
+
+	m_PrimaryCommandBuffer->BeginRenderPass(m_OctreeRayTestPass, SUBPASS_CONTENTS_INLINE);
+	m_PrimaryCommandBuffer->EndRenderPass();
+
+	m_PrimaryCommandBuffer->End();
+	m_PrimaryCommandBuffer->Flush();
 }
 
 void KVoxilzer::SetupQuadDrawData()
@@ -545,13 +577,20 @@ void KVoxilzer::SetupRayTestPipeline(uint32_t width, uint32_t height)
 	}
 }
 
+void KVoxilzer::ClearDynamicScene(IKCommandBufferPtr commandBuffer)
+{
+	uint32_t group = (m_VolumeDimension + (GROUP_SIZE - 1)) / GROUP_SIZE;
+	m_ClearDynamicPipeline->Execute(commandBuffer, group, group, group, 0);
+}
+
 void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 {
 	KAABBBox sceneBox;
 	m_Scene->GetSceneObjectBound(sceneBox);
 
+	// TODO
 	std::vector<KRenderComponent*> cullRes;
-	((KRenderScene*)m_Scene)->GetRenderComponent(sceneBox, cullRes);
+	((KRenderScene*)m_Scene)->GetRenderComponent(sceneBox, false, cullRes);
 
 	if (cullRes.size() == 0) return;
 
@@ -600,12 +639,7 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 	m_Scene->GetSceneObjectBound(sceneBox);
 
 	std::vector<KRenderComponent*> cullRes;
-	((KRenderScene*)m_Scene)->GetRenderComponent(sceneBox, cullRes);
-
-	if (cullRes.size() == 0) return;
-
-	commandBuffer->BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
-	commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
+	((KRenderScene*)m_Scene)->GetRenderComponent(sceneBox, false, cullRes);
 
 	uint32_t counter = 0;
 	uint32_t countOnly = bCountOnly;
@@ -631,6 +665,11 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 
 	m_CounterBuffer->Write(&counter);
 	m_CountOnlyBuffer->Write(&countOnly);
+
+	if (cullRes.size() == 0) return;
+
+	commandBuffer->BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
+	commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
 
 	std::vector<KRenderCommand> commands;
 	for (KRenderComponent* render : cullRes)
@@ -672,6 +711,8 @@ inline static constexpr uint32_t group_x_64(uint32_t x) { return (x >> 6u) + ((x
 
 void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 {
+	KRenderGlobal::RenderDevice->Wait();
+
 	uint32_t fragmentCount = 0;
 	m_CounterBuffer->Read(&fragmentCount);
 
@@ -903,7 +944,8 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint3
 
 		// 转换到[0,1]空间里
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), -m_VolumeMin);
-		transform = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / m_VolumeGridSize)) * transform;
+		// 小心除0
+		transform = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / std::max(m_VolumeGridSize, 1e-5f))) * transform;
 		// 平移到[1,2]空间里
 		transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f)) * transform;
 
@@ -1079,6 +1121,7 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 		m_OctreeRayTestCommandBuffers[frameIndex]->Init(m_CommandPool, CBL_SECONDARY);
 	}
 
+	renderDevice->CreateComputePipeline(m_ClearDynamicPipeline);
 	renderDevice->CreateComputePipeline(m_InjectRadiancePipeline);
 	renderDevice->CreateComputePipeline(m_InjectPropagationPipeline);
 
@@ -1108,6 +1151,7 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 
 	SetupVoxelVolumes(dimension);
 	SetupVoxelDrawPipeline();
+	SetupClearDynamicPipeline();
 	SetupRadiancePipeline();
 	SetupMipmapPipeline();
 	SetupLightPassPipeline(width, height);
@@ -1154,6 +1198,7 @@ bool KVoxilzer::UnInit()
 	SAFE_UNINIT_CONTAINER(m_LightPassPipelines);
 	SAFE_UNINIT_CONTAINER(m_OctreeRayTestPipelines);
 
+	SAFE_UNINIT(m_ClearDynamicPipeline);
 	SAFE_UNINIT(m_InjectRadiancePipeline);
 	SAFE_UNINIT(m_InjectPropagationPipeline);
 

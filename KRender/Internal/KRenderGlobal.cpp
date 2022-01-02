@@ -31,6 +31,8 @@ namespace KRenderGlobal
 
 	KStatistics Statistics;
 
+	bool EnableDebugRender = false;
+
 	uint32_t CurrentFrameIndex = 0;
 	uint32_t CurrentFrameNum = 0;
 

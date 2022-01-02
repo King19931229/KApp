@@ -41,8 +41,6 @@ struct IKRenderScene
 	virtual bool RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result) = 0;
 	virtual bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result) = 0;
 
-	virtual void EnableDebugRender(bool enable) = 0;
-
 	virtual bool GetAllEntities(std::vector<IKEntityPtr>& result) = 0;
 };
 

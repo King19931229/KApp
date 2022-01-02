@@ -134,7 +134,7 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 		m_Statistics.Reset();
 
 		std::vector<KRenderComponent*> cullRes;
-		KRenderGlobal::Scene.GetRenderComponent(*m_Camera, cullRes);
+		KRenderGlobal::Scene.GetRenderComponent(*m_Camera, false, cullRes);
 
 		KRenderUtil::MeshMaterialInstanceGroup meshMaterialGroups;
 		KRenderUtil::CalculateInstanceGroupByMaterial(cullRes, false, meshMaterialGroups);

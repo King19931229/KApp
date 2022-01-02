@@ -675,7 +675,7 @@ void KRenderCore::OnPrePresent(uint32_t chainIndex, uint32_t frameIndex)
 	UpdateController();
 	UpdateGizmo();
 
-	KRenderGlobal::Scene.EnableDebugRender(m_OctreeDebugDraw);
+	KRenderGlobal::EnableDebugRender = m_OctreeDebugDraw;
 	KRenderGlobal::RenderDispatcher.SetMultiThreadSubmit(m_MultiThreadSubmit);
 	KRenderGlobal::RenderDispatcher.SetInstanceSubmit(m_InstanceSubmit);
 	m_CameraMoveController.SetEnable(m_MouseCtrlCamera);

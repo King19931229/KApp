@@ -7,8 +7,7 @@ EXPORT_DLL IKRenderScenePtr CreateRenderScene()
 }
 
 KRenderScene::KRenderScene()
-	: m_SceneMgr(nullptr),
-	m_EnableDebugRender(false)
+	: m_SceneMgr(nullptr)
 {
 }
 
@@ -124,14 +123,14 @@ bool KRenderScene::UnRegisterEntityObserver(EntityObserverFunc* func)
 	}
 }
 
-bool KRenderScene::GetRenderComponent(const KCamera& camera, std::vector<KRenderComponent*>& result)
+bool KRenderScene::GetRenderComponent(const KCamera& camera, bool withDebug, std::vector<KRenderComponent*>& result)
 {
 	std::deque<IKEntityPtr> entities;
 	if (m_SceneMgr)
 	{
 		m_SceneMgr->GetVisibleEntity(&camera, entities);
 
-		if (m_EnableDebugRender)
+		if (withDebug)
 		{
 			m_SceneMgr->GetDebugEntity(entities);
 		}
@@ -153,14 +152,14 @@ bool KRenderScene::GetRenderComponent(const KCamera& camera, std::vector<KRender
 	return false;
 }
 
-bool KRenderScene::GetRenderComponent(const KAABBBox& bound, std::vector<KRenderComponent*>& result)
+bool KRenderScene::GetRenderComponent(const KAABBBox& bound, bool withDebug, std::vector<KRenderComponent*>& result)
 {
 	std::deque<IKEntityPtr> entities;
 	if (m_SceneMgr)
 	{
 		m_SceneMgr->GetVisibleEntity(&bound, entities);
 
-		if (m_EnableDebugRender)
+		if (withDebug)
 		{
 			m_SceneMgr->GetDebugEntity(entities);
 		}

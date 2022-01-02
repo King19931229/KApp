@@ -567,7 +567,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffers[frameIndex].clearCommandBuffer;
 
 	std::vector<KRenderComponent*> cullRes;
-	((KRenderScene*)m_Scene)->GetRenderComponent(*m_Camera, cullRes);
+	((KRenderScene*)m_Scene)->GetRenderComponent(*m_Camera, KRenderGlobal::EnableDebugRender, cullRes);
 
 	// 物件绘制RenderPass
 	{
@@ -625,16 +625,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 			tempBuffers.clear();
 		}
 
-		for (RenderStage stage : {RENDER_STAGE_DEBUG})
-		{
-			if (!context.buffer[stage].empty())
-			{
-				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
-			}
-		}
-
 		// 绘制VoxelBox
-		KRenderGlobal::Voxilzer.Update();
 		if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
 		{
 			KRenderGlobal::Voxilzer.RenderVoxel(frameIndex, renderPass, tempBuffers);
@@ -642,6 +633,14 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 			{
 				primaryCommandBuffer->ExecuteAll(tempBuffers);
 				tempBuffers.clear();
+			}
+		}
+
+		for (RenderStage stage : {RENDER_STAGE_DEBUG})
+		{
+			if (!context.buffer[stage].empty())
+			{
+				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
 			}
 		}
 
@@ -684,6 +683,11 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 	assert(frameIndex < m_CommandBuffers.size());
 
 	m_CommandBuffers[frameIndex].commandPool->Reset();
+
+	// 更新静态数据
+	{
+		KRenderGlobal::Voxilzer.UpdateVoxel();
+	}
 
 	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
 	// 开始渲染过程
