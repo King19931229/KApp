@@ -17,6 +17,7 @@ protected:
 		OCTREE_LEVEL_MAX = 12,
 		OCTREE_NODE_NUM_MIN = 1000000,
 		OCTREE_NODE_NUM_MAX = 500000000,
+		OCTREE_NODE_SIZE = sizeof(uint32_t) * 3,
 		BEAM_SIZE = 8
 	};
 
@@ -112,6 +113,9 @@ protected:
 	IKComputePipelinePtr m_InjectRadiancePipeline;
 	IKComputePipelinePtr m_InjectPropagationPipeline;
 
+	IKComputePipelinePtr m_InjectRadianceOctreePipeline;
+	IKComputePipelinePtr m_InjectPropagationOctreePipeline;
+
 	IKComputePipelinePtr m_MipmapBasePipeline;
 	IKComputePipelinePtr m_MipmapVolumePipeline;
 
@@ -157,6 +161,7 @@ protected:
 	void SetupOctreeBuildPipeline();
 	void SetupRayTestPipeline(uint32_t width, uint32_t height);
 	void VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, bool countOnly);
+	void CheckFragmentlistData();
 	void BuildOctree(IKCommandBufferPtr commandBuffer);
 
 	void UpdateInternal();

@@ -3,7 +3,7 @@
 layout(location = 0) out vec4 fragColor;
 layout(location = 0) in vec2 texCoord;
 
-layout(binding = OCTREE_BINDING_OCTTREE) readonly buffer uuOctree { uint uOctree[]; };
+layout(binding = OCTREE_BINDING_OCTTREE) readonly buffer uuOctree { uvec3 uOctree[]; };
 layout(binding = OCTREE_BINDING_CAMERA) readonly buffer uuCamera { vec4 uPosition, uLook, uSide, uUp, uMiscs; };
 
 #include "octree_util.h"
@@ -28,14 +28,17 @@ void main()
 	vec3 o = uPosition.xyz, d = GenRay();
 
 	float t;
-	vec3 color, normal;
+	vec3 color, normal, emissive;
 	uint iter;
-	bool hit = RayMarchLeaf(o, d, t, color, normal, iter);
+	bool hit = RayMarchLeaf(o, d, t, color, normal, emissive, iter);
 	if (!hit)
 	{
 		normal = vec3(0.0);
 		color = vec3(0.0);
+		emissive = vec3(0.0);
 	}
 
-	fragColor = vec4(color, 1.0);
+	// fragColor = vec4(color, 1.0);
+	// fragColor = vec4(emissive, 1.0);
+	fragColor = vec4(0.5 * normal + vec3(0.5), 1.0);
 }

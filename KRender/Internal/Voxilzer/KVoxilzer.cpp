@@ -4,6 +4,7 @@
 #include "Internal/ECS/Component/KDebugComponent.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
+#include "KBase/Interface/IKLog.h"
 
 const VertexFormat KVoxilzer::ms_VertexFormats[1] = { VF_DEBUG_POINT };
 
@@ -73,6 +74,8 @@ void KVoxilzer::UpdateInternal()
 
 		m_PrimaryCommandBuffer->End();
 		m_PrimaryCommandBuffer->Flush();
+
+		// CheckFragmentlistData();
 
 		m_PrimaryCommandBuffer->BeginPrimary();
 
@@ -652,7 +655,7 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 			return;
 		}
 
-		uint32_t bufferSize = counter * sizeof(glm::uvec2);
+		uint32_t bufferSize = counter * sizeof(glm::uvec4);
 		if (m_FragmentlistBuffer->GetBufferSize() != bufferSize)
 		{
 			m_FragmentlistBuffer->UnInit();
@@ -707,6 +710,32 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 	commandBuffer->EndRenderPass();
 }
 
+void KVoxilzer::CheckFragmentlistData()
+{
+	uint32_t counter = 0;
+	m_CounterBuffer->Read(&counter);
+
+	std::vector<glm::uvec4> fragments;
+	std::vector<glm::uvec3> positions;
+	fragments.resize(counter);
+	positions.resize(counter);
+
+	m_FragmentlistBuffer->Read(fragments.data());
+	for (size_t i = 0; i < fragments.size(); ++i)
+	{
+		const glm::uvec4& ufragment = fragments[i];
+		glm::uvec3 pos = glm::uvec3(ufragment.x & 0xfffu, (ufragment.x >> 12u) & 0xfffu, (ufragment.x >> 24u) | ((ufragment.y >> 28u) << 8u));
+		positions[i] = pos;
+	}
+
+	KG_LOG(LM_DEFAULT, "Voxel fragments positions:");
+	for (size_t i = 0; i < positions.size(); ++i)
+	{
+		const glm::uvec3& pos = positions[i];
+		KG_LOG(LM_DEFAULT, "\t%d %d %d\n", pos[0], pos[1], pos[2]);
+	}
+}
+
 inline static constexpr uint32_t group_x_64(uint32_t x) { return (x >> 6u) + ((x & 0x3fu) ? 1u : 0u); }
 
 void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
@@ -720,11 +749,11 @@ void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 	uint32_t octreeNodeNum = std::max((uint32_t)OCTREE_NODE_NUM_MIN, fragmentCount << 2u);
 	octreeNodeNum = std::min(octreeNodeNum, (uint32_t)OCTREE_NODE_NUM_MAX);
 
-	uint32_t preOctreeNodeNum = (uint32_t)m_OctreeBuffer->GetBufferSize() / sizeof(uint32_t);
+	uint32_t preOctreeNodeNum = (uint32_t)m_OctreeBuffer->GetBufferSize() / OCTREE_NODE_SIZE;
 	if (octreeNodeNum > preOctreeNodeNum)
 	{
 		m_OctreeBuffer->UnInit();
-		m_OctreeBuffer->InitMemory(octreeNodeNum * sizeof(uint32_t), nullptr);
+		m_OctreeBuffer->InitMemory(octreeNodeNum * OCTREE_NODE_SIZE, nullptr);
 		m_OctreeBuffer->InitDevice(false);
 	}
 
@@ -998,7 +1027,7 @@ void KVoxilzer::SetupSparseVoxelBuffer()
 	m_CounterBuffer->InitMemory(sizeof(counter), &counter);
 	m_CounterBuffer->InitDevice(false);
 
-	uint32_t fragmentDummy[] = { 0, 0 };
+	uint32_t fragmentDummy[] = { 0, 0, 0, 0 };
 	m_FragmentlistBuffer->InitMemory(sizeof(fragmentDummy), fragmentDummy);
 	m_FragmentlistBuffer->InitDevice(false);
 
@@ -1122,8 +1151,12 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 	}
 
 	renderDevice->CreateComputePipeline(m_ClearDynamicPipeline);
+
 	renderDevice->CreateComputePipeline(m_InjectRadiancePipeline);
 	renderDevice->CreateComputePipeline(m_InjectPropagationPipeline);
+
+	renderDevice->CreateComputePipeline(m_InjectRadianceOctreePipeline);
+	renderDevice->CreateComputePipeline(m_InjectPropagationOctreePipeline);
 
 	renderDevice->CreateComputePipeline(m_MipmapBasePipeline);
 	renderDevice->CreateComputePipeline(m_MipmapVolumePipeline);
@@ -1199,8 +1232,12 @@ bool KVoxilzer::UnInit()
 	SAFE_UNINIT_CONTAINER(m_OctreeRayTestPipelines);
 
 	SAFE_UNINIT(m_ClearDynamicPipeline);
+
 	SAFE_UNINIT(m_InjectRadiancePipeline);
 	SAFE_UNINIT(m_InjectPropagationPipeline);
+
+	SAFE_UNINIT(m_InjectRadianceOctreePipeline);
+	SAFE_UNINIT(m_InjectPropagationOctreePipeline);
 
 	SAFE_UNINIT(m_MipmapBasePipeline);
 	SAFE_UNINIT(m_MipmapVolumePipeline);

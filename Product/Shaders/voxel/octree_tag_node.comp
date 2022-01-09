@@ -1,8 +1,11 @@
 #include "octree_common.h"
+
 layout(local_size_x = GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = OCTREE_BINDING_OCTTREE) buffer uuOctree { uint uOctree[]; };
-layout(binding = OCTREE_BINDING_FRAGMENTLIST) readonly buffer uuFragmentList { uvec2 uFragmentList[]; };
+layout(binding = OCTREE_BINDING_OCTTREE) buffer uuOctree { uvec3 uOctree[]; };
+layout(binding = OCTREE_BINDING_FRAGMENTLIST) readonly buffer uuFragmentList { uvec4 uFragmentList[]; };
+
+#include "octree_util.h"
 
 layout(binding = OCTREE_BINDING_OBJECT)
 uniform Object
@@ -26,42 +29,48 @@ void main()
 {
 	if (gl_GlobalInvocationID.x >= uFragmentNum)
 		return;
-	uvec2 ufragment = uFragmentList[gl_GlobalInvocationID.x];
+	uvec4 ufragment = uFragmentList[gl_GlobalInvocationID.x];
 
 	uint level_dim = uVoxelResolution;
 	uvec3 level_pos = uvec3(ufragment.x & 0xfffu, (ufragment.x >> 12u) & 0xfffu, (ufragment.x >> 24u) | ((ufragment.y >> 28u) << 8u));
-	bvec3 level_cmp;
 
-	uint idx = 0u, cur = 0u;
-	do
+	uint idx = 0u;
+	bool leaf = GetOctreeIndex(level_pos, level_dim, idx);
+
+	uOctree[idx][OCTREE_COLOR_INDEX] |= 0x80000000u;
+	if (leaf)
 	{
-		level_dim >>= 1;
-
-		level_cmp = greaterThanEqual(level_pos, uvec3(level_dim));
-		idx = cur + (uint(level_cmp.x) | (uint(level_cmp.y) << 1u) | (uint(level_cmp.z) << 2u));
-		cur = uOctree[idx] & 0x3fffffffu;
-		level_pos -= uvec3(level_cmp) * level_dim;
-	} while (cur != 0u && level_dim > 1u);
-
-	uOctree[idx] |= 0x80000000u;
-	if (level_dim == 1u)
-	{
-		// uOctree[idx] = 0xC0000000u | (ufragment.y & 0xffffffu); //termination
+		// uOctree[idx][OCTREE_COLOR_INDEX] = 0xC0000000u | (ufragment.y & 0xffffffu); //termination
 		// tag and color data
 
 		// atomic moving average
-		uint prev_val = 0, cur_val, new_val = 0xC1000000u | (ufragment.y & 0xffffffu);
-		uvec4 rgba = LeafToUvec4(new_val);
-		uint numIterations = 0;
-		while ((cur_val = atomicCompSwap(uOctree[idx], prev_val, new_val)) != prev_val && numIterations < 255)
-		{
-			prev_val = cur_val;
-			uvec4 prev_rgba = LeafToUvec4(prev_val);
-			prev_rgba.xyz *= prev_rgba.w;
-			uvec4 cur_rgba = prev_rgba + rgba;
-			cur_rgba.xyz /= cur_rgba.w;
-			new_val = Uvec4ToLeaf(cur_rgba);
-			++numIterations;
+		// C1(11,000001 [2:6][leaf_label:count])
+		uint prev_val, cur_val, new_val;
+		uvec4 rgba;
+		uint numIterations;
+
+#define OCTREE_ATOMIC_WRITE_VALUE(index, new_value)\
+		prev_val = 0;\
+		new_val = 0xC1000000u | (new_value & 0xffffffu);\
+		rgba = LeafToUvec4(new_val);\
+		numIterations = 0;\
+		while ((cur_val = atomicCompSwap(uOctree[idx][index], prev_val, new_val)) != prev_val && numIterations < 255)\
+		{\
+			prev_val = cur_val;\
+			uvec4 prev_rgba = LeafToUvec4(prev_val);\
+			prev_rgba.xyz *= prev_rgba.w;\
+			uvec4 cur_rgba = prev_rgba + rgba;\
+			cur_rgba.xyz /= cur_rgba.w;\
+			new_val = Uvec4ToLeaf(cur_rgba);\
+			++numIterations;\
 		}
+
+		OCTREE_ATOMIC_WRITE_VALUE(OCTREE_COLOR_INDEX, ufragment.y);
+		//uint normal = packUnorm4x8(vec4(0.5 * DecodeNormalUInt(ufragment.z) + vec3(0.5), 1.0));
+		//OCTREE_ATOMIC_WRITE_VALUE(OCTREE_NORMAL_INDEX, normal);
+		OCTREE_ATOMIC_WRITE_VALUE(OCTREE_NORMAL_INDEX, ufragment.z);
+		OCTREE_ATOMIC_WRITE_VALUE(OCTREE_EMISSIVE_INDEX, ufragment.w);
+
+#undef OCTREE_ATOMIC_WRITE_VALUE
 	}
 }

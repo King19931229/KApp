@@ -29,12 +29,31 @@
 #define STACK_SIZE 23
 #define EPS 3.552713678800501e-15
 
+bool GetOctreeIndex(in uvec3 level_pos, in uint level_dim, out uint idx)
+{
+	uint cur = 0u;
+	bvec3 level_cmp;
+
+	idx = 0u;
+	do
+	{
+		level_dim >>= 1;
+
+		level_cmp = greaterThanEqual(level_pos, uvec3(level_dim));
+		idx = cur + (uint(level_cmp.x) | (uint(level_cmp.y) << 1u) | (uint(level_cmp.z) << 2u));
+		cur = uOctree[idx][OCTREE_COLOR_INDEX] & 0x3fffffffu;
+		level_pos -= uvec3(level_cmp) * level_dim;
+	} while (cur != 0u && level_dim > 1u);
+
+	return level_dim == 1;
+}
+
 struct StackItem {
 	uint node;
 	float t_max;
 } stack[STACK_SIZE];
 
-bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_normal, out uint o_iter) {
+bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_normal, out vec3 o_emissive, out uint o_iter) {
 	uint iter = 0;
 
 	d.x = abs(d.x) > EPS ? d.x : (d.x >= 0 ? EPS : -EPS);
@@ -61,7 +80,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 	float h = t_max;
 
 	uint parent = 0u;
-	uint cur = 0u;
+	uvec3 cur = uvec3(0);
 	vec3 pos = vec3(1.0f);
 	uint idx = 0u;
 	if (1.5f * t_coef.x - t_bias.x > t_min)
@@ -76,7 +95,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 
 	while (scale < STACK_SIZE) {
 		++iter;
-		if (cur == 0u)
+		if (cur[OCTREE_COLOR_INDEX] == 0u)
 			cur = uOctree[parent + (idx ^ oct_mask)];
 		// Determine maximum t-value of the cube by evaluating
 		// tx(), ty(), and tz() at its corner.
@@ -84,14 +103,14 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 		vec3 t_corner = pos * t_coef - t_bias;
 		float tc_max = min(min(t_corner.x, t_corner.y), t_corner.z);
 
-		if ((cur & 0x80000000u) != 0 && t_min <= t_max) {
+		if ((cur[OCTREE_COLOR_INDEX] & 0x80000000u) != 0 && t_min <= t_max) {
 			// INTERSECT
 			float tv_max = min(t_max, tc_max);
 			float half_scale_exp2 = scale_exp2 * 0.5f;
 			vec3 t_center = half_scale_exp2 * t_coef + t_corner;
 
 			if (t_min <= tv_max) {
-				if ((cur & 0x40000000u) != 0) // leaf node
+				if ((cur[OCTREE_COLOR_INDEX] & 0x40000000u) != 0) // leaf node
 					break;
 
 				// PUSH
@@ -101,7 +120,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 				}
 				h = tc_max;
 
-				parent = cur & 0x3fffffffu;
+				parent = cur[OCTREE_COLOR_INDEX] & 0x3fffffffu;
 
 				idx = 0u;
 				--scale;
@@ -113,7 +132,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 				if (t_center.z > t_min)
 					idx ^= 4u, pos.z += scale_exp2;
 
-				cur = 0;
+				cur = uvec3(0);
 				t_max = tv_max;
 
 				continue;
@@ -163,10 +182,11 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 			// Prevent same parent from being stored again and invalidate cached
 			// child descriptor.
 			h = 0.0f;
-			cur = 0;
+			cur = uvec3(0);
 		}
 	}
 
+#if 0
 	vec3 t_corner = t_coef * (pos + scale_exp2) - t_bias;
 
 	vec3 norm = (t_corner.x > t_corner.y && t_corner.x > t_corner.z)
@@ -179,8 +199,16 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 	if ((oct_mask & 4u) == 0u)
 		norm.z = -norm.z;
 
+	vec3 emissive = vec3(0);
+#else
+	vec3 norm = 2.0 * unpackUnorm4x8(cur[OCTREE_NORMAL_INDEX]).xyz - vec3(1.0);
+	vec3 emissive = unpackUnorm4x8(cur[OCTREE_EMISSIVE_INDEX]).xyz;
+#endif
+	vec3 color = unpackUnorm4x8(cur[OCTREE_COLOR_INDEX]).xyz;
+
 	o_normal = norm;
-	o_color = unpackUnorm4x8(cur).xyz;
+	o_emissive = emissive;
+	o_color = color;
 	o_t = t_min;
 	o_iter = iter;
 
@@ -227,7 +255,7 @@ bool RayMarchCoarse(vec3 o, vec3 d, float orig_sz, float dir_sz, out float t, ou
 
 	while (scale < STACK_SIZE) {
 		if (cur == 0u)
-			cur = uOctree[parent + (idx ^ oct_mask)];
+			cur = uOctree[parent + (idx ^ oct_mask)][OCTREE_COLOR_INDEX];
 		// Determine maximum t-value of the cube by evaluating
 		// tx(), ty(), and tz() at its corner.
 
@@ -363,7 +391,7 @@ bool RayMarchOcclude(vec3 o, vec3 d) {
 
 	while (scale < STACK_SIZE) {
 		if (cur == 0u)
-			cur = uOctree[parent + (idx ^ oct_mask)];
+			cur = uOctree[parent + (idx ^ oct_mask)][OCTREE_COLOR_INDEX];
 		// Determine maximum t-value of the cube by evaluating
 		// tx(), ty(), and tz() at its corner.
 

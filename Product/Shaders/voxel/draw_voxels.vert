@@ -29,7 +29,10 @@ void main()
 
 	ivec3 texPos = ivec3(position);
 	// albedo = imageLoad(voxelAlbedo, texPos).rgba;
-	albedo = imageLoad(voxelRadiance, texPos).rgba;
+	// albedo = imageLoad(voxelRadiance, texPos).rgba;
+
+	albedo.rgb = imageLoad(voxelNormal, texPos).rgb;
+	albedo.a = imageLoad(voxelAlbedo, texPos).a;
 
 	uvec4 channels = uvec4(floor(colorChannels));
 
