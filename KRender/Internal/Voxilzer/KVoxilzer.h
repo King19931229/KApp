@@ -24,7 +24,7 @@ protected:
 	enum OctreeBuildBinding
 	{
 		OCTREE_BINDING_COUNTER,
-		OCTREE_BINDING_OCTTREE,
+		OCTREE_BINDING_OCTREE,
 		OCTREE_BINDING_FRAGMENTLIST,
 		OCTREE_BINDING_BUILDINFO,
 		OCTREE_BINDING_INDIRECT,
@@ -135,6 +135,7 @@ protected:
 	bool m_VoxelDrawWireFrame;
 	bool m_VoxelDebugUpdate;
 	bool m_VoxelNeedUpdate;
+	bool m_VoxelUseOctree;
 
 	KRTDebugDrawer m_LightDebugDrawer;
 	KRTDebugDrawer m_OctreeRayTestDebugDrawer;

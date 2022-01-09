@@ -12,6 +12,11 @@ layout(binding = VOXEL_BINDING_EMISSION, rgba8) uniform readonly image3D voxelEm
 layout(binding = VOXEL_BINDING_RADIANCE, rgba8) uniform readonly image3D voxelRadiance;
 layout(binding = VOXEL_BINDING_TEXMIPMAP_OUT, rgba8) uniform readonly image3D voxelMipmap;
 
+layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec3 uOctree[]; };
+#undef GROUP_SIZE
+#include "octree_common.h"
+#include "octree_util.h"
+
 const vec4 colorChannels = vec4(1.0);
 
 void main()
@@ -28,11 +33,29 @@ void main()
 	);
 
 	ivec3 texPos = ivec3(position);
-	// albedo = imageLoad(voxelAlbedo, texPos).rgba;
-	// albedo = imageLoad(voxelRadiance, texPos).rgba;
 
+	vec3 samplePos = (vec3(texPos) + vec3(0.5)) / volumeDimension;
+	albedo = SampleOctreeColor(volumeDimension, samplePos);
+
+	albedo = imageLoad(voxelAlbedo, texPos).rgba;
+	albedo = imageLoad(voxelRadiance, texPos).rgba;
 	albedo.rgb = imageLoad(voxelNormal, texPos).rgb;
 	albedo.a = imageLoad(voxelAlbedo, texPos).a;
+
+	// uint idxs[8];
+	// float weights[8];
+	// ComputeWeights(volumeDimension, samplePos, idxs, weights);
+	// uint idx;
+	// GetOctreeIndex(uvec3(float(volumeDimension) * samplePos - vec3(0.5)), volumeDimension, idx);
+	// albedo = vec4(0);
+	// albedo += unpackUnorm4x8(uOctree[idxs[0]][OCTREE_COLOR_INDEX]) * weights[0];
+	// albedo += unpackUnorm4x8(uOctree[idxs[1]][OCTREE_COLOR_INDEX]) * weights[1];
+	// albedo += unpackUnorm4x8(uOctree[idxs[2]][OCTREE_COLOR_INDEX]) * weights[2];
+	// albedo += unpackUnorm4x8(uOctree[idxs[3]][OCTREE_COLOR_INDEX]) * weights[3];
+	// albedo += unpackUnorm4x8(uOctree[idxs[4]][OCTREE_COLOR_INDEX]) * weights[4];
+	// albedo += unpackUnorm4x8(uOctree[idxs[5]][OCTREE_COLOR_INDEX]) * weights[5];
+	// albedo += unpackUnorm4x8(uOctree[idxs[6]][OCTREE_COLOR_INDEX]) * weights[6];
+	// albedo += unpackUnorm4x8(uOctree[idxs[7]][OCTREE_COLOR_INDEX]) * weights[7];
 
 	uvec4 channels = uvec4(floor(colorChannels));
 

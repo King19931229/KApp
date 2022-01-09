@@ -4,7 +4,19 @@
 #extension GL_ARB_shader_image_load_store : require
 layout (local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROUP_SIZE) in;
 
+#ifndef USE_OCTREE
+#define USE_OCTREE 0
+#endif
+
+#if USE_OCTREE
+layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec3 uOctree[]; };
+#undef GROUP_SIZE
+#include "octree_common.h"
+#include "octree_util.h"
+#else
 layout(binding = VOXEL_BINDING_ALBEDO) uniform sampler3D voxelAlbedo;
+#endif
+
 layout(binding = VOXEL_BINDING_NORMAL, rgba8) uniform image3D voxelNormal;
 layout(binding = VOXEL_BINDING_RADIANCE, rgba8) uniform writeonly image3D voxelRadiance;
 layout(binding = VOXEL_BINDING_EMISSION_MAP, rgba8) uniform readonly image3D voxelEmissive;
@@ -43,8 +55,12 @@ float TraceShadow(vec3 position, vec3 direction, float maxTracingDistance)
 		{ 
 			break; 
 		}
-		
+	
+#if USE_OCTREE
+		traceSample = ceil(SampleOctreeColor(volumeDimension, samplePos).a) * k;
+#else
 		traceSample = ceil(texture(voxelAlbedo, samplePos).a) * k;
+#endif
 
 		// hard shadows mode
 		if(traceSample > 1.0f - EPSILON) { return 0.0f; }
@@ -262,7 +278,12 @@ void main()
 
 	ivec3 writePos = ivec3(gl_GlobalInvocationID);
 	// voxel color
+#if USE_OCTREE
+	vec3 samplePos = (vec3(writePos) + vec3(0.5)) / volumeDimension;
+	vec4 albedo = SampleOctreeColor(volumeDimension, samplePos);
+#else
 	vec4 albedo = texelFetch(voxelAlbedo, writePos, 0);
+#endif
 
 	if(albedo.a < EPSILON) { return; }
 

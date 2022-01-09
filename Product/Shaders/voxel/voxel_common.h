@@ -21,6 +21,8 @@
 #define VOXEL_BINDING_GBUFFER_ALBEDO BINDING_TEXTURE21
 #define VOXEL_BINDING_GBUFFER_SPECULAR BINDING_TEXTURE22
 
+#define VOXEL_BINDING_OCTREE BINDING_TEXTURE23
+
 uint volumeDimension = voxel.miscs[0];
 uint storeVisibility = voxel.miscs[1];
 uint normalWeightedLambert = voxel.miscs[2];

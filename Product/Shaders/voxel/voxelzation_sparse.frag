@@ -68,10 +68,8 @@ void main()
 		// bring normal to 0-1 range
 		vec4 normal = vec4(EncodeNormal(normalize(In.normal)), 1.0f);
 		uint unormal = packUnorm4x8(normal);
-
 		uint ucolor = packUnorm4x8(albedo);
 		uint uemissive = packUnorm4x8(emissive);
-		// uint unormal = EncodeNormalUInt(normalize(In.normal));
 
 		uint cur = atomicAdd(uCounter, 1u);
 		// set fragment list

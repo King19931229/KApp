@@ -2,7 +2,7 @@
 
 layout(local_size_x = GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = OCTREE_BINDING_OCTTREE) buffer uuOctree { uvec3 uOctree[]; };
+layout(binding = OCTREE_BINDING_OCTREE) buffer uuOctree { uvec3 uOctree[]; };
 layout(binding = OCTREE_BINDING_FRAGMENTLIST) readonly buffer uuFragmentList { uvec4 uFragmentList[]; };
 
 #include "octree_util.h"
@@ -66,8 +66,6 @@ void main()
 		}
 
 		OCTREE_ATOMIC_WRITE_VALUE(OCTREE_COLOR_INDEX, ufragment.y);
-		//uint normal = packUnorm4x8(vec4(0.5 * DecodeNormalUInt(ufragment.z) + vec3(0.5), 1.0));
-		//OCTREE_ATOMIC_WRITE_VALUE(OCTREE_NORMAL_INDEX, normal);
 		OCTREE_ATOMIC_WRITE_VALUE(OCTREE_NORMAL_INDEX, ufragment.z);
 		OCTREE_ATOMIC_WRITE_VALUE(OCTREE_EMISSIVE_INDEX, ufragment.w);
 

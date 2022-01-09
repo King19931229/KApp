@@ -48,6 +48,160 @@ bool GetOctreeIndex(in uvec3 level_pos, in uint level_dim, out uint idx)
 	return level_dim == 1;
 }
 
+bool InsideBound(in uint level_dim, ivec3 pos)
+{
+	if(pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= level_dim || pos.y >= level_dim || pos.z >= level_dim)
+		return false;
+	return true;
+}
+
+bool ComputeWeights(in uint level_dim, in vec3 uvw, out uint idxs[8], out float weights[8])
+{
+	vec3 pos = float(level_dim) * uvw - vec3(0.5);
+	vec3 texel_pos = fract(pos);
+
+	ivec3 sample_pos[8];
+	sample_pos[0] = ivec3(pos);
+	sample_pos[1] = sample_pos[0] + ivec3(1, 0, 0);
+	sample_pos[2] = sample_pos[0] + ivec3(0, 1, 0);
+	sample_pos[3] = sample_pos[0] + ivec3(1, 1, 0);
+	sample_pos[4] = sample_pos[0] + ivec3(0, 0, 1);
+	sample_pos[5] = sample_pos[0] + ivec3(1, 0, 1);
+	sample_pos[5] = sample_pos[0] + ivec3(0, 1, 1);
+	sample_pos[6] = sample_pos[0] + ivec3(1, 1, 1);
+
+	weights[0] = 1.0 - texel_pos.x;
+	weights[1] = texel_pos.x;
+	weights[2] = 1.0 - texel_pos.x;
+	weights[3] = texel_pos.x;
+	weights[4] = 1.0 - texel_pos.x;
+	weights[5] = texel_pos.x;
+	weights[6] = 1.0 - texel_pos.x;
+	weights[7] = texel_pos.x;
+
+	weights[0] *= 1.0 - texel_pos.y;
+	weights[1] *= 1.0 - texel_pos.y;
+	weights[2] *= texel_pos.y;
+	weights[3] *= texel_pos.y;
+	weights[4] *= 1.0 - texel_pos.y;
+	weights[5] *= 1.0 - texel_pos.y;
+	weights[6] *= texel_pos.y;
+	weights[7] *= texel_pos.y;
+
+	weights[0] *= 1.0 - texel_pos.z;
+	weights[1] *= 1.0 - texel_pos.z;
+	weights[2] *= 1.0 - texel_pos.z;
+	weights[3] *= 1.0 - texel_pos.z;
+	weights[4] *= texel_pos.z;
+	weights[5] *= texel_pos.z;
+	weights[6] *= texel_pos.z;
+	weights[7] *= texel_pos.z;
+
+	float sum = 0.0;
+	for(int i = 0; i < 8; ++i)
+	{
+		weights[i] *= float(InsideBound(level_dim, sample_pos[i]));
+		if(weights[i] > 0)
+		{
+			weights[i] *= float(GetOctreeIndex(uvec3(sample_pos[i]), level_dim, idxs[i]));
+		}
+		sum += weights[i];
+	}
+
+	sum = max(sum, 1e-5);
+	for(int i = 0; i < 8; ++i)
+	{
+		weights[i] /= sum;
+	}
+
+	return sum > 1e-5;
+}
+
+vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index)
+{
+	uint idxs[8];
+	float weights[8];
+
+	vec4 data = vec4(0);
+
+	if(ComputeWeights(level_dim, uvw, idxs, weights))
+	{	
+		for(int i = 0; i < 8; ++i)
+		{
+			if(weights[i] > 0)
+			{
+				uint idx = idxs[i];
+				vec4 unpacked = unpackUnorm4x8(uOctree[idx][data_index]);
+				uint count = uint(unpacked.w * 255.0);
+				count = count & 0x3fu;
+				data += weights[i] * vec4(unpacked.xyz, float(count) / 255.0);	
+			}		
+		}
+	}
+
+	return data;
+}
+
+vec4 SampleOctreeColor(in uint level_dim, in vec3 uvw)
+{
+	return SampleOctreeSingleData(level_dim, uvw, OCTREE_COLOR_INDEX);
+}
+
+vec4 SampleOctreeNormal(in uint level_dim, in vec3 uvw)
+{
+	return SampleOctreeSingleData(level_dim, uvw, OCTREE_NORMAL_INDEX);
+}
+
+vec4 SampleOctreeEmssive(in uint level_dim, in vec3 uvw)
+{
+	return SampleOctreeSingleData(level_dim, uvw, OCTREE_EMISSIVE_INDEX);
+}
+
+bool SampleOctree(in uint level_dim, in vec3 uvw, out vec4 o_color, out vec4 o_normal, out vec4 o_emissive)
+{
+	uint idxs[8];
+	float weights[8];
+
+	vec4 color = vec4(0);
+	vec4 norm = vec4(0);
+	vec4 emissive = vec4(0);
+
+	if(ComputeWeights(level_dim, uvw, idxs, weights))
+	{
+		for(int i = 0; i < 8; ++i)
+		{
+			if(weights[i] > 0.0)
+			{
+				uint idx = idxs[i];
+
+				vec4 unpacked = vec4(0);
+				uint count = 0;
+
+				unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_COLOR_INDEX]);
+				count = uint(unpacked.w * 255.0);
+				count = count & 0x3fu;
+				color += weights[i] * vec4(unpacked.xyz, float(count) / 255.0);	
+
+				unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_NORMAL_INDEX]);
+				count = uint(unpacked.w * 255.0);
+				count = count & 0x3fu;
+				norm += weights[i] * vec4(unpacked.xyz, float(count) / 255.0);	
+
+				unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_EMISSIVE_INDEX]);
+				count = uint(unpacked.w * 255.0);
+				count = count & 0x3fu;
+				emissive += weights[i] * vec4(unpacked.xyz, float(count) / 255.0);	
+			}
+		}
+	}
+
+	o_color = color;
+	o_normal = norm;
+	o_emissive = emissive;
+
+	return true;
+}
+
 struct StackItem {
 	uint node;
 	float t_max;
