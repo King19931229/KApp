@@ -2,7 +2,7 @@
 #include "voxel_common.h"
 
 #extension GL_ARB_shader_image_load_store : require
-layout (local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROUP_SIZE) in;
+layout (local_size_x = VOXEL_GROUP_SIZE, local_size_y = VOXEL_GROUP_SIZE, local_size_z = VOXEL_GROUP_SIZE) in;
 
 #ifndef USE_OCTREE
 #define USE_OCTREE 0
@@ -10,7 +10,6 @@ layout (local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GRO
 
 #if USE_OCTREE
 layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec3 uOctree[]; };
-#undef GROUP_SIZE
 #include "octree_common.h"
 #include "octree_util.h"
 #else

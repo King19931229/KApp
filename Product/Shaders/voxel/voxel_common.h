@@ -43,7 +43,7 @@ float samplingFactor = 0.5f;
 float coneShadowTolerance = 1.0f;
 float coneShadowAperture = 0.03f;
 
-#define GROUP_SIZE 8
+#define VOXEL_GROUP_SIZE 8
 
 const float EPSILON = 1e-30;
 const float SQRT_3 = 1.73205080f;

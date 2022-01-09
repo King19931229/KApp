@@ -46,7 +46,7 @@ void ComputeWeights(vec2 targetOffset, ivec2 size, ivec2 samplePos[4], in out ve
 	weights *= isWithinBounds;
 }
 
-const int GROUP_SIZE = 32;
-layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+#define RTAO_GROUP_SIZE 32
+layout(local_size_x = RTAO_GROUP_SIZE, local_size_y = RTAO_GROUP_SIZE) in;
 
 #endif

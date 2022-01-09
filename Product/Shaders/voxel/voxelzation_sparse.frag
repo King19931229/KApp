@@ -1,6 +1,5 @@
 #include "public.h"
 #include "voxel_common.h"
-#undef GROUP_SIZE
 #include "octree_common.h"
 
 #extension GL_ARB_shader_image_load_store : require
