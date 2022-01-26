@@ -1,0 +1,2 @@
+#define USE_OCTREE 1
+#include "aniso_mipmapbase.comp"

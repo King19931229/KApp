@@ -10,8 +10,20 @@ layout(binding = VOXEL_BINDING_GBUFFER_POSITION) uniform sampler2D gPosition;
 layout(binding = VOXEL_BINDING_GBUFFER_ALBEDO) uniform sampler2D gAlbedo;
 layout(binding = VOXEL_BINDING_GBUFFER_SPECULAR) uniform sampler2D gSpecular;
 // layout(binding = VOXEL_BINDING_GBUFFER_EMISSIVE) uniform sampler2D gEmissive;
+
+#ifndef USE_OCTREE
+#define USE_OCTREE 0
+#endif
+
+#if USE_OCTREE
+layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec4 uOctree[]; };
+#include "octree_common.h"
+#include "octree_util.h"
+#else
 layout(binding = VOXEL_BINDING_NORMAL) uniform sampler3D voxelVisibility;
 layout(binding = VOXEL_BINDING_RADIANCE) uniform sampler3D voxelTex;
+#endif
+
 layout(binding = VOXEL_BINDING_TEXMIPMAP_IN) uniform sampler3D voxelTexMipmap[6];
 
 vec4 cameraPosition = camera.viewInv * vec4(0.0, 0.0, 0.0, 1.0);
@@ -53,7 +65,11 @@ vec4 AnistropicSample(vec3 coord, vec3 weight, uvec3 face, float lod)
 	// linearly interpolate on base level
 	if(lod < 1.0f)
 	{
+#if USE_OCTREE
+		vec4 baseColor = SampleOctreeRadiance(volumeDimension, coord);
+#else
 		vec4 baseColor = texture(voxelTex, coord);
+#endif
 		anisoSample = mix(baseColor, anisoSample, clamp(lod, 0.0f, 1.0f));
 	}
 
@@ -230,8 +246,12 @@ vec3 CalculateDirectional(Light light, vec3 normal, vec3 position, vec3 albedo, 
 	}
 	else if(light.shadowingMethod == 3)
 	{
-		vec3 voxelPos = WorldToVoxel(position);  
+		vec3 voxelPos = WorldToVoxel(position);
+#if USE_OCTREE
+		visibility = max(0.0f, SampleOctreeNormal(volumeDimension, voxelPos).a);
+#else
 		visibility = max(0.0f, texture(voxelVisibility, voxelPos).a);
+#endif
 	}
 
 	if(visibility <= 0.0f) return vec3(0.0f);  
@@ -257,8 +277,12 @@ vec3 CalculatePoint(Light light, vec3 normal, vec3 position, vec3 albedo, vec4 s
 	}
 	else if(light.shadowingMethod == 3)
 	{
-		vec3 voxelPos = WorldToVoxel(position);  
+		vec3 voxelPos = WorldToVoxel(position);
+#if USE_OCTREE
+		visibility = max(0.0f, SampleOctreeNormal(volumeDimension, voxelPos).a);
+#else
 		visibility = max(0.0f, texture(voxelVisibility, voxelPos).a);
+#endif
 	} 
 
 	if(visibility <= 0.0f) return vec3(0.0f);  
@@ -298,8 +322,12 @@ vec3 CalculateSpot(Light light, vec3 normal, vec3 position, vec3 albedo, vec4 sp
 	else if(light.shadowingMethod == 3)
 	{
 		vec3 voxelPos = WorldToVoxel(position);
+#if USE_OCTREE
+		visibility = max(0.0f, SampleOctreeNormal(volumeDimension, voxelPos).a);
+#else
 		visibility = max(0.0f, texture(voxelVisibility, voxelPos).a);
-	} 
+#endif
+	}
 
 	if(visibility <= 0.0f) return vec3(0.0f); 
 

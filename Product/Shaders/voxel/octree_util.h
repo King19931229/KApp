@@ -50,9 +50,29 @@ bool GetOctreeIndex(in uvec3 level_pos, in uint level_dim, out uint idx)
 
 bool InsideBound(in uint level_dim, ivec3 pos)
 {
-	if(pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= level_dim || pos.y >= level_dim || pos.z >= level_dim)
+	if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= level_dim || pos.y >= level_dim || pos.z >= level_dim)
 		return false;
 	return true;
+}
+
+bool StoreOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index, in vec4 data)
+{
+	vec3 pos = float(level_dim) * uvw - vec3(0.5);
+	uvec3 store_pos = uvec3(floor(pos));
+	uint idx = 0;
+	if (GetOctreeIndex(store_pos, level_dim, idx))
+	{
+		uint encoded = packUnorm4x8(data);
+		encoded = 0xC1000000u | (encoded & 0xffffffu);
+		uOctree[idx][data_index] = encoded;
+		return true;
+	}
+	return false;
+}
+
+bool StoreOctreeRadiance(in uint level_dim, in vec3 uvw, in vec4 data)
+{
+	return StoreOctreeSingleData(level_dim, uvw, OCTREE_RADIANCE_INDEX, data);
 }
 
 bool ComputeWeights(in uint level_dim, in vec3 uvw, out uint idxs[8], out float weights[8])
@@ -100,10 +120,9 @@ bool ComputeWeights(in uint level_dim, in vec3 uvw, out uint idxs[8], out float 
 	float sum = 0.0;
 	for(int i = 0; i < 8; ++i)
 	{
-		weights[i] *= float(InsideBound(level_dim, sample_pos[i]));
-		if(weights[i] > 0)
+		if(!InsideBound(level_dim, sample_pos[i]) || !GetOctreeIndex(uvec3(sample_pos[i]), level_dim, idxs[i]))
 		{
-			weights[i] *= float(GetOctreeIndex(uvec3(sample_pos[i]), level_dim, idxs[i]));
+			weights[i] = 0;
 		}
 		sum += weights[i];
 	}
@@ -124,18 +143,18 @@ vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index)
 
 	vec4 data = vec4(0);
 
-	if(ComputeWeights(level_dim, uvw, idxs, weights))
+	if (ComputeWeights(level_dim, uvw, idxs, weights))
 	{	
 		for(int i = 0; i < 8; ++i)
 		{
-			if(weights[i] > 0)
+			if (weights[i] > 0)
 			{
 				uint idx = idxs[i];
 				vec4 unpacked = unpackUnorm4x8(uOctree[idx][data_index]);
 				uint count = uint(unpacked.w * 255.0);
 				count = count & 0x3fu;
-				data += weights[i] * vec4(unpacked.xyz, float(count) / 255.0);	
-			}		
+				data += weights[i] * vec4(unpacked.xyz, float(count));
+			}
 		}
 	}
 
@@ -155,6 +174,11 @@ vec4 SampleOctreeNormal(in uint level_dim, in vec3 uvw)
 vec4 SampleOctreeEmssive(in uint level_dim, in vec3 uvw)
 {
 	return SampleOctreeSingleData(level_dim, uvw, OCTREE_EMISSIVE_INDEX);
+}
+
+vec4 SampleOctreeRadiance(in uint level_dim, in vec3 uvw)
+{
+	return vec4(SampleOctreeSingleData(level_dim, uvw, OCTREE_RADIANCE_INDEX).rgba);
 }
 
 bool SampleOctree(in uint level_dim, in vec3 uvw, out vec4 o_color, out vec4 o_normal, out vec4 o_emissive)
@@ -207,7 +231,7 @@ struct StackItem {
 	float t_max;
 } stack[STACK_SIZE];
 
-bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_normal, out vec3 o_emissive, out uint o_iter) {
+bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_normal, out vec3 o_emissive, out vec3 o_radiance, out uint o_iter) {
 	uint iter = 0;
 
 	d.x = abs(d.x) > EPS ? d.x : (d.x >= 0 ? EPS : -EPS);
@@ -234,7 +258,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 	float h = t_max;
 
 	uint parent = 0u;
-	uvec3 cur = uvec3(0);
+	uvec4 cur = uvec4(0);
 	vec3 pos = vec3(1.0f);
 	uint idx = 0u;
 	if (1.5f * t_coef.x - t_bias.x > t_min)
@@ -286,7 +310,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 				if (t_center.z > t_min)
 					idx ^= 4u, pos.z += scale_exp2;
 
-				cur = uvec3(0);
+				cur = uvec4(0);
 				t_max = tv_max;
 
 				continue;
@@ -336,7 +360,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 			// Prevent same parent from being stored again and invalidate cached
 			// child descriptor.
 			h = 0.0f;
-			cur = uvec3(0);
+			cur = uvec4(0);
 		}
 	}
 
@@ -354,14 +378,17 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 		norm.z = -norm.z;
 
 	vec3 emissive = vec3(0);
+	vec3 radiance = vec3(0);
 #else
 	vec3 norm = 2.0 * unpackUnorm4x8(cur[OCTREE_NORMAL_INDEX]).xyz - vec3(1.0);
 	vec3 emissive = unpackUnorm4x8(cur[OCTREE_EMISSIVE_INDEX]).xyz;
+	vec3 radiance = unpackUnorm4x8(cur[OCTREE_RADIANCE_INDEX]).xyz;
 #endif
 	vec3 color = unpackUnorm4x8(cur[OCTREE_COLOR_INDEX]).xyz;
 
 	o_normal = norm;
 	o_emissive = emissive;
+	o_radiance = radiance;
 	o_color = color;
 	o_t = t_min;
 	o_iter = iter;

@@ -2,7 +2,7 @@
 
 layout(local_size_x = OCTREE_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = OCTREE_BINDING_OCTREE) buffer uuOctree { uvec3 uOctree[]; };
+layout(binding = OCTREE_BINDING_OCTREE) buffer uuOctree { uvec4 uOctree[]; };
 layout(binding = OCTREE_BINDING_FRAGMENTLIST) readonly buffer uuFragmentList { uvec4 uFragmentList[]; };
 
 #include "octree_util.h"
@@ -44,11 +44,11 @@ void main()
 		// tag and color data
 
 		// atomic moving average
-		// C1(11,000001 [2:6][leaf_label:count])
 		uint prev_val, cur_val, new_val;
 		uvec4 rgba;
 		uint numIterations;
 
+		// C1(11,000001 [2:6][leaf_label:count])
 #define OCTREE_ATOMIC_WRITE_VALUE(index, new_value)\
 		prev_val = 0;\
 		new_val = 0xC1000000u | (new_value & 0xffffffu);\
@@ -68,7 +68,7 @@ void main()
 		OCTREE_ATOMIC_WRITE_VALUE(OCTREE_COLOR_INDEX, ufragment.y);
 		OCTREE_ATOMIC_WRITE_VALUE(OCTREE_NORMAL_INDEX, ufragment.z);
 		OCTREE_ATOMIC_WRITE_VALUE(OCTREE_EMISSIVE_INDEX, ufragment.w);
-
+		OCTREE_ATOMIC_WRITE_VALUE(OCTREE_RADIANCE_INDEX, 0);
 #undef OCTREE_ATOMIC_WRITE_VALUE
 	}
 }

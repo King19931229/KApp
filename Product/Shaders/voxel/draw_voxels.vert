@@ -12,7 +12,7 @@ layout(binding = VOXEL_BINDING_EMISSION, rgba8) uniform readonly image3D voxelEm
 layout(binding = VOXEL_BINDING_RADIANCE, rgba8) uniform readonly image3D voxelRadiance;
 layout(binding = VOXEL_BINDING_TEXMIPMAP_OUT, rgba8) uniform readonly image3D voxelMipmap;
 
-layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec3 uOctree[]; };
+layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec4 uOctree[]; };
 #include "octree_common.h"
 #include "octree_util.h"
 
@@ -34,12 +34,14 @@ void main()
 	ivec3 texPos = ivec3(position);
 
 	vec3 samplePos = (vec3(texPos) + vec3(0.5)) / volumeDimension;
-	// albedo = SampleOctreeColor(volumeDimension, samplePos);
+	albedo = SampleOctreeRadiance(volumeDimension, samplePos);
+	albedo = SampleOctreeNormal(volumeDimension, samplePos);
 
 	// albedo = imageLoad(voxelAlbedo, texPos).rgba;
-	albedo = imageLoad(voxelRadiance, texPos).rgba;
+	// albedo = imageLoad(voxelRadiance, texPos).rgba;
 	// albedo.rgb = imageLoad(voxelNormal, texPos).rgb;
 	// albedo.a = imageLoad(voxelAlbedo, texPos).a;
+	// albedo = imageLoad(voxelMipmap, texPos).rgba;
 
 	uvec4 channels = uvec4(floor(colorChannels));
 

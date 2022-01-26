@@ -17,7 +17,7 @@ protected:
 		OCTREE_LEVEL_MAX = 12,
 		OCTREE_NODE_NUM_MIN = 1000000,
 		OCTREE_NODE_NUM_MAX = 500000000,
-		OCTREE_NODE_SIZE = sizeof(uint32_t) * 3,
+		OCTREE_NODE_SIZE = sizeof(uint32_t) * 4,
 		BEAM_SIZE = 8
 	};
 
@@ -117,13 +117,17 @@ protected:
 	IKComputePipelinePtr m_InjectPropagationOctreePipeline;
 
 	IKComputePipelinePtr m_MipmapBasePipeline;
+	IKComputePipelinePtr m_MipmapBaseOctreePipeline;
+
 	IKComputePipelinePtr m_MipmapVolumePipeline;
 
 	IKShaderPtr m_QuadVS;
 	IKShaderPtr m_LightPassFS;
+	IKShaderPtr m_LightPassOctreeFS;
 	IKShaderPtr m_OctreeRayTestFS;
 
 	std::vector<IKPipelinePtr> m_LightPassPipelines;
+	std::vector<IKPipelinePtr> m_LightPassOctreePipelines;
 	std::vector<IKPipelinePtr> m_OctreeRayTestPipelines;
 
 	KVertexData m_VoxelDrawVertexData;
@@ -163,6 +167,7 @@ protected:
 	void SetupRayTestPipeline(uint32_t width, uint32_t height);
 	void VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, bool countOnly);
 	void CheckFragmentlistData();
+	void CheckOctreeData();
 	void BuildOctree(IKCommandBufferPtr commandBuffer);
 
 	void UpdateInternal();
