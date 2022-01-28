@@ -135,8 +135,8 @@ void main()
 
 	ivec3 writePos = ivec3(gl_GlobalInvocationID);
 
-	vec3 octreePos = (vec3(writePos) + vec3(0.5)) / volumeDimension;
 #if USE_OCTREE
+	vec3 octreePos = (vec3(writePos) + vec3(0.5)) / volumeDimension;
 	vec4 albedo = SampleOctreeColor(volumeDimension, octreePos);
 #else
 	vec4 albedo = texelFetch(voxelAlbedo, writePos, 0);
@@ -169,7 +169,7 @@ void main()
 	radiance.a = directLight.a;
 
 #if USE_OCTREE
-	StoreOctreeRadiance(volumeDimension, octreePos, radiance);
+	StoreOctreeRadiance(volumeDimension, writePos, radiance.rgb);
 #else
 	imageStore(voxelComposite, writePos, radiance);
 #endif

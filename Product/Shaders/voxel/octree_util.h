@@ -38,7 +38,6 @@ bool GetOctreeIndex(in uvec3 level_pos, in uint level_dim, out uint idx)
 	do
 	{
 		level_dim >>= 1;
-
 		level_cmp = greaterThanEqual(level_pos, uvec3(level_dim));
 		idx = cur + (uint(level_cmp.x) | (uint(level_cmp.y) << 1u) | (uint(level_cmp.z) << 2u));
 		cur = uOctree[idx][OCTREE_COLOR_INDEX] & 0x3fffffffu;
@@ -55,14 +54,12 @@ bool InsideBound(in uint level_dim, ivec3 pos)
 	return true;
 }
 
-bool StoreOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index, in vec4 data)
+bool StoreOctreeSingleData(in uint level_dim, ivec3 store_pos, in uint data_index, in vec3 data)
 {
-	vec3 pos = float(level_dim) * uvw - vec3(0.5);
-	uvec3 store_pos = uvec3(floor(pos));
 	uint idx = 0;
-	if (GetOctreeIndex(store_pos, level_dim, idx))
+	if (InsideBound(level_dim, store_pos) && GetOctreeIndex(uvec3(store_pos), level_dim, idx))
 	{
-		uint encoded = packUnorm4x8(data);
+		uint encoded = packUnorm4x8(vec4(data, 0));
 		encoded = 0xC1000000u | (encoded & 0xffffffu);
 		uOctree[idx][data_index] = encoded;
 		return true;
@@ -70,18 +67,20 @@ bool StoreOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index, i
 	return false;
 }
 
-bool StoreOctreeRadiance(in uint level_dim, in vec3 uvw, in vec4 data)
+bool StoreOctreeRadiance(in uint level_dim, ivec3 store_pos, in vec3 data)
 {
-	return StoreOctreeSingleData(level_dim, uvw, OCTREE_RADIANCE_INDEX, data);
+	return StoreOctreeSingleData(level_dim, store_pos, OCTREE_RADIANCE_INDEX, data);
 }
 
-bool ComputeWeights(in uint level_dim, in vec3 uvw, out uint idxs[8], out float weights[8])
+bool ComputeWeights(in uint level_dim, in vec3 uvw, out bool valids[8], out uint idxs[8], out float weights[8])
 {
 	vec3 pos = float(level_dim) * uvw - vec3(0.5);
-	vec3 texel_pos = fract(pos);
+	pos = clamp(pos, vec3(0), vec3(level_dim - 1));
+	vec3 floor_pos = floor(pos);
+	vec3 texel_pos = pos - floor_pos;
 
 	ivec3 sample_pos[8];
-	sample_pos[0] = ivec3(pos);
+	sample_pos[0] = ivec3(floor_pos);
 	sample_pos[1] = sample_pos[0] + ivec3(1, 0, 0);
 	sample_pos[2] = sample_pos[0] + ivec3(0, 1, 0);
 	sample_pos[3] = sample_pos[0] + ivec3(1, 1, 0);
@@ -120,40 +119,41 @@ bool ComputeWeights(in uint level_dim, in vec3 uvw, out uint idxs[8], out float 
 	float sum = 0.0;
 	for(int i = 0; i < 8; ++i)
 	{
-		if(!InsideBound(level_dim, sample_pos[i]) || !GetOctreeIndex(uvec3(sample_pos[i]), level_dim, idxs[i]))
+		valids[i] = InsideBound(level_dim, sample_pos[i]);
+		if(valids[i])
 		{
-			weights[i] = 0;
+			valids[i] = GetOctreeIndex(uvec3(sample_pos[i]), level_dim, idxs[i]);
 		}
 		sum += weights[i];
 	}
 
-	sum = max(sum, 1e-5);
 	for(int i = 0; i < 8; ++i)
 	{
 		weights[i] /= sum;
 	}
 
-	return sum > 1e-5;
+	return abs(sum - 1.0) < 1e-5;
 }
 
 vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index)
 {
+	bool valids[8];
 	uint idxs[8];
 	float weights[8];
 
 	vec4 data = vec4(0);
 
-	if (ComputeWeights(level_dim, uvw, idxs, weights))
+	if (ComputeWeights(level_dim, uvw, valids, idxs, weights))
 	{	
 		for(int i = 0; i < 8; ++i)
 		{
-			if (weights[i] > 0)
+			if (valids[i])
 			{
 				uint idx = idxs[i];
 				vec4 unpacked = unpackUnorm4x8(uOctree[idx][data_index]);
 				uint count = uint(unpacked.w * 255.0);
 				count = count & 0x3fu;
-				data += weights[i] * vec4(unpacked.xyz, float(count));
+				data += weights[i] * vec4(unpacked.xyz, count > 0 ? 1 : 0);
 			}
 		}
 	}
@@ -178,11 +178,12 @@ vec4 SampleOctreeEmssive(in uint level_dim, in vec3 uvw)
 
 vec4 SampleOctreeRadiance(in uint level_dim, in vec3 uvw)
 {
-	return vec4(SampleOctreeSingleData(level_dim, uvw, OCTREE_RADIANCE_INDEX).rgba);
+	return SampleOctreeSingleData(level_dim, uvw, OCTREE_RADIANCE_INDEX);
 }
 
 bool SampleOctree(in uint level_dim, in vec3 uvw, out vec4 o_color, out vec4 o_normal, out vec4 o_emissive)
 {
+	bool valids[8];
 	uint idxs[8];
 	float weights[8];
 
@@ -190,11 +191,11 @@ bool SampleOctree(in uint level_dim, in vec3 uvw, out vec4 o_color, out vec4 o_n
 	vec4 norm = vec4(0);
 	vec4 emissive = vec4(0);
 
-	if(ComputeWeights(level_dim, uvw, idxs, weights))
+	if(ComputeWeights(level_dim, uvw, valids, idxs, weights))
 	{
 		for(int i = 0; i < 8; ++i)
 		{
-			if(weights[i] > 0.0)
+			if(valids[i])
 			{
 				uint idx = idxs[i];
 
@@ -204,17 +205,17 @@ bool SampleOctree(in uint level_dim, in vec3 uvw, out vec4 o_color, out vec4 o_n
 				unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_COLOR_INDEX]);
 				count = uint(unpacked.w * 255.0);
 				count = count & 0x3fu;
-				color += weights[i] * vec4(unpacked.xyz, float(count) / 255.0);	
+				color += weights[i] * vec4(unpacked.xyz, count > 0 ? 1 : 0);
 
 				unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_NORMAL_INDEX]);
 				count = uint(unpacked.w * 255.0);
 				count = count & 0x3fu;
-				norm += weights[i] * vec4(unpacked.xyz, float(count) / 255.0);	
+				norm += weights[i] * vec4(unpacked.xyz, count > 0 ? 1 : 0);
 
 				unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_EMISSIVE_INDEX]);
 				count = uint(unpacked.w * 255.0);
 				count = count & 0x3fu;
-				emissive += weights[i] * vec4(unpacked.xyz, float(count) / 255.0);	
+				emissive += weights[i] * vec4(unpacked.xyz, count > 0 ? 1 : 0);
 			}
 		}
 	}

@@ -280,6 +280,10 @@ void main()
 #if USE_OCTREE
 	vec3 octreePos = (vec3(writePos) + vec3(0.5)) / volumeDimension;
 	vec4 albedo = SampleOctreeColor(volumeDimension, octreePos);
+	// uint idx;
+	// GetOctreeIndex(uvec3(writePos), uint(volumeDimension), idx);
+	// vec4 unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_COLOR_INDEX]);
+	// albedo = unpacked;
 #else
 	vec4 albedo = texelFetch(voxelAlbedo, writePos, 0);
 #endif
@@ -323,7 +327,7 @@ void main()
 	albedo.rgb += emissive;
 	albedo.a = 1.0f;
 #if USE_OCTREE
-	StoreOctreeRadiance(volumeDimension, octreePos, albedo);
+	StoreOctreeRadiance(volumeDimension, writePos, albedo.rgb);
 #else
 	imageStore(voxelRadiance, writePos, albedo);
 #endif

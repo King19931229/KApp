@@ -35,14 +35,17 @@ void main()
 
 	vec3 samplePos = (vec3(texPos) + vec3(0.5)) / volumeDimension;
 	albedo = SampleOctreeRadiance(volumeDimension, samplePos);
-	albedo = SampleOctreeNormal(volumeDimension, samplePos);
-
+	// albedo = SampleOctreeColor(volumeDimension, samplePos);
 	// albedo = imageLoad(voxelAlbedo, texPos).rgba;
 	// albedo = imageLoad(voxelRadiance, texPos).rgba;
 	// albedo.rgb = imageLoad(voxelNormal, texPos).rgb;
 	// albedo.a = imageLoad(voxelAlbedo, texPos).a;
 	// albedo = imageLoad(voxelMipmap, texPos).rgba;
 
+	// if(!any(greaterThan(albedo.rgb, vec3(0.0f))))
+	// {
+	// 	albedo.rgb = vec3(1,1,1);
+	// }
 	uvec4 channels = uvec4(floor(colorChannels));
 
 	albedo = vec4(albedo.rgb * channels.rgb, albedo.a);

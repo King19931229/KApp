@@ -39,7 +39,8 @@ KVoxilzer::KVoxilzer()
 	, m_VoxelDrawWireFrame(true)
 	, m_VoxelDebugUpdate(false)
 	, m_VoxelNeedUpdate(false)
-	, m_VoxelUseOctree(false)
+	, m_VoxelUseOctree(true)
+	, m_VoxelLastUseOctree(true)
 {
 	m_OnSceneChangedFunc = std::bind(&KVoxilzer::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
 }
@@ -52,7 +53,7 @@ void KVoxilzer::UpdateInternal()
 {
 	UpdateProjectionMatrices();
 
-	//if (m_VoxelUseOctree)
+	if (m_VoxelUseOctree)
 	{
 		m_PrimaryCommandBuffer->BeginPrimary();
 
@@ -77,7 +78,7 @@ void KVoxilzer::UpdateInternal()
 		m_PrimaryCommandBuffer->End();
 		m_PrimaryCommandBuffer->Flush();
 	}
-	//else
+	else
 	{
 		m_PrimaryCommandBuffer->BeginPrimary();
 
@@ -94,9 +95,9 @@ void KVoxilzer::UpdateInternal()
 
 		m_PrimaryCommandBuffer->End();
 		m_PrimaryCommandBuffer->Flush();
-	}
 
-	CheckOctreeData();
+		CheckOctreeData();
+	}
 }
 
 void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
@@ -111,10 +112,11 @@ void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 
 void KVoxilzer::UpdateVoxel()
 {
-	if (m_VoxelDebugUpdate || m_VoxelNeedUpdate)
+	if (m_VoxelDebugUpdate || m_VoxelNeedUpdate || m_VoxelLastUseOctree != m_VoxelUseOctree)
 	{
 		UpdateInternal();
 		m_VoxelNeedUpdate = false;
+		m_VoxelLastUseOctree = m_VoxelUseOctree;
 	}
 }
 
@@ -130,8 +132,11 @@ void KVoxilzer::ReloadShader()
 	m_OctreeRayTestFS->Reload();
 	m_ClearDynamicPipeline->ReloadShader();
 	m_InjectRadiancePipeline->ReloadShader();
+	m_InjectRadianceOctreePipeline->ReloadShader();
 	m_InjectPropagationPipeline->ReloadShader();
+	m_InjectPropagationOctreePipeline->ReloadShader();
 	m_MipmapBasePipeline->ReloadShader();
+	m_MipmapBaseOctreePipeline->ReloadShader();
 	m_MipmapVolumePipeline->ReloadShader();
 	for (IKPipelinePtr& pipeline : m_VoxelDrawPipelines)
 	{
@@ -412,14 +417,12 @@ void KVoxilzer::SetupRadiancePipeline()
 		injectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
 		injectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL, voxelBuffer);
 
-		injectRadiancePipeline->BindStorageImage(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
-
-		injectRadiancePipeline->BindSampler(VOXEL_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), m_LinearSampler, false);
-		injectRadiancePipeline->BindStorageImage(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
-		injectRadiancePipeline->BindStorageImage(VOXEL_BINDING_EMISSION_MAP, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
-
 		if (i == DEFAULT)
-		{			
+		{
+			injectRadiancePipeline->BindSampler(VOXEL_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), m_LinearSampler, true);
+			injectRadiancePipeline->BindStorageImage(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			injectRadiancePipeline->BindStorageImage(VOXEL_BINDING_EMISSION_MAP, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
+			injectRadiancePipeline->BindStorageImage(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 			injectRadiancePipeline->Init("voxel/inject_radiance.comp");
 		}
 		else
@@ -693,7 +696,7 @@ void KVoxilzer::SetupRayTestPipeline(uint32_t width, uint32_t height)
 
 void KVoxilzer::ClearDynamicScene(IKCommandBufferPtr commandBuffer)
 {
-	uint32_t group = (m_VolumeDimension + (GROUP_SIZE - 1)) / GROUP_SIZE;
+	uint32_t group = (m_VolumeDimension + (VOXEL_GROUP_SIZE - 1)) / VOXEL_GROUP_SIZE;
 	m_ClearDynamicPipeline->Execute(commandBuffer, group, group, group, 0);
 }
 
@@ -868,8 +871,6 @@ inline static constexpr uint32_t group_x_64(uint32_t x) { return (x >> 6u) + ((x
 
 void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 {
-	KRenderGlobal::RenderDevice->Wait();
-
 	uint32_t fragmentCount = 0;
 	m_CounterBuffer->Read(&fragmentCount);
 
@@ -923,7 +924,7 @@ void KVoxilzer::UpdateRadiance(IKCommandBufferPtr commandBuffer)
 
 	if (m_InjectFirstBounce)
 	{
-		uint32_t group = (m_VolumeDimension + (GROUP_SIZE - 1)) / GROUP_SIZE;
+		uint32_t group = (m_VolumeDimension + (VOXEL_GROUP_SIZE - 1)) / VOXEL_GROUP_SIZE;
 		IKComputePipelinePtr& propagationPipeline = m_VoxelUseOctree ? m_InjectPropagationOctreePipeline : m_InjectPropagationPipeline;
 		propagationPipeline->Execute(commandBuffer, group, group, group, 0);
 		GenerateMipmap(commandBuffer);
@@ -932,7 +933,7 @@ void KVoxilzer::UpdateRadiance(IKCommandBufferPtr commandBuffer)
 
 void KVoxilzer::InjectRadiance(IKCommandBufferPtr commandBuffer)
 {
-	uint32_t group = (m_VolumeDimension + (GROUP_SIZE - 1)) / GROUP_SIZE;
+	uint32_t group = (m_VolumeDimension + (VOXEL_GROUP_SIZE - 1)) / VOXEL_GROUP_SIZE;
 	IKComputePipelinePtr& injectPipeline = m_VoxelUseOctree ? m_InjectRadianceOctreePipeline : m_InjectRadiancePipeline;
 	injectPipeline->Execute(commandBuffer, group, group, group, 0);
 }
@@ -946,7 +947,7 @@ void KVoxilzer::GenerateMipmap(IKCommandBufferPtr commandBuffer)
 void KVoxilzer::GenerateMipmapBase(IKCommandBufferPtr commandBuffer)
 {
 	uint32_t dimension = m_VolumeDimension / 2;
-	uint32_t group = (dimension + (GROUP_SIZE - 1)) / GROUP_SIZE;
+	uint32_t group = (dimension + (VOXEL_GROUP_SIZE - 1)) / VOXEL_GROUP_SIZE;
 
 	glm::uvec4 constant = glm::uvec4(dimension, dimension, dimension, 0);
 
@@ -973,7 +974,7 @@ void KVoxilzer::GenerateMipmapVolume(IKCommandBufferPtr commandBuffer)
 
 	while (dimension > 0)
 	{
-		uint32_t group = (dimension + (GROUP_SIZE - 1)) / GROUP_SIZE;
+		uint32_t group = (dimension + (VOXEL_GROUP_SIZE - 1)) / VOXEL_GROUP_SIZE;
 
 		for (size_t idx = 0; idx < ARRAY_SIZE(m_VoxelTexMipmap); ++idx)
 		{
@@ -1061,7 +1062,7 @@ bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::
 
 bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 {
-	std::vector<IKPipelinePtr>& lightPassPipelines = m_LightPassPipelines;// m_VoxelUseOctree ? m_LightPassOctreePipelines : m_LightPassPipelines;
+	std::vector<IKPipelinePtr>& lightPassPipelines = m_VoxelUseOctree ? m_LightPassOctreePipelines : m_LightPassPipelines;
 
 	if (frameIndex < lightPassPipelines.size())
 	{
@@ -1193,7 +1194,7 @@ void KVoxilzer::SetupOctreeBuildPipeline()
 	m_OctreeTagNodePipeline->BindDynamicUniformBuffer(OCTREE_BINDING_OBJECT);
 	m_OctreeTagNodePipeline->Init("voxel/octree_tag_node.comp");
 
-	m_OctreeInitNodePipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_OUT, true);
+	m_OctreeInitNodePipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 	m_OctreeInitNodePipeline->BindStorageBuffer(OCTREE_BINDING_BUILDINFO, m_BuildInfoBuffer, COMPUTE_RESOURCE_IN, true);
 	m_OctreeInitNodePipeline->Init("voxel/octree_init_node.comp");
 

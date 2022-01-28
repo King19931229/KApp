@@ -12,7 +12,7 @@ class KVoxilzer
 protected:
 	enum
 	{
-		GROUP_SIZE = 8,
+		VOXEL_GROUP_SIZE = 8,
 		OCTREE_LEVEL_MIN = 1,
 		OCTREE_LEVEL_MAX = 12,
 		OCTREE_NODE_NUM_MIN = 1000000,
@@ -140,6 +140,7 @@ protected:
 	bool m_VoxelDebugUpdate;
 	bool m_VoxelNeedUpdate;
 	bool m_VoxelUseOctree;
+	bool m_VoxelLastUseOctree;
 
 	KRTDebugDrawer m_LightDebugDrawer;
 	KRTDebugDrawer m_OctreeRayTestDebugDrawer;
@@ -181,6 +182,7 @@ public:
 	void UpdateVoxel();
 	void ReloadShader();
 
+	bool& GetVoxelUseOctree() { return m_VoxelUseOctree; }
 	bool& GetVoxelDebugUpdate() { return m_VoxelDebugUpdate; }
 	bool& GetVoxelDrawEnable() { return m_VoxelDrawEnable; }
 	bool& GetVoxelDrawWireFrame() { return m_VoxelDrawWireFrame; }

@@ -34,9 +34,8 @@ void FetchTexels(ivec3 pos, inout vec4 val[8])
 	for(int i = 0; i < 8; i++)
 	{
 #if USE_OCTREE
-		ivec3 readPos = pos + anisoOffsets[i];
-		vec3 octreePos = (vec3(readPos) + vec3(0.5)) / volumeDimension;
-		val[i] = vec4(SampleOctreeRadiance(volumeDimension, octreePos);
+		vec3 octreePos = (vec3(pos + anisoOffsets[i]) + vec3(0.5)) / volumeDimension;
+		val[i] = SampleOctreeRadiance(volumeDimension, octreePos);
 #else
 		val[i] = texelFetch(voxelBase, pos + anisoOffsets[i], 0);
 #endif
