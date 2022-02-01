@@ -330,7 +330,7 @@ bool KCameraMoveController::Update(float dt)
 		size_t width = 0;
 		size_t height = 0;
 		m_Window->GetSize(width, height);
-		m_Camera->SetPerspective(glm::radians(45.0f), width / (float)height, m_Camera->GetNear(), m_Camera->GetFar());
+		m_Camera->SetPerspective(glm::radians(45.0f), (width ? width : 1) / (float)(height ? height : 1), m_Camera->GetNear(), m_Camera->GetFar());
 
 		return true;
 	}

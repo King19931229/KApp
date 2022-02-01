@@ -248,7 +248,7 @@ vec3 CalculateDirectional(Light light, vec3 normal, vec3 position, vec3 albedo, 
 	{
 		vec3 voxelPos = WorldToVoxel(position);
 #if USE_OCTREE
-		visibility = max(0.0f, SampleOctreeNormal(volumeDimension, voxelPos).a);
+		visibility = max(0.0f, SampleOctreeVisibility(volumeDimension, voxelPos));
 #else
 		visibility = max(0.0f, texture(voxelVisibility, voxelPos).a);
 #endif
@@ -279,7 +279,7 @@ vec3 CalculatePoint(Light light, vec3 normal, vec3 position, vec3 albedo, vec4 s
 	{
 		vec3 voxelPos = WorldToVoxel(position);
 #if USE_OCTREE
-		visibility = max(0.0f, SampleOctreeNormal(volumeDimension, voxelPos).a);
+		visibility = max(0.0f, SampleOctreeVisibility(volumeDimension, voxelPos));
 #else
 		visibility = max(0.0f, texture(voxelVisibility, voxelPos).a);
 #endif
@@ -323,7 +323,7 @@ vec3 CalculateSpot(Light light, vec3 normal, vec3 position, vec3 albedo, vec4 sp
 	{
 		vec3 voxelPos = WorldToVoxel(position);
 #if USE_OCTREE
-		visibility = max(0.0f, SampleOctreeNormal(volumeDimension, voxelPos).a);
+		visibility = max(0.0f, SampleOctreeVisibility(volumeDimension, voxelPos));
 #else
 		visibility = max(0.0f, texture(voxelVisibility, voxelPos).a);
 #endif

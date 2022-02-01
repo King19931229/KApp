@@ -169,7 +169,7 @@ void main()
 	radiance.a = directLight.a;
 
 #if USE_OCTREE
-	StoreOctreeRadiance(volumeDimension, writePos, radiance.rgb);
+	StoreOctreeRadiance(volumeDimension, writePos, vec4(radiance.rgb, SampleOctreeVisibility(volumeDimension, octreePos)));
 #else
 	imageStore(voxelComposite, writePos, radiance);
 #endif

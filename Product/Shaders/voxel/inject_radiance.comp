@@ -316,19 +316,15 @@ void main()
 		albedo = CalculateDirectLighting(wsPosition, normal, albedo.rgb);
 	}
 
+	// add emission
+	albedo.rgb += emissive;
+
 #if USE_OCTREE
-	// can query visibility in octree
+	StoreOctreeRadiance(volumeDimension, writePos, albedo);
 #else
 	// store visibility in normal alpha
 	imageStore(voxelNormal, writePos, vec4(baseNormal, albedo.a));
-#endif
-
-	// add emission
-	albedo.rgb += emissive;
 	albedo.a = 1.0f;
-#if USE_OCTREE
-	StoreOctreeRadiance(volumeDimension, writePos, albedo.rgb);
-#else
 	imageStore(voxelRadiance, writePos, albedo);
 #endif
 }

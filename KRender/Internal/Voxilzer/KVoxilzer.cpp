@@ -860,9 +860,17 @@ void KVoxilzer::CheckOctreeData()
 
 	for (size_t i = 0; i < data.size(); ++i)
 	{
-		if (data[i].y != 0 && data[i].w == 0)
+		if (data[i].y != 0)
 		{
-			KG_LOG(LM_DEFAULT, "Voxel radiance miss");
+			uint32_t encoded = data[i].w;
+			glm::uvec4 unpacked = glm::uvec4(encoded & 0xff, (encoded >> 8) & 0xff, (encoded >> 16) & 0xff, (encoded >> 24) & 0xff);
+			uint32_t count = unpacked.w & 0x3fu;
+			glm::vec3 data = glm::vec3(unpacked.x / 255.0f, unpacked.y / 255.0f, unpacked.z / 255.0f);
+			float luminance = glm::dot(data, glm::vec3(0.2126f, 0.7152f, 0.0722f));
+			if (count && luminance == 0.0f)
+			{
+				// KG_LOG(LM_DEFAULT, "Voxel radiance miss");
+			}
 		}
 	}
 }

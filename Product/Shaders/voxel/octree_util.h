@@ -54,40 +54,34 @@ bool InsideBound(in uint level_dim, ivec3 pos)
 	return true;
 }
 
-bool StoreOctreeSingleData(in uint level_dim, ivec3 store_pos, in uint data_index, in vec3 data)
+bool StoreOctreeRadiance(in uint level_dim, ivec3 store_pos, in vec4 data)
 {
 	uint idx = 0;
 	if (InsideBound(level_dim, store_pos) && GetOctreeIndex(uvec3(store_pos), level_dim, idx))
 	{
-		uint encoded = packUnorm4x8(vec4(data, 0));
-		encoded = 0xC1000000u | (encoded & 0xffffffu);
-		uOctree[idx][data_index] = encoded;
+		uint encoded = packUnorm4x8(data);
+		uOctree[idx][OCTREE_RADIANCE_INDEX] = encoded;
 		return true;
 	}
 	return false;
 }
 
-bool StoreOctreeRadiance(in uint level_dim, ivec3 store_pos, in vec3 data)
-{
-	return StoreOctreeSingleData(level_dim, store_pos, OCTREE_RADIANCE_INDEX, data);
-}
-
 bool ComputeWeights(in uint level_dim, in vec3 uvw, out bool valids[8], out uint idxs[8], out float weights[8])
 {
 	vec3 pos = float(level_dim) * uvw - vec3(0.5);
-	pos = clamp(pos, vec3(0), vec3(level_dim - 1));
 	vec3 floor_pos = floor(pos);
+	ivec3 base_pos = ivec3(floor_pos);
 	vec3 texel_pos = pos - floor_pos;
 
 	ivec3 sample_pos[8];
-	sample_pos[0] = ivec3(floor_pos);
-	sample_pos[1] = sample_pos[0] + ivec3(1, 0, 0);
-	sample_pos[2] = sample_pos[0] + ivec3(0, 1, 0);
-	sample_pos[3] = sample_pos[0] + ivec3(1, 1, 0);
-	sample_pos[4] = sample_pos[0] + ivec3(0, 0, 1);
-	sample_pos[5] = sample_pos[0] + ivec3(1, 0, 1);
-	sample_pos[5] = sample_pos[0] + ivec3(0, 1, 1);
-	sample_pos[6] = sample_pos[0] + ivec3(1, 1, 1);
+	sample_pos[0] = base_pos + ivec3(0, 0, 0);
+	sample_pos[1] = base_pos + ivec3(1, 0, 0);
+	sample_pos[2] = base_pos + ivec3(0, 1, 0);
+	sample_pos[3] = base_pos + ivec3(1, 1, 0);
+	sample_pos[4] = base_pos + ivec3(0, 0, 1);
+	sample_pos[5] = base_pos + ivec3(1, 0, 1);
+	sample_pos[6] = base_pos + ivec3(0, 1, 1);
+	sample_pos[7] = base_pos + ivec3(1, 1, 1);
 
 	weights[0] = 1.0 - texel_pos.x;
 	weights[1] = texel_pos.x;
@@ -144,16 +138,25 @@ vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index)
 	vec4 data = vec4(0);
 
 	if (ComputeWeights(level_dim, uvw, valids, idxs, weights))
-	{	
+	{
 		for(int i = 0; i < 8; ++i)
 		{
 			if (valids[i])
 			{
 				uint idx = idxs[i];
 				vec4 unpacked = unpackUnorm4x8(uOctree[idx][data_index]);
-				uint count = uint(unpacked.w * 255.0);
-				count = count & 0x3fu;
-				data += weights[i] * vec4(unpacked.xyz, count > 0 ? 1 : 0);
+				uint count = 0;
+				if (data_index != OCTREE_RADIANCE_INDEX)
+				{
+					count = uint(unpacked.w * 255.0);
+					count = (count & 0x3fu) > 0 ? 1 : 0;
+				}
+				else
+				{
+					vec4 col_unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_COLOR_INDEX]);
+					count = col_unpacked.w > 0 ? 1 : 0;
+				}
+				data += weights[i] * vec4(unpacked.xyz, count);
 			}
 		}
 	}
@@ -179,6 +182,30 @@ vec4 SampleOctreeEmssive(in uint level_dim, in vec3 uvw)
 vec4 SampleOctreeRadiance(in uint level_dim, in vec3 uvw)
 {
 	return SampleOctreeSingleData(level_dim, uvw, OCTREE_RADIANCE_INDEX);
+}
+
+float SampleOctreeVisibility(in uint level_dim, in vec3 uvw)
+{
+	bool valids[8];
+	uint idxs[8];
+	float weights[8];
+
+	float data = 0;
+
+	if (ComputeWeights(level_dim, uvw, valids, idxs, weights))
+	{
+		for(int i = 0; i < 8; ++i)
+		{
+			if (valids[i])
+			{
+				uint idx = idxs[i];
+				vec4 unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_RADIANCE_INDEX]);
+				data += weights[i] * unpacked.w;
+			}
+		}
+	}
+
+	return data;
 }
 
 bool SampleOctree(in uint level_dim, in vec3 uvw, out vec4 o_color, out vec4 o_normal, out vec4 o_emissive)
