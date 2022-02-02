@@ -119,13 +119,16 @@ bool KVulkanPipeline::SetVertexBinding(const VertexFormat* formats, size_t count
 	KVulkanHelper::VulkanBindingDetailList bindingDetails;
 	ASSERT_RESULT(KVulkanHelper::PopulateInputBindingDescription(formats, count, bindingDetails));
 
-	for(KVulkanHelper::VulkanBindingDetail& detail : bindingDetails)
+	m_BindingDescriptions.clear();
+	m_AttributeDescriptions.clear();
+
+	for (KVulkanHelper::VulkanBindingDetail& detail : bindingDetails)
 	{
 		m_BindingDescriptions.push_back(detail.bindingDescription);
 		m_AttributeDescriptions.insert(m_AttributeDescriptions.end(),
 			detail.attributeDescriptions.begin(),
 			detail.attributeDescriptions.end()
-			);
+		);
 	}
 	return true;
 }
@@ -673,46 +676,6 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		samplerDescriptorWrite.pTexelBufferView = nullptr; // Optional
 
 		m_WriteDescriptorSet.push_back(samplerDescriptorWrite);
-	}
-
-	for (auto& pair : m_StorageImages)
-	{
-		unsigned int location = pair.first;
-		StorageImageBindingInfo& info = pair.second;
-
-		VkDescriptorImageInfo& imageInfoStart = m_ImageWriteInfo[imageIdx];
-
-		for (size_t i = 0; i < info.images.size(); ++i)
-		{
-			VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
-			IKFrameBufferPtr frameBuffer = info.images[i];
-			KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)frameBuffer.get();
-
-			ASSERT_RESULT(frameBuffer->IsStorageImage());
-
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			imageInfo.imageView = (info.format == EF_UNKNOWN) ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(info.format);
-			imageInfo.sampler = VK_NULL_HANDEL;
-		}
-
-		VkWriteDescriptorSet storageDescriptorWrite = {};
-
-		storageDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		// 写入的描述集合
-		storageDescriptorWrite.dstSet = VK_NULL_HANDLE;
-		// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
-		storageDescriptorWrite.dstBinding = location;
-		// 写入索引与下面descriptorCount对应
-		storageDescriptorWrite.dstArrayElement = 0;
-
-		storageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		storageDescriptorWrite.descriptorCount = (uint32_t)info.images.size();
-
-		storageDescriptorWrite.pBufferInfo = nullptr; // Optional
-		storageDescriptorWrite.pImageInfo = &imageInfoStart;
-		storageDescriptorWrite.pTexelBufferView = nullptr; // Optional
-
-		m_WriteDescriptorSet.push_back(storageDescriptorWrite);
 	}
 
 	m_Pool.Init(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, m_WriteDescriptorSet);

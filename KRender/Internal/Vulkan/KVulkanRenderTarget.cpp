@@ -10,21 +10,17 @@
 
 KVulkanRenderTarget::KVulkanRenderTarget()
 {
+	m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
 }
 
 KVulkanRenderTarget::~KVulkanRenderTarget()
 {
-	// ASSERT_RESULT(m_FrameBuffer == nullptr);
+	m_FrameBuffer = nullptr;
 }
 
 bool KVulkanRenderTarget::InitFromDepthStencil(uint32_t width, uint32_t height, uint32_t msaaCount, bool bStencil)
 {
 	UnInit();
-
-	if (!m_FrameBuffer)
-	{
-		m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
-	}
 
 	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitDepthStencil(width, height, msaaCount, bStencil);
 
@@ -34,11 +30,6 @@ bool KVulkanRenderTarget::InitFromDepthStencil(uint32_t width, uint32_t height, 
 bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_t msaaCount, ElementFormat format)
 {
 	UnInit();
-
-	if (!m_FrameBuffer)
-	{
-		m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
-	}
 
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
@@ -57,11 +48,6 @@ bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint3
 {
 	UnInit();
 
-	if (!m_FrameBuffer)
-	{
-		m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
-	}
-
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
 
@@ -77,11 +63,6 @@ bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint3
 bool KVulkanRenderTarget::InitFromStorage3D(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, ElementFormat format)
 {
 	UnInit();
-
-	if (!m_FrameBuffer)
-	{
-		m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
-	}
 
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
@@ -100,23 +81,15 @@ bool KVulkanRenderTarget::UnInit()
 {
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
 
-	if (m_FrameBuffer)
-	{
-		((KVulkanFrameBuffer*)m_FrameBuffer.get())->UnInit();
-	}
+	((KVulkanFrameBuffer*)m_FrameBuffer.get())->UnInit();
 
 	return true;
 }
 
 bool KVulkanRenderTarget::GetSize(size_t& width, size_t& height)
 {
-	if (m_FrameBuffer)
-	{
-		width = m_FrameBuffer->GetWidth();
-		height = m_FrameBuffer->GetHeight();
-		return true;
-	}
-
+	width = m_FrameBuffer->GetWidth();
+	height = m_FrameBuffer->GetHeight();
 	return true;
 }
 
@@ -142,11 +115,5 @@ VkExtent2D KVulkanRenderTarget::GetExtend()
 
 VkSampleCountFlagBits KVulkanRenderTarget::GetMsaaFlag()
 {
-	if (m_FrameBuffer)
-	{
-		return ((KVulkanFrameBuffer*)m_FrameBuffer.get())->GetMSAAFlag();
-	}
-
-	assert(false && "should not reach");
-	return VK_SAMPLE_COUNT_1_BIT;
+	return ((KVulkanFrameBuffer*)m_FrameBuffer.get())->GetMSAAFlag();
 }

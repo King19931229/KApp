@@ -6,15 +6,22 @@
 layout(location = 0) out vec4 albedo;
 layout(location = 1) out flat uint level;
 
+#ifndef USE_OCTREE
+#define USE_OCTREE 0
+#endif
+
+#if USE_OCTREE
+layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec4 uOctree[]; };
+#include "octree_common.h"
+#include "octree_util.h"
+#else
 layout(binding = VOXEL_BINDING_ALBEDO, rgba8) uniform readonly image3D voxelAlbedo;
 layout(binding = VOXEL_BINDING_NORMAL, rgba8) uniform readonly image3D voxelNormal;
 layout(binding = VOXEL_BINDING_EMISSION, rgba8) uniform readonly image3D voxelEmission;
 layout(binding = VOXEL_BINDING_RADIANCE, rgba8) uniform readonly image3D voxelRadiance;
-layout(binding = VOXEL_BINDING_TEXMIPMAP_OUT, rgba8) uniform readonly image3D voxelMipmap;
+#endif
 
-layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec4 uOctree[]; };
-#include "octree_common.h"
-#include "octree_util.h"
+layout(binding = VOXEL_BINDING_TEXMIPMAP_OUT, rgba8) uniform readonly image3D voxelMipmap;
 
 const vec4 colorChannels = vec4(1.0);
 
@@ -33,19 +40,19 @@ void main()
 
 	ivec3 texPos = ivec3(position);
 
+#if USE_OCTREE
 	vec3 samplePos = (vec3(texPos) + vec3(0.5)) / volumeDimension;
 	albedo = SampleOctreeRadiance(volumeDimension, samplePos);
 	// albedo = SampleOctreeColor(volumeDimension, samplePos);
+#else
+	albedo = imageLoad(voxelRadiance, texPos);
 	// albedo = imageLoad(voxelAlbedo, texPos).rgba;
 	// albedo = imageLoad(voxelRadiance, texPos).rgba;
 	// albedo.rgb = imageLoad(voxelNormal, texPos).rgb;
 	// albedo.a = imageLoad(voxelAlbedo, texPos).a;
 	// albedo = imageLoad(voxelMipmap, texPos).rgba;
+#endif
 
-	// if(!any(greaterThan(albedo.rgb, vec3(0.0f))))
-	// {
-	// 	albedo.rgb = vec3(1,1,1);
-	// }
 	uvec4 channels = uvec4(floor(colorChannels));
 
 	albedo = vec4(albedo.rgb * channels.rgb, albedo.a);

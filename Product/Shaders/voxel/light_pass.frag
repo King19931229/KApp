@@ -62,15 +62,15 @@ vec4 AnistropicSample(vec3 coord, vec3 weight, uvec3 face, float lod)
 	vec4 anisoSample = weight.x * textureLod(voxelTexMipmap[face.x], coord, anisoLevel)
 					 + weight.y * textureLod(voxelTexMipmap[face.y], coord, anisoLevel)
 					 + weight.z * textureLod(voxelTexMipmap[face.z], coord, anisoLevel);
+
 	// linearly interpolate on base level
 	if(lod < 1.0f)
 	{
-#if USE_OCTREE
-		vec4 baseColor = SampleOctreeRadiance(volumeDimension, coord);
-#else
-		vec4 baseColor = texture(voxelTex, coord);
-#endif
-		anisoSample = mix(baseColor, anisoSample, clamp(lod, 0.0f, 1.0f));
+// #if USE_OCTREE
+// #else
+// 		vec4 baseColor = texture(voxelTex, coord);
+// 		anisoSample = mix(baseColor, anisoSample, clamp(lod, 0.0f, 1.0f));
+// #endif
 	}
 
 	return anisoSample;

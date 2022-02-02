@@ -46,6 +46,8 @@ protected:
 
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
+	uint32_t m_Width;
+	uint32_t m_Height;
 
 	IKRenderTargetPtr m_StaticFlag;
 	IKRenderTargetPtr m_VoxelAlbedo;
@@ -101,12 +103,16 @@ protected:
 	IKRenderPassPtr m_VoxelRenderPass;
 
 	IKShaderPtr m_VoxelDrawVS;
+	IKShaderPtr m_VoxelDrawOctreeVS;
 	IKShaderPtr m_VoxelDrawGS;
 	IKShaderPtr m_VoxelWireFrameDrawGS;
 	IKShaderPtr m_VoxelDrawFS;
 
 	std::vector<IKPipelinePtr> m_VoxelDrawPipelines;
 	std::vector<IKPipelinePtr> m_VoxelWireFrameDrawPipelines;
+
+	std::vector<IKPipelinePtr> m_VoxelDrawOctreePipelines;
+	std::vector<IKPipelinePtr> m_VoxelWireFrameDrawOctreePipelines;
 
 	IKComputePipelinePtr m_ClearDynamicPipeline;
 
@@ -147,6 +153,11 @@ protected:
 
 	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
 	void UpdateProjectionMatrices();
+
+	void SetupVoxelBuffer();
+	void SetupSparseVoxelBuffer();
+	void SetupVoxelReleatedData();
+
 	void SetupVoxelVolumes(uint32_t dimension);
 	void SetupVoxelDrawPipeline();
 	void SetupClearDynamicPipeline();
@@ -163,7 +174,6 @@ protected:
 	void GenerateMipmapBase(IKCommandBufferPtr commandBuffer);
 	void GenerateMipmapVolume(IKCommandBufferPtr commandBuffer);
 
-	void SetupSparseVoxelBuffer();
 	void SetupOctreeBuildPipeline();
 	void SetupRayTestPipeline(uint32_t width, uint32_t height);
 	void VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, bool countOnly);

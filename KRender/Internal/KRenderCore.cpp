@@ -628,7 +628,7 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 				}
 				if (ui->Header("VXGI"))
 				{
-					ui->CheckBox("DebugUpdate", &KRenderGlobal::Voxilzer.GetVoxelDebugUpdate());
+					ui->CheckBox("Octree", &KRenderGlobal::Voxilzer.GetVoxelUseOctree());
 					ui->CheckBox("VoxelDraw", &KRenderGlobal::Voxilzer.GetVoxelDrawEnable());
 					ui->CheckBox("VoxelDrawWireFrame", &KRenderGlobal::Voxilzer.GetVoxelDrawWireFrame());
 					ui->CheckBox("LightDraw", &KRenderGlobal::Voxilzer.GetLightDebugDrawEnable());

@@ -442,6 +442,7 @@ bool KVulkanRenderPass::UnInit()
 	{
 		(*callback)(this);
 	}
+	m_InvalidCallbacks.clear();
 
 	if (m_RenderPass != VK_NULL_HANDLE)
 	{
