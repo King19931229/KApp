@@ -9,7 +9,8 @@ layout (local_size_x = VOXEL_GROUP_SIZE, local_size_y = VOXEL_GROUP_SIZE, local_
 #endif
 
 #if USE_OCTREE
-layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec4 uOctree[]; };
+layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
+layout(binding = VOXEL_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
 #include "octree_common.h"
 #include "octree_util.h"
 #else
@@ -281,8 +282,8 @@ void main()
 	vec3 octreePos = (vec3(writePos) + vec3(0.5)) / volumeDimension;
 	vec4 albedo = SampleOctreeColor(volumeDimension, octreePos);
 	// uint idx;
-	// GetOctreeIndex(uvec3(writePos), uint(volumeDimension), idx);
-	// vec4 unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_COLOR_INDEX]);
+	// GetOctreeDataIndex(uvec3(writePos), uint(volumeDimension), idx);
+	// vec4 unpacked = unpackUnorm4x8(uOctreeData[idx][OCTREE_COLOR_INDEX]);
 	// albedo = unpacked;
 #else
 	vec4 albedo = texelFetch(voxelAlbedo, writePos, 0);

@@ -17,14 +17,15 @@ protected:
 		OCTREE_LEVEL_MAX = 12,
 		OCTREE_NODE_NUM_MIN = 1000000,
 		OCTREE_NODE_NUM_MAX = 500000000,
-		OCTREE_NODE_SIZE = sizeof(uint32_t) * 4,
-		BEAM_SIZE = 8
+		OCTREE_NODE_SIZE = sizeof(uint32_t),
+		OCTREE_DATA_SIZE = sizeof(uint32_t) * 4,
 	};
 
 	enum OctreeBuildBinding
 	{
 		OCTREE_BINDING_COUNTER,
 		OCTREE_BINDING_OCTREE,
+		OCTREE_BINDING_OCTREE_DATA,
 		OCTREE_BINDING_FRAGMENTLIST,
 		OCTREE_BINDING_BUILDINFO,
 		OCTREE_BINDING_INDIRECT,
@@ -71,6 +72,7 @@ protected:
 	IKStorageBufferPtr m_CountOnlyBuffer;
 
 	IKStorageBufferPtr m_OctreeBuffer;
+	IKStorageBufferPtr m_OctreeDataBuffer;
 	IKStorageBufferPtr m_BuildInfoBuffer;
 	IKStorageBufferPtr m_BuildIndirectBuffer;
 	std::vector<IKStorageBufferPtr> m_OctreeCameraBuffers;
@@ -79,6 +81,9 @@ protected:
 	IKComputePipelinePtr m_OctreeInitNodePipeline;
 	IKComputePipelinePtr m_OctreeAllocNodePipeline;
 	IKComputePipelinePtr m_OctreeModifyArgPipeline;
+
+	IKComputePipelinePtr m_OctreeInitDataPipeline;
+	IKComputePipelinePtr m_OctreeAssignDataPipeline;
 
 	uint32_t m_VolumeDimension;
 	uint32_t m_VoxelCount;

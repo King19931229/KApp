@@ -11,7 +11,8 @@ layout(location = 1) out flat uint level;
 #endif
 
 #if USE_OCTREE
-layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec4 uOctree[]; };
+layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
+layout(binding = VOXEL_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
 #include "octree_common.h"
 #include "octree_util.h"
 #else
@@ -43,6 +44,7 @@ void main()
 #if USE_OCTREE
 	vec3 samplePos = (vec3(texPos) + vec3(0.5)) / volumeDimension;
 	albedo = SampleOctreeRadiance(volumeDimension, samplePos);
+	// albedo = SampleOctreeNormal(volumeDimension, samplePos);
 	// albedo = SampleOctreeColor(volumeDimension, samplePos);
 #else
 	albedo = imageLoad(voxelRadiance, texPos);

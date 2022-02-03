@@ -40,11 +40,21 @@ bool GetOctreeIndex(in uvec3 level_pos, in uint level_dim, out uint idx)
 		level_dim >>= 1;
 		level_cmp = greaterThanEqual(level_pos, uvec3(level_dim));
 		idx = cur + (uint(level_cmp.x) | (uint(level_cmp.y) << 1u) | (uint(level_cmp.z) << 2u));
-		cur = uOctree[idx][OCTREE_COLOR_INDEX] & 0x3fffffffu;
+		cur = uOctree[idx] & 0x3fffffffu;
 		level_pos -= uvec3(level_cmp) * level_dim;
 	} while (cur != 0u && level_dim > 1u);
 
 	return level_dim == 1;
+}
+
+bool GetOctreeDataIndex(in uvec3 level_pos, in uint level_dim, out uint idx)
+{
+	if (GetOctreeIndex(level_pos, level_dim, idx))
+	{
+		idx = uOctree[idx] & 0x3fffffffu;
+		return true;
+	}
+	return false;
 }
 
 bool InsideBound(in uint level_dim, ivec3 pos)
@@ -57,10 +67,10 @@ bool InsideBound(in uint level_dim, ivec3 pos)
 bool StoreOctreeRadiance(in uint level_dim, ivec3 store_pos, in vec4 data)
 {
 	uint idx = 0;
-	if (InsideBound(level_dim, store_pos) && GetOctreeIndex(uvec3(store_pos), level_dim, idx))
+	if (InsideBound(level_dim, store_pos) && GetOctreeDataIndex(uvec3(store_pos), level_dim, idx))
 	{
 		uint encoded = packUnorm4x8(data);
-		uOctree[idx][OCTREE_RADIANCE_INDEX] = encoded;
+		uOctreeData[idx][OCTREE_RADIANCE_INDEX] = encoded;
 		return true;
 	}
 	return false;
@@ -116,7 +126,7 @@ bool ComputeWeights(in uint level_dim, in vec3 uvw, out bool valids[8], out uint
 		valids[i] = InsideBound(level_dim, sample_pos[i]);
 		if(valids[i])
 		{
-			valids[i] = GetOctreeIndex(uvec3(sample_pos[i]), level_dim, idxs[i]);
+			valids[i] = GetOctreeDataIndex(uvec3(sample_pos[i]), level_dim, idxs[i]);
 		}
 		sum += weights[i];
 	}
@@ -144,7 +154,7 @@ vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index)
 			if (valids[i])
 			{
 				uint idx = idxs[i];
-				vec4 unpacked = unpackUnorm4x8(uOctree[idx][data_index]);
+				vec4 unpacked = unpackUnorm4x8(uOctreeData[idx][data_index]);
 				uint count = 0;
 				if (data_index != OCTREE_RADIANCE_INDEX)
 				{
@@ -153,7 +163,7 @@ vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index)
 				}
 				else
 				{
-					vec4 col_unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_COLOR_INDEX]);
+					vec4 col_unpacked = unpackUnorm4x8(uOctreeData[idx][OCTREE_COLOR_INDEX]);
 					count = col_unpacked.w > 0 ? 1 : 0;
 				}
 				data += weights[i] * vec4(unpacked.xyz, count);
@@ -199,7 +209,7 @@ float SampleOctreeVisibility(in uint level_dim, in vec3 uvw)
 			if (valids[i])
 			{
 				uint idx = idxs[i];
-				vec4 unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_RADIANCE_INDEX]);
+				vec4 unpacked = unpackUnorm4x8(uOctreeData[idx][OCTREE_RADIANCE_INDEX]);
 				data += weights[i] * unpacked.w;
 			}
 		}
@@ -229,17 +239,17 @@ bool SampleOctree(in uint level_dim, in vec3 uvw, out vec4 o_color, out vec4 o_n
 				vec4 unpacked = vec4(0);
 				uint count = 0;
 
-				unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_COLOR_INDEX]);
+				unpacked = unpackUnorm4x8(uOctreeData[idx][OCTREE_COLOR_INDEX]);
 				count = uint(unpacked.w * 255.0);
 				count = count & 0x3fu;
 				color += weights[i] * vec4(unpacked.xyz, count > 0 ? 1 : 0);
 
-				unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_NORMAL_INDEX]);
+				unpacked = unpackUnorm4x8(uOctreeData[idx][OCTREE_NORMAL_INDEX]);
 				count = uint(unpacked.w * 255.0);
 				count = count & 0x3fu;
 				norm += weights[i] * vec4(unpacked.xyz, count > 0 ? 1 : 0);
 
-				unpacked = unpackUnorm4x8(uOctree[idx][OCTREE_EMISSIVE_INDEX]);
+				unpacked = unpackUnorm4x8(uOctreeData[idx][OCTREE_EMISSIVE_INDEX]);
 				count = uint(unpacked.w * 255.0);
 				count = count & 0x3fu;
 				emissive += weights[i] * vec4(unpacked.xyz, count > 0 ? 1 : 0);
@@ -286,7 +296,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 	float h = t_max;
 
 	uint parent = 0u;
-	uvec4 cur = uvec4(0);
+	uint cur = 0;
 	vec3 pos = vec3(1.0f);
 	uint idx = 0u;
 	if (1.5f * t_coef.x - t_bias.x > t_min)
@@ -301,7 +311,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 
 	while (scale < STACK_SIZE) {
 		++iter;
-		if (cur[OCTREE_COLOR_INDEX] == 0u)
+		if (cur == 0u)
 			cur = uOctree[parent + (idx ^ oct_mask)];
 		// Determine maximum t-value of the cube by evaluating
 		// tx(), ty(), and tz() at its corner.
@@ -309,14 +319,14 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 		vec3 t_corner = pos * t_coef - t_bias;
 		float tc_max = min(min(t_corner.x, t_corner.y), t_corner.z);
 
-		if ((cur[OCTREE_COLOR_INDEX] & 0x80000000u) != 0 && t_min <= t_max) {
+		if ((cur & 0x80000000u) != 0 && t_min <= t_max) {
 			// INTERSECT
 			float tv_max = min(t_max, tc_max);
 			float half_scale_exp2 = scale_exp2 * 0.5f;
 			vec3 t_center = half_scale_exp2 * t_coef + t_corner;
 
 			if (t_min <= tv_max) {
-				if ((cur[OCTREE_COLOR_INDEX] & 0x40000000u) != 0) // leaf node
+				if ((cur & 0x40000000u) != 0) // leaf node
 					break;
 
 				// PUSH
@@ -326,7 +336,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 				}
 				h = tc_max;
 
-				parent = cur[OCTREE_COLOR_INDEX] & 0x3fffffffu;
+				parent = cur & 0x3fffffffu;
 
 				idx = 0u;
 				--scale;
@@ -338,7 +348,7 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 				if (t_center.z > t_min)
 					idx ^= 4u, pos.z += scale_exp2;
 
-				cur = uvec4(0);
+				cur = 0;
 				t_max = tv_max;
 
 				continue;
@@ -388,10 +398,11 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 			// Prevent same parent from being stored again and invalidate cached
 			// child descriptor.
 			h = 0.0f;
-			cur = uvec4(0);
+			cur = 0;
 		}
 	}
 
+	uint data_idx = cur & 0x3fffffffu;
 #if 0
 	vec3 t_corner = t_coef * (pos + scale_exp2) - t_bias;
 
@@ -408,11 +419,11 @@ bool RayMarchLeaf(vec3 o, vec3 d, out float o_t, out vec3 o_color, out vec3 o_no
 	vec3 emissive = vec3(0);
 	vec3 radiance = vec3(0);
 #else
-	vec3 norm = 2.0 * unpackUnorm4x8(cur[OCTREE_NORMAL_INDEX]).xyz - vec3(1.0);
-	vec3 emissive = unpackUnorm4x8(cur[OCTREE_EMISSIVE_INDEX]).xyz;
-	vec3 radiance = unpackUnorm4x8(cur[OCTREE_RADIANCE_INDEX]).xyz;
+	vec3 norm = 2.0 * unpackUnorm4x8(uOctreeData[data_idx][OCTREE_NORMAL_INDEX]).xyz - vec3(1.0);
+	vec3 emissive = unpackUnorm4x8(uOctreeData[data_idx][OCTREE_EMISSIVE_INDEX]).xyz;
+	vec3 radiance = unpackUnorm4x8(uOctreeData[data_idx][OCTREE_RADIANCE_INDEX]).xyz;
 #endif
-	vec3 color = unpackUnorm4x8(cur[OCTREE_COLOR_INDEX]).xyz;
+	vec3 color = unpackUnorm4x8(uOctreeData[data_idx][OCTREE_COLOR_INDEX]).xyz;
 
 	o_normal = norm;
 	o_emissive = emissive;
@@ -464,7 +475,7 @@ bool RayMarchCoarse(vec3 o, vec3 d, float orig_sz, float dir_sz, out float t, ou
 
 	while (scale < STACK_SIZE) {
 		if (cur == 0u)
-			cur = uOctree[parent + (idx ^ oct_mask)][OCTREE_COLOR_INDEX];
+			cur = uOctree[parent + (idx ^ oct_mask)];
 		// Determine maximum t-value of the cube by evaluating
 		// tx(), ty(), and tz() at its corner.
 
@@ -600,7 +611,7 @@ bool RayMarchOcclude(vec3 o, vec3 d) {
 
 	while (scale < STACK_SIZE) {
 		if (cur == 0u)
-			cur = uOctree[parent + (idx ^ oct_mask)][OCTREE_COLOR_INDEX];
+			cur = uOctree[parent + (idx ^ oct_mask)];
 		// Determine maximum t-value of the cube by evaluating
 		// tx(), ty(), and tz() at its corner.
 

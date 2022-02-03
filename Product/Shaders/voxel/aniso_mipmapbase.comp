@@ -10,7 +10,8 @@ layout(binding = VOXEL_BINDING_TEXMIPMAP_OUT, rgba8) uniform writeonly image3D v
 #endif
 
 #if USE_OCTREE
-layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec4 uOctree[]; };
+layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
+layout(binding = VOXEL_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
 #include "octree_common.h"
 #include "octree_util.h"
 #else

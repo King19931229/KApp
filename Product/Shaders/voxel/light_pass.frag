@@ -16,7 +16,8 @@ layout(binding = VOXEL_BINDING_GBUFFER_SPECULAR) uniform sampler2D gSpecular;
 #endif
 
 #if USE_OCTREE
-layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uvec4 uOctree[]; };
+layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
+layout(binding = VOXEL_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
 #include "octree_common.h"
 #include "octree_util.h"
 #else

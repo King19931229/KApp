@@ -3,15 +3,17 @@ layout(local_size_x = OCTREE_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = OCTREE_BINDING_COUNTER) buffer uuCounter { uint uCounter; };
 layout(binding = OCTREE_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
+layout(binding = OCTREE_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
 layout(binding = OCTREE_BINDING_BUILDINFO) readonly buffer uuBuildInfo { uint uAllocBegin, uAllocNum; };
 
 void main()
 {
 	if (gl_GlobalInvocationID.x >= uAllocNum)
 		return;
-	uint idx = gl_GlobalInvocationID.x + uAllocBegin;
-	if ((uOctree[idx] & 0x80000000u) > 0u)
+	if ((uOctree[gl_GlobalInvocationID.x + uAllocBegin] & 0x80000000u) > 0)
 	{
-		uOctree[idx] = ((atomicAdd(uCounter, 1u) + 1u) << 3u) | 0x80000000u;
+		uint dataIdx = atomicAdd(uCounter, 1u);
+		uOctreeData[dataIdx] = uvec4(0);
+		uOctree[gl_GlobalInvocationID.x + uAllocBegin] |= 0x40000000u | dataIdx;
 	}
 }
