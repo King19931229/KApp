@@ -185,6 +185,7 @@ protected:
 	void CheckFragmentlistData();
 	void CheckOctreeData();
 	void BuildOctree(IKCommandBufferPtr commandBuffer);
+	void ShrinkOctree();
 
 	void UpdateInternal();
 

@@ -79,6 +79,8 @@ void KVoxilzer::UpdateInternal()
 
 		m_PrimaryCommandBuffer->End();
 		m_PrimaryCommandBuffer->Flush();
+
+		ShrinkOctree();
 	}
 	else
 	{
@@ -1018,7 +1020,6 @@ void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 	uint32_t octreeNodeNum = std::max((uint32_t)OCTREE_NODE_NUM_MIN, fragmentCount << 2u);
 	octreeNodeNum = std::min(octreeNodeNum, (uint32_t)OCTREE_NODE_NUM_MAX);
 
-	// TODO
 	uint32_t preOctreeNodeNum = (uint32_t)m_OctreeBuffer->GetBufferSize() / OCTREE_NODE_SIZE;
 	if (octreeNodeNum > preOctreeNodeNum)
 	{
@@ -1067,6 +1068,31 @@ void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 			m_OctreeAssignDataPipeline->Execute(commandBuffer, fragmentGroupX, 1, 1, 0, &usage);
 		}
 	}
+}
+
+void KVoxilzer::ShrinkOctree()
+{
+	uint32_t dataCount = 0;
+	uint32_t nodeCount = 0;
+	uint32_t lastBuildinfo[] = { 0, 0 };
+
+	std::vector<char> buffers;
+
+	m_CounterBuffer->Read(&dataCount);
+	m_BuildInfoBuffer->Read(lastBuildinfo);
+	nodeCount = lastBuildinfo[0] + lastBuildinfo[1];
+
+	buffers.resize(m_OctreeBuffer->GetBufferSize());
+	m_OctreeBuffer->Read(buffers.data());
+	m_OctreeBuffer->UnInit();
+	m_OctreeBuffer->InitMemory(nodeCount * OCTREE_NODE_SIZE, buffers.data());
+	m_OctreeBuffer->InitDevice(false);
+
+	buffers.resize(m_OctreeDataBuffer->GetBufferSize());
+	m_OctreeDataBuffer->Read(buffers.data());
+	m_OctreeDataBuffer->UnInit();
+	m_OctreeDataBuffer->InitMemory(dataCount * OCTREE_DATA_SIZE, buffers.data());
+	m_OctreeDataBuffer->InitDevice(false);
 }
 
 void KVoxilzer::UpdateRadiance(IKCommandBufferPtr commandBuffer)
@@ -1255,7 +1281,7 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint3
 {
 	if (frameIndex < m_OctreeRayTestPipelines.size())
 	{
-		if (m_VoxelUseOctree)
+		if (m_VoxelUseOctree && m_OctreeRayTestDebugDrawer.GetEnable())
 		{
 			IKCommandBufferPtr commandBuffer = m_OctreeRayTestCommandBuffers[frameIndex];
 
