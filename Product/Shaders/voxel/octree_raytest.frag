@@ -5,6 +5,7 @@ layout(location = 0) in vec2 texCoord;
 
 layout(binding = OCTREE_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
 layout(binding = OCTREE_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
+layout(binding = OCTREE_BINDING_OCTREE_MIPMAP_DATA) buffer uuOctreeMipmapData { uint uOctreeMipmapData[][6]; };
 layout(binding = OCTREE_BINDING_CAMERA) readonly buffer uuCamera { vec4 uPosition, uLook, uSide, uUp, uMiscs; };
 
 #include "octree_util.h"

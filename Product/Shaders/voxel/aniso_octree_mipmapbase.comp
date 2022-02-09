@@ -1,0 +1,104 @@
+#include "public.h"
+#include "voxel_common.h"
+
+layout (local_size_x = VOXEL_GROUP_SIZE, local_size_y = VOXEL_GROUP_SIZE, local_size_z = VOXEL_GROUP_SIZE) in;
+
+layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
+layout(binding = VOXEL_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
+layout(binding = VOXEL_BINDING_OCTREE_MIPMAP_DATA) buffer uuOctreeMipmapData { uint uOctreeMipmapData[][6]; };
+
+#include "octree_common.h"
+#include "octree_util.h"
+
+const ivec3 anisoOffsets[] = ivec3[8]
+(
+	ivec3(1, 1, 1),
+	ivec3(1, 1, 0),
+	ivec3(1, 0, 1),
+	ivec3(1, 0, 0),
+	ivec3(0, 1, 1),
+	ivec3(0, 1, 0),
+	ivec3(0, 0, 1),
+	ivec3(0, 0, 0)
+);
+
+void FetchTexels(ivec3 pos, inout vec4 val[8]) 
+{
+	for(int i = 0; i < 8; i++)
+	{
+		vec3 octreePos = (vec3(pos + anisoOffsets[i]) + vec3(0.5)) / volumeDimension;
+		val[i] = SampleOctreeRadiance(volumeDimension, octreePos);
+	}
+}
+
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	uvec4 mipDimensionLevel;
+}object;
+
+void main()
+{
+	if(gl_GlobalInvocationID.x >= object.mipDimensionLevel.x ||
+		gl_GlobalInvocationID.y >= object.mipDimensionLevel.y ||
+		gl_GlobalInvocationID.z >= object.mipDimensionLevel.z) return;
+
+	ivec3 writePos = ivec3(gl_GlobalInvocationID);
+	ivec3 sourcePos = writePos * 2;
+	vec4 values[8];
+
+	FetchTexels(sourcePos, values);
+
+	uint octreeIdx = 0;
+	if (GetOctreeNodeIndex(writePos, volumeDimension, 2, octreeIdx))
+	{
+		// x -
+		uOctreeMipmapData[octreeIdx][0] = packUnorm4x8(vec4(
+		(
+			values[0] + values[4] * (1 - values[0].a) + 
+			values[1] + values[5] * (1 - values[1].a) +
+			values[2] + values[6] * (1 - values[2].a) +
+			values[3] + values[7] * (1 - values[3].a)) * 0.25f
+		));
+		// x +
+		uOctreeMipmapData[octreeIdx][1] = packUnorm4x8(vec4(
+		(
+			values[4] + values[0] * (1 - values[4].a) +
+			values[5] + values[1] * (1 - values[5].a) +
+			values[6] + values[2] * (1 - values[6].a) +
+			values[7] + values[3] * (1 - values[7].a)) * 0.25f
+		));
+		// y -
+		uOctreeMipmapData[octreeIdx][2] = packUnorm4x8(vec4(
+		(
+			values[0] + values[2] * (1 - values[0].a) +
+			values[1] + values[3] * (1 - values[1].a) +
+			values[5] + values[7] * (1 - values[5].a) +
+			values[4] + values[6] * (1 - values[4].a)) * 0.25f
+		));
+		// y +
+		uOctreeMipmapData[octreeIdx][3] = packUnorm4x8(vec4(
+		(
+			values[2] + values[0] * (1 - values[2].a) +
+			values[3] + values[1] * (1 - values[3].a) +
+			values[7] + values[5] * (1 - values[7].a) +
+			values[6] + values[4] * (1 - values[6].a)) * 0.25f
+		));
+		// z -
+		uOctreeMipmapData[octreeIdx][4] = packUnorm4x8(vec4(
+		(
+			values[0] + values[1] * (1 - values[0].a) +
+			values[2] + values[3] * (1 - values[2].a) +
+			values[4] + values[5] * (1 - values[4].a) +
+			values[6] + values[7] * (1 - values[6].a)) * 0.25f
+		));
+		// z +
+		uOctreeMipmapData[octreeIdx][5] = packUnorm4x8(vec4(
+		(
+			values[1] + values[0] * (1 - values[1].a) +
+			values[3] + values[2] * (1 - values[3].a) +
+			values[5] + values[4] * (1 - values[5].a) +
+			values[7] + values[6] * (1 - values[7].a)) * 0.25f
+		));
+	}
+}

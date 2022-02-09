@@ -19,6 +19,7 @@ protected:
 		OCTREE_NODE_NUM_MAX = 500000000,
 		OCTREE_NODE_SIZE = sizeof(uint32_t),
 		OCTREE_DATA_SIZE = sizeof(uint32_t) * 4,
+		OCTREE_MIPMAP_DATA_SIZE = sizeof(uint32_t) * 6
 	};
 
 	enum OctreeBuildBinding
@@ -26,6 +27,7 @@ protected:
 		OCTREE_BINDING_COUNTER,
 		OCTREE_BINDING_OCTREE,
 		OCTREE_BINDING_OCTREE_DATA,
+		OCTREE_BINDING_OCTREE_MIPMAP_DATA,
 		OCTREE_BINDING_FRAGMENTLIST,
 		OCTREE_BINDING_BUILDINFO,
 		OCTREE_BINDING_INDIRECT,
@@ -73,6 +75,7 @@ protected:
 
 	IKStorageBufferPtr m_OctreeBuffer;
 	IKStorageBufferPtr m_OctreeDataBuffer;
+	IKStorageBufferPtr m_OctreeMipmapDataBuffer;
 	IKStorageBufferPtr m_BuildInfoBuffer;
 	IKStorageBufferPtr m_BuildIndirectBuffer;
 	std::vector<IKStorageBufferPtr> m_OctreeCameraBuffers;
@@ -89,6 +92,8 @@ protected:
 	uint32_t m_VoxelCount;
 	uint32_t m_NumMipmap;
 	uint32_t m_OctreeLevel;
+	uint32_t m_OctreeNonLeafCount;
+	uint32_t m_OctreeLeafCount;
 	glm::vec3 m_VolumeCenter;
 	glm::vec3 m_VolumeMin;
 	glm::vec3 m_VolumeMax;
@@ -128,9 +133,12 @@ protected:
 	IKComputePipelinePtr m_InjectPropagationOctreePipeline;
 
 	IKComputePipelinePtr m_MipmapBasePipeline;
+	// TODO 干掉这个Pipeline
 	IKComputePipelinePtr m_MipmapBaseOctreePipeline;
-
 	IKComputePipelinePtr m_MipmapVolumePipeline;
+
+	IKComputePipelinePtr m_OctreeMipmapBasePipeline;
+	IKComputePipelinePtr m_OctreeMipmapVolumePipeline;
 
 	IKShaderPtr m_QuadVS;
 	IKShaderPtr m_LightPassFS;
@@ -168,6 +176,7 @@ protected:
 	void SetupClearDynamicPipeline();
 	void SetupRadiancePipeline();
 	void SetupMipmapPipeline();
+	void SetupOctreeMipmapPipeline();
 	void SetupQuadDrawData();
 	void SetupLightPassPipeline(uint32_t width, uint32_t height);
 
@@ -178,6 +187,8 @@ protected:
 	void GenerateMipmap(IKCommandBufferPtr commandBuffer);
 	void GenerateMipmapBase(IKCommandBufferPtr commandBuffer);
 	void GenerateMipmapVolume(IKCommandBufferPtr commandBuffer);
+	void GenerateOctreeMipmapBase(IKCommandBufferPtr commandBuffer);
+	void GenerateOctreeMipmapVolume(IKCommandBufferPtr commandBuffer);
 
 	void SetupOctreeBuildPipeline();
 	void SetupRayTestPipeline(uint32_t width, uint32_t height);

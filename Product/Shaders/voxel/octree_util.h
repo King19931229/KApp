@@ -47,6 +47,27 @@ bool GetOctreeIndex(in uvec3 level_pos, in uint level_dim, out uint idx)
 	return level_dim == 1;
 }
 
+bool GetOctreeNodeIndex(in uvec3 level_pos, in uint level_dim, in uint node_size, out uint idx)
+{
+	uint cur = 0u;
+	bvec3 level_cmp;
+
+	idx = 0u;
+	do
+	{
+		level_dim >>= 1;
+		level_cmp = greaterThanEqual(level_pos, uvec3(level_dim));
+		idx = cur + (uint(level_cmp.x) | (uint(level_cmp.y) << 1u) | (uint(level_cmp.z) << 2u));
+		cur = uOctree[idx] & 0x3fffffffu;
+		level_pos -= uvec3(level_cmp) * level_dim;
+	} while (cur != 0u && level_dim > node_size);
+
+	if (node_size > 1)
+		return level_dim == node_size && cur != 0u;
+	else
+		return level_dim == 1;
+}
+
 bool GetOctreeDataIndex(in uvec3 level_pos, in uint level_dim, out uint idx)
 {
 	if (GetOctreeIndex(level_pos, level_dim, idx))
@@ -74,6 +95,70 @@ bool StoreOctreeRadiance(in uint level_dim, ivec3 store_pos, in vec4 data)
 		return true;
 	}
 	return false;
+}
+
+bool ComputeWeightsMipmap(in uint level_dim, in uint mipmap, in vec3 uvw, out bool valids[8], out uint idxs[8], out float weights[8])
+{
+	vec3 pos = float(level_dim) * uvw - vec3(0.5);
+	int node_size = int(exp2(float(mipmap + 1)));
+	vec3 floor_pos = floor(pos / node_size);
+	ivec3 base_pos = ivec3(floor_pos);
+	vec3 texel_pos = mod(pos, node_size);
+
+	ivec3 sample_pos[8];
+	sample_pos[0] = base_pos + node_size * ivec3(0, 0, 0);
+	sample_pos[1] = base_pos + node_size * ivec3(1, 0, 0);
+	sample_pos[2] = base_pos + node_size * ivec3(0, 1, 0);
+	sample_pos[3] = base_pos + node_size * ivec3(1, 1, 0);
+	sample_pos[4] = base_pos + node_size * ivec3(0, 0, 1);
+	sample_pos[5] = base_pos + node_size * ivec3(1, 0, 1);
+	sample_pos[6] = base_pos + node_size * ivec3(0, 1, 1);
+	sample_pos[7] = base_pos + node_size * ivec3(1, 1, 1);
+
+	weights[0] = 1.0 - texel_pos.x;
+	weights[1] = texel_pos.x;
+	weights[2] = 1.0 - texel_pos.x;
+	weights[3] = texel_pos.x;
+	weights[4] = 1.0 - texel_pos.x;
+	weights[5] = texel_pos.x;
+	weights[6] = 1.0 - texel_pos.x;
+	weights[7] = texel_pos.x;
+
+	weights[0] *= 1.0 - texel_pos.y;
+	weights[1] *= 1.0 - texel_pos.y;
+	weights[2] *= texel_pos.y;
+	weights[3] *= texel_pos.y;
+	weights[4] *= 1.0 - texel_pos.y;
+	weights[5] *= 1.0 - texel_pos.y;
+	weights[6] *= texel_pos.y;
+	weights[7] *= texel_pos.y;
+
+	weights[0] *= 1.0 - texel_pos.z;
+	weights[1] *= 1.0 - texel_pos.z;
+	weights[2] *= 1.0 - texel_pos.z;
+	weights[3] *= 1.0 - texel_pos.z;
+	weights[4] *= texel_pos.z;
+	weights[5] *= texel_pos.z;
+	weights[6] *= texel_pos.z;
+	weights[7] *= texel_pos.z;
+
+	float sum = 0.0;
+	for(int i = 0; i < 8; ++i)
+	{
+		valids[i] = InsideBound(level_dim, sample_pos[i]);
+		if(valids[i])
+		{
+			valids[i] = GetOctreeNodeIndex(uvec3(sample_pos[i]), level_dim, node_size, idxs[i]);
+		}
+		sum += weights[i];
+	}
+
+	for(int i = 0; i < 8; ++i)
+	{
+		weights[i] /= sum;
+	}
+
+	return abs(sum - 1.0) < 1e-5;
 }
 
 bool ComputeWeights(in uint level_dim, in vec3 uvw, out bool valids[8], out uint idxs[8], out float weights[8])
@@ -137,6 +222,41 @@ bool ComputeWeights(in uint level_dim, in vec3 uvw, out bool valids[8], out uint
 	}
 
 	return abs(sum - 1.0) < 1e-5;
+}
+
+vec4 SampleOctreeMipmapDataSingleLevel(in uint level_dim, in uint mipmap, in vec3 uvw, in uint dir_index)
+{
+	bool valids[8];
+	uint idxs[8];
+	float weights[8];
+
+	vec4 data = vec4(0);
+
+	if (ComputeWeightsMipmap(level_dim, mipmap, uvw, valids, idxs, weights))
+	{
+		for(int i = 0; i < 8; ++i)
+		{
+			if (valids[i])
+			{
+				uint idx = idxs[i];
+				vec4 unpacked = unpackUnorm4x8(uOctreeMipmapData[idx][dir_index]);
+				data += weights[i] * unpacked;
+			}
+		}
+	}
+
+	return data;
+}
+
+vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, float mipmap, in uint dir_index)
+{
+	const uint max_mipmap = uint(log2(level_dim) - 1);
+	uint floor_mipmap = uint(floor(mipmap));
+	uint ceil_mipmap = uint(min(ceil(mipmap), float(max_mipmap)));
+	float factor = mipmap - float(floor_mipmap);
+	return mix(SampleOctreeMipmapDataSingleLevel(level_dim, floor_mipmap, uvw, dir_index),
+		SampleOctreeMipmapDataSingleLevel(level_dim, ceil_mipmap, uvw, dir_index),
+		factor);
 }
 
 vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index)

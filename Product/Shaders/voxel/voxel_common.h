@@ -23,6 +23,7 @@
 
 #define VOXEL_BINDING_OCTREE BINDING_TEXTURE23
 #define VOXEL_BINDING_OCTREE_DATA BINDING_TEXTURE24
+#define VOXEL_BINDING_OCTREE_MIPMAP_DATA BINDING_TEXTURE25
 
 uint volumeDimension = voxel.miscs[0];
 uint storeVisibility = voxel.miscs[1];

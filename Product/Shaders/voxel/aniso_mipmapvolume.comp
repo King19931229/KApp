@@ -28,7 +28,7 @@ void FetchTexels(ivec3 pos, int dir, inout vec4 val[8])
 {
 	for(int i = 0; i < 8; i++)
 	{
-		val[i] = texelFetch(voxelMipmapSrc[dir], pos + anisoOffsets[i], int(object.mipDimensionLevel.w));
+		val[i] = texelFetch(voxelMipmapSrc[dir], pos + anisoOffsets[i], int(object.mipDimensionLevel.w - 1));
 	}
 }
 

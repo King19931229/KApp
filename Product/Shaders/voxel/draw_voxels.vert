@@ -13,6 +13,7 @@ layout(location = 1) out flat uint level;
 #if USE_OCTREE
 layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
 layout(binding = VOXEL_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
+layout(binding = VOXEL_BINDING_OCTREE_MIPMAP_DATA) buffer uuOctreeMipmapData { uint uOctreeMipmapData[][6]; };
 #include "octree_common.h"
 #include "octree_util.h"
 #else

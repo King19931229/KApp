@@ -4,6 +4,7 @@ layout(local_size_x = OCTREE_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = OCTREE_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
 layout(binding = OCTREE_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
+layout(binding = OCTREE_BINDING_OCTREE_MIPMAP_DATA) buffer uuOctreeMipmapData { uint uOctreeMipmapData[][6]; };
 layout(binding = OCTREE_BINDING_FRAGMENTLIST) readonly buffer uuFragmentList { uvec4 uFragmentList[]; };
 
 #include "octree_util.h"
