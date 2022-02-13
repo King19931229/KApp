@@ -526,6 +526,18 @@ void KVoxilzer::SetupVoxelDrawPipeline()
 			{
 				pipeline->SetStorageBuffer(VOXEL_BINDING_OCTREE, ST_VERTEX, m_OctreeBuffer);
 				pipeline->SetStorageBuffer(VOXEL_BINDING_OCTREE_DATA, ST_VERTEX, m_OctreeDataBuffer);
+				pipeline->SetStorageBuffer(VOXEL_BINDING_OCTREE_MIPMAP_DATA, ST_VERTEX, m_OctreeMipmapDataBuffer);
+				std::vector<IKFrameBufferPtr> targets;
+				std::vector<IKSamplerPtr> samplers;
+				targets.resize(ARRAY_SIZE(m_VoxelTexMipmap));
+				samplers.resize(ARRAY_SIZE(m_VoxelTexMipmap));
+				for (size_t i = 0; i < ARRAY_SIZE(m_VoxelTexMipmap); ++i)
+				{
+					targets[i] = m_VoxelTexMipmap[i]->GetFrameBuffer();
+					samplers[i] = m_MipmapSampler;
+				}
+				pipeline->SetSamplers(VOXEL_BINDING_TEXMIPMAP_OUT, targets, samplers, true);
+				pipeline->SetStorageImage(VOXEL_BINDING_TEXMIPMAP_IN, m_VoxelTexMipmap[0]->GetFrameBuffer(), EF_UNKNOWN);
 			}
 			else
 			{
@@ -581,6 +593,7 @@ void KVoxilzer::SetupRadiancePipeline()
 	{
 		injectRadiancePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		injectRadiancePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE_DATA, m_OctreeDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+		injectRadiancePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE_MIPMAP_DATA, m_OctreeMipmapDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		injectRadiancePipeline->Init("voxel/inject_radiance_octree.comp");
 	}
 	else
@@ -601,6 +614,7 @@ void KVoxilzer::SetupRadiancePipeline()
 	{
 		injectPropagationPipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		injectPropagationPipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE_DATA, m_OctreeDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+		injectPropagationPipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE_MIPMAP_DATA, m_OctreeMipmapDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 	}
 	else
 	{
@@ -804,7 +818,8 @@ void KVoxilzer::SetupLightPassPipeline(uint32_t width, uint32_t height)
 		if (m_VoxelUseOctree)
 		{
 			pipeline->SetStorageBuffer(VOXEL_BINDING_OCTREE, ST_FRAGMENT, m_OctreeBuffer);
-			pipeline->SetStorageBuffer(VOXEL_BINDING_OCTREE_DATA, ST_VERTEX, m_OctreeDataBuffer);
+			pipeline->SetStorageBuffer(VOXEL_BINDING_OCTREE_DATA, ST_FRAGMENT, m_OctreeDataBuffer);
+			pipeline->SetStorageBuffer(VOXEL_BINDING_OCTREE_MIPMAP_DATA, ST_FRAGMENT, m_OctreeMipmapDataBuffer);
 		}
 		else
 		{
@@ -1048,10 +1063,11 @@ void KVoxilzer::CheckOctreeData()
 
 	for (size_t i = 0; i < mipmapDatas.size(); ++i)
 	{
-		uint32_t* encoded = mipmapDatas[i].data;
+		uint32_t* encodeds = mipmapDatas[i].data;
 		for (size_t j = 0; j < 6; ++j)
 		{
-			glm::uvec4 unpacked = glm::uvec4(encoded[j] & 0xff, (encoded[j] >> 8) & 0xff, (encoded[j] >> 16) & 0xff, (encoded[j] >> 24) & 0xff);
+			uint32_t encoded = encodeds[j];
+			glm::uvec4 unpacked = glm::uvec4(encoded & 0xff, (encoded >> 8) & 0xff, (encoded >> 16) & 0xff, (encoded >> 24) & 0xff);
 			glm::vec4 data = glm::vec4(unpacked) / 255.0f;
 			float luminance = glm::dot(data, glm::vec4(0.2126f, 0.7152f, 0.0722f, 0.0f));
 			if (luminance == 0.0f)

@@ -53,19 +53,18 @@ bool GetOctreeNodeIndex(in uvec3 level_pos, in uint level_dim, in uint node_size
 	bvec3 level_cmp;
 
 	idx = 0u;
-	do
+	while (level_dim > node_size)
 	{
 		level_dim >>= 1;
 		level_cmp = greaterThanEqual(level_pos, uvec3(level_dim));
 		idx = cur + (uint(level_cmp.x) | (uint(level_cmp.y) << 1u) | (uint(level_cmp.z) << 2u));
 		cur = uOctree[idx] & 0x3fffffffu;
 		level_pos -= uvec3(level_cmp) * level_dim;
-	} while (cur != 0u && level_dim > node_size);
+		if (cur == 0u)
+			break;
+	}
 
-	if (node_size > 1)
-		return level_dim == node_size && cur != 0u;
-	else
-		return level_dim == 1;
+	return level_dim == node_size;
 }
 
 bool GetOctreeDataIndex(in uvec3 level_pos, in uint level_dim, out uint idx)
@@ -99,12 +98,15 @@ bool StoreOctreeRadiance(in uint level_dim, ivec3 store_pos, in vec4 data)
 
 bool ComputeWeightsMipmap(in uint level_dim, in uint mipmap, in vec3 uvw, out bool valids[8], out uint idxs[8], out float weights[8])
 {
+	int node_size = 1 << int(mipmap + 1);
+	level_dim /= node_size;
 	vec3 pos = float(level_dim) * uvw - vec3(0.5);
-	int node_size = int(exp2(float(mipmap + 1)));
-	vec3 floor_pos = floor(pos / node_size);
+	vec3 floor_pos = floor(pos);
 	ivec3 base_pos = ivec3(floor_pos);
-	vec3 texel_pos = mod(pos, node_size);
+	vec3 texel_pos = pos - floor_pos;
 
+	base_pos *= node_size;
+	level_dim *= node_size;
 	ivec3 sample_pos[8];
 	sample_pos[0] = base_pos + node_size * ivec3(0, 0, 0);
 	sample_pos[1] = base_pos + node_size * ivec3(1, 0, 0);
@@ -248,15 +250,32 @@ vec4 SampleOctreeMipmapDataSingleLevel(in uint level_dim, in uint mipmap, in vec
 	return data;
 }
 
-vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, float mipmap, in uint dir_index)
+vec4 SampleOctreeMipmap(in uint level_dim, in vec3 uvw, float mipmap, in uint dir_index)
 {
 	const uint max_mipmap = uint(log2(level_dim) - 1);
 	uint floor_mipmap = uint(floor(mipmap));
-	uint ceil_mipmap = uint(min(ceil(mipmap), float(max_mipmap)));
-	float factor = mipmap - float(floor_mipmap);
+	uint ceil_mipmap = floor_mipmap + 1;
+	floor_mipmap = max(floor_mipmap, 0);
+	floor_mipmap = min(floor_mipmap, max_mipmap);
+	ceil_mipmap = max(ceil_mipmap, 0);
+	ceil_mipmap = min(ceil_mipmap, max_mipmap);
+	float factor = max(mipmap - float(floor_mipmap), 0);
+//#define O0
+#ifdef O0
+	factor = round(factor);
+	if(factor == 0)
+	{
+		return SampleOctreeMipmapDataSingleLevel(level_dim, floor_mipmap, uvw, dir_index);
+	}
+	else
+	{
+		return SampleOctreeMipmapDataSingleLevel(level_dim, ceil_mipmap, uvw, dir_index);
+	}
+#else
 	return mix(SampleOctreeMipmapDataSingleLevel(level_dim, floor_mipmap, uvw, dir_index),
 		SampleOctreeMipmapDataSingleLevel(level_dim, ceil_mipmap, uvw, dir_index),
 		factor);
+#endif
 }
 
 vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index)

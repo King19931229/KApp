@@ -41,7 +41,7 @@ void FetchTexels(ivec3 pos, int dir, inout vec4 val[8])
 		}
 		else
 		{
-			val[i] = vec4(0.0f);
+			val[i] = vec4(0, 0, 0, 0);
 		}
 	}
 }

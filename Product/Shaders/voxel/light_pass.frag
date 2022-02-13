@@ -61,12 +61,18 @@ vec4 AnistropicSample(vec3 coord, vec3 weight, uvec3 face, float lod)
 	// anisotropic volumes level
 	float anisoLevel = max(lod - 1.0f, 0.0f);
 	// directional sample
+#if USE_OCTREE
+	vec4 anisoSample = weight.x * SampleOctreeMipmap(volumeDimension, coord, anisoLevel, face.x)
+					 + weight.y * SampleOctreeMipmap(volumeDimension, coord, anisoLevel, face.y)
+					 + weight.z * SampleOctreeMipmap(volumeDimension, coord, anisoLevel, face.z);
+#else
 	vec4 anisoSample = weight.x * textureLod(voxelTexMipmap[face.x], coord, anisoLevel)
 					 + weight.y * textureLod(voxelTexMipmap[face.y], coord, anisoLevel)
 					 + weight.z * textureLod(voxelTexMipmap[face.z], coord, anisoLevel);
+#endif
 
 	// linearly interpolate on base level
-	if(lod < 1.0f)
+	if (lod < 1.0f)
 	{
 // #if USE_OCTREE
 // #else

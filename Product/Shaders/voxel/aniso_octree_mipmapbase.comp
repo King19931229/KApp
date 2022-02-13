@@ -43,15 +43,15 @@ void main()
 		gl_GlobalInvocationID.y >= object.mipDimensionLevel.y ||
 		gl_GlobalInvocationID.z >= object.mipDimensionLevel.z) return;
 
-	ivec3 writePos = ivec3(gl_GlobalInvocationID);
-	ivec3 sourcePos = writePos * 2;
-	vec4 values[8];
-
-	FetchTexels(sourcePos, values);
+	ivec3 writePos = ivec3(gl_GlobalInvocationID) * 2;
+	ivec3 sourcePos = ivec3(gl_GlobalInvocationID) * 2;
 
 	uint octreeIdx = 0;
 	if (GetOctreeNodeIndex(writePos, volumeDimension, 2, octreeIdx))
 	{
+		vec4 values[8];
+		FetchTexels(sourcePos, values);
+
 		// x -
 		uOctreeMipmapData[octreeIdx][0] = packUnorm4x8(vec4(
 		(
