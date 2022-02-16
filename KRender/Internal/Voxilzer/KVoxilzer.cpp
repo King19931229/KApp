@@ -20,6 +20,8 @@ const KVertexDefinition::SCREENQUAD_POS_2F KVoxilzer::ms_QuadVertices[] =
 
 const uint16_t KVoxilzer::ms_QuadIndices[] = { 0, 1, 2, 2, 3, 0 };
 
+// #define USE_OCTREE_MIPMAP_BUFFER
+
 KVoxilzer::KVoxilzer()
 	: m_Scene(nullptr)
 	, m_Camera(nullptr)
@@ -1051,6 +1053,7 @@ void KVoxilzer::CheckOctreeData()
 		}
 	}
 	
+#ifdef USE_OCTREE_MIPMAP_BUFFER
 	struct OctreeMipmapData
 	{
 		uint32_t data[6];
@@ -1076,6 +1079,7 @@ void KVoxilzer::CheckOctreeData()
 			}
 		}
 	}
+#endif
 }
 
 inline static constexpr uint32_t group_x_64(uint32_t x) { return (x >> 6u) + ((x & 0x3fu) ? 1u : 0u); }
@@ -1096,9 +1100,11 @@ void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 		m_OctreeBuffer->InitMemory(octreeNodeNum * OCTREE_NODE_SIZE, nullptr);
 		m_OctreeBuffer->InitDevice(false);
 
+#ifdef USE_OCTREE_MIPMAP_BUFFER
 		m_OctreeMipmapDataBuffer->UnInit();
 		m_OctreeMipmapDataBuffer->InitMemory(octreeNodeNum * OCTREE_MIPMAP_DATA_SIZE, nullptr);
 		m_OctreeMipmapDataBuffer->InitDevice(false);
+#endif
 	}
 
 	m_OctreeDataBuffer->UnInit();
@@ -1153,11 +1159,13 @@ void KVoxilzer::ShrinkOctree()
 	m_OctreeBuffer->InitMemory(m_OctreeNonLeafCount * OCTREE_NODE_SIZE, buffers.data());
 	m_OctreeBuffer->InitDevice(false);
 
+#ifdef USE_OCTREE_MIPMAP_BUFFER
 	buffers.resize(m_OctreeMipmapDataBuffer->GetBufferSize());
 	m_OctreeMipmapDataBuffer->Read(buffers.data());
 	m_OctreeMipmapDataBuffer->UnInit();
 	m_OctreeMipmapDataBuffer->InitMemory(m_OctreeNonLeafCount * OCTREE_MIPMAP_DATA_SIZE, buffers.data());
 	m_OctreeMipmapDataBuffer->InitDevice(false);
+#endif
 
 	buffers.resize(m_OctreeDataBuffer->GetBufferSize());
 	m_OctreeDataBuffer->Read(buffers.data());
@@ -1189,13 +1197,20 @@ void KVoxilzer::InjectRadiance(IKCommandBufferPtr commandBuffer)
 
 void KVoxilzer::GenerateMipmap(IKCommandBufferPtr commandBuffer)
 {
-	GenerateMipmapBase(commandBuffer);
-	GenerateMipmapVolume(commandBuffer);
-
 	if (m_VoxelUseOctree)
 	{
+#ifdef USE_OCTREE_MIPMAP_BUFFER
 		GenerateOctreeMipmapBase(commandBuffer);
 		GenerateOctreeMipmapVolume(commandBuffer);
+#else
+		GenerateMipmapBase(commandBuffer);
+		GenerateMipmapVolume(commandBuffer);
+#endif
+	}
+	else
+	{
+		GenerateMipmapBase(commandBuffer);
+		GenerateMipmapVolume(commandBuffer);
 	}
 }
 

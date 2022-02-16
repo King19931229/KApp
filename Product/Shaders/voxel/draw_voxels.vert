@@ -47,13 +47,13 @@ void main()
 	// albedo = SampleOctreeMipmap(volumeDimension, samplePos, 0.0, 0);
 	ivec3 texPosA = 2 * (texPos / 2);
 	vec3 samplePosA = (vec3(texPosA) + vec3(0.5)) / (drawVolumeDimension);
-	vec4 a = SampleOctreeMipmapDataSingleLevel(volumeDimension, 0, samplePosA, 0);
+	vec4 a = SampleOctreeMipmapDataSingleLevelClosest(volumeDimension, 0, samplePosA, 0);
 	vec3 texPosB = texPosA;
 	vec3 samplePosB = (vec3(texPosB) + vec3(0.5)) / (drawVolumeDimension);
 	vec4 b = textureLod(voxelTexMipmap[0], samplePosA, 0.0);
 	albedo = a;
 	vec4 c = imageLoad(voxelMipmap, texPos / 2);
-	albedo = abs(a - b);
+	albedo = a;
 #else
 	// albedo = imageLoad(voxelRadiance, texPos);
 	// albedo = imageLoad(voxelAlbedo, texPos).rgba;

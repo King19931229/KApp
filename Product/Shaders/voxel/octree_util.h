@@ -163,6 +163,27 @@ bool ComputeWeightsMipmap(in uint level_dim, in uint mipmap, in vec3 uvw, out bo
 	return abs(sum - 1.0) < 1e-5;
 }
 
+bool ComputeClosestMipmap(in uint level_dim, in uint mipmap, in vec3 uvw, out uint idx)
+{
+	int node_size = 1 << int(mipmap + 1);
+	level_dim /= node_size;
+	vec3 pos = float(level_dim) * uvw - vec3(0.5);
+	vec3 floor_pos = floor(pos);
+	ivec3 base_pos = ivec3(floor_pos);
+	vec3 texel_pos = pos - floor_pos;
+	texel_pos = round(texel_pos);
+
+	base_pos *= node_size;
+	level_dim *= node_size;
+
+	ivec3 sample_pos = base_pos + node_size * ivec3(texel_pos);
+	if (InsideBound(level_dim, sample_pos) && GetOctreeNodeIndex(uvec3(sample_pos), level_dim, node_size, idx))
+	{
+		return true;
+	}
+	return false;
+}
+
 bool ComputeWeights(in uint level_dim, in vec3 uvw, out bool valids[8], out uint idxs[8], out float weights[8])
 {
 	vec3 pos = float(level_dim) * uvw - vec3(0.5);
@@ -250,6 +271,17 @@ vec4 SampleOctreeMipmapDataSingleLevel(in uint level_dim, in uint mipmap, in vec
 	return data;
 }
 
+vec4 SampleOctreeMipmapDataSingleLevelClosest(in uint level_dim, in uint mipmap, in vec3 uvw, in uint dir_index)
+{
+	uint idx = 0;
+	vec4 data = vec4(0);
+	if (ComputeClosestMipmap(level_dim, mipmap, uvw, idx))
+	{
+		data = unpackUnorm4x8(uOctreeMipmapData[idx][dir_index]);
+	}
+	return data;
+}
+
 vec4 SampleOctreeMipmap(in uint level_dim, in vec3 uvw, float mipmap, in uint dir_index)
 {
 	const uint max_mipmap = uint(log2(level_dim) - 1);
@@ -260,22 +292,30 @@ vec4 SampleOctreeMipmap(in uint level_dim, in vec3 uvw, float mipmap, in uint di
 	ceil_mipmap = max(ceil_mipmap, 0);
 	ceil_mipmap = min(ceil_mipmap, max_mipmap);
 	float factor = max(mipmap - float(floor_mipmap), 0);
-//#define O0
-#ifdef O0
-	factor = round(factor);
-	if(factor == 0)
-	{
-		return SampleOctreeMipmapDataSingleLevel(level_dim, floor_mipmap, uvw, dir_index);
-	}
-	else
-	{
-		return SampleOctreeMipmapDataSingleLevel(level_dim, ceil_mipmap, uvw, dir_index);
-	}
-#else
 	return mix(SampleOctreeMipmapDataSingleLevel(level_dim, floor_mipmap, uvw, dir_index),
 		SampleOctreeMipmapDataSingleLevel(level_dim, ceil_mipmap, uvw, dir_index),
 		factor);
-#endif
+}
+
+vec4 SampleOctreeMipmapClosest(in uint level_dim, in vec3 uvw, float mipmap, in uint dir_index)
+{
+	const uint max_mipmap = uint(log2(level_dim) - 1);
+	uint floor_mipmap = uint(floor(mipmap));
+	uint ceil_mipmap = floor_mipmap + 1;
+	floor_mipmap = max(floor_mipmap, 0);
+	floor_mipmap = min(floor_mipmap, max_mipmap);
+	ceil_mipmap = max(ceil_mipmap, 0);
+	ceil_mipmap = min(ceil_mipmap, max_mipmap);
+	float factor = max(mipmap - float(floor_mipmap), 0);
+	factor = round(factor);
+	if (factor == 0)
+	{
+		return SampleOctreeMipmapDataSingleLevelClosest(level_dim, floor_mipmap, uvw, dir_index);
+	}
+	else
+	{
+		return SampleOctreeMipmapDataSingleLevelClosest(level_dim, ceil_mipmap, uvw, dir_index);
+	}
 }
 
 vec4 SampleOctreeSingleData(in uint level_dim, in vec3 uvw, in uint data_index)
