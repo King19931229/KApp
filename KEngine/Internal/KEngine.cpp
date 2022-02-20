@@ -12,6 +12,8 @@
 #include "KBase/Publish/KStringUtil.h"
 #include "KBase/Publish/KPlatform.h"
 
+// #define ENABLE_RENDER_DOC
+
 namespace KEngineGlobal
 {
 	void CreateEngine()
@@ -96,9 +98,9 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 
 		KLog::CreateLogger();
 		KLog::Logger->Init("log.txt", true, true, ILM_UNIX);
-
-		// m_RenderDoc.Init();
-
+#ifdef ENABLE_RENDER_DOC
+		m_RenderDoc.Init();
+#endif
 		KECS::CreateComponentManager();
 		KECS::CreateEntityManager();
 
@@ -277,9 +279,9 @@ bool KEngine::UnInit()
 		KFileSystem::Manager->UnInit();
 		KFileSystem::Manager->UnSetAllFileSystem();
 		KFileSystem::DestroyFileManager();
-
-		// m_RenderDoc.UnInit();
-
+#ifdef ENABLE_RENDER_DOC
+		m_RenderDoc.UnInit();
+#endif
 		m_bInit = false;
 
 		return true;

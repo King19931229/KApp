@@ -8,6 +8,7 @@ namespace KVulkanGlobal
 	extern bool deviceReady;
 	extern bool supportRaytrace;
 	extern bool supportMeshShader;
+	extern bool supportDebugMarker;
 
 	extern VkInstance instance;
 	extern VkDevice device;
@@ -25,7 +26,7 @@ namespace KVulkanGlobal
 	extern VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
 	extern VkPhysicalDeviceMeshShaderPropertiesNV meshShaderFeatures;
 
-	// Function pointers for ray tracing related stuff
+	// Function pointers for ray tracing
 	extern PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
 	extern PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
 	extern PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR;
@@ -37,5 +38,20 @@ namespace KVulkanGlobal
 	extern PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR;
 	extern PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
 
+	// Function pointers for mesh shader
 	extern PFN_vkCmdDrawMeshTasksNV vkCmdDrawMeshTasksNV;
+
+	// Function pointers for debug marker
+	extern PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTag;
+	extern PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectName;
+	extern PFN_vkCmdDebugMarkerBeginEXT vkCmdDebugMarkerBegin;
+	extern PFN_vkCmdDebugMarkerEndEXT vkCmdDebugMarkerEnd;
+	extern PFN_vkCmdDebugMarkerInsertEXT vkCmdDebugMarkerInsert;
+
+	// https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VK_EXT_debug_utils.html
+	extern PFN_vkSetDebugUtilsObjectTagEXT vkSetDebugUtilsObjectTag;
+	extern PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectName;
+	extern PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabel;
+	extern PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabel;
+	extern PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabel;
 }

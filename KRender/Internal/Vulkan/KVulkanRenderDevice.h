@@ -54,6 +54,7 @@ class KVulkanRenderDevice : public IKRenderDevice
 		bool supportNvExtension;
 		bool supportRaytraceExtension;
 		bool supportMeshShaderExtension;
+		bool supportDebugMarker;
 		int score;
 
 		PhysicalDevice()
@@ -62,6 +63,7 @@ class KVulkanRenderDevice : public IKRenderDevice
 			supportNvExtension = false;
 			supportRaytraceExtension = false;
 			supportMeshShaderExtension = false;
+			supportDebugMarker = false;
 			score = 0;
 		}
 	};

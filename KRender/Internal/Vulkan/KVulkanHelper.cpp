@@ -680,4 +680,138 @@ default:\
 		address = KVulkanGlobal::vkGetBufferDeviceAddressKHR(KVulkanGlobal::device, &bufferDeviceAI);
 		return true;
 	}
+
+#ifdef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
+	void DebugUtilsSetObjectName(VkDevice device, uint64_t object, VkObjectType objectType, const char* name)
+	{
+		if (KVulkanGlobal::supportDebugMarker)
+		{
+			VkDebugUtilsObjectNameInfoEXT nameInfo = {};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = objectType;
+			nameInfo.objectHandle = object;
+			nameInfo.pObjectName = name;
+			KVulkanGlobal::vkSetDebugUtilsObjectName(device, &nameInfo);
+		}
+	}
+
+	void DebugUtilsSetObjectTag(VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, const void* tag)
+	{
+		if (KVulkanGlobal::supportDebugMarker)
+		{
+			VkDebugUtilsObjectTagInfoEXT tagInfo = {};
+			tagInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_TAG_INFO_EXT;
+			tagInfo.objectType = objectType;
+			tagInfo.objectHandle = object;
+			tagInfo.tagName = name;
+			tagInfo.tagSize = tagSize;
+			tagInfo.pTag = tag;
+			KVulkanGlobal::vkSetDebugUtilsObjectTag(device, &tagInfo);
+		}
+	}
+
+	void DebugUtilsBeginRegion(VkCommandBuffer cmdbuffer, const char* pMarkerName, const glm::vec4& color)
+	{
+		if (KVulkanGlobal::supportDebugMarker)
+		{
+			VkDebugUtilsLabelEXT labelInfo = {};
+			labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+			memcpy(labelInfo.color, &color[0], sizeof(float) * 4);
+			labelInfo.pLabelName = pMarkerName;
+			KVulkanGlobal::vkCmdBeginDebugUtilsLabel(cmdbuffer, &labelInfo);
+		}
+	}
+
+	void DebugUtilsInsert(VkCommandBuffer cmdbuffer, const std::string& markerName, const glm::vec4& color)
+	{
+		if (KVulkanGlobal::supportDebugMarker)
+		{
+			VkDebugUtilsLabelEXT labelInfo = {};
+			labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+			memcpy(labelInfo.color, &color[0], sizeof(float) * 4);
+			labelInfo.pLabelName = markerName.c_str();
+			KVulkanGlobal::vkCmdInsertDebugUtilsLabel(cmdbuffer, &labelInfo);
+		}
+	}
+
+	void DebugUtilsEndRegion(VkCommandBuffer cmdBuffer)
+	{
+		if (KVulkanGlobal::supportDebugMarker && KVulkanGlobal::vkCmdEndDebugUtilsLabel)
+		{
+			KVulkanGlobal::vkCmdEndDebugUtilsLabel(cmdBuffer);
+		}
+	}
+#else
+	// Sets the debug name of an object
+	// All Objects in Vulkan are represented by their 64-bit handles which are passed into this function
+	// along with the object type
+	void DebugMarkerSetObjectName(VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, const char* name)
+	{
+		// Check for valid function pointer (may not be present if not running in a debugging application)
+		if (KVulkanGlobal::supportDebugMarker)
+		{
+			VkDebugMarkerObjectNameInfoEXT nameInfo = {};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = objectType;
+			nameInfo.object = object;
+			nameInfo.pObjectName = name;
+			KVulkanGlobal::vkDebugMarkerSetObjectName(device, &nameInfo);
+		}
+	}
+
+	// Set the tag for an object
+	void DebugMarkerSetObjectTag(VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, uint64_t name, size_t tagSize, const void* tag)
+	{
+		// Check for valid function pointer (may not be present if not running in a debugging application)
+		if (KVulkanGlobal::supportDebugMarker)
+		{
+			VkDebugMarkerObjectTagInfoEXT tagInfo = {};
+			tagInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_TAG_INFO_EXT;
+			tagInfo.objectType = objectType;
+			tagInfo.object = object;
+			tagInfo.tagName = name;
+			tagInfo.tagSize = tagSize;
+			tagInfo.pTag = tag;
+			KVulkanGlobal::vkDebugMarkerSetObjectTag(device, &tagInfo);
+		}
+	}
+
+	// Start a new debug marker region
+	void DebugMarkerBeginRegion(VkCommandBuffer cmdbuffer, const char* pMarkerName, const glm::vec4& color)
+	{
+		// Check for valid function pointer (may not be present if not running in a debugging application)
+		if (KVulkanGlobal::supportDebugMarker)
+		{
+			VkDebugMarkerMarkerInfoEXT markerInfo = {};
+			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+			memcpy(markerInfo.color, &color[0], sizeof(float) * 4);
+			markerInfo.pMarkerName = pMarkerName;
+			KVulkanGlobal::vkCmdDebugMarkerBegin(cmdbuffer, &markerInfo);
+		}
+	}
+
+	// Insert a new debug marker into the command buffer
+	void DebugMarkerInsert(VkCommandBuffer cmdbuffer, const std::string& markerName, const glm::vec4& color)
+	{
+		// Check for valid function pointer (may not be present if not running in a debugging application)
+		if (KVulkanGlobal::supportDebugMarker)
+		{
+			VkDebugMarkerMarkerInfoEXT markerInfo = {};
+			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+			memcpy(markerInfo.color, &color[0], sizeof(float) * 4);
+			markerInfo.pMarkerName = markerName.c_str();
+			KVulkanGlobal::vkCmdDebugMarkerInsert(cmdbuffer, &markerInfo);
+		}
+	}
+
+	// End the current debug marker region
+	void DebugMarkerEndRegion(VkCommandBuffer cmdBuffer)
+	{
+		// Check for valid function (may not be present if not running in a debugging application)
+		if (KVulkanGlobal::supportDebugMarker && KVulkanGlobal::vkCmdDebugMarkerEnd)
+		{
+			KVulkanGlobal::vkCmdDebugMarkerEnd(cmdBuffer);
+		}
+	}
+#endif
 }

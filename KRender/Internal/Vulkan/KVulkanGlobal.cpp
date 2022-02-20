@@ -5,6 +5,7 @@ namespace KVulkanGlobal
 	bool deviceReady = false;
 	bool supportRaytrace = false;
 	bool supportMeshShader = false;
+	bool supportDebugMarker = false;
 
 	VkInstance instance = VK_NULL_HANDLE;
 	VkDevice device = VK_NULL_HANDLE;
@@ -34,6 +35,18 @@ namespace KVulkanGlobal
 	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR = VK_NULL_HANDLE;
 
 	PFN_vkCmdDrawMeshTasksNV vkCmdDrawMeshTasksNV = VK_NULL_HANDEL;
+
+	PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTag = VK_NULL_HANDLE;
+	PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectName = VK_NULL_HANDLE;
+	PFN_vkCmdDebugMarkerBeginEXT vkCmdDebugMarkerBegin = VK_NULL_HANDLE;
+	PFN_vkCmdDebugMarkerEndEXT vkCmdDebugMarkerEnd = VK_NULL_HANDLE;
+	PFN_vkCmdDebugMarkerInsertEXT vkCmdDebugMarkerInsert = VK_NULL_HANDLE;
+
+	PFN_vkSetDebugUtilsObjectTagEXT vkSetDebugUtilsObjectTag = VK_NULL_HANDLE;
+	PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectName = VK_NULL_HANDLE;
+	PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabel = VK_NULL_HANDLE;
+	PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabel = VK_NULL_HANDLE;
+	PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabel = VK_NULL_HANDLE;
 
 	uint32_t graphicsFamilyIndex = 0;
 	uint32_t presentFamilyIndex = 0;

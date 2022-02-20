@@ -708,9 +708,9 @@ void KVoxilzer::SetupOctreeMipmapPipeline()
 void KVoxilzer::Resize(uint32_t width, uint32_t height)
 {
 	m_LightPassTarget->UnInit();
-	m_LightPassRenderPass->UnInit();
-
 	m_LightPassTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM);
+
+	m_LightPassRenderPass->UnInit();
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
 	m_LightPassRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_LightPassRenderPass->Init();

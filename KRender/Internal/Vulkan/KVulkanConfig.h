@@ -59,3 +59,7 @@ do\
 	}\
 }\
 while(false);
+
+#ifdef VK_EXT_DEBUG_UTILS_SPEC_VERSION
+#define VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
+#endif

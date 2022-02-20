@@ -57,4 +57,19 @@ namespace KVulkanHelper
 	bool QueryMSAASupport(MSAASupportTarget target, uint32_t msaaCount, VkSampleCountFlagBits& flag);
 
 	bool GetBufferDeviceAddress(VkBuffer buffer, VkDeviceAddress& address);
+
+#ifdef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
+	void DebugUtilsSetObjectName(VkDevice device, uint64_t object, VkObjectType objectType, const char* name);
+	void DebugUtilsSetObjectTag(VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, const void* tag);
+	void DebugUtilsBeginRegion(VkCommandBuffer cmdbuffer, const char* pMarkerName, const glm::vec4& color);
+	void DebugUtilsInsert(VkCommandBuffer cmdbuffer, const std::string& markerName, const glm::vec4& color);
+	void DebugUtilsEndRegion(VkCommandBuffer cmdBuffer);
+#else
+	// https://github.com/SaschaWillems/Vulkan/tree/master/examples/debugmarker
+	void DebugMarkerSetObjectName(VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, const char* name);
+	void DebugMarkerSetObjectTag(VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, uint64_t name, size_t tagSize, const void* tag);
+	void DebugMarkerBeginRegion(VkCommandBuffer cmdbuffer, const char* pMarkerName, const glm::vec4& color);
+	void DebugMarkerInsert(VkCommandBuffer cmdbuffer, const std::string& markerName, const glm::vec4& color);
+	void DebugMarkerEndRegion(VkCommandBuffer cmdBuffer);
+#endif
 }

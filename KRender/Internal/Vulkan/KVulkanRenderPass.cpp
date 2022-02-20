@@ -456,6 +456,8 @@ bool KVulkanRenderPass::UnInit()
 		m_FrameBuffer = VK_NULL_HANDLE;
 	}
 
+	m_AttachmentHash = 0;
+
 	return true;
 }
 

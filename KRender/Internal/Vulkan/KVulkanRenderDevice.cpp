@@ -46,6 +46,13 @@ const char* DEVICE_NV_EXTENSIONS[] =
 	VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME
 };
 
+#ifndef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
+const char* DEBUG_MARKER_EXTENSIONS[] =
+{
+	VK_EXT_DEBUG_MARKER_EXTENSION_NAME
+};
+#endif
+
 const char* DEVICE_RAYTRACE_EXTENSIONS[] =
 {
 	// Required by VK_KHR_acceleration_structure
@@ -712,6 +719,18 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			m_Properties.meshShaderSupport = false;
 		}
 
+		if (m_PhysicalDevice.supportDebugMarker)
+		{
+#ifndef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
+			extensionNames.insert(extensionNames.end(), DEBUG_MARKER_EXTENSIONS, DEBUG_MARKER_EXTENSIONS + ARRAY_SIZE(DEBUG_MARKER_EXTENSIONS));
+#endif
+			m_Properties.debugMarkerSupport = true;
+		}
+		else
+		{
+			m_Properties.debugMarkerSupport = false;
+		}
+
 		// 填充VkDeviceCreateInfo
 		VkDeviceCreateInfo createInfo = {};
 
@@ -1143,6 +1162,18 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 		}
 	}
 
+	device.supportDebugMarker = true;
+#ifndef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
+	for (const char* requiredExt : DEBUG_MARKER_EXTENSIONS)
+	{
+		if (std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
+		{
+			device.supportDebugMarker = false;
+			break;
+		}
+	}
+#endif
+
 	return true;
 }
 
@@ -1151,6 +1182,7 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	KVulkanGlobal::device = m_Device;
 	KVulkanGlobal::supportRaytrace = m_PhysicalDevice.supportRaytraceExtension;
 	KVulkanGlobal::supportMeshShader = m_PhysicalDevice.supportMeshShaderExtension;
+	KVulkanGlobal::supportDebugMarker = m_PhysicalDevice.supportDebugMarker;
 	KVulkanGlobal::instance = m_Instance;
 	KVulkanGlobal::physicalDevice = m_PhysicalDevice.device;
 	KVulkanGlobal::deviceProperties = m_PhysicalDevice.deviceProperties;
@@ -1182,7 +1214,7 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	deviceProperties2.pNext = &KVulkanGlobal::meshShaderFeatures;
 	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.device, &deviceProperties2);
 
-	// Function pointers for ray tracing related stuff
+	// Function pointers for ray tracing
 	KVulkanGlobal::vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(m_Device, "vkGetBufferDeviceAddressKHR"));
 	KVulkanGlobal::vkCmdBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(m_Device, "vkCmdBuildAccelerationStructuresKHR"));
 	KVulkanGlobal::vkBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(m_Device, "vkBuildAccelerationStructuresKHR"));
@@ -1194,7 +1226,22 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(vkGetDeviceProcAddr(m_Device, "vkGetRayTracingShaderGroupHandlesKHR"));
 	KVulkanGlobal::vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(m_Device, "vkCreateRayTracingPipelinesKHR"));
 
+	// Function pointers for mesh shader
 	KVulkanGlobal::vkCmdDrawMeshTasksNV = reinterpret_cast<PFN_vkCmdDrawMeshTasksNV>(vkGetDeviceProcAddr(m_Device, "vkCmdDrawMeshTasksNV"));
+
+	// Function pointers for debug marker
+	KVulkanGlobal::vkDebugMarkerSetObjectTag = reinterpret_cast<PFN_vkDebugMarkerSetObjectTagEXT>(vkGetDeviceProcAddr(m_Device, "vkDebugMarkerSetObjectTagEXT"));
+	KVulkanGlobal::vkDebugMarkerSetObjectName = reinterpret_cast<PFN_vkDebugMarkerSetObjectNameEXT>(vkGetDeviceProcAddr(m_Device, "vkDebugMarkerSetObjectNameEXT"));
+	KVulkanGlobal::vkCmdDebugMarkerBegin = reinterpret_cast<PFN_vkCmdDebugMarkerBeginEXT>(vkGetDeviceProcAddr(m_Device, "vkCmdDebugMarkerBeginEXT"));
+	KVulkanGlobal::vkCmdDebugMarkerEnd = reinterpret_cast<PFN_vkCmdDebugMarkerEndEXT>(vkGetDeviceProcAddr(m_Device, "vkCmdDebugMarkerEndEXT"));
+	KVulkanGlobal::vkCmdDebugMarkerInsert = reinterpret_cast<PFN_vkCmdDebugMarkerInsertEXT>(vkGetDeviceProcAddr(m_Device, "vkCmdDebugMarkerInsertEXT"));
+
+	// Function pointers for debug util
+	KVulkanGlobal::vkSetDebugUtilsObjectTag = reinterpret_cast<PFN_vkSetDebugUtilsObjectTagEXT>(vkGetDeviceProcAddr(m_Device, "vkSetDebugUtilsObjectTagEXT"));
+	KVulkanGlobal::vkSetDebugUtilsObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetDeviceProcAddr(m_Device, "vkSetDebugUtilsObjectNameEXT"));
+	KVulkanGlobal::vkCmdBeginDebugUtilsLabel = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetDeviceProcAddr(m_Device, "vkCmdBeginDebugUtilsLabelEXT"));
+	KVulkanGlobal::vkCmdEndDebugUtilsLabel = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(m_Device, "vkCmdEndDebugUtilsLabelEXT"));
+	KVulkanGlobal::vkCmdInsertDebugUtilsLabel = reinterpret_cast<PFN_vkCmdInsertDebugUtilsLabelEXT>(vkGetDeviceProcAddr(m_Device, "vkCmdInsertDebugUtilsLabelEXT"));
 
 	KVulkanGlobal::deviceReady = true;
 
@@ -1206,6 +1253,7 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 	KVulkanGlobal::deviceReady = false;
 	KVulkanGlobal::supportRaytrace = false;
 	KVulkanGlobal::supportMeshShader = false;
+	KVulkanGlobal::supportDebugMarker = false;
 	KVulkanGlobal::instance = VK_NULL_HANDLE;
 	KVulkanGlobal::device = VK_NULL_HANDLE;
 	KVulkanGlobal::physicalDevice = VK_NULL_HANDLE;
@@ -1673,7 +1721,9 @@ bool KVulkanRenderDevice::PopulateInstanceExtensions(std::vector<const char*>& e
 #if defined(_WIN32)
 	extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+#ifndef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
 	if (m_EnableValidationLayer)
+#endif
 	{
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -1683,6 +1733,9 @@ bool KVulkanRenderDevice::PopulateInstanceExtensions(std::vector<const char*>& e
 #elif defined(__ANDROID__)
 	extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	extensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#ifdef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
+	extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
 	if (m_EnableValidationLayer)
 	{
 		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -1690,5 +1743,5 @@ bool KVulkanRenderDevice::PopulateInstanceExtensions(std::vector<const char*>& e
 	return true;
 #else
 	return false;
-#endif	
+#endif
 }
