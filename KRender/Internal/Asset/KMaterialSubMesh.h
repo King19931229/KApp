@@ -22,6 +22,7 @@ protected:
 	IKShaderPtr				m_DebugFSShader;
 
 	IKShaderPtr				m_PreZVSShader;
+	IKShaderPtr				m_PreZVSInstanceShader;
 	IKShaderPtr				m_PreZFSShader;
 
 	IKShaderPtr				m_ShadowVSShader;

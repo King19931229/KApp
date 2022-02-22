@@ -331,6 +331,7 @@ bool KPrefilerCubeMap::Draw()
 			for (int i = 0; i < 6; ++i)
 			{
 				m_CommandBuffer->BeginPrimary();
+				m_CommandBuffer->BeginDebugMarker("PrefilerCubeMap", glm::vec4(0, 1, 0, 0));
 				m_CommandBuffer->BeginRenderPass(pass, SUBPASS_CONTENTS_INLINE);
 				m_CommandBuffer->SetViewport(pass->GetViewPort());
 
@@ -341,6 +342,7 @@ bool KPrefilerCubeMap::Draw()
 				}
 
 				m_CommandBuffer->EndRenderPass();
+				m_CommandBuffer->EndDebugMarker();
 				m_CommandBuffer->End();
 
 				m_CommandBuffer->Flush();
@@ -355,6 +357,7 @@ bool KPrefilerCubeMap::Draw()
 
 	{
 		m_CommandBuffer->BeginPrimary();
+		m_CommandBuffer->BeginDebugMarker("IntegrateBRDF", glm::vec4(0, 1, 0, 0));
 		m_CommandBuffer->BeginRenderPass(m_IntegrateBRDFPass, SUBPASS_CONTENTS_INLINE);
 		m_CommandBuffer->SetViewport(m_IntegrateBRDFPass->GetViewPort());
 
@@ -372,6 +375,7 @@ bool KPrefilerCubeMap::Draw()
 		m_CommandBuffer->Render(command);
 
 		m_CommandBuffer->EndRenderPass();
+		m_CommandBuffer->EndDebugMarker();
 		m_CommandBuffer->End();
 
 		m_CommandBuffer->Flush();

@@ -278,49 +278,94 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 				ASSERT_RESULT(render);
 				ASSERT_RESULT(instances.size() > 0);
 
-				render->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand& _command)
+				if (!m_InstanceSubmit)
 				{
-					KRenderCommand command = std::move(_command);
+					render->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand& command)
+					{
+						for (size_t idx = 0; idx < instances.size(); ++idx)
+						{
+							++context.statistics[RENDER_STAGE_PRE_Z].drawcalls;
+							if (command.indexDraw)
+							{
+								context.statistics[RENDER_STAGE_PRE_Z].faces += command.indexData->indexCount / 3;
+								context.statistics[RENDER_STAGE_PRE_Z].primtives += command.indexData->indexCount;
+							}
+							else
+							{
+								context.statistics[RENDER_STAGE_PRE_Z].faces += command.vertexData->vertexCount / 3;
+								context.statistics[RENDER_STAGE_PRE_Z].primtives += command.vertexData->vertexCount;
+							}
 
-					for (size_t idx = 0; idx < instances.size(); ++idx)
+							const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+							KConstantDefinition::OBJECT objectData;
+							objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+							objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+							command.objectUsage.binding = SHADER_BINDING_OBJECT;
+							command.objectUsage.range = sizeof(objectData);
+
+							KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+							command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+							if (command.Complete())
+							{
+								context.command[RENDER_STAGE_PRE_Z].push_back(command);
+							}
+						}
+					});
+				}
+				else
+				{
+					render->Visit(PIPELINE_STAGE_PRE_Z_INSTANCE, frameIndex, [&](KRenderCommand& command)
 					{
 						++context.statistics[RENDER_STAGE_PRE_Z].drawcalls;
-						if (command.indexDraw)
+
+						KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
+
+						std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+						ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+						ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+
+						command.instanceDraw = true;
+						command.instanceUsages.resize(allocRes.size());
+						for (size_t i = 0; i < allocRes.size(); ++i)
 						{
-							context.statistics[RENDER_STAGE_PRE_Z].faces += command.indexData->indexCount / 3;
-							context.statistics[RENDER_STAGE_PRE_Z].primtives += command.indexData->indexCount;
+							KInstanceBufferUsage& usage = command.instanceUsages[i];
+							KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+							usage.buffer = allocResult.buffer;
+							usage.start = allocResult.start;
+							usage.count = allocResult.count;
+							usage.offset = allocResult.offset;
 						}
-						else
+
+						for (size_t idx = 0; idx < instances.size(); ++idx)
 						{
-							context.statistics[RENDER_STAGE_PRE_Z].faces += command.vertexData->vertexCount / 3;
-							context.statistics[RENDER_STAGE_PRE_Z].primtives += command.vertexData->vertexCount;
+							if (command.indexDraw)
+							{
+								context.statistics[RENDER_STAGE_PRE_Z].faces += command.indexData->indexCount / 3;
+								context.statistics[RENDER_STAGE_PRE_Z].primtives += command.indexData->indexCount;
+							}
+							else
+							{
+								context.statistics[RENDER_STAGE_PRE_Z].faces += command.vertexData->vertexCount / 3;
+								context.statistics[RENDER_STAGE_PRE_Z].primtives += command.vertexData->vertexCount;
+							}
 						}
-
-						const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
-
-						KConstantDefinition::OBJECT objectData;
-						objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
-						objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
-						command.objectUsage.binding = SHADER_BINDING_OBJECT;
-						command.objectUsage.range = sizeof(objectData);
-
-						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
 						command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 
 						if (command.Complete())
 						{
-							context.command[RENDER_STAGE_PRE_Z].push_back(command);
+							context.command[RENDER_STAGE_PRE_Z].push_back(std::move(command));
 						}
-					}
-				});
+					});
+				}
 
 				if (!m_InstanceSubmit)
 				{
-					bool hasMeshPipeline = render->Visit(PIPELINE_STAGE_OPAQUE_MESH, frameIndex, [&](KRenderCommand& _command)
+					bool hasMeshPipeline = render->Visit(PIPELINE_STAGE_OPAQUE_MESH, frameIndex, [&](KRenderCommand& command)
 					{
-						KRenderCommand command = std::move(_command);
-
 						for (size_t idx = 0; idx < instances.size(); ++idx)
 						{
 							++context.statistics[RENDER_STAGE_DEFAULT].drawcalls;
@@ -360,10 +405,8 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 					});
 					if(!hasMeshPipeline)
 					{
-						render->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand& _command)
+						render->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand& command)
 						{
-							KRenderCommand command = std::move(_command);
-
 							for (size_t idx = 0; idx < instances.size(); ++idx)
 							{
 								++context.statistics[RENDER_STAGE_DEFAULT].drawcalls;
@@ -405,10 +448,8 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 				}
 				else
 				{
-					render->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand& _command)
+					render->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand& command)
 					{
-						KRenderCommand command = std::move(_command);
-
 						++context.statistics[RENDER_STAGE_DEFAULT].drawcalls;
 
 						KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
@@ -575,6 +616,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 
 		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 
+		primaryCommandBuffer->BeginDebugMarker("ObjectPass", glm::vec4(0, 1, 0, 0));
 		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 
 		// 绘制SkyBox
@@ -610,7 +652,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		AssignRenderCommand(frameIndex, context);
 		SumbitRenderCommand(frameIndex, context);
 
-		for (RenderStage stage : {RENDER_STAGE_PRE_Z, RENDER_STAGE_DEFAULT})
+		for (RenderStage stage : {/*RENDER_STAGE_PRE_Z, */RENDER_STAGE_DEFAULT})
 		{
 			if (!context.buffer[stage].empty())
 			{
@@ -670,6 +712,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		}
 
 		primaryCommandBuffer->EndRenderPass();
+		primaryCommandBuffer->EndDebugMarker();
 	}
 
 	KRenderGlobal::PostProcessManager.Execute(chainImageIndex, frameIndex, m_SwapChain, m_UIOverlay, primaryCommandBuffer);
@@ -693,6 +736,7 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
 	{
+		KRenderGlobal::GBuffer.UpdatePreDepth(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::GBuffer.UpdateGBuffer(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::Voxilzer.UpdateFrame(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex);

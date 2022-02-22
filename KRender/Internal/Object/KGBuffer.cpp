@@ -14,9 +14,12 @@ KGBuffer::KGBuffer()
 KGBuffer::~KGBuffer()
 {
 	ASSERT_RESULT(m_DepthStencilTarget == nullptr);	
-	ASSERT_RESULT(m_RenderPass == nullptr);
+	ASSERT_RESULT(m_MainPass == nullptr);
 	ASSERT_RESULT(m_GBufferSampler == nullptr);
-	ASSERT_RESULT(m_CommandBuffers.empty());
+	for (uint32_t i = 0; i < GBUFFER_STAGE_COUNT; ++i)
+	{
+		ASSERT_RESULT(m_CommandBuffers[i].empty());
+	}
 }
 
 bool KGBuffer::Init(IKRenderDevice* renderDevice, const KCamera* camera, uint32_t width, uint32_t height, size_t frameInFlight)
@@ -36,12 +39,15 @@ bool KGBuffer::Init(IKRenderDevice* renderDevice, const KCamera* camera, uint32_
 
 	Resize(width, height);
 
-	m_CommandBuffers.resize(frameInFlight);
-	for (size_t i = 0; i < frameInFlight; ++i)
+	for (uint32_t i = 0; i < GBUFFER_STAGE_COUNT; ++i)
 	{
-		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
-		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
+		m_CommandBuffers[i].resize(frameInFlight);
+		for (size_t frameIndex = 0; frameIndex < frameInFlight; ++frameIndex)
+		{
+			IKCommandBufferPtr& buffer = m_CommandBuffers[i][frameIndex];
+			ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
+			ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
+		}
 	}
 
 	return true;
@@ -54,13 +60,17 @@ bool KGBuffer::UnInit()
 		SAFE_UNINIT(m_RenderTarget[i]);
 	}
 	SAFE_UNINIT(m_DepthStencilTarget);
-	SAFE_UNINIT(m_RenderPass);
+	SAFE_UNINIT(m_PreZPass);
+	SAFE_UNINIT(m_MainPass);
 
-	for (IKCommandBufferPtr& buffer : m_CommandBuffers)
+	for (uint32_t i = 0; i < GBUFFER_STAGE_COUNT; ++i)
 	{
-		SAFE_UNINIT(buffer);
+		for (IKCommandBufferPtr& buffer : m_CommandBuffers[i])
+		{
+			SAFE_UNINIT(buffer);
+		}
+		m_CommandBuffers[i].clear();
 	}
-	m_CommandBuffers.clear();
 
 	SAFE_UNINIT(m_GBufferSampler);
 	SAFE_UNINIT(m_CommandPool);
@@ -93,32 +103,184 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 		}
 
 		SAFE_UNINIT(m_DepthStencilTarget);
-		SAFE_UNINIT(m_RenderPass);
+
+		ASSERT_RESULT(m_RenderDevice->CreateRenderTarget(m_DepthStencilTarget));
+		ASSERT_RESULT(m_DepthStencilTarget->InitFromDepthStencil(width, height, 1, true));
+
+		SAFE_UNINIT(m_PreZPass);
+		SAFE_UNINIT(m_MainPass);
+
 		ASSERT_RESULT(m_RenderTarget[RT_NORMAL]->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
 		ASSERT_RESULT(m_RenderTarget[RT_POSITION]->InitFromColor(width, height, 1, EF_R32G32B32A32_FLOAT));
 		ASSERT_RESULT(m_RenderTarget[RT_MOTION]->InitFromColor(width, height, 1, EF_R32G32_FLOAT));
 		ASSERT_RESULT(m_RenderTarget[RT_DIFFUSE]->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
 		ASSERT_RESULT(m_RenderTarget[RT_SPECULAR]->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
 
-		ASSERT_RESULT(m_RenderDevice->CreateRenderPass(m_RenderPass));
-		m_RenderPass->SetColorAttachment(RT_NORMAL, m_RenderTarget[RT_NORMAL]->GetFrameBuffer());
-		m_RenderPass->SetColorAttachment(RT_POSITION, m_RenderTarget[RT_POSITION]->GetFrameBuffer());
-		m_RenderPass->SetColorAttachment(RT_MOTION, m_RenderTarget[RT_MOTION]->GetFrameBuffer());
-		m_RenderPass->SetColorAttachment(RT_DIFFUSE, m_RenderTarget[RT_DIFFUSE]->GetFrameBuffer());
-		m_RenderPass->SetColorAttachment(RT_SPECULAR, m_RenderTarget[RT_SPECULAR]->GetFrameBuffer());
+		ASSERT_RESULT(m_RenderDevice->CreateRenderPass(m_PreZPass));
+		m_PreZPass->SetDepthStencilAttachment(m_DepthStencilTarget->GetFrameBuffer());
 
-		m_RenderPass->SetClearColor(RT_NORMAL, { 0.0f, 0.0f, 0.0f, 1.0f });
-		m_RenderPass->SetClearColor(RT_POSITION, { 0.0f, 0.0f, 0.0f, 1.0f });
-		m_RenderPass->SetClearColor(RT_MOTION, { 0.0f, 0.0f, 0.0f, 1.0f });
-		m_RenderPass->SetClearColor(RT_DIFFUSE, { 0.0f, 0.0f, 0.0f, 1.0f });
-		m_RenderPass->SetClearColor(RT_SPECULAR, { 0.0f, 0.0f, 0.0f, 1.0f });
+		ASSERT_RESULT(m_PreZPass->Init());
 
-		m_RenderDevice->CreateRenderTarget(m_DepthStencilTarget);
-		m_DepthStencilTarget->InitFromDepthStencil(width, height, 1, true);
-		m_RenderPass->SetDepthStencilAttachment(m_DepthStencilTarget->GetFrameBuffer());
-		m_RenderPass->SetClearDepthStencil({ 1.0f, 0 });
+		ASSERT_RESULT(m_RenderDevice->CreateRenderPass(m_MainPass));
+		m_MainPass->SetColorAttachment(RT_NORMAL, m_RenderTarget[RT_NORMAL]->GetFrameBuffer());
+		m_MainPass->SetColorAttachment(RT_POSITION, m_RenderTarget[RT_POSITION]->GetFrameBuffer());
+		m_MainPass->SetColorAttachment(RT_MOTION, m_RenderTarget[RT_MOTION]->GetFrameBuffer());
+		m_MainPass->SetColorAttachment(RT_DIFFUSE, m_RenderTarget[RT_DIFFUSE]->GetFrameBuffer());
+		m_MainPass->SetColorAttachment(RT_SPECULAR, m_RenderTarget[RT_SPECULAR]->GetFrameBuffer());
 
-		ASSERT_RESULT(m_RenderPass->Init());
+		m_MainPass->SetClearColor(RT_NORMAL, { 0.0f, 0.0f, 0.0f, 1.0f });
+		m_MainPass->SetClearColor(RT_POSITION, { 0.0f, 0.0f, 0.0f, 1.0f });
+		m_MainPass->SetClearColor(RT_MOTION, { 0.0f, 0.0f, 0.0f, 1.0f });
+		m_MainPass->SetClearColor(RT_DIFFUSE, { 0.0f, 0.0f, 0.0f, 1.0f });
+		m_MainPass->SetClearColor(RT_SPECULAR, { 0.0f, 0.0f, 0.0f, 1.0f });
+		
+		m_MainPass->SetDepthStencilAttachment(m_DepthStencilTarget->GetFrameBuffer());
+		m_MainPass->SetClearDepthStencil({ 1.0f, 0 });
+
+		ASSERT_RESULT(m_MainPass->Init());
+
+		return true;
+	}
+	return false;
+}
+
+bool KGBuffer::UpdatePreDepth(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+{
+	if (m_Camera)
+	{
+		std::vector<KRenderCommand> commands;
+
+		KRenderStageStatistics& statistics = m_Statistics[GBUFFER_STAGE_PRE_Z];
+		statistics.Reset();
+
+		std::vector<KRenderComponent*> cullRes;
+		KRenderGlobal::Scene.GetRenderComponent(*m_Camera, false, cullRes);
+
+		KRenderUtil::MeshInstanceGroup meshGroups;
+		KRenderUtil::CalculateInstanceGroupByMesh(cullRes, meshGroups);
+
+		for (auto& meshPair : meshGroups)
+		{
+			KMeshPtr mesh = meshPair.first;
+			KRenderUtil::InstanceGroupPtr instanceGroup = meshPair.second;
+
+			KRenderComponent* render = instanceGroup->render;
+			std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instanceGroup->instance;
+
+			ASSERT_RESULT(render);
+			ASSERT_RESULT(instances.size() > 0);
+
+			if (instances.size() > 1)
+			{
+				render->Visit(PIPELINE_STAGE_PRE_Z_INSTANCE, frameIndex, [&](KRenderCommand& command)
+				{
+					++statistics.drawcalls;
+
+					KVertexData* vertexData = const_cast<KVertexData*>(command.vertexData);
+
+					std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+					ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+
+					command.instanceDraw = true;
+					command.instanceUsages.resize(allocRes.size());
+					for (size_t i = 0; i < allocRes.size(); ++i)
+					{
+						KInstanceBufferUsage& usage = command.instanceUsages[i];
+						KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+						usage.buffer = allocResult.buffer;
+						usage.start = allocResult.start;
+						usage.count = allocResult.count;
+						usage.offset = allocResult.offset;
+					}
+
+					for (size_t idx = 0; idx < instances.size(); ++idx)
+					{
+						if (command.indexDraw)
+						{
+							statistics.faces += command.indexData->indexCount / 3;
+							statistics.primtives += command.indexData->indexCount;
+						}
+						else
+						{
+							statistics.faces += command.vertexData->vertexCount / 3;
+							statistics.primtives += command.vertexData->vertexCount;
+						}
+					}
+
+					command.pipeline->GetHandle(m_PreZPass, command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						commands.push_back(std::move(command));
+					}
+				});
+			}
+			else
+			{
+				render->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand& command)
+				{
+					for (size_t idx = 0; idx < instances.size(); ++idx)
+					{
+						++statistics.drawcalls;
+						if (command.indexDraw)
+						{
+							statistics.faces += command.indexData->indexCount / 3;
+							statistics.primtives += command.indexData->indexCount;
+						}
+						else
+						{
+							statistics.faces += command.vertexData->vertexCount / 3;
+							statistics.primtives += command.vertexData->vertexCount;
+						}
+
+						const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+						KConstantDefinition::OBJECT objectData;
+						objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+						objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+						command.objectUsage.binding = SHADER_BINDING_OBJECT;
+						command.objectUsage.range = sizeof(objectData);
+
+						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+						command.pipeline->GetHandle(m_PreZPass, command.pipelineHandle);
+
+						if (command.Complete())
+						{
+							commands.push_back(std::move(command));
+						}
+					}
+				});
+			}
+		}
+
+		IKCommandBufferPtr commandBuffer = m_CommandBuffers[GBUFFER_STAGE_PRE_Z][frameIndex];
+
+		primaryBuffer->BeginDebugMarker("PreZ", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginRenderPass(m_PreZPass, SUBPASS_CONTENTS_SECONDARY);
+
+		commandBuffer->BeginSecondary(m_PreZPass);
+		commandBuffer->SetViewport(m_PreZPass->GetViewPort());
+
+		{
+			for (KRenderCommand& command : commands)
+			{
+				IKPipelineHandlePtr handle = nullptr;
+				if (command.pipeline->GetHandle(m_MainPass, handle))
+				{
+					commandBuffer->Render(command);
+				}
+			}
+		}
+
+		commandBuffer->End();
+
+		primaryBuffer->Execute(commandBuffer);
+		primaryBuffer->EndRenderPass();
+		primaryBuffer->EndDebugMarker();
+
+		KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::ALL_STAGE_NAMES[RENDER_STAGE_PRE_Z], statistics);
 
 		return true;
 	}
@@ -131,7 +293,8 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 	{
 		std::vector<KRenderCommand> commands;
 
-		m_Statistics.Reset();
+		KRenderStageStatistics& statistics = m_Statistics[GBUFFER_STAGE_DEFAULT];
+		statistics.Reset();
 
 		std::vector<KRenderComponent*> cullRes;
 		KRenderGlobal::Scene.GetRenderComponent(*m_Camera, false, cullRes);
@@ -165,7 +328,7 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 							return;
 						}
 
-						++m_Statistics.drawcalls;
+						++statistics.drawcalls;
 
 						std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
 						ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
@@ -185,14 +348,14 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 
 						if (command.indexDraw)
 						{
-							m_Statistics.faces += command.indexData->indexCount / 3;
+							statistics.faces += command.indexData->indexCount / 3;
 						}
 						else
 						{
-							m_Statistics.faces += command.vertexData->vertexCount / 3;
+							statistics.faces += command.vertexData->vertexCount / 3;
 						}
 
-						command.pipeline->GetHandle(m_RenderPass, command.pipelineHandle);
+						command.pipeline->GetHandle(m_MainPass, command.pipelineHandle);
 
 						if (command.Complete())
 						{
@@ -211,7 +374,7 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 							return;
 						}
 
-						++m_Statistics.drawcalls;
+						++statistics.drawcalls;
 
 						const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[0];
 
@@ -224,14 +387,14 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 
 						if (command.indexDraw)
 						{
-							m_Statistics.faces += command.indexData->indexCount / 3;
+							statistics.faces += command.indexData->indexCount / 3;
 						}
 						else
 						{
-							m_Statistics.faces += command.vertexData->vertexCount / 3;
+							statistics.faces += command.vertexData->vertexCount / 3;
 						}
 
-						command.pipeline->GetHandle(m_RenderPass, command.pipelineHandle);
+						command.pipeline->GetHandle(m_MainPass, command.pipelineHandle);
 
 						if (command.Complete())
 						{
@@ -242,18 +405,19 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 			}
 		}
 
-		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
+		IKCommandBufferPtr commandBuffer = m_CommandBuffers[GBUFFER_STAGE_DEFAULT][frameIndex];
 
-		primaryBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_SECONDARY);
+		primaryBuffer->BeginDebugMarker("GBuffer", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginRenderPass(m_MainPass, SUBPASS_CONTENTS_SECONDARY);
 
-		commandBuffer->BeginSecondary(m_RenderPass);
-		commandBuffer->SetViewport(m_RenderPass->GetViewPort());
+		commandBuffer->BeginSecondary(m_MainPass);
+		commandBuffer->SetViewport(m_MainPass->GetViewPort());
 
 		{
 			for (KRenderCommand& command : commands)
 			{
 				IKPipelineHandlePtr handle = nullptr;
-				if (command.pipeline->GetHandle(m_RenderPass, handle))
+				if (command.pipeline->GetHandle(m_MainPass, handle))
 				{
 					commandBuffer->Render(command);
 				}
@@ -264,8 +428,9 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 
 		primaryBuffer->Execute(commandBuffer);
 		primaryBuffer->EndRenderPass();
+		primaryBuffer->EndDebugMarker();
 
-		KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::ALL_STAGE_NAMES[RENDER_STAGE_GBUFFER], m_Statistics);
+		KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::ALL_STAGE_NAMES[RENDER_STAGE_GBUFFER], statistics);
 
 		return true;
 	}

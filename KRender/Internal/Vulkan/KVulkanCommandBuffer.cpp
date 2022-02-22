@@ -7,6 +7,7 @@
 #include "KVulkanQuery.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanInitializer.h"
+#include "KVulkanHelper.h"
 #include "Internal/KConstantDefinition.h"
 
 KVulkanCommandPool::KVulkanCommandPool()
@@ -495,6 +496,26 @@ bool KVulkanCommandBuffer::EndRenderPass()
 		return true;
 	}
 	return false;
+}
+
+bool KVulkanCommandBuffer::BeginDebugMarker(const std::string& marker, const glm::vec4 color)
+{
+#ifdef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
+	KVulkanHelper::DebugUtilsBeginRegion(m_CommandBuffer, marker.c_str(), color);
+#else
+	KVulkanHelper::DebugMarkerBeginRegion(m_CommandBuffer, marker.c_str(), color);
+#endif
+	return true;
+}
+
+bool KVulkanCommandBuffer::EndDebugMarker()
+{
+#ifdef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
+	KVulkanHelper::DebugUtilsEndRegion(m_CommandBuffer);
+#else
+	KVulkanHelper::DebugMarkerEndRegion(m_CommandBuffer);
+#endif
+	return true;
 }
 
 bool KVulkanCommandBuffer::End()

@@ -41,6 +41,9 @@ struct IKCommandBuffer
 
 	virtual bool EndRenderPass() = 0;
 
+	virtual bool BeginDebugMarker(const std::string& marker, const glm::vec4 color) = 0;
+	virtual bool EndDebugMarker() = 0;
+
 	virtual bool BeginQuery(IKQueryPtr query) = 0;
 	virtual bool EndQuery(IKQueryPtr query) = 0;
 	virtual bool ResetQuery(IKQueryPtr query) = 0;

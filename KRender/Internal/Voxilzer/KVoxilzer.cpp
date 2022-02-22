@@ -890,6 +890,7 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 
 	if (cullRes.size() == 0) return;
 
+	commandBuffer->BeginDebugMarker("VoxelizeStaticScene", glm::vec4(0, 1, 0, 0));
 	commandBuffer->BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
 	commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
 
@@ -927,6 +928,7 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 	}
 
 	commandBuffer->EndRenderPass();
+	commandBuffer->EndDebugMarker();
 }
 
 void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, bool bCountOnly)
@@ -1387,6 +1389,7 @@ bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer, uint32_t 
 	{
 		IKCommandBufferPtr commandBuffer = m_LightingCommandBuffers[frameIndex];
 
+		primaryBuffer->BeginDebugMarker("VoxelLightPass", glm::vec4(0, 1, 0, 0));
 		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_SECONDARY);
 
 		KRenderCommand command;
@@ -1403,6 +1406,7 @@ bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer, uint32_t 
 
 		primaryBuffer->Execute(commandBuffer);
 		primaryBuffer->EndRenderPass();
+		primaryBuffer->EndDebugMarker();
 
 		return true;
 	}
@@ -1443,6 +1447,7 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint3
 
 			cameraBuffer->Write(cameraInfo);
 
+			primaryBuffer->BeginDebugMarker("VoxelOctreeRayTest", glm::vec4(0, 1, 0, 0));
 			primaryBuffer->BeginRenderPass(m_OctreeRayTestPass, SUBPASS_CONTENTS_SECONDARY);
 
 			KRenderCommand command;
@@ -1459,6 +1464,7 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint3
 
 			primaryBuffer->Execute(commandBuffer);
 			primaryBuffer->EndRenderPass();
+			primaryBuffer->EndDebugMarker();
 		}
 		return true;
 	}

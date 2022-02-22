@@ -484,6 +484,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 			IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer(frameIndex);
 			IKRenderPassPtr renderPass = pass->GetRenderPass();
 
+			primaryCommandBuffer->BeginDebugMarker("PostProcess", glm::vec4(0, 1, 0, 0));
 			primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 			{
 				commandBuffer->BeginSecondary(renderPass);
@@ -499,12 +500,14 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 			}
 			primaryCommandBuffer->Execute(commandBuffer);
 			primaryCommandBuffer->EndRenderPass();
+			primaryCommandBuffer->EndDebugMarker();
 		}
 	});
 
 	if (endPass)
 	{
 		IKRenderPassPtr renderPass = swapChain->GetRenderPass(chainImageIndex);
+		primaryCommandBuffer->BeginDebugMarker("MainChain", glm::vec4(0, 1, 0, 0));
 		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 
 		KRenderCommand command;
@@ -520,6 +523,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 		}
 
 		primaryCommandBuffer->EndRenderPass();
+		primaryCommandBuffer->EndDebugMarker();
 	}
 
 	return true;

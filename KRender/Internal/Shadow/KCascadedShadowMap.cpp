@@ -648,6 +648,7 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 		}
 
 		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
+		primaryBuffer->BeginDebugMarker("CSM_" + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
 		primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(renderPass->GetViewPort());
 
@@ -671,6 +672,7 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 			}
 		}
 		primaryBuffer->EndRenderPass();
+		primaryBuffer->EndDebugMarker();
 
 		KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::ALL_STAGE_NAMES[RENDER_STAGE_CSM], m_Statistics);
 

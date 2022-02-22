@@ -116,6 +116,7 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 
 			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
 
+			primaryBuffer->BeginDebugMarker("SM", glm::vec4(0, 1, 0, 0));
 			primaryBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_SECONDARY);
 
 			commandBuffer->BeginSecondary(m_RenderPass);
@@ -163,6 +164,7 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 
 			primaryBuffer->Execute(commandBuffer);
 			primaryBuffer->EndRenderPass();
+			primaryBuffer->EndDebugMarker();
 		}
 
 		return true;

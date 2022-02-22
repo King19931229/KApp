@@ -51,6 +51,9 @@ public:
 
 	virtual bool EndRenderPass();
 
+	virtual bool BeginDebugMarker(const std::string& marker, const glm::vec4 color);
+	virtual bool EndDebugMarker();
+
 	virtual bool BeginQuery(IKQueryPtr query);
 	virtual bool EndQuery(IKQueryPtr query);
 	virtual bool ResetQuery(IKQueryPtr query);

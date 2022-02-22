@@ -22,6 +22,7 @@ KMaterialSubMesh::~KMaterialSubMesh()
 bool KMaterialSubMesh::CreateFixedPipeline()
 {
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/prez.vert", m_PreZVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/prezinstance.vert", m_PreZVSInstanceShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/prez.frag", m_PreZFSShader, true));
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/shadow.vert", m_ShadowVSShader, true));
@@ -39,6 +40,7 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 	for (PipelineStage stage : 
 	{
 			PIPELINE_STAGE_PRE_Z,
+			PIPELINE_STAGE_PRE_Z_INSTANCE,
 			PIPELINE_STAGE_SHADOW_GEN,
 			PIPELINE_STAGE_CASCADED_SHADOW_GEN,
 			PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE
@@ -122,6 +124,7 @@ bool KMaterialSubMesh::UnInit()
 	SAFE_RELEASE_SHADER(m_DebugFSShader);
 
 	SAFE_RELEASE_SHADER(m_PreZVSShader);
+	SAFE_RELEASE_SHADER(m_PreZVSInstanceShader);
 	SAFE_RELEASE_SHADER(m_PreZFSShader);
 
 	SAFE_RELEASE_SHADER(m_ShadowVSShader);
@@ -315,7 +318,7 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 				pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 				pipeline->SetPolygonMode(PM_FILL);
 				pipeline->SetColorWrite(true, true, true, true);
-				pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+				pipeline->SetDepthFunc(CF_EQUAL, true, true);
 
 				pipeline->SetShader(ST_FRAGMENT, fsShader);
 
@@ -460,24 +463,28 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 	return true;
 }
 
-// 安卓上还是有用的
-#ifndef __ANDROID__
-#	define PRE_Z_DISABLE
-#endif
-
 bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline)
 {
 	const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
 	ASSERT_RESULT(vertexData);
 
-	if (stage == PIPELINE_STAGE_PRE_Z)
+	if (stage == PIPELINE_STAGE_PRE_Z || stage == PIPELINE_STAGE_PRE_Z_INSTANCE)
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
-		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+		if (stage == PIPELINE_STAGE_PRE_Z)
+		{
+			pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+			pipeline->SetShader(ST_VERTEX, m_PreZVSShader);
+		}
+		else if (stage == PIPELINE_STAGE_PRE_Z_INSTANCE)
+		{
+			std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
+			instanceFormats.push_back(VF_INSTANCE);
+			pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
+			pipeline->SetShader(ST_VERTEX, m_PreZVSInstanceShader);
+		}
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-
-		pipeline->SetShader(ST_VERTEX, m_PreZVSShader);
 		pipeline->SetShader(ST_FRAGMENT, m_PreZFSShader);
 
 		pipeline->SetBlendEnable(false);
@@ -627,12 +634,6 @@ bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, 
 		assert(false && "frame index out of bound");
 		return false;
 	}
-#ifdef PRE_Z_DISABLE
-	if (stage == PIPELINE_STAGE_PRE_Z)
-	{
-		return false;
-	}
-#endif
 
 	FramePipelineList& pipelines = m_Pipelines[stage];
 	if (frameIndex >= pipelines.size())

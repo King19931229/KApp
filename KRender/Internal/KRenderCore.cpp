@@ -446,6 +446,7 @@ bool KRenderCore::Tick()
 					++it;
 				}
 			}
+
 			m_Device->Present();
 
 			if (KECS::EntityManager)
