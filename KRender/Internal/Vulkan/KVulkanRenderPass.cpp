@@ -282,7 +282,14 @@ bool KVulkanRenderPass::Init()
 					colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-					colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+					if (m_OpColors[i].loadOp == LO_LOAD)
+					{
+						colorAttachment.initialLayout = massCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : (i == 0 ? color_0_finalLayout : color_x_finalLayout);
+					}
+					else
+					{
+						colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+					}
 					colorAttachment.finalLayout = massCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : (i == 0 ? color_0_finalLayout : color_x_finalLayout);
 
 					descs.push_back(colorAttachment);
@@ -317,7 +324,14 @@ bool KVulkanRenderPass::Init()
 				KVulkanHelper::LoadOpToVkAttachmentLoadOp(m_OpStencil.loadOp, depthAttachment.stencilLoadOp);
 				KVulkanHelper::StoreOpToVkAttachmentStoreOp(m_OpStencil.storeOp, depthAttachment.stencilStoreOp);
 
-				depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				if (m_OpDepth.loadOp == LO_LOAD || m_OpStencil.loadOp == LO_LOAD)
+				{
+					depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+				}
+				else
+				{
+					depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				}
 				depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
 				descs.push_back(depthAttachment);
@@ -342,8 +356,8 @@ bool KVulkanRenderPass::Init()
 						colorAttachmentResolve.format = vulkanFrameBuffer->GetForamt();
 						colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
 
-						//KVulkanHelper::LoadOpToVkAttachmentLoadOp(m_OpColors[i].loadOp, colorAttachmentResolve.loadOp);
-						//KVulkanHelper::StoreOpToVkAttachmentStoreOp(m_OpColors[i].storeOp, colorAttachmentResolve.storeOp);
+						// KVulkanHelper::LoadOpToVkAttachmentLoadOp(m_OpColors[i].loadOp, colorAttachmentResolve.loadOp);
+						// KVulkanHelper::StoreOpToVkAttachmentStoreOp(m_OpColors[i].storeOp, colorAttachmentResolve.storeOp);
 
 						colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 						colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

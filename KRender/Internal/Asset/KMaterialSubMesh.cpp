@@ -318,7 +318,7 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 				pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 				pipeline->SetPolygonMode(PM_FILL);
 				pipeline->SetColorWrite(true, true, true, true);
-				pipeline->SetDepthFunc(CF_EQUAL, true, true);
+				pipeline->SetDepthFunc(CF_EQUAL, false, true);
 
 				pipeline->SetShader(ST_FRAGMENT, fsShader);
 

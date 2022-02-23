@@ -136,6 +136,7 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 		
 		m_MainPass->SetDepthStencilAttachment(m_DepthStencilTarget->GetFrameBuffer());
 		m_MainPass->SetClearDepthStencil({ 1.0f, 0 });
+		m_MainPass->SetOpDepthStencil(LO_LOAD, SO_DONT_CARE, LO_LOAD, SO_DONT_CARE);
 
 		ASSERT_RESULT(m_MainPass->Init());
 
