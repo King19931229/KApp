@@ -613,6 +613,9 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 				glm::vec3 min = glm::max(receiverMin, frustumBoxMin);
 				glm::vec3 max = glm::min(receiverMax, frustumBoxMax);
 
+				// TODO 有可能最后计算出来的max小于min
+				max = glm::max(max, min);
+
 				receiverBox.InitFromMinMax(min, max);
 			}
 

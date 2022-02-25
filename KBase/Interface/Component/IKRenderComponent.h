@@ -38,4 +38,6 @@ public:
 
 	virtual IKMaterialPtr GetMaterial() = 0;
 	virtual bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) = 0;
+
+	virtual bool IsUtility() const = 0;
 };

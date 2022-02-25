@@ -1,6 +1,7 @@
 #include "Publish/KStringParser.h"
 
 #include <sstream>
+#include <algorithm>
 
 namespace KStringParser
 {
@@ -13,6 +14,27 @@ namespace KStringParser
 			ss.str(pStr);
 			while(uCount--)
 				ss >> *pOut++;
+			return true;
+		}
+		return false;
+	}
+
+	bool ParseTo(const char* pStr, bool* pOut, size_t uCount)
+	{
+		if (pStr && pOut && uCount > 0)
+		{
+			std::string buf;
+			std::stringstream ss;
+			ss.str(pStr);
+			while (uCount--)
+			{
+				ss >> buf;
+				std::transform(buf.begin(), buf.end(), buf.begin(), [](char ch) { return std::tolower(ch); });
+				if (buf == "1" || buf == "true")
+					*pOut++ = true;
+				else
+					*pOut++ = false;
+			}
 			return true;
 		}
 		return false;

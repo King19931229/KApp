@@ -18,12 +18,14 @@ protected:
 	glm::vec3 m_Scale;
 	glm::quat m_Rotate;	
 	bool m_EverTicked;
+	bool m_IsStatic;
 	
 	KConstantDefinition::OBJECT m_FinalTransform;
 
 	static constexpr const char* msPosition = "position";
 	static constexpr const char* msScale = "scale";
 	static constexpr const char* msRotate = "rotate";
+	static constexpr const char* msIsStatic = "static";
 
 	void UpdateTransform()
 	{
@@ -61,6 +63,9 @@ public:
 		IKXMLElementPtr rotateEle = element->NewElement(msRotate);
 		rotateEle->SetText(rorate.c_str());
 
+		IKXMLElementPtr staticEle = element->NewElement(msIsStatic);
+		staticEle->SetText(m_IsStatic);
+
 		return true;
 	}
 
@@ -75,12 +80,17 @@ public:
 		IKXMLElementPtr rotateEle = element->FirstChildElement(msRotate);
 		ACTION_ON_FAILURE(rotateEle != nullptr && !rotateEle->IsEmpty(), return false);
 
+		IKXMLElementPtr staticEle = element->FirstChildElement(msIsStatic);
+		ACTION_ON_FAILURE(staticEle != nullptr && !staticEle->IsEmpty(), return false);
+
 		glm::vec3 pos;
 		ACTION_ON_FAILURE(KMath::FromString(posEle->GetText(), pos), return false);
 		glm::vec3 scale;
 		ACTION_ON_FAILURE(KMath::FromString(scaleEle->GetText(), scale), return false);
 		glm::quat rotate;
 		ACTION_ON_FAILURE(KMath::FromString(rotateEle->GetText(), rotate), return false);
+
+		ACTION_ON_FAILURE(KStringParser::ParseToBOOL(staticEle->GetText().c_str(), &m_IsStatic, 1));
 
 		m_Position = pos;
 		m_Scale = scale;
@@ -142,6 +152,11 @@ public:
 		m_Rotate = glm::quat_cast(KMath::ExtractRotate(transform));
 		m_Scale = KMath::ExtractScale(transform);
 		UpdateTransform();
+	}
+
+	void SetStatic(bool isStatic) override
+	{
+		m_IsStatic = isStatic;
 	}
 
 	inline const KConstantDefinition::OBJECT& FinalTransform() const

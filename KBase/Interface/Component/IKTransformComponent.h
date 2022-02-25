@@ -23,4 +23,5 @@ public:
 	virtual const glm::mat4& GetFinal() const = 0;
 	virtual const glm::mat4& GetPrevFinal() const = 0;
 	virtual void SetFinal(const glm::mat4& final) = 0;
+	virtual void SetStatic(bool isStatic) = 0;
 };

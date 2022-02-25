@@ -116,8 +116,8 @@ void KVoxilzer::UpdateInternal()
 
 void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 {
-	// TODO
-	if (!entity->HasComponent(CT_RENDER))
+	IKRenderComponent* render = nullptr;
+	if (!entity->GetComponent(CT_RENDER, &render) || render->IsUtility())
 	{
 		return;
 	}
@@ -1090,6 +1090,9 @@ void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 {
 	uint32_t fragmentCount = 0;
 	m_CounterBuffer->Read(&fragmentCount);
+
+	// In case 0 size
+	fragmentCount = std::max(fragmentCount, 1u);
 
 	// Estimate octree buffer size
 	uint32_t octreeNodeNum = std::max((uint32_t)OCTREE_NODE_NUM_MIN, fragmentCount << 2u);

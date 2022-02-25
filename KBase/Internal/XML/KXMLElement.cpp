@@ -69,6 +69,12 @@ void KXMLElement::SetText(int value)
 	m_Element->SetText(value);
 }
 
+void KXMLElement::SetText(bool value)
+{
+	ASSERT_RESULT(!IsEmpty());
+	m_Element->SetText(value);
+}
+
 IKXMLAttributePtr KXMLElement::FirstAttribute() const
 {
 	ASSERT_RESULT(!IsEmpty());
