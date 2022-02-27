@@ -11,21 +11,24 @@
 
 #include "KBase/Interface/IKLog.h"
 
-KCascadedShadowMapPass::KCascadedShadowMapPass(KCascadedShadowMap& master)
-	: KFrameGraphPass("CascadedShadowMap"),
+KCascadedShadowMapCasterPass::KCascadedShadowMapCasterPass(KCascadedShadowMap& master)
+	: KFrameGraphPass("CascadedShadowMapCaster"),
 	m_Master(master)
 {}
 
-KCascadedShadowMapPass::~KCascadedShadowMapPass()
+KCascadedShadowMapCasterPass::~KCascadedShadowMapCasterPass()
 {
-	ASSERT_RESULT(m_TargetIDs.empty());
+	ASSERT_RESULT(m_StaticTargetIDs.empty());
 }
 
-bool KCascadedShadowMapPass::Init()
+bool KCascadedShadowMapCasterPass::Init()
 {
 	UnInit();
 
-	m_TargetIDs.reserve(m_Master.m_Cascadeds.size());
+	m_LastCameraMatrix = glm::mat4(0.0f);
+	m_StaticTargetIDs.reserve(m_Master.m_Cascadeds.size());
+	m_DynamicTargetIDs.reserve(m_Master.m_Cascadeds.size());
+	m_AllTargetIDs.reserve(2 * m_Master.m_Cascadeds.size());
 
 	for (size_t i = 0; i < m_Master.m_Cascadeds.size(); ++i)
 	{
@@ -36,8 +39,15 @@ bool KCascadedShadowMapPass::Init()
 		parameter.bDepth = true;
 		parameter.bStencil = false;
 
-		KFrameGraphID rtID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
-		m_TargetIDs.push_back(rtID);
+		KFrameGraphID rtID;
+
+		rtID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
+		m_StaticTargetIDs.push_back(rtID);
+		m_AllTargetIDs.push_back(rtID);
+
+		rtID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
+		m_DynamicTargetIDs.push_back(rtID);
+		m_AllTargetIDs.push_back(rtID);
 	}
 
 	KRenderGlobal::FrameGraph.RegisterPass(this);
@@ -45,40 +55,52 @@ bool KCascadedShadowMapPass::Init()
 	return true;
 }
 
-bool KCascadedShadowMapPass::UnInit()
+bool KCascadedShadowMapCasterPass::UnInit()
 {
-	for (KFrameGraphID& id : m_TargetIDs)
+	for (KFrameGraphID& id : m_AllTargetIDs)
 	{
 		KRenderGlobal::FrameGraph.Destroy(id);
 	}
-	m_TargetIDs.clear();
+
+	m_StaticTargetIDs.clear();
+	m_DynamicTargetIDs.clear();
+	m_AllTargetIDs.clear();
 
 	KRenderGlobal::FrameGraph.UnRegisterPass(this);
 
 	return true;
 }
 
-bool KCascadedShadowMapPass::Setup(KFrameGraphBuilder& builder)
+bool KCascadedShadowMapCasterPass::Setup(KFrameGraphBuilder& builder)
 {
-	for (KFrameGraphID& id : m_TargetIDs)
+	for (KFrameGraphID& id : m_AllTargetIDs)
 	{
 		builder.Write(id);
 	}
 	return true;
 }
 
-IKRenderTargetPtr KCascadedShadowMapPass::GetTarget(size_t cascadedIndex)
+IKRenderTargetPtr KCascadedShadowMapCasterPass::GetStaticTarget(size_t cascadedIndex)
 {
-	if (cascadedIndex < m_TargetIDs.size())
+	if (cascadedIndex < m_StaticTargetIDs.size())
 	{
-		return KRenderGlobal::FrameGraph.GetTarget(m_TargetIDs[cascadedIndex]);
+		return KRenderGlobal::FrameGraph.GetTarget(m_StaticTargetIDs[cascadedIndex]);
 	}
 	return nullptr;
 }
 
-bool KCascadedShadowMapPass::Execute(KFrameGraphExecutor& executor)
+IKRenderTargetPtr KCascadedShadowMapCasterPass::GetDynamicTarget(size_t cascadedIndex)
 {
-	if (m_TargetIDs.size() != m_Master.m_Cascadeds.size())
+	if (cascadedIndex < m_DynamicTargetIDs.size())
+	{
+		return KRenderGlobal::FrameGraph.GetTarget(m_DynamicTargetIDs[cascadedIndex]);
+	}
+	return nullptr;
+}
+
+bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
+{
+	if (m_AllTargetIDs.size() != 2 * m_Master.m_Cascadeds.size())
 	{
 		return false;
 	}
@@ -86,19 +108,120 @@ bool KCascadedShadowMapPass::Execute(KFrameGraphExecutor& executor)
 	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
 	size_t frameIndex = executor.GetFrameIndex();
 
+	glm::mat4 curCameraMatrix = m_Master.m_MainCamera->GetProjectiveMatrix() * m_Master.m_MainCamera->GetViewMatrix();
+	bool updateStatic = memcmp(&m_LastCameraMatrix, &curCameraMatrix, sizeof(glm::mat4)) != 0;
+	m_LastCameraMatrix = curCameraMatrix;
+
 	for (size_t i = 0; i < m_Master.m_Cascadeds.size(); ++i)
 	{
-		IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_TargetIDs[i]);
-		IKRenderPassPtr renderPass = m_Master.m_Cascadeds[i].renderPasses[frameIndex];
+		if (updateStatic)
+		{
+			IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_StaticTargetIDs[i]);
+			IKRenderPassPtr renderPass = m_Master.m_Cascadeds[i].renderPasses[2 * frameIndex];
 
-		ASSERT_RESULT(shadowTarget);
-		renderPass->SetDepthStencilAttachment(shadowTarget->GetFrameBuffer());
-		renderPass->SetClearDepthStencil({ 1.0f, 0 });
-		ASSERT_RESULT(renderPass->Init());
-	
-		m_Master.UpdateRT(i, frameIndex, primaryBuffer, shadowTarget, renderPass);
+			ASSERT_RESULT(shadowTarget);
+			renderPass->SetDepthStencilAttachment(shadowTarget->GetFrameBuffer());
+			renderPass->SetClearDepthStencil({ 1.0f, 0 });
+			ASSERT_RESULT(renderPass->Init());
+
+			m_Master.UpdateRT(frameIndex, i, true, primaryBuffer, shadowTarget, renderPass);
+		}
+
+		// Dynamic object is updated every frame
+		{
+			IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_DynamicTargetIDs[i]);
+			IKRenderPassPtr renderPass = m_Master.m_Cascadeds[i].renderPasses[2 * frameIndex + 1];
+
+			ASSERT_RESULT(shadowTarget);
+			renderPass->SetDepthStencilAttachment(shadowTarget->GetFrameBuffer());
+			renderPass->SetClearDepthStencil({ 1.0f, 0 });
+			ASSERT_RESULT(renderPass->Init());
+
+			m_Master.UpdateRT(frameIndex, i, false, primaryBuffer, shadowTarget, renderPass);
+		}
 	}
 
+	return true;
+}
+
+KCascadedShadowMapReceiverPass::KCascadedShadowMapReceiverPass(KCascadedShadowMap& master)
+	: KFrameGraphPass("CascadedShadowMapReceiver"),
+	m_Master(master)
+{
+}
+
+KCascadedShadowMapReceiverPass::~KCascadedShadowMapReceiverPass()
+{
+}
+
+void KCascadedShadowMapReceiverPass::Recreate()
+{
+	if (m_StaticMaskID.IsVaild())
+	{
+		KRenderGlobal::FrameGraph.Destroy(m_StaticMaskID);
+		m_StaticMaskID.Clear();
+	}
+
+	if (m_DynamicMaskID.IsVaild())
+	{
+		KRenderGlobal::FrameGraph.Destroy(m_DynamicMaskID);
+		m_DynamicMaskID.Clear();
+	}
+
+	IKRenderWindow* window = KRenderGlobal::RenderDevice->GetMainWindow();
+	size_t w = 0, h = 0;
+	if (window && window->GetSize(w, h))
+	{
+		KFrameGraph::RenderTargetCreateParameter parameter;
+		parameter.width = (uint32_t)w;
+		parameter.height = (uint32_t)h;
+		parameter.format = EF_R8_UNORM;
+		m_StaticMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
+		m_DynamicMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
+	}
+}
+
+bool KCascadedShadowMapReceiverPass::Resize(KFrameGraphBuilder& builder)
+{
+	Recreate();
+	return true;
+}
+
+bool KCascadedShadowMapReceiverPass::Init()
+{
+	UnInit();
+	Recreate();
+	KRenderGlobal::FrameGraph.RegisterPass(this);
+	return true;
+}
+
+bool KCascadedShadowMapReceiverPass::UnInit()
+{
+	if (m_StaticMaskID.IsVaild())
+	{
+		KRenderGlobal::FrameGraph.Destroy(m_StaticMaskID);
+		m_StaticMaskID.Clear();
+	}
+
+	if (m_DynamicMaskID.IsVaild())
+	{
+		KRenderGlobal::FrameGraph.Destroy(m_DynamicMaskID);
+		m_DynamicMaskID.Clear();
+	}
+
+	KRenderGlobal::FrameGraph.UnRegisterPass(this);
+	return true;
+}
+
+bool KCascadedShadowMapReceiverPass::Setup(KFrameGraphBuilder& builder)
+{
+	builder.Write(m_StaticMaskID);
+	builder.Write(m_DynamicMaskID);
+	return true;
+}
+
+bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
+{
 	return true;
 }
 
@@ -114,9 +237,9 @@ KCascadedShadowMapDebugPass::~KCascadedShadowMapDebugPass()
 
 bool KCascadedShadowMapDebugPass::Setup(KFrameGraphBuilder& builder)
 {
-	if (m_Master.m_Pass)
+	if (m_Master.m_CasterPass)
 	{
-		const std::vector<KFrameGraphID>& ids = m_Master.m_Pass->GetAllTargetID();
+		const std::vector<KFrameGraphID>& ids = m_Master.m_CasterPass->GetAllTargetID();
 		for (const KFrameGraphID& id : ids)
 		{
 			builder.Read(id);
@@ -143,7 +266,7 @@ const KVertexDefinition::SCREENQUAD_POS_2F KCascadedShadowMap::ms_BackGroundVert
 const uint16_t KCascadedShadowMap::ms_BackGroundIndices[] = { 0, 1, 2, 2, 3, 0 };
 
 KCascadedShadowMap::KCascadedShadowMap()
-	: m_Device(nullptr),
+	: m_MainCamera(nullptr),
 	m_ShadowRange(3000.0f),
 	m_LightSize(0.01f),
 	m_SplitLambda(0.5f),
@@ -162,7 +285,7 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_DepthBiasSlope[2] = 3.25f;
 	m_DepthBiasSlope[3] = 1.0f;
 
-	m_ShadowCamera.SetPosition(glm::vec3(0.0f, 1.0f, 0.0f));
+	m_ShadowCamera.SetPosition(glm::vec3(1.0f, 1.0f, 1.0f));
 	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	m_ShadowCamera.SetOrtho(2000.0f, 2000.0f, -1000.0f, 1000.0f);
 }
@@ -171,13 +294,13 @@ KCascadedShadowMap::~KCascadedShadowMap()
 {
 }
 
-void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
+void KCascadedShadowMap::UpdateCascades()
 {
-	ASSERT_RESULT(_mainCamera);
+	ASSERT_RESULT(m_MainCamera);
 
-	KCamera adjustCamera = *_mainCamera;
-	adjustCamera.SetNear(_mainCamera->GetNear());
-	adjustCamera.SetFar(_mainCamera->GetNear() + m_ShadowRange);
+	KCamera adjustCamera = *m_MainCamera;
+	adjustCamera.SetNear(m_MainCamera->GetNear());
+	adjustCamera.SetFar(m_MainCamera->GetNear() + m_ShadowRange);
 
 	const KCamera* mainCamera = &adjustCamera;
 
@@ -398,33 +521,32 @@ void KCascadedShadowMap::UpdateCascades(const KCamera* _mainCamera)
 	}
 }
 
-bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio)
+bool KCascadedShadowMap::Init(const KCamera* camera, size_t frameInFlight, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio)
 {
 	ASSERT_RESULT(UnInit());
 
 	if (numCascaded >= 1 && numCascaded <= SHADOW_MAP_MAX_CASCADED && shadowSizeRatio > 0.0f)
 	{
-		m_Device = renderDevice;
-
+		m_MainCamera = camera;
 		m_ShadowSizeRatio = shadowSizeRatio;
 
-		renderDevice->CreateSampler(m_ShadowSampler);
+		KRenderGlobal::RenderDevice->CreateSampler(m_ShadowSampler);
 		m_ShadowSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 		m_ShadowSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 		m_ShadowSampler->Init(0, 0);
 
 		// Init Debug
-		renderDevice->CreateShader(m_DebugVertexShader);
-		renderDevice->CreateShader(m_DebugFragmentShader);
+		KRenderGlobal::RenderDevice->CreateShader(m_DebugVertexShader);
+		KRenderGlobal::RenderDevice->CreateShader(m_DebugFragmentShader);
 
 		ASSERT_RESULT(m_DebugVertexShader->InitFromFile(ST_VERTEX, "others/debugquad.vert", false));
 		ASSERT_RESULT(m_DebugFragmentShader->InitFromFile(ST_FRAGMENT, "others/debugquad.frag", false));
 
-		renderDevice->CreateVertexBuffer(m_BackGroundVertexBuffer);
+		KRenderGlobal::RenderDevice->CreateVertexBuffer(m_BackGroundVertexBuffer);
 		m_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);
 		m_BackGroundVertexBuffer->InitDevice(false);
 
-		renderDevice->CreateIndexBuffer(m_BackGroundIndexBuffer);
+		KRenderGlobal::RenderDevice->CreateIndexBuffer(m_BackGroundIndexBuffer);
 		m_BackGroundIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_BackGroundIndices), ms_BackGroundIndices);
 		m_BackGroundIndexBuffer->InitDevice(false);
 
@@ -436,18 +558,21 @@ bool KCascadedShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight
 			Cascade& cascaded = m_Cascadeds[i];
 			cascaded.shadowSize = cascadedShadowSize;
 
-			cascaded.renderPasses.resize(frameInFlight);
-			for (size_t i = 0; i < frameInFlight; ++i)
+			cascaded.renderPasses.resize(frameInFlight * 2);
+			for (size_t i = 0; i < frameInFlight * 2; ++i)
 			{
 				IKRenderPassPtr& renderPass = cascaded.renderPasses[i];
-				ASSERT_RESULT(renderDevice->CreateRenderPass(renderPass));
+				ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(renderPass));
 			}
 
 			cascadedShadowSize = (size_t)(cascadedShadowSize * m_ShadowSizeRatio);
 		}
 
-		m_Pass = KCascadedShadowMapPassPtr(KNEW KCascadedShadowMapPass(*this));
-		m_Pass->Init();
+		m_CasterPass = KCascadedShadowMapCasterPassPtr(KNEW KCascadedShadowMapCasterPass(*this));
+		m_CasterPass->Init();
+
+		m_ReceiverPass = KCascadedShadowMapReceiverPassPtr(KNEW KCascadedShadowMapReceiverPass(*this));
+		m_ReceiverPass->Init();
 
 		m_DebugVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_BackGroundVertexBuffer);
 		m_DebugVertexData.vertexFormats = std::vector<VertexFormat>(ms_VertexFormats, ms_VertexFormats + ARRAY_SIZE(ms_VertexFormats));
@@ -488,9 +613,10 @@ bool KCascadedShadowMap::UnInit()
 
 	SAFE_UNINIT(m_ShadowSampler);
 
-	SAFE_UNINIT(m_Pass);
+	SAFE_UNINIT(m_CasterPass);
+	SAFE_UNINIT(m_ReceiverPass);
 
-	m_Device = nullptr;
+	m_MainCamera = nullptr;
 
 	return true;
 }
@@ -561,7 +687,28 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 	}
 }
 
-bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass)
+void KCascadedShadowMap::FilterRenderComponent(std::vector<KRenderComponent*>& in, bool isStatic)
+{
+	std::vector<KRenderComponent*> out;
+	out.reserve(in.size());
+
+	for (KRenderComponent* render : in)
+	{
+		IKEntity* entity = render->GetEntityHandle();
+		IKTransformComponent* transform = nullptr;
+		if (entity && entity->GetComponent(CT_TRANSFORM, &transform))
+		{
+			if (transform->IsStatic() == isStatic)
+			{
+				out.push_back(render);
+			}
+		}
+	}
+
+	in = std::move(out);
+}
+
+bool KCascadedShadowMap::UpdateRT(size_t frameIndex, size_t cascadedIndex, bool IsStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass)
 {
 	m_Statistics.Reset();
 
@@ -613,9 +760,6 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 				glm::vec3 min = glm::max(receiverMin, frustumBoxMin);
 				glm::vec3 max = glm::min(receiverMax, frustumBoxMax);
 
-				// TODO 有可能最后计算出来的max小于min
-				max = glm::max(max, min);
-
 				receiverBox.InitFromMinMax(min, max);
 			}
 
@@ -659,6 +803,8 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 		// Required to avoid shadow mapping artefacts
 		primaryBuffer->SetDepthBias(m_DepthBiasConstant[cascadedIndex], 0, m_DepthBiasSlope[cascadedIndex]);
 		{
+			FilterRenderComponent(litCullRes, IsStatic);
+
 			KRenderCommandList commandList;
 
 			PopulateRenderCommand(frameIndex, cascadedIndex,
@@ -684,9 +830,9 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, size_t frameIndex, IKCom
 	return false;
 }
 
-bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer)
+bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer, size_t frameIndex)
 {
-	UpdateCascades(mainCamera);
+	UpdateCascades();
 
 	size_t numCascaded = m_Cascadeds.size();
 
@@ -748,19 +894,19 @@ bool KCascadedShadowMap::UpdateShadowMap(const KCamera* mainCamera, size_t frame
 	return true;
 }
 
-bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands)
+bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, bool IsStatic)
 {
 	KRenderCommand command;
 	for (size_t cascadedIndex = 0; cascadedIndex < m_Cascadeds.size(); ++cascadedIndex)
 	{
 		Cascade& cascaded = m_Cascadeds[cascadedIndex];
-		IKRenderTargetPtr shadowTarget = m_Pass->GetTarget(cascadedIndex);
+		IKRenderTargetPtr shadowTarget = IsStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
 
 		if (!cascaded.debugPipeline)
 		{
 			IKPipelinePtr& pipeline = cascaded.debugPipeline;
 
-			m_Device->CreatePipeline(pipeline);
+			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
 			pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
@@ -814,11 +960,11 @@ bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderPassPtr renderPa
 	return false;
 }
 
-IKRenderTargetPtr KCascadedShadowMap::GetShadowMapTarget(size_t cascadedIndex)
+IKRenderTargetPtr KCascadedShadowMap::GetShadowMapTarget(size_t cascadedIndex, bool isStatic)
 {
-	if (m_Pass)
+	if (m_CasterPass)
 	{
-		return m_Pass->GetTarget(cascadedIndex);
+		return isStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
 	}
 	return nullptr;
 }

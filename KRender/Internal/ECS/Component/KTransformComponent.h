@@ -111,29 +111,43 @@ public:
 	const glm::quat& GetRotate() const override { return m_Rotate; }
 	const glm::vec3& GetScale() const override { return m_Scale; }
 	const glm::vec3& GetPosition() const override { return m_Position; }
+	bool IsStatic() const override { return m_IsStatic; }
 
 	void SetRotate(const glm::quat& rotate) override
 	{
-		m_Rotate = rotate;
-		UpdateTransform();
+		// TODO Is in editor
+		if (!m_IsStatic)
+		{
+			m_Rotate = rotate;
+			UpdateTransform();
+		}
 	}
 
 	void SetRotate(const glm::mat3& rotate) override
 	{
-		m_Rotate = glm::quat_cast(rotate);
-		UpdateTransform();
+		if (!m_IsStatic)
+		{
+			m_Rotate = glm::quat_cast(rotate);
+			UpdateTransform();
+		}
 	}
 
 	void SetScale(const glm::vec3& scale) override
 	{
-		m_Scale = scale;
-		UpdateTransform();
+		if (!m_IsStatic)
+		{
+			m_Scale = scale;
+			UpdateTransform();
+		}
 	}
 
 	void SetPosition(const glm::vec3& position) override
 	{
-		m_Position = position;
-		UpdateTransform();
+		if (!m_IsStatic)
+		{
+			m_Position = position;
+			UpdateTransform();
+		}
 	}
 
 	const glm::mat4& GetFinal() const override

@@ -103,5 +103,5 @@ public:
 	AoControl& GetAoParameters() { return m_AOParameters; }
 
 	bool ReloadShader();
-	void UpdateSize();
+	void Resize();
 };

@@ -1639,6 +1639,11 @@ IKSwapChain* KVulkanRenderDevice::GetSwapChain()
 	return m_SwapChain.get();
 }
 
+IKRenderWindow* KVulkanRenderDevice::GetMainWindow()
+{
+	return m_pWindow;
+}
+
 IKUIOverlay* KVulkanRenderDevice::GetUIOverlay()
 {
 	return m_UIOverlay.get();

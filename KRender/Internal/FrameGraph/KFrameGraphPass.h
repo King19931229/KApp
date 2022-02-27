@@ -27,5 +27,6 @@ public:
 	virtual bool HasSideEffect() const { return false; }
 
 	virtual bool Setup(KFrameGraphBuilder& builder) = 0;
+	virtual bool Resize(KFrameGraphBuilder& builder) { return true; }
 	virtual bool Execute(KFrameGraphExecutor& executor) = 0;
 };

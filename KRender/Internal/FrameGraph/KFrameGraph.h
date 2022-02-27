@@ -54,6 +54,7 @@ public:
 	bool RegisterPass(KFrameGraphPass* pass);
 	bool UnRegisterPass(KFrameGraphPass* pass);
 
+	bool Resize();
 	bool Compile();
 	bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex, uint32_t chainIndex);
 };

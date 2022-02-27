@@ -60,7 +60,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 		renderDevice->CreateRenderTarget(m_AtrousTarget);
 		renderDevice->CreateRenderTarget(m_ComposedTarget);
 
-		UpdateSize();
+		Resize();
 
 		m_Camera = scene->GetCamera();
 		m_PrevCamMat = glm::mat4(0.0f);
@@ -239,7 +239,7 @@ bool KRTAO::ReloadShader()
 	return false;
 }
 
-void KRTAO::UpdateSize()
+void KRTAO::Resize()
 {
 	if (m_RenderTarget[0])
 	{

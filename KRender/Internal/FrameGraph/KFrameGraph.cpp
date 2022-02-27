@@ -116,6 +116,16 @@ bool KFrameGraph::UnRegisterPass(KFrameGraphPass* pass)
 	return false;
 }
 
+bool KFrameGraph::Resize()
+{
+	for (KFrameGraphPass* pass : m_Passes)
+	{
+		KFrameGraphBuilder builder(pass, this);
+		pass->Resize(builder);
+	}
+	return true;
+}
+
 bool KFrameGraph::Compile()
 {
 	// 清空引用计数与RW

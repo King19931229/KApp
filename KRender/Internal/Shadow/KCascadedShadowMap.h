@@ -9,14 +9,17 @@
 
 class KCascadedShadowMap;
 
-class KCascadedShadowMapPass : public KFrameGraphPass
+class KCascadedShadowMapCasterPass : public KFrameGraphPass
 {
 protected:
 	KCascadedShadowMap& m_Master;
-	std::vector<KFrameGraphID> m_TargetIDs;
+	std::vector<KFrameGraphID> m_StaticTargetIDs;
+	std::vector<KFrameGraphID> m_DynamicTargetIDs;
+	std::vector<KFrameGraphID> m_AllTargetIDs;
+	glm::mat4 m_LastCameraMatrix;
 public:
-	KCascadedShadowMapPass(KCascadedShadowMap& master);
-	~KCascadedShadowMapPass();
+	KCascadedShadowMapCasterPass(KCascadedShadowMap& master);
+	~KCascadedShadowMapCasterPass();
 
 	bool Init();
 	bool UnInit();
@@ -26,10 +29,37 @@ public:
 	bool Setup(KFrameGraphBuilder& builder) override;
 	bool Execute(KFrameGraphExecutor& executor) override;
 
-	IKRenderTargetPtr GetTarget(size_t cascadedIndex);
-	const std::vector<KFrameGraphID>& GetAllTargetID() const { return m_TargetIDs; }
+	IKRenderTargetPtr GetStaticTarget(size_t cascadedIndex);
+	IKRenderTargetPtr GetDynamicTarget(size_t cascadedIndex);
+	const std::vector<KFrameGraphID>& GetAllTargetID() const { return m_AllTargetIDs; }
 };
-typedef std::shared_ptr<KCascadedShadowMapPass> KCascadedShadowMapPassPtr;
+typedef std::shared_ptr<KCascadedShadowMapCasterPass> KCascadedShadowMapCasterPassPtr;
+
+class KCascadedShadowMapReceiverPass : public KFrameGraphPass
+{
+protected:
+	KCascadedShadowMap& m_Master;
+	KFrameGraphID m_StaticMaskID;
+	KFrameGraphID m_DynamicMaskID;
+
+	void Recreate();
+public:
+	KCascadedShadowMapReceiverPass(KCascadedShadowMap& master);
+	~KCascadedShadowMapReceiverPass();
+
+	bool Init();
+	bool UnInit();
+
+	bool HasSideEffect() const override { return true; }
+
+	bool Setup(KFrameGraphBuilder& builder) override;
+	bool Resize(KFrameGraphBuilder& builder) override;
+	bool Execute(KFrameGraphExecutor& executor) override;
+
+	KFrameGraphID GetStaticTargetID() const { return m_StaticMaskID; }
+	KFrameGraphID GetDynamicTargetID() const { return m_DynamicMaskID; }
+};
+typedef std::shared_ptr<KCascadedShadowMapReceiverPass> KCascadedShadowMapReceiverPassPtr;
 
 class KCascadedShadowMapDebugPass : public KFrameGraphPass
 {
@@ -44,15 +74,16 @@ public:
 	bool Setup(KFrameGraphBuilder& builder) override;
 	bool Execute(KFrameGraphExecutor& executor) override;
 };
-typedef std::shared_ptr<KCascadedShadowMapPass> KCascadedShadowMapPassPtr;
+typedef std::shared_ptr<KCascadedShadowMapCasterPass> KCascadedShadowMapCasterPassPtr;
 
 class KCascadedShadowMap
 {
-	friend class KCascadedShadowMapPass;
+	friend class KCascadedShadowMapCasterPass;
+	friend class KCascadedShadowMapReceiverPass;
 	friend class KCascadedShadowMapDebugPass;
 protected:
 	static constexpr size_t SHADOW_MAP_MAX_CASCADED = 4;	
-	IKRenderDevice* m_Device;
+	const KCamera* m_MainCamera;
 
 	// TODO 以下Debug数据需要共享
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_BackGroundVertices[4];
@@ -89,7 +120,9 @@ protected:
 	std::vector<Cascade> m_Cascadeds;
 
 	KRenderStageStatistics m_Statistics;
-	KCascadedShadowMapPassPtr m_Pass;
+
+	KCascadedShadowMapCasterPassPtr m_CasterPass;
+	KCascadedShadowMapReceiverPassPtr m_ReceiverPass;
 
 	IKSamplerPtr m_ShadowSampler;
 	KCamera m_ShadowCamera;
@@ -112,24 +145,25 @@ protected:
 
 	bool m_MinimizeShadowDraw;
 
-	void UpdateCascades(const KCamera* mainCamera);
-	bool GetDebugRenderCommand(KRenderCommandList& commands);
+	void UpdateCascades();
+	bool GetDebugRenderCommand(KRenderCommandList& commands, bool IsStatic);
 	void PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex,
 		IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass,
 		std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
+	void FilterRenderComponent(std::vector<KRenderComponent*>& in, bool isStatic);
 
-	bool UpdateRT(size_t frameIndex, size_t cascadedIndex, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass);
+	bool UpdateRT(size_t frameIndex, size_t cascadedIndex, bool IsStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass);
 public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();
 
-	bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio);
+	bool Init(const KCamera* camera, size_t frameInFlight, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio);
 	bool UnInit();
 
-	bool UpdateShadowMap(const KCamera* mainCamera, size_t frameIndex, IKCommandBufferPtr primaryBuffer);
+	bool UpdateShadowMap(IKCommandBufferPtr primaryBuffer, size_t frameIndex);
 	bool DebugRender(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 
-	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex);
+	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex, bool isStatic);
 
 	inline size_t GetNumCascaded() const { return m_Cascadeds.size(); }
 	inline IKSamplerPtr GetSampler() { return m_ShadowSampler; }
@@ -147,5 +181,6 @@ public:
 	inline bool& GetMinimizeShadowDraw() { return m_MinimizeShadowDraw; }
 
 	inline const KRenderStageStatistics& GetStatistics() const { return m_Statistics; }
-	inline KCascadedShadowMapPassPtr GetPass() { return m_Pass; }
+	inline KCascadedShadowMapCasterPassPtr GetCasterPass() { return m_CasterPass; }
+	inline KCascadedShadowMapReceiverPassPtr GetReceiverPass() { return m_ReceiverPass; }
 };

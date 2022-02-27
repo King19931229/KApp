@@ -34,12 +34,16 @@ bool KMainBasePass::UnInit()
 
 bool KMainBasePass::Setup(KFrameGraphBuilder& builder)
 {
-	KCascadedShadowMapPassPtr shadowPass = KRenderGlobal::CascadedShadowMap.GetPass();
-	const std::vector<KFrameGraphID>& shadowRts = shadowPass->GetAllTargetID();
-	for (const KFrameGraphID& id : shadowRts)
+	KCascadedShadowMapCasterPassPtr casterPass = KRenderGlobal::CascadedShadowMap.GetCasterPass();
+	for (const KFrameGraphID& id : casterPass->GetAllTargetID())
 	{
 		builder.Read(id);
 	}
+
+	KCascadedShadowMapReceiverPassPtr receiverPass = KRenderGlobal::CascadedShadowMap.GetReceiverPass();
+	builder.Read(receiverPass->GetStaticTargetID());
+	builder.Read(receiverPass->GetDynamicTargetID());
+
 	return true;
 }
 
@@ -741,7 +745,7 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 		KRenderGlobal::Voxilzer.UpdateFrame(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::RTAO.Execute(primaryCommandBuffer, frameIndex);
-		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(m_Camera, frameIndex, primaryCommandBuffer);
+		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(primaryCommandBuffer, frameIndex);
 		KRenderGlobal::FrameGraph.Compile();
 		KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);
 	}

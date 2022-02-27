@@ -331,10 +331,10 @@ void KMaterial::BindSampler(IKPipelinePtr pipeline, const KShaderInformation& in
 		{
 			IKSamplerPtr sampler = KRenderGlobal::CascadedShadowMap.GetSampler();
 
-			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(shaderTexture.bindingIndex - SHADER_BINDING_CSM0);
+			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(shaderTexture.bindingIndex - SHADER_BINDING_CSM0, false);
 			if (!shadowRT)
 			{
-				shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0);
+				shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, false);
 			}
 			pipeline->SetSampler(shaderTexture.bindingIndex, shadowRT->GetFrameBuffer(), sampler);
 		}

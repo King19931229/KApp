@@ -206,6 +206,7 @@ public:
 	virtual bool QueryProperty(KRenderDeviceProperties** ppProperty);
 
 	virtual IKSwapChain* GetSwapChain();
+	virtual IKRenderWindow* GetMainWindow();
 	virtual IKUIOverlay* GetUIOverlay();
 	virtual uint32_t GetNumFramesInFlight();
 };

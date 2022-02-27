@@ -16,6 +16,7 @@ public:
 	virtual const glm::quat& GetRotate() const = 0;
 	virtual const glm::vec3& GetScale() const = 0;
 	virtual const glm::vec3& GetPosition() const = 0;
+	virtual bool IsStatic() const = 0;
 	virtual void SetRotate(const glm::quat& rotate) = 0;
 	virtual void SetRotate(const glm::mat3& rotate) = 0;
 	virtual void SetScale(const glm::vec3& scale) = 0;

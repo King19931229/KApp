@@ -93,6 +93,7 @@ struct IKRenderDevice
 	virtual bool QueryProperty(KRenderDeviceProperties** ppProperty) = 0;
 
 	virtual bool RecreateSwapChain(IKSwapChain* swapChain, IKUIOverlay* ui) = 0;
+	virtual IKRenderWindow* GetMainWindow() = 0;
 	virtual IKSwapChain* GetSwapChain() = 0;
 	virtual IKUIOverlay* GetUIOverlay() = 0;
 	virtual uint32_t GetNumFramesInFlight() = 0;
