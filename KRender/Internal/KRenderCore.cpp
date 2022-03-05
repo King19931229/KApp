@@ -49,9 +49,7 @@ bool KRenderCore::InitPostProcess()
 	size_t width = 0, height = 0;
 	m_Window->GetSize(width, height);
 
-	uint32_t frameInFlight = m_Device->GetNumFramesInFlight();
-
-	KRenderGlobal::PostProcessManager.Init(m_Device, width, height, 2, EF_R16G16B16A16_FLOAT, frameInFlight);
+	KRenderGlobal::PostProcessManager.Init(m_Device, width, height, 2, EF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
 #if 0
 	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
@@ -93,7 +91,7 @@ bool KRenderCore::UnInitPostProcess()
 
 bool KRenderCore::InitGlobalManager()
 {
-	uint32_t frameInFlight = m_Device->GetNumFramesInFlight();
+	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
 
 	size_t width = 0, height = 0;
 	m_Window->GetSize(width, height);
@@ -167,7 +165,7 @@ bool KRenderCore::UnInitGlobalManager()
 
 bool KRenderCore::InitRenderDispatcher()
 {
-	uint32_t frameInFlight = m_Device->GetNumFramesInFlight();
+	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
 
 	m_CameraCube = CreateCameraCube();
 	m_CameraCube->Init(m_Device, frameInFlight, &m_Camera);

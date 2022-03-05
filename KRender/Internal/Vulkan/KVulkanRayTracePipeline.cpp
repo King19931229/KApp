@@ -72,7 +72,7 @@ void KVulkanRayTracePipeline::DestroyStrogeScene()
 
 void KVulkanRayTracePipeline::CreateDescriptorSet()
 {
-	uint32_t frames = KRenderGlobal::RenderDevice->GetNumFramesInFlight();
+	uint32_t frames = KRenderGlobal::NumFramesInFlight;
 	m_Descriptor.sets.resize(frames);
 
 	ASSERT_RESULT(m_CameraBuffers.size() == frames);
@@ -394,23 +394,18 @@ void KVulkanRayTracePipeline::DestroyShaderBindingTables()
 void KVulkanRayTracePipeline::CreateCommandBuffers()
 {
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
-	uint32_t frames = renderDevice->GetNumFramesInFlight();
+	uint32_t frames = KRenderGlobal::NumFramesInFlight;
 
 	renderDevice->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
-	m_CommandBuffers.resize(frames);
 
-	for (size_t i = 0; i < frames; ++i)
-	{
-		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
-		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
-	}
+	ASSERT_RESULT(renderDevice->CreateCommandBuffer(m_CommandBuffer));
+	ASSERT_RESULT(m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY));
 }
 
 void KVulkanRayTracePipeline::DestroyCommandBuffers()
 {
-	SAFE_UNINIT_CONTAINER(m_CommandBuffers);
+	SAFE_UNINIT(m_CommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
 }
 
@@ -484,7 +479,7 @@ bool KVulkanRayTracePipeline::RecreateAS()
 
 		KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDown.get());
 
-		uint32_t frames = KRenderGlobal::RenderDevice->GetNumFramesInFlight();
+		uint32_t frames = KRenderGlobal::NumFramesInFlight;
 		for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
 		{
 			VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = {};
@@ -523,7 +518,7 @@ bool KVulkanRayTracePipeline::ResizeImage(uint32_t width, uint32_t height)
 		m_StorageRT->UnInit();
 		m_StorageRT->InitFromStorage(m_Width, m_Height, 1, m_Format);
 
-		uint32_t frames = KRenderGlobal::RenderDevice->GetNumFramesInFlight();
+		uint32_t frames = KRenderGlobal::NumFramesInFlight;
 		for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
 		{
 			KVulkanRenderTarget* vulkanRenderTarget = static_cast<KVulkanRenderTarget*>(m_StorageRT.get());

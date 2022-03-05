@@ -187,18 +187,17 @@ static void DestroyDebugReportCallbackEXT(
 
 //-------------------- KVulkanRenderDevice --------------------//
 KVulkanRenderDevice::KVulkanRenderDevice()
-	: m_pWindow(nullptr),
-	m_EnableValidationLayer(
+	: m_pWindow(nullptr)
+	, m_EnableValidationLayer(
 #if defined(_WIN32) && defined(_DEBUG)
-	true
+		true
 #elif defined(__ANDROID__)
-	false
+		false
 #else
-	false
+		false
 #endif
-	),
-	m_ValidationLayerIdx(-1),
-	m_FrameInFlight(2)
+	)
+	, m_ValidationLayerIdx(-1)
 {
 }
 
@@ -1041,10 +1040,10 @@ bool KVulkanRenderDevice::InitSwapChain()
 	ASSERT_RESULT(m_pWindow != nullptr);
 
 	ASSERT_RESULT(m_SwapChain);
-	ASSERT_RESULT(m_SwapChain->Init(m_pWindow, m_FrameInFlight));
+	ASSERT_RESULT(m_SwapChain->Init(m_pWindow, KRenderGlobal::NumFramesInFlight));
 
 	ASSERT_RESULT(m_UIOverlay);
-	m_UIOverlay->Init(this, m_FrameInFlight);
+	m_UIOverlay->Init(this, KRenderGlobal::NumFramesInFlight);
 	m_UIOverlay->Resize(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
 
 	return true;
@@ -1647,11 +1646,6 @@ IKRenderWindow* KVulkanRenderDevice::GetMainWindow()
 IKUIOverlay* KVulkanRenderDevice::GetUIOverlay()
 {
 	return m_UIOverlay.get();
-}
-
-uint32_t KVulkanRenderDevice::GetNumFramesInFlight()
-{
-	return m_FrameInFlight;
 }
 
 /*

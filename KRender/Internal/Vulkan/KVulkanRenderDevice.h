@@ -78,7 +78,6 @@ protected:
 	VkCommandPool m_GraphicCommandPool;
 	int32_t m_ValidationLayerIdx;
 	bool m_EnableValidationLayer;
-	uint32_t m_FrameInFlight;
 
 	VkDebugUtilsMessengerEXT m_DebugUtilsMessenger;
 	VkDebugReportCallbackEXT m_DebugReportCallback;
@@ -208,5 +207,4 @@ public:
 	virtual IKSwapChain* GetSwapChain();
 	virtual IKRenderWindow* GetMainWindow();
 	virtual IKUIOverlay* GetUIOverlay();
-	virtual uint32_t GetNumFramesInFlight();
 };

@@ -15,7 +15,7 @@ protected:
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_ShaderGroups;
 	std::vector<IKUniformBufferPtr> m_CameraBuffers;
 	IKCommandPoolPtr m_CommandPool;
-	std::vector<IKCommandBufferPtr> m_CommandBuffers;
+	IKCommandBufferPtr m_CommandBuffer;
 
 	struct Scene
 	{

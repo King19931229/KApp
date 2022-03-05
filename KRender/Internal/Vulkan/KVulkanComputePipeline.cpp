@@ -280,7 +280,7 @@ VkDescriptorSet KVulkanComputePipeline::Alloc(size_t frameIndex, size_t frameNum
 
 void KVulkanComputePipeline::CreateLayout()
 {
-	uint32_t frames = KRenderGlobal::RenderDevice->GetNumFramesInFlight();
+	uint32_t frames = KRenderGlobal::NumFramesInFlight;
 	m_Descriptors.resize(frames);
 
 	uint32_t stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;

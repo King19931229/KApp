@@ -59,7 +59,6 @@ protected:
 	IKCameraCubePtr m_CameraCube;
 	KMainBasePassPtr m_Pass;
 	glm::mat4 m_PrevViewProj;
-	uint32_t m_FrameInFlight;
 
 	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
 
@@ -73,13 +72,18 @@ protected:
 	struct CommandBuffer
 	{
 		IKCommandPoolPtr commandPool;
-
 		IKCommandBufferPtr primaryCommandBuffer;
 		IKCommandBufferPtr clearCommandBuffer;
-
 		std::vector<ThreadData> threadDatas;
+		void Clear()
+		{
+			commandPool = nullptr;
+			primaryCommandBuffer = nullptr;
+			clearCommandBuffer = nullptr;
+			threadDatas.clear();
+		}
 	};
-	std::vector<CommandBuffer> m_CommandBuffers;
+	CommandBuffer m_CommandBuffer;
 
 	size_t m_MaxRenderThreadNum;
 	KThreadPool<std::function<void()>, true> m_ThreadPool;

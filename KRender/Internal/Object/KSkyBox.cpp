@@ -131,15 +131,13 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 	renderDevice->CreateIndexBuffer(m_IndexBuffer);
 
 	m_Pipelines.resize(frameInFlight);
-	m_CommandBuffers.resize(frameInFlight);
+
+	renderDevice->CreateCommandBuffer(m_CommandBuffer);
+	m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
 
 	for(size_t i = 0; i < frameInFlight; ++i)
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(m_Pipelines[i]);
-
-		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
-		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
 	}
 
 	LoadResource(cubeTexPath);
@@ -151,18 +149,13 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 
 bool KSkyBox::UnInit()
 {
-	for(IKPipelinePtr& pipeline : m_Pipelines)
+	for (IKPipelinePtr& pipeline : m_Pipelines)
 	{
 		SAFE_UNINIT(pipeline);
 	}
 	m_Pipelines.clear();
 
-	for (IKCommandBufferPtr& buffer : m_CommandBuffers)
-	{
-		SAFE_UNINIT(buffer);
-	}
-	m_CommandBuffers.clear();
-
+	SAFE_UNINIT(m_CommandBuffer);
 	SAFE_UNINIT(m_VertexBuffer);
 	SAFE_UNINIT(m_IndexBuffer);
 
@@ -199,7 +192,7 @@ bool KSkyBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<
 		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		command.indexDraw = true;
 
-		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
+		IKCommandBufferPtr commandBuffer = m_CommandBuffer;
 
 		commandBuffer->BeginSecondary(renderPass);
 		commandBuffer->SetViewport(renderPass->GetViewPort());

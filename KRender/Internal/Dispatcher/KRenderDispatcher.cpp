@@ -64,7 +64,6 @@ KRenderDispatcher::KRenderDispatcher()
 	m_Camera(nullptr),
 	m_CameraCube(nullptr),
 	m_MaxRenderThreadNum(std::thread::hardware_concurrency()),
-	m_FrameInFlight(0),
 	m_MultiThreadSubmit(true),
 	m_InstanceSubmit(true),
 	m_CameraOutdate(true)
@@ -77,80 +76,69 @@ KRenderDispatcher::~KRenderDispatcher()
 	ASSERT_RESULT(m_SwapChain == nullptr);
 	ASSERT_RESULT(m_UIOverlay == nullptr);
 	ASSERT_RESULT(m_CameraCube == nullptr);
-	ASSERT_RESULT(m_CommandBuffers.empty());
 }
 
 bool KRenderDispatcher::CreateCommandBuffers()
 {
-	m_CommandBuffers.resize(m_FrameInFlight);
-
 	size_t numThread = m_ThreadPool.GetWorkerThreadNum();
 
-	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
+	m_Device->CreateCommandPool(m_CommandBuffer.commandPool);
+	m_CommandBuffer.commandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+
+	m_Device->CreateCommandBuffer(m_CommandBuffer.primaryCommandBuffer);
+	m_CommandBuffer.primaryCommandBuffer->Init(m_CommandBuffer.commandPool, CBL_PRIMARY);
+
+	m_Device->CreateCommandBuffer(m_CommandBuffer.clearCommandBuffer);
+	m_CommandBuffer.clearCommandBuffer->Init(m_CommandBuffer.commandPool, CBL_SECONDARY);
+
+	m_CommandBuffer.threadDatas.resize(numThread);
+
+	// 创建线程命令缓冲与命令池
+	for (size_t threadIdx = 0; threadIdx < numThread; ++threadIdx)
 	{
-		m_Device->CreateCommandPool(m_CommandBuffers[i].commandPool);
-		m_CommandBuffers[i].commandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+		ThreadData& threadData = m_CommandBuffer.threadDatas[threadIdx];
 
-		m_Device->CreateCommandBuffer(m_CommandBuffers[i].primaryCommandBuffer);
-		m_CommandBuffers[i].primaryCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_PRIMARY);
+		m_Device->CreateCommandPool(threadData.commandPool);
+		threadData.commandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
 
-		m_Device->CreateCommandBuffer(m_CommandBuffers[i].clearCommandBuffer);
-		m_CommandBuffers[i].clearCommandBuffer->Init(m_CommandBuffers[i].commandPool, CBL_SECONDARY);
-
-		m_CommandBuffers[i].threadDatas.resize(numThread);
-
-		// 创建线程命令缓冲与命令池
-		for (size_t threadIdx = 0; threadIdx < numThread; ++threadIdx)
+		for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
 		{
-			ThreadData& threadData = m_CommandBuffers[i].threadDatas[threadIdx];
-
-			m_Device->CreateCommandPool(threadData.commandPool);
-			threadData.commandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
-
-			for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
-			{
-				m_Device->CreateCommandBuffer(threadData.commandBuffers[i]);
-				threadData.commandBuffers[i]->Init(threadData.commandPool, CBL_SECONDARY);
-			}
+			m_Device->CreateCommandBuffer(threadData.commandBuffers[i]);
+			threadData.commandBuffers[i]->Init(threadData.commandPool, CBL_SECONDARY);
 		}
 	}
+
 	return true;
 }
 
 bool KRenderDispatcher::DestroyCommandBuffers()
 {
-	// clear command buffers
-	for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
+	for (ThreadData& thread : m_CommandBuffer.threadDatas)
 	{
-		for (ThreadData& thread : m_CommandBuffers[i].threadDatas)
+		for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
 		{
-			for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
-			{
-				thread.commandBuffers[i]->UnInit();
-				thread.commandBuffers[i] = nullptr;
-			}
-			thread.commandPool->UnInit();
-			thread.commandPool = nullptr;
+			thread.commandBuffers[i]->UnInit();
+			thread.commandBuffers[i] = nullptr;
 		}
-
-		m_CommandBuffers[i].primaryCommandBuffer->UnInit();
-		m_CommandBuffers[i].clearCommandBuffer->UnInit();
-
-		m_CommandBuffers[i].commandPool->UnInit();
-		m_CommandBuffers[i].commandPool = nullptr;
+		thread.commandPool->UnInit();
+		thread.commandPool = nullptr;
 	}
 
-	m_CommandBuffers.clear();
+	m_CommandBuffer.primaryCommandBuffer->UnInit();
+	m_CommandBuffer.clearCommandBuffer->UnInit();
+
+	m_CommandBuffer.commandPool->UnInit();
+	m_CommandBuffer.commandPool = nullptr;
 
 	return true;
 }
 
 void KRenderDispatcher::ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex)
 {
-	ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
+	ThreadData& threadData = m_CommandBuffer.threadDatas[threadIndex];
 
 	// https://devblogs.nvidia.com/vulkan-dos-donts/ ResetCommandPool释放内存
-	threadData.commandPool->Reset();
+	// threadData.commandPool->Reset();
 
 	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 	IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
@@ -523,7 +511,7 @@ void KRenderDispatcher::AssignRenderCommand(size_t frameIndex, KRenderStageConte
 
 			for (size_t i = 0; i < threadCount; ++i)
 			{
-				ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[i];
+				ThreadData& threadData = m_CommandBuffer.threadDatas[i];
 				std::vector<KRenderCommand>& renderCommands = threadData.renderCommands[stage];
 				renderCommands.clear();
 
@@ -547,7 +535,7 @@ void KRenderDispatcher::AssignRenderCommand(size_t frameIndex, KRenderStageConte
 	}
 	else
 	{
-		ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[0];
+		ThreadData& threadData = m_CommandBuffer.threadDatas[0];
 
 		for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
 		{
@@ -573,7 +561,7 @@ void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, KRenderStageConte
 
 		for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex)
 		{
-			ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[threadIndex];
+			ThreadData& threadData = m_CommandBuffer.threadDatas[threadIndex];
 
 			for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
 			{
@@ -589,7 +577,7 @@ void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, KRenderStageConte
 	{
 		ThreadRenderObject((uint32_t)frameIndex, 0);
 
-		ThreadData& threadData = m_CommandBuffers[frameIndex].threadDatas[0];
+		ThreadData& threadData = m_CommandBuffer.threadDatas[0];
 		for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
 		{
 			if (!threadData.renderCommands[i].empty())
@@ -608,8 +596,8 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 	IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 	IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
 
-	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
-	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffers[frameIndex].clearCommandBuffer;
+	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffer.primaryCommandBuffer;
+	IKCommandBufferPtr clearCommandBuffer = m_CommandBuffer.clearCommandBuffer;
 
 	std::vector<KRenderComponent*> cullRes;
 	((KRenderScene*)m_Scene)->GetRenderComponent(*m_Camera, KRenderGlobal::EnableDebugRender, cullRes);
@@ -727,16 +715,14 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 {
 	IKPipelineHandlePtr pipelineHandle;
 
-	assert(frameIndex < m_CommandBuffers.size());
-
-	m_CommandBuffers[frameIndex].commandPool->Reset();
+	// m_CommandBuffer.commandPool->Reset();
 
 	// 更新静态数据
 	{
 		KRenderGlobal::Voxilzer.UpdateVoxel();
 	}
 
-	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffers[frameIndex].primaryCommandBuffer;
+	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffer.primaryCommandBuffer;
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
 	{
@@ -757,7 +743,6 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 bool KRenderDispatcher::Init(IKRenderDevice* device, uint32_t frameInFlight, IKCameraCubePtr cameraCube)
 {
 	m_Device = device;
-	m_FrameInFlight = frameInFlight;
 	m_CameraCube = cameraCube;
 	m_ThreadPool.Init("RenderThread", m_MaxRenderThreadNum);
 	m_Pass = KMainBasePassPtr(KNEW KMainBasePass(*this));
@@ -981,8 +966,5 @@ bool KRenderDispatcher::Execute(uint32_t chainImageIndex, uint32_t frameIndex)
 
 IKCommandBufferPtr KRenderDispatcher::GetPrimaryCommandBuffer(uint32_t frameIndex)
 {
-	if (frameIndex < m_FrameInFlight)
-		return m_CommandBuffers[frameIndex].primaryCommandBuffer;
-	else
-		return nullptr;
+	return m_CommandBuffer.primaryCommandBuffer;
 }

@@ -80,7 +80,7 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTrac
 		m_Pipeline = pipeline;
 		m_Camera = camera;
 
-		uint32_t numFrames = KRenderGlobal::RenderDevice->GetNumFramesInFlight();
+		uint32_t numFrames = KRenderGlobal::NumFramesInFlight;
 		m_CameraBuffers.resize(numFrames);
 		for (uint32_t i = 0; i < numFrames; ++i)
 		{

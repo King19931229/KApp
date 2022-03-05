@@ -11,7 +11,7 @@ protected:
 	IKRenderTargetPtr m_RenderTarget;
 	IKRenderPassPtr m_RenderPass;
 	IKSamplerPtr m_ShadowSampler;
-	std::vector<IKCommandBufferPtr> m_CommandBuffers;
+	IKCommandBufferPtr m_CommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
 	KCamera m_Camera;

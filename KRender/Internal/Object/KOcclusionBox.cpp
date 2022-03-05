@@ -256,7 +256,9 @@ bool KOcclusionBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 	m_PipelinesInstanceFrontFace.resize(frameInFlight);
 	m_PipelinesInstanceBackFace.resize(frameInFlight);
 
-	m_CommandBuffers.resize(frameInFlight);
+	renderDevice->CreateCommandBuffer(m_CommandBuffer);
+	m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
+
 	m_InstanceBuffers.resize(frameInFlight);
 
 	for (size_t i = 0; i < frameInFlight; ++i)
@@ -266,10 +268,6 @@ bool KOcclusionBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 
 		KRenderGlobal::RenderDevice->CreatePipeline(m_PipelinesInstanceFrontFace[i]);
 		KRenderGlobal::RenderDevice->CreatePipeline(m_PipelinesInstanceBackFace[i]);
-
-		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
-		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
 	}
 
 	LoadResource();
@@ -305,11 +303,7 @@ bool KOcclusionBox::UnInit()
 	}
 	m_PipelinesInstanceBackFace.clear();
 
-	for (IKCommandBufferPtr& buffer : m_CommandBuffers)
-	{
-		SAFE_UNINIT(buffer);
-	}
-	m_CommandBuffers.clear();
+	SAFE_UNINIT(m_CommandBuffer);
 
 	for (FrameInstanceBufferList& instanceBuffers : m_InstanceBuffers)
 	{
@@ -446,11 +440,11 @@ bool KOcclusionBox::MergeInstanceMap(KRenderComponent* renderComponent, const KA
 
 bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers)
 {
-	if (frameIndex < m_CommandBuffers.size() && camera)
+	if (camera)
 	{
 		if (m_Enable)
 		{
-			IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
+			IKCommandBufferPtr commandBuffer = m_CommandBuffer;
 
 			commandBuffer->BeginSecondary(renderPass);
 			commandBuffer->SetViewport(renderPass->GetViewPort());

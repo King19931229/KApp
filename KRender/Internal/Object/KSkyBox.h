@@ -12,7 +12,7 @@ protected:
 
 	std::vector<IKPipelinePtr> m_Pipelines;
 
-	std::vector<IKCommandBufferPtr> m_CommandBuffers;
+	IKCommandBufferPtr m_CommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
 	IKVertexBufferPtr m_VertexBuffer;

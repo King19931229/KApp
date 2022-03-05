@@ -494,26 +494,18 @@ bool KCameraCube::Init(IKRenderDevice* renderDevice, size_t frameInFlight, KCame
 	m_BackGroundPipelines.resize(frameInFlight);
 	m_CubePipelines.resize(frameInFlight);
 	m_PickPipelines.resize(frameInFlight);
-	m_CommandBuffers.resize(frameInFlight);
-	m_ClearCommandBuffers.resize(frameInFlight);
+
+	ASSERT_RESULT(renderDevice->CreateCommandBuffer(m_CommandBuffer));
+	ASSERT_RESULT(m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY));
+
+	ASSERT_RESULT(renderDevice->CreateCommandBuffer(m_ClearCommandBuffer));
+	ASSERT_RESULT(m_ClearCommandBuffer->Init(m_CommandPool, CBL_SECONDARY));
 
 	for (size_t i = 0; i < frameInFlight; ++i)
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(m_BackGroundPipelines[i]);
 		KRenderGlobal::RenderDevice->CreatePipeline(m_CubePipelines[i]);
 		KRenderGlobal::RenderDevice->CreatePipeline(m_PickPipelines[i]);
-
-		{
-			IKCommandBufferPtr& buffer = m_CommandBuffers[i];
-			ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-			ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
-		}
-
-		{
-			IKCommandBufferPtr& buffer = m_ClearCommandBuffers[i];
-			ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-			ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
-		}
 	}
 
 	LoadResource();
@@ -545,17 +537,8 @@ bool KCameraCube::UnInit()
 	}
 	m_PickPipelines.clear();
 
-	for (IKCommandBufferPtr& buffer : m_CommandBuffers)
-	{
-		SAFE_UNINIT(buffer);
-	}
-	m_CommandBuffers.clear();
-
-	for (IKCommandBufferPtr& buffer : m_ClearCommandBuffers)
-	{
-		SAFE_UNINIT(buffer);
-	}
-	m_ClearCommandBuffers.clear();
+	SAFE_UNINIT(m_CommandBuffer);
+	SAFE_UNINIT(m_ClearCommandBuffer);
 
 	SAFE_UNINIT(m_BackGroundVertexBuffer);
 	SAFE_UNINIT(m_BackGroundIndexBuffer);
@@ -1036,7 +1019,7 @@ bool KCameraCube::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vec
 	{
 		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 
-		IKCommandBufferPtr clearCommandBuffer = m_ClearCommandBuffers[frameIndex];
+		IKCommandBufferPtr clearCommandBuffer = m_ClearCommandBuffer;
 
 		clearCommandBuffer->BeginSecondary(renderPass);
 		clearCommandBuffer->SetViewport(renderPass->GetViewPort());
@@ -1045,7 +1028,7 @@ bool KCameraCube::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vec
 		clearCommandBuffer->End();
 		buffers.push_back(clearCommandBuffer);
 
-		IKCommandBufferPtr commandBuffer = m_CommandBuffers[frameIndex];
+		IKCommandBufferPtr commandBuffer = m_CommandBuffer;
 		commandBuffer->BeginSecondary(renderPass);
 		commandBuffer->SetViewport(renderPass->GetViewPort());
 		for (KRenderCommand& command : commands)

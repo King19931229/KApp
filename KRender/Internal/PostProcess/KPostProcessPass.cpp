@@ -44,6 +44,7 @@ KPostProcessPass::~KPostProcessPass()
 	assert(m_VSShader == nullptr);
 	assert(m_FSShader == nullptr);
 	assert(m_RenderTarget == nullptr);
+	assert(m_CommandBuffer == nullptr);
 
 	for (auto& conn : m_InputConnection)
 	{
@@ -53,8 +54,6 @@ KPostProcessPass::~KPostProcessPass()
 	{
 		assert(connSet.empty());
 	}
-	
-	assert(m_CommandBuffers.empty());
 }
 
 KPostProcessPass::IDType KPostProcessPass::ID()
@@ -123,12 +122,8 @@ bool KPostProcessPass::Init()
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, m_VSFile.c_str(), m_VSShader, false));
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, m_FSFile.c_str(), m_FSShader, false));
 
-		m_CommandBuffers.resize(m_FrameInFlight);
-		for(size_t i = 0; i < m_CommandBuffers.size(); ++i)
-		{
-			device->CreateCommandBuffer(m_CommandBuffers[i]);
-			m_CommandBuffers[i]->Init(m_Mgr->m_CommandPool, CBL_SECONDARY);
-		}
+		device->CreateCommandBuffer(m_CommandBuffer);
+		m_CommandBuffer->Init(m_Mgr->m_CommandPool, CBL_SECONDARY);
 
 		{
 			device->CreatePipeline(m_Pipeline);
@@ -271,13 +266,7 @@ bool KPostProcessPass::UnInit()
 	SAFE_UNINIT(m_RenderPass);
 	SAFE_UNINIT(m_Pipeline);
 	SAFE_UNINIT(m_ScreenDrawPipeline);
-
-	for(IKCommandBufferPtr& buffer : m_CommandBuffers)
-	{
-		buffer->UnInit();
-		buffer = nullptr;
-	}
-	m_CommandBuffers.clear();
+	SAFE_UNINIT(m_CommandBuffer);
 
 	m_bInit = false;
 

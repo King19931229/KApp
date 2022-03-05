@@ -96,7 +96,6 @@ struct IKRenderDevice
 	virtual IKRenderWindow* GetMainWindow() = 0;
 	virtual IKSwapChain* GetSwapChain() = 0;
 	virtual IKUIOverlay* GetUIOverlay() = 0;
-	virtual uint32_t GetNumFramesInFlight() = 0;
 };
 
 EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform);

@@ -242,7 +242,7 @@ void KVoxilzer::UpdateProjectionMatrices()
 		m_ViewProjectionMatrixI[i] = glm::inverse(m_ViewProjectionMatrix[i]);
 	}
 
-	for (uint32_t frameIndex = 0; frameIndex < KRenderGlobal::RenderDevice->GetNumFramesInFlight(); ++frameIndex)
+	for (uint32_t frameIndex = 0; frameIndex < KRenderGlobal::NumFramesInFlight; ++frameIndex)
 	{
 		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_VOXEL);
 
@@ -1370,14 +1370,12 @@ bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::
 		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		command.indexDraw = false;
 
-		IKCommandBufferPtr commandBuffer = m_DrawCommandBuffers[frameIndex];
+		m_DrawCommandBuffer->BeginSecondary(renderPass);
+		m_DrawCommandBuffer->SetViewport(renderPass->GetViewPort());
+		m_DrawCommandBuffer->Render(command);
+		m_DrawCommandBuffer->End();
 
-		commandBuffer->BeginSecondary(renderPass);
-		commandBuffer->SetViewport(renderPass->GetViewPort());
-		commandBuffer->Render(command);
-		commandBuffer->End();
-
-		buffers.push_back(commandBuffer);
+		buffers.push_back(m_DrawCommandBuffer);
 
 		return true;
 	}
@@ -1390,8 +1388,6 @@ bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer, uint32_t 
 
 	if (frameIndex < lightPassPipelines.size())
 	{
-		IKCommandBufferPtr commandBuffer = m_LightingCommandBuffers[frameIndex];
-
 		primaryBuffer->BeginDebugMarker("VoxelLightPass", glm::vec4(0, 1, 0, 0));
 		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_SECONDARY);
 
@@ -1402,12 +1398,12 @@ bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer, uint32_t 
 		command.pipeline->GetHandle(m_LightPassRenderPass, command.pipelineHandle);
 		command.indexDraw = true;
 
-		commandBuffer->BeginSecondary(m_LightPassRenderPass);
-		commandBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
-		commandBuffer->Render(command);
-		commandBuffer->End();
+		m_LightingCommandBuffer->BeginSecondary(m_LightPassRenderPass);
+		m_LightingCommandBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
+		m_LightingCommandBuffer->Render(command);
+		m_LightingCommandBuffer->End();
 
-		primaryBuffer->Execute(commandBuffer);
+		primaryBuffer->Execute(m_LightingCommandBuffer);
 		primaryBuffer->EndRenderPass();
 		primaryBuffer->EndDebugMarker();
 
@@ -1422,8 +1418,6 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint3
 	{
 		if (m_VoxelUseOctree && m_OctreeRayTestDebugDrawer.GetEnable())
 		{
-			IKCommandBufferPtr commandBuffer = m_OctreeRayTestCommandBuffers[frameIndex];
-
 			IKStorageBufferPtr cameraBuffer = m_OctreeCameraBuffers[frameIndex];
 
 			glm::vec4 cameraInfo[5] = {};
@@ -1460,12 +1454,12 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint3
 			command.pipeline->GetHandle(m_OctreeRayTestPass, command.pipelineHandle);
 			command.indexDraw = true;
 
-			commandBuffer->BeginSecondary(m_OctreeRayTestPass);
-			commandBuffer->SetViewport(m_OctreeRayTestPass->GetViewPort());
-			commandBuffer->Render(command);
-			commandBuffer->End();
+			m_OctreeRayTestCommandBuffer->BeginSecondary(m_OctreeRayTestPass);
+			m_OctreeRayTestCommandBuffer->SetViewport(m_OctreeRayTestPass->GetViewPort());
+			m_OctreeRayTestCommandBuffer->Render(command);
+			m_OctreeRayTestCommandBuffer->End();
 
-			primaryBuffer->Execute(commandBuffer);
+			primaryBuffer->Execute(m_OctreeRayTestCommandBuffer);
 			primaryBuffer->EndRenderPass();
 			primaryBuffer->EndDebugMarker();
 		}
@@ -1563,12 +1557,19 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 	renderDevice->CreateRenderTarget(m_VoxelRenderPassTarget);
 	renderDevice->CreateRenderPass(m_VoxelRenderPass);
 
+	renderDevice->CreateCommandBuffer(m_DrawCommandBuffer);
+	m_DrawCommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
+	renderDevice->CreateCommandBuffer(m_LightingCommandBuffer);
+	m_LightingCommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
+	renderDevice->CreateCommandBuffer(m_OctreeRayTestCommandBuffer);
+	m_OctreeRayTestCommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
+
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/quad.vert", m_QuadVS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/light_pass.frag", m_LightPassFS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/light_pass_octree.frag", m_LightPassOctreeFS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/octree_raytest.frag", m_OctreeRayTestFS, false);
 
-	uint32_t numFrameInFight = renderDevice->GetNumFramesInFlight();
+	uint32_t numFrameInFight = KRenderGlobal::NumFramesInFlight;
 
 	m_VoxelDrawPipelines.resize(numFrameInFight);
 	m_VoxelWireFrameDrawPipelines.resize(numFrameInFight);
@@ -1578,9 +1579,6 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 	m_LightPassPipelines.resize(numFrameInFight);
 	m_LightPassOctreePipelines.resize(numFrameInFight);
 	m_OctreeRayTestPipelines.resize(numFrameInFight);
-	m_DrawCommandBuffers.resize(numFrameInFight);
-	m_LightingCommandBuffers.resize(numFrameInFight);
-	m_OctreeRayTestCommandBuffers.resize(numFrameInFight);
 	m_OctreeCameraBuffers.resize(numFrameInFight);
 
 	for (uint32_t frameIndex = 0; frameIndex < numFrameInFight; ++frameIndex)
@@ -1593,15 +1591,6 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 		renderDevice->CreatePipeline(m_LightPassPipelines[frameIndex]);
 		renderDevice->CreatePipeline(m_LightPassOctreePipelines[frameIndex]);
 		renderDevice->CreatePipeline(m_OctreeRayTestPipelines[frameIndex]);
-
-		renderDevice->CreateCommandBuffer(m_DrawCommandBuffers[frameIndex]);
-		m_DrawCommandBuffers[frameIndex]->Init(m_CommandPool, CBL_SECONDARY);
-
-		renderDevice->CreateCommandBuffer(m_LightingCommandBuffers[frameIndex]);
-		m_LightingCommandBuffers[frameIndex]->Init(m_CommandPool, CBL_SECONDARY);
-
-		renderDevice->CreateCommandBuffer(m_OctreeRayTestCommandBuffers[frameIndex]);
-		m_OctreeRayTestCommandBuffers[frameIndex]->Init(m_CommandPool, CBL_SECONDARY);
 	}
 
 	renderDevice->CreateComputePipeline(m_ClearDynamicPipeline);
@@ -1712,9 +1701,9 @@ bool KVoxilzer::UnInit()
 
 	SAFE_UNINIT(m_VoxelRenderPass);
 	SAFE_UNINIT(m_VoxelRenderPassTarget);
-	SAFE_UNINIT_CONTAINER(m_DrawCommandBuffers);
-	SAFE_UNINIT_CONTAINER(m_LightingCommandBuffers);
-	SAFE_UNINIT_CONTAINER(m_OctreeRayTestCommandBuffers);
+	SAFE_UNINIT(m_DrawCommandBuffer);
+	SAFE_UNINIT(m_LightingCommandBuffer);
+	SAFE_UNINIT(m_OctreeRayTestCommandBuffer);
 	SAFE_UNINIT(m_PrimaryCommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
 

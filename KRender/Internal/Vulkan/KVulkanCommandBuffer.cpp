@@ -13,7 +13,6 @@
 KVulkanCommandPool::KVulkanCommandPool()
 	: m_CommandPool(VK_NULL_HANDLE)
 {
-
 }
 
 KVulkanCommandPool::~KVulkanCommandPool()
@@ -74,16 +73,13 @@ bool KVulkanCommandPool::Reset()
 }
 
 KVulkanCommandBuffer::KVulkanCommandBuffer()
-	: m_CommandBuffer(VK_NULL_HANDLE),
-	m_ParentPool(VK_NULL_HANDLE),
+	: m_ParentPool(VK_NULL_HANDLE),
 	m_CommandLevel(VK_COMMAND_BUFFER_LEVEL_MAX_ENUM)
 {
-
 }
 
 KVulkanCommandBuffer::~KVulkanCommandBuffer()
 {
-
 }
 
 bool KVulkanCommandBuffer::Init(IKCommandPoolPtr pool, CommandBufferLevel level)
@@ -114,50 +110,58 @@ bool KVulkanCommandBuffer::Init(IKCommandPoolPtr pool, CommandBufferLevel level)
 	}
 
 	allocInfo.level = m_CommandLevel;
-	allocInfo.commandBufferCount = 1;
+	allocInfo.commandBufferCount = KRenderGlobal::NumFramesInFlight;
+	m_CommandBuffers.resize(KRenderGlobal::NumFramesInFlight);
 
-	VK_ASSERT_RESULT(vkAllocateCommandBuffers(KVulkanGlobal::device, &allocInfo, &m_CommandBuffer));
+	VK_ASSERT_RESULT(vkAllocateCommandBuffers(KVulkanGlobal::device, &allocInfo, m_CommandBuffers.data()));
 
 	return true;
 }
 
 bool KVulkanCommandBuffer::UnInit()
 {
-	if(m_CommandBuffer != VK_NULL_HANDLE && m_ParentPool != VK_NULL_HANDLE)
+	if(m_CommandBuffers.size() && m_ParentPool != VK_NULL_HANDLE)
 	{
 		ASSERT_RESULT(KVulkanGlobal::deviceReady);
-		vkFreeCommandBuffers(KVulkanGlobal::device, m_ParentPool, 1, &m_CommandBuffer);
+		vkFreeCommandBuffers(KVulkanGlobal::device, m_ParentPool, (uint32_t)m_CommandBuffers.size(), m_CommandBuffers.data());
 	}
 
-	m_CommandBuffer = VK_NULL_HANDLE;
+	m_CommandBuffers.clear();
 	m_ParentPool = VK_NULL_HANDLE;
 	m_CommandLevel = VK_COMMAND_BUFFER_LEVEL_MAX_ENUM;
 
 	return true;
 }
 
-bool KVulkanCommandBuffer::SetViewport(const KViewPortArea& area)
+VkCommandBuffer KVulkanCommandBuffer::GetVkHandle()
 {
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
-	if(m_CommandBuffer != VK_NULL_HANDLE)
+	assert(KRenderGlobal::CurrentFrameIndex < m_CommandBuffers.size());
+	return KRenderGlobal::CurrentFrameIndex < m_CommandBuffers.size() ? m_CommandBuffers[KRenderGlobal::CurrentFrameIndex] : VK_NULL_HANDEL;
+}
+
+bool KVulkanCommandBuffer::SetViewport(const KViewPortArea& area)
+{	
+	VkCommandBuffer commandBuffer = GetVkHandle();
+
+	if (commandBuffer != VK_NULL_HANDLE)
 	{
 		// 设置视口与裁剪
 		VkOffset2D offset = { (int32_t)area.x, (int32_t)area.y };
 		VkExtent2D extent = { area.width, area.height };
 
-		VkRect2D scissorRect = { offset, extent};
-		VkViewport viewPort = 
+		VkRect2D scissorRect = { offset, extent };
+		VkViewport viewPort =
 		{
 			(float)offset.x,
 			(float)offset.y,
 			(float)extent.width,
 			(float)extent.height,
 			0.0f,
-			1.0f 
+			1.0f
 		};
 
-		vkCmdSetViewport(m_CommandBuffer, 0, 1, &viewPort);
-		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissorRect);
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewPort);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
 
 		return true;
 	}
@@ -166,10 +170,10 @@ bool KVulkanCommandBuffer::SetViewport(const KViewPortArea& area)
 
 bool KVulkanCommandBuffer::SetDepthBias(float depthBiasConstant, float depthBiasClamp, float depthBiasSlope)
 {
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
-	if(m_CommandBuffer != VK_NULL_HANDLE)
+	VkCommandBuffer commandBuffer = GetVkHandle();
+	if(commandBuffer != VK_NULL_HANDLE)
 	{
-		vkCmdSetDepthBias(m_CommandBuffer, depthBiasConstant, depthBiasClamp, depthBiasSlope);
+		vkCmdSetDepthBias(commandBuffer, depthBiasConstant, depthBiasClamp, depthBiasSlope);
 		return true;
 	}
 	return false;
@@ -177,8 +181,8 @@ bool KVulkanCommandBuffer::SetDepthBias(float depthBiasConstant, float depthBias
 
 bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 {
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
-	if(m_CommandBuffer != VK_NULL_HANDLE)
+	VkCommandBuffer commandBuffer = GetVkHandle();
+	if(commandBuffer != VK_NULL_HANDLE)
 	{
 		if(!command.Complete())
 		{
@@ -223,9 +227,9 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(dynamicUsages, dynamicBufferCount, storageUsages, storageBufferCount);
 
 		// 绑定管线
-		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		// 绑定管线布局
-		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, dynamicBufferCount, dynamicOffsets);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, dynamicBufferCount, dynamicOffsets);
 
 		// 绑定顶点缓冲
 		VkBuffer vertexBuffers[32] = {0};
@@ -245,7 +249,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 		if (command.meshShaderDraw)
 		{
-			KVulkanGlobal::vkCmdDrawMeshTasksNV(m_CommandBuffer, command.meshData->count, command.meshData->offset);
+			KVulkanGlobal::vkCmdDrawMeshTasksNV(commandBuffer, command.meshData->count, command.meshData->offset);
 		}
 		else
 		{
@@ -259,7 +263,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 					ASSERT_RESULT(instanceBuffer);
 					vertexBuffers[instanceSlot] = ((KVulkanVertexBuffer*)instanceBuffer.get())->GetVulkanHandle();
 					offsets[instanceSlot] = 0;
-					vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
+					vkCmdBindVertexBuffers(commandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
 
 					uint32_t instanceStart = static_cast<uint32_t>(instanceUsage.start);
 					uint32_t instanceCount = static_cast<uint32_t>(instanceUsage.count);
@@ -267,14 +271,14 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 					if (command.indexDraw)
 					{
 						KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
-						vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-						vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, instanceCount, command.indexData->indexStart, 0, instanceStart);
+						vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+						vkCmdDrawIndexed(commandBuffer, command.indexData->indexCount, instanceCount, command.indexData->indexStart, 0, instanceStart);
 						// FIXME 难道这是NV驱动的BUG 开启Drawinstance功能之后如果Indexbuffer是32bit需要把Indexbuffer按16bit绑定一次
-						vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, VK_INDEX_TYPE_UINT16);
+						vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, VK_INDEX_TYPE_UINT16);
 					}
 					else
 					{
-						vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, instanceCount, command.vertexData->vertexStart, instanceStart);
+						vkCmdDraw(commandBuffer, command.vertexData->vertexCount, instanceCount, command.vertexData->vertexStart, instanceStart);
 					}
 				}
 			}
@@ -282,18 +286,18 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			{
 				if (vertexBufferCount > 0)
 				{
-					vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
+					vkCmdBindVertexBuffers(commandBuffer, 0, vertexBufferCount, vertexBuffers, offsets);
 				}
 
 				if (command.indexDraw)
 				{
 					KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
-					vkCmdBindIndexBuffer(m_CommandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-					vkCmdDrawIndexed(m_CommandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+					vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+					vkCmdDrawIndexed(commandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
 				}
 				else
 				{
-					vkCmdDraw(m_CommandBuffer, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
+					vkCmdDraw(commandBuffer, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
 				}
 			}
 		}
@@ -305,14 +309,15 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 bool KVulkanCommandBuffer::Execute(IKCommandBufferPtr buffer)
 {
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
+	VkCommandBuffer commandBuffer = GetVkHandle();
+	assert(commandBuffer != VK_NULL_HANDLE);
 	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
 	VkCommandBuffer handle = ((KVulkanCommandBuffer*)buffer.get())->GetVkHandle();
 	VkCommandBufferLevel level = ((KVulkanCommandBuffer*)buffer.get())->GetVkBufferLevel();
 	if(handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
 	{
-		vkCmdExecuteCommands(m_CommandBuffer, 1, &handle);
+		vkCmdExecuteCommands(commandBuffer, 1, &handle);
 		return true;
 	}
 	return false;
@@ -320,11 +325,12 @@ bool KVulkanCommandBuffer::Execute(IKCommandBufferPtr buffer)
 
 bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers)
 {
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
+	VkCommandBuffer commandBuffer = GetVkHandle();
+	assert(commandBuffer != VK_NULL_HANDLE);
 	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 	assert(commandBuffers.size() > 0);
 
-	if(m_CommandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY && commandBuffers.size() > 0)
+	if(commandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY && commandBuffers.size() > 0)
 	{
 		std::vector<VkCommandBuffer> vkCommandBuffers;
 
@@ -339,7 +345,7 @@ bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers)
 			}
 		}
 
-		vkCmdExecuteCommands(m_CommandBuffer, (uint32_t)vkCommandBuffers.size(), vkCommandBuffers.data());
+		vkCmdExecuteCommands(commandBuffer, (uint32_t)vkCommandBuffers.size(), vkCommandBuffers.data());
 
 		return true;
 	}
@@ -348,14 +354,15 @@ bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers)
 
 bool KVulkanCommandBuffer::BeginPrimary()
 {
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
-	assert( m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+	VkCommandBuffer commandBuffer = GetVkHandle();
+	assert(commandBuffer != VK_NULL_HANDLE);
+	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
-	if(m_CommandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+	if(commandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY)
 	{
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		VK_ASSERT_RESULT(vkBeginCommandBuffer(m_CommandBuffer, &beginInfo));
+		VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 		return true;
 	}
 
@@ -364,10 +371,11 @@ bool KVulkanCommandBuffer::BeginPrimary()
 
 bool KVulkanCommandBuffer::BeginSecondary(IKRenderPassPtr renderPass)
 {
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
+	VkCommandBuffer commandBuffer = GetVkHandle();
+	assert(commandBuffer != VK_NULL_HANDLE);
 	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 
-	if (m_CommandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+	if (commandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
 	{
 		KVulkanRenderPass* vulkanRenderPass = (KVulkanRenderPass*)renderPass.get();
 
@@ -384,7 +392,7 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderPassPtr renderPass)
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 		beginInfo.pInheritanceInfo = &inheritanceInfo;
 
-		VK_ASSERT_RESULT(vkBeginCommandBuffer(m_CommandBuffer, &beginInfo));
+		VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
 		return true;
 	}
@@ -393,9 +401,10 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderPassPtr renderPass)
 
 bool KVulkanCommandBuffer::BeginRenderPass(IKRenderPassPtr renderPass, SubpassContents conent)
 {
+	VkCommandBuffer commandBuffer = GetVkHandle();
 	assert(renderPass);
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
-	if (m_CommandBuffer != VK_NULL_HANDLE)
+	assert(commandBuffer != VK_NULL_HANDLE);
+	if (commandBuffer != VK_NULL_HANDLE)
 	{
 		KVulkanRenderPass* vulkanRenderPass = (KVulkanRenderPass*)renderPass.get();
 
@@ -431,7 +440,7 @@ bool KVulkanCommandBuffer::BeginRenderPass(IKRenderPassPtr renderPass, SubpassCo
 				break;
 		}
 
-		vkCmdBeginRenderPass(m_CommandBuffer, &renderPassInfo, subpassContents);
+		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, subpassContents);
 
 		return true;
 	}
@@ -440,8 +449,8 @@ bool KVulkanCommandBuffer::BeginRenderPass(IKRenderPassPtr renderPass, SubpassCo
 
 bool KVulkanCommandBuffer::ClearColor(uint32_t attachment, const KViewPortArea& area, const KClearColor& color)
 {
+	VkCommandBuffer commandBuffer = GetVkHandle();
 	VkClearValue clearValue;
-
 	VkClearAttachment clearAttachment;
 
 	clearValue.color.float32[0] = color.r;
@@ -459,13 +468,14 @@ bool KVulkanCommandBuffer::ClearColor(uint32_t attachment, const KViewPortArea& 
 	clearRect.rect.offset = { (int32_t)area.x, (int32_t)area.y };
 	clearRect.rect.extent = { area.width, area.height };
 
-	vkCmdClearAttachments(m_CommandBuffer, 1, &clearAttachment, 1, &clearRect);
+	vkCmdClearAttachments(commandBuffer, 1, &clearAttachment, 1, &clearRect);
 
 	return true;
 }
 
 bool KVulkanCommandBuffer::ClearDepthStencil(const KViewPortArea& area, const KClearDepthStencil& depthStencil)
 {
+	VkCommandBuffer commandBuffer = GetVkHandle();
 	VkClearValue clearValue;
 	VkClearAttachment clearAttachment;
 
@@ -482,17 +492,18 @@ bool KVulkanCommandBuffer::ClearDepthStencil(const KViewPortArea& area, const KC
 	clearRect.rect.offset = { (int32_t)area.x, (int32_t)area.y };
 	clearRect.rect.extent = { area.width, area.height };
 
-	vkCmdClearAttachments(m_CommandBuffer, 1, &clearAttachment, 1, &clearRect);
+	vkCmdClearAttachments(commandBuffer, 1, &clearAttachment, 1, &clearRect);
 
 	return true;
 }
 
 bool KVulkanCommandBuffer::EndRenderPass()
 {
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
-	if(m_CommandBuffer != VK_NULL_HANDLE)
+	VkCommandBuffer commandBuffer = GetVkHandle();
+	assert(commandBuffer != VK_NULL_HANDLE);
+	if(commandBuffer != VK_NULL_HANDLE)
 	{
-		vkCmdEndRenderPass(m_CommandBuffer);
+		vkCmdEndRenderPass(commandBuffer);
 		return true;
 	}
 	return false;
@@ -500,30 +511,33 @@ bool KVulkanCommandBuffer::EndRenderPass()
 
 bool KVulkanCommandBuffer::BeginDebugMarker(const std::string& marker, const glm::vec4 color)
 {
+	VkCommandBuffer commandBuffer = GetVkHandle();
 #ifdef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
-	KVulkanHelper::DebugUtilsBeginRegion(m_CommandBuffer, marker.c_str(), color);
+	KVulkanHelper::DebugUtilsBeginRegion(commandBuffer, marker.c_str(), color);
 #else
-	KVulkanHelper::DebugMarkerBeginRegion(m_CommandBuffer, marker.c_str(), color);
+	KVulkanHelper::DebugMarkerBeginRegion(commandBuffer, marker.c_str(), color);
 #endif
 	return true;
 }
 
 bool KVulkanCommandBuffer::EndDebugMarker()
 {
+	VkCommandBuffer commandBuffer = GetVkHandle();
 #ifdef VK_USE_DEBUG_UTILS_AS_DEBUG_MARKER
-	KVulkanHelper::DebugUtilsEndRegion(m_CommandBuffer);
+	KVulkanHelper::DebugUtilsEndRegion(commandBuffer);
 #else
-	KVulkanHelper::DebugMarkerEndRegion(m_CommandBuffer);
+	KVulkanHelper::DebugMarkerEndRegion(commandBuffer);
 #endif
 	return true;
 }
 
 bool KVulkanCommandBuffer::End()
 {
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
-	if(m_CommandBuffer != VK_NULL_HANDLE)
+	VkCommandBuffer commandBuffer = GetVkHandle();
+	assert(commandBuffer != VK_NULL_HANDLE);
+	if(commandBuffer != VK_NULL_HANDLE)
 	{
-		VK_ASSERT_RESULT(vkEndCommandBuffer(m_CommandBuffer));
+		VK_ASSERT_RESULT(vkEndCommandBuffer(commandBuffer));
 		return true;
 	}
 	return false;
@@ -531,13 +545,14 @@ bool KVulkanCommandBuffer::End()
 
 bool KVulkanCommandBuffer::Flush()
 {
-	assert(m_CommandBuffer != VK_NULL_HANDLE);
-	if (m_CommandBuffer != VK_NULL_HANDLE)
+	VkCommandBuffer commandBuffer = GetVkHandle();
+	assert(commandBuffer != VK_NULL_HANDLE);
+	if (commandBuffer != VK_NULL_HANDLE)
 	{
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &m_CommandBuffer;
+		submitInfo.pCommandBuffers = &commandBuffer;
 
 		VkFenceCreateInfo fenceInfo = {};
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -559,10 +574,11 @@ bool KVulkanCommandBuffer::Flush()
 
 bool KVulkanCommandBuffer::BeginQuery(IKQueryPtr query)
 {
+	VkCommandBuffer commandBuffer = GetVkHandle();
 	if (query)
 	{
 		KVulkanQuery* vulkanQuery = (KVulkanQuery*)query.get();
-		vulkanQuery->Begin(m_CommandBuffer);
+		vulkanQuery->Begin(commandBuffer);
 		return true;
 	}
 	return false;
@@ -570,10 +586,11 @@ bool KVulkanCommandBuffer::BeginQuery(IKQueryPtr query)
 
 bool KVulkanCommandBuffer::EndQuery(IKQueryPtr query)
 {
+	VkCommandBuffer commandBuffer = GetVkHandle();
 	if (query)
 	{
 		KVulkanQuery* vulkanQuery = (KVulkanQuery*)query.get();
-		vulkanQuery->End(m_CommandBuffer);
+		vulkanQuery->End(commandBuffer);
 		return true;
 	}
 	return false;
@@ -581,10 +598,11 @@ bool KVulkanCommandBuffer::EndQuery(IKQueryPtr query)
 
 bool KVulkanCommandBuffer::ResetQuery(IKQueryPtr query)
 {
+	VkCommandBuffer commandBuffer = GetVkHandle();
 	if (query)
 	{
 		KVulkanQuery* vulkanQuery = (KVulkanQuery*)query.get();
-		vulkanQuery->Reset(m_CommandBuffer);
+		vulkanQuery->Reset(commandBuffer);
 		return true;
 	}
 	return false;
@@ -602,6 +620,7 @@ bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, ImageLayout layout)
 
 bool KVulkanCommandBuffer::Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest)
 {
+	VkCommandBuffer commandBuffer = GetVkHandle();
 	if (src && dest)
 	{
 		KVulkanFrameBuffer* srcBuffer = (KVulkanFrameBuffer*)src.get();
@@ -627,7 +646,7 @@ bool KVulkanCommandBuffer::Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest)
 		blit.dstSubresource.baseArrayLayer = 0;
 		blit.dstSubresource.layerCount = 1;
 
-		vkCmdBlitImage(m_CommandBuffer,
+		vkCmdBlitImage(commandBuffer,
 			srcBuffer->GetImage(), srcBuffer->GetImageLayout(),
 			destBuffer->GetImage(), destBuffer->GetImageLayout(),
 			1, &blit,

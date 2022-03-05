@@ -25,7 +25,7 @@ protected:
 	typedef std::vector<IKVertexBufferPtr> FrameInstanceBufferList;
 	std::vector<FrameInstanceBufferList> m_InstanceBuffers;
 
-	std::vector<IKCommandBufferPtr> m_CommandBuffers;
+	IKCommandBufferPtr m_CommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
 	IKVertexBufferPtr m_VertexBuffer;

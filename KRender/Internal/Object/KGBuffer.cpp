@@ -18,7 +18,7 @@ KGBuffer::~KGBuffer()
 	ASSERT_RESULT(m_GBufferSampler == nullptr);
 	for (uint32_t i = 0; i < GBUFFER_STAGE_COUNT; ++i)
 	{
-		ASSERT_RESULT(m_CommandBuffers[i].empty());
+		ASSERT_RESULT(m_CommandBuffers[i] == nullptr);
 	}
 }
 
@@ -41,13 +41,9 @@ bool KGBuffer::Init(IKRenderDevice* renderDevice, const KCamera* camera, uint32_
 
 	for (uint32_t i = 0; i < GBUFFER_STAGE_COUNT; ++i)
 	{
-		m_CommandBuffers[i].resize(frameInFlight);
-		for (size_t frameIndex = 0; frameIndex < frameInFlight; ++frameIndex)
-		{
-			IKCommandBufferPtr& buffer = m_CommandBuffers[i][frameIndex];
-			ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-			ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
-		}
+		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
+		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
+		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
 	}
 
 	return true;
@@ -65,11 +61,7 @@ bool KGBuffer::UnInit()
 
 	for (uint32_t i = 0; i < GBUFFER_STAGE_COUNT; ++i)
 	{
-		for (IKCommandBufferPtr& buffer : m_CommandBuffers[i])
-		{
-			SAFE_UNINIT(buffer);
-		}
-		m_CommandBuffers[i].clear();
+		SAFE_UNINIT(m_CommandBuffers[i]);
 	}
 
 	SAFE_UNINIT(m_GBufferSampler);
@@ -256,7 +248,7 @@ bool KGBuffer::UpdatePreDepth(IKCommandBufferPtr primaryBuffer, uint32_t frameIn
 			}
 		}
 
-		IKCommandBufferPtr commandBuffer = m_CommandBuffers[GBUFFER_STAGE_PRE_Z][frameIndex];
+		IKCommandBufferPtr commandBuffer = m_CommandBuffers[GBUFFER_STAGE_PRE_Z];
 
 		primaryBuffer->BeginDebugMarker("PreZ", glm::vec4(0, 1, 0, 0));
 		primaryBuffer->BeginRenderPass(m_PreZPass, SUBPASS_CONTENTS_SECONDARY);
@@ -406,7 +398,7 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 			}
 		}
 
-		IKCommandBufferPtr commandBuffer = m_CommandBuffers[GBUFFER_STAGE_DEFAULT][frameIndex];
+		IKCommandBufferPtr commandBuffer = m_CommandBuffers[GBUFFER_STAGE_DEFAULT];
 
 		primaryBuffer->BeginDebugMarker("GBuffer", glm::vec4(0, 1, 0, 0));
 		primaryBuffer->BeginRenderPass(m_MainPass, SUBPASS_CONTENTS_SECONDARY);

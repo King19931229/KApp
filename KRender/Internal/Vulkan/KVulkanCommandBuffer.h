@@ -20,7 +20,7 @@ public:
 class KVulkanCommandBuffer : public IKCommandBuffer
 {
 protected:
-	VkCommandBuffer m_CommandBuffer;
+	std::vector<VkCommandBuffer> m_CommandBuffers;
 	VkCommandPool m_ParentPool;
 	VkCommandBufferLevel m_CommandLevel;
 public:
@@ -61,6 +61,6 @@ public:
 	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout layout);
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest);
 
-	inline VkCommandBuffer GetVkHandle() { return m_CommandBuffer; }
+	VkCommandBuffer GetVkHandle();
 	inline VkCommandBufferLevel GetVkBufferLevel() { return m_CommandLevel; }
 };

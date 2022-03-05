@@ -29,7 +29,7 @@ protected:
 		GBUFFER_STAGE_COUNT
 	};
 
-	std::vector<IKCommandBufferPtr> m_CommandBuffers[GBUFFER_STAGE_COUNT];
+	IKCommandBufferPtr m_CommandBuffers[GBUFFER_STAGE_COUNT];
 	KRenderStageStatistics m_Statistics[GBUFFER_STAGE_COUNT];
 
 	IKCommandPoolPtr m_CommandPool;

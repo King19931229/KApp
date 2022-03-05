@@ -68,6 +68,7 @@ namespace KRenderGlobal
 
 	extern uint32_t CurrentFrameIndex;
 	extern uint32_t CurrentFrameNum;
+	extern uint32_t NumFramesInFlight;
 
 	// Render Context
 	extern IKRenderDevice* RenderDevice;

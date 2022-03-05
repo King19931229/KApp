@@ -39,8 +39,8 @@ protected:
 	std::vector<IKPipelinePtr> m_CubePipelines;
 	std::vector<IKPipelinePtr> m_PickPipelines;
 
-	std::vector<IKCommandBufferPtr> m_CommandBuffers;
-	std::vector<IKCommandBufferPtr> m_ClearCommandBuffers;
+	IKCommandBufferPtr m_CommandBuffer;
+	IKCommandBufferPtr m_ClearCommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
 	// buffer
