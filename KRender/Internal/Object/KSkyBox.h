@@ -10,7 +10,7 @@ protected:
 	static const uint16_t ms_Indices[36];
 	static const VertexFormat ms_VertexFormats[1];
 
-	std::vector<IKPipelinePtr> m_Pipelines;
+	IKPipelinePtr m_Pipeline;
 
 	IKCommandBufferPtr m_CommandBuffer;
 	IKCommandPoolPtr m_CommandPool;

@@ -34,16 +34,16 @@ protected:
 
 	static const VertexFormat ms_VertexFormats[1];
 
-	// pipeline
-	std::vector<IKPipelinePtr> m_BackGroundPipelines;
-	std::vector<IKPipelinePtr> m_CubePipelines;
-	std::vector<IKPipelinePtr> m_PickPipelines;
+	// Pipeline
+	IKPipelinePtr m_BackGroundPipeline;
+	IKPipelinePtr m_CubePipeline;
+	IKPipelinePtr m_PickPipeline;
 
 	IKCommandBufferPtr m_CommandBuffer;
 	IKCommandBufferPtr m_ClearCommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
-	// buffer
+	// Buffer
 	IKVertexBufferPtr m_BackGroundVertexBuffer;
 	IKIndexBufferPtr m_BackGroundIndexBuffer;
 	
@@ -56,11 +56,11 @@ protected:
 	IKVertexBufferPtr m_CornerVertexBuffer[8];
 	IKIndexBufferPtr m_CornerIndexBuffer;
 
-	// cube display
+	// Cube Display
 	KVertexData m_CubeVertexData;
 	KIndexData m_CubeIndexData[6];
 
-	// hover display
+	// Hover Display
 	KVertexData m_BackGroundVertexData;
 	KIndexData m_BackGroundIndexData;
 
@@ -72,7 +72,7 @@ protected:
 	KVertexData m_CornerVertexData[8];
 	KIndexData m_CornerIndexData;
 
-	// shader
+	// Shader
 	IKShaderPtr m_VertexShader;
 	IKShaderPtr m_FragmentShader;
 

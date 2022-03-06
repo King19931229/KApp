@@ -78,7 +78,7 @@ protected:
 	IKStorageBufferPtr m_OctreeMipmapDataBuffer;
 	IKStorageBufferPtr m_BuildInfoBuffer;
 	IKStorageBufferPtr m_BuildIndirectBuffer;
-	std::vector<IKStorageBufferPtr> m_OctreeCameraBuffers;
+	IKStorageBufferPtr m_OctreeCameraBuffer;
 
 	IKComputePipelinePtr m_OctreeTagNodePipeline;
 	IKComputePipelinePtr m_OctreeInitNodePipeline;
@@ -118,11 +118,11 @@ protected:
 	IKShaderPtr m_VoxelWireFrameDrawGS;
 	IKShaderPtr m_VoxelDrawFS;
 
-	std::vector<IKPipelinePtr> m_VoxelDrawPipelines;
-	std::vector<IKPipelinePtr> m_VoxelWireFrameDrawPipelines;
+	IKPipelinePtr m_VoxelDrawPipeline;
+	IKPipelinePtr m_VoxelWireFrameDrawPipeline;
 
-	std::vector<IKPipelinePtr> m_VoxelDrawOctreePipelines;
-	std::vector<IKPipelinePtr> m_VoxelWireFrameDrawOctreePipelines;
+	IKPipelinePtr m_VoxelDrawOctreePipeline;
+	IKPipelinePtr m_VoxelWireFrameDrawOctreePipeline;
 
 	IKComputePipelinePtr m_ClearDynamicPipeline;
 
@@ -133,7 +133,6 @@ protected:
 	IKComputePipelinePtr m_InjectPropagationOctreePipeline;
 
 	IKComputePipelinePtr m_MipmapBasePipeline;
-	// TODO 干掉这个Pipeline
 	IKComputePipelinePtr m_MipmapBaseOctreePipeline;
 	IKComputePipelinePtr m_MipmapVolumePipeline;
 
@@ -145,9 +144,9 @@ protected:
 	IKShaderPtr m_LightPassOctreeFS;
 	IKShaderPtr m_OctreeRayTestFS;
 
-	std::vector<IKPipelinePtr> m_LightPassPipelines;
-	std::vector<IKPipelinePtr> m_LightPassOctreePipelines;
-	std::vector<IKPipelinePtr> m_OctreeRayTestPipelines;
+	IKPipelinePtr m_LightPassPipeline;
+	IKPipelinePtr m_LightPassOctreePipeline;
+	IKPipelinePtr m_OctreeRayTestPipeline;
 
 	KVertexData m_VoxelDrawVertexData;
 

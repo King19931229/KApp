@@ -10,13 +10,10 @@
 class KMaterialSubMesh
 {
 protected:
-	typedef std::vector<IKPipelinePtr> FramePipelineList;
-
 	KSubMesh*				m_pSubMesh;
 	IKMaterial*				m_pMaterial;
 
-	size_t					m_FrameInFlight;
-	FramePipelineList		m_Pipelines[PIPELINE_STAGE_COUNT];
+	IKPipelinePtr			m_Pipelines[PIPELINE_STAGE_COUNT];
 
 	IKShaderPtr				m_DebugVSShader;
 	IKShaderPtr				m_DebugFSShader;
@@ -41,7 +38,7 @@ protected:
 	bool					m_MateriaShaderTriggerLoaded;
 	bool					m_MaterialPipelineCreated;
 
-	bool CreateFixedPipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline);
+	bool CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& pipeline);
 	bool GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderCommand& command);
 
 	bool CreateFixedPipeline();

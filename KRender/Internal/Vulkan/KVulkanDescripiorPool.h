@@ -37,7 +37,7 @@ protected:
 	std::vector<DescriptorSetBlockList> m_Descriptors;
 
 	std::vector<VkDescriptorImageInfo> m_DynamicImageWriteInfo;
-	std::vector<VkDescriptorBufferInfo> m_StaticUniformBufferWriteInfo;
+	std::vector<VkDescriptorBufferInfo> m_UniformBufferWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_DynamicUniformBufferWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_DynamicStorageBufferWriteInfo;
 
@@ -47,7 +47,7 @@ protected:
 
 	size_t m_CurrentFrame;
 	size_t m_BlockSize;
-	uint32_t m_StaticUniformBufferCount;
+	uint32_t m_UniformBufferCount;
 	uint32_t m_DynamicUniformBufferCount;
 	uint32_t m_DynamicStorageBufferCount;
 	uint32_t m_ImageCount;

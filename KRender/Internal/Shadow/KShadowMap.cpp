@@ -66,7 +66,7 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 		glm::mat4 proj = m_Camera.GetProjectiveMatrix();
 		glm::vec4 parameters = glm::vec4(m_Camera.GetNear(), m_Camera.GetFar(), m_Camera.GetFov(), m_Camera.GetAspect());
 
-		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_SHADOW);
+		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_SHADOW);
 
 		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_SHADOW);
 		const KConstantDefinition::ConstantBufferDetail& details = KConstantDefinition::GetConstantBufferDetail(CBT_SHADOW);

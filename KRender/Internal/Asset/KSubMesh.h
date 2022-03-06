@@ -15,8 +15,6 @@ class KSubMesh
 	friend class KMeshSerializerV0;
 	friend class KMaterialSubMesh;
 protected:
-	typedef std::vector<IKPipelinePtr> FramePipelineList;
-
 	KMesh*						m_pParent;
 	IKMaterial*					m_pMaterial;
 	KMaterialTextureBinding		m_Texture;

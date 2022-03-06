@@ -353,7 +353,7 @@ void KMaterial::BindSampler(IKPipelinePtr pipeline, const KShaderInformation& in
 	}
 }
 
-IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader)
+IKPipelinePtr KMaterial::CreatePipelineImpl(const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader)
 {
 	if (GetVSParameter() && GetFSParameter())
 	{
@@ -408,7 +408,7 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexForma
 			if (bindingFlags[i])
 			{
 				ConstantBufferType bufferType = (ConstantBufferType)(CBT_STATIC_BEGIN + i);
-				IKUniformBufferPtr staticConstantBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, bufferType);
+				IKUniformBufferPtr staticConstantBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(bufferType);
 				pipeline->SetConstantBuffer(bufferType, bindingFlags[i], staticConstantBuffer);
 			}
 		}
@@ -424,7 +424,7 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(size_t frameIndex, const VertexForma
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreateMeshPipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr meshShader, IKShaderPtr fragmentShader)
+IKPipelinePtr KMaterial::CreateMeshPipelineImpl(const VertexFormat* formats, size_t count, IKShaderPtr meshShader, IKShaderPtr fragmentShader)
 {
 	if (GetFSParameter())
 	{
@@ -469,7 +469,7 @@ IKPipelinePtr KMaterial::CreateMeshPipelineImpl(size_t frameIndex, const VertexF
 			if (bindingFlags[i])
 			{
 				ConstantBufferType bufferType = (ConstantBufferType)(CBT_STATIC_BEGIN + i);
-				IKUniformBufferPtr staticConstantBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, bufferType);
+				IKUniformBufferPtr staticConstantBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(bufferType);
 				pipeline->SetConstantBuffer(bufferType, bindingFlags[i], staticConstantBuffer);
 			}
 		}
@@ -485,29 +485,29 @@ IKPipelinePtr KMaterial::CreateMeshPipelineImpl(size_t frameIndex, const VertexF
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
+IKPipelinePtr KMaterial::CreatePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
 	IKShaderPtr vsShader = m_Shader.GetVSShader(formats, count);
 	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding, false);
 	if (vsShader && fsShader)
 	{
-		return CreatePipelineImpl(frameIndex, formats, count, vsShader, fsShader);
+		return CreatePipelineImpl(formats, count, vsShader, fsShader);
 	}
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreateMeshPipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
+IKPipelinePtr KMaterial::CreateMeshPipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
 	IKShaderPtr msShader = m_Shader.GetMSShader(formats, count);
 	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding, true);
 	if (msShader && fsShader)
 	{
-		return CreateMeshPipelineImpl(frameIndex, formats, count, msShader, fsShader);
+		return CreateMeshPipelineImpl(formats, count, msShader, fsShader);
 	}
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
+IKPipelinePtr KMaterial::CreateInstancePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding)
 {
 	std::vector<VertexFormat> instanceFormats;
 	instanceFormats.reserve(count + 1);
@@ -521,7 +521,7 @@ IKPipelinePtr KMaterial::CreateInstancePipeline(size_t frameIndex, const VertexF
 	IKShaderPtr fsShader = m_Shader.GetFSShader(formats, count, textureBinding, false);
 	if (vsInstanceShader && fsShader)
 	{
-		return CreatePipelineImpl(frameIndex, instanceFormats.data(), instanceFormats.size(), vsInstanceShader, fsShader);
+		return CreatePipelineImpl(instanceFormats.data(), instanceFormats.size(), vsInstanceShader, fsShader);
 	}
 	return nullptr;
 }

@@ -2,6 +2,7 @@
 #include "KVulkanHelper.h"
 #include "KVulkanInitializer.h"
 #include "KVulkanGlobal.h"
+#include "Internal/KRenderGlobal.h"
 
 KVulkanBuffer::KVulkanBuffer()
 	: m_BufferSize(0)
@@ -419,32 +420,51 @@ KVulkanUniformBuffer::~KVulkanUniformBuffer()
 bool KVulkanUniformBuffer::InitDevice()
 {
 	VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	return m_Buffer.InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, true);
+	m_Buffers.resize(KRenderGlobal::NumFramesInFlight);
+	for (size_t i = 0; i < m_Buffers.size(); ++i)
+	{
+		m_Buffers[i].InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, true);
+	}
+	return true;
 }
 
 bool KVulkanUniformBuffer::UnInit()
 {
-	return m_Buffer.UnInit();
+	for (size_t i = 0; i < m_Buffers.size(); ++i)
+	{
+		m_Buffers[i].UnInit();
+	}
+	return true;
+}
+
+KVulkanBuffer& KVulkanUniformBuffer::GetVulkanBuffer()
+{
+	ASSERT_RESULT(KRenderGlobal::CurrentFrameIndex < m_Buffers.size());
+	return m_Buffers[KRenderGlobal::CurrentFrameIndex];
 }
 
 bool KVulkanUniformBuffer::Map(void** ppData)
 {
-	return m_Buffer.Map(ppData);
+	KVulkanBuffer& buffer = GetVulkanBuffer();
+	return buffer.Map(ppData);
 }
 
 bool KVulkanUniformBuffer::UnMap()
 {
-	return m_Buffer.UnMap();
+	KVulkanBuffer& buffer = GetVulkanBuffer();
+	return buffer.UnMap();
 }
 
 bool KVulkanUniformBuffer::Write(const void* pData)
 {
-	return m_Buffer.Write(pData);
+	KVulkanBuffer& buffer = GetVulkanBuffer();
+	return buffer.Write(pData);
 }
 
 bool KVulkanUniformBuffer::Read(void* pData)
 {
-	return m_Buffer.Read(pData);
+	KVulkanBuffer& buffer = GetVulkanBuffer();
+	return buffer.Read(pData);
 }
 
 bool KVulkanUniformBuffer::Reference(void **ppData)
@@ -476,5 +496,6 @@ bool KVulkanUniformBuffer::CopyTo(IKUniformBufferPtr pDest)
 
 VkBuffer KVulkanUniformBuffer::GetVulkanHandle()
 {
-	return m_Buffer.GetVulkanHandle();
+	KVulkanBuffer& buffer = GetVulkanBuffer();
+	return buffer.GetVulkanHandle();
 }

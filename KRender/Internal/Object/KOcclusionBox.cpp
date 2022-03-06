@@ -100,9 +100,8 @@ void KOcclusionBox::PreparePipeline()
 
 //#define DEBUG_OCCLUSION_BOX
 
-	for (size_t i = 0; i < m_PipelinesFrontFace.size(); ++i)
 	{
-		IKPipelinePtr pipeline = m_PipelinesFrontFace[i];
+		IKPipelinePtr& pipeline = m_PipelineFrontFace;
 		pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
@@ -124,15 +123,14 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetColorWrite(false, false, false, false);
 #endif
 
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
 
-	for (size_t i = 0; i < m_PipelinesInstanceFrontFace.size(); ++i)
 	{
-		IKPipelinePtr pipeline = m_PipelinesInstanceFrontFace[i];
+		IKPipelinePtr& pipeline = m_PipelineInstanceFrontFace;
 		pipeline->SetVertexBinding(ms_VertexInstanceFormats, ARRAY_SIZE(ms_VertexInstanceFormats));
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
@@ -155,15 +153,14 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetColorWrite(false, false, false, false);
 #endif
 
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
 
-	for (size_t i = 0; i < m_PipelinesBackFace.size(); ++i)
 	{
-		IKPipelinePtr pipeline = m_PipelinesBackFace[i];
+		IKPipelinePtr& pipeline = m_PipelineBackFace;
 		pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
@@ -186,15 +183,14 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetColorWrite(false, false, false, false);
 #endif
 
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 	}
 
-	for (size_t i = 0; i < m_PipelinesInstanceBackFace.size(); ++i)
 	{
-		IKPipelinePtr pipeline = m_PipelinesInstanceBackFace[i];
+		IKPipelinePtr& pipeline = m_PipelineInstanceBackFace;
 		pipeline->SetVertexBinding(ms_VertexInstanceFormats, ARRAY_SIZE(ms_VertexInstanceFormats));
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
@@ -217,7 +213,7 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetColorWrite(false, false, false, false);
 #endif
 
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
@@ -251,24 +247,16 @@ bool KOcclusionBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 	renderDevice->CreateVertexBuffer(m_VertexBuffer);
 	renderDevice->CreateIndexBuffer(m_IndexBuffer);
 
-	m_PipelinesFrontFace.resize(frameInFlight);
-	m_PipelinesBackFace.resize(frameInFlight);
-	m_PipelinesInstanceFrontFace.resize(frameInFlight);
-	m_PipelinesInstanceBackFace.resize(frameInFlight);
-
 	renderDevice->CreateCommandBuffer(m_CommandBuffer);
 	m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
 
 	m_InstanceBuffers.resize(frameInFlight);
 
-	for (size_t i = 0; i < frameInFlight; ++i)
-	{
-		KRenderGlobal::RenderDevice->CreatePipeline(m_PipelinesFrontFace[i]);
-		KRenderGlobal::RenderDevice->CreatePipeline(m_PipelinesBackFace[i]);
+	KRenderGlobal::RenderDevice->CreatePipeline(m_PipelineFrontFace);
+	KRenderGlobal::RenderDevice->CreatePipeline(m_PipelineBackFace);
 
-		KRenderGlobal::RenderDevice->CreatePipeline(m_PipelinesInstanceFrontFace[i]);
-		KRenderGlobal::RenderDevice->CreatePipeline(m_PipelinesInstanceBackFace[i]);
-	}
+	KRenderGlobal::RenderDevice->CreatePipeline(m_PipelineInstanceFrontFace);
+	KRenderGlobal::RenderDevice->CreatePipeline(m_PipelineInstanceBackFace);
 
 	LoadResource();
 	PreparePipeline();
@@ -279,29 +267,10 @@ bool KOcclusionBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 
 bool KOcclusionBox::UnInit()
 {
-	for (IKPipelinePtr& pipeline : m_PipelinesFrontFace)
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_PipelinesFrontFace.clear();
-
-	for (IKPipelinePtr& pipeline : m_PipelinesBackFace)
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_PipelinesBackFace.clear();
-
-	for (IKPipelinePtr& pipeline : m_PipelinesInstanceFrontFace)
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_PipelinesInstanceFrontFace.clear();
-
-	for (IKPipelinePtr& pipeline : m_PipelinesInstanceBackFace)
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_PipelinesInstanceBackFace.clear();
+	SAFE_UNINIT(m_PipelineFrontFace);
+	SAFE_UNINIT(m_PipelineBackFace);
+	SAFE_UNINIT(m_PipelineInstanceFrontFace);
+	SAFE_UNINIT(m_PipelineInstanceBackFace);
 
 	SAFE_UNINIT(m_CommandBuffer);
 
@@ -599,13 +568,13 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 
 							// Front Face Pass
 							{
-								command.pipeline = m_PipelinesFrontFace[frameIndex];
+								command.pipeline = m_PipelineFrontFace;
 								command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 								commandBuffer->Render(command);
 							}
 							// Back Face Pass
 							{
-								command.pipeline = m_PipelinesBackFace[frameIndex];
+								command.pipeline = m_PipelineBackFace;
 								command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 								commandBuffer->Render(command);
 							}
@@ -666,13 +635,13 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 
 						// Front Face Pass
 						{
-							command.pipeline = m_PipelinesInstanceFrontFace[frameIndex];
+							command.pipeline = m_PipelineInstanceFrontFace;
 							command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 							commandBuffer->Render(command);
 						}
 						// Back Face Pass
 						{
-							command.pipeline = m_PipelinesInstanceBackFace[frameIndex];
+							command.pipeline = m_PipelineInstanceBackFace;
 							command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 							commandBuffer->Render(command);
 						}

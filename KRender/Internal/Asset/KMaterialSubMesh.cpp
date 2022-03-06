@@ -10,7 +10,6 @@
 KMaterialSubMesh::KMaterialSubMesh(KSubMesh* mesh)
 	: m_pSubMesh(mesh),
 	m_pMaterial(nullptr),
-	m_FrameInFlight(0),
 	m_MaterialPipelineCreated(false)
 {
 }
@@ -37,23 +36,18 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/voxelzation_sparse.frag", m_VoxelSparseFSShader, true));
 
-	for (PipelineStage stage : 
+	for (PipelineStage stage :
 	{
-			PIPELINE_STAGE_PRE_Z,
-			PIPELINE_STAGE_PRE_Z_INSTANCE,
-			PIPELINE_STAGE_SHADOW_GEN,
-			PIPELINE_STAGE_CASCADED_SHADOW_GEN,
-			PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE
+		PIPELINE_STAGE_PRE_Z,
+		PIPELINE_STAGE_PRE_Z_INSTANCE,
+		PIPELINE_STAGE_SHADOW_GEN,
+		PIPELINE_STAGE_CASCADED_SHADOW_GEN,
+		PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE
 	})
 	{
-		FramePipelineList& pipelines = m_Pipelines[stage];
-		pipelines.resize(m_FrameInFlight);
-		for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
-		{
-			IKPipelinePtr& pipeline = pipelines[frameIndex];
-			assert(!pipeline);
-			CreateFixedPipeline(stage, frameIndex, pipeline);
-		}
+		IKPipelinePtr& pipeline = m_Pipelines[stage];
+		assert(!pipeline);
+		CreateFixedPipeline(stage, pipeline);
 	}
 
 	return true;
@@ -66,7 +60,6 @@ bool KMaterialSubMesh::Init(IKMaterial* material, size_t frameInFlight)
 	ASSERT_RESULT(material);
 
 	m_pMaterial = material;
-	m_FrameInFlight = frameInFlight;
 	m_MaterialPipelineCreated = false;
 	m_MateriaShaderTriggerLoaded = false;
 
@@ -83,27 +76,20 @@ bool KMaterialSubMesh::InitDebug(DebugPrimitive primtive, size_t frameInFlight)
 	PipelineStage debugStage = PIPELINE_STAGE_UNKNOWN;
 	switch (primtive)
 	{
-	case DEBUG_PRIMITIVE_LINE:
-		debugStage = PIPELINE_STAGE_DEBUG_LINE;
-		break;
-	case DEBUG_PRIMITIVE_TRIANGLE:
-		debugStage = PIPELINE_STAGE_DEBUG_TRIANGLE;
-		break;
-	default:
-		assert(false && "impossible to reach");
-		break;
+		case DEBUG_PRIMITIVE_LINE:
+			debugStage = PIPELINE_STAGE_DEBUG_LINE;
+			break;
+		case DEBUG_PRIMITIVE_TRIANGLE:
+			debugStage = PIPELINE_STAGE_DEBUG_TRIANGLE;
+			break;
+		default:
+			assert(false && "impossible to reach");
+			break;
 	}
 
-	m_FrameInFlight = frameInFlight;
-
-	FramePipelineList& pipelines = m_Pipelines[debugStage];
-	pipelines.resize(m_FrameInFlight);
-	for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
-	{
-		IKPipelinePtr& pipeline = pipelines[frameIndex];
-		assert(pipeline == nullptr);
-		CreateFixedPipeline(debugStage, frameIndex, pipeline);
-	}
+	IKPipelinePtr& pipeline = m_Pipelines[debugStage];
+	assert(pipeline == nullptr);
+	CreateFixedPipeline(debugStage, pipeline);
 
 	return true;
 }
@@ -111,7 +97,6 @@ bool KMaterialSubMesh::InitDebug(DebugPrimitive primtive, size_t frameInFlight)
 bool KMaterialSubMesh::UnInit()
 {
 	m_pMaterial = nullptr;
-	m_FrameInFlight = 0;
 
 #define SAFE_RELEASE_SHADER(shader)\
 	if(shader)\
@@ -137,19 +122,10 @@ bool KMaterialSubMesh::UnInit()
 
 	for (size_t i = 0; i < PIPELINE_STAGE_COUNT; ++i)
 	{
-		FramePipelineList& pipelines = m_Pipelines[i];
-		for (IKPipelinePtr& pipeline : pipelines)
-		{
-			if (pipeline)
-			{
-				SAFE_UNINIT(pipeline);
-			}
-		}
-		pipelines.clear();
+		SAFE_UNINIT(m_Pipelines[i]);
 	}
 
 	m_GBufferShaderGroup.UnInit();
-
 	m_MaterialPipelineCreated = false;
 
 	return true;
@@ -185,12 +161,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 		for (PipelineStage stage : {PIPELINE_STAGE_OPAQUE, PIPELINE_STAGE_OPAQUE_INSTANCE, PIPELINE_STAGE_TRANSPRANT})
 		{
-			FramePipelineList& pipelineList = m_Pipelines[stage];
-			for (size_t frameIdx = 0; frameIdx < pipelineList.size(); ++frameIdx)
-			{
-				SAFE_UNINIT(pipelineList[frameIdx]);
-			}
-			pipelineList.clear();
+			SAFE_UNINIT(m_Pipelines[stage]);
 		}
 
 		enum
@@ -202,19 +173,19 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		};
 
 		// 构造所需要的Pipeline
-		FramePipelineList* pipelineLists[IDX_COUNT] = { nullptr };
+		IKPipelinePtr* pipelines[IDX_COUNT] = { nullptr };
 		
 		switch (blendMode)
 		{
 			case OPAQUE:
-				pipelineLists[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE];
-				pipelineLists[MESH_IDX] = msShader ? &m_Pipelines[PIPELINE_STAGE_OPAQUE_MESH] : nullptr;
-				pipelineLists[INSTANCE_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE_INSTANCE];
+				pipelines[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE];
+				pipelines[MESH_IDX] = msShader ? &m_Pipelines[PIPELINE_STAGE_OPAQUE_MESH] : nullptr;
+				pipelines[INSTANCE_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE_INSTANCE];
 				break;
 			case TRANSRPANT:
-				pipelineLists[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_TRANSPRANT];
-				pipelineLists[MESH_IDX] = nullptr;
-				pipelineLists[INSTANCE_IDX] = nullptr;
+				pipelines[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_TRANSPRANT];
+				pipelines[MESH_IDX] = nullptr;
+				pipelines[INSTANCE_IDX] = nullptr;
 				break;
 			default:
 				break;
@@ -225,40 +196,24 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 		for (size_t i = 0; i < IDX_COUNT; ++i)
 		{
-			if (pipelineLists[i])
+			if (pipelines[i])
 			{
-				FramePipelineList& pipelineList = *pipelineLists[i];
+				IKPipelinePtr& pipeline = *pipelines[i];
 
-				for (size_t frameIdx = 0; frameIdx < pipelineList.size(); ++frameIdx)
+				if (i == DEFAULT_IDX)
 				{
-					SAFE_UNINIT(pipelineList[frameIdx]);
+					pipeline = m_pMaterial->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
 				}
-				pipelineList.clear();
-
-				pipelineList.resize(m_FrameInFlight);
-				for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)
+				else if (i == MESH_IDX)
 				{
-					if (i == DEFAULT_IDX)
-					{
-						pipelineList[frameIdx] = m_pMaterial->CreatePipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
-						ASSERT_RESULT(pipelineList[frameIdx]);
-					}
-					else if (i == MESH_IDX)
-					{
-						pipelineList[frameIdx] = m_pMaterial->CreateMeshPipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
-						ASSERT_RESULT(pipelineList[frameIdx]);
-					}
-					else if (i == INSTANCE_IDX)
-					{
-						pipelineList[frameIdx] = m_pMaterial->CreateInstancePipeline(frameIdx, vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
-						ASSERT_RESULT(pipelineList[frameIdx]);
-					}
+					pipeline = m_pMaterial->CreateMeshPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
+				}
+				else if (i == INSTANCE_IDX)
+				{
+					pipeline = m_pMaterial->CreateInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
 				}
 
-				for (size_t frameIdx = 0; frameIdx < m_FrameInFlight; ++frameIdx)
-				{
-					ASSERT_RESULT(pipelineList[frameIdx]->Init());
-				}
+				ASSERT_RESULT(pipeline->Init());
 			}
 		}
 		return true;
@@ -268,17 +223,8 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 bool KMaterialSubMesh::CreateGBufferPipeline()
 {
-	for (IKPipelinePtr pipeline : m_Pipelines[PIPELINE_STAGE_GBUFFER])
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_Pipelines[PIPELINE_STAGE_GBUFFER].resize(m_FrameInFlight);
-
-	for (IKPipelinePtr pipeline : m_Pipelines[PIPELINE_STAGE_GBUFFER_INSTANCE])
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_Pipelines[PIPELINE_STAGE_GBUFFER_INSTANCE].resize(m_FrameInFlight);
+	SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_GBUFFER]);
+	SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_GBUFFER_INSTANCE]);
 
 	if (m_pSubMesh && m_pMaterial)
 	{
@@ -292,45 +238,41 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 		IKShaderPtr vsInstanceShader = m_GBufferShaderGroup.GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		IKShaderPtr fsShader = m_GBufferShaderGroup.GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture, false);
 
-		for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
+		for (PipelineStage stage : {PIPELINE_STAGE_GBUFFER, PIPELINE_STAGE_GBUFFER_INSTANCE})
 		{
-			for (PipelineStage stage : {PIPELINE_STAGE_GBUFFER, PIPELINE_STAGE_GBUFFER_INSTANCE})
+			IKPipelinePtr pipeline = nullptr;
+			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+
+			if (stage == PIPELINE_STAGE_GBUFFER)
 			{
-				IKPipelinePtr pipeline = nullptr;
-				KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
-
-				if (stage == PIPELINE_STAGE_GBUFFER)
-				{
-					pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
-					pipeline->SetShader(ST_VERTEX, vsShader);
-				}
-				else if (stage == PIPELINE_STAGE_GBUFFER_INSTANCE)
-				{
-					std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
-					instanceFormats.push_back(VF_INSTANCE);
-					pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
-					pipeline->SetShader(ST_VERTEX, vsInstanceShader);
-				}
-
-				pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-				pipeline->SetBlendEnable(false);
-				pipeline->SetCullMode(CM_NONE);
-				pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-				pipeline->SetPolygonMode(PM_FILL);
-				pipeline->SetColorWrite(true, true, true, true);
-				pipeline->SetDepthFunc(CF_EQUAL, false, true);
-
-				pipeline->SetShader(ST_FRAGMENT, fsShader);
-
-				IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
-				pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
-
-				ASSERT_RESULT(pipeline->Init());
-
-				m_Pipelines[stage][frameIndex] = pipeline;
+				pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+				pipeline->SetShader(ST_VERTEX, vsShader);
 			}
-		}
+			else if (stage == PIPELINE_STAGE_GBUFFER_INSTANCE)
+			{
+				std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
+				instanceFormats.push_back(VF_INSTANCE);
+				pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
+				pipeline->SetShader(ST_VERTEX, vsInstanceShader);
+			}
 
+			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+			pipeline->SetBlendEnable(false);
+			pipeline->SetCullMode(CM_NONE);
+			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+			pipeline->SetPolygonMode(PM_FILL);
+			pipeline->SetColorWrite(true, true, true, true);
+			pipeline->SetDepthFunc(CF_EQUAL, false, true);
+
+			pipeline->SetShader(ST_FRAGMENT, fsShader);
+
+			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+			pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+
+			ASSERT_RESULT(pipeline->Init());
+
+			m_Pipelines[stage] = pipeline;
+		}
 		return true;
 	}
 
@@ -340,130 +282,110 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 bool KMaterialSubMesh::CreateVoxelPipeline()
 {
 	{
-		FramePipelineList& pipelines = m_Pipelines[PIPELINE_STAGE_VOXEL];
+		SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_VOXEL]);
 
-		for (size_t i = 0; i < pipelines.size(); ++i)
+		IKPipelinePtr& pipeline = m_Pipelines[PIPELINE_STAGE_VOXEL];
+		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
+
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+
+		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+		pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_NEVER, false, false);
+
+		pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
+		pipeline->SetShader(ST_FRAGMENT, m_VoxelFSShader);
+
+		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
+
+		pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, KRenderGlobal::Voxilzer.GetVoxelAlbedo(), EF_R32_UINT);
+		pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal(), EF_R32_UINT);
+		pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive(), EF_R32_UINT);
+		pipeline->SetStorageImage(VOXEL_BINDING_STATIC_FLAG, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
+
+		const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
+		for (uint8_t i = 0; i < textureBinding.GetNumSlot(); ++i)
 		{
-			SAFE_UNINIT(pipelines[i]);
-		}
+			IKTexturePtr texture = textureBinding.GetTexture(i);
+			IKSamplerPtr sampler = textureBinding.GetSampler(i);
 
-		pipelines.resize(m_FrameInFlight);
-
-		for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
-		{
-			IKPipelinePtr& pipeline = pipelines[frameIndex];
-			const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
-
-			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
-
-			pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
-			pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
-
-			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-			pipeline->SetBlendEnable(false);
-			pipeline->SetCullMode(CM_NONE);
-			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-			pipeline->SetPolygonMode(PM_FILL);
-			pipeline->SetColorWrite(true, true, true, true);
-			pipeline->SetDepthFunc(CF_NEVER, false, false);
-
-			pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
-			pipeline->SetShader(ST_FRAGMENT, m_VoxelFSShader);
-
-			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_VOXEL);
-			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
-
-			pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, KRenderGlobal::Voxilzer.GetVoxelAlbedo(), EF_R32_UINT);
-			pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal(), EF_R32_UINT);
-			pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive(), EF_R32_UINT);
-			pipeline->SetStorageImage(VOXEL_BINDING_STATIC_FLAG, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
-
-			const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
-			for (uint8_t i = 0; i < textureBinding.GetNumSlot(); ++i)
+			if (!texture || !sampler)
 			{
-				IKTexturePtr texture = textureBinding.GetTexture(i);
-				IKSamplerPtr sampler = textureBinding.GetSampler(i);
-
-				if (!texture || !sampler)
-				{
-					KRenderGlobal::TextureManager.GetErrorTexture(texture);
-					KRenderGlobal::TextureManager.GetErrorSampler(sampler);
-				}
-
-				if (i == MTS_DIFFUSE)
-				{
-					pipeline->SetSampler(VOXEL_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
-				}
+				KRenderGlobal::TextureManager.GetErrorTexture(texture);
+				KRenderGlobal::TextureManager.GetErrorSampler(sampler);
 			}
 
-			ASSERT_RESULT(pipeline->Init());
+			if (i == MTS_DIFFUSE)
+			{
+				pipeline->SetSampler(VOXEL_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
+			}
 		}
+
+		ASSERT_RESULT(pipeline->Init());
 	}
 
 	{
-		FramePipelineList& pipelines = m_Pipelines[PIPELINE_STAGE_SPARSE_VOXEL];
+		SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_SPARSE_VOXEL]);
 
-		for (size_t i = 0; i < pipelines.size(); ++i)
+		IKPipelinePtr& pipeline = m_Pipelines[PIPELINE_STAGE_SPARSE_VOXEL];
+		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
+
+		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+
+		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+		pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_NEVER, false, false);
+
+		pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
+		pipeline->SetShader(ST_FRAGMENT, m_VoxelSparseFSShader);
+
+		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
+
+		pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTER, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCounterBuffer());
+		pipeline->SetStorageBuffer(VOXEL_BINDING_FRAGMENTLIST, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetFragmentlistBuffer());
+		pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTONLY, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCountOnlyBuffer());
+
+		const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
+		for (uint8_t i = 0; i < textureBinding.GetNumSlot(); ++i)
 		{
-			SAFE_UNINIT(pipelines[i]);
-		}
+			IKTexturePtr texture = textureBinding.GetTexture(i);
+			IKSamplerPtr sampler = textureBinding.GetSampler(i);
 
-		pipelines.resize(m_FrameInFlight);
-
-		for (size_t frameIndex = 0; frameIndex < m_FrameInFlight; ++frameIndex)
-		{
-			IKPipelinePtr& pipeline = pipelines[frameIndex];
-			const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
-
-			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
-
-			pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
-			pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
-
-			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-			pipeline->SetBlendEnable(false);
-			pipeline->SetCullMode(CM_NONE);
-			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-			pipeline->SetPolygonMode(PM_FILL);
-			pipeline->SetColorWrite(true, true, true, true);
-			pipeline->SetDepthFunc(CF_NEVER, false, false);
-
-			pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
-			pipeline->SetShader(ST_FRAGMENT, m_VoxelSparseFSShader);
-
-			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_VOXEL);
-			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
-
-			pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTER, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCounterBuffer());
-			pipeline->SetStorageBuffer(VOXEL_BINDING_FRAGMENTLIST, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetFragmentlistBuffer());
-			pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTONLY, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCountOnlyBuffer());
-
-			const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
-			for (uint8_t i = 0; i < textureBinding.GetNumSlot(); ++i)
+			if (!texture || !sampler)
 			{
-				IKTexturePtr texture = textureBinding.GetTexture(i);
-				IKSamplerPtr sampler = textureBinding.GetSampler(i);
-
-				if (!texture || !sampler)
-				{
-					KRenderGlobal::TextureManager.GetErrorTexture(texture);
-					KRenderGlobal::TextureManager.GetErrorSampler(sampler);
-				}
-
-				if (i == MTS_DIFFUSE)
-				{
-					pipeline->SetSampler(VOXEL_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
-				}
+				KRenderGlobal::TextureManager.GetErrorTexture(texture);
+				KRenderGlobal::TextureManager.GetErrorSampler(sampler);
 			}
 
-			ASSERT_RESULT(pipeline->Init());
+			if (i == MTS_DIFFUSE)
+			{
+				pipeline->SetSampler(VOXEL_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
+			}
 		}
+
+		ASSERT_RESULT(pipeline->Init());
 	}
 
 	return true;
 }
 
-bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameIndex, IKPipelinePtr& pipeline)
+bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& pipeline)
 {
 	const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
 	ASSERT_RESULT(vertexData);
@@ -496,7 +418,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameInde
 		pipeline->SetColorWrite(false, false, false, false);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
@@ -521,7 +443,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameInde
 		pipeline->SetShader(ST_VERTEX, m_ShadowVSShader);
 		pipeline->SetShader(ST_FRAGMENT, m_ShadowFSShader);
 
-		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_SHADOW);
+		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_SHADOW);
 		pipeline->SetConstantBuffer(CBT_SHADOW, ST_VERTEX, shadowBuffer);
 
 		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(KConstantDefinition::OBJECT));
@@ -557,7 +479,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameInde
 		pipeline->SetDepthBiasEnable(true);
 		pipeline->SetShader(ST_FRAGMENT, m_ShadowFSShader);
 
-		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CASCADED_SHADOW);
+		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CASCADED_SHADOW);
 		pipeline->SetConstantBuffer(CBT_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
@@ -583,7 +505,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameInde
 		pipeline->SetShader(ST_VERTEX, m_DebugVSShader);
 		pipeline->SetShader(ST_FRAGMENT, m_DebugFSShader);
 
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
@@ -609,7 +531,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, size_t frameInde
 		pipeline->SetShader(ST_VERTEX, m_DebugVSShader);
 		pipeline->SetShader(ST_FRAGMENT, m_DebugFSShader);
 
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
@@ -629,19 +551,8 @@ bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, 
 		assert(false && "pipeline stage count out of bound");
 		return false;
 	}
-	if (frameIndex >= m_FrameInFlight)
-	{
-		assert(false && "frame index out of bound");
-		return false;
-	}
 
-	FramePipelineList& pipelines = m_Pipelines[stage];
-	if (frameIndex >= pipelines.size())
-	{
-		return false;
-	}
-
-	IKPipelinePtr& pipeline = pipelines[frameIndex];
+	IKPipelinePtr pipeline = m_Pipelines[stage];
 	if (pipeline)
 	{
 		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;

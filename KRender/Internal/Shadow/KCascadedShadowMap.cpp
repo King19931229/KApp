@@ -838,7 +838,7 @@ bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer, size_
 
 	// 更新CBuffer
 	{
-		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CASCADED_SHADOW);
+		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CASCADED_SHADOW);
 
 		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CASCADED_SHADOW);
 		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CASCADED_SHADOW);

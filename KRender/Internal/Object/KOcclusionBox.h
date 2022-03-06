@@ -16,11 +16,11 @@ protected:
 	static const VertexFormat ms_VertexFormats[1];
 	static const VertexFormat ms_VertexInstanceFormats[2];
 
-	std::vector<IKPipelinePtr> m_PipelinesFrontFace;
-	std::vector<IKPipelinePtr> m_PipelinesBackFace;
+	IKPipelinePtr m_PipelineFrontFace;
+	IKPipelinePtr m_PipelineBackFace;
 
-	std::vector<IKPipelinePtr> m_PipelinesInstanceFrontFace;
-	std::vector<IKPipelinePtr> m_PipelinesInstanceBackFace;
+	IKPipelinePtr m_PipelineInstanceFrontFace;
+	IKPipelinePtr m_PipelineInstanceBackFace;
 
 	typedef std::vector<IKVertexBufferPtr> FrameInstanceBufferList;
 	std::vector<FrameInstanceBufferList> m_InstanceBuffers;

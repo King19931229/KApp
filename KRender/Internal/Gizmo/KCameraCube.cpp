@@ -356,9 +356,8 @@ void KCameraCube::LoadResource()
 
 void KCameraCube::PreparePipeline()
 {
-	for (size_t i = 0; i < m_BackGroundPipelines.size(); ++i)
 	{
-		IKPipelinePtr pipeline = m_BackGroundPipelines[i];
+		IKPipelinePtr& pipeline = m_BackGroundPipeline;
 		pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
@@ -373,9 +372,8 @@ void KCameraCube::PreparePipeline()
 		ASSERT_RESULT(pipeline->Init());
 	}
 
-	for (size_t i = 0; i < m_CubePipelines.size(); ++i)
 	{
-		IKPipelinePtr pipeline = m_CubePipelines[i];
+		IKPipelinePtr& pipeline = m_CubePipeline;
 		pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
@@ -391,9 +389,8 @@ void KCameraCube::PreparePipeline()
 		ASSERT_RESULT(pipeline->Init());
 	}
 
-	for (size_t i = 0; i < m_PickPipelines.size(); ++i)
 	{
-		IKPipelinePtr pipeline = m_PickPipelines[i];
+		IKPipelinePtr& pipeline = m_PickPipeline;
 		pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
@@ -491,22 +488,15 @@ bool KCameraCube::Init(IKRenderDevice* renderDevice, size_t frameInFlight, KCame
 	}
 	renderDevice->CreateIndexBuffer(m_CornerIndexBuffer);
 
-	m_BackGroundPipelines.resize(frameInFlight);
-	m_CubePipelines.resize(frameInFlight);
-	m_PickPipelines.resize(frameInFlight);
-
 	ASSERT_RESULT(renderDevice->CreateCommandBuffer(m_CommandBuffer));
 	ASSERT_RESULT(m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY));
 
 	ASSERT_RESULT(renderDevice->CreateCommandBuffer(m_ClearCommandBuffer));
 	ASSERT_RESULT(m_ClearCommandBuffer->Init(m_CommandPool, CBL_SECONDARY));
 
-	for (size_t i = 0; i < frameInFlight; ++i)
-	{
-		KRenderGlobal::RenderDevice->CreatePipeline(m_BackGroundPipelines[i]);
-		KRenderGlobal::RenderDevice->CreatePipeline(m_CubePipelines[i]);
-		KRenderGlobal::RenderDevice->CreatePipeline(m_PickPipelines[i]);
-	}
+	KRenderGlobal::RenderDevice->CreatePipeline(m_BackGroundPipeline);
+	KRenderGlobal::RenderDevice->CreatePipeline(m_CubePipeline);
+	KRenderGlobal::RenderDevice->CreatePipeline(m_PickPipeline);
 
 	LoadResource();
 	PreparePipeline();
@@ -519,23 +509,9 @@ bool KCameraCube::UnInit()
 {
 	m_Camera = nullptr;
 
-	for (IKPipelinePtr& pipeline : m_BackGroundPipelines)
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_BackGroundPipelines.clear();
-
-	for (IKPipelinePtr& pipeline : m_CubePipelines)
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_CubePipelines.clear();
-
-	for (IKPipelinePtr& pipeline : m_PickPipelines)
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_PickPipelines.clear();
+	SAFE_UNINIT(m_BackGroundPipeline);
+	SAFE_UNINIT(m_CubePipeline);
+	SAFE_UNINIT(m_PickPipeline);
 
 	SAFE_UNINIT(m_CommandBuffer);
 	SAFE_UNINIT(m_ClearCommandBuffer);
@@ -941,7 +917,6 @@ const glm::vec3 KCameraCube::CubeFaceColor[] =
 
 bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& commands)
 {
-	if (frameIndex < m_BackGroundPipelines.size())
 	{
 		KRenderCommand command;
 		ConstantBlock constant;
@@ -954,7 +929,7 @@ bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& comman
 		{
 			command.vertexData = &m_BackGroundVertexData;
 			command.indexData = &m_BackGroundIndexData;
-			command.pipeline = m_BackGroundPipelines[frameIndex];
+			command.pipeline = m_BackGroundPipeline;
 			command.indexDraw = true;
 
 			constant.viewprojclip = m_ClipMat;
@@ -969,7 +944,7 @@ bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& comman
 		// Cube
 		{
 			command.vertexData = &m_CubeVertexData;
-			command.pipeline = m_CubePipelines[frameIndex];
+			command.pipeline = m_CubePipeline;
 			command.indexDraw = true;
 			constant.viewprojclip = m_ClipMat * m_CubeCamera.GetProjectiveMatrix() * m_CubeCamera.GetViewMatrix();
 
@@ -995,7 +970,7 @@ bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& comman
 			{
 				command.vertexData = vertexData;
 				command.indexData = indexData;
-				command.pipeline = m_PickPipelines[frameIndex];
+				command.pipeline = m_PickPipeline;
 				command.indexDraw = true;
 				constant.viewprojclip = m_ClipMat * m_CubeCamera.GetProjectiveMatrix() * m_CubeCamera.GetViewMatrix();
 				constant.color = glm::vec4(0.8f, 0.8f, 0.8f, 0.8f);

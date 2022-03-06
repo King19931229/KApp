@@ -80,27 +80,24 @@ void KSkyBox::LoadResource(const char* cubeTexPath)
 
 void KSkyBox::PreparePipeline()
 {
-	for(size_t i = 0; i < m_Pipelines.size(); ++i)
-	{
-		IKPipelinePtr pipeline = m_Pipelines[i];
-		pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-		pipeline->SetShader(ST_VERTEX, m_VertexShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+	IKPipelinePtr& pipeline = m_Pipeline;
+	pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
+	pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+	pipeline->SetBlendEnable(false);
+	pipeline->SetCullMode(CM_NONE);
+	pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+	pipeline->SetPolygonMode(PM_FILL);
+	pipeline->SetDepthFunc(CF_ALWAYS, false, false);
+	pipeline->SetShader(ST_VERTEX, m_VertexShader);
+	pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
 
-		//IKUniformBufferPtr objectBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_OBJECT);
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(i, CBT_CAMERA);
+	//IKUniformBufferPtr objectBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_OBJECT);
+	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 
-		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_CubeTexture->GetFrameBuffer(), m_CubeSampler);
+	pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
+	pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_CubeTexture->GetFrameBuffer(), m_CubeSampler);
 
-		ASSERT_RESULT(pipeline->Init());
-	}
+	ASSERT_RESULT(pipeline->Init());
 }
 
 void KSkyBox::InitRenderData()
@@ -130,15 +127,10 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 	renderDevice->CreateVertexBuffer(m_VertexBuffer);
 	renderDevice->CreateIndexBuffer(m_IndexBuffer);
 
-	m_Pipelines.resize(frameInFlight);
-
 	renderDevice->CreateCommandBuffer(m_CommandBuffer);
 	m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
 
-	for(size_t i = 0; i < frameInFlight; ++i)
-	{
-		KRenderGlobal::RenderDevice->CreatePipeline(m_Pipelines[i]);
-	}
+	KRenderGlobal::RenderDevice->CreatePipeline(m_Pipeline);
 
 	LoadResource(cubeTexPath);
 	PreparePipeline();
@@ -149,12 +141,7 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const cha
 
 bool KSkyBox::UnInit()
 {
-	for (IKPipelinePtr& pipeline : m_Pipelines)
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_Pipelines.clear();
-
+	SAFE_UNINIT(m_Pipeline);
 	SAFE_UNINIT(m_CommandBuffer);
 	SAFE_UNINIT(m_VertexBuffer);
 	SAFE_UNINIT(m_IndexBuffer);
@@ -183,24 +170,20 @@ bool KSkyBox::UnInit()
 
 bool KSkyBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
-	if (frameIndex < m_Pipelines.size())
-	{
-		KRenderCommand command;
-		command.vertexData = &m_VertexData;
-		command.indexData = &m_IndexData;
-		command.pipeline = m_Pipelines[frameIndex];
-		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
-		command.indexDraw = true;
+	KRenderCommand command;
+	command.vertexData = &m_VertexData;
+	command.indexData = &m_IndexData;
+	command.pipeline = m_Pipeline;
+	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+	command.indexDraw = true;
 
-		IKCommandBufferPtr commandBuffer = m_CommandBuffer;
+	IKCommandBufferPtr commandBuffer = m_CommandBuffer;
 
-		commandBuffer->BeginSecondary(renderPass);
-		commandBuffer->SetViewport(renderPass->GetViewPort());
-		commandBuffer->Render(command);
-		commandBuffer->End();
+	commandBuffer->BeginSecondary(renderPass);
+	commandBuffer->SetViewport(renderPass->GetViewPort());
+	commandBuffer->Render(command);
+	commandBuffer->End();
 
-		buffers.push_back(commandBuffer);
-		return true;
-	}
-	return false;
+	buffers.push_back(commandBuffer);
+	return true;
 }

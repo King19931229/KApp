@@ -111,7 +111,8 @@ public:
 class KVulkanUniformBuffer : public KUniformBufferBase
 {
 protected:
-	KVulkanBuffer m_Buffer;
+	std::vector<KVulkanBuffer> m_Buffers;
+	KVulkanBuffer& GetVulkanBuffer();
 public:
 	KVulkanUniformBuffer();
 	virtual ~KVulkanUniformBuffer();

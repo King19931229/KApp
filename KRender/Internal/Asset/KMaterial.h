@@ -52,8 +52,8 @@ protected:
 	bool CreateParameter(const KShaderInformation& information, IKMaterialParameterPtr& parameter);
 
 	void BindSampler(IKPipelinePtr pipeline, const KShaderInformation& info);
-	IKPipelinePtr CreatePipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);
-	IKPipelinePtr CreateMeshPipelineImpl(size_t frameIndex, const VertexFormat* formats, size_t count, IKShaderPtr meshShader, IKShaderPtr fragmentShader);
+	IKPipelinePtr CreatePipelineImpl(const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);
+	IKPipelinePtr CreateMeshPipelineImpl(const VertexFormat* formats, size_t count, IKShaderPtr meshShader, IKShaderPtr fragmentShader);
 
 	bool SaveParameterElement(const IKMaterialParameterPtr parameter, IKXMLElementPtr element) const;
 	bool ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr element, bool createNewParameter);
@@ -85,9 +85,9 @@ public:
 	virtual MaterialBlendMode GetBlendMode() const { return m_BlendMode; }
 	virtual void SetBlendMode(MaterialBlendMode mode) { m_BlendMode = mode; }
 
-	virtual IKPipelinePtr CreatePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
-	virtual IKPipelinePtr CreateMeshPipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
-	virtual IKPipelinePtr CreateInstancePipeline(size_t frameIndex, const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+	virtual IKPipelinePtr CreatePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+	virtual IKPipelinePtr CreateMeshPipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 
 	virtual bool InitFromFile(const std::string& path, bool async);
 	virtual bool Init(const std::string& vs, const std::string& fs, const std::string& ms, bool async);

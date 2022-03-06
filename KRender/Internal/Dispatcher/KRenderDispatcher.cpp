@@ -831,7 +831,7 @@ bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 
 	if (m_Camera)
 	{
-		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_CAMERA);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		if (cameraBuffer)
 		{
 			glm::mat4 view = m_Camera->GetViewMatrix();
@@ -904,7 +904,7 @@ bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 
 bool KRenderDispatcher::UpdateGlobal(size_t frameIndex)
 {
-	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(frameIndex, CBT_GLOBAL);
+	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
 	if (globalBuffer)
 	{
 		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_GLOBAL);

@@ -566,6 +566,7 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 	size_t bufferIdx = 0;
 	size_t imageIdx = 0;
 
+	/*
 	for (auto& pair : m_Uniforms)
 	{
 		unsigned int location = pair.first;
@@ -598,6 +599,7 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 
 		m_WriteDescriptorSet.push_back(uniformDescriptorWrite);
 	}
+	*/
 
 	/*
 	for (auto& pair : m_StorageBuffers)
@@ -645,7 +647,7 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		{
 			VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
 
-			IKFrameBufferPtr frameBuffer = info.images[0];
+			IKFrameBufferPtr frameBuffer = info.images[i];
 			ASSERT_RESULT(frameBuffer);
 
 			imageInfo.imageLayout = frameBuffer->IsStorageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

@@ -100,7 +100,7 @@ bool KRenderCore::InitGlobalManager()
 	ASSERT_RESULT(m_Device->QueryProperty(&property));
 
 	KRenderGlobal::RenderDevice = m_Device;
-	KRenderGlobal::FrameResourceManager.Init(m_Device, frameInFlight);
+	KRenderGlobal::FrameResourceManager.Init();
 	KRenderGlobal::MeshManager.Init(m_Device, frameInFlight);
 	KRenderGlobal::ShaderManager.Init(m_Device);
 	KRenderGlobal::TextureManager.Init(m_Device);

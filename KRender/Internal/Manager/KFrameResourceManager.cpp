@@ -1,9 +1,9 @@
 #include "KFrameResourceManager.h"
 #include "Internal/KConstantGlobal.h"
+#include "Internal/KRenderGlobal.h"
 
 KFrameResourceManager::KFrameResourceManager()
-	: m_Device(nullptr),
-	m_FrameInFlight(0)
+	: m_Device(nullptr)
 {
 }
 
@@ -11,26 +11,19 @@ KFrameResourceManager::~KFrameResourceManager()
 {
 }
 
-bool KFrameResourceManager::Init(IKRenderDevice* device, size_t frameInFlight)
+bool KFrameResourceManager::Init()
 {
 	ASSERT_RESULT(UnInit());
-
-	m_Device = device;
-	m_FrameInFlight = frameInFlight;
 
 	for (size_t cbtIdx = CBT_STATIC_BEGIN; cbtIdx <= CBT_STATIC_END; ++cbtIdx)
 	{
 		ConstantBufferType bufferType = (ConstantBufferType)cbtIdx;
-		FrameBufferList& frameBuffers = m_FrameContantBuffer[cbtIdx];
-		frameBuffers.resize(frameInFlight);
-		for (IKUniformBufferPtr& buffer : frameBuffers)
-		{
-			ASSERT_RESULT(device->CreateUniformBuffer(buffer));
-			auto& detail = KConstantDefinition::GetConstantBufferDetail(bufferType);
-			void* initData = KConstantGlobal::GetGlobalConstantData(bufferType);
-			ASSERT_RESULT(buffer->InitMemory(detail.bufferSize, initData));
-			ASSERT_RESULT(buffer->InitDevice());
-		}
+		IKUniformBufferPtr& buffer = m_ContantBuffers[cbtIdx];
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateUniformBuffer(buffer));
+		auto& detail = KConstantDefinition::GetConstantBufferDetail(bufferType);
+		void* initData = KConstantGlobal::GetGlobalConstantData(bufferType);
+		ASSERT_RESULT(buffer->InitMemory(detail.bufferSize, initData));
+		ASSERT_RESULT(buffer->InitDevice());
 	}
 
 	return true;
@@ -41,40 +34,24 @@ bool KFrameResourceManager::UnInit()
 	for (size_t cbtIdx = CBT_STATIC_BEGIN; cbtIdx <= CBT_STATIC_END; ++cbtIdx)
 	{
 		ConstantBufferType bufferType = (ConstantBufferType)cbtIdx;
-		FrameBufferList& frameBuffers = m_FrameContantBuffer[cbtIdx];
-		for (IKUniformBufferPtr& buffer : frameBuffers)
+		IKUniformBufferPtr& buffer = m_ContantBuffers[cbtIdx];
+		if (buffer)
 		{
-			if (buffer)
-			{
-				buffer->UnInit();
-				buffer = nullptr;
-			}
+			buffer->UnInit();
+			buffer = nullptr;
 		}
-		frameBuffers.clear();
 	}
-
-	m_Device = nullptr;
-	m_FrameInFlight = 0;
 
 	return true;
 }
 
-IKUniformBufferPtr KFrameResourceManager::GetConstantBuffer(size_t frameIndex, ConstantBufferType type)
+IKUniformBufferPtr KFrameResourceManager::GetConstantBuffer(ConstantBufferType type)
 {
-	if(frameIndex > m_FrameInFlight)
-	{
-		assert(false && "frame index out of bound");
-		return nullptr;
-	}
-
-	if(type >= CBT_COUNT)
+	if (type >= CBT_COUNT)
 	{
 		assert(false && "constant type out of bound");
 		return nullptr;
 	}
 
-	FrameBufferList& frameBuffers = m_FrameContantBuffer[type];
-	assert(frameIndex < frameBuffers.size());
-
-	return frameBuffers[frameIndex];
+	return m_ContantBuffers[type];
 }

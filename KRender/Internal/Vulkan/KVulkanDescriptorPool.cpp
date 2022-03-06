@@ -12,7 +12,7 @@ KVulkanDescriptorPool::KVulkanDescriptorPool()
 	: m_Layout(VK_NULL_HANDLE),
 	m_CurrentFrame(0),
 	m_BlockSize(512),
-	m_StaticUniformBufferCount(0),
+	m_UniformBufferCount(0),
 	m_DynamicUniformBufferCount(0),
 	m_DynamicStorageBufferCount(0),
 	m_ImageCount(0)
@@ -33,7 +33,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	m_Layout = layout;
 	m_ImageCount = 0;
 	m_DynamicUniformBufferCount = 0;
-	m_StaticUniformBufferCount = 0;
+	m_UniformBufferCount = 0;
 	m_DynamicStorageBufferCount = 0;
 
 	for (const VkDescriptorSetLayoutBinding& layoutBinding : descriptorSetLayoutBinding)
@@ -44,7 +44,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		}
 		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
-			m_StaticUniformBufferCount += layoutBinding.descriptorCount;
+			m_UniformBufferCount += layoutBinding.descriptorCount;
 		}
 		else if (layoutBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 		{
@@ -65,16 +65,13 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	}
 
 	m_DynamicImageWriteInfo.clear();
-	m_StaticUniformBufferWriteInfo.clear();
 	m_DescriptorWriteInfo.clear();
 	m_DescriptorWriteInfo.reserve(writeInfo.size());
 
 	m_DynamicImageWriteInfo.resize(m_ImageCount);
-	m_StaticUniformBufferWriteInfo.resize(m_StaticUniformBufferCount);
+	m_UniformBufferWriteInfo.resize(m_UniformBufferCount);
 	m_DynamicUniformBufferWriteInfo.resize(m_DynamicUniformBufferCount);
 	m_DynamicStorageBufferWriteInfo.resize(m_DynamicStorageBufferCount);
-
-	size_t uniformBufferIdx = 0;
 
 	for (const VkWriteDescriptorSet& writeDescriptorSet : writeInfo)
 	{
@@ -88,20 +85,15 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		copy.descriptorCount = writeDescriptorSet.descriptorCount;
 		copy.descriptorType = writeDescriptorSet.descriptorType;
 
-		if (copy.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-		{
-			size_t writeOffset = uniformBufferIdx * sizeof(m_StaticUniformBufferWriteInfo[0]);
-			size_t writeSize = copy.descriptorCount * sizeof(m_StaticUniformBufferWriteInfo[0]);
-			memcpy(POINTER_OFFSET(m_StaticUniformBufferWriteInfo.data(), writeOffset), copy.pBufferInfo, writeSize);
-			copy.pBufferInfo = static_cast<const VkDescriptorBufferInfo*>(POINTER_OFFSET(m_StaticUniformBufferWriteInfo.data(), writeOffset));
-			uniformBufferIdx += copy.descriptorCount;
-		}
-
 		m_DescriptorWriteInfo.push_back(copy);
 	}
 
 	// 取最大值
-	m_DescriptorDynamicWriteInfo.resize(std::max(std::max(m_DynamicUniformBufferCount, m_ImageCount), m_DynamicStorageBufferCount));
+	uint32_t size = m_UniformBufferCount;
+	size = std::max(size, m_DynamicUniformBufferCount);
+	size = std::max(size, m_DynamicStorageBufferCount);
+	size = std::max(size, m_ImageCount);
+	m_DescriptorDynamicWriteInfo.resize(size);
 
 	return true;
 }
@@ -135,8 +127,12 @@ VkDescriptorSet KVulkanDescriptorPool::AllocDescriptorSet(VkDescriptorPool pool)
 	VkDescriptorSet newSet = VK_NULL_HANDLE;
 	VK_ASSERT_RESULT(vkAllocateDescriptorSets(KVulkanGlobal::device, &allocInfo, &newSet));
 
+	// TODO 整合到 Alloc
 	std::vector<VkWriteDescriptorSet> writeInfo = m_DescriptorWriteInfo;
-	for (VkWriteDescriptorSet& info : writeInfo) { info.dstSet = newSet; }
+	for (VkWriteDescriptorSet& info : writeInfo)
+	{
+		info.dstSet = newSet;
+	}
 	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(writeInfo.size()), writeInfo.data(), 0, nullptr);
 	return newSet;
 }
@@ -144,12 +140,12 @@ VkDescriptorSet KVulkanDescriptorPool::AllocDescriptorSet(VkDescriptorPool pool)
 VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 {
 	VkDescriptorPoolSize storagePoolSize = {};
-	storagePoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	storagePoolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	storagePoolSize.descriptorCount = (uint32_t)maxCount * m_DynamicStorageBufferCount;
 
 	VkDescriptorPoolSize uniformPoolSize = {};
 	uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uniformPoolSize.descriptorCount = (uint32_t)maxCount * m_StaticUniformBufferCount;
+	uniformPoolSize.descriptorCount = (uint32_t)maxCount * m_UniformBufferCount;
 
 	VkDescriptorPoolSize dynamicUniformPoolSize = {};
 	dynamicUniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -213,7 +209,8 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 		ASSERT_RESULT(samplerBindings.size() <= m_DescriptorDynamicWriteInfo.size());
 
 		size_t imageWriteIdx = 0;
-		size_t bufferWriteIdx = 0;
+		size_t storageBufferWriteIdx = 0;
+		size_t uniformBufferWriteIdx = 0;
 		size_t descriptorWriteIdx = 0;
 
 		for (auto& pair : samplerBindings)
@@ -311,7 +308,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 			unsigned int binding = pair.first;
 			KVulkanPipeline::StorageBufferBindingInfo& info = pair.second;
 
-			VkDescriptorBufferInfo& bufferInfo = m_DynamicStorageBufferWriteInfo[bufferWriteIdx++];
+			VkDescriptorBufferInfo& bufferInfo = m_DynamicStorageBufferWriteInfo[storageBufferWriteIdx++];
 			bufferInfo.buffer = ((KVulkanStorageBuffer*)info.buffer.get())->GetVulkanHandle();
 			bufferInfo.offset = 0;
 			bufferInfo.range = VK_WHOLE_SIZE;
@@ -331,6 +328,35 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 		}
 
 		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(descriptorWriteIdx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+		descriptorWriteIdx = 0;
+
+		auto& uniformBufferBindings = vulkanPipeline->m_Uniforms;
+		for (auto& pair : uniformBufferBindings)
+		{
+			unsigned int binding = pair.first;
+			KVulkanPipeline::UniformBufferBindingInfo& info = pair.second;
+
+			VkDescriptorBufferInfo& bufferInfo = m_UniformBufferWriteInfo[uniformBufferWriteIdx++];
+			bufferInfo.buffer = ((KVulkanUniformBuffer*)info.buffer.get())->GetVulkanHandle();
+			bufferInfo.offset = 0;
+			bufferInfo.range = VK_WHOLE_SIZE;
+
+			VkWriteDescriptorSet& uniformDescriptorWrite = m_DescriptorDynamicWriteInfo[descriptorWriteIdx++];
+
+			uniformDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			uniformDescriptorWrite.dstSet = set;
+			uniformDescriptorWrite.dstBinding = (uint32_t)binding;
+			uniformDescriptorWrite.dstArrayElement = 0;
+			uniformDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			uniformDescriptorWrite.descriptorCount = 1;
+
+			uniformDescriptorWrite.pBufferInfo = &bufferInfo;
+			uniformDescriptorWrite.pImageInfo = nullptr;
+			uniformDescriptorWrite.pTexelBufferView = nullptr;
+		}
+
+		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(descriptorWriteIdx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+		descriptorWriteIdx = 0;
 	}
 
 	for (size_t i = 0; i < dynamicBufferUsageCount; ++i)
