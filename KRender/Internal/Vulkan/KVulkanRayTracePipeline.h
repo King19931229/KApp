@@ -13,7 +13,7 @@ protected:
 	KHandleRetriever<uint32_t> m_Handles;
 	std::unordered_map<uint32_t, IKAccelerationStructure::BottomASTransformTuple> m_BottomASMap;
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_ShaderGroups;
-	std::vector<IKUniformBufferPtr> m_CameraBuffers;
+	IKUniformBufferPtr m_CameraBuffer;
 	IKCommandPoolPtr m_CommandPool;
 	IKCommandBufferPtr m_CommandBuffer;
 
@@ -121,6 +121,7 @@ protected:
 
 	void CreateShaderBindingTable(ShaderBindingTable& shaderBindingTable, uint32_t handleCount);
 	void DestroyShaderBindingTable(ShaderBindingTable& shaderBindingTable);
+	void UpdateCameraDescriptor();
 public:
 	KVulkanRayTracePipeline();
 	~KVulkanRayTracePipeline();
@@ -139,7 +140,7 @@ public:
 	virtual IKRenderTargetPtr GetStorageTarget();
 	virtual IKAccelerationStructurePtr GetTopdownAS();
 
-	virtual bool Init(const std::vector<IKUniformBufferPtr>& cameraBuffers, uint32_t width, uint32_t height);
+	virtual bool Init(IKUniformBufferPtr cameraBuffer, uint32_t width, uint32_t height);
 	virtual bool UnInit();
 	virtual bool MarkASNeedUpdate();
 

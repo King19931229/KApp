@@ -14,7 +14,7 @@ protected:
 	float m_ImageScale;
 	bool m_DebugEnable;
 	bool m_AutoUpdateImageSize;
-	std::vector<IKUniformBufferPtr> m_CameraBuffers;
+	IKUniformBufferPtr m_CameraBuffer;
 	std::unordered_map<IKEntityPtr, std::unordered_set<uint32_t>> m_ASHandles;
 
 	typedef std::tuple<std::vector<IKAccelerationStructurePtr>, glm::mat4> ASTransforms;

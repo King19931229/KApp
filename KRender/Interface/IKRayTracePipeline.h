@@ -22,7 +22,7 @@ struct IKRayTracePipeline
 	virtual IKRenderTargetPtr GetStorageTarget() = 0;
 	virtual IKAccelerationStructurePtr GetTopdownAS() = 0;
 
-	virtual bool Init(const std::vector<IKUniformBufferPtr>& cameraBuffers, uint32_t width, uint32_t height) = 0;
+	virtual bool Init(IKUniformBufferPtr cameraBuffer, uint32_t width, uint32_t height) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool MarkASNeedUpdate() = 0;
 

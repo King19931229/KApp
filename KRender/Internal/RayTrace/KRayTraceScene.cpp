@@ -80,23 +80,18 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTrac
 		m_Pipeline = pipeline;
 		m_Camera = camera;
 
-		uint32_t numFrames = KRenderGlobal::NumFramesInFlight;
-		m_CameraBuffers.resize(numFrames);
-		for (uint32_t i = 0; i < numFrames; ++i)
-		{
-			IKUniformBufferPtr& cameraBuffer = m_CameraBuffers[i];
-			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateUniformBuffer(cameraBuffer));
+		IKUniformBufferPtr& cameraBuffer = m_CameraBuffer;
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateUniformBuffer(cameraBuffer));
 
-			Camera cam;
-			cam.view = m_Camera->GetViewMatrix();
-			cam.proj = m_Camera->GetProjectiveMatrix();
-			cam.viewInv = glm::inverse(cam.view);
-			cam.projInv = glm::inverse(cam.proj);
-			cam.parameters = glm::vec4(m_Camera->GetNear(), m_Camera->GetFar(), m_Camera->GetFov(), m_Camera->GetAspect());
+		Camera cam;
+		cam.view = m_Camera->GetViewMatrix();
+		cam.proj = m_Camera->GetProjectiveMatrix();
+		cam.viewInv = glm::inverse(cam.view);
+		cam.projInv = glm::inverse(cam.proj);
+		cam.parameters = glm::vec4(m_Camera->GetNear(), m_Camera->GetFar(), m_Camera->GetFov(), m_Camera->GetAspect());
 
-			ASSERT_RESULT(cameraBuffer->InitMemory(sizeof(cam), &cam));
-			ASSERT_RESULT(cameraBuffer->InitDevice());
-		}
+		ASSERT_RESULT(cameraBuffer->InitMemory(sizeof(cam), &cam));
+		ASSERT_RESULT(cameraBuffer->InitDevice());
 
 		std::vector<IKEntityPtr> entites;
 		scene->GetAllEntities(entites);
@@ -108,7 +103,7 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera, IKRayTrac
 			OnSceneChanged(ESO_ADD, entity);
 		}
 
-		pipeline->Init(m_CameraBuffers, m_Width, m_Height);
+		pipeline->Init(m_CameraBuffer, m_Width, m_Height);
 		m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
 
 		m_DebugDrawer.Init(m_Pipeline->GetStorageTarget(), 0, 0, 1, 1);
@@ -129,28 +124,23 @@ bool KRayTraceScene::UnInit()
 	m_Camera = nullptr;
 	m_ASHandles.clear();
 	SAFE_UNINIT(m_Pipeline);
-	SAFE_UNINIT_CONTAINER(m_CameraBuffers);
+	SAFE_UNINIT(m_CameraBuffer);
 	return true;
 }
 
 bool KRayTraceScene::UpdateCamera()
 {
-	uint32_t frameIndex = KRenderGlobal::CurrentFrameIndex;
-	if (m_Camera && frameIndex < m_CameraBuffers.size())
+	IKUniformBufferPtr& cameraBuffer = m_CameraBuffer;
+	if (cameraBuffer)
 	{
-		IKUniformBufferPtr& cameraBuffer = m_CameraBuffers[frameIndex];
-		if (cameraBuffer)
-		{
-			Camera cam;
-			cam.view = m_Camera->GetViewMatrix();
-			cam.proj = m_Camera->GetProjectiveMatrix();
-			cam.viewInv = glm::inverse(cam.view);
-			cam.projInv = glm::inverse(cam.proj);
-			cameraBuffer->Write(&cam);
-			return true;
-		}
+		Camera cam;
+		cam.view = m_Camera->GetViewMatrix();
+		cam.proj = m_Camera->GetProjectiveMatrix();
+		cam.viewInv = glm::inverse(cam.view);
+		cam.projInv = glm::inverse(cam.proj);
+		cameraBuffer->Write(&cam);
+		return true;
 	}
-	return false;
 }
 
 bool KRayTraceScene::EnableDebugDraw()

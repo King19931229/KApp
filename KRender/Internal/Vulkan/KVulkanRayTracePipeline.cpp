@@ -75,8 +75,6 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 	uint32_t frames = KRenderGlobal::NumFramesInFlight;
 	m_Descriptor.sets.resize(frames);
 
-	ASSERT_RESULT(m_CameraBuffers.size() == frames);
-
 	KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDown.get());
 	const std::vector<VkDescriptorImageInfo>& textures = topDown->GetTextureDescriptors();
 
@@ -158,7 +156,7 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, vulkanFrameBuffer->GetImageView(), VK_IMAGE_LAYOUT_GENERAL };	
 		VkWriteDescriptorSet storageImageWrite = KVulkanInitializer::CreateDescriptorImageWrite(&storageImageDescriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_IMAGE);
 
-		KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(m_CameraBuffers[frameIndex].get());
+		KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(m_CameraBuffer.get());
 		VkDescriptorBufferInfo uniformBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
 		VkWriteDescriptorSet uniformWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&uniformBufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_CAMERA);
 
@@ -621,11 +619,11 @@ IKAccelerationStructurePtr KVulkanRayTracePipeline::GetTopdownAS()
 	return m_TopDown;
 }
 
-bool KVulkanRayTracePipeline::Init(const std::vector<IKUniformBufferPtr>& cameraBuffers, uint32_t width, uint32_t height)
+bool KVulkanRayTracePipeline::Init(IKUniformBufferPtr cameraBuffer, uint32_t width, uint32_t height)
 {
 	UnInit();
 
-	m_CameraBuffers = cameraBuffers;
+	m_CameraBuffer = cameraBuffer;
 	m_Width = width;
 	m_Height = height;
 
@@ -660,7 +658,7 @@ bool KVulkanRayTracePipeline::UnInit()
 		DestroyShader();
 	}
 
-	m_CameraBuffers.clear();
+	m_CameraBuffer = nullptr;
 
 	m_Inited = false;
 	return true;
@@ -670,6 +668,21 @@ bool KVulkanRayTracePipeline::MarkASNeedUpdate()
 {
 	m_ASNeedUpdate = true;
 	return true;
+}
+
+void KVulkanRayTracePipeline::UpdateCameraDescriptor()
+{
+	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(m_CameraBuffer.get());
+	VkDescriptorBufferInfo uniformBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
+	VkWriteDescriptorSet uniformWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&uniformBufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_Descriptor.sets[KRenderGlobal::CurrentFrameIndex], RAYTRACE_BINDING_CAMERA);
+
+	VkWriteDescriptorSet writeDescriptorSets[] =
+	{
+		// Binding 2: Uniform data
+		uniformWrite
+	};
+
+	vkUpdateDescriptorSets(KVulkanGlobal::device, ARRAY_SIZE(writeDescriptorSets), writeDescriptorSets, 0, VK_NULL_HANDLE);
 }
 
 bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer)
@@ -684,6 +697,8 @@ bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer)
 				m_ASNeedUpdate = false;
 				RecreateAS();
 			}
+
+			UpdateCameraDescriptor();
 
 			IKCommandBufferPtr commandBuffer = primaryBuffer;
 			KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)(commandBuffer.get());
