@@ -39,7 +39,7 @@ protected:
 	bool					m_MaterialPipelineCreated;
 
 	bool CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& pipeline);
-	bool GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderCommand& command);
+	bool GetRenderCommand(PipelineStage stage, KRenderCommand& command);
 
 	bool CreateFixedPipeline();
 	bool CreateMaterialPipeline();
@@ -51,7 +51,7 @@ public:
 	bool Init(IKMaterial* material, size_t frameInFlight);
 	bool InitDebug(DebugPrimitive primtive, size_t frameInFlight);
 	bool UnInit();
-	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&)> func);
+	bool Visit(PipelineStage stage, std::function<void(KRenderCommand&)> func);
 };
 
 typedef std::shared_ptr<KMaterialSubMesh> KMaterialSubMeshPtr;

@@ -212,7 +212,7 @@ protected:
 	void PreparePipeline();
 	void InitRenderData();
 
-	bool GetRenderCommand(size_t frameIndex, KRenderCommandList& commands);
+	bool GetRenderCommand(KRenderCommandList& commands);
 public:
 	KCameraCube();
 	~KCameraCube();
@@ -231,5 +231,5 @@ public:
 	void OnMouseMove(unsigned int x, unsigned int y) override;
 	void OnMouseUp(unsigned int x, unsigned int y) override;
 
-	bool Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 };

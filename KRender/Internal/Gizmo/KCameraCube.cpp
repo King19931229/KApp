@@ -915,7 +915,7 @@ const glm::vec3 KCameraCube::CubeFaceColor[] =
 	glm::vec3(0.0f, 0.0f, 0.54f)
 };
 
-bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& commands)
+bool KCameraCube::GetRenderCommand(KRenderCommandList& commands)
 {
 	{
 		KRenderCommand command;
@@ -987,10 +987,10 @@ bool KCameraCube::GetRenderCommand(size_t frameIndex, KRenderCommandList& comman
 	return false;
 }
 
-bool KCameraCube::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+bool KCameraCube::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
 	KRenderCommandList commands;
-	if (GetRenderCommand(frameIndex, commands))
+	if (GetRenderCommand(commands))
 	{
 		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 

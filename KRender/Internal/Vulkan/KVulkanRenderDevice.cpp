@@ -1377,7 +1377,7 @@ bool KVulkanRenderDevice::Present()
 	uint32_t chainImageIndex = 0;
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->AcquireNextImage(chainImageIndex);
 
-	KRenderGlobal::RenderDispatcher.Update(frameIndex);
+	KRenderGlobal::RenderDispatcher.Update();
 
 	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -1397,8 +1397,8 @@ bool KVulkanRenderDevice::Present()
 			(*callback)(chainImageIndex, frameIndex);
 		}
 
-		KRenderGlobal::RenderDispatcher.Execute(chainImageIndex, frameIndex);
-		VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer(frameIndex).get())->GetVkHandle();
+		KRenderGlobal::RenderDispatcher.Execute(chainImageIndex);
+		VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer().get())->GetVkHandle();
 		vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(chainImageIndex, primaryCommandBuffer);
 
 		for (KDevicePresentCallback* callback : m_PostPresentCallback)
@@ -1438,8 +1438,8 @@ bool KVulkanRenderDevice::Present()
 		{
 			KRenderGlobal::RenderDispatcher.SetSwapChain(secordarySwapChain, nullptr);
 		
-			KRenderGlobal::RenderDispatcher.Execute(chainImageIndex, frameIndex);
-			VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer(frameIndex).get())->GetVkHandle();
+			KRenderGlobal::RenderDispatcher.Execute(chainImageIndex);
+			VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer().get())->GetVkHandle();
 			vkResult = ((KVulkanSwapChain*)secordarySwapChain)->PresentQueue(chainImageIndex, primaryCommandBuffer);
 
 			if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)

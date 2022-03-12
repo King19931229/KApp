@@ -15,8 +15,8 @@ public:
 
 	bool Init();
 	bool UnInit();
-	bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
-	bool UpdateCamera(uint32_t frameIndex);
+	bool Execute(IKCommandBufferPtr primaryBuffer);
+	bool UpdateCamera();
 	bool Resize(size_t width, size_t height);
 	bool ReloadShader();
 

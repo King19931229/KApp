@@ -544,7 +544,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 	}
 }
 
-bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, KRenderCommand& command)
+bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, KRenderCommand& command)
 {
 	if (stage >= PIPELINE_STAGE_COUNT)
 	{
@@ -584,7 +584,7 @@ bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, size_t frameIndex, 
 	}
 }
 
-bool KMaterialSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&)> func)
+bool KMaterialSubMesh::Visit(PipelineStage stage, std::function<void(KRenderCommand&)> func)
 {
 	if (m_pMaterial && !m_MaterialPipelineCreated)
 	{
@@ -622,7 +622,7 @@ bool KMaterialSubMesh::Visit(PipelineStage stage, size_t frameIndex, std::functi
 	}
 
 	KRenderCommand command;
-	if (GetRenderCommand(stage, frameIndex, command))
+	if (GetRenderCommand(stage, command))
 	{
 		func(std::move(command));
 		return true;

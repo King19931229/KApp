@@ -112,10 +112,9 @@ void KSkyBox::InitRenderData()
 	m_IndexData.indexStart = 0;
 }
 
-bool KSkyBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight, const char* cubeTexPath)
+bool KSkyBox::Init(IKRenderDevice* renderDevice, const char* cubeTexPath)
 {
 	ASSERT_RESULT(renderDevice != nullptr);
-	ASSERT_RESULT(frameInFlight > 0);
 	ASSERT_RESULT(cubeTexPath != nullptr);
 
 	ASSERT_RESULT(UnInit());
@@ -168,7 +167,7 @@ bool KSkyBox::UnInit()
 	return true;
 }
 
-bool KSkyBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+bool KSkyBox::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
 	KRenderCommand command;
 	command.vertexData = &m_VertexData;

@@ -106,7 +106,7 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 	}
 
 	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
-	size_t frameIndex = executor.GetFrameIndex();
+	size_t frameIndex = KRenderGlobal::CurrentFrameIndex;
 
 	glm::mat4 curCameraMatrix = m_Master.m_MainCamera->GetProjectiveMatrix() * m_Master.m_MainCamera->GetViewMatrix();
 	bool updateStatic = memcmp(&m_LastCameraMatrix, &curCameraMatrix, sizeof(glm::mat4)) != 0;
@@ -124,7 +124,7 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
-			m_Master.UpdateRT(frameIndex, i, true, primaryBuffer, shadowTarget, renderPass);
+			m_Master.UpdateRT(i, true, primaryBuffer, shadowTarget, renderPass);
 		}
 
 		// Dynamic object is updated every frame
@@ -137,7 +137,7 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
-			m_Master.UpdateRT(frameIndex, i, false, primaryBuffer, shadowTarget, renderPass);
+			m_Master.UpdateRT(i, false, primaryBuffer, shadowTarget, renderPass);
 		}
 	}
 
@@ -521,10 +521,11 @@ void KCascadedShadowMap::UpdateCascades()
 	}
 }
 
-bool KCascadedShadowMap::Init(const KCamera* camera, size_t frameInFlight, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio)
+bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio)
 {
 	ASSERT_RESULT(UnInit());
 
+	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
 	if (numCascaded >= 1 && numCascaded <= SHADOW_MAP_MAX_CASCADED && shadowSizeRatio > 0.0f)
 	{
 		m_MainCamera = camera;
@@ -621,7 +622,7 @@ bool KCascadedShadowMap::UnInit()
 	return true;
 }
 
-void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex,
+void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex,
 	IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass, 
 	std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
@@ -640,7 +641,7 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t frameIndex, size_t cascade
 		ASSERT_RESULT(render);
 		ASSERT_RESULT(!instances.empty());
 
-		render->Visit(PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE, frameIndex, [&](KRenderCommand& _command)
+		render->Visit(PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE, [&](KRenderCommand& _command)
 		{
 			KRenderCommand command = std::move(_command);
 
@@ -708,7 +709,7 @@ void KCascadedShadowMap::FilterRenderComponent(std::vector<KRenderComponent*>& i
 	in = std::move(out);
 }
 
-bool KCascadedShadowMap::UpdateRT(size_t frameIndex, size_t cascadedIndex, bool IsStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass)
+bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, bool IsStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass)
 {
 	m_Statistics.Reset();
 
@@ -807,7 +808,7 @@ bool KCascadedShadowMap::UpdateRT(size_t frameIndex, size_t cascadedIndex, bool 
 
 			KRenderCommandList commandList;
 
-			PopulateRenderCommand(frameIndex, cascadedIndex,
+			PopulateRenderCommand(cascadedIndex,
 				shadowMapTarget, renderPass,
 				litCullRes, commandList, m_Statistics);
 
@@ -830,7 +831,7 @@ bool KCascadedShadowMap::UpdateRT(size_t frameIndex, size_t cascadedIndex, bool 
 	return false;
 }
 
-bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer, size_t frameIndex)
+bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 {
 	UpdateCascades();
 
@@ -937,7 +938,7 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, boo
 	return true;
 }
 
-bool KCascadedShadowMap::DebugRender(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+bool KCascadedShadowMap::DebugRender(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
 	/*
 	KRenderCommandList commands;

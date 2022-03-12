@@ -26,10 +26,10 @@ public:
 	KShadowMap();
 	~KShadowMap();
 
-	bool Init(IKRenderDevice* renderDevice,	size_t frameInFlight, uint32_t shadowMapSize);
+	bool Init(IKRenderDevice* renderDevice,	uint32_t shadowMapSize);
 	bool UnInit();
 
-	bool UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBuffer);
+	bool UpdateShadowMap(IKCommandBufferPtr primaryBuffer);
 
 	inline IKRenderTargetPtr GetShadowMapTarget() { return m_RenderTarget; }
 	inline IKSamplerPtr GetSampler() { return m_ShadowSampler; }

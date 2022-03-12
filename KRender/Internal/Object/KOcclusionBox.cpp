@@ -232,12 +232,12 @@ void KOcclusionBox::InitRenderData()
 	m_IndexData.indexStart = 0;
 }
 
-bool KOcclusionBox::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
+bool KOcclusionBox::Init(IKRenderDevice* renderDevice)
 {
 	ASSERT_RESULT(renderDevice != nullptr);
-	ASSERT_RESULT(frameInFlight > 0);
-
 	ASSERT_RESULT(UnInit());
+
+	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
 
 	m_Device = renderDevice;
 
@@ -306,13 +306,13 @@ bool KOcclusionBox::UnInit()
 	return true;
 }
 
-bool KOcclusionBox::Reset(size_t frameIndex, std::vector<KRenderComponent*>& cullRes, IKCommandBufferPtr primaryCommandBuffer)
+bool KOcclusionBox::Reset(std::vector<KRenderComponent*>& cullRes, IKCommandBufferPtr primaryCommandBuffer)
 {
 	if (m_Enable)
 	{
 		for (KRenderComponent* render : cullRes)
 		{
-			IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
+			IKQueryPtr ocQuery = render->GetOCQuery();
 			if (ocQuery)
 			{
 				QueryStatus status = ocQuery->GetStatus();
@@ -407,7 +407,7 @@ bool KOcclusionBox::MergeInstanceMap(KRenderComponent* renderComponent, const KA
 	return false;
 }
 
-bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers)
+bool KOcclusionBox::Render(IKRenderPassPtr renderPass, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers)
 {
 	if (camera)
 	{
@@ -436,7 +436,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 					it->second.push_back(component);
 				};
 
-				IKQueryPtr ocInstanceQuery = render->GetOCInstacneQuery(frameIndex);
+				IKQueryPtr ocInstanceQuery = render->GetOCInstacneQuery();
 
 				// 注意一定要检查ocInstanceQuery的生命周期
 				if (ocInstanceQuery && (ocInstanceQuery->GetStatus() == QS_QUERY_START || ocInstanceQuery->GetStatus() == QS_QUERYING))
@@ -445,8 +445,8 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 				}
 				else
 				{
-					IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
-					render->SetOCInstanceQuery(frameIndex, nullptr);
+					IKQueryPtr ocQuery = render->GetOCQuery();
+					render->SetOCInstanceQuery(nullptr);
 					if (ocQuery)
 					{
 						AddIntoQueryComponents(ocQuery, render);
@@ -468,7 +468,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 				{
 					for (KRenderComponent* render : componentList)
 					{
-						render->SetOCInstanceQuery(frameIndex, nullptr);
+						render->SetOCInstanceQuery(nullptr);
 
 						IKEntity* entity = render->GetEntityHandle();
 						KAABBBox bound;
@@ -547,7 +547,7 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 					if (renderComponents.size() == 1)
 					{
 						KRenderComponent* render = renderComponents[0];
-						IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
+						IKQueryPtr ocQuery = render->GetOCQuery();
 						QueryStatus status = ocQuery->GetStatus();
 						assert(status == QS_IDEL);
 
@@ -622,13 +622,13 @@ bool KOcclusionBox::Render(size_t frameIndex, IKRenderPassPtr renderPass, const 
 						}
 
 						KRenderComponent* render = renderComponents[0];
-						IKQueryPtr ocQuery = render->GetOCQuery(frameIndex);
+						IKQueryPtr ocQuery = render->GetOCQuery();
 						QueryStatus status = ocQuery->GetStatus();
 						assert(status == QS_IDEL);
 
 						for (KRenderComponent* render : renderComponents)
 						{
-							render->SetOCInstanceQuery(frameIndex, ocQuery);
+							render->SetOCInstanceQuery(ocQuery);
 						}
 
 						commandBuffer->BeginQuery(ocQuery);

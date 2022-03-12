@@ -133,8 +133,9 @@ bool KRayTraceScene::UnInit()
 	return true;
 }
 
-bool KRayTraceScene::UpdateCamera(uint32_t frameIndex)
+bool KRayTraceScene::UpdateCamera()
 {
+	uint32_t frameIndex = KRenderGlobal::CurrentFrameIndex;
 	if (m_Camera && frameIndex < m_CameraBuffers.size())
 	{
 		IKUniformBufferPtr& cameraBuffer = m_CameraBuffers[frameIndex];
@@ -205,11 +206,11 @@ void KRayTraceScene::ReloadShader()
 	}
 }
 
-bool KRayTraceScene::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+bool KRayTraceScene::Execute(IKCommandBufferPtr primaryBuffer)
 {
 	if (m_Pipeline)
 	{
-		return m_Pipeline->Execute(primaryBuffer, frameIndex);
+		return m_Pipeline->Execute(primaryBuffer);
 	}
 	return false;
 }

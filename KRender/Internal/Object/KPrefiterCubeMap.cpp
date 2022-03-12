@@ -40,7 +40,6 @@ KPrefilerCubeMap::~KPrefilerCubeMap()
 }
 
 bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
-	size_t frameInFlight,
 	uint32_t width, uint32_t height,
 	size_t mipmaps,
 	const char* cubemapPath,

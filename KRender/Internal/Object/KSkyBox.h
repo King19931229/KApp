@@ -34,10 +34,10 @@ public:
 	KSkyBox();
 	~KSkyBox();
 
-	bool Init(IKRenderDevice* renderDevice,	size_t frameInFlight, const char* cubeTexPath);
+	bool Init(IKRenderDevice* renderDevice,	const char* cubeTexPath);
 	bool UnInit();
 
-	bool Render(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 
 	inline IKTexturePtr GetCubeTexture() { return m_CubeTexture; }
 	inline IKSamplerPtr GetSampler() { return m_CubeSampler; }

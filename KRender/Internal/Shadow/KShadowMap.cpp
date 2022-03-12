@@ -21,7 +21,7 @@ KShadowMap::~KShadowMap()
 {
 }
 
-bool KShadowMap::Init(IKRenderDevice* renderDevice, size_t frameInFlight, uint32_t shadowMapSize)
+bool KShadowMap::Init(IKRenderDevice* renderDevice, uint32_t shadowMapSize)
 {
 	ASSERT_RESULT(UnInit());
 
@@ -58,7 +58,7 @@ bool KShadowMap::UnInit()
 	return true;
 }
 
-bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBuffer)
+bool KShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 {
 	// 更新CBuffer
 	{
@@ -123,16 +123,16 @@ bool KShadowMap::UpdateShadowMap(size_t frameIndex, IKCommandBufferPtr primaryBu
 				{
 					KMeshPtr mesh = component->GetMesh();
 
-					render->Visit(PIPELINE_STAGE_SHADOW_GEN, frameIndex, [&](KRenderCommand command)
-						{
-							const KConstantDefinition::OBJECT & final = transform->FinalTransform();
+					render->Visit(PIPELINE_STAGE_SHADOW_GEN, [&](KRenderCommand command)
+					{
+						const KConstantDefinition::OBJECT & final = transform->FinalTransform();
 
-							command.objectUsage.binding = SHADER_BINDING_OBJECT;
-							command.objectUsage.range = sizeof(final);
-							KRenderGlobal::DynamicConstantBufferManager.Alloc(&final, command.objectUsage);
+						command.objectUsage.binding = SHADER_BINDING_OBJECT;
+						command.objectUsage.range = sizeof(final);
+						KRenderGlobal::DynamicConstantBufferManager.Alloc(&final, command.objectUsage);
 
-							commandList.push_back(command);
-						});
+						commandList.push_back(command);
+					});
 				}
 			}
 

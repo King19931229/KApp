@@ -190,7 +190,7 @@ bool KRTAO::GetDebugRenderCommand(KRenderCommandList& commands)
 	return m_DebugDrawer.GetDebugRenderCommand(commands);
 }
 
-bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer)
 {
 	if (m_AOComputePipeline)
 	{
@@ -204,22 +204,22 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
 		uint32_t groupX = (m_Width + (GROUP_SIZE - 1)) / GROUP_SIZE;
 		uint32_t groupY = (m_Height + (GROUP_SIZE - 1)) / GROUP_SIZE;
 
-		m_AOComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
+		m_AOComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
 
 		UpdateMeanUniform();
-		m_MeanHorizontalComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
-		m_MeanVerticalComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
+		m_MeanHorizontalComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
+		m_MeanVerticalComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
 
 		primaryBuffer->Blit(m_MeanVarianceTarget[1]->GetFrameBuffer(), m_MeanVarianceTarget[0]->GetFrameBuffer());
 
-		m_AOTemporalPipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
+		m_AOTemporalPipeline->Execute(primaryBuffer, groupX, groupY, 1);
 
 		primaryBuffer->Blit(m_RenderTarget[1]->GetFrameBuffer(), m_RenderTarget[0]->GetFrameBuffer());
 		primaryBuffer->Blit(m_NormalDepthTarget[1]->GetFrameBuffer(), m_NormalDepthTarget[0]->GetFrameBuffer());
 
-		m_AtrousComputePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
+		m_AtrousComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
 
-		m_ComposePipeline->Execute(primaryBuffer, groupX, groupY, 1, frameIndex);
+		m_ComposePipeline->Execute(primaryBuffer, groupX, groupY, 1);
 	}
 	return true;
 }

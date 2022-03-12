@@ -211,8 +211,9 @@ void KUIOverlayBase::PreparePipeline()
 	}	
 }
 
-bool KUIOverlayBase::Update(unsigned int imageIndex)
+bool KUIOverlayBase::Update()
 {
+	unsigned int imageIndex = KRenderGlobal::CurrentFrameIndex;
 	if(imageIndex < m_NeedUpdates.size())
 	{
 		ImDrawData* imDrawData = ImGui::GetDrawData();

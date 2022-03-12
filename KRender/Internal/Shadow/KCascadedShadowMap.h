@@ -147,21 +147,21 @@ protected:
 
 	void UpdateCascades();
 	bool GetDebugRenderCommand(KRenderCommandList& commands, bool IsStatic);
-	void PopulateRenderCommand(size_t frameIndex, size_t cascadedIndex,
+	void PopulateRenderCommand(size_t cascadedIndex,
 		IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass,
 		std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
 	void FilterRenderComponent(std::vector<KRenderComponent*>& in, bool isStatic);
 
-	bool UpdateRT(size_t frameIndex, size_t cascadedIndex, bool IsStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass);
+	bool UpdateRT(size_t cascadedIndex, bool IsStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass);
 public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();
 
-	bool Init(const KCamera* camera, size_t frameInFlight, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio);
+	bool Init(const KCamera* camera, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio);
 	bool UnInit();
 
-	bool UpdateShadowMap(IKCommandBufferPtr primaryBuffer, size_t frameIndex);
-	bool DebugRender(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool UpdateShadowMap(IKCommandBufferPtr primaryBuffer);
+	bool DebugRender(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 
 	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex, bool isStatic);
 

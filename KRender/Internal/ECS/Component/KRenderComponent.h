@@ -83,20 +83,12 @@ public:
 	inline KMeshPtr GetMesh() { return m_Mesh; }
 	IKMaterialPtr GetMaterial() override { return m_Material; }
 
-	inline IKQueryPtr GetOCQuery(size_t frameIndex) { return frameIndex < m_OCQueries.size() ? m_OCQueries[frameIndex] : nullptr; }
-	inline IKQueryPtr GetOCInstacneQuery(size_t frameIndex) { return frameIndex < m_OCInstanceQueries.size() ? m_OCInstanceQueries[frameIndex] : nullptr; }
-	inline bool SetOCInstanceQuery(size_t frameIndex, IKQueryPtr query)
-	{
-		if (frameIndex < m_OCInstanceQueries.size())
-		{
-			m_OCInstanceQueries[frameIndex] = query;
-			return true;
-		}
-		return false;
-	}
+	IKQueryPtr GetOCQuery();
+	IKQueryPtr GetOCInstacneQuery();
+	bool SetOCInstanceQuery(IKQueryPtr query);
 
 	inline void SetOcclusionVisible(bool visible) { m_OcclusionVisible = visible; }
 	inline bool IsOcclusionVisible() const { return m_OcclusionVisible; }
 
-	bool Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&)> func);
+	bool Visit(PipelineStage stage, std::function<void(KRenderCommand&)> func);
 };

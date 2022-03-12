@@ -39,12 +39,12 @@ public:
 	KGBuffer();
 	~KGBuffer();
 
-	bool Init(IKRenderDevice* renderDevice, const KCamera* camera, uint32_t width, uint32_t height, size_t frameInFlight);
+	bool Init(IKRenderDevice* renderDevice, const KCamera* camera, uint32_t width, uint32_t height);
 	bool UnInit();
 
 	bool Resize(uint32_t width, uint32_t height);
-	bool UpdatePreDepth(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
-	bool UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+	bool UpdatePreDepth(IKCommandBufferPtr primaryBuffer);
+	bool UpdateGBuffer(IKCommandBufferPtr primaryBuffer);
 
 	inline IKRenderTargetPtr GetGBufferTarget(RTType rt) { return m_RenderTarget[rt]; }
 	inline IKRenderTargetPtr GetDepthStencilTarget() { return m_DepthStencilTarget; }

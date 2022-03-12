@@ -50,9 +50,8 @@ bool KMainBasePass::Setup(KFrameGraphBuilder& builder)
 bool KMainBasePass::Execute(KFrameGraphExecutor& executor)
 {
 	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
-	uint32_t frameIndex = executor.GetFrameIndex();
 	uint32_t chainIndex = executor.GetChainIndex();
-	m_Master.UpdateBasePass(chainIndex, frameIndex);
+	m_Master.UpdateBasePass(chainIndex);
 	return true;
 }
 
@@ -133,7 +132,7 @@ bool KRenderDispatcher::DestroyCommandBuffers()
 	return true;
 }
 
-void KRenderDispatcher::ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex)
+void KRenderDispatcher::ThreadRenderObject(uint32_t threadIndex)
 {
 	ThreadData& threadData = m_CommandBuffer.threadDatas[threadIndex];
 
@@ -160,7 +159,7 @@ void KRenderDispatcher::RenderSecondary(IKCommandBufferPtr buffer, IKRenderPassP
 	buffer->End();
 }
 
-void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<KRenderComponent*>& cullRes, KRenderStageContext& context)
+void KRenderDispatcher::PopulateRenderCommand(IKRenderPassPtr renderPass, std::vector<KRenderComponent*>& cullRes, KRenderStageContext& context)
 {
 	KRenderUtil::MeshMaterialInstanceGroup meshGroups;
 	KRenderUtil::MeshMaterialInstanceGroup meshMaterialGroups;
@@ -187,7 +186,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 				objectData.MODEL = transform->FinalTransform();
 				objectData.COLOR = debug->Color();
 
-				render->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, frameIndex, [&](KRenderCommand& command)
+				render->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, [&](KRenderCommand& command)
 				{
 					command.objectUsage.binding = SHADER_BINDING_OBJECT;
 					command.objectUsage.range = sizeof(objectData);
@@ -213,7 +212,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 					}
 				});
 
-				render->Visit(PIPELINE_STAGE_DEBUG_LINE, frameIndex, [&](KRenderCommand& command)
+				render->Visit(PIPELINE_STAGE_DEBUG_LINE, [&](KRenderCommand& command)
 				{
 					command.objectUsage.binding = SHADER_BINDING_OBJECT;
 					command.objectUsage.range = sizeof(objectData);
@@ -272,7 +271,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 				if (!m_InstanceSubmit)
 				{
-					render->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand& command)
+					render->Visit(PIPELINE_STAGE_PRE_Z, [&](KRenderCommand& command)
 					{
 						for (size_t idx = 0; idx < instances.size(); ++idx)
 						{
@@ -309,7 +308,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 				}
 				else
 				{
-					render->Visit(PIPELINE_STAGE_PRE_Z_INSTANCE, frameIndex, [&](KRenderCommand& command)
+					render->Visit(PIPELINE_STAGE_PRE_Z_INSTANCE, [&](KRenderCommand& command)
 					{
 						++context.statistics[RENDER_STAGE_PRE_Z].drawcalls;
 
@@ -356,7 +355,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 
 				if (!m_InstanceSubmit)
 				{
-					bool hasMeshPipeline = render->Visit(PIPELINE_STAGE_OPAQUE_MESH, frameIndex, [&](KRenderCommand& command)
+					bool hasMeshPipeline = render->Visit(PIPELINE_STAGE_OPAQUE_MESH, [&](KRenderCommand& command)
 					{
 						for (size_t idx = 0; idx < instances.size(); ++idx)
 						{
@@ -397,7 +396,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 					});
 					if(!hasMeshPipeline)
 					{
-						render->Visit(PIPELINE_STAGE_OPAQUE, frameIndex, [&](KRenderCommand& command)
+						render->Visit(PIPELINE_STAGE_OPAQUE, [&](KRenderCommand& command)
 						{
 							for (size_t idx = 0; idx < instances.size(); ++idx)
 							{
@@ -440,7 +439,7 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 				}
 				else
 				{
-					render->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, frameIndex, [&](KRenderCommand& command)
+					render->Visit(PIPELINE_STAGE_OPAQUE_INSTANCE, [&](KRenderCommand& command)
 					{
 						++context.statistics[RENDER_STAGE_DEFAULT].drawcalls;
 
@@ -496,13 +495,13 @@ void KRenderDispatcher::PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::ALL_STAGE_NAMES[RENDER_STAGE_DEBUG], context.statistics[RENDER_STAGE_DEBUG]);
 }
 
-void KRenderDispatcher::AssignRenderCommand(size_t frameIndex, KRenderStageContext& context)
+void KRenderDispatcher::AssignRenderCommand(KRenderStageContext& context)
 {
 	if (m_MultiThreadSubmit)
 	{
 		size_t threadCount = m_ThreadPool.GetWorkerThreadNum();
 
-		auto AssignRenderCommand = [this, frameIndex, threadCount, &context](RenderStage stage)
+		auto AssignRenderCommand = [this, threadCount, &context](RenderStage stage)
 		{
 			const KRenderCommandList& command = context.command[stage];
 
@@ -544,7 +543,7 @@ void KRenderDispatcher::AssignRenderCommand(size_t frameIndex, KRenderStageConte
 	}
 }
 
-void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, KRenderStageContext& context)
+void KRenderDispatcher::SumbitRenderCommand(KRenderStageContext& context)
 {
 	if (m_MultiThreadSubmit)
 	{
@@ -554,7 +553,7 @@ void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, KRenderStageConte
 		{
 			m_ThreadPool.SubmitTask([=]()
 			{
-				ThreadRenderObject((uint32_t)frameIndex, (uint32_t)i);
+				ThreadRenderObject((uint32_t)i);
 			});
 		}
 		m_ThreadPool.WaitAllAsyncTaskDone();
@@ -575,7 +574,7 @@ void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, KRenderStageConte
 	}
 	else
 	{
-		ThreadRenderObject((uint32_t)frameIndex, 0);
+		ThreadRenderObject(0);
 
 		ThreadData& threadData = m_CommandBuffer.threadDatas[0];
 		for (uint32_t i = 0; i < RENDER_STAGE_NUM; ++i)
@@ -589,7 +588,7 @@ void KRenderDispatcher::SumbitRenderCommand(size_t frameIndex, KRenderStageConte
 	}
 }
 
-bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameIndex)
+bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex)
 {
 	KRenderStageContext context;
 
@@ -604,7 +603,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 
 	// 物件绘制RenderPass
 	{
-		KRenderGlobal::OcclusionBox.Reset(frameIndex, cullRes, primaryCommandBuffer);
+		KRenderGlobal::OcclusionBox.Reset(cullRes, primaryCommandBuffer);
 
 		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 
@@ -613,14 +612,14 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 
 		// 绘制SkyBox
 		KCommandBufferList tempBuffers;
-		KRenderGlobal::SkyBox.Render(frameIndex, renderPass, tempBuffers);
+		KRenderGlobal::SkyBox.Render(renderPass, tempBuffers);
 		if (!tempBuffers.empty())
 		{
 			primaryCommandBuffer->ExecuteAll(tempBuffers);
 			tempBuffers.clear();
 		}
 
-		PopulateRenderCommand(frameIndex, renderPass, cullRes, context);
+		PopulateRenderCommand(renderPass, cullRes, context);
 
 		// 绘制光追结果
 		KRenderCommandList rayCommands;
@@ -641,8 +640,8 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		}
 		context.command[RENDER_STAGE_DEBUG].insert(context.command[RENDER_STAGE_DEBUG].end(), debugDrawCommands.begin(), debugDrawCommands.end());
 
-		AssignRenderCommand(frameIndex, context);
-		SumbitRenderCommand(frameIndex, context);
+		AssignRenderCommand(context);
+		SumbitRenderCommand(context);
 
 		for (RenderStage stage : {/*RENDER_STAGE_PRE_Z, */RENDER_STAGE_DEFAULT})
 		{
@@ -652,7 +651,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 			}
 		}
 
-		KRenderGlobal::OcclusionBox.Render(frameIndex, renderPass, m_Camera, cullRes, tempBuffers);
+		KRenderGlobal::OcclusionBox.Render(renderPass, m_Camera, cullRes, tempBuffers);
 		if (!tempBuffers.empty())
 		{
 			primaryCommandBuffer->ExecuteAll(tempBuffers);
@@ -662,7 +661,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		// 绘制VoxelBox
 		if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
 		{
-			KRenderGlobal::Voxilzer.RenderVoxel(frameIndex, renderPass, tempBuffers);
+			KRenderGlobal::Voxilzer.RenderVoxel(renderPass, tempBuffers);
 			if (!tempBuffers.empty())
 			{
 				primaryCommandBuffer->ExecuteAll(tempBuffers);
@@ -684,7 +683,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 			if (m_CameraCube)
 			{
 				KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-				cameraCube->Render(frameIndex, renderPass, tempBuffers);
+				cameraCube->Render(renderPass, tempBuffers);
 
 				if (!tempBuffers.empty())
 				{
@@ -707,11 +706,11 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex, uint32_t frameI
 		primaryCommandBuffer->EndDebugMarker();
 	}
 
-	KRenderGlobal::PostProcessManager.Execute(chainImageIndex, frameIndex, m_SwapChain, m_UIOverlay, primaryCommandBuffer);
+	KRenderGlobal::PostProcessManager.Execute(chainImageIndex, m_SwapChain, m_UIOverlay, primaryCommandBuffer);
 	return true;
 }
 
-bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t frameIndex)
+bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex)
 {
 	IKPipelineHandlePtr pipelineHandle;
 
@@ -726,14 +725,14 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t 
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
 	{
-		KRenderGlobal::GBuffer.UpdatePreDepth(primaryCommandBuffer, frameIndex);
-		KRenderGlobal::GBuffer.UpdateGBuffer(primaryCommandBuffer, frameIndex);
-		KRenderGlobal::Voxilzer.UpdateFrame(primaryCommandBuffer, frameIndex);
-		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer, frameIndex);
-		KRenderGlobal::RTAO.Execute(primaryCommandBuffer, frameIndex);
-		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(primaryCommandBuffer, frameIndex);
+		KRenderGlobal::GBuffer.UpdatePreDepth(primaryCommandBuffer);
+		KRenderGlobal::GBuffer.UpdateGBuffer(primaryCommandBuffer);
+		KRenderGlobal::Voxilzer.UpdateFrame(primaryCommandBuffer);
+		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer);
+		KRenderGlobal::RTAO.Execute(primaryCommandBuffer);
+		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(primaryCommandBuffer);
 		KRenderGlobal::FrameGraph.Compile();
-		KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, frameIndex, chainImageIndex);
+		KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, chainImageIndex);
 	}
 	primaryCommandBuffer->End();
 
@@ -825,9 +824,9 @@ bool KRenderDispatcher::RemoveCallback(IKRenderWindow* window)
 	return false;
 }
 
-bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
+bool KRenderDispatcher::UpdateCamera()
 {
-	KRenderGlobal::RayTraceManager.UpdateCamera((uint32_t)frameIndex);
+	KRenderGlobal::RayTraceManager.UpdateCamera();
 
 	if (m_Camera)
 	{
@@ -902,7 +901,7 @@ bool KRenderDispatcher::UpdateCamera(size_t frameIndex)
 	return false;
 }
 
-bool KRenderDispatcher::UpdateGlobal(size_t frameIndex)
+bool KRenderDispatcher::UpdateGlobal()
 {
 	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
 	if (globalBuffer)
@@ -925,13 +924,13 @@ bool KRenderDispatcher::UpdateGlobal(size_t frameIndex)
 	return false;
 }
 
-bool KRenderDispatcher::Update(uint32_t frameIndex)
+bool KRenderDispatcher::Update()
 {
-	UpdateGlobal(frameIndex);
+	UpdateGlobal();
 	return true;
 }
 
-bool KRenderDispatcher::Execute(uint32_t chainImageIndex, uint32_t frameIndex)
+bool KRenderDispatcher::Execute(uint32_t chainImageIndex)
 {
 	if (m_SwapChain)
 	{
@@ -949,14 +948,14 @@ bool KRenderDispatcher::Execute(uint32_t chainImageIndex, uint32_t frameIndex)
 				auto it = m_WindowRenderCB.find(window);
 				if (it != m_WindowRenderCB.end())
 				{
-					(*(it->second))(this, chainImageIndex, frameIndex);
+					(*(it->second))(this, chainImageIndex);
 				}
 			}
 
 			if (m_Scene && m_Camera)
 			{
-				UpdateCamera(frameIndex);
-				SubmitCommandBuffers(chainImageIndex, frameIndex);
+				UpdateCamera();
+				SubmitCommandBuffers(chainImageIndex);
 			}
 		}
 	}
@@ -964,7 +963,7 @@ bool KRenderDispatcher::Execute(uint32_t chainImageIndex, uint32_t frameIndex)
 	return true;
 }
 
-IKCommandBufferPtr KRenderDispatcher::GetPrimaryCommandBuffer(uint32_t frameIndex)
+IKCommandBufferPtr KRenderDispatcher::GetPrimaryCommandBuffer()
 {
 	return m_CommandBuffer.primaryCommandBuffer;
 }

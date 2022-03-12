@@ -67,7 +67,7 @@ protected:
 	bool UnInitRenderResource();
 
 	bool UpdateFrameTime();
-	bool UpdateUIOverlay(size_t frameIndex);
+	bool UpdateUIOverlay();
 	bool UpdateController();
 	bool UpdateGizmo();
 

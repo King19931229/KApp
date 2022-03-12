@@ -26,20 +26,20 @@ bool KRayTraceManager::UnInit()
 	return true;
 }
 
-bool KRayTraceManager::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+bool KRayTraceManager::Execute(IKCommandBufferPtr primaryBuffer)
 {
 	for (IKRayTraceScenePtr scene : m_Scenes)
 	{
-		scene->Execute(primaryBuffer, frameIndex);
+		scene->Execute(primaryBuffer);
 	}
 	return true;
 }
 
-bool KRayTraceManager::UpdateCamera(uint32_t frameIndex)
+bool KRayTraceManager::UpdateCamera()
 {
 	for (IKRayTraceScenePtr scene : m_Scenes)
 	{
-		scene->UpdateCamera(frameIndex);
+		scene->UpdateCamera();
 	}
 	return true;
 }

@@ -111,20 +111,20 @@ bool KRenderCore::InitGlobalManager()
 	KDebugDrawSharedData::Init();
 
 	KRenderGlobal::FrameGraph.Init(m_Device);
-	KRenderGlobal::GBuffer.Init(m_Device, &m_Camera, (uint32_t)width, (uint32_t)height, frameInFlight);
+	KRenderGlobal::GBuffer.Init(m_Device, &m_Camera, (uint32_t)width, (uint32_t)height);
 	KRenderGlobal::RayTraceManager.Init();
 
-	KRenderGlobal::CubeMap.Init(m_Device, frameInFlight, 128, 128, 8,
+	KRenderGlobal::CubeMap.Init(m_Device, 128, 128, 8,
 		"Textures/uffizi_cube.ktx",
 		"Materials/pbr/diffuse_irradiance.mtl",
 		"Materials/pbr/specular_irradiance.mtl",
 		"Materials/pbr/integrate_brdf.mtl"
 	);
-	KRenderGlobal::SkyBox.Init(m_Device, frameInFlight, "Textures/uffizi_cube.ktx");
+	KRenderGlobal::SkyBox.Init(m_Device, "Textures/uffizi_cube.ktx");
 
-	KRenderGlobal::OcclusionBox.Init(m_Device, frameInFlight);
-	KRenderGlobal::ShadowMap.Init(m_Device, frameInFlight, 2048);
-	KRenderGlobal::CascadedShadowMap.Init(&m_Camera, frameInFlight, 3, 2048, 1.0f);
+	KRenderGlobal::OcclusionBox.Init(m_Device);
+	KRenderGlobal::ShadowMap.Init(m_Device, 2048);
+	KRenderGlobal::CascadedShadowMap.Init(&m_Camera, 3, 2048, 1.0f);
 
 	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 128, (uint32_t)width, (uint32_t)height);
 
@@ -347,7 +347,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			UnInitGlobalManager();
 		};
 
-		m_MainWindowRenderCB = [this](IKRenderDispatcher* dispatcher, uint32_t chainImageIndex, uint32_t frameIndex)
+		m_MainWindowRenderCB = [this](IKRenderDispatcher* dispatcher, uint32_t chainImageIndex)
 		{
 			dispatcher->SetSceneCamera(&KRenderGlobal::Scene, &m_Camera);
 			dispatcher->SetCameraCubeDisplay(true);
@@ -574,7 +574,7 @@ bool KRenderCore::UpdateFrameTime()
 	return true;
 }
 
-bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
+bool KRenderCore::UpdateUIOverlay()
 {
 	IKUIOverlay* ui = m_Device->GetUIOverlay();
 
@@ -640,7 +640,7 @@ bool KRenderCore::UpdateUIOverlay(size_t frameIndex)
 	}
 	ui->EndNewFrame();
 
-	ui->Update((uint32_t)frameIndex);
+	ui->Update();
 	return true;
 }
 
@@ -670,7 +670,7 @@ void KRenderCore::OnPrePresent(uint32_t chainIndex, uint32_t frameIndex)
 	KRenderGlobal::TaskExecutor.ProcessSyncTask();
 
 	UpdateFrameTime();
-	UpdateUIOverlay(frameIndex);
+	UpdateUIOverlay();
 	UpdateController();
 	UpdateGizmo();
 

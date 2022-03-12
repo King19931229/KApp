@@ -143,5 +143,5 @@ public:
 	virtual bool UnInit();
 	virtual bool MarkASNeedUpdate();
 
-	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+	virtual bool Execute(IKCommandBufferPtr primaryBuffer);
 };

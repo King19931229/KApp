@@ -37,8 +37,8 @@ public:
 	virtual bool Init(IKRenderDevice* renderDevice, size_t frameInFlight);
 	virtual bool UnInit();
 	virtual bool Resize(size_t width, size_t height);
-	virtual bool Update(unsigned int imageIndex);
-	virtual bool Draw(unsigned int imageIndex, IKRenderPassPtr renderPass, IKCommandBufferPtr commandBufferPtr) = 0;
+	virtual bool Update();
+	virtual bool Draw(IKRenderPassPtr renderPass, IKCommandBufferPtr commandBufferPtr) = 0;
 
 	virtual bool Begin(const char* str);
 	virtual bool SetWindowPos(unsigned int x, unsigned int y);

@@ -93,22 +93,22 @@ protected:
 	bool m_DisplayCameraCube;
 	bool m_CameraOutdate;
 
-	void ThreadRenderObject(uint32_t frameIndex, uint32_t threadIndex);
+	void ThreadRenderObject(uint32_t threadIndex);
 
-	bool UpdateBasePass(uint32_t chainImageIndex, uint32_t frameIndex);
-	bool SubmitCommandBuffers(uint32_t chainImageIndex, uint32_t frameIndex);
+	bool UpdateBasePass(uint32_t chainImageIndex);
+	bool SubmitCommandBuffers(uint32_t chainImageIndex);
 
 	bool CreateCommandBuffers();
 	bool DestroyCommandBuffers();
 
 	void RenderSecondary(IKCommandBufferPtr buffer, IKRenderPassPtr renderPass, const std::vector<KRenderCommand>& commands);
 
-	void PopulateRenderCommand(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<KRenderComponent*>& cullRes, KRenderStageContext& context);
-	void AssignRenderCommand(size_t frameIndex, KRenderStageContext& context);
-	void SumbitRenderCommand(size_t frameIndex, KRenderStageContext& context);
+	void PopulateRenderCommand(IKRenderPassPtr renderPass, std::vector<KRenderComponent*>& cullRes, KRenderStageContext& context);
+	void AssignRenderCommand(KRenderStageContext& context);
+	void SumbitRenderCommand(KRenderStageContext& context);
 
-	bool UpdateCamera(size_t frameIndex);
-	bool UpdateGlobal(size_t frameIndex);
+	bool UpdateCamera();
+	bool UpdateGlobal();
 public:
 	KRenderDispatcher();
 	~KRenderDispatcher();
@@ -128,7 +128,7 @@ public:
 	bool SetCallback(IKRenderWindow* window, OnWindowRenderCallback* callback) override;
 	bool RemoveCallback(IKRenderWindow* window) override;
 
-	bool Update(uint32_t frameIndex);
-	bool Execute(uint32_t chainImageIndex, uint32_t frameIndex);
-	IKCommandBufferPtr GetPrimaryCommandBuffer(uint32_t frameIndex);
+	bool Update();
+	bool Execute(uint32_t chainImageIndex);
+	IKCommandBufferPtr GetPrimaryCommandBuffer();
 };

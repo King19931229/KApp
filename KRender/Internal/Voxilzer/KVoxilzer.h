@@ -199,8 +199,8 @@ protected:
 
 	void UpdateInternal();
 
-	bool UpdateLightingResult(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
-	bool UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+	bool UpdateLightingResult(IKCommandBufferPtr primaryBuffer);
+	bool UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer);
 public:
 	KVoxilzer();
 	~KVoxilzer();
@@ -233,8 +233,8 @@ public:
 	bool GetOctreeRayTestRenderCommand(KRenderCommandList& commands);
 
 	void Resize(uint32_t width, uint32_t height);
-	bool RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
-	bool UpdateFrame(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+	bool RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool UpdateFrame(IKCommandBufferPtr primaryBuffer);
 
 	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelAlbedo() { return m_VoxelAlbedo ? m_VoxelAlbedo->GetFrameBuffer() : nullptr; }

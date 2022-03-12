@@ -672,8 +672,9 @@ bool KVulkanRayTracePipeline::MarkASNeedUpdate()
 	return true;
 }
 
-bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer)
 {
+	uint32_t frameIndex = KRenderGlobal::CurrentFrameIndex;
 	if (KVulkanGlobal::supportRaytrace)
 	{
 		if (primaryBuffer && frameIndex < m_Descriptor.sets.size())

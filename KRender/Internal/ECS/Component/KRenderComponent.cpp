@@ -339,11 +339,11 @@ bool KRenderComponent::UpdateUtility(const KMeshUtilityInfoPtr& info)
 	return KRenderGlobal::MeshManager.UpdateUtility(info, m_Mesh);
 }
 
-bool KRenderComponent::Visit(PipelineStage stage, size_t frameIndex, std::function<void(KRenderCommand&)> func)
+bool KRenderComponent::Visit(PipelineStage stage, std::function<void(KRenderCommand&)> func)
 {
 	for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
 	{
-		materialSubMesh->Visit(stage, frameIndex, func);
+		materialSubMesh->Visit(stage, func);
 	}
 	return true;
 }
@@ -353,6 +353,26 @@ bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStr
 	if (m_Mesh)
 	{
 		return m_Mesh->GetAllAccelerationStructure(as);
+	}
+	return false;
+}
+
+IKQueryPtr KRenderComponent::GetOCQuery()
+{
+	return KRenderGlobal::CurrentFrameIndex < m_OCQueries.size() ? m_OCQueries[KRenderGlobal::CurrentFrameIndex] : nullptr;
+}
+
+IKQueryPtr KRenderComponent::GetOCInstacneQuery()
+{
+	return KRenderGlobal::CurrentFrameIndex < m_OCInstanceQueries.size() ? m_OCInstanceQueries[KRenderGlobal::CurrentFrameIndex] : nullptr;
+}
+
+bool KRenderComponent::SetOCInstanceQuery(IKQueryPtr query)
+{
+	if (KRenderGlobal::CurrentFrameIndex < m_OCInstanceQueries.size())
+	{
+		m_OCInstanceQueries[KRenderGlobal::CurrentFrameIndex] = query;
+		return true;
 	}
 	return false;
 }

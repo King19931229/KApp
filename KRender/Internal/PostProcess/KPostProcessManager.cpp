@@ -462,7 +462,7 @@ bool KPostProcessManager::Construct()
 	return false;
 }
 
-bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int frameIndex, IKSwapChain* swapChain, IKUIOverlay* ui, IKCommandBufferPtr primaryCommandBuffer)
+bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swapChain, IKUIOverlay* ui, IKCommandBufferPtr primaryCommandBuffer)
 {
 	KPostProcessPass* endPass = nullptr;
 
@@ -481,7 +481,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 				return;
 			}
 
-			IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer(frameIndex);
+			IKCommandBufferPtr commandBuffer = pass->GetCommandBuffer();
 			IKRenderPassPtr renderPass = pass->GetRenderPass();
 
 			primaryCommandBuffer->BeginDebugMarker("PostProcess", glm::vec4(0, 1, 0, 0));
@@ -519,7 +519,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, unsigned int fra
 
 		if (ui)
 		{
-			ui->Draw(frameIndex, renderPass, primaryCommandBuffer);
+			ui->Draw(renderPass, primaryCommandBuffer);
 		}
 
 		primaryCommandBuffer->EndRenderPass();

@@ -9,8 +9,8 @@ struct IKUIOverlay
 	virtual bool Init(IKRenderDevice* renderDevice, size_t frameInFlight) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool Resize(size_t width, size_t height) = 0;
-	virtual bool Update(unsigned int imageIndex) = 0;
-	virtual bool Draw(unsigned int imageIndex, IKRenderPassPtr renderPass, IKCommandBufferPtr commandBufferPtr) = 0;
+	virtual bool Update() = 0;
+	virtual bool Draw(IKRenderPassPtr renderPass, IKCommandBufferPtr commandBufferPtr) = 0;
 
 	virtual bool SetMousePosition(unsigned int x, unsigned int y) = 0;
 	virtual bool SetMouseDown(InputMouseButton button, bool down) = 0;

@@ -100,6 +100,6 @@ public:
 	inline IKRenderPassPtr GetRenderPass() { return m_RenderPass; }
 	inline IKPipelinePtr GetPipeline() { return m_Pipeline; }
 	inline IKPipelinePtr GetScreenDrawPipeline() { return m_ScreenDrawPipeline; }
-	inline IKCommandBufferPtr GetCommandBuffer(size_t frameIndex) { return m_CommandBuffer; }
+	inline IKCommandBufferPtr GetCommandBuffer() { return m_CommandBuffer; }
 	inline bool IsInit() { return m_bInit; }
 };

@@ -45,13 +45,13 @@ public:
 
 	virtual bool Init(IKRenderScene* scene, const KCamera* camera, IKRayTracePipelinePtr& pipeline);
 	virtual bool UnInit();
-	virtual bool UpdateCamera(uint32_t frameIndex);
+	virtual bool UpdateCamera();
 	virtual bool EnableDebugDraw();
 	virtual bool DisableDebugDraw();
 	virtual bool EnableAutoUpdateImageSize(float scale);
 	virtual bool EnableCustomImageSize(uint32_t width, uint32_t height);
 	virtual bool GetDebugRenderCommand(KRenderCommandList& commands);
-	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+	virtual bool Execute(IKCommandBufferPtr primaryBuffer);
 
 	virtual IKRayTracePipeline* GetRayTracePipeline();
 	virtual const KCamera* GetCamera();

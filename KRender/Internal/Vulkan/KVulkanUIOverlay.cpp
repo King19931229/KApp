@@ -14,16 +14,15 @@
 
 KVulkanUIOverlay::KVulkanUIOverlay()
 {
-
 }
 
 KVulkanUIOverlay::~KVulkanUIOverlay()
 {
-
 }
 
-bool KVulkanUIOverlay::Draw(unsigned int imageIndex, IKRenderPassPtr renderPass, IKCommandBufferPtr commandBuffer)
+bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, IKCommandBufferPtr commandBuffer)
 {
+	unsigned int imageIndex = KRenderGlobal::CurrentFrameIndex;
 	if(imageIndex < m_Pipelines.size())
 	{
 		KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)commandBuffer.get();

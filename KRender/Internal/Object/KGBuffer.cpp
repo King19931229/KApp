@@ -22,7 +22,7 @@ KGBuffer::~KGBuffer()
 	}
 }
 
-bool KGBuffer::Init(IKRenderDevice* renderDevice, const KCamera* camera, uint32_t width, uint32_t height, size_t frameInFlight)
+bool KGBuffer::Init(IKRenderDevice* renderDevice, const KCamera* camera, uint32_t width, uint32_t height)
 {
 	ASSERT_RESULT(UnInit());
 	
@@ -137,7 +137,7 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 	return false;
 }
 
-bool KGBuffer::UpdatePreDepth(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+bool KGBuffer::UpdatePreDepth(IKCommandBufferPtr primaryBuffer)
 {
 	if (m_Camera)
 	{
@@ -165,7 +165,7 @@ bool KGBuffer::UpdatePreDepth(IKCommandBufferPtr primaryBuffer, uint32_t frameIn
 
 			if (instances.size() > 1)
 			{
-				render->Visit(PIPELINE_STAGE_PRE_Z_INSTANCE, frameIndex, [&](KRenderCommand& command)
+				render->Visit(PIPELINE_STAGE_PRE_Z_INSTANCE, [&](KRenderCommand& command)
 				{
 					++statistics.drawcalls;
 
@@ -211,7 +211,7 @@ bool KGBuffer::UpdatePreDepth(IKCommandBufferPtr primaryBuffer, uint32_t frameIn
 			}
 			else
 			{
-				render->Visit(PIPELINE_STAGE_PRE_Z, frameIndex, [&](KRenderCommand& command)
+				render->Visit(PIPELINE_STAGE_PRE_Z, [&](KRenderCommand& command)
 				{
 					for (size_t idx = 0; idx < instances.size(); ++idx)
 					{
@@ -280,7 +280,7 @@ bool KGBuffer::UpdatePreDepth(IKCommandBufferPtr primaryBuffer, uint32_t frameIn
 	return false;
 }
 
-bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer)
 {
 	if (m_Camera)
 	{
@@ -312,7 +312,7 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 
 				if (instances.size() > 1)
 				{
-					render->Visit(PIPELINE_STAGE_GBUFFER_INSTANCE, frameIndex, [&](KRenderCommand& _command)
+					render->Visit(PIPELINE_STAGE_GBUFFER_INSTANCE, [&](KRenderCommand& _command)
 					{
 						KRenderCommand command = std::move(_command);
 
@@ -358,7 +358,7 @@ bool KGBuffer::UpdateGBuffer(IKCommandBufferPtr primaryBuffer, uint32_t frameInd
 				}
 				else
 				{
-					render->Visit(PIPELINE_STAGE_GBUFFER, frameIndex, [&](KRenderCommand& _command)
+					render->Visit(PIPELINE_STAGE_GBUFFER, [&](KRenderCommand& _command)
 					{
 						KRenderCommand command = std::move(_command);
 

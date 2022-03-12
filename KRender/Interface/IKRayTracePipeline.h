@@ -26,5 +26,5 @@ struct IKRayTracePipeline
 	virtual bool UnInit() = 0;
 	virtual bool MarkASNeedUpdate() = 0;
 
-	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex) = 0;
+	virtual bool Execute(IKCommandBufferPtr primaryBuffer) = 0;
 };

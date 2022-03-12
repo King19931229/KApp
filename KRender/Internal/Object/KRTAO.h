@@ -98,7 +98,7 @@ public:
 	virtual bool DisableDebugDraw();
 
 	virtual bool GetDebugRenderCommand(KRenderCommandList& commands);
-	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex);
+	virtual bool Execute(IKCommandBufferPtr primaryBuffer);
 
 	AoControl& GetAoParameters() { return m_AOParameters; }
 

@@ -862,7 +862,7 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 	std::vector<KRenderCommand> commands;
 	for (KRenderComponent* render : cullRes)
 	{
-		render->Visit(PIPELINE_STAGE_VOXEL, 0, [&](KRenderCommand& command)
+		render->Visit(PIPELINE_STAGE_VOXEL, [&](KRenderCommand& command)
 		{
 			IKEntity* entity = render->GetEntityHandle();
 
@@ -937,7 +937,7 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 	std::vector<KRenderCommand> commands;
 	for (KRenderComponent* render : cullRes)
 	{
-		render->Visit(PIPELINE_STAGE_SPARSE_VOXEL, 0, [&](KRenderCommand& command)
+		render->Visit(PIPELINE_STAGE_SPARSE_VOXEL, [&](KRenderCommand& command)
 		{
 			IKEntity* entity = render->GetEntityHandle();
 
@@ -1102,19 +1102,19 @@ void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 
 	for (uint32_t i = 1; i <= m_OctreeLevel; ++i)
 	{
-		m_OctreeInitNodePipeline->ExecuteIndirect(commandBuffer, m_BuildIndirectBuffer, 0, nullptr);
-		m_OctreeTagNodePipeline->Execute(commandBuffer, fragmentGroupX, 1, 1, 0, &usage);
+		m_OctreeInitNodePipeline->ExecuteIndirect(commandBuffer, m_BuildIndirectBuffer, nullptr);
+		m_OctreeTagNodePipeline->Execute(commandBuffer, fragmentGroupX, 1, 1, &usage);
 		if (i != m_OctreeLevel)
 		{
-			m_OctreeAllocNodePipeline->ExecuteIndirect(commandBuffer, m_BuildIndirectBuffer, 0, nullptr);
-			m_OctreeModifyArgPipeline->Execute(commandBuffer, 1, 1, 1, 0, nullptr);
+			m_OctreeAllocNodePipeline->ExecuteIndirect(commandBuffer, m_BuildIndirectBuffer,nullptr);
+			m_OctreeModifyArgPipeline->Execute(commandBuffer, 1, 1, 1, nullptr);
 		}
 		else
 		{
 			uint32_t counter = 0;
 			m_CounterBuffer->Write(&counter);
-			m_OctreeInitDataPipeline->ExecuteIndirect(commandBuffer, m_BuildIndirectBuffer, 0, nullptr);
-			m_OctreeAssignDataPipeline->Execute(commandBuffer, fragmentGroupX, 1, 1, 0, &usage);
+			m_OctreeInitDataPipeline->ExecuteIndirect(commandBuffer, m_BuildIndirectBuffer, nullptr);
+			m_OctreeAssignDataPipeline->Execute(commandBuffer, fragmentGroupX, 1, 1, &usage);
 		}
 	}
 }
@@ -1197,7 +1197,7 @@ void KVoxilzer::GenerateMipmapBase(IKCommandBufferPtr commandBuffer)
 	KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, usage);
 
 	IKComputePipelinePtr& mipmapBasePipeline = m_VoxelUseOctree ? m_MipmapBaseOctreePipeline : m_MipmapBasePipeline;
-	mipmapBasePipeline->Execute(commandBuffer, group, group, group, 0, &usage);
+	mipmapBasePipeline->Execute(commandBuffer, group, group, group, &usage);
 }
 
 void KVoxilzer::GenerateMipmapVolume(IKCommandBufferPtr commandBuffer)
@@ -1226,7 +1226,7 @@ void KVoxilzer::GenerateMipmapVolume(IKCommandBufferPtr commandBuffer)
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, usage);
 
 			m_MipmapVolumePipeline->BindStorageImages(VOXEL_BINDING_TEXMIPMAP_OUT, targets, EF_UNKNOWN, COMPUTE_RESOURCE_OUT, mipmap, true);
-			m_MipmapVolumePipeline->Execute(commandBuffer, group, group, group, 0, &usage);
+			m_MipmapVolumePipeline->Execute(commandBuffer, group, group, group, &usage);
 		}
 
 		dimension /= 2;
@@ -1248,7 +1248,7 @@ void KVoxilzer::GenerateOctreeMipmapBase(IKCommandBufferPtr commandBuffer)
 	usage.range = sizeof(constant);
 	KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, usage);
 
-	m_OctreeMipmapBasePipeline->Execute(commandBuffer, group, group, group, 0, &usage);
+	m_OctreeMipmapBasePipeline->Execute(commandBuffer, group, group, group, &usage);
 }
 
 void KVoxilzer::GenerateOctreeMipmapVolume(IKCommandBufferPtr commandBuffer)
@@ -1267,7 +1267,7 @@ void KVoxilzer::GenerateOctreeMipmapVolume(IKCommandBufferPtr commandBuffer)
 		usage.range = sizeof(constant);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, usage);
 
-		m_OctreeMipmapVolumePipeline->Execute(commandBuffer, group, group, group, 0, &usage);
+		m_OctreeMipmapVolumePipeline->Execute(commandBuffer, group, group, group, &usage);
 
 		dimension /= 2;
 		++mipmap;
@@ -1310,7 +1310,7 @@ bool KVoxilzer::GetOctreeRayTestRenderCommand(KRenderCommandList& commands)
 	return m_OctreeRayTestDebugDrawer.GetDebugRenderCommand(commands);
 }
 
-bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+bool KVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
 {
 	if (!m_VoxelDrawEnable)
 		return true;
@@ -1343,7 +1343,7 @@ bool KVoxilzer::RenderVoxel(size_t frameIndex, IKRenderPassPtr renderPass, std::
 	return true;
 }
 
-bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 {
 	IKPipelinePtr& lightPassPipeline = m_VoxelUseOctree ? m_LightPassOctreePipeline : m_LightPassPipeline;
 
@@ -1369,7 +1369,7 @@ bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer, uint32_t 
 	return true;
 }
 
-bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer)
 {
 	if (m_VoxelUseOctree && m_OctreeRayTestDebugDrawer.GetEnable())
 	{
@@ -1421,12 +1421,12 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer, uint3
 	return true;
 }
 
-bool KVoxilzer::UpdateFrame(IKCommandBufferPtr primaryBuffer, uint32_t frameIndex)
+bool KVoxilzer::UpdateFrame(IKCommandBufferPtr primaryBuffer)
 {
 	bool result = true;
 	UpdateProjectionMatrices();
-	result &= UpdateLightingResult(primaryBuffer, frameIndex);
-	result &= UpdateOctreRayTestResult(primaryBuffer, frameIndex);
+	result &= UpdateLightingResult(primaryBuffer);
+	result &= UpdateOctreRayTestResult(primaryBuffer);
 	return result;
 }
 
