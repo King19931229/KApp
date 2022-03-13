@@ -6,7 +6,7 @@ class KUIOverlayBase : public IKUIOverlay
 protected:
 	void* m_UIContext;
 
-	std::vector<IKPipelinePtr> m_Pipelines;
+	IKPipelinePtr m_Pipeline;
 	std::vector<IKIndexBufferPtr> m_IndexBuffers;
 	std::vector<IKVertexBufferPtr> m_VertexBuffers;
 	std::vector<bool> m_NeedUpdates;

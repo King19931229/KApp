@@ -21,21 +21,22 @@ layout(location = 5) out vec4 worldBinormal;
 
 void main()
 {
-	// 0
+	// world normal
 	worldNormal.rgb = normalize(mat3(WORLD_MATRIX) * normal);
-	worldNormal.a = -(camera.view * worldPos).a;
-	// 1
+	// world position
 	worldPos = WORLD_MATRIX * vec4(position, 1.0);
-	// 2
+	// view depth
+	vec4 viewPos = camera.view * worldPos;
+	worldNormal.a = -viewPos.z / viewPos.w;
+	// prev world position
 	prevWorldPos = PREV_WORLD_MATRIX * vec4(position, 1.0);
-	// 3
+	// uv
 	texcoord = texcoord0;
 #if TANGENT_BINORMAL_INPUT
-	// 4
+	// world tangent
 	worldTangent = WORLD_MATRIX * vec4(tangent, 0.0);
-	// 5
+	// world binormal
 	worldBinormal = WORLD_MATRIX * vec4(binormal, 0.0);
 #endif
-
 	gl_Position = camera.viewProj * WORLD_MATRIX * vec4(position, 1.0);
 }

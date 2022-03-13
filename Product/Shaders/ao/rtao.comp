@@ -146,6 +146,7 @@ void main()
 		}
 
 		// Computing occlusion
+		hitDistance = hitDistance / rtao_samples;
 		occlusion = 1 - (occlusion / rtao_samples);
 		occlusion = pow(clamp(occlusion, 0, 1), rtao_power);
 	}

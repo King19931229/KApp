@@ -65,6 +65,20 @@ namespace KVertexDefinition
 		glm::vec4 PREV_ROW0;
 		glm::vec4 PREV_ROW1;
 		glm::vec4 PREV_ROW2;
+
+		INSTANCE_DATA_MATRIX4F()
+			: ROW0(glm::vec4(1, 0, 0, 0)), ROW1(glm::vec4(0, 1, 0, 0)), ROW2(glm::vec4(0, 0, 1, 0))
+			, PREV_ROW0(glm::vec4(1, 0, 0, 0)), PREV_ROW1(glm::vec4(0, 1, 0, 0)), PREV_ROW2(glm::vec4(0, 0, 1, 0))
+		{}
+
+		INSTANCE_DATA_MATRIX4F
+		(
+			const glm::vec4& row0, const glm::vec4& row1, const glm::vec4& row2,
+			const glm::vec4& prev_row0, const glm::vec4& prev_row1, const glm::vec4& prev_row2
+		)
+			: ROW0(row0), ROW1(row1), ROW2(row2)
+			, PREV_ROW0(prev_row0), PREV_ROW1(prev_row1), PREV_ROW2(prev_row2)
+		{}
 	};
 #pragma pack(pop)
 	struct VertexSemanticDetail

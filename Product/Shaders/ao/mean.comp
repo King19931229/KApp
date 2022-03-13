@@ -1,7 +1,7 @@
 #include "rtao_define.h"
 
-layout(binding = 0, rg16f) uniform image2D inImage;
-layout(binding = 1, rg16f) uniform image2D outImage;
+layout(binding = 0, rgba16f) uniform image2D inImage;
+layout(binding = 1, rgba16f) uniform image2D outImage;
 layout(binding = 2) uniform MeanProperties
 {
 	int mean_width;
@@ -52,5 +52,5 @@ void main()
 	const float variance = besselCorrection * (squaredMean - mean * mean);
 
 	// imageStore(outImage, sampleCenter, vec4(centerValue, 0, 0));
-	imageStore(outImage, sampleCenter, vec4(mean, variance, 0, 0));
+	imageStore(outImage, sampleCenter, vec4(mean, squaredMean, variance, 0));
 }

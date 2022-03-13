@@ -69,17 +69,17 @@ layout(location = BINORMAL) in vec3 binormal;
 layout(location = INSTANCE_ROW_0) in vec4 world_row0;
 layout(location = INSTANCE_ROW_1) in vec4 world_row1;
 layout(location = INSTANCE_ROW_2) in vec4 world_row2;
-#define WORLD_MATRIX transpose(mat4(world_row0, world_row1, world_row2, vec4(0, 0, 0, 1)))
+#define WORLD_MATRIX (transpose(mat4(world_row0, world_row1, world_row2, vec4(0, 0, 0, 1))))
 
 layout(location = INSTANCE_PREV_ROW_0) in vec4 prev_world_row0;
 layout(location = INSTANCE_PREV_ROW_1) in vec4 prev_world_row1;
 layout(location = INSTANCE_PREV_ROW_2) in vec4 prev_world_row2;
-#define PREV_WORLD_MATRIX transpose(mat4(prev_world_row0, prev_world_row1, prev_world_row2, vec4(0, 0, 0, 1)))
+#define PREV_WORLD_MATRIX (transpose(mat4(prev_world_row0, prev_world_row1, prev_world_row2, vec4(0, 0, 0, 1))))
 
 #else
 
-#define WORLD_MATRIX object.model
-#define PREV_WORLD_MATRIX object.prev_model
+#define WORLD_MATRIX (object.model)
+#define PREV_WORLD_MATRIX (object.prev_model)
 
 #endif // INSTANCE_INPUT
 

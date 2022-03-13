@@ -71,18 +71,18 @@ bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 	renderDevice->CreateTexture(m_FontTexture);
 	renderDevice->CreateSampler(m_FontSampler);
 
+	renderDevice->CreatePipeline(m_Pipeline);
+
 	size_t numImages = frameInFlight;
 
 	m_IndexBuffers.resize(numImages);
 	m_VertexBuffers.resize(numImages);
-	m_Pipelines.resize(numImages);
 	m_NeedUpdates.resize(numImages);
 
 	for(size_t i = 0; i < numImages; ++i)
 	{
 		renderDevice->CreateIndexBuffer(m_IndexBuffers[i]);
 		renderDevice->CreateVertexBuffer(m_VertexBuffers[i]);
-		renderDevice->CreatePipeline(m_Pipelines[i]);
 		m_NeedUpdates[i] = true;
 	}
 
@@ -135,11 +135,7 @@ bool KUIOverlayBase::UnInit()
 		m_FontSampler = nullptr;
 	}
 
-	for(IKPipelinePtr& pipeline : m_Pipelines)
-	{
-		SAFE_UNINIT(pipeline);
-	}
-	m_Pipelines.clear();
+	SAFE_UNINIT(m_Pipeline);
 
 	m_NeedUpdates.clear();
 
@@ -189,26 +185,23 @@ void KUIOverlayBase::PrepareResources()
 
 void KUIOverlayBase::PreparePipeline()
 {
-	VertexFormat vertexFormats[] = {VF_GUI_POS_UV_COLOR};
+	VertexFormat vertexFormats[] = { VF_GUI_POS_UV_COLOR };
 
-	for(size_t i = 0; i < m_Pipelines.size(); ++i)
-	{
-		IKPipelinePtr pipeline = m_Pipelines[i];
-		pipeline->SetVertexBinding(vertexFormats, 1);
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(true);
-		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-		pipeline->SetShader(ST_VERTEX, m_VertexShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_FontTexture->GetFrameBuffer(), m_FontSampler);
+	IKPipelinePtr& pipeline = m_Pipeline;
+	pipeline->SetVertexBinding(vertexFormats, 1);
+	pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+	pipeline->SetBlendEnable(true);
+	pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
+	pipeline->SetCullMode(CM_NONE);
+	pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+	pipeline->SetPolygonMode(PM_FILL);
+	pipeline->SetDepthFunc(CF_ALWAYS, false, false);
+	pipeline->SetShader(ST_VERTEX, m_VertexShader);
+	pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+	pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_FontTexture->GetFrameBuffer(), m_FontSampler);
 
-		pipeline->CreateConstantBlock(ST_VERTEX, sizeof(m_PushConstBlock));
-		ASSERT_RESULT(pipeline->Init());
-	}	
+	pipeline->CreateConstantBlock(ST_VERTEX, sizeof(m_PushConstBlock));
+	ASSERT_RESULT(pipeline->Init());
 }
 
 bool KUIOverlayBase::Update()

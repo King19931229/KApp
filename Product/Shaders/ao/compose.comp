@@ -7,6 +7,7 @@ layout(binding = BINDING_LOCAL_MEAN_VARIANCE_INPUT, rg16f) uniform image2D meanI
 layout(binding = BINDING_FINAL, rg32f) uniform image2D finalImage;
 layout(binding = BINDING_ATROUS, r16f) uniform image2D atrousImage;
 layout(binding = BINDING_COMPOSED, rgba16f) uniform image2D outImage;
+layout(binding = BINDING_VELOCITY, rg32f) uniform image2D motionImage;
 
 layout(local_size_x = RTAO_GROUP_SIZE, local_size_y = RTAO_GROUP_SIZE) in;
 

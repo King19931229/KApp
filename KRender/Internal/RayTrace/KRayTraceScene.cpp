@@ -139,8 +139,8 @@ bool KRayTraceScene::UpdateCamera()
 		cam.viewInv = glm::inverse(cam.view);
 		cam.projInv = glm::inverse(cam.proj);
 		cameraBuffer->Write(&cam);
-		return true;
 	}
+	return true;
 }
 
 bool KRayTraceScene::EnableDebugDraw()

@@ -627,7 +627,7 @@ bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t 
 	uint32_t frameIndex = KRenderGlobal::CurrentFrameIndex;
 	if (primaryBuffer && frameIndex < m_Descriptors.size())
 	{
-		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameIndex);
+		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameNum);
 
 		PreDispatch(primaryBuffer, dstSet, usage);
 
@@ -648,7 +648,7 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 	uint32_t frameIndex = KRenderGlobal::CurrentFrameIndex;
 	if (primaryBuffer && frameIndex < m_Descriptors.size())
 	{
-		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameIndex);
+		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameNum);
 
 		PreDispatch(primaryBuffer, dstSet, usage);
 

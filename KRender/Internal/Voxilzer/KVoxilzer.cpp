@@ -154,31 +154,31 @@ void KVoxilzer::ReloadShader()
 
 	if (m_VoxelUseOctree)
 	{
-		//m_OctreeTagNodePipeline->ReloadShader();
-		//m_OctreeInitNodePipeline->ReloadShader();
-		//m_OctreeAllocNodePipeline->ReloadShader();
-		//m_OctreeModifyArgPipeline->ReloadShader();
+		m_OctreeTagNodePipeline->ReloadShader();
+		m_OctreeInitNodePipeline->ReloadShader();
+		m_OctreeAllocNodePipeline->ReloadShader();
+		m_OctreeModifyArgPipeline->ReloadShader();
 
-		//m_OctreeInitDataPipeline->ReloadShader();
-		//m_OctreeAssignDataPipeline->ReloadShader();
+		m_OctreeInitDataPipeline->ReloadShader();
+		m_OctreeAssignDataPipeline->ReloadShader();
 
-		//m_InjectRadianceOctreePipeline->ReloadShader();
-		//m_InjectPropagationOctreePipeline->ReloadShader();
-		//m_MipmapBaseOctreePipeline->ReloadShader();
+		m_InjectRadianceOctreePipeline->ReloadShader();
+		m_InjectPropagationOctreePipeline->ReloadShader();
+		m_MipmapBaseOctreePipeline->ReloadShader();
 
-		//m_VoxelDrawOctreePipeline->Reload();
-		//m_VoxelWireFrameDrawOctreePipeline->Reload();
+		m_VoxelDrawOctreePipeline->Reload();
+		m_VoxelWireFrameDrawOctreePipeline->Reload();
 		m_LightPassOctreePipeline->Reload();
-		//m_OctreeRayTestPipeline->Reload();
+		m_OctreeRayTestPipeline->Reload();
 	}
 	else
 	{
-		/*m_ClearDynamicPipeline->ReloadShader();
+		m_ClearDynamicPipeline->ReloadShader();
 		m_InjectRadiancePipeline->ReloadShader();
 		m_InjectPropagationPipeline->ReloadShader();
 
 		m_VoxelDrawPipeline->Reload();
-		m_VoxelWireFrameDrawPipeline->Reload();*/
+		m_VoxelWireFrameDrawPipeline->Reload();
 		m_LightPassPipeline->Reload();
 	}
 

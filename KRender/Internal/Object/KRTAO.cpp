@@ -140,6 +140,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_ComposePipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_ComposePipeline->BindStorageImage(BINDING_ATROUS, m_AtrousTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_ComposePipeline->BindStorageImage(BINDING_COMPOSED, m_ComposedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+			m_ComposePipeline->BindStorageImage(BINDING_VELOCITY, velocityBuffer->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_ComposePipeline->Init("ao/compose.comp");
 		}
 	}
@@ -194,15 +195,16 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer)
 {
 	if (m_AOComputePipeline)
 	{
+		primaryBuffer->BeginDebugMarker("RTAO", glm::vec4(0, 1, 0, 0));
+
 		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
 		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
 		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_MOTION)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
 
 		UpdateAOUniform();
-		const uint32_t GROUP_SIZE = 32;
 
-		uint32_t groupX = (m_Width + (GROUP_SIZE - 1)) / GROUP_SIZE;
-		uint32_t groupY = (m_Height + (GROUP_SIZE - 1)) / GROUP_SIZE;
+		uint32_t groupX = (m_Width + (RTAO_GROUP_SIZE - 1)) / RTAO_GROUP_SIZE;
+		uint32_t groupY = (m_Height + (RTAO_GROUP_SIZE - 1)) / RTAO_GROUP_SIZE;
 
 		m_AOComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
 
@@ -220,6 +222,12 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer)
 		m_AtrousComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
 
 		m_ComposePipeline->Execute(primaryBuffer, groupX, groupY, 1);
+
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL)->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION)->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_MOTION)->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		primaryBuffer->EndDebugMarker();
 	}
 	return true;
 }
@@ -284,8 +292,8 @@ void KRTAO::Resize()
 		m_TemporalMeanSqaredMean->InitFromStorage(m_Width, m_Height, 1, EF_R16G16_FLOAT);
 
 		m_MeanVarianceTarget[0]->UnInit();
-		m_MeanVarianceTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16_FLOAT);
+		m_MeanVarianceTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16B16A16_FLOAT);
 		m_MeanVarianceTarget[1]->UnInit();
-		m_MeanVarianceTarget[1]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16_FLOAT);
+		m_MeanVarianceTarget[1]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16B16A16_FLOAT);
 	}
 }

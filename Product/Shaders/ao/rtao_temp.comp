@@ -218,13 +218,13 @@ void main()
 
 	if(abs(motion.x) < 1e-2)
 	{
-		const float eps = 1e-5;
-		const float normalCutStrength = 1.0;
-		float normalWeight = clamp(dot(curNormalDepth.rgb, prevNormalDepth.rgb) + eps, 0.0, 1.0);
+		float normalFloatPrecision = 1e-5;
+		const float normalCutStrength = 0.8;
+		float normalWeight = clamp(dot(curNormalDepth.rgb, prevNormalDepth.rgb) + normalFloatPrecision, 0.0, 1.0);
 		normalWeight = pow(normalWeight, normalCutStrength);
 
+		float depthFloatPrecision = 30.0;
 		vec2 ddxyDepth = DDXYDepth(ivec2(gl_GlobalInvocationID.xy), outSize);
-		float depthFloatPrecision = eps;
 		float depthThreshold = dot(vec2(1.0), abs(ddxyDepth));
 		float depthTolerance = depthThreshold + depthFloatPrecision;
 		float dpethDelta = abs(prevNormalDepth.a - curNormalDepth.a);
@@ -238,7 +238,8 @@ void main()
 	vec2 localMeanVariance = vec2(0.0);
 	if(tspp > 0)
 	{
-		localMeanVariance = imageLoad(meanInputImage, storePos).rg;
+		// r: mean, g:sqare_mean, b:variance, a:dummy
+		localMeanVariance = imageLoad(meanInputImage, storePos).rb;
 		prevOcclusion = ClampPrevResult(prevValue.r, localMeanVariance).r;
 		// Scale down the tspp based on how strongly the cached value got clamped to give more weight to new samples.
 		const float clampDifferenceToTsppScale = 4.0;

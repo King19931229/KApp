@@ -506,6 +506,9 @@ namespace KVulkanHelper
 			case IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT:
 				vkImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 				return true;
+			case IMAGE_LAYOUT_SHADER_READ_ONLY:
+				vkImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				return true;
 			case IMAGE_LAYOUT_UNDEFINED:
 				vkImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				return true;

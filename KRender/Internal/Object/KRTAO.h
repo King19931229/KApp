@@ -6,6 +6,10 @@
 class KRTAO
 {
 public:
+	enum
+	{
+		RTAO_GROUP_SIZE = 32
+	};
 	struct AoControl
 	{
 		float rtao_radius;			// Length of the ray

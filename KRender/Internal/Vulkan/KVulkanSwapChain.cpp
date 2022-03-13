@@ -397,29 +397,29 @@ uint32_t KVulkanSwapChain::GetFrameInFlight()
 	return m_MaxFramesInFight;
 }
 
-IKRenderPassPtr KVulkanSwapChain::GetRenderPass(uint32_t frameIndex)
+IKRenderPassPtr KVulkanSwapChain::GetRenderPass(uint32_t chainIndex)
 {
-	if (frameIndex < m_RenderPasses.size())
+	if (chainIndex < m_RenderPasses.size())
 	{
-		return m_RenderPasses[frameIndex];
+		return m_RenderPasses[chainIndex];
 	}
 	return nullptr;
 }
 
-IKFrameBufferPtr KVulkanSwapChain::GetColorFrameBuffer(uint32_t frameIndex)
+IKFrameBufferPtr KVulkanSwapChain::GetColorFrameBuffer(uint32_t chainIndex)
 {
-	if (frameIndex < m_FrameBuffers.size())
+	if (chainIndex < m_FrameBuffers.size())
 	{
-		return m_FrameBuffers[frameIndex].colorFrameBuffer;
+		return m_FrameBuffers[chainIndex].colorFrameBuffer;
 	}
 	return nullptr;
 }
 
-IKFrameBufferPtr KVulkanSwapChain::GetDepthStencilFrameBuffer(uint32_t frameIndex)
+IKFrameBufferPtr KVulkanSwapChain::GetDepthStencilFrameBuffer(uint32_t chainIndex)
 {
-	if (frameIndex < m_FrameBuffers.size())
+	if (chainIndex < m_FrameBuffers.size())
 	{
-		return m_FrameBuffers[frameIndex].depthStencilFrameBuffer;
+		return m_FrameBuffers[chainIndex].depthStencilFrameBuffer;
 	}
 	return nullptr;
 }

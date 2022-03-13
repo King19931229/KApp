@@ -69,9 +69,9 @@ public:
 	virtual uint32_t GetWidth() { return m_Extend.width; }
 	virtual uint32_t GetHeight() { return m_Extend.height; }
 
-	virtual IKRenderPassPtr GetRenderPass(uint32_t frameIndex);
-	virtual IKFrameBufferPtr GetColorFrameBuffer(uint32_t frameIndex);
-	virtual IKFrameBufferPtr GetDepthStencilFrameBuffer(uint32_t frameIndex);
+	virtual IKRenderPassPtr GetRenderPass(uint32_t chainIndex);
+	virtual IKFrameBufferPtr GetColorFrameBuffer(uint32_t chainIndex);
+	virtual IKFrameBufferPtr GetDepthStencilFrameBuffer(uint32_t chainIndex);
 
 	VkResult WaitForInFightFrame(uint32_t& frameIndex);
 	VkResult AcquireNextImage(uint32_t& imageIndex);

@@ -1414,7 +1414,7 @@ bool KVulkanRenderDevice::Present()
 
 	if (!m_SecordarySwapChains.empty())
 	{
-		// 等待设置空闲 主交换链不再进行FrameInFlight
+		// 等待设备空闲 主交换链不再进行FrameInFlight
 		vkDeviceWaitIdle(m_Device);
 	}
 

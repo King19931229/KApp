@@ -57,16 +57,7 @@ struct KRenderUtil
 				const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform();
 				glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
 				glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
-
-				KVertexDefinition::INSTANCE_DATA_MATRIX4F instance;
-				instance.ROW0 = curTransform[0];
-				instance.ROW1 = curTransform[1];
-				instance.ROW2 = curTransform[2];
-				instance.PREV_ROW0 = prevTransform[0];
-				instance.PREV_ROW1 = prevTransform[1];
-				instance.PREV_ROW2 = prevTransform[2];
-
-				instanceGroup->instance.push_back(instance);
+				instanceGroup->instance.push_back(KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2]));
 			}
 		}
 	}
@@ -122,8 +113,10 @@ struct KRenderUtil
 
 				instanceArray->render = render;
 
-				glm::mat4 finalMat = transpose(transform->GetFinal());
-				instanceArray->instance.push_back({ finalMat[0], finalMat[1], finalMat[2] });
+				const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform();
+				glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
+				glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
+				instanceArray->instance.push_back(KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2]));
 			}
 		}
 	}
