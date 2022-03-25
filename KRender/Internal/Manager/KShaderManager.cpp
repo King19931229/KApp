@@ -261,10 +261,9 @@ bool KShaderManager::Release(IKShaderPtr& shader)
 					m_Shaders.erase(it);
 				}
 
-				shader = nullptr;
-				return true;
+				shader = nullptr;				
 			}
 		}
 	}
-	return false;
+	return true;
 }

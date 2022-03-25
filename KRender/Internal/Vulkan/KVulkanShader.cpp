@@ -358,7 +358,7 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 	return true;
 }
 
-bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pModule)
+KVulkanShader::ShaderInitResult KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pModule)
 {
 	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
 	ASSERT_RESULT(system);
@@ -374,25 +374,29 @@ bool KVulkanShader::InitFromFileImpl(const std::string& path, VkShaderModule* pM
 		{
 			GenerateReflection(spirv, m_Information);
 
-			if (InitFromStringImpl((const char*)spirv.data(), spirv.size() * sizeof(decltype(spirv[0])), pModule))
+			if (InitFromStringImpl((const char*)spirv.data(), spirv.size() * sizeof(decltype(spirv[0])), pModule) == SHADER_INIT_SUCCESS)
 			{
-				return true;
+				return SHADER_INIT_SUCCESS;
 			}
 			else
 			{
-				return false;
+				return SHADER_INIT_COMPILE_FAILURE;
 			}
 		}
 		else
 		{
 			const char* annotatedSource = m_SourceFile->GetAnnotatedSource();
 			KG_LOGE(LM_RENDER, "[Generate SpirV Failed]\n%s\n", annotatedSource);
+			return SHADER_INIT_COMPILE_FAILURE;
 		}
 	}
-	return false;
+	else
+	{
+		return SHADER_INIT_FILE_NOT_FOUNT;
+	}
 }
 
-bool KVulkanShader::InitFromStringImpl(const char* code, size_t len, VkShaderModule* pModule)
+KVulkanShader::ShaderInitResult KVulkanShader::InitFromStringImpl(const char* code, size_t len, VkShaderModule* pModule)
 {
 	using namespace KVulkanGlobal;
 
@@ -404,10 +408,10 @@ bool KVulkanShader::InitFromStringImpl(const char* code, size_t len, VkShaderMod
 	if (vkCreateShaderModule(device, &createInfo, nullptr, pModule) == VK_SUCCESS)
 	{
 		InitConstant();
-		return true;
+		return SHADER_INIT_SUCCESS;
 	}
 
-	return false;
+	return SHADER_INIT_COMPILE_FAILURE;
 }
 
 bool KVulkanShader::AddMacro(const MacroPair& macroPair)
@@ -447,9 +451,10 @@ bool KVulkanShader::InitFromFile(ShaderType type, const std::string& path, bool 
 	auto loadImpl = [=]()->bool
 	{
 		m_ResourceState = RS_DEVICE_LOADING;
-		VkShaderModule module = VK_NULL_HANDLE;
 		DestroyDevice(m_ShaderModule);
-		if (InitFromFileImpl(path, &module))
+		VkShaderModule module = VK_NULL_HANDLE;
+		ShaderInitResult result = InitFromFileImpl(path, &module);
+		if (result == SHADER_INIT_SUCCESS)
 		{
 			m_ShaderModule = module;
 			m_ResourceState = RS_DEVICE_LOADED;
@@ -458,8 +463,11 @@ bool KVulkanShader::InitFromFile(ShaderType type, const std::string& path, bool 
 		else
 		{
 			m_ShaderModule = VK_NULL_HANDLE;
+			if (result == SHADER_INIT_COMPILE_FAILURE)
+				assert(false && "shader compile failure");
+			else if (result == SHADER_INIT_FILE_NOT_FOUNT)
+				assert(false && "shader file not found");
 			m_ResourceState = RS_UNLOADED;
-			assert(false && "shader compile failure");
 			return false;
 		}
 	};
@@ -487,18 +495,22 @@ bool KVulkanShader::InitFromString(ShaderType type, const std::vector<char>& cod
 	auto loadImpl = [=]()->bool
 	{
 		m_ResourceState = RS_DEVICE_LOADING;
-		VkShaderModule module = VK_NULL_HANDLE;
 		DestroyDevice(m_ShaderModule);
-		if (InitFromStringImpl(code.data(), code.size(), &module))
+		VkShaderModule module = VK_NULL_HANDLE;
+		ShaderInitResult result = InitFromStringImpl(code.data(), code.size(), &module);
+		if (result == SHADER_INIT_SUCCESS)
 		{
 			m_ShaderModule = module;
 			m_ResourceState = RS_DEVICE_LOADED;
 			return true;
 		}
-		else
+		else if (result == SHADER_INIT_COMPILE_FAILURE || result == SHADER_INIT_FILE_NOT_FOUNT)
 		{
 			m_ShaderModule = VK_NULL_HANDLE;
-			assert(false && "shader compile failure");
+			if (result == SHADER_INIT_COMPILE_FAILURE)
+				assert(false && "shader compile failure");
+			else if (result == SHADER_INIT_FILE_NOT_FOUNT)
+				assert(false && "shader file not found");
 			m_ResourceState = RS_UNLOADED;
 			return false;
 		}

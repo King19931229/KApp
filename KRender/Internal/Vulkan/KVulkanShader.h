@@ -52,8 +52,15 @@ protected:
 
 	bool InitConstant();
 	bool DestroyDevice(VkShaderModule& module);
-	bool InitFromFileImpl(const std::string& path, VkShaderModule* pModule);
-	bool InitFromStringImpl(const char* code, size_t len, VkShaderModule* pModule);
+
+	enum ShaderInitResult
+	{
+		SHADER_INIT_COMPILE_FAILURE,
+		SHADER_INIT_FILE_NOT_FOUNT,
+		SHADER_INIT_SUCCESS
+	};
+	ShaderInitResult InitFromFileImpl(const std::string& path, VkShaderModule* pModule);
+	ShaderInitResult InitFromStringImpl(const char* code, size_t len, VkShaderModule* pModule);
 
 	bool CancelDeviceTask();
 	bool WaitDeviceTask();

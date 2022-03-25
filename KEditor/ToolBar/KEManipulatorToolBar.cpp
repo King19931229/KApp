@@ -1,6 +1,9 @@
 #include "KEManipulatorToolBar.h"
 #include "KRender/Publish/KCamera.h"
 
+const char* KEManipulatorToolBar::LOCAL = "Local";
+const char* KEManipulatorToolBar::WORLD = "World";
+
 KEManipulatorToolBar::KEManipulatorToolBar(QWidget *parent)
 	: m_MoveGizmoAction(nullptr),
 	m_RotateGizmoAction(nullptr),

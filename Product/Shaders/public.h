@@ -103,8 +103,8 @@
 layout(binding = BINDING_CAMERA)
 uniform CameraInfo
 {
-    mat4 view;
-    mat4 proj;
+	mat4 view;
+	mat4 proj;
 	mat4 viewInv;
 	mat4 projInv;
 	mat4 viewProj;
@@ -116,7 +116,7 @@ uniform CameraInfo
 layout(binding = BINDING_SHADOW)
 uniform ShadowInfo
 {
-    mat4 light_view;
+	mat4 light_view;
 	mat4 light_proj;
 	vec2 near_far;
 }shadow;

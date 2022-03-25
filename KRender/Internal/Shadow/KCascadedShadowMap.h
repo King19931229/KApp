@@ -82,6 +82,11 @@ class KCascadedShadowMap
 	friend class KCascadedShadowMapReceiverPass;
 	friend class KCascadedShadowMapDebugPass;
 protected:
+	enum
+	{
+		SHADOW_BINDING_GBUFFER_POSITION = SHADER_BINDING_TEXTURE0
+	};
+
 	static constexpr size_t SHADOW_MAP_MAX_CASCADED = 4;	
 	const KCamera* m_MainCamera;
 
@@ -90,13 +95,27 @@ protected:
 	static const uint16_t ms_BackGroundIndices[6];
 	static const VertexFormat ms_VertexFormats[1];
 
-	// buffer
+	// Buffer
 	IKVertexBufferPtr m_BackGroundVertexBuffer;
 	IKIndexBufferPtr m_BackGroundIndexBuffer;
 
-	// shader
+	// Shader
 	IKShaderPtr m_DebugVertexShader;
 	IKShaderPtr m_DebugFragmentShader;
+
+	IKShaderPtr m_QuadVS;
+	IKShaderPtr m_StaticReceiverFS;
+	IKShaderPtr m_DynamicReceiverFS;
+	IKShaderPtr m_CombineReceiverFS;
+
+	IKPipelinePtr m_StaticReceiverPipeline;
+	IKPipelinePtr m_DynamicReceiverPipeline;
+	IKPipelinePtr m_CombineReceiverPipeline;
+
+	IKRenderTargetPtr m_StaticMaskTarget;
+	IKRenderTargetPtr m_DynamicMaskTarget;
+	IKRenderPassPtr m_StaticReceiverPass;
+	IKRenderPassPtr m_DynamicReceiverPass;
 
 	KVertexData m_DebugVertexData;
 	KIndexData m_DebugIndexData;
@@ -146,22 +165,23 @@ protected:
 	bool m_MinimizeShadowDraw;
 
 	void UpdateCascades();
-	bool GetDebugRenderCommand(KRenderCommandList& commands, bool IsStatic);
+	bool GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic);
 	void PopulateRenderCommand(size_t cascadedIndex,
 		IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass,
 		std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
 	void FilterRenderComponent(std::vector<KRenderComponent*>& in, bool isStatic);
 
-	bool UpdateRT(size_t cascadedIndex, bool IsStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass);
+	bool UpdateRT(size_t cascadedIndex, bool isStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass);
 public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();
 
-	bool Init(const KCamera* camera, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio);
+	bool Init(const KCamera* camera, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio, uint32_t width, uint32_t height);
 	bool UnInit();
 
 	bool UpdateShadowMap(IKCommandBufferPtr primaryBuffer);
 	bool DebugRender(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool Resize(uint32_t width, uint32_t height);
 
 	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex, bool isStatic);
 

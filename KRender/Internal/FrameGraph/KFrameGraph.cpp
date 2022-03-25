@@ -231,6 +231,32 @@ bool KFrameGraph::Compile()
 	return true;
 }
 
+bool KFrameGraph::Alloc()
+{
+	for (auto& pair : m_Resources)
+	{
+		KFrameGraphResourcePtr resource = pair.second;
+		if (!resource->IsImported())
+		{
+			resource->Alloc(m_Device);
+		}
+	}
+	return true;
+}
+
+bool KFrameGraph::Release()
+{
+	for (auto& pair : m_Resources)
+	{
+		KFrameGraphResourcePtr resource = pair.second;
+		if (!resource->IsImported())
+		{
+			resource->Release(m_Device);
+		}
+	}
+	return true;
+}
+
 bool KFrameGraph::Execute(IKCommandBufferPtr primaryBuffer, uint32_t chainIndex)
 {
 	enum class ExecuteNodeType

@@ -521,13 +521,15 @@ void KCascadedShadowMap::UpdateCascades()
 	}
 }
 
-bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio)
+bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio, uint32_t width, uint32_t height)
 {
 	ASSERT_RESULT(UnInit());
 
 	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
 	if (numCascaded >= 1 && numCascaded <= SHADOW_MAP_MAX_CASCADED && shadowSizeRatio > 0.0f)
 	{
+		Resize(width, height);
+
 		m_MainCamera = camera;
 		m_ShadowSizeRatio = shadowSizeRatio;
 
@@ -584,12 +586,57 @@ bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_
 		m_DebugIndexData.indexCount = ARRAY_SIZE(ms_BackGroundIndices);
 		m_DebugIndexData.indexStart = 0;
 
+		// 先把需要的RT创建好(TODO) 后面要引用
+		KRenderGlobal::FrameGraph.Compile();
+
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/quad.vert", m_QuadVS, false));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/static_mask.frag", m_StaticReceiverFS, false));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/dynamic_mask.frag", m_DynamicReceiverFS, false));
+		// ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/combine_mask.frag", m_CombineReceiverFS, false));
+
+		KRenderGlobal::RenderDevice->CreatePipeline(m_StaticReceiverPipeline);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_DynamicReceiverPipeline);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_CombineReceiverPipeline);
+
+		for (IKPipelinePtr pipeline : { m_StaticReceiverPipeline, m_DynamicReceiverPipeline })
+		{
+			bool isStatic = pipeline == m_StaticReceiverPipeline;
+
+			pipeline->SetShader(ST_VERTEX, m_QuadVS);
+
+			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+			pipeline->SetBlendEnable(false);
+			pipeline->SetCullMode(CM_NONE);
+			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+			pipeline->SetPolygonMode(PM_FILL);
+			pipeline->SetColorWrite(true, true, true, true);
+			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+			pipeline->SetShader(ST_FRAGMENT, isStatic ? m_StaticReceiverFS : m_DynamicReceiverFS);
+
+			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CASCADED_SHADOW);
+			pipeline->SetConstantBuffer(CBT_CASCADED_SHADOW, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, shadowBuffer);
+
+			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+			pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, cameraBuffer);
+
+			pipeline->SetSampler(SHADOW_BINDING_GBUFFER_POSITION,
+				KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION)->GetFrameBuffer(),
+				KRenderGlobal::GBuffer.GetSampler(),
+				true);
+
+			uint32_t numCascaded = (uint32_t)m_Cascadeds.size();
+			for (uint32_t cascadedIndex = 0; cascadedIndex < numCascaded; ++cascadedIndex)
+			{
+				IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
+				pipeline->SetSampler(SHADER_BINDING_CSM0 + cascadedIndex, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
+			}
+
+			pipeline->Init();
+		}
 		return true;
 	}
-	else
-	{
-		return false;
-	}
+	return false;
 }
 
 bool KCascadedShadowMap::UnInit()
@@ -605,6 +652,20 @@ bool KCascadedShadowMap::UnInit()
 		cascaded.renderPasses.clear();
 	}
 	m_Cascadeds.clear();
+
+	SAFE_UNINIT(m_StaticMaskTarget);
+	SAFE_UNINIT(m_DynamicMaskTarget);
+	SAFE_UNINIT(m_StaticReceiverPass);
+	SAFE_UNINIT(m_DynamicReceiverPass);
+
+	SAFE_UNINIT(m_StaticReceiverPipeline);
+	SAFE_UNINIT(m_DynamicReceiverPipeline);
+	SAFE_UNINIT(m_CombineReceiverPipeline);
+
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_QuadVS));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_StaticReceiverFS));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_DynamicReceiverFS));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_CombineReceiverFS));
 
 	SAFE_UNINIT(m_BackGroundVertexBuffer);
 	SAFE_UNINIT(m_BackGroundIndexBuffer);
@@ -709,7 +770,7 @@ void KCascadedShadowMap::FilterRenderComponent(std::vector<KRenderComponent*>& i
 	in = std::move(out);
 }
 
-bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, bool IsStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass)
+bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, bool isStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass)
 {
 	m_Statistics.Reset();
 
@@ -804,7 +865,7 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, bool IsStatic, IKCommand
 		// Required to avoid shadow mapping artefacts
 		primaryBuffer->SetDepthBias(m_DepthBiasConstant[cascadedIndex], 0, m_DepthBiasSlope[cascadedIndex]);
 		{
-			FilterRenderComponent(litCullRes, IsStatic);
+			FilterRenderComponent(litCullRes, isStatic);
 
 			KRenderCommandList commandList;
 
@@ -895,13 +956,13 @@ bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 	return true;
 }
 
-bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, bool IsStatic)
+bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic)
 {
 	KRenderCommand command;
 	for (size_t cascadedIndex = 0; cascadedIndex < m_Cascadeds.size(); ++cascadedIndex)
 	{
 		Cascade& cascaded = m_Cascadeds[cascadedIndex];
-		IKRenderTargetPtr shadowTarget = IsStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
+		IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
 
 		if (!cascaded.debugPipeline)
 		{
@@ -958,6 +1019,34 @@ bool KCascadedShadowMap::DebugRender(IKRenderPassPtr renderPass, std::vector<IKC
 	}
 	return false;
 	*/
+	return false;
+}
+
+bool KCascadedShadowMap::Resize(uint32_t width, uint32_t height)
+{
+	if (width && height)
+	{
+		SAFE_UNINIT(m_StaticMaskTarget);
+		SAFE_UNINIT(m_DynamicMaskTarget);
+		SAFE_UNINIT(m_StaticReceiverPass);
+		SAFE_UNINIT(m_DynamicReceiverPass);
+
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_StaticMaskTarget));
+		ASSERT_RESULT(m_StaticMaskTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
+
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_DynamicMaskTarget));
+		ASSERT_RESULT(m_DynamicMaskTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
+
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_StaticReceiverPass));
+		m_StaticReceiverPass->SetColorAttachment(0, m_StaticMaskTarget->GetFrameBuffer());
+		m_StaticReceiverPass->Init();
+
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_DynamicReceiverPass));
+		m_DynamicReceiverPass->SetColorAttachment(0, m_DynamicMaskTarget->GetFrameBuffer());
+		m_DynamicReceiverPass->Init();
+
+		return true;
+	}
 	return false;
 }
 

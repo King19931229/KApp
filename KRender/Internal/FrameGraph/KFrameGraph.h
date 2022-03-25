@@ -57,4 +57,6 @@ public:
 	bool Resize();
 	bool Compile();
 	bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t chainIndex);
+	bool Alloc();
+	bool Release();
 };

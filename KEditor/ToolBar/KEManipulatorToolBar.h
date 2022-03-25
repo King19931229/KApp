@@ -26,8 +26,8 @@ protected:
 	static constexpr int CAMERA_SPEED_MAX_SPEED = 100;
 	static constexpr int CAMERA_SPEED_DEFAULT_SPEED = 10;
 
-	static constexpr char* LOCAL = "Local";
-	static constexpr char* WORLD = "World";
+	static const char* LOCAL;
+	static const char* WORLD;
 
 	void SetCameraSpeed(int speed);
 public:

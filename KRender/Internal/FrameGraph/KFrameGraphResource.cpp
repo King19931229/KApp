@@ -100,6 +100,7 @@ bool KFrameGraphRenderTarget::CreateAsColor(IKRenderDevice* device, uint32_t wid
 	m_Vaild = false;
 
 	m_TargetType = FrameGraphRenderTargetType::COLOR_TARGET;
+	device->CreateRenderTarget(m_RenderTarget);
 	m_Width = width;
 	m_Height = height;
 	m_MsaaCount = msaa;
@@ -116,6 +117,7 @@ bool KFrameGraphRenderTarget::CreateAsDepthStencil(IKRenderDevice* device, uint3
 	m_Vaild = false;
 
 	m_TargetType = FrameGraphRenderTargetType::DEPTH_STENCIL_TARGET;
+	device->CreateRenderTarget(m_RenderTarget);
 	m_Width = width;
 	m_Height = height;
 	m_MsaaCount = msaa;
@@ -155,11 +157,16 @@ bool KFrameGraphRenderTarget::Alloc(IKRenderDevice* device)
 {
 	if (!m_Imported)
 	{
+		/*
 		if (m_Vaild)
 		{
 			Release(device);
 		}
-		AllocResource(device);
+		*/
+		if (!m_Vaild)
+		{
+			AllocResource(device);
+		}
 		ASSERT_RESULT(m_Vaild);
 	}
 	return true;
@@ -178,21 +185,19 @@ bool KFrameGraphRenderTarget::Release(IKRenderDevice* device)
 bool KFrameGraphRenderTarget::AllocResource(IKRenderDevice* device)
 {
 	ASSERT_RESULT(device);
+	ASSERT_RESULT(m_RenderTarget);
+
 	switch (m_TargetType)
 	{
 		case FrameGraphRenderTargetType::COLOR_TARGET:
 		{
-			ASSERT_RESULT(!m_RenderTarget);
-			device->CreateRenderTarget(m_RenderTarget);
-			m_RenderTarget->InitFromColor(m_Width, m_Height, 1, m_Format);
+			ASSERT_RESULT(m_RenderTarget->InitFromColor(m_Width, m_Height, 1, m_Format));
 			m_Vaild = true;
 			return true;
 		}
 		case FrameGraphRenderTargetType::DEPTH_STENCIL_TARGET:
 		{
-			ASSERT_RESULT(!m_RenderTarget);
-			device->CreateRenderTarget(m_RenderTarget);
-			m_RenderTarget->InitFromDepthStencil(m_Width, m_Height, 1, m_Stencil);
+			ASSERT_RESULT(m_RenderTarget->InitFromDepthStencil(m_Width, m_Height, 1, m_Stencil));
 			m_Vaild = true;
 			return true;
 		}
@@ -213,12 +218,14 @@ bool KFrameGraphRenderTarget::AllocResource(IKRenderDevice* device)
 bool KFrameGraphRenderTarget::ReleaseResource(IKRenderDevice* device)
 {
 	ASSERT_RESULT(device);
+	ASSERT_RESULT(m_RenderTarget);
+
 	switch (m_TargetType)
 	{
 		case FrameGraphRenderTargetType::COLOR_TARGET:
 		case FrameGraphRenderTargetType::DEPTH_STENCIL_TARGET:
 		{
-			SAFE_UNINIT(m_RenderTarget);
+			m_RenderTarget->UnInit();
 			m_Vaild = false;
 			return true;
 		}

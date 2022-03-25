@@ -393,4 +393,6 @@ vec4 calcCSM(vec3 viewPos, vec3 worldPos)
 	return outColor;
 }
 
+#define SHADOW_BINDING_GBUFFER_POSITION BINDING_TEXTURE0
+
 #endif

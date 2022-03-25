@@ -157,5 +157,5 @@ void main()
 
 	outColor = texture(diffuseSampler, inUV) * (NDotL + ambient);
 	
-	outColor *= calcCSM(inViewPos.xyz, inWorldPos.xyz);		
+	outColor *= calcCSM(inViewPos.xyz, inWorldPos.xyz);
 }

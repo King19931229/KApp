@@ -124,12 +124,12 @@ bool KRenderCore::InitGlobalManager()
 
 	KRenderGlobal::OcclusionBox.Init(m_Device);
 	KRenderGlobal::ShadowMap.Init(m_Device, 2048);
-	KRenderGlobal::CascadedShadowMap.Init(&m_Camera, 3, 2048, 1.0f);
+	KRenderGlobal::CascadedShadowMap.Init(&m_Camera, 3, 2048, 1.0f, (uint32_t)width, (uint32_t)height);
 
-	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 128, (uint32_t)width, (uint32_t)height);
+	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 64, (uint32_t)width, (uint32_t)height);
 
-	// TODO 需要先Compile创建一些资源
-	KRenderGlobal::FrameGraph.Compile();
+	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
+	KRenderGlobal::FrameGraph.Alloc();
 
 	return true;
 }
@@ -690,6 +690,7 @@ void KRenderCore::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::FrameGraph.Resize();
 	KRenderGlobal::PostProcessManager.Resize(width, height);
 	KRenderGlobal::GBuffer.Resize(width, height);
+	KRenderGlobal::CascadedShadowMap.Resize(width, height);
 	KRenderGlobal::Voxilzer.Resize(width, height);
 	KRenderGlobal::RTAO.Resize();
 	KRenderGlobal::RayTraceManager.Resize(width, height);
