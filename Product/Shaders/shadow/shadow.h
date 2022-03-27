@@ -3,6 +3,10 @@
 
 #include "public.h"
 
+#ifndef cascaded_shadow
+#define cascaded_shadow dynamic_cascaded 
+#endif
+
 layout(binding = BINDING_CSM0) uniform sampler2D cascadedShadowSampler0;
 layout(binding = BINDING_CSM1) uniform sampler2D cascadedShadowSampler1;
 layout(binding = BINDING_CSM2) uniform sampler2D cascadedShadowSampler2;

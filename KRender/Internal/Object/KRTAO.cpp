@@ -117,7 +117,6 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_AOTemporalPipeline->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_NormalDepthTarget[0]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-
 			m_AOTemporalPipeline->BindStorageImage(BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, m_TemporalMeanSqaredMean->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_FINAL, m_RenderTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 			m_AOTemporalPipeline->Init("ao/rtao_temp.comp");
@@ -292,8 +291,8 @@ void KRTAO::Resize()
 		m_TemporalMeanSqaredMean->InitFromStorage(m_Width, m_Height, 1, EF_R16G16_FLOAT);
 
 		m_MeanVarianceTarget[0]->UnInit();
-		m_MeanVarianceTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16B16A16_FLOAT);
+		m_MeanVarianceTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16_FLOAT);
 		m_MeanVarianceTarget[1]->UnInit();
-		m_MeanVarianceTarget[1]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16B16A16_FLOAT);
+		m_MeanVarianceTarget[1]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16_FLOAT);
 	}
 }

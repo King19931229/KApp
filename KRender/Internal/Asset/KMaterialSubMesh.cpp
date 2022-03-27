@@ -479,8 +479,9 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 		pipeline->SetDepthBiasEnable(true);
 		pipeline->SetShader(ST_FRAGMENT, m_ShadowFSShader);
 
-		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CASCADED_SHADOW);
-		pipeline->SetConstantBuffer(CBT_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
+		// TODO
+		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW);
+		pipeline->SetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 		return true;

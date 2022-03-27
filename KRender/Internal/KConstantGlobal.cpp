@@ -29,7 +29,16 @@ namespace KConstantGlobal
 		VEC4_ZERO
 	};
 
-	KConstantDefinition::CASCADED_SHADOW CascadedShadow =
+	KConstantDefinition::CASCADED_SHADOW DynamicCascadedShadow =
+	{
+		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY},
+		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY },
+		{ VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO },
+		{ 0.0f, 0.0f, 0.0f, 0.0f },
+		{ 1 }
+	};
+
+	KConstantDefinition::CASCADED_SHADOW StaticCascadedShadow =
 	{
 		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY},
 		{ MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY, MAT4X4_IDENTITY },
@@ -64,8 +73,10 @@ namespace KConstantGlobal
 			return &Camera;
 		case CBT_SHADOW:
 			return &Shadow;
-		case CBT_CASCADED_SHADOW:
-			return &CascadedShadow;
+		case CBT_DYNAMIC_CASCADED_SHADOW:
+			return &DynamicCascadedShadow;
+		case CBT_STATIC_CASCADED_SHADOW:
+			return &StaticCascadedShadow;
 		case CBT_VOXEL:
 			return &Voxel;
 		case CBT_GLOBAL:

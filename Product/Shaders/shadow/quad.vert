@@ -1,4 +1,5 @@
-#include "public.h"
+// TODO
+#define SCREENQAUD_POS 13
 layout (location = SCREENQAUD_POS) in vec2 inPos;
 layout (location = 0) out vec2 outUV;
 

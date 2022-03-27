@@ -1,7 +1,7 @@
 #include "rtao_define.h"
 
-layout(binding = 0, rgba16f) uniform image2D inImage;
-layout(binding = 1, rgba16f) uniform image2D outImage;
+layout(binding = 0, rg16f) uniform image2D inImage;
+layout(binding = 1, rg16f) uniform image2D outImage;
 layout(binding = 2) uniform MeanProperties
 {
 	int mean_width;
@@ -45,12 +45,6 @@ void main()
 		}
 	}
 
-	// Apply Bessel's correction to the estimated variance, multiply by N/N-1, 
-	// since the true population mean is not known; it is only estimated as the sample mean.
-	const float numValues = float(width);
-	const float besselCorrection = numValues / float(max(numValues, 2) - 1);
-	const float variance = besselCorrection * (squaredMean - mean * mean);
-
 	// imageStore(outImage, sampleCenter, vec4(centerValue, 0, 0));
-	imageStore(outImage, sampleCenter, vec4(mean, squaredMean, variance, 0));
+	imageStore(outImage, sampleCenter, vec4(mean, squaredMean, 0, 0));
 }

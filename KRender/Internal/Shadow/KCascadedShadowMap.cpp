@@ -26,25 +26,35 @@ bool KCascadedShadowMapCasterPass::Init()
 	UnInit();
 
 	m_LastCameraMatrix = glm::mat4(0.0f);
-	m_StaticTargetIDs.reserve(m_Master.m_Cascadeds.size());
-	m_DynamicTargetIDs.reserve(m_Master.m_Cascadeds.size());
-	m_AllTargetIDs.reserve(2 * m_Master.m_Cascadeds.size());
+	m_StaticTargetIDs.reserve(m_Master.m_StaticCascadeds.size());
+	m_DynamicTargetIDs.reserve(m_Master.m_DynamicCascadeds.size());
+	m_AllTargetIDs.reserve(m_Master.m_StaticCascadeds.size() + m_Master.m_DynamicCascadeds.size());
 
-	for (size_t i = 0; i < m_Master.m_Cascadeds.size(); ++i)
+	for (size_t i = 0; i < m_Master.m_StaticCascadeds.size(); ++i)
 	{
 		KFrameGraph::RenderTargetCreateParameter parameter;
-		parameter.width = m_Master.m_Cascadeds[i].shadowSize;
-		parameter.height = m_Master.m_Cascadeds[i].shadowSize;
+		parameter.width = m_Master.m_StaticCascadeds[i].shadowSize;
+		parameter.height = m_Master.m_StaticCascadeds[i].shadowSize;
 		parameter.msaaCount = 1;
 		parameter.bDepth = true;
 		parameter.bStencil = false;
 
 		KFrameGraphID rtID;
-
 		rtID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
 		m_StaticTargetIDs.push_back(rtID);
 		m_AllTargetIDs.push_back(rtID);
+	}
 
+	for (size_t i = 0; i < m_Master.m_DynamicCascadeds.size(); ++i)
+	{
+		KFrameGraph::RenderTargetCreateParameter parameter;
+		parameter.width = m_Master.m_DynamicCascadeds[i].shadowSize;
+		parameter.height = m_Master.m_DynamicCascadeds[i].shadowSize;
+		parameter.msaaCount = 1;
+		parameter.bDepth = true;
+		parameter.bStencil = false;
+
+		KFrameGraphID rtID;
 		rtID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
 		m_DynamicTargetIDs.push_back(rtID);
 		m_AllTargetIDs.push_back(rtID);
@@ -100,44 +110,41 @@ IKRenderTargetPtr KCascadedShadowMapCasterPass::GetDynamicTarget(size_t cascaded
 
 bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 {
-	if (m_AllTargetIDs.size() != 2 * m_Master.m_Cascadeds.size())
-	{
-		return false;
-	}
-
 	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
-	size_t frameIndex = KRenderGlobal::CurrentFrameIndex;
 
 	glm::mat4 curCameraMatrix = m_Master.m_MainCamera->GetProjectiveMatrix() * m_Master.m_MainCamera->GetViewMatrix();
 	bool updateStatic = memcmp(&m_LastCameraMatrix, &curCameraMatrix, sizeof(glm::mat4)) != 0;
 	m_LastCameraMatrix = curCameraMatrix;
 
-	for (size_t i = 0; i < m_Master.m_Cascadeds.size(); ++i)
+	if (updateStatic)
 	{
-		if (updateStatic)
+		for (size_t i = 0; i < m_Master.m_StaticCascadeds.size(); ++i)
 		{
 			IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_StaticTargetIDs[i]);
-			IKRenderPassPtr renderPass = m_Master.m_Cascadeds[i].renderPasses[2 * frameIndex];
+			IKRenderPassPtr renderPass = m_Master.m_StaticCascadeds[i].renderPass;
 
 			ASSERT_RESULT(shadowTarget);
 			renderPass->SetDepthStencilAttachment(shadowTarget->GetFrameBuffer());
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
-			m_Master.UpdateRT(i, true, primaryBuffer, shadowTarget, renderPass);
+			m_Master.UpdateRT(primaryBuffer, shadowTarget, renderPass, i, true);
 		}
+	}
 
-		// Dynamic object is updated every frame
+	// Dynamic object is updated every frame
+	{
+		for (size_t i = 0; i < m_Master.m_DynamicCascadeds.size(); ++i)
 		{
 			IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_DynamicTargetIDs[i]);
-			IKRenderPassPtr renderPass = m_Master.m_Cascadeds[i].renderPasses[2 * frameIndex + 1];
+			IKRenderPassPtr renderPass = m_Master.m_DynamicCascadeds[i].renderPass;
 
 			ASSERT_RESULT(shadowTarget);
 			renderPass->SetDepthStencilAttachment(shadowTarget->GetFrameBuffer());
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
-			m_Master.UpdateRT(i, false, primaryBuffer, shadowTarget, renderPass);
+			m_Master.UpdateRT(primaryBuffer, shadowTarget, renderPass, i, false);
 		}
 	}
 
@@ -215,13 +222,61 @@ bool KCascadedShadowMapReceiverPass::UnInit()
 
 bool KCascadedShadowMapReceiverPass::Setup(KFrameGraphBuilder& builder)
 {
+	for (const KFrameGraphID& id : m_Master.GetCasterPass()->GetAllTargetID())
+	{
+		builder.Read(id);
+	}
+
 	builder.Write(m_StaticMaskID);
 	builder.Write(m_DynamicMaskID);
 	return true;
 }
 
+IKRenderTargetPtr KCascadedShadowMapReceiverPass::GetStaticMask()
+{
+	return KRenderGlobal::FrameGraph.GetTarget(m_StaticMaskID);
+}
+
+IKRenderTargetPtr KCascadedShadowMapReceiverPass::GetDynamicMask()
+{
+	return KRenderGlobal::FrameGraph.GetTarget(m_DynamicMaskID);
+}
+
 bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 {
+	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
+
+	// Static mask update
+	{
+		IKRenderTargetPtr maskTarget = KRenderGlobal::FrameGraph.GetTarget(m_StaticMaskID);
+		IKRenderPassPtr renderPass = m_Master.m_StaticReceiverPass;
+
+		ASSERT_RESULT(maskTarget);
+		renderPass->SetColorAttachment(0, maskTarget->GetFrameBuffer());
+		renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		ASSERT_RESULT(renderPass->Init());
+
+		m_Master.UpdateMask(primaryBuffer, true);
+	}
+
+	// Dynamic mask update
+	{
+		IKRenderTargetPtr maskTarget = KRenderGlobal::FrameGraph.GetTarget(m_DynamicMaskID);
+		IKRenderPassPtr renderPass = m_Master.m_DynamicReceiverPass;
+
+		ASSERT_RESULT(maskTarget);
+		renderPass->SetColorAttachment(0, maskTarget->GetFrameBuffer());
+		renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		ASSERT_RESULT(renderPass->Init());
+
+		m_Master.UpdateMask(primaryBuffer, false);
+	}
+
+	// Mask combine
+	{
+		m_Master.CombineMask(primaryBuffer);
+	}
+
 	return true;
 }
 
@@ -253,9 +308,9 @@ bool KCascadedShadowMapDebugPass::Execute(KFrameGraphExecutor& executor)
 	return true;
 }
 
-const VertexFormat KCascadedShadowMap::ms_VertexFormats[] = { VF_SCREENQUAD_POS };
+const VertexFormat KCascadedShadowMap::ms_QuadFormats[] = { VF_SCREENQUAD_POS };
 
-const KVertexDefinition::SCREENQUAD_POS_2F KCascadedShadowMap::ms_BackGroundVertices[] =
+const KVertexDefinition::SCREENQUAD_POS_2F KCascadedShadowMap::ms_QuadVertices[] =
 {
 	glm::vec2(-1.0f, -1.0f),
 	glm::vec2(1.0f, -1.0f),
@@ -263,7 +318,7 @@ const KVertexDefinition::SCREENQUAD_POS_2F KCascadedShadowMap::ms_BackGroundVert
 	glm::vec2(-1.0f, 1.0f)
 };
 
-const uint16_t KCascadedShadowMap::ms_BackGroundIndices[] = { 0, 1, 2, 2, 3, 0 };
+const uint16_t KCascadedShadowMap::ms_QuadIndices[] = { 0, 1, 2, 2, 3, 0 };
 
 KCascadedShadowMap::KCascadedShadowMap()
 	: m_MainCamera(nullptr),
@@ -294,7 +349,7 @@ KCascadedShadowMap::~KCascadedShadowMap()
 {
 }
 
-void KCascadedShadowMap::UpdateCascades()
+void KCascadedShadowMap::UpdateDynamicCascades()
 {
 	ASSERT_RESULT(m_MainCamera);
 
@@ -322,7 +377,7 @@ void KCascadedShadowMap::UpdateCascades()
 
 	// Calculate split depths based on view camera furstum
 	// Based on method presentd in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
-	size_t numCascaded = m_Cascadeds.size();
+	size_t numCascaded = m_DynamicCascadeds.size();
 	for (size_t i = 0; i < numCascaded; i++)
 	{
 		float p = (i + 1) / static_cast<float>(numCascaded);
@@ -397,7 +452,7 @@ void KCascadedShadowMap::UpdateCascades()
 				frustumBox.Merge(frustumCorners[i], frustumBox);
 			}
 		}
-		m_Cascadeds[i].frustumBox = frustumBox;
+		m_DynamicCascadeds[i].frustumBox = frustumBox;
 
 		glm::mat4 lightViewMatrix = m_ShadowCamera.GetViewMatrix();
 
@@ -423,11 +478,11 @@ void KCascadedShadowMap::UpdateCascades()
 			maxExtents += borderOffset;
 			minExtents -= borderOffset;
 
-			worldUnitsPerTexel = glm::vec3(cascadeBound) / (float)m_Cascadeds[i].shadowSize;
+			worldUnitsPerTexel = glm::vec3(cascadeBound) / (float)m_DynamicCascadeds[i].shadowSize;
 		}
 		else
 		{
-			worldUnitsPerTexel = (maxExtents - minExtents) / (float)m_Cascadeds[i].shadowSize;
+			worldUnitsPerTexel = (maxExtents - minExtents) / (float)m_DynamicCascadeds[i].shadowSize;
 		}
 
 		if (m_FixTexel)
@@ -468,21 +523,21 @@ void KCascadedShadowMap::UpdateCascades()
 		}
 		litBox.InitFromMinMax(minExtents, maxExtents);
 		litBox.Transform(glm::inverse(lightViewMatrix), litBox);
-		m_Cascadeds[i].litBox = litBox;
+		m_DynamicCascadeds[i].litBox = litBox;
 
 		// Store split distance and matrix in cascade
-		m_Cascadeds[i].viewMatrix = lightViewMatrix;
-		m_Cascadeds[i].splitDepth = (mainCamera->GetNear() + splitDist * clipRange) * -1.0f;
-		m_Cascadeds[i].viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
+		m_DynamicCascadeds[i].viewMatrix = lightViewMatrix;
+		m_DynamicCascadeds[i].splitDepth = (mainCamera->GetNear() + splitDist * clipRange) * -1.0f;
+		m_DynamicCascadeds[i].viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
 		if (i == 0)
 		{
-			m_Cascadeds[i].viewInfo = glm::vec4(m_LightSize, m_LightSize, near, far);
+			m_DynamicCascadeds[i].viewInfo = glm::vec4(m_LightSize, m_LightSize, near, far);
 		}
 		else
 		{
-			glm::vec3 extendRatio = m_Cascadeds[i].litBox.GetExtend() / m_Cascadeds[0].litBox.GetExtend();
+			glm::vec3 extendRatio = m_DynamicCascadeds[i].litBox.GetExtend() / m_DynamicCascadeds[0].litBox.GetExtend();
 			glm::vec2 lightSize = glm::vec2(m_LightSize) / glm::vec2(extendRatio.x, extendRatio.y);
-			m_Cascadeds[i].viewInfo = glm::vec4(lightSize, near, far);
+			m_DynamicCascadeds[i].viewInfo = glm::vec4(lightSize, near, far);
 		}
 
 		lastSplitDist = cascadeSplits[i];
@@ -505,7 +560,7 @@ void KCascadedShadowMap::UpdateCascades()
 
 	for (size_t i = 0; i < numCascaded; ++i)
 	{
-		Cascade& cascaded = m_Cascadeds[i];
+		Cascade& cascaded = m_DynamicCascadeds[i];
 
 		float xOffset = (float)(i + 1) / (float)(numCascaded + 1) - displayWidth * 0.5f;
 		float yOffset = 1.0f - displayHeight * 1.5f;
@@ -521,7 +576,27 @@ void KCascadedShadowMap::UpdateCascades()
 	}
 }
 
-bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio, uint32_t width, uint32_t height)
+void KCascadedShadowMap::UpdateStaticCascades()
+{
+	// TODO 先复制动态策略
+	size_t numCascaded = m_StaticCascadeds.size();
+	for (size_t i = 0; i < numCascaded; i++)
+	{
+		const Cascade& dynamicCascaded = m_DynamicCascadeds[i];
+		Cascade& staticCascaded = m_StaticCascadeds[i];
+
+		staticCascaded.splitDepth = dynamicCascaded.splitDepth;
+		staticCascaded.shadowSize = dynamicCascaded.shadowSize;
+		staticCascaded.viewMatrix = dynamicCascaded.viewMatrix;
+		staticCascaded.viewProjMatrix = dynamicCascaded.viewProjMatrix;
+		staticCascaded.viewInfo = dynamicCascaded.viewInfo;
+		staticCascaded.frustumBox = dynamicCascaded.frustumBox;
+		staticCascaded.litBox = dynamicCascaded.litBox;
+		staticCascaded.debugClip = dynamicCascaded.debugClip;
+	}
+}
+
+bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio, uint32_t width, uint32_t height)
 {
 	ASSERT_RESULT(UnInit());
 
@@ -545,31 +620,33 @@ bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_
 		ASSERT_RESULT(m_DebugVertexShader->InitFromFile(ST_VERTEX, "others/debugquad.vert", false));
 		ASSERT_RESULT(m_DebugFragmentShader->InitFromFile(ST_FRAGMENT, "others/debugquad.frag", false));
 
-		KRenderGlobal::RenderDevice->CreateVertexBuffer(m_BackGroundVertexBuffer);
-		m_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);
-		m_BackGroundVertexBuffer->InitDevice(false);
+		KRenderGlobal::RenderDevice->CreateVertexBuffer(m_QuadVertexBuffer);
+		m_QuadVertexBuffer->InitMemory(ARRAY_SIZE(ms_QuadVertices), sizeof(ms_QuadVertices[0]), ms_QuadVertices);
+		m_QuadVertexBuffer->InitDevice(false);
 
-		KRenderGlobal::RenderDevice->CreateIndexBuffer(m_BackGroundIndexBuffer);
-		m_BackGroundIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_BackGroundIndices), ms_BackGroundIndices);
-		m_BackGroundIndexBuffer->InitDevice(false);
+		KRenderGlobal::RenderDevice->CreateIndexBuffer(m_QuadIndexBuffer);
+		m_QuadIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_QuadIndices), ms_QuadIndices);
+		m_QuadIndexBuffer->InitDevice(false);
 
 		uint32_t cascadedShadowSize = shadowMapSize;
 
-		m_Cascadeds.resize(numCascaded);
-		for (size_t i = 0; i < m_Cascadeds.size(); ++i)
+		m_DynamicCascadeds.resize(numCascaded);
+		for (size_t i = 0; i < m_DynamicCascadeds.size(); ++i)
 		{
-			Cascade& cascaded = m_Cascadeds[i];
+			Cascade& cascaded = m_DynamicCascadeds[i];
 			cascaded.shadowSize = cascadedShadowSize;
-
-			cascaded.renderPasses.resize(frameInFlight * 2);
-			for (size_t i = 0; i < frameInFlight * 2; ++i)
-			{
-				IKRenderPassPtr& renderPass = cascaded.renderPasses[i];
-				ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(renderPass));
-			}
-
-			cascadedShadowSize = (size_t)(cascadedShadowSize * m_ShadowSizeRatio);
+			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(cascaded.renderPass));
 		}
+
+		m_StaticCascadeds.resize(numCascaded);
+		for (size_t i = 0; i < m_StaticCascadeds.size(); ++i)
+		{
+			Cascade& cascaded = m_StaticCascadeds[i];
+			cascaded.shadowSize = cascadedShadowSize;
+			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(cascaded.renderPass));
+		}
+
+		cascadedShadowSize = (size_t)(cascadedShadowSize * m_ShadowSizeRatio);
 
 		m_CasterPass = KCascadedShadowMapCasterPassPtr(KNEW KCascadedShadowMapCasterPass(*this));
 		m_CasterPass->Init();
@@ -577,14 +654,14 @@ bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_
 		m_ReceiverPass = KCascadedShadowMapReceiverPassPtr(KNEW KCascadedShadowMapReceiverPass(*this));
 		m_ReceiverPass->Init();
 
-		m_DebugVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_BackGroundVertexBuffer);
-		m_DebugVertexData.vertexFormats = std::vector<VertexFormat>(ms_VertexFormats, ms_VertexFormats + ARRAY_SIZE(ms_VertexFormats));
-		m_DebugVertexData.vertexCount = ARRAY_SIZE(ms_BackGroundVertices);
-		m_DebugVertexData.vertexStart = 0;
+		m_QuadVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_QuadVertexBuffer);
+		m_QuadVertexData.vertexFormats = std::vector<VertexFormat>(ms_QuadFormats, ms_QuadFormats + ARRAY_SIZE(ms_QuadFormats));
+		m_QuadVertexData.vertexCount = ARRAY_SIZE(ms_QuadVertices);
+		m_QuadVertexData.vertexStart = 0;
 
-		m_DebugIndexData.indexBuffer = m_BackGroundIndexBuffer;
-		m_DebugIndexData.indexCount = ARRAY_SIZE(ms_BackGroundIndices);
-		m_DebugIndexData.indexStart = 0;
+		m_QuadIndexData.indexBuffer = m_QuadIndexBuffer;
+		m_QuadIndexData.indexCount = ARRAY_SIZE(ms_QuadIndices);
+		m_QuadIndexData.indexStart = 0;
 
 		// 先把需要的RT创建好(TODO) 后面要引用
 		KRenderGlobal::FrameGraph.Compile();
@@ -592,7 +669,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/quad.vert", m_QuadVS, false));
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/static_mask.frag", m_StaticReceiverFS, false));
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/dynamic_mask.frag", m_DynamicReceiverFS, false));
-		// ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/combine_mask.frag", m_CombineReceiverFS, false));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/combine_mask.frag", m_CombineReceiverFS, false));
 
 		KRenderGlobal::RenderDevice->CreatePipeline(m_StaticReceiverPipeline);
 		KRenderGlobal::RenderDevice->CreatePipeline(m_DynamicReceiverPipeline);
@@ -601,9 +678,11 @@ bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_
 		for (IKPipelinePtr pipeline : { m_StaticReceiverPipeline, m_DynamicReceiverPipeline })
 		{
 			bool isStatic = pipeline == m_StaticReceiverPipeline;
+			ConstantBufferType type = isStatic ? CBT_STATIC_CASCADED_SHADOW : CBT_DYNAMIC_CASCADED_SHADOW;
 
 			pipeline->SetShader(ST_VERTEX, m_QuadVS);
 
+			pipeline->SetVertexBinding(ms_QuadFormats, ARRAY_SIZE(ms_QuadFormats));
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 			pipeline->SetBlendEnable(false);
 			pipeline->SetCullMode(CM_NONE);
@@ -614,8 +693,8 @@ bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_
 
 			pipeline->SetShader(ST_FRAGMENT, isStatic ? m_StaticReceiverFS : m_DynamicReceiverFS);
 
-			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CASCADED_SHADOW);
-			pipeline->SetConstantBuffer(CBT_CASCADED_SHADOW, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, shadowBuffer);
+			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(type);
+			pipeline->SetConstantBuffer(type, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, shadowBuffer);
 
 			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 			pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, cameraBuffer);
@@ -625,15 +704,51 @@ bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_
 				KRenderGlobal::GBuffer.GetSampler(),
 				true);
 
-			uint32_t numCascaded = (uint32_t)m_Cascadeds.size();
 			for (uint32_t cascadedIndex = 0; cascadedIndex < numCascaded; ++cascadedIndex)
 			{
 				IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
 				pipeline->SetSampler(SHADER_BINDING_CSM0 + cascadedIndex, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
 			}
 
+			// Keep the validation layer happy
+			for (uint32_t cascadedIndex = numCascaded; cascadedIndex < SHADOW_MAP_MAX_CASCADED; ++cascadedIndex)
+			{
+				IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(0) : m_CasterPass->GetDynamicTarget(0);
+				pipeline->SetSampler(SHADER_BINDING_CSM0 + cascadedIndex, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
+			}
+
 			pipeline->Init();
 		}
+
+		{
+			IKPipelinePtr pipeline = m_CombineReceiverPipeline;
+
+			pipeline->SetShader(ST_VERTEX, m_QuadVS);
+
+			pipeline->SetVertexBinding(ms_QuadFormats, ARRAY_SIZE(ms_QuadFormats));
+			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+			pipeline->SetBlendEnable(false);
+			pipeline->SetCullMode(CM_NONE);
+			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+			pipeline->SetPolygonMode(PM_FILL);
+			pipeline->SetColorWrite(true, true, true, true);
+			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+			pipeline->SetShader(ST_FRAGMENT, m_CombineReceiverFS);
+
+			pipeline->SetSampler(0,
+				m_ReceiverPass->GetStaticMask()->GetFrameBuffer(),
+				KRenderGlobal::GBuffer.GetSampler(),
+				true);
+
+			pipeline->SetSampler(1,
+				m_ReceiverPass->GetDynamicMask()->GetFrameBuffer(),
+				KRenderGlobal::GBuffer.GetSampler(),
+				true);
+
+			pipeline->Init();
+		}
+
 		return true;
 	}
 	return false;
@@ -641,22 +756,27 @@ bool KCascadedShadowMap::Init(const KCamera* camera, size_t numCascaded, uint32_
 
 bool KCascadedShadowMap::UnInit()
 {
-	for (Cascade& cascaded : m_Cascadeds)
+	for (Cascade& cascaded : m_StaticCascadeds)
 	{
 		SAFE_UNINIT(cascaded.debugPipeline);
-		
-		for (IKRenderPassPtr& renderPass : cascaded.renderPasses)
-		{
-			SAFE_UNINIT(renderPass);
-		}
-		cascaded.renderPasses.clear();
+		SAFE_UNINIT(cascaded.renderPass);
 	}
-	m_Cascadeds.clear();
+	m_StaticCascadeds.clear();
+
+	for (Cascade& cascaded : m_DynamicCascadeds)
+	{
+		SAFE_UNINIT(cascaded.debugPipeline);
+		SAFE_UNINIT(cascaded.renderPass);
+	}
+	m_DynamicCascadeds.clear();
 
 	SAFE_UNINIT(m_StaticMaskTarget);
 	SAFE_UNINIT(m_DynamicMaskTarget);
+	SAFE_UNINIT(m_CombineMaskTarget);
+
 	SAFE_UNINIT(m_StaticReceiverPass);
 	SAFE_UNINIT(m_DynamicReceiverPass);
+	SAFE_UNINIT(m_CombineReceiverPass);
 
 	SAFE_UNINIT(m_StaticReceiverPipeline);
 	SAFE_UNINIT(m_DynamicReceiverPipeline);
@@ -667,8 +787,8 @@ bool KCascadedShadowMap::UnInit()
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_DynamicReceiverFS));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_CombineReceiverFS));
 
-	SAFE_UNINIT(m_BackGroundVertexBuffer);
-	SAFE_UNINIT(m_BackGroundIndexBuffer);
+	SAFE_UNINIT(m_QuadVertexBuffer);
+	SAFE_UNINIT(m_QuadIndexBuffer);
 
 	SAFE_UNINIT(m_DebugVertexShader);
 	SAFE_UNINIT(m_DebugFragmentShader);
@@ -684,7 +804,7 @@ bool KCascadedShadowMap::UnInit()
 }
 
 void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex,
-	IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass, 
+	IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass,
 	std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
 	KRenderUtil::MeshInstanceGroup meshGroups;
@@ -770,15 +890,17 @@ void KCascadedShadowMap::FilterRenderComponent(std::vector<KRenderComponent*>& i
 	in = std::move(out);
 }
 
-bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, bool isStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass)
+bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic)
 {
 	m_Statistics.Reset();
 
-	size_t numCascaded = m_Cascadeds.size();
+	Cascade* cascadeds = isStatic ? m_StaticCascadeds.data() : m_DynamicCascadeds.data();
+	size_t numCascaded = isStatic ? m_StaticCascadeds.size() : m_DynamicCascadeds.size();
+
 	// 更新RenderTarget
-	if (cascadedIndex < m_Cascadeds.size())
+	if (cascadedIndex < numCascaded)
 	{
-		Cascade& cascaded = m_Cascadeds[cascadedIndex];
+		Cascade& cascaded = cascadeds[cascadedIndex];
 
 		std::vector<KRenderComponent*> litCullRes;
 		KRenderGlobal::Scene.GetRenderComponent(cascaded.litBox, false, litCullRes);
@@ -892,18 +1014,73 @@ bool KCascadedShadowMap::UpdateRT(size_t cascadedIndex, bool isStatic, IKCommand
 	return false;
 }
 
+bool KCascadedShadowMap::UpdateMask(IKCommandBufferPtr primaryBuffer, bool isStatic)
+{
+	IKRenderPassPtr renderPass = isStatic ? m_StaticReceiverPass : m_DynamicReceiverPass;
+	IKPipelinePtr pipeline = isStatic ? m_StaticReceiverPipeline : m_DynamicReceiverPipeline;
+
+	KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
+	primaryBuffer->BeginDebugMarker("CSM_" + std::string(isStatic ? "Static" : "Dynamic") + "_Mask", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+	primaryBuffer->SetViewport(renderPass->GetViewPort());
+
+	KRenderCommand command;
+	command.vertexData = &m_QuadVertexData;
+	command.indexData = &m_QuadIndexData;
+	command.pipeline = pipeline;
+	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+	command.indexDraw = true;
+
+	primaryBuffer->SetViewport(renderPass->GetViewPort());
+	primaryBuffer->Render(command);
+
+	primaryBuffer->EndRenderPass();
+	primaryBuffer->EndDebugMarker();
+
+	return true;
+}
+
+bool KCascadedShadowMap::CombineMask(IKCommandBufferPtr primaryBuffer)
+{
+	IKRenderPassPtr renderPass = m_CombineReceiverPass;
+	IKPipelinePtr pipeline = m_CombineReceiverPipeline;
+
+	KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
+	primaryBuffer->BeginDebugMarker("CSM_Combine_Mask", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+	primaryBuffer->SetViewport(renderPass->GetViewPort());
+
+	KRenderCommand command;
+	command.vertexData = &m_QuadVertexData;
+	command.indexData = &m_QuadIndexData;
+	command.pipeline = pipeline;
+	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+	command.indexDraw = true;
+
+	primaryBuffer->SetViewport(renderPass->GetViewPort());
+	primaryBuffer->Render(command);
+
+	primaryBuffer->EndRenderPass();
+	primaryBuffer->EndDebugMarker();
+
+	return true;
+}
+
 bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 {
-	UpdateCascades();
-
-	size_t numCascaded = m_Cascadeds.size();
+	UpdateDynamicCascades();
+	UpdateStaticCascades();
 
 	// 更新CBuffer
+	for (ConstantBufferType type : {CBT_DYNAMIC_CASCADED_SHADOW, CBT_STATIC_CASCADED_SHADOW})
 	{
-		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CASCADED_SHADOW);
+		size_t numCascaded = (type == CBT_DYNAMIC_CASCADED_SHADOW) ? m_DynamicCascadeds.size() : m_StaticCascadeds.size();
+		Cascade* cascadeds = (type == CBT_DYNAMIC_CASCADED_SHADOW) ? m_DynamicCascadeds.data() : m_StaticCascadeds.data();
 
-		void* pData = KConstantGlobal::GetGlobalConstantData(CBT_CASCADED_SHADOW);
-		const KConstantDefinition::ConstantBufferDetail &details = KConstantDefinition::GetConstantBufferDetail(CBT_CASCADED_SHADOW);
+		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(type);
+
+		void* pData = KConstantGlobal::GetGlobalConstantData(type);
+		const KConstantDefinition::ConstantBufferDetail& details = KConstantDefinition::GetConstantBufferDetail(type);
 
 		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 		{
@@ -913,7 +1090,7 @@ bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 				assert(sizeof(glm::mat4) * 4 == detail.size);
 				for (size_t i = 0; i < numCascaded; i++)
 				{
-					memcpy(pWritePos, &m_Cascadeds[i].viewMatrix, sizeof(glm::mat4));
+					memcpy(pWritePos, &cascadeds[i].viewMatrix, sizeof(glm::mat4));
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
 				}
 			}
@@ -922,7 +1099,7 @@ bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 				assert(sizeof(glm::mat4) * 4 == detail.size);
 				for (size_t i = 0; i < numCascaded; i++)
 				{
-					memcpy(pWritePos, &m_Cascadeds[i].viewProjMatrix, sizeof(glm::mat4));
+					memcpy(pWritePos, &cascadeds[i].viewProjMatrix, sizeof(glm::mat4));
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
 				}
 			}
@@ -931,7 +1108,7 @@ bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 				assert(sizeof(glm::vec4) * 4 == detail.size);
 				for (size_t i = 0; i < numCascaded; i++)
 				{
-					memcpy(pWritePos, &m_Cascadeds[i].viewInfo, sizeof(glm::vec4));
+					memcpy(pWritePos, &cascadeds[i].viewInfo, sizeof(glm::vec4));
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
 				}
 			}
@@ -940,10 +1117,10 @@ bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 				assert(sizeof(float) * 4 == detail.size);
 				for (size_t i = 0; i < numCascaded; i++)
 				{
-					memcpy(pWritePos, &m_Cascadeds[i].splitDepth, sizeof(float));
+					memcpy(pWritePos, &cascadeds[i].splitDepth, sizeof(float));
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(float));
 				}
-			}			
+			}
 			if (detail.semantic == CS_CASCADED_SHADOW_NUM_CASCADED)
 			{
 				assert(sizeof(uint32_t) == detail.size);
@@ -959,10 +1136,14 @@ bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic)
 {
 	KRenderCommand command;
-	for (size_t cascadedIndex = 0; cascadedIndex < m_Cascadeds.size(); ++cascadedIndex)
+
+	size_t numCascaded = isStatic ? m_StaticCascadeds.size() : m_DynamicCascadeds.size();
+	Cascade* cascadeds = isStatic ? m_StaticCascadeds.data() : m_DynamicCascadeds.data();
+
+	for (size_t cascadedIndex = 0; cascadedIndex < numCascaded; ++cascadedIndex)
 	{
-		Cascade& cascaded = m_Cascadeds[cascadedIndex];
 		IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
+		Cascade& cascaded = cascadeds[cascadedIndex];
 
 		if (!cascaded.debugPipeline)
 		{
@@ -970,7 +1151,7 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, boo
 
 			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-			pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
+			pipeline->SetVertexBinding(ms_QuadFormats, ARRAY_SIZE(ms_QuadFormats));
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
 			pipeline->SetBlendEnable(true);
@@ -984,9 +1165,9 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, boo
 
 			ASSERT_RESULT(pipeline->Init());
 		}
-		
-		command.vertexData = &m_DebugVertexData;
-		command.indexData = &m_DebugIndexData;
+
+		command.vertexData = &m_QuadVertexData;
+		command.indexData = &m_QuadIndexData;
 		command.pipeline = cascaded.debugPipeline;
 		command.indexDraw = true;
 
@@ -1028,14 +1209,20 @@ bool KCascadedShadowMap::Resize(uint32_t width, uint32_t height)
 	{
 		SAFE_UNINIT(m_StaticMaskTarget);
 		SAFE_UNINIT(m_DynamicMaskTarget);
+		SAFE_UNINIT(m_CombineMaskTarget);
+
 		SAFE_UNINIT(m_StaticReceiverPass);
 		SAFE_UNINIT(m_DynamicReceiverPass);
+		SAFE_UNINIT(m_CombineReceiverPass);
 
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_StaticMaskTarget));
 		ASSERT_RESULT(m_StaticMaskTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
 
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_DynamicMaskTarget));
 		ASSERT_RESULT(m_DynamicMaskTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
+
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_CombineMaskTarget));
+		ASSERT_RESULT(m_CombineMaskTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
 
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_StaticReceiverPass));
 		m_StaticReceiverPass->SetColorAttachment(0, m_StaticMaskTarget->GetFrameBuffer());
@@ -1044,6 +1231,10 @@ bool KCascadedShadowMap::Resize(uint32_t width, uint32_t height)
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_DynamicReceiverPass));
 		m_DynamicReceiverPass->SetColorAttachment(0, m_DynamicMaskTarget->GetFrameBuffer());
 		m_DynamicReceiverPass->Init();
+
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_CombineReceiverPass));
+		m_CombineReceiverPass->SetColorAttachment(0, m_CombineMaskTarget->GetFrameBuffer());
+		m_CombineReceiverPass->Init();
 
 		return true;
 	}

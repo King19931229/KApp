@@ -56,6 +56,8 @@ public:
 	bool Resize(KFrameGraphBuilder& builder) override;
 	bool Execute(KFrameGraphExecutor& executor) override;
 
+	IKRenderTargetPtr GetStaticMask();
+	IKRenderTargetPtr GetDynamicMask();
 	KFrameGraphID GetStaticTargetID() const { return m_StaticMaskID; }
 	KFrameGraphID GetDynamicTargetID() const { return m_DynamicMaskID; }
 };
@@ -87,17 +89,17 @@ protected:
 		SHADOW_BINDING_GBUFFER_POSITION = SHADER_BINDING_TEXTURE0
 	};
 
-	static constexpr size_t SHADOW_MAP_MAX_CASCADED = 4;	
+	static constexpr uint32_t SHADOW_MAP_MAX_CASCADED = 4;	
 	const KCamera* m_MainCamera;
 
 	// TODO 以下Debug数据需要共享
-	static const KVertexDefinition::SCREENQUAD_POS_2F ms_BackGroundVertices[4];
-	static const uint16_t ms_BackGroundIndices[6];
-	static const VertexFormat ms_VertexFormats[1];
+	static const KVertexDefinition::SCREENQUAD_POS_2F ms_QuadVertices[4];
+	static const uint16_t ms_QuadIndices[6];
+	static const VertexFormat ms_QuadFormats[1];
 
 	// Buffer
-	IKVertexBufferPtr m_BackGroundVertexBuffer;
-	IKIndexBufferPtr m_BackGroundIndexBuffer;
+	IKVertexBufferPtr m_QuadVertexBuffer;
+	IKIndexBufferPtr m_QuadIndexBuffer;
 
 	// Shader
 	IKShaderPtr m_DebugVertexShader;
@@ -114,11 +116,14 @@ protected:
 
 	IKRenderTargetPtr m_StaticMaskTarget;
 	IKRenderTargetPtr m_DynamicMaskTarget;
+	IKRenderTargetPtr m_CombineMaskTarget;
+
 	IKRenderPassPtr m_StaticReceiverPass;
 	IKRenderPassPtr m_DynamicReceiverPass;
+	IKRenderPassPtr m_CombineReceiverPass;
 
-	KVertexData m_DebugVertexData;
-	KIndexData m_DebugIndexData;
+	KVertexData m_QuadVertexData;
+	KIndexData m_QuadIndexData;
 
 	struct Cascade
 	{
@@ -127,16 +132,17 @@ protected:
 		glm::mat4 viewMatrix;
 		glm::mat4 viewProjMatrix;
 		glm::vec4 viewInfo;
-		// renderPass
-		std::vector<IKRenderPassPtr> renderPasses;
-		// debug
-		glm::mat4 debugClip;
-		IKPipelinePtr debugPipeline;
 		// scene clipping
 		KAABBBox frustumBox;
 		KAABBBox litBox;
+		// renderPass
+		IKRenderPassPtr renderPass;
+		// debug
+		glm::mat4 debugClip;
+		IKPipelinePtr debugPipeline;
 	};
-	std::vector<Cascade> m_Cascadeds;
+	std::vector<Cascade> m_StaticCascadeds;
+	std::vector<Cascade> m_DynamicCascadeds;
 
 	KRenderStageStatistics m_Statistics;
 
@@ -164,19 +170,22 @@ protected:
 
 	bool m_MinimizeShadowDraw;
 
-	void UpdateCascades();
+	void UpdateDynamicCascades();
+	void UpdateStaticCascades();
 	bool GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic);
 	void PopulateRenderCommand(size_t cascadedIndex,
 		IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass,
 		std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
 	void FilterRenderComponent(std::vector<KRenderComponent*>& in, bool isStatic);
 
-	bool UpdateRT(size_t cascadedIndex, bool isStatic, IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass);
+	bool UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic);
+	bool UpdateMask(IKCommandBufferPtr primaryBuffer, bool isStatic);
+	bool CombineMask(IKCommandBufferPtr primaryBuffer);
 public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();
 
-	bool Init(const KCamera* camera, size_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio, uint32_t width, uint32_t height);
+	bool Init(const KCamera* camera, uint32_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio, uint32_t width, uint32_t height);
 	bool UnInit();
 
 	bool UpdateShadowMap(IKCommandBufferPtr primaryBuffer);
@@ -185,7 +194,7 @@ public:
 
 	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex, bool isStatic);
 
-	inline size_t GetNumCascaded() const { return m_Cascadeds.size(); }
+	inline size_t GetNumCascaded() const { return m_DynamicCascadeds.size(); }
 	inline IKSamplerPtr GetSampler() { return m_ShadowSampler; }
 	KCamera& GetCamera() { return m_ShadowCamera; }
 

@@ -504,7 +504,7 @@ bool KVulkanShader::InitFromString(ShaderType type, const std::vector<char>& cod
 			m_ResourceState = RS_DEVICE_LOADED;
 			return true;
 		}
-		else if (result == SHADER_INIT_COMPILE_FAILURE || result == SHADER_INIT_FILE_NOT_FOUNT)
+		else
 		{
 			m_ShaderModule = VK_NULL_HANDLE;
 			if (result == SHADER_INIT_COMPILE_FAILURE)
