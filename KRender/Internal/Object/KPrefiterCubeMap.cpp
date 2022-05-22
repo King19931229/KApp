@@ -85,11 +85,19 @@ bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
 	m_IntegrateBRDFSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 	m_IntegrateBRDFSampler->Init(0, 0);
 
+	renderDevice->CreateComputePipeline(m_SHProductPipeline);
+	renderDevice->CreateComputePipeline(m_SHConstructPipeline);
+	renderDevice->CreateStorageBuffer(m_SHCoffBuffer);
+
+	renderDevice->CreateTexture(m_SHConstructCubeMap);
+	m_SHConstructCubeMap->InitMemoryFromData(nullptr, m_SrcCubeMap->GetWidth(), m_SrcCubeMap->GetHeight(), m_SrcCubeMap->GetDepth(), IF_R16G16B16A16_FLOAT, true, false, false);
+	m_SHConstructCubeMap->InitDevice(false);
+
 	AllocateTempResource(renderDevice, width, height, mipmaps,
 		diffuseIrradiance,
 		specularIrradiance,
 		integrateBRDF);
-	Draw();
+	Compute();
 	FreeTempResource();
 
 	return true;
@@ -105,6 +113,7 @@ bool KPrefilerCubeMap::UnInit()
 	SAFE_UNINIT(m_IntegrateBRDFSampler);
 	SAFE_UNINIT(m_IntegrateBRDFPass);
 	SAFE_UNINIT(m_IntegrateBRDFTarget);
+	SAFE_UNINIT(m_SHConstructCubeMap);
 	return true;
 }
 
@@ -286,6 +295,18 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice,
 		pass->Init();
 	}
 
+	uint32_t numGroups = (uint32_t)(m_SrcCubeMap->GetWidth() * m_SrcCubeMap->GetHeight()) / (SH_GROUP_SIZE * SH_GROUP_SIZE);
+	m_SHCoffBuffer->InitMemory(9 * sizeof(glm::vec4) * numGroups, nullptr);
+	m_SHCoffBuffer->InitDevice(false);
+
+	m_SHProductPipeline->BindStorageBuffer(SH_BINDING_COEFFICIENT, m_SHCoffBuffer, COMPUTE_RESOURCE_OUT, true);
+	m_SHProductPipeline->BindStorageImage(SH_BINDING_CUBEMAP, m_SrcCubeMap->GetFrameBuffer(), EF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_IN, 0, true);
+	m_SHProductPipeline->Init("pbr/sh_product.comp");
+
+	m_SHConstructPipeline->BindStorageBuffer(SH_BINDING_COEFFICIENT, m_SHCoffBuffer, COMPUTE_RESOURCE_IN, true);
+	m_SHConstructPipeline->BindStorageImage(SH_BINDING_CUBEMAP, m_SHConstructCubeMap->GetFrameBuffer(), EF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
+	m_SHConstructPipeline->Init("pbr/sh_construct.comp");
+
 	renderDevice->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
 	renderDevice->CreateCommandBuffer(m_CommandBuffer);
@@ -303,6 +324,9 @@ bool KPrefilerCubeMap::FreeTempResource()
 	SAFE_UNINIT(m_IntegrateBRDFPipeline);
 	SAFE_UNINIT(m_SrcCubeMap);
 	SAFE_UNINIT(m_SrcCubeSampler);
+	SAFE_UNINIT(m_SHProductPipeline);
+	SAFE_UNINIT(m_SHConstructPipeline);
+	SAFE_UNINIT(m_SHCoffBuffer);
 
 	for (size_t mipLevel = 0; mipLevel < m_MipmapTargets.size(); ++mipLevel)
 	{
@@ -317,7 +341,7 @@ bool KPrefilerCubeMap::FreeTempResource()
 	return true;
 }
 
-bool KPrefilerCubeMap::Draw()
+bool KPrefilerCubeMap::Compute()
 {
 	auto DrawAndBlit = [&](IKPipelinePtr pipeline, IKTexturePtr texture)
 	{
@@ -377,6 +401,55 @@ bool KPrefilerCubeMap::Draw()
 		m_CommandBuffer->EndDebugMarker();
 		m_CommandBuffer->End();
 
+		m_CommandBuffer->Flush();
+	}
+
+	{
+		m_CommandBuffer->BeginPrimary();
+
+		m_SrcCubeMap->GetFrameBuffer()->Translate(m_CommandBuffer.get(), IMAGE_LAYOUT_GENERAL);
+		m_SHProductPipeline->Execute(m_CommandBuffer,
+			(uint32_t)(m_SrcCubeMap->GetWidth() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
+			(uint32_t)(m_SrcCubeMap->GetHeight() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
+			6);
+		m_SrcCubeMap->GetFrameBuffer()->Translate(m_CommandBuffer.get(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		m_CommandBuffer->End();
+		m_CommandBuffer->Flush();
+	}
+
+	std::vector<glm::vec4> products;
+	products.resize((uint32_t)m_SHCoffBuffer->GetBufferSize() / sizeof(glm::vec4));
+	size_t numGroups = products.size() / 9;
+	m_SHCoffBuffer->Read(products.data());
+
+	for (uint32_t i = 0; i < 9; ++i)
+	{
+		m_SHCoeff[i] = glm::vec4(0);
+		float weightSum = 0;
+		for (uint32_t group = 0; group < numGroups; ++group)
+		{
+			uint32_t idx = group * 9 + i;
+			m_SHCoeff[i] += products[idx];
+			weightSum += products[idx].w;
+		}
+		m_SHCoeff[i] *= 4.0f * glm::pi<float>() / weightSum;
+	}
+
+	m_SHCoffBuffer->InitMemory(sizeof(m_SHCoeff), m_SHCoeff);
+	m_SHCoffBuffer->InitDevice(false);
+
+	{
+		m_CommandBuffer->BeginPrimary();
+
+		m_SHConstructCubeMap->GetFrameBuffer()->Translate(m_CommandBuffer.get(), IMAGE_LAYOUT_GENERAL);
+		m_SHConstructPipeline->Execute(m_CommandBuffer,
+			(uint32_t)(m_SHConstructCubeMap->GetWidth() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
+			(uint32_t)(m_SHConstructCubeMap->GetHeight() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
+			6);
+		m_SHConstructCubeMap->GetFrameBuffer()->Translate(m_CommandBuffer.get(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		m_CommandBuffer->End();
 		m_CommandBuffer->Flush();
 	}
 

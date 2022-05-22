@@ -47,7 +47,7 @@ public:
 		ET_SWAPCHAIN,
 		ET_TEXTUREIMAGE
 	};
-	bool InitExternal(ExternalType type, VkImage image, VkImageView imageView, VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, uint32_t msaa);
+	bool InitExternal(ExternalType type, VkImage image, VkImageView imageView, VkImageType imageType, VkImageViewType imageViewType, VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, uint32_t msaa);
 	// 创建为ColorAttachment
 	bool InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t msaa);
 	// 创建为DepthStencilAttachment

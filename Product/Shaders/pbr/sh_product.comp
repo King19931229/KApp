@@ -1,0 +1,95 @@
+#define SH_BINDING_COEFFICIENT 0
+#define SH_BINDING_CUBEMAP 1
+#define SH_GROUP_SIZE 16
+
+layout(binding = SH_BINDING_COEFFICIENT) buffer uucoff { vec4 ucoff[]; };
+layout(binding = SH_BINDING_CUBEMAP, rgba16f) uniform imageCube cubemap;
+
+layout(local_size_x = SH_GROUP_SIZE, local_size_y = SH_GROUP_SIZE, local_size_z = 1) in;
+
+vec4 centers[6] = 	{ vec4(0, -1, 0, 0), vec4(-1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, -1, 0, 0), vec4(0, 0, 1, 0), vec4(0, 0, -1, 0) };
+vec4 rights[6] 	=  	{ vec4(0, 0, -1, 0), vec4(0, 0, 1, 0), vec4(1, 0, 0, 0), vec4(1, 0, 0, 0), vec4(1, 0, 0, 0), vec4(-1, 0, 0, 0) };
+vec4 ups[6] 	= 	{ vec4(0, -1, 0, 0), vec4(0, -1, 0, 0), vec4(0, 0, 1, 0), vec4(0, 0, -1, 0), vec4(0, -1, 0, 0), vec4(0, -1, 0, 0) };
+
+const float PI = 3.141592654;
+const float SQRT_PI = sqrt(PI);
+const float SQRT_3 = sqrt(3);
+const float SQRT_5 = sqrt(5);
+const float SQRT_15 = sqrt(15);
+
+const float S0 = 0.5 / SQRT_PI;
+const float S1 = 0.5 * SQRT_3 / SQRT_PI;
+const float S2 = 0.5 * SQRT_15 / SQRT_PI;
+const float S3 = 0.25 * SQRT_5 / SQRT_PI;
+float sh_basics[9] = { S0, -S1, S1, -S1, S2, -S2, S3, -S2, S3 };
+
+shared vec4 sharedData[SH_GROUP_SIZE * SH_GROUP_SIZE][9];
+
+void EvalSH(vec4 pos, inout float s[9])
+{
+	s[0] = sh_basics[0];
+	s[1] = sh_basics[1] * pos.y;
+	s[2] = sh_basics[2] * pos.z;
+	s[3] = sh_basics[3] * pos.x;
+	s[4] = sh_basics[4] * pos.x * pos.y;
+	s[5] = sh_basics[5] * pos.y * pos.z;
+	s[6] = sh_basics[6] * (3.0 * pos.z * pos.z - 1.0);
+	s[7] = sh_basics[7] * pos.x * pos.z;
+	s[8] = sh_basics[8] * (pos.x * pos.x - pos.y * pos.y);
+}
+
+void main()
+{
+	ivec2 size = imageSize(cubemap).xy;
+	// Check if not outside boundaries
+	if (gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y) return;
+	ivec3 texCoord = ivec3(gl_GlobalInvocationID.xyz);
+	vec2 uv = vec2(texCoord.xy) / size;
+	float fTmp = 1 + uv.x * uv.x + uv.y * uv.y;
+	float fWt = 4.0 / (sqrt(fTmp) * fTmp);
+
+	vec2 offset = 2.0 * uv - vec2(1.0);
+
+	vec4 h[9] = {vec4(0), vec4(0), vec4(0), vec4(0), vec4(0), vec4(0), vec4(0), vec4(0), vec4(0)};
+
+	uint face = gl_GlobalInvocationID.z;
+	float sh[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+	vec4 color = imageLoad(cubemap, texCoord).rgba;
+	vec4 pos = centers[face] + rights[face] * offset.x + ups[face] * offset.y;
+	pos = normalize(pos);
+	EvalSH(pos, sh);
+	for (int i = 0; i < 9; ++i)
+	{
+		// coeff
+		h[i].xyz += sh[i] * color.xyz * fWt;
+		// weight
+		h[i].w += fWt;
+	}
+
+	for	(int i = 0; i < 9; ++i)
+		sharedData[gl_LocalInvocationIndex][i] = h[i];
+
+	memoryBarrierShared();
+	barrier();
+
+	int groupSize = SH_GROUP_SIZE * SH_GROUP_SIZE;
+	int s = groupSize / 2;
+	while (s > 0)
+	{
+		if (gl_LocalInvocationIndex + s < groupSize)
+		{
+			for	(int i = 0; i < 9; ++i)
+				sharedData[gl_LocalInvocationIndex][i] += sharedData[gl_LocalInvocationIndex + s][i];
+		}
+		memoryBarrierShared();
+		barrier();
+		s /= 2;
+	}
+
+	uint gropuId = gl_WorkGroupID.x * (gl_NumWorkGroups.y * gl_NumWorkGroups.z) + gl_WorkGroupID.y * (gl_NumWorkGroups.z) + gl_WorkGroupID.z;
+
+	for	(int i = 0; i < 9; ++i)
+	{
+		ucoff[9 * gropuId + i] = sharedData[0][i];
+	}
+}

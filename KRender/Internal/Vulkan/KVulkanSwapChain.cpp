@@ -272,6 +272,7 @@ bool KVulkanSwapChain::CreateFrameBuffers()
 
 		frameBuffer.colorFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
 		((KVulkanFrameBuffer*)frameBuffer.colorFrameBuffer.get())->InitExternal(KVulkanFrameBuffer::ET_SWAPCHAIN, m_SwapChainImages[i], m_SwapChainImageViews[i],
+			VK_IMAGE_TYPE_2D, VK_IMAGE_VIEW_TYPE_2D,
 			m_SurfaceFormat.format, m_Extend.width, m_Extend.height, 1, 1, 1);
 
 		frameBuffer.depthStencilFrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());

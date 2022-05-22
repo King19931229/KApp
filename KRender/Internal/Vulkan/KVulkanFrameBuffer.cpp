@@ -32,7 +32,7 @@ KVulkanFrameBuffer::~KVulkanFrameBuffer()
 	ASSERT_RESULT(m_MSAAImageView == VK_NULL_HANDLE);
 }
 
-bool KVulkanFrameBuffer::InitExternal(ExternalType type, VkImage image, VkImageView imageView, VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, uint32_t msaa)
+bool KVulkanFrameBuffer::InitExternal(ExternalType type, VkImage image, VkImageView imageView, VkImageType imageType, VkImageViewType imageViewType, VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, uint32_t msaa)
 {
 	UnInit();
 
@@ -57,8 +57,8 @@ bool KVulkanFrameBuffer::InitExternal(ExternalType type, VkImage image, VkImageV
 		}
 	}
 
-	m_ImageType = VK_IMAGE_TYPE_2D;
-	m_ImageViewType = VK_IMAGE_VIEW_TYPE_2D;
+	m_ImageType = imageType;
+	m_ImageViewType = imageViewType;
 	m_Layers = 1;
 
 	m_ImageLayout = (type == ET_SWAPCHAIN) ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -305,7 +305,7 @@ VkImageView KVulkanFrameBuffer::GetReinterpretImageView(ElementFormat format)
 		VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 		ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
 
-		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, 1, imageView);
+		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, (m_ImageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1, imageView);
 		m_ReinterpretImageView.insert({ format , imageView });
 	}
 
@@ -367,7 +367,12 @@ bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, ImageLayout layout)
 		// 1.Translation
 		// 2.RenderPass
 		// TODO 使用 vkGetImageSubresourceLayout代替VK_IMAGE_LAYOUT_UNDEFINED
-		KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, newLayout, vkCmdBuffer);
+		KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format,
+			0, (m_ImageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1,
+			0, m_Mipmaps,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			newLayout,
+			vkCmdBuffer);
 		m_ImageLayout = newLayout;
 		return true;
 	}

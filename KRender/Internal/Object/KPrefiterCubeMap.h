@@ -13,6 +13,13 @@ protected:
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_Vertices[4];
 	static const uint32_t ms_Indices[6];
 
+	enum
+	{
+		SH_BINDING_COEFFICIENT = 0,
+		SH_BINDING_CUBEMAP = 1,
+		SH_GROUP_SIZE = 16
+	};
+
 	// 预处理相关资源
 	struct ConstantBlock
 	{
@@ -32,6 +39,11 @@ protected:
 	IKPipelinePtr m_DiffuseIrradiancePipeline;
 	IKPipelinePtr m_SpecularIrradiancePipeline;
 	IKPipelinePtr m_IntegrateBRDFPipeline;
+
+	IKComputePipelinePtr m_SHProductPipeline;
+	IKComputePipelinePtr m_SHConstructPipeline;
+	IKStorageBufferPtr m_SHCoffBuffer;
+
 	IKCommandBufferPtr m_CommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
@@ -58,9 +70,13 @@ protected:
 	IKTexturePtr m_SpecularIrradianceMap;
 	IKSamplerPtr m_SpecularIrradianceSampler;
 
+	IKTexturePtr m_SHConstructCubeMap;
+
 	IKRenderTargetPtr m_IntegrateBRDFTarget;
 	IKRenderPassPtr m_IntegrateBRDFPass;
 	IKSamplerPtr m_IntegrateBRDFSampler;
+
+	glm::vec4 m_SHCoeff[9];
 
 	bool PopulateCubeMapRenderCommand(KRenderCommand& command, uint32_t faceIndex, float roughtness, IKPipelinePtr pipeline, IKRenderPassPtr renderPass);
 	bool AllocateTempResource(IKRenderDevice* renderDevice,
@@ -70,7 +86,7 @@ protected:
 		const char* specularIrradiance,
 		const char* integrateBRDF);
 	bool FreeTempResource();
-	bool Draw();
+	bool Compute();
 public:
 	KPrefilerCubeMap();
 	~KPrefilerCubeMap();

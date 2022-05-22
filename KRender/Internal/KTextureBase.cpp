@@ -131,6 +131,9 @@ static bool ImageFormatToSize(ImageFormat format, size_t& size)
 	case IF_R8:
 		size = 1;
 		return true;
+	case IF_R16G16B16A16_FLOAT:
+		size = 8;
+		return true;
 	case IF_COUNT:
 		break;
 	default:
@@ -265,7 +268,7 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 	}
 }
 
-bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t height, size_t depth, ImageFormat format, bool bGenerateMipmap, bool async)
+bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t height, size_t depth, ImageFormat format, bool cubeMap, bool bGenerateMipmap, bool async)
 {
 	ReleaseMemory();
 	auto loadImpl = [=]()->bool
@@ -275,7 +278,8 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t
 		size_t formatSize = 0;
 		if (ImageFormatToSize(format, formatSize))
 		{
-			KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(width * height * formatSize));
+			size_t faceCount = cubeMap ? 6 : 1;
+			KImageDataPtr pImageData = KImageDataPtr(KNEW KImageData(width * height * depth * faceCount * formatSize));
 
 			if (pRawData)
 			{
@@ -292,17 +296,20 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t
 			m_ImageData.uDepth = depth;
 			m_ImageData.uMipmap = 1;
 			m_ImageData.bCompressed = false;
-			m_ImageData.bCubemap = false;
+			m_ImageData.bCubemap = cubeMap;
 			m_ImageData.pData = pImageData;
 
-			KSubImageInfo subImageInfo;
-			subImageInfo.uWidth = width;
-			subImageInfo.uHeight = height;
-			subImageInfo.uOffset = 0;
-			subImageInfo.uSize = pImageData->GetSize();
-			subImageInfo.uFaceIndex = 0;
-			subImageInfo.uMipmapIndex = 0;
-			m_ImageData.pData->GetSubImageInfo().push_back(subImageInfo);
+			for (size_t face = 0; face < faceCount; ++face)
+			{
+				KSubImageInfo subImageInfo;
+				subImageInfo.uWidth = width;
+				subImageInfo.uHeight = height;
+				subImageInfo.uOffset = pImageData->GetSize() * face / faceCount;
+				subImageInfo.uSize = pImageData->GetSize();
+				subImageInfo.uFaceIndex = face;
+				subImageInfo.uMipmapIndex = 0;
+				m_ImageData.pData->GetSubImageInfo().push_back(subImageInfo);
+			}
 
 			if (InitProperty(bGenerateMipmap))
 			{

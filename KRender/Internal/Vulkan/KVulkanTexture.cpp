@@ -148,7 +148,7 @@ bool KVulkanTexture::InitDevice(bool async)
 					imageType,
 					m_TextureFormat,
 					VK_IMAGE_TILING_OPTIMAL,
-					VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+					VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
 					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 					createFlags,
 					m_TextureImage, m_AllocInfo);
@@ -208,7 +208,9 @@ bool KVulkanTexture::InitDevice(bool async)
 				m_ResourceState = RS_DEVICE_LOADED;
 
 				m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
-				((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitExternal(KVulkanFrameBuffer::ET_TEXTUREIMAGE, m_TextureImage, m_TextureImageView, m_TextureFormat,
+				((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitExternal(KVulkanFrameBuffer::ET_TEXTUREIMAGE, m_TextureImage, m_TextureImageView,
+					imageType, imageViewType,
+					m_TextureFormat,
 					(uint32_t)m_Width, (uint32_t)m_Height, (uint32_t)m_Depth, m_Mipmaps, 1);
 
 				return true;
