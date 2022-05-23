@@ -295,7 +295,9 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice,
 		pass->Init();
 	}
 
-	uint32_t numGroups = (uint32_t)(m_SrcCubeMap->GetWidth() * m_SrcCubeMap->GetHeight()) / (SH_GROUP_SIZE * SH_GROUP_SIZE);
+	uint32_t numGroups = (uint32_t)((m_SrcCubeMap->GetWidth() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE)
+		* (uint32_t)((m_SrcCubeMap->GetHeight() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE)
+		* 6;
 	m_SHCoffBuffer->InitMemory(9 * sizeof(glm::vec4) * numGroups, nullptr);
 	m_SHCoffBuffer->InitDevice(false);
 
