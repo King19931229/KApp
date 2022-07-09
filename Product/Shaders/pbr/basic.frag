@@ -66,26 +66,25 @@ void main()
 	vec3 prefilteredColor = textureLod(specularIrradiance, CUBEMAP_UVW(R), roughness * MAX_REFLECTION_LOD).rgb;   
 	vec2 envBRDF  = texture(integrateBRDF, vec2(min(max(dot(N, V), 0.0), 1.0), roughness)).rg;
 	vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
-  
+
 	vec3 ambient = (kD * diffuse + specular) * ao;
 
 	// DirectLight
 	/*
+	// cook-torrance brdf
+	vec3 L = normalize(shading.lightPos.xyz - worldPos.xyz);
+	vec3 H = normalize(V + L);
+
+	float NDF = DistributionGGX(N, H, roughness);
+	float G = GeometrySchlickGGXJoint(N, V, L, roughness); // G = GeometrySchlickGGX(N, V, 0.0), roughness);
+	vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0); // F = FresnelSchlick(max(dot(N, V), 0.0), F0);
+
 	vec3 numerator = NDF * G * F;
 	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
 	vec3 lightSpecular = numerator / max(denominator, 0.001);
 
 	// calculate per-light radiance
 	vec3 Lo = vec3(0.0);
-
-	vec3 L = normalize(shading.lightPos.xyz - worldPos.xyz);
-	vec3 H = normalize(V + L);
-
-	// cook-torrance brdf
-
-	float NDF = DistributionGGX(N, H, roughness);
-	float G = GeometrySmith(N, V, L, roughness); // G = GeometrySchlickGGX(max(dot(N, V), 0.0), roughness);
-	vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0); // F = FresnelSchlick(max(dot(N, V), 0.0), F0);
 
 	float distance = length(shading.lightPos.xyz - worldPos.xyz);
 	float attenuation = 1.0;// / (distance * distance);

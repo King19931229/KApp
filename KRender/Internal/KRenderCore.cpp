@@ -114,12 +114,13 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::GBuffer.Init(m_Device, &m_Camera, (uint32_t)width, (uint32_t)height);
 	KRenderGlobal::RayTraceManager.Init();
 
-	KRenderGlobal::CubeMap.Init(m_Device, 128, 128, 8,
+	KRenderGlobal::CubeMap.Init(128, 128, 8,
 		"Textures/uffizi_cube.ktx",
 		"Materials/pbr/diffuse_irradiance.mtl",
 		"Materials/pbr/specular_irradiance.mtl",
 		"Materials/pbr/integrate_brdf.mtl"
 	);
+	KRenderGlobal::WhiteFurnace.Init();
 	KRenderGlobal::SkyBox.Init(m_Device, "Textures/uffizi_cube.ktx");
 
 	KRenderGlobal::OcclusionBox.Init(m_Device);
@@ -138,6 +139,7 @@ bool KRenderCore::UnInitGlobalManager()
 {
 	KDebugDrawSharedData::UnInit();
 
+	KRenderGlobal::WhiteFurnace.UnInit();
 	KRenderGlobal::CubeMap.UnInit();
 	KRenderGlobal::SkyBox.UnInit();
 	KRenderGlobal::OcclusionBox.UnInit();

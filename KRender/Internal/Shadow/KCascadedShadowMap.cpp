@@ -186,6 +186,8 @@ void KCascadedShadowMapReceiverPass::Recreate()
 		m_StaticMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
 		m_DynamicMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
 	}
+
+	m_Master.UpdatePipelineFromRTChanged();
 }
 
 bool KCascadedShadowMapReceiverPass::Resize(KFrameGraphBuilder& builder)
@@ -594,6 +596,24 @@ void KCascadedShadowMap::UpdateStaticCascades()
 		staticCascaded.litBox = dynamicCascaded.litBox;
 		staticCascaded.debugClip = dynamicCascaded.debugClip;
 	}
+}
+
+bool KCascadedShadowMap::UpdatePipelineFromRTChanged()
+{
+	if (m_CombineReceiverPipeline)
+	{
+		m_CombineReceiverPipeline->SetSampler(0,
+			m_ReceiverPass->GetStaticMask()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+
+		m_CombineReceiverPipeline->SetSampler(1,
+			m_ReceiverPass->GetDynamicMask()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+	}
+
+	return true;
 }
 
 bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio, uint32_t width, uint32_t height)

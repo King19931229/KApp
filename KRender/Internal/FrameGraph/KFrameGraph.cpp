@@ -57,7 +57,7 @@ KFrameGraphID KFrameGraph::CreateRenderTarget(const RenderTargetCreateParameter&
 	KFrameGraphResourcePtr resource = KFrameGraphResourcePtr(KNEW KFrameGraphRenderTarget());
 	KFrameGraphRenderTarget* targetResource = static_cast<KFrameGraphRenderTarget*>(resource.get());
 	if (parameter.bDepth)
-	{		
+	{
 		targetResource->CreateAsDepthStencil(m_Device, parameter.width, parameter.height, parameter.msaaCount, parameter.bStencil);
 	}
 	else

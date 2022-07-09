@@ -15,6 +15,7 @@ namespace KRenderGlobal
 
 	KSkyBox SkyBox;
 	KPrefilerCubeMap CubeMap;
+	KWhiteFurnace WhiteFurnace;
 	KGBuffer GBuffer;
 	KOcclusionBox OcclusionBox;
 	KShadowMap ShadowMap;

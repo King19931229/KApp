@@ -178,6 +178,7 @@ protected:
 		std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
 	void FilterRenderComponent(std::vector<KRenderComponent*>& in, bool isStatic);
 
+	bool UpdatePipelineFromRTChanged();
 	bool UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic);
 	bool UpdateMask(IKCommandBufferPtr primaryBuffer, bool isStatic);
 	bool CombineMask(IKCommandBufferPtr primaryBuffer);

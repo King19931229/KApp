@@ -91,8 +91,7 @@ public:
 	KPrefilerCubeMap();
 	~KPrefilerCubeMap();
 
-	bool Init(IKRenderDevice* renderDevice,
-		uint32_t width, uint32_t height,
+	bool Init(uint32_t width, uint32_t height,
 		size_t mipmaps,
 		const char* cubemapPath,
 		const char* diffuseIrradiance,

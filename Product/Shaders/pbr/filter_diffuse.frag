@@ -22,7 +22,7 @@ void main()
 	float nrSamples = 0.0; 
 	for(float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
 	{
-   	 	for(float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
+		for(float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
 		{
 			// spherical to cartesian (in tangent space)
 			vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));

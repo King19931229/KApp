@@ -39,14 +39,15 @@ KPrefilerCubeMap::~KPrefilerCubeMap()
 {
 }
 
-bool KPrefilerCubeMap::Init(IKRenderDevice* renderDevice,
-	uint32_t width, uint32_t height,
+bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height,
 	size_t mipmaps,
 	const char* cubemapPath,
 	const char* diffuseIrradiance,
 	const char* specularIrradiance,
 	const char* integrateBRDF)
 {
+	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
+
 	renderDevice->CreateTexture(m_SpecularIrradianceMap);
 	m_SpecularIrradianceMap->InitMemoryFromFile(cubemapPath, true, false);
 	m_SpecularIrradianceMap->InitDevice(false);

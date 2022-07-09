@@ -471,6 +471,9 @@
     <ClInclude Include="Internal\Dispatcher\KRenderUtil.h">
       <Filter>Internal\Dispatcher</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Object\KWhiteFurnace.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -757,6 +760,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Voxilzer\KVoxilzer.cpp">
       <Filter>Internal\Voxilzer</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Object\KWhiteFurnace.cpp">
+      <Filter>Internal\Object</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

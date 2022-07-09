@@ -7,7 +7,7 @@ layout(location = 0) out vec4 outColor;
 vec2 IntegrateBRDF(float NdotV, float roughness)
 {
 	vec3 V;
-	V.x = sqrt(1.0 - NdotV*NdotV);
+	V.x = sqrt(1.0 - NdotV * NdotV);
 	V.y = 0.0;
 	V.z = NdotV;
 
@@ -29,7 +29,7 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 
 		if(NdotL > 0.0)
 		{
-			float G = GeometrySmith(N, V, L, roughness);
+			float G = GeometrySchlickGGXJoint(N, V, L, roughness);
 			float G_Vis = (G * VdotH) / (NdotH * NdotV);
 			float Fc = pow(1.0 - VdotH, 5.0);
 
