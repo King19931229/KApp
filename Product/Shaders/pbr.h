@@ -1,37 +1,38 @@
 #ifndef PBR_H
 #define PBR_H
 
-float DistributionGGX(vec3 N, vec3 H, float roughness)
-{
-	float a      = roughness * roughness;
-	float a2     = a * a;
-	float NdotH  = max(dot(N, H), 0.0);
-	float NdotH2 = NdotH * NdotH;
+#define MEDIUMP_FLT_MAX	65504.0
+#define MEDIUMP_FLT_MIN 0.00006103515625
 
-	float num   = a2;
-	float denom = NdotH2 * a2; //(NdotH2 * (a2 - 1.0) + 1.0);
-	denom = PI * denom * denom;
+float DistributionGGX(vec3 N, vec3 H, float a)
+{
+	float a2		= a * a;
+	float NdotH		= max(dot(N, H), MEDIUMP_FLT_MIN);
+	float NdotH2	= NdotH * NdotH;
+
+	float num		= a2;
+	float denom		= (NdotH2 * (a2 - 1.0) + 1.0);
+	denom			= PI * denom * denom;
 
 	return num / denom;
 }
 
-float GeometrySchlickGGX(vec3 N, vec3 V, float roughness)
+float GeometrySmithGGX(vec3 N, vec3 V, float a)
 {
-	float NdotV = max(dot(N, V), 0.0);
+	float a2		= a * a;
+	float NdotV		= max(dot(N, V), MEDIUMP_FLT_MIN);
+	float NdotV2	= NdotV * NdotV;
 
-	float r = (roughness + 1.0);
-	float k = (r*r) / 8.0;
-
-	float num   = NdotV;
-	float denom = NdotV * (1.0 - k) + k;
-
+	float num		= 2.0 * NdotV;
+	float denom		= NdotV + sqrt(NdotV * NdotV * (1 - a2) + a2);
+	
 	return num / denom;
 }
 
-float GeometrySchlickGGXJoint(vec3 N, vec3 V, vec3 L, float roughness)
+float GeometrySmithGGXJoint(vec3 N, vec3 V, vec3 L, float roughness)
 {
-	float ggx2  = GeometrySchlickGGX(N, V, roughness);
-	float ggx1  = GeometrySchlickGGX(N, L, roughness);
+	float ggx2  = GeometrySmithGGX(N, V, roughness);
+	float ggx1  = GeometrySmithGGX(N, L, roughness);
 	return ggx1 * ggx2;
 }
 

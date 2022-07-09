@@ -22,7 +22,7 @@ bool KWhiteFurnace::Init()
 	KRenderGlobal::RenderDevice->CreateComputePipeline(m_WFTestPipeline);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_WFTarget);
 
-	m_WFTarget->InitFromStorage(1024, 1024, 1, EF_R8GB8BA8_UNORM);
+	m_WFTarget->InitFromStorage(1024, 1024, 1, EF_R32G32B32A32_FLOAT);
 	m_WFTestPipeline->BindStorageImage(0, m_WFTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 	m_WFTestPipeline->Init("pbr/white _furnace.comp");
 

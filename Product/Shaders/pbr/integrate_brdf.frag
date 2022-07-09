@@ -29,7 +29,7 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 
 		if(NdotL > 0.0)
 		{
-			float G = GeometrySchlickGGXJoint(N, V, L, roughness);
+			float G = GeometrySmithGGXJoint(N, V, L, roughness);
 			float G_Vis = (G * VdotH) / (NdotH * NdotV);
 			float Fc = pow(1.0 - VdotH, 5.0);
 

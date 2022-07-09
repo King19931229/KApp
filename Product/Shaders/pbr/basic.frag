@@ -76,7 +76,7 @@ void main()
 	vec3 H = normalize(V + L);
 
 	float NDF = DistributionGGX(N, H, roughness);
-	float G = GeometrySchlickGGXJoint(N, V, L, roughness); // G = GeometrySchlickGGX(N, V, 0.0), roughness);
+	float G = GeometrySmithGGXJoint(N, V, L, roughness); // G = GeometrySmithGGX(N, V, 0.0), roughness);
 	vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0); // F = FresnelSchlick(max(dot(N, V), 0.0), F0);
 
 	vec3 numerator = NDF * G * F;
