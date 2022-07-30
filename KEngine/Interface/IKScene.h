@@ -16,6 +16,8 @@ struct IKScene
 	typedef std::unordered_set<IKEntityPtr> EntitySetType;
 	virtual const EntitySetType& GetEntities() const = 0;
 
+	virtual IKTerrainPtr GetTerrain() = 0;
+
 	virtual bool Clear() = 0;
 
 	virtual bool Pick(const KCamera& camera, size_t x, size_t y,

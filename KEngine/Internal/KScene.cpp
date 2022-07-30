@@ -61,6 +61,15 @@ const KScene::EntitySetType& KScene::GetEntities() const
 	return m_Entities;
 }
 
+IKTerrainPtr KScene::GetTerrain()
+{
+	if (m_RenderScene)
+	{
+		return m_RenderScene->GetTerrain();
+	}
+	return nullptr;
+}
+
 bool KScene::Clear()
 {
 	for (IKEntityPtr entity : m_Entities)

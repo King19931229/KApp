@@ -340,6 +340,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			assert(KRenderGlobal::TaskExecutor.AllTaskDone());
 
 			KRenderGlobal::TaskExecutor.UnInit();
+			KRenderGlobal::Scene.UnInit();
 
 			UnInitController();
 			UnInitGizmo();
@@ -379,7 +380,6 @@ bool KRenderCore::UnInit()
 	{
 		KRenderGlobal::RenderDispatcher.RemoveCallback(m_Window);
 
-		KRenderGlobal::Scene.UnInit();
 		KECSGlobal::UnInit();
 
 		m_DebugConsole->UnInit();

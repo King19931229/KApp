@@ -55,13 +55,14 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 
 			result.uWidth = FreeImage_GetWidth(fiBitmap);
 			result.uHeight = FreeImage_GetHeight(fiBitmap);
+			result.eFormat = IF_INVALID;
 
 			// Copy Form OGRE
 			switch(imageType)
 			{
-			case FIT_BITMAP:
+				// Standard image type
+				case FIT_BITMAP:
 				{
-					// Standard image type
 					// Perform any colour conversions for greyscale
 					if (colourType == FIC_MINISWHITE || colourType == FIC_MINISBLACK)
 					{
@@ -95,27 +96,48 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 						bpp = FreeImage_GetBPP(fiBitmap);
 						colourType = FreeImage_GetColorType(fiBitmap);
 					}
+
+					switch (bpp)
+					{
+						case 24:
+							result.eFormat = IF_R8G8B8;
+							break;
+						case 32:
+							result.eFormat = IF_R8G8B8A8;
+							break;
+						case 8:
+							//result.eFormat = IF_R8;
+							//break;
+						case 16:
+							//result.eFormat = IF_R8G8;
+							//break;
+						default:
+							result.eFormat = IF_INVALID;
+							break;
+					}
+					break;
+				}
+				// Special int image type
+				case FIT_UINT16:
+				case FIT_INT16:
+				case FIT_UINT32:
+				case FIT_INT32:
+				{
+					// Convert into float for simplicity
+					FIBITMAP* newBitmap = FreeImage_ConvertToFloat(fiBitmap);
+					FreeImage_Unload(fiBitmap);
+					fiBitmap = newBitmap;
+					bpp = FreeImage_GetBPP(fiBitmap);
+					colourType = FreeImage_GetColorType(fiBitmap);
+
+					result.eFormat = IF_R32_FLOAT;
+					break;
 				}
 				// keep the compiler happy
-			default:
+				default:
 				{
-
+					break;
 				}
-			}
-
-			switch(bpp)
-			{
-			case 24:
-				result.eFormat = IF_R8G8B8;
-				break;
-			case 32:
-				result.eFormat = IF_R8G8B8A8;
-				break;
-			case 8:
-			case 16:
-			default:
-				result.eFormat = IF_INVALID;
-				break;
 			}
 
 			if(result.eFormat != IF_INVALID)

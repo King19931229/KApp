@@ -1,5 +1,6 @@
 #pragma once
 #include "KBase/Interface/Entity/IKEntity.h"
+#include "KRender/Interface/IKTerrain.h"
 #include "KRender/Publish/KCamera.h"
 #include "glm/glm.hpp"
 
@@ -27,6 +28,8 @@ struct IKRenderScene
 	virtual bool Add(IKEntityPtr entity) = 0;
 	virtual bool Remove(IKEntityPtr entity) = 0;
 	virtual bool Move(IKEntityPtr entity) = 0;
+
+	virtual IKTerrainPtr GetTerrain() = 0;
 
 	virtual bool RegisterEntityObserver(EntityObserverFunc* func) = 0;
 	virtual bool UnRegisterEntityObserver(EntityObserverFunc* func) = 0;

@@ -610,6 +610,10 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex)
 		primaryCommandBuffer->BeginDebugMarker("ObjectPass", glm::vec4(0, 1, 0, 0));
 		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 
+		// 绘制地形
+		IKTerrainPtr terrain = m_Scene->GetTerrain();
+		terrain->Update(m_Camera);
+
 		// 绘制SkyBox
 		KCommandBufferList tempBuffers;
 		KRenderGlobal::SkyBox.Render(renderPass, tempBuffers);

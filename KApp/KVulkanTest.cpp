@@ -92,7 +92,9 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray.scene");
+	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray4.scene");
+	engine->GetScene()->GetTerrain()->Create(glm::vec3(0), 1024, { TERRAIN_TYPE_CLIPMAP, {4, 5} });
+	engine->GetScene()->GetTerrain()->LoadHeightMap("Terrain/grand_canyon.png");
 
 	KRenderCoreInitCallback callback = [engine]()
 	{
@@ -111,13 +113,13 @@ int main()
 		rayPipeline->SetShaderTable(ST_CLOSEST_HIT, "raytrace/raytrace.rchit");
 		rayPipeline->SetShaderTable(ST_MISS, "raytrace/raytrace.rmiss");
 		rayTraceScene->EnableAutoUpdateImageSize(1.0f);
-		rayTraceScene->EnableDebugDraw(0, 0, 1, 1);
+		rayTraceScene->EnableDebugDraw();
 		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
 
-		// engine->GetRenderCore()->InitRTAO(rayTraceScene);
+		engine->GetRenderCore()->InitRTAO(rayTraceScene);
 	};
-	engine->GetRenderCore()->RegisterInitCallback(&callback);
-	callback();
+	//engine->GetRenderCore()->RegisterInitCallback(&callback);
+	//callback();
 
 	constexpr bool SECORDARY_WINDOW = true;
 

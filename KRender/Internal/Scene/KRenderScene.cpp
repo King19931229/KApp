@@ -1,5 +1,6 @@
 #include "KRenderScene.h"
 #include "KOctreeSceneManager.h"
+#include "Internal/Terrain/KTerrain.h"
 
 EXPORT_DLL IKRenderScenePtr CreateRenderScene()
 {
@@ -9,6 +10,7 @@ EXPORT_DLL IKRenderScenePtr CreateRenderScene()
 KRenderScene::KRenderScene()
 	: m_SceneMgr(nullptr)
 {
+	m_Terrain = IKTerrainPtr(new KTerrain());
 }
 
 KRenderScene::~KRenderScene()
@@ -39,6 +41,7 @@ bool KRenderScene::Init(SceneManagerType type, float initialSize, const glm::vec
 		}
 		return true;
 	}
+
 	return false;
 }
 
@@ -53,6 +56,9 @@ bool KRenderScene::UnInit()
 		}
 		SAFE_DELETE(m_SceneMgr);
 	}
+
+	m_Terrain->Destroy();
+
 	return true;
 }
 
@@ -98,6 +104,11 @@ bool KRenderScene::Move(IKEntityPtr entity)
 		return true;
 	}
 	return false;
+}
+
+IKTerrainPtr KRenderScene::GetTerrain()
+{
+	return m_Terrain;
 }
 
 bool KRenderScene::RegisterEntityObserver(EntityObserverFunc* func)

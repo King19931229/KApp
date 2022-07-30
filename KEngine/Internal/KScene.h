@@ -24,6 +24,8 @@ public:
 
 	virtual const EntitySetType& GetEntities() const;
 
+	virtual IKTerrainPtr GetTerrain();
+
 	virtual bool Clear();
 
 	virtual bool Pick(const KCamera& camera, size_t x, size_t y,

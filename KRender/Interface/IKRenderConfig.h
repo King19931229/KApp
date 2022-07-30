@@ -278,6 +278,8 @@ enum VertexFormat
 	VF_DEBUG_POINT,
 	// for instance
 	VF_INSTANCE,
+	// for terrain
+	VF_TERRAIN_POS,
 
 	VF_UNKNOWN,
 	VF_COUNT = VF_UNKNOWN

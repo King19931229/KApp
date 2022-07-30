@@ -1,16 +1,17 @@
 #pragma once
 #include "KBase/Publish/KConfig.h"
 #include "KBase/Interface/Entity/IKEntity.h"
+#include "KRender/Interface/IKRenderScene.h"
+#include "KRender/Publish/KCamera.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
-#include "Publish/KCamera.h"
 #include "KSceneManagerBase.h"
-#include "Interface/IKRenderScene.h"
 
 class KRenderScene : public IKRenderScene
 {
 protected:
 	KSceneManagerBase* m_SceneMgr;
 	std::unordered_set<EntityObserverFunc*> m_Observers;
+	IKTerrainPtr m_Terrain;
 
 	void OnEntityChange(EntitySceneOp op, IKEntityPtr entity);
 public:
@@ -23,6 +24,8 @@ public:
 	bool Add(IKEntityPtr entity) override;
 	bool Remove(IKEntityPtr entity) override;
 	bool Move(IKEntityPtr entity) override;
+
+	IKTerrainPtr GetTerrain() override;
 
 	bool RegisterEntityObserver(EntityObserverFunc* func) override;
 	bool UnRegisterEntityObserver(EntityObserverFunc* func) override;
