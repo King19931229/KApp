@@ -58,3 +58,15 @@ void KTerrain::Update(const KCamera* camera)
 		}
 	}
 }
+
+bool KTerrain::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+{
+	if (m_Type == TERRAIN_TYPE_CLIPMAP)
+	{
+		if (m_Soul.clipmap)
+		{
+			return m_Soul.clipmap->Render(renderPass, buffers);
+		}
+	}
+	return false;
+}

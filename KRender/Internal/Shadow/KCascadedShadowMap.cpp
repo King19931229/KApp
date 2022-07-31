@@ -1086,7 +1086,7 @@ bool KCascadedShadowMap::CombineMask(IKCommandBufferPtr primaryBuffer)
 	return true;
 }
 
-bool KCascadedShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
+bool KCascadedShadowMap::UpdateShadowMap()
 {
 	UpdateDynamicCascades();
 	UpdateStaticCascades();

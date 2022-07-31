@@ -323,32 +323,36 @@ bool KVulkanCommandBuffer::Execute(IKCommandBufferPtr buffer)
 	return false;
 }
 
-bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers)
+bool KVulkanCommandBuffer::ExecuteAll(KCommandBufferList& commandBuffers, bool clearAfterExecute)
 {
 	VkCommandBuffer commandBuffer = GetVkHandle();
 	assert(commandBuffer != VK_NULL_HANDLE);
 	assert(m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-	assert(commandBuffers.size() > 0);
 
-	if(commandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY && commandBuffers.size() > 0)
+	if (commandBuffer != VK_NULL_HANDLE && m_CommandLevel == VK_COMMAND_BUFFER_LEVEL_PRIMARY)
 	{
-		std::vector<VkCommandBuffer> vkCommandBuffers;
-
-		for(IKCommandBufferPtr buffer : commandBuffers)
+		if (commandBuffers.size() > 0)
 		{
-			VkCommandBuffer handle = ((KVulkanCommandBuffer*)buffer.get())->GetVkHandle();
-			VkCommandBufferLevel level = ((KVulkanCommandBuffer*)buffer.get())->GetVkBufferLevel();
-			ASSERT_RESULT(handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
-			if(handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+			std::vector<VkCommandBuffer> vkCommandBuffers;
+			for (IKCommandBufferPtr buffer : commandBuffers)
 			{
-				vkCommandBuffers.push_back(handle);
+				VkCommandBuffer handle = ((KVulkanCommandBuffer*)buffer.get())->GetVkHandle();
+				VkCommandBufferLevel level = ((KVulkanCommandBuffer*)buffer.get())->GetVkBufferLevel();
+				ASSERT_RESULT(handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+				if (handle != VK_NULL_HANDLE && level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+				{
+					vkCommandBuffers.push_back(handle);
+				}
 			}
+			vkCmdExecuteCommands(commandBuffer, (uint32_t)vkCommandBuffers.size(), vkCommandBuffers.data());
 		}
-
-		vkCmdExecuteCommands(commandBuffer, (uint32_t)vkCommandBuffers.size(), vkCommandBuffers.data());
-
+		if (clearAfterExecute)
+		{
+			commandBuffers.clear();
+		}
 		return true;
 	}
+
 	return false;
 }
 

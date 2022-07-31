@@ -189,7 +189,7 @@ public:
 	bool Init(const KCamera* camera, uint32_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio, uint32_t width, uint32_t height);
 	bool UnInit();
 
-	bool UpdateShadowMap(IKCommandBufferPtr primaryBuffer);
+	bool UpdateShadowMap();
 	bool DebugRender(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 	bool Resize(uint32_t width, uint32_t height);
 

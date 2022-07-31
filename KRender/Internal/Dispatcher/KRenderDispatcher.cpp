@@ -610,19 +610,11 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex)
 		primaryCommandBuffer->BeginDebugMarker("ObjectPass", glm::vec4(0, 1, 0, 0));
 		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 
-		// 绘制地形
-		IKTerrainPtr terrain = m_Scene->GetTerrain();
-		terrain->Update(m_Camera);
+		KCommandBufferList secondaryBuffers;
 
 		// 绘制SkyBox
-		KCommandBufferList tempBuffers;
-		KRenderGlobal::SkyBox.Render(renderPass, tempBuffers);
-		if (!tempBuffers.empty())
-		{
-			primaryCommandBuffer->ExecuteAll(tempBuffers);
-			tempBuffers.clear();
-		}
-
+		KRenderGlobal::SkyBox.Render(renderPass, secondaryBuffers);
+		primaryCommandBuffer->ExecuteAll(secondaryBuffers, true);
 		PopulateRenderCommand(renderPass, cullRes, context);
 
 		// 绘制光追结果
@@ -644,41 +636,33 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex)
 		}
 		context.command[RENDER_STAGE_DEBUG].insert(context.command[RENDER_STAGE_DEBUG].end(), debugDrawCommands.begin(), debugDrawCommands.end());
 
+		// 绘制地形
+		IKTerrainPtr terrain = m_Scene->GetTerrain();
+		terrain->Update(m_Camera);
+		terrain->Render(renderPass, secondaryBuffers);
+		primaryCommandBuffer->ExecuteAll(secondaryBuffers, true);
+
 		AssignRenderCommand(context);
 		SumbitRenderCommand(context);
 
 		for (RenderStage stage : {/*RENDER_STAGE_PRE_Z, */RENDER_STAGE_DEFAULT})
 		{
-			if (!context.buffer[stage].empty())
-			{
-				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
-			}
+			primaryCommandBuffer->ExecuteAll(context.buffer[stage], true);
 		}
 
-		KRenderGlobal::OcclusionBox.Render(renderPass, m_Camera, cullRes, tempBuffers);
-		if (!tempBuffers.empty())
-		{
-			primaryCommandBuffer->ExecuteAll(tempBuffers);
-			tempBuffers.clear();
-		}
+		KRenderGlobal::OcclusionBox.Render(renderPass, m_Camera, cullRes, secondaryBuffers);
+		primaryCommandBuffer->ExecuteAll(secondaryBuffers, true);
 
 		// 绘制VoxelBox
 		if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
 		{
-			KRenderGlobal::Voxilzer.RenderVoxel(renderPass, tempBuffers);
-			if (!tempBuffers.empty())
-			{
-				primaryCommandBuffer->ExecuteAll(tempBuffers);
-				tempBuffers.clear();
-			}
+			KRenderGlobal::Voxilzer.RenderVoxel(renderPass, secondaryBuffers);
+			primaryCommandBuffer->ExecuteAll(secondaryBuffers, true);
 		}
 
 		for (RenderStage stage : {RENDER_STAGE_DEBUG})
 		{
-			if (!context.buffer[stage].empty())
-			{
-				primaryCommandBuffer->ExecuteAll(context.buffer[stage]);
-			}
+			primaryCommandBuffer->ExecuteAll(context.buffer[stage], true);
 		}
 
 		// 绘制Camera Gizmo
@@ -687,22 +671,18 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex)
 			if (m_CameraCube)
 			{
 				KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-				cameraCube->Render(renderPass, tempBuffers);
+				cameraCube->Render(renderPass, secondaryBuffers);
 
-				if (!tempBuffers.empty())
+				// Clear the depth stencil
 				{
-					// Clear the depth stencil
-					{
-						clearCommandBuffer->BeginSecondary(renderPass);
-						clearCommandBuffer->SetViewport(renderPass->GetViewPort());
-						clearCommandBuffer->ClearDepthStencil(renderPass->GetViewPort(), clearValue.depthStencil);
-						clearCommandBuffer->End();
-						primaryCommandBuffer->Execute(clearCommandBuffer);
-					}
-
-					primaryCommandBuffer->ExecuteAll(tempBuffers);
-					tempBuffers.clear();
+					clearCommandBuffer->BeginSecondary(renderPass);
+					clearCommandBuffer->SetViewport(renderPass->GetViewPort());
+					clearCommandBuffer->ClearDepthStencil(renderPass->GetViewPort(), clearValue.depthStencil);
+					clearCommandBuffer->End();
+					primaryCommandBuffer->Execute(clearCommandBuffer);
 				}
+
+				primaryCommandBuffer->ExecuteAll(secondaryBuffers, true);
 			}
 		}
 
@@ -734,7 +714,7 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex)
 		KRenderGlobal::Voxilzer.UpdateFrame(primaryCommandBuffer);
 		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer);
 		KRenderGlobal::RTAO.Execute(primaryCommandBuffer);
-		KRenderGlobal::CascadedShadowMap.UpdateShadowMap(primaryCommandBuffer);
+		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
 		KRenderGlobal::FrameGraph.Compile();
 		KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, chainImageIndex);
 	}

@@ -32,6 +32,8 @@
 #define INSTANCE_PREV_ROW_1 18
 #define INSTANCE_PREV_ROW_2 19
 
+#define TERRAIN_POS 20
+
 // Binding
 #define BINDING_CAMERA 0
 #define BINDING_SHADOW 1

@@ -80,6 +80,11 @@ namespace KVertexDefinition
 			, PREV_ROW0(prev_row0), PREV_ROW1(prev_row1), PREV_ROW2(prev_row2)
 		{}
 	};
+
+	struct TERRAIN_POS_2F
+	{
+		glm::vec2 POS;
+	};
 #pragma pack(pop)
 	struct VertexSemanticDetail
 	{

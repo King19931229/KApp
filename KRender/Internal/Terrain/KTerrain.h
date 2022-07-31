@@ -16,8 +16,11 @@ public:
 
 	bool Create(const glm::vec3& center, float size, const KTerrainContext& context) override;
 	bool Destroy() override;
+
 	void LoadHeightMap(const std::string& file) override;
-	void Update(const KCamera* camera) override;
 
 	TerrainType GetType() const override { return m_Type; }
+
+	void Update(const KCamera* camera) override;
+	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers) override;
 };

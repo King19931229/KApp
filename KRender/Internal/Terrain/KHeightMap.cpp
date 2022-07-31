@@ -131,6 +131,6 @@ float KHeightMap::GetData(float u, float v) const
 	float h2 = m_HeightData[y_ceil * m_Width + x_floor];
 	float h3 = m_HeightData[y_ceil * m_Width + x_ceil];
 
-	float h = (h0 * (1 - s) + h1) * (1 - t) + (h2 * (1 - s) + h3) * t;
+	float h = (h0 * (1 - s) + h1 * s) * (1 - t) + (h2 * (1 - s) + h3 * s) * t;
 	return h;
 }

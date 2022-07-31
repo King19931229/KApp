@@ -12,6 +12,7 @@ namespace KVertexDefinition
 	static VertexDetail SCREENQUAD_POS_2F_DETAILS;
 	static VertexDetail DEBUG_POS_3F_DETAILS;
 	static VertexDetail INSTANCE_DATA_DETAILS;
+	static VertexDetail TERRAIN_DATA_DETAILS;
 	static VertexDetail EMPYT_DETAILS;
 
 	static bool VERTEX_DETAIL_INIT = false;
@@ -77,6 +78,11 @@ namespace KVertexDefinition
 				INSTANCE_DATA_DETAILS.semanticDetails.push_back({ VS_INSTANCE_PREV_ROW_2, EF_R32G32B32A32_FLOAT, MEMBER_OFFSET(INSTANCE_DATA_MATRIX4F, PREV_ROW2) });
 				INSTANCE_DATA_DETAILS.vertexSize = sizeof(INSTANCE_DATA_MATRIX4F);
 			}
+			// TERRAIN_DATA_DETAILS
+			{
+				TERRAIN_DATA_DETAILS.semanticDetails.push_back({ VS_TERRAIN_POS, EF_R32G32_FLOAT, MEMBER_OFFSET(TERRAIN_POS_2F, POS) });
+				TERRAIN_DATA_DETAILS.vertexSize = sizeof(TERRAIN_POS_2F);
+			}
 			VERTEX_DETAIL_INIT = true;
 		}
 	}
@@ -104,6 +110,8 @@ namespace KVertexDefinition
 			return DEBUG_POS_3F_DETAILS;
 		case VF_INSTANCE:
 			return INSTANCE_DATA_DETAILS;
+		case VF_TERRAIN_POS:
+			return TERRAIN_DATA_DETAILS;
 		default:
 			assert(false && "unknown format");
 			return EMPYT_DETAILS;

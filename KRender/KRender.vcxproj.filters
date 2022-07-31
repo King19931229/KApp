@@ -73,6 +73,12 @@
     <Filter Include="Internal\Voxilzer">
       <UniqueIdentifier>{e4a63dbf-ca52-4caa-ab5c-e1cb983db3b6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Terrain">
+      <UniqueIdentifier>{c8c5f491-9833-4982-8ff3-2b23dd5682c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\Terrain\Clipmap">
+      <UniqueIdentifier>{2c867b43-cc21-4a7e-8a2b-dc0ff04bffaf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -176,9 +182,6 @@
     </ClInclude>
     <ClInclude Include="Internal\Vulkan\KVulkanTexture.h">
       <Filter>Internal\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\Object\KSkyBox.h">
-      <Filter>Internal\Object</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Asset\KMesh.h">
       <Filter>Internal\Asset</Filter>
@@ -474,6 +477,15 @@
     <ClInclude Include="Internal\Object\KWhiteFurnace.h">
       <Filter>Internal\Object</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Terrain\KHeightMap.h">
+      <Filter>Internal\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Terrain\Clipmap\KClipmap.h">
+      <Filter>Internal\Terrain\Clipmap</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Terrain\KTerrain.h">
+      <Filter>Internal\Terrain</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -763,6 +775,15 @@
     </ClCompile>
     <ClCompile Include="Internal\Object\KWhiteFurnace.cpp">
       <Filter>Internal\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Terrain\KHeightMap.cpp">
+      <Filter>Internal\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Terrain\Clipmap\KClipmap.cpp">
+      <Filter>Internal\Terrain\Clipmap</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Terrain\KTerrain.cpp">
+      <Filter>Internal\Terrain</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

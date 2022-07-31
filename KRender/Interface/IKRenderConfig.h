@@ -62,7 +62,9 @@ enum VertexSemantic
 
 	VS_INSTANCE_PREV_ROW_0,
 	VS_INSTANCE_PREV_ROW_1,
-	VS_INSTANCE_PREV_ROW_2
+	VS_INSTANCE_PREV_ROW_2,
+
+	VS_TERRAIN_POS
 };
 
 enum ConstantBufferType

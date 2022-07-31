@@ -27,6 +27,7 @@ EXPORT_DLL IKRenderCorePtr CreateRenderCore()
 
 KRenderCore::KRenderCore()
 	: m_bInit(false),
+	m_bTickShouldEnd(false),
 	m_Device(nullptr),
 	m_Window(nullptr),
 	m_DebugConsole(nullptr),

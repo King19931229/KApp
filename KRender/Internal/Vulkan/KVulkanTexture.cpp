@@ -14,6 +14,7 @@ KVulkanTexture::KVulkanTexture()
 	m_TextureImage = VK_NULL_HANDLE;
 	m_TextureImageView = VK_NULL_HANDLE;
 	m_TextureFormat = VK_FORMAT_UNDEFINED;
+	m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
 }
 
 KVulkanTexture::~KVulkanTexture()
@@ -78,12 +79,8 @@ bool KVulkanTexture::ReleaseDevice()
 		vkDestroyImageView(device, m_TextureImageView, nullptr);
 		m_TextureImageView = VK_NULL_HANDLE;
 		KVulkanInitializer::FreeVkImage(m_TextureImage, m_AllocInfo);
-		m_TextureImage = VK_NULL_HANDLE;
-		if (m_FrameBuffer)
-		{
-			((KVulkanFrameBuffer*)m_FrameBuffer.get())->UnInit();
-			m_FrameBuffer = nullptr;
-		}
+		m_TextureImage = VK_NULL_HANDLE;	
+		((KVulkanFrameBuffer*)m_FrameBuffer.get())->UnInit();
 		m_bDeviceInit = false;
 	}
 	return true;
@@ -207,7 +204,6 @@ bool KVulkanTexture::InitDevice(bool async)
 
 				m_ResourceState = RS_DEVICE_LOADED;
 
-				m_FrameBuffer = IKFrameBufferPtr(KNEW KVulkanFrameBuffer());
 				((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitExternal(KVulkanFrameBuffer::ET_TEXTUREIMAGE, m_TextureImage, m_TextureImageView,
 					imageType, imageViewType,
 					m_TextureFormat,

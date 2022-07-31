@@ -109,7 +109,6 @@
     <ClInclude Include="Internal\Object\KPrefiterCubeMap.h" />
     <ClInclude Include="Internal\Object\KRTAO.h" />
     <ClInclude Include="Internal\Object\KDebugDrawer.h" />
-    <ClInclude Include="Internal\Object\KSkyBox.h" />
     <ClInclude Include="Internal\Object\KWhiteFurnace.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessConnection.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessData.h" />
@@ -124,6 +123,9 @@
     <ClInclude Include="Internal\Scene\KSceneManagerBase.h" />
     <ClInclude Include="Internal\Shadow\KCascadedShadowMap.h" />
     <ClInclude Include="Internal\Shadow\KShadowMap.h" />
+    <ClInclude Include="Internal\Terrain\Clipmap\KClipmap.h" />
+    <ClInclude Include="Internal\Terrain\KHeightMap.h" />
+    <ClInclude Include="Internal\Terrain\KTerrain.h" />
     <ClInclude Include="Internal\Voxilzer\KVoxilzer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanAccelerationStructure.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h" />
@@ -225,6 +227,9 @@
     <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
     <ClCompile Include="Internal\Shadow\KCascadedShadowMap.cpp" />
     <ClCompile Include="Internal\Shadow\KShadowMap.cpp" />
+    <ClCompile Include="Internal\Terrain\Clipmap\KClipmap.cpp" />
+    <ClCompile Include="Internal\Terrain\KHeightMap.cpp" />
+    <ClCompile Include="Internal\Terrain\KTerrain.cpp" />
     <ClCompile Include="Internal\Voxilzer\KVoxilzer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanAccelerationStructure.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />

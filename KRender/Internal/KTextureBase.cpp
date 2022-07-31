@@ -114,7 +114,7 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 	}
 }
 
-// TODO 补充float?
+// TODO 补充
 static bool ImageFormatToSize(ImageFormat format, size_t& size)
 {
 	switch (format)
@@ -133,6 +133,27 @@ static bool ImageFormatToSize(ImageFormat format, size_t& size)
 		return true;
 	case IF_R16G16B16A16_FLOAT:
 		size = 8;
+		return true;
+	case IF_R16G16B16_FLOAT:
+		size = 6;
+		return true;
+	case IF_R16G16_FLOAT:
+		size = 4;
+		return true;
+	case IF_R16_FLOAT:
+		size = 2;
+		return true;
+	case IF_R32G32B32A32_FLOAT:
+		size = 16;
+		return true;
+	case IF_R32G32B32_FLOAT:
+		size = 12;
+		return true;
+	case IF_R32G32_FLOAT:
+		size = 8;
+		return true;
+	case IF_R32_FLOAT:
+		size = 4;
 		return true;
 	case IF_COUNT:
 		break;
