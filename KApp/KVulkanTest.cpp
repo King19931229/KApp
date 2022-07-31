@@ -93,7 +93,7 @@ int main()
 
 	engine->Init(std::move(window), options);
 	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray4.scene");
-	engine->GetScene()->GetTerrain()->Create(glm::vec3(0), 1024, { TERRAIN_TYPE_CLIPMAP, {4, 5} });
+	engine->GetScene()->GetTerrain()->Create(glm::vec3(0), 8 * 1024, { TERRAIN_TYPE_CLIPMAP, {5, 5} });
 	engine->GetScene()->GetTerrain()->LoadHeightMap("Terrain/grand_canyon.png");
 
 	KRenderCoreInitCallback callback = [engine]()

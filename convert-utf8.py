@@ -1,6 +1,5 @@
 #-*- coding: utf-8 -*-
 import os
-import sys
 import argparse
 import codecs
 
@@ -34,11 +33,11 @@ def convert_code(file, target_code):
 		break
 
 	if original_code:
-		print "convert into %s %s" % (target_code, file)
-		with codecs.open(file, "rb", original_code) as sourceFile:
+		print("convert into %s %s" % (target_code, file))
+		with codecs.open(file, "r", original_code) as sourceFile:
 			contents = sourceFile.read()
 			sourceFile.close()
-		with codecs.open(file, "wb", target_code) as targetFile:
+		with codecs.open(file, "w", target_code) as targetFile:
 			targetFile.write(contents)
 			targetFile.close()
 
@@ -46,14 +45,14 @@ def convert_lf(file):
 	if not os.path.exists(file):
 		return
 
-	with open (file, "rb") as f:
+	with open (file, "r") as f:
 		file_data = f.read()
 		target_data = file_data.replace("\r\n", "\n")
 		f.close()
 
 		if file_data != target_data:
-			print "convert into lf %s" % (file)
-			with open (file, "wb") as f:
+			print("convert into lf %s" % (file))
+			with open (file, "w") as f:
 				f.write(target_data)
 				f.close()
 
@@ -80,7 +79,7 @@ def main():
 if __name__ == '__main__':
 	try:
 		main()
-	except Exception, e:
-		print 'ERROR:', e
+	except Exception as e:
+		print('ERROR:', e)
 		import traceback
-		print traceback.format_exc()
+		print(traceback.format_exc())

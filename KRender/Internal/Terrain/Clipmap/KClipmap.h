@@ -14,11 +14,13 @@ protected:
 	IKIndexBufferPtr m_IndexBuffer;
 	KVertexData m_VertexData;
 	KIndexData m_IndexData;
+	void CreateData(const std::vector<glm::vec2>& verts, const std::vector<uint16_t>& idxs);
 public:
 	KClipmapFootprint();
 	~KClipmapFootprint();
 
 	void Init(uint32_t width, uint32_t height);
+	void Init(uint32_t width);
 	void UnInit();
 
 	const KVertexData& GetVertexData() const { return m_VertexData; }
@@ -51,13 +53,13 @@ class KClipmap;
 class KClipmapLevel
 {
 public:
-	enum TrimPosition
+	enum TrimLocation
 	{
-		TP_BOTTOM_LEFT,
-		TP_BOTTOM_RIGHT,
-		TP_TOP_RIGHT,
-		TP_TOP_LEFT,
-		TP_NONE
+		TL_BOTTOM_LEFT,
+		TL_BOTTOM_RIGHT,
+		TL_TOP_RIGHT,
+		TL_TOP_LEFT,
+		TL_NONE
 	};
 protected:
 	KClipmap* m_Parent;
@@ -66,26 +68,26 @@ protected:
 	uint32_t m_GridCount;
 	int32_t m_BottomLeftX;
 	int32_t m_BottomLeftY;
-	TrimPosition m_TrimPosition;
+	TrimLocation m_TrimLocation;
 	std::vector<float> m_ClipHeightData;
 	IKTexturePtr m_Texture;
 public:
 	KClipmapLevel(KClipmap* parent, uint32_t levelIdx);
 	~KClipmapLevel();
 
-	void SetPosition(int32_t bottomLeftX, int32_t bottomLeftY, TrimPosition trimPos);
+	void SetPosition(int32_t bottomLeftX, int32_t bottomLeftY, TrimLocation trim);
 	void UpdateHeightData();
 	void UpdateTexture();
 
 	void Init();
 	void UnInit();
 
-	glm::vec4 GetWorldStartScale() const;
-
-	float GetHeight(int32_t x, int32_t y) const;
 	IKTexturePtr GetTexture() { return m_Texture; }
-	uint32_t GetGridSize() const { return m_GridSize; }
 
+	glm::vec4 GetWorldStartScale() const;
+	float GetHeight(int32_t x, int32_t y) const;
+	uint32_t GetGridSize() const { return m_GridSize; }
+	TrimLocation GetTrimLocation() const { return m_TrimLocation; }
 };
 typedef std::shared_ptr<KClipmapLevel> KClipmapLevelPtr;
 
@@ -126,13 +128,15 @@ protected:
 	int32_t m_ClipCenterY;
 	glm::vec3 m_GridWorldCenter;
 	glm::vec3 m_ClipWorldCenter;
+	glm::vec2 m_BaseGridSize;
 	float m_Size;
-	float m_BaseGridSize;
+	float m_HeightScale;
 	bool m_Updated;
 
 	static const VertexFormat ms_VertexFormats[1];
 
 	KClipmapFootprintPtr CreateFootprint(uint32_t width, uint32_t height);
+	KClipmapFootprintPtr CreateFootprint(uint32_t widtht);
 	void InitializeFootprint();
 	void InitializeFootprintPos();
 	void InitializeClipmapLevel();
@@ -149,11 +153,12 @@ public:
 	void Update(const glm::vec3& cameraPos);
 	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 
+	uint32_t GetBlockCount() const { return (m_GridCount + 1) / 4; }
 	uint32_t GetGridCount() const { return m_GridCount; }
 	uint32_t GetLevelCount() const { return m_LevelCount; }
 	int32_t GetClipCenterX() const { return m_ClipCenterX; }
 	int32_t GetClipCenterY() const { return m_ClipCenterY; }
-	float GetBaseGridSize() const { return m_BaseGridSize; }
+	glm::vec2 GetBaseGridSize() const { return m_BaseGridSize; }
 	const glm::vec3& GetGridWorldCenter() const { return m_GridWorldCenter; }
 	const glm::vec3& GetClipWorldCenter() const { return m_ClipWorldCenter; }
 

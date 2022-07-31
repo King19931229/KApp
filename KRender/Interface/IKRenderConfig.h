@@ -375,7 +375,8 @@ enum PrimitiveTopology
 	PT_POINT_LIST,
 	PT_TRIANGLE_LIST,
 	PT_TRIANGLE_STRIP,
-	PT_LINE_LIST
+	PT_LINE_LIST,
+	PT_LINE_STRIP
 };
 
 enum PolygonMode
