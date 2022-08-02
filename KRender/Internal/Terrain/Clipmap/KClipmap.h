@@ -68,7 +68,10 @@ protected:
 	uint32_t m_GridCount;
 	int32_t m_BottomLeftX;
 	int32_t m_BottomLeftY;
+	uint32_t m_TextureBiasX;
+	uint32_t m_TextureBiasY;
 	TrimLocation m_TrimLocation;
+	glm::vec4 m_WorldStartScale;
 	std::vector<float> m_ClipHeightData;
 	IKTexturePtr m_Texture;
 public:
@@ -83,11 +86,13 @@ public:
 	void UnInit();
 
 	IKTexturePtr GetTexture() { return m_Texture; }
-
-	glm::vec4 GetWorldStartScale() const;
 	float GetHeight(int32_t x, int32_t y) const;
+
 	uint32_t GetGridSize() const { return m_GridSize; }
+	uint32_t GetTextureBiasX() const { return m_TextureBiasX; }
+	uint32_t GetTextureBiasY() const { return m_TextureBiasY; }
 	TrimLocation GetTrimLocation() const { return m_TrimLocation; }
+	const glm::vec4& GetWorldStartScale() const { return m_WorldStartScale; }
 };
 typedef std::shared_ptr<KClipmapLevel> KClipmapLevelPtr;
 

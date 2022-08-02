@@ -120,7 +120,10 @@ KClipmapLevel::KClipmapLevel(KClipmap* parent, uint32_t levelIdx)
 	, m_GridCount(1)
 	, m_BottomLeftX(0)
 	, m_BottomLeftY(0)
+	, m_TextureBiasX(0)
+	, m_TextureBiasY(0)
 	, m_TrimLocation(TL_NONE)
+	, m_WorldStartScale(glm::vec4(0))
 	, m_Texture(nullptr)
 {
 	uint32_t levelCount = m_Parent->GetLevelCount();
@@ -144,6 +147,18 @@ void KClipmapLevel::SetPosition(int32_t bottomLeftX, int32_t bottomLeftY, TrimLo
 	m_BottomLeftX = bottomLeftX;
 	m_BottomLeftY = bottomLeftY;
 	m_TrimLocation = trim;
+
+	glm::vec3 clipCenter = m_Parent->GetClipWorldCenter();
+	glm::vec2 baseGridSize = m_Parent->GetBaseGridSize();
+	int32_t clipCenterX = m_Parent->GetClipCenterX();
+	int32_t clipCenterY = m_Parent->GetClipCenterY();
+	int32_t diffX = m_BottomLeftX - clipCenterX;
+	int32_t diffY = m_BottomLeftY - clipCenterY;
+
+	m_WorldStartScale.x = clipCenter.x + diffX * baseGridSize.x;
+	m_WorldStartScale.y = clipCenter.z + diffY * baseGridSize.y;
+	m_WorldStartScale.z = (float)m_GridSize * baseGridSize.x;
+	m_WorldStartScale.w = (float)m_GridSize * baseGridSize.y;
 }
 
 void KClipmapLevel::Init()
@@ -158,24 +173,6 @@ void KClipmapLevel::Init()
 void KClipmapLevel::UnInit()
 {
 	SAFE_UNINIT(m_Texture);
-}
-
-glm::vec4 KClipmapLevel::GetWorldStartScale() const
-{
-	glm::vec3 clipCenter = m_Parent->GetClipWorldCenter();
-	glm::vec2 baseGridSize = m_Parent->GetBaseGridSize();
-	int32_t clipCenterX = m_Parent->GetClipCenterX();
-	int32_t clipCenterY = m_Parent->GetClipCenterY();
-	int32_t diffX = m_BottomLeftX - clipCenterX;
-	int32_t diffY = m_BottomLeftY - clipCenterY;
-
-	glm::vec4 worldStartScale;
-	worldStartScale.x = clipCenter.x + diffX * baseGridSize.x;
-	worldStartScale.y = clipCenter.z + diffY * baseGridSize.y;
-	worldStartScale.z = (float)m_GridSize * baseGridSize.x;
-	worldStartScale.w = (float)m_GridSize * baseGridSize.y;
-
-	return worldStartScale;
 }
 
 void KClipmapLevel::UpdateTexture()
@@ -362,7 +359,7 @@ void KClipmap::InitializePipeline()
 
 	KRenderGlobal::RenderDevice->CreateSampler(m_Sampler);
 
-	m_Sampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
+	m_Sampler->SetAddressMode(AM_REPEAT, AM_REPEAT, AM_REPEAT);
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_Sampler->Init(0, 0);
 
@@ -379,7 +376,7 @@ void KClipmap::InitializePipeline()
 		pipeline->SetBlendEnable(false);
 		pipeline->SetCullMode(CM_NONE);
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_LINE);
+		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 		pipeline->SetShader(ST_VERTEX, m_VSShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FSShader);
@@ -446,12 +443,14 @@ void KClipmap::LoadHeightMap(const std::string& file)
 void KClipmap::Update(const glm::vec3& cameraPos)
 {
 	const glm::vec3 biasFromCenter = cameraPos - m_GridWorldCenter;
+	const uint32_t gridScale = 1 << (m_LevelCount - 1);
+	const glm::vec2 baseLevelGridSize = m_BaseGridSize * (float)gridScale;
 
-	int32_t biasXFromCenter = (int32_t)floor(biasFromCenter.x / m_BaseGridSize.x);
-	int32_t biasYFromCenter = (int32_t)floor(biasFromCenter.z / m_BaseGridSize.y);
+	int32_t biasXFromCenter = (int32_t)floor(biasFromCenter.x / baseLevelGridSize.x);
+	int32_t biasYFromCenter = (int32_t)floor(biasFromCenter.z / baseLevelGridSize.y);
 
-	int32_t newClipCenterX = m_GridCenterX + biasXFromCenter;
-	int32_t newClipCenterY = m_GridCenterY + biasYFromCenter;
+	int32_t newClipCenterX = m_GridCenterX + biasXFromCenter * gridScale;
+	int32_t newClipCenterY = m_GridCenterY + biasYFromCenter * gridScale;
 
 	if (m_Updated && newClipCenterX == m_ClipCenterX && newClipCenterY == m_ClipCenterY)
 		return;
@@ -459,8 +458,8 @@ void KClipmap::Update(const glm::vec3& cameraPos)
 	m_ClipCenterX = newClipCenterX;
 	m_ClipCenterY = newClipCenterY;
 
-	m_ClipWorldCenter.x = m_GridWorldCenter.x + biasXFromCenter * m_BaseGridSize.x;
-	m_ClipWorldCenter.z = m_GridWorldCenter.z + biasYFromCenter * m_BaseGridSize.y;
+	m_ClipWorldCenter.x = m_GridWorldCenter.x + biasXFromCenter * baseLevelGridSize.x;
+	m_ClipWorldCenter.z = m_GridWorldCenter.z + biasYFromCenter * baseLevelGridSize.y;
 
 	int32_t clipLevelX = m_ClipCenterX;
 	int32_t clipLevelY = m_ClipCenterY;
@@ -591,6 +590,7 @@ bool KClipmap::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr
 			{
 				glm::vec4 worldStartScale;
 				glm::vec4 misc;
+				glm::vec4 misc2;
 			} objectData;
 
 			objectData.worldStartScale = worldStartScale;
