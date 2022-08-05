@@ -98,7 +98,7 @@ bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height,
 		diffuseIrradiance,
 		specularIrradiance,
 		integrateBRDF);
-	Compute();
+	// Compute();
 	FreeTempResource();
 
 	return true;

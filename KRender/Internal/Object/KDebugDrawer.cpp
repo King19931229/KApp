@@ -13,59 +13,59 @@ const KVertexDefinition::SCREENQUAD_POS_2F KDebugDrawSharedData::ms_BackGroundVe
 
 const uint16_t KDebugDrawSharedData::ms_BackGroundIndices[] = { 0, 1, 2, 2, 3, 0 };
 
-IKVertexBufferPtr KDebugDrawSharedData::m_BackGroundVertexBuffer = nullptr;
-IKIndexBufferPtr KDebugDrawSharedData::m_BackGroundIndexBuffer = nullptr;
+IKVertexBufferPtr KDebugDrawSharedData::ms_BackGroundVertexBuffer = nullptr;
+IKIndexBufferPtr KDebugDrawSharedData::ms_BackGroundIndexBuffer = nullptr;
 
-IKShaderPtr KDebugDrawSharedData::m_DebugVertexShader = nullptr;
-IKShaderPtr KDebugDrawSharedData::m_DebugFragmentShader = nullptr;
+IKShaderPtr KDebugDrawSharedData::ms_DebugVertexShader = nullptr;
+IKShaderPtr KDebugDrawSharedData::ms_DebugFragmentShader = nullptr;
 
-KVertexData KDebugDrawSharedData::m_DebugVertexData;
-KIndexData KDebugDrawSharedData::m_DebugIndexData;
+KVertexData KDebugDrawSharedData::ms_DebugVertexData;
+KIndexData KDebugDrawSharedData::ms_DebugIndexData;
 
-IKSamplerPtr KDebugDrawSharedData::m_DebugSampler = nullptr;
+IKSamplerPtr KDebugDrawSharedData::ms_DebugSampler = nullptr;
 
 bool KDebugDrawSharedData::Init()
 {
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
-	renderDevice->CreateSampler(m_DebugSampler);
-	m_DebugSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
-	m_DebugSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_DebugSampler->Init(0, 0);
+	renderDevice->CreateSampler(ms_DebugSampler);
+	ms_DebugSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
+	ms_DebugSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
+	ms_DebugSampler->Init(0, 0);
 
-	renderDevice->CreateShader(m_DebugVertexShader);
-	renderDevice->CreateShader(m_DebugFragmentShader);
+	renderDevice->CreateShader(ms_DebugVertexShader);
+	renderDevice->CreateShader(ms_DebugFragmentShader);
 
-	ASSERT_RESULT(m_DebugVertexShader->InitFromFile(ST_VERTEX, "others/debugquad.vert", false));
-	ASSERT_RESULT(m_DebugFragmentShader->InitFromFile(ST_FRAGMENT, "others/debugquadcolor.frag", false));
+	ASSERT_RESULT(ms_DebugVertexShader->InitFromFile(ST_VERTEX, "others/debugquad.vert", false));
+	ASSERT_RESULT(ms_DebugFragmentShader->InitFromFile(ST_FRAGMENT, "others/debugquadcolor.frag", false));
 
-	renderDevice->CreateVertexBuffer(m_BackGroundVertexBuffer);
-	m_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);
-	m_BackGroundVertexBuffer->InitDevice(false);
+	renderDevice->CreateVertexBuffer(ms_BackGroundVertexBuffer);
+	ms_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);
+	ms_BackGroundVertexBuffer->InitDevice(false);
 
-	renderDevice->CreateIndexBuffer(m_BackGroundIndexBuffer);
-	m_BackGroundIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_BackGroundIndices), ms_BackGroundIndices);
-	m_BackGroundIndexBuffer->InitDevice(false);
+	renderDevice->CreateIndexBuffer(ms_BackGroundIndexBuffer);
+	ms_BackGroundIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_BackGroundIndices), ms_BackGroundIndices);
+	ms_BackGroundIndexBuffer->InitDevice(false);
 
-	m_DebugVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_BackGroundVertexBuffer);
-	m_DebugVertexData.vertexFormats = std::vector<VertexFormat>(ms_VertexFormats, ms_VertexFormats + ARRAY_SIZE(ms_VertexFormats));
-	m_DebugVertexData.vertexCount = ARRAY_SIZE(ms_BackGroundVertices);
-	m_DebugVertexData.vertexStart = 0;
+	ms_DebugVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, ms_BackGroundVertexBuffer);
+	ms_DebugVertexData.vertexFormats = std::vector<VertexFormat>(ms_VertexFormats, ms_VertexFormats + ARRAY_SIZE(ms_VertexFormats));
+	ms_DebugVertexData.vertexCount = ARRAY_SIZE(ms_BackGroundVertices);
+	ms_DebugVertexData.vertexStart = 0;
 
-	m_DebugIndexData.indexBuffer = m_BackGroundIndexBuffer;
-	m_DebugIndexData.indexCount = ARRAY_SIZE(ms_BackGroundIndices);
-	m_DebugIndexData.indexStart = 0;
+	ms_DebugIndexData.indexBuffer = ms_BackGroundIndexBuffer;
+	ms_DebugIndexData.indexCount = ARRAY_SIZE(ms_BackGroundIndices);
+	ms_DebugIndexData.indexStart = 0;
 
 	return true;
 }
 
 bool KDebugDrawSharedData::UnInit()
 {
-	SAFE_UNINIT(m_DebugSampler);
-	SAFE_UNINIT(m_BackGroundVertexBuffer);
-	SAFE_UNINIT(m_BackGroundIndexBuffer);
-	SAFE_UNINIT(m_DebugVertexShader);
-	SAFE_UNINIT(m_DebugFragmentShader);
+	SAFE_UNINIT(ms_DebugSampler);
+	SAFE_UNINIT(ms_BackGroundVertexBuffer);
+	SAFE_UNINIT(ms_BackGroundIndexBuffer);
+	SAFE_UNINIT(ms_DebugVertexShader);
+	SAFE_UNINIT(ms_DebugFragmentShader);
 	return true;
 }
 
@@ -101,9 +101,9 @@ bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float widt
 	m_Pipeline->SetFrontFace(FF_CLOCKWISE);
 
 	m_Pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-	m_Pipeline->SetShader(ST_VERTEX, KDebugDrawSharedData::m_DebugVertexShader);
-	m_Pipeline->SetShader(ST_FRAGMENT, KDebugDrawSharedData::m_DebugFragmentShader);
-	m_Pipeline->SetSampler(SHADER_BINDING_TEXTURE0, target->GetFrameBuffer(), KDebugDrawSharedData::m_DebugSampler, true);
+	m_Pipeline->SetShader(ST_VERTEX, KDebugDrawSharedData::ms_DebugVertexShader);
+	m_Pipeline->SetShader(ST_FRAGMENT, KDebugDrawSharedData::ms_DebugFragmentShader);
+	m_Pipeline->SetSampler(SHADER_BINDING_TEXTURE0, target->GetFrameBuffer(), KDebugDrawSharedData::ms_DebugSampler, true);
 
 	ASSERT_RESULT(m_Pipeline->Init());
 
@@ -142,8 +142,8 @@ bool KRTDebugDrawer::GetDebugRenderCommand(KRenderCommandList& commands)
 
 		KRenderCommand command;
 
-		command.vertexData = &KDebugDrawSharedData::m_DebugVertexData;
-		command.indexData = &KDebugDrawSharedData::m_DebugIndexData;
+		command.vertexData = &KDebugDrawSharedData::ms_DebugVertexData;
+		command.indexData = &KDebugDrawSharedData::ms_DebugIndexData;
 		command.pipeline = m_Pipeline;
 		command.indexDraw = true;
 

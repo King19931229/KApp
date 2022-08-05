@@ -3,6 +3,7 @@
 #include "Interface/IKPipeline.h"
 #include "Interface/IKRenderCommand.h"
 #include "Interface/IKTerrain.h"
+#include "Internal/KVertexDefinition.h"
 #include "Internal/Terrain/KHeightMap.h"
 
 class KClipmapFootprint
@@ -50,6 +51,17 @@ public:
 
 class KClipmap;
 
+struct KClipmapTextureUpdateRect
+{
+	uint32_t startX, startY;
+	uint32_t endX, endY;
+	KClipmapTextureUpdateRect()
+	{
+		startX = startY = 0;
+		endX = endY = 0;
+	}
+};
+
 class KClipmapLevel
 {
 public:
@@ -62,6 +74,24 @@ public:
 		TL_NONE
 	};
 protected:
+	static const VertexFormat ms_VertexFormats[1];
+	static const KVertexDefinition::SCREENQUAD_POS_2F ms_UpdateVertices[4];
+	static const uint16_t ms_UpdateIndices[6];
+	static IKVertexBufferPtr ms_UpdateVertexBuffer;
+	static IKIndexBufferPtr ms_UpdateIndexBuffer;
+	static IKCommandBufferPtr ms_CommandBuffer;
+	static IKCommandPoolPtr ms_CommandPool;
+	static KVertexData ms_UpdateVertexData;
+	static KIndexData ms_UpdateIndexData;
+	static IKSamplerPtr ms_Sampler;
+
+	IKTexturePtr m_UpdateTextures[4];
+	IKPipelinePtr m_UpdatePipelines[4];
+	IKRenderTargetPtr m_TextureTarget;
+	IKRenderPassPtr m_UpdateRenderPass;
+	IKShaderPtr m_UpdateVS;
+	IKShaderPtr m_UpdateFS;
+
 	KClipmap* m_Parent;
 	uint32_t m_LevelIdx;
 	uint32_t m_GridSize;
@@ -74,6 +104,11 @@ protected:
 	glm::vec4 m_WorldStartScale;
 	std::vector<float> m_ClipHeightData;
 	IKTexturePtr m_Texture;
+
+	void TrimUpdateRect(const KClipmapTextureUpdateRect& trim, KClipmapTextureUpdateRect& rect);
+	void TrimUpdateRects(std::vector<KClipmapTextureUpdateRect>& rects);
+	void UpdateTextureByRect(const std::vector<KClipmapTextureUpdateRect>& rects);
+	void InitializePipeline();
 public:
 	KClipmapLevel(KClipmap* parent, uint32_t levelIdx);
 	~KClipmapLevel();
@@ -85,6 +120,10 @@ public:
 	void Init();
 	void UnInit();
 
+	static void InitShared();
+	static void UnInitShared();
+
+	IKRenderTargetPtr GetTextureTarget() { return m_TextureTarget; }
 	IKTexturePtr GetTexture() { return m_Texture; }
 	float GetHeight(int32_t x, int32_t y) const;
 

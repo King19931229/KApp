@@ -11,16 +11,16 @@ protected:
 	static const uint16_t ms_BackGroundIndices[6];
 	static const VertexFormat ms_VertexFormats[1];
 
-	static IKVertexBufferPtr m_BackGroundVertexBuffer;
-	static IKIndexBufferPtr m_BackGroundIndexBuffer;
+	static IKVertexBufferPtr ms_BackGroundVertexBuffer;
+	static IKIndexBufferPtr ms_BackGroundIndexBuffer;
 
-	static IKShaderPtr m_DebugVertexShader;
-	static IKShaderPtr m_DebugFragmentShader;
+	static IKShaderPtr ms_DebugVertexShader;
+	static IKShaderPtr ms_DebugFragmentShader;
 
-	static KVertexData m_DebugVertexData;
-	static KIndexData m_DebugIndexData;
+	static KVertexData ms_DebugVertexData;
+	static KIndexData ms_DebugIndexData;
 
-	static IKSamplerPtr m_DebugSampler;
+	static IKSamplerPtr ms_DebugSampler;
 public:
 	static bool Init();
 	static bool UnInit();
