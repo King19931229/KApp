@@ -96,24 +96,29 @@ protected:
 	uint32_t m_LevelIdx;
 	uint32_t m_GridSize;
 	uint32_t m_GridCount;
+
 	int32_t m_BottomLeftX;
 	int32_t m_BottomLeftY;
-	uint32_t m_TextureBiasX;
-	uint32_t m_TextureBiasY;
+	int32_t m_ScrollX;
+	int32_t m_ScrollY;
+	int32_t m_NewScrollX;
+	int32_t m_NewScrollY;
+
 	TrimLocation m_TrimLocation;
 	glm::vec4 m_WorldStartScale;
 	std::vector<float> m_ClipHeightData;
-	IKTexturePtr m_Texture;
 
 	void TrimUpdateRect(const KClipmapTextureUpdateRect& trim, KClipmapTextureUpdateRect& rect);
 	void TrimUpdateRects(std::vector<KClipmapTextureUpdateRect>& rects);
 	void UpdateTextureByRect(const std::vector<KClipmapTextureUpdateRect>& rects);
 	void InitializePipeline();
+	void UpdateWorldStartScale();
 public:
 	KClipmapLevel(KClipmap* parent, uint32_t levelIdx);
 	~KClipmapLevel();
 
 	void SetPosition(int32_t bottomLeftX, int32_t bottomLeftY, TrimLocation trim);
+	void ScrollPosition(int32_t bottomLeftX, int32_t bottomLeftY, TrimLocation trim);
 	void UpdateHeightData();
 	void UpdateTexture();
 
@@ -124,12 +129,9 @@ public:
 	static void UnInitShared();
 
 	IKRenderTargetPtr GetTextureTarget() { return m_TextureTarget; }
-	IKTexturePtr GetTexture() { return m_Texture; }
 	float GetHeight(int32_t x, int32_t y) const;
 
 	uint32_t GetGridSize() const { return m_GridSize; }
-	uint32_t GetTextureBiasX() const { return m_TextureBiasX; }
-	uint32_t GetTextureBiasY() const { return m_TextureBiasY; }
 	TrimLocation GetTrimLocation() const { return m_TrimLocation; }
 	const glm::vec4& GetWorldStartScale() const { return m_WorldStartScale; }
 };

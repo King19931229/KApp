@@ -566,80 +566,13 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 	size_t bufferIdx = 0;
 	size_t imageIdx = 0;
 
-	/*
-	for (auto& pair : m_Uniforms)
-	{
-		unsigned int location = pair.first;
-		UniformBufferBindingInfo& info = pair.second;
-
-		KVulkanUniformBuffer* uniformBuffer = static_cast<KVulkanUniformBuffer*>(info.buffer.get());
-		ASSERT_RESULT(uniformBuffer != nullptr);
-
-		VkDescriptorBufferInfo& bufferInfo = m_BufferWriteInfo[bufferIdx++];
-		bufferInfo.buffer = uniformBuffer->GetVulkanHandle();
-		bufferInfo.offset = 0;
-		bufferInfo.range = uniformBuffer->GetBufferSize();
-
-		VkWriteDescriptorSet uniformDescriptorWrite = {};
-
-		uniformDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		// 写入的描述集合
-		uniformDescriptorWrite.dstSet = VK_NULL_HANDLE;
-		// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
-		uniformDescriptorWrite.dstBinding = location;
-		// 写入索引与下面descriptorCount对应
-		uniformDescriptorWrite.dstArrayElement = 0;
-
-		uniformDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uniformDescriptorWrite.descriptorCount = 1;
-
-		uniformDescriptorWrite.pBufferInfo = &bufferInfo;
-		uniformDescriptorWrite.pImageInfo = nullptr; // Optional
-		uniformDescriptorWrite.pTexelBufferView = nullptr; // Optional
-
-		m_WriteDescriptorSet.push_back(uniformDescriptorWrite);
-	}
-	*/
-
-	/*
-	for (auto& pair : m_StorageBuffers)
-	{
-		unsigned int location = pair.first;
-		StorageBufferBindingInfo& info = pair.second;
-
-		KVulkanStorageBuffer* storageBuffer = static_cast<KVulkanStorageBuffer*>(info.buffer.get());
-		ASSERT_RESULT(storageBuffer != nullptr);
-
-		VkDescriptorBufferInfo& bufferInfo = m_BufferWriteInfo[bufferIdx++];
-		bufferInfo.buffer = storageBuffer->GetVulkanHandle();
-		bufferInfo.offset = 0;
-		bufferInfo.range = storageBuffer->GetBufferSize();
-
-		VkWriteDescriptorSet storageDescriptorWrite = {};
-
-		storageDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		// 写入的描述集合
-		storageDescriptorWrite.dstSet = VK_NULL_HANDLE;
-		// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
-		storageDescriptorWrite.dstBinding = location;
-		// 写入索引与下面descriptorCount对应
-		storageDescriptorWrite.dstArrayElement = 0;
-
-		storageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		storageDescriptorWrite.descriptorCount = 1;
-
-		storageDescriptorWrite.pBufferInfo = &bufferInfo;
-		storageDescriptorWrite.pImageInfo = nullptr; // Optional
-		storageDescriptorWrite.pTexelBufferView = nullptr; // Optional
-
-		m_WriteDescriptorSet.push_back(storageDescriptorWrite);
-	}
-	*/
-
 	for (auto& pair : m_Samplers)
 	{
 		unsigned int location = pair.first;
 		SamplerBindingInfo& info = pair.second;
+
+		if (info.dynamicWrite)
+			continue;
 
 		VkDescriptorImageInfo& imageInfoStart = m_ImageWriteInfo[imageIdx];
 

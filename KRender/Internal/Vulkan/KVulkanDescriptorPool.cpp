@@ -127,7 +127,7 @@ VkDescriptorSet KVulkanDescriptorPool::AllocDescriptorSet(VkDescriptorPool pool)
 	VkDescriptorSet newSet = VK_NULL_HANDLE;
 	VK_ASSERT_RESULT(vkAllocateDescriptorSets(KVulkanGlobal::device, &allocInfo, &newSet));
 
-	// TODO 整合到 Alloc
+	//  TODO 永久去掉静态更新?
 	std::vector<VkWriteDescriptorSet> writeInfo = m_DescriptorWriteInfo;
 	for (VkWriteDescriptorSet& info : writeInfo)
 	{

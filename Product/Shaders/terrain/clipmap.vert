@@ -24,7 +24,7 @@ void main()
 	vec3 worldPos = vec3(object.worldStartScale.x, 0, object.worldStartScale.y) + vec3(pos.x, 0, pos.y) * vec3(object.worldStartScale.z, 0, object.worldStartScale.w);
 	vec2 height = texture(heightMap, uv).rg;
 
-	const float lerp_length = 0.1;
+	const float lerp_length = 0.05;
 	vec2 height_lerp = min(vec2(1.0), max((abs(2.0 * uv - vec2(1.0)) - vec2(1.0 - lerp_length)) / lerp_length, vec2(0.0)));
 	height_lerp.xy = max(height_lerp.xx, height_lerp.yy);
 
