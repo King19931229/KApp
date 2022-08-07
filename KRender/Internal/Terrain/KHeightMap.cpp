@@ -8,7 +8,7 @@ KHeightMap::KHeightMap()
 KHeightMap::~KHeightMap()
 {}
 
-void KHeightMap::Init(const uint8_t* data, uint32_t width, uint32_t height)
+void KHeightMap::Init(const uint8_t* data, int32_t width, int32_t height)
 {
 	UnInit();
 
@@ -16,9 +16,9 @@ void KHeightMap::Init(const uint8_t* data, uint32_t width, uint32_t height)
 	m_Height = height;
 	m_HeightData.resize(m_Width * m_Height);
 
-	for (uint32_t y = 0; y < m_Height; ++y)
+	for (int32_t y = 0; y < m_Height; ++y)
 	{
-		for (uint32_t x = 0; x < m_Width; ++x)
+		for (int32_t x = 0; x < m_Width; ++x)
 		{
 			m_HeightData[y * width + x] = data[y * width + x];
 		}
@@ -39,15 +39,15 @@ void KHeightMap::Init(const char* filename)
 		ASSERT_RESULT(imageData.bCubemap == false);
 		ASSERT_RESULT(imageData.b3DTexture == false);
 
-		m_Width = (uint32_t)imageData.uWidth;
-		m_Height = (uint32_t)imageData.uHeight;
+		m_Width = (int32_t)imageData.uWidth;
+		m_Height = (int32_t)imageData.uHeight;
 		m_HeightData.resize(m_Width * m_Height);
 
 		unsigned char* srcData = imageData.pData->GetData();
 
-		for (uint32_t y = 0; y < m_Width; ++y)
+		for (int32_t y = 0; y < m_Width; ++y)
 		{
-			for (uint32_t x = 0; x < m_Height; ++x)
+			for (int32_t x = 0; x < m_Height; ++x)
 			{
 				if (imageData.eFormat == IF_R32_FLOAT)
 				{
@@ -104,7 +104,7 @@ void KHeightMap::UnInit()
 
 float KHeightMap::GetData(int32_t x, int32_t y) const
 {
-	if (x >= (int32_t)m_Width || y >= (int32_t)m_Height || x < 0 || y < 0)
+	if (x >= m_Width || y >= m_Height || x < 0 || y < 0)
 		return 0;
 	return m_HeightData[y * m_Width + x];
 }
@@ -117,11 +117,11 @@ float KHeightMap::GetData(float u, float v) const
 	float x = u * (m_Width - 1);
 	float y = v * (m_Height - 1);
 
-	uint32_t x_floor = (uint32_t)floor(x);
-	uint32_t y_floor = (uint32_t)floor(y);
+	int32_t x_floor = (int32_t)floor(x);
+	int32_t y_floor = (int32_t)floor(y);
 
-	uint32_t x_ceil = (uint32_t)ceil(x);
-	uint32_t y_ceil = (uint32_t)ceil(y);
+	int32_t x_ceil = (int32_t)ceil(x);
+	int32_t y_ceil = (int32_t)ceil(y);
 
 	float s = x - x_floor;
 	float t = y - y_floor;

@@ -38,12 +38,12 @@ void KClipmapFootprint::CreateData(const std::vector<glm::vec2>& verts, const st
 
 	m_VertexData.vertexBuffers = { m_VertexBuffer };
 	m_VertexData.vertexStart = 0;
-	m_VertexData.vertexCount = (int32_t)verts.size();
+	m_VertexData.vertexCount = (uint32_t)verts.size();
 	m_VertexData.vertexFormats = { VF_TERRAIN_POS };
 
 	m_IndexData.indexBuffer = m_IndexBuffer;
 	m_IndexData.indexStart = 0;
-	m_IndexData.indexCount = (int32_t)idxs.size();
+	m_IndexData.indexCount = (uint32_t)idxs.size();
 }
 
 void KClipmapFootprint::Init(int32_t width, int32_t height)
@@ -349,7 +349,7 @@ int32_t KClipmapLevel::TextureCoordXToWorldX(int32_t i)
 	}
 	else if (m_ScrollX < 0)
 	{
-		if (i < (int32_t)m_GridCount + m_ScrollX)
+		if (i < m_GridCount + m_ScrollX)
 			return m_BottomLeftX + i * m_GridSize;
 		else
 			return (i - m_GridCount) * m_GridSize + m_BottomLeftX;
@@ -367,12 +367,12 @@ int32_t KClipmapLevel::TextureCoordYToWorldY(int32_t j)
 		if (j < m_ScrollY)
 			return (m_GridCount + j) * m_GridSize + m_BottomLeftY;
 		else
-			return m_BottomLeftX + j * m_GridSize;
+			return m_BottomLeftY + j * m_GridSize;
 	}
 	else if (m_ScrollY < 0)
 	{
-		if (j < (int32_t)m_GridCount + m_ScrollY)
-			return m_BottomLeftX + j * m_GridSize;
+		if (j < m_GridCount + m_ScrollY)
+			return m_BottomLeftY + j * m_GridSize;
 		else
 			return (j - m_GridCount) * m_GridSize + m_BottomLeftY;
 	}
@@ -384,12 +384,18 @@ int32_t KClipmapLevel::TextureCoordYToWorldY(int32_t j)
 
 int32_t KClipmapLevel::WorldXToTextureCoordX(int32_t x)
 {
-	return mod((x - m_BottomLeftX) / m_GridSize, m_GridCount);
+	if(x >= m_BottomLeftX)
+		return mod((x + m_GridSize - 1 - m_BottomLeftX) / m_GridSize, m_GridCount);
+	else
+		return mod((x - m_GridSize + 1 - m_BottomLeftX) / m_GridSize, m_GridCount);
 }
 
 int32_t KClipmapLevel::WorldYToTextureCoordY(int32_t y)
 {
-	return mod((y - m_BottomLeftY) / m_GridSize, m_GridCount);
+	if (y >= m_BottomLeftY)
+		return mod((y + m_GridSize - 1 - m_BottomLeftY) / m_GridSize, m_GridCount);
+	else
+		return mod((y - m_GridSize + 1 - m_BottomLeftY) / m_GridSize, m_GridCount);
 }
 
 void KClipmapLevel::ScrollPosition(int32_t bottomLeftX, int32_t bottomLeftY, TrimLocation trim)
@@ -401,14 +407,14 @@ void KClipmapLevel::ScrollPosition(int32_t bottomLeftX, int32_t bottomLeftY, Tri
 	int32_t deltaY = bottomLeftY - prevBottomLeftY;
 
 	// 整个GridSize移动且不超过移动范围
-	if (deltaX != 0 || deltaY != 0 &&
-		deltaX % m_GridSize == 0 && deltaY % m_GridSize == 0 
-		&& abs(deltaX) < (int32_t)(m_GridSize * m_GridCount)
-		&& abs(deltaY) < (int32_t)(m_GridSize * m_GridCount))
+	if ((deltaX != 0 || deltaY != 0)
+		&& deltaX % m_GridSize == 0
+		&& deltaY % m_GridSize == 0 
+		&& abs(deltaX) < m_GridSize * m_GridCount
+		&& abs(deltaY) < m_GridSize * m_GridCount)
 	{
 		m_NewScrollX = m_ScrollX + deltaX / m_GridSize;
 		m_NewScrollY = m_ScrollY + deltaY / m_GridSize;
-
 		m_TrimLocation = trim;
 	}
 	else
@@ -511,22 +517,22 @@ void KClipmapLevel::PopulateUpdateRects()
 		if (m_ScrollX >= m_GridCount)
 		{
 			m_ScrollX -= m_GridCount;
-			m_BottomLeftX += m_GridCount;
+			m_BottomLeftX += m_GridCount * m_GridSize;
 		}
 		if (m_ScrollX <= -m_GridCount)
 		{
 			m_ScrollX += m_GridCount;
-			m_BottomLeftX -= m_GridCount;
+			m_BottomLeftX -= m_GridCount * m_GridSize;
 		}
 		if (m_ScrollY >= m_GridCount)
 		{
 			m_ScrollY -= m_GridCount;
-			m_BottomLeftY += m_GridCount;
+			m_BottomLeftY += m_GridCount * m_GridSize;
 		}
 		if (m_ScrollY <= -m_GridCount)
 		{
 			m_ScrollY += m_GridCount;
-			m_BottomLeftY -= m_GridCount;
+			m_BottomLeftY -= m_GridCount * m_GridSize;
 		}
 
 		m_NewScrollX = m_ScrollX;
@@ -536,7 +542,7 @@ void KClipmapLevel::PopulateUpdateRects()
 		{
 			KClipmapMovementUpdateRect movement(newBottomLeftX, newBottomLeftY, newBottomLeftX + gridLength, newBottomLeftY + gridLength);
 			if (deltaX > 0)
-				movement.startX = std::max(movement.startX, prevBottomLeftX + gridLength);
+				movement.startX = std::max(movement.startX, prevBottomLeftX + gridLength + 1);
 			else
 				movement.endX = std::min(movement.endX, prevBottomLeftX - 1);
 
@@ -561,7 +567,7 @@ void KClipmapLevel::PopulateUpdateRects()
 		{
 			KClipmapMovementUpdateRect movement(newBottomLeftX, newBottomLeftY, newBottomLeftX + gridLength, newBottomLeftY + gridLength);
 			if (deltaY > 0)
-				movement.startY = std::max(movement.startY, prevBottomLeftY + gridLength);
+				movement.startY = std::max(movement.startY, prevBottomLeftY + gridLength + 1);
 			else
 				movement.endY = std::min(movement.endY, prevBottomLeftY - 1);
 			
@@ -611,9 +617,8 @@ void KClipmapLevel::UpdateHeightData()
 				m_ClipHeightData[j * m_GridCount + i] = heightmap.GetData(x, y);
 				if (abs(GetHeight(x, y) - m_ClipHeightData[j * m_GridCount + i]) > 1e-5f)
 				{
-					int x = 0;
+					assert(false && "should not reach");
 				}
-				ASSERT_RESULT(abs(GetHeight(x, y) - m_ClipHeightData[j * m_GridCount + i]) < 1e-5f);
 			}
 		}
 	}
@@ -941,14 +946,14 @@ void KClipmap::Update(const glm::vec3& cameraPos)
 		// KLog::Logger->Log(LL_DEBUG, "Clipmap update level:[%d] x:[%d] y:[%d]", level, clipLevelX, clipLevelY);
 
 		// 设置位置
-		//if (!m_Updated)
+		if (!m_Updated)
 		{
 			clipLevel->SetPosition(clipLevelX, clipLevelY, trim);
 		}
 		// 卷动位置
-		//else
+		else
 		{
-		//	clipLevel->ScrollPosition(clipLevelX, clipLevelY, trim);
+			clipLevel->ScrollPosition(clipLevelX, clipLevelY, trim);
 		}
 
 		clipLevel->PopulateUpdateRects();
