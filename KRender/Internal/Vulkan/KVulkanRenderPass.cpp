@@ -284,7 +284,7 @@ bool KVulkanRenderPass::Init()
 
 					if (m_OpColors[i].loadOp == LO_LOAD)
 					{
-						colorAttachment.initialLayout = massCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : (i == 0 ? color_0_finalLayout : color_x_finalLayout);
+						colorAttachment.initialLayout = massCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : vulkanFrameBuffer->GetImageLayout();
 					}
 					else
 					{
@@ -381,7 +381,7 @@ bool KVulkanRenderPass::Init()
 				}
 			}
 
-			// 声明子通道
+			// 声明subpass
 			VkSubpassDescription subpass = {};
 			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 

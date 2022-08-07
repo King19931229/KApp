@@ -15,5 +15,5 @@ void main()
     int idx_c = int(ceil(idx));
     float factor = idx - idx_f;
     outColor = vec4(mix(heightColorPalette[idx_f], heightColorPalette[idx_c], factor), 1.0);
-   // outColor = vec4(inHeight, 0.0, 0.0, 1.0);
+    // outColor = vec4(1, 0.0, 0.0, 1.0);
 }
