@@ -37,6 +37,18 @@ bool KTerrain::Destroy()
 	return true;
 }
 
+bool KTerrain::Reload()
+{
+	if (m_Type == TERRAIN_TYPE_CLIPMAP)
+	{
+		if (m_Soul.clipmap)
+		{
+			m_Soul.clipmap->Reload();
+		}
+	}
+	return true;
+}
+
 void KTerrain::LoadHeightMap(const std::string& file)
 {
 	if (m_Type == TERRAIN_TYPE_CLIPMAP)

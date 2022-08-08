@@ -210,7 +210,7 @@ void KClipmapLevel::TrimUpdateRects(std::vector<KClipmapUpdateRect>& rects)
 
 void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateRect>& rects)
 {
-	KClipmapLevelPtr upperClipmap = (m_LevelIdx > 0) ? m_Parent->GetClipmapLevel(m_LevelIdx - 1) : nullptr;
+	KClipmapLevelPtr upperClipmap = m_Parent->GetClipmapLevel((m_LevelIdx > 0) ? (m_LevelIdx - 1) : 0);
 
 	for (size_t rectIdx = 0; rectIdx < rects.size(); ++rectIdx)
 	{
@@ -231,7 +231,7 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 			{
 				int32_t x = TextureCoordXToWorldX(rect.startX + i);
 				float height = GetHeight(x, y);
-				float upperHeight = upperClipmap ? upperClipmap->GetHeight(x, y) : height;
+				float upperHeight = upperClipmap->GetHeight(x, y);
 				textureDatas[j * numCol + i] = glm::vec2(height, upperHeight);
 			}
 		}
@@ -436,6 +436,9 @@ void KClipmapLevel::Init()
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_TextureTarget);
 	m_TextureTarget->InitFromColor(m_GridCount, m_GridCount, 1, EF_R32G32_FLOAT);
 
+	KRenderGlobal::RenderDevice->CreateTexture(m_Texture);
+	m_Texture->InitMemoryFromData(nullptr, m_GridCount, m_GridCount, 1, IF_R32G32_FLOAT, false, false, false);
+
 	KRenderGlobal::RenderDevice->CreateRenderPass(m_UpdateRenderPass);
 	m_UpdateRenderPass->SetColorAttachment(0, m_TextureTarget->GetFrameBuffer());
 	m_UpdateRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
@@ -445,6 +448,7 @@ void KClipmapLevel::Init()
 
 void KClipmapLevel::UnInit()
 {
+	SAFE_UNINIT(m_Texture);
 	SAFE_UNINIT(m_UpdateRenderPass);
 	SAFE_UNINIT(m_TextureTarget);
 	SAFE_UNINIT(m_UpdateVS);
@@ -473,8 +477,8 @@ void KClipmapLevel::InitShared()
 	ms_UpdateIndexData.indexStart = 0;
 
 	KRenderGlobal::RenderDevice->CreateSampler(ms_Sampler);
-	ms_Sampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
-	ms_Sampler->SetFilterMode(FM_NEAREST, FM_NEAREST);
+	ms_Sampler->SetAddressMode(AM_REPEAT, AM_REPEAT, AM_REPEAT);
+	ms_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	ms_Sampler->Init(0, 0);
 
 	KRenderGlobal::RenderDevice->CreateCommandPool(ms_CommandPool);
@@ -605,9 +609,6 @@ void KClipmapLevel::UpdateHeightData()
 	const KHeightMap& heightmap = m_Parent->GetHeightMap();
 	for (KClipmapTextureUpdateRect& rect : m_UpdateRects)
 	{
-		int32_t numRow = rect.endY - rect.startY + 1;
-		int32_t numCol = rect.endX - rect.startX + 1;
-
 		for (int32_t j = rect.startY; j <= rect.endY; ++j)
 		{
 			int32_t y = TextureCoordYToWorldY(j);
@@ -624,10 +625,95 @@ void KClipmapLevel::UpdateHeightData()
 	}
 }
 
+float KClipmapLevel::GetClipHeight(float u, float v)
+{
+	if (u < 0 || u >= 1 || v < 0 || v >= 1)
+		return 0;
+
+	u = u + (float)m_ScrollX / m_GridCount;
+	v = v + (float)m_ScrollY / m_GridCount;
+
+	if (u < 0.0) u += 1.0f;
+	if (u >= 1.0) u -= 1.0f;
+	if (v < 0.0) v += 1.0f;
+	if (v >= 1.0) v -= 1.0f;
+
+	float x = u * m_GridCount;
+	float y = v * m_GridCount;
+
+	int32_t x_floor = std::max(0, (int32_t)floor(x));
+	int32_t y_floor = std::max(0, (int32_t)floor(y));
+
+	int32_t x_ceil = std::min((int32_t)ceil(x), m_GridCount - 1);
+	int32_t y_ceil = std::min((int32_t)ceil(y), m_GridCount - 1);
+
+	float s = x - x_floor;
+	float t = y - y_floor;
+
+	float h0 = m_ClipHeightData[y_floor * m_GridCount + x_floor];
+	float h1 = m_ClipHeightData[y_floor * m_GridCount + x_ceil];
+	float h2 = m_ClipHeightData[y_ceil * m_GridCount + x_floor];
+	float h3 = m_ClipHeightData[y_ceil * m_GridCount + x_ceil];
+
+	float h = (h0 * (1 - s) + h1 * s) * (1 - t) + (h2 * (1 - s) + h3 * s) * t;
+	return h;
+}
+
+void KClipmapLevel::CheckHeightValid()
+{
+	KClipmapLevelPtr upperClipmap = m_Parent->GetClipmapLevel((m_LevelIdx > 0) ? (m_LevelIdx - 1) : 0);
+
+	for (int32_t j = 0; j < m_GridCount; ++j)
+	{
+		float y = (float)TextureCoordYToWorldY(j);
+		for (int32_t i = 0; i < m_GridCount; ++i)
+		{
+			float x = (float)TextureCoordXToWorldX(i);
+			//float u0 = (float)i / m_GridCount;
+			//float v0 = (float)j / m_GridCount;
+
+			float h0 = upperClipmap->GetHeight((int32_t)x, (int32_t)y);
+
+			float u1 = (x - upperClipmap->GetRealBottomLeftX()) / upperClipmap->GetGridSize();
+			float v1 = (y - upperClipmap->GetRealBottomLeftY()) / upperClipmap->GetGridSize();
+			u1 = (u1) / m_GridCount;
+			v1 = (v1) / m_GridCount;
+			float h1 = upperClipmap->GetClipHeight(u1, v1);
+
+			if (m_Parent->GetHeightScale() * abs(h0 - h1) > 2.f)
+			{
+				int x = 0;
+			}
+		}
+	}
+}
+
 void KClipmapLevel::UpdateTexture()
 {
-	KRenderGlobal::RenderDevice->Wait();
 	UpdateTextureByRect(m_UpdateRects);
+	m_UpdateRects.clear();
+#if 0
+	{
+		std::vector<glm::vec2> textureDatas;
+		textureDatas.resize(m_GridCount * m_GridCount);
+		KClipmapLevelPtr upperClipmap = m_Parent->GetClipmapLevel((m_LevelIdx > 0) ? m_LevelIdx - 1 : 0);
+		for (int32_t j = 0; j < m_GridCount; ++j)
+		{
+			int32_t y = TextureCoordYToWorldY(j);
+			for (int32_t i = 0; i < m_GridCount; ++i)
+			{
+				int32_t x = TextureCoordXToWorldX(i);
+				float height = m_ClipHeightData[j * m_GridCount + i];
+				float upperHeight = upperClipmap->GetHeight(x, y);
+				textureDatas[j * m_GridCount + i] = glm::vec2(height, upperHeight);
+			}
+		}
+
+		m_Texture->UnInit();
+		m_Texture->InitMemoryFromData(textureDatas.data(), m_GridCount, m_GridCount, 1, IF_R32G32_FLOAT, false, false, false);
+		m_Texture->InitDevice(false);
+	}
+#endif
 }
 
 float KClipmapLevel::GetHeight(int32_t x, int32_t y) const
@@ -711,6 +797,7 @@ void KClipmap::InitializeFootprint()
 	m_Footprints[FT_INTERIORTRIM_HORIZONTAL] = CreateFootprint((2 * m) + 1, 2);
 	m_Footprints[FT_INTERIORTRIM_VERTICAL] = CreateFootprint(2, (2 * m) + 1);
 	m_Footprints[FT_OUTER_DEGENERATERING] = CreateFootprint((4 * m) - 1);
+	m_Footprints[FT_INNER_DEGENERATERING] = CreateFootprint(2 * m);
 }
 
 void KClipmap::InitializeFootprintPos()
@@ -757,6 +844,12 @@ void KClipmap::InitializeFootprintPos()
 
 	// Outer degenerated ring
 	m_FootprintPos.push_back(KClipmapFootprintPos(0, 0, m_Footprints[FT_OUTER_DEGENERATERING]));
+
+	// Inner degenerated ring (order: top-left, top-right, bottom-left, bottom-right)
+	m_FootprintPos.push_back(KClipmapFootprintPos(m, m + 1, m_Footprints[FT_INNER_DEGENERATERING]));
+	m_FootprintPos.push_back(KClipmapFootprintPos(m + 1, m + 1, m_Footprints[FT_INNER_DEGENERATERING]));
+	m_FootprintPos.push_back(KClipmapFootprintPos(m, m, m_Footprints[FT_INNER_DEGENERATERING]));
+	m_FootprintPos.push_back(KClipmapFootprintPos(m + 1, m, m_Footprints[FT_INNER_DEGENERATERING]));
 }
 
 void KClipmap::InitializeClipmapLevel()
@@ -802,13 +895,14 @@ void KClipmap::InitializePipeline()
 		pipeline->SetBlendEnable(false);
 		pipeline->SetCullMode(CM_NONE);
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_LINE);
+		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 		pipeline->SetShader(ST_VERTEX, m_VSShader);
 		pipeline->SetShader(ST_FRAGMENT, m_FSShader);
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		IKRenderTargetPtr textureTarget = clipmapLevel->GetTextureTarget();
+		IKTexturePtr texture = clipmapLevel->GetTexture();
 
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, textureTarget->GetFrameBuffer(), m_Sampler, true);
@@ -961,9 +1055,15 @@ void KClipmap::Update(const glm::vec3& cameraPos)
 		clipLevel->UpdateHeightData();
 	}
 
-	for (int32_t level = m_LevelCount - 1; level >= 0; --level)
+	KRenderGlobal::RenderDevice->Wait();
+	for (int32_t level = 0; level < m_LevelCount; ++level)
 	{
 		m_ClipLevels[level]->UpdateTexture();
+	}
+
+	for (int32_t level = 0; level < m_LevelCount; ++level)
+	{
+		// m_ClipLevels[level]->CheckHeightValid();
 	}
 
 	m_Updated = true;
@@ -981,20 +1081,23 @@ bool KClipmap::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr
 
 		for (size_t footprintIdx = 0; footprintIdx < m_FootprintPos.size(); ++footprintIdx)
 		{
-			// [block]  0 - 11
-			//          top left right bottom
-			// [inner]  12  13   14    15
-			// [fixup]  16  17   18    19
-			// [trim]   20  21   22    23
-			// [outer]  22
+			// [block]		0 - 11
+			//				top      left	     right       bottom
+			// [inner]		12       13          14          15
+			// [fixup]		16       17          18          19
+			// [trim]		20       21          22          23
+			// [outer_ring] 24
+			//				top-left top-right   bottom-left bottom-right
+			// [inner_ring] 25       26          27          28
 			if (levelIdx != m_LevelCount - 1)
 			{
 				if (footprintIdx >= 12 && footprintIdx <= 15)
 					continue;
 
-				if (footprintIdx >= 20)
+				KClipmapLevel::TrimLocation trim = clipLevel->GetTrimLocation();
+
+				if (footprintIdx >= 20 && footprintIdx <= 23)
 				{
-					KClipmapLevel::TrimLocation trim = clipLevel->GetTrimLocation();
 					ASSERT_RESULT(trim != KClipmapLevel::TL_NONE);
 					if (trim == KClipmapLevel::TL_BOTTOM_LEFT)
 					{
@@ -1017,6 +1120,34 @@ bool KClipmap::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr
 							continue;
 					}
 				}
+
+				if (footprintIdx >= 25 && footprintIdx <= 28)
+				{
+					if (trim == KClipmapLevel::TL_BOTTOM_LEFT)
+					{
+						if (footprintIdx != 26)
+							continue;
+					}
+					else if (trim == KClipmapLevel::TL_BOTTOM_RIGHT)
+					{
+						if (footprintIdx != 25)
+							continue;
+					}
+					else if (trim == KClipmapLevel::TL_TOP_LEFT)
+					{
+						if (footprintIdx != 28)
+							continue;
+					}
+					else if (trim == KClipmapLevel::TL_TOP_RIGHT)
+					{
+						if (footprintIdx != 27)
+							continue;
+					}
+				}
+			}
+			else if (footprintIdx >= 24)
+			{
+				continue;
 			}
 
 			KClipmapFootprintPos& footprintPos = m_FootprintPos[footprintIdx];
@@ -1033,6 +1164,7 @@ bool KClipmap::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr
 				glm::vec4 worldStartScale;
 				glm::vec4 misc;
 				glm::vec4 misc2;
+				glm::vec4 misc3;
 			} objectData;
 
 			objectData.worldStartScale = worldStartScale;
@@ -1041,8 +1173,19 @@ bool KClipmap::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr
 			objectData.misc.z = (float)m_GridCount;
 			objectData.misc.w = m_HeightScale;
 
-			objectData.misc2.x = (float)clipLevel->GetScrollX() / m_GridCount;
-			objectData.misc2.y = (float)clipLevel->GetScrollY() / m_GridCount;
+			objectData.misc2.x = (float)clipLevel->GetScrollX() / (m_GridCount);
+			objectData.misc2.y = (float)clipLevel->GetScrollY() / (m_GridCount);
+			objectData.misc2.z = (float)levelIdx;
+			objectData.misc2.w = (float)m_LevelCount;
+
+			objectData.misc3.x = (float)footprintIdx;
+			objectData.misc3.y = (float)m_FootprintPos.size();
+			if (footprintIdx == 24)
+				objectData.misc3.z = 2.0f;
+			else if (footprintIdx >= 25)
+				objectData.misc3.z = 1.0f;
+			else
+				objectData.misc3.z = 0.0f;
 
 			command.objectUsage.binding = SHADER_BINDING_OBJECT;
 			command.objectUsage.range = sizeof(objectData);
@@ -1060,6 +1203,18 @@ bool KClipmap::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr
 
 	buffers.push_back(m_CommandBuffer);
 	return true;
+}
+
+void KClipmap::Reload()
+{
+	if (m_VSShader)
+		m_VSShader->Reload();
+	if (m_FSShader)
+		m_FSShader->Reload();
+	for (IKPipelinePtr& pipeline : m_ClipLevelPipelines)
+	{
+		pipeline->Reload();
+	}
 }
 
 KClipmapLevelPtr KClipmap::GetClipmapLevel(int32_t idx)

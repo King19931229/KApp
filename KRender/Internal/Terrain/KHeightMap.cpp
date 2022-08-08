@@ -111,11 +111,11 @@ float KHeightMap::GetData(int32_t x, int32_t y) const
 
 float KHeightMap::GetData(float u, float v) const
 {
-	if (u < 0 || u > 1 || v < 0 || v > 1)
+	if (u < 0 || u >= 1 || v < 0 || v >= 1)
 		return 0;
 
-	float x = u * (m_Width - 1);
-	float y = v * (m_Height - 1);
+	float x = u * m_Width;
+	float y = v * m_Height;
 
 	int32_t x_floor = (int32_t)floor(x);
 	int32_t y_floor = (int32_t)floor(y);

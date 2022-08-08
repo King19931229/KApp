@@ -97,6 +97,7 @@ protected:
 	IKTexturePtr m_UpdateTextures[4];
 	IKPipelinePtr m_UpdatePipelines[4];
 	IKRenderTargetPtr m_TextureTarget;
+	IKTexturePtr m_Texture;
 	IKRenderPassPtr m_UpdateRenderPass;
 	IKShaderPtr m_UpdateVS;
 	IKShaderPtr m_UpdateFS;
@@ -127,6 +128,8 @@ protected:
 	int32_t TextureCoordYToWorldY(int32_t j);
 	int32_t WorldXToTextureCoordX(int32_t x);
 	int32_t WorldYToTextureCoordY(int32_t y);
+
+	float GetClipHeight(float u, float v);
 public:
 	KClipmapLevel(KClipmap* parent, int32_t levelIdx);
 	~KClipmapLevel();
@@ -138,6 +141,7 @@ public:
 	void UpdateHeightData();
 	void UpdateWorldStartScale();
 	void UpdateTexture();
+	void CheckHeightValid();
 
 	void Init();
 	void UnInit();
@@ -146,11 +150,14 @@ public:
 	static void UnInitShared();
 
 	IKRenderTargetPtr GetTextureTarget() { return m_TextureTarget; }
+	IKTexturePtr GetTexture() { return m_Texture; }
 	float GetHeight(int32_t x, int32_t y) const;
 
 	int32_t GetGridSize() const { return m_GridSize; }
 	int32_t GetScrollX() const { return m_ScrollX; }
 	int32_t GetScrollY() const { return m_ScrollY; }
+	int32_t GetRealBottomLeftX() const { return m_BottomLeftX + m_ScrollX * m_GridSize; }
+	int32_t GetRealBottomLeftY() const { return m_BottomLeftY + m_ScrollY * m_GridSize; }
 	TrimLocation GetTrimLocation() const { return m_TrimLocation; }
 	const glm::vec4& GetWorldStartScale() const { return m_WorldStartScale; }
 };
@@ -168,6 +175,7 @@ protected:
 		FT_INTERIORTRIM_HORIZONTAL,
 		FT_INTERIORTRIM_VERTICAL,
 		FT_OUTER_DEGENERATERING,
+		FT_INNER_DEGENERATERING,
 		FT_COUNT
 	};
 
@@ -217,6 +225,7 @@ public:
 
 	void Update(const glm::vec3& cameraPos);
 	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	void Reload();
 
 	int32_t GetBlockCount() const { return (m_GridCount + 1) / 4; }
 	int32_t GetGridCount() const { return m_GridCount; }
@@ -231,4 +240,5 @@ public:
 
 	const KHeightMap& GetHeightMap() const { return m_HeightMap; }
 	float GetSize() const { return m_Size; }
+	float GetHeightScale() const { return m_HeightScale; }
 };

@@ -16,6 +16,7 @@ public:
 
 	bool Create(const glm::vec3& center, float size, const KTerrainContext& context) override;
 	bool Destroy() override;
+	bool Reload() override;
 
 	void LoadHeightMap(const std::string& file) override;
 

@@ -26,6 +26,7 @@ struct IKTerrain
 
 	virtual bool Create(const glm::vec3& center, float size, const KTerrainContext& context) = 0;
 	virtual bool Destroy() = 0;
+	virtual bool Reload() = 0;
 
 	virtual void LoadHeightMap(const std::string& file) = 0;
 
