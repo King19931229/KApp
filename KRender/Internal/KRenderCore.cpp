@@ -207,6 +207,7 @@ bool KRenderCore::InitController()
 			KRenderGlobal::RayTraceManager.ReloadShader();
 			KRenderGlobal::RTAO.ReloadShader();
 			KRenderGlobal::Voxilzer.ReloadShader();
+			KRenderGlobal::Scene.GetTerrain()->Reload();
 		}
 	};
 

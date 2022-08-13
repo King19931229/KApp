@@ -97,7 +97,7 @@ protected:
 	IKTexturePtr m_UpdateTextures[4];
 	IKPipelinePtr m_UpdatePipelines[4];
 	IKRenderTargetPtr m_TextureTarget;
-	IKTexturePtr m_Texture;
+	IKTexturePtr m_DebugTexture;
 	IKRenderPassPtr m_UpdateRenderPass;
 	IKShaderPtr m_UpdateVS;
 	IKShaderPtr m_UpdateFS;
@@ -118,6 +118,8 @@ protected:
 	glm::vec4 m_WorldStartScale;
 	std::vector<float> m_ClipHeightData;
 	std::vector<KClipmapTextureUpdateRect> m_UpdateRects;
+
+	bool m_EnableUpdateDebug;
 
 	void TrimUpdateRect(const KClipmapUpdateRect& trim, KClipmapUpdateRect& rect);
 	void TrimUpdateRects(std::vector<KClipmapUpdateRect>& rects);
@@ -150,7 +152,7 @@ public:
 	static void UnInitShared();
 
 	IKRenderTargetPtr GetTextureTarget() { return m_TextureTarget; }
-	IKTexturePtr GetTexture() { return m_Texture; }
+	IKTexturePtr GetDebugTexture() { return m_DebugTexture; }
 	float GetHeight(int32_t x, int32_t y) const;
 
 	int32_t GetGridSize() const { return m_GridSize; }
@@ -160,6 +162,7 @@ public:
 	int32_t GetRealBottomLeftY() const { return m_BottomLeftY + m_ScrollY * m_GridSize; }
 	TrimLocation GetTrimLocation() const { return m_TrimLocation; }
 	const glm::vec4& GetWorldStartScale() const { return m_WorldStartScale; }
+	bool GetEnableUpdateDebug() const { return m_EnableUpdateDebug; }
 };
 typedef std::shared_ptr<KClipmapLevel> KClipmapLevelPtr;
 
@@ -214,6 +217,7 @@ protected:
 	void InitializeFootprintPos();
 	void InitializeClipmapLevel();
 	void InitializePipeline();
+	void RenderInternal(IKCommandBufferPtr commandBuffer, IKRenderPassPtr renderPass, int32_t levelIdx, bool hollowCenter);
 public:
 	KClipmap();
 	~KClipmap();

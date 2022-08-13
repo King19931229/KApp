@@ -21,16 +21,13 @@ vec4 CalcColorPalette(float f)
 
 void main()
 {
-	//if(inFoortKind != 1)
-	//	discard;
-	if (inFoortKind == 0)
-		outColor = CalcColorPalette(clamp(inFoortprint, 0, 1));
-	else if (inFoortKind == 1)
-		outColor = vec4(1,1,0,1);
-	else
-		outColor = vec4(0,1,1,1);
-
-	//outColor = vec4(vec3(inLerp), 1);
-	//outColor = vec4(vec2(inUV), 0, 1);
+	// if (inFoortKind == 0)
+	// 	outColor = CalcColorPalette(clamp(inFoortprint, 0, 1));
+	// else if (inFoortKind == 1)
+	// 	outColor = vec4(1,1,0,1);
+	// else
+	// 	outColor = vec4(0,1,1,1);
+	// outColor = vec4(inLerp);
+	// outColor = vec4(vec2(inUV), 0, 1);
 	outColor = CalcColorPalette(clamp(inHeight, 0, 1));
 }

@@ -6,6 +6,6 @@ layout(binding = BINDING_TEXTURE0) uniform sampler2D updateTex;
 
 void main()
 {
-	outColor = texture(updateTex, inUV);
-	// outColor = vec4(1.0, 1.0, 0, 0);
+	outColor.rg = texture(updateTex, inUV).rg;
+	outColor.ba = vec2(0);
 }
