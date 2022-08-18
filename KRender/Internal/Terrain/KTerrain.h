@@ -24,4 +24,8 @@ public:
 
 	void Update(const KCamera* camera) override;
 	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers) override;
+
+	bool EnableDebugDraw(const KTerrainDebug& debug) override;
+	bool DisableDebugDraw() override;
+	bool GetDebugRenderCommand(KRenderCommandList& commands) override;
 };

@@ -46,10 +46,10 @@ void main()
 	vec2 height_lerp = clamp((abs(2.0 * normPos - vec2(1.0)) - vec2(1.0 - lerp_length - grid_length)) / lerp_length, 0, 1);
 	height_lerp.xy = max(height_lerp.xx, height_lerp.yy);
 
-	//if(object.misc2.z == 1)
-	//	height_lerp = vec2(1);
-	//else
-	//	height_lerp = vec2(0);
+	if(object.misc2.z == 1)
+		height_lerp = vec2(1);
+	else
+		height_lerp = vec2(0);
 
 	outHeight = mix(height.x, height.y, height_lerp.x);
 	worldPos.y = object.misc.w * outHeight;

@@ -28,6 +28,6 @@ void main()
 	// else
 	// 	outColor = vec4(0,1,1,1);
 	// outColor = vec4(inLerp);
-	// outColor = vec4(vec2(inUV), 0, 1);
+	outColor = vec4(vec2(inUV), 0, 1);
 	outColor = CalcColorPalette(clamp(inHeight, 0, 1));
 }

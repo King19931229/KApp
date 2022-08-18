@@ -1,6 +1,7 @@
 #pragma once
 #include "KRender/Publish/KCamera.h"
 #include "KRender/Interface/IKRenderConfig.h"
+#include "KRender/Interface/IKRenderCommand.h"
 
 enum TerrainType
 {
@@ -20,6 +21,17 @@ struct KTerrainContext
 	};
 };
 
+struct KTerrainDebug
+{
+	union
+	{
+		struct
+		{
+			uint32_t debugLevel;
+		}clipmap;
+	};
+};
+
 struct IKTerrain
 {
 	virtual ~IKTerrain() {}
@@ -34,6 +46,10 @@ struct IKTerrain
 
 	virtual void Update(const KCamera* camera) = 0;
 	virtual bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers) = 0;
+
+	virtual bool EnableDebugDraw(const KTerrainDebug& debug) = 0;
+	virtual bool DisableDebugDraw() = 0;
+	virtual bool GetDebugRenderCommand(KRenderCommandList& commands) = 0;
 };
 
 typedef std::shared_ptr<IKTerrain> IKTerrainPtr;

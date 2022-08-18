@@ -1,0 +1,24 @@
+#include "public.h"
+
+#define BINDING_IMAGE_IN BINDING_TEXTURE9
+#define BINDING_IMAGE_OUT BINDING_TEXTURE10
+#define UPDATE_GROUP_SIZE 16
+
+layout(local_size_x = UPDATE_GROUP_SIZE, local_size_y = UPDATE_GROUP_SIZE, local_size_z = 1) in;
+layout(binding = BINDING_IMAGE_IN, rg32f) uniform readonly image2D inImage;
+layout(binding = BINDING_IMAGE_OUT, rg32f) uniform writeonly image2D outImage;
+
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	ivec4 offset;
+}object;
+
+void main()
+{
+	ivec2 size = imageSize(inImage).xy;
+	// Check if not outside boundaries
+	if (gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y) return;
+	vec4 data = imageLoad(inImage, ivec2(gl_GlobalInvocationID.xy));
+	imageStore(outImage, ivec2(gl_GlobalInvocationID.xy) + object.offset.xy, data);
+}

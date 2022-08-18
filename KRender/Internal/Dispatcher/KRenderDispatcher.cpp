@@ -630,6 +630,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex)
 		KRenderGlobal::RTAO.GetDebugRenderCommand(debugDrawCommands);
 		KRenderGlobal::Voxilzer.GetLightDebugRenderCommand(debugDrawCommands);
 		KRenderGlobal::Voxilzer.GetOctreeRayTestRenderCommand(debugDrawCommands);
+		KRenderGlobal::Scene.GetTerrain()->GetDebugRenderCommand(debugDrawCommands);
 		for (KRenderCommand& command : debugDrawCommands)
 		{
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);

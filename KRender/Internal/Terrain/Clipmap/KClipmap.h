@@ -5,6 +5,7 @@
 #include "Interface/IKTerrain.h"
 #include "Internal/KVertexDefinition.h"
 #include "Internal/Terrain/KHeightMap.h"
+#include "Internal/Object/KDebugDrawer.h"
 
 class KClipmapFootprint
 {
@@ -83,6 +84,13 @@ public:
 		TL_NONE
 	};
 protected:
+	enum
+	{
+		BINDING_IMAGE_IN = SHADER_BINDING_TEXTURE9,
+		BINDING_IMAGE_OUT = SHADER_BINDING_TEXTURE10,
+		UPDATE_GROUP_SIZE = 16
+	};
+
 	static const VertexFormat ms_VertexFormats[1];
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_UpdateVertices[4];
 	static const uint16_t ms_UpdateIndices[6];
@@ -93,14 +101,15 @@ protected:
 	static KVertexData ms_UpdateVertexData;
 	static KIndexData ms_UpdateIndexData;
 	static IKSamplerPtr ms_Sampler;
+	static IKShaderPtr ms_UpdateVS;
+	static IKShaderPtr ms_UpdateFS;
 
 	IKTexturePtr m_UpdateTextures[4];
 	IKPipelinePtr m_UpdatePipelines[4];
+	IKComputePipelinePtr m_UpdateComputePipelines[4];
 	IKRenderTargetPtr m_TextureTarget;
 	IKTexturePtr m_DebugTexture;
 	IKRenderPassPtr m_UpdateRenderPass;
-	IKShaderPtr m_UpdateVS;
-	IKShaderPtr m_UpdateFS;
 
 	KClipmap* m_Parent;
 	int32_t m_LevelIdx;
@@ -120,6 +129,8 @@ protected:
 	std::vector<KClipmapTextureUpdateRect> m_UpdateRects;
 
 	bool m_EnableUpdateDebug;
+	bool m_ComputeShaderUpdate;
+	bool m_DisableScroll;
 
 	void TrimUpdateRect(const KClipmapUpdateRect& trim, KClipmapUpdateRect& rect);
 	void TrimUpdateRects(std::vector<KClipmapUpdateRect>& rects);
@@ -196,6 +207,8 @@ protected:
 
 	KHeightMap m_HeightMap;
 
+	KRTDebugDrawer m_DebugDrawer;
+
 	int32_t m_GridCount;
 	int32_t m_LevelCount;
 	int32_t m_GridCenterX;
@@ -230,6 +243,10 @@ public:
 	void Update(const glm::vec3& cameraPos);
 	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 	void Reload();
+
+	bool EnableDebugDraw(const KTerrainDebug& debug);
+	bool DisableDebugDraw();
+	bool GetDebugRenderCommand(KRenderCommandList& commands);
 
 	int32_t GetBlockCount() const { return (m_GridCount + 1) / 4; }
 	int32_t GetGridCount() const { return m_GridCount; }

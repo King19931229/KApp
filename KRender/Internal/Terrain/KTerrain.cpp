@@ -82,3 +82,42 @@ bool KTerrain::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr
 	}
 	return false;
 }
+
+bool KTerrain::EnableDebugDraw(const KTerrainDebug& debug)
+{
+	if (m_Type == TERRAIN_TYPE_CLIPMAP)
+	{
+		if (m_Soul.clipmap)
+		{
+			m_Soul.clipmap->EnableDebugDraw(debug);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool KTerrain::DisableDebugDraw()
+{
+	if (m_Type == TERRAIN_TYPE_CLIPMAP)
+	{
+		if (m_Soul.clipmap)
+		{
+			m_Soul.clipmap->DisableDebugDraw();
+		}
+		return true;
+	}
+	return false;
+}
+
+bool KTerrain::GetDebugRenderCommand(KRenderCommandList& commands)
+{
+	if (m_Type == TERRAIN_TYPE_CLIPMAP)
+	{
+		if (m_Soul.clipmap)
+		{
+			m_Soul.clipmap->GetDebugRenderCommand(commands);
+		}
+		return true;
+	}
+	return false;
+}
