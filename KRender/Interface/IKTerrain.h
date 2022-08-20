@@ -5,7 +5,8 @@
 
 enum TerrainType
 {
-	TERRAIN_TYPE_CLIPMAP
+	TERRAIN_TYPE_CLIPMAP,
+	TERRAIN_TYPE_NONE
 };
 
 struct KTerrainContext
@@ -35,12 +36,10 @@ struct KTerrainDebug
 struct IKTerrain
 {
 	virtual ~IKTerrain() {}
-
-	virtual bool Create(const glm::vec3& center, float size, const KTerrainContext& context) = 0;
-	virtual bool Destroy() = 0;
 	virtual bool Reload() = 0;
 
 	virtual void LoadHeightMap(const std::string& file) = 0;
+	virtual void LoadDiffuse(const std::string& file) = 0;
 
 	virtual TerrainType GetType() const = 0;
 

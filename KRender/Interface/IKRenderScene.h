@@ -29,6 +29,8 @@ struct IKRenderScene
 	virtual bool Remove(IKEntityPtr entity) = 0;
 	virtual bool Move(IKEntityPtr entity) = 0;
 
+	virtual bool CreateTerrain(const glm::vec3& center, float size, float height, const KTerrainContext& context) = 0;
+	virtual bool DestroyTerrain() = 0;
 	virtual IKTerrainPtr GetTerrain() = 0;
 
 	virtual bool RegisterEntityObserver(EntityObserverFunc* func) = 0;

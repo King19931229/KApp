@@ -16,6 +16,8 @@ struct IKScene
 	typedef std::unordered_set<IKEntityPtr> EntitySetType;
 	virtual const EntitySetType& GetEntities() const = 0;
 
+	virtual bool CreateTerrain(const glm::vec3& center, float size, float height, const KTerrainContext& context) = 0;
+	virtual bool DestroyTerrain() = 0;
 	virtual IKTerrainPtr GetTerrain() = 0;
 
 	virtual bool Clear() = 0;

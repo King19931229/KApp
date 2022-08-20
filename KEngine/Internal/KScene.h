@@ -24,6 +24,8 @@ public:
 
 	virtual const EntitySetType& GetEntities() const;
 
+	virtual bool CreateTerrain(const glm::vec3& center, float size, float height, const KTerrainContext& context);
+	virtual bool DestroyTerrain();
 	virtual IKTerrainPtr GetTerrain();
 
 	virtual bool Clear();

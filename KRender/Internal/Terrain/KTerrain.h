@@ -2,30 +2,16 @@
 #include "Interface/IKTerrain.h"
 #include "Clipmap/KClipmap.h"
 
-class KTerrain : public IKTerrain
+class KNullTerrain : public IKTerrain
 {
-protected:
-	union
-	{
-		KClipmap* clipmap;
-	}m_Soul;
-	TerrainType m_Type;
 public:
-	KTerrain();
-	~KTerrain();
-
-	bool Create(const glm::vec3& center, float size, const KTerrainContext& context) override;
-	bool Destroy() override;
-	bool Reload() override;
-
-	void LoadHeightMap(const std::string& file) override;
-
-	TerrainType GetType() const override { return m_Type; }
-
-	void Update(const KCamera* camera) override;
-	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers) override;
-
-	bool EnableDebugDraw(const KTerrainDebug& debug) override;
-	bool DisableDebugDraw() override;
-	bool GetDebugRenderCommand(KRenderCommandList& commands) override;
+	bool Reload() override { return true; }
+	void LoadHeightMap(const std::string& file) override {}
+	void LoadDiffuse(const std::string& file) override {}
+	TerrainType GetType() const override { return TERRAIN_TYPE_NONE; }
+	void Update(const KCamera* camera) override {}
+	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers) override { return true; }
+	bool EnableDebugDraw(const KTerrainDebug& debug) override { return true; }
+	bool DisableDebugDraw() override { return true; }
+	bool GetDebugRenderCommand(KRenderCommandList& commands) override { return true; }
 };

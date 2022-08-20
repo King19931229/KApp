@@ -61,6 +61,24 @@ const KScene::EntitySetType& KScene::GetEntities() const
 	return m_Entities;
 }
 
+bool KScene::CreateTerrain(const glm::vec3& center, float size, float height, const KTerrainContext& context)
+{
+	if (m_RenderScene)
+	{
+		return m_RenderScene->CreateTerrain(center, size, height, context);
+	}
+	return false;
+}
+
+bool KScene::DestroyTerrain()
+{
+	if (m_RenderScene)
+	{
+		return m_RenderScene->DestroyTerrain();
+	}
+	return false;
+}
+
 IKTerrainPtr KScene::GetTerrain()
 {
 	if (m_RenderScene)

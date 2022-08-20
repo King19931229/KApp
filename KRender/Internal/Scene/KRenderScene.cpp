@@ -10,7 +10,6 @@ EXPORT_DLL IKRenderScenePtr CreateRenderScene()
 KRenderScene::KRenderScene()
 	: m_SceneMgr(nullptr)
 {
-	m_Terrain = IKTerrainPtr(new KTerrain());
 }
 
 KRenderScene::~KRenderScene()
@@ -21,6 +20,8 @@ KRenderScene::~KRenderScene()
 bool KRenderScene::Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos)
 {
 	UnInit();
+
+	m_Terrain = IKTerrainPtr(new KNullTerrain());
 
 	switch (type)
 	{
@@ -57,7 +58,8 @@ bool KRenderScene::UnInit()
 		SAFE_DELETE(m_SceneMgr);
 	}
 
-	m_Terrain->Destroy();
+	DestroyTerrain();
+	m_Terrain = nullptr;
 
 	return true;
 }
@@ -104,6 +106,32 @@ bool KRenderScene::Move(IKEntityPtr entity)
 		return true;
 	}
 	return false;
+}
+
+bool KRenderScene::CreateTerrain(const glm::vec3& center, float size, float height, const KTerrainContext& context)
+{
+	DestroyTerrain();
+	if (context.type == TERRAIN_TYPE_CLIPMAP)
+	{
+		m_Terrain = IKTerrainPtr(new KClipmap());
+		KClipmap* clipmap = static_cast<KClipmap*>(m_Terrain.get());
+		clipmap->Init(center, size, height, context.clipmap.gridLevel, context.clipmap.divideLevel);
+	}
+	return true;
+}
+
+bool KRenderScene::DestroyTerrain()
+{
+	if (m_Terrain)
+	{
+		if (m_Terrain->GetType() == TERRAIN_TYPE_CLIPMAP)
+		{
+			KClipmap* clipmap = static_cast<KClipmap*>(m_Terrain.get());
+			clipmap->UnInit();
+		}
+		m_Terrain = IKTerrainPtr(new KNullTerrain());
+	}
+	return true;
 }
 
 IKTerrainPtr KRenderScene::GetTerrain()

@@ -25,6 +25,8 @@ public:
 	bool Remove(IKEntityPtr entity) override;
 	bool Move(IKEntityPtr entity) override;
 
+	bool CreateTerrain(const glm::vec3& center, float size, float height, const KTerrainContext& context) override;
+	bool DestroyTerrain() override;
 	IKTerrainPtr GetTerrain() override;
 
 	bool RegisterEntityObserver(EntityObserverFunc* func) override;

@@ -124,7 +124,7 @@ protected:
 	int32_t m_NewScrollY;
 
 	TrimLocation m_TrimLocation;
-	glm::vec4 m_WorldStartScale;
+	glm::vec4 m_ClipStartScale;
 	std::vector<float> m_ClipHeightData;
 	std::vector<KClipmapTextureUpdateRect> m_UpdateRects;
 
@@ -152,7 +152,7 @@ public:
 
 	void PopulateUpdateRects();
 	void UpdateHeightData();
-	void UpdateWorldStartScale();
+	void UpdateClipStartScale();
 	void UpdateTexture();
 	void CheckHeightValid();
 
@@ -172,13 +172,13 @@ public:
 	int32_t GetRealBottomLeftX() const { return m_BottomLeftX + m_ScrollX * m_GridSize; }
 	int32_t GetRealBottomLeftY() const { return m_BottomLeftY + m_ScrollY * m_GridSize; }
 	TrimLocation GetTrimLocation() const { return m_TrimLocation; }
-	const glm::vec4& GetWorldStartScale() const { return m_WorldStartScale; }
+	const glm::vec4& GetClipStartScale() const { return m_ClipStartScale; }
 	bool GetEnableUpdateDebug() const { return m_EnableUpdateDebug; }
 };
 typedef std::shared_ptr<KClipmapLevel> KClipmapLevelPtr;
 
 
-class KClipmap
+class KClipmap : public IKTerrain
 {
 protected:
 	enum FootprintType
@@ -202,6 +202,8 @@ protected:
 	IKShaderPtr m_FSShader;
 	IKSamplerPtr m_Sampler;
 
+	IKTexturePtr m_DiffuseTexture;
+
 	IKCommandBufferPtr m_CommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
@@ -211,6 +213,7 @@ protected:
 
 	int32_t m_GridCount;
 	int32_t m_LevelCount;
+	int32_t m_FinestLevel;
 	int32_t m_GridCenterX;
 	int32_t m_GridCenterY;
 	int32_t m_ClipCenterX;
@@ -235,18 +238,21 @@ public:
 	KClipmap();
 	~KClipmap();
 
-	void Init(const glm::vec3& center, float size, int32_t gridLevel, int32_t divideLevel);
+	void Init(const glm::vec3& center, float size, float height, int32_t gridLevel, int32_t divideLevel);
 	void UnInit();
 
-	void LoadHeightMap(const std::string& file);
+	bool Reload() override;
+	void LoadHeightMap(const std::string& file) override;
+	void LoadDiffuse(const std::string& file) override;
 
-	void Update(const glm::vec3& cameraPos);
+	TerrainType GetType() const override { return TERRAIN_TYPE_CLIPMAP; }
+
+	void Update(const KCamera* camera) override;
 	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
-	void Reload();
 
-	bool EnableDebugDraw(const KTerrainDebug& debug);
-	bool DisableDebugDraw();
-	bool GetDebugRenderCommand(KRenderCommandList& commands);
+	bool EnableDebugDraw(const KTerrainDebug& debug) override;
+	bool DisableDebugDraw() override;
+	bool GetDebugRenderCommand(KRenderCommandList& commands) override;
 
 	int32_t GetBlockCount() const { return (m_GridCount + 1) / 4; }
 	int32_t GetGridCount() const { return m_GridCount; }
@@ -260,6 +266,7 @@ public:
 	KClipmapLevelPtr GetClipmapLevel(int32_t idx);
 
 	const KHeightMap& GetHeightMap() const { return m_HeightMap; }
+	IKTexturePtr GetDiffuseTexture() { return m_DiffuseTexture; }
 	float GetSize() const { return m_Size; }
 	float GetHeightScale() const { return m_HeightScale; }
 };

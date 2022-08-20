@@ -93,8 +93,10 @@ int main()
 
 	engine->Init(std::move(window), options);
 	engine->GetScene()->Load("C:/Users/Admin/Desktop/ray4.scene");
-	engine->GetScene()->GetTerrain()->Create(glm::vec3(0), 8 * 1024, { TERRAIN_TYPE_CLIPMAP, {5, 5} });
-	engine->GetScene()->GetTerrain()->LoadHeightMap("Terrain/grand_canyon.png");
+	engine->GetScene()->CreateTerrain(glm::vec3(0), 10 * 1024, 4096, { TERRAIN_TYPE_CLIPMAP, {8, 3} });
+	engine->GetScene()->GetTerrain()->LoadHeightMap("Terrain/small_ridge_1025/height.png");
+	engine->GetScene()->GetTerrain()->LoadDiffuse("Terrain/small_ridge_1025/diffuse.png");
+	//engine->GetScene()->GetTerrain()->EnableDebugDraw({ 1 });
 
 	KRenderCoreInitCallback callback = [engine]()
 	{

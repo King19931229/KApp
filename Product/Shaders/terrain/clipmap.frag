@@ -1,9 +1,18 @@
-layout(location = 0) in vec2 inUV;
-layout(location = 1) in float inLerp;
-layout(location = 2) in float inHeight;
-layout(location = 3) in float inLevel;
-layout(location = 4) in float inFoortprint;
-layout(location = 5) in float inFoortKind;
+#include "public.h"
+#include "clip_public.h"
+
+layout(location = 0) in float inHeight;
+layout(location = 1) in vec2 inUV;
+
+#ifdef ENABLE_CLIP_DEBUG
+layout(location = 2) in vec2 inUVDebug;
+layout(location = 3) in float inLerp;
+layout(location = 4) in float inLevel;
+layout(location = 5) in float inFoortprint;
+layout(location = 6) in float inFoortKind;
+#endif
+
+layout(binding = BINDING_TEXTURE2) uniform sampler2D diffuseMap;
 
 layout(location = 0) out vec4 outColor;
 
@@ -21,6 +30,7 @@ vec4 CalcColorPalette(float f)
 
 void main()
 {
+#ifdef ENABLE_CLIP_DEBUG
 	// if (inFoortKind == 0)
 	// 	outColor = CalcColorPalette(clamp(inFoortprint, 0, 1));
 	// else if (inFoortKind == 1)
@@ -28,6 +38,8 @@ void main()
 	// else
 	// 	outColor = vec4(0,1,1,1);
 	// outColor = vec4(inLerp);
-	outColor = vec4(vec2(inUV), 0, 1);
-	outColor = CalcColorPalette(clamp(inHeight, 0, 1));
+	// outColor = vec4(vec2(inUVDebug), 0, 1);
+#endif
+	// outColor = CalcColorPalette(clamp(inHeight, 0, 1));
+	outColor = texture(diffuseMap, inUV);// * CalcColorPalette(clamp(inLevel, 0, 1));
 }
