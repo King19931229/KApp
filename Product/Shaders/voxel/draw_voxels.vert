@@ -41,19 +41,19 @@ void main()
 	ivec3 texPos = ivec3(position);
 	vec3 samplePos = (vec3(texPos) + vec3(0.5)) / drawVolumeDimension;
 #if USE_OCTREE
-	// albedo = SampleOctreeRadiance(volumeDimension, samplePos);
+	albedo = SampleOctreeRadiance(volumeDimension, samplePos);
 	// albedo = SampleOctreeNormal(volumeDimension, samplePos);
 	// albedo = SampleOctreeColor(volumeDimension, samplePos);
 	// albedo = SampleOctreeMipmap(volumeDimension, samplePos, 0.0, 0);
-	ivec3 texPosA = 2 * (texPos / 2);
-	vec3 samplePosA = (vec3(texPosA) + vec3(0.5)) / (drawVolumeDimension);
-	// vec4 a = SampleOctreeMipmapDataSingleLevelClosest(volumeDimension, 0, samplePosA, 0);
-	// vec3 texPosB = texPosA;
-	// vec3 samplePosB = (vec3(texPosB) + vec3(0.5)) / (drawVolumeDimension);
-	vec4 b = textureLod(voxelTexMipmap[0], samplePosA, 0.0);
-	// albedo = a;
-	// vec4 c = imageLoad(voxelMipmap, texPos / 2);
-	albedo = b;
+	// ivec3 texPosA = 2 * (texPos / 2);
+	// vec3 samplePosA = (vec3(texPosA) + vec3(0.5)) / (drawVolumeDimension);
+	// // vec4 a = SampleOctreeMipmapDataSingleLevelClosest(volumeDimension, 0, samplePosA, 0);
+	// // vec3 texPosB = texPosA;
+	// // vec3 samplePosB = (vec3(texPosB) + vec3(0.5)) / (drawVolumeDimension);
+	// vec4 b = textureLod(voxelTexMipmap[0], samplePosA, 0.0);
+	// // albedo = a;
+	// // vec4 c = imageLoad(voxelMipmap, texPos / 2);
+	// albedo = b;
 #else
 	// albedo = imageLoad(voxelRadiance, texPos);
 	// albedo = imageLoad(voxelRadiance, texPos).rgba;

@@ -62,9 +62,9 @@ vec4 AnistropicSample(vec3 coord, vec3 weight, uvec3 face, float lod)
 	float anisoLevel = max(lod - 1.0f, 0.0f);
 	// directional sample
 // #if USE_OCTREE
-// 	vec4 anisoSample = weight.x * SampleOctreeMipmapClosest(volumeDimension, coord, anisoLevel, face.x)
-// 					 + weight.y * SampleOctreeMipmapClosest(volumeDimension, coord, anisoLevel, face.y)
-// 					 + weight.z * SampleOctreeMipmapClosest(volumeDimension, coord, anisoLevel, face.z);
+// 	vec4 anisoSample = weight.x * SampleOctreeMipmap(volumeDimension, coord, anisoLevel, face.x)
+// 					 + weight.y * SampleOctreeMipmap(volumeDimension, coord, anisoLevel, face.y)
+// 					 + weight.z * SampleOctreeMipmap(volumeDimension, coord, anisoLevel, face.z);
 // #else
 	vec4 anisoSample = weight.x * textureLod(voxelTexMipmap[face.x], coord, anisoLevel)
 					 + weight.y * textureLod(voxelTexMipmap[face.y], coord, anisoLevel)
@@ -72,14 +72,14 @@ vec4 AnistropicSample(vec3 coord, vec3 weight, uvec3 face, float lod)
 // #endif
 
 	// linearly interpolate on base level
-	if (lod < 1.0f)
-	{
+// 	if (lod < 1.0f)
+// 	{
 // #if USE_OCTREE
 // #else
 // 		vec4 baseColor = texture(voxelTex, coord);
 // 		anisoSample = mix(baseColor, anisoSample, clamp(lod, 0.0f, 1.0f));
 // #endif
-	}
+// 	}
 
 	return anisoSample;
 }
@@ -442,8 +442,6 @@ const uint mode = 3;
 
 void main()
 {
-	// convert to linear space
-	const float gamma = 2.2;
 	// world-space position
 	vec3 position = texture(gPosition, texCoord).xyz;
 	// world-space normal
@@ -452,7 +450,7 @@ void main()
 	vec4 specular = texture(gSpecular, texCoord);
 	// fragment albedo
 	vec3 baseColor = texture(gAlbedo, texCoord).rgb;
-	vec3 albedo = baseColor; //pow(baseColor, vec3(gamma));
+	vec3 albedo = baseColor;
 	// fragment emissiviness
 	vec3 emissive = vec3(0.0); //texture(gEmissive, texCoord).rgb;
 	// lighting cumulatives

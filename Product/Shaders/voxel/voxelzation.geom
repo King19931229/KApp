@@ -98,6 +98,8 @@ void main()
 	vec2 halfPixel = vec2(1.0f / volumeDimension);
 
 	if(trianglePlane.z == 0.0f) return;
+
+	// vec4 oriPos[3] = pos;
 	// expanded aabb for triangle
 	Out.triangleAABB = AxisAlignedBoundingBox(pos, halfPixel);
 #if 0

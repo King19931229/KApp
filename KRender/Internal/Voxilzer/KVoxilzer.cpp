@@ -142,7 +142,7 @@ void KVoxilzer::UpdateVoxel()
 
 void KVoxilzer::ReloadShader()
 {
-	/*m_VoxelDrawVS->Reload();
+	m_VoxelDrawVS->Reload();
 	m_VoxelDrawOctreeVS->Reload();
 	m_VoxelDrawGS->Reload();
 	m_VoxelWireFrameDrawGS->Reload();
@@ -150,7 +150,7 @@ void KVoxilzer::ReloadShader()
 	m_QuadVS->Reload();
 	m_LightPassFS->Reload();
 	m_LightPassOctreeFS->Reload();
-	m_OctreeRayTestFS->Reload();*/
+	m_OctreeRayTestFS->Reload();
 
 	if (m_VoxelUseOctree)
 	{
@@ -301,7 +301,7 @@ void KVoxilzer::UpdateProjectionMatrices()
 			// traceShadowHit
 			miscs3[1] = 0.5f;
 			// maxTracingDistanceGlobal
-			miscs3[2] = 1.0f;
+			miscs3[2] = 0.10f;
 			memcpy(pWritePos, &miscs3, sizeof(float) * 4);
 		}
 	}

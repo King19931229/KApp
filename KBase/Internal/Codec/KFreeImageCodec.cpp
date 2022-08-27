@@ -94,6 +94,8 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 						fiBitmap = newBitmap;
 						// get new formats
 						bpp = FreeImage_GetBPP(fiBitmap);
+
+						imageType = FreeImage_GetImageType(fiBitmap);
 						colourType = FreeImage_GetColorType(fiBitmap);
 					}
 
@@ -128,9 +130,38 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 					FreeImage_Unload(fiBitmap);
 					fiBitmap = newBitmap;
 					bpp = FreeImage_GetBPP(fiBitmap);
+
+					imageType = FreeImage_GetImageType(fiBitmap);
 					colourType = FreeImage_GetColorType(fiBitmap);
 
 					result.eFormat = IF_R32_FLOAT;
+					break;
+				}
+				case FIT_FLOAT:
+				{
+					result.eFormat = IF_R32_FLOAT;
+					break;
+				}
+				case FIT_RGBF:
+				{
+					result.eFormat = IF_R32G32B32_FLOAT;
+					if (forceAlpha)
+					{
+						FIBITMAP* newBitmap = FreeImage_ConvertToRGBAF(fiBitmap);
+						FreeImage_Unload(fiBitmap);
+						fiBitmap = newBitmap;
+						bpp = FreeImage_GetBPP(fiBitmap);
+
+						imageType = FreeImage_GetImageType(fiBitmap);
+						colourType = FreeImage_GetColorType(fiBitmap);
+
+						result.eFormat = IF_R32G32B32A32_FLOAT;
+					}
+					break;
+				}
+				case FIT_RGBAF:
+				{
+					result.eFormat = IF_R32G32B32_FLOAT;
 					break;
 				}
 				// keep the compiler happy

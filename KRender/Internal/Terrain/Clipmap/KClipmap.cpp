@@ -935,6 +935,10 @@ void KClipmap::InitializePipeline()
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_Sampler->Init(0, 0);
 
+	KRenderGlobal::RenderDevice->CreateSampler(m_MipmapSampler);
+	m_MipmapSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
+	m_MipmapSampler->Init(0, 0);
+
 	m_ClipLevelPipelines.resize(m_ClipLevels.size());
 	for (size_t i = 0; i < m_ClipLevels.size(); ++i)
 	{
@@ -960,7 +964,7 @@ void KClipmap::InitializePipeline()
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, textureTarget->GetFrameBuffer(), m_Sampler, true);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, texture ? texture->GetFrameBuffer() : textureTarget->GetFrameBuffer(), m_Sampler, true);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_DiffuseTexture->GetFrameBuffer(), m_Sampler, true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_DiffuseTexture->GetFrameBuffer(), m_MipmapSampler, true);
 
 		pipeline->Init();
 	}
@@ -1006,6 +1010,7 @@ void KClipmap::UnInit()
 
 	SAFE_UNINIT(m_DiffuseTexture);
 	SAFE_UNINIT(m_Sampler);
+	SAFE_UNINIT(m_MipmapSampler);
 
 	SAFE_UNINIT(m_CommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
@@ -1031,6 +1036,7 @@ void KClipmap::LoadDiffuse(const std::string& file)
 	if (m_DiffuseTexture->InitMemoryFromFile(file, true, false))
 	{
 		m_DiffuseTexture->InitDevice(false);
+		m_MipmapSampler->Init(0, m_DiffuseTexture->GetMipmaps());
 	}
 }
 

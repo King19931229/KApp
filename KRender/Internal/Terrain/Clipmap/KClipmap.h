@@ -201,6 +201,7 @@ protected:
 	IKShaderPtr m_VSShader;
 	IKShaderPtr m_FSShader;
 	IKSamplerPtr m_Sampler;
+	IKSamplerPtr m_MipmapSampler;
 
 	IKTexturePtr m_DiffuseTexture;
 
