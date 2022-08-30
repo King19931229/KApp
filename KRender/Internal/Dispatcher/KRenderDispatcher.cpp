@@ -704,6 +704,7 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex)
 	// 更新静态数据
 	{
 		KRenderGlobal::Voxilzer.UpdateVoxel();
+		KRenderGlobal::ClipmapVoxilzer.UpdateVoxel();
 	}
 
 	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffer.primaryCommandBuffer;

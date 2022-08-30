@@ -69,12 +69,21 @@ namespace KConstantDefinition
 	{
 		glm::mat4 VIEW_PROJ[3];
 		glm::mat4 VIEW_PROJ_INV[3];
-		glm::vec4 SUNLIGHT;
+		glm::vec4 SUNLIGHT; // TODO REMOVE
 		glm::vec4 MINPOINT_SCALE;
 		glm::vec4 MAXPOINT_SCALE;
 		glm::uvec4 MISCS;
 		glm::vec4 MISCS2;
 		glm::vec4 MISCS3;
+	};
+
+	struct VOXEL_CLIPMAP
+	{
+		glm::mat4 VIEW_PROJ[6][3];
+		glm::mat4 VIEW_PROJ_INV[6][3];
+		glm::vec4 REIGION_MIN_AND_VOXELSIZE[6];
+		glm::vec4 REIGION_MAX_AND_EXTENT[6];
+		glm::uvec4 MISCS;
 	};
 
 	struct GLOBAL

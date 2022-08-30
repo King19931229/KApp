@@ -8,6 +8,7 @@ namespace KConstantDefinition
 	static ConstantBufferDetail STATIC_CASCADED_SHADOW_DETAILS;
 	static ConstantBufferDetail GLOBAL_DETAILS;
 	static ConstantBufferDetail VOXEL_DETAILS;
+	static ConstantBufferDetail VOXEL_CLIPMAP_DETAILS;
 	static ConstantBufferDetail EMPYT_DETAILS;
 
 	void SafeInit()
@@ -179,6 +180,36 @@ namespace KConstantDefinition
 				}
 				VOXEL_DETAILS.bufferSize = sizeof(VOXEL);
 			}
+
+			// VOXEL_CLIPMAP_DETAILS
+			{
+				// VIEW_PROJ
+				{
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_CLIPMAP_VIEW_PROJ, EF_R32G32B32A32_FLOAT, 6 * 4 * 3, MEMBER_SIZE(VOXEL_CLIPMAP, VIEW_PROJ), MEMBER_OFFSET(VOXEL_CLIPMAP, VIEW_PROJ) };
+					VOXEL_CLIPMAP_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// VIEW_PROJ_INV
+				{
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_CLIPMAP_VIEW_PROJ_INV, EF_R32G32B32A32_FLOAT, 6 * 4 * 3, MEMBER_SIZE(VOXEL_CLIPMAP, VIEW_PROJ_INV), MEMBER_OFFSET(VOXEL_CLIPMAP, VIEW_PROJ_INV) };
+					VOXEL_CLIPMAP_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// REIGION_MIN_AND_VOXELSIZE
+				{
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_CLIPMAP_REIGION_MIN_AND_VOXELSIZE, EF_R32G32B32A32_FLOAT, 6, MEMBER_SIZE(VOXEL_CLIPMAP, REIGION_MIN_AND_VOXELSIZE), MEMBER_OFFSET(VOXEL_CLIPMAP, REIGION_MIN_AND_VOXELSIZE) };
+					VOXEL_CLIPMAP_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// REIGION_MAX
+				{
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_CLIPMAP_REIGION_MAX_AND_EXTENT, EF_R32G32B32A32_FLOAT, 6, MEMBER_SIZE(VOXEL_CLIPMAP, REIGION_MAX_AND_EXTENT), MEMBER_OFFSET(VOXEL_CLIPMAP, REIGION_MAX_AND_EXTENT) };
+					VOXEL_CLIPMAP_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				// MISCS
+				{
+					ConstantSemanticDetail DETAIL = { CS_VOXEL_CLIPMAP_MISCS, EF_R32G32B32A32_UINT, 1, MEMBER_SIZE(VOXEL_CLIPMAP, MISCS), MEMBER_OFFSET(VOXEL_CLIPMAP, MISCS) };
+					VOXEL_DETAILS.semanticDetails.push_back(DETAIL);
+				}
+				VOXEL_CLIPMAP_DETAILS.bufferSize = sizeof(VOXEL_CLIPMAP);
+			}
 			
 			// GLOBAL
 			{
@@ -210,6 +241,8 @@ namespace KConstantDefinition
 			return STATIC_CASCADED_SHADOW_DETAILS;
 		case CBT_VOXEL:
 			return VOXEL_DETAILS;
+		case CBT_VOXEL_CLIPMAP:
+			return VOXEL_CLIPMAP_DETAILS;
 		case CBT_GLOBAL:
 			return GLOBAL_DETAILS;
 		default:

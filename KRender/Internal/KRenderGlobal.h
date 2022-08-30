@@ -29,6 +29,7 @@
 #include "Internal/Object/KRTAO.h"
 
 #include "Internal/Voxilzer/KVoxilzer.h"
+#include "Internal/Voxilzer/KClipmapVoxilzer.h"
 
 #include "KBase/Publish/KTaskExecutor.h"
 
@@ -54,6 +55,7 @@ namespace KRenderGlobal
 	extern KCascadedShadowMap CascadedShadowMap;
 	extern KRTAO RTAO;
 	extern KVoxilzer Voxilzer;
+	extern KClipmapVoxilzer ClipmapVoxilzer;
 
 	extern KFrameGraph FrameGraph;
 

@@ -202,7 +202,15 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 			KG_LOGE(LM_RENDER, "[Generate SpirV] Link Failed\n%s", program->getInfoLog());
 			return false;
 		}
-		glslang::GlslangToSpv(*program->getIntermediate(language), spirv);
+
+		glslang::SpvOptions options;
+#ifdef _DEBUG
+		options.validate = true;
+#else
+		options.optimizeSize = true;
+		options.disableOptimizer = false;
+#endif
+		glslang::GlslangToSpv(*program->getIntermediate(language), spirv, &options);
 	}
 	return true;
 }

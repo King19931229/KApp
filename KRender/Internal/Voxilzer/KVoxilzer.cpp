@@ -312,8 +312,6 @@ void KVoxilzer::UpdateProjectionMatrices()
 void KVoxilzer::SetupVoxelBuffer()
 {
 	uint32_t dimension = m_VolumeDimension;
-	uint32_t baseMipmapDimension = (dimension + 1) / 2;
-
 	m_VoxelAlbedo->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8GB8BA8_UNORM);
 	m_VoxelNormal->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8GB8BA8_UNORM);
 	m_VoxelRadiance->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8GB8BA8_UNORM);
@@ -870,11 +868,13 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 			if (entity->GetComponent(CT_TRANSFORM, &transform))
 			{
 				const glm::mat4& finalTran = transform->GetFinal();
-				const glm::mat4& prevFinalTran = transform->GetPrevFinal();
 
-				KConstantDefinition::OBJECT objectData;
-				objectData.MODEL = finalTran;
-				objectData.PRVE_MODEL = prevFinalTran;
+				struct ObjectData
+				{
+					glm::mat4 model;
+				}objectData;
+				objectData.model = finalTran;
+
 				command.objectUsage.binding = SHADER_BINDING_OBJECT;
 				command.objectUsage.range = sizeof(objectData);
 

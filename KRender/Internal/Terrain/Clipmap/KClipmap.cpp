@@ -1,15 +1,8 @@
 #include "KClipmap.h"
 #include "KBase/Interface/IKLog.h"
+#include "KBase/Publish/KMath.h"
 #include <Internal/KRenderGlobal.h>
 #include "glm/glm.hpp"
-
-template<typename T>
-inline T mod(T x, T y)
-{
-	if (y < 0) y = -y;
-	if (x < 0) x += (-x / y + 1) * y;
-	return x % y;
-}
 
 const VertexFormat KClipmap::ms_VertexFormats[] = { VF_TERRAIN_POS };
 
@@ -440,12 +433,12 @@ int32_t KClipmapLevel::TextureCoordYToWorldY(int32_t j)
 
 int32_t KClipmapLevel::WorldXToTextureCoordX(int32_t x)
 {
-	return mod((x - m_BottomLeftX) / m_GridSize, m_GridCount);
+	return KMath::Mod((x - m_BottomLeftX) / m_GridSize, m_GridCount);
 }
 
 int32_t KClipmapLevel::WorldYToTextureCoordY(int32_t y)
 {
-	return mod((y - m_BottomLeftY) / m_GridSize, m_GridCount);
+	return KMath::Mod((y - m_BottomLeftY) / m_GridSize, m_GridCount);
 }
 
 void KClipmapLevel::ScrollPosition(int32_t bottomLeftX, int32_t bottomLeftY, TrimLocation trim)
@@ -790,10 +783,10 @@ float KClipmapLevel::GetHeight(int32_t x, int32_t y) const
 	float s = idx_x - idx_x_floor;
 	float t = idx_y - idx_y_floor;
 
-	idx_x_floor = mod(idx_x_floor, m_GridCount);
-	idx_x_ceil	= mod(idx_x_ceil, m_GridCount);
-	idx_y_floor = mod(idx_y_floor, m_GridCount);
-	idx_y_ceil	= mod(idx_y_ceil, m_GridCount);
+	idx_x_floor = KMath::Mod(idx_x_floor, m_GridCount);
+	idx_x_ceil	= KMath::Mod(idx_x_ceil, m_GridCount);
+	idx_y_floor = KMath::Mod(idx_y_floor, m_GridCount);
+	idx_y_ceil	= KMath::Mod(idx_y_ceil, m_GridCount);
 
 	float h0 = m_ClipHeightData[idx_y_floor * m_GridCount + idx_x_floor];
 	float h1 = m_ClipHeightData[idx_y_floor * m_GridCount + idx_x_ceil];

@@ -126,6 +126,7 @@
     <ClInclude Include="Internal\Terrain\Clipmap\KClipmap.h" />
     <ClInclude Include="Internal\Terrain\KHeightMap.h" />
     <ClInclude Include="Internal\Terrain\KTerrain.h" />
+    <ClInclude Include="Internal\Voxilzer\KClipmapVoxilzer.h" />
     <ClInclude Include="Internal\Voxilzer\KVoxilzer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanAccelerationStructure.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanCommandBuffer.h" />
@@ -230,6 +231,7 @@
     <ClCompile Include="Internal\Terrain\Clipmap\KClipmap.cpp" />
     <ClCompile Include="Internal\Terrain\KHeightMap.cpp" />
     <ClCompile Include="Internal\Terrain\KTerrain.cpp" />
+    <ClCompile Include="Internal\Voxilzer\KClipmapVoxilzer.cpp" />
     <ClCompile Include="Internal\Voxilzer\KVoxilzer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanAccelerationStructure.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanBuffer.cpp" />

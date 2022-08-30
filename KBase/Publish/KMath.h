@@ -7,6 +7,15 @@
 
 namespace KMath
 {
+	// 永远返回正数
+	template<typename T>
+	inline T Mod(T x, T y)
+	{
+		if (y < 0) y = -y;
+		if (x < 0) x += (-x / y + 1) * y;
+		return x % y;
+	}
+
 	inline glm::vec3 ExtractPosition(const glm::mat4& transform)
 	{
 		glm::vec4 transformPos = transform * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);

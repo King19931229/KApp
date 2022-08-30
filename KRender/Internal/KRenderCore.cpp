@@ -129,6 +129,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::CascadedShadowMap.Init(&m_Camera, 3, 2048, 1.0f, (uint32_t)width, (uint32_t)height);
 
 	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 128, (uint32_t)width, (uint32_t)height);
+	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 64, 3, (uint32_t)width, (uint32_t)height);
 
 	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
 	KRenderGlobal::FrameGraph.Alloc();
@@ -148,6 +149,7 @@ bool KRenderCore::UnInitGlobalManager()
 	KRenderGlobal::CascadedShadowMap.UnInit();
 	KRenderGlobal::RTAO.UnInit();
 	KRenderGlobal::Voxilzer.UnInit();
+	KRenderGlobal::ClipmapVoxilzer.UnInit();
 
 	KRenderGlobal::RayTraceManager.UnInit();
 	KRenderGlobal::GBuffer.UnInit();

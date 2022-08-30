@@ -19,54 +19,20 @@ layout(location = 0) out GeometryOut
 	flat vec4 triangleAABB;
 } Out;
 
-int CalculateAxis()
-{
-	vec3 p1 = gl_in[1].gl_Position.xyz - gl_in[0].gl_Position.xyz;
-	vec3 p2 = gl_in[2].gl_Position.xyz - gl_in[0].gl_Position.xyz;
-	vec3 faceNormal = cross(p1, p2);
-
-	float nDX = abs(faceNormal.x);
-	float nDY = abs(faceNormal.y);
-	float nDZ = abs(faceNormal.z);
-
-	if( nDX > nDY && nDX > nDZ )
-	{
-		return 0;
-	}
-	else if( nDY > nDX && nDY > nDZ  )
-	{
-		return 1;
-	}
-	else
-	{
-		return 2;
-	}
-}
-
-vec4 AxisAlignedBoundingBox(vec4 pos[3], vec2 pixelDiagonal)
-{
-	vec4 aabb;
-
-	aabb.xy = min(pos[2].xy, min(pos[1].xy, pos[0].xy));
-	aabb.zw = max(pos[2].xy, max(pos[1].xy, pos[0].xy));
-
-	// enlarge by half-pixel
-	aabb.xy -= pixelDiagonal;
-	aabb.zw += pixelDiagonal;
-
-	return aabb;
-}
+#include "voxelzation_public.h"
 
 void main()
 {
-	vec2 texCoord[3];
 	int selectedIndex = CalculateAxis();
 	mat4 viewProjection = voxel.viewproj[selectedIndex];
 	mat4 viewProjectionI = voxel.viewproj_inv[selectedIndex];
 
+	vec2 texCoord[3];
+	vec3 normal[3];
 	for (int i = 0; i < gl_in.length(); i++)
 	{
 		texCoord[i] = In[i].texCoord; 
+		normal[i] = In[i].normal; 
 	}
 
 	//transform vertices to clip space
@@ -87,19 +53,21 @@ void main()
 	{
 		vec4 vertexTemp = pos[2];
 		vec2 texCoordTemp = texCoord[2];
+		vec3 normalTemp = normal[2];
 		
 		pos[2] = pos[1];
 		texCoord[2] = texCoord[1];
+		normal[2] = normal[1];
 	
 		pos[1] = vertexTemp;
 		texCoord[1] = texCoordTemp;
+		normal[1] = normalTemp;
 	}
 
 	vec2 halfPixel = vec2(1.0f / volumeDimension);
 
 	if(trianglePlane.z == 0.0f) return;
 
-	// vec4 oriPos[3] = pos;
 	// expanded aabb for triangle
 	Out.triangleAABB = AxisAlignedBoundingBox(pos, halfPixel);
 #if 0
@@ -155,7 +123,7 @@ void main()
 
 		gl_Position = pos[i];
 		Out.position = pos[i].xyz;
-		Out.normal = In[i].normal;
+		Out.normal = normal[i];
 		Out.texCoord = texCoord[i];
 		Out.wsPosition = voxelPos.xyz * volumeDimension;
 

@@ -486,6 +486,9 @@
     <ClInclude Include="Internal\Terrain\KTerrain.h">
       <Filter>Internal\Terrain</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Voxilzer\KClipmapVoxilzer.h">
+      <Filter>Internal\Voxilzer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -784,6 +787,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Terrain\KTerrain.cpp">
       <Filter>Internal\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Voxilzer\KClipmapVoxilzer.cpp">
+      <Filter>Internal\Voxilzer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -32,9 +32,13 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/voxelzation.vert", m_VoxelVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/voxelzation.geom", m_VoxelGSShader, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/voxelzation.frag", m_VoxelFSShader, true));
 
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/voxelzation.frag", m_VoxelFSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/voxelzation_sparse.frag", m_VoxelSparseFSShader, true));
+
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/voxelzation_clipmap.vert", m_VoxelClipmapVSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/voxelzation_clipmap.geom", m_VoxelClipmapGSShader, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/voxelzation_clipmap.frag", m_VoxelClipmapFSShader, true));
 
 	for (PipelineStage stage :
 	{
@@ -281,16 +285,16 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 
 bool KMaterialSubMesh::CreateVoxelPipeline()
 {
+	for (PipelineStage stage : {PIPELINE_STAGE_VOXEL, PIPELINE_STAGE_SPARSE_VOXEL, PIPELINE_STAGE_CLIPMAP_VOXEL})
 	{
-		SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_VOXEL]);
+		SAFE_UNINIT(m_Pipelines[stage]);
 
-		IKPipelinePtr& pipeline = m_Pipelines[PIPELINE_STAGE_VOXEL];
+		IKPipelinePtr& pipeline = m_Pipelines[stage];
 		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
 
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
 		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
-		pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
@@ -300,66 +304,47 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetDepthFunc(CF_NEVER, false, false);
 
-		pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
-		pipeline->SetShader(ST_FRAGMENT, m_VoxelFSShader);
-
-		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
-		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
-
-		pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, KRenderGlobal::Voxilzer.GetVoxelAlbedo(), EF_R32_UINT);
-		pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal(), EF_R32_UINT);
-		pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive(), EF_R32_UINT);
-		pipeline->SetStorageImage(VOXEL_BINDING_STATIC_FLAG, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
-
-		const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
-		for (uint8_t i = 0; i < textureBinding.GetNumSlot(); ++i)
+		if (stage == PIPELINE_STAGE_VOXEL)
 		{
-			IKTexturePtr texture = textureBinding.GetTexture(i);
-			IKSamplerPtr sampler = textureBinding.GetSampler(i);
+			pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
+			pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
+			pipeline->SetShader(ST_FRAGMENT, m_VoxelFSShader);
 
-			if (!texture || !sampler)
-			{
-				KRenderGlobal::TextureManager.GetErrorTexture(texture);
-				KRenderGlobal::TextureManager.GetErrorSampler(sampler);
-			}
+			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
 
-			if (i == MTS_DIFFUSE)
-			{
-				pipeline->SetSampler(VOXEL_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
-			}
+			pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, KRenderGlobal::Voxilzer.GetVoxelAlbedo(), EF_R32_UINT);
+			pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal(), EF_R32_UINT);
+			pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive(), EF_R32_UINT);
+			pipeline->SetStorageImage(VOXEL_BINDING_STATIC_FLAG, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
 		}
+		else if(stage == PIPELINE_STAGE_SPARSE_VOXEL)
+		{
+			pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
+			pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
+			pipeline->SetShader(ST_FRAGMENT, m_VoxelSparseFSShader);
 
-		ASSERT_RESULT(pipeline->Init());
-	}
+			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
 
-	{
-		SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_SPARSE_VOXEL]);
+			pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTER, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCounterBuffer());
+			pipeline->SetStorageBuffer(VOXEL_BINDING_FRAGMENTLIST, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetFragmentlistBuffer());
+			pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTONLY, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCountOnlyBuffer());
+		}
+		else
+		{
+			pipeline->SetShader(ST_VERTEX, m_VoxelClipmapVSShader);
+			pipeline->SetShader(ST_GEOMETRY, m_VoxelClipmapGSShader);
+			pipeline->SetShader(ST_FRAGMENT, m_VoxelClipmapFSShader);
 
-		IKPipelinePtr& pipeline = m_Pipelines[PIPELINE_STAGE_SPARSE_VOXEL];
-		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
+			IKUniformBufferPtr voxelClipmapBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
+			pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelClipmapBuffer);
 
-		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
-
-		pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
-		pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
-
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_NEVER, false, false);
-
-		pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
-		pipeline->SetShader(ST_FRAGMENT, m_VoxelSparseFSShader);
-
-		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
-		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
-
-		pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTER, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCounterBuffer());
-		pipeline->SetStorageBuffer(VOXEL_BINDING_FRAGMENTLIST, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetFragmentlistBuffer());
-		pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTONLY, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCountOnlyBuffer());
+			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_ALBEDO, KRenderGlobal::ClipmapVoxilzer.GetVoxelAlbedo(), EF_R32_UINT);
+			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, KRenderGlobal::ClipmapVoxilzer.GetVoxelNormal(), EF_R32_UINT);
+			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_EMISSION, KRenderGlobal::ClipmapVoxilzer.GetVoxelEmissive(), EF_R32_UINT);
+			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_STATIC_FLAG, KRenderGlobal::ClipmapVoxilzer.GetStaticFlag(), EF_UNKNOWN);
+		}
 
 		const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
 		for (uint8_t i = 0; i < textureBinding.GetNumSlot(); ++i)

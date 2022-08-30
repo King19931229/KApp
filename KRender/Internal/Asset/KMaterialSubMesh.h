@@ -33,6 +33,10 @@ protected:
 	IKShaderPtr				m_VoxelFSShader;
 	IKShaderPtr				m_VoxelSparseFSShader;
 
+	IKShaderPtr				m_VoxelClipmapVSShader;
+	IKShaderPtr				m_VoxelClipmapGSShader;
+	IKShaderPtr				m_VoxelClipmapFSShader;
+
 	KMaterialShader			m_GBufferShaderGroup;
 
 	bool					m_MateriaShaderTriggerLoaded;
