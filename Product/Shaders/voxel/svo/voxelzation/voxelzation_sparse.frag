@@ -1,6 +1,6 @@
 #include "public.h"
-#include "voxel_common.h"
-#include "octree_common.h"
+#include "voxel/svo/voxel_common.h"
+#include "voxel/svo/octree/octree_common.h"
 
 #extension GL_ARB_shader_image_load_store : require
 #extension GL_EXT_shader_image_load_formatted : require

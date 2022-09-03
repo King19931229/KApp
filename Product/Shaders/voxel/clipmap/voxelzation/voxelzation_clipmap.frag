@@ -1,5 +1,5 @@
 #include "public.h"
-#include "voxel_clipmap_common.h"
+#include "voxel/clipmap/voxel_clipmap_common.h"
 
 #extension GL_ARB_shader_image_load_store : require
 #extension GL_EXT_shader_image_load_formatted : require

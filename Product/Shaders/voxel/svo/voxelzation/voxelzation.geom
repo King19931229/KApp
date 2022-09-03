@@ -1,5 +1,5 @@
 #include "public.h"
-#include "voxel_common.h"
+#include "voxel/svo/voxel_common.h"
 
 layout(location = 0) in Vertex
 {
@@ -19,7 +19,7 @@ layout(location = 0) out GeometryOut
 	flat vec4 triangleAABB;
 } Out;
 
-#include "voxelzation_public.h"
+#include "voxel/voxelzation_public.h"
 
 void main()
 {

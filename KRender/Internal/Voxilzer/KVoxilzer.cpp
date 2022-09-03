@@ -450,11 +450,11 @@ void KVoxilzer::SetupVoxelVolumes(uint32_t dimension)
 
 void KVoxilzer::SetupVoxelDrawPipeline()
 {
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/draw_voxels.vert", m_VoxelDrawVS, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/draw_voxels_octree.vert", m_VoxelDrawOctreeVS, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/draw_voxels.geom", m_VoxelDrawGS, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/draw_voxels_wireframe.geom", m_VoxelWireFrameDrawGS, true));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/draw_voxels.frag", m_VoxelDrawFS, true));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/svo/draw/draw_voxels.vert", m_VoxelDrawVS, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/svo/draw/draw_voxels_octree.vert", m_VoxelDrawOctreeVS, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/svo/draw/draw_voxels.geom", m_VoxelDrawGS, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/svo/draw/draw_voxels_wireframe.geom", m_VoxelWireFrameDrawGS, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/svo/draw/draw_voxels.frag", m_VoxelDrawFS, false));
 
 	enum
 	{
@@ -570,7 +570,7 @@ void KVoxilzer::SetupRadiancePipeline()
 		injectRadiancePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		injectRadiancePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE_DATA, m_OctreeDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		injectRadiancePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE_MIPMAP_DATA, m_OctreeMipmapDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-		injectRadiancePipeline->Init("voxel/inject_radiance_octree.comp");
+		injectRadiancePipeline->Init("voxel/svo/lighting/inject_radiance_octree.comp");
 	}
 	else
 	{
@@ -578,7 +578,7 @@ void KVoxilzer::SetupRadiancePipeline()
 		injectRadiancePipeline->BindStorageImage(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 		injectRadiancePipeline->BindStorageImage(VOXEL_BINDING_EMISSION_MAP, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
 		injectRadiancePipeline->BindStorageImage(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
-		injectRadiancePipeline->Init("voxel/inject_radiance.comp");
+		injectRadiancePipeline->Init("voxel/svo/lighting/inject_radiance.comp");
 	}
 
 	// Inject Propagation
@@ -613,11 +613,11 @@ void KVoxilzer::SetupRadiancePipeline()
 
 	if (m_VoxelUseOctree)
 	{
-		injectPropagationPipeline->Init("voxel/inject_propagation_octree.comp");
+		injectPropagationPipeline->Init("voxel/svo/lighting/inject_propagation_octree.comp");
 	}
 	else
 	{
-		injectPropagationPipeline->Init("voxel/inject_propagation.comp");
+		injectPropagationPipeline->Init("voxel/svo/lighting/inject_propagation.comp");
 	}
 }
 
@@ -645,12 +645,12 @@ void KVoxilzer::SetupMipmapPipeline()
 	{
 		mipmapBasePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		mipmapBasePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE_DATA, m_OctreeDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-		mipmapBasePipeline->Init("voxel/aniso_mipmapbase_octree.comp");
+		mipmapBasePipeline->Init("voxel/svo/lighting/aniso_mipmapbase_octree.comp");
 	}
 	else
 	{
 		mipmapBasePipeline->BindSampler(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), m_LinearSampler, false);
-		mipmapBasePipeline->Init("voxel/aniso_mipmapbase.comp");
+		mipmapBasePipeline->Init("voxel/svo/lighting/aniso_mipmapbase.comp");
 	}
 
 	m_MipmapVolumePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL, voxelBuffer);
@@ -658,7 +658,7 @@ void KVoxilzer::SetupMipmapPipeline()
 	m_MipmapVolumePipeline->BindSamplers(VOXEL_BINDING_TEXMIPMAP_IN, targets, samplers, false);
 	m_MipmapVolumePipeline->BindStorageImages(VOXEL_BINDING_TEXMIPMAP_OUT, targets, EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 
-	m_MipmapVolumePipeline->Init("voxel/aniso_mipmapvolume.comp");
+	m_MipmapVolumePipeline->Init("voxel/svo/lighting/aniso_mipmapvolume.comp");
 }
 
 void KVoxilzer::SetupOctreeMipmapPipeline()
@@ -670,13 +670,13 @@ void KVoxilzer::SetupOctreeMipmapPipeline()
 	m_OctreeMipmapBasePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 	m_OctreeMipmapBasePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE_DATA, m_OctreeDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 	m_OctreeMipmapBasePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE_MIPMAP_DATA, m_OctreeMipmapDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-	m_OctreeMipmapBasePipeline->Init("voxel/aniso_octree_mipmapbase.comp");
+	m_OctreeMipmapBasePipeline->Init("voxel/svo/lighting/aniso_octree_mipmapbase.comp");
 
 	m_OctreeMipmapVolumePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL, voxelBuffer);
 	m_OctreeMipmapVolumePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 	m_OctreeMipmapVolumePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 	m_OctreeMipmapVolumePipeline->BindStorageBuffer(VOXEL_BINDING_OCTREE_MIPMAP_DATA, m_OctreeMipmapDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-	m_OctreeMipmapVolumePipeline->Init("voxel/aniso_octree_mipmapvolume.comp");
+	m_OctreeMipmapVolumePipeline->Init("voxel/svo/lighting/aniso_octree_mipmapvolume.comp");
 }
 
 void KVoxilzer::Resize(uint32_t width, uint32_t height)
@@ -1437,33 +1437,33 @@ void KVoxilzer::SetupOctreeBuildPipeline()
 		m_OctreeTagNodePipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeTagNodePipeline->BindStorageBuffer(OCTREE_BINDING_FRAGMENTLIST, m_FragmentlistBuffer, COMPUTE_RESOURCE_IN, true);
 		m_OctreeTagNodePipeline->BindDynamicUniformBuffer(OCTREE_BINDING_OBJECT);
-		m_OctreeTagNodePipeline->Init("voxel/octree_tag_node.comp");
+		m_OctreeTagNodePipeline->Init("voxel/svo/octree/octree_tag_node.comp");
 
 		m_OctreeInitNodePipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeInitNodePipeline->BindStorageBuffer(OCTREE_BINDING_BUILDINFO, m_BuildInfoBuffer, COMPUTE_RESOURCE_IN, true);
-		m_OctreeInitNodePipeline->Init("voxel/octree_init_node.comp");
+		m_OctreeInitNodePipeline->Init("voxel/svo/octree/octree_init_node.comp");
 
 		m_OctreeAllocNodePipeline->BindStorageBuffer(OCTREE_BINDING_COUNTER, m_CounterBuffer, COMPUTE_RESOURCE_IN, true);
 		m_OctreeAllocNodePipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeAllocNodePipeline->BindStorageBuffer(OCTREE_BINDING_BUILDINFO, m_BuildInfoBuffer, COMPUTE_RESOURCE_IN, true);
-		m_OctreeAllocNodePipeline->Init("voxel/octree_alloc_node.comp");
+		m_OctreeAllocNodePipeline->Init("voxel/svo/octree/octree_alloc_node.comp");
 
 		m_OctreeModifyArgPipeline->BindStorageBuffer(OCTREE_BINDING_COUNTER, m_CounterBuffer, COMPUTE_RESOURCE_IN, true);
 		m_OctreeModifyArgPipeline->BindStorageBuffer(OCTREE_BINDING_BUILDINFO, m_BuildInfoBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeModifyArgPipeline->BindStorageBuffer(OCTREE_BINDING_INDIRECT, m_BuildIndirectBuffer, COMPUTE_RESOURCE_OUT, true);
-		m_OctreeModifyArgPipeline->Init("voxel/octree_modify_arg.comp");
+		m_OctreeModifyArgPipeline->Init("voxel/svo/octree/octree_modify_arg.comp");
 
 		m_OctreeInitDataPipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeInitDataPipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE_DATA, m_OctreeDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeInitDataPipeline->BindStorageBuffer(OCTREE_BINDING_BUILDINFO, m_BuildInfoBuffer, COMPUTE_RESOURCE_IN, true);
 		m_OctreeInitDataPipeline->BindStorageBuffer(OCTREE_BINDING_COUNTER, m_CounterBuffer, COMPUTE_RESOURCE_IN, true);
-		m_OctreeInitDataPipeline->Init("voxel/octree_init_data.comp");
+		m_OctreeInitDataPipeline->Init("voxel/svo/octree/octree_init_data.comp");
 
 		m_OctreeAssignDataPipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE, m_OctreeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeAssignDataPipeline->BindStorageBuffer(OCTREE_BINDING_OCTREE_DATA, m_OctreeDataBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 		m_OctreeAssignDataPipeline->BindStorageBuffer(OCTREE_BINDING_FRAGMENTLIST, m_FragmentlistBuffer, COMPUTE_RESOURCE_IN, true);
 		m_OctreeAssignDataPipeline->BindDynamicUniformBuffer(OCTREE_BINDING_OBJECT);
-		m_OctreeAssignDataPipeline->Init("voxel/octree_assign_data.comp");
+		m_OctreeAssignDataPipeline->Init("voxel/svo/octree/octree_assign_data.comp");
 	}
 }
 
@@ -1519,9 +1519,9 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 	m_OctreeRayTestCommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
 
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/quad.vert", m_QuadVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/light_pass.frag", m_LightPassFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/light_pass_octree.frag", m_LightPassOctreeFS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/octree_raytest.frag", m_OctreeRayTestFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/svo/lighting/light_pass.frag", m_LightPassFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/svo/lighting/light_pass_octree.frag", m_LightPassOctreeFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/svo/octree/octree_raytest.frag", m_OctreeRayTestFS, false);
 
 	renderDevice->CreatePipeline(m_VoxelDrawPipeline);
 	renderDevice->CreatePipeline(m_VoxelWireFrameDrawPipeline);

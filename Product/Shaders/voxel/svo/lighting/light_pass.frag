@@ -1,5 +1,5 @@
 #include "public.h"
-#include "voxel_common.h"
+#include "voxel/svo/voxel_common.h"
 
 layout(location = 0) out vec4 fragColor;
 
@@ -19,8 +19,8 @@ layout(binding = VOXEL_BINDING_GBUFFER_SPECULAR) uniform sampler2D gSpecular;
 layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
 layout(binding = VOXEL_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
 layout(binding = VOXEL_BINDING_OCTREE_MIPMAP_DATA) buffer uuOctreeMipmapData { uint uOctreeMipmapData[][6]; };
-#include "octree_common.h"
-#include "octree_util.h"
+#include "voxel/svo/octree/octree_common.h"
+#include "voxel/svo/octree/octree_util.h"
 #else
 layout(binding = VOXEL_BINDING_NORMAL) uniform sampler3D voxelVisibility;
 layout(binding = VOXEL_BINDING_RADIANCE) uniform sampler3D voxelTex;

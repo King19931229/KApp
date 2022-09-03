@@ -1,5 +1,5 @@
 #include "public.h"
-#include "voxel_common.h"
+#include "voxel/svo/voxel_common.h"
 
 #extension GL_ARB_shader_image_load_store : require
 
@@ -16,8 +16,8 @@ layout(binding = VOXEL_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeD
 layout(binding = VOXEL_BINDING_OCTREE_MIPMAP_DATA) buffer uuOctreeMipmapData { uint uOctreeMipmapData[][6]; };
 layout(binding = VOXEL_BINDING_TEXMIPMAP_OUT) uniform sampler3D voxelTexMipmap[6];
 layout(binding = VOXEL_BINDING_TEXMIPMAP_IN, rgba8) uniform readonly image3D voxelMipmap;
-#include "octree_common.h"
-#include "octree_util.h"
+#include "voxel/svo/octree/octree_common.h"
+#include "voxel/svo/octree/octree_util.h"
 #else
 layout(binding = VOXEL_BINDING_ALBEDO, rgba8) uniform readonly image3D voxelAlbedo;
 layout(binding = VOXEL_BINDING_NORMAL, rgba8) uniform readonly image3D voxelNormal;

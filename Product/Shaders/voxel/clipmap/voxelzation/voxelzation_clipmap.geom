@@ -1,5 +1,5 @@
 #include "public.h"
-#include "voxel_clipmap_common.h"
+#include "voxel/clipmap/voxel_clipmap_common.h"
 
 layout(binding = BINDING_OBJECT)
 uniform Object
@@ -26,7 +26,7 @@ layout(location = 0) out GeometryOut
 	flat vec4 triangleAABB;
 } Out;
 
-#include "voxelzation_public.h".
+#include "voxel/voxelzation_public.h".
 
 void main()
 {
