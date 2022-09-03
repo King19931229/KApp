@@ -13,6 +13,8 @@ uint volumeDimension = voxel_clipmap.miscs[0];
 uint borderSize = voxel_clipmap.miscs[1];
 uint storeVisibility = voxel_clipmap.miscs[2];
 
+#define VOXEL_CLIPMAP_GROUP_SIZE 8
+
 vec4 convRGBA8ToVec4(uint val)
 {
 	return vec4(float((val & 0x000000FF)), 
@@ -64,6 +66,38 @@ ivec3 WorldPositionToImageCoord(vec3 posW, uint level)
 	imageCoords.y += int((volumeDimension + 2 * borderSize) * level);
 	
 	return imageCoords;
+}
+
+ivec3 ClipCoordToImageCoord(ivec3 p, int resolution)
+{
+	return (p + ivec3(resolution) * (abs(p / resolution) + 1)) & (resolution - 1);
+}
+
+ivec3 WorldPositionToClipCoord(vec3 posW, uint level)
+{
+	const float voxelSize = voxel_clipmap.reigon_min_and_voxelsize[level].w;
+	return ivec3(floor(posW / voxelSize));
+}
+
+bool InsideUpdateRegion(ivec3 p, uint level)
+{
+	for (uint i = 0; i < 3; ++i)
+	{
+		uint idx = level * 3 + i;
+		if (voxel_clipmap.update_region_min[idx].w > 0 && voxel_clipmap.update_region_max[idx].w > 0)
+		{
+			if (any(greaterThanEqual(p, voxel_clipmap.update_region_max[idx].xyz)))
+			{
+				continue;
+			}
+			if (any(lessThan(p, voxel_clipmap.update_region_min[idx].xyz)))
+			{
+				continue;
+			}
+			return true;
+		}
+	}
+	return false;
 }
 
 #endif

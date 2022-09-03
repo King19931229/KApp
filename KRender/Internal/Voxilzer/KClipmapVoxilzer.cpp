@@ -158,11 +158,15 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 {
 	glm::mat4 viewProjections[3 * 6];
 	glm::mat4 viewProjectionIs[3 * 6];
+	glm::ivec4 updateRegionMins[3 * 6];
+	glm::ivec4 updateRegionMaxs[3 * 6];
 	glm::vec4 minAndVoxelSize[6];
 	glm::vec4 maxAndExtent[6];
 
 	ZERO_MEMORY(viewProjections);
 	ZERO_MEMORY(viewProjectionIs);
+	ZERO_MEMORY(updateRegionMins);
+	ZERO_MEMORY(updateRegionMaxs);
 	ZERO_MEMORY(minAndVoxelSize);
 	ZERO_MEMORY(maxAndExtent);
 
@@ -180,6 +184,21 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 			glm::vec3 worldMax = level.GetWorldMax();
 			memcpy(minAndVoxelSize + i, &glm::vec4(worldMin, level.GetVoxelSize()), sizeof(glm::vec4));
 			memcpy(maxAndExtent + i, &glm::vec4(worldMax, level.GetWorldExtent()), sizeof(glm::vec4));
+
+			const std::vector<KClipmapVoxelizationRegion>& updateRegions = level.GetUpdateRegions();
+			for (uint32_t j = 0; j < 3; ++j)
+			{
+				if (j < updateRegions.size())
+				{
+					updateRegionMins[i * 3 + j] = glm::ivec4(updateRegions[j].min, 1);
+					updateRegionMaxs[i * 3 + j] = glm::ivec4(updateRegions[j].max, 1);
+				}
+				else
+				{
+					updateRegionMins[i * 3 + j].w = 0;
+					updateRegionMaxs[i * 3 + j].w = 0;
+				}
+			}
 		}
 	}
 
@@ -203,6 +222,18 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 			assert(sizeof(glm::mat4) * 3 * 6 == detail.size);
 			memcpy(pWritePos, viewProjectionIs, sizeof(viewProjectionIs));
 			pWritePos = POINTER_OFFSET(pWritePos, sizeof(viewProjectionIs));
+		}
+		if (detail.semantic == CS_VOXEL_CLIPMAP_UPDATE_REGION_MIN)
+		{
+			assert(sizeof(glm::vec4) * 3 * 6 == detail.size);
+			memcpy(pWritePos, updateRegionMins, sizeof(updateRegionMins));
+			pWritePos = POINTER_OFFSET(pWritePos, sizeof(updateRegionMins));
+		}
+		if (detail.semantic == CS_VOXEL_CLIPMAP_UPDATE_REGION_MAX)
+		{
+			assert(sizeof(glm::vec4) * 3 * 6 == detail.size);
+			memcpy(pWritePos, updateRegionMaxs, sizeof(updateRegionMaxs));
+			pWritePos = POINTER_OFFSET(pWritePos, sizeof(updateRegionMaxs));
 		}
 		if (detail.semantic == CS_VOXEL_CLIPMAP_REIGION_MIN_AND_VOXELSIZE)
 		{
@@ -240,6 +271,7 @@ void KClipmapVoxilzer::UpdateInternal()
 
 	m_PrimaryCommandBuffer->BeginPrimary();
 	{
+		ClearUpdateRegion(m_PrimaryCommandBuffer);
 		VoxelizeStaticScene(m_PrimaryCommandBuffer);
 	}
 	m_PrimaryCommandBuffer->End();
@@ -315,6 +347,38 @@ std::vector<KClipmapVoxelizationRegion> KClipmapVoxilzer::ComputeRevoxelizationR
 	}
 
 	return regions;
+}
+
+void KClipmapVoxilzer::ClearUpdateRegion(IKCommandBufferPtr commandBuffer)
+{
+	for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
+	{
+		const KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
+
+		for (const KClipmapVoxelizationRegion& region : level.GetUpdateRegions())
+		{
+			struct ObjectData
+			{
+				glm::ivec4 regiogMin;
+				glm::ivec4 regionMax;
+				glm::ivec4 params;
+			} objectData;
+
+			objectData.regiogMin = glm::ivec4(region.min, 0);
+			objectData.regionMax = glm::ivec4(region.max, 0);
+			objectData.params[0] = levelIdx;
+			objectData.params[1] = level.GetExtent();
+
+			glm::uvec3 group = (region.max - region.min + glm::ivec3(VOXEL_CLIPMAP_GROUP_SIZE - 1)) / glm::ivec3(VOXEL_CLIPMAP_GROUP_SIZE);
+
+			KDynamicConstantBufferUsage usage;
+			usage.binding = SHADER_BINDING_OBJECT;
+			usage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
+
+			m_ClearRegionPipeline->Execute(commandBuffer, group.x, group.y, group.z, &usage);
+		}
+	}
 }
 
 void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
@@ -394,6 +458,8 @@ void KClipmapVoxilzer::UpdateVoxel()
 
 			level.SetUpdateRegions({ KClipmapVoxelizationRegion(level.GetMin(), level.GetMax()) });
 		}
+
+		m_VoxelNeedUpdate = true;
 	}
 	else
 	{
@@ -428,6 +494,21 @@ void KClipmapVoxilzer::SetupVoxelBuffer()
 	m_VoxelRadiance->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionX, 1, EF_R8GB8BA8_UNORM);
 }
 
+void KClipmapVoxilzer::SetupVoxelPipeline()
+{
+	IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+
+	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
+	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
+	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_EMISSION, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
+	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_STATIC_FLAG, m_StaticFlag->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
+
+	m_ClearRegionPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
+	m_ClearRegionPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+
+	m_ClearRegionPipeline->Init("voxel/clipmap/lighting/clear_region.comp");
+}
+
 void KClipmapVoxilzer::SetupVoxelReleatedData()
 {
 	m_VoxelRenderPassTarget->InitFromColor(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, 1, EF_R8_UNORM);
@@ -443,6 +524,7 @@ void KClipmapVoxilzer::SetupVoxelReleatedData()
 	m_LightPassRenderPass->Init();
 
 	SetupVoxelBuffer();
+	SetupVoxelPipeline();
 }
 
 void KClipmapVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
@@ -485,6 +567,8 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 	renderDevice->CreateRenderTarget(m_VoxelNormal);
 	renderDevice->CreateRenderTarget(m_VoxelEmissive);
 	renderDevice->CreateRenderTarget(m_VoxelRadiance);
+
+	renderDevice->CreateComputePipeline(m_ClearRegionPipeline);
 
 	renderDevice->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
@@ -540,6 +624,8 @@ bool KClipmapVoxilzer::UnInit()
 	SAFE_UNINIT(m_LightingCommandBuffer);
 	SAFE_UNINIT(m_PrimaryCommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
+
+	SAFE_UNINIT(m_ClearRegionPipeline);
 
 	SAFE_UNINIT(m_StaticFlag);
 	SAFE_UNINIT(m_VoxelAlbedo);

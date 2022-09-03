@@ -79,6 +79,11 @@ public:
 class KClipmapVoxilzer
 {
 protected:
+	enum
+	{
+		VOXEL_CLIPMAP_GROUP_SIZE = 8
+	};
+
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
 	uint32_t m_Width;
@@ -109,6 +114,8 @@ protected:
 	IKRenderTargetPtr m_LightPassTarget;
 	IKRenderPassPtr m_LightPassRenderPass;
 
+	IKComputePipelinePtr m_ClearRegionPipeline;
+
 	std::vector<KClipmapVoxilzerLevel> m_ClipLevels;
 	EntityObserverFunc m_OnSceneChangedFunc;
 
@@ -120,12 +127,14 @@ protected:
 	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
 	void SetupVoxelReleatedData();
 	void SetupVoxelBuffer();
+	void SetupVoxelPipeline();
 
 	glm::ivec3 ComputeMovementByCamera(uint32_t levelIdx);
 	std::vector<KClipmapVoxelizationRegion> ComputeRevoxelizationRegionsByMovement(uint32_t levelIdx, const glm::ivec3& movement);
 
 	void UpdateVoxelBuffer();
 	void UpdateInternal();
+	void ClearUpdateRegion(IKCommandBufferPtr commandBuffer);
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
 public:
 	KClipmapVoxilzer();

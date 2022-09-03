@@ -96,9 +96,15 @@ namespace KVulkanHelper
 		case EF_R32_UINT:
 			vkFormat = VK_FORMAT_R32_UINT;
 			return true;
-
 		case EF_R32G32B32A32_UINT:
 			vkFormat = VK_FORMAT_R32G32B32A32_UINT;
+			return true;
+
+		case EF_R32_INT:
+			vkFormat = VK_FORMAT_R32_SINT;
+			return true;
+		case EF_R32G32B32A32_INT:
+			vkFormat = VK_FORMAT_R32G32B32A32_SINT;
 			return true;
 
 		case EF_ETC1_R8G8B8_UNORM:

@@ -79,8 +79,10 @@ namespace KConstantDefinition
 
 	struct VOXEL_CLIPMAP
 	{
-		glm::mat4 VIEW_PROJ[6][3];
-		glm::mat4 VIEW_PROJ_INV[6][3];
+		glm::mat4 VIEW_PROJ[18];
+		glm::mat4 VIEW_PROJ_INV[18];
+		glm::ivec4 UPDATE_REGION_MIN[18];
+		glm::ivec4 UPDATE_REGION_MAX[18];
 		glm::vec4 REIGION_MIN_AND_VOXELSIZE[6];
 		glm::vec4 REIGION_MAX_AND_EXTENT[6];
 		glm::uvec4 MISCS;

@@ -165,8 +165,13 @@ uniform VoxelInfo
 layout(binding = BINDING_VOXEL_CLIPMAP)
 uniform VoxelClipmapInfo
 {
+	// 3 axis per clipmap
 	mat4 viewproj[18];
 	mat4 viewproj_inv[18];
+	// Atmost 3 volume per clipmap
+	ivec4 update_region_min[18];
+	ivec4 update_region_max[18];
+	// Atmost 6 clipmap
 	vec4 reigon_min_and_voxelsize[6];
 	vec4 reigon_max_and_extent[6];
 	// volumeDimension:1 borderSize:1 storeVisibility:1

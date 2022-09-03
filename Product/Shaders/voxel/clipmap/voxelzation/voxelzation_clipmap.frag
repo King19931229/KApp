@@ -38,7 +38,7 @@ uniform Object
 {
 	mat4 model;
 	uint level;
-}object;
+} object;
 
 #define IMAGE_ATOMIC_RGBA_AVG_DECL(grid)\
 void imageAtomicRGBA8Avg__##grid(ivec3 coords, vec4 value)\
@@ -74,6 +74,12 @@ void main()
 {
 	if( In.position.x < In.triangleAABB.x || In.position.y < In.triangleAABB.y || 
 		In.position.x > In.triangleAABB.z || In.position.y > In.triangleAABB.w )
+	{
+		discard;
+	}
+
+	ivec3 coord = WorldPositionToClipCoord(In.wsPosition, object.level);
+	if (!InsideUpdateRegion(coord, object.level))
 	{
 		discard;
 	}
