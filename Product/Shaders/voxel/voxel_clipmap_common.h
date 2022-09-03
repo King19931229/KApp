@@ -11,7 +11,7 @@
 
 uint volumeDimension = voxel_clipmap.miscs[0];
 uint borderSize = voxel_clipmap.miscs[1];
-uint storeVisibility = voxel.miscs[2];
+uint storeVisibility = voxel_clipmap.miscs[2];
 
 vec4 convRGBA8ToVec4(uint val)
 {

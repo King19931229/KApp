@@ -165,8 +165,8 @@ uniform VoxelInfo
 layout(binding = BINDING_VOXEL_CLIPMAP)
 uniform VoxelClipmapInfo
 {
-	mat4 viewproj[6][3];
-	mat4 viewproj_inv[6][3];
+	mat4 viewproj[18];
+	mat4 viewproj_inv[18];
 	vec4 reigon_min_and_voxelsize[6];
 	vec4 reigon_max_and_extent[6];
 	// volumeDimension:1 borderSize:1 storeVisibility:1

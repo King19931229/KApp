@@ -206,7 +206,7 @@ namespace KConstantDefinition
 				// MISCS
 				{
 					ConstantSemanticDetail DETAIL = { CS_VOXEL_CLIPMAP_MISCS, EF_R32G32B32A32_UINT, 1, MEMBER_SIZE(VOXEL_CLIPMAP, MISCS), MEMBER_OFFSET(VOXEL_CLIPMAP, MISCS) };
-					VOXEL_DETAILS.semanticDetails.push_back(DETAIL);
+					VOXEL_CLIPMAP_DETAILS.semanticDetails.push_back(DETAIL);
 				}
 				VOXEL_CLIPMAP_DETAILS.bufferSize = sizeof(VOXEL_CLIPMAP);
 			}

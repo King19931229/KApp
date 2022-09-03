@@ -31,8 +31,8 @@ layout(location = 0) out GeometryOut
 void main()
 {
 	int selectedIndex = CalculateAxis();
-	mat4 viewProjection = voxel_clipmap.viewproj[object.level][selectedIndex];
-	mat4 viewProjectionI = voxel_clipmap.viewproj_inv[object.level][selectedIndex];
+	mat4 viewProjection = voxel_clipmap.viewproj[object.level * 3 + selectedIndex];
+	mat4 viewProjectionI = voxel_clipmap.viewproj_inv[object.level * 3 + selectedIndex];
 
 	vec2 texCoord[3];
 	vec3 normal[3];
