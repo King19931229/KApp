@@ -13,7 +13,7 @@ uniform Object
 {
 	ivec4 regionMin;
 	ivec4 regionMax;
-	ivec4 params;
+	uvec4 params;
 } object;
 
 void main()
@@ -23,14 +23,13 @@ void main()
 	if (any(greaterThanEqual(gl_GlobalInvocationID.xyz, regionArea.xyz)))
 		return;
 
-	int level = object.params[0];
-	int resolution = object.params[1];
+	uint level = object.params[0];
 
-	ivec3 writePos = ClipCoordToImageCoord(ivec3(gl_GlobalInvocationID), resolution);
+	ivec3 writePos = ClipCoordToImageCoord(ivec3(gl_GlobalInvocationID) + object.regionMin.xyz, volumeDimension);
 
 	writePos += ivec3(borderSize);
 	// Target the correct clipmap level
-	writePos.y += int((volumeDimension + 2 * borderSize) * level);
+	writePos.y += int((volumeDimension + 2 * borderSize) * int(level));
 
 	// clear the volumnes with 0,0,0,0
 	imageStore(voxelAlbedo, writePos, vec4(0));

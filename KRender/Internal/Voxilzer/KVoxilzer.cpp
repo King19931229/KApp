@@ -41,7 +41,7 @@ KVoxilzer::KVoxilzer()
 	, m_VolumeGridSize(0)
 	, m_VoxelSize(0)
 	, m_InjectFirstBounce(true)
-	, m_VoxelDrawEnable(true)
+	, m_VoxelDrawEnable(false)
 	, m_VoxelDrawWireFrame(true)
 	, m_VoxelDebugUpdate(false)
 	, m_VoxelNeedUpdate(false)
@@ -550,7 +550,7 @@ void KVoxilzer::SetupClearDynamicPipeline()
 		m_ClearDynamicPipeline->BindStorageImage(VOXEL_BINDING_EMISSION, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 		m_ClearDynamicPipeline->BindStorageImage(VOXEL_BINDING_STATIC_FLAG, m_StaticFlag->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
 
-		m_ClearDynamicPipeline->Init("voxel/clear_dynamic.comp");
+		m_ClearDynamicPipeline->Init("voxel/svo/lighting/clear_dynamic.comp");
 	}
 }
 

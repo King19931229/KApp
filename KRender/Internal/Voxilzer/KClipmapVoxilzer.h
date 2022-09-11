@@ -36,6 +36,7 @@ protected:
 	uint32_t m_MinUpdateChange;
 	int32_t m_Extent;
 
+	glm::ivec3 m_Movement;
 	std::vector<KClipmapVoxelizationRegion> m_UpdateRegions;
 
 	glm::mat4 m_ViewProjectionMatrix[3];
@@ -43,6 +44,9 @@ protected:
 public:
 	KClipmapVoxilzerLevel(KClipmapVoxilzer* parent, uint32_t level);
 	~KClipmapVoxilzerLevel();
+
+	void SetUpdateMovement(const glm::ivec3& movement);
+	void ApplyUpdateMovement();
 
 	void SetMinPosition(const glm::ivec3& min);
 	inline void SetMinUpdateChange(uint32_t minChange) { m_MinUpdateChange = minChange; }
@@ -114,10 +118,24 @@ protected:
 	IKRenderTargetPtr m_LightPassTarget;
 	IKRenderPassPtr m_LightPassRenderPass;
 
+	IKShaderPtr m_VoxelDrawVS;
+	IKShaderPtr m_VoxelDrawGS;
+	IKShaderPtr m_VoxelWireFrameDrawGS;
+	IKShaderPtr m_VoxelDrawFS;
+
+	IKPipelinePtr m_VoxelDrawPipeline;
+	IKPipelinePtr m_VoxelWireFrameDrawPipeline;
+
 	IKComputePipelinePtr m_ClearRegionPipeline;
 
+	KVertexData m_VoxelDrawVertexData;
+
 	std::vector<KClipmapVoxilzerLevel> m_ClipLevels;
+
 	EntityObserverFunc m_OnSceneChangedFunc;
+
+	bool m_VoxelDrawEnable;
+	bool m_VoxelDrawWireFrame;
 
 	bool m_VoxelBorderEnable;
 	bool m_VoxelDebugUpdate;
@@ -128,6 +146,7 @@ protected:
 	void SetupVoxelReleatedData();
 	void SetupVoxelBuffer();
 	void SetupVoxelPipeline();
+	void SetupVoxelDrawPipeline();
 
 	glm::ivec3 ComputeMovementByCamera(uint32_t levelIdx);
 	std::vector<KClipmapVoxelizationRegion> ComputeRevoxelizationRegionsByMovement(uint32_t levelIdx, const glm::ivec3& movement);
@@ -135,6 +154,7 @@ protected:
 	void UpdateVoxelBuffer();
 	void UpdateInternal();
 	void ClearUpdateRegion(IKCommandBufferPtr commandBuffer);
+	void ApplyUpdateMovement();
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
 public:
 	KClipmapVoxilzer();
@@ -146,6 +166,16 @@ public:
 	inline float GetBaseVoxelSize() const { return m_BaseVoxelSize; }
 
 	void Resize(uint32_t width, uint32_t height);
+	bool RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+
+	bool& GetVoxelDrawEnable() { return m_VoxelDrawEnable; }
+	bool& GetVoxelDrawWireFrame() { return m_VoxelDrawWireFrame; }
+
+	inline bool IsVoxelDrawEnable() const { return m_VoxelDrawEnable; }
+	inline void SetVoxelDrawEnable(bool enable) { m_VoxelDrawEnable = enable; }
+
+	inline bool IsVoxelDrawWireFrame() const { return m_VoxelDrawWireFrame; }
+	inline void SetVoxelDrawWireFrame(bool wireframe) { m_VoxelDrawWireFrame = wireframe; }
 
 	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelAlbedo() { return m_VoxelAlbedo ? m_VoxelAlbedo->GetFrameBuffer() : nullptr; }
@@ -153,6 +183,6 @@ public:
 	IKFrameBufferPtr GetVoxelEmissive() { return m_VoxelEmissive ? m_VoxelEmissive->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelRadiance() { return m_VoxelRadiance ? m_VoxelRadiance->GetFrameBuffer() : nullptr; }
 
-	bool Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount,	uint32_t width, uint32_t height);
+	bool Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount,	uint32_t baseVoxelSize, uint32_t width, uint32_t height);
 	bool UnInit();
 };

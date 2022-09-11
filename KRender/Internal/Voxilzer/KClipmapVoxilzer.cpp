@@ -10,7 +10,7 @@ KClipmapVoxilzerLevel::KClipmapVoxilzerLevel(KClipmapVoxilzer* parent, uint32_t 
 	: m_Parent(parent)
 	, m_VoxelSize(0)
 	, m_LevelIdx(level)
-	, m_MinUpdateChange(2)
+	, m_MinUpdateChange(1)
 	, m_Extent(0)
 {
 	m_VoxelSize = m_Parent->GetBaseVoxelSize() * (1 << m_LevelIdx);
@@ -21,6 +21,18 @@ KClipmapVoxilzerLevel::KClipmapVoxilzerLevel(KClipmapVoxilzer* parent, uint32_t 
 
 KClipmapVoxilzerLevel::~KClipmapVoxilzerLevel()
 {
+}
+
+void KClipmapVoxilzerLevel::SetUpdateMovement(const glm::ivec3& movement)
+{
+	m_Movement = movement;
+}
+
+void KClipmapVoxilzerLevel::ApplyUpdateMovement()
+{
+	m_Region.min += m_Movement;
+	m_Region.max += m_Movement;
+	m_Movement = glm::ivec3(0);
 }
 
 void KClipmapVoxilzerLevel::SetMinPosition(const glm::ivec3& min)
@@ -128,6 +140,8 @@ KClipmapVoxilzer::KClipmapVoxilzer()
 	, m_BorderSize(1)
 	, m_ClipLevelCount(3)
 	, m_BaseVoxelSize(10.0f)
+	, m_VoxelDrawEnable(false)
+	, m_VoxelDrawWireFrame(true)
 	, m_VoxelBorderEnable(true)
 	, m_VoxelDebugUpdate(false)
 	, m_VoxelNeedUpdate(false)
@@ -152,6 +166,42 @@ void KClipmapVoxilzer::Resize(uint32_t width, uint32_t height)
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
 	m_LightPassRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_LightPassRenderPass->Init();
+}
+
+bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+{
+	if (!m_VoxelDrawEnable)
+		return true;
+
+	m_DrawCommandBuffer->BeginSecondary(renderPass);
+	m_DrawCommandBuffer->SetViewport(renderPass->GetViewPort());
+
+	KRenderCommand command;
+	command.vertexData = &m_VoxelDrawVertexData;
+	command.indexData = nullptr;
+	command.pipeline = m_VoxelDrawWireFrame ? m_VoxelWireFrameDrawPipeline : m_VoxelDrawPipeline;
+	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+	command.indexDraw = false;
+
+	for (uint32_t i = 0; i < m_ClipLevelCount; ++i)
+	{
+		struct ObjectData
+		{
+			glm::uint level;
+		} objectData;
+		objectData.level = i;
+
+		command.objectUsage.binding = SHADER_BINDING_OBJECT;
+		command.objectUsage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+		m_DrawCommandBuffer->Render(command);
+	}
+
+	m_DrawCommandBuffer->End();
+
+	buffers.push_back(m_DrawCommandBuffer);
+
+	return true;
 }
 
 void KClipmapVoxilzer::UpdateVoxelBuffer()
@@ -267,8 +317,6 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 
 void KClipmapVoxilzer::UpdateInternal()
 {
-	UpdateVoxelBuffer();
-
 	m_PrimaryCommandBuffer->BeginPrimary();
 	{
 		ClearUpdateRegion(m_PrimaryCommandBuffer);
@@ -297,10 +345,11 @@ glm::ivec3 KClipmapVoxilzer::ComputeMovementByCamera(uint32_t levelIdx)
 std::vector<KClipmapVoxelizationRegion> KClipmapVoxilzer::ComputeRevoxelizationRegionsByMovement(uint32_t levelIdx, const glm::ivec3& movement)
 {
 	KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
-	level.SetMinPosition(level.GetMin() + movement);
 
-	const glm::ivec3& min = level.GetMin();
-	const glm::ivec3& max = level.GetMax();
+	glm::ivec3 min = level.GetMin() + movement;
+	glm::ivec3 max = level.GetMax() + movement;
+
+	level.SetUpdateMovement(movement);
 
 	std::vector<KClipmapVoxelizationRegion> regions;
 
@@ -359,15 +408,14 @@ void KClipmapVoxilzer::ClearUpdateRegion(IKCommandBufferPtr commandBuffer)
 		{
 			struct ObjectData
 			{
-				glm::ivec4 regiogMin;
+				glm::ivec4 regionMin;
 				glm::ivec4 regionMax;
-				glm::ivec4 params;
+				glm::uvec4 params;
 			} objectData;
 
-			objectData.regiogMin = glm::ivec4(region.min, 0);
+			objectData.regionMin = glm::ivec4(region.min, 0);
 			objectData.regionMax = glm::ivec4(region.max, 0);
 			objectData.params[0] = levelIdx;
-			objectData.params[1] = level.GetExtent();
 
 			glm::uvec3 group = (region.max - region.min + glm::ivec3(VOXEL_CLIPMAP_GROUP_SIZE - 1)) / glm::ivec3(VOXEL_CLIPMAP_GROUP_SIZE);
 
@@ -379,6 +427,17 @@ void KClipmapVoxilzer::ClearUpdateRegion(IKCommandBufferPtr commandBuffer)
 			m_ClearRegionPipeline->Execute(commandBuffer, group.x, group.y, group.z, &usage);
 		}
 	}
+}
+
+void KClipmapVoxilzer::ApplyUpdateMovement()
+{
+	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
+	{
+		KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
+		clipLevel.ApplyUpdateMovement();
+	}
+
+	UpdateVoxelBuffer();
 }
 
 void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
@@ -455,7 +514,6 @@ void KClipmapVoxilzer::UpdateVoxel()
 			glm::ivec3 pos = level.WorldPositionToClipCoord(cameraPos);
 			pos -= glm::ivec3(level.GetExtent() / 2);
 			level.SetMinPosition(pos);
-
 			level.SetUpdateRegions({ KClipmapVoxelizationRegion(level.GetMin(), level.GetMax()) });
 		}
 
@@ -475,6 +533,9 @@ void KClipmapVoxilzer::UpdateVoxel()
 			m_VoxelNeedUpdate |= !updateRegions.empty();
 		}
 	}
+
+	ApplyUpdateMovement();
+	UpdateVoxelBuffer();
 
 	if(m_VoxelNeedUpdate)
 	{
@@ -496,7 +557,7 @@ void KClipmapVoxilzer::SetupVoxelBuffer()
 
 void KClipmapVoxilzer::SetupVoxelPipeline()
 {
-	IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+	IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
 
 	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
@@ -507,6 +568,55 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_ClearRegionPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 
 	m_ClearRegionPipeline->Init("voxel/clipmap/lighting/clear_region.comp");
+}
+
+void KClipmapVoxilzer::SetupVoxelDrawPipeline()
+{
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/clipmap/draw/draw_voxels.vert", m_VoxelDrawVS, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/clipmap/draw/draw_voxels.geom", m_VoxelDrawGS, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/clipmap/draw/draw_voxels_wireframe.geom", m_VoxelWireFrameDrawGS, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/draw/draw_voxels.frag", m_VoxelDrawFS, false));
+
+	enum
+	{
+		DEFAULT,
+		WIREFRAME,
+		COUNT
+	};
+
+	for (size_t idx = 0; idx < COUNT; ++idx)
+	{
+		IKPipelinePtr& pipeline = (idx == DEFAULT) ? m_VoxelDrawPipeline : m_VoxelWireFrameDrawPipeline;
+
+		pipeline->SetShader(ST_VERTEX, m_VoxelDrawVS);
+
+		pipeline->SetPrimitiveTopology(PT_POINT_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		pipeline->SetShader(ST_GEOMETRY, idx == 0 ? m_VoxelDrawGS : m_VoxelWireFrameDrawGS);
+		pipeline->SetShader(ST_FRAGMENT, m_VoxelDrawFS);
+
+		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
+		pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
+
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, cameraBuffer);
+
+		pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), EF_UNKNOWN);
+		pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN);
+		pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN);
+		pipeline->SetStorageImage(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN);
+
+		pipeline->Init();
+	}
+
+	m_VoxelDrawVertexData.vertexCount = (uint32_t)(m_VolumeDimension * m_VolumeDimension * m_VolumeDimension);
+	m_VoxelDrawVertexData.vertexStart = 0;
 }
 
 void KClipmapVoxilzer::SetupVoxelReleatedData()
@@ -525,6 +635,7 @@ void KClipmapVoxilzer::SetupVoxelReleatedData()
 
 	SetupVoxelBuffer();
 	SetupVoxelPipeline();
+	SetupVoxelDrawPipeline();
 }
 
 void KClipmapVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
@@ -537,7 +648,7 @@ void KClipmapVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 	m_VoxelNeedUpdate = true;
 }
 
-bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount, uint32_t width, uint32_t height)
+bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount, uint32_t baseVoxelSize, uint32_t width, uint32_t height)
 {
 	UnInit();
 
@@ -547,6 +658,7 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 	m_Height = height;
 
 	m_VolumeDimension = dimension;
+	m_BaseVoxelSize = baseVoxelSize;
 	m_ClipLevelCount = levelCount;
 
 	m_ClipmapVolumeDimensionX = m_VolumeDimension;
@@ -555,9 +667,9 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 
 	if (m_VoxelBorderEnable)
 	{
-		m_ClipmapVolumeDimensionX += m_BorderSize;
-		m_ClipmapVolumeDimensionY += m_ClipLevelCount * m_BorderSize;
-		m_ClipmapVolumeDimensionZ += m_BorderSize;
+		m_ClipmapVolumeDimensionX += 2 * m_BorderSize;
+		m_ClipmapVolumeDimensionY += 2 * m_ClipLevelCount * m_BorderSize;
+		m_ClipmapVolumeDimensionZ += 2 * m_BorderSize;
 	}
 
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
@@ -569,6 +681,9 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 	renderDevice->CreateRenderTarget(m_VoxelRadiance);
 
 	renderDevice->CreateComputePipeline(m_ClearRegionPipeline);
+
+	renderDevice->CreatePipeline(m_VoxelDrawPipeline);
+	renderDevice->CreatePipeline(m_VoxelWireFrameDrawPipeline);
 
 	renderDevice->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
@@ -624,6 +739,9 @@ bool KClipmapVoxilzer::UnInit()
 	SAFE_UNINIT(m_LightingCommandBuffer);
 	SAFE_UNINIT(m_PrimaryCommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
+
+	SAFE_UNINIT(m_VoxelDrawPipeline);
+	SAFE_UNINIT(m_VoxelWireFrameDrawPipeline);
 
 	SAFE_UNINIT(m_ClearRegionPipeline);
 

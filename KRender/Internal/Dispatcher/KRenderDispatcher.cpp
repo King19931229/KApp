@@ -661,6 +661,12 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex)
 			primaryCommandBuffer->ExecuteAll(secondaryBuffers, true);
 		}
 
+		if (KRenderGlobal::ClipmapVoxilzer.IsVoxelDrawEnable())
+		{
+			KRenderGlobal::ClipmapVoxilzer.RenderVoxel(renderPass, secondaryBuffers);
+			primaryCommandBuffer->ExecuteAll(secondaryBuffers, true);
+		}
+
 		for (RenderStage stage : {RENDER_STAGE_DEBUG})
 		{
 			primaryCommandBuffer->ExecuteAll(context.buffer[stage], true);

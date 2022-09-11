@@ -8,6 +8,7 @@
 #define VOXEL_CLIPMAP_BINDING_DIFFUSE_MAP BINDING_TEXTURE13
 #define VOXEL_CLIPMAP_BINDING_OPACITY_MAP BINDING_TEXTURE14
 #define VOXEL_CLIPMAP_BINDING_EMISSION_MAP BINDING_TEXTURE15
+#define VOXEL_CLIPMAP_BINDING_RADIANCE BINDING_TEXTURE16
 
 uint volumeDimension = voxel_clipmap.miscs[0];
 uint borderSize = voxel_clipmap.miscs[1];
@@ -48,10 +49,10 @@ vec3 WorldPositionToClipUVW(vec3 posW, float regionExtent)
 
 ivec3 WorldPositionToImageCoord(vec3 posW, uint level)
 {
-	const vec3 regionMin = voxel_clipmap.reigon_min_and_voxelsize[level].xyz;
-	const vec3 regionMax = voxel_clipmap.reigon_max_and_extent[level].xyz;	
-	const float voxelSize = voxel_clipmap.reigon_min_and_voxelsize[level].w;
-	const float regionExtent = voxel_clipmap.reigon_max_and_extent[level].w;
+	const vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[level].xyz;
+	const vec3 regionMax = voxel_clipmap.region_max_and_extent[level].xyz;	
+	const float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
+	const float regionExtent = voxel_clipmap.region_max_and_extent[level].w;
 
 	// Avoid floating point imprecision issues by clamping to narrowed bounds
 	float c = voxelSize * 0.25; // Error correction constant
@@ -68,14 +69,14 @@ ivec3 WorldPositionToImageCoord(vec3 posW, uint level)
 	return imageCoords;
 }
 
-ivec3 ClipCoordToImageCoord(ivec3 p, int resolution)
+ivec3 ClipCoordToImageCoord(ivec3 p, uint resolution)
 {
-	return (p + ivec3(resolution) * (abs(p / resolution) + 1)) & (resolution - 1);
+	return (p + ivec3(resolution) * (abs(p / int(resolution)) + 1)) & (int(resolution) - 1);
 }
 
 ivec3 WorldPositionToClipCoord(vec3 posW, uint level)
 {
-	const float voxelSize = voxel_clipmap.reigon_min_and_voxelsize[level].w;
+	const float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
 	return ivec3(floor(posW / voxelSize));
 }
 
