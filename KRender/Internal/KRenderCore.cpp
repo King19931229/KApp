@@ -129,7 +129,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::CascadedShadowMap.Init(&m_Camera, 3, 2048, 1.0f, (uint32_t)width, (uint32_t)height);
 
 	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 128, (uint32_t)width, (uint32_t)height);
-	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 64, 3, (uint32_t)width, (uint32_t)height);
+	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 64, 3, 16, (uint32_t)width, (uint32_t)height);
 
 	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
 	KRenderGlobal::FrameGraph.Alloc();
@@ -209,6 +209,7 @@ bool KRenderCore::InitController()
 			KRenderGlobal::RayTraceManager.ReloadShader();
 			KRenderGlobal::RTAO.ReloadShader();
 			KRenderGlobal::Voxilzer.ReloadShader();
+			KRenderGlobal::ClipmapVoxilzer.ReloadShader();
 			KRenderGlobal::Scene.GetTerrain()->Reload();
 		}
 	};
@@ -631,13 +632,18 @@ bool KRenderCore::UpdateUIOverlay()
 					ui->SliderInt("Attenuate based on distance", &KRenderGlobal::RTAO.GetAoParameters().rtao_distance_based, 0, 1);
 					ui->SliderInt("Max samples before it stops", &KRenderGlobal::RTAO.GetAoParameters().max_samples, 1, 1000);
 				}
-				if (ui->Header("VXGI"))
+				if (ui->Header("SVOGI"))
 				{
 					ui->CheckBox("Octree", &KRenderGlobal::Voxilzer.GetVoxelUseOctree());
 					ui->CheckBox("VoxelDraw", &KRenderGlobal::Voxilzer.GetVoxelDrawEnable());
 					ui->CheckBox("VoxelDrawWireFrame", &KRenderGlobal::Voxilzer.GetVoxelDrawWireFrame());
 					ui->CheckBox("LightDraw", &KRenderGlobal::Voxilzer.GetLightDebugDrawEnable());
 					ui->CheckBox("OctreeRayTestDraw", &KRenderGlobal::Voxilzer.GetOctreeRayTestDrawEnable());
+				}
+				if (ui->Header("ClipmapGI"))
+				{
+					ui->CheckBox("VoxelDraw2", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawEnable());
+					ui->CheckBox("VoxelDrawWireFrame2", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawWireFrame());
 				}
 			}
 			ui->PopItemWidth();

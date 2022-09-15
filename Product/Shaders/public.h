@@ -172,8 +172,8 @@ uniform VoxelClipmapInfo
 	ivec4 update_region_min[18];
 	ivec4 update_region_max[18];
 	// Atmost 6 clipmap
-	vec4 reigon_min_and_voxelsize[6];
-	vec4 reigon_max_and_extent[6];
+	vec4 region_min_and_voxelsize[6];
+	vec4 region_max_and_extent[6];
 	// volumeDimension:1 borderSize:1 storeVisibility:1
 	uvec4 miscs;
 }voxel_clipmap;

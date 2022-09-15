@@ -686,7 +686,7 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 	return false;
 }
 
-bool KVulkanComputePipeline::ReloadShader()
+bool KVulkanComputePipeline::Reload()
 {
 	if (m_ComputeShader && m_ComputeShader->Reload())
 	{

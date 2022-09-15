@@ -331,14 +331,13 @@ glm::ivec3 KClipmapVoxilzer::ComputeMovementByCamera(uint32_t levelIdx)
 	KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
 
 	const glm::vec3 center = (level.GetWorldMin() + level.GetWorldMax()) * 0.5f;
-	const glm::vec3 cameraPos = m_Camera->GetPosition();
+	const glm::vec3 cameraPos = m_Camera->GetPosition() + level.GetVoxelSize() * 0.5f;
 
 	const int32_t minUpdate = level.GetMinUpdateChange();
 	const float voxelSize = level.GetVoxelSize();
 	const float minUpdateVoxelSize = minUpdate * voxelSize;
 
 	glm::ivec3 movement = glm::ivec3(glm::trunc((cameraPos - center) / minUpdateVoxelSize)) * minUpdate;
-
 	return movement;
 }
 
@@ -346,8 +345,8 @@ std::vector<KClipmapVoxelizationRegion> KClipmapVoxilzer::ComputeRevoxelizationR
 {
 	KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
 
-	glm::ivec3 min = level.GetMin() + movement;
-	glm::ivec3 max = level.GetMax() + movement;
+	glm::ivec3 newMin = level.GetMin() + movement;
+	glm::ivec3 newMax = level.GetMax() + movement;
 
 	level.SetUpdateMovement(movement);
 
@@ -357,12 +356,12 @@ std::vector<KClipmapVoxelizationRegion> KClipmapVoxilzer::ComputeRevoxelizationR
 	{
 		if (movement.x > 0)
 		{
-			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(std::max(max.x - movement.x, min.x), min.y, min.z), glm::ivec3(max.x, max.y, max.z));
+			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(std::max(newMax.x - movement.x, newMin.x), newMin.y, newMin.z), glm::ivec3(newMax.x, newMax.y, newMax.z));
 			regions.push_back(region);
 		}
 		else
 		{
-			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(min.x, min.y, min.z), glm::ivec3(std::min(max.x, min.x - movement.x), max.y, max.z));
+			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(newMin.x, newMin.y, newMin.z), glm::ivec3(std::min(newMax.x, newMin.x - movement.x), newMax.y, newMax.z));
 			regions.push_back(region);
 		}
 	}
@@ -371,12 +370,12 @@ std::vector<KClipmapVoxelizationRegion> KClipmapVoxilzer::ComputeRevoxelizationR
 	{
 		if (movement.y > 0)
 		{
-			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(min.x, std::max(max.y - movement.y, min.y), min.z), glm::ivec3(max.x, max.y, max.z));
+			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(newMin.x, std::max(newMax.y - movement.y, newMin.y), newMin.z), glm::ivec3(newMax.x, newMax.y, newMax.z));
 			regions.push_back(region);
 		}
 		else
 		{
-			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(min.x, min.y, min.z), glm::ivec3(max.x, std::min(max.y, min.y - movement.y), max.z));
+			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(newMin.x, newMin.y, newMin.z), glm::ivec3(newMax.x, std::min(newMax.y, newMin.y - movement.y), newMax.z));
 			regions.push_back(region);
 		}
 	}
@@ -385,12 +384,12 @@ std::vector<KClipmapVoxelizationRegion> KClipmapVoxilzer::ComputeRevoxelizationR
 	{
 		if (movement.z > 0)
 		{
-			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(min.x, min.y, std::max(max.z - movement.z, min.z)), glm::ivec3(max.x, max.y, max.z));
+			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(newMin.x, newMin.y, std::max(newMax.z - movement.z, newMin.z)), glm::ivec3(newMax.x, newMax.y, newMax.z));
 			regions.push_back(region);
 		}
 		else
 		{
-			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(min.x, min.y, min.z), glm::ivec3(max.x, max.y, std::min(max.z, min.z - movement.z)));
+			KClipmapVoxelizationRegion region = KClipmapVoxelizationRegion(glm::ivec3(newMin.x, newMin.y, newMin.z), glm::ivec3(newMax.x, newMax.y, std::min(newMax.z, newMin.z - movement.z)));
 			regions.push_back(region);
 		}
 	}
@@ -442,9 +441,14 @@ void KClipmapVoxilzer::ApplyUpdateMovement()
 
 void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 {
+	commandBuffer->BeginDebugMarker("VoxelizeClipmapStaticScene", glm::vec4(0, 1, 1, 0));
+	commandBuffer->BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
+	commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
+
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
 		const KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
+		const glm::vec3& cameraPos = m_Camera->GetPosition();
 
 		KAABBBox sceneBox;
 		sceneBox.InitFromMinMax(clipLevel.GetWorldMin(), clipLevel.GetWorldMax());
@@ -452,11 +456,8 @@ void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 		std::vector<KRenderComponent*> cullRes;
 		((KRenderScene*)m_Scene)->GetRenderComponent(sceneBox, false, cullRes);
 
-		if (cullRes.size() == 0) return;
-
-		commandBuffer->BeginDebugMarker("VoxelizeClipmapStaticScene", glm::vec4(0, 1, 1, 0));
-		commandBuffer->BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
-		commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
+		if (cullRes.size() == 0)
+			continue;
 
 		std::vector<KRenderCommand> commands;
 		for (KRenderComponent* render : cullRes)
@@ -495,24 +496,23 @@ void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 		{
 			commandBuffer->Render(command);
 		}
-
-		commandBuffer->EndRenderPass();
-		commandBuffer->EndDebugMarker();
 	}
+
+	commandBuffer->EndRenderPass();
+	commandBuffer->EndDebugMarker();
 }
 
 void KClipmapVoxilzer::UpdateVoxel()
 {
 	if (m_VoxelDebugUpdate || m_VoxelEmpty)
 	{
-		const glm::vec3& cameraPos = m_Camera->GetPosition();
-
 		for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
 		{
 			KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
-
+			glm::vec3 cameraPos = m_Camera->GetPosition();
+			cameraPos += level.GetVoxelSize() * 0.5f;
+			cameraPos -= level.GetWorldExtent() * 0.5f;
 			glm::ivec3 pos = level.WorldPositionToClipCoord(cameraPos);
-			pos -= glm::ivec3(level.GetExtent() / 2);
 			level.SetMinPosition(pos);
 			level.SetUpdateRegions({ KClipmapVoxelizationRegion(level.GetMin(), level.GetMax()) });
 		}
@@ -543,6 +543,19 @@ void KClipmapVoxilzer::UpdateVoxel()
 		m_VoxelNeedUpdate = false;
 		m_VoxelEmpty = false;
 	}
+}
+
+void KClipmapVoxilzer::ReloadShader()
+{
+	m_VoxelDrawVS->Reload();
+	m_VoxelDrawGS->Reload();
+	m_VoxelWireFrameDrawGS->Reload();
+	m_VoxelDrawFS->Reload();
+
+	m_VoxelDrawPipeline->Reload();
+	m_VoxelWireFrameDrawPipeline->Reload();
+
+	m_ClearRegionPipeline->Reload();
 }
 
 void KClipmapVoxilzer::SetupVoxelBuffer()
@@ -621,7 +634,7 @@ void KClipmapVoxilzer::SetupVoxelDrawPipeline()
 
 void KClipmapVoxilzer::SetupVoxelReleatedData()
 {
-	m_VoxelRenderPassTarget->InitFromColor(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, 1, EF_R8_UNORM);
+	m_VoxelRenderPassTarget->InitFromColor(m_VolumeDimension, m_VolumeDimension, 1, EF_R8_UNORM);
 	m_VoxelRenderPass->UnInit();
 	m_VoxelRenderPass->SetColorAttachment(0, m_VoxelRenderPassTarget->GetFrameBuffer());
 	m_VoxelRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
@@ -658,7 +671,7 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 	m_Height = height;
 
 	m_VolumeDimension = dimension;
-	m_BaseVoxelSize = baseVoxelSize;
+	m_BaseVoxelSize = (float)baseVoxelSize;
 	m_ClipLevelCount = levelCount;
 
 	m_ClipmapVolumeDimensionX = m_VolumeDimension;

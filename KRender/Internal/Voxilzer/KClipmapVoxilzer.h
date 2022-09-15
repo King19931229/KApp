@@ -161,6 +161,7 @@ public:
 	~KClipmapVoxilzer();
 
 	void UpdateVoxel();
+	void ReloadShader();
 
 	inline uint32_t GetVoxelDimension() const { return m_VolumeDimension; }
 	inline float GetBaseVoxelSize() const { return m_BaseVoxelSize; }

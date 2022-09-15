@@ -24,6 +24,7 @@ layout(location = 0) out GeometryOut
 	vec3 normal;
 	vec2 texCoord;
 	flat vec4 triangleAABB;
+	flat vec3[3] trianglePosW;
 } Out;
 
 #include "voxel/voxelzation_public.h".
@@ -39,8 +40,15 @@ void main()
 	for (int i = 0; i < gl_in.length(); i++)
 	{
 		texCoord[i] = In[i].texCoord; 
-		normal[i] = In[i].normal; 
+		normal[i] = In[i].normal;
 	}
+
+	vec3 trianglePosW[3] = vec3[3]
+	(
+		gl_in[0].gl_Position.xyz / gl_in[0].gl_Position.w,
+		gl_in[1].gl_Position.xyz / gl_in[1].gl_Position.w,
+		gl_in[2].gl_Position.xyz / gl_in[2].gl_Position.w
+	);
 
 	//transform vertices to clip space
 	vec4 pos[3] = vec4[3]
@@ -61,14 +69,17 @@ void main()
 		vec4 vertexTemp = pos[2];
 		vec2 texCoordTemp = texCoord[2];
 		vec3 normalTemp = normal[2];
+		vec3 posWTemp = trianglePosW[2];
 		
 		pos[2] = pos[1];
 		texCoord[2] = texCoord[1];
 		normal[2] = normal[1];
+		trianglePosW[2] = trianglePosW[1];
 	
 		pos[1] = vertexTemp;
 		texCoord[1] = texCoordTemp;
 		normal[1] = normalTemp;
+		trianglePosW[1] = posWTemp;
 	}
 
 	vec2 halfPixel = vec2(1.0f / volumeDimension);
@@ -131,6 +142,7 @@ void main()
 		Out.normal = normal[i];
 		Out.texCoord = texCoord[i];
 		Out.wsPosition = voxelPos.xyz;
+		Out.trianglePosW = trianglePosW;
 
 		EmitVertex();
 	}

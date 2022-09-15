@@ -235,12 +235,12 @@ bool KRTAO::ReloadShader()
 {
 	if (m_AOComputePipeline)
 	{
-		m_AOComputePipeline->ReloadShader();
-		m_AOTemporalPipeline->ReloadShader();
-		m_MeanHorizontalComputePipeline->ReloadShader();
-		m_MeanVerticalComputePipeline->ReloadShader();
-		m_AtrousComputePipeline->ReloadShader();
-		m_ComposePipeline->ReloadShader();
+		m_AOComputePipeline->Reload();
+		m_AOTemporalPipeline->Reload();
+		m_MeanHorizontalComputePipeline->Reload();
+		m_MeanVerticalComputePipeline->Reload();
+		m_AtrousComputePipeline->Reload();
+		m_ComposePipeline->Reload();
 		return true;
 	}
 	return false;
