@@ -248,12 +248,6 @@ void KVoxilzer::UpdateProjectionMatrices()
 				pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
 			}
 		}
-		if (detail.semantic == CS_VOXEL_SUNLIGHT)
-		{
-			assert(sizeof(glm::vec4) == detail.size);
-			glm::vec4 sunLight(-KRenderGlobal::CascadedShadowMap.GetCamera().GetForward(), 0.0);
-			memcpy(pWritePos, &sunLight, sizeof(glm::vec4));
-		}
 		if (detail.semantic == CS_VOXEL_MINPOINT_SCALE)
 		{
 			assert(sizeof(glm::vec4) == detail.size);
@@ -769,6 +763,9 @@ void KVoxilzer::SetupLightPassPipeline(uint32_t width, uint32_t height)
 
 	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 	pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, cameraBuffer);
+
+	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
+	pipeline->SetConstantBuffer(CBT_GLOBAL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, globalBuffer);
 
 	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_NORMAL,
 		KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL)->GetFrameBuffer(),

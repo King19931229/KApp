@@ -1,75 +1,80 @@
 #include "public.h"
-#include "voxel/svo/voxel_common.h"
+#include "voxel/clipmap/voxel_clipmap_common.h"
 
 #extension GL_ARB_shader_image_load_store : require
-layout (local_size_x = VOXEL_GROUP_SIZE, local_size_y = VOXEL_GROUP_SIZE, local_size_z = VOXEL_GROUP_SIZE) in;
+layout (local_size_x = VOXEL_CLIPMAP_GROUP_SIZE, local_size_y = VOXEL_CLIPMAP_GROUP_SIZE, local_size_z = VOXEL_CLIPMAP_GROUP_SIZE) in;
 
-#ifndef USE_OCTREE
-#define USE_OCTREE 0
-#endif
+layout(binding = VOXEL_CLIPMAP_BINDING_ALBEDO) uniform sampler3D voxelAlbedo;
+layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, rgba8) uniform image3D voxelNormal;
+layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION_MAP, rgba8) uniform readonly image3D voxelEmissive;
+layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE, rgba8) uniform writeonly image3D voxelRadiance;
 
-#if USE_OCTREE
-layout(binding = VOXEL_BINDING_OCTREE) buffer uuOctree { uint uOctree[]; };
-layout(binding = VOXEL_BINDING_OCTREE_DATA) buffer uuOctreeData { uvec4 uOctreeData[]; };
-layout(binding = VOXEL_BINDING_OCTREE_MIPMAP_DATA) buffer uuOctreeMipmapData { uint uOctreeMipmapData[][6]; };
-#include "voxel/svo/octree/octree_common.h"
-#include "voxel/svo/octree/octree_util.h"
-#else
-layout(binding = VOXEL_BINDING_ALBEDO) uniform sampler3D voxelAlbedo;
-layout(binding = VOXEL_BINDING_NORMAL, rgba8) uniform image3D voxelNormal;
-layout(binding = VOXEL_BINDING_EMISSION_MAP, rgba8) uniform readonly image3D voxelEmissive;
-layout(binding = VOXEL_BINDING_RADIANCE, rgba8) uniform writeonly image3D voxelRadiance;
-#endif
+// TODO traceShadowHit
+float traceShadowHit = 0.5f;
 
-vec3 VoxelToWorld(ivec3 pos)
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	// level:[0] levelCount:[1]
+	uvec4 params;
+} object;
+
+uint level = object.params[0];
+uint levelCount = object.params[1];
+
+vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[level].xyz;
+vec3 regionMax = voxel_clipmap.region_max_and_extent[level].xyz;
+float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
+float extent = voxel_clipmap.region_max_and_extent[level].w;
+
+vec3 VoxelToWorld(vec3 pos)
 {
 	vec3 result = vec3(pos);
 	result *= voxelSize;
-	return result + voxel.minpoint_scale.xyz;;
+	return result;
 }
 
 vec3 WorldToVoxel(vec3 position)
 {
-	vec3 voxelPos = position - voxel.minpoint_scale.xyz;
-	return voxelPos * voxel.minpoint_scale.w;
+	vec3 voxelPos = position / voxelSize;
+	return voxelPos;
 }
 
-float TraceShadow(vec3 position, vec3 direction, float maxTracingDistance) 
+float TraceShadow(vec3 position, vec3 direction, float maxTracingDistance)
 {
 	// scaling factor
 	float k = traceShadowHit * traceShadowHit;
-	// navigation
-	float voxelTexSize = 1.0f / volumeDimension;
 	// move one voxel further to avoid self collision
-	float dst = voxelTexSize * 2.0f;
-	vec3 samplePos = direction * dst + position;
+	float dst = 2.0 * voxelSize;
+	vec3 pos = direction * dst + position;
 	// control variables
 	float visibility = 0.0f;
 	// accumulated sample
 	float traceSample = 0.0f;
 
-	while (visibility <= 1.0f && dst <= maxTracingDistance) 
+	while (visibility <= 1.0f && dst <= 15 * voxelSize)
 	{
-		if (samplePos.x < 0.0f || samplePos.y < 0.0f || samplePos.z < 0.0f
-			|| samplePos.x > 1.0f || samplePos.y > 1.0f || samplePos.z > 1.0f) 
-		{ 
+		if (pos.x < regionMin.x || pos.y < regionMin.y || pos.z < regionMin.z
+			|| pos.x >= regionMax.x || pos.y >= regionMax.y || pos.z >= regionMax.z) 
+		{
+			visibility = 0.0; 
 			break; 
 		}
-	
-#if USE_OCTREE
-		traceSample = ceil(SampleOctreeColor(volumeDimension, samplePos).a) * k;
-#else
+
+		vec3 samplePos = WorldPositionToSampleCoord(pos, extent, level, levelCount);
 		traceSample = ceil(texture(voxelAlbedo, samplePos).a) * k;
-#endif
+
+		//ivec3 readPos = WorldPositionToImageCoord(pos, level);
+		//traceSample = ceil(texelFetch(voxelAlbedo, readPos, 0).a);
 
 		// hard shadows mode
 		if(traceSample > 1.0f - EPSILON) { return 0.0f; }
 
 		// accumulate
-		visibility += (1.0f - visibility) * traceSample / dst;
+		visibility += (1.0f - visibility) * traceSample * extent / dst;
 		// move further into volume
-		dst += voxelTexSize;
-		samplePos = direction * dst + position;
+		dst += voxelSize;
+		pos = direction * dst + pos;
 	}
 
 	return max(0.0f, 1.0f - visibility);
@@ -103,25 +108,6 @@ vec3 BRDF(Light light, vec3 normal, vec3 albedo)
 
 float Visibility(vec3 position)
 {
-	/*
-	vec4 lsPos = lightViewProjection * vec4(position, 1.0f);
-	// avoid arithmetic error
-	if(lsPos.w == 0.0f) return 1.0f;
-	// transform to ndc-space
-	lsPos /= lsPos.w;
-	// querry visibility
-	vec4 moments = texture(shadowMap, lsPos.xy);
-	// move to avoid acne
-	vec2 wDepth = WarpDepth(lsPos.z - 0.0001f);
-	// derivative of warping at depth
-	vec2 depthScale = 0.0001f * exponents * wDepth;
-	vec2 minVariance = depthScale * depthScale;
-	// evsm mode 4 compares negative and positive
-	float positive = Chebyshev(moments.xz, wDepth.x, minVariance.x);
-	float negative = Chebyshev(moments.yw, wDepth.y, minVariance.y);
-	// shadowing value
-	return min(positive, negative);
-	*/
 	return 0.0;
 }
 
@@ -135,8 +121,7 @@ vec4 CalculateDirectional(Light light, vec3 normal, vec3 position, vec3 albedo)
 	}
 	else if(light.shadowingMethod == 2)
 	{
-		vec3 voxelPos = WorldToVoxel(position);
-		visibility = TraceShadow(voxelPos, light.direction, 1.0f);
+		visibility = TraceShadow(position, light.direction, 1.0);
 	}
 
 	if(visibility <= 0.0f) return vec4(0.0f); 
@@ -165,7 +150,7 @@ vec4 CalculatePoint(Light light, vec3 normal, vec3 position, vec3 albedo)
 		float dT = length(lightDirT);
 		lightDirT = normalize(lightDirT);
 
-		visibility = TraceShadow(voxelPos, lightDirT, dT);
+		visibility = TraceShadow(position, lightDirT, dT);
 	}
 
 	if(visibility <= 0.0f) return vec4(0.0f); 
@@ -207,7 +192,7 @@ vec4 CalculateSpot(Light light, vec3 normal, vec3 position, vec3 albedo)
 		float dT = length(lightDirT);
 		lightDirT = normalize(lightDirT);
 
-		visibility = TraceShadow(voxelPos, lightDirT, dT);
+		visibility = TraceShadow(position, lightDirT, dT);
 	}
 
 	if(visibility <= 0.0f) return vec4(0.0f);
@@ -218,14 +203,12 @@ vec4 CalculateSpot(Light light, vec3 normal, vec3 position, vec3 albedo)
 vec4 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo)
 {
 	normal = normalize(normal);
-	// world space grid voxel size
-	float voxelWorldSize = 1.0 / (voxel.minpoint_scale.w * volumeDimension);
 	// calculate directional lighting
 	vec4 directLighting = vec4(0.0f, 0.0f, 0.0f, 0.0f);
 	vec4 current =  vec4(0.0f);
 	int count = 0;
 	// move position forward to avoid shadowing errors
-	position = position + normal * voxelWorldSize * 0.5f;
+	position = position + normal * voxelSize * 0.5f;
 
 	// calculate lighting for sun light
 	{
@@ -276,44 +259,33 @@ void main()
 		gl_GlobalInvocationID.y >= volumeDimension ||
 		gl_GlobalInvocationID.z >= volumeDimension) return;
 
-	ivec3 writePos = ivec3(gl_GlobalInvocationID);
+	vec3 position = vec3(gl_GlobalInvocationID);
+	position += regionMin / voxelSize;
 
-	// voxel color
-#if USE_OCTREE
-	vec3 octreePos = (vec3(writePos) + vec3(0.5)) / volumeDimension;
-	vec4 albedo = SampleOctreeColor(volumeDimension, octreePos);
-	// uint idx;
-	// GetOctreeDataIndex(uvec3(writePos), uint(volumeDimension), idx);
-	// vec4 unpacked = unpackUnorm4x8(uOctreeData[idx][OCTREE_COLOR_INDEX]);
-	// albedo = unpacked;
-#else
+	ivec3 writePos = ClipCoordToImageCoord(ivec3(position), volumeDimension);
+
+	// Target the correct clipmap level
+	writePos += ivec3(borderSize);
+	writePos.y += int((volumeDimension + 2 * borderSize) * level);
+
 	vec4 albedo = texelFetch(voxelAlbedo, writePos, 0);
-#endif
 
 	if(albedo.a < EPSILON) { return; }
 	albedo.a = 0.0f;
 
 	// voxel normal in 0-1 range
-#if USE_OCTREE
-	vec3 baseNormal = SampleOctreeNormal(volumeDimension, octreePos).xyz;
-#else
 	vec3 baseNormal = imageLoad(voxelNormal, writePos).xyz;
-#endif
 	// normal is stored in 0-1 range, restore to -1-1
 	vec3 normal = DecodeNormal(baseNormal);
 
 	// emission from voxel
-#if USE_OCTREE
-	vec3 emissive = SampleOctreeEmssive(volumeDimension, octreePos).rgb;
-#else
 	vec3 emissive = imageLoad(voxelEmissive, writePos).rgb;
-#endif
 
 	// black voxel has no irradiance diffuse
 	if(any(greaterThan(albedo.rgb, vec3(0.0f))))
 	{
 		// obtain world-space position of the current voxel
-		vec3 wsPosition = VoxelToWorld(writePos);
+		vec3 wsPosition = VoxelToWorld(position + vec3(0.5));
 		// calculate direct lighting onto voxel
 		albedo = CalculateDirectLighting(wsPosition, normal, albedo.rgb);
 	}
@@ -321,12 +293,9 @@ void main()
 	// add emission
 	albedo.rgb += emissive;
 
-#if USE_OCTREE
-	StoreOctreeRadiance(volumeDimension, writePos, albedo);
-#else
 	// store visibility in normal alpha
-	imageStore(voxelNormal, writePos, vec4(baseNormal, albedo.a));
+	// imageStore(voxelNormal, writePos, vec4(baseNormal, albedo.a));
 	albedo.a = 1.0f;
+	// albedo.rgb = baseNormal;
 	imageStore(voxelRadiance, writePos, albedo);
-#endif
 }

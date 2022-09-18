@@ -41,8 +41,8 @@ void main()
 	ivec3 texPos = ivec3(position);
 	vec3 samplePos = (vec3(texPos) + vec3(0.5)) / drawVolumeDimension;
 #if USE_OCTREE
-	albedo = SampleOctreeRadiance(volumeDimension, samplePos);
-	// albedo = SampleOctreeNormal(volumeDimension, samplePos);
+	// albedo = SampleOctreeRadiance(volumeDimension, samplePos);
+	albedo = SampleOctreeNormal(volumeDimension, samplePos);
 	// albedo = SampleOctreeColor(volumeDimension, samplePos);
 	// albedo = SampleOctreeMipmap(volumeDimension, samplePos, 0.0, 0);
 	// ivec3 texPosA = 2 * (texPos / 2);

@@ -10,7 +10,7 @@ KClipmapVoxilzerLevel::KClipmapVoxilzerLevel(KClipmapVoxilzer* parent, uint32_t 
 	: m_Parent(parent)
 	, m_VoxelSize(0)
 	, m_LevelIdx(level)
-	, m_MinUpdateChange(1)
+	, m_MinUpdateChange(4)
 	, m_Extent(0)
 {
 	m_VoxelSize = m_Parent->GetBaseVoxelSize() * (1 << m_LevelIdx);
@@ -137,13 +137,13 @@ KClipmapVoxilzer::KClipmapVoxilzer()
 	, m_ClipmapVolumeDimensionX(128)
 	, m_ClipmapVolumeDimensionY(128)
 	, m_ClipmapVolumeDimensionZ(128)
-	, m_BorderSize(1)
+	, m_BorderSize(0)
 	, m_ClipLevelCount(3)
 	, m_BaseVoxelSize(10.0f)
 	, m_VoxelDrawEnable(false)
 	, m_VoxelDrawWireFrame(true)
 	, m_VoxelBorderEnable(true)
-	, m_VoxelDebugUpdate(false)
+	, m_VoxelDebugUpdate(true)
 	, m_VoxelNeedUpdate(false)
 	, m_VoxelEmpty(true)
 {
@@ -208,8 +208,8 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 {
 	glm::mat4 viewProjections[3 * 6];
 	glm::mat4 viewProjectionIs[3 * 6];
-	glm::ivec4 updateRegionMins[3 * 6];
-	glm::ivec4 updateRegionMaxs[3 * 6];
+	glm::vec4 updateRegionMins[3 * 6];
+	glm::vec4 updateRegionMaxs[3 * 6];
 	glm::vec4 minAndVoxelSize[6];
 	glm::vec4 maxAndExtent[6];
 
@@ -240,8 +240,8 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 			{
 				if (j < updateRegions.size())
 				{
-					updateRegionMins[i * 3 + j] = glm::ivec4(updateRegions[j].min, 1);
-					updateRegionMaxs[i * 3 + j] = glm::ivec4(updateRegions[j].max, 1);
+					updateRegionMins[i * 3 + j] = glm::vec4(glm::vec3(updateRegions[j].min) * level.GetVoxelSize(), 1.0f);
+					updateRegionMaxs[i * 3 + j] = glm::vec4(glm::vec3(updateRegions[j].max) * level.GetVoxelSize(), 1.0f);
 				}
 				else
 				{
@@ -300,14 +300,16 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 		if (detail.semantic == CS_VOXEL_CLIPMAP_MISCS)
 		{
 			assert(sizeof(glm::uvec4) == detail.size);
-			glm::uvec4 misc;
+			glm::uvec4 miscs;
 			// volumeDimension
-			misc[0] = m_VolumeDimension;
+			miscs[0] = m_VolumeDimension;
 			// borderSize
-			misc[1] = m_BorderSize;
+			miscs[1] = m_VoxelBorderEnable ? m_BorderSize : 0;
 			// storeVisibility
-			misc[2] = true;
-			memcpy(pWritePos, &misc, sizeof(glm::uvec4));
+			miscs[2] = true;
+			// normalWeightedLambert
+			miscs[3] = 1;
+			memcpy(pWritePos, &miscs, sizeof(glm::uvec4));
 			pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::uvec4));
 		}
 	}
@@ -318,10 +320,17 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 void KClipmapVoxilzer::UpdateInternal()
 {
 	m_PrimaryCommandBuffer->BeginPrimary();
-	{
-		ClearUpdateRegion(m_PrimaryCommandBuffer);
-		VoxelizeStaticScene(m_PrimaryCommandBuffer);
-	}
+
+	ClearUpdateRegion(m_PrimaryCommandBuffer);
+	VoxelizeStaticScene(m_PrimaryCommandBuffer);
+
+	m_PrimaryCommandBuffer->End();
+	m_PrimaryCommandBuffer->Flush();
+
+	m_PrimaryCommandBuffer->BeginPrimary();
+
+	UpdateRadiance(m_PrimaryCommandBuffer);
+
 	m_PrimaryCommandBuffer->End();
 	m_PrimaryCommandBuffer->Flush();
 }
@@ -502,6 +511,59 @@ void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 	commandBuffer->EndDebugMarker();
 }
 
+void KClipmapVoxilzer::UpdateRadiance(IKCommandBufferPtr commandBuffer)
+{
+	ClearRadiance(commandBuffer);
+	InjectRadiance(commandBuffer);
+}
+
+void KClipmapVoxilzer::ClearRadiance(IKCommandBufferPtr commandBuffer)
+{
+	uint32_t group = (m_VolumeDimension + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
+
+	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
+	{
+		KDynamicConstantBufferUsage usage;
+		usage.binding = SHADER_BINDING_OBJECT;
+
+		struct ObjectData
+		{
+			glm::uint32_t level;
+		} objectData;
+
+		objectData.level = level;
+
+		usage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
+
+		m_ClearRadiancePipeline->Execute(commandBuffer, group, group, group, &usage);
+	}
+}
+
+void KClipmapVoxilzer::InjectRadiance(IKCommandBufferPtr commandBuffer)
+{
+	uint32_t group = (m_VolumeDimension + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
+
+	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
+	{
+		KDynamicConstantBufferUsage usage;
+		usage.binding = SHADER_BINDING_OBJECT;
+
+		struct ObjectData
+		{
+			glm::uvec4 params;
+		} objectData;
+
+		objectData.params[0] = level;
+		objectData.params[1] = m_ClipLevelCount;
+
+		usage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
+
+		m_InjectRadiancePipeline->Execute(commandBuffer, group, group, group, &usage);
+	}
+}
+
 void KClipmapVoxilzer::UpdateVoxel()
 {
 	if (m_VoxelDebugUpdate || m_VoxelEmpty)
@@ -556,6 +618,8 @@ void KClipmapVoxilzer::ReloadShader()
 	m_VoxelWireFrameDrawPipeline->Reload();
 
 	m_ClearRegionPipeline->Reload();
+	m_ClearRadiancePipeline->Reload();
+	m_InjectRadiancePipeline->Reload();
 }
 
 void KClipmapVoxilzer::SetupVoxelBuffer()
@@ -581,6 +645,27 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_ClearRegionPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 
 	m_ClearRegionPipeline->Init("voxel/clipmap/lighting/clear_region.comp");
+
+	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
+
+	// Clear Radiance
+	m_ClearRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
+	m_ClearRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
+	m_ClearRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+	m_ClearRadiancePipeline->Init("voxel/clipmap/lighting/clear_radiance.comp");
+
+	// Inject Radiance
+	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
+	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
+
+	m_InjectRadiancePipeline->BindSampler(VOXEL_CLIPMAP_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), m_LinearSampler, true);
+	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_EMISSION_MAP, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
+	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
+
+	m_InjectRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+
+	m_InjectRadiancePipeline->Init("voxel/clipmap/lighting/inject_radiance.comp");
 }
 
 void KClipmapVoxilzer::SetupVoxelDrawPipeline()
@@ -646,6 +731,14 @@ void KClipmapVoxilzer::SetupVoxelReleatedData()
 	m_LightPassRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_LightPassRenderPass->Init();
 
+	m_CloestSampler->SetAddressMode(AM_REPEAT, AM_REPEAT, AM_REPEAT);
+	m_CloestSampler->SetFilterMode(FM_NEAREST, FM_NEAREST);
+	m_CloestSampler->Init(0, 0);
+
+	m_LinearSampler->SetAddressMode(AM_REPEAT, AM_REPEAT, AM_REPEAT);
+	m_LinearSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
+	m_LinearSampler->Init(0, 0);
+
 	SetupVoxelBuffer();
 	SetupVoxelPipeline();
 	SetupVoxelDrawPipeline();
@@ -695,8 +788,15 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 
 	renderDevice->CreateComputePipeline(m_ClearRegionPipeline);
 
+	renderDevice->CreateComputePipeline(m_ClearRadiancePipeline);
+	renderDevice->CreateComputePipeline(m_InjectRadiancePipeline);
+	renderDevice->CreateComputePipeline(m_InjectPropagationPipeline);
+
 	renderDevice->CreatePipeline(m_VoxelDrawPipeline);
 	renderDevice->CreatePipeline(m_VoxelWireFrameDrawPipeline);
+
+	renderDevice->CreateSampler(m_CloestSampler);
+	renderDevice->CreateSampler(m_LinearSampler);
 
 	renderDevice->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
@@ -756,6 +856,12 @@ bool KClipmapVoxilzer::UnInit()
 	SAFE_UNINIT(m_VoxelDrawPipeline);
 	SAFE_UNINIT(m_VoxelWireFrameDrawPipeline);
 
+	SAFE_UNINIT(m_CloestSampler);
+	SAFE_UNINIT(m_LinearSampler);
+
+	SAFE_UNINIT(m_InjectPropagationPipeline);
+	SAFE_UNINIT(m_InjectRadiancePipeline);
+	SAFE_UNINIT(m_ClearRadiancePipeline);
 	SAFE_UNINIT(m_ClearRegionPipeline);
 
 	SAFE_UNINIT(m_StaticFlag);

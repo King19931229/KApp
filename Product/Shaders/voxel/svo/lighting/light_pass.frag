@@ -353,7 +353,7 @@ vec3 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 specu
 		sunLight.diffuse = vec3(1.0f);
 		sunLight.ambient = vec3(0.001f);
 		sunLight.specular = vec3(0.0f);
-		sunLight.direction = voxel.sunlight.xyz;
+		sunLight.direction = -global.sunLightDir.xyz;
 		sunLight.shadowingMethod = 3;
 		directLighting = CalculateDirectional(sunLight, normal, position, albedo, specular);
 		directLighting += Ambient(sunLight, albedo);

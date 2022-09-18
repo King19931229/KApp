@@ -150,7 +150,6 @@ uniform VoxelInfo
 {
 	mat4 viewproj[3];
 	mat4 viewproj_inv[3];
-	vec4 sunlight;
 	// scale: 1.0 / volumeSize
 	vec4 minpoint_scale;
 	vec4 maxpoint_scale;
@@ -169,8 +168,8 @@ uniform VoxelClipmapInfo
 	mat4 viewproj[18];
 	mat4 viewproj_inv[18];
 	// Atmost 3 volume per clipmap
-	ivec4 update_region_min[18];
-	ivec4 update_region_max[18];
+	vec4 update_region_min[18];
+	vec4 update_region_max[18];
 	// Atmost 6 clipmap
 	vec4 region_min_and_voxelsize[6];
 	vec4 region_max_and_extent[6];

@@ -903,7 +903,7 @@ bool KRenderDispatcher::UpdateGlobal()
 		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 		{
 			void* pWritePos = POINTER_OFFSET(pData, detail.offset);
-			if (detail.semantic == CS_SUN_LIGHT_DIRECTION)
+			if (detail.semantic == CS_GLOBAL_SUN_LIGHT_DIRECTION)
 			{
 				glm::vec4 sunLightDir = glm::vec4(KRenderGlobal::CascadedShadowMap.GetCamera().GetForward(), 0.0f);
 				assert(sizeof(sunLightDir) == detail.size);

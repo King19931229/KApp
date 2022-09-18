@@ -71,13 +71,6 @@ IMAGE_ATOMIC_RGBA_AVG_DECL(voxelEmission);
 
 #define IMAGE_ATOMIC_RGBA_AVG_CALL(grid, coords, value) imageAtomicRGBA8Avg__##grid(coords, value)
 
-bool IntersectsTriangle(vec3 posW, float voxelSize)
-{
-	vec3 minPos = floor(posW / voxelSize) * voxelSize;
-	vec3 maxPos = minPos + vec3(voxelSize);
-	return AABBIntersectsTriangle(minPos, maxPos, In.trianglePosW[0].xyz, In.trianglePosW[1].xyz, In.trianglePosW[2].xyz);
-}
-
 void main()
 {
 	if( In.position.x < In.triangleAABB.x || In.position.y < In.triangleAABB.y || 
@@ -88,14 +81,11 @@ void main()
 
 	const float voxelSize = voxel_clipmap.region_min_and_voxelsize[object.level].w;
 
-	if (!IntersectsTriangle(In.wsPosition, voxelSize))
+	if (!IntersectsTriangle(In.wsPosition, voxelSize, In.trianglePosW))
 		discard;
 
-	ivec3 coord = WorldPositionToClipCoord(In.wsPosition, object.level);
-	if (!InsideUpdateRegion(coord, object.level))
-	{
+	if (!InsideUpdateRegion(In.wsPosition, object.level))
 		discard;
-	}
 
 	// writing coords position
 	ivec3 position = WorldPositionToImageCoord(In.wsPosition, object.level);

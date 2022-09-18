@@ -127,6 +127,12 @@ protected:
 	IKPipelinePtr m_VoxelWireFrameDrawPipeline;
 
 	IKComputePipelinePtr m_ClearRegionPipeline;
+	IKComputePipelinePtr m_ClearRadiancePipeline;
+	IKComputePipelinePtr m_InjectRadiancePipeline;
+	IKComputePipelinePtr m_InjectPropagationPipeline;
+
+	IKSamplerPtr m_CloestSampler;
+	IKSamplerPtr m_LinearSampler;
 
 	KVertexData m_VoxelDrawVertexData;
 
@@ -156,6 +162,9 @@ protected:
 	void ClearUpdateRegion(IKCommandBufferPtr commandBuffer);
 	void ApplyUpdateMovement();
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
+	void ClearRadiance(IKCommandBufferPtr commandBuffer);
+	void UpdateRadiance(IKCommandBufferPtr commandBuffer);
+	void InjectRadiance(IKCommandBufferPtr commandBuffer);
 public:
 	KClipmapVoxilzer();
 	~KClipmapVoxilzer();

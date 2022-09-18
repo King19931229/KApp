@@ -13,8 +13,35 @@
 uint volumeDimension = voxel_clipmap.miscs[0];
 uint borderSize = voxel_clipmap.miscs[1];
 uint storeVisibility = voxel_clipmap.miscs[2];
+uint normalWeightedLambert = voxel_clipmap.miscs[3];
 
 #define VOXEL_CLIPMAP_GROUP_SIZE 8
+
+const float EPSILON = 1e-30;
+const float SQRT_3 = 1.73205080f;
+const uint MAX_DIRECTIONAL_LIGHTS = 3;
+const uint MAX_POINT_LIGHTS = 6;
+const uint MAX_SPOT_LIGHTS = 6;
+
+struct Attenuation
+{
+	float constant;
+	float linear;
+	float quadratic;
+};
+
+struct Light
+{
+	float angleInnerCone;
+	float angleOuterCone;
+	vec3 diffuse;
+	vec3 ambient;
+	vec3 specular;
+	vec3 position;
+	vec3 direction;
+	uint shadowingMethod;
+	Attenuation attenuation;
+};
 
 vec4 convRGBA8ToVec4(uint val)
 {
@@ -133,15 +160,32 @@ bool AABBIntersectsTriangle(vec3 boxMin, vec3 boxMax, vec3 v0, vec3 v1, vec3 v2)
 	return true;
 }
 
+bool IntersectsTriangle(vec3 posW, float voxelSize, vec3 trianglePosW[3])
+{
+	vec3 minPos = floor(posW / voxelSize) * voxelSize;
+	vec3 maxPos = minPos + vec3(voxelSize);
+	return AABBIntersectsTriangle(minPos, maxPos, trianglePosW[0], trianglePosW[1], trianglePosW[2]);
+}
+
 vec3 WorldPositionToClipUVW(vec3 posW, float regionExtent)
 {
 	return fract(posW / regionExtent);
 }
 
+vec3 WorldPositionToSampleCoord(vec3 posW, float regionExtent, uint level, uint levelCount)
+{
+	vec3 coord = WorldPositionToClipUVW(posW, regionExtent) * vec3(volumeDimension);
+	// Target the correct clipmap level
+	coord += vec3(borderSize) + vec3(0, (volumeDimension + 2 * borderSize) * level, 0);
+	coord.xz /= float(volumeDimension + 2 * borderSize);
+	coord.y /= float(levelCount * (volumeDimension + 2 * borderSize));
+	return coord;
+}
+
 ivec3 WorldPositionToImageCoord(vec3 posW, uint level)
 {
 	const vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[level].xyz;
-	const vec3 regionMax = voxel_clipmap.region_max_and_extent[level].xyz;	
+	const vec3 regionMax = voxel_clipmap.region_max_and_extent[level].xyz;
 	const float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
 	const float regionExtent = voxel_clipmap.region_max_and_extent[level].w;
 
@@ -152,9 +196,8 @@ ivec3 WorldPositionToImageCoord(vec3 posW, uint level)
 	vec3 clipCoords = WorldPositionToClipUVW(posW, regionExtent);
 	ivec3 imageCoords = ivec3(clipCoords * volumeDimension) & int(volumeDimension - 1);
 
-	//
-	imageCoords += ivec3(borderSize);
 	// Target the correct clipmap level
+	imageCoords += ivec3(borderSize);
 	imageCoords.y += int((volumeDimension + 2 * borderSize) * level);
 	
 	return imageCoords;
@@ -171,7 +214,7 @@ ivec3 WorldPositionToClipCoord(vec3 posW, uint level)
 	return ivec3(floor(posW / voxelSize));
 }
 
-bool InsideUpdateRegion(ivec3 p, uint level)
+bool InsideUpdateRegion(vec3 p, uint level)
 {
 	for (uint i = 0; i < 3; ++i)
 	{
@@ -190,6 +233,13 @@ bool InsideUpdateRegion(ivec3 p, uint level)
 		}
 	}
 	return false;
+}
+
+bool InsideRegion(vec3 p, uint level)
+{
+	const vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[level].xyz;
+	const vec3 regionMax = voxel_clipmap.region_max_and_extent[level].xyz;
+	return all(greaterThanEqual(p, regionMin)) && all(lessThan(p, regionMax));
 }
 
 #endif
