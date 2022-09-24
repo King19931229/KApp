@@ -1,0 +1,129 @@
+#include "public.h"
+#include "voxel/clipmap/voxel_clipmap_common.h"
+
+layout (local_size_x = VOXEL_CLIPMAP_GROUP_SIZE, local_size_y = VOXEL_CLIPMAP_GROUP_SIZE, local_size_z = VOXEL_CLIPMAP_GROUP_SIZE) in;
+
+layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE, rgba8) uniform image3D voxelRadiance;
+
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	uint level;
+} object;
+
+const ivec3 anisoOffsets[] = ivec3[8]
+(
+	ivec3(1, 1, 1),
+	ivec3(1, 1, 0),
+	ivec3(1, 0, 1),
+	ivec3(1, 0, 0),
+	ivec3(0, 1, 1),
+	ivec3(0, 1, 0),
+	ivec3(0, 0, 1),
+	ivec3(0, 0, 0)
+);
+
+void FetchTexels(ivec3 position, uint level, inout vec4 values[8])
+{
+	int scale = int(1 << (level - 1));
+	for(int i = 0; i < 8; i++)
+	{
+		ivec3 pos = position + scale * anisoOffsets[i];
+		ivec3 texPos = ClipCoordToImageCoord(pos, volumeDimension);
+
+		// Target the correct clipmap level
+		texPos += ivec3(borderSize);
+		texPos.y += int((volumeDimension + 2 * borderSize) * level);
+
+		values[i] = imageLoad(voxelRadiance, texPos);
+	}
+}
+
+// TODO
+float downsampleTransitionRegionSize = 10;
+
+void main()
+{
+	if(gl_GlobalInvocationID.x >= halfVolumeDimension ||
+		gl_GlobalInvocationID.y >= halfVolumeDimension ||
+		gl_GlobalInvocationID.z >= halfVolumeDimension) return;
+
+	uint level = object.level;
+
+	const ivec3 regionMin = ivec3(voxel_clipmap.region_min_and_voxelsize[level].xyz / voxel_clipmap.region_min_and_voxelsize[level].w);
+	const ivec3 regionMax = ivec3(voxel_clipmap.region_max_and_extent[level].xyz / voxel_clipmap.region_min_and_voxelsize[level].w);
+	const ivec3 prevRegionMin = ivec3(voxel_clipmap.region_min_and_voxelsize[level - 1].xyz / voxel_clipmap.region_min_and_voxelsize[level - 1].w);
+	const ivec3 prevRegionMax = ivec3(voxel_clipmap.region_max_and_extent[level - 1].xyz / voxel_clipmap.region_min_and_voxelsize[level - 1].w);
+	const ivec3 prevRegionCenter = (prevRegionMin + prevRegionMax) / 2;
+
+	ivec3 position = prevRegionMin + ivec3(gl_GlobalInvocationID);
+
+	ivec3 writePos = ivec3(gl_GlobalInvocationID);
+	// Target the correct clipmap level 
+	writePos += ivec3(borderSize);
+	writePos.y += int((volumeDimension + 2 * borderSize) * int(level));
+
+	vec4 values[8];
+	FetchTexels(position, level, values);
+
+	vec4 faceValues[6];
+	// x -
+	faceValues[0] = (
+		values[0] + values[4] * (1 - values[0].a) + 
+		values[1] + values[5] * (1 - values[1].a) +
+		values[2] + values[6] * (1 - values[2].a) +
+		values[3] + values[7] * (1 - values[3].a)) * 0.25f;
+
+	// x +
+	faceValues[1] = (
+		values[4] + values[0] * (1 - values[4].a) +
+		values[5] + values[1] * (1 - values[5].a) +
+		values[6] + values[2] * (1 - values[6].a) +
+		values[7] + values[3] * (1 - values[7].a)) * 0.25f;
+
+	// y -
+	faceValues[2] = (
+		values[0] + values[2] * (1 - values[0].a) +
+		values[1] + values[3] * (1 - values[1].a) +
+		values[5] + values[7] * (1 - values[5].a) +
+		values[4] + values[6] * (1 - values[4].a)) * 0.25f;
+
+	// y +
+	faceValues[3] = (
+		values[2] + values[0] * (1 - values[2].a) +
+		values[3] + values[1] * (1 - values[3].a) +
+		values[7] + values[5] * (1 - values[7].a) +
+		values[6] + values[4] * (1 - values[6].a)) * 0.25f;
+
+	// z -
+	faceValues[4] = (
+		values[0] + values[1] * (1 - values[0].a) +
+		values[2] + values[3] * (1 - values[2].a) +
+		values[4] + values[5] * (1 - values[4].a) +
+		values[6] + values[7] * (1 - values[6].a)) * 0.25f;
+
+	// z +
+	faceValues[5] = (
+		values[1] + values[0] * (1 - values[1].a) +
+		values[3] + values[2] * (1 - values[3].a) +
+		values[5] + values[4] * (1 - values[5].a) +
+		values[7] + values[6] * (1 - values[7].a)) * 0.25f;
+
+	 // in [0, halfVolumeDimension / 2 - 1]
+	vec3 distanceToCenter = abs(vec3(position) + vec3(0.5) - vec3(prevRegionCenter)) - vec3(0.5);
+	float lerpFactor = 0.0;
+	if (any(greaterThanEqual(distanceToCenter, vec3(halfVolumeDimension / 2 - downsampleTransitionRegionSize))))
+	{
+		vec3 d = distanceToCenter;
+		lerpFactor = max(d.x, max(d.y, d.z)) - (halfVolumeDimension / 2.0 - downsampleTransitionRegionSize) + 1.0;
+		lerpFactor = lerpFactor / (downsampleTransitionRegionSize + 1.0);
+	}
+
+	for (int i = 0; i < 6; ++i)
+	{
+		ivec3 faceWritePos = writePos + GetFaceOffset(i);
+		vec4 v = imageLoad(voxelRadiance, faceWritePos);
+		v = mix(faceValues[i], v, lerpFactor);
+		imageStore(voxelRadiance, faceWritePos, v);
+	}
+}

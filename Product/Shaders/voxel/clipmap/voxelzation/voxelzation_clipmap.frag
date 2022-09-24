@@ -25,6 +25,7 @@ layout(binding = VOXEL_CLIPMAP_BINDING_STATIC_FLAG, r8) uniform image3D staticVo
 layout(binding = VOXEL_CLIPMAP_BINDING_ALBEDO, r32ui) uniform volatile coherent uimage3D voxelAlbedo;
 layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, r32ui) uniform volatile coherent uimage3D voxelNormal;
 layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION, r32ui) uniform volatile coherent uimage3D voxelEmission;
+layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform writeonly image3D voxelVisibility;
 
 #if 0
 uniform struct Material
@@ -88,7 +89,7 @@ void main()
 		discard;
 
 	// writing coords position
-	ivec3 position = WorldPositionToImageCoord(In.wsPosition, object.level);
+	ivec3 position = WorldPositionToImageCoord(In.wsPosition, object.level, 0);
 
 	// fragment albedo
 	vec4 albedo = texture(diffuseMap, In.texCoord.xy);
@@ -118,9 +119,15 @@ void main()
 		IMAGE_ATOMIC_RGBA_AVG_CALL(voxelAlbedo, position, albedo);
 		// average emission per fragments sorrounding the voxel volume
 		IMAGE_ATOMIC_RGBA_AVG_CALL(voxelEmission, position, emissive);
-		// doing a static flagging pass for static geometry voxelization
 
-		if(storeVisibility == 1)
+		// store the visibility into the alpha channel
+		for (uint face = 0; face < 6; ++face)
+		{
+			imageStore(voxelVisibility, position + GetFaceOffset(face), vec4(1));
+		}
+
+		// doing a static flagging pass for static geometry voxelization
+		if (storeVisibility == 1)
 		{
 			imageStore(staticVoxelFlag, position, vec4(1.0));
 		}

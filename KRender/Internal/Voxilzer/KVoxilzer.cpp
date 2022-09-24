@@ -350,6 +350,9 @@ void KVoxilzer::SetupSparseVoxelBuffer()
 
 	m_OctreeCameraBuffer->InitMemory(sizeof(cameraDummy), cameraDummy);
 	m_OctreeCameraBuffer->InitDevice(false);
+
+	uint32_t dimension = m_VolumeDimension;
+	m_StaticFlag->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8_UNORM);
 }
 
 void KVoxilzer::SetupVoxelReleatedData()
@@ -392,6 +395,7 @@ void KVoxilzer::SetupVoxelReleatedData()
 		m_OctreeBuffer->UnInit();
 		m_OctreeDataBuffer->UnInit();
 		m_OctreeCameraBuffer->UnInit();
+		m_StaticFlag->UnInit();
 		SetupVoxelBuffer();
 		m_VoxelDrawOctreePipeline->UnInit();
 		m_VoxelWireFrameDrawOctreePipeline->UnInit();

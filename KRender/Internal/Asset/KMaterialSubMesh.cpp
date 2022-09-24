@@ -330,6 +330,7 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 			pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTER, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCounterBuffer());
 			pipeline->SetStorageBuffer(VOXEL_BINDING_FRAGMENTLIST, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetFragmentlistBuffer());
 			pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTONLY, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCountOnlyBuffer());
+			pipeline->SetStorageImage(VOXEL_BINDING_STATIC_FLAG, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
 		}
 		else
 		{
@@ -344,6 +345,7 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, KRenderGlobal::ClipmapVoxilzer.GetVoxelNormal(), EF_R32_UINT);
 			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_EMISSION, KRenderGlobal::ClipmapVoxilzer.GetVoxelEmissive(), EF_R32_UINT);
 			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_STATIC_FLAG, KRenderGlobal::ClipmapVoxilzer.GetStaticFlag(), EF_UNKNOWN);
+			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, KRenderGlobal::ClipmapVoxilzer.GetVoxelVisibility(), EF_UNKNOWN);
 		}
 
 		const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;

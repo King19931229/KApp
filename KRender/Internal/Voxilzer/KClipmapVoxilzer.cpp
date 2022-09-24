@@ -137,7 +137,8 @@ KClipmapVoxilzer::KClipmapVoxilzer()
 	, m_ClipmapVolumeDimensionX(128)
 	, m_ClipmapVolumeDimensionY(128)
 	, m_ClipmapVolumeDimensionZ(128)
-	, m_BorderSize(0)
+	, m_ClipmapVolumeDimensionX6Face(128 * 6)
+	, m_BorderSize(1)
 	, m_ClipLevelCount(3)
 	, m_BaseVoxelSize(10.0f)
 	, m_VoxelDrawEnable(false)
@@ -187,9 +188,10 @@ bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCom
 	{
 		struct ObjectData
 		{
-			glm::uint level;
+			glm::uvec4 params;
 		} objectData;
-		objectData.level = i;
+		objectData.params[0] = i;
+		objectData.params[1] = m_ClipLevelCount;
 
 		command.objectUsage.binding = SHADER_BINDING_OBJECT;
 		command.objectUsage.range = sizeof(objectData);
@@ -324,12 +326,9 @@ void KClipmapVoxilzer::UpdateInternal()
 	ClearUpdateRegion(m_PrimaryCommandBuffer);
 	VoxelizeStaticScene(m_PrimaryCommandBuffer);
 
-	m_PrimaryCommandBuffer->End();
-	m_PrimaryCommandBuffer->Flush();
-
-	m_PrimaryCommandBuffer->BeginPrimary();
-
+	DownSampleVisibility(m_PrimaryCommandBuffer);
 	UpdateRadiance(m_PrimaryCommandBuffer);
+	DownSampleRadiance(m_PrimaryCommandBuffer);
 
 	m_PrimaryCommandBuffer->End();
 	m_PrimaryCommandBuffer->Flush();
@@ -607,6 +606,52 @@ void KClipmapVoxilzer::UpdateVoxel()
 	}
 }
 
+void KClipmapVoxilzer::DownSampleVisibility(IKCommandBufferPtr commandBuffer)
+{
+	uint32_t group = (m_VolumeDimension / 2 + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
+
+	for (uint32_t level = 1; level < m_ClipLevelCount; ++level)
+	{
+		KDynamicConstantBufferUsage usage;
+		usage.binding = SHADER_BINDING_OBJECT;
+
+		struct ObjectData
+		{
+			glm::uint32_t level;
+		} objectData;
+
+		objectData.level = level;
+
+		usage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
+
+		m_DownSampleVisibilityPipeline->Execute(commandBuffer, group, group, group, &usage);
+	}
+}
+
+void KClipmapVoxilzer::DownSampleRadiance(IKCommandBufferPtr commandBuffer)
+{
+	uint32_t group = (m_VolumeDimension / 2 + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
+
+	for (uint32_t level = 1; level < m_ClipLevelCount; ++level)
+	{
+		KDynamicConstantBufferUsage usage;
+		usage.binding = SHADER_BINDING_OBJECT;
+
+		struct ObjectData
+		{
+			glm::uint32_t level;
+		} objectData;
+
+		objectData.level = level;
+
+		usage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
+
+		m_DownSampleRadiancePipeline->Execute(commandBuffer, group, group, group, &usage);
+	}
+}
+
 void KClipmapVoxilzer::ReloadShader()
 {
 	m_VoxelDrawVS->Reload();
@@ -628,8 +673,8 @@ void KClipmapVoxilzer::SetupVoxelBuffer()
 	m_VoxelNormal->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8GB8BA8_UNORM);
 	m_VoxelEmissive->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8GB8BA8_UNORM);
 	m_StaticFlag->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8_UNORM);
-
-	m_VoxelRadiance->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionX, 1, EF_R8GB8BA8_UNORM);
+	m_VoxelRadiance->InitFromStorage3D(m_ClipmapVolumeDimensionX6Face, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8GB8BA8_UNORM);
+	m_VoxelVisibility->InitFromStorage3D(m_ClipmapVolumeDimensionX6Face, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8GB8BA8_UNORM);
 }
 
 void KClipmapVoxilzer::SetupVoxelPipeline()
@@ -640,6 +685,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_EMISSION, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_STATIC_FLAG, m_StaticFlag->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
+	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
 
 	m_ClearRegionPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 	m_ClearRegionPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
@@ -658,14 +704,25 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 
-	m_InjectRadiancePipeline->BindSampler(VOXEL_CLIPMAP_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), m_LinearSampler, true);
-	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+	m_InjectRadiancePipeline->BindSampler(VOXEL_CLIPMAP_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), m_LinearSampler, false);
+	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
 	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_EMISSION_MAP, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
 	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
-
+	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
 	m_InjectRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-
 	m_InjectRadiancePipeline->Init("voxel/clipmap/lighting/inject_radiance.comp");
+
+	// DownSample Visibility
+	m_DownSampleVisibilityPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
+	m_DownSampleVisibilityPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
+	m_DownSampleVisibilityPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+	m_DownSampleVisibilityPipeline->Init("voxel/clipmap/lighting/downsample_visibility.comp");
+
+	// DownSample Visibility
+	m_DownSampleRadiancePipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
+	m_DownSampleRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
+	m_DownSampleRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+	m_DownSampleRadiancePipeline->Init("voxel/clipmap/lighting/downsample_radiance.comp");
 }
 
 void KClipmapVoxilzer::SetupVoxelDrawPipeline()
@@ -705,10 +762,14 @@ void KClipmapVoxilzer::SetupVoxelDrawPipeline()
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, cameraBuffer);
 
-		pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), EF_UNKNOWN);
-		pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN);
-		pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN);
-		pipeline->SetStorageImage(VOXEL_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN);
+		IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
+		pipeline->SetConstantBuffer(CBT_GLOBAL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, globalBuffer);
+
+		pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), EF_UNKNOWN);
+		pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN);
+		pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_EMISSION, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN);
+		pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN);
+		pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN);
 
 		pipeline->Init();
 	}
@@ -778,6 +839,8 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 		m_ClipmapVolumeDimensionZ += 2 * m_BorderSize;
 	}
 
+	m_ClipmapVolumeDimensionX6Face = m_ClipmapVolumeDimensionX * 6;
+
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
 	renderDevice->CreateRenderTarget(m_StaticFlag);
@@ -785,12 +848,16 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 	renderDevice->CreateRenderTarget(m_VoxelNormal);
 	renderDevice->CreateRenderTarget(m_VoxelEmissive);
 	renderDevice->CreateRenderTarget(m_VoxelRadiance);
+	renderDevice->CreateRenderTarget(m_VoxelVisibility);
 
 	renderDevice->CreateComputePipeline(m_ClearRegionPipeline);
 
 	renderDevice->CreateComputePipeline(m_ClearRadiancePipeline);
 	renderDevice->CreateComputePipeline(m_InjectRadiancePipeline);
 	renderDevice->CreateComputePipeline(m_InjectPropagationPipeline);
+
+	renderDevice->CreateComputePipeline(m_DownSampleVisibilityPipeline);
+	renderDevice->CreateComputePipeline(m_DownSampleRadiancePipeline);
 
 	renderDevice->CreatePipeline(m_VoxelDrawPipeline);
 	renderDevice->CreatePipeline(m_VoxelWireFrameDrawPipeline);
@@ -863,12 +930,15 @@ bool KClipmapVoxilzer::UnInit()
 	SAFE_UNINIT(m_InjectRadiancePipeline);
 	SAFE_UNINIT(m_ClearRadiancePipeline);
 	SAFE_UNINIT(m_ClearRegionPipeline);
+	SAFE_UNINIT(m_DownSampleVisibilityPipeline);
+	SAFE_UNINIT(m_DownSampleRadiancePipeline);
 
 	SAFE_UNINIT(m_StaticFlag);
 	SAFE_UNINIT(m_VoxelAlbedo);
 	SAFE_UNINIT(m_VoxelNormal);
 	SAFE_UNINIT(m_VoxelEmissive);
 	SAFE_UNINIT(m_VoxelRadiance);
+	SAFE_UNINIT(m_VoxelVisibility);
 
 	m_ClipLevels.clear();
 

@@ -98,11 +98,13 @@ protected:
 	IKRenderTargetPtr m_VoxelNormal;
 	IKRenderTargetPtr m_VoxelEmissive;
 	IKRenderTargetPtr m_VoxelRadiance;
+	IKRenderTargetPtr m_VoxelVisibility;
 
 	uint32_t m_VolumeDimension;
 	uint32_t m_ClipmapVolumeDimensionX;
 	uint32_t m_ClipmapVolumeDimensionY;
 	uint32_t m_ClipmapVolumeDimensionZ;
+	uint32_t m_ClipmapVolumeDimensionX6Face;
 	uint32_t m_BorderSize;
 	uint32_t m_ClipLevelCount;
 	float m_BaseVoxelSize;
@@ -130,6 +132,9 @@ protected:
 	IKComputePipelinePtr m_ClearRadiancePipeline;
 	IKComputePipelinePtr m_InjectRadiancePipeline;
 	IKComputePipelinePtr m_InjectPropagationPipeline;
+
+	IKComputePipelinePtr m_DownSampleVisibilityPipeline;
+	IKComputePipelinePtr m_DownSampleRadiancePipeline;
 
 	IKSamplerPtr m_CloestSampler;
 	IKSamplerPtr m_LinearSampler;
@@ -159,12 +164,14 @@ protected:
 
 	void UpdateVoxelBuffer();
 	void UpdateInternal();
-	void ClearUpdateRegion(IKCommandBufferPtr commandBuffer);
 	void ApplyUpdateMovement();
+	void ClearUpdateRegion(IKCommandBufferPtr commandBuffer);
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
 	void ClearRadiance(IKCommandBufferPtr commandBuffer);
 	void UpdateRadiance(IKCommandBufferPtr commandBuffer);
 	void InjectRadiance(IKCommandBufferPtr commandBuffer);
+	void DownSampleVisibility(IKCommandBufferPtr commandBuffer);
+	void DownSampleRadiance(IKCommandBufferPtr commandBuffer);
 public:
 	KClipmapVoxilzer();
 	~KClipmapVoxilzer();
@@ -192,6 +199,7 @@ public:
 	IKFrameBufferPtr GetVoxelNormal() { return m_VoxelNormal ? m_VoxelNormal->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelEmissive() { return m_VoxelEmissive ? m_VoxelEmissive->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelRadiance() { return m_VoxelRadiance ? m_VoxelRadiance->GetFrameBuffer() : nullptr; }
+	IKFrameBufferPtr GetVoxelVisibility() { return m_VoxelVisibility ? m_VoxelVisibility->GetFrameBuffer() : nullptr; }
 
 	bool Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount,	uint32_t baseVoxelSize, uint32_t width, uint32_t height);
 	bool UnInit();

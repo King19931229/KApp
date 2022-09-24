@@ -41,6 +41,7 @@ layout(binding = BINDING_OBJECT)
 uniform Object
 {
 	uint level;
+	uint levelCount;
 } object;
 
 void main()

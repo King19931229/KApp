@@ -26,5 +26,8 @@ void main()
 	writePos.y += int((volumeDimension + 2 * borderSize) * int(level));
 
 	// clear the volumnes with 0,0,0,0
-	imageStore(voxelRadiance, writePos, vec4(0));
+	for (uint face = 0; face < 6; ++face)
+	{
+		imageStore(voxelRadiance, writePos + GetFaceOffset(face), vec4(0));
+	}
 }

@@ -48,7 +48,7 @@ float TraceShadow(vec3 position, vec3 direction, float maxTracingDistance)
 	// accumulated sample
 	float traceSample = 0.0f;
 
-	while (visibility <= 1.0f && dst <= maxTracingDistance) 
+	while (visibility < 1.0f && dst <= maxTracingDistance) 
 	{
 		if (samplePos.x < 0.0f || samplePos.y < 0.0f || samplePos.z < 0.0f
 			|| samplePos.x > 1.0f || samplePos.y > 1.0f || samplePos.z > 1.0f) 

@@ -9,8 +9,10 @@
 #define VOXEL_CLIPMAP_BINDING_OPACITY_MAP BINDING_TEXTURE14
 #define VOXEL_CLIPMAP_BINDING_EMISSION_MAP BINDING_TEXTURE15
 #define VOXEL_CLIPMAP_BINDING_RADIANCE BINDING_TEXTURE16
+#define VOXEL_CLIPMAP_BINDING_VISIBILITY BINDING_TEXTURE17
 
 uint volumeDimension = voxel_clipmap.miscs[0];
+uint halfVolumeDimension = voxel_clipmap.miscs[0] / 2;
 uint borderSize = voxel_clipmap.miscs[1];
 uint storeVisibility = voxel_clipmap.miscs[2];
 uint normalWeightedLambert = voxel_clipmap.miscs[3];
@@ -172,17 +174,20 @@ vec3 WorldPositionToClipUVW(vec3 posW, float regionExtent)
 	return fract(posW / regionExtent);
 }
 
-vec3 WorldPositionToSampleCoord(vec3 posW, float regionExtent, uint level, uint levelCount)
+vec3 WorldPositionToSampleCoord(vec3 posW, float regionExtent, uint level, uint levelCount, uint face, uint faceCount)
 {
 	vec3 coord = WorldPositionToClipUVW(posW, regionExtent) * vec3(volumeDimension);
 	// Target the correct clipmap level
-	coord += vec3(borderSize) + vec3(0, (volumeDimension + 2 * borderSize) * level, 0);
-	coord.xz /= float(volumeDimension + 2 * borderSize);
+	coord.xyz += vec3(borderSize);
+	coord.x += float((volumeDimension + 2 * borderSize) * face);
+	coord.x /= float(faceCount * (volumeDimension + 2 * borderSize));
+	coord.y += float((volumeDimension + 2 * borderSize) * level);
 	coord.y /= float(levelCount * (volumeDimension + 2 * borderSize));
+	coord.z /= float(volumeDimension + 2 * borderSize);
 	return coord;
 }
 
-ivec3 WorldPositionToImageCoord(vec3 posW, uint level)
+ivec3 WorldPositionToImageCoord(vec3 posW, uint level, uint face)
 {
 	const vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[level].xyz;
 	const vec3 regionMax = voxel_clipmap.region_max_and_extent[level].xyz;
@@ -190,16 +195,17 @@ ivec3 WorldPositionToImageCoord(vec3 posW, uint level)
 	const float regionExtent = voxel_clipmap.region_max_and_extent[level].w;
 
 	// Avoid floating point imprecision issues by clamping to narrowed bounds
-	float c = voxelSize * 0.25; // Error correction constant
+	float c = voxelSize * 0.5; // Error correction constant
 	posW = clamp(posW, regionMin + c, regionMax - c);
 
 	vec3 clipCoords = WorldPositionToClipUVW(posW, regionExtent);
 	ivec3 imageCoords = ivec3(clipCoords * volumeDimension) & int(volumeDimension - 1);
 
 	// Target the correct clipmap level
-	imageCoords += ivec3(borderSize);
+	imageCoords.xyz += ivec3(borderSize);
+	imageCoords.x += int((volumeDimension + 2 * borderSize) * face);
 	imageCoords.y += int((volumeDimension + 2 * borderSize) * level);
-	
+
 	return imageCoords;
 }
 
@@ -212,6 +218,11 @@ ivec3 WorldPositionToClipCoord(vec3 posW, uint level)
 {
 	const float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
 	return ivec3(floor(posW / voxelSize));
+}
+
+ivec3 GetFaceOffset(uint face)
+{
+	return ivec3(int((volumeDimension + 2 * borderSize) * face), 0, 0);
 }
 
 bool InsideUpdateRegion(vec3 p, uint level)

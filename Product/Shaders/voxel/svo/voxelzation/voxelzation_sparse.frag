@@ -52,6 +52,13 @@ void main()
 	float opacity = 1.0;
 #endif
 
+	if (storeVisibility == 0)
+	{
+		bool isStatic = imageLoad(staticVoxelFlag, position).r > 0.0f;
+		// force condition so writing is canceled
+		if(isStatic) opacity = 0.0f;
+	}
+
 	// alpha cutoff
 	if(opacity > 0.0f)
 	{
@@ -80,6 +87,12 @@ void main()
 			uFragmentList[cur].y = ((uvoxel_pos.z >> 8u) << 28u) | (ucolor & 0x00ffffffu);
 			uFragmentList[cur].z = unormal;
 			uFragmentList[cur].w = uemissive;
+		}
+
+		// doing a static flagging pass for static geometry voxelization
+		if (storeVisibility == 1)
+		{
+			imageStore(staticVoxelFlag, position, vec4(1.0));
 		}
 	}
 }

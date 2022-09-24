@@ -7,6 +7,7 @@ layout(binding = VOXEL_CLIPMAP_BINDING_STATIC_FLAG, r8) uniform writeonly image3
 layout(binding = VOXEL_CLIPMAP_BINDING_ALBEDO, rgba8) uniform writeonly image3D voxelAlbedo;
 layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, rgba8) uniform writeonly image3D voxelNormal;
 layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION, rgba8) uniform writeonly image3D voxelEmissive;
+layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform writeonly image3D voxelVisibility;
 
 layout(binding = BINDING_OBJECT)
 uniform Object
@@ -36,4 +37,8 @@ void main()
 	imageStore(voxelNormal, writePos, vec4(0));
 	imageStore(voxelEmissive, writePos, vec4(0));
 	imageStore(staticVoxelFlag, writePos, vec4(0.0));
+	for (uint face = 0; face < 6; ++face)
+	{
+		imageStore(voxelVisibility, writePos + GetFaceOffset(face), vec4(0.0));
+	}
 }
