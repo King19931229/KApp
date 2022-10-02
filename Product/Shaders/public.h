@@ -173,8 +173,12 @@ uniform VoxelClipmapInfo
 	// Atmost 6 clipmap
 	vec4 region_min_and_voxelsize[6];
 	vec4 region_max_and_extent[6];
-	// volumeDimension:1 borderSize:1 storeVisibility:1
+	// volumeDimension:1 borderSize:1 storeVisibility:1 normalWeightedLambert:1
 	uvec4 miscs;
+	// levelCount:1 checkBoundaries:1
+	uvec4 miscs2;
+	// traceShadowHit: 1 maxTracingDistanceGlobal: 1 occlusionDecay: 1
+	vec4 miscs3;
 }voxel_clipmap;
 
 layout(binding = BINDING_GLOBAL)

@@ -10,12 +10,30 @@
 #define VOXEL_CLIPMAP_BINDING_EMISSION_MAP BINDING_TEXTURE15
 #define VOXEL_CLIPMAP_BINDING_RADIANCE BINDING_TEXTURE16
 #define VOXEL_CLIPMAP_BINDING_VISIBILITY BINDING_TEXTURE17
+#define VOXEL_CLIPMAP_BINDING_RADIANCE2 BINDING_TEXTURE18
+
+#define VOXEL_CLIPMAP_BINDING_GBUFFER_NORMAL BINDING_TEXTURE19
+#define VOXEL_CLIPMAP_BINDING_GBUFFER_POSITION BINDING_TEXTURE20
+#define VOXEL_CLIPMAP_BINDING_GBUFFER_ALBEDO BINDING_TEXTURE21
+#define VOXEL_CLIPMAP_BINDING_GBUFFER_SPECULAR BINDING_TEXTURE22
 
 uint volumeDimension = voxel_clipmap.miscs[0];
 uint halfVolumeDimension = voxel_clipmap.miscs[0] / 2;
 uint borderSize = voxel_clipmap.miscs[1];
 uint storeVisibility = voxel_clipmap.miscs[2];
 uint normalWeightedLambert = voxel_clipmap.miscs[3];
+uint levelCount = voxel_clipmap.miscs2[0];
+uint checkBoundaries = voxel_clipmap.miscs2[1];
+float traceShadowHit = voxel_clipmap.miscs3[0];
+float maxTracingDistanceGlobal = voxel_clipmap.miscs3[1];
+float occlusionDecay = voxel_clipmap.miscs3[2];
+
+float bounceStrength = 1.0f;
+float aoFalloff = 725.0f;
+float aoAlpha = 0.01f;
+float samplingFactor = 1.0f;
+float coneShadowTolerance = 1.0f;
+float coneShadowAperture = 0.03f;
 
 #define VOXEL_CLIPMAP_GROUP_SIZE 8
 
@@ -180,8 +198,8 @@ vec3 WorldPositionToSampleCoord(vec3 posW, float regionExtent, uint level, uint 
 	// Target the correct clipmap level
 	coord.xyz += vec3(borderSize);
 	coord.x += float((volumeDimension + 2 * borderSize) * face);
-	coord.x /= float(faceCount * (volumeDimension + 2 * borderSize));
 	coord.y += float((volumeDimension + 2 * borderSize) * level);
+	coord.x /= float(faceCount * (volumeDimension + 2 * borderSize));
 	coord.y /= float(levelCount * (volumeDimension + 2 * borderSize));
 	coord.z /= float(volumeDimension + 2 * borderSize);
 	return coord;

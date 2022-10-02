@@ -50,6 +50,9 @@ void main()
 		gl_in[2].gl_Position.xyz / gl_in[2].gl_Position.w
 	);
 
+	vec3 flatNormal = -cross(trianglePosW[1].xyz - trianglePosW[0].xyz, trianglePosW[2].xyz - trianglePosW[0].xyz);
+	flatNormal = normalize(flatNormal);
+
 	//transform vertices to clip space
 	vec4 pos[3] = vec4[3]
 	(
@@ -139,7 +142,8 @@ void main()
 
 		gl_Position = pos[i];
 		Out.position = pos[i].xyz;
-		Out.normal = normal[i];
+		// Out.normal = normal[i];
+		Out.normal = flatNormal;
 		Out.texCoord = texCoord[i];
 		Out.wsPosition = voxelPos.xyz;
 		Out.trianglePosW = trianglePosW;

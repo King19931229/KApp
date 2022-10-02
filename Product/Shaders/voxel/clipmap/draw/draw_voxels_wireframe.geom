@@ -40,9 +40,12 @@ vec3 VoxelToWorld(vec3 pos, float voxelSize)
 layout(binding = BINDING_OBJECT)
 uniform Object
 {
-	uint level;
-	uint levelCount;
+	uvec4 miscs;
+	float bias;
 } object;
+
+layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, rgba8) uniform image3D voxelNormal;
+layout(binding = VOXEL_CLIPMAP_BINDING_DIFFUSE_MAP) uniform sampler3D voxelNormalSampler;
 
 void main()
 {
@@ -58,14 +61,15 @@ void main()
 		vec4(0.0f, 0.0f, 0.0f, 0.0f)
 	);
 
-	const vec4 color[6] = vec4[6]
+	const vec4 color[] = vec4[]
 	(
 		vec4(1, 0, 0, 1),
 		vec4(0, 1, 0, 1),
 		vec4(0, 0, 1, 1),
 		vec4(1, 1, 0, 1),
 		vec4(0, 1, 1, 1),
-		vec4(1, 0, 1, 1)
+		vec4(1, 0, 1, 1),
+		vec4(1, 1, 1, 1)
 	);
 
 	const int cubeIndices[16]  = int[16] 
@@ -82,31 +86,59 @@ void main()
 		3, 2
 	);
 
-	const float voxelSize = voxel_clipmap.region_min_and_voxelsize[object.level].w;
-	const vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[object.level].xyz;
+	uint level = object.miscs[0];
+
+	const float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
+	const vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[level].xyz;
 
 	vec3 center = VoxelToWorld(gl_in[0].gl_Position.xyz, voxelSize);
 	vec3 extent = vec3(voxelSize);
 
 	if(albedo[0].a == 0.0f /*|| !VoxelInFrustum(center, extent)*/) { return; }
 
-	if (object.level > 0 && InsideRegion(center, object.level - 1))
+	if (level > 0 && InsideRegion(center, level - 1))
 	{
 		return;
 	}
 
 	vec4 projectedVertices[8];
 
-	for(int i = 0; i < 8; ++i)
+	float bias = object.bias;
+
+	if (abs(bias) > EPSILON)
 	{
-		vec4 vertex = gl_in[0].gl_Position + cubeVertices[i];
-		projectedVertices[i] = camera.viewProj * vec4(VoxelToWorld(vertex.xyz, voxelSize), 1.0);
+		ivec3 writePos = ClipCoordToImageCoord(ivec3(gl_in[0].gl_Position.xyz), volumeDimension);
+		// Target the correct clipmap level
+		writePos += ivec3(borderSize);
+		writePos.y += int((volumeDimension + 2 * borderSize) * level);
+
+		// voxel normal in 0-1 range
+		vec3 baseNormal = imageLoad(voxelNormal, writePos).xyz;
+		// normal is stored in 0-1 range, restore to -1-1
+		vec3 normal = DecodeNormal(baseNormal);
+
+		for(int i = 0; i < 8; ++i)
+		{
+			vec4 vertex = gl_in[0].gl_Position + cubeVertices[i];
+			vec3 worldPos = VoxelToWorld(vertex.xyz, voxelSize);
+			// worldPos -= bias * global.sunLightDir.xyz * voxelSize;
+			worldPos += bias * normal * voxelSize;
+			projectedVertices[i] = camera.viewProj * vec4(worldPos, 1.0);
+		}
+	}
+	else
+	{
+		for(int i = 0; i < 8; ++i)
+		{
+			vec4 vertex = gl_in[0].gl_Position + cubeVertices[i];
+			projectedVertices[i] = camera.viewProj * vec4(VoxelToWorld(vertex.xyz, voxelSize), 1.0);
+		}
 	}
 
 	for(int idx = 0; idx < 16; ++idx)
 	{
 		gl_Position = projectedVertices[cubeIndices[idx]];
-		voxelColor = color[object.level];
+		voxelColor = color[level];
 		EmitVertex();
 	}
 

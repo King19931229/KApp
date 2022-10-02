@@ -23,12 +23,12 @@ const ivec3 anisoOffsets[] = ivec3[8]
 	ivec3(0, 0, 0)
 );
 
-void FetchTexels(ivec3 position, uint level, inout vec4 values[8])
+void FetchTexels(vec3 posW, uint level, inout vec4 values[8])
 {
-	int scale = int(1 << (level - 1));
+	ivec3 position = WorldPositionToClipCoord(posW, level);
 	for(int i = 0; i < 8; i++)
 	{
-		ivec3 pos = position + scale * anisoOffsets[i];
+		ivec3 pos = position + anisoOffsets[i];
 		ivec3 texPos = ClipCoordToImageCoord(pos, volumeDimension);
 
 		// Target the correct clipmap level
@@ -48,23 +48,28 @@ void main()
 		gl_GlobalInvocationID.y >= halfVolumeDimension ||
 		gl_GlobalInvocationID.z >= halfVolumeDimension) return;
 
+	if (any(equal(gl_GlobalInvocationID.xyz, ivec3(0))) || any(equal(gl_GlobalInvocationID.xyz, ivec3(halfVolumeDimension - 1))))
+		return;
+
 	uint level = object.level;
 
 	const ivec3 regionMin = ivec3(voxel_clipmap.region_min_and_voxelsize[level].xyz / voxel_clipmap.region_min_and_voxelsize[level].w);
 	const ivec3 regionMax = ivec3(voxel_clipmap.region_max_and_extent[level].xyz / voxel_clipmap.region_min_and_voxelsize[level].w);
-	const ivec3 prevRegionMin = ivec3(voxel_clipmap.region_min_and_voxelsize[level - 1].xyz / voxel_clipmap.region_min_and_voxelsize[level - 1].w);
-	const ivec3 prevRegionMax = ivec3(voxel_clipmap.region_max_and_extent[level - 1].xyz / voxel_clipmap.region_min_and_voxelsize[level - 1].w);
+	const ivec3 prevRegionMin = ivec3(voxel_clipmap.region_min_and_voxelsize[level - 1].xyz / voxel_clipmap.region_min_and_voxelsize[level].w);
+	const ivec3 prevRegionMax = ivec3(voxel_clipmap.region_max_and_extent[level - 1].xyz / voxel_clipmap.region_min_and_voxelsize[level].w);
 	const ivec3 prevRegionCenter = (prevRegionMin + prevRegionMax) / 2;
+	const float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
 
 	ivec3 position = prevRegionMin + ivec3(gl_GlobalInvocationID);
+	vec3 worldPos = vec3(position) * voxelSize;
 
-	ivec3 writePos = ivec3(gl_GlobalInvocationID);
+	ivec3 writePos = ClipCoordToImageCoord(position, volumeDimension);
 	// Target the correct clipmap level 
 	writePos += ivec3(borderSize);
 	writePos.y += int((volumeDimension + 2 * borderSize) * int(level));
 
 	vec4 values[8];
-	FetchTexels(position, level, values);
+	FetchTexels(worldPos, level - 1, values);
 
 	vec4 faceValues[6];
 	// x -

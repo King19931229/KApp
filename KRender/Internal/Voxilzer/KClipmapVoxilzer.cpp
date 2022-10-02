@@ -6,6 +6,20 @@
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "KBase/Interface/IKLog.h"
 
+const VertexFormat KClipmapVoxilzer::ms_VertexFormats[1] = { VF_DEBUG_POINT };
+
+const VertexFormat KClipmapVoxilzer::ms_QuadFormats[] = { VF_SCREENQUAD_POS };
+
+const KVertexDefinition::SCREENQUAD_POS_2F KClipmapVoxilzer::ms_QuadVertices[] =
+{
+	glm::vec2(-1.0f, -1.0f),
+	glm::vec2(1.0f, -1.0f),
+	glm::vec2(1.0f, 1.0f),
+	glm::vec2(-1.0f, 1.0f)
+};
+
+const uint16_t KClipmapVoxilzer::ms_QuadIndices[] = { 0, 1, 2, 2, 3, 0 };
+
 KClipmapVoxilzerLevel::KClipmapVoxilzerLevel(KClipmapVoxilzer* parent, uint32_t level)
 	: m_Parent(parent)
 	, m_VoxelSize(0)
@@ -140,13 +154,15 @@ KClipmapVoxilzer::KClipmapVoxilzer()
 	, m_ClipmapVolumeDimensionX6Face(128 * 6)
 	, m_BorderSize(1)
 	, m_ClipLevelCount(3)
-	, m_BaseVoxelSize(10.0f)
+	, m_BaseVoxelSize(16.0f)
+	, m_InjectFirstBounce(true)
 	, m_VoxelDrawEnable(false)
 	, m_VoxelDrawWireFrame(true)
 	, m_VoxelBorderEnable(true)
-	, m_VoxelDebugUpdate(true)
+	, m_VoxelDebugUpdate(false)
 	, m_VoxelNeedUpdate(false)
 	, m_VoxelEmpty(true)
+	, m_VoxelDrawBias(0.0f)
 {
 	m_OnSceneChangedFunc = std::bind(&KClipmapVoxilzer::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
 }
@@ -189,9 +205,11 @@ bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCom
 		struct ObjectData
 		{
 			glm::uvec4 params;
+			float bias;
 		} objectData;
 		objectData.params[0] = i;
 		objectData.params[1] = m_ClipLevelCount;
+		objectData.bias = m_VoxelDrawBias;
 
 		command.objectUsage.binding = SHADER_BINDING_OBJECT;
 		command.objectUsage.range = sizeof(objectData);
@@ -204,6 +222,35 @@ bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCom
 	buffers.push_back(m_DrawCommandBuffer);
 
 	return true;
+}
+
+bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
+{
+	primaryBuffer->BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_SECONDARY);
+
+	KRenderCommand command;
+	command.vertexData = &m_QuadVertexData;
+	command.indexData = &m_QuadIndexData;
+	command.pipeline = m_LightPassPipeline;
+	command.pipeline->GetHandle(m_LightPassRenderPass, command.pipelineHandle);
+	command.indexDraw = true;
+
+	m_LightingCommandBuffer->BeginSecondary(m_LightPassRenderPass);
+	m_LightingCommandBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
+	m_LightingCommandBuffer->Render(command);
+	m_LightingCommandBuffer->End();
+
+	primaryBuffer->Execute(m_LightingCommandBuffer);
+	primaryBuffer->EndRenderPass();
+	primaryBuffer->EndDebugMarker();
+
+	return true;
+}
+
+bool KClipmapVoxilzer::UpdateFrame(IKCommandBufferPtr primaryBuffer)
+{
+	return UpdateLightingResult(primaryBuffer);
 }
 
 void KClipmapVoxilzer::UpdateVoxelBuffer()
@@ -314,6 +361,30 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 			memcpy(pWritePos, &miscs, sizeof(glm::uvec4));
 			pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::uvec4));
 		}
+		if (detail.semantic == CS_VOXEL_CLIPMAP_MISCS2)
+		{
+			assert(sizeof(glm::uvec4) == detail.size);
+			glm::uvec4 miscs;
+			// levelCount
+			miscs[0] = m_ClipLevelCount;
+			// checkBoundaries
+			miscs[1] = 1;
+			memcpy(pWritePos, &miscs, sizeof(glm::uvec4));
+			pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::uvec4));
+		}
+		if (detail.semantic == CS_VOXEL_CLIPMAP_MISCS3)
+		{
+			assert(sizeof(glm::vec4) == detail.size);
+			glm::vec4 miscs;
+			// traceShadowHit
+			miscs[0] = 1.0f;
+			// maxTracingDistanceGlobal
+			miscs[1] = 1.0f;
+			// occlusionDecay
+			miscs[2] = 1.0f;
+			memcpy(pWritePos, &miscs, sizeof(glm::vec4));
+			pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
+		}
 	}
 
 	voxelBuffer->Write(pData);
@@ -329,6 +400,12 @@ void KClipmapVoxilzer::UpdateInternal()
 	DownSampleVisibility(m_PrimaryCommandBuffer);
 	UpdateRadiance(m_PrimaryCommandBuffer);
 	DownSampleRadiance(m_PrimaryCommandBuffer);
+
+	if (m_InjectFirstBounce)
+	{
+		InjectPropagation(m_PrimaryCommandBuffer);
+		DownSampleRadiance(m_PrimaryCommandBuffer);
+	}
 
 	m_PrimaryCommandBuffer->End();
 	m_PrimaryCommandBuffer->Flush();
@@ -563,6 +640,30 @@ void KClipmapVoxilzer::InjectRadiance(IKCommandBufferPtr commandBuffer)
 	}
 }
 
+void KClipmapVoxilzer::InjectPropagation(IKCommandBufferPtr commandBuffer)
+{
+	uint32_t group = (m_VolumeDimension + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
+
+	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
+	{
+		KDynamicConstantBufferUsage usage;
+		usage.binding = SHADER_BINDING_OBJECT;
+
+		struct ObjectData
+		{
+			glm::uvec4 params;
+		} objectData;
+
+		objectData.params[0] = level;
+		objectData.params[1] = m_ClipLevelCount;
+
+		usage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
+
+		m_InjectPropagationPipeline->Execute(commandBuffer, group, group, group, &usage);
+	}
+}
+
 void KClipmapVoxilzer::UpdateVoxel()
 {
 	if (m_VoxelDebugUpdate || m_VoxelEmpty)
@@ -659,12 +760,21 @@ void KClipmapVoxilzer::ReloadShader()
 	m_VoxelWireFrameDrawGS->Reload();
 	m_VoxelDrawFS->Reload();
 
+	m_QuadVS->Reload();
+	m_LightPassFS->Reload();
+
+	m_LightPassPipeline->Reload();
+
 	m_VoxelDrawPipeline->Reload();
 	m_VoxelWireFrameDrawPipeline->Reload();
 
 	m_ClearRegionPipeline->Reload();
 	m_ClearRadiancePipeline->Reload();
 	m_InjectRadiancePipeline->Reload();
+	m_InjectPropagationPipeline->Reload();
+
+	m_DownSampleVisibilityPipeline->Reload();
+	m_DownSampleRadiancePipeline->Reload();
 }
 
 void KClipmapVoxilzer::SetupVoxelBuffer()
@@ -711,6 +821,19 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
 	m_InjectRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 	m_InjectRadiancePipeline->Init("voxel/clipmap/lighting/inject_radiance.comp");
+
+	// Inject Radiance
+	m_InjectPropagationPipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
+	m_InjectPropagationPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
+
+	m_InjectPropagationPipeline->BindSampler(VOXEL_CLIPMAP_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), m_LinearSampler, false);
+	m_InjectPropagationPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, m_VoxelNormal->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
+	m_InjectPropagationPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_EMISSION_MAP, m_VoxelEmissive->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
+	m_InjectPropagationPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
+	m_InjectPropagationPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
+	m_InjectPropagationPipeline->BindSampler(VOXEL_CLIPMAP_BINDING_RADIANCE2, m_VoxelRadiance->GetFrameBuffer(), m_LinearSampler, false);
+	m_InjectPropagationPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+	m_InjectPropagationPipeline->Init("voxel/clipmap/lighting/inject_propagation.comp");
 
 	// DownSample Visibility
 	m_DownSampleVisibilityPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
@@ -771,6 +894,9 @@ void KClipmapVoxilzer::SetupVoxelDrawPipeline()
 		pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN);
 		pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN);
 
+		if (idx == 0)
+			pipeline->SetSampler(VOXEL_CLIPMAP_BINDING_DIFFUSE_MAP, m_VoxelNormal->GetFrameBuffer(), m_LinearSampler);
+
 		pipeline->Init();
 	}
 
@@ -803,6 +929,73 @@ void KClipmapVoxilzer::SetupVoxelReleatedData()
 	SetupVoxelBuffer();
 	SetupVoxelPipeline();
 	SetupVoxelDrawPipeline();
+	SetupLightPassPipeline();
+}
+
+void KClipmapVoxilzer::SetupQuadDrawData()
+{
+	m_QuadVertexBuffer->InitMemory(ARRAY_SIZE(ms_QuadVertices), sizeof(ms_QuadVertices[0]), ms_QuadVertices);
+	m_QuadVertexBuffer->InitDevice(false);
+
+	m_QuadIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_QuadIndices), ms_QuadIndices);
+	m_QuadIndexBuffer->InitDevice(false);
+
+	m_QuadVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_QuadVertexBuffer);
+	m_QuadVertexData.vertexFormats = std::vector<VertexFormat>(ms_VertexFormats, ms_VertexFormats + ARRAY_SIZE(ms_VertexFormats));
+	m_QuadVertexData.vertexCount = ARRAY_SIZE(ms_QuadVertices);
+	m_QuadVertexData.vertexStart = 0;
+
+	m_QuadIndexData.indexBuffer = m_QuadIndexBuffer;
+	m_QuadIndexData.indexCount = ARRAY_SIZE(ms_QuadIndices);
+	m_QuadIndexData.indexStart = 0;
+}
+
+void KClipmapVoxilzer::SetupLightPassPipeline()
+{
+	m_LightDebugDrawer.Init(m_LightPassTarget, 0, 0, 1, 1);
+
+	m_LightPassPipeline->SetVertexBinding(ms_QuadFormats, ARRAY_SIZE(ms_QuadFormats));
+	m_LightPassPipeline->SetShader(ST_VERTEX, m_QuadVS);
+	m_LightPassPipeline->SetShader(ST_FRAGMENT, m_LightPassFS);
+	
+	m_LightPassPipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+	m_LightPassPipeline->SetBlendEnable(false);
+	m_LightPassPipeline->SetCullMode(CM_NONE);
+	m_LightPassPipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+	m_LightPassPipeline->SetPolygonMode(PM_FILL);
+	m_LightPassPipeline->SetColorWrite(true, true, true, true);
+	m_LightPassPipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+	IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
+	m_LightPassPipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
+
+	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+	m_LightPassPipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, cameraBuffer);
+
+	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
+	m_LightPassPipeline->SetConstantBuffer(CBT_GLOBAL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, globalBuffer);
+
+	m_LightPassPipeline->SetSampler(VOXEL_CLIPMAP_BINDING_GBUFFER_NORMAL,
+		KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL)->GetFrameBuffer(),
+		KRenderGlobal::GBuffer.GetSampler(),
+		true);
+	m_LightPassPipeline->SetSampler(VOXEL_CLIPMAP_BINDING_GBUFFER_POSITION,
+		KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION)->GetFrameBuffer(),
+		KRenderGlobal::GBuffer.GetSampler(),
+		true);
+	m_LightPassPipeline->SetSampler(VOXEL_CLIPMAP_BINDING_GBUFFER_ALBEDO,
+		KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_DIFFUSE)->GetFrameBuffer(),
+		KRenderGlobal::GBuffer.GetSampler(),
+		true);
+	m_LightPassPipeline->SetSampler(VOXEL_CLIPMAP_BINDING_GBUFFER_SPECULAR,
+		KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_SPECULAR)->GetFrameBuffer(),
+		KRenderGlobal::GBuffer.GetSampler(),
+		true);
+
+	m_LightPassPipeline->SetSampler(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), m_LinearSampler, false);
+	m_LightPassPipeline->SetSampler(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), m_LinearSampler, false);
+
+	m_LightPassPipeline->Init();
 }
 
 void KClipmapVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
@@ -813,6 +1006,11 @@ void KClipmapVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 		return;
 	}
 	m_VoxelNeedUpdate = true;
+}
+
+bool KClipmapVoxilzer::GetLightDebugRenderCommand(KRenderCommandList& commands)
+{
+	return m_LightDebugDrawer.GetDebugRenderCommand(commands);
 }
 
 bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount, uint32_t baseVoxelSize, uint32_t width, uint32_t height)
@@ -841,7 +1039,13 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 
 	m_ClipmapVolumeDimensionX6Face = m_ClipmapVolumeDimensionX * 6;
 
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/quad.vert", m_QuadVS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/lighting/light_pass.frag", m_LightPassFS, false);
+
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
+
+	renderDevice->CreateVertexBuffer(m_QuadVertexBuffer);
+	renderDevice->CreateIndexBuffer(m_QuadIndexBuffer);
 
 	renderDevice->CreateRenderTarget(m_StaticFlag);
 	renderDevice->CreateRenderTarget(m_VoxelAlbedo);
@@ -859,6 +1063,7 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 	renderDevice->CreateComputePipeline(m_DownSampleVisibilityPipeline);
 	renderDevice->CreateComputePipeline(m_DownSampleRadiancePipeline);
 
+	renderDevice->CreatePipeline(m_LightPassPipeline);
 	renderDevice->CreatePipeline(m_VoxelDrawPipeline);
 	renderDevice->CreatePipeline(m_VoxelWireFrameDrawPipeline);
 
@@ -893,6 +1098,7 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 	}
 
 	Resize(width, height);
+	SetupQuadDrawData();
 	SetupVoxelReleatedData();
 
 	m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
@@ -909,6 +1115,16 @@ bool KClipmapVoxilzer::UnInit()
 	m_Scene = nullptr;
 	m_Camera = nullptr;
 
+	m_LightDebugDrawer.UnInit();
+
+	KRenderGlobal::ShaderManager.Release(m_QuadVS);
+	m_QuadVS = nullptr;
+	KRenderGlobal::ShaderManager.Release(m_LightPassFS);
+	m_LightPassFS = nullptr;
+
+	SAFE_UNINIT(m_QuadIndexBuffer);
+	SAFE_UNINIT(m_QuadVertexBuffer);
+
 	SAFE_UNINIT(m_VoxelRenderPass);
 	SAFE_UNINIT(m_VoxelRenderPassTarget);
 
@@ -922,6 +1138,8 @@ bool KClipmapVoxilzer::UnInit()
 
 	SAFE_UNINIT(m_VoxelDrawPipeline);
 	SAFE_UNINIT(m_VoxelWireFrameDrawPipeline);
+
+	SAFE_UNINIT(m_LightPassPipeline);
 
 	SAFE_UNINIT(m_CloestSampler);
 	SAFE_UNINIT(m_LinearSampler);

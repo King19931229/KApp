@@ -1,0 +1,277 @@
+#include "public.h"
+#include "voxel/clipmap/voxel_clipmap_common.h"
+
+layout (local_size_x = VOXEL_CLIPMAP_GROUP_SIZE, local_size_y = VOXEL_CLIPMAP_GROUP_SIZE, local_size_z = VOXEL_CLIPMAP_GROUP_SIZE) in;
+
+layout(binding = VOXEL_CLIPMAP_BINDING_ALBEDO) uniform sampler3D voxelAlbedo;
+layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, rgba8) uniform image3D voxelNormal;
+layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION_MAP, rgba8) uniform readonly image3D voxelEmissive;
+layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE, rgba8) uniform image3D voxelRadiance;
+layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform image3D voxelVisibility;
+layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE2) uniform sampler3D voxelRadiance2;
+
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	// level:[0] levelCount:[1]
+	uvec4 params;
+} object;
+
+uint level = object.params[0];
+
+vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[level].xyz;
+vec3 regionMax = voxel_clipmap.region_max_and_extent[level].xyz;
+float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
+float extent = voxel_clipmap.region_max_and_extent[level].w;
+
+float baseExtent = voxel_clipmap.region_max_and_extent[0].w;
+float baseVoxelSize = voxel_clipmap.region_min_and_voxelsize[0].w;
+
+float lastVoxelSize = voxel_clipmap.region_min_and_voxelsize[levelCount - 1].w;
+float lastExtent = voxel_clipmap.region_max_and_extent[levelCount - 1].w;
+vec3 lastRegionMin = voxel_clipmap.region_min_and_voxelsize[levelCount - 1].xyz;
+vec3 lastRegionMax = voxel_clipmap.region_max_and_extent[levelCount - 1].xyz;
+
+vec3 regionCenter = (regionMin + regionMax) * 0.5;
+
+// four cones
+const vec3 propagationDirections[] =
+{
+	vec3(0.0f, 1.0f, 0.0f),
+	vec3(0.0f, 0.5f, 0.866025f),
+	vec3(0.754996f, 0.5f, -0.4330128f),
+	vec3(-0.754996f, 0.5f, -0.4330128f)
+};
+
+const float diffuseConeWeights[] =
+{
+	PI / 3.0f,
+	2.0f * PI / 9.0f,
+	2.0f * PI / 9.0f,
+	2.0f * PI / 9.0f,
+};
+
+vec3 VoxelToWorld(vec3 pos)
+{
+	vec3 result = vec3(pos);
+	result *= voxelSize;
+	return result;
+}
+
+vec3 WorldToVoxel(vec3 position)
+{
+	vec3 voxelPos = position / voxelSize;
+	return voxelPos;
+}
+
+#define CLIPMAP_USE_SAMPLER 1
+
+vec4 SampleClipmap(vec3 posW, uint clipmapLevel, uvec3 visibleFace, vec3 weight)
+{
+#if CLIPMAP_USE_SAMPLER
+	float extent = voxel_clipmap.region_max_and_extent[clipmapLevel].w;
+	vec3 samplePosX = WorldPositionToSampleCoord(posW, extent, clipmapLevel, levelCount, visibleFace.x, 6);
+	vec3 samplePosY = WorldPositionToSampleCoord(posW, extent, clipmapLevel, levelCount, visibleFace.y, 6);
+	vec3 samplePosZ = WorldPositionToSampleCoord(posW, extent, clipmapLevel, levelCount, visibleFace.z, 6);
+	return clamp(texture(voxelRadiance2, samplePosX) * weight.x +
+				 texture(voxelRadiance2, samplePosX) * weight.y +
+				 texture(voxelRadiance2, samplePosZ) * weight.z, 0.0, 1.0);
+#else
+	ivec3 coordX = WorldPositionToImageCoord(posW, clipmapLevel, visibleFace.x);
+	ivec3 coordY = WorldPositionToImageCoord(posW, clipmapLevel, visibleFace.y);
+	ivec3 coordZ = WorldPositionToImageCoord(posW, clipmapLevel, visibleFace.z);
+	return clamp(imageLoad(voxelRadiance, coordX) * weight.x +
+				 imageLoad(voxelRadiance, coordY) * weight.y +
+				 imageLoad(voxelRadiance, coordZ) * weight.z, 0.0, 1.0);
+#endif
+}
+
+vec4 SampleClipmapLinearly(vec3 posW, float curLevel, uvec3 visibleFace, vec3 weight)
+{
+	uint lowerLevel = uint(floor(curLevel));
+	uint upperLevel = uint(ceil(curLevel));
+
+	vec4 lowSample = SampleClipmap(posW, lowerLevel, visibleFace, weight);
+
+	if (lowerLevel == upperLevel)
+		return lowSample;
+
+	vec4 highSample = SampleClipmap(posW, upperLevel, visibleFace, weight);
+
+	return mix(lowSample, highSample, fract(curLevel));
+}
+
+vec4 TraceCone(vec3 position, vec3 direction, float aperture)
+{
+	uvec3 visibleFace;
+	visibleFace.x = (direction.x < 0.0) ? 0 : 1;
+	visibleFace.y = (direction.y < 0.0) ? 2 : 3;
+	visibleFace.z = (direction.z < 0.0) ? 4 : 5;
+
+	// weight per axis for aniso sampling
+	vec3 weight = direction * direction;
+	// move one voxel further to avoid self collision
+	float dst = voxelSize;
+
+	float diameter = 2.0 * aperture * dst;
+	vec3 pos = position + direction * dst;
+	// control vars
+	float mipLevel = 0.0f;
+	// accumulated sample
+	vec4 coneSample = vec4(0.0f);
+	vec4 anisoSample = vec4(0.0f);
+
+	float c = voxelSize * 0.5; // Error correction constant
+	vec3 correctedRegionMin = regionMin + c;
+	vec3 correctedRegionMax = regionMax - c;
+
+	// outside bounds
+	if (pos.x < correctedRegionMin.x || pos.y < correctedRegionMin.y || pos.z < correctedRegionMin.z
+		|| pos.x >= correctedRegionMax.x || pos.y >= correctedRegionMax.y || pos.z >= correctedRegionMax.z)
+	{
+		return coneSample; 
+	}
+
+	c = lastVoxelSize * 0.5; // Error correction constant
+	correctedRegionMin = lastRegionMin + c;
+	correctedRegionMax = lastRegionMax - c;
+
+	float curSegmentLength = dst;
+	float opacity = 0;
+	float occlusion = 0;
+
+	float maxDistance = lastExtent * maxTracingDistanceGlobal;
+
+	while (occlusion < 1.0f && dst <= maxDistance)
+	{
+		// outisde bounds
+		if (checkBoundaries > 0 && (pos.x < correctedRegionMin.x || pos.y < correctedRegionMin.y || pos.z < correctedRegionMin.z
+			|| pos.x >= correctedRegionMax.x || pos.y >= correctedRegionMax.y || pos.z >= correctedRegionMax.z))
+		{
+			return coneSample; 
+		}
+
+		float distanceToCenter = distance(regionCenter, pos);
+
+		float minLevel = ceil(log2(distanceToCenter * 2 / baseExtent));
+		mipLevel = log2(diameter / baseVoxelSize);
+		mipLevel = min(max(mipLevel, max(minLevel, level)), levelCount - 1);
+
+		// Radiance correction
+		float correctionQuotient = curSegmentLength / (baseVoxelSize * exp2(mipLevel));
+
+		// aniso sampling
+		anisoSample = SampleClipmapLinearly(pos, mipLevel, visibleFace, weight);
+		opacity = anisoSample.a;
+		opacity = clamp(1.0 - pow(1.0 - opacity, correctionQuotient), 0.0, 1.0);
+		anisoSample.rgb = anisoSample.rgb * correctionQuotient;
+		anisoSample.a = opacity;
+
+		float lastDist = dst;
+		// move further into volume
+		dst += baseVoxelSize * exp2(mipLevel);
+		// dst += max(diameter, voxelSize);
+
+		// accumulate sampling
+		coneSample += (1.0f - coneSample.a) * anisoSample;
+		occlusion += (1.0 - occlusion) * opacity;
+		// occlusion += (1.0 - occlusion) * opacity * worldMaxTraceDistanceGloabl / dst;
+		// occlusion += (1.0 - occlusion) * opacity / (1.0 + (dst + voxelSize) * occlusionDecay);
+
+		curSegmentLength = dst - lastDist;
+		diameter = 2.0 * dst * aperture;
+		pos = direction * dst + position;
+	}
+
+	return coneSample;
+}
+
+vec4 CalculateIndirectLighting(vec3 position, vec3 normal)
+{
+	// move position further along normal
+	position = position + 1.0 * normal * voxelSize;
+	// cummulative
+	vec4 diffuseTrace = vec4(0.0f);
+	// diffuse cone setup
+	const float aperture = 1.0f;
+	vec3 guide = vec3(0.0f, 1.0f, 0.0f);
+
+	if (abs(abs(dot(normal, guide)) - 1.0) < 1e-2)
+	{
+		guide = vec3(0.0f, 0.0f, 1.0f);
+	}
+
+	// Find a tangent and a bitangent
+	vec3 right = normalize(guide - dot(normal, guide) * normal);
+	vec3 up = cross(right, normal);
+
+	for(int i = 0; i < 4; i++)
+	{
+		vec3 coneDirection = propagationDirections[i].y * normal
+		+ propagationDirections[i].x * right
+		+ propagationDirections[i].z * up;
+		coneDirection = normalize(coneDirection);
+
+		diffuseTrace += TraceCone(position, coneDirection, aperture) * diffuseConeWeights[i];
+	}
+
+	return clamp(diffuseTrace, 0.0f, 1.0f);
+}
+
+void main()
+{
+	if(gl_GlobalInvocationID.x >= volumeDimension ||
+		gl_GlobalInvocationID.y >= volumeDimension ||
+		gl_GlobalInvocationID.z >= volumeDimension) return;
+
+	vec3 position = vec3(gl_GlobalInvocationID);
+	position += regionMin / voxelSize;
+
+	ivec3 writePos = ClipCoordToImageCoord(ivec3(position), volumeDimension);
+
+	// Target the correct clipmap level
+	writePos += ivec3(borderSize);
+	writePos.y += int((volumeDimension + 2 * borderSize) * level);
+
+	vec4 albedo = texelFetch(voxelAlbedo, writePos, 0);
+
+	if(albedo.a < EPSILON) { return; }
+
+	// voxel normal in 0-1 range
+	vec3 baseNormal = imageLoad(voxelNormal, writePos).xyz;
+	// normal is stored in 0-1 range, restore to -1-1
+	vec3 normal = DecodeNormal(baseNormal);
+
+	// calculate indirect lighting - first bounce onto the voxel texture
+	vec3 wsPosition = VoxelToWorld(position + vec3(0.5));
+	vec4 indirectLighting = CalculateIndirectLighting(wsPosition, normal);
+	// first bounce gi component only
+	indirectLighting *= albedo;
+
+	const vec3 faceNormals[] =
+	{
+		vec3(1,  0,  0),
+		vec3(-1, 0,  0),
+		vec3(0,  1,  0),
+		vec3(0, -1,  0),
+		vec3(0,  0,  1),
+		vec3(0,  0, -1)
+	};
+
+	for (uint face = 0; face < 6; ++face)
+	{
+		float weight = dot(faceNormals[face], normal);
+		if (weight < 0)
+			continue;
+		weight *= weight;
+
+		ivec3 faceWritePos = writePos + GetFaceOffset(face);
+		vec4 directLight = imageLoad(voxelRadiance, faceWritePos);
+		// first bounce + direct lighting
+		vec4 radiance = directLight + weight * indirectLighting;
+		// radiance = indirectLighting;
+		// radiance = directLight;
+		radiance.a = directLight.a;
+		imageStore(voxelRadiance, faceWritePos, radiance);
+	}
+}

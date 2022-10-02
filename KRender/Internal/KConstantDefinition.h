@@ -85,6 +85,8 @@ namespace KConstantDefinition
 		glm::vec4 REIGION_MIN_AND_VOXELSIZE[6];
 		glm::vec4 REIGION_MAX_AND_EXTENT[6];
 		glm::uvec4 MISCS;
+		glm::uvec4 MISCS2;
+		glm::vec4 MISCS3;
 	};
 
 	struct GLOBAL

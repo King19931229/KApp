@@ -88,6 +88,18 @@ protected:
 		VOXEL_CLIPMAP_GROUP_SIZE = 8
 	};
 
+	static const VertexFormat ms_VertexFormats[1];
+
+	static const KVertexDefinition::SCREENQUAD_POS_2F ms_QuadVertices[4];
+	static const uint16_t ms_QuadIndices[6];
+	static const VertexFormat ms_QuadFormats[1];
+
+	IKVertexBufferPtr m_QuadVertexBuffer;
+	IKIndexBufferPtr m_QuadIndexBuffer;
+
+	KVertexData m_QuadVertexData;
+	KIndexData m_QuadIndexData;
+
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
 	uint32_t m_Width;
@@ -136,6 +148,10 @@ protected:
 	IKComputePipelinePtr m_DownSampleVisibilityPipeline;
 	IKComputePipelinePtr m_DownSampleRadiancePipeline;
 
+	IKShaderPtr m_QuadVS;
+	IKShaderPtr m_LightPassFS;
+	IKPipelinePtr m_LightPassPipeline;
+
 	IKSamplerPtr m_CloestSampler;
 	IKSamplerPtr m_LinearSampler;
 
@@ -145,6 +161,8 @@ protected:
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 
+	bool m_InjectFirstBounce;
+
 	bool m_VoxelDrawEnable;
 	bool m_VoxelDrawWireFrame;
 
@@ -153,11 +171,17 @@ protected:
 	bool m_VoxelNeedUpdate;
 	bool m_VoxelEmpty;
 
+	float m_VoxelDrawBias;
+
+	KRTDebugDrawer m_LightDebugDrawer;
+
 	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
 	void SetupVoxelReleatedData();
 	void SetupVoxelBuffer();
 	void SetupVoxelPipeline();
 	void SetupVoxelDrawPipeline();
+	void SetupQuadDrawData();
+	void SetupLightPassPipeline();
 
 	glm::ivec3 ComputeMovementByCamera(uint32_t levelIdx);
 	std::vector<KClipmapVoxelizationRegion> ComputeRevoxelizationRegionsByMovement(uint32_t levelIdx, const glm::ivec3& movement);
@@ -170,8 +194,11 @@ protected:
 	void ClearRadiance(IKCommandBufferPtr commandBuffer);
 	void UpdateRadiance(IKCommandBufferPtr commandBuffer);
 	void InjectRadiance(IKCommandBufferPtr commandBuffer);
+	void InjectPropagation(IKCommandBufferPtr commandBuffer);
 	void DownSampleVisibility(IKCommandBufferPtr commandBuffer);
 	void DownSampleRadiance(IKCommandBufferPtr commandBuffer);
+
+	bool UpdateLightingResult(IKCommandBufferPtr primaryBuffer);
 public:
 	KClipmapVoxilzer();
 	~KClipmapVoxilzer();
@@ -184,15 +211,21 @@ public:
 
 	void Resize(uint32_t width, uint32_t height);
 	bool RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool UpdateFrame(IKCommandBufferPtr primaryBuffer);
 
 	bool& GetVoxelDrawEnable() { return m_VoxelDrawEnable; }
 	bool& GetVoxelDrawWireFrame() { return m_VoxelDrawWireFrame; }
+	bool& GetLightDebugDrawEnable() { return m_LightDebugDrawer.GetEnable(); }
+
+	float& GetVoxelDrawBias() { return m_VoxelDrawBias; }
 
 	inline bool IsVoxelDrawEnable() const { return m_VoxelDrawEnable; }
 	inline void SetVoxelDrawEnable(bool enable) { m_VoxelDrawEnable = enable; }
 
 	inline bool IsVoxelDrawWireFrame() const { return m_VoxelDrawWireFrame; }
 	inline void SetVoxelDrawWireFrame(bool wireframe) { m_VoxelDrawWireFrame = wireframe; }
+
+	bool GetLightDebugRenderCommand(KRenderCommandList& commands);
 
 	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelAlbedo() { return m_VoxelAlbedo ? m_VoxelAlbedo->GetFrameBuffer() : nullptr; }

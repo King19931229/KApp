@@ -412,7 +412,7 @@ void KVoxilzer::SetupVoxelReleatedData()
 	SetupRadiancePipeline();
 	SetupMipmapPipeline();
 	SetupOctreeMipmapPipeline();
-	SetupLightPassPipeline(m_Width, m_Height);
+	SetupLightPassPipeline();
 
 	SetupOctreeBuildPipeline();
 	SetupRayTestPipeline(m_Width, m_Height);
@@ -726,7 +726,7 @@ void KVoxilzer::SetupQuadDrawData()
 	m_QuadIndexData.indexStart = 0;
 }
 
-void KVoxilzer::SetupLightPassPipeline(uint32_t width, uint32_t height)
+void KVoxilzer::SetupLightPassPipeline()
 {
 	m_LightDebugDrawer.Init(m_LightPassTarget, 0, 0, 1, 1);
 

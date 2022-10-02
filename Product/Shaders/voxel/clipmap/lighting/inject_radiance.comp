@@ -10,9 +10,6 @@ layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION_MAP, rgba8) uniform readonly ima
 layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE, rgba8) uniform image3D voxelRadiance;
 layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform image3D voxelVisibility;
 
-// TODO traceShadowHit
-float traceShadowHit = 1.0f;
-
 layout(binding = BINDING_OBJECT)
 uniform Object
 {
@@ -21,7 +18,6 @@ uniform Object
 } object;
 
 uint level = object.params[0];
-uint levelCount = object.params[1];
 
 vec3 regionMin = voxel_clipmap.region_min_and_voxelsize[level].xyz;
 vec3 regionMax = voxel_clipmap.region_max_and_extent[level].xyz;

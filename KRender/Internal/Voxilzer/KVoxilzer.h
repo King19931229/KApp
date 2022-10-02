@@ -177,7 +177,7 @@ protected:
 	void SetupMipmapPipeline();
 	void SetupOctreeMipmapPipeline();
 	void SetupQuadDrawData();
-	void SetupLightPassPipeline(uint32_t width, uint32_t height);
+	void SetupLightPassPipeline();
 
 	void ClearDynamicScene(IKCommandBufferPtr commandBuffer);
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);

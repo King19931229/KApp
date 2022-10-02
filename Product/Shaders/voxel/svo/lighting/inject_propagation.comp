@@ -70,7 +70,7 @@ vec4 TraceCone(vec3 position, vec3 direction, float aperture)
 		return coneSample; 
 	}
 
-	while(coneSample.a <= 1.0f && dst <= maxTracingDistanceGlobal)
+	while (coneSample.a < 1.0f && dst <= maxTracingDistanceGlobal)
 	{
 		// outisde bounds
 		if (checkBoundaries > 0 && (samplePos.x < 0.0f || samplePos.y < 0.0f || samplePos.z < 0.0f
