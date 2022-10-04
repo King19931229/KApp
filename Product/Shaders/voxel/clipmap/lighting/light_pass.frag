@@ -173,6 +173,10 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 			occlusion += ((1.0f - occlusion) * opacity) / (1.0f + falloff * diameter);
 		}
 
+		// const float mipmapArea = 0.2;
+		// float factor = max(min((abs(2.0 * fract(mipLevel) - 1.0)) / mipmapArea, 1.0), 0.0);
+		// float adjustedSamplingFactor = mix(0.1, 1.0, factor) * samplingFactor;
+
 		float dstLast = dst;
 		// move further into volume
 		dst += diameter * samplingFactor;

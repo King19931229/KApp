@@ -85,7 +85,8 @@ class KClipmapVoxilzer
 protected:
 	enum
 	{
-		VOXEL_CLIPMAP_GROUP_SIZE = 8
+		VOXEL_CLIPMAP_GROUP_SIZE = 8,
+		VOXEL_CLIPMPA_MAX_LEVELCOUNT = 9
 	};
 
 	static const VertexFormat ms_VertexFormats[1];
@@ -147,6 +148,7 @@ protected:
 
 	IKComputePipelinePtr m_DownSampleVisibilityPipeline;
 	IKComputePipelinePtr m_DownSampleRadiancePipeline;
+	IKComputePipelinePtr m_WrapRadianceBorderPipeline;
 
 	IKShaderPtr m_QuadVS;
 	IKShaderPtr m_LightPassFS;
@@ -197,6 +199,7 @@ protected:
 	void InjectPropagation(IKCommandBufferPtr commandBuffer);
 	void DownSampleVisibility(IKCommandBufferPtr commandBuffer);
 	void DownSampleRadiance(IKCommandBufferPtr commandBuffer);
+	void WrapBorder(IKCommandBufferPtr commandBuffer);
 
 	bool UpdateLightingResult(IKCommandBufferPtr primaryBuffer);
 public:

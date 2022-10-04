@@ -82,8 +82,8 @@ namespace KConstantDefinition
 		glm::mat4 VIEW_PROJ_INV[18];
 		glm::vec4 UPDATE_REGION_MIN[18];
 		glm::vec4 UPDATE_REGION_MAX[18];
-		glm::vec4 REIGION_MIN_AND_VOXELSIZE[6];
-		glm::vec4 REIGION_MAX_AND_EXTENT[6];
+		glm::vec4 REIGION_MIN_AND_VOXELSIZE[9];
+		glm::vec4 REIGION_MAX_AND_EXTENT[9];
 		glm::uvec4 MISCS;
 		glm::uvec4 MISCS2;
 		glm::vec4 MISCS3;

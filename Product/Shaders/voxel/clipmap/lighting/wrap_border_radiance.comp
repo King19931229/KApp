@@ -1,0 +1,39 @@
+#include "public.h"
+#include "voxel/clipmap/voxel_clipmap_common.h"
+
+layout (local_size_x = VOXEL_CLIPMAP_GROUP_SIZE, local_size_y = VOXEL_CLIPMAP_GROUP_SIZE, local_size_z = VOXEL_CLIPMAP_GROUP_SIZE) in;
+
+layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE, rgba8) uniform image3D voxelRadiance;
+
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	uint level;
+} object;
+
+void main()
+{
+	uint volumeDimensionWithBorder = volumeDimension + 2 * borderSize;
+
+	if(gl_GlobalInvocationID.x >= volumeDimensionWithBorder ||
+		gl_GlobalInvocationID.y >= volumeDimensionWithBorder ||
+		gl_GlobalInvocationID.z >= volumeDimensionWithBorder) return;
+
+	if (all(lessThan(ivec3(gl_GlobalInvocationID), ivec3(volumeDimension + borderSize))) && 
+		all(greaterThan(ivec3(gl_GlobalInvocationID), ivec3(borderSize - 1))))
+		return;
+
+	uint level = object.level;
+
+	ivec3 readPos = ((ivec3(gl_GlobalInvocationID) + ivec3(volumeDimension) - ivec3(borderSize)) & int(volumeDimension - 1)) + ivec3(borderSize);
+	ivec3 writePos = ivec3(gl_GlobalInvocationID);
+
+	readPos.y += int(level * volumeDimensionWithBorder);
+	writePos.y += int(level * volumeDimensionWithBorder);
+
+	for(uint face = 0; face < 6; ++face)
+	{
+		vec4 value = imageLoad(voxelRadiance, readPos + ivec3(volumeDimensionWithBorder * int(face), 0, 0));
+		imageStore(voxelRadiance, writePos + ivec3(volumeDimensionWithBorder * int(face), 0, 0), value);
+	}
+}

@@ -39,9 +39,6 @@ void FetchTexels(vec3 posW, uint level, inout vec4 values[8])
 	}
 }
 
-// TODO
-float downsampleTransitionRegionSize = 10;
-
 void main()
 {
 	if(gl_GlobalInvocationID.x >= halfVolumeDimension ||

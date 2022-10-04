@@ -255,12 +255,12 @@ bool KClipmapVoxilzer::UpdateFrame(IKCommandBufferPtr primaryBuffer)
 
 void KClipmapVoxilzer::UpdateVoxelBuffer()
 {
-	glm::mat4 viewProjections[3 * 6];
-	glm::mat4 viewProjectionIs[3 * 6];
-	glm::vec4 updateRegionMins[3 * 6];
-	glm::vec4 updateRegionMaxs[3 * 6];
-	glm::vec4 minAndVoxelSize[6];
-	glm::vec4 maxAndExtent[6];
+	glm::mat4 viewProjections[3 * VOXEL_CLIPMPA_MAX_LEVELCOUNT];
+	glm::mat4 viewProjectionIs[3 * VOXEL_CLIPMPA_MAX_LEVELCOUNT];
+	glm::vec4 updateRegionMins[3 * VOXEL_CLIPMPA_MAX_LEVELCOUNT];
+	glm::vec4 updateRegionMaxs[3 * VOXEL_CLIPMPA_MAX_LEVELCOUNT];
+	glm::vec4 minAndVoxelSize[VOXEL_CLIPMPA_MAX_LEVELCOUNT];
+	glm::vec4 maxAndExtent[VOXEL_CLIPMPA_MAX_LEVELCOUNT];
 
 	ZERO_MEMORY(viewProjections);
 	ZERO_MEMORY(viewProjectionIs);
@@ -269,7 +269,7 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 	ZERO_MEMORY(minAndVoxelSize);
 	ZERO_MEMORY(maxAndExtent);
 
-	for (size_t i = 0; i < 6; ++i)
+	for (size_t i = 0; i < VOXEL_CLIPMPA_MAX_LEVELCOUNT; ++i)
 	{
 		if (i < m_ClipLevels.size())
 		{
@@ -336,13 +336,13 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 		}
 		if (detail.semantic == CS_VOXEL_CLIPMAP_REIGION_MIN_AND_VOXELSIZE)
 		{
-			assert(sizeof(glm::vec4) * 6 == detail.size);
+			assert(sizeof(glm::vec4) * 9 == detail.size);
 			memcpy(pWritePos, minAndVoxelSize, sizeof(minAndVoxelSize));
 			pWritePos = POINTER_OFFSET(pWritePos, sizeof(minAndVoxelSize));
 		}
 		if (detail.semantic == CS_VOXEL_CLIPMAP_REIGION_MAX_AND_EXTENT)
 		{
-			assert(sizeof(glm::vec4) * 6 == detail.size);
+			assert(sizeof(glm::vec4) * 9 == detail.size);
 			memcpy(pWritePos, maxAndExtent, sizeof(maxAndExtent));
 			pWritePos = POINTER_OFFSET(pWritePos, sizeof(maxAndExtent));
 		}
@@ -382,6 +382,8 @@ void KClipmapVoxilzer::UpdateVoxelBuffer()
 			miscs[1] = 1.0f;
 			// occlusionDecay
 			miscs[2] = 1.0f;
+			// downsampleTransitionRegionSize
+			miscs[3] = 10.0f;
 			memcpy(pWritePos, &miscs, sizeof(glm::vec4));
 			pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
 		}
@@ -398,13 +400,16 @@ void KClipmapVoxilzer::UpdateInternal()
 	VoxelizeStaticScene(m_PrimaryCommandBuffer);
 
 	DownSampleVisibility(m_PrimaryCommandBuffer);
+
 	UpdateRadiance(m_PrimaryCommandBuffer);
 	DownSampleRadiance(m_PrimaryCommandBuffer);
+	WrapBorder(m_PrimaryCommandBuffer);
 
 	if (m_InjectFirstBounce)
 	{
 		InjectPropagation(m_PrimaryCommandBuffer);
 		DownSampleRadiance(m_PrimaryCommandBuffer);
+		WrapBorder(m_PrimaryCommandBuffer);
 	}
 
 	m_PrimaryCommandBuffer->End();
@@ -753,6 +758,30 @@ void KClipmapVoxilzer::DownSampleRadiance(IKCommandBufferPtr commandBuffer)
 	}
 }
 
+void KClipmapVoxilzer::WrapBorder(IKCommandBufferPtr commandBuffer)
+{
+	uint32_t volumeDimensionWithBorder = m_VolumeDimension + 2 * m_BorderSize;
+	uint32_t group = (volumeDimensionWithBorder + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
+
+	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
+	{
+		KDynamicConstantBufferUsage usage;
+		usage.binding = SHADER_BINDING_OBJECT;
+
+		struct ObjectData
+		{
+			glm::uint32_t level;
+		} objectData;
+
+		objectData.level = level;
+
+		usage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
+
+		m_WrapRadianceBorderPipeline->Execute(commandBuffer, group, group, group, &usage);
+	}
+}
+
 void KClipmapVoxilzer::ReloadShader()
 {
 	m_VoxelDrawVS->Reload();
@@ -775,6 +804,8 @@ void KClipmapVoxilzer::ReloadShader()
 
 	m_DownSampleVisibilityPipeline->Reload();
 	m_DownSampleRadiancePipeline->Reload();
+
+	m_WrapRadianceBorderPipeline->Reload();
 }
 
 void KClipmapVoxilzer::SetupVoxelBuffer()
@@ -846,6 +877,12 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_DownSampleRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
 	m_DownSampleRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 	m_DownSampleRadiancePipeline->Init("voxel/clipmap/lighting/downsample_radiance.comp");
+
+	// WrapBorder
+	m_WrapRadianceBorderPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
+	m_WrapRadianceBorderPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
+	m_WrapRadianceBorderPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+	m_WrapRadianceBorderPipeline->Init("voxel/clipmap/lighting/wrap_border_radiance.comp");
 }
 
 void KClipmapVoxilzer::SetupVoxelDrawPipeline()
@@ -1063,6 +1100,8 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 	renderDevice->CreateComputePipeline(m_DownSampleVisibilityPipeline);
 	renderDevice->CreateComputePipeline(m_DownSampleRadiancePipeline);
 
+	renderDevice->CreateComputePipeline(m_WrapRadianceBorderPipeline);
+
 	renderDevice->CreatePipeline(m_LightPassPipeline);
 	renderDevice->CreatePipeline(m_VoxelDrawPipeline);
 	renderDevice->CreatePipeline(m_VoxelWireFrameDrawPipeline);
@@ -1150,6 +1189,7 @@ bool KClipmapVoxilzer::UnInit()
 	SAFE_UNINIT(m_ClearRegionPipeline);
 	SAFE_UNINIT(m_DownSampleVisibilityPipeline);
 	SAFE_UNINIT(m_DownSampleRadiancePipeline);
+	SAFE_UNINIT(m_WrapRadianceBorderPipeline);
 
 	SAFE_UNINIT(m_StaticFlag);
 	SAFE_UNINIT(m_VoxelAlbedo);

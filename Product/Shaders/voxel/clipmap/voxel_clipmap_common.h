@@ -27,6 +27,7 @@ uint checkBoundaries = voxel_clipmap.miscs2[1];
 float traceShadowHit = voxel_clipmap.miscs3[0];
 float maxTracingDistanceGlobal = voxel_clipmap.miscs3[1];
 float occlusionDecay = voxel_clipmap.miscs3[2];
+float downsampleTransitionRegionSize = voxel_clipmap.miscs3[3];
 
 float bounceStrength = 1.0f;
 float aoFalloff = 725.0f;

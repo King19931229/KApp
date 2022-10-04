@@ -24,6 +24,16 @@ vec3 regionMax = voxel_clipmap.region_max_and_extent[level].xyz;
 float voxelSize = voxel_clipmap.region_min_and_voxelsize[level].w;
 float extent = voxel_clipmap.region_max_and_extent[level].w;
 
+vec3 regionCenter = (regionMin + regionMax) * 0.5;
+
+float baseExtent = voxel_clipmap.region_max_and_extent[0].w;
+float baseVoxelSize = voxel_clipmap.region_min_and_voxelsize[0].w;
+float lastVoxelSize = voxel_clipmap.region_min_and_voxelsize[levelCount - 1].w;
+float lastExtent = voxel_clipmap.region_max_and_extent[levelCount - 1].w;
+
+vec3 lastRegionMin = voxel_clipmap.region_min_and_voxelsize[levelCount - 1].xyz;
+vec3 lastRegionMax = voxel_clipmap.region_max_and_extent[levelCount - 1].xyz;
+
 vec3 VoxelToWorld(vec3 pos)
 {
 	vec3 result = vec3(pos);
@@ -41,19 +51,22 @@ float TraceShadow(vec3 position, vec3 direction, float maxTracingDistance)
 {
 	// scaling factor
 	float k = traceShadowHit * traceShadowHit;
-	// move one voxel further to avoid self collision
-	float dst = 2.0 * voxelSize;
+	// move further to avoid self collision
+	float dst = 4.0 * voxelSize;
 	vec3 pos = direction * dst + position;
 	// control variables
 	float visibility = 0.0f;
 	// accumulated sample
 	float traceSample = 0.0f;
 
-	float c = voxelSize * 0.5; // Error correction constant
-	vec3 correctedRegionMin = regionMin + c;
-	vec3 correctedRegionMax = regionMax - c;
+	float c = lastVoxelSize * 0.5; // Error correction constant
+	vec3 correctedRegionMin = lastRegionMin + c;
+	vec3 correctedRegionMax = lastRegionMax - c;
 
-	while (visibility < 1.0f && dst <= maxTracingDistance * extent)
+	float maxDistance = lastExtent * maxTracingDistanceGlobal;
+	float lastTraceSample = 0.0f;
+
+	while (visibility < 1.0f && dst <= maxDistance)
 	{
 		if (pos.x < correctedRegionMin.x || pos.y < correctedRegionMin.y || pos.z < correctedRegionMin.z
 			|| pos.x >= correctedRegionMax.x || pos.y >= correctedRegionMax.y || pos.z >= correctedRegionMax.z)
@@ -62,17 +75,37 @@ float TraceShadow(vec3 position, vec3 direction, float maxTracingDistance)
 			break; 
 		}
 
-		vec3 samplePos = WorldPositionToSampleCoord(pos, extent, level, levelCount, 0, 1);
-		traceSample = ceil(texture(voxelAlbedo, samplePos).a) * k;
+		float distanceToCenter = distance(regionCenter, pos);
+
+		uint sampleLevel = uint(ceil(log2(distanceToCenter * 2 / baseExtent)));
+
+		float sampleExtent = baseExtent * exp2(sampleLevel);
+		float sampleVoxelSize = baseVoxelSize * exp2(sampleLevel);
+
+		vec3 sampleRegionMin = voxel_clipmap.region_min_and_voxelsize[sampleLevel].xyz + sampleVoxelSize * 0.5;
+		vec3 sampleRegionMax = voxel_clipmap.region_max_and_extent[sampleLevel].xyz - sampleVoxelSize * 0.5;
+
+		if (pos.x < sampleRegionMin.x || pos.y < sampleRegionMin.y || pos.z < sampleRegionMin.z
+			|| pos.x >= sampleRegionMax.x || pos.y >= sampleRegionMax.y || pos.z >= sampleRegionMax.z)
+		{
+			traceSample = lastTraceSample;
+		}
+		else
+		{
+			vec3 samplePos = WorldPositionToSampleCoord(pos, sampleExtent, sampleLevel, levelCount, 0, 1);
+			traceSample = ceil(texture(voxelAlbedo, samplePos).a) * k;
+		}
 
 		// hard shadows mode
 		if(traceSample > 1.0f - EPSILON) { return 0.0f; }
 
 		// accumulate
-		visibility += (1.0f - visibility) * traceSample * extent / dst;
+		visibility += (1.0f - visibility) * traceSample * lastExtent / dst;
 		// move further into volume
-		dst += voxelSize;
+		// dst += voxelSize;
+		dst += sampleVoxelSize;
 		pos = direction * dst + position;
+		lastTraceSample = traceSample;
 	}
 
 	return max(0.0f, 1.0f - visibility);

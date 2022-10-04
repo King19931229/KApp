@@ -121,20 +121,9 @@ vec4 TraceCone(vec3 position, vec3 direction, float aperture)
 	vec4 coneSample = vec4(0.0f);
 	vec4 anisoSample = vec4(0.0f);
 
-	float c = voxelSize * 0.5; // Error correction constant
-	vec3 correctedRegionMin = regionMin + c;
-	vec3 correctedRegionMax = regionMax - c;
-
-	// outside bounds
-	if (pos.x < correctedRegionMin.x || pos.y < correctedRegionMin.y || pos.z < correctedRegionMin.z
-		|| pos.x >= correctedRegionMax.x || pos.y >= correctedRegionMax.y || pos.z >= correctedRegionMax.z)
-	{
-		return coneSample; 
-	}
-
-	c = lastVoxelSize * 0.5; // Error correction constant
-	correctedRegionMin = lastRegionMin + c;
-	correctedRegionMax = lastRegionMax - c;
+	float c = lastVoxelSize * 0.5; // Error correction constant
+	vec3 correctedRegionMin = lastRegionMin + c;
+	vec3 correctedRegionMax = lastRegionMax - c;
 
 	float curSegmentLength = dst;
 	float opacity = 0;
@@ -156,6 +145,12 @@ vec4 TraceCone(vec3 position, vec3 direction, float aperture)
 		float minLevel = ceil(log2(distanceToCenter * 2 / baseExtent));
 		mipLevel = log2(diameter / baseVoxelSize);
 		mipLevel = min(max(mipLevel, max(minLevel, level)), levelCount - 1);
+
+ 		// mipLevel = max(mipLevel, max(minLevel, level));
+		// if (mipLevel > levelCount - 1)
+		// {
+		// 	break;
+		// }
 
 		// Radiance correction
 		float correctionQuotient = curSegmentLength / (baseVoxelSize * exp2(mipLevel));

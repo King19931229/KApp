@@ -170,14 +170,14 @@ uniform VoxelClipmapInfo
 	// Atmost 3 volume per clipmap
 	vec4 update_region_min[18];
 	vec4 update_region_max[18];
-	// Atmost 6 clipmap
-	vec4 region_min_and_voxelsize[6];
-	vec4 region_max_and_extent[6];
+	// Atmost 9 clipmap
+	vec4 region_min_and_voxelsize[9];
+	vec4 region_max_and_extent[9];
 	// volumeDimension:1 borderSize:1 storeVisibility:1 normalWeightedLambert:1
 	uvec4 miscs;
 	// levelCount:1 checkBoundaries:1
 	uvec4 miscs2;
-	// traceShadowHit: 1 maxTracingDistanceGlobal: 1 occlusionDecay: 1
+	// traceShadowHit:1 maxTracingDistanceGlobal:1 occlusionDecay:1 downsampleTransitionRegionSize:1
 	vec4 miscs3;
 }voxel_clipmap;
 
