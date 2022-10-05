@@ -37,7 +37,10 @@ protected:
 	int32_t m_Extent;
 
 	glm::ivec3 m_Movement;
+
 	std::vector<KClipmapVoxelizationRegion> m_UpdateRegions;
+	bool m_NeedUpdate;
+	bool m_SkipUpdate;
 
 	glm::mat4 m_ViewProjectionMatrix[3];
 	glm::mat4 m_ViewProjectionMatrixI[3];
@@ -76,8 +79,13 @@ public:
 
 	void UpdateProjectionMatrices();
 
-	void SetUpdateRegions(const std::vector<KClipmapVoxelizationRegion>& regions) { m_UpdateRegions = regions; }
+	void SetUpdateRegions(const std::vector<KClipmapVoxelizationRegion>& regions);
+	void MarkUpdateFinish();
+	void MarkSkipUpdate(bool skip);
+	bool IsUpdateFrame() const;
+
 	const std::vector<KClipmapVoxelizationRegion>& GetUpdateRegions() const { return m_UpdateRegions; }
+	bool NeedUpdate() const { return m_NeedUpdate; }
 };
 
 class KClipmapVoxilzer

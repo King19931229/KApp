@@ -24,8 +24,10 @@ KClipmapVoxilzerLevel::KClipmapVoxilzerLevel(KClipmapVoxilzer* parent, uint32_t 
 	: m_Parent(parent)
 	, m_VoxelSize(0)
 	, m_LevelIdx(level)
-	, m_MinUpdateChange(4)
+	, m_MinUpdateChange(8)
 	, m_Extent(0)
+	, m_NeedUpdate(false)
+	, m_SkipUpdate(false)
 {
 	m_VoxelSize = m_Parent->GetBaseVoxelSize() * (1 << m_LevelIdx);
 	m_Extent = m_Parent->GetVoxelDimension();
@@ -140,6 +142,29 @@ void KClipmapVoxilzerLevel::UpdateProjectionMatrices()
 		m_ViewProjectionMatrix[i] = projection * m_ViewProjectionMatrix[i];
 		m_ViewProjectionMatrixI[i] = glm::inverse(m_ViewProjectionMatrix[i]);
 	}
+}
+
+void KClipmapVoxilzerLevel::SetUpdateRegions(const std::vector<KClipmapVoxelizationRegion>& regions)
+{
+	assert(!regions.empty());
+	m_UpdateRegions = regions;
+	m_NeedUpdate = true;
+}
+
+void KClipmapVoxilzerLevel::MarkUpdateFinish()
+{
+	m_UpdateRegions.clear();
+	m_NeedUpdate = false;
+}
+
+void KClipmapVoxilzerLevel::MarkSkipUpdate(bool skip)
+{
+	m_SkipUpdate = skip;
+}
+
+bool KClipmapVoxilzerLevel::IsUpdateFrame() const
+{
+	return m_NeedUpdate && !m_SkipUpdate && KRenderGlobal::CurrentFrameIndex % (1 << m_LevelIdx) == 0;
 }
 
 KClipmapVoxilzer::KClipmapVoxilzer()
@@ -489,11 +514,16 @@ std::vector<KClipmapVoxelizationRegion> KClipmapVoxilzer::ComputeRevoxelizationR
 
 void KClipmapVoxilzer::ClearUpdateRegion(IKCommandBufferPtr commandBuffer)
 {
-	for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
+	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
-		const KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
+		const KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
 
-		for (const KClipmapVoxelizationRegion& region : level.GetUpdateRegions())
+		if (!clipLevel.IsUpdateFrame())
+		{
+			continue;
+		}
+
+		for (const KClipmapVoxelizationRegion& region : clipLevel.GetUpdateRegions())
 		{
 			struct ObjectData
 			{
@@ -504,7 +534,7 @@ void KClipmapVoxilzer::ClearUpdateRegion(IKCommandBufferPtr commandBuffer)
 
 			objectData.regionMin = glm::ivec4(region.min, 0);
 			objectData.regionMax = glm::ivec4(region.max, 0);
-			objectData.params[0] = levelIdx;
+			objectData.params[0] = level;
 
 			glm::uvec3 group = (region.max - region.min + glm::ivec3(VOXEL_CLIPMAP_GROUP_SIZE - 1)) / glm::ivec3(VOXEL_CLIPMAP_GROUP_SIZE);
 
@@ -523,10 +553,12 @@ void KClipmapVoxilzer::ApplyUpdateMovement()
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
 		KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
+		if (!clipLevel.IsUpdateFrame())
+		{
+			continue;
+		}
 		clipLevel.ApplyUpdateMovement();
 	}
-
-	UpdateVoxelBuffer();
 }
 
 void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
@@ -538,6 +570,12 @@ void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
 		const KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
+
+		if (!clipLevel.IsUpdateFrame())
+		{
+			continue;
+		}
+
 		const glm::vec3& cameraPos = m_Camera->GetPosition();
 
 		KAABBBox sceneBox;
@@ -604,6 +642,12 @@ void KClipmapVoxilzer::ClearRadiance(IKCommandBufferPtr commandBuffer)
 
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
+		KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
+		if (!clipLevel.IsUpdateFrame())
+		{
+			continue;
+		}
+
 		KDynamicConstantBufferUsage usage;
 		usage.binding = SHADER_BINDING_OBJECT;
 
@@ -627,6 +671,12 @@ void KClipmapVoxilzer::InjectRadiance(IKCommandBufferPtr commandBuffer)
 
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
+		KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
+		if (!clipLevel.IsUpdateFrame())
+		{
+			continue;
+		}
+
 		KDynamicConstantBufferUsage usage;
 		usage.binding = SHADER_BINDING_OBJECT;
 
@@ -651,6 +701,12 @@ void KClipmapVoxilzer::InjectPropagation(IKCommandBufferPtr commandBuffer)
 
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
+		KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
+		if (!clipLevel.IsUpdateFrame())
+		{
+			continue;
+		}
+
 		KDynamicConstantBufferUsage usage;
 		usage.binding = SHADER_BINDING_OBJECT;
 
@@ -695,20 +751,44 @@ void KClipmapVoxilzer::UpdateVoxel()
 			glm::ivec3 movement = ComputeMovementByCamera(levelIdx);
 			std::vector<KClipmapVoxelizationRegion> updateRegions = ComputeRevoxelizationRegionsByMovement(levelIdx, movement);
 
-			level.SetUpdateRegions(updateRegions);
-
-			m_VoxelNeedUpdate |= !updateRegions.empty();
+			if (!updateRegions.empty())
+			{
+				level.SetUpdateRegions(updateRegions);
+				m_VoxelNeedUpdate = true;
+			}
 		}
 	}
 
-	ApplyUpdateMovement();
-	UpdateVoxelBuffer();
-
 	if(m_VoxelNeedUpdate)
 	{
+		bool skipUpdate = false;
+		for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
+		{
+			m_ClipLevels[levelIdx].MarkSkipUpdate(skipUpdate);
+			if (m_ClipLevels[levelIdx].NeedUpdate())
+			{
+				skipUpdate = true;
+			}
+		}
+
+		ApplyUpdateMovement();
+		UpdateVoxelBuffer();
 		UpdateInternal();
+
 		m_VoxelNeedUpdate = false;
+		for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
+		{
+			if (m_ClipLevels[levelIdx].IsUpdateFrame())
+			{
+				m_ClipLevels[levelIdx].MarkUpdateFinish();
+			}
+			m_VoxelNeedUpdate |= m_ClipLevels[levelIdx].NeedUpdate();
+		}
 		m_VoxelEmpty = false;
+	}
+	else
+	{
+		UpdateVoxelBuffer();
 	}
 }
 
@@ -718,6 +798,12 @@ void KClipmapVoxilzer::DownSampleVisibility(IKCommandBufferPtr commandBuffer)
 
 	for (uint32_t level = 1; level < m_ClipLevelCount; ++level)
 	{
+		KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
+		if (!clipLevel.IsUpdateFrame())
+		{
+			continue;
+		}
+
 		KDynamicConstantBufferUsage usage;
 		usage.binding = SHADER_BINDING_OBJECT;
 
@@ -741,6 +827,12 @@ void KClipmapVoxilzer::DownSampleRadiance(IKCommandBufferPtr commandBuffer)
 
 	for (uint32_t level = 1; level < m_ClipLevelCount; ++level)
 	{
+		KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
+		if (!clipLevel.IsUpdateFrame())
+		{
+			continue;
+		}
+
 		KDynamicConstantBufferUsage usage;
 		usage.binding = SHADER_BINDING_OBJECT;
 
@@ -765,6 +857,12 @@ void KClipmapVoxilzer::WrapBorder(IKCommandBufferPtr commandBuffer)
 
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
+		KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
+		if (!clipLevel.IsUpdateFrame())
+		{
+			continue;
+		}
+
 		KDynamicConstantBufferUsage usage;
 		usage.binding = SHADER_BINDING_OBJECT;
 
