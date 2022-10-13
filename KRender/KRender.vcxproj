@@ -338,8 +338,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\Dependency\glfw3\Publish\Debug\x86;..\Dependency\imgui\Publish\Debug\x86;..\Dependency\glslang\Publish\Debug\x86;..\Dependency\SPIRV-Cross\Publish\Debug\x86;..\Dependency\NsightAftermath\lib\x86;$(VK_SDK_PATH)\Lib32</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;GFSDK_Aftermath_Lib.x86.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\Dependency\glfw3\Publish\Debug\x86;..\Dependency\imgui\Publish\Debug\x86;..\Dependency\glslang\Publish\Debug\x86;..\Dependency\SPIRV-Cross\Publish\Debug\x86;..\Dependency\SPIRV-Tools-2022.3\Debug\x64\;..\Dependency\NsightAftermath\lib\x86;$(VK_SDK_PATH)\Lib32</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;SPIRV-Tools.lib;GFSDK_Aftermath_Lib.x86.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -363,8 +363,8 @@
       <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;..\Dependency\imgui\Publish\Debug\x64;..\Dependency\Optick\lib\x64\debug\;..\Dependency\glslang\Publish\Debug\x64;..\Dependency\SPIRV-Cross\Publish\Debug\x64;..\Dependency\NsightAftermath\lib\x64;$(VK_SDK_PATH)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;GFSDK_Aftermath_Lib.x64.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;..\Dependency\imgui\Publish\Debug\x64;..\Dependency\Optick\lib\x64\debug\;..\Dependency\glslang\Publish\Debug\x64;..\Dependency\SPIRV-Cross\Publish\Debug\x64;..\Dependency\SPIRV-Tools-2022.3\Debug\x64\;..\Dependency\SPIRV-Tools-2022.3\source\opt\Debug\x64;..\Dependency\NsightAftermath\lib\x64;$(VK_SDK_PATH)\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;GFSDK_Aftermath_Lib.x64.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -389,8 +389,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;GFSDK_Aftermath_Lib.x86.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\Dependency\glfw3\Publish\Release\x86;..\Dependency\imgui\Publish\Release\x86;..\Dependency\glslang\Publish\Release\x86;..\Dependency\SPIRV-Cross\Publish\Release\x86;..\Dependency\NsightAftermath\lib\x86;$(VK_SDK_PATH)\Lib32</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;SPIRV-Tools.lib;GFSDK_Aftermath_Lib.x86.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\Dependency\glfw3\Publish\Release\x86;..\Dependency\imgui\Publish\Release\x86;..\Dependency\glslang\Publish\Release\x86;..\Dependency\SPIRV-Cross\Publish\Release\x86;..\Dependency\NsightAftermath\lib\x86;..\Dependency\SPIRV-Tools-2022.3\Release\x86\;$(VK_SDK_PATH)\Lib32</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -414,8 +414,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;..\Dependency\imgui\Publish\Release\x64;..\Dependency\Optick\lib\x64\release\;..\Dependency\glslang\Publish\Release\x64;..\Dependency\SPIRV-Cross\Publish\Release\x64;..\Dependency\NsightAftermath\lib\x64;$(VK_SDK_PATH)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;GFSDK_Aftermath_Lib.x64.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;..\Dependency\imgui\Publish\Release\x64;..\Dependency\Optick\lib\x64\release\;..\Dependency\glslang\Publish\Release\x64;..\Dependency\SPIRV-Cross\Publish\Release\x64;..\Dependency\NsightAftermath\lib\x64;..\Dependency\SPIRV-Tools-2022.3\Release\x64\;$(VK_SDK_PATH)\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;SPIRV-Tools.lib;GFSDK_Aftermath_Lib.x64.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
