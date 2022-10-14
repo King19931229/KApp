@@ -150,7 +150,7 @@ static bool ShaderTypeToEShLanguage(ShaderType type, EShLanguage& language)
 	}
 }
 
-bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector<unsigned int>& spirv)
+bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector<unsigned int>& spirv, std::vector<unsigned int>& spirvOpt)
 {
 	static std::mutex sSpirVLock;
 
@@ -206,11 +206,17 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 		glslang::SpvOptions options;
 #ifdef _DEBUG
 		options.validate = true;
+		options.generateDebugInfo = true;
+#endif
+		glslang::GlslangToSpv(*program->getIntermediate(language), spirv, &options);
+#ifdef _DEBUG
+		spirvOpt = spirv;
 #else
 		options.optimizeSize = true;
 		options.disableOptimizer = false;
+		options.stripDebugInfo = true;
+		glslang::GlslangToSpv(*program->getIntermediate(language), spirvOpt, &options);
 #endif
-		glslang::GlslangToSpv(*program->getIntermediate(language), spirv, &options);
 	}
 	return true;
 }
@@ -376,11 +382,13 @@ KVulkanShader::ShaderInitResult KVulkanShader::InitFromFileImpl(const std::strin
 	if (m_SourceFile->Open(path.c_str()))
 	{
 		const char* finalSource = m_SourceFile->GetFinalSource();
+
+		std::vector<unsigned int> spirvNoOpt;
 		std::vector<unsigned int> spirv;
 
-		if (GenerateSpirV(m_Type, finalSource, spirv))
+		if (GenerateSpirV(m_Type, finalSource, spirvNoOpt, spirv))
 		{
-			GenerateReflection(spirv, m_Information);
+			GenerateReflection(spirvNoOpt, m_Information);
 
 			if (InitFromStringImpl((const char*)spirv.data(), spirv.size() * sizeof(decltype(spirv[0])), pModule) == SHADER_INIT_SUCCESS)
 			{

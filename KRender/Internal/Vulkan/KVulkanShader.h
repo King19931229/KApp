@@ -65,7 +65,7 @@ protected:
 	bool CancelDeviceTask();
 	bool WaitDeviceTask();
 
-	static bool GenerateSpirV(ShaderType type, const char* code, std::vector<unsigned int>& spirv);
+	static bool GenerateSpirV(ShaderType type, const char* code, std::vector<unsigned int>& spirv, std::vector<unsigned int>& spirvOpt);
 	static bool GenerateReflection(const std::vector<unsigned int>& spirv, KShaderInformation& information);
 public:
 	KVulkanShader();

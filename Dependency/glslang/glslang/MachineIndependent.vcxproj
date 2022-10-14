@@ -84,7 +84,7 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=0;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=1;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -105,7 +105,7 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=0;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=1;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
