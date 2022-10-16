@@ -1,5 +1,5 @@
-#define cascaded_shadow static_cascaded 
 #include "public.h"
+#define cascaded_shadow static_cascaded
 #include "shadow.h"
 
 layout(location = 0) in vec2 inUV;
@@ -11,5 +11,5 @@ void main()
 {
 	vec4 worldPos = vec4(texture(position, inUV).xyz, 1.0);
 	vec4 viewPos = camera.view * worldPos;
-	outColor = calcCSM(viewPos.xyz, worldPos.xyz);
+	outColor = CalcCSM(viewPos.xyz, worldPos.xyz);
 }

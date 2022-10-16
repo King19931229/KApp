@@ -835,6 +835,9 @@ bool KRenderDispatcher::UpdateCamera()
 			glm::mat4 viewProj = m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix();
 			glm::mat4 prevViewProj = glm::mat4(0.0f);
 
+			glm::vec4 frustumPlanes[6];
+			for (uint32_t i = 0; i < 6; ++i) frustumPlanes[i] = m_Camera->GetPlane((KCamera::FrustumPlane)i).GetVec4();
+
 			if (m_CameraOutdate)
 			{
 				prevViewProj = viewProj;
@@ -886,6 +889,11 @@ bool KRenderDispatcher::UpdateCamera()
 				{
 					assert(sizeof(parameters) == detail.size);
 					memcpy(pWritePos, &parameters, sizeof(parameters));
+				}
+				else if (detail.semantic == CS_FRUSTUM_PLANES)
+				{
+					assert(sizeof(frustumPlanes) == detail.size);
+					memcpy(pWritePos, &frustumPlanes, sizeof(frustumPlanes));
 				}
 			}
 			cameraBuffer->Write(pData);

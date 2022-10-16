@@ -24,7 +24,7 @@ KClipmapVoxilzerLevel::KClipmapVoxilzerLevel(KClipmapVoxilzer* parent, uint32_t 
 	: m_Parent(parent)
 	, m_VoxelSize(0)
 	, m_LevelIdx(level)
-	, m_MinUpdateChange(8)
+	, m_MinUpdateChange(4)
 	, m_Extent(0)
 	, m_NeedUpdate(false)
 	, m_SkipUpdate(false)
@@ -517,7 +517,6 @@ void KClipmapVoxilzer::ClearUpdateRegion(IKCommandBufferPtr commandBuffer)
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
 		const KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
-
 		if (!clipLevel.IsUpdateFrame())
 		{
 			continue;
@@ -570,7 +569,6 @@ void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
 	{
 		const KClipmapVoxilzerLevel& clipLevel = m_ClipLevels[level];
-
 		if (!clipLevel.IsUpdateFrame())
 		{
 			continue;
@@ -667,6 +665,12 @@ void KClipmapVoxilzer::ClearRadiance(IKCommandBufferPtr commandBuffer)
 
 void KClipmapVoxilzer::InjectRadiance(IKCommandBufferPtr commandBuffer)
 {
+	for (uint32_t bindingIndex = SHADER_BINDING_CSM0; bindingIndex <= SHADER_BINDING_CSM3; ++bindingIndex)
+	{
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_CSM0, false);
+		if (shadowRT) commandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY);
+	}
+
 	uint32_t group = (m_VolumeDimension + (VOXEL_CLIPMAP_GROUP_SIZE - 1)) / VOXEL_CLIPMAP_GROUP_SIZE;
 
 	for (uint32_t level = 0; level < m_ClipLevelCount; ++level)
@@ -692,6 +696,12 @@ void KClipmapVoxilzer::InjectRadiance(IKCommandBufferPtr commandBuffer)
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, usage);
 
 		m_InjectRadiancePipeline->Execute(commandBuffer, group, group, group, &usage);
+	}
+
+	for (uint32_t bindingIndex = SHADER_BINDING_CSM0; bindingIndex <= SHADER_BINDING_CSM3; ++bindingIndex)
+	{
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_CSM0, false);
+		if (shadowRT) commandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 	}
 }
 
@@ -918,6 +928,14 @@ void KClipmapVoxilzer::SetupVoxelBuffer()
 
 void KClipmapVoxilzer::SetupVoxelPipeline()
 {
+	m_PrimaryCommandBuffer->BeginPrimary();
+	for (uint32_t bindingIndex = SHADER_BINDING_CSM0; bindingIndex <= SHADER_BINDING_CSM3; ++bindingIndex)
+	{
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_CSM0, false);
+		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY);
+	}
+	m_PrimaryCommandBuffer->End();
+
 	IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
 
 	m_ClearRegionPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_ALBEDO, m_VoxelAlbedo->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
@@ -931,6 +949,10 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 
 	m_ClearRegionPipeline->Init("voxel/clipmap/lighting/clear_region.comp");
 
+	IKSamplerPtr csmSampler = KRenderGlobal::CascadedShadowMap.GetSampler();
+
+	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+	IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW);
 	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
 
 	// Clear Radiance
@@ -949,9 +971,20 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, false);
 	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
 	m_InjectRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+
+	for (uint32_t bindingIndex = SHADER_BINDING_CSM0; bindingIndex <= SHADER_BINDING_CSM3; ++bindingIndex)
+	{
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_CSM0, false);
+		if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, false);
+		m_InjectRadiancePipeline->BindSampler(bindingIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
+	}
+
+	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_CAMERA, cameraBuffer);
+	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_DYNAMIC_CASCADED_SHADOW, shadowBuffer);
+
 	m_InjectRadiancePipeline->Init("voxel/clipmap/lighting/inject_radiance.comp");
 
-	// Inject Radiance
+	// Inject Propagation
 	m_InjectPropagationPipeline->BindUniformBuffer(SHADER_BINDING_GLOBAL, globalBuffer);
 	m_InjectPropagationPipeline->BindUniformBuffer(SHADER_BINDING_VOXEL_CLIPMAP, voxelBuffer);
 
@@ -962,6 +995,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_InjectPropagationPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
 	m_InjectPropagationPipeline->BindSampler(VOXEL_CLIPMAP_BINDING_RADIANCE2, m_VoxelRadiance->GetFrameBuffer(), m_LinearSampler, false);
 	m_InjectPropagationPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+
 	m_InjectPropagationPipeline->Init("voxel/clipmap/lighting/inject_propagation.comp");
 
 	// DownSample Visibility
@@ -981,6 +1015,14 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_WrapRadianceBorderPipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, false);
 	m_WrapRadianceBorderPipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 	m_WrapRadianceBorderPipeline->Init("voxel/clipmap/lighting/wrap_border_radiance.comp");
+
+	m_PrimaryCommandBuffer->BeginPrimary();
+	for (uint32_t bindingIndex = SHADER_BINDING_CSM0; bindingIndex <= SHADER_BINDING_CSM3; ++bindingIndex)
+	{
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_CSM0, false);
+		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+	}
+	m_PrimaryCommandBuffer->End();
 }
 
 void KClipmapVoxilzer::SetupVoxelDrawPipeline()
@@ -1029,8 +1071,7 @@ void KClipmapVoxilzer::SetupVoxelDrawPipeline()
 		pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_RADIANCE, m_VoxelRadiance->GetFrameBuffer(), EF_UNKNOWN);
 		pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN);
 
-		if (idx == 0)
-			pipeline->SetSampler(VOXEL_CLIPMAP_BINDING_DIFFUSE_MAP, m_VoxelNormal->GetFrameBuffer(), m_LinearSampler);
+		pipeline->SetSampler(VOXEL_CLIPMAP_BINDING_DIFFUSE_MAP, m_VoxelNormal->GetFrameBuffer(), m_LinearSampler);
 
 		pipeline->Init();
 	}

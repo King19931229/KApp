@@ -9,6 +9,7 @@ layout(location = 0) out vec4 outColor;
 
 #include "public.h"
 #include "pbr.h"
+#define cascaded_shadow dynamic_cascaded
 #include "shadow/shadow.h"
 
 layout(binding = BINDING_FRAGMENT_SHADING)

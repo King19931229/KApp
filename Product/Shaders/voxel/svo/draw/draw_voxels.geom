@@ -1,32 +1,11 @@
 #include "public.h"
 #include "voxel/svo/voxel_common.h"
+#include "voxel/voxelzation_public.h"
 
 // receive voxels points position
 layout(points) in;
 // outputs voxels as cubes
 layout(triangle_strip, max_vertices = 24) out;
-
-/*
-// uniform vec4 frustumPlanes[6];
-bool VoxelInFrustum(vec3 center, vec3 extent)
-{
-	vec4 plane;
-
-	for(int i = 0; i < 6; i++)
-	{
-		plane = frustumPlanes[i];
-		float d = dot(extent, abs(plane.xyz));
-		float r = dot(center, plane.xyz) + plane.w;
-
-		if(d + r > 0.0f == false)
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-*/
 
 layout(location = 0) in vec4 albedo[];
 layout(location = 1) in flat uint level[];
@@ -66,7 +45,7 @@ void main()
 	vec3 center = VoxelToWorld(gl_in[0].gl_Position.xyz + vec3(0.5));
 	vec3 extent = vec3(voxelSize) * exp2(float(level[0]));
 
-	if(albedo[0].a == 0.0f /*|| !VoxelInFrustum(center, extent)*/) { return; }
+	if(albedo[0].a == 0.0f || !VoxelInFrustum(center, extent, camera.frustumPlanes)) { return; }
 
 	vec4 projectedVertices[8];
 

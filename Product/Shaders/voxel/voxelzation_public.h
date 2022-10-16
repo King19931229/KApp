@@ -39,4 +39,23 @@ vec4 AxisAlignedBoundingBox(vec4 pos[3], vec2 pixelDiagonal)
 	return aabb;
 }
 
+bool VoxelInFrustum(vec3 center, vec3 extent, in vec4 frustumPlanes[6])
+{
+	vec4 plane;
+
+	for(int i = 0; i < 6; i++)
+	{
+		plane = frustumPlanes[i];
+		float d = dot(extent, abs(plane.xyz));
+		float r = dot(center, plane.xyz) + plane.w;
+
+		if(d + r > 0.0f == false)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 #endif

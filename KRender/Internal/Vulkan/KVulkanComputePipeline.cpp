@@ -526,7 +526,21 @@ bool KVulkanComputePipeline::SetupBarrier(IKCommandBufferPtr buffer, bool input)
 		{
 			KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.image.images[i].get());
 
-			VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			VkImageLayout vulkanImageLayout = vulkanFrameBuffer->GetImageLayout();
+			VkImageAspectFlags flags = VK_IMAGE_ASPECT_COLOR_BIT;
+
+			switch (vulkanImageLayout)
+			{
+				case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+				case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+					flags = VK_IMAGE_ASPECT_DEPTH_BIT;
+					break;
+				default:
+					flags = VK_IMAGE_ASPECT_COLOR_BIT;
+					break;
+			}
+
+			VkImageSubresourceRange range = { flags, 0, 1, 0, 1 };
 
 			VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 

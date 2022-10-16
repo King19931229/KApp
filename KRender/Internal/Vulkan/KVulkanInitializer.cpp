@@ -504,29 +504,24 @@ namespace KVulkanInitializer
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 		barrier.image = image;
-		// VkImageSubresourceRange
+		
+		if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
 		{
-			if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			if (KVulkanHelper::HasStencilComponent(format))
 			{
-				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-				if (KVulkanHelper::HasStencilComponent(format))
-				{
-					barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-				}
+				barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 			}
-			else
-			{
-				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			}
-			barrier.subresourceRange.baseMipLevel = baseMipLevel;
-			barrier.subresourceRange.levelCount = mipLevels;
-			barrier.subresourceRange.baseArrayLayer = baseLayer;
-			barrier.subresourceRange.layerCount = layers;
 		}
+		else
+		{
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		}
+		barrier.subresourceRange.baseMipLevel = baseMipLevel;
+		barrier.subresourceRange.levelCount = mipLevels;
+		barrier.subresourceRange.baseArrayLayer = baseLayer;
+		barrier.subresourceRange.layerCount = layers;
 
-		VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-		VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 		barrier.srcAccessMask = 0;
 		barrier.dstAccessMask = 0;
 
@@ -574,6 +569,7 @@ namespace KVulkanInitializer
 				break;
 
 			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
 				// Image is read by a shader
 				// Make sure any shader reads from the image have been finished
 				barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -617,6 +613,7 @@ namespace KVulkanInitializer
 				break;
 
 			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
 				// Image will be read in a shader (sampler, input attachment)
 				// Make sure any writes to the image have been finished
 				if (barrier.srcAccessMask == 0)
@@ -634,6 +631,9 @@ namespace KVulkanInitializer
 				ASSERT_RESULT(false && "not yet handled");
 				break;
 		}
+
+		VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+		VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 
 		vkCmdPipelineBarrier(
 			commandBuffer,

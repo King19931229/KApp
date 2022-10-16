@@ -115,7 +115,8 @@ uniform CameraInfo
 	mat4 prevViewProj;
 	// near, far, fov, aspect
 	vec4 parameters;
-}camera;
+	vec4 frustumPlanes[6];
+} camera;
 
 layout(binding = BINDING_SHADOW)
 uniform ShadowInfo
@@ -123,7 +124,7 @@ uniform ShadowInfo
 	mat4 light_view;
 	mat4 light_proj;
 	vec2 near_far;
-}shadow;
+} shadow;
 
 layout(binding = BINDING_DYNAMIC_CASCADED_SHADOW)
 uniform DynamicCascadedShadowInfo
@@ -131,9 +132,10 @@ uniform DynamicCascadedShadowInfo
 	mat4 light_view[4];
 	mat4 light_view_proj[4];
 	vec4 lightInfo[4];
+	vec4 frustumPlanes[24];
 	vec4 frustum;
 	uint cascaded;
-}dynamic_cascaded;
+} dynamic_cascaded;
 
 layout(binding = BINDING_STATIC_CASCADED_SHADOW)
 uniform StaticCascadedShadowInfo
@@ -141,9 +143,10 @@ uniform StaticCascadedShadowInfo
 	mat4 light_view[4];
 	mat4 light_view_proj[4];
 	vec4 lightInfo[4];
+	vec4 frustumPlanes[24];
 	vec4 frustum;
 	uint cascaded;
-}static_cascaded;
+} static_cascaded;
 
 layout(binding = BINDING_VOXEL)
 uniform VoxelInfo
@@ -159,7 +162,7 @@ uniform VoxelInfo
 	vec4 miscs2;
 	// lightBleedingReduction:1 traceShadowHit:1 maxTracingDistanceGlobal:1
 	vec4 miscs3;
-}voxel;
+} voxel;
 
 layout(binding = BINDING_VOXEL_CLIPMAP)
 uniform VoxelClipmapInfo
@@ -179,13 +182,13 @@ uniform VoxelClipmapInfo
 	uvec4 miscs2;
 	// traceShadowHit:1 maxTracingDistanceGlobal:1 occlusionDecay:1 downsampleTransitionRegionSize:1
 	vec4 miscs3;
-}voxel_clipmap;
+} voxel_clipmap;
 
 layout(binding = BINDING_GLOBAL)
 uniform GlobalInfo
 {
 	vec4 sunLightDir;
-}global;
+} global;
 
 const float PI = 3.14159265f;
 const float HALF_PI = 1.57079f;

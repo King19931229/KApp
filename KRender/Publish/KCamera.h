@@ -14,7 +14,7 @@ public:
 		PM_ORTHO
 	};
 
-	enum FrustrmPlane
+	enum FrustumPlane
 	{
 		FP_NEAR,
 		FP_FAR,
@@ -28,7 +28,7 @@ public:
 		FP_COUNT
 	};
 
-	enum FrustrmCorner
+	enum FrustumCorner
 	{
 		FC_NEAR_TOP_LEFT,
 		FC_NEAR_TOP_RIGHT,
@@ -477,4 +477,7 @@ public:
 		}
 		return false;
 	}
+
+	const KPlane& GetPlane(FrustumPlane plane) const { return m_Planes[plane]; }
+	const glm::vec3& GetCornets(FrustumCorner corner) const { return m_Corners[corner]; }
 };

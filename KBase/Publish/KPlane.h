@@ -38,6 +38,7 @@ public:
 
 	inline const glm::vec3& GetNormal() const { return m_Normal; }
 	inline float GetDist() const { return m_Dist; }
+	inline glm::vec4 GetVec4() const { return glm::vec4(m_Normal, m_Dist); }
 	inline float GetDistance(const glm::vec3& p) const { return glm::dot(m_Normal, p) + m_Dist; }
 
 	inline PlaneSide GetSide(const glm::vec3& center, const glm::vec3& halfSize) const

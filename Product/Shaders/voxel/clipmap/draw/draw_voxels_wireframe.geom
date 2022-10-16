@@ -1,32 +1,11 @@
 #include "public.h"
 #include "voxel/clipmap/voxel_clipmap_common.h"
+#include "voxel/voxelzation_public.h"
 
 // receive voxels points position
 layout(points) in;
 // outputs voxels as cubes
 layout(line_strip, max_vertices = 16) out;
-
-/*
-// uniform vec4 frustumPlanes[6];
-bool VoxelInFrustum(vec3 center, vec3 extent)
-{
-	vec4 plane;
-
-	for(int i = 0; i < 6; i++)
-	{
-		plane = frustumPlanes[i];
-		float d = dot(extent, abs(plane.xyz));
-		float r = dot(center, plane.xyz) + plane.w;
-
-		if(d + r > 0.0f == false)
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-*/
 
 layout(location = 0) in vec4 albedo[];
 layout(location = 0) out vec4 voxelColor;
@@ -94,7 +73,7 @@ void main()
 	vec3 center = VoxelToWorld(gl_in[0].gl_Position.xyz, voxelSize);
 	vec3 extent = vec3(voxelSize);
 
-	if(albedo[0].a == 0.0f /*|| !VoxelInFrustum(center, extent)*/) { return; }
+	if(albedo[0].a == 0.0f || !VoxelInFrustum(center, extent, camera.frustumPlanes)) { return; }
 
 	if (level > 0 && InsideRegion(center, level - 1))
 	{

@@ -146,12 +146,6 @@ vec4 TraceCone(vec3 position, vec3 direction, float aperture)
 		mipLevel = log2(diameter / baseVoxelSize);
 		mipLevel = min(max(mipLevel, max(minLevel, level)), levelCount - 1);
 
- 		// mipLevel = max(mipLevel, max(minLevel, level));
-		// if (mipLevel > levelCount - 1)
-		// {
-		// 	break;
-		// }
-
 		// Radiance correction
 		float correctionQuotient = curSegmentLength / (baseVoxelSize * exp2(mipLevel));
 
@@ -264,7 +258,7 @@ void main()
 		vec4 directLight = imageLoad(voxelRadiance, faceWritePos);
 		// first bounce + direct lighting
 		vec4 radiance = directLight + weight * indirectLighting;
-		// radiance = indirectLighting;
+		// radiance = weight * indirectLighting;
 		// radiance = directLight;
 		radiance.a = directLight.a;
 		imageStore(voxelRadiance, faceWritePos, radiance);
