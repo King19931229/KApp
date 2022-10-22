@@ -62,8 +62,8 @@ namespace KConstantDefinition
 		glm::mat4 LIGHT_VIEW[4];
 		glm::mat4 LIGHT_VIEW_PROJ[4];
 		glm::vec4 LIGHT_INFO[4];
-		glm::vec4 FRUSTUM;
 		glm::vec4 FRUSTUM_PLANES[24];
+		glm::vec4 FRUSTUM;
 		uint32_t NUM_CASCADED;
 	};
 

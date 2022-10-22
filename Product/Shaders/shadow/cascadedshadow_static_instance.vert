@@ -1,6 +1,5 @@
 #include "public.h"
-// TODO
-#define cascaded_shadow dynamic_cascaded
+#define cascaded_shadow static_cascaded
 
 layout(location = POSITION) in vec3 position;
 layout(location = NORMAL) in vec3 normal;

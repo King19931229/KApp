@@ -16,7 +16,6 @@ protected:
 	std::vector<KFrameGraphID> m_StaticTargetIDs;
 	std::vector<KFrameGraphID> m_DynamicTargetIDs;
 	std::vector<KFrameGraphID> m_AllTargetIDs;
-	glm::mat4 m_LastCameraMatrix;
 public:
 	KCascadedShadowMapCasterPass(KCascadedShadowMap& master);
 	~KCascadedShadowMapCasterPass();
@@ -127,19 +126,24 @@ protected:
 
 	struct Cascade
 	{
-		float splitDepth;
+		// resolution
 		uint32_t shadowSize;
+		// matrix
 		glm::mat4 viewMatrix;
 		glm::mat4 viewProjMatrix;
 		glm::vec4 viewInfo;
 		// scene clipping
 		KAABBBox frustumBox;
 		KAABBBox litBox;
+		glm::vec4 clipPlanes[6];
 		// renderPass
 		IKRenderPassPtr renderPass;
 		// debug
 		glm::mat4 debugClip;
 		IKPipelinePtr debugPipeline;
+		// parameters	
+		float splitDepth;
+		float areaSize;
 	};
 	std::vector<Cascade> m_StaticCascadeds;
 	std::vector<Cascade> m_DynamicCascadeds;
@@ -163,8 +167,6 @@ protected:
 	float m_ShadowRange;
 	float m_SplitLambda;
 
-	float m_ShadowSizeRatio;
-
 	bool m_FixToScene;
 	bool m_FixTexel;
 
@@ -172,9 +174,12 @@ protected:
 
 	void UpdateDynamicCascades();
 	void UpdateStaticCascades();
+	void UpdateCascadesDebug();
+
 	bool GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic);
 	void PopulateRenderCommand(size_t cascadedIndex,
 		IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass,
+		bool isStatic,
 		std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
 	void FilterRenderComponent(std::vector<KRenderComponent*>& in, bool isStatic);
 
@@ -186,7 +191,7 @@ public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();
 
-	bool Init(const KCamera* camera, uint32_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio, uint32_t width, uint32_t height);
+	bool Init(const KCamera* camera, uint32_t numCascaded, uint32_t shadowMapSize, uint32_t width, uint32_t height);
 	bool UnInit();
 
 	bool UpdateShadowMap();

@@ -25,8 +25,11 @@ protected:
 	IKShaderPtr				m_ShadowVSShader;
 	IKShaderPtr				m_ShadowFSShader;
 
-	IKShaderPtr				m_CascadedShadowVSShader;
-	IKShaderPtr				m_CascadedShadowVSInstanceShader;
+	IKShaderPtr				m_CascadedShadowStaticVSShader;
+	IKShaderPtr				m_CascadedShadowStaticVSInstanceShader;
+
+	IKShaderPtr				m_CascadedShadowDynamicVSShader;
+	IKShaderPtr				m_CascadedShadowDynamicVSInstanceShader;
 
 	IKShaderPtr				m_VoxelVSShader;
 	IKShaderPtr				m_VoxelGSShader;

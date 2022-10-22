@@ -126,7 +126,7 @@ bool KRenderCore::InitGlobalManager()
 
 	KRenderGlobal::OcclusionBox.Init(m_Device);
 	KRenderGlobal::ShadowMap.Init(m_Device, 2048);
-	KRenderGlobal::CascadedShadowMap.Init(&m_Camera, 3, 2048, 1.0f, (uint32_t)width, (uint32_t)height);
+	KRenderGlobal::CascadedShadowMap.Init(&m_Camera, 3, 2048, (uint32_t)width, (uint32_t)height);
 
 	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 128, (uint32_t)width, (uint32_t)height);
 	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 64, 7, 16, (uint32_t)width, (uint32_t)height);

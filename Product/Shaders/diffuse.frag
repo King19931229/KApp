@@ -36,7 +36,7 @@ layout(location = 6) in vec4 inViewBinormal;
 layout(location = 0) out vec4 outColor;
 
 #include "public.h"
-#define cascaded_shadow dynamic_cascaded
+#define cascaded_shadow static_cascaded
 #include "shadow/shadow.h"
 
 layout(binding = BINDING_DIFFUSE) uniform sampler2D diffuseSampler;
@@ -75,7 +75,7 @@ void main()
 #endif
 
 	float NDotL = max(dot(viewNormal, -inViewLightDir), 0.0);
-	float ambient = 0.5;
+	float ambient = 0.0;
 	outColor = diffuse * (NDotL + ambient);	
 	outColor *= CalcCSM(inViewPos.xyz, inWorldPos.xyz);
 }

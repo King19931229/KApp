@@ -27,8 +27,11 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/shadow.vert", m_ShadowVSShader, false));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/shadow.frag", m_ShadowFSShader, false));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadow.vert", m_CascadedShadowVSShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadowinstance.vert", m_CascadedShadowVSInstanceShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadow_static.vert", m_CascadedShadowStaticVSShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadow_static_instance.vert", m_CascadedShadowStaticVSInstanceShader, false));
+
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadow_dynamic.vert", m_CascadedShadowDynamicVSShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadow_dynamic_instance.vert", m_CascadedShadowDynamicVSInstanceShader, false));
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/svo/voxelzation/voxelzation.vert", m_VoxelVSShader, false));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/svo/voxelzation/voxelzation.geom", m_VoxelGSShader, false));
@@ -45,8 +48,10 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 		PIPELINE_STAGE_PRE_Z,
 		PIPELINE_STAGE_PRE_Z_INSTANCE,
 		PIPELINE_STAGE_SHADOW_GEN,
-		PIPELINE_STAGE_CASCADED_SHADOW_GEN,
-		PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE
+		PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN,
+		PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN,
+		PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE,
+		PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE,
 	})
 	{
 		IKPipelinePtr& pipeline = m_Pipelines[stage];
@@ -119,8 +124,11 @@ bool KMaterialSubMesh::UnInit()
 	SAFE_RELEASE_SHADER(m_ShadowVSShader);
 	SAFE_RELEASE_SHADER(m_ShadowFSShader);
 
-	SAFE_RELEASE_SHADER(m_CascadedShadowVSShader);
-	SAFE_RELEASE_SHADER(m_CascadedShadowVSInstanceShader);
+	SAFE_RELEASE_SHADER(m_CascadedShadowStaticVSShader);
+	SAFE_RELEASE_SHADER(m_CascadedShadowStaticVSShader);
+
+	SAFE_RELEASE_SHADER(m_CascadedShadowDynamicVSShader);
+	SAFE_RELEASE_SHADER(m_CascadedShadowDynamicVSInstanceShader);
 
 #undef SAFE_RELEASE_SHADER
 
@@ -438,21 +446,42 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
-	else if (stage == PIPELINE_STAGE_CASCADED_SHADOW_GEN || stage == PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE)
+	else if (stage == PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN || stage == PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE
+		|| stage == PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN || stage == PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE)
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-		if (stage == PIPELINE_STAGE_CASCADED_SHADOW_GEN)
+		if (stage == PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN)
 		{
 			pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
-			pipeline->SetShader(ST_VERTEX, m_CascadedShadowVSShader);
+			pipeline->SetShader(ST_VERTEX, m_CascadedShadowStaticVSShader);
+			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_STATIC_CASCADED_SHADOW);
+			pipeline->SetConstantBuffer(CBT_STATIC_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
 		}
-		else if (stage == PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE)
+		else if (stage == PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN)
+		{
+			pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
+			pipeline->SetShader(ST_VERTEX, m_CascadedShadowDynamicVSShader);
+			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW);
+			pipeline->SetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
+		}
+		else if (stage == PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE)
 		{
 			std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
 			instanceFormats.push_back(VF_INSTANCE);
 			pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
-			pipeline->SetShader(ST_VERTEX, m_CascadedShadowVSInstanceShader);
+			pipeline->SetShader(ST_VERTEX, m_CascadedShadowStaticVSInstanceShader);
+			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_STATIC_CASCADED_SHADOW);
+			pipeline->SetConstantBuffer(CBT_STATIC_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
+		}
+		else if (stage == PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE)
+		{
+			std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
+			instanceFormats.push_back(VF_INSTANCE);
+			pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
+			pipeline->SetShader(ST_VERTEX, m_CascadedShadowDynamicVSInstanceShader);
+			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW);
+			pipeline->SetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
 		}
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
@@ -465,10 +494,6 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 
 		pipeline->SetDepthBiasEnable(true);
 		pipeline->SetShader(ST_FRAGMENT, m_ShadowFSShader);
-
-		// TODO
-		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW);
-		pipeline->SetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
 
 		ASSERT_RESULT(pipeline->Init());
 		return true;

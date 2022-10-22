@@ -25,7 +25,6 @@ bool KCascadedShadowMapCasterPass::Init()
 {
 	UnInit();
 
-	m_LastCameraMatrix = glm::mat4(0.0f);
 	m_StaticTargetIDs.reserve(m_Master.m_StaticCascadeds.size());
 	m_DynamicTargetIDs.reserve(m_Master.m_DynamicCascadeds.size());
 	m_AllTargetIDs.reserve(m_Master.m_StaticCascadeds.size() + m_Master.m_DynamicCascadeds.size());
@@ -112,9 +111,7 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 {
 	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
 
-	glm::mat4 curCameraMatrix = m_Master.m_MainCamera->GetProjectiveMatrix() * m_Master.m_MainCamera->GetViewMatrix();
-	bool updateStatic = memcmp(&m_LastCameraMatrix, &curCameraMatrix, sizeof(glm::mat4)) != 0;
-	m_LastCameraMatrix = curCameraMatrix;
+	bool updateStatic = true;
 
 	if (updateStatic)
 	{
@@ -327,7 +324,6 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_ShadowRange(3000.0f),
 	m_LightSize(0.01f),
 	m_SplitLambda(0.5f),
-	m_ShadowSizeRatio(0.7f),
 	m_FixToScene(true),
 	m_FixTexel(true),
 	m_MinimizeShadowDraw(true)
@@ -342,8 +338,8 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_DepthBiasSlope[2] = 3.25f;
 	m_DepthBiasSlope[3] = 1.0f;
 
-	m_ShadowCamera.SetPosition(glm::vec3(1.0f, 1.0f, 1.0f));
-	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	m_ShadowCamera.SetPosition(glm::vec3(0.0f, 1000.0f, 0.0f));
+	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 600.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	m_ShadowCamera.SetOrtho(2000.0f, 2000.0f, -1000.0f, 1000.0f);
 }
 
@@ -377,6 +373,8 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 	KAABBBox sceneBound;
 	KRenderGlobal::Scene.GetSceneObjectBound(sceneBound);
 
+	const glm::mat4& lightViewMatrix = m_ShadowCamera.GetViewMatrix();
+
 	// Calculate split depths based on view camera furstum
 	// Based on method presentd in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
 	size_t numCascaded = m_DynamicCascadeds.size();
@@ -393,6 +391,8 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 	float lastSplitDist = 0.0;
 	for (uint32_t i = 0; i < numCascaded; i++)
 	{
+		Cascade& dynamicCascaded = m_DynamicCascadeds[i];
+
 		float splitDist = cascadeSplits[i];
 
 		glm::vec3 frustumCorners[8] =
@@ -414,7 +414,7 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 			glm::vec3(-1.0f, -1.0f, 1.0f),
 		};
 
-		glm::vec3 diagonal = glm::vec3(0.0f);
+		float diagonal = 0.0f;
 
 		// Project frustum corners into view space
 		{
@@ -438,9 +438,7 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 		// 进而导致整个FixToScene算法失败
 		if (m_FixToScene)
 		{
-			diagonal = glm::vec3(
-				glm::max(glm::length(frustumCorners[3] - frustumCorners[5]),
-					glm::length(frustumCorners[7] - frustumCorners[5])));
+			diagonal = glm::max(glm::length(frustumCorners[3] - frustumCorners[5]), glm::length(frustumCorners[7] - frustumCorners[5]));
 		}
 
 		// Project frustum corners into world space
@@ -454,9 +452,7 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 				frustumBox.Merge(frustumCorners[i], frustumBox);
 			}
 		}
-		m_DynamicCascadeds[i].frustumBox = frustumBox;
-
-		glm::mat4 lightViewMatrix = m_ShadowCamera.GetViewMatrix();
+		dynamicCascaded.frustumBox = frustumBox;
 
 		glm::vec3 maxExtents = glm::vec3(-std::numeric_limits<float>::max());
 		glm::vec3 minExtents = glm::vec3(std::numeric_limits<float>::max());
@@ -472,36 +468,23 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 
 		if (m_FixToScene)
 		{
-			float cascadeBound = diagonal.x;
-
-			glm::vec3 borderOffset = (diagonal - (maxExtents - minExtents)) * 0.5f;
+			glm::vec3 borderOffset = (glm::vec3(diagonal) - (maxExtents - minExtents)) * 0.5f;
 			borderOffset.z = 0.0f;
 
 			maxExtents += borderOffset;
 			minExtents -= borderOffset;
 
-			worldUnitsPerTexel = glm::vec3(cascadeBound) / (float)m_DynamicCascadeds[i].shadowSize;
+			worldUnitsPerTexel = glm::vec3(diagonal) / (float)dynamicCascaded.shadowSize;
 		}
 		else
 		{
-			worldUnitsPerTexel = (maxExtents - minExtents) / (float)m_DynamicCascadeds[i].shadowSize;
+			worldUnitsPerTexel = (maxExtents - minExtents) / (float)dynamicCascaded.shadowSize;
 		}
 
 		if (m_FixTexel)
 		{
-			maxExtents.x /= worldUnitsPerTexel.x;
-			maxExtents.x = glm::floor(maxExtents.x);
-			maxExtents.x *= worldUnitsPerTexel.x;
-			maxExtents.y /= worldUnitsPerTexel.y;
-			maxExtents.y = glm::floor(maxExtents.y);
-			maxExtents.y *= worldUnitsPerTexel.y;
-
-			minExtents.x /= worldUnitsPerTexel.x;
-			minExtents.x = glm::floor(minExtents.x);
-			minExtents.x *= worldUnitsPerTexel.x;
-			minExtents.y /= worldUnitsPerTexel.y;
-			minExtents.y = glm::floor(minExtents.y);
-			minExtents.y *= worldUnitsPerTexel.y;
+			maxExtents = worldUnitsPerTexel * glm::floor(maxExtents / worldUnitsPerTexel);
+			minExtents = worldUnitsPerTexel * glm::floor(minExtents / worldUnitsPerTexel);
 		}
 
 		KAABBBox sceneBoundInLight;
@@ -525,26 +508,138 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 		}
 		litBox.InitFromMinMax(minExtents, maxExtents);
 		litBox.Transform(glm::inverse(lightViewMatrix), litBox);
-		m_DynamicCascadeds[i].litBox = litBox;
+		dynamicCascaded.litBox = litBox;
 
 		// Store split distance and matrix in cascade
-		m_DynamicCascadeds[i].viewMatrix = lightViewMatrix;
-		m_DynamicCascadeds[i].splitDepth = (mainCamera->GetNear() + splitDist * clipRange) * -1.0f;
-		m_DynamicCascadeds[i].viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
+		dynamicCascaded.viewMatrix = lightViewMatrix;
+		dynamicCascaded.splitDepth = (mainCamera->GetNear() + splitDist * clipRange) * -1.0f;
+		dynamicCascaded.areaSize = 0;
+		dynamicCascaded.viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
 		if (i == 0)
 		{
-			m_DynamicCascadeds[i].viewInfo = glm::vec4(m_LightSize, m_LightSize, near, far);
+			dynamicCascaded.viewInfo = glm::vec4(m_LightSize, m_LightSize, near, far);
 		}
 		else
 		{
-			glm::vec3 extendRatio = m_DynamicCascadeds[i].litBox.GetExtend() / m_DynamicCascadeds[0].litBox.GetExtend();
+			glm::vec3 extendRatio = dynamicCascaded.litBox.GetExtend() / m_DynamicCascadeds[0].litBox.GetExtend();
 			glm::vec2 lightSize = glm::vec2(m_LightSize) / glm::vec2(extendRatio.x, extendRatio.y);
-			m_DynamicCascadeds[i].viewInfo = glm::vec4(lightSize, near, far);
+			dynamicCascaded.viewInfo = glm::vec4(lightSize, near, far);
 		}
 
 		lastSplitDist = cascadeSplits[i];
 	}
+}
 
+void KCascadedShadowMap::UpdateStaticCascades()
+{
+	ASSERT_RESULT(m_MainCamera);
+
+	KAABBBox sceneBound;
+	KRenderGlobal::Scene.GetSceneObjectBound(sceneBound);
+
+	const glm::vec3& center = m_MainCamera->GetPosition();
+	const glm::mat4& lightViewMatrix = m_ShadowCamera.GetViewMatrix();
+
+	size_t numCascaded = m_StaticCascadeds.size();
+	for (size_t i = 0; i < numCascaded; i++)
+	{
+		Cascade& staticCascaded = m_StaticCascadeds[i];
+		staticCascaded.areaSize = m_ShadowRange / powf(2.0f, (float)(numCascaded - 1 - i));
+
+		float diagonal = 0.0f;
+		if (m_FixToScene)
+		{
+			diagonal = sqrt(3.0f * staticCascaded.areaSize * staticCascaded.areaSize);
+		}
+
+		glm::vec3 maxExtents = center + 0.5f * glm::vec3(staticCascaded.areaSize);
+		glm::vec3 minExtents = center - 0.5f * glm::vec3(staticCascaded.areaSize);
+
+		KAABBBox frustumBox;
+		frustumBox.InitFromMinMax(minExtents, maxExtents);
+
+		staticCascaded.frustumBox = frustumBox;
+
+		std::vector<glm::vec3> frustumCorners;
+		frustumBox.GetAllCorners(frustumCorners);
+
+		maxExtents = glm::vec3(-std::numeric_limits<float>::max());
+		minExtents = glm::vec3(std::numeric_limits<float>::max());
+
+		for (uint32_t i = 0; i < 8; i++)
+		{
+			glm::vec3 lightViewCorner = lightViewMatrix * glm::vec4(frustumCorners[i], 1.0f);
+			maxExtents = glm::max(maxExtents, lightViewCorner);
+			minExtents = glm::min(minExtents, lightViewCorner);
+		}
+
+		glm::vec3 worldUnitsPerTexel;
+
+		if (m_FixToScene)
+		{
+			glm::vec3 borderOffset = (glm::vec3(diagonal) - (maxExtents - minExtents)) * 0.5f;
+			borderOffset.z = 0.0f;
+
+			maxExtents += borderOffset;
+			minExtents -= borderOffset;
+
+			worldUnitsPerTexel = glm::vec3(diagonal) / (float)staticCascaded.shadowSize;
+		}
+		else
+		{
+			worldUnitsPerTexel = (maxExtents - minExtents) / (float)staticCascaded.shadowSize;
+		}
+
+		if (m_FixTexel)
+		{
+			maxExtents = worldUnitsPerTexel * glm::floor(maxExtents / worldUnitsPerTexel);
+			minExtents = worldUnitsPerTexel * glm::floor(minExtents / worldUnitsPerTexel);
+		}
+
+		KAABBBox sceneBoundInLight;
+		sceneBound.Transform(lightViewMatrix, sceneBoundInLight);
+
+		float near = -sceneBoundInLight.GetMax().z;
+		float far = -sceneBoundInLight.GetMin().z;
+
+		if (far - near < 5.f)
+			far = near + 5.f;
+
+		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, near, far);
+
+		// Record the cascaded lit box for scene clipping
+		KAABBBox litBox;
+		maxExtents.z = -near;
+		// 这里主要是容错near far都为0的情况
+		if (maxExtents.z < minExtents.z)
+		{
+			minExtents.z = -far;
+		}
+		litBox.InitFromMinMax(minExtents, maxExtents);
+		litBox.Transform(glm::inverse(lightViewMatrix), litBox);
+		staticCascaded.litBox = litBox;
+
+		// Store split distance and matrix in cascade
+		staticCascaded.viewMatrix = lightViewMatrix;
+		staticCascaded.viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
+		if (i == 0)
+		{
+			staticCascaded.viewInfo = glm::vec4(m_LightSize, m_LightSize, near, far);
+		}
+		else
+		{
+			glm::vec3 extendRatio = staticCascaded.litBox.GetExtend() / m_StaticCascadeds[0].litBox.GetExtend();
+			glm::vec2 lightSize = glm::vec2(m_LightSize) / glm::vec2(extendRatio.x, extendRatio.y);
+			staticCascaded.viewInfo = glm::vec4(lightSize, near, far);
+		}
+
+		staticCascaded.splitDepth = -staticCascaded.areaSize * 0.5f;
+	}
+}
+
+void KCascadedShadowMap::UpdateCascadesDebug()
+{
+	/*
 	float displayWidth = 1.0f / (float)(numCascaded + 1);
 	displayWidth *= 0.95f;
 	float displayHeight = displayWidth;
@@ -576,26 +671,7 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 
 		cascaded.debugClip = clipMat;
 	}
-}
-
-void KCascadedShadowMap::UpdateStaticCascades()
-{
-	// TODO 先复制动态策略
-	size_t numCascaded = m_StaticCascadeds.size();
-	for (size_t i = 0; i < numCascaded; i++)
-	{
-		const Cascade& dynamicCascaded = m_DynamicCascadeds[i];
-		Cascade& staticCascaded = m_StaticCascadeds[i];
-
-		staticCascaded.splitDepth = dynamicCascaded.splitDepth;
-		staticCascaded.shadowSize = dynamicCascaded.shadowSize;
-		staticCascaded.viewMatrix = dynamicCascaded.viewMatrix;
-		staticCascaded.viewProjMatrix = dynamicCascaded.viewProjMatrix;
-		staticCascaded.viewInfo = dynamicCascaded.viewInfo;
-		staticCascaded.frustumBox = dynamicCascaded.frustumBox;
-		staticCascaded.litBox = dynamicCascaded.litBox;
-		staticCascaded.debugClip = dynamicCascaded.debugClip;
-	}
+	*/
 }
 
 bool KCascadedShadowMap::UpdatePipelineFromRTChanged()
@@ -616,17 +692,16 @@ bool KCascadedShadowMap::UpdatePipelineFromRTChanged()
 	return true;
 }
 
-bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint32_t shadowMapSize, float shadowSizeRatio, uint32_t width, uint32_t height)
+bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint32_t shadowMapSize, uint32_t width, uint32_t height)
 {
 	ASSERT_RESULT(UnInit());
 
 	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
-	if (numCascaded >= 1 && numCascaded <= SHADOW_MAP_MAX_CASCADED && shadowSizeRatio > 0.0f)
+	if (numCascaded >= 1 && numCascaded <= SHADOW_MAP_MAX_CASCADED)
 	{
 		Resize(width, height);
 
 		m_MainCamera = camera;
-		m_ShadowSizeRatio = shadowSizeRatio;
 
 		KRenderGlobal::RenderDevice->CreateSampler(m_ShadowSampler);
 		m_ShadowSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
@@ -665,8 +740,6 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			cascaded.shadowSize = cascadedShadowSize;
 			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(cascaded.renderPass));
 		}
-
-		cascadedShadowSize = (size_t)(cascadedShadowSize * m_ShadowSizeRatio);
 
 		m_CasterPass = KCascadedShadowMapCasterPassPtr(KNEW KCascadedShadowMapCasterPass(*this));
 		m_CasterPass->Init();
@@ -825,6 +898,7 @@ bool KCascadedShadowMap::UnInit()
 
 void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex,
 	IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass,
+	bool isStatic,
 	std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
 	KRenderUtil::MeshInstanceGroup meshGroups;
@@ -842,7 +916,9 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex,
 		ASSERT_RESULT(render);
 		ASSERT_RESULT(!instances.empty());
 
-		render->Visit(PIPELINE_STAGE_CASCADED_SHADOW_GEN_INSTANCE, [&](KRenderCommand& _command)
+		PipelineStage stage = isStatic ? PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE : PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE;
+
+		render->Visit(stage, [&](KRenderCommand& _command)
 		{
 			KRenderCommand command = std::move(_command);
 
@@ -998,8 +1074,7 @@ bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTarg
 			litCullRes = newLitCullRes;
 		}
 
-		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
-		primaryBuffer->BeginDebugMarker("CSM_" + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("CSM_" + std::string(isStatic ? "Static_" : "Dynamic_") + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
 		primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(renderPass->GetViewPort());
 
@@ -1013,6 +1088,7 @@ bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTarg
 
 			PopulateRenderCommand(cascadedIndex,
 				shadowMapTarget, renderPass,
+				isStatic,
 				litCullRes, commandList, m_Statistics);
 
 			for (KRenderCommand& command : commandList)
@@ -1039,7 +1115,6 @@ bool KCascadedShadowMap::UpdateMask(IKCommandBufferPtr primaryBuffer, bool isSta
 	IKRenderPassPtr renderPass = isStatic ? m_StaticReceiverPass : m_DynamicReceiverPass;
 	IKPipelinePtr pipeline = isStatic ? m_StaticReceiverPipeline : m_DynamicReceiverPipeline;
 
-	KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 	primaryBuffer->BeginDebugMarker("CSM_" + std::string(isStatic ? "Static" : "Dynamic") + "_Mask", glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 	primaryBuffer->SetViewport(renderPass->GetViewPort());
@@ -1065,7 +1140,6 @@ bool KCascadedShadowMap::CombineMask(IKCommandBufferPtr primaryBuffer)
 	IKRenderPassPtr renderPass = m_CombineReceiverPass;
 	IKPipelinePtr pipeline = m_CombineReceiverPipeline;
 
-	KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
 	primaryBuffer->BeginDebugMarker("CSM_Combine_Mask", glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 	primaryBuffer->SetViewport(renderPass->GetViewPort());
@@ -1114,7 +1188,7 @@ bool KCascadedShadowMap::UpdateShadowMap()
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
 				}
 			}
-			if (detail.semantic == CS_CASCADED_SHADOW_VIEW_PROJ)
+			else if (detail.semantic == CS_CASCADED_SHADOW_VIEW_PROJ)
 			{
 				assert(sizeof(glm::mat4) * 4 == detail.size);
 				for (size_t i = 0; i < numCascaded; i++)
@@ -1123,7 +1197,7 @@ bool KCascadedShadowMap::UpdateShadowMap()
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::mat4));
 				}
 			}
-			if (detail.semantic == CS_CASCADED_SHADOW_LIGHT_INFO)
+			else if (detail.semantic == CS_CASCADED_SHADOW_LIGHT_INFO)
 			{
 				assert(sizeof(glm::vec4) * 4 == detail.size);
 				for (size_t i = 0; i < numCascaded; i++)
@@ -1132,7 +1206,7 @@ bool KCascadedShadowMap::UpdateShadowMap()
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
 				}
 			}
-			if (detail.semantic == CS_CASCADED_SHADOW_FRUSTUM)
+			else if (detail.semantic == CS_CASCADED_SHADOW_FRUSTUM)
 			{
 				assert(sizeof(float) * 4 == detail.size);
 				for (size_t i = 0; i < numCascaded; i++)
@@ -1141,11 +1215,15 @@ bool KCascadedShadowMap::UpdateShadowMap()
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(float));
 				}
 			}
-			if (detail.semantic == CS_CASCADED_SHADOW_NUM_CASCADED)
+			else if (detail.semantic == CS_CASCADED_SHADOW_NUM_CASCADED)
 			{
 				assert(sizeof(uint32_t) == detail.size);
 				uint32_t num = (uint32_t)numCascaded;
 				memcpy(pWritePos, &num, sizeof(uint32_t));
+			}
+			else if (detail.semantic == CS_CASCADED_SHADOW_FRUSTUM_PLANES)
+			{
+
 			}
 		}
 		shadowBuffer->Write(pData);
