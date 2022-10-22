@@ -32,6 +32,11 @@ struct IKSourceFile
 	virtual bool RemoveAllMacro() = 0;	
 	virtual bool GetAllMacro(std::vector<MacroPair>& macros) = 0;
 
+	typedef std::tuple<std::string, std::string> IncludeSourcePair;
+	virtual bool AddIncludeSource(const IncludeSourcePair& includeSource) = 0;
+	virtual bool RemoveAllIncludeSource() = 0;
+	virtual bool GetAllIncludeSource(std::vector<IncludeSourcePair>& macros) = 0;
+
 	virtual const char* GetFilePath() = 0;
 	virtual const char* GetFileDirPath() = 0;
 	virtual const char* GetFileName() = 0;

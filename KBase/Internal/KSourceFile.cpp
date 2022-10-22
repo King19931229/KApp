@@ -69,12 +69,42 @@ bool KSourceFile::EarseComment(std::string& out, const std::string& in)
 	return true;
 }
 
-IKDataStreamPtr KSourceFile::GetFileData(const std::string &filePath)
+IKDataStreamPtr KSourceFile::PostProcessDataStream(IKDataStreamPtr input)
 {
 	char szBuffer[1024] = { 0 };
 	std::string rawFileData, fileData;
 
 	IKDataStreamPtr pData = nullptr;
+	if (input)
+	{
+		while (input->ReadLine(szBuffer, sizeof(szBuffer)))
+		{
+			rawFileData += szBuffer;
+			rawFileData += "\n";
+		}
+
+		if (*rawFileData.rbegin() == '\n')
+			rawFileData.erase(rawFileData.end() - 1);
+
+		if (EarseComment(fileData, rawFileData))
+		{
+			pData = GetDataStream(IT_MEMORY);
+			pData->Open(fileData.length() + 1, IM_READ_WRITE);
+			pData->Write(fileData.c_str(), fileData.length() + 1);
+		}
+
+		pData->Seek(0);
+
+		input->Close();
+	}
+
+	return pData;
+}
+
+IKDataStreamPtr KSourceFile::GetFileData(const std::string &filePath)
+{
+	IKDataStreamPtr pData = nullptr;
+
 	if (m_Hooker == nullptr)
 	{
 		pData = GetDataStream(IT_MEMORY);
@@ -88,24 +118,22 @@ IKDataStreamPtr KSourceFile::GetFileData(const std::string &filePath)
 		pData = m_Hooker->Open(filePath.c_str());
 	}
 
-	if (pData)
-	{
-		while (pData->ReadLine(szBuffer, sizeof(szBuffer)))
-		{
-			rawFileData += szBuffer;
-			rawFileData += "\n";
-		}
-		if (*rawFileData.rbegin() == '\n')
-			rawFileData.erase(rawFileData.end() - 1);
-		if (EarseComment(fileData, rawFileData))
-		{
-			pData->Close();
-			pData = GetDataStream(IT_MEMORY);
-			pData->Open(fileData.length() + 1, IM_READ_WRITE);
-			pData->Write(fileData.c_str(), fileData.length() + 1);
-		}
-		pData->Seek(0);
-	}
+	pData = PostProcessDataStream(pData);
+	
+	return pData;
+}
+
+IKDataStreamPtr KSourceFile::GetSourceData(const std::string& source)
+{
+	IKDataStreamPtr pData = nullptr;
+
+	pData = GetDataStream(IT_MEMORY);
+	pData->Open(source.length() + 1, IM_READ_WRITE);
+	pData->Write(source.c_str(), source.length() + 1);
+	pData->Seek(0);
+
+	pData = PostProcessDataStream(pData);
+
 	return pData;
 }
 
@@ -128,6 +156,18 @@ bool KSourceFile::AddMacroDefine(std::string& out, const std::string& in)
 	return true;
 }
 
+void KSourceFile::AddIncludeFile(FileInfo* info, const std::string& file)
+{
+	if (info)
+	{
+		info->includeFiles.insert(file);
+		for (FileInfo* parent : info->parents)
+		{
+			AddIncludeFile(parent, file);
+		}
+	}
+}
+
 bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::string& file, FileInfo* pParent)
 {
 	if(!file.empty())
@@ -142,20 +182,52 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 		char szBuffer[1024] = {0};
 		char szInclude[64] = {0};
 
-		IKDataStreamPtr pData = GetFileData(filePath);
+		IKDataStreamPtr pData = nullptr;
+		
+		auto itInclude = std::find_if(m_IncludeSources.begin(), m_IncludeSources.end(), [&filePath](IncludeSource& info)
+		{
+			return info.include == filePath;
+		});
+
+		// 通过内部指认头文件内容
+		if (itInclude != m_IncludeSources.end())
+		{
+			pData = GetSourceData(itInclude->source);
+		}
+		// 通过传统文件搜索指认头文件内容
+		else
+		{
+			pData = GetFileData(filePath);
+		}
+
 		if(pData)
 		{
 			FileInfo *pFileInfo = nullptr;
+
+			// 查找或注册文件信息
+			{
+				auto itFileInfo = m_FileInfos.find(file);
+				// 新增此文件信息
+				if (itFileInfo != m_FileInfos.end())
+				{
+					pFileInfo = &itFileInfo->second;
+				}
+				else
+				{
+					pFileInfo = &(m_FileInfos.insert({ file, FileInfo() }).first)->second;
+				}
+			}
+
 			// 处理include信息
 			{
-				FileInfos::iterator it = m_FileInfos.find(file);
-				if(it == m_FileInfos.end())
-					it = m_FileInfos.insert(FileInfos::value_type(file, FileInfo())).first;
-				pFileInfo = &it->second;
-				pFileInfo->pParent = pParent;
-				// 顺着这条新路径把include信息加进去
-				for(FileInfo* pPtr = pFileInfo; pPtr != nullptr; pPtr = pPtr->pParent)
-					pPtr->includeFiles.insert(file);
+				auto itParent = pFileInfo->parents.find(pParent);
+				// 一个新的文件include到了此文件
+				if (itParent == pFileInfo->parents.end())
+				{
+					pFileInfo->parents.insert(pParent);
+				}
+				// 添加此文件到include文件列表里
+				AddIncludeFile(pFileInfo, file);
 			}
 
 			if(pData->GetSize() > 3)
@@ -173,10 +245,13 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 			{
 				if(strstr(szBuffer, "#include") == szBuffer)
 				{
-					char* pszIncludeBeg = nullptr, *pszIncludeEnd = nullptr;
+					char* pszIncludeBeg = nullptr;
+					char* pszIncludeEnd = nullptr;
 					long nLen = 0;
 					pszIncludeBeg = strchr(szBuffer, '"');
+					pszIncludeBeg = pszIncludeBeg ? pszIncludeBeg : strchr(szBuffer, '<');
 					pszIncludeEnd = strrchr(szBuffer, '"');
+					pszIncludeEnd = pszIncludeEnd ? pszIncludeEnd : strchr(szBuffer, '>');
 					nLen = (long)(pszIncludeEnd - pszIncludeBeg - 1);
 					if(pszIncludeBeg && pszIncludeEnd && nLen > 0)
 					{
@@ -189,21 +264,23 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 						includeFile = szInclude;
 						Trim(includeFile);
 
-						// 检查include是否合理
+						// 检查include是否合理,是否存在环形依赖
 						{
-							FileInfos::iterator it = m_FileInfos.find(includeFile);
+							auto it = m_FileInfos.find(includeFile);
 							if(it != m_FileInfos.end())
 							{
 								FileInfo *pIncludeFileInfo = &it->second;
+								// include的文件又include了自己
 								if(pIncludeFileInfo->includeFiles.find(file) != pIncludeFileInfo->includeFiles.end())
 								{
-									// 要include的文件包含了自己
+									KG_LOGE(LM_IO, "Find a circular dependency by including file %s in %s", includeFile.c_str(), file.c_str());
 									return false;
 								}
 							}
 						}
 
 						std::string includeFileData;
+
 						// 尝试文件自身路径
 						if (!Parse(includeFileData, dir, includeFile, pFileInfo))
 						{
@@ -218,12 +295,27 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 									break;
 								}
 							}
+
 							if (!Success)
+							{
+								std::string error;
+								error += "Could not find include file " + includeFile + " in " + file + "\n";
+								error += "\tSearch path:\n";
+								error += "\t\t" + dir;
+								for (const std::string& includePath : m_IncludePath)
+								{
+									if (includePath == dir) continue;
+									error += "\n\t\t" + includePath;
+								}
+								KG_LOGE(LM_IO, error.c_str());
 								return false;
+							}
 						}
 							
-						if(!includeFileData.empty())
+						if (!includeFileData.empty())
+						{
 							curFileData += includeFileData;
+						}
 					}
 				}
 				else
@@ -231,17 +323,21 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 					curFileData += std::string(szBuffer) + "\n";
 				}
 
-				if(pParent == nullptr)
+				if (pParent == nullptr)
+				{
 					m_OriginalSource += std::string(szBuffer) + "\n";
+				}
 			}
-			if(pParent == nullptr && *curFileData.rbegin() == '\n')
+			if (pParent == nullptr && *curFileData.rbegin() == '\n')
+			{
 				curFileData.erase(curFileData.end() - 1);
+			}
 			output += curFileData;
 
 			return true;
 		}
 	}
-	KG_LOGE(LM_IO, "Could not find file %s", file.c_str());
+
 	return false;
 }
 
@@ -387,6 +483,48 @@ bool KSourceFile::GetAllMacro(std::vector<MacroPair>& macros)
 	for (const MacroInfo& macroInfo : m_MacroInfos)
 	{
 		macros.push_back(std::make_tuple(macroInfo.marco, macroInfo.value));
+	}
+	return true;
+}
+
+bool KSourceFile::AddIncludeSource(const IncludeSourcePair& includeSource)
+{
+	const std::string& include = std::get<0>(includeSource);
+	const std::string& source = std::get<1>(includeSource);
+	if (!include.empty())
+	{
+		auto it = std::find_if(m_IncludeSources.begin(), m_IncludeSources.end(), [include](const IncludeSource& inc)
+		{
+			return strcmp(inc.include.c_str(), include.c_str()) == 0;
+		});
+
+		if (it == m_IncludeSources.end())
+		{
+			IncludeSource info = { include, source };
+			m_IncludeSources.emplace_back(std::move(info));
+		}
+		// 覆盖掉之前的值
+		else
+		{
+			it->source = source;
+		}
+		return true;
+	}
+	return false;
+}
+
+bool KSourceFile::RemoveAllIncludeSource()
+{
+	m_IncludeSources.clear();
+	return true;
+}
+
+bool KSourceFile::GetAllIncludeSource(std::vector<IncludeSourcePair>& includeSource)
+{
+	includeSource.clear();
+	for (const IncludeSource& includeInfo : m_IncludeSources)
+	{
+		includeSource.push_back(std::make_tuple(includeInfo.include, includeInfo.source));
 	}
 	return true;
 }

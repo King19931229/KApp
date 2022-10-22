@@ -6,26 +6,6 @@
 #include "KVulkanConfig.h"
 #include <map>
 
-class KVulkanShaderSourceHooker : public IKSourceFile::IOHooker
-{
-protected:
-	IKFileSystemPtr m_FileSys;
-public:
-	KVulkanShaderSourceHooker(IKFileSystemPtr fileSys)
-		: m_FileSys(fileSys)
-	{}
-
-	IKDataStreamPtr Open(const char* pszPath) override
-	{
-		IKDataStreamPtr ret = nullptr;
-		if (m_FileSys->Open(pszPath, IT_MEMORY, ret))
-		{
-			return ret;
-		}
-		return nullptr;
-	}
-};
-
 class KVulkanShader : public IKShader
 {
 protected:
@@ -76,6 +56,10 @@ public:
 	virtual bool AddMacro(const MacroPair& macroPair);
 	virtual bool RemoveAllMacro();
 	virtual bool GetAllMacro(std::vector<MacroPair>& macros);
+
+	virtual bool AddIncludeSource(const IncludeSource& includeSource);
+	virtual bool RemoveAllIncludeSource();
+	virtual bool GetAllIncludeSource(std::vector<MacroPair>& macros);
 
 	virtual bool InitFromFile(ShaderType type, const std::string& path, bool async);
 	virtual bool InitFromString(ShaderType type, const std::vector<char>& code, bool async);	

@@ -1,6 +1,10 @@
 #pragma once
 #include "KRender/Interface/IKRenderConfig.h"
 #include "KRender/Interface/IKResource.h"
+
+#include "KBase/Interface/IKFileSystem.h"
+#include "KBase/Interface/IKSourceFile.h"
+
 #include <string>
 #include <vector>
 #include <tuple>
@@ -90,9 +94,15 @@ struct IKShader : public IKResource
 	virtual ~IKShader() {}
 
 	typedef std::tuple<std::string, std::string> MacroPair;
+	typedef std::tuple<std::string, std::string> IncludeSource;
+
 	virtual bool AddMacro(const MacroPair& macroPair) = 0;
 	virtual bool RemoveAllMacro() = 0;
 	virtual bool GetAllMacro(std::vector<MacroPair>& macros) = 0;
+
+	virtual bool AddIncludeSource(const IncludeSource& includeSource) = 0;
+	virtual bool RemoveAllIncludeSource() = 0;
+	virtual bool GetAllIncludeSource(std::vector<MacroPair>& macros) = 0;
 
 	virtual bool InitFromFile(ShaderType type, const std::string& path, bool async) = 0;
 	virtual bool InitFromString(ShaderType type, const std::vector<char>& code, bool async) = 0;
@@ -103,4 +113,26 @@ struct IKShader : public IKResource
 	virtual const char* GetPath() = 0;
 
 	virtual bool Reload() = 0;
+};
+
+// TODO 弄个KBaseShader
+
+class KShaderSourceHooker : public IKSourceFile::IOHooker
+{
+protected:
+	IKFileSystemPtr m_FileSys;
+public:
+	KShaderSourceHooker(IKFileSystemPtr fileSys)
+		: m_FileSys(fileSys)
+	{}
+
+	IKDataStreamPtr Open(const char* pszPath) override
+	{
+		IKDataStreamPtr ret = nullptr;
+		if (m_FileSys->Open(pszPath, IT_MEMORY, ret))
+		{
+			return ret;
+		}
+		return nullptr;
+	}
 };

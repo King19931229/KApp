@@ -322,6 +322,8 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			{
 				(*callback)();
 			}
+
+			DebugCode();
 		};
 
 		m_UnitCallback = [this]()
@@ -708,4 +710,32 @@ void KRenderCore::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::Voxilzer.Resize(width, height);
 	KRenderGlobal::RTAO.Resize();
 	KRenderGlobal::RayTraceManager.Resize(width, height);
+}
+
+#include "ShaderMap/KShaderMap.h"
+#include "KBase/Interface/IKSourceFile.h"
+
+void KRenderCore::DebugCode()
+{
+	KShaderMap shaderMap;
+
+	KShaderMapInitContext initContext;
+	initContext.vsFile = "shading/basepass.vert";
+	initContext.fsFile = "shading/basepass.frag";
+
+	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_SHADER);
+	ASSERT_RESULT(system);
+	IKSourceFilePtr materialSourceFile = GetSourceFile();
+	materialSourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
+	materialSourceFile->Open("material/diffuse.glsl");
+
+	initContext.IncludeSource = { {"material_generate_code.h", materialSourceFile->GetFinalSource()} };
+
+	VertexFormat formats[] = { VF_POINT_NORMAL_UV };
+
+	shaderMap.Init(initContext, false);
+	shaderMap.GetVSShader(formats, ARRAY_SIZE(formats));
+	shaderMap.GetFSShader(formats, ARRAY_SIZE(formats), nullptr, false);
+
+	shaderMap.UnInit();
 }

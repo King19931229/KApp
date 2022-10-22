@@ -378,7 +378,7 @@ KVulkanShader::ShaderInitResult KVulkanShader::InitFromFileImpl(const std::strin
 	ASSERT_RESULT(system);
 
 	m_SourceFile->SetHeaderText("#version 460 core\n");
-	m_SourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KVulkanShaderSourceHooker(system)));
+	m_SourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
 	if (m_SourceFile->Open(path.c_str()))
 	{
 		const char* finalSource = m_SourceFile->GetFinalSource();
@@ -454,6 +454,27 @@ bool KVulkanShader::GetAllMacro(std::vector<MacroPair>& macros)
 {
 	ASSERT_RESULT(m_SourceFile);
 	return m_SourceFile->GetAllMacro(macros);
+	return true;
+}
+
+bool KVulkanShader::AddIncludeSource(const IncludeSource& includeSource)
+{
+	ASSERT_RESULT(m_SourceFile);
+	return m_SourceFile->AddIncludeSource(includeSource);
+	return true;
+}
+
+bool KVulkanShader::RemoveAllIncludeSource()
+{
+	ASSERT_RESULT(m_SourceFile);
+	return m_SourceFile->RemoveAllIncludeSource();
+	return true;
+}
+
+bool KVulkanShader::GetAllIncludeSource(std::vector<IncludeSource>& includeSource)
+{
+	ASSERT_RESULT(m_SourceFile);
+	return m_SourceFile->GetAllIncludeSource(includeSource);
 	return true;
 }
 

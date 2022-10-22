@@ -12,6 +12,12 @@ public:
 	~KSpirvBuiltInResource();
 };
 
+struct KShaderCompileEnvironment
+{
+	std::vector<IKShader::MacroPair> macros;
+	std::vector<IKShader::IncludeSource> includes;
+};
+
 class KShaderManager
 {
 protected:
@@ -28,8 +34,8 @@ protected:
 	KSpirvBuiltInResource m_SpirVBuiltIn;
 	IKRenderDevice* m_Device;
 
-	size_t CalcVariantionHash(const std::vector<IKShader::MacroPair>& macros);
-	bool AcquireImpl(ShaderType type, const char* path, const std::vector<IKShader::MacroPair>& macros, IKShaderPtr& shader, bool async);
+	size_t CalcVariantionHash(const KShaderCompileEnvironment& env);
+	bool AcquireImpl(ShaderType type, const char* path, const KShaderCompileEnvironment& env, IKShaderPtr& shader, bool async);
 public:
 	KShaderManager();
 	~KShaderManager();
@@ -40,7 +46,7 @@ public:
 	bool Reload();
 
 	bool Acquire(ShaderType type, const char* path, IKShaderPtr& shader, bool async);
-	bool Acquire(ShaderType type, const char* path, const std::vector<IKShader::MacroPair>& macros, IKShaderPtr& shader, bool async);
+	bool Acquire(ShaderType type, const char* path, const KShaderCompileEnvironment& env, IKShaderPtr& shader, bool async);
 	bool Release(IKShaderPtr& shader);
 
 	inline KSpirvBuiltInResource* GetSpirVBuildInResource() { return &m_SpirVBuiltIn; }

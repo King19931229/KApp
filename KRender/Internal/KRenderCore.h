@@ -74,6 +74,9 @@ protected:
 	void OnPrePresent(uint32_t chainIndex, uint32_t frameIndex);
 	void OnPostPresent(uint32_t chainIndex, uint32_t frameIndex);
 	void OnSwapChainRecreate(uint32_t width, uint32_t height);
+
+	// 为了敏捷开发插入的测试代码
+	void DebugCode();
 public:
 	KRenderCore();
 	virtual ~KRenderCore();

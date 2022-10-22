@@ -19,31 +19,37 @@ protected:
 	std::vector<std::string> m_IncludePath;
 	IOHookerPtr m_Hooker;
 
-	typedef std::unordered_set<std::string> IncludeFiles;
-
 	struct FileInfo
 	{
-		FileInfo* pParent;
-		IncludeFiles includeFiles;
-		FileInfo()
-		{
-			pParent = nullptr;
-		}
+		// include该文件的文件
+		std::unordered_set<FileInfo*> parents;
+		// 该文件最终include的文件列表(完全展开)
+		std::unordered_set<std::string> includeFiles;
 	};
-	typedef std::unordered_map<std::string, FileInfo> FileInfos;
-	FileInfos m_FileInfos;
+	std::unordered_map<std::string, FileInfo> m_FileInfos;
 
 	struct MacroInfo
 	{
 		std::string marco;
 		std::string value;
 	};
-	typedef std::vector<MacroInfo> MacroInfos;
-	MacroInfos m_MacroInfos;
+	std::vector<MacroInfo> m_MacroInfos;
+
+	struct IncludeSource
+	{
+		std::string include;
+		std::string source;
+	};
+	std::vector<IncludeSource> m_IncludeSources;
+
+	void AddIncludeFile(FileInfo* info, const std::string& file);
 
 	bool EarseComment(std::string& out, const std::string& in);
 	bool AddMacroDefine(std::string& out, const std::string& in);
+
+	IKDataStreamPtr PostProcessDataStream(IKDataStreamPtr input);
 	IKDataStreamPtr GetFileData(const std::string &filePath);
+	IKDataStreamPtr GetSourceData(const std::string& source);
 
 	bool Trim(std::string& input);
 	bool Parse(std::string& output, const std::string& dir, const std::string& file, FileInfo* pParent);
@@ -61,6 +67,9 @@ public:
 	virtual bool AddMacro(const MacroPair& macroPair);
 	virtual bool RemoveAllMacro();
 	virtual bool GetAllMacro(std::vector<MacroPair>& macros);
+	virtual bool AddIncludeSource(const IncludeSourcePair& includeSource);
+	virtual bool RemoveAllIncludeSource();
+	virtual bool GetAllIncludeSource(std::vector<IncludeSourcePair>& macros);
 	virtual const char* GetFilePath();
 	virtual const char* GetFileDirPath();
 	virtual const char* GetFileName();

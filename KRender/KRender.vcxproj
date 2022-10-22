@@ -121,6 +121,7 @@
     <ClInclude Include="Internal\Scene\KOctreeSceneManager.h" />
     <ClInclude Include="Internal\Scene\KRenderScene.h" />
     <ClInclude Include="Internal\Scene\KSceneManagerBase.h" />
+    <ClInclude Include="Internal\ShaderMap\KShaderMap.h" />
     <ClInclude Include="Internal\Shadow\KCascadedShadowMap.h" />
     <ClInclude Include="Internal\Shadow\KShadowMap.h" />
     <ClInclude Include="Internal\Terrain\Clipmap\KClipmap.h" />
@@ -226,6 +227,7 @@
     <ClCompile Include="Internal\RayTrace\KRayTraceScene.cpp" />
     <ClCompile Include="Internal\Scene\KOctreeSceneManager.cpp" />
     <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
+    <ClCompile Include="Internal\ShaderMap\KShaderMap.cpp" />
     <ClCompile Include="Internal\Shadow\KCascadedShadowMap.cpp" />
     <ClCompile Include="Internal\Shadow\KShadowMap.cpp" />
     <ClCompile Include="Internal\Terrain\Clipmap\KClipmap.cpp" />

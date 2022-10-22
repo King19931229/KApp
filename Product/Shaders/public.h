@@ -193,4 +193,13 @@ uniform GlobalInfo
 const float PI = 3.14159265f;
 const float HALF_PI = 1.57079f;
 
+struct MaterialPixelParameters
+{
+	vec3 position;
+	vec3 normal;
+	vec2 motion;
+	vec3 baseColor;
+	vec3 specularColor;
+};
+
 #endif

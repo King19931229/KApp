@@ -79,6 +79,9 @@
     <Filter Include="Internal\Terrain\Clipmap">
       <UniqueIdentifier>{2c867b43-cc21-4a7e-8a2b-dc0ff04bffaf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\ShaderMap">
+      <UniqueIdentifier>{65c684d6-d80f-42e3-a058-413636bec6fc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -489,6 +492,9 @@
     <ClInclude Include="Internal\Voxilzer\KClipmapVoxilzer.h">
       <Filter>Internal\Voxilzer</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\ShaderMap\KShaderMap.h">
+      <Filter>Internal\ShaderMap</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -790,6 +796,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Voxilzer\KClipmapVoxilzer.cpp">
       <Filter>Internal\Voxilzer</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\ShaderMap\KShaderMap.cpp">
+      <Filter>Internal\ShaderMap</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

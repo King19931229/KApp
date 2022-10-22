@@ -129,12 +129,16 @@ KShaderManager::~KShaderManager()
 	assert(m_Shaders.empty());
 }
 
-size_t KShaderManager::CalcVariantionHash(const std::vector<IKShader::MacroPair>& macros)
+size_t KShaderManager::CalcVariantionHash(const KShaderCompileEnvironment& env)
 {
 	std::string fullString;
-	for (const IKShader::MacroPair& macroPair : macros)
+	for (const IKShader::MacroPair& macroPair : env.macros)
 	{
 		fullString += std::get<0>(macroPair) + std::get<1>(macroPair);
+	}
+	for (const IKShader::IncludeSource& includePair : env.includes)
+	{
+		fullString += std::get<0>(includePair) + std::get<1>(includePair);
 	}
 	return KHash::BKDR(fullString.c_str(), fullString.length());
 }
@@ -180,7 +184,7 @@ bool KShaderManager::Reload()
 	return true;
 }
 
-bool KShaderManager::AcquireImpl(ShaderType type, const char* path, const std::vector<IKShader::MacroPair>& macros, IKShaderPtr& shader, bool async)
+bool KShaderManager::AcquireImpl(ShaderType type, const char* path, const KShaderCompileEnvironment& env, IKShaderPtr& shader, bool async)
 {
 	auto it = m_Shaders.find(path);
 	if (it == m_Shaders.end())
@@ -189,16 +193,20 @@ bool KShaderManager::AcquireImpl(ShaderType type, const char* path, const std::v
 	}
 
 	ShaderVariantionMap& variantionMap = it->second;
-	size_t hash = CalcVariantionHash(macros);
+	size_t hash = CalcVariantionHash(env);
 
 	auto itVar = variantionMap.find(hash);
 	if (itVar == variantionMap.end())
 	{
 		m_Device->CreateShader(shader);
-		for (const IKShader::MacroPair& macroPair : macros)
+		for (const IKShader::MacroPair& macroPair : env.macros)
 		{
 			shader->AddMacro(macroPair);
-		}		
+		}
+		for (const IKShader::IncludeSource& includePair : env.includes)
+		{
+			shader->AddIncludeSource(includePair);
+		}
 		if (shader->InitFromFile(type, path, async))
 		{
 			ShaderVariantionUsingInfo info = { 1, shader };
@@ -225,9 +233,9 @@ bool KShaderManager::Acquire(ShaderType type, const char* path, IKShaderPtr& sha
 	return AcquireImpl(type, path, {}, shader, async);
 }
 
-bool KShaderManager::Acquire(ShaderType type, const char* path, const std::vector<IKShader::MacroPair>& macros, IKShaderPtr& shader, bool async)
+bool KShaderManager::Acquire(ShaderType type, const char* path, const KShaderCompileEnvironment& env, IKShaderPtr& shader, bool async)
 {
-	return AcquireImpl(type, path, macros, shader, async);
+	return AcquireImpl(type, path, env, shader, async);
 }
 
 bool KShaderManager::Release(IKShaderPtr& shader)
@@ -241,7 +249,15 @@ bool KShaderManager::Release(IKShaderPtr& shader)
 
 			std::vector<IKShader::MacroPair> macros;
 			shader->GetAllMacro(macros);
-			size_t hash = CalcVariantionHash(macros);
+
+			std::vector<IKShader::IncludeSource> includes;
+			shader->GetAllIncludeSource(includes);
+
+			KShaderCompileEnvironment env;
+			env.macros = macros;
+			env.includes = includes;
+
+			size_t hash = CalcVariantionHash(env);
 
 			auto itVar = variantionMap.find(hash);
 			if (itVar != variantionMap.end())
@@ -261,7 +277,7 @@ bool KShaderManager::Release(IKShaderPtr& shader)
 					m_Shaders.erase(it);
 				}
 
-				shader = nullptr;				
+				shader = nullptr;
 			}
 		}
 	}
