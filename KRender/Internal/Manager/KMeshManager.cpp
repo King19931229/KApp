@@ -1,10 +1,10 @@
 #include "KMeshManager.h"
 #include "Internal/Asset/Utility/KMeshUtilityImpl.h"
+#include "Internal/KRenderGlobal.h"
 #include "Interface/IKQuery.h"
 
 KMeshManager::KMeshManager()
-	: m_Device(nullptr),
-	m_FrameInFlight(0)
+	: m_Device(nullptr)
 {
 }
 
@@ -14,13 +14,10 @@ KMeshManager::~KMeshManager()
 	assert(m_SpecialMesh.empty());
 }
 
-bool KMeshManager::Init(IKRenderDevice* device, size_t frameInFlight)
+bool KMeshManager::Init(IKRenderDevice* device)
 {
 	UnInit();
-
 	m_Device = device;
-	m_FrameInFlight = frameInFlight;
-
 	return true;
 }
 
@@ -41,7 +38,6 @@ bool KMeshManager::UnInit()
 	m_SpecialMesh.clear();
 
 	m_Device = nullptr;
-	m_FrameInFlight = 0;
 
 	return true;
 }
@@ -63,11 +59,11 @@ bool KMeshManager::AcquireImpl(const char* path, bool fromAsset, bool hostVisibl
 	bool bRetValue = false;
 	if(fromAsset)
 	{
-		bRetValue = ptr->InitFromAsset(path, m_Device, m_FrameInFlight, hostVisible);
+		bRetValue = ptr->InitFromAsset(path, m_Device, hostVisible);
 	}
 	else
 	{
-		bRetValue = ptr->InitFromFile(path, m_Device, m_FrameInFlight, hostVisible);
+		bRetValue = ptr->InitFromFile(path, m_Device, hostVisible);
 	}
 
 	if(bRetValue)
@@ -140,7 +136,7 @@ bool KMeshManager::Release(KMeshPtr& ptr)
 bool KMeshManager::AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr)
 {
 	ptr = KMeshPtr(KNEW KMesh());
-	if (ptr->InitUtility(info, m_Device, m_FrameInFlight))
+	if (ptr->InitUtility(info, m_Device))
 	{
 		m_SpecialMesh.insert(ptr);
 		return true;
@@ -154,7 +150,7 @@ bool KMeshManager::UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr)
 	if (ptr)
 	{
 		m_Device->Wait();
-		return ptr->UpdateUtility(info, m_Device, m_FrameInFlight);
+		return ptr->UpdateUtility(info, m_Device);
 	}
 	return false;
 }
@@ -162,7 +158,7 @@ bool KMeshManager::UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr)
 bool KMeshManager::AcquireOCQuery(std::vector<IKQueryPtr>& queries)
 {
 	ReleaseOCQuery(queries);
-	queries.resize(m_FrameInFlight);
+	queries.resize(KRenderGlobal::NumFramesInFlight);
 	for (IKQueryPtr& query : queries)
 	{
 		m_Device->CreateQuery(query);

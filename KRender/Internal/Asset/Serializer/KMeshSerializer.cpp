@@ -5,7 +5,7 @@
 
 namespace KMeshSerializer
 {
-	bool LoadFromFile(IKRenderDevice* device, KMesh* pMesh, const char* path, bool hostVisible, size_t frameInFlight)
+	bool LoadFromFile(IKRenderDevice* device, KMesh* pMesh, const char* path, bool hostVisible)
 	{
 		IKDataStreamPtr pData = nullptr;
 		IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
@@ -19,7 +19,7 @@ namespace KMeshSerializer
 		}
 		// no need to judge version now
 		KMeshSerializerV0 reader(device);
-		bool bRet = reader.LoadFromStream(pMesh, path, pData, hostVisible, frameInFlight);
+		bool bRet = reader.LoadFromStream(pMesh, path, pData, hostVisible);
 		pData->Close();
 		return bRet;
 	}

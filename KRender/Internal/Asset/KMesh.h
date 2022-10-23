@@ -9,6 +9,15 @@
 #include "KTriangleMesh.h"
 #include "Utility/KMeshUtilityInfo.h"
 
+enum MeshTextureSemantic
+{
+	MTS_DIFFUSE,
+	MTS_SPECULAR,
+	MTS_NORMAL,
+	MTS_COUNT
+};
+static_assert(MTS_COUNT <= SHADER_BINDING_MATERIAL_COUNT, "Semantic count out of bound");
+
 class KMesh
 {
 	friend class KSubMesh;
@@ -19,8 +28,6 @@ protected:
 	std::vector<KSubMeshPtr> m_SubMeshes;
 	KTriangleMesh m_TriangleMesh;
 	std::string m_Path;
-	IKMaterial* m_Material;
-	size_t m_FrameInFlight;
 
 	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group);
 	void UpdateTriangleMesh();
@@ -34,14 +41,12 @@ public:
 	inline const std::vector<KSubMeshPtr>& GetSubMeshes() const { return m_SubMeshes; }
 
 	bool SaveAsFile(const char* szPath) const;
-	bool InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible = false);
-	bool InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible = false);
-	bool InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
+	bool InitFromFile(const char* szPath, IKRenderDevice* device, bool hostVisible = false);
+	bool InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostVisible = false);
+	bool InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device);
 	bool UnInit();
-	bool UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight);
+	bool UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device);
 	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as);
-
-	inline size_t GetFrameInFlight() const { return m_FrameInFlight; }
 };
 
 typedef std::shared_ptr<KMesh> KMeshPtr;

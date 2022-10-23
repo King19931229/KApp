@@ -102,12 +102,12 @@ bool KRenderCore::InitGlobalManager()
 
 	KRenderGlobal::RenderDevice = m_Device;
 	KRenderGlobal::FrameResourceManager.Init();
-	KRenderGlobal::MeshManager.Init(m_Device, frameInFlight);
+	KRenderGlobal::MeshManager.Init(m_Device);
 	KRenderGlobal::ShaderManager.Init(m_Device);
 	KRenderGlobal::TextureManager.Init(m_Device);
 	KRenderGlobal::MaterialManager.Init(m_Device);
-	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, frameInFlight, property->uniformBufferOffsetAlignment, property->uniformBufferMaxRange);
-	KRenderGlobal::InstanceBufferManager.Init(m_Device, frameInFlight, sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
+	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, property->uniformBufferOffsetAlignment, property->uniformBufferMaxRange);
+	KRenderGlobal::InstanceBufferManager.Init(m_Device, sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
 
 	KDebugDrawSharedData::Init();
 
@@ -115,12 +115,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::GBuffer.Init(m_Device, &m_Camera, (uint32_t)width, (uint32_t)height);
 	KRenderGlobal::RayTraceManager.Init();
 
-	KRenderGlobal::CubeMap.Init(128, 128, 8,
-		"Textures/uffizi_cube.ktx",
-		"Materials/pbr/diffuse_irradiance.mtl",
-		"Materials/pbr/specular_irradiance.mtl",
-		"Materials/pbr/integrate_brdf.mtl"
-	);
+	KRenderGlobal::CubeMap.Init(128, 128, 8, "Textures/uffizi_cube.ktx");
 	KRenderGlobal::WhiteFurnace.Init();
 	KRenderGlobal::SkyBox.Init(m_Device, "Textures/uffizi_cube.ktx");
 

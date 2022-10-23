@@ -55,8 +55,8 @@ protected:
 public:
 	KMaterialSubMesh(KSubMesh* subMesh);
 	~KMaterialSubMesh();
-	bool Init(IKMaterial* material, size_t frameInFlight);
-	bool InitDebug(DebugPrimitive primtive, size_t frameInFlight);
+	bool Init(IKMaterial* material);
+	bool InitDebug(DebugPrimitive primtive);
 	bool UnInit();
 	bool Visit(PipelineStage stage, std::function<void(KRenderCommand&)> func);
 };

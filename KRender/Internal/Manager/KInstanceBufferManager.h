@@ -49,7 +49,7 @@ public:
 	KInstanceBufferManager();
 	~KInstanceBufferManager();
 
-	bool Init(IKRenderDevice* device, size_t frameInFlight, size_t vertexSize, size_t blockSize);
+	bool Init(IKRenderDevice* device, size_t vertexSize, size_t blockSize);
 	bool UnInit();
 
 	bool Alloc(size_t count, const void* data, std::vector<AllocResultBlock>& results);

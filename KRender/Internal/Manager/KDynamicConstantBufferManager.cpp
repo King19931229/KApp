@@ -13,12 +13,12 @@ KDynamicConstantBufferManager::~KDynamicConstantBufferManager()
 	ASSERT_RESULT(m_ConstantBlocks.empty());
 }
 
-bool KDynamicConstantBufferManager::Init(IKRenderDevice* device, size_t frameInFlight, size_t alignment, size_t blockSize)
+bool KDynamicConstantBufferManager::Init(IKRenderDevice* device, size_t alignment, size_t blockSize)
 {
 	UnInit();
 
 	m_Device = device;
-	m_ConstantBlocks.resize(frameInFlight);
+	m_ConstantBlocks.resize(KRenderGlobal::NumFramesInFlight);
 	m_Alignment = alignment;
 	m_BlockSize = blockSize;
 

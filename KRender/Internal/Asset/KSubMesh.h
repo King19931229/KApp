@@ -30,14 +30,12 @@ protected:
 	KMeshData					m_MeshData;
 	KMeshletGeometry			m_Meshlet;
 	bool						m_NeedMeshlet;
-
-	size_t						m_FrameInFlight;
 public:
 	KSubMesh(KMesh* parent);
 	~KSubMesh();
 
-	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialTextureBinding&& binding, size_t frameInFlight);
-	bool InitDebug(DebugPrimitive primtive, const KVertexData* vertexData, const KIndexData* indexData, size_t frameInFlight);
+	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialTextureBinding&& binding);
+	bool InitDebug(DebugPrimitive primtive, const KVertexData* vertexData, const KIndexData* indexData);
 	bool UnInit();
 
 	bool CreateAccelerationStructure();
@@ -46,7 +44,6 @@ public:
 	bool CreateMeshlet();
 	bool DestroyMeshlet();
 
-	inline size_t GetFrameInFlight() const { return m_FrameInFlight; }
 	inline DebugPrimitive GetDebugPrimitive() const { return m_DebugPrimitive; }
 	inline IKAccelerationStructurePtr GetIKAccelerationStructure() { return m_AccelerationStructure; }
 };

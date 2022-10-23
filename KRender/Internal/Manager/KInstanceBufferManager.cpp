@@ -14,7 +14,7 @@ KInstanceBufferManager::~KInstanceBufferManager()
 	ASSERT_RESULT(m_InstanceBlocks.empty());
 }
 
-bool KInstanceBufferManager::Init(IKRenderDevice* device, size_t frameInFlight, size_t vertexSize, size_t blockSize)
+bool KInstanceBufferManager::Init(IKRenderDevice* device, size_t vertexSize, size_t blockSize)
 {
 	UnInit();
 
@@ -24,7 +24,7 @@ bool KInstanceBufferManager::Init(IKRenderDevice* device, size_t frameInFlight, 
 	m_VertexSize = vertexSize;
 	m_BlockSize = blockSize;
 
-	m_InstanceBlocks.resize(frameInFlight);
+	m_InstanceBlocks.resize(KRenderGlobal::NumFramesInFlight);
 	return true;
 }
 

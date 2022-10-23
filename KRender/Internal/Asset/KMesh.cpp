@@ -8,8 +8,6 @@
 #include "Internal/KVertexDefinition.h"
 
 KMesh::KMesh()
-	: m_Material(nullptr),
-	m_FrameInFlight(0)
 {
 }
 
@@ -35,7 +33,7 @@ bool KMesh::SaveAsFile(const char* szPath) const
 	return false;
 }
 
-bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible)
+bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, bool hostVisible)
 {
 	assert(szPath && device);
 	if(!szPath || !device)
@@ -45,9 +43,7 @@ bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, size_t fram
 
 	UnInit();
 
-	m_FrameInFlight = frameInFlight;
-
-	if(KMeshSerializer::LoadFromFile(device, this, szPath, hostVisible, frameInFlight))
+	if (KMeshSerializer::LoadFromFile(device, this, szPath, hostVisible))
 	{
 		m_Path = szPath;
 		UpdateTriangleMesh();
@@ -67,8 +63,6 @@ bool KMesh::UnInit()
 	m_SubMeshes.clear();
 	m_Path.clear();
 	m_TriangleMesh.Destroy();
-	m_Material = nullptr;
-	m_FrameInFlight = 0;
 	return true;
 }
 
@@ -199,7 +193,7 @@ bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOptio
 	}
 }
 
-bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t frameInFlight, bool hostVisible)
+bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostVisible)
 {
 	assert(szPath);
 	assert(device);
@@ -208,8 +202,6 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 		return false;
 	}
 	UnInit();
-
-	m_FrameInFlight = frameInFlight;
 
 	IKAssetLoaderPtr& loader = KAssetLoaderManager::Loader;
 	if(loader)
@@ -327,7 +319,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 				textures.SetTexture(MTS_NORMAL, subPart.material.normal.c_str());
 			}
 
-			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, std::move(textures), frameInFlight));
+			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, std::move(textures)));
 			indexData.Reset();
 		}
 		m_Path = szPath;
@@ -339,7 +331,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, size_t fra
 	return false;
 }
 
-bool KMesh::InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device)
 {
 	assert(device);
 	if (!device)
@@ -348,17 +340,16 @@ bool KMesh::InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device,
 	}
 	UnInit();
 
-	if (KMeshUtility::CreateUtility(device, this, info, frameInFlight))
+	if (KMeshUtility::CreateUtility(device, this, info))
 	{
 		UpdateTriangleMesh();
-		m_FrameInFlight = frameInFlight;
 		return true;
 	}
 
 	return false;
 }
 
-bool KMesh::UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device, size_t frameInFlight)
+bool KMesh::UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device)
 {
 	assert(device);
 	if (!device)
@@ -366,10 +357,9 @@ bool KMesh::UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* devic
 		return false;
 	}
 
-	if (KMeshUtility::UpdateUtility(device, this, info, frameInFlight))
+	if (KMeshUtility::UpdateUtility(device, this, info))
 	{
 		UpdateTriangleMesh();
-		m_FrameInFlight = frameInFlight;
 		return true;
 	}
 

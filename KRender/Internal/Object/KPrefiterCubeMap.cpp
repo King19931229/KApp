@@ -28,8 +28,6 @@ KPrefilerCubeMap::KPrefilerCubeMap()
 	, m_IndexBuffer(nullptr)
 	, m_SharedVertexBuffer(nullptr)
 	, m_SharedIndexBuffer(nullptr)
-	, m_DiffuseIrradianceMaterial(nullptr)
-	, m_SpecularIrradianceMaterial(nullptr)
 {
 	ZERO_MEMORY(m_SharedVertexData);
 	ZERO_MEMORY(m_SharedIndexData);
@@ -39,12 +37,7 @@ KPrefilerCubeMap::~KPrefilerCubeMap()
 {
 }
 
-bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height,
-	size_t mipmaps,
-	const char* cubemapPath,
-	const char* diffuseIrradiance,
-	const char* specularIrradiance,
-	const char* integrateBRDF)
+bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, size_t mipmaps, const char* cubemapPath)
 {
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
@@ -94,11 +87,8 @@ bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height,
 	m_SHConstructCubeMap->InitMemoryFromData(nullptr, m_SrcCubeMap->GetWidth(), m_SrcCubeMap->GetHeight(), m_SrcCubeMap->GetDepth(), IF_R16G16B16A16_FLOAT, true, false, false);
 	m_SHConstructCubeMap->InitDevice(false);
 
-	AllocateTempResource(renderDevice, width, height, mipmaps,
-		diffuseIrradiance,
-		specularIrradiance,
-		integrateBRDF);
-	// Compute();
+	AllocateTempResource(renderDevice, width, height, mipmaps);
+	Compute();
 	FreeTempResource();
 
 	return true;
@@ -195,12 +185,7 @@ bool KPrefilerCubeMap::PopulateCubeMapRenderCommand(KRenderCommand& command, uin
 	return false;
 }
 
-bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice,
-	uint32_t width, uint32_t height,
-	size_t mipmaps,
-	const char* diffuseIrradiance,
-	const char* specularIrradiance,
-	const char* integrateBRDF)
+bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32_t width, uint32_t height, size_t mipmaps)
 {
 	VertexFormat formats[] = { VF_SCREENQUAD_POS };
 
@@ -224,13 +209,13 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice,
 		m_SharedIndexData.indexBuffer = m_SharedIndexBuffer;
 	}
 
-	auto AssignPipeline = [&](const char* materialPath, IKPipelinePtr& pipeline, IKMaterialPtr& material)
+	auto AssignPipeline = [&](const char* vs, const char* fs, KShaderMap& shaderMap, IKPipelinePtr& pipeline)
 	{
-		KRenderGlobal::MaterialManager.Acquire(materialPath, material, false);
-		ASSERT_RESULT(material);
+		KShaderMapInitContext initContext = { vs, fs };
+		shaderMap.Init(initContext, false);
 
-		IKShaderPtr vertexShader = material->GetVSShader(formats, 1);
-		IKShaderPtr fragmentShader = material->GetFSShader(formats, 1, &m_TextureBinding, false);
+		IKShaderPtr vertexShader = shaderMap.GetVSShader(formats, 1);
+		IKShaderPtr fragmentShader = shaderMap.GetFSShader(formats, 1, &m_TextureBinding, false);
 
 		renderDevice->CreatePipeline(pipeline);
 
@@ -252,15 +237,17 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice,
 		pipeline->Init();
 	};
 
-	AssignPipeline(specularIrradiance, m_SpecularIrradiancePipeline, m_SpecularIrradianceMaterial);
-	AssignPipeline(diffuseIrradiance, m_DiffuseIrradiancePipeline, m_DiffuseIrradianceMaterial);
+	m_TextureBinding.AssignTexture(0, m_SrcCubeMap);
+
+	AssignPipeline("PBR/filter.vert", "PBR/filter_specular.frag", m_SpecularIrradianceShaderMap, m_SpecularIrradiancePipeline);
+	AssignPipeline("PBR/filter.vert", "PBR/filter_diffuse.frag", m_DiffuseIrradianceShaderMap, m_DiffuseIrradiancePipeline);
 
 	{
-		KRenderGlobal::MaterialManager.Acquire(integrateBRDF, m_IntegrateBRDFMaterial, false);
-		ASSERT_RESULT(m_IntegrateBRDFMaterial);
+		KShaderMapInitContext initContext = {"postprocess/screenquad.vert", "pbr/integrate_brdf.frag"};
+		m_IntegrateBRDFShaderMap.Init(initContext, false);
 
-		IKShaderPtr vertexShader = m_IntegrateBRDFMaterial->GetVSShader(formats, 1);
-		IKShaderPtr fragmentShader = m_IntegrateBRDFMaterial->GetFSShader(formats, 1, &m_TextureBinding, false);
+		IKShaderPtr vertexShader = m_IntegrateBRDFShaderMap.GetVSShader(formats, 1);
+		IKShaderPtr fragmentShader = m_IntegrateBRDFShaderMap.GetFSShader(formats, 1, nullptr, false);
 
 		renderDevice->CreatePipeline(m_IntegrateBRDFPipeline);
 
@@ -341,6 +328,13 @@ bool KPrefilerCubeMap::FreeTempResource()
 
 	SAFE_UNINIT(m_CommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
+
+	m_DiffuseIrradianceShaderMap.UnInit();
+	m_SpecularIrradianceShaderMap.UnInit();
+	m_IntegrateBRDFShaderMap.UnInit();
+
+	m_TextureBinding.Empty();
+
 	return true;
 }
 

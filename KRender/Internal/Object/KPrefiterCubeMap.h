@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Interface/IKRenderDevice.h"
-#include "Interface/IKMaterial.h"
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKRenderPass.h"
 #include "Internal/KVertexDefinition.h"
-#include "Internal/Asset/Material/KMaterialTextureBinding.h"
+#include "Internal/ShaderMap/KShaderMap.h"
 
 class KPrefilerCubeMap
 {
@@ -29,7 +28,7 @@ protected:
 		glm::vec4 roughness;
 	};
 
-	KMaterialTextureBinding m_TextureBinding;
+	KTextureBinding m_TextureBinding;
 	struct MipmapTarget
 	{
 		IKRenderTargetPtr target;
@@ -56,9 +55,9 @@ protected:
 	IKVertexBufferPtr m_SharedVertexBuffer;
 	IKIndexBufferPtr m_SharedIndexBuffer;
 
-	IKMaterialPtr m_DiffuseIrradianceMaterial;
-	IKMaterialPtr m_SpecularIrradianceMaterial;
-	IKMaterialPtr m_IntegrateBRDFMaterial;
+	KShaderMap m_DiffuseIrradianceShaderMap;
+	KShaderMap m_SpecularIrradianceShaderMap;
+	KShaderMap m_IntegrateBRDFShaderMap;
 
 	// Texture
 	IKTexturePtr m_SrcCubeMap;
@@ -79,24 +78,14 @@ protected:
 	glm::vec4 m_SHCoeff[9];
 
 	bool PopulateCubeMapRenderCommand(KRenderCommand& command, uint32_t faceIndex, float roughtness, IKPipelinePtr pipeline, IKRenderPassPtr renderPass);
-	bool AllocateTempResource(IKRenderDevice* renderDevice,
-		uint32_t width, uint32_t height,
-		size_t mipmaps,
-		const char* diffuseIrradiance,
-		const char* specularIrradiance,
-		const char* integrateBRDF);
+	bool AllocateTempResource(IKRenderDevice* renderDevice, uint32_t width, uint32_t height, size_t mipmaps);
 	bool FreeTempResource();
 	bool Compute();
 public:
 	KPrefilerCubeMap();
 	~KPrefilerCubeMap();
 
-	bool Init(uint32_t width, uint32_t height,
-		size_t mipmaps,
-		const char* cubemapPath,
-		const char* diffuseIrradiance,
-		const char* specularIrradiance,
-		const char* integrateBRDF);
+	bool Init(uint32_t width, uint32_t height, size_t mipmaps, const char* cubemapPath);
 	bool UnInit();
 
 	IKTexturePtr GetDiffuseIrradiance() { return m_DiffuseIrradianceMap; }

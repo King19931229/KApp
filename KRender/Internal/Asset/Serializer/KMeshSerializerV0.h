@@ -66,6 +66,6 @@ public:
 	KMeshSerializerV0(IKRenderDevice* device);
 	~KMeshSerializerV0();
 
-	bool LoadFromStream(KMesh* pMesh, const std::string& meshPath, IKDataStreamPtr& stream, bool hostVisible, size_t frameInFlight);
+	bool LoadFromStream(KMesh* pMesh, const std::string& meshPath, IKDataStreamPtr& stream, bool hostVisible);
 	bool SaveToStream(const KMesh* pMesh, IKDataStreamPtr& stream);
 };

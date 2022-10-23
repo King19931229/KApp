@@ -6,8 +6,13 @@
 
 class KTextureBinding
 {
+public:
+	enum
+	{
+		MAX_BINDING_COUNT = 8
+	};
 protected:
-	IKTexturePtr m_TextureMap[8];
+	IKTexturePtr m_TextureMap[MAX_BINDING_COUNT];
 public:
 	IKTexturePtr GetTexture(uint32_t slot) const
 	{
@@ -19,13 +24,18 @@ public:
 		assert(slot < 8);
 		m_TextureMap[slot] = texture;
 	}
+	void Empty()
+	{
+		for (size_t i = 0; i < ARRAY_SIZE(m_TextureMap); ++i)
+			m_TextureMap[i] = nullptr;		
+	}
 };
 
 struct KShaderMapInitContext
 {
 	std::string vsFile;
-	std::string msFile;
 	std::string fsFile;
+	std::string msFile;
 	std::vector<std::tuple<std::string, std::string>> IncludeSource;
 };
 

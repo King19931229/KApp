@@ -42,7 +42,7 @@ public:
 	KDynamicConstantBufferManager();
 	~KDynamicConstantBufferManager();
 
-	bool Init(IKRenderDevice* device, size_t frameInFlight, size_t aligment, size_t blockSize);
+	bool Init(IKRenderDevice* device, size_t aligment, size_t blockSize);
 	bool UnInit();
 
 	bool Alloc(const void* data, KDynamicConstantBufferUsage& usage);

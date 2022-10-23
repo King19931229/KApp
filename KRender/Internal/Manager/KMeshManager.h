@@ -20,14 +20,13 @@ protected:
 	SpecialMesh m_SpecialMesh;
 
 	IKRenderDevice* m_Device;
-	size_t m_FrameInFlight;
 
 	bool AcquireImpl(const char* path, bool fromAsset, bool hostVisible, KMeshPtr& ptr);
 public:
 	KMeshManager();
 	~KMeshManager();
 
-	bool Init(IKRenderDevice* device, size_t frameInFlight);
+	bool Init(IKRenderDevice* device);
 	bool UnInit();
 
 	bool Acquire(const char* path, KMeshPtr& ptr, bool hostVisible = false);

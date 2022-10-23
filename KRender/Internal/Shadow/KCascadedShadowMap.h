@@ -148,6 +148,8 @@ protected:
 	std::vector<Cascade> m_StaticCascadeds;
 	std::vector<Cascade> m_DynamicCascadeds;
 
+	glm::vec3 m_StaticCenter;
+
 	KRenderStageStatistics m_Statistics;
 
 	KCascadedShadowMapCasterPassPtr m_CasterPass;
@@ -169,8 +171,9 @@ protected:
 
 	bool m_FixToScene;
 	bool m_FixTexel;
-
 	bool m_MinimizeShadowDraw;
+
+	bool m_StaticShoudUpdate;
 
 	void UpdateDynamicCascades();
 	void UpdateStaticCascades();

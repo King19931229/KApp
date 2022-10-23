@@ -6,29 +6,29 @@
 #include "Internal/Asset/KMaterial.h"
 #include "Internal/Asset/KMaterialSubMesh.h"
 
+enum RenderResourceType
+{
+	INTERNAL_MESH,
+	EXTERNAL_ASSET,
+	DEBUG_UTILITY,
+	UNKNOWN,
+};
+
 class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 {
 	RTTR_ENABLE(IKRenderComponent, KReflectionObjectBase)
 	RTTR_REGISTRATION_FRIEND
 protected:
-	enum ResourceType
-	{
-		MESH,
-		ASSET,
-		UTILITY,
-		NONE
-	};
-
 	KMeshPtr m_Mesh;
 	IKMaterialPtr m_Material;
 	std::vector<KMaterialSubMeshPtr> m_MaterialSubMeshes;
 
-	ResourceType m_Type;
+	RenderResourceType m_Type;
 
-	std::string m_Path;
-	KMeshUtilityInfoPtr m_UtilityInfo;
-
+	std::string m_ResourcePath;
 	std::string m_MaterialPath;
+
+	KMeshUtilityInfoPtr m_DebugUtility;
 
 	bool m_HostVisible;
 	bool m_UseMaterialTexture;
@@ -41,10 +41,10 @@ protected:
 	static constexpr const char* msPath = "path";
 	static constexpr const char* msMaterialPath = "material";
 
-	static const char* ResourceTypeToString(ResourceType type);
-	static ResourceType StringToResourceType(const char* str);
+	static const char* ResourceTypeToString(RenderResourceType type);
+	static RenderResourceType StringToResourceType(const char* str);
 
-	const std::string GetPathString() const { return m_Path; }
+	const std::string GetResourcePathString() const { return m_ResourcePath; }
 	const std::string GetMaterialPathString() const { return m_MaterialPath; }
 	const std::string GetTypeString() const { return std::string(ResourceTypeToString(m_Type)); }
 public:
@@ -70,18 +70,17 @@ public:
 	bool Init(bool async) override;
 	bool UnInit() override;
 
+	inline KMeshPtr GetMesh() { return m_Mesh; }
+	IKMaterialPtr GetMaterial() override { return m_Material; }
+
 	bool SetMaterialPath(const char* path) override;
 	bool ReloadMaterial() override;
 
 	bool InitUtility(const KMeshUtilityInfoPtr& info);
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
+	bool IsUtility() const override { return m_Type == DEBUG_UTILITY; }
 
 	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) override;
-
-	bool IsUtility() const override { return m_Type == UTILITY; }
-
-	inline KMeshPtr GetMesh() { return m_Mesh; }
-	IKMaterialPtr GetMaterial() override { return m_Material; }
 
 	IKQueryPtr GetOCQuery();
 	IKQueryPtr GetOCInstacneQuery();

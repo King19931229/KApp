@@ -1,16 +1,6 @@
 ﻿#pragma once
 #include "Interface/IKMaterial.h"
 
-enum MeshTextureSemantic
-{
-	MTS_DIFFUSE,
-	MTS_SPECULAR,
-	MTS_NORMAL,
-	MTS_COUNT
-};
-
-static_assert(MTS_COUNT <= SHADER_BINDING_MATERIAL_COUNT, "Semantic count out of bound");
-
 class KMaterialTextureBinding : public IKMaterialTextureBinding
 {
 protected:

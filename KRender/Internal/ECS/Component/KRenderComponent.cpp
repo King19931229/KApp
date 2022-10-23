@@ -7,7 +7,7 @@ RTTR_REGISTRATION
 #define KRTTR_REG_CLASS_NAME_STR "RenderComponent"
 
 	KRTTR_REG_CLASS_BEGIN()
-	KRTTR_REG_PROPERTY_READ_ONLY(path, GetPathString, MDT_STDSTRING)
+	KRTTR_REG_PROPERTY_READ_ONLY(path, GetResourcePathString, MDT_STDSTRING)
 	KRTTR_REG_PROPERTY_READ_ONLY(material, GetMaterialPathString, MDT_STDSTRING)
 	KRTTR_REG_PROPERTY_READ_ONLY(type, GetTypeString, MDT_STDSTRING)
 	KRTTR_REG_CLASS_END()
@@ -18,8 +18,8 @@ RTTR_REGISTRATION
 
 KRenderComponent::KRenderComponent()
 	: m_Mesh(nullptr),
-	m_Type(NONE),
-	m_UtilityInfo(nullptr),
+	m_Type(UNKNOWN),
+	m_DebugUtility(nullptr),
 	m_HostVisible(true),
 	m_UseMaterialTexture(false),
 	m_OcclusionVisible(true)
@@ -30,15 +30,15 @@ KRenderComponent::~KRenderComponent()
 	UnInit();
 }
 
-const char* KRenderComponent::ResourceTypeToString(KRenderComponent::ResourceType type)
+const char* KRenderComponent::ResourceTypeToString(RenderResourceType type)
 {
 #define ENUM(type) case type: return #type;
 	switch (type)
 	{
-		ENUM(MESH);
-		ENUM(ASSET);
-		ENUM(UTILITY);
-		ENUM(NONE);
+		ENUM(INTERNAL_MESH);
+		ENUM(EXTERNAL_ASSET);
+		ENUM(DEBUG_UTILITY);
+		ENUM(UNKNOWN);
 	default:
 		assert(false);
 		return "UNKNOWN";
@@ -46,26 +46,26 @@ const char* KRenderComponent::ResourceTypeToString(KRenderComponent::ResourceTyp
 #undef ENUM
 }
 
-KRenderComponent::ResourceType KRenderComponent::StringToResourceType(const char* str)
+RenderResourceType KRenderComponent::StringToResourceType(const char* str)
 {
 #define CMP(enum_string) if (!strcmp(str, #enum_string)) return enum_string;
-	CMP(MESH);
-	CMP(ASSET);
-	CMP(UTILITY);
-	CMP(NONE);
-	return NONE;
+	CMP(INTERNAL_MESH);
+	CMP(EXTERNAL_ASSET);
+	CMP(DEBUG_UTILITY);
+	CMP(UNKNOWN);
+	return UNKNOWN;
 #undef CMP
 }
 
 bool KRenderComponent::Save(IKXMLElementPtr element)
 {
-	if (m_Type == MESH || m_Type == ASSET)
+	if (m_Type == INTERNAL_MESH || m_Type == EXTERNAL_ASSET)
 	{
 		IKXMLElementPtr typeEle = element->NewElement(msType);
 		typeEle->SetText(ResourceTypeToString(m_Type));
 
 		IKXMLElementPtr pathEle = element->NewElement(msPath);
-		pathEle->SetText(m_Path.c_str());
+		pathEle->SetText(m_ResourcePath.c_str());
 
 		IKXMLElementPtr materialEle = element->NewElement(msMaterialPath);
 		materialEle->SetText(m_MaterialPath.c_str());
@@ -80,8 +80,8 @@ bool KRenderComponent::Load(IKXMLElementPtr element)
 	IKXMLElementPtr typeEle = element->FirstChildElement(msType);	
 	ACTION_ON_FAILURE(typeEle != nullptr && !typeEle->IsEmpty(), return false);
 
-	ResourceType type = StringToResourceType(typeEle->GetText().c_str());
-	ACTION_ON_FAILURE(type == MESH || type == ASSET, return false);
+	RenderResourceType type = StringToResourceType(typeEle->GetText().c_str());
+	ACTION_ON_FAILURE(type == INTERNAL_MESH || type == EXTERNAL_ASSET, return false);
 
 	IKXMLElementPtr pathEle = element->FirstChildElement(msPath);
 	ACTION_ON_FAILURE(pathEle != nullptr && !pathEle->IsEmpty(), return false);
@@ -97,7 +97,7 @@ bool KRenderComponent::Load(IKXMLElementPtr element)
 	UnInit();
 
 	m_Type = type;
-	m_Path = path;
+	m_ResourcePath = path;
 	m_MaterialPath = materialPath;
 
 	return Init(true);
@@ -143,8 +143,8 @@ bool KRenderComponent::SetMeshPath(const char* path)
 {
 	if (path)
 	{
-		m_Type = MESH;
-		m_Path = path;
+		m_Type = INTERNAL_MESH;
+		m_ResourcePath = path;
 		return true;
 	}
 	return false;
@@ -154,8 +154,8 @@ bool KRenderComponent::SetAssetPath(const char* path)
 {
 	if (path)
 	{
-		m_Type = ASSET;
-		m_Path = path;
+		m_Type = EXTERNAL_ASSET;
+		m_ResourcePath = path;
 		return true;
 	}
 	return false;
@@ -189,7 +189,7 @@ bool KRenderComponent::ReloadMaterial()
 		for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
 		{
 			materialSubMesh->UnInit();
-			materialSubMesh->Init(m_Material.get(), m_Mesh->GetFrameInFlight());
+			materialSubMesh->Init(m_Material.get());
 		}
 
 		return true;
@@ -199,9 +199,9 @@ bool KRenderComponent::ReloadMaterial()
 
 bool KRenderComponent::GetPath(std::string& path) const
 {
-	if (m_Type == ASSET || m_Type == MESH)
+	if (m_Type == EXTERNAL_ASSET || m_Type == INTERNAL_MESH)
 	{
-		path = m_Path;
+		path = m_ResourcePath;
 		return true;
 	}
 	return false;
@@ -209,7 +209,7 @@ bool KRenderComponent::GetPath(std::string& path) const
 
 bool KRenderComponent::SaveAsMesh(const char* path) const
 {
-	if (m_Type == ASSET || m_Type == MESH)
+	if (m_Type == EXTERNAL_ASSET || m_Type == INTERNAL_MESH)
 	{
 		return m_Mesh->SaveAsFile(path);
 	}
@@ -236,16 +236,16 @@ bool KRenderComponent::GetUseMaterialTexture() const
 bool KRenderComponent::Init(bool async)
 {
 	UnInit();
-	if (m_Type == MESH || m_Type == ASSET)
+	if (m_Type == INTERNAL_MESH || m_Type == EXTERNAL_ASSET)
 	{
 		bool meshAcquire = false;
-		if (m_Type == MESH)
+		if (m_Type == INTERNAL_MESH)
 		{
-			meshAcquire = KRenderGlobal::MeshManager.Acquire(m_Path.c_str(), m_Mesh, m_HostVisible);
+			meshAcquire = KRenderGlobal::MeshManager.Acquire(m_ResourcePath.c_str(), m_Mesh, m_HostVisible);
 		}
 		else
 		{
-			meshAcquire = KRenderGlobal::MeshManager.AcquireFromAsset(m_Path.c_str(), m_Mesh, m_HostVisible);
+			meshAcquire = KRenderGlobal::MeshManager.AcquireFromAsset(m_ResourcePath.c_str(), m_Mesh, m_HostVisible);
 		}
 		if (meshAcquire)
 		{
@@ -259,7 +259,7 @@ bool KRenderComponent::Init(bool async)
 			for (KSubMeshPtr subMesh : subMeshes)
 			{
 				KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh(subMesh.get()));
-				materialSubMesh->Init(m_Material.get(), subMesh->GetFrameInFlight());
+				materialSubMesh->Init(m_Material.get());
 				m_MaterialSubMeshes.push_back(materialSubMesh);
 			}
 
@@ -268,16 +268,16 @@ bool KRenderComponent::Init(bool async)
 			return true;
 		}
 	}
-	else if (m_Type == UTILITY)
+	else if (m_Type == DEBUG_UTILITY)
 	{
-		if (KRenderGlobal::MeshManager.AcquireAsUtility(m_UtilityInfo, m_Mesh))
+		if (KRenderGlobal::MeshManager.AcquireAsUtility(m_DebugUtility, m_Mesh))
 		{
 			const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
 			m_MaterialSubMeshes.reserve(subMeshes.size());
 			for (KSubMeshPtr subMesh : subMeshes)
 			{
 				KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh(subMesh.get()));
-				materialSubMesh->InitDebug(subMesh->GetDebugPrimitive(), subMesh->GetFrameInFlight());
+				materialSubMesh->InitDebug(subMesh->GetDebugPrimitive());
 				m_MaterialSubMeshes.push_back(materialSubMesh);
 			}
 		}
@@ -314,8 +314,8 @@ bool KRenderComponent::UnInit()
 bool KRenderComponent::InitUtility(const KMeshUtilityInfoPtr& info)
 {
 	UnInit();
-	m_Type = UTILITY;
-	m_UtilityInfo = info;
+	m_Type = DEBUG_UTILITY;
+	m_DebugUtility = info;
 	if (KRenderGlobal::MeshManager.AcquireAsUtility(info, m_Mesh))
 	{
 		const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
@@ -323,7 +323,7 @@ bool KRenderComponent::InitUtility(const KMeshUtilityInfoPtr& info)
 		for (KSubMeshPtr subMesh : subMeshes)
 		{
 			KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh(subMesh.get()));
-			materialSubMesh->InitDebug(subMesh->GetDebugPrimitive(), subMesh->GetFrameInFlight());
+			materialSubMesh->InitDebug(subMesh->GetDebugPrimitive());
 			m_MaterialSubMeshes.push_back(materialSubMesh);
 		}
 		return true;
@@ -333,9 +333,9 @@ bool KRenderComponent::InitUtility(const KMeshUtilityInfoPtr& info)
 
 bool KRenderComponent::UpdateUtility(const KMeshUtilityInfoPtr& info)
 {
-	ASSERT_RESULT(m_Type == UTILITY);
-	ASSERT_RESULT(m_UtilityInfo->GetType() == info->GetType());
-	m_UtilityInfo = info;
+	ASSERT_RESULT(m_Type == DEBUG_UTILITY);
+	ASSERT_RESULT(m_DebugUtility->GetType() == info->GetType());
+	m_DebugUtility = info;
 	return KRenderGlobal::MeshManager.UpdateUtility(info, m_Mesh);
 }
 

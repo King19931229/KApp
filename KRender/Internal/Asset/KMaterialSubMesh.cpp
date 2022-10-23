@@ -62,7 +62,7 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 	return true;
 }
 
-bool KMaterialSubMesh::Init(IKMaterial* material, size_t frameInFlight)
+bool KMaterialSubMesh::Init(IKMaterial* material)
 {
 	UnInit();
 
@@ -77,7 +77,7 @@ bool KMaterialSubMesh::Init(IKMaterial* material, size_t frameInFlight)
 	return true;
 }
 
-bool KMaterialSubMesh::InitDebug(DebugPrimitive primtive, size_t frameInFlight)
+bool KMaterialSubMesh::InitDebug(DebugPrimitive primtive)
 {
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "debug.vert", m_DebugVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "debug.frag", m_DebugFSShader, true));

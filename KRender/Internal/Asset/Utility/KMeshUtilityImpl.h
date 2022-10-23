@@ -22,14 +22,14 @@ protected:
 	void PouplateData(const KMeshTriangleInfo& info, std::vector<KVertexDefinition::DEBUG_POS_3F>& vertices, std::vector<uint16_t>& indices, DebugPrimitive& primtive);
 	void PouplateData(const KMeshCubeInfo& info, std::vector<KVertexDefinition::DEBUG_POS_3F>& vertices, std::vector<uint16_t>& indices, DebugPrimitive& primtive);
 
-	bool CreateMesh(const std::vector<KVertexDefinition::DEBUG_POS_3F>& vertices, const std::vector<uint16_t>& indices, DebugPrimitive primtive, KMesh* pMesh, size_t frameInFlight);
-	bool UpdateMesh(const std::vector<KVertexDefinition::DEBUG_POS_3F>& vertices, KMesh* pMesh, size_t frameInFlight);
+	bool CreateMesh(const std::vector<KVertexDefinition::DEBUG_POS_3F>& vertices, const std::vector<uint16_t>& indices, DebugPrimitive primtive, KMesh* pMesh);
+	bool UpdateMesh(const std::vector<KVertexDefinition::DEBUG_POS_3F>& vertices, KMesh* pMesh);
 public:
 	KMeshUtilityImpl(IKRenderDevice* device);
 	~KMeshUtilityImpl();
 
 	template<typename T>
-	bool CreateByInfo(const T& info, KMesh* pMesh, size_t frameInFlight)
+	bool CreateByInfo(const T& info, KMesh* pMesh)
 	{
 		if (pMesh)
 		{
@@ -38,13 +38,13 @@ public:
 			DebugPrimitive primtive;
 
 			PouplateData(info, vertices, indices, primtive);
-			return CreateMesh(vertices, indices, primtive, pMesh, frameInFlight);
+			return CreateMesh(vertices, indices, primtive, pMesh);
 		}
 		return false;
 	}
 
 	template<typename T>
-	bool UpdateByInfo(const T& info, KMesh* pMesh, size_t frameInFlight)
+	bool UpdateByInfo(const T& info, KMesh* pMesh)
 	{
 		if (pMesh)
 		{
@@ -53,34 +53,34 @@ public:
 			DebugPrimitive primtive;
 
 			PouplateData(info, vertices, indices, primtive);
-			return UpdateMesh(vertices, pMesh, frameInFlight);
+			return UpdateMesh(vertices, pMesh);
 		}
 		return false;
 	}
 
-	bool CreateBox(const KMeshBoxInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool CreateQuad(const KMeshQuadInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool CreateCone(const KMeshConeInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool CreateCylinder(const KMeshCylinderInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool CreateCircle(const KMeshCircleInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool CreateSphere(const KMeshSphereInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool CreateArc(const KMeshArcInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool CreateTriangle(const KMeshTriangleInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool CreateCube(const KMeshCubeInfo& info, KMesh* pMesh, size_t frameInFlight);
+	bool CreateBox(const KMeshBoxInfo& info, KMesh* pMesh);
+	bool CreateQuad(const KMeshQuadInfo& info, KMesh* pMesh);
+	bool CreateCone(const KMeshConeInfo& info, KMesh* pMesh);
+	bool CreateCylinder(const KMeshCylinderInfo& info, KMesh* pMesh);
+	bool CreateCircle(const KMeshCircleInfo& info, KMesh* pMesh);
+	bool CreateSphere(const KMeshSphereInfo& info, KMesh* pMesh);
+	bool CreateArc(const KMeshArcInfo& info, KMesh* pMesh);
+	bool CreateTriangle(const KMeshTriangleInfo& info, KMesh* pMesh);
+	bool CreateCube(const KMeshCubeInfo& info, KMesh* pMesh);
 
-	bool UpdateBox(const KMeshBoxInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool UpdateQuad(const KMeshQuadInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool UpdateCone(const KMeshConeInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool UpdateCylinder(const KMeshCylinderInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool UpdateCircle(const KMeshCircleInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool UpdateSphere(const KMeshSphereInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool UpdateArc(const KMeshArcInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool UpdateTriangle(const KMeshTriangleInfo& info, KMesh* pMesh, size_t frameInFlight);
-	bool UpdateCube(const KMeshCubeInfo& info, KMesh* pMesh, size_t frameInFlight);
+	bool UpdateBox(const KMeshBoxInfo& info, KMesh* pMesh);
+	bool UpdateQuad(const KMeshQuadInfo& info, KMesh* pMesh);
+	bool UpdateCone(const KMeshConeInfo& info, KMesh* pMesh);
+	bool UpdateCylinder(const KMeshCylinderInfo& info, KMesh* pMesh);
+	bool UpdateCircle(const KMeshCircleInfo& info, KMesh* pMesh);
+	bool UpdateSphere(const KMeshSphereInfo& info, KMesh* pMesh);
+	bool UpdateArc(const KMeshArcInfo& info, KMesh* pMesh);
+	bool UpdateTriangle(const KMeshTriangleInfo& info, KMesh* pMesh);
+	bool UpdateCube(const KMeshCubeInfo& info, KMesh* pMesh);
 };
 
 namespace KMeshUtility
 {
-	bool CreateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUtilityInfoPtr& info, size_t frameInFlight);
-	bool UpdateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUtilityInfoPtr& info, size_t frameInFlight);
+	bool CreateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUtilityInfoPtr& info);
+	bool UpdateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUtilityInfoPtr& infot);
 }

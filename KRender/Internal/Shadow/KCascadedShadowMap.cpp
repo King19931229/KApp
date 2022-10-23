@@ -111,7 +111,7 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 {
 	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
 
-	bool updateStatic = true;
+	bool& updateStatic = m_Master.m_StaticShoudUpdate;
 
 	if (updateStatic)
 	{
@@ -127,6 +127,7 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 
 			m_Master.UpdateRT(primaryBuffer, shadowTarget, renderPass, i, true);
 		}
+		updateStatic = false;
 	}
 
 	// Dynamic object is updated every frame
@@ -326,7 +327,8 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_SplitLambda(0.5f),
 	m_FixToScene(true),
 	m_FixTexel(true),
-	m_MinimizeShadowDraw(true)
+	m_MinimizeShadowDraw(true),
+	m_StaticShoudUpdate(true)
 {
 	m_DepthBiasConstant[0] = 0.0f;
 	m_DepthBiasConstant[1] = 0.0f;
@@ -534,13 +536,28 @@ void KCascadedShadowMap::UpdateStaticCascades()
 {
 	ASSERT_RESULT(m_MainCamera);
 
+	size_t numCascaded = m_StaticCascadeds.size();
+	float minCascadedShadowRange = m_ShadowRange / powf(2.0f, (float)(numCascaded - 1));
+
+	const glm::vec3& center = m_MainCamera->GetPosition();
+
+	if (glm::length(m_StaticCenter - center) > minCascadedShadowRange * 0.1f)
+	{
+		m_StaticShoudUpdate = true;
+	}
+
+	if (!m_StaticShoudUpdate)
+	{
+		return;
+	}
+
+	m_StaticCenter = center;
+
 	KAABBBox sceneBound;
 	KRenderGlobal::Scene.GetSceneObjectBound(sceneBound);
 
-	const glm::vec3& center = m_MainCamera->GetPosition();
 	const glm::mat4& lightViewMatrix = m_ShadowCamera.GetViewMatrix();
 
-	size_t numCascaded = m_StaticCascadeds.size();
 	for (size_t i = 0; i < numCascaded; i++)
 	{
 		Cascade& staticCascaded = m_StaticCascadeds[i];
@@ -841,6 +858,8 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 
 			pipeline->Init();
 		}
+
+		m_StaticShoudUpdate = true;
 
 		return true;
 	}
