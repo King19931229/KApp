@@ -99,16 +99,6 @@ protected:
 
 	static const VertexFormat ms_VertexFormats[1];
 
-	static const KVertexDefinition::SCREENQUAD_POS_2F ms_QuadVertices[4];
-	static const uint16_t ms_QuadIndices[6];
-	static const VertexFormat ms_QuadFormats[1];
-
-	IKVertexBufferPtr m_QuadVertexBuffer;
-	IKIndexBufferPtr m_QuadIndexBuffer;
-
-	KVertexData m_QuadVertexData;
-	KIndexData m_QuadIndexData;
-
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
 	uint32_t m_Width;
@@ -190,7 +180,6 @@ protected:
 	void SetupVoxelBuffer();
 	void SetupVoxelPipeline();
 	void SetupVoxelDrawPipeline();
-	void SetupQuadDrawData();
 	void SetupLightPassPipeline();
 
 	glm::ivec3 ComputeMovementByCamera(uint32_t levelIdx);

@@ -173,6 +173,12 @@ void KCascadedShadowMapReceiverPass::Recreate()
 		m_DynamicMaskID.Clear();
 	}
 
+	if (m_CombineMaskID.IsVaild())
+	{
+		KRenderGlobal::FrameGraph.Destroy(m_CombineMaskID);
+		m_CombineMaskID.Clear();
+	}
+
 	IKRenderWindow* window = KRenderGlobal::RenderDevice->GetMainWindow();
 	size_t w = 0, h = 0;
 	if (window && window->GetSize(w, h))
@@ -180,9 +186,10 @@ void KCascadedShadowMapReceiverPass::Recreate()
 		KFrameGraph::RenderTargetCreateParameter parameter;
 		parameter.width = (uint32_t)w;
 		parameter.height = (uint32_t)h;
-		parameter.format = EF_R8_UNORM;
+		parameter.format = KCascadedShadowMap::RECEIVER_TARGET_FORMAT;
 		m_StaticMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
 		m_DynamicMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
+		m_CombineMaskID = KRenderGlobal::FrameGraph.CreateRenderTarget(parameter);
 	}
 
 	m_Master.UpdatePipelineFromRTChanged();
@@ -229,6 +236,8 @@ bool KCascadedShadowMapReceiverPass::Setup(KFrameGraphBuilder& builder)
 
 	builder.Write(m_StaticMaskID);
 	builder.Write(m_DynamicMaskID);
+	builder.Write(m_CombineMaskID);
+
 	return true;
 }
 
@@ -240,6 +249,11 @@ IKRenderTargetPtr KCascadedShadowMapReceiverPass::GetStaticMask()
 IKRenderTargetPtr KCascadedShadowMapReceiverPass::GetDynamicMask()
 {
 	return KRenderGlobal::FrameGraph.GetTarget(m_DynamicMaskID);
+}
+
+IKRenderTargetPtr KCascadedShadowMapReceiverPass::GetCombineMask()
+{
+	return KRenderGlobal::FrameGraph.GetTarget(m_CombineMaskID);
 }
 
 bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
@@ -274,6 +288,14 @@ bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 
 	// Mask combine
 	{
+		IKRenderTargetPtr maskTarget = KRenderGlobal::FrameGraph.GetTarget(m_CombineMaskID);
+		IKRenderPassPtr renderPass = m_Master.m_CombineReceiverPass;
+
+		ASSERT_RESULT(maskTarget);
+		renderPass->SetColorAttachment(0, maskTarget->GetFrameBuffer());
+		renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		ASSERT_RESULT(renderPass->Init());
+
 		m_Master.CombineMask(primaryBuffer);
 	}
 
@@ -307,18 +329,6 @@ bool KCascadedShadowMapDebugPass::Execute(KFrameGraphExecutor& executor)
 {
 	return true;
 }
-
-const VertexFormat KCascadedShadowMap::ms_QuadFormats[] = { VF_SCREENQUAD_POS };
-
-const KVertexDefinition::SCREENQUAD_POS_2F KCascadedShadowMap::ms_QuadVertices[] =
-{
-	glm::vec2(-1.0f, -1.0f),
-	glm::vec2(1.0f, -1.0f),
-	glm::vec2(1.0f, 1.0f),
-	glm::vec2(-1.0f, 1.0f)
-};
-
-const uint16_t KCascadedShadowMap::ms_QuadIndices[] = { 0, 1, 2, 2, 3, 0 };
 
 KCascadedShadowMap::KCascadedShadowMap()
 	: m_MainCamera(nullptr),
@@ -716,8 +726,6 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
 	if (numCascaded >= 1 && numCascaded <= SHADOW_MAP_MAX_CASCADED)
 	{
-		Resize(width, height);
-
 		m_MainCamera = camera;
 
 		KRenderGlobal::RenderDevice->CreateSampler(m_ShadowSampler);
@@ -731,14 +739,6 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 
 		ASSERT_RESULT(m_DebugVertexShader->InitFromFile(ST_VERTEX, "others/debugquad.vert", false));
 		ASSERT_RESULT(m_DebugFragmentShader->InitFromFile(ST_FRAGMENT, "others/debugquad.frag", false));
-
-		KRenderGlobal::RenderDevice->CreateVertexBuffer(m_QuadVertexBuffer);
-		m_QuadVertexBuffer->InitMemory(ARRAY_SIZE(ms_QuadVertices), sizeof(ms_QuadVertices[0]), ms_QuadVertices);
-		m_QuadVertexBuffer->InitDevice(false);
-
-		KRenderGlobal::RenderDevice->CreateIndexBuffer(m_QuadIndexBuffer);
-		m_QuadIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_QuadIndices), ms_QuadIndices);
-		m_QuadIndexBuffer->InitDevice(false);
 
 		uint32_t cascadedShadowSize = shadowMapSize;
 
@@ -764,15 +764,6 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 		m_ReceiverPass = KCascadedShadowMapReceiverPassPtr(KNEW KCascadedShadowMapReceiverPass(*this));
 		m_ReceiverPass->Init();
 
-		m_QuadVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_QuadVertexBuffer);
-		m_QuadVertexData.vertexFormats = std::vector<VertexFormat>(ms_QuadFormats, ms_QuadFormats + ARRAY_SIZE(ms_QuadFormats));
-		m_QuadVertexData.vertexCount = ARRAY_SIZE(ms_QuadVertices);
-		m_QuadVertexData.vertexStart = 0;
-
-		m_QuadIndexData.indexBuffer = m_QuadIndexBuffer;
-		m_QuadIndexData.indexCount = ARRAY_SIZE(ms_QuadIndices);
-		m_QuadIndexData.indexStart = 0;
-
 		// 先把需要的RT创建好(TODO) 后面要引用
 		KRenderGlobal::FrameGraph.Compile();
 
@@ -792,7 +783,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 
 			pipeline->SetShader(ST_VERTEX, m_QuadVS);
 
-			pipeline->SetVertexBinding(ms_QuadFormats, ARRAY_SIZE(ms_QuadFormats));
+			pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 			pipeline->SetBlendEnable(false);
 			pipeline->SetCullMode(CM_NONE);
@@ -809,8 +800,8 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 			pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, cameraBuffer);
 
-			pipeline->SetSampler(SHADOW_BINDING_GBUFFER_POSITION,
-				KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION)->GetFrameBuffer(),
+			pipeline->SetSampler(SHADER_BINDING_TEXTURE0,
+				KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
 				KRenderGlobal::GBuffer.GetSampler(),
 				true);
 
@@ -835,7 +826,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 
 			pipeline->SetShader(ST_VERTEX, m_QuadVS);
 
-			pipeline->SetVertexBinding(ms_QuadFormats, ARRAY_SIZE(ms_QuadFormats));
+			pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 			pipeline->SetBlendEnable(false);
 			pipeline->SetCullMode(CM_NONE);
@@ -861,6 +852,10 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 
 		m_StaticShoudUpdate = true;
 
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_StaticReceiverPass));
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_DynamicReceiverPass));
+		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_CombineReceiverPass));
+
 		return true;
 	}
 	return false;
@@ -882,10 +877,6 @@ bool KCascadedShadowMap::UnInit()
 	}
 	m_DynamicCascadeds.clear();
 
-	SAFE_UNINIT(m_StaticMaskTarget);
-	SAFE_UNINIT(m_DynamicMaskTarget);
-	SAFE_UNINIT(m_CombineMaskTarget);
-
 	SAFE_UNINIT(m_StaticReceiverPass);
 	SAFE_UNINIT(m_DynamicReceiverPass);
 	SAFE_UNINIT(m_CombineReceiverPass);
@@ -898,9 +889,6 @@ bool KCascadedShadowMap::UnInit()
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_StaticReceiverFS));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_DynamicReceiverFS));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_CombineReceiverFS));
-
-	SAFE_UNINIT(m_QuadVertexBuffer);
-	SAFE_UNINIT(m_QuadIndexBuffer);
 
 	SAFE_UNINIT(m_DebugVertexShader);
 	SAFE_UNINIT(m_DebugFragmentShader);
@@ -1139,8 +1127,8 @@ bool KCascadedShadowMap::UpdateMask(IKCommandBufferPtr primaryBuffer, bool isSta
 	primaryBuffer->SetViewport(renderPass->GetViewPort());
 
 	KRenderCommand command;
-	command.vertexData = &m_QuadVertexData;
-	command.indexData = &m_QuadIndexData;
+	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+	command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
 	command.pipeline = pipeline;
 	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 	command.indexDraw = true;
@@ -1164,8 +1152,8 @@ bool KCascadedShadowMap::CombineMask(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->SetViewport(renderPass->GetViewPort());
 
 	KRenderCommand command;
-	command.vertexData = &m_QuadVertexData;
-	command.indexData = &m_QuadIndexData;
+	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+	command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
 	command.pipeline = pipeline;
 	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 	command.indexDraw = true;
@@ -1268,7 +1256,7 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, boo
 
 			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-			pipeline->SetVertexBinding(ms_QuadFormats, ARRAY_SIZE(ms_QuadFormats));
+			pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
 			pipeline->SetBlendEnable(true);
@@ -1283,8 +1271,8 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, boo
 			ASSERT_RESULT(pipeline->Init());
 		}
 
-		command.vertexData = &m_QuadVertexData;
-		command.indexData = &m_QuadIndexData;
+		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
 		command.pipeline = cascaded.debugPipeline;
 		command.indexDraw = true;
 
@@ -1317,44 +1305,6 @@ bool KCascadedShadowMap::DebugRender(IKRenderPassPtr renderPass, std::vector<IKC
 	}
 	return false;
 	*/
-	return false;
-}
-
-bool KCascadedShadowMap::Resize(uint32_t width, uint32_t height)
-{
-	if (width && height)
-	{
-		SAFE_UNINIT(m_StaticMaskTarget);
-		SAFE_UNINIT(m_DynamicMaskTarget);
-		SAFE_UNINIT(m_CombineMaskTarget);
-
-		SAFE_UNINIT(m_StaticReceiverPass);
-		SAFE_UNINIT(m_DynamicReceiverPass);
-		SAFE_UNINIT(m_CombineReceiverPass);
-
-		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_StaticMaskTarget));
-		ASSERT_RESULT(m_StaticMaskTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
-
-		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_DynamicMaskTarget));
-		ASSERT_RESULT(m_DynamicMaskTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
-
-		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(m_CombineMaskTarget));
-		ASSERT_RESULT(m_CombineMaskTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM));
-
-		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_StaticReceiverPass));
-		m_StaticReceiverPass->SetColorAttachment(0, m_StaticMaskTarget->GetFrameBuffer());
-		m_StaticReceiverPass->Init();
-
-		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_DynamicReceiverPass));
-		m_DynamicReceiverPass->SetColorAttachment(0, m_DynamicMaskTarget->GetFrameBuffer());
-		m_DynamicReceiverPass->Init();
-
-		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_CombineReceiverPass));
-		m_CombineReceiverPass->SetColorAttachment(0, m_CombineMaskTarget->GetFrameBuffer());
-		m_CombineReceiverPass->Init();
-
-		return true;
-	}
 	return false;
 }
 

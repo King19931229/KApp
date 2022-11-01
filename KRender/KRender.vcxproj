@@ -107,8 +107,10 @@
     <ClInclude Include="Internal\Object\KGBuffer.h" />
     <ClInclude Include="Internal\Object\KOcclusionBox.h" />
     <ClInclude Include="Internal\Object\KPrefiterCubeMap.h" />
+    <ClInclude Include="Internal\Object\KQuadDataProvider.h" />
     <ClInclude Include="Internal\Object\KRTAO.h" />
     <ClInclude Include="Internal\Object\KDebugDrawer.h" />
+    <ClInclude Include="Internal\Object\KSkyBox.h" />
     <ClInclude Include="Internal\Object\KWhiteFurnace.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessConnection.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessData.h" />
@@ -117,6 +119,7 @@
     <ClInclude Include="Internal\PostProcess\KPostProcessTexture.h" />
     <ClInclude Include="Internal\RayTrace\KRayTraceManager.h" />
     <ClInclude Include="Internal\RayTrace\KRayTraceScene.h" />
+    <ClInclude Include="Internal\Render\KDeferredRenderer.h" />
     <ClInclude Include="Internal\Scene\KOctreeNode.h" />
     <ClInclude Include="Internal\Scene\KOctreeSceneManager.h" />
     <ClInclude Include="Internal\Scene\KRenderScene.h" />
@@ -214,6 +217,7 @@
     <ClCompile Include="Internal\Object\KGBuffer.cpp" />
     <ClCompile Include="Internal\Object\KOcclusionBox.cpp" />
     <ClCompile Include="Internal\Object\KPrefiterCubeMap.cpp" />
+    <ClCompile Include="Internal\Object\KQuadDataProvider.cpp" />
     <ClCompile Include="Internal\Object\KRTAO.cpp" />
     <ClCompile Include="Internal\Object\KDebugDrawer.cpp" />
     <ClCompile Include="Internal\Object\KSkyBox.cpp" />
@@ -225,6 +229,7 @@
     <ClCompile Include="Internal\PostProcess\KPostProcessTexture.cpp" />
     <ClCompile Include="Internal\RayTrace\KRayTraceManager.cpp" />
     <ClCompile Include="Internal\RayTrace\KRayTraceScene.cpp" />
+    <ClCompile Include="Internal\Render\KDeferredRenderer.cpp" />
     <ClCompile Include="Internal\Scene\KOctreeSceneManager.cpp" />
     <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
     <ClCompile Include="Internal\ShaderMap\KShaderMap.cpp" />

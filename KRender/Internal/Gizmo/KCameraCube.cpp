@@ -455,10 +455,9 @@ void KCameraCube::InitRenderData()
 	m_CornerIndexData.indexStart = 0;
 }
 
-bool KCameraCube::Init(IKRenderDevice* renderDevice, size_t frameInFlight, KCamera* camera)
+bool KCameraCube::Init(IKRenderDevice* renderDevice, KCamera* camera)
 {
 	ASSERT_RESULT(renderDevice != nullptr);
-	ASSERT_RESULT(frameInFlight > 0);
 
 	ASSERT_RESULT(UnInit());
 

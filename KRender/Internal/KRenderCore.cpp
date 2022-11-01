@@ -109,10 +109,12 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, property->uniformBufferOffsetAlignment, property->uniformBufferMaxRange);
 	KRenderGlobal::InstanceBufferManager.Init(m_Device, sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
 
+	KRenderGlobal::QuadDataProvider.Init();
+
 	KDebugDrawSharedData::Init();
 
 	KRenderGlobal::FrameGraph.Init(m_Device);
-	KRenderGlobal::GBuffer.Init(m_Device, &m_Camera, (uint32_t)width, (uint32_t)height);
+	KRenderGlobal::GBuffer.Init((uint32_t)width, (uint32_t)height);
 	KRenderGlobal::RayTraceManager.Init();
 
 	KRenderGlobal::CubeMap.Init(128, 128, 8, "Textures/uffizi_cube.ktx");
@@ -126,6 +128,8 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 128, (uint32_t)width, (uint32_t)height);
 	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 64, 7, 16, (uint32_t)width, (uint32_t)height);
 
+	KRenderGlobal::DeferredRenderer.Init(&m_Camera, (uint32_t)width, (uint32_t)height);
+
 	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
 	KRenderGlobal::FrameGraph.Alloc();
 
@@ -135,6 +139,10 @@ bool KRenderCore::InitGlobalManager()
 bool KRenderCore::UnInitGlobalManager()
 {
 	KDebugDrawSharedData::UnInit();
+
+	KRenderGlobal::QuadDataProvider.UnInit();
+
+	KRenderGlobal::DeferredRenderer.UnInit();
 
 	KRenderGlobal::WhiteFurnace.UnInit();
 	KRenderGlobal::CubeMap.UnInit();
@@ -168,7 +176,7 @@ bool KRenderCore::InitRenderDispatcher()
 	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
 
 	m_CameraCube = CreateCameraCube();
-	m_CameraCube->Init(m_Device, frameInFlight, &m_Camera);
+	m_CameraCube->Init(m_Device, &m_Camera);
 
 	KRenderGlobal::RenderDispatcher.Init(m_Device, frameInFlight, m_CameraCube);
 	return true;
@@ -701,7 +709,7 @@ void KRenderCore::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::FrameGraph.Resize();
 	KRenderGlobal::PostProcessManager.Resize(width, height);
 	KRenderGlobal::GBuffer.Resize(width, height);
-	KRenderGlobal::CascadedShadowMap.Resize(width, height);
+	KRenderGlobal::DeferredRenderer.Resize(width, height);
 	KRenderGlobal::Voxilzer.Resize(width, height);
 	KRenderGlobal::RTAO.Resize();
 	KRenderGlobal::RayTraceManager.Resize(width, height);

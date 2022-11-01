@@ -326,7 +326,7 @@ bool KVulkanRenderPass::Init()
 
 				if (m_OpDepth.loadOp == LO_LOAD || m_OpStencil.loadOp == LO_LOAD)
 				{
-					depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+					depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 				}
 				else
 				{

@@ -82,6 +82,9 @@
     <Filter Include="Internal\ShaderMap">
       <UniqueIdentifier>{65c684d6-d80f-42e3-a058-413636bec6fc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Render">
+      <UniqueIdentifier>{1af52500-8b99-462a-802e-894dac1dbc6f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -495,6 +498,15 @@
     <ClInclude Include="Internal\ShaderMap\KShaderMap.h">
       <Filter>Internal\ShaderMap</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Render\KDeferredRenderer.h">
+      <Filter>Internal\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Object\KSkyBox.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Object\KQuadDataProvider.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -799,6 +811,12 @@
     </ClCompile>
     <ClCompile Include="Internal\ShaderMap\KShaderMap.cpp">
       <Filter>Internal\ShaderMap</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Render\KDeferredRenderer.cpp">
+      <Filter>Internal\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Object\KQuadDataProvider.cpp">
+      <Filter>Internal\Object</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

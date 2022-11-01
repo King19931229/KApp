@@ -75,9 +75,10 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 
 		IKRayTracePipeline* rayPipeline = scene->GetRayTracePipeline();
 
-		IKRenderTargetPtr normalBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL);
-		IKRenderTargetPtr positionBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION);
-		IKRenderTargetPtr velocityBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_MOTION);
+		// TODO
+		IKRenderTargetPtr normalBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
+		IKRenderTargetPtr positionBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
+		IKRenderTargetPtr velocityBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1);
 
 		KRenderDeviceProperties* property = nullptr;
 		renderDevice->QueryProperty(&property);
@@ -196,9 +197,9 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer)
 	{
 		primaryBuffer->BeginDebugMarker("RTAO", glm::vec4(0, 1, 0, 0));
 
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_MOTION)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL);
 
 		UpdateAOUniform();
 
@@ -222,9 +223,10 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer)
 
 		m_ComposePipeline->Execute(primaryBuffer, groupX, groupY, 1);
 
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL)->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION)->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_MOTION)->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+		// 
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		primaryBuffer->EndDebugMarker();
 	}

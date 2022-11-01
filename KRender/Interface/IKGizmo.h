@@ -67,7 +67,7 @@ struct IKCameraCube
 {
 	virtual ~IKCameraCube() {}
 
-	virtual bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, KCamera* camera) = 0;
+	virtual bool Init(IKRenderDevice* renderDevice, KCamera* camera) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual float GetDisplayScale() const = 0;

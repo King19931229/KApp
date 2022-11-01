@@ -40,6 +40,7 @@ protected:
 	KCascadedShadowMap& m_Master;
 	KFrameGraphID m_StaticMaskID;
 	KFrameGraphID m_DynamicMaskID;
+	KFrameGraphID m_CombineMaskID;
 
 	void Recreate();
 public:
@@ -57,6 +58,8 @@ public:
 
 	IKRenderTargetPtr GetStaticMask();
 	IKRenderTargetPtr GetDynamicMask();
+	IKRenderTargetPtr GetCombineMask();
+
 	KFrameGraphID GetStaticTargetID() const { return m_StaticMaskID; }
 	KFrameGraphID GetDynamicTargetID() const { return m_DynamicMaskID; }
 };
@@ -83,22 +86,9 @@ class KCascadedShadowMap
 	friend class KCascadedShadowMapReceiverPass;
 	friend class KCascadedShadowMapDebugPass;
 protected:
-	enum
-	{
-		SHADOW_BINDING_GBUFFER_POSITION = SHADER_BINDING_TEXTURE0
-	};
-
+	static constexpr ElementFormat RECEIVER_TARGET_FORMAT = EF_R8_UNORM;
 	static constexpr uint32_t SHADOW_MAP_MAX_CASCADED = 4;	
 	const KCamera* m_MainCamera;
-
-	// TODO 以下Debug数据需要共享
-	static const KVertexDefinition::SCREENQUAD_POS_2F ms_QuadVertices[4];
-	static const uint16_t ms_QuadIndices[6];
-	static const VertexFormat ms_QuadFormats[1];
-
-	// Buffer
-	IKVertexBufferPtr m_QuadVertexBuffer;
-	IKIndexBufferPtr m_QuadIndexBuffer;
 
 	// Shader
 	IKShaderPtr m_DebugVertexShader;
@@ -113,16 +103,9 @@ protected:
 	IKPipelinePtr m_DynamicReceiverPipeline;
 	IKPipelinePtr m_CombineReceiverPipeline;
 
-	IKRenderTargetPtr m_StaticMaskTarget;
-	IKRenderTargetPtr m_DynamicMaskTarget;
-	IKRenderTargetPtr m_CombineMaskTarget;
-
 	IKRenderPassPtr m_StaticReceiverPass;
 	IKRenderPassPtr m_DynamicReceiverPass;
 	IKRenderPassPtr m_CombineReceiverPass;
-
-	KVertexData m_QuadVertexData;
-	KIndexData m_QuadIndexData;
 
 	struct Cascade
 	{
@@ -199,7 +182,6 @@ public:
 
 	bool UpdateShadowMap();
 	bool DebugRender(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
-	bool Resize(uint32_t width, uint32_t height);
 
 	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex, bool isStatic);
 
@@ -221,4 +203,5 @@ public:
 	inline const KRenderStageStatistics& GetStatistics() const { return m_Statistics; }
 	inline KCascadedShadowMapCasterPassPtr GetCasterPass() { return m_CasterPass; }
 	inline KCascadedShadowMapReceiverPassPtr GetReceiverPass() { return m_ReceiverPass; }
+	inline IKRenderTargetPtr GetFinalMask() { return m_ReceiverPass ? m_ReceiverPass->GetCombineMask() : nullptr; }
 };

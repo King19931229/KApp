@@ -81,7 +81,7 @@ float BiasedZ(float z0, vec2 dz_duv, vec2 offset)
 float BorderDepthTexture(sampler2D tex, vec2 uv)
 {
 	return ((uv.x <= 1.0) && (uv.y <= 1.0) &&
-	 (uv.x >= 0.0) && (uv.y >= 0.0)) ? textureLod(tex, uv, 0.0).x : 1.0;
+	 (uv.x >= 0.0) && (uv.y >= 0.0)) ? textureLod(tex, uv, 0.0).x : 0.0;
 }
 
 float BorderPCFTexture(sampler2D tex, vec3 uvz)

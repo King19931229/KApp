@@ -11,26 +11,21 @@ layout(location = 5) in vec3 binormal;
 
 layout(location = 0) out vec4 RT0;
 layout(location = 1) out vec4 RT1;
-layout(location = 2) out vec2 RT2;
+layout(location = 2) out vec4 RT2;
 layout(location = 3) out vec4 RT3;
-layout(location = 4) out vec4 RT4;
 
 /* Shader compiler will replace this into the texcode of the material */
 #include "material_generate_code.h"
 
 void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, vec3 specularColor)
 {
-	vec4 viewPos = camera.view * vec4(pos, 1.0);
-	float depth = -viewPos.z / viewPos.w;
-
+	vec4 clipPos = camera.viewProj * vec4(pos, 1.0);
+	float depth = clipPos.z / clipPos.w;
 	RT0.xyz = normal;
 	RT0.w = depth;
-
-	RT1.xyz = pos;
-	RT2.xy = motion;
-
-	RT3.xyz = baseColor;
-	RT4.xyz = specularColor;
+	RT1.xy = 0.5 * (motion + vec2(1.0));
+	RT2.xyz = baseColor;
+	RT3.xyz = specularColor;
 }
 
 void main()

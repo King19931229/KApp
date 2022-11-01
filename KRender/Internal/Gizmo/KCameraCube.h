@@ -217,7 +217,7 @@ public:
 	KCameraCube();
 	~KCameraCube();
 
-	bool Init(IKRenderDevice* renderDevice, size_t frameInFlight, KCamera* camera) override;
+	bool Init(IKRenderDevice* renderDevice, KCamera* camera) override;
 	bool UnInit() override;
 
 	float GetDisplayScale() const override;

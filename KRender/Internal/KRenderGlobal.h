@@ -31,6 +31,10 @@
 #include "Internal/Voxilzer/KVoxilzer.h"
 #include "Internal/Voxilzer/KClipmapVoxilzer.h"
 
+#include "Internal/Object/KQuadDataProvider.h"
+
+#include "Internal/Render/KDeferredRenderer.h"
+
 #include "KBase/Publish/KTaskExecutor.h"
 
 namespace KRenderGlobal
@@ -46,6 +50,8 @@ namespace KRenderGlobal
 	extern KPostProcessManager PostProcessManager;
 	extern KRayTraceManager RayTraceManager;
 
+	extern KDeferredRenderer DeferredRenderer;
+
 	extern KSkyBox SkyBox;
 	extern KPrefilerCubeMap CubeMap;
 	extern KWhiteFurnace WhiteFurnace;
@@ -56,6 +62,8 @@ namespace KRenderGlobal
 	extern KRTAO RTAO;
 	extern KVoxilzer Voxilzer;
 	extern KClipmapVoxilzer ClipmapVoxilzer;
+
+	extern KQuadDataProvider QuadDataProvider;
 
 	extern KFrameGraph FrameGraph;
 

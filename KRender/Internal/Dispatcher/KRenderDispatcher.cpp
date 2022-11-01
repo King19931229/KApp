@@ -619,7 +619,7 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex)
 
 		// 绘制光追结果
 		KRenderCommandList rayCommands;
-		KRenderGlobal::RayTraceManager.GetDebugRenderCommand(rayCommands);
+		//KRenderGlobal::RayTraceManager.GetDebugRenderCommand(rayCommands);
 		for (KRenderCommand& command : rayCommands)
 		{
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
@@ -627,11 +627,11 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex)
 		context.command[RENDER_STAGE_DEBUG].insert(context.command[RENDER_STAGE_DEBUG].end(), rayCommands.begin(), rayCommands.end());
 
 		KRenderCommandList debugDrawCommands;
-		KRenderGlobal::RTAO.GetDebugRenderCommand(debugDrawCommands);
-		KRenderGlobal::Voxilzer.GetLightDebugRenderCommand(debugDrawCommands);
-		KRenderGlobal::ClipmapVoxilzer.GetLightDebugRenderCommand(debugDrawCommands);
-		KRenderGlobal::Voxilzer.GetOctreeRayTestRenderCommand(debugDrawCommands);
-		KRenderGlobal::Scene.GetTerrain()->GetDebugRenderCommand(debugDrawCommands);
+		//KRenderGlobal::RTAO.GetDebugRenderCommand(debugDrawCommands);
+		//KRenderGlobal::Voxilzer.GetLightDebugRenderCommand(debugDrawCommands);
+		//KRenderGlobal::ClipmapVoxilzer.GetLightDebugRenderCommand(debugDrawCommands);
+		//KRenderGlobal::Voxilzer.GetOctreeRayTestRenderCommand(debugDrawCommands);
+		//KRenderGlobal::Scene.GetTerrain()->GetDebugRenderCommand(debugDrawCommands);
 		for (KRenderCommand& command : debugDrawCommands)
 		{
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
@@ -658,13 +658,13 @@ bool KRenderDispatcher::UpdateBasePass(uint32_t chainImageIndex)
 		// 绘制VoxelBox
 		if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
 		{
-			KRenderGlobal::Voxilzer.RenderVoxel(renderPass, secondaryBuffers);
+			//KRenderGlobal::Voxilzer.RenderVoxel(renderPass, secondaryBuffers);
 			primaryCommandBuffer->ExecuteAll(secondaryBuffers, true);
 		}
 
 		if (KRenderGlobal::ClipmapVoxilzer.IsVoxelDrawEnable())
 		{
-			KRenderGlobal::ClipmapVoxilzer.RenderVoxel(renderPass, secondaryBuffers);
+			//KRenderGlobal::ClipmapVoxilzer.RenderVoxel(renderPass, secondaryBuffers);
 			primaryCommandBuffer->ExecuteAll(secondaryBuffers, true);
 		}
 
@@ -710,23 +710,27 @@ bool KRenderDispatcher::SubmitCommandBuffers(uint32_t chainImageIndex)
 
 	// 更新静态数据
 	{
-		KRenderGlobal::Voxilzer.UpdateVoxel();
-		KRenderGlobal::ClipmapVoxilzer.UpdateVoxel();
+	//	KRenderGlobal::Voxilzer.UpdateVoxel();
+	//	KRenderGlobal::ClipmapVoxilzer.UpdateVoxel();
 	}
 
 	IKCommandBufferPtr primaryCommandBuffer = m_CommandBuffer.primaryCommandBuffer;
 	// 开始渲染过程
 	primaryCommandBuffer->BeginPrimary();
 	{
-		KRenderGlobal::GBuffer.UpdatePreDepth(primaryCommandBuffer);
-		KRenderGlobal::GBuffer.UpdateGBuffer(primaryCommandBuffer);
-		KRenderGlobal::Voxilzer.UpdateFrame(primaryCommandBuffer);
-		KRenderGlobal::ClipmapVoxilzer.UpdateFrame(primaryCommandBuffer);
-		KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer);
-		KRenderGlobal::RTAO.Execute(primaryCommandBuffer);
+		KRenderGlobal::DeferredRenderer.PrePass(primaryCommandBuffer);
+		KRenderGlobal::DeferredRenderer.BasePass(primaryCommandBuffer);
+
+		//KRenderGlobal::Voxilzer.UpdateFrame(primaryCommandBuffer);
+		//KRenderGlobal::ClipmapVoxilzer.UpdateFrame(primaryCommandBuffer);
+		// KRenderGlobal::RayTraceManager.Execute(primaryCommandBuffer);
+		// KRenderGlobal::RTAO.Execute(primaryCommandBuffer);
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
 		KRenderGlobal::FrameGraph.Compile();
 		KRenderGlobal::FrameGraph.Execute(primaryCommandBuffer, chainImageIndex);
+
+		KRenderGlobal::DeferredRenderer.DeferredLighting(primaryCommandBuffer);
+		KRenderGlobal::DeferredRenderer.ForwardTransprant(primaryCommandBuffer);
 	}
 	primaryCommandBuffer->End();
 

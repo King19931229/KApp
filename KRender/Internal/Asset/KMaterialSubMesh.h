@@ -3,6 +3,8 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKMaterial.h"
 #include "Internal/Asset/Material/KMaterialShader.h"
+#include "Internal/ShaderMap/KShaderMap.h"
+
 #include "KSubMesh.h"
 
 #include <functional>
@@ -17,10 +19,6 @@ protected:
 
 	IKShaderPtr				m_DebugVSShader;
 	IKShaderPtr				m_DebugFSShader;
-
-	IKShaderPtr				m_PreZVSShader;
-	IKShaderPtr				m_PreZVSInstanceShader;
-	IKShaderPtr				m_PreZFSShader;
 
 	IKShaderPtr				m_ShadowVSShader;
 	IKShaderPtr				m_ShadowFSShader;
@@ -40,7 +38,9 @@ protected:
 	IKShaderPtr				m_VoxelClipmapGSShader;
 	IKShaderPtr				m_VoxelClipmapFSShader;
 
-	KMaterialShader			m_GBufferShaderGroup;
+	// TODO 合并到同一个Shader里实现
+	KShaderMap				m_MaterialShaderMap;
+	KShaderMap				m_PrePassShaderMap;
 
 	bool					m_MateriaShaderTriggerLoaded;
 	bool					m_MaterialPipelineCreated;
@@ -52,6 +52,8 @@ protected:
 	bool CreateMaterialPipeline();
 	bool CreateGBufferPipeline();
 	bool CreateVoxelPipeline();
+
+	bool SetupMaterialGeneratedCode(std::string& code);
 public:
 	KMaterialSubMesh(KSubMesh* subMesh);
 	~KMaterialSubMesh();

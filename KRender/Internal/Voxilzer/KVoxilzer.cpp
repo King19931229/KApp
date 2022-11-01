@@ -8,18 +8,6 @@
 
 const VertexFormat KVoxilzer::ms_VertexFormats[1] = { VF_DEBUG_POINT };
 
-const VertexFormat KVoxilzer::ms_QuadFormats[] = { VF_SCREENQUAD_POS };
-
-const KVertexDefinition::SCREENQUAD_POS_2F KVoxilzer::ms_QuadVertices[] =
-{
-	glm::vec2(-1.0f, -1.0f),
-	glm::vec2(1.0f, -1.0f),
-	glm::vec2(1.0f, 1.0f),
-	glm::vec2(-1.0f, 1.0f)
-};
-
-const uint16_t KVoxilzer::ms_QuadIndices[] = { 0, 1, 2, 2, 3, 0 };
-
 // #define USE_OCTREE_MIPMAP_BUFFER
 
 KVoxilzer::KVoxilzer()
@@ -708,24 +696,6 @@ void KVoxilzer::Resize(uint32_t width, uint32_t height)
 	m_PrimaryCommandBuffer->Flush();
 }
 
-void KVoxilzer::SetupQuadDrawData()
-{
-	m_QuadVertexBuffer->InitMemory(ARRAY_SIZE(ms_QuadVertices), sizeof(ms_QuadVertices[0]), ms_QuadVertices);
-	m_QuadVertexBuffer->InitDevice(false);
-
-	m_QuadIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_QuadIndices), ms_QuadIndices);
-	m_QuadIndexBuffer->InitDevice(false);
-
-	m_QuadVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_QuadVertexBuffer);
-	m_QuadVertexData.vertexFormats = std::vector<VertexFormat>(ms_VertexFormats, ms_VertexFormats + ARRAY_SIZE(ms_VertexFormats));
-	m_QuadVertexData.vertexCount = ARRAY_SIZE(ms_QuadVertices);
-	m_QuadVertexData.vertexStart = 0;
-
-	m_QuadIndexData.indexBuffer = m_QuadIndexBuffer;
-	m_QuadIndexData.indexCount = ARRAY_SIZE(ms_QuadIndices);
-	m_QuadIndexData.indexStart = 0;
-}
-
 void KVoxilzer::SetupLightPassPipeline()
 {
 	m_LightDebugDrawer.Init(m_LightPassTarget, 0, 0, 1, 1);
@@ -742,7 +712,7 @@ void KVoxilzer::SetupLightPassPipeline()
 
 	IKPipelinePtr& pipeline = m_VoxelUseOctree ? m_LightPassOctreePipeline : m_LightPassPipeline;
 
-	pipeline->SetVertexBinding(ms_QuadFormats, ARRAY_SIZE(ms_QuadFormats));
+	pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
 	pipeline->SetShader(ST_VERTEX, m_QuadVS);
 
 	if (m_VoxelUseOctree)
@@ -772,19 +742,19 @@ void KVoxilzer::SetupLightPassPipeline()
 	pipeline->SetConstantBuffer(CBT_GLOBAL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, globalBuffer);
 
 	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_NORMAL,
-		KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_NORMAL)->GetFrameBuffer(),
+		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
 		KRenderGlobal::GBuffer.GetSampler(),
 		true);
 	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_POSITION,
-		KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_POSITION)->GetFrameBuffer(),
+		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
 		KRenderGlobal::GBuffer.GetSampler(),
 		true);
 	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_ALBEDO,
-		KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_DIFFUSE)->GetFrameBuffer(),
+		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(),
 		KRenderGlobal::GBuffer.GetSampler(),
 		true);
 	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_SPECULAR,
-		KRenderGlobal::GBuffer.GetGBufferTarget(KGBuffer::RT_SPECULAR)->GetFrameBuffer(),
+		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(),
 		KRenderGlobal::GBuffer.GetSampler(),
 		true);
 
@@ -813,7 +783,7 @@ void KVoxilzer::SetupRayTestPipeline(uint32_t width, uint32_t height)
 	{
 		IKPipelinePtr& pipeline = m_OctreeRayTestPipeline;
 
-		pipeline->SetVertexBinding(ms_QuadFormats, ARRAY_SIZE(ms_QuadFormats));
+		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
 		pipeline->SetShader(ST_VERTEX, m_QuadVS);
 		pipeline->SetShader(ST_FRAGMENT, m_OctreeRayTestFS);
 
@@ -1352,8 +1322,8 @@ bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_SECONDARY);
 
 	KRenderCommand command;
-	command.vertexData = &m_QuadVertexData;
-	command.indexData = &m_QuadIndexData;
+	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+	command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
 	command.pipeline = lightPassPipeline;
 	command.pipeline->GetHandle(m_LightPassRenderPass, command.pipelineHandle);
 	command.indexDraw = true;
@@ -1404,8 +1374,8 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->BeginRenderPass(m_OctreeRayTestPass, SUBPASS_CONTENTS_SECONDARY);
 
 		KRenderCommand command;
-		command.vertexData = &m_QuadVertexData;
-		command.indexData = &m_QuadIndexData;
+		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
 		command.pipeline = m_OctreeRayTestPipeline;
 		command.pipeline->GetHandle(m_OctreeRayTestPass, command.pipelineHandle);
 		command.indexDraw = true;
@@ -1478,9 +1448,6 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 	m_Height = height;
 
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
-
-	renderDevice->CreateVertexBuffer(m_QuadVertexBuffer);
-	renderDevice->CreateIndexBuffer(m_QuadIndexBuffer);
 
 	renderDevice->CreateRenderTarget(m_StaticFlag);
 	renderDevice->CreateRenderTarget(m_VoxelAlbedo);
@@ -1568,7 +1535,6 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 	renderDevice->CreateComputePipeline(m_OctreeAssignDataPipeline);
 
 	Resize(width, height);
-	SetupQuadDrawData();
 	SetupVoxelVolumes(dimension);
 
 	m_Scene->RegisterEntityObserver(&m_OnSceneChangedFunc);
@@ -1596,9 +1562,6 @@ bool KVoxilzer::UnInit()
 	m_LightPassOctreeFS = nullptr;
 	KRenderGlobal::ShaderManager.Release(m_OctreeRayTestFS);
 	m_OctreeRayTestFS = nullptr;
-
-	SAFE_UNINIT(m_QuadIndexBuffer);
-	SAFE_UNINIT(m_QuadVertexBuffer);
 
 	SAFE_UNINIT(m_LightPassTarget);
 	SAFE_UNINIT(m_LightPassRenderPass);

@@ -1,33 +1,56 @@
 #pragma once
 #include "Interface/IKShader.h"
 #include "Interface/IKRenderCommand.h"
+#include "Interface/IKMaterial.h"
 #include <unordered_map>
 #include <mutex>
 
+constexpr uint32_t MAX_SHADERMAP_TEXTURE_BINDING = 8;
+
 class KTextureBinding
 {
-public:
-	enum
-	{
-		MAX_BINDING_COUNT = 8
-	};
 protected:
-	IKTexturePtr m_TextureMap[MAX_BINDING_COUNT];
+	IKTexturePtr m_TextureMap[MAX_SHADERMAP_TEXTURE_BINDING];
 public:
+	KTextureBinding()
+	{
+	}
+
+	~KTextureBinding()
+	{
+		Empty();
+	}
+
 	IKTexturePtr GetTexture(uint32_t slot) const
 	{
-		assert(slot < 8);
+		assert(slot < MAX_SHADERMAP_TEXTURE_BINDING);
 		return m_TextureMap[slot];
 	}
+
 	void AssignTexture(uint32_t slot, IKTexturePtr texture)
 	{
-		assert(slot < 8);
+		assert(slot < MAX_SHADERMAP_TEXTURE_BINDING);
 		m_TextureMap[slot] = texture;
 	}
+
 	void Empty()
 	{
-		for (size_t i = 0; i < ARRAY_SIZE(m_TextureMap); ++i)
-			m_TextureMap[i] = nullptr;		
+		for (size_t i = 0; i < MAX_SHADERMAP_TEXTURE_BINDING; ++i)
+		{
+			m_TextureMap[i] = nullptr;
+		}
+	}
+
+	void Init(IKMaterialTextureBinding* mtlTexBinding)
+	{
+		Empty();
+		if (mtlTexBinding)
+		{
+			for (uint8_t i = 0; i < mtlTexBinding->GetNumSlot(); ++i)
+			{
+				AssignTexture(i, mtlTexBinding->GetTexture(i));
+			}
+		}
 	}
 };
 
@@ -64,7 +87,6 @@ protected:
 	typedef std::unordered_map<size_t, MacrosPtr> MacrosMap;
 
 	static std::mutex STATIC_RESOURCE_LOCK;
-	static const char* PERMUTATING_MACRO[9];
 	static MacrosMap VS_MACROS_MAP;
 	static MacrosMap VS_INSTANCE_MACROS_MAP;
 	static MacrosMap MS_MACROS_MAP;

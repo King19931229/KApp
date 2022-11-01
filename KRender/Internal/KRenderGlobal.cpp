@@ -13,6 +13,8 @@ namespace KRenderGlobal
 	KPostProcessManager PostProcessManager;
 	KRayTraceManager RayTraceManager;
 
+	KDeferredRenderer DeferredRenderer;
+
 	KSkyBox SkyBox;
 	KPrefilerCubeMap CubeMap;
 	KWhiteFurnace WhiteFurnace;
@@ -23,6 +25,8 @@ namespace KRenderGlobal
 	KRTAO RTAO;
 	KVoxilzer Voxilzer;
 	KClipmapVoxilzer ClipmapVoxilzer;
+
+	KQuadDataProvider QuadDataProvider;
 
 	KFrameGraph FrameGraph;
 
