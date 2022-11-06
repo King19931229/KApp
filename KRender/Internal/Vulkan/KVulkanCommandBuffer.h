@@ -58,6 +58,7 @@ public:
 	virtual bool EndQuery(IKQueryPtr query);
 	virtual bool ResetQuery(IKQueryPtr query);
 
+	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout oldLayout, ImageLayout newLayout);
 	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout layout);
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest);
 

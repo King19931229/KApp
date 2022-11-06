@@ -35,6 +35,7 @@
     <ClInclude Include="Interface\IKRenderCore.h" />
     <ClInclude Include="Interface\IKRenderDevice.h" />
     <ClInclude Include="Interface\IKRenderDispatcher.h" />
+    <ClInclude Include="Interface\IKRenderer.h" />
     <ClInclude Include="Interface\IKRenderPass.h" />
     <ClInclude Include="Interface\IKRenderTarget.h" />
     <ClInclude Include="Interface\IKRenderWindow.h" />
@@ -67,7 +68,6 @@
     <ClInclude Include="Internal\Controller\KGizmoController.h" />
     <ClInclude Include="Internal\Controller\KUIOverlayController.h" />
     <ClInclude Include="Internal\Dispatcher\KRenderDispatcher.h" />
-    <ClInclude Include="Internal\Dispatcher\KRenderUtil.h" />
     <ClInclude Include="Internal\ECS\Component\KDebugComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KRenderComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KTransformComponent.h" />
@@ -120,6 +120,8 @@
     <ClInclude Include="Internal\RayTrace\KRayTraceManager.h" />
     <ClInclude Include="Internal\RayTrace\KRayTraceScene.h" />
     <ClInclude Include="Internal\Render\KDeferredRenderer.h" />
+    <ClInclude Include="Internal\Render\KRenderer.h" />
+    <ClInclude Include="Internal\Render\KRenderUtil.h" />
     <ClInclude Include="Internal\Scene\KOctreeNode.h" />
     <ClInclude Include="Internal\Scene\KOctreeSceneManager.h" />
     <ClInclude Include="Internal\Scene\KRenderScene.h" />
@@ -175,7 +177,6 @@
     <ClCompile Include="Internal\Controller\KCameraPreviewController.cpp" />
     <ClCompile Include="Internal\Controller\KGizmoController.cpp" />
     <ClCompile Include="Internal\Controller\KUIOverlayController.cpp" />
-    <ClCompile Include="Internal\Dispatcher\KRenderDispatcher.cpp" />
     <ClCompile Include="Internal\ECS\Component\KDebugComponent.cpp" />
     <ClCompile Include="Internal\ECS\Component\KRenderComponent.cpp" />
     <ClCompile Include="Internal\ECS\Component\KTransformComponent.cpp" />
@@ -230,6 +231,7 @@
     <ClCompile Include="Internal\RayTrace\KRayTraceManager.cpp" />
     <ClCompile Include="Internal\RayTrace\KRayTraceScene.cpp" />
     <ClCompile Include="Internal\Render\KDeferredRenderer.cpp" />
+    <ClCompile Include="Internal\Render\KRenderer.cpp" />
     <ClCompile Include="Internal\Scene\KOctreeSceneManager.cpp" />
     <ClCompile Include="Internal\Scene\KRenderScene.cpp" />
     <ClCompile Include="Internal\ShaderMap\KShaderMap.cpp" />

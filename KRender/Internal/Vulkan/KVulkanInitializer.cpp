@@ -569,10 +569,13 @@ namespace KVulkanInitializer
 				break;
 
 			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
 				// Image is read by a shader
 				// Make sure any shader reads from the image have been finished
 				barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+				barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
 				break;
 
 			case VK_IMAGE_LAYOUT_GENERAL:
@@ -613,7 +616,6 @@ namespace KVulkanInitializer
 				break;
 
 			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
 				// Image will be read in a shader (sampler, input attachment)
 				// Make sure any writes to the image have been finished
 				if (barrier.srcAccessMask == 0)
@@ -621,6 +623,16 @@ namespace KVulkanInitializer
 					barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
 				}
 				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+				// Image will be read in a shader (sampler, input attachment)
+				// Make sure any writes to the image have been finished
+				if (barrier.srcAccessMask == 0)
+				{
+					barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+				}
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 				break;
 
 			case VK_IMAGE_LAYOUT_GENERAL:

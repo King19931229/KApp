@@ -5,10 +5,7 @@
 #include "Interface/IKSampler.h"
 #include "Internal/KRenderGlobal.h"
 #include "Internal/KConstantGlobal.h"
-
-#include "Internal/Dispatcher/KRenderDispatcher.h"
-#include "Internal/Dispatcher/KRenderUtil.h"
-
+#include "Internal/Render/KRenderUtil.h"
 #include "KBase/Interface/IKLog.h"
 
 KCascadedShadowMapCasterPass::KCascadedShadowMapCasterPass(KCascadedShadowMap& master)

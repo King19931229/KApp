@@ -3,7 +3,7 @@
 #include "KRender/Interface/IKRenderScene.h"
 #include "KRender/Interface/IKGizmo.h"
 #include "KRender/Interface/IKCameraController.h"
-#include "KRender/Interface/IKRenderDispatcher.h"
+#include "KRender/Interface/IKRenderer.h"
 #include "KRender/Interface/IKRayTrace.h"
 #include "KRender/Publish/KCamera.h"
 
@@ -34,7 +34,7 @@ struct IKRenderCore
 	virtual IKRayTraceManager* GetRayTraceMgr() = 0;
 	// 获取主场景
 	virtual IKRenderScene* GetRenderScene() = 0;
-	virtual IKRenderDispatcher* GetRenderDispatcher() = 0;
+	virtual IKRenderer* GetRenderer() = 0;
 	virtual IKRenderWindow* GetRenderWindow() = 0;
 	virtual IKRenderDevice* GetRenderDevice() = 0;
 

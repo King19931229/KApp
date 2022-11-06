@@ -171,23 +171,20 @@ bool KRenderCore::UnInitGlobalManager()
 	return true;
 }
 
-bool KRenderCore::InitRenderDispatcher()
+bool KRenderCore::InitRenderer()
 {
-	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
-
 	m_CameraCube = CreateCameraCube();
 	m_CameraCube->Init(m_Device, &m_Camera);
-
-	KRenderGlobal::RenderDispatcher.Init(m_Device, frameInFlight, m_CameraCube);
+	KRenderGlobal::Renderer.Init(m_Device, m_CameraCube);
 	return true;
 }
 
-bool KRenderCore::UnInitRenderDispatcher()
+bool KRenderCore::UnInitRenderer()
 {
 	m_CameraCube->UnInit();
 	m_CameraCube = nullptr;
 
-	KRenderGlobal::RenderDispatcher.UnInit();
+	KRenderGlobal::Renderer.UnInit();
 	return true;
 }
 
@@ -316,7 +313,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			KRenderGlobal::TaskExecutor.Init("RenderTaskThread", std::thread::hardware_concurrency());
 			InitGlobalManager();
 			InitPostProcess();
-			InitRenderDispatcher();
+			InitRenderer();
 			InitRenderResource();
 			InitGizmo();
 			InitController();
@@ -355,12 +352,12 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			UnInitController();
 			UnInitGizmo();
 			UnInitRenderResource();
-			UnInitRenderDispatcher();
+			UnInitRenderer();
 			UnInitPostProcess();
 			UnInitGlobalManager();
 		};
 
-		m_MainWindowRenderCB = [this](IKRenderDispatcher* dispatcher, uint32_t chainImageIndex)
+		m_MainWindowRenderCB = [this](IKRenderer* dispatcher, uint32_t chainImageIndex)
 		{
 			dispatcher->SetSceneCamera(&KRenderGlobal::Scene, &m_Camera);
 			dispatcher->SetCameraCubeDisplay(true);
@@ -368,7 +365,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 
 		KECSGlobal::Init();
 		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
-		KRenderGlobal::RenderDispatcher.SetCallback(m_Window, &m_MainWindowRenderCB);
+		KRenderGlobal::Renderer.SetCallback(m_Window, &m_MainWindowRenderCB);
 
 		m_Device->RegisterPrePresentCallback(&m_PrePresentCallback);
 		m_Device->RegisterPostPresentCallback(&m_PostPresentCallback);
@@ -388,7 +385,7 @@ bool KRenderCore::UnInit()
 {
 	if (m_bInit)
 	{
-		KRenderGlobal::RenderDispatcher.RemoveCallback(m_Window);
+		KRenderGlobal::Renderer.RemoveCallback(m_Window);
 
 		KECSGlobal::UnInit();
 
@@ -567,9 +564,9 @@ IKRenderScene* KRenderCore::GetRenderScene()
 	return &KRenderGlobal::Scene;
 }
 
-IKRenderDispatcher* KRenderCore::GetRenderDispatcher()
+IKRenderer* KRenderCore::GetRenderer()
 {
-	return &KRenderGlobal::RenderDispatcher;
+	return &KRenderGlobal::Renderer;
 }
 
 bool KRenderCore::UpdateFrameTime()
@@ -618,9 +615,9 @@ bool KRenderCore::UpdateUIOverlay()
 					// ui->SliderFloat("Shadow ShadowRange", &KRenderGlobal::CascadedShadowMap.GetShadowRange(), 0.1f, 5000.0f);
 					// ui->SliderFloat("Shadow SplitLambda", &KRenderGlobal::CascadedShadowMap.GetSplitLambda(), 0.001f, 1.0f);
 					// ui->SliderFloat("Shadow LightSize", &KRenderGlobal::CascadedShadowMap.GetLightSize(), 0.0f, 0.1f);
-					// ui->CheckBox("Shadow FixToScene", &KRenderGlobal::CascadedShadowMap.GetFixToScene());
-					// ui->CheckBox("Shadow FixTexel", &KRenderGlobal::CascadedShadowMap.GetFixTexel());
-					// ui->CheckBox("Shadow Minimize Draw", &KRenderGlobal::CascadedShadowMap.GetMinimizeShadowDraw());
+					ui->CheckBox("Shadow FixToScene", &KRenderGlobal::CascadedShadowMap.GetFixToScene());
+					ui->CheckBox("Shadow FixTexel", &KRenderGlobal::CascadedShadowMap.GetFixTexel());
+					ui->CheckBox("Shadow Minimize Draw", &KRenderGlobal::CascadedShadowMap.GetMinimizeShadowDraw());
 				}
 				if (ui->Header("Hardware Occlusion"))
 				{
@@ -694,8 +691,6 @@ void KRenderCore::OnPrePresent(uint32_t chainIndex, uint32_t frameIndex)
 	UpdateGizmo();
 
 	KRenderGlobal::EnableDebugRender = m_OctreeDebugDraw;
-	KRenderGlobal::RenderDispatcher.SetMultiThreadSubmit(m_MultiThreadSubmit);
-	KRenderGlobal::RenderDispatcher.SetInstanceSubmit(m_InstanceSubmit);
 	m_CameraMoveController.SetEnable(m_MouseCtrlCamera);
 }
 

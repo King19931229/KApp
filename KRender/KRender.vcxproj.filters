@@ -52,9 +52,6 @@
     <Filter Include="Internal\Gizmo">
       <UniqueIdentifier>{c2114faa-71be-454b-b273-2044004f7233}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Internal\Dispatcher">
-      <UniqueIdentifier>{31833760-9865-4a77-93fb-98f218a9880b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Internal\Controller">
       <UniqueIdentifier>{02b90263-ebce-41ba-a4fb-1299848c2060}</UniqueIdentifier>
     </Filter>
@@ -318,9 +315,6 @@
     <ClInclude Include="Internal\Asset\KTriangleMesh.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Dispatcher\KRenderDispatcher.h">
-      <Filter>Internal\Dispatcher</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Controller\KCameraMoveController.h">
       <Filter>Internal\Controller</Filter>
     </ClInclude>
@@ -477,9 +471,6 @@
     <ClInclude Include="Internal\Voxilzer\KVoxilzer.h">
       <Filter>Internal\Voxilzer</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Dispatcher\KRenderUtil.h">
-      <Filter>Internal\Dispatcher</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\Object\KWhiteFurnace.h">
       <Filter>Internal\Object</Filter>
     </ClInclude>
@@ -506,6 +497,16 @@
     </ClInclude>
     <ClInclude Include="Internal\Object\KQuadDataProvider.h">
       <Filter>Internal\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Dispatcher\KRenderDispatcher.h" />
+    <ClInclude Include="Internal\Render\KRenderer.h">
+      <Filter>Internal\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Render\KRenderUtil.h">
+      <Filter>Internal\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IKRenderer.h">
+      <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -674,9 +675,6 @@
     <ClCompile Include="Internal\Gizmo\KScaleGizmo.cpp">
       <Filter>Internal\Gizmo</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\Dispatcher\KRenderDispatcher.cpp">
-      <Filter>Internal\Dispatcher</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\Controller\KCameraMoveController.cpp">
       <Filter>Internal\Controller</Filter>
     </ClCompile>
@@ -817,6 +815,10 @@
     </ClCompile>
     <ClCompile Include="Internal\Object\KQuadDataProvider.cpp">
       <Filter>Internal\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Dispatcher\KRenderDispatcher.cpp" />
+    <ClCompile Include="Internal\Render\KRenderer.cpp">
+      <Filter>Internal\Render</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -31,7 +31,7 @@ namespace KRenderGlobal
 	KFrameGraph FrameGraph;
 
 	KRenderScene Scene;
-	KRenderDispatcher RenderDispatcher;
+	KRenderer Renderer;
 
 	KTaskExecutor<true> TaskExecutor;
 
@@ -47,8 +47,6 @@ namespace KRenderGlobal
 
 	const char* ALL_STAGE_NAMES[] =
 	{
-		"PreZ",
-		"GBuffer"
 		"Default",
 		"Debug",
 		"CascadedShadowMap"

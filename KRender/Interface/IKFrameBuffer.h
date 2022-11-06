@@ -11,5 +11,6 @@ struct IKFrameBuffer
 	virtual uint32_t GetMSAA() const = 0;
 	virtual bool IsDepthStencil() const = 0;
 	virtual bool IsStorageImage() const = 0;
+	virtual bool Translate(IKCommandBuffer* cmd, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 	virtual bool Translate(IKCommandBuffer* cmd, ImageLayout layout) = 0;
 };

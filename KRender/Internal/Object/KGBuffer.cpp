@@ -4,15 +4,11 @@
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKStatistics.h"
 #include "Internal/KRenderGlobal.h"
-#include "Internal/Dispatcher/KRenderUtil.h"
 
-const KGBufferDescription GBufferDescription[GBUFFER_TARGET_COUNT] =
-{
-	{ GBUFFER_TARGET0, EF_R32G32B32A32_FLOAT, "xyz:world_normal w:depth" },
-	{ GBUFFER_TARGET1, EF_R8GB8BA8_UNORM, "xy:motion zw:idle" },
-	{ GBUFFER_TARGET2, EF_R8GB8BA8_UNORM, "xyz:diffuse_color w:idle" },
-	{ GBUFFER_TARGET3, EF_R8GB8BA8_UNORM, "xyz:specular_color w:idle" },
-};
+static_assert(GBufferDescription[GBUFFER_TARGET0].target == GBUFFER_TARGET0, "check");
+static_assert(GBufferDescription[GBUFFER_TARGET1].target == GBUFFER_TARGET1, "check");
+static_assert(GBufferDescription[GBUFFER_TARGET2].target == GBUFFER_TARGET2, "check");
+static_assert(GBufferDescription[GBUFFER_TARGET3].target == GBUFFER_TARGET3, "check");
 
 KGBuffer::KGBuffer()
 {}

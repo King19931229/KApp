@@ -355,27 +355,49 @@ bool KVulkanFrameBuffer::UnInit()
 	return true;
 }
 
+bool KVulkanFrameBuffer::TranslateLayout(VkCommandBuffer cmdBuffer, VkImageLayout oldLayout, VkImageLayout newLayout)
+{
+	// 有两种行为可能改变Layout
+	// 1.Translation
+	// 2.RenderPass
+	KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format,
+		0,
+		(m_ImageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1,
+		0,
+		m_Mipmaps,
+		oldLayout,
+		newLayout,
+		cmdBuffer);
+	m_ImageLayout = newLayout;
+	return true;
+}
+
+bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, ImageLayout oldLayout, ImageLayout newLayout)
+{
+	if (cmd)
+	{
+		KVulkanCommandBuffer* vulkanCommandBuffer = static_cast<KVulkanCommandBuffer*>(cmd);
+		VkCommandBuffer vkCmdBuffer = vulkanCommandBuffer->GetVkHandle();
+		VkImageLayout vkOldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(oldLayout, vkOldLayout));
+		VkImageLayout vkNewLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(newLayout, vkNewLayout));
+		TranslateLayout(vkCmdBuffer, vkOldLayout, vkNewLayout);
+		return true;
+	}
+	return false;
+}
+
 bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, ImageLayout layout)
 {
 	if (cmd)
 	{
 		KVulkanCommandBuffer* vulkanCommandBuffer = static_cast<KVulkanCommandBuffer*>(cmd);
 		VkCommandBuffer vkCmdBuffer = vulkanCommandBuffer->GetVkHandle();
-		VkImageLayout newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(layout, newLayout));
-		// 有两种行为可能改变Layout
-		// 1.Translation
-		// 2.RenderPass
-		// TODO 使用 vkGetImageSubresourceLayout代替VK_IMAGE_LAYOUT_UNDEFINED
-		KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format,
-			0, (m_ImageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1,
-			0, m_Mipmaps,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			newLayout,
-			vkCmdBuffer);
-		m_ImageLayout = newLayout;
+		VkImageLayout vkNewLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(layout, vkNewLayout));
+		TranslateLayout(vkCmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED, vkNewLayout);
 		return true;
 	}
-
 	return false;
 }

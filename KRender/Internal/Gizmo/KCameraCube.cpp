@@ -490,9 +490,6 @@ bool KCameraCube::Init(IKRenderDevice* renderDevice, KCamera* camera)
 	ASSERT_RESULT(renderDevice->CreateCommandBuffer(m_CommandBuffer));
 	ASSERT_RESULT(m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY));
 
-	ASSERT_RESULT(renderDevice->CreateCommandBuffer(m_ClearCommandBuffer));
-	ASSERT_RESULT(m_ClearCommandBuffer->Init(m_CommandPool, CBL_SECONDARY));
-
 	KRenderGlobal::RenderDevice->CreatePipeline(m_BackGroundPipeline);
 	KRenderGlobal::RenderDevice->CreatePipeline(m_CubePipeline);
 	KRenderGlobal::RenderDevice->CreatePipeline(m_PickPipeline);
@@ -513,7 +510,6 @@ bool KCameraCube::UnInit()
 	SAFE_UNINIT(m_PickPipeline);
 
 	SAFE_UNINIT(m_CommandBuffer);
-	SAFE_UNINIT(m_ClearCommandBuffer);
 
 	SAFE_UNINIT(m_BackGroundVertexBuffer);
 	SAFE_UNINIT(m_BackGroundIndexBuffer);
@@ -986,22 +982,11 @@ bool KCameraCube::GetRenderCommand(KRenderCommandList& commands)
 	return false;
 }
 
-bool KCameraCube::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+bool KCameraCube::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
 	KRenderCommandList commands;
 	if (GetRenderCommand(commands))
 	{
-		KClearValue clearValue = { { 0,0,0,0 },{ 1, 0 } };
-
-		IKCommandBufferPtr clearCommandBuffer = m_ClearCommandBuffer;
-
-		clearCommandBuffer->BeginSecondary(renderPass);
-		clearCommandBuffer->SetViewport(renderPass->GetViewPort());
-		if (renderPass->HasDepthStencilAttachment())
-			clearCommandBuffer->ClearDepthStencil(renderPass->GetViewPort(), clearValue.depthStencil);
-		clearCommandBuffer->End();
-		buffers.push_back(clearCommandBuffer);
-
 		IKCommandBufferPtr commandBuffer = m_CommandBuffer;
 		commandBuffer->BeginSecondary(renderPass);
 		commandBuffer->SetViewport(renderPass->GetViewPort());
@@ -1010,8 +995,8 @@ bool KCameraCube::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBuffer
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 			commandBuffer->Render(command);
 		}
-		commandBuffer->End();
-		buffers.push_back(commandBuffer);
+		commandBuffer->End();	
+		primaryBuffer->Execute(commandBuffer);
 		return true;
 	}
 	return false;

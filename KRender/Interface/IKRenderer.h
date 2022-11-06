@@ -3,10 +3,10 @@
 #include "KRender/Interface/IKRenderScene.h"
 #include "KRender/Interface/IKStatistics.h"
 
-class IKRenderDispatcher
+class IKRenderer
 {
 public:
-	typedef std::function<void(IKRenderDispatcher*, uint32_t)> OnWindowRenderCallback;
+	typedef std::function<void(IKRenderer*, uint32_t)> OnWindowRenderCallback;
 	virtual IKRenderScene* GetScene() = 0;
 	virtual const KCamera* GetCamera() = 0;
 	virtual bool SetCameraCubeDisplay(bool display) = 0;

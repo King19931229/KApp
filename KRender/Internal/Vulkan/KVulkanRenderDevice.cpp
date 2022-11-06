@@ -1377,7 +1377,7 @@ bool KVulkanRenderDevice::Present()
 	uint32_t chainImageIndex = 0;
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->AcquireNextImage(chainImageIndex);
 
-	KRenderGlobal::RenderDispatcher.Update();
+	KRenderGlobal::Renderer.Update();
 
 	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -1390,15 +1390,15 @@ bool KVulkanRenderDevice::Present()
 	}
 	else
 	{
-		KRenderGlobal::RenderDispatcher.SetSwapChain(m_SwapChain.get(), m_UIOverlay.get());
+		KRenderGlobal::Renderer.SetSwapChain(m_SwapChain.get(), m_UIOverlay.get());
 
 		for (KDevicePresentCallback* callback : m_PrePresentCallback)
 		{
 			(*callback)(chainImageIndex, frameIndex);
 		}
 
-		KRenderGlobal::RenderDispatcher.Execute(chainImageIndex);
-		VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer().get())->GetVkHandle();
+		KRenderGlobal::Renderer.Execute(chainImageIndex);
+		VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::Renderer.GetPrimaryCommandBuffer().get())->GetVkHandle();
 		vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(chainImageIndex, primaryCommandBuffer);
 
 		for (KDevicePresentCallback* callback : m_PostPresentCallback)
@@ -1436,10 +1436,10 @@ bool KVulkanRenderDevice::Present()
 		}
 		else
 		{
-			KRenderGlobal::RenderDispatcher.SetSwapChain(secordarySwapChain, nullptr);
+			KRenderGlobal::Renderer.SetSwapChain(secordarySwapChain, nullptr);
 		
-			KRenderGlobal::RenderDispatcher.Execute(chainImageIndex);
-			VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::RenderDispatcher.GetPrimaryCommandBuffer().get())->GetVkHandle();
+			KRenderGlobal::Renderer.Execute(chainImageIndex);
+			VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::Renderer.GetPrimaryCommandBuffer().get())->GetVkHandle();
 			vkResult = ((KVulkanSwapChain*)secordarySwapChain)->PresentQueue(chainImageIndex, primaryCommandBuffer);
 
 			if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)

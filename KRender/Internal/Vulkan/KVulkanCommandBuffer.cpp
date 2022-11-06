@@ -613,6 +613,15 @@ bool KVulkanCommandBuffer::ResetQuery(IKQueryPtr query)
 }
 
 
+bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, ImageLayout oldLayout, ImageLayout newLayout)
+{
+	if (buf)
+	{
+		return buf->Translate(this, oldLayout, newLayout);
+	}
+	return false;
+}
+
 bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, ImageLayout layout)
 {
 	if(buf)

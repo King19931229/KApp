@@ -87,7 +87,7 @@ void KSkyBox::PreparePipeline()
 	pipeline->SetCullMode(CM_NONE);
 	pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 	pipeline->SetPolygonMode(PM_FILL);
-	pipeline->SetDepthFunc(CF_ALWAYS, false, false);
+	pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 	pipeline->SetShader(ST_VERTEX, m_VertexShader);
 	pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
 
@@ -167,7 +167,7 @@ bool KSkyBox::UnInit()
 	return true;
 }
 
-bool KSkyBox::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+bool KSkyBox::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
 	KRenderCommand command;
 	command.vertexData = &m_VertexData;
@@ -183,6 +183,6 @@ bool KSkyBox::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>
 	commandBuffer->Render(command);
 	commandBuffer->End();
 
-	buffers.push_back(commandBuffer);
+	primaryBuffer->Execute(commandBuffer);
 	return true;
 }

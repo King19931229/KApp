@@ -48,6 +48,7 @@ struct IKCommandBuffer
 	virtual bool EndQuery(IKQueryPtr query) = 0;
 	virtual bool ResetQuery(IKQueryPtr query) = 0;
 
+	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout layout) = 0;
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest) = 0;
 };

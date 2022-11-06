@@ -19,8 +19,10 @@ layout(location = 3) out vec4 RT3;
 
 void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, vec3 specularColor)
 {
-	vec4 clipPos = camera.viewProj * vec4(pos, 1.0);
-	float depth = clipPos.z / clipPos.w;
+	vec4 viewPos = camera.view * vec4(pos, 1.0);
+	float near = camera.proj[3][2] / camera.proj[2][2];
+	float far = -camera.proj[3][2] / (camera.proj[2][3] - camera.proj[2][2]);
+	float depth = (-viewPos.z - near) / (far - near);
 	RT0.xyz = normal;
 	RT0.w = depth;
 	RT1.xy = 0.5 * (motion + vec2(1.0));

@@ -18,7 +18,13 @@ void DecodeGBuffer(in vec2 uv, out vec3 worldPos, out vec3 worldNormal, out vec2
 	vec4 gbuffer2Data = texture(gbuffer2, uv);
 	vec4 gbuffer3Data = texture(gbuffer3, uv);
 
-	vec3 ndc = vec3(2.0 * uv - vec2(1.0), gbuffer0Data.w);
+	float near = camera.proj[3][2] / camera.proj[2][2];
+	float far = -camera.proj[3][2] / (camera.proj[2][3] - camera.proj[2][2]);
+
+	float z = -(near + gbuffer0Data.w * (far - near));
+	float depth = (z * camera.proj[2][2] + camera.proj[3][2]) / (z * camera.proj[2][3]);
+
+	vec3 ndc = vec3(2.0 * uv - vec2(1.0), depth);
 	vec4 worldPosH = camera.viewInv * camera.projInv * vec4(ndc, 1.0);
 
 	worldPos = worldPosH.xyz / worldPosH.w;

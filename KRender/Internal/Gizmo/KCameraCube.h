@@ -40,7 +40,6 @@ protected:
 	IKPipelinePtr m_PickPipeline;
 
 	IKCommandBufferPtr m_CommandBuffer;
-	IKCommandBufferPtr m_ClearCommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
 	// Buffer
@@ -231,5 +230,5 @@ public:
 	void OnMouseMove(unsigned int x, unsigned int y) override;
 	void OnMouseUp(unsigned int x, unsigned int y) override;
 
-	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 };

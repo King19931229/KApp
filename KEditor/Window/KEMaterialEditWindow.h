@@ -19,7 +19,7 @@ protected:
 
 	IKRenderScenePtr m_MiniScene;
 	KCamera m_MiniCamera;
-	IKRenderDispatcher::OnWindowRenderCallback m_OnRenderCallBack;
+	IKRenderer::OnWindowRenderCallback m_OnRenderCallBack;
 	IKEntityPtr m_PreviewEntity;
 	IKCameraPreviewControllerPtr m_CameraController;
 

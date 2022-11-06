@@ -37,6 +37,7 @@ protected:
 
 	std::vector<VkImageView> CreateMipmapImageViews(VkFormat format);
 	bool InitStorageInternal(VkFormat format, TextureType type, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
+	bool TranslateLayout(VkCommandBuffer cmdBuffer, VkImageLayout oldLayout, VkImageLayout newLayout);
 public:
 	KVulkanFrameBuffer();
 	~KVulkanFrameBuffer();
@@ -58,6 +59,7 @@ public:
 
 	bool UnInit();
 
+	bool Translate(IKCommandBuffer* cmd, ImageLayout oldLayout, ImageLayout newLayout) override;
 	bool Translate(IKCommandBuffer* cmd, ImageLayout layout) override;
 
 	uint32_t GetWidth() const override { return m_Width; }

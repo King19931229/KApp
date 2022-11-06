@@ -20,7 +20,7 @@
 #include "Internal/Shadow/KCascadedShadowMap.h"
 
 #include "Internal/Scene/KRenderScene.h"
-#include "Internal/Dispatcher/KRenderDispatcher.h"
+#include "Internal/Render/KRenderer.h"
 
 #include "Internal/KStatistics.h"
 #include "Internal/FrameGraph/KFrameGraph.h"
@@ -70,7 +70,7 @@ namespace KRenderGlobal
 	// TODO 多场景去掉全局场景
 	extern KRenderScene Scene;
 
-	extern KRenderDispatcher RenderDispatcher;
+	extern KRenderer Renderer;
 
 	extern KTaskExecutor<true> TaskExecutor;
 

@@ -116,13 +116,13 @@ bool KEMaterialEditWindow::Init()
 	m_PropertyDockWidget->setWidget(m_PropertyWidget);
 
 	IKRenderCore* renderCore = KEngineGlobal::Engine->GetRenderCore();
-	IKRenderDispatcher* renderer = renderCore->GetRenderDispatcher();
+	IKRenderer* renderer = renderCore->GetRenderer();
 	renderer->SetCallback(m_RenderWidget->GetRenderWindow(), &m_OnRenderCallBack);
 
 	m_MiniScene = CreateRenderScene();
 	m_MiniScene->Init(SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
 
-	m_OnRenderCallBack = [this](IKRenderDispatcher* dispatcher, uint32_t chainImageIndex)
+	m_OnRenderCallBack = [this](IKRenderer* dispatcher, uint32_t chainImageIndex)
 	{
 		m_CameraController->Update();
 		dispatcher->SetSceneCamera(m_MiniScene.get(), &m_MiniCamera);
@@ -151,7 +151,7 @@ bool KEMaterialEditWindow::UnInit()
 	if (m_RenderWidget)
 	{
 		IKRenderCore* renderCore = KEngineGlobal::Engine->GetRenderCore();
-		IKRenderDispatcher* renderer = renderCore->GetRenderDispatcher();
+		IKRenderer* renderer = renderCore->GetRenderer();
 		renderer->RemoveCallback(m_RenderWidget->GetRenderWindow());
 		m_RenderWidget->UnInit();
 	}

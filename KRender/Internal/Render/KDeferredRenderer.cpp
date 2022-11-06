@@ -4,17 +4,20 @@
 #include "Interface/IKRenderTarget.h"
 #include "Interface/IKStatistics.h"
 #include "Internal/KRenderGlobal.h"
-#include "Internal/Dispatcher/KRenderUtil.h"
+#include "Internal/Render/KRenderUtil.h"
+#include "Internal/ECS/Component/KDebugComponent.h"
 
-const KDeferredRenderStageDescription GDeferredRenderStageDescription[DRS_STAGE_COUNT] =
-{
-	{DRS_STAGE_PRE_PASS, PIPELINE_STAGE_PRE_Z, PIPELINE_STAGE_PRE_Z_INSTANCE, "PrePass"},
-	{DRS_STAGE_BASE_PASS, PIPELINE_STAGE_BASEPASS, PIPELINE_STAGE_BASEPASS_INSTANCE, "BasePass"},
-	{DRS_STAGE_DEFERRED_LIGHTING, PIPELINE_STAGE_UNKNOWN, PIPELINE_STAGE_UNKNOWN, "LightingPass"},
-	{DRS_STAGE_FORWARD_TRANSPRANT, PIPELINE_STAGE_TRANSPRANT, PIPELINE_STAGE_UNKNOWN, "TransprantPass"}
-};
+static_assert(GDeferredRenderStageDescription[DRS_STATE_SKY].stage == DRS_STATE_SKY, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_PRE_PASS].stage == DRS_STAGE_PRE_PASS, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_BASE_PASS].stage == DRS_STAGE_BASE_PASS, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_DEFERRED_LIGHTING].stage == DRS_STAGE_DEFERRED_LIGHTING, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_TRANSPRANT].stage == DRS_STAGE_FORWARD_TRANSPRANT, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_OPAQUE].stage == DRS_STAGE_FORWARD_OPAQUE, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].stage == DRS_STATE_DEBUG_OBJECT, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].stage == DRS_STATE_FOREGROUND, "check");
 
 KDeferredRenderer::KDeferredRenderer()
+	: m_Camera(nullptr)
 {
 }
 
@@ -35,15 +38,16 @@ void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t hei
 	renderDevice->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
 
-	for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
+	for (uint32_t i = 0; i < DRS_STAGE_COUNT; ++i)
 	{
 		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
 		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
 		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
 	}
 
-	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_LightingVS, false);
-	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/deferred.frag", m_LightingFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/deferred.frag", m_DeferredLightingFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/draw.frag", m_SceneColorDrawFS, false);
 
 	renderDevice->CreateRenderTarget(m_LightPassTarget);
 
@@ -55,13 +59,15 @@ void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t hei
 
 void KDeferredRenderer::UnInit()
 {
-	KRenderGlobal::ShaderManager.Release(m_LightingVS);
-	KRenderGlobal::ShaderManager.Release(m_LightingFS);
+	KRenderGlobal::ShaderManager.Release(m_QuadVS);
+	KRenderGlobal::ShaderManager.Release(m_DeferredLightingFS);
+	KRenderGlobal::ShaderManager.Release(m_SceneColorDrawFS);
 
 	SAFE_UNINIT(m_LightPassTarget);
 	SAFE_UNINIT(m_LightingPipeline);
+	SAFE_UNINIT(m_DrawFinalPipeline);
 
-	for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
+	for (uint32_t i = 0; i < DRS_STAGE_COUNT; ++i)
 	{
 		SAFE_UNINIT(m_CommandBuffers[i]);
 		SAFE_UNINIT(m_RenderPass[i]);
@@ -87,11 +93,21 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 
 		EnsureRenderPass(renderPass);
 
+		if (idx == DRS_STATE_SKY)
+		{
+			renderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
+			renderPass->SetOpColor(0, LO_LOAD, SO_STORE);
+			renderPass->SetDepthStencilAttachment(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer());
+			renderPass->SetOpDepthStencil(LO_LOAD, SO_STORE, LO_LOAD, SO_STORE);
+			ASSERT_RESULT(renderPass->Init());
+		}
+
 		if (idx == DRS_STAGE_BASE_PASS)
 		{
 			for (uint32_t gbuffer = GBUFFER_TARGET0; gbuffer < GBUFFER_TARGET_COUNT; ++gbuffer)
 			{
 				renderPass->SetColorAttachment(gbuffer, KRenderGlobal::GBuffer.GetGBufferTarget((GBufferTarget)gbuffer)->GetFrameBuffer());
+				renderPass->SetOpColor(0, LO_CLEAR, SO_STORE);
 				renderPass->SetClearColor(gbuffer, { 0.0f, 0.0f, 0.0f, 0.0f });
 			}
 			renderPass->SetDepthStencilAttachment(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer());
@@ -107,6 +123,25 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 			renderPass->SetOpDepthStencil(LO_CLEAR, SO_STORE, LO_CLEAR, SO_STORE);
 			ASSERT_RESULT(renderPass->Init());
 		}
+
+		if (idx == DRS_STAGE_FORWARD_TRANSPRANT || idx == DRS_STATE_DEBUG_OBJECT)
+		{
+			renderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
+			renderPass->SetOpColor(0, LO_LOAD, SO_STORE);
+			renderPass->SetDepthStencilAttachment(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer());
+			renderPass->SetOpDepthStencil(LO_LOAD, SO_STORE, LO_LOAD, SO_STORE);
+			ASSERT_RESULT(renderPass->Init());
+		}
+
+		if (idx == DRS_STATE_FOREGROUND)
+		{
+			renderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
+			renderPass->SetOpColor(0, LO_LOAD, SO_STORE);
+			renderPass->SetDepthStencilAttachment(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer());
+			renderPass->SetClearDepthStencil({ 1.0f, 0 });
+			renderPass->SetOpDepthStencil(LO_CLEAR, SO_STORE, LO_CLEAR, SO_STORE);
+			ASSERT_RESULT(renderPass->Init());
+		}
 	}
 }
 
@@ -118,57 +153,79 @@ void KDeferredRenderer::RecreatePipeline()
 		else ASSERT_RESULT(KRenderGlobal::RenderDevice->CreatePipeline(pipeline));
 	};
 
-	EnsurePipeline(m_LightingPipeline);
+	{
+		EnsurePipeline(m_LightingPipeline);
+		IKPipelinePtr& pipeline = m_LightingPipeline;
 
-	IKPipelinePtr& pipeline = m_LightingPipeline;
+		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
+		pipeline->SetShader(ST_VERTEX, m_QuadVS);
+		pipeline->SetShader(ST_FRAGMENT, m_DeferredLightingFS);
 
-	pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-	pipeline->SetShader(ST_VERTEX, m_LightingVS);
-	pipeline->SetShader(ST_FRAGMENT, m_LightingFS);
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-	pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-	pipeline->SetBlendEnable(false);
-	pipeline->SetCullMode(CM_NONE);
-	pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-	pipeline->SetPolygonMode(PM_FILL);
-	pipeline->SetColorWrite(true, true, true, true);
-	pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+		IKUniformBufferPtr voxelSVOBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_FRAGMENT, voxelSVOBuffer);
 
-	IKUniformBufferPtr voxelSVOBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
-	pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_FRAGMENT, voxelSVOBuffer);
+		IKUniformBufferPtr voxelClipmapBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
+		pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_FRAGMENT, voxelClipmapBuffer);
 
-	IKUniformBufferPtr voxelClipmapBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
-	pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_FRAGMENT, voxelClipmapBuffer);
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
-	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
-	pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+		IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
+		pipeline->SetConstantBuffer(CBT_GLOBAL, ST_VERTEX | ST_FRAGMENT, globalBuffer);
 
-	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
-	pipeline->SetConstantBuffer(CBT_GLOBAL, ST_VERTEX | ST_FRAGMENT, globalBuffer);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0,
+			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE1,
+			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE2,
+			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE3,
+			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
 
-	pipeline->SetSampler(SHADER_BINDING_TEXTURE0,
-		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
-		KRenderGlobal::GBuffer.GetSampler(),
-		true);
-	pipeline->SetSampler(SHADER_BINDING_TEXTURE1,
-		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(),
-		KRenderGlobal::GBuffer.GetSampler(),
-		true);
-	pipeline->SetSampler(SHADER_BINDING_TEXTURE2,
-		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(),
-		KRenderGlobal::GBuffer.GetSampler(),
-		true);
-	pipeline->SetSampler(SHADER_BINDING_TEXTURE3,
-		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(),
-		KRenderGlobal::GBuffer.GetSampler(),
-		true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE4,
+			KRenderGlobal::CascadedShadowMap.GetFinalMask()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
 
-	pipeline->SetSampler(SHADER_BINDING_TEXTURE4,
-		KRenderGlobal::CascadedShadowMap.GetFinalMask()->GetFrameBuffer(),
-		KRenderGlobal::GBuffer.GetSampler(),
-		true);
+		pipeline->Init();
+	}
 
-	pipeline->Init();
+	{
+		EnsurePipeline(m_DrawFinalPipeline);
+		IKPipelinePtr& pipeline = m_DrawFinalPipeline;
+
+		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
+		pipeline->SetShader(ST_VERTEX, m_QuadVS);
+		pipeline->SetShader(ST_FRAGMENT, m_SceneColorDrawFS);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_LightPassTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
+	
+		pipeline->Init();
+	}
 }
 
 void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, DeferredRenderStage renderStage)
@@ -323,6 +380,34 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 	}
 }
 
+void KDeferredRenderer::Foreground(IKCommandBufferPtr primaryBuffer, std::function<void(IKRenderPassPtr, IKCommandBufferPtr)> func)
+{
+	primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+
+	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].debugMakrer, glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_FOREGROUND], SUBPASS_CONTENTS_SECONDARY);
+
+	func(m_RenderPass[DRS_STATE_FOREGROUND], primaryBuffer);
+
+	primaryBuffer->EndRenderPass();
+	primaryBuffer->EndDebugMarker();
+}
+
+void KDeferredRenderer::SkyPass(IKCommandBufferPtr primaryBuffer)
+{
+	primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+
+	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_SKY].debugMakrer, glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_SKY], SUBPASS_CONTENTS_SECONDARY);
+
+	KRenderGlobal::SkyBox.Render(m_RenderPass[DRS_STATE_SKY], primaryBuffer);
+
+	primaryBuffer->EndRenderPass();
+	primaryBuffer->EndDebugMarker();
+}
+
 void KDeferredRenderer::PrePass(IKCommandBufferPtr primaryBuffer)
 {
 }
@@ -330,6 +415,124 @@ void KDeferredRenderer::PrePass(IKCommandBufferPtr primaryBuffer)
 void KDeferredRenderer::BasePass(IKCommandBufferPtr primaryBuffer)
 {
 	BuildRenderCommand(primaryBuffer, DRS_STAGE_BASE_PASS);
+}
+
+void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer)
+{
+}
+
+void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
+{
+	primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+
+	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].debugMakrer, glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_DEBUG_OBJECT], SUBPASS_CONTENTS_SECONDARY);
+
+	KRenderStageStatistics& statistics = m_Statistics[DRS_STATE_DEBUG_OBJECT];
+	statistics.Reset();
+
+	std::vector<KRenderComponent*> cullRes;
+	KRenderGlobal::Scene.GetRenderComponent(*m_Camera, KRenderGlobal::EnableDebugRender, cullRes);
+
+	std::vector<KRenderCommand> commands;
+
+	for (KRenderComponent* render : cullRes)
+	{
+		if (!render->IsOcclusionVisible())
+		{
+			continue;
+		}
+
+		IKEntity* entity = render->GetEntityHandle();
+
+		KTransformComponent* transform = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, &transform))
+		{
+			KDebugComponent* debug = nullptr;
+			if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
+			{
+				KConstantDefinition::DEBUG objectData;
+				objectData.MODEL = transform->FinalTransform();
+				objectData.COLOR = debug->Color();
+
+				render->Visit(PIPELINE_STAGE_DEBUG_TRIANGLE, [&](KRenderCommand& command)
+				{
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
+					command.objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+					++statistics.drawcalls;
+					if (command.indexDraw)
+					{
+						statistics.faces += command.indexData->indexCount / 3;
+						statistics.primtives += command.indexData->indexCount;
+					}
+					else
+					{
+						statistics.faces += command.vertexData->vertexCount / 3;
+						statistics.primtives += command.vertexData->vertexCount;
+					}
+
+					command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						commands.push_back(std::move(command));
+					}
+				});
+
+				render->Visit(PIPELINE_STAGE_DEBUG_LINE, [&](KRenderCommand& command)
+				{
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
+					command.objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+					++statistics.drawcalls;
+					if (command.indexDraw)
+					{
+						statistics.faces += command.indexData->indexCount / 2;
+						statistics.primtives += command.indexData->indexCount;
+					}
+					else
+					{
+						statistics.faces += command.vertexData->vertexCount / 2;
+						statistics.primtives += command.vertexData->vertexCount;
+					}
+
+					command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						commands.push_back(std::move(command));
+					}
+				});
+			}
+		}
+	}
+
+	IKCommandBufferPtr commandBuffer = m_CommandBuffers[DRS_STATE_DEBUG_OBJECT];
+
+	commandBuffer->BeginSecondary(m_RenderPass[DRS_STATE_DEBUG_OBJECT]);
+	commandBuffer->SetViewport(m_RenderPass[DRS_STATE_DEBUG_OBJECT]->GetViewPort());
+
+	for (KRenderCommand& command : commands)
+	{
+		IKPipelineHandlePtr handle = nullptr;
+		if (command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], handle))
+		{
+			commandBuffer->Render(command);
+		}
+	}
+
+	commandBuffer->End();
+
+	primaryBuffer->Execute(commandBuffer);
+
+	KRenderGlobal::Statistics.UpdateRenderStageStatistics(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].debugMakrer, statistics);
+
+	primaryBuffer->EndRenderPass();
+	primaryBuffer->EndDebugMarker();
 }
 
 void KDeferredRenderer::DeferredLighting(IKCommandBufferPtr primaryBuffer)
@@ -357,6 +560,13 @@ void KDeferredRenderer::DeferredLighting(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->EndDebugMarker();
 }
 
-void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer)
+void KDeferredRenderer::DrawFinalResult(IKRenderPassPtr renderPass, IKCommandBufferPtr buffer)
 {
+	KRenderCommand command;
+	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+	command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+	command.pipeline = m_DrawFinalPipeline;
+	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+	command.indexDraw = true;
+	buffer->Render(command);
 }
