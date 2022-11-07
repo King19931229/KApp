@@ -123,6 +123,8 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 			ASSERT_RESULT(renderPass->Init());
 
 			m_Master.UpdateRT(primaryBuffer, shadowTarget, renderPass, i, true);
+
+			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		updateStatic = false;
 	}
@@ -140,6 +142,8 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 			ASSERT_RESULT(renderPass->Init());
 
 			m_Master.UpdateRT(primaryBuffer, shadowTarget, renderPass, i, false);
+
+			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	}
 
@@ -220,6 +224,12 @@ bool KCascadedShadowMapReceiverPass::UnInit()
 		m_DynamicMaskID.Clear();
 	}
 
+	if (m_CombineMaskID.IsVaild())
+	{
+		KRenderGlobal::FrameGraph.Destroy(m_CombineMaskID);
+		m_CombineMaskID.Clear();
+	}
+
 	KRenderGlobal::FrameGraph.UnRegisterPass(this);
 	return true;
 }
@@ -268,6 +278,8 @@ bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 		ASSERT_RESULT(renderPass->Init());
 
 		m_Master.UpdateMask(primaryBuffer, true);
+
+		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	// Dynamic mask update
@@ -281,6 +293,8 @@ bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 		ASSERT_RESULT(renderPass->Init());
 
 		m_Master.UpdateMask(primaryBuffer, false);
+
+		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	// Mask combine
@@ -294,6 +308,8 @@ bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 		ASSERT_RESULT(renderPass->Init());
 
 		m_Master.CombineMask(primaryBuffer);
+
+		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	return true;

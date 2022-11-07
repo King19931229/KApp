@@ -73,3 +73,21 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 	}
 	return false;
 }
+
+bool KGBuffer::TranslateToShader(IKCommandBufferPtr buffer)
+{
+	for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
+	{
+		buffer->Translate(m_RenderTarget[i]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	}
+	return true;
+}
+
+bool KGBuffer::TranslateToAttachment(IKCommandBufferPtr buffer)
+{
+	for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
+	{
+		buffer->Translate(m_RenderTarget[i]->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	}
+	return true;
+}

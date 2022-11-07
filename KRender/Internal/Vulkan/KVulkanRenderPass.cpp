@@ -158,6 +158,9 @@ size_t KVulkanRenderPass::CalcAttachmentHash()
 		{
 			KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)m_ColorFrameBuffers[attachment].get();
 
+			hash ^= HashCompute(vulkanFrameBuffer->GetWidth());
+			hash ^= HashCompute(vulkanFrameBuffer->GetHeight());
+
 			hash ^= HashCompute(vulkanFrameBuffer->GetImage());
 			hash ^= HashCompute(vulkanFrameBuffer->GetImageView());
 			hash ^= HashCompute(vulkanFrameBuffer->GetMSAAImage());
@@ -174,6 +177,9 @@ size_t KVulkanRenderPass::CalcAttachmentHash()
 	if (m_DepthFrameBuffer)
 	{
 		KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)m_DepthFrameBuffer.get();
+
+		hash ^= HashCompute(vulkanFrameBuffer->GetWidth());
+		hash ^= HashCompute(vulkanFrameBuffer->GetHeight());
 
 		hash ^= HashCompute(vulkanFrameBuffer->GetImage());
 		hash ^= HashCompute(vulkanFrameBuffer->GetImageView());
@@ -251,8 +257,8 @@ bool KVulkanRenderPass::Init()
 
 #undef ASSERT_AND_RETURN
 
-			VkImageLayout color_0_finalLayout = m_ToSwapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			VkImageLayout color_x_finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			VkImageLayout color_0_finalLayout = m_ToSwapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			VkImageLayout color_x_finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 			bool massCreated = compareRef->GetMSAA() > 1;
 			bool depthStencilCreated = m_DepthFrameBuffer != nullptr;
@@ -332,7 +338,7 @@ bool KVulkanRenderPass::Init()
 				{
 					depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				}
-				depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+				depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 				descs.push_back(depthAttachment);
 				imageViews.push_back(vulkanFrameBuffer->GetImageView());
@@ -390,7 +396,7 @@ bool KVulkanRenderPass::Init()
 			subpass.pDepthStencilAttachment = depthStencilCreated ? &depthAttachmentRef : nullptr;
 			subpass.pResolveAttachments = massCreated ? &colorResolveRefs[0] : nullptr;
 
-			// 从属依赖
+			// subpass依赖
 			VkSubpassDependency dependencies[2] = {};
 
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;

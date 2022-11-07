@@ -77,4 +77,6 @@ public:
 	void Foreground(IKCommandBufferPtr primaryBuffer, std::function<void(IKRenderPassPtr, IKCommandBufferPtr)> func);
 
 	void DrawFinalResult(IKRenderPassPtr renderPass, IKCommandBufferPtr buffer);
+
+	inline IKRenderTargetPtr GetFinalSceneColor() { return m_LightPassTarget; }
 };

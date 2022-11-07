@@ -119,8 +119,8 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 		if (idx == DRS_STAGE_DEFERRED_LIGHTING)
 		{
 			renderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
-			renderPass->SetClearDepthStencil({ 1.0f, 0 });
-			renderPass->SetOpDepthStencil(LO_CLEAR, SO_STORE, LO_CLEAR, SO_STORE);
+			renderPass->SetOpColor(0, LO_CLEAR, SO_STORE);
+			renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 			ASSERT_RESULT(renderPass->Init());
 		}
 
@@ -382,9 +382,6 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 
 void KDeferredRenderer::Foreground(IKCommandBufferPtr primaryBuffer, std::function<void(IKRenderPassPtr, IKCommandBufferPtr)> func)
 {
-	primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT);
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
-
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].debugMakrer, glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_FOREGROUND], SUBPASS_CONTENTS_SECONDARY);
 
@@ -396,9 +393,6 @@ void KDeferredRenderer::Foreground(IKCommandBufferPtr primaryBuffer, std::functi
 
 void KDeferredRenderer::SkyPass(IKCommandBufferPtr primaryBuffer)
 {
-	primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT);
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
-
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_SKY].debugMakrer, glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_SKY], SUBPASS_CONTENTS_SECONDARY);
 
@@ -423,9 +417,6 @@ void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer)
 
 void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 {
-	primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT);
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
-
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].debugMakrer, glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_DEBUG_OBJECT], SUBPASS_CONTENTS_SECONDARY);
 

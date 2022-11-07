@@ -501,6 +501,8 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 			primaryCommandBuffer->Execute(commandBuffer);
 			primaryCommandBuffer->EndRenderPass();
 			primaryCommandBuffer->EndDebugMarker();
+
+			primaryCommandBuffer->Translate(pass->GetRenderTarget()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	});
 

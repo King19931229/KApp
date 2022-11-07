@@ -87,10 +87,14 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
 
+		KRenderGlobal::GBuffer.TranslateToShader(m_PrimaryBuffer);
+
 		KRenderGlobal::FrameGraph.Compile();
 		KRenderGlobal::FrameGraph.Execute(m_PrimaryBuffer, chainImageIndex);
-
 		KRenderGlobal::DeferredRenderer.DeferredLighting(m_PrimaryBuffer);
+
+		KRenderGlobal::GBuffer.TranslateToAttachment(m_PrimaryBuffer);
+
 		KRenderGlobal::DeferredRenderer.ForwardTransprant(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.DebugObject(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.SkyPass(m_PrimaryBuffer);
@@ -110,6 +114,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 		IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
 
+		m_PrimaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinalSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
 		m_PrimaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 		{
 			m_SecondaryBuffer->BeginSecondary(renderPass);
@@ -120,7 +126,9 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 			m_SecondaryBuffer->End();
 			m_PrimaryBuffer->Execute(m_SecondaryBuffer);
 		}
-		m_PrimaryBuffer->EndRenderPass();		
+		m_PrimaryBuffer->EndRenderPass();
+
+		m_PrimaryBuffer->Translate(offscreenTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	KRenderGlobal::PostProcessManager.Execute(chainImageIndex, m_SwapChain, m_UIOverlay, m_PrimaryBuffer);

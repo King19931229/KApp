@@ -257,7 +257,7 @@ bool KVulkanTexture::CopyFromFrameBuffer(IKFrameBufferPtr src, uint32_t faceInde
 			m_TextureFormat,
 			0, 1,
 			0, 1,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
 		KVulkanInitializer::TransitionImageLayout(m_TextureImage,
@@ -283,7 +283,7 @@ bool KVulkanTexture::CopyFromFrameBuffer(IKFrameBufferPtr src, uint32_t faceInde
 			0, 1,
 			0, 1,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 		KVulkanInitializer::TransitionImageLayout(m_TextureImage,
 			m_TextureFormat,

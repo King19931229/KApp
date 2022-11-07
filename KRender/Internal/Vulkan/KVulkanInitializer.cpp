@@ -505,7 +505,8 @@ namespace KVulkanInitializer
 
 		barrier.image = image;
 		
-		if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
+		if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL ||
+			oldLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL || oldLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
 		{
 			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 			if (KVulkanHelper::HasStencilComponent(format))
@@ -649,9 +650,9 @@ namespace KVulkanInitializer
 
 		vkCmdPipelineBarrier(
 			commandBuffer,
-			sourceStage, /* srcStageMask */
-			destinationStage, /* dstStageMask */
-			0, /* dependencyFlags 该参数为 0 或者 VK_DEPENDENCY_BY_REGION_BIT */
+			sourceStage,		/* srcStageMask */
+			destinationStage,	/* dstStageMask */
+			0,					/* dependencyFlags 该参数为 0 或者 VK_DEPENDENCY_BY_REGION_BIT */
 			0, nullptr,
 			0, nullptr,
 			1, &barrier
