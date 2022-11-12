@@ -101,26 +101,17 @@ bool KMaterialSubMesh::UnInit()
 {
 	m_pMaterial = nullptr;
 
-#define SAFE_RELEASE_SHADER(shader)\
-	if(shader)\
-	{\
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(shader));\
-		shader = nullptr;\
-	}
+	m_DebugVSShader.Release();
+	m_DebugFSShader.Release();
 
-	SAFE_RELEASE_SHADER(m_DebugVSShader);
-	SAFE_RELEASE_SHADER(m_DebugFSShader);
+	m_ShadowVSShader.Release();
+	m_ShadowFSShader.Release();
 
-	SAFE_RELEASE_SHADER(m_ShadowVSShader);
-	SAFE_RELEASE_SHADER(m_ShadowFSShader);
+	m_CascadedShadowStaticVSShader.Release();
+	m_CascadedShadowStaticVSShader.Release();
 
-	SAFE_RELEASE_SHADER(m_CascadedShadowStaticVSShader);
-	SAFE_RELEASE_SHADER(m_CascadedShadowStaticVSShader);
-
-	SAFE_RELEASE_SHADER(m_CascadedShadowDynamicVSShader);
-	SAFE_RELEASE_SHADER(m_CascadedShadowDynamicVSInstanceShader);
-
-#undef SAFE_RELEASE_SHADER
+	m_CascadedShadowDynamicVSShader.Release();
+	m_CascadedShadowDynamicVSInstanceShader.Release();
 
 	for (size_t i = 0; i < PIPELINE_STAGE_COUNT; ++i)
 	{
@@ -332,9 +323,9 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 
 		if (stage == PIPELINE_STAGE_VOXEL)
 		{
-			pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
-			pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
-			pipeline->SetShader(ST_FRAGMENT, m_VoxelFSShader);
+			pipeline->SetShader(ST_VERTEX, *m_VoxelVSShader);
+			pipeline->SetShader(ST_GEOMETRY, *m_VoxelGSShader);
+			pipeline->SetShader(ST_FRAGMENT, *m_VoxelFSShader);
 
 			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
 			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
@@ -346,9 +337,9 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 		}
 		else if(stage == PIPELINE_STAGE_SPARSE_VOXEL)
 		{
-			pipeline->SetShader(ST_VERTEX, m_VoxelVSShader);
-			pipeline->SetShader(ST_GEOMETRY, m_VoxelGSShader);
-			pipeline->SetShader(ST_FRAGMENT, m_VoxelSparseFSShader);
+			pipeline->SetShader(ST_VERTEX, *m_VoxelVSShader);
+			pipeline->SetShader(ST_GEOMETRY, *m_VoxelGSShader);
+			pipeline->SetShader(ST_FRAGMENT, *m_VoxelSparseFSShader);
 
 			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
 			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
@@ -360,9 +351,9 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 		}
 		else
 		{
-			pipeline->SetShader(ST_VERTEX, m_VoxelClipmapVSShader);
-			pipeline->SetShader(ST_GEOMETRY, m_VoxelClipmapGSShader);
-			pipeline->SetShader(ST_FRAGMENT, m_VoxelClipmapFSShader);
+			pipeline->SetShader(ST_VERTEX, *m_VoxelClipmapVSShader);
+			pipeline->SetShader(ST_GEOMETRY, *m_VoxelClipmapGSShader);
+			pipeline->SetShader(ST_FRAGMENT, *m_VoxelClipmapFSShader);
 
 			IKUniformBufferPtr voxelClipmapBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
 			pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelClipmapBuffer);
@@ -382,8 +373,18 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 
 			if (!texture || !sampler)
 			{
-				KRenderGlobal::TextureManager.GetErrorTexture(texture);
-				KRenderGlobal::TextureManager.GetErrorSampler(sampler);
+				KTextureRef errorTexture;
+				KRenderGlobal::TextureManager.GetErrorTexture(errorTexture);
+				texture = *errorTexture;
+
+				KSamplerRef errorSampler;
+				KSamplerDescription desc;
+				desc.minFilter = desc.magFilter = FM_LINEAR;
+				desc.minMipmap = 0;
+				desc.maxMipmap = texture->GetMipmaps() - 1;
+
+				KRenderGlobal::SamplerManager.Acquire(desc, errorSampler);
+				sampler = *errorSampler;
 			}
 
 			if (i == MTS_DIFFUSE)
@@ -419,8 +420,8 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 
 		pipeline->SetDepthBiasEnable(true);
 
-		pipeline->SetShader(ST_VERTEX, m_ShadowVSShader);
-		pipeline->SetShader(ST_FRAGMENT, m_ShadowFSShader);
+		pipeline->SetShader(ST_VERTEX, *m_ShadowVSShader);
+		pipeline->SetShader(ST_FRAGMENT, *m_ShadowFSShader);
 
 		IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_SHADOW);
 		pipeline->SetConstantBuffer(CBT_SHADOW, ST_VERTEX, shadowBuffer);
@@ -438,14 +439,14 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 		if (stage == PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN)
 		{
 			pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
-			pipeline->SetShader(ST_VERTEX, m_CascadedShadowStaticVSShader);
+			pipeline->SetShader(ST_VERTEX, *m_CascadedShadowStaticVSShader);
 			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_STATIC_CASCADED_SHADOW);
 			pipeline->SetConstantBuffer(CBT_STATIC_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
 		}
 		else if (stage == PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN)
 		{
 			pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
-			pipeline->SetShader(ST_VERTEX, m_CascadedShadowDynamicVSShader);
+			pipeline->SetShader(ST_VERTEX, *m_CascadedShadowDynamicVSShader);
 			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW);
 			pipeline->SetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
 		}
@@ -454,7 +455,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 			std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
 			instanceFormats.push_back(VF_INSTANCE);
 			pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
-			pipeline->SetShader(ST_VERTEX, m_CascadedShadowStaticVSInstanceShader);
+			pipeline->SetShader(ST_VERTEX, *m_CascadedShadowStaticVSInstanceShader);
 			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_STATIC_CASCADED_SHADOW);
 			pipeline->SetConstantBuffer(CBT_STATIC_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
 		}
@@ -463,7 +464,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 			std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
 			instanceFormats.push_back(VF_INSTANCE);
 			pipeline->SetVertexBinding(instanceFormats.data(), instanceFormats.size());
-			pipeline->SetShader(ST_VERTEX, m_CascadedShadowDynamicVSInstanceShader);
+			pipeline->SetShader(ST_VERTEX, *m_CascadedShadowDynamicVSInstanceShader);
 			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW);
 			pipeline->SetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW, ST_VERTEX, shadowBuffer);
 		}
@@ -477,7 +478,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		pipeline->SetDepthBiasEnable(true);
-		pipeline->SetShader(ST_FRAGMENT, m_ShadowFSShader);
+		pipeline->SetShader(ST_FRAGMENT, *m_ShadowFSShader);
 
 		ASSERT_RESULT(pipeline->Init());
 		return true;
@@ -499,8 +500,8 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 
 		pipeline->SetDepthBiasEnable(false);
 
-		pipeline->SetShader(ST_VERTEX, m_DebugVSShader);
-		pipeline->SetShader(ST_FRAGMENT, m_DebugFSShader);
+		pipeline->SetShader(ST_VERTEX, *m_DebugVSShader);
+		pipeline->SetShader(ST_FRAGMENT, *m_DebugFSShader);
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
@@ -525,8 +526,8 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 
 		pipeline->SetDepthBiasEnable(false);
 
-		pipeline->SetShader(ST_VERTEX, m_DebugVSShader);
-		pipeline->SetShader(ST_FRAGMENT, m_DebugFSShader);
+		pipeline->SetShader(ST_VERTEX, *m_DebugVSShader);
+		pipeline->SetShader(ST_FRAGMENT, *m_DebugFSShader);
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);

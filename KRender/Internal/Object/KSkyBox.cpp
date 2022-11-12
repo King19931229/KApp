@@ -66,7 +66,7 @@ void KSkyBox::LoadResource(const char* cubeTexPath)
 	ASSERT_RESULT(KRenderGlobal::TextureManager.Acquire(cubeTexPath, m_CubeTexture, false));
 
 	m_CubeSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	m_CubeSampler->Init(m_CubeTexture, false);
+	m_CubeSampler->Init(*m_CubeTexture, false);
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/cube.vert", m_VertexShader, false));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/cube.frag", m_FragmentShader, false));
@@ -88,14 +88,14 @@ void KSkyBox::PreparePipeline()
 	pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 	pipeline->SetPolygonMode(PM_FILL);
 	pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
-	pipeline->SetShader(ST_VERTEX, m_VertexShader);
-	pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+	pipeline->SetShader(ST_VERTEX, *m_VertexShader);
+	pipeline->SetShader(ST_FRAGMENT, *m_FragmentShader);
 
 	//IKUniformBufferPtr objectBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_OBJECT);
 	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 
 	pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX, cameraBuffer);
-	pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_CubeTexture->GetFrameBuffer(), m_CubeSampler);
+	pipeline->SetSampler(SHADER_BINDING_TEXTURE0, (*m_CubeTexture)->GetFrameBuffer(), m_CubeSampler);
 
 	ASSERT_RESULT(pipeline->Init());
 }
@@ -145,18 +145,10 @@ bool KSkyBox::UnInit()
 	SAFE_UNINIT(m_VertexBuffer);
 	SAFE_UNINIT(m_IndexBuffer);
 
-	if (m_VertexShader)
-	{
-		KRenderGlobal::ShaderManager.Release(m_VertexShader);
-	}
-	if (m_FragmentShader)
-	{
-		KRenderGlobal::ShaderManager.Release(m_FragmentShader);
-	}
-	if (m_CubeTexture)
-	{
-		KRenderGlobal::TextureManager.Release(m_CubeTexture);
-	}
+	m_VertexShader.Release();
+	m_FragmentShader.Release();
+
+	m_CubeTexture.Release();
 
 	SAFE_UNINIT(m_CubeSampler);
 	SAFE_UNINIT(m_CommandPool);

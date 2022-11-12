@@ -164,11 +164,11 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 		VkWriteDescriptorSet sceneWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&sceneBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_Descriptor.sets[frameIndex], RAYTRACE_BINDING_SCENE);
 
 		// Keep VK happy
-		IKSamplerPtr errorSampler; ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorSampler(errorSampler));
-		IKTexturePtr errorTexture; ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorTexture(errorTexture));
+		KSamplerRef errorSampler; ASSERT_RESULT(KRenderGlobal::SamplerManager.GetErrorSampler(errorSampler));
+		KTextureRef errorTexture; ASSERT_RESULT(KRenderGlobal::TextureManager.GetErrorTexture(errorTexture));
 		VkDescriptorImageInfo emptyImageInfo = KVulkanInitializer::CreateDescriptorImageInfo(
-			((KVulkanSampler*)errorSampler.get())->GetVkSampler(),
-			((KVulkanTexture*)errorTexture.get())->GetImageView(),
+			((KVulkanSampler*)(*errorSampler).get())->GetVkSampler(),
+			((KVulkanTexture*)(*errorTexture).get())->GetImageView(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		);
 		VkWriteDescriptorSet textureWrite = KVulkanInitializer::CreateDescriptorImageWrite(textures.size() ? textures.data() : &emptyImageInfo,
@@ -296,7 +296,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 
 	ASSERT_RESULT(m_RayGenShader.shader && "ray gen shader should always exists");
 	{
-		shaderStages.push_back(PopulateShaderCreateInfo(m_RayGenShader.shader, VK_SHADER_STAGE_RAYGEN_BIT_KHR));
+		shaderStages.push_back(PopulateShaderCreateInfo(*m_RayGenShader.shader, VK_SHADER_STAGE_RAYGEN_BIT_KHR));
 		shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
 		shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
 		shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
@@ -307,7 +307,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 
 	if (m_MissShader.shader)
 	{
-		shaderStages.push_back(PopulateShaderCreateInfo(m_MissShader.shader, VK_SHADER_STAGE_MISS_BIT_KHR));
+		shaderStages.push_back(PopulateShaderCreateInfo(*m_MissShader.shader, VK_SHADER_STAGE_MISS_BIT_KHR));
 		shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
 		shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
 		shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
@@ -318,7 +318,7 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 
 	if (m_ClosestHitShader.shader)
 	{
-		shaderStages.push_back(PopulateShaderCreateInfo(m_ClosestHitShader.shader, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR));
+		shaderStages.push_back(PopulateShaderCreateInfo(*m_ClosestHitShader.shader, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR));
 		shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
 		shaderGroup.generalShader = VK_SHADER_UNUSED_KHR;
 		shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;
@@ -577,29 +577,20 @@ void KVulkanRayTracePipeline::CreateShader()
 
 void KVulkanRayTracePipeline::DestroyShader()
 {
-	auto ReleaseShader = [](ShaderInfo& shaderInfo)
-	{
-		if (shaderInfo.shader)
-		{
-			KRenderGlobal::ShaderManager.Release(shaderInfo.shader);
-			shaderInfo.shader = nullptr;
-		}
-	};
-
-	ReleaseShader(m_AnyHitShader);
-	ReleaseShader(m_ClosestHitShader);
-	ReleaseShader(m_RayGenShader);
-	ReleaseShader(m_MissShader);
+	m_AnyHitShader.shader.Release();
+	m_ClosestHitShader.shader.Release();
+	m_RayGenShader.shader.Release();
+	m_MissShader.shader.Release();
 }
 
 bool KVulkanRayTracePipeline::ReloadShader()
 {
 	if (m_AnyHitShader.shader|| m_ClosestHitShader.shader || m_RayGenShader.shader || m_MissShader.shader)
 	{
-		if (m_AnyHitShader.shader) m_AnyHitShader.shader->Reload();
-		if (m_ClosestHitShader.shader) m_ClosestHitShader.shader->Reload();
-		if (m_RayGenShader.shader) m_RayGenShader.shader->Reload();
-		if (m_MissShader.shader) m_MissShader.shader->Reload();
+		if (m_AnyHitShader.shader) (*m_AnyHitShader.shader)->Reload();
+		if (m_ClosestHitShader.shader) (*m_ClosestHitShader.shader)->Reload();
+		if (m_RayGenShader.shader) (*m_RayGenShader.shader)->Reload();
+		if (m_MissShader.shader) (*m_MissShader.shader)->Reload();
 
 		DestroyShaderBindingTables();
 		CreateShaderBindingTables();

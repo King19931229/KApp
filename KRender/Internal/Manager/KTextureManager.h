@@ -1,23 +1,17 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKTexture.h"
-#include "Interface/IKSampler.h"
-
 #include <unordered_map>
 
 class KTextureManager
 {
 protected:
-	struct TextureUsingInfo
-	{
-		size_t useCount;
-		IKTexturePtr texture;
-	};
-	typedef std::unordered_map<std::string, TextureUsingInfo> TextureMap;
-	IKTexturePtr m_ErrorTexture;
-	IKSamplerPtr m_ErrorSampler;
+	typedef std::unordered_map<std::string, KTextureRef> TextureMap;
 	TextureMap m_Textures;
+	KTextureRef m_ErrorTexture;
 	IKRenderDevice* m_Device;
+
+	bool Release(IKTexturePtr& texture);
 public:
 	KTextureManager();
 	~KTextureManager();
@@ -25,12 +19,6 @@ public:
 	bool Init(IKRenderDevice* device);
 	bool UnInit();
 
-	bool Acquire(const char* path, IKTexturePtr& texture, bool async);
-	bool Release(IKTexturePtr& texture);
-	bool GetErrorTexture(IKTexturePtr& texture);
-
-	// for now
-	bool CreateSampler(IKSamplerPtr& sampler);
-	bool DestroySampler(IKSamplerPtr& sampler);
-	bool GetErrorSampler(IKSamplerPtr& sampler);
+	bool Acquire(const char* path, KTextureRef& ref, bool async);
+	bool GetErrorTexture(KTextureRef& ref);
 };

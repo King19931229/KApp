@@ -83,13 +83,8 @@ protected:
 
 	struct ShaderInfo
 	{
-		IKShaderPtr shader;
+		KShaderRef shader;
 		std::string path;
-
-		ShaderInfo()
-		{
-			shader = nullptr;
-		}
 	};
 
 	ShaderInfo m_AnyHitShader;

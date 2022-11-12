@@ -41,8 +41,8 @@ KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInF
 
 KPostProcessPass::~KPostProcessPass()
 {
-	assert(m_VSShader == nullptr);
-	assert(m_FSShader == nullptr);
+	assert(!m_VSShader);
+	assert(!m_FSShader);
 	assert(m_RenderTarget == nullptr);
 	assert(m_CommandBuffer == nullptr);
 
@@ -136,8 +136,8 @@ bool KPostProcessPass::Init()
 
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
-			pipeline->SetShader(ST_VERTEX, m_VSShader);
-			pipeline->SetShader(ST_FRAGMENT, m_FSShader);
+			pipeline->SetShader(ST_VERTEX, *m_VSShader);
+			pipeline->SetShader(ST_FRAGMENT, *m_FSShader);
 
 			pipeline->SetBlendEnable(false);
 
@@ -218,8 +218,8 @@ bool KPostProcessPass::Init()
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 
-		pipeline->SetShader(ST_VERTEX, m_Mgr->m_ScreenDrawVS);
-		pipeline->SetShader(ST_FRAGMENT, m_Mgr->m_ScreenDrawFS);
+		pipeline->SetShader(ST_VERTEX, *m_Mgr->m_ScreenDrawVS);
+		pipeline->SetShader(ST_FRAGMENT, *m_Mgr->m_ScreenDrawFS);
 
 		pipeline->SetBlendEnable(false);
 
@@ -239,17 +239,8 @@ bool KPostProcessPass::Init()
 
 bool KPostProcessPass::UnInit()
 {
-	if(m_VSShader)
-	{
-		KRenderGlobal::ShaderManager.Release(m_VSShader);
-		m_VSShader = nullptr;
-	}
-
-	if(m_FSShader)
-	{
-		KRenderGlobal::ShaderManager.Release(m_FSShader);
-		m_FSShader = nullptr;
-	}
+	m_VSShader.Release();
+	m_FSShader.Release();
 
 	for (auto& input : m_InputConnection)
 	{

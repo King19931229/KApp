@@ -130,15 +130,15 @@ void KVoxilzer::UpdateVoxel()
 
 void KVoxilzer::ReloadShader()
 {
-	m_VoxelDrawVS->Reload();
-	m_VoxelDrawOctreeVS->Reload();
-	m_VoxelDrawGS->Reload();
-	m_VoxelWireFrameDrawGS->Reload();
-	m_VoxelDrawFS->Reload();
-	m_QuadVS->Reload();
-	m_LightPassFS->Reload();
-	m_LightPassOctreeFS->Reload();
-	m_OctreeRayTestFS->Reload();
+	(*m_VoxelDrawVS)->Reload();
+	(*m_VoxelDrawOctreeVS)->Reload();
+	(*m_VoxelDrawGS)->Reload();
+	(*m_VoxelWireFrameDrawGS)->Reload();
+	(*m_VoxelDrawFS)->Reload();
+	(*m_QuadVS)->Reload();
+	(*m_LightPassFS)->Reload();
+	(*m_LightPassOctreeFS)->Reload();
+	(*m_OctreeRayTestFS)->Reload();
 
 	if (m_VoxelUseOctree)
 	{
@@ -465,7 +465,7 @@ void KVoxilzer::SetupVoxelDrawPipeline()
 		{
 			IKPipelinePtr pipeline = *pPipeline;
 
-			pipeline->SetShader(ST_VERTEX, m_VoxelUseOctree ? m_VoxelDrawOctreeVS :	m_VoxelDrawVS);
+			pipeline->SetShader(ST_VERTEX, m_VoxelUseOctree ? *m_VoxelDrawOctreeVS : *m_VoxelDrawVS);
 
 			pipeline->SetPrimitiveTopology(PT_POINT_LIST);
 			pipeline->SetBlendEnable(false);
@@ -475,8 +475,8 @@ void KVoxilzer::SetupVoxelDrawPipeline()
 			pipeline->SetColorWrite(true, true, true, true);
 			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-			pipeline->SetShader(ST_GEOMETRY, idx == 0 ? m_VoxelDrawGS : m_VoxelWireFrameDrawGS);
-			pipeline->SetShader(ST_FRAGMENT, m_VoxelDrawFS);
+			pipeline->SetShader(ST_GEOMETRY, idx == 0 ? *m_VoxelDrawGS : *m_VoxelWireFrameDrawGS);
+			pipeline->SetShader(ST_FRAGMENT, *m_VoxelDrawFS);
 
 			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
 			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
@@ -713,15 +713,15 @@ void KVoxilzer::SetupLightPassPipeline()
 	IKPipelinePtr& pipeline = m_VoxelUseOctree ? m_LightPassOctreePipeline : m_LightPassPipeline;
 
 	pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-	pipeline->SetShader(ST_VERTEX, m_QuadVS);
+	pipeline->SetShader(ST_VERTEX, *m_QuadVS);
 
 	if (m_VoxelUseOctree)
 	{
-		pipeline->SetShader(ST_FRAGMENT, m_LightPassOctreeFS);
+		pipeline->SetShader(ST_FRAGMENT, *m_LightPassOctreeFS);
 	}
 	else
 	{
-		pipeline->SetShader(ST_FRAGMENT, m_LightPassFS);
+		pipeline->SetShader(ST_FRAGMENT, *m_LightPassFS);
 	}
 
 	pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
@@ -784,8 +784,8 @@ void KVoxilzer::SetupRayTestPipeline(uint32_t width, uint32_t height)
 		IKPipelinePtr& pipeline = m_OctreeRayTestPipeline;
 
 		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-		pipeline->SetShader(ST_VERTEX, m_QuadVS);
-		pipeline->SetShader(ST_FRAGMENT, m_OctreeRayTestFS);
+		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
+		pipeline->SetShader(ST_FRAGMENT, *m_OctreeRayTestFS);
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
@@ -1554,14 +1554,10 @@ bool KVoxilzer::UnInit()
 	m_LightDebugDrawer.UnInit();
 	m_OctreeRayTestDebugDrawer.UnInit();
 
-	KRenderGlobal::ShaderManager.Release(m_QuadVS);
-	m_QuadVS = nullptr;
-	KRenderGlobal::ShaderManager.Release(m_LightPassFS);
-	m_LightPassFS = nullptr;
-	KRenderGlobal::ShaderManager.Release(m_LightPassOctreeFS);
-	m_LightPassOctreeFS = nullptr;
-	KRenderGlobal::ShaderManager.Release(m_OctreeRayTestFS);
-	m_OctreeRayTestFS = nullptr;
+	m_QuadVS.Release();
+	m_LightPassFS.Release();
+	m_LightPassOctreeFS.Release();
+	m_OctreeRayTestFS.Release();
 
 	SAFE_UNINIT(m_LightPassTarget);
 	SAFE_UNINIT(m_LightPassRenderPass);
@@ -1593,10 +1589,11 @@ bool KVoxilzer::UnInit()
 	SAFE_UNINIT(m_OctreeMipmapBasePipeline);
 	SAFE_UNINIT(m_OctreeMipmapVolumePipeline);
 
-	SAFE_UNINIT(m_VoxelDrawVS);
-	SAFE_UNINIT(m_VoxelDrawOctreeVS);
-	SAFE_UNINIT(m_VoxelDrawGS);
-	SAFE_UNINIT(m_VoxelDrawFS);
+	m_VoxelDrawVS.Release();
+	m_VoxelDrawOctreeVS.Release();
+	m_VoxelDrawGS.Release();
+	m_VoxelWireFrameDrawGS.Release();
+	m_VoxelDrawFS.Release();
 
 	SAFE_UNINIT(m_VoxelRenderPass);
 	SAFE_UNINIT(m_VoxelRenderPassTarget);

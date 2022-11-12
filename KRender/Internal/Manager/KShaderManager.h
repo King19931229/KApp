@@ -21,12 +21,7 @@ struct KShaderCompileEnvironment
 class KShaderManager
 {
 protected:
-	struct ShaderVariantionUsingInfo
-	{
-		size_t useCount;
-		IKShaderPtr shader;
-	};
-	typedef std::unordered_map<size_t, ShaderVariantionUsingInfo> ShaderVariantionMap;
+	typedef std::unordered_map<size_t, KShaderRef> ShaderVariantionMap;
 	typedef std::unordered_map<std::string, ShaderVariantionMap> ShaderMap;
 
 	ShaderMap m_Shaders;
@@ -35,7 +30,8 @@ protected:
 	IKRenderDevice* m_Device;
 
 	size_t CalcVariantionHash(const KShaderCompileEnvironment& env);
-	bool AcquireImpl(ShaderType type, const char* path, const KShaderCompileEnvironment& env, IKShaderPtr& shader, bool async);
+	bool AcquireByEnvironment(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async);
+	bool Release(IKShaderPtr& shader);
 public:
 	KShaderManager();
 	~KShaderManager();
@@ -45,9 +41,8 @@ public:
 
 	bool Reload();
 
-	bool Acquire(ShaderType type, const char* path, IKShaderPtr& shader, bool async);
-	bool Acquire(ShaderType type, const char* path, const KShaderCompileEnvironment& env, IKShaderPtr& shader, bool async);
-	bool Release(IKShaderPtr& shader);
+	bool Acquire(ShaderType type, const char* path, KShaderRef& shader, bool async);
+	bool Acquire(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async);
 
 	inline KSpirvBuiltInResource* GetSpirVBuildInResource() { return &m_SpirVBuiltIn; }
 };

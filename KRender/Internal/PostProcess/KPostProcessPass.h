@@ -34,8 +34,8 @@ protected:
 	std::string m_VSFile;
 	std::string m_FSFile;
 
-	IKShaderPtr m_VSShader;
-	IKShaderPtr m_FSShader;
+	KShaderRef m_VSShader;
+	KShaderRef m_FSShader;
 
 	PostProcessStage m_Stage;
 	bool m_bInit;

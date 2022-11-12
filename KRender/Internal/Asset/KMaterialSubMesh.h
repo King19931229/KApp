@@ -17,26 +17,26 @@ protected:
 
 	IKPipelinePtr			m_Pipelines[PIPELINE_STAGE_COUNT];
 
-	IKShaderPtr				m_DebugVSShader;
-	IKShaderPtr				m_DebugFSShader;
+	KShaderRef				m_DebugVSShader;
+	KShaderRef				m_DebugFSShader;
 
-	IKShaderPtr				m_ShadowVSShader;
-	IKShaderPtr				m_ShadowFSShader;
+	KShaderRef				m_ShadowVSShader;
+	KShaderRef				m_ShadowFSShader;
 
-	IKShaderPtr				m_CascadedShadowStaticVSShader;
-	IKShaderPtr				m_CascadedShadowStaticVSInstanceShader;
+	KShaderRef				m_CascadedShadowStaticVSShader;
+	KShaderRef				m_CascadedShadowStaticVSInstanceShader;
 
-	IKShaderPtr				m_CascadedShadowDynamicVSShader;
-	IKShaderPtr				m_CascadedShadowDynamicVSInstanceShader;
+	KShaderRef				m_CascadedShadowDynamicVSShader;
+	KShaderRef				m_CascadedShadowDynamicVSInstanceShader;
 
-	IKShaderPtr				m_VoxelVSShader;
-	IKShaderPtr				m_VoxelGSShader;
-	IKShaderPtr				m_VoxelFSShader;
-	IKShaderPtr				m_VoxelSparseFSShader;
+	KShaderRef				m_VoxelVSShader;
+	KShaderRef				m_VoxelGSShader;
+	KShaderRef				m_VoxelFSShader;
+	KShaderRef				m_VoxelSparseFSShader;
 
-	IKShaderPtr				m_VoxelClipmapVSShader;
-	IKShaderPtr				m_VoxelClipmapGSShader;
-	IKShaderPtr				m_VoxelClipmapFSShader;
+	KShaderRef				m_VoxelClipmapVSShader;
+	KShaderRef				m_VoxelClipmapGSShader;
+	KShaderRef				m_VoxelClipmapFSShader;
 
 	// TODO 合并到同一个Shader里实现
 	KShaderMap				m_MaterialShaderMap;

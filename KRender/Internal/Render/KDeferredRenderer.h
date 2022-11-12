@@ -50,9 +50,9 @@ protected:
 	IKPipelinePtr m_LightingPipeline;
 	IKPipelinePtr m_DrawFinalPipeline;
 
-	IKShaderPtr m_QuadVS;
-	IKShaderPtr m_DeferredLightingFS;
-	IKShaderPtr m_SceneColorDrawFS;
+	KShaderRef m_QuadVS;
+	KShaderRef m_DeferredLightingFS;
+	KShaderRef m_SceneColorDrawFS;
 
 	const KCamera* m_Camera;
 

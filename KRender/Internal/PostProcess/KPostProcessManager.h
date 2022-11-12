@@ -40,8 +40,8 @@ protected:
 	IKVertexBufferPtr m_SharedVertexBuffer;
 	IKIndexBufferPtr m_SharedIndexBuffer;
 
-	IKShaderPtr m_ScreenDrawVS;
-	IKShaderPtr m_ScreenDrawFS;
+	KShaderRef m_ScreenDrawVS;
+	KShaderRef m_ScreenDrawFS;
 
 	IKSamplerPtr m_Sampler;
 	bool m_bConstructed;

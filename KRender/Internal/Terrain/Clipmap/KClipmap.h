@@ -101,8 +101,8 @@ protected:
 	static KVertexData ms_UpdateVertexData;
 	static KIndexData ms_UpdateIndexData;
 	static IKSamplerPtr ms_Sampler;
-	static IKShaderPtr ms_UpdateVS;
-	static IKShaderPtr ms_UpdateFS;
+	static KShaderRef ms_UpdateVS;
+	static KShaderRef ms_UpdateFS;
 
 	IKTexturePtr m_UpdateTextures[4];
 	IKPipelinePtr m_UpdatePipelines[4];
@@ -198,8 +198,8 @@ protected:
 	std::vector<KClipmapLevelPtr> m_ClipLevels;
 	std::vector<IKPipelinePtr> m_ClipLevelPipelines;
 
-	IKShaderPtr m_VSShader;
-	IKShaderPtr m_FSShader;
+	KShaderRef m_VSShader;
+	KShaderRef m_FSShader;
 	IKSamplerPtr m_Sampler;
 	IKSamplerPtr m_MipmapSampler;
 

@@ -17,8 +17,7 @@ RTTR_REGISTRATION
 }
 
 KRenderComponent::KRenderComponent()
-	: m_Mesh(nullptr),
-	m_Type(UNKNOWN),
+	: m_Type(UNKNOWN),
 	m_DebugUtility(nullptr),
 	m_HostVisible(true),
 	m_UseMaterialTexture(false),
@@ -107,7 +106,7 @@ bool KRenderComponent::GetLocalBound(KAABBBox& bound) const
 {
 	if (m_Mesh)
 	{
-		bound = m_Mesh->GetLocalBound();
+		bound = (*m_Mesh)->GetLocalBound();
 		return true;
 	}
 	return false;
@@ -117,7 +116,7 @@ bool KRenderComponent::Pick(const glm::vec3& localOrigin, const glm::vec3& local
 {
 	if (m_Mesh)
 	{
-		const KTriangleMesh& triangleMesh = m_Mesh->GetTriangleMesh();
+		const KTriangleMesh& triangleMesh = (*m_Mesh)->GetTriangleMesh();
 		if (triangleMesh.CloestPickPoint(localOrigin, localDir, result))
 		{
 			return true;
@@ -130,7 +129,7 @@ bool KRenderComponent::CloestPick(const glm::vec3& localOrigin, const glm::vec3&
 {
 	if (m_Mesh)
 	{
-		const KTriangleMesh& triangleMesh = m_Mesh->GetTriangleMesh();
+		const KTriangleMesh& triangleMesh = (*m_Mesh)->GetTriangleMesh();
 		if (triangleMesh.Pick(localOrigin, localDir, result))
 		{
 			return true;
@@ -211,7 +210,7 @@ bool KRenderComponent::SaveAsMesh(const char* path) const
 {
 	if (m_Type == EXTERNAL_ASSET || m_Type == INTERNAL_MESH)
 	{
-		return m_Mesh->SaveAsFile(path);
+		return (*m_Mesh)->SaveAsFile(path);
 	}
 	return false;
 }
@@ -254,7 +253,7 @@ bool KRenderComponent::Init(bool async)
 				KRenderGlobal::MaterialManager.GetMissingMaterial(m_Material);
 			}
 
-			const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
+			const std::vector<KSubMeshPtr>& subMeshes = (*m_Mesh)->GetSubMeshes();
 			m_MaterialSubMeshes.reserve(subMeshes.size());
 			for (KSubMeshPtr subMesh : subMeshes)
 			{
@@ -272,7 +271,7 @@ bool KRenderComponent::Init(bool async)
 	{
 		if (KRenderGlobal::MeshManager.AcquireAsUtility(m_DebugUtility, m_Mesh))
 		{
-			const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
+			const std::vector<KSubMeshPtr>& subMeshes = (*m_Mesh)->GetSubMeshes();
 			m_MaterialSubMeshes.reserve(subMeshes.size());
 			for (KSubMeshPtr subMesh : subMeshes)
 			{
@@ -294,8 +293,7 @@ bool KRenderComponent::UnInit()
 	m_MaterialSubMeshes.clear();
 	if (m_Mesh)
 	{
-		KRenderGlobal::MeshManager.Release(m_Mesh);
-		m_Mesh = nullptr;
+		m_Mesh.Release();
 	}
 	if (m_Material)
 	{
@@ -318,7 +316,7 @@ bool KRenderComponent::InitUtility(const KMeshUtilityInfoPtr& info)
 	m_DebugUtility = info;
 	if (KRenderGlobal::MeshManager.AcquireAsUtility(info, m_Mesh))
 	{
-		const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
+		const std::vector<KSubMeshPtr>& subMeshes = (*m_Mesh)->GetSubMeshes();
 		m_MaterialSubMeshes.reserve(subMeshes.size());
 		for (KSubMeshPtr subMesh : subMeshes)
 		{
@@ -352,7 +350,7 @@ bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStr
 {
 	if (m_Mesh)
 	{
-		return m_Mesh->GetAllAccelerationStructure(as);
+		return (*m_Mesh)->GetAllAccelerationStructure(as);
 	}
 	return false;
 }

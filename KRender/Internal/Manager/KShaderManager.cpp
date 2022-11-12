@@ -152,15 +152,13 @@ bool KShaderManager::Init(IKRenderDevice* device)
 
 bool KShaderManager::UnInit()
 {
-	// ASSERT_RESULT(m_Shaders.empty());
 	for (auto it = m_Shaders.begin(), itEnd = m_Shaders.end(); it != itEnd; ++it)
 	{
 		ShaderVariantionMap& variantionMap = it->second;
-		for (auto itVar = variantionMap.begin(), itVarEnd = variantionMap.end();
-			itVar != itVarEnd; ++itVar)
+		for (auto it = variantionMap.begin(), itEnd = variantionMap.end(); it != itEnd; ++it)
 		{
-			assert(itVar->second.shader);
-			SAFE_UNINIT(itVar->second.shader);
+			KShaderRef& ref = it->second;
+			ASSERT_RESULT(ref.GetRefCount() == 1);
 		}
 		variantionMap.clear();
 	}
@@ -174,17 +172,16 @@ bool KShaderManager::Reload()
 	for (auto it = m_Shaders.begin(), itEnd = m_Shaders.end(); it != itEnd; ++it)
 	{
 		ShaderVariantionMap& variantionMap = it->second;
-		for (auto itVar = variantionMap.begin(), itVarEnd = variantionMap.end();
-			itVar != itVarEnd; ++itVar)
+		for (auto it = variantionMap.begin(), itEnd = variantionMap.end(); it != itEnd; ++it)
 		{
-			assert(itVar->second.shader);
-			itVar->second.shader->Reload();
+			KShaderRef& ref = it->second;
+			ASSERT_RESULT((*ref)->Reload());
 		}
 	}
 	return true;
 }
 
-bool KShaderManager::AcquireImpl(ShaderType type, const char* path, const KShaderCompileEnvironment& env, IKShaderPtr& shader, bool async)
+bool KShaderManager::AcquireByEnvironment(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async)
 {
 	auto it = m_Shaders.find(path);
 	if (it == m_Shaders.end())
@@ -198,88 +195,54 @@ bool KShaderManager::AcquireImpl(ShaderType type, const char* path, const KShade
 	auto itVar = variantionMap.find(hash);
 	if (itVar == variantionMap.end())
 	{
-		m_Device->CreateShader(shader);
+		IKShaderPtr soul;
+		m_Device->CreateShader(soul);
 		for (const IKShader::MacroPair& macroPair : env.macros)
 		{
-			shader->AddMacro(macroPair);
+			soul->AddMacro(macroPair);
 		}
 		for (const IKShader::IncludeSource& includePair : env.includes)
 		{
-			shader->AddIncludeSource(includePair);
+			soul->AddIncludeSource(includePair);
 		}
-		if (shader->InitFromFile(type, path, async))
+		if (soul->InitFromFile(type, path, async))
 		{
-			ShaderVariantionUsingInfo info = { 1, shader };
-			variantionMap[hash] = info;
+			KShaderRef ref(soul, [this](IKShaderPtr soul)
+			{
+				Release(soul);
+			});
+			variantionMap[hash] = ref;
+			shader = ref;
 			return true;
 		}
 	}
 	else
 	{
-		ShaderVariantionUsingInfo& info = itVar->second;
-		info.useCount += 1;
-		shader = info.shader;
-		assert(shader->GetType() == type);
-		assert(strcmp(shader->GetPath(), path) == 0);
+		shader = itVar->second;
+		assert((*shader)->GetType() == type);
+		assert(strcmp((*shader)->GetPath(), path) == 0);
 		return true;
 	}
-
-	shader = nullptr;
 	return false;
 }
 
-bool KShaderManager::Acquire(ShaderType type, const char* path, IKShaderPtr& shader, bool async)
+bool KShaderManager::Acquire(ShaderType type, const char* path, KShaderRef& shader, bool async)
 {
-	return AcquireImpl(type, path, {}, shader, async);
+	return AcquireByEnvironment(type, path, {}, shader, async);
 }
 
-bool KShaderManager::Acquire(ShaderType type, const char* path, const KShaderCompileEnvironment& env, IKShaderPtr& shader, bool async)
+bool KShaderManager::Acquire(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async)
 {
-	return AcquireImpl(type, path, env, shader, async);
+	return AcquireByEnvironment(type, path, env, shader, async);
 }
 
 bool KShaderManager::Release(IKShaderPtr& shader)
 {
 	if (shader)
 	{
-		auto it = m_Shaders.find(shader->GetPath());
-		if (it != m_Shaders.end())
-		{
-			ShaderVariantionMap& variantionMap = it->second;
-
-			std::vector<IKShader::MacroPair> macros;
-			shader->GetAllMacro(macros);
-
-			std::vector<IKShader::IncludeSource> includes;
-			shader->GetAllIncludeSource(includes);
-
-			KShaderCompileEnvironment env;
-			env.macros = macros;
-			env.includes = includes;
-
-			size_t hash = CalcVariantionHash(env);
-
-			auto itVar = variantionMap.find(hash);
-			if (itVar != variantionMap.end())
-			{
-				ShaderVariantionUsingInfo& info = itVar->second;
-				assert(shader == info.shader);
-				info.useCount -= 1;
-				if (info.useCount == 0)
-				{
-					m_Device->Wait();
-					shader->UnInit();
-					variantionMap.erase(itVar);
-				}
-
-				if (variantionMap.empty())
-				{
-					m_Shaders.erase(it);
-				}
-
-				shader = nullptr;
-			}
-		}
+		m_Device->Wait();
+		shader->UnInit();
+		shader = nullptr;
 	}
 	return true;
 }

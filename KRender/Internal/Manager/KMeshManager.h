@@ -7,21 +7,13 @@
 class KMeshManager
 {
 protected:
-	struct MeshUsingInfo
-	{
-		size_t useCount;
-		KMeshPtr mesh;
-	};
-
-	typedef std::unordered_map<std::string, MeshUsingInfo> MeshMap;
-	typedef std::unordered_set<KMeshPtr> SpecialMesh;
+	typedef std::unordered_map<std::string, KMeshRef> MeshMap;
 
 	MeshMap m_Meshes;
-	SpecialMesh m_SpecialMesh;
-
 	IKRenderDevice* m_Device;
 
-	bool AcquireImpl(const char* path, bool fromAsset, bool hostVisible, KMeshPtr& ptr);
+	bool AcquireImpl(const char* path, bool fromAsset, bool hostVisible, KMeshRef& ref);
+	bool Release(KMeshPtr& ref);
 public:
 	KMeshManager();
 	~KMeshManager();
@@ -29,12 +21,11 @@ public:
 	bool Init(IKRenderDevice* device);
 	bool UnInit();
 
-	bool Acquire(const char* path, KMeshPtr& ptr, bool hostVisible = false);
-	bool AcquireFromAsset(const char* path, KMeshPtr& ptr, bool hostVisible = false);
-	bool AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr);
-	bool Release(KMeshPtr& ptr);
+	bool Acquire(const char* path, KMeshRef& ref, bool hostVisible = false);
+	bool AcquireFromAsset(const char* path, KMeshRef& ref, bool hostVisible = false);
+	bool AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref);
 
-	bool UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr);
+	bool UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref);
 
 	bool AcquireOCQuery(std::vector<IKQueryPtr>& queries);
 	bool ReleaseOCQuery(std::vector<IKQueryPtr>& queries);

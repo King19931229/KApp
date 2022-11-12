@@ -1,11 +1,12 @@
 ﻿#pragma once
 #include "Interface/IKMaterial.h"
+#include "Interface/IKSampler.h"
 
 class KMaterialTextureBinding : public IKMaterialTextureBinding
 {
 protected:
-	IKTexturePtr m_Textures[SHADER_BINDING_MATERIAL_COUNT];
-	IKSamplerPtr m_Samplers[SHADER_BINDING_MATERIAL_COUNT];
+	KTextureRef m_Textures[SHADER_BINDING_MATERIAL_COUNT];
+	KSamplerRef m_Samplers[SHADER_BINDING_MATERIAL_COUNT];
 public:
 	KMaterialTextureBinding();
 	virtual ~KMaterialTextureBinding();

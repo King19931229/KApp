@@ -11,7 +11,6 @@ KMeshManager::KMeshManager()
 KMeshManager::~KMeshManager()
 {
 	assert(m_Meshes.empty());
-	assert(m_SpecialMesh.empty());
 }
 
 bool KMeshManager::Init(IKRenderDevice* device)
@@ -25,37 +24,25 @@ bool KMeshManager::UnInit()
 {
 	for(auto it = m_Meshes.begin(), itEnd = m_Meshes.end(); it != itEnd; ++it)
 	{
-		MeshUsingInfo& info = it->second;
-		assert(info.mesh);
-		info.mesh->UnInit();
+		KMeshRef& ref = it->second;
+		ASSERT_RESULT(ref.GetRefCount() == 1);
 	}
 	m_Meshes.clear();
-
-	for (KMeshPtr mesh : m_SpecialMesh)
-	{
-		mesh->UnInit();
-	}
-	m_SpecialMesh.clear();
-
 	m_Device = nullptr;
-
 	return true;
 }
 
-bool KMeshManager::AcquireImpl(const char* path, bool fromAsset, bool hostVisible, KMeshPtr& ptr)
+bool KMeshManager::AcquireImpl(const char* path, bool fromAsset, bool hostVisible, KMeshRef& ref)
 {
 	auto it = m_Meshes.find(path);
 
 	if(it != m_Meshes.end())
 	{
-		MeshUsingInfo& info = it->second;
-		info.useCount += 1;
-		ptr = info.mesh;
+		ref = it->second;
 		return true;
 	}
 
-	ptr = KMeshPtr(KNEW KMesh());
-
+	KMeshPtr ptr = KMeshPtr(KNEW KMesh());
 	bool bRetValue = false;
 	if(fromAsset)
 	{
@@ -68,89 +55,69 @@ bool KMeshManager::AcquireImpl(const char* path, bool fromAsset, bool hostVisibl
 
 	if(bRetValue)
 	{
-		MeshUsingInfo info = { 1, ptr };
-		m_Meshes[path] = info;
+		ref = KMeshRef(ptr, [this](KMeshPtr ptr)
+		{
+			Release(ptr);
+		});
+		m_Meshes[path] = ref;
 		return true;
 	}
 
-	ptr = nullptr;
 	return false;
 }
 
-bool KMeshManager::Acquire(const char* path, KMeshPtr& ptr, bool hostVisible)
+bool KMeshManager::Acquire(const char* path, KMeshRef& ref, bool hostVisible)
 {
-	return AcquireImpl(path, false, hostVisible, ptr);
+	return AcquireImpl(path, false, hostVisible, ref);
 }
 
-bool KMeshManager::AcquireFromAsset(const char* path, KMeshPtr& ptr, bool hostVisible)
+bool KMeshManager::AcquireFromAsset(const char* path, KMeshRef& ref, bool hostVisible)
 {
-	return AcquireImpl(path, true, hostVisible, ptr);
+	return AcquireImpl(path, true, hostVisible, ref);
 }
 
 bool KMeshManager::Release(KMeshPtr& ptr)
 {
 	if(ptr)
 	{
+		m_Device->Wait();
+		ptr->UnInit();
 		const auto& path = ptr->GetPath();
-
 		if (!path.empty())
 		{
 			auto it = m_Meshes.find(path);
 			if (it != m_Meshes.end())
-			{
-				MeshUsingInfo& info = it->second;
-				info.useCount -= 1;
-
-				if (info.useCount == 0)
-				{
-					// 等待设备空闲
-					m_Device->Wait();
-
-					ptr->UnInit();
-					m_Meshes.erase(it);
-				}
-
+			{				
+				m_Meshes.erase(it);
 				ptr = nullptr;
-				return true;
 			}
 		}
-		else
-		{
-			auto it = m_SpecialMesh.find(ptr);
-			if (it != m_SpecialMesh.end())
-			{
-				m_SpecialMesh.erase(it);
-
-				// 等待设备空闲
-				m_Device->Wait();
-
-				ptr->UnInit();
-				ptr = nullptr;
-				return true;
-			}
-		}
+		return true;
 	}
 	return false;
 }
 
-bool KMeshManager::AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr)
+bool KMeshManager::AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref)
 {
-	ptr = KMeshPtr(KNEW KMesh());
+	KMeshPtr ptr = KMeshPtr(KNEW KMesh());
 	if (ptr->InitUtility(info, m_Device))
 	{
-		m_SpecialMesh.insert(ptr);
+		ref = KMeshRef(ptr, [this](KMeshPtr ptr)
+		{
+			Release(ptr);
+		});
 		return true;
 	}
 	ptr = nullptr;
 	return false;
 }
 
-bool KMeshManager::UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshPtr& ptr)
+bool KMeshManager::UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref)
 {
-	if (ptr)
+	if (ref)
 	{
 		m_Device->Wait();
-		return ptr->UpdateUtility(info, m_Device);
+		return (*ref)->UpdateUtility(info, m_Device);
 	}
 	return false;
 }

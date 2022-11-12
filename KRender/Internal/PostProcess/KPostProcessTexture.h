@@ -8,7 +8,7 @@ class KPostProcessTexture : public IKPostProcessTexture
 protected:
 	IDType m_ID;
 	std::string m_Path;
-	IKTexturePtr m_Texture;
+	KTextureRef m_Texture;
 	std::unordered_set<IKPostProcessConnection*> m_OutputConnection[PostProcessPort::MAX_OUTPUT_SLOT_COUNT];
 
 	static const char* ms_TextureKey;
@@ -34,7 +34,7 @@ public:
 
 	IDType ID() override;
 
-	inline IKTexturePtr GetTexture() { return m_Texture; }
+	inline IKTexturePtr GetTexture() { return *m_Texture; }
 
 	bool Save(IKJsonDocumentPtr jsonDoc, IKJsonValuePtr& object);
 	bool Load(IKJsonValuePtr& object);

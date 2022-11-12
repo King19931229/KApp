@@ -12,7 +12,7 @@
 #include "KBase/Publish/KStringUtil.h"
 #include "KBase/Publish/KPlatform.h"
 
-// #define ENABLE_RENDER_DOC
+//#define ENABLE_RENDER_DOC
 
 namespace KEngineGlobal
 {

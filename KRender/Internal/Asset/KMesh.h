@@ -50,3 +50,5 @@ public:
 };
 
 typedef std::shared_ptr<KMesh> KMeshPtr;
+
+typedef KReferenceHolder<KMeshPtr> KMeshRef;

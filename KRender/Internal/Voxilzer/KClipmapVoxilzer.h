@@ -131,10 +131,10 @@ protected:
 	IKRenderTargetPtr m_LightPassTarget;
 	IKRenderPassPtr m_LightPassRenderPass;
 
-	IKShaderPtr m_VoxelDrawVS;
-	IKShaderPtr m_VoxelDrawGS;
-	IKShaderPtr m_VoxelWireFrameDrawGS;
-	IKShaderPtr m_VoxelDrawFS;
+	KShaderRef m_VoxelDrawVS;
+	KShaderRef m_VoxelDrawGS;
+	KShaderRef m_VoxelWireFrameDrawGS;
+	KShaderRef m_VoxelDrawFS;
 
 	IKPipelinePtr m_VoxelDrawPipeline;
 	IKPipelinePtr m_VoxelWireFrameDrawPipeline;
@@ -148,8 +148,8 @@ protected:
 	IKComputePipelinePtr m_DownSampleRadiancePipeline;
 	IKComputePipelinePtr m_WrapRadianceBorderPipeline;
 
-	IKShaderPtr m_QuadVS;
-	IKShaderPtr m_LightPassFS;
+	KShaderRef m_QuadVS;
+	KShaderRef m_LightPassFS;
 	IKPipelinePtr m_LightPassPipeline;
 
 	IKSamplerPtr m_CloestSampler;

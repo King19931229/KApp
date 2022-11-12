@@ -4,6 +4,7 @@
 #include "KRender/Interface/IKResource.h"
 #include "KRender/Interface/IKFrameBuffer.h"
 #include "KBase/Interface/IKCodec.h"
+#include "KBase/Publish/KReferenceHolder.h"
 
 struct IKTexture : public IKResource
 {
@@ -27,3 +28,5 @@ struct IKTexture : public IKResource
 
 	virtual const char* GetPath() = 0;
 };
+
+typedef KReferenceHolder<IKTexturePtr> KTextureRef;

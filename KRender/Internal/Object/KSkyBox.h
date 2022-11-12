@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Interface/IKRenderDevice.h"
+#include "Interface/IKTexture.h"
 #include "Internal/KVertexDefinition.h"
 
 class KSkyBox
@@ -18,10 +19,10 @@ protected:
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 
-	IKShaderPtr m_VertexShader;
-	IKShaderPtr m_FragmentShader;
+	KShaderRef m_VertexShader;
+	KShaderRef m_FragmentShader;
 
-	IKTexturePtr m_CubeTexture;
+	KTextureRef m_CubeTexture;
 	IKSamplerPtr m_CubeSampler;
 
 	KVertexData m_VertexData;
@@ -39,6 +40,6 @@ public:
 
 	bool Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
-	inline IKTexturePtr GetCubeTexture() { return m_CubeTexture; }
+	inline IKTexturePtr GetCubeTexture() { return *m_CubeTexture; }
 	inline IKSamplerPtr GetSampler() { return m_CubeSampler; }
 };

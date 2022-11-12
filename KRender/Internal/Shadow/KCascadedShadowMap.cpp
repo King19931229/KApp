@@ -746,12 +746,8 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 		m_ShadowSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 		m_ShadowSampler->Init(0, 0);
 
-		// Init Debug
-		KRenderGlobal::RenderDevice->CreateShader(m_DebugVertexShader);
-		KRenderGlobal::RenderDevice->CreateShader(m_DebugFragmentShader);
-
-		ASSERT_RESULT(m_DebugVertexShader->InitFromFile(ST_VERTEX, "others/debugquad.vert", false));
-		ASSERT_RESULT(m_DebugFragmentShader->InitFromFile(ST_FRAGMENT, "others/debugquad.frag", false));
+		KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "others/debugquad.vert", m_DebugVertexShader, false);
+		KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "others/debugquad.frag", m_DebugFragmentShader, false);
 
 		uint32_t cascadedShadowSize = shadowMapSize;
 
@@ -794,7 +790,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			bool isStatic = pipeline == m_StaticReceiverPipeline;
 			ConstantBufferType type = isStatic ? CBT_STATIC_CASCADED_SHADOW : CBT_DYNAMIC_CASCADED_SHADOW;
 
-			pipeline->SetShader(ST_VERTEX, m_QuadVS);
+			pipeline->SetShader(ST_VERTEX, *m_QuadVS);
 
 			pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
@@ -805,7 +801,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			pipeline->SetColorWrite(true, true, true, true);
 			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-			pipeline->SetShader(ST_FRAGMENT, isStatic ? m_StaticReceiverFS : m_DynamicReceiverFS);
+			pipeline->SetShader(ST_FRAGMENT, isStatic ? *m_StaticReceiverFS : *m_DynamicReceiverFS);
 
 			IKUniformBufferPtr shadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(type);
 			pipeline->SetConstantBuffer(type, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, shadowBuffer);
@@ -837,7 +833,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 		{
 			IKPipelinePtr pipeline = m_CombineReceiverPipeline;
 
-			pipeline->SetShader(ST_VERTEX, m_QuadVS);
+			pipeline->SetShader(ST_VERTEX, *m_QuadVS);
 
 			pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
@@ -848,7 +844,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			pipeline->SetColorWrite(true, true, true, true);
 			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-			pipeline->SetShader(ST_FRAGMENT, m_CombineReceiverFS);
+			pipeline->SetShader(ST_FRAGMENT, *m_CombineReceiverFS);
 
 			pipeline->SetSampler(0,
 				m_ReceiverPass->GetStaticMask()->GetFrameBuffer(),
@@ -898,13 +894,13 @@ bool KCascadedShadowMap::UnInit()
 	SAFE_UNINIT(m_DynamicReceiverPipeline);
 	SAFE_UNINIT(m_CombineReceiverPipeline);
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_QuadVS));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_StaticReceiverFS));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_DynamicReceiverFS));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Release(m_CombineReceiverFS));
+	m_QuadVS.Release();
+	m_StaticReceiverFS.Release();
+	m_DynamicReceiverFS.Release();
+	m_CombineReceiverFS.Release();
 
-	SAFE_UNINIT(m_DebugVertexShader);
-	SAFE_UNINIT(m_DebugFragmentShader);
+	m_DebugVertexShader.Release();
+	m_DebugFragmentShader.Release();
 
 	SAFE_UNINIT(m_ShadowSampler);
 
@@ -1277,8 +1273,8 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, boo
 			pipeline->SetFrontFace(FF_CLOCKWISE);
 
 			pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-			pipeline->SetShader(ST_VERTEX, m_DebugVertexShader);
-			pipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader);
+			pipeline->SetShader(ST_VERTEX, *m_DebugVertexShader);
+			pipeline->SetShader(ST_FRAGMENT, *m_DebugFragmentShader);
 			pipeline->SetSampler(SHADER_BINDING_TEXTURE0, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
 
 			ASSERT_RESULT(pipeline->Init());

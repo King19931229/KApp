@@ -235,6 +235,9 @@
     <ClInclude Include="Publish\KHandleRetriever.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KReferenceHolder.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">

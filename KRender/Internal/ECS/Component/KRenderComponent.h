@@ -19,7 +19,7 @@ class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 	RTTR_ENABLE(IKRenderComponent, KReflectionObjectBase)
 	RTTR_REGISTRATION_FRIEND
 protected:
-	KMeshPtr m_Mesh;
+	KMeshRef m_Mesh;
 	IKMaterialPtr m_Material;
 	std::vector<KMaterialSubMeshPtr> m_MaterialSubMeshes;
 
@@ -70,7 +70,7 @@ public:
 	bool Init(bool async) override;
 	bool UnInit() override;
 
-	inline KMeshPtr GetMesh() { return m_Mesh; }
+	inline KMeshPtr GetMesh() { return *m_Mesh; }
 	IKMaterialPtr GetMaterial() override { return m_Material; }
 
 	bool SetMaterialPath(const char* path) override;

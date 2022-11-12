@@ -131,8 +131,8 @@ IKIndexBufferPtr KClipmapLevel::ms_UpdateIndexBuffer = nullptr;
 IKCommandBufferPtr KClipmapLevel::ms_CommandBuffer = nullptr;
 IKCommandPoolPtr KClipmapLevel::ms_CommandPool = nullptr;
 IKSamplerPtr KClipmapLevel::ms_Sampler = nullptr;
-IKShaderPtr KClipmapLevel::ms_UpdateVS = nullptr;
-IKShaderPtr KClipmapLevel::ms_UpdateFS = nullptr;
+KShaderRef KClipmapLevel::ms_UpdateVS;
+KShaderRef KClipmapLevel::ms_UpdateFS;
 
 KVertexData KClipmapLevel::ms_UpdateVertexData;
 KIndexData KClipmapLevel::ms_UpdateIndexData;
@@ -362,8 +362,8 @@ void KClipmapLevel::InitializePipeline()
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetDepthFunc(CF_ALWAYS, false, false);
-		pipeline->SetShader(ST_VERTEX, ms_UpdateVS);
-		pipeline->SetShader(ST_FRAGMENT, ms_UpdateFS);
+		pipeline->SetShader(ST_VERTEX, *ms_UpdateVS);
+		pipeline->SetShader(ST_FRAGMENT, *ms_UpdateFS);
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, updateTexture->GetFrameBuffer(), ms_Sampler, true);
 		pipeline->Init();
@@ -538,8 +538,8 @@ void KClipmapLevel::InitShared()
 
 void KClipmapLevel::UnInitShared()
 {
-	SAFE_UNINIT(ms_UpdateVS);
-	SAFE_UNINIT(ms_UpdateFS);
+	ms_UpdateVS.Release();
+	ms_UpdateFS.Release();
 	SAFE_UNINIT(ms_Sampler);
 	SAFE_UNINIT(ms_CommandBuffer);
 	SAFE_UNINIT(ms_CommandPool);
@@ -947,8 +947,8 @@ void KClipmap::InitializePipeline()
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
-		pipeline->SetShader(ST_VERTEX, m_VSShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FSShader);
+		pipeline->SetShader(ST_VERTEX, *m_VSShader);
+		pipeline->SetShader(ST_FRAGMENT, *m_FSShader);
 
 		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 		IKRenderTargetPtr textureTarget = clipmapLevel->GetTextureTarget();
@@ -995,8 +995,8 @@ void KClipmap::UnInit()
 	}
 	m_FootprintPos.clear();
 
-	KRenderGlobal::ShaderManager.Release(m_VSShader);
-	KRenderGlobal::ShaderManager.Release(m_FSShader);
+	m_VSShader.Release();
+	m_FSShader.Release();
 
 	SAFE_UNINIT_CONTAINER(m_ClipLevels);
 	SAFE_UNINIT_CONTAINER(m_ClipLevelPipelines);
@@ -1315,9 +1315,9 @@ bool KClipmap::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr
 bool KClipmap::Reload()
 {
 	if (m_VSShader)
-		m_VSShader->Reload();
+		(*m_VSShader)->Reload();
 	if (m_FSShader)
-		m_FSShader->Reload();
+		(*m_FSShader)->Reload();
 	for (IKPipelinePtr& pipeline : m_ClipLevelPipelines)
 	{
 		pipeline->Reload();

@@ -31,9 +31,9 @@ protected:
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 
-	IKShaderPtr m_VertexShader;
-	IKShaderPtr m_VertexInstanceShader;
-	IKShaderPtr m_FragmentShader;
+	KShaderRef m_VertexShader;
+	KShaderRef m_VertexInstanceShader;
+	KShaderRef m_FragmentShader;
 
 	KVertexData m_VertexData;
 	KIndexData m_IndexData;

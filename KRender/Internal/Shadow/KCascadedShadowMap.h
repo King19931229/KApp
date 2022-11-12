@@ -91,13 +91,13 @@ protected:
 	const KCamera* m_MainCamera;
 
 	// Shader
-	IKShaderPtr m_DebugVertexShader;
-	IKShaderPtr m_DebugFragmentShader;
+	KShaderRef m_DebugVertexShader;
+	KShaderRef m_DebugFragmentShader;
 
-	IKShaderPtr m_QuadVS;
-	IKShaderPtr m_StaticReceiverFS;
-	IKShaderPtr m_DynamicReceiverFS;
-	IKShaderPtr m_CombineReceiverFS;
+	KShaderRef m_QuadVS;
+	KShaderRef m_StaticReceiverFS;
+	KShaderRef m_DynamicReceiverFS;
+	KShaderRef m_CombineReceiverFS;
 
 	IKPipelinePtr m_StaticReceiverPipeline;
 	IKPipelinePtr m_DynamicReceiverPipeline;

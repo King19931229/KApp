@@ -103,16 +103,8 @@ bool KPostProcessManager::UnInit()
 {
 	m_FrameInFlight = 0;
 
-	if(m_ScreenDrawVS)
-	{
-		KRenderGlobal::ShaderManager.Release(m_ScreenDrawVS);
-		m_ScreenDrawVS = nullptr;
-	}
-	if(m_ScreenDrawFS)
-	{
-		KRenderGlobal::ShaderManager.Release(m_ScreenDrawFS);
-		m_ScreenDrawFS = nullptr;
-	}
+	m_ScreenDrawVS.Release();
+	m_ScreenDrawFS.Release();
 
 	m_SharedVertexData.Destroy();
 	m_SharedIndexData.Destroy();

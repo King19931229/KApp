@@ -3,7 +3,6 @@
 #include "KBase/Publish/KStringParser.h"
 
 KPostProcessTexture::KPostProcessTexture()
-	: m_Texture(nullptr)
 {
 	// TODO
 	char szTempBuffer[256] = { 0 };
@@ -13,8 +12,7 @@ KPostProcessTexture::KPostProcessTexture()
 }
 
 KPostProcessTexture::KPostProcessTexture(IDType id)
-	: m_ID(id),
-	m_Texture(nullptr)
+	: m_ID(id)
 {
 }
 
@@ -121,25 +119,15 @@ bool KPostProcessTexture::Init()
 {
 	if (!m_Path.empty())
 	{
-		if (m_Texture)
-		{
-			KRenderGlobal::TextureManager.Release(m_Texture);
-			m_Texture = nullptr;
-		}
-
-		KRenderGlobal::TextureManager.Acquire(m_Path.c_str(), m_Texture, false);
-		return m_Texture != nullptr;
+		m_Texture.Release();
+		return KRenderGlobal::TextureManager.Acquire(m_Path.c_str(), m_Texture, false);
 	}
 	return false;
 }
 
 bool KPostProcessTexture::UnInit()
-{
-	if (m_Texture)
-	{
-		KRenderGlobal::TextureManager.Release(m_Texture);
-		m_Texture = nullptr;
-	}
+{	
+	m_Texture.Release();
 
 	for (auto& connSet : m_OutputConnection)
 	{

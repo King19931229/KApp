@@ -4,6 +4,7 @@
 
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Interface/IKSourceFile.h"
+#include "KBase/Publish/KReferenceHolder.h"
 
 #include <string>
 #include <vector>
@@ -114,6 +115,8 @@ struct IKShader : public IKResource
 
 	virtual bool Reload() = 0;
 };
+
+typedef KReferenceHolder<IKShaderPtr> KShaderRef;
 
 // TODO 弄个KBaseShader
 

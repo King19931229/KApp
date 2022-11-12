@@ -260,9 +260,8 @@ bool KShaderMap::UnInit()
 	{
 		for (auto& pair : *shadermap)
 		{
-			IKShaderPtr& shader = pair.second;
-			KRenderGlobal::ShaderManager.Release(shader);
-			shader = nullptr;
+			KShaderRef& shader = pair.second;
+			shader.Release();
 		}
 		shadermap->clear();
 	}
@@ -276,8 +275,8 @@ bool KShaderMap::Reload()
 	{
 		for (auto& pair : *shadermap)
 		{
-			IKShaderPtr& shader = pair.second;
-			shader->Reload();
+			KShaderRef& shader = pair.second;
+			(*shader)->Reload();
 		}
 	}
 	return true;
@@ -300,8 +299,8 @@ bool KShaderMap::IsAllVSLoaded()
 		{
 			for (auto& pair : *shadermap)
 			{
-				IKShaderPtr& shader = pair.second;
-				if (shader->GetResourceState() != RS_DEVICE_LOADED)
+				KShaderRef& shader = pair.second;
+				if ((*shader)->GetResourceState() != RS_DEVICE_LOADED)
 				{
 					return false;
 				}
@@ -338,8 +337,8 @@ bool KShaderMap::IsAllFSLoaded()
 		{
 			for (auto& pair : *shadermap)
 			{
-				IKShaderPtr& shader = pair.second;
-				if (shader->GetResourceState() != RS_DEVICE_LOADED)
+				KShaderRef& shader = pair.second;
+				if ((*shader)->GetResourceState() != RS_DEVICE_LOADED)
 				{
 					return false;
 				}
@@ -397,7 +396,7 @@ IKShaderPtr KShaderMap::GetVSShader(const VertexFormat* formats, size_t count)
 		auto it = m_VSShaderMap.find(hash);
 		if (it != m_VSShaderMap.end())
 		{
-			return it->second;
+			return *it->second;
 		}
 		else
 		{
@@ -405,7 +404,7 @@ IKShaderPtr KShaderMap::GetVSShader(const VertexFormat* formats, size_t count)
 			if (itMacro != VS_MACROS_MAP.end())
 			{
 				const Macros& macros = *itMacro->second;
-				IKShaderPtr vsShader;
+				KShaderRef vsShader;
 
 				KShaderCompileEnvironment env;
 				env.macros = macros;
@@ -414,7 +413,7 @@ IKShaderPtr KShaderMap::GetVSShader(const VertexFormat* formats, size_t count)
 				if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, m_VSFile.c_str(), env, vsShader, m_Async))
 				{
 					m_VSShaderMap[hash] = vsShader;
-					return vsShader;
+					return *vsShader;
 				}
 			}
 		}
@@ -430,7 +429,7 @@ IKShaderPtr KShaderMap::GetVSInstanceShader(const VertexFormat* formats, size_t 
 		auto it = m_VSInstanceShaderMap.find(hash);
 		if (it != m_VSInstanceShaderMap.end())
 		{
-			return it->second;
+			return *it->second;
 		}
 		else
 		{
@@ -438,7 +437,7 @@ IKShaderPtr KShaderMap::GetVSInstanceShader(const VertexFormat* formats, size_t 
 			if (itMacro != VS_INSTANCE_MACROS_MAP.end())
 			{
 				const Macros& macros = *itMacro->second;
-				IKShaderPtr vsInstanceShader;
+				KShaderRef vsInstanceShader;
 
 				KShaderCompileEnvironment env;
 				env.macros = macros;
@@ -447,7 +446,7 @@ IKShaderPtr KShaderMap::GetVSInstanceShader(const VertexFormat* formats, size_t 
 				if (KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, m_VSFile.c_str(), env, vsInstanceShader, m_Async))
 				{
 					m_VSInstanceShaderMap[hash] = vsInstanceShader;
-					return vsInstanceShader;
+					return *vsInstanceShader;
 				}
 			}
 		}
@@ -463,7 +462,7 @@ IKShaderPtr KShaderMap::GetMSShader(const VertexFormat* formats, size_t count)
 		auto it = m_MSShaderMap.find(hash);
 		if (it != m_MSShaderMap.end())
 		{
-			return it->second;
+			return *it->second;
 		}
 		else
 		{
@@ -471,7 +470,7 @@ IKShaderPtr KShaderMap::GetMSShader(const VertexFormat* formats, size_t count)
 			if (itMacro != MS_MACROS_MAP.end())
 			{
 				const Macros& macros = *itMacro->second;
-				IKShaderPtr msShader;
+				KShaderRef msShader;
 
 				KShaderCompileEnvironment env;
 				env.macros = macros;
@@ -480,7 +479,7 @@ IKShaderPtr KShaderMap::GetMSShader(const VertexFormat* formats, size_t count)
 				if (KRenderGlobal::ShaderManager.Acquire(ST_MESH, m_MSFile.c_str(), env, msShader, m_Async))
 				{
 					m_MSShaderMap[hash] = msShader;
-					return msShader;
+					return *msShader;
 				}
 			}
 		}
@@ -496,7 +495,7 @@ IKShaderPtr KShaderMap::GetFSShader(const VertexFormat* formats, size_t count, c
 		auto it = m_FSShaderMap.find(hash);
 		if (it != m_FSShaderMap.end())
 		{
-			return it->second;
+			return *it->second;
 		}
 		else
 		{
@@ -504,7 +503,7 @@ IKShaderPtr KShaderMap::GetFSShader(const VertexFormat* formats, size_t count, c
 			if (itMacro != FS_MACROS_MAP.end())
 			{
 				const Macros& macros = *itMacro->second;
-				IKShaderPtr fsShader;
+				KShaderRef fsShader;
 
 				KShaderCompileEnvironment env;
 				env.macros = macros;
@@ -513,7 +512,7 @@ IKShaderPtr KShaderMap::GetFSShader(const VertexFormat* formats, size_t count, c
 				if (KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, m_FSFile.c_str(), env, fsShader, m_Async))
 				{
 					m_FSShaderMap[hash] = fsShader;
-					return fsShader;
+					return *fsShader;
 				}
 			}
 		}

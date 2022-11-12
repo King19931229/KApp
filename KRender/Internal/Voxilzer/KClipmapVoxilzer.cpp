@@ -880,13 +880,13 @@ void KClipmapVoxilzer::WrapBorder(IKCommandBufferPtr commandBuffer)
 
 void KClipmapVoxilzer::ReloadShader()
 {
-	m_VoxelDrawVS->Reload();
-	m_VoxelDrawGS->Reload();
-	m_VoxelWireFrameDrawGS->Reload();
-	m_VoxelDrawFS->Reload();
+	(*m_VoxelDrawVS)->Reload();
+	(*m_VoxelDrawGS)->Reload();
+	(*m_VoxelWireFrameDrawGS)->Reload();
+	(*m_VoxelDrawFS)->Reload();
 
-	m_QuadVS->Reload();
-	m_LightPassFS->Reload();
+	(*m_QuadVS)->Reload();
+	(*m_LightPassFS)->Reload();
 
 	m_LightPassPipeline->Reload();
 
@@ -1031,7 +1031,7 @@ void KClipmapVoxilzer::SetupVoxelDrawPipeline()
 	{
 		IKPipelinePtr& pipeline = (idx == DEFAULT) ? m_VoxelDrawPipeline : m_VoxelWireFrameDrawPipeline;
 
-		pipeline->SetShader(ST_VERTEX, m_VoxelDrawVS);
+		pipeline->SetShader(ST_VERTEX, *m_VoxelDrawVS);
 
 		pipeline->SetPrimitiveTopology(PT_POINT_LIST);
 		pipeline->SetBlendEnable(false);
@@ -1041,8 +1041,8 @@ void KClipmapVoxilzer::SetupVoxelDrawPipeline()
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-		pipeline->SetShader(ST_GEOMETRY, idx == 0 ? m_VoxelDrawGS : m_VoxelWireFrameDrawGS);
-		pipeline->SetShader(ST_FRAGMENT, m_VoxelDrawFS);
+		pipeline->SetShader(ST_GEOMETRY, idx == 0 ? *m_VoxelDrawGS : *m_VoxelWireFrameDrawGS);
+		pipeline->SetShader(ST_FRAGMENT, *m_VoxelDrawFS);
 
 		IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
 		pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
@@ -1101,8 +1101,8 @@ void KClipmapVoxilzer::SetupLightPassPipeline()
 	m_LightDebugDrawer.Init(m_LightPassTarget, 0, 0, 1, 1);
 
 	m_LightPassPipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-	m_LightPassPipeline->SetShader(ST_VERTEX, m_QuadVS);
-	m_LightPassPipeline->SetShader(ST_FRAGMENT, m_LightPassFS);
+	m_LightPassPipeline->SetShader(ST_VERTEX, *m_QuadVS);
+	m_LightPassPipeline->SetShader(ST_FRAGMENT, *m_LightPassFS);
 	
 	m_LightPassPipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 	m_LightPassPipeline->SetBlendEnable(false);
@@ -1261,10 +1261,13 @@ bool KClipmapVoxilzer::UnInit()
 
 	m_LightDebugDrawer.UnInit();
 
-	KRenderGlobal::ShaderManager.Release(m_QuadVS);
-	m_QuadVS = nullptr;
-	KRenderGlobal::ShaderManager.Release(m_LightPassFS);
-	m_LightPassFS = nullptr;
+	m_VoxelDrawVS.Release();
+	m_VoxelDrawGS.Release();
+	m_VoxelWireFrameDrawGS.Release();
+	m_VoxelDrawFS.Release();
+
+	m_QuadVS.Release();
+	m_LightPassFS.Release();
 
 	SAFE_UNINIT(m_VoxelRenderPass);
 	SAFE_UNINIT(m_VoxelRenderPassTarget);

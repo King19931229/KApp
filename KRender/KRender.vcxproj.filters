@@ -508,6 +508,9 @@
     <ClInclude Include="Interface\IKRenderer.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Manager\KSamplerManager.h">
+      <Filter>Internal\Manager</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -816,9 +819,11 @@
     <ClCompile Include="Internal\Object\KQuadDataProvider.cpp">
       <Filter>Internal\Object</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\Dispatcher\KRenderDispatcher.cpp" />
     <ClCompile Include="Internal\Render\KRenderer.cpp">
       <Filter>Internal\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Manager\KSamplerManager.cpp">
+      <Filter>Internal\Manager</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

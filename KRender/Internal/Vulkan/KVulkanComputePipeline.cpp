@@ -365,7 +365,7 @@ void KVulkanComputePipeline::CreateLayout()
 
 void KVulkanComputePipeline::CreatePipeline()
 {
-	KVulkanShader* vulkanShader = (KVulkanShader*)m_ComputeShader.get();
+	KVulkanShader* vulkanShader = (KVulkanShader*)(*m_ComputeShader).get();
 	VkPipelineShaderStageCreateInfo shaderCreateInfo = {};
 	shaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderCreateInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -434,11 +434,7 @@ bool KVulkanComputePipeline::UnInit()
 {
 	DestroyPipeline();
 	DestroyDescriptorSet();
-	if (m_ComputeShader)
-	{
-		KRenderGlobal::ShaderManager.Release(m_ComputeShader);
-		m_ComputeShader = nullptr;
-	}
+	m_ComputeShader.Release();
 	return true;
 }
 
@@ -702,7 +698,7 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 
 bool KVulkanComputePipeline::Reload()
 {
-	if (m_ComputeShader && m_ComputeShader->Reload())
+	if (m_ComputeShader && (*m_ComputeShader)->Reload())
 	{
 		DestroyPipeline();
 		CreatePipeline();

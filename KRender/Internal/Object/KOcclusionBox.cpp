@@ -109,8 +109,8 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, false, true);
-		pipeline->SetShader(ST_VERTEX, m_VertexShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+		pipeline->SetShader(ST_VERTEX, *m_VertexShader);
+		pipeline->SetShader(ST_FRAGMENT, *m_FragmentShader);
 
 		pipeline->SetDepthBiasEnable(true);
 
@@ -138,8 +138,8 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, false, true);
-		pipeline->SetShader(ST_VERTEX, m_VertexInstanceShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+		pipeline->SetShader(ST_VERTEX, *m_VertexInstanceShader);
+		pipeline->SetShader(ST_FRAGMENT, *m_FragmentShader);
 
 		pipeline->SetDepthBiasEnable(true);
 
@@ -168,8 +168,8 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetDepthFunc(CF_GREATER, false, true);
-		pipeline->SetShader(ST_VERTEX, m_VertexShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+		pipeline->SetShader(ST_VERTEX, *m_VertexShader);
+		pipeline->SetShader(ST_FRAGMENT, *m_FragmentShader);
 
 		pipeline->SetDepthBiasEnable(true);
 
@@ -198,8 +198,8 @@ void KOcclusionBox::PreparePipeline()
 		pipeline->SetFrontFace(FF_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetDepthFunc(CF_GREATER, false, true);
-		pipeline->SetShader(ST_VERTEX, m_VertexInstanceShader);
-		pipeline->SetShader(ST_FRAGMENT, m_FragmentShader);
+		pipeline->SetShader(ST_VERTEX, *m_VertexInstanceShader);
+		pipeline->SetShader(ST_FRAGMENT, *m_FragmentShader);
 
 		pipeline->SetDepthBiasEnable(true);
 
@@ -287,14 +287,9 @@ bool KOcclusionBox::UnInit()
 	SAFE_UNINIT(m_VertexBuffer);
 	SAFE_UNINIT(m_IndexBuffer);
 
-	if (m_VertexShader)
-	{
-		KRenderGlobal::ShaderManager.Release(m_VertexShader);
-	}
-	if (m_FragmentShader)
-	{
-		KRenderGlobal::ShaderManager.Release(m_FragmentShader);
-	}
+	m_VertexShader.Release();
+	m_VertexInstanceShader.Release();
+	m_FragmentShader.Release();
 
 	SAFE_UNINIT(m_CommandPool);
 

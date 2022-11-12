@@ -59,9 +59,9 @@ void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t hei
 
 void KDeferredRenderer::UnInit()
 {
-	KRenderGlobal::ShaderManager.Release(m_QuadVS);
-	KRenderGlobal::ShaderManager.Release(m_DeferredLightingFS);
-	KRenderGlobal::ShaderManager.Release(m_SceneColorDrawFS);
+	m_QuadVS.Release();
+	m_DeferredLightingFS.Release();
+	m_SceneColorDrawFS.Release();
 
 	SAFE_UNINIT(m_LightPassTarget);
 	SAFE_UNINIT(m_LightingPipeline);
@@ -158,8 +158,8 @@ void KDeferredRenderer::RecreatePipeline()
 		IKPipelinePtr& pipeline = m_LightingPipeline;
 
 		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-		pipeline->SetShader(ST_VERTEX, m_QuadVS);
-		pipeline->SetShader(ST_FRAGMENT, m_DeferredLightingFS);
+		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
+		pipeline->SetShader(ST_FRAGMENT, *m_DeferredLightingFS);
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
@@ -211,8 +211,8 @@ void KDeferredRenderer::RecreatePipeline()
 		IKPipelinePtr& pipeline = m_DrawFinalPipeline;
 
 		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-		pipeline->SetShader(ST_VERTEX, m_QuadVS);
-		pipeline->SetShader(ST_FRAGMENT, m_SceneColorDrawFS);
+		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
+		pipeline->SetShader(ST_FRAGMENT, *m_SceneColorDrawFS);
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);

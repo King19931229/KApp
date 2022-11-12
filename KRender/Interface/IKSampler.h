@@ -1,6 +1,7 @@
 #pragma once
 #include "IKRenderConfig.h"
 #include "IKResource.h"
+#include "KBase/Publish/KReferenceHolder.h"
 
 struct IKSampler : public IKResource
 {
@@ -25,3 +26,5 @@ struct IKSampler : public IKResource
 
 	virtual bool UnInit() = 0;
 };
+
+typedef KReferenceHolder<IKSamplerPtr> KSamplerRef;

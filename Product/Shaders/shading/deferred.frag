@@ -11,6 +11,30 @@ layout(binding = BINDING_TEXTURE4) uniform sampler2D shadowMask;
 
 layout(location = 0) out vec4 outColor;
 
+vec3 DecodeNormal(vec4 gbuffer0Data)
+{
+	return gbuffer0Data.xyz;
+}
+
+vec3 DecodePosition(vec4 gbuffer0Data, vec2 screenUV)
+{
+	float near = camera.proj[3][2] / camera.proj[2][2];
+	float far = -camera.proj[3][2] / (camera.proj[2][3] - camera.proj[2][2]);
+
+	float z = -(near + gbuffer0Data.w * (far - near));
+	float depth = (z * camera.proj[2][2] + camera.proj[3][2]) / (z * camera.proj[2][3]);
+
+	vec3 ndc = vec3(2.0 * screenUV - vec2(1.0), depth);
+	vec4 worldPosH = camera.viewInv * camera.projInv * vec4(ndc, 1.0);
+
+	return worldPosH.xyz / worldPosH.w;
+}
+
+vec2 DecodeMotion(vec4 gbuffer1Data)
+{
+	return 2.0 * gbuffer1Data.xy - vec2(1.0);
+}
+
 void DecodeGBuffer(in vec2 uv, out vec3 worldPos, out vec3 worldNormal, out vec2 motion, out vec3 baseColor, out vec3 specularColor)
 {
 	vec4 gbuffer0Data = texture(gbuffer0, uv);
@@ -18,17 +42,8 @@ void DecodeGBuffer(in vec2 uv, out vec3 worldPos, out vec3 worldNormal, out vec2
 	vec4 gbuffer2Data = texture(gbuffer2, uv);
 	vec4 gbuffer3Data = texture(gbuffer3, uv);
 
-	float near = camera.proj[3][2] / camera.proj[2][2];
-	float far = -camera.proj[3][2] / (camera.proj[2][3] - camera.proj[2][2]);
-
-	float z = -(near + gbuffer0Data.w * (far - near));
-	float depth = (z * camera.proj[2][2] + camera.proj[3][2]) / (z * camera.proj[2][3]);
-
-	vec3 ndc = vec3(2.0 * uv - vec2(1.0), depth);
-	vec4 worldPosH = camera.viewInv * camera.projInv * vec4(ndc, 1.0);
-
-	worldPos = worldPosH.xyz / worldPosH.w;
-	worldNormal = gbuffer0Data.xyz;
+	worldPos = DecodePosition(gbuffer0Data, uv);
+	worldNormal = DecodeNormal(gbuffer0Data);
 	motion = 2.0 * gbuffer1Data.xy - vec2(1.0);
 	baseColor = gbuffer2Data.xyz;
 	specularColor = gbuffer3Data.xyz;

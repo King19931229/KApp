@@ -142,31 +142,28 @@ bool KVulkanRenderPass::UnRegisterInvalidCallback(RenderPassInvalidCallback* cal
 	return false;
 }
 
-template<typename T>
-size_t HashCompute(const T& value)
-{
-	return KHash::BKDR((const char*)&value, sizeof(value));
-}
+
 
 size_t KVulkanRenderPass::CalcAttachmentHash()
 {
-	size_t hash = 0;
+	using namespace KHash;
 
+	size_t hash = 0;
 	for (uint32_t attachment = 0; attachment < MAX_ATTACHMENT; ++attachment)
 	{
 		if (m_ColorFrameBuffers[attachment] != nullptr)
 		{
 			KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)m_ColorFrameBuffers[attachment].get();
 
-			hash ^= HashCompute(vulkanFrameBuffer->GetWidth());
-			hash ^= HashCompute(vulkanFrameBuffer->GetHeight());
+			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetWidth()));
+			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetHeight()));
 
-			hash ^= HashCompute(vulkanFrameBuffer->GetImage());
-			hash ^= HashCompute(vulkanFrameBuffer->GetImageView());
-			hash ^= HashCompute(vulkanFrameBuffer->GetMSAAImage());
-			hash ^= HashCompute(vulkanFrameBuffer->GetMSAAImageView());
+			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetImage()));
+			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetImageView()));
+			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetMSAAImage()));
+			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetMSAAImageView()));
 
-			hash ^= HashCompute(m_OpColors[attachment]);
+			HashCombine(hash, HashCompute(m_OpColors[attachment]));
 		}
 		else
 		{
@@ -178,25 +175,21 @@ size_t KVulkanRenderPass::CalcAttachmentHash()
 	{
 		KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)m_DepthFrameBuffer.get();
 
-		hash ^= HashCompute(vulkanFrameBuffer->GetWidth());
-		hash ^= HashCompute(vulkanFrameBuffer->GetHeight());
+		HashCombine(hash, HashCompute(vulkanFrameBuffer->GetWidth()));
+		HashCombine(hash, HashCompute(vulkanFrameBuffer->GetHeight()));
 
-		hash ^= HashCompute(vulkanFrameBuffer->GetImage());
-		hash ^= HashCompute(vulkanFrameBuffer->GetImageView());
-		hash ^= HashCompute(vulkanFrameBuffer->GetMSAAImage());
-		hash ^= HashCompute(vulkanFrameBuffer->GetMSAAImageView());
+		HashCombine(hash, HashCompute(vulkanFrameBuffer->GetImage()));
+		HashCombine(hash, HashCompute(vulkanFrameBuffer->GetImageView()));
+		HashCombine(hash, HashCompute(vulkanFrameBuffer->GetMSAAImage()));
+		HashCombine(hash, HashCompute(vulkanFrameBuffer->GetMSAAImageView()));
 
-		hash ^= HashCompute(m_OpDepth);
-		hash ^= HashCompute(m_OpStencil);
-	}
-	else
-	{
-		hash ^= ((size_t)1 << MAX_ATTACHMENT);
+		HashCombine(hash, HashCompute(m_OpDepth));
+		HashCombine(hash, HashCompute(m_OpStencil));
 	}
 
 	if (m_ToSwapChain)
 	{
-		hash = ~hash;
+		HashCombine(hash, ((size_t)1 << (MAX_ATTACHMENT + 1)));
 	}
 
 	return hash;

@@ -4,6 +4,7 @@
 #include "Internal/Manager/KShaderManager.h"
 #include "Internal/Manager/KMeshManager.h"
 #include "Internal/Manager/KTextureManager.h"
+#include "Internal/Manager/KSamplerManager.h"
 #include "Internal/Manager/KMaterialManager.h"
 #include "Internal/Manager/KDynamicConstantBufferManager.h"
 #include "Internal/Manager/KInstanceBufferManager.h"
@@ -43,6 +44,7 @@ namespace KRenderGlobal
 	extern KShaderManager ShaderManager;
 	extern KMeshManager MeshManager;
 	extern KTextureManager TextureManager;
+	extern KSamplerManager SamplerManager;
 	extern KMaterialManager MaterialManager;
 	extern KDynamicConstantBufferManager DynamicConstantBufferManager;
 	extern KInstanceBufferManager InstanceBufferManager;

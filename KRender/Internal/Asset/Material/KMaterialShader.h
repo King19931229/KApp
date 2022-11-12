@@ -8,7 +8,7 @@
 class KMaterialShader
 {
 protected:
-	typedef std::unordered_map<size_t, IKShaderPtr> ShaderMap;
+	typedef std::unordered_map<size_t, KShaderRef> ShaderMap;
 	ShaderMap m_VSShaderMap;
 	ShaderMap m_VSInstanceShaderMap;
 	ShaderMap m_MSShaderMap;

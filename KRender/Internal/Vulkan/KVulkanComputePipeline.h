@@ -106,7 +106,7 @@ protected:
 		}
 	};
 	std::unordered_map<unsigned int, BindingInfo> m_Bindings;
-	IKShaderPtr m_ComputeShader;
+	KShaderRef m_ComputeShader;
 
 	void CreateLayout();
 	void CreatePipeline();
