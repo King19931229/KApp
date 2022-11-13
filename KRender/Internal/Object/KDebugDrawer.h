@@ -1,6 +1,6 @@
 #pragma once
-#include "Interface/IKRayTrace.h"
 #include "Interface/IKRenderCommand.h"
+#include "Interface/IKCommandBuffer.h"
 #include "Internal/KVertexDefinition.h"
 
 struct KDebugDrawSharedData
@@ -43,6 +43,10 @@ protected:
 	glm::mat4 m_Clip;
 	IKPipelinePtr m_Pipeline;
 	IKRenderTargetPtr m_Target;
+
+	IKCommandPoolPtr m_CommandPool;
+	IKCommandBufferPtr m_SecondaryBuffer;
+
 	bool m_Enable;
 public:
 	KRTDebugDrawer();
@@ -55,5 +59,5 @@ public:
 	void EnableDraw();
 	void DisableDraw();
 
-	bool GetDebugRenderCommand(KRenderCommandList& commands);
+	bool Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 };

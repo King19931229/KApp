@@ -1,19 +1,20 @@
 #include "public.h"
 #include "voxel/clipmap/voxel_clipmap_common.h"
+#include "shading/decode.h"
 
 layout(location = 0) out vec4 fragColor;
 
 layout(location = 0) in vec2 texCoord;
 
-layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_NORMAL) uniform sampler2D gNormal;
-layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_POSITION) uniform sampler2D gPosition;
-layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_ALBEDO) uniform sampler2D gAlbedo;
-layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_SPECULAR) uniform sampler2D gSpecular;
-// layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_EMISSIVE) uniform sampler2D gEmissive;
+layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_RT0) uniform sampler2D gbuffer0;
+layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_RT1) uniform sampler2D gbuffer1;
+layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_RT2) uniform sampler2D gbuffer2;
+layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_RT3) uniform sampler2D gbuffer3;
 
 layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY) uniform sampler3D voxelVisibility;
 layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE) uniform sampler3D voxelRadiance;
 
+vec3 clipCenter = (voxel_clipmap.region_min_and_voxelsize[0].xyz + voxel_clipmap.region_max_and_extent[0].xyz) * 0.5;
 vec4 cameraPosition = camera.viewInv * vec4(0.0, 0.0, 0.0, 1.0);
 
 float baseExtent = voxel_clipmap.region_max_and_extent[0].w;
@@ -84,9 +85,12 @@ bool IntersectRayWithWorldAABB(vec3 ro, vec3 rd, out float enter, out float leav
 	return leave > enter;
 }
 
-float GetMinLevel(vec3 posW)
+float GetMinLevel(vec3 center, vec3 posW)
 {
-	float distanceToCenter = length(cameraPosition.xyz - posW);
+	vec3 centerToPosition = center - posW;
+	float distanceToCenter = 0;
+	// distanceToCenter = max(max(abs(centerToPosition.x), abs(centerToPosition.y)), abs(centerToPosition.z));
+	distanceToCenter = length(centerToPosition);
 	float minRadius = baseExtent * 0.5;
 	float minLevel = log2(distanceToCenter / minRadius);  
 	minLevel = max(0.0, minLevel);
@@ -109,11 +113,11 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 	visibleFace.z = (direction.z < 0.0) ? 4 : 5;
 	traceOcclusion = traceOcclusion && aoAlpha < 1.0f;
 
-	float startLevel = GetMinLevel(position);
+	float startLevel = GetMinLevel(clipCenter, position);
 	// weight per axis for aniso sampling
 	vec3 weight = direction * direction;
 	// move further to avoid self collision
-	float dst = baseVoxelSize * exp2(startLevel);
+	float dst = 0.5 * baseVoxelSize * exp2(startLevel);
 	vec3 startPosition = position + normal * dst;
 	// final results
 	vec4 coneSample = vec4(0.0f);
@@ -151,11 +155,11 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 		// cone expansion and respective mip level based on diameter
 		float diameter = 2.0f * aperture * dst;
 
-		float distanceToCenter = distance(cameraPosition.xyz, conePosition);
+		float distanceToCenter = distance(clipCenter.xyz, conePosition);
 		float minLevel = ceil(log2(distanceToCenter * 2 / baseExtent));
 
 		float mipLevel = log2(diameter / baseVoxelSize);
-		mipLevel = min(max(max(mipLevel, startLevel), minLevel), levelCount - 1);
+		mipLevel = min(max(mipLevel, minLevel), levelCount - 1);
 
 		// Radiance correction
 		float correctionQuotient = curSegmentLength / (baseVoxelSize * exp2(mipLevel));
@@ -199,7 +203,7 @@ float TraceShadowCone(vec3 position, vec3 direction, float aperture, float maxTr
 	visibleFace.y = (direction.y < 0.0) ? 2 : 3;
 	visibleFace.z = (direction.z < 0.0) ? 4 : 5;
 
-	float startLevel = GetMinLevel(position);
+	float startLevel = GetMinLevel(clipCenter, position);
 
 	// weight per axis for aniso sampling
 	vec3 weight = direction * direction;
@@ -239,7 +243,7 @@ float TraceShadowCone(vec3 position, vec3 direction, float aperture, float maxTr
 		// cone expansion and respective mip level based on diameter
 		float diameter = 2.0f * aperture * dst;
 
-		float distanceToCenter = distance(cameraPosition.xyz, conePosition);
+		float distanceToCenter = distance(clipCenter.xyz, conePosition);
 		float minLevel = ceil(log2(distanceToCenter * 2 / baseExtent));
 
 		float mipLevel = log2(diameter / baseVoxelSize);
@@ -479,15 +483,20 @@ const uint mode = 3;
 
 void main()
 {
+	vec4 gbuffer0Data = texture(gbuffer0, texCoord);
+	// vec4 gbuffer1Data = texture(gbuffer1, texCoord);
+	vec4 gbuffer2Data = texture(gbuffer2, texCoord);
+	vec4 gbuffer3Data = texture(gbuffer3, texCoord);
+
 	// world-space position
-	vec3 position = texture(gPosition, texCoord).xyz;
+	vec3 position = DecodePosition(gbuffer0Data, texCoord);
 	// world-space normal
-	vec3 normal = normalize(texture(gNormal, texCoord).xyz);
+	vec3 normal = DecodeNormal(gbuffer0Data);
 	// normal = normalize(cross(dFdx(position), dFdy(position)));
 	// xyz = fragment specular, w = shininess
-	vec4 specular = texture(gSpecular, texCoord);
+	vec4 specular = vec4(DecodeSpecularColor(gbuffer3Data), 1.0);
 	// fragment albedo
-	vec3 baseColor = texture(gAlbedo, texCoord).rgb;
+	vec3 baseColor = DecodeBaseColor(gbuffer2Data);
 	vec3 albedo = baseColor;
 	// fragment emissiviness
 	vec3 emissive = vec3(0.0); //texture(gEmissive, texCoord).rgb;

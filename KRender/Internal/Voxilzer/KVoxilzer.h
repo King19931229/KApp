@@ -186,7 +186,7 @@ protected:
 	void BuildOctree(IKCommandBufferPtr commandBuffer);
 	void ShrinkOctree();
 
-	void UpdateInternal();
+	void UpdateInternal(IKCommandBufferPtr primaryBuffer);
 
 	bool UpdateLightingResult(IKCommandBufferPtr primaryBuffer);
 	bool UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer);
@@ -194,7 +194,7 @@ public:
 	KVoxilzer();
 	~KVoxilzer();
 
-	void UpdateVoxel();
+	void UpdateVoxel(IKCommandBufferPtr primaryBuffer);
 	void ReloadShader();
 
 	bool& GetVoxelUseOctree() { return m_VoxelUseOctree; }
@@ -215,14 +215,14 @@ public:
 
 	bool EnableLightDebugDraw();
 	bool DisableLightDebugDraw();
-	bool GetLightDebugRenderCommand(KRenderCommandList& commands);
+	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
 	bool EnableOctreeRayTestDebugDraw();
 	bool DisableOctreeRayTestDebugDraw();
-	bool GetOctreeRayTestRenderCommand(KRenderCommandList& commands);
+	bool OctreeRayTestRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
 	void Resize(uint32_t width, uint32_t height);
-	bool RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 	bool UpdateFrame(IKCommandBufferPtr primaryBuffer);
 
 	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }

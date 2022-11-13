@@ -186,9 +186,9 @@ bool KRTAO::DisableDebugDraw()
 	return true;
 }
 
-bool KRTAO::GetDebugRenderCommand(KRenderCommandList& commands)
+bool KRTAO::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
-	return m_DebugDrawer.GetDebugRenderCommand(commands);
+	return m_DebugDrawer.Render(renderPass, primaryBuffer);
 }
 
 bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer)

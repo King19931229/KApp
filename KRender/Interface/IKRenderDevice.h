@@ -7,6 +7,7 @@ typedef std::function<void(uint32_t chainIndex, uint32_t frameIndex)> KDevicePre
 typedef std::function<void(uint32_t width, uint32_t height)> KSwapChainRecreateCallback;
 typedef std::function<void()> KDeviceInitCallback;
 typedef std::function<void()> KDeviceUnInitCallback;
+typedef std::function<void(IKRenderPassPtr, IKCommandBufferPtr)> RenderPassCallFuncType;
 
 struct KRenderDeviceProperties
 {

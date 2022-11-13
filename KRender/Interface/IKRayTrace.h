@@ -13,7 +13,7 @@ struct IKRayTraceScene
 	virtual bool DisableDebugDraw() = 0;
 	virtual bool EnableAutoUpdateImageSize(float scale) = 0;
 	virtual bool EnableCustomImageSize(uint32_t width, uint32_t height) = 0;
-	virtual bool GetDebugRenderCommand(KRenderCommandList& commands) = 0;
+	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer) = 0;
 
 	virtual IKRayTracePipeline* GetRayTracePipeline() = 0;
@@ -28,5 +28,5 @@ struct IKRayTraceManager
 	virtual bool AcquireRayTraceScene(IKRayTraceScenePtr& scene) = 0;
 	virtual bool RemoveRayTraceScene(IKRayTraceScenePtr& scene) = 0;
 	virtual bool GetAllRayTraceScene(std::unordered_set<IKRayTraceScenePtr>& scenes) = 0;
-	virtual bool GetDebugRenderCommand(KRenderCommandList& commands) = 0;
+	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
 };

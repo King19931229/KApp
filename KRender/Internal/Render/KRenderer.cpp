@@ -74,39 +74,36 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	// 开始渲染过程
 	m_PrimaryBuffer->BeginPrimary();
 	{
-		//KRenderGlobal::Voxilzer.UpdateVoxel();
-		//KRenderGlobal::ClipmapVoxilzer.UpdateVoxel();
-
 		KRenderGlobal::DeferredRenderer.PrePass(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.BasePass(m_PrimaryBuffer);
 
-		//KRenderGlobal::Voxilzer.UpdateFrame(m_PrimaryBuffer);
-		//KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_PrimaryBuffer);
+		// 转换 GBufferRT 到 Shader可读
+		KRenderGlobal::GBuffer.Translate(m_PrimaryBuffer, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
 		//KRenderGlobal::RayTraceManager.Execute(m_PrimaryBuffer);
 		//KRenderGlobal::RTAO.Execute(m_PrimaryBuffer);
 
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
 
-		KRenderGlobal::GBuffer.TranslateToShader(m_PrimaryBuffer);
-
 		KRenderGlobal::FrameGraph.Compile();
 		KRenderGlobal::FrameGraph.Execute(m_PrimaryBuffer, chainImageIndex);
+
+		// KRenderGlobal::Voxilzer.UpdateVoxel(m_PrimaryBuffer);
+		KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(m_PrimaryBuffer);
+
+		// KRenderGlobal::Voxilzer.UpdateFrame(m_PrimaryBuffer);
+		KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_PrimaryBuffer);
+
 		KRenderGlobal::DeferredRenderer.DeferredLighting(m_PrimaryBuffer);
 
-		KRenderGlobal::GBuffer.TranslateToAttachment(m_PrimaryBuffer);
+		// 转换 GBufferRT 到 Attachment
+		KRenderGlobal::GBuffer.Translate(m_PrimaryBuffer, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 
 		KRenderGlobal::DeferredRenderer.ForwardTransprant(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.DebugObject(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.SkyPass(m_PrimaryBuffer);
 
-		if (m_DisplayCameraCube)
-		{
-			KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
-			KRenderGlobal::DeferredRenderer.Foreground(m_PrimaryBuffer, [cameraCube](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
-			{
-				cameraCube->Render(renderPass, primaryBuffer);
-			});
-		}
+		KRenderGlobal::DeferredRenderer.Foreground(m_PrimaryBuffer);
 	}
 
 	// 绘制SceneColor
@@ -137,18 +134,40 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	return true;
 }
 
-bool KRenderer::Init(IKRenderDevice* device, IKCameraCubePtr cameraCube)
+bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t width, uint32_t height)
 {
+	IKRenderDevice* device = KRenderGlobal::RenderDevice;
+
+	KRenderGlobal::FrameGraph.Init(device);
+	KRenderGlobal::GBuffer.Init((uint32_t)width, (uint32_t)height);
+	KRenderGlobal::RayTraceManager.Init();
+
+	KRenderGlobal::CubeMap.Init(128, 128, 8, "Textures/uffizi_cube.ktx");
+	KRenderGlobal::WhiteFurnace.Init();
+	KRenderGlobal::SkyBox.Init(device, "Textures/uffizi_cube.ktx");
+
+	KRenderGlobal::OcclusionBox.Init(device);
+	KRenderGlobal::ShadowMap.Init(device, 2048);
+	KRenderGlobal::CascadedShadowMap.Init(camera, 3, 2048, (uint32_t)width, (uint32_t)height);
+
+	// KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, (uint32_t)width, (uint32_t)height);
+	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 16, (uint32_t)width, (uint32_t)height);
+
+	KRenderGlobal::DeferredRenderer.Init(camera, (uint32_t)width, (uint32_t)height);
+
+	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
+	KRenderGlobal::FrameGraph.Alloc();
+
 	m_CameraCube = cameraCube;
 
 	m_Pass = KMainPassPtr(KNEW KMainPass(*this));
 	m_Pass->Init();
 
-	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
+	device->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
-	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_PrimaryBuffer);
+	device->CreateCommandBuffer(m_PrimaryBuffer);
 	m_PrimaryBuffer->Init(m_CommandPool, CBL_PRIMARY);
-	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_SecondaryBuffer);
+	device->CreateCommandBuffer(m_SecondaryBuffer);
 	m_SecondaryBuffer->Init(m_CommandPool, CBL_SECONDARY);
 
 	for (const char* stage : KRenderGlobal::ALL_STAGE_NAMES)
@@ -156,12 +175,66 @@ bool KRenderer::Init(IKRenderDevice* device, IKCameraCubePtr cameraCube)
 		KRenderGlobal::Statistics.RegisterRenderStage(stage);
 	}
 
+	m_DebugCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+	{
+		if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
+		{
+			KRenderGlobal::Voxilzer.RenderVoxel(renderPass, primaryBuffer);
+		}
+		if (KRenderGlobal::ClipmapVoxilzer.IsVoxelDrawEnable())
+		{
+			KRenderGlobal::ClipmapVoxilzer.RenderVoxel(renderPass, primaryBuffer);
+		}
+	};
+
+	m_ForegroundCallFunc = [this](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+	{
+		KCameraCube* cameraCube = (KCameraCube*)m_CameraCube.get();
+		if (m_DisplayCameraCube)
+		{
+			cameraCube->Render(renderPass, primaryBuffer);
+		}
+
+		KRenderGlobal::Voxilzer.DebugRender(renderPass, primaryBuffer);
+		KRenderGlobal::ClipmapVoxilzer.DebugRender(renderPass, primaryBuffer);
+		KRenderGlobal::RayTraceManager.DebugRender(renderPass, primaryBuffer);
+		KRenderGlobal::RTAO.DebugRender(renderPass, primaryBuffer);
+	};
+
+	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
+	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_FOREGROUND, &m_ForegroundCallFunc);
+
 	return true;
 }
 
 bool KRenderer::UnInit()
-{	
-	KRenderGlobal::RenderDevice->Wait();
+{
+	IKRenderDevice* device = KRenderGlobal::RenderDevice;
+	device->Wait();
+
+	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
+	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STATE_FOREGROUND, &m_ForegroundCallFunc);
+
+	for (const char* stage : KRenderGlobal::ALL_STAGE_NAMES)
+	{
+		KRenderGlobal::Statistics.UnRegisterRenderStage(stage);
+	}
+
+	KRenderGlobal::DeferredRenderer.UnInit();
+
+	KRenderGlobal::WhiteFurnace.UnInit();
+	KRenderGlobal::CubeMap.UnInit();
+	KRenderGlobal::SkyBox.UnInit();
+	KRenderGlobal::OcclusionBox.UnInit();
+	KRenderGlobal::ShadowMap.UnInit();
+	KRenderGlobal::CascadedShadowMap.UnInit();
+	KRenderGlobal::RTAO.UnInit();
+	KRenderGlobal::Voxilzer.UnInit();
+	KRenderGlobal::ClipmapVoxilzer.UnInit();
+
+	KRenderGlobal::RayTraceManager.UnInit();
+	KRenderGlobal::GBuffer.UnInit();
+	KRenderGlobal::FrameGraph.UnInit();
 
 	m_SwapChain = nullptr;
 	m_UIOverlay = nullptr;
@@ -172,11 +245,6 @@ bool KRenderer::UnInit()
 	SAFE_UNINIT(m_CommandPool);
 
 	SAFE_UNINIT(m_Pass);
-
-	for (const char* stage : KRenderGlobal::ALL_STAGE_NAMES)
-	{
-		KRenderGlobal::Statistics.UnRegisterRenderStage(stage);
-	}
 
 	return true;
 }
@@ -333,6 +401,17 @@ bool KRenderer::UpdateGlobal()
 		return true;
 	}
 	return false;
+}
+
+void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
+{
+	KRenderGlobal::FrameGraph.Resize();
+	KRenderGlobal::PostProcessManager.Resize(width, height);
+	KRenderGlobal::GBuffer.Resize(width, height);
+	KRenderGlobal::DeferredRenderer.Resize(width, height);
+	// KRenderGlobal::Voxilzer.Resize(width, height);
+	KRenderGlobal::RTAO.Resize();
+	KRenderGlobal::RayTraceManager.Resize(width, height);
 }
 
 bool KRenderer::Update()

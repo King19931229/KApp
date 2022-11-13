@@ -56,6 +56,9 @@ protected:
 	KMainPassPtr m_Pass;
 	glm::mat4 m_PrevViewProj;
 
+	RenderPassCallFuncType m_DebugCallFunc;
+	RenderPassCallFuncType m_ForegroundCallFunc;
+
 	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
 
 	IKCommandPoolPtr m_CommandPool;
@@ -71,7 +74,7 @@ public:
 	KRenderer();
 	~KRenderer();
 
-	bool Init(IKRenderDevice* device, IKCameraCubePtr cameraCube);
+	bool Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t width, uint32_t height);
 	bool UnInit();
 
 	IKRenderScene* GetScene() override { return m_Scene; }
@@ -86,6 +89,8 @@ public:
 	bool Update();
 	bool Render(uint32_t chainImageIndex);
 	bool Execute(uint32_t chainImageIndex);
+
+	void OnSwapChainRecreate(uint32_t width, uint32_t height);
 
 	inline IKCommandBufferPtr GetPrimaryCommandBuffer() { return m_PrimaryBuffer; }
 };

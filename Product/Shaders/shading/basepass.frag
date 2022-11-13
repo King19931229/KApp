@@ -21,7 +21,7 @@ void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, vec3 spec
 	float near = camera.proj[3][2] / camera.proj[2][2];
 	float far = -camera.proj[3][2] / (camera.proj[2][3] - camera.proj[2][2]);
 	float depth = (-viewPos.z - near) / (far - near);
-	RT0.xyz = normal;
+	RT0.xyz = normalize(normal);
 	RT0.w = depth;
 	RT1.xy = 0.5 * (motion + vec2(1.0));
 	RT2.xyz = baseColor;

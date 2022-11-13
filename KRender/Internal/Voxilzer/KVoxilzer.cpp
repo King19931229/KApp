@@ -43,7 +43,7 @@ KVoxilzer::~KVoxilzer()
 {
 }
 
-void KVoxilzer::UpdateInternal()
+void KVoxilzer::UpdateInternal(IKCommandBufferPtr primaryBuffer)
 {
 	UpdateProjectionMatrices();
 
@@ -112,7 +112,7 @@ void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 	m_VoxelNeedUpdate = true;
 }
 
-void KVoxilzer::UpdateVoxel()
+void KVoxilzer::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 {
 	if (m_VoxelLastUseOctree != m_VoxelUseOctree)
 	{
@@ -122,7 +122,7 @@ void KVoxilzer::UpdateVoxel()
 
 	if (m_VoxelDebugUpdate || m_VoxelNeedUpdate || m_VoxelLastUseOctree != m_VoxelUseOctree)
 	{
-		UpdateInternal();
+		UpdateInternal(primaryBuffer);
 		m_VoxelNeedUpdate = false;
 		m_VoxelLastUseOctree = m_VoxelUseOctree;
 	}
@@ -741,19 +741,19 @@ void KVoxilzer::SetupLightPassPipeline()
 	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
 	pipeline->SetConstantBuffer(CBT_GLOBAL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, globalBuffer);
 
-	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_NORMAL,
+	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_RT0,
 		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
 		KRenderGlobal::GBuffer.GetSampler(),
 		true);
-	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_POSITION,
-		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
+	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_RT1,
+		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(),
 		KRenderGlobal::GBuffer.GetSampler(),
 		true);
-	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_ALBEDO,
+	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_RT2,
 		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(),
 		KRenderGlobal::GBuffer.GetSampler(),
 		true);
-	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_SPECULAR,
+	pipeline->SetSampler(VOXEL_BINDING_GBUFFER_RT3,
 		KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(),
 		KRenderGlobal::GBuffer.GetSampler(),
 		true);
@@ -1259,9 +1259,9 @@ bool KVoxilzer::DisableLightDebugDraw()
 	return true;
 }
 
-bool KVoxilzer::GetLightDebugRenderCommand(KRenderCommandList& commands)
+bool KVoxilzer::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
-	return m_LightDebugDrawer.GetDebugRenderCommand(commands);
+	return m_LightDebugDrawer.Render(renderPass, primaryBuffer);
 }
 
 bool KVoxilzer::EnableOctreeRayTestDebugDraw()
@@ -1276,12 +1276,12 @@ bool KVoxilzer::DisableOctreeRayTestDebugDraw()
 	return true;
 }
 
-bool KVoxilzer::GetOctreeRayTestRenderCommand(KRenderCommandList& commands)
+bool KVoxilzer::OctreeRayTestRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
-	return m_OctreeRayTestDebugDrawer.GetDebugRenderCommand(commands);
+	return m_OctreeRayTestDebugDrawer.Render(renderPass, primaryBuffer);
 }
 
-bool KVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+bool KVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
 	if (!m_VoxelDrawEnable)
 		return true;
@@ -1309,7 +1309,7 @@ bool KVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCommandBuf
 	m_DrawCommandBuffer->Render(command);
 	m_DrawCommandBuffer->End();
 
-	buffers.push_back(m_DrawCommandBuffer);
+	primaryBuffer->Execute(m_DrawCommandBuffer);
 
 	return true;
 }
@@ -1336,6 +1336,8 @@ bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->Execute(m_LightingCommandBuffer);
 	primaryBuffer->EndRenderPass();
 	primaryBuffer->EndDebugMarker();
+
+	primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	return true;
 }

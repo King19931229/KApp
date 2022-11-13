@@ -103,9 +103,14 @@ bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float widt
 	m_Pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 	m_Pipeline->SetShader(ST_VERTEX, KDebugDrawSharedData::ms_DebugVertexShader);
 	m_Pipeline->SetShader(ST_FRAGMENT, KDebugDrawSharedData::ms_DebugFragmentShader);
-	m_Pipeline->SetSampler(SHADER_BINDING_TEXTURE0, target->GetFrameBuffer(), KDebugDrawSharedData::ms_DebugSampler, true);
+	m_Pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_Target->GetFrameBuffer(), KDebugDrawSharedData::ms_DebugSampler, true);
 
 	ASSERT_RESULT(m_Pipeline->Init());
+
+	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
+	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_SecondaryBuffer);
+	m_SecondaryBuffer->Init(m_CommandPool, CBL_SECONDARY);
 
 	return true;
 }
@@ -114,6 +119,10 @@ bool KRTDebugDrawer::UnInit()
 {
 	m_Target = nullptr;
 	SAFE_UNINIT(m_Pipeline);
+
+	SAFE_UNINIT(m_SecondaryBuffer);
+	SAFE_UNINIT(m_CommandPool);
+
 	return true;
 }
 
@@ -127,7 +136,7 @@ void KRTDebugDrawer::DisableDraw()
 	m_Enable = false;
 }
 
-bool KRTDebugDrawer::GetDebugRenderCommand(KRenderCommandList& commands)
+bool KRTDebugDrawer::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
 	if (m_Enable)
 	{
@@ -145,13 +154,19 @@ bool KRTDebugDrawer::GetDebugRenderCommand(KRenderCommandList& commands)
 		command.vertexData = &KDebugDrawSharedData::ms_DebugVertexData;
 		command.indexData = &KDebugDrawSharedData::ms_DebugIndexData;
 		command.pipeline = m_Pipeline;
+		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		command.indexDraw = true;
 
 		command.objectUsage.binding = SHADER_BINDING_OBJECT;
 		command.objectUsage.range = sizeof(m_Clip);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_Clip, command.objectUsage);
 
-		commands.push_back(std::move(command));
+		m_SecondaryBuffer->BeginSecondary(renderPass);
+		m_SecondaryBuffer->SetViewport(renderPass->GetViewPort());
+		m_SecondaryBuffer->Render(command);
+		m_SecondaryBuffer->End();
+
+		primaryBuffer->Execute(m_SecondaryBuffer);
 	}
 	return true;
 }

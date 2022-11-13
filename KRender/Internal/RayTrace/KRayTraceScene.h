@@ -50,7 +50,7 @@ public:
 	virtual bool DisableDebugDraw();
 	virtual bool EnableAutoUpdateImageSize(float scale);
 	virtual bool EnableCustomImageSize(uint32_t width, uint32_t height);
-	virtual bool GetDebugRenderCommand(KRenderCommandList& commands);
+	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer);
 
 	virtual IKRayTracePipeline* GetRayTracePipeline();

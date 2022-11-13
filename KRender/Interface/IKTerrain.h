@@ -48,7 +48,7 @@ struct IKTerrain
 
 	virtual bool EnableDebugDraw(const KTerrainDebug& debug) = 0;
 	virtual bool DisableDebugDraw() = 0;
-	virtual bool GetDebugRenderCommand(KRenderCommandList& commands) = 0;
+	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) = 0;
 };
 
 typedef std::shared_ptr<IKTerrain> IKTerrainPtr;

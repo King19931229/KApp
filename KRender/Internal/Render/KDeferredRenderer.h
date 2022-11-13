@@ -40,11 +40,15 @@ class KCamera;
 
 class KDeferredRenderer
 {
+public:
+	typedef std::vector<RenderPassCallFuncType*> RenderPassCallFuncList;
 protected:
-	IKCommandPoolPtr m_CommandPool;
-	IKRenderPassPtr m_RenderPass[DRS_STAGE_COUNT];
-	KRenderStageStatistics m_Statistics[DRS_STAGE_COUNT];
-	IKCommandBufferPtr m_CommandBuffers[DRS_STAGE_COUNT];
+	IKCommandPoolPtr		m_CommandPool;
+	IKRenderPassPtr			m_RenderPass[DRS_STAGE_COUNT];
+	KRenderStageStatistics	m_Statistics[DRS_STAGE_COUNT];
+	IKCommandBufferPtr		m_CommandBuffers[DRS_STAGE_COUNT];
+	RenderPassCallFuncList	m_RenderCallFuncs[DRS_STAGE_COUNT];
+
 	IKRenderTargetPtr m_LightPassTarget;
 
 	IKPipelinePtr m_LightingPipeline;
@@ -67,6 +71,9 @@ public:
 	void Init(const KCamera* camera, uint32_t width, uint32_t height);
 	void UnInit();
 	void Resize(uint32_t width, uint32_t height);
+
+	void AddCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func);
+	void RemoveCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func);
 	
 	void SkyPass(IKCommandBufferPtr primaryBuffer);
 	void PrePass(IKCommandBufferPtr primaryBuffer);
@@ -74,7 +81,7 @@ public:
 	void DeferredLighting(IKCommandBufferPtr primaryBuffer);
 	void ForwardTransprant(IKCommandBufferPtr primaryBuffer);
 	void DebugObject(IKCommandBufferPtr primaryBuffer);
-	void Foreground(IKCommandBufferPtr primaryBuffer, std::function<void(IKRenderPassPtr, IKCommandBufferPtr)> func);
+	void Foreground(IKCommandBufferPtr primaryBuffer);
 
 	void DrawFinalResult(IKRenderPassPtr renderPass, IKCommandBufferPtr buffer);
 

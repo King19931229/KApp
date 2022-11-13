@@ -89,6 +89,7 @@ namespace KConstantDefinition
 		glm::uvec4 MISCS;
 		glm::uvec4 MISCS2;
 		glm::vec4 MISCS3;
+		glm::vec4 MISCS4;
 	};
 
 	struct GLOBAL

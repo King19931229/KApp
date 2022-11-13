@@ -182,6 +182,7 @@ uniform VoxelClipmapInfo
 	uvec4 miscs2;
 	// traceShadowHit:1 maxTracingDistanceGlobal:1 occlusionDecay:1 downsampleTransitionRegionSize:1
 	vec4 miscs3;
+	vec4 miscs4;
 } voxel_clipmap;
 
 layout(binding = BINDING_GLOBAL)

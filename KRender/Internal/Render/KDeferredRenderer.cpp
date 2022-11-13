@@ -33,6 +33,8 @@ void KDeferredRenderer::Resize(uint32_t width, uint32_t height)
 
 void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t height)
 {
+	UnInit();
+
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
 	renderDevice->CreateCommandPool(m_CommandPool);
@@ -71,9 +73,28 @@ void KDeferredRenderer::UnInit()
 	{
 		SAFE_UNINIT(m_CommandBuffers[i]);
 		SAFE_UNINIT(m_RenderPass[i]);
+		m_RenderCallFuncs[i].clear();
 	}
 	SAFE_UNINIT(m_CommandPool);
 	m_Camera = nullptr;
+}
+
+void KDeferredRenderer::AddCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func)
+{
+	auto it = std::find(m_RenderCallFuncs[stage].begin(), m_RenderCallFuncs[stage].end(), func);
+	if (it == m_RenderCallFuncs[stage].end())
+	{
+		m_RenderCallFuncs[stage].push_back(func);
+	}
+}
+
+void KDeferredRenderer::RemoveCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func)
+{
+	auto it = std::find(m_RenderCallFuncs[stage].begin(), m_RenderCallFuncs[stage].end(), func);
+	if (it != m_RenderCallFuncs[stage].end())
+	{
+		m_RenderCallFuncs[stage].erase(it);
+	}
 }
 
 void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
@@ -200,6 +221,11 @@ void KDeferredRenderer::RecreatePipeline()
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE4,
 			KRenderGlobal::CascadedShadowMap.GetFinalMask()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE5,
+			KRenderGlobal::ClipmapVoxilzer.GetFinalMask()->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
@@ -380,12 +406,15 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 	}
 }
 
-void KDeferredRenderer::Foreground(IKCommandBufferPtr primaryBuffer, std::function<void(IKRenderPassPtr, IKCommandBufferPtr)> func)
+void KDeferredRenderer::Foreground(IKCommandBufferPtr primaryBuffer)
 {
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].debugMakrer, glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_FOREGROUND], SUBPASS_CONTENTS_SECONDARY);
 
-	func(m_RenderPass[DRS_STATE_FOREGROUND], primaryBuffer);
+	std::for_each(m_RenderCallFuncs[DRS_STATE_FOREGROUND].begin(), m_RenderCallFuncs[DRS_STATE_FOREGROUND].end(), [this, primaryBuffer](RenderPassCallFuncType* func)
+	{
+		(*func)(m_RenderPass[DRS_STATE_FOREGROUND], primaryBuffer);
+	});
 
 	primaryBuffer->EndRenderPass();
 	primaryBuffer->EndDebugMarker();
@@ -519,6 +548,11 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 	commandBuffer->End();
 
 	primaryBuffer->Execute(commandBuffer);
+
+	std::for_each(m_RenderCallFuncs[DRS_STATE_DEBUG_OBJECT].begin(), m_RenderCallFuncs[DRS_STATE_DEBUG_OBJECT].end(), [this, primaryBuffer](RenderPassCallFuncType* func)
+	{
+		(*func)(m_RenderPass[DRS_STATE_DEBUG_OBJECT], primaryBuffer);
+	});
 
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].debugMakrer, statistics);
 

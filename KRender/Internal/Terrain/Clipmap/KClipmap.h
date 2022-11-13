@@ -253,7 +253,7 @@ public:
 
 	bool EnableDebugDraw(const KTerrainDebug& debug) override;
 	bool DisableDebugDraw() override;
-	bool GetDebugRenderCommand(KRenderCommandList& commands) override;
+	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
 
 	int32_t GetBlockCount() const { return (m_GridCount + 1) / 4; }
 	int32_t GetGridCount() const { return m_GridCount; }

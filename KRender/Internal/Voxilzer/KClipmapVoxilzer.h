@@ -186,7 +186,7 @@ protected:
 	std::vector<KClipmapVoxelizationRegion> ComputeRevoxelizationRegionsByMovement(uint32_t levelIdx, const glm::ivec3& movement);
 
 	void UpdateVoxelBuffer();
-	void UpdateInternal();
+	void UpdateInternal(IKCommandBufferPtr primaryBuffer);
 	void ApplyUpdateMovement();
 	void ClearUpdateRegion(IKCommandBufferPtr commandBuffer);
 	void VoxelizeStaticScene(IKCommandBufferPtr commandBuffer);
@@ -203,14 +203,14 @@ public:
 	KClipmapVoxilzer();
 	~KClipmapVoxilzer();
 
-	void UpdateVoxel();
+	void UpdateVoxel(IKCommandBufferPtr primaryBuffer);
 	void ReloadShader();
 
 	inline uint32_t GetVoxelDimension() const { return m_VolumeDimension; }
 	inline float GetBaseVoxelSize() const { return m_BaseVoxelSize; }
 
 	void Resize(uint32_t width, uint32_t height);
-	bool RenderVoxel(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 	bool UpdateFrame(IKCommandBufferPtr primaryBuffer);
 
 	bool& GetVoxelDrawEnable() { return m_VoxelDrawEnable; }
@@ -225,7 +225,7 @@ public:
 	inline bool IsVoxelDrawWireFrame() const { return m_VoxelDrawWireFrame; }
 	inline void SetVoxelDrawWireFrame(bool wireframe) { m_VoxelDrawWireFrame = wireframe; }
 
-	bool GetLightDebugRenderCommand(KRenderCommandList& commands);
+	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 
 	IKFrameBufferPtr GetStaticFlag() { return m_StaticFlag ? m_StaticFlag->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelAlbedo() { return m_VoxelAlbedo ? m_VoxelAlbedo->GetFrameBuffer() : nullptr; }
@@ -236,4 +236,6 @@ public:
 
 	bool Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount,	uint32_t baseVoxelSize, uint32_t width, uint32_t height);
 	bool UnInit();
+
+	inline IKRenderTargetPtr GetFinalMask() { return m_LightPassTarget; }
 };

@@ -1346,8 +1346,8 @@ bool KClipmap::DisableDebugDraw()
 	return true;
 }
 
-bool KClipmap::GetDebugRenderCommand(KRenderCommandList& commands)
+bool KClipmap::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
-	m_DebugDrawer.GetDebugRenderCommand(commands);
+	m_DebugDrawer.Render(renderPass, primaryBuffer);
 	return true;
 }

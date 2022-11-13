@@ -13,5 +13,5 @@ public:
 	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers) override { return true; }
 	bool EnableDebugDraw(const KTerrainDebug& debug) override { return true; }
 	bool DisableDebugDraw() override { return true; }
-	bool GetDebugRenderCommand(KRenderCommandList& commands) override { return true; }
+	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override { return true; }
 };

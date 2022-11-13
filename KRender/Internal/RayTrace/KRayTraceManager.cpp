@@ -85,11 +85,11 @@ bool KRayTraceManager::GetAllRayTraceScene(std::unordered_set<IKRayTraceScenePtr
 	return true;
 }
 
-bool KRayTraceManager::GetDebugRenderCommand(KRenderCommandList& commands)
+bool KRayTraceManager::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
 	for (IKRayTraceScenePtr scene : m_Scenes)
 	{
-		scene->GetDebugRenderCommand(commands);
+		scene->DebugRender(renderPass, primaryBuffer);
 	}
 	return true;
 }

@@ -92,11 +92,6 @@ bool KRenderCore::UnInitPostProcess()
 
 bool KRenderCore::InitGlobalManager()
 {
-	uint32_t frameInFlight = KRenderGlobal::NumFramesInFlight;
-
-	size_t width = 0, height = 0;
-	m_Window->GetSize(width, height);
-
 	KRenderDeviceProperties* property = nullptr;
 	ASSERT_RESULT(m_Device->QueryProperty(&property));
 
@@ -114,26 +109,6 @@ bool KRenderCore::InitGlobalManager()
 
 	KDebugDrawSharedData::Init();
 
-	KRenderGlobal::FrameGraph.Init(m_Device);
-	KRenderGlobal::GBuffer.Init((uint32_t)width, (uint32_t)height);
-	KRenderGlobal::RayTraceManager.Init();
-
-	KRenderGlobal::CubeMap.Init(128, 128, 8, "Textures/uffizi_cube.ktx");
-	KRenderGlobal::WhiteFurnace.Init();
-	KRenderGlobal::SkyBox.Init(m_Device, "Textures/uffizi_cube.ktx");
-
-	KRenderGlobal::OcclusionBox.Init(m_Device);
-	KRenderGlobal::ShadowMap.Init(m_Device, 2048);
-	KRenderGlobal::CascadedShadowMap.Init(&m_Camera, 3, 2048, (uint32_t)width, (uint32_t)height);
-
-	KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 128, (uint32_t)width, (uint32_t)height);
-	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, &m_Camera, 64, 7, 16, (uint32_t)width, (uint32_t)height);
-
-	KRenderGlobal::DeferredRenderer.Init(&m_Camera, (uint32_t)width, (uint32_t)height);
-
-	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
-	KRenderGlobal::FrameGraph.Alloc();
-
 	return true;
 }
 
@@ -142,22 +117,6 @@ bool KRenderCore::UnInitGlobalManager()
 	KDebugDrawSharedData::UnInit();
 
 	KRenderGlobal::QuadDataProvider.UnInit();
-
-	KRenderGlobal::DeferredRenderer.UnInit();
-
-	KRenderGlobal::WhiteFurnace.UnInit();
-	KRenderGlobal::CubeMap.UnInit();
-	KRenderGlobal::SkyBox.UnInit();
-	KRenderGlobal::OcclusionBox.UnInit();
-	KRenderGlobal::ShadowMap.UnInit();
-	KRenderGlobal::CascadedShadowMap.UnInit();
-	KRenderGlobal::RTAO.UnInit();
-	KRenderGlobal::Voxilzer.UnInit();
-	KRenderGlobal::ClipmapVoxilzer.UnInit();
-
-	KRenderGlobal::RayTraceManager.UnInit();
-	KRenderGlobal::GBuffer.UnInit();
-	KRenderGlobal::FrameGraph.UnInit();
 
 	KRenderGlobal::MaterialManager.UnInit();
 	KRenderGlobal::MeshManager.UnInit();
@@ -175,18 +134,24 @@ bool KRenderCore::UnInitGlobalManager()
 
 bool KRenderCore::InitRenderer()
 {
+	size_t width = 0, height = 0;
+	m_Window->GetSize(width, height);
+
 	m_CameraCube = CreateCameraCube();
 	m_CameraCube->Init(m_Device, &m_Camera);
-	KRenderGlobal::Renderer.Init(m_Device, m_CameraCube);
+
+	KRenderGlobal::Renderer.Init(&m_Camera, m_CameraCube, (uint32_t)width, (uint32_t)height);
+
 	return true;
 }
 
 bool KRenderCore::UnInitRenderer()
 {
+	KRenderGlobal::Renderer.UnInit();
+
 	m_CameraCube->UnInit();
 	m_CameraCube = nullptr;
 
-	KRenderGlobal::Renderer.UnInit();
 	return true;
 }
 
@@ -210,7 +175,7 @@ bool KRenderCore::InitController()
 			m_Device->Wait();
 			KRenderGlobal::RayTraceManager.ReloadShader();
 			KRenderGlobal::RTAO.ReloadShader();
-			KRenderGlobal::Voxilzer.ReloadShader();
+			// KRenderGlobal::Voxilzer.ReloadShader();
 			KRenderGlobal::ClipmapVoxilzer.ReloadShader();
 			KRenderGlobal::Scene.GetTerrain()->Reload();
 		}
@@ -703,13 +668,7 @@ void KRenderCore::OnPostPresent(uint32_t chainIndex, uint32_t frameIndex)
 
 void KRenderCore::OnSwapChainRecreate(uint32_t width, uint32_t height)
 {
-	KRenderGlobal::FrameGraph.Resize();
-	KRenderGlobal::PostProcessManager.Resize(width, height);
-	KRenderGlobal::GBuffer.Resize(width, height);
-	KRenderGlobal::DeferredRenderer.Resize(width, height);
-	KRenderGlobal::Voxilzer.Resize(width, height);
-	KRenderGlobal::RTAO.Resize();
-	KRenderGlobal::RayTraceManager.Resize(width, height);
+	KRenderGlobal::Renderer.OnSwapChainRecreate(width, height);
 }
 
 #include "ShaderMap/KShaderMap.h"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Interface/IKRenderDevice.h"
+#include "Interface/IKRayTrace.h"
 #include "Internal/Object/KDebugDrawer.h"
 
 class KRTAO
@@ -101,7 +102,7 @@ public:
 	virtual bool EnableDebugDraw();
 	virtual bool DisableDebugDraw();
 
-	virtual bool GetDebugRenderCommand(KRenderCommandList& commands);
+	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer);
 
 	AoControl& GetAoParameters() { return m_AOParameters; }

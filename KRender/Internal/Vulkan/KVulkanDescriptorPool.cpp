@@ -233,7 +233,6 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 				ASSERT_RESULT(frameBuffer);
 
 				imageInfo.imageLayout = frameBuffer->IsStorageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				imageInfo.imageLayout = frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : imageInfo.imageLayout;
 				imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
 				imageInfo.sampler = ((KVulkanSampler*)info.samplers[0].get())->GetVkSampler();
 

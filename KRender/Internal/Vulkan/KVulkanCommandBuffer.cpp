@@ -273,7 +273,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 						KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
 						vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 						vkCmdDrawIndexed(commandBuffer, command.indexData->indexCount, instanceCount, command.indexData->indexStart, 0, instanceStart);
-						// FIXME 难道这是NV驱动的BUG 开启Drawinstance功能之后如果Indexbuffer是32bit需要把Indexbuffer按16bit绑定一次
+						// FIXME 这里不这样做KVulkanUIOverlay::Draw会导致屏幕变黑
 						vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, VK_INDEX_TYPE_UINT16);
 					}
 					else
@@ -294,6 +294,8 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 					KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
 					vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 					vkCmdDrawIndexed(commandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+					// FIXME 这里不这样做KVulkanUIOverlay::Draw会导致屏幕变黑
+					vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, VK_INDEX_TYPE_UINT16);
 				}
 				else
 				{

@@ -25,9 +25,9 @@ KRayTraceScene::~KRayTraceScene()
 	ASSERT_RESULT(!m_Pipeline);
 }
 
-bool KRayTraceScene::GetDebugRenderCommand(KRenderCommandList& commands)
+bool KRayTraceScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
-	return m_DebugDrawer.GetDebugRenderCommand(commands);
+	return m_DebugDrawer.Render(renderPass, primaryBuffer);
 }
 
 void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)

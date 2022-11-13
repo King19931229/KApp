@@ -2,7 +2,7 @@
 
 #include "public.h"
 #include "voxel/clipmap/voxel_clipmap_common.h"
-#define cascaded_shadow dynamic_cascaded
+#define cascaded_shadow static_cascaded
 #include "shadow/shadow.h"
 
 #extension GL_ARB_shader_image_load_store : require
@@ -143,6 +143,26 @@ vec3 BRDF(Light light, vec3 normal, vec3 albedo)
 
 float Visibility(vec3 position)
 {
+	/*
+	vec3 corners[8];
+	corners[0] = position + vec3(0.5, 0.5, 0.5) * voxelSize;
+	corners[1] = position + vec3(0.5, 0.5, -0.5) * voxelSize;
+	corners[2] = position + vec3(0.5, -0.5, 0.5) * voxelSize;
+	corners[3] = position + vec3(0.5, -0.5, -0.5) * voxelSize;
+	corners[4] = position + vec3(-0.5, 0.5, 0.5) * voxelSize;
+	corners[5] = position + vec3(-0.5, 0.5, -0.5) * voxelSize;
+	corners[6] = position + vec3(-0.5, -0.5, 0.5) * voxelSize;
+	corners[7] = position + vec3(-0.5, -0.5, -0.5) * voxelSize;
+
+	float result = 0.0;
+	for (int i = 0; i < 8; ++i)
+	{
+		vec4 worldPos = vec4(corners[i], 1.0);
+		vec4 viewPos = camera.view * worldPos;
+		result += 0.125 * CalcCSM(viewPos.xyz, worldPos.xyz).a;
+	}
+	return result;
+	*/
 	vec4 worldPos = vec4(position, 1.0);
 	vec4 viewPos = camera.view * worldPos;
 	return CalcCSM(viewPos.xyz, worldPos.xyz).a;

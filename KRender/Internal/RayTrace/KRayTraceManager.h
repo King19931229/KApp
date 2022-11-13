@@ -23,5 +23,5 @@ public:
 	virtual bool AcquireRayTraceScene(IKRayTraceScenePtr& scene);
 	virtual bool RemoveRayTraceScene(IKRayTraceScenePtr& scene);
 	virtual bool GetAllRayTraceScene(std::unordered_set<IKRayTraceScenePtr>& scenes);
-	virtual bool GetDebugRenderCommand(KRenderCommandList& commands);
+	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 };

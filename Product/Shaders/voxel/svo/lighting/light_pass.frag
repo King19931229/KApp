@@ -1,15 +1,15 @@
 #include "public.h"
 #include "voxel/svo/voxel_common.h"
+#include "shading/decode.h"
 
 layout(location = 0) out vec4 fragColor;
 
 layout(location = 0) in vec2 texCoord;
 
-layout(binding = VOXEL_BINDING_GBUFFER_NORMAL) uniform sampler2D gNormal;
-layout(binding = VOXEL_BINDING_GBUFFER_POSITION) uniform sampler2D gPosition;
-layout(binding = VOXEL_BINDING_GBUFFER_ALBEDO) uniform sampler2D gAlbedo;
-layout(binding = VOXEL_BINDING_GBUFFER_SPECULAR) uniform sampler2D gSpecular;
-// layout(binding = VOXEL_BINDING_GBUFFER_EMISSIVE) uniform sampler2D gEmissive;
+layout(binding = VOXEL_BINDING_GBUFFER_RT0) uniform sampler2D gbuffer0;
+layout(binding = VOXEL_BINDING_GBUFFER_RT1) uniform sampler2D gbuffer1;
+layout(binding = VOXEL_BINDING_GBUFFER_RT2) uniform sampler2D gbuffer2;
+layout(binding = VOXEL_BINDING_GBUFFER_RT3) uniform sampler2D gbuffer3;
 
 #ifndef USE_OCTREE
 #define USE_OCTREE 0
@@ -442,21 +442,27 @@ const uint mode = 3;
 
 void main()
 {
+	vec4 gbuffer0Data = texture(gbuffer0, texCoord);
+	// vec4 gbuffer1Data = texture(gbuffer1, texCoord);
+	vec4 gbuffer2Data = texture(gbuffer2, texCoord);
+	vec4 gbuffer3Data = texture(gbuffer3, texCoord);
+
 	// world-space position
-	vec3 position = texture(gPosition, texCoord).xyz;
+	vec3 position = DecodePosition(gbuffer0Data, texCoord);
 	// world-space normal
-	vec3 normal = normalize(texture(gNormal, texCoord).xyz);
+	vec3 normal = DecodeNormal(gbuffer0Data);
+	// normal = normalize(cross(dFdx(position), dFdy(position)));
 	// xyz = fragment specular, w = shininess
-	vec4 specular = texture(gSpecular, texCoord);
+	vec4 specular = vec4(DecodeSpecularColor(gbuffer3Data), 0.0);
 	// fragment albedo
-	vec3 baseColor = texture(gAlbedo, texCoord).rgb;
+	vec3 baseColor = DecodeBaseColor(gbuffer2Data);
 	vec3 albedo = baseColor;
 	// fragment emissiviness
 	vec3 emissive = vec3(0.0); //texture(gEmissive, texCoord).rgb;
 	// lighting cumulatives
-	vec3 directLighting = vec3(1.0f);
-	vec4 indirectLighting = vec4(1.0f);
-	vec3 compositeLighting = vec3(1.0f);
+	vec3 directLighting = vec3(0.0f);
+	vec4 indirectLighting = vec4(0.0f);
+	vec3 compositeLighting = vec3(0.0f);
 
 	if(mode == 0) // direct + indirect + ao
 	{
@@ -476,7 +482,7 @@ void main()
 	else if(mode == 3) // indirect only
 	{
 		directLighting = vec3(0.0f);
-		baseColor.rgb = specular.rgb = vec3(1.0f);
+		// baseColor.rgb = specular.rgb = vec3(1.0f);
 		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, false);
 	}
 	else if(mode == 4) // ambient occlusion only
@@ -486,7 +492,7 @@ void main()
 		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, true);
 		indirectLighting.rgb = vec3(1.0f);
 	}
-	else if(mode == 5)
+	else if(mode == 5) // world normal
 	{
 		directLighting = normal;
 		indirectLighting.rgb = vec3(0.0f);

@@ -584,7 +584,6 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 			ASSERT_RESULT(frameBuffer);
 
 			imageInfo.imageLayout = frameBuffer->IsStorageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageLayout = frameBuffer->IsDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : imageInfo.imageLayout;
 
 			imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
 			imageInfo.sampler = ((KVulkanSampler*)info.samplers[i].get())->GetVkSampler();

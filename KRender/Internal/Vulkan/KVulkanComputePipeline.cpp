@@ -8,6 +8,7 @@
 #include "KVulkanCommandBuffer.h"
 #include "KVulkanInitializer.h"
 #include "KVulkanGlobal.h"
+#include "KVulkanHelper.h"
 #include "Internal/KRenderGlobal.h"
 
 KVulkanComputePipeline::KVulkanComputePipeline()
@@ -522,18 +523,16 @@ bool KVulkanComputePipeline::SetupBarrier(IKCommandBufferPtr buffer, bool input)
 		{
 			KVulkanFrameBuffer* vulkanFrameBuffer = static_cast<KVulkanFrameBuffer*>(binding.image.images[i].get());
 
-			VkImageLayout vulkanImageLayout = vulkanFrameBuffer->GetImageLayout();
+			VkFormat format = vulkanFrameBuffer->GetForamt();
 			VkImageAspectFlags flags = VK_IMAGE_ASPECT_COLOR_BIT;
 
-			switch (vulkanImageLayout)
+			if (KVulkanHelper::HasDepthComponent(format))
 			{
-				case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-				case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-					flags = VK_IMAGE_ASPECT_DEPTH_BIT;
-					break;
-				default:
-					flags = VK_IMAGE_ASPECT_COLOR_BIT;
-					break;
+				flags = VK_IMAGE_ASPECT_DEPTH_BIT;
+				if (KVulkanHelper::HasStencilComponent(format))
+				{
+					flags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+				}
 			}
 
 			VkImageSubresourceRange range = { flags, 0, 1, 0, 1 };
