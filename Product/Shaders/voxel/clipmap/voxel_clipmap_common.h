@@ -29,7 +29,7 @@ float maxTracingDistanceGlobal = voxel_clipmap.miscs3[1];
 float occlusionDecay = voxel_clipmap.miscs3[2];
 float downsampleTransitionRegionSize = voxel_clipmap.miscs3[3];
 
-float bounceStrength = 1.0f;
+float bounceStrength = 10.0f;
 float aoFalloff = 725.0f;
 float aoAlpha = 0.01f;
 float samplingFactor = 1.0f;

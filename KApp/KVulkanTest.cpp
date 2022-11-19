@@ -9,6 +9,8 @@
 #include "KBase/Interface/Component/IKRenderComponent.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
 
+#include "KBase/Publish/KMath.h"
+
 void InitSponza(IKEnginePtr engine)
 {
 	auto scene = engine->GetRenderCore()->GetRenderScene();
@@ -117,13 +119,13 @@ int main()
 		rayPipeline->SetShaderTable(ST_CLOSEST_HIT, "raytrace/raytrace.rchit");
 		rayPipeline->SetShaderTable(ST_MISS, "raytrace/raytrace.rmiss");
 		rayTraceScene->EnableAutoUpdateImageSize(1.0f);
-		rayTraceScene->EnableDebugDraw();
+	//	rayTraceScene->EnableDebugDraw();
 		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
 
 		engine->GetRenderCore()->InitRTAO(rayTraceScene);
 	};
 	//engine->GetRenderCore()->RegisterInitCallback(&callback);
-	//callback();
+	callback();
 
 	constexpr bool SECORDARY_WINDOW = true;
 

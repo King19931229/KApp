@@ -595,6 +595,7 @@ bool KRenderCore::UpdateUIOverlay()
 				}
 				if (ui->Header("RTAO"))
 				{
+					ui->CheckBox("RTAODraw", &KRenderGlobal::RTAO.GetDebugDrawEnable());
 					ui->SliderFloat("Length of the ray", &KRenderGlobal::RTAO.GetAoParameters().rtao_radius, 0.0f, 20.0f);
 					ui->SliderInt("Number of samples at each iteration", &KRenderGlobal::RTAO.GetAoParameters().rtao_samples, 1, 32);
 					ui->SliderFloat("Strenth of darkness", &KRenderGlobal::RTAO.GetAoParameters().rtao_power, 0.0001f, 10.0f);

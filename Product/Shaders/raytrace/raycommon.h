@@ -57,10 +57,10 @@ layout(binding = RAYTRACE_BINDING_CAMERA) uniform CameraProperties
 	mat4 projInv;
 	// near, far, fov, aspect
 	vec4 parameters;
-} cam;
+} camera;
 layout(binding = RAYTRACE_BINDING_TEXTURES) uniform sampler2D texturesMap[]; // all textures
 
-layout(binding = RAYTRACE_BINDING_GBUFFER0) uniform sampler2D encodedGBuffer0;
-layout(binding = RAYTRACE_BINDING_GBUFFER1) uniform sampler2D encodedGBuffer1;
+layout(binding = RAYTRACE_BINDING_GBUFFER0) uniform sampler2D gbuffer0;
+layout(binding = RAYTRACE_BINDING_GBUFFER1) uniform sampler2D gbuffer1;
 
 #endif

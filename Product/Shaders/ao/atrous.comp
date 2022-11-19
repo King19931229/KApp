@@ -1,7 +1,5 @@
 #include "rtao_define.h"
 
-layout(binding = BINDING_GBUFFER_NORMAL, rgba32f) uniform image2D normalImage;
-layout(binding = BINDING_GBUFFER_POSITION, rgba32f) uniform image2D positionImage;
 layout(binding = BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, rg16f) uniform image2D sqaredMeanVarianceImage;
 layout(binding = BINDING_CUR, rg16f) uniform image2D curImage;
 layout(binding = BINDING_FINAL, rg32f) uniform image2D finalImage;
@@ -31,15 +29,35 @@ const float Kernel[Width][Width] =
 };
 #endif
 
+layout(binding = BINDING_CAMERA)
+uniform CameraInfo
+{
+	mat4 view;
+	mat4 proj;
+	mat4 viewInv;
+	mat4 projInv;
+	mat4 viewProj;
+	mat4 prevViewProj;
+	// near, far, fov, aspect
+	vec4 parameters;
+	vec4 frustumPlanes[6];
+} camera;
+
+#include "shading/gbuffer.h"
+
+layout(binding = BINDING_GBUFFER_RT0, GBUFFER_IMAGE0_FORMAT) uniform image2D gbuffer0Image;
+layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbuffer1Image;
+
 vec2 DDXYDepth(ivec2 curSampleGPos, ivec2 inSize)
 {
-	float depth = imageLoad(normalImage, curSampleGPos).a;
+	vec4 gbuffer0Data = imageLoad(gbuffer0Image, curSampleGPos);
+	float depth = DecodeDepth(gbuffer0Data);
 
 	ivec2 xBiasSampleGPos = curSampleGPos + ivec2(1, 0);
-	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, inSize) ? imageLoad(normalImage, xBiasSampleGPos).a : depth;
+	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, inSize) ? DecodeDepth(imageLoad(gbuffer0Image, xBiasSampleGPos)) : depth;
 
 	ivec2 yBiasSampleGPos = curSampleGPos + ivec2(0, 1);
-	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, inSize) ? imageLoad(normalImage, yBiasSampleGPos).a : depth;
+	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, inSize) ? DecodeDepth(imageLoad(gbuffer0Image, yBiasSampleGPos)) : depth;
 
 	return vec2(xBiasDepth - depth, yBiasDepth - depth);
 }
@@ -75,7 +93,8 @@ void AddFilterContribution(
 	ivec2 sampleGPos = curSampleGPos + pixelGOffset;
 	if (IsWithinBounds(samplePos, outSize) && IsWithinBounds(sampleGPos, inSize))
 	{
-		vec4 sample_normal_depth = imageLoad(normalImage, sampleGPos);
+		vec4 gbuffer0Data = imageLoad(gbuffer0Image, curSampleGPos);
+		vec4 sample_normal_depth = vec4(DecodeNormal(gbuffer0Data), DecodeDepth(gbuffer0Data));
 		float sample_value = imageLoad(finalImage, samplePos).r;
 		if(sample_normal_depth.rgb == vec3(0.0))
 		{
@@ -126,7 +145,7 @@ void AddFilterContribution(
 
 void main()
 {
-	ivec2 inSize = imageSize(normalImage);
+	ivec2 inSize = imageSize(gbuffer0Image);
 	ivec2 outSize = imageSize(outImage);
 
 	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
@@ -138,7 +157,9 @@ void main()
 	float value = imageLoad(finalImage, curSamplePos).r;
 	float variance = imageLoad(sqaredMeanVarianceImage, curSamplePos).g;
 	vec2 ddxy = DDXYDepth(curSampleGPos, inSize);
-	vec4 normal_depth = imageLoad(normalImage, curSampleGPos);
+
+	vec4 gbuffer0Data = imageLoad(gbuffer0Image, curSampleGPos);
+	vec4 normal_depth = vec4(DecodeNormal(gbuffer0Data), DecodeDepth(gbuffer0Data));
 
 	float weightSum = 0;
 	float weightedValueSum = 0;

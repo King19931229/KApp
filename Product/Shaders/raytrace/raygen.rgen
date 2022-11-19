@@ -11,9 +11,9 @@ void main()
 	const vec2 uv = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
 	vec2 d = uv * 2.0 - 1.0;
 
-	vec4 origin = cam.viewInv * vec4(0,0,0,1);
-	vec4 target = cam.projInv * vec4(d.x, d.y, 1, 1) ;
-	vec4 direction = cam.viewInv * vec4(normalize(target.xyz / target.w), 0) ;
+	vec4 origin = camera.viewInv * vec4(0,0,0,1);
+	vec4 target = camera.projInv * vec4(d.x, d.y, 1, 1) ;
+	vec4 direction = camera.viewInv * vec4(normalize(target.xyz / target.w), 0) ;
 
 	uint rayFlags = gl_RayFlagsOpaqueEXT;
 	float tMin = 0.001;
@@ -30,7 +30,7 @@ void main()
 	prd.sum = vec3(0.0);
 	prd.depth = 0;	
 	SurfaceHit surf = InitializeSurfaceHit(origin.xyz, uv);
-	prd.cone = ComputeRayConeFromGBuffer(surf, distance(prd.rayOrigin, DecodePosition(uv)));
+	prd.cone = ComputeRayConeFromGBuffer(surf, distance(prd.rayOrigin, DecodePositionFromGBuffer(uv)));
 
 	while(prd.depth < MAX_RECURSION)
 	{

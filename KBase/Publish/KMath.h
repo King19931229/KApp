@@ -7,6 +7,33 @@
 
 namespace KMath
 {
+	template<typename T>
+	inline T FloatPrecision(T value);
+
+	template<>
+	inline float FloatPrecision(float value)
+	{
+		const int32_t exponentBits = 8;
+		const int32_t mantissaBits = 23;
+		const int32_t exponentShift = ((uint32_t)1 << (exponentBits - 1)) - 1;
+		uint32_t valueAsInt = *(uint32_t*)(&value);
+		valueAsInt &= (uint32_t)(~0) >> 1;
+		float exponent = (float)pow(2.0f, (int32_t)(valueAsInt >> mantissaBits) - exponentShift);
+		return (float)pow(2.0f, -mantissaBits - 1) * exponent;
+	}
+
+	template<>
+	inline double FloatPrecision(double value)
+	{
+		const int32_t exponentBits = 11;
+		const int32_t mantissaBits = 52;
+		const int32_t exponentShift = ((uint64_t)1 << (exponentBits - 1)) - 1;
+		uint64_t valueAsInt = *(uint64_t*)(&value);
+		valueAsInt &= (uint64_t)(~0) >> 1;
+		double exponent = pow(2.0, (int32_t)(valueAsInt >> mantissaBits) - exponentShift);
+		return pow(2.0, -mantissaBits - 1) * exponent;
+	}
+
 	// 永远返回正数
 	template<typename T>
 	inline T Mod(T x, T y)

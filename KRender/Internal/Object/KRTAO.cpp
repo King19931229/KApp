@@ -75,10 +75,10 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 
 		IKRayTracePipeline* rayPipeline = scene->GetRayTracePipeline();
 
-		// TODO
-		IKRenderTargetPtr normalBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
-		IKRenderTargetPtr positionBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
-		IKRenderTargetPtr velocityBuffer = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1);
+		IKRenderTargetPtr gbuffer0 = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
+		IKRenderTargetPtr gbuffer1 = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1);
+
+		IKUniformBufferPtr& cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 
 		KRenderDeviceProperties* property = nullptr;
 		renderDevice->QueryProperty(&property);
@@ -86,13 +86,14 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 		if (property->raytraceSupport)
 		{
 			renderDevice->CreateComputePipeline(m_AOComputePipeline);
-			m_AOComputePipeline->BindStorageImage(BINDING_GBUFFER_NORMAL, normalBuffer->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_AOComputePipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_AOComputePipeline->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_AOComputePipeline->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AOComputePipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
-			m_AOComputePipeline->BindUniformBuffer(BDINING_UNIFORM, m_AOUniformBuffer);
+			m_AOComputePipeline->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
 			m_AOComputePipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 			m_AOComputePipeline->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 			m_AOComputePipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+			m_AOComputePipeline->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
 			m_AOComputePipeline->Init("ao/rtao.comp");
 
 			renderDevice->CreateComputePipeline(m_MeanHorizontalComputePipeline);
@@ -108,11 +109,10 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_MeanVerticalComputePipeline->Init("ao/mean_v.comp");
 
 			renderDevice->CreateComputePipeline(m_AOTemporalPipeline);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_GBUFFER_NORMAL, normalBuffer->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_VELOCITY, velocityBuffer->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_AOTemporalPipeline->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AOTemporalPipeline->BindAccelerationStructure(BINDING_AS, rayPipeline->GetTopdownAS(), true);
-			m_AOTemporalPipeline->BindUniformBuffer(BDINING_UNIFORM, m_AOUniformBuffer);
+			m_AOTemporalPipeline->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_INPUT, m_MeanVarianceTarget[0]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_PREV, m_RenderTarget[0]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_NormalDepthTarget[0]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
@@ -120,15 +120,17 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, m_TemporalMeanSqaredMean->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 			m_AOTemporalPipeline->BindStorageImage(BINDING_FINAL, m_RenderTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+			m_AOTemporalPipeline->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
 			m_AOTemporalPipeline->Init("ao/rtao_temp.comp");
 
 			renderDevice->CreateComputePipeline(m_AtrousComputePipeline);
-			m_AtrousComputePipeline->BindStorageImage(BINDING_GBUFFER_NORMAL, normalBuffer->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_AtrousComputePipeline->BindStorageImage(BINDING_GBUFFER_POSITION, positionBuffer->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_AtrousComputePipeline->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_AtrousComputePipeline->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AtrousComputePipeline->BindStorageImage(BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, m_TemporalMeanSqaredMean->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AtrousComputePipeline->BindStorageImage(BINDING_FINAL, m_RenderTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AtrousComputePipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_AtrousComputePipeline->BindStorageImage(BINDING_ATROUS, m_AtrousTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+			m_AtrousComputePipeline->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
 			m_AtrousComputePipeline->Init("ao/atrous.comp");
 
 			renderDevice->CreateComputePipeline(m_ComposePipeline);
@@ -140,7 +142,11 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_ComposePipeline->BindStorageImage(BINDING_CUR, m_CurrentTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_ComposePipeline->BindStorageImage(BINDING_ATROUS, m_AtrousTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 			m_ComposePipeline->BindStorageImage(BINDING_COMPOSED, m_ComposedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_ComposePipeline->BindStorageImage(BINDING_VELOCITY, velocityBuffer->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_ComposePipeline->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_ComposePipeline->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_ComposePipeline->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_NormalDepthTarget[0]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_ComposePipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			m_ComposePipeline->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
 			m_ComposePipeline->Init("ao/compose.comp");
 		}
 	}
@@ -271,9 +277,9 @@ void KRTAO::Resize()
 		}
 
 		m_NormalDepthTarget[0]->UnInit();
-		m_NormalDepthTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R32G32B32A32_FLOAT);
+		m_NormalDepthTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16B16A16_FLOAT);
 		m_NormalDepthTarget[1]->UnInit();
-		m_NormalDepthTarget[1]->InitFromStorage(m_Width, m_Height, 1, EF_R32G32B32A32_FLOAT);
+		m_NormalDepthTarget[1]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16B16A16_FLOAT);
 
 		m_RenderTarget[0]->UnInit();
 		m_RenderTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R32G32_FLOAT);

@@ -1,5 +1,21 @@
 #include "rtao_define.h"
 
+layout(binding = BINDING_CAMERA)
+uniform CameraInfo
+{
+	mat4 view;
+	mat4 proj;
+	mat4 viewInv;
+	mat4 projInv;
+	mat4 viewProj;
+	mat4 prevViewProj;
+	// near, far, fov, aspect
+	vec4 parameters;
+	vec4 frustumPlanes[6];
+} camera;
+
+#include "shading/gbuffer.h"
+
 layout(binding = BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, rg16f) uniform image2D sqaredMeanVarianceImage;
 layout(binding = BINDING_PREV, rg32f) uniform image2D prevImage;
 layout(binding = BINDING_CUR, rg16f) uniform image2D curImage;
@@ -7,7 +23,10 @@ layout(binding = BINDING_LOCAL_MEAN_VARIANCE_INPUT, rg16f) uniform image2D meanI
 layout(binding = BINDING_FINAL, rg32f) uniform image2D finalImage;
 layout(binding = BINDING_ATROUS, r16f) uniform image2D atrousImage;
 layout(binding = BINDING_COMPOSED, rgba16f) uniform image2D outImage;
-layout(binding = BINDING_VELOCITY, rg32f) uniform image2D motionImage;
+layout(binding = BINDING_GBUFFER_RT0, GBUFFER_IMAGE0_FORMAT) uniform image2D gbuffer0Image;
+layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbuffer1Image;
+layout(binding = BINDING_PREV_NORMAL_DEPTH, rgba16f) uniform image2D prevNormalDepthImage;
+layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba16f) uniform image2D curNormalDepthImage;
 
 layout(local_size_x = RTAO_GROUP_SIZE, local_size_y = RTAO_GROUP_SIZE) in;
 
@@ -16,5 +35,5 @@ void main()
 	ivec2 size = imageSize(outImage);
 	// Check if not outside boundaries
 	if(gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y) return;
-	imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), imageLoad(atrousImage, ivec2(gl_GlobalInvocationID.xy)));
+	imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), imageLoad(finalImage, ivec2(gl_GlobalInvocationID.xy)).rrrr);
 }

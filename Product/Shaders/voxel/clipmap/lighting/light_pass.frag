@@ -1,6 +1,6 @@
 #include "public.h"
 #include "voxel/clipmap/voxel_clipmap_common.h"
-#include "shading/decode.h"
+#include "shading/gbuffer.h"
 
 layout(location = 0) out vec4 fragColor;
 
@@ -101,7 +101,7 @@ float GetMinLevel(vec3 center, vec3 posW)
 	// Smoothly transition from current level to the next level
 	float transitionStart = 0.5;
 	float c = 1.0 / (1.0 - transitionStart);
-	
+
 	return f > transitionStart ? ceil(minLevel) + (f - transitionStart) * c : ceil(minLevel);
 }
 
@@ -113,12 +113,12 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 	visibleFace.z = (direction.z < 0.0) ? 4 : 5;
 	traceOcclusion = traceOcclusion && aoAlpha < 1.0f;
 
-	float startLevel = GetMinLevel(clipCenter, position);
+	float startLevel = GetMinLevel(cameraPosition.xyz, position);
 	// weight per axis for aniso sampling
 	vec3 weight = direction * direction;
+	float dst = 0;
 	// move further to avoid self collision
-	float dst = 0.5 * baseVoxelSize * exp2(startLevel);
-	vec3 startPosition = position + normal * dst;
+	vec3 startPosition = position + normal * baseVoxelSize * exp2(startLevel);;
 	// final results
 	vec4 coneSample = vec4(0.0f);
 	vec4 anisoSample = vec4(0.0f);
@@ -155,11 +155,11 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 		// cone expansion and respective mip level based on diameter
 		float diameter = 2.0f * aperture * dst;
 
-		float distanceToCenter = distance(clipCenter.xyz, conePosition);
+		float distanceToCenter = distance(cameraPosition.xyz, conePosition);
 		float minLevel = ceil(log2(distanceToCenter * 2 / baseExtent));
 
 		float mipLevel = log2(diameter / baseVoxelSize);
-		mipLevel = min(max(mipLevel, minLevel), levelCount - 1);
+		mipLevel = min(max(startLevel, max(minLevel, mipLevel)), levelCount - 1);
 
 		// Radiance correction
 		float correctionQuotient = curSegmentLength / (baseVoxelSize * exp2(mipLevel));
@@ -177,14 +177,9 @@ vec4 TraceCone(vec3 position, vec3 normal, vec3 direction, float aperture, bool 
 			occlusion += ((1.0f - occlusion) * opacity) / (1.0f + falloff * diameter);
 		}
 
-		// const float mipmapArea = 0.2;
-		// float factor = max(min((abs(2.0 * fract(mipLevel) - 1.0)) / mipmapArea, 1.0), 0.0);
-		// float adjustedSamplingFactor = mix(0.1, 1.0, factor) * samplingFactor;
-
 		float dstLast = dst;
 		// move further into volume
-		dst += diameter * samplingFactor;
-		// dst += baseVoxelSize * samplingFactor;
+		dst += max(diameter, baseVoxelSize) * samplingFactor;
 		curSegmentLength = (dst - dstLast);
 	}
 
@@ -547,7 +542,7 @@ void main()
 	// -- this could be done in a post-process pass -- 
 
 	// Reinhard tone mapping
-	// compositeLighting = compositeLighting / (compositeLighting + 1.0f);
+	compositeLighting = compositeLighting / (compositeLighting + 1.0f);
 	// gamma correction
 	// convert to gamma space
 	// compositeLighting = pow(compositeLighting, vec3(1.0 / gamma));

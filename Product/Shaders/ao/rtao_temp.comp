@@ -1,12 +1,9 @@
 #include "sampling.h"
 #include "rtao_define.h"
 
-layout(binding = BINDING_GBUFFER_NORMAL, rgba32f) uniform image2D normalImage;
-layout(binding = BINDING_GBUFFER_POSITION, rgba32f) uniform image2D positionImage;
-layout(binding = BINDING_PREV_NORMAL_DEPTH, rgba32f) uniform image2D prevNormalDepthImage;
-layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba32f) uniform image2D curNormalDepthImage;
-layout(binding = BINDING_VELOCITY, rg32f) uniform image2D motionImage;
-layout(binding = BDINING_UNIFORM) uniform AOProperties 
+layout(binding = BINDING_PREV_NORMAL_DEPTH, rgba16f) uniform image2D prevNormalDepthImage;
+layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba16f) uniform image2D curNormalDepthImage;
+layout(binding = BINDING_UNIFORM) uniform AOProperties 
 {
 	float rtao_radius;
 	int   rtao_samples;
@@ -14,6 +11,7 @@ layout(binding = BDINING_UNIFORM) uniform AOProperties
 	int   rtao_distance_based;
 	int   max_samples;
 	int   frame_number;
+	int	  local_mean_width;
 };
 
 layout(binding = BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, rg16f) uniform image2D sqaredMeanVarianceImage;
@@ -21,6 +19,25 @@ layout(binding = BINDING_PREV, rg32f) uniform image2D prevImage;
 layout(binding = BINDING_CUR, rg16f) uniform image2D curImage;
 layout(binding = BINDING_LOCAL_MEAN_VARIANCE_INPUT, rg16f) uniform image2D meanInputImage;
 layout(binding = BINDING_FINAL, rg32f) uniform image2D outImage;
+
+layout(binding = BINDING_CAMERA)
+uniform CameraInfo
+{
+	mat4 view;
+	mat4 proj;
+	mat4 viewInv;
+	mat4 projInv;
+	mat4 viewProj;
+	mat4 prevViewProj;
+	// near, far, fov, aspect
+	vec4 parameters;
+	vec4 frustumPlanes[6];
+} camera;
+
+#include "shading/gbuffer.h"
+
+layout(binding = BINDING_GBUFFER_RT0, GBUFFER_IMAGE0_FORMAT) uniform image2D gbuffer0Image;
+layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbuffer1Image;
 
 #define PREFER_CLIP_THAN_CLAMP
 #define CLIP_TO_CENTER
@@ -167,7 +184,7 @@ vec2 ComputeMotion(vec2 p)
 	}
 
 	vec2 targetOffset = p - vec2(topLeft);
-	ivec2 size = imageSize(motionImage);
+	ivec2 size = imageSize(gbuffer1Image);
 
 	vec4 weights;
 	ComputeWeights(targetOffset, size, samplePos, weights);
@@ -176,14 +193,15 @@ vec2 ComputeMotion(vec2 p)
 	vec2 motion = vec2(0);
 	for(int i = 0; i < 4; ++i)
 	{
-		motion += imageLoad(motionImage, samplePos[i]).rg * weights[i];
+		vec4 gbuffer1Data = imageLoad(gbuffer1Image, samplePos[i]);
+		motion += DecodeMotion(gbuffer1Data) * weights[i];
 	}
 	return motion;
 }
 
 void main()
 {
-	ivec2 inSize = imageSize(normalImage);
+	ivec2 inSize = imageSize(gbuffer0Image);
 	ivec2 outSize = imageSize(outImage);
 
 	// Check if not outside boundaries
@@ -216,38 +234,30 @@ void main()
 	uint tspp = floatBitsToUint(prevValue.g);
 	float weight = 0.0;
 
-	if(abs(motion.x) < 1e-1)
+	if(abs(motion.x) + abs(motion.y) < 1e-1)
 	{
-		float normalFloatPrecision = 1e-5;
-		const float normalCutStrength = 1.0;
+		const float normalCutSigma = 1.0;
+		float normalFloatPrecision = 1e-3;
 		float normalWeight = clamp(dot(curNormalDepth.rgb, prevNormalDepth.rgb) + normalFloatPrecision, 0.0, 1.0);
-		normalWeight = pow(normalWeight, normalCutStrength);
+		normalWeight = pow(normalWeight, normalCutSigma);
 
-		float depthFloatPrecision = 30.0;
+		const float depthCutSigma = 1.0;
+		float depthFloatPrecision = FloatPrecisionR16(curNormalDepth.a);
 		vec2 ddxyDepth = DDXYDepth(ivec2(gl_GlobalInvocationID.xy), outSize);
 		float depthThreshold = dot(vec2(1.0), abs(ddxyDepth));
-		float depthTolerance = depthThreshold + depthFloatPrecision;
-		float dpethDelta = abs(prevNormalDepth.a - curNormalDepth.a);
-		dpethDelta = max(0, dpethDelta - depthFloatPrecision);
-		float depthWeight = exp(-dpethDelta / depthTolerance);
+		float depthTolerance = depthCutSigma * depthThreshold + depthFloatPrecision;
+
+		float depthDelta = abs(prevNormalDepth.a - curNormalDepth.a);
+ 		float depthWeight = min(depthTolerance / (depthDelta + depthFloatPrecision), 1.0);
 		weight = normalWeight * depthWeight;
 	}
 
 	tspp = uint(float(tspp) * weight);
 	float prevOcclusion = 0.0;
 	vec2 localMeanVariance = vec2(0.0);
-	if(tspp > 0)
+	if (tspp > 0)
 	{
-		vec2 localMeanInput = imageLoad(meanInputImage, storePos).rg;
-		const float mean = localMeanInput.r;
-		const float squaredMean = localMeanInput.g;
-		// Apply Bessel's correction to the estimated variance, multiply by N/N-1, 
-		// since the true population mean is not known; it is only estimated as the sample mean.
-		// TODO float(width);
-		const float numValues = 9;
-		const float besselCorrection = numValues / float(max(numValues, 2) - 1);
-		const float variance = besselCorrection * (squaredMean - mean * mean);
-		localMeanVariance = vec2(mean, variance);
+		localMeanVariance = imageLoad(meanInputImage, storePos).rg;
 		prevOcclusion = ClampPrevResult(prevValue.r, localMeanVariance).r;
 		// Scale down the tspp based on how strongly the cached value got clamped to give more weight to new samples.
 		const float clampDifferenceToTsppScale = 4.0;

@@ -4,10 +4,8 @@
 #include "sampling.h"
 #include "rtao_define.h"
 
-layout(binding = BINDING_GBUFFER_NORMAL, rgba32f) uniform image2D normalImage;
-layout(binding = BINDING_GBUFFER_POSITION, rgba32f) uniform image2D positionImage;
 layout(binding = BINDING_AS) uniform accelerationStructureEXT topLevelAS;
-layout(binding = BDINING_UNIFORM) uniform AOProperties 
+layout(binding = BINDING_UNIFORM) uniform AOProperties 
 {
 	float rtao_radius;
 	int   rtao_samples;
@@ -18,7 +16,26 @@ layout(binding = BDINING_UNIFORM) uniform AOProperties
 };
 layout(binding = BINDING_CUR, rg16f) uniform image2D outImage;
 layout(binding = BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, rg16f) uniform image2D meanOutputImage;
-layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba32f) uniform image2D curNormalDepthImage;
+layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba16f) uniform image2D curNormalDepthImage;
+
+layout(binding = BINDING_CAMERA)
+uniform CameraInfo
+{
+	mat4 view;
+	mat4 proj;
+	mat4 viewInv;
+	mat4 projInv;
+	mat4 viewProj;
+	mat4 prevViewProj;
+	// near, far, fov, aspect
+	vec4 parameters;
+	vec4 frustumPlanes[6];
+} camera;
+
+#include "shading/gbuffer.h"
+
+layout(binding = BINDING_GBUFFER_RT0, GBUFFER_IMAGE0_FORMAT) uniform image2D gbuffer0Image;
+layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbuffer1Image;
 
 //----------------------------------------------------------------------------
 // Tracing a ray and returning the weight based on the distance of the hit
@@ -67,11 +84,12 @@ void ComputeValues(vec2 p, in out vec4 normalDepth, in out vec3 origin)
 	vec4 sampleNormalDepth[4];
 	for(int i = 0; i < 4; ++i)
 	{
-		sampleNormalDepth[i] = imageLoad(normalImage, samplePos[i]).rgba;
+		vec4 gbuffer0Data = imageLoad(gbuffer0Image, samplePos[i]);
+		sampleNormalDepth[i] = vec4(DecodeNormal(gbuffer0Data), DecodeDepth(gbuffer0Data));
 	}
 
 	vec2 targetOffset = p - vec2(topLeft);
-	ivec2 size = imageSize(normalImage);
+	ivec2 size = imageSize(gbuffer0Image);
 
 	vec4 weights;
 	ComputeWeights(targetOffset, size, samplePos, weights);
@@ -79,7 +97,7 @@ void ComputeValues(vec2 p, in out vec4 normalDepth, in out vec3 origin)
 
 	vec3 normal = vec3(0.0);
 	float depth = 0.0;
-	
+
 	for(int i = 0; i < 4; ++i)
 	{
 		normal += sampleNormalDepth[i].rgb * weights[i];
@@ -87,7 +105,11 @@ void ComputeValues(vec2 p, in out vec4 normalDepth, in out vec3 origin)
 	}
 
 	normalDepth = vec4(normalize(normal), depth);
-	origin = imageLoad(positionImage, closest).rgb;
+
+	vec2 uv = (vec2(closest) + vec2(0.5)) / vec2(size);
+	vec4 gbuffer0Data = imageLoad(gbuffer0Image, closest);
+	origin = DecodePosition(gbuffer0Data, uv);
+	origin += normalDepth.xyz * 0.5;
 }
 
 void main()
@@ -107,14 +129,14 @@ void main()
 
 	ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
 	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
-	vec2 curSampleGPos = vec2(curTexPos * vec2(imageSize(normalImage)) - vec2(0.5));
+	vec2 curSampleGPos = vec2(curTexPos * vec2(imageSize(gbuffer0Image)) - vec2(0.5));
 
 	vec4 normalDepth;
 	vec3 origin;
 	ComputeValues(curSampleGPos, normalDepth, origin);
 
 	float hitDistance = 0.0;
-	if(normalDepth.rgb != vec3(0))
+	if (normalDepth.rgb != vec3(0))
 	{
 		// Initialize the random number
 		uint seed = TEA(outSize.x * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x, frame_number);
@@ -148,7 +170,7 @@ void main()
 		// Computing occlusion
 		hitDistance = hitDistance / rtao_samples;
 		occlusion = 1 - (occlusion / rtao_samples);
-		occlusion = pow(clamp(occlusion, 0, 1), rtao_power);
+		occlusion = clamp(occlusion, 0, 1);
 	}
 	else
 	{

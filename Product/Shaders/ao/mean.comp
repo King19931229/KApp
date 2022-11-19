@@ -35,9 +35,13 @@ void main()
 			ivec2 samplePos = sampleCenter + i * j * sampleStep;
 
 			vec2 value = centerValue;
-			if(IsWithinBounds(samplePos, size))
+			if (IsWithinBounds(samplePos, size))
 			{
 				value = imageLoad(inImage, samplePos).rg;
+			}
+			else
+			{
+				value = centerValue;
 			}
 
 			mean += value.r * weight;
@@ -45,6 +49,13 @@ void main()
 		}
 	}
 
-	// imageStore(outImage, sampleCenter, vec4(centerValue, 0, 0));
+#ifdef HORIZONTAL
 	imageStore(outImage, sampleCenter, vec4(mean, squaredMean, 0, 0));
+#else
+	const float numValues = float(mean_width * mean_width);
+	const float besselCorrection = numValues / float(max(numValues, 2) - 1);
+	const float variance = max(0.0, besselCorrection * (squaredMean - mean * mean));
+	imageStore(outImage, sampleCenter, vec4(mean, variance, 0, 0));
+#endif
+	// imageStore(outImage, sampleCenter, vec4(centerValue, 0, 0));
 }

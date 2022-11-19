@@ -2,36 +2,39 @@
 #define RAY_CONE_H
 
 #include "raycommon.h"
+#include "shading/gbuffer.h"
 
-vec3 DecodeNormal(vec2 uv)
+vec3 DecodeNormalFromGBuffer(vec2 uv)
 {
-	return texture(encodedGBuffer0, uv).rgb;
+	vec4 gbuffer0Data = texture(gbuffer0, uv);
+	return DecodeNormal(gbuffer0Data);
 }
 
-vec3 DecodePosition(vec2 uv)
+vec3 DecodePositionFromGBuffer(vec2 uv)
 {
-	return texture(encodedGBuffer1, uv).rgb;
+	vec4 gbuffer0Data = texture(gbuffer0, uv);
+	return DecodePosition(gbuffer0Data, uv);
 }
 
 vec3 DD_Normal(vec2 uv, vec2 axis)
 {
-	vec2 eps = sign(axis) / vec2(textureSize(encodedGBuffer0, 0));
+	vec2 eps = sign(axis) / vec2(textureSize(gbuffer0, 0));
 	vec3 d = vec3(0.0);
 	vec3 center;
-	center = DecodeNormal(uv);
-	d += DecodeNormal(uv + eps) - center;
-	d += center - DecodeNormal(uv - eps);
+	center = DecodeNormalFromGBuffer(uv);
+	d += DecodeNormalFromGBuffer(uv + eps) - center;
+	d += center - DecodeNormalFromGBuffer(uv - eps);
 	return d * 0.5;
 }
 
 vec3 DD_Position(vec2 uv, vec2 axis)
 {
-	vec2 eps = sign(axis) / vec2(textureSize(encodedGBuffer1, 0));
+	vec2 eps = sign(axis) / vec2(textureSize(gbuffer0, 0));
 	vec3 d = vec3(0.0);
 	vec3 center;
-	center = DecodePosition(uv);
-	d += DecodePosition(uv + eps) - center;
-	d += center - DecodePosition(uv - eps);
+	center = DecodePositionFromGBuffer(uv);
+	d += DecodePositionFromGBuffer(uv + eps) - center;
+	d += center - DecodePositionFromGBuffer(uv - eps);
 	return d * 0.5;
 }
 
@@ -39,7 +42,7 @@ float PixelSpreadAngle()
 {
 	// Eq. 30
 	float fov = 3.14 * 45.0 / 360.0;
-	float a = atan(2.0 * tan(fov / 2) / float(textureSize(encodedGBuffer0, 0).r));
+	float a = atan(2.0 * tan(fov / 2) / float(textureSize(gbuffer0, 0).r));
 	return a;
 }
 

@@ -12,7 +12,7 @@ layout(binding = BINDING_TEXTURE5) uniform sampler2D giMask;
 
 layout(location = 0) out vec4 outColor;
 
-#include "decode.h"
+#include "gbuffer.h"
 
 void DecodeGBuffer(in vec2 uv, out vec3 worldPos, out vec3 worldNormal, out vec2 motion, out vec3 baseColor, out vec3 specularColor)
 {

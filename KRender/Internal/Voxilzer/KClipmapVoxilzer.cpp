@@ -749,20 +749,6 @@ void KClipmapVoxilzer::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 
 	if(m_VoxelNeedUpdate)
 	{
-		if (!m_VoxelDebugUpdate)
-		{
-			bool skipUpdate = false;
-			for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
-			{
-				m_ClipLevels[levelIdx].MarkSkipUpdate(skipUpdate);
-				// 上一个层级在这一次迭代时更新 这个层级现在先不更新
-				if (m_ClipLevels[levelIdx].NeedUpdate())
-				{
-					skipUpdate = true;
-				}
-			}
-		}
-
 		ApplyUpdateMovement();
 		UpdateVoxelBuffer();
 		UpdateInternal(primaryBuffer);

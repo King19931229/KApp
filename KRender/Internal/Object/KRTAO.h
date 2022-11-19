@@ -9,7 +9,8 @@ class KRTAO
 public:
 	enum
 	{
-		RTAO_GROUP_SIZE = 32
+		RTAO_GROUP_SIZE = 32,
+		MEAN_WIDTH = 9
 	};
 	struct AoControl
 	{
@@ -19,6 +20,7 @@ public:
 		int   rtao_distance_based;	// Attenuate based on distance
 		int   max_samples;			// Max samples before it stops
 		int   frame;				// Current frame
+		int   local_mean_width;
 
 		AoControl()
 		{
@@ -28,6 +30,7 @@ public:
 			rtao_distance_based = 1;
 			max_samples = 1000;
 			frame = 0;
+			local_mean_width = MEAN_WIDTH;
 		}
 	};
 
@@ -37,7 +40,7 @@ public:
 
 		MeanControl()
 		{
-			mean_width = 9;
+			mean_width = MEAN_WIDTH;
 		}
 	};
 protected:
@@ -63,11 +66,10 @@ protected:
 
 	enum
 	{
-		BINDING_GBUFFER_NORMAL,
-		BINDING_GBUFFER_POSITION,
-		BINDING_VELOCITY,
+		BINDING_GBUFFER_RT0,
+		BINDING_GBUFFER_RT1,
 		BINDING_AS,
-		BDINING_UNIFORM,
+		BINDING_UNIFORM,
 		BINDING_LOCAL_MEAN_VARIANCE_INPUT,
 		BINDING_LOCAL_MEAN_VARIANCE_OUTPUT,
 		BINDING_TEMPORAL_SQAREDMEAN_VARIANCE,
@@ -78,6 +80,7 @@ protected:
 		BINDING_CUR,
 		BINDING_ATROUS,
 		BINDING_COMPOSED,
+		BINDING_CAMERA
 	};
 
 	AoControl m_PrevParameters;
@@ -101,6 +104,7 @@ public:
 
 	virtual bool EnableDebugDraw();
 	virtual bool DisableDebugDraw();
+	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }
 
 	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer);

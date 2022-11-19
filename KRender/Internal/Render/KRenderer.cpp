@@ -80,8 +80,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		// 转换 GBufferRT 到 Shader可读
 		KRenderGlobal::GBuffer.Translate(m_PrimaryBuffer, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		//KRenderGlobal::RayTraceManager.Execute(m_PrimaryBuffer);
-		//KRenderGlobal::RTAO.Execute(m_PrimaryBuffer);
+		KRenderGlobal::RayTraceManager.Execute(m_PrimaryBuffer);
+		KRenderGlobal::RTAO.Execute(m_PrimaryBuffer);
 
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
 
@@ -151,7 +151,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::CascadedShadowMap.Init(camera, 3, 2048, (uint32_t)width, (uint32_t)height);
 
 	// KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, (uint32_t)width, (uint32_t)height);
-	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 16, (uint32_t)width, (uint32_t)height);
+	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, (uint32_t)width, (uint32_t)height);
 
 	KRenderGlobal::DeferredRenderer.Init(camera, (uint32_t)width, (uint32_t)height);
 
@@ -410,6 +410,7 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::GBuffer.Resize(width, height);
 	KRenderGlobal::DeferredRenderer.Resize(width, height);
 	// KRenderGlobal::Voxilzer.Resize(width, height);
+	KRenderGlobal::ClipmapVoxilzer.Resize(width, height);
 	KRenderGlobal::RTAO.Resize();
 	KRenderGlobal::RayTraceManager.Resize(width, height);
 }

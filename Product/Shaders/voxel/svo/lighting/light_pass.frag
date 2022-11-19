@@ -506,7 +506,7 @@ void main()
 	// -- this could be done in a post-process pass -- 
 
 	// Reinhard tone mapping
-	// compositeLighting = compositeLighting / (compositeLighting + 1.0f);
+	compositeLighting = compositeLighting / (compositeLighting + 1.0f);
 	// gamma correction
 	// convert to gamma space
 	// compositeLighting = pow(compositeLighting, vec3(1.0 / gamma));
