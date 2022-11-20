@@ -5,16 +5,19 @@
 #include "rtao_define.h"
 
 layout(binding = BINDING_AS) uniform accelerationStructureEXT topLevelAS;
+
 layout(binding = BINDING_UNIFORM) uniform AOProperties 
 {
 	float rtao_radius;
 	int   rtao_samples;
 	float rtao_power;
 	int   rtao_distance_based;
-	int   max_samples;
 	int   frame_number;
+	int	  enable_checkboard;
 };
-layout(binding = BINDING_CUR, rg16f) uniform image2D outImage;
+
+layout(binding = BINDING_CUR_AO, r16f) uniform image2D outAOImage;
+layout(binding = BINDING_CUR_HITDISTANCE, r16f) uniform image2D outHitDistanceImage;
 layout(binding = BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, rg16f) uniform image2D meanOutputImage;
 layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba16f) uniform image2D curNormalDepthImage;
 
@@ -92,7 +95,7 @@ void ComputeValues(vec2 p, in out vec4 normalDepth, in out vec3 origin)
 	ivec2 size = imageSize(gbuffer0Image);
 
 	vec4 weights;
-	ComputeWeights(targetOffset, size, samplePos, weights);
+	ComputeBilinearWeights(targetOffset, size, samplePos, weights);
 	weights /= dot(vec4(1.0), weights);
 
 	vec3 normal = vec3(0.0);
@@ -109,23 +112,17 @@ void ComputeValues(vec2 p, in out vec4 normalDepth, in out vec3 origin)
 	vec2 uv = (vec2(closest) + vec2(0.5)) / vec2(size);
 	vec4 gbuffer0Data = imageLoad(gbuffer0Image, closest);
 	origin = DecodePosition(gbuffer0Data, uv);
-	origin += normalDepth.xyz * 0.5;
+	origin += normalDepth.xyz;
 }
 
 void main()
 {
 	float occlusion = 0.0;
 
-	ivec2 outSize = imageSize(outImage);
+	ivec2 outSize = imageSize(outAOImage);
 
 	// Check if not outside boundaries
 	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
-
-	bool pixelSkip = false;//mod(gl_GlobalInvocationID.x + gl_GlobalInvocationID.y, 2) == mod(frame_number, 2);
-	if(pixelSkip)
-	{
-		return;
-	}
 
 	ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
 	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
@@ -178,7 +175,8 @@ void main()
 		occlusion = 1.0;
 	}
 
-	imageStore(outImage, storePos, vec4(occlusion, hitDistance, 0, 0));
+	imageStore(outAOImage, storePos, vec4(occlusion, 0, 0, 0));
+	imageStore(outHitDistanceImage, storePos, vec4(hitDistance, 0, 0, 0));
 	imageStore(meanOutputImage, storePos, vec4(occlusion, occlusion * occlusion, 0, 0));
 	imageStore(curNormalDepthImage, storePos, normalDepth);
 }

@@ -93,6 +93,9 @@ namespace KVulkanHelper
 			vkFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 			return true;
 
+		case EF_R16_UINT:
+			vkFormat = VK_FORMAT_R16_UINT;
+			return true;
 		case EF_R32_UINT:
 			vkFormat = VK_FORMAT_R32_UINT;
 			return true;

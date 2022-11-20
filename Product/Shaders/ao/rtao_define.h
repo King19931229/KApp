@@ -3,19 +3,37 @@
 
 #define BINDING_GBUFFER_RT0 0
 #define BINDING_GBUFFER_RT1 1
+
 #define BINDING_AS 2
-#define BINDING_UNIFORM 3
-#define BINDING_LOCAL_MEAN_VARIANCE_INPUT 4
-#define BINDING_LOCAL_MEAN_VARIANCE_OUTPUT 5
-#define BINDING_TEMPORAL_SQAREDMEAN_VARIANCE 6
-#define BINDING_PREV 7
-#define BINDING_FINAL 8
-#define BINDING_PREV_NORMAL_DEPTH 9
-#define BINDING_CUR_NORMAL_DEPTH 10
-#define BINDING_CUR 11
-#define BINDING_ATROUS 12
-#define BINDING_COMPOSED 13
-#define BINDING_CAMERA 14
+#define BINDING_CAMERA 3
+#define BINDING_UNIFORM 4
+
+#define BINDING_LOCAL_MEAN_VARIANCE_INPUT 5
+#define BINDING_LOCAL_MEAN_VARIANCE_OUTPUT 6
+
+#define BINDING_PREV_AO 7
+#define BINDING_CUR_AO 8
+
+#define BINDING_PREV_HITDISTANCE 9
+#define BINDING_CUR_HITDISTANCE 10
+
+#define BINDING_PREV_NORMAL_DEPTH 11
+#define BINDING_CUR_NORMAL_DEPTH 12
+
+#define BINDING_PREV_SQARED_MEAN 13
+#define BINDING_CUR_SQARED_MEAN 14
+
+#define BINDING_PREV_TSPP 15
+#define BINDING_CUR_TSPP 16
+
+#define BINDING_REPROJECTED 17
+
+#define BINDING_VARIANCE 18
+#define BINDING_BLUR_STRENGTH 19
+
+#define BINDING_ATROUS_AO 20
+
+#define BINDING_COMPOSED 21
 
 uint SmallestPowerOf2GreaterThan(in uint x)
 {
@@ -112,7 +130,7 @@ vec4 GetDepthWeights(in float depth, in vec2 dxdy, in vec4 sampleDepths, float s
 	return depthWeights;
 }
 
-void ComputeWeights(vec2 targetOffset, ivec2 size, ivec2 samplePos[4], in out vec4 weights)
+void ComputeBilinearWeights(vec2 targetOffset, ivec2 size, ivec2 samplePos[4], in out vec4 weights)
 {
 	vec4 isWithinBounds = vec4(
 		IsWithinBounds(samplePos[0], size),
@@ -120,8 +138,25 @@ void ComputeWeights(vec2 targetOffset, ivec2 size, ivec2 samplePos[4], in out ve
 		IsWithinBounds(samplePos[2], size),
 		IsWithinBounds(samplePos[3], size));
 
-	weights = GetBilinearWeights(targetOffset);
-	weights *= isWithinBounds;
+	weights = isWithinBounds;
+	weights *= GetBilinearWeights(targetOffset);
+}
+
+void ComputeWeights(vec2 targetOffset, ivec2 size, ivec2 samplePos[4],
+	in vec3 normal, in vec3 sampleNormal[4], float normalSigma, float normalSigmaExponent,
+	in float depth, in vec2 dxdy, in vec4 sampleDepths, float depthSigma, float depthWeightCutoff, uint NumExponentBits, uint NumMantissaBits,
+	in out vec4 weights)
+{
+	vec4 isWithinBounds = vec4(
+		IsWithinBounds(samplePos[0], size),
+		IsWithinBounds(samplePos[1], size),
+		IsWithinBounds(samplePos[2], size),
+		IsWithinBounds(samplePos[3], size));
+
+	weights = isWithinBounds;
+	weights *= GetBilinearWeights(targetOffset);
+	weights *= GetNormalWeights(normal, sampleNormal, normalSigma, normalSigmaExponent);
+	weights *= GetDepthWeights(depth, dxdy, sampleDepths, depthSigma, depthWeightCutoff, NumExponentBits, NumMantissaBits);
 }
 
 #define RTAO_GROUP_SIZE 32

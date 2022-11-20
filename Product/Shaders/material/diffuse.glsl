@@ -29,8 +29,8 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 
 	vec4 prev = camera.prevViewProj * vec4(prevWorldPos, 1.0);
 	vec4 curr = camera.viewProj * vec4(worldPos, 1.0);
-	vec2 prevUV = prev.xy / prev.w;
-	vec2 currUV = curr.xy / curr.w;
+	vec2 prevUV = 0.5 * (prev.xy / prev.w + vec2(1.0));
+	vec2 currUV = 0.5 * (curr.xy / curr.w + vec2(1.0));
 	parameters.motion = currUV - prevUV;
 
 #if HAS_MATERIAL_TEXTURE0

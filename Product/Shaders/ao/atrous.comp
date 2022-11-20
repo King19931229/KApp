@@ -1,65 +1,32 @@
 #include "rtao_define.h"
+#define GAUSSIAN_KERNEL_3X3
+#include "rtao_define.h"
+#include "kernal.h"
 
-layout(binding = BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, rg16f) uniform image2D sqaredMeanVarianceImage;
-layout(binding = BINDING_CUR, rg16f) uniform image2D curImage;
-layout(binding = BINDING_FINAL, rg32f) uniform image2D finalImage;
-layout(binding = BINDING_ATROUS, r16f) uniform image2D outImage;
+layout(binding = BINDING_VARIANCE, r16f) uniform image2D varianceImage;
+layout(binding = BINDING_CUR_AO, r16f) uniform image2D curAOImage;
+layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba16f) uniform image2D curNormalDepthImage;
 
-#if 1
-const uint Radius = 1;
-const uint Width = 1 + 2 * Radius;
-const float Kernel1D[Width] = { 0.27901, 0.44198, 0.27901 };
-const float Kernel[Width][Width] =
+layout(binding = BINDING_ATROUS_AO, r16f) uniform image2D outImage;
+
+vec2 DDXYDepth(ivec2 samplePos, ivec2 size)
 {
-	{ Kernel1D[0] * Kernel1D[0], Kernel1D[0] * Kernel1D[1], Kernel1D[0] * Kernel1D[2] },
-	{ Kernel1D[1] * Kernel1D[0], Kernel1D[1] * Kernel1D[1], Kernel1D[1] * Kernel1D[2] },
-	{ Kernel1D[2] * Kernel1D[0], Kernel1D[2] * Kernel1D[1], Kernel1D[2] * Kernel1D[2] },
-};
-#else
-const uint Radius = 2;
-const uint Width = 1 + 2 * Radius;
-const float Kernel1D[Width] = { 1. / 16, 1. / 4, 3. / 8, 1. / 4, 1. / 16 };
-const float Kernel[Width][Width] =
-{
-	{ Kernel1D[0] * Kernel1D[0], Kernel1D[0] * Kernel1D[1], Kernel1D[0] * Kernel1D[2], Kernel1D[0] * Kernel1D[3], Kernel1D[0] * Kernel1D[4] },
-	{ Kernel1D[1] * Kernel1D[0], Kernel1D[1] * Kernel1D[1], Kernel1D[1] * Kernel1D[2], Kernel1D[1] * Kernel1D[3], Kernel1D[1] * Kernel1D[4] },
-	{ Kernel1D[2] * Kernel1D[0], Kernel1D[2] * Kernel1D[1], Kernel1D[2] * Kernel1D[2], Kernel1D[2] * Kernel1D[3], Kernel1D[2] * Kernel1D[4] },
-	{ Kernel1D[3] * Kernel1D[0], Kernel1D[3] * Kernel1D[1], Kernel1D[3] * Kernel1D[2], Kernel1D[3] * Kernel1D[3], Kernel1D[3] * Kernel1D[4] },
-	{ Kernel1D[4] * Kernel1D[0], Kernel1D[4] * Kernel1D[1], Kernel1D[4] * Kernel1D[2], Kernel1D[4] * Kernel1D[3], Kernel1D[4] * Kernel1D[4] },
-};
-#endif
+	float depth = imageLoad(curNormalDepthImage, samplePos).a;
 
-layout(binding = BINDING_CAMERA)
-uniform CameraInfo
-{
-	mat4 view;
-	mat4 proj;
-	mat4 viewInv;
-	mat4 projInv;
-	mat4 viewProj;
-	mat4 prevViewProj;
-	// near, far, fov, aspect
-	vec4 parameters;
-	vec4 frustumPlanes[6];
-} camera;
+	ivec2 xBiasSampleGPos = samplePos + ivec2(1, 0);
+	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, size) ? imageLoad(curNormalDepthImage, xBiasSampleGPos).a : depth;
 
-#include "shading/gbuffer.h"
-
-layout(binding = BINDING_GBUFFER_RT0, GBUFFER_IMAGE0_FORMAT) uniform image2D gbuffer0Image;
-layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbuffer1Image;
-
-vec2 DDXYDepth(ivec2 curSampleGPos, ivec2 inSize)
-{
-	vec4 gbuffer0Data = imageLoad(gbuffer0Image, curSampleGPos);
-	float depth = DecodeDepth(gbuffer0Data);
-
-	ivec2 xBiasSampleGPos = curSampleGPos + ivec2(1, 0);
-	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, inSize) ? DecodeDepth(imageLoad(gbuffer0Image, xBiasSampleGPos)) : depth;
-
-	ivec2 yBiasSampleGPos = curSampleGPos + ivec2(0, 1);
-	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, inSize) ? DecodeDepth(imageLoad(gbuffer0Image, yBiasSampleGPos)) : depth;
+	ivec2 yBiasSampleGPos = samplePos + ivec2(0, 1);
+	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, size) ? imageLoad(curNormalDepthImage, yBiasSampleGPos).a : depth;
 
 	return vec2(xBiasDepth - depth, yBiasDepth - depth);
+}
+
+float DepthThreshold(float depth, vec2 ddxy, vec2 pixelOffset)
+{
+	float depthThreshold;
+	depthThreshold = dot(vec2(1.0), abs(pixelOffset * ddxy));
+	return depthThreshold;
 }
 
 void AddFilterContribution(
@@ -73,11 +40,9 @@ void AddFilterContribution(
 	uint row, 
 	uint col,
 	ivec2 curSamplePos,
-	ivec2 curSampleGPos,
 	ivec2 kernelStep,
-	ivec2 inSize,
 	ivec2 outSize
-	)
+)
 {
  	const float valueSigma = 1.0;
 	const float normalSigma = 64.0;
@@ -86,20 +51,15 @@ void AddFilterContribution(
 	float kernelWidth;
 	float varianceScale = 1;
 
-	ivec2 pixelOffset = ivec2(vec2(row - Radius, col - Radius) * vec2(kernelStep));
-	ivec2 pixelGOffset = ivec2(vec2(pixelOffset) * vec2(inSize) / vec2(outSize));
-
+	ivec2 pixelOffset = ivec2(int(row) - int(Radius), int(col) - int(Radius)) * kernelStep;
 	ivec2 samplePos = curSamplePos + pixelOffset;
-	ivec2 sampleGPos = curSampleGPos + pixelGOffset;
-	if (IsWithinBounds(samplePos, outSize) && IsWithinBounds(sampleGPos, inSize))
+
+	if (IsWithinBounds(samplePos, outSize))
 	{
-		vec4 gbuffer0Data = imageLoad(gbuffer0Image, curSampleGPos);
-		vec4 sample_normal_depth = vec4(DecodeNormal(gbuffer0Data), DecodeDepth(gbuffer0Data));
-		float sample_value = imageLoad(finalImage, samplePos).r;
-		if(sample_normal_depth.rgb == vec3(0.0))
-		{
-			return;
-		}
+		float iValue = imageLoad(curAOImage, samplePos).r;
+		vec4 iNormalDepth = imageLoad(curNormalDepthImage, samplePos);
+		vec3 iNormal = iNormalDepth.xyz;
+		float iDepth = iNormalDepth.w;
 
 		// Calculate a weight for the neighbor's contribtuion.
 		// Ref:[SVGF]
@@ -110,20 +70,19 @@ void AddFilterContribution(
 			// Ref: [Dammertz2010]
 			const float errorOffset = 0.005f;
 			float valueSigmaDistCoef = 1.0 / length(vec2(pixelOffset));
-			float e_x = -abs(value - sample_value) / (valueSigmaDistCoef * valueSigma * stdDeviation + errorOffset);
+			float e_x = -abs(value - iValue) / (valueSigmaDistCoef * valueSigma * stdDeviation + errorOffset);
 			float w_x = exp(e_x);
 
 			// Normal based weight.
-			float w_n = pow(max(0, dot(normal, sample_normal_depth.rgb)), normalSigma);
+			float w_n = pow(max(0, dot(normal, iNormal)), normalSigma);
 
 			// Depth based weight.
 			float w_d;
 			{
-				vec2 pixelOffsetForDepth = pixelOffset;
-				float depthFloatPrecision = 1e-5;
-				float depthThreshold = dot(vec2(1.0), abs(pixelGOffset * ddxy));
+				float depthFloatPrecision = FloatPrecision(max(depth, iDepth), 5, 10);
+				float depthThreshold = DepthThreshold(depth, ddxy, pixelOffset);
 				float depthTolerance = depthSigma * depthThreshold + depthFloatPrecision;
-				float delta = abs(depth - sample_normal_depth.a);
+				float delta = abs(depth - iDepth);
 				delta = max(0, delta - depthFloatPrecision); // Avoid distinguising initial values up to the float precision. Gets rid of banding due to low depth precision format.
 				w_d = exp(-delta / depthTolerance);
 				// Scale down contributions for samples beyond tolerance, but completely disable contribution for samples too far away.
@@ -138,28 +97,24 @@ void AddFilterContribution(
 			w = w_h * w_n * w_x * w_d;
 		}
 
-		weightedValueSum += w * sample_value;
+		weightedValueSum += w * iValue;
 		weightSum += w;
 	}
 }
 
 void main()
 {
-	ivec2 inSize = imageSize(gbuffer0Image);
 	ivec2 outSize = imageSize(outImage);
 
 	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
 
 	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
 	ivec2 curSamplePos = ivec2(round(curTexPos * vec2(outSize) - vec2(0.5)));
-	ivec2 curSampleGPos = ivec2(round(curTexPos * vec2(inSize) - vec2(0.5)));
 
-	float value = imageLoad(finalImage, curSamplePos).r;
-	float variance = imageLoad(sqaredMeanVarianceImage, curSamplePos).g;
-	vec2 ddxy = DDXYDepth(curSampleGPos, inSize);
-
-	vec4 gbuffer0Data = imageLoad(gbuffer0Image, curSampleGPos);
-	vec4 normal_depth = vec4(DecodeNormal(gbuffer0Data), DecodeDepth(gbuffer0Data));
+	float value = imageLoad(curAOImage, curSamplePos).r;
+	float variance = imageLoad(varianceImage, curSamplePos).g;
+	vec4 normalDepth = imageLoad(curNormalDepthImage, curSamplePos);
+	vec2 ddxy = DDXYDepth(curSamplePos, outSize);
 
 	float weightSum = 0;
 	float weightedValueSum = 0;
@@ -172,35 +127,36 @@ void main()
 	weightedValueSum = weightSum * value;
 	stdDeviation = sqrt(variance);
 
-	const float minVarianceToDenoise = 1.0;
-	ivec2 kernelStep = ivec2(1.0);
+	const uint minKernelWidth = 3;
+	const uint maxKernelWidth = 28;
+	const float minVarianceToDenoise = 0.0;
 
-#if 1
-	for (uint r = 0; r < Width; r++)
+	if (variance >= minVarianceToDenoise)
 	{
-		for (uint c = 0; c < Width; c++)
+		ivec2 kernelStep = ivec2(15);
+		for (uint r = 0; r < Width; r++)
 		{
-			if (r != Radius || c != Radius)
+			for (uint c = 0; c < Width; c++)
 			{
-				AddFilterContribution(
-					weightedValueSum, 
-					weightSum, 
-					value, 
-					stdDeviation,
-					normal_depth.a, 
-					normal_depth.rgb, 
-					ddxy,
-					r, 
-					c,
-					curSamplePos,
-					curSampleGPos,
-					kernelStep,
-					inSize,
-					outSize);
+				if (r != Radius || c != Radius)
+				{
+					AddFilterContribution(
+						weightedValueSum, 
+						weightSum, 
+						value, 
+						stdDeviation,
+						normalDepth.w, 
+						normalDepth.xyz, 
+						ddxy,
+						r, 
+						c,
+						curSamplePos,
+						kernelStep,
+						outSize);
+				}
 			}
 		}
 	}
-#endif
 
 	float smallValue = 1e-6f;
 	if (weightSum > smallValue)

@@ -22,6 +22,7 @@ enum ImageFormat
 	IF_R32G32B32_FLOAT,
 	IF_R32G32B32A32_FLOAT,
 	// 整型格式
+	IF_R16_UINT,
 	IF_R32_UINT,
 	// ETC压缩格式
 	IF_ETC1_RGB8,

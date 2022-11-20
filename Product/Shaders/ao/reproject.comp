@@ -1,0 +1,201 @@
+#include "sampling.h"
+#include "rtao_define.h"
+
+layout(binding = BINDING_PREV_NORMAL_DEPTH, rgba16f) uniform image2D prevNormalDepthImage;
+layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba16f) uniform image2D curNormalDepthImage;
+layout(binding = BINDING_PREV_AO, r16f) uniform image2D prevAOImage;
+layout(binding = BINDING_PREV_HITDISTANCE, r16f) uniform image2D prevHitDistanceImage;
+layout(binding = BINDING_PREV_SQARED_MEAN, r16f) uniform image2D prevSqaredMeanImage;
+layout(binding = BINDING_PREV_TSPP, r16f) uniform image2D prevTsppImage;
+layout(binding = BINDING_CUR_TSPP, r16f) uniform image2D curTsppImage;
+
+layout(binding = BINDING_REPROJECTED, rgba16f) uniform image2D reprojectedImage;
+
+layout(binding = BINDING_CAMERA)
+uniform CameraInfo
+{
+	mat4 view;
+	mat4 proj;
+	mat4 viewInv;
+	mat4 projInv;
+	mat4 viewProj;
+	mat4 prevViewProj;
+	// near, far, fov, aspect
+	vec4 parameters;
+	vec4 frustumPlanes[6];
+} camera;
+
+#include "shading/gbuffer.h"
+
+layout(binding = BINDING_GBUFFER_RT0, GBUFFER_IMAGE0_FORMAT) uniform image2D gbuffer0Image;
+layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbuffer1Image;
+
+layout(binding = BINDING_UNIFORM) uniform AOProperties 
+{
+	float rtao_radius;
+	int   rtao_samples;
+	float rtao_power;
+	int   rtao_distance_based;
+	int   frame_number;
+	int	  enable_checkboard;
+};
+
+vec2 DDXYDepthSingle(ivec2 curSamplePos, ivec2 outSize)
+{
+	float depth = imageLoad(curNormalDepthImage, curSamplePos).a;
+
+	ivec2 xBiasSampleGPos = curSamplePos + ivec2(1, 0);
+	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, outSize) ? imageLoad(curNormalDepthImage, xBiasSampleGPos).a : depth;
+
+	ivec2 yBiasSampleGPos = curSamplePos + ivec2(0, 1);
+	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, outSize) ? imageLoad(curNormalDepthImage, yBiasSampleGPos).a : depth;
+
+	return vec2(xBiasDepth - depth, yBiasDepth - depth);
+}
+
+vec2 DDXYDepthUV(vec2 p, ivec2 outSize)
+{
+	const ivec2 offsets[4] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
+	ivec2 topLeft = ivec2(floor(p));
+
+	ivec2 samplePos[4];
+	for(int i = 0; i < 4; ++i)
+	{
+		samplePos[i] = topLeft + offsets[i];
+	}
+
+	vec2 sampleDDXY[4];
+	for(int i = 0; i < 4; ++i)
+	{
+		sampleDDXY[i] = DDXYDepthSingle(samplePos[i], outSize);
+	}
+
+	vec2 targetOffset = p - vec2(topLeft);
+	vec4 weights;
+	ComputeBilinearWeights(targetOffset, outSize, samplePos, weights);
+	weights /= dot(vec4(1.0), weights);
+
+	vec2 ddxy = vec2(0.0);
+	for(int i = 0; i < 4; ++i)
+	{
+		ddxy += sampleDDXY[i] * weights[i];
+	}
+
+	return ddxy;
+}
+
+void ComputeValues(vec2 p, ivec2 outSize, vec4 curNormalDepth, out vec4 values)
+{
+	const ivec2 offsets[4] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
+	ivec2 topLeft = ivec2(floor(p));
+
+	ivec2 samplePos[4];
+	for(int i = 0; i < 4; ++i)
+	{
+		samplePos[i] = topLeft + offsets[i];
+	}
+
+	vec3 sampleNormal[4];
+	vec4 sampleDepths;
+	float sampleAOValue[4];
+	float sampleHitDistanceValue[4];
+	float sampleSqaredMeanValue[4];
+	float sampleTspp[4];
+
+	for(int i = 0; i < 4; ++i)
+	{
+		vec4 normalDepth = imageLoad(prevNormalDepthImage, samplePos[i]);
+		sampleNormal[i] = normalDepth.xyz;
+		sampleDepths[i] = normalDepth.w;
+		sampleAOValue[i] = imageLoad(prevAOImage, samplePos[i]).r;
+		sampleHitDistanceValue[i] = imageLoad(prevHitDistanceImage, samplePos[i]).r;
+		sampleSqaredMeanValue[i] = imageLoad(prevSqaredMeanImage, samplePos[i]).r;
+		sampleTspp[i] = max(1.0, float(floatBitsToUint(imageLoad(prevTsppImage, samplePos[i]).r)));
+	}
+
+	vec2 ddxy = DDXYDepthUV(p, outSize);
+	vec2 targetOffset = p - vec2(topLeft);
+
+	vec4 weights;
+	ComputeWeights(targetOffset, outSize, samplePos,
+		curNormalDepth.xyz, sampleNormal, 1.1, 32,
+		curNormalDepth.w, ddxy, sampleDepths, 1.0, 0.5, 5, 10,
+		weights);
+
+	if (dot(weights, vec4(1.0)) < 1e-3)
+	{
+		values = vec4(0, 0, 0, uintBitsToFloat(uint(0)));
+		return;
+	}
+
+	weights /= dot(vec4(1.0), weights);
+
+	vec3 normal = vec3(0.0);
+	float depth = 0.0;
+	float ao = 0.0;
+	float hitDistance = 0.0;
+	float sqaredMean = 0.0;
+	float tspp = 0.0;
+
+	for(int i = 0; i < 4; ++i)
+	{
+		normal += sampleNormal[i] * weights[i];
+		depth += sampleDepths[i] * weights[i];
+		ao += sampleAOValue[i] * weights[i];
+		hitDistance += sampleHitDistanceValue[i] * weights[i];
+		sqaredMean += sampleSqaredMeanValue[i] * weights[i];
+		tspp += sampleTspp[i] * weights[i];
+	}
+
+	values = vec4(ao, sqaredMean, hitDistance, uintBitsToFloat(uint(round(tspp))));
+}
+
+vec2 ComputeMotion(vec2 p)
+{
+	const ivec2 offsets[4] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
+	ivec2 topLeft = ivec2(floor(p));
+
+	ivec2 samplePos[4];
+	for(int i = 0; i < 4; ++i)
+	{
+		samplePos[i] = topLeft + offsets[i];
+	}
+
+	vec2 targetOffset = p - vec2(topLeft);
+	ivec2 size = imageSize(gbuffer1Image);
+
+	vec4 weights;
+	ComputeBilinearWeights(targetOffset, size, samplePos, weights);
+	weights /= dot(vec4(1.0), weights);
+
+	vec2 motion = vec2(0);
+	for(int i = 0; i < 4; ++i)
+	{
+		vec4 gbuffer1Data = imageLoad(gbuffer1Image, samplePos[i]);
+		motion += DecodeMotion(gbuffer1Data) * weights[i];
+	}
+	return motion;
+}
+
+void main()
+{
+	ivec2 inSize = imageSize(gbuffer0Image);
+	ivec2 outSize = imageSize(reprojectedImage);
+
+	// Check if not outside boundaries
+	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
+	ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
+
+	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
+	vec2 curSampleGPos = vec2(curTexPos * vec2(inSize) - vec2(0.5));
+	vec2 motion = ComputeMotion(curSampleGPos);
+	vec2 preTexPos = curTexPos - motion;
+
+	vec2 reprojectPos = vec2(preTexPos * vec2(outSize) - vec2(0.5));
+	vec4 curNormalDepth = imageLoad(curNormalDepthImage, storePos);
+	vec4 values;
+
+	ComputeValues(reprojectPos, outSize, curNormalDepth, values);
+	imageStore(reprojectedImage, storePos, values);
+	imageStore(curTsppImage, storePos, vec4(values.a));
+}

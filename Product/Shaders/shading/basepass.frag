@@ -23,7 +23,7 @@ void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, vec3 spec
 	float depth = (-viewPos.z - near) / (far - near);
 	RT0.xyz = normalize(normal);
 	RT0.w = depth;
-	RT1.xy = motion; // 0.5 * (motion + vec2(1.0));
+	RT1.xy = vec2(motion.x, motion.y);
 	RT1.zw = vec2(0.0);
 	RT2.xyz = baseColor;
 	RT2.w = 0.0;

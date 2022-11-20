@@ -1,0 +1,85 @@
+#include "rtao_define.h"
+#include "kernal.h"
+
+layout(binding = 0, r16f) uniform image2D inImage;
+layout(binding = 1, r16f) uniform image2D blurStrengthImage;
+layout(binding = 2, rgba16f) uniform image2D normalDepthImage;
+layout(binding = 3, r16f) uniform image2D outImage;
+
+void main()
+{
+	ivec2 size = imageSize(inImage);
+	// Check if not outside boundaries
+	if(gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y) return;
+
+	ivec2 sampleCenter = ivec2(gl_GlobalInvocationID.xy);
+
+	float blurStrength = imageLoad(blurStrengthImage, sampleCenter).r;
+	float kcValue = imageLoad(inImage, sampleCenter).r;
+	float kcDepth = imageLoad(normalDepthImage, sampleCenter).a;
+	float filteredValue = kcValue;
+
+#ifdef HORIZONTAL
+	ivec2 sampleStep = ivec2(1, 0);
+#else
+	ivec2 sampleStep = ivec2(0, 1);
+#endif
+
+	const float stepLength = 1.0;
+
+	if (blurStrength >= 0.01)
+	{
+		float weightedValueSum = 0;
+		float weightSum = 0;
+		float gaussianWeightedValueSum = 0;
+		float gaussianWeightedSum = 0;
+
+		float w_h = Kernel1D[Radius];
+		gaussianWeightedValueSum = w_h * kcValue;
+		gaussianWeightedSum = w_h;
+		weightedValueSum = gaussianWeightedValueSum;
+		weightSum = w_h;
+
+		for(int i = 1 ; i <= int(Radius); ++i)
+		{
+			for(int j = -1; j <= 1; j += 2)
+			{
+				ivec2 samplePos = sampleCenter + i * j * sampleStep;
+
+				float cValue = 0;
+				float cDepth = 0;
+
+				if (IsWithinBounds(samplePos, size))
+				{
+					cValue = imageLoad(inImage, samplePos).r;
+					cDepth = imageLoad(normalDepthImage, samplePos).a;
+				}
+				else
+				{
+					cValue = kcValue;
+					cDepth = kcDepth;
+				}
+
+				w_h = Kernel1D[i];
+				// Simple depth test with tolerance growing as the kernel radius increases.
+				// Goal is to prevent values too far apart to blend together, while having 
+				// the test being relaxed enough to get a strong blurring result.
+				float depthThreshold = 0.05 + stepLength * 0.001 * float(abs(int(Radius) - i));
+				float w_d = float(abs(kcDepth - cDepth) <= depthThreshold * kcDepth);
+				float w = w_h * w_d;
+
+				weightedValueSum += w * cValue;
+				weightSum += w;
+				gaussianWeightedValueSum += w_h * cValue;
+				gaussianWeightedSum += w_h;
+			}
+		}
+
+		const float InvalidAOCoefficientValue = -1.0;
+		float gaussianFilteredValue = gaussianWeightedSum > 1e-6 ? gaussianWeightedValueSum / gaussianWeightedSum : InvalidAOCoefficientValue;
+		filteredValue = weightSum > 1e-6 ? weightedValueSum / weightSum : gaussianFilteredValue;
+		filteredValue = filteredValue != InvalidAOCoefficientValue ? mix(kcValue, filteredValue, blurStrength) : kcValue;
+	}
+
+	imageStore(outImage, sampleCenter, vec4(filteredValue));
+}

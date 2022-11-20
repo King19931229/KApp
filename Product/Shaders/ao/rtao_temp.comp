@@ -1,288 +1,127 @@
 #include "sampling.h"
 #include "rtao_define.h"
 
-layout(binding = BINDING_PREV_NORMAL_DEPTH, rgba16f) uniform image2D prevNormalDepthImage;
-layout(binding = BINDING_CUR_NORMAL_DEPTH, rgba16f) uniform image2D curNormalDepthImage;
+layout(binding = BINDING_REPROJECTED, rgba16f) uniform image2D reprojectedImage;
+layout(binding = BINDING_CUR_HITDISTANCE, r16f) uniform image2D curHitDistanceImage;
+layout(binding = BINDING_CUR_SQARED_MEAN, r16f) uniform image2D curSqaredMeanImage;
+layout(binding = BINDING_CUR_TSPP, r16f) uniform image2D curTsppImage;
+layout(binding = BINDING_CUR_AO, r16f) uniform image2D curAOImage;
+layout(binding = BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, rg16f) uniform image2D localMeanVarianceImage;
+layout(binding = BINDING_VARIANCE, rg16f) uniform image2D varianceImage;
+layout(binding = BINDING_BLUR_STRENGTH, rg16f) uniform image2D blurStrengthImage;
+
 layout(binding = BINDING_UNIFORM) uniform AOProperties 
 {
 	float rtao_radius;
 	int   rtao_samples;
 	float rtao_power;
 	int   rtao_distance_based;
-	int   max_samples;
 	int   frame_number;
-	int	  local_mean_width;
+	int	  enable_checkboard;
 };
-
-layout(binding = BINDING_TEMPORAL_SQAREDMEAN_VARIANCE, rg16f) uniform image2D sqaredMeanVarianceImage;
-layout(binding = BINDING_PREV, rg32f) uniform image2D prevImage;
-layout(binding = BINDING_CUR, rg16f) uniform image2D curImage;
-layout(binding = BINDING_LOCAL_MEAN_VARIANCE_INPUT, rg16f) uniform image2D meanInputImage;
-layout(binding = BINDING_FINAL, rg32f) uniform image2D outImage;
-
-layout(binding = BINDING_CAMERA)
-uniform CameraInfo
-{
-	mat4 view;
-	mat4 proj;
-	mat4 viewInv;
-	mat4 projInv;
-	mat4 viewProj;
-	mat4 prevViewProj;
-	// near, far, fov, aspect
-	vec4 parameters;
-	vec4 frustumPlanes[6];
-} camera;
-
-#include "shading/gbuffer.h"
-
-layout(binding = BINDING_GBUFFER_RT0, GBUFFER_IMAGE0_FORMAT) uniform image2D gbuffer0Image;
-layout(binding = BINDING_GBUFFER_RT1, GBUFFER_IMAGE1_FORMAT) uniform image2D gbuffer1Image;
-
-#define PREFER_CLIP_THAN_CLAMP
-#define CLIP_TO_CENTER
-
-vec3 ClipAABB(vec3 aabbMin, vec3 aabbMax, vec3 prevSample, vec3 avg)
-{
-#ifdef PREFER_CLIP_THAN_CLAMP
-#ifdef CLIP_TO_CENTER
-	// note: only clips towards aabb center (but fast!)
-	vec3 p_clip = 0.5 * (aabbMax + aabbMin);
-	vec3 e_clip = 0.5 * (aabbMax - aabbMin);
-
-	vec3 v_clip = prevSample - p_clip;
-	vec3 v_unit = v_clip.xyz / e_clip;
-	vec3 a_unit = abs(v_unit);
-	float ma_unit = max(a_unit.x, max(a_unit.y, a_unit.z));
-
-	if (ma_unit > 1.0)
-		return p_clip + v_clip / ma_unit;
-	else
-		return prevSample;// point inside aabb
-#else // CLIP_TO_CENTER
-	vec3 r = prevSample - avg;
-	vec3 rmax = aabbMax - avg.xyz;
-	vec3 rmin = aabbMin - avg.xyz;
-
-	const float eps = 0.000001f;
-
-	if (r.x > rmax.x + eps)
-		r *= (rmax.x / r.x);
-	if (r.y > rmax.y + eps)
-		r *= (rmax.y / r.y);
-	if (r.z > rmax.z + eps)
-		r *= (rmax.z / r.z);
-
-	if (r.x < rmin.x - eps)
-		r *= (rmin.x / r.x);
-	if (r.y < rmin.y - eps)
-		r *= (rmin.y / r.y);
-	if (r.z < rmin.z - eps)
-		r *= (rmin.z / r.z);
-
-	return avg + r;
-#endif
-#else // PREFER_CLIP_THAN_CLAMP
-	return clamp(prevSample, aabbMin, aabbMax);
-#endif
-}
-
-// #define SMALL_OFFSET
-
-#ifdef SMALL_OFFSET
-#define OFFSET_ARRAY_SIZE 4
-#else
-#define OFFSET_ARRAY_SIZE 8
-#endif
-
-const ivec2 offset[OFFSET_ARRAY_SIZE] = 
-{
-	ivec2(-1, -1), ivec2(-1, 1),
-#ifndef SMALL_OFFSET
-	ivec2(0, -1), ivec2(0, 1), ivec2(-1, 0), ivec2(1, 0),
-#endif
-	ivec2(1, -1), ivec2(1, 1)
-};
-
-float ClampPrevResult(float unclamp, vec2 localMeanVariance)
-{
-	const vec3 VarianceClipGamma = vec3(1.0);
-	float sigma = sqrt(localMeanVariance.g);
-	vec3 mu = vec3(localMeanVariance.r);
-	vec3 minc = mu - VarianceClipGamma * sigma;
-	vec3 maxc = mu + VarianceClipGamma * sigma;
-	vec3 prevSample = ClipAABB(minc, maxc, vec3(unclamp), mu);
-	return prevSample.r;
-}
-
-vec2 DDXYDepth(ivec2 curSamplePos, ivec2 outSize)
-{
-	float depth = imageLoad(curNormalDepthImage, curSamplePos).a;
-
-	ivec2 xBiasSampleGPos = curSamplePos + ivec2(1, 0);
-	float xBiasDepth = IsWithinBounds(xBiasSampleGPos, outSize) ? imageLoad(curNormalDepthImage, xBiasSampleGPos).a : depth;
-
-	ivec2 yBiasSampleGPos = curSamplePos + ivec2(0, 1);
-	float yBiasDepth = IsWithinBounds(yBiasSampleGPos, outSize) ? imageLoad(curNormalDepthImage, yBiasSampleGPos).a : depth;
-
-	return vec2(xBiasDepth - depth, yBiasDepth - depth);
-}
-
-void ComputeValues(vec2 p, in out vec4 prevNormalDepth, in out vec2 sqaredMeanVariance, in out vec2 prevValue)
-{
-	const ivec2 offsets[4] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
-	ivec2 topLeft = ivec2(floor(p));
-	ivec2 closest = ivec2(round(p));
-
-	ivec2 samplePos[4];
-	for(int i = 0; i < 4; ++i)
-	{
-		samplePos[i] = topLeft + offsets[i];
-	}
-
-	vec4 sampleNormalDepth[4];
-	vec2 sampleValue[4];
-	for(int i = 0; i < 4; ++i)
-	{
-		sampleNormalDepth[i] = imageLoad(prevNormalDepthImage, samplePos[i]).rgba;
-		sampleValue[i] = imageLoad(prevImage, samplePos[i]).rg;
-	}
-
-	vec2 targetOffset = p - vec2(topLeft);
-	ivec2 size = imageSize(prevImage);
-
-	vec4 weights;
-	ComputeWeights(targetOffset, size, samplePos, weights);
-	weights /= dot(vec4(1.0), weights);
-
-	vec3 normal = vec3(0.0);
-	float depth = 0.0;
-	float value = 0.0;
-	float tspp = 0.0;
-	for(int i = 0; i < 4; ++i)
-	{
-		normal += sampleNormalDepth[i].rgb * weights[i];
-		depth += sampleNormalDepth[i].a * weights[i];
-		value += sampleValue[i].r * weights[i];
-		tspp += floatBitsToUint(sampleValue[i].g) * weights[i];
-	}
-
-	prevValue = vec2(value, uintBitsToFloat(uint(round(tspp))));
-	prevNormalDepth = vec4(normalize(normal), depth);
-	sqaredMeanVariance = imageLoad(sqaredMeanVarianceImage, closest).rg;
-}
-
-vec2 ComputeMotion(vec2 p)
-{
-	const ivec2 offsets[4] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
-	ivec2 topLeft = ivec2(floor(p));
-
-	ivec2 samplePos[4];
-	for(int i = 0; i < 4; ++i)
-	{
-		samplePos[i] = topLeft + offsets[i];
-	}
-
-	vec2 targetOffset = p - vec2(topLeft);
-	ivec2 size = imageSize(gbuffer1Image);
-
-	vec4 weights;
-	ComputeWeights(targetOffset, size, samplePos, weights);
-	weights /= dot(vec4(1.0), weights);
-
-	vec2 motion = vec2(0);
-	for(int i = 0; i < 4; ++i)
-	{
-		vec4 gbuffer1Data = imageLoad(gbuffer1Image, samplePos[i]);
-		motion += DecodeMotion(gbuffer1Data) * weights[i];
-	}
-	return motion;
-}
 
 void main()
 {
-	ivec2 inSize = imageSize(gbuffer0Image);
-	ivec2 outSize = imageSize(outImage);
+	ivec2 outSize = imageSize(curAOImage);
 
 	// Check if not outside boundaries
-	if(gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
+	if (gl_GlobalInvocationID.x >= outSize.x || gl_GlobalInvocationID.y >= outSize.y) return;
+
 	ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
 
-	bool pixelSkip = false;//mod(gl_GlobalInvocationID.x + gl_GlobalInvocationID.y, 2) == mod(frame_number, 2);
+	vec4 cachedValues = imageLoad(reprojectedImage, storePos);
+	uint tspp = floatBitsToUint(imageLoad(curTsppImage, storePos).a);
+	cachedValues.w = float(tspp);
 
-	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
-	vec2 curSampleGPos = vec2(curTexPos * vec2(inSize) - vec2(0.5));
-	vec2 motion = ComputeMotion(curSampleGPos);
-	vec2 preTexPos = curTexPos - motion;
+	bool isCurrentFrameValueActive = true;//mod(gl_GlobalInvocationID.x + gl_GlobalInvocationID.y, 2) == mod(frame_number, 2);
 
-	vec2 reprojectPos = vec2(preTexPos * vec2(outSize) - vec2(0.5));
+	const float InvalidAOCoefficientValue = -1.0;
 
-	vec4 prevNormalDepth = vec4(0.0);
-	vec2 prevSqaredmeanVariance = vec2(0.0);
-	vec2 prevValue = vec2(0.0);
+	float value = isCurrentFrameValueActive ? imageLoad(curAOImage, storePos).r : InvalidAOCoefficientValue;
+	bool isValidValue = value != InvalidAOCoefficientValue;
+	float valueSquaredMean = isValidValue ? value * value : InvalidAOCoefficientValue;
+	float rayHitDistance = InvalidAOCoefficientValue;
+	float variance = InvalidAOCoefficientValue;
 
-	ComputeValues(reprojectPos, prevNormalDepth, prevSqaredmeanVariance, prevValue);
-
-	if(pixelSkip)
-	{
-		imageStore(outImage, storePos, vec4(prevValue, 0, 0));
-		imageStore(sqaredMeanVarianceImage, storePos, vec4(prevSqaredmeanVariance, 0, 0));
-	}
-
-	vec4 curNormalDepth = imageLoad(curNormalDepthImage, storePos);
-
-	uint tspp = floatBitsToUint(prevValue.g);
-	float weight = 0.0;
-
-	if(abs(motion.x) + abs(motion.y) < 1e-1)
-	{
-		const float normalCutSigma = 1.0;
-		float normalFloatPrecision = 1e-3;
-		float normalWeight = clamp(dot(curNormalDepth.rgb, prevNormalDepth.rgb) + normalFloatPrecision, 0.0, 1.0);
-		normalWeight = pow(normalWeight, normalCutSigma);
-
-		const float depthCutSigma = 1.0;
-		float depthFloatPrecision = FloatPrecisionR16(curNormalDepth.a);
-		vec2 ddxyDepth = DDXYDepth(ivec2(gl_GlobalInvocationID.xy), outSize);
-		float depthThreshold = dot(vec2(1.0), abs(ddxyDepth));
-		float depthTolerance = depthCutSigma * depthThreshold + depthFloatPrecision;
-
-		float depthDelta = abs(prevNormalDepth.a - curNormalDepth.a);
- 		float depthWeight = min(depthTolerance / (depthDelta + depthFloatPrecision), 1.0);
-		weight = normalWeight * depthWeight;
-	}
-
-	tspp = uint(float(tspp) * weight);
-	float prevOcclusion = 0.0;
-	vec2 localMeanVariance = vec2(0.0);
 	if (tspp > 0)
 	{
-		localMeanVariance = imageLoad(meanInputImage, storePos).rg;
-		prevOcclusion = ClampPrevResult(prevValue.r, localMeanVariance).r;
-		// Scale down the tspp based on how strongly the cached value got clamped to give more weight to new samples.
-		const float clampDifferenceToTsppScale = 4.0;
-		tspp = uint(mix(float(tspp), 0.0, clamp(clampDifferenceToTsppScale * abs(prevValue.r - prevOcclusion), 0.0, 1.0)));
-	}
+		const float minSmoothingFactor = 0.03;
+		uint maxTspp = uint(round(1.0 / minSmoothingFactor));
+		tspp = isValidValue ? min(tspp + 1, maxTspp) : tspp;
 
-	float occlusion = imageLoad(curImage, storePos).r;
-	float sqaredmean = occlusion * occlusion;
-	float variance = localMeanVariance.g;
+		float cachedValue = cachedValues.r;
+		vec2 localMeanVariance = imageLoad(localMeanVarianceImage, storePos).rg;
+		float localMean = localMeanVariance.x;
+		float localVariance = localMeanVariance.y;
 
-	const uint maxTspp = 100;
-	if(tspp > 0)
-	{
-		const float maxBlend = 1.0;
-		const float minBlend = 1.0 / float(maxTspp);
-		float blend = max(minBlend, min(1.0 / float(tspp + 1), maxBlend));
-		occlusion = mix(prevOcclusion, occlusion, blend);
-		sqaredmean = mix(prevSqaredmeanVariance.r, sqaredmean, blend);
-		if(tspp > 4)
+		const bool clampCachedValues = true;
+		if (clampCachedValues)
 		{
-			variance = sqaredmean - occlusion * occlusion;
-		}
-	}
-	tspp = min(tspp + 1, maxTspp);
+			const float stdDevGamma = 0.6;
+			const float clamping_minStdDevTolerance = 0.05;
 
-	imageStore(outImage, storePos, vec4(occlusion, uintBitsToFloat(tspp), 0, 0));
-	imageStore(sqaredMeanVarianceImage, storePos, vec4(sqaredmean, variance, 0, 0));
+			float localStdDev = max(stdDevGamma * sqrt(localVariance), clamping_minStdDevTolerance);
+			float nonClampedCachedValue = cachedValue;
+
+			// Clamp value to mean +/- std.dev of local neighborhood to surpress ghosting on value changing due to other occluder movements.
+			// Ref: Salvi2016, Temporal Super-Sampling
+			cachedValue = clamp(cachedValue, localMean - localStdDev, localMean + localStdDev);
+
+			const float clampDifferenceToTsppScale = 4.0;
+			// Scale down the tspp based on how strongly the cached value got clamped to give more weight to new samples.
+			float TsppScale = clamp(clampDifferenceToTsppScale * abs(cachedValue - nonClampedCachedValue), 0.0, 1.0);
+			tspp = uint(round(mix(float(tspp), 0, TsppScale)));
+		}
+
+		const bool forceUseMinSmoothingFactor = false;
+		float invTspp = 1.f / float(tspp);
+		float a = forceUseMinSmoothingFactor ? minSmoothingFactor : max(invTspp, minSmoothingFactor);
+		float MaxSmoothingFactor = 1;
+		a = min(a, MaxSmoothingFactor);
+
+		// TODO: use average weighting instead of exponential for the first few samples 
+		//  to even out the weights for the noisy start instead of giving first samples much more weight than the rest.
+		//  Ref: Koskela2019, Blockwise Multi-Order Feature Regression for Real-Time Path-Tracing Reconstruction
+
+		// Value.
+		value = isValidValue ? mix(cachedValue, value, a) : cachedValue;
+
+		// Value Squared Mean.
+		float cachedSquaredMeanValue = cachedValues.y; 
+		valueSquaredMean = isValidValue ? mix(cachedSquaredMeanValue, valueSquaredMean, a) : cachedSquaredMeanValue;
+
+		const float minTsppToUseTemporalVariance = 4.0;
+		// Variance.
+		float temporalVariance = valueSquaredMean - value * value;
+		temporalVariance = max(0, temporalVariance);
+		// Ensure variance doesn't go negative due to imprecision.
+		variance = float(tspp) >= minTsppToUseTemporalVariance ? temporalVariance : localVariance;
+		variance = max(0.1, variance);
+
+		// RayHitDistance.
+		rayHitDistance = isValidValue ? imageLoad(curHitDistanceImage, storePos).r : 0;
+		float cachedRayHitDistance = cachedValues.z;
+		rayHitDistance = isValidValue ? mix(cachedRayHitDistance, rayHitDistance, a) : cachedRayHitDistance;
+	}
+	else
+	{
+		tspp = 1;
+		value = value;
+
+		rayHitDistance = imageLoad(curHitDistanceImage, storePos).r;
+		variance = imageLoad(localMeanVarianceImage, storePos).y;
+		valueSquaredMean = valueSquaredMean;
+	}
+
+	const float blurStrength_MaxTspp = 12.0;
+	const float blurDecayStrength = 1.0;
+	float TsppRatio = min(float(tspp), blurStrength_MaxTspp) / blurStrength_MaxTspp;
+	float blurStrength = pow(1 - TsppRatio, blurDecayStrength);
+
+	imageStore(curTsppImage, storePos, vec4(uintBitsToFloat(tspp)));
+	imageStore(curAOImage, storePos, vec4(value));
+	imageStore(curSqaredMeanImage, storePos, vec4(valueSquaredMean));
+	imageStore(curHitDistanceImage, storePos, vec4(rayHitDistance));
+	imageStore(varianceImage, storePos, vec4(variance));
+	imageStore(blurStrengthImage, storePos, vec4(blurStrength));
 }

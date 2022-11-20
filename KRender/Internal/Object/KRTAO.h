@@ -12,15 +12,52 @@ public:
 		RTAO_GROUP_SIZE = 32,
 		MEAN_WIDTH = 9
 	};
+
+	enum
+	{
+		BINDING_GBUFFER_RT0,
+		BINDING_GBUFFER_RT1,
+
+		BINDING_AS,
+		BINDING_CAMERA,
+		BINDING_UNIFORM,
+
+		BINDING_LOCAL_MEAN_VARIANCE_INPUT,
+		BINDING_LOCAL_MEAN_VARIANCE_OUTPUT,
+
+		BINDING_PREV_AO,
+		BINDING_CUR_AO,
+
+		BINDING_PREV_HITDISTANCE,
+		BINDING_CUR_HITDISTANCE,
+
+		BINDING_PREV_NORMAL_DEPTH,
+		BINDING_CUR_NORMAL_DEPTH,
+
+		BINDING_PREV_SQARED_MEAN,
+		BINDING_CUR_SQARED_MEAN,
+
+		BINDING_PREV_TSPP,
+		BINDING_CUR_TSPP,
+
+		BINDING_REPROJECTED,
+
+		BINDING_VARIANCE,
+		BINDING_BLUR_STRENGTH,
+
+		BINDING_ATROUS_AO,
+
+		BINDING_COMPOSED
+	};
+
 	struct AoControl
 	{
 		float rtao_radius;			// Length of the ray
 		int   rtao_samples;			// Nb samples at each iteration
 		float rtao_power;			// Darkness is stronger for more hits
 		int   rtao_distance_based;	// Attenuate based on distance
-		int   max_samples;			// Max samples before it stops
 		int   frame;				// Current frame
-		int   local_mean_width;
+		int	  enable_checkboard;	// Enable checkboard or not
 
 		AoControl()
 		{
@@ -28,9 +65,8 @@ public:
 			rtao_samples = 1;
 			rtao_power = 1.0f;
 			rtao_distance_based = 1;
-			max_samples = 1000;
 			frame = 0;
-			local_mean_width = MEAN_WIDTH;
+			enable_checkboard = 0;
 		}
 	};
 
@@ -49,39 +85,42 @@ protected:
 	IKComputePipelinePtr m_ComposePipeline;
 	IKComputePipelinePtr m_MeanHorizontalComputePipeline;
 	IKComputePipelinePtr m_MeanVerticalComputePipeline;
+	IKComputePipelinePtr m_ReprojectPipeline;
 	IKComputePipelinePtr m_AtrousComputePipeline;
 
-	IKRenderTargetPtr m_RenderTarget[2];
+	IKComputePipelinePtr m_BlurHorizontalComputePipeline[3];
+	IKComputePipelinePtr m_BlurVerticalComputePipeline[3];
+
+	IKRenderTargetPtr m_PrevAOTarget;
+	IKRenderTargetPtr m_CurAOTarget;
+
+	IKRenderTargetPtr m_PrevHitDistanceTarget;
+	IKRenderTargetPtr m_CurHitDistanceTarget;
+
+	IKRenderTargetPtr m_PrevNormalDepthTarget;
+	IKRenderTargetPtr m_CurNormalDepthTarget;
+
+	IKRenderTargetPtr m_PrevSquaredMeanTarget;
+	IKRenderTargetPtr m_CurSquaredMeanTarget;
+
+	IKRenderTargetPtr m_PrevTSPP;
+	IKRenderTargetPtr m_CurTSPP;
+
 	IKRenderTargetPtr m_MeanVarianceTarget[2];
-	IKRenderTargetPtr m_NormalDepthTarget[2];
-	IKRenderTargetPtr m_CurrentTarget;
-	IKRenderTargetPtr m_TemporalMeanSqaredMean;
-	IKRenderTargetPtr m_AtrousTarget;
+
+	IKRenderTargetPtr m_ReprojectedTarget;
+	IKRenderTargetPtr m_VarianceTarget;
+	IKRenderTargetPtr m_BlurStrengthTarget;
+	IKRenderTargetPtr m_AtrousAOTarget;
+
+	IKRenderTargetPtr m_BlurTempTarget;
+
 	IKRenderTargetPtr m_ComposedTarget;
 
 	IKUniformBufferPtr m_AOUniformBuffer;
 	IKUniformBufferPtr m_MeanUniformBuffer;
 
 	KRTDebugDrawer m_DebugDrawer;
-
-	enum
-	{
-		BINDING_GBUFFER_RT0,
-		BINDING_GBUFFER_RT1,
-		BINDING_AS,
-		BINDING_UNIFORM,
-		BINDING_LOCAL_MEAN_VARIANCE_INPUT,
-		BINDING_LOCAL_MEAN_VARIANCE_OUTPUT,
-		BINDING_TEMPORAL_SQAREDMEAN_VARIANCE,
-		BINDING_PREV,
-		BINDING_FINAL,
-		BINDING_PREV_NORMAL_DEPTH,
-		BINDING_CUR_NORMAL_DEPTH,
-		BINDING_CUR,
-		BINDING_ATROUS,
-		BINDING_COMPOSED,
-		BINDING_CAMERA
-	};
 
 	AoControl m_PrevParameters;
 	AoControl m_AOParameters;

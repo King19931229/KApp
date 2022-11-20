@@ -32,7 +32,7 @@ vec3 DecodePosition(vec4 gbuffer0Data, vec2 screenUV)
 
 vec2 DecodeMotion(vec4 gbuffer1Data)
 {
-	return gbuffer1Data.xy; // 2.0 * gbuffer1Data.xy - vec2(1.0);
+	return gbuffer1Data.xy;
 }
 
 vec3 DecodeBaseColor(vec4 gbuffer2Data)

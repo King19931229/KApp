@@ -47,6 +47,10 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 		elementFormat = EF_R32G32B32A32_FLOAT;
 		return true;
 
+	case IF_R16_UINT:
+		elementFormat = EF_R16_UINT;
+		return true;
+
 	case IF_R32_UINT:
 		elementFormat = EF_R32_UINT;
 		return true;
