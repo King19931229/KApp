@@ -32,6 +32,8 @@ namespace KRenderGlobal
 	KFrameGraph FrameGraph;
 
 	KRenderScene Scene;
+	IKRayTraceScenePtr RayTraceScene;
+
 	KRenderer Renderer;
 
 	KTaskExecutor<true> TaskExecutor;

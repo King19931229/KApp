@@ -37,7 +37,7 @@ layout(binding = BINDING_UNIFORM) uniform AOProperties
 	float rtao_power;
 	int   rtao_distance_based;
 	int   frame_number;
-	int	  enable_checkboard;
+	int   enable_checkboard;
 };
 
 vec2 DDXYDepthSingle(ivec2 curSamplePos, ivec2 outSize)

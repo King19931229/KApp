@@ -80,6 +80,27 @@ KRTDebugDrawer::~KRTDebugDrawer()
 	ASSERT_RESULT(!m_Target);
 }
 
+void KRTDebugDrawer::Move(KRTDebugDrawer&& rhs)
+{
+	m_Clip = rhs.m_Clip;
+	m_Pipeline = std::move(rhs.m_Pipeline);
+	m_Target = std::move(rhs.m_Target);
+	m_CommandPool = std::move(rhs.m_CommandPool);
+	m_SecondaryBuffer = std::move(rhs.m_SecondaryBuffer);
+	m_Enable = rhs.m_Enable;
+}
+
+KRTDebugDrawer::KRTDebugDrawer(KRTDebugDrawer&& rhs)
+{
+	Move(std::move(rhs));
+}
+
+KRTDebugDrawer& KRTDebugDrawer::operator=(KRTDebugDrawer&& rhs)
+{
+	Move(std::move(rhs));
+	return *this;
+}
+
 bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float width, float height)
 {
 	UnInit();

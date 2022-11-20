@@ -104,25 +104,15 @@ int main()
 
 	KRenderCoreInitCallback callback = [engine]()
 	{
-		auto renderScene = engine->GetRenderCore()->GetRenderScene();
-		auto rayTraceMgr = engine->GetRenderCore()->GetRayTraceMgr();
-		auto device = engine->GetRenderCore()->GetRenderDevice();
-
-		IKRayTraceScenePtr rayTraceScene = nullptr;
-		rayTraceMgr->AcquireRayTraceScene(rayTraceScene);
-
+		/*
 		IKRayTracePipelinePtr rayPipeline;
 		device->CreateRayTracePipeline(rayPipeline);
-
 		rayPipeline->SetStorageImage(EF_R8GB8BA8_UNORM);
 		rayPipeline->SetShaderTable(ST_RAYGEN, "raytrace/raygen.rgen");
 		rayPipeline->SetShaderTable(ST_CLOSEST_HIT, "raytrace/raytrace.rchit");
 		rayPipeline->SetShaderTable(ST_MISS, "raytrace/raytrace.rmiss");
-		rayTraceScene->EnableAutoUpdateImageSize(1.0f);
-	//	rayTraceScene->EnableDebugDraw();
-		rayTraceScene->Init(renderScene, engine->GetRenderCore()->GetCamera(), rayPipeline);
-
-		engine->GetRenderCore()->InitRTAO(rayTraceScene);
+		rayTraceScene->AddRaytracePipeline(rayPipeline);
+		*/
 	};
 	//engine->GetRenderCore()->RegisterInitCallback(&callback);
 	callback();

@@ -64,7 +64,7 @@ bool KRayTraceManager::ReloadShader()
 	return true;
 }
 
-bool KRayTraceManager::AcquireRayTraceScene(IKRayTraceScenePtr& scene)
+bool KRayTraceManager::CreateRayTraceScene(IKRayTraceScenePtr& scene)
 {
 	scene = IKRayTraceScenePtr(KNEW KRayTraceScene());
 	m_Scenes.insert(scene);

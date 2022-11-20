@@ -20,7 +20,7 @@ public:
 	bool Resize(size_t width, size_t height);
 	bool ReloadShader();
 
-	virtual bool AcquireRayTraceScene(IKRayTraceScenePtr& scene);
+	virtual bool CreateRayTraceScene(IKRayTraceScenePtr& scene);
 	virtual bool RemoveRayTraceScene(IKRayTraceScenePtr& scene);
 	virtual bool GetAllRayTraceScene(std::unordered_set<IKRayTraceScenePtr>& scenes);
 	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);

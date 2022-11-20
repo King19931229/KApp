@@ -13,37 +13,19 @@
 #include "KBase/Publish/KNumerical.h"
 
 KVulkanRayTracePipeline::KVulkanRayTracePipeline()
-	: m_TopDown(nullptr)
-	, m_CommandPool(nullptr)
+	: m_CommandPool(nullptr)
 	, m_StorageRT(nullptr)
 	, m_Format(EF_R8GB8BA8_UNORM)
 	, m_Width(0)
 	, m_Height(0)
 	, m_Inited(false)
-	, m_ASNeedUpdate(false)
+	, m_ASUpdated(false)
 {
 }
 
 KVulkanRayTracePipeline::~KVulkanRayTracePipeline()
 {
 	ASSERT_RESULT(!m_Inited && "should be destoryed");
-}
-
-void KVulkanRayTracePipeline::CreateAccelerationStructure()
-{
-	ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateAccelerationStructure(m_TopDown));
-	std::vector<IKAccelerationStructure::BottomASTransformTuple> bottomASs;
-	bottomASs.reserve(m_BottomASMap.size());
-	for (auto it = m_BottomASMap.begin(), itEnd = m_BottomASMap.end(); it != itEnd; ++it)
-	{
-		bottomASs.push_back(it->second);
-	}
-	ASSERT_RESULT(m_TopDown->InitTopDown(bottomASs));
-}
-
-void KVulkanRayTracePipeline::DestroyAccelerationStructure()
-{
-	SAFE_UNINIT(m_TopDown);
 }
 
 void KVulkanRayTracePipeline::CreateStorageImage()
@@ -59,7 +41,7 @@ void KVulkanRayTracePipeline::DestroyStorageImage()
 
 void KVulkanRayTracePipeline::CreateStrogeScene()
 {
-	KVulkanAccelerationStructure* vulkanAS = (KVulkanAccelerationStructure*)m_TopDown.get();
+	KVulkanAccelerationStructure* vulkanAS = (KVulkanAccelerationStructure*)m_TopDownAS.get();
 	const std::vector<KVulkanRayTraceInstance>& instances = vulkanAS->GetInstances();
 	VkDeviceSize size = (VkDeviceSize)(instances.size() * sizeof(KVulkanRayTraceInstance));
 	KVulkanInitializer::CreateStorageBuffer(size, instances.data(), m_Scene.buffer, m_Scene.allocInfo);
@@ -75,7 +57,7 @@ void KVulkanRayTracePipeline::CreateDescriptorSet()
 	uint32_t frames = KRenderGlobal::NumFramesInFlight;
 	m_Descriptor.sets.resize(frames);
 
-	KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDown.get());
+	KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDownAS.get());
 	const std::vector<VkDescriptorImageInfo>& textures = topDown->GetTextureDescriptors();
 
 	uint32_t stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
@@ -439,43 +421,16 @@ bool KVulkanRayTracePipeline::SetStorageImage(ElementFormat format)
 	return true;
 }
 
-uint32_t KVulkanRayTracePipeline::AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform)
-{
-	uint32_t handle = m_Handles.NewHandle();
-	m_BottomASMap[handle] = std::make_tuple(as, transform);
-	return handle;
-}
-
-bool KVulkanRayTracePipeline::RemoveBottomLevelAS(uint32_t handle)
-{
-	auto it = m_BottomASMap.find(handle);
-	if (it != m_BottomASMap.end())
-	{
-		m_BottomASMap.erase(it);
-		m_Handles.ReleaseHandle(handle);
-	}
-	return true;
-}
-
-bool KVulkanRayTracePipeline::ClearBottomLevelAS()
-{
-	m_BottomASMap.clear();
-	m_Handles.Clear();
-	return true;
-}
-
-bool KVulkanRayTracePipeline::RecreateAS()
+bool KVulkanRayTracePipeline::RecreateFromAS()
 {
 	if (m_Inited)
 	{
 		KRenderGlobal::RenderDevice->Wait();
 
-		DestroyAccelerationStructure();
-		CreateAccelerationStructure();
 		DestroyStrogeScene();
 		CreateStrogeScene();
 
-		KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDown.get());
+		KVulkanAccelerationStructure* topDown = static_cast<KVulkanAccelerationStructure*>(m_TopDownAS.get());
 
 		uint32_t frames = KRenderGlobal::NumFramesInFlight;
 		for (uint32_t frameIndex = 0; frameIndex < frames; ++frameIndex)
@@ -605,16 +560,12 @@ IKRenderTargetPtr KVulkanRayTracePipeline::GetStorageTarget()
 	return m_StorageRT;
 }
 
-IKAccelerationStructurePtr KVulkanRayTracePipeline::GetTopdownAS()
-{
-	return m_TopDown;
-}
-
-bool KVulkanRayTracePipeline::Init(IKUniformBufferPtr cameraBuffer, uint32_t width, uint32_t height)
+bool KVulkanRayTracePipeline::Init(IKUniformBufferPtr cameraBuffer, IKAccelerationStructurePtr topDownAS, uint32_t width, uint32_t height)
 {
 	UnInit();
 
 	m_CameraBuffer = cameraBuffer;
+	m_TopDownAS = topDownAS;
 	m_Width = width;
 	m_Height = height;
 
@@ -622,7 +573,6 @@ bool KVulkanRayTracePipeline::Init(IKUniformBufferPtr cameraBuffer, uint32_t wid
 
 	if (KVulkanGlobal::supportRaytrace)
 	{
-		CreateAccelerationStructure();
 		CreateStrogeScene();
 		CreateDescriptorSet();
 		CreateShader();
@@ -631,7 +581,7 @@ bool KVulkanRayTracePipeline::Init(IKUniformBufferPtr cameraBuffer, uint32_t wid
 	}
 
 	m_Inited = true;
-	m_ASNeedUpdate = false;
+	m_ASUpdated = false;
 	return true;
 }
 
@@ -641,7 +591,6 @@ bool KVulkanRayTracePipeline::UnInit()
 
 	if (KVulkanGlobal::supportRaytrace)
 	{
-		DestroyAccelerationStructure();
 		DestroyStrogeScene();
 		DestroyShaderBindingTables();
 		DestroyDescriptorSet();
@@ -650,14 +599,15 @@ bool KVulkanRayTracePipeline::UnInit()
 	}
 
 	m_CameraBuffer = nullptr;
+	m_TopDownAS = nullptr;
 
 	m_Inited = false;
 	return true;
 }
 
-bool KVulkanRayTracePipeline::MarkASNeedUpdate()
+bool KVulkanRayTracePipeline::MarkASUpdated()
 {
-	m_ASNeedUpdate = true;
+	m_ASUpdated = true;
 	return true;
 }
 
@@ -683,10 +633,10 @@ bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer)
 	{
 		if (primaryBuffer && frameIndex < m_Descriptor.sets.size())
 		{
-			if (m_ASNeedUpdate)
+			if (m_ASUpdated)
 			{
-				m_ASNeedUpdate = false;
-				RecreateAS();
+				m_ASUpdated = false;
+				RecreateFromAS();
 			}
 
 			UpdateCameraDescriptor();

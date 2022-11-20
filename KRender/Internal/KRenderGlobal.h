@@ -34,6 +34,8 @@
 
 #include "Internal/Object/KQuadDataProvider.h"
 
+#include "Internal/RayTrace/KRayTraceScene.h"
+
 #include "Internal/Render/KDeferredRenderer.h"
 
 #include "KBase/Publish/KTaskExecutor.h"
@@ -69,8 +71,8 @@ namespace KRenderGlobal
 
 	extern KFrameGraph FrameGraph;
 
-	// TODO 多场景去掉全局场景
 	extern KRenderScene Scene;
+	extern IKRayTraceScenePtr RayTraceScene;
 
 	extern KRenderer Renderer;
 

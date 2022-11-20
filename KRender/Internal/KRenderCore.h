@@ -96,8 +96,6 @@ public:
 	virtual bool UnRegisterInitCallback(KRenderCoreInitCallback* callback);
 	virtual bool UnRegistertAllInitCallback();
 
-	virtual bool InitRTAO(IKRayTraceScenePtr scene);
-
 	virtual IKRayTraceManager* GetRayTraceMgr();
 	virtual IKRenderScene* GetRenderScene();
 	virtual IKRenderer* GetRenderer();

@@ -44,9 +44,8 @@ bool KGBuffer::UnInit()
 		SAFE_UNINIT(m_RenderTarget[i]);
 	}
 	SAFE_UNINIT(m_DepthStencilTarget);
-
+	SAFE_UNINIT(m_AOTarget);
 	SAFE_UNINIT(m_GBufferSampler);
-
 	return true;
 }
 
@@ -69,6 +68,9 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 		EnsureRenderTarget(m_DepthStencilTarget);
 		ASSERT_RESULT(m_DepthStencilTarget->InitFromDepthStencil(width, height, 1, true));
 
+		EnsureRenderTarget(m_AOTarget);
+		ASSERT_RESULT(m_AOTarget->InitFromColor(width, height, 1, AOFormat));
+
 		return true;
 	}
 	return false;
@@ -76,13 +78,16 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 
 bool KGBuffer::Translate(IKCommandBufferPtr buffer, ImageLayout layout)
 {
-	for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
+	if (layout == IMAGE_LAYOUT_SHADER_READ_ONLY)
 	{
-		if (layout == IMAGE_LAYOUT_SHADER_READ_ONLY)
+		for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
 		{
 			buffer->Translate(m_RenderTarget[i]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
-		else if(layout == IMAGE_LAYOUT_COLOR_ATTACHMENT)
+	}
+	if (layout == IMAGE_LAYOUT_COLOR_ATTACHMENT)
+	{
+		for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
 		{
 			buffer->Translate(m_RenderTarget[i]->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 		}

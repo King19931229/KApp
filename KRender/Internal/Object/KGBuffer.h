@@ -27,11 +27,14 @@ constexpr KGBufferDescription GBufferDescription[GBUFFER_TARGET_COUNT]
 	{ GBUFFER_TARGET3, EF_R8GB8BA8_UNORM, "xyz:specular_color w:idle" },
 };
 
+constexpr ElementFormat AOFormat = EF_R8_UNORM;
+
 class KGBuffer
 {
 protected:
 	IKRenderTargetPtr m_RenderTarget[GBUFFER_TARGET_COUNT];
 	IKRenderTargetPtr m_DepthStencilTarget;
+	IKRenderTargetPtr m_AOTarget;
 	IKSamplerPtr m_GBufferSampler;
 public:
 	KGBuffer();
@@ -45,5 +48,6 @@ public:
 
 	inline IKRenderTargetPtr GetGBufferTarget(GBufferTarget target) { return m_RenderTarget[target]; }
 	inline IKRenderTargetPtr GetDepthStencilTarget() { return m_DepthStencilTarget; }
+	inline IKRenderTargetPtr GetAOTarget() { return m_AOTarget; }
 	inline IKSamplerPtr GetSampler() { return m_GBufferSampler; }
 };

@@ -61,7 +61,7 @@ public:
 
 		AoControl()
 		{
-			rtao_radius = 10.0f;
+			rtao_radius = 20.0f;
 			rtao_samples = 1;
 			rtao_power = 1.0f;
 			rtao_distance_based = 1;
@@ -115,8 +115,6 @@ protected:
 
 	IKRenderTargetPtr m_BlurTempTarget;
 
-	IKRenderTargetPtr m_ComposedTarget;
-
 	IKUniformBufferPtr m_AOUniformBuffer;
 	IKUniformBufferPtr m_MeanUniformBuffer;
 
@@ -132,6 +130,8 @@ protected:
 	uint32_t m_Width;
 	uint32_t m_Height;
 
+	bool m_Enable;
+
 	void UpdateAOUniform();
 	void UpdateMeanUniform();
 public:
@@ -144,6 +144,7 @@ public:
 	virtual bool EnableDebugDraw();
 	virtual bool DisableDebugDraw();
 	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }
+	bool& GetEnable() { return m_Enable; }
 
 	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer);

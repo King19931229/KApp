@@ -140,6 +140,9 @@ bool KRenderCore::InitRenderer()
 	m_CameraCube = CreateCameraCube();
 	m_CameraCube->Init(m_Device, &m_Camera);
 
+	GetRayTraceMgr()->CreateRayTraceScene(KRenderGlobal::RayTraceScene);
+	KRenderGlobal::RayTraceScene->Init(&KRenderGlobal::Scene, &m_Camera);
+
 	KRenderGlobal::Renderer.Init(&m_Camera, m_CameraCube, (uint32_t)width, (uint32_t)height);
 
 	return true;
@@ -148,6 +151,10 @@ bool KRenderCore::InitRenderer()
 bool KRenderCore::UnInitRenderer()
 {
 	KRenderGlobal::Renderer.UnInit();
+
+	KRenderGlobal::RayTraceScene->UnInit();
+	GetRayTraceMgr()->RemoveRayTraceScene(KRenderGlobal::RayTraceScene);
+	KRenderGlobal::RayTraceScene = nullptr;
 
 	m_CameraCube->UnInit();
 	m_CameraCube = nullptr;
@@ -514,13 +521,6 @@ bool KRenderCore::UnRegistertAllInitCallback()
 	return true;
 }
 
-bool KRenderCore::InitRTAO(IKRayTraceScenePtr scene)
-{
-	KRenderGlobal::RTAO.Init(scene.get());
-	KRenderGlobal::RTAO.EnableDebugDraw();
-	return true;
-}
-
 IKRayTraceManager* KRenderCore::GetRayTraceMgr()
 {
 	return &KRenderGlobal::RayTraceManager;
@@ -595,7 +595,8 @@ bool KRenderCore::UpdateUIOverlay()
 				}
 				if (ui->Header("RTAO"))
 				{
-					ui->CheckBox("RTAODraw", &KRenderGlobal::RTAO.GetDebugDrawEnable());
+					ui->CheckBox("RTAOEnable", &KRenderGlobal::RTAO.GetEnable());
+					ui->CheckBox("RTAODebugDraw", &KRenderGlobal::RTAO.GetDebugDrawEnable());
 					ui->SliderFloat("Length of the ray", &KRenderGlobal::RTAO.GetAoParameters().rtao_radius, 0.0f, 20.0f);
 					ui->SliderInt("Number of samples at each iteration", &KRenderGlobal::RTAO.GetAoParameters().rtao_samples, 1, 32);
 					ui->SliderFloat("Strenth of darkness", &KRenderGlobal::RTAO.GetAoParameters().rtao_power, 0.0001f, 10.0f);

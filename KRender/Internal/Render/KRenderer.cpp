@@ -76,6 +76,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	{
 		KRenderGlobal::DeferredRenderer.PrePass(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.BasePass(m_PrimaryBuffer);
+		// 清空AO结果
+		KRenderGlobal::DeferredRenderer.EmptyAO(m_PrimaryBuffer);
 
 		// 转换 GBufferRT 到 Shader可读
 		KRenderGlobal::GBuffer.Translate(m_PrimaryBuffer, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -152,6 +154,8 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 
 	// KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, (uint32_t)width, (uint32_t)height);
 	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, (uint32_t)width, (uint32_t)height);
+
+	KRenderGlobal::RTAO.Init(KRenderGlobal::RayTraceScene.get());
 
 	KRenderGlobal::DeferredRenderer.Init(camera, (uint32_t)width, (uint32_t)height);
 

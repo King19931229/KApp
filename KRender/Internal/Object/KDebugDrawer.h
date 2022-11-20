@@ -48,9 +48,14 @@ protected:
 	IKCommandBufferPtr m_SecondaryBuffer;
 
 	bool m_Enable;
+
+	void Move(KRTDebugDrawer&& rhs);
 public:
 	KRTDebugDrawer();
 	~KRTDebugDrawer();
+
+	KRTDebugDrawer(KRTDebugDrawer&& rhs);
+	KRTDebugDrawer& operator=(KRTDebugDrawer&& rhs);
 
 	bool Init(IKRenderTargetPtr target, float x, float y, float width, float height);
 	bool UnInit();

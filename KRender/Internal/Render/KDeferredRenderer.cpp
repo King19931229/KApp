@@ -69,6 +69,7 @@ void KDeferredRenderer::UnInit()
 	SAFE_UNINIT(m_LightingPipeline);
 	SAFE_UNINIT(m_DrawFinalPipeline);
 
+	SAFE_UNINIT(m_EmptyAORenderPass);
 	for (uint32_t i = 0; i < DRS_STAGE_COUNT; ++i)
 	{
 		SAFE_UNINIT(m_CommandBuffers[i]);
@@ -102,16 +103,21 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 	m_LightPassTarget->UnInit();
 	m_LightPassTarget->InitFromColor(width, height, 1, EF_R16G16B16A16_FLOAT);
 
+	auto EnsureRenderPass = [](IKRenderPassPtr& renderPass)
+	{
+		if (renderPass) renderPass->UnInit();
+		else ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(renderPass));
+	};
+
+	EnsureRenderPass(m_EmptyAORenderPass);
+	m_EmptyAORenderPass->SetColorAttachment(0, KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer());
+	m_EmptyAORenderPass->SetOpColor(0, LO_CLEAR, SO_STORE);
+	m_EmptyAORenderPass->SetClearColor(0, { 1.0f, 1.0f, 1.0f, 1.0f });
+	ASSERT_RESULT(m_EmptyAORenderPass->Init());
+
 	for (uint32_t idx = 0; idx < DRS_STAGE_COUNT; ++idx)
 	{
 		IKRenderPassPtr& renderPass = m_RenderPass[idx];
-
-		auto EnsureRenderPass = [](IKRenderPassPtr& renderPass)
-		{
-			if (renderPass) renderPass->UnInit();
-			else ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(renderPass));
-		};
-
 		EnsureRenderPass(renderPass);
 
 		if (idx == DRS_STATE_SKY)
@@ -226,6 +232,11 @@ void KDeferredRenderer::RecreatePipeline()
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE5,
 			KRenderGlobal::ClipmapVoxilzer.GetFinalMask()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE6,
+			KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
@@ -404,6 +415,15 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 
 		KRenderGlobal::Statistics.UpdateRenderStageStatistics(GDeferredRenderStageDescription[renderStage].debugMakrer, statistics);
 	}
+}
+
+void KDeferredRenderer::EmptyAO(IKCommandBufferPtr primaryBuffer)
+{
+	primaryBuffer->BeginDebugMarker("EmptyAO", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginRenderPass(m_EmptyAORenderPass, SUBPASS_CONTENTS_SECONDARY);
+	primaryBuffer->EndRenderPass();
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->EndDebugMarker();
 }
 
 void KDeferredRenderer::Foreground(IKCommandBufferPtr primaryBuffer)

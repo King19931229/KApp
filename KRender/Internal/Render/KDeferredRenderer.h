@@ -48,6 +48,7 @@ protected:
 	KRenderStageStatistics	m_Statistics[DRS_STAGE_COUNT];
 	IKCommandBufferPtr		m_CommandBuffers[DRS_STAGE_COUNT];
 	RenderPassCallFuncList	m_RenderCallFuncs[DRS_STAGE_COUNT];
+	IKRenderPassPtr			m_EmptyAORenderPass;
 
 	IKRenderTargetPtr m_LightPassTarget;
 
@@ -82,6 +83,7 @@ public:
 	void ForwardTransprant(IKCommandBufferPtr primaryBuffer);
 	void DebugObject(IKCommandBufferPtr primaryBuffer);
 	void Foreground(IKCommandBufferPtr primaryBuffer);
+	void EmptyAO(IKCommandBufferPtr primaryBuffer);
 
 	void DrawFinalResult(IKRenderPassPtr renderPass, IKCommandBufferPtr buffer);
 

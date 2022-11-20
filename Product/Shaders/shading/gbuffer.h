@@ -5,6 +5,7 @@
 #define GBUFFER_IMAGE1_FORMAT rgba16f
 #define GBUFFER_IMAGE2_FORMAT rgba8
 #define GBUFFER_IMAGE3_FORMAT rgba8
+#define AO_IMAGE_FORMAT r8
 
 vec3 DecodeNormal(vec4 gbuffer0Data)
 {
