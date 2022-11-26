@@ -168,7 +168,6 @@
     <ClCompile Include="Internal\Asset\KMesh.cpp" />
     <ClCompile Include="Internal\Asset\KSubMesh.cpp" />
     <ClCompile Include="Internal\Asset\Material\KMaterialParameter.cpp" />
-    <ClCompile Include="Internal\Asset\Material\KMaterialShader.cpp" />
     <ClCompile Include="Internal\Asset\Material\KMaterialTextureBinding.cpp" />
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializer.cpp" />
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializerV0.cpp" />

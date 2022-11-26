@@ -124,8 +124,8 @@ protected:
 		// debug
 		glm::mat4 debugClip;
 		IKPipelinePtr debugPipeline;
-		// parameters	
-		float splitDepth;
+		// parameters		
+		float split;
 		float areaSize;
 	};
 	std::vector<Cascade> m_StaticCascadeds;

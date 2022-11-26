@@ -1,6 +1,5 @@
 #include "public.h"
-#define cascaded_shadow dynamic_cascaded 
-#include "shadow.h"
+#include "cascadedshadow_dynamic.h"
 
 layout(location = 0) in vec2 inUV;
 layout(location = 0) out vec4 outColor;
@@ -18,5 +17,5 @@ void main()
 	vec4 worldPos = camera.viewInv * camera.projInv * vec4(ndc, 1.0);
 	worldPos /= worldPos.w;
 	vec4 viewPos = camera.view * worldPos;
-	outColor = CalcCSM(viewPos.xyz, worldPos.xyz);
+	outColor = CalcDynamicCSM(worldPos.xyz);
 }

@@ -119,7 +119,6 @@ bool KMaterialSubMesh::UnInit()
 	}
 
 	m_PrePassShaderMap.UnInit();
-	m_MaterialShaderMap.UnInit();
 
 	m_MaterialPipelineCreated = false;
 
@@ -152,7 +151,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 			return false;
 		}
 
-		MaterialBlendMode blendMode = m_pMaterial->GetBlendMode();
+		MaterialShadingMode shaingMode = m_pMaterial->GetShadingMode();
 
 		for (PipelineStage stage : {PIPELINE_STAGE_OPAQUE, PIPELINE_STAGE_OPAQUE_INSTANCE, PIPELINE_STAGE_TRANSPRANT})
 		{
@@ -170,14 +169,14 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		// 构造所需要的Pipeline
 		IKPipelinePtr* pipelines[IDX_COUNT] = { nullptr };
 		
-		switch (blendMode)
+		switch (shaingMode)
 		{
-			case OPAQUE:
+			case MSM_OPAQUE:
 				pipelines[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE];
 				pipelines[MESH_IDX] = msShader ? &m_Pipelines[PIPELINE_STAGE_OPAQUE_MESH] : nullptr;
 				pipelines[INSTANCE_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE_INSTANCE];
 				break;
-			case TRANSRPANT:
+			case MSM_TRANSRPANT:
 				pipelines[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_TRANSPRANT];
 				pipelines[MESH_IDX] = nullptr;
 				pipelines[INSTANCE_IDX] = nullptr;
@@ -239,26 +238,14 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 	SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_BASEPASS]);
 	SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_BASEPASS_INSTANCE]);
 
-	if (m_pSubMesh)
+	if (m_pSubMesh && m_pMaterial->GetShadingMode() == MSM_OPAQUE)
 	{
 		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
 		KMaterialTextureBinding& mtlTexBinding = m_pSubMesh->m_Texture;
 
-		std::string materialCode;
-		SetupMaterialGeneratedCode(materialCode);
-
-		KShaderMapInitContext initContext;
-		initContext.vsFile = "shading/basepass.vert";
-		initContext.fsFile = "shading/basepass.frag";
-		initContext.IncludeSource = { {"material_generate_code.h", materialCode} };
-		m_MaterialShaderMap.Init(initContext, false);
-
-		KTextureBinding textureBinding;
-		textureBinding.Init(&mtlTexBinding);
-
-		IKShaderPtr vsShader = m_MaterialShaderMap.GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr vsInstanceShader = m_MaterialShaderMap.GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fsShader = m_MaterialShaderMap.GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &textureBinding, false);
+		IKShaderPtr vsShader = m_pMaterial->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr vsInstanceShader = m_pMaterial->GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr fsShader = m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &mtlTexBinding, false);
 
 		for (PipelineStage stage : {PIPELINE_STAGE_BASEPASS, PIPELINE_STAGE_BASEPASS_INSTANCE})
 		{

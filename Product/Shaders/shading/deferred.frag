@@ -47,7 +47,7 @@ void main()
 	vec3 indirect = texture(giMask, screenCoord).rgb;
 	vec3 direct = texture(shadowMask, screenCoord).r * baseColor * NdotL;
 	float ao = texture(aoMask, screenCoord).r;
-	vec3 final = ao * (direct + indirect);
+	vec3 final = direct + ao * indirect;
 
 	outColor = vec4(final, 1.0);
 }

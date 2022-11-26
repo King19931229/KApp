@@ -114,8 +114,7 @@ KShaderMap::MacrosMap KShaderMap::VS_INSTANCE_MACROS_MAP;
 KShaderMap::MacrosMap KShaderMap::MS_MACROS_MAP;
 KShaderMap::MacrosMap KShaderMap::FS_MACROS_MAP;
 
-KShaderMap::KShaderMap()
-	: m_Async(false)
+void KShaderMap::InitializePermuationMap()
 {
 	std::lock_guard<decltype(STATIC_RESOURCE_LOCK)> guard(STATIC_RESOURCE_LOCK);
 	if (!PERMUTATING_ARRAY_INIT)
@@ -142,6 +141,11 @@ KShaderMap::KShaderMap()
 
 		PERMUTATING_ARRAY_INIT = true;
 	}
+}
+
+KShaderMap::KShaderMap()
+	: m_Async(false)
+{
 }
 
 KShaderMap::~KShaderMap()
@@ -456,7 +460,7 @@ IKShaderPtr KShaderMap::GetVSInstanceShader(const VertexFormat* formats, size_t 
 
 IKShaderPtr KShaderMap::GetMSShader(const VertexFormat* formats, size_t count)
 {
-	if (formats && count)
+	if (formats && count && !m_MSFile.empty())
 	{
 		size_t hash = CalcHash(formats, count, nullptr, false);
 		auto it = m_MSShaderMap.find(hash);

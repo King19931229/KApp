@@ -34,13 +34,14 @@ protected:
 	float m_VoxelSize;
 	uint32_t m_LevelIdx;
 	uint32_t m_MinUpdateChange;
+	uint32_t m_UpdateFrameNum;
 	int32_t m_Extent;
 
 	glm::ivec3 m_Movement;
 
 	std::vector<KClipmapVoxelizationRegion> m_UpdateRegions;
+	bool m_ForceUpdate;
 	bool m_NeedUpdate;
-	bool m_SkipUpdate;
 
 	glm::mat4 m_ViewProjectionMatrix[3];
 	glm::mat4 m_ViewProjectionMatrixI[3];
@@ -81,7 +82,7 @@ public:
 
 	void SetUpdateRegions(const std::vector<KClipmapVoxelizationRegion>& regions);
 	void MarkUpdateFinish();
-	void MarkSkipUpdate(bool skip);
+	void SetForceUpdate(bool forceUpdate);
 	bool IsUpdateFrame() const;
 
 	const std::vector<KClipmapVoxelizationRegion>& GetUpdateRegions() const { return m_UpdateRegions; }
@@ -168,7 +169,6 @@ protected:
 
 	bool m_VoxelBorderEnable;
 	bool m_VoxelDebugUpdate;
-	bool m_VoxelNeedUpdate;
 	bool m_VoxelEmpty;
 
 	float m_VoxelDrawBias;

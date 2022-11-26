@@ -66,10 +66,10 @@ struct IKMaterialTextureBinding
 	virtual bool Clear() = 0;
 };
 
-enum MaterialBlendMode
+enum MaterialShadingMode
 {
-	OPAQUE,
-	TRANSRPANT
+	MSM_OPAQUE,
+	MSM_TRANSRPANT
 };
 
 struct IKMaterial;
@@ -95,15 +95,14 @@ struct IKMaterial
 	virtual const KShaderInformation::Constant* GetVSShadingInfo() = 0;
 	virtual const KShaderInformation::Constant* GetFSShadingInfo() = 0;
 
-	virtual MaterialBlendMode GetBlendMode() const = 0;
-	virtual void SetBlendMode(MaterialBlendMode mode) = 0;
+	virtual MaterialShadingMode GetShadingMode() const = 0;
+	virtual void SetShadingMode(MaterialShadingMode mode) = 0;
 
 	virtual IKPipelinePtr CreatePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
 	virtual IKPipelinePtr CreateMeshPipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
 	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
 
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;
-	virtual bool Init(const std::string& vs, const std::string& fs, const std::string& ms, bool async) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual const std::string& GetPath() const = 0;

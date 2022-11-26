@@ -3,8 +3,7 @@ layout(early_fragment_tests) in;
 layout(location = 0) out vec4 outColor;
 
 #include "public.h"
-#define cascaded_shadow dynamic_cascaded
-#include "shadow/shadow.h"
+#include "shadow/cascadedshadow_static.h"
 
 layout(location = 0) in vec4 inWorldPos;
 layout(location = 1) in vec4 inViewPos;
@@ -18,5 +17,5 @@ uniform Parameter
 void main()
 {
 	outColor = parameter.color;
-	outColor *= CalcCSM(inViewPos.xyz, inWorldPos.xyz);
+	outColor *= CalcStaticCSM(inWorldPos.xyz);
 }

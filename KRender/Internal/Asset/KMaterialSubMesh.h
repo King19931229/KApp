@@ -2,7 +2,6 @@
 #include "Internal/KVertexDefinition.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKMaterial.h"
-#include "Internal/Asset/Material/KMaterialShader.h"
 #include "Internal/ShaderMap/KShaderMap.h"
 
 #include "KSubMesh.h"
@@ -38,8 +37,6 @@ protected:
 	KShaderRef				m_VoxelClipmapGSShader;
 	KShaderRef				m_VoxelClipmapFSShader;
 
-	// TODO 合并到同一个Shader里实现
-	KShaderMap				m_MaterialShaderMap;
 	KShaderMap				m_PrePassShaderMap;
 
 	bool					m_MateriaShaderTriggerLoaded;

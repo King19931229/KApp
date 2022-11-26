@@ -1,6 +1,5 @@
 #include "public.h"
-#define cascaded_shadow static_cascaded
-#include "shadow.h"
+#include "cascadedshadow_static.h"
 
 layout(location = 0) in vec2 inUV;
 layout(location = 0) out vec4 outColor;
@@ -17,6 +16,7 @@ void main()
 	vec3 ndc = vec3(2.0 * inUV - vec2(1.0), depth);
 	vec4 worldPos = camera.viewInv * camera.projInv * vec4(ndc, 1.0);
 	worldPos /= worldPos.w;
-	vec4 viewPos = camera.view * worldPos;
-	outColor = CalcCSM(viewPos.xyz, worldPos.xyz);
+	// Hack for vertical shadow map tiny error
+	worldPos.y += 0.5;
+	outColor = CalcStaticCSM(worldPos.xyz);
 }

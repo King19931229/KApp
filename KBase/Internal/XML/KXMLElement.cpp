@@ -69,6 +69,12 @@ void KXMLElement::SetText(int value)
 	m_Element->SetText(value);
 }
 
+void KXMLElement::SetText(unsigned int value)
+{
+	ASSERT_RESULT(!IsEmpty());
+	m_Element->SetText(value);
+}
+
 void KXMLElement::SetText(bool value)
 {
 	ASSERT_RESULT(!IsEmpty());

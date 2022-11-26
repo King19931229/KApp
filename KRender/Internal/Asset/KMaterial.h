@@ -1,15 +1,15 @@
 #pragma once
 #include "Interface/IKMaterial.h"
 #include "KBase/Interface/IKXML.h"
-#include "Material/KMaterialShader.h"
+#include "Internal/ShaderMap/KShaderMap.h"
 
 class KMaterial : public IKMaterial
 {
 protected:
+	uint32_t m_Version;
 	std::string m_Path;
-	MaterialBlendMode m_BlendMode;
-	KMaterialShader m_Shader;
-	
+	std::string m_ShaderFile;
+	MaterialShadingMode m_ShadingMode;
 	IKMaterialParameterPtr m_VSParameter;
 	IKMaterialParameterPtr m_FSParameter;
 	IKMaterialTextureBindingPtr m_MaterialTexture;
@@ -19,21 +19,23 @@ protected:
 	bool m_FSInfoCalced;
 	bool m_VSParameterVerified;
 	bool m_FSParameterVerified;
-
 	bool m_ParameterReload;
+
+	KShaderMap m_ShaderMap;
+
+	static uint32_t msCurrentVersion;
 
 	static const char* msMaterialRootKey;
 
-	static const char* msVSKey;
-	static const char* msMSKey;
-	static const char* msFSKey;
+	static const char* msVersionKey;
+	static const char* msShaderKey;
 
 	static const char* msMaterialTextureBindingKey;
 	static const char* msMaterialTextureSlotKey;
 	static const char* msMaterialTextureSlotIndexKey;
 	static const char* msMaterialTextureSlotPathKey;
 
-	static const char* msBlendModeKey;
+	static const char* msShadingModeKey;
 
 	static const char* msVSParameterKey;
 	static const char* msFSParameterKey;
@@ -45,8 +47,9 @@ protected:
 	static MaterialValueType ShaderConstantTypeToMaterialType(KShaderInformation::Constant::ConstantMemberType type);
 	static MaterialValueType StringToMaterialValueType(const char* type);
 	static const char* MaterialValueTypeToString(MaterialValueType type);
-	static MaterialBlendMode StringToMaterialBlendMode(const char* mode);
-	static const char* MaterialBlendModeToString(MaterialBlendMode mode);
+	static MaterialShadingMode StringToMaterialShadingMode(const char* mode);
+	static const char* MaterialShadingModeToString(MaterialShadingMode mode);
+	static KTextureBinding ConvertToTextureBinding(const IKMaterialTextureBinding* mtlTextureBinding);
 
 	bool VerifyParameter(IKMaterialParameterPtr parameter, const KShaderInformation& information);
 	bool CreateParameter(const KShaderInformation& information, IKMaterialParameterPtr& parameter);
@@ -82,15 +85,14 @@ public:
 	virtual const KShaderInformation::Constant* GetVSShadingInfo();
 	virtual const KShaderInformation::Constant* GetFSShadingInfo();
 
-	virtual MaterialBlendMode GetBlendMode() const { return m_BlendMode; }
-	virtual void SetBlendMode(MaterialBlendMode mode) { m_BlendMode = mode; }
+	virtual MaterialShadingMode GetShadingMode() const { return m_ShadingMode; }
+	virtual void SetShadingMode(MaterialShadingMode mode) { m_ShadingMode = mode; }
 
 	virtual IKPipelinePtr CreatePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 	virtual IKPipelinePtr CreateMeshPipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
 
 	virtual bool InitFromFile(const std::string& path, bool async);
-	virtual bool Init(const std::string& vs, const std::string& fs, const std::string& ms, bool async);
 	virtual bool UnInit();
 
 	virtual const std::string& GetPath() const { return m_Path; }

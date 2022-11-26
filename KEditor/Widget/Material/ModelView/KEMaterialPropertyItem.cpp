@@ -183,14 +183,14 @@ KEPropertyBaseView::BasePtr KEMaterialPropertyItem::CreatePropertyView()
 			std::shared_ptr<KEPropertyBaseView> blendView = nullptr;
 
 			blendView = KEditor::MakeComboEditView<uint32_t>();
-			blendView->SafeComboCast<uint32_t>()->AppendMapping(OPAQUE, "OPAQUE");
-			blendView->SafeComboCast<uint32_t>()->AppendMapping(TRANSRPANT, "TRANSRPANT");
-			MaterialBlendMode blendMode = m_Material->GetBlendMode();
+			blendView->SafeComboCast<uint32_t>()->AppendMapping(MSM_OPAQUE, "OPAQUE");
+			blendView->SafeComboCast<uint32_t>()->AppendMapping(MSM_TRANSRPANT, "TRANSRPANT");
+			MaterialShadingMode blendMode = m_Material->GetShadingMode();
 			blendView->SafeComboCast<uint32_t>()->SetValue(blendMode);
 
 			blendView->Cast<uint32_t, 1>()->AddListener([this](uint32_t newValue)
 			{
-				m_Material->SetBlendMode((MaterialBlendMode)newValue);
+				m_Material->SetShadingMode((MaterialShadingMode)newValue);
 			});
 
 			return blendView;

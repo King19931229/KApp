@@ -91,14 +91,20 @@
 #define BINDING_MATERIAL3 BINDING_TEXTURE3
 
 #define BINDING_SM BINDING_TEXTURE4
-#define BINDING_CSM0 BINDING_TEXTURE5
-#define BINDING_CSM1 BINDING_TEXTURE6
-#define BINDING_CSM2 BINDING_TEXTURE7
-#define BINDING_CSM3 BINDING_TEXTURE8
 
-#define BINDING_DIFFUSE_IRRADIANCE BINDING_TEXTURE9
-#define BINDING_SPECULAR_IRRADIANCE BINDING_TEXTURE10
-#define BINDING_INTEGRATE_BRDF BINDING_TEXTURE11
+#define BINDING_STATIC_CSM0 BINDING_TEXTURE5
+#define BINDING_STATIC_CSM1 BINDING_TEXTURE6
+#define BINDING_STATIC_CSM2 BINDING_TEXTURE7
+#define BINDING_STATIC_CSM3 BINDING_TEXTURE8
+
+#define BINDING_DYNAMIC_CSM0 BINDING_TEXTURE9
+#define BINDING_DYNAMIC_CSM1 BINDING_TEXTURE10
+#define BINDING_DYNAMIC_CSM2 BINDING_TEXTURE11
+#define BINDING_DYNAMIC_CSM3 BINDING_TEXTURE12
+
+#define BINDING_DIFFUSE_IRRADIANCE BINDING_TEXTURE13
+#define BINDING_SPECULAR_IRRADIANCE BINDING_TEXTURE14
+#define BINDING_INTEGRATE_BRDF BINDING_TEXTURE15
 
 #define CUBEMAP_UVW(uvw) vec3(-uvw.x, -uvw.y, -uvw.z)
 
@@ -133,7 +139,8 @@ uniform DynamicCascadedShadowInfo
 	mat4 light_view_proj[4];
 	vec4 lightInfo[4];
 	vec4 frustumPlanes[24];
-	vec4 frustum;
+	vec4 splitDistance;
+	vec4 center;
 	uint cascaded;
 } dynamic_cascaded;
 
@@ -144,7 +151,8 @@ uniform StaticCascadedShadowInfo
 	mat4 light_view_proj[4];
 	vec4 lightInfo[4];
 	vec4 frustumPlanes[24];
-	vec4 frustum;
+	vec4 area;
+	vec4 center;
 	uint cascaded;
 } static_cascaded;
 

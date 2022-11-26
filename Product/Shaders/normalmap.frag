@@ -13,8 +13,7 @@ layout(location = 5) in vec4 inTangentPos;
 layout(location = 0) out vec4 outColor;
 
 #include "public.h"
-#define cascaded_shadow dynamic_cascaded
-#include "shadow/shadow.h"
+#include "shadow/cascadedshadow_static.h"
 
 layout(binding = BINDING_DIFFUSE) uniform sampler2D diffuseSampler;
 layout(binding = BINDING_NORMAL) uniform sampler2D normalSampler;
@@ -158,5 +157,5 @@ void main()
 
 	outColor = texture(diffuseSampler, inUV) * (NDotL + ambient);
 	
-	outColor *= CalcCSM(inViewPos.xyz, inWorldPos.xyz);
+	outColor *= CalcStaticCSM(inWorldPos.xyz);
 }

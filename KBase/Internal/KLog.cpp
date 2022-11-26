@@ -243,10 +243,10 @@ bool KLogger::_Log(LogLevel level, const char* pszMessage)
 				switch (level)
 				{
 				case LL_WARNING:
-					SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x0E, 0));
+					SetConsoleTextAttribute(m_pConsoleHandle, FOREGROUND_INTENSITY | FOREGROUND_GREEN | FOREGROUND_RED);
 					break;
 				case LL_ERROR:
-					SetConsoleTextAttribute(m_pConsoleHandle, MAKEWORD(0x0C, 0));
+					SetConsoleTextAttribute(m_pConsoleHandle, FOREGROUND_INTENSITY | FOREGROUND_RED);
 					break;
 				case LL_NORMAL:
 				case LL_DEBUG:

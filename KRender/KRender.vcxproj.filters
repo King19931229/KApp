@@ -741,9 +741,6 @@
     <ClCompile Include="Internal\Asset\Material\KMaterialTextureBinding.cpp">
       <Filter>Internal\Asset\Material</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\Asset\Material\KMaterialShader.cpp">
-      <Filter>Internal\Asset\Material</Filter>
-    </ClCompile>
     <ClCompile Include="Internal\FrameGraph\KFrameGraphBuilder.cpp">
       <Filter>Internal\FrameGraph</Filter>
     </ClCompile>

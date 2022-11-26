@@ -537,7 +537,7 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 
 		// Store split distance and matrix in cascade
 		dynamicCascaded.viewMatrix = lightViewMatrix;
-		dynamicCascaded.splitDepth = (mainCamera->GetNear() + splitDist * clipRange) * -1.0f;
+		dynamicCascaded.split = mainCamera->GetNear() + splitDist * clipRange;
 		dynamicCascaded.areaSize = 0;
 		dynamicCascaded.viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
 		if (i == 0)
@@ -562,9 +562,7 @@ void KCascadedShadowMap::UpdateStaticCascades()
 	size_t numCascaded = m_StaticCascadeds.size();
 	float minCascadedShadowRange = m_ShadowRange / powf(2.0f, (float)(numCascaded - 1));
 
-	const glm::vec3& center = m_MainCamera->GetPosition();
-
-	if (glm::length(m_StaticCenter - center) > minCascadedShadowRange * 0.1f)
+	if (glm::length(m_StaticCenter - m_MainCamera->GetPosition()) > minCascadedShadowRange * 0.2f)
 	{
 		m_StaticShoudUpdate = true;
 	}
@@ -574,7 +572,7 @@ void KCascadedShadowMap::UpdateStaticCascades()
 		return;
 	}
 
-	m_StaticCenter = center;
+	m_StaticCenter = m_MainCamera->GetPosition();
 
 	KAABBBox sceneBound;
 	KRenderGlobal::Scene.GetSceneObjectBound(sceneBound);
@@ -592,8 +590,8 @@ void KCascadedShadowMap::UpdateStaticCascades()
 			diagonal = sqrt(3.0f * staticCascaded.areaSize * staticCascaded.areaSize);
 		}
 
-		glm::vec3 maxExtents = center + 0.5f * glm::vec3(staticCascaded.areaSize);
-		glm::vec3 minExtents = center - 0.5f * glm::vec3(staticCascaded.areaSize);
+		glm::vec3 maxExtents = m_StaticCenter + 0.5f * glm::vec3(staticCascaded.areaSize);
+		glm::vec3 minExtents = m_StaticCenter - 0.5f * glm::vec3(staticCascaded.areaSize);
 
 		KAABBBox frustumBox;
 		frustumBox.InitFromMinMax(minExtents, maxExtents);
@@ -673,7 +671,7 @@ void KCascadedShadowMap::UpdateStaticCascades()
 			staticCascaded.viewInfo = glm::vec4(lightSize, near, far);
 		}
 
-		staticCascaded.splitDepth = -staticCascaded.areaSize * 0.5f;
+		staticCascaded.split = staticCascaded.areaSize * 0.5f;
 	}
 }
 
@@ -814,17 +812,22 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 				KRenderGlobal::GBuffer.GetSampler(),
 				true);
 
+			ShaderBinding staticBindings[] = { SHADER_BINDING_STATIC_CSM0, SHADER_BINDING_STATIC_CSM1, SHADER_BINDING_STATIC_CSM2, SHADER_BINDING_STATIC_CSM3 };
+			ShaderBinding dynamicBindings[] = { SHADER_BINDING_DYNAMIC_CSM0, SHADER_BINDING_DYNAMIC_CSM1, SHADER_BINDING_DYNAMIC_CSM2, SHADER_BINDING_DYNAMIC_CSM3 };
+
 			for (uint32_t cascadedIndex = 0; cascadedIndex < numCascaded; ++cascadedIndex)
 			{
+				ShaderBinding binding = isStatic ? staticBindings[cascadedIndex] : dynamicBindings[cascadedIndex];
 				IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
-				pipeline->SetSampler(SHADER_BINDING_CSM0 + cascadedIndex, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
+				pipeline->SetSampler(binding, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
 			}
 
 			// Keep the validation layer happy
 			for (uint32_t cascadedIndex = numCascaded; cascadedIndex < SHADOW_MAP_MAX_CASCADED; ++cascadedIndex)
 			{
+				ShaderBinding binding = isStatic ? staticBindings[cascadedIndex] : dynamicBindings[cascadedIndex];
 				IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(0) : m_CasterPass->GetDynamicTarget(0);
-				pipeline->SetSampler(SHADER_BINDING_CSM0 + cascadedIndex, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
+				pipeline->SetSampler(binding, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
 			}
 
 			pipeline->Init();
@@ -1222,12 +1225,12 @@ bool KCascadedShadowMap::UpdateShadowMap()
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
 				}
 			}
-			else if (detail.semantic == CS_CASCADED_SHADOW_FRUSTUM)
+			else if (detail.semantic == CS_CASCADED_SHADOW_SPLIT)
 			{
 				assert(sizeof(float) * 4 == detail.size);
 				for (size_t i = 0; i < numCascaded; i++)
 				{
-					memcpy(pWritePos, &cascadeds[i].splitDepth, sizeof(float));
+					memcpy(pWritePos, &cascadeds[i].split, sizeof(float));
 					pWritePos = POINTER_OFFSET(pWritePos, sizeof(float));
 				}
 			}
@@ -1237,9 +1240,18 @@ bool KCascadedShadowMap::UpdateShadowMap()
 				uint32_t num = (uint32_t)numCascaded;
 				memcpy(pWritePos, &num, sizeof(uint32_t));
 			}
+			else if (detail.semantic == CS_CASCADED_SHADOW_CENTER)
+			{
+				glm::vec4 center = glm::vec4((type == CBT_STATIC_CASCADED_SHADOW) ? m_StaticCenter : m_MainCamera->GetPosition(), 1.0f);
+				assert(sizeof(float) * 4 == detail.size);
+				for (size_t i = 0; i < numCascaded; i++)
+				{
+					memcpy(pWritePos, &center, sizeof(glm::vec4));
+					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
+				}
+			}
 			else if (detail.semantic == CS_CASCADED_SHADOW_FRUSTUM_PLANES)
 			{
-
 			}
 		}
 		shadowBuffer->Write(pData);

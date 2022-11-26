@@ -34,7 +34,7 @@ KRenderCore::KRenderCore()
 	m_Gizmo(nullptr),
 	m_MultiThreadSubmit(true),
 	m_InstanceSubmit(true),
-	m_OctreeDebugDraw(true),
+	m_OctreeDebugDraw(false),
 	m_MouseCtrlCamera(true)
 {
 }
@@ -257,6 +257,8 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 {
 	if (!m_bInit)
 	{
+		KShaderMap::InitializePermuationMap();
+
 		m_Device = device.get();
 		m_Window = window.get();
 		m_DebugConsole = KNEW KDebugConsole();
@@ -574,10 +576,10 @@ bool KRenderCore::UpdateUIOverlay()
 				ui->CheckBox("InstanceRender", &m_InstanceSubmit);
 				if (ui->Header("Shadow"))
 				{
-					// ui->SliderFloat("Shadow DepthBias Slope[0]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(0), 0.0f, 5.0f);
-					// ui->SliderFloat("Shadow DepthBias Slope[1]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(1), 0.0f, 5.0f);
-					// ui->SliderFloat("Shadow DepthBias Slope[2]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(2), 0.0f, 5.0f);
-					// ui->SliderFloat("Shadow DepthBias Slope[3]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(3), 0.0f, 5.0f);
+					 ui->SliderFloat("Shadow DepthBias Slope[0]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(0), 0.0f, 5.0f);
+					 ui->SliderFloat("Shadow DepthBias Slope[1]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(1), 0.0f, 5.0f);
+					 ui->SliderFloat("Shadow DepthBias Slope[2]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(2), 0.0f, 5.0f);
+					 ui->SliderFloat("Shadow DepthBias Slope[3]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(3), 0.0f, 5.0f);
 
 					// ui->SliderFloat("Shadow ShadowRange", &KRenderGlobal::CascadedShadowMap.GetShadowRange(), 0.1f, 5000.0f);
 					// ui->SliderFloat("Shadow SplitLambda", &KRenderGlobal::CascadedShadowMap.GetSplitLambda(), 0.001f, 1.0f);

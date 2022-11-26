@@ -43,6 +43,7 @@ namespace KConstantGlobal
 			VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO
 		 },
 		{ VEC4_ZERO },
+		{ VEC4_ZERO },
 		{ 1 }
 	};
 
@@ -57,6 +58,7 @@ namespace KConstantGlobal
 			VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO,
 			VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO, VEC4_ZERO
 		 },
+		{ VEC4_ZERO },
 		{ VEC4_ZERO },
 		{ 1 }
 	};

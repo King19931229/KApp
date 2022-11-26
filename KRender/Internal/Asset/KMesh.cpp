@@ -306,10 +306,10 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 			ASSERT_RESULT(indexData.indexBuffer->InitDevice(hostVisible));
 
 			KMaterialTextureBinding textures;
-			if (!subPart.material.diffuse.empty())
-			{
-				textures.SetTexture(MTS_DIFFUSE, subPart.material.diffuse.c_str());
-			}
+
+			// 一定要设置Diffuse贴图
+			textures.SetTexture(MTS_DIFFUSE, subPart.material.diffuse.c_str());
+
 			if (!subPart.material.specular.empty())
 			{
 				textures.SetTexture(MTS_SPECULAR, subPart.material.specular.c_str());

@@ -105,6 +105,8 @@ public:
 	KShaderMap();
 	~KShaderMap();
 
+	static void InitializePermuationMap();
+
 	bool Init(const KShaderMapInitContext& context, bool async);
 	bool UnInit();
 	bool Reload();

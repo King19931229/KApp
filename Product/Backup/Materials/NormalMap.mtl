@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <material>
-    <blend>opaque</blend>
+    <version>1</version>
+    <shading>opaque</shading>
+    <shader>material/diffuse.glsl</shader>
     <vs>normalmap.vert</vs>
     <fs>normalmap.frag</fs>
     <vs_parameter/>

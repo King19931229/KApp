@@ -23,6 +23,7 @@ bool KMaterialManager::Init(IKRenderDevice* device)
 	m_MissingMaterial = IKMaterialPtr(KNEW KMaterial());
 	if (!m_MissingMaterial->InitFromFile("Materials/Missing.mtl", false))
 	{
+		assert(false && "Should not reach");
 		m_MissingMaterial = nullptr;
 	}
 

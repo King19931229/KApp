@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <material>
-    <blend>opaque</blend>
-    <vs>diffuse.vert</vs>
-    <fs>diffuse.frag</fs>
-    <ms>diffuse.mesh</ms>
+	<version>1</version>
+    <shading>opaque</shading>
+    <shader>material/diffuse.glsl</shader>
     <vs_parameter/>
     <fs_parameter/>
     <material_texture/>

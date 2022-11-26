@@ -542,6 +542,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 		const MaterialInfo& materialData = materialDatas[drawInfo.materialDataIdx];
 
 		KMaterialTextureBinding textures;
+
 		if(!materialData.diffuse.empty())
 		{
 			std::string diffusePath;
@@ -550,6 +551,13 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 				textures.SetTexture(MTS_DIFFUSE, diffusePath.c_str());
 			}
 		}
+
+		// 一定要设置Diffuse贴图
+		if (!textures.GetTexture(MTS_DIFFUSE))
+		{
+			textures.SetTexture(MTS_DIFFUSE, "");
+		}
+
 		if(!materialData.specular.empty())
 		{
 			std::string specularPath;

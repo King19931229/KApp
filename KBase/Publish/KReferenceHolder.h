@@ -151,6 +151,10 @@ public:
 	{
 		return m_Ref.Get();
 	}
+	Type& operator->()
+	{
+		return m_Ref.Get();
+	}
 	uint32_t GetRefCount() const
 	{
 		return m_RefCount ? *m_RefCount : 0;

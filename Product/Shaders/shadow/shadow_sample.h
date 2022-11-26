@@ -259,4 +259,49 @@ float PcfShadow(sampler2D shadowMap,
 	return PcfFilter(shadowMap, uv, z, dz_duv, filterRadius);
 }
 
+const bool pcss_shadow = false;
+const bool light_size_shadow = false;
+const bool debug_layer = false;
+
+float SoftShadow(sampler2D shadowMap,
+	vec2 lightRadiusUV,
+	float lightZNear, float lightZFar,
+	vec2 uv, float z, vec2 dz_duv, float zEye)
+{
+
+	if(light_size_shadow)
+	{
+		return pcss_shadow ? PcssShadow(shadowMap,
+			lightRadiusUV, lightZNear, lightZFar,
+			uv, z, dz_duv, zEye) : PcfShadow(shadowMap,
+			lightRadiusUV, lightZNear, lightZFar,
+			uv, z, dz_duv, zEye);
+	}
+	else
+	{
+		return Pcf_4x4(shadowMap, uv, z);
+	}
+}
+
+vec4 BlendCSMColor(uint cascaded, vec4 inColor)
+{
+	vec4 outColor = inColor;
+	switch(cascaded)
+	{
+		case 0 : 
+			outColor.rgb *= vec3(1.0f, 0.25f, 0.25f);
+			break;
+		case 1 : 
+			outColor.rgb *= vec3(0.25f, 1.0f, 0.25f);
+			break;
+		case 2 : 
+			outColor.rgb *= vec3(0.25f, 0.25f, 1.0f);
+			break;
+		case 3 : 
+			outColor.rgb *= vec3(1.0f, 1.0f, 0.25f);
+			break;
+	}
+	return outColor;
+}
+
 #endif

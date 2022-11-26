@@ -1,5 +1,6 @@
 #include "KMaterialTextureBinding.h"
 #include "Internal/KRenderGlobal.h"
+#include "KBase/Interface/IKLog.h"
 #include <assert.h>
 
 KMaterialTextureBinding::KMaterialTextureBinding()
@@ -25,19 +26,31 @@ uint8_t KMaterialTextureBinding::GetNumSlot() const
 
 bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path)
 {
-	if (!path.empty() && slot < GetNumSlot())
+	if (slot < GetNumSlot())
 	{
 		UnsetTextrue(slot);
-
-		if (KRenderGlobal::TextureManager.Acquire(path.c_str(), m_Textures[slot], false))
+		if (!path.empty())
 		{
-			KSamplerDescription desc;
-			desc.minFilter = desc.magFilter = FM_LINEAR;
-			desc.minMipmap = 0;
-			desc.maxMipmap = (*m_Textures[slot])->GetMipmaps() - 1;
-			ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
-			return true;
+			if (KRenderGlobal::TextureManager.Acquire(path.c_str(), m_Textures[slot], false))
+			{
+				KSamplerDescription desc;
+				desc.minFilter = desc.magFilter = FM_LINEAR;
+				desc.minMipmap = 0;
+				desc.maxMipmap = (*m_Textures[slot])->GetMipmaps() - 1;
+				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
+				return true;
+			}
+			else
+			{
+				KLog::Logger->Log(LL_ERROR, "Couldn't load texture file %s", path.c_str());
+			}
 		}
+
+		KRenderGlobal::TextureManager.GetErrorTexture(m_Textures[slot]);
+		KRenderGlobal::SamplerManager.GetErrorSampler(m_Samplers[slot]);
+		KLog::Logger->Log(LL_WARNING, "No texture is applied to slot [%d], assign an error texture.", slot);
+
+		return true;
 	}
 	return false;
 }

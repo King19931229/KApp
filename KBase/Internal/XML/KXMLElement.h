@@ -21,6 +21,7 @@ public:
 	virtual std::string GetText() const override;
 	virtual void SetText(const char* text) override;
 	virtual void SetText(int value) override;
+	virtual void SetText(unsigned int value) override;
 	virtual void SetText(bool value) override;
 
 	virtual IKXMLAttributePtr FirstAttribute() const override;
