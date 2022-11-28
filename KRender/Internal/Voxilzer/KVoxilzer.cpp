@@ -348,13 +348,13 @@ void KVoxilzer::SetupVoxelReleatedData()
 	uint32_t dimension = m_VolumeDimension;
 	uint32_t baseMipmapDimension = (dimension + 1) / 2;
 
-	m_VoxelRenderPassTarget->InitFromColor(dimension, dimension, 1, EF_R8_UNORM);
+	m_VoxelRenderPassTarget->InitFromColor(dimension, dimension, 1, 1, EF_R8_UNORM);
 	m_VoxelRenderPass->UnInit();
 	m_VoxelRenderPass->SetColorAttachment(0, m_VoxelRenderPassTarget->GetFrameBuffer());
 	m_VoxelRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_VoxelRenderPass->Init();
 
-	m_LightPassTarget->InitFromColor(m_Width, m_Height, 1, EF_R8GB8BA8_UNORM);
+	m_LightPassTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8GB8BA8_UNORM);
 	m_LightPassRenderPass->UnInit();
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
 	m_LightPassRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
@@ -668,7 +668,7 @@ void KVoxilzer::SetupOctreeMipmapPipeline()
 void KVoxilzer::Resize(uint32_t width, uint32_t height)
 {
 	m_LightPassTarget->UnInit();
-	m_LightPassTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM);
+	m_LightPassTarget->InitFromColor(width, height, 1, 1, EF_R8GB8BA8_UNORM);
 
 	m_LightPassRenderPass->UnInit();
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
@@ -678,7 +678,7 @@ void KVoxilzer::Resize(uint32_t width, uint32_t height)
 	m_OctreeRayTestTarget->UnInit();
 	m_OctreeRayTestPass->UnInit();
 
-	m_OctreeRayTestTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM);
+	m_OctreeRayTestTarget->InitFromColor(width, height, 1, 1, EF_R8GB8BA8_UNORM);
 	m_OctreeRayTestPass->SetColorAttachment(0, m_OctreeRayTestTarget->GetFrameBuffer());
 	m_OctreeRayTestPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_OctreeRayTestPass->Init();

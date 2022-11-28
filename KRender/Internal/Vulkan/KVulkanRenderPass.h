@@ -28,7 +28,7 @@ protected:
 	bool												m_ToSwapChain;
 	size_t												m_AttachmentHash;
 
-	size_t CalcAttachmentHash();
+	size_t CalcAttachmentHash(uint32_t mipmap);
 public:
 	KVulkanRenderPass();
 	~KVulkanRenderPass();
@@ -52,7 +52,7 @@ public:
 	bool RegisterInvalidCallback(RenderPassInvalidCallback* callback) override;
 	bool UnRegisterInvalidCallback(RenderPassInvalidCallback* callback) override;
 
-	bool Init() override;
+	bool Init(uint32_t mipmap) override;
 	bool UnInit() override;
 
 	inline VkRenderPass GetVkRenderPass() const { return m_RenderPass; }

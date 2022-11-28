@@ -141,7 +141,7 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& bin
 			image.imageDescriptors[i] =
 			{
 				vulkanSampler->GetVkSampler(),
-				image.format == EF_UNKNOWN ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(image.format),
+				(image.format == EF_UNKNOWN) ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(image.format),
 				vulkanFrameBuffer->GetImageLayout()
 			};
 		}
@@ -151,7 +151,7 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& bin
 			{
 				VK_NULL_HANDLE,
 				// TODO GetReinterpretImageView for mipmap
-				image.format == EF_UNKNOWN ? vulkanFrameBuffer->GetMipmapImageView(image.mipmap) : vulkanFrameBuffer->GetReinterpretImageView(image.format),
+				image.format == EF_UNKNOWN ? vulkanFrameBuffer->GetMipmapImageView(image.mipmap, 1) : vulkanFrameBuffer->GetReinterpretImageView(image.format),
 				vulkanFrameBuffer->GetImageLayout()
 			};
 		}

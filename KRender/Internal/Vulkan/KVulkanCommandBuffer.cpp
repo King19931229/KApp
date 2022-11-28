@@ -633,6 +633,24 @@ bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, ImageLayout layout)
 	return false;
 }
 
+bool KVulkanCommandBuffer::TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, ImageLayout oldLayout, ImageLayout newLayout)
+{
+	if (buf)
+	{
+		return buf->TranslateMipmap(this, mipmap, oldLayout, newLayout);
+	}
+	return false;
+}
+
+bool KVulkanCommandBuffer::TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, ImageLayout layout)
+{
+	if (buf)
+	{
+		return buf->TranslateMipmap(this, mipmap, layout);
+	}
+	return false;
+}
+
 bool KVulkanCommandBuffer::Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest)
 {
 	VkCommandBuffer commandBuffer = GetVkHandle();

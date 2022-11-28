@@ -192,7 +192,7 @@ bool KPostProcessPass::Init()
 		device->CreateRenderPass(m_RenderPass);
 
 		device->CreateRenderTarget(m_RenderTarget);
-		m_RenderTarget->InitFromColor(width, height, m_MsaaCount, m_Format);
+		m_RenderTarget->InitFromColor(width, height, m_MsaaCount, 1, m_Format);
 		m_RenderPass->SetColorAttachment(0, m_RenderTarget->GetFrameBuffer());
 		m_RenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 

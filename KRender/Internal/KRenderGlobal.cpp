@@ -20,6 +20,7 @@ namespace KRenderGlobal
 	KPrefilerCubeMap CubeMap;
 	KWhiteFurnace WhiteFurnace;
 	KGBuffer GBuffer;
+	KHiZBuffer HiZBuffer;
 	KOcclusionBox OcclusionBox;
 	KShadowMap ShadowMap;
 	KCascadedShadowMap CascadedShadowMap;

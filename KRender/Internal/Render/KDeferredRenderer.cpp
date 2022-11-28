@@ -101,7 +101,7 @@ void KDeferredRenderer::RemoveCallFunc(DeferredRenderStage stage, RenderPassCall
 void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 {
 	m_LightPassTarget->UnInit();
-	m_LightPassTarget->InitFromColor(width, height, 1, EF_R16G16B16A16_FLOAT);
+	m_LightPassTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT);
 
 	auto EnsureRenderPass = [](IKRenderPassPtr& renderPass)
 	{

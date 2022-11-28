@@ -89,6 +89,7 @@ protected:
 	{
 		std::vector<IKFrameBufferPtr> images;
 		std::vector<IKSamplerPtr> samplers;
+		std::vector<std::tuple<uint32_t, uint32_t>> mipmaps;
 		bool dynamicWrite;
 		bool onceWrite;
 
@@ -96,6 +97,7 @@ protected:
 		{
 			images = {};
 			samplers = {};
+			mipmaps = {};
 			dynamicWrite = false;
 			onceWrite = false;
 		}
@@ -184,6 +186,7 @@ public:
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer);
 
 	virtual bool SetSampler(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, bool dynimicWrite);
+	virtual bool SetSamplerMipmap(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, uint32_t startMip, uint32_t mipNum, bool dynimicWrite);
 	virtual bool SetStorageImage(unsigned int location, IKFrameBufferPtr image, ElementFormat format);
 
 	virtual bool SetStorageBuffer(unsigned int location, ShaderTypes shaderTypes, IKStorageBufferPtr buffer);

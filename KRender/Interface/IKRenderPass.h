@@ -102,6 +102,6 @@ struct IKRenderPass
 	virtual bool RegisterInvalidCallback(RenderPassInvalidCallback* callback) = 0;
 	virtual bool UnRegisterInvalidCallback(RenderPassInvalidCallback* callback) = 0;
 
-	virtual bool Init() = 0;
+	virtual bool Init(uint32_t mipmap = 0) = 0;
 	virtual bool UnInit() = 0;
 };

@@ -44,7 +44,8 @@ public:
 	bool UnInit();
 	bool Resize(uint32_t width, uint32_t height);
 
-	bool Translate(IKCommandBufferPtr buffer, ImageLayout layout);
+	bool TranslateColorAttachment(IKCommandBufferPtr buffer, ImageLayout layout);
+	bool TranslateDepthStencilAttachment(IKCommandBufferPtr buffer, ImageLayout layout);
 
 	inline IKRenderTargetPtr GetGBufferTarget(GBufferTarget target) { return m_RenderTarget[target]; }
 	inline IKRenderTargetPtr GetDepthStencilTarget() { return m_DepthStencilTarget; }

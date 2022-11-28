@@ -475,7 +475,7 @@ void KClipmapLevel::Init()
 	UnInit();
 
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_TextureTarget);
-	m_TextureTarget->InitFromColor(m_GridCount, m_GridCount, 1, EF_R32G32_FLOAT);
+	m_TextureTarget->InitFromColor(m_GridCount, m_GridCount, 1, 1, EF_R32G32_FLOAT);
 
 	if (m_EnableUpdateDebug)
 	{

@@ -191,7 +191,7 @@ void KClipmapVoxilzer::Resize(uint32_t width, uint32_t height)
 	m_Height = height;
 
 	m_LightPassTarget->UnInit();
-	m_LightPassTarget->InitFromColor(width, height, 1, EF_R8GB8BA8_UNORM);
+	m_LightPassTarget->InitFromColor(width, height, 1, 1, EF_R8GB8BA8_UNORM);
 
 	m_LightPassRenderPass->UnInit();
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
@@ -1046,14 +1046,14 @@ void KClipmapVoxilzer::SetupVoxelDrawPipeline()
 
 void KClipmapVoxilzer::SetupVoxelReleatedData()
 {
-	m_VoxelRenderPassTarget->InitFromColor(m_VolumeDimension, m_VolumeDimension, 1, EF_R8_UNORM);
+	m_VoxelRenderPassTarget->InitFromColor(m_VolumeDimension, m_VolumeDimension, 1, 1, EF_R8_UNORM);
 	m_VoxelRenderPass->UnInit();
 	m_VoxelRenderPass->SetColorAttachment(0, m_VoxelRenderPassTarget->GetFrameBuffer());
 	m_VoxelRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_VoxelRenderPass->SetOpColor(0, LO_LOAD, SO_STORE);
 	m_VoxelRenderPass->Init();
 
-	m_LightPassTarget->InitFromColor(m_Width, m_Height, 1, EF_R8GB8BA8_UNORM);
+	m_LightPassTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8GB8BA8_UNORM);
 	m_LightPassRenderPass->UnInit();
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
 	m_LightPassRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });

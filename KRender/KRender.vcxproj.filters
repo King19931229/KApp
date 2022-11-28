@@ -511,6 +511,9 @@
     <ClInclude Include="Internal\Manager\KSamplerManager.h">
       <Filter>Internal\Manager</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Object\KHiZBuffer.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -821,6 +824,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Manager\KSamplerManager.cpp">
       <Filter>Internal\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Object\KHiZBuffer.cpp">
+      <Filter>Internal\Object</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

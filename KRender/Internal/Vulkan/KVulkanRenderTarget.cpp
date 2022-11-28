@@ -27,7 +27,7 @@ bool KVulkanRenderTarget::InitFromDepthStencil(uint32_t width, uint32_t height, 
 	return true;
 }
 
-bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_t msaaCount, ElementFormat format)
+bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_t msaaCount, uint32_t mipmaps, ElementFormat format)
 {
 	UnInit();
 
@@ -39,6 +39,7 @@ bool KVulkanRenderTarget::InitFromColor(uint32_t width, uint32_t height, uint32_
 		TT_TEXTURE_2D,
 		(uint32_t)width,
 		(uint32_t)height,
+		(uint32_t)mipmaps,
 		msaaCount);
 
 	return true;

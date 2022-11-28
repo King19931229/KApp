@@ -71,7 +71,7 @@ bool KVulkanFrameBuffer::InitExternal(ExternalType type, VkImage image, VkImageV
 			m_Height,
 			m_Depth,
 			m_Layers,
-			1,
+			m_Mipmaps,
 			m_MSAAFlag,
 			m_ImageType,
 			m_Format,
@@ -81,14 +81,14 @@ bool KVulkanFrameBuffer::InitExternal(ExternalType type, VkImage image, VkImageV
 			createFlags,
 			m_MSAAImage, m_MSAAAllocInfo);
 
-		KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
-		KVulkanInitializer::CreateVkImageView(m_MSAAImage, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, m_MSAAImageView);
+		KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 0, m_Layers, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
+		KVulkanInitializer::CreateVkImageView(m_MSAAImage, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, 1, m_MSAAImageView);
 	}
 
 	return true;
 }
 
-bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t msaa)
+bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t mipmaps, uint32_t msaa)
 {
 	UnInit();
 
@@ -96,7 +96,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 	m_Width = width;
 	m_Height = height;
 	m_Depth = 1;
-	m_Mipmaps = 1;
+	m_Mipmaps = mipmaps;
 	m_MSAA = msaa;
 	m_External = false;
 
@@ -125,7 +125,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			m_Height,
 			m_Depth,
 			m_Layers,
-			1,
+			m_Mipmaps,
 			VK_SAMPLE_COUNT_1_BIT,
 			m_ImageType,
 			m_Format,
@@ -135,8 +135,8 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			createFlags,
 			m_Image, m_AllocInfo);
 
-		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
-		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, m_ImageView);
+		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
+		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, 1, m_ImageView);
 	}
 
 	if (msaa > 1)
@@ -145,7 +145,7 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			m_Height,
 			m_Depth,
 			m_Layers,
-			1,
+			m_Mipmaps,
 			m_MSAAFlag,
 			m_ImageType,
 			m_Format,
@@ -155,8 +155,8 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 			createFlags,
 			m_MSAAImage, m_MSAAAllocInfo);
 
-		KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
-		KVulkanInitializer::CreateVkImageView(m_MSAAImage, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, m_MSAAImageView);
+		KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 0, 1, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
+		KVulkanInitializer::CreateVkImageView(m_MSAAImage, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, 1, m_MSAAImageView);
 	}
 
 	return true;
@@ -194,8 +194,9 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 
 	KVulkanInitializer::CreateVkImage(m_Width,
 		m_Height,
-		1,
-		1, 1,
+		m_Depth,
+		m_Layers,
+		m_Mipmaps,
 		m_MSAAFlag,
 		m_ImageType,
 		m_Format,
@@ -206,8 +207,8 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 		m_Image,
 		m_AllocInfo);
 
-	KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
-	KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1, m_ImageView);
+	KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
+	KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_DEPTH_BIT, 0, m_Mipmaps, 0, 1, m_ImageView);
 
 	return true;
 }
@@ -270,25 +271,25 @@ bool KVulkanFrameBuffer::InitStorage3D(VkFormat format, uint32_t width, uint32_t
 	return InitStorageInternal(format, TT_TEXTURE_3D, width, height, depth, mipmaps);
 }
 
-std::vector<VkImageView> KVulkanFrameBuffer::CreateMipmapImageViews(VkFormat vkFormat)
+VkImageView KVulkanFrameBuffer::GetMipmapImageView(uint32_t startMip, uint32_t numMip)
 {
-	std::vector<VkImageView> mipmapViews;
-	mipmapViews.resize(m_Mipmaps);
-	for (uint32_t i = 0; i < m_Mipmaps; ++i)
-	{
-		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, i, 1, 0, 1, mipmapViews[i]);
-	}
-	return mipmapViews;
-}
+	ASSERT_RESULT(startMip < 256 && numMip < 256);
+	uint32_t idx = (startMip << 8) | numMip;
 
-VkImageView  KVulkanFrameBuffer::GetMipmapImageView(uint32_t mipmap)
-{
-	if (m_MipmapImageViews.empty())
+	VkImageView vkImageView;
+
+	auto it = m_MipmapImageViews.find(idx);
+	if (it == m_MipmapImageViews.end())
 	{
-		m_MipmapImageViews = CreateMipmapImageViews(m_Format);
+		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, startMip, numMip, 0, 1, vkImageView);
+		m_MipmapImageViews[idx] = vkImageView;
 	}
-	ASSERT_RESULT(mipmap < m_MipmapImageViews.size());
-	return m_MipmapImageViews[mipmap];
+	else
+	{
+		vkImageView = it->second;
+	}
+
+	return vkImageView;
 }
 
 VkImageView KVulkanFrameBuffer::GetReinterpretImageView(ElementFormat format)
@@ -326,8 +327,9 @@ bool KVulkanFrameBuffer::UnInit()
 		}
 	}
 
-	for (VkImageView& view : m_MipmapImageViews)
+	for (auto& pair : m_MipmapImageViews)
 	{
+		VkImageView& view = pair.second;
 		vkDestroyImageView(KVulkanGlobal::device, view, nullptr);
 	}
 	m_MipmapImageViews.clear();
@@ -355,7 +357,7 @@ bool KVulkanFrameBuffer::UnInit()
 	return true;
 }
 
-bool KVulkanFrameBuffer::TranslateLayout(VkCommandBuffer cmdBuffer, VkImageLayout oldLayout, VkImageLayout newLayout)
+bool KVulkanFrameBuffer::TranslateLayout(VkCommandBuffer cmdBuffer, uint32_t baseMip, uint32_t numMip, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
 	// 有两种行为可能改变Layout
 	// 1.Translation
@@ -363,12 +365,15 @@ bool KVulkanFrameBuffer::TranslateLayout(VkCommandBuffer cmdBuffer, VkImageLayou
 	KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format,
 		0,
 		(m_ImageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1,
-		0,
-		m_Mipmaps,
+		baseMip,
+		numMip,
 		oldLayout,
 		newLayout,
 		cmdBuffer);
-	m_ImageLayout = newLayout;
+	if (baseMip == 0 && numMip == m_Mipmaps)
+	{
+		m_ImageLayout = newLayout;
+	}
 	return true;
 }
 
@@ -382,7 +387,7 @@ bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, ImageLayout oldLayout, 
 		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(oldLayout, vkOldLayout));
 		VkImageLayout vkNewLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(newLayout, vkNewLayout));
-		TranslateLayout(vkCmdBuffer, vkOldLayout, vkNewLayout);
+		TranslateLayout(vkCmdBuffer, 0, m_Mipmaps, vkOldLayout, vkNewLayout);
 		return true;
 	}
 	return false;
@@ -396,8 +401,43 @@ bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, ImageLayout layout)
 		VkCommandBuffer vkCmdBuffer = vulkanCommandBuffer->GetVkHandle();
 		VkImageLayout vkNewLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(layout, vkNewLayout));
-		TranslateLayout(vkCmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED, vkNewLayout);
+		TranslateLayout(vkCmdBuffer, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, vkNewLayout);
 		return true;
 	}
 	return false;
+}
+
+bool KVulkanFrameBuffer::TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, ImageLayout oldLayout, ImageLayout newLayout)
+{
+	if (cmd)
+	{
+		KVulkanCommandBuffer* vulkanCommandBuffer = static_cast<KVulkanCommandBuffer*>(cmd);
+		VkCommandBuffer vkCmdBuffer = vulkanCommandBuffer->GetVkHandle();
+		VkImageLayout vkOldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(oldLayout, vkOldLayout));
+		VkImageLayout vkNewLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(newLayout, vkNewLayout));
+		TranslateLayout(vkCmdBuffer, mipmap, 1, vkOldLayout, vkNewLayout);
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanFrameBuffer::TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, ImageLayout layout)
+{
+	if (cmd)
+	{
+		KVulkanCommandBuffer* vulkanCommandBuffer = static_cast<KVulkanCommandBuffer*>(cmd);
+		VkCommandBuffer vkCmdBuffer = vulkanCommandBuffer->GetVkHandle();
+		VkImageLayout vkNewLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(layout, vkNewLayout));
+		TranslateLayout(vkCmdBuffer, mipmap, 1, VK_IMAGE_LAYOUT_UNDEFINED, vkNewLayout);
+		return true;
+	}
+	return false;
+}
+
+VkImageView KVulkanFrameBuffer::GetImageView() const
+{
+	return m_ImageView;
 }

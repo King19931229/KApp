@@ -70,7 +70,7 @@ bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, size_t mipmaps, con
 
 	renderDevice->CreateRenderTarget(m_IntegrateBRDFTarget);
 	renderDevice->CreateRenderPass(m_IntegrateBRDFPass);
-	m_IntegrateBRDFTarget->InitFromColor(512, 512, 1, EF_R16G16_FLOAT);
+	m_IntegrateBRDFTarget->InitFromColor(512, 512, 1, 1, EF_R16G16_FLOAT);
 	m_IntegrateBRDFPass->SetColorAttachment(0, m_IntegrateBRDFTarget->GetFrameBuffer());
 	m_IntegrateBRDFPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_IntegrateBRDFPass->Init();
@@ -277,7 +277,7 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 
 		renderDevice->CreateRenderPass(pass);
 		renderDevice->CreateRenderTarget(target);
-		target->InitFromColor((uint32_t)m_SpecularIrradianceMap->GetWidth() >> mipLevel, (uint32_t)m_SpecularIrradianceMap->GetHeight() >> mipLevel, 1, m_SpecularIrradianceMap->GetTextureFormat());
+		target->InitFromColor((uint32_t)m_SpecularIrradianceMap->GetWidth() >> mipLevel, (uint32_t)m_SpecularIrradianceMap->GetHeight() >> mipLevel, 1, 1, m_SpecularIrradianceMap->GetTextureFormat());
 		pass->SetColorAttachment(0, target->GetFrameBuffer());
 		pass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 		pass->Init();

@@ -191,7 +191,7 @@ bool KFrameGraphRenderTarget::AllocResource(IKRenderDevice* device)
 	{
 		case FrameGraphRenderTargetType::COLOR_TARGET:
 		{
-			ASSERT_RESULT(m_RenderTarget->InitFromColor(m_Width, m_Height, 1, m_Format));
+			ASSERT_RESULT(m_RenderTarget->InitFromColor(m_Width, m_Height, 1, 1, m_Format));
 			m_Vaild = true;
 			return true;
 		}

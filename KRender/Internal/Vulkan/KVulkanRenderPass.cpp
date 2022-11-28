@@ -144,11 +144,12 @@ bool KVulkanRenderPass::UnRegisterInvalidCallback(RenderPassInvalidCallback* cal
 
 
 
-size_t KVulkanRenderPass::CalcAttachmentHash()
+size_t KVulkanRenderPass::CalcAttachmentHash(uint32_t mipmap)
 {
 	using namespace KHash;
 
 	size_t hash = 0;
+
 	for (uint32_t attachment = 0; attachment < MAX_ATTACHMENT; ++attachment)
 	{
 		if (m_ColorFrameBuffers[attachment] != nullptr)
@@ -159,7 +160,7 @@ size_t KVulkanRenderPass::CalcAttachmentHash()
 			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetHeight()));
 
 			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetImage()));
-			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetImageView()));
+			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetMipmapImageView(mipmap, 1)));
 			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetMSAAImage()));
 			HashCombine(hash, HashCompute(vulkanFrameBuffer->GetMSAAImageView()));
 
@@ -195,9 +196,11 @@ size_t KVulkanRenderPass::CalcAttachmentHash()
 	return hash;
 }
 
-bool KVulkanRenderPass::Init()
+bool KVulkanRenderPass::Init(uint32_t mipmap)
 {
-	size_t currentHash = CalcAttachmentHash();
+	ASSERT_RESULT(mipmap == 0 || (!m_DepthFrameBuffer && m_MSAAFlag == VK_SAMPLE_COUNT_1_BIT));
+
+	size_t currentHash = CalcAttachmentHash(mipmap);
 	if (currentHash != m_AttachmentHash)
 	{
 		UnInit();
@@ -244,13 +247,13 @@ bool KVulkanRenderPass::Init()
 
 			m_ViewPortArea.x = 0;
 			m_ViewPortArea.y = 0;
-			m_ViewPortArea.width = compareRef->GetWidth();
-			m_ViewPortArea.height = compareRef->GetHeight();
+			m_ViewPortArea.width = std::max(1U, compareRef->GetWidth() >> mipmap);
+			m_ViewPortArea.height = std::max(1U, compareRef->GetHeight() >> mipmap);
 			m_MSAAFlag = ((KVulkanFrameBuffer*)compareRef.get())->GetMSAAFlag();
 
 #undef ASSERT_AND_RETURN
 
-			VkImageLayout color_0_finalLayout = m_ToSwapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			VkImageLayout color_0_finalLayout = (m_ToSwapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 			VkImageLayout color_x_finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 			bool massCreated = compareRef->GetMSAA() > 1;
@@ -292,7 +295,7 @@ bool KVulkanRenderPass::Init()
 					colorAttachment.finalLayout = massCreated ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : (i == 0 ? color_0_finalLayout : color_x_finalLayout);
 
 					descs.push_back(colorAttachment);
-					imageViews.push_back(vulkanFrameBuffer->GetImageView());
+					imageViews.push_back(vulkanFrameBuffer->GetMipmapImageView(mipmap, 1));
 
 					VkAttachmentReference colorAttachmentRef = {};
 					colorAttachmentRef.attachment = i;
@@ -434,8 +437,8 @@ bool KVulkanRenderPass::Init()
 			framebufferInfo.renderPass = m_RenderPass;
 			framebufferInfo.attachmentCount = (uint32_t)imageViews.size();
 			framebufferInfo.pAttachments = imageViews.data();
-			framebufferInfo.width = compareRef->GetWidth();
-			framebufferInfo.height = compareRef->GetHeight();
+			framebufferInfo.width = std::max(1U, compareRef->GetWidth() >> mipmap);
+			framebufferInfo.height = std::max(1U, compareRef->GetHeight() >> mipmap);
 			framebufferInfo.layers = 1;
 
 			VK_ASSERT_RESULT(vkCreateFramebuffer(KVulkanGlobal::device, &framebufferInfo, nullptr, &m_FrameBuffer));

@@ -60,6 +60,10 @@ public:
 
 	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout oldLayout, ImageLayout newLayout);
 	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout layout);
+
+	virtual bool TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, ImageLayout oldLayout, ImageLayout newLayout);
+	virtual bool TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, ImageLayout layout);
+
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest);
 
 	VkCommandBuffer GetVkHandle();

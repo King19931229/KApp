@@ -13,4 +13,6 @@ struct IKFrameBuffer
 	virtual bool IsStorageImage() const = 0;
 	virtual bool Translate(IKCommandBuffer* cmd, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 	virtual bool Translate(IKCommandBuffer* cmd, ImageLayout layout) = 0;
+	virtual bool TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, ImageLayout oldLayout, ImageLayout newLayout) = 0;
+	virtual bool TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, ImageLayout layout) = 0;
 };

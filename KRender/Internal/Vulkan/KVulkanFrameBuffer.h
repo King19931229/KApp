@@ -32,12 +32,11 @@ protected:
 
 	bool m_External;
 
-	std::vector<VkImageView> m_MipmapImageViews;
+	std::unordered_map<uint32_t, VkImageView> m_MipmapImageViews;
 	std::unordered_map<ElementFormat, VkImageView> m_ReinterpretImageView;
 
-	std::vector<VkImageView> CreateMipmapImageViews(VkFormat format);
 	bool InitStorageInternal(VkFormat format, TextureType type, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
-	bool TranslateLayout(VkCommandBuffer cmdBuffer, VkImageLayout oldLayout, VkImageLayout newLayout);
+	bool TranslateLayout(VkCommandBuffer cmdBuffer, uint32_t baseMip, uint32_t numMip, VkImageLayout oldLayout, VkImageLayout newLayout);
 public:
 	KVulkanFrameBuffer();
 	~KVulkanFrameBuffer();
@@ -50,7 +49,7 @@ public:
 	};
 	bool InitExternal(ExternalType type, VkImage image, VkImageView imageView, VkImageType imageType, VkImageViewType imageViewType, VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, uint32_t msaa);
 	// 创建为ColorAttachment
-	bool InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t msaa);
+	bool InitColor(VkFormat format, TextureType textureType, uint32_t width, uint32_t height, uint32_t mipmaps, uint32_t msaa);
 	// 创建为DepthStencilAttachment
 	bool InitDepthStencil(uint32_t width, uint32_t height, uint32_t msaa, bool stencil);
 	// 创建为StorageImage
@@ -62,6 +61,9 @@ public:
 	bool Translate(IKCommandBuffer* cmd, ImageLayout oldLayout, ImageLayout newLayout) override;
 	bool Translate(IKCommandBuffer* cmd, ImageLayout layout) override;
 
+	bool TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, ImageLayout oldLayout, ImageLayout newLayout) override;
+	bool TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, ImageLayout layout) override;
+
 	uint32_t GetWidth() const override { return m_Width; }
 	uint32_t GetHeight() const override { return m_Height; }
 	uint32_t GetDepth() const override { return m_Depth; }
@@ -72,13 +74,13 @@ public:
 	bool IsStorageImage() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_GENERAL; }
 
 	inline VkImage GetImage() const { return m_Image; }
-	inline VkImageView GetImageView() const { return m_ImageView; }
+	VkImageView GetImageView() const;
 	inline VkImage GetMSAAImage() const { return m_MSAAImage; }
 	inline VkImageView GetMSAAImageView() const { return m_MSAAImageView; }
 	inline VkSampleCountFlagBits GetMSAAFlag() const { return m_MSAAFlag; }
 	inline VkFormat GetForamt() const { return m_Format; }
 	inline VkImageLayout GetImageLayout() const { return m_ImageLayout; }
 
-	VkImageView GetMipmapImageView(uint32_t mipmap);
+	VkImageView GetMipmapImageView(uint32_t startMip, uint32_t numMip);
 	VkImageView GetReinterpretImageView(ElementFormat format);
 };

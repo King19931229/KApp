@@ -80,7 +80,10 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DeferredRenderer.EmptyAO(m_PrimaryBuffer);
 
 		// 转换 GBufferRT 到 Shader可读
-		KRenderGlobal::GBuffer.Translate(m_PrimaryBuffer, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TranslateColorAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TranslateDepthStencilAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		KRenderGlobal::HiZBuffer.Construct(m_PrimaryBuffer);
 
 		KRenderGlobal::RayTraceManager.Execute(m_PrimaryBuffer);
 		KRenderGlobal::RTAO.Execute(m_PrimaryBuffer);
@@ -99,7 +102,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DeferredRenderer.DeferredLighting(m_PrimaryBuffer);
 
 		// 转换 GBufferRT 到 Attachment
-		KRenderGlobal::GBuffer.Translate(m_PrimaryBuffer, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		KRenderGlobal::GBuffer.TranslateDepthStencilAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+		KRenderGlobal::GBuffer.TranslateColorAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 
 		KRenderGlobal::DeferredRenderer.ForwardTransprant(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.DebugObject(m_PrimaryBuffer);
@@ -141,7 +145,8 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	IKRenderDevice* device = KRenderGlobal::RenderDevice;
 
 	KRenderGlobal::FrameGraph.Init(device);
-	KRenderGlobal::GBuffer.Init((uint32_t)width, (uint32_t)height);
+	KRenderGlobal::GBuffer.Init(width, height);
+	KRenderGlobal::HiZBuffer.Init(width, height);
 	KRenderGlobal::RayTraceManager.Init();
 
 	KRenderGlobal::CubeMap.Init(128, 128, 8, "Textures/uffizi_cube.ktx");
@@ -150,14 +155,14 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 
 	KRenderGlobal::OcclusionBox.Init(device);
 	KRenderGlobal::ShadowMap.Init(device, 2048);
-	KRenderGlobal::CascadedShadowMap.Init(camera, 3, 2048, (uint32_t)width, (uint32_t)height);
+	KRenderGlobal::CascadedShadowMap.Init(camera, 3, 2048, width, height);
 
-	// KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, (uint32_t)width, (uint32_t)height);
-	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, (uint32_t)width, (uint32_t)height);
+	// KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, width, height);
+	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, width, height);
 
 	KRenderGlobal::RTAO.Init(KRenderGlobal::RayTraceScene.get());
 
-	KRenderGlobal::DeferredRenderer.Init(camera, (uint32_t)width, (uint32_t)height);
+	KRenderGlobal::DeferredRenderer.Init(camera, width, height);
 
 	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
 	KRenderGlobal::FrameGraph.Alloc();
@@ -237,6 +242,7 @@ bool KRenderer::UnInit()
 	KRenderGlobal::ClipmapVoxilzer.UnInit();
 
 	KRenderGlobal::RayTraceManager.UnInit();
+	KRenderGlobal::HiZBuffer.UnInit();
 	KRenderGlobal::GBuffer.UnInit();
 	KRenderGlobal::FrameGraph.UnInit();
 
@@ -412,6 +418,7 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::FrameGraph.Resize();
 	KRenderGlobal::PostProcessManager.Resize(width, height);
 	KRenderGlobal::GBuffer.Resize(width, height);
+	KRenderGlobal::HiZBuffer.Resize(width, height);
 	KRenderGlobal::DeferredRenderer.Resize(width, height);
 	// KRenderGlobal::Voxilzer.Resize(width, height);
 	KRenderGlobal::ClipmapVoxilzer.Resize(width, height);

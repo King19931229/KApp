@@ -280,6 +280,23 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKFrameBufferPtr image, 
 		SamplerBindingInfo info;
 		info.images = { image };
 		info.samplers = { sampler };
+		info.mipmaps = { { 0, 0 } };
+		info.dynamicWrite = dynimicWrite;
+		info.onceWrite = false;
+		ASSERT_RESULT(BindSampler(location, info));
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanPipeline::SetSamplerMipmap(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, uint32_t startMip, uint32_t mipNum, bool dynimicWrite)
+{
+	if (image && sampler)
+	{
+		SamplerBindingInfo info;
+		info.images = { image };
+		info.samplers = { sampler };
+		info.mipmaps = { { startMip, mipNum } };
 		info.dynamicWrite = dynimicWrite;
 		info.onceWrite = false;
 		ASSERT_RESULT(BindSampler(location, info));
@@ -583,9 +600,18 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 			IKFrameBufferPtr frameBuffer = info.images[i];
 			ASSERT_RESULT(frameBuffer);
 
-			imageInfo.imageLayout = frameBuffer->IsStorageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			uint32_t startMip = std::get<0>(info.mipmaps[i]);
+			uint32_t numMip = std::get<1>(info.mipmaps[i]);
+			if (startMip == 0 && numMip == 0)
+			{
+				imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
+			}
+			else
+			{
+				imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetMipmapImageView(startMip, numMip);
+			}
 
-			imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
+			imageInfo.imageLayout = frameBuffer->IsStorageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo.sampler = ((KVulkanSampler*)info.samplers[i].get())->GetVkSampler();
 
 			ASSERT_RESULT(imageInfo.imageView);

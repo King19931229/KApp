@@ -77,6 +77,23 @@ namespace KMath
 		return glm::vec3(scale[0][0], scale[1][1], scale[2][2]);
 	}
 
+	template<typename T>
+	T SmallestPowerOf2GreaterThan(T x)
+	{
+		T result = 1;
+		while (result < x)
+		{
+			result <<= 1;
+		}
+		return result;
+	}
+
+	template<typename T>
+	T BiggestPowerOf2LessEqualThan(T x)
+	{
+		return SmallestPowerOf2GreaterThan(x >> 1);
+	}
+
 	inline bool FromString(const std::string& text, glm::vec3& vec)
 	{
 		if (KStringParser::ParseToFLOAT(text.c_str(), &vec[0], 3))

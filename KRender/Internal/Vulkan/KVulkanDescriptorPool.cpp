@@ -232,8 +232,18 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 				IKFrameBufferPtr frameBuffer = info.images[i];
 				ASSERT_RESULT(frameBuffer);
 
+				uint32_t startMip = std::get<0>(info.mipmaps[i]);
+				uint32_t numMip = std::get<1>(info.mipmaps[i]);
+				if (startMip == 0 && numMip == 0)
+				{
+					imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
+				}
+				else
+				{
+					imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetMipmapImageView(startMip, numMip);
+				}
+
 				imageInfo.imageLayout = frameBuffer->IsStorageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
 				imageInfo.sampler = ((KVulkanSampler*)info.samplers[0].get())->GetVkSampler();
 
 				ASSERT_RESULT(imageInfo.imageView);

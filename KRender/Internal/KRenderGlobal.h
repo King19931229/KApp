@@ -17,6 +17,7 @@
 #include "Internal/Object/KPrefiterCubeMap.h"
 #include "Internal/Object/KWhiteFurnace.h"
 #include "Internal/Object/KGBuffer.h"
+#include "Internal/Object/KHiZBuffer.h"
 #include "Internal/Shadow/KShadowMap.h"
 #include "Internal/Shadow/KCascadedShadowMap.h"
 
@@ -60,6 +61,7 @@ namespace KRenderGlobal
 	extern KPrefilerCubeMap CubeMap;
 	extern KWhiteFurnace WhiteFurnace;
 	extern KGBuffer GBuffer;
+	extern KHiZBuffer HiZBuffer;
 	extern KOcclusionBox OcclusionBox;
 	extern KShadowMap ShadowMap;
 	extern KCascadedShadowMap CascadedShadowMap;
