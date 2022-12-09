@@ -185,6 +185,7 @@ bool KRenderCore::InitController()
 			// KRenderGlobal::Voxilzer.ReloadShader();
 			KRenderGlobal::ClipmapVoxilzer.ReloadShader();
 			KRenderGlobal::Scene.GetTerrain()->Reload();
+			KRenderGlobal::HiZOcclusion.ReloadShader();
 		}
 	};
 

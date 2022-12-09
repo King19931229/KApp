@@ -25,6 +25,12 @@ namespace KVulkanInitializer
 		uint32_t dstMipLevel;
 	};
 
+	struct ImageBlitInfo
+	{
+		uint32_t size[3];
+		uint32_t layerCount;
+	};
+
 	struct AccelerationStructureHandle
 	{
 		KVulkanHeapAllocator::AllocInfo allocInfo;
@@ -91,6 +97,8 @@ namespace KVulkanInitializer
 	void CopyVkBufferToVkImageByRegion(VkBuffer buffer, VkImage image, uint32_t layers, const BufferSubRegionCopyInfoList& copyInfo);
 
 	void CopyVkImageToVkImage(VkImage srcImage, VkImage dstImage, const ImageSubRegionCopyInfo& copyInfo);
+
+	void BlitVkImageToVkImage(VkImage srcImage, VkImage dstImage, const ImageBlitInfo& blitInfo);
 
 	void ZeroVkImage(VkImage image, VkImageLayout imageLayout, uint32_t baseLayer, uint32_t layers, uint32_t baseMipLevel, uint32_t mipLevels);
 

@@ -107,6 +107,7 @@
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
     <ClInclude Include="Internal\Object\KGBuffer.h" />
     <ClInclude Include="Internal\Object\KHiZBuffer.h" />
+    <ClInclude Include="Internal\Object\KHiZOcclusion.h" />
     <ClInclude Include="Internal\Object\KOcclusionBox.h" />
     <ClInclude Include="Internal\Object\KPrefiterCubeMap.h" />
     <ClInclude Include="Internal\Object\KQuadDataProvider.h" />
@@ -219,6 +220,7 @@
     <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
     <ClCompile Include="Internal\Object\KGBuffer.cpp" />
     <ClCompile Include="Internal\Object\KHiZBuffer.cpp" />
+    <ClCompile Include="Internal\Object\KHiZOcclusion.cpp" />
     <ClCompile Include="Internal\Object\KOcclusionBox.cpp" />
     <ClCompile Include="Internal\Object\KPrefiterCubeMap.cpp" />
     <ClCompile Include="Internal\Object\KQuadDataProvider.cpp" />

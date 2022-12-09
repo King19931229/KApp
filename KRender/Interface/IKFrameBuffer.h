@@ -11,6 +11,9 @@ struct IKFrameBuffer
 	virtual uint32_t GetMSAA() const = 0;
 	virtual bool IsDepthStencil() const = 0;
 	virtual bool IsStorageImage() const = 0;
+	virtual bool IsReadback() const = 0;
+	virtual bool CopyToReadback(IKFrameBuffer* framebuffer) = 0;
+	virtual bool Readback(void* pDest, size_t offset, size_t size) = 0;
 	virtual bool Translate(IKCommandBuffer* cmd, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 	virtual bool Translate(IKCommandBuffer* cmd, ImageLayout layout) = 0;
 	virtual bool TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, ImageLayout oldLayout, ImageLayout newLayout) = 0;

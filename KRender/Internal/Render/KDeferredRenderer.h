@@ -2,6 +2,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKStatistics.h"
 #include "Internal/KVertexDefinition.h"
+#include "Internal/ECS/Component/KRenderComponent.h"
 
 enum DeferredRenderStage
 {
@@ -61,7 +62,7 @@ protected:
 
 	const KCamera* m_Camera;
 
-	void BuildRenderCommand(IKCommandBufferPtr primaryBuffer, DeferredRenderStage renderStage);
+	void BuildRenderCommand(IKCommandBufferPtr primaryBuffer, DeferredRenderStage renderStage, const std::vector<KRenderComponent*>& cullRes);
 
 	void RecreateRenderPass(uint32_t width, uint32_t heigh);
 	void RecreatePipeline();
@@ -77,8 +78,8 @@ public:
 	void RemoveCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func);
 	
 	void SkyPass(IKCommandBufferPtr primaryBuffer);
-	void PrePass(IKCommandBufferPtr primaryBuffer);
-	void BasePass(IKCommandBufferPtr primaryBuffer);
+	void PrePass(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes);
+	void BasePass(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes);
 	void DeferredLighting(IKCommandBufferPtr primaryBuffer);
 	void ForwardTransprant(IKCommandBufferPtr primaryBuffer);
 	void DebugObject(IKCommandBufferPtr primaryBuffer);

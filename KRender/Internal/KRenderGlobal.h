@@ -18,6 +18,7 @@
 #include "Internal/Object/KWhiteFurnace.h"
 #include "Internal/Object/KGBuffer.h"
 #include "Internal/Object/KHiZBuffer.h"
+#include "Internal/Object/KHiZOcclusion.h"
 #include "Internal/Shadow/KShadowMap.h"
 #include "Internal/Shadow/KCascadedShadowMap.h"
 
@@ -62,6 +63,7 @@ namespace KRenderGlobal
 	extern KWhiteFurnace WhiteFurnace;
 	extern KGBuffer GBuffer;
 	extern KHiZBuffer HiZBuffer;
+	extern KHiZOcclusion HiZOcclusion;
 	extern KOcclusionBox OcclusionBox;
 	extern KShadowMap ShadowMap;
 	extern KCascadedShadowMap CascadedShadowMap;
@@ -83,6 +85,7 @@ namespace KRenderGlobal
 	extern KStatistics Statistics;
 
 	extern bool EnableDebugRender;
+	extern bool DisableRayTrace;
 
 	extern uint32_t CurrentFrameIndex;
 	extern uint32_t CurrentFrameNum;

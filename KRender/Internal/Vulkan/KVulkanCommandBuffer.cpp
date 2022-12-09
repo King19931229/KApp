@@ -658,7 +658,7 @@ bool KVulkanCommandBuffer::Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest)
 	{
 		KVulkanFrameBuffer* srcBuffer = (KVulkanFrameBuffer*)src.get();
 		KVulkanFrameBuffer* destBuffer = (KVulkanFrameBuffer*)dest.get();
-		
+
 		VkImageBlit blit = {};
 
 		VkOffset3D srcOffsets[] = { { 0, 0, 0 },{ (int32_t)srcBuffer->GetWidth(), (int32_t)srcBuffer->GetHeight(), (int32_t)srcBuffer->GetDepth() } };

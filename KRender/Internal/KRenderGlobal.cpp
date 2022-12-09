@@ -21,6 +21,7 @@ namespace KRenderGlobal
 	KWhiteFurnace WhiteFurnace;
 	KGBuffer GBuffer;
 	KHiZBuffer HiZBuffer;
+	KHiZOcclusion HiZOcclusion;
 	KOcclusionBox OcclusionBox;
 	KShadowMap ShadowMap;
 	KCascadedShadowMap CascadedShadowMap;
@@ -42,6 +43,7 @@ namespace KRenderGlobal
 	KStatistics Statistics;
 
 	bool EnableDebugRender = false;
+	bool DisableRayTrace = true;
 
 	uint32_t CurrentFrameIndex = 0;
 	uint32_t CurrentFrameNum = 0;

@@ -254,14 +254,143 @@ bool KVulkanFrameBuffer::InitStorageInternal(VkFormat format, TextureType type, 
 
 		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, m_Layers, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
 		KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, 1, m_ImageView);
-		// 由于Image当容器使用 需要清空数据
+		// 清空数据
 		KVulkanInitializer::ZeroVkImage(m_Image, m_ImageLayout, 0, m_Layers, 0, m_Mipmaps);
 	}
 
 	return true;
 }
 
-bool KVulkanFrameBuffer::InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t mipmaps)
+bool KVulkanFrameBuffer::InitReadback(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps)
+{
+	UnInit();
+
+	m_Format = format;
+	m_Width = width;
+	m_Height = height;
+	m_Depth = depth;
+	m_Mipmaps = mipmaps;
+	m_MSAA = 1;
+	m_External = false;
+
+	m_MSAAFlag = VK_SAMPLE_COUNT_1_BIT;
+	m_Layers = 1;
+
+	VkImageCreateFlags createFlags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
+	m_ImageType = VK_IMAGE_TYPE_MAX_ENUM;
+	m_ImageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+
+	m_ImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+	ASSERT_RESULT(KVulkanHelper::TextureTypeToVkImageType(depth > 1 ? TT_TEXTURE_3D : TT_TEXTURE_2D, m_ImageType, m_ImageViewType));
+
+	{
+		KVulkanInitializer::CreateVkImage(m_Width,
+			m_Height,
+			m_Depth,
+			m_Layers,
+			m_Mipmaps,
+			VK_SAMPLE_COUNT_1_BIT,
+			m_ImageType,
+			m_Format,
+			VK_IMAGE_TILING_LINEAR,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			createFlags,
+			m_Image, m_AllocInfo);
+
+		KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, m_Layers, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
+		// 没有ImageView
+		m_ImageView = VK_NULL_HANDEL;
+		// 清空数据
+		KVulkanInitializer::ZeroVkImage(m_Image, m_ImageLayout, 0, m_Layers, 0, m_Mipmaps);
+	}
+
+	return true;
+}
+
+bool KVulkanFrameBuffer::CopyToReadback(IKFrameBuffer* framebuffer)
+{
+	if (framebuffer && framebuffer->IsReadback())
+	{
+		KVulkanFrameBuffer* src = this;
+		KVulkanFrameBuffer* dest = static_cast<KVulkanFrameBuffer*>(framebuffer);
+		
+		ASSERT_RESULT(src->GetWidth() == dest->GetWidth());
+		ASSERT_RESULT(src->GetHeight() == dest->GetHeight());
+		ASSERT_RESULT(src->GetDepth() == dest->GetDepth());
+		ASSERT_RESULT(src->GetMipmaps() == dest->GetMipmaps());
+		ASSERT_RESULT(src->GetForamt() == dest->GetForamt());
+
+		bool supportsBlit = true;
+		// Check blit support for source and destination
+		VkFormatProperties formatProps;
+
+		// Check if the device supports blitting from optimal images
+		vkGetPhysicalDeviceFormatProperties(KVulkanGlobal::physicalDevice ,src->m_Format, &formatProps);
+		if (!(formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
+		{
+			supportsBlit = false;
+		}
+
+		// Check if the device supports blitting to linear images 
+		vkGetPhysicalDeviceFormatProperties(KVulkanGlobal::physicalDevice, dest->m_Format, &formatProps);
+		if (!(formatProps.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT))
+		{
+			supportsBlit = false;
+		}
+
+		KVulkanInitializer::TransitionImageLayout(src->m_Image, src->m_Format, 0, src->m_Layers, 0, src->m_Mipmaps, src->m_ImageLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		KVulkanInitializer::TransitionImageLayout(dest->m_Image, dest->m_Format, 0, dest->m_Layers, 0, dest->m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+		if (supportsBlit)
+		{
+			KVulkanInitializer::ImageBlitInfo blitInfo = {};
+			blitInfo.size[0] = src->GetWidth();
+			blitInfo.size[1] = dest->GetWidth();
+			blitInfo.size[2] = dest->GetDepth();
+
+			KVulkanInitializer::BlitVkImageToVkImage(src->m_Image, dest->m_Image, blitInfo);
+		}
+		else
+		{
+			KVulkanInitializer::ImageSubRegionCopyInfo copyInfo = {};
+
+			copyInfo.width = src->GetWidth();
+			copyInfo.height = src->GetHeight();
+			copyInfo.srcMipLevel = 0;
+			copyInfo.srcFaceIndex = 0;
+			copyInfo.dstMipLevel = 0;
+			copyInfo.dstFaceIndex = 0;
+
+			KVulkanInitializer::CopyVkImageToVkImage(src->m_Image, dest->m_Image, copyInfo);
+		}
+
+		KVulkanInitializer::TransitionImageLayout(src->m_Image, src->m_Format, 0, src->m_Layers, 0, src->m_Mipmaps, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, src->m_ImageLayout);
+		KVulkanInitializer::TransitionImageLayout(dest->m_Image, dest->m_Format, 0, dest->m_Layers, 0, dest->m_Mipmaps, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanFrameBuffer::Readback(void* pDest, size_t offset, size_t size)
+{
+	if (pDest && IsReadback())
+	{
+		void* pSrc = nullptr;
+		if (vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, size, 0, (void**)&pSrc) == VK_SUCCESS)
+		{
+			memcpy((unsigned char*)pDest + offset, pSrc, size);
+			vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KVulkanFrameBuffer::InitStorage2D(VkFormat format, uint32_t width, uint32_t height, uint32_t mipmaps)
 {
 	return InitStorageInternal(format, TT_TEXTURE_2D, width, height, 1, mipmaps);
 }

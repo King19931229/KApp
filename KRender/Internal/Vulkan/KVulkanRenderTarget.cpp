@@ -52,7 +52,7 @@ bool KVulkanRenderTarget::InitFromStorage(uint32_t width, uint32_t height, uint3
 	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
 
-	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorage(
+	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorage2D(
 		vkFormat,
 		(uint32_t)width,
 		(uint32_t)height,
@@ -69,6 +69,23 @@ bool KVulkanRenderTarget::InitFromStorage3D(uint32_t width, uint32_t height, uin
 	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
 
 	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitStorage3D(
+		vkFormat,
+		(uint32_t)width,
+		(uint32_t)height,
+		(uint32_t)depth,
+		(uint32_t)mipmaps);
+
+	return true;
+}
+
+bool KVulkanRenderTarget::InitFromReadback(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps, ElementFormat format)
+{
+	UnInit();
+
+	VkFormat vkFormat = VK_FORMAT_UNDEFINED;
+	ASSERT_RESULT(KVulkanHelper::ElementFormatToVkFormat(format, vkFormat));
+
+	((KVulkanFrameBuffer*)m_FrameBuffer.get())->InitReadback(
 		vkFormat,
 		(uint32_t)width,
 		(uint32_t)height,

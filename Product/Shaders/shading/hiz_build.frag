@@ -8,11 +8,13 @@ layout(binding = BINDING_OBJECT)
 uniform Object
 {
 	int minBuild;
+	int baseDepth;
 } object;
 
 void main()
 {
 	int minBuild = object.minBuild;
+	int baseDepth = object.baseDepth;
 
 	vec2 srcSize = vec2(textureSize(depthSampler, 0));
 
@@ -44,5 +46,14 @@ void main()
 		depth = max(texture(depthSampler, uv10).r, depth);
 		depth = max(texture(depthSampler, uv11).r, depth);
 	}
+
+	if (baseDepth != 0)
+	{
+		float near = camera.proj[3][2] / camera.proj[2][2];
+		float far = -camera.proj[3][2] / (camera.proj[2][3] - camera.proj[2][2]);
+		float z = -(near + depth * (far - near));
+		depth = (z * camera.proj[2][2] + camera.proj[3][2]) / (z * camera.proj[2][3]);
+	}
+
 	outColor = vec4(depth);
 }

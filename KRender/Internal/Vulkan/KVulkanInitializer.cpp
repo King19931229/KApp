@@ -466,6 +466,34 @@ namespace KVulkanInitializer
 		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
+	void BlitVkImageToVkImage(VkImage srcImage, VkImage dstImage, const ImageBlitInfo& blitInfo)
+	{
+		VkCommandBuffer commandBuffer;
+		BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
+		{
+			VkOffset3D blitSize;
+			blitSize.x = blitInfo.size[0];
+			blitSize.y = blitInfo.size[1];
+			blitSize.z = blitInfo.size[2];
+			VkImageBlit imageBlitRegion{};
+			imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageBlitRegion.srcSubresource.layerCount = 1;
+			imageBlitRegion.srcOffsets[1] = blitSize;
+			imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageBlitRegion.dstSubresource.layerCount = 1;
+			imageBlitRegion.dstOffsets[1] = blitSize;
+
+			vkCmdBlitImage(
+				commandBuffer,
+				srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				1,
+				&imageBlitRegion,
+				VK_FILTER_NEAREST);
+		}
+		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
+	}
+
 	void ZeroVkImage(VkImage image, VkImageLayout imageLayout, uint32_t baseLayer, uint32_t layers, uint32_t baseMipLevel, uint32_t mipLevels)
 	{
 		VkCommandBuffer commandBuffer;

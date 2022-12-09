@@ -74,8 +74,13 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	// 开始渲染过程
 	m_PrimaryBuffer->BeginPrimary();
 	{
-		KRenderGlobal::DeferredRenderer.PrePass(m_PrimaryBuffer);
-		KRenderGlobal::DeferredRenderer.BasePass(m_PrimaryBuffer);
+		std::vector<KRenderComponent*> cullRes;
+		KRenderGlobal::Scene.GetRenderComponent(*m_Camera, false, cullRes);
+
+		KRenderGlobal::HiZOcclusion.Execute(m_PrimaryBuffer, cullRes);
+
+		KRenderGlobal::DeferredRenderer.PrePass(m_PrimaryBuffer, cullRes);
+		KRenderGlobal::DeferredRenderer.BasePass(m_PrimaryBuffer, cullRes);
 		// 清空AO结果
 		KRenderGlobal::DeferredRenderer.EmptyAO(m_PrimaryBuffer);
 
@@ -147,6 +152,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::FrameGraph.Init(device);
 	KRenderGlobal::GBuffer.Init(width, height);
 	KRenderGlobal::HiZBuffer.Init(width, height);
+	KRenderGlobal::HiZOcclusion.Init();
 	KRenderGlobal::RayTraceManager.Init();
 
 	KRenderGlobal::CubeMap.Init(128, 128, 8, "Textures/uffizi_cube.ktx");
@@ -208,6 +214,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 		KRenderGlobal::ClipmapVoxilzer.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::RayTraceManager.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::RTAO.DebugRender(renderPass, primaryBuffer);
+		KRenderGlobal::HiZOcclusion.DebugRender(renderPass, primaryBuffer);
 	};
 
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
@@ -242,6 +249,7 @@ bool KRenderer::UnInit()
 	KRenderGlobal::ClipmapVoxilzer.UnInit();
 
 	KRenderGlobal::RayTraceManager.UnInit();
+	KRenderGlobal::HiZOcclusion.UnInit();
 	KRenderGlobal::HiZBuffer.UnInit();
 	KRenderGlobal::GBuffer.UnInit();
 	KRenderGlobal::FrameGraph.UnInit();
@@ -419,6 +427,7 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::PostProcessManager.Resize(width, height);
 	KRenderGlobal::GBuffer.Resize(width, height);
 	KRenderGlobal::HiZBuffer.Resize(width, height);
+	KRenderGlobal::HiZOcclusion.Resize();
 	KRenderGlobal::DeferredRenderer.Resize(width, height);
 	// KRenderGlobal::Voxilzer.Resize(width, height);
 	KRenderGlobal::ClipmapVoxilzer.Resize(width, height);

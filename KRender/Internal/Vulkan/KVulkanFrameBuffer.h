@@ -53,10 +53,15 @@ public:
 	// 创建为DepthStencilAttachment
 	bool InitDepthStencil(uint32_t width, uint32_t height, uint32_t msaa, bool stencil);
 	// 创建为StorageImage
-	bool InitStorage(VkFormat format, uint32_t width, uint32_t height, uint32_t mipmaps);
+	bool InitStorage2D(VkFormat format, uint32_t width, uint32_t height, uint32_t mipmaps);
 	bool InitStorage3D(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
+	// 创建为回读
+	bool InitReadback(VkFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
 
 	bool UnInit();
+
+	bool CopyToReadback(IKFrameBuffer* framebuffer) override;
+	bool Readback(void* pDest, size_t offset, size_t size) override;
 
 	bool Translate(IKCommandBuffer* cmd, ImageLayout oldLayout, ImageLayout newLayout) override;
 	bool Translate(IKCommandBuffer* cmd, ImageLayout layout) override;
@@ -72,6 +77,7 @@ public:
 
 	bool IsDepthStencil() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; }
 	bool IsStorageImage() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_GENERAL; }
+	bool IsReadback() const override { return m_ImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }
 
 	inline VkImage GetImage() const { return m_Image; }
 	VkImageView GetImageView() const;

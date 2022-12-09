@@ -22,16 +22,22 @@ IKShaderPtr KDebugDrawSharedData::ms_DebugFragmentShader = nullptr;
 KVertexData KDebugDrawSharedData::ms_DebugVertexData;
 KIndexData KDebugDrawSharedData::ms_DebugIndexData;
 
-IKSamplerPtr KDebugDrawSharedData::ms_DebugSampler = nullptr;
+IKSamplerPtr KDebugDrawSharedData::ms_LinearSampler = nullptr;
+IKSamplerPtr KDebugDrawSharedData::ms_ClosestSampler = nullptr;
 
 bool KDebugDrawSharedData::Init()
 {
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
-	renderDevice->CreateSampler(ms_DebugSampler);
-	ms_DebugSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
-	ms_DebugSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
-	ms_DebugSampler->Init(0, 0);
+	renderDevice->CreateSampler(ms_LinearSampler);
+	ms_LinearSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
+	ms_LinearSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
+	ms_LinearSampler->Init(0, 0);
+
+	renderDevice->CreateSampler(ms_ClosestSampler);
+	ms_ClosestSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
+	ms_ClosestSampler->SetFilterMode(FM_NEAREST, FM_NEAREST);
+	ms_ClosestSampler->Init(0, 0);
 
 	renderDevice->CreateShader(ms_DebugVertexShader);
 	renderDevice->CreateShader(ms_DebugFragmentShader);
@@ -61,7 +67,8 @@ bool KDebugDrawSharedData::Init()
 
 bool KDebugDrawSharedData::UnInit()
 {
-	SAFE_UNINIT(ms_DebugSampler);
+	SAFE_UNINIT(ms_LinearSampler);
+	SAFE_UNINIT(ms_ClosestSampler);
 	SAFE_UNINIT(ms_BackGroundVertexBuffer);
 	SAFE_UNINIT(ms_BackGroundIndexBuffer);
 	SAFE_UNINIT(ms_DebugVertexShader);
@@ -101,7 +108,7 @@ KRTDebugDrawer& KRTDebugDrawer::operator=(KRTDebugDrawer&& rhs)
 	return *this;
 }
 
-bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float width, float height)
+bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float width, float height, bool linear)
 {
 	UnInit();
 
@@ -124,7 +131,7 @@ bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float widt
 	m_Pipeline->SetDepthFunc(CF_ALWAYS, false, false);
 	m_Pipeline->SetShader(ST_VERTEX, KDebugDrawSharedData::ms_DebugVertexShader);
 	m_Pipeline->SetShader(ST_FRAGMENT, KDebugDrawSharedData::ms_DebugFragmentShader);
-	m_Pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_Target->GetFrameBuffer(), KDebugDrawSharedData::ms_DebugSampler, true);
+	m_Pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_Target->GetFrameBuffer(), linear ? KDebugDrawSharedData::ms_LinearSampler : KDebugDrawSharedData::ms_ClosestSampler, true);
 
 	ASSERT_RESULT(m_Pipeline->Init());
 

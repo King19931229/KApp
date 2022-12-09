@@ -20,7 +20,8 @@ protected:
 	static KVertexData ms_DebugVertexData;
 	static KIndexData ms_DebugIndexData;
 
-	static IKSamplerPtr ms_DebugSampler;
+	static IKSamplerPtr ms_LinearSampler;
+	static IKSamplerPtr ms_ClosestSampler;
 public:
 	static bool Init();
 	static bool UnInit();
@@ -57,7 +58,7 @@ public:
 	KRTDebugDrawer(KRTDebugDrawer&& rhs);
 	KRTDebugDrawer& operator=(KRTDebugDrawer&& rhs);
 
-	bool Init(IKRenderTargetPtr target, float x, float y, float width, float height);
+	bool Init(IKRenderTargetPtr target, float x, float y, float width, float height, bool linear = true);
 	bool UnInit();
 
 	bool& GetEnable() { return m_Enable; }
