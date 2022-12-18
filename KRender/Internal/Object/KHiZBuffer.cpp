@@ -245,6 +245,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->Translate(m_HiZBaseLinearBuffer->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
+	primaryBuffer->BeginDebugMarker("HiZMinBuild", glm::vec4(0, 1, 0, 0));
 	for (uint32_t i = 0; i < m_NumMips; ++i)
 	{
 		KRenderCommand command;
@@ -280,7 +281,9 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->EndDebugMarker();
 		primaryBuffer->TranslateMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
+	primaryBuffer->EndDebugMarker();
 
+	primaryBuffer->BeginDebugMarker("HiZMaxBuild", glm::vec4(0, 1, 0, 0));
 	for (uint32_t i = 0; i < m_NumMips; ++i)
 	{
 		KRenderCommand command;
@@ -316,6 +319,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->EndDebugMarker();
 		primaryBuffer->TranslateMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
+	primaryBuffer->EndDebugMarker();
 
 	return true;
 }

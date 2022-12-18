@@ -12,6 +12,8 @@
 
 const float EPSILON = 1e-4;
 
+#define LINEAR_DEPTH_SPLIT 0
+
 float Exp01DepthToLinear01Depth(float z, float n, float f)
 {
 	float z_buffer_params_y = f / n;
@@ -42,13 +44,14 @@ vec3 NDCToUV(vec3 ndc, mat4 proj, float n, float f, float grid_size_z)
 	uv.y = ndc.y * 0.5f + 0.5f;
 	//uv.z = NonLinearDepthToLinearDepth(proj, ndc.z);
 	uv.z = Exp01DepthToLinear01Depth(ndc.z, n, f);
-
+	float view_z = uv.z * f;
+#if LINEAR_DEPTH_SPLIT
+	uv.z = (view_z - n) / float(f - n);
+#else
 	// Exponential View-Z
-	vec2 params = vec2(float(grid_size_z) / log2(f / n), -(float(grid_size_z) * log2(n) / log2(f / n)));
-
-	float view_z = 0;
-	view_z = uv.z * f;
+	vec2 params = vec2(float(grid_size_z) / log2(f / n), -(float(grid_size_z) * log2(n) / log2(f / n)));	
 	uv.z = (max(log2(view_z) * params.x + params.y, 0.0f)) / grid_size_z;
+#endif
 
 	return uv;
 }
@@ -77,24 +80,30 @@ vec3 NDCToWorld(vec3 ndc, mat4 invViewProj)
 
 vec3 IDToUV(ivec3 id, float n, float f, float grid_size_x, float grid_size_y, float grid_size_z)
 {
+#if LINEAR_DEPTH_SPLIT
+	float view_z = n + (f - n) * (float(id.z) + 0.5f) / float(grid_size_z);
+#else
 	// Exponential View-Z
 	float view_z = n * pow(f / n, (float(id.z) + 0.5f) / float(grid_size_z));
+#endif
 
 	return vec3((float(id.x) + 0.5f) / float(grid_size_x),
 				(float(id.y) + 0.5f) / float(grid_size_y),
 				view_z / f);
-				//(view_z - n) / (f - n));
 }
 
 vec3 IDToUVWithJitter(ivec3 id, float n, float f, float jitter, float grid_size_x, float grid_size_y, float grid_size_z)
 {
+#if LINEAR_DEPTH_SPLIT
+	float view_z = n + (f - n) * (float(id.z) + 0.5f + jitter) / float(grid_size_z);
+#else
 	// Exponential View-Z
 	float view_z = n * pow(f / n, (float(id.z) + 0.5f + jitter) / float(grid_size_z));
+#endif
 
 	return vec3((float(id.x) + 0.5f) / float(grid_size_x),
 				(float(id.y) + 0.5f) / float(grid_size_y),
 				view_z / f);
-				//(view_z - n) / (f - n));
 }
 
 vec3 IDToWorldWithoutJitter(ivec3 id, float n, float f, mat4 proj, mat4 invViewProj, float grid_size_x, float grid_size_y, float grid_size_z)
@@ -113,7 +122,11 @@ vec3 IDToWorldWithJitter(ivec3 id, float n, float f, float jitter, mat4 proj, ma
 
 float SliceDistance(int z, float n, float f, float grid_size_z)
 {
+#if LINEAR_DEPTH_SPLIT
+	return n + (f - n) * (float(z) + 0.5f) / float(grid_size_z);
+#else
 	return n * pow(f / n, (float(z) + 0.5f) / float(grid_size_z));
+#endif
 }
 
 float SliceThickness(int z, float n, float f, float grid_size_z)

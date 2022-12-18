@@ -78,6 +78,7 @@ protected:
 	float m_Scattering;
 	float m_Absorption;
 
+	float m_Start;
 	float m_Depth;
 
 	void InitializePipeline();
@@ -88,6 +89,7 @@ public:
 	KVolumetricFog();
 	~KVolumetricFog();
 
+	float& GetStart() { return m_Start; }
 	float& GetDepth() { return m_Depth; }
 	float& GetAnisotropy() { return m_Anisotropy; }
 	float& GetDensity() { return m_Density; }

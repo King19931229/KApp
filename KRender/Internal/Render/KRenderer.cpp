@@ -168,7 +168,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	// KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, width, height);
 	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, width, height);
 
-	KRenderGlobal::VolumetricFog.Init(128, 128, 128, 500.0f, width, height, camera);
+	KRenderGlobal::VolumetricFog.Init(64, 64, 128, (camera->GetFar() - camera->GetNear()) * 0.5f, width, height, camera);
 
 	KRenderGlobal::RTAO.Init(KRenderGlobal::RayTraceScene.get());
 

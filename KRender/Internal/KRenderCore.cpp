@@ -625,9 +625,10 @@ bool KRenderCore::UpdateUIOverlay()
 				}
 				if (ui->Header("VolumetricFog"))
 				{
-					ui->SliderFloat("FogDepth", &KRenderGlobal::VolumetricFog.GetDepth(), 0.0f, 5000.0f);
+					ui->SliderFloat("FogStart", &KRenderGlobal::VolumetricFog.GetStart(), 1.0f, 5000.0f);
+					ui->SliderFloat("FogDepth", &KRenderGlobal::VolumetricFog.GetDepth(), 1.0f, 5000.0f);
 					ui->SliderFloat("FogAnisotropy", &KRenderGlobal::VolumetricFog.GetAnisotropy(), 0.0f, 1.0f);
-					ui->SliderFloat("FogDensity", &KRenderGlobal::VolumetricFog.GetDensity(), 0.0f, 10.0f);
+					ui->SliderFloat("FogDensity", &KRenderGlobal::VolumetricFog.GetDensity(), 0.0f, 100.0f);
 				}
 			}
 			ui->PopItemWidth();

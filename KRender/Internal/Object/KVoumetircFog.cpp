@@ -11,10 +11,11 @@ KVolumetricFog::KVolumetricFog()
 	, m_GridZ(0)
 	, m_Width(0)
 	, m_Height(0)
-	, m_Anisotropy(0.1f)
-	, m_Density(10.0f)
+	, m_Anisotropy(0.5f)
+	, m_Density(50.0f)
 	, m_Scattering(0.0f)
 	, m_Absorption(0.0f)
+	, m_Start(1.0f)
 	, m_Depth(0)
 {
 }
@@ -204,6 +205,7 @@ bool KVolumetricFog::KVolumetricFog::UnInit()
 void KVolumetricFog::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 {
 	KCamera camera = *m_MainCamera;
+	camera.SetNear(std::max(0.1f, m_Start));
 	camera.SetFar(camera.GetNear() + m_Depth);
 
 	m_ObjectData.frameNum = KRenderGlobal::CurrentFrameNum;
