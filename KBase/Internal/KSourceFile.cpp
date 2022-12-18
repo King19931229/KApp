@@ -301,11 +301,11 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 								std::string error;
 								error += "Could not find include file " + includeFile + " in " + file + "\n";
 								error += "\tSearch path:\n";
-								error += "\t\t" + dir;
+								error += "\t\t[" + dir + "]";
 								for (const std::string& includePath : m_IncludePath)
 								{
 									if (includePath == dir) continue;
-									error += "\n\t\t" + includePath;
+									error += "\n\t\t[" + includePath + "]";
 								}
 								KG_LOGE(LM_IO, error.c_str());
 								return false;

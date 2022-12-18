@@ -517,6 +517,9 @@
     <ClInclude Include="Internal\Object\KHiZOcclusion.h">
       <Filter>Internal\Object</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Object\KVolumetricFog.h">
+      <Filter>Internal\Object</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -832,6 +835,9 @@
       <Filter>Internal\Object</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Object\KHiZOcclusion.cpp">
+      <Filter>Internal\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Object\KVoumetircFog.cpp">
       <Filter>Internal\Object</Filter>
     </ClCompile>
   </ItemGroup>

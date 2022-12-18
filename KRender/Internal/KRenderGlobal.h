@@ -21,6 +21,7 @@
 #include "Internal/Object/KHiZOcclusion.h"
 #include "Internal/Shadow/KShadowMap.h"
 #include "Internal/Shadow/KCascadedShadowMap.h"
+#include "Internal/Object/KVolumetricFog.h"
 
 #include "Internal/Scene/KRenderScene.h"
 #include "Internal/Render/KRenderer.h"
@@ -70,6 +71,7 @@ namespace KRenderGlobal
 	extern KRTAO RTAO;
 	extern KVoxilzer Voxilzer;
 	extern KClipmapVoxilzer ClipmapVoxilzer;
+	extern KVolumetricFog VolumetricFog;
 
 	extern KQuadDataProvider QuadDataProvider;
 

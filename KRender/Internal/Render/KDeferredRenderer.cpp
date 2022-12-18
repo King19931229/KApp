@@ -240,6 +240,11 @@ void KDeferredRenderer::RecreatePipeline()
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE7,
+			KRenderGlobal::VolumetricFog.GetScatteringTarget()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+
 		pipeline->Init();
 	}
 

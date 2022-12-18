@@ -7,6 +7,8 @@
 #define GBUFFER_IMAGE3_FORMAT rgba8
 #define AO_IMAGE_FORMAT r8
 
+#include "common.h"
+
 vec3 DecodeNormal(vec4 gbuffer0Data)
 {
 	return gbuffer0Data.xyz;
@@ -19,15 +21,9 @@ float DecodeDepth(vec4 gbuffer0Data)
 
 vec3 DecodePosition(vec4 gbuffer0Data, vec2 screenUV)
 {
-	float near = camera.proj[3][2] / camera.proj[2][2];
-	float far = -camera.proj[3][2] / (camera.proj[2][3] - camera.proj[2][2]);
-
-	float z = -(near + gbuffer0Data.w * (far - near));
-	float depth = (z * camera.proj[2][2] + camera.proj[3][2]) / (z * camera.proj[2][3]);
-
+	float depth = LinearDepthToNonLinearDepth(camera.proj, gbuffer0Data.w);
 	vec3 ndc = vec3(2.0 * screenUV - vec2(1.0), depth);
 	vec4 worldPosH = camera.viewInv * camera.projInv * vec4(ndc, 1.0);
-
 	return worldPosH.xyz / worldPosH.w;
 }
 

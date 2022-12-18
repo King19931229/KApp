@@ -1,0 +1,323 @@
+#include "KVolumetricFog.h"
+#include "Interface/IKRenderTarget.h"
+#include "Interface/IKComputePipeline.h"
+#include "Internal/KRenderGlobal.h"
+
+KVolumetricFog::KVolumetricFog()
+	: m_MainCamera(nullptr)
+	, m_CurrentVoxelIndex(0)
+	, m_GridX(0)
+	, m_GridY(0)
+	, m_GridZ(0)
+	, m_Width(0)
+	, m_Height(0)
+	, m_Anisotropy(0.1f)
+	, m_Density(10.0f)
+	, m_Scattering(0.0f)
+	, m_Absorption(0.0f)
+	, m_Depth(0)
+{
+}
+
+KVolumetricFog::~KVolumetricFog()
+{
+}
+
+void KVolumetricFog::InitializePipeline()
+{
+	m_PrimaryCommandBuffer->BeginPrimary();
+	for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
+	{
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_STATIC_CSM0, true);
+		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	}
+	for (uint32_t bindingIndex = SHADER_BINDING_DYNAMIC_CSM0; bindingIndex <= SHADER_BINDING_DYNAMIC_CSM3; ++bindingIndex)
+	{
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_DYNAMIC_CSM0, false);
+		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	}
+	m_PrimaryCommandBuffer->End();
+
+	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
+	IKUniformBufferPtr staticShadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_STATIC_CASCADED_SHADOW);
+	IKUniformBufferPtr dynamicShadowBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_DYNAMIC_CASCADED_SHADOW);
+	IKSamplerPtr csmSampler = KRenderGlobal::CascadedShadowMap.GetSampler();
+
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		m_VoxelLightInjectPipeline[i]->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_CAMERA, cameraBuffer);
+		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_GLOBAL, globalBuffer);
+		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_STATIC_CASCADED_SHADOW, staticShadowBuffer);
+		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_DYNAMIC_CASCADED_SHADOW, dynamicShadowBuffer);
+		m_VoxelLightInjectPipeline[i]->BindSampler(BINDING_VOXEL_PREV, m_VoxelLightTarget[(i + 1) & 1]->GetFrameBuffer(), *m_VoxelSampler, false);
+		m_VoxelLightInjectPipeline[i]->BindStorageImage(BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), EF_R8GB8BA8_UNORM, COMPUTE_RESOURCE_OUT, 1, false);
+
+		for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
+		{
+			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_STATIC_CSM0, true);
+			if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
+			m_VoxelLightInjectPipeline[i]->BindSampler(bindingIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
+		}
+
+		for (uint32_t bindingIndex = SHADER_BINDING_DYNAMIC_CSM0; bindingIndex <= SHADER_BINDING_DYNAMIC_CSM3; ++bindingIndex)
+		{
+			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_DYNAMIC_CSM0, false);
+			if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
+			m_VoxelLightInjectPipeline[i]->BindSampler(bindingIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
+		}
+
+		m_VoxelLightInjectPipeline[i]->Init("volumetricfog/inject_light.comp");
+	}
+
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		m_RayMatchPipeline[i]->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
+		m_RayMatchPipeline[i]->BindSampler(BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), *m_VoxelSampler, false);
+		m_RayMatchPipeline[i]->BindStorageImage(BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), EF_R8GB8BA8_UNORM, COMPUTE_RESOURCE_OUT, 1, false);
+		m_RayMatchPipeline[i]->Init("volumetricfog/raymatch.comp");
+	}
+
+	m_ScatteringPipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
+	m_ScatteringPipeline->SetShader(ST_VERTEX, *m_QuadVS);
+	m_ScatteringPipeline->SetShader(ST_FRAGMENT, *m_ScatteringFS);
+
+	m_ScatteringPipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+	m_ScatteringPipeline->SetBlendEnable(false);
+	m_ScatteringPipeline->SetCullMode(CM_NONE);
+	m_ScatteringPipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+	m_ScatteringPipeline->SetPolygonMode(PM_FILL);
+	m_ScatteringPipeline->SetColorWrite(true, true, true, true);
+	m_ScatteringPipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+	m_ScatteringPipeline->SetSampler(BINDING_GBUFFER_RT0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
+	m_ScatteringPipeline->SetSampler(BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), *m_VoxelSampler, false);
+	m_ScatteringPipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+
+	m_ScatteringPipeline->Init();
+
+	m_PrimaryCommandBuffer->BeginPrimary();
+	for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
+	{
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_STATIC_CSM0, true);
+		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+	}
+	for (uint32_t bindingIndex = SHADER_BINDING_DYNAMIC_CSM0; bindingIndex <= SHADER_BINDING_DYNAMIC_CSM3; ++bindingIndex)
+	{
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_DYNAMIC_CSM0, false);
+		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+	}
+	m_PrimaryCommandBuffer->End();
+}
+
+void KVolumetricFog::Resize(uint32_t width, uint32_t height)
+{
+	m_Width = width;
+	m_Height = height;
+
+	m_ScatteringTarget->UnInit();
+	ASSERT_RESULT(m_ScatteringTarget->InitFromColor(width, height, 1, 1, EF_R8GB8BA8_UNORM));
+
+	m_ScatteringPass->UnInit();
+	m_ScatteringPass->SetColorAttachment(0, m_ScatteringTarget->GetFrameBuffer());
+	m_ScatteringPass->SetOpColor(0, LO_CLEAR, SO_STORE);
+	m_ScatteringPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+	ASSERT_RESULT(m_ScatteringPass->Init());
+}
+
+bool KVolumetricFog::Init(uint32_t gridX, uint32_t gridY, uint32_t gridZ, float depth, uint32_t width, uint32_t height, const KCamera* camera)
+{
+	UnInit();
+
+	m_GridX = gridX;
+	m_GridY = gridY;
+	m_GridZ = gridZ;
+	m_Depth = depth;
+	m_MainCamera = camera;
+
+	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "volumetricfog/scattering.frag", m_ScatteringFS, false);
+
+	KSamplerDescription desc;
+	desc.minFilter = desc.magFilter = FM_LINEAR;
+	desc.addressU = desc.addressV = desc.addressW = AM_CLAMP_TO_EDGE;
+	KRenderGlobal::SamplerManager.Acquire(desc, m_VoxelSampler);
+
+	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
+	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+
+	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer);
+	m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
+
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_VoxelLightTarget[i]);
+		m_VoxelLightTarget[i]->InitFromStorage3D(m_GridX, m_GridY, m_GridZ, 1, EF_R8GB8BA8_UNORM);
+	}
+
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_RayMatchResultTarget);
+	m_RayMatchResultTarget->InitFromStorage3D(m_GridX, m_GridY, m_GridZ, 1, EF_R8GB8BA8_UNORM);
+
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_VoxelLightInjectPipeline[i]);
+		KRenderGlobal::RenderDevice->CreateComputePipeline(m_RayMatchPipeline[i]);
+	}
+
+	KRenderGlobal::RenderDevice->CreatePipeline(m_ScatteringPipeline);
+
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_ScatteringTarget);
+	KRenderGlobal::RenderDevice->CreateRenderPass(m_ScatteringPass);
+
+	Resize(width, height);
+	InitializePipeline();
+
+	m_PrevData.inited = false;
+
+	return true;
+}
+
+bool KVolumetricFog::KVolumetricFog::UnInit()
+{
+	SAFE_UNINIT(m_PrimaryCommandBuffer);
+	SAFE_UNINIT(m_CommandPool);
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		SAFE_UNINIT(m_VoxelLightTarget[i]);
+		SAFE_UNINIT(m_VoxelLightInjectPipeline[i]);
+		SAFE_UNINIT(m_RayMatchPipeline[i]);
+	}
+	SAFE_UNINIT(m_RayMatchResultTarget);
+	SAFE_UNINIT(m_ScatteringPipeline);
+	SAFE_UNINIT(m_ScatteringTarget);
+	SAFE_UNINIT(m_ScatteringPass);
+	m_CurrentVoxelIndex = 0;
+	m_MainCamera = nullptr;
+	m_PrevData.inited = false;
+	m_QuadVS.Release();
+	m_ScatteringFS.Release();
+	m_VoxelSampler.Release();
+	return true;
+}
+
+void KVolumetricFog::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
+{
+	KCamera camera = *m_MainCamera;
+	camera.SetFar(camera.GetNear() + m_Depth);
+
+	m_ObjectData.frameNum = KRenderGlobal::CurrentFrameNum;
+
+	m_ObjectData.view = camera.GetViewMatrix();
+	m_ObjectData.proj = camera.GetProjectiveMatrix();
+	m_ObjectData.viewProj = m_ObjectData.proj * m_ObjectData.view;
+	m_ObjectData.invViewProj = glm::inverse(m_ObjectData.viewProj);
+
+	m_ObjectData.nearFarGridZ = glm::vec4(camera.GetNear(), camera.GetFar(), m_GridZ, 0);
+	m_ObjectData.anisotropyDensityScatteringAbsorption = glm::vec4(m_Anisotropy, m_Density, m_Scattering, m_Absorption);
+	m_ObjectData.cameraPos = glm::vec4(camera.GetPosition(), 0);
+
+	if (m_PrevData.inited)
+	{
+		m_ObjectData.prevView = m_PrevData.view;
+		m_ObjectData.prevProj = m_PrevData.proj;
+		m_ObjectData.prevViewProj = m_PrevData.viewProj;
+		m_ObjectData.prevInvViewProj = m_PrevData.invViewProj;
+	}
+	else
+	{
+		m_ObjectData.prevView = m_ObjectData.view;
+		m_ObjectData.prevProj = m_ObjectData.proj;
+		m_ObjectData.prevViewProj = m_ObjectData.viewProj;
+		m_ObjectData.prevInvViewProj = m_ObjectData.invViewProj;
+	}
+
+	glm::uvec3 group = (glm::uvec3(m_GridX, m_GridY, m_GridZ) + glm::uvec3(GROUP_SIZE - 1)) / glm::uvec3(GROUP_SIZE);
+
+	{
+		primaryBuffer->BeginDebugMarker("InjectLight", glm::vec4(0, 1, 1, 0));
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(m_ObjectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_ObjectData, objectUsage);
+
+		m_VoxelLightInjectPipeline[m_CurrentVoxelIndex]->Execute(primaryBuffer, group.x, group.y, group.z, &objectUsage);
+		primaryBuffer->EndDebugMarker();
+	}
+
+	{
+		primaryBuffer->BeginDebugMarker("RayMatch", glm::vec4(0, 1, 1, 0));
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(m_ObjectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_ObjectData, objectUsage);
+
+		m_RayMatchPipeline[m_CurrentVoxelIndex]->Execute(primaryBuffer, group.x, group.y, 1, &objectUsage);
+		primaryBuffer->EndDebugMarker();
+	}
+
+	m_PrevData.view = m_ObjectData.view;
+	m_PrevData.proj = m_ObjectData.proj;
+	m_PrevData.viewProj = m_ObjectData.viewProj;
+	m_PrevData.invViewProj = m_ObjectData.invViewProj;
+	m_PrevData.inited = true;
+}
+
+void KVolumetricFog::UpdateScattering(IKCommandBufferPtr primaryBuffer)
+{
+	primaryBuffer->BeginDebugMarker("Scattering", glm::vec4(0, 1, 1, 0));
+	primaryBuffer->BeginRenderPass(m_ScatteringPass, SUBPASS_CONTENTS_INLINE);
+
+	KRenderCommand command;
+	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+	command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+	command.pipeline = m_ScatteringPipeline;
+	command.pipeline->GetHandle(m_ScatteringPass, command.pipelineHandle);
+	command.indexDraw = true;
+
+	KDynamicConstantBufferUsage objectUsage;
+	objectUsage.binding = SHADER_BINDING_OBJECT;
+	objectUsage.range = sizeof(m_ObjectData);
+	KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_ObjectData, objectUsage);
+	command.objectUsage = objectUsage;
+
+	primaryBuffer->SetViewport(m_ScatteringPass->GetViewPort());
+	primaryBuffer->Render(command);
+	primaryBuffer->EndRenderPass();
+
+	primaryBuffer->Translate(m_ScatteringTarget->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+	primaryBuffer->EndDebugMarker();
+}
+
+bool KVolumetricFog::Execute(IKCommandBufferPtr primaryBuffer)
+{
+	if (!m_MainCamera)
+		return false;
+
+	primaryBuffer->BeginDebugMarker("VolumetricFog", glm::vec4(0, 1, 1, 0));
+
+	UpdateVoxel(primaryBuffer);
+	UpdateScattering(primaryBuffer);
+
+	m_CurrentVoxelIndex ^= 1;
+
+	primaryBuffer->EndDebugMarker();
+
+	return true;
+}
+
+void KVolumetricFog::Reload()
+{
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		m_VoxelLightInjectPipeline[i]->Reload();
+		m_RayMatchPipeline[i]->Reload();
+	}
+	if (m_QuadVS)
+		m_QuadVS->Reload();
+	if (m_ScatteringFS)
+		m_ScatteringFS->Reload();
+	if(m_ScatteringPipeline)
+		m_ScatteringPipeline->Reload();
+}

@@ -109,7 +109,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_AOComputePipeline->BindStorageImage(BINDING_CUR_HITDISTANCE, m_CurHitDistanceTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 			m_AOComputePipeline->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 			m_AOComputePipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_CurNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			
+
 			m_AOComputePipeline->Init("ao/rtao.comp");
 
 			renderDevice->CreateComputePipeline(m_MeanHorizontalComputePipeline);

@@ -28,6 +28,7 @@ namespace KRenderGlobal
 	KRTAO RTAO;
 	KVoxilzer Voxilzer;
 	KClipmapVoxilzer ClipmapVoxilzer;
+	KVolumetricFog VolumetricFog;
 
 	KQuadDataProvider QuadDataProvider;
 

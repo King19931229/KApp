@@ -10,6 +10,7 @@ layout(binding = BINDING_TEXTURE3) uniform sampler2D gbuffer3;
 layout(binding = BINDING_TEXTURE4) uniform sampler2D shadowMask;
 layout(binding = BINDING_TEXTURE5) uniform sampler2D giMask;
 layout(binding = BINDING_TEXTURE6) uniform sampler2D aoMask;
+layout(binding = BINDING_TEXTURE7) uniform sampler2D scatteringMask;
 
 layout(location = 0) out vec4 outColor;
 
@@ -48,6 +49,9 @@ void main()
 	vec3 direct = texture(shadowMask, screenCoord).r * baseColor * NdotL;
 	float ao = texture(aoMask, screenCoord).r;
 	vec3 final = direct + ao * indirect;
+
+	vec4 scattering = texture(scatteringMask, screenCoord);
+	final = final * scattering.a + scattering.rgb;
 
 	outColor = vec4(final, 1.0);
 }

@@ -1,4 +1,5 @@
 #include "public.h"
+#include "common.h"
 layout(location = 0) in vec2 inUV;
 layout(location = 0) out vec4 outColor;
 
@@ -49,10 +50,7 @@ void main()
 
 	if (baseDepth != 0)
 	{
-		float near = camera.proj[3][2] / camera.proj[2][2];
-		float far = -camera.proj[3][2] / (camera.proj[2][3] - camera.proj[2][2]);
-		float z = -(near + depth * (far - near));
-		depth = (z * camera.proj[2][2] + camera.proj[3][2]) / (z * camera.proj[2][3]);
+		depth = LinearDepthToNonLinearDepth(camera.proj, depth);
 	}
 
 	outColor = vec4(depth);

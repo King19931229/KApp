@@ -186,6 +186,7 @@ bool KRenderCore::InitController()
 			KRenderGlobal::ClipmapVoxilzer.ReloadShader();
 			KRenderGlobal::Scene.GetTerrain()->Reload();
 			KRenderGlobal::HiZOcclusion.ReloadShader();
+			KRenderGlobal::VolumetricFog.Reload();
 		}
 	};
 
@@ -605,6 +606,7 @@ bool KRenderCore::UpdateUIOverlay()
 					ui->SliderFloat("Strenth of darkness", &KRenderGlobal::RTAO.GetAoParameters().rtao_power, 0.0001f, 10.0f);
 					ui->SliderInt("Attenuate based on distance", &KRenderGlobal::RTAO.GetAoParameters().rtao_distance_based, 0, 1);
 				}
+				/*
 				if (ui->Header("SVOGI"))
 				{
 					ui->CheckBox("Octree", &KRenderGlobal::Voxilzer.GetVoxelUseOctree());
@@ -613,12 +615,19 @@ bool KRenderCore::UpdateUIOverlay()
 					ui->CheckBox("LightDraw", &KRenderGlobal::Voxilzer.GetLightDebugDrawEnable());
 					ui->CheckBox("OctreeRayTestDraw", &KRenderGlobal::Voxilzer.GetOctreeRayTestDrawEnable());
 				}
+				*/
 				if (ui->Header("ClipmapGI"))
 				{
 					ui->CheckBox("VoxelDraw2", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawEnable());
 					ui->CheckBox("VoxelDrawWireFrame2", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawWireFrame());
 					ui->CheckBox("LightDraw2", &KRenderGlobal::ClipmapVoxilzer.GetLightDebugDrawEnable());
 					ui->SliderFloat("VoxelBias", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawBias(), 0, 16);
+				}
+				if (ui->Header("VolumetricFog"))
+				{
+					ui->SliderFloat("FogDepth", &KRenderGlobal::VolumetricFog.GetDepth(), 0.0f, 5000.0f);
+					ui->SliderFloat("FogAnisotropy", &KRenderGlobal::VolumetricFog.GetAnisotropy(), 0.0f, 1.0f);
+					ui->SliderFloat("FogDensity", &KRenderGlobal::VolumetricFog.GetDensity(), 0.0f, 10.0f);
 				}
 			}
 			ui->PopItemWidth();

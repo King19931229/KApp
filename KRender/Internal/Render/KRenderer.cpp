@@ -104,6 +104,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		// KRenderGlobal::Voxilzer.UpdateFrame(m_PrimaryBuffer);
 		KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_PrimaryBuffer);
 
+		KRenderGlobal::VolumetricFog.Execute(m_PrimaryBuffer);
+
 		KRenderGlobal::DeferredRenderer.DeferredLighting(m_PrimaryBuffer);
 
 		// 转换 GBufferRT 到 Attachment
@@ -166,6 +168,8 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	// KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, width, height);
 	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, width, height);
 
+	KRenderGlobal::VolumetricFog.Init(128, 128, 128, 500.0f, width, height, camera);
+
 	KRenderGlobal::RTAO.Init(KRenderGlobal::RayTraceScene.get());
 
 	KRenderGlobal::DeferredRenderer.Init(camera, width, height);
@@ -220,6 +224,8 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_FOREGROUND, &m_ForegroundCallFunc);
 
+	m_Camera = camera;
+
 	return true;
 }
 
@@ -247,6 +253,7 @@ bool KRenderer::UnInit()
 	KRenderGlobal::RTAO.UnInit();
 	KRenderGlobal::Voxilzer.UnInit();
 	KRenderGlobal::ClipmapVoxilzer.UnInit();
+	KRenderGlobal::VolumetricFog.UnInit();
 
 	KRenderGlobal::RayTraceManager.UnInit();
 	KRenderGlobal::HiZOcclusion.UnInit();
@@ -431,6 +438,7 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::DeferredRenderer.Resize(width, height);
 	// KRenderGlobal::Voxilzer.Resize(width, height);
 	KRenderGlobal::ClipmapVoxilzer.Resize(width, height);
+	KRenderGlobal::VolumetricFog.Resize(width, height);
 	KRenderGlobal::RTAO.Resize();
 	KRenderGlobal::RayTraceManager.Resize(width, height);
 }
