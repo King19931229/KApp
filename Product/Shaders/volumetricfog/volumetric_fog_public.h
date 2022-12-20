@@ -10,6 +10,8 @@
 #define BINDING_VOXEL_RESULT BINDING_TEXTURE2
 #define BINDING_GBUFFER_RT0 BINDING_TEXTURE3
 
+#define VOXEL_FORMAT rgba16f
+
 const float EPSILON = 1e-4;
 
 #define LINEAR_DEPTH_SPLIT 0
@@ -92,17 +94,17 @@ vec3 IDToUV(ivec3 id, float n, float f, float grid_size_x, float grid_size_y, fl
 				view_z / f);
 }
 
-vec3 IDToUVWithJitter(ivec3 id, float n, float f, float jitter, float grid_size_x, float grid_size_y, float grid_size_z)
+vec3 IDToUVWithJitter(ivec3 id, float n, float f, vec3 jitter, float grid_size_x, float grid_size_y, float grid_size_z)
 {
 #if LINEAR_DEPTH_SPLIT
-	float view_z = n + (f - n) * (float(id.z) + 0.5f + jitter) / float(grid_size_z);
+	float view_z = n + (f - n) * (float(id.z) + 0.5f + jitter.z) / float(grid_size_z);
 #else
 	// Exponential View-Z
-	float view_z = n * pow(f / n, (float(id.z) + 0.5f + jitter) / float(grid_size_z));
+	float view_z = n * pow(f / n, (float(id.z) + 0.5f + jitter.z) / float(grid_size_z));
 #endif
 
-	return vec3((float(id.x) + 0.5f) / float(grid_size_x),
-				(float(id.y) + 0.5f) / float(grid_size_y),
+	return vec3((float(id.x) + jitter.x + 0.5f) / float(grid_size_x),
+				(float(id.y) + jitter.y + 0.5f) / float(grid_size_y),
 				view_z / f);
 }
 
@@ -113,7 +115,7 @@ vec3 IDToWorldWithoutJitter(ivec3 id, float n, float f, mat4 proj, mat4 invViewP
 	return NDCToWorld(ndc, invViewProj);
 }
 
-vec3 IDToWorldWithJitter(ivec3 id, float n, float f, float jitter, mat4 proj, mat4 invViewProj, float grid_size_x, float grid_size_y, float grid_size_z)
+vec3 IDToWorldWithJitter(ivec3 id, float n, float f, vec3 jitter, mat4 proj, mat4 invViewProj, float grid_size_x, float grid_size_y, float grid_size_z)
 {
 	vec3 uv = IDToUVWithJitter(id, n, f, jitter, grid_size_x, grid_size_y, grid_size_z);
 	vec3 ndc = UVToNDC(uv, proj, n, f);

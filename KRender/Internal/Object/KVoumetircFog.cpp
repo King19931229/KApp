@@ -12,7 +12,7 @@ KVolumetricFog::KVolumetricFog()
 	, m_Width(0)
 	, m_Height(0)
 	, m_Anisotropy(0.5f)
-	, m_Density(50.0f)
+	, m_Density(0.5f)
 	, m_Scattering(0.0f)
 	, m_Absorption(0.0f)
 	, m_Start(1.0f)
@@ -53,7 +53,7 @@ void KVolumetricFog::InitializePipeline()
 		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_STATIC_CASCADED_SHADOW, staticShadowBuffer);
 		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_DYNAMIC_CASCADED_SHADOW, dynamicShadowBuffer);
 		m_VoxelLightInjectPipeline[i]->BindSampler(BINDING_VOXEL_PREV, m_VoxelLightTarget[(i + 1) & 1]->GetFrameBuffer(), *m_VoxelSampler, false);
-		m_VoxelLightInjectPipeline[i]->BindStorageImage(BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), EF_R8GB8BA8_UNORM, COMPUTE_RESOURCE_OUT, 1, false);
+		m_VoxelLightInjectPipeline[i]->BindStorageImage(BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 1, false);
 
 		for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
 		{
@@ -76,7 +76,7 @@ void KVolumetricFog::InitializePipeline()
 	{
 		m_RayMatchPipeline[i]->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 		m_RayMatchPipeline[i]->BindSampler(BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), *m_VoxelSampler, false);
-		m_RayMatchPipeline[i]->BindStorageImage(BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), EF_R8GB8BA8_UNORM, COMPUTE_RESOURCE_OUT, 1, false);
+		m_RayMatchPipeline[i]->BindStorageImage(BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 1, false);
 		m_RayMatchPipeline[i]->Init("volumetricfog/raymatch.comp");
 	}
 
@@ -154,11 +154,11 @@ bool KVolumetricFog::Init(uint32_t gridX, uint32_t gridY, uint32_t gridZ, float 
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		KRenderGlobal::RenderDevice->CreateRenderTarget(m_VoxelLightTarget[i]);
-		m_VoxelLightTarget[i]->InitFromStorage3D(m_GridX, m_GridY, m_GridZ, 1, EF_R8GB8BA8_UNORM);
+		m_VoxelLightTarget[i]->InitFromStorage3D(m_GridX, m_GridY, m_GridZ, 1, VOXEL_FORMAT);
 	}
 
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_RayMatchResultTarget);
-	m_RayMatchResultTarget->InitFromStorage3D(m_GridX, m_GridY, m_GridZ, 1, EF_R8GB8BA8_UNORM);
+	m_RayMatchResultTarget->InitFromStorage3D(m_GridX, m_GridY, m_GridZ, 1, VOXEL_FORMAT);
 
 	for (uint32_t i = 0; i < 2; ++i)
 	{

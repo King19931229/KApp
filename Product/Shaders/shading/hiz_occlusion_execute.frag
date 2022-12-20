@@ -37,7 +37,6 @@ struct ScreenRect
 };
 
 const bool NEAR_CLIP_ZERO = true;
-const bool FRUSTUM_CLIP_WITH_NEAR_FAR = false;
 const float CLIP_NEAR_Z = NEAR_CLIP_ZERO ? 0.0 : -1.0;
 const bool SUPPORT_GATHER = false;
 
@@ -114,30 +113,40 @@ FrustumCullData BoxCullFrustumGeneral(vec3 center, vec3 extent, mat4 localToWorl
 	if (!bSkipFrustumCull)
 	{
 		bvec3 compareA = bvec3(false, false, false);
-		compareA.x = pos000.x > 1.0 && pos001.x > 1.0 && pos010.x > 1.0
-			&& pos011.x > 1.0 && pos100.x > 1.0 && pos101.x > 1.0
-			&& pos110.x > 1.0 && pos111.x > 1.0;
-		compareA.y = pos000.y > 1.0 && pos001.y > 1.0 && pos010.y > 1.0
-			&& pos011.y > 1.0 && pos100.y > 1.0 && pos101.y > 1.0
-			&& pos110.y > 1.0 && pos111.y > 1.0;
+		compareA.x = clipPos000.x > clipPos000.w && 
+					 clipPos001.x > clipPos001.w &&
+					 clipPos010.x > clipPos010.w &&
+					 clipPos011.x > clipPos011.w &&
+					 clipPos100.x > clipPos100.w &&
+					 clipPos101.x > clipPos101.w &&
+					 clipPos110.x > clipPos110.w &&
+					 clipPos111.x > clipPos111.w;
+		compareA.y = clipPos000.y > clipPos000.w &&
+					 clipPos001.y > clipPos001.w &&
+					 clipPos010.y > clipPos010.w &&
+					 clipPos011.y > clipPos011.w &&
+					 clipPos100.y > clipPos100.w &&
+					 clipPos101.y > clipPos101.w &&
+					 clipPos110.y > clipPos110.w &&
+					 clipPos111.y > clipPos111.w;
 
 		bvec3 compareB = bvec3(false, false, false);
-		compareB.x = pos000.x < -1.0 && pos001.x < -1.0 && pos010.x < -1.0
-			&& pos011.x < -1.0 && pos100.x < -1.0 && pos101.x < -1.0
-			&& pos110.x < -1.0 && pos111.x < -1.0;
-		compareB.y = pos000.y < -1.0 && pos001.y < -1.0 && pos010.y < -1.0
-			&& pos011.y < -1.0 && pos100.y < -1.0 && pos101.y < -1.0
-			&& pos110.y < -1.0 && pos111.y < -1.0;
-
-		if (FRUSTUM_CLIP_WITH_NEAR_FAR)
-		{
-			compareA.z = pos000.z > 1.0 && pos001.z > 1.0 && pos010.z > 1.0
-				&& pos011.z > 1.0 && pos100.z > 1.0 && pos101.z > 1.0
-				&& pos110.z > 1.0 && pos111.z > 1.0;
-			compareB.z = pos000.z < CLIP_NEAR_Z && pos001.z < CLIP_NEAR_Z && pos010.z < CLIP_NEAR_Z
-				&& pos011.z < CLIP_NEAR_Z && pos100.z < CLIP_NEAR_Z && pos101.z < CLIP_NEAR_Z
-				&& pos110.z < CLIP_NEAR_Z && pos111.y < CLIP_NEAR_Z;
-		}
+		compareA.x = clipPos000.x < -clipPos000.w &&
+					 clipPos001.x < -clipPos001.w &&
+					 clipPos010.x < -clipPos010.w &&
+					 clipPos011.x < -clipPos011.w &&
+					 clipPos100.x < -clipPos100.w &&
+					 clipPos101.x < -clipPos101.w &&
+					 clipPos110.x < -clipPos110.w &&
+					 clipPos111.x < -clipPos111.w;
+		compareA.y = clipPos000.y < -clipPos000.w &&
+					 clipPos001.y < -clipPos001.w &&
+					 clipPos010.y < -clipPos010.w &&
+					 clipPos011.y < -clipPos011.w &&
+					 clipPos100.y < -clipPos100.w &&
+					 clipPos101.y < -clipPos101.w &&
+					 clipPos110.y < -clipPos110.w &&
+					 clipPos111.y < -clipPos111.w;
 
 		const bool bFrustumCull = any(compareA) || any(compareB);
 		cull.bFrustumSideCulled = cull.bIsVisible && bFrustumCull;

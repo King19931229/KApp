@@ -3,7 +3,7 @@
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROUP_SIZE) in;
 
 layout(binding = BINDING_VOXEL_CURR) uniform sampler3D currVoxel;
-layout(binding = BINDING_VOXEL_RESULT, rgba8) uniform writeonly image3D resultVoxel;
+layout(binding = BINDING_VOXEL_RESULT, VOXEL_FORMAT) uniform writeonly image3D resultVoxel;
 
 vec4 Accumulate(int z, float n, float f, float grid_size_z, 
 				vec3 accum_scattering, float accum_transmittance, vec3 slice_scattering, float slice_density)

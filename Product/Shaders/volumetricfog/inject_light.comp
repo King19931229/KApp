@@ -7,7 +7,7 @@
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROUP_SIZE) in;
 
 layout(binding = BINDING_VOXEL_PREV) uniform sampler3D prevVoxel;
-layout(binding = BINDING_VOXEL_CURR, rgba8) uniform writeonly image3D currVoxel;
+layout(binding = BINDING_VOXEL_CURR, VOXEL_FORMAT) uniform writeonly image3D currVoxel;
 
 // Henyey-Greenstein
 float PhaseFunction(vec3 Wo, vec3 Wi, float g)
@@ -28,11 +28,12 @@ void main()
 	vec3 grid = vec3(coord);
 	if (coord.x >= size.x || coord.y >= size.y || coord.z > size.z) return;
 
+	vec3 jitter = vec3(0);
 #if ENABLE_JITTER
 	uint seed = TEA(size.y * size.x * coord.z + size.x * coord.y + coord.x, object.frameNum);
-	float jitter = (RND(seed) - 0.5f) * 0.999;
-#else
-	float jitter = 0;
+	jitter.x = (RND(seed) - 0.5f) * 0.999;
+	jitter.y = (RND(seed) - 0.5f) * 0.999;
+	jitter.z = (RND(seed) - 0.5f) * 0.999;
 #endif
 
 	vec3 worldPos = IDToWorldWithJitter(coord, object.nearFarGridZ.x, object.nearFarGridZ.y, jitter, object.proj, object.invViewProj, grid_size.x, grid_size.y, grid_size.z);
@@ -45,7 +46,7 @@ void main()
 	float visibility = min(CalcDynamicCSM(worldPos).r, CalcStaticCSM(worldPos).r);
 
 	vec3 lighting = vec3(0);
-	vec4 lightColor = vec4(1.0);
+	vec4 lightColor = vec4(25.0);
 	if (visibility > EPSILON)
 		lighting += visibility * lightColor.xyz * PhaseFunction(Wo, Wi, aniso);
 
