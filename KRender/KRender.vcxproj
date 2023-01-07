@@ -116,6 +116,7 @@
     <ClInclude Include="Internal\Object\KSkyBox.h" />
     <ClInclude Include="Internal\Object\KVolumetricFog.h" />
     <ClInclude Include="Internal\Object\KWhiteFurnace.h" />
+    <ClInclude Include="Internal\Object\KScreenSpaceReflection.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessConnection.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessData.h" />
     <ClInclude Include="Internal\PostProcess\KPostProcessManager.h" />
@@ -227,6 +228,7 @@
     <ClCompile Include="Internal\Object\KQuadDataProvider.cpp" />
     <ClCompile Include="Internal\Object\KRTAO.cpp" />
     <ClCompile Include="Internal\Object\KDebugDrawer.cpp" />
+    <ClCompile Include="Internal\Object\KScreenSpaceReflection.cpp" />
     <ClCompile Include="Internal\Object\KSkyBox.cpp" />
     <ClCompile Include="Internal\Object\KVoumetircFog.cpp" />
     <ClCompile Include="Internal\Object\KWhiteFurnace.cpp" />

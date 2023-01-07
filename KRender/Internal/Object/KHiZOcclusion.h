@@ -38,7 +38,6 @@ protected:
 	KShaderRef m_ExecuteCullFS;
 
 	KSamplerRef m_Sampler;
-	KSamplerRef m_HiZSampler;
 
 	std::vector<IKPipelinePtr> m_PreparePipelines;
 	std::vector<IKPipelinePtr> m_ExecutePipelines;

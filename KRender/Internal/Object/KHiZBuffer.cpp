@@ -152,6 +152,14 @@ bool KHiZBuffer::Resize(uint32_t width, uint32_t height)
 		m_HiZMaxRenderPass[mipmap]->Init(mipmap);
 	}
 
+	m_HiZSampler.Release();
+
+	KSamplerDescription desc;
+	desc.minFilter = FM_NEAREST;
+	desc.magFilter = FM_NEAREST;
+	desc.maxMipmap = m_NumMips - 1;
+	KRenderGlobal::SamplerManager.Acquire(desc, m_HiZSampler);
+
 	InitializePipeline();
 
 	return true;
@@ -201,6 +209,7 @@ bool KHiZBuffer::UnInit()
 	m_BuildHiZFS.Release();
 	m_ReadDepthSampler.Release();
 	m_HiZBuildSampler.Release();
+	m_HiZSampler.Release();
 	SAFE_UNINIT(m_HiZBaseLinearBuffer);
 	SAFE_UNINIT(m_HiZMinBuffer);
 	SAFE_UNINIT(m_HiZMaxBuffer);

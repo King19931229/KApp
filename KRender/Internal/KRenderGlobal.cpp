@@ -29,6 +29,7 @@ namespace KRenderGlobal
 	KVoxilzer Voxilzer;
 	KClipmapVoxilzer ClipmapVoxilzer;
 	KVolumetricFog VolumetricFog;
+	KScreenSpaceReflection ScreenSpaceReflection;
 
 	KQuadDataProvider QuadDataProvider;
 

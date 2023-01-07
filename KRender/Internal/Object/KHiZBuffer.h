@@ -18,6 +18,8 @@ protected:
 	KSamplerRef m_ReadDepthSampler;
 	KSamplerRef m_HiZBuildSampler;
 
+	KSamplerRef m_HiZSampler;
+
 	IKCommandPoolPtr	m_CommandPool;
 	IKCommandBufferPtr	m_PrimaryCommandBuffer;
 
@@ -37,6 +39,7 @@ public:
 	bool UnInit();
 	bool Resize(uint32_t width, uint32_t height);
 
+	IKSamplerPtr GetHiZSampler() { return *m_HiZSampler; }
 	IKRenderTargetPtr GetMinBuffer() { return m_HiZMinBuffer; }
 	IKRenderTargetPtr GetMaxBuffer() { return m_HiZMaxBuffer; }
 

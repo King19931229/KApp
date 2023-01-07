@@ -187,6 +187,7 @@ bool KRenderCore::InitController()
 			KRenderGlobal::Scene.GetTerrain()->Reload();
 			KRenderGlobal::HiZOcclusion.ReloadShader();
 			KRenderGlobal::VolumetricFog.Reload();
+			KRenderGlobal::ScreenSpaceReflection.ReloadShader();
 		}
 	};
 
@@ -629,6 +630,10 @@ bool KRenderCore::UpdateUIOverlay()
 					ui->SliderFloat("FogDepth", &KRenderGlobal::VolumetricFog.GetDepth(), 1.0f, 5000.0f);
 					ui->SliderFloat("FogAnisotropy", &KRenderGlobal::VolumetricFog.GetAnisotropy(), 0.0f, 1.0f);
 					ui->SliderFloat("FogDensity", &KRenderGlobal::VolumetricFog.GetDensity(), 0.0f, 1.0f);
+				}
+				if (ui->Header("SSR"))
+				{
+					ui->CheckBox("SSRDebugDraw", &KRenderGlobal::ScreenSpaceReflection.GetDebugDrawEnable());
 				}
 			}
 			ui->PopItemWidth();

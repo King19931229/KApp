@@ -106,6 +106,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		KRenderGlobal::VolumetricFog.Execute(m_PrimaryBuffer);
 
+		KRenderGlobal::ScreenSpaceReflection.Execute(m_PrimaryBuffer);
+
 		KRenderGlobal::DeferredRenderer.DeferredLighting(m_PrimaryBuffer);
 
 		// 转换 GBufferRT 到 Attachment
@@ -113,9 +115,12 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::GBuffer.TranslateColorAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 
 		KRenderGlobal::DeferredRenderer.ForwardTransprant(m_PrimaryBuffer);
-		KRenderGlobal::DeferredRenderer.DebugObject(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.SkyPass(m_PrimaryBuffer);
 
+		//
+		KRenderGlobal::DeferredRenderer.CopySceneColorToFinal(m_PrimaryBuffer);
+
+		KRenderGlobal::DeferredRenderer.DebugObject(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.Foreground(m_PrimaryBuffer);
 	}
 
@@ -124,7 +129,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
 		IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
 
-		m_PrimaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinalSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		m_PrimaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		m_PrimaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
 		{
@@ -139,6 +144,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		m_PrimaryBuffer->EndRenderPass();
 
 		m_PrimaryBuffer->Translate(offscreenTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		m_PrimaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 	}
 
 	KRenderGlobal::PostProcessManager.Execute(chainImageIndex, m_SwapChain, m_UIOverlay, m_PrimaryBuffer);
@@ -173,6 +180,8 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::RTAO.Init(KRenderGlobal::RayTraceScene.get());
 
 	KRenderGlobal::DeferredRenderer.Init(camera, width, height);
+
+	KRenderGlobal::ScreenSpaceReflection.Init(width, height, 0.5f);
 
 	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
 	KRenderGlobal::FrameGraph.Alloc();
@@ -219,6 +228,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 		KRenderGlobal::RayTraceManager.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::RTAO.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::HiZOcclusion.DebugRender(renderPass, primaryBuffer);
+		KRenderGlobal::ScreenSpaceReflection.DebugRender(renderPass, primaryBuffer);
 	};
 
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
@@ -254,6 +264,7 @@ bool KRenderer::UnInit()
 	KRenderGlobal::Voxilzer.UnInit();
 	KRenderGlobal::ClipmapVoxilzer.UnInit();
 	KRenderGlobal::VolumetricFog.UnInit();
+	KRenderGlobal::ScreenSpaceReflection.UnInit();
 
 	KRenderGlobal::RayTraceManager.UnInit();
 	KRenderGlobal::HiZOcclusion.UnInit();
@@ -439,6 +450,7 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	// KRenderGlobal::Voxilzer.Resize(width, height);
 	KRenderGlobal::ClipmapVoxilzer.Resize(width, height);
 	KRenderGlobal::VolumetricFog.Resize(width, height);
+	KRenderGlobal::ScreenSpaceReflection.Resize(width, height);
 	KRenderGlobal::RTAO.Resize();
 	KRenderGlobal::RayTraceManager.Resize(width, height);
 }

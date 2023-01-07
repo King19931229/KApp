@@ -14,13 +14,6 @@ KHiZOcclusion::~KHiZOcclusion()
 
 bool KHiZOcclusion::Resize()
 {
-	m_HiZSampler.Release();
-	KSamplerDescription desc;
-	desc.minFilter = FM_NEAREST;
-	desc.magFilter = FM_NEAREST;
-	desc.maxMipmap = KRenderGlobal::HiZBuffer.GetNumMips() - 1;
-	KRenderGlobal::SamplerManager.Acquire(desc, m_HiZSampler);
-
 	for (size_t frameIdx = 0; frameIdx < m_PreparePipelines.size(); ++frameIdx)
 	{
 		IKPipelinePtr& pipeline = m_PreparePipelines[frameIdx];
@@ -64,7 +57,7 @@ bool KHiZOcclusion::Resize()
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_PositionTargets[frameIdx]->GetFrameBuffer(), *m_Sampler, true);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_ExtentTargets[frameIdx]->GetFrameBuffer(), *m_Sampler, true);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, KRenderGlobal::HiZBuffer.GetMaxBuffer()->GetFrameBuffer(), *m_HiZSampler, true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, KRenderGlobal::HiZBuffer.GetMaxBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), true);
 
 		pipeline->Init();
 	}
@@ -181,7 +174,6 @@ bool KHiZOcclusion::UnInit()
 	m_ExecuteCullFS.Release();
 
 	m_Sampler.Release();
-	m_HiZSampler.Release();
 
 	m_Candidates.clear();
 

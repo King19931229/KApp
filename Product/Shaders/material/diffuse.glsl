@@ -41,5 +41,8 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 
 	parameters.specularColor = vec3(0, 0, 0);
 
+	parameters.roughness = 0.0;
+	parameters.metal = 0.0;
+
 	return parameters;
 }

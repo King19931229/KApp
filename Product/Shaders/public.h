@@ -209,6 +209,8 @@ struct MaterialPixelParameters
 	vec2 motion;
 	vec3 baseColor;
 	vec3 specularColor;
+	float roughness;
+	float metal;
 };
 
 #endif

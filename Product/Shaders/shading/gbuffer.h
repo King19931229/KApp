@@ -37,9 +37,19 @@ vec3 DecodeBaseColor(vec4 gbuffer2Data)
 	return gbuffer2Data.xyz;
 }
 
+float DecodeRoughness(vec4 gbuffer2Data)
+{
+	return gbuffer2Data.w;
+}
+
 vec3 DecodeSpecularColor(vec4 gbuffer3Data)
 {
 	return gbuffer3Data.xyz;
+}
+
+float DecodeMetal(vec4 gbuffer3Data)
+{
+	return gbuffer3Data.w;
 }
 
 #endif
