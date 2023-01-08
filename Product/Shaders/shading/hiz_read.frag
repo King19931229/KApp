@@ -8,5 +8,5 @@ layout(binding = BINDING_TEXTURE0) uniform sampler2D depthSampler;
 void main()
 {
 	float depth = texture(depthSampler, inUV).r;
-	outColor = vec4(NonLinearDepthToLinearDepth(camera.proj, depth));
+	outColor = vec4(depth);
 }

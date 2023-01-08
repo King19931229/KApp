@@ -35,7 +35,7 @@ void KScreenSpaceReflection::InitializePipeline()
 	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE2, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE3, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE4, KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE5, KRenderGlobal::HiZBuffer.GetMaxBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), false);
+	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE5, KRenderGlobal::HiZBuffer.GetMinBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), false);
 
 	m_ReflectionPipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
@@ -91,6 +91,7 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 {
 	m_Width = std::max((uint32_t)(width * m_Ratio), 1U);
 	m_Height = std::max((uint32_t)(height * m_Ratio), 1U);
+
 	m_FinalTarget->UnInit();
 	m_FinalTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8GB8BA8_UNORM);
 
@@ -123,6 +124,21 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
 		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
 		command.indexDraw = true;
+
+		struct ObjectData
+		{
+			int32_t maxHiZMip;
+			uint32_t frameNum;
+		} objectData;
+		objectData.maxHiZMip = (int32_t)KRenderGlobal::HiZBuffer.GetNumMips() - 1;
+		objectData.frameNum = KRenderGlobal::CurrentFrameNum;
+
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		command.objectUsage = objectUsage;
 
 		command.pipeline = m_ReflectionPipeline;
 		command.pipeline->GetHandle(m_ReflectionPass, command.pipelineHandle);

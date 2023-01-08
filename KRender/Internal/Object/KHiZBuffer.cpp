@@ -41,10 +41,10 @@ void KHiZBuffer::InitializePipeline()
 	SAFE_UNINIT_CONTAINER(m_BuildHiZMinPipelines);
 	SAFE_UNINIT_CONTAINER(m_BuildHiZMaxPipelines);
 
-	m_BuildHiZMinPipelines.resize(m_NumMips);
-	m_BuildHiZMaxPipelines.resize(m_NumMips);
+	m_BuildHiZMinPipelines.resize(m_NumMips - 1);
+	m_BuildHiZMaxPipelines.resize(m_NumMips - 1);
 
-	for (uint32_t i = 0; i < m_NumMips; ++i)
+	for (uint32_t i = 0; i < m_NumMips - 1; ++i)
 	{
 		for (bool buildMin : {true, false})
 		{
@@ -66,37 +66,19 @@ void KHiZBuffer::InitializePipeline()
 
 			if (buildMin)
 			{
-				if (i == 0)
-				{
-					pipeline->SetSampler(SHADER_BINDING_TEXTURE0,
-						m_HiZBaseLinearBuffer->GetFrameBuffer(),
-						*m_HiZBuildSampler);
-				}
-				else
-				{
-					pipeline->SetSamplerMipmap(SHADER_BINDING_TEXTURE0,
-						m_HiZMinBuffer->GetFrameBuffer(),
-						*m_HiZBuildSampler,
-						i - 1, 1,
-						true);
-				}
+				pipeline->SetSamplerMipmap(SHADER_BINDING_TEXTURE0,
+					m_HiZMinBuffer->GetFrameBuffer(),
+					*m_HiZBuildSampler,
+					i, 1,
+					true);
 			}
 			else
 			{
-				if (i == 0)
-				{
-					pipeline->SetSampler(SHADER_BINDING_TEXTURE0,
-						m_HiZBaseLinearBuffer->GetFrameBuffer(),
-						*m_HiZBuildSampler);
-				}
-				else
-				{
-					pipeline->SetSamplerMipmap(SHADER_BINDING_TEXTURE0,
-						m_HiZMaxBuffer->GetFrameBuffer(),
-						*m_HiZBuildSampler,
-						i - 1, 1,
-						true);
-				}
+				pipeline->SetSamplerMipmap(SHADER_BINDING_TEXTURE0,
+					m_HiZMaxBuffer->GetFrameBuffer(),
+					*m_HiZBuildSampler,
+					i, 1,
+					true);
 			}
 
 			pipeline->SetConstantBuffer(SHADER_BINDING_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
@@ -107,31 +89,23 @@ void KHiZBuffer::InitializePipeline()
 
 bool KHiZBuffer::Resize(uint32_t width, uint32_t height)
 {
-	m_HiZWidth = KMath::BiggestPowerOf2LessEqualThan(width / 2);
-	m_HiZHeight = KMath::BiggestPowerOf2LessEqualThan(height / 2);
+	const uint32_t DIMENSION_DIV = 2;
 
-	m_NumMips = (uint32_t)std::log2(std::max(m_HiZWidth, m_HiZHeight));
+	m_HiZWidth = KMath::BiggestPowerOf2LessEqualThan(width / DIMENSION_DIV);
+	m_HiZHeight = KMath::BiggestPowerOf2LessEqualThan(height / DIMENSION_DIV);
 
-	m_HiZBaseLinearBuffer->UnInit();
-	m_HiZBaseLinearBuffer->InitFromColor(m_HiZWidth, m_HiZHeight, 1, 1, EF_R32_FLOAT);
+	m_NumMips = (uint32_t)std::log2(std::max(m_HiZWidth, m_HiZHeight)) + 1;
 
 	m_HiZMinBuffer->UnInit();
-	m_HiZMinBuffer->InitFromColor(std::max(m_HiZWidth / 2, 1U), std::max(m_HiZHeight / 2, 1U), 1, m_NumMips, EF_R32_FLOAT);
+	m_HiZMinBuffer->InitFromColor(m_HiZWidth, m_HiZHeight, 1, m_NumMips, EF_R32_FLOAT);
 	m_HiZMaxBuffer->UnInit();
-	m_HiZMaxBuffer->InitFromColor(std::max(m_HiZWidth / 2, 1U), std::max(m_HiZHeight / 2, 1U), 1, m_NumMips, EF_R32_FLOAT);
+	m_HiZMaxBuffer->InitFromColor(m_HiZWidth, m_HiZHeight, 1, m_NumMips, EF_R32_FLOAT);
 
 	m_PrimaryCommandBuffer->BeginPrimary();
-	m_PrimaryCommandBuffer->Translate(m_HiZBaseLinearBuffer->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	m_PrimaryCommandBuffer->Translate(m_HiZMinBuffer->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	m_PrimaryCommandBuffer->Translate(m_HiZMaxBuffer->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	m_PrimaryCommandBuffer->End();
 	m_PrimaryCommandBuffer->Flush();
-
-	SAFE_UNINIT(m_ReadDepthRenderPass);
-	KRenderGlobal::RenderDevice->CreateRenderPass(m_ReadDepthRenderPass);
-	m_ReadDepthRenderPass->SetColorAttachment(0, m_HiZBaseLinearBuffer->GetFrameBuffer());
-	m_ReadDepthRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
-	m_ReadDepthRenderPass->Init();
 
 	SAFE_UNINIT_CONTAINER(m_HiZMinRenderPass);
 	SAFE_UNINIT_CONTAINER(m_HiZMaxRenderPass);
@@ -155,8 +129,9 @@ bool KHiZBuffer::Resize(uint32_t width, uint32_t height)
 	m_HiZSampler.Release();
 
 	KSamplerDescription desc;
-	desc.minFilter = FM_NEAREST;
-	desc.magFilter = FM_NEAREST;
+	desc.minFilter = desc.magFilter = FM_NEAREST;
+	desc.addressU = desc.addressV = desc.addressW = AM_CLAMP_TO_EDGE;
+	desc.minMipmap = 0;
 	desc.maxMipmap = m_NumMips - 1;
 	KRenderGlobal::SamplerManager.Acquire(desc, m_HiZSampler);
 
@@ -173,7 +148,6 @@ bool KHiZBuffer::Init(uint32_t width, uint32_t height)
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/hiz_read.frag", m_ReadDepthFS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/hiz_build.frag", m_BuildHiZFS, false);
 
-	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HiZBaseLinearBuffer);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HiZMinBuffer);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HiZMaxBuffer);
 
@@ -181,14 +155,12 @@ bool KHiZBuffer::Init(uint32_t width, uint32_t height)
 
 	KSamplerDescription desc;
 
-	desc.minFilter = FM_LINEAR;
-	desc.magFilter = FM_LINEAR;
-	desc.maxMipmap = 0;
+	desc.minFilter = FM_NEAREST;
+	desc.magFilter = FM_NEAREST;
 	KRenderGlobal::SamplerManager.Acquire(desc, m_ReadDepthSampler);
 
 	desc.minFilter = FM_NEAREST;
 	desc.magFilter = FM_NEAREST;
-	desc.maxMipmap = 0;
 	KRenderGlobal::SamplerManager.Acquire(desc, m_HiZBuildSampler);
 
 	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
@@ -210,7 +182,6 @@ bool KHiZBuffer::UnInit()
 	m_ReadDepthSampler.Release();
 	m_HiZBuildSampler.Release();
 	m_HiZSampler.Release();
-	SAFE_UNINIT(m_HiZBaseLinearBuffer);
 	SAFE_UNINIT(m_HiZMinBuffer);
 	SAFE_UNINIT(m_HiZMaxBuffer);
 	SAFE_UNINIT(m_ReadDepthPipeline);
@@ -220,7 +191,6 @@ bool KHiZBuffer::UnInit()
 	SAFE_UNINIT(m_PrimaryCommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
 
-	SAFE_UNINIT(m_ReadDepthRenderPass);
 	SAFE_UNINIT_CONTAINER(m_HiZMinRenderPass);
 	SAFE_UNINIT_CONTAINER(m_HiZMaxRenderPass);
 
@@ -232,6 +202,7 @@ bool KHiZBuffer::UnInit()
 
 bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 {
+	/*
 	{
 		KRenderCommand command;
 		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -251,82 +222,133 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 		primaryBuffer->EndRenderPass();
 		primaryBuffer->EndDebugMarker();
-		primaryBuffer->Translate(m_HiZBaseLinearBuffer->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_HiZBaseBuffer->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
+	*/
 
 	primaryBuffer->BeginDebugMarker("HiZMinBuild", glm::vec4(0, 1, 0, 0));
 	for (uint32_t i = 0; i < m_NumMips; ++i)
 	{
-		KRenderCommand command;
-		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
-		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
-		command.indexDraw = true;
-
-		IKRenderPassPtr renderPass = m_HiZMinRenderPass[i];
-
-		primaryBuffer->BeginDebugMarker("HiZMinBuild_" + std::to_string(i), glm::vec4(0, 1, 0, 0));
-
-		primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(renderPass->GetViewPort());
-
-		command.pipeline = m_BuildHiZMinPipelines[i];
-		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
-
-		struct ObjectData
+		if (i == 0)
 		{
-			int minBuild;
-			int baseDepth;
-		} objectData;
-		objectData.minBuild = true;
-		objectData.baseDepth = i == 0;
+			KRenderCommand command;
+			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+			command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+			command.indexDraw = true;
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+			IKRenderPassPtr renderPass = m_HiZMinRenderPass[i];
 
-		primaryBuffer->Render(command);
+			primaryBuffer->BeginDebugMarker("HiZMinInit", glm::vec4(0, 1, 0, 0));
 
-		primaryBuffer->EndRenderPass();
-		primaryBuffer->EndDebugMarker();
-		primaryBuffer->TranslateMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->SetViewport(renderPass->GetViewPort());
+
+			command.pipeline = m_ReadDepthPipeline;
+			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+			primaryBuffer->Render(command);
+
+			primaryBuffer->EndRenderPass();
+			primaryBuffer->EndDebugMarker();
+			primaryBuffer->TranslateMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		}
+		else
+		{
+			KRenderCommand command;
+			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+			command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+			command.indexDraw = true;
+
+			IKRenderPassPtr renderPass = m_HiZMinRenderPass[i];
+
+			primaryBuffer->BeginDebugMarker("HiZMinBuild_" + std::to_string(i), glm::vec4(0, 1, 0, 0));
+
+			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->SetViewport(renderPass->GetViewPort());
+
+			command.pipeline = m_BuildHiZMinPipelines[i - 1];
+			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+			struct ObjectData
+			{
+				int32_t minBuild;
+				uint32_t frameNum;
+			} objectData;
+			objectData.minBuild = true;
+			objectData.frameNum = KRenderGlobal::CurrentFrameNum;
+
+			command.objectUsage.binding = SHADER_BINDING_OBJECT;
+			command.objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+			primaryBuffer->Render(command);
+
+			primaryBuffer->EndRenderPass();
+			primaryBuffer->EndDebugMarker();
+			primaryBuffer->TranslateMipmap(m_HiZMinBuffer->GetFrameBuffer(), i, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		}
 	}
 	primaryBuffer->EndDebugMarker();
 
 	primaryBuffer->BeginDebugMarker("HiZMaxBuild", glm::vec4(0, 1, 0, 0));
 	for (uint32_t i = 0; i < m_NumMips; ++i)
 	{
-		KRenderCommand command;
-		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
-		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
-		command.indexDraw = true;
-
-		IKRenderPassPtr renderPass = m_HiZMaxRenderPass[i];
-
-		primaryBuffer->BeginDebugMarker("HiZMaxBuild_" + std::to_string(i), glm::vec4(0, 1, 0, 0));
-
-		primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(renderPass->GetViewPort());
-
-		command.pipeline = m_BuildHiZMaxPipelines[i];
-		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
-
-		struct ObjectData
+		if (i == 0)
 		{
-			int minBuild;
-			int baseDepth;
-		} objectData;
-		objectData.minBuild = false;
-		objectData.baseDepth = i == 0;
+			KRenderCommand command;
+			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+			command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+			command.indexDraw = true;
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+			IKRenderPassPtr renderPass = m_HiZMaxRenderPass[i];
 
-		primaryBuffer->Render(command);
+			primaryBuffer->BeginDebugMarker("HiZMaxInit", glm::vec4(0, 1, 0, 0));
 
-		primaryBuffer->EndRenderPass();
-		primaryBuffer->EndDebugMarker();
-		primaryBuffer->TranslateMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->SetViewport(renderPass->GetViewPort());
+
+			command.pipeline = m_ReadDepthPipeline;
+			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+			primaryBuffer->Render(command);
+
+			primaryBuffer->EndRenderPass();
+			primaryBuffer->EndDebugMarker();
+			primaryBuffer->TranslateMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		}
+		else
+		{
+			KRenderCommand command;
+			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+			command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+			command.indexDraw = true;
+
+			IKRenderPassPtr renderPass = m_HiZMaxRenderPass[i];
+
+			primaryBuffer->BeginDebugMarker("HiZMaxBuild_" + std::to_string(i), glm::vec4(0, 1, 0, 0));
+
+			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->SetViewport(renderPass->GetViewPort());
+
+			command.pipeline = m_BuildHiZMaxPipelines[i - 1];
+			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+			struct ObjectData
+			{
+				int minBuild;
+				int baseDepth;
+			} objectData;
+			objectData.minBuild = false;
+			objectData.baseDepth = i == 0;
+
+			command.objectUsage.binding = SHADER_BINDING_OBJECT;
+			command.objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+			primaryBuffer->Render(command);
+
+			primaryBuffer->EndRenderPass();
+			primaryBuffer->EndDebugMarker();
+			primaryBuffer->TranslateMipmap(m_HiZMaxBuffer->GetFrameBuffer(), i, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		}
 	}
 	primaryBuffer->EndDebugMarker();
 

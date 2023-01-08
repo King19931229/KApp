@@ -6,7 +6,6 @@
 class KHiZBuffer
 {
 protected:
-	IKRenderTargetPtr m_HiZBaseLinearBuffer;
 	IKRenderTargetPtr m_HiZMinBuffer;
 	IKRenderTargetPtr m_HiZMaxBuffer;
 	uint32_t m_NumMips;
@@ -24,7 +23,6 @@ protected:
 	IKCommandBufferPtr	m_PrimaryCommandBuffer;
 
 	IKPipelinePtr m_ReadDepthPipeline;
-	IKRenderPassPtr m_ReadDepthRenderPass;
 	std::vector<IKPipelinePtr> m_BuildHiZMinPipelines;
 	std::vector<IKPipelinePtr> m_BuildHiZMaxPipelines;
 	std::vector<IKRenderPassPtr> m_HiZMinRenderPass;
