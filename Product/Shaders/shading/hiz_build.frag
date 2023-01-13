@@ -9,13 +9,11 @@ layout(binding = BINDING_OBJECT)
 uniform Object
 {
 	int minBuild;
-	int baseDepth;
 } object;
 
 void main()
 {
 	int minBuild = object.minBuild;
-	int baseDepth = object.baseDepth;
 
 	vec2 srcSize = vec2(textureSize(depthSampler, 0));
 

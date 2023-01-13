@@ -185,6 +185,7 @@ bool KRenderCore::InitController()
 			// KRenderGlobal::Voxilzer.ReloadShader();
 			KRenderGlobal::ClipmapVoxilzer.ReloadShader();
 			KRenderGlobal::Scene.GetTerrain()->Reload();
+			KRenderGlobal::HiZBuffer.ReloadShader();
 			KRenderGlobal::HiZOcclusion.ReloadShader();
 			KRenderGlobal::VolumetricFog.Reload();
 			KRenderGlobal::ScreenSpaceReflection.ReloadShader();
@@ -267,7 +268,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		m_DebugConsole = KNEW KDebugConsole();
 		m_DebugConsole->Init();
 
-		m_Camera.SetNear(1.0f);
+		m_Camera.SetNear(20.0f);
 		m_Camera.SetFar(5000.0f);
 		m_Camera.SetCustomLockYAxis(glm::vec3(0, 1, 0));
 		m_Camera.SetLockYEnable(true);

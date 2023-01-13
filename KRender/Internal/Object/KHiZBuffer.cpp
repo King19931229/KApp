@@ -89,7 +89,7 @@ void KHiZBuffer::InitializePipeline()
 
 bool KHiZBuffer::Resize(uint32_t width, uint32_t height)
 {
-	const uint32_t DIMENSION_DIV = 2;
+	const uint32_t DIMENSION_DIV = 1;
 
 	m_HiZWidth = KMath::BiggestPowerOf2LessEqualThan(width / DIMENSION_DIV);
 	m_HiZHeight = KMath::BiggestPowerOf2LessEqualThan(height / DIMENSION_DIV);
@@ -202,30 +202,6 @@ bool KHiZBuffer::UnInit()
 
 bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 {
-	/*
-	{
-		KRenderCommand command;
-		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
-		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
-		command.indexDraw = true;
-
-		IKRenderPassPtr renderPass = m_ReadDepthRenderPass;
-
-		primaryBuffer->BeginDebugMarker("HiZInit", glm::vec4(0, 1, 0, 0));
-
-		primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(renderPass->GetViewPort());
-
-		command.pipeline = m_ReadDepthPipeline;
-		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
-		primaryBuffer->Render(command);
-
-		primaryBuffer->EndRenderPass();
-		primaryBuffer->EndDebugMarker();
-		primaryBuffer->Translate(m_HiZBaseBuffer->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	}
-	*/
-
 	primaryBuffer->BeginDebugMarker("HiZMinBuild", glm::vec4(0, 1, 0, 0));
 	for (uint32_t i = 0; i < m_NumMips; ++i)
 	{
@@ -245,6 +221,31 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			command.pipeline = m_ReadDepthPipeline;
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+			struct ObjectData
+			{
+				glm::vec4 sampleScaleBias;
+				int32_t minBuild;
+			} objectData;
+
+			IKFrameBufferPtr srcBuffer = KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer();
+			IKFrameBufferPtr destBuffer = m_HiZMinBuffer->GetFrameBuffer();
+
+			objectData.sampleScaleBias.x = srcBuffer->GetWidth();
+			objectData.sampleScaleBias.y = srcBuffer->GetHeight();
+			objectData.sampleScaleBias.z = (0.5f / destBuffer->GetWidth()) * srcBuffer->GetWidth();
+			objectData.sampleScaleBias.w = (0.5f / destBuffer->GetHeight()) * srcBuffer->GetHeight();
+
+			objectData.minBuild = true;
+
+			command.objectUsage.binding = SHADER_BINDING_OBJECT;
+			command.objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+			command.objectUsage.binding = SHADER_BINDING_OBJECT;
+			command.objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
 			primaryBuffer->Render(command);
 
 			primaryBuffer->EndRenderPass();
@@ -271,10 +272,8 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 			struct ObjectData
 			{
 				int32_t minBuild;
-				uint32_t frameNum;
 			} objectData;
 			objectData.minBuild = true;
-			objectData.frameNum = KRenderGlobal::CurrentFrameNum;
 
 			command.objectUsage.binding = SHADER_BINDING_OBJECT;
 			command.objectUsage.range = sizeof(objectData);
@@ -308,6 +307,27 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			command.pipeline = m_ReadDepthPipeline;
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+
+			struct ObjectData
+			{
+				glm::vec4 sampleScaleBias;
+				int32_t minBuild;
+			} objectData;
+
+			IKFrameBufferPtr srcBuffer = KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer();
+			IKFrameBufferPtr destBuffer = m_HiZMinBuffer->GetFrameBuffer();
+
+			objectData.sampleScaleBias.x = srcBuffer->GetWidth();
+			objectData.sampleScaleBias.y = srcBuffer->GetHeight();
+			objectData.sampleScaleBias.z = (0.5f / destBuffer->GetWidth()) * srcBuffer->GetWidth();
+			objectData.sampleScaleBias.w = (0.5f / destBuffer->GetHeight()) * srcBuffer->GetHeight();
+
+			objectData.minBuild = false;
+
+			command.objectUsage.binding = SHADER_BINDING_OBJECT;
+			command.objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
 			primaryBuffer->Render(command);
 
 			primaryBuffer->EndRenderPass();
@@ -333,11 +353,9 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			struct ObjectData
 			{
-				int minBuild;
-				int baseDepth;
+				int32_t minBuild;
 			} objectData;
 			objectData.minBuild = false;
-			objectData.baseDepth = i == 0;
 
 			command.objectUsage.binding = SHADER_BINDING_OBJECT;
 			command.objectUsage.range = sizeof(objectData);
@@ -352,5 +370,28 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 	}
 	primaryBuffer->EndDebugMarker();
 
+	return true;
+}
+
+bool KHiZBuffer::ReloadShader()
+{
+	if (m_QuadVS)
+		m_QuadVS->Reload();
+	if (m_ReadDepthFS)
+		m_ReadDepthFS->Reload();
+	if (m_BuildHiZFS)
+		m_BuildHiZFS->Reload();
+	if (m_ReadDepthPipeline)
+	{
+		m_ReadDepthPipeline->Reload();
+	}
+	for (IKPipelinePtr& pipeline : m_BuildHiZMinPipelines)
+	{
+		pipeline->Reload();
+	}
+	for (IKPipelinePtr& pipeline : m_BuildHiZMaxPipelines)
+	{
+		pipeline->Reload();
+	}
 	return true;
 }

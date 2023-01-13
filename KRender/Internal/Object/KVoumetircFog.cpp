@@ -205,7 +205,7 @@ bool KVolumetricFog::KVolumetricFog::UnInit()
 void KVolumetricFog::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 {
 	KCamera camera = *m_MainCamera;
-	camera.SetNear(std::max(0.1f, m_Start));
+	camera.SetNear(camera.GetNear() + std::max(0.1f, m_Start));
 	camera.SetFar(camera.GetNear() + m_Depth);
 
 	m_ObjectData.frameNum = KRenderGlobal::CurrentFrameNum;

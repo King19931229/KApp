@@ -30,11 +30,36 @@ vec3 WorldPosToScreenPos(vec3 worldPos)
 	return screenPos.xyz;
 }
 
+vec3 ViewPosToScreenPos(vec3 viewPos)
+{
+	vec4 screenPos = camera.proj * vec4(viewPos, 1.0);
+	screenPos /= screenPos.w;
+	screenPos.xy = screenPos.xy * 0.5 + vec2(0.5);
+	return screenPos.xyz;
+}
+
 vec3 ScreenPosToWorldPos(vec3 screenPos)
 {
 	screenPos.xy = screenPos.xy * 2.0 - vec2(1.0);
 	vec4 worldPos = camera.viewInv * camera.projInv * vec4(screenPos, 1.0);
 	return worldPos.xyz / worldPos.w;
+}
+
+vec3 ScreenPosToViewPos(vec3 screenPos)
+{
+	screenPos.xy = screenPos.xy * 2.0 - vec2(1.0);
+	vec4 viewPos = camera.projInv * vec4(screenPos, 1.0);
+	return viewPos.xyz / viewPos.w;
+}
+
+void InitialMaxT(vec3 origin, vec3 reflectDir, vec3 invReflectDir, vec2 screenSize, in out float maxT)
+{
+	vec3 end;
+	end.x = reflectDir.x < 0 ? (0.5 / screenSize.x) : (1.0 - 0.5 / screenSize.x);
+	end.y = reflectDir.y < 0 ? (0.5 / screenSize.y) : (1.0 - 0.5 / screenSize.y);
+	end.z = reflectDir.z < 0 ? 0 : 1;
+	vec3 t = end * invReflectDir - origin * invReflectDir;
+	maxT = min(min(t.x, t.y), t.z);
 }
 
 void InitialAdvanceRay(vec3 origin, vec3 dir, vec3 invDir,
@@ -58,8 +83,11 @@ bool AdvanceRay(vec3 origin, vec3 dir, vec3 invDir,
 				vec2 floorOffset, vec2 uvOffset, float surfaceZ,
 				in out vec3 position, in out float currentT)
 {
+	bool aboveSurface = surfaceZ > position.z;
+
 	vec2 pos = floor(currentMipPosition) + floorOffset;
 	pos = pos * invCurrentMipResolution + uvOffset;
+	vec2 newPos = pos / invCurrentMipResolution;
 	vec3 boundaryPos = vec3(pos, surfaceZ);
 
 	// o + d * t = p' => t = (p' - o) / d
@@ -69,13 +97,12 @@ bool AdvanceRay(vec3 origin, vec3 dir, vec3 invDir,
 	float minT = min(min(t.x, t.y), t.z);
 	position = origin + minT * dir;
 
-	bool aboveSurface = surfaceZ > position.z;
-	bool skippedTile = floatBitsToUint(minT) != floatBitsToUint(t.z) && aboveSurface; 
-
 	// Make sure to only advance the ray if we're still above the surface.
-	currentT = skippedTile ? minT : currentT;
+	currentT = aboveSurface ? minT : currentT;
 	// Advance ray
 	position = origin + currentT * dir;
+
+	bool skippedTile = floatBitsToUint(minT) != floatBitsToUint(t.z) && aboveSurface; 
 
 	return skippedTile;
 }
@@ -91,7 +118,7 @@ float ValidateHit(vec3 hit, vec2 uv, vec3 directionWS, vec2 screenSize, float de
 
 	hit.xy = clamp(hit.xy, vec2(2.0) / screenSize, vec2(1.0) - vec2(2.0) / screenSize);
 
-	ivec2 texelCoords = ivec2(round(screenSize * hit.xy - vec2(0.5)));
+	ivec2 texelCoords = ivec2(screenSize * hit.xy);
 	float surfaceZ = textureLod(hiZ, hit.xy, 0).r;
 
 	if (surfaceZ == 1.0)
@@ -100,17 +127,19 @@ float ValidateHit(vec3 hit, vec2 uv, vec3 directionWS, vec2 screenSize, float de
 	vec4 gbuffer0Data = texture(gbuffer0, hit.xy);
 	vec3 hitNormal = normalize(DecodeNormal(gbuffer0Data));
 
-	if (dot(hitNormal, directionWS) > 0.0)
+	if (dot(hitNormal, directionWS) > 0)
 	{
 		return 0;
 	}
 
-	vec3 hitWSPos = ScreenPosToWorldPos(hit.xyz);
-	vec3 surfaceWSPos = ScreenPosToWorldPos(vec3(hit.xy, surfaceZ));
-	float hitDistance = length(hitWSPos - surfaceWSPos);
+	vec3 hitVSPos = ScreenPosToViewPos(hit.xyz);
+	vec3 surfaceVSPos = ScreenPosToViewPos(vec3(hit.xy, surfaceZ));
+	float hitDistance = length(hitVSPos - surfaceVSPos);
 
-	float confidence = 1 - smoothstep(0, depthThickness, hitDistance);
-	confidence *= confidence;
+	// float confidence = 1 - smoothstep(0, depthThickness, hitDistance);
+	// confidence *= confidence;
+
+	float confidence = hitDistance <= depthThickness ? 1.0 : 0.0;
 
 	vec2 fov = 0.05 * vec2(screenSize.y / screenSize.x, 1);
     vec2 border = smoothstep(vec2(0.0), fov, hit.xy) * (vec2(1.0) - smoothstep(vec2(1.0) - fov, vec2(1.0), hit.xy));
@@ -133,38 +162,43 @@ void main()
 #if ENABLE_JITTER
 	vec2 coord = screenSize * screenCoord - vec2(0.5);
 	uint seed = TEA(uint(coord.y * screenSize.x + coord.x), object.frameNum);
-	jitter.x = (2.0 * RND(seed) - 1.0f) * 0.999;
-	jitter.y = (2.0 * RND(seed) - 1.0f) * 0.999;
+	jitter.x = (2.0 * RND(seed) - 1.0f) * 0.4999;
+	jitter.y = (2.0 * RND(seed) - 1.0f) * 0.4999;
 #endif
 
 	vec2 uv = screenCoord + jitter / screenSize;
 
 	vec4 gbuffer0Data = texture(gbuffer0, uv);
 
-	vec4 cameraPos = camera.viewInv * camera.projInv * vec4(0,0,0,1);
-	cameraPos /= cameraPos.w;
-
 	float depth = LinearDepthToNonLinearDepth(camera.proj, DecodeDepth(gbuffer0Data));
-	vec3 originWSPos = DecodePosition(gbuffer0Data, uv);
-	vec3 originWSNormal = normalize(DecodeNormal(gbuffer0Data));
+	vec3 originVSPos = DecodePositionViewSpace(gbuffer0Data, uv);
+	vec3 originVSNormal = normalize(DecodeNormalViewSpace(gbuffer0Data));
 
-	vec3 viewWS = normalize(cameraPos.xyz - originWSPos);
-	vec3 reflectWSDir = reflect(-viewWS, originWSNormal);
-	vec3 reflectWSPos = originWSPos + reflectWSDir;
+	vec3 viewVS = normalize(-originVSPos);
+	vec3 reflectVSDir = normalize(reflect(-viewVS, originVSNormal));
+	vec3 reflectWSDir = (camera.viewInv * vec4(reflectVSDir, 0.0)).xyz;
+	vec3 reflectVSPos = originVSPos + reflectVSDir;
 
 	vec3 originPos = vec3(uv, depth);
-	vec3 reflectPos = WorldPosToScreenPos(reflectWSPos);
+	vec3 reflectPos = ViewPosToScreenPos(reflectVSPos);
 	vec3 reflectDir = reflectPos - originPos;
+	reflectDir.x = abs(reflectDir.x) == 0 ? 1e-20 : reflectDir.x;
+	reflectDir.y = abs(reflectDir.y) == 0 ? 1e-20 : reflectDir.y;
+	reflectDir.z = abs(reflectDir.z) == 0 ? 1e-20 : reflectDir.z;
+
 	vec3 invReflectDir = vec3(1.0) / reflectDir;
 
+	float maxT = 0.0;
+	InitialMaxT(originPos, reflectDir, invReflectDir, screenSize, maxT);
+
 	int stepCount = 0;
-	int currentMip = mostDetailMip;
+	int currentMip = 0;
 
 	vec2 currentMipResolution = textureSize(hiZ, currentMip);
 	vec2 invCurrentMipResolution = vec2(1.0) / currentMipResolution;
 
 	vec2 floorOffset = vec2(reflectDir.x > 0 ? 1 : 0, reflectDir.y > 0 ? 1 : 0);
-	vec2 uvOffset = 0.005 * exp2(float(mostDetailMip)) / screenSize;
+	vec2 uvOffset = 0.99 * exp2(float(mostDetailMip)) / screenSize;
 	uvOffset.x = reflectDir.x < 0 ? -uvOffset.x : uvOffset.x;
 	uvOffset.y = reflectDir.y < 0 ? -uvOffset.y : uvOffset.y;
 
@@ -175,18 +209,21 @@ void main()
 		currentMipResolution, invCurrentMipResolution,
 		floorOffset, uvOffset, position, t);
 
-	while (stepCount < maxStepCount && currentMip >= mostDetailMip)
+	while (stepCount < maxStepCount && currentMip >= mostDetailMip && t <= maxT)
 	{
-		currentMipResolution = textureSize(hiZ, currentMip);
-		invCurrentMipResolution = vec2(1.0) / currentMipResolution;
 		vec2 currentMipPosition = currentMipResolution * position.xy;
 		float surfaceZ = texelFetch(hiZ, ivec2(currentMipPosition), currentMip).r;
 		bool skippedTile = AdvanceRay(originPos, reflectDir, invReflectDir,
 			currentMipPosition, invCurrentMipResolution,
 			floorOffset, uvOffset, surfaceZ, position, t);
 		currentMip += skippedTile ? 1 : -1;
+		currentMipResolution *= skippedTile ? 0.5 : 2.0;
+		invCurrentMipResolution *= skippedTile ? 2.0 : 0.5;
 		++stepCount;
 	}
+
+	// outColor = vec4(float(stepCount) / float(maxStepCount));
+	// outColor = vec4(reflectVSDir, 0);
 
 	float confidence = ValidateHit(position, uv, reflectWSDir, screenSize, depthThickness);
 	outColor = confidence * texture(sceneColor, vec2(position.xy));
