@@ -1,4 +1,8 @@
 #include "public.h"
+#include "shading/gbuffer.h"
+#include "common.h"
+#include "sampling.h"
+#include "ssr_public.h"
 
 layout(location = 0) in vec2 screenCoord;
 
@@ -9,11 +13,8 @@ layout(binding = BINDING_TEXTURE3) uniform sampler2D gbuffer3;
 layout(binding = BINDING_TEXTURE4) uniform sampler2D sceneColor;
 layout(binding = BINDING_TEXTURE5) uniform sampler2D hiZ;
 
-layout(location = 0) out vec4 outColor;
-
-#include "shading/gbuffer.h"
-#include "common.h"
-#include "sampling.h"
+layout(location = 0) out vec4 hitImage;
+layout(location = 1) out vec4 maskImage;
 
 layout(binding = BINDING_OBJECT)
 uniform Object
@@ -21,36 +22,6 @@ uniform Object
 	int maxHiZMip;
 	uint frameNum;
 } object;
-
-vec3 WorldPosToScreenPos(vec3 worldPos)
-{
-	vec4 screenPos = camera.viewProj * vec4(worldPos, 1.0);
-	screenPos /= screenPos.w;
-	screenPos.xy = screenPos.xy * 0.5 + vec2(0.5);
-	return screenPos.xyz;
-}
-
-vec3 ViewPosToScreenPos(vec3 viewPos)
-{
-	vec4 screenPos = camera.proj * vec4(viewPos, 1.0);
-	screenPos /= screenPos.w;
-	screenPos.xy = screenPos.xy * 0.5 + vec2(0.5);
-	return screenPos.xyz;
-}
-
-vec3 ScreenPosToWorldPos(vec3 screenPos)
-{
-	screenPos.xy = screenPos.xy * 2.0 - vec2(1.0);
-	vec4 worldPos = camera.viewInv * camera.projInv * vec4(screenPos, 1.0);
-	return worldPos.xyz / worldPos.w;
-}
-
-vec3 ScreenPosToViewPos(vec3 screenPos)
-{
-	screenPos.xy = screenPos.xy * 2.0 - vec2(1.0);
-	vec4 viewPos = camera.projInv * vec4(screenPos, 1.0);
-	return viewPos.xyz / viewPos.w;
-}
 
 void InitialMaxT(vec3 origin, vec3 reflectDir, vec3 invReflectDir, vec2 screenSize, in out float maxT)
 {
@@ -142,8 +113,8 @@ float ValidateHit(vec3 hit, vec2 uv, vec3 directionWS, vec2 screenSize, float de
 	float confidence = hitDistance <= depthThickness ? 1.0 : 0.0;
 
 	vec2 fov = 0.05 * vec2(screenSize.y / screenSize.x, 1);
-    vec2 border = smoothstep(vec2(0.0), fov, hit.xy) * (vec2(1.0) - smoothstep(vec2(1.0) - fov, vec2(1.0), hit.xy));
-    float vignette = border.x * border.y;
+	vec2 border = smoothstep(vec2(0.0), fov, hit.xy) * (vec2(1.0) - smoothstep(vec2(1.0) - fov, vec2(1.0), hit.xy));
+	float vignette = border.x * border.y;
 
 	return vignette * confidence;
 }
@@ -152,7 +123,7 @@ float ValidateHit(vec3 hit, vec2 uv, vec3 directionWS, vec2 screenSize, float de
 
 void main()
 {
-	const int maxStepCount = 128;
+	const int maxStepCount = 64;
 	const int mostDetailMip = 0;
 	const float depthThickness = 5;
 
@@ -198,7 +169,7 @@ void main()
 	vec2 invCurrentMipResolution = vec2(1.0) / currentMipResolution;
 
 	vec2 floorOffset = vec2(reflectDir.x > 0 ? 1 : 0, reflectDir.y > 0 ? 1 : 0);
-	vec2 uvOffset = 0.99 * exp2(float(mostDetailMip)) / screenSize;
+	vec2 uvOffset = 0.05 * exp2(float(mostDetailMip)) / screenSize;
 	uvOffset.x = reflectDir.x < 0 ? -uvOffset.x : uvOffset.x;
 	uvOffset.y = reflectDir.y < 0 ? -uvOffset.y : uvOffset.y;
 
@@ -222,9 +193,7 @@ void main()
 		++stepCount;
 	}
 
-	// outColor = vec4(float(stepCount) / float(maxStepCount));
-	// outColor = vec4(reflectVSDir, 0);
-
 	float confidence = ValidateHit(position, uv, reflectWSDir, screenSize, depthThickness);
-	outColor = confidence * texture(sceneColor, vec2(position.xy));
+	hitImage = vec4(position, 1.0);
+	maskImage = vec4(confidence);
 }

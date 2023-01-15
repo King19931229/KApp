@@ -5,6 +5,8 @@ KScreenSpaceReflection::KScreenSpaceReflection()
 	: m_Width(0)
 	, m_Height(0)
 	, m_Ratio(1.0f)
+	, m_CurrentIdx(0)
+	, m_FirstFrame(false)
 {
 }
 
@@ -16,30 +18,106 @@ void KScreenSpaceReflection::InitializePipeline()
 {
 	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 
-	m_ReflectionPipeline->UnInit();
+	{
+		IKPipelinePtr& pipeline = m_ReflectionPipeline;
+		pipeline->UnInit();
 
-	m_ReflectionPipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
-	m_ReflectionPipeline->SetShader(ST_VERTEX, *m_QuadVS);
-	m_ReflectionPipeline->SetShader(ST_FRAGMENT, *m_ReflectionFS);
+		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
+		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
+		pipeline->SetShader(ST_FRAGMENT, *m_ReflectionFS);
 
-	m_ReflectionPipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-	m_ReflectionPipeline->SetBlendEnable(false);
-	m_ReflectionPipeline->SetCullMode(CM_NONE);
-	m_ReflectionPipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-	m_ReflectionPipeline->SetPolygonMode(PM_FILL);
-	m_ReflectionPipeline->SetColorWrite(true, true, true, true);
-	m_ReflectionPipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE1, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE2, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE3, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE4, KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-	m_ReflectionPipeline->SetSampler(SHADER_BINDING_TEXTURE5, KRenderGlobal::HiZBuffer.GetMinBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE3, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE4, KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE5, KRenderGlobal::HiZBuffer.GetMinBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), false);
 
-	m_ReflectionPipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
-	m_ReflectionPipeline->Init();
+		pipeline->Init();
+	}
+
+	{
+		IKPipelinePtr& pipeline = m_RayReusePipeline;
+		pipeline->UnInit();
+
+		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
+		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
+		pipeline->SetShader(ST_FRAGMENT, *m_RayReuseFS);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_HitResultTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_HitMaskTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE3, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+
+		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+
+		pipeline->Init();
+	}
+
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		IKPipelinePtr& pipeline = m_TemporalPipeline[i];
+		pipeline->UnInit();
+
+		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
+		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
+		pipeline->SetShader(ST_FRAGMENT, *m_TemporalFS);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_TemporalTarget[(i + 1) & 1]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_TemporalTarget[i]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_HitResultTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+
+		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+
+		pipeline->Init();
+	}
+
+	{
+		IKPipelinePtr& pipeline = m_BlitPipeline;
+		pipeline->UnInit();
+
+		pipeline->SetVertexBinding(KRenderGlobal::QuadDataProvider.GetVertexFormat(), KRenderGlobal::QuadDataProvider.GetVertexFormatArraySize());
+		pipeline->SetShader(ST_VERTEX, *m_QuadVS);
+		pipeline->SetShader(ST_FRAGMENT, *m_BlitFS);
+
+		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+		pipeline->SetBlendEnable(false);
+		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+		pipeline->SetPolygonMode(PM_FILL);
+		pipeline->SetColorWrite(true, true, true, true);
+		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_FinalTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+
+		pipeline->Init();
+	}
 }
 
 bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio)
@@ -48,12 +126,33 @@ bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio)
 
 	m_Ratio = ratio;
 
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HitResultTarget);
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HitMaskTarget);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_FinalTarget);
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_TemporalTarget[i]);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_TemporalPipeline[i]);
+		KRenderGlobal::RenderDevice->CreateRenderPass(m_RayReusePass[i]);
+		KRenderGlobal::RenderDevice->CreateRenderPass(m_BlitPass[i]);
+	}
+	KRenderGlobal::RenderDevice->CreatePipeline(m_RayReusePipeline);
 	KRenderGlobal::RenderDevice->CreatePipeline(m_ReflectionPipeline);
+	KRenderGlobal::RenderDevice->CreatePipeline(m_BlitPipeline);
 	KRenderGlobal::RenderDevice->CreateRenderPass(m_ReflectionPass);
+	KRenderGlobal::RenderDevice->CreateRenderPass(m_TemporalPass);
 
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr.frag", m_ReflectionFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_reuse.frag", m_RayReuseFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_temporal.frag", m_TemporalFS, false);
+	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_blit.frag", m_BlitFS, false);
+
+	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
+	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+
+	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer);
+	m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
 
 	Resize(width, height);
 
@@ -64,13 +163,31 @@ bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio)
 
 bool KScreenSpaceReflection::UnInit()
 {
+	SAFE_UNINIT(m_PrimaryCommandBuffer);
+	SAFE_UNINIT(m_CommandPool);
+
 	m_DebugDrawer.UnInit();
+	SAFE_UNINIT(m_HitResultTarget);
+	SAFE_UNINIT(m_HitMaskTarget);
 	SAFE_UNINIT(m_FinalTarget);
-	SAFE_UNINIT(m_ReflectionPipeline);
-	SAFE_UNINIT(m_ReflectionPass);
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		SAFE_UNINIT(m_TemporalTarget[i]);
+		SAFE_UNINIT(m_TemporalPipeline[i]);
+		SAFE_UNINIT(m_RayReusePass[i]);
+		SAFE_UNINIT(m_BlitPass[i]);
+	}
+	SAFE_UNINIT(m_RayReusePipeline);
+	SAFE_UNINIT(m_ReflectionPipeline);	
+	SAFE_UNINIT(m_BlitPipeline);
+	SAFE_UNINIT(m_ReflectionPass);	
+	SAFE_UNINIT(m_TemporalPass);
 
 	m_QuadVS.Release();
 	m_ReflectionFS.Release();
+	m_RayReuseFS.Release();
+	m_TemporalFS.Release();
+	m_BlitFS.Release();
 
 	return true;
 }
@@ -81,27 +198,101 @@ bool KScreenSpaceReflection::ReloadShader()
 		m_QuadVS->Reload();
 	if (m_ReflectionFS)
 		m_ReflectionFS->Reload();
+	if (m_RayReuseFS)
+		m_RayReuseFS->Reload();
+	if (m_TemporalFS)
+		m_TemporalFS->Reload();
+	if (m_BlitFS)
+		m_BlitFS->Reload();
 	if (m_ReflectionPipeline)
 		m_ReflectionPipeline->Reload();
-
+	if (m_RayReusePipeline)
+		m_RayReusePipeline->Reload();
+	if (m_BlitPipeline)
+		m_BlitPipeline->Reload();
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		if (m_TemporalPipeline[i])
+			m_TemporalPipeline[i]->Reload();
+	}
 	return true;
 }
 
 bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 {
+	m_CurrentIdx = 0;
+	m_FirstFrame = true;
+
 	m_Width = std::max((uint32_t)(width * m_Ratio), 1U);
 	m_Height = std::max((uint32_t)(height * m_Ratio), 1U);
 
+	m_HitResultTarget->UnInit();
+	m_HitResultTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+
+	m_HitMaskTarget->UnInit();
+	m_HitMaskTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8_UNORM);
+
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		m_TemporalTarget[i]->UnInit();
+		m_TemporalTarget[i]->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+	}
+
 	m_FinalTarget->UnInit();
-	m_FinalTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8GB8BA8_UNORM);
+	m_FinalTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
 
 	m_ReflectionPass->UnInit();
-	m_ReflectionPass->SetColorAttachment(0, m_FinalTarget->GetFrameBuffer());
+	m_ReflectionPass->SetColorAttachment(0, m_HitResultTarget->GetFrameBuffer());
+	m_ReflectionPass->SetColorAttachment(1, m_HitMaskTarget->GetFrameBuffer());
 	m_ReflectionPass->SetOpColor(0, LO_CLEAR, SO_STORE);
 	m_ReflectionPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+	m_ReflectionPass->SetOpColor(1, LO_CLEAR, SO_STORE);
+	m_ReflectionPass->SetClearColor(1, { 0.0f, 0.0f, 0.0f, 0.0f });
 	ASSERT_RESULT(m_ReflectionPass->Init());
 
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		m_RayReusePass[i]->UnInit();
+		m_RayReusePass[i]->SetColorAttachment(0, m_TemporalTarget[i]->GetFrameBuffer());
+		m_RayReusePass[i]->SetOpColor(0, LO_CLEAR, SO_STORE);
+		m_RayReusePass[i]->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		ASSERT_RESULT(m_RayReusePass[i]->Init());
+	}
+
+	m_TemporalPass->UnInit();
+	m_TemporalPass->SetColorAttachment(0, m_FinalTarget->GetFrameBuffer());
+	m_TemporalPass->SetOpColor(0, LO_CLEAR, SO_STORE);
+	m_TemporalPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+	ASSERT_RESULT(m_TemporalPass->Init());
+
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		m_BlitPass[i]->UnInit();
+		m_BlitPass[i]->SetColorAttachment(0, m_TemporalTarget[i]->GetFrameBuffer());
+		m_BlitPass[i]->SetOpColor(0, LO_CLEAR, SO_STORE);
+		m_BlitPass[i]->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		ASSERT_RESULT(m_BlitPass[i]->Init());
+	}
+
 	InitializePipeline();
+
+	m_PrimaryCommandBuffer->BeginPrimary();
+
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		m_PrimaryCommandBuffer->BeginRenderPass(m_BlitPass[i], SUBPASS_CONTENTS_INLINE);
+		m_PrimaryCommandBuffer->SetViewport(m_BlitPass[i]->GetViewPort());
+		m_PrimaryCommandBuffer->EndRenderPass();
+		m_PrimaryCommandBuffer->Translate(m_TemporalTarget[i]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	}
+
+	m_PrimaryCommandBuffer->BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
+	m_PrimaryCommandBuffer->SetViewport(m_TemporalPass->GetViewPort());
+	m_PrimaryCommandBuffer->EndRenderPass();
+	m_PrimaryCommandBuffer->Translate(m_FinalTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+	m_PrimaryCommandBuffer->End();
+	m_PrimaryCommandBuffer->Flush();
 
 	return true;
 }
@@ -113,8 +304,16 @@ bool KScreenSpaceReflection::DebugRender(IKRenderPassPtr renderPass, IKCommandBu
 
 bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 {
-	primaryBuffer->BeginDebugMarker("SSR", glm::vec4(0, 1, 0, 0));
+	if (m_FirstFrame)
 	{
+		m_FirstFrame = false;
+		return true;
+	}
+
+	primaryBuffer->BeginDebugMarker("SSR", glm::vec4(0, 1, 0, 0));
+
+	{
+		primaryBuffer->BeginDebugMarker("SSR_Trace", glm::vec4(0, 1, 0, 0));
 		primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		primaryBuffer->BeginRenderPass(m_ReflectionPass, SUBPASS_CONTENTS_INLINE);
@@ -147,11 +346,109 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 
 		primaryBuffer->EndRenderPass();
 
-		primaryBuffer->Translate(m_FinalTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_HitResultTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_HitMaskTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		primaryBuffer->EndDebugMarker();
 	}
+
+	{
+		primaryBuffer->BeginDebugMarker("SSR_RayReuse", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		primaryBuffer->BeginRenderPass(m_RayReusePass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_RayReusePass[m_CurrentIdx]->GetViewPort());
+
+		KRenderCommand command;
+		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+		command.indexDraw = true;
+
+		struct ObjectData
+		{
+		} objectData;
+
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		// command.objectUsage = objectUsage;
+
+		command.pipeline = m_RayReusePipeline;
+		command.pipeline->GetHandle(m_RayReusePass[m_CurrentIdx], command.pipelineHandle);
+
+		primaryBuffer->Render(command);
+
+		primaryBuffer->EndRenderPass();
+
+		primaryBuffer->Translate(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		primaryBuffer->EndDebugMarker();
+	}
+
+	{
+		primaryBuffer->BeginDebugMarker("SSR_Temporal", glm::vec4(0, 1, 0, 0));
+
+		primaryBuffer->BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_TemporalPass->GetViewPort());
+
+		KRenderCommand command;
+		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+		command.indexDraw = true;
+
+		struct ObjectData
+		{
+		} objectData;
+
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		// command.objectUsage = objectUsage;
+
+		command.pipeline = m_TemporalPipeline[m_CurrentIdx];
+		command.pipeline->GetHandle(m_TemporalPass, command.pipelineHandle);
+
+		primaryBuffer->Render(command);
+
+		primaryBuffer->EndRenderPass();
+
+		primaryBuffer->Translate(m_FinalTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		primaryBuffer->EndDebugMarker();
+	}
+
+	{
+		primaryBuffer->BeginDebugMarker("SSR_Blit", glm::vec4(0, 1, 0, 0));
+
+		primaryBuffer->BeginRenderPass(m_BlitPass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_BlitPass[m_CurrentIdx]->GetViewPort());
+
+		KRenderCommand command;
+		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+		command.indexDraw = true;
+
+		command.pipeline = m_BlitPipeline;
+		command.pipeline->GetHandle(m_BlitPass[m_CurrentIdx], command.pipelineHandle);
+
+		primaryBuffer->Render(command);
+
+		primaryBuffer->EndRenderPass();
+
+		primaryBuffer->Translate(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		primaryBuffer->EndDebugMarker();
+	}
+
 	primaryBuffer->EndDebugMarker();
+
+	m_CurrentIdx ^= 1;
 
 	return true;
 }

@@ -231,8 +231,8 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 			IKFrameBufferPtr srcBuffer = KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer();
 			IKFrameBufferPtr destBuffer = m_HiZMinBuffer->GetFrameBuffer();
 
-			objectData.sampleScaleBias.x = srcBuffer->GetWidth();
-			objectData.sampleScaleBias.y = srcBuffer->GetHeight();
+			objectData.sampleScaleBias.x = (float)srcBuffer->GetWidth();
+			objectData.sampleScaleBias.y = (float)srcBuffer->GetHeight();
 			objectData.sampleScaleBias.z = (0.5f / destBuffer->GetWidth()) * srcBuffer->GetWidth();
 			objectData.sampleScaleBias.w = (0.5f / destBuffer->GetHeight()) * srcBuffer->GetHeight();
 
@@ -317,8 +317,8 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 			IKFrameBufferPtr srcBuffer = KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer();
 			IKFrameBufferPtr destBuffer = m_HiZMinBuffer->GetFrameBuffer();
 
-			objectData.sampleScaleBias.x = srcBuffer->GetWidth();
-			objectData.sampleScaleBias.y = srcBuffer->GetHeight();
+			objectData.sampleScaleBias.x = (float)srcBuffer->GetWidth();
+			objectData.sampleScaleBias.y = (float)srcBuffer->GetHeight();
 			objectData.sampleScaleBias.z = (0.5f / destBuffer->GetWidth()) * srcBuffer->GetWidth();
 			objectData.sampleScaleBias.w = (0.5f / destBuffer->GetHeight()) * srcBuffer->GetHeight();
 
