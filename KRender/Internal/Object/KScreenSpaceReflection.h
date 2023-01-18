@@ -8,7 +8,11 @@ protected:
 	IKRenderTargetPtr m_HitResultTarget;
 	IKRenderTargetPtr m_HitMaskTarget;
 	IKRenderTargetPtr m_TemporalTarget[2];
+	IKRenderTargetPtr m_TemporalSquaredTarget[2];
+	IKRenderTargetPtr m_TemporalTsppTarget[2];
 	IKRenderTargetPtr m_FinalTarget;
+	IKRenderTargetPtr m_FinalSquaredTarget;
+	IKRenderTargetPtr m_FinalTsppTarget;
 	uint32_t m_Width;
 	uint32_t m_Height;
 	uint32_t m_CurrentIdx;

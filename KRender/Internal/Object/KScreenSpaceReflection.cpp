@@ -92,6 +92,9 @@ void KScreenSpaceReflection::InitializePipeline()
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_TemporalTarget[(i + 1) & 1]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_TemporalTarget[i]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_HitResultTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE3, m_TemporalSquaredTarget[(i + 1) & 1]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE4, m_TemporalTsppTarget[(i + 1) & 1]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE5, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
@@ -115,6 +118,8 @@ void KScreenSpaceReflection::InitializePipeline()
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_FinalTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_FinalSquaredTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_FinalTsppTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 
 		pipeline->Init();
 	}
@@ -129,9 +134,13 @@ bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio)
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HitResultTarget);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HitMaskTarget);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_FinalTarget);
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_FinalSquaredTarget);
+	KRenderGlobal::RenderDevice->CreateRenderTarget(m_FinalTsppTarget);
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		KRenderGlobal::RenderDevice->CreateRenderTarget(m_TemporalTarget[i]);
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_TemporalSquaredTarget[i]);
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_TemporalTsppTarget[i]);
 		KRenderGlobal::RenderDevice->CreatePipeline(m_TemporalPipeline[i]);
 		KRenderGlobal::RenderDevice->CreateRenderPass(m_RayReusePass[i]);
 		KRenderGlobal::RenderDevice->CreateRenderPass(m_BlitPass[i]);
@@ -170,9 +179,14 @@ bool KScreenSpaceReflection::UnInit()
 	SAFE_UNINIT(m_HitResultTarget);
 	SAFE_UNINIT(m_HitMaskTarget);
 	SAFE_UNINIT(m_FinalTarget);
+	SAFE_UNINIT(m_FinalSquaredTarget);
+	SAFE_UNINIT(m_FinalTsppTarget);
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		SAFE_UNINIT(m_TemporalTarget[i]);
+		SAFE_UNINIT(m_TemporalSquaredTarget[i]);
+		SAFE_UNINIT(m_TemporalTsppTarget[i]);
+
 		SAFE_UNINIT(m_TemporalPipeline[i]);
 		SAFE_UNINIT(m_RayReusePass[i]);
 		SAFE_UNINIT(m_BlitPass[i]);
@@ -236,10 +250,22 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 	{
 		m_TemporalTarget[i]->UnInit();
 		m_TemporalTarget[i]->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+
+		m_TemporalSquaredTarget[i]->UnInit();
+		m_TemporalSquaredTarget[i]->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+
+		m_TemporalTsppTarget[i]->UnInit();
+		m_TemporalTsppTarget[i]->InitFromColor(m_Width, m_Height, 1, 1, EF_R8_UNORM);
 	}
 
 	m_FinalTarget->UnInit();
 	m_FinalTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+
+	m_FinalSquaredTarget->UnInit();
+	m_FinalSquaredTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+
+	m_FinalTsppTarget->UnInit();
+	m_FinalTsppTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8_UNORM);
 
 	m_ReflectionPass->UnInit();
 	m_ReflectionPass->SetColorAttachment(0, m_HitResultTarget->GetFrameBuffer());
@@ -263,14 +289,33 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 	m_TemporalPass->SetColorAttachment(0, m_FinalTarget->GetFrameBuffer());
 	m_TemporalPass->SetOpColor(0, LO_CLEAR, SO_STORE);
 	m_TemporalPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+
+	m_TemporalPass->SetColorAttachment(1, m_FinalSquaredTarget->GetFrameBuffer());
+	m_TemporalPass->SetOpColor(1, LO_CLEAR, SO_STORE);
+	m_TemporalPass->SetClearColor(1, { 0.0f, 0.0f, 0.0f, 0.0f });
+
+	m_TemporalPass->SetColorAttachment(2, m_FinalTsppTarget->GetFrameBuffer());
+	m_TemporalPass->SetOpColor(2, LO_CLEAR, SO_STORE);
+	m_TemporalPass->SetClearColor(2, { 0.0f, 0.0f, 0.0f, 0.0f });
+
 	ASSERT_RESULT(m_TemporalPass->Init());
 
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		m_BlitPass[i]->UnInit();
+
 		m_BlitPass[i]->SetColorAttachment(0, m_TemporalTarget[i]->GetFrameBuffer());
 		m_BlitPass[i]->SetOpColor(0, LO_CLEAR, SO_STORE);
 		m_BlitPass[i]->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+
+		m_BlitPass[i]->SetColorAttachment(1, m_TemporalSquaredTarget[i]->GetFrameBuffer());
+		m_BlitPass[i]->SetOpColor(1, LO_CLEAR, SO_STORE);
+		m_BlitPass[i]->SetClearColor(1, { 0.0f, 0.0f, 0.0f, 0.0f });
+
+		m_BlitPass[i]->SetColorAttachment(2, m_TemporalTsppTarget[i]->GetFrameBuffer());
+		m_BlitPass[i]->SetOpColor(2, LO_CLEAR, SO_STORE);
+		m_BlitPass[i]->SetClearColor(2, { 0.0f, 0.0f, 0.0f, 0.0f });
+
 		ASSERT_RESULT(m_BlitPass[i]->Init());
 	}
 
@@ -284,6 +329,8 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 		m_PrimaryCommandBuffer->SetViewport(m_BlitPass[i]->GetViewPort());
 		m_PrimaryCommandBuffer->EndRenderPass();
 		m_PrimaryCommandBuffer->Translate(m_TemporalTarget[i]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		m_PrimaryCommandBuffer->Translate(m_TemporalSquaredTarget[i]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		m_PrimaryCommandBuffer->Translate(m_TemporalTsppTarget[i]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	m_PrimaryCommandBuffer->BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
@@ -419,6 +466,8 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->EndRenderPass();
 
 		primaryBuffer->Translate(m_FinalTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_FinalSquaredTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_FinalTsppTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		primaryBuffer->EndDebugMarker();
 	}
@@ -442,6 +491,8 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->EndRenderPass();
 
 		primaryBuffer->Translate(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_TemporalSquaredTarget[m_CurrentIdx]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_TemporalTsppTarget[m_CurrentIdx]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		primaryBuffer->EndDebugMarker();
 	}

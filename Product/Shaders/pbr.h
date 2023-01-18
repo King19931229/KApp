@@ -61,7 +61,7 @@ vec2 Hammersley(uint i, uint N)
 	return vec2(float(i)/float(N), RadicalInverse_VdC(i));
 }
 
-vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
+vec4 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 {
 	float a = roughness * roughness;
 
@@ -81,7 +81,13 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 	vec3 bitangent = cross(N, tangent);
 
 	vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
-	return normalize(sampleVec);
+
+	float a2 = a * a;
+	float d = (cosTheta * a2 - cosTheta) * cosTheta + 1;
+	float D = a2 / (PI * d * d);
+	float pdf = D * cosTheta;
+
+	return vec4(normalize(sampleVec), pdf);
 }
 
 // https://www.shadertoy.com/view/MlXXW4

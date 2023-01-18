@@ -73,7 +73,13 @@ void main()
 
 	vec3 viewVS = normalize(-originVSPos);
 
+	float roughness = 1e-3;
+#if SSR_OVERRIDE_ROUGHNESS
+	roughness = SSR_ROUGHNESS;
+#endif
+
 	vec4 result = vec4(0);
+	vec4 mask = vec4(0);
 	float weightSum = 0;
 
 	for(int i = 0; i < NEIGHBOR_COUNT; ++i)
@@ -82,23 +88,25 @@ void main()
 		vec2 uv = screenCoord + offset;
 
 		vec4 hitResult = texture(hitImage, uv);
-		float hitMask = texture(maskImage, uv).r;
-
-		float pdf = hitResult.w;
+		vec4 hitMask = texture(maskImage, uv);
+		float pdf = hitResult.w;;
 
 		vec4 hitColor;
 		hitColor.xyz = texture(sceneColorImage, hitResult.xy).rgb;
-		hitColor.w = hitMask;
+		hitColor.w = pdf;
 
 		vec3 hitVSPos = ScreenPosToViewPos(hitResult.xyz);
 
-		float brdf = BRDF(originVSNormal, viewVS, normalize(hitVSPos - originVSPos), 1e-3);
+		float brdf = BRDF(originVSNormal, viewVS, normalize(hitVSPos - originVSPos), roughness);
 		float weight = brdf / pdf;
 
 		result += hitColor * weight;
+		mask += hitMask * weight;
 		weightSum += weight;
 	}
 
 	result /= weightSum;
-	outColor = result;
+	mask /= weightSum;
+
+	outColor = vec4(result.rgb, mask.r);
 }
