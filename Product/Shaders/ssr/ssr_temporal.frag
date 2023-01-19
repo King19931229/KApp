@@ -17,6 +17,7 @@ layout(binding = BINDING_TEXTURE5) uniform sampler2D gbuffer0;
 layout(location = 0) out vec4 outSSR;
 layout(location = 1) out vec4 outSquaredSSR;
 layout(location = 2) out vec4 outTspp;
+layout(location = 3) out vec4 outVariance;
 
 vec2 ComputeMotion(vec3 screenPos)
 {
@@ -148,7 +149,8 @@ void main()
 		weight *= depthWeight;
 		weight *= normalWeight;
 
-		tssp = min(weight * (historyTssp + currentTspp), 255);
+		const float maxTspp = 128;
+		tssp = min(weight * (historyTssp + currentTspp), maxTspp);
 	}
 	else
 	{
@@ -157,7 +159,7 @@ void main()
 
 	if (tssp > 4)
 	{
-		float factor = weight * 0.98;
+		float factor = weight * 0.95;
 		mean = mix(current, history, factor);
 		squaredMean = mix(currentSquared, historySquared, factor);
 		variance = max(vec4(0.0), squaredMean - mean * mean);		
@@ -181,7 +183,7 @@ void main()
 	vec4 minColor = current;
 	vec4 maxColor = current;
 
-	float stdDevGamma = 2.0;
+	float stdDevGamma = 1.0;
 	const float clamping_minStdDevTolerance = 0.05;
 	vec4 localStdDev = max(stdDevGamma * sqrt(variance), vec4(clamping_minStdDevTolerance));
 	minColor = mean - localStdDev;
@@ -201,4 +203,5 @@ void main()
 	outSSR = valid ? result : vec4(0);
 	outSquaredSSR = valid ? result * result : vec4(0);
 	outTspp = vec4(valid ? (tssp / 255.0) : 0);
+	outVariance = variance;
 }

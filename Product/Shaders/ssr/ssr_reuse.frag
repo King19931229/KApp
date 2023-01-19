@@ -73,7 +73,7 @@ void main()
 
 	vec3 viewVS = normalize(-originVSPos);
 
-	float roughness = 1e-3;
+	float roughness = 0;
 #if SSR_OVERRIDE_ROUGHNESS
 	roughness = SSR_ROUGHNESS;
 #endif
@@ -89,7 +89,7 @@ void main()
 
 		vec4 hitResult = texture(hitImage, uv);
 		vec4 hitMask = texture(maskImage, uv);
-		float pdf = hitResult.w;;
+		float pdf = max(hitResult.w, MEDIUMP_FLT_MIN);
 
 		vec4 hitColor;
 		hitColor.xyz = texture(sceneColorImage, hitResult.xy).rgb;
@@ -98,7 +98,7 @@ void main()
 		vec3 hitVSPos = ScreenPosToViewPos(hitResult.xyz);
 
 		float brdf = BRDF(originVSNormal, viewVS, normalize(hitVSPos - originVSPos), roughness);
-		float weight = brdf / pdf;
+		float weight = max(brdf / pdf, MEDIUMP_FLT_MIN);
 
 		result += hitColor * weight;
 		mask += hitMask * weight;

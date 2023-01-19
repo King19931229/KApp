@@ -151,7 +151,7 @@ void main()
 
 	vec3 viewVS = normalize(-originVSPos);
 
-	float roughness = 1e-3;
+	float roughness = 0;
 #if SSR_OVERRIDE_ROUGHNESS
 	roughness = SSR_ROUGHNESS;
 #endif

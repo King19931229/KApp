@@ -4,6 +4,7 @@
 #if defined(BOX_KERNEL_3X3)
 	const uint Radius = 1;
 	const uint Width = 1 + 2 * Radius;
+	const float Kernel1D[Width] = { 1. / 3, 1. / 3, 1. / 3 };
 	const float Kernel[Width][Width] =
 	{
 		{ 1. / 9, 1. / 9, 1. / 9 },
@@ -14,6 +15,7 @@
 #elif defined(BOX_KERNEL_5X5)
 	const uint Radius = 2;
 	const uint Width = 1 + 2 * Radius;
+	const float Kernel1D[Width] = { 1. / 5, 1. / 5, 1. / 5, 1. / 5, 1. / 5 };
 	const float Kernel[Width][Width] =
 	{
 		{ 1. / 25, 1. / 25, 1. / 25, 1. / 25, 1. / 25  },
@@ -26,6 +28,17 @@
 #elif defined(BOX_KERNEL_7X7)
 	const uint Radius = 3;
 	const uint Width = 1 + 2 * Radius;
+	const float Kernel1D[Width] = { 1. / 7, 1. / 7, 1. / 7, 1. / 7, 1. / 7, 1. / 7, 1. / 7 };
+	const float Kernel[Width][Width] =
+	{
+		{ 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49  },
+		{ 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49  },
+		{ 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49  },
+		{ 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49  },
+		{ 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49  },
+		{ 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49  },
+		{ 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49, 1. / 49  },
+	};
 
 #elif defined(GAUSSIAN_KERNEL_3X3)
 	const uint Radius = 1;

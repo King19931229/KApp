@@ -83,7 +83,7 @@ vec4 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 	vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
 
 	float a2 = a * a;
-	float d = (cosTheta * a2 - cosTheta) * cosTheta + 1;
+	float d = max((cosTheta * a2 - cosTheta) * cosTheta + 1, MEDIUMP_FLT_MIN);
 	float D = a2 / (PI * d * d);
 	float pdf = D * cosTheta;
 

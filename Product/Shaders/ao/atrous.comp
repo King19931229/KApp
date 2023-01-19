@@ -30,14 +30,14 @@ float DepthThreshold(float depth, vec2 ddxy, vec2 pixelOffset)
 }
 
 void AddFilterContribution(
-	in out float weightedValueSum, 
-	in out float weightSum, 
-	float value, 
+	in out float weightedValueSum,
+	in out float weightSum,
+	float value,
 	float stdDeviation,
-	float depth, 
-	vec3 normal, 
+	float depth,
+	vec3 normal,
 	vec2 ddxy,
-	uint row, 
+	uint row,
 	uint col,
 	ivec2 curSamplePos,
 	ivec2 kernelStep,
@@ -47,9 +47,6 @@ void AddFilterContribution(
  	const float valueSigma = 1.0;
 	const float normalSigma = 64.0;
 	const float depthSigma = 1.0;
-
-	float kernelWidth;
-	float varianceScale = 1;
 
 	ivec2 pixelOffset = ivec2(int(row) - int(Radius), int(col) - int(Radius)) * kernelStep;
 	ivec2 samplePos = curSamplePos + pixelOffset;
@@ -129,7 +126,7 @@ void main()
 
 	const uint minKernelWidth = 3;
 	const uint maxKernelWidth = 28;
-	const float minVarianceToDenoise = 0.0;
+	const float minVarianceToDenoise = 0;
 
 	if (variance >= minVarianceToDenoise)
 	{

@@ -635,6 +635,7 @@ bool KRenderCore::UpdateUIOverlay()
 				if (ui->Header("SSR"))
 				{
 					ui->CheckBox("SSRDebugDraw", &KRenderGlobal::ScreenSpaceReflection.GetDebugDrawEnable());
+					ui->SliderInt("SSRAtrous", &KRenderGlobal::ScreenSpaceReflection.GetAtrousLevel(), 0, 5);
 				}
 			}
 			ui->PopItemWidth();

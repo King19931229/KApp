@@ -10,11 +10,15 @@ protected:
 	IKRenderTargetPtr m_TemporalTarget[2];
 	IKRenderTargetPtr m_TemporalSquaredTarget[2];
 	IKRenderTargetPtr m_TemporalTsppTarget[2];
+	IKRenderTargetPtr m_BlurTarget[2];
 	IKRenderTargetPtr m_FinalTarget;
 	IKRenderTargetPtr m_FinalSquaredTarget;
 	IKRenderTargetPtr m_FinalTsppTarget;
+	IKRenderTargetPtr m_VarianceTarget;
+	IKRenderTargetPtr m_ComposeTarget;
 	uint32_t m_Width;
 	uint32_t m_Height;
+	int32_t m_AtrousLevel;
 	uint32_t m_CurrentIdx;
 	float m_Ratio;
 	bool m_FirstFrame;
@@ -24,15 +28,21 @@ protected:
 	KShaderRef m_RayReuseFS;
 	KShaderRef m_TemporalFS;
 	KShaderRef m_BlitFS;
+	KShaderRef m_AtrousFS;
+	KShaderRef m_ComposeFS;
 
 	IKPipelinePtr m_ReflectionPipeline;
 	IKPipelinePtr m_RayReusePipeline;
 	IKPipelinePtr m_TemporalPipeline[2];
+	IKPipelinePtr m_AtrousPipeline[2];
+	IKPipelinePtr m_ComposePipeline[2];
 	IKPipelinePtr m_BlitPipeline;
 	IKRenderPassPtr m_ReflectionPass;
 	IKRenderPassPtr m_RayReusePass[2];
 	IKRenderPassPtr m_BlitPass[2];
 	IKRenderPassPtr m_TemporalPass;
+	IKRenderPassPtr m_AtrousPass[2];
+	IKRenderPassPtr m_ComposePass;
 
 	IKCommandBufferPtr m_PrimaryCommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
@@ -48,6 +58,7 @@ public:
 	bool UnInit();
 
 	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }
+	int32_t& GetAtrousLevel() { return m_AtrousLevel; }
 
 	bool ReloadShader();
 	bool Resize(uint32_t width, uint32_t height);
