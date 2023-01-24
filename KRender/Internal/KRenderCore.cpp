@@ -189,6 +189,7 @@ bool KRenderCore::InitController()
 			KRenderGlobal::HiZOcclusion.ReloadShader();
 			KRenderGlobal::VolumetricFog.Reload();
 			KRenderGlobal::ScreenSpaceReflection.ReloadShader();
+			KRenderGlobal::DepthOfField.ReloadShader();
 		}
 	};
 
@@ -632,9 +633,20 @@ bool KRenderCore::UpdateUIOverlay()
 					ui->SliderFloat("FogAnisotropy", &KRenderGlobal::VolumetricFog.GetAnisotropy(), 0.0f, 1.0f);
 					ui->SliderFloat("FogDensity", &KRenderGlobal::VolumetricFog.GetDensity(), 0.0f, 1.0f);
 				}
+				if (ui->Header("DOF"))
+				{
+					ui->CheckBox("DOFDebugDraw", &KRenderGlobal::DepthOfField.GetDebugDrawEnable());
+					ui->SliderFloat("DOFCocLimit", &KRenderGlobal::DepthOfField.GetCocLimit(), 0.001f, 1.0f);
+					ui->SliderFloat("DOFFStop", &KRenderGlobal::DepthOfField.GetFStop(), 0.50f, 128.0f);
+					// ui->SliderFloat("DOFFocalLength", &KRenderGlobal::DepthOfField.GetFocalLength(), 1.0f, 5000.0f);
+					ui->SliderFloat("DOFFocusDistance", &KRenderGlobal::DepthOfField.GetFocusDistance(), 1.0f, 5000.0f);
+					// ui->SliderFloat("DOFNear", &KRenderGlobal::DepthOfField.GetNearRange(), 1.0f, 5000.0f);
+					ui->SliderFloat("DOFFar", &KRenderGlobal::DepthOfField.GetFarRange(), 1.0f, 5000.0f);
+				}
 				if (ui->Header("SSR"))
 				{
 					ui->CheckBox("SSRDebugDraw", &KRenderGlobal::ScreenSpaceReflection.GetDebugDrawEnable());
+					ui->SliderInt("SSRRayReuse", &KRenderGlobal::ScreenSpaceReflection.GetRayReuseCount(), 1, 9);
 					ui->SliderInt("SSRAtrous", &KRenderGlobal::ScreenSpaceReflection.GetAtrousLevel(), 0, 5);
 				}
 			}

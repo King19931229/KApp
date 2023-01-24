@@ -118,6 +118,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DeferredRenderer.SkyPass(m_PrimaryBuffer);
 
 		//
+		KRenderGlobal::DepthOfField.Execute(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.CopySceneColorToFinal(m_PrimaryBuffer);
 
 		KRenderGlobal::DeferredRenderer.DebugObject(m_PrimaryBuffer);
@@ -173,7 +174,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::CascadedShadowMap.Init(camera, 3, 2048, width, height);
 
 	// KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, width, height);
-	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, width, height);
+	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, width, height, 0.5f);
 
 	KRenderGlobal::VolumetricFog.Init(64, 64, 128, (camera->GetFar() - camera->GetNear()) * 0.5f, width, height, camera);
 
@@ -182,6 +183,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::DeferredRenderer.Init(camera, width, height);
 
 	KRenderGlobal::ScreenSpaceReflection.Init(width, height, 0.5f);
+	KRenderGlobal::DepthOfField.Init(width, height, 0.5f);
 
 	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
 	KRenderGlobal::FrameGraph.Alloc();
@@ -229,6 +231,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 		KRenderGlobal::RTAO.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::HiZOcclusion.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::ScreenSpaceReflection.DebugRender(renderPass, primaryBuffer);
+		KRenderGlobal::DepthOfField.DebugRender(renderPass, primaryBuffer);
 	};
 
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
@@ -265,6 +268,7 @@ bool KRenderer::UnInit()
 	KRenderGlobal::ClipmapVoxilzer.UnInit();
 	KRenderGlobal::VolumetricFog.UnInit();
 	KRenderGlobal::ScreenSpaceReflection.UnInit();
+	KRenderGlobal::DepthOfField.UnInit();
 
 	KRenderGlobal::RayTraceManager.UnInit();
 	KRenderGlobal::HiZOcclusion.UnInit();
@@ -451,6 +455,7 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::ClipmapVoxilzer.Resize(width, height);
 	KRenderGlobal::VolumetricFog.Resize(width, height);
 	KRenderGlobal::ScreenSpaceReflection.Resize(width, height);
+	KRenderGlobal::DepthOfField.Resize(width, height);
 	KRenderGlobal::RTAO.Resize();
 	KRenderGlobal::RayTraceManager.Resize(width, height);
 }

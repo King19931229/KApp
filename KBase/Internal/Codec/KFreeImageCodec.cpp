@@ -213,14 +213,6 @@ bool KFreeImageCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& 
 	return bSuccess;
 }
 
-static FREE_IMAGE_FORMAT ExtToFreeImageFormat(const char* pszExt)
-{
-	if (strcmp(pszExt, "png") == 0) return FIF_PNG;
-	if (strcmp(pszExt, "jpeg") == 0) return FIF_JPEG;
-	if (strcmp(pszExt, "tga") == 0) return FIF_TARGA;
-	return FIF_UNKNOWN;
-}
-
 bool KFreeImageCodec::Save(const KCodecResult& source, const char* pszFile)
 {
 	bool bSuccess = false;
@@ -233,7 +225,7 @@ bool KFreeImageCodec::Save(const KCodecResult& source, const char* pszFile)
 	if (ext.length() && ext[0] == '.')
 		ext = ext.substr(1);
 
-	FREE_IMAGE_FORMAT fif = ExtToFreeImageFormat(ext.c_str());
+	FREE_IMAGE_FORMAT fif = FreeImage_GetFIFFromFormat(ext.c_str());
 
 	if (source.eFormat == IF_R8G8B8A8 && fif != FIF_UNKNOWN && ms_SupportExts.find(ext) != ms_SupportExts.end())
 	{

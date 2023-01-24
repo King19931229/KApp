@@ -32,6 +32,6 @@ vec3 ScreenPosToViewPos(vec3 screenPos)
 }
 
 #define SSR_OVERRIDE_ROUGHNESS 1
-#define SSR_ROUGHNESS 1.0
+#define SSR_ROUGHNESS 0.40
 
 #endif

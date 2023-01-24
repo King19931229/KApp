@@ -29,6 +29,10 @@ vec2 ComputeMotion(vec3 screenPos)
 	vec4 prevNdc = camera.prevViewProj * worldPos;
 	prevNdc /= prevNdc.w;
 
+	// vec4 currentNdc = camera.viewProj * worldPos;
+	// currentNdc /= currentNdc.w;
+	// return 0.5 * (prevNdc.xy - currentNdc.xy);
+
 	return 0.5 * prevNdc.xy + vec2(0.5) - screenPos.xy;
 }
 
@@ -79,8 +83,8 @@ void main()
 	vec4 result = vec4(0);
 
 	float hitDepth = texture(hitImage, screenCoord).z;
-	vec3 mirrorPos = vec3(screenCoord, hitDepth);
 
+	vec3 mirrorPos = vec3(screenCoord, hitDepth);
 	vec2 motion = ComputeMotion(mirrorPos);
 	vec2 hitoryUV = screenCoord + motion;
 
@@ -88,7 +92,7 @@ void main()
 	vec4 historySquared = vec4(0);
 	float historyTssp = 0;
 
-	const float weightSigma = 1.0;
+	const float distanceSigma = 1.0;
 	const float depthSigma = 1.0;
 	const float depthWeightCutoff = 0.5;
 	const float normalSigma = 1.1;
@@ -96,7 +100,7 @@ void main()
 
 	float motionLength = length(motion);
 
-	float motionWeight = pow(1.0 - 8.0 * motionLength, weightSigma);
+	float motionWeight = pow(1.0 - 8.0 * motionLength, distanceSigma);
 	float depthWeight = 1.0;
 	float normalWeight = 1.0;
 
@@ -128,11 +132,11 @@ void main()
 			vec4 gbuffer0Data;
 
 			gbuffer0Data = texture(gbuffer0, screenCoord);
-			float currentDepth = LinearDepthToNonLinearDepth(camera.proj, DecodeDepth(gbuffer0Data));
+			float currentDepth = DecodeDepth(gbuffer0Data);
 			vec3 currentVSNormal = normalize(DecodeNormalViewSpace(gbuffer0Data));
 
 			gbuffer0Data = texture(gbuffer0, hitoryUV);
-			float historyDepth = LinearDepthToNonLinearDepth(camera.proj, DecodeDepth(gbuffer0Data));
+			float historyDepth = DecodeDepth(gbuffer0Data);
 			vec3 historyVSNormal = normalize(DecodeNormalViewSpace(gbuffer0Data));
 
 			vec2 dxdy = vec2(dFdx(currentDepth), dFdy(currentDepth));
@@ -199,7 +203,7 @@ void main()
 		result = current;
 
 	bool valid = result.w > 0;
-
+	
 	outSSR = valid ? result : vec4(0);
 	outSquaredSSR = valid ? result * result : vec4(0);
 	outTspp = vec4(valid ? (tssp / 255.0) : 0);

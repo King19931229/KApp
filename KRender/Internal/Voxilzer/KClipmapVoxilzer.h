@@ -120,6 +120,7 @@ protected:
 	uint32_t m_BorderSize;
 	uint32_t m_ClipLevelCount;
 	float m_BaseVoxelSize;
+	float m_ScreenRatio;
 
 	IKCommandBufferPtr m_PrimaryCommandBuffer;
 	IKCommandBufferPtr m_DrawCommandBuffer;
@@ -234,7 +235,7 @@ public:
 	IKFrameBufferPtr GetVoxelRadiance() { return m_VoxelRadiance ? m_VoxelRadiance->GetFrameBuffer() : nullptr; }
 	IKFrameBufferPtr GetVoxelVisibility() { return m_VoxelVisibility ? m_VoxelVisibility->GetFrameBuffer() : nullptr; }
 
-	bool Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount,	uint32_t baseVoxelSize, uint32_t width, uint32_t height);
+	bool Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount,	uint32_t baseVoxelSize, uint32_t width, uint32_t height, float ratio);
 	bool UnInit();
 
 	inline IKRenderTargetPtr GetFinalMask() { return m_LightPassTarget; }

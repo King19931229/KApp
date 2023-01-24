@@ -36,6 +36,7 @@
 #include "Internal/Voxilzer/KClipmapVoxilzer.h"
 
 #include "Internal/Object/KScreenSpaceReflection.h"
+#include "Internal/Object/KDepthOfField.h"
 
 #include "Internal/Object/KQuadDataProvider.h"
 
@@ -75,6 +76,7 @@ namespace KRenderGlobal
 	extern KClipmapVoxilzer ClipmapVoxilzer;
 	extern KVolumetricFog VolumetricFog;
 	extern KScreenSpaceReflection ScreenSpaceReflection;
+	extern KDepthOfField DepthOfField;
 
 	extern KQuadDataProvider QuadDataProvider;
 

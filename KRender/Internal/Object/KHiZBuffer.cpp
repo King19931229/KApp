@@ -118,11 +118,13 @@ bool KHiZBuffer::Resize(uint32_t width, uint32_t height)
 		KRenderGlobal::RenderDevice->CreateRenderPass(m_HiZMinRenderPass[mipmap]);
 		m_HiZMinRenderPass[mipmap]->SetColorAttachment(0, m_HiZMinBuffer->GetFrameBuffer());
 		m_HiZMinRenderPass[mipmap]->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		m_HiZMinRenderPass[mipmap]->SetOpColor(0, LO_DONT_CARE, SO_STORE);
 		m_HiZMinRenderPass[mipmap]->Init(mipmap);
 
 		KRenderGlobal::RenderDevice->CreateRenderPass(m_HiZMaxRenderPass[mipmap]);
 		m_HiZMaxRenderPass[mipmap]->SetColorAttachment(0, m_HiZMaxBuffer->GetFrameBuffer());
 		m_HiZMaxRenderPass[mipmap]->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		m_HiZMaxRenderPass[mipmap]->SetOpColor(0, LO_DONT_CARE, SO_STORE);
 		m_HiZMaxRenderPass[mipmap]->Init(mipmap);
 	}
 

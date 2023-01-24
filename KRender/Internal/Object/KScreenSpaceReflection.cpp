@@ -5,6 +5,7 @@ KScreenSpaceReflection::KScreenSpaceReflection()
 	: m_Width(0)
 	, m_Height(0)
 	, m_Ratio(1.0f)
+	, m_RayReuseCount(4)
 	, m_AtrousLevel(0)
 	, m_CurrentIdx(0)
 	, m_FirstFrame(false)
@@ -473,10 +474,9 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 	}
 
 	primaryBuffer->BeginDebugMarker("SSR", glm::vec4(0, 1, 0, 0));
-
+	primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	{
 		primaryBuffer->BeginDebugMarker("SSR_Trace", glm::vec4(0, 1, 0, 0));
-		primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		primaryBuffer->BeginRenderPass(m_ReflectionPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_ReflectionPass->GetViewPort());
@@ -488,11 +488,11 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 
 		struct ObjectData
 		{
-			int32_t maxHiZMip;
 			uint32_t frameNum;
+			int32_t maxHiZMip;
 		} objectData;
-		objectData.maxHiZMip = (int32_t)KRenderGlobal::HiZBuffer.GetNumMips() - 1;
 		objectData.frameNum = KRenderGlobal::CurrentFrameNum;
+		objectData.maxHiZMip = (int32_t)KRenderGlobal::HiZBuffer.GetNumMips() - 1;
 
 		KDynamicConstantBufferUsage objectUsage;
 		objectUsage.binding = SHADER_BINDING_OBJECT;
@@ -511,13 +511,11 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->Translate(m_HitResultTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		primaryBuffer->Translate(m_HitMaskTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 		primaryBuffer->EndDebugMarker();
 	}
 
 	{
 		primaryBuffer->BeginDebugMarker("SSR_RayReuse", glm::vec4(0, 1, 0, 0));
-		primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		primaryBuffer->BeginRenderPass(m_RayReusePass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_RayReusePass[m_CurrentIdx]->GetViewPort());
@@ -529,14 +527,18 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 
 		struct ObjectData
 		{
+			uint32_t frameNum;
+			int32_t reuseCount;
 		} objectData;
+		objectData.reuseCount = m_RayReuseCount;
+		objectData.frameNum = KRenderGlobal::CurrentFrameNum;
 
 		KDynamicConstantBufferUsage objectUsage;
 		objectUsage.binding = SHADER_BINDING_OBJECT;
 		objectUsage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-		// command.objectUsage = objectUsage;
+		command.objectUsage = objectUsage;
 
 		command.pipeline = m_RayReusePipeline;
 		command.pipeline->GetHandle(m_RayReusePass[m_CurrentIdx], command.pipelineHandle);
@@ -547,7 +549,6 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 
 		primaryBuffer->Translate(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 		primaryBuffer->EndDebugMarker();
 	}
 
@@ -681,7 +682,7 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 
 		primaryBuffer->EndDebugMarker();
 	}
-
+	primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 	primaryBuffer->EndDebugMarker();
 
 	m_CurrentIdx ^= 1;

@@ -170,6 +170,7 @@ KClipmapVoxilzer::KClipmapVoxilzer()
 	, m_BorderSize(1)
 	, m_ClipLevelCount(3)
 	, m_BaseVoxelSize(16.0f)
+	, m_ScreenRatio(1.0f)
 	, m_InjectFirstBounce(true)
 	, m_VoxelDrawEnable(false)
 	, m_VoxelDrawWireFrame(true)
@@ -187,11 +188,11 @@ KClipmapVoxilzer::~KClipmapVoxilzer()
 
 void KClipmapVoxilzer::Resize(uint32_t width, uint32_t height)
 {
-	m_Width = width;
-	m_Height = height;
+	m_Width = std::max(uint32_t(width * m_ScreenRatio), 1U);
+	m_Height = std::max(uint32_t(height * m_ScreenRatio), 1U);
 
 	m_LightPassTarget->UnInit();
-	m_LightPassTarget->InitFromColor(width, height, 1, 1, EF_R8GB8BA8_UNORM);
+	m_LightPassTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8GB8BA8_UNORM);
 
 	m_LightPassRenderPass->UnInit();
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
@@ -1136,14 +1137,13 @@ bool KClipmapVoxilzer::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPt
 	return m_LightDebugDrawer.Render(renderPass, primaryBuffer);
 }
 
-bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount, uint32_t baseVoxelSize, uint32_t width, uint32_t height)
+bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount, uint32_t baseVoxelSize, uint32_t width, uint32_t height, float ratio)
 {
 	UnInit();
 
 	m_Scene = scene;
 	m_Camera = camera;
-	m_Width = width;
-	m_Height = height;
+	m_ScreenRatio = ratio;
 
 	m_VolumeDimension = dimension;
 	m_BaseVoxelSize = (float)baseVoxelSize;

@@ -2,6 +2,7 @@
 #include "pbr.h"
 #include "shading/gbuffer.h"
 #include "common.h"
+#include "sampling.h"
 #include "ssr_public.h"
 
 layout(location = 0) in vec2 screenCoord;
@@ -13,43 +14,7 @@ layout(binding = BINDING_TEXTURE3) uniform sampler2D gbuffer0;
 
 layout(location = 0) out vec4 outColor;
 
-#define NEIGHBOR_REUSE_CLOSE 0
-#define NEIGHBOR_REUSE_MEDIUM 1
-#define NEIGHBOR_REUSE_HIGH 2
-
-#define NEIGHBOR_REUSE NEIGHBOR_REUSE_MEDIUM
-
-#if NEIGHBOR_REUSE == NEIGHBOR_REUSE_CLOSE
-#define NEIGHBOR_COUNT 1
-vec2 sample_offset[NEIGHBOR_COUNT] =
-{
-	vec2(0, 0)
-};
-#elif NEIGHBOR_REUSE == NEIGHBOR_REUSE_MEDIUM
-#define NEIGHBOR_COUNT 5
-vec2 sample_offset[NEIGHBOR_COUNT] =
-{
-	vec2(-1, -1),
-	vec2(-1, 1),
-	vec2(0, 0),
-	vec2(1, -1),
-	vec2(1, 1)
-};
-#elif NEIGHBOR_REUSE == NEIGHBOR_REUSE_HIGH
-#define NEIGHBOR_COUNT 9
-vec2 sample_offset[NEIGHBOR_COUNT] =
-{
-	vec2(-1, -1),
-	vec2(-1, 0),
-	vec2(-1, 1),
-	vec2(0, -1),
-	vec2(0, 0),
-	vec2(0, 1),
-	vec2(1, -1),
-	vec2(1, 0),
-	vec2(1, 1)
-};
-#endif
+const vec2 sample_offset[9] = { vec2(0.0, 0.0), vec2(-2.0, -2.0), vec2(0.0, -2.0), vec2(2.0, -2.0), vec2(-2.0, 0.0), vec2(2.0, 0.0), vec2(-2.0, 2.0), vec2(0.0, 2.0), vec2(2.0, 2.0) };
 
 float BRDF(vec3 N, vec3 V, vec3 L, float roughness)
 {
@@ -59,11 +24,31 @@ float BRDF(vec3 N, vec3 V, vec3 L, float roughness)
 	return NDF * G * PI / 4.0;
 }
 
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	uint frameNum;
+	int reuseCount;
+} object;
+
 void main()
 {
-	vec4 hitResult = texture(hitImage, screenCoord);
-	vec2 screenSize = vec2(textureSize(hitImage, 0));
+	uint frameNum = object.frameNum;
+	uint reuseCount = min(max(1, object.reuseCount), 9);
+
+	vec2 screenSize = textureSize(hitImage, 0);
 	vec2 invScreenSize = vec2(1.0) / screenSize;
+
+	vec2 jitter = vec2(0);
+	vec2 coord = screenSize * screenCoord - vec2(0.5);
+
+	uint seed = TEA(uint(coord.y * screenSize.x + coord.x), object.frameNum);
+	jitter.x = RND(seed);
+	jitter.y = RND(seed);
+
+	mat2 rotationMat = mat2(jitter.x, -jitter.y, jitter.y, -jitter.x);
+
+	vec4 hitResult = texture(hitImage, screenCoord);
 
 	vec4 gbuffer0Data = texture(gbuffer0, screenCoord);
 
@@ -82,9 +67,10 @@ void main()
 	vec4 mask = vec4(0);
 	float weightSum = 0;
 
-	for(int i = 0; i < NEIGHBOR_COUNT; ++i)
+	for(int i = 0; i < reuseCount; ++i)
 	{
 		vec2 offset = sample_offset[i] * invScreenSize;
+		offset = rotationMat * offset;
 		vec2 uv = screenCoord + offset;
 
 		vec4 hitResult = texture(hitImage, uv);

@@ -106,8 +106,8 @@ bool KHiZOcclusion::Init()
 
 		m_PositionTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, EF_R32G32B32A32_FLOAT);
 		m_ExtentTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, EF_R32G32B32A32_FLOAT);
-		m_ResultTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, EF_R8GB8BA8_UNORM);
-		m_ResultReadbackTargets[frameIdx]->InitFromReadback(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, EF_R8GB8BA8_UNORM);
+		m_ResultTargets[frameIdx]->InitFromColor(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, EF_R8_UNORM);
+		m_ResultReadbackTargets[frameIdx]->InitFromReadback(OCCLUSION_TARGRT_DIMENSION, OCCLUSION_TARGRT_DIMENSION, 1, 1, EF_R8_UNORM);
 
 		KRenderGlobal::RenderDevice->CreatePipeline(m_PreparePipelines[frameIdx]);
 		KRenderGlobal::RenderDevice->CreatePipeline(m_ExecutePipelines[frameIdx]);
@@ -219,15 +219,15 @@ void KHiZOcclusion::PullCandidatesResult()
 	IKFrameBufferPtr dest = m_ResultReadbackTargets[KRenderGlobal::CurrentFrameIndex]->GetFrameBuffer();
 	src->CopyToReadback(dest.get());
 
-	std::vector<uint32_t> readback;
+	std::vector<uint8_t> readback;
 	readback.resize(src->GetWidth() * src->GetHeight());
-	dest->Readback(readback.data(), 0, readback.size() * sizeof(uint32_t));
+	dest->Readback(readback.data(), 0, readback.size() * sizeof(uint8_t));
 
 	for (uint32_t y = 0; y < OCCLUSION_TARGRT_DIMENSION; ++y)
 	{
 		for (uint32_t x = 0; x < OCCLUSION_TARGRT_DIMENSION; ++x)
 		{
-			uint32_t data = readback[y * OCCLUSION_TARGRT_DIMENSION + x];
+			uint8_t data = readback[y * OCCLUSION_TARGRT_DIMENSION + x];
 			uint32_t idx = XYToIndex(x, y);
 			if (idx < candidates.size())
 			{

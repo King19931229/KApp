@@ -18,6 +18,7 @@ protected:
 	IKRenderTargetPtr m_ComposeTarget;
 	uint32_t m_Width;
 	uint32_t m_Height;
+	int32_t m_RayReuseCount;
 	int32_t m_AtrousLevel;
 	uint32_t m_CurrentIdx;
 	float m_Ratio;
@@ -59,6 +60,7 @@ public:
 
 	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }
 	int32_t& GetAtrousLevel() { return m_AtrousLevel; }
+	int32_t& GetRayReuseCount() { return m_RayReuseCount; }
 
 	bool ReloadShader();
 	bool Resize(uint32_t width, uint32_t height);

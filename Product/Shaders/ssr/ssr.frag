@@ -20,8 +20,8 @@ layout(location = 1) out vec4 maskImage;
 layout(binding = BINDING_OBJECT)
 uniform Object
 {
-	int maxHiZMip;
 	uint frameNum;
+	int maxHiZMip;
 } object;
 
 void InitialMaxT(vec3 origin, vec3 reflectDir, vec3 invReflectDir, vec2 screenSize, in out float maxT)
@@ -131,7 +131,6 @@ void main()
 
 	vec2 screenSize = textureSize(hiZ, 0);
 	vec2 jitter = vec2(0);
-
 	vec2 coord = screenSize * screenCoord - vec2(0.5);
 #if ENABLE_JITTER
 	{

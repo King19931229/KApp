@@ -105,6 +105,7 @@
     <ClInclude Include="Internal\Manager\KSamplerManager.h" />
     <ClInclude Include="Internal\Manager\KShaderManager.h" />
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
+    <ClInclude Include="Internal\Object\KDepthOfField.h" />
     <ClInclude Include="Internal\Object\KGBuffer.h" />
     <ClInclude Include="Internal\Object\KHiZBuffer.h" />
     <ClInclude Include="Internal\Object\KHiZOcclusion.h" />
@@ -220,6 +221,7 @@
     <ClCompile Include="Internal\Manager\KSamplerManager.cpp" />
     <ClCompile Include="Internal\Manager\KShaderManager.cpp" />
     <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
+    <ClCompile Include="Internal\Object\KDepthOfField.cpp" />
     <ClCompile Include="Internal\Object\KGBuffer.cpp" />
     <ClCompile Include="Internal\Object\KHiZBuffer.cpp" />
     <ClCompile Include="Internal\Object\KHiZOcclusion.cpp" />
