@@ -83,7 +83,7 @@ IKDataStreamPtr KSourceFile::PostProcessDataStream(IKDataStreamPtr input)
 			rawFileData += "\n";
 		}
 
-		if (*rawFileData.rbegin() == '\n')
+		if (!rawFileData.empty() && *rawFileData.rbegin() == '\n')
 			rawFileData.erase(rawFileData.end() - 1);
 
 		if (EarseComment(fileData, rawFileData))

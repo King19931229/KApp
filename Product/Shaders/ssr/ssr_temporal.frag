@@ -92,7 +92,12 @@ void main()
 	vec4 historySquared = vec4(0);
 	float historyTssp = 0;
 
-	const float distanceSigma = 1.0;
+	float roughness = 0;
+#if SSR_OVERRIDE_ROUGHNESS
+	roughness = SSR_ROUGHNESS;
+#endif
+
+	const float motionSigma = 1.0 + 2.0 * (1.0 - roughness);
 	const float depthSigma = 1.0;
 	const float depthWeightCutoff = 0.5;
 	const float normalSigma = 1.1;
@@ -100,9 +105,14 @@ void main()
 
 	float motionLength = length(motion);
 
-	float motionWeight = pow(1.0 - 8.0 * motionLength, distanceSigma);
+	float motionWeight = pow(1.0 - 8.0 * motionLength, motionSigma);
 	float depthWeight = 1.0;
 	float normalWeight = 1.0;
+
+	if (roughness < 0.1 && dot(motionLength, motionLength) > 4 * dot(invScreenSize, invScreenSize))
+	{
+		motionWeight = 0;
+	}
 
 	if (hitoryUV.x < invScreenSize.x || hitoryUV.y < invScreenSize.y || hitoryUV.x > (1 - invScreenSize.x) || hitoryUV.y > (1 - invScreenSize.y))
 	{

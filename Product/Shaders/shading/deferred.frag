@@ -15,6 +15,7 @@ layout(binding = BINDING_TEXTURE7) uniform sampler2D scatteringMask;
 layout(location = 0) out vec4 outColor;
 
 #include "gbuffer.h"
+#include "util.h"
 
 void DecodeGBuffer(in vec2 uv, out vec3 worldPos, out vec3 worldNormal, out vec2 motion, out vec3 baseColor, out vec3 specularColor)
 {
@@ -45,7 +46,8 @@ void main()
 
 	float NdotL = max(dot(worldNormal, sunDir), 0.0);
 
-	vec3 indirect = texture(giMask, screenCoord).rgb;
+	// texture(giMask, screenCoord).rgb;
+	vec3 indirect = Texture2DTricubic(giMask, screenCoord).rgb;
 	vec3 direct = texture(shadowMask, screenCoord).r * baseColor * NdotL;
 	float ao = texture(aoMask, screenCoord).r;
 	vec3 final = direct + ao * indirect;

@@ -562,7 +562,8 @@ void KCascadedShadowMap::UpdateStaticCascades()
 	size_t numCascaded = m_StaticCascadeds.size();
 	float minCascadedShadowRange = m_ShadowRange / powf(2.0f, (float)(numCascaded - 1));
 
-	if (glm::length(m_StaticCenter - m_MainCamera->GetPosition()) > minCascadedShadowRange * 0.2f)
+	glm::vec3 diff = m_MainCamera->GetPosition() - m_StaticCenter;
+	if (std::max(abs(diff.z), std::max(abs(diff.x), abs(diff.y))) > minCascadedShadowRange * 0.5f)
 	{
 		m_StaticShoudUpdate = true;
 	}
@@ -1058,6 +1059,8 @@ bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTarg
 
 				glm::vec3 min = glm::max(receiverMin, frustumBoxMin);
 				glm::vec3 max = glm::min(receiverMax, frustumBoxMax);
+
+				max = glm::max(max, min);
 
 				receiverBox.InitFromMinMax(min, max);
 			}

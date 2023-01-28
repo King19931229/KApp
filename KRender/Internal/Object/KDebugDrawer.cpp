@@ -77,7 +77,8 @@ bool KDebugDrawSharedData::UnInit()
 }
 
 KRTDebugDrawer::KRTDebugDrawer()
-	: m_Enable(false)
+	: m_Pipeline(nullptr)
+	, m_Enable(false)
 {
 }
 

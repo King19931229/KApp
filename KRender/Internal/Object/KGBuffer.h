@@ -36,6 +36,7 @@ protected:
 	IKRenderTargetPtr m_DepthStencilTarget;
 	IKRenderTargetPtr m_AOTarget;
 	IKSamplerPtr m_GBufferSampler;
+	IKSamplerPtr m_GBufferClosestSampler;
 public:
 	KGBuffer();
 	~KGBuffer();
@@ -51,4 +52,5 @@ public:
 	inline IKRenderTargetPtr GetDepthStencilTarget() { return m_DepthStencilTarget; }
 	inline IKRenderTargetPtr GetAOTarget() { return m_AOTarget; }
 	inline IKSamplerPtr GetSampler() { return m_GBufferSampler; }
+	inline IKSamplerPtr GetClosestSampler() { return m_GBufferSampler; }
 };

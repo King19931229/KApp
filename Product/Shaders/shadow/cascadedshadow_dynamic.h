@@ -27,6 +27,12 @@ uint CalcDynamicCSMIndex(vec3 worldPos)
 
 float CalcDyanmicCSMShadow(uint cascaded, vec3 worldPos)
 {
+	const mat4 biasMat = mat4(
+		0.5, 0.0, 0.0, 0.0,
+		0.0, 0.5, 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		0.5, 0.5, 0.0, 1.0 );
+
 	vec4 shadowCoord = (biasMat * dynamic_cascaded.light_view_proj[cascaded]) * vec4(worldPos, 1.0);
 
 	vec2 lightRadiusUV = dynamic_cascaded.lightInfo[cascaded].xy;
@@ -82,6 +88,56 @@ vec4 CalcDynamicCSM(vec3 worldPos)
 	vec4 outColor;
 	uint cascaded = CalcDynamicCSMIndex(worldPos);
 	float shadow = CalcDyanmicCSMShadow(cascaded, worldPos);
+	if (debug_layer)
+	{
+		outColor = shadow * BlendCSMColor(cascaded, vec4(1.0f));
+	}
+	else
+	{
+		outColor = vec4(shadow);
+	}
+	return outColor;
+}
+
+float CalcDynamicCSMHardShadow(uint cascaded, vec3 worldPos)
+{
+	const mat4 biasMat = mat4(
+		0.5, 0.0, 0.0, 0.0,
+		0.0, 0.5, 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		0.5, 0.5, 0.0, 1.0);
+
+	vec4 shadowCoord = (biasMat * dynamic_cascaded.light_view_proj[cascaded]) * vec4(worldPos, 1.0);
+	vec2 uv = shadowCoord.xy;
+	float z = shadowCoord.z;
+
+	float shadow = 1.0;
+
+	if(cascaded == 0)
+	{
+		shadow = HardShadow(cascadedDynamicShadowSampler0, uv, z);
+	}
+	else if(cascaded == 1)
+	{
+		shadow = HardShadow(cascadedDynamicShadowSampler1, uv, z);
+	}
+	else if(cascaded == 2)
+	{
+		shadow = HardShadow(cascadedDynamicShadowSampler2, uv, z);
+	}
+	else if(cascaded == 3)
+	{
+		shadow = HardShadow(cascadedDynamicShadowSampler3, uv, z);
+	}
+
+	return 1.0 - shadow;
+}
+
+vec4 CalcDynamicCSMHard(vec3 worldPos)
+{
+	vec4 outColor;
+	uint cascaded = CalcDynamicCSMIndex(worldPos);
+	float shadow = CalcDynamicCSMHardShadow(cascaded, worldPos);
 	if (debug_layer)
 	{
 		outColor = shadow * BlendCSMColor(cascaded, vec4(1.0f));

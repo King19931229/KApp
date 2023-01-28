@@ -30,6 +30,7 @@ vec2 multComplex(vec2 p, vec2 q)
 
 void main()
 {
+	float focusDistance = object.dofParams[1];
 	float nearDof = object.dofParams2[1];
 	float farDof = object.dofParams2[2];
 	float maxRadius = object.dofParams2[3];
@@ -46,7 +47,7 @@ void main()
 	vec2 stepSize = vec2(1.0) / textureSize(cocImage, 0);
 	vec4 filteredColor = vec4(0, 0, 0, 0);
 
-	if (dis < nearDof)
+	if (dis < focusDistance)
 	{
 		vec2 valR = vec2(0, 0);
 		vec2 valG = vec2(0, 0);
@@ -73,7 +74,7 @@ void main()
 		float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY_1);
 		filteredColor = vec4(vec3(redChannel, greenChannel, blueChannel), 1);
 	}
-	else if(dis > farDof)
+	else
 	{
 		vec4 valR = vec4(0, 0, 0, 0);
 		vec4 valG = vec4(0, 0, 0, 0);

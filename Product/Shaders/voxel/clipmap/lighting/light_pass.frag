@@ -1,10 +1,11 @@
 #include "public.h"
 #include "voxel/clipmap/voxel_clipmap_common.h"
+#include "interleave_mapping.h"
 #include "shading/gbuffer.h"
 
 layout(location = 0) out vec4 fragColor;
 
-layout(location = 0) in vec2 texCoord;
+layout(location = 0) in vec2 screenCoord;
 
 layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_RT0) uniform sampler2D gbuffer0;
 layout(binding = VOXEL_CLIPMAP_BINDING_GBUFFER_RT1) uniform sampler2D gbuffer1;
@@ -25,6 +26,11 @@ float lastExtent = voxel_clipmap.region_max_and_extent[levelCount - 1].w;
 vec3 lastRegionMin = voxel_clipmap.region_min_and_voxelsize[levelCount - 1].xyz;
 vec3 lastRegionMax = voxel_clipmap.region_max_and_extent[levelCount - 1].xyz;
 
+vec2 texCoord = screenCoord;
+
+const ivec2 blockSize = ivec2(2, 3);
+const ivec2 splitSize = ivec2(4, 4);
+
 const vec3 diffuseConeDirections[] =
 {
 	vec3(0.0f, 1.0f, 0.0f),
@@ -44,6 +50,15 @@ const float diffuseConeWeights[] =
 	3.0f * PI / 20.0f,
 	3.0f * PI / 20.0f,
 };
+
+layout(binding = BINDING_OBJECT)
+uniform Object
+{
+	ivec4 params;
+} object;
+
+ivec2 texSize = object.params.xy;
+bool useInterleave = object.params.z != 0;
 
 vec4 SampleClipmap(vec3 posW, uint clipmapLevel, uvec3 visibleFace, vec3 weight)
 {
@@ -424,7 +439,7 @@ vec3 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 specu
 	return directLighting;
 }
 
-vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 specular, bool ambientOcclusion)
+vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 specular, bool ambientOcclusion, out float diffuseWeight)
 {
 	vec4 specularTrace = vec4(0.0f);
 	vec4 diffuseTrace = vec4(0.0f);
@@ -442,8 +457,10 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 		specularTrace.rgb *= specular.rgb;
 	}
 
+	diffuseWeight = 0.0;
+
 	// component greater than zero
-	if(any(greaterThan(albedo, diffuseTrace.rgb)))
+	if (any(greaterThan(albedo, diffuseTrace.rgb)))
 	{
 		// diffuse cone setup
 		const float aperture = 0.57735f;
@@ -458,12 +475,37 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 		vec3 right = normalize(guide - dot(normal, guide) * normal);
 		vec3 up = cross(right, normal);
 
-		for(int i = 0; i < 6; i++)
+		if (true)
 		{
+			uint i = BlockIndex(texCoord, blockSize, texSize);
+			// const vec3 debugColor[] =
+			// {
+			// 	vec3(1.0f, 0.0f, 0.0f),
+			// 	vec3(0.0f, 1.0f, 0.0f),
+			// 	vec3(0.0f, 0.0f, 1.0f),
+			// 	vec3(0.0f, 1.0f, 1.0f),
+			// 	vec3(1.0f, 0.0f, 1.0f),
+			// 	vec3(1.0f, 1.0f, 0.0f),
+			// };
+			// diffuseTrace = vec4(debugColor[i], 1);
+			// diffuseWeight = 1.0;
+			// return diffuseTrace;
+
 			coneDirection = diffuseConeDirections[i].y * normal + diffuseConeDirections[i].x * right + diffuseConeDirections[i].z * up;
 			coneDirection = normalize(coneDirection);
-			// cumulative result
-			diffuseTrace += TraceCone(position, normal, coneDirection, aperture, ambientOcclusion) * diffuseConeWeights[i];
+			diffuseTrace = TraceCone(position, normal, coneDirection, aperture, ambientOcclusion);
+			diffuseWeight = diffuseConeWeights[i];
+		}
+		else
+		{
+			for (uint i = 0; i < 6; ++i)
+			{
+				coneDirection = diffuseConeDirections[i].y * normal + diffuseConeDirections[i].x * right + diffuseConeDirections[i].z * up;
+				coneDirection = normalize(coneDirection);
+				// cumulative result
+				diffuseTrace += TraceCone(position, normal, coneDirection, aperture, ambientOcclusion) * diffuseConeWeights[i];
+			}
+			diffuseWeight = 1.0;
 		}
 
 		diffuseTrace.rgb *= albedo;
@@ -478,8 +520,12 @@ const uint mode = 3;
 
 void main()
 {
+	if (useInterleave)
+		texCoord = InterleaveMappingWithSplit(texCoord, blockSize, splitSize, texSize);
+	// texCoord = InterleaveUnmappingWithSplit(texCoord, blockSize, splitSize, texSize);
+
 	vec4 gbuffer0Data = texture(gbuffer0, texCoord);
-	// vec4 gbuffer1Data = texture(gbuffer1, texCoord);
+	vec4 gbuffer1Data = texture(gbuffer1, texCoord);
 	vec4 gbuffer2Data = texture(gbuffer2, texCoord);
 	vec4 gbuffer3Data = texture(gbuffer3, texCoord);
 
@@ -488,26 +534,27 @@ void main()
 	// world-space normal
 	vec3 normal = DecodeNormal(gbuffer0Data);
 	// normal = normalize(cross(dFdx(position), dFdy(position)));
+	vec2 motion = DecodeMotion(gbuffer1Data);
 	// xyz = fragment specular, w = shininess
 	vec4 specular = vec4(DecodeSpecularColor(gbuffer3Data), 1.0);
 	// fragment albedo
 	vec3 baseColor = DecodeBaseColor(gbuffer2Data);
 	vec3 albedo = baseColor;
-	// fragment emissiviness
-	vec3 emissive = vec3(0.0); //texture(gEmissive, texCoord).rgb;
 	// lighting cumulatives
 	vec3 directLighting = vec3(0.0f);
 	vec4 indirectLighting = vec4(0.0f);
 	vec3 compositeLighting = vec3(0.0f);
 
+	float diffuseWeight = 0;
+
 	if(mode == 0) // direct + indirect + ao
 	{
-		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, true);
+		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, true, diffuseWeight);
 		directLighting = CalculateDirectLighting(position, normal, albedo, specular);
 	}
 	else if(mode == 1) // direct + indirect
 	{
-		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, false);
+		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, false, diffuseWeight);
 		directLighting = CalculateDirectLighting(position, normal, albedo, specular);
 	}
 	else if(mode == 2) // direct only
@@ -519,33 +566,18 @@ void main()
 	{
 		directLighting = vec3(0.0f);
 		// baseColor.rgb = specular.rgb = vec3(1.0f);
-		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, false);
+		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, false, diffuseWeight);
 	}
 	else if(mode == 4) // ambient occlusion only
 	{
 		directLighting = vec3(0.0f);
 		specular = vec4(0.0f);
-		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, true);
+		indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, true, diffuseWeight);
 		indirectLighting.rgb = vec3(1.0f);
 	}
-	else if(mode == 5)
-	{
-		directLighting = 0.5 * (normal + vec3(1.0));
-		indirectLighting.rgb = vec3(0.0f);
-	}
 
-	// convert indirect to linear space
-	// indirectLighting.rgb = pow(indirectLighting.rgb, vec3(gamma));
 	// final composite lighting (direct + indirect) * ambient occlusion
 	compositeLighting = (directLighting + indirectLighting.rgb) * indirectLighting.a;
-	compositeLighting += emissive;
-	// -- this could be done in a post-process pass -- 
 
-	// Reinhard tone mapping
-	compositeLighting = compositeLighting / (compositeLighting + 1.0f);
-	// gamma correction
-	// convert to gamma space
-	// compositeLighting = pow(compositeLighting, vec3(1.0 / gamma));
-
-	fragColor = vec4(compositeLighting, 1.0f);
+	fragColor = vec4(compositeLighting, diffuseWeight);
 }

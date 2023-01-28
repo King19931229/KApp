@@ -622,6 +622,7 @@ bool KRenderCore::UpdateUIOverlay()
 				if (ui->Header("ClipmapGI"))
 				{
 					ui->CheckBox("VoxelDraw2", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawEnable());
+					ui->CheckBox("VoxelDebug2", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDebugUpdate());
 					ui->CheckBox("VoxelDrawWireFrame2", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawWireFrame());
 					ui->CheckBox("LightDraw2", &KRenderGlobal::ClipmapVoxilzer.GetLightDebugDrawEnable());
 					ui->SliderFloat("VoxelBias", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawBias(), 0, 16);

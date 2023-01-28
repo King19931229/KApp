@@ -125,13 +125,16 @@ protected:
 	IKCommandBufferPtr m_PrimaryCommandBuffer;
 	IKCommandBufferPtr m_DrawCommandBuffer;
 	IKCommandBufferPtr m_LightingCommandBuffer;
+	IKCommandBufferPtr m_LightComposeCommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
 	IKRenderTargetPtr m_VoxelRenderPassTarget;
 	IKRenderPassPtr m_VoxelRenderPass;
 
 	IKRenderTargetPtr m_LightPassTarget;
+	IKRenderTargetPtr m_LightComposeTarget;
 	IKRenderPassPtr m_LightPassRenderPass;
+	IKRenderPassPtr m_LightComposeRenderPass;
 
 	KShaderRef m_VoxelDrawVS;
 	KShaderRef m_VoxelDrawGS;
@@ -152,7 +155,9 @@ protected:
 
 	KShaderRef m_QuadVS;
 	KShaderRef m_LightPassFS;
+	KShaderRef m_LightComposeFS;
 	IKPipelinePtr m_LightPassPipeline;
+	IKPipelinePtr m_LightComposePipeline;
 
 	IKSamplerPtr m_CloestSampler;
 	IKSamplerPtr m_LinearSampler;
@@ -214,6 +219,7 @@ public:
 	bool RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 	bool UpdateFrame(IKCommandBufferPtr primaryBuffer);
 
+	bool& GetVoxelDebugUpdate() { return m_VoxelDebugUpdate; }
 	bool& GetVoxelDrawEnable() { return m_VoxelDrawEnable; }
 	bool& GetVoxelDrawWireFrame() { return m_VoxelDrawWireFrame; }
 	bool& GetLightDebugDrawEnable() { return m_LightDebugDrawer.GetEnable(); }
@@ -238,5 +244,5 @@ public:
 	bool Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t levelCount,	uint32_t baseVoxelSize, uint32_t width, uint32_t height, float ratio);
 	bool UnInit();
 
-	inline IKRenderTargetPtr GetFinalMask() { return m_LightPassTarget; }
+	inline IKRenderTargetPtr GetFinalMask() { return m_LightComposeTarget; }
 };

@@ -174,7 +174,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::CascadedShadowMap.Init(camera, 3, 2048, width, height);
 
 	// KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, width, height);
-	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, width, height, 0.5f);
+	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, width, height, 1.0f);
 
 	KRenderGlobal::VolumetricFog.Init(64, 64, 128, (camera->GetFar() - camera->GetNear()) * 0.5f, width, height, camera);
 

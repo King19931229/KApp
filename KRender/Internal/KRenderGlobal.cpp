@@ -46,7 +46,7 @@ namespace KRenderGlobal
 	KStatistics Statistics;
 
 	bool EnableDebugRender = false;
-	bool DisableRayTrace = false;
+	bool DisableRayTrace = true;
 
 	uint32_t CurrentFrameIndex = 0;
 	uint32_t CurrentFrameNum = 0;

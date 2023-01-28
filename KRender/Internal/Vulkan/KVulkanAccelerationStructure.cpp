@@ -115,6 +115,7 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 
 			IKAccelerationStructurePtr as = std::get<0>(asTuple);
 			const glm::mat4& transform = std::get<1>(asTuple);
+			const glm::mat4 transformIT = glm::transpose(glm::inverse(transform));
 
 			KVulkanAccelerationStructure* vulkanAS = static_cast<KVulkanAccelerationStructure*>(as.get());
 			const KMaterialTextureBinding* textureBinding = vulkanAS->GetTextureBinding();
@@ -185,10 +186,28 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 			}
 			ASSERT_RESULT(KVulkanHelper::GetBufferDeviceAddress(materialBuffer.buffer, materialAddress));
 
+			auto MatrixCheck = [](const glm::mat4& matrix)
+			{
+				for (uint32_t i = 0; i < 4; ++i)
+				{
+					for (uint32_t j = 0; j < 4; ++j)
+					{
+						if (isnan(matrix[j][i]) || isinf(matrix[j][i]))
+						{
+							return false;
+						}
+					}
+				}
+				return true;
+			};
+
+			assert(MatrixCheck(transform));
+			assert(MatrixCheck(transformIT));
+
 			// 创建场景Instance
 			KVulkanRayTraceInstance rayInstance = {};
 			rayInstance.transform = transform;
-			rayInstance.transformIT = glm::inverse(glm::transpose(transform));
+			rayInstance.transformIT = transformIT;
 			rayInstance.objIndex = (uint32_t)objIndex;
 			rayInstance.mtlIndex = (uint32_t)mtlIndex;
 			rayInstance.materials = materialAddress;
@@ -203,6 +222,11 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 				transform[0][1], transform[1][1], transform[2][1], transform[3][1],
 				transform[0][2], transform[1][2], transform[2][2], transform[3][2]
 			};
+
+			// https://nvpro-samples.github.io/vk_mini_path_tracer/extras.html#instancesandtransformationmatrices/transformationmatrices
+			assert(abs(transformMatrix.matrix[0][0]) > 1e-5f);
+			assert(abs(transformMatrix.matrix[1][1]) > 1e-5f);
+			assert(abs(transformMatrix.matrix[2][2]) > 1e-5f);
 
 			VkAccelerationStructureInstanceKHR instance = {};
 			instance.transform = transformMatrix;

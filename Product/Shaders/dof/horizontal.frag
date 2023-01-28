@@ -24,6 +24,7 @@ uniform Object
 
 void main()
 {
+	float focusDistance = object.dofParams[1];
 	float nearDof = object.dofParams2[1];
 	float farDof = object.dofParams2[2];
 	float maxRadius = object.dofParams2[3];
@@ -39,7 +40,7 @@ void main()
 	vec4 valG = vec4(0, 0, 0, 0);
 	vec4 valB = vec4(0, 0, 0, 0);
 
-	if (dis <= nearDof)
+	if (dis < focusDistance)
 	{
 		for(int i = 0; i <= KERNEL_RADIUS * 2; i++)
 		{
@@ -54,7 +55,7 @@ void main()
 			valB += vec4(texel.b * c, 0, 0);
 		}
 	}
-	else if(dis >= farDof)
+	else
 	{
 		for(int i = 0; i <= KERNEL_RADIUS * 2; i++)
 		{

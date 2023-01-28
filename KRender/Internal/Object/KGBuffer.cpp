@@ -32,6 +32,11 @@ bool KGBuffer::Init(uint32_t width, uint32_t height)
 	m_GBufferSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_GBufferSampler->Init(0, 0);
 
+	KRenderGlobal::RenderDevice->CreateSampler(m_GBufferClosestSampler);
+	m_GBufferClosestSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
+	m_GBufferClosestSampler->SetFilterMode(FM_NEAREST, FM_NEAREST);
+	m_GBufferClosestSampler->Init(0, 0);
+
 	Resize(width, height);
 
 	return true;
@@ -46,6 +51,7 @@ bool KGBuffer::UnInit()
 	SAFE_UNINIT(m_DepthStencilTarget);
 	SAFE_UNINIT(m_AOTarget);
 	SAFE_UNINIT(m_GBufferSampler);
+	SAFE_UNINIT(m_GBufferClosestSampler);
 	return true;
 }
 

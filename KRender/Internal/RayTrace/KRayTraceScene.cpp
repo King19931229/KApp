@@ -96,9 +96,10 @@ bool KRayTraceScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr 
 void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 {
 	IKRenderComponent* renderComponent = nullptr;
-	IKTransformComponent* transformComponent = nullptr;
+	IKTransformComponent* transformComponent = nullptr;	
+	bool bottomUpChanged = false;
 
-	if (op == ESO_REMOVE || op == ESO_MOVE)
+	if (op != ESO_ADD)
 	{
 		auto it = m_ASHandles.find(entity);
 		if (it != m_ASHandles.end())
@@ -108,6 +109,7 @@ void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 				RemoveBottomLevelAS(handle);
 			}
 			m_ASHandles.erase(it);
+			bottomUpChanged = true;
 		}
 	}
 
@@ -123,11 +125,12 @@ void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
 			{
 				uint32_t handle = AddBottomLevelAS(as, transform);
 				m_ASHandles[entity].insert(handle);
+				bottomUpChanged = true;
 			}
 		}
 	}
 
-	if (m_TopDown)
+	if (m_TopDown && bottomUpChanged)
 	{
 		m_bNeedRecreateAS = true;
 	}

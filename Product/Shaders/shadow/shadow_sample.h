@@ -1,12 +1,6 @@
 #ifndef _SHADOW_SAMPLE_H_
 #define _SHADOW_SAMPLE_H_
 
-const mat4 biasMat = mat4(
-	0.5, 0.0, 0.0, 0.0,
-	0.0, 0.5, 0.0, 0.0,
-	0.0, 0.0, 1.0, 0.0,
-	0.5, 0.5, 0.0, 1.0 );
-
 const vec2 poisson16[] = vec2[](
 	vec2( -0.94201624,  -0.39906216 ),
 	vec2(  0.94558609,  -0.76890725 ),
@@ -263,13 +257,18 @@ const bool pcss_shadow = false;
 const bool light_size_shadow = false;
 const bool debug_layer = false;
 
+float HardShadow(sampler2D shadowMap, vec2 uv, float z)
+{
+	float sampleDepth = BorderDepthTexture(shadowMap, uv);
+	return float(z >= sampleDepth);
+}
+
 float SoftShadow(sampler2D shadowMap,
 	vec2 lightRadiusUV,
 	float lightZNear, float lightZFar,
 	vec2 uv, float z, vec2 dz_duv, float zEye)
 {
-
-	if(light_size_shadow)
+	if (light_size_shadow)
 	{
 		return pcss_shadow ? PcssShadow(shadowMap,
 			lightRadiusUV, lightZNear, lightZFar,

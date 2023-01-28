@@ -1,5 +1,6 @@
 #include "volumetric_fog_public.h"
 #include "shading/gbuffer.h"
+#include "util.h"
 
 layout(location = 0) in vec2 screenCoord;
 
