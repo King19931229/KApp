@@ -3372,38 +3372,6 @@
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">$(IntDir)\pch_source.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\ZERO_CHECK.vcxproj">
-      <Project>{0C75D823-31AC-3BD3-A51A-9358C8A2FFC5}</Project>
-      <Name>ZERO_CHECK</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </ProjectReference>
-    <ProjectReference Include="core_tables.vcxproj">
-      <Project>{0C34EE70-72D0-3366-9DDD-7FBC11DAA98A}</Project>
-      <Name>core_tables</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </ProjectReference>
-    <ProjectReference Include="enum_string_mapping.vcxproj">
-      <Project>{3ED08499-AB8E-323D-85C9-0FD070D40D45}</Project>
-      <Name>enum_string_mapping</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </ProjectReference>
-    <ProjectReference Include="extinst_tables.vcxproj">
-      <Project>{48439D42-3287-302B-8FDC-B6D359CD8DE4}</Project>
-      <Name>extinst_tables</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </ProjectReference>
-    <ProjectReference Include="spirv-tools-build-version.vcxproj">
-      <Project>{E7EC63A1-BD30-3309-8959-4EAE3FC00084}</Project>
-      <Name>spirv-tools-build-version</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

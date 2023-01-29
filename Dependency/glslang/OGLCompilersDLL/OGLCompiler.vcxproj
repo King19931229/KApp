@@ -195,14 +195,6 @@
     <ClCompile Include="InitializeDll.cpp" />
     <ClInclude Include="InitializeDll.h" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="F:\KApp\Dependency\glslang\ZERO_CHECK.vcxproj">
-      <Project>{799EF73D-2541-3AF3-A1CF-503E00E9D8E1}</Project>
-      <Name>ZERO_CHECK</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

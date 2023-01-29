@@ -5209,12 +5209,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ZERO_CHECK.vcxproj">
-      <Project>{0C75D823-31AC-3BD3-A51A-9358C8A2FFC5}</Project>
-      <Name>ZERO_CHECK</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </ProjectReference>
     <ProjectReference Include="..\..\source\SPIRV-Tools-static.vcxproj">
       <Project>{9715083B-2E4D-33F7-A00D-6C383F813BE7}</Project>
       <Name>SPIRV-Tools-static</Name>
