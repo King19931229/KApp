@@ -5,6 +5,8 @@ KHiZOcclusion::KHiZOcclusion()
 	: m_CandidateNum(0)
 	, m_BlockX(0)
 	, m_BlockY(0)
+	, m_Enable(false)
+	, m_EnableDebugDraw(false)
 {
 }
 
@@ -132,7 +134,6 @@ bool KHiZOcclusion::Init()
 	for (size_t frameIdx = 0; frameIdx < m_ExecutePipelines.size(); ++frameIdx)
 	{
 		m_DebugDrawers[frameIdx].Init(m_ResultTargets[frameIdx], 0.8f, 0, 0.2f, 0.2f, false);
-		m_DebugDrawers[frameIdx].EnableDraw();
 	}
 
 	return true;
@@ -156,9 +157,14 @@ bool KHiZOcclusion::DisableDebugDraw()
 	return true;
 }
 
+bool& KHiZOcclusion::GetEnable()
+{
+	return m_Enable;
+}
+
 bool& KHiZOcclusion::GetDebugDrawEnable()
 {
-	return m_DebugDrawers[KRenderGlobal::CurrentFrameIndex].GetEnable();
+	return m_EnableDebugDraw;
 }
 
 bool KHiZOcclusion::UnInit()
@@ -389,11 +395,25 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 
 bool KHiZOcclusion::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
-	return m_DebugDrawers[KRenderGlobal::CurrentFrameIndex].Render(renderPass, primaryBuffer);
+	if (m_EnableDebugDraw)
+	{
+		m_DebugDrawers[KRenderGlobal::CurrentFrameIndex].EnableDraw();
+		return m_DebugDrawers[KRenderGlobal::CurrentFrameIndex].Render(renderPass, primaryBuffer);
+	}
+	else
+	{
+		m_DebugDrawers[KRenderGlobal::CurrentFrameIndex].DisableDraw();
+		return true;
+	}	
 }
 
 bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes)
 {
+	if (!m_Enable)
+	{
+		return true;
+	}
+
 	PullCandidatesResult();
 
 	std::vector<Candidate>& candidates = m_Candidates[KRenderGlobal::CurrentFrameIndex];

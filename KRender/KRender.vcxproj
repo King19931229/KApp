@@ -91,6 +91,7 @@
     <ClInclude Include="Internal\KDebugConsole.h" />
     <ClInclude Include="Internal\KRenderCore.h" />
     <ClInclude Include="Internal\KRenderGlobal.h" />
+    <ClInclude Include="Internal\KRenderImGui.h" />
     <ClInclude Include="Internal\KRenderThreadPool.h" />
     <ClInclude Include="Internal\KSamplerBase.h" />
     <ClInclude Include="Internal\KStatistics.h" />
@@ -207,6 +208,7 @@
     <ClCompile Include="Internal\KRenderCore.cpp" />
     <ClCompile Include="Internal\KRenderDevice.cpp" />
     <ClCompile Include="Internal\KRenderGlobal.cpp" />
+    <ClCompile Include="Internal\KRenderImGui.cpp" />
     <ClCompile Include="Internal\KRenderWindow.cpp" />
     <ClCompile Include="Internal\KSamplerBase.cpp" />
     <ClCompile Include="Internal\KStatistics.cpp" />

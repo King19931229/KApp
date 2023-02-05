@@ -16,6 +16,8 @@
 #include "Internal/KConstantGlobal.h"
 #include "Internal/ECS/KECSGlobal.h"
 
+#include "KRenderImGui.h"
+
 #ifdef _WIN32
 #	pragma warning(disable:4996)
 #endif
@@ -31,11 +33,7 @@ KRenderCore::KRenderCore()
 	m_Device(nullptr),
 	m_Window(nullptr),
 	m_DebugConsole(nullptr),
-	m_Gizmo(nullptr),
-	m_MultiThreadSubmit(true),
-	m_InstanceSubmit(true),
-	m_OctreeDebugDraw(false),
-	m_MouseCtrlCamera(true)
+	m_Gizmo(nullptr)
 {
 }
 
@@ -354,6 +352,8 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		m_Device->RegisterDeviceInitCallback(&m_InitCallback);
 		m_Device->RegisterDeviceUnInitCallback(&m_UnitCallback);
 
+		GRenderImGui.Open();
+
 		m_bInit = true;
 		m_bTickShouldEnd = false;
 
@@ -381,6 +381,8 @@ bool KRenderCore::UnInit()
 
 		m_Window = nullptr;
 		m_Device = nullptr;
+
+		GRenderImGui.Exit();
 
 		m_bInit = false;
 		m_bTickShouldEnd = true;
@@ -560,103 +562,9 @@ bool KRenderCore::UpdateFrameTime()
 bool KRenderCore::UpdateUIOverlay()
 {
 	IKUIOverlay* ui = m_Device->GetUIOverlay();
-
 	ui->StartNewFrame();
-	{
-		ui->SetWindowPos(10, 10);
-		ui->SetWindowSize(0, 0);
-		ui->Begin("Example");
-		{
-			KRenderStatistics statistics;
-			KRenderGlobal::Statistics.GetAllStatistics(statistics);
-
-			ui->Text("FPS [%f] FrameTime [%f]", statistics.frame.fps, statistics.frame.frametime);
-			ui->Text("DrawCall [%d] Face [%d] [Primtives] [%d]", statistics.stage.drawcalls, statistics.stage.faces, statistics.stage.primtives);
-			ui->PushItemWidth(110.0f);
-			if (ui->Header("Setting"))
-			{
-				ui->CheckBox("MouseCtrlCamera", &m_MouseCtrlCamera);
-				ui->CheckBox("OctreeDraw", &m_OctreeDebugDraw);
-				ui->CheckBox("MultiRender", &m_MultiThreadSubmit);
-				ui->CheckBox("InstanceRender", &m_InstanceSubmit);
-				if (ui->Header("Shadow"))
-				{
-					 ui->SliderFloat("Shadow DepthBias Slope[0]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(0), 0.0f, 5.0f);
-					 ui->SliderFloat("Shadow DepthBias Slope[1]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(1), 0.0f, 5.0f);
-					 ui->SliderFloat("Shadow DepthBias Slope[2]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(2), 0.0f, 5.0f);
-					 ui->SliderFloat("Shadow DepthBias Slope[3]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(3), 0.0f, 5.0f);
-
-					// ui->SliderFloat("Shadow ShadowRange", &KRenderGlobal::CascadedShadowMap.GetShadowRange(), 0.1f, 5000.0f);
-					// ui->SliderFloat("Shadow SplitLambda", &KRenderGlobal::CascadedShadowMap.GetSplitLambda(), 0.001f, 1.0f);
-					// ui->SliderFloat("Shadow LightSize", &KRenderGlobal::CascadedShadowMap.GetLightSize(), 0.0f, 0.1f);
-					ui->CheckBox("Shadow FixToScene", &KRenderGlobal::CascadedShadowMap.GetFixToScene());
-					ui->CheckBox("Shadow FixTexel", &KRenderGlobal::CascadedShadowMap.GetFixTexel());
-					ui->CheckBox("Shadow Minimize Draw", &KRenderGlobal::CascadedShadowMap.GetMinimizeShadowDraw());
-				}
-				if (ui->Header("Hardware Occlusion"))
-				{
-					ui->CheckBox("Hardware Occlusion Enable", &KRenderGlobal::OcclusionBox.GetEnable());
-					ui->SliderFloat("Hardware Occlusion DepthBiasConstant", &KRenderGlobal::OcclusionBox.GetDepthBiasConstant(), -5.0f, 5.0f);
-					ui->SliderFloat("Hardware Occlusion DepthBiasSlope", &KRenderGlobal::OcclusionBox.GetDepthBiasSlope(), -5.0f, 5.0f);
-					ui->SliderFloat("Hardware Occlusion Instance Size", &KRenderGlobal::OcclusionBox.GetInstanceGroupSize(), 10.0f, 100000.0f);
-				}
-				if (ui->Header("RTAO"))
-				{
-					ui->CheckBox("RTAOEnable", &KRenderGlobal::RTAO.GetEnable());
-					ui->CheckBox("RTAODebugDraw", &KRenderGlobal::RTAO.GetDebugDrawEnable());
-					ui->SliderFloat("Length of the ray", &KRenderGlobal::RTAO.GetAoParameters().rtao_radius, 0.0f, 20.0f);
-					ui->SliderInt("Number of samples at each iteration", &KRenderGlobal::RTAO.GetAoParameters().rtao_samples, 1, 32);
-					ui->SliderFloat("Strenth of darkness", &KRenderGlobal::RTAO.GetAoParameters().rtao_power, 0.0001f, 10.0f);
-					ui->SliderInt("Attenuate based on distance", &KRenderGlobal::RTAO.GetAoParameters().rtao_distance_based, 0, 1);
-				}
-				/*
-				if (ui->Header("SVOGI"))
-				{
-					ui->CheckBox("Octree", &KRenderGlobal::Voxilzer.GetVoxelUseOctree());
-					ui->CheckBox("VoxelDraw", &KRenderGlobal::Voxilzer.GetVoxelDrawEnable());
-					ui->CheckBox("VoxelDrawWireFrame", &KRenderGlobal::Voxilzer.GetVoxelDrawWireFrame());
-					ui->CheckBox("LightDraw", &KRenderGlobal::Voxilzer.GetLightDebugDrawEnable());
-					ui->CheckBox("OctreeRayTestDraw", &KRenderGlobal::Voxilzer.GetOctreeRayTestDrawEnable());
-				}
-				*/
-				if (ui->Header("ClipmapGI"))
-				{
-					ui->CheckBox("VoxelDraw2", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawEnable());
-					ui->CheckBox("VoxelDebug2", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDebugUpdate());
-					ui->CheckBox("VoxelDrawWireFrame2", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawWireFrame());
-					ui->CheckBox("LightDraw2", &KRenderGlobal::ClipmapVoxilzer.GetLightDebugDrawEnable());
-					ui->SliderFloat("VoxelBias", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawBias(), 0, 16);
-				}
-				if (ui->Header("VolumetricFog"))
-				{
-					ui->SliderFloat("FogStart", &KRenderGlobal::VolumetricFog.GetStart(), 1.0f, 5000.0f);
-					ui->SliderFloat("FogDepth", &KRenderGlobal::VolumetricFog.GetDepth(), 1.0f, 5000.0f);
-					ui->SliderFloat("FogAnisotropy", &KRenderGlobal::VolumetricFog.GetAnisotropy(), 0.0f, 1.0f);
-					ui->SliderFloat("FogDensity", &KRenderGlobal::VolumetricFog.GetDensity(), 0.0f, 1.0f);
-				}
-				if (ui->Header("DOF"))
-				{
-					ui->CheckBox("DOFDebugDraw", &KRenderGlobal::DepthOfField.GetDebugDrawEnable());
-					ui->SliderFloat("DOFCocLimit", &KRenderGlobal::DepthOfField.GetCocLimit(), 0.001f, 1.0f);
-					ui->SliderFloat("DOFFStop", &KRenderGlobal::DepthOfField.GetFStop(), 0.50f, 128.0f);
-					// ui->SliderFloat("DOFFocalLength", &KRenderGlobal::DepthOfField.GetFocalLength(), 1.0f, 5000.0f);
-					ui->SliderFloat("DOFFocusDistance", &KRenderGlobal::DepthOfField.GetFocusDistance(), 1.0f, 5000.0f);
-					// ui->SliderFloat("DOFNear", &KRenderGlobal::DepthOfField.GetNearRange(), 1.0f, 5000.0f);
-					ui->SliderFloat("DOFFar", &KRenderGlobal::DepthOfField.GetFarRange(), 1.0f, 5000.0f);
-				}
-				if (ui->Header("SSR"))
-				{
-					ui->CheckBox("SSRDebugDraw", &KRenderGlobal::ScreenSpaceReflection.GetDebugDrawEnable());
-					ui->SliderInt("SSRRayReuse", &KRenderGlobal::ScreenSpaceReflection.GetRayReuseCount(), 1, 9);
-					ui->SliderInt("SSRAtrous", &KRenderGlobal::ScreenSpaceReflection.GetAtrousLevel(), 0, 5);
-				}
-			}
-			ui->PopItemWidth();
-		}
-		ui->End();
-	}
+	GRenderImGui.Run();
 	ui->EndNewFrame();
-
 	ui->Update();
 	return true;
 }
@@ -691,8 +599,8 @@ void KRenderCore::OnPrePresent(uint32_t chainIndex, uint32_t frameIndex)
 	UpdateController();
 	UpdateGizmo();
 
-	KRenderGlobal::EnableDebugRender = m_OctreeDebugDraw;
-	m_CameraMoveController.SetEnable(m_MouseCtrlCamera);
+	bool enableCameraControl = !GRenderImGui.WantCaptureInput();
+	m_CameraMoveController.SetEnable(enableCameraControl);
 }
 
 void KRenderCore::OnPostPresent(uint32_t chainIndex, uint32_t frameIndex)

@@ -53,6 +53,9 @@ protected:
 	uint32_t m_BlockX;
 	uint32_t m_BlockY;
 
+	bool m_Enable;
+	bool m_EnableDebugDraw;
+
 	void PushCandidatesInformation(IKCommandBufferPtr primaryBuffer);
 	void PullCandidatesResult();
 
@@ -78,6 +81,8 @@ public:
 
 	bool EnableDebugDraw();
 	bool DisableDebugDraw();
+
+	bool& GetEnable();
 	bool& GetDebugDrawEnable();
 
 	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);

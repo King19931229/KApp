@@ -13,13 +13,41 @@
 
 KUIOverlayBase::KUIOverlayBase()
 	: m_UIContext(nullptr)
+	, m_PushOffset(0)
 {
-
 }
 
 KUIOverlayBase::~KUIOverlayBase()
 {
+}
 
+static uint32_t ImGuiColorEnum(UIOverlayColor target)
+{
+	switch (target)
+	{
+		case UI_COLOR_TEXT:
+		{
+			return ImGuiCol_Text;
+		}
+		case UI_COLOR_WINDOW_BACKGROUND:
+		{
+			return ImGuiCol_WindowBg;
+		}
+		case UI_COLOR_MENUBAR_BACKGROUND:
+		{
+			return ImGuiCol_MenuBarBg;
+		}
+		default:
+		{
+			assert(false && "unknown");
+			return ImGuiCol_COUNT;
+		}
+	}
+}
+
+static ImColor ImGuiColor(KUIColor color)
+{
+	return ImColor(color.r, color.g, color.b, color.a);
 }
 
 void KUIOverlayBase::InitImgui()
@@ -45,9 +73,6 @@ void KUIOverlayBase::InitImgui()
 	style.Colors[ImGuiCol_Button] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
 	style.Colors[ImGuiCol_ButtonHovered] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
 	style.Colors[ImGuiCol_ButtonActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
-	// Dimensions
-	ImGuiIO& io = ImGui::GetIO();
-	io.FontGlobalScale = 1.0f;
 }
 
 void KUIOverlayBase::UnInitImgui()
@@ -77,13 +102,11 @@ bool KUIOverlayBase::Init(IKRenderDevice* renderDevice, size_t frameInFlight)
 
 	m_IndexBuffers.resize(numImages);
 	m_VertexBuffers.resize(numImages);
-	m_NeedUpdates.resize(numImages);
 
 	for(size_t i = 0; i < numImages; ++i)
 	{
 		renderDevice->CreateIndexBuffer(m_IndexBuffers[i]);
 		renderDevice->CreateVertexBuffer(m_VertexBuffers[i]);
-		m_NeedUpdates[i] = true;
 	}
 
 	InitImgui();
@@ -136,8 +159,6 @@ bool KUIOverlayBase::UnInit()
 	}
 
 	SAFE_UNINIT(m_Pipeline);
-
-	m_NeedUpdates.clear();
 
 	return true;
 }
@@ -207,101 +228,62 @@ void KUIOverlayBase::PreparePipeline()
 bool KUIOverlayBase::Update()
 {
 	unsigned int imageIndex = KRenderGlobal::CurrentFrameIndex;
-	if(imageIndex < m_NeedUpdates.size())
+	
+	ImDrawData* imDrawData = ImGui::GetDrawData();
+	bool updateCmdBuffers = false;
+
+	if (!imDrawData) 
 	{
-		ImDrawData* imDrawData = ImGui::GetDrawData();
-		bool updateCmdBuffers = false;
+		return true;
+	};
 
-		if (!imDrawData) 
-		{
-			return true;
-		};
-
-		if(imDrawData->TotalVtxCount == 0 || imDrawData->TotalIdxCount == 0)
-		{
-			return true;
-		}
-
-		size_t vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
-		size_t indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
-
-		if(vertexBufferSize > m_VertexBuffers[imageIndex]->GetBufferSize())
-		{
-			m_VertexBuffers[imageIndex]->UnInit();
-			m_VertexBuffers[imageIndex]->InitMemory(imDrawData->TotalVtxCount, sizeof(ImDrawVert), nullptr);
-			m_VertexBuffers[imageIndex]->InitDevice(true);
-		}
-
-		if(indexBufferSize > m_IndexBuffers[imageIndex]->GetBufferSize())
-		{
-			m_IndexBuffers[imageIndex]->UnInit();
-			m_IndexBuffers[imageIndex]->InitMemory(sizeof(ImDrawIdx) == 2 ? IT_16 : IT_32, imDrawData->TotalIdxCount, nullptr);
-			m_IndexBuffers[imageIndex]->InitDevice(true);
-		}
-
-		ImDrawVert* vtxDst = nullptr;
-		ImDrawIdx* idxDst  = nullptr;
-
-		ASSERT_RESULT(m_VertexBuffers[imageIndex]->Map((void**)&vtxDst));
-		ASSERT_RESULT(m_IndexBuffers[imageIndex]->Map((void**)&idxDst));
-
-		for (int n = 0; n < imDrawData->CmdListsCount; n++)
-		{
-			const ImDrawList* cmd_list = imDrawData->CmdLists[n];
-			memcpy(vtxDst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-			memcpy(idxDst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-			vtxDst += cmd_list->VtxBuffer.Size;
-			idxDst += cmd_list->IdxBuffer.Size;
-		}
-
-		ASSERT_RESULT(m_VertexBuffers[imageIndex]->UnMap());
-		ASSERT_RESULT(m_IndexBuffers[imageIndex]->UnMap());
-
+	if(imDrawData->TotalVtxCount == 0 || imDrawData->TotalIdxCount == 0)
+	{
 		return true;
 	}
-	return false;
+
+	size_t vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
+	size_t indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
+
+	if(vertexBufferSize > m_VertexBuffers[imageIndex]->GetBufferSize())
+	{
+		m_VertexBuffers[imageIndex]->UnInit();
+		m_VertexBuffers[imageIndex]->InitMemory(imDrawData->TotalVtxCount, sizeof(ImDrawVert), nullptr);
+		m_VertexBuffers[imageIndex]->InitDevice(true);
+	}
+
+	if(indexBufferSize > m_IndexBuffers[imageIndex]->GetBufferSize())
+	{
+		m_IndexBuffers[imageIndex]->UnInit();
+		m_IndexBuffers[imageIndex]->InitMemory(sizeof(ImDrawIdx) == 2 ? IT_16 : IT_32, imDrawData->TotalIdxCount, nullptr);
+		m_IndexBuffers[imageIndex]->InitDevice(true);
+	}
+
+	ImDrawVert* vtxDst = nullptr;
+	ImDrawIdx* idxDst  = nullptr;
+
+	ASSERT_RESULT(m_VertexBuffers[imageIndex]->Map((void**)&vtxDst));
+	ASSERT_RESULT(m_IndexBuffers[imageIndex]->Map((void**)&idxDst));
+
+	for (int n = 0; n < imDrawData->CmdListsCount; n++)
+	{
+		const ImDrawList* cmd_list = imDrawData->CmdLists[n];
+		memcpy(vtxDst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+		memcpy(idxDst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+		vtxDst += cmd_list->VtxBuffer.Size;
+		idxDst += cmd_list->IdxBuffer.Size;
+	}
+
+	ASSERT_RESULT(m_VertexBuffers[imageIndex]->UnMap());
+	ASSERT_RESULT(m_IndexBuffers[imageIndex]->UnMap());
+
+	return true;
 }
 
 bool KUIOverlayBase::Resize(size_t width, size_t height)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	io.DisplaySize = ImVec2((float)(width), (float)(height));
-	return true;
-}
-
-bool KUIOverlayBase::Begin(const char* str)
-{
-	ImGui::Begin(str, nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-	return true;
-}
-
-bool KUIOverlayBase::SetWindowPos(unsigned int x, unsigned int y)
-{
-	ImGui::SetNextWindowPos(ImVec2((float)x, (float)y));
-	return true;
-}
-
-bool KUIOverlayBase::SetWindowSize(unsigned int width, unsigned int height)
-{
-	ImGui::SetNextWindowSize(ImVec2((float)width, (float)height), ImGuiCond_FirstUseEver);
-	return true;
-}
-
-bool KUIOverlayBase::PushItemWidth(float width)
-{
-	ImGui::PushItemWidth(width);
-	return true;
-}
-
-bool KUIOverlayBase::PopItemWidth()
-{
-	ImGui::PopItemWidth();
-	return true;
-}
-
-bool KUIOverlayBase::End()
-{
-	ImGui::End();
 	return true;
 }
 
@@ -345,79 +327,4 @@ bool KUIOverlayBase::EndNewFrame()
 	ImGui::PopStyleVar();
 	ImGui::Render();
 	return true;
-}
-
-bool KUIOverlayBase::Header(const char* caption)
-{
-	return ImGui::CollapsingHeader(caption, ImGuiTreeNodeFlags_DefaultOpen);
-}
-
-void KUIOverlayBase::RemindUpdate()
-{
-	for(size_t i = 0; i < m_NeedUpdates.size(); ++i)
-	{
-		m_NeedUpdates[i] = true;
-	}
-}
-
-bool KUIOverlayBase::CheckBox(const char* caption, bool* value)
-{
-	bool res = ImGui::Checkbox(caption, value);
-	if (res) { RemindUpdate(); };
-	return res;
-}
-
-bool KUIOverlayBase::InputFloat(const char* caption, float* value, float step, unsigned int precision)
-{
-	bool res = ImGui::InputFloat(caption, value, step, step * 10.0f, precision);
-	if (res) { RemindUpdate(); };
-	return res;
-}
-
-bool KUIOverlayBase::SliderFloat(const char* caption, float* value, float min, float max)
-{
-	bool res = ImGui::SliderFloat(caption, value, min, max);
-	if (res) { RemindUpdate(); };
-	return res;
-}
-
-bool KUIOverlayBase::SliderInt(const char* caption, int* value, int min, int max)
-{
-	bool res = ImGui::SliderInt(caption, value, min, max);
-	if (res) { RemindUpdate(); };
-	return res;
-}
-
-bool KUIOverlayBase::ComboBox(const char* caption, int* itemindex, const std::vector<std::string>& items)
-{
-	if (items.empty())
-	{
-		return false;
-	}
-	std::vector<const char*> charitems;
-	charitems.reserve(items.size());
-	for (size_t i = 0; i < items.size(); i++)
-	{
-		charitems.push_back(items[i].c_str());
-	}
-	int itemCount = static_cast<int>(charitems.size());
-	bool res = ImGui::Combo(caption, itemindex, &charitems[0], itemCount, itemCount);
-	if (res) { RemindUpdate(); };
-	return res;
-}
-
-bool KUIOverlayBase::Button(const char* caption)
-{
-	bool res = ImGui::Button(caption);
-	if (res) { RemindUpdate(); };
-	return res;
-}
-
-void KUIOverlayBase::Text(const char* formatstr, ...)
-{
-	va_list args;
-	va_start(args, formatstr);
-	ImGui::TextV(formatstr, args);
-	va_end(args);
-	RemindUpdate();
 }
