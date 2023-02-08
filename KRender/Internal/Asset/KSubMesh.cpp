@@ -12,7 +12,8 @@ KSubMesh::KSubMesh(KMesh* parent)
 	m_IndexDraw(true),
 	m_AccelerationStructure(nullptr),
 	m_NeedAccelerationStructure(true),
-	m_NeedMeshlet(true)
+	m_NeedMeshlet(true),
+	m_MetalWorkFlow(true)
 {
 }
 
@@ -20,7 +21,7 @@ KSubMesh::~KSubMesh()
 {
 }
 
-bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialTextureBinding&& binding)
+bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialTextureBinding&& binding, bool metalWorkFlow)
 {
 	UnInit();
 
@@ -29,6 +30,7 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	m_IndexData = indexData;
 	m_Texture = std::move(binding);
 	m_IndexDraw = true;
+	m_MetalWorkFlow = metalWorkFlow;
 
 	if (m_NeedAccelerationStructure)
 	{

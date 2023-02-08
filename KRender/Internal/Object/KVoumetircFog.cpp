@@ -52,8 +52,8 @@ void KVolumetricFog::InitializePipeline()
 		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_GLOBAL, globalBuffer);
 		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_STATIC_CASCADED_SHADOW, staticShadowBuffer);
 		m_VoxelLightInjectPipeline[i]->BindUniformBuffer(CBT_DYNAMIC_CASCADED_SHADOW, dynamicShadowBuffer);
-		m_VoxelLightInjectPipeline[i]->BindSampler(BINDING_VOXEL_PREV, m_VoxelLightTarget[(i + 1) & 1]->GetFrameBuffer(), *m_VoxelSampler, false);
-		m_VoxelLightInjectPipeline[i]->BindStorageImage(BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 1, false);
+		m_VoxelLightInjectPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_VOXEL_PREV, m_VoxelLightTarget[(i + 1) & 1]->GetFrameBuffer(), *m_VoxelSampler, false);
+		m_VoxelLightInjectPipeline[i]->BindStorageImage(VOLUMETRIC_FOG_BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 1, false);
 
 		for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
 		{
@@ -75,8 +75,8 @@ void KVolumetricFog::InitializePipeline()
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		m_RayMatchPipeline[i]->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
-		m_RayMatchPipeline[i]->BindSampler(BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), *m_VoxelSampler, false);
-		m_RayMatchPipeline[i]->BindStorageImage(BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 1, false);
+		m_RayMatchPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), *m_VoxelSampler, false);
+		m_RayMatchPipeline[i]->BindStorageImage(VOLUMETRIC_FOG_BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 1, false);
 		m_RayMatchPipeline[i]->Init("volumetricfog/raymatch.comp");
 	}
 
@@ -92,8 +92,8 @@ void KVolumetricFog::InitializePipeline()
 	m_ScatteringPipeline->SetColorWrite(true, true, true, true);
 	m_ScatteringPipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-	m_ScatteringPipeline->SetSampler(BINDING_GBUFFER_RT0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
-	m_ScatteringPipeline->SetSampler(BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), *m_VoxelSampler, false);
+	m_ScatteringPipeline->SetSampler(VOLUMETRIC_FOG_BINDING_GBUFFER_RT0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
+	m_ScatteringPipeline->SetSampler(VOLUMETRIC_FOG_BINDING_VOXEL_RESULT, m_RayMatchResultTarget->GetFrameBuffer(), *m_VoxelSampler, false);
 	m_ScatteringPipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
 	m_ScatteringPipeline->Init();

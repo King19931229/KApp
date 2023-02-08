@@ -307,19 +307,24 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 
 			KMaterialTextureBinding textures;
 
+			for (uint32_t idx = 0; idx < MTS_COUNT; ++idx)
+			{
+				if (!subPart.material.textures[idx].empty())
+				{
+					textures.SetTexture(idx, subPart.material.textures[idx]);
+				}
+			}
+
 			// 一定要设置Diffuse贴图
-			textures.SetTexture(MTS_DIFFUSE, subPart.material.diffuse.c_str());
-
-			if (!subPart.material.specular.empty())
+			if (!textures.GetTexture(MTS_DIFFUSE))
 			{
-				textures.SetTexture(MTS_SPECULAR, subPart.material.specular.c_str());
-			}
-			if (!subPart.material.normal.empty())
-			{
-				textures.SetTexture(MTS_NORMAL, subPart.material.normal.c_str());
+				// 这里会赋上棋盘格贴图
+				textures.SetTexture(MTS_DIFFUSE, "");
 			}
 
-			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, std::move(textures)));
+			bool metalWorkFlow = subPart.material.metalWorkFlow;
+
+			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, std::move(textures), metalWorkFlow));
 			indexData.Reset();
 		}
 		m_Path = szPath;

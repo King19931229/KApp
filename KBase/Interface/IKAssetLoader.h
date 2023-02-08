@@ -19,6 +19,25 @@ enum AssetVertexComponent
 	AVC_BINORMAL_3F = 0x8,
 };
 
+enum MeshTextureSemantic
+{
+	MTS_DIFFUSE = 0,
+	MTS_BASE_COLOR = 0,
+
+	MTS_NORMAL = 1,
+
+	// Specular glosiness workflow
+	MTS_SPECULAR_GLOSINESS = 2,
+	// Metal roughness workflow
+	MTS_METAL_ROUGHNESS = 2,
+
+	MTS_EMISSIVE = 3,
+
+	MTS_AMBIENT_OCCLUSION = 4,
+
+	MTS_COUNT
+};
+
 struct KAssetImportResult
 {
 	typedef std::vector<char> VertexDataBuffer;
@@ -32,9 +51,13 @@ struct KAssetImportResult
 
 	struct Material
 	{
-		std::string diffuse;
-		std::string specular;
-		std::string normal;
+		std::string textures[MTS_COUNT];
+		bool metalWorkFlow;
+
+		Material()
+		{
+			metalWorkFlow = false;
+		}
 	};
 
 	struct ModelPart

@@ -376,7 +376,14 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 
 			if (i == MTS_DIFFUSE)
 			{
-				pipeline->SetSampler(VOXEL_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
+				if (stage == PIPELINE_STAGE_CLIPMAP_VOXEL)
+				{
+					pipeline->SetSampler(VOXEL_CLIPMAP_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
+				}
+				else
+				{
+					pipeline->SetSampler(VOXEL_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
+				}	
 			}
 		}
 

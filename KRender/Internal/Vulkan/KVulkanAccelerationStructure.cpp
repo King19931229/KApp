@@ -154,7 +154,7 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 					}
 
 					if (i == MTS_DIFFUSE) material.diffuseTex = idx;
-					if (i == MTS_SPECULAR) material.specularTex = idx;
+					if (i == MTS_SPECULAR_GLOSINESS) material.specularTex = idx;
 					if (i == MTS_NORMAL) material.normalTex = idx;
 				}
 			}

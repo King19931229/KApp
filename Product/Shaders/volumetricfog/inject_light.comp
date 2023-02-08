@@ -6,8 +6,8 @@
 
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROUP_SIZE) in;
 
-layout(binding = BINDING_VOXEL_PREV) uniform sampler3D prevVoxel;
-layout(binding = BINDING_VOXEL_CURR, VOXEL_FORMAT) uniform writeonly image3D currVoxel;
+layout(binding = VOLUMETRIC_FOG_BINDING_VOXEL_PREV) uniform sampler3D prevVoxel;
+layout(binding = VOLUMETRIC_FOG_BINDING_VOXEL_CURR, VOXEL_FORMAT) uniform writeonly image3D currVoxel;
 
 // Henyey-Greenstein
 float PhaseFunction(vec3 Wo, vec3 Wi, float g)

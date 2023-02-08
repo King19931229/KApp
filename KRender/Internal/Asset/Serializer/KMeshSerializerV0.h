@@ -8,9 +8,8 @@ class KMeshSerializerV0
 protected:
 	struct MaterialInfo
 	{
-		std::string diffuse;
-		std::string specular;
-		std::string normal;
+		std::string textures[MTS_COUNT];
+		bool metalWorkFlow;
 	};
 
 	struct DrawElementInfo
@@ -24,6 +23,9 @@ protected:
 
 	bool ReadString(IKDataStreamPtr& stream, std::string& value);
 	bool WriteString(IKDataStreamPtr& stream, const std::string& value);
+
+	bool ReadBool(IKDataStreamPtr& stream, bool& value);
+	bool WriteBool(IKDataStreamPtr& stream, bool value);
 
 	bool ReadHead(IKDataStreamPtr& stream, uint32_t& flag);
 	bool ReadMagic(IKDataStreamPtr& stream, uint32_t& magic);

@@ -4,8 +4,8 @@
 
 layout(location = 0) in vec2 screenCoord;
 
-layout(binding = BINDING_VOXEL_RESULT) uniform sampler3D resultVoxel;
-layout(binding = BINDING_GBUFFER_RT0) uniform sampler2D gbuffer0;
+layout(binding = VOLUMETRIC_FOG_BINDING_VOXEL_RESULT) uniform sampler3D resultVoxel;
+layout(binding = VOLUMETRIC_FOG_BINDING_GBUFFER_RT0) uniform sampler2D gbuffer0;
 
 layout(location = 0) out vec4 outColor;
 

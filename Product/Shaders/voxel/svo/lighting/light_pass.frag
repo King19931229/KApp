@@ -6,7 +6,7 @@ layout(location = 0) out vec4 fragColor;
 
 layout(location = 0) in vec2 texCoord;
 
-layout(binding = VOXEL_BINDING_GBUFFER_RT0) uniform sampler2D gbuffer0;
+layout(binding = VOXEL_VOLUMETRIC_FOG_BINDING_GBUFFER_RT0) uniform sampler2D gbuffer0;
 layout(binding = VOXEL_BINDING_GBUFFER_RT1) uniform sampler2D gbuffer1;
 layout(binding = VOXEL_BINDING_GBUFFER_RT2) uniform sampler2D gbuffer2;
 layout(binding = VOXEL_BINDING_GBUFFER_RT3) uniform sampler2D gbuffer3;

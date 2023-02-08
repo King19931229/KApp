@@ -1,7 +1,22 @@
 #include "public.h"
 
-layout(binding = BINDING_TEXTURE0) uniform sampler2D diffuseSampler;
-layout(binding = BINDING_TEXTURE1) uniform sampler2D normalSampler;
+layout(binding = BINDING_MATERIAL0) uniform sampler2D diffuseSampler;
+
+#if HAS_MATERIAL_TEXTURE1
+layout(binding = BINDING_MATERIAL1) uniform sampler2D normalSampler;
+#endif
+
+#if HAS_MATERIAL_TEXTURE2
+layout(binding = BINDING_MATERIAL2) uniform sampler2D specularGlosinessSampler;
+#endif
+
+#if HAS_MATERIAL_TEXTURE3
+layout(binding = BINDING_MATERIAL3) uniform sampler2D emissiveSampler;
+#endif
+
+#if HAS_MATERIAL_TEXTURE4
+layout(binding = BINDING_MATERIAL4) uniform sampler2D aoSampler;
+#endif
 
 MaterialPixelParameters ComputeMaterialPixelParameters(
 	  vec3 worldPos

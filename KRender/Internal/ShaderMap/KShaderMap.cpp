@@ -16,6 +16,8 @@ static const size_t MATERIAL_TEXTURE5_INDEX = 9;
 static const size_t MATERIAL_TEXTURE6_INDEX = 10;
 static const size_t MATERIAL_TEXTURE7_INDEX = 11;
 
+static const size_t MATERIAL_TEXTURE_COUNT = MATERIAL_TEXTURE7_INDEX - MATERIAL_TEXTURE0_INDEX + 1;
+
 static const size_t MESHLET_INPUT_INDEX = 12;
 
 static const char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
@@ -92,12 +94,13 @@ size_t KShaderMap::CalcHash(const VertexFormat* formats, size_t count, const KTe
 
 	if (textureBinding)
 	{
-#define ASSIGN_TEXTURE_MACRO(SLOT) if (textureBinding->GetTexture(SLOT)) { macrosToEnable[MATERIAL_TEXTURE##SLOT##_INDEX] = true; }
-		ASSIGN_TEXTURE_MACRO(0);
-		ASSIGN_TEXTURE_MACRO(1);
-		ASSIGN_TEXTURE_MACRO(2);
-		ASSIGN_TEXTURE_MACRO(3);
-#undef ASSIGN_TEXTURE_MACRO
+		for (uint32_t i = 0; i < MATERIAL_TEXTURE_COUNT; ++i)
+		{
+			if (textureBinding->GetTexture(i))
+			{
+				macrosToEnable[MATERIAL_TEXTURE0_INDEX + i] = true;
+			}
+		}
 	}
 
 	if (meshletInput)

@@ -30,11 +30,13 @@ protected:
 	KMeshData					m_MeshData;
 	KMeshletGeometry			m_Meshlet;
 	bool						m_NeedMeshlet;
+
+	bool						m_MetalWorkFlow;
 public:
 	KSubMesh(KMesh* parent);
 	~KSubMesh();
 
-	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialTextureBinding&& binding);
+	bool Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialTextureBinding&& binding, bool metalWorkFlow);
 	bool InitDebug(DebugPrimitive primtive, const KVertexData* vertexData, const KIndexData* indexData);
 	bool UnInit();
 
@@ -46,6 +48,8 @@ public:
 
 	inline DebugPrimitive GetDebugPrimitive() const { return m_DebugPrimitive; }
 	inline IKAccelerationStructurePtr GetIKAccelerationStructure() { return m_AccelerationStructure; }
+
+	inline bool IsMetalWorkFlow() const { return m_MetalWorkFlow; }
 };
 
 typedef std::shared_ptr<KSubMesh> KSubMeshPtr;

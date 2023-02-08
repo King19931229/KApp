@@ -9,15 +9,7 @@
 #include "KTriangleMesh.h"
 #include "Utility/KMeshUtilityInfo.h"
 
-enum MeshTextureSemantic
-{
-	MTS_DIFFUSE,
-	MTS_SPECULAR,
-	MTS_NORMAL,
-	MTS_COUNT
-};
 static_assert(MTS_COUNT <= SHADER_BINDING_MATERIAL_COUNT, "Semantic count out of bound");
-
 class KMesh
 {
 	friend class KSubMesh;

@@ -108,7 +108,7 @@ bool KMeshSerializerV0::ResolvePath(const std::string& meshPath, const std::stri
 bool KMeshSerializerV0::CombinePath(const std::string& meshPath, const std::string texturePath, std::string& outPath)
 {
 	std::string parentFolder;
-	if(KFileTool::ParentFolder(meshPath, parentFolder))
+	if (!texturePath.empty() && KFileTool::ParentFolder(meshPath, parentFolder))
 	{
 		outPath = parentFolder + "/" + texturePath;
 		return true;
@@ -145,6 +145,16 @@ bool KMeshSerializerV0::WriteString(IKDataStreamPtr& stream, const std::string& 
 		ACTION_ON_FAILURE(stream->Write(value.c_str(), len), return false);
 	}
 	return true;
+}
+
+bool KMeshSerializerV0::ReadBool(IKDataStreamPtr& stream, bool& value)
+{
+	return stream->Read(&value, sizeof(bool));
+}
+
+bool KMeshSerializerV0::WriteBool(IKDataStreamPtr& stream, bool value)
+{
+	return stream->Write(&value, sizeof(bool));
 }
 
 bool KMeshSerializerV0::ReadHead(IKDataStreamPtr& stream, uint32_t& flag)
@@ -401,9 +411,12 @@ bool KMeshSerializerV0::ReadMaterialLayerElementData(IKDataStreamPtr& stream, Ma
 	uint32_t flag = 0;
 	ACTION_ON_FAILURE(stream->Read(&flag, sizeof(flag)) && flag == MES_MATERIAL_LAYER_ELEMENT, return false);
 
-	ACTION_ON_FAILURE(ReadString(stream, materialData.diffuse), return false);
-	ACTION_ON_FAILURE(ReadString(stream, materialData.specular), return false);
-	ACTION_ON_FAILURE(ReadString(stream, materialData.normal), return false);
+	ACTION_ON_FAILURE(ReadBool(stream, materialData.metalWorkFlow), return false);
+
+	for (uint32_t idx = 0; idx < MTS_COUNT; ++idx)
+	{
+		ACTION_ON_FAILURE(ReadString(stream, materialData.textures[idx]), return false);
+	}
 
 	return true;
 }
@@ -543,40 +556,26 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 
 		KMaterialTextureBinding textures;
 
-		if(!materialData.diffuse.empty())
+		for (uint32_t idx = 0; idx < MTS_COUNT; ++idx)
 		{
-			std::string diffusePath;
-			if(CombinePath(meshPath, materialData.diffuse, diffusePath))
+			std::string path;
+			if (CombinePath(meshPath, materialData.textures[idx], path))
 			{
-				textures.SetTexture(MTS_DIFFUSE, diffusePath.c_str());
+				textures.SetTexture(idx, path);
 			}
 		}
 
 		// 一定要设置Diffuse贴图
 		if (!textures.GetTexture(MTS_DIFFUSE))
 		{
+			// 这里会赋上棋盘格贴图
 			textures.SetTexture(MTS_DIFFUSE, "");
 		}
 
-		if(!materialData.specular.empty())
-		{
-			std::string specularPath;
-			if(CombinePath(meshPath, materialData.specular, specularPath))
-			{
-				textures.SetTexture(MTS_SPECULAR, specularPath.c_str());
-			}
-		}
-		if(!materialData.normal.empty())
-		{
-			std::string normalPath;
-			if(CombinePath(meshPath, materialData.normal, normalPath))
-			{
-				textures.SetTexture(MTS_NORMAL, normalPath.c_str());
-			}
-		}
+		bool metalWorkFlow = materialData.metalWorkFlow;
 
 		submesh = KSubMeshPtr(KNEW KSubMesh(pMesh));
-		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, std::move(textures)));
+		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, std::move(textures), metalWorkFlow));
 	}
 
 	return true;
@@ -729,9 +728,13 @@ bool KMeshSerializerV0::WriteMaterialLayerElementData(IKDataStreamPtr& stream, c
 	uint32_t flag = MES_MATERIAL_LAYER_ELEMENT;
 
 	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
-	ACTION_ON_FAILURE(WriteString(stream, materialData.diffuse), return false);
-	ACTION_ON_FAILURE(WriteString(stream, materialData.specular), return false);
-	ACTION_ON_FAILURE(WriteString(stream, materialData.normal), return false);
+
+	ACTION_ON_FAILURE(WriteBool(stream, materialData.metalWorkFlow), return false);
+
+	for (uint32_t idx = 0; idx < MTS_COUNT; ++idx)
+	{
+		ACTION_ON_FAILURE(WriteString(stream, materialData.textures[idx]), return false);
+	}
 
 	return true;
 }
@@ -784,28 +787,23 @@ bool KMeshSerializerV0::SaveToStream(const KMesh* pMesh, IKDataStreamPtr& stream
 	std::vector<MaterialInfo> materialDatas;
 	std::vector<DrawElementInfo> drawInfos;
 
+	MaterialInfo mtlInfo;
+
 	for (size_t i = 0; i < pMesh->m_SubMeshes.size(); ++i)
 	{
 		KSubMeshPtr subMesh = pMesh->m_SubMeshes[i];
 		KMaterialTextureBinding& textures = subMesh->m_Texture;
 
-		IKTexturePtr diffuseTexture = textures.GetTexture(MTS_DIFFUSE);
-		IKTexturePtr specularTexture = textures.GetTexture(MTS_SPECULAR);
-		IKTexturePtr normalTexture = textures.GetTexture(MTS_NORMAL);
+		for (uint32_t idx = 0; idx < MTS_COUNT; ++idx)
+		{
+			IKTexturePtr texture = textures.GetTexture(idx);
+			if (texture)
+			{
+				ResolvePath(pMesh->m_Path, texture->GetPath(), mtlInfo.textures[idx]);
+			}
+		}
 
-		MaterialInfo mtlInfo;
-		if (diffuseTexture)
-		{
-			ResolvePath(pMesh->m_Path, diffuseTexture->GetPath(), mtlInfo.diffuse);
-		}
-		if (specularTexture)
-		{
-			ResolvePath(pMesh->m_Path, specularTexture->GetPath(), mtlInfo.specular);
-		}
-		if (normalTexture)
-		{
-			ResolvePath(pMesh->m_Path, normalTexture->GetPath(), mtlInfo.normal);
-		}
+		mtlInfo.metalWorkFlow = subMesh->IsMetalWorkFlow();
 
 		DrawElementInfo drawInfo = {(uint32_t)i, (uint32_t)i};
 
