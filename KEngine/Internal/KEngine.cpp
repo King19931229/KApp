@@ -212,7 +212,7 @@ bool KEngine::Init(IKRenderWindowPtr window, const KEngineOptions& options)
 
 		KFileSystem::Manager->Init();
 
-		KAssetLoaderManager::CreateAssetLoader();
+		KAssetLoader::CreateAssetLoaderManager();
 		KCodec::CreateCodecManager();
 
 		m_Window = std::move(window);
@@ -270,7 +270,7 @@ bool KEngine::UnInit()
 		m_Window = nullptr;
 		m_Device = nullptr;
 
-		KAssetLoaderManager::DestroyAssetLoader();
+		KAssetLoader::DestroyAssetLoaderManager();
 		KCodec::DestroyCodecManager();
 
 		KLog::Logger->UnInit();

@@ -172,9 +172,6 @@
     <ClInclude Include="Interface\Entity\IKEntityManager.h">
       <Filter>Interface\Entity</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\KAssetIOHooker.h">
-      <Filter>Internal</Filter>
-    </ClInclude>
     <ClInclude Include="Internal\KAssetLoader.h">
       <Filter>Internal</Filter>
     </ClInclude>
@@ -238,6 +235,15 @@
     <ClInclude Include="Publish\KReferenceHolder.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Asset\KAssimpIOHooker.h">
+      <Filter>Internal\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Asset\KAssimpLoader.h">
+      <Filter>Internal\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Asset\KGLTFLoader.h">
+      <Filter>Internal\Asset</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -272,6 +278,9 @@
     </Filter>
     <Filter Include="Internal\ECS">
       <UniqueIdentifier>{2d971872-a991-4530-ab8f-c1033bbe4500}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\Asset">
+      <UniqueIdentifier>{9aec04e5-f9e7-4e49-9ed7-c268b75ded9e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -310,9 +319,6 @@
     </ClCompile>
     <ClCompile Include="Internal\XML\KXMLDocument.cpp">
       <Filter>Internal\XML</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\KAssetIOHooker.cpp">
-      <Filter>Internal</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KAssetLoader.cpp">
       <Filter>Internal</Filter>
@@ -391,6 +397,15 @@
     </ClCompile>
     <ClCompile Include="Internal\Codec\KDDSCodec.cpp">
       <Filter>Internal\Codec</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\KAssimpIOHooker.cpp">
+      <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\KAssimpLoader.cpp">
+      <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Asset\KGLTFLoader.cpp">
+      <Filter>Internal\Asset</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

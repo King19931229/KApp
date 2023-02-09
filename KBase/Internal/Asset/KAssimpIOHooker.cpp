@@ -1,19 +1,19 @@
-#include "KAssetIOHooker.h"
+#include "KAssimpIOHooker.h"
 #include <assert.h>
 
-// KAssetIOStream
-KAssetIOStream::KAssetIOStream(IKDataStreamPtr stream)
+// KAssimpIOStream
+KAssimpIOStream::KAssimpIOStream(IKDataStreamPtr stream)
 	: m_DataStream(stream)
 {
 	assert(m_DataStream != nullptr && "DataStream must not empty");
 }
 
-KAssetIOStream::~KAssetIOStream()
+KAssimpIOStream::~KAssimpIOStream()
 {
 	m_DataStream = nullptr;
 }
 
-size_t KAssetIOStream::Read(void* pvBuffer, size_t pSize, size_t pCount)
+size_t KAssimpIOStream::Read(void* pvBuffer, size_t pSize, size_t pCount)
 {
 	if(m_DataStream->Read(pvBuffer, pSize * pCount))
 	{
@@ -22,7 +22,7 @@ size_t KAssetIOStream::Read(void* pvBuffer, size_t pSize, size_t pCount)
 	return 0;
 }
 
-size_t KAssetIOStream::Write(const void* pvBuffer, size_t pSize, size_t pCount)
+size_t KAssimpIOStream::Write(const void* pvBuffer, size_t pSize, size_t pCount)
 {
 	if(m_DataStream->Write(pvBuffer, pSize * pCount))
 	{
@@ -31,7 +31,7 @@ size_t KAssetIOStream::Write(const void* pvBuffer, size_t pSize, size_t pCount)
 	return 0;
 }
 
-aiReturn KAssetIOStream::Seek(size_t pOffset, aiOrigin pOrigin)
+aiReturn KAssimpIOStream::Seek(size_t pOffset, aiOrigin pOrigin)
 {
 	long seekPos = 0;
 
@@ -59,38 +59,38 @@ aiReturn KAssetIOStream::Seek(size_t pOffset, aiOrigin pOrigin)
 
 }
 
-size_t KAssetIOStream::Tell() const
+size_t KAssimpIOStream::Tell() const
 {
 	return m_DataStream->Tell();
 }
 
-size_t KAssetIOStream::FileSize() const
+size_t KAssimpIOStream::FileSize() const
 {
 	return m_DataStream->GetSize();
 }
 
-void KAssetIOStream::Flush()
+void KAssimpIOStream::Flush()
 {
 	m_DataStream->Flush();
 }
 
-bool KAssetIOStream::Close()
+bool KAssimpIOStream::Close()
 {
 	return m_DataStream->Close();
 }
 
-// KAssetIOHooker
-KAssetIOHooker::KAssetIOHooker(IKFileSystemManager* fileSysMgr)
+// KAssimpIOHooker
+KAssimpIOHooker::KAssimpIOHooker(IKFileSystemManager* fileSysMgr)
 	: m_FileSystemManager(fileSysMgr)
 {
 	assert(fileSysMgr != nullptr && "FileSystem must not empty");
 }
 
-KAssetIOHooker::~KAssetIOHooker()
+KAssimpIOHooker::~KAssimpIOHooker()
 {
 }
 
-bool KAssetIOHooker::Exists(const char* pFile) const
+bool KAssimpIOHooker::Exists(const char* pFile) const
 {
 	IKFileSystemPtr system = m_FileSystemManager->GetFileSystem(FSD_RESOURCE);
 	if (!(system && system->IsFileExist(pFile)))
@@ -104,12 +104,12 @@ bool KAssetIOHooker::Exists(const char* pFile) const
 	return true;
 }
 
-char KAssetIOHooker::getOsSeparator() const
+char KAssimpIOHooker::getOsSeparator() const
 {
 	return '/';
 }
 
-Assimp::IOStream* KAssetIOHooker::Open(const char* pFile, const char* pMode)
+Assimp::IOStream* KAssimpIOHooker::Open(const char* pFile, const char* pMode)
 {
 	if (strstr(pMode, "w"))
 	{
@@ -129,12 +129,12 @@ Assimp::IOStream* KAssetIOHooker::Open(const char* pFile, const char* pMode)
 		}
 	}
 
-	Assimp::IOStream* stream = KNEW KAssetIOStream(dataStream);
+	Assimp::IOStream* stream = KNEW KAssimpIOStream(dataStream);
 	return stream;
 }
 
-void KAssetIOHooker::Close(Assimp::IOStream* pFile)
+void KAssimpIOHooker::Close(Assimp::IOStream* pFile)
 {
-	KAssetIOStream* stream = static_cast<KAssetIOStream*>(pFile);
+	KAssimpIOStream* stream = static_cast<KAssimpIOStream*>(pFile);
 	ASSERT_RESULT(stream->Close());
 }

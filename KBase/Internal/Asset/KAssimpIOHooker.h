@@ -3,13 +3,13 @@
 #include "assimp/IOSystem.hpp"
 #include "Interface/IKFileSystem.h"
 
-class KAssetIOStream : public Assimp::IOStream
+class KAssimpIOStream : public Assimp::IOStream
 {
 protected:
 	IKDataStreamPtr m_DataStream;
 public:
-	KAssetIOStream(IKDataStreamPtr stream);
-	virtual ~KAssetIOStream();
+	KAssimpIOStream(IKDataStreamPtr stream);
+	virtual ~KAssimpIOStream();
 
 	virtual size_t Read(void* pvBuffer, size_t pSize, size_t pCount);
     virtual size_t Write(const void* pvBuffer, size_t pSize, size_t pCount);
@@ -21,13 +21,13 @@ public:
 	bool Close();
 };
 
-class KAssetIOHooker : public Assimp::IOSystem
+class KAssimpIOHooker : public Assimp::IOSystem
 {
 protected:
 	IKFileSystemManager* m_FileSystemManager;
 public:
-	KAssetIOHooker(IKFileSystemManager* fileSysMgr);
-	virtual ~KAssetIOHooker();
+	KAssimpIOHooker(IKFileSystemManager* fileSysMgr);
+	virtual ~KAssimpIOHooker();
 
 	virtual bool Exists(const char* pFile) const;
     virtual char getOsSeparator() const;

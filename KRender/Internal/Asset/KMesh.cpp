@@ -203,7 +203,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 	}
 	UnInit();
 
-	IKAssetLoaderPtr& loader = KAssetLoaderManager::Loader;
+	IKAssetLoaderPtr loader = KAssetLoader::GetLoader(szPath);
 	if(loader)
 	{
 		KAssetImportOption option;

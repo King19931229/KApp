@@ -120,9 +120,9 @@ struct IKAssetLoader
 	virtual bool Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result) = 0;
 };
 
-namespace KAssetLoaderManager
+namespace KAssetLoader
 {
-	extern bool CreateAssetLoader();
-	extern bool DestroyAssetLoader();
-	extern IKAssetLoaderPtr Loader;
+	extern bool CreateAssetLoaderManager();
+	extern bool DestroyAssetLoaderManager();
+	extern IKAssetLoaderPtr GetLoader(const char* pszFile);
 }
