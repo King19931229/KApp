@@ -244,6 +244,9 @@
     <ClInclude Include="Internal\Asset\KGLTFLoader.h">
       <Filter>Internal\Asset</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Codec\KCodecBase.h">
+      <Filter>Internal\Codec</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -406,6 +409,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Asset\KGLTFLoader.cpp">
       <Filter>Internal\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Codec\KCodecBase.cpp">
+      <Filter>Internal\Codec</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -297,22 +297,9 @@ bool KETCCodec::DecodeKTX(const IKDataStreamPtr& stream, KCodecResult& result)
 	return false;
 }
 
-bool KETCCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result)
+bool KETCCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult& result)
 {
 	// TODO 判断硬件解码支持
-
-	IKDataStreamPtr stream = nullptr;
-
-	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
-	if(!system || !system->Open(pszFile, IT_FILEHANDLE, stream))
-	{
-		system = KFileSystem::Manager->GetFileSystem(FSD_BACKUP);
-		if (!system || !system->Open(pszFile, IT_FILEHANDLE, stream))
-		{
-			return false;
-		}
-	}
-
 	stream->Seek(0);
 	if (DecodeKTX(stream, result))
 	{

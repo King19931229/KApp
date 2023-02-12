@@ -24,8 +24,8 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	, vec3 worldNormal
 	, vec2 texCoord
 #if TANGENT_BINORMAL_INPUT
-	, vec3 tangent
-	, vec3 binormal
+	, vec3 worldTangent
+	, vec3 worldBinormal
 #endif
 	)
 {
@@ -34,10 +34,10 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	parameters.position = worldPos;
 
 #if (TANGENT_BINORMAL_INPUT && HAS_MATERIAL_TEXTURE1)
-	vec4 normalmap = 2.0 * texture(normalSampler, uv) - vec4(1.0);
-	parameters.normal = normalize(tangent) * normalmap.r +
-	normalize(binormal) * normalmap.g +
-	normalize(inViewNormal) * normalmap.b;
+	vec4 normalmap = 2.0 * texture(normalSampler, texCoord) - vec4(1.0);
+	parameters.normal = normalize(worldTangent * normalmap.r
+					  + worldBinormal * normalmap.g
+					  + worldNormal * normalmap.b);
 #else
 	parameters.normal = worldNormal;
 #endif

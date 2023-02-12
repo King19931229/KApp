@@ -53,7 +53,7 @@ bool KZipFileSystem::GetRoot(std::string& root)
 	return true;
 }
 
-bool KZipFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret)
+bool KZipFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret, KFileInformation* information)
 {
 	if(m_Zip != nullptr)
 	{

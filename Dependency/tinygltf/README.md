@@ -2,20 +2,22 @@
 
 `TinyGLTF` is a header only C++11 glTF 2.0 https://github.com/KhronosGroup/glTF library.
 
-`TinyGLTF` uses Niels Lohmann's json library(https://github.com/nlohmann/json), so now it requires C++11 compiler.
+`TinyGLTF` uses Niels Lohmann's json library (https://github.com/nlohmann/json), so now it requires C++11 compiler.
 (Also, you can use RadpidJSON as an JSON backend)
-If you are looking for old, C++03 version, please use `devel-picojson` branch(but not maintained anymore).
+If you are looking for old, C++03 version, please use `devel-picojson` branch (but not maintained anymore).
 
 ## Status
 
-Currently TinyGLTF is stable and maintainance mode. No drastic changes and feature additions planned.
+Currently TinyGLTF is stable and maintenance mode. No drastic changes and feature additions planned.
 
+ - v2.8.0 Add URICallbacks for custom URI handling in Buffer and Image. PR#397
+ - v2.7.0 Change WriteImageDataFunction user callback function signature. PR#393
  - v2.6.0 Support serializing sparse accessor(Thanks to @fynv).
  - v2.5.0 Add SetPreserveImageChannels() option to load image data as is.
  - v2.4.0 Experimental RapidJSON support. Experimental C++14 support(C++14 may give better performance)
  - v2.3.0 Modified Material representation according to glTF 2.0 schema(and introduced TextureInfo class)
  - v2.2.0 release(Support loading 16bit PNG. Sparse accessor support)
- - v2.1.0 release(Draco support)
+ - v2.1.0 release(Draco decoding support)
  - v2.0.0 release(22 Aug, 2018)!
 
 ### Branches
@@ -229,7 +231,7 @@ add_subdirectory(/path/to/tinygltf)
 
 #### Setup
 
-Python 2.6 or 2.7 required.
+Python required.
 Git clone https://github.com/KhronosGroup/glTF-Sample-Models to your local dir.
 
 #### Run parsing test

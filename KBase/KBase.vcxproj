@@ -43,6 +43,7 @@
     <ClInclude Include="Internal\Asset\KAssimpIOHooker.h" />
     <ClInclude Include="Internal\Asset\KAssimpLoader.h" />
     <ClInclude Include="Internal\Asset\KGLTFLoader.h" />
+    <ClInclude Include="Internal\Codec\KCodecBase.h" />
     <ClInclude Include="Internal\Codec\KDDSCodec.h" />
     <ClInclude Include="Internal\Codec\KETCCodec.h" />
     <ClInclude Include="Internal\Codec\KFreeImageCodec.h" />
@@ -105,6 +106,7 @@
     <ClCompile Include="Internal\Asset\KAssimpIOHooker.cpp" />
     <ClCompile Include="Internal\Asset\KAssimpLoader.cpp" />
     <ClCompile Include="Internal\Asset\KGLTFLoader.cpp" />
+    <ClCompile Include="Internal\Codec\KCodecBase.cpp" />
     <ClCompile Include="Internal\Codec\KDDSCodec.cpp" />
     <ClCompile Include="Internal\Codec\KETCCodec.cpp" />
     <ClCompile Include="Internal\Codec\KFreeImageCodec.cpp" />

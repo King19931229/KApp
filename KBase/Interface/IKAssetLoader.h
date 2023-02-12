@@ -1,5 +1,7 @@
 #pragma once
 #include "KBase/Publish/KConfig.h"
+#include "KBase/Interface/IKCodec.h"
+#include "glm/glm.hpp"
 #include <memory>
 #include <vector>
 #include <string>
@@ -38,6 +40,38 @@ enum MeshTextureSemantic
 	MTS_COUNT
 };
 
+enum MeshTextureFilter
+{
+	MTF_LINEAR,
+	MTF_CLOSEST
+};
+
+enum MeshTextureAddress
+{
+	MTA_REPEAT,
+	MTA_CLAMP_TO_EDGE,
+	MTA_MIRRORED_REPEAT
+};
+
+enum MaterialAlphaMode
+{
+	MAM_OPAQUE,
+	MAM_MASK,
+	MAM_BLEND
+};
+
+struct KMeshTextureSampler
+{
+	MeshTextureFilter minFilter, magFilter;
+	MeshTextureAddress addressModeU, addressModeV, addressModeW;
+
+	KMeshTextureSampler()
+	{
+		minFilter = magFilter = MTF_LINEAR;
+		addressModeU = addressModeV = addressModeW = MTA_REPEAT;
+	}
+};
+
 struct KAssetImportResult
 {
 	typedef std::vector<char> VertexDataBuffer;
@@ -52,11 +86,31 @@ struct KAssetImportResult
 	struct Material
 	{
 		std::string textures[MTS_COUNT];
+		KCodecResult codecs[MTS_COUNT];
+
+		KMeshTextureSampler samplers[MTS_COUNT];
+
+		MaterialAlphaMode alphaMode;
+
+		float alphaCutoff;
+		float metallicFactor;
+		float roughnessFactor;
+		glm::vec4 baseColorFactor;
+		glm::vec4 emissiveFactor;
+
 		bool metalWorkFlow;
+		bool doubleSided;
 
 		Material()
 		{
+			alphaMode = MAM_OPAQUE;
+			alphaCutoff = 1.0f;
+			metallicFactor = 1.0f;
+			roughnessFactor = 1.0f;
+			baseColorFactor = glm::vec4(1.0f);
+			emissiveFactor = glm::vec4(1.0f);
 			metalWorkFlow = false;
+			doubleSided = false;
 		}
 	};
 

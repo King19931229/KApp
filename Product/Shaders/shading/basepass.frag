@@ -3,8 +3,8 @@ layout(location = 1) in vec3 worldPos;
 layout(location = 2) in vec3 prevWorldPos;
 layout(location = 3) in vec3 worldNormal;
 #if TANGENT_BINORMAL_INPUT
-layout(location = 4) in vec3 tangent;
-layout(location = 5) in vec3 binormal;
+layout(location = 4) in vec3 worldTangent;
+layout(location = 5) in vec3 worldBinormal;
 #endif
 
 layout(location = 0) out vec4 RT0;
@@ -39,8 +39,8 @@ void main()
 		, worldNormal
 		, texCoord
 #if TANGENT_BINORMAL_INPUT
-		, tangent
-		, binormal
+		, worldTangent
+		, worldBinormal
 #endif
 		);
 

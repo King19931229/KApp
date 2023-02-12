@@ -569,7 +569,7 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 		if (!textures.GetTexture(MTS_DIFFUSE))
 		{
 			// 这里会赋上棋盘格贴图
-			textures.SetTexture(MTS_DIFFUSE, "");
+			textures.SetErrorTexture(MTS_DIFFUSE);
 		}
 
 		bool metalWorkFlow = materialData.metalWorkFlow;

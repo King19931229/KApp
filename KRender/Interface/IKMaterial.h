@@ -2,6 +2,7 @@
 #include "KRender/Interface/IKShader.h"
 #include "KRender/Interface/IKTexture.h"
 #include "KRender/Interface/IKPipeline.h"
+#include "KBase/Interface/IKAssetLoader.h"
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -55,6 +56,8 @@ struct IKMaterialTextureBinding
 	virtual uint8_t GetNumSlot() const = 0;
 
 	virtual bool SetTexture(uint8_t slot, const std::string& path) = 0;
+	virtual bool SetTexture(uint8_t slot, const KCodecResult& result, const KMeshTextureSampler& sampler) = 0;
+	virtual bool SetErrorTexture(uint8_t slot) = 0;
 	virtual bool UnsetTextrue(uint8_t slot) = 0;
 
 	virtual IKTexturePtr GetTexture(uint8_t slot) const = 0;

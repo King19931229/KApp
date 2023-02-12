@@ -20,6 +20,12 @@ enum FileSystemType
 	FST_MULTI
 };
 
+struct KFileInformation
+{
+	std::string parentFolder;
+	std::string fullPath;
+};
+
 struct IKFileSystem
 {
 	virtual ~IKFileSystem() {}
@@ -45,7 +51,7 @@ struct IKFileSystem
 	virtual bool GetAllSubFileSystem(KFileSystemPtrList& list) = 0;
 
 	// TODO Open区分读写
-	virtual bool Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret) = 0;
+	virtual bool Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret, KFileInformation* information = nullptr) = 0;
 	virtual bool RemoveFile(const std::string& file) = 0;
 	virtual bool RemoveDir(const std::string& folder) = 0;
 	virtual bool IsFileExist(const std::string& file) = 0;

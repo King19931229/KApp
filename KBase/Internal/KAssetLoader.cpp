@@ -1,5 +1,7 @@
 #include "KAssetLoader.h"
 #include "Asset/KAssimpLoader.h"
+#include "Asset/KGLTFLoader.h"
+#include "Publish/KFileTool.h"
 
 namespace KAssetLoader
 {
@@ -31,16 +33,30 @@ KAssetLoaderManager::~KAssetLoaderManager()
 
 bool KAssetLoaderManager::Init()
 {
-	KAssimpLoader::Init();
-	return true;
+	bool bSuccess = true;
+	bSuccess &= KAssimpLoader::Init();
+	bSuccess &= KGLTFLoader::Init();
+	return bSuccess;
 }
+
 bool KAssetLoaderManager::UnInit()
 {
-	KAssimpLoader::UnInit();
-	return true;
+	bool bSuccess = true;
+	bSuccess &= KAssimpLoader::UnInit();
+	bSuccess &= KGLTFLoader::UnInit();
+	return bSuccess;
 }
 
 IKAssetLoaderPtr KAssetLoaderManager::GetLoader(const char* pFilePath)
 {
+	std::string name, ext;
+	if (KFileTool::SplitExt(pFilePath, name, ext))
+	{
+		std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
+		if (ext == ".gltf" || ext == ".glb")
+		{
+			return IKAssetLoaderPtr(new KGLTFLoader());
+		}
+	}
 	return IKAssetLoaderPtr(new KAssimpLoader());
 }

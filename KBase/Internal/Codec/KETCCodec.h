@@ -1,9 +1,10 @@
 #pragma once
-#include "Internal/KCodec.h"
-#include "Interface/IKDataStream.h"
+#include "KCodecBase.h"
 
-class KETCCodec : public IKCodec
+class KETCCodec : public KCodecBase
 {
+protected:
+	virtual bool CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult& result) override;
 public:
 	KETCCodec();
 	virtual ~KETCCodec();
@@ -11,7 +12,6 @@ public:
 	bool DecodePKM(const IKDataStreamPtr& stream, KCodecResult& result);
 	bool DecodeKTX(const IKDataStreamPtr& stream, KCodecResult& result);
 
-	virtual bool Codec(const char* pszFile, bool forceAlpha, KCodecResult& result);
 	virtual bool Save(const KCodecResult& source, const char* pszFile);
 
 	static bool Init();

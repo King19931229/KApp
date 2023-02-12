@@ -57,7 +57,7 @@ bool KApkFileSystem::GetRoot(std::string& root)
 	return true;
 }
 
-bool KApkFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret)
+bool KApkFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret, KFileInformation* information)
 {
 #ifdef __ANDROID__
 	if(m_AssetManager)

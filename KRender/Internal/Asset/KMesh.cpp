@@ -313,13 +313,17 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 				{
 					textures.SetTexture(idx, subPart.material.textures[idx]);
 				}
+				else if (subPart.material.codecs[idx].pData)
+				{
+					textures.SetTexture(idx, subPart.material.codecs[idx], subPart.material.samplers[idx]);
+				}
 			}
 
 			// 一定要设置Diffuse贴图
 			if (!textures.GetTexture(MTS_DIFFUSE))
 			{
 				// 这里会赋上棋盘格贴图
-				textures.SetTexture(MTS_DIFFUSE, "");
+				textures.SetErrorTexture(MTS_DIFFUSE);
 			}
 
 			bool metalWorkFlow = subPart.material.metalWorkFlow;

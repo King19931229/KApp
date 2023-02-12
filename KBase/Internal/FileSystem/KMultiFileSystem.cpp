@@ -85,11 +85,11 @@ bool KMultiFileSystem::GetAllSubFileSystem(KFileSystemPtrList& list)
 	return true;
 }
 
-bool KMultiFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret)
+bool KMultiFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret, KFileInformation* information)
 {
 	for (PriorityFileSystem& sys : m_Queue)
 	{
-		if (sys.system->Open(file, priorityType, ret))
+		if (sys.system->Open(file, priorityType, ret, information))
 		{
 			return true;
 		}

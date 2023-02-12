@@ -24,7 +24,9 @@ const char* KEResourcePorter::ms_SupportedMeshExts[] =
 {
 	".obj",
 	".3ds",
-	".fbx"
+	".fbx",
+	".gltf",
+	",glb"
 };
 
 bool KEResourcePorter::IsSupportedMesh(const char* ext)

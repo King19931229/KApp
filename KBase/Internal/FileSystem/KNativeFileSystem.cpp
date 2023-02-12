@@ -101,7 +101,7 @@ bool KNativeFileSystem::IsDir(const std::string& name)
 	return false;
 }
 
-bool KNativeFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret)
+bool KNativeFileSystem::Open(const std::string& file, IOType priorityType, IKDataStreamPtr& ret, KFileInformation* information)
 {
 	std::string fullPath;
 	if(KFileTool::PathJoin(m_AbsRoot, file, fullPath))
@@ -111,6 +111,11 @@ bool KNativeFileSystem::Open(const std::string& file, IOType priorityType, IKDat
 			ret = GetDataStream(priorityType);
 			if(ret->Open(fullPath.c_str(), IM_READ))
 			{
+				if (information)
+				{
+					information->fullPath = fullPath;
+					KFileTool::ParentFolder(information->fullPath, information->parentFolder);
+				}
 				KG_LOG(LM_IO, "[%s] file open on disk [%s]",  file.c_str(), m_Root.c_str());
 				return true;
 			}

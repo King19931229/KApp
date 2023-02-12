@@ -206,46 +206,47 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 				{
 					switch (component)
 					{
-					case AVC_POSITION_3F:
-						vertexBuffer.push_back(pPos->x * scale[0] + center[0]);
-						vertexBuffer.push_back(pPos->y * scale[1] + center[1]);
-						vertexBuffer.push_back(pPos->z * scale[2] + center[2]);
-						break;
-					case AVC_NORMAL_3F:
-						vertexBuffer.push_back(pNormal->x);
-						vertexBuffer.push_back(pNormal->y);
-						vertexBuffer.push_back(pNormal->z);
-						break;
-					case AVC_UV_2F:
-						vertexBuffer.push_back(pTexCoord->x * uvScale[0]);
-						vertexBuffer.push_back(pTexCoord->y * uvScale[1]);
-						break;
-					case AVC_UV2_2F:
-						vertexBuffer.push_back(pTexCoord2->x * uvScale[0]);
-						vertexBuffer.push_back(pTexCoord2->y * uvScale[1]);
-						break;
-					case AVC_DIFFUSE_3F:
-						vertexBuffer.push_back(pDiffuse.r);
-						vertexBuffer.push_back(pDiffuse.g);
-						vertexBuffer.push_back(pDiffuse.b);
-						break;
-					case AVC_SPECULAR_3F:
-						vertexBuffer.push_back(pSpecular.r);
-						vertexBuffer.push_back(pSpecular.g);
-						vertexBuffer.push_back(pSpecular.b);
-						break;
-					case AVC_TANGENT_3F:
-						vertexBuffer.push_back(pTangent->x);
-						vertexBuffer.push_back(pTangent->y);
-						vertexBuffer.push_back(pTangent->z);
-						break;
-					case AVC_BINORMAL_3F:
-						vertexBuffer.push_back(pBiTangent->x);
-						vertexBuffer.push_back(pBiTangent->y);
-						vertexBuffer.push_back(pBiTangent->z);
-						break;
-					default:
-						assert(false && "unknown format");
+						case AVC_POSITION_3F:
+							vertexBuffer.push_back(pPos->x * scale[0] + center[0]);
+							vertexBuffer.push_back(pPos->y * scale[1] + center[1]);
+							vertexBuffer.push_back(pPos->z * scale[2] + center[2]);
+							break;
+						case AVC_NORMAL_3F:
+							vertexBuffer.push_back(pNormal->x);
+							vertexBuffer.push_back(pNormal->y);
+							vertexBuffer.push_back(pNormal->z);
+							break;
+						case AVC_UV_2F:
+							vertexBuffer.push_back(pTexCoord->x * uvScale[0]);
+							vertexBuffer.push_back(pTexCoord->y * uvScale[1]);
+							break;
+						case AVC_UV2_2F:
+							vertexBuffer.push_back(pTexCoord2->x * uvScale[0]);
+							vertexBuffer.push_back(pTexCoord2->y * uvScale[1]);
+							break;
+						case AVC_DIFFUSE_3F:
+							vertexBuffer.push_back(pDiffuse.r);
+							vertexBuffer.push_back(pDiffuse.g);
+							vertexBuffer.push_back(pDiffuse.b);
+							break;
+						case AVC_SPECULAR_3F:
+							vertexBuffer.push_back(pSpecular.r);
+							vertexBuffer.push_back(pSpecular.g);
+							vertexBuffer.push_back(pSpecular.b);
+							break;
+						case AVC_TANGENT_3F:
+							vertexBuffer.push_back(pTangent->x);
+							vertexBuffer.push_back(pTangent->y);
+							vertexBuffer.push_back(pTangent->z);
+							break;
+						case AVC_BINORMAL_3F:
+							vertexBuffer.push_back(pBiTangent->x);
+							vertexBuffer.push_back(pBiTangent->y);
+							vertexBuffer.push_back(pBiTangent->z);
+							break;
+						default:
+							assert(false && "unknown format");
+							break;
 					};
 				}
 			}

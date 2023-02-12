@@ -50,20 +50,20 @@ KCodecManager::~KCodecManager()
 
 bool KCodecManager::Init()
 {
-	if(KFreeImageCodec::Init() && KETCCodec::Init() && KDDSCodec::Init())
-	{
-		return true;
-	}
-	return false;
+	bool bSuccess = true;
+	bSuccess &= KFreeImageCodec::Init();
+	bSuccess &= KETCCodec::Init();
+	bSuccess &= KDDSCodec::Init();
+	return bSuccess;
 }
 
 bool KCodecManager::UnInit()
 {
-	if(KFreeImageCodec::UnInit() && KETCCodec::UnInit() && KDDSCodec::UnInit())
-	{
-		return true;
-	}
-	return false;
+	bool bSuccess = true;
+	bSuccess &= KFreeImageCodec::UnInit();
+	bSuccess &= KETCCodec::UnInit();
+	bSuccess &= KDDSCodec::UnInit();
+	return bSuccess;
 }
 
 bool KCodecManager::AddCodec(const char* pExt, IKCodecPtr pCodec)

@@ -11,6 +11,7 @@ struct IKTexture : public IKResource
 	virtual ~IKTexture() {}
 
 	virtual bool InitMemoryFromFile(const std::string& filePath, bool bGenerateMipmap, bool async) = 0;
+	// TODO 直接走KCodecResult
 	virtual bool InitMemoryFromData(const void* pRawData, size_t width, size_t height, size_t depth, ImageFormat format, bool cubeMap, bool bGenerateMipmap, bool async) = 0;
 	virtual bool InitDevice(bool async) = 0;
 	virtual bool UnInit() = 0;

@@ -37,19 +37,93 @@ bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path)
 				desc.minFilter = desc.magFilter = FM_LINEAR;
 				desc.minMipmap = 0;
 				desc.maxMipmap = (*m_Textures[slot])->GetMipmaps() - 1;
+				desc.addressU = AM_REPEAT;
+				desc.addressV = AM_REPEAT;
+				desc.addressW = AM_REPEAT;
 				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
 				return true;
 			}
 			else
 			{
 				KLog::Logger->Log(LL_ERROR, "Couldn't load texture file %s", path.c_str());
+				return false;
 			}
 		}
+	}
+	return false;
+}
 
+bool KMaterialTextureBinding::SetTexture(uint8_t slot, const KCodecResult& result, const KMeshTextureSampler& sampler)
+{
+	if (slot < GetNumSlot())
+	{
+		UnsetTextrue(slot);
+		if (result.pData)
+		{
+			if (KRenderGlobal::TextureManager.Acquire(
+				result.pData->GetData(), result.pData->GetSize(),
+				result.uWidth, result.uHeight, result.uDepth,
+				result.eFormat, result.bCubemap, true, m_Textures[slot], false))
+			{
+				auto ToFilterMode = [](MeshTextureFilter filter)
+				{
+					switch (filter)
+					{
+						case MTF_LINEAR:
+							return FM_LINEAR;
+						case MTF_CLOSEST:
+							return FM_NEAREST;
+						default:
+							assert(false && "should not reach");
+							return FM_NEAREST;
+					}
+				};
+
+				auto ToAddressMode = [](MeshTextureAddress address)
+				{
+					switch (address)
+					{
+						case MTA_REPEAT:
+							return AM_REPEAT;
+						case MTA_CLAMP_TO_EDGE:
+							return AM_CLAMP_TO_EDGE;
+						case MTA_MIRRORED_REPEAT:
+							return AM_MIRROR_CLAMP_TO_EDGE;
+						default:
+							assert(false && "should not reach");
+							return AM_REPEAT;
+					}
+				};
+
+				KSamplerDescription desc;
+				desc.minFilter = ToFilterMode(sampler.minFilter);
+				desc.magFilter = ToFilterMode(sampler.magFilter);
+				desc.minMipmap = 0;
+				desc.maxMipmap = (*m_Textures[slot])->GetMipmaps() - 1;
+				desc.addressU = ToAddressMode(sampler.addressModeU);
+				desc.addressV = ToAddressMode(sampler.addressModeV);
+				desc.addressW = ToAddressMode(sampler.addressModeW);
+				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
+				return true;
+			}
+			else
+			{
+				KLog::Logger->Log(LL_ERROR, "Empty texture data");
+				return false;
+			}
+		}
+	}
+	return false;
+}
+
+bool KMaterialTextureBinding::SetErrorTexture(uint8_t slot)
+{
+	if (slot < GetNumSlot())
+	{
+		UnsetTextrue(slot);
 		KRenderGlobal::TextureManager.GetErrorTexture(m_Textures[slot]);
 		KRenderGlobal::SamplerManager.GetErrorSampler(m_Samplers[slot]);
-		KLog::Logger->Log(LL_WARNING, "No texture is applied to slot [%d], assign an error texture.", slot);
-
+		KLog::Logger->Log(LL_WARNING, "Assign an error texture to slot [%d]", slot);
 		return true;
 	}
 	return false;

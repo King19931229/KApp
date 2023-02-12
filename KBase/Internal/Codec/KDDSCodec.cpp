@@ -527,20 +527,8 @@ void KDDSCodec::UnpackDXTAlpha(const DXTInterpolatedAlphaBlock &block, ColourVal
 	}
 }
 
-bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result)
+bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult& result)
 {
-	IKDataStreamPtr stream = nullptr;
-
-	IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
-	if (!system || !system->Open(pszFile, IT_FILEHANDLE, stream))
-	{
-		system = KFileSystem::Manager->GetFileSystem(FSD_BACKUP);
-		if (!system || !system->Open(pszFile, IT_FILEHANDLE, stream))
-		{
-			return false;
-		}
-	}
-
 	// Read 4 character code
 	uint32_t fileType;
 	stream->Read(&fileType, sizeof(uint32_t));
@@ -848,7 +836,7 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 	result.pData = KImageDataPtr(KNEW KImageData(imageSize));
 
 	// Now deal with the data
-	void *destPtr = result.pData->GetData();
+	void* destPtr = result.pData->GetData();
 
 	KSubImageInfoList& subImageInfoList = result.pData->GetSubImageInfo();
 
@@ -861,7 +849,7 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 
 		for (size_t mip = 0; mip < result.uMipmap; ++mip)
 		{
-			void *srcData = destPtr;
+			void* srcData = destPtr;
 
 			if (isCompress)
 			{
@@ -943,13 +931,13 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 								if (x + 4 >= width)
 								{
 									// Jump back to the start of the line
-									destPtr = static_cast<void *>(static_cast<unsigned char*>(destPtr) - destPitchMinus4);
+									destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) - destPitchMinus4);
 								}
 								else
 								{
 									// Jump back up 4 rows and 4 pixels to the
 									// right to be at the next block to the right
-									destPtr = static_cast<void *>(static_cast<unsigned char*>(destPtr) - dstPitch * sy + destBpp * sx);
+									destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) - dstPitch * sy + destBpp * sx);
 								}
 							}
 						}
@@ -962,7 +950,7 @@ bool KDDSCodec::Codec(const char* pszFile, bool forceAlpha, KCodecResult& result
 					size_t dxtSize = 0;
 					ASSERT_RESULT(KImageHelper::GetByteSize(result.eFormat, width, height, depth, dxtSize));
 					stream->Read(destPtr, dxtSize);
-					destPtr = static_cast<void *>(static_cast<unsigned char*>(destPtr) + dxtSize);
+					destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) + dxtSize);
 				}
 			}
 			else // isCompress
