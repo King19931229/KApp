@@ -297,13 +297,16 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 			indexData.indexStart = 0;
 			indexData.indexCount = subPart.indexCount;
 
-			ASSERT_RESULT(device->CreateIndexBuffer(indexData.indexBuffer));
-			ASSERT_RESULT(indexData.indexBuffer->InitMemory(
-				indexType,
-				subPart.indexCount,
-				POINTER_OFFSET(result.indicesData.data(), indexSize * subPart.indexBase)
-			));
-			ASSERT_RESULT(indexData.indexBuffer->InitDevice(hostVisible));
+			if (indexData.indexCount > 0)
+			{
+				ASSERT_RESULT(device->CreateIndexBuffer(indexData.indexBuffer));
+				ASSERT_RESULT(indexData.indexBuffer->InitMemory(
+					indexType,
+					subPart.indexCount,
+					POINTER_OFFSET(result.indicesData.data(), indexSize * subPart.indexBase)
+				));
+				ASSERT_RESULT(indexData.indexBuffer->InitDevice(hostVisible));
+			}
 
 			KMaterialTextureBinding textures;
 
@@ -319,10 +322,9 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 				}
 			}
 
-			// 一定要设置Diffuse贴图
+			// 设置Diffuse贴图
 			if (!textures.GetTexture(MTS_DIFFUSE))
 			{
-				// 这里会赋上棋盘格贴图
 				textures.SetErrorTexture(MTS_DIFFUSE);
 			}
 

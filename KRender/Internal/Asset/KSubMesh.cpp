@@ -3,6 +3,7 @@
 #include "Interface/IKPipeline.h"
 #include "Interface/IKSampler.h"
 #include "Internal/KRenderGlobal.h"
+#include "KBase/Interface/IKLog.h"
 
 KSubMesh::KSubMesh(KMesh* parent)
 	: m_pParent(parent),
@@ -12,7 +13,7 @@ KSubMesh::KSubMesh(KMesh* parent)
 	m_IndexDraw(true),
 	m_AccelerationStructure(nullptr),
 	m_NeedAccelerationStructure(true),
-	m_NeedMeshlet(true),
+	m_NeedMeshlet(false),
 	m_MetalWorkFlow(true)
 {
 }
@@ -29,7 +30,7 @@ bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, 
 	m_pVertexData = vertexData;
 	m_IndexData = indexData;
 	m_Texture = std::move(binding);
-	m_IndexDraw = true;
+	m_IndexDraw = indexData.indexBuffer && indexData.indexCount > 0;
 	m_MetalWorkFlow = metalWorkFlow;
 
 	if (m_NeedAccelerationStructure)
@@ -82,28 +83,35 @@ bool KSubMesh::CreateAccelerationStructure()
 	if (m_AccelerationStructure)
 		return true;
 
-	KRenderGlobal::RenderDevice->CreateAccelerationStructure(m_AccelerationStructure);
-
-	if (m_IndexData.indexBuffer->GetIndexType() == IT_16)
+	if (m_IndexDraw)
 	{
-		IKIndexBufferPtr newIndexBuffer = nullptr;
+		KRenderGlobal::RenderDevice->CreateAccelerationStructure(m_AccelerationStructure);
 
-		KRenderGlobal::RenderDevice->CreateIndexBuffer(newIndexBuffer);
-		size_t count = m_IndexData.indexBuffer->GetIndexCount();
+		if (m_IndexData.indexBuffer->GetIndexType() == IT_16)
+		{
+			IKIndexBufferPtr newIndexBuffer = nullptr;
 
-		std::vector<uint16_t> srcData; srcData.resize(count);
-		ASSERT_RESULT(m_IndexData.indexBuffer->Read(srcData.data()));
+			KRenderGlobal::RenderDevice->CreateIndexBuffer(newIndexBuffer);
+			size_t count = m_IndexData.indexBuffer->GetIndexCount();
 
-		std::vector<uint32_t> destData; destData.resize(count);
-		for (size_t i = 0; i < count; ++i) destData[i] = srcData[i];
+			std::vector<uint16_t> srcData; srcData.resize(count);
+			ASSERT_RESULT(m_IndexData.indexBuffer->Read(srcData.data()));
 
-		ASSERT_RESULT(newIndexBuffer->InitMemory(IT_32, count, destData.data()));
-		ASSERT_RESULT(newIndexBuffer->InitDevice(m_IndexData.indexBuffer->IsHostVisible()));
-		SAFE_UNINIT(m_IndexData.indexBuffer);
-		m_IndexData.indexBuffer = newIndexBuffer;
+			std::vector<uint32_t> destData; destData.resize(count);
+			for (size_t i = 0; i < count; ++i) destData[i] = srcData[i];
+
+			ASSERT_RESULT(newIndexBuffer->InitMemory(IT_32, count, destData.data()));
+			ASSERT_RESULT(newIndexBuffer->InitDevice(m_IndexData.indexBuffer->IsHostVisible()));
+			SAFE_UNINIT(m_IndexData.indexBuffer);
+			m_IndexData.indexBuffer = newIndexBuffer;
+		}
+
+		m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer, &m_Texture);
 	}
-
-	 m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer, &m_Texture);
+	else
+	{
+		KLog::Logger->Log(LL_ERROR, "No Indexbuffer No AccelerationStructure");
+	}
 
 	return true;
 }

@@ -176,6 +176,7 @@ protected:
 	bool m_VoxelBorderEnable;
 	bool m_VoxelDebugUpdate;
 	bool m_VoxelEmpty;
+	bool m_VoxelDebugVoxelize;
 
 	float m_VoxelDrawBias;
 
@@ -220,6 +221,7 @@ public:
 	bool UpdateFrame(IKCommandBufferPtr primaryBuffer);
 
 	bool& GetVoxelDebugUpdate() { return m_VoxelDebugUpdate; }
+	bool& GetVoxelDebugVoxelize() { return m_VoxelDebugVoxelize; }
 	bool& GetVoxelDrawEnable() { return m_VoxelDrawEnable; }
 	bool& GetVoxelDrawWireFrame() { return m_VoxelDrawWireFrame; }
 	bool& GetLightDebugDrawEnable() { return m_LightDebugDrawer.GetEnable(); }

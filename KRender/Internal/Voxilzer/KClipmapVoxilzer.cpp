@@ -178,6 +178,7 @@ KClipmapVoxilzer::KClipmapVoxilzer()
 	, m_ScreenRatio(1.0f)
 	, m_InjectFirstBounce(true)
 	, m_VoxelDrawEnable(false)
+	, m_VoxelDebugVoxelize(false)
 	, m_VoxelDrawWireFrame(true)
 	, m_VoxelBorderEnable(true)
 	, m_VoxelDebugUpdate(false)
@@ -783,7 +784,7 @@ void KClipmapVoxilzer::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 		level.SetForceUpdate(m_VoxelDebugUpdate);
 	}
 
-	if (m_VoxelEmpty)
+	if (m_VoxelEmpty || m_VoxelDebugVoxelize)
 	{
 		for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
 		{

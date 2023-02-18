@@ -3,6 +3,7 @@
 #include "Interface/IKFileSystem.h"
 #include "Publish/KFileTool.h"
 #include "glm/gtc/type_ptr.inl"
+#include "glm/gtc/matrix_transform.hpp"
 #include <algorithm>
 
 #define TINYGLTF_IMPLEMENTATION
@@ -15,6 +16,10 @@
 * https://github.com/SaschaWillems/Vulkan-glTF-PBR
 * Copyright (c) 2018 Sascha Willems
 */
+
+#define GLTF_LOADER_CALCULATE_TANGENT_BY_UV 1
+#define GLTF_LOADER_DO_YUP_TO_ZUP 0
+#define GLTF_LOADER_BUILD_INDEX_IF_NONE 1
 
 bool KGLTFLoader::Init()
 {
@@ -34,6 +39,27 @@ KGLTFLoader::~KGLTFLoader()
 {
 }
 
+glm::mat4 KGLTFLoader::Node::LocalMatrix()
+{
+	return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) * glm::scale(glm::mat4(1.0f), scale) * matrix;
+}
+
+glm::mat4 KGLTFLoader::Node::GetMatrix()
+{
+	glm::mat4 m = LocalMatrix();
+	Node* p = parent;
+	while (p)
+	{
+		m = p->LocalMatrix() * m;
+		p = p->parent;
+	}
+	return m;
+}
+
+void KGLTFLoader::Node::Update()
+{
+	// TODO
+}
 
 KGLTFLoader::Primitive::Primitive(uint32_t InFirstIndex, uint32_t InIndexCount, uint32_t inFirstVertex, uint32_t InVertexCount, Material& InMaterial)
 	: firstIndex(InFirstIndex)
@@ -177,7 +203,7 @@ bool KGLTFLoader::IsBinary(const char* pszFile) const
 	if (KFileTool::SplitExt(pszFile, name, ext))
 	{
 		std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
-		if (ext == "glb")
+		if (ext == ".glb")
 		{
 			return true;
 		}
@@ -468,6 +494,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 			glm::vec3 posMin{};
 			glm::vec3 posMax{};
 			bool hasSkin = false;
+			bool hasNormal = false;
 			bool hasTangent = false;
 			bool hasIndices = primitive.indices > -1;
 			// Vertices
@@ -578,7 +605,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 				{
 					Vertex& vert = loaderInfo.vertexBuffer[loaderInfo.vertexPos];
 					vert.pos = glm::vec4(glm::make_vec3(&bufferPos[v * posByteStride]), 1.0f);
-					vert.normal = glm::normalize(glm::vec3(bufferNormals ? glm::make_vec3(&bufferNormals[v * normByteStride]) : glm::vec3(0.0f)));
+					vert.normal = glm::normalize(glm::vec3(bufferNormals ? glm::make_vec3(&bufferNormals[v * normByteStride]) : glm::vec3(1.0f, 0.0f, 0.0f)));
 					vert.uv0 = bufferTexCoordSet0 ? glm::make_vec2(&bufferTexCoordSet0[v * uv0ByteStride]) : glm::vec3(0.0f);
 					vert.uv1 = bufferTexCoordSet1 ? glm::make_vec2(&bufferTexCoordSet1[v * uv1ByteStride]) : glm::vec3(0.0f);
 					vert.color0 = bufferColorSet0 ? glm::make_vec4(&bufferColorSet0[v * color0ByteStride]) : glm::vec4(1.0f);
@@ -587,9 +614,16 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					glm::vec4 tangent = bufferTangents ? glm::make_vec4(&bufferTangents[v * tangentByteStride]) : glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
 					// They are not perpendicular to each other, seek a truly perpendicular
-					if (abs(glm::dot(vert.normal, glm::vec3(tangent.x, tangent.y, tangent.z))) > 0.1f)
+					if (abs(glm::dot(vert.normal, glm::vec3(tangent.x, tangent.y, tangent.z))) > 0.001f)
 					{
-						tangent = glm::vec4(glm::normalize(glm::cross(vert.normal, glm::vec3(tangent.x, tangent.y, tangent.z))), 1.0f);
+						if (abs(glm::dot(vert.normal, glm::vec3(1.0f, 0.0f, 0.0f))) > 0.001f)
+						{
+							tangent = glm::vec4(glm::normalize(glm::cross(vert.normal, glm::vec3(0.0f, 1.0f, 0.0f))), 1.0f);
+						}
+						else
+						{
+							tangent = glm::vec4(glm::normalize(glm::cross(vert.normal, glm::vec3(1.0f, 0.0f, 0.0f))), 1.0f);
+						}
 					}
 
 					vert.tangent = glm::vec3(tangent.x, tangent.y, tangent.z);
@@ -632,7 +666,8 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					loaderInfo.vertexPos++;
 				}
 
-				hasTangent = bufferTangents && bufferNormals;
+				hasNormal = bufferNormals;
+				hasTangent = bufferTangents;
 			}
 
 			// Indices
@@ -684,9 +719,139 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					}
 				}
 			}
+#if GLTF_LOADER_BUILD_INDEX_IF_NONE
+			else
+			{
+				std::vector<Vertex> vertices;
+				std::vector<uint32_t> indices;
+				std::map<Vertex, uint32_t> vertex_to_index;
 
-#define CALCULATE_TANGENT_BY_UV 1
-#if CALCULATE_TANGENT_BY_UV
+				std::vector<Vertex>& vertexBuffer = loaderInfo.vertexBuffer;
+				indices.reserve(vertexCount);
+
+				for (uint32_t i = 0; i < vertexCount; ++i)
+				{
+					const Vertex& vertex = vertexBuffer[vertexStart + i];
+
+					auto it = vertex_to_index.find(vertex);
+					if (it != vertex_to_index.end())
+					{
+						indices.push_back(it->second);
+					}
+					else
+					{
+						indices.push_back((uint32_t)vertices.size());
+						vertices.push_back(vertex);
+						vertex_to_index[vertex] = indices[i];
+					}
+				}
+
+				loaderInfo.vertexPos -= vertexCount;
+
+				indexCount = vertexCount;
+				vertexCount = (uint32_t)vertices.size();
+
+				std::copy(vertices.begin(), vertices.end(), loaderInfo.vertexBuffer.begin() + loaderInfo.vertexPos);
+
+				if (loaderInfo.indexPos + indexCount > loaderInfo.indexBuffer.size())
+				{
+					loaderInfo.indexBuffer.resize(loaderInfo.indexPos + indexCount);
+				}
+				std::copy(indices.begin(), indices.end(), loaderInfo.indexBuffer.begin() + loaderInfo.indexPos);
+
+				loaderInfo.vertexPos += vertexCount;
+				loaderInfo.indexPos += indexCount;
+
+				hasIndices = true;
+			}
+#endif
+			posMax = glm::vec3(FLT_MIN);
+			posMin = glm::vec3(FLT_MAX);
+			for (uint32_t i = 0; i < vertexCount; ++i)
+			{
+				const glm::vec3& pos = loaderInfo.vertexBuffer[vertexStart + i].pos;
+				posMax = glm::max(posMax, pos);
+				posMin = glm::min(posMax, pos);
+			}
+
+			std::vector<uint32_t> fakeIndexBuffer;
+
+			if (!hasNormal || !hasTangent)
+			{
+				if (!hasIndices)
+				{
+					uint32_t arrayCount = vertexStart + vertexCount;
+					assert(arrayCount % 3 == 0);
+					fakeIndexBuffer.resize(arrayCount);
+					for (uint32_t i = 0; i < arrayCount; ++i)
+					{
+						fakeIndexBuffer[i] = i;
+					}
+				}
+			}
+
+			if (!hasNormal)
+			{
+				std::vector<glm::vec3> normals;
+				std::vector<uint32_t> counters;
+
+				normals.resize(vertexCount);
+				counters.resize(vertexCount);
+
+				std::vector<Vertex>& vertexBuffer = loaderInfo.vertexBuffer;
+				const std::vector<uint32_t>& indexBuffer = hasIndices ? loaderInfo.indexBuffer : fakeIndexBuffer;
+
+				assert(indexBuffer.size() % 3 == 0);
+
+				for (uint32_t tri = 0; tri < (uint32_t)indexBuffer.size() / 3; ++tri)
+				{
+					for (uint32_t idx = 0; idx < 3; ++idx)
+					{
+						uint32_t idx0 = indexBuffer[indexStart + tri * 3 + idx];
+						uint32_t idx1 = indexBuffer[indexStart + tri * 3 + (idx + 1) % 3];
+						uint32_t idx2 = indexBuffer[indexStart + tri * 3 + (idx + 2) % 3];
+
+						uint32_t arrayIdx = idx0 - vertexStart;
+
+						glm::vec3 e1 = vertexBuffer[idx1].pos - vertexBuffer[idx0].pos;
+						glm::vec3 e2 = vertexBuffer[idx2].pos - vertexBuffer[idx0].pos;
+
+						glm::vec3 normal = glm::normalize(glm::cross(e1, e2));
+
+						float cosine = glm::dot(glm::normalize(e1), glm::normalize(e2));
+						float areaWeight = glm::length(e1) * glm::length(e2) * sqrtf(1.0f - cosine * cosine);
+						float angleWeight = acosf(cosine);
+						float weight = areaWeight * angleWeight;
+
+						normals[arrayIdx] += normal * weight;
+						counters[arrayIdx] += 1;
+					}
+				}
+
+				for (size_t i = 0; i < vertexCount; ++i)
+				{
+					assert(counters[i] > 0);
+					const glm::vec3& normal = normals[i];
+					glm::vec3 tangent;
+					glm::vec3 bitangent;
+					if (abs(glm::dot(normal, glm::vec3(1, 0, 0))) > 0.001f)
+					{
+						tangent = glm::normalize(glm::cross(normal, glm::vec3(1, 0, 0)));
+					}
+					else
+					{
+						tangent = glm::vec3(1, 0, 0);
+					}
+					bitangent = glm::cross(normal, bitangent);
+
+					vertexBuffer[i + vertexStart].tangent = tangent;
+					vertexBuffer[i + vertexStart].binormal = bitangent;
+					vertexBuffer[i + vertexStart].normal = normal;
+				}
+				hasNormal = true;
+			}
+
+#if GLTF_LOADER_CALCULATE_TANGENT_BY_UV
 			// Calculate tbn by normal and uv0 https://www.bilibili.com/read/cv6012696
 			if (!hasTangent)
 			{
@@ -699,18 +864,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 				tangents.resize(vertexCount);
 				bitangents.resize(vertexCount);
 				counters.resize(vertexCount);
-
-				std::vector<uint32_t> fakeIndexBuffer;
-				if (!hasIndices)
-				{
-					assert(vertexCount % 3 == 0);
-					fakeIndexBuffer.resize(vertexCount);
-					for (uint32_t i = 0; i < vertexCount; ++i)
-					{
-						fakeIndexBuffer[i] = vertexStart + i;
-					}
-				}
-
+				
 				std::vector<Vertex>& vertexBuffer = loaderInfo.vertexBuffer;
 				const std::vector<uint32_t>& indexBuffer = hasIndices ? loaderInfo.indexBuffer : fakeIndexBuffer;
 
@@ -724,6 +878,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 						uint32_t idx1 = indexBuffer[indexStart + tri * 3 + (idx + 1) % 3];
 						uint32_t idx2 = indexBuffer[indexStart + tri * 3 + (idx + 2) % 3];
 
+						assert(idx0 >= vertexStart);
 						uint32_t arrayIdx = idx0 - vertexStart;
 
 						glm::vec2 uv0 = vertexBuffer[idx0].uv0;// - glm::floor(vertexBuffer[idx0].uv0);
@@ -797,18 +952,13 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					}
 				}
 
-				assert(normals.size() > 0);
-
-				for (size_t i = 0; i < normals.size(); ++i)
+				for (uint32_t i = 0; i < vertexCount; ++i)
 				{
 					assert(counters[i] > 0);
 					tangents[i] = glm::normalize(tangents[i]);
 					bitangents[i] = glm::normalize(bitangents[i]);
 					normals[i] = glm::normalize(normals[i]);
-				}
 
-				for (uint32_t i = 0; i < vertexCount; ++i)
-				{
 					if (glm::dot(normals[i], vertexBuffer[i + vertexStart].normal) > 0.0f)
 					{
 						vertexBuffer[i + vertexStart].tangent = tangents[i];
@@ -816,8 +966,25 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 						vertexBuffer[i + vertexStart].normal = normals[i];
 					}
 				}
+				hasTangent = true;
 			}
 #endif
+
+#if GLTF_LOADER_DO_YUP_TO_ZUP
+			{
+				std::vector<Vertex>& vertexBuffer = loaderInfo.vertexBuffer;
+				const glm::mat4 yup_to_zup(glm::vec4(1, 0, 0, 0), glm::vec4(0, 0, 1, 0), glm::vec4(0, -1, 0, 0), glm::vec4(0, 0, 0, 1));
+
+				for (uint32_t i = 0; i < vertexCount; ++i)
+				{
+					vertexBuffer[i + vertexStart].pos = yup_to_zup * glm::vec4(vertexBuffer[i + vertexStart].pos, 1.0f);
+					vertexBuffer[i + vertexStart].tangent = yup_to_zup * glm::vec4(vertexBuffer[i + vertexStart].tangent, 0.0f);
+					vertexBuffer[i + vertexStart].binormal = yup_to_zup * glm::vec4(vertexBuffer[i + vertexStart].binormal, 0.0f);
+					vertexBuffer[i + vertexStart].normal = yup_to_zup * glm::vec4(vertexBuffer[i + vertexStart].normal, 0.0f);
+				}
+			}
+#endif
+
 			PrimitivePtr newPrimitive = PrimitivePtr(new Primitive(
 				indexStart, indexCount,
 				vertexStart, vertexCount,
@@ -831,7 +998,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 		// Mesh BB from BBs of primitives
 		for (auto p : newMesh->primitives)
 		{
-			if (p->bb.IsDefault() && !newMesh->bb.IsDefault())
+			if (!newMesh->bb.IsDefault())
 			{
 				newMesh->bb = p->bb;
 			}
@@ -915,17 +1082,17 @@ bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KAssetImportResult& result)
 
 			result.parts.push_back(part);
 		}
-
-		for (uint32_t i = 0; i < 3; ++i)
-		{
-			result.extend.min[i] = std::min(result.extend.min[i], node->mesh->bb.GetMin()[i]);
-			result.extend.max[i] = std::max(result.extend.max[i], node->mesh->bb.GetMax()[i]);
-		}
 	}
 
 	for (NodePtr childNode : node->children)
 	{
 		AppendMeshIntoResult(childNode, result);
+	}
+
+	for (uint32_t i = 0; i < 3; ++i)
+	{
+		result.extend.min[i] = m_Dimensions.min[i];
+		result.extend.max[i] = m_Dimensions.max[i];
 	}
 
 	return true;
@@ -1036,6 +1203,79 @@ bool KGLTFLoader::ConvertIntoResult(const KAssetImportOption& importOption, KAss
 	return true;
 }
 
+void KGLTFLoader::CalculateBoundingBox(NodePtr node, Node* parent)
+{
+	KAABBBox& parentBvh = parent ? parent->bvh : KAABBBox();
+
+	if (node->mesh)
+	{
+		if (node->mesh->bb.IsDefault())
+		{
+			node->mesh->bb.Transform(node->GetMatrix(), node->aabb);
+			if (node->children.size() == 0)
+			{
+				node->bvh = node->aabb;
+			}
+		}
+	}
+
+	KAABBBox merge;
+	parentBvh.Merge(node->bvh, merge);
+	parentBvh = merge;
+
+	for (NodePtr child : node->children)
+	{
+		CalculateBoundingBox(child, node.get());
+	}
+}
+
+void KGLTFLoader::SetSceneDimensions()
+{
+	// Calculate binary volume hierarchy for all nodes in the scene
+	for (NodePtr node : m_Nodes)
+	{
+		CalculateBoundingBox(node, nullptr);
+	}
+
+	m_Dimensions.min = glm::vec3(FLT_MAX);
+	m_Dimensions.max = glm::vec3(-FLT_MAX);
+
+	for (auto node : m_LinearNodes)
+	{
+		if (node->bvh.IsDefault())
+		{
+			m_Dimensions.min = glm::min(m_Dimensions.min, node->bvh.GetMin());
+			m_Dimensions.max = glm::max(m_Dimensions.max, node->bvh.GetMax());
+		}
+	}
+}
+
+void KGLTFLoader::TransformMeshVertices()
+{
+	for (NodePtr node : m_LinearNodes)
+	{
+		if (node->mesh)
+		{
+			glm::mat4 posTransform = node->GetMatrix();
+			glm::mat4 vecTransform = glm::mat4(glm::mat3(posTransform));
+
+			for (PrimitivePtr primitive : node->mesh->primitives)
+			{
+				for (uint32_t i = 0; i < primitive->vertexCount; ++i)
+				{
+					Vertex& vert = loaderInfo.vertexBuffer[primitive->firstvertex + i];
+					
+					vert.pos = posTransform * glm::vec4(vert.pos, 1);
+
+					vert.normal = vecTransform * glm::vec4(vert.normal, 0);
+					vert.tangent = vecTransform * glm::vec4(vert.tangent, 0);
+					vert.binormal = vecTransform * glm::vec4(vert.binormal, 0);					
+				}
+			}
+		}
+	}
+}
+
 bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result)
 {
 	tinygltf::Model gltfModel;
@@ -1043,6 +1283,12 @@ bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOp
 
 	if (fileLoaded)
 	{
+		if (gltfModel.scenes.size() == 0)
+		{
+			KLog::Logger->Log(LL_ERROR, "Empty scene gltf file [%s] ", pszFile);
+			return false;
+		}
+
 		LoadTextureSamplers(gltfModel);
 		LoadTextures(gltfModel);
 		LoadMaterials(gltfModel);
@@ -1061,7 +1307,6 @@ bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOp
 		loaderInfo.vertexBuffer.resize(vertexCount);
 		loaderInfo.indexBuffer.resize(indexCount);
 
-		// TODO: scene handling with no default scene
 		for (size_t i = 0; i < scene.nodes.size(); i++)
 		{
 			const tinygltf::Node node = gltfModel.nodes[scene.nodes[i]];
@@ -1073,6 +1318,12 @@ bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOp
 			LoadAnimations(gltfModel);
 		}
 		LoadSkins(gltfModel);
+
+		loaderInfo.vertexBuffer.resize(loaderInfo.vertexPos);
+		loaderInfo.indexBuffer.resize(loaderInfo.indexPos);
+
+		SetSceneDimensions();
+		TransformMeshVertices();
 
 		ConvertIntoResult(importOption, result);
 

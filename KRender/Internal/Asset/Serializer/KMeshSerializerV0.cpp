@@ -565,10 +565,9 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 			}
 		}
 
-		// 一定要设置Diffuse贴图
+		// 设置Diffuse贴图
 		if (!textures.GetTexture(MTS_DIFFUSE))
 		{
-			// 这里会赋上棋盘格贴图
 			textures.SetErrorTexture(MTS_DIFFUSE);
 		}
 

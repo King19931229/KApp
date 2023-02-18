@@ -174,12 +174,12 @@ void KRenderImGui::Run()
 		{
 			ImGui::Begin(MenuName[CLIPMAP_GI], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-			ImGui::Checkbox("VoxelDraw", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawEnable());
-			ImGui::Checkbox("VoxelDebug", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDebugUpdate());
-			ImGui::Checkbox("VoxelDrawWireFrame", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawWireFrame());
 			ImGui::Checkbox("LightDraw", &KRenderGlobal::ClipmapVoxilzer.GetLightDebugDrawEnable());
+			ImGui::Checkbox("VoxelDebugUpdate", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDebugUpdate());
+			ImGui::Checkbox("VoxelDebugVoxelize", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDebugVoxelize());
+			ImGui::Checkbox("VoxelDraw", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawEnable());
+			ImGui::Checkbox("VoxelDrawWireFrame", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawWireFrame());
 			ImGui::SliderFloat("VoxelBias", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDrawBias(), 0, 16);
-
 			ImGui::End();
 		}
 

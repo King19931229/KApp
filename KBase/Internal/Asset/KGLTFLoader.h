@@ -68,6 +68,30 @@ protected:
 		glm::vec4 weight0;
 		glm::vec4 color0;
 		glm::vec4 color1;
+
+		bool operator<(const Vertex& rhs) const
+		{
+			const float eps = 1e-6f;
+			float dot = 0;
+#define COMPARE_AND_RETURN(member)\
+			dot = glm::dot(member - rhs.member, member - rhs.member);\
+			if (dot > eps)\
+				return memcmp(&member, &rhs.member, sizeof(member)) < 0;
+
+			COMPARE_AND_RETURN(pos);
+			COMPARE_AND_RETURN(normal);
+			COMPARE_AND_RETURN(tangent);
+			COMPARE_AND_RETURN(binormal);
+			COMPARE_AND_RETURN(uv0);
+			COMPARE_AND_RETURN(uv1);
+			COMPARE_AND_RETURN(joint0);
+			COMPARE_AND_RETURN(weight0);
+			COMPARE_AND_RETURN(color0);
+			COMPARE_AND_RETURN(color1);
+
+#undef COMPARE_AND_RETURN
+			return false;
+		}
 	};
 
 	struct Primitive
@@ -122,6 +146,11 @@ protected:
 		glm::vec3 translation{};
 		glm::vec3 scale{ 1.0f };
 		glm::quat rotation{};
+		KAABBBox bvh;
+		KAABBBox aabb;
+		glm::mat4 LocalMatrix();
+		glm::mat4 GetMatrix();
+		void Update();
 	};
 
 	// Root nodes
@@ -129,11 +158,20 @@ protected:
 	// All nodes
 	std::vector<NodePtr> m_LinearNodes;
 
+	struct Dimensions {
+		glm::vec3 min = glm::vec3(FLT_MAX);
+		glm::vec3 max = glm::vec3(-FLT_MAX);
+	} m_Dimensions;
+
 	void LoadTextureSamplers(tinygltf::Model& gltfModel);
 	void LoadTextures(tinygltf::Model& gltfModel);
 	void LoadMaterials(tinygltf::Model& gltfModel);
 	void LoadAnimations(tinygltf::Model& gltfModel);
 	void LoadSkins(tinygltf::Model& gltfModel);
+
+	void CalculateBoundingBox(NodePtr node, Node* parent);
+	void SetSceneDimensions();
+	void TransformMeshVertices();
 
 	MeshTextureFilter GetTextureFilter(int32_t filterMode);
 	MeshTextureAddress GetTextureAddress(int32_t addressMode);

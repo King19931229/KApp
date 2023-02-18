@@ -60,8 +60,9 @@ public:
 
 	void Transform(const glm::mat4& transform, KAABBBox& result) const
 	{
-		if(IsDefault())
+		if (IsDefault())
 		{
+#if 1
 			float min[3];
 			float max[3];
 
@@ -74,18 +75,18 @@ public:
 			{
 				for(int j = 0; j < 3; j++)
 				{
-					e = transform[j][i] * m_Min[j];
-					f = transform[j][i] * m_Max[j];
+					e = transform[j][i] * m_Min[i];
+					f = transform[j][i] * m_Max[i];
 
 					if(e < f)
 					{
-						min[i] += e;
-						max[i] += f;
+						min[j] += e;
+						max[j] += f;
 					}
 					else
 					{
-						min[i] += f;
-						max[i] += e;
+						min[j] += f;
+						max[j] += e;
 					}
 				}
 			}
@@ -99,6 +100,34 @@ public:
 			result.m_Max[0] = max[0];
 			result.m_Max[1] = max[1];
 			result.m_Max[2] = max[2];
+#else
+			glm::vec3 min = glm::vec3(transform[3]);
+			glm::vec3 max = min;
+			glm::vec3 v0, v1;
+
+			glm::vec3 thisMin = GetMin();
+			glm::vec3 thisMax = GetMax();
+
+			glm::vec3 right = glm::vec3(transform[0]);
+			v0 = right * thisMin.x;
+			v1 = right * thisMax.x;
+			min += glm::min(v0, v1);
+			max += glm::max(v0, v1);
+
+			glm::vec3 up = glm::vec3(transform[1]);
+			v0 = up * thisMin.y;
+			v1 = up * thisMax.y;
+			min += glm::min(v0, v1);
+			max += glm::max(v0, v1);
+
+			glm::vec3 back = glm::vec3(transform[2]);
+			v0 = back * thisMin.z;
+			v1 = back * thisMax.z;
+			min += glm::min(v0, v1);
+			max += glm::max(v0, v1);
+
+			result.InitFromMinMax(min, max);
+#endif
 		}
 	}
 
