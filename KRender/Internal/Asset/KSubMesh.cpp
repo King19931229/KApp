@@ -7,14 +7,12 @@
 
 KSubMesh::KSubMesh(KMesh* parent)
 	: m_pParent(parent),
-	m_pMaterial(nullptr),
 	m_DebugPrimitive(DEBUG_PRIMITIVE_TRIANGLE),
 	m_pVertexData(nullptr),
 	m_IndexDraw(true),
 	m_AccelerationStructure(nullptr),
 	m_NeedAccelerationStructure(true),
-	m_NeedMeshlet(false),
-	m_MetalWorkFlow(true)
+	m_NeedMeshlet(false)
 {
 }
 
@@ -22,16 +20,14 @@ KSubMesh::~KSubMesh()
 {
 }
 
-bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialTextureBinding&& binding, bool metalWorkFlow)
+bool KSubMesh::Init(const KVertexData* vertexData, const KIndexData& indexData, KMaterialRef material)
 {
 	UnInit();
 
-	m_pMaterial = nullptr;
+	m_Material = material;
 	m_pVertexData = vertexData;
 	m_IndexData = indexData;
-	m_Texture = std::move(binding);
 	m_IndexDraw = indexData.indexBuffer && indexData.indexCount > 0;
-	m_MetalWorkFlow = metalWorkFlow;
 
 	if (m_NeedAccelerationStructure)
 	{
@@ -50,7 +46,7 @@ bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData,
 {
 	UnInit();
 
-	m_pMaterial = nullptr;
+	m_Material.Release();
 	m_pVertexData = vertexData;
 	m_DebugPrimitive = primtive;
 
@@ -70,9 +66,8 @@ bool KSubMesh::InitDebug(DebugPrimitive primtive, const KVertexData* vertexData,
 bool KSubMesh::UnInit()
 {
 	m_pVertexData = nullptr;
-	m_pMaterial = nullptr;
+	m_Material.Release();
 	m_IndexData.Destroy();
-	m_Texture.Clear();
 	DestroyAccelerationStructure();
 	DestroyMeshlet();
 	return true;
@@ -80,6 +75,7 @@ bool KSubMesh::UnInit()
 
 bool KSubMesh::CreateAccelerationStructure()
 {
+	// TODO 加速结构由MaterialSubMesh创建持有
 	if (m_AccelerationStructure)
 		return true;
 
@@ -106,7 +102,9 @@ bool KSubMesh::CreateAccelerationStructure()
 			m_IndexData.indexBuffer = newIndexBuffer;
 		}
 
-		m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer, &m_Texture);
+		IKMaterialTextureBindingPtr tetureBinding = m_Material->GetTextureBinding();
+		assert(tetureBinding);
+		m_AccelerationStructure->InitBottomUp(m_pVertexData->vertexFormats[0], m_pVertexData->vertexBuffers[0], m_IndexData.indexBuffer, tetureBinding.get());
 	}
 	else
 	{

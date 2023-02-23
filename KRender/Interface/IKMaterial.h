@@ -39,6 +39,7 @@ struct IKMaterialParameter
 	virtual IKMaterialValuePtr GetValue(const std::string& name) const = 0;
 	virtual const std::vector<IKMaterialValuePtr>& GetAllValues() const = 0;
 	virtual bool CreateValue(const std::string& name, MaterialValueType type, uint8_t vecSize, const void* initData = nullptr) = 0;
+	virtual bool SetValue(const std::string& name, MaterialValueType type, uint8_t vecSize, const void* data) = 0;
 	virtual bool RemoveValue(const std::string& name) = 0;
 	virtual bool RemoveAllValues() = 0;
 
@@ -78,34 +79,32 @@ enum MaterialShadingMode
 struct IKMaterial;
 typedef std::shared_ptr<IKMaterial> IKMaterialPtr;
 
+// 待重构
 struct IKMaterial
 {
 	virtual ~IKMaterial() {}
 
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count) = 0;
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count) = 0;
-	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding, bool meshletInput) = 0;
+	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, bool meshletInput) = 0;
 	virtual IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count) = 0;
 
 	virtual bool HasMSShader() const = 0;
-	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
+	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count) = 0;
 
-	virtual const IKMaterialParameterPtr GetVSParameter() = 0;
-	virtual const IKMaterialParameterPtr GetFSParameter() = 0;
-
-	virtual const IKMaterialTextureBindingPtr GetDefaultMaterialTexture() = 0;
-
-	virtual const KShaderInformation::Constant* GetVSShadingInfo() = 0;
-	virtual const KShaderInformation::Constant* GetFSShadingInfo() = 0;
+	virtual const IKMaterialParameterPtr GetParameter() = 0;
+	virtual const IKMaterialTextureBindingPtr GetTextureBinding() = 0;
+	virtual const KShaderInformation::Constant* GetShadingInfo() = 0;
 
 	virtual MaterialShadingMode GetShadingMode() const = 0;
 	virtual void SetShadingMode(MaterialShadingMode mode) = 0;
 
-	virtual IKPipelinePtr CreatePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
-	virtual IKPipelinePtr CreateMeshPipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
-	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding) = 0;
+	virtual IKPipelinePtr CreatePipeline(const VertexFormat* formats, size_t count) = 0;
+	virtual IKPipelinePtr CreateMeshPipeline(const VertexFormat* formats, size_t count) = 0;
+	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t coun) = 0;
 
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;
+	virtual bool InitFromImportAssetMaterial(const KAssetImportResult::Material& input, bool async) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual const std::string& GetPath() const = 0;
@@ -113,3 +112,5 @@ struct IKMaterial
 
 	virtual bool Reload() = 0;
 };
+
+typedef KReferenceHolder<IKMaterialPtr> KMaterialRef;

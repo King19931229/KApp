@@ -7,10 +7,7 @@
 
 #include "Internal/KRenderGlobal.h"
 
-KMaterialSubMesh::KMaterialSubMesh(KSubMesh* mesh)
-	: m_pSubMesh(mesh),
-	m_pMaterial(nullptr),
-	m_MaterialPipelineCreated(false)
+KMaterialSubMesh::KMaterialSubMesh()
 {
 }
 
@@ -56,23 +53,22 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 	return true;
 }
 
-bool KMaterialSubMesh::Init(IKMaterial* material)
+bool KMaterialSubMesh::Init(KSubMeshPtr subMesh, KMaterialRef material)
 {
 	UnInit();
-
-	ASSERT_RESULT(material);
-
-	m_pMaterial = material;
-	m_MaterialPipelineCreated = false;
-	m_MateriaShaderTriggerLoaded = false;
-
+	m_SubMesh = subMesh;
+	m_Material = material;
 	ASSERT_RESULT(CreateFixedPipeline());
-
+	ASSERT_RESULT(CreateMaterialPipeline());
+	ASSERT_RESULT(CreateGBufferPipeline());
+	ASSERT_RESULT(CreateVoxelPipeline());
 	return true;
 }
 
-bool KMaterialSubMesh::InitDebug(DebugPrimitive primtive)
+bool KMaterialSubMesh::InitDebug(KSubMeshPtr subMesh, DebugPrimitive primtive)
 {
+	m_SubMesh = subMesh;
+
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "debug.vert", m_DebugVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "debug.frag", m_DebugFSShader, true));
 
@@ -99,7 +95,8 @@ bool KMaterialSubMesh::InitDebug(DebugPrimitive primtive)
 
 bool KMaterialSubMesh::UnInit()
 {
-	m_pMaterial = nullptr;
+	m_SubMesh = nullptr;
+	m_Material.Release();
 
 	m_DebugVSShader.Release();
 	m_DebugFSShader.Release();
@@ -118,23 +115,19 @@ bool KMaterialSubMesh::UnInit()
 		SAFE_UNINIT(m_Pipelines[i]);
 	}
 
-	m_PrePassShaderMap.UnInit();
-
-	m_MaterialPipelineCreated = false;
-
 	return true;
 }
 
 bool KMaterialSubMesh::CreateMaterialPipeline()
 {
-	if (m_pSubMesh && m_pMaterial)
+	if (m_SubMesh && m_Material)
 	{
-		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
+		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 
-		IKShaderPtr vsShader = m_pMaterial->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fsShader = m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture, false);
-		IKShaderPtr msShader = m_pMaterial->GetMSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr mfsShader = m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture, true);
+		IKShaderPtr vsShader = m_Material->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
+		IKShaderPtr msShader = m_Material->GetMSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr mfsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), true);
 
 		if (vsShader->GetResourceState() != RS_DEVICE_LOADED || fsShader->GetResourceState() != RS_DEVICE_LOADED)
 		{
@@ -151,7 +144,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 			return false;
 		}
 
-		MaterialShadingMode shaingMode = m_pMaterial->GetShadingMode();
+		MaterialShadingMode shaingMode = m_Material->GetShadingMode();
 
 		for (PipelineStage stage : {PIPELINE_STAGE_OPAQUE, PIPELINE_STAGE_OPAQUE_INSTANCE, PIPELINE_STAGE_TRANSPRANT})
 		{
@@ -196,15 +189,15 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 				if (i == DEFAULT_IDX)
 				{
-					pipeline = m_pMaterial->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
+					pipeline = m_Material->CreatePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 				}
 				else if (i == MESH_IDX)
 				{
-					pipeline = m_pMaterial->CreateMeshPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
+					pipeline = m_Material->CreateMeshPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 				}
 				else if (i == INSTANCE_IDX)
 				{
-					pipeline = m_pMaterial->CreateInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture);
+					pipeline = m_Material->CreateInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 				}
 
 				ASSERT_RESULT(pipeline->Init());
@@ -238,14 +231,13 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 	SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_BASEPASS]);
 	SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_BASEPASS_INSTANCE]);
 
-	if (m_pSubMesh && m_pMaterial->GetShadingMode() == MSM_OPAQUE)
+	if (m_SubMesh && m_Material->GetShadingMode() == MSM_OPAQUE)
 	{
-		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
-		KMaterialTextureBinding& mtlTexBinding = m_pSubMesh->m_Texture;
+		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 
-		IKShaderPtr vsShader = m_pMaterial->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr vsInstanceShader = m_pMaterial->GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fsShader = m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &mtlTexBinding, false);
+		IKShaderPtr vsShader = m_Material->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr vsInstanceShader = m_Material->GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
+		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
 
 		for (PipelineStage stage : {PIPELINE_STAGE_BASEPASS, PIPELINE_STAGE_BASEPASS_INSTANCE})
 		{
@@ -267,7 +259,7 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 			pipeline->SetBlendEnable(false);
-			pipeline->SetCullMode(CM_NONE);
+			pipeline->SetCullMode(CM_BACK);
 			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 			pipeline->SetPolygonMode(PM_FILL);
 			pipeline->SetColorWrite(true, true, true, true);
@@ -294,7 +286,7 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 		SAFE_UNINIT(m_Pipelines[stage]);
 
 		IKPipelinePtr& pipeline = m_Pipelines[stage];
-		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
+		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
@@ -352,11 +344,11 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, KRenderGlobal::ClipmapVoxilzer.GetVoxelVisibility(), EF_UNKNOWN);
 		}
 
-		const KMaterialTextureBinding& textureBinding = m_pSubMesh->m_Texture;
-		for (uint8_t i = 0; i < textureBinding.GetNumSlot(); ++i)
+		IKMaterialTextureBindingPtr textureBinding = m_Material->GetTextureBinding();
+		for (uint8_t i = 0; i < textureBinding->GetNumSlot(); ++i)
 		{
-			IKTexturePtr texture = textureBinding.GetTexture(i);
-			IKSamplerPtr sampler = textureBinding.GetSampler(i);
+			IKTexturePtr texture = textureBinding->GetTexture(i);
+			IKSamplerPtr sampler = textureBinding->GetSampler(i);
 
 			if (!texture || !sampler)
 			{
@@ -395,7 +387,7 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 
 bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& pipeline)
 {
-	const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
+	const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 	ASSERT_RESULT(vertexData);
 
 	if (stage == PIPELINE_STAGE_SHADOW_GEN)
@@ -406,7 +398,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetCullMode(CM_BACK);
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetColorWrite(false, false, false, false);
@@ -465,7 +457,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 
 		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_NONE);
+		pipeline->SetCullMode(CM_BACK);
 		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetColorWrite(false, false, false, false);
@@ -547,11 +539,11 @@ bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, KRenderCommand& com
 	IKPipelinePtr pipeline = m_Pipelines[stage];
 	if (pipeline)
 	{
-		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
-		const KIndexData* indexData = &m_pSubMesh->m_IndexData;
-		const KMeshData* meshData = &m_pSubMesh->m_MeshData;
-		const IKMaterialTextureBinding* textureBinding = &m_pSubMesh->m_Texture;
-		const bool& indexDraw = m_pSubMesh->m_IndexDraw;
+		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
+		const KIndexData* indexData = &m_SubMesh->m_IndexData;
+		const KMeshData* meshData = &m_SubMesh->m_MeshData;
+		const IKMaterialTextureBinding* textureBinding = m_Material->GetTextureBinding().get();
+		const bool& indexDraw = m_SubMesh->m_IndexDraw;
 
 		ASSERT_RESULT(vertexData);
 		ASSERT_RESULT(!indexDraw || indexData);
@@ -574,50 +566,4 @@ bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, KRenderCommand& com
 	{
 		return false;
 	}
-}
-
-bool KMaterialSubMesh::Visit(PipelineStage stage, std::function<void(KRenderCommand&)> func)
-{
-	if (m_pMaterial && !m_MaterialPipelineCreated)
-	{
-		const KVertexData* vertexData = m_pSubMesh->m_pVertexData;
-
-		// 促发一下加载
-		if (!m_MateriaShaderTriggerLoaded)
-		{
-			m_pMaterial->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-			m_pMaterial->GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-			m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture, false);
-			if (m_pMaterial->HasMSShader())
-			{
-				m_pMaterial->GetMSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-				m_pMaterial->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture, true);
-			}
-			m_MateriaShaderTriggerLoaded = true;
-		}
-
-		if (m_pMaterial->IsShaderLoaded(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), &m_pSubMesh->m_Texture))
-		{
-			if (!m_MaterialPipelineCreated)
-			{
-				if (CreateMaterialPipeline() && CreateGBufferPipeline() && CreateVoxelPipeline())
-				{
-					m_MaterialPipelineCreated = true;
-				}
-			}
-		}
-	}
-
-	if (m_pMaterial && !m_MaterialPipelineCreated)
-	{
-		return false;
-	}
-
-	KRenderCommand command;
-	if (GetRenderCommand(stage, command))
-	{
-		func(std::move(command));
-		return true;
-	}
-	return false;
 }

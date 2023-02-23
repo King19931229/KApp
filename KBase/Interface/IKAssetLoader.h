@@ -92,6 +92,7 @@ struct KAssetImportResult
 
 		MaterialAlphaMode alphaMode;
 
+		float alphaMask;
 		float alphaCutoff;
 		float metallicFactor;
 		float roughnessFactor;
@@ -104,6 +105,7 @@ struct KAssetImportResult
 		Material()
 		{
 			alphaMode = MAM_OPAQUE;
+			alphaMask = 0.0f;
 			alphaCutoff = 1.0f;
 			metallicFactor = 1.0f;
 			roughnessFactor = 1.0f;

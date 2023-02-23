@@ -3,6 +3,7 @@
 #include "KBase/Interface/IKXML.h"
 #include "Internal/ShaderMap/KShaderMap.h"
 
+// 待重构
 class KMaterial : public IKMaterial
 {
 protected:
@@ -10,16 +11,12 @@ protected:
 	std::string m_Path;
 	std::string m_ShaderFile;
 	MaterialShadingMode m_ShadingMode;
-	IKMaterialParameterPtr m_VSParameter;
-	IKMaterialParameterPtr m_FSParameter;
-	IKMaterialTextureBindingPtr m_MaterialTexture;
-	KShaderInformation::Constant m_VSConstantInfo;
-	KShaderInformation::Constant m_FSConstantInfo;
-	bool m_VSInfoCalced;
-	bool m_FSInfoCalced;
-	bool m_VSParameterVerified;
-	bool m_FSParameterVerified;
-	bool m_ParameterReload;
+	IKMaterialParameterPtr m_Parameter;
+	IKMaterialTextureBindingPtr m_TextureBinding;
+	KShaderInformation::Constant m_ConstantInfo;
+	bool m_InfoCalced;
+	bool m_ParameterVerified;
+	bool m_ParameterNeedRebuild;
 
 	KShaderMap m_ShaderMap;
 
@@ -71,28 +68,27 @@ public:
 
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
-	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding, bool meshletInput);
+	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, bool meshletInput);
 	virtual IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count);
 
 	virtual bool HasMSShader() const;
-	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+	virtual bool IsShaderLoaded(const VertexFormat* formats, size_t count);
 
-	virtual const IKMaterialParameterPtr GetVSParameter();
-	virtual const IKMaterialParameterPtr GetFSParameter();
+	virtual const IKMaterialParameterPtr GetParameter();
 
-	virtual const IKMaterialTextureBindingPtr GetDefaultMaterialTexture();
+	virtual const IKMaterialTextureBindingPtr GetTextureBinding();
 
-	virtual const KShaderInformation::Constant* GetVSShadingInfo();
-	virtual const KShaderInformation::Constant* GetFSShadingInfo();
+	virtual const KShaderInformation::Constant* GetShadingInfo();
 
 	virtual MaterialShadingMode GetShadingMode() const { return m_ShadingMode; }
 	virtual void SetShadingMode(MaterialShadingMode mode) { m_ShadingMode = mode; }
 
-	virtual IKPipelinePtr CreatePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
-	virtual IKPipelinePtr CreateMeshPipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
-	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* textureBinding);
+	virtual IKPipelinePtr CreatePipeline(const VertexFormat* formats, size_t count);
+	virtual IKPipelinePtr CreateMeshPipeline(const VertexFormat* formats, size_t count);
+	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t count);
 
 	virtual bool InitFromFile(const std::string& path, bool async);
+	virtual bool InitFromImportAssetMaterial(const KAssetImportResult::Material& input, bool async);
 	virtual bool UnInit();
 
 	virtual const std::string& GetPath() const { return m_Path; }

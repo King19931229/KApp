@@ -31,18 +31,9 @@ enum MeshSerializerElement : uint32_t
 				// is16format [bool]
 				// index buffer size [uint32_t]
 				// index buffer data [bytes]
-		MES_MATERIAL_DATA = 0x3000,
-			MES_MATERIAL_ELEMENT_DATA = 0x3010, // [OPTIONAL]
-				// material element count [uint32_t]
-				MES_MATERIAL_LAYER_ELEMENT = 0x3011, // [ALWAYS] [REPEAT]
-					// diffuse path [string]
-					// specualr path [string]
-					// normal path [string]
-			MES_MATERIAL_FILE_DATA = 0x3020, // [OPTIONAL]
-				// material file path [string]
-		MSE_DRAW_ELEMENT_DATA = 0x4000,
+		MSE_DRAW_ELEMENT_DATA = 0x3000,
 			// draw element count [uint32_t]
-			MSE_DRAW_ELEMENT = 0x4010, // [ALWAYS] [REPEAT]
+			MSE_DRAW_ELEMENT = 0x3010, // [ALWAYS] [REPEAT]
 				// index data index [uint32_t]
 				// material data index [uint32_t]
 };
@@ -370,62 +361,6 @@ bool KMeshSerializerV0::ReadIndexElementData(IKDataStreamPtr& stream, KIndexData
 	return true;
 }
 
-bool KMeshSerializerV0::ReadMaterialData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas)
-{
-	uint32_t flag = 0;
-	ACTION_ON_FAILURE(stream->Read(&flag, sizeof(flag)), return false);
-
-	if(flag == MES_MATERIAL_ELEMENT_DATA)
-	{
-		return ReadMaterialElementData(stream, materialDatas);
-	}
-	else if(flag == MES_MATERIAL_FILE_DATA)
-	{
-		return ReadMaterialFileData(stream, materialDatas);
-	}
-
-	return false;
-}
-
-bool KMeshSerializerV0::ReadMaterialElementData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas)
-{
-	uint32_t materialElementCount = 0;	
-	ACTION_ON_FAILURE(stream->Read(&materialElementCount, sizeof(materialElementCount)), return false);
-
-	materialDatas.clear();
-	for(uint32_t i = 0; i < materialElementCount; ++i)
-	{
-		MaterialInfo materialData;
-		if(!ReadMaterialLayerElementData(stream, materialData))
-		{
-			return false;
-		}
-		materialDatas.push_back(materialData);
-	}
-
-	return true;
-}
-
-bool KMeshSerializerV0::ReadMaterialLayerElementData(IKDataStreamPtr& stream, MaterialInfo& materialData)
-{
-	uint32_t flag = 0;
-	ACTION_ON_FAILURE(stream->Read(&flag, sizeof(flag)) && flag == MES_MATERIAL_LAYER_ELEMENT, return false);
-
-	ACTION_ON_FAILURE(ReadBool(stream, materialData.metalWorkFlow), return false);
-
-	for (uint32_t idx = 0; idx < MTS_COUNT; ++idx)
-	{
-		ACTION_ON_FAILURE(ReadString(stream, materialData.textures[idx]), return false);
-	}
-
-	return true;
-}
-
-bool KMeshSerializerV0::ReadMaterialFileData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas)
-{
-	return true;
-}
-
 bool KMeshSerializerV0::ReadDrawData(IKDataStreamPtr& stream, std::vector<DrawElementInfo>& drawInfos)
 {
 	uint32_t drawElementCount = 0;	
@@ -509,20 +444,6 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 				RELEASE_ON_FAIL();
 			}
 		}
-		else if(flag == MES_MATERIAL_DATA)
-		{
-			if(!ReadMaterialData(stream, materialDatas))
-			{
-				RELEASE_ON_FAIL();
-			}
-		}
-		else if(flag == MSE_DRAW_ELEMENT_DATA)
-		{
-			if(!ReadDrawData(stream, drawInfos))
-			{
-				RELEASE_ON_FAIL();
-			}
-		}
 		else
 		{
 			// unknown stuff
@@ -550,31 +471,11 @@ bool KMeshSerializerV0::LoadFromStream(KMesh* pMesh, const std::string& meshPath
 		}
 
 		KSubMeshPtr& submesh = pMesh->m_SubMeshes[i];
+		submesh = KSubMeshPtr(KNEW KSubMesh(pMesh));
 
 		const KIndexData& indexData = indexDatas[drawInfo.indexDataIdx];
-		const MaterialInfo& materialData = materialDatas[drawInfo.materialDataIdx];
-
-		KMaterialTextureBinding textures;
-
-		for (uint32_t idx = 0; idx < MTS_COUNT; ++idx)
-		{
-			std::string path;
-			if (CombinePath(meshPath, materialData.textures[idx], path))
-			{
-				textures.SetTexture(idx, path);
-			}
-		}
-
-		// 设置Diffuse贴图
-		if (!textures.GetTexture(MTS_DIFFUSE))
-		{
-			textures.SetErrorTexture(MTS_DIFFUSE);
-		}
-
-		bool metalWorkFlow = materialData.metalWorkFlow;
-
-		submesh = KSubMeshPtr(KNEW KSubMesh(pMesh));
-		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, std::move(textures), metalWorkFlow));
+		// TODO
+		ASSERT_RESULT(submesh->Init(&pMesh->m_VertexData, indexData, KMaterialRef()));
 	}
 
 	return true;
@@ -697,52 +598,6 @@ bool KMeshSerializerV0::WriteIndexElementData(IKDataStreamPtr& stream, const KIn
 	return true;
 }
 
-bool KMeshSerializerV0::WriteMaterialData(IKDataStreamPtr& stream, const std::vector<MaterialInfo>& materialDatas)
-{
-	uint32_t flag = MES_MATERIAL_DATA;
-	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
-	return WriteMaterialElementData(stream, materialDatas);
-}
-
-bool KMeshSerializerV0::WriteMaterialElementData(IKDataStreamPtr& stream, const std::vector<MaterialInfo>& materialDatas)
-{
-	uint32_t flag = MES_MATERIAL_ELEMENT_DATA;
-	uint32_t materialElementCount = static_cast<uint32_t>(materialDatas.size());
-
-	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
-	ACTION_ON_FAILURE(stream->Write(&materialElementCount, sizeof(materialElementCount)), return false);
-
-	for(uint32_t i = 0; i < materialElementCount; ++i)
-	{
-		if(!WriteMaterialLayerElementData(stream, materialDatas[i]))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-bool KMeshSerializerV0::WriteMaterialLayerElementData(IKDataStreamPtr& stream, const MaterialInfo& materialData)
-{
-	uint32_t flag = MES_MATERIAL_LAYER_ELEMENT;
-
-	ACTION_ON_FAILURE(stream->Write(&flag, sizeof(flag)), return false);
-
-	ACTION_ON_FAILURE(WriteBool(stream, materialData.metalWorkFlow), return false);
-
-	for (uint32_t idx = 0; idx < MTS_COUNT; ++idx)
-	{
-		ACTION_ON_FAILURE(WriteString(stream, materialData.textures[idx]), return false);
-	}
-
-	return true;
-}
-
-bool KMeshSerializerV0::WriteMaterialFileData(IKDataStreamPtr& stream, const std::vector<MaterialInfo>& materialDatas)
-{
-	return true;
-}
-
 bool KMeshSerializerV0::WriteDrawData(IKDataStreamPtr& stream, const std::vector<DrawElementInfo>& drawInfos)
 {
 	uint32_t flag = MSE_DRAW_ELEMENT_DATA;
@@ -786,33 +641,17 @@ bool KMeshSerializerV0::SaveToStream(const KMesh* pMesh, IKDataStreamPtr& stream
 	std::vector<MaterialInfo> materialDatas;
 	std::vector<DrawElementInfo> drawInfos;
 
-	MaterialInfo mtlInfo;
-
 	for (size_t i = 0; i < pMesh->m_SubMeshes.size(); ++i)
 	{
 		KSubMeshPtr subMesh = pMesh->m_SubMeshes[i];
-		KMaterialTextureBinding& textures = subMesh->m_Texture;
-
-		for (uint32_t idx = 0; idx < MTS_COUNT; ++idx)
-		{
-			IKTexturePtr texture = textures.GetTexture(idx);
-			if (texture)
-			{
-				ResolvePath(pMesh->m_Path, texture->GetPath(), mtlInfo.textures[idx]);
-			}
-		}
-
-		mtlInfo.metalWorkFlow = subMesh->IsMetalWorkFlow();
 
 		DrawElementInfo drawInfo = {(uint32_t)i, (uint32_t)i};
 
 		indexDatas.push_back(subMesh->m_IndexData);
-		materialDatas.push_back(mtlInfo);
 		drawInfos.push_back(drawInfo);
 	}
 
 	ACTION_ON_FAILURE(WriteIndexData(stream, indexDatas), return false);
-	ACTION_ON_FAILURE(WriteMaterialData(stream, materialDatas), return false);
 	ACTION_ON_FAILURE(WriteDrawData(stream, drawInfos), return false);
 
 	return true;

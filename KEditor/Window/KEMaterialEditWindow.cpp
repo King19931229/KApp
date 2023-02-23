@@ -187,33 +187,26 @@ bool KEMaterialEditWindow::RefreshPreview()
 		IKRenderComponent* renderComponent = nullptr;
 		if (m_PreviewEntity->GetComponent(CT_RENDER, &renderComponent))
 		{
-			IKMaterialParameterPtr vsPreParameter = nullptr;
-			IKMaterialParameterPtr fsPreParameter = nullptr;
+			IKMaterialParameterPtr preParameter = nullptr;
 			IKMaterialTextureBindingPtr preTextureBinding = nullptr;
 
 			// 拷贝过去的参数
 			{
-				IKMaterialPtr material = renderComponent->GetMaterial();
+				/*IKMaterialPtr material = renderComponent->GetMaterial();
 				if (material)
 				{
-					IKMaterialParameterPtr vsParameter = material->GetVSParameter();
-					if (vsParameter)
+					IKMaterialParameterPtr parameter = material->GetParameter();
+					if (parameter)
 					{
-						vsParameter->Duplicate(vsPreParameter);
+						parameter->Duplicate(preParameter);
 					}
 
-					IKMaterialParameterPtr fsParameter = material->GetFSParameter();
-					if (fsParameter)
-					{
-						fsParameter->Duplicate(fsPreParameter);
-					}
-
-					IKMaterialTextureBindingPtr textureBinding = material->GetDefaultMaterialTexture();
+					IKMaterialTextureBindingPtr textureBinding = material->GetTextureBinding();
 					if (textureBinding)
 					{
 						textureBinding->Duplicate(preTextureBinding);
 					}
-				}
+				}*/
 			}
 
 			renderComponent->UnInit();
@@ -226,8 +219,7 @@ bool KEMaterialEditWindow::RefreshPreview()
 				renderComponent->SetMeshPath(previewItem.path);
 			}
 
-			renderComponent->SetUseMaterialTexture(true);
-
+			/*
 			if (!m_MaterialPath.empty())
 			{
 				renderComponent->SetMaterialPath(m_MaterialPath.c_str());
@@ -238,17 +230,12 @@ bool KEMaterialEditWindow::RefreshPreview()
 
 				// 复制过去的参数
 				{
-					IKMaterialParameterPtr vsParameter = material->GetVSParameter();
-					if (vsParameter)
+					IKMaterialParameterPtr parameter = material->GetParameter();
+					if (parameter)
 					{
-						vsParameter->Paste(vsPreParameter);
+						parameter->Paste(preParameter);
 					}
-					IKMaterialParameterPtr fsParameter = material->GetFSParameter();
-					if (fsParameter)
-					{
-						fsParameter->Paste(fsPreParameter);
-					}
-					IKMaterialTextureBindingPtr textureBinding = material->GetDefaultMaterialTexture();
+					IKMaterialTextureBindingPtr textureBinding = material->GetTextureBinding();
 					if (textureBinding)
 					{
 						textureBinding->Paste(preTextureBinding);
@@ -282,6 +269,7 @@ bool KEMaterialEditWindow::RefreshPreview()
 
 				return true;
 			}
+			*/
 		}
 	}
 	return false;
@@ -301,13 +289,14 @@ bool KEMaterialEditWindow::OnSave()
 	IKRenderComponent* renderComponent = nullptr;
 	if (m_PreviewEntity->GetComponent(CT_RENDER, &renderComponent))
 	{
+		/*
 		IKMaterialPtr material = renderComponent->GetMaterial();
 		ASSERT_RESULT(material);
 
 		std::string fullPath;
 		m_FileSys->FullPath(m_MaterialPath, fullPath);
 		material->SaveAsFile(fullPath);
-
+		*/
 		return true;
 	}
 	return false;
@@ -318,13 +307,14 @@ bool KEMaterialEditWindow::OnReload()
 	IKRenderComponent* renderComponent = nullptr;
 	if (m_PreviewEntity->GetComponent(CT_RENDER, &renderComponent))
 	{
+		/*
 		IKMaterialPtr material = renderComponent->GetMaterial();
 		ASSERT_RESULT(material);
 		m_PropertyWidget->UnInit();
 		material->Reload();
-		renderComponent->ReloadMaterial();
 		material = renderComponent->GetMaterial();
 		m_PropertyWidget->Init(material.get());
+		*/
 		return true;
 	}
 	return false;

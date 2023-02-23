@@ -641,34 +641,40 @@ void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 		std::vector<KRenderCommand> commands;
 		for (KRenderComponent* render : cullRes)
 		{
-			render->Visit(PIPELINE_STAGE_CLIPMAP_VOXEL, [&](KRenderCommand& command)
+			KMeshPtr mesh = render->GetMesh();
+			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 			{
-				IKEntity* entity = render->GetEntityHandle();
-
-				KTransformComponent* transform = nullptr;
-				if (entity->GetComponent(CT_TRANSFORM, &transform))
+				KRenderCommand command;
+				if (materialSubMesh->GetRenderCommand(PIPELINE_STAGE_CLIPMAP_VOXEL, command))
 				{
-					const glm::mat4& finalTran = transform->GetFinal();
+					IKEntity* entity = render->GetEntityHandle();
 
-					struct ObjectData
+					KTransformComponent* transform = nullptr;
+					if (entity->GetComponent(CT_TRANSFORM, &transform))
 					{
-						glm::mat4 model;
-						uint32_t level;
-					} objectData;
+						const glm::mat4& finalTran = transform->GetFinal();
 
-					objectData.model = finalTran;
-					objectData.level = level;
+						struct ObjectData
+						{
+							glm::mat4 model;
+							uint32_t level;
+						} objectData;
 
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(objectData);
+						objectData.model = finalTran;
+						objectData.level = level;
 
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+						command.objectUsage.binding = SHADER_BINDING_OBJECT;
+						command.objectUsage.range = sizeof(objectData);
 
-					command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
+						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-					commands.push_back(command);
+						command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
+
+						commands.push_back(command);
+					}
 				}
-			});
+			}
 		}
 
 		for (KRenderCommand& command : commands)

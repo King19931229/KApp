@@ -813,12 +813,12 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 				KRenderGlobal::GBuffer.GetSampler(),
 				true);
 
-			ShaderBinding staticBindings[] = { SHADER_BINDING_STATIC_CSM0, SHADER_BINDING_STATIC_CSM1, SHADER_BINDING_STATIC_CSM2, SHADER_BINDING_STATIC_CSM3 };
-			ShaderBinding dynamicBindings[] = { SHADER_BINDING_DYNAMIC_CSM0, SHADER_BINDING_DYNAMIC_CSM1, SHADER_BINDING_DYNAMIC_CSM2, SHADER_BINDING_DYNAMIC_CSM3 };
+			uint32_t staticBindings[] = { SHADER_BINDING_STATIC_CSM0, SHADER_BINDING_STATIC_CSM1, SHADER_BINDING_STATIC_CSM2, SHADER_BINDING_STATIC_CSM3 };
+			uint32_t dynamicBindings[] = { SHADER_BINDING_DYNAMIC_CSM0, SHADER_BINDING_DYNAMIC_CSM1, SHADER_BINDING_DYNAMIC_CSM2, SHADER_BINDING_DYNAMIC_CSM3 };
 
 			for (uint32_t cascadedIndex = 0; cascadedIndex < numCascaded; ++cascadedIndex)
 			{
-				ShaderBinding binding = isStatic ? staticBindings[cascadedIndex] : dynamicBindings[cascadedIndex];
+				uint32_t binding = isStatic ? staticBindings[cascadedIndex] : dynamicBindings[cascadedIndex];
 				IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
 				pipeline->SetSampler(binding, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
 			}
@@ -826,7 +826,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			// Keep the validation layer happy
 			for (uint32_t cascadedIndex = numCascaded; cascadedIndex < SHADOW_MAP_MAX_CASCADED; ++cascadedIndex)
 			{
-				ShaderBinding binding = isStatic ? staticBindings[cascadedIndex] : dynamicBindings[cascadedIndex];
+				uint32_t binding = isStatic ? staticBindings[cascadedIndex] : dynamicBindings[cascadedIndex];
 				IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(0) : m_CasterPass->GetDynamicTarget(0);
 				pipeline->SetSampler(binding, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
 			}
@@ -921,27 +921,21 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex,
 	bool isStatic,
 	std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
-	KRenderUtil::MeshInstanceGroup meshGroups;
-	KRenderUtil::CalculateInstanceGroupByMesh(litCullRes, meshGroups);
+	std::vector<KMaterialSubMeshInstance> instances;
+	KRenderUtil::CalculateInstancesByMesh(litCullRes, instances);
 
 	// 准备Instance数据
-	for (auto& pair : meshGroups)
+	for (KMaterialSubMeshInstance& instance : instances)
 	{
-		KMeshPtr mesh = pair.first;
-		KRenderUtil::InstanceGroupPtr instanceGroup = pair.second;
-
-		KRenderComponent* render = instanceGroup->render;
-		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instanceGroup->instance;
-
-		ASSERT_RESULT(render);
+		KMaterialSubMeshPtr materialSubMesh = instance.materialSubMesh;
+		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instance.instanceData;
 		ASSERT_RESULT(!instances.empty());
 
 		PipelineStage stage = isStatic ? PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE : PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE;
 
-		render->Visit(stage, [&](KRenderCommand& _command)
+		KRenderCommand command;
+		if (materialSubMesh->GetRenderCommand(stage, command))
 		{
-			KRenderCommand command = std::move(_command);
-
 			KConstantDefinition::CSM_OBJECT_INSTANCE csmInstance = { (uint32_t)cascadedIndex };
 
 			command.objectUsage.binding = SHADER_BINDING_OBJECT;
@@ -981,7 +975,7 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex,
 			{
 				commands.push_back(std::move(command));
 			}
-		});
+		}
 	}
 }
 

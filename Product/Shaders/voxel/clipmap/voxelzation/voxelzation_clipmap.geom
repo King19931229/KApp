@@ -50,7 +50,7 @@ void main()
 		gl_in[2].gl_Position.xyz / gl_in[2].gl_Position.w
 	);
 
-	vec3 flatNormal = -cross(trianglePosW[1].xyz - trianglePosW[0].xyz, trianglePosW[2].xyz - trianglePosW[0].xyz);
+	vec3 flatNormal = cross(trianglePosW[1].xyz - trianglePosW[0].xyz, trianglePosW[2].xyz - trianglePosW[0].xyz);
 	flatNormal = normalize(flatNormal);
 
 	//transform vertices to clip space

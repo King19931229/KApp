@@ -20,6 +20,7 @@
 #define GLTF_LOADER_CALCULATE_TANGENT_BY_UV 1
 #define GLTF_LOADER_DO_YUP_TO_ZUP 0
 #define GLTF_LOADER_BUILD_INDEX_IF_NONE 1
+#define GLTF_LOADER_ELIMINATE_COINCIDE_VERTEX 1
 
 bool KGLTFLoader::Init()
 {
@@ -305,6 +306,7 @@ void KGLTFLoader::LoadMaterials(tinygltf::Model& gltfModel)
 			}
 			if (param.string_value == "MASK")
 			{
+				material.alphaMask = 1.0f;
 				material.alphaCutoff = 0.5f;
 				material.alphaMode = MAM_MASK;
 			}
@@ -719,19 +721,24 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					}
 				}
 			}
-#if GLTF_LOADER_BUILD_INDEX_IF_NONE
+#if	GLTF_LOADER_ELIMINATE_COINCIDE_VERTEX || GLTF_LOADER_BUILD_INDEX_IF_NONE
+#if !GLTF_LOADER_ELIMINATE_COINCIDE_VERTEX
 			else
+#endif
 			{
 				std::vector<Vertex> vertices;
 				std::vector<uint32_t> indices;
 				std::map<Vertex, uint32_t> vertex_to_index;
 
 				std::vector<Vertex>& vertexBuffer = loaderInfo.vertexBuffer;
-				indices.reserve(vertexCount);
+				std::vector<uint32_t>& indexBuffer = loaderInfo.indexBuffer;
 
-				for (uint32_t i = 0; i < vertexCount; ++i)
+				uint32_t iterateCount = hasIndices ? indexCount : vertexCount;
+				indices.reserve(iterateCount);
+
+				for (uint32_t i = 0; i < iterateCount; ++i)
 				{
-					const Vertex& vertex = vertexBuffer[vertexStart + i];
+					const Vertex& vertex = hasIndices ? vertexBuffer[indexBuffer[indexStart + i]] : vertexBuffer[vertexStart + i];
 
 					auto it = vertex_to_index.find(vertex);
 					if (it != vertex_to_index.end())
@@ -740,15 +747,16 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					}
 					else
 					{
-						indices.push_back((uint32_t)vertices.size());
+						indices.push_back(vertexStart + (uint32_t)vertices.size());
 						vertices.push_back(vertex);
 						vertex_to_index[vertex] = indices[i];
 					}
 				}
 
 				loaderInfo.vertexPos -= vertexCount;
+				loaderInfo.indexPos -= indexCount;
 
-				indexCount = vertexCount;
+				indexCount = iterateCount;
 				vertexCount = (uint32_t)vertices.size();
 
 				std::copy(vertices.begin(), vertices.end(), loaderInfo.vertexBuffer.begin() + loaderInfo.vertexPos);
@@ -893,24 +901,22 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 						float delta_v1 = uv1[1] - uv0[1];
 						float delta_v2 = uv2[1] - uv0[1];
 
+						bool needRandomTangent = false;
+
 						glm::vec3 tangent, bitangent, normal;
 
 						// We have delta uv
-						if (abs(delta_v1 * delta_u2 - delta_v2 * delta_u1) > 1e-6f)
+						if (abs(delta_v1 * delta_u2 - delta_v2 * delta_u1) > 1e-2f)
 						{
 							tangent = (delta_v1 * e2 - delta_v2 * e1) / (delta_v1 * delta_u2 - delta_v2 * delta_u1);
 							bitangent = (-delta_u1 * e2 + delta_u2 * e1) / (delta_v1 * delta_u2 - delta_v2 * delta_u1);
-						}
 
-						bool needRandomTangent = false;
-
-						if (glm::length(tangent) > 1e-6f && glm::length(bitangent) > 1e-6f)
-						{
-							tangent = glm::normalize(tangent);
-							bitangent = glm::normalize(bitangent);
-
-							float dotProduct = glm::dot(tangent, bitangent);
-							if (abs(dotProduct) > 0.95f)
+							if (glm::length(tangent) > 1e-2f && glm::length(bitangent) > 1e-2f)
+							{
+								tangent = glm::normalize(tangent);
+								bitangent = glm::normalize(bitangent);
+							}
+							else
 							{
 								needRandomTangent = true;
 							}
@@ -924,14 +930,14 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 						{
 							// Keep the original normal
 							normal = vertexBuffer[idx0].normal;
-
-							tangent = glm::vec3(1.0f, 0.0f, 0.0f);
-							if (abs(glm::dot(normal, tangent) > 1.0f - 1e-2f))
+							if (abs(glm::dot(normal, glm::vec3(1.0f, 0.0f, 0.0f)) > 1.0f - 1e-2f))
 							{
-								tangent = glm::vec3(0.0f, 1.0f, 0.0f);
+								tangent = glm::normalize(glm::cross(normal, glm::vec3(0.0f, 1.0f, 0.0f)));
 							}
-
-							tangent = glm::normalize(glm::cross(normal, tangent));
+							else
+							{
+								tangent = glm::normalize(glm::cross(normal, glm::vec3(1.0f, 0.0f, 0.0f)));
+							}							
 							bitangent = glm::normalize(glm::cross(normal, tangent));
 						}
 						else
@@ -943,7 +949,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 						float cosine = glm::dot(glm::normalize(e1), glm::normalize(e2));
 						float areaWeight = glm::length(e1) * glm::length(e2) * sqrtf(1.0f - cosine * cosine);
 						float angleWeight = acosf(cosine);
-						float weight = areaWeight * angleWeight;
+						float weight = needRandomTangent ? 1.0f : areaWeight * angleWeight;
 
 						normals[arrayIdx] += normal * weight;
 						tangents[arrayIdx] += tangent * weight;
@@ -1032,6 +1038,7 @@ bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KAssetImportResult& result)
 
 			part.material.alphaMode = material.alphaMode;
 
+			part.material.alphaMask = material.alphaMask;
 			part.material.alphaCutoff = material.alphaCutoff;
 			part.material.metallicFactor = material.metallicFactor;
 			part.material.roughnessFactor = material.roughnessFactor;

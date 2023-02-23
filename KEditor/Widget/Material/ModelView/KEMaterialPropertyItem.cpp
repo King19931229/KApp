@@ -268,25 +268,21 @@ void KEMaterialPropertyItem::InitAsMaterial(IKMaterial* material)
 	m_Name = "Material";
 	m_Material = material;
 
-	KEMaterialPropertyItem* vsParameterItem = KNEW KEMaterialPropertyItem(this);
-	vsParameterItem->InitAsParameter(material, material->GetVSParameter().get(), true);
-
-	KEMaterialPropertyItem* fsParameterItem = KNEW KEMaterialPropertyItem(this);
-	fsParameterItem->InitAsParameter(material, material->GetFSParameter().get(), false);
+	KEMaterialPropertyItem* parameterItem = KNEW KEMaterialPropertyItem(this);
+	parameterItem->InitAsParameter(material, material->GetParameter().get(), false);
 
 	KEMaterialPropertyItem* textureBindingItem = KNEW KEMaterialPropertyItem(this);
-	textureBindingItem->InitAsTextureBinding(material, material->GetDefaultMaterialTexture().get());
+	textureBindingItem->InitAsTextureBinding(material, material->GetTextureBinding().get());
 
 	KEMaterialPropertyItem* blendItem = KNEW KEMaterialPropertyItem(this);
 	blendItem->InitAsBlendMode(material);
 
-	m_NumChildren = 4;
+	m_NumChildren = 3;
 	m_Children = KNEW KEMaterialPropertyItem*[m_NumChildren];
 
-	m_Children[0] = vsParameterItem;
-	m_Children[1] = fsParameterItem;
-	m_Children[2] = textureBindingItem;
-	m_Children[3] = blendItem;
+	m_Children[0] = parameterItem;
+	m_Children[1] = textureBindingItem;
+	m_Children[2] = blendItem;
 
 	for (size_t i = 0; i < m_NumChildren; ++i)
 	{

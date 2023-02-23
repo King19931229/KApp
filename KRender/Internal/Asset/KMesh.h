@@ -6,6 +6,7 @@
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KSubMesh.h"
 #include "KMaterial.h"
+#include "KMaterialSubMesh.h"
 #include "KTriangleMesh.h"
 #include "Utility/KMeshUtilityInfo.h"
 
@@ -18,11 +19,15 @@ class KMesh
 protected:
 	KVertexData m_VertexData;
 	std::vector<KSubMeshPtr> m_SubMeshes;
+	std::vector<KMaterialRef> m_SubMaterials;
+	std::vector<KMaterialSubMeshPtr> m_MaterialSubMeshes;
 	KTriangleMesh m_TriangleMesh;
 	std::string m_Path;
 
 	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group);
 	void UpdateTriangleMesh();
+	void BuildMaterialSubMesh();
+	void BuildMaterialSubMeshUtility();
 public:
 	KMesh();
 	~KMesh();
@@ -31,6 +36,8 @@ public:
 	inline const KAABBBox& GetLocalBound() const { return m_VertexData.bound; }
 	inline const KTriangleMesh& GetTriangleMesh() const { return m_TriangleMesh; }
 	inline const std::vector<KSubMeshPtr>& GetSubMeshes() const { return m_SubMeshes; }
+	inline const std::vector<KMaterialRef>& GetSubMaterials() const { return m_SubMaterials; }
+	inline const std::vector<KMaterialSubMeshPtr>& GetMaterialSubMeshs() const { return m_MaterialSubMeshes; }
 
 	bool SaveAsFile(const char* szPath) const;
 	bool InitFromFile(const char* szPath, IKRenderDevice* device, bool hostVisible = false);

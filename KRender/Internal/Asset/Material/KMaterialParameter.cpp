@@ -129,6 +129,22 @@ bool KMaterialParameter::CreateValue(const std::string& name, MaterialValueType 
 	return false;
 }
 
+bool KMaterialParameter::SetValue(const std::string& name, MaterialValueType type, uint8_t vecSize, const void* data)
+{
+	size_t hash = KHash::BKDR(name.c_str(), name.length());
+	Key ref = { hash, 0 };
+
+	auto it = std::lower_bound(m_ParameterKey.begin(), m_ParameterKey.end(), ref, [](const Key& lhs, const Key& rhs) { return lhs.hash < rhs.hash; });
+	if (it != m_ParameterKey.end() && it->hash == hash)
+	{
+		Value value = m_ParameterValue[it->index];
+		value->SetData(data);
+		return true;
+	}
+
+	return false;
+}
+
 bool KMaterialParameter::RemoveValue(const std::string& name)
 {
 	size_t hash = KHash::BKDR(name.c_str(), name.length());

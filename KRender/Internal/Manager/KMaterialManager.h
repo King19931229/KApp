@@ -5,14 +5,9 @@
 class KMaterialManager
 {
 protected:
-	struct MaterialUsingInfo
-	{
-		size_t useCount;
-		IKMaterialPtr material;
-	};
-	typedef std::unordered_map<std::string, MaterialUsingInfo> MaterialMap;
+	typedef std::unordered_map<std::string, KMaterialRef> MaterialMap;
 	MaterialMap m_Materials;
-	IKMaterialPtr m_MissingMaterial;
+	KMaterialRef m_MissingMaterial;
 	IKRenderDevice* m_Device;
 public:
 	KMaterialManager();
@@ -21,8 +16,8 @@ public:
 	bool Init(IKRenderDevice* device);
 	bool UnInit();
 
-	bool Acquire(const char* path, IKMaterialPtr& material, bool async);
-	bool Release(IKMaterialPtr& material);
+	bool Acquire(const char* path, KMaterialRef& ref, bool async);
+	bool GetMissingMaterial(KMaterialRef& ref);
 
-	bool GetMissingMaterial(IKMaterialPtr& material);
+	bool Create(const KAssetImportResult::Material& input, KMaterialRef& ref, bool async);
 };

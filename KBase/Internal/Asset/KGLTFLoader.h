@@ -21,6 +21,7 @@ protected:
 	struct Material
 	{
 		MaterialAlphaMode alphaMode = MAM_OPAQUE;
+		float alphaMask = 0.0f;
 		float alphaCutoff = 1.0f;
 		float metallicFactor = 1.0f;
 		float roughnessFactor = 1.0f;

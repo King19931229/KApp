@@ -39,7 +39,7 @@ void main()
 	// Target the correct clipmap level
 	texPos += ivec3(borderSize);
 	texPos.y += int((volumeDimension + 2 * borderSize) * level);
-	texPos.x += int((volumeDimension + 2 * borderSize) * 4);
+	texPos.x += int((volumeDimension + 2 * borderSize) * 0);
 
 	albedo = imageLoad(voxelRadiance, texPos);
 

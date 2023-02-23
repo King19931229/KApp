@@ -25,18 +25,11 @@ public:
 	virtual bool GetPath(std::string& path) const = 0;
 
 	virtual bool SaveAsMesh(const char* path) const = 0;
-
 	virtual bool SetHostVisible(bool hostVisible) = 0;
-	virtual bool SetUseMaterialTexture(bool useMaterialTex) = 0;
-	virtual bool GetUseMaterialTexture() const = 0;
 
 	virtual bool Init(bool async) = 0;
 	virtual bool UnInit() = 0;
 
-	virtual bool SetMaterialPath(const char* path) = 0;
-	virtual bool ReloadMaterial() = 0;
-
-	virtual IKMaterialPtr GetMaterial() = 0;
 	virtual bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) = 0;
 
 	virtual bool IsUtility() const = 0;

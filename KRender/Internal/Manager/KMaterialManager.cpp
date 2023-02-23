@@ -3,15 +3,14 @@
 #include <assert.h>
 
 KMaterialManager::KMaterialManager()
-	: m_MissingMaterial(nullptr),
-	m_Device(nullptr)
+	: m_Device(nullptr)
 {
 }
 
 KMaterialManager::~KMaterialManager()
 {
 	ASSERT_RESULT(m_Device == nullptr);
-	ASSERT_RESULT(m_MissingMaterial == nullptr);
+	ASSERT_RESULT(!m_MissingMaterial);
 	ASSERT_RESULT(m_Materials.empty());
 }
 
@@ -19,88 +18,68 @@ bool KMaterialManager::Init(IKRenderDevice* device)
 {
 	UnInit();
 	m_Device = device;
-
-	m_MissingMaterial = IKMaterialPtr(KNEW KMaterial());
-	if (!m_MissingMaterial->InitFromFile("Materials/Missing.mtl", false))
-	{
-		assert(false && "Should not reach");
-		m_MissingMaterial = nullptr;
-	}
-
+	ASSERT_RESULT(Acquire("Materials/Missing.mtl", m_MissingMaterial, false));
 	return true;
 }
 
 bool KMaterialManager::UnInit()
 {
+	m_MissingMaterial.Release();
 	for (auto it = m_Materials.begin(), itEnd = m_Materials.end(); it != itEnd; ++it)
 	{
-		MaterialUsingInfo& info = it->second;
-		assert(info.material);
-		info.material->UnInit();
+		KMaterialRef& ref = it->second;
+		ASSERT_RESULT(ref.GetRefCount() == 1);
 	}
 	m_Materials.clear();
-
-	SAFE_UNINIT(m_MissingMaterial);
-
 	m_Device = nullptr;
-
 	return true;
 }
 
-bool KMaterialManager::GetMissingMaterial(IKMaterialPtr& material)
+bool KMaterialManager::GetMissingMaterial(KMaterialRef& ref)
 {
 	if (m_MissingMaterial)
 	{
-		material = m_MissingMaterial;
+		ref = m_MissingMaterial;
 		return true;
 	}
 	return false;
 }
 
-bool KMaterialManager::Acquire(const char* path, IKMaterialPtr& material, bool async)
+bool KMaterialManager::Acquire(const char* path, KMaterialRef& ref, bool async)
 {
 	auto it = m_Materials.find(path);
 
 	if (it != m_Materials.end())
 	{
-		MaterialUsingInfo& info = it->second;
-		info.useCount += 1;
-		material = info.material;
+		ref = it->second;
 		return true;
 	}
 
-	material = IKMaterialPtr(KNEW KMaterial());
+	IKMaterialPtr material = IKMaterialPtr(KNEW KMaterial());
 
 	if (material->InitFromFile(path, async))
 	{
-		MaterialUsingInfo info = { 1, material };
-		m_Materials[path] = info;
+		ref = KMaterialRef(material, [this](IKMaterialPtr material)
+		{
+			material->UnInit();
+		});
+		m_Materials[path] = ref;
 		return true;
 	}
 
-	material = nullptr;
 	return false;
 }
 
-bool KMaterialManager::Release(IKMaterialPtr& material)
+bool KMaterialManager::Create(const KAssetImportResult::Material& input, KMaterialRef& ref, bool async)
 {
-	if (material)
+	IKMaterialPtr material = IKMaterialPtr(KNEW KMaterial());
+	if (material->InitFromImportAssetMaterial(input, async))
 	{
-		auto it = m_Materials.find(material->GetPath());
-		if (it != m_Materials.end())
+		ref = KMaterialRef(material, [this](IKMaterialPtr material)
 		{
-			MaterialUsingInfo& info = it->second;
-			info.useCount -= 1;
-
-			if (info.useCount == 0)
-			{
-				material->UnInit();
-				m_Materials.erase(it);
-			}
-
-			material = nullptr;
-			return true;
-		}
+			material->UnInit();
+		});
+		return true;
 	}
 	return false;
 }

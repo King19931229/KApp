@@ -20,8 +20,6 @@ class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 	RTTR_REGISTRATION_FRIEND
 protected:
 	KMeshRef m_Mesh;
-	IKMaterialPtr m_Material;
-	std::vector<KMaterialSubMeshPtr> m_MaterialSubMeshes;
 
 	RenderResourceType m_Type;
 
@@ -58,23 +56,18 @@ public:
 	bool Pick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 	bool CloestPick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 
+	bool SetMesh(KMeshRef mesh) /*override*/;
 	bool SetMeshPath(const char* path) override;
 	bool SetAssetPath(const char* path) override;	
 	bool GetPath(std::string& path) const override;
 
 	bool SaveAsMesh(const char* path) const override;
 	bool SetHostVisible(bool hostVisible) override;
-	bool SetUseMaterialTexture(bool useMaterialTex) override;
-	bool GetUseMaterialTexture() const override;
 
 	bool Init(bool async) override;
 	bool UnInit() override;
 
 	inline KMeshPtr GetMesh() { return *m_Mesh; }
-	IKMaterialPtr GetMaterial() override { return m_Material; }
-
-	bool SetMaterialPath(const char* path) override;
-	bool ReloadMaterial() override;
 
 	bool InitUtility(const KMeshUtilityInfoPtr& info);
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
@@ -88,6 +81,4 @@ public:
 
 	inline void SetOcclusionVisible(bool visible) { m_OcclusionVisible = visible; }
 	inline bool IsOcclusionVisible() const { return m_OcclusionVisible; }
-
-	bool Visit(PipelineStage stage, std::function<void(KRenderCommand&)> func);
 };

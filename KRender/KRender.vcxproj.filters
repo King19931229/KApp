@@ -858,5 +858,8 @@
     <ClCompile Include="Internal\KRenderImGui.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
+    <ClCompile Include="Internal\Render\KRenderUtil.cpp">
+      <Filter>Internal\Render</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

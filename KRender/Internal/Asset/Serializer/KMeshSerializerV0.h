@@ -37,11 +37,6 @@ protected:
 	bool ReadIndexData(IKDataStreamPtr& stream, std::vector<KIndexData>& indexDatas, bool hostVisible);
 	bool ReadIndexElementData(IKDataStreamPtr& stream, KIndexData& indexData, bool hostVisible);
 
-	bool ReadMaterialData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas);
-	bool ReadMaterialElementData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas);
-	bool ReadMaterialLayerElementData(IKDataStreamPtr& stream, MaterialInfo& materialData);
-	bool ReadMaterialFileData(IKDataStreamPtr& stream, std::vector<MaterialInfo>& materialDatas);
-
 	bool ReadDrawData(IKDataStreamPtr& stream, std::vector<DrawElementInfo>& drawInfos);
 	bool ReadDrawElementData(IKDataStreamPtr& stream, DrawElementInfo& drawInfo);
 
@@ -54,11 +49,6 @@ protected:
 
 	bool WriteIndexData(IKDataStreamPtr& stream, const std::vector<KIndexData>& indexsDatas);
 	bool WriteIndexElementData(IKDataStreamPtr& stream, const KIndexData& indexData);
-
-	bool WriteMaterialData(IKDataStreamPtr& stream, const std::vector<MaterialInfo>& materialDatas);
-	bool WriteMaterialElementData(IKDataStreamPtr& stream, const std::vector<MaterialInfo>& materialDatas);
-	bool WriteMaterialLayerElementData(IKDataStreamPtr& stream, const MaterialInfo& materialData);
-	bool WriteMaterialFileData(IKDataStreamPtr& stream, const std::vector<MaterialInfo>& materialDatas);
 
 	bool WriteDrawData(IKDataStreamPtr& stream, const std::vector<DrawElementInfo>& drawInfos);
 	bool WriteDrawElementData(IKDataStreamPtr& stream, const DrawElementInfo& drawInfo);

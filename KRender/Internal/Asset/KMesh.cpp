@@ -6,6 +6,7 @@
 #include "Interface/IKBuffer.h"
 #include "Interface/IKQuery.h"
 #include "Internal/KVertexDefinition.h"
+#include "Internal/KRenderGlobal.h"
 
 KMesh::KMesh()
 {
@@ -47,6 +48,7 @@ bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, bool hostVi
 	{
 		m_Path = szPath;
 		UpdateTriangleMesh();
+		BuildMaterialSubMesh();
 		return true;
 	}
 	
@@ -55,6 +57,11 @@ bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, bool hostVi
 
 bool KMesh::UnInit()
 {
+	for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
+	{
+		materialSubMesh->UnInit();
+	}
+	m_MaterialSubMeshes.clear();
 	m_VertexData.Destroy();
 	for(KSubMeshPtr& subMesh : m_SubMeshes)
 	{
@@ -163,6 +170,28 @@ void KMesh::UpdateTriangleMesh()
 	for (IKVertexBufferPtr buffer : m_VertexData.vertexBuffers)
 	{
 		buffer->DiscardMemory();
+	}
+}
+
+void KMesh::BuildMaterialSubMesh()
+{
+	m_MaterialSubMeshes.reserve(m_SubMeshes.size());
+	for (size_t i = 0; i < m_SubMeshes.size(); ++i)
+	{
+		KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh());
+		m_MaterialSubMeshes.push_back(materialSubMesh);
+		materialSubMesh->Init(m_SubMeshes[i], m_SubMaterials[i]);
+	}
+}
+
+void KMesh::BuildMaterialSubMeshUtility()
+{
+	m_MaterialSubMeshes.reserve(m_SubMeshes.size());
+	for (size_t i = 0; i < m_SubMeshes.size(); ++i)
+	{
+		KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh());
+		materialSubMesh->InitDebug(m_SubMeshes[i], m_SubMeshes[i]->GetDebugPrimitive());
+		m_MaterialSubMeshes.push_back(materialSubMesh);
 	}
 }
 
@@ -279,9 +308,15 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 		}
 
 		m_SubMeshes.resize(result.parts.size());
-		for(KSubMeshPtr& submesh : m_SubMeshes)
+		m_SubMaterials.resize(result.parts.size());
+
+		for(size_t i = 0; i < result.parts.size(); ++i)
 		{
+			KSubMeshPtr& submesh = m_SubMeshes[i];
 			submesh = KSubMeshPtr(KNEW KSubMesh(this));
+
+			KMaterialRef& material = m_SubMaterials[i];
+			KRenderGlobal::MaterialManager.Create(result.parts[i].material, material, false);
 		}
 
 		IndexType indexType = result.index16Bit ? IT_16 : IT_32;
@@ -290,6 +325,8 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 		for(size_t i = 0; i < m_SubMeshes.size(); ++i)
 		{
 			KSubMeshPtr& subMesh = m_SubMeshes[i];
+			KMaterialRef& material = m_SubMaterials[i];
+
 			const KAssetImportResult::ModelPart& subPart = result.parts[i];
 
 			KIndexData indexData;
@@ -308,34 +345,13 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 				ASSERT_RESULT(indexData.indexBuffer->InitDevice(hostVisible));
 			}
 
-			KMaterialTextureBinding textures;
-
-			for (uint32_t idx = 0; idx < MTS_COUNT; ++idx)
-			{
-				if (!subPart.material.textures[idx].empty())
-				{
-					textures.SetTexture(idx, subPart.material.textures[idx]);
-				}
-				else if (subPart.material.codecs[idx].pData)
-				{
-					textures.SetTexture(idx, subPart.material.codecs[idx], subPart.material.samplers[idx]);
-				}
-			}
-
-			// 设置Diffuse贴图
-			if (!textures.GetTexture(MTS_DIFFUSE))
-			{
-				textures.SetErrorTexture(MTS_DIFFUSE);
-			}
-
-			bool metalWorkFlow = subPart.material.metalWorkFlow;
-
-			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, std::move(textures), metalWorkFlow));
+			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material));
 			indexData.Reset();
 		}
 		m_Path = szPath;
 
 		UpdateTriangleMesh();
+		BuildMaterialSubMesh();
 
 		return true;
 	}
@@ -354,6 +370,7 @@ bool KMesh::InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device)
 	if (KMeshUtility::CreateUtility(device, this, info))
 	{
 		UpdateTriangleMesh();
+		BuildMaterialSubMeshUtility();
 		return true;
 	}
 

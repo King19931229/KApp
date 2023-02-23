@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <mutex>
 
-constexpr uint32_t MAX_SHADERMAP_TEXTURE_BINDING = 8;
+constexpr uint32_t MAX_SHADERMAP_TEXTURE_BINDING = 16;
 
 class KTextureBinding
 {

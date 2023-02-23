@@ -9,7 +9,6 @@ RTTR_REGISTRATION
 	KRTTR_REG_CLASS_BEGIN()
 	KRTTR_REG_PROPERTY_READ_ONLY(path, GetResourcePathString, MDT_STDSTRING)
 	KRTTR_REG_PROPERTY_READ_ONLY(material, GetMaterialPathString, MDT_STDSTRING)
-	KRTTR_REG_PROPERTY_READ_ONLY(type, GetTypeString, MDT_STDSTRING)
 	KRTTR_REG_CLASS_END()
 
 #undef KRTTR_REG_CLASS_NAME_STR
@@ -138,6 +137,12 @@ bool KRenderComponent::CloestPick(const glm::vec3& localOrigin, const glm::vec3&
 	return false;
 }
 
+bool KRenderComponent::SetMesh(KMeshRef mesh)
+{
+	m_Mesh = mesh;
+	return true;
+}
+
 bool KRenderComponent::SetMeshPath(const char* path)
 {
 	if (path)
@@ -155,42 +160,6 @@ bool KRenderComponent::SetAssetPath(const char* path)
 	{
 		m_Type = EXTERNAL_ASSET;
 		m_ResourcePath = path;
-		return true;
-	}
-	return false;
-}
-
-bool KRenderComponent::SetMaterialPath(const char* path)
-{
-	if (path)
-	{
-		m_MaterialPath = path;
-		return true;
-	}
-	return false;
-}
-
-bool KRenderComponent::ReloadMaterial()
-{
-	if (m_Mesh)
-	{
-		if (m_Material)
-		{
-			KRenderGlobal::MaterialManager.Release(m_Material);
-			m_Material = nullptr;
-		}
-
-		if (m_MaterialPath.empty() || !KRenderGlobal::MaterialManager.Acquire(m_MaterialPath.c_str(), m_Material, true))
-		{
-			KRenderGlobal::MaterialManager.GetMissingMaterial(m_Material);
-		}
-		
-		for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
-		{
-			materialSubMesh->UnInit();
-			materialSubMesh->Init(m_Material.get());
-		}
-
 		return true;
 	}
 	return false;
@@ -221,17 +190,6 @@ bool KRenderComponent::SetHostVisible(bool hostVisible)
 	return true;
 }
 
-bool KRenderComponent::SetUseMaterialTexture(bool useMaterialTex)
-{
-	m_UseMaterialTexture = useMaterialTex;
-	return true;
-}
-
-bool KRenderComponent::GetUseMaterialTexture() const
-{
-	return m_UseMaterialTexture;
-}
-
 bool KRenderComponent::Init(bool async)
 {
 	UnInit();
@@ -248,20 +206,6 @@ bool KRenderComponent::Init(bool async)
 		}
 		if (meshAcquire)
 		{
-			if (m_MaterialPath.empty() || !KRenderGlobal::MaterialManager.Acquire(m_MaterialPath.c_str(), m_Material, async))
-			{
-				KRenderGlobal::MaterialManager.GetMissingMaterial(m_Material);
-			}
-
-			const std::vector<KSubMeshPtr>& subMeshes = (*m_Mesh)->GetSubMeshes();
-			m_MaterialSubMeshes.reserve(subMeshes.size());
-			for (KSubMeshPtr subMesh : subMeshes)
-			{
-				KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh(subMesh.get()));
-				materialSubMesh->Init(m_Material.get());
-				m_MaterialSubMeshes.push_back(materialSubMesh);
-			}
-
 			KRenderGlobal::MeshManager.AcquireOCQuery(m_OCQueries);
 			m_OCInstanceQueries.resize(m_OCQueries.size());
 			return true;
@@ -271,14 +215,7 @@ bool KRenderComponent::Init(bool async)
 	{
 		if (KRenderGlobal::MeshManager.AcquireAsUtility(m_DebugUtility, m_Mesh))
 		{
-			const std::vector<KSubMeshPtr>& subMeshes = (*m_Mesh)->GetSubMeshes();
-			m_MaterialSubMeshes.reserve(subMeshes.size());
-			for (KSubMeshPtr subMesh : subMeshes)
-			{
-				KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh(subMesh.get()));
-				materialSubMesh->InitDebug(subMesh->GetDebugPrimitive());
-				m_MaterialSubMeshes.push_back(materialSubMesh);
-			}
+			return true;
 		}
 	}
 	return false;
@@ -286,19 +223,9 @@ bool KRenderComponent::Init(bool async)
 
 bool KRenderComponent::UnInit()
 {
-	for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
-	{
-		materialSubMesh->UnInit();
-	}
-	m_MaterialSubMeshes.clear();
 	if (m_Mesh)
 	{
 		m_Mesh.Release();
-	}
-	if (m_Material)
-	{
-		KRenderGlobal::MaterialManager.Release(m_Material);
-		m_Material = nullptr;
 	}
 	if (!m_OCQueries.empty())
 	{
@@ -314,19 +241,7 @@ bool KRenderComponent::InitUtility(const KMeshUtilityInfoPtr& info)
 	UnInit();
 	m_Type = DEBUG_UTILITY;
 	m_DebugUtility = info;
-	if (KRenderGlobal::MeshManager.AcquireAsUtility(info, m_Mesh))
-	{
-		const std::vector<KSubMeshPtr>& subMeshes = (*m_Mesh)->GetSubMeshes();
-		m_MaterialSubMeshes.reserve(subMeshes.size());
-		for (KSubMeshPtr subMesh : subMeshes)
-		{
-			KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh(subMesh.get()));
-			materialSubMesh->InitDebug(subMesh->GetDebugPrimitive());
-			m_MaterialSubMeshes.push_back(materialSubMesh);
-		}
-		return true;
-	}
-	return false;
+	return KRenderGlobal::MeshManager.AcquireAsUtility(info, m_Mesh);
 }
 
 bool KRenderComponent::UpdateUtility(const KMeshUtilityInfoPtr& info)
@@ -335,15 +250,6 @@ bool KRenderComponent::UpdateUtility(const KMeshUtilityInfoPtr& info)
 	ASSERT_RESULT(m_DebugUtility->GetType() == info->GetType());
 	m_DebugUtility = info;
 	return KRenderGlobal::MeshManager.UpdateUtility(info, m_Mesh);
-}
-
-bool KRenderComponent::Visit(PipelineStage stage, std::function<void(KRenderCommand&)> func)
-{
-	for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
-	{
-		materialSubMesh->Visit(stage, func);
-	}
-	return true;
 }
 
 bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as)

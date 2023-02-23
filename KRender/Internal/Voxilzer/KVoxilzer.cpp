@@ -831,31 +831,36 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 	std::vector<KRenderCommand> commands;
 	for (KRenderComponent* render : cullRes)
 	{
-		render->Visit(PIPELINE_STAGE_VOXEL, [&](KRenderCommand& command)
+		IKEntity* entity = render->GetEntityHandle();
+		KTransformComponent* transform = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, &transform))
 		{
-			IKEntity* entity = render->GetEntityHandle();
-
-			KTransformComponent* transform = nullptr;
-			if (entity->GetComponent(CT_TRANSFORM, &transform))
+			KMeshPtr mesh = render->GetMesh();
+			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 			{
-				const glm::mat4& finalTran = transform->GetFinal();
-
-				struct ObjectData
+				KRenderCommand command;
+				if (materialSubMesh->GetRenderCommand(PIPELINE_STAGE_VOXEL, command))
 				{
-					glm::mat4 model;
-				}objectData;
-				objectData.model = finalTran;
+					const glm::mat4& finalTran = transform->GetFinal();
 
-				command.objectUsage.binding = SHADER_BINDING_OBJECT;
-				command.objectUsage.range = sizeof(objectData);
+					struct ObjectData
+					{
+						glm::mat4 model;
+					}objectData;
+					objectData.model = finalTran;
 
-				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
+					command.objectUsage.range = sizeof(objectData);
 
-				command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-				commands.push_back(command);
+					command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
+
+					commands.push_back(command);
+				}
 			}
-		});
+		}
 	}
 
 	for (KRenderCommand& command : commands)
@@ -906,31 +911,37 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 	commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
 
 	std::vector<KRenderCommand> commands;
+
 	for (KRenderComponent* render : cullRes)
 	{
-		render->Visit(PIPELINE_STAGE_SPARSE_VOXEL, [&](KRenderCommand& command)
+		IKEntity* entity = render->GetEntityHandle();
+		KTransformComponent* transform = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, &transform))
 		{
-			IKEntity* entity = render->GetEntityHandle();
-
-			KTransformComponent* transform = nullptr;
-			if (entity->GetComponent(CT_TRANSFORM, &transform))
+			KMeshPtr mesh = render->GetMesh();
+			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 			{
-				const glm::mat4& finalTran = transform->GetFinal();
-				const glm::mat4& prevFinalTran = transform->GetPrevFinal();
+				KRenderCommand command;
+				if (materialSubMesh->GetRenderCommand(PIPELINE_STAGE_SPARSE_VOXEL, command))
+				{
+					const glm::mat4& finalTran = transform->GetFinal();
+					const glm::mat4& prevFinalTran = transform->GetPrevFinal();
 
-				KConstantDefinition::OBJECT objectData;
-				objectData.MODEL = finalTran;
-				objectData.PRVE_MODEL = prevFinalTran;
-				command.objectUsage.binding = SHADER_BINDING_OBJECT;
-				command.objectUsage.range = sizeof(objectData);
+					KConstantDefinition::OBJECT objectData;
+					objectData.MODEL = finalTran;
+					objectData.PRVE_MODEL = prevFinalTran;
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
+					command.objectUsage.range = sizeof(objectData);
 
-				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-				command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
+					command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
 
-				commands.push_back(command);
+					commands.push_back(command);
+				}
 			}
-		});
+		}
 	}
 
 	for (KRenderCommand& command : commands)

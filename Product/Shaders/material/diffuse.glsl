@@ -18,6 +18,17 @@ layout(binding = BINDING_MATERIAL3) uniform sampler2D emissiveSampler;
 layout(binding = BINDING_MATERIAL4) uniform sampler2D aoSampler;
 #endif
 
+layout(binding = BINDING_SHADING)
+uniform Shading
+{
+	vec4 diffuseFactor;
+	vec4 specularFactor;
+	float metallicFactor;
+	float roughnessFactor;
+	float alphaMask;
+	float alphaMaskCutoff;
+} shading;
+
 MaterialPixelParameters ComputeMaterialPixelParameters(
 	  vec3 worldPos
 	, vec3 prevWorldPos

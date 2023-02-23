@@ -122,17 +122,21 @@ bool KShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 				if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform) && entity->GetComponent(CT_RENDER, (IKComponentBase**)&render))
 				{
 					KMeshPtr mesh = component->GetMesh();
-
-					render->Visit(PIPELINE_STAGE_SHADOW_GEN, [&](KRenderCommand command)
+					const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+					for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 					{
-						const KConstantDefinition::OBJECT & final = transform->FinalTransform();
+						KRenderCommand command;
+						if (materialSubMesh->GetRenderCommand(PIPELINE_STAGE_SHADOW_GEN, command))
+						{
+							const KConstantDefinition::OBJECT & final = transform->FinalTransform();
 
-						command.objectUsage.binding = SHADER_BINDING_OBJECT;
-						command.objectUsage.range = sizeof(final);
-						KRenderGlobal::DynamicConstantBufferManager.Alloc(&final, command.objectUsage);
+							command.objectUsage.binding = SHADER_BINDING_OBJECT;
+							command.objectUsage.range = sizeof(final);
+							KRenderGlobal::DynamicConstantBufferManager.Alloc(&final, command.objectUsage);
 
-						commandList.push_back(command);
-					});
+							commandList.push_back(command);
+						}
+					}
 				}
 			}
 

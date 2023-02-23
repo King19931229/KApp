@@ -213,8 +213,9 @@ bool KEResourcePorter::MaterialDrop(size_t x, size_t y, const std::string& path)
 			IKRenderComponent* renderComponent = nullptr;
 			if (entity->GetComponent(CT_RENDER, &renderComponent))
 			{
-				renderComponent->SetMaterialPath(path.c_str());
-				renderComponent->ReloadMaterial();
+				//TODO
+				//renderComponent->SetMaterialPath(path.c_str());
+				//renderComponent->ReloadMaterial();
 				return true;
 			}
 		}

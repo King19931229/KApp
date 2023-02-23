@@ -10,19 +10,16 @@
 KMaterial::KMaterial()
 	: m_Version(msCurrentVersion),
 	m_ShadingMode(MSM_OPAQUE),
-	m_VSInfoCalced(false),
-	m_FSInfoCalced(false),
-	m_VSParameterVerified(false),
-	m_FSParameterVerified(false),
-	m_ParameterReload(false)
+	m_InfoCalced(false),
+	m_ParameterVerified(false),
+	m_ParameterNeedRebuild(true)
 {
-	m_MaterialTexture = IKMaterialTextureBindingPtr(KNEW KMaterialTextureBinding());
+	m_TextureBinding = IKMaterialTextureBindingPtr(KNEW KMaterialTextureBinding());
+	m_Parameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
 }
 
 KMaterial::~KMaterial()
 {
-	ASSERT_RESULT(m_VSParameter == nullptr);
-	ASSERT_RESULT(m_FSParameter == nullptr);
 }
 
 MaterialValueType KMaterial::ShaderConstantTypeToMaterialType(KShaderInformation::Constant::ConstantMemberType type)
@@ -81,7 +78,7 @@ bool KMaterial::VerifyParameter(IKMaterialParameterPtr parameter, const KShaderI
 	{
 		for (const KShaderInformation::Constant& constant : information.dynamicConstants)
 		{
-			if (constant.bindingIndex != SHADER_BINDING_VERTEX_SHADING && constant.bindingIndex != SHADER_BINDING_FRAGMENT_SHADING)
+			if (constant.bindingIndex != SHADER_BINDING_SHADING)
 			{
 				continue;
 			}
@@ -140,7 +137,7 @@ bool KMaterial::CreateParameter(const KShaderInformation& information, IKMateria
 
 	for (const KShaderInformation::Constant& constant : information.dynamicConstants)
 	{
-		if (constant.bindingIndex != SHADER_BINDING_VERTEX_SHADING && constant.bindingIndex != SHADER_BINDING_FRAGMENT_SHADING)
+		if (constant.bindingIndex != SHADER_BINDING_SHADING)
 		{
 			continue;
 		}
@@ -192,9 +189,9 @@ IKShaderPtr KMaterial::GetVSInstanceShader(const VertexFormat* formats, size_t c
 	return m_ShaderMap.GetVSInstanceShader(formats, count);
 }
 
-IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* mtlTextureBinding, bool meshletInput)
+IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count, bool meshletInput)
 {
-	KTextureBinding textureBinding = ConvertToTextureBinding(mtlTextureBinding);
+	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	return m_ShaderMap.GetFSShader(formats, count, &textureBinding, meshletInput);
 }
 
@@ -208,120 +205,67 @@ bool KMaterial::HasMSShader() const
 	return m_ShaderMap.HasMSShader();
 }
 
-bool KMaterial::IsShaderLoaded(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* mtlTextureBinding)
+bool KMaterial::IsShaderLoaded(const VertexFormat* formats, size_t count)
 {
-	KTextureBinding textureBinding = ConvertToTextureBinding(mtlTextureBinding);
+	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	return m_ShaderMap.IsBothLoaded(formats, count, &textureBinding);
 }
 
-const IKMaterialParameterPtr KMaterial::GetVSParameter()
+const IKMaterialTextureBindingPtr KMaterial::GetTextureBinding()
 {
-	if (m_ShaderMap.IsVSTemplateLoaded())
-	{
-		const KShaderInformation& vsInfo = *m_ShaderMap.GetVSInformation();
-
-		if (!m_VSParameter || m_ParameterReload)
-		{
-			CreateParameter(vsInfo, m_VSParameter);
-		}
-
-		if (!m_VSParameterVerified)
-		{
-			VerifyParameter(m_VSParameter, vsInfo);
-			m_VSParameterVerified = true;
-		}
-
-		return m_VSParameter;
-	}
-	return nullptr;
+	return m_TextureBinding;
 }
 
-const IKMaterialTextureBindingPtr KMaterial::GetDefaultMaterialTexture()
-{
-	return m_MaterialTexture;
-}
-
-const IKMaterialParameterPtr KMaterial::GetFSParameter()
+const IKMaterialParameterPtr KMaterial::GetParameter()
 {
 	if (m_ShaderMap.IsFSTemplateLoaded())
 	{
 		const KShaderInformation& fsInfo = *m_ShaderMap.GetFSInformation();
 
-		if (!m_FSParameter || m_ParameterReload)
+		if (!m_Parameter || m_ParameterNeedRebuild)
 		{
-			CreateParameter(fsInfo, m_FSParameter);
+			CreateParameter(fsInfo, m_Parameter);
+			m_ParameterNeedRebuild = false;
 		}
 
-		if (!m_FSParameterVerified)
+		if (!m_ParameterVerified)
 		{
-			VerifyParameter(m_FSParameter, fsInfo);
-			m_FSParameterVerified = true;
+			VerifyParameter(m_Parameter, fsInfo);
+			m_ParameterVerified = true;
 		}
 
-		return m_FSParameter;
+		return m_Parameter;
 	}
 	return nullptr;
 }
 
-const KShaderInformation::Constant* KMaterial::GetVSShadingInfo()
+const KShaderInformation::Constant* KMaterial::GetShadingInfo()
 {
-	if (m_VSInfoCalced)
+	if (m_InfoCalced)
 	{
-		return &m_VSConstantInfo;
-	}
-	else
-	{
-		if (m_ShaderMap.IsVSTemplateLoaded())
-		{
-			m_VSConstantInfo.bindingIndex = SHADER_BINDING_VERTEX_SHADING;
-			m_VSConstantInfo.members.clear();
-			m_VSConstantInfo.size = 0;
-			m_VSConstantInfo.descriptorSetIndex = 0;
-
-			const KShaderInformation& vsInfo = *m_ShaderMap.GetVSInformation();
-			for (const KShaderInformation::Constant& constant : vsInfo.dynamicConstants)
-			{
-				if (constant.bindingIndex == SHADER_BINDING_VERTEX_SHADING)
-				{
-					m_VSConstantInfo = constant;
-					break;
-				}
-			}
-
-			m_VSInfoCalced = true;
-			return &m_VSConstantInfo;
-		}
-		return nullptr;
-	}
-}
-
-const KShaderInformation::Constant* KMaterial::GetFSShadingInfo()
-{
-	if (m_FSInfoCalced)
-	{
-		return &m_FSConstantInfo;
+		return &m_ConstantInfo;
 	}
 	else
 	{
 		if (m_ShaderMap.IsFSTemplateLoaded())
 		{
-			m_FSConstantInfo.bindingIndex = SHADER_BINDING_VERTEX_SHADING;
-			m_FSConstantInfo.members.clear();
-			m_FSConstantInfo.size = 0;
-			m_FSConstantInfo.descriptorSetIndex = 0;
+			m_ConstantInfo.bindingIndex = SHADER_BINDING_SHADING;
+			m_ConstantInfo.members.clear();
+			m_ConstantInfo.size = 0;
+			m_ConstantInfo.descriptorSetIndex = 0;
 
 			const KShaderInformation& fsInfo = *m_ShaderMap.GetFSInformation();
 			for (const KShaderInformation::Constant& constant : fsInfo.dynamicConstants)
 			{
-				if (constant.bindingIndex == SHADER_BINDING_FRAGMENT_SHADING)
+				if (constant.bindingIndex == SHADER_BINDING_SHADING)
 				{					
-					m_FSConstantInfo = constant;
+					m_ConstantInfo = constant;
 					break;
 				}
 			}
 
-			m_FSInfoCalced = true;
-			return &m_FSConstantInfo;
+			m_InfoCalced = true;
+			return &m_ConstantInfo;
 		}
 		return nullptr;
 	}
@@ -381,7 +325,7 @@ void KMaterial::BindSampler(IKPipelinePtr pipeline, const KShaderInformation& in
 
 IKPipelinePtr KMaterial::CreatePipelineImpl(const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader)
 {
-	if (GetVSParameter() && GetFSParameter())
+	if (GetParameter())
 	{
 		IKPipelinePtr pipeline = nullptr;
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
@@ -452,7 +396,7 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(const VertexFormat* formats, size_t 
 
 IKPipelinePtr KMaterial::CreateMeshPipelineImpl(const VertexFormat* formats, size_t count, IKShaderPtr meshShader, IKShaderPtr fragmentShader)
 {
-	if (GetFSParameter())
+	if (GetParameter())
 	{
 		IKPipelinePtr pipeline = nullptr;
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
@@ -511,9 +455,9 @@ IKPipelinePtr KMaterial::CreateMeshPipelineImpl(const VertexFormat* formats, siz
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreatePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* mtlTextureBinding)
+IKPipelinePtr KMaterial::CreatePipeline(const VertexFormat* formats, size_t count)
 {
-	KTextureBinding textureBinding = ConvertToTextureBinding(mtlTextureBinding);
+	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	IKShaderPtr vsShader = m_ShaderMap.GetVSShader(formats, count);
 	IKShaderPtr fsShader = m_ShaderMap.GetFSShader(formats, count, &textureBinding, false);
 	if (vsShader && fsShader)
@@ -523,9 +467,9 @@ IKPipelinePtr KMaterial::CreatePipeline(const VertexFormat* formats, size_t coun
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreateMeshPipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* mtlTextureBinding)
+IKPipelinePtr KMaterial::CreateMeshPipeline(const VertexFormat* formats, size_t count)
 {
-	KTextureBinding textureBinding = ConvertToTextureBinding(mtlTextureBinding);
+	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	IKShaderPtr msShader = m_ShaderMap.GetMSShader(formats, count);
 	IKShaderPtr fsShader = m_ShaderMap.GetFSShader(formats, count, &textureBinding, true);
 	if (msShader && fsShader)
@@ -535,9 +479,9 @@ IKPipelinePtr KMaterial::CreateMeshPipeline(const VertexFormat* formats, size_t 
 	return nullptr;
 }
 
-IKPipelinePtr KMaterial::CreateInstancePipeline(const VertexFormat* formats, size_t count, const IKMaterialTextureBinding* mtlTextureBinding)
+IKPipelinePtr KMaterial::CreateInstancePipeline(const VertexFormat* formats, size_t count)
 {
-	KTextureBinding textureBinding = ConvertToTextureBinding(mtlTextureBinding);
+	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	std::vector<VertexFormat> instanceFormats;
 	instanceFormats.reserve(count + 1);
 	for (size_t i = 0; i < count; ++i)
@@ -784,11 +728,9 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 
 	m_Path = path;
 
-	m_VSInfoCalced = false;
-	m_FSInfoCalced = false;
-
-	m_VSParameterVerified = false;
-	m_FSParameterVerified = false;
+	m_InfoCalced = false;
+	m_ParameterVerified = false;
+	m_ParameterNeedRebuild = true;
 
 	m_Version = 0;
 
@@ -820,7 +762,7 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 			IKXMLElementPtr materialTextureEle = root->FirstChildElement(msMaterialTextureBindingKey);
 			if (materialTextureEle && !materialTextureEle->IsEmpty())
 			{
-				ReadMaterialTexture(m_MaterialTexture, materialTextureEle);
+				ReadMaterialTexture(m_TextureBinding, materialTextureEle);
 			}
 
 			std::string materialCode;
@@ -836,32 +778,18 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 
 				if (m_ShaderMap.Init(initContext, async))
 				{
-					IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
 					IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
-
-					if (vsParameterEle && !vsParameterEle->IsEmpty())
-					{
-						if (GetVSParameter())
-						{
-							ReadParameterElement(m_VSParameter, vsParameterEle, false);
-						}
-						else
-						{
-							m_VSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
-							ReadParameterElement(m_VSParameter, vsParameterEle, true);
-						}
-					}
 
 					if (fsParameterEle && !fsParameterEle->IsEmpty())
 					{
-						if (GetFSParameter())
+						if (GetParameter())
 						{
-							ReadParameterElement(m_FSParameter, fsParameterEle, false);
+							ReadParameterElement(m_Parameter, fsParameterEle, false);
 						}
 						else
 						{
-							m_FSParameter = IKMaterialParameterPtr(KNEW KMaterialParameter());
-							ReadParameterElement(m_FSParameter, fsParameterEle, true);
+							
+							ReadParameterElement(m_Parameter, fsParameterEle, true);
 						}
 					}
 
@@ -869,6 +797,54 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 				}
 			}
 		}
+	}
+
+	return false;
+}
+
+bool KMaterial::InitFromImportAssetMaterial(const KAssetImportResult::Material& input, bool async)
+{
+	UnInit();
+
+	for (uint32_t i = 0; i < MTS_COUNT; ++i)
+	{
+		assert(input.textures[i].empty() || !input.codecs[i].pData);
+		if (!input.textures[i].empty())
+		{
+			m_TextureBinding->SetTexture(i, input.textures[i]);
+		}
+		if (input.codecs[i].pData)
+		{
+			m_TextureBinding->SetTexture(i, input.codecs[i], input.samplers[i]);
+		}
+		if (i == MTS_DIFFUSE && !m_TextureBinding->GetTexture(i))
+		{
+			m_TextureBinding->SetErrorTexture(i);
+		}
+	}
+
+	if (input.alphaMode == MAM_OPAQUE)
+	{
+		std::string materialCode;
+		ASSERT_RESULT(SetupMaterialGeneratedCode("material/diffuse.glsl", materialCode));
+
+		KShaderMapInitContext initContext;
+		initContext.vsFile = "shading/basepass.vert";
+		initContext.fsFile = "shading/basepass.frag";
+		initContext.IncludeSource = { {"material_generate_code.h", materialCode} };
+
+		ASSERT_RESULT(m_ShaderMap.Init(initContext, async));
+
+		GetParameter();
+
+		m_Parameter->SetValue("baseColorFactor", MaterialValueType::FLOAT, 4, &input.baseColorFactor);
+		m_Parameter->SetValue("emissiveFactor", MaterialValueType::FLOAT, 4, &input.emissiveFactor);
+		m_Parameter->SetValue("metallicFactor", MaterialValueType::FLOAT, 1, &input.metallicFactor);
+		m_Parameter->SetValue("roughnessFactor", MaterialValueType::FLOAT, 1, &input.roughnessFactor);
+		m_Parameter->SetValue("alphaMask", MaterialValueType::FLOAT, 1, &input.alphaMask);
+		m_Parameter->SetValue("alphaCutoff", MaterialValueType::FLOAT, 1, &input.alphaCutoff);
+
+		return true;
 	}
 
 	return false;
@@ -890,22 +866,15 @@ bool KMaterial::SaveAsFile(const std::string& path)
 		root->NewElement(msShaderKey)->SetText(m_ShaderFile.c_str());
 
 		// 创建参数
-		GetVSParameter();
-		GetFSParameter();
+		GetParameter();
 
-		if (m_VSParameter && m_FSParameter)
-		{
-			IKXMLElementPtr vsParameterEle = root->NewElement(msVSParameterKey);
-			SaveParameterElement(m_VSParameter, vsParameterEle);
+		IKXMLElementPtr fsParameterEle = root->NewElement(msFSParameterKey);
+		SaveParameterElement(m_Parameter, fsParameterEle);
 
-			IKXMLElementPtr fsParameterEle = root->NewElement(msFSParameterKey);
-			SaveParameterElement(m_FSParameter, fsParameterEle);
+		IKXMLElementPtr materialTextureEle = root->NewElement(msMaterialTextureBindingKey);
+		SaveMaterialTexture(m_TextureBinding, materialTextureEle);
 
-			IKXMLElementPtr materialTextureEle = root->NewElement(msMaterialTextureBindingKey);
-			SaveMaterialTexture(m_MaterialTexture, materialTextureEle);
-
-			return doc->SaveFile(path.c_str());
-		}
+		return doc->SaveFile(path.c_str());
 	}
 	return false;
 }
@@ -924,34 +893,26 @@ bool KMaterial::Reload()
 		IKXMLElementPtr	root = doc->FirstChildElement(msMaterialRootKey);
 		if (root && !root->IsEmpty())
 		{
-			m_VSInfoCalced = false;
-			m_FSInfoCalced = false;
-			m_VSParameterVerified = false;
-			m_FSParameterVerified = false;
+			m_InfoCalced = false;
+			m_ParameterVerified = false;
 
 			m_ShaderMap.Reload();
 
-			m_ParameterReload = true;
+			m_ParameterNeedRebuild = true;
 
-			ASSERT_RESULT(GetVSParameter());
-			ASSERT_RESULT(GetFSParameter());
+			ASSERT_RESULT(GetParameter());
 
-			ASSERT_RESULT(GetVSShadingInfo());
-			ASSERT_RESULT(GetFSShadingInfo());
+			ASSERT_RESULT(GetShadingInfo());
 
 			IKXMLElementPtr vsParameterEle = root->FirstChildElement(msVSParameterKey);
 			IKXMLElementPtr fsParameterEle = root->FirstChildElement(msFSParameterKey);
 
-			if (vsParameterEle && !vsParameterEle->IsEmpty())
-			{
-				ReadParameterElement(m_VSParameter, vsParameterEle, false);
-			}
 			if (fsParameterEle && !fsParameterEle->IsEmpty())
 			{
-				ReadParameterElement(m_FSParameter, fsParameterEle, false);
+				ReadParameterElement(m_Parameter, fsParameterEle, false);
 			}
 
-			m_ParameterReload = false;
+			m_ParameterNeedRebuild = false;
 
 			return true;
 		}
@@ -964,20 +925,12 @@ bool KMaterial::UnInit()
 {
 	m_ShaderMap.UnInit();
 
-	if (m_MaterialTexture)
-	{
-		m_MaterialTexture->Clear();
-	}
+	m_TextureBinding->Clear();
+	m_Parameter->RemoveAllValues();
 
-	// TODO 持久创建
-	m_VSParameter = nullptr;
-	m_FSParameter = nullptr;
-
-	m_VSInfoCalced = false;
-	m_FSInfoCalced = false;
-
-	m_VSParameterVerified = false;
-	m_FSParameterVerified = false;
+	m_InfoCalced = false;
+	m_ParameterVerified = false;
+	m_ParameterNeedRebuild = true;
 
 	return true;
 }

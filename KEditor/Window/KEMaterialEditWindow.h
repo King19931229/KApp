@@ -7,6 +7,7 @@
 #include "KRender/Interface/IKCameraController.h"
 #include "KBase/Interface/IKFileSystem.h"
 
+// 待重构
 class KEMaterialEditWindow : public QMainWindow
 {
 	Q_OBJECT

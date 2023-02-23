@@ -2,17 +2,16 @@
 #include "Internal/KVertexDefinition.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKMaterial.h"
+#include "Internal/Asset/KSubMesh.h"
 #include "Internal/ShaderMap/KShaderMap.h"
-
-#include "KSubMesh.h"
 
 #include <functional>
 
 class KMaterialSubMesh
 {
 protected:
-	KSubMesh*				m_pSubMesh;
-	IKMaterial*				m_pMaterial;
+	KSubMeshPtr				m_SubMesh;
+	KMaterialRef			m_Material;
 
 	IKPipelinePtr			m_Pipelines[PIPELINE_STAGE_COUNT];
 
@@ -37,13 +36,7 @@ protected:
 	KShaderRef				m_VoxelClipmapGSShader;
 	KShaderRef				m_VoxelClipmapFSShader;
 
-	KShaderMap				m_PrePassShaderMap;
-
-	bool					m_MateriaShaderTriggerLoaded;
-	bool					m_MaterialPipelineCreated;
-
 	bool CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& pipeline);
-	bool GetRenderCommand(PipelineStage stage, KRenderCommand& command);
 
 	bool CreateFixedPipeline();
 	bool CreateMaterialPipeline();
@@ -52,12 +45,15 @@ protected:
 
 	bool SetupMaterialGeneratedCode(std::string& code);
 public:
-	KMaterialSubMesh(KSubMesh* subMesh);
+	KMaterialSubMesh();
 	~KMaterialSubMesh();
-	bool Init(IKMaterial* material);
-	bool InitDebug(DebugPrimitive primtive);
+	bool Init(KSubMeshPtr subMesh, KMaterialRef material);
+	bool InitDebug(KSubMeshPtr subMesh, DebugPrimitive primtive);
 	bool UnInit();
-	bool Visit(PipelineStage stage, std::function<void(KRenderCommand&)> func);
+	bool GetRenderCommand(PipelineStage stage, KRenderCommand& command);
+
+	inline KSubMeshPtr GetSubMesh() { return m_SubMesh; }
+	inline KMaterialRef GetMaterial() { return m_Material; }
 };
 
 typedef std::shared_ptr<KMaterialSubMesh> KMaterialSubMeshPtr;
