@@ -125,7 +125,7 @@ void KDepthOfField::InitializePipeline()
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_CoC->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
@@ -149,7 +149,7 @@ void KDepthOfField::InitializePipeline()
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, m_Red->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE3, m_Green->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE4, m_Blue->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
@@ -311,7 +311,7 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 
 	primaryBuffer->BeginDebugMarker("DOF", glm::vec4(0, 1, 0, 0));
 	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	{
 		primaryBuffer->BeginDebugMarker("DOF_CoC", glm::vec4(0, 1, 0, 0));
 
@@ -403,7 +403,7 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 
 		primaryBuffer->EndDebugMarker();
 	}
-	primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 	primaryBuffer->EndDebugMarker();
 

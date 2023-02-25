@@ -11,8 +11,9 @@ layout(binding = BINDING_TEXTURE0) uniform sampler2D gbuffer0;
 layout(binding = BINDING_TEXTURE1) uniform sampler2D gbuffer1;
 layout(binding = BINDING_TEXTURE2) uniform sampler2D gbuffer2;
 layout(binding = BINDING_TEXTURE3) uniform sampler2D gbuffer3;
-layout(binding = BINDING_TEXTURE4) uniform sampler2D sceneColor;
-layout(binding = BINDING_TEXTURE5) uniform sampler2D hiZ;
+layout(binding = BINDING_TEXTURE4) uniform sampler2D gbuffer4;
+layout(binding = BINDING_TEXTURE5) uniform sampler2D sceneColor;
+layout(binding = BINDING_TEXTURE6) uniform sampler2D hiZ;
 
 layout(location = 0) out vec4 hitImage;
 layout(location = 1) out vec4 maskImage;
@@ -124,9 +125,9 @@ float ValidateHit(vec3 hit, vec2 uv, vec3 directionWS, vec2 screenSize, float de
 
 void main()
 {
-	const int maxStepCount = 64;
+	const int maxStepCount = 128;
 	const int mostDetailMip = 0;
-	const int ssp = 1;
+	const int ssp = 4;
 	const float depthThickness = 5;
 
 	vec2 screenSize = textureSize(hiZ, 0);
@@ -150,7 +151,8 @@ void main()
 
 	vec3 viewVS = normalize(-originVSPos);
 
-	float roughness = 0;
+	vec4 gbuffer3Data = texture(gbuffer3, screenCoord);
+	float roughness = DecodeRoughness(gbuffer3Data);
 #if SSR_OVERRIDE_ROUGHNESS
 	roughness = SSR_ROUGHNESS;
 #endif

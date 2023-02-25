@@ -120,6 +120,8 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	parameters.roughness = shading.roughnessFactor;
 	parameters.metal = shading.metallicFactor;
 	#if HAS_MATERIAL_TEXTURE2
+	// Roughness is stored in the 'g' channel, metallic is stored in the 'b' channel.
+	// This layout intentionally reserves the 'r' channel for (optional) occlusion map data
 	vec4 metalRoughness = texture(metalRoughnessSampler, texCoord);
 	parameters.metal *= metalRoughness.b;
 	parameters.roughness *= metalRoughness.g;
@@ -157,6 +159,18 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	
 	parameters.baseColor = vec4(mix(baseColorDiffusePart, baseColorSpecularPart, metallic * metallic), diffuse.a).rgb;
 	parameters.metal = metallic;
+#endif
+
+#if HAS_MATERIAL_TEXTURE3
+	parameters.emissive = SRGBtoLINEAR(texture(emissiveSampler, texCoord)).rgb;
+#else
+	parameters.emissive = vec3(0);
+#endif
+
+#if HAS_MATERIAL_TEXTURE4
+	parameters.ao = texture(aoSampler, texCoord).r;
+#else
+	parameters.ao = 1.0;
 #endif
 
 	return parameters;

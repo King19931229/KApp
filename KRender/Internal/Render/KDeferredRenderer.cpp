@@ -17,8 +17,11 @@ static_assert(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].stage 
 static_assert(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].stage == DRS_STATE_DEBUG_OBJECT, "check");
 static_assert(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].stage == DRS_STATE_FOREGROUND, "check");
 
+static_assert(ARRAY_SIZE(GDeferredRenderDebugDescription) == DRD_COUNT, "check");
+
 KDeferredRenderer::KDeferredRenderer()
 	: m_Camera(nullptr)
+	, m_DebugOption(DRD_NONE)
 {
 }
 
@@ -54,7 +57,7 @@ void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t hei
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/deferred.frag", m_DeferredLightingFS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shading/draw.frag", m_SceneColorDrawFS, false);
 
-	renderDevice->CreateRenderTarget(m_SceneTarget);
+	
 	renderDevice->CreateRenderTarget(m_FinalTarget);
 
 	RecreateRenderPass(width, height);
@@ -69,7 +72,6 @@ void KDeferredRenderer::UnInit()
 	m_DeferredLightingFS.Release();
 	m_SceneColorDrawFS.Release();
 
-	SAFE_UNINIT(m_SceneTarget);
 	SAFE_UNINIT(m_FinalTarget);
 	SAFE_UNINIT(m_LightingPipeline);
 	SAFE_UNINIT(m_DrawSceneColorPipeline);
@@ -107,9 +109,6 @@ void KDeferredRenderer::RemoveCallFunc(DeferredRenderStage stage, RenderPassCall
 
 void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 {
-	m_SceneTarget->UnInit();
-	m_SceneTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT);
-
 	m_FinalTarget->UnInit();
 	m_FinalTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT);
 
@@ -146,7 +145,7 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 
 		if (idx == DRS_STAGE_DEFERRED_LIGHTING)
 		{
-			renderPass->SetColorAttachment(0, m_SceneTarget->GetFrameBuffer());
+			renderPass->SetColorAttachment(0, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer());
 			renderPass->SetOpColor(0, LO_CLEAR, SO_STORE);
 			renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 			ASSERT_RESULT(renderPass->Init());
@@ -154,7 +153,7 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 
 		if (idx == DRS_STAGE_FORWARD_TRANSPRANT)
 		{
-			renderPass->SetColorAttachment(0, m_SceneTarget->GetFrameBuffer());
+			renderPass->SetColorAttachment(0, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer());
 			renderPass->SetOpColor(0, LO_LOAD, SO_STORE);
 			renderPass->SetDepthStencilAttachment(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer());
 			renderPass->SetOpDepthStencil(LO_LOAD, SO_STORE, LO_LOAD, SO_STORE);
@@ -163,7 +162,7 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 
 		if (idx == DRS_STATE_SKY)
 		{
-			renderPass->SetColorAttachment(0, m_SceneTarget->GetFrameBuffer());
+			renderPass->SetColorAttachment(0, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer());
 			renderPass->SetOpColor(0, LO_LOAD, SO_STORE);
 			renderPass->SetDepthStencilAttachment(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer());
 			renderPass->SetOpDepthStencil(LO_LOAD, SO_STORE, LO_LOAD, SO_STORE);
@@ -251,38 +250,47 @@ void KDeferredRenderer::RecreatePipeline()
 			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
-
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE4,
-			KRenderGlobal::CascadedShadowMap.GetFinalMask()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET4)->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE5,
-			KRenderGlobal::ClipmapVoxilzer.GetFinalMask()->GetFrameBuffer(),
+			KRenderGlobal::CascadedShadowMap.GetFinalMask()->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE6,
-			KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(),
+			KRenderGlobal::ClipmapVoxilzer.GetFinalMask()->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE7,
-			KRenderGlobal::VolumetricFog.GetScatteringTarget()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE8,
+			KRenderGlobal::VolumetricFog.GetScatteringTarget()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE9,
+			KRenderGlobal::ScreenSpaceReflection.GetFinalTarget()->GetFrameBuffer(),
+			KRenderGlobal::GBuffer.GetSampler(),
+			true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE10,
 			KRenderGlobal::CubeMap.GetDiffuseIrradiance()->GetFrameBuffer(),
 			KRenderGlobal::CubeMap.GetDiffuseIrradianceSampler(),
 			true);
 
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE9,
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE11,
 			KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer(),
 			KRenderGlobal::CubeMap.GetSpecularIrradianceSampler(),
 			true);
 
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE10,
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE12,
 			KRenderGlobal::CubeMap.GetIntegrateBRDF()->GetFrameBuffer(),
 			KRenderGlobal::CubeMap.GetIntegrateBRDFSampler(),
 			true);
@@ -327,7 +335,7 @@ void KDeferredRenderer::RecreatePipeline()
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_SceneTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), true);
 
 		pipeline->Init();
 	}
@@ -509,7 +517,7 @@ void KDeferredRenderer::SkyPass(IKCommandBufferPtr primaryBuffer)
 
 void KDeferredRenderer::CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer)
 {
-	primaryBuffer->Translate(m_SceneTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].debugMakrer, glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_COPY_SCENE_COLOR], SUBPASS_CONTENTS_INLINE);
@@ -527,7 +535,7 @@ void KDeferredRenderer::CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->EndRenderPass();
 	primaryBuffer->EndDebugMarker();
 
-	primaryBuffer->Translate(m_SceneTarget->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 }
 
 void KDeferredRenderer::PrePass(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes)
@@ -677,6 +685,16 @@ void KDeferredRenderer::DeferredLighting(IKCommandBufferPtr primaryBuffer)
 	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 	command.indexDraw = true;
 
+	struct Object
+	{
+		uint32_t debugOption;
+	} objectUsage;
+
+	objectUsage.debugOption = m_DebugOption;
+	command.objectUsage.binding = SHADER_BINDING_OBJECT;
+	command.objectUsage.range = sizeof(objectUsage);
+	KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectUsage, command.objectUsage);
+
 	commandBuffer->BeginSecondary(renderPass);
 	commandBuffer->SetViewport(renderPass->GetViewPort());
 	commandBuffer->Render(command);
@@ -697,4 +715,20 @@ void KDeferredRenderer::DrawFinalResult(IKRenderPassPtr renderPass, IKCommandBuf
 	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 	command.indexDraw = true;
 	buffer->Render(command);
+}
+
+void KDeferredRenderer::ReloadShader()
+{
+	if (m_QuadVS)
+		m_QuadVS->Reload();
+	if (m_DeferredLightingFS)
+		m_DeferredLightingFS->Reload();
+	if (m_SceneColorDrawFS)
+		m_SceneColorDrawFS->Reload();
+	if (m_LightingPipeline)
+		m_LightingPipeline->Reload();
+	if (m_DrawSceneColorPipeline)
+		m_DrawSceneColorPipeline->Reload();
+	if (m_DrawFinalPipeline)
+		m_DrawSceneColorPipeline->Reload();
 }

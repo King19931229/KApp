@@ -40,8 +40,9 @@ void KScreenSpaceReflection::InitializePipeline()
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE3, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE4, KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE5, KRenderGlobal::HiZBuffer.GetMinBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE4, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET4)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE5, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE6, KRenderGlobal::HiZBuffer.GetMinBuffer()->GetFrameBuffer(), KRenderGlobal::HiZBuffer.GetHiZSampler(), false);
 
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
@@ -66,8 +67,12 @@ void KScreenSpaceReflection::InitializePipeline()
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_HitResultTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE1, m_HitMaskTarget->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE2, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE3, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE4, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE5, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE6, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE7, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET4)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
@@ -97,6 +102,10 @@ void KScreenSpaceReflection::InitializePipeline()
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE3, m_TemporalSquaredTarget[(i + 1) & 1]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE4, m_TemporalTsppTarget[(i + 1) & 1]->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE5, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE6, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE7, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET2)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE8, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET3)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE9, KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET4)->GetFrameBuffer(), KRenderGlobal::GBuffer.GetSampler(), false);
 
 		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
 
@@ -474,7 +483,7 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 	}
 
 	primaryBuffer->BeginDebugMarker("SSR", glm::vec4(0, 1, 0, 0));
-	primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	{
 		primaryBuffer->BeginDebugMarker("SSR_Trace", glm::vec4(0, 1, 0, 0));
 
@@ -682,7 +691,7 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 
 		primaryBuffer->EndDebugMarker();
 	}
-	primaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 	primaryBuffer->EndDebugMarker();
 
 	m_CurrentIdx ^= 1;

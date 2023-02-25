@@ -61,8 +61,7 @@ void InitSponza(IKEnginePtr engine)
 		IKComponentBase* component = nullptr;
 		if (entity->RegisterComponent(CT_RENDER, &component))
 		{
-			((IKRenderComponent*)component)->SetMeshPath("Model/Sponza/sponza.mesh");
-			((IKRenderComponent*)component)->Init(true);
+			((IKRenderComponent*)component)->InitAsMesh("Model/Sponza/sponza.mesh", true, false);
 		}
 		entity->RegisterComponent(CT_TRANSFORM);
 

@@ -2,9 +2,10 @@
 #define _GBUFFER_H_
 
 #define GBUFFER_IMAGE0_FORMAT rgba16f
-#define GBUFFER_IMAGE1_FORMAT rgba16f
+#define GBUFFER_IMAGE1_FORMAT rg16f
 #define GBUFFER_IMAGE2_FORMAT rgba8
-#define GBUFFER_IMAGE3_FORMAT rgba8
+#define GBUFFER_IMAGE3_FORMAT rg8
+#define GBUFFER_IMAGE4_FORMAT rgba8
 #define AO_IMAGE_FORMAT r8
 
 #include "common.h"
@@ -52,14 +53,63 @@ vec3 DecodeBaseColor(vec4 gbuffer2Data)
 	return gbuffer2Data.xyz;
 }
 
-float DecodeRoughness(vec4 gbuffer3Data)
+float DecodeAO(vec4 gbuffer2Data)
 {
-	return gbuffer3Data.x;
+	return gbuffer2Data.w;
 }
 
 float DecodeMetal(vec4 gbuffer3Data)
 {
-	return gbuffer3Data.y;
+	return gbuffer3Data.x;
+}
+
+float DecodeRoughness(vec4 gbuffer3Data)
+{
+	// TODO Fix SSR NAN
+	return max(0.03, gbuffer3Data.y);
+}
+
+vec3 DecodeEmissive(vec4 gbuffer4Data)
+{
+	return gbuffer4Data.xyz;
+}
+
+struct GBufferEncodeData
+{
+	vec4 gbuffer0;
+	vec4 gbuffer1;
+	vec4 gbuffer2;
+	vec4 gbuffer3;
+	vec4 gbuffer4;
+	vec2 uv;
+};
+
+struct GBufferDecodeData
+{
+	vec3 worldPos;
+	vec3 worldNormal;
+	vec2 motion;
+	vec3 baseColor;
+	vec3 emissive;
+	float metal;
+	float roughness;
+	float ao;
+};
+
+GBufferDecodeData DecodeGBufferData(GBufferEncodeData encode)
+{
+	GBufferDecodeData data;
+
+	data.worldPos = DecodePosition(encode.gbuffer0, encode.uv);
+	data.worldNormal = DecodeNormal(encode.gbuffer0);
+	data.motion = DecodeMotion(encode.gbuffer1);
+	data.baseColor = DecodeBaseColor(encode.gbuffer2);
+	data.ao = DecodeAO(encode.gbuffer2);
+	data.metal = DecodeMetal(encode.gbuffer3);
+	data.roughness = DecodeRoughness(encode.gbuffer3);
+	data.emissive = DecodeEmissive(encode.gbuffer4);
+
+	return data;
 }
 
 #endif

@@ -196,7 +196,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		VkPipeline pipeline = pipelineHandle->GetVkPipeline();
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 
-		const KDynamicConstantBufferUsage* dynamicUsages[3] = { nullptr };
+		const KDynamicConstantBufferUsage* dynamicUsages[CBT_DYNAMIC_COUNT] = {};
 		uint32_t dynamicOffsets[CBT_DYNAMIC_COUNT] = { 0 };
 		uint32_t dynamicBufferCount = 0;
 
@@ -204,14 +204,11 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		{
 			dynamicUsages[dynamicBufferCount++] = &(command.objectUsage);
 		}
-		if (command.vertexShadingUsage.buffer)
+		if (command.shadingUsage.buffer)
 		{
-			dynamicUsages[dynamicBufferCount++] = &(command.vertexShadingUsage);
+			dynamicUsages[dynamicBufferCount++] = &(command.shadingUsage);
 		}
-		if (command.fragmentShadingUsage.buffer)
-		{
-			dynamicUsages[dynamicBufferCount++] = &(command.fragmentShadingUsage);
-		}
+
 		for (uint32_t i = 0; i < dynamicBufferCount; ++i)
 		{
 			dynamicOffsets[i] = (uint32_t)dynamicUsages[i]->offset;

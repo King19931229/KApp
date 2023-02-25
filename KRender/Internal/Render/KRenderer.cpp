@@ -165,9 +165,9 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::HiZOcclusion.Init();
 	KRenderGlobal::RayTraceManager.Init();
 
-	KRenderGlobal::CubeMap.Init(128, 128, 8, "Textures/uffizi_cube.ktx");
+	KRenderGlobal::CubeMap.Init(128, 128, 8, "Textures/papermill.ktx");
+	KRenderGlobal::SkyBox.Init(device, "Textures/papermill.ktx");
 	KRenderGlobal::WhiteFurnace.Init();
-	KRenderGlobal::SkyBox.Init(device, "Textures/uffizi_cube.ktx");
 
 	KRenderGlobal::OcclusionBox.Init(device);
 	KRenderGlobal::ShadowMap.Init(device, 2048);
@@ -179,10 +179,10 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::VolumetricFog.Init(64, 64, 128, (camera->GetFar() - camera->GetNear()) * 0.5f, width, height, camera);
 
 	KRenderGlobal::RTAO.Init(KRenderGlobal::RayTraceScene.get());
+	KRenderGlobal::ScreenSpaceReflection.Init(width, height, 0.5f);
 
 	KRenderGlobal::DeferredRenderer.Init(camera, width, height);
 
-	KRenderGlobal::ScreenSpaceReflection.Init(width, height, 0.5f);
 	KRenderGlobal::DepthOfField.Init(width, height, 0.5f);
 
 	// 需要先创建资源 之后会在Tick时候执行Compile把无用的释放掉
@@ -422,7 +422,7 @@ bool KRenderer::UpdateGlobal()
 			void* pWritePos = POINTER_OFFSET(pData, detail.offset);
 			if (detail.semantic == CS_GLOBAL_SUN_LIGHT_DIRECTION_AND_PBR_MAX_REFLECTION_LOD)
 			{
-				float maxLod = KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer()->GetMipmaps() - 1;
+				float maxLod = (float)(KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer()->GetMipmaps() - 1);
 				glm::vec4 sunLightDirAndMaxReflectionLod = glm::vec4(KRenderGlobal::CascadedShadowMap.GetCamera().GetForward(), maxLod);
 				assert(sizeof(sunLightDirAndMaxReflectionLod) == detail.size);
 				memcpy(pWritePos, &sunLightDirAndMaxReflectionLod, sizeof(sunLightDirAndMaxReflectionLod));

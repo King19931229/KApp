@@ -11,11 +11,12 @@ layout(location = 0) out vec4 RT0;
 layout(location = 1) out vec4 RT1;
 layout(location = 2) out vec4 RT2;
 layout(location = 3) out vec4 RT3;
+layout(location = 4) out vec4 RT4;
 
 /* Shader compiler will replace this into the texcode of the material */
 #include "material_generate_code.h"
 
-void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, float metal, float roughness)
+void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, vec3 emissive, float metal, float roughness, float ao)
 {
 	vec4 viewPos = camera.view * vec4(pos, 1.0);
 	float near = camera.proj[3][2] / camera.proj[2][2];
@@ -24,10 +25,11 @@ void EncodeGBuffer(vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, float met
 	RT0.xyz = normalize(normal);
 	RT0.w = depth;
 	RT1.xy = vec2(motion.x, motion.y);
-	RT1.zw = vec2(0.0);
 	RT2.xyz = baseColor;
+	RT2.w = ao;
 	RT3.x = metal;
 	RT3.y = roughness;
+	RT4.xyz = emissive;
 }
 
 void main()
@@ -48,7 +50,9 @@ void main()
 		parameters.normal,
 		parameters.motion,
 		parameters.baseColor,
+		parameters.emissive,
 		parameters.metal,
-		parameters.roughness
+		parameters.roughness,
+		parameters.ao
 		);
 }

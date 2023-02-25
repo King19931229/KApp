@@ -40,6 +40,7 @@ public:
 
 	virtual bool SetMousePosition(unsigned int x, unsigned int y);
 	virtual bool SetMouseDown(InputMouseButton button, bool down);
+	virtual bool SetMouseScroll(float x, float y);
 
 	virtual bool StartNewFrame();
 	virtual bool EndNewFrame();

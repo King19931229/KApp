@@ -4,7 +4,7 @@
 class KRenderImGui
 {
 public:
-	enum MenuItem
+	enum SettingMenuItem
 	{
 		CSM,
 		SSR,
@@ -15,12 +15,21 @@ public:
 		HIZ_OC,
 		HARDWARE_OC,
 		VOLUMETIRIC_FOG,
-		MENU_ITEM_COUNT
+		SETTING_MENU_ITEM_COUNT
 	};
-	static const char* MenuName[MENU_ITEM_COUNT];
+	static const char* SettingMenuName[SETTING_MENU_ITEM_COUNT];
+
+	enum DebugMenuItem
+	{
+		DEFERRED,
+		DEBUG_MENU_ITEM_COUNT
+	};
+	static const char* DebugMenuName[DEBUG_MENU_ITEM_COUNT];
+
 	static constexpr char* ConfigFile = "render_gui.json";
 protected:
-	bool m_MenuEnable[MENU_ITEM_COUNT];	
+	bool m_SettingMenuEnable[SETTING_MENU_ITEM_COUNT];
+	bool m_DebugMenuEnable[DEBUG_MENU_ITEM_COUNT];
 public:
 	KRenderImGui();
 	~KRenderImGui();

@@ -11,6 +11,8 @@ namespace KEnumString
 		{
 			ENUM(R8G8B8A8_UNORM);
 			ENUM(R8G8B8A8_SNORM);
+			ENUM(R4G4B4A4_UNORM);
+			ENUM(R5G5B5A1_UNORM);
 			ENUM(R8G8B8_UNORM);
 			ENUM(R8G8_UNORM);
 			ENUM(R8_UNORM);
@@ -59,6 +61,8 @@ namespace KEnumString
 #define CMP(enum_string) if (!strcmp(str, #enum_string)) return EF_##enum_string;
 		CMP(R8G8B8A8_UNORM);
 		CMP(R8G8B8A8_SNORM);
+		CMP(R4G4B4A4_UNORM);
+		CMP(R5G5B5A1_UNORM);
 		CMP(R8G8B8_UNORM);
 		CMP(R16_FLOAT);
 		CMP(R16G16_FLOAT);

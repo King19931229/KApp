@@ -61,8 +61,14 @@ bool KUIOverlayController::Init(IKUIOverlay* ui, IKRenderWindow* window)
 			}
 		};
 
+		m_ScrollCallback = [this](float xOffset, float yOffset)
+		{
+			m_UIOverlay->SetMouseScroll(xOffset, yOffset);
+		};
+
 #if defined(_WIN32)
 		m_Window->RegisterMouseCallback(&m_MouseCallback);
+		m_Window->RegisterScrollCallback(&m_ScrollCallback);
 #elif defined(__ANDROID__)
 		m_Window->RegisterTouchCallback(&m_TouchCallback);
 #endif

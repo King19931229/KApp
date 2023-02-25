@@ -12,7 +12,12 @@ layout(binding = BINDING_TEXTURE1) uniform sampler2D currentImage;
 layout(binding = BINDING_TEXTURE2) uniform sampler2D hitImage;
 layout(binding = BINDING_TEXTURE3) uniform sampler2D historySquaredImage;
 layout(binding = BINDING_TEXTURE4) uniform sampler2D histroyTsppImage;
+
 layout(binding = BINDING_TEXTURE5) uniform sampler2D gbuffer0;
+layout(binding = BINDING_TEXTURE6) uniform sampler2D gbuffer1;
+layout(binding = BINDING_TEXTURE7) uniform sampler2D gbuffer2;
+layout(binding = BINDING_TEXTURE8) uniform sampler2D gbuffer3;
+layout(binding = BINDING_TEXTURE9) uniform sampler2D gbuffer4;
 
 layout(location = 0) out vec4 outSSR;
 layout(location = 1) out vec4 outSquaredSSR;
@@ -92,7 +97,8 @@ void main()
 	vec4 historySquared = vec4(0);
 	float historyTssp = 0;
 
-	float roughness = 0;
+	vec4 gbuffer3Data = texture(gbuffer3, screenCoord);
+	float roughness = DecodeRoughness(gbuffer3Data);
 #if SSR_OVERRIDE_ROUGHNESS
 	roughness = SSR_ROUGHNESS;
 #endif

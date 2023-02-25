@@ -182,6 +182,7 @@ bool KRenderCore::InitController()
 			KRenderGlobal::RTAO.ReloadShader();
 			// KRenderGlobal::Voxilzer.ReloadShader();
 			KRenderGlobal::ClipmapVoxilzer.ReloadShader();
+			KRenderGlobal::DeferredRenderer.ReloadShader();
 			KRenderGlobal::Scene.GetTerrain()->Reload();
 			KRenderGlobal::HiZBuffer.ReloadShader();
 			KRenderGlobal::HiZOcclusion.ReloadShader();

@@ -5,7 +5,7 @@
 
 KRenderImGui GRenderImGui;
 
-const char* KRenderImGui::MenuName[] =
+const char* KRenderImGui::SettingMenuName[] =
 {
 	"CSM",
 	"SSR",
@@ -18,9 +18,15 @@ const char* KRenderImGui::MenuName[] =
 	"VolumetricFog"
 };
 
+const char* KRenderImGui::DebugMenuName[] =
+{
+	"DeferredRenderer",
+};
+
 KRenderImGui::KRenderImGui()
 {
-	memset(m_MenuEnable, 0, sizeof(m_MenuEnable));
+	memset(m_SettingMenuEnable, 0, sizeof(m_SettingMenuEnable));
+	memset(m_DebugMenuEnable, 0, sizeof(m_DebugMenuEnable));
 }
 
 KRenderImGui::~KRenderImGui()
@@ -35,12 +41,21 @@ void KRenderImGui::Open()
 	{
 		if (jsonDoc->ParseFromDataStream(fileStream))
 		{
-			for (uint32_t i = 0; i < MENU_ITEM_COUNT; ++i)
+			for (uint32_t i = 0; i < SETTING_MENU_ITEM_COUNT; ++i)
 			{
-				assert(MenuName[i]);
-				if (jsonDoc->HasMember(MenuName[i]))
+				assert(SettingMenuName[i]);
+				if (jsonDoc->HasMember(SettingMenuName[i]))
 				{
-					m_MenuEnable[i] = jsonDoc->GetMember(MenuName[i])->GetBool();
+					m_SettingMenuEnable[i] = jsonDoc->GetMember(SettingMenuName[i])->GetBool();
+				}
+			}
+
+			for (uint32_t i = 0; i < DEBUG_MENU_ITEM_COUNT; ++i)
+			{
+				assert(DebugMenuName[i]);
+				if (jsonDoc->HasMember(DebugMenuName[i]))
+				{
+					m_DebugMenuEnable[i] = jsonDoc->GetMember(DebugMenuName[i])->GetBool();
 				}
 			}
 		}
@@ -52,9 +67,13 @@ void KRenderImGui::Exit()
 {
 	IKJsonDocumentPtr jsonDoc = GetJsonDocument();
 	IKJsonValuePtr root = jsonDoc->GetRoot();
-	for (uint32_t i = 0; i < MENU_ITEM_COUNT; ++i)
+	for (uint32_t i = 0; i < SETTING_MENU_ITEM_COUNT; ++i)
 	{
-		root->AddMember(MenuName[i], jsonDoc->CreateBool(m_MenuEnable[i]));
+		root->AddMember(SettingMenuName[i], jsonDoc->CreateBool(m_SettingMenuEnable[i]));
+	}
+	for (uint32_t i = 0; i < DEBUG_MENU_ITEM_COUNT; ++i)
+	{
+		root->AddMember(DebugMenuName[i], jsonDoc->CreateBool(m_DebugMenuEnable[i]));
 	}
 	jsonDoc->SaveAsFile(ConfigFile);
 }
@@ -89,18 +108,53 @@ void KRenderImGui::Run()
 		{
 			if (ImGui::BeginMenu("Settings"))
 			{
-				for (uint32_t i = 0; i < MENU_ITEM_COUNT; ++i)
+				for (uint32_t i = 0; i < SETTING_MENU_ITEM_COUNT; ++i)
 				{
-					ImGui::MenuItem(MenuName[i], nullptr, &m_MenuEnable[i]);
+					ImGui::MenuItem(SettingMenuName[i], nullptr, &m_SettingMenuEnable[i]);
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Debug"))
+			{
+				for (uint32_t i = 0; i < DEBUG_MENU_ITEM_COUNT; ++i)
+				{
+					ImGui::MenuItem(DebugMenuName[i], nullptr, &m_DebugMenuEnable[i]);
 				}
 				ImGui::EndMenu();
 			}
 			ImGui::EndMainMenuBar();
 		}
 
-		if (m_MenuEnable[CSM])
+		if (m_DebugMenuEnable[DEFERRED])
 		{
-			ImGui::Begin(MenuName[CSM], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Begin(DebugMenuName[DEFERRED], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+			// https://github.com/ocornut/imgui/issues/1658
+			const char* currentOptionText = GDeferredRenderDebugDescription[KRenderGlobal::DeferredRenderer.GetDebugOption()].name;
+			if (ImGui::BeginCombo("Debug", currentOptionText))
+			{
+				for (int i = 0; i < DRD_COUNT; ++i)
+				{
+					bool isSelected = currentOptionText == GDeferredRenderDebugDescription[i].name;
+					if (ImGui::Selectable(GDeferredRenderDebugDescription[i].name, isSelected))
+					{
+						currentOptionText = GDeferredRenderDebugDescription[i].name;
+						KRenderGlobal::DeferredRenderer.SetDebugOption((DeferredRenderDebug)i);
+					}
+					if (isSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+
+			ImGui::End();
+		}
+
+		if (m_SettingMenuEnable[CSM])
+		{
+			ImGui::Begin(SettingMenuName[CSM], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
 			ImGui::SliderFloat("DepthBias Slope[0]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(0), 0.0f, 5.0f);
 			ImGui::SliderFloat("DepthBias Slope[1]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(1), 0.0f, 5.0f);
@@ -117,9 +171,9 @@ void KRenderImGui::Run()
 			ImGui::End();
 		}
 
-		if (m_MenuEnable[SSR])
+		if (m_SettingMenuEnable[SSR])
 		{
-			ImGui::Begin(MenuName[SSR], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Begin(SettingMenuName[SSR], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
 			ImGui::Checkbox("DebugDraw", &KRenderGlobal::ScreenSpaceReflection.GetDebugDrawEnable());
 			ImGui::SliderInt("RayReuse", &KRenderGlobal::ScreenSpaceReflection.GetRayReuseCount(), 1, 9);
@@ -128,9 +182,9 @@ void KRenderImGui::Run()
 			ImGui::End();
 		}
 
-		if (m_MenuEnable[DOF])
+		if (m_SettingMenuEnable[DOF])
 		{
-			ImGui::Begin(MenuName[DOF], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Begin(SettingMenuName[DOF], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
 			ImGui::Checkbox("DebugDraw", &KRenderGlobal::DepthOfField.GetDebugDrawEnable());
 			ImGui::SliderFloat("CocLimit", &KRenderGlobal::DepthOfField.GetCocLimit(), 0.001f, 1.0f);
@@ -143,9 +197,9 @@ void KRenderImGui::Run()
 			ImGui::End();
 		}
 
-		if (m_MenuEnable[RTAO])
+		if (m_SettingMenuEnable[RTAO])
 		{
-			ImGui::Begin(MenuName[RTAO], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Begin(SettingMenuName[RTAO], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
 			ImGui::Checkbox("Enable", &KRenderGlobal::RTAO.GetEnable());
 			ImGui::Checkbox("DebugDraw", &KRenderGlobal::RTAO.GetDebugDrawEnable());
@@ -157,9 +211,9 @@ void KRenderImGui::Run()
 			ImGui::End();
 		}
 
-		if (m_MenuEnable[SVO_GI])
+		if (m_SettingMenuEnable[SVO_GI])
 		{
-			ImGui::Begin(MenuName[SVO_GI], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Begin(SettingMenuName[SVO_GI], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
 			ImGui::Checkbox("Octree", &KRenderGlobal::Voxilzer.GetVoxelUseOctree());
 			ImGui::Checkbox("VoxelDraw", &KRenderGlobal::Voxilzer.GetVoxelDrawEnable());
@@ -170,9 +224,9 @@ void KRenderImGui::Run()
 			ImGui::End();
 		}
 		
-		if (m_MenuEnable[CLIPMAP_GI])
+		if (m_SettingMenuEnable[CLIPMAP_GI])
 		{
-			ImGui::Begin(MenuName[CLIPMAP_GI], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Begin(SettingMenuName[CLIPMAP_GI], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
 			ImGui::Checkbox("LightDraw", &KRenderGlobal::ClipmapVoxilzer.GetLightDebugDrawEnable());
 			ImGui::Checkbox("VoxelDebugUpdate", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDebugUpdate());
@@ -183,9 +237,9 @@ void KRenderImGui::Run()
 			ImGui::End();
 		}
 
-		if (m_MenuEnable[HIZ_OC])
+		if (m_SettingMenuEnable[HIZ_OC])
 		{
-			ImGui::Begin(MenuName[HIZ_OC], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Begin(SettingMenuName[HIZ_OC], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
 			ImGui::Checkbox("Enable", &KRenderGlobal::HiZOcclusion.GetEnable());
 			ImGui::Checkbox("DebugDraw", &KRenderGlobal::HiZOcclusion.GetDebugDrawEnable());
@@ -193,9 +247,9 @@ void KRenderImGui::Run()
 			ImGui::End();
 		}
 
-		if (m_MenuEnable[HARDWARE_OC])
+		if (m_SettingMenuEnable[HARDWARE_OC])
 		{
-			ImGui::Begin(MenuName[HARDWARE_OC], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Begin(SettingMenuName[HARDWARE_OC], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
 			ImGui::Checkbox("Enable", &KRenderGlobal::OcclusionBox.GetEnable());
 			ImGui::SliderFloat("DepthBiasConstant", &KRenderGlobal::OcclusionBox.GetDepthBiasConstant(), -5.0f, 5.0f);
@@ -205,9 +259,9 @@ void KRenderImGui::Run()
 			ImGui::End();
 		}
 
-		if (m_MenuEnable[VOLUMETIRIC_FOG])
+		if (m_SettingMenuEnable[VOLUMETIRIC_FOG])
 		{
-			ImGui::Begin(MenuName[VOLUMETIRIC_FOG], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Begin(SettingMenuName[VOLUMETIRIC_FOG], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
 			ImGui::SliderFloat("Start", &KRenderGlobal::VolumetricFog.GetStart(), 1.0f, 5000.0f);
 			ImGui::SliderFloat("Depth", &KRenderGlobal::VolumetricFog.GetDepth(), 1.0f, 5000.0f);

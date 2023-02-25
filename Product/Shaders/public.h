@@ -213,8 +213,9 @@ struct MaterialPixelParameters
 	vec3 normal;
 	vec2 motion;
 	vec3 baseColor;
+	vec3 emissive;
 	float metal;
 	float roughness;
+	float ao;
 };
-
 #endif

@@ -42,7 +42,81 @@ constexpr KDeferredRenderStageDescription GDeferredRenderStageDescription[DRS_ST
 	{DRS_STATE_FOREGROUND, PIPELINE_STAGE_UNKNOWN, PIPELINE_STAGE_UNKNOWN, "ForegroundPass"}
 };
 
-class KCamera;
+enum DeferredRenderDebug
+{
+	DRD_NONE,
+
+	DRD_ALBEDO,
+	DRD_METAL,
+	DRD_ROUGHNESS,
+	DRD_AO,
+	DRD_EMISSIVE,
+
+	DRD_IBL_DIFFUSE,
+	DRD_IBL_SPECULAR,
+	DRD_IBL,
+
+	DRD_DIRECTLIGHT_DIFFUSE,
+	DRD_DIRECTLIGHT_SPECULAR,
+	DRD_DIRECTLIGHT,
+
+	DRD_NOV,
+	DRD_NOL,
+	DRD_VOH,
+
+	DRD_NDF,
+	DRD_G,
+	DRD_F,
+
+	DRD_KS,
+	DRD_KD,
+
+	DRD_DIRECT,
+	DRD_INDIRECT,
+	DRD_SCATTERING,
+
+	DRD_COUNT
+};
+
+struct DeferredRenderDebugDescription
+{
+	DeferredRenderDebug debug;
+	const char* name;
+};
+
+constexpr DeferredRenderDebugDescription GDeferredRenderDebugDescription[DRD_COUNT] =
+{
+	{ DRD_NONE, "None" },
+
+	{ DRD_ALBEDO, "Albedo" },
+	{ DRD_METAL, "Metal" },
+	{ DRD_ROUGHNESS, "Roughness" },
+	{ DRD_AO, "AO" },
+	{ DRD_EMISSIVE, "Emissive" },
+
+	{ DRD_IBL_DIFFUSE, "IBL Diffuse"},
+	{ DRD_IBL_SPECULAR, "IBL Specular"},
+	{ DRD_IBL, "IBL"},
+
+	{ DRD_DIRECTLIGHT_DIFFUSE, "Direct Light Diffuse"},
+	{ DRD_DIRECTLIGHT_SPECULAR, "Direct Light Specular"},
+	{ DRD_DIRECTLIGHT, "Direct Light"},
+
+	{ DRD_NOV, "N Dot V"},
+	{ DRD_NOL, "N Dot L"},
+	{ DRD_VOH, "V Dot H"},
+
+	{ DRD_NDF, "Normal Distribution Function"},
+	{ DRD_G, "Geometric Function" },
+	{ DRD_F, "Fresnel Function" },
+
+	{ DRD_KS, "IBL Specular Ratio"},
+	{ DRD_KD, "IBL Diffuse Ratio"},
+
+	{ DRD_DIRECT, "Direct"},
+	{ DRD_INDIRECT, "Indirect"},
+	{ DRD_SCATTERING, "Scattering"}
+};
 
 class KDeferredRenderer
 {
@@ -56,7 +130,6 @@ protected:
 	RenderPassCallFuncList	m_RenderCallFuncs[DRS_STAGE_COUNT];
 	IKRenderPassPtr			m_EmptyAORenderPass;
 
-	IKRenderTargetPtr m_SceneTarget;
 	IKRenderTargetPtr m_FinalTarget;
 
 	IKPipelinePtr m_LightingPipeline;
@@ -67,7 +140,9 @@ protected:
 	KShaderRef m_DeferredLightingFS;
 	KShaderRef m_SceneColorDrawFS;
 
-	const KCamera* m_Camera;
+	DeferredRenderDebug m_DebugOption;
+
+	const class KCamera* m_Camera;
 
 	void BuildRenderCommand(IKCommandBufferPtr primaryBuffer, DeferredRenderStage renderStage, const std::vector<KRenderComponent*>& cullRes);
 
@@ -96,6 +171,10 @@ public:
 
 	void DrawFinalResult(IKRenderPassPtr renderPass, IKCommandBufferPtr buffer);
 
-	inline IKRenderTargetPtr GetSceneColor() { return m_SceneTarget; }
 	inline IKRenderTargetPtr GetFinal() { return m_FinalTarget; }
+
+	inline DeferredRenderDebug GetDebugOption() const { return m_DebugOption; }
+	inline void SetDebugOption(DeferredRenderDebug option) { m_DebugOption = option; }
+
+	void ReloadShader();
 };

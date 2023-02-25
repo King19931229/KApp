@@ -67,4 +67,6 @@ public:
 
 	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 	bool Execute(IKCommandBufferPtr primaryBuffer);
+
+	IKRenderTargetPtr GetFinalTarget() { return m_FinalTarget; }
 };

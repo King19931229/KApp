@@ -315,6 +315,15 @@ bool KUIOverlayBase::SetMouseDown(InputMouseButton button, bool down)
 	return true;
 }
 
+bool KUIOverlayBase::SetMouseScroll(float x, float y)
+{
+	ImGuiIO& io = ImGui::GetIO();
+	float speed = 0.4f;
+	io.MouseWheel += speed * y;
+	io.MouseWheelH += speed * x;
+	return true;
+}
+
 bool KUIOverlayBase::StartNewFrame()
 {
 	ImGui::NewFrame();

@@ -111,8 +111,8 @@ namespace KRenderUtil
 				std::vector<char> fsShadingBuffer;
 				fsShadingBuffer.resize(constant->size);
 
-				command.fragmentShadingUsage.binding = SHADER_BINDING_SHADING;
-				command.fragmentShadingUsage.range = constant->size;
+				command.shadingUsage.binding = SHADER_BINDING_SHADING;
+				command.shadingUsage.range = constant->size;
 
 				for (const KShaderInformation::Constant::ConstantMember& member : constant->members)
 				{
@@ -121,7 +121,7 @@ namespace KRenderUtil
 					memcpy(POINTER_OFFSET(fsShadingBuffer.data(), member.offset), value->GetData(), member.size);
 				}
 
-				KRenderGlobal::DynamicConstantBufferManager.Alloc(fsShadingBuffer.data(), command.fragmentShadingUsage);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(fsShadingBuffer.data(), command.shadingUsage);
 			}
 
 			const IKMaterialTextureBinding* textureBinding = material->GetTextureBinding().get();

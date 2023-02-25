@@ -26,6 +26,7 @@ struct IKUIOverlay
 
 	virtual bool SetMousePosition(unsigned int x, unsigned int y) = 0;
 	virtual bool SetMouseDown(InputMouseButton button, bool down) = 0;
+	virtual bool SetMouseScroll(float x, float y) = 0;
 
 	virtual bool StartNewFrame() = 0;
 	virtual bool EndNewFrame() = 0;

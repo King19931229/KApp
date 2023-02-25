@@ -11,6 +11,10 @@ layout(binding = BINDING_TEXTURE0) uniform sampler2D hitImage;
 layout(binding = BINDING_TEXTURE1) uniform sampler2D maskImage;
 layout(binding = BINDING_TEXTURE2) uniform sampler2D sceneColorImage;
 layout(binding = BINDING_TEXTURE3) uniform sampler2D gbuffer0;
+layout(binding = BINDING_TEXTURE4) uniform sampler2D gbuffer1;
+layout(binding = BINDING_TEXTURE5) uniform sampler2D gbuffer2;
+layout(binding = BINDING_TEXTURE6) uniform sampler2D gbuffer3;
+layout(binding = BINDING_TEXTURE7) uniform sampler2D gbuffer4;
 
 layout(location = 0) out vec4 outColor;
 
@@ -58,7 +62,8 @@ void main()
 
 	vec3 viewVS = normalize(-originVSPos);
 
-	float roughness = 0;
+	vec4 gbuffer3Data = texture(gbuffer3, screenCoord);
+	float roughness = DecodeRoughness(gbuffer3Data);
 #if SSR_OVERRIDE_ROUGHNESS
 	roughness = SSR_ROUGHNESS;
 #endif

@@ -9,6 +9,7 @@ protected:
 	IKRenderWindow* m_Window;
 
 	KMouseCallbackType m_MouseCallback;
+	KScrollCallbackType m_ScrollCallback;
 	KTouchCallbackType m_TouchCallback;
 
 	bool m_Enable;

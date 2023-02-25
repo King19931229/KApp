@@ -57,6 +57,14 @@ namespace KVulkanHelper
 		case EF_R8G8B8A8_SNORM:
 			vkFormat = VK_FORMAT_R8G8B8A8_SNORM;
 			return true;
+
+		case EF_R4G4B4A4_UNORM:
+			vkFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16;
+			return true;
+		case EF_R5G5B5A1_UNORM:
+			vkFormat = VK_FORMAT_R5G5B5A1_UNORM_PACK16;
+			return true;
+
 		case EF_R8G8B8_UNORM:
 			vkFormat = VK_FORMAT_R8G8B8_UNORM;
 			return true;

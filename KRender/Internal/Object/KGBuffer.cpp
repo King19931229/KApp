@@ -48,6 +48,7 @@ bool KGBuffer::UnInit()
 	{
 		SAFE_UNINIT(m_RenderTarget[i]);
 	}
+	SAFE_UNINIT(m_SceneTarget);
 	SAFE_UNINIT(m_DepthStencilTarget);
 	SAFE_UNINIT(m_AOTarget);
 	SAFE_UNINIT(m_GBufferSampler);
@@ -76,6 +77,9 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 
 		EnsureRenderTarget(m_AOTarget);
 		ASSERT_RESULT(m_AOTarget->InitFromColor(width, height, 1, 1, AOFormat));
+
+		EnsureRenderTarget(m_SceneTarget);
+		ASSERT_RESULT(m_SceneTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT));
 
 		return true;
 	}
