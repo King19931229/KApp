@@ -143,6 +143,10 @@ public:
 	{
 		return m_Ref.Get();
 	}
+	const Type& operator->() const
+	{
+		return m_Ref.Get();
+	}
 	Type& Get()
 	{
 		return m_Ref.Get();

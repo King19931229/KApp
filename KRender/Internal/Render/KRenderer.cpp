@@ -200,11 +200,6 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	device->CreateCommandBuffer(m_SecondaryBuffer);
 	m_SecondaryBuffer->Init(m_CommandPool, CBL_SECONDARY);
 
-	for (const char* stage : KRenderGlobal::ALL_STAGE_NAMES)
-	{
-		KRenderGlobal::Statistics.RegisterRenderStage(stage);
-	}
-
 	m_DebugCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 	{
 		if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
@@ -249,11 +244,6 @@ bool KRenderer::UnInit()
 
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STATE_FOREGROUND, &m_ForegroundCallFunc);
-
-	for (const char* stage : KRenderGlobal::ALL_STAGE_NAMES)
-	{
-		KRenderGlobal::Statistics.UnRegisterRenderStage(stage);
-	}
 
 	KRenderGlobal::DeferredRenderer.UnInit();
 
@@ -430,11 +420,12 @@ bool KRenderer::UpdateGlobal()
 		for (KConstantDefinition::ConstantSemanticDetail detail : details.semanticDetails)
 		{
 			void* pWritePos = POINTER_OFFSET(pData, detail.offset);
-			if (detail.semantic == CS_GLOBAL_SUN_LIGHT_DIRECTION)
+			if (detail.semantic == CS_GLOBAL_SUN_LIGHT_DIRECTION_AND_PBR_MAX_REFLECTION_LOD)
 			{
-				glm::vec4 sunLightDir = glm::vec4(KRenderGlobal::CascadedShadowMap.GetCamera().GetForward(), 0.0f);
-				assert(sizeof(sunLightDir) == detail.size);
-				memcpy(pWritePos, &sunLightDir, sizeof(sunLightDir));
+				float maxLod = KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer()->GetMipmaps() - 1;
+				glm::vec4 sunLightDirAndMaxReflectionLod = glm::vec4(KRenderGlobal::CascadedShadowMap.GetCamera().GetForward(), maxLod);
+				assert(sizeof(sunLightDirAndMaxReflectionLod) == detail.size);
+				memcpy(pWritePos, &sunLightDirAndMaxReflectionLod, sizeof(sunLightDirAndMaxReflectionLod));
 			}
 		}
 		globalBuffer->Write(pData);

@@ -87,7 +87,8 @@ class KCascadedShadowMap
 	friend class KCascadedShadowMapDebugPass;
 protected:
 	static constexpr ElementFormat RECEIVER_TARGET_FORMAT = EF_R8_UNORM;
-	static constexpr uint32_t SHADOW_MAP_MAX_CASCADED = 4;	
+	static constexpr uint32_t SHADOW_MAP_MAX_CASCADED = 4;
+	static constexpr char* RENDER_STAGE_NAME[2] = { "CSM_Static", "CSM_Dynamic" };
 	const KCamera* m_MainCamera;
 
 	// Shader
@@ -132,8 +133,7 @@ protected:
 	std::vector<Cascade> m_DynamicCascadeds;
 
 	glm::vec3 m_StaticCenter;
-
-	KRenderStageStatistics m_Statistics;
+	KRenderStageStatistics m_Statistics[2];
 
 	KCascadedShadowMapCasterPassPtr m_CasterPass;
 	KCascadedShadowMapReceiverPassPtr m_ReceiverPass;
@@ -200,7 +200,6 @@ public:
 	inline bool& GetFixTexel() { return m_FixTexel; }
 	inline bool& GetMinimizeShadowDraw() { return m_MinimizeShadowDraw; }
 
-	inline const KRenderStageStatistics& GetStatistics() const { return m_Statistics; }
 	inline KCascadedShadowMapCasterPassPtr GetCasterPass() { return m_CasterPass; }
 	inline KCascadedShadowMapReceiverPassPtr GetReceiverPass() { return m_ReceiverPass; }
 	inline IKRenderTargetPtr GetFinalMask() { return m_ReceiverPass ? m_ReceiverPass->GetCombineMask() : nullptr; }

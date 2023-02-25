@@ -198,7 +198,7 @@ bool KDepthOfField::Resize(uint32_t width, uint32_t height)
 	m_Blue->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
 
 	m_Final->UnInit();
-	m_Final->InitFromColor(m_InputWidth, m_InputHeight, 1, 1, EF_R8GB8BA8_UNORM);
+	m_Final->InitFromColor(m_InputWidth, m_InputHeight, 1, 1, EF_R8G8B8A8_UNORM);
 
 	m_CoCPass->UnInit();
 	m_CoCPass->SetColorAttachment(0, m_CoC->GetFrameBuffer());

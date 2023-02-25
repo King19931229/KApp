@@ -208,7 +208,7 @@ bool KEMaterialEditWindow::RefreshPreview()
 					}
 				}*/
 			}
-
+			/*
 			renderComponent->UnInit();
 			if (previewItem.asset)
 			{
@@ -218,7 +218,7 @@ bool KEMaterialEditWindow::RefreshPreview()
 			{
 				renderComponent->SetMeshPath(previewItem.path);
 			}
-
+			*/
 			/*
 			if (!m_MaterialPath.empty())
 			{

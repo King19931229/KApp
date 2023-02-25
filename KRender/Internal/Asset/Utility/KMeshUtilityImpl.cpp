@@ -1,13 +1,14 @@
 #include "KMeshUtilityImpl.h"
 #include "Internal/Asset/KSubMesh.h"
 #include "Internal/KVertexDefinition.h"
+#include "Internal/KRenderGlobal.h"
 #include <assert.h>
 
 namespace KMeshUtility
 {
-	bool CreateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUtilityInfoPtr& info)
+	bool CreateUtility(KMesh* pMesh, const KMeshUtilityInfoPtr& info)
 	{
-		KMeshUtilityImpl impl(device);
+		KMeshUtilityImpl impl(KRenderGlobal::RenderDevice);
 
 		auto type = info->GetType();
 
@@ -75,9 +76,10 @@ namespace KMeshUtility
 		return false;
 	}
 
-	bool UpdateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUtilityInfoPtr& info)
+	bool UpdateUtility(KMesh* pMesh, const KMeshUtilityInfoPtr& info)
 	{
-		KMeshUtilityImpl impl(device);
+		KMeshUtilityImpl impl(KRenderGlobal::RenderDevice);
+		KRenderGlobal::RenderDevice->Wait();
 
 		auto type = info->GetType();
 

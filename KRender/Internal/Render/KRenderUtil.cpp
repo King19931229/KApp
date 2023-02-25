@@ -17,8 +17,7 @@ namespace KRenderUtil
 			KTransformComponent* transform = nullptr;
 			if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
 			{
-				KMeshPtr mesh = render->GetMesh();
-				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 
 				for (size_t i = 0; i < materialSubMeshes.size(); ++i)
 				{
@@ -58,8 +57,7 @@ namespace KRenderUtil
 			KTransformComponent* transform = nullptr;
 			if (entity->GetComponent(CT_TRANSFORM, &transform))
 			{
-				KMeshPtr mesh = render->GetMesh();
-				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 
 				for (size_t i = 0; i < materialSubMeshes.size(); ++i)
 				{
@@ -110,15 +108,11 @@ namespace KRenderUtil
 
 			if (constant->size)
 			{
-				static std::vector<char> fsShadingBuffer;
+				std::vector<char> fsShadingBuffer;
+				fsShadingBuffer.resize(constant->size);
 
 				command.fragmentShadingUsage.binding = SHADER_BINDING_SHADING;
 				command.fragmentShadingUsage.range = constant->size;
-
-				if (constant->size > fsShadingBuffer.size())
-				{
-					fsShadingBuffer.resize(constant->size);
-				}
 
 				for (const KShaderInformation::Constant::ConstantMember& member : constant->members)
 				{

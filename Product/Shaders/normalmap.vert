@@ -40,7 +40,7 @@ void main()
 	outViewPos = camera.view * outWorldPos;
 	outTangentPos = vec4(TBN * outWorldPos.xyz, 1.0);
 	outTangentViewDir = normalize(vec4(TBN * cameraPos.xyz, 1.0) - outTangentPos);
-	outTangentLightDir = vec4(TBN * global.sunLightDir.xyz, 0.0);
+	outTangentLightDir = vec4(TBN * global.sunLightDirAndMaxPBRLod.xyz, 0.0);
 
 	gl_Position = camera.proj * outViewPos;
 }

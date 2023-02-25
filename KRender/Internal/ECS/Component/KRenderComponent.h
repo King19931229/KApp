@@ -6,25 +6,15 @@
 #include "Internal/Asset/KMaterial.h"
 #include "Internal/Asset/KMaterialSubMesh.h"
 
-enum RenderResourceType
-{
-	INTERNAL_MESH,
-	EXTERNAL_ASSET,
-	DEBUG_UTILITY,
-	UNKNOWN,
-};
-
 class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 {
 	RTTR_ENABLE(IKRenderComponent, KReflectionObjectBase)
 	RTTR_REGISTRATION_FRIEND
 protected:
 	KMeshRef m_Mesh;
-
-	RenderResourceType m_Type;
-
-	std::string m_ResourcePath;
-	std::string m_MaterialPath;
+	std::vector<KMaterialSubMeshPtr> m_MaterialSubMeshes;
+	std::vector<IKQueryPtr> m_OCQueries;
+	std::vector<IKQueryPtr> m_OCInstanceQueries;
 
 	KMeshUtilityInfoPtr m_DebugUtility;
 
@@ -32,19 +22,17 @@ protected:
 	bool m_UseMaterialTexture;
 	bool m_OcclusionVisible;
 
-	std::vector<IKQueryPtr> m_OCQueries;
-	std::vector<IKQueryPtr> m_OCInstanceQueries;
-
 	static constexpr const char* msType = "type";
-	static constexpr const char* msPath = "path";
-	static constexpr const char* msMaterialPath = "material";
+	static constexpr const char* msPath = "path"; 
+	static constexpr const char* msMaterial = "material";
 
-	static const char* ResourceTypeToString(RenderResourceType type);
-	static RenderResourceType StringToResourceType(const char* str);
+	static const char* MeshResourceTypeToString(MeshResourceType type);
+	static MeshResourceType StringToMeshResourceType(const char* str);
 
-	const std::string GetResourcePathString() const { return m_ResourcePath; }
-	const std::string GetMaterialPathString() const { return m_MaterialPath; }
-	const std::string GetTypeString() const { return std::string(ResourceTypeToString(m_Type)); }
+	std::string GetResourcePathString() const;
+	std::string GetTypeString() const;
+
+	void MeshPostInit();
 public:
 	KRenderComponent();
 	virtual ~KRenderComponent();
@@ -56,22 +44,21 @@ public:
 	bool Pick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 	bool CloestPick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 
-	bool SetMesh(KMeshRef mesh) /*override*/;
-	bool SetMeshPath(const char* path) override;
-	bool SetAssetPath(const char* path) override;	
 	bool GetPath(std::string& path) const override;
+	bool GetHostVisible(bool& hostVisible) const override;
 
-	bool SaveAsMesh(const char* path) const override;
-	bool SetHostVisible(bool hostVisible) override;
+	bool SaveAsMesh(const std::string& path) const override;
 
-	bool Init(bool async) override;
+	bool InitAsMesh(const std::string& mesh, bool hostVisible, bool async) override;
+	bool InitAsAsset(const std::string& asset, bool hostVisible, bool async) override;
 	bool UnInit() override;
 
 	inline KMeshPtr GetMesh() { return *m_Mesh; }
+	inline const std::vector<KMaterialSubMeshPtr>& GetMaterialSubMeshs() const { return m_MaterialSubMeshes; }
 
 	bool InitUtility(const KMeshUtilityInfoPtr& info);
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
-	bool IsUtility() const override { return m_Type == DEBUG_UTILITY; }
+	bool IsUtility() const override { return m_Mesh && m_Mesh->GetType() == MRT_DEBUG_UTILITY; }
 
 	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) override;
 

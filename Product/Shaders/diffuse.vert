@@ -39,7 +39,7 @@ void main()
 	outWorldPos = worldMatrix * vec4(position, 1.0);
 	outViewPos = camera.view * outWorldPos;
 	outViewNormal = camera.view * worldNormal;
-	outViewLightDir = camera.view * global.sunLightDir;
+	outViewLightDir = camera.view * vec4(global.sunLightDirAndMaxPBRLod, 0);
 
 	gl_Position = camera.proj * outViewPos;
 }

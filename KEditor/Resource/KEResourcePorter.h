@@ -11,7 +11,7 @@ protected:
 	float m_EntityDropDistance;
 
 	static const char* ms_SupportedMeshExts[];
-	static bool IsSupportedMesh(const char* ext);
+	static bool IsSupportedMeshAsset(const char* ext);
 
 	bool DropPosition(const KCamera* camera, const KAABBBox& localBound, glm::vec3& pos);
 	bool GetBaseName(const std::string& fullName, std::string& baseName);

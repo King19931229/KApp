@@ -55,17 +55,17 @@ bool KRenderCore::InitPostProcess()
 	auto pass = KRenderGlobal::PostProcessManager.CreatePass();
 	pass->CastPass()->SetShader("postprocess/screenquad.vert", "postprocess/postprocess.frag");
 	pass->CastPass()->SetScale(1.0f);
-	pass->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
+	pass->CastPass()->SetFormat(EF_R8G8B8A8_UNORM);
 
 	auto pass2 = KRenderGlobal::PostProcessManager.CreatePass();
 	pass2->CastPass()->SetShader("postprocess/screenquad.vert", "postprocess/postprocess2.frag");
 	pass2->CastPass()->SetScale(1.0f);
-	pass2->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
+	pass2->CastPass()->SetFormat(EF_R8G8B8A8_UNORM);
 
 	auto pass3 = KRenderGlobal::PostProcessManager.CreatePass();
 	pass3->CastPass()->SetShader("postprocess/screenquad.vert", "postprocess/postprocess3.frag");
 	pass3->CastPass()->SetScale(1.0f);
-	pass3->CastPass()->SetFormat(EF_R8GB8BA8_UNORM);
+	pass3->CastPass()->SetFormat(EF_R8G8B8A8_UNORM);
 
 	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass, 0);
 	KRenderGlobal::PostProcessManager.CreateConnection(startPoint, 0, pass2, 0);
@@ -231,7 +231,7 @@ bool KRenderCore::InitRenderResource()
 			KRenderComponent* component = nullptr;
 			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component))
 			{
-				component->Init(true);
+
 			}
 		});
 	}

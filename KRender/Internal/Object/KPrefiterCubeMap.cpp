@@ -396,20 +396,24 @@ bool KPrefilerCubeMap::Compute()
 
 		m_CommandBuffer->EndRenderPass();
 		m_CommandBuffer->EndDebugMarker();
-		m_CommandBuffer->End();
 
+		m_CommandBuffer->Translate(m_IntegrateBRDFTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		m_CommandBuffer->End();
 		m_CommandBuffer->Flush();
 	}
 
 	{
 		m_CommandBuffer->BeginPrimary();
 
-		m_SrcCubeMap->GetFrameBuffer()->Translate(m_CommandBuffer.get(), IMAGE_LAYOUT_GENERAL);
+		m_CommandBuffer->Translate(m_SrcCubeMap->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+
 		m_SHProductPipeline->Execute(m_CommandBuffer,
 			(uint32_t)(m_SrcCubeMap->GetWidth() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
 			(uint32_t)(m_SrcCubeMap->GetHeight() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
 			6);
-		m_SrcCubeMap->GetFrameBuffer()->Translate(m_CommandBuffer.get(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		m_CommandBuffer->Translate(m_SrcCubeMap->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		m_CommandBuffer->End();
 		m_CommandBuffer->Flush();
@@ -439,12 +443,14 @@ bool KPrefilerCubeMap::Compute()
 	{
 		m_CommandBuffer->BeginPrimary();
 
-		m_SHConstructCubeMap->GetFrameBuffer()->Translate(m_CommandBuffer.get(), IMAGE_LAYOUT_GENERAL);
+		m_CommandBuffer->Translate(m_SHConstructCubeMap->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+
 		m_SHConstructPipeline->Execute(m_CommandBuffer,
 			(uint32_t)(m_SHConstructCubeMap->GetWidth() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
 			(uint32_t)(m_SHConstructCubeMap->GetHeight() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
 			6);
-		m_SHConstructCubeMap->GetFrameBuffer()->Translate(m_CommandBuffer.get(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		m_CommandBuffer->Translate(m_SHConstructCubeMap->GetFrameBuffer(), IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 		m_CommandBuffer->End();
 		m_CommandBuffer->Flush();

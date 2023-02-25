@@ -51,13 +51,13 @@ namespace KVulkanHelper
 	{
 		switch (elementFormat)
 		{
-		case EF_R8GB8BA8_UNORM:
+		case EF_R8G8B8A8_UNORM:
 			vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
 			return true;
 		case EF_R8G8B8A8_SNORM:
 			vkFormat = VK_FORMAT_R8G8B8A8_SNORM;
 			return true;
-		case EF_R8GB8B8_UNORM:
+		case EF_R8G8B8_UNORM:
 			vkFormat = VK_FORMAT_R8G8B8_UNORM;
 			return true;
 		case EF_R8G8_UNORM:

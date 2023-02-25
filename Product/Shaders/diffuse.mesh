@@ -167,7 +167,7 @@ vec4 procVertex(const uint vert, uint vidx)
 	OUT[vert].viewPos = camera.view * OUT[vert].worldPos;
 
 	OUT[vert].viewNormal = camera.view * worldNormal;
-	OUT[vert].viewLightDir = camera.view * global.sunLightDir;
+	OUT[vert].viewLightDir = camera.view * vec4(global.sunLightDirAndMaxPBRLod.xyz, 0.0);
 
 	gl_MeshVerticesNV[vert].gl_Position = camera.proj * OUT[vert].viewPos;
 #if USE_CLIPPING

@@ -7,8 +7,16 @@ class KMaterialParameter : public IKMaterialParameter
 protected:
 	struct Key
 	{
+		std::string name;
 		size_t hash;
 		size_t index;
+
+		Key(const std::string& inName, size_t inHash, size_t inIndex)
+		{
+			name = inName;
+			hash = inHash;
+			index = inIndex;
+		}
 	};
 
 	typedef IKMaterialValuePtr Value;

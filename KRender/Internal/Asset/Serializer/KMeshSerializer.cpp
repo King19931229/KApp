@@ -2,10 +2,11 @@
 #include "KMeshSerializerV0.h"
 #include "KBase/Interface/IKDataStream.h"
 #include "KBase/Interface/IKFileSystem.h"
+#include "Internal/KRenderGlobal.h"
 
 namespace KMeshSerializer
 {
-	bool LoadFromFile(IKRenderDevice* device, KMesh* pMesh, const char* path, bool hostVisible)
+	bool LoadFromFile(KMesh* pMesh, const char* path, bool hostVisible)
 	{
 		IKDataStreamPtr pData = nullptr;
 		IKFileSystemPtr system = KFileSystem::Manager->GetFileSystem(FSD_RESOURCE);
@@ -18,7 +19,7 @@ namespace KMeshSerializer
 			}
 		}
 		// no need to judge version now
-		KMeshSerializerV0 reader(device);
+		KMeshSerializerV0 reader(KRenderGlobal::RenderDevice);
 		bool bRet = reader.LoadFromStream(pMesh, path, pData, hostVisible);
 		pData->Close();
 		return bRet;

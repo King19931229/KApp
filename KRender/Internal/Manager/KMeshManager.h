@@ -1,19 +1,29 @@
 #pragma once
 #include "Interface/IKRenderDevice.h"
 #include "Internal/Asset/KMesh.h"
-#include <unordered_map>
-#include <unordered_set>
+#include <map>
 
 class KMeshManager
 {
 protected:
-	typedef std::unordered_map<std::string, KMeshRef> MeshMap;
+	struct MeshInfo
+	{
+		std::string path;
+		bool hostVisible = false;
+
+		bool operator<(const MeshInfo& rhs) const
+		{
+			if (path != rhs.path)
+				return path < rhs.path;
+			return hostVisible < rhs.hostVisible;
+		}
+	};
+	typedef std::map<MeshInfo, KMeshRef> MeshMap;
 
 	MeshMap m_Meshes;
 	IKRenderDevice* m_Device;
 
 	bool AcquireImpl(const char* path, bool fromAsset, bool hostVisible, KMeshRef& ref);
-	bool Release(KMeshPtr& ref);
 public:
 	KMeshManager();
 	~KMeshManager();

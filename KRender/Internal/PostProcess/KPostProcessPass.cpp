@@ -13,7 +13,7 @@ KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInF
 	m_Scale(1),
 	m_MsaaCount(1),
 	m_FrameInFlight(frameInFlight),
-	m_Format(EF_R8GB8BA8_UNORM),
+	m_Format(EF_R8G8B8A8_UNORM),
 	m_Stage(stage),
 	m_bInit(false)
 {
@@ -31,7 +31,7 @@ KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInF
 	m_Scale(1),
 	m_MsaaCount(1),
 	m_FrameInFlight(frameInFlight),
-	m_Format(EF_R8GB8BA8_UNORM),
+	m_Format(EF_R8G8B8A8_UNORM),
 	m_Stage(stage),
 	m_bInit(false),
 	m_ID(id)

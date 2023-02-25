@@ -38,8 +38,7 @@ void InitSponza(IKEnginePtr engine)
 				IKComponentBase* component = nullptr;
 				if (entity->RegisterComponent(CT_RENDER, &component))
 				{
-					((IKRenderComponent*)component)->SetAssetPath("Models/OBJ/spider.obj");
-					((IKRenderComponent*)component)->Init(true);
+					((IKRenderComponent*)component)->InitAsAsset("Models/OBJ/spider.obj", true, true);
 				}
 
 				if (entity->RegisterComponent(CT_TRANSFORM, &component))
@@ -128,7 +127,7 @@ int main()
 		/*
 		IKRayTracePipelinePtr rayPipeline;
 		device->CreateRayTracePipeline(rayPipeline);
-		rayPipeline->SetStorageImage(EF_R8GB8BA8_UNORM);
+		rayPipeline->SetStorageImage(EF_R8G8B8A8_UNORM);
 		rayPipeline->SetShaderTable(ST_RAYGEN, "raytrace/raygen.rgen");
 		rayPipeline->SetShaderTable(ST_CLOSEST_HIT, "raytrace/raytrace.rchit");
 		rayPipeline->SetShaderTable(ST_MISS, "raytrace/raytrace.rmiss");

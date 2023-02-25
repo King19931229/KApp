@@ -38,7 +38,7 @@ void main()
 
 	vec3 worldPos = IDToWorldWithJitter(coord, object.nearFarGridZ.x, object.nearFarGridZ.y, jitter, object.proj, object.invViewProj, grid_size.x, grid_size.y, grid_size.z);
 	vec3 Wo = normalize(object.cameraPos.xyz - worldPos);
-	vec3 Wi = -global.sunLightDir.xyz;
+	vec3 Wi = -global.sunLightDirAndMaxPBRLod.xyz;
 
 	float aniso = object.anisotropyDensityScatteringAbsorption.x;
 	float density = object.anisotropyDensityScatteringAbsorption.y;

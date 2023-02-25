@@ -1,0 +1,4 @@
+#define PBR_MATERIAL_SPECULAR_GLOSINESS 0
+#define PBR_MATERIAL_METAL_ROUGHNESS 1
+#define PBR_MATERIAL_MASK 0
+#include "pbr_material.glsl"

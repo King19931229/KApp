@@ -201,7 +201,7 @@ uniform VoxelClipmapInfo
 layout(binding = BINDING_GLOBAL)
 uniform GlobalInfo
 {
-	vec4 sunLightDir;
+	vec4 sunLightDirAndMaxPBRLod;
 } global;
 
 const float PI = 3.14159265f;
@@ -213,7 +213,6 @@ struct MaterialPixelParameters
 	vec3 normal;
 	vec2 motion;
 	vec3 baseColor;
-	vec3 specularColor;
 	float metal;
 	float roughness;
 };

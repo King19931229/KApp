@@ -233,7 +233,7 @@ vec4 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo)
 		sunLight.diffuse = vec3(1.0f);
 		sunLight.ambient = vec3(0.001f);
 		sunLight.specular = vec3(0.0f);
-		sunLight.direction = -global.sunLightDir.xyz;
+		sunLight.direction = -global.sunLightDirAndMaxPBRLod.xyz;
 		sunLight.shadowingMethod = 2;
 		directLighting = CalculateDirectional(sunLight, normal, position, albedo);
 		++count;

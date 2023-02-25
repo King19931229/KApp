@@ -121,8 +121,7 @@ bool KShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 				KRenderComponent* render = nullptr;
 				if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform) && entity->GetComponent(CT_RENDER, (IKComponentBase**)&render))
 				{
-					KMeshPtr mesh = component->GetMesh();
-					const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+					const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 					for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 					{
 						KRenderCommand command;

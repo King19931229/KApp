@@ -118,7 +118,7 @@ void KVolumetricFog::Resize(uint32_t width, uint32_t height)
 	m_Height = height;
 
 	m_ScatteringTarget->UnInit();
-	ASSERT_RESULT(m_ScatteringTarget->InitFromColor(width, height, 1, 1, EF_R8GB8BA8_UNORM));
+	ASSERT_RESULT(m_ScatteringTarget->InitFromColor(width, height, 1, 1, EF_R8G8B8A8_UNORM));
 
 	m_ScatteringPass->UnInit();
 	m_ScatteringPass->SetColorAttachment(0, m_ScatteringTarget->GetFrameBuffer());

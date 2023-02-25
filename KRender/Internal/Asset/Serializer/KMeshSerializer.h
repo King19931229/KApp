@@ -14,6 +14,6 @@ enum MeshSerializerVersion : uint32_t
 
 namespace KMeshSerializer
 {
-	bool LoadFromFile(IKRenderDevice* device, KMesh* pMesh, const char* path, bool hostVisible);
+	bool LoadFromFile(KMesh* pMesh, const char* path, bool hostVisible);
 	bool SaveAsFile(const KMesh* pMesh, const char* path, MeshSerializerVersion version);
 }

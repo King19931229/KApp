@@ -81,6 +81,6 @@ public:
 
 namespace KMeshUtility
 {
-	bool CreateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUtilityInfoPtr& info);
-	bool UpdateUtility(IKRenderDevice* device, KMesh* pMesh, const KMeshUtilityInfoPtr& infot);
+	bool CreateUtility(KMesh* pMesh, const KMeshUtilityInfoPtr& info);
+	bool UpdateUtility(KMesh* pMesh, const KMeshUtilityInfoPtr& info);
 }

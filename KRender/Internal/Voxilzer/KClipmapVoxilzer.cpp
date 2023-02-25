@@ -198,10 +198,10 @@ void KClipmapVoxilzer::Resize(uint32_t width, uint32_t height)
 	m_Height = std::max(uint32_t(height * m_ScreenRatio), 1U);
 
 	m_LightPassTarget->UnInit();
-	m_LightPassTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8GB8BA8_UNORM);
+	m_LightPassTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8G8B8A8_UNORM);
 
 	m_LightComposeTarget->UnInit();
-	m_LightComposeTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8GB8BA8_UNORM);
+	m_LightComposeTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8G8B8A8_UNORM);
 
 	m_LightPassRenderPass->UnInit();
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
@@ -641,8 +641,7 @@ void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 		std::vector<KRenderCommand> commands;
 		for (KRenderComponent* render : cullRes)
 		{
-			KMeshPtr mesh = render->GetMesh();
-			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 			{
 				KRenderCommand command;
@@ -952,12 +951,12 @@ void KClipmapVoxilzer::ReloadShader()
 
 void KClipmapVoxilzer::SetupVoxelBuffer()
 {
-	m_VoxelAlbedo->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8GB8BA8_UNORM);
-	m_VoxelNormal->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8GB8BA8_UNORM);
-	m_VoxelEmissive->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8GB8BA8_UNORM);
+	m_VoxelAlbedo->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelNormal->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelEmissive->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8G8B8A8_UNORM);
 	m_StaticFlag->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8_UNORM);
-	m_VoxelRadiance->InitFromStorage3D(m_ClipmapVolumeDimensionX6Face, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8GB8BA8_UNORM);
-	m_VoxelVisibility->InitFromStorage3D(m_ClipmapVolumeDimensionX6Face, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8GB8BA8_UNORM);
+	m_VoxelRadiance->InitFromStorage3D(m_ClipmapVolumeDimensionX6Face, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelVisibility->InitFromStorage3D(m_ClipmapVolumeDimensionX6Face, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8G8B8A8_UNORM);
 }
 
 void KClipmapVoxilzer::SetupVoxelPipeline()

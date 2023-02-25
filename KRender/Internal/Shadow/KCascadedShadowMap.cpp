@@ -112,6 +112,7 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 
 	if (updateStatic)
 	{
+		m_Master.m_Statistics[1].Reset();
 		for (size_t i = 0; i < m_Master.m_StaticCascadeds.size(); ++i)
 		{
 			IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_StaticTargetIDs[i]);
@@ -126,11 +127,13 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 
 			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
+		KRenderGlobal::Statistics.UpdateRenderStageStatistics(m_Master.RENDER_STAGE_NAME[0], m_Master.m_Statistics[1]);
 		updateStatic = false;
 	}
 
 	// Dynamic object is updated every frame
 	{
+		m_Master.m_Statistics[0].Reset();
 		for (size_t i = 0; i < m_Master.m_DynamicCascadeds.size(); ++i)
 		{
 			IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_DynamicTargetIDs[i]);
@@ -145,6 +148,7 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 
 			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
+		KRenderGlobal::Statistics.UpdateRenderStageStatistics(m_Master.RENDER_STAGE_NAME[0], m_Master.m_Statistics[0]);
 	}
 
 	return true;
@@ -869,6 +873,9 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_DynamicReceiverPass));
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_CombineReceiverPass));
 
+		KRenderGlobal::Statistics.RegisterRenderStage(RENDER_STAGE_NAME[0]);
+		KRenderGlobal::Statistics.RegisterRenderStage(RENDER_STAGE_NAME[1]);
+
 		return true;
 	}
 	return false;
@@ -912,6 +919,9 @@ bool KCascadedShadowMap::UnInit()
 	SAFE_UNINIT(m_ReceiverPass);
 
 	m_MainCamera = nullptr;
+
+	KRenderGlobal::Statistics.UnRegisterRenderStage(RENDER_STAGE_NAME[0]);
+	KRenderGlobal::Statistics.UnRegisterRenderStage(RENDER_STAGE_NAME[1]);
 
 	return true;
 }
@@ -962,10 +972,12 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex,
 
 			if (command.indexDraw)
 			{
+				statistics.primtives += command.indexData->indexCount;
 				statistics.faces += command.indexData->indexCount / 3;
 			}
 			else
 			{
+				statistics.primtives += command.vertexData->vertexCount;
 				statistics.faces += command.vertexData->vertexCount / 3;
 			}
 
@@ -1002,8 +1014,6 @@ void KCascadedShadowMap::FilterRenderComponent(std::vector<KRenderComponent*>& i
 
 bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic)
 {
-	m_Statistics.Reset();
-
 	Cascade* cascadeds = isStatic ? m_StaticCascadeds.data() : m_DynamicCascadeds.data();
 	size_t numCascaded = isStatic ? m_StaticCascadeds.size() : m_DynamicCascadeds.size();
 
@@ -1105,7 +1115,7 @@ bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTarg
 			PopulateRenderCommand(cascadedIndex,
 				shadowMapTarget, renderPass,
 				isStatic,
-				litCullRes, commandList, m_Statistics);
+				litCullRes, commandList, m_Statistics[isStatic]);
 
 			for (KRenderCommand& command : commandList)
 			{
@@ -1118,8 +1128,6 @@ bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTarg
 		}
 		primaryBuffer->EndRenderPass();
 		primaryBuffer->EndDebugMarker();
-
-		KRenderGlobal::Statistics.UpdateRenderStageStatistics(KRenderGlobal::ALL_STAGE_NAMES[RENDER_STAGE_CSM], m_Statistics);
 
 		return true;
 	}

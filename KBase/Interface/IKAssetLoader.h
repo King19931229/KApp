@@ -102,6 +102,12 @@ struct KAssetImportResult
 		bool metalWorkFlow;
 		bool doubleSided;
 
+		struct Extension
+		{
+			glm::vec4 diffuseFactor;
+			glm::vec4 specularFactor;
+		} extension;
+
 		Material()
 		{
 			alphaMode = MAM_OPAQUE;
@@ -113,6 +119,8 @@ struct KAssetImportResult
 			emissiveFactor = glm::vec4(1.0f);
 			metalWorkFlow = false;
 			doubleSided = false;
+			extension.diffuseFactor = glm::vec4(1.0f);
+			extension.specularFactor = glm::vec4(0.0f);
 		}
 	};
 

@@ -100,7 +100,7 @@ void main()
 		{
 			vec4 vertex = gl_in[0].gl_Position + cubeVertices[i];
 			vec3 worldPos = VoxelToWorld(vertex.xyz, voxelSize);
-			// worldPos -= bias * global.sunLightDir.xyz * voxelSize;
+			// worldPos -= bias * global.sunLightDirAndMaxPBRLod.xyz * voxelSize;
 			worldPos += bias * normal * voxelSize;
 			projectedVertices[i] = camera.viewProj * vec4(worldPos, 1.0);
 		}

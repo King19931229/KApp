@@ -55,6 +55,8 @@ public:
 	virtual bool RegisterRenderStage(const char* stage);
 	virtual bool UnRegisterRenderStage(const char* stage);
 
+	virtual bool ClearAllRenderStages();
+
 	virtual bool UpdateRenderStageStatistics(const char* stage, const KRenderStageStatistics& statistics);
 	virtual void Update();
 

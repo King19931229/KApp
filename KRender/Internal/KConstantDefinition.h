@@ -95,7 +95,7 @@ namespace KConstantDefinition
 
 	struct GLOBAL
 	{
-		glm::vec4 SUN_LIGHT_DIR;
+		glm::vec4 SUN_LIGHT_DIRECTION_AND_PBR_MAX_REFLECTION_LOD;
 	};
 
 	struct ConstantSemanticDetail

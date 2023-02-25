@@ -9,10 +9,10 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 	switch (imageForamt)
 	{
 	case IF_R8G8B8A8:
-		elementFormat = EF_R8GB8BA8_UNORM;
+		elementFormat = EF_R8G8B8A8_UNORM;
 		return true;
 	case IF_R8G8B8:
-		elementFormat = EF_R8GB8B8_UNORM;
+		elementFormat = EF_R8G8B8_UNORM;
 		return true;
 	case IF_R8G8:
 		elementFormat = EF_R8G8_UNORM;

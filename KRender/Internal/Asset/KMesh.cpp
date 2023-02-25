@@ -9,6 +9,8 @@
 #include "Internal/KRenderGlobal.h"
 
 KMesh::KMesh()
+	: m_Type(MRT_UNKNOWN)
+	, m_HostVisible(false)
 {
 }
 
@@ -20,35 +22,25 @@ KMesh::~KMesh()
 	ASSERT_RESULT(m_TriangleMesh.triangles.empty());
 }
 
-bool KMesh::SaveAsFile(const char* szPath) const
+bool KMesh::SaveAsFile(const std::string& path) const
 {
-	assert(szPath);
-	if(!szPath)
-	{
-		return false;
-	}
-	if(KMeshSerializer::SaveAsFile(this, szPath, MSV_VERSION_NEWEST))
+	if(KMeshSerializer::SaveAsFile(this, path.c_str(), MSV_VERSION_NEWEST))
 	{
 		return true;
 	}
 	return false;
 }
 
-bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, bool hostVisible)
+bool KMesh::InitFromFile(const std::string& path, bool hostVisible)
 {
-	assert(szPath && device);
-	if(!szPath || !device)
-	{
-		return false;
-	}
-
 	UnInit();
 
-	if (KMeshSerializer::LoadFromFile(device, this, szPath, hostVisible))
+	if (KMeshSerializer::LoadFromFile(this, path.c_str(), hostVisible))
 	{
-		m_Path = szPath;
+		m_Type = MRT_INTERNAL_MESH;
+		m_Path = path;
+		m_HostVisible = hostVisible;
 		UpdateTriangleMesh();
-		BuildMaterialSubMesh();
 		return true;
 	}
 	
@@ -57,19 +49,17 @@ bool KMesh::InitFromFile(const char* szPath, IKRenderDevice* device, bool hostVi
 
 bool KMesh::UnInit()
 {
-	for (KMaterialSubMeshPtr& materialSubMesh : m_MaterialSubMeshes)
-	{
-		materialSubMesh->UnInit();
-	}
-	m_MaterialSubMeshes.clear();
 	m_VertexData.Destroy();
 	for(KSubMeshPtr& subMesh : m_SubMeshes)
 	{
 		subMesh->UnInit();
 	}
 	m_SubMeshes.clear();
+	m_SubMaterials.clear();
 	m_Path.clear();
 	m_TriangleMesh.Destroy();
+	m_Type = MRT_UNKNOWN;
+	m_HostVisible = false;
 	return true;
 }
 
@@ -173,28 +163,6 @@ void KMesh::UpdateTriangleMesh()
 	}
 }
 
-void KMesh::BuildMaterialSubMesh()
-{
-	m_MaterialSubMeshes.reserve(m_SubMeshes.size());
-	for (size_t i = 0; i < m_SubMeshes.size(); ++i)
-	{
-		KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh());
-		m_MaterialSubMeshes.push_back(materialSubMesh);
-		materialSubMesh->Init(m_SubMeshes[i], m_SubMaterials[i]);
-	}
-}
-
-void KMesh::BuildMaterialSubMeshUtility()
-{
-	m_MaterialSubMeshes.reserve(m_SubMeshes.size());
-	for (size_t i = 0; i < m_SubMeshes.size(); ++i)
-	{
-		KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh());
-		materialSubMesh->InitDebug(m_SubMeshes[i], m_SubMeshes[i]->GetDebugPrimitive());
-		m_MaterialSubMeshes.push_back(materialSubMesh);
-	}
-}
-
 bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group)
 {
 	group.clear();
@@ -222,17 +190,11 @@ bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOptio
 	}
 }
 
-bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostVisible)
+bool KMesh::InitFromAsset(const std::string& path, bool hostVisible)
 {
-	assert(szPath);
-	assert(device);
-	if(!szPath || !device)
-	{
-		return false;
-	}
 	UnInit();
 
-	IKAssetLoaderPtr loader = KAssetLoader::GetLoader(szPath);
+	IKAssetLoaderPtr loader = KAssetLoader::GetLoader(path.c_str());
 	if(loader)
 	{
 		KAssetImportOption option;
@@ -249,7 +211,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 			option.components.push_back(std::move(group));
 		}
 
-		if(!loader->Import(szPath, option, result))
+		if(!loader->Import(path.c_str(), option, result))
 		{
 			return false;
 		}
@@ -269,7 +231,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 			IKVertexBufferPtr& buffer = m_VertexData.vertexBuffers[i];
 			const KAssetImportResult::VertexDataBuffer dataSource = result.verticesDatas[i];
 
-			ASSERT_RESULT(device->CreateVertexBuffer(buffer));
+			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateVertexBuffer(buffer));
 
 			KVertexDefinition::VertexDetail detail = KVertexDefinition::GetVertexDetail(format);
 
@@ -336,7 +298,7 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 
 			if (indexData.indexCount > 0)
 			{
-				ASSERT_RESULT(device->CreateIndexBuffer(indexData.indexBuffer));
+				ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateIndexBuffer(indexData.indexBuffer));
 				ASSERT_RESULT(indexData.indexBuffer->InitMemory(
 					indexType,
 					subPart.indexCount,
@@ -348,44 +310,35 @@ bool KMesh::InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostV
 			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material));
 			indexData.Reset();
 		}
-		m_Path = szPath;
+
+		m_Path = path;
+		m_Type = MRT_EXTERNAL_ASSET;
+		m_HostVisible = hostVisible;
 
 		UpdateTriangleMesh();
-		BuildMaterialSubMesh();
 
 		return true;
 	}
 	return false;
 }
 
-bool KMesh::InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device)
+bool KMesh::InitUtility(const KMeshUtilityInfoPtr& info)
 {
-	assert(device);
-	if (!device)
-	{
-		return false;
-	}
 	UnInit();
 
-	if (KMeshUtility::CreateUtility(device, this, info))
+	if (KMeshUtility::CreateUtility(this, info))
 	{
+		m_Type = MRT_DEBUG_UTILITY;
 		UpdateTriangleMesh();
-		BuildMaterialSubMeshUtility();
 		return true;
 	}
 
 	return false;
 }
 
-bool KMesh::UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device)
+bool KMesh::UpdateUtility(const KMeshUtilityInfoPtr& info)
 {
-	assert(device);
-	if (!device)
-	{
-		return false;
-	}
-
-	if (KMeshUtility::UpdateUtility(device, this, info))
+	if (KMeshUtility::UpdateUtility(this, info))
 	{
 		UpdateTriangleMesh();
 		return true;

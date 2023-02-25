@@ -10,6 +10,14 @@
 #include "KTriangleMesh.h"
 #include "Utility/KMeshUtilityInfo.h"
 
+enum MeshResourceType
+{
+	MRT_INTERNAL_MESH,
+	MRT_EXTERNAL_ASSET,
+	MRT_DEBUG_UTILITY,
+	MRT_UNKNOWN,
+};
+
 static_assert(MTS_COUNT <= SHADER_BINDING_MATERIAL_COUNT, "Semantic count out of bound");
 class KMesh
 {
@@ -20,31 +28,31 @@ protected:
 	KVertexData m_VertexData;
 	std::vector<KSubMeshPtr> m_SubMeshes;
 	std::vector<KMaterialRef> m_SubMaterials;
-	std::vector<KMaterialSubMeshPtr> m_MaterialSubMeshes;
 	KTriangleMesh m_TriangleMesh;
 	std::string m_Path;
+	MeshResourceType m_Type;
+	bool m_HostVisible;
 
 	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group);
 	void UpdateTriangleMesh();
-	void BuildMaterialSubMesh();
-	void BuildMaterialSubMeshUtility();
 public:
 	KMesh();
 	~KMesh();
 
+	inline MeshResourceType GetType() const { return m_Type; }
 	inline const std::string& GetPath() const { return m_Path; }
+	inline bool GetHostVisible () const{ return m_HostVisible; }
 	inline const KAABBBox& GetLocalBound() const { return m_VertexData.bound; }
 	inline const KTriangleMesh& GetTriangleMesh() const { return m_TriangleMesh; }
 	inline const std::vector<KSubMeshPtr>& GetSubMeshes() const { return m_SubMeshes; }
 	inline const std::vector<KMaterialRef>& GetSubMaterials() const { return m_SubMaterials; }
-	inline const std::vector<KMaterialSubMeshPtr>& GetMaterialSubMeshs() const { return m_MaterialSubMeshes; }
 
-	bool SaveAsFile(const char* szPath) const;
-	bool InitFromFile(const char* szPath, IKRenderDevice* device, bool hostVisible = false);
-	bool InitFromAsset(const char* szPath, IKRenderDevice* device, bool hostVisible = false);
-	bool InitUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device);
+	bool SaveAsFile(const std::string& path) const;
+	bool InitFromFile(const std::string& path, bool hostVisible = false);
+	bool InitFromAsset(const std::string& path, bool hostVisible = false);
+	bool InitUtility(const KMeshUtilityInfoPtr& info);
 	bool UnInit();
-	bool UpdateUtility(const KMeshUtilityInfoPtr& info, IKRenderDevice* device);
+	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
 	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as);
 };
 

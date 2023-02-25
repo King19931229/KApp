@@ -353,7 +353,7 @@ vec3 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 specu
 		sunLight.diffuse = vec3(1.0f);
 		sunLight.ambient = vec3(0.001f);
 		sunLight.specular = vec3(0.0f);
-		sunLight.direction = -global.sunLightDir.xyz;
+		sunLight.direction = -global.sunLightDirAndMaxPBRLod.xyz;
 		sunLight.shadowingMethod = 3;
 		directLighting = CalculateDirectional(sunLight, normal, position, albedo, specular);
 		directLighting += Ambient(sunLight, albedo);
@@ -453,7 +453,7 @@ void main()
 	vec3 normal = DecodeNormal(gbuffer0Data);
 	// normal = normalize(cross(dFdx(position), dFdy(position)));
 	// xyz = fragment specular, w = shininess
-	vec4 specular = vec4(DecodeSpecularColor(gbuffer3Data), 0.0);
+	vec4 specular = vec4(0.0);
 	// fragment albedo
 	vec3 baseColor = DecodeBaseColor(gbuffer2Data);
 	vec3 albedo = baseColor;

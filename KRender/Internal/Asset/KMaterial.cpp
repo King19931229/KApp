@@ -826,7 +826,14 @@ bool KMaterial::InitFromImportAssetMaterial(const KAssetImportResult::Material& 
 	if (input.alphaMode == MAM_OPAQUE)
 	{
 		std::string materialCode;
-		ASSERT_RESULT(SetupMaterialGeneratedCode("material/diffuse.glsl", materialCode));
+		if (input.metalWorkFlow)
+		{
+			ASSERT_RESULT(SetupMaterialGeneratedCode("material/base_color.glsl", materialCode));
+		}
+		else
+		{
+			ASSERT_RESULT(SetupMaterialGeneratedCode("material/diffuse.glsl", materialCode));
+		}
 
 		KShaderMapInitContext initContext;
 		initContext.vsFile = "shading/basepass.vert";
@@ -843,6 +850,12 @@ bool KMaterial::InitFromImportAssetMaterial(const KAssetImportResult::Material& 
 		m_Parameter->SetValue("roughnessFactor", MaterialValueType::FLOAT, 1, &input.roughnessFactor);
 		m_Parameter->SetValue("alphaMask", MaterialValueType::FLOAT, 1, &input.alphaMask);
 		m_Parameter->SetValue("alphaCutoff", MaterialValueType::FLOAT, 1, &input.alphaCutoff);
+
+		if (!input.metalWorkFlow)
+		{
+			m_Parameter->SetValue("diffuseFactor", MaterialValueType::FLOAT, 4, &input.extension.diffuseFactor);
+			m_Parameter->SetValue("specularFactor", MaterialValueType::FLOAT, 4, &input.extension.specularFactor);
+		}
 
 		return true;
 	}

@@ -45,6 +45,12 @@ bool KStatistics::UnRegisterRenderStage(const char* stage)
 	return false;
 }
 
+bool KStatistics::ClearAllRenderStages()
+{
+	m_StageData.clear();
+	return true;
+}
+
 bool KStatistics::UpdateRenderStageStatistics(const char* stage, const KRenderStageStatistics& statistics)
 {
 	if (stage)

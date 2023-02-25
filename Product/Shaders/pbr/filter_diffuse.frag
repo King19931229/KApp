@@ -18,8 +18,8 @@ void main()
 	vec3 right = cross(up, normal);
 	up         = cross(normal, right);
 
-	float phiDelta = 2.0 * PI / 8.0;
-	float thetaDelta = 0.5 * PI / 8.0;
+	float phiDelta = 2.0 * PI / 64.0;
+	float thetaDelta = 0.5 * PI / 64.0;
 	float nrSamples = 0.0; 
 	for(float phi = 0.0; phi < 2.0 * PI; phi += phiDelta)
 	{

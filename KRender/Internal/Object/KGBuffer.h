@@ -22,9 +22,9 @@ struct KGBufferDescription
 constexpr KGBufferDescription GBufferDescription[GBUFFER_TARGET_COUNT]
 {
 	{ GBUFFER_TARGET0, EF_R16G16B16A16_FLOAT, "xyz:world_normal w:depth" },
-	{ GBUFFER_TARGET1, EF_R16G16B16A16_FLOAT, "xy:motion zw:idle" },
-	{ GBUFFER_TARGET2, EF_R8GB8BA8_UNORM, "xyz:diffuse_color w:idle" },
-	{ GBUFFER_TARGET3, EF_R8GB8BA8_UNORM, "xyz:specular_color w:idle" },
+	{ GBUFFER_TARGET1, EF_R16G16_FLOAT, "xy:motion" },
+	{ GBUFFER_TARGET2, EF_R8G8B8A8_UNORM, "xyz:diffuse_color w:idle" },
+	{ GBUFFER_TARGET3, EF_R8G8_UNORM, "x:metal y:roughness zw:idle" },
 };
 
 constexpr ElementFormat AOFormat = EF_R8_UNORM;

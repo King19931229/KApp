@@ -1043,10 +1043,14 @@ bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KAssetImportResult& result)
 			part.material.metallicFactor = material.metallicFactor;
 			part.material.roughnessFactor = material.roughnessFactor;
 			part.material.baseColorFactor = material.baseColorFactor;
+
 			part.material.emissiveFactor = material.emissiveFactor;
 			part.material.doubleSided = material.doubleSided;
 
 			part.material.metalWorkFlow = material.pbrWorkflows.metallicRoughness;
+
+			part.material.extension.diffuseFactor = material.extension.diffuseFactor;
+			part.material.extension.specularFactor = glm::vec4(material.extension.specularFactor, 0);
 			
 			for (uint32_t i = 0; i < MTS_COUNT; ++i)
 			{

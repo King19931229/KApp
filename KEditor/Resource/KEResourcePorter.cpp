@@ -29,7 +29,7 @@ const char* KEResourcePorter::ms_SupportedMeshExts[] =
 	".glb"
 };
 
-bool KEResourcePorter::IsSupportedMesh(const char* ext)
+bool KEResourcePorter::IsSupportedMeshAsset(const char* ext)
 {
 	for (const char* meshExt : ms_SupportedMeshExts)
 	{
@@ -89,18 +89,14 @@ bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity, 
 			{
 				if (entity->RegisterComponent(CT_RENDER, &renderComponent))
 				{
-					renderComponent->SetMeshPath(path.c_str());
-					renderComponent->SetHostVisible(hostVisible);
-					renderComponent->Init(true);
+					renderComponent->InitAsMesh(path, hostVisible, true);
 				}
 			}
-			else if (IsSupportedMesh(cExt))
+			else if (IsSupportedMeshAsset(cExt))
 			{
 				if (entity->RegisterComponent(CT_RENDER, &renderComponent))
 				{
-					renderComponent->SetAssetPath(path.c_str());
-					renderComponent->SetHostVisible(hostVisible);
-					renderComponent->Init(true);
+					renderComponent->InitAsAsset(path, hostVisible, true);
 				}
 			}
 

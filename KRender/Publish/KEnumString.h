@@ -9,9 +9,9 @@ namespace KEnumString
 #define ENUM(format) case EF_##format: return #format;
 		switch (format)
 		{
-			ENUM(R8GB8BA8_UNORM);
+			ENUM(R8G8B8A8_UNORM);
 			ENUM(R8G8B8A8_SNORM);
-			ENUM(R8GB8B8_UNORM);
+			ENUM(R8G8B8_UNORM);
 			ENUM(R8G8_UNORM);
 			ENUM(R8_UNORM);
 			ENUM(R16_FLOAT);
@@ -57,9 +57,9 @@ namespace KEnumString
 	inline ElementFormat StringToElementForamt(const char* str)
 	{
 #define CMP(enum_string) if (!strcmp(str, #enum_string)) return EF_##enum_string;
-		CMP(R8GB8BA8_UNORM);
+		CMP(R8G8B8A8_UNORM);
 		CMP(R8G8B8A8_SNORM);
-		CMP(R8GB8B8_UNORM);
+		CMP(R8G8B8_UNORM);
 		CMP(R16_FLOAT);
 		CMP(R16G16_FLOAT);
 		CMP(R16G16B16_FLOAT);

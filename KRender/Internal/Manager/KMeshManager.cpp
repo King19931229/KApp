@@ -34,7 +34,8 @@ bool KMeshManager::UnInit()
 
 bool KMeshManager::AcquireImpl(const char* path, bool fromAsset, bool hostVisible, KMeshRef& ref)
 {
-	auto it = m_Meshes.find(path);
+	MeshInfo info = { std::string(path), hostVisible };
+	auto it = m_Meshes.find(info);
 
 	if(it != m_Meshes.end())
 	{
@@ -46,20 +47,20 @@ bool KMeshManager::AcquireImpl(const char* path, bool fromAsset, bool hostVisibl
 	bool bRetValue = false;
 	if(fromAsset)
 	{
-		bRetValue = ptr->InitFromAsset(path, m_Device, hostVisible);
+		bRetValue = ptr->InitFromAsset(path, hostVisible);
 	}
 	else
 	{
-		bRetValue = ptr->InitFromFile(path, m_Device, hostVisible);
+		bRetValue = ptr->InitFromFile(path, hostVisible);
 	}
 
 	if(bRetValue)
 	{
 		ref = KMeshRef(ptr, [this](KMeshPtr ptr)
 		{
-			Release(ptr);
+			ptr->UnInit();
 		});
-		m_Meshes[path] = ref;
+		m_Meshes[info] = ref;
 		return true;
 	}
 
@@ -76,35 +77,14 @@ bool KMeshManager::AcquireFromAsset(const char* path, KMeshRef& ref, bool hostVi
 	return AcquireImpl(path, true, hostVisible, ref);
 }
 
-bool KMeshManager::Release(KMeshPtr& ptr)
-{
-	if(ptr)
-	{
-		m_Device->Wait();
-		ptr->UnInit();
-		const auto& path = ptr->GetPath();
-		if (!path.empty())
-		{
-			auto it = m_Meshes.find(path);
-			if (it != m_Meshes.end())
-			{				
-				m_Meshes.erase(it);
-				ptr = nullptr;
-			}
-		}
-		return true;
-	}
-	return false;
-}
-
 bool KMeshManager::AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref)
 {
 	KMeshPtr ptr = KMeshPtr(KNEW KMesh());
-	if (ptr->InitUtility(info, m_Device))
+	if (ptr->InitUtility(info))
 	{
 		ref = KMeshRef(ptr, [this](KMeshPtr ptr)
 		{
-			Release(ptr);
+			ptr->UnInit();
 		});
 		return true;
 	}
@@ -116,8 +96,7 @@ bool KMeshManager::UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref)
 {
 	if (ref)
 	{
-		m_Device->Wait();
-		return (*ref)->UpdateUtility(info, m_Device);
+		return ref->UpdateUtility(info);
 	}
 	return false;
 }

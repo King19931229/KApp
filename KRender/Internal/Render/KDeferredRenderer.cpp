@@ -46,6 +46,8 @@ void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t hei
 		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
 		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
 		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
+
+		KRenderGlobal::Statistics.RegisterRenderStage(GDeferredRenderStageDescription[i].debugMakrer);
 	}
 
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shading/quad.vert", m_QuadVS, false);
@@ -79,6 +81,7 @@ void KDeferredRenderer::UnInit()
 		SAFE_UNINIT(m_CommandBuffers[i]);
 		SAFE_UNINIT(m_RenderPass[i]);
 		m_RenderCallFuncs[i].clear();
+		KRenderGlobal::Statistics.UnRegisterRenderStage(GDeferredRenderStageDescription[i].debugMakrer);
 	}
 	SAFE_UNINIT(m_CommandPool);
 	m_Camera = nullptr;
@@ -269,6 +272,21 @@ void KDeferredRenderer::RecreatePipeline()
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE8,
+			KRenderGlobal::CubeMap.GetDiffuseIrradiance()->GetFrameBuffer(),
+			KRenderGlobal::CubeMap.GetDiffuseIrradianceSampler(),
+			true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE9,
+			KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer(),
+			KRenderGlobal::CubeMap.GetSpecularIrradianceSampler(),
+			true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE10,
+			KRenderGlobal::CubeMap.GetIntegrateBRDF()->GetFrameBuffer(),
+			KRenderGlobal::CubeMap.GetIntegrateBRDFSampler(),
+			true);
+
 		pipeline->Init();
 	}
 
@@ -367,10 +385,12 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 
 				if (command.indexDraw)
 				{
+					statistics.primtives += command.indexData->indexCount;
 					statistics.faces += command.indexData->indexCount / 3;
 				}
 				else
 				{
+					statistics.primtives += command.vertexData->vertexCount;
 					statistics.faces += command.vertexData->vertexCount / 3;
 				}
 
@@ -407,10 +427,12 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 
 					if (command.indexDraw)
 					{
+						statistics.primtives += command.indexData->indexCount;
 						statistics.faces += command.indexData->indexCount / 3;
 					}
 					else
 					{
+						statistics.primtives += command.vertexData->vertexCount;
 						statistics.faces += command.vertexData->vertexCount / 3;
 					}
 
@@ -542,14 +564,14 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 		if (entity->GetComponent(CT_TRANSFORM, &transform))
 		{
 			KDebugComponent* debug = nullptr;
-			if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug))
+			KRenderComponent* render = nullptr;
+			if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug) && entity->GetComponent(CT_RENDER, (IKComponentBase**)&render))
 			{
 				KConstantDefinition::DEBUG objectData;
 				objectData.MODEL = transform->FinalTransform();
 				objectData.COLOR = debug->Color();
 
-				KMeshPtr mesh = render->GetMesh();
-				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 
 				for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 				{

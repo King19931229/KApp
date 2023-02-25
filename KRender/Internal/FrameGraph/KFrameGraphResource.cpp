@@ -67,7 +67,7 @@ KFrameGraphRenderTarget::KFrameGraphRenderTarget()
 	: KFrameGraphResource(FrameGraphResourceType::RENDER_TARGET),
 	m_RenderTarget(nullptr),
 	m_TargetType(FrameGraphRenderTargetType::UNKNOWN_TARGET),
-	m_Format(EF_R8GB8BA8_UNORM),
+	m_Format(EF_R8G8B8A8_UNORM),
 	m_Width(0),
 	m_Height(0),
 	m_MsaaCount(1),

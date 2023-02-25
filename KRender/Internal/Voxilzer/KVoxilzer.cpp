@@ -294,10 +294,10 @@ void KVoxilzer::UpdateProjectionMatrices()
 void KVoxilzer::SetupVoxelBuffer()
 {
 	uint32_t dimension = m_VolumeDimension;
-	m_VoxelAlbedo->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8GB8BA8_UNORM);
-	m_VoxelNormal->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8GB8BA8_UNORM);
-	m_VoxelRadiance->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8GB8BA8_UNORM);
-	m_VoxelEmissive->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8GB8BA8_UNORM);
+	m_VoxelAlbedo->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelNormal->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelRadiance->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelEmissive->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8G8B8A8_UNORM);
 	m_StaticFlag->InitFromStorage3D(dimension, dimension, dimension, 1, EF_R8_UNORM);
 }
 
@@ -354,7 +354,7 @@ void KVoxilzer::SetupVoxelReleatedData()
 	m_VoxelRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_VoxelRenderPass->Init();
 
-	m_LightPassTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8GB8BA8_UNORM);
+	m_LightPassTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8G8B8A8_UNORM);
 	m_LightPassRenderPass->UnInit();
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
 	m_LightPassRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
@@ -392,7 +392,7 @@ void KVoxilzer::SetupVoxelReleatedData()
 
 	for (uint32_t i = 0; i < 6; ++i)
 	{
-		m_VoxelTexMipmap[i]->InitFromStorage3D(baseMipmapDimension, baseMipmapDimension, baseMipmapDimension, m_NumMipmap, EF_R8GB8BA8_UNORM);
+		m_VoxelTexMipmap[i]->InitFromStorage3D(baseMipmapDimension, baseMipmapDimension, baseMipmapDimension, m_NumMipmap, EF_R8G8B8A8_UNORM);
 	}
 
 	SetupVoxelDrawPipeline();
@@ -668,7 +668,7 @@ void KVoxilzer::SetupOctreeMipmapPipeline()
 void KVoxilzer::Resize(uint32_t width, uint32_t height)
 {
 	m_LightPassTarget->UnInit();
-	m_LightPassTarget->InitFromColor(width, height, 1, 1, EF_R8GB8BA8_UNORM);
+	m_LightPassTarget->InitFromColor(width, height, 1, 1, EF_R8G8B8A8_UNORM);
 
 	m_LightPassRenderPass->UnInit();
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
@@ -678,7 +678,7 @@ void KVoxilzer::Resize(uint32_t width, uint32_t height)
 	m_OctreeRayTestTarget->UnInit();
 	m_OctreeRayTestPass->UnInit();
 
-	m_OctreeRayTestTarget->InitFromColor(width, height, 1, 1, EF_R8GB8BA8_UNORM);
+	m_OctreeRayTestTarget->InitFromColor(width, height, 1, 1, EF_R8G8B8A8_UNORM);
 	m_OctreeRayTestPass->SetColorAttachment(0, m_OctreeRayTestTarget->GetFrameBuffer());
 	m_OctreeRayTestPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_OctreeRayTestPass->Init();
@@ -835,8 +835,7 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 		KTransformComponent* transform = nullptr;
 		if (entity->GetComponent(CT_TRANSFORM, &transform))
 		{
-			KMeshPtr mesh = render->GetMesh();
-			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 			{
 				KRenderCommand command;
@@ -918,8 +917,7 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 		KTransformComponent* transform = nullptr;
 		if (entity->GetComponent(CT_TRANSFORM, &transform))
 		{
-			KMeshPtr mesh = render->GetMesh();
-			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = mesh->GetMaterialSubMeshs();
+			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 			{
 				KRenderCommand command;
