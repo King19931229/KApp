@@ -16,12 +16,15 @@ protected:
 	IKRenderTargetPtr m_FinalTsppTarget;
 	IKRenderTargetPtr m_VarianceTarget;
 	IKRenderTargetPtr m_ComposeTarget;
+	uint32_t m_FullWidth;
+	uint32_t m_FullHeight;
 	uint32_t m_Width;
 	uint32_t m_Height;
 	int32_t m_RayReuseCount;
 	int32_t m_AtrousLevel;
 	uint32_t m_CurrentIdx;
 	float m_Ratio;
+	bool m_ResolveInFullResolution;
 	bool m_FirstFrame;
 
 	KShaderRef m_QuadVS;
@@ -55,7 +58,7 @@ public:
 	KScreenSpaceReflection();
 	~KScreenSpaceReflection();
 
-	bool Init(uint32_t width, uint32_t height, float ratio);
+	bool Init(uint32_t width, uint32_t height, float ratio, bool resolveInFullResolution);
 	bool UnInit();
 
 	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }
@@ -68,5 +71,5 @@ public:
 	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 	bool Execute(IKCommandBufferPtr primaryBuffer);
 
-	IKRenderTargetPtr GetFinalTarget() { return m_FinalTarget; }
+	IKRenderTargetPtr GetAOTarget() { return m_ComposeTarget; }
 };

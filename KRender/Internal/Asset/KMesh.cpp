@@ -278,7 +278,10 @@ bool KMesh::InitFromAsset(const std::string& path, bool hostVisible)
 			submesh = KSubMeshPtr(KNEW KSubMesh(this));
 
 			KMaterialRef& material = m_SubMaterials[i];
-			KRenderGlobal::MaterialManager.Create(result.parts[i].material, material, false);
+			if (!KRenderGlobal::MaterialManager.Create(result.parts[i].material, material, false))
+			{
+				KRenderGlobal::MaterialManager.GetMissingMaterial(material);
+			}
 		}
 
 		IndexType indexType = result.index16Bit ? IT_16 : IT_32;

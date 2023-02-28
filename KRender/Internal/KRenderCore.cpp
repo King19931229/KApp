@@ -116,8 +116,8 @@ bool KRenderCore::UnInitGlobalManager()
 
 	KRenderGlobal::QuadDataProvider.UnInit();
 
-	KRenderGlobal::MaterialManager.UnInit();
 	KRenderGlobal::MeshManager.UnInit();
+	KRenderGlobal::MaterialManager.UnInit();
 	KRenderGlobal::TextureManager.UnInit();
 	KRenderGlobal::SamplerManager.UnInit();
 	KRenderGlobal::ShaderManager.UnInit();

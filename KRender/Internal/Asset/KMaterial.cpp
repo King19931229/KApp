@@ -809,14 +809,30 @@ bool KMaterial::InitFromImportAssetMaterial(const KAssetImportResult::Material& 
 	for (uint32_t i = 0; i < MTS_COUNT; ++i)
 	{
 		assert(input.textures[i].empty() || !input.codecs[i].pData);
-		if (!input.textures[i].empty())
+
+		bool texCoordSetAccept = false;
+		if (i == MTS_BASE_COLOR && input.texCoordSets.baseColor == 0 ||
+			i == MTS_NORMAL && input.texCoordSets.normal == 0 ||
+			i == MTS_METAL_ROUGHNESS && input.texCoordSets.metallicRoughness == 0 && input.metalWorkFlow ||
+			i == MTS_SPECULAR_GLOSINESS && input.texCoordSets.specularGlossiness == 0 && !input.metalWorkFlow ||
+			i == MTS_EMISSIVE && input.texCoordSets.emissive == 0 ||
+			i == MTS_AMBIENT_OCCLUSION && input.texCoordSets.occlusion == 0)
 		{
-			m_TextureBinding->SetTexture(i, input.textures[i]);
+			texCoordSetAccept = true;
 		}
-		if (input.codecs[i].pData)
+
+		if (texCoordSetAccept)
 		{
-			m_TextureBinding->SetTexture(i, input.codecs[i], input.samplers[i]);
+			if (!input.textures[i].empty())
+			{
+				m_TextureBinding->SetTexture(i, input.textures[i]);
+			}
+			if (input.codecs[i].pData)
+			{
+				m_TextureBinding->SetTexture(i, input.codecs[i], input.samplers[i]);
+			}
 		}
+
 		if (i == MTS_DIFFUSE && !m_TextureBinding->GetTexture(i))
 		{
 			m_TextureBinding->SetErrorTexture(i);

@@ -165,8 +165,8 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::HiZOcclusion.Init();
 	KRenderGlobal::RayTraceManager.Init();
 
-	KRenderGlobal::CubeMap.Init(128, 128, 8, "Textures/papermill.ktx");
-	KRenderGlobal::SkyBox.Init(device, "Textures/papermill.ktx");
+	KRenderGlobal::CubeMap.Init(128, 128, 8, "Textures/uffizi_cube.ktx");
+	KRenderGlobal::SkyBox.Init(device, "Textures/uffizi_cube.ktx");
 	KRenderGlobal::WhiteFurnace.Init();
 
 	KRenderGlobal::OcclusionBox.Init(device);
@@ -179,7 +179,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::VolumetricFog.Init(64, 64, 128, (camera->GetFar() - camera->GetNear()) * 0.5f, width, height, camera);
 
 	KRenderGlobal::RTAO.Init(KRenderGlobal::RayTraceScene.get());
-	KRenderGlobal::ScreenSpaceReflection.Init(width, height, 0.5f);
+	KRenderGlobal::ScreenSpaceReflection.Init(width, height, 0.5f, false);
 
 	KRenderGlobal::DeferredRenderer.Init(camera, width, height);
 

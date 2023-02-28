@@ -81,5 +81,9 @@ bool KMaterialManager::Create(const KAssetImportResult::Material& input, KMateri
 		});
 		return true;
 	}
-	return false;
+	else
+	{
+		material->UnInit();
+		return false;
+	}
 }

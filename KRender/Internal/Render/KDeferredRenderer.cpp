@@ -276,7 +276,7 @@ void KDeferredRenderer::RecreatePipeline()
 			true);
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE9,
-			KRenderGlobal::ScreenSpaceReflection.GetFinalTarget()->GetFrameBuffer(),
+			KRenderGlobal::ScreenSpaceReflection.GetAOTarget()->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 

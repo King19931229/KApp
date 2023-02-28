@@ -759,6 +759,10 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 				indexCount = iterateCount;
 				vertexCount = (uint32_t)vertices.size();
 
+				if (loaderInfo.vertexPos + vertices.size() > loaderInfo.vertexBuffer.size())
+				{
+					loaderInfo.vertexBuffer.resize(loaderInfo.vertexPos + vertices.size());
+				}
 				std::copy(vertices.begin(), vertices.end(), loaderInfo.vertexBuffer.begin() + loaderInfo.vertexPos);
 
 				if (loaderInfo.indexPos + indexCount > loaderInfo.indexBuffer.size())
@@ -1058,31 +1062,37 @@ bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KAssetImportResult& result)
 				{
 					part.material.codecs[i] = material.baseColorTexture->codec;
 					part.material.samplers[i] = material.baseColorTexture->sampler;
+					part.material.texCoordSets.baseColor = material.texCoordSets.baseColor;
 				}
 				if (i == MTS_NORMAL && material.normalTexture)
 				{
 					part.material.codecs[i] = material.normalTexture->codec;
 					part.material.samplers[i] = material.normalTexture->sampler;
+					part.material.texCoordSets.normal = material.texCoordSets.normal;
 				}
 				if (i == MTS_SPECULAR_GLOSINESS && material.extension.specularGlossinessTexture)
 				{
 					part.material.codecs[i] = material.extension.specularGlossinessTexture->codec;
 					part.material.samplers[i] = material.extension.specularGlossinessTexture->sampler;
+					part.material.texCoordSets.specularGlossiness = material.texCoordSets.specularGlossiness;
 				}
 				if (i == MTS_METAL_ROUGHNESS && material.metallicRoughnessTexture)
 				{
 					part.material.codecs[i] = material.metallicRoughnessTexture->codec;
 					part.material.samplers[i] = material.metallicRoughnessTexture->sampler;
+					part.material.texCoordSets.metallicRoughness = material.texCoordSets.metallicRoughness;
 				}
 				if (i == MTS_EMISSIVE && material.emissiveTexture)
 				{
 					part.material.codecs[i] = material.emissiveTexture->codec;
 					part.material.samplers[i] = material.emissiveTexture->sampler;
+					part.material.texCoordSets.emissive = material.texCoordSets.emissive;
 				}
 				if (i == MTS_AMBIENT_OCCLUSION && material.occlusionTexture)
 				{
 					part.material.codecs[i] = material.occlusionTexture->codec;
 					part.material.samplers[i] = material.occlusionTexture->sampler;
+					part.material.texCoordSets.occlusion = material.texCoordSets.occlusion;
 				}
 			}
 

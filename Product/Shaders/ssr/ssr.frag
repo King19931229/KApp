@@ -125,9 +125,9 @@ float ValidateHit(vec3 hit, vec2 uv, vec3 directionWS, vec2 screenSize, float de
 
 void main()
 {
-	const int maxStepCount = 128;
+	const int maxStepCount = 64;
 	const int mostDetailMip = 0;
-	const int ssp = 4;
+	const int ssp = 1;
 	const float depthThickness = 5;
 
 	vec2 screenSize = textureSize(hiZ, 0);

@@ -65,8 +65,7 @@ float DecodeMetal(vec4 gbuffer3Data)
 
 float DecodeRoughness(vec4 gbuffer3Data)
 {
-	// TODO Fix SSR NAN
-	return max(0.03, gbuffer3Data.y);
+	return gbuffer3Data.y;
 }
 
 vec3 DecodeEmissive(vec4 gbuffer4Data)

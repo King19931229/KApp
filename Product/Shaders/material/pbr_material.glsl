@@ -103,7 +103,7 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	vec4 curr = camera.viewProj * vec4(worldPos, 1.0);
 	vec2 prevUV = 0.5 * (prev.xy / prev.w + vec2(1.0));
 	vec2 currUV = 0.5 * (curr.xy / curr.w + vec2(1.0));
-	parameters.motion = currUV - prevUV;
+	parameters.motion = prevUV - currUV;
 
 #if HAS_MATERIAL_TEXTURE0
 	parameters.baseColor = (SRGBtoLINEAR(texture(diffuseSampler, texCoord)) * shading.baseColorFactor).rgb;

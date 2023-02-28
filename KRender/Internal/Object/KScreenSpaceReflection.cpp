@@ -2,12 +2,15 @@
 #include "Internal/KRenderGlobal.h"
 
 KScreenSpaceReflection::KScreenSpaceReflection()
-	: m_Width(0)
+	: m_FullWidth(0)
+	, m_FullHeight(0)
+	, m_Width(0)
 	, m_Height(0)
 	, m_Ratio(1.0f)
 	, m_RayReuseCount(4)
 	, m_AtrousLevel(0)
 	, m_CurrentIdx(0)
+	, m_ResolveInFullResolution(true)
 	, m_FirstFrame(false)
 {
 }
@@ -186,11 +189,12 @@ void KScreenSpaceReflection::InitializePipeline()
 	}
 }
 
-bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio)
+bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio, bool resolveInFullResolution)
 {
 	UnInit();
 
 	m_Ratio = ratio;
+	m_ResolveInFullResolution = resolveInFullResolution;
 
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HitResultTarget);
 	KRenderGlobal::RenderDevice->CreateRenderTarget(m_HitMaskTarget);
@@ -327,6 +331,17 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 	m_Width = std::max((uint32_t)(width * m_Ratio), 1U);
 	m_Height = std::max((uint32_t)(height * m_Ratio), 1U);
 
+	if (m_ResolveInFullResolution)
+	{
+		m_FullWidth = width;
+		m_FullHeight = height;
+	}
+	else
+	{
+		m_FullWidth = m_Width;
+		m_FullHeight = m_Height;
+	}
+
 	m_HitResultTarget->UnInit();
 	m_HitResultTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
 
@@ -336,32 +351,32 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		m_TemporalTarget[i]->UnInit();
-		m_TemporalTarget[i]->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+		m_TemporalTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
 
 		m_TemporalSquaredTarget[i]->UnInit();
-		m_TemporalSquaredTarget[i]->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+		m_TemporalSquaredTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
 
 		m_TemporalTsppTarget[i]->UnInit();
-		m_TemporalTsppTarget[i]->InitFromColor(m_Width, m_Height, 1, 1, EF_R8_UNORM);
+		m_TemporalTsppTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R8_UNORM);
 
 		m_BlurTarget[i]->UnInit();
-		m_BlurTarget[i]->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+		m_BlurTarget[i]->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
 	}
 
 	m_FinalTarget->UnInit();
-	m_FinalTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_FinalTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
 
 	m_FinalSquaredTarget->UnInit();
-	m_FinalSquaredTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_FinalSquaredTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
 
 	m_FinalTsppTarget->UnInit();
-	m_FinalTsppTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8_UNORM);
+	m_FinalTsppTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R8_UNORM);
 
 	m_ComposeTarget->UnInit();
-	m_ComposeTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_ComposeTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
 
 	m_VarianceTarget->UnInit();
-	m_VarianceTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R16G16B16A16_FLOAT);
+	m_VarianceTarget->InitFromColor(m_FullWidth, m_FullHeight, 1, 1, EF_R16G16B16A16_FLOAT);
 
 	m_ReflectionPass->UnInit();
 	m_ReflectionPass->SetColorAttachment(0, m_HitResultTarget->GetFrameBuffer());

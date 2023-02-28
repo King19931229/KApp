@@ -18,7 +18,12 @@ layout(binding = BINDING_TEXTURE7) uniform sampler2D gbuffer4;
 
 layout(location = 0) out vec4 outColor;
 
-const vec2 sample_offset[9] = { vec2(0.0, 0.0), vec2(-2.0, -2.0), vec2(0.0, -2.0), vec2(2.0, -2.0), vec2(-2.0, 0.0), vec2(2.0, 0.0), vec2(-2.0, 2.0), vec2(0.0, 2.0), vec2(2.0, 2.0) };
+const vec2 sample_offset[3][9] = 
+{ 
+	{ vec2(0.0, 0.0), vec2(-2.0, -2.0), vec2(0.0, -2.0), vec2(2.0, -2.0),  vec2(-2.0, 0.0), vec2(2.0, 0.0),  vec2(-2.0, 2.0), vec2(0.0, 2.0),  vec2(2.0, 2.0) },
+	{ vec2(0.0, 0.0), vec2(-1.0, -2.0), vec2(1.0, -2.0), vec2(-2.0, -1.0), vec2(2.0, -1.0), vec2(-2.0, 1.0), vec2(2.0, 1.0),  vec2(-1.0, 2.0), vec2(1.0, 2.0) },
+	{ vec2(0.0, 0.0), vec2(-1.0, -1.0), vec2(0.0, -1.0), vec2(1.0, -1.0), vec2(-1.0, 0.0), vec2(1.0, 0.0), vec2(-1.0, 1.0),   vec2(0.0, 1.0),  vec2(1.0, 1.0) }
+};
 
 float BRDF(vec3 N, vec3 V, vec3 L, float roughness)
 {
@@ -46,15 +51,20 @@ void main()
 	vec2 jitter = vec2(0);
 	vec2 coord = screenSize * screenCoord - vec2(0.5);
 
-	uint seed = TEA(uint(coord.y * screenSize.x + coord.x), object.frameNum);
+	uint coordIndex = uint(coord.y * screenSize.x + coord.x);
+	uint seed = TEA(coordIndex, object.frameNum);
 	jitter.x = RND(seed);
 	jitter.y = RND(seed);
+
+	uint sampleArrayIndex = object.frameNum + coordIndex;
+	sampleArrayIndex = sampleArrayIndex - 3 * (sampleArrayIndex / 3);
 
 	mat2 rotationMat = mat2(jitter.x, -jitter.y, jitter.y, -jitter.x);
 
 	vec4 hitResult = texture(hitImage, screenCoord);
 
 	vec4 gbuffer0Data = texture(gbuffer0, screenCoord);
+	vec4 gbuffer1Data = vec4(0);
 
 	float depth = LinearDepthToNonLinearDepth(camera.proj, DecodeDepth(gbuffer0Data));
 	vec3 originVSPos = DecodePositionViewSpace(gbuffer0Data, screenCoord);
@@ -70,17 +80,33 @@ void main()
 
 	vec4 result = vec4(0);
 	vec4 mask = vec4(0);
+	vec2 motion = vec2(0);
 	float weightSum = 0;
+
+	const float normalSigma = 1.1;
+	const float normalSigmaExponent = 32.0;
 
 	for(int i = 0; i < reuseCount; ++i)
 	{
-		vec2 offset = sample_offset[i] * invScreenSize;
+		vec2 offset = sample_offset[0][i] * invScreenSize;
 		offset = rotationMat * offset;
 		vec2 uv = screenCoord + offset;
 
 		vec4 hitResult = texture(hitImage, uv);
 		vec4 hitMask = texture(maskImage, uv);
-		float pdf = max(hitResult.w, MEDIUMP_FLT_MIN);
+		float pdf = hitResult.w;
+
+		if (pdf == 0.0)
+			continue;
+
+		gbuffer0Data = texture(gbuffer0, uv);
+		vec3 sampleVSNormal = normalize(DecodeNormalViewSpace(gbuffer0Data));
+		float similarity = pow(clamp(normalSigma * dot(originVSNormal, sampleVSNormal), 0.0, 1.0), normalSigmaExponent);
+
+		// This is last frame scene color, we have to reproject
+		gbuffer1Data = texture(gbuffer1, hitResult.xy);
+		motion = DecodeMotion(gbuffer1Data);
+		hitResult.xy += motion;
 
 		vec4 hitColor;
 		hitColor.xyz = texture(sceneColorImage, hitResult.xy).rgb;
@@ -89,15 +115,18 @@ void main()
 		vec3 hitVSPos = ScreenPosToViewPos(hitResult.xyz);
 
 		float brdf = BRDF(originVSNormal, viewVS, normalize(hitVSPos - originVSPos), roughness);
-		float weight = max(brdf / pdf, MEDIUMP_FLT_MIN);
+		float weight = similarity * max(brdf / pdf, MEDIUMP_FLT_MIN);
 
 		result += hitColor * weight;
 		mask += hitMask * weight;
 		weightSum += weight;
 	}
 
-	result /= weightSum;
-	mask /= weightSum;
+	if(weightSum > 0.0)
+	{
+		result /= weightSum;
+		mask /= weightSum;
+	}
 
 	outColor = vec4(result.rgb, mask.r);
 }

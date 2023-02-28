@@ -6,7 +6,7 @@
 
 float DistributionGGX(vec3 N, vec3 H, float a)
 {
-	float a2		= a * a;
+	float a2		= max(a * a, MEDIUMP_FLT_MIN);
 	float NdotH		= max(dot(N, H), MEDIUMP_FLT_MIN);
 	float NdotH2	= NdotH * NdotH;
 
@@ -19,13 +19,13 @@ float DistributionGGX(vec3 N, vec3 H, float a)
 
 float GeometrySmithGGX(vec3 N, vec3 V, float a)
 {
-	float a2		= a * a;
+	float a2		= max(a * a, MEDIUMP_FLT_MIN);
 	float NdotV		= max(dot(N, V), MEDIUMP_FLT_MIN);
 	float NdotV2	= NdotV * NdotV;
 
 	float num		= 2.0 * NdotV;
-	float denom		= NdotV + sqrt(NdotV * NdotV * (1 - a2) + a2);
-	
+	float denom		= NdotV + sqrt(NdotV2* (1 - a2) + a2);
+
 	return num / denom;
 }
 

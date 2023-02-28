@@ -102,6 +102,16 @@ struct KAssetImportResult
 		bool metalWorkFlow;
 		bool doubleSided;
 
+		struct TexCoordSets
+		{
+			uint8_t baseColor = 0;
+			uint8_t metallicRoughness = 0;
+			uint8_t specularGlossiness = 0;
+			uint8_t normal = 0;
+			uint8_t occlusion = 0;
+			uint8_t emissive = 0;
+		} texCoordSets;
+
 		struct Extension
 		{
 			glm::vec4 diffuseFactor;

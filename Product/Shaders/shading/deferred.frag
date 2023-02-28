@@ -117,11 +117,11 @@ void main()
 	vec3 diffuseIBL = irradiance * albedo;
 
 	vec3 prefilteredColor = textureLod(specularIrradiance, CUBEMAP_UVW(R), roughness * MAX_REFLECTION_LOD).rgb;   
+	vec4 ssr = texture(ssrMask, screenCoord);
+	prefilteredColor = mix(prefilteredColor, ssr.rgb, ssr.a);
+
 	vec2 envBRDF = texture(integrateBRDF, vec2(NdotV, roughness)).rg;
 	vec3 specularIBL = prefilteredColor * (F * envBRDF.x + envBRDF.y);
-
-	// vec4 ssr = texture(ssrMask, screenCoord);
-	// specularIBL = mix(specularIBL, ssr.rgb, ssr.a);
 
 	vec3 ambient = (kD * diffuseIBL + specularIBL) * ao;
 

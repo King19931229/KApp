@@ -143,6 +143,8 @@ void main()
 
 	if (weight > 0)
 	{
+		// Comment it out until being able to fetch last frame content
+#if false
 		// normal and depth weight
 		{
 			vec4 gbuffer0Data;
@@ -168,7 +170,7 @@ void main()
 
 		weight *= depthWeight;
 		weight *= normalWeight;
-
+#endif
 		const float maxTspp = 128;
 		tssp = min(weight * (historyTssp + currentTspp), maxTspp);
 	}

@@ -287,7 +287,7 @@ void KVolumetricFog::UpdateScattering(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->Render(command);
 	primaryBuffer->EndRenderPass();
 
-	primaryBuffer->Translate(m_ScatteringTarget->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(m_ScatteringTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	primaryBuffer->EndDebugMarker();
 }

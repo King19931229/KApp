@@ -189,7 +189,7 @@ void main()
 	vec2 curTexPos = (gl_GlobalInvocationID.xy + 0.5) / vec2(outSize);
 	vec2 curSampleGPos = vec2(curTexPos * vec2(inSize) - vec2(0.5));
 	vec2 motion = ComputeMotion(curSampleGPos);
-	vec2 preTexPos = curTexPos - motion;
+	vec2 preTexPos = curTexPos + motion;
 
 	vec2 reprojectPos = vec2(preTexPos * vec2(outSize) - vec2(0.5));
 	vec4 curNormalDepth = imageLoad(curNormalDepthImage, storePos);
