@@ -17,15 +17,15 @@ layout(location = 0) in GeometryOut
 layout (location = 0) out vec4 fragColor;
 /*layout (pixel_center_integer)*/ in vec4 gl_FragCoord;
 
-layout(binding = VOXEL_CLIPMAP_BINDING_DIFFUSE_MAP) uniform sampler2D diffuseMap;
-layout(binding = VOXEL_CLIPMAP_BINDING_OPACITY_MAP) uniform sampler2D opacityMap;
-layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION_MAP) uniform sampler2D emissiveMap;
+layout(binding = BINDING_TEXTURE0) uniform sampler2D diffuseMap;
+layout(binding = BINDING_TEXTURE1) uniform sampler2D opacityMap;
+layout(binding = BINDING_TEXTURE2) uniform sampler2D emissiveMap;
 
-layout(binding = VOXEL_CLIPMAP_BINDING_STATIC_FLAG, r8) uniform image3D staticVoxelFlag;
-layout(binding = VOXEL_CLIPMAP_BINDING_ALBEDO, r32ui) uniform volatile coherent uimage3D voxelAlbedo;
-layout(binding = VOXEL_CLIPMAP_BINDING_NORMAL, r32ui) uniform volatile coherent uimage3D voxelNormal;
-layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION, r32ui) uniform volatile coherent uimage3D voxelEmission;
-layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform writeonly image3D voxelVisibility;
+layout(binding = BINDING_TEXTURE3, r32ui) uniform volatile coherent uimage3D voxelAlbedo;
+layout(binding = BINDING_TEXTURE4, r32ui) uniform volatile coherent uimage3D voxelNormal;
+layout(binding = BINDING_TEXTURE5, r32ui) uniform volatile coherent uimage3D voxelEmission;
+layout(binding = BINDING_TEXTURE6, rgba8) uniform writeonly image3D voxelVisibility;
+layout(binding = BINDING_TEXTURE7, r8) uniform image3D staticVoxelFlag;
 
 #if 0
 uniform struct Material

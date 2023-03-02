@@ -98,11 +98,17 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::FrameGraph.Compile();
 		KRenderGlobal::FrameGraph.Execute(m_PrimaryBuffer, chainImageIndex);
 
-		// KRenderGlobal::Voxilzer.UpdateVoxel(m_PrimaryBuffer);
-		KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(m_PrimaryBuffer);
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+		{
+			KRenderGlobal::Voxilzer.UpdateVoxel(m_PrimaryBuffer);
+			KRenderGlobal::Voxilzer.UpdateFrame(m_PrimaryBuffer);
+		}
 
-		// KRenderGlobal::Voxilzer.UpdateFrame(m_PrimaryBuffer);
-		KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_PrimaryBuffer);
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+		{
+			KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(m_PrimaryBuffer);
+			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_PrimaryBuffer);
+		}
 
 		KRenderGlobal::VolumetricFog.Execute(m_PrimaryBuffer);
 
@@ -173,8 +179,14 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	KRenderGlobal::ShadowMap.Init(device, 2048);
 	KRenderGlobal::CascadedShadowMap.Init(camera, 3, 2048, width, height);
 
-	// KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, width, height);
-	KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, width, height, 1.0f);
+	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+	{
+		KRenderGlobal::Voxilzer.Init(&KRenderGlobal::Scene, camera, 128, width, height);
+	}
+	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+	{
+		KRenderGlobal::ClipmapVoxilzer.Init(&KRenderGlobal::Scene, camera, 64, 7, 32, width, height, 1.0f);
+	}
 
 	KRenderGlobal::VolumetricFog.Init(64, 64, 128, (camera->GetFar() - camera->GetNear()) * 0.5f, width, height, camera);
 
@@ -202,13 +214,19 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 
 	m_DebugCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 	{
-		if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
 		{
-			KRenderGlobal::Voxilzer.RenderVoxel(renderPass, primaryBuffer);
+			if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())
+			{
+				KRenderGlobal::Voxilzer.RenderVoxel(renderPass, primaryBuffer);
+			}
 		}
-		if (KRenderGlobal::ClipmapVoxilzer.IsVoxelDrawEnable())
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
-			KRenderGlobal::ClipmapVoxilzer.RenderVoxel(renderPass, primaryBuffer);
+			if (KRenderGlobal::ClipmapVoxilzer.IsVoxelDrawEnable())
+			{
+				KRenderGlobal::ClipmapVoxilzer.RenderVoxel(renderPass, primaryBuffer);
+			}
 		}
 	};
 
@@ -219,10 +237,16 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 		{
 			cameraCube->Render(renderPass, primaryBuffer);
 		}
-
-		KRenderGlobal::Voxilzer.DebugRender(renderPass, primaryBuffer);
-		KRenderGlobal::ClipmapVoxilzer.DebugRender(renderPass, primaryBuffer);
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+		{
+			KRenderGlobal::Voxilzer.DebugRender(renderPass, primaryBuffer);
+		}
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+		{
+			KRenderGlobal::ClipmapVoxilzer.DebugRender(renderPass, primaryBuffer);
+		}
 		KRenderGlobal::RayTraceManager.DebugRender(renderPass, primaryBuffer);
+
 		KRenderGlobal::RTAO.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::HiZOcclusion.DebugRender(renderPass, primaryBuffer);
 		KRenderGlobal::ScreenSpaceReflection.DebugRender(renderPass, primaryBuffer);
@@ -442,8 +466,14 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 	KRenderGlobal::HiZBuffer.Resize(width, height);
 	KRenderGlobal::HiZOcclusion.Resize();
 	KRenderGlobal::DeferredRenderer.Resize(width, height);
-	// KRenderGlobal::Voxilzer.Resize(width, height);
-	KRenderGlobal::ClipmapVoxilzer.Resize(width, height);
+	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+	{
+		KRenderGlobal::Voxilzer.Resize(width, height);
+	}
+	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+	{
+		KRenderGlobal::ClipmapVoxilzer.Resize(width, height);
+	}
 	KRenderGlobal::VolumetricFog.Resize(width, height);
 	KRenderGlobal::ScreenSpaceReflection.Resize(width, height);
 	KRenderGlobal::DepthOfField.Resize(width, height);

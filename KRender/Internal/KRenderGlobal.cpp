@@ -2,6 +2,8 @@
 
 namespace KRenderGlobal
 {
+	GIMethod UsingGIMethod = CLIPMAP_GI;
+
 	KFrameResourceManager FrameResourceManager;
 	KShaderManager ShaderManager;
 	KMeshManager MeshManager;

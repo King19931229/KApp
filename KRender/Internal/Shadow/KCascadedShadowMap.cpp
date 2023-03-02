@@ -780,9 +780,9 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 		KRenderGlobal::FrameGraph.Compile();
 
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/quad.vert", m_QuadVS, false));
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/static_mask.frag", m_StaticReceiverFS, false));
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/dynamic_mask.frag", m_DynamicReceiverFS, false));
-		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/combine_mask.frag", m_CombineReceiverFS, false));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/static_mask.frag", m_StaticReceiverFS, false));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/dynamic_mask.frag", m_DynamicReceiverFS, false));
+		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/combine_mask.frag", m_CombineReceiverFS, false));
 
 		KRenderGlobal::RenderDevice->CreatePipeline(m_StaticReceiverPipeline);
 		KRenderGlobal::RenderDevice->CreatePipeline(m_DynamicReceiverPipeline);
@@ -817,8 +817,8 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 				KRenderGlobal::GBuffer.GetSampler(),
 				true);
 
-			uint32_t staticBindings[] = { SHADER_BINDING_STATIC_CSM0, SHADER_BINDING_STATIC_CSM1, SHADER_BINDING_STATIC_CSM2, SHADER_BINDING_STATIC_CSM3 };
-			uint32_t dynamicBindings[] = { SHADER_BINDING_DYNAMIC_CSM0, SHADER_BINDING_DYNAMIC_CSM1, SHADER_BINDING_DYNAMIC_CSM2, SHADER_BINDING_DYNAMIC_CSM3 };
+			uint32_t staticBindings[] = { SHADER_BINDING_TEXTURE1, SHADER_BINDING_TEXTURE2, SHADER_BINDING_TEXTURE3, SHADER_BINDING_TEXTURE4 };
+			uint32_t dynamicBindings[] = { SHADER_BINDING_TEXTURE1, SHADER_BINDING_TEXTURE2, SHADER_BINDING_TEXTURE3, SHADER_BINDING_TEXTURE4 };
 
 			for (uint32_t cascadedIndex = 0; cascadedIndex < numCascaded; ++cascadedIndex)
 			{

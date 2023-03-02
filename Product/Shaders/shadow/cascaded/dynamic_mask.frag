@@ -1,5 +1,11 @@
 #include "public.h"
-#include "cascadedshadow_dynamic.h"
+
+#define BINDING_DYNAMIC_CSM0 BINDING_TEXTURE1
+#define BINDING_DYNAMIC_CSM1 BINDING_TEXTURE2
+#define BINDING_DYNAMIC_CSM2 BINDING_TEXTURE3
+#define BINDING_DYNAMIC_CSM3 BINDING_TEXTURE4
+
+#include "dynamic_mask.h"
 
 layout(location = 0) in vec2 inUV;
 layout(location = 0) out vec4 outColor;

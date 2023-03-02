@@ -1,5 +1,5 @@
-#ifndef _CSM_STATIC_H_
-#define _CSM_STATIC_H_
+#ifndef _STATIC_MASK_
+#define _STATIC_MASK_
 
 #include "public.h"
 #include "shadow/shadow_sample.h"

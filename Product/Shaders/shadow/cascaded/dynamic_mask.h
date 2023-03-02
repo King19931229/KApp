@@ -1,5 +1,5 @@
-#ifndef _CSM_DYNAMIC_H_
-#define _CSM_DYNAMIC_H_
+#ifndef _DYNAMIC_MASK_H_
+#define _DYNAMIC_MASK_H_
 
 #include "public.h"
 #include "shadow/shadow_sample.h"

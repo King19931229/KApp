@@ -260,10 +260,21 @@ void KDeferredRenderer::RecreatePipeline()
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
-		pipeline->SetSampler(SHADER_BINDING_TEXTURE6,
-			KRenderGlobal::ClipmapVoxilzer.GetFinalMask()->GetFrameBuffer(),
-			KRenderGlobal::GBuffer.GetSampler(),
-			true);
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+		{
+			pipeline->SetSampler(SHADER_BINDING_TEXTURE6,
+				KRenderGlobal::Voxilzer.GetFinalMask()->GetFrameBuffer(),
+				KRenderGlobal::GBuffer.GetSampler(),
+				true);
+		}
+
+		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+		{
+			pipeline->SetSampler(SHADER_BINDING_TEXTURE6,
+				KRenderGlobal::ClipmapVoxilzer.GetFinalMask()->GetFrameBuffer(),
+				KRenderGlobal::GBuffer.GetSampler(),
+				true);
+		}
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE7,
 			KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(),

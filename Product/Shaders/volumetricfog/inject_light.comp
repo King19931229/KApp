@@ -1,8 +1,21 @@
 #define COMPUTE_SHADER
 #include "volumetric_fog_public.h"
 #include "sampling.h"
-#include "shadow/cascadedshadow_static.h"
-#include "shadow/cascadedshadow_dynamic.h"
+
+#define BINDING_STATIC_CSM0 VOLUMETRIC_FOG_BINDING_STATIC_CSM0
+#define BINDING_STATIC_CSM1 VOLUMETRIC_FOG_BINDING_STATIC_CSM1
+#define BINDING_STATIC_CSM2 VOLUMETRIC_FOG_BINDING_STATIC_CSM2
+#define BINDING_STATIC_CSM3 VOLUMETRIC_FOG_BINDING_STATIC_CSM3
+
+#include "shadow/cascaded/static_mask.h"
+
+#define BINDING_DYNAMIC_CSM0 VOLUMETRIC_FOG_BINDING_DYNAMIC_CSM0
+#define BINDING_DYNAMIC_CSM1 VOLUMETRIC_FOG_BINDING_DYNAMIC_CSM1
+#define BINDING_DYNAMIC_CSM2 VOLUMETRIC_FOG_BINDING_DYNAMIC_CSM2
+#define BINDING_DYNAMIC_CSM3 VOLUMETRIC_FOG_BINDING_DYNAMIC_CSM3
+
+#include "shadow/cascaded/dynamic_mask.h"
+
 
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROUP_SIZE) in;
 

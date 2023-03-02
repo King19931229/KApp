@@ -40,6 +40,11 @@ uniform Object
 	int reuseCount;
 } object;
 
+float GetLuminance(vec3 color)
+{
+	return dot(color, vec3(0.3, 0.59, 0.11 ));
+}
+
 void main()
 {
 	uint frameNum = object.frameNum;
@@ -88,7 +93,7 @@ void main()
 
 	for(int i = 0; i < reuseCount; ++i)
 	{
-		vec2 offset = sample_offset[0][i] * invScreenSize;
+		vec2 offset = sample_offset[sampleArrayIndex][i] * invScreenSize;
 		offset = rotationMat * offset;
 		vec2 uv = screenCoord + offset;
 
@@ -111,7 +116,9 @@ void main()
 		vec4 hitColor;
 		hitColor.xyz = texture(sceneColorImage, hitResult.xy).rgb;
 		hitColor.w = pdf;
-
+#if SSR_SUPPRESS_OVER_BRGHT
+		hitColor.xyz /= 1.0 + GetLuminance(hitColor.xyz);
+#endif
 		vec3 hitVSPos = ScreenPosToViewPos(hitResult.xyz);
 
 		float brdf = BRDF(originVSNormal, viewVS, normalize(hitVSPos - originVSPos), roughness);
@@ -126,6 +133,9 @@ void main()
 	{
 		result /= weightSum;
 		mask /= weightSum;
+#if SSR_SUPPRESS_OVER_BRGHT
+		result.xyz /= 1.0 - GetLuminance(result.xyz);
+#endif
 	}
 
 	outColor = vec4(result.rgb, mask.r);

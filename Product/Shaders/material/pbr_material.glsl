@@ -1,27 +1,27 @@
 #include "public.h"
 
 #if HAS_MATERIAL_TEXTURE0
-layout(binding = BINDING_MATERIAL0) uniform sampler2D diffuseSampler;
+layout(binding = BINDING_TEXTURE0) uniform sampler2D diffuseSampler;
 #endif
 
 #if HAS_MATERIAL_TEXTURE1
-layout(binding = BINDING_MATERIAL1) uniform sampler2D normalSampler;
+layout(binding = BINDING_TEXTURE1) uniform sampler2D normalSampler;
 #endif
 
 #if HAS_MATERIAL_TEXTURE2
 #if PBR_MATERIAL_SPECULAR_GLOSINESS
 layout(binding = BINDING_MATERIAL2) uniform sampler2D specularGlosinessSampler;
 #else
-layout(binding = BINDING_MATERIAL2) uniform sampler2D metalRoughnessSampler;
+layout(binding = BINDING_TEXTURE2) uniform sampler2D metalRoughnessSampler;
 #endif
 #endif
 
 #if HAS_MATERIAL_TEXTURE3
-layout(binding = BINDING_MATERIAL3) uniform sampler2D emissiveSampler;
+layout(binding = BINDING_TEXTURE3) uniform sampler2D emissiveSampler;
 #endif
 
 #if HAS_MATERIAL_TEXTURE4
-layout(binding = BINDING_MATERIAL4) uniform sampler2D aoSampler;
+layout(binding = BINDING_TEXTURE4) uniform sampler2D aoSampler;
 #endif
 
 #define MANUAL_SRGB 1

@@ -402,7 +402,7 @@ KVulkanShader::ShaderInitResult KVulkanShader::InitFromFileImpl(const std::strin
 		else
 		{
 			const char* annotatedSource = m_SourceFile->GetAnnotatedSource();
-			KG_LOGE(LM_RENDER, "[Generate SpirV Failed]\n%s\n", annotatedSource);
+			KG_LOGE(LM_RENDER, "[Generate SpirV Failed]\n<%s>\n%s\n", path.c_str(), annotatedSource);
 			return SHADER_INIT_COMPILE_FAILURE;
 		}
 	}

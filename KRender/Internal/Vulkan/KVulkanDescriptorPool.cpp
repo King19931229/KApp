@@ -225,6 +225,8 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 
 			VkDescriptorImageInfo &imageInfoStart = m_DynamicImageWriteInfo[imageWriteIdx];
 
+			assert(info.mipmaps.size() == info.images.size());
+
 			for (size_t i = 0; i < info.images.size(); ++i)
 			{
 				VkDescriptorImageInfo& imageInfo = m_DynamicImageWriteInfo[imageWriteIdx++];

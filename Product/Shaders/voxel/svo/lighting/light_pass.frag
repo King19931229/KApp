@@ -1,6 +1,6 @@
 #include "public.h"
 #include "voxel/svo/voxel_common.h"
-#include "shading/decode.h"
+#include "shading/gbuffer.h"
 
 layout(location = 0) out vec4 fragColor;
 

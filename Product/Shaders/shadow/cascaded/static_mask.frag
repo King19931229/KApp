@@ -1,5 +1,11 @@
 #include "public.h"
-#include "cascadedshadow_static.h"
+
+#define BINDING_STATIC_CSM0 BINDING_TEXTURE1
+#define BINDING_STATIC_CSM1 BINDING_TEXTURE2
+#define BINDING_STATIC_CSM2 BINDING_TEXTURE3
+#define BINDING_STATIC_CSM3 BINDING_TEXTURE4
+
+#include "static_mask.h"
 
 layout(location = 0) in vec2 inUV;
 layout(location = 0) out vec4 outColor;

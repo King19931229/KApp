@@ -1,5 +1,4 @@
 #include "public.h"
-#define cascaded_shadow static_cascaded
 
 layout(location = POSITION) in vec3 position;
 layout(location = NORMAL) in vec3 normal;
@@ -17,5 +16,5 @@ uniform Object
 
 void main()
 {
-	gl_Position = cascaded_shadow.light_view_proj[object.index] * transpose(mat4(world_row0, world_row1, world_row2, vec4(0, 0, 0, 1))) * vec4(position, 1.0);
+	gl_Position = static_cascaded.light_view_proj[object.index] * transpose(mat4(world_row0, world_row1, world_row2, vec4(0, 0, 0, 1))) * vec4(position, 1.0);
 }

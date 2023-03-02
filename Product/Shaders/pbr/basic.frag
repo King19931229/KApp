@@ -9,7 +9,7 @@ layout(location = 0) out vec4 outColor;
 
 #include "public.h"
 #include "pbr.h"
-#include "shadow/cascadedshadow_static.h"
+#include "shadow/cascaded/static_mask.h"
 
 layout(binding = BINDING_FRAGMENT_SHADING)
 uniform Shading

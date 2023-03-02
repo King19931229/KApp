@@ -347,6 +347,11 @@ bool KVulkanPipeline::SetSamplers(unsigned int location, const std::vector<IKFra
 		SamplerBindingInfo info;
 		info.images = images;
 		info.samplers = samplers;
+		info.mipmaps.reserve(images.size());
+		for (size_t i = 0; i < images.size(); ++i)
+		{
+			info.mipmaps.push_back({ 0, 0 });
+		}
 		info.dynamicWrite = dynimicWrite;
 		info.onceWrite = false;
 		ASSERT_RESULT(BindSampler(location, info));

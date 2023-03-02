@@ -5,8 +5,8 @@
 class KMaterialTextureBinding : public IKMaterialTextureBinding
 {
 protected:
-	KTextureRef m_Textures[SHADER_BINDING_MATERIAL_COUNT];
-	KSamplerRef m_Samplers[SHADER_BINDING_MATERIAL_COUNT];
+	KTextureRef m_Textures[16];
+	KSamplerRef m_Samplers[16];
 public:
 	KMaterialTextureBinding();
 	virtual ~KMaterialTextureBinding();

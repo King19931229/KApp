@@ -31,7 +31,8 @@ vec3 ScreenPosToViewPos(vec3 screenPos)
 	return viewPos.xyz / viewPos.w;
 }
 
+#define SSR_SUPPRESS_OVER_BRGHT 1
 #define SSR_OVERRIDE_ROUGHNESS 0
-#define SSR_ROUGHNESS 0.40
+#define SSR_ROUGHNESS 0.05
 
 #endif

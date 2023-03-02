@@ -133,7 +133,7 @@ namespace KRenderUtil
 				IKSamplerPtr sampler = textureBinding->GetSampler(i);
 				if (texture && sampler)
 				{
-					command.pipeline->SetSampler(SHADER_BINDING_MATERIAL_BEGIN + i, texture->GetFrameBuffer(), sampler, true);
+					command.pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, texture->GetFrameBuffer(), sampler, true);
 				}
 			}
 

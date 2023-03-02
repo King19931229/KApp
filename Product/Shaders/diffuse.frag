@@ -36,7 +36,7 @@ layout(location = 6) in vec4 inViewBinormal;
 layout(location = 0) out vec4 outColor;
 
 #include "public.h"
-#include "shadow/cascadedshadow_static.h"
+#include "shadow/cascaded/static_mask.h"
 
 layout(binding = BINDING_DIFFUSE) uniform sampler2D diffuseSampler;
 layout(binding = BINDING_NORMAL) uniform sampler2D normalSampler;

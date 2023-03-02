@@ -962,9 +962,9 @@ void KClipmapVoxilzer::SetupVoxelBuffer()
 void KClipmapVoxilzer::SetupVoxelPipeline()
 {
 	m_PrimaryCommandBuffer->BeginPrimary();
-	for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 	{
-		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_STATIC_CSM0, true);
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 	m_PrimaryCommandBuffer->End();
@@ -1005,11 +1005,11 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
 	m_InjectRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 
-	for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 	{
-		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_STATIC_CSM0, true);
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 		if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
-		m_InjectRadiancePipeline->BindSampler(bindingIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
+		m_InjectRadiancePipeline->BindSampler(VOXEL_CLIPMAP_BINDING_STATIC_CSM0 + cascadedIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
 	}
 
 	m_InjectRadiancePipeline->BindUniformBuffer(SHADER_BINDING_CAMERA, cameraBuffer);
@@ -1050,9 +1050,9 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_WrapRadianceBorderPipeline->Init("voxel/clipmap/lighting/wrap_border_radiance.comp");
 
 	m_PrimaryCommandBuffer->BeginPrimary();
-	for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 	{
-		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_STATIC_CSM0, true);
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 	}
 	m_PrimaryCommandBuffer->End();

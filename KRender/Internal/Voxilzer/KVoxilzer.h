@@ -238,4 +238,6 @@ public:
 
 	bool Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimension, uint32_t width, uint32_t height);
 	bool UnInit();
+
+	inline IKRenderTargetPtr GetFinalMask() { return m_LightPassTarget; }
 };

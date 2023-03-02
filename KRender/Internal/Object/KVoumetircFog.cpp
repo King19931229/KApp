@@ -27,14 +27,14 @@ KVolumetricFog::~KVolumetricFog()
 void KVolumetricFog::InitializePipeline()
 {
 	m_PrimaryCommandBuffer->BeginPrimary();
-	for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 	{
-		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_STATIC_CSM0, true);
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
-	for (uint32_t bindingIndex = SHADER_BINDING_DYNAMIC_CSM0; bindingIndex <= SHADER_BINDING_DYNAMIC_CSM3; ++bindingIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 	{
-		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_DYNAMIC_CSM0, false);
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 	m_PrimaryCommandBuffer->End();
@@ -55,18 +55,18 @@ void KVolumetricFog::InitializePipeline()
 		m_VoxelLightInjectPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_VOXEL_PREV, m_VoxelLightTarget[(i + 1) & 1]->GetFrameBuffer(), *m_VoxelSampler, false);
 		m_VoxelLightInjectPipeline[i]->BindStorageImage(VOLUMETRIC_FOG_BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 1, false);
 
-		for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
+		for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 		{
-			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_STATIC_CSM0, true);
+			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 			if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
-			m_VoxelLightInjectPipeline[i]->BindSampler(bindingIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
+			m_VoxelLightInjectPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_STATIC_CSM0 + cascadedIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
 		}
 
-		for (uint32_t bindingIndex = SHADER_BINDING_DYNAMIC_CSM0; bindingIndex <= SHADER_BINDING_DYNAMIC_CSM3; ++bindingIndex)
+		for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 		{
-			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_DYNAMIC_CSM0, false);
+			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
 			if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
-			m_VoxelLightInjectPipeline[i]->BindSampler(bindingIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
+			m_VoxelLightInjectPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_DYNAMIC_CSM0 + cascadedIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
 		}
 
 		m_VoxelLightInjectPipeline[i]->Init("volumetricfog/inject_light.comp");
@@ -99,14 +99,14 @@ void KVolumetricFog::InitializePipeline()
 	m_ScatteringPipeline->Init();
 
 	m_PrimaryCommandBuffer->BeginPrimary();
-	for (uint32_t bindingIndex = SHADER_BINDING_STATIC_CSM0; bindingIndex <= SHADER_BINDING_STATIC_CSM3; ++bindingIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 	{
-		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_STATIC_CSM0, true);
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 	}
-	for (uint32_t bindingIndex = SHADER_BINDING_DYNAMIC_CSM0; bindingIndex <= SHADER_BINDING_DYNAMIC_CSM3; ++bindingIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 	{
-		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(bindingIndex - SHADER_BINDING_DYNAMIC_CSM0, false);
+		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 	}
 	m_PrimaryCommandBuffer->End();

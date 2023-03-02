@@ -20,11 +20,11 @@ bool KMaterialSubMesh::CreateFixedPipeline()
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/shadow.vert", m_ShadowVSShader, false));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/shadow.frag", m_ShadowFSShader, false));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadow_static.vert", m_CascadedShadowStaticVSShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadow_static_instance.vert", m_CascadedShadowStaticVSInstanceShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascaded/static.vert", m_CascadedShadowStaticVSShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascaded/static_instance.vert", m_CascadedShadowStaticVSInstanceShader, false));
 
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadow_dynamic.vert", m_CascadedShadowDynamicVSShader, false));
-	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascadedshadow_dynamic_instance.vert", m_CascadedShadowDynamicVSInstanceShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascaded/dynamic.vert", m_CascadedShadowDynamicVSShader, false));
+	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/cascaded/dynamic_instance.vert", m_CascadedShadowDynamicVSInstanceShader, false));
 
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "voxel/svo/voxelzation/voxelzation.vert", m_VoxelVSShader, false));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/svo/voxelzation/voxelzation.geom", m_VoxelGSShader, false));
@@ -300,50 +300,6 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetDepthFunc(CF_NEVER, false, false);
 
-		if (stage == PIPELINE_STAGE_VOXEL)
-		{
-			pipeline->SetShader(ST_VERTEX, *m_VoxelVSShader);
-			pipeline->SetShader(ST_GEOMETRY, *m_VoxelGSShader);
-			pipeline->SetShader(ST_FRAGMENT, *m_VoxelFSShader);
-
-			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
-			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
-
-			pipeline->SetStorageImage(VOXEL_BINDING_ALBEDO, KRenderGlobal::Voxilzer.GetVoxelAlbedo(), EF_R32_UINT);
-			pipeline->SetStorageImage(VOXEL_BINDING_NORMAL, KRenderGlobal::Voxilzer.GetVoxelNormal(), EF_R32_UINT);
-			pipeline->SetStorageImage(VOXEL_BINDING_EMISSION, KRenderGlobal::Voxilzer.GetVoxelEmissive(), EF_R32_UINT);
-			pipeline->SetStorageImage(VOXEL_BINDING_STATIC_FLAG, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
-		}
-		else if(stage == PIPELINE_STAGE_SPARSE_VOXEL)
-		{
-			pipeline->SetShader(ST_VERTEX, *m_VoxelVSShader);
-			pipeline->SetShader(ST_GEOMETRY, *m_VoxelGSShader);
-			pipeline->SetShader(ST_FRAGMENT, *m_VoxelSparseFSShader);
-
-			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
-			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
-
-			pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTER, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCounterBuffer());
-			pipeline->SetStorageBuffer(VOXEL_BINDING_FRAGMENTLIST, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetFragmentlistBuffer());
-			pipeline->SetStorageBuffer(VOXEL_BINDING_COUNTONLY, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCountOnlyBuffer());
-			pipeline->SetStorageImage(VOXEL_BINDING_STATIC_FLAG, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
-		}
-		else
-		{
-			pipeline->SetShader(ST_VERTEX, *m_VoxelClipmapVSShader);
-			pipeline->SetShader(ST_GEOMETRY, *m_VoxelClipmapGSShader);
-			pipeline->SetShader(ST_FRAGMENT, *m_VoxelClipmapFSShader);
-
-			IKUniformBufferPtr voxelClipmapBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
-			pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelClipmapBuffer);
-
-			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_ALBEDO, KRenderGlobal::ClipmapVoxilzer.GetVoxelAlbedo(), EF_R32_UINT);
-			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_NORMAL, KRenderGlobal::ClipmapVoxilzer.GetVoxelNormal(), EF_R32_UINT);
-			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_EMISSION, KRenderGlobal::ClipmapVoxilzer.GetVoxelEmissive(), EF_R32_UINT);
-			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_STATIC_FLAG, KRenderGlobal::ClipmapVoxilzer.GetStaticFlag(), EF_UNKNOWN);
-			pipeline->SetStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, KRenderGlobal::ClipmapVoxilzer.GetVoxelVisibility(), EF_UNKNOWN);
-		}
-
 		IKMaterialTextureBindingPtr textureBinding = m_Material->GetTextureBinding();
 		for (uint8_t i = 0; i < textureBinding->GetNumSlot(); ++i)
 		{
@@ -368,15 +324,52 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 
 			if (i == MTS_DIFFUSE)
 			{
-				if (stage == PIPELINE_STAGE_CLIPMAP_VOXEL)
-				{
-					pipeline->SetSampler(VOXEL_CLIPMAP_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
-				}
-				else
-				{
-					pipeline->SetSampler(VOXEL_BINDING_DIFFUSE_MAP, texture->GetFrameBuffer(), sampler);
-				}	
+				pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, texture->GetFrameBuffer(), sampler);
 			}
+		}
+
+		if (stage == PIPELINE_STAGE_VOXEL)
+		{
+			pipeline->SetShader(ST_VERTEX, *m_VoxelVSShader);
+			pipeline->SetShader(ST_GEOMETRY, *m_VoxelGSShader);
+			pipeline->SetShader(ST_FRAGMENT, *m_VoxelFSShader);
+
+			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
+
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE3, KRenderGlobal::Voxilzer.GetVoxelAlbedo(), EF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE4, KRenderGlobal::Voxilzer.GetVoxelNormal(), EF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE5, KRenderGlobal::Voxilzer.GetVoxelEmissive(), EF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
+		}
+		else if (stage == PIPELINE_STAGE_SPARSE_VOXEL)
+		{
+			pipeline->SetShader(ST_VERTEX, *m_VoxelVSShader);
+			pipeline->SetShader(ST_GEOMETRY, *m_VoxelGSShader);
+			pipeline->SetShader(ST_FRAGMENT, *m_VoxelSparseFSShader);
+
+			IKUniformBufferPtr voxelBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+			pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelBuffer);
+
+			pipeline->SetStorageBuffer(SHADER_BINDING_TEXTURE3, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCounterBuffer());
+			pipeline->SetStorageBuffer(SHADER_BINDING_TEXTURE4, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetFragmentlistBuffer());
+			pipeline->SetStorageBuffer(SHADER_BINDING_TEXTURE5, ST_FRAGMENT, KRenderGlobal::Voxilzer.GetCountOnlyBuffer());
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
+		}
+		else
+		{
+			pipeline->SetShader(ST_VERTEX, *m_VoxelClipmapVSShader);
+			pipeline->SetShader(ST_GEOMETRY, *m_VoxelClipmapGSShader);
+			pipeline->SetShader(ST_FRAGMENT, *m_VoxelClipmapFSShader);
+
+			IKUniformBufferPtr voxelClipmapBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
+			pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_GEOMETRY | ST_FRAGMENT, voxelClipmapBuffer);
+
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE3, KRenderGlobal::ClipmapVoxilzer.GetVoxelAlbedo(), EF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE4, KRenderGlobal::ClipmapVoxilzer.GetVoxelNormal(), EF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE5, KRenderGlobal::ClipmapVoxilzer.GetVoxelEmissive(), EF_R32_UINT);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::ClipmapVoxilzer.GetStaticFlag(), EF_UNKNOWN);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE7, KRenderGlobal::ClipmapVoxilzer.GetVoxelVisibility(), EF_UNKNOWN);
 		}
 
 		ASSERT_RESULT(pipeline->Init());

@@ -18,7 +18,7 @@ enum MeshResourceType
 	MRT_UNKNOWN,
 };
 
-static_assert(MTS_COUNT <= SHADER_BINDING_MATERIAL_COUNT, "Semantic count out of bound");
+static_assert(MTS_COUNT <= 16, "Semantic count out of bound");
 class KMesh
 {
 	friend class KSubMesh;

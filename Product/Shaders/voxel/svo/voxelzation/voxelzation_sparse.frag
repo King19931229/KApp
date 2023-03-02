@@ -17,14 +17,14 @@ layout(location = 0) in GeometryOut
 layout (location = 0) out vec4 fragColor;
 /*layout (pixel_center_integer)*/ in vec4 gl_FragCoord;
 
-layout(binding = VOXEL_BINDING_STATIC_FLAG, r8) uniform image3D staticVoxelFlag;
-layout(binding = VOXEL_BINDING_DIFFUSE_MAP) uniform sampler2D diffuseMap;
-layout(binding = VOXEL_BINDING_OPACITY_MAP) uniform sampler2D opacityMap;
-layout(binding = VOXEL_BINDING_EMISSION_MAP) uniform sampler2D emissiveMap;
+layout(binding = BINDING_TEXTURE0) uniform sampler2D diffuseMap;
+layout(binding = BINDING_TEXTURE1) uniform sampler2D opacityMap;
+layout(binding = BINDING_TEXTURE2) uniform sampler2D emissiveMap;
 
-layout(binding = VOXEL_BINDING_COUNTER) buffer uuCounter { uint uCounter; };
-layout(binding = VOXEL_BINDING_FRAGMENTLIST) writeonly buffer uuFragmentList { uvec4 uFragmentList[]; };
-layout(binding = VOXEL_BINDING_COUNTONLY) readonly buffer uuCountOnly { uint uCountOnly; };
+layout(binding = BINDING_TEXTURE3) buffer uuCounter { uint uCounter; };
+layout(binding = BINDING_TEXTURE4) writeonly buffer uuFragmentList { uvec4 uFragmentList[]; };
+layout(binding = BINDING_TEXTURE5) readonly buffer uuCountOnly { uint uCountOnly; };
+layout(binding = BINDING_TEXTURE6, r8) uniform image3D staticVoxelFlag;
 
 #if 0
 uniform struct Material

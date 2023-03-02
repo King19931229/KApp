@@ -299,7 +299,7 @@ bool KSourceFile::Parse(std::string& output, const std::string& dir, const std::
 							if (!Success)
 							{
 								std::string error;
-								error += "Could not find include file " + includeFile + " in " + file + "\n";
+								error += "Could not find include file <" + includeFile + "> in <" + file + ">\n";
 								error += "\tSearch path:\n";
 								error += "\t\t[" + dir + "]";
 								for (const std::string& includePath : m_IncludePath)

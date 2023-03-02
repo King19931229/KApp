@@ -48,6 +48,13 @@
 
 namespace KRenderGlobal
 {
+	enum GIMethod
+	{
+		SVO_GI,
+		CLIPMAP_GI
+	};
+	extern GIMethod UsingGIMethod;
+
 	extern KFrameResourceManager FrameResourceManager;
 	extern KShaderManager ShaderManager;
 	extern KMeshManager MeshManager;
