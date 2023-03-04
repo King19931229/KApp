@@ -165,8 +165,10 @@ struct KRenderCommand
 	bool instanceDraw;
 	bool meshShaderDraw;
 
+	// TODO Array
 	KDynamicConstantBufferUsage objectUsage;
 	KDynamicConstantBufferUsage shadingUsage;
+	KDynamicConstantBufferUsage debugUsage;
 
 	std::vector<KInstanceBufferUsage> instanceUsages;
 	std::vector<KStorageBufferUsage> meshStorageUsages;

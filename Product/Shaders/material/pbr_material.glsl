@@ -106,9 +106,12 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	parameters.motion = prevUV - currUV;
 
 #if HAS_MATERIAL_TEXTURE0
-	parameters.baseColor = (SRGBtoLINEAR(texture(diffuseSampler, texCoord)) * shading.baseColorFactor).rgb;
+	vec4 diffuse = SRGBtoLINEAR(texture(diffuseSampler, texCoord));
+	parameters.baseColor = diffuse.rgb * shading.baseColorFactor.rgb;
+	parameters.opacity = diffuse.a * shading.baseColorFactor.a;
 #else
 	parameters.baseColor = shading.baseColorFactor.rgb;
+	parameters.opacity = 1.0;
 #endif
 
 #if PBR_MATERIAL_MASK

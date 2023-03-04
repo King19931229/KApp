@@ -47,7 +47,7 @@ namespace KRenderUtil
 		}
 	}
 
-	void CalculateInstanceByMaterial(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances)
+	void CalculateInstancesByMaterial(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances)
 	{
 		std::map<std::tuple<KSubMeshPtr, IKMaterialPtr>, size_t> materialSubMeshIndexMap;
 
@@ -88,6 +88,36 @@ namespace KRenderUtil
 				}
 			}
 		}
+	}
+
+	void GetInstances(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp)
+	{
+		instances.clear();
+
+		for (KRenderComponent* render : renderComponents)
+		{
+			IKEntity* entity = render->GetEntityHandle();
+			KTransformComponent* transform = nullptr;
+			if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
+			{
+				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
+
+				for (size_t i = 0; i < materialSubMeshes.size(); ++i)
+				{
+					const KConstantDefinition::OBJECT& finalTransform = transform->FinalTransform();
+					glm::mat4 curTransform = glm::transpose(finalTransform.MODEL);
+					glm::mat4 prevTransform = glm::transpose(finalTransform.PRVE_MODEL);
+
+					KMaterialSubMeshInstance subMeshInstance;
+					subMeshInstance.materialSubMesh = materialSubMeshes[i];
+					subMeshInstance.instanceData.push_back(KVertexDefinition::INSTANCE_DATA_MATRIX4F(curTransform[0], curTransform[1], curTransform[2], prevTransform[0], prevTransform[1], prevTransform[2]));
+
+					instances.push_back(subMeshInstance);
+				}
+			}
+		}
+
+		std::sort(instances.begin(), instances.end(), comp);
 	}
 
 	bool AssignShadingParameter(KRenderCommand& command, KMaterialRef material)

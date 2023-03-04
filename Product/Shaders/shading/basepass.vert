@@ -23,11 +23,11 @@ void main()
 	mat4 worldMatrix = WORLD_MATRIX;
 	mat4 prevWorldMatrix = PREV_WORLD_MATRIX;
 
-	vec4 worldNormal = worldMatrix * vec4(normal, 0.0);
+	vec4 worldNormal = normalize(worldMatrix * vec4(normal, 0.0));
 
 #if TANGENT_BINORMAL_INPUT
-	vec4 worldTangent = worldMatrix * vec4(tangent, 0.0);
-	vec4 worldBinormal = worldMatrix * vec4(binormal, 0.0);
+	vec4 worldTangent = normalize(worldMatrix * vec4(tangent, 0.0));
+	vec4 worldBinormal = normalize(worldMatrix * vec4(binormal, 0.0));
 #endif
 
 	vec4 worldPos = worldMatrix * vec4(position, 1.0);

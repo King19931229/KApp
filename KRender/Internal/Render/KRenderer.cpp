@@ -120,8 +120,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::GBuffer.TranslateDepthStencilAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 		KRenderGlobal::GBuffer.TranslateColorAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 
-		KRenderGlobal::DeferredRenderer.ForwardTransprant(m_PrimaryBuffer);
 		KRenderGlobal::DeferredRenderer.SkyPass(m_PrimaryBuffer);
+		KRenderGlobal::DeferredRenderer.ForwardTransprant(m_PrimaryBuffer, cullRes);
 
 		//
 		KRenderGlobal::DepthOfField.Execute(m_PrimaryBuffer);

@@ -352,6 +352,95 @@ void KDeferredRenderer::RecreatePipeline()
 	}
 }
 
+void KDeferredRenderer::BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<KRenderComponent*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances)
+{
+	if (renderStage == DRS_STAGE_BASE_PASS)
+	{
+		KRenderUtil::CalculateInstancesByMaterial(cullRes, instances);
+	}
+	else if(renderStage == DRS_STAGE_FORWARD_TRANSPRANT)
+	{
+		KMaterialSubMeshInstanceCompareFunction comp = [this](const KMaterialSubMeshInstance& lhs, const KMaterialSubMeshInstance& rhs) ->bool
+		{
+			const glm::vec3& cameraPos = m_Camera->GetPosition();
+			const glm::vec3& cameraForward = m_Camera->GetForward();
+
+			assert(lhs.instanceData.size() == rhs.instanceData.size() == 1);
+			const glm::vec3 lhsPos = glm::vec3(lhs.instanceData[0].ROW0[3], lhs.instanceData[0].ROW1[3], lhs.instanceData[0].ROW2[3]);
+			const glm::vec3 rhsPos = glm::vec3(rhs.instanceData[0].ROW0[3], rhs.instanceData[0].ROW1[3], rhs.instanceData[0].ROW2[3]);
+
+			const float lhsDis = glm::dot(lhsPos - cameraPos, cameraForward);
+			const float rhsDis = glm::dot(rhsPos - cameraPos, cameraForward);
+
+			return lhsDis > rhsDis;
+		};
+
+		KRenderUtil::GetInstances(cullRes, instances, comp);
+	}
+}
+
+void KDeferredRenderer::HandleRenderCommandBinding(DeferredRenderStage renderStage, KRenderCommand& command)
+{
+	if (renderStage == DRS_STAGE_FORWARD_TRANSPRANT)
+	{
+		IKPipelinePtr& pipeline = command.pipeline;
+
+		IKUniformBufferPtr voxelSVOBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL);
+		pipeline->SetConstantBuffer(CBT_VOXEL, ST_VERTEX | ST_FRAGMENT, voxelSVOBuffer);
+
+		IKUniformBufferPtr voxelClipmapBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_VOXEL_CLIPMAP);
+		pipeline->SetConstantBuffer(CBT_VOXEL_CLIPMAP, ST_VERTEX | ST_FRAGMENT, voxelClipmapBuffer);
+
+		IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+		pipeline->SetConstantBuffer(CBT_CAMERA, ST_VERTEX | ST_FRAGMENT, cameraBuffer);
+
+		IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
+		pipeline->SetConstantBuffer(CBT_GLOBAL, ST_VERTEX | ST_FRAGMENT, globalBuffer);
+
+		for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+		{
+			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
+			pipeline->SetSampler(SHADER_BINDING_TEXTURE5 + cascadedIndex,
+				KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
+				KRenderGlobal::GBuffer.GetSampler(),
+				true);
+		}
+		for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+		{
+			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
+			pipeline->SetSampler(SHADER_BINDING_TEXTURE9 + cascadedIndex,
+				KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
+				KRenderGlobal::GBuffer.GetSampler(),
+				true);
+		}
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE13,
+			KRenderGlobal::CubeMap.GetDiffuseIrradiance()->GetFrameBuffer(),
+			KRenderGlobal::CubeMap.GetDiffuseIrradianceSampler(),
+			true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE14,
+			KRenderGlobal::CubeMap.GetSpecularIrradiance()->GetFrameBuffer(),
+			KRenderGlobal::CubeMap.GetSpecularIrradianceSampler(),
+			true);
+
+		pipeline->SetSampler(SHADER_BINDING_TEXTURE15,
+			KRenderGlobal::CubeMap.GetIntegrateBRDF()->GetFrameBuffer(),
+			KRenderGlobal::CubeMap.GetIntegrateBRDFSampler(),
+			true);
+
+		struct Debug
+		{
+			uint32_t debugOption;
+		} debugUsage;
+
+		debugUsage.debugOption = m_DebugOption;
+		command.debugUsage.binding = SHADER_BINDING_DEBUG;
+		command.debugUsage.range = sizeof(debugUsage);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&debugUsage, command.debugUsage);
+	}
+}
+
 void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, DeferredRenderStage renderStage, const std::vector<KRenderComponent*>& cullRes)
 {
 	PipelineStage pipelineStage = GDeferredRenderStageDescription[renderStage].pipelineStage;
@@ -363,23 +452,21 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 	KRenderStageStatistics& statistics = m_Statistics[renderStage];
 	statistics.Reset();
 
-	// cull if render->IsOcclusionVisible()
-
 	std::vector<KMaterialSubMeshInstance> instances;
-	KRenderUtil::CalculateInstanceByMaterial(cullRes, instances);
+	BuildMaterialSubMeshInstance(renderStage, cullRes, instances);
 
-	for (KMaterialSubMeshInstance& instance : instances)
+	for (KMaterialSubMeshInstance& subMeshInstance : instances)
 	{
-		const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instance.instanceData;
+		const std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
 
 		ASSERT_RESULT(!instances.empty());
 
 		if (instancePipelineStage != PIPELINE_STAGE_UNKNOWN && instances.size() > 1)
 		{
 			KRenderCommand command;
-			if (instance.materialSubMesh->GetRenderCommand(instancePipelineStage, command))
+			if (subMeshInstance.materialSubMesh->GetRenderCommand(instancePipelineStage, command))
 			{
-				if (!KRenderUtil::AssignShadingParameter(command, instance.materialSubMesh->GetMaterial()))
+				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 				{
 					return;
 				}
@@ -413,6 +500,7 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 					statistics.faces += command.vertexData->vertexCount / 3;
 				}
 
+				HandleRenderCommandBinding(renderStage, command);
 				command.pipeline->GetHandle(m_RenderPass[renderStage], command.pipelineHandle);
 
 				if (command.Complete())
@@ -424,9 +512,9 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 		else
 		{
 			KRenderCommand command;
-			if (instance.materialSubMesh->GetRenderCommand(pipelineStage, command))
+			if (subMeshInstance.materialSubMesh->GetRenderCommand(pipelineStage, command))
 			{
-				if (!KRenderUtil::AssignShadingParameter(command, instance.materialSubMesh->GetMaterial()))
+				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 				{
 					return;
 				}
@@ -455,6 +543,7 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 						statistics.faces += command.vertexData->vertexCount / 3;
 					}
 
+					HandleRenderCommandBinding(renderStage, command);
 					command.pipeline->GetHandle(m_RenderPass[renderStage], command.pipelineHandle);
 
 					if (command.Complete())
@@ -558,8 +647,9 @@ void KDeferredRenderer::BasePass(IKCommandBufferPtr primaryBuffer, const std::ve
 	BuildRenderCommand(primaryBuffer, DRS_STAGE_BASE_PASS, cullRes);
 }
 
-void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer)
+void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes)
 {
+	BuildRenderCommand(primaryBuffer, DRS_STAGE_FORWARD_TRANSPRANT, cullRes);
 }
 
 void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
@@ -696,15 +786,15 @@ void KDeferredRenderer::DeferredLighting(IKCommandBufferPtr primaryBuffer)
 	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 	command.indexDraw = true;
 
-	struct Object
+	struct Debug
 	{
 		uint32_t debugOption;
-	} objectUsage;
+	} debugUsage;
 
-	objectUsage.debugOption = m_DebugOption;
-	command.objectUsage.binding = SHADER_BINDING_OBJECT;
-	command.objectUsage.range = sizeof(objectUsage);
-	KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectUsage, command.objectUsage);
+	debugUsage.debugOption = m_DebugOption;
+	command.debugUsage.binding = SHADER_BINDING_DEBUG;
+	command.debugUsage.range = sizeof(debugUsage);
+	KRenderGlobal::DynamicConstantBufferManager.Alloc(&debugUsage, command.debugUsage);
 
 	commandBuffer->BeginSecondary(renderPass);
 	commandBuffer->SetViewport(renderPass->GetViewPort());

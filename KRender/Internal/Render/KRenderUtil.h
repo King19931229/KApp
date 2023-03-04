@@ -10,10 +10,13 @@ struct KMaterialSubMeshInstance
 	std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F> instanceData;
 };
 
+typedef std::function<bool(const KMaterialSubMeshInstance&, const KMaterialSubMeshInstance&)> KMaterialSubMeshInstanceCompareFunction;
+
 namespace KRenderUtil
 {
 	void CalculateInstancesByMesh(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances);
-	void CalculateInstanceByMaterial(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances);
+	void CalculateInstancesByMaterial(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances);
+	void GetInstances(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp);
 	bool AssignShadingParameter(KRenderCommand& command, KMaterialRef material);
 	bool AssignMeshStorageParameter(KRenderCommand& command);
 };

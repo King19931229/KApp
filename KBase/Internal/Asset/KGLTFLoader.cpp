@@ -426,10 +426,10 @@ void KGLTFLoader::GetNodeProps(const tinygltf::Node& node, const tinygltf::Model
 	}
 	if (node.mesh > -1)
 	{
-		const tinygltf::Mesh mesh = model.meshes[node.mesh];
+		const tinygltf::Mesh& mesh = model.meshes[node.mesh];
 		for (size_t i = 0; i < mesh.primitives.size(); i++)
 		{
-			auto primitive = mesh.primitives[i];
+			const auto& primitive = mesh.primitives[i];
 			vertexCount += model.accessors[primitive.attributes.find("POSITION")->second].count;
 			if (primitive.indices > -1)
 			{
@@ -603,6 +603,11 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 
 				hasSkin = (bufferJoints && bufferWeights);
 
+				if (loaderInfo.vertexPos + posAccessor.count > loaderInfo.vertexBuffer.size())
+				{
+					loaderInfo.vertexBuffer.resize(loaderInfo.vertexPos + posAccessor.count);
+				}
+
 				for (size_t v = 0; v < posAccessor.count; v++)
 				{
 					Vertex& vert = loaderInfo.vertexBuffer[loaderInfo.vertexPos];
@@ -681,6 +686,11 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 
 				indexCount = static_cast<uint32_t>(accessor.count);
 				const void* dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+
+				if (loaderInfo.indexPos + accessor.count > loaderInfo.indexBuffer.size())
+				{
+					loaderInfo.indexBuffer.resize(loaderInfo.indexPos + accessor.count);
+				}
 
 				switch (accessor.componentType)
 				{

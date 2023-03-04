@@ -289,11 +289,13 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(const VertexFormat* formats, size_t 
 		if (m_ShadingMode == MSM_OPAQUE)
 		{
 			pipeline->SetBlendEnable(false);
+			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 		}
 		else
 		{
 			pipeline->SetBlendEnable(true);
 			pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
+			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, false, true);
 		}
 
 		pipeline->SetCullMode(CM_BACK);
@@ -301,8 +303,6 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(const VertexFormat* formats, size_t 
 		pipeline->SetPolygonMode(PM_FILL);
 
 		pipeline->SetColorWrite(true, true, true, true);
-
-		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
 		const KShaderInformation& vsInfo = vertexShader->GetInformation();
 		const KShaderInformation& fsInfo = fragmentShader->GetInformation();
@@ -791,44 +791,55 @@ bool KMaterial::InitFromImportAssetMaterial(const KAssetImportResult::Material& 
 		}
 	}
 
-	if (input.alphaMode == MAM_OPAQUE)
+	std::string materialCode;
+	if (input.metalWorkFlow)
 	{
-		std::string materialCode;
-		if (input.metalWorkFlow)
-		{
-			ASSERT_RESULT(SetupMaterialGeneratedCode("material/base_color.glsl", materialCode));
-		}
-		else
-		{
-			ASSERT_RESULT(SetupMaterialGeneratedCode("material/diffuse.glsl", materialCode));
-		}
+		ASSERT_RESULT(SetupMaterialGeneratedCode("material/base_color.glsl", materialCode));
+	}
+	else
+	{
+		ASSERT_RESULT(SetupMaterialGeneratedCode("material/diffuse.glsl", materialCode));
+	}
 
+	if (input.alphaMode == MAM_OPAQUE || input.alphaMode == MAM_MASK)
+	{
 		KShaderMapInitContext initContext;
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/basepass.frag";
 		initContext.IncludeSource = { {"material_generate_code.h", materialCode} };
 
+		m_ShadingMode = MSM_OPAQUE;
+
 		ASSERT_RESULT(m_ShaderMap.Init(initContext, async));
+	}
+	else if (input.alphaMode == MAM_BLEND)
+	{
+		KShaderMapInitContext initContext;
+		initContext.vsFile = "shading/basepass.vert";
+		initContext.fsFile = "shading/translucent.frag";
+		initContext.IncludeSource = { {"material_generate_code.h", materialCode} };
 
-		GetParameter();
+		m_ShadingMode = MSM_TRANSRPANT;
 
-		m_Parameter->SetValue("baseColorFactor", MaterialValueType::FLOAT, 4, &input.baseColorFactor);
-		m_Parameter->SetValue("emissiveFactor", MaterialValueType::FLOAT, 4, &input.emissiveFactor);
-		m_Parameter->SetValue("metallicFactor", MaterialValueType::FLOAT, 1, &input.metallicFactor);
-		m_Parameter->SetValue("roughnessFactor", MaterialValueType::FLOAT, 1, &input.roughnessFactor);
-		m_Parameter->SetValue("alphaMask", MaterialValueType::FLOAT, 1, &input.alphaMask);
-		m_Parameter->SetValue("alphaCutoff", MaterialValueType::FLOAT, 1, &input.alphaCutoff);
-
-		if (!input.metalWorkFlow)
-		{
-			m_Parameter->SetValue("diffuseFactor", MaterialValueType::FLOAT, 4, &input.extension.diffuseFactor);
-			m_Parameter->SetValue("specularFactor", MaterialValueType::FLOAT, 4, &input.extension.specularFactor);
-		}
-
-		return true;
+		ASSERT_RESULT(m_ShaderMap.Init(initContext, async));
 	}
 
-	return false;
+	GetParameter();
+
+	m_Parameter->SetValue("baseColorFactor", MaterialValueType::FLOAT, 4, &input.baseColorFactor);
+	m_Parameter->SetValue("emissiveFactor", MaterialValueType::FLOAT, 4, &input.emissiveFactor);
+	m_Parameter->SetValue("metallicFactor", MaterialValueType::FLOAT, 1, &input.metallicFactor);
+	m_Parameter->SetValue("roughnessFactor", MaterialValueType::FLOAT, 1, &input.roughnessFactor);
+	m_Parameter->SetValue("alphaMask", MaterialValueType::FLOAT, 1, &input.alphaMask);
+	m_Parameter->SetValue("alphaCutoff", MaterialValueType::FLOAT, 1, &input.alphaCutoff);
+
+	if (!input.metalWorkFlow)
+	{
+		m_Parameter->SetValue("diffuseFactor", MaterialValueType::FLOAT, 4, &input.extension.diffuseFactor);
+		m_Parameter->SetValue("specularFactor", MaterialValueType::FLOAT, 4, &input.extension.specularFactor);
+	}
+
+	return true;
 }
 
 bool KMaterial::SaveAsFile(const std::string& path)

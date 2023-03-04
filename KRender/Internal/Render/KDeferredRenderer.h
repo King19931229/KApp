@@ -3,6 +3,7 @@
 #include "Interface/IKStatistics.h"
 #include "Internal/KVertexDefinition.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
+#include "Internal/Render/KRenderUtil.h"
 
 enum DeferredRenderStage
 {
@@ -144,6 +145,8 @@ protected:
 
 	const class KCamera* m_Camera;
 
+	void BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<KRenderComponent*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances);
+	void HandleRenderCommandBinding(DeferredRenderStage renderStage, KRenderCommand& command);
 	void BuildRenderCommand(IKCommandBufferPtr primaryBuffer, DeferredRenderStage renderStage, const std::vector<KRenderComponent*>& cullRes);
 
 	void RecreateRenderPass(uint32_t width, uint32_t heigh);
@@ -162,7 +165,7 @@ public:
 	void PrePass(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes);
 	void BasePass(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes);
 	void DeferredLighting(IKCommandBufferPtr primaryBuffer);
-	void ForwardTransprant(IKCommandBufferPtr primaryBuffer);
+	void ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes);
 	void SkyPass(IKCommandBufferPtr primaryBuffer);
 	void CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer);
 	void DebugObject(IKCommandBufferPtr primaryBuffer);
