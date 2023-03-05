@@ -212,7 +212,7 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 	auto AssignPipeline = [&](const char* vs, const char* fs, KShaderMap& shaderMap, IKPipelinePtr& pipeline)
 	{
 		KShaderMapInitContext initContext = { vs, fs };
-		shaderMap.Init(initContext, false);
+		ASSERT_RESULT(shaderMap.Init(initContext, false));
 
 		IKShaderPtr vertexShader = shaderMap.GetVSShader(formats, 1);
 		IKShaderPtr fragmentShader = shaderMap.GetFSShader(formats, 1, &m_TextureBinding, false);

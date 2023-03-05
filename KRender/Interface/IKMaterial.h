@@ -79,7 +79,6 @@ enum MaterialShadingMode
 struct IKMaterial;
 typedef std::shared_ptr<IKMaterial> IKMaterialPtr;
 
-// 待重构
 struct IKMaterial
 {
 	virtual ~IKMaterial() {}
@@ -103,12 +102,19 @@ struct IKMaterial
 	virtual IKPipelinePtr CreateMeshPipeline(const VertexFormat* formats, size_t count) = 0;
 	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t coun) = 0;
 
+	virtual IKPipelinePtr CreateCSMPipeline(const VertexFormat* formats, size_t count, bool staticCSM) = 0;
+	virtual IKPipelinePtr CreateCSMMeshPipeline(const VertexFormat* formats, size_t count, bool staticCSM) = 0;
+	virtual IKPipelinePtr CreateCSMInstancePipeline(const VertexFormat* formats, size_t count, bool staticCSM) = 0;
+
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;
 	virtual bool InitFromImportAssetMaterial(const KAssetImportResult::Material& input, bool async) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual const std::string& GetPath() const = 0;
 	virtual bool SaveAsFile(const std::string& path) = 0;
+
+	virtual bool IsDoubleSide() const = 0;
+	virtual void SetDoubleSide(bool doubleSide) = 0;
 
 	virtual bool Reload() = 0;
 };

@@ -368,7 +368,7 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_DepthBiasSlope[3] = 1.0f;
 
 	m_ShadowCamera.SetPosition(glm::vec3(0.0f, 1000.0f, 0.0f));
-	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 600.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, -600.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	m_ShadowCamera.SetOrtho(2000.0f, 2000.0f, -1000.0f, 1000.0f);
 }
 
@@ -932,7 +932,7 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex,
 	std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
 	std::vector<KMaterialSubMeshInstance> instances;
-	KRenderUtil::CalculateInstancesByMesh(litCullRes, instances);
+	KRenderUtil::CalculateInstancesByMaterial(litCullRes, instances);
 
 	// 准备Instance数据
 	for (KMaterialSubMeshInstance& instance : instances)
@@ -979,6 +979,11 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex,
 			{
 				statistics.primtives += command.vertexData->vertexCount;
 				statistics.faces += command.vertexData->vertexCount / 3;
+			}
+
+			if (!KRenderUtil::AssignShadingParameter(command, materialSubMesh->GetMaterial()))
+			{
+				continue;
 			}
 
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);

@@ -208,6 +208,10 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		{
 			dynamicUsages[dynamicBufferCount++] = &(command.shadingUsage);
 		}
+		if (command.debugUsage.buffer)
+		{
+			dynamicUsages[dynamicBufferCount++] = &(command.debugUsage);
+		}
 
 		for (uint32_t i = 0; i < dynamicBufferCount; ++i)
 		{

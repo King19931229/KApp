@@ -93,7 +93,7 @@ struct KAssetImportResult
 		MaterialAlphaMode alphaMode;
 
 		float alphaMask;
-		float alphaCutoff;
+		float alphaMaskCutoff;
 		float metallicFactor;
 		float roughnessFactor;
 		glm::vec4 baseColorFactor;
@@ -122,7 +122,7 @@ struct KAssetImportResult
 		{
 			alphaMode = MAM_OPAQUE;
 			alphaMask = 0.0f;
-			alphaCutoff = 1.0f;
+			alphaMaskCutoff = 1.0f;
 			metallicFactor = 1.0f;
 			roughnessFactor = 1.0f;
 			baseColorFactor = glm::vec4(1.0f);

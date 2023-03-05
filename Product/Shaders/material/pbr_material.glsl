@@ -88,6 +88,20 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 {
 	MaterialPixelParameters parameters;
 
+#if HAS_MATERIAL_TEXTURE0
+	vec4 diffuse = SRGBtoLINEAR(texture(diffuseSampler, texCoord));
+	parameters.baseColor = diffuse.rgb * shading.baseColorFactor.rgb;
+	parameters.opacity = diffuse.a * shading.baseColorFactor.a;
+#else
+	parameters.baseColor = shading.baseColorFactor.rgb;
+	parameters.opacity = 1.0;
+#endif
+
+	if (shading.alphaMask > 0 && parameters.opacity <= shading.alphaMaskCutoff)
+	{
+		discard;
+	}
+
 	parameters.position = worldPos;
 
 #if (TANGENT_BINORMAL_INPUT && HAS_MATERIAL_TEXTURE1)
@@ -104,20 +118,6 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	vec2 prevUV = 0.5 * (prev.xy / prev.w + vec2(1.0));
 	vec2 currUV = 0.5 * (curr.xy / curr.w + vec2(1.0));
 	parameters.motion = prevUV - currUV;
-
-#if HAS_MATERIAL_TEXTURE0
-	vec4 diffuse = SRGBtoLINEAR(texture(diffuseSampler, texCoord));
-	parameters.baseColor = diffuse.rgb * shading.baseColorFactor.rgb;
-	parameters.opacity = diffuse.a * shading.baseColorFactor.a;
-#else
-	parameters.baseColor = shading.baseColorFactor.rgb;
-	parameters.opacity = 1.0;
-#endif
-
-#if PBR_MATERIAL_MASK
-	if (parameters.baseColor.a < shading.alphaMaskCutoff)
-		discard;
-#endif
 
 #if PBR_MATERIAL_METAL_ROUGHNESS
 	parameters.roughness = shading.roughnessFactor;

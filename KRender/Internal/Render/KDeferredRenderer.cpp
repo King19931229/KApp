@@ -400,18 +400,20 @@ void KDeferredRenderer::HandleRenderCommandBinding(DeferredRenderStage renderSta
 		for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 		{
 			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
+			if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
 			pipeline->SetSampler(SHADER_BINDING_TEXTURE5 + cascadedIndex,
-				KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
-				KRenderGlobal::GBuffer.GetSampler(),
-				true);
+				shadowRT->GetFrameBuffer(),
+				KRenderGlobal::CascadedShadowMap.GetSampler(),
+				false);
 		}
 		for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
 		{
 			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
+			if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, false);
 			pipeline->SetSampler(SHADER_BINDING_TEXTURE9 + cascadedIndex,
-				KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(),
-				KRenderGlobal::GBuffer.GetSampler(),
-				true);
+				shadowRT->GetFrameBuffer(),
+				KRenderGlobal::CascadedShadowMap.GetSampler(),
+				false);
 		}
 
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE13,

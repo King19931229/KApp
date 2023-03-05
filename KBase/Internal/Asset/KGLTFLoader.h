@@ -22,7 +22,7 @@ protected:
 	{
 		MaterialAlphaMode alphaMode = MAM_OPAQUE;
 		float alphaMask = 0.0f;
-		float alphaCutoff = 1.0f;
+		float alphaMaskCutoff = 1.0f;
 		float metallicFactor = 1.0f;
 		float roughnessFactor = 1.0f;
 		glm::vec4 baseColorFactor = glm::vec4(1.0f);

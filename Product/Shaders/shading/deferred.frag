@@ -101,7 +101,7 @@ void main()
 	vec2 envBRDF = texture(integrateBRDF, vec2(NdotV, roughness)).rg;
 	vec3 specularIBL = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 
-	vec3 ambient = (kD * diffuseIBL + specularIBL) * ao;
+	vec3 ambient = kD * diffuseIBL * IBL_FACTOR + specularIBL;
 
 	// DirectLight
 	// cook-torrance brdf
@@ -120,7 +120,7 @@ void main()
 	vec3 Lo = vec3(0.0);
 	vec3 radiance = vec3(1.0);
 	Lo += (diffuseLight + specularLight) * radiance * NdotL;
-	vec3 direct = ambient + Lo;
+	vec3 direct = Lo;
 
 	// calculate per-light radiance
 	// ...
@@ -129,7 +129,7 @@ void main()
 	direct *= texture(shadowMask, screenCoord).r;
 
 	vec3 indirect = texture(giMask, screenCoord).rgb;
-	vec3 final = direct + emissive + ao * indirect;
+	vec3 final = direct + emissive + ao * (indirect + ambient);
 
 	vec4 scattering = texture(scatteringMask, screenCoord);
 	final = final * scattering.a + scattering.rgb;

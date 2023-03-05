@@ -93,7 +93,7 @@ void main()
 	vec2 envBRDF = texture(integrateBRDF, vec2(NdotV, roughness)).rg;
 	vec3 specularIBL = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 
-	vec3 ambient = (kD * diffuseIBL + specularIBL) * ao;
+	vec3 ambient = kD * diffuseIBL * IBL_FACTOR + specularIBL;
 
 	// DirectLight
 	// cook-torrance brdf
@@ -112,9 +112,12 @@ void main()
 	vec3 Lo = vec3(0.0);
 	vec3 radiance = vec3(1.0);
 	Lo += (diffuseLight + specularLight) * radiance * NdotL;
-	vec3 direct = ambient + Lo;
+	vec3 direct = Lo;
 
-	vec3 final = direct + emissive;
+	float shadow = min(CalcStaticCSM(worldPos.xyz), CalcDynamicCSM(worldPos.xyz)).r;
+	direct *= shadow;
+
+	vec3 final = ambient * ao + direct + emissive;
 
 	outColor = vec4(final, opacity); 
 

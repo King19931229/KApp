@@ -3,7 +3,6 @@
 #include "KBase/Interface/IKXML.h"
 #include "Internal/ShaderMap/KShaderMap.h"
 
-// 待重构
 class KMaterial : public IKMaterial
 {
 protected:
@@ -14,11 +13,15 @@ protected:
 	IKMaterialParameterPtr m_Parameter;
 	IKMaterialTextureBindingPtr m_TextureBinding;
 	KShaderInformation::Constant m_ConstantInfo;
+	bool m_DoubleSide;
+
 	bool m_InfoCalced;
 	bool m_ParameterVerified;
 	bool m_ParameterNeedRebuild;
 
 	KShaderMap m_ShaderMap;
+	KShaderMap m_StaticCSMShaderMap;
+	KShaderMap m_DynamicCSMShaderMap;
 
 	static uint32_t msCurrentVersion;
 
@@ -51,10 +54,6 @@ protected:
 	bool VerifyParameter(IKMaterialParameterPtr parameter, const KShaderInformation& information);
 	bool CreateParameter(const KShaderInformation& information, IKMaterialParameterPtr& parameter);
 
-	void BindSampler(IKPipelinePtr pipeline, const KShaderInformation& info);
-	IKPipelinePtr CreatePipelineImpl(const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);
-	IKPipelinePtr CreateMeshPipelineImpl(const VertexFormat* formats, size_t count, IKShaderPtr meshShader, IKShaderPtr fragmentShader);
-
 	bool SaveParameterElement(const IKMaterialParameterPtr parameter, IKXMLElementPtr element) const;
 	bool ReadParameterElement(IKMaterialParameterPtr parameter, const IKXMLElementPtr element, bool createNewParameter);
 
@@ -62,6 +61,25 @@ protected:
 	bool ReadMaterialTexture(IKMaterialTextureBindingPtr parameter, const IKXMLElementPtr elemment);
 
 	bool ReadXMLContent(std::vector<char>& content);
+
+	void BindSampler(IKPipelinePtr pipeline, const KShaderInformation& info);
+
+	struct PipelineCreateContext
+	{
+		bool depthBiasEnable;
+	};
+
+	IKPipelinePtr CreatePipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, size_t count, IKShaderPtr vertexShader, IKShaderPtr fragmentShader);
+	IKPipelinePtr CreateMeshPipelineInternal(const PipelineCreateContext& context, const VertexFormat* formats, size_t count, IKShaderPtr meshShader, IKShaderPtr fragmentShader);
+
+	IKShaderPtr GetVSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count);
+	IKShaderPtr GetVSInstanceShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count);
+	IKShaderPtr GetFSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count, bool meshletInput);
+	IKShaderPtr GetMSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count);
+
+	IKPipelinePtr CreatePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, size_t count);
+	IKPipelinePtr CreateMeshPipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, size_t count);
+	IKPipelinePtr CreateInstancePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, size_t count);
 public:
 	KMaterial();
 	~KMaterial();
@@ -87,6 +105,10 @@ public:
 	virtual IKPipelinePtr CreateMeshPipeline(const VertexFormat* formats, size_t count);
 	virtual IKPipelinePtr CreateInstancePipeline(const VertexFormat* formats, size_t count);
 
+	virtual IKPipelinePtr CreateCSMPipeline(const VertexFormat* formats, size_t count, bool staticCSM);
+	virtual IKPipelinePtr CreateCSMMeshPipeline(const VertexFormat* formats, size_t count, bool staticCSM);
+	virtual IKPipelinePtr CreateCSMInstancePipeline(const VertexFormat* formats, size_t count, bool staticCSM);
+
 	virtual bool InitFromFile(const std::string& path, bool async);
 	virtual bool InitFromImportAssetMaterial(const KAssetImportResult::Material& input, bool async);
 	virtual bool UnInit();
@@ -94,6 +116,9 @@ public:
 	virtual const std::string& GetPath() const { return m_Path; }
 
 	virtual bool SaveAsFile(const std::string& path);
+
+	virtual bool IsDoubleSide() const { return m_DoubleSide; }
+	virtual void SetDoubleSide(bool doubleSide) { m_DoubleSide = doubleSide; }
 
 	virtual bool Reload();
 };

@@ -25,4 +25,6 @@
 #define DRD_INDIRECT 21
 #define DRD_SCATTERING 22
 
+#define IBL_FACTOR 0.1
+
 #endif

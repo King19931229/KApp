@@ -307,13 +307,13 @@ void KGLTFLoader::LoadMaterials(tinygltf::Model& gltfModel)
 			if (param.string_value == "MASK")
 			{
 				material.alphaMask = 1.0f;
-				material.alphaCutoff = 0.5f;
+				material.alphaMaskCutoff = 0.5f;
 				material.alphaMode = MAM_MASK;
 			}
 		}
 		if (mat.additionalValues.find("alphaCutoff") != mat.additionalValues.end())
 		{
-			material.alphaCutoff = static_cast<float>(mat.additionalValues["alphaCutoff"].Factor());
+			material.alphaMaskCutoff = static_cast<float>(mat.additionalValues["alphaCutoff"].Factor());
 		}
 		if (mat.additionalValues.find("emissiveFactor") != mat.additionalValues.end())
 		{
@@ -1053,7 +1053,7 @@ bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KAssetImportResult& result)
 			part.material.alphaMode = material.alphaMode;
 
 			part.material.alphaMask = material.alphaMask;
-			part.material.alphaCutoff = material.alphaCutoff;
+			part.material.alphaMaskCutoff = material.alphaMaskCutoff;
 			part.material.metallicFactor = material.metallicFactor;
 			part.material.roughnessFactor = material.roughnessFactor;
 			part.material.baseColorFactor = material.baseColorFactor;

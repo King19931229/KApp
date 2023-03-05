@@ -21,12 +21,6 @@ protected:
 	KShaderRef				m_ShadowVSShader;
 	KShaderRef				m_ShadowFSShader;
 
-	KShaderRef				m_CascadedShadowStaticVSShader;
-	KShaderRef				m_CascadedShadowStaticVSInstanceShader;
-
-	KShaderRef				m_CascadedShadowDynamicVSShader;
-	KShaderRef				m_CascadedShadowDynamicVSInstanceShader;
-
 	KShaderRef				m_VoxelVSShader;
 	KShaderRef				m_VoxelGSShader;
 	KShaderRef				m_VoxelFSShader;
@@ -38,9 +32,9 @@ protected:
 
 	bool CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& pipeline);
 
-	bool CreateFixedPipeline();
 	bool CreateMaterialPipeline();
 	bool CreateGBufferPipeline();
+	bool CreateShadowPipeline();
 	bool CreateVoxelPipeline();
 
 	bool SetupMaterialGeneratedCode(std::string& code);

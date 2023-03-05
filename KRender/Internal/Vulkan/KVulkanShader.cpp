@@ -408,6 +408,7 @@ KVulkanShader::ShaderInitResult KVulkanShader::InitFromFileImpl(const std::strin
 	}
 	else
 	{
+		KG_LOGE(LM_RENDER, "File not found <%s>\n", path.c_str());
 		return SHADER_INIT_FILE_NOT_FOUNT;
 	}
 }
