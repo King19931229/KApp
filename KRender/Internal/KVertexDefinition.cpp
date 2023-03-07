@@ -25,12 +25,12 @@ namespace KVertexDefinition
 			{
 				POS_3F_NORM_3F_UV_2F_DETAILS.semanticDetails.push_back({ VS_POSITION, EF_R32G32B32_FLOAT, MEMBER_OFFSET(POS_3F_NORM_3F_UV_2F, POSITION) });
 				POS_3F_NORM_3F_UV_2F_DETAILS.semanticDetails.push_back({ VS_NORMAL, EF_R32G32B32_FLOAT, MEMBER_OFFSET(POS_3F_NORM_3F_UV_2F, NORMAL) });
-				POS_3F_NORM_3F_UV_2F_DETAILS.semanticDetails.push_back({ VS_UV, EF_R32G32_FLOAT, MEMBER_OFFSET(POS_3F_NORM_3F_UV_2F, UV) });
+				POS_3F_NORM_3F_UV_2F_DETAILS.semanticDetails.push_back({ VS_TEXCOORD0, EF_R32G32_FLOAT, MEMBER_OFFSET(POS_3F_NORM_3F_UV_2F, UV) });
 				POS_3F_NORM_3F_UV_2F_DETAILS.vertexSize = sizeof(POS_3F_NORM_3F_UV_2F);
 			}
 			// UV2_2F
 			{
-				UV2_2F_DETAILS.semanticDetails.push_back({ VS_UV2, EF_R32G32_FLOAT, MEMBER_OFFSET(UV2_2F, UV2) });
+				UV2_2F_DETAILS.semanticDetails.push_back({ VS_TEXCOORD1, EF_R32G32_FLOAT, MEMBER_OFFSET(UV2_2F, UV2) });
 				UV2_2F_DETAILS.vertexSize = sizeof(UV2_2F);
 			}
 			// DIFF_2F_SPEC_2F

@@ -147,6 +147,24 @@ bool KShaderManager::Init(IKRenderDevice* device)
 {
 	UnInit();
 	m_Device = device;
+
+	std::string bindingCode;
+	
+#define VERTEX_SEMANTIC(SEMANTIC, LOCATION)		bindingCode += std::string("#define ") + #SEMANTIC + " " + #LOCATION + "\n";
+#define CONSTANT_BUFFER_BINDING(CONSTANT)		bindingCode += std::string("#define ") + "BINDING_" + #CONSTANT + " " + std::to_string(CBT_##CONSTANT) + "\n";
+#define STORAGE_BUFFER_BINDING(STORAGE)			bindingCode += std::string("#define ") + "BINDING_" + #STORAGE + " " + std::to_string(SBT_##STORAGE) + "\n";
+#define TEXTURE_BINDING(SLOT)					bindingCode += std::string("#define ") + "BINDING_TEXTURE" + #SLOT + " " + std::to_string(TB_BEGIN + SLOT) + "\n";
+
+#include "Interface/KVertexSemantic.inl"
+#include "Interface/KShaderBinding.inl"
+
+#undef TEXTURE_BINDING
+#undef STORAGE_BINDING
+#undef CONSTANT_BUFFER_BINDING
+#undef VERTEX_SEMANTIC
+
+	m_BindingInclude = std::make_pair("binding_generate_code.h", bindingCode);
+
 	return true;
 }
 
@@ -205,6 +223,7 @@ bool KShaderManager::AcquireByEnvironment(ShaderType type, const char* path, con
 		{
 			soul->AddIncludeSource(includePair);
 		}
+
 		if (soul->InitFromFile(type, path, async))
 		{
 			KShaderRef ref(soul, [this](IKShaderPtr soul)

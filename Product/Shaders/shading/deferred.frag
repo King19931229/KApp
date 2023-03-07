@@ -101,7 +101,7 @@ void main()
 	vec2 envBRDF = texture(integrateBRDF, vec2(NdotV, roughness)).rg;
 	vec3 specularIBL = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 
-	vec3 ambient = kD * diffuseIBL * IBL_FACTOR + specularIBL;
+	vec3 ambient = (kD * diffuseIBL + specularIBL);
 
 	// DirectLight
 	// cook-torrance brdf
@@ -126,10 +126,17 @@ void main()
 	// ...
 
 	// shadow combine
-	direct *= texture(shadowMask, screenCoord).r;
+	float shadow = texture(shadowMask, screenCoord).r;
+	direct *= shadow;
+
+	ambient *= IBL_FACTOR;
+	ambient *= ao;
+	ambient *= shadow;
 
 	vec3 indirect = texture(giMask, screenCoord).rgb;
-	vec3 final = direct + emissive + ao * (indirect + ambient);
+	indirect *= ao;
+
+	vec3 final = direct + indirect + emissive + ambient;
 
 	vec4 scattering = texture(scatteringMask, screenCoord);
 	final = final * scattering.a + scattering.rgb;

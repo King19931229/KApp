@@ -629,6 +629,7 @@ void KRenderCore::DebugCode()
 	ASSERT_RESULT(system);
 	IKSourceFilePtr materialSourceFile = GetSourceFile();
 	materialSourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
+	materialSourceFile->AddIncludeSource(KRenderGlobal::ShaderManager.GetBindingGenerateCode());
 	materialSourceFile->Open("material/diffuse.glsl");
 
 	initContext.IncludeSource = { {"material_generate_code.h", materialSourceFile->GetFinalSource()} };

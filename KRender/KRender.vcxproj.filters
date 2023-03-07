@@ -862,4 +862,12 @@
       <Filter>Internal\Render</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Interface\KVertexSemantic.inl">
+      <Filter>Interface</Filter>
+    </None>
+    <None Include="Interface\KConstantBinding.inl">
+      <Filter>Interface</Filter>
+    </None>
+  </ItemGroup>
 </Project>

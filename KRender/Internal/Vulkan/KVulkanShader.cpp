@@ -379,6 +379,8 @@ KVulkanShader::ShaderInitResult KVulkanShader::InitFromFileImpl(const std::strin
 
 	m_SourceFile->SetHeaderText("#version 460 core\n");
 	m_SourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
+	m_SourceFile->AddIncludeSource(KRenderGlobal::ShaderManager.GetBindingGenerateCode());
+
 	if (m_SourceFile->Open(path.c_str()))
 	{
 		const char* finalSource = m_SourceFile->GetFinalSource();

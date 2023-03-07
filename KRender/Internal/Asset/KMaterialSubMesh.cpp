@@ -198,6 +198,7 @@ bool KMaterialSubMesh::SetupMaterialGeneratedCode(std::string& code)
 	ASSERT_RESULT(system);
 	IKSourceFilePtr materialSourceFile = GetSourceFile();
 	materialSourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
+	materialSourceFile->AddIncludeSource(KRenderGlobal::ShaderManager.GetBindingGenerateCode());
 	if (materialSourceFile->Open("material/diffuse.glsl"))
 	{
 		code = materialSourceFile->GetFinalSource();

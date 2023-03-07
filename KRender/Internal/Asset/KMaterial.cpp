@@ -749,6 +749,7 @@ bool SetupMaterialGeneratedCode(const std::string& file, std::string& code)
 	ASSERT_RESULT(system);
 	IKSourceFilePtr materialSourceFile = GetSourceFile();
 	materialSourceFile->SetIOHooker(IKSourceFile::IOHookerPtr(KNEW KShaderSourceHooker(system)));
+	materialSourceFile->AddIncludeSource(KRenderGlobal::ShaderManager.GetBindingGenerateCode());
 	if (materialSourceFile->Open(file.c_str()))
 	{
 		code = materialSourceFile->GetFinalSource();

@@ -29,6 +29,8 @@ protected:
 	KSpirvBuiltInResource m_SpirVBuiltIn;
 	IKRenderDevice* m_Device;
 
+	IKShader::IncludeSource m_BindingInclude;
+
 	size_t CalcVariantionHash(const KShaderCompileEnvironment& env);
 	bool AcquireByEnvironment(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async);
 	bool Release(IKShaderPtr& shader);
@@ -44,5 +46,6 @@ public:
 	bool Acquire(ShaderType type, const char* path, KShaderRef& shader, bool async);
 	bool Acquire(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async);
 
-	inline KSpirvBuiltInResource* GetSpirVBuildInResource() { return &m_SpirVBuiltIn; }
+	inline const KSpirvBuiltInResource* GetSpirVBuildInResource() const { return &m_SpirVBuiltIn; }
+	inline const IKShader::IncludeSource& GetBindingGenerateCode() const { return m_BindingInclude; }
 };
