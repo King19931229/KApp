@@ -93,7 +93,7 @@ bool KRayTraceScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr 
 	return true;
 }
 
-void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
+void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 {
 	IKRenderComponent* renderComponent = nullptr;
 	IKTransformComponent* transformComponent = nullptr;	
@@ -158,10 +158,10 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera)
 		ASSERT_RESULT(cameraBuffer->InitMemory(sizeof(cam), &cam));
 		ASSERT_RESULT(cameraBuffer->InitDevice());
 
-		std::vector<IKEntityPtr> entites;
+		std::vector<IKEntity*> entites;
 		scene->GetAllEntities(entites);
 
-		for (IKEntityPtr& entity : entites)
+		for (IKEntity*& entity : entites)
 		{
 			OnSceneChanged(ESO_ADD, entity);
 		}

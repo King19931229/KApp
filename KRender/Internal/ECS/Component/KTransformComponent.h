@@ -6,6 +6,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/euler_angles.hpp"
 
 #include "KBase/Publish/KMath.h"
 
@@ -17,10 +18,11 @@ protected:
 	glm::vec3 m_Position;
 	glm::vec3 m_Scale;
 	glm::quat m_Rotate;	
-	bool m_EverTicked;
 	bool m_IsStatic;
+	bool m_TransformChange;
 	
 	KConstantDefinition::OBJECT m_FinalTransform;
+	std::vector<KTransformChangeCallback*> m_TransformChangeCallbacks;
 
 	static constexpr const char* msPosition = "position";
 	static constexpr const char* msScale = "scale";
@@ -34,10 +36,7 @@ protected:
 		glm::mat4 translate = glm::translate(glm::mat4(1.0f), m_Position);
 
 		m_FinalTransform.MODEL = translate * rotate * scale;
-		if (!m_EverTicked)
-		{
-			m_FinalTransform.PRVE_MODEL = m_FinalTransform.MODEL;
-		}
+		m_TransformChange = true;
 	}
 public:
 	KTransformComponent();
@@ -104,18 +103,33 @@ public:
 	bool PostTick() override
 	{
 		m_FinalTransform.PRVE_MODEL = m_FinalTransform.MODEL;
-		m_EverTicked = true;
+		if (m_TransformChange)
+		{
+			for (KTransformChangeCallback* callback : m_TransformChangeCallbacks)
+			{
+				(*callback)(this, m_Position, m_Scale, m_Rotate);
+			}
+		}
+		m_TransformChange = false;
 		return true;
 	}
 
-	const glm::quat& GetRotate() const override { return m_Rotate; }
+	bool RegisterTransformChangeCallback(KTransformChangeCallback* callback) override;
+	bool UnRegisterTransformChangeCallback(KTransformChangeCallback* callback) override;
+
+	const glm::quat& GetRotateQuat() const override { return m_Rotate; }
 	const glm::vec3& GetScale() const override { return m_Scale; }
 	const glm::vec3& GetPosition() const override { return m_Position; }
+
+	glm::vec3 GetRotateEularAngles() const override
+	{ 
+		return glm::eulerAngles(m_Rotate) * 180.0f / glm::pi<float>();
+	}
+
 	bool IsStatic() const override { return m_IsStatic; }
 
-	void SetRotate(const glm::quat& rotate) override
+	void SetRotateQuat(const glm::quat& rotate) override
 	{
-		// TODO Is in editor
 		if (!m_IsStatic)
 		{
 			m_Rotate = rotate;
@@ -123,11 +137,20 @@ public:
 		}
 	}
 
-	void SetRotate(const glm::mat3& rotate) override
+	void SetRotateMatrix(const glm::mat3& rotate) override
 	{
 		if (!m_IsStatic)
 		{
 			m_Rotate = glm::quat_cast(rotate);
+			UpdateTransform();
+		}
+	}
+
+	void SetRotateEularAngles(glm::vec3 eularAngles) override
+	{
+		if (!m_IsStatic)
+		{
+			m_Rotate = glm::quat(eularAngles * glm::pi<float>() / 180.0f);
 			UpdateTransform();
 		}
 	}

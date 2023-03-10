@@ -13,7 +13,7 @@ protected:
 	std::unordered_set<EntityObserverFunc*> m_Observers;
 	IKTerrainPtr m_Terrain;
 
-	void OnEntityChange(EntitySceneOp op, IKEntityPtr entity);
+	void OnEntityChange(EntitySceneOp op, IKEntity* entity);
 public:
 	KRenderScene();
 	virtual ~KRenderScene();
@@ -21,9 +21,9 @@ public:
 	bool Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos) override;
 	bool UnInit() override;
 
-	bool Add(IKEntityPtr entity) override;
-	bool Remove(IKEntityPtr entity) override;
-	bool Move(IKEntityPtr entity) override;
+	bool Add(IKEntity* entity) override;
+	bool Remove(IKEntity* entity) override;
+	bool Transform(IKEntity* entity) override;
 
 	bool CreateTerrain(const glm::vec3& center, float size, float height, const KTerrainContext& context) override;
 	bool DestroyTerrain() override;
@@ -38,12 +38,12 @@ public:
 	bool GetSceneObjectBound(KAABBBox& box);
 
 	bool Pick(const KCamera& camera, size_t x, size_t y,
-		size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result) override;
+		size_t screenWidth, size_t screenHeight, std::vector<IKEntity*>& result) override;
 	bool CloestPick(const KCamera& camera, size_t x, size_t y,
-		size_t screenWidth, size_t screenHeight, IKEntityPtr& result) override;
+		size_t screenWidth, size_t screenHeight, IKEntity*& result) override;
 
-	bool RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result) override;
-	bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result) override;
+	bool RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntity*>& result) override;
+	bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntity*& result) override;
 
-	bool GetAllEntities(std::vector<IKEntityPtr>& result) override;
+	bool GetAllEntities(std::vector<IKEntity*>& result) override;
 };

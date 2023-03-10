@@ -183,7 +183,7 @@ protected:
 	KRTDebugDrawer m_LightDebugDrawer;
 	KRTDebugDrawer m_OctreeRayTestDebugDrawer;
 
-	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
+	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);
 	void UpdateProjectionMatrices();
 
 	void SetupVoxelBuffer();

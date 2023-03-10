@@ -7,6 +7,16 @@
 KScene::KScene()
 	: m_RenderScene(nullptr)
 {
+	m_TransformCallback = std::bind(&KScene::OnTransformChanged, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+}
+
+void KScene::OnTransformChanged(IKTransformComponent* comp, const glm::vec3& pos, const glm::vec3& scale, const glm::quat& rotate)
+{
+	IKEntity* entity = comp->GetEntityHandle();
+	if (m_RenderScene)
+	{
+		m_RenderScene->Transform(entity);
+	}
 }
 
 KScene::~KScene()
@@ -32,7 +42,12 @@ bool KScene::Add(IKEntityPtr entity)
 	if (m_RenderScene)
 	{
 		m_Entities.insert(entity);
-		return m_RenderScene->Add(entity);
+		IKTransformComponent* transform = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, &transform))
+		{
+			transform->RegisterTransformChangeCallback(&m_TransformCallback);
+		}
+		return m_RenderScene->Add(entity.get());
 	}
 	return false;
 }
@@ -42,16 +57,21 @@ bool KScene::Remove(IKEntityPtr entity)
 	if (m_RenderScene)
 	{
 		m_Entities.erase(entity);
-		return m_RenderScene->Remove(entity);
+		IKTransformComponent* transform = nullptr;
+		if (entity->GetComponent(CT_TRANSFORM, &transform))
+		{
+			transform->UnRegisterTransformChangeCallback(&m_TransformCallback);
+		}
+		return m_RenderScene->Remove(entity.get());
 	}
 	return false;
 }
 
-bool KScene::Move(IKEntityPtr entity)
+bool KScene::Transform(IKEntityPtr entity)
 {
 	if (m_RenderScene)
 	{
-		return m_RenderScene->Move(entity);
+		return m_RenderScene->Transform(entity.get());
 	}
 	return false;
 }
@@ -92,47 +112,51 @@ bool KScene::Clear()
 {
 	for (IKEntityPtr entity : m_Entities)
 	{
-		m_RenderScene->Remove(entity);
+		m_RenderScene->Remove(entity.get());
 	}
 	m_Entities.clear();
 	return true;
 }
 
 bool KScene::Pick(const KCamera& camera, size_t x, size_t y,
-	size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result)
+	size_t screenWidth, size_t screenHeight, std::vector<IKEntity*>& result)
 {
 	if (m_RenderScene)
 	{
 		return m_RenderScene->Pick(camera, x, y, screenWidth, screenHeight, result);
 	}
+	result.clear();
 	return false;
 }
 
 bool KScene::CloestPick(const KCamera& camera, size_t x, size_t y,
-	size_t screenWidth, size_t screenHeight, IKEntityPtr& result)
+	size_t screenWidth, size_t screenHeight, IKEntity*& result)
 {
 	if (m_RenderScene)
 	{
 		return m_RenderScene->CloestPick(camera, x, y, screenWidth, screenHeight, result);
 	}
+	result = nullptr;
 	return false;
 }
 
-bool KScene::RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result)
+bool KScene::RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntity*>& result)
 {
 	if (m_RenderScene)
 	{
 		return m_RenderScene->RayPick(origin, dir, result);
 	}
+	result.clear();
 	return false;
 }
 
-bool KScene::CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result)
+bool KScene::CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntity*& result)
 {
 	if (m_RenderScene)
 	{
 		return m_RenderScene->CloestRayPick(origin, dir, result);
 	}
+	result = nullptr;
 	return false;
 }
 

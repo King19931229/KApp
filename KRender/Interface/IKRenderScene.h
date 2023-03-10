@@ -13,10 +13,10 @@ enum EntitySceneOp
 {
 	ESO_ADD,
 	ESO_REMOVE,
-	ESO_MOVE
+	ESO_TRANSFORM
 };
 
-typedef std::function<void(EntitySceneOp, IKEntityPtr)> EntityObserverFunc;
+typedef std::function<void(EntitySceneOp, IKEntity*)> EntityObserverFunc;
 
 struct IKRenderScene
 {
@@ -25,9 +25,9 @@ struct IKRenderScene
 	virtual bool Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos) = 0;
 	virtual bool UnInit() = 0;
 
-	virtual bool Add(IKEntityPtr entity) = 0;
-	virtual bool Remove(IKEntityPtr entity) = 0;
-	virtual bool Move(IKEntityPtr entity) = 0;
+	virtual bool Add(IKEntity* entity) = 0;
+	virtual bool Remove(IKEntity* entity) = 0;
+	virtual bool Transform(IKEntity* entity) = 0;
 
 	virtual bool CreateTerrain(const glm::vec3& center, float size, float height, const KTerrainContext& context) = 0;
 	virtual bool DestroyTerrain() = 0;
@@ -39,14 +39,14 @@ struct IKRenderScene
 	virtual bool GetSceneObjectBound(KAABBBox& box) = 0;
 
 	virtual bool Pick(const KCamera& camera, size_t x, size_t y,
-		size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result) = 0;
+		size_t screenWidth, size_t screenHeight, std::vector<IKEntity*>& result) = 0;
 	virtual bool CloestPick(const KCamera& camera, size_t x, size_t y,
-		size_t screenWidth, size_t screenHeight, IKEntityPtr& result) = 0;
+		size_t screenWidth, size_t screenHeight, IKEntity*& result) = 0;
 
-	virtual bool RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result) = 0;
-	virtual bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result) = 0;
+	virtual bool RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntity*>& result) = 0;
+	virtual bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntity*& result) = 0;
 
-	virtual bool GetAllEntities(std::vector<IKEntityPtr>& result) = 0;
+	virtual bool GetAllEntities(std::vector<IKEntity*>& result) = 0;
 };
 
 typedef std::unique_ptr<IKRenderScene> IKRenderScenePtr;

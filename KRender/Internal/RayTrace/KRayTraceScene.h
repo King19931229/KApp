@@ -31,7 +31,7 @@ protected:
 	};
 
 	std::vector<RayTracePipelineInfo> m_RaytracePipelineInfos;
-	std::unordered_map<IKEntityPtr, std::unordered_set<uint32_t>> m_ASHandles;
+	std::unordered_map<IKEntity*, std::unordered_set<uint32_t>> m_ASHandles;
 	typedef std::tuple<std::vector<IKAccelerationStructurePtr>, glm::mat4> ASTransforms;
 
 	struct Camera
@@ -51,7 +51,7 @@ protected:
 	glm::mat4 m_DebugClip;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
-	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
+	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);
 
 	uint32_t AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform);
 	bool RemoveBottomLevelAS(uint32_t handle);

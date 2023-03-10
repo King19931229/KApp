@@ -182,7 +182,7 @@ bool KEMaterialEditWindow::RefreshPreview()
 			m_PreviewEntity->RegisterComponent(CT_TRANSFORM);
 		}
 
-		m_MiniScene->Remove(m_PreviewEntity);
+		m_MiniScene->Remove(m_PreviewEntity.get());
 
 		IKRenderComponent* renderComponent = nullptr;
 		if (m_PreviewEntity->GetComponent(CT_RENDER, &renderComponent))

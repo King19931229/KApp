@@ -82,7 +82,7 @@ bool KGizmoBase::UnInit()
 	{
 		if (entity)
 		{
-			KRenderGlobal::Scene.Remove(entity);
+			KRenderGlobal::Scene.Remove(entity.get());
 			entity->UnRegisterAllComponent();
 			if (KECS::EntityManager)
 			{
@@ -137,7 +137,7 @@ void KGizmoBase::Enter()
 	for (IKEntityPtr entity : m_AllEntity)
 	{
 		assert(entity);
-		KRenderGlobal::Scene.Add(entity);
+		KRenderGlobal::Scene.Add(entity.get());
 	}
 }
 
@@ -146,7 +146,7 @@ void KGizmoBase::Leave()
 	for (IKEntityPtr entity : m_AllEntity)
 	{
 		assert(entity);
-		KRenderGlobal::Scene.Remove(entity);
+		KRenderGlobal::Scene.Remove(entity.get());
 	}
 }
 
@@ -212,9 +212,8 @@ void KGizmoBase::Update()
 			if (entity->GetComponent(CT_TRANSFORM, &transform))
 			{
 				transform->SetPosition(transformPos);
-				transform->SetRotate(GetRotate(entity, rotate));
+				transform->SetRotateMatrix(GetRotate(entity, rotate));
 				transform->SetScale(scale);
-				KRenderGlobal::Scene.Move(entity);
 			}
 		}
 	}

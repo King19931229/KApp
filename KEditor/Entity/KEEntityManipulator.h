@@ -50,7 +50,7 @@ protected:
 	void OnGizmoTransformChange(const glm::mat4& transform);
 	void OnGizmoTrigger(bool trigger);
 
-	KEEntityPtr GetEditorEntity(IKEntityPtr entity);
+	KEEntityPtr GetEditorEntity(IKEntity* entity);
 	void OnSelectionDelete();
 
 	void AddEditorEntity(KEEntityPtr editorEntity);

@@ -50,7 +50,7 @@ void InitSponza(IKEnginePtr engine)
 					((IKTransformComponent*)component)->SetPosition(pos);
 				}
 
-				scene->Add(entity);
+				scene->Add(entity.get());
 			}
 		}
 #endif
@@ -113,7 +113,7 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-	engine->GetScene()->Load("C:/Users/Admin/Desktop/Scene/ray6.scene");
+	engine->GetScene()->Load("C:/Users/Admin/Desktop/Scene/ray7.scene");
 	//engine->GetScene()->CreateTerrain(glm::vec3(0), 10 * 1024, 4096, { TERRAIN_TYPE_CLIPMAP, {8, 3} });
 	//engine->GetScene()->GetTerrain()->LoadHeightMap("Terrain/small_ridge_1025/height.png");
 	//engine->GetScene()->GetTerrain()->LoadDiffuse("Terrain/small_ridge_1025/diffuse.png");

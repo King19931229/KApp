@@ -102,7 +102,7 @@ void KVoxilzer::UpdateInternal(IKCommandBufferPtr primaryBuffer)
 
 }
 
-void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
+void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 {
 	IKRenderComponent* render = nullptr;
 	if (!entity->GetComponent(CT_RENDER, &render) || render->IsUtility())

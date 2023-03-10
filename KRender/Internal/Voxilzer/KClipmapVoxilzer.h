@@ -212,7 +212,7 @@ protected:
 
 	KRTDebugDrawer m_LightDebugDrawer;
 
-	void OnSceneChanged(EntitySceneOp op, IKEntityPtr entity);
+	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);
 	void SetupVoxelReleatedData();
 	void SetupVoxelBuffer();
 	void SetupVoxelPipeline();

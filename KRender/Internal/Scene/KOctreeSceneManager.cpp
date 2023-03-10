@@ -38,7 +38,7 @@ bool KOctreeSceneManager::UnInit()
 	return true;
 }
 
-bool KOctreeSceneManager::Add(IKEntityPtr entity)
+bool KOctreeSceneManager::Add(IKEntity* entity)
 {
 	KAABBBox bound;
 	if (m_Root && entity->GetBound(bound))
@@ -48,7 +48,7 @@ bool KOctreeSceneManager::Add(IKEntityPtr entity)
 	return false;
 }
 
-bool KOctreeSceneManager::Remove(IKEntityPtr entity)
+bool KOctreeSceneManager::Remove(IKEntity* entity)
 {
 	if (m_Root && m_EntityToNode)
 	{
@@ -64,7 +64,7 @@ bool KOctreeSceneManager::Remove(IKEntityPtr entity)
 	return false;
 }
 
-bool KOctreeSceneManager::Move(IKEntityPtr entity)
+bool KOctreeSceneManager::Transform(IKEntity* entity)
 {
 	if (!Remove(entity))
 	{
@@ -77,7 +77,7 @@ bool KOctreeSceneManager::Move(IKEntityPtr entity)
 	return true;
 }
 
-bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<IKEntityPtr>& visibles)
+bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<IKEntity*>& visibles)
 {
 	if (m_Root)
 	{
@@ -87,7 +87,7 @@ bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<IKE
 	return false;
 }
 
-bool KOctreeSceneManager::GetVisibleEntity(const KAABBBox* bound, std::deque<IKEntityPtr>& visibles)
+bool KOctreeSceneManager::GetVisibleEntity(const KAABBBox* bound, std::deque<IKEntity*>& visibles)
 {
 	if (m_Root)
 	{
@@ -97,7 +97,7 @@ bool KOctreeSceneManager::GetVisibleEntity(const KAABBBox* bound, std::deque<IKE
 	return false;
 }
 
-bool KOctreeSceneManager::GetAllEntity(std::deque<IKEntityPtr>& visibles)
+bool KOctreeSceneManager::GetAllEntity(std::deque<IKEntity*>& visibles)
 {
 	if (m_Root)
 	{
@@ -107,7 +107,7 @@ bool KOctreeSceneManager::GetAllEntity(std::deque<IKEntityPtr>& visibles)
 	return false;
 }
 
-bool KOctreeSceneManager::GetDebugEntity(std::deque<IKEntityPtr>& debugVisibles)
+bool KOctreeSceneManager::GetDebugEntity(std::deque<IKEntity*>& debugVisibles)
 {
 	if (m_Root)
 	{
@@ -127,7 +127,7 @@ bool KOctreeSceneManager::GetSceneBound(KAABBBox& box)
 	return false;
 }
 
-bool KOctreeSceneManager::Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result)
+bool KOctreeSceneManager::Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntity*>& result)
 {
 	if (m_Root)
 	{

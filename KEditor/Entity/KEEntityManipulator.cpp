@@ -247,7 +247,7 @@ bool KEEntityManipulator::Save(const char* filename)
 	return m_Scene->Save(filename);
 }
 
-KEEntityPtr KEEntityManipulator::GetEditorEntity(IKEntityPtr entity)
+KEEntityPtr KEEntityManipulator::GetEditorEntity(IKEntity* entity)
 {
 	if (entity)
 	{
@@ -314,7 +314,7 @@ void KEEntityManipulator::OnMouseListen(InputMouseButton key, InputAction action
 			// 点击操作
 			if (x == m_MouseDownPos[0] && y == m_MouseDownPos[1])
 			{
-				IKEntityPtr entity;
+				IKEntity* entity = nullptr;
 				KEEntityPtr editorEntity;
 
 				size_t width = 0;
@@ -407,8 +407,8 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 				{
 					if (mode == GizmoManipulateMode::GIZMO_MANIPULATE_LOCAL)
 					{
-						glm::mat3 rotate = deltaRotate * glm::mat3_cast(transformComponent->GetRotate());
-						transformComponent->SetRotate(rotate);
+						glm::mat3 rotate = deltaRotate * glm::mat3_cast(transformComponent->GetRotateQuat());
+						transformComponent->SetRotateQuat(rotate);
 					}
 					else
 					{
@@ -417,8 +417,8 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 						releatedPos = glm::mat4(deltaRotate) * glm::vec4(releatedPos, 1.0f);
 						transformComponent->SetPosition(glm::vec3(releatedPos) + gizmoPos);
 
-						glm::mat3 rotate = deltaRotate * glm::mat3_cast(transformComponent->GetRotate());
-						transformComponent->SetRotate(rotate);
+						glm::mat3 rotate = deltaRotate * glm::mat3_cast(transformComponent->GetRotateQuat());
+						transformComponent->SetRotateQuat(rotate);
 					}
 				}
 				// 覆盖初始位置 保证Undo Redo正确
@@ -428,8 +428,6 @@ void KEEntityManipulator::OnGizmoTransformChange(const glm::mat4& transform)
 				editorEntity->soul->QueryReflection(&reflection);
 				ASSERT_RESULT(reflection);
 				KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
-				// 暂时先用这种方法更新场景图
-				m_Scene->Move(editorEntity->soul);
 			}
 		}
 	}
@@ -572,7 +570,7 @@ KEEntityPtr KEEntityManipulator::CloestPickEntity(size_t x, size_t y)
 {
 	if (m_Scene && m_Camera)
 	{
-		IKEntityPtr entity;
+		IKEntity* entity;
 		KEEntityPtr editorEntity;
 
 		size_t width = 0;

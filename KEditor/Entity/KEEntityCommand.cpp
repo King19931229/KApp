@@ -135,7 +135,7 @@ void KEEntitySceneTransformCommand::Execute()
 		ASSERT_RESULT(reflection);
 		KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
 
-		m_Scene->Move(info.entity->soul);
+		m_Scene->Transform(info.entity->soul);
 		// 更新一下Gizmo的位置
 		m_Manipulator->UpdateGizmoTransform();
 	}
@@ -155,7 +155,7 @@ void KEEntitySceneTransformCommand::Undo()
 		ASSERT_RESULT(reflection);
 		KEditorGlobal::ReflectionManager.NotifyToProperty(reflection);
 
-		m_Scene->Move(info.entity->soul);
+		m_Scene->Transform(info.entity->soul);
 		// 更新一下Gizmo的位置
 		m_Manipulator->UpdateGizmoTransform();
 	}

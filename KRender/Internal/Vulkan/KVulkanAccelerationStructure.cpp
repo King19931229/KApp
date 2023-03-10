@@ -224,9 +224,6 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 			};
 
 			// https://nvpro-samples.github.io/vk_mini_path_tracer/extras.html#instancesandtransformationmatrices/transformationmatrices
-			assert(abs(transformMatrix.matrix[0][0]) > 1e-5f);
-			assert(abs(transformMatrix.matrix[1][1]) > 1e-5f);
-			assert(abs(transformMatrix.matrix[2][2]) > 1e-5f);
 
 			VkAccelerationStructureInstanceKHR instance = {};
 			instance.transform = transformMatrix;

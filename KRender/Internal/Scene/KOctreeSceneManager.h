@@ -25,14 +25,14 @@ public:
 	bool UnInit();
 
 	SceneManagerType GetType() override { return SCENE_MANGER_TYPE_OCTREE; }
-	bool Add(IKEntityPtr entity) override;
-	bool Remove(IKEntityPtr entity) override;
-	bool Move(IKEntityPtr entity) override;
-	bool GetVisibleEntity(const KCamera* camera, std::deque<IKEntityPtr>& visibles) override;
-	bool GetVisibleEntity(const KAABBBox* bound, std::deque<IKEntityPtr>& visibles) override;
-	bool GetAllEntity(std::deque<IKEntityPtr>& visibles) override;
-	bool GetDebugEntity(std::deque<IKEntityPtr>& debugVisibles) override;
+	bool Add(IKEntity* entity) override;
+	bool Remove(IKEntity* entity) override;
+	bool Transform(IKEntity* entity) override;
+	bool GetVisibleEntity(const KCamera* camera, std::deque<IKEntity*>& visibles) override;
+	bool GetVisibleEntity(const KAABBBox* bound, std::deque<IKEntity*>& visibles) override;
+	bool GetAllEntity(std::deque<IKEntity*>& visibles) override;
+	bool GetDebugEntity(std::deque<IKEntity*>& debugVisibles) override;
 	bool GetSceneBound(KAABBBox& box) override;
 
-	bool Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result) override;
+	bool Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntity*>& result) override;
 };

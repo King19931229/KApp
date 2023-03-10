@@ -11,12 +11,12 @@
 // An object in the octree
 struct KOctreeObject
 {
-	IKEntityPtr Obj;
+	IKEntity* Obj;
 	KAABBBox Bounds;
 };
 
 struct KOctreeNode;
-typedef std::unordered_map<IKEntityPtr, KOctreeNode*> KEntityToNodeMap;
+typedef std::unordered_map<IKEntity*, KOctreeNode*> KEntityToNodeMap;
 
 // A node in a BoundsOctree
 // Copyright 2014 Nition, BSD licence (see LICENCE file). www.momentstudio.co.nz
@@ -167,7 +167,7 @@ private:
 		return false;
 	}
 
-	void SubAdd(IKEntityPtr obj, const KAABBBox& objBounds)
+	void SubAdd(IKEntity* obj, const KAABBBox& objBounds)
 	{
 		if (!HasChildren())
 		{
@@ -244,7 +244,7 @@ public:
 		}
 	}
 
-	bool Add(IKEntityPtr obj, const KAABBBox& objBounds)
+	bool Add(IKEntity* obj, const KAABBBox& objBounds)
 	{
 		if (!Encapsulates(bounds, objBounds))
 		{
@@ -254,7 +254,7 @@ public:
 		return true;
 	}
 
-	bool Remove(IKEntityPtr obj)
+	bool Remove(IKEntity* obj)
 	{
 		bool removed = false;
 
@@ -456,7 +456,7 @@ public:
 			}
 		}
 
-		result.push_back(boundEntity);
+		result.push_back(boundEntity.get());
 
 		if (children)
 		{

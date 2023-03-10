@@ -64,7 +64,7 @@ bool KRenderScene::UnInit()
 	return true;
 }
 
-void KRenderScene::OnEntityChange(EntitySceneOp op, IKEntityPtr entity)
+void KRenderScene::OnEntityChange(EntitySceneOp op, IKEntity* entity)
 {
 	for (EntityObserverFunc* observer : m_Observers)
 	{
@@ -72,38 +72,41 @@ void KRenderScene::OnEntityChange(EntitySceneOp op, IKEntityPtr entity)
 	}
 }
 
-bool KRenderScene::Add(IKEntityPtr entity)
+bool KRenderScene::Add(IKEntity* entity)
 {
 	if (m_SceneMgr)
 	{
-		// TODO处理返回值
-		m_SceneMgr->Add(entity);
-		OnEntityChange(ESO_ADD, entity);
-		return true;
+		if (m_SceneMgr->Add(entity))
+		{
+			OnEntityChange(ESO_ADD, entity);
+			return true;
+		}
 	}
 	return false;
 }
 
-bool KRenderScene::Remove(IKEntityPtr entity)
+bool KRenderScene::Remove(IKEntity* entity)
 {
 	if (m_SceneMgr)
 	{
-		// TODO处理返回值
-		m_SceneMgr->Remove(entity);
-		OnEntityChange(ESO_REMOVE, entity);
-		return true;
+		if (m_SceneMgr->Remove(entity))
+		{
+			OnEntityChange(ESO_REMOVE, entity);
+			return true;
+		}
 	}
 	return false;
 }
 
-bool KRenderScene::Move(IKEntityPtr entity)
+bool KRenderScene::Transform(IKEntity* entity)
 {
 	if(m_SceneMgr)
 	{
-		// TODO处理返回值
-		m_SceneMgr->Move(entity);
-		OnEntityChange(ESO_MOVE, entity);
-		return true;
+		if (m_SceneMgr->Transform(entity))
+		{
+			OnEntityChange(ESO_TRANSFORM, entity);
+			return true;
+		}
 	}
 	return false;
 }
@@ -164,7 +167,7 @@ bool KRenderScene::UnRegisterEntityObserver(EntityObserverFunc* func)
 
 bool KRenderScene::GetRenderComponent(const KCamera& camera, bool withDebug, std::vector<KRenderComponent*>& result)
 {
-	std::deque<IKEntityPtr> entities;
+	std::deque<IKEntity*> entities;
 	if (m_SceneMgr)
 	{
 		m_SceneMgr->GetVisibleEntity(&camera, entities);
@@ -177,7 +180,7 @@ bool KRenderScene::GetRenderComponent(const KCamera& camera, bool withDebug, std
 		result.clear();
 		result.reserve(entities.size());
 
-		for (IKEntityPtr entity : entities)
+		for (IKEntity* entity : entities)
 		{
 			KRenderComponent* component = nullptr;
 			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component) && component)
@@ -188,12 +191,13 @@ bool KRenderScene::GetRenderComponent(const KCamera& camera, bool withDebug, std
 
 		return true;
 	}
+	result.clear();
 	return false;
 }
 
 bool KRenderScene::GetRenderComponent(const KAABBBox& bound, bool withDebug, std::vector<KRenderComponent*>& result)
 {
-	std::deque<IKEntityPtr> entities;
+	std::deque<IKEntity*> entities;
 	if (m_SceneMgr)
 	{
 		m_SceneMgr->GetVisibleEntity(&bound, entities);
@@ -206,7 +210,7 @@ bool KRenderScene::GetRenderComponent(const KAABBBox& bound, bool withDebug, std
 		result.clear();
 		result.reserve(entities.size());
 
-		for (IKEntityPtr entity : entities)
+		for (IKEntity* entity : entities)
 		{
 			KRenderComponent* component = nullptr;
 			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component) && component)
@@ -217,6 +221,7 @@ bool KRenderScene::GetRenderComponent(const KAABBBox& bound, bool withDebug, std
 
 		return true;
 	}
+	result.clear();
 	return false;
 }
 
@@ -230,7 +235,7 @@ bool KRenderScene::GetSceneObjectBound(KAABBBox& box)
 }
 
 bool KRenderScene::Pick(const KCamera& camera, size_t x, size_t y,
-	size_t screenWidth, size_t screenHeight, std::vector<IKEntityPtr>& result)
+	size_t screenWidth, size_t screenHeight, std::vector<IKEntity*>& result)
 {
 	if (m_SceneMgr)
 	{
@@ -242,12 +247,12 @@ bool KRenderScene::Pick(const KCamera& camera, size_t x, size_t y,
 			return RayPick(origin, dir, result);
 		}
 	}
-
+	result.clear();
 	return false;
 }
 
 bool KRenderScene::CloestPick(const KCamera& camera, size_t x, size_t y,
-	size_t screenWidth, size_t screenHeight, IKEntityPtr& result)
+	size_t screenWidth, size_t screenHeight, IKEntity*& result)
 {
 	if (m_SceneMgr)
 	{
@@ -259,21 +264,21 @@ bool KRenderScene::CloestPick(const KCamera& camera, size_t x, size_t y,
 			return CloestRayPick(origin, dir, result);
 		}
 	}
-
+	result = nullptr;
 	return false;
 }
 
-bool KRenderScene::RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntityPtr>& result)
+bool KRenderScene::RayPick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntity*>& result)
 {
 	if (m_SceneMgr)
 	{
-		std::vector<IKEntityPtr> entities;
+		std::vector<IKEntity*> entities;
 		if (m_SceneMgr->Pick(origin, dir, entities))
 		{
 			result.clear();
 			result.reserve(entities.size());
 
-			for (IKEntityPtr entity : entities)
+			for (IKEntity* entity : entities)
 			{
 				glm::vec3 resultPoint;
 				if (entity->Intersect(origin, dir, resultPoint))
@@ -285,17 +290,18 @@ bool KRenderScene::RayPick(const glm::vec3& origin, const glm::vec3& dir, std::v
 			return !result.empty();
 		}
 	}
+	result.clear();
 	return false;
 }
 
-bool KRenderScene::CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntityPtr& result)
+bool KRenderScene::CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntity*& result)
 {
 	if (m_SceneMgr)
 	{
-		std::vector<IKEntityPtr> entities;
+		std::vector<IKEntity*> entities;
 		if (m_SceneMgr->Pick(origin, dir, entities))
 		{
-			for (IKEntityPtr entity : entities)
+			for (IKEntity* entity : entities)
 			{
 				glm::vec3 resultPoint;
 				float maxDistance = std::numeric_limits<float>::max();
@@ -312,18 +318,19 @@ bool KRenderScene::CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, 
 			return result != nullptr;
 		}
 	}
+	result = nullptr;
 	return false;
 }
 
-bool KRenderScene::GetAllEntities(std::vector<IKEntityPtr>& result)
+bool KRenderScene::GetAllEntities(std::vector<IKEntity*>& result)
 {
 	result.clear();
 	if (m_SceneMgr)
 	{
-		std::deque<IKEntityPtr> entities;
+		std::deque<IKEntity*> entities;
 		m_SceneMgr->GetAllEntity(entities);
 		result.reserve(entities.size());
-		for (IKEntityPtr entity : entities)
+		for (IKEntity* entity : entities)
 		{
 			result.push_back(entity);
 		}

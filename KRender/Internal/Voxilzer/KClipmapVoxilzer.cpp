@@ -1218,7 +1218,7 @@ void KClipmapVoxilzer::SetupLightPassPipeline()
 	}
 }
 
-void KClipmapVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntityPtr entity)
+void KClipmapVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 {
 	IKRenderComponent* render = nullptr;
 	if (!entity->GetComponent(CT_RENDER, &render) || render->IsUtility())

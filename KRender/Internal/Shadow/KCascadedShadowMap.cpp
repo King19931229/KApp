@@ -278,7 +278,7 @@ bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 
 		ASSERT_RESULT(maskTarget);
 		renderPass->SetColorAttachment(0, maskTarget->GetFrameBuffer());
-		renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		renderPass->SetClearColor(0, { 1.0f, 1.0f, 1.0f, 1.0f });
 		ASSERT_RESULT(renderPass->Init());
 
 		m_Master.UpdateMask(primaryBuffer, true);
@@ -293,7 +293,7 @@ bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 
 		ASSERT_RESULT(maskTarget);
 		renderPass->SetColorAttachment(0, maskTarget->GetFrameBuffer());
-		renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		renderPass->SetClearColor(0, { 1.0f, 1.0f, 1.0f, 1.0f });
 		ASSERT_RESULT(renderPass->Init());
 
 		m_Master.UpdateMask(primaryBuffer, false);
@@ -308,7 +308,7 @@ bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 
 		ASSERT_RESULT(maskTarget);
 		renderPass->SetColorAttachment(0, maskTarget->GetFrameBuffer());
-		renderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+		renderPass->SetClearColor(0, { 1.0f, 1.0f, 1.0f, 1.0f });
 		ASSERT_RESULT(renderPass->Init());
 
 		m_Master.CombineMask(primaryBuffer);
@@ -401,6 +401,11 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 
 	KAABBBox sceneBound;
 	KRenderGlobal::Scene.GetSceneObjectBound(sceneBound);
+
+	if (sceneBound.IsNull())
+	{
+		sceneBound.InitFromHalfExtent(m_MainCamera->GetPosition(), 0.5f * glm::vec3(m_ShadowRange));
+	}
 
 	const glm::mat4& lightViewMatrix = m_ShadowCamera.GetViewMatrix();
 
@@ -581,6 +586,11 @@ void KCascadedShadowMap::UpdateStaticCascades()
 
 	KAABBBox sceneBound;
 	KRenderGlobal::Scene.GetSceneObjectBound(sceneBound);
+
+	if (sceneBound.IsNull())
+	{
+		sceneBound.InitFromHalfExtent(m_MainCamera->GetPosition(), 0.5f * glm::vec3(m_ShadowRange));
+	}
 
 	const glm::mat4& lightViewMatrix = m_ShadowCamera.GetViewMatrix();
 
