@@ -10,6 +10,8 @@ KRayTraceScene::KRayTraceScene()
 	, m_DebugClip(glm::mat4(1.0f))
 	, m_Width(1024)
 	, m_Height(1024)
+	, m_LastDirtyFrame(0)
+	, m_LastRecreateFrame(0)
 	, m_ImageScale(1.0f)
 	, m_DebugEnable(false)
 	, m_AutoUpdateImageSize(false)
@@ -50,6 +52,17 @@ bool KRayTraceScene::ClearBottomLevelAS()
 	return true;
 }
 
+void KRayTraceScene::UpdateAccelerationStructure()
+{
+	std::vector<IKAccelerationStructure::BottomASTransformTuple> bottomASs;
+	bottomASs.reserve(m_BottomASMap.size());
+	for (auto it = m_BottomASMap.begin(), itEnd = m_BottomASMap.end(); it != itEnd; ++it)
+	{
+		bottomASs.push_back(it->second);
+	}
+	ASSERT_RESULT(m_TopDown->UpdateTopDown(bottomASs));
+}
+
 void KRayTraceScene::CreateAccelerationStructure()
 {
 	std::vector<IKAccelerationStructure::BottomASTransformTuple> bottomASs;
@@ -70,11 +83,12 @@ void KRayTraceScene::RecreateAS()
 {
 	if (m_bNeedRecreateAS)
 	{
+		m_LastRecreateFrame = KRenderGlobal::CurrentFrameNum;
 		m_bNeedRecreateAS = false;
 
 		KRenderGlobal::RenderDevice->Wait();
-		DestroyAccelerationStructure();
-		CreateAccelerationStructure();
+
+		UpdateAccelerationStructure();
 
 		for (auto it = m_RaytracePipelineInfos.begin(); it != m_RaytracePipelineInfos.end(); ++it)
 		{
@@ -132,6 +146,7 @@ void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 
 	if (m_TopDown && bottomUpChanged)
 	{
+		m_LastDirtyFrame = KRenderGlobal::CurrentFrameNum;
 		m_bNeedRecreateAS = true;
 	}
 }

@@ -37,12 +37,14 @@ namespace KVulkanInitializer
 		VkAccelerationStructureKHR handle;
 		VkDeviceAddress deviceAddress;
 		VkBuffer buffer;
+		VkAccelerationStructureBuildSizesInfoKHR sizeInfo;
 
 		AccelerationStructureHandle()
 		{
 			handle = VK_NULL_HANDEL;
 			deviceAddress = VK_NULL_HANDEL;
 			buffer = VK_NULL_HANDEL;
+			sizeInfo = {};
 		}
 	};
 
@@ -84,10 +86,8 @@ namespace KVulkanInitializer
 		VkImageView& vkImageView);
 
 	void CreateVkAccelerationStructure(VkAccelerationStructureTypeKHR type, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo, AccelerationStructureHandle& accelerationStructure);
-	void BuildBottomUpVkAccelerationStructure(VkAccelerationStructureGeometryKHR accelerationStructureGeometry, VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo,
-		uint32_t numTriangles, AccelerationStructureHandle& accelerationStructure);
-	void BuildTopDownVkAccelerationStructure(VkAccelerationStructureGeometryKHR accelerationStructureGeometry, VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo,
-		uint32_t numInstances, AccelerationStructureHandle& accelerationStructure);
+	void BuildBottomUpVkAccelerationStructure(VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo, VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo, uint32_t numTriangles);
+	void BuildTopDownVkAccelerationStructure(VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo, VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo, uint32_t numInstances);
 
 	VkCommandBufferAllocateInfo CommandBufferAllocateInfo(VkCommandPool pool);
 

@@ -91,7 +91,7 @@ void KVulkanComputePipeline::BindStorageBuffer(uint32_t location, IKStorageBuffe
 void KVulkanComputePipeline::BindAccelerationStructure(uint32_t location, IKAccelerationStructurePtr as, bool dynamicWrite)
 {
 	BindingInfo newBinding;
-	newBinding.as.as = as;
+	newBinding.as.handle = as;
 	newBinding.dynamicWrite = dynamicWrite;
 	newBinding.type = BindingInfo::AS;
 	m_Bindings[location] = newBinding;
@@ -162,7 +162,7 @@ VkWriteDescriptorSet KVulkanComputePipeline::PopulateImageWrite(BindingInfo& bin
 
 VkWriteDescriptorSet KVulkanComputePipeline::PopulateTopdownASWrite(BindingInfo & binding, VkDescriptorSet dstSet, uint32_t dstBinding)
 {
-	KVulkanAccelerationStructure* vulkanAccelerationStructure = static_cast<KVulkanAccelerationStructure*>(binding.as.as.get());
+	KVulkanAccelerationStructure* vulkanAccelerationStructure = static_cast<KVulkanAccelerationStructure*>(binding.as.handle.get());
 	binding.as.accelerationStructureDescriptor = {};
 	binding.as.accelerationStructureDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
 	binding.as.accelerationStructureDescriptor.accelerationStructureCount = 1;

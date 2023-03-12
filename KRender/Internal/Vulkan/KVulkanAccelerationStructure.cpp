@@ -64,9 +64,9 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 			// Get size info
 			VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo = {};
 			accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-
 			accelerationStructureBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-			accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+			accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+			accelerationStructureBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 			accelerationStructureBuildGeometryInfo.geometryCount = 1;
 			accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
 
@@ -81,7 +81,12 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 				&accelerationStructureBuildSizesInfo);
 
 			KVulkanInitializer::CreateVkAccelerationStructure(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR, accelerationStructureBuildSizesInfo, m_BottomUpAS);
-			KVulkanInitializer::BuildBottomUpVkAccelerationStructure(accelerationStructureGeometry, accelerationStructureBuildSizesInfo, numTriangles, m_BottomUpAS);
+			m_BottomUpAS.sizeInfo = accelerationStructureBuildSizesInfo;
+
+			accelerationStructureBuildGeometryInfo.srcAccelerationStructure = VK_NULL_HANDEL;
+			accelerationStructureBuildGeometryInfo.dstAccelerationStructure = m_BottomUpAS.handle;
+
+			KVulkanInitializer::BuildBottomUpVkAccelerationStructure(accelerationStructureBuildGeometryInfo, accelerationStructureBuildSizesInfo, numTriangles);
 			return true;
 		}
 		else
@@ -95,10 +100,16 @@ bool KVulkanAccelerationStructure::InitBottomUp(VertexFormat format, IKVertexBuf
 	}
 }
 
-bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransformTuple>& bottomASs)
+bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransformTuple>& bottomASs, bool update)
 {
 	if (KVulkanGlobal::supportRaytrace)
 	{
+		// 实际实现中发现大小对不上根本不能用更新接口
+		if (m_Instances.size() != bottomASs.size())
+		{
+			update = false;
+		}
+
 		m_Instances.clear();
 		m_Instances.reserve(bottomASs.size());
 
@@ -253,6 +264,18 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 		VkMemoryRequirements memoryRequirements = {};
 		vkGetBufferMemoryRequirements(KVulkanGlobal::device, instanceBufferHandle, &memoryRequirements);
 
+		// Find memory requirements
+		VkMemoryRequirements2			memReqs = { VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2 };
+		VkMemoryDedicatedRequirements	dedicatedRegs = { VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS };
+		VkBufferMemoryRequirementsInfo2	bufferReqs = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2 };
+
+		memReqs.pNext = &dedicatedRegs;
+		bufferReqs.buffer = instanceBufferHandle;
+
+		vkGetBufferMemoryRequirements2(KVulkanGlobal::device, &bufferReqs, &memReqs);
+
+		memoryRequirements = memReqs.memoryRequirements;
+
 		VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{};
 		memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
 		memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
@@ -263,7 +286,7 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			memoryTypeIndex));
 
-		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bufferCreateInfo.usage, instanceAlloc));
+		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bufferCreateInfo.usage, dedicatedRegs.requiresDedicatedAllocation, instanceAlloc));
 
 		// 这里没有拷贝数据导致数据为空验证层居然在之后不报错
 		if (instanceSize)
@@ -278,6 +301,7 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 		VkDeviceOrHostAddressConstKHR instanceDataDeviceAddress{};
 		ASSERT_RESULT(KVulkanHelper::GetBufferDeviceAddress(instanceBufferHandle, instanceDataDeviceAddress.deviceAddress));
 
+		// Build
 		VkAccelerationStructureGeometryKHR accelerationStructureGeometry = {};
 		accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
 		accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
@@ -290,7 +314,8 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 		VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo = {};
 		accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
 		accelerationStructureBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-		accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+		accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+		accelerationStructureBuildGeometryInfo.mode = update ? VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR : VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 		accelerationStructureBuildGeometryInfo.geometryCount = 1;
 		accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
 
@@ -307,13 +332,56 @@ bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransfo
 			&primitive_count,
 			&accelerationStructureBuildSizesInfo);
 
-		KVulkanInitializer::CreateVkAccelerationStructure(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR, accelerationStructureBuildSizesInfo, m_TopDownAS);
-		KVulkanInitializer::BuildTopDownVkAccelerationStructure(accelerationStructureGeometry, accelerationStructureBuildSizesInfo, instance_count, m_TopDownAS);
+		if (accelerationStructureBuildSizesInfo.accelerationStructureSize != m_TopDownAS.sizeInfo.accelerationStructureSize)
+		{
+			update = false;
+			accelerationStructureBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+		}
+
+		if (!update)
+		{
+			if (m_TopDownAS.handle)
+			{
+				vkDestroyBuffer(KVulkanGlobal::device, m_TopDownAS.buffer, nullptr);
+				m_TopDownAS.buffer = VK_NULL_HANDEL;
+				KVulkanGlobal::vkDestroyAccelerationStructureKHR(KVulkanGlobal::device, m_TopDownAS.handle, nullptr);
+				m_TopDownAS.handle = VK_NULL_HANDEL;
+				KVulkanHeapAllocator::Free(m_TopDownAS.allocInfo);
+			}
+			KVulkanInitializer::CreateVkAccelerationStructure(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR, accelerationStructureBuildSizesInfo, m_TopDownAS);
+			m_TopDownAS.sizeInfo = accelerationStructureBuildSizesInfo;
+		}
+
+		ASSERT_RESULT(accelerationStructureBuildSizesInfo.accelerationStructureSize <= m_TopDownAS.sizeInfo.accelerationStructureSize);
+
+		if (update)
+		{
+			accelerationStructureBuildGeometryInfo.srcAccelerationStructure = m_TopDownAS.handle;
+		}
+		else
+		{
+			accelerationStructureBuildGeometryInfo.srcAccelerationStructure = VK_NULL_HANDEL;
+		}
+		accelerationStructureBuildGeometryInfo.dstAccelerationStructure = m_TopDownAS.handle;
+
+		KVulkanInitializer::BuildTopDownVkAccelerationStructure(accelerationStructureBuildGeometryInfo, accelerationStructureBuildSizesInfo, instance_count);
 
 		vkDestroyBuffer(KVulkanGlobal::device, instanceBufferHandle, nullptr);
 		KVulkanHeapAllocator::Free(instanceAlloc);
+
+		VK_ASSERT_RESULT(vkQueueWaitIdle(KVulkanGlobal::graphicsQueue));
 	}
 	return true;
+}
+
+bool KVulkanAccelerationStructure::InitTopDown(const std::vector<BottomASTransformTuple>& bottomASs)
+{
+	return BuildTopDown(bottomASs, false);
+}
+
+bool KVulkanAccelerationStructure::UpdateTopDown(const std::vector<BottomASTransformTuple>& bottomASs)
+{
+	return BuildTopDown(bottomASs, true);
 }
 
 bool KVulkanAccelerationStructure::UnInit()
@@ -328,6 +396,7 @@ bool KVulkanAccelerationStructure::UnInit()
 			m_BottomUpAS.handle = VK_NULL_HANDEL;
 			KVulkanHeapAllocator::Free(m_BottomUpAS.allocInfo);
 		}
+		m_BottomUpAS.deviceAddress = VK_NULL_HANDEL;
 
 		if (m_TopDownAS.handle != VK_NULL_HANDEL)
 		{
@@ -337,11 +406,13 @@ bool KVulkanAccelerationStructure::UnInit()
 			m_TopDownAS.handle = VK_NULL_HANDEL;
 			KVulkanHeapAllocator::Free(m_TopDownAS.allocInfo);
 		}
+		m_TopDownAS.deviceAddress = VK_NULL_HANDEL;
 
 		for (MaterialBuffer& material : m_Materials)
 		{
 			KVulkanInitializer::DestroyStorageBuffer(material.buffer, material.allocInfo);
 		}
+		m_Materials.clear();
 	}
 
 	m_Materials.clear();

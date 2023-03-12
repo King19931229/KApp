@@ -169,7 +169,7 @@ void main()
 		weight *= depthWeight;
 		weight *= normalWeight;
 
-		const float maxTspp = 128;
+		const float maxTspp = 255;
 		tssp = min(weight * (historyTssp + currentTspp), maxTspp);
 	}
 	else

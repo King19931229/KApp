@@ -55,7 +55,7 @@ protected:
 
 		struct
 		{
-			IKAccelerationStructurePtr as;
+			IKAccelerationStructurePtr handle;
 			VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptor;
 		}as;
 
@@ -91,7 +91,7 @@ protected:
 			image.mipmap = 0;
 			image.imageDescriptors = {};
 
-			as.as = nullptr;
+			as.handle = nullptr;
 			as.accelerationStructureDescriptor = {};
 
 			uniform.buffer = nullptr;

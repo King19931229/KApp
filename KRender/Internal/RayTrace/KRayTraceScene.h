@@ -13,6 +13,8 @@ protected:
 	const KCamera* m_Camera;
 	uint32_t m_Width;
 	uint32_t m_Height;
+	uint32_t m_LastDirtyFrame;
+	uint32_t m_LastRecreateFrame;
 	float m_ImageScale;
 	bool m_DebugEnable;
 	bool m_AutoUpdateImageSize;
@@ -59,6 +61,7 @@ protected:
 
 	void CreateAccelerationStructure();
 	void DestroyAccelerationStructure();
+	void UpdateAccelerationStructure();
 
 	void RecreateAS();
 public:

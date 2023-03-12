@@ -155,7 +155,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;SPIRV_CHECK_CONTEXT;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;SPIRV_WINDOWS;SPIRV_COLOR_TERMINAL;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;SPIRV_CHECK_CONTEXT;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;SPIRV_WINDOWS;SPIRV_COLOR_TERMINAL;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
     <ResourceCompile>
@@ -193,7 +193,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;SPIRV_CHECK_CONTEXT;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;SPIRV_WINDOWS;SPIRV_COLOR_TERMINAL;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;SPIRV_CHECK_CONTEXT;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;SPIRV_WINDOWS;SPIRV_COLOR_TERMINAL;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
     <ResourceCompile>

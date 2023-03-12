@@ -45,8 +45,8 @@ void main()
 
 	if (tspp > 0)
 	{
-		const float minSmoothingFactor = 0.03;
-		uint maxTspp = uint(round(1.0 / minSmoothingFactor));
+		const float minSmoothingFactor = 0.01;
+		uint maxTspp = min(255, uint(round(1.0 / minSmoothingFactor)));
 		tspp = isValidValue ? min(tspp + 1, maxTspp) : tspp;
 
 		float cachedValue = cachedValues.r;

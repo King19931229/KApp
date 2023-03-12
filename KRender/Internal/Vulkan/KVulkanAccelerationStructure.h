@@ -45,6 +45,8 @@ protected:
 	const class KVulkanIndexBuffer* m_IndexBuffer;
 	const class KVulkanVertexBuffer* m_VertexBuffer;
 	const class KMaterialTextureBinding* m_TextureBinding;
+
+	bool BuildTopDown(const std::vector<BottomASTransformTuple>& bottomASs, bool update);
 public:
 	KVulkanAccelerationStructure();
 	~KVulkanAccelerationStructure();
@@ -60,5 +62,6 @@ public:
 
 	virtual bool InitBottomUp(VertexFormat format, IKVertexBufferPtr vertexBuffer, IKIndexBufferPtr indexBuffer, IKMaterialTextureBinding* textureBinding);
 	virtual bool InitTopDown(const std::vector<BottomASTransformTuple>& bottomASs);
+	virtual bool UpdateTopDown(const std::vector<BottomASTransformTuple>& bottomASs);
 	virtual bool UnInit();
 };

@@ -226,13 +226,25 @@ void KVulkanRayTracePipeline::CreateShaderBindingTable(ShaderBindingTable& shade
 	VkMemoryRequirements memoryRequirements = {};
 	vkGetBufferMemoryRequirements(KVulkanGlobal::device, shaderBindingTable.buffer, &memoryRequirements);
 
+	// Find memory requirements
+	VkMemoryRequirements2			memReqs = { VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2 };
+	VkMemoryDedicatedRequirements	dedicatedRegs = { VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS };
+	VkBufferMemoryRequirementsInfo2	bufferReqs = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2 };
+
+	memReqs.pNext = &dedicatedRegs;
+	bufferReqs.buffer = shaderBindingTable.buffer;
+
+	vkGetBufferMemoryRequirements2(KVulkanGlobal::device, &bufferReqs, &memReqs);
+
+	memoryRequirements = memReqs.memoryRequirements;
+
 	uint32_t memoryTypeIndex = 0;
 	ASSERT_RESULT(KVulkanHelper::FindMemoryType(KVulkanGlobal::physicalDevice,
 		memoryRequirements.memoryTypeBits,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		memoryTypeIndex));
 
-	ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bufferCreateInfo.usage, shaderBindingTable.allocInfo));
+	ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bufferCreateInfo.usage, dedicatedRegs.requiresDedicatedAllocation, shaderBindingTable.allocInfo));
 	VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, shaderBindingTable.buffer, shaderBindingTable.allocInfo.vkMemroy, shaderBindingTable.allocInfo.vkOffset));
 
 	const uint32_t handleSizeAligned = KNumerical::AlignedSize(KVulkanGlobal::rayTracingPipelineProperties.shaderGroupHandleSize,

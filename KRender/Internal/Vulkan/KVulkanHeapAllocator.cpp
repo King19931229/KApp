@@ -823,24 +823,26 @@ namespace KVulkanHeapAllocator
 		return true;
 	}
 
-	bool Alloc(VkDeviceSize size, VkDeviceSize alignment, uint32_t memoryTypeIndex, VkMemoryPropertyFlags memoryUsage, VkBufferUsageFlags bufferUsage, AllocInfo& info)
+	bool Alloc(VkDeviceSize size, VkDeviceSize alignment, uint32_t memoryTypeIndex, VkMemoryPropertyFlags memoryUsage, VkBufferUsageFlags bufferUsage, bool noShared, AllocInfo& info)
 	{
 		if(memoryTypeIndex < MEMORY_TYPE_COUNT)
 		{
 			MemoryHeap* pHeap = MEMORY_TYPE_TO_HEAP[memoryTypeIndex];
 
-			bool noShared = false;
 			MemoryAllocateType type = MAT_DEFAULT;
 
+			// TODO
 			if (memoryUsage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 			{
 				noShared = true;
 			}
+
 			if (bufferUsage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
 			{
 				type = MAT_DEVICE_ADDRESS;
 			}
-			// 光追加速结构不能够与其他资源共享VkDeviceMemory 这是否是驱动的BUG
+
+			// 光追加速结构不能够与其他资源共享VkDeviceMemory
 			if (bufferUsage & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR)
 			{
 				type = MAT_ACCELERATION_STRUCTURE;
