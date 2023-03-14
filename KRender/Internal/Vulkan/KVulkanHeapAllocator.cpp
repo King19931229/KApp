@@ -831,12 +831,6 @@ namespace KVulkanHeapAllocator
 
 			MemoryAllocateType type = MAT_DEFAULT;
 
-			// TODO
-			if (memoryUsage & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-			{
-				noShared = true;
-			}
-
 			if (bufferUsage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
 			{
 				type = MAT_DEVICE_ADDRESS;

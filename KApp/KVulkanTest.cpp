@@ -65,7 +65,7 @@ void InitSponza(IKEnginePtr engine)
 		}
 		entity->RegisterComponent(CT_TRANSFORM);
 
-		scene->Add(entity);
+		scene->Add(entity.get());
 #endif
 	};
 	callback();

@@ -488,9 +488,6 @@ bool KVulkanFrameBuffer::UnInit()
 
 bool KVulkanFrameBuffer::TranslateLayout(VkCommandBuffer cmdBuffer, uint32_t baseMip, uint32_t numMip, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
-	// 有两种行为可能改变Layout
-	// 1.Translation
-	// 2.RenderPass
 	KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format,
 		0,
 		(m_ImageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1,
@@ -499,10 +496,12 @@ bool KVulkanFrameBuffer::TranslateLayout(VkCommandBuffer cmdBuffer, uint32_t bas
 		oldLayout,
 		newLayout,
 		cmdBuffer);
+
 	if (baseMip == 0 && numMip == m_Mipmaps)
 	{
 		m_ImageLayout = newLayout;
 	}
+
 	return true;
 }
 

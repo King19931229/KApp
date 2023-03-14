@@ -104,8 +104,7 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 {
 	if (KVulkanGlobal::supportRaytrace)
 	{
-		// 实际实现中发现大小对不上根本不能用更新接口
-		if (m_Instances.size() != bottomASs.size())
+		if (m_Instances.size() == 0)
 		{
 			update = false;
 		}
@@ -368,8 +367,6 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 
 		vkDestroyBuffer(KVulkanGlobal::device, instanceBufferHandle, nullptr);
 		KVulkanHeapAllocator::Free(instanceAlloc);
-
-		VK_ASSERT_RESULT(vkQueueWaitIdle(KVulkanGlobal::graphicsQueue));
 	}
 	return true;
 }

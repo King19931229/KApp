@@ -263,18 +263,21 @@ bool KUIOverlayBase::Update()
 	ImDrawIdx* idxDst  = nullptr;
 
 	ASSERT_RESULT(m_VertexBuffers[imageIndex]->Map((void**)&vtxDst));
-	ASSERT_RESULT(m_IndexBuffers[imageIndex]->Map((void**)&idxDst));
-
 	for (int n = 0; n < imDrawData->CmdListsCount; n++)
 	{
 		const ImDrawList* cmd_list = imDrawData->CmdLists[n];
 		memcpy(vtxDst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-		memcpy(idxDst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
 		vtxDst += cmd_list->VtxBuffer.Size;
+	}
+	ASSERT_RESULT(m_VertexBuffers[imageIndex]->UnMap());
+
+	ASSERT_RESULT(m_IndexBuffers[imageIndex]->Map((void**)&idxDst));
+	for (int n = 0; n < imDrawData->CmdListsCount; n++)
+	{
+		const ImDrawList* cmd_list = imDrawData->CmdLists[n];
+		memcpy(idxDst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
 		idxDst += cmd_list->IdxBuffer.Size;
 	}
-
-	ASSERT_RESULT(m_VertexBuffers[imageIndex]->UnMap());
 	ASSERT_RESULT(m_IndexBuffers[imageIndex]->UnMap());
 
 	return true;

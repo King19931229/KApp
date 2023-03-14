@@ -187,6 +187,18 @@ namespace KVulkanInitializer
 		VkMemoryRequirements memoryRequirements = {};
 		vkGetBufferMemoryRequirements(KVulkanGlobal::device, accelerationStructure.buffer, &memoryRequirements);
 
+		// Find memory requirements
+		VkMemoryRequirements2			memReqs = { VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2 };
+		VkMemoryDedicatedRequirements	dedicatedRegs = { VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS };
+		VkBufferMemoryRequirementsInfo2	bufferReqs = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2 };
+
+		memReqs.pNext = &dedicatedRegs;
+		bufferReqs.buffer = accelerationStructure.buffer;
+
+		vkGetBufferMemoryRequirements2(KVulkanGlobal::device, &bufferReqs, &memReqs);
+
+		memoryRequirements = memReqs.memoryRequirements;
+
 		uint32_t memoryTypeIndex = 0;
 		ASSERT_RESULT(KVulkanHelper::FindMemoryType(
 			KVulkanGlobal::physicalDevice,
@@ -194,7 +206,7 @@ namespace KVulkanInitializer
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			memoryTypeIndex));
 
-		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bufferCreateInfo.usage, true, accelerationStructure.allocInfo));
+		ASSERT_RESULT(KVulkanHeapAllocator::Alloc(memoryRequirements.size, memoryRequirements.alignment, memoryTypeIndex, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bufferCreateInfo.usage, dedicatedRegs.requiresDedicatedAllocation, accelerationStructure.allocInfo));
 		VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, accelerationStructure.buffer,
 			accelerationStructure.allocInfo.vkMemroy,
 			accelerationStructure.allocInfo.vkOffset));
