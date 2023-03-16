@@ -52,12 +52,12 @@ bool KWhiteFurnace::Execute()
 
 	const uint32_t GROUP_SIZE = 32;
 
-	m_WFTarget->GetFrameBuffer()->Translate(m_CommandBuffer.get(), IMAGE_LAYOUT_GENERAL);
+	m_WFTarget->GetFrameBuffer()->Translate(m_CommandBuffer.get(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_TOP_OF_PIPE, IMAGE_LAYOUT_GENERAL);
 	m_WFTestPipeline->Execute(m_CommandBuffer,
 		(uint32_t)(m_WFTarget->GetFrameBuffer()->GetWidth() + GROUP_SIZE - 1) / GROUP_SIZE,
 		(uint32_t)(m_WFTarget->GetFrameBuffer()->GetHeight() + GROUP_SIZE - 1) / GROUP_SIZE,
 		6);
-	m_WFTarget->GetFrameBuffer()->Translate(m_CommandBuffer.get(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+	m_WFTarget->GetFrameBuffer()->Translate(m_CommandBuffer.get(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	m_CommandBuffer->End();
 	m_CommandBuffer->Flush();

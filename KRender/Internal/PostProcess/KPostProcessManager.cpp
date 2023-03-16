@@ -483,7 +483,6 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 				commandBuffer->SetViewport(renderPass->GetViewPort());
 
 				KRenderCommand command;
-
 				if (PopulateRenderCommand(command, pass->GetPipeline(), renderPass))
 				{
 					commandBuffer->Render(command);
@@ -494,7 +493,7 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 			primaryCommandBuffer->EndRenderPass();
 			primaryCommandBuffer->EndDebugMarker();
 
-			primaryCommandBuffer->Translate(pass->GetRenderTarget()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryCommandBuffer->Translate(pass->GetRenderTarget()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	});
 
@@ -503,19 +502,16 @@ bool KPostProcessManager::Execute(unsigned int chainImageIndex, IKSwapChain* swa
 		IKRenderPassPtr renderPass = swapChain->GetRenderPass(chainImageIndex);
 		primaryCommandBuffer->BeginDebugMarker("MainChain", glm::vec4(0, 1, 0, 0));
 		primaryCommandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
-
+		primaryCommandBuffer->SetViewport(renderPass->GetViewPort());
 		KRenderCommand command;
 		if (PopulateRenderCommand(command, endPass->GetScreenDrawPipeline(), renderPass))
 		{
-			primaryCommandBuffer->SetViewport(renderPass->GetViewPort());
 			primaryCommandBuffer->Render(command);
 		}
-
 		if (ui)
 		{
 			ui->Draw(renderPass, primaryCommandBuffer);
 		}
-
 		primaryCommandBuffer->EndRenderPass();
 		primaryCommandBuffer->EndDebugMarker();
 	}

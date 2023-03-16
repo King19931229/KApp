@@ -463,33 +463,33 @@ namespace KVulkanHelper
 	{
 		switch (shaderTypeFlag)
 		{
-		case ST_VERTEX:
-			bit = VK_SHADER_STAGE_VERTEX_BIT;
-			return true;
-		case ST_FRAGMENT:
-			bit = VK_SHADER_STAGE_FRAGMENT_BIT;
-			return true;
-		case ST_GEOMETRY:
-			bit = VK_SHADER_STAGE_GEOMETRY_BIT;
-			return true;
-		case ST_RAYGEN:
-			bit = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-			return true;
-		case ST_ANY_HIT:
-			bit = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
-			return true;
-		case ST_CLOSEST_HIT:
-			bit = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-			return true;
-		case ST_MISS:
-			bit = VK_SHADER_STAGE_MISS_BIT_KHR;
-			return true;
-		case ST_COMPUTE:
-			bit = VK_SHADER_STAGE_COMPUTE_BIT;
-			return true;
-		default:
-			assert(false && "Unknown shader type flag");
-			return false;
+			case ST_VERTEX:
+				bit = VK_SHADER_STAGE_VERTEX_BIT;
+				return true;
+			case ST_FRAGMENT:
+				bit = VK_SHADER_STAGE_FRAGMENT_BIT;
+				return true;
+			case ST_GEOMETRY:
+				bit = VK_SHADER_STAGE_GEOMETRY_BIT;
+				return true;
+			case ST_RAYGEN:
+				bit = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+				return true;
+			case ST_ANY_HIT:
+				bit = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+				return true;
+			case ST_CLOSEST_HIT:
+				bit = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+				return true;
+			case ST_MISS:
+				bit = VK_SHADER_STAGE_MISS_BIT_KHR;
+				return true;
+			case ST_COMPUTE:
+				bit = VK_SHADER_STAGE_COMPUTE_BIT;
+				return true;
+			default:
+				assert(false && "Unknown shader type flag");
+				return false;
 		}
 	}
 
@@ -504,6 +504,101 @@ namespace KVulkanHelper
 			{
 				VkShaderStageFlagBits bit;
 				if(ShaderTypeFlagToVkShaderStageFlagBits(c, bit))
+				{
+					flags |= bit;
+				}
+				else
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	bool PipelineStageToVkPipelineStageFlagBits(PipelineStage stage, VkPipelineStageFlagBits& bits)
+	{
+		switch (stage)
+		{
+			case PIPELINE_STAGE_TOP_OF_PIPE:
+				bits = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				return true;
+			case PIPELINE_STAGE_DRAW_INDIRECT:
+				bits = VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+				return true;
+			case PIPELINE_STAGE_VERTEX_INPUT:
+				bits = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+				return true;
+			case PIPELINE_STAGE_VERTEX_SHADER:
+				bits = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+				return true;
+			case PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER:
+				bits = VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+				return true;
+			case PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER:
+				bits = VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+				return true;
+			case PIPELINE_STAGE_GEOMETRY_SHADER:
+				bits = VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+				return true;
+			case PIPELINE_STAGE_FRAGMENT_SHADER:
+				bits = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+				return true;
+			case PIPELINE_STAGE_EARLY_FRAGMENT_TESTS:
+				bits = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+				return true;
+			case PIPELINE_STAGE_LATE_FRAGMENT_TESTS:
+				bits = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+				return true;
+			case PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT:
+				bits = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				return true;
+			case PIPELINE_STAGE_COMPUTE_SHADER:
+				bits = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+				return true;
+			case PIPELINE_STAGE_TRANSFER:
+				bits = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				return true;
+			case PIPELINE_STAGE_BOTTOM_OF_PIPE:
+				bits = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+				return true;
+			case PIPELINE_STAGE_HOST:
+				bits = VK_PIPELINE_STAGE_HOST_BIT;
+				return true;
+			default:
+				assert(false && "Unknown pipeline stage");
+				return false;
+		}
+	}
+
+	bool PipelineStagesToVkPipelineStageFlags(PipelineStages stages, VkPipelineStageFlags& flags)
+	{
+		flags = 0;
+		const PipelineStage candidate[] =
+		{
+			PIPELINE_STAGE_TOP_OF_PIPE,
+			PIPELINE_STAGE_DRAW_INDIRECT,
+			PIPELINE_STAGE_VERTEX_INPUT,
+			PIPELINE_STAGE_VERTEX_SHADER,
+			PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER,
+			PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER,
+			PIPELINE_STAGE_GEOMETRY_SHADER,
+			PIPELINE_STAGE_FRAGMENT_SHADER,
+			PIPELINE_STAGE_EARLY_FRAGMENT_TESTS,
+			PIPELINE_STAGE_LATE_FRAGMENT_TESTS,
+			PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT,
+			PIPELINE_STAGE_COMPUTE_SHADER,
+			PIPELINE_STAGE_TRANSFER,
+			PIPELINE_STAGE_BOTTOM_OF_PIPE,
+			PIPELINE_STAGE_HOST
+		};
+		static_assert((1 << (ARRAY_SIZE(candidate) - 1)) + 1 == PIPELINE_STAGE_ENDENUM, "Array size should match");
+		for (PipelineStage c : candidate)
+		{
+			if (stages & c)
+			{
+				VkPipelineStageFlagBits bit;
+				if (PipelineStageToVkPipelineStageFlagBits(c, bit))
 				{
 					flags |= bit;
 				}

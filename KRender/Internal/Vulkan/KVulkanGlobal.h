@@ -15,9 +15,11 @@ namespace KVulkanGlobal
 	extern VkPhysicalDevice physicalDevice;
 	extern VkCommandPool graphicsCommandPool;
 	extern VkQueue graphicsQueue;
+	extern VkQueue computeQueue;
 	extern VkPipelineCache pipelineCache;
 
 	extern uint32_t graphicsFamilyIndex;
+	extern uint32_t computeFamilyIndex;
 
 	extern VkPhysicalDeviceProperties deviceProperties;
 	extern VkPhysicalDeviceFeatures deviceFeatures;

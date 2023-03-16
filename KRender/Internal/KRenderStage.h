@@ -1,0 +1,159 @@
+#pragma once
+
+enum RenderStage
+{
+	// SINGLE
+	RENDER_STAGE_PRE_Z,
+	RENDER_STAGE_BASEPASS,
+
+	RENDER_STAGE_OPAQUE,
+	RENDER_STAGE_TRANSPRANT,
+	RENDER_STAGE_SHADOW_GEN,
+	RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN,
+	RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN,
+	// VOXEL
+	RENDER_STAGE_VOXEL,
+	RENDER_STAGE_SPARSE_VOXEL,
+	RENDER_STAGE_CLIPMAP_VOXEL,
+	// MESH
+	RENDER_STAGE_OPAQUE_MESH,
+	// INSTANCE
+	RENDER_STAGE_PRE_Z_INSTANCE,
+	RENDER_STAGE_BASEPASS_INSTANCE,
+
+	RENDER_STAGE_OPAQUE_INSTANCE,
+	RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE,
+	RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE,
+	// DEBUG
+	RENDER_STAGE_DEBUG_LINE,
+	RENDER_STAGE_DEBUG_TRIANGLE,
+
+	RENDER_STAGE_COUNT,
+	RENDER_STAGE_UNKNOWN = RENDER_STAGE_COUNT
+};
+
+enum DeferredRenderStage
+{
+	DRS_STAGE_PRE_PASS,
+	DRS_STAGE_BASE_PASS,
+
+	DRS_STAGE_DEFERRED_LIGHTING,
+	DRS_STAGE_FORWARD_TRANSPRANT,
+	DRS_STAGE_FORWARD_OPAQUE,
+	DRS_STATE_SKY,
+
+	DRS_STATE_COPY_SCENE_COLOR,
+
+	DRS_STATE_DEBUG_OBJECT,
+	DRS_STATE_FOREGROUND,
+	DRS_STAGE_COUNT
+};
+
+struct KDeferredRenderStageDescription
+{
+	DeferredRenderStage stage;
+	RenderStage renderStage;
+	RenderStage instanceRenderStage;
+	const char* debugMakrer;
+};
+
+constexpr KDeferredRenderStageDescription GDeferredRenderStageDescription[DRS_STAGE_COUNT] =
+{
+	{DRS_STAGE_PRE_PASS, RENDER_STAGE_PRE_Z, RENDER_STAGE_PRE_Z_INSTANCE, "PrePass"},
+	{DRS_STAGE_BASE_PASS, RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE, "BasePass"},
+	{DRS_STAGE_DEFERRED_LIGHTING, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "LightingPass"},
+	{DRS_STAGE_FORWARD_TRANSPRANT, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_UNKNOWN, "TransprantPass"},
+	{DRS_STAGE_FORWARD_OPAQUE, RENDER_STAGE_TRANSPRANT, RENDER_STAGE_UNKNOWN, "OpaquePass"},
+	{DRS_STATE_SKY, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "SkyPass"},
+	{DRS_STATE_COPY_SCENE_COLOR, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "CopySceneColor"},
+	{DRS_STATE_DEBUG_OBJECT, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "DebugObjectPass"},
+	{DRS_STATE_FOREGROUND, RENDER_STAGE_UNKNOWN, RENDER_STAGE_UNKNOWN, "ForegroundPass"}
+};
+
+enum DeferredRenderDebug
+{
+	DRD_NONE,
+
+	DRD_ALBEDO,
+	DRD_METAL,
+	DRD_ROUGHNESS,
+	DRD_AO,
+	DRD_EMISSIVE,
+
+	DRD_IBL_DIFFUSE,
+	DRD_IBL_SPECULAR,
+	DRD_IBL,
+
+	DRD_DIRECTLIGHT_DIFFUSE,
+	DRD_DIRECTLIGHT_SPECULAR,
+	DRD_DIRECTLIGHT,
+
+	DRD_NOV,
+	DRD_NOL,
+	DRD_VOH,
+
+	DRD_NDF,
+	DRD_G,
+	DRD_F,
+
+	DRD_KS,
+	DRD_KD,
+
+	DRD_DIRECT,
+	DRD_INDIRECT,
+	DRD_SCATTERING,
+
+	DRD_COUNT
+};
+
+struct DeferredRenderDebugDescription
+{
+	DeferredRenderDebug debug;
+	const char* name;
+};
+
+constexpr DeferredRenderDebugDescription GDeferredRenderDebugDescription[DRD_COUNT] =
+{
+	{ DRD_NONE, "None" },
+
+	{ DRD_ALBEDO, "Albedo" },
+	{ DRD_METAL, "Metal" },
+	{ DRD_ROUGHNESS, "Roughness" },
+	{ DRD_AO, "AO" },
+	{ DRD_EMISSIVE, "Emissive" },
+
+	{ DRD_IBL_DIFFUSE, "IBL Diffuse"},
+	{ DRD_IBL_SPECULAR, "IBL Specular"},
+	{ DRD_IBL, "IBL"},
+
+	{ DRD_DIRECTLIGHT_DIFFUSE, "Direct Light Diffuse"},
+	{ DRD_DIRECTLIGHT_SPECULAR, "Direct Light Specular"},
+	{ DRD_DIRECTLIGHT, "Direct Light"},
+
+	{ DRD_NOV, "N Dot V"},
+	{ DRD_NOL, "N Dot L"},
+	{ DRD_VOH, "V Dot H"},
+
+	{ DRD_NDF, "Normal Distribution Function"},
+	{ DRD_G, "Geometric Function" },
+	{ DRD_F, "Fresnel Function" },
+
+	{ DRD_KS, "IBL Specular Ratio"},
+	{ DRD_KD, "IBL Diffuse Ratio"},
+
+	{ DRD_DIRECT, "Direct"},
+	{ DRD_INDIRECT, "Indirect"},
+	{ DRD_SCATTERING, "Scattering"}
+};
+
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_PRE_PASS].stage == DRS_STAGE_PRE_PASS, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_BASE_PASS].stage == DRS_STAGE_BASE_PASS, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_DEFERRED_LIGHTING].stage == DRS_STAGE_DEFERRED_LIGHTING, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_TRANSPRANT].stage == DRS_STAGE_FORWARD_TRANSPRANT, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_OPAQUE].stage == DRS_STAGE_FORWARD_OPAQUE, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_SKY].stage == DRS_STATE_SKY, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].stage == DRS_STATE_COPY_SCENE_COLOR, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].stage == DRS_STATE_DEBUG_OBJECT, "check");
+static_assert(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].stage == DRS_STATE_FOREGROUND, "check");
+
+static_assert(ARRAY_SIZE(GDeferredRenderDebugDescription) == DRD_COUNT, "check");

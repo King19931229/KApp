@@ -7,18 +7,6 @@
 #include "Internal/Render/KRenderUtil.h"
 #include "Internal/ECS/Component/KDebugComponent.h"
 
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_PRE_PASS].stage == DRS_STAGE_PRE_PASS, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_BASE_PASS].stage == DRS_STAGE_BASE_PASS, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_DEFERRED_LIGHTING].stage == DRS_STAGE_DEFERRED_LIGHTING, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_TRANSPRANT].stage == DRS_STAGE_FORWARD_TRANSPRANT, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STAGE_FORWARD_OPAQUE].stage == DRS_STAGE_FORWARD_OPAQUE, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STATE_SKY].stage == DRS_STATE_SKY, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].stage == DRS_STATE_COPY_SCENE_COLOR, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].stage == DRS_STATE_DEBUG_OBJECT, "check");
-static_assert(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].stage == DRS_STATE_FOREGROUND, "check");
-
-static_assert(ARRAY_SIZE(GDeferredRenderDebugDescription) == DRD_COUNT, "check");
-
 KDeferredRenderer::KDeferredRenderer()
 	: m_Camera(nullptr)
 	, m_DebugOption(DRD_NONE)
@@ -443,19 +431,19 @@ void KDeferredRenderer::HandleRenderCommandBinding(DeferredRenderStage renderSta
 	}
 }
 
-void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, DeferredRenderStage renderStage, const std::vector<KRenderComponent*>& cullRes)
+void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, DeferredRenderStage deferredRenderStage, const std::vector<KRenderComponent*>& cullRes)
 {
-	PipelineStage pipelineStage = GDeferredRenderStageDescription[renderStage].pipelineStage;
-	PipelineStage instancePipelineStage = GDeferredRenderStageDescription[renderStage].instancePipelineStage;
-	const char* debugMarker = GDeferredRenderStageDescription[renderStage].debugMakrer;
+	RenderStage renderStage = GDeferredRenderStageDescription[deferredRenderStage].renderStage;
+	RenderStage instanceRenderStage = GDeferredRenderStageDescription[deferredRenderStage].instanceRenderStage;
+	const char* debugMarker = GDeferredRenderStageDescription[deferredRenderStage].debugMakrer;
 
 	std::vector<KRenderCommand> commands;
 
-	KRenderStageStatistics& statistics = m_Statistics[renderStage];
+	KRenderStageStatistics& statistics = m_Statistics[deferredRenderStage];
 	statistics.Reset();
 
 	std::vector<KMaterialSubMeshInstance> instances;
-	BuildMaterialSubMeshInstance(renderStage, cullRes, instances);
+	BuildMaterialSubMeshInstance(deferredRenderStage, cullRes, instances);
 
 	for (KMaterialSubMeshInstance& subMeshInstance : instances)
 	{
@@ -463,10 +451,10 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 
 		ASSERT_RESULT(!instances.empty());
 
-		if (instancePipelineStage != PIPELINE_STAGE_UNKNOWN && instances.size() > 1)
+		if (instanceRenderStage != RENDER_STAGE_UNKNOWN && instances.size() > 1)
 		{
 			KRenderCommand command;
-			if (subMeshInstance.materialSubMesh->GetRenderCommand(instancePipelineStage, command))
+			if (subMeshInstance.materialSubMesh->GetRenderCommand(instanceRenderStage, command))
 			{
 				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 				{
@@ -502,8 +490,8 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 					statistics.faces += command.vertexData->vertexCount / 3;
 				}
 
-				HandleRenderCommandBinding(renderStage, command);
-				command.pipeline->GetHandle(m_RenderPass[renderStage], command.pipelineHandle);
+				HandleRenderCommandBinding(deferredRenderStage, command);
+				command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
 
 				if (command.Complete())
 				{
@@ -514,7 +502,7 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 		else
 		{
 			KRenderCommand command;
-			if (subMeshInstance.materialSubMesh->GetRenderCommand(pipelineStage, command))
+			if (subMeshInstance.materialSubMesh->GetRenderCommand(renderStage, command))
 			{
 				if (!KRenderUtil::AssignShadingParameter(command, subMeshInstance.materialSubMesh->GetMaterial()))
 				{
@@ -545,8 +533,8 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 						statistics.faces += command.vertexData->vertexCount / 3;
 					}
 
-					HandleRenderCommandBinding(renderStage, command);
-					command.pipeline->GetHandle(m_RenderPass[renderStage], command.pipelineHandle);
+					HandleRenderCommandBinding(deferredRenderStage, command);
+					command.pipeline->GetHandle(m_RenderPass[deferredRenderStage], command.pipelineHandle);
 
 					if (command.Complete())
 					{
@@ -588,7 +576,7 @@ void KDeferredRenderer::EmptyAO(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->BeginDebugMarker("EmptyAO", glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(m_EmptyAORenderPass, SUBPASS_CONTENTS_SECONDARY);
 	primaryBuffer->EndRenderPass();
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	primaryBuffer->EndDebugMarker();
 }
 
@@ -619,7 +607,7 @@ void KDeferredRenderer::SkyPass(IKCommandBufferPtr primaryBuffer)
 
 void KDeferredRenderer::CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer)
 {
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].debugMakrer, glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_COPY_SCENE_COLOR], SUBPASS_CONTENTS_INLINE);
@@ -637,7 +625,7 @@ void KDeferredRenderer::CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->EndRenderPass();
 	primaryBuffer->EndDebugMarker();
 
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 }
 
 void KDeferredRenderer::PrePass(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes)
@@ -688,7 +676,7 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 				{
 					KRenderCommand command;
 
-					if (materialSubMesh->GetRenderCommand(PIPELINE_STAGE_DEBUG_TRIANGLE, command))
+					if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_TRIANGLE, command))
 					{
 						command.objectUsage.binding = SHADER_BINDING_OBJECT;
 						command.objectUsage.range = sizeof(objectData);
@@ -714,7 +702,7 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 						}
 					}
 
-					if (materialSubMesh->GetRenderCommand(PIPELINE_STAGE_DEBUG_LINE, command))
+					if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_LINE, command))
 					{
 						command.objectUsage.binding = SHADER_BINDING_OBJECT;
 						command.objectUsage.range = sizeof(objectData);

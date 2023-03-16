@@ -22,7 +22,7 @@ bool KMaterialSubMesh::CreateShadowPipeline()
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/shadow.vert", m_ShadowVSShader, false));
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/shadow.frag", m_ShadowFSShader, false));
 
-		for (PipelineStage stage : {PIPELINE_STAGE_SHADOW_GEN})
+		for (RenderStage stage : {RENDER_STAGE_SHADOW_GEN})
 		{
 			IKPipelinePtr& pipeline = m_Pipelines[stage];
 			assert(!pipeline);
@@ -32,11 +32,11 @@ bool KMaterialSubMesh::CreateShadowPipeline()
 		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 		ASSERT_RESULT(vertexData);
 
-		m_Pipelines[PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN] = m_Material->CreateCSMPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), true);
-		m_Pipelines[PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE] = m_Material->CreateCSMInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), true);
+		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN] = m_Material->CreateCSMPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), true);
+		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE] = m_Material->CreateCSMInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), true);
 
-		m_Pipelines[PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN] = m_Material->CreateCSMPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
-		m_Pipelines[PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE] = m_Material->CreateCSMInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
+		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN] = m_Material->CreateCSMPipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
+		m_Pipelines[RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE] = m_Material->CreateCSMInstancePipeline(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
 
 		return true;
 	}
@@ -62,14 +62,14 @@ bool KMaterialSubMesh::InitDebug(KSubMeshPtr subMesh, DebugPrimitive primtive)
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "debug.vert", m_DebugVSShader, true));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "debug.frag", m_DebugFSShader, true));
 
-	PipelineStage debugStage = PIPELINE_STAGE_UNKNOWN;
+	RenderStage debugStage = RENDER_STAGE_UNKNOWN;
 	switch (primtive)
 	{
 		case DEBUG_PRIMITIVE_LINE:
-			debugStage = PIPELINE_STAGE_DEBUG_LINE;
+			debugStage = RENDER_STAGE_DEBUG_LINE;
 			break;
 		case DEBUG_PRIMITIVE_TRIANGLE:
-			debugStage = PIPELINE_STAGE_DEBUG_TRIANGLE;
+			debugStage = RENDER_STAGE_DEBUG_TRIANGLE;
 			break;
 		default:
 			assert(false && "impossible to reach");
@@ -94,7 +94,7 @@ bool KMaterialSubMesh::UnInit()
 	m_ShadowVSShader.Release();
 	m_ShadowFSShader.Release();
 
-	for (size_t i = 0; i < PIPELINE_STAGE_COUNT; ++i)
+	for (size_t i = 0; i < RENDER_STAGE_COUNT; ++i)
 	{
 		SAFE_UNINIT(m_Pipelines[i]);
 	}
@@ -130,7 +130,7 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 
 		MaterialShadingMode shaingMode = m_Material->GetShadingMode();
 
-		for (PipelineStage stage : {PIPELINE_STAGE_OPAQUE, PIPELINE_STAGE_OPAQUE_INSTANCE, PIPELINE_STAGE_TRANSPRANT})
+		for (RenderStage stage : {RENDER_STAGE_OPAQUE, RENDER_STAGE_OPAQUE_INSTANCE, RENDER_STAGE_TRANSPRANT})
 		{
 			SAFE_UNINIT(m_Pipelines[stage]);
 		}
@@ -149,12 +149,12 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		switch (shaingMode)
 		{
 			case MSM_OPAQUE:
-				pipelines[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE];
-				pipelines[MESH_IDX] = msShader ? &m_Pipelines[PIPELINE_STAGE_OPAQUE_MESH] : nullptr;
-				pipelines[INSTANCE_IDX] = &m_Pipelines[PIPELINE_STAGE_OPAQUE_INSTANCE];
+				pipelines[DEFAULT_IDX] = &m_Pipelines[RENDER_STAGE_OPAQUE];
+				pipelines[MESH_IDX] = msShader ? &m_Pipelines[RENDER_STAGE_OPAQUE_MESH] : nullptr;
+				pipelines[INSTANCE_IDX] = &m_Pipelines[RENDER_STAGE_OPAQUE_INSTANCE];
 				break;
 			case MSM_TRANSRPANT:
-				pipelines[DEFAULT_IDX] = &m_Pipelines[PIPELINE_STAGE_TRANSPRANT];
+				pipelines[DEFAULT_IDX] = &m_Pipelines[RENDER_STAGE_TRANSPRANT];
 				pipelines[MESH_IDX] = nullptr;
 				pipelines[INSTANCE_IDX] = nullptr;
 				break;
@@ -213,8 +213,8 @@ bool KMaterialSubMesh::SetupMaterialGeneratedCode(std::string& code)
 
 bool KMaterialSubMesh::CreateGBufferPipeline()
 {
-	SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_BASEPASS]);
-	SAFE_UNINIT(m_Pipelines[PIPELINE_STAGE_BASEPASS_INSTANCE]);
+	SAFE_UNINIT(m_Pipelines[RENDER_STAGE_BASEPASS]);
+	SAFE_UNINIT(m_Pipelines[RENDER_STAGE_BASEPASS_INSTANCE]);
 
 	if (m_SubMesh && m_Material->GetShadingMode() == MSM_OPAQUE)
 	{
@@ -224,17 +224,17 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 		IKShaderPtr vsInstanceShader = m_Material->GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
 
-		for (PipelineStage stage : {PIPELINE_STAGE_BASEPASS, PIPELINE_STAGE_BASEPASS_INSTANCE})
+		for (RenderStage stage : {RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE})
 		{
 			IKPipelinePtr pipeline = nullptr;
 			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-			if (stage == PIPELINE_STAGE_BASEPASS)
+			if (stage == RENDER_STAGE_BASEPASS)
 			{
 				pipeline->SetVertexBinding((vertexData->vertexFormats).data(), vertexData->vertexFormats.size());
 				pipeline->SetShader(ST_VERTEX, vsShader);
 			}
-			else if (stage == PIPELINE_STAGE_BASEPASS_INSTANCE)
+			else if (stage == RENDER_STAGE_BASEPASS_INSTANCE)
 			{
 				std::vector<VertexFormat> instanceFormats = vertexData->vertexFormats;
 				instanceFormats.push_back(VF_INSTANCE);
@@ -276,7 +276,7 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_GEOMETRY, "voxel/clipmap/voxelzation/voxelzation_clipmap.geom", m_VoxelClipmapGSShader, false));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "voxel/clipmap/voxelzation/voxelzation_clipmap.frag", m_VoxelClipmapFSShader, false));
 
-	for (PipelineStage stage : {PIPELINE_STAGE_VOXEL, PIPELINE_STAGE_SPARSE_VOXEL, PIPELINE_STAGE_CLIPMAP_VOXEL})
+	for (RenderStage stage : {RENDER_STAGE_VOXEL, RENDER_STAGE_SPARSE_VOXEL, RENDER_STAGE_CLIPMAP_VOXEL})
 	{
 		SAFE_UNINIT(m_Pipelines[stage]);
 
@@ -323,7 +323,7 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 			}
 		}
 
-		if (stage == PIPELINE_STAGE_VOXEL)
+		if (stage == RENDER_STAGE_VOXEL)
 		{
 			pipeline->SetShader(ST_VERTEX, *m_VoxelVSShader);
 			pipeline->SetShader(ST_GEOMETRY, *m_VoxelGSShader);
@@ -337,7 +337,7 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE5, KRenderGlobal::Voxilzer.GetVoxelEmissive(), EF_R32_UINT);
 			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::Voxilzer.GetStaticFlag(), EF_UNKNOWN);
 		}
-		else if (stage == PIPELINE_STAGE_SPARSE_VOXEL)
+		else if (stage == RENDER_STAGE_SPARSE_VOXEL)
 		{
 			pipeline->SetShader(ST_VERTEX, *m_VoxelVSShader);
 			pipeline->SetShader(ST_GEOMETRY, *m_VoxelGSShader);
@@ -373,12 +373,12 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 	return true;
 }
 
-bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& pipeline)
+bool KMaterialSubMesh::CreateFixedPipeline(RenderStage stage, IKPipelinePtr& pipeline)
 {
 	const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 	ASSERT_RESULT(vertexData);
 
-	if (stage == PIPELINE_STAGE_SHADOW_GEN)
+	if (stage == RENDER_STAGE_SHADOW_GEN)
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
@@ -414,7 +414,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
-	else if (stage == PIPELINE_STAGE_DEBUG_LINE)
+	else if (stage == RENDER_STAGE_DEBUG_LINE)
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
@@ -440,7 +440,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 		ASSERT_RESULT(pipeline->Init());
 		return true;
 	}
-	else if (stage == PIPELINE_STAGE_DEBUG_TRIANGLE)
+	else if (stage == RENDER_STAGE_DEBUG_TRIANGLE)
 	{
 		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
@@ -473,9 +473,9 @@ bool KMaterialSubMesh::CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& p
 	}
 }
 
-bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, KRenderCommand& command)
+bool KMaterialSubMesh::GetRenderCommand(RenderStage stage, KRenderCommand& command)
 {
-	if (stage >= PIPELINE_STAGE_COUNT)
+	if (stage >= RENDER_STAGE_COUNT)
 	{
 		assert(false && "pipeline stage count out of bound");
 		return false;
@@ -500,7 +500,7 @@ bool KMaterialSubMesh::GetRenderCommand(PipelineStage stage, KRenderCommand& com
 		command.pipeline = pipeline;
 		command.indexDraw = indexDraw;
 
-		if (stage >= PIPELINE_STAGE_OPAQUE_MESH && stage <= PIPELINE_STAGE_OPAQUE_MESH)
+		if (stage >= RENDER_STAGE_OPAQUE_MESH && stage <= RENDER_STAGE_OPAQUE_MESH)
 		{
 			command.meshShaderDraw = true;
 		}

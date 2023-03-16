@@ -33,11 +33,9 @@ bool KVulkanCommandPool::Init(QueueFamilyIndex familyIndex)
 	case QUEUE_FAMILY_INDEX_GRAPHICS:
 		poolInfo.queueFamilyIndex = KVulkanGlobal::graphicsFamilyIndex;
 		break;
-		/*
-	case QUEUE_FAMILY_INDEX_PRESENT:
-		poolInfo.queueFamilyIndex = KVulkanGlobal::presentFamilyIndex;
+	case QUEUE_FAMILY_INDEX_COMPUTE:
+		poolInfo.queueFamilyIndex = KVulkanGlobal::computeFamilyIndex;
 		break;
-		*/
 	default:
 		assert(false && "impossible to reach");
 		break;
@@ -616,38 +614,38 @@ bool KVulkanCommandBuffer::ResetQuery(IKQueryPtr query)
 }
 
 
-bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, ImageLayout oldLayout, ImageLayout newLayout)
+bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	if (buf)
 	{
-		return buf->Translate(this, oldLayout, newLayout);
+		return buf->Translate(this, srcStages, dstStages, oldLayout, newLayout);
 	}
 	return false;
 }
 
-bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, ImageLayout layout)
+bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout layout)
 {
 	if(buf)
 	{
-		return buf->Translate(this, layout);
+		return buf->Translate(this, srcStages, dstStages, layout);
 	}
 	return false;
 }
 
-bool KVulkanCommandBuffer::TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, ImageLayout oldLayout, ImageLayout newLayout)
+bool KVulkanCommandBuffer::TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	if (buf)
 	{
-		return buf->TranslateMipmap(this, mipmap, oldLayout, newLayout);
+		return buf->TranslateMipmap(this, mipmap, srcStages, dstStages, oldLayout, newLayout);
 	}
 	return false;
 }
 
-bool KVulkanCommandBuffer::TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, ImageLayout layout)
+bool KVulkanCommandBuffer::TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout layout)
 {
 	if (buf)
 	{
-		return buf->TranslateMipmap(this, mipmap, layout);
+		return buf->TranslateMipmap(this, mipmap, srcStages, dstStages, layout);
 	}
 	return false;
 }

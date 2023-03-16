@@ -32,13 +32,15 @@ class KVulkanRenderDevice : public IKRenderDevice
 {
 	struct QueueFamilyIndices
 	{
+		// first:index second:existence
 		typedef std::pair<uint32_t, bool> QueueFamilyIndex;
 		QueueFamilyIndex graphicsFamily;
+		QueueFamilyIndex computeFamily;
 		QueueFamilyIndex presentFamily;
 
 		inline bool IsComplete() const
 		{
-			return graphicsFamily.second && presentFamily.second;
+			return graphicsFamily.second && computeFamily.second && presentFamily.second;
 		}
 	};
 
@@ -59,6 +61,9 @@ class KVulkanRenderDevice : public IKRenderDevice
 
 		PhysicalDevice()
 		{
+			device = VK_NULL_HANDEL;
+			deviceProperties = {};
+			deviceFeatures = {};
 			suitable = false;
 			supportNvExtension = false;
 			supportRaytraceExtension = false;
@@ -72,8 +77,11 @@ protected:
 	IKRenderWindow* m_pWindow;	
 	VkInstance m_Instance;
 	VkDevice m_Device;
+
 	VkQueue m_GraphicsQueue;
+	VkQueue m_ComputeQueue;
 	VkQueue m_PresentQueue;
+
 	VkPipelineCache m_PipelineCache;
 	VkCommandPool m_GraphicCommandPool;
 	int32_t m_ValidationLayerIdx;

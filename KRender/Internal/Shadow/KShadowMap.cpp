@@ -125,7 +125,7 @@ bool KShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 					for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 					{
 						KRenderCommand command;
-						if (materialSubMesh->GetRenderCommand(PIPELINE_STAGE_SHADOW_GEN, command))
+						if (materialSubMesh->GetRenderCommand(RENDER_STAGE_SHADOW_GEN, command))
 						{
 							const KConstantDefinition::OBJECT & final = transform->FinalTransform();
 

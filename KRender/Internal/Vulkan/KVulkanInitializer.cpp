@@ -554,13 +554,14 @@ namespace KVulkanInitializer
 	{
 		VkCommandBuffer commandBuffer;
 		BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
-		TransitionImageLayoutCmdBuffer(image, format, baseLayer, layers, baseMipLevel, mipLevels, oldLayout, newLayout, commandBuffer);
+		TransitionImageLayoutCmdBuffer(image, format, baseLayer, layers, baseMipLevel, mipLevels, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, oldLayout, newLayout, commandBuffer);
 		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
 	void TransitionImageLayoutCmdBuffer(VkImage image, VkFormat format,
 		uint32_t baseLayer, uint32_t layers,
 		uint32_t baseMipLevel, uint32_t mipLevels,
+		VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages,
 		VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer commandBuffer)
 	{
 		VkImageMemoryBarrier barrier = {};
@@ -688,20 +689,12 @@ namespace KVulkanInitializer
 			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
 				// Image will be read in a shader (sampler, input attachment)
 				// Make sure any writes to the image have been finished
-				if (barrier.srcAccessMask == 0)
-				{
-					barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-				}
 				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				break;
 
 			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
 				// Image will be read in a shader (sampler, input attachment)
 				// Make sure any writes to the image have been finished
-				if (barrier.srcAccessMask == 0)
-				{
-					barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-				}
 				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 				break;
 
@@ -714,14 +707,11 @@ namespace KVulkanInitializer
 				break;
 		}
 
-		VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-		VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-
 		vkCmdPipelineBarrier(
 			commandBuffer,
-			sourceStage,		/* srcStageMask */
-			destinationStage,	/* dstStageMask */
-			0,					/* dependencyFlags 该参数为 0 或者 VK_DEPENDENCY_BY_REGION_BIT */
+			srcStages,		/* srcStageMask */
+			dstStages,		/* dstStageMask */
+			0,				/* dependencyFlags 该参数为 0 或者 VK_DEPENDENCY_BY_REGION_BIT */
 			0, nullptr,
 			0, nullptr,
 			1, &barrier

@@ -92,14 +92,14 @@ bool KGBuffer::TranslateColorAttachment(IKCommandBufferPtr buffer, ImageLayout l
 	{
 		for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
 		{
-			buffer->Translate(m_RenderTarget[i]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			buffer->Translate(m_RenderTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 	}
 	if (layout == IMAGE_LAYOUT_COLOR_ATTACHMENT)
 	{
 		for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
 		{
-			buffer->Translate(m_RenderTarget[i]->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+			buffer->Translate(m_RenderTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 		}
 	}
 	return layout == IMAGE_LAYOUT_SHADER_READ_ONLY || layout == IMAGE_LAYOUT_COLOR_ATTACHMENT;
@@ -109,11 +109,11 @@ bool KGBuffer::TranslateDepthStencilAttachment(IKCommandBufferPtr buffer, ImageL
 {
 	if (layout == IMAGE_LAYOUT_SHADER_READ_ONLY)
 	{
-		buffer->Translate(m_DepthStencilTarget->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		buffer->Translate(m_DepthStencilTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 	else
 	{
-		buffer->Translate(m_DepthStencilTarget->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+		buffer->Translate(m_DepthStencilTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 	}
 	return layout == IMAGE_LAYOUT_SHADER_READ_ONLY || layout == IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT;
 }

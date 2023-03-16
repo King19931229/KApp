@@ -253,6 +253,10 @@ KVulkanRenderDevice::QueueFamilyIndices KVulkanRenderDevice::FindQueueFamilies(V
 
 	familyIndices.graphicsFamily.first = -1;
 	familyIndices.graphicsFamily.second = false;
+
+	familyIndices.computeFamily.first = -1;
+	familyIndices.computeFamily.second = false;
+
 	familyIndices.presentFamily.first = -1;
 	familyIndices.presentFamily.second = false;
 
@@ -261,26 +265,23 @@ KVulkanRenderDevice::QueueFamilyIndices KVulkanRenderDevice::FindQueueFamilies(V
 	{
 		++idx;
 		// 检查设备索引
-		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		if (queueFamily.queueCount > 0)
 		{
-			familyIndices.graphicsFamily.first = idx;
-			familyIndices.graphicsFamily.second = true;
+			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			{
+				familyIndices.graphicsFamily.first = idx;
+				familyIndices.graphicsFamily.second = true;
+
+				familyIndices.presentFamily.first = idx;
+				familyIndices.presentFamily.second = true;
+			}
+			if (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)
+			{
+				familyIndices.computeFamily.first = idx;
+				familyIndices.computeFamily.second = true;
+			}
 		}
-#if 0
-		// 检查表现索引
-		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(vkDevice, idx, m_Surface, &presentSupport);
-		if(presentSupport)
-		{
-			familyIndices.presentFamily.first = idx;
-			familyIndices.presentFamily.second = true;
-		}
-#else
-		{
-			familyIndices.presentFamily.first = idx;
-			familyIndices.presentFamily.second = true;
-		}
-#endif
+
 		if(familyIndices.IsComplete())
 			break;
 	}
@@ -770,6 +771,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		if (vkCreateDevice(m_PhysicalDevice.device, &createInfo, nullptr, &m_Device) == VK_SUCCESS)
 		{
 			vkGetDeviceQueue(m_Device, indices.graphicsFamily.first, 0, &m_GraphicsQueue);
+			vkGetDeviceQueue(m_Device, indices.computeFamily.first, 0, &m_ComputeQueue);
 			vkGetDeviceQueue(m_Device, indices.presentFamily.first, 0, &m_PresentQueue);
 			return true;
 		}
@@ -1189,11 +1191,13 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 
 	KVulkanGlobal::graphicsCommandPool = m_GraphicCommandPool;
 	KVulkanGlobal::graphicsQueue = m_GraphicsQueue;
+	KVulkanGlobal::computeQueue = m_ComputeQueue;
 	KVulkanGlobal::pipelineCache = m_PipelineCache;
 
 	assert(m_PhysicalDevice.queueFamilyIndices.IsComplete());
 
 	KVulkanGlobal::graphicsFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
+	KVulkanGlobal::computeFamilyIndex = m_PhysicalDevice.queueFamilyIndices.computeFamily.first;
 
 	// Get properties and features
 	VkPhysicalDeviceProperties2 deviceProperties2 = {};
@@ -1272,6 +1276,7 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 	KVulkanGlobal::vkCreateRayTracingPipelinesKHR = VK_NULL_HANDLE;
 
 	KVulkanGlobal::graphicsFamilyIndex = 0;
+	KVulkanGlobal::computeFamilyIndex = 0;
 
 	return true;
 }

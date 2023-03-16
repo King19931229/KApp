@@ -361,8 +361,8 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 	}
 	primaryBuffer->EndDebugMarker();
 
-	primaryBuffer->Translate(m_PositionTargets[frameIdx]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	primaryBuffer->Translate(m_ExtentTargets[frameIdx]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(m_PositionTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(m_ExtentTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	primaryBuffer->BeginDebugMarker("ExecuteHiZOC", glm::vec4(0, 1, 0, 0));
 	{
@@ -390,7 +390,7 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 	}
 	primaryBuffer->EndDebugMarker();
 
-	primaryBuffer->Translate(m_ResultTargets[frameIdx]->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(m_ResultTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 }
 
 bool KHiZOcclusion::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
@@ -458,7 +458,7 @@ bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<
 	}
 	else
 	{
-		primaryBuffer->Translate(m_ResultTargets[KRenderGlobal::CurrentFrameIndex]->GetFrameBuffer(), IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_ResultTargets[KRenderGlobal::CurrentFrameIndex]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	return true;

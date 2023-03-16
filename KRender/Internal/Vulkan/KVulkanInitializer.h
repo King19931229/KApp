@@ -110,6 +110,7 @@ namespace KVulkanInitializer
 	void TransitionImageLayoutCmdBuffer(VkImage image, VkFormat format,
 		uint32_t baseLayer, uint32_t layers,
 		uint32_t baseMipLevel, uint32_t mipLevels,
+		VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages,
 		VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer commandBuffer);
 
 	void GenerateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int32_t texHeight, int32_t texDepth, uint32_t layers, uint32_t mipLevels);

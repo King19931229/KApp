@@ -839,7 +839,7 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 			{
 				KRenderCommand command;
-				if (materialSubMesh->GetRenderCommand(PIPELINE_STAGE_VOXEL, command))
+				if (materialSubMesh->GetRenderCommand(RENDER_STAGE_VOXEL, command))
 				{
 					const glm::mat4& finalTran = transform->GetFinal();
 
@@ -921,7 +921,7 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 			{
 				KRenderCommand command;
-				if (materialSubMesh->GetRenderCommand(PIPELINE_STAGE_SPARSE_VOXEL, command))
+				if (materialSubMesh->GetRenderCommand(RENDER_STAGE_SPARSE_VOXEL, command))
 				{
 					const glm::mat4& finalTran = transform->GetFinal();
 					const glm::mat4& prevFinalTran = transform->GetPrevFinal();
@@ -1346,7 +1346,7 @@ bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->EndRenderPass();
 	primaryBuffer->EndDebugMarker();
 
-	primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 	return true;
 }

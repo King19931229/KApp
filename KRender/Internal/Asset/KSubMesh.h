@@ -8,6 +8,12 @@
 
 #include <functional>
 
+enum DebugPrimitive
+{
+	DEBUG_PRIMITIVE_LINE,
+	DEBUG_PRIMITIVE_TRIANGLE
+};
+
 class KMesh;
 class KSubMesh
 {

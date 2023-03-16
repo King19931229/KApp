@@ -92,6 +92,7 @@
     <ClInclude Include="Internal\KRenderCore.h" />
     <ClInclude Include="Internal\KRenderGlobal.h" />
     <ClInclude Include="Internal\KRenderImGui.h" />
+    <ClInclude Include="Internal\KRenderStage.h" />
     <ClInclude Include="Internal\KRenderThreadPool.h" />
     <ClInclude Include="Internal\KSamplerBase.h" />
     <ClInclude Include="Internal\KStatistics.h" />

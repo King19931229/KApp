@@ -14,6 +14,7 @@ namespace KVulkanGlobal
 	VkCommandPool graphicsCommandPool = VK_NULL_HANDLE;
 	std::mutex graphicsQueueLock;
 	VkQueue graphicsQueue = VK_NULL_HANDLE;
+	VkQueue computeQueue = VK_NULL_HANDLE;
 	VkPipelineCache pipelineCache = VK_NULL_HANDLE;
  
 	VkPhysicalDeviceProperties deviceProperties = {};
@@ -49,5 +50,5 @@ namespace KVulkanGlobal
 	PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabel = VK_NULL_HANDLE;
 
 	uint32_t graphicsFamilyIndex = 0;
-	uint32_t presentFamilyIndex = 0;
+	uint32_t computeFamilyIndex = 0;
 }

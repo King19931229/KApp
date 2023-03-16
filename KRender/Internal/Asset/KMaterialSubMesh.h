@@ -1,5 +1,6 @@
 #pragma once
 #include "Internal/KVertexDefinition.h"
+#include "Internal/KRenderStage.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKMaterial.h"
 #include "Internal/Asset/KSubMesh.h"
@@ -13,7 +14,7 @@ protected:
 	KSubMeshPtr				m_SubMesh;
 	KMaterialRef			m_Material;
 
-	IKPipelinePtr			m_Pipelines[PIPELINE_STAGE_COUNT];
+	IKPipelinePtr			m_Pipelines[RENDER_STAGE_COUNT];
 
 	KShaderRef				m_DebugVSShader;
 	KShaderRef				m_DebugFSShader;
@@ -30,7 +31,7 @@ protected:
 	KShaderRef				m_VoxelClipmapGSShader;
 	KShaderRef				m_VoxelClipmapFSShader;
 
-	bool CreateFixedPipeline(PipelineStage stage, IKPipelinePtr& pipeline);
+	bool CreateFixedPipeline(RenderStage stage, IKPipelinePtr& pipeline);
 
 	bool CreateMaterialPipeline();
 	bool CreateGBufferPipeline();
@@ -44,7 +45,7 @@ public:
 	bool Init(KSubMeshPtr subMesh, KMaterialRef material);
 	bool InitDebug(KSubMeshPtr subMesh, DebugPrimitive primtive);
 	bool UnInit();
-	bool GetRenderCommand(PipelineStage stage, KRenderCommand& command);
+	bool GetRenderCommand(RenderStage stage, KRenderCommand& command);
 
 	inline KSubMeshPtr GetSubMesh() { return m_SubMesh; }
 	inline KMaterialRef GetMaterial() { return m_Material; }

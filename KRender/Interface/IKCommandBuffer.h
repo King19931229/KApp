@@ -48,11 +48,11 @@ struct IKCommandBuffer
 	virtual bool EndQuery(IKQueryPtr query) = 0;
 	virtual bool ResetQuery(IKQueryPtr query) = 0;
 
-	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout oldLayout, ImageLayout newLayout) = 0;
-	virtual bool Translate(IKFrameBufferPtr buf, ImageLayout layout) = 0;
+	virtual bool Translate(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
+	virtual bool Translate(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout layout) = 0;
 
-	virtual bool TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, ImageLayout oldLayout, ImageLayout newLayout) = 0;
-	virtual bool TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, ImageLayout layout) = 0;
+	virtual bool TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
+	virtual bool TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout layout) = 0;
 
 	virtual bool Blit(IKFrameBufferPtr src, IKFrameBufferPtr dest) = 0;
 };

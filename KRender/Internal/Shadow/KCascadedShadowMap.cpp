@@ -125,7 +125,7 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 
 			m_Master.UpdateRT(primaryBuffer, shadowTarget, renderPass, i, true);
 
-			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		KRenderGlobal::Statistics.UpdateRenderStageStatistics(m_Master.RENDER_STAGE_NAME[0], m_Master.m_Statistics[1]);
 		updateStatic = false;
@@ -146,7 +146,7 @@ bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 
 			m_Master.UpdateRT(primaryBuffer, shadowTarget, renderPass, i, false);
 
-			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		KRenderGlobal::Statistics.UpdateRenderStageStatistics(m_Master.RENDER_STAGE_NAME[0], m_Master.m_Statistics[0]);
 	}
@@ -283,7 +283,7 @@ bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 
 		m_Master.UpdateMask(primaryBuffer, true);
 
-		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	// Dynamic mask update
@@ -298,7 +298,7 @@ bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 
 		m_Master.UpdateMask(primaryBuffer, false);
 
-		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	// Mask combine
@@ -313,7 +313,7 @@ bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
 
 		m_Master.CombineMask(primaryBuffer);
 
-		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	return true;
@@ -368,7 +368,7 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_DepthBiasSlope[3] = 1.0f;
 
 	m_ShadowCamera.SetPosition(glm::vec3(0.0f, 1000.0f, 0.0f));
-	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, -600.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	m_ShadowCamera.LookAt(glm::vec3(0.0f, 0.0f, 600.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	m_ShadowCamera.SetOrtho(2000.0f, 2000.0f, -1000.0f, 1000.0f);
 }
 
@@ -951,7 +951,7 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex,
 		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instance.instanceData;
 		ASSERT_RESULT(!instances.empty());
 
-		PipelineStage stage = isStatic ? PIPELINE_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE : PIPELINE_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE;
+		RenderStage stage = isStatic ? RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE : RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE;
 
 		KRenderCommand command;
 		if (materialSubMesh->GetRenderCommand(stage, command))
