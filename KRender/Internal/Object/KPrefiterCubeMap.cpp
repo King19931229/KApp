@@ -84,7 +84,7 @@ bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, size_t mipmaps, con
 	renderDevice->CreateStorageBuffer(m_SHCoffBuffer);
 
 	renderDevice->CreateTexture(m_SHConstructCubeMap);
-	m_SHConstructCubeMap->InitMemoryFromData(nullptr, m_SrcCubeMap->GetWidth(), m_SrcCubeMap->GetHeight(), m_SrcCubeMap->GetDepth(), IF_R16G16B16A16_FLOAT, true, false, false);
+	m_SHConstructCubeMap->InitMemoryFromData(nullptr, "SHConstruct", m_SrcCubeMap->GetWidth(), m_SrcCubeMap->GetHeight(), m_SrcCubeMap->GetDepth(), IF_R16G16B16A16_FLOAT, true, false, false);
 	m_SHConstructCubeMap->InitDevice(false);
 
 	AllocateTempResource(renderDevice, width, height, mipmaps);

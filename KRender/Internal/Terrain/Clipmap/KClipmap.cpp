@@ -240,7 +240,7 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 		}
 
 		updateTexture->UnInit();
-		updateTexture->InitMemoryFromData(combinedDatas.data(), numCol, numRow, 1, IF_R32G32_FLOAT, false, false, false);
+		updateTexture->InitMemoryFromData(combinedDatas.data(), "ClipmapLevelUpdate_" + std::to_string(rectIdx), numCol, numRow, 1, IF_R32G32_FLOAT, false, false, false);
 		updateTexture->InitDevice(false);
 	}
 
@@ -352,7 +352,7 @@ void KClipmapLevel::InitializePipeline()
 
 		IKTexturePtr& updateTexture = m_UpdateTextures[i];
 		KRenderGlobal::RenderDevice->CreateTexture(updateTexture);
-		updateTexture->InitMemoryFromData(nullptr, 1, 1, 1, IF_R32G32_FLOAT, false, false, false);
+		updateTexture->InitMemoryFromData(nullptr, "ClipmapLevelUpdate_" + std::to_string(i), 1, 1, 1, IF_R32G32_FLOAT, false, false, false);
 		updateTexture->InitDevice(false);
 
 		pipeline->SetVertexBinding(ms_VertexFormats, ARRAY_SIZE(ms_VertexFormats));
@@ -480,7 +480,7 @@ void KClipmapLevel::Init()
 	if (m_EnableUpdateDebug)
 	{
 		KRenderGlobal::RenderDevice->CreateTexture(m_DebugTexture);
-		m_DebugTexture->InitMemoryFromData(nullptr, m_GridCount, m_GridCount, 1, IF_R32G32_FLOAT, false, false, false);
+		m_DebugTexture->InitMemoryFromData(nullptr, "ClipmapLevelDebug_" + std::to_string(m_LevelIdx), m_GridCount, m_GridCount, 1, IF_R32G32_FLOAT, false, false, false);
 	}
 
 	KRenderGlobal::RenderDevice->CreateRenderPass(m_UpdateRenderPass);
@@ -756,7 +756,7 @@ void KClipmapLevel::UpdateTexture()
 		}
 
 		m_DebugTexture->UnInit();
-		m_DebugTexture->InitMemoryFromData(textureDatas.data(), m_GridCount, m_GridCount, 1, IF_R32G32_FLOAT, false, false, false);
+		m_DebugTexture->InitMemoryFromData(textureDatas.data(), "ClipmapLevelDebug_" + std::to_string(m_LevelIdx), m_GridCount, m_GridCount, 1, IF_R32G32_FLOAT, false, false, false);
 		m_DebugTexture->InitDevice(false);
 	}
 }

@@ -146,6 +146,8 @@ protected:
 
 	KVulkanDescriptorPool	m_Pool;
 
+	std::string m_Name;
+
 	bool CreateLayout();
 	bool CreateDestcriptionPool();
 	bool DestroyDevice();
@@ -200,6 +202,9 @@ public:
 	virtual bool Init();
 	virtual bool UnInit();
 	virtual bool Reload();
+
+	virtual bool SetDebugName(const char* name);
+	virtual const char* GetDebugName() const;
 
 	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle);
 

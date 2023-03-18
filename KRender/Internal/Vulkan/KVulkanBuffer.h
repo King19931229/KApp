@@ -18,6 +18,8 @@ public:
 	bool InitDevice(VkBufferUsageFlags usages, const void* pData, uint32_t bufferSize, bool hostVisible);
 	bool UnInit();
 
+	bool SetDebugName(const char* pName);
+
 	bool DiscardMemory();
 
 	bool Map(void** ppData);
@@ -40,6 +42,8 @@ public:
 
 	virtual bool InitDevice(bool hostVisible);
 	virtual bool UnInit();
+
+	virtual bool SetDebugName(const char* pName);
 
 	virtual bool DiscardMemory();
 
@@ -65,6 +69,8 @@ public:
 
 	virtual bool InitDevice(bool hostVisible);
 	virtual bool UnInit();
+
+	virtual bool SetDebugName(const char* pName);
 
 	virtual bool DiscardMemory();
 
@@ -95,6 +101,8 @@ public:
 	virtual bool InitDevice(bool indirect);
 	virtual bool UnInit();
 
+	virtual bool SetDebugName(const char* pName);
+
 	virtual bool IsIndirect();
 
 	virtual bool Map(void** ppData);
@@ -119,6 +127,8 @@ public:
 
 	virtual bool InitDevice();
 	virtual bool UnInit();
+
+	virtual bool SetDebugName(const char* pName);
 
 	virtual bool Map(void** ppData);
 	virtual bool UnMap();

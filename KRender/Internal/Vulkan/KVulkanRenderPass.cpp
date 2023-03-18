@@ -417,8 +417,8 @@ bool KVulkanRenderPass::Init(uint32_t mipmap)
 			renderPassInfo.pAttachments = descs.data();
 			renderPassInfo.subpassCount = 1;
 			renderPassInfo.pSubpasses = &subpass;
-			renderPassInfo.dependencyCount = ARRAY_SIZE(dependencies);
-			renderPassInfo.pDependencies = dependencies;
+			renderPassInfo.dependencyCount = 0;//ARRAY_SIZE(dependencies);
+			renderPassInfo.pDependencies = nullptr;//dependencies;
 
 			VK_ASSERT_RESULT(vkCreateRenderPass(KVulkanGlobal::device, &renderPassInfo, nullptr, &m_RenderPass));
 			ASSERT_RESULT(m_RenderPass != VK_NULL_HANDLE);
@@ -475,6 +475,21 @@ bool KVulkanRenderPass::UnInit()
 	m_AttachmentHash = 0;
 
 	return true;
+}
+
+bool KVulkanRenderPass::SetDebugName(const char* name)
+{
+	m_Name = name;
+	if (m_RenderPass != VK_NULL_HANDEL)
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_RenderPass, VK_OBJECT_TYPE_RENDER_PASS, name);
+	}
+	return true;;
+}
+
+const char* KVulkanRenderPass::GetDebugName() const
+{
+	return m_Name.size() ? m_Name.c_str() : nullptr;
 }
 
 bool KVulkanRenderPass::GetVkClearValues(VkClearValueArray& clearValues)

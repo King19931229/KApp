@@ -686,6 +686,26 @@ bool KVulkanPipeline::Reload()
 	return true;
 }
 
+bool KVulkanPipeline::SetDebugName(const char* name)
+{
+	m_Name = name;
+	if (m_DescriptorSetLayout)
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_DescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (std::string(name) + "_DescriptorSetLayout").c_str());
+	}
+	if (m_PipelineLayout)
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_PipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, (std::string(name) + "_PipelineLayout").c_str());
+	}
+	m_Pool.SetDebugName(name);
+	return true;
+}
+
+const char* KVulkanPipeline::GetDebugName() const
+{
+	return m_Name.size() ? m_Name.c_str() : nullptr;
+}
+
 bool KVulkanPipeline::CheckDependencyResource()
 {
 	if (!m_Shaders[VERTEX] && !m_Shaders[MESH])
@@ -964,6 +984,11 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 	pipelineInfo.basePipelineIndex = -1; // Optional
 
 	VK_ASSERT_RESULT(vkCreateGraphicsPipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline));
+
+	if (pipeline->GetDebugName() && renderPass->GetDebugName())
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_GraphicsPipeline, VK_OBJECT_TYPE_PIPELINE, (std::string(pipeline->GetDebugName()) + "_" + renderPass->GetDebugName() + "_Pipeline").c_str());
+	}
 
 	return true;
 }

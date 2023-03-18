@@ -120,7 +120,7 @@ bool KEMaterialEditWindow::Init()
 	renderer->SetCallback(m_RenderWidget->GetRenderWindow(), &m_OnRenderCallBack);
 
 	m_MiniScene = CreateRenderScene();
-	m_MiniScene->Init(SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
+	m_MiniScene->Init("MiniScene", SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
 
 	m_OnRenderCallBack = [this](IKRenderer* dispatcher, uint32_t chainImageIndex)
 	{

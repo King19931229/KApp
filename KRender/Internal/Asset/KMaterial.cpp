@@ -877,7 +877,7 @@ bool KMaterial::InitFromImportAssetMaterial(const KAssetImportResult::Material& 
 			}
 			if (input.codecs[i].pData)
 			{
-				m_TextureBinding->SetTexture(i, input.codecs[i], input.samplers[i]);
+				m_TextureBinding->SetTexture(i, input.url[i], input.codecs[i], input.samplers[i]);
 			}
 		}
 

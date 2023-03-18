@@ -209,6 +209,8 @@ bool KVulkanTexture::InitDevice(bool async)
 					m_TextureFormat,
 					(uint32_t)m_Width, (uint32_t)m_Height, (uint32_t)m_Depth, m_Mipmaps, 1);
 
+				m_FrameBuffer->SetDebugName(GetPath());
+
 				return true;
 			}
 		}

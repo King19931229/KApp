@@ -53,7 +53,7 @@ bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path)
 	return false;
 }
 
-bool KMaterialTextureBinding::SetTexture(uint8_t slot, const KCodecResult& result, const KMeshTextureSampler& sampler)
+bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& name, const KCodecResult& result, const KMeshTextureSampler& sampler)
 {
 	if (slot < GetNumSlot())
 	{
@@ -61,7 +61,9 @@ bool KMaterialTextureBinding::SetTexture(uint8_t slot, const KCodecResult& resul
 		if (result.pData)
 		{
 			if (KRenderGlobal::TextureManager.Acquire(
-				result.pData->GetData(), result.pData->GetSize(),
+				name.c_str(),
+				result.pData->GetData(),
+				result.pData->GetSize(),
 				result.uWidth, result.uHeight, result.uDepth,
 				result.eFormat, result.bCubemap, true, m_Textures[slot], false))
 			{

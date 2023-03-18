@@ -54,7 +54,7 @@ struct KDeferredRenderStageDescription
 	DeferredRenderStage stage;
 	RenderStage renderStage;
 	RenderStage instanceRenderStage;
-	const char* debugMakrer;
+	const char* debugMarker;
 };
 
 constexpr KDeferredRenderStageDescription GDeferredRenderStageDescription[DRS_STAGE_COUNT] =

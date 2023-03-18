@@ -94,6 +94,19 @@ bool KVulkanBuffer::UnInit()
 	return true;
 }
 
+bool KVulkanBuffer::SetDebugName(const char* pName)
+{
+	if (m_vkBuffer != VK_NULL_HANDEL && pName)
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_vkBuffer, VK_OBJECT_TYPE_BUFFER, pName);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bool KVulkanBuffer::DiscardMemory()
 {
 	m_ShadowData.clear();
@@ -213,6 +226,11 @@ bool KVulkanVertexBuffer::UnInit()
 	return m_Buffer.UnInit();
 }
 
+bool KVulkanVertexBuffer::SetDebugName(const char* pName)
+{
+	return m_Buffer.SetDebugName(pName);
+}
+
 bool KVulkanVertexBuffer::DiscardMemory()
 {
 	return m_Buffer.DiscardMemory();
@@ -290,6 +308,11 @@ bool KVulkanIndexBuffer::UnInit()
 	return m_Buffer.UnInit();
 }
 
+bool KVulkanIndexBuffer::SetDebugName(const char* pName)
+{
+	return m_Buffer.SetDebugName(pName);
+}
+
 bool KVulkanIndexBuffer::DiscardMemory()
 {
 	return m_Buffer.DiscardMemory();
@@ -359,12 +382,17 @@ bool KVulkanStorageBuffer::InitDevice(bool indirect)
 	{
 		usageFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 	}
-	return m_Buffer.InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, true);
+	return m_Buffer.InitDevice(usageFlags, m_Data.data(), (uint32_t)m_BufferSize, false);
 }
 
 bool KVulkanStorageBuffer::UnInit()
 {
 	return m_Buffer.UnInit();
+}
+
+bool KVulkanStorageBuffer::SetDebugName(const char* pName)
+{
+	return m_Buffer.SetDebugName(pName);
 }
 
 bool KVulkanStorageBuffer::IsIndirect()
@@ -433,6 +461,15 @@ bool KVulkanUniformBuffer::UnInit()
 	for (size_t i = 0; i < m_Buffers.size(); ++i)
 	{
 		m_Buffers[i].UnInit();
+	}
+	return true;
+}
+
+bool KVulkanUniformBuffer::SetDebugName(const char* pName)
+{
+	for (size_t i = 0; i < m_Buffers.size(); ++i)
+	{
+		m_Buffers[i].SetDebugName((std::string(pName) + "_" + std::to_string(i)).c_str());
 	}
 	return true;
 }

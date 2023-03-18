@@ -327,31 +327,39 @@ void KCameraCube::LoadResource()
 
 	m_BackGroundVertexBuffer->InitMemory(ARRAY_SIZE(ms_BackGroundVertices), sizeof(ms_BackGroundVertices[0]), ms_BackGroundVertices);
 	m_BackGroundVertexBuffer->InitDevice(false);
+	m_BackGroundVertexBuffer->SetDebugName("CameraCubeBackGroundVertexBuffer");
 
 	m_BackGroundIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_BackGroundIndices), ms_BackGroundIndices);
 	m_BackGroundIndexBuffer->InitDevice(false);
+	m_BackGroundIndexBuffer->SetDebugName("CameraCubeBackGroundIndexBuffer");
 
 	m_CubeVertexBuffer->InitMemory(ARRAY_SIZE(ms_CubeVertices), sizeof(ms_CubeVertices[0]), ms_CubeVertices);
 	m_CubeVertexBuffer->InitDevice(false);
+	m_CubeVertexBuffer->SetDebugName("CameraCubeVertexBuffer");
 
 	m_CubeIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_CubeIndices), ms_CubeIndices);
 	m_CubeIndexBuffer->InitDevice(false);
+	m_CubeIndexBuffer->SetDebugName("CameraCubeIndexBuffer");
 
 	for (uint16_t i = 0; i < ARRAY_SIZE(m_EdgeVertexBuffer); ++i)
 	{
 		m_EdgeVertexBuffer[i]->InitMemory(ARRAY_SIZE(ms_EdgeVertices[i]), sizeof(ms_EdgeVertices[i][0]), ms_EdgeVertices[i]);
 		m_EdgeVertexBuffer[i]->InitDevice(false);
+		m_EdgeVertexBuffer[i]->SetDebugName((std::string("CameraCubeEdgeVertexBuffer_") + std::to_string(i)).c_str());
 	}
 	m_EdgeIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_EdgeIndices), ms_EdgeIndices);
 	m_EdgeIndexBuffer->InitDevice(false);
+	m_EdgeIndexBuffer->SetDebugName("CameraCubeEdgeIndexBuffer");
 
 	for (uint16_t i = 0; i < ARRAY_SIZE(m_CornerVertexBuffer); ++i)
 	{
 		m_CornerVertexBuffer[i]->InitMemory(ARRAY_SIZE(ms_CornerVertices[i]), sizeof(ms_CornerVertices[i][0]), ms_CornerVertices[i]);
 		m_CornerVertexBuffer[i]->InitDevice(false);
+		m_EdgeVertexBuffer[i]->SetDebugName((std::string("CameraCubeCornerVertexBuffer_") + std::to_string(i)).c_str());
 	}
 	m_CornerIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_CornerIndices), ms_CornerIndices);
 	m_CornerIndexBuffer->InitDevice(false);
+	m_CornerIndexBuffer->SetDebugName("CameraCubeCornerIndexBuffer");
 }
 
 void KCameraCube::PreparePipeline()

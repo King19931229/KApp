@@ -12,6 +12,8 @@ struct IKVertexBuffer
 	virtual bool InitDevice(bool hostVisible) = 0;
 	virtual bool UnInit() = 0;
 
+	virtual bool SetDebugName(const char* pName) = 0;
+
 	virtual bool DiscardMemory() = 0;
 
 	virtual bool Map(void** ppData) = 0;
@@ -33,6 +35,8 @@ struct IKIndexBuffer
 	virtual bool InitMemory(IndexType indexType, size_t count, const void* pInitData) = 0;
 	virtual bool InitDevice(bool hostVisible) = 0;
 	virtual bool UnInit() = 0;
+
+	virtual bool SetDebugName(const char* pName) = 0;
 
 	virtual bool IsHostVisible() const = 0;
 
@@ -59,6 +63,8 @@ struct IKStorageBuffer
 	// 释放内存数据与设备相关句柄
 	virtual bool UnInit() = 0;
 
+	virtual bool SetDebugName(const char* pName) = 0;
+
 	virtual bool IsIndirect() = 0;
 
 	virtual bool Map(void** ppData) = 0;
@@ -81,6 +87,8 @@ struct IKUniformBuffer
 	virtual bool InitDevice() = 0;
 	// 释放内存数据与设备相关句柄
 	virtual bool UnInit() = 0;
+
+	virtual bool SetDebugName(const char* pName) = 0;
 
 	virtual bool Map(void** ppData) = 0;
 	virtual bool UnMap() = 0;

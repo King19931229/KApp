@@ -28,6 +28,8 @@ protected:
 	bool												m_ToSwapChain;
 	size_t												m_AttachmentHash;
 
+	std::string											m_Name;
+
 	size_t CalcAttachmentHash(uint32_t mipmap);
 public:
 	KVulkanRenderPass();
@@ -54,6 +56,9 @@ public:
 
 	bool Init(uint32_t mipmap) override;
 	bool UnInit() override;
+
+	bool SetDebugName(const char* name) override;
+	const char* GetDebugName() const override;
 
 	inline VkRenderPass GetVkRenderPass() const { return m_RenderPass; }
 	inline VkFramebuffer GetVkFrameBuffer() const { return m_FrameBuffer; }

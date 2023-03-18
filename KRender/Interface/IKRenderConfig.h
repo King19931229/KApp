@@ -73,6 +73,12 @@ enum
 	CBT_COUNT = CBT_DYNAMIC_COUNT + CBT_STATIC_COUNT
 };
 
+struct KConstantBufferTypeDescription
+{
+	ConstantBufferType type;
+	const char* debugName;
+};
+
 enum StorageBufferType
 {
 	SBT_POSITION_NORMAL_UV = CBT_END + 1,

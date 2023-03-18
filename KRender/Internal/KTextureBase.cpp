@@ -293,7 +293,7 @@ bool KTextureBase::InitMemoryFromFile(const std::string& filePath, bool bGenerat
 	}
 }
 
-bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t height, size_t depth, ImageFormat format, bool cubeMap, bool bGenerateMipmap, bool async)
+bool KTextureBase::InitMemoryFromData(const void* pRawData, const std::string& name, size_t width, size_t height, size_t depth, ImageFormat format, bool cubeMap, bool bGenerateMipmap, bool async)
 {
 	ReleaseMemory();
 	auto loadImpl = [=]()->bool
@@ -338,6 +338,7 @@ bool KTextureBase::InitMemoryFromData(const void* pRawData, size_t width, size_t
 
 			if (InitProperty(bGenerateMipmap))
 			{
+				m_Path = name;
 				m_ResourceState = RS_MEMORY_LOADED;
 				return true;
 			}

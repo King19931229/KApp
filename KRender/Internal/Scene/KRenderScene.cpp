@@ -17,10 +17,11 @@ KRenderScene::~KRenderScene()
 	assert(!m_SceneMgr);
 }
 
-bool KRenderScene::Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos)
+bool KRenderScene::Init(const std::string& name, SceneManagerType type, float initialSize, const glm::vec3& initialPos)
 {
 	UnInit();
 
+	m_Name = name;
 	m_Terrain = IKTerrainPtr(new KNullTerrain());
 
 	switch (type)
@@ -62,6 +63,11 @@ bool KRenderScene::UnInit()
 	m_Terrain = nullptr;
 
 	return true;
+}
+
+const std::string& KRenderScene::GetName() const
+{
+	return m_Name;
 }
 
 void KRenderScene::OnEntityChange(EntitySceneOp op, IKEntity* entity)

@@ -18,7 +18,6 @@ protected:
 
 	KMeshUtilityInfoPtr m_DebugUtility;
 
-	bool m_HostVisible;
 	bool m_UseMaterialTexture;
 	bool m_OcclusionVisible;
 

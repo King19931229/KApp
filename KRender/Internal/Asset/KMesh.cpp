@@ -238,6 +238,8 @@ bool KMesh::InitFromAsset(const std::string& path, bool hostVisible)
 			ASSERT_RESULT(buffer->InitMemory(result.vertexCount, detail.vertexSize, dataSource.data()));
 			ASSERT_RESULT(buffer->InitDevice(hostVisible));
 
+			ASSERT_RESULT(buffer->SetDebugName((path + "_VB_" + std::to_string(i)).c_str()));
+
 			if (format == VF_POINT_NORMAL_UV)
 			{
 				const auto& detail = KVertexDefinition::GetVertexDetail(format);
@@ -308,6 +310,7 @@ bool KMesh::InitFromAsset(const std::string& path, bool hostVisible)
 					POINTER_OFFSET(result.indicesData.data(), indexSize * subPart.indexBase)
 				));
 				ASSERT_RESULT(indexData.indexBuffer->InitDevice(hostVisible));
+				indexData.indexBuffer->SetDebugName((path + "_IB_" + std::to_string(i)).c_str());
 			}
 
 			ASSERT_RESULT(subMesh->Init(&m_VertexData, indexData, material));

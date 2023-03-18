@@ -173,6 +173,8 @@ bool KRayTraceScene::Init(IKRenderScene* scene, const KCamera* camera)
 		ASSERT_RESULT(cameraBuffer->InitMemory(sizeof(cam), &cam));
 		ASSERT_RESULT(cameraBuffer->InitDevice());
 
+		cameraBuffer->SetDebugName((scene->GetName() + "RayTraceCameraBuffer").c_str());
+
 		std::vector<IKEntity*> entites;
 		scene->GetAllEntities(entites);
 

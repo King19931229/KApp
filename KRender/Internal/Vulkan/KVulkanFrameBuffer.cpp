@@ -486,6 +486,24 @@ bool KVulkanFrameBuffer::UnInit()
 	return true;
 }
 
+bool KVulkanFrameBuffer::SetDebugName(const char* name)
+{
+	if (name && m_Image != VK_NULL_HANDEL)
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Image, VK_OBJECT_TYPE_IMAGE, name);
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_ImageView, VK_OBJECT_TYPE_IMAGE_VIEW, (std::string(name) + "(imageview)").c_str());
+
+		if (m_MSAAImage != VK_NULL_HANDEL)
+		{
+			KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_MSAAImage, VK_OBJECT_TYPE_IMAGE, (std::string(name) + "_msaa").c_str());
+			KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_MSAAImageView, VK_OBJECT_TYPE_IMAGE_VIEW, (std::string(name) + "_msaa(imageview)").c_str());
+		}
+
+		return true;
+	}
+	return false;
+}
+
 bool KVulkanFrameBuffer::TranslateLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t baseMip, uint32_t numMip, VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
 	KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format,

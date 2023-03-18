@@ -86,6 +86,8 @@ struct KAssetImportResult
 	struct Material
 	{
 		std::string textures[MTS_COUNT];
+
+		std::string url[MTS_COUNT];
 		KCodecResult codecs[MTS_COUNT];
 
 		KMeshTextureSampler samplers[MTS_COUNT];

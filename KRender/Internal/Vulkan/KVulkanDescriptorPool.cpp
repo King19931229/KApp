@@ -5,6 +5,7 @@
 #include "KVulkanPipeline.h"
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanGlobal.h"
+#include "KVulkanHelper.h"
 #include <algorithm>
 #include <assert.h>
 
@@ -480,6 +481,7 @@ VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t c
 		}
 	}
 
+	size_t blockIndex = 0;
 	for (auto it = blockList.blocks.begin(), itEnd = blockList.blocks.end(); it != itEnd; ++it)
 	{
 		DescriptorSetBlock& block = *it;
@@ -489,6 +491,11 @@ VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t c
 			if (newUseIndex >= block.sets.size())
 			{
 				VkDescriptorSet newSet = AllocDescriptorSet(block.pool);
+				if (!m_Name.empty())
+				{
+					KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)newSet, VK_OBJECT_TYPE_DESCRIPTOR_SET,
+						(m_Name + "_DescriptorSet_" + std::to_string(blockIndex) + "_" + std::to_string(block.sets.size())).c_str());
+				}
 				block.sets.push_back(newSet);
 				return newSet;
 			}
@@ -497,6 +504,7 @@ VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t c
 				return block.sets[newUseIndex];
 			}
 		}
+		++blockIndex;
 	}
 
 	DescriptorSetBlock newBlock;
@@ -505,6 +513,11 @@ VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t c
 	newBlock.pool = CreateDescriptorPool(newBlock.maxCount);
 
 	VkDescriptorSet newSet = AllocDescriptorSet(newBlock.pool);
+	if (!m_Name.empty())
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)newSet, VK_OBJECT_TYPE_DESCRIPTOR_SET,
+			(m_Name + "_DescriptorSet_" + std::to_string(blockIndex) + "_" + std::to_string(newBlock.sets.size())).c_str());
+	}
 	newBlock.sets.push_back(newSet);
 	++newBlock.useCount;
 

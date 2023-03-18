@@ -2,6 +2,19 @@
 #include "Internal/KConstantGlobal.h"
 #include "Internal/KRenderGlobal.h"
 
+constexpr KConstantBufferTypeDescription GConstantBufferTypeDescription[CBT_STATIC_COUNT] =
+{
+	{ CBT_CAMERA, "Camera_CB"},
+	{ CBT_SHADOW, "Shadow_CB"},
+	{ CBT_DYNAMIC_CASCADED_SHADOW, "DynamicCascadedShadow_CB"},
+	{ CBT_STATIC_CASCADED_SHADOW, "StaticCascadedShadow_CB"},
+	{ CBT_VOXEL, "Voxel_CB"},
+	{ CBT_VOXEL_CLIPMAP, "VoxelClipmap_CB"},
+	{ CBT_GLOBAL, "Global_CB"}
+};
+
+static_assert(ARRAY_SIZE(GConstantBufferTypeDescription) == CBT_STATIC_COUNT, "check");
+
 KFrameResourceManager::KFrameResourceManager()
 	: m_Device(nullptr)
 {
@@ -24,6 +37,7 @@ bool KFrameResourceManager::Init()
 		void* initData = KConstantGlobal::GetGlobalConstantData(bufferType);
 		ASSERT_RESULT(buffer->InitMemory(detail.bufferSize, initData));
 		ASSERT_RESULT(buffer->InitDevice());
+		ASSERT_RESULT(buffer->SetDebugName(GConstantBufferTypeDescription[cbtIdx].debugName));
 	}
 
 	return true;

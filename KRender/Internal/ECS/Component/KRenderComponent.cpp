@@ -16,7 +16,6 @@ RTTR_REGISTRATION
 
 KRenderComponent::KRenderComponent()
 	: m_DebugUtility(nullptr),
-	m_HostVisible(true),
 	m_UseMaterialTexture(false),
 	m_OcclusionVisible(true)
 {}
@@ -96,11 +95,11 @@ bool KRenderComponent::Load(IKXMLElementPtr element)
 
 	if (type == MRT_INTERNAL_MESH)
 	{
-		return InitAsMesh(path, true, false);
+		return InitAsMesh(path, false, false);
 	}
 	else if (type == MRT_EXTERNAL_ASSET)
 	{
-		return InitAsAsset(path, true, false);
+		return InitAsAsset(path, false, false);
 	}
 
 	return false;
@@ -191,7 +190,7 @@ void KRenderComponent::MeshPostInit()
 bool KRenderComponent::InitAsMesh(const std::string& mesh, bool hostVisible, bool async)
 {
 	UnInit();
-	bool meshAcquire = KRenderGlobal::MeshManager.Acquire(mesh.c_str(), m_Mesh, m_HostVisible);
+	bool meshAcquire = KRenderGlobal::MeshManager.Acquire(mesh.c_str(), m_Mesh, hostVisible);
 	if (meshAcquire)
 	{
 		MeshPostInit();
@@ -203,7 +202,7 @@ bool KRenderComponent::InitAsMesh(const std::string& mesh, bool hostVisible, boo
 bool KRenderComponent::InitAsAsset(const std::string& asset, bool hostVisible, bool async)
 {
 	UnInit();
-	bool meshAcquire = KRenderGlobal::MeshManager.AcquireFromAsset(asset.c_str(), m_Mesh, m_HostVisible);
+	bool meshAcquire = KRenderGlobal::MeshManager.AcquireFromAsset(asset.c_str(), m_Mesh, hostVisible);
 	if (meshAcquire)
 	{
 		MeshPostInit();

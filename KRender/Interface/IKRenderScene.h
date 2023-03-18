@@ -22,8 +22,10 @@ struct IKRenderScene
 {
 	virtual ~IKRenderScene() {}
 
-	virtual bool Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos) = 0;
+	virtual bool Init(const std::string& name, SceneManagerType type, float initialSize, const glm::vec3& initialPos) = 0;
 	virtual bool UnInit() = 0;
+
+	virtual const std::string& GetName() const = 0;
 
 	virtual bool Add(IKEntity* entity) = 0;
 	virtual bool Remove(IKEntity* entity) = 0;

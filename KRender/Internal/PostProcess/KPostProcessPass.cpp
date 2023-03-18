@@ -204,6 +204,23 @@ bool KPostProcessPass::Init()
 			m_RenderPass->SetClearDepthStencil({ 1.0f, 0 });
 		}
 
+		if (m_Stage == POST_PROCESS_STAGE_START_POINT)
+		{
+			m_RenderTarget->GetFrameBuffer()->SetDebugName("PostProcessStartPointColor");
+			m_DepthStencilTarget->GetFrameBuffer()->SetDebugName("PostProcessStartPointDepthStencil");
+			m_RenderPass->SetDebugName("PostProcessStartPointPass");
+		}
+		else if (m_Stage == POST_PROCESS_STAGE_END_POINT)
+		{
+			m_RenderTarget->GetFrameBuffer()->SetDebugName("PostProcessEndPointColor");
+			m_RenderPass->SetDebugName("PostProcessEndPointPass");
+		}
+		else if(m_Stage == POST_PROCESS_STAGE_REGULAR)
+		{
+			m_RenderTarget->GetFrameBuffer()->SetDebugName(("PostProcessRegularColor" + m_ID).c_str());
+			m_RenderPass->SetDebugName(("PostProcessRegularPass" + m_ID).c_str());
+		}
+
 		m_RenderPass->Init();
 	}
 
@@ -230,6 +247,8 @@ bool KPostProcessPass::Init()
 		pipeline->SetSampler(SHADER_BINDING_TEXTURE0, m_RenderTarget->GetFrameBuffer(), m_Mgr->m_Sampler);
 
 		pipeline->Init();
+
+		pipeline->SetDebugName("ScreenDraw");
 	}
 
 	m_bInit = true;

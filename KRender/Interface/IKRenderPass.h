@@ -104,4 +104,7 @@ struct IKRenderPass
 
 	virtual bool Init(uint32_t mipmap = 0) = 0;
 	virtual bool UnInit() = 0;
+
+	virtual bool SetDebugName(const char* name) = 0;
+	virtual const char* GetDebugName() const = 0;
 };

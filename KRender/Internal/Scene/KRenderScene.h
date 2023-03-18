@@ -9,6 +9,7 @@
 class KRenderScene : public IKRenderScene
 {
 protected:
+	std::string m_Name;
 	KSceneManagerBase* m_SceneMgr;
 	std::unordered_set<EntityObserverFunc*> m_Observers;
 	IKTerrainPtr m_Terrain;
@@ -18,8 +19,10 @@ public:
 	KRenderScene();
 	virtual ~KRenderScene();
 
-	bool Init(SceneManagerType type, float initialSize, const glm::vec3& initialPos) override;
+	bool Init(const std::string& name, SceneManagerType type, float initialSize, const glm::vec3& initialPos) override;
 	bool UnInit() override;
+
+	const std::string& GetName() const override;
 
 	bool Add(IKEntity* entity) override;
 	bool Remove(IKEntity* entity) override;

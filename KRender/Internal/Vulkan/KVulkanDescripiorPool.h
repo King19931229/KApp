@@ -53,6 +53,7 @@ protected:
 	uint32_t m_ImageCount;
 
 	std::mutex m_Lock;
+	std::string m_Name;
 
 	VkDescriptorSet AllocDescriptorSet(VkDescriptorPool pool);
 	VkDescriptorPool CreateDescriptorPool(size_t maxCount);
@@ -66,6 +67,8 @@ public:
 		const std::vector<VkDescriptorSetLayoutBinding>& descriptorSetLayoutBinding,
 		const std::vector<VkWriteDescriptorSet>& writeInfo);
 	bool UnInit();
+
+	inline void SetDebugName(const std::string& name) { m_Name = name; }
 
 	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,
 		const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,

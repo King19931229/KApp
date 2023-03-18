@@ -488,7 +488,7 @@ bool KMeshUtilityImpl::CreateMesh(const std::vector<KVertexDefinition::DEBUG_POS
 		vertexData.bound = bound;
 
 		vertexBuffer->InitMemory(vertices.size(), sizeof(vertices[0]), vertices.data());
-		vertexBuffer->InitDevice(true);
+		vertexBuffer->InitDevice(false);
 
 		auto& subMeshes = pMesh->m_SubMeshes;
 		assert(subMeshes.empty());
@@ -505,7 +505,7 @@ bool KMeshUtilityImpl::CreateMesh(const std::vector<KVertexDefinition::DEBUG_POS
 			m_Device->CreateIndexBuffer(indexBuffer);
 
 			indexBuffer->InitMemory(IT_16, indices.size(), indices.data());
-			indexBuffer->InitDevice(true);
+			indexBuffer->InitDevice(false);
 
 			KIndexData indexData;
 			indexData.indexBuffer = indexBuffer;

@@ -20,7 +20,7 @@ public:
 
 	uint8_t GetNumSlot() const override;
 	bool SetTexture(uint8_t slot, const std::string& path) override;
-	bool SetTexture(uint8_t slot, const KCodecResult& result, const KMeshTextureSampler& sampler) override;
+	bool SetTexture(uint8_t slot, const std::string& name, const KCodecResult& result, const KMeshTextureSampler& sampler) override;
 	bool SetErrorTexture(uint8_t slot) override;
 	bool UnsetTextrue(uint8_t slot) override;
 	IKTexturePtr GetTexture(uint8_t slot) const override;

@@ -60,6 +60,8 @@ public:
 
 	bool UnInit();
 
+	bool SetDebugName(const char* name) override;
+
 	bool CopyToReadback(IKFrameBuffer* framebuffer) override;
 	bool Readback(void* pDest, size_t offset, size_t size) override;
 

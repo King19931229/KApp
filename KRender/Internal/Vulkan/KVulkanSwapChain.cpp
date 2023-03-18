@@ -236,9 +236,6 @@ bool KVulkanSwapChain::CreateSwapChain()
 
 bool KVulkanSwapChain::CreateSyncObjects()
 {
-	//InFlightFrame数目不超过Image数目
-	//m_MaxFramesInFight = std::min(m_SwapChainImages.size(), m_MaxFramesInFight);
-
 	m_CurrentFlightIndex = 0;
 
 	m_ImageAvailableSemaphores.resize(m_MaxFramesInFight);

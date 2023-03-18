@@ -53,7 +53,7 @@ void imageAtomicRGBA8Avg__##grid(ivec3 coords, vec4 value)\
 \
 	while((curStoredVal = imageAtomicCompSwap(grid, coords, prevStoredVal, newVal))\
 			!= prevStoredVal\
-			&& numIterations < 255)\
+			&& numIterations < 4)\
 	{\
 		prevStoredVal = curStoredVal;\
 		vec4 rval = convRGBA8ToVec4(curStoredVal);\

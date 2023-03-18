@@ -12,6 +12,7 @@
 #include "KBase/Publish/KHash.h"
 
 #include "Internal/KRenderGlobal.h"
+#include "KVulkanHelper.h"
 
 #include "SPIRV/GlslangToSpv.h"
 #include "spirv_cross.hpp"
@@ -427,6 +428,7 @@ KVulkanShader::ShaderInitResult KVulkanShader::InitFromStringImpl(const char* co
 	if (vkCreateShaderModule(device, &createInfo, nullptr, pModule) == VK_SUCCESS)
 	{
 		InitConstant();
+		KVulkanHelper::DebugUtilsSetObjectName(device, reinterpret_cast<uint64_t>(*pModule), VK_OBJECT_TYPE_SHADER_MODULE, GetPath());
 		return SHADER_INIT_SUCCESS;
 	}
 

@@ -773,6 +773,13 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			vkGetDeviceQueue(m_Device, indices.graphicsFamily.first, 0, &m_GraphicsQueue);
 			vkGetDeviceQueue(m_Device, indices.computeFamily.first, 0, &m_ComputeQueue);
 			vkGetDeviceQueue(m_Device, indices.presentFamily.first, 0, &m_PresentQueue);
+
+			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_Device, VK_OBJECT_TYPE_DEVICE, "VulkanDevice");
+
+			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_GraphicsQueue, VK_OBJECT_TYPE_QUEUE, "GraphicsQueue");
+			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_ComputeQueue, VK_OBJECT_TYPE_QUEUE, "ComputeQueue");
+			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_PresentQueue, VK_OBJECT_TYPE_QUEUE, "PresentQueue");
+
 			return true;
 		}
 	}

@@ -344,7 +344,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 		};
 
 		KECSGlobal::Init();
-		KRenderGlobal::Scene.Init(SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
+		KRenderGlobal::Scene.Init("GlobalScene", SCENE_MANGER_TYPE_OCTREE, 100000.0f, glm::vec3(0.0f));
 		KRenderGlobal::Renderer.SetCallback(m_Window, &m_MainWindowRenderCB);
 
 		m_Device->RegisterPrePresentCallback(&m_PrePresentCallback);

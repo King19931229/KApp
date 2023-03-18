@@ -193,7 +193,7 @@ void KUIOverlayBase::PrepareResources()
 		}
 	}
 
-	ASSERT_RESULT(m_FontTexture->InitMemoryFromData(fontData, (size_t)texWidth, (size_t)texHeight, 1, IF_R8G8B8A8, false, false, false));
+	ASSERT_RESULT(m_FontTexture->InitMemoryFromData(fontData, "ImguiFont", (size_t)texWidth, (size_t)texHeight, 1, IF_R8G8B8A8, false, false, false));
 	ASSERT_RESULT(m_FontTexture->InitDevice(false));
 
 	m_FontSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);

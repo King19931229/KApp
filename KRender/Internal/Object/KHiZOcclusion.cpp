@@ -318,8 +318,8 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 		extentDatas[y * OCCLUSION_TARGRT_DIMENSION + x] = glm::vec4(candidates[idx].extent, 1);
 	}
 
-	m_TempPositionTextures[frameIdx]->InitMemoryFromData(posDatas.data(), dimensionX, dimensionY, 1, IF_R32G32B32A32_FLOAT, false, false, false);
-	m_TempExtentTextures[frameIdx]->InitMemoryFromData(extentDatas.data(), dimensionX, dimensionY, 1, IF_R32G32B32A32_FLOAT, false, false, false);
+	m_TempPositionTextures[frameIdx]->InitMemoryFromData(posDatas.data(), "HiZOCTempPos", dimensionX, dimensionY, 1, IF_R32G32B32A32_FLOAT, false, false, false);
+	m_TempExtentTextures[frameIdx]->InitMemoryFromData(extentDatas.data(), "HiZOCTempExtent", dimensionX, dimensionY, 1, IF_R32G32B32A32_FLOAT, false, false, false);
 	m_TempPositionTextures[frameIdx]->InitDevice(false);
 	m_TempExtentTextures[frameIdx]->InitDevice(false);
 
