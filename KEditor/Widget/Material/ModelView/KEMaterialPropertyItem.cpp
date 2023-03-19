@@ -213,7 +213,8 @@ KEPropertyBaseView::BasePtr KEMaterialPropertyItem::CreatePropertyView()
 			{
 				if (!newValue.empty())
 				{
-					m_TextureBinding->SetTexture((uint8_t)m_Index, newValue);
+					// TODO
+					m_TextureBinding->SetTexture((uint8_t)m_Index, newValue, KMeshTextureSampler());
 				}
 				else
 				{

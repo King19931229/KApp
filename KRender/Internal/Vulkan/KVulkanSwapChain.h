@@ -36,7 +36,9 @@ protected:
 
 	std::vector<VkImage> m_SwapChainImages;
 	std::vector<VkImageView> m_SwapChainImageViews;
+	// 这个信号量是给获取交换链Image后促发用的
 	std::vector<VkSemaphore> m_ImageAvailableSemaphores;
+	// 这个信号量是给完成交换链Image后促发用的
 	std::vector<VkSemaphore> m_RenderFinishedSemaphores;
 	std::vector<VkFence> m_InFlightFences;
 	SwapChainSupportDetails m_SwapChainSupportDetails;

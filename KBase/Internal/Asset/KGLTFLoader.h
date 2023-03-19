@@ -2,8 +2,13 @@
 #include "Interface/IKAssetLoader.h"
 #include "Interface/IKCodec.h"
 #include "Publish/KAABBBox.h"
+
 #include "stb_image_write.h"
+#define TINYGLTF_NO_STB_IMAGE
+#define TINYGLTF_NO_STB_IMAGE_WRITE
+#define TINYGLTF_NO_EXTERNAL_IMAGE
 #include "tiny_gltf.h"
+
 #include "glm/gtc/quaternion.hpp"
 
 class KGLTFLoader : public IKAssetLoader
@@ -165,6 +170,8 @@ protected:
 		glm::vec3 min = glm::vec3(FLT_MAX);
 		glm::vec3 max = glm::vec3(-FLT_MAX);
 	} m_Dimensions;
+
+	std::string m_AssetFolder;
 
 	void LoadTextureSamplers(tinygltf::Model& gltfModel);
 	void LoadTextures(tinygltf::Model& gltfModel);

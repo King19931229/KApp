@@ -709,7 +709,8 @@ bool KMaterial::ReadMaterialTexture(IKMaterialTextureBindingPtr parameter, const
 
 					if (index < parameter->GetNumSlot() && !path.empty())
 					{
-						parameter->SetTexture(index, path);
+						// TODO
+						parameter->SetTexture(index, path, KMeshTextureSampler());
 					}
 				}
 
@@ -856,7 +857,7 @@ bool KMaterial::InitFromImportAssetMaterial(const KAssetImportResult::Material& 
 
 	for (uint32_t i = 0; i < MTS_COUNT; ++i)
 	{
-		assert(input.textures[i].empty() || !input.codecs[i].pData);
+		assert(!input.url[i].empty() || !input.codecs[i].pData);
 
 		bool texCoordSetAccept = false;
 		if (i == MTS_BASE_COLOR && input.texCoordSets.baseColor == 0 ||
@@ -871,13 +872,13 @@ bool KMaterial::InitFromImportAssetMaterial(const KAssetImportResult::Material& 
 
 		if (texCoordSetAccept)
 		{
-			if (!input.textures[i].empty())
-			{
-				m_TextureBinding->SetTexture(i, input.textures[i]);
-			}
 			if (input.codecs[i].pData)
 			{
 				m_TextureBinding->SetTexture(i, input.url[i], input.codecs[i], input.samplers[i]);
+			}
+			else if (!input.url[i].empty())
+			{
+				m_TextureBinding->SetTexture(i, input.url[i], input.samplers[i]);
 			}
 		}
 

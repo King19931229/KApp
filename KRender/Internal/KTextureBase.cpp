@@ -70,7 +70,6 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 
 	case IF_DXT1:
 		// https://en.wikipedia.org/wiki/S3_Texture_Compression#DXT1
-		// TODO Correct?
 		elementFormat = EF_BC1_RGBA_UNORM;
 		return true;
 	case IF_DXT2:
@@ -108,6 +107,91 @@ static bool ImageFormatToElementFormat(ImageFormat imageForamt, ElementFormat& e
 		return true;
 	case IF_BC7_UNORM_SRGB:
 		elementFormat = EF_BC7_SRGB;
+		return true;
+
+	case IF_ASTC_4x4_UNORM:
+		elementFormat = EF_ASTC_4x4_UNORM;
+		return true;
+	case IF_ASTC_4x4_SRGB:
+		elementFormat = EF_ASTC_4x4_SRGB;
+		return true;
+	case IF_ASTC_5x4_UNORM:
+		elementFormat = EF_ASTC_5x4_UNORM;
+		return true;
+	case IF_ASTC_5x4_SRGB:
+		elementFormat = EF_ASTC_5x4_SRGB;
+		return true;
+	case IF_ASTC_5x5_UNORM:
+		elementFormat = EF_ASTC_5x5_UNORM;
+		return true;
+	case IF_ASTC_5x5_SRGB:
+		elementFormat = EF_ASTC_5x5_SRGB;
+		return true;
+	case IF_ASTC_6x5_UNORM:
+		elementFormat = EF_ASTC_6x5_UNORM;
+		return true;
+	case IF_ASTC_6x5_SRGB:
+		elementFormat = EF_ASTC_6x5_SRGB;
+		return true;
+	case IF_ASTC_6x6_UNORM:
+		elementFormat = EF_ASTC_6x6_UNORM;
+		return true;
+	case IF_ASTC_6x6_SRGB:
+		elementFormat = EF_ASTC_6x6_SRGB;
+		return true;
+	case IF_ASTC_8x5_UNORM:
+		elementFormat = EF_ASTC_8x5_UNORM;
+		return true;
+	case IF_ASTC_8x5_SRGB:
+		elementFormat = EF_ASTC_8x5_SRGB;
+		return true;
+	case IF_ASTC_8x6_UNORM:
+		elementFormat = EF_ASTC_8x6_UNORM;
+		return true;
+	case IF_ASTC_8x6_SRGB:
+		elementFormat = EF_ASTC_8x6_SRGB;
+		return true;
+	case IF_ASTC_8x8_UNORM:
+		elementFormat = EF_ASTC_8x8_UNORM;
+		return true;
+	case IF_ASTC_8x8_SRGB:
+		elementFormat = EF_ASTC_8x8_SRGB;
+		return true;
+	case IF_ASTC_10x5_UNORM:
+		elementFormat = EF_ASTC_10x5_UNORM;
+		return true;
+	case IF_ASTC_10x5_SRGB:
+		elementFormat = EF_ASTC_10x5_SRGB;
+		return true;
+	case IF_ASTC_10x6_UNORM:
+		elementFormat = EF_ASTC_10x6_UNORM;
+		return true;
+	case IF_ASTC_10x6_SRGB:
+		elementFormat = EF_ASTC_10x6_SRGB;
+		return true;
+	case IF_ASTC_10x8_UNORM:
+		elementFormat = EF_ASTC_10x8_UNORM;
+		return true;
+	case IF_ASTC_10x8_SRGB:
+		elementFormat = EF_ASTC_10x8_SRGB;
+		return true;
+	case IF_ASTC_10x10_UNORM:
+		elementFormat = EF_ASTC_10x10_UNORM;
+		return true;
+	case IF_ASTC_10x10_SRGB:
+		elementFormat = EF_ASTC_10x10_SRGB;
+		return true;
+	case IF_ASTC_12x10_UNORM:
+		elementFormat = EF_ASTC_12x10_UNORM;
+		return true;
+	case IF_ASTC_12x10_SRGB:
+		elementFormat = EF_ASTC_12x10_SRGB;
+		return true;
+	case IF_ASTC_12x12_UNORM:
+		elementFormat = EF_ASTC_12x12_UNORM;
+		return true;
+	case IF_ASTC_12x12_SRGB:
+		elementFormat = EF_ASTC_12x12_SRGB;
 		return true;
 
 	case IF_COUNT:

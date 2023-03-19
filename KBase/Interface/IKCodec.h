@@ -47,6 +47,12 @@ namespace KCodec
 	extern bool ASTCHardwareCodec;
 	extern bool BCHardwareCodec;
 
+	extern bool QueryFormatHardwareDecode(ImageFormat format);
+	extern bool BCFormat(ImageFormat format);
+	extern bool ETC1Format(ImageFormat format);
+	extern bool ETC2Format(ImageFormat format);
+	extern bool ASTCFormat(ImageFormat format);
+
 	extern bool CreateCodecManager();
 	extern bool DestroyCodecManager();
 	extern IKCodecPtr GetCodec(const char* pszFile);

@@ -836,7 +836,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 	result.pData = KImageDataPtr(KNEW KImageData(imageSize));
 
 	// Now deal with the data
-	void* destPtr = result.pData->GetData();
+	void* dataPtr = result.pData->GetData();
 
 	KSubImageInfoList& subImageInfoList = result.pData->GetSubImageInfo();
 
@@ -849,7 +849,7 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 
 		for (size_t mip = 0; mip < result.uMipmap; ++mip)
 		{
-			void* srcData = destPtr;
+			void* dataPtrBegin = dataPtr;
 
 			if (isCompress)
 			{
@@ -920,24 +920,24 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 											}
 											return false;
 										};
-										ASSERT_RESULT(PACK_COLOR(tempColours[by * 4 + bx], result.eFormat, destPtr));
-										destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) + destBpp);
+										ASSERT_RESULT(PACK_COLOR(tempColours[by * 4 + bx], result.eFormat, dataPtr));
+										dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) + destBpp);
 									}
 									// advance to next row
-									destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) + destPitchMinus4);
+									dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) + destPitchMinus4);
 								}
 								// next block. Our dest pointer is 4 lines down
 								// from where it started
 								if (x + 4 >= width)
 								{
 									// Jump back to the start of the line
-									destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) - destPitchMinus4);
+									dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) - destPitchMinus4);
 								}
 								else
 								{
 									// Jump back up 4 rows and 4 pixels to the
 									// right to be at the next block to the right
-									destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) - dstPitch * sy + destBpp * sx);
+									dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) - dstPitch * sy + destBpp * sx);
 								}
 							}
 						}
@@ -949,8 +949,8 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 					// DDS format lies! sizeOrPitch is not always set for DXT!!						
 					size_t dxtSize = 0;
 					ASSERT_RESULT(KImageHelper::GetByteSize(result.eFormat, width, height, depth, dxtSize));
-					stream->Read(destPtr, dxtSize);
-					destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) + dxtSize);
+					stream->Read(dataPtr, dxtSize);
+					dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) + dxtSize);
 				}
 			}
 			else // isCompress
@@ -978,12 +978,12 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 				{
 					for (size_t y = 0; y < height; ++y)
 					{
-						stream->Read(destPtr, dstPitch);
+						stream->Read(dataPtr, dstPitch);
 						if (srcAdvance > 0)
 						{
 							stream->Skip(srcAdvance);
 						}
-						destPtr = static_cast<void*>(static_cast<unsigned char*>(destPtr) + dstPitch);
+						dataPtr = static_cast<void*>(static_cast<unsigned char*>(dataPtr) + dstPitch);
 					}
 				}
 			}
@@ -991,8 +991,8 @@ bool KDDSCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecResult&
 			KSubImageInfo subImageInfo;
 			subImageInfo.uFaceIndex = face;
 			subImageInfo.uMipmapIndex = mip;
-			subImageInfo.uOffset = (size_t)srcData - (size_t)result.pData->GetData();
-			subImageInfo.uSize = (size_t)destPtr - (size_t)srcData;
+			subImageInfo.uOffset = (size_t)dataPtrBegin - (size_t)result.pData->GetData();
+			subImageInfo.uSize = (size_t)dataPtr - (size_t)dataPtrBegin;
 			subImageInfo.uWidth = width;
 			subImageInfo.uHeight = height;
 

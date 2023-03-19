@@ -523,6 +523,23 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			deviceFeatures.samplerAnisotropy = VK_FALSE;
 		}
 
+		auto QueryVkFormatSupport = [this](VkFormat* formats, size_t arraySize)
+		{
+			for (size_t i = 0; i < arraySize; ++i)
+			{
+				VkFormat format = formats[i];
+				VkFormatProperties props;
+				vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice.device, format, &props);
+				if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) ||
+					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
+					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+				{
+					return false;
+				}
+			}
+			return true;
+		};
+
 		// 查询DDS支持
 		{
 			VkFormat bcFormats[] = 
@@ -545,19 +562,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 				VK_FORMAT_BC7_SRGB_BLOCK
 			};
 
-			bool ddsSupport = true;
-			for (VkFormat format : bcFormats)
-			{
-				VkFormatProperties props;
-				vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice.device, format, &props);
-				if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) ||
-					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
-					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
-				{
-					ddsSupport = false;
-					break;
-				}
-			}
+			bool ddsSupport = QueryVkFormatSupport(bcFormats, ARRAY_SIZE(bcFormats));
 
 			if (ddsSupport)
 			{
@@ -570,12 +575,31 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			}
 		}
 
+		// Query 查询ETC支持
+		{
+			VkFormat etcFormats[] =
+			{
+				VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK
+			};
+
+			bool etcSupport = QueryVkFormatSupport(etcFormats, ARRAY_SIZE(etcFormats));
+
+			if (etcSupport)
+			{
+				m_Properties.etc1Support = true;
+			}
+			else
+			{
+				m_Properties.etc1Support = false;
+			}
+		}
+
 		// Query 查询ETC2支持
 		{
 			VkFormat etc2Formats[] =
 			{
 				VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK,
-				VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK,				
+				VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK,
 				VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK,
 				VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK,
 				VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK,
@@ -586,19 +610,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 				VK_FORMAT_EAC_R11G11_SNORM_BLOCK
 			};
 
-			bool etc2Support = true;
-			for (VkFormat format : etc2Formats)
-			{
-				VkFormatProperties props;
-				vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice.device, format, &props);
-				if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) ||
-					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
-					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
-				{
-					etc2Support = false;
-					break;
-				}
-			}
+			bool etc2Support = QueryVkFormatSupport(etc2Formats, ARRAY_SIZE(etc2Formats));
 
 			if (etc2Support)
 			{
@@ -645,19 +657,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 				VK_FORMAT_ASTC_12x12_SRGB_BLOCK
 			};
 
-			bool astcSupport = true;
-			for (VkFormat format : astcFormats)
-			{
-				VkFormatProperties props;
-				vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice.device, format, &props);
-				if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) ||
-					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
-					!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
-				{
-					astcSupport = false;
-					break;
-				}
-			}
+			bool astcSupport = QueryVkFormatSupport(astcFormats, ARRAY_SIZE(astcFormats));
 
 			if (astcSupport)
 			{
@@ -669,8 +669,6 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 				m_Properties.astcSupport = false;
 			}
 		}
-
-		m_Properties.etc1Support = true;
 
 		{
 			KCodec::ETC1HardwareCodec = m_Properties.etc1Support;
@@ -776,9 +774,9 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_Device, VK_OBJECT_TYPE_DEVICE, "VulkanDevice");
 
+			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_PresentQueue, VK_OBJECT_TYPE_QUEUE, "PresentQueue");
 			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_GraphicsQueue, VK_OBJECT_TYPE_QUEUE, "GraphicsQueue");
 			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_ComputeQueue, VK_OBJECT_TYPE_QUEUE, "ComputeQueue");
-			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_PresentQueue, VK_OBJECT_TYPE_QUEUE, "PresentQueue");
 
 			return true;
 		}

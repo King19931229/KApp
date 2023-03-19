@@ -145,43 +145,43 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 		aiString diffuseMap;
 		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseMap))
 		{
-			KFileTool::PathJoin(m_AssetFolder, diffuseMap.C_Str(), part.material.textures[MTS_DIFFUSE]);
+			KFileTool::PathJoin(m_AssetFolder, diffuseMap.C_Str(), part.material.url[MTS_DIFFUSE]);
 		}
 
 		aiString emissiveMap;
 		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_EMISSIVE, 0, &emissiveMap))
 		{
-			KFileTool::PathJoin(m_AssetFolder, emissiveMap.C_Str(), part.material.textures[MTS_EMISSIVE]);
+			KFileTool::PathJoin(m_AssetFolder, emissiveMap.C_Str(), part.material.url[MTS_EMISSIVE]);
 		}
 
 		aiString aoMap;
 		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_AMBIENT, 0, &aoMap))
 		{
-			KFileTool::PathJoin(m_AssetFolder, aoMap.C_Str(), part.material.textures[MTS_AMBIENT_OCCLUSION]);
+			KFileTool::PathJoin(m_AssetFolder, aoMap.C_Str(), part.material.url[MTS_AMBIENT_OCCLUSION]);
 		}
 
 		aiString specaulrMap;
 		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_SPECULAR, 0, &specaulrMap))
 		{
-			KFileTool::PathJoin(m_AssetFolder, specaulrMap.C_Str(), part.material.textures[MTS_SPECULAR_GLOSINESS]);
+			KFileTool::PathJoin(m_AssetFolder, specaulrMap.C_Str(), part.material.url[MTS_SPECULAR_GLOSINESS]);
 		}
 		else if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_SHININESS, 0, &specaulrMap))
 		{
-			KFileTool::PathJoin(m_AssetFolder, specaulrMap.C_Str(), part.material.textures[MTS_SPECULAR_GLOSINESS]);
+			KFileTool::PathJoin(m_AssetFolder, specaulrMap.C_Str(), part.material.url[MTS_SPECULAR_GLOSINESS]);
 		}
 
 		aiString normalMap;
 		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_NORMALS, 0, &normalMap))
 		{
-			KFileTool::PathJoin(m_AssetFolder, normalMap.C_Str(), part.material.textures[MTS_NORMAL]);
+			KFileTool::PathJoin(m_AssetFolder, normalMap.C_Str(), part.material.url[MTS_NORMAL]);
 		}
 		else if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_DISPLACEMENT, 0, &normalMap))
 		{
-			KFileTool::PathJoin(m_AssetFolder, normalMap.C_Str(), part.material.textures[MTS_NORMAL]);
+			KFileTool::PathJoin(m_AssetFolder, normalMap.C_Str(), part.material.url[MTS_NORMAL]);
 		}
 		else if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_HEIGHT, 0, &normalMap))
 		{
-			KFileTool::PathJoin(m_AssetFolder, normalMap.C_Str(), part.material.textures[MTS_NORMAL]);
+			KFileTool::PathJoin(m_AssetFolder, normalMap.C_Str(), part.material.url[MTS_NORMAL]);
 		}
 
 		part.material.metalWorkFlow = false;

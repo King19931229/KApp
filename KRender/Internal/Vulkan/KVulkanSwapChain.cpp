@@ -219,6 +219,8 @@ bool KVulkanSwapChain::CreateSwapChain()
 
 	VK_ASSERT_RESULT(vkCreateSwapchainKHR(KVulkanGlobal::device, &createInfo, nullptr, &m_SwapChain));
 
+	KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_SwapChain, VK_OBJECT_TYPE_SWAPCHAIN_KHR, "SwapChain");
+
 	VK_ASSERT_RESULT(vkGetSwapchainImagesKHR(KVulkanGlobal::device, m_SwapChain, &imageCount, nullptr));
 	m_SwapChainImages.resize(imageCount);
 	VK_ASSERT_RESULT(vkGetSwapchainImagesKHR(KVulkanGlobal::device, m_SwapChain, &imageCount, m_SwapChainImages.data()));
@@ -229,6 +231,9 @@ bool KVulkanSwapChain::CreateSwapChain()
 	{
 		KVulkanInitializer::TransitionImageLayout(m_SwapChainImages[i], m_SurfaceFormat.format, 0, 1, 0, 1, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		KVulkanInitializer::CreateVkImageView(m_SwapChainImages[i], VK_IMAGE_VIEW_TYPE_2D, m_SurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, m_SwapChainImageViews[i]);
+
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_SwapChainImages[i], VK_OBJECT_TYPE_IMAGE, (std::string("SwapChainImage_") + std::to_string(i)).c_str());
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_SwapChainImageViews[i], VK_OBJECT_TYPE_IMAGE_VIEW, (std::string("SwapChainImageView_") + std::to_string(i)).c_str());
 	}
 
 	return true;
@@ -254,6 +259,10 @@ bool KVulkanSwapChain::CreateSyncObjects()
 		VK_ASSERT_RESULT(vkCreateSemaphore(KVulkanGlobal::device, &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
 		VK_ASSERT_RESULT(vkCreateSemaphore(KVulkanGlobal::device, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
 		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &m_InFlightFences[i]));
+
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_ImageAvailableSemaphores[i], VK_OBJECT_TYPE_SEMAPHORE, (std::string("ImageAvailableSemaphore_") + std::to_string(i)).c_str());
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_RenderFinishedSemaphores[i], VK_OBJECT_TYPE_SEMAPHORE, (std::string("RenderFinishedSemaphore_") + std::to_string(i)).c_str());
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_InFlightFences[i], VK_OBJECT_TYPE_FENCE, (std::string("InFlightFence_") + std::to_string(i)).c_str());
 	}
 	return true;
 }
@@ -424,6 +433,7 @@ IKFrameBufferPtr KVulkanSwapChain::GetDepthStencilFrameBuffer(uint32_t chainInde
 
 VkResult KVulkanSwapChain::WaitForInFightFrame(uint32_t& frameIndex)
 {
+	// 这个Wait保证Queue已经被执行完
 	VkResult result = vkWaitForFences(KVulkanGlobal::device, 1, &m_InFlightFences[m_CurrentFlightIndex], VK_TRUE, UINT64_MAX);
 	frameIndex = m_CurrentFlightIndex;
 	return result;
@@ -431,7 +441,7 @@ VkResult KVulkanSwapChain::WaitForInFightFrame(uint32_t& frameIndex)
 
 VkResult KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
 {
-	// 获取可用交换链Image索引 同时促发Image可用信号量
+	// 获取可用交换链Image索引 促发交换链Image可用信号量
 	VkResult result = vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFlightIndex], VK_NULL_HANDLE, &imageIndex);
 	return result;
 }
@@ -444,6 +454,7 @@ VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex, VkCommandBuffer com
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 	// 命令缓冲管线COLOR_ATTACHMENT_OUTPUT可用时 等待交换链Image可用信号量
+	// 这个信号量保证Present被执行完
 	VkSemaphore waitSemaphores[] = {m_ImageAvailableSemaphores[m_CurrentFlightIndex]};
 	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	submitInfo.waitSemaphoreCount = 1;

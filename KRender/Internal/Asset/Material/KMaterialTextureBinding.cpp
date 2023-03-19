@@ -24,7 +24,50 @@ uint8_t KMaterialTextureBinding::GetNumSlot() const
 	return ARRAY_SIZE(m_Textures);
 }
 
-bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path)
+KSamplerDescription KMaterialTextureBinding::ToSamplerDesc(const KMeshTextureSampler& sampler)
+{
+	KSamplerDescription desc;
+
+	auto ToFilterMode = [](MeshTextureFilter filter)
+	{
+		switch (filter)
+		{
+			case MTF_LINEAR:
+				return FM_LINEAR;
+			case MTF_CLOSEST:
+				return FM_NEAREST;
+			default:
+				assert(false && "should not reach");
+				return FM_NEAREST;
+		}
+	};
+
+	auto ToAddressMode = [](MeshTextureAddress address)
+	{
+		switch (address)
+		{
+			case MTA_REPEAT:
+				return AM_REPEAT;
+			case MTA_CLAMP_TO_EDGE:
+				return AM_CLAMP_TO_EDGE;
+			case MTA_MIRRORED_REPEAT:
+				return AM_MIRROR_CLAMP_TO_EDGE;
+			default:
+				assert(false && "should not reach");
+				return AM_REPEAT;
+		}
+	};
+
+	desc.minFilter = ToFilterMode(sampler.minFilter);
+	desc.magFilter = ToFilterMode(sampler.magFilter);
+	desc.addressU = ToAddressMode(sampler.addressModeU);
+	desc.addressV = ToAddressMode(sampler.addressModeV);
+	desc.addressW = ToAddressMode(sampler.addressModeW);
+
+	return desc;
+}
+
+bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path, const KMeshTextureSampler& sampler)
 {
 	if (slot < GetNumSlot())
 	{
@@ -33,13 +76,10 @@ bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path)
 		{
 			if (KRenderGlobal::TextureManager.Acquire(path.c_str(), m_Textures[slot], false))
 			{
-				KSamplerDescription desc;
-				desc.minFilter = desc.magFilter = FM_LINEAR;
+				KSamplerDescription desc = ToSamplerDesc(sampler);
 				desc.minMipmap = 0;
 				desc.maxMipmap = (*m_Textures[slot])->GetMipmaps() - 1;
-				desc.addressU = AM_REPEAT;
-				desc.addressV = AM_REPEAT;
-				desc.addressW = AM_REPEAT;
+
 				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
 				return true;
 			}
@@ -67,44 +107,10 @@ bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& name, 
 				result.uWidth, result.uHeight, result.uDepth,
 				result.eFormat, result.bCubemap, true, m_Textures[slot], false))
 			{
-				auto ToFilterMode = [](MeshTextureFilter filter)
-				{
-					switch (filter)
-					{
-						case MTF_LINEAR:
-							return FM_LINEAR;
-						case MTF_CLOSEST:
-							return FM_NEAREST;
-						default:
-							assert(false && "should not reach");
-							return FM_NEAREST;
-					}
-				};
-
-				auto ToAddressMode = [](MeshTextureAddress address)
-				{
-					switch (address)
-					{
-						case MTA_REPEAT:
-							return AM_REPEAT;
-						case MTA_CLAMP_TO_EDGE:
-							return AM_CLAMP_TO_EDGE;
-						case MTA_MIRRORED_REPEAT:
-							return AM_MIRROR_CLAMP_TO_EDGE;
-						default:
-							assert(false && "should not reach");
-							return AM_REPEAT;
-					}
-				};
-
-				KSamplerDescription desc;
-				desc.minFilter = ToFilterMode(sampler.minFilter);
-				desc.magFilter = ToFilterMode(sampler.magFilter);
+				KSamplerDescription desc = ToSamplerDesc(sampler);
 				desc.minMipmap = 0;
 				desc.maxMipmap = (*m_Textures[slot])->GetMipmaps() - 1;
-				desc.addressU = ToAddressMode(sampler.addressModeU);
-				desc.addressV = ToAddressMode(sampler.addressModeV);
-				desc.addressW = ToAddressMode(sampler.addressModeW);
+			
 				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
 				return true;
 			}
@@ -167,7 +173,8 @@ bool KMaterialTextureBinding::Duplicate(IKMaterialTextureBindingPtr& parameter)
 	{
 		if (m_Textures[i] && m_Samplers[i])
 		{
-			parameter->SetTexture((uint8_t)i, (*m_Textures[i])->GetPath());
+			// TODO
+			parameter->SetTexture((uint8_t)i, (*m_Textures[i])->GetPath(), KMeshTextureSampler());
 		}
 	}
 	return true;
@@ -184,7 +191,8 @@ bool KMaterialTextureBinding::Paste(const IKMaterialTextureBindingPtr& parameter
 		{
 			if (source->m_Textures[i] && source->m_Samplers[i])
 			{
-				SetTexture((uint8_t)i, (*source->m_Textures[i])->GetPath());
+				// TODO
+				SetTexture((uint8_t)i, (*source->m_Textures[i])->GetPath(), KMeshTextureSampler());
 			}
 		}
 

@@ -32,6 +32,112 @@ namespace KCodec
 		IKCodecPtr pRet = KCodecManager::GetCodec(pszFile);
 		return pRet;
 	}
+
+	bool QueryFormatHardwareDecode(ImageFormat format)
+	{
+		if (BCFormat(format))
+		{
+			return KCodec::BCHardwareCodec;
+		}
+		else if (ETC1Format(format))
+		{
+			return KCodec::ETC1HardwareCodec;
+		}
+		else if(ETC2Format(format))
+		{
+			return KCodec::ETC2HardwareCodec;
+		}
+		else if (ASTCFormat(format))
+		{
+			return KCodec::ASTCHardwareCodec;
+		}
+		return true;
+	}
+
+	bool BCFormat(ImageFormat format)
+	{
+		switch (format)
+		{
+			case IF_DXT1:
+			case IF_DXT2:
+			case IF_DXT3:
+			case IF_DXT4:
+			case IF_DXT5:
+			case IF_BC4_UNORM:
+			case IF_BC4_SNORM:
+			case IF_BC5_UNORM:
+			case IF_BC5_SNORM:
+			case IF_BC6H_UF16:
+			case IF_BC6H_SF16:
+			case IF_BC7_UNORM:
+			case IF_BC7_UNORM_SRGB:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	bool ETC1Format(ImageFormat format)
+	{
+		switch (format)
+		{
+			case IF_ETC1_RGB8:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	bool ETC2Format(ImageFormat format)
+	{
+		switch (format)
+		{
+			case IF_ETC2_RGB8:
+			case IF_ETC2_RGB8A8:
+			case IF_ETC2_RGB8A1:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	bool ASTCFormat(ImageFormat format)
+	{
+		switch (format)
+		{
+			case IF_ASTC_4x4_UNORM:
+			case IF_ASTC_4x4_SRGB:
+			case IF_ASTC_5x4_UNORM:
+			case IF_ASTC_5x4_SRGB:
+			case IF_ASTC_5x5_UNORM:
+			case IF_ASTC_5x5_SRGB:
+			case IF_ASTC_6x5_UNORM:
+			case IF_ASTC_6x5_SRGB:
+			case IF_ASTC_6x6_UNORM:
+			case IF_ASTC_6x6_SRGB:
+			case IF_ASTC_8x5_UNORM:
+			case IF_ASTC_8x5_SRGB:
+			case IF_ASTC_8x6_UNORM:
+			case IF_ASTC_8x6_SRGB:
+			case IF_ASTC_8x8_UNORM:
+			case IF_ASTC_8x8_SRGB:
+			case IF_ASTC_10x5_UNORM:
+			case IF_ASTC_10x5_SRGB:
+			case IF_ASTC_10x6_UNORM:
+			case IF_ASTC_10x6_SRGB:
+			case IF_ASTC_10x8_UNORM:
+			case IF_ASTC_10x8_SRGB:
+			case IF_ASTC_10x10_UNORM:
+			case IF_ASTC_10x10_SRGB:
+			case IF_ASTC_12x10_UNORM:
+			case IF_ASTC_12x10_SRGB:
+			case IF_ASTC_12x12_UNORM:
+			case IF_ASTC_12x12_SRGB:
+				return true;
+			default:
+				return false;
+		}
+	}
 }
 
 // KCodecManager

@@ -43,6 +43,35 @@ enum ImageFormat
 	IF_BC6H_SF16,
 	IF_BC7_UNORM,
 	IF_BC7_UNORM_SRGB,
+	// ASTC压缩格式
+	IF_ASTC_4x4_UNORM,
+	IF_ASTC_4x4_SRGB,
+	IF_ASTC_5x4_UNORM,
+	IF_ASTC_5x4_SRGB,
+	IF_ASTC_5x5_UNORM,
+	IF_ASTC_5x5_SRGB,
+	IF_ASTC_6x5_UNORM,
+	IF_ASTC_6x5_SRGB,
+	IF_ASTC_6x6_UNORM,
+	IF_ASTC_6x6_SRGB,
+	IF_ASTC_8x5_UNORM,
+	IF_ASTC_8x5_SRGB,
+	IF_ASTC_8x6_UNORM,
+	IF_ASTC_8x6_SRGB,
+	IF_ASTC_8x8_UNORM,
+	IF_ASTC_8x8_SRGB,
+	IF_ASTC_10x5_UNORM,
+	IF_ASTC_10x5_SRGB,
+	IF_ASTC_10x6_UNORM,
+	IF_ASTC_10x6_SRGB,
+	IF_ASTC_10x8_UNORM,
+	IF_ASTC_10x8_SRGB,
+	IF_ASTC_10x10_UNORM,
+	IF_ASTC_10x10_SRGB,
+	IF_ASTC_12x10_UNORM,
+	IF_ASTC_12x10_SRGB,
+	IF_ASTC_12x12_UNORM,
+	IF_ASTC_12x12_SRGB,
 
 	IF_COUNT,
 	IF_INVALID = IF_COUNT
@@ -107,30 +136,59 @@ namespace KImageHelper
 	{
 		switch (format)
 		{
-		case IF_ETC1_RGB8:
-		case IF_ETC2_RGB8:
-		case IF_ETC2_RGB8A8:
-		case IF_ETC2_RGB8A1:
+			case IF_ETC1_RGB8:
+			case IF_ETC2_RGB8:
+			case IF_ETC2_RGB8A8:
+			case IF_ETC2_RGB8A1:
 
-		case IF_DXT1:
-		case IF_DXT2:
-		case IF_DXT3:
-		case IF_DXT4:
-		case IF_DXT5:
-		case IF_BC4_UNORM:
-		case IF_BC4_SNORM:
-		case IF_BC5_UNORM:
-		case IF_BC5_SNORM:
-		case IF_BC6H_UF16:
-		case IF_BC6H_SF16:
-		case IF_BC7_UNORM:
-		case IF_BC7_UNORM_SRGB:
+			case IF_DXT1:
+			case IF_DXT2:
+			case IF_DXT3:
+			case IF_DXT4:
+			case IF_DXT5:
+			case IF_BC4_UNORM:
+			case IF_BC4_SNORM:
+			case IF_BC5_UNORM:
+			case IF_BC5_SNORM:
+			case IF_BC6H_UF16:
+			case IF_BC6H_SF16:
+			case IF_BC7_UNORM:
+			case IF_BC7_UNORM_SRGB:
 
-			isCompress = true;
-			return true;
-		default:
-			isCompress = false;
-			return true;
+			case IF_ASTC_4x4_UNORM:
+			case IF_ASTC_4x4_SRGB:
+			case IF_ASTC_5x4_UNORM:
+			case IF_ASTC_5x4_SRGB:
+			case IF_ASTC_5x5_UNORM:
+			case IF_ASTC_5x5_SRGB:
+			case IF_ASTC_6x5_UNORM:
+			case IF_ASTC_6x5_SRGB:
+			case IF_ASTC_6x6_UNORM:
+			case IF_ASTC_6x6_SRGB:
+			case IF_ASTC_8x5_UNORM:
+			case IF_ASTC_8x5_SRGB:
+			case IF_ASTC_8x6_UNORM:
+			case IF_ASTC_8x6_SRGB:
+			case IF_ASTC_8x8_UNORM:
+			case IF_ASTC_8x8_SRGB:
+			case IF_ASTC_10x5_UNORM:
+			case IF_ASTC_10x5_SRGB:
+			case IF_ASTC_10x6_UNORM:
+			case IF_ASTC_10x6_SRGB:
+			case IF_ASTC_10x8_UNORM:
+			case IF_ASTC_10x8_SRGB:
+			case IF_ASTC_10x10_UNORM:
+			case IF_ASTC_10x10_SRGB:
+			case IF_ASTC_12x10_UNORM:
+			case IF_ASTC_12x10_SRGB:
+			case IF_ASTC_12x12_UNORM:
+			case IF_ASTC_12x12_SRGB:
+
+				isCompress = true;
+				return true;
+			default:
+				isCompress = false;
+				return true;
 		}
 	}
 
@@ -170,22 +228,53 @@ namespace KImageHelper
 	{
 		switch (format)
 		{
-		case IF_ETC1_RGB8:			
-		case IF_ETC2_RGB8:
-		case IF_ETC2_RGB8A1:
-		case IF_DXT1:
-			size = 8;
-			return true;
-		case IF_ETC2_RGB8A8:
-		case IF_DXT2:
-		case IF_DXT3:
-		case IF_DXT4:
-		case IF_DXT5:
-			size = 16;
-			return true;
-		default:
-			assert(false && "unsupported format");
-			return false;
+			case IF_ETC1_RGB8:
+			case IF_ETC2_RGB8:
+			case IF_ETC2_RGB8A1:
+			case IF_DXT1:
+				size = 8;
+				return true;
+			case IF_ETC2_RGB8A8:
+			case IF_DXT2:
+			case IF_DXT3:
+			case IF_DXT4:
+			case IF_DXT5:
+				size = 16;
+				return true;
+			case IF_ASTC_4x4_UNORM:
+			case IF_ASTC_4x4_SRGB:
+			case IF_ASTC_5x4_UNORM:
+			case IF_ASTC_5x4_SRGB:
+			case IF_ASTC_5x5_UNORM:
+			case IF_ASTC_5x5_SRGB:
+			case IF_ASTC_6x5_UNORM:
+			case IF_ASTC_6x5_SRGB:
+			case IF_ASTC_6x6_UNORM:
+			case IF_ASTC_6x6_SRGB:
+			case IF_ASTC_8x5_UNORM:
+			case IF_ASTC_8x5_SRGB:
+			case IF_ASTC_8x6_UNORM:
+			case IF_ASTC_8x6_SRGB:
+			case IF_ASTC_8x8_UNORM:
+			case IF_ASTC_8x8_SRGB:
+			case IF_ASTC_10x5_UNORM:
+			case IF_ASTC_10x5_SRGB:
+			case IF_ASTC_10x6_UNORM:
+			case IF_ASTC_10x6_SRGB:
+			case IF_ASTC_10x8_UNORM:
+			case IF_ASTC_10x8_SRGB:
+			case IF_ASTC_10x10_UNORM:
+			case IF_ASTC_10x10_SRGB:
+			case IF_ASTC_12x10_UNORM:
+			case IF_ASTC_12x10_SRGB:
+			case IF_ASTC_12x12_UNORM:
+			case IF_ASTC_12x12_SRGB:
+				size = 16;
+				return true;
+
+			default:
+				assert(false && "unsupported format");
+				return false;
 		}
 	}
 
@@ -198,48 +287,127 @@ namespace KImageHelper
 		if(GetIsCompress(format, isCompress))
 		{
 			if(isCompress)
-			{				
+			{
+				size_t blockWidth = 0;
+				size_t blockHeight = 0;
+				size_t blockSize = 0;
+
+				GetBlockByteSize(format, blockSize);
+				assert(blockSize > 0);
+
 				switch (format)
 				{
-				case IF_ETC1_RGB8:
-				case IF_ETC2_RGB8:
-				case IF_ETC2_RGB8A8:
-				case IF_ETC2_RGB8A1:
-				case IF_DXT1:
-				case IF_DXT2:
-				case IF_DXT3:
-				case IF_DXT4:
-				case IF_DXT5:
-				{
-					size_t blockSize = 0;
-					// Each 4 pixel form a block					
-					if (GetBlockByteSize(format, blockSize))
-					{
-						size = ((width + 3) / 4) * ((height + 3) / 4) * blockSize * depth;
-						return true;
-					}
-					return false;
+					case IF_ETC1_RGB8:
+					case IF_ETC2_RGB8:
+					case IF_ETC2_RGB8A8:
+					case IF_ETC2_RGB8A1:
+					case IF_DXT1:
+					case IF_DXT2:
+					case IF_DXT3:
+					case IF_DXT4:
+					case IF_DXT5:
+					case IF_BC4_SNORM:
+					case IF_BC4_UNORM:
+					case IF_BC5_SNORM:
+					case IF_BC5_UNORM:
+					case IF_BC6H_SF16:
+					case IF_BC6H_UF16:
+					case IF_BC7_UNORM:
+					case IF_BC7_UNORM_SRGB:
+						blockWidth = 4;
+						blockHeight = 4;
+						break;
+
+					case IF_ASTC_4x4_UNORM:
+					case IF_ASTC_4x4_SRGB:
+						blockWidth = 4;
+						blockHeight = 4;
+						break;
+
+					case IF_ASTC_5x4_UNORM:
+					case IF_ASTC_5x4_SRGB:
+						blockWidth = 5;
+						blockHeight = 4;
+						break;
+
+					case IF_ASTC_5x5_UNORM:
+					case IF_ASTC_5x5_SRGB:
+						blockWidth = 5;
+						blockHeight = 5;
+						break;
+
+					case IF_ASTC_6x5_UNORM:
+					case IF_ASTC_6x5_SRGB:
+						blockWidth = 6;
+						blockHeight = 5;
+						break;
+
+					case IF_ASTC_6x6_UNORM:
+					case IF_ASTC_6x6_SRGB:
+						blockWidth = 6;
+						blockHeight = 6;
+						break;
+
+					case IF_ASTC_8x5_UNORM:
+					case IF_ASTC_8x5_SRGB:
+						blockWidth = 8;
+						blockHeight = 5;
+						break;
+
+					case IF_ASTC_8x6_UNORM:
+					case IF_ASTC_8x6_SRGB:
+						blockWidth = 8;
+						blockHeight = 6;
+						break;
+
+					case IF_ASTC_8x8_UNORM:
+					case IF_ASTC_8x8_SRGB:
+						blockWidth = 8;
+						blockHeight = 8;
+						break;
+
+					case IF_ASTC_10x5_UNORM:
+					case IF_ASTC_10x5_SRGB:
+						blockWidth = 10;
+						blockHeight = 5;
+						break;
+
+					case IF_ASTC_10x6_UNORM:
+					case IF_ASTC_10x6_SRGB:
+						blockWidth = 10;
+						blockHeight = 6;
+						break;
+
+					case IF_ASTC_10x8_UNORM:
+					case IF_ASTC_10x8_SRGB:
+						blockWidth = 10;
+						blockHeight = 8;
+						break;
+
+					case IF_ASTC_10x10_UNORM:
+					case IF_ASTC_10x10_SRGB:
+						blockWidth = 10;
+						blockHeight = 10;
+						break;
+
+					case IF_ASTC_12x10_UNORM:
+					case IF_ASTC_12x10_SRGB:
+						blockWidth = 12;
+						blockHeight = 10;
+						break;
+
+					case IF_ASTC_12x12_UNORM:
+					case IF_ASTC_12x12_SRGB:
+						blockWidth = 12;
+						blockHeight = 12;
+						break;
+
+					default:
+						assert(false && "should not reach");
 				}
-				case IF_BC4_SNORM:
-				case IF_BC4_UNORM:
-				{
-					size = (size_t)(ceilf(width / 4.0f) * ceilf(height / 4.0f) * 8.0f) * depth;
-					return true;
-				}
-				case IF_BC5_SNORM:
-				case IF_BC5_UNORM:
-				case IF_BC6H_SF16:
-				case IF_BC6H_UF16:
-				case IF_BC7_UNORM:
-				case IF_BC7_UNORM_SRGB:
-				{
-					size = (size_t)(ceilf(width / 4.0f) * ceilf(height / 4.0f) * 16.0f) * depth;
-					return true;
-				}
-				default:
-					assert(false && "unsuppored format");
-					break;
-				}
+
+				size = (size_t)(ceilf((float)width / blockWidth) * ceilf((float)height / blockHeight) * (float)blockSize) * depth;
+				return true;
 			}
 			else
 			{

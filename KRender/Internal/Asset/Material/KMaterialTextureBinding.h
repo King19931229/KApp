@@ -7,6 +7,8 @@ class KMaterialTextureBinding : public IKMaterialTextureBinding
 protected:
 	KTextureRef m_Textures[16];
 	KSamplerRef m_Samplers[16];
+
+	KSamplerDescription ToSamplerDesc(const KMeshTextureSampler& sampler);
 public:
 	KMaterialTextureBinding();
 	virtual ~KMaterialTextureBinding();
@@ -19,7 +21,7 @@ public:
 	// KMaterialTextureBinding& operator=(const KMaterialTextureBinding& rhs) = delete;
 
 	uint8_t GetNumSlot() const override;
-	bool SetTexture(uint8_t slot, const std::string& path) override;
+	bool SetTexture(uint8_t slot, const std::string& path, const KMeshTextureSampler& sampler) override;
 	bool SetTexture(uint8_t slot, const std::string& name, const KCodecResult& result, const KMeshTextureSampler& sampler) override;
 	bool SetErrorTexture(uint8_t slot) override;
 	bool UnsetTextrue(uint8_t slot) override;

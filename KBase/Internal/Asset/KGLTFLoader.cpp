@@ -7,8 +7,10 @@
 #include <algorithm>
 
 #define TINYGLTF_IMPLEMENTATION
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include "tiny_gltf.h"
 
 /*
@@ -246,8 +248,14 @@ void KGLTFLoader::LoadTextures(tinygltf::Model& gltfModel)
 		}
 
 		Texture texture;
-		texture.url = image.uri;
-		texture.codec = GetCodecResult(image);
+		if (image.image.size() > 0)
+		{
+			texture.codec = GetCodecResult(image);
+		}
+		if (!image.uri.empty())
+		{
+			KFileTool::PathJoin(m_AssetFolder, image.uri, texture.url);
+		}
 		texture.sampler = sampler;
 		m_Textures.push_back(texture);
 	}
@@ -619,6 +627,11 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					vert.color0 = bufferColorSet0 ? glm::make_vec4(&bufferColorSet0[v * color0ByteStride]) : glm::vec4(1.0f);
 					vert.color1 = bufferColorSet1 ? glm::make_vec4(&bufferColorSet1[v * color1ByteStride]) : glm::vec4(1.0f);
 
+#ifdef TINYGLTF_NO_STB_IMAGE
+					vert.uv0.y = 1.0f - vert.uv0.y;
+					vert.uv1.y = 1.0f - vert.uv1.y;
+#endif
+
 					glm::vec4 tangent = bufferTangents ? glm::make_vec4(&bufferTangents[v * tangentByteStride]) : glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
 					// They are not perpendicular to each other, seek a truly perpendicular
@@ -826,7 +839,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 
 				assert(indexBuffer.size() % 3 == 0);
 
-				for (uint32_t tri = 0; tri < (uint32_t)indexBuffer.size() / 3; ++tri)
+				for (uint32_t tri = 0; tri < indexCount / 3; ++tri)
 				{
 					for (uint32_t idx = 0; idx < 3; ++idx)
 					{
@@ -1316,6 +1329,12 @@ void KGLTFLoader::TransformMeshVertices()
 
 bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result)
 {
+	if (!KFileTool::ParentFolder(pszFile, m_AssetFolder))
+	{
+		assert(false && "no asset folder");
+		return false;
+	}
+
 	tinygltf::Model gltfModel;
 	bool fileLoaded = LoadModel(pszFile, gltfModel);
 
