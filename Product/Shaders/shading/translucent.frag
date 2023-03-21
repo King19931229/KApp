@@ -58,6 +58,7 @@ void main()
 
 	vec2 motion = parameters.motion;
 	vec3 albedo = parameters.baseColor;
+	vec3 normal = parameters.normal;
 	vec3 emissive = parameters.emissive;
 	float metallic = parameters.metal;
 	float roughness = parameters.roughness;
@@ -132,6 +133,9 @@ void main()
 			break;
 		case DRD_ALBEDO:
 			outColor = vec4(albedo, 1.0);
+			break;
+		case DRD_NORMAL:
+			outColor = vec4(normal, 1.0);
 			break;
 		case DRD_METAL:
 			outColor = vec4(vec3(metallic), 1.0);

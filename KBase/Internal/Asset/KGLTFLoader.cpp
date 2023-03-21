@@ -628,8 +628,8 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					vert.color1 = bufferColorSet1 ? glm::make_vec4(&bufferColorSet1[v * color1ByteStride]) : glm::vec4(1.0f);
 
 #ifdef TINYGLTF_NO_STB_IMAGE
-					vert.uv0.y = 1.0f - vert.uv0.y;
-					vert.uv1.y = 1.0f - vert.uv1.y;
+					// vert.uv0.y = 1.0f - vert.uv0.y;
+					// vert.uv1.y = 1.0f - vert.uv1.y;
 #endif
 
 					glm::vec4 tangent = bufferTangents ? glm::make_vec4(&bufferTangents[v * tangentByteStride]) : glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);

@@ -75,6 +75,7 @@ enum DeferredRenderDebug
 	DRD_NONE,
 
 	DRD_ALBEDO,
+	DRD_NORMAL,
 	DRD_METAL,
 	DRD_ROUGHNESS,
 	DRD_AO,
@@ -117,6 +118,7 @@ constexpr DeferredRenderDebugDescription GDeferredRenderDebugDescription[DRD_COU
 	{ DRD_NONE, "None" },
 
 	{ DRD_ALBEDO, "Albedo" },
+	{ DRD_NORMAL, "Normal" },
 	{ DRD_METAL, "Metal" },
 	{ DRD_ROUGHNESS, "Roughness" },
 	{ DRD_AO, "AO" },

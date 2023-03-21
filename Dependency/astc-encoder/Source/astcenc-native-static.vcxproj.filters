@@ -1,75 +1,29 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="astcenc_averages_and_directions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_block_sizes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_color_quantize.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_color_unquantize.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_compress_symbolic.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_compute_variance.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_decompress_symbolic.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_diagnostic_trace.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_entry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_find_best_partitioning.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_ideal_endpoints_and_weights.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_image.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_integer_sequence.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_mathlib.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_mathlib_softfloat.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_partition_tables.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_percentile_tables.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_pick_best_endpoint_format.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_platform_isa_detection.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_quantization.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_symbolic_physical.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_weight_align.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="astcenc_weight_quant_xfer_tables.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_averages_and_directions.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_block_sizes.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_color_quantize.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_color_unquantize.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_compress_symbolic.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_compute_variance.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_decompress_symbolic.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_diagnostic_trace.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_entry.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_find_best_partitioning.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_ideal_endpoints_and_weights.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_image.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_integer_sequence.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_mathlib.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_mathlib_softfloat.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_partition_tables.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_percentile_tables.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_pick_best_endpoint_format.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_platform_isa_detection.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_quantization.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_symbolic_physical.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_weight_align.cpp" />
+    <ClCompile Include="D:\KApp\Dependency\astc-encoder\Source\astcenc_weight_quant_xfer_tables.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">

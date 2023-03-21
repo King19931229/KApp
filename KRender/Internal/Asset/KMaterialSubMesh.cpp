@@ -363,8 +363,8 @@ bool KMaterialSubMesh::CreateVoxelPipeline()
 			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE3, KRenderGlobal::ClipmapVoxilzer.GetVoxelAlbedo(), EF_R32_UINT);
 			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE4, KRenderGlobal::ClipmapVoxilzer.GetVoxelNormal(), EF_R32_UINT);
 			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE5, KRenderGlobal::ClipmapVoxilzer.GetVoxelEmissive(), EF_R32_UINT);
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::ClipmapVoxilzer.GetStaticFlag(), EF_UNKNOWN);
-			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE7, KRenderGlobal::ClipmapVoxilzer.GetVoxelVisibility(), EF_UNKNOWN);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE6, KRenderGlobal::ClipmapVoxilzer.GetVoxelVisibility(), EF_UNKNOWN);
+			pipeline->SetStorageImage(SHADER_BINDING_TEXTURE7, KRenderGlobal::ClipmapVoxilzer.GetStaticFlag(), EF_UNKNOWN);
 		}
 
 		ASSERT_RESULT(pipeline->Init());

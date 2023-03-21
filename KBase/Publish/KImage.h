@@ -278,6 +278,121 @@ namespace KImageHelper
 		}
 	}
 
+	static bool GetBlockDimension(ImageFormat format, size_t& blockWidth, size_t& blockHeight)
+	{
+		switch (format)
+		{
+			case IF_ETC1_RGB8:
+			case IF_ETC2_RGB8:
+			case IF_ETC2_RGB8A8:
+			case IF_ETC2_RGB8A1:
+			case IF_DXT1:
+			case IF_DXT2:
+			case IF_DXT3:
+			case IF_DXT4:
+			case IF_DXT5:
+			case IF_BC4_SNORM:
+			case IF_BC4_UNORM:
+			case IF_BC5_SNORM:
+			case IF_BC5_UNORM:
+			case IF_BC6H_SF16:
+			case IF_BC6H_UF16:
+			case IF_BC7_UNORM:
+			case IF_BC7_UNORM_SRGB:
+				blockWidth = 4;
+				blockHeight = 4;
+				return true;
+
+			case IF_ASTC_4x4_UNORM:
+			case IF_ASTC_4x4_SRGB:
+				blockWidth = 4;
+				blockHeight = 4;
+				return true;
+
+			case IF_ASTC_5x4_UNORM:
+			case IF_ASTC_5x4_SRGB:
+				blockWidth = 5;
+				blockHeight = 4;
+				return true;
+
+			case IF_ASTC_5x5_UNORM:
+			case IF_ASTC_5x5_SRGB:
+				blockWidth = 5;
+				blockHeight = 5;
+				return true;
+
+			case IF_ASTC_6x5_UNORM:
+			case IF_ASTC_6x5_SRGB:
+				blockWidth = 6;
+				blockHeight = 5;
+				return true;
+
+			case IF_ASTC_6x6_UNORM:
+			case IF_ASTC_6x6_SRGB:
+				blockWidth = 6;
+				blockHeight = 6;
+				return true;
+
+			case IF_ASTC_8x5_UNORM:
+			case IF_ASTC_8x5_SRGB:
+				blockWidth = 8;
+				blockHeight = 5;
+				return true;
+
+			case IF_ASTC_8x6_UNORM:
+			case IF_ASTC_8x6_SRGB:
+				blockWidth = 8;
+				blockHeight = 6;
+				return true;
+
+			case IF_ASTC_8x8_UNORM:
+			case IF_ASTC_8x8_SRGB:
+				blockWidth = 8;
+				blockHeight = 8;
+				return true;
+
+			case IF_ASTC_10x5_UNORM:
+			case IF_ASTC_10x5_SRGB:
+				blockWidth = 10;
+				blockHeight = 5;
+				return true;
+
+			case IF_ASTC_10x6_UNORM:
+			case IF_ASTC_10x6_SRGB:
+				blockWidth = 10;
+				blockHeight = 6;
+				return true;
+
+			case IF_ASTC_10x8_UNORM:
+			case IF_ASTC_10x8_SRGB:
+				blockWidth = 10;
+				blockHeight = 8;
+				return true;
+
+			case IF_ASTC_10x10_UNORM:
+			case IF_ASTC_10x10_SRGB:
+				blockWidth = 10;
+				blockHeight = 10;
+				return true;
+
+			case IF_ASTC_12x10_UNORM:
+			case IF_ASTC_12x10_SRGB:
+				blockWidth = 12;
+				blockHeight = 10;
+				return true;
+
+			case IF_ASTC_12x12_UNORM:
+			case IF_ASTC_12x12_SRGB:
+				blockWidth = 12;
+				blockHeight = 12;
+				return true;
+		}
+
+		blockWidth = 1;
+		blockHeight = 1;
+		return false;
+	}
+
 	static bool GetByteSize(ImageFormat format,
 		size_t width, size_t height, size_t depth,
 		size_t& size)
@@ -295,116 +410,8 @@ namespace KImageHelper
 				GetBlockByteSize(format, blockSize);
 				assert(blockSize > 0);
 
-				switch (format)
-				{
-					case IF_ETC1_RGB8:
-					case IF_ETC2_RGB8:
-					case IF_ETC2_RGB8A8:
-					case IF_ETC2_RGB8A1:
-					case IF_DXT1:
-					case IF_DXT2:
-					case IF_DXT3:
-					case IF_DXT4:
-					case IF_DXT5:
-					case IF_BC4_SNORM:
-					case IF_BC4_UNORM:
-					case IF_BC5_SNORM:
-					case IF_BC5_UNORM:
-					case IF_BC6H_SF16:
-					case IF_BC6H_UF16:
-					case IF_BC7_UNORM:
-					case IF_BC7_UNORM_SRGB:
-						blockWidth = 4;
-						blockHeight = 4;
-						break;
-
-					case IF_ASTC_4x4_UNORM:
-					case IF_ASTC_4x4_SRGB:
-						blockWidth = 4;
-						blockHeight = 4;
-						break;
-
-					case IF_ASTC_5x4_UNORM:
-					case IF_ASTC_5x4_SRGB:
-						blockWidth = 5;
-						blockHeight = 4;
-						break;
-
-					case IF_ASTC_5x5_UNORM:
-					case IF_ASTC_5x5_SRGB:
-						blockWidth = 5;
-						blockHeight = 5;
-						break;
-
-					case IF_ASTC_6x5_UNORM:
-					case IF_ASTC_6x5_SRGB:
-						blockWidth = 6;
-						blockHeight = 5;
-						break;
-
-					case IF_ASTC_6x6_UNORM:
-					case IF_ASTC_6x6_SRGB:
-						blockWidth = 6;
-						blockHeight = 6;
-						break;
-
-					case IF_ASTC_8x5_UNORM:
-					case IF_ASTC_8x5_SRGB:
-						blockWidth = 8;
-						blockHeight = 5;
-						break;
-
-					case IF_ASTC_8x6_UNORM:
-					case IF_ASTC_8x6_SRGB:
-						blockWidth = 8;
-						blockHeight = 6;
-						break;
-
-					case IF_ASTC_8x8_UNORM:
-					case IF_ASTC_8x8_SRGB:
-						blockWidth = 8;
-						blockHeight = 8;
-						break;
-
-					case IF_ASTC_10x5_UNORM:
-					case IF_ASTC_10x5_SRGB:
-						blockWidth = 10;
-						blockHeight = 5;
-						break;
-
-					case IF_ASTC_10x6_UNORM:
-					case IF_ASTC_10x6_SRGB:
-						blockWidth = 10;
-						blockHeight = 6;
-						break;
-
-					case IF_ASTC_10x8_UNORM:
-					case IF_ASTC_10x8_SRGB:
-						blockWidth = 10;
-						blockHeight = 8;
-						break;
-
-					case IF_ASTC_10x10_UNORM:
-					case IF_ASTC_10x10_SRGB:
-						blockWidth = 10;
-						blockHeight = 10;
-						break;
-
-					case IF_ASTC_12x10_UNORM:
-					case IF_ASTC_12x10_SRGB:
-						blockWidth = 12;
-						blockHeight = 10;
-						break;
-
-					case IF_ASTC_12x12_UNORM:
-					case IF_ASTC_12x12_SRGB:
-						blockWidth = 12;
-						blockHeight = 12;
-						break;
-
-					default:
-						assert(false && "should not reach");
-				}
+				GetBlockDimension(format, blockWidth, blockHeight);
+				assert(blockWidth > 1 && blockHeight > 1);
 
 				size = (size_t)(ceilf((float)width / blockWidth) * ceilf((float)height / blockHeight) * (float)blockSize) * depth;
 				return true;

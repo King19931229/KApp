@@ -2,7 +2,7 @@
 #include "Interface/IKFileSystem.h"
 #include "Interface/IKLog.h"
 
-// Algorithm Copy From OGRE
+#include "astcenccli_internal.h"
 
 #define KTX_EXT "ktx"
 #define PKM_EXT "pkm"
@@ -158,7 +158,7 @@ bool KETCCodec::DecodePKM(const IKDataStreamPtr& stream, KCodecResult& result)
 	// Read the ETC header
 	stream->Read((char*)&header, sizeof(PKMHeader));
 
-	if (PKM_MAGIC != FOURCC(header.name[0], header.name[1], header.name[2], header.name[3]) ) // "PKM 10"
+	if (PKM_MAGIC != FOURCC(header.name[0], header.name[1], header.name[2], header.name[3])) // "PKM 10"
 	{
 		return false;
 	}
@@ -174,33 +174,33 @@ bool KETCCodec::DecodePKM(const IKDataStreamPtr& stream, KCodecResult& result)
 	result.uHeight = height;
 
 	// File version 2.0 supports ETC2 in addition to ETC1
-	if(header.version[0] == '2' && header.version[1] == '0')
+	if (header.version[0] == '2' && header.version[1] == '0')
 	{
 		switch (type)
 		{
-		case 0:
-			result.eFormat = IF_ETC1_RGB8;
-			break;
+			case 0:
+				result.eFormat = IF_ETC1_RGB8;
+				break;
 
-			// GL_COMPRESSED_RGB8_ETC2
-		case 1:
-			result.eFormat = IF_ETC2_RGB8;
-			break;
+				// GL_COMPRESSED_RGB8_ETC2
+			case 1:
+				result.eFormat = IF_ETC2_RGB8;
+				break;
 
-			// GL_COMPRESSED_RGBA8_ETC2_EAC
-		case 3:
-			result.eFormat = IF_ETC2_RGB8A8;
-			break;
+				// GL_COMPRESSED_RGBA8_ETC2_EAC
+			case 3:
+				result.eFormat = IF_ETC2_RGB8A8;
+				break;
 
-			// GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2
-		case 4:
-			result.eFormat = IF_ETC2_RGB8A1;
-			break;
+				// GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2
+			case 4:
+				result.eFormat = IF_ETC2_RGB8A1;
+				break;
 
-			// Default case is ETC1
-		default:
-			result.eFormat = IF_ETC1_RGB8;
-			break;
+				// Default case is ETC1
+			default:
+				result.eFormat = IF_ETC1_RGB8;
+				break;
 		}
 	}
 	else
@@ -233,16 +233,29 @@ bool KETCCodec::DecodePKM(const IKDataStreamPtr& stream, KCodecResult& result)
 	return true;
 }
 
+static uint32_t GCD(uint32_t a, uint32_t b)
+{
+	if (a == 0) return b;
+	return GCD(b % a, a);
+}
+
+uint32_t LCM4(uint32_t a)
+{
+	// a is a multiple of 4.
+	if (!(a & 0x03)) return a;
+	return (a * 4) / GCD(a, 4);
+}
+
 static void FlipEndian(void* data, size_t size)
 {
 	assert(size > 0);
-	for(size_t idx = 0; idx < (size >> 1); ++idx)
+	for (size_t idx = 0; idx < (size >> 1); ++idx)
 	{
 		((char*)data)[idx] = ((char*)data)[size - 1 - idx];
 	}
 }
 
-bool EnsureDecodeData(KCodecResult& result)
+static bool EnsureDecodeData(KCodecResult& result)
 {
 	if (result.bCompressed)
 	{
@@ -250,16 +263,139 @@ bool EnsureDecodeData(KCodecResult& result)
 		{
 			return true;
 		}
-
-		if (KCodec::ETC1Format(result.eFormat) || KCodec::ETC2Format(result.eFormat) || KCodec::BCFormat(result.eFormat))
+		else
 		{
-			// TODO
-			return false;
-		}
+			if (KCodec::ETC1Format(result.eFormat) || KCodec::ETC2Format(result.eFormat) || KCodec::BCFormat(result.eFormat))
+			{
+				// TODO
+				return false;
+			}
 
-		if (KCodec::ASTCFormat(result.eFormat))
-		{
-			// TODO
+			if (KCodec::ASTCFormat(result.eFormat))
+			{
+				size_t imageSize = 0;
+
+				const ImageFormat newFormat = IF_R8G8B8A8;
+
+				if (!KImageHelper::GetByteSize(newFormat,
+					result.uMipmap, result.bCubemap ? 6 : 1,
+					result.uWidth, result.uHeight, result.uDepth,
+					imageSize))
+				{
+					KG_LOGE(LM_RENDER, "ASTC get byte size failure!");
+					return false;
+				}
+
+				KImageDataPtr oldImage = result.pData;
+				const KSubImageInfoList& oldSubImages = oldImage->GetSubImageInfo();
+
+				KImageDataPtr newImage = KImageDataPtr(KNEW KImageData(imageSize));
+				KSubImageInfoList& newSubImages = newImage->GetSubImageInfo();
+
+				size_t offset = 0;
+				size_t numFaces = result.bCubemap ? 6 : 1;
+
+				for (size_t level = 0; level < result.uMipmap; ++level)
+				{
+					size_t width = oldSubImages[level * numFaces].uWidth;
+					size_t height = oldSubImages[level * numFaces].uHeight;
+					size_t depth = 1;
+
+					size_t subImageSize = 0;
+					KImageHelper::GetByteSize(
+						newFormat,
+						1, 1,
+						width, height, depth,
+						subImageSize);
+
+					for (size_t face = 0; face < numFaces; ++face)
+					{
+						KSubImageInfo subImageInfo;
+						subImageInfo.uFaceIndex = face;
+						subImageInfo.uMipmapIndex = level;
+						subImageInfo.uOffset = offset;
+						subImageInfo.uSize = subImageSize;
+						subImageInfo.uWidth = width;
+						subImageInfo.uHeight = height;
+
+						newSubImages.push_back(subImageInfo);
+						offset += subImageSize;
+					}
+				}
+
+				assert(offset == imageSize);
+
+				size_t blockWidth = 1;
+				size_t blockHeight = 1;
+				size_t blockDepth = 1;
+				if (!KImageHelper::GetBlockDimension(result.eFormat, blockWidth, blockHeight))
+				{
+					KG_LOGE(LM_RENDER, "Unable to get block dimension");
+					return false;
+				}
+
+				static const astcenc_profile profile = ASTCENC_PRF_LDR;
+				static const float quality = ASTCENC_PRE_MEDIUM;
+				static const astcenc_swizzle swizzle{ ASTCENC_SWZ_R, ASTCENC_SWZ_G, ASTCENC_SWZ_B, ASTCENC_SWZ_A };
+
+				astcenc_config config;
+				config.block_x = (int)blockWidth;
+				config.block_y = (int)blockHeight;
+				config.block_z = (int)blockDepth;
+				config.profile = profile;
+
+				astcenc_error status = ASTCENC_SUCCESS;
+
+				status = astcenc_config_init(profile, config.block_x, config.block_y, config.block_z, quality, 0, &config);
+				if (status != ASTCENC_SUCCESS)
+				{
+					KG_LOGE(LM_RENDER, "ASTCENC config init failed : %s", astcenc_get_error_string(status));
+					return false;
+				}
+
+				astcenc_context* context = nullptr;
+				status = astcenc_context_alloc(&config, 1, &context);
+				if (status != ASTCENC_SUCCESS)
+				{
+					KG_LOGE(LM_RENDER, "ASTCENC context alloc failed: %s", astcenc_get_error_string(status));
+					return false;
+				}
+
+				for (size_t level = 0; level < result.uMipmap; ++level)
+				{
+					astcenc_image image;
+					image.dim_x = (unsigned int)oldSubImages[level].uWidth;
+					image.dim_y = (unsigned int)oldSubImages[level].uHeight;
+					image.dim_z = (unsigned int)1;
+					image.data_type = ASTCENC_TYPE_U8;
+
+					for (size_t face = 0; face < numFaces; ++face)
+					{
+						size_t subImageIndex = level * numFaces + face;
+
+						uint8_t* slices = (uint8_t*)POINTER_OFFSET(newImage->GetData(), newSubImages[subImageIndex].uOffset);
+						image.data = reinterpret_cast<void**>(&slices);
+
+						uint8_t* comp_data = (uint8_t*)POINTER_OFFSET(oldImage->GetData(), oldSubImages[subImageIndex].uOffset);
+						size_t comp_len = oldSubImages[subImageIndex].uSize;
+
+						status = astcenc_decompress_image(context, comp_data, comp_len, &image, &swizzle, 0);
+						if (status != ASTCENC_SUCCESS)
+						{
+							KG_LOGE(LM_RENDER, "ASTCENC decompress failed: %s\n", astcenc_get_error_string(status));
+							return false;
+						}
+					}
+				}
+
+				result.eFormat = newFormat;
+				result.pData = newImage;
+
+				astcenc_context_free(context);
+
+				return true;
+			}
+
 			return false;
 		}
 	}
@@ -498,12 +634,8 @@ static bool DecodeKTX2(const IKDataStreamPtr& stream, KTXHeader2& header, KCodec
 	}
 
 	uint64_t totalSize = 0;
-
-	uint64_t firstLevelOffset = levels[header.levelCount - 1].byteOffset;
-	// Rebase index to start of data and save file offset.
 	for (uint32_t idx = 0; idx < header.levelCount; ++idx)
 	{
-		levels[idx].byteOffset -= firstLevelOffset;
 		totalSize += levels[idx].byteLength;
 	}
 
@@ -519,6 +651,12 @@ static bool DecodeKTX2(const IKDataStreamPtr& stream, KTXHeader2& header, KCodec
 	KTXBasicDataFormatDescriptorBlock bdb;
 	stream->Read(&bdb, sizeof(KTXBasicDataFormatDescriptorBlock));
 
+	// 不支持ZBlockSize不为1
+	if (bdb.texelBlockDimension[2] > 1)
+	{
+		return false;
+	}
+
 	assert(dfdTotalSize - 4 == bdb.descriptorBlockSize);
 
 	uint32_t numSamples = (bdb.descriptorBlockSize - 24) / 16;
@@ -529,6 +667,7 @@ static bool DecodeKTX2(const IKDataStreamPtr& stream, KTXHeader2& header, KCodec
 	stream->Read(bdbSamples.data(), numSamples * sizeof(KTXBasicDataFormatDescriptorSampleInformation));
 
 	// Skip key value data
+	assert(stream->Tell() == header.keyValueData.byteOffset);
 	stream->Skip(header.keyValueData.byteLength);
 
 	if (header.supercompressionGlobalData.byteLength > 0)
@@ -721,7 +860,7 @@ static bool DecodeKTX2(const IKDataStreamPtr& stream, KTXHeader2& header, KCodec
 	}
 
 	KImageHelper::GetIsCompress(result.eFormat, result.bCompressed);
-	
+
 	uint32_t numLayers = header.layerCount;
 	uint32_t numFaces = header.faceCount;
 	uint32_t mipOffset = 0;
@@ -748,11 +887,15 @@ static bool DecodeKTX2(const IKDataStreamPtr& stream, KTXHeader2& header, KCodec
 	size_t height = result.uHeight;
 	size_t depth = result.uDepth;
 
-	size_t pos = stream->Tell();
+	uint32_t blockSize = 1;
+	for (size_t i = 0; i < 4; ++i)
+	{
+		blockSize *= (bdb.texelBlockDimension[i] > 0)? bdb.texelBlockDimension[i] : 1;		
+	}
 
 	for (uint32_t level = 0; level < header.levelCount; ++level)
 	{
-		stream->Seek((long)(pos + levels[level].byteOffset));
+		stream->Seek((long)levels[level].byteOffset);
 
 		uint32_t subImageSize = (uint32_t)levels[level].byteLength;
 		assert(subImageSize <= imageSize && "impossible to get a subimage bigger than the whole");
@@ -782,11 +925,26 @@ static bool DecodeKTX2(const IKDataStreamPtr& stream, KTXHeader2& header, KCodec
 		if (width > 1) width >>= 1;
 		if (height > 1) height >>= 1;
 		if (depth > 1) depth >>= 1;
-
-		stream->Seek((long)pos);
 	}
 
-	assert(mipOffset * numFaces == imageSize && "all subimage size must equal to the whole");
+	assert(mipOffset* numFaces == imageSize && "all subimage size must equal to the whole");
+
+	stream->Seek((long)levels[header.levelCount - 1].byteOffset);
+
+	uint32_t mipPadding = LCM4(blockSize);
+	for (uint32_t level = 0; level < header.levelCount; ++level)
+	{
+		uint32_t paddingSize = (uint32_t)(mipPadding * ceilf((float)(levels[level].byteLength) / mipPadding));
+		stream->Skip(paddingSize);
+	}
+
+	bool isEOF = stream->IsEOF();
+	// 这里一定是要刚刚读完数据的
+	if (!isEOF)
+	{
+		assert(false);
+		return false;
+	}
 	return true;
 }
 
@@ -881,7 +1039,7 @@ bool KETCCodec::Save(const KCodecResult& source, const char* pszFile)
 bool KETCCodec::Init()
 {
 	IKCodecPtr pCodec = IKCodecPtr(KNEW KETCCodec());
-	if(KCodecManager::AddCodec(KTX_EXT, pCodec) && KCodecManager::AddCodec(PKM_EXT, pCodec))
+	if (KCodecManager::AddCodec(KTX_EXT, pCodec) && KCodecManager::AddCodec(PKM_EXT, pCodec))
 	{
 		return true;
 	}
@@ -890,7 +1048,7 @@ bool KETCCodec::Init()
 
 bool KETCCodec::UnInit()
 {
-	if(KCodecManager::RemoveCodec(KTX_EXT) && KCodecManager::RemoveCodec(PKM_EXT))
+	if (KCodecManager::RemoveCodec(KTX_EXT) && KCodecManager::RemoveCodec(PKM_EXT))
 	{
 		return true;
 	}

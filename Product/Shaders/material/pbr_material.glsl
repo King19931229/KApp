@@ -24,7 +24,7 @@ layout(binding = BINDING_TEXTURE3) uniform sampler2D emissiveSampler;
 layout(binding = BINDING_TEXTURE4) uniform sampler2D aoSampler;
 #endif
 
-#define MANUAL_SRGB 1
+#define MANUAL_SRGB 0
 #define SRGB_FAST_APPROXIMATION 1
 
 const float MIN_ROUGHNESS = 0.03;
@@ -105,7 +105,10 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	parameters.position = worldPos;
 
 #if (TANGENT_BINORMAL_INPUT && HAS_MATERIAL_TEXTURE1)
-	vec4 normalmap = 2.0 * texture(normalSampler, texCoord) - vec4(1.0);
+	// vec3 normalmap = 2.0 * texture(normalSampler, texCoord).rgb - vec3(1.0);
+	vec3 normalmap;
+	normalmap.rg = 2.0 * texture(normalSampler, texCoord).ra - vec2(1.0);
+	normalmap.b = sqrt(1.0 - dot(normalmap.rg, normalmap.rg));
 	parameters.normal = normalize(worldTangent * normalmap.r
 					  + worldBinormal * normalmap.g
 					  + worldNormal * normalmap.b);

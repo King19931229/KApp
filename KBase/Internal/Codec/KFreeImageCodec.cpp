@@ -2,6 +2,7 @@
 #include "FreeImage.h"
 #include "Publish/KStringUtil.h"
 #include "Publish/KFileTool.h"
+#include "Interface/IKLog.h"
 
 // KFreeImageCodec
 KFreeImageCodec::SupportExt KFreeImageCodec::ms_SupportExts;
@@ -35,6 +36,12 @@ bool KFreeImageCodec::CodecImpl(IKDataStreamPtr stream, bool forceAlpha, KCodecR
 		{
 			fiMem = FreeImage_OpenMemory((BYTE*)(buffer.data()), static_cast<DWORD>(stream->GetSize()));
 			fiBitmap = FreeImage_LoadFromMemory((FREE_IMAGE_FORMAT)m_nType, fiMem);
+
+			if (!FreeImage_FlipVertical(fiBitmap))
+			{
+				KG_LOGE(LM_RENDER, "FreeImage can't flip the image");
+				return false;
+			}
 
 			unsigned bpp = FreeImage_GetBPP(fiBitmap);
 			FREE_IMAGE_TYPE imageType = FreeImage_GetImageType(fiBitmap);
@@ -225,10 +232,16 @@ bool KFreeImageCodec::Save(const KCodecResult& source, const char* pszFile)
 		int height = (int)source.uHeight;
 		int pitch = width * (int)byteSize;
 
-		FIBITMAP* dib = FreeImage_ConvertFromRawBits(bits, width, height, pitch, bpp, 0, 0, 0);
+		FIBITMAP* foBitmap = FreeImage_ConvertFromRawBits(bits, width, height, pitch, bpp, 0, 0, 0);
 		FIMEMORY* foMem = FreeImage_OpenMemory();
 
-		if (FreeImage_SaveToMemory(fif, dib, foMem))
+		if (!FreeImage_FlipVertical(foBitmap))
+		{
+			KG_LOGE(LM_RENDER, "FreeImage can't flip the image");
+			return false;
+		}
+
+		if (FreeImage_SaveToMemory(fif, foBitmap, foMem))
 		{
 			BYTE* writeData = NULL;
 			DWORD writeSize = 0;
@@ -240,7 +253,7 @@ bool KFreeImageCodec::Save(const KCodecResult& source, const char* pszFile)
 			bSuccess = true;
 		}
 
-		FreeImage_Unload(dib);
+		FreeImage_Unload(foBitmap);
 		FreeImage_CloseMemory(foMem);
 	}
 	return bSuccess;

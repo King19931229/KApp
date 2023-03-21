@@ -151,6 +151,9 @@ void main()
 		case DRD_ALBEDO:
 			outColor = vec4(albedo, 1.0);
 			break;
+		case DRD_NORMAL:
+			outColor = vec4(worldNormal, 1.0);
+			break;
 		case DRD_METAL:
 			outColor = vec4(metallic);
 			break;
