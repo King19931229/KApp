@@ -268,19 +268,19 @@ bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStr
 
 IKQueryPtr KRenderComponent::GetOCQuery()
 {
-	return KRenderGlobal::CurrentFrameIndex < m_OCQueries.size() ? m_OCQueries[KRenderGlobal::CurrentFrameIndex] : nullptr;
+	return KRenderGlobal::CurrentInFlightFrameIndex < m_OCQueries.size() ? m_OCQueries[KRenderGlobal::CurrentInFlightFrameIndex] : nullptr;
 }
 
 IKQueryPtr KRenderComponent::GetOCInstacneQuery()
 {
-	return KRenderGlobal::CurrentFrameIndex < m_OCInstanceQueries.size() ? m_OCInstanceQueries[KRenderGlobal::CurrentFrameIndex] : nullptr;
+	return KRenderGlobal::CurrentInFlightFrameIndex < m_OCInstanceQueries.size() ? m_OCInstanceQueries[KRenderGlobal::CurrentInFlightFrameIndex] : nullptr;
 }
 
 bool KRenderComponent::SetOCInstanceQuery(IKQueryPtr query)
 {
-	if (KRenderGlobal::CurrentFrameIndex < m_OCInstanceQueries.size())
+	if (KRenderGlobal::CurrentInFlightFrameIndex < m_OCInstanceQueries.size())
 	{
-		m_OCInstanceQueries[KRenderGlobal::CurrentFrameIndex] = query;
+		m_OCInstanceQueries[KRenderGlobal::CurrentInFlightFrameIndex] = query;
 		return true;
 	}
 	return false;

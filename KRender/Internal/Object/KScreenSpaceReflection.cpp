@@ -232,7 +232,7 @@ bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio, 
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_compose.frag", m_ComposeFS, false);
 
 	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer);
 	m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY);

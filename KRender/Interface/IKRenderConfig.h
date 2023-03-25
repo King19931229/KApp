@@ -429,11 +429,11 @@ enum PipelineStage
 };
 typedef unsigned int PipelineStages;
 
-// TODO 改成QueueIndex
-enum QueueFamilyIndex
+enum QueueCategory
 {
-	QUEUE_FAMILY_INDEX_GRAPHICS,
-	QUEUE_FAMILY_INDEX_COMPUTE
+	QUEUE_GRAPHICS,
+	QUEUE_COMPUTE,
+	QUEUE_TRANSFER
 };
 
 enum CommandBufferLevel

@@ -46,7 +46,7 @@ bool KInstanceBufferManager::UnInit()
 bool KInstanceBufferManager::Alloc(size_t count, const void* data, std::vector<AllocResultBlock>& results)
 {
 	results.clear();
-	if (InternalAlloc(count, KRenderGlobal::CurrentFrameIndex, KRenderGlobal::CurrentFrameNum, results))
+	if (InternalAlloc(count, KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, results))
 	{
 		std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
 		ASSERT_RESULT(data);

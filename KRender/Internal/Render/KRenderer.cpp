@@ -206,7 +206,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	m_Pass->Init();
 
 	device->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 	device->CreateCommandBuffer(m_PrimaryBuffer);
 	m_PrimaryBuffer->Init(m_CommandPool, CBL_PRIMARY);
 	device->CreateCommandBuffer(m_SecondaryBuffer);

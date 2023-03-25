@@ -10,7 +10,7 @@ public:
 	KVulkanCommandPool();
 	~KVulkanCommandPool();
 
-	virtual bool Init(QueueFamilyIndex familyIndex);
+	virtual bool Init(QueueCategory queue, uint32_t index);
 	virtual bool UnInit();
 	virtual bool Reset();
 

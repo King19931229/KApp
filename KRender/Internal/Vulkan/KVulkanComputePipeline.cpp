@@ -633,7 +633,7 @@ void KVulkanComputePipeline::PostDispatch(IKCommandBufferPtr primaryBuffer)
 
 bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage)
 {
-	uint32_t frameIndex = KRenderGlobal::CurrentFrameIndex;
+	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	if (primaryBuffer && frameIndex < m_Descriptors.size())
 	{
 		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameNum);
@@ -654,7 +654,7 @@ bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t 
 
 bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage)
 {
-	uint32_t frameIndex = KRenderGlobal::CurrentFrameIndex;
+	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	if (primaryBuffer && frameIndex < m_Descriptors.size())
 	{
 		VkDescriptorSet dstSet = Alloc(frameIndex, KRenderGlobal::CurrentFrameNum);

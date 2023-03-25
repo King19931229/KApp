@@ -146,7 +146,7 @@ bool KVolumetricFog::Init(uint32_t gridX, uint32_t gridY, uint32_t gridZ, float 
 	KRenderGlobal::SamplerManager.Acquire(desc, m_VoxelSampler);
 
 	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer);
 	m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY);

@@ -476,8 +476,8 @@ bool KVulkanUniformBuffer::SetDebugName(const char* pName)
 
 KVulkanBuffer& KVulkanUniformBuffer::GetVulkanBuffer()
 {
-	ASSERT_RESULT(KRenderGlobal::CurrentFrameIndex < m_Buffers.size());
-	return m_Buffers[KRenderGlobal::CurrentFrameIndex];
+	ASSERT_RESULT(KRenderGlobal::CurrentInFlightFrameIndex < m_Buffers.size());
+	return m_Buffers[KRenderGlobal::CurrentInFlightFrameIndex];
 }
 
 bool KVulkanUniformBuffer::Map(void** ppData)

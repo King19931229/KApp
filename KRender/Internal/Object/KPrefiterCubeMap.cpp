@@ -298,7 +298,7 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 	m_SHConstructPipeline->Init("pbr/sh_construct.comp");
 
 	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 	renderDevice->CreateCommandBuffer(m_CommandBuffer);
 	m_CommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
 

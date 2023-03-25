@@ -30,7 +30,7 @@ void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t hei
 	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
 	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	for (uint32_t i = 0; i < DRS_STAGE_COUNT; ++i)
 	{

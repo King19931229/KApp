@@ -472,7 +472,7 @@ bool KCameraCube::Init(IKRenderDevice* renderDevice, KCamera* camera)
 	m_Camera = camera;
 
 	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	renderDevice->CreateShader(m_VertexShader);
 	renderDevice->CreateShader(m_FragmentShader);

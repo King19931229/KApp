@@ -389,7 +389,7 @@ void KVulkanRayTracePipeline::CreateCommandBuffers()
 	uint32_t frames = KRenderGlobal::NumFramesInFlight;
 
 	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	ASSERT_RESULT(renderDevice->CreateCommandBuffer(m_CommandBuffer));
 	ASSERT_RESULT(m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY));
@@ -627,7 +627,7 @@ void KVulkanRayTracePipeline::UpdateCameraDescriptor()
 {
 	KVulkanUniformBuffer* vulkanUniformBuffer = static_cast<KVulkanUniformBuffer*>(m_CameraBuffer.get());
 	VkDescriptorBufferInfo uniformBufferInfo = KVulkanInitializer::CreateDescriptorBufferIntfo(vulkanUniformBuffer->GetVulkanHandle(), 0, vulkanUniformBuffer->GetBufferSize());
-	VkWriteDescriptorSet uniformWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&uniformBufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_Descriptor.sets[KRenderGlobal::CurrentFrameIndex], RAYTRACE_BINDING_CAMERA);
+	VkWriteDescriptorSet uniformWrite = KVulkanInitializer::CreateDescriptorBufferWrite(&uniformBufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_Descriptor.sets[KRenderGlobal::CurrentInFlightFrameIndex], RAYTRACE_BINDING_CAMERA);
 
 	VkWriteDescriptorSet writeDescriptorSets[] =
 	{
@@ -640,7 +640,7 @@ void KVulkanRayTracePipeline::UpdateCameraDescriptor()
 
 bool KVulkanRayTracePipeline::Execute(IKCommandBufferPtr primaryBuffer)
 {
-	uint32_t frameIndex = KRenderGlobal::CurrentFrameIndex;
+	uint32_t frameIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	if (KVulkanGlobal::supportRaytrace)
 	{
 		if (primaryBuffer && frameIndex < m_Descriptor.sets.size())

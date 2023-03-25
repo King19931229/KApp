@@ -137,7 +137,7 @@ bool KRTDebugDrawer::Init(IKRenderTargetPtr target, float x, float y, float widt
 	ASSERT_RESULT(m_Pipeline->Init());
 
 	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_SecondaryBuffer);
 	m_SecondaryBuffer->Init(m_CommandPool, CBL_SECONDARY);
 

@@ -241,57 +241,26 @@ bool KVulkanRenderDevice::CheckValidationLayerAvailable(int32_t& candidateIdx)
 	return false;
 }
 
-KVulkanRenderDevice::QueueFamilyIndices KVulkanRenderDevice::FindQueueFamilies(VkPhysicalDevice vkDevice)
+bool KVulkanRenderDevice::FindQueue(PhysicalDevice& device, VkQueueFlags bits, const std::vector<uint32_t>& forbidQueueFamilies, uint32_t& queueFamily)
 {
-	QueueFamilyIndices familyIndices = {};
-
-	uint32_t queueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, nullptr);
-
-	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, queueFamilies.data());
-
-	familyIndices.graphicsFamily.first = -1;
-	familyIndices.graphicsFamily.second = false;
-
-	familyIndices.computeFamily.first = -1;
-	familyIndices.computeFamily.second = false;
-
-	familyIndices.presentFamily.first = -1;
-	familyIndices.presentFamily.second = false;
-
-	uint32_t idx = -1;
-	for (const auto& queueFamily : queueFamilies)
+	for (uint32_t idx = 0; idx < (uint32_t)device.queueFamilyProperties.size(); ++idx)
 	{
-		++idx;
-		// 检查设备索引
-		if (queueFamily.queueCount > 0)
+		VkQueueFamilyProperties vkFamilyProperties = device.queueFamilyProperties[idx];
+		if (vkFamilyProperties.queueFlags & bits && vkFamilyProperties.queueCount > 0)
 		{
-			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			if (std::find(forbidQueueFamilies.begin(), forbidQueueFamilies.end(), idx) == forbidQueueFamilies.end())
 			{
-				familyIndices.graphicsFamily.first = idx;
-				familyIndices.graphicsFamily.second = true;
-
-				familyIndices.presentFamily.first = idx;
-				familyIndices.presentFamily.second = true;
-			}
-			if (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)
-			{
-				familyIndices.computeFamily.first = idx;
-				familyIndices.computeFamily.second = true;
+				queueFamily = idx;
+				return true;
 			}
 		}
-
-		if(familyIndices.IsComplete())
-			break;
 	}
-
-	return familyIndices;
+	return false;
 }
 
 bool KVulkanRenderDevice::CheckDeviceSuitable(PhysicalDevice& device)
 {
-	if(!device.queueFamilyIndices.IsComplete())
+	if(!device.queueComplete)
 		return false;
 
 	if(!CheckExtentionsSupported(device))
@@ -311,11 +280,48 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, nullptr);
+	
+	device.queueFamilyProperties.resize(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, device.queueFamilyProperties.data());
 
-	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, queueFamilies.data());
+	std::vector<uint32_t> currentQueueFamilies;
 
-	device.queueFamilyIndices = FindQueueFamilies(vkDevice);
+	uint32_t queueFamily = 0;
+
+	if (FindQueue(device, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT, currentQueueFamilies, queueFamily))
+	{
+		device.graphicsFamilyIndices.push_back(queueFamily);
+		currentQueueFamilies.push_back(queueFamily);
+	}
+
+	for (uint32_t i = 0; i < KRenderGlobal::MinComputeQueueNum; ++i)
+	{
+		if (FindQueue(device, VK_QUEUE_COMPUTE_BIT, currentQueueFamilies, queueFamily))
+		{
+			device.computeFamilyIndices.push_back(queueFamily);
+			currentQueueFamilies.push_back(queueFamily);
+		}
+	}
+
+	for (uint32_t i = 0; i < KRenderGlobal::MinTransferQueueNum; ++i)
+	{
+		if (FindQueue(device, VK_QUEUE_TRANSFER_BIT, currentQueueFamilies, queueFamily))
+		{
+			device.transferFamilyIndices.push_back(queueFamily);
+			currentQueueFamilies.push_back(queueFamily);
+		}
+	}
+
+	for (uint32_t i = 0; i < KRenderGlobal::MinExtraGraphicsQueueNum; ++i)
+	{
+		if (FindQueue(device, VK_QUEUE_GRAPHICS_BIT, currentQueueFamilies, queueFamily))
+		{
+			device.graphicsFamilyIndices.push_back(queueFamily);
+			currentQueueFamilies.push_back(queueFamily);
+		}
+	}
+
+	device.queueComplete = device.graphicsFamilyIndices.size() > 0;
 
 	// Get list of supported extensions
 	uint32_t extCount = 0;
@@ -472,24 +478,22 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 
 bool KVulkanRenderDevice::CreateLogicalDevice()
 {
-	const QueueFamilyIndices& indices = m_PhysicalDevice.queueFamilyIndices;
-	// TODO 用所有索引去创建队列 一定能够保证交换链获得需要的队列
-	if(indices.IsComplete())
+	if (m_PhysicalDevice.queueComplete)
 	{
-		std::set<QueueFamilyIndices::QueueFamilyIndex> uniqueIndices;
-		uniqueIndices.insert(indices.graphicsFamily);
-		uniqueIndices.insert(indices.presentFamily);
+		std::set<uint32_t> uniqueIndices;
+		
+		for (uint32_t index : m_PhysicalDevice.graphicsFamilyIndices) { uniqueIndices.insert(index); }
+		for (uint32_t index : m_PhysicalDevice.computeFamilyIndices) { uniqueIndices.insert(index); }
+		for (uint32_t index : m_PhysicalDevice.transferFamilyIndices) { uniqueIndices.insert(index); }
 
 		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos;
 
-		for(auto& index : uniqueIndices)
+		for(uint32_t index : uniqueIndices)
 		{
-			assert(index.second);
-
 			// 填充VkDeviceQueueCreateInfo
 			VkDeviceQueueCreateInfo queueCreateInfo = {};
 			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueCreateInfo.queueFamilyIndex = index.first;
+			queueCreateInfo.queueFamilyIndex = index;
 			queueCreateInfo.queueCount = 1;
 
 			float queuePriority = 1.0f;
@@ -768,16 +772,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		if (vkCreateDevice(m_PhysicalDevice.device, &createInfo, nullptr, &m_Device) == VK_SUCCESS)
 		{
-			vkGetDeviceQueue(m_Device, indices.graphicsFamily.first, 0, &m_GraphicsQueue);
-			vkGetDeviceQueue(m_Device, indices.computeFamily.first, 0, &m_ComputeQueue);
-			vkGetDeviceQueue(m_Device, indices.presentFamily.first, 0, &m_PresentQueue);
-
 			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_Device, VK_OBJECT_TYPE_DEVICE, "VulkanDevice");
-
-			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_PresentQueue, VK_OBJECT_TYPE_QUEUE, "PresentQueue");
-			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_GraphicsQueue, VK_OBJECT_TYPE_QUEUE, "GraphicsQueue");
-			KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)m_ComputeQueue, VK_OBJECT_TYPE_QUEUE, "ComputeQueue");
-
 			return true;
 		}
 	}
@@ -796,12 +791,12 @@ bool KVulkanRenderDevice::CreatePipelineCache()
 
 bool KVulkanRenderDevice::CreateCommandPool()
 {
-	assert(m_PhysicalDevice.queueFamilyIndices.IsComplete());
+	assert(m_PhysicalDevice.queueComplete);
 
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	// 指定该命令池所属的队列家族
-	poolInfo.queueFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
+	poolInfo.queueFamilyIndex = m_PhysicalDevice.graphicsFamilyIndices[0];
 	// 为Transient所用
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
@@ -1043,7 +1038,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 
 bool KVulkanRenderDevice::InitSwapChain()
 {
-	ASSERT_RESULT(m_PhysicalDevice.queueFamilyIndices.IsComplete());
+	ASSERT_RESULT(m_PhysicalDevice.queueComplete);
 	ASSERT_RESULT(m_pWindow != nullptr);
 
 	ASSERT_RESULT(m_SwapChain);
@@ -1195,14 +1190,20 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	KVulkanGlobal::deviceFeatures = m_PhysicalDevice.deviceFeatures;
 
 	KVulkanGlobal::graphicsCommandPool = m_GraphicCommandPool;
-	KVulkanGlobal::graphicsQueue = m_GraphicsQueue;
-	KVulkanGlobal::computeQueue = m_ComputeQueue;
-	KVulkanGlobal::pipelineCache = m_PipelineCache;
 
-	assert(m_PhysicalDevice.queueFamilyIndices.IsComplete());
+	assert(m_PhysicalDevice.queueComplete);
 
-	KVulkanGlobal::graphicsFamilyIndex = m_PhysicalDevice.queueFamilyIndices.graphicsFamily.first;
-	KVulkanGlobal::computeFamilyIndex = m_PhysicalDevice.queueFamilyIndices.computeFamily.first;
+	KVulkanGlobal::graphicsFamilyIndices = m_PhysicalDevice.graphicsFamilyIndices;
+	KVulkanGlobal::computeFamilyIndices = m_PhysicalDevice.computeFamilyIndices;
+	KVulkanGlobal::transferFamilyIndices = m_PhysicalDevice.transferFamilyIndices;
+
+	KVulkanGlobal::graphicsQueues.resize(KVulkanGlobal::graphicsFamilyIndices.size());
+	KVulkanGlobal::computeQueues.resize(KVulkanGlobal::computeFamilyIndices.size());
+	KVulkanGlobal::transferQueues.resize(KVulkanGlobal::transferFamilyIndices.size());
+
+	KRenderGlobal::NumExtraGraphicsQueue = (uint32_t)(KVulkanGlobal::graphicsFamilyIndices.size() > 0 ? (KVulkanGlobal::graphicsFamilyIndices.size() - 1) : 0);
+	KRenderGlobal::NumComputeQueue = (uint32_t)KVulkanGlobal::computeFamilyIndices.size();
+	KRenderGlobal::NumTransferQueue =(uint32_t)KVulkanGlobal::transferFamilyIndices.size();
 
 	// Get properties and features
 	VkPhysicalDeviceProperties2 deviceProperties2 = {};
@@ -1253,6 +1254,24 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 
 	KVulkanGlobal::deviceReady = true;
 
+	// Setup queues
+	for (size_t i = 0; i < KVulkanGlobal::graphicsFamilyIndices.size(); ++i)
+	{
+		vkGetDeviceQueue(m_Device, KVulkanGlobal::graphicsFamilyIndices[i], 0, &KVulkanGlobal::graphicsQueues[i]);
+		KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)KVulkanGlobal::graphicsQueues[i], VK_OBJECT_TYPE_QUEUE, ("GraphicsQueues_" + std::to_string(i)).c_str());
+	}
+	for (size_t i = 0; i < KVulkanGlobal::computeFamilyIndices.size(); ++i)
+	{
+		vkGetDeviceQueue(m_Device, KVulkanGlobal::computeFamilyIndices[i], 0, &KVulkanGlobal::computeQueues[i]);
+		KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)KVulkanGlobal::computeQueues[i], VK_OBJECT_TYPE_QUEUE, ("ComputeQueues_" + std::to_string(i)).c_str());
+	}
+	for (size_t i = 0; i < KVulkanGlobal::transferQueues.size(); ++i)
+	{
+		vkGetDeviceQueue(m_Device, KVulkanGlobal::transferFamilyIndices[i], 0, &KVulkanGlobal::transferQueues[i]);
+		KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)KVulkanGlobal::transferQueues[i], VK_OBJECT_TYPE_QUEUE, ("TransferQueues_" + std::to_string(i)).c_str());
+	}
+
+
 	return true;
 }
 
@@ -1266,8 +1285,6 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 	KVulkanGlobal::device = VK_NULL_HANDLE;
 	KVulkanGlobal::physicalDevice = VK_NULL_HANDLE;
 	KVulkanGlobal::graphicsCommandPool = VK_NULL_HANDLE;
-	KVulkanGlobal::graphicsQueue = VK_NULL_HANDLE;
-	KVulkanGlobal::pipelineCache = VK_NULL_HANDLE;
 
 	KVulkanGlobal::vkGetBufferDeviceAddressKHR = VK_NULL_HANDLE;
 	KVulkanGlobal::vkCreateAccelerationStructureKHR = VK_NULL_HANDLE;
@@ -1280,8 +1297,13 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 	KVulkanGlobal::vkGetRayTracingShaderGroupHandlesKHR = VK_NULL_HANDLE;
 	KVulkanGlobal::vkCreateRayTracingPipelinesKHR = VK_NULL_HANDLE;
 
-	KVulkanGlobal::graphicsFamilyIndex = 0;
-	KVulkanGlobal::computeFamilyIndex = 0;
+	KVulkanGlobal::graphicsFamilyIndices = {};
+	KVulkanGlobal::computeFamilyIndices = {};
+	KVulkanGlobal::transferFamilyIndices = {};
+
+	KVulkanGlobal::graphicsQueues = {};
+	KVulkanGlobal::computeQueues = {};
+	KVulkanGlobal::transferQueues = {};
 
 	return true;
 }

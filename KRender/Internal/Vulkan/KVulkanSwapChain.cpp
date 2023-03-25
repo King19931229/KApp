@@ -140,7 +140,7 @@ bool KVulkanSwapChain::CreateSwapChain()
 		windowHeight = (uint32_t)height;
 	}
 
-	uint32_t graphIndex = KVulkanGlobal::graphicsFamilyIndex;
+	uint32_t graphIndex = KVulkanGlobal::graphicsFamilyIndices[0];
 	uint32_t presentIndex = m_PresentQueueIndex;
 
 	ASSERT_RESULT(ChooseSwapSurfaceFormat());
@@ -474,7 +474,7 @@ VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex, VkCommandBuffer com
 	vkResetFences(KVulkanGlobal::device, 1, &m_InFlightFences[m_CurrentFlightIndex]);
 
 	// 提交该绘制命令
-	vkResult = vkQueueSubmit(KVulkanGlobal::graphicsQueue, 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]);
+	vkResult = vkQueueSubmit(KVulkanGlobal::graphicsQueues[0], 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]);
 	VK_ASSERT_RESULT(vkResult);	
 
 	VkPresentInfoKHR presentInfo = {};

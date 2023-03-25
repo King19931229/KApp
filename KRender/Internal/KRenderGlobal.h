@@ -101,9 +101,17 @@ namespace KRenderGlobal
 	extern bool EnableDebugRender;
 	extern bool DisableRayTrace;
 
-	extern uint32_t CurrentFrameIndex;
+	extern uint32_t CurrentInFlightFrameIndex;
 	extern uint32_t CurrentFrameNum;
 	extern uint32_t NumFramesInFlight;
+
+	extern uint32_t MinExtraGraphicsQueueNum;
+	extern uint32_t MinComputeQueueNum;
+	extern uint32_t MinTransferQueueNum;
+
+	extern uint32_t NumExtraGraphicsQueue;
+	extern uint32_t NumComputeQueue;
+	extern uint32_t NumTransferQueue;
 
 	// Render Context
 	extern IKRenderDevice* RenderDevice;

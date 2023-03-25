@@ -69,7 +69,7 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_Sampler->Init(0, 0);
 
 	m_Device->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	m_Device->CreateVertexBuffer(m_SharedVertexBuffer);
 	m_SharedVertexBuffer->InitMemory(ARRAY_SIZE(ms_Vertices), sizeof(ms_Vertices[0]), ms_Vertices);

@@ -30,28 +30,20 @@
 
 class KVulkanRenderDevice : public IKRenderDevice
 {
-	struct QueueFamilyIndices
-	{
-		// first:index second:existence
-		typedef std::pair<uint32_t, bool> QueueFamilyIndex;
-		QueueFamilyIndex graphicsFamily;
-		QueueFamilyIndex computeFamily;
-		QueueFamilyIndex presentFamily;
-
-		inline bool IsComplete() const
-		{
-			return graphicsFamily.second && computeFamily.second && presentFamily.second;
-		}
-	};
-
 	struct PhysicalDevice
 	{
 		VkPhysicalDevice device;
 		VkPhysicalDeviceProperties deviceProperties;
 		VkPhysicalDeviceFeatures deviceFeatures;
-		QueueFamilyIndices queueFamilyIndices;
+		std::vector<VkQueueFamilyProperties> queueFamilyProperties;
+
+		std::vector<uint32_t> graphicsFamilyIndices;
+		std::vector<uint32_t> computeFamilyIndices;
+		std::vector<uint32_t> transferFamilyIndices;
+
 		std::vector<std::string> supportedExtensions;
 
+		bool queueComplete;
 		bool suitable;
 		bool supportNvExtension;
 		bool supportRaytraceExtension;
@@ -64,6 +56,12 @@ class KVulkanRenderDevice : public IKRenderDevice
 			device = VK_NULL_HANDEL;
 			deviceProperties = {};
 			deviceFeatures = {};
+			queueFamilyProperties = {};
+			graphicsFamilyIndices = {};
+			computeFamilyIndices = {};
+			transferFamilyIndices = {};
+			supportedExtensions = {};
+			queueComplete = false;
 			suitable = false;
 			supportNvExtension = false;
 			supportRaytraceExtension = false;
@@ -77,10 +75,6 @@ protected:
 	IKRenderWindow* m_pWindow;	
 	VkInstance m_Instance;
 	VkDevice m_Device;
-
-	VkQueue m_GraphicsQueue;
-	VkQueue m_ComputeQueue;
-	VkQueue m_PresentQueue;
 
 	VkPipelineCache m_PipelineCache;
 	VkCommandPool m_GraphicCommandPool;
@@ -118,7 +112,7 @@ protected:
 
 	bool CheckDeviceSuitable(PhysicalDevice& device);
 
-	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
+	bool FindQueue(PhysicalDevice& device, VkQueueFlags bits, const std::vector<uint32_t>& forbidQueueFamilies, uint32_t& queueFamily);
 	bool CheckExtentionsSupported(PhysicalDevice& device);
 	PhysicalDevice GetPhysicalDeviceProperty(VkPhysicalDevice device);
 

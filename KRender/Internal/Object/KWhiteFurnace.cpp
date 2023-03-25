@@ -27,7 +27,7 @@ bool KWhiteFurnace::Init()
 	m_WFTestPipeline->Init("pbr/white _furnace.comp");
 
 	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_CommandBuffer);
 	m_CommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
 

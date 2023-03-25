@@ -105,10 +105,10 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	parameters.position = worldPos;
 
 #if (TANGENT_BINORMAL_INPUT && HAS_MATERIAL_TEXTURE1)
-	// vec3 normalmap = 2.0 * texture(normalSampler, texCoord).rgb - vec3(1.0);
-	vec3 normalmap;
-	normalmap.rg = 2.0 * texture(normalSampler, texCoord).ra - vec2(1.0);
-	normalmap.b = sqrt(1.0 - dot(normalmap.rg, normalmap.rg));
+	vec3 normalmap = 2.0 * texture(normalSampler, texCoord).rgb - vec3(1.0);
+	// vec3 normalmap;
+	// normalmap.rg = 2.0 * texture(normalSampler, texCoord).ra - vec2(1.0);
+	// normalmap.b = sqrt(1.0 - dot(normalmap.rg, normalmap.rg));
 	parameters.normal = normalize(worldTangent * normalmap.r
 					  + worldBinormal * normalmap.g
 					  + worldNormal * normalmap.b);

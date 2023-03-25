@@ -26,7 +26,7 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice, uint32_t shadowMapSize)
 	ASSERT_RESULT(UnInit());
 
 	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	renderDevice->CreateSampler(m_ShadowSampler);
 	m_ShadowSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);

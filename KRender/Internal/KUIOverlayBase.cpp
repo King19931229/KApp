@@ -227,7 +227,7 @@ void KUIOverlayBase::PreparePipeline()
 
 bool KUIOverlayBase::Update()
 {
-	unsigned int imageIndex = KRenderGlobal::CurrentFrameIndex;
+	unsigned int imageIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 	
 	ImDrawData* imDrawData = ImGui::GetDrawData();
 	bool updateCmdBuffers = false;

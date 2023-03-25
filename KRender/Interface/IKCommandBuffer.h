@@ -6,7 +6,7 @@
 struct IKCommandPool
 {
 	virtual ~IKCommandPool() {};
-	virtual bool Init(QueueFamilyIndex familyIndex) = 0;
+	virtual bool Init(QueueCategory queue, uint32_t index) = 0;
 	virtual bool UnInit() = 0;	
 	virtual bool Reset() = 0;
 };

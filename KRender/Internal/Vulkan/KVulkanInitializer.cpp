@@ -847,7 +847,7 @@ namespace KVulkanInitializer
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &commandBuffer;
 
-		VkQueue queue = KVulkanGlobal::graphicsQueue;
+		VkQueue queue = KVulkanGlobal::graphicsQueues[0];
 
 		VkFenceCreateInfo fenceInfo = {};
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;

@@ -120,7 +120,7 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, const char* cubeTexPath)
 	ASSERT_RESULT(UnInit());
 
 	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	renderDevice->CreateSampler(m_CubeSampler);
 	renderDevice->CreateVertexBuffer(m_VertexBuffer);

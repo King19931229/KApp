@@ -22,7 +22,7 @@ KVulkanUIOverlay::~KVulkanUIOverlay()
 
 bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, IKCommandBufferPtr inCommandBuffer)
 {
-	unsigned int imageIndex = KRenderGlobal::CurrentFrameIndex;
+	unsigned int imageIndex = KRenderGlobal::CurrentInFlightFrameIndex;
 
 	KVulkanCommandBuffer* vulkanCommandBuffer = (KVulkanCommandBuffer*)inCommandBuffer.get();
 	const VkCommandBuffer commandBuffer = vulkanCommandBuffer->GetVkHandle();

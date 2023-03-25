@@ -527,7 +527,7 @@ void KClipmapLevel::InitShared()
 	ms_Sampler->Init(0, 0);
 
 	KRenderGlobal::RenderDevice->CreateCommandPool(ms_CommandPool);
-	ms_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	ms_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	KRenderGlobal::RenderDevice->CreateCommandBuffer(ms_CommandBuffer);
 	ms_CommandBuffer->Init(ms_CommandPool, CBL_PRIMARY);
@@ -914,7 +914,7 @@ void KClipmap::InitializeClipmapLevel()
 void KClipmap::InitializePipeline()
 {
 	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_CommandBuffer);
 	m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY);

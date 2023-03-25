@@ -10,11 +10,7 @@ namespace KVulkanGlobal
 	VkInstance instance = VK_NULL_HANDLE;
 	VkDevice device = VK_NULL_HANDLE;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	std::mutex graphicsPoolLock;
 	VkCommandPool graphicsCommandPool = VK_NULL_HANDLE;
-	std::mutex graphicsQueueLock;
-	VkQueue graphicsQueue = VK_NULL_HANDLE;
-	VkQueue computeQueue = VK_NULL_HANDLE;
 	VkPipelineCache pipelineCache = VK_NULL_HANDLE;
  
 	VkPhysicalDeviceProperties deviceProperties = {};
@@ -49,6 +45,11 @@ namespace KVulkanGlobal
 	PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabel = VK_NULL_HANDLE;
 	PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabel = VK_NULL_HANDLE;
 
-	uint32_t graphicsFamilyIndex = 0;
-	uint32_t computeFamilyIndex = 0;
+	std::vector<uint32_t> graphicsFamilyIndices = {};
+	std::vector<uint32_t> computeFamilyIndices = {};
+	std::vector<uint32_t> transferFamilyIndices = {};
+
+	std::vector<VkQueue> graphicsQueues = {};
+	std::vector<VkQueue> computeQueues = {};
+	std::vector<VkQueue> transferQueues = {};
 }

@@ -218,11 +218,11 @@ bool KHiZOcclusion::ReloadShader()
 
 void KHiZOcclusion::PullCandidatesResult()
 {
-	uint32_t frameIdx = KRenderGlobal::CurrentFrameIndex;
+	uint32_t frameIdx = KRenderGlobal::CurrentInFlightFrameIndex;
 	std::vector<Candidate>& candidates = m_Candidates[frameIdx];
 
-	IKFrameBufferPtr src = m_ResultTargets[KRenderGlobal::CurrentFrameIndex]->GetFrameBuffer();
-	IKFrameBufferPtr dest = m_ResultReadbackTargets[KRenderGlobal::CurrentFrameIndex]->GetFrameBuffer();
+	IKFrameBufferPtr src = m_ResultTargets[KRenderGlobal::CurrentInFlightFrameIndex]->GetFrameBuffer();
+	IKFrameBufferPtr dest = m_ResultReadbackTargets[KRenderGlobal::CurrentInFlightFrameIndex]->GetFrameBuffer();
 	src->CopyToReadback(dest.get());
 
 	std::vector<uint8_t> readback;
@@ -245,8 +245,8 @@ void KHiZOcclusion::PullCandidatesResult()
 	m_CandidateNum = 0;
 	m_BlockX = 0;
 	m_BlockY = 0;
-	m_TempPositionTextures[KRenderGlobal::CurrentFrameIndex]->UnInit();
-	m_TempExtentTextures[KRenderGlobal::CurrentFrameIndex]->UnInit();
+	m_TempPositionTextures[KRenderGlobal::CurrentInFlightFrameIndex]->UnInit();
+	m_TempExtentTextures[KRenderGlobal::CurrentInFlightFrameIndex]->UnInit();
 }
 
 uint32_t KHiZOcclusion::CalcBlockX(uint32_t idx)
@@ -297,7 +297,7 @@ uint32_t KHiZOcclusion::XYToIndex(uint32_t x, uint32_t y)
 
 void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 {
-	uint32_t frameIdx = KRenderGlobal::CurrentFrameIndex;
+	uint32_t frameIdx = KRenderGlobal::CurrentInFlightFrameIndex;
 	std::vector<Candidate>& candidates = m_Candidates[frameIdx];
 
 	uint32_t dimensionX = OCCLUSION_TARGRT_DIMENSION;
@@ -397,12 +397,12 @@ bool KHiZOcclusion::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr p
 {
 	if (m_EnableDebugDraw)
 	{
-		m_DebugDrawers[KRenderGlobal::CurrentFrameIndex].EnableDraw();
-		return m_DebugDrawers[KRenderGlobal::CurrentFrameIndex].Render(renderPass, primaryBuffer);
+		m_DebugDrawers[KRenderGlobal::CurrentInFlightFrameIndex].EnableDraw();
+		return m_DebugDrawers[KRenderGlobal::CurrentInFlightFrameIndex].Render(renderPass, primaryBuffer);
 	}
 	else
 	{
-		m_DebugDrawers[KRenderGlobal::CurrentFrameIndex].DisableDraw();
+		m_DebugDrawers[KRenderGlobal::CurrentInFlightFrameIndex].DisableDraw();
 		return true;
 	}	
 }
@@ -416,7 +416,7 @@ bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<
 
 	PullCandidatesResult();
 
-	std::vector<Candidate>& candidates = m_Candidates[KRenderGlobal::CurrentFrameIndex];
+	std::vector<Candidate>& candidates = m_Candidates[KRenderGlobal::CurrentInFlightFrameIndex];
 
 	candidates.reserve(cullRes.size());
 
@@ -458,7 +458,7 @@ bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<
 	}
 	else
 	{
-		primaryBuffer->Translate(m_ResultTargets[KRenderGlobal::CurrentFrameIndex]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_ResultTargets[KRenderGlobal::CurrentInFlightFrameIndex]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	return true;

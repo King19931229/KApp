@@ -1,7 +1,7 @@
 #pragma once
 
 #include "KVulkanConfig.h"
-#include <mutex>
+#include <vector>
 
 namespace KVulkanGlobal
 {
@@ -14,12 +14,15 @@ namespace KVulkanGlobal
 	extern VkDevice device;
 	extern VkPhysicalDevice physicalDevice;
 	extern VkCommandPool graphicsCommandPool;
-	extern VkQueue graphicsQueue;
-	extern VkQueue computeQueue;
 	extern VkPipelineCache pipelineCache;
 
-	extern uint32_t graphicsFamilyIndex;
-	extern uint32_t computeFamilyIndex;
+	extern std::vector<uint32_t> graphicsFamilyIndices;
+	extern std::vector<uint32_t> computeFamilyIndices;
+	extern std::vector<uint32_t> transferFamilyIndices;
+
+	extern std::vector<VkQueue> graphicsQueues;
+	extern std::vector<VkQueue> computeQueues;
+	extern std::vector<VkQueue> transferQueues;
 
 	extern VkPhysicalDeviceProperties deviceProperties;
 	extern VkPhysicalDeviceFeatures deviceFeatures;

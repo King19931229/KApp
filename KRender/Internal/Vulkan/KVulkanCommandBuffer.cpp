@@ -20,26 +20,39 @@ KVulkanCommandPool::~KVulkanCommandPool()
 	assert(m_CommandPool == VK_NULL_HANDLE);
 }
 
-bool KVulkanCommandPool::Init(QueueFamilyIndex familyIndex)
+bool KVulkanCommandPool::Init(QueueCategory queue, uint32_t index)
 {
 	ASSERT_RESULT(UnInit());
 
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
+
+	const std::vector<uint32_t>* queueFamilyIndices = nullptr;
+
+	switch (queue)
+	{
+		case QUEUE_GRAPHICS:
+			queueFamilyIndices = &KVulkanGlobal::graphicsFamilyIndices;
+			break;
+		case QUEUE_COMPUTE:
+			queueFamilyIndices = &KVulkanGlobal::computeFamilyIndices;
+			break;
+		case QUEUE_TRANSFER:
+			queueFamilyIndices = &KVulkanGlobal::transferFamilyIndices;
+			break;
+		default:
+			assert(false && "impossible to reach");
+			break;
+	}
+
+	assert(queueFamilyIndices && index < queueFamilyIndices->size());
+	if (!queueFamilyIndices || index >= queueFamilyIndices->size())
+	{
+		return false;
+	}
+
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-
-	switch (familyIndex)
-	{
-	case QUEUE_FAMILY_INDEX_GRAPHICS:
-		poolInfo.queueFamilyIndex = KVulkanGlobal::graphicsFamilyIndex;
-		break;
-	case QUEUE_FAMILY_INDEX_COMPUTE:
-		poolInfo.queueFamilyIndex = KVulkanGlobal::computeFamilyIndex;
-		break;
-	default:
-		assert(false && "impossible to reach");
-		break;
-	}
+	poolInfo.queueFamilyIndex = (*queueFamilyIndices)[index];
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 	VK_ASSERT_RESULT(vkCreateCommandPool(KVulkanGlobal::device, &poolInfo, nullptr, &m_CommandPool));
@@ -133,8 +146,8 @@ bool KVulkanCommandBuffer::UnInit()
 
 VkCommandBuffer KVulkanCommandBuffer::GetVkHandle()
 {
-	assert(KRenderGlobal::CurrentFrameIndex < m_CommandBuffers.size());
-	return KRenderGlobal::CurrentFrameIndex < m_CommandBuffers.size() ? m_CommandBuffers[KRenderGlobal::CurrentFrameIndex] : VK_NULL_HANDEL;
+	assert(KRenderGlobal::CurrentInFlightFrameIndex < m_CommandBuffers.size());
+	return KRenderGlobal::CurrentInFlightFrameIndex < m_CommandBuffers.size() ? m_CommandBuffers[KRenderGlobal::CurrentInFlightFrameIndex] : VK_NULL_HANDEL;
 }
 
 bool KVulkanCommandBuffer::SetViewport(const KViewPortArea& area)
@@ -568,7 +581,7 @@ bool KVulkanCommandBuffer::Flush()
 
 		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &fence));
 		// Wait for the fence to signal that command buffer has finished executing
-		VK_ASSERT_RESULT(vkQueueSubmit(KVulkanGlobal::graphicsQueue, 1, &submitInfo, fence));
+		VK_ASSERT_RESULT(vkQueueSubmit(KVulkanGlobal::graphicsQueues[0], 1, &submitInfo, fence));
 		VK_ASSERT_RESULT(vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
 		vkDestroyFence(KVulkanGlobal::device, fence, nullptr);
 

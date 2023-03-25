@@ -166,7 +166,7 @@ bool KHiZBuffer::Init(uint32_t width, uint32_t height)
 	KRenderGlobal::SamplerManager.Acquire(desc, m_HiZBuildSampler);
 
 	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer));
 	ASSERT_RESULT(m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY));

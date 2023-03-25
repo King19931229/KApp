@@ -1482,7 +1482,7 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 	renderDevice->CreateSampler(m_MipmapSampler);
 
 	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_FAMILY_INDEX_GRAPHICS);
+	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
 	renderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer);
 	m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
