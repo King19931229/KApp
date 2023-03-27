@@ -40,7 +40,7 @@ protected:
 	std::mutex m_Lock;
 	IKRenderDevice* m_Device;
 	size_t m_VertexSize;
-	size_t m_BlockSize;
+	size_t m_BlockCount;
 
 	bool InternalAlloc(size_t count,
 		size_t frameIndex, size_t frameNum,

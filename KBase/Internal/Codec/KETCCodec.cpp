@@ -676,7 +676,7 @@ static bool DecodeKTX2(const IKDataStreamPtr& stream, KTXHeader2& header, KCodec
 		// Skip 8 padding
 		stream->Skip(8);
 		// Skip super compression
-		stream->Skip(header.supercompressionGlobalData.byteLength);
+		stream->Skip((size_t)header.supercompressionGlobalData.byteLength);
 		return false;
 	}
 

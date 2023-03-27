@@ -105,8 +105,16 @@ bool KVulkanSampler::CreateDevice()
 	samplerInfo.addressModeV = addressModeV;
 	samplerInfo.addressModeW = addressModeW;
 
-	samplerInfo.anisotropyEnable = m_AnisotropicEnable ? VK_TRUE : VK_FALSE;
-	samplerInfo.maxAnisotropy = m_AnisotropicEnable ? static_cast<float>(m_AnisotropicCount) : 0.0f;
+	if (KRenderGlobal::SupportAnisotropySample)
+	{
+		samplerInfo.anisotropyEnable = m_AnisotropicEnable ? VK_TRUE : VK_FALSE;
+		samplerInfo.maxAnisotropy = m_AnisotropicEnable ? static_cast<float>(m_AnisotropicCount) : 0.0f;
+	}
+	else
+	{
+		// TODO Warning
+		samplerInfo.anisotropyEnable = VK_FALSE;
+	}
 
 	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 

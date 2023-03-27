@@ -17,6 +17,9 @@ uniform Object
 layout(location = INSTANCE_ROW_0) in vec4 world_row0;
 layout(location = INSTANCE_ROW_1) in vec4 world_row1;
 layout(location = INSTANCE_ROW_2) in vec4 world_row2;
+layout(location = INSTANCE_PREV_ROW_0) in vec4 prev_world_row0;
+layout(location = INSTANCE_PREV_ROW_1) in vec4 prev_world_row1;
+layout(location = INSTANCE_PREV_ROW_2) in vec4 prev_world_row2;
 layout(binding = BINDING_OBJECT)
 uniform Object
 {

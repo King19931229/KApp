@@ -1264,11 +1264,7 @@ bool KCascadedShadowMap::UpdateShadowMap()
 			{
 				glm::vec4 center = glm::vec4((type == CBT_STATIC_CASCADED_SHADOW) ? m_StaticCenter : m_MainCamera->GetPosition(), 1.0f);
 				assert(sizeof(float) * 4 == detail.size);
-				for (size_t i = 0; i < numCascaded; i++)
-				{
-					memcpy(pWritePos, &center, sizeof(glm::vec4));
-					pWritePos = POINTER_OFFSET(pWritePos, sizeof(glm::vec4));
-				}
+				memcpy(pWritePos, &center, sizeof(glm::vec4));
 			}
 			else if (detail.semantic == CS_CASCADED_SHADOW_FRUSTUM_PLANES)
 			{
@@ -1276,6 +1272,7 @@ bool KCascadedShadowMap::UpdateShadowMap()
 		}
 		shadowBuffer->Write(pData);
 	}
+
 	return true;
 }
 

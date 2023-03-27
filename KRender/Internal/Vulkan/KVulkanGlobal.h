@@ -46,6 +46,10 @@ namespace KVulkanGlobal
 	// Function pointers for mesh shader
 	extern PFN_vkCmdDrawMeshTasksNV vkCmdDrawMeshTasksNV;
 
+	// Function pointers for nsight
+	extern PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV;
+	extern PFN_vkGetQueueCheckpointDataNV vkGetQueueCheckpointDataNV;
+
 	// Function pointers for debug marker
 	extern PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTag;
 	extern PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectName;

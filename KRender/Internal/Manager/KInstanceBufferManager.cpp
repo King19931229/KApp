@@ -4,7 +4,7 @@
 KInstanceBufferManager::KInstanceBufferManager()
 	: m_Device(nullptr),
 	m_VertexSize(64),
-	m_BlockSize(65536)
+	m_BlockCount(65536)
 {
 }
 
@@ -22,7 +22,7 @@ bool KInstanceBufferManager::Init(IKRenderDevice* device, size_t vertexSize, siz
 
 	m_Device = device;
 	m_VertexSize = vertexSize;
-	m_BlockSize = blockSize;
+	m_BlockCount = blockSize;
 
 	m_InstanceBlocks.resize(KRenderGlobal::NumFramesInFlight);
 	return true;
@@ -98,7 +98,7 @@ bool KInstanceBufferManager::InternalAlloc(size_t count,
 		{
 			for (InstanceBlock& block : frameBlock.blocks)
 			{
-				size_t blockRestCount = m_BlockSize - block.useCount;
+				size_t blockRestCount = m_BlockCount - block.useCount;
 				if (blockRestCount > 0)
 				{
 					size_t useCount = restCount > blockRestCount ? blockRestCount : restCount;
@@ -122,12 +122,11 @@ bool KInstanceBufferManager::InternalAlloc(size_t count,
 				ASSERT_RESULT(m_Device->CreateVertexBuffer(newBlock.buffer));
 				newBlock.useCount = 0;
 
-				ASSERT_RESULT(newBlock.buffer->InitMemory(m_BlockSize, m_VertexSize, nullptr));
+				ASSERT_RESULT(newBlock.buffer->InitMemory(m_BlockCount, m_VertexSize, nullptr));
 				ASSERT_RESULT(newBlock.buffer->InitDevice(true));
 
 				{
-					size_t blockRestCount = m_BlockSize;
-					size_t useCount = restCount > blockRestCount ? blockRestCount : restCount;
+					size_t useCount = restCount > m_BlockCount ? m_BlockCount : restCount;
 					restCount -= useCount;
 
 					AllocResultBlock resultBlock;
@@ -140,7 +139,7 @@ bool KInstanceBufferManager::InternalAlloc(size_t count,
 					newBlock.useCount += useCount;
 				}
 
-				frameBlock.blocks.push_back(std::move(newBlock));
+				frameBlock.blocks.push_back(newBlock);
 			}
 		}
 

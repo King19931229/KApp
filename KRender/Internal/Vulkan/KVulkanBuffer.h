@@ -3,14 +3,38 @@
 #include "KVulkanConfig.h"
 #include "KVulkanHeapAllocator.h"
 
+class KVulkanStageBuffer
+{
+protected:
+	VkBuffer m_vkBuffer;
+	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
+	uint32_t m_BufferSize;
+	bool m_Mapping;
+public:
+	KVulkanStageBuffer();
+	~KVulkanStageBuffer();
+
+	bool Init(uint32_t bufferSize);
+	bool UnInit();
+
+	bool Map(void** ppData);
+	bool UnMap();
+	bool Write(const void* pData);
+	bool Read(void* pData);
+
+	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
+};
+
 class KVulkanBuffer
 {
 protected:
 	VkBuffer m_vkBuffer;
 	KVulkanHeapAllocator::AllocInfo m_AllocInfo;
-	std::vector<char> m_ShadowData;
+	VkBufferUsageFlags m_Usages;
+	KVulkanStageBuffer m_StageBuffer;
 	uint32_t m_BufferSize;
 	bool m_bHostVisible;
+	bool m_Mapping;
 public:
 	KVulkanBuffer();
 	~KVulkanBuffer();
@@ -19,8 +43,6 @@ public:
 	bool UnInit();
 
 	bool SetDebugName(const char* pName);
-
-	bool DiscardMemory();
 
 	bool Map(void** ppData);
 	bool UnMap();

@@ -100,6 +100,7 @@ namespace KRenderGlobal
 
 	extern bool EnableDebugRender;
 	extern bool DisableRayTrace;
+	extern bool SupportAnisotropySample;
 
 	extern uint32_t CurrentInFlightFrameIndex;
 	extern uint32_t CurrentFrameNum;

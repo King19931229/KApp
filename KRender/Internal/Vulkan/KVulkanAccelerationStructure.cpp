@@ -104,7 +104,9 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 {
 	if (KVulkanGlobal::supportRaytrace)
 	{
-		if (m_Instances.size() == 0)
+		vkQueueWaitIdle(KVulkanGlobal::graphicsQueues[0]);
+
+		// if (m_Instances.size() != bottomASs.size())
 		{
 			update = false;
 		}

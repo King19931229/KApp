@@ -30,8 +30,12 @@ bool KRenderDocCapture::Init()
 		std::string renderDocFolder;
 		ASSERT_RESULT(KFileTool::ParentFolder(renderDocPath, renderDocFolder));
 		std::string renderDocDLL;
-		ASSERT_RESULT(KFileTool::PathJoin(renderDocFolder, "renderdoc.dll", renderDocDLL));
 
+#ifdef _WIN64
+		ASSERT_RESULT(KFileTool::PathJoin(renderDocFolder, "renderdoc.dll", renderDocDLL));
+#else
+		ASSERT_RESULT(KFileTool::PathJoin(renderDocFolder, "x86/renderdoc.dll", renderDocDLL));
+#endif
 		m_Module = LoadLibraryA(renderDocDLL.c_str());
 		if (GetModuleHandleA(renderDocDLL.c_str()))
 		{

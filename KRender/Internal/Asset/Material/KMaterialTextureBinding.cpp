@@ -79,6 +79,8 @@ bool KMaterialTextureBinding::SetTexture(uint8_t slot, const std::string& path, 
 				KSamplerDescription desc = ToSamplerDesc(sampler);
 				desc.minMipmap = 0;
 				desc.maxMipmap = (*m_Textures[slot])->GetMipmaps() - 1;
+				desc.anisotropic = true;
+				desc.anisotropicCount = 16;
 
 				ASSERT_RESULT(KRenderGlobal::SamplerManager.Acquire(desc, m_Samplers[slot]));
 				return true;

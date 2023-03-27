@@ -1327,7 +1327,7 @@ bool KClipmap::Reload()
 
 KClipmapLevelPtr KClipmap::GetClipmapLevel(int32_t idx)
 {
-	if (idx < m_ClipLevels.size())
+	if ((uint32_t)idx < m_ClipLevels.size())
 		return m_ClipLevels[idx];
 	return nullptr;
 }

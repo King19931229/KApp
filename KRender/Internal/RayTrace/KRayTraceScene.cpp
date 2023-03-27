@@ -86,8 +86,6 @@ void KRayTraceScene::RecreateAS()
 		m_LastRecreateFrame = KRenderGlobal::CurrentFrameNum;
 		m_bNeedRecreateAS = false;
 
-		KRenderGlobal::RenderDevice->Wait();
-
 		UpdateAccelerationStructure();
 
 		for (auto it = m_RaytracePipelineInfos.begin(); it != m_RaytracePipelineInfos.end(); ++it)

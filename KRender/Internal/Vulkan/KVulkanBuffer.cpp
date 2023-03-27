@@ -4,9 +4,97 @@
 #include "KVulkanGlobal.h"
 #include "Internal/KRenderGlobal.h"
 
+
+KVulkanStageBuffer::KVulkanStageBuffer()
+	: m_vkBuffer(VK_NULL_HANDLE)
+	, m_BufferSize(0)
+	, m_Mapping(false)
+{
+}
+
+KVulkanStageBuffer::~KVulkanStageBuffer()
+{
+	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
+}
+
+bool KVulkanStageBuffer::Init(uint32_t bufferSize)
+{
+	UnInit();
+
+	m_BufferSize = bufferSize;
+	m_Mapping = false;
+
+	KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize
+		, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+		, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		, m_vkBuffer
+		, m_AllocInfo);
+
+	return true;
+}
+
+bool KVulkanStageBuffer::UnInit()
+{
+	KVulkanInitializer::FreeVkBuffer(m_vkBuffer, m_AllocInfo);
+	ZERO_MEMORY(m_AllocInfo);
+	m_Mapping = false;
+	return true;
+}
+
+bool KVulkanStageBuffer::Map(void** ppData)
+{
+	assert(!m_Mapping);
+	if (m_vkBuffer != VK_NULL_HANDLE)
+	{
+		VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
+		m_Mapping = true;
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanStageBuffer::UnMap()
+{
+	assert(m_Mapping);
+	if (m_vkBuffer != VK_NULL_HANDLE)
+	{
+		vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
+		m_Mapping = false;
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanStageBuffer::Write(const void* pData)
+{
+	void* pMapData = nullptr;
+	if (Map(&pMapData))
+	{
+		memcpy(pMapData, pData, m_BufferSize);
+		UnMap();
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanStageBuffer::Read(void* pData)
+{
+	void* pMapData = nullptr;
+	if (Map(&pMapData))
+	{
+		memcpy(pData, pMapData, m_BufferSize);
+		UnMap();
+		return true;
+	}
+	return false;
+}
+
 KVulkanBuffer::KVulkanBuffer()
-	: m_BufferSize(0)
+	: m_vkBuffer(VK_NULL_HANDLE)
+	, m_Usages(0)
+	, m_BufferSize(0)
 	, m_bHostVisible(false)
+	, m_Mapping(false)
 {
 	m_vkBuffer = VK_NULL_HANDLE;
 	ZERO_MEMORY(m_AllocInfo);
@@ -14,83 +102,65 @@ KVulkanBuffer::KVulkanBuffer()
 
 KVulkanBuffer::~KVulkanBuffer()
 {
-	ASSERT_RESULT(m_ShadowData.empty());
 	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
 }
 
 bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uint32_t bufferSize, bool hostVisible)
 {
 	ASSERT_RESULT(UnInit());
-
-	using namespace KVulkanGlobal;
 	ASSERT_RESULT(m_vkBuffer == VK_NULL_HANDLE);
+
+	m_Usages = usages;
+	m_BufferSize = bufferSize;
+	m_bHostVisible = hostVisible;
+	m_Mapping = false;
 
 	if (hostVisible)
 	{
 		VkBufferUsageFlags usageFlags = usages;
 
 		KVulkanInitializer::CreateVkBuffer(
-			(VkDeviceSize)bufferSize
+			(VkDeviceSize)m_BufferSize
 			, usageFlags
 			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 			, m_vkBuffer
 			, m_AllocInfo);
 
 		void* data = nullptr;
-		VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, bufferSize, 0, &data));
-		memcpy(data, pData, (size_t)bufferSize);
-		vkUnmapMemory(device, m_AllocInfo.vkMemroy);
+		VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, &data));
+		memcpy(data, pData, (size_t)m_BufferSize);
+		vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
 	}
 	else
 	{
-		VkBuffer vkStageBuffer;
-		KVulkanHeapAllocator::AllocInfo stageAllocInfo;
+		m_StageBuffer.Init(m_BufferSize);
+		m_StageBuffer.Write(pData);
 
-		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)bufferSize
-			, VK_BUFFER_USAGE_TRANSFER_SRC_BIT
-			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-			, vkStageBuffer
-			, stageAllocInfo);
+		VkBufferUsageFlags usageFlags = m_Usages | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-		void* data = nullptr;
-		VK_ASSERT_RESULT(vkMapMemory(device, stageAllocInfo.vkMemroy, stageAllocInfo.vkOffset, bufferSize, 0, &data));
-		memcpy(data, pData, (size_t)bufferSize);
-		vkUnmapMemory(device, stageAllocInfo.vkMemroy);
-
-		VkBufferUsageFlags usageFlags = usages | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)bufferSize
+		KVulkanInitializer::CreateVkBuffer((VkDeviceSize)m_BufferSize
 			, usageFlags
 			, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 			, m_vkBuffer
 			, m_AllocInfo);
-
-		KVulkanInitializer::CopyVkBuffer(vkStageBuffer, m_vkBuffer, (VkDeviceSize)bufferSize);
-		KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);
-
-		// m_ShadowData = std::move(m_Data);
+		KVulkanInitializer::CopyVkBuffer(m_StageBuffer.GetVulkanHandle(), m_vkBuffer, (VkDeviceSize)m_BufferSize);
+		m_StageBuffer.UnInit();
 	}
-
-	m_BufferSize = bufferSize;
-	m_bHostVisible = hostVisible;
 
 	return true;
 }
 
 bool KVulkanBuffer::UnInit()
 {
-	using namespace KVulkanGlobal;
-
 	if (m_vkBuffer != VK_NULL_HANDLE)
 	{
 		KVulkanInitializer::FreeVkBuffer(m_vkBuffer, m_AllocInfo);
 		m_vkBuffer = VK_NULL_HANDLE;
 		ZERO_MEMORY(m_AllocInfo);
 	}
-
-	m_ShadowData.clear();
-	m_ShadowData.shrink_to_fit();
-
+	m_StageBuffer.UnInit();
+	m_bHostVisible = false;
+	m_Mapping = false;
 	return true;
 }
 
@@ -107,39 +177,56 @@ bool KVulkanBuffer::SetDebugName(const char* pName)
 	}
 }
 
-bool KVulkanBuffer::DiscardMemory()
-{
-	m_ShadowData.clear();
-	m_ShadowData.shrink_to_fit();
-	return true;
-}
-
 bool KVulkanBuffer::Map(void** ppData)
 {
+	assert(!m_Mapping);
 	ASSERT_RESULT(ppData != nullptr);
 	if (m_bHostVisible)
 	{
 		if (m_vkBuffer != VK_NULL_HANDLE)
 		{
-			using namespace KVulkanGlobal;
-			VK_ASSERT_RESULT(vkMapMemory(device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
+			VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
+			m_Mapping = true;
 			return true;
 		}
 	}
+	else
+	{
+		m_StageBuffer.Init(m_BufferSize);
+		KVulkanInitializer::CopyVkBuffer(m_vkBuffer, m_StageBuffer.GetVulkanHandle(), (VkDeviceSize)m_BufferSize);
+		m_Mapping = true;
+		if (m_StageBuffer.Map(ppData))
+		{
+			return true;
+		}
+	}
+	assert(false && "should not reach");
 	return false;
 }
 
 bool KVulkanBuffer::UnMap()
 {
+	assert(m_Mapping);
 	if (m_bHostVisible)
 	{
 		if (m_vkBuffer != VK_NULL_HANDLE)
 		{
-			using namespace KVulkanGlobal;
-			vkUnmapMemory(device, m_AllocInfo.vkMemroy);
+			vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
+			m_Mapping = false;
 			return true;
 		}
 	}
+	else
+	{
+		if (m_StageBuffer.UnMap())
+		{
+			KVulkanInitializer::CopyVkBuffer(m_StageBuffer.GetVulkanHandle(), m_vkBuffer, (VkDeviceSize)m_BufferSize);
+			m_StageBuffer.UnInit();
+			m_Mapping = false;
+			return true;
+		}
+	}
+	assert(false && "should not reach"); assert(false && "should not reach");
 	return false;
 }
 
@@ -155,6 +242,15 @@ bool KVulkanBuffer::Write(const void* pData)
 			return true;
 		}
 	}
+	else
+	{
+		m_StageBuffer.Init(m_BufferSize);
+		m_StageBuffer.Write(pData);
+		KVulkanInitializer::CopyVkBuffer(m_StageBuffer.GetVulkanHandle(), m_vkBuffer, (VkDeviceSize)m_BufferSize);
+		m_StageBuffer.UnInit();
+		return true;
+	}
+	assert(false && "should not reach");
 	return false;
 }
 
@@ -172,13 +268,13 @@ bool KVulkanBuffer::Read(void* pData)
 	}
 	else
 	{
-		if (!m_ShadowData.empty())
-		{
-			assert(m_ShadowData.size() == m_BufferSize);
-			memcpy(pData, m_ShadowData.data(), m_BufferSize);
-			return true;
-		}
+		m_StageBuffer.Init(m_BufferSize);
+		KVulkanInitializer::CopyVkBuffer(m_vkBuffer, m_StageBuffer.GetVulkanHandle(), (VkDeviceSize)m_BufferSize);
+		m_StageBuffer.Read(pData);
+		m_StageBuffer.UnInit();
+		return true;
 	}
+	assert(false && "should not reach");
 	return false;
 }
 
@@ -233,7 +329,9 @@ bool KVulkanVertexBuffer::SetDebugName(const char* pName)
 
 bool KVulkanVertexBuffer::DiscardMemory()
 {
-	return m_Buffer.DiscardMemory();
+	m_Data.clear();
+	m_Data.shrink_to_fit();
+	return true;
 }
 
 bool KVulkanVertexBuffer::Map(void** ppData)
@@ -315,7 +413,9 @@ bool KVulkanIndexBuffer::SetDebugName(const char* pName)
 
 bool KVulkanIndexBuffer::DiscardMemory()
 {
-	return m_Buffer.DiscardMemory();
+	m_Data.clear();
+	m_Data.shrink_to_fit();
+	return true;
 }
 
 bool KVulkanIndexBuffer::Map(void** ppData)

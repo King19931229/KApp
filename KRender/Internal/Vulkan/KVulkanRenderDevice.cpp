@@ -19,8 +19,20 @@
 
 #include "KBase/Interface/IKLog.h"
 
-#if defined(_WIN32)
-#include "GFSDK_Aftermath_GpuCrashDump.h"
+// Enables the Nsight Aftermath code instrumentation for GPU crash dump creation.
+#ifdef _WIN64
+#define USE_NSIGHT_AFTERMATH 0
+#else
+#define USE_NSIGHT_AFTERMATH 0
+#endif
+
+#if defined(USE_NSIGHT_AFTERMATH)
+#if VK_HEADER_VERSION < 135
+#error Minimum requirement for the Aftermath application integration is the Vulkan 1.2.135 SDK
+#endif
+#include "NsightAftermathHelpers.h"
+#include "NsightAftermathGpuCrashTracker.h"
+#include "NsightAftermathShaderDatabase.h"
 #endif
 
 #include <algorithm>
@@ -198,6 +210,7 @@ KVulkanRenderDevice::KVulkanRenderDevice()
 #endif
 	)
 	, m_ValidationLayerIdx(-1)
+	, m_GpuCrashTracker(nullptr)
 {
 }
 
@@ -471,6 +484,20 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 		float16int8Features.shaderInt8 = VK_TRUE;
 		float16int8Features.pNext = pNext;
 		pNext = &float16int8Features;
+	}
+
+	if (m_PhysicalDevice.supportNvExtension)
+	{
+#if USE_NSIGHT_AFTERMATH
+		static VkDeviceDiagnosticsConfigCreateInfoNV diagnosticsConfigCreateInfo = {};
+		diagnosticsConfigCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV;
+		diagnosticsConfigCreateInfo.flags = VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV
+			| VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV
+			| VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_AUTOMATIC_CHECKPOINTS_BIT_NV;
+
+		diagnosticsConfigCreateInfo.pNext = pNext;
+		pNext = &diagnosticsConfigCreateInfo;
+#endif
 	}
 
 	return pNext;
@@ -917,19 +944,6 @@ bool KVulkanRenderDevice::UnInitHeapAllocator()
 	return true;
 }
 
-#if defined(_WIN32)
-static void OnAftermath_GpuCrashDumpCb(const void* pGpuCrashDump, const uint32_t gpuCrashDumpSize, void* pUserData)
-{
-	FILE* fp = NULL;
-	fopen_s(&fp, "crash.nv-gpudmp", "wb");
-	if (fp)
-	{
-		fwrite(pGpuCrashDump, 1, gpuCrashDumpSize, fp);
-		fclose(fp);
-	}
-}
-#endif
-
 bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 {
 	if(window == nullptr
@@ -944,13 +958,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	}
 
 	m_pWindow = window;
-
-#if defined(_WIN32)
-	GFSDK_Aftermath_EnableGpuCrashDumps(GFSDK_Aftermath_Version_API,
-		GFSDK_Aftermath_GpuCrashDumpWatchedApiFlags_Vulkan,
-		GFSDK_Aftermath_GpuCrashDumpFeatureFlags_Default,
-		&OnAftermath_GpuCrashDumpCb, NULL, NULL, nullptr);
-#endif
 
 	VkApplicationInfo appInfo = {};
 
@@ -1027,6 +1034,12 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 			return false;
 
 		m_pWindow->SetRenderDevice(this);
+
+#if defined(USE_NSIGHT_AFTERMATH)
+		m_GpuCrashTracker = new GpuCrashTracker(KVulkanGlobal::vkCmdSetCheckpointNV, KVulkanGlobal::vkGetQueueCheckpointDataNV);
+		((GpuCrashTracker*)m_GpuCrashTracker)->Initialize();
+#endif
+
 		return true;
 	}
 	else
@@ -1072,6 +1085,12 @@ bool KVulkanRenderDevice::CleanupSwapChain()
 bool KVulkanRenderDevice::UnInit()
 {
 	Wait();
+
+#if defined(USE_NSIGHT_AFTERMATH)
+	((GpuCrashTracker*)m_GpuCrashTracker)->Deinitialize();
+	delete ((GpuCrashTracker*)m_GpuCrashTracker);
+	m_GpuCrashTracker = nullptr;
+#endif
 
 	for (KDeviceUnInitCallback* callback : m_UnInitCallback)
 	{
@@ -1205,6 +1224,8 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	KRenderGlobal::NumComputeQueue = (uint32_t)KVulkanGlobal::computeFamilyIndices.size();
 	KRenderGlobal::NumTransferQueue =(uint32_t)KVulkanGlobal::transferFamilyIndices.size();
 
+	KRenderGlobal::SupportAnisotropySample = m_Properties.anisotropySupport;
+
 	// Get properties and features
 	VkPhysicalDeviceProperties2 deviceProperties2 = {};
 	deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
@@ -1237,6 +1258,10 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 
 	// Function pointers for mesh shader
 	KVulkanGlobal::vkCmdDrawMeshTasksNV = reinterpret_cast<PFN_vkCmdDrawMeshTasksNV>(vkGetDeviceProcAddr(m_Device, "vkCmdDrawMeshTasksNV"));
+
+	// Function pointers for nsight
+	KVulkanGlobal::vkCmdSetCheckpointNV = reinterpret_cast<PFN_vkCmdSetCheckpointNV>(vkGetDeviceProcAddr(m_Device, "vkCmdSetCheckpointNV"));
+	KVulkanGlobal::vkGetQueueCheckpointDataNV = reinterpret_cast<PFN_vkGetQueueCheckpointDataNV>(vkGetDeviceProcAddr(m_Device, "vkCmdDrawMeshTasksNV"));
 
 	// Function pointers for debug marker
 	KVulkanGlobal::vkDebugMarkerSetObjectTag = reinterpret_cast<PFN_vkDebugMarkerSetObjectTagEXT>(vkGetDeviceProcAddr(m_Device, "vkDebugMarkerSetObjectTagEXT"));
@@ -1398,6 +1423,15 @@ bool KVulkanRenderDevice::CreateUIOverlay(IKUIOverlayPtr& ui)
 	return true;
 }
 
+bool KVulkanRenderDevice::SetCheckPointMarker(IKCommandBuffer* commandBuffer, uint32_t frameNum, const char* marker)
+{
+#if USE_NSIGHT_AFTERMATH
+	VkCommandBuffer vkCommandBuffer = ((KVulkanCommandBuffer*)commandBuffer)->GetVkHandle();
+	((GpuCrashTracker*)m_GpuCrashTracker)->SetCheckpointMarker(vkCommandBuffer, frameNum, marker);
+#endif
+	return true;
+}
+
 bool KVulkanRenderDevice::Present()
 {
 	VkResult vkResult = VK_RESULT_MAX_ENUM;
@@ -1431,6 +1465,7 @@ bool KVulkanRenderDevice::Present()
 
 		KRenderGlobal::Renderer.Execute(chainImageIndex);
 		VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::Renderer.GetPrimaryCommandBuffer().get())->GetVkHandle();
+
 		vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(chainImageIndex, primaryCommandBuffer);
 
 		for (KDevicePresentCallback* callback : m_PostPresentCallback)

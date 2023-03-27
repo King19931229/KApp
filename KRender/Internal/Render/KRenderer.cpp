@@ -73,6 +73,9 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 {
 	// 开始渲染过程
 	m_PrimaryBuffer->BeginPrimary();
+
+	KRenderGlobal::RenderDevice->SetCheckPointMarker(m_PrimaryBuffer.get(), KRenderGlobal::CurrentFrameNum, "Render");
+
 	{
 		std::vector<KRenderComponent*> cullRes;
 		KRenderGlobal::Scene.GetRenderComponent(*m_Camera, false, cullRes);

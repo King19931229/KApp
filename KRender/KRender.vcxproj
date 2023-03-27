@@ -354,7 +354,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
@@ -366,8 +366,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\Dependency\glfw3\Publish\Debug\x86;..\Dependency\imgui\Publish\Debug\x86;..\Dependency\glslang\Publish\Debug\x86;..\Dependency\SPIRV-Cross\Publish\Debug\x86;..\Dependency\SPIRV-Tools-2022.3\Debug\x64\;..\Dependency\NsightAftermath\lib\x86;$(VK_SDK_PATH)\Lib32</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;SPIRV-Tools.lib;GFSDK_Aftermath_Lib.x86.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x86;..\Dependency\glfw3\Publish\Debug\x86;..\Dependency\imgui\Publish\Debug\x86;..\Dependency\glslang\Publish\Debug\x86;..\Dependency\SPIRV-Cross\Publish\Debug\x86;..\Dependency\SPIRV-Tools-2022.3\Debug\x86\;..\Dependency\NsightAftermath\lib\x86;..\Dependency\NsightAftermath\Publish\Debug\x86;$(VK_SDK_PATH)\Lib32</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;VkNsightAftermath.lib;GFSDK_Aftermath_Lib.x86.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -377,7 +377,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
@@ -391,8 +391,8 @@
       <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;..\Dependency\imgui\Publish\Debug\x64;..\Dependency\Optick\lib\x64\debug\;..\Dependency\glslang\Publish\Debug\x64;..\Dependency\SPIRV-Cross\Publish\Debug\x64;..\Dependency\SPIRV-Tools-2022.3\Debug\x64\;..\Dependency\SPIRV-Tools-2022.3\source\opt\Debug\x64;..\Dependency\NsightAftermath\lib\x64;$(VK_SDK_PATH)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;GFSDK_Aftermath_Lib.x64.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Debug\x64;..\Dependency\glfw3\Publish\Debug\x64;..\Dependency\imgui\Publish\Debug\x64;..\Dependency\Optick\lib\x64\debug\;..\Dependency\glslang\Publish\Debug\x64;..\Dependency\SPIRV-Cross\Publish\Debug\x64;..\Dependency\SPIRV-Tools-2022.3\Debug\x64\;..\Dependency\SPIRV-Tools-2022.3\source\opt\Debug\x64;..\Dependency\NsightAftermath\lib\x64;..\Dependency\NsightAftermath\Publish\Debug\x64;$(VK_SDK_PATH)\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;VkNsightAftermath.lib;GFSDK_Aftermath_Lib.x64.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -400,15 +400,15 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
       <AdditionalOptions>/source-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -417,8 +417,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;SPIRV-Tools.lib;GFSDK_Aftermath_Lib.x86.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\Dependency\glfw3\Publish\Release\x86;..\Dependency\imgui\Publish\Release\x86;..\Dependency\glslang\Publish\Release\x86;..\Dependency\SPIRV-Cross\Publish\Release\x86;..\Dependency\NsightAftermath\lib\x86;..\Dependency\SPIRV-Tools-2022.3\Release\x86\;$(VK_SDK_PATH)\Lib32</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;VkNsightAftermath.lib;GFSDK_Aftermath_Lib.x86.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x86;..\Dependency\glfw3\Publish\Release\x86;..\Dependency\imgui\Publish\Release\x86;..\Dependency\glslang\Publish\Release\x86;..\Dependency\SPIRV-Cross\Publish\Release\x86;..\Dependency\NsightAftermath\lib\x86;..\Dependency\SPIRV-Tools-2022.3\Release\x86\;..\Dependency\NsightAftermath\Publish\Release\x86;$(VK_SDK_PATH)\Lib32</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -429,7 +429,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
@@ -442,8 +442,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;..\Dependency\imgui\Publish\Release\x64;..\Dependency\Optick\lib\x64\release\;..\Dependency\glslang\Publish\Release\x64;..\Dependency\SPIRV-Cross\Publish\Release\x64;..\Dependency\NsightAftermath\lib\x64;..\Dependency\SPIRV-Tools-2022.3\Release\x64\;$(VK_SDK_PATH)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;SPIRV-Tools.lib;GFSDK_Aftermath_Lib.x64.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\KBase\Publish\Release\x64;..\Dependency\glfw3\Publish\Release\x64;..\Dependency\imgui\Publish\Release\x64;..\Dependency\Optick\lib\x64\release\;..\Dependency\glslang\Publish\Release\x64;..\Dependency\SPIRV-Cross\Publish\Release\x64;..\Dependency\NsightAftermath\lib\x64;..\Dependency\SPIRV-Tools-2022.3\Release\x64\;..\Dependency\NsightAftermath\Publish\Release\x64;$(VK_SDK_PATH)\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;imgui.lib;vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OSDependent.lib;OGLCompiler.lib;SPIRV.lib;SPIRV-Cross.lib;SPIRV-Tools.lib;SPIRV-Tools-opt.lib;VkNsightAftermath.lib;GFSDK_Aftermath_Lib.x64.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

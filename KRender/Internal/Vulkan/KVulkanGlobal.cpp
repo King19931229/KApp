@@ -33,6 +33,9 @@ namespace KVulkanGlobal
 
 	PFN_vkCmdDrawMeshTasksNV vkCmdDrawMeshTasksNV = VK_NULL_HANDEL;
 
+	PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV = VK_NULL_HANDEL;
+	PFN_vkGetQueueCheckpointDataNV vkGetQueueCheckpointDataNV = VK_NULL_HANDEL;
+
 	PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTag = VK_NULL_HANDLE;
 	PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectName = VK_NULL_HANDLE;
 	PFN_vkCmdDebugMarkerBeginEXT vkCmdDebugMarkerBegin = VK_NULL_HANDLE;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2021, NVIDIA CORPORATION.  All rights reserved.
+* Copyright (c) 2016-2022, NVIDIA CORPORATION.  All rights reserved.
 *
 * NVIDIA CORPORATION and its licensors retain all intellectual property
 * and proprietary rights in and to this software, related documentation
@@ -78,7 +78,7 @@
 
 GFSDK_AFTERMATH_DECLARE_ENUM(Version)
 {
-    GFSDK_Aftermath_Version_API = 0x000020b  // Version 2.11
+    GFSDK_Aftermath_Version_API = 0x0000212  // Version 2.18
 };
 
 GFSDK_AFTERMATH_DECLARE_ENUM(Result)

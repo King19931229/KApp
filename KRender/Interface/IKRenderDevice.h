@@ -97,6 +97,8 @@ struct IKRenderDevice
 	virtual IKRenderWindow* GetMainWindow() = 0;
 	virtual IKSwapChain* GetSwapChain() = 0;
 	virtual IKUIOverlay* GetUIOverlay() = 0;
+
+	virtual bool SetCheckPointMarker(IKCommandBuffer* commandBuffer, uint32_t frameNum, const char* marker) = 0;
 };
 
 EXPORT_DLL IKRenderDevicePtr CreateRenderDevice(RenderDevice platform);

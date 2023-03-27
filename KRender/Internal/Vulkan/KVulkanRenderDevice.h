@@ -89,6 +89,8 @@ protected:
 	std::vector<IKSwapChain*> m_SecordarySwapChains;
 	IKUIOverlayPtr m_UIOverlay;
 
+	void* m_GpuCrashTracker;
+
 	typedef std::unordered_set<KDevicePresentCallback*> PresentCallbackSet;
 	PresentCallbackSet m_PrePresentCallback;
 	PresentCallbackSet m_PostPresentCallback;
@@ -209,4 +211,6 @@ public:
 	virtual IKSwapChain* GetSwapChain();
 	virtual IKRenderWindow* GetMainWindow();
 	virtual IKUIOverlay* GetUIOverlay();
+
+	virtual bool SetCheckPointMarker(IKCommandBuffer* commandBuffer, uint32_t frameNum, const char* marker);
 };
