@@ -3,9 +3,6 @@
 #include "Interface/IKCodec.h"
 #include "Publish/KAABBBox.h"
 
-#include "stb_image_write.h"
-#define TINYGLTF_NO_STB_IMAGE
-#define TINYGLTF_NO_STB_IMAGE_WRITE
 #define TINYGLTF_NO_EXTERNAL_IMAGE
 #include "tiny_gltf.h"
 
@@ -195,6 +192,10 @@ protected:
 
 	bool AppendMeshIntoResult(NodePtr node, KAssetImportResult& result);
 	bool ConvertIntoResult(const KAssetImportOption& importOption, KAssetImportResult& result);
+
+	static bool LoadImageDataFunction(tinygltf::Image* image, const int image_idx, std::string* err,
+		std::string* warn, int req_width, int req_height,
+		const unsigned char* bytes, int size, void* user_data);
 public:
 	KGLTFLoader();
 	~KGLTFLoader();

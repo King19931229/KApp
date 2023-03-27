@@ -382,9 +382,112 @@ void KGLTFLoader::LoadSkins(tinygltf::Model& gltfModel)
 {
 }
 
+bool KGLTFLoader::LoadImageDataFunction(tinygltf::Image* image, const int image_idx, std::string* err,
+	std::string* warn, int req_width, int req_height,
+	const unsigned char* bytes, int size, void* user_data)
+{
+	(void)warn;
+
+	int w = 0, h = 0, comp = 0, req_comp = 0;
+
+	unsigned char* data = nullptr;
+
+	// preserve_channels true: Use channels stored in the image file.
+	// false: force 32-bit textures for common Vulkan compatibility. It appears
+	// that some GPU drivers do not support 24-bit images for Vulkan
+	req_comp = 4;
+	int bits = 8;
+	int pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+
+	// It is possible that the image we want to load is a 16bit per channel image
+	// We are going to attempt to load it as 16bit per channel, and if it worked,
+	// set the image data accordingly. We are casting the returned pointer into
+	// unsigned char, because we are representing "bytes". But we are updating
+	// the Image metadata to signal that this image uses 2 bytes (16bits) per
+	// channel:
+	if (stbi_is_16_bit_from_memory(bytes, size)) {
+		data = reinterpret_cast<unsigned char*>(
+			stbi_load_16_from_memory(bytes, size, &w, &h, &comp, req_comp));
+		if (data) {
+			bits = 16;
+			pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
+		}
+	}
+
+	// at this point, if data is still NULL, it means that the image wasn't
+	// 16bit per channel, we are going to load it as a normal 8bit per channel
+	// image as we used to do:
+	// if image cannot be decoded, ignore parsing and keep it by its path
+	// don't break in this case
+	// FIXME we should only enter this function if the image is embedded. If
+	// image->uri references
+	// an image file, it should be left as it is. Image loading should not be
+	// mandatory (to support other formats)
+	if (!data) data = stbi_load_from_memory(bytes, size, &w, &h, &comp, req_comp);
+	if (!data) {
+		// NOTE: you can use `warn` instead of `err`
+		if (err) {
+			(*err) +=
+				"Unknown image format. STB cannot decode image data for image[" +
+				std::to_string(image_idx) + "] name = \"" + image->name + "\".\n";
+		}
+		return false;
+	}
+
+	if ((w < 1) || (h < 1)) {
+		stbi_image_free(data);
+		if (err) {
+			(*err) += "Invalid image data for image[" + std::to_string(image_idx) +
+				"] name = \"" + image->name + "\"\n";
+		}
+		return false;
+	}
+
+	if (req_width > 0) {
+		if (req_width != w) {
+			stbi_image_free(data);
+			if (err) {
+				(*err) += "Image width mismatch for image[" +
+					std::to_string(image_idx) + "] name = \"" + image->name +
+					"\"\n";
+			}
+			return false;
+		}
+	}
+
+	if (req_height > 0) {
+		if (req_height != h) {
+			stbi_image_free(data);
+			if (err) {
+				(*err) += "Image height mismatch. for image[" +
+					std::to_string(image_idx) + "] name = \"" + image->name +
+					"\"\n";
+			}
+			return false;
+		}
+	}
+
+	if (req_comp != 0) {
+		// loaded data has `req_comp` channels(components)
+		comp = req_comp;
+	}
+
+	image->width = w;
+	image->height = h;
+	image->component = comp;
+	image->bits = bits;
+	image->pixel_type = pixel_type;
+	image->image.resize(static_cast<size_t>(w * h * comp) * size_t(bits / 8));
+	std::copy(data, data + w * h * comp * (bits / 8), image->image.begin());
+	stbi_image_free(data);
+
+	return true;
+}
+
 bool KGLTFLoader::LoadModel(const char* pszFile, tinygltf::Model& gltfModel)
 {
 	tinygltf::TinyGLTF gltfContext;
+	gltfContext.SetImageLoader(LoadImageDataFunction, this);
 
 	bool binary = IsBinary(pszFile);
 

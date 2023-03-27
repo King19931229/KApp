@@ -522,6 +522,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NsightAftermath", "NsightAf
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VkNsightAftermath", "Dependency\NsightAftermath\VkNsightAftermath\VkNsightAftermath.vcxproj", "{BB0F5706-58D2-428F-8033-14BE5AF55B78}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tinygltf", "tinygltf", "{0C0E3FA5-9744-4624-A02D-1C3341EC2A3A}"
+	ProjectSection(SolutionItems) = preProject
+		Dependency\tinygltf\json.hpp = Dependency\tinygltf\json.hpp
+		Dependency\tinygltf\stb_image.h = Dependency\tinygltf\stb_image.h
+		Dependency\tinygltf\stb_image_write.h = Dependency\tinygltf\stb_image_write.h
+		Dependency\tinygltf\tiny_gltf.h = Dependency\tinygltf\tiny_gltf.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -878,9 +886,10 @@ Global
 		{15562876-6D1B-32A4-9944-6D4F0994FA84} = {56D0AEEC-1FAB-4B8C-95E4-9539D750BCCC}
 		{9D52FA85-8B61-4896-B3D9-7C84F14604D1} = {88511D86-7E5A-4AFB-81C3-95F8B8B93757}
 		{BB0F5706-58D2-428F-8033-14BE5AF55B78} = {9D52FA85-8B61-4896-B3D9-7C84F14604D1}
+		{0C0E3FA5-9744-4624-A02D-1C3341EC2A3A} = {88511D86-7E5A-4AFB-81C3-95F8B8B93757}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {1115F9E8-89D6-4C8C-B442-7129EDD27135}
 		Qt5Version = 5.12.3_msvc2017_64
+		SolutionGuid = {1115F9E8-89D6-4C8C-B442-7129EDD27135}
 	EndGlobalSection
 EndGlobal

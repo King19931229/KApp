@@ -76,7 +76,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="QtSettings">
     <QtModules>core;gui;widgets</QtModules>
-    <QtInstall>5.12.3_msvc2017_64</QtInstall>
+    <QtInstall>5.12.3_msvc2017</QtInstall>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <QtModules>core;gui;widgets</QtModules>
@@ -84,7 +84,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="QtSettings">
     <QtModules>core;gui;widgets</QtModules>
-    <QtInstall>5.12.3_msvc2017_64</QtInstall>
+    <QtInstall>5.12.3_msvc2017</QtInstall>
   </PropertyGroup>
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.props')">
     <Import Project="$(QtMsBuild)\qt.props" />

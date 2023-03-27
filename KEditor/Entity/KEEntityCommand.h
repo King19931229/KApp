@@ -33,7 +33,7 @@ public:
 	template<typename Func>
 	void ForwardExecute(Func func)
 	{
-		for (auto& it = m_Entites.begin(), itEnd = m_Entites.end();
+		for (auto it = m_Entites.begin(), itEnd = m_Entites.end();
 			it != itEnd; ++it)
 		{
 			KEEntityPtr entity = *it;
@@ -44,7 +44,7 @@ public:
 	template<typename Func>
 	void BackwardExecute(Func func)
 	{
-		for (auto& it = m_Entites.rbegin(), itEnd = m_Entites.rend();
+		for (auto it = m_Entites.rbegin(), itEnd = m_Entites.rend();
 			it != itEnd; ++it)
 		{
 			KEEntityPtr entity = *it;
