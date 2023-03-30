@@ -48,7 +48,6 @@ protected:
 
 	IKCommandPoolPtr m_CommandPool;
 	IKCommandBufferPtr m_PrimaryBuffer;
-	IKCommandBufferPtr m_SecondaryBuffer;
 
 	bool m_DisplayCameraCube;
 	bool m_CameraOutdate;

@@ -32,13 +32,7 @@ protected:
 	std::unordered_set<IKPostProcessConnectionPtr> m_DeletedConnections;
 
 	static const KVertexDefinition::SCREENQUAD_POS_2F ms_Vertices[4];
-	static const uint32_t ms_Indices[6];
-
-	KVertexData m_SharedVertexData;
-	KIndexData m_SharedIndexData;
-
-	IKVertexBufferPtr m_SharedVertexBuffer;
-	IKIndexBufferPtr m_SharedIndexBuffer;
+	static const uint16_t ms_Indices[6];
 
 	KShaderRef m_ScreenDrawVS;
 	KShaderRef m_ScreenDrawFS;

@@ -141,17 +141,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		m_PrimaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		m_PrimaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
-		{
-			m_SecondaryBuffer->BeginSecondary(renderPass);
-			m_SecondaryBuffer->SetViewport(renderPass->GetViewPort());
-
-			KRenderGlobal::DeferredRenderer.DrawFinalResult(renderPass, m_SecondaryBuffer);
-
-			m_SecondaryBuffer->End();
-			m_PrimaryBuffer->Execute(m_SecondaryBuffer);
-		}
-		m_PrimaryBuffer->EndRenderPass();
+		KRenderGlobal::DeferredRenderer.DrawFinalResult(renderPass, m_PrimaryBuffer);
 
 		m_PrimaryBuffer->Translate(offscreenTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
@@ -212,8 +202,6 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 	device->CreateCommandBuffer(m_PrimaryBuffer);
 	m_PrimaryBuffer->Init(m_CommandPool, CBL_PRIMARY);
-	device->CreateCommandBuffer(m_SecondaryBuffer);
-	m_SecondaryBuffer->Init(m_CommandPool, CBL_SECONDARY);
 
 	m_DebugCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 	{
@@ -243,6 +231,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
 		{
 			KRenderGlobal::Voxilzer.DebugRender(renderPass, primaryBuffer);
+			KRenderGlobal::Voxilzer.OctreeRayTestRender(renderPass, primaryBuffer);
 		}
 		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
@@ -297,7 +286,6 @@ bool KRenderer::UnInit()
 	m_UIOverlay = nullptr;
 	m_CameraCube = nullptr;
 
-	SAFE_UNINIT(m_SecondaryBuffer);
 	SAFE_UNINIT(m_PrimaryBuffer);
 	SAFE_UNINIT(m_CommandPool);
 

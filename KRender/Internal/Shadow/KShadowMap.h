@@ -11,8 +11,6 @@ protected:
 	IKRenderTargetPtr m_RenderTarget;
 	IKRenderPassPtr m_RenderPass;
 	IKSamplerPtr m_ShadowSampler;
-	IKCommandBufferPtr m_CommandBuffer;
-	IKCommandPoolPtr m_CommandPool;
 
 	KCamera m_Camera;
 	KCullSystem m_CullSystem;

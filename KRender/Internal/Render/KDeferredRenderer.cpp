@@ -34,10 +34,6 @@ void KDeferredRenderer::Init(const KCamera* camera, uint32_t width, uint32_t hei
 
 	for (uint32_t i = 0; i < DRS_STAGE_COUNT; ++i)
 	{
-		IKCommandBufferPtr& buffer = m_CommandBuffers[i];
-		ASSERT_RESULT(renderDevice->CreateCommandBuffer(buffer));
-		ASSERT_RESULT(buffer->Init(m_CommandPool, CBL_SECONDARY));
-
 		KRenderGlobal::Statistics.RegisterRenderStage(GDeferredRenderStageDescription[i].debugMarker);
 	}
 
@@ -68,7 +64,6 @@ void KDeferredRenderer::UnInit()
 	SAFE_UNINIT(m_EmptyAORenderPass);
 	for (uint32_t i = 0; i < DRS_STAGE_COUNT; ++i)
 	{
-		SAFE_UNINIT(m_CommandBuffers[i]);
 		SAFE_UNINIT(m_RenderPass[i]);
 		m_RenderCallFuncs[i].clear();
 		KRenderGlobal::Statistics.UnRegisterRenderStage(GDeferredRenderStageDescription[i].debugMarker);
@@ -545,26 +540,19 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 		}
 	}
 
-	IKCommandBufferPtr commandBuffer = m_CommandBuffers[renderStage];
-
 	primaryBuffer->BeginDebugMarker(debugMarker, glm::vec4(0, 1, 0, 0));
-	primaryBuffer->BeginRenderPass(m_RenderPass[renderStage], SUBPASS_CONTENTS_SECONDARY);
-
-	commandBuffer->BeginSecondary(m_RenderPass[renderStage]);
-	commandBuffer->SetViewport(m_RenderPass[renderStage]->GetViewPort());
+	primaryBuffer->BeginRenderPass(m_RenderPass[renderStage], SUBPASS_CONTENTS_INLINE);
+	primaryBuffer->SetViewport(m_RenderPass[renderStage]->GetViewPort());
 
 	for (KRenderCommand& command : commands)
 	{
 		IKPipelineHandlePtr handle = nullptr;
 		if (command.pipeline->GetHandle(m_RenderPass[renderStage], handle))
 		{
-			commandBuffer->Render(command);
+			primaryBuffer->Render(command);
 		}
 	}
 
-	commandBuffer->End();
-
-	primaryBuffer->Execute(commandBuffer);
 	primaryBuffer->EndRenderPass();
 	primaryBuffer->EndDebugMarker();
 
@@ -574,7 +562,9 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 void KDeferredRenderer::EmptyAO(IKCommandBufferPtr primaryBuffer)
 {
 	primaryBuffer->BeginDebugMarker("EmptyAO", glm::vec4(0, 1, 0, 0));
-	primaryBuffer->BeginRenderPass(m_EmptyAORenderPass, SUBPASS_CONTENTS_SECONDARY);
+	primaryBuffer->BeginRenderPass(m_EmptyAORenderPass, SUBPASS_CONTENTS_INLINE);
+	primaryBuffer->SetViewport(m_EmptyAORenderPass->GetViewPort());
+
 	primaryBuffer->EndRenderPass();
 	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	primaryBuffer->EndDebugMarker();
@@ -583,7 +573,8 @@ void KDeferredRenderer::EmptyAO(IKCommandBufferPtr primaryBuffer)
 void KDeferredRenderer::Foreground(IKCommandBufferPtr primaryBuffer)
 {
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_FOREGROUND].debugMarker, glm::vec4(0, 1, 0, 0));
-	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_FOREGROUND], SUBPASS_CONTENTS_SECONDARY);
+	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_FOREGROUND], SUBPASS_CONTENTS_INLINE);
+	primaryBuffer->SetViewport(m_RenderPass[DRS_STATE_FOREGROUND]->GetViewPort());
 
 	std::for_each(m_RenderCallFuncs[DRS_STATE_FOREGROUND].begin(), m_RenderCallFuncs[DRS_STATE_FOREGROUND].end(), [this, primaryBuffer](RenderPassCallFuncType* func)
 	{
@@ -597,7 +588,8 @@ void KDeferredRenderer::Foreground(IKCommandBufferPtr primaryBuffer)
 void KDeferredRenderer::SkyPass(IKCommandBufferPtr primaryBuffer)
 {
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_SKY].debugMarker, glm::vec4(0, 1, 0, 0));
-	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_SKY], SUBPASS_CONTENTS_SECONDARY);
+	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_SKY], SUBPASS_CONTENTS_INLINE);
+	primaryBuffer->SetViewport(m_RenderPass[DRS_STATE_SKY]->GetViewPort());
 
 	KRenderGlobal::SkyBox.Render(m_RenderPass[DRS_STATE_SKY], primaryBuffer);
 
@@ -611,7 +603,6 @@ void KDeferredRenderer::CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer)
 
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_COPY_SCENE_COLOR].debugMarker, glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_COPY_SCENE_COLOR], SUBPASS_CONTENTS_INLINE);
-
 	primaryBuffer->SetViewport(m_RenderPass[DRS_STATE_COPY_SCENE_COLOR]->GetViewPort());
 
 	KRenderCommand command;
@@ -645,7 +636,8 @@ void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer, cons
 void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 {
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].debugMarker, glm::vec4(0, 1, 0, 0));
-	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_DEBUG_OBJECT], SUBPASS_CONTENTS_SECONDARY);
+	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_DEBUG_OBJECT], SUBPASS_CONTENTS_INLINE);
+	primaryBuffer->SetViewport(m_RenderPass[DRS_STATE_DEBUG_OBJECT]->GetViewPort());
 
 	KRenderStageStatistics& statistics = m_Statistics[DRS_STATE_DEBUG_OBJECT];
 	statistics.Reset();
@@ -732,23 +724,14 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 		}
 	}
 
-	IKCommandBufferPtr commandBuffer = m_CommandBuffers[DRS_STATE_DEBUG_OBJECT];
-
-	commandBuffer->BeginSecondary(m_RenderPass[DRS_STATE_DEBUG_OBJECT]);
-	commandBuffer->SetViewport(m_RenderPass[DRS_STATE_DEBUG_OBJECT]->GetViewPort());
-
 	for (KRenderCommand& command : commands)
 	{
 		IKPipelineHandlePtr handle = nullptr;
 		if (command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], handle))
 		{
-			commandBuffer->Render(command);
+			primaryBuffer->Render(command);
 		}
 	}
-
-	commandBuffer->End();
-
-	primaryBuffer->Execute(commandBuffer);
 
 	std::for_each(m_RenderCallFuncs[DRS_STATE_DEBUG_OBJECT].begin(), m_RenderCallFuncs[DRS_STATE_DEBUG_OBJECT].end(), [this, primaryBuffer](RenderPassCallFuncType* func)
 	{
@@ -764,9 +747,9 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 void KDeferredRenderer::DeferredLighting(IKCommandBufferPtr primaryBuffer)
 {
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STAGE_DEFERRED_LIGHTING].debugMarker, glm::vec4(0, 1, 0, 0));
-	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STAGE_DEFERRED_LIGHTING], SUBPASS_CONTENTS_SECONDARY);
+	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STAGE_DEFERRED_LIGHTING], SUBPASS_CONTENTS_INLINE);
+	primaryBuffer->SetViewport(m_RenderPass[DRS_STAGE_DEFERRED_LIGHTING]->GetViewPort());
 
-	IKCommandBufferPtr commandBuffer = m_CommandBuffers[DRS_STAGE_DEFERRED_LIGHTING];
 	IKRenderPassPtr renderPass = m_RenderPass[DRS_STAGE_DEFERRED_LIGHTING];
 
 	KRenderCommand command;
@@ -786,26 +769,28 @@ void KDeferredRenderer::DeferredLighting(IKCommandBufferPtr primaryBuffer)
 	command.debugUsage.range = sizeof(debugUsage);
 	KRenderGlobal::DynamicConstantBufferManager.Alloc(&debugUsage, command.debugUsage);
 
-	commandBuffer->BeginSecondary(renderPass);
-	commandBuffer->SetViewport(renderPass->GetViewPort());
-	commandBuffer->Render(command);
-	commandBuffer->End();
+	primaryBuffer->Render(command);
 
-	primaryBuffer->Execute(commandBuffer);
 	primaryBuffer->EndRenderPass();
-
 	primaryBuffer->EndDebugMarker();
 }
 
-void KDeferredRenderer::DrawFinalResult(IKRenderPassPtr renderPass, IKCommandBufferPtr buffer)
+void KDeferredRenderer::DrawFinalResult(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
+	primaryBuffer->BeginDebugMarker("DrawFinalResult", glm::vec4(1,0,0,0));
+	primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+	primaryBuffer->SetViewport(renderPass->GetViewPort());
+
 	KRenderCommand command;
 	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
 	command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
 	command.pipeline = m_DrawFinalPipeline;
 	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 	command.indexDraw = true;
-	buffer->Render(command);
+	primaryBuffer->Render(command);
+
+	primaryBuffer->EndRenderPass();
+	primaryBuffer->EndDebugMarker();
 }
 
 void KDeferredRenderer::ReloadShader()

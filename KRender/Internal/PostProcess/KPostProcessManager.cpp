@@ -27,7 +27,7 @@ const KVertexDefinition::SCREENQUAD_POS_2F KPostProcessManager::ms_Vertices[] =
 	glm::vec2(-1.0f, 1.0f)
 };
 
-const uint32_t KPostProcessManager::ms_Indices[] = {0, 1, 2, 2, 3, 0};
+const uint16_t KPostProcessManager::ms_Indices[] = {0, 1, 2, 2, 3, 0};
 
 KPostProcessManager::KPostProcessManager()
 	: m_Device(nullptr),
@@ -44,8 +44,6 @@ KPostProcessManager::~KPostProcessManager()
 	assert(m_AllNodes.empty());
 	assert(m_StartPointPass == nullptr);
 	assert(m_CommandPool == nullptr);
-	assert(m_SharedVertexBuffer == nullptr);
-	assert(m_SharedIndexBuffer == nullptr);
 }
 
 bool KPostProcessManager::Init(IKRenderDevice* device,
@@ -71,23 +69,6 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_Device->CreateCommandPool(m_CommandPool);
 	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
 
-	m_Device->CreateVertexBuffer(m_SharedVertexBuffer);
-	m_SharedVertexBuffer->InitMemory(ARRAY_SIZE(ms_Vertices), sizeof(ms_Vertices[0]), ms_Vertices);
-	m_SharedVertexBuffer->InitDevice(false);
-
-	m_Device->CreateIndexBuffer(m_SharedIndexBuffer);
-	m_SharedIndexBuffer->InitMemory(IT_32, ARRAY_SIZE(ms_Indices), ms_Indices);
-	m_SharedIndexBuffer->InitDevice(false);
-
-	m_SharedVertexData.vertexStart = 0;
-	m_SharedVertexData.vertexCount = ARRAY_SIZE(ms_Vertices);
-	m_SharedVertexData.vertexFormats = std::vector<VertexFormat>(1, VF_SCREENQUAD_POS);
-	m_SharedVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_SharedVertexBuffer);
-
-	m_SharedIndexData.indexStart = 0;
-	m_SharedIndexData.indexCount = ARRAY_SIZE(ms_Indices);
-	m_SharedIndexData.indexBuffer = m_SharedIndexBuffer;
-
 	m_StartPointPass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, frameInFlight, POST_PROCESS_STAGE_START_POINT));
 	KPostProcessPass* pass = static_cast<KPostProcessPass*>(m_StartPointPass.get());
 	pass->SetFormat(startFormat);
@@ -105,12 +86,6 @@ bool KPostProcessManager::UnInit()
 
 	m_ScreenDrawVS.Release();
 	m_ScreenDrawFS.Release();
-
-	m_SharedVertexData.Destroy();
-	m_SharedIndexData.Destroy();
-
-	m_SharedVertexBuffer = nullptr;
-	m_SharedIndexBuffer = nullptr;
 
 	ClearDeletedPassConnection();
 	ClearCreatedPassConnection();
@@ -400,12 +375,12 @@ bool KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipel
 	IKPipelineHandlePtr pipeHandle = nullptr;
 	if (pipeline->GetHandle(renderPass, pipeHandle))
 	{
-		command.vertexData = &m_SharedVertexData;
-		command.indexData = &m_SharedIndexData;
+		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+		command.indexDraw = true;
+
 		command.pipeline = pipeline;
 		command.pipelineHandle = pipeHandle;
-
-		command.indexDraw = true;
 
 		return true;
 	}

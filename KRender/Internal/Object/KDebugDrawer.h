@@ -1,31 +1,9 @@
 #pragma once
 #include "Interface/IKRenderCommand.h"
 #include "Interface/IKCommandBuffer.h"
+#include "Interface/IKShader.h"
+#include "Interface/IKSampler.h"
 #include "Internal/KVertexDefinition.h"
-
-struct KDebugDrawSharedData
-{
-	friend class KRTDebugDrawer;
-protected:
-	static const KVertexDefinition::SCREENQUAD_POS_2F ms_BackGroundVertices[4];
-	static const uint16_t ms_BackGroundIndices[6];
-	static const VertexFormat ms_VertexFormats[1];
-
-	static IKVertexBufferPtr ms_BackGroundVertexBuffer;
-	static IKIndexBufferPtr ms_BackGroundIndexBuffer;
-
-	static IKShaderPtr ms_DebugVertexShader;
-	static IKShaderPtr ms_DebugFragmentShader;
-
-	static KVertexData ms_DebugVertexData;
-	static KIndexData ms_DebugIndexData;
-
-	static IKSamplerPtr ms_LinearSampler;
-	static IKSamplerPtr ms_ClosestSampler;
-public:
-	static bool Init();
-	static bool UnInit();
-};
 
 class KRTDebugDrawer
 {
@@ -40,15 +18,17 @@ protected:
 		{
 			x = y = w = h = 0;
 		}
-	}m_Rect;
+	};
+	Rect m_Rect;
 	glm::mat4 m_Clip;
 	IKPipelinePtr m_Pipeline;
 	IKRenderTargetPtr m_Target;
-
-	IKCommandPoolPtr m_CommandPool;
-	IKCommandBufferPtr m_SecondaryBuffer;
-
 	bool m_Enable;
+
+	KShaderRef m_VSShader;
+	KShaderRef m_FSShader;
+
+	KSamplerRef m_Sampler;
 
 	void Move(KRTDebugDrawer&& rhs);
 public:

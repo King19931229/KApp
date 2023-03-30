@@ -35,7 +35,7 @@ bool KQuadDataProvider::Init()
 	KRenderGlobal::RenderDevice->CreateIndexBuffer(m_QuadIndexBuffer);
 	m_QuadIndexBuffer->InitMemory(IT_16, ARRAY_SIZE(ms_QuadIndices), ms_QuadIndices);
 	m_QuadIndexBuffer->InitDevice(false);
-	m_QuadVertexBuffer->SetDebugName("QuadIndexBuffer");
+	m_QuadIndexBuffer->SetDebugName("QuadIndexBuffer");
 
 	m_QuadVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_QuadVertexBuffer);
 	m_QuadVertexData.vertexFormats = std::vector<VertexFormat>(ms_QuadFormats, ms_QuadFormats + ARRAY_SIZE(ms_QuadFormats));

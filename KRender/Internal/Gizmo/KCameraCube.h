@@ -39,9 +39,6 @@ protected:
 	IKPipelinePtr m_CubePipeline;
 	IKPipelinePtr m_PickPipeline;
 
-	IKCommandBufferPtr m_CommandBuffer;
-	IKCommandPoolPtr m_CommandPool;
-
 	// Buffer
 	IKVertexBufferPtr m_BackGroundVertexBuffer;
 	IKIndexBufferPtr m_BackGroundIndexBuffer;

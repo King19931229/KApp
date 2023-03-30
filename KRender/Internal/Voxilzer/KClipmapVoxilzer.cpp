@@ -221,9 +221,6 @@ bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPt
 	if (!m_VoxelDrawEnable)
 		return true;
 
-	m_DrawCommandBuffer->BeginSecondary(renderPass);
-	m_DrawCommandBuffer->SetViewport(renderPass->GetViewPort());
-
 	KRenderCommand command;
 	command.vertexData = &m_VoxelDrawVertexData;
 	command.indexData = nullptr;
@@ -245,12 +242,8 @@ bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPt
 		command.objectUsage.binding = SHADER_BINDING_OBJECT;
 		command.objectUsage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
-		m_DrawCommandBuffer->Render(command);
+		primaryBuffer->Render(command);
 	}
-
-	m_DrawCommandBuffer->End();
-
-	primaryBuffer->Execute(m_DrawCommandBuffer);
 
 	return true;
 }
@@ -270,7 +263,8 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 
 	{
 		primaryBuffer->BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(0, 1, 0, 0));
-		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_SECONDARY);
+		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
 
 		KRenderCommand command;
 		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -283,12 +277,8 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 		command.objectUsage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-		m_LightingCommandBuffer->BeginSecondary(m_LightPassRenderPass);
-		m_LightingCommandBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
-		m_LightingCommandBuffer->Render(command);
-		m_LightingCommandBuffer->End();
+		primaryBuffer->Render(command);
 
-		primaryBuffer->Execute(m_LightingCommandBuffer);
 		primaryBuffer->EndRenderPass();
 
 		primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -297,7 +287,8 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 
 	{
 		primaryBuffer->BeginDebugMarker("VoxelClipmapLightComposePass", glm::vec4(0, 1, 0, 0));
-		primaryBuffer->BeginRenderPass(m_LightComposeRenderPass, SUBPASS_CONTENTS_SECONDARY);
+		primaryBuffer->BeginRenderPass(m_LightComposeRenderPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_LightComposeRenderPass->GetViewPort());
 
 		KRenderCommand command;
 		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -310,12 +301,8 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 		command.objectUsage.range = sizeof(objectData);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-		m_LightComposeCommandBuffer->BeginSecondary(m_LightComposeRenderPass);
-		m_LightComposeCommandBuffer->SetViewport(m_LightComposeRenderPass->GetViewPort());
-		m_LightComposeCommandBuffer->Render(command);
-		m_LightComposeCommandBuffer->End();
+		primaryBuffer->Render(command);
 
-		primaryBuffer->Execute(m_LightComposeCommandBuffer);
 		primaryBuffer->EndRenderPass();
 
 		primaryBuffer->Translate(m_LightComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -1304,13 +1291,6 @@ bool KClipmapVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_
 	renderDevice->CreateRenderPass(m_LightPassRenderPass);
 	renderDevice->CreateRenderPass(m_LightComposeRenderPass);
 
-	renderDevice->CreateCommandBuffer(m_DrawCommandBuffer);
-	m_DrawCommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
-	renderDevice->CreateCommandBuffer(m_LightingCommandBuffer);
-	m_LightingCommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
-	renderDevice->CreateCommandBuffer(m_LightComposeCommandBuffer);
-	m_LightComposeCommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
-
 	const glm::vec3& cameraPos = m_Camera->GetPosition();
 	for (uint32_t i = 0; i < m_ClipLevelCount; ++i)
 	{
@@ -1357,10 +1337,6 @@ bool KClipmapVoxilzer::UnInit()
 	SAFE_UNINIT(m_LightPassRenderPass);
 	SAFE_UNINIT(m_LightComposeRenderPass);
 
-	SAFE_UNINIT(m_DrawCommandBuffer);
-	SAFE_UNINIT(m_LightComposeCommandBuffer);
-	SAFE_UNINIT(m_LightComposeCommandBuffer);
-	SAFE_UNINIT(m_LightingCommandBuffer);
 	SAFE_UNINIT(m_PrimaryCommandBuffer);
 	SAFE_UNINIT(m_CommandPool);
 

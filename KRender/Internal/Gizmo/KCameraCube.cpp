@@ -471,9 +471,6 @@ bool KCameraCube::Init(IKRenderDevice* renderDevice, KCamera* camera)
 
 	m_Camera = camera;
 
-	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
 	renderDevice->CreateShader(m_VertexShader);
 	renderDevice->CreateShader(m_FragmentShader);
 
@@ -495,9 +492,6 @@ bool KCameraCube::Init(IKRenderDevice* renderDevice, KCamera* camera)
 	}
 	renderDevice->CreateIndexBuffer(m_CornerIndexBuffer);
 
-	ASSERT_RESULT(renderDevice->CreateCommandBuffer(m_CommandBuffer));
-	ASSERT_RESULT(m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY));
-
 	KRenderGlobal::RenderDevice->CreatePipeline(m_BackGroundPipeline);
 	KRenderGlobal::RenderDevice->CreatePipeline(m_CubePipeline);
 	KRenderGlobal::RenderDevice->CreatePipeline(m_PickPipeline);
@@ -517,8 +511,6 @@ bool KCameraCube::UnInit()
 	SAFE_UNINIT(m_CubePipeline);
 	SAFE_UNINIT(m_PickPipeline);
 
-	SAFE_UNINIT(m_CommandBuffer);
-
 	SAFE_UNINIT(m_BackGroundVertexBuffer);
 	SAFE_UNINIT(m_BackGroundIndexBuffer);
 	SAFE_UNINIT(m_CubeVertexBuffer);
@@ -532,8 +524,6 @@ bool KCameraCube::UnInit()
 
 	SAFE_UNINIT(m_VertexShader);
 	SAFE_UNINIT(m_FragmentShader);
-
-	SAFE_UNINIT(m_CommandPool);
 
 	return true;
 }
@@ -995,16 +985,11 @@ bool KCameraCube::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryB
 	KRenderCommandList commands;
 	if (GetRenderCommand(commands))
 	{
-		IKCommandBufferPtr commandBuffer = m_CommandBuffer;
-		commandBuffer->BeginSecondary(renderPass);
-		commandBuffer->SetViewport(renderPass->GetViewPort());
 		for (KRenderCommand& command : commands)
 		{
 			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
-			commandBuffer->Render(command);
+			primaryBuffer->Render(command);
 		}
-		commandBuffer->End();	
-		primaryBuffer->Execute(commandBuffer);
 		return true;
 	}
 	return false;

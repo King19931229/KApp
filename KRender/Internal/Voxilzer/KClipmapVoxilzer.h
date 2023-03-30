@@ -153,9 +153,6 @@ protected:
 	float m_ScreenRatio;
 
 	IKCommandBufferPtr m_PrimaryCommandBuffer;
-	IKCommandBufferPtr m_DrawCommandBuffer;
-	IKCommandBufferPtr m_LightingCommandBuffer;
-	IKCommandBufferPtr m_LightComposeCommandBuffer;
 	IKCommandPoolPtr m_CommandPool;
 
 	IKRenderTargetPtr m_VoxelRenderPassTarget;

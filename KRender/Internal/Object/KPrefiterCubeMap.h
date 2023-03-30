@@ -49,12 +49,6 @@ protected:
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 
-	KVertexData m_SharedVertexData;
-	KIndexData m_SharedIndexData;
-
-	IKVertexBufferPtr m_SharedVertexBuffer;
-	IKIndexBufferPtr m_SharedIndexBuffer;
-
 	KShaderMap m_DiffuseIrradianceShaderMap;
 	KShaderMap m_SpecularIrradianceShaderMap;
 	KShaderMap m_IntegrateBRDFShaderMap;

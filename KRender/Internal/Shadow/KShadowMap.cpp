@@ -25,9 +25,6 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice, uint32_t shadowMapSize)
 {
 	ASSERT_RESULT(UnInit());
 
-	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
 	renderDevice->CreateSampler(m_ShadowSampler);
 	m_ShadowSampler->SetAddressMode(AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE, AM_CLAMP_TO_EDGE);
 	m_ShadowSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
@@ -41,9 +38,6 @@ bool KShadowMap::Init(IKRenderDevice* renderDevice, uint32_t shadowMapSize)
 	m_RenderPass->SetClearDepthStencil({ 1.0f, 0 });
 	ASSERT_RESULT(m_RenderPass->Init());
 
-	renderDevice->CreateCommandBuffer(m_CommandBuffer);
-	m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
-
 	return true;
 }
 
@@ -51,9 +45,7 @@ bool KShadowMap::UnInit()
 {
 	SAFE_UNINIT(m_RenderTarget);
 	SAFE_UNINIT(m_RenderPass);
-	SAFE_UNINIT(m_CommandBuffer);
 	SAFE_UNINIT(m_ShadowSampler);
-	SAFE_UNINIT(m_CommandPool);
 
 	return true;
 }
@@ -101,17 +93,13 @@ bool KShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 		std::vector<KRenderComponent*> cullRes;
 		KRenderGlobal::Scene.GetRenderComponent(m_Camera, false, cullRes);
 
-		IKCommandBufferPtr commandBuffer = m_CommandBuffer;
-
 		primaryBuffer->BeginDebugMarker("SM", glm::vec4(0, 1, 0, 0));
-		primaryBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_SECONDARY);
-
-		commandBuffer->BeginSecondary(m_RenderPass);
-		commandBuffer->SetViewport(m_RenderPass->GetViewPort());
+		primaryBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_RenderPass->GetViewPort());
 
 		// Set depth bias (aka "Polygon offset")
 		// Required to avoid shadow mapping artefacts
-		commandBuffer->SetDepthBias(m_DepthBiasConstant, 0, m_DepthBiasSlope);
+		primaryBuffer->SetDepthBias(m_DepthBiasConstant, 0, m_DepthBiasSlope);
 		{
 			KRenderCommandList commandList;
 			for (KRenderComponent* component : cullRes)
@@ -145,14 +133,11 @@ bool KShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 				if (command.pipeline->GetHandle(m_RenderPass, handle))
 				{
 					command.pipelineHandle = handle;
-					commandBuffer->Render(command);
+					primaryBuffer->Render(command);
 				}
 			}
 		}
 
-		commandBuffer->End();
-
-		primaryBuffer->Execute(commandBuffer);
 		primaryBuffer->EndRenderPass();
 		primaryBuffer->EndDebugMarker();
 	}

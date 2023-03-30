@@ -857,7 +857,7 @@ bool KMaterial::InitFromImportAssetMaterial(const KAssetImportResult::Material& 
 
 	for (uint32_t i = 0; i < MTS_COUNT; ++i)
 	{
-		assert(!input.url[i].empty() || input.codecs[i].pData);
+		// assert(!input.url[i].empty() || input.codecs[i].pData);
 
 		bool texCoordSetAccept = false;
 		if (i == MTS_BASE_COLOR && input.texCoordSets.baseColor == 0 ||

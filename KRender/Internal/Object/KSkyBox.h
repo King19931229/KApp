@@ -13,9 +13,6 @@ protected:
 
 	IKPipelinePtr m_Pipeline;
 
-	IKCommandBufferPtr m_CommandBuffer;
-	IKCommandPoolPtr m_CommandPool;
-
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 

@@ -282,6 +282,7 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 		ms_CommandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 		ms_CommandBuffer->BeginDebugMarker("ClipmapUpdate", glm::vec4(0, 1, 0, 0));
 		ms_CommandBuffer->BeginRenderPass(m_UpdateRenderPass, SUBPASS_CONTENTS_INLINE);
+		ms_CommandBuffer->SetViewport(m_UpdateRenderPass->GetViewPort());
 
 		IKPipelineHandlePtr pipeHandle = nullptr;
 		KRenderCommand command;

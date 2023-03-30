@@ -48,7 +48,7 @@ bool KRenderCore::InitPostProcess()
 	size_t width = 0, height = 0;
 	m_Window->GetSize(width, height);
 
-	KRenderGlobal::PostProcessManager.Init(m_Device, width, height, 2, EF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
+	KRenderGlobal::PostProcessManager.Init(m_Device, width, height, 1, EF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
 #if 0
 	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
@@ -105,15 +105,11 @@ bool KRenderCore::InitGlobalManager()
 
 	KRenderGlobal::QuadDataProvider.Init();
 
-	KDebugDrawSharedData::Init();
-
 	return true;
 }
 
 bool KRenderCore::UnInitGlobalManager()
 {
-	KDebugDrawSharedData::UnInit();
-
 	KRenderGlobal::QuadDataProvider.UnInit();
 
 	KRenderGlobal::MeshManager.UnInit();

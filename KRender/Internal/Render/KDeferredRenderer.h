@@ -13,7 +13,6 @@ protected:
 	IKCommandPoolPtr		m_CommandPool;
 	IKRenderPassPtr			m_RenderPass[DRS_STAGE_COUNT];
 	KRenderStageStatistics	m_Statistics[DRS_STAGE_COUNT];
-	IKCommandBufferPtr		m_CommandBuffers[DRS_STAGE_COUNT];
 	RenderPassCallFuncList	m_RenderCallFuncs[DRS_STAGE_COUNT];
 	IKRenderPassPtr			m_EmptyAORenderPass;
 

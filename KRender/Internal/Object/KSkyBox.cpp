@@ -119,15 +119,9 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, const char* cubeTexPath)
 
 	ASSERT_RESULT(UnInit());
 
-	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
 	renderDevice->CreateSampler(m_CubeSampler);
 	renderDevice->CreateVertexBuffer(m_VertexBuffer);
 	renderDevice->CreateIndexBuffer(m_IndexBuffer);
-
-	renderDevice->CreateCommandBuffer(m_CommandBuffer);
-	m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
 
 	KRenderGlobal::RenderDevice->CreatePipeline(m_Pipeline);
 
@@ -141,7 +135,6 @@ bool KSkyBox::Init(IKRenderDevice* renderDevice, const char* cubeTexPath)
 bool KSkyBox::UnInit()
 {
 	SAFE_UNINIT(m_Pipeline);
-	SAFE_UNINIT(m_CommandBuffer);
 	SAFE_UNINIT(m_VertexBuffer);
 	SAFE_UNINIT(m_IndexBuffer);
 
@@ -151,7 +144,6 @@ bool KSkyBox::UnInit()
 	m_CubeTexture.Release();
 
 	SAFE_UNINIT(m_CubeSampler);
-	SAFE_UNINIT(m_CommandPool);
 
 	m_VertexData.Reset();
 	m_IndexData.Reset();
@@ -168,13 +160,7 @@ bool KSkyBox::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffe
 	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 	command.indexDraw = true;
 
-	IKCommandBufferPtr commandBuffer = m_CommandBuffer;
+	primaryBuffer->Render(command);
 
-	commandBuffer->BeginSecondary(renderPass);
-	commandBuffer->SetViewport(renderPass->GetViewPort());
-	commandBuffer->Render(command);
-	commandBuffer->End();
-
-	primaryBuffer->Execute(commandBuffer);
 	return true;
 }

@@ -89,6 +89,9 @@ void main()
 	vec3 kD = vec3(1.0) - kS;
 	kD *= 1.0 - metallic;
 
+	// shadow combine
+	float shadow = texture(shadowMask, screenCoord).r;
+
 	// IBL
 	float MAX_REFLECTION_LOD = global.sunLightDirAndMaxPBRLod.w;
 	vec3 irradiance = TextureCubeFixed(diffuseIrradiance, CUBEMAP_UVW(N)).rgb;
@@ -101,7 +104,7 @@ void main()
 	vec2 envBRDF = texture(integrateBRDF, vec2(NdotV, roughness)).rg;
 	vec3 specularIBL = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 
-	vec3 ambient = (IBL_FACTOR * kD * diffuseIBL + specularIBL);
+	vec3 ambient = (shadow * IBL_FACTOR * kD * diffuseIBL + specularIBL);
 
 	// DirectLight
 	// cook-torrance brdf
@@ -125,12 +128,8 @@ void main()
 	// calculate per-light radiance
 	// ...
 
-	// shadow combine
-	float shadow = texture(shadowMask, screenCoord).r;
 	direct *= shadow;
-
 	ambient *= ao;
-	ambient *= shadow;
 
 	vec3 indirect = texture(giMask, screenCoord).rgb;
 	indirect *= ao;

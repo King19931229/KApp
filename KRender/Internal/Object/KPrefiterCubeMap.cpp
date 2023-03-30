@@ -26,11 +26,7 @@ KPrefilerCubeMap::KPrefilerCubeMap()
 	, m_CommandPool(nullptr)
 	, m_VertexBuffer(nullptr)
 	, m_IndexBuffer(nullptr)
-	, m_SharedVertexBuffer(nullptr)
-	, m_SharedIndexBuffer(nullptr)
 {
-	ZERO_MEMORY(m_SharedVertexData);
-	ZERO_MEMORY(m_SharedIndexData);
 }
 
 KPrefilerCubeMap::~KPrefilerCubeMap()
@@ -113,8 +109,10 @@ bool KPrefilerCubeMap::PopulateCubeMapRenderCommand(KRenderCommand& command, uin
 	IKPipelineHandlePtr pipeHandle = nullptr;
 	if (pipeline->GetHandle(renderPass, pipeHandle))
 	{
-		command.vertexData = &m_SharedVertexData;
-		command.indexData = &m_SharedIndexData;
+		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+		command.indexDraw = true;
+
 		command.pipeline = pipeline;
 		command.pipelineHandle = pipeHandle;
 
@@ -178,8 +176,6 @@ bool KPrefilerCubeMap::PopulateCubeMapRenderCommand(KRenderCommand& command, uin
 		command.objectUsage.range = sizeof(constant);
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, command.objectUsage);
 
-		command.indexDraw = true;
-
 		return true;
 	}
 	return false;
@@ -188,26 +184,6 @@ bool KPrefilerCubeMap::PopulateCubeMapRenderCommand(KRenderCommand& command, uin
 bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32_t width, uint32_t height, size_t mipmaps)
 {
 	VertexFormat formats[] = { VF_SCREENQUAD_POS };
-
-	// VertexData
-	{
-		renderDevice->CreateVertexBuffer(m_SharedVertexBuffer);
-		m_SharedVertexBuffer->InitMemory(ARRAY_SIZE(ms_Vertices), sizeof(ms_Vertices[0]), ms_Vertices);
-		m_SharedVertexBuffer->InitDevice(false);
-
-		renderDevice->CreateIndexBuffer(m_SharedIndexBuffer);
-		m_SharedIndexBuffer->InitMemory(IT_32, ARRAY_SIZE(ms_Indices), ms_Indices);
-		m_SharedIndexBuffer->InitDevice(false);
-
-		m_SharedVertexData.vertexStart = 0;
-		m_SharedVertexData.vertexCount = ARRAY_SIZE(ms_Vertices);
-		m_SharedVertexData.vertexFormats = std::vector<VertexFormat>(1, VF_SCREENQUAD_POS);
-		m_SharedVertexData.vertexBuffers = std::vector<IKVertexBufferPtr>(1, m_SharedVertexBuffer);
-
-		m_SharedIndexData.indexStart = 0;
-		m_SharedIndexData.indexCount = ARRAY_SIZE(ms_Indices);
-		m_SharedIndexData.indexBuffer = m_SharedIndexBuffer;
-	}
 
 	auto AssignPipeline = [&](const char* vs, const char* fs, KShaderMap& shaderMap, IKPipelinePtr& pipeline)
 	{
@@ -307,8 +283,6 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 
 bool KPrefilerCubeMap::FreeTempResource()
 {
-	SAFE_UNINIT(m_SharedVertexBuffer);
-	SAFE_UNINIT(m_SharedIndexBuffer);
 	SAFE_UNINIT(m_SpecularIrradiancePipeline);
 	SAFE_UNINIT(m_DiffuseIrradiancePipeline);
 	SAFE_UNINIT(m_IntegrateBRDFPipeline);
@@ -385,11 +359,12 @@ bool KPrefilerCubeMap::Compute()
 		KRenderCommand command;
 		if (m_IntegrateBRDFPipeline->GetHandle(m_IntegrateBRDFPass, pipeHandle))
 		{
-			command.vertexData = &m_SharedVertexData;
-			command.indexData = &m_SharedIndexData;
+			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+			command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+			command.indexDraw = true;
+
 			command.pipeline = m_IntegrateBRDFPipeline;
 			command.pipelineHandle = pipeHandle;
-			command.indexDraw = true;
 		}
 
 		m_CommandBuffer->Render(command);

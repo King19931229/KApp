@@ -269,6 +269,7 @@ void KVolumetricFog::UpdateScattering(IKCommandBufferPtr primaryBuffer)
 {
 	primaryBuffer->BeginDebugMarker("Scattering", glm::vec4(0, 1, 1, 0));
 	primaryBuffer->BeginRenderPass(m_ScatteringPass, SUBPASS_CONTENTS_INLINE);
+	primaryBuffer->SetViewport(m_ScatteringPass->GetViewPort());
 
 	KRenderCommand command;
 	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -282,8 +283,7 @@ void KVolumetricFog::UpdateScattering(IKCommandBufferPtr primaryBuffer)
 	objectUsage.range = sizeof(m_ObjectData);
 	KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_ObjectData, objectUsage);
 	command.objectUsage = objectUsage;
-
-	primaryBuffer->SetViewport(m_ScatteringPass->GetViewPort());
+	
 	primaryBuffer->Render(command);
 	primaryBuffer->EndRenderPass();
 
