@@ -29,6 +29,7 @@
     <ClInclude Include="Interface\IKPipeline.h" />
     <ClInclude Include="Interface\IKPostProcess.h" />
     <ClInclude Include="Interface\IKQuery.h" />
+    <ClInclude Include="Interface\IKQueue.h" />
     <ClInclude Include="Interface\IKRayTrace.h" />
     <ClInclude Include="Interface\IKRayTracePipeline.h" />
     <ClInclude Include="Interface\IKRenderCommand.h" />
@@ -154,6 +155,7 @@
     <ClInclude Include="Internal\Vulkan\KVulkanHelper.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanPipeline.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanQuery.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanQueue.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRayTracePipeline.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderDevice.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanRenderPass.h" />
@@ -269,6 +271,7 @@
     <ClCompile Include="Internal\Vulkan\KVulkanHelper.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanPipeline.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanQuery.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanQueue.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRayTracePipeline.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderDevice.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanRenderPass.cpp" />

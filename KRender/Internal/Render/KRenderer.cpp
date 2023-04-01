@@ -71,86 +71,109 @@ KRenderer::~KRenderer()
 
 bool KRenderer::Render(uint32_t chainImageIndex)
 {
-	// 开始渲染过程
-	m_PrimaryBuffer->BeginPrimary();
+	std::vector<KRenderComponent*> cullRes;
+	KRenderGlobal::Scene.GetRenderComponent(*m_Camera, false, cullRes);
 
-	KRenderGlobal::RenderDevice->SetCheckPointMarker(m_PrimaryBuffer.get(), KRenderGlobal::CurrentFrameNum, "Render");
-
+	m_PreGraphicsBuffer->BeginPrimary();
 	{
-		std::vector<KRenderComponent*> cullRes;
-		KRenderGlobal::Scene.GetRenderComponent(*m_Camera, false, cullRes);
+		KRenderGlobal::RenderDevice->SetCheckPointMarker(m_PreGraphicsBuffer.get(), KRenderGlobal::CurrentFrameNum, "Render");
 
-		KRenderGlobal::HiZOcclusion.Execute(m_PrimaryBuffer, cullRes);
+		KRenderGlobal::HiZOcclusion.Execute(m_PreGraphicsBuffer, cullRes);
 
-		KRenderGlobal::DeferredRenderer.PrePass(m_PrimaryBuffer, cullRes);
-		KRenderGlobal::DeferredRenderer.BasePass(m_PrimaryBuffer, cullRes);
+		KRenderGlobal::DeferredRenderer.PrePass(m_PreGraphicsBuffer, cullRes);
+		KRenderGlobal::DeferredRenderer.BasePass(m_PreGraphicsBuffer, cullRes);
 		// 清空AO结果
-		KRenderGlobal::DeferredRenderer.EmptyAO(m_PrimaryBuffer);
+		KRenderGlobal::DeferredRenderer.EmptyAO(m_PreGraphicsBuffer);
 
-		// 转换 GBufferRT 到 Shader可读
-		KRenderGlobal::GBuffer.TranslateColorAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		KRenderGlobal::GBuffer.TranslateDepthStencilAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TranslateColorAttachment(m_PreGraphicsBuffer, m_GraphicsQueue, m_ComputeQueue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_BOTTOM_OF_PIPE, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_GENERAL);
+		KRenderGlobal::GBuffer.TranslateDepthStencilAttachment(m_PreGraphicsBuffer, m_GraphicsQueue, m_ComputeQueue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_BOTTOM_OF_PIPE, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_GENERAL);
+		m_PreGraphicsBuffer->TranslateOwnership(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), m_GraphicsQueue, m_ComputeQueue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_BOTTOM_OF_PIPE, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+	}
+	m_PreGraphicsBuffer->End();
+	m_GraphicsQueue->Submit(m_PreGraphicsBuffer, nullptr, m_PreGraphicsFinish);
 
-		KRenderGlobal::HiZBuffer.Construct(m_PrimaryBuffer);
+	m_ComptuteBuffer->BeginPrimary();
+	{
+		KRenderGlobal::GBuffer.TranslateColorAttachment(m_ComptuteBuffer, m_GraphicsQueue, m_ComputeQueue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_GENERAL);
+		KRenderGlobal::GBuffer.TranslateDepthStencilAttachment(m_ComptuteBuffer, m_GraphicsQueue, m_ComputeQueue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_GENERAL);
+		m_ComptuteBuffer->TranslateOwnership(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), m_GraphicsQueue, m_ComputeQueue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 
-		KRenderGlobal::RayTraceManager.Execute(m_PrimaryBuffer);
-		KRenderGlobal::RTAO.Execute(m_PrimaryBuffer);
+		KRenderGlobal::RTAO.Execute(m_ComptuteBuffer, m_GraphicsQueue, m_ComputeQueue);
+
+		m_ComptuteBuffer->TranslateOwnership(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), m_ComputeQueue, m_GraphicsQueue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_BOTTOM_OF_PIPE, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TranslateColorAttachment(m_ComptuteBuffer, m_ComputeQueue, m_GraphicsQueue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_BOTTOM_OF_PIPE, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TranslateDepthStencilAttachment(m_ComptuteBuffer, m_ComputeQueue, m_GraphicsQueue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_BOTTOM_OF_PIPE, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	}
+	m_ComptuteBuffer->End();
+	m_ComputeQueue->Submit(m_ComptuteBuffer, m_PreGraphicsFinish, m_ComputeFinish);
+
+	m_PostGraphicsBuffer->BeginPrimary();
+	{
+		m_PostGraphicsBuffer->TranslateOwnership(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), m_ComputeQueue, m_GraphicsQueue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TranslateColorAttachment(m_PostGraphicsBuffer, m_ComputeQueue, m_GraphicsQueue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		KRenderGlobal::GBuffer.TranslateDepthStencilAttachment(m_PostGraphicsBuffer, m_ComputeQueue, m_GraphicsQueue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+		KRenderGlobal::RTAO.Blit(m_PostGraphicsBuffer);
+
+		KRenderGlobal::HiZBuffer.Construct(m_PostGraphicsBuffer);
 
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
-
 		KRenderGlobal::FrameGraph.Compile();
-		KRenderGlobal::FrameGraph.Execute(m_PrimaryBuffer, chainImageIndex);
+		KRenderGlobal::FrameGraph.Execute(m_PostGraphicsBuffer, chainImageIndex);
+
+		KRenderGlobal::RayTraceManager.Execute(m_PostGraphicsBuffer);
+
+		KRenderGlobal::VolumetricFog.Execute(m_PostGraphicsBuffer);
 
 		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
 		{
-			KRenderGlobal::Voxilzer.UpdateVoxel(m_PrimaryBuffer);
-			KRenderGlobal::Voxilzer.UpdateFrame(m_PrimaryBuffer);
+			KRenderGlobal::Voxilzer.UpdateVoxel(m_PostGraphicsBuffer);
+			KRenderGlobal::Voxilzer.UpdateFrame(m_PostGraphicsBuffer);
 		}
 
 		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
 		{
-			KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(m_PrimaryBuffer);
-			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_PrimaryBuffer);
+			KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(m_PostGraphicsBuffer);
+			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(m_PostGraphicsBuffer);
 		}
 
-		KRenderGlobal::VolumetricFog.Execute(m_PrimaryBuffer);
+		KRenderGlobal::ScreenSpaceReflection.Execute(m_PostGraphicsBuffer);
 
-		KRenderGlobal::ScreenSpaceReflection.Execute(m_PrimaryBuffer);
-
-		KRenderGlobal::DeferredRenderer.DeferredLighting(m_PrimaryBuffer);
+		KRenderGlobal::DeferredRenderer.DeferredLighting(m_PostGraphicsBuffer);
 
 		// 转换 GBufferRT 到 Attachment
-		KRenderGlobal::GBuffer.TranslateDepthStencilAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
-		KRenderGlobal::GBuffer.TranslateColorAttachment(m_PrimaryBuffer, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		KRenderGlobal::GBuffer.TranslateColorAttachment(m_PostGraphicsBuffer, m_GraphicsQueue, m_GraphicsQueue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		KRenderGlobal::GBuffer.TranslateDepthStencilAttachment(m_PostGraphicsBuffer, m_GraphicsQueue, m_GraphicsQueue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 
-		KRenderGlobal::DeferredRenderer.SkyPass(m_PrimaryBuffer);
-		KRenderGlobal::DeferredRenderer.ForwardTransprant(m_PrimaryBuffer, cullRes);
+		KRenderGlobal::DeferredRenderer.SkyPass(m_PostGraphicsBuffer);
+		KRenderGlobal::DeferredRenderer.ForwardTransprant(m_PostGraphicsBuffer, cullRes);
 
 		//
-		KRenderGlobal::DepthOfField.Execute(m_PrimaryBuffer);
-		KRenderGlobal::DeferredRenderer.CopySceneColorToFinal(m_PrimaryBuffer);
+		KRenderGlobal::DepthOfField.Execute(m_PostGraphicsBuffer);
+		KRenderGlobal::DeferredRenderer.CopySceneColorToFinal(m_PostGraphicsBuffer);
 
-		KRenderGlobal::DeferredRenderer.DebugObject(m_PrimaryBuffer);
-		KRenderGlobal::DeferredRenderer.Foreground(m_PrimaryBuffer);
+		KRenderGlobal::DeferredRenderer.DebugObject(m_PostGraphicsBuffer);
+		KRenderGlobal::DeferredRenderer.Foreground(m_PostGraphicsBuffer);
+
+		// 绘制SceneColor
+		{
+			IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
+			IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
+
+			m_PostGraphicsBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+			KRenderGlobal::DeferredRenderer.DrawFinalResult(renderPass, m_PostGraphicsBuffer);
+
+			m_PostGraphicsBuffer->Translate(offscreenTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+			m_PostGraphicsBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		}
+
+		KRenderGlobal::PostProcessManager.Execute(chainImageIndex, m_SwapChain, m_UIOverlay, m_PostGraphicsBuffer);
 	}
+	m_PostGraphicsBuffer->End();
+	m_GraphicsQueue->Submit(m_PostGraphicsBuffer, m_ComputeFinish, m_PostGraphicsFinish);
 
-	// 绘制SceneColor
-	{
-		IKRenderTargetPtr offscreenTarget = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderTarget();
-		IKRenderPassPtr renderPass = ((KPostProcessPass*)KRenderGlobal::PostProcessManager.GetStartPointPass().get())->GetRenderPass();
-
-		m_PrimaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-
-		KRenderGlobal::DeferredRenderer.DrawFinalResult(renderPass, m_PrimaryBuffer);
-
-		m_PrimaryBuffer->Translate(offscreenTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-
-		m_PrimaryBuffer->Translate(KRenderGlobal::DeferredRenderer.GetFinal()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
-	}
-
-	KRenderGlobal::PostProcessManager.Execute(chainImageIndex, m_SwapChain, m_UIOverlay, m_PrimaryBuffer);
-
-	m_PrimaryBuffer->End();
 	return true;
 }
 
@@ -198,10 +221,33 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	m_Pass = KMainPassPtr(KNEW KMainPass(*this));
 	m_Pass->Init();
 
-	device->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-	device->CreateCommandBuffer(m_PrimaryBuffer);
-	m_PrimaryBuffer->Init(m_CommandPool, CBL_PRIMARY);
+	device->CreateQueue(m_GraphicsQueue);
+	device->CreateQueue(m_ComputeQueue);
+
+	m_GraphicsQueue->Init(QUEUE_GRAPHICS, 0);
+	m_ComputeQueue->Init(QUEUE_COMPUTE, 0);
+
+	device->CreateCommandPool(m_GraphicsCommandPool);
+	m_GraphicsCommandPool->Init(QUEUE_GRAPHICS, 0);
+
+	device->CreateCommandPool(m_ComptuteCommandPool);
+	m_ComptuteCommandPool->Init(QUEUE_COMPUTE, 0);
+
+	device->CreateCommandBuffer(m_PreGraphicsBuffer);
+	device->CreateCommandBuffer(m_PostGraphicsBuffer);
+	m_PreGraphicsBuffer->Init(m_GraphicsCommandPool, CBL_PRIMARY);
+	m_PostGraphicsBuffer->Init(m_GraphicsCommandPool, CBL_PRIMARY);
+
+	device->CreateCommandBuffer(m_ComptuteBuffer);
+	m_ComptuteBuffer->Init(m_ComptuteCommandPool, CBL_PRIMARY);
+
+	device->CreateSemaphore(m_PreGraphicsFinish);
+	device->CreateSemaphore(m_PostGraphicsFinish);
+	device->CreateSemaphore(m_ComputeFinish);
+
+	m_PreGraphicsFinish->Init();
+	m_PostGraphicsFinish->Init();
+	m_ComputeFinish->Init();
 
 	m_DebugCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 	{
@@ -286,8 +332,15 @@ bool KRenderer::UnInit()
 	m_UIOverlay = nullptr;
 	m_CameraCube = nullptr;
 
-	SAFE_UNINIT(m_PrimaryBuffer);
-	SAFE_UNINIT(m_CommandPool);
+	SAFE_UNINIT(m_ComptuteCommandPool);
+	SAFE_UNINIT(m_GraphicsCommandPool);
+
+	SAFE_UNINIT(m_PreGraphicsFinish);
+	SAFE_UNINIT(m_PostGraphicsFinish);
+	SAFE_UNINIT(m_ComputeFinish);
+
+	SAFE_UNINIT(m_GraphicsQueue);
+	SAFE_UNINIT(m_ComputeQueue);
 
 	SAFE_UNINIT(m_Pass);
 

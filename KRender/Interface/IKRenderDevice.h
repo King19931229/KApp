@@ -46,6 +46,9 @@ struct IKRenderDevice
 	virtual bool Init(IKRenderWindow* window) = 0;
 	virtual bool UnInit() = 0;
 
+	virtual bool CreateSemaphore(IKSemaphorePtr& semaphore) = 0;
+	virtual bool CreateQueue(IKQueuePtr& queue) = 0;
+
 	virtual bool CreateShader(IKShaderPtr& shader) = 0;
 
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer) = 0;

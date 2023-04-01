@@ -110,6 +110,7 @@ namespace KVulkanInitializer
 	void TransitionImageLayoutCmdBuffer(VkImage image, VkFormat format,
 		uint32_t baseLayer, uint32_t layers,
 		uint32_t baseMipLevel, uint32_t mipLevels,
+		uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex,
 		VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages,
 		VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer commandBuffer);
 

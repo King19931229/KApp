@@ -141,13 +141,14 @@ public:
 	bool Init(IKRayTraceScene* scene);
 	bool UnInit();
 
-	virtual bool EnableDebugDraw();
-	virtual bool DisableDebugDraw();
+	bool EnableDebugDraw();
+	bool DisableDebugDraw();
 	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }
 	bool& GetEnable() { return m_Enable; }
 
-	virtual bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
-	virtual bool Execute(IKCommandBufferPtr primaryBuffer);
+	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
+	bool Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, IKQueuePtr computeQueue);
+	bool Blit(IKCommandBufferPtr primaryBuffer);
 
 	AoControl& GetAoParameters() { return m_AOParameters; }
 

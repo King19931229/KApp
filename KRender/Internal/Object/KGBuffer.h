@@ -48,8 +48,8 @@ public:
 	bool UnInit();
 	bool Resize(uint32_t width, uint32_t height);
 
-	bool TranslateColorAttachment(IKCommandBufferPtr buffer, ImageLayout layout);
-	bool TranslateDepthStencilAttachment(IKCommandBufferPtr buffer, ImageLayout layout);
+	bool TranslateColorAttachment(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
+	bool TranslateDepthStencilAttachment(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout);
 
 	inline IKRenderTargetPtr GetGBufferTarget(GBufferTarget target) { return m_RenderTarget[target]; }
 	inline IKRenderTargetPtr GetDepthStencilTarget() { return m_DepthStencilTarget; }

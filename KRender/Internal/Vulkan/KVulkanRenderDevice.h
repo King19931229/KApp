@@ -158,6 +158,9 @@ public:
 	virtual bool Init(IKRenderWindow* window);
 	virtual bool UnInit();
 
+	virtual bool CreateSemaphore(IKSemaphorePtr& semaphore);
+	virtual bool CreateQueue(IKQueuePtr& queue);
+
 	virtual bool CreateShader(IKShaderPtr& shader);
 
 	virtual bool CreateVertexBuffer(IKVertexBufferPtr& buffer);

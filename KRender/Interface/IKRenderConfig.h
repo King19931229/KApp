@@ -523,3 +523,9 @@ typedef std::shared_ptr<IKFrameBuffer> IKFrameBufferPtr;
 
 struct IKRenderPass;
 typedef std::shared_ptr<IKRenderPass> IKRenderPassPtr;
+
+struct IKSemaphore;
+typedef std::shared_ptr<IKSemaphore> IKSemaphorePtr;
+
+struct IKQueue;
+typedef std::shared_ptr<IKQueue> IKQueuePtr;

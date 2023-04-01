@@ -27,7 +27,6 @@
 #include <map>
 #include <mutex>
 
-#include "NsightAftermathHelpers.h"
 #include "NsightAftermathShaderDatabase.h"
 
 //*********************************************************

@@ -622,21 +622,20 @@ bool KVulkanCommandBuffer::ResetQuery(IKQueryPtr query)
 	return false;
 }
 
-
 bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	if (buf)
 	{
-		return buf->Translate(this, srcStages, dstStages, oldLayout, newLayout);
+		return buf->Translate(this, nullptr, nullptr, 0, buf->GetMipmaps(), srcStages, dstStages, oldLayout, newLayout);
 	}
 	return false;
 }
 
-bool KVulkanCommandBuffer::Translate(IKFrameBufferPtr buf, PipelineStages srcStages, PipelineStages dstStages, ImageLayout layout)
+bool KVulkanCommandBuffer::TranslateOwnership(IKFrameBufferPtr buf, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
-	if(buf)
+	if (buf)
 	{
-		return buf->Translate(this, srcStages, dstStages, layout);
+		return buf->Translate(this, srcQueue.get(), dstQueue.get(), 0, buf->GetMipmaps(), srcStages, dstStages, oldLayout, newLayout);
 	}
 	return false;
 }
@@ -645,16 +644,7 @@ bool KVulkanCommandBuffer::TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap
 {
 	if (buf)
 	{
-		return buf->TranslateMipmap(this, mipmap, srcStages, dstStages, oldLayout, newLayout);
-	}
-	return false;
-}
-
-bool KVulkanCommandBuffer::TranslateMipmap(IKFrameBufferPtr buf, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout layout)
-{
-	if (buf)
-	{
-		return buf->TranslateMipmap(this, mipmap, srcStages, dstStages, layout);
+		return buf->Translate(this, nullptr, nullptr, mipmap, 1, srcStages, dstStages, oldLayout, newLayout);
 	}
 	return false;
 }

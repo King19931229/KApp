@@ -28,7 +28,10 @@
 #include <map>
 #include <mutex>
 
-#include "NsightAftermathHelpers.h"
+#include <vulkan/vulkan.hpp>
+#include "GFSDK_Aftermath.h"
+#include "GFSDK_Aftermath_GpuCrashDump.h"
+#include "GFSDK_Aftermath_GpuCrashDumpDecoding.h"
 
 //*********************************************************
 // Implements a very simple shader database to help demonstrate

@@ -36,7 +36,7 @@ protected:
 	std::unordered_map<ElementFormat, VkImageView> m_ReinterpretImageView;
 
 	bool InitStorageInternal(VkFormat format, TextureType type, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipmaps);
-	bool TranslateLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t baseMip, uint32_t numMip, VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages, VkImageLayout oldLayout, VkImageLayout newLayout);
+	bool TranslateLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex, uint32_t baseMip, uint32_t numMip, VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages, VkImageLayout oldLayout, VkImageLayout newLayout);
 public:
 	KVulkanFrameBuffer();
 	~KVulkanFrameBuffer();
@@ -65,11 +65,7 @@ public:
 	bool CopyToReadback(IKFrameBuffer* framebuffer) override;
 	bool Readback(void* pDest, size_t offset, size_t size) override;
 
-	bool Translate(IKCommandBuffer* cmd, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) override;
-	bool Translate(IKCommandBuffer* cmd, PipelineStages srcStages, PipelineStages dstStages, ImageLayout layout) override;
-
-	bool TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) override;
-	bool TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout layout) override;
+	bool Translate(IKCommandBuffer* cmd, IKQueue* srcQueue, IKQueue* dstQueue, uint32_t baseMip, uint32_t numMip, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) override;
 
 	uint32_t GetWidth() const override { return m_Width; }
 	uint32_t GetHeight() const override { return m_Height; }

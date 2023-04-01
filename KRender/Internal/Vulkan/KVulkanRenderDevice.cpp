@@ -12,6 +12,7 @@
 #include "KVulkanQuery.h"
 #include "KVulkanRenderPass.h"
 #include "KVulkanComputePipeline.h"
+#include "KVulkanQueue.h"
 
 #include "KVulkanUIOverlay.h"
 #include "KVulkanGlobal.h"
@@ -30,9 +31,7 @@
 #if VK_HEADER_VERSION < 135
 #error Minimum requirement for the Aftermath application integration is the Vulkan 1.2.135 SDK
 #endif
-#include "NsightAftermathHelpers.h"
 #include "NsightAftermathGpuCrashTracker.h"
-#include "NsightAftermathShaderDatabase.h"
 #endif
 
 #include <algorithm>
@@ -1333,6 +1332,18 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 	return true;
 }
 
+bool KVulkanRenderDevice::CreateSemaphore(IKSemaphorePtr& semaphore)
+{
+	semaphore = IKSemaphorePtr(KNEW KVulkanSemaphore());
+	return true;
+}
+
+bool KVulkanRenderDevice::CreateQueue(IKQueuePtr& queue)
+{
+	queue = IKQueuePtr(KNEW KVulkanQueue());
+	return true;
+}
+
 bool KVulkanRenderDevice::CreateShader(IKShaderPtr& shader)
 {
 	shader = IKShaderPtr(KNEW KVulkanShader());
@@ -1464,9 +1475,9 @@ bool KVulkanRenderDevice::Present()
 		}
 
 		KRenderGlobal::Renderer.Execute(chainImageIndex);
-		VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::Renderer.GetPrimaryCommandBuffer().get())->GetVkHandle();
+		VkSemaphore semaphore = ((KVulkanSemaphore*)KRenderGlobal::Renderer.GetFinishSemaphore().get())->GetVkSemaphore();
 
-		vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(chainImageIndex, primaryCommandBuffer);
+		vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(chainImageIndex, semaphore);
 
 		for (KDevicePresentCallback* callback : m_PostPresentCallback)
 		{
@@ -1506,8 +1517,9 @@ bool KVulkanRenderDevice::Present()
 			KRenderGlobal::Renderer.SetSwapChain(secordarySwapChain, nullptr);
 		
 			KRenderGlobal::Renderer.Execute(chainImageIndex);
-			VkCommandBuffer primaryCommandBuffer = ((KVulkanCommandBuffer*)KRenderGlobal::Renderer.GetPrimaryCommandBuffer().get())->GetVkHandle();
-			vkResult = ((KVulkanSwapChain*)secordarySwapChain)->PresentQueue(chainImageIndex, primaryCommandBuffer);
+			VkSemaphore semaphore = ((KVulkanSemaphore*)KRenderGlobal::Renderer.GetFinishSemaphore().get())->GetVkSemaphore();
+
+			vkResult = ((KVulkanSwapChain*)secordarySwapChain)->PresentQueue(chainImageIndex, semaphore);
 
 			if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
 			{

@@ -212,6 +212,8 @@ void KClipmapLevel::TrimUpdateRects(std::vector<KClipmapUpdateRect>& rects)
 
 void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateRect>& rects)
 {
+	// TODO Layout
+
 	KClipmapLevelPtr upperClipmap = m_Parent->GetClipmapLevel((m_LevelIdx > 0) ? (m_LevelIdx - 1) : 0);
 
 	for (size_t rectIdx = 0; rectIdx < rects.size(); ++rectIdx)
@@ -247,7 +249,7 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 	if (m_ComputeShaderUpdate)
 	{
 		ms_CommandBuffer->BeginPrimary();
-		ms_CommandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL);
+		ms_CommandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_GENERAL);
 
 		for (size_t rectIdx = 0; rectIdx < rects.size(); ++rectIdx)
 		{
@@ -267,19 +269,19 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 
 			IKComputePipelinePtr& computePipeline = m_UpdateComputePipelines[rectIdx];
 
-			ms_CommandBuffer->Translate(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL);
+			ms_CommandBuffer->Translate(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_GENERAL);
 			computePipeline->Execute(ms_CommandBuffer, groupX, groupY, 1, &usage);
-			ms_CommandBuffer->Translate(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			ms_CommandBuffer->Translate(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 
-		ms_CommandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		ms_CommandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		ms_CommandBuffer->End();
 		ms_CommandBuffer->Flush();
 	}
 	else
 	{
 		ms_CommandBuffer->BeginPrimary();
-		ms_CommandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		ms_CommandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 		ms_CommandBuffer->BeginDebugMarker("ClipmapUpdate", glm::vec4(0, 1, 0, 0));
 		ms_CommandBuffer->BeginRenderPass(m_UpdateRenderPass, SUBPASS_CONTENTS_INLINE);
 		ms_CommandBuffer->SetViewport(m_UpdateRenderPass->GetViewPort());

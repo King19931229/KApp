@@ -458,7 +458,7 @@ bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<
 	}
 	else
 	{
-		primaryBuffer->Translate(m_ResultTargets[KRenderGlobal::CurrentInFlightFrameIndex]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_ResultTargets[KRenderGlobal::CurrentInFlightFrameIndex]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	return true;

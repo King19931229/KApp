@@ -27,6 +27,7 @@
 #include <string>
 #include <array>
 
+#include "NsightAftermathHelpers.h"
 #include "NsightAftermathGpuCrashTracker.h"
 
 //*********************************************************

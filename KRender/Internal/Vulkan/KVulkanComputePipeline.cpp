@@ -593,7 +593,7 @@ bool KVulkanComputePipeline::SetupBarrier(IKCommandBufferPtr buffer, bool input)
 		}
 	}
 
-	VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+	VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 	vkCmdPipelineBarrier(cmdBuf, stageFlags, stageFlags, VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, (uint32_t)buffBarriers.size(), buffBarriers.data(), (uint32_t)imageBarriers.size(), imageBarriers.data());
 
 	return true;
@@ -682,7 +682,7 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 			bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-			VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 			vkCmdPipelineBarrier(cmdBuf, stageFlags, stageFlags, VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
 		}
 

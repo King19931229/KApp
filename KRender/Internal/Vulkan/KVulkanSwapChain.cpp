@@ -361,6 +361,19 @@ bool KVulkanSwapChain::DestroyFrameBuffers()
 	return true;
 }
 
+bool KVulkanSwapChain::DestroyCommandBuffers()
+{
+	if (m_CommandPool != VK_NULL_HANDLE)
+	{
+		vkFreeCommandBuffers(KVulkanGlobal::device, m_CommandPool, (uint32_t)m_CommandBuffers.size(), m_CommandBuffers.data());
+		m_CommandBuffers.clear();
+
+		vkDestroyCommandPool(KVulkanGlobal::device, m_CommandPool, nullptr);
+		m_CommandPool = VK_NULL_HANDLE;
+	}
+	return true;
+}
+
 bool KVulkanSwapChain::Init(IKRenderWindow* window, uint32_t frameInFlight)
 {
 	ASSERT_RESULT(m_SwapChain == VK_NULL_HANDLE);
@@ -385,6 +398,7 @@ bool KVulkanSwapChain::UnInit()
 	ASSERT_RESULT(DestroyFrameBuffers());
 	ASSERT_RESULT(CleanupSwapChain());
 	ASSERT_RESULT(DestroySyncObjects());
+	ASSERT_RESULT(DestroyCommandBuffers());
 	m_MaxFramesInFight = 0;
 	if (m_pWindow)
 	{
@@ -446,7 +460,7 @@ VkResult KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
 	return result;
 }
 
-VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex, VkCommandBuffer commandBuffer)
+VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex, VkSemaphore finishSemaphore)
 {
 	VkResult vkResult = VK_RESULT_MAX_ENUM;
 
@@ -455,15 +469,11 @@ VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex, VkCommandBuffer com
 
 	// 命令缓冲管线COLOR_ATTACHMENT_OUTPUT可用时 等待交换链Image可用信号量
 	// 这个信号量保证Present被执行完
-	VkSemaphore waitSemaphores[] = {m_ImageAvailableSemaphores[m_CurrentFlightIndex]};
-	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-	submitInfo.waitSemaphoreCount = 1;
+	VkSemaphore waitSemaphores[] = { finishSemaphore, m_ImageAvailableSemaphores[m_CurrentFlightIndex]};
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	submitInfo.waitSemaphoreCount = 2;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
-
-	// 指定命令缓冲
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
 
 	// 命令缓冲提交完成后将促发此信号量
 	VkSemaphore signalSemaphores[] = {m_RenderFinishedSemaphores[m_CurrentFlightIndex]};
@@ -474,7 +484,7 @@ VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex, VkCommandBuffer com
 	vkResetFences(KVulkanGlobal::device, 1, &m_InFlightFences[m_CurrentFlightIndex]);
 
 	// 提交该绘制命令
-	vkResult = vkQueueSubmit(KVulkanGlobal::graphicsQueues[0], 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]);
+	vkResult = vkQueueSubmit(m_PresentQueue, 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]);
 	VK_ASSERT_RESULT(vkResult);	
 
 	VkPresentInfoKHR presentInfo = {};
@@ -511,27 +521,43 @@ VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex, VkCommandBuffer com
 
 bool KVulkanSwapChain::ChooseQueue()
 {
-	uint32_t queueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(KVulkanGlobal::physicalDevice, &queueFamilyCount, nullptr);
+	VkBool32 presentSupport = false;
 
-	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(KVulkanGlobal::physicalDevice, &queueFamilyCount, queueFamilies.data());
-
-	uint32_t idx = -1;
-	for (const auto& queueFamily : queueFamilies)
+	for (size_t i = 0; i < KVulkanGlobal::graphicsFamilyIndices.size(); ++i)
 	{
-		++idx;
-		VkBool32 presentSupport = false;
+		uint32_t idx = KVulkanGlobal::graphicsFamilyIndices[i];
 		vkGetPhysicalDeviceSurfaceSupportKHR(KVulkanGlobal::physicalDevice, idx, m_Surface, &presentSupport);
 		if (presentSupport)
 		{
 			m_PresentQueueIndex = idx;
-			vkGetDeviceQueue(KVulkanGlobal::device, m_PresentQueueIndex, 0, &m_PresentQueue);
-			return true;
+			m_PresentQueue = KVulkanGlobal::graphicsQueues[i];
+			break;
 		}
 	}
 
-	return false;
+	if (presentSupport)
+	{
+		VkCommandPoolCreateInfo poolInfo = {};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.queueFamilyIndex = m_PresentQueueIndex;
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		VK_ASSERT_RESULT(vkCreateCommandPool(KVulkanGlobal::device, &poolInfo, nullptr, &m_CommandPool));
+
+		VkCommandBufferAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = m_CommandPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandBufferCount = m_MaxFramesInFight;
+
+		m_CommandBuffers.resize(m_MaxFramesInFight);
+		VK_ASSERT_RESULT(vkAllocateCommandBuffers(KVulkanGlobal::device, &allocInfo, m_CommandBuffers.data()));
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 #if defined(_WIN32)

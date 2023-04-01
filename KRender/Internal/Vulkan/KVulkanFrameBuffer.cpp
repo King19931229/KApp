@@ -3,6 +3,7 @@
 #include "KVulkanGlobal.h"
 #include "KVulkanHelper.h"
 #include "KVulkanCommandBuffer.h"
+#include "KVulkanQueue.h"
 
 KVulkanFrameBuffer::KVulkanFrameBuffer()
 	: m_ImageType(VK_IMAGE_TYPE_MAX_ENUM),
@@ -504,12 +505,13 @@ bool KVulkanFrameBuffer::SetDebugName(const char* name)
 	return false;
 }
 
-bool KVulkanFrameBuffer::TranslateLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t baseMip, uint32_t numMip, VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages, VkImageLayout oldLayout, VkImageLayout newLayout)
+bool KVulkanFrameBuffer::TranslateLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex, uint32_t baseMip, uint32_t numMip, VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
 	KVulkanInitializer::TransitionImageLayoutCmdBuffer(m_Image, m_Format,
 		0,
 		(m_ImageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1,
 		baseMip, numMip,
+		srcQueueFamilyIndex, dstQueueFamilyIndex,
 		srcStages, dstStages,
 		oldLayout, newLayout,
 		cmdBuffer);
@@ -522,7 +524,7 @@ bool KVulkanFrameBuffer::TranslateLayoutImpl(VkCommandBuffer cmdBuffer, uint32_t
 	return true;
 }
 
-bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, IKQueue* srcQueue, IKQueue* dstQueue, uint32_t baseMip, uint32_t numMip, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	if (cmd)
 	{
@@ -539,72 +541,19 @@ bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, PipelineStages srcStage
 		ASSERT_RESULT(KVulkanHelper::PipelineStagesToVkPipelineStageFlags(dstStages, vkDstStageFlags));
 		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(newLayout, vkNewLayout));
 
-		TranslateLayoutImpl(vkCmdBuffer, 0, m_Mipmaps, vkSrcStageFlags, vkDstStageFlags, vkOldLayout, vkNewLayout);
-		return true;
-	}
-	return false;
-}
+		uint32_t srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		uint32_t dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-bool KVulkanFrameBuffer::Translate(IKCommandBuffer* cmd, PipelineStages srcStages, PipelineStages dstStages, ImageLayout layout)
-{
-	if (cmd)
-	{
-		KVulkanCommandBuffer* vulkanCommandBuffer = static_cast<KVulkanCommandBuffer*>(cmd);
-		VkCommandBuffer vkCmdBuffer = vulkanCommandBuffer->GetVkHandle();
+		if (srcQueue)
+		{
+			srcQueueFamilyIndex = ((KVulkanQueue*)srcQueue)->GetQueueFamilyIndex();
+		}
+		if (dstQueue)
+		{
+			dstQueueFamilyIndex = ((KVulkanQueue*)dstQueue)->GetQueueFamilyIndex();
+		}
 
-		VkPipelineStageFlags vkSrcStageFlags = VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM;
-		VkImageLayout vkNewLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		ASSERT_RESULT(KVulkanHelper::PipelineStagesToVkPipelineStageFlags(srcStages, vkSrcStageFlags));
-		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(layout, vkNewLayout));
-
-		VkPipelineStageFlags vkDstStageFlags = VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM;
-		ASSERT_RESULT(KVulkanHelper::PipelineStagesToVkPipelineStageFlags(dstStages, vkDstStageFlags));
-
-		TranslateLayoutImpl(vkCmdBuffer, 0, m_Mipmaps, vkSrcStageFlags, vkDstStageFlags, VK_IMAGE_LAYOUT_UNDEFINED, vkNewLayout);
-		return true;
-	}
-	return false;
-}
-
-bool KVulkanFrameBuffer::TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
-{
-	if (cmd)
-	{
-		KVulkanCommandBuffer* vulkanCommandBuffer = static_cast<KVulkanCommandBuffer*>(cmd);
-		VkCommandBuffer vkCmdBuffer = vulkanCommandBuffer->GetVkHandle();
-
-		VkPipelineStageFlags vkSrcStageFlags = VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM;
-		VkImageLayout vkOldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		ASSERT_RESULT(KVulkanHelper::PipelineStagesToVkPipelineStageFlags(srcStages, vkSrcStageFlags));
-		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(oldLayout, vkOldLayout));
-
-		VkPipelineStageFlags vkDstStageFlags = VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM;
-		VkImageLayout vkNewLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		ASSERT_RESULT(KVulkanHelper::PipelineStagesToVkPipelineStageFlags(dstStages, vkDstStageFlags));
-		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(newLayout, vkNewLayout));
-
-		TranslateLayoutImpl(vkCmdBuffer, mipmap, 1, vkSrcStageFlags, vkDstStageFlags, vkOldLayout, vkNewLayout);
-		return true;
-	}
-	return false;
-}
-
-bool KVulkanFrameBuffer::TranslateMipmap(IKCommandBuffer* cmd, uint32_t mipmap, PipelineStages srcStages, PipelineStages dstStages, ImageLayout layout)
-{
-	if (cmd)
-	{
-		KVulkanCommandBuffer* vulkanCommandBuffer = static_cast<KVulkanCommandBuffer*>(cmd);
-		VkCommandBuffer vkCmdBuffer = vulkanCommandBuffer->GetVkHandle();
-
-		VkPipelineStageFlags vkSrcStageFlags = VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM;
-		VkImageLayout vkNewLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		ASSERT_RESULT(KVulkanHelper::PipelineStagesToVkPipelineStageFlags(srcStages, vkSrcStageFlags));
-		ASSERT_RESULT(KVulkanHelper::ImageLayoutToVkImageLayout(layout, vkNewLayout));
-
-		VkPipelineStageFlags vkDstStageFlags = VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM;
-		ASSERT_RESULT(KVulkanHelper::PipelineStagesToVkPipelineStageFlags(dstStages, vkDstStageFlags));
-
-		TranslateLayoutImpl(vkCmdBuffer, mipmap, 1, vkSrcStageFlags, vkDstStageFlags, VK_IMAGE_LAYOUT_UNDEFINED, vkNewLayout);
+		TranslateLayoutImpl(vkCmdBuffer, srcQueueFamilyIndex, dstQueueFamilyIndex, baseMip, numMip, vkSrcStageFlags, vkDstStageFlags, vkOldLayout, vkNewLayout);
 		return true;
 	}
 	return false;

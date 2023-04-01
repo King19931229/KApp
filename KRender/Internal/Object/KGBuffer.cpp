@@ -86,34 +86,17 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 	return false;
 }
 
-bool KGBuffer::TranslateColorAttachment(IKCommandBufferPtr buffer, ImageLayout layout)
+bool KGBuffer::TranslateColorAttachment(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
-	if (layout == IMAGE_LAYOUT_SHADER_READ_ONLY)
+	for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
 	{
-		for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
-		{
-			buffer->Translate(m_RenderTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		}
+		buffer->TranslateOwnership(m_RenderTarget[i]->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
 	}
-	if (layout == IMAGE_LAYOUT_COLOR_ATTACHMENT)
-	{
-		for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
-		{
-			buffer->Translate(m_RenderTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
-		}
-	}
-	return layout == IMAGE_LAYOUT_SHADER_READ_ONLY || layout == IMAGE_LAYOUT_COLOR_ATTACHMENT;
+	return true;
 }
 
-bool KGBuffer::TranslateDepthStencilAttachment(IKCommandBufferPtr buffer, ImageLayout layout)
+bool KGBuffer::TranslateDepthStencilAttachment(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
-	if (layout == IMAGE_LAYOUT_SHADER_READ_ONLY)
-	{
-		buffer->Translate(m_DepthStencilTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	}
-	else
-	{
-		buffer->Translate(m_DepthStencilTarget->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
-	}
-	return layout == IMAGE_LAYOUT_SHADER_READ_ONLY || layout == IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT;
+	buffer->TranslateOwnership(m_DepthStencilTarget->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
+	return true;
 }

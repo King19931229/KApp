@@ -532,6 +532,12 @@
     <ClInclude Include="Internal\KRenderStage.h">
       <Filter>Internal</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IKQueue.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanQueue.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -863,6 +869,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Render\KRenderUtil.cpp">
       <Filter>Internal\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanQueue.cpp">
+      <Filter>Internal\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

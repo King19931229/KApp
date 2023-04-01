@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <windows.h>
 
+#include "NsightAftermathHelpers.h"
 #include "NsightAftermathShaderDatabase.h"
 
 //*********************************************************

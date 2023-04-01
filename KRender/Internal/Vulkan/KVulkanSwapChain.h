@@ -45,6 +45,9 @@ protected:
 	std::vector<FrameBuffer> m_FrameBuffers;
 	std::vector<IKRenderPassPtr> m_RenderPasses;
 
+	VkCommandPool m_CommandPool;
+	std::vector<VkCommandBuffer> m_CommandBuffers;
+
 	bool QuerySwapChainSupport();
 	bool ChooseSwapSurfaceFormat();
 	bool ChooseSwapPresentMode();
@@ -59,6 +62,7 @@ protected:
 	bool CleanupSwapChain();
 	bool DestroySyncObjects();
 	bool DestroyFrameBuffers();
+	bool DestroyCommandBuffers();
 public:
 	KVulkanSwapChain();
 	~KVulkanSwapChain();
@@ -77,7 +81,7 @@ public:
 
 	VkResult WaitForInFightFrame(uint32_t& frameIndex);
 	VkResult AcquireNextImage(uint32_t& imageIndex);
-	VkResult PresentQueue(uint32_t imageIndex, VkCommandBuffer commandBuffer);
+	VkResult PresentQueue(uint32_t imageIndex, VkSemaphore finishSemaphore);
 
 	inline VkImage GetImage(size_t imageIndex) { return (imageIndex >= m_SwapChainImages.size()) ? VK_NULL_HANDLE : m_SwapChainImages[imageIndex]; }
 	inline VkImageView GetImageView(size_t imageIndex) { return (imageIndex >= m_SwapChainImageViews.size()) ? VK_NULL_HANDLE : m_SwapChainImageViews[imageIndex]; }

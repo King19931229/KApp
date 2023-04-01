@@ -2,6 +2,7 @@
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKCommandBuffer.h"
 #include "Interface/IKSwapChain.h"
+#include "Interface/IKQueue.h"
 #include "Interface/IKGizmo.h"
 #include "Interface/IKRenderer.h"
 #include "Internal/Scene/KRenderScene.h"
@@ -46,8 +47,19 @@ protected:
 
 	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
 
-	IKCommandPoolPtr m_CommandPool;
-	IKCommandBufferPtr m_PrimaryBuffer;
+	IKCommandPoolPtr m_GraphicsCommandPool;
+	IKCommandBufferPtr m_PreGraphicsBuffer;
+	IKCommandBufferPtr m_PostGraphicsBuffer;
+
+	IKCommandPoolPtr m_ComptuteCommandPool;
+	IKCommandBufferPtr m_ComptuteBuffer;
+
+	IKSemaphorePtr m_PreGraphicsFinish;
+	IKSemaphorePtr m_PostGraphicsFinish;
+	IKSemaphorePtr m_ComputeFinish;
+	
+	IKQueuePtr m_GraphicsQueue;
+	IKQueuePtr m_ComputeQueue;
 
 	bool m_DisplayCameraCube;
 	bool m_CameraOutdate;
@@ -76,5 +88,5 @@ public:
 
 	void OnSwapChainRecreate(uint32_t width, uint32_t height);
 
-	inline IKCommandBufferPtr GetPrimaryCommandBuffer() { return m_PrimaryBuffer; }
+	inline IKSemaphorePtr GetFinishSemaphore() { return m_PostGraphicsFinish; }
 };

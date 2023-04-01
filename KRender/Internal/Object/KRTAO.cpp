@@ -168,7 +168,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 				renderDevice->CreateComputePipeline(m_BlurHorizontalComputePipeline[i]);
 				renderDevice->CreateComputePipeline(m_BlurVerticalComputePipeline[i]);
 
-				m_BlurHorizontalComputePipeline[i]->BindStorageImage(0, m_CurAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_BlurHorizontalComputePipeline[i]->BindStorageImage(0, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_BlurHorizontalComputePipeline[i]->BindStorageImage(1, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_BlurHorizontalComputePipeline[i]->BindStorageImage(2, m_CurNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_BlurHorizontalComputePipeline[i]->BindStorageImage(3, m_BlurTempTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
@@ -177,7 +177,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 				m_BlurVerticalComputePipeline[i]->BindStorageImage(0, m_BlurTempTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_BlurVerticalComputePipeline[i]->BindStorageImage(1, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 				m_BlurVerticalComputePipeline[i]->BindStorageImage(2, m_CurNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_BlurVerticalComputePipeline[i]->BindStorageImage(3, m_CurAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_BlurVerticalComputePipeline[i]->BindStorageImage(3, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 				m_BlurVerticalComputePipeline[i]->Init(blurVerticalVertexShader[i]);
 			}
 
@@ -267,15 +267,11 @@ bool KRTAO::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBu
 	return m_DebugDrawer.Render(renderPass, primaryBuffer);
 }
 
-bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer)
+bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, IKQueuePtr computeQueue)
 {
 	if (m_AOComputePipeline && m_Enable)
 	{
 		primaryBuffer->BeginDebugMarker("RTAO", glm::vec4(0, 1, 0, 0));
-
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL);
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL);
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_GENERAL);
 
 		uint32_t groupX = (m_Width + (RTAO_GROUP_SIZE - 1)) / RTAO_GROUP_SIZE;
 		uint32_t groupY = (m_Height + (RTAO_GROUP_SIZE - 1)) / RTAO_GROUP_SIZE;
@@ -310,7 +306,6 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer)
 		{
 			primaryBuffer->BeginDebugMarker("RTAO_Atrous", glm::vec4(0, 1, 0, 0));
 			m_AtrousComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
-			primaryBuffer->Blit(m_AtrousAOTarget->GetFrameBuffer(), m_CurAOTarget->GetFrameBuffer());
 			primaryBuffer->EndDebugMarker();
 		}
 
@@ -334,22 +329,20 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer)
 			primaryBuffer->EndDebugMarker();
 		}
 
-		{
-			primaryBuffer->BeginDebugMarker("RTAO_BlitToPrevious", glm::vec4(0, 1, 0, 0));
-			primaryBuffer->Blit(m_CurAOTarget->GetFrameBuffer(), m_PrevAOTarget->GetFrameBuffer());
-			primaryBuffer->Blit(m_CurHitDistanceTarget->GetFrameBuffer(), m_PrevHitDistanceTarget->GetFrameBuffer());
-			primaryBuffer->Blit(m_CurNormalDepthTarget->GetFrameBuffer(), m_PrevNormalDepthTarget->GetFrameBuffer());
-			primaryBuffer->Blit(m_CurSquaredMeanTarget->GetFrameBuffer(), m_PrevSquaredMeanTarget->GetFrameBuffer());
-			primaryBuffer->Blit(m_CurTSPP->GetFrameBuffer(), m_PrevTSPP->GetFrameBuffer());
-			primaryBuffer->EndDebugMarker();
-		}
-
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1)->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetAOTarget()->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY);
-
 		primaryBuffer->EndDebugMarker();
 	}
+	return true;
+}
+
+bool KRTAO::Blit(IKCommandBufferPtr primaryBuffer)
+{
+	primaryBuffer->BeginDebugMarker("RTAO_BlitToPrevious", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->Blit(m_CurAOTarget->GetFrameBuffer(), m_PrevAOTarget->GetFrameBuffer());
+	primaryBuffer->Blit(m_CurHitDistanceTarget->GetFrameBuffer(), m_PrevHitDistanceTarget->GetFrameBuffer());
+	primaryBuffer->Blit(m_CurNormalDepthTarget->GetFrameBuffer(), m_PrevNormalDepthTarget->GetFrameBuffer());
+	primaryBuffer->Blit(m_CurSquaredMeanTarget->GetFrameBuffer(), m_PrevSquaredMeanTarget->GetFrameBuffer());
+	primaryBuffer->Blit(m_CurTSPP->GetFrameBuffer(), m_PrevTSPP->GetFrameBuffer());
+	primaryBuffer->EndDebugMarker();
 	return true;
 }
 

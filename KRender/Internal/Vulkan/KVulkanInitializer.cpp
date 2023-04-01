@@ -234,7 +234,7 @@ namespace KVulkanInitializer
 		VkBufferCreateInfo bufferCreateInfo = {};
 		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferCreateInfo.size = (accelerationStructureBuildGeometryInfo.mode == VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR) ? accelerationStructureBuildSizesInfo.buildScratchSize : accelerationStructureBuildSizesInfo.updateScratchSize;
-		bufferCreateInfo.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 		VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferCreateInfo, nullptr, &scratchBufferHandle));
 
 		VkMemoryRequirements memoryRequirements = {};
@@ -297,7 +297,7 @@ namespace KVulkanInitializer
 		VkBufferCreateInfo bufferCreateInfo{};
 		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferCreateInfo.size = (accelerationStructureBuildGeometryInfo.mode == VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR) ? accelerationStructureBuildSizesInfo.buildScratchSize : accelerationStructureBuildSizesInfo.updateScratchSize;
-		bufferCreateInfo.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 		VK_ASSERT_RESULT(vkCreateBuffer(KVulkanGlobal::device, &bufferCreateInfo, nullptr, &scratchBufferHandle));
 
 		VkMemoryRequirements memoryRequirements = {};
@@ -554,24 +554,26 @@ namespace KVulkanInitializer
 	{
 		VkCommandBuffer commandBuffer;
 		BeginSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
-		TransitionImageLayoutCmdBuffer(image, format, baseLayer, layers, baseMipLevel, mipLevels, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, oldLayout, newLayout, commandBuffer);
+		TransitionImageLayoutCmdBuffer(image, format, baseLayer, layers, baseMipLevel, mipLevels,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+			oldLayout, newLayout, commandBuffer);
 		EndSingleTimeCommand(KVulkanGlobal::graphicsCommandPool, commandBuffer);
 	}
 
 	void TransitionImageLayoutCmdBuffer(VkImage image, VkFormat format,
 		uint32_t baseLayer, uint32_t layers,
 		uint32_t baseMipLevel, uint32_t mipLevels,
+		uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex,
 		VkPipelineStageFlags srcStages, VkPipelineStageFlags dstStages,
 		VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer commandBuffer)
 	{
 		VkImageMemoryBarrier barrier = {};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		// 指定旧Layout与新Layout
 		barrier.oldLayout = oldLayout;
 		barrier.newLayout = newLayout;
-		// 这里不处理队列家族所有权转移
-		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.srcQueueFamilyIndex = srcQueueFamilyIndex;
+		barrier.dstQueueFamilyIndex = dstQueueFamilyIndex;
 
 		barrier.image = image;
 		
