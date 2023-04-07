@@ -4,6 +4,8 @@
 #include "KVulkanHelper.h"
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanRenderPass.h"
+#include "KVulkanQueue.h"
+#include "Internal/KRenderGlobal.h"
 #include "Interface/IKRenderWindow.h"
 #include "KBase/Publish/KConfig.h"
 #include <algorithm>
@@ -26,9 +28,6 @@ KVulkanSwapChain::~KVulkanSwapChain()
 {
 	ASSERT_RESULT(m_SwapChain == VK_NULL_HANDLE);
 	ASSERT_RESULT(m_SwapChainImages.empty());
-	ASSERT_RESULT(m_ImageAvailableSemaphores.empty());
-	ASSERT_RESULT(m_RenderFinishedSemaphores.empty());
-	ASSERT_RESULT(m_InFlightFences.empty());
 }
 
 bool KVulkanSwapChain::QuerySwapChainSupport()
@@ -243,27 +242,17 @@ bool KVulkanSwapChain::CreateSyncObjects()
 {
 	m_CurrentFlightIndex = 0;
 
-	m_ImageAvailableSemaphores.resize(m_MaxFramesInFight);
-	m_RenderFinishedSemaphores.resize(m_MaxFramesInFight);
-	m_InFlightFences.resize(m_MaxFramesInFight);
+	KRenderGlobal::RenderDevice->CreateSemaphore(m_ImageAvailableSemaphore);
+	KRenderGlobal::RenderDevice->CreateSemaphore(m_RenderFinishedSemaphore);
+	KRenderGlobal::RenderDevice->CreateFence(m_InFlightFence);
 
-	VkSemaphoreCreateInfo semaphoreInfo = {};
-	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	m_ImageAvailableSemaphore->Init();
+	m_ImageAvailableSemaphore->SetDebugName("ImageAvailableSemaphore");
+	m_RenderFinishedSemaphore->Init();
+	m_RenderFinishedSemaphore->SetDebugName("RenderFinishedSemaphore");
+	m_InFlightFence->Init(true);
+	m_InFlightFence->SetDebugName("InFlightFence");
 
-	VkFenceCreateInfo fenceInfo = {};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-	for(size_t i = 0; i < m_MaxFramesInFight; ++i)
-	{
-		VK_ASSERT_RESULT(vkCreateSemaphore(KVulkanGlobal::device, &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]));
-		VK_ASSERT_RESULT(vkCreateSemaphore(KVulkanGlobal::device, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]));
-		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &m_InFlightFences[i]));
-
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_ImageAvailableSemaphores[i], VK_OBJECT_TYPE_SEMAPHORE, (std::string("ImageAvailableSemaphore_") + std::to_string(i)).c_str());
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_RenderFinishedSemaphores[i], VK_OBJECT_TYPE_SEMAPHORE, (std::string("RenderFinishedSemaphore_") + std::to_string(i)).c_str());
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_InFlightFences[i], VK_OBJECT_TYPE_FENCE, (std::string("InFlightFence_") + std::to_string(i)).c_str());
-	}
 	return true;
 }
 
@@ -321,24 +310,9 @@ bool KVulkanSwapChain::CleanupSwapChain()
 
 bool KVulkanSwapChain::DestroySyncObjects()
 {
-	for(size_t i = 0; i < m_ImageAvailableSemaphores.size(); ++i)
-	{
-		vkDestroySemaphore(KVulkanGlobal::device, m_ImageAvailableSemaphores[i], nullptr);
-	}
-	m_ImageAvailableSemaphores.clear();
-
-	for(size_t i = 0; i < m_RenderFinishedSemaphores.size(); ++i)
-	{
-		vkDestroySemaphore(KVulkanGlobal::device, m_RenderFinishedSemaphores[i], nullptr);
-	}
-	m_RenderFinishedSemaphores.clear();
-
-	for(size_t i = 0; i < m_InFlightFences.size(); ++i)
-	{
-		vkDestroyFence(KVulkanGlobal::device, m_InFlightFences[i], nullptr);
-	}
-	m_InFlightFences.clear();
-
+	SAFE_UNINIT(m_ImageAvailableSemaphore);
+	SAFE_UNINIT(m_RenderFinishedSemaphore);
+	SAFE_UNINIT(m_InFlightFence);
 	return true;
 }
 
@@ -358,19 +332,6 @@ bool KVulkanSwapChain::DestroyFrameBuffers()
 	}
 	m_RenderPasses.clear();
 
-	return true;
-}
-
-bool KVulkanSwapChain::DestroyCommandBuffers()
-{
-	if (m_CommandPool != VK_NULL_HANDLE)
-	{
-		vkFreeCommandBuffers(KVulkanGlobal::device, m_CommandPool, (uint32_t)m_CommandBuffers.size(), m_CommandBuffers.data());
-		m_CommandBuffers.clear();
-
-		vkDestroyCommandPool(KVulkanGlobal::device, m_CommandPool, nullptr);
-		m_CommandPool = VK_NULL_HANDLE;
-	}
 	return true;
 }
 
@@ -398,7 +359,6 @@ bool KVulkanSwapChain::UnInit()
 	ASSERT_RESULT(DestroyFrameBuffers());
 	ASSERT_RESULT(CleanupSwapChain());
 	ASSERT_RESULT(DestroySyncObjects());
-	ASSERT_RESULT(DestroyCommandBuffers());
 	m_MaxFramesInFight = 0;
 	if (m_pWindow)
 	{
@@ -416,6 +376,21 @@ IKRenderWindow* KVulkanSwapChain::GetWindow()
 uint32_t KVulkanSwapChain::GetFrameInFlight()
 {
 	return m_MaxFramesInFight;
+}
+
+IKSemaphorePtr KVulkanSwapChain::GetImageAvailableSemaphore()
+{
+	return m_ImageAvailableSemaphore;
+}
+
+IKSemaphorePtr KVulkanSwapChain::GetRenderFinishSemaphore()
+{
+	return m_RenderFinishedSemaphore;
+}
+
+IKFencePtr KVulkanSwapChain::GetInFlightFence()
+{
+	return m_InFlightFence;
 }
 
 IKRenderPassPtr KVulkanSwapChain::GetRenderPass(uint32_t chainIndex)
@@ -445,10 +420,11 @@ IKFrameBufferPtr KVulkanSwapChain::GetDepthStencilFrameBuffer(uint32_t chainInde
 	return nullptr;
 }
 
-VkResult KVulkanSwapChain::WaitForInFightFrame(uint32_t& frameIndex)
+VkResult KVulkanSwapChain::WaitForInFlightFrame(uint32_t& frameIndex)
 {
 	// 这个Wait保证Queue已经被执行完
-	VkResult result = vkWaitForFences(KVulkanGlobal::device, 1, &m_InFlightFences[m_CurrentFlightIndex], VK_TRUE, UINT64_MAX);
+	VkFence fence = ((KVulkanFence*)(m_InFlightFence.get()))->GetVkFence();
+	VkResult result = vkWaitForFences(KVulkanGlobal::device, 1, &fence, VK_TRUE, UINT64_MAX);
 	frameIndex = m_CurrentFlightIndex;
 	return result;
 }
@@ -456,36 +432,17 @@ VkResult KVulkanSwapChain::WaitForInFightFrame(uint32_t& frameIndex)
 VkResult KVulkanSwapChain::AcquireNextImage(uint32_t& imageIndex)
 {
 	// 获取可用交换链Image索引 促发交换链Image可用信号量
-	VkResult result = vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFlightIndex], VK_NULL_HANDLE, &imageIndex);
+	VkSemaphore singalSemaphore = ((KVulkanSemaphore*)m_ImageAvailableSemaphore.get())->GetVkSemaphore();
+	VkResult result = vkAcquireNextImageKHR(KVulkanGlobal::device, m_SwapChain, UINT64_MAX, singalSemaphore, VK_NULL_HANDLE, &imageIndex);
 	return result;
 }
 
-VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex, VkSemaphore finishSemaphore)
+VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex)
 {
 	VkResult vkResult = VK_RESULT_MAX_ENUM;
 
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-	// 命令缓冲管线COLOR_ATTACHMENT_OUTPUT可用时 等待交换链Image可用信号量
-	// 这个信号量保证Present被执行完
-	VkSemaphore waitSemaphores[] = { finishSemaphore, m_ImageAvailableSemaphores[m_CurrentFlightIndex]};
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-	submitInfo.waitSemaphoreCount = 2;
-	submitInfo.pWaitSemaphores = waitSemaphores;
-	submitInfo.pWaitDstStageMask = waitStages;
-
-	// 命令缓冲提交完成后将促发此信号量
-	VkSemaphore signalSemaphores[] = {m_RenderFinishedSemaphores[m_CurrentFlightIndex]};
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = signalSemaphores;
-
-	// vkResetFences放置到vkQueueSubmit之前 保证调用vkWaitForFences都不会无限死锁
-	vkResetFences(KVulkanGlobal::device, 1, &m_InFlightFences[m_CurrentFlightIndex]);
-
-	// 提交该绘制命令
-	vkResult = vkQueueSubmit(m_PresentQueue, 1, &submitInfo, m_InFlightFences[m_CurrentFlightIndex]);
-	VK_ASSERT_RESULT(vkResult);	
+	// Present等待此信号量
+	VkSemaphore signalSemaphores[] = { ((KVulkanSemaphore*)m_RenderFinishedSemaphore.get())->GetVkSemaphore() };
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -535,29 +492,7 @@ bool KVulkanSwapChain::ChooseQueue()
 		}
 	}
 
-	if (presentSupport)
-	{
-		VkCommandPoolCreateInfo poolInfo = {};
-		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		poolInfo.queueFamilyIndex = m_PresentQueueIndex;
-		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		VK_ASSERT_RESULT(vkCreateCommandPool(KVulkanGlobal::device, &poolInfo, nullptr, &m_CommandPool));
-
-		VkCommandBufferAllocateInfo allocInfo = {};
-		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		allocInfo.commandPool = m_CommandPool;
-		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		allocInfo.commandBufferCount = m_MaxFramesInFight;
-
-		m_CommandBuffers.resize(m_MaxFramesInFight);
-		VK_ASSERT_RESULT(vkAllocateCommandBuffers(KVulkanGlobal::device, &allocInfo, m_CommandBuffers.data()));
-
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return presentSupport;
 }
 
 #if defined(_WIN32)

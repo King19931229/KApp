@@ -647,10 +647,11 @@ namespace KVulkanInitializer
 				break;
 
 			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-				barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
+				barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 				break;
 
 			case VK_IMAGE_LAYOUT_GENERAL:
+				barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 				break;
 
 			default:
@@ -684,7 +685,7 @@ namespace KVulkanInitializer
 			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
 				// Image layout will be used as a depth/stencil attachment
 				// Make sure any writes to depth/stencil buffer have been finished
-				barrier.dstAccessMask = barrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 				break;
 
 			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
@@ -700,6 +701,7 @@ namespace KVulkanInitializer
 				break;
 
 			case VK_IMAGE_LAYOUT_GENERAL:
+				barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
 				break;
 
 			default:
@@ -751,7 +753,7 @@ namespace KVulkanInitializer
 
 				for (uint32_t mipmapLevel = 1; mipmapLevel < mipLevels; mipmapLevel++)
 				{
-					// 先用内存屏障对上一层mipmap执行一次Transition 从Transfer目标转换到transfer源
+					// 先用内存屏障对上一层mipmap执行一次Transition 从Transfer目标转换到Transfer源
 					barrier.subresourceRange.baseMipLevel = mipmapLevel - 1;
 					barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 					barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;

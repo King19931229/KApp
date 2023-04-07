@@ -433,7 +433,8 @@ enum QueueCategory
 {
 	QUEUE_GRAPHICS,
 	QUEUE_COMPUTE,
-	QUEUE_TRANSFER
+	QUEUE_TRANSFER,
+	QUEUE_PRESENT
 };
 
 enum CommandBufferLevel
@@ -526,6 +527,9 @@ typedef std::shared_ptr<IKRenderPass> IKRenderPassPtr;
 
 struct IKSemaphore;
 typedef std::shared_ptr<IKSemaphore> IKSemaphorePtr;
+
+struct IKFence;
+typedef std::shared_ptr<IKFence> IKFencePtr;
 
 struct IKQueue;
 typedef std::shared_ptr<IKQueue> IKQueuePtr;

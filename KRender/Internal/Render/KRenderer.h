@@ -47,19 +47,20 @@ protected:
 
 	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
 
-	IKCommandPoolPtr m_GraphicsCommandPool;
-	IKCommandBufferPtr m_PreGraphicsBuffer;
-	IKCommandBufferPtr m_PostGraphicsBuffer;
+	struct GPUQueueMiscs
+	{
+		IKCommandPoolPtr pool;
+		IKCommandBufferPtr buffer;
+		IKSemaphorePtr finish;
+		IKQueuePtr queue;
 
-	IKCommandPoolPtr m_ComptuteCommandPool;
-	IKCommandBufferPtr m_ComptuteBuffer;
+		void Init(QueueCategory category, uint32_t queueIndex, const char* name);
+		void UnInit();
+	};
 
-	IKSemaphorePtr m_PreGraphicsFinish;
-	IKSemaphorePtr m_PostGraphicsFinish;
-	IKSemaphorePtr m_ComputeFinish;
-	
-	IKQueuePtr m_GraphicsQueue;
-	IKQueuePtr m_ComputeQueue;
+	GPUQueueMiscs m_PreGraphics;
+	GPUQueueMiscs m_PostGraphics;
+	GPUQueueMiscs m_Compute;
 
 	bool m_DisplayCameraCube;
 	bool m_CameraOutdate;
@@ -83,10 +84,8 @@ public:
 	bool RemoveCallback(IKRenderWindow* window) override;
 
 	bool Update();
-	bool Render(uint32_t chainImageIndex);
+	bool Render(uint32_t chainImageIndex_);
 	bool Execute(uint32_t chainImageIndex);
 
 	void OnSwapChainRecreate(uint32_t width, uint32_t height);
-
-	inline IKSemaphorePtr GetFinishSemaphore() { return m_PostGraphicsFinish; }
 };

@@ -35,11 +35,11 @@ class KVulkanRenderDevice : public IKRenderDevice
 		VkPhysicalDevice device;
 		VkPhysicalDeviceProperties deviceProperties;
 		VkPhysicalDeviceFeatures deviceFeatures;
-		std::vector<VkQueueFamilyProperties> queueFamilyProperties;
 
-		std::vector<uint32_t> graphicsFamilyIndices;
-		std::vector<uint32_t> computeFamilyIndices;
-		std::vector<uint32_t> transferFamilyIndices;
+		std::vector<VkQueueFamilyProperties> allFamilyProperties;
+		std::vector<std::tuple<uint32_t, VkQueueFamilyProperties>> graphicsFamilyProperties;
+		std::vector<std::tuple<uint32_t, VkQueueFamilyProperties>> computeFamilyProperties;
+		std::vector<std::tuple<uint32_t, VkQueueFamilyProperties>> transferFamilyProperties;
 
 		std::vector<std::string> supportedExtensions;
 
@@ -56,10 +56,10 @@ class KVulkanRenderDevice : public IKRenderDevice
 			device = VK_NULL_HANDEL;
 			deviceProperties = {};
 			deviceFeatures = {};
-			queueFamilyProperties = {};
-			graphicsFamilyIndices = {};
-			computeFamilyIndices = {};
-			transferFamilyIndices = {};
+			allFamilyProperties = {};
+			graphicsFamilyProperties = {};
+			computeFamilyProperties = {};
+			transferFamilyProperties = {};
 			supportedExtensions = {};
 			queueComplete = false;
 			suitable = false;
@@ -114,7 +114,7 @@ protected:
 
 	bool CheckDeviceSuitable(PhysicalDevice& device);
 
-	bool FindQueue(PhysicalDevice& device, VkQueueFlags bits, const std::vector<uint32_t>& forbidQueueFamilies, uint32_t& queueFamily);
+	bool FindQueue(PhysicalDevice& device, VkQueueFlags bits, const std::vector<uint32_t>& forbidQueueFamilies, uint32_t& queueFamilyIndex, VkQueueFamilyProperties& queueFamilyProperties);
 	bool CheckExtentionsSupported(PhysicalDevice& device);
 	PhysicalDevice GetPhysicalDeviceProperty(VkPhysicalDevice device);
 
@@ -159,6 +159,7 @@ public:
 	virtual bool UnInit();
 
 	virtual bool CreateSemaphore(IKSemaphorePtr& semaphore);
+	virtual bool CreateFence(IKFencePtr& fence);
 	virtual bool CreateQueue(IKQueuePtr& queue);
 
 	virtual bool CreateShader(IKShaderPtr& shader);

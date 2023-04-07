@@ -7,13 +7,14 @@ KRTAO::KRTAO()
 	, m_PrevCamMat(glm::mat4(1.0f))
 	, m_Width(1024)
 	, m_Height(1024)
+	, m_CurrentAOIndex(0)
 	, m_Enable(true)
 {
 }
 
 KRTAO::~KRTAO()
 {
-	ASSERT_RESULT(!m_AOComputePipeline);
+	ASSERT_RESULT(!m_AOComputePipeline[0]);
 	ASSERT_RESULT(!m_AOUniformBuffer);
 }
 
@@ -49,20 +50,14 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 	{
 		IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
-		renderDevice->CreateRenderTarget(m_PrevAOTarget);
-		renderDevice->CreateRenderTarget(m_CurAOTarget);
-
-		renderDevice->CreateRenderTarget(m_PrevHitDistanceTarget);
-		renderDevice->CreateRenderTarget(m_CurHitDistanceTarget);
-
-		renderDevice->CreateRenderTarget(m_PrevNormalDepthTarget);
-		renderDevice->CreateRenderTarget(m_CurNormalDepthTarget);
-
-		renderDevice->CreateRenderTarget(m_PrevSquaredMeanTarget);
-		renderDevice->CreateRenderTarget(m_CurSquaredMeanTarget);
-
-		renderDevice->CreateRenderTarget(m_PrevTSPP);
-		renderDevice->CreateRenderTarget(m_CurTSPP);
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			renderDevice->CreateRenderTarget(m_AOTarget[i]);
+			renderDevice->CreateRenderTarget(m_HitDistanceTarget[i]);
+			renderDevice->CreateRenderTarget(m_NormalDepthTarget[i]);
+			renderDevice->CreateRenderTarget(m_SquaredMeanTarget[i]);
+			renderDevice->CreateRenderTarget(m_TSPP[i]);
+		}
 
 		renderDevice->CreateRenderTarget(m_MeanVarianceTarget[0]);
 		renderDevice->CreateRenderTarget(m_MeanVarianceTarget[1]);
@@ -98,19 +93,22 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 
 		if (property->raytraceSupport)
 		{
-			renderDevice->CreateComputePipeline(m_AOComputePipeline);
-			m_AOComputePipeline->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_AOComputePipeline->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_AOComputePipeline->BindAccelerationStructure(BINDING_AS, scene->GetTopDownAS(), true);
-			m_AOComputePipeline->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
-			m_AOComputePipeline->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
+			for (uint32_t i = 0; i < 2; ++i)
+			{
+				renderDevice->CreateComputePipeline(m_AOComputePipeline[i]);
+				m_AOComputePipeline[i]->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_AOComputePipeline[i]->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_AOComputePipeline[i]->BindAccelerationStructure(BINDING_AS, scene->GetTopDownAS(), true);
+				m_AOComputePipeline[i]->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
+				m_AOComputePipeline[i]->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
 
-			m_AOComputePipeline->BindStorageImage(BINDING_CUR_AO, m_CurAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_AOComputePipeline->BindStorageImage(BINDING_CUR_HITDISTANCE, m_CurHitDistanceTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_AOComputePipeline->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_AOComputePipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_CurNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_AOComputePipeline[i]->BindStorageImage(BINDING_CUR_AO, m_AOTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_AOComputePipeline[i]->BindStorageImage(BINDING_CUR_HITDISTANCE, m_HitDistanceTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_AOComputePipeline[i]->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_AOComputePipeline[i]->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 
-			m_AOComputePipeline->Init("ao/rtao.comp");
+				m_AOComputePipeline[i]->Init("ao/rtao.comp");
+			}
 
 			renderDevice->CreateComputePipeline(m_MeanHorizontalComputePipeline);
 			m_MeanHorizontalComputePipeline->BindStorageImage(0, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
@@ -124,79 +122,98 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 			m_MeanVerticalComputePipeline->BindStorageImage(1, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 			m_MeanVerticalComputePipeline->Init("ao/mean_v.comp");
 
-			renderDevice->CreateComputePipeline(m_ReprojectPipeline);
-			m_ReprojectPipeline->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ReprojectPipeline->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+			for (uint32_t i = 0; i < 2; ++i)
+			{
+				renderDevice->CreateComputePipeline(m_ReprojectPipeline[i]);
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 
-			m_ReprojectPipeline->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_PrevNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ReprojectPipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_CurNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_NormalDepthTarget[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 
-			m_ReprojectPipeline->BindStorageImage(BINDING_PREV_AO, m_PrevAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ReprojectPipeline->BindStorageImage(BINDING_PREV_HITDISTANCE, m_PrevHitDistanceTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ReprojectPipeline->BindStorageImage(BINDING_PREV_SQARED_MEAN, m_PrevSquaredMeanTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ReprojectPipeline->BindStorageImage(BINDING_PREV_TSPP, m_PrevTSPP->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ReprojectPipeline->BindStorageImage(BINDING_CUR_TSPP, m_CurTSPP->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_PREV_AO, m_AOTarget[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_PREV_HITDISTANCE, m_HitDistanceTarget[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_PREV_SQARED_MEAN, m_SquaredMeanTarget[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_PREV_TSPP, m_TSPP[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_CUR_TSPP, m_TSPP[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
 
-			m_ReprojectPipeline->BindStorageImage(BINDING_REPROJECTED, m_ReprojectedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_ReprojectPipeline->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
-			m_ReprojectPipeline->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
-			m_ReprojectPipeline->Init("ao/reproject.comp");
+				m_ReprojectPipeline[i]->BindStorageImage(BINDING_REPROJECTED, m_ReprojectedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_ReprojectPipeline[i]->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
+				m_ReprojectPipeline[i]->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
+				m_ReprojectPipeline[i]->Init("ao/reproject.comp");
+			}
 
-			renderDevice->CreateComputePipeline(m_AOTemporalPipeline);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_REPROJECTED, m_ReprojectedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR_HITDISTANCE, m_CurHitDistanceTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR_SQARED_MEAN, m_CurSquaredMeanTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR_TSPP, m_CurTSPP->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_CUR_AO, m_CurAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_VARIANCE, m_VarianceTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_AOTemporalPipeline->BindStorageImage(BINDING_BLUR_STRENGTH, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_AOTemporalPipeline->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
-			m_AOTemporalPipeline->Init("ao/rtao_temp.comp");
+			for (uint32_t i = 0; i < 2; ++i)
+			{
+				renderDevice->CreateComputePipeline(m_AOTemporalPipeline[i]);
+				m_AOTemporalPipeline[i]->BindStorageImage(BINDING_REPROJECTED, m_ReprojectedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_AOTemporalPipeline[i]->BindStorageImage(BINDING_CUR_HITDISTANCE, m_HitDistanceTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
+				m_AOTemporalPipeline[i]->BindStorageImage(BINDING_CUR_SQARED_MEAN, m_SquaredMeanTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
+				m_AOTemporalPipeline[i]->BindStorageImage(BINDING_CUR_TSPP, m_TSPP[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
+				m_AOTemporalPipeline[i]->BindStorageImage(BINDING_CUR_AO, m_AOTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, 0, true);
+				m_AOTemporalPipeline[i]->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_AOTemporalPipeline[i]->BindStorageImage(BINDING_VARIANCE, m_VarianceTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_AOTemporalPipeline[i]->BindStorageImage(BINDING_BLUR_STRENGTH, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_AOTemporalPipeline[i]->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
+				m_AOTemporalPipeline[i]->Init("ao/rtao_temp.comp");
+			}
 
-			renderDevice->CreateComputePipeline(m_AtrousComputePipeline);
-			m_AtrousComputePipeline->BindStorageImage(BINDING_VARIANCE, m_VarianceTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_AtrousComputePipeline->BindStorageImage(BINDING_CUR_AO, m_CurAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_AtrousComputePipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_CurNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_AtrousComputePipeline->BindStorageImage(BINDING_ATROUS_AO, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_AtrousComputePipeline->Init("ao/atrous.comp");
+			for (uint32_t i = 0; i < 2; ++i)
+			{
+				renderDevice->CreateComputePipeline(m_AtrousComputePipeline[i]);
+				m_AtrousComputePipeline[i]->BindStorageImage(BINDING_VARIANCE, m_VarianceTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_AtrousComputePipeline[i]->BindStorageImage(BINDING_CUR_AO, m_AOTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_AtrousComputePipeline[i]->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_AtrousComputePipeline[i]->BindStorageImage(BINDING_ATROUS_AO, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_AtrousComputePipeline[i]->Init("ao/atrous.comp");
+			}
 
 			const char* blurHorizontalVertexShader[3] = { "ao/disconnected_1_h.comp", "ao/disconnected_2_h.comp", "ao/disconnected_3_h.comp" };
 			const char* blurVerticalVertexShader[3] = { "ao/disconnected_1_v.comp", "ao/disconnected_2_v.comp", "ao/disconnected_3_v.comp" };
-			for (uint32_t i = 0; i < 3; ++i)
+
+			for (uint32_t i = 0; i < 2; ++i)
 			{
-				renderDevice->CreateComputePipeline(m_BlurHorizontalComputePipeline[i]);
-				renderDevice->CreateComputePipeline(m_BlurVerticalComputePipeline[i]);
+				for (uint32_t j = 0; j < 3; ++j)
+				{
+					renderDevice->CreateComputePipeline(m_BlurHorizontalComputePipeline[i][j]);
+					renderDevice->CreateComputePipeline(m_BlurVerticalComputePipeline[i][j]);
 
-				m_BlurHorizontalComputePipeline[i]->BindStorageImage(0, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_BlurHorizontalComputePipeline[i]->BindStorageImage(1, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_BlurHorizontalComputePipeline[i]->BindStorageImage(2, m_CurNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_BlurHorizontalComputePipeline[i]->BindStorageImage(3, m_BlurTempTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-				m_BlurHorizontalComputePipeline[i]->Init(blurHorizontalVertexShader[i]);
+					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(0, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(1, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(2, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+					m_BlurHorizontalComputePipeline[i][j]->BindStorageImage(3, m_BlurTempTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+					m_BlurHorizontalComputePipeline[i][j]->Init(blurHorizontalVertexShader[j]);
 
-				m_BlurVerticalComputePipeline[i]->BindStorageImage(0, m_BlurTempTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_BlurVerticalComputePipeline[i]->BindStorageImage(1, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_BlurVerticalComputePipeline[i]->BindStorageImage(2, m_CurNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-				m_BlurVerticalComputePipeline[i]->BindStorageImage(3, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-				m_BlurVerticalComputePipeline[i]->Init(blurVerticalVertexShader[i]);
+					m_BlurVerticalComputePipeline[i][j]->BindStorageImage(0, m_BlurTempTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+					m_BlurVerticalComputePipeline[i][j]->BindStorageImage(1, m_BlurStrengthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+					m_BlurVerticalComputePipeline[i][j]->BindStorageImage(2, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+					m_BlurVerticalComputePipeline[i][j]->BindStorageImage(3, m_AtrousAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+					m_BlurVerticalComputePipeline[i][j]->Init(blurVerticalVertexShader[j]);
+				}
 			}
 
-			renderDevice->CreateComputePipeline(m_ComposePipeline);
-			m_ComposePipeline->BindStorageImage(BINDING_CUR_AO, m_CurAOTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ComposePipeline->BindStorageImage(BINDING_CUR_HITDISTANCE, m_CurHitDistanceTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ComposePipeline->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ComposePipeline->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ComposePipeline->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_PrevNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ComposePipeline->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_CurNormalDepthTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ComposePipeline->BindStorageImage(BINDING_REPROJECTED, m_ReprojectedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
-			m_ComposePipeline->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
-			m_ComposePipeline->BindStorageImage(BINDING_COMPOSED, ao->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
-			m_ComposePipeline->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
-			m_ComposePipeline->Init("ao/compose.comp");
+			for (uint32_t i = 0; i < 2; ++i)
+			{
+				renderDevice->CreateComputePipeline(m_ComposePipeline[i]);
+				m_ComposePipeline[i]->BindStorageImage(BINDING_CUR_AO, m_AOTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ComposePipeline[i]->BindStorageImage(BINDING_CUR_HITDISTANCE, m_HitDistanceTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ComposePipeline[i]->BindStorageImage(BINDING_GBUFFER_RT0, gbuffer0->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ComposePipeline[i]->BindStorageImage(BINDING_GBUFFER_RT1, gbuffer1->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ComposePipeline[i]->BindStorageImage(BINDING_PREV_NORMAL_DEPTH, m_NormalDepthTarget[(i + 1) & 1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ComposePipeline[i]->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ComposePipeline[i]->BindStorageImage(BINDING_REPROJECTED, m_ReprojectedTarget->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, true);
+				m_ComposePipeline[i]->BindUniformBuffer(BINDING_CAMERA, cameraBuffer);
+				m_ComposePipeline[i]->BindStorageImage(BINDING_COMPOSED, ao->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
+				m_ComposePipeline[i]->BindUniformBuffer(BINDING_UNIFORM, m_AOUniformBuffer);
+				m_ComposePipeline[i]->Init("ao/compose.comp");
+			}
 		}
 	}
 
 	m_DebugDrawer.Init(KRenderGlobal::GBuffer.GetAOTarget() , 0, 0, 1, 1);
+
+	m_CurrentAOIndex = 0;
+
 	return true;
 }
 
@@ -204,34 +221,32 @@ bool KRTAO::UnInit()
 {
 	m_DebugDrawer.UnInit();
 
-	SAFE_UNINIT(m_AOComputePipeline);
-	SAFE_UNINIT(m_AOTemporalPipeline);
-	SAFE_UNINIT(m_ComposePipeline);
-	SAFE_UNINIT(m_MeanHorizontalComputePipeline);
-	SAFE_UNINIT(m_MeanVerticalComputePipeline);
-	SAFE_UNINIT(m_ReprojectPipeline);
-	SAFE_UNINIT(m_AtrousComputePipeline);
-
-	for (uint32_t i = 0; i < 3; ++i)
+	for (uint32_t i = 0; i < 2; ++i)
 	{
-		SAFE_UNINIT(m_BlurHorizontalComputePipeline[i]);
-		SAFE_UNINIT(m_BlurVerticalComputePipeline[i]);
+		SAFE_UNINIT(m_AOComputePipeline[i]);
+		SAFE_UNINIT(m_AOTemporalPipeline[i]);
+		SAFE_UNINIT(m_ComposePipeline[i]);
+		SAFE_UNINIT(m_AtrousComputePipeline[i]);
+		SAFE_UNINIT(m_ReprojectPipeline[i]);
+
+		for (uint32_t j = 0; j < 3; ++j)
+		{
+			SAFE_UNINIT(m_BlurHorizontalComputePipeline[i][j]);
+			SAFE_UNINIT(m_BlurVerticalComputePipeline[i][j]);
+		}
 	}
 
-	SAFE_UNINIT(m_PrevAOTarget);
-	SAFE_UNINIT(m_CurAOTarget);
+	SAFE_UNINIT(m_MeanHorizontalComputePipeline);
+	SAFE_UNINIT(m_MeanVerticalComputePipeline);
 
-	SAFE_UNINIT(m_PrevHitDistanceTarget);
-	SAFE_UNINIT(m_CurHitDistanceTarget);
-
-	SAFE_UNINIT(m_PrevNormalDepthTarget);
-	SAFE_UNINIT(m_CurNormalDepthTarget);
-
-	SAFE_UNINIT(m_PrevSquaredMeanTarget);
-	SAFE_UNINIT(m_CurSquaredMeanTarget);
-
-	SAFE_UNINIT(m_PrevTSPP);
-	SAFE_UNINIT(m_CurTSPP);
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		SAFE_UNINIT(m_AOTarget[i]);
+		SAFE_UNINIT(m_HitDistanceTarget[i]);
+		SAFE_UNINIT(m_NormalDepthTarget[i]);
+		SAFE_UNINIT(m_SquaredMeanTarget[i]);
+		SAFE_UNINIT(m_TSPP[i]);
+	}
 
 	SAFE_UNINIT(m_MeanVarianceTarget[0]);
 	SAFE_UNINIT(m_MeanVarianceTarget[1]);
@@ -279,7 +294,7 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, 
 		{
 			primaryBuffer->BeginDebugMarker("RTAO_ComputeAO", glm::vec4(0, 1, 0, 0));
 			UpdateAOUniform();
-			m_AOComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
+			m_AOComputePipeline[m_CurrentAOIndex]->Execute(primaryBuffer, groupX, groupY, 1);
 			primaryBuffer->EndDebugMarker();
 		}
 
@@ -293,19 +308,19 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, 
 
 		{
 			primaryBuffer->BeginDebugMarker("RTAO_Reproject", glm::vec4(0, 1, 0, 0));
-			m_ReprojectPipeline->Execute(primaryBuffer, groupX, groupY, 1);
+			m_ReprojectPipeline[m_CurrentAOIndex]->Execute(primaryBuffer, groupX, groupY, 1);
 			primaryBuffer->EndDebugMarker();
 		}
 
 		{
 			primaryBuffer->BeginDebugMarker("RTAO_Temporal", glm::vec4(0, 1, 0, 0));
-			m_AOTemporalPipeline->Execute(primaryBuffer, groupX, groupY, 1);
+			m_AOTemporalPipeline[m_CurrentAOIndex]->Execute(primaryBuffer, groupX, groupY, 1);
 			primaryBuffer->EndDebugMarker();
 		}
 
 		{
 			primaryBuffer->BeginDebugMarker("RTAO_Atrous", glm::vec4(0, 1, 0, 0));
-			m_AtrousComputePipeline->Execute(primaryBuffer, groupX, groupY, 1);
+			m_AtrousComputePipeline[m_CurrentAOIndex]->Execute(primaryBuffer, groupX, groupY, 1);
 			primaryBuffer->EndDebugMarker();
 		}
 
@@ -314,8 +329,8 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, 
 			{
 				std::string marker = "RTAO_Blur_" + std::to_string(i);
 				primaryBuffer->BeginDebugMarker(marker, glm::vec4(0, 1, 0, 0));
-				m_BlurHorizontalComputePipeline[i]->Execute(primaryBuffer, groupX, groupY, 1);
-				m_BlurVerticalComputePipeline[i]->Execute(primaryBuffer, groupX, groupY, 1);
+				m_BlurHorizontalComputePipeline[m_CurrentAOIndex][i]->Execute(primaryBuffer, groupX, groupY, 1);
+				m_BlurVerticalComputePipeline[m_CurrentAOIndex][i]->Execute(primaryBuffer, groupX, groupY, 1);
 				primaryBuffer->EndDebugMarker();
 			}
 		}
@@ -325,24 +340,14 @@ bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, 
 			groupX = (aoTarget->GetFrameBuffer()->GetWidth() + (RTAO_GROUP_SIZE - 1)) / RTAO_GROUP_SIZE;
 			groupY = (aoTarget->GetFrameBuffer()->GetHeight() + (RTAO_GROUP_SIZE - 1)) / RTAO_GROUP_SIZE;
 			primaryBuffer->BeginDebugMarker("RTAO_Composed", glm::vec4(0, 1, 0, 0));
-			m_ComposePipeline->Execute(primaryBuffer, groupX, groupY, 1);
+			m_ComposePipeline[m_CurrentAOIndex]->Execute(primaryBuffer, groupX, groupY, 1);
 			primaryBuffer->EndDebugMarker();
 		}
 
 		primaryBuffer->EndDebugMarker();
-	}
-	return true;
-}
 
-bool KRTAO::Blit(IKCommandBufferPtr primaryBuffer)
-{
-	primaryBuffer->BeginDebugMarker("RTAO_BlitToPrevious", glm::vec4(0, 1, 0, 0));
-	primaryBuffer->Blit(m_CurAOTarget->GetFrameBuffer(), m_PrevAOTarget->GetFrameBuffer());
-	primaryBuffer->Blit(m_CurHitDistanceTarget->GetFrameBuffer(), m_PrevHitDistanceTarget->GetFrameBuffer());
-	primaryBuffer->Blit(m_CurNormalDepthTarget->GetFrameBuffer(), m_PrevNormalDepthTarget->GetFrameBuffer());
-	primaryBuffer->Blit(m_CurSquaredMeanTarget->GetFrameBuffer(), m_PrevSquaredMeanTarget->GetFrameBuffer());
-	primaryBuffer->Blit(m_CurTSPP->GetFrameBuffer(), m_PrevTSPP->GetFrameBuffer());
-	primaryBuffer->EndDebugMarker();
+		m_CurrentAOIndex = (m_CurrentAOIndex + 1) & 1;
+	}
 	return true;
 }
 
@@ -350,13 +355,18 @@ bool KRTAO::ReloadShader()
 {
 	if (m_ComposePipeline)
 	{
-		m_AOComputePipeline->Reload();
-		m_AOTemporalPipeline->Reload();
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			m_AOComputePipeline[i]->Reload();
+			m_AOTemporalPipeline[i]->Reload();
+			m_ReprojectPipeline[i]->Reload();
+			m_AtrousComputePipeline[i]->Reload();
+			m_ComposePipeline[i]->Reload();
+		}
+
 		m_MeanHorizontalComputePipeline->Reload();
 		m_MeanVerticalComputePipeline->Reload();
-		m_ReprojectPipeline->Reload();
-		m_AtrousComputePipeline->Reload();
-		m_ComposePipeline->Reload();
+
 		return true;
 	}
 	return false;
@@ -384,30 +394,23 @@ void KRTAO::Resize()
 			m_Height = newHeight;
 		}
 
-		m_PrevAOTarget->UnInit();
-		m_PrevAOTarget->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
-		m_CurAOTarget->UnInit();
-		m_CurAOTarget->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			m_AOTarget[i]->UnInit();
+			m_AOTarget[i]->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
 
-		m_PrevHitDistanceTarget->UnInit();
-		m_PrevHitDistanceTarget->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
-		m_CurHitDistanceTarget->UnInit();
-		m_CurHitDistanceTarget->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
+			m_HitDistanceTarget[i]->UnInit();
+			m_HitDistanceTarget[i]->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
 
-		m_PrevNormalDepthTarget->UnInit();
-		m_PrevNormalDepthTarget->InitFromStorage(m_Width, m_Height, 1, EF_R16G16B16A16_FLOAT);
-		m_CurNormalDepthTarget->UnInit();
-		m_CurNormalDepthTarget->InitFromStorage(m_Width, m_Height, 1, EF_R16G16B16A16_FLOAT);
+			m_NormalDepthTarget[i]->UnInit();
+			m_NormalDepthTarget[i]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16B16A16_FLOAT);
 
-		m_PrevSquaredMeanTarget->UnInit();
-		m_PrevSquaredMeanTarget->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
-		m_CurSquaredMeanTarget->UnInit();
-		m_CurSquaredMeanTarget->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
+			m_SquaredMeanTarget[i]->UnInit();
+			m_SquaredMeanTarget[i]->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
 
-		m_PrevTSPP->UnInit();
-		m_PrevTSPP->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
-		m_CurTSPP->UnInit();
-		m_CurTSPP->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
+			m_TSPP[i]->UnInit();
+			m_TSPP[i]->InitFromStorage(m_Width, m_Height, 1, EF_R16_FLOAT);
+		}
 
 		m_MeanVarianceTarget[0]->UnInit();
 		m_MeanVarianceTarget[0]->InitFromStorage(m_Width, m_Height, 1, EF_R16G16_FLOAT);

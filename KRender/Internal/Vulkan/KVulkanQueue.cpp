@@ -1,6 +1,7 @@
 #include "KVulkanQueue.h"
 #include "KVulkanCommandBuffer.h"
 #include "KVulkanGlobal.h"
+#include "KVulkanHelper.h"
 #include "Internal/KRenderGlobal.h"
 
 KVulkanSemaphore::KVulkanSemaphore()
@@ -37,11 +38,97 @@ bool KVulkanSemaphore::UnInit()
 	return true;
 }
 
+bool KVulkanSemaphore::SetDebugName(const char* name)
+{
+	for (size_t i = 0; i < m_Semaphores.size(); ++i)
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Semaphores[i], VK_OBJECT_TYPE_SEMAPHORE, (std::string(name) + "_" + std::to_string(i)).c_str());
+	}
+	return true;
+}
+
 VkSemaphore KVulkanSemaphore::GetVkSemaphore()
 {
 	if (m_Semaphores.size() > 0)
 	{
 		return m_Semaphores[KRenderGlobal::CurrentInFlightFrameIndex];
+	}
+	else
+	{
+		return VK_NULL_HANDEL;
+	}
+}
+
+KVulkanFence::KVulkanFence()
+{
+}
+
+KVulkanFence::~KVulkanFence()
+{
+}
+
+bool KVulkanFence::Init(bool singaled)
+{
+	UnInit();
+	m_Fences.resize(KRenderGlobal::NumFramesInFlight);
+	for (size_t i = 0; i < m_Fences.size(); ++i)
+	{		
+		VkFenceCreateInfo fenceInfo = {};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = singaled ? VK_FENCE_CREATE_SIGNALED_BIT : VK_FLAGS_NONE;
+		fenceInfo.pNext = nullptr;
+		VK_ASSERT_RESULT(vkCreateFence(KVulkanGlobal::device, &fenceInfo, nullptr, &m_Fences[i]));
+	}
+	return true;
+}
+
+bool KVulkanFence::UnInit()
+{
+	if (m_Fences.size() > 0)
+	{
+		for (size_t i = 0; i < m_Fences.size(); ++i)
+		{
+			vkDestroyFence(KVulkanGlobal::device, m_Fences[i], nullptr);
+		}
+		m_Fences.clear();
+	}
+	return true;
+}
+
+bool KVulkanFence::SetDebugName(const char* name)
+{
+	for (size_t i = 0; i < m_Fences.size(); ++i)
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_Fences[i], VK_OBJECT_TYPE_FENCE, (std::string(name) + "_" + std::to_string(i)).c_str());
+	}
+	return true;
+}
+
+bool KVulkanFence::Wait()
+{
+	if (m_Fences.size() > 0)
+	{
+		VkResult result = vkWaitForFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex], VK_TRUE, UINT64_MAX);
+		return result == VK_SUCCESS;
+	}
+	return false;
+}
+
+bool KVulkanFence::Reset()
+{
+	if (m_Fences.size() > 0)
+	{
+		VkResult result = vkResetFences(KVulkanGlobal::device, 1, &m_Fences[KRenderGlobal::CurrentInFlightFrameIndex]);
+		return result == VK_SUCCESS;
+	}
+	return false;
+}
+
+VkFence KVulkanFence::GetVkFence()
+{
+	if (m_Fences.size() > 0)
+	{
+		return m_Fences[KRenderGlobal::CurrentInFlightFrameIndex];
 	}
 	else
 	{
@@ -64,6 +151,13 @@ KVulkanQueue::~KVulkanQueue()
 
 bool KVulkanQueue::Init(QueueCategory category, uint32_t queueIndex)
 {
+	if (category == QUEUE_PRESENT)
+	{
+		assert(queueIndex == 0);
+		m_vkQueue = KVulkanGlobal::presentQueue;
+		return m_vkQueue != VK_NULL_HANDEL;
+	}
+
 	std::vector<uint32_t>* queueFamilyPtr = nullptr;
 	std::vector<VkQueue>* queuePtr = nullptr;
 
@@ -116,42 +210,50 @@ uint32_t KVulkanQueue::GetIndex() const
 	return m_QueueIndex;
 }
 
-bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, IKSemaphorePtr wait, IKSemaphorePtr singal)
+bool KVulkanQueue::Submit(IKCommandBufferPtr buffer, std::vector<IKSemaphorePtr> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence)
 {
 	if (m_vkQueue)
 	{
-		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT };
-
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 		VkCommandBuffer commandBuffer = VK_NULL_HANDEL;
-		VkSemaphore waitSemaphore = VK_NULL_HANDEL;
-		VkSemaphore singalSemaphore = VK_NULL_HANDEL;
+
+		std::vector<VkPipelineStageFlags> waitStages;
+		std::vector<VkSemaphore> waitSemaphores;
+		std::vector<VkSemaphore> singalSemaphores;
 
 		if (buffer)
 		{
-			commandBuffer = ((KVulkanCommandBuffer*)buffer.get())->GetVkHandle();			
+			commandBuffer = ((KVulkanCommandBuffer*)buffer.get())->GetVkHandle();
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &commandBuffer;
 		}
 
-		if (wait)
+		waitSemaphores.resize(waits.size());
+		waitStages.resize(waits.size());
+
+		for (size_t i = 0; i < waits.size(); ++i)
 		{
-			waitSemaphore = ((KVulkanSemaphore*)wait.get())->GetVkSemaphore();
-			submitInfo.waitSemaphoreCount = 1;
-			submitInfo.pWaitSemaphores = &waitSemaphore;
-			submitInfo.pWaitDstStageMask = waitStages;
+			waitSemaphores[i] = ((KVulkanSemaphore*)waits[i].get())->GetVkSemaphore();
+			waitStages[i] = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		}
 
-		if (singal)
+		submitInfo.waitSemaphoreCount = (uint32_t)waits.size();
+		submitInfo.pWaitSemaphores = waitSemaphores.data();
+		submitInfo.pWaitDstStageMask = waitStages.data();
+
+		singalSemaphores.resize(singals.size());
+		for (size_t i = 0; i < singals.size(); ++i)
 		{
-			singalSemaphore = ((KVulkanSemaphore*)singal.get())->GetVkSemaphore();
-			submitInfo.signalSemaphoreCount = 1;
-			submitInfo.pSignalSemaphores = &singalSemaphore;
+			singalSemaphores[i] = ((KVulkanSemaphore*)singals[i].get())->GetVkSemaphore();
 		}
 
-		VK_ASSERT_RESULT(vkQueueSubmit(m_vkQueue, 1, &submitInfo, VK_NULL_HANDEL));
+		submitInfo.signalSemaphoreCount = (uint32_t)singals.size();
+		submitInfo.pSignalSemaphores = singalSemaphores.data();
+
+		VkFence vkFence = fence ? ((KVulkanFence*)fence.get())->GetVkFence() : VK_NULL_HANDEL;
+		VK_ASSERT_RESULT(vkQueueSubmit(m_vkQueue, 1, &submitInfo, vkFence));
 
 		return true;
 	}

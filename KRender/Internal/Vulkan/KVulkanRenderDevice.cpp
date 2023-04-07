@@ -135,7 +135,7 @@ static VkResult CreateDebugUtilsMessengerEXT(
 	const VkAllocationCallbacks* pAllocator,
 	VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
-	PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+	PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 	if (func != nullptr)
 	{
 		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
@@ -151,7 +151,7 @@ static void DestroyDebugUtilsMessengerEXT(
 	VkDebugUtilsMessengerEXT debugMessenger,
 	const VkAllocationCallbacks* pAllocator)
 {
-	PFN_vkDestroyDebugUtilsMessengerEXT func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	PFN_vkDestroyDebugUtilsMessengerEXT func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 	if (func != nullptr)
 	{
 		func(instance, debugMessenger, pAllocator);
@@ -161,7 +161,7 @@ static void DestroyDebugUtilsMessengerEXT(
 static void PopulateDebugReportCallbackCreateInfo(VkDebugReportCallbackCreateInfoEXT& createInfo, PFN_vkDebugReportCallbackEXT pCallBack)
 {
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-	createInfo.flags =  VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
+	createInfo.flags = VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
 		VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT;
 	createInfo.pfnCallback = pCallBack;
 }
@@ -173,7 +173,7 @@ static VkResult CreateDebugReportCallbackEXT(
 	VkDebugReportCallbackEXT* debugReport)
 {
 
-	PFN_vkCreateDebugReportCallbackEXT func = (PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+	PFN_vkCreateDebugReportCallbackEXT func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
 	if (func != nullptr)
 	{
 		return func(instance, pCreateInfo, pAllocator, debugReport);
@@ -189,7 +189,7 @@ static void DestroyDebugReportCallbackEXT(
 	VkDebugReportCallbackEXT debugReport,
 	const VkAllocationCallbacks* pAllocator)
 {
-	PFN_vkDestroyDebugReportCallbackEXT func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+	PFN_vkDestroyDebugReportCallbackEXT func = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
 	if (func != nullptr)
 	{
 		func(instance, debugReport, pAllocator);
@@ -227,15 +227,15 @@ bool KVulkanRenderDevice::CheckValidationLayerAvailable(int32_t& candidateIdx)
 
 	candidateIdx = -1;
 
-	for(uint32_t i = 0; i < ARRAY_SIZE(VALIDATION_LAYER_CANDIDATE); ++i)
+	for (uint32_t i = 0; i < ARRAY_SIZE(VALIDATION_LAYER_CANDIDATE); ++i)
 	{
 		const ValidationLayerCandidate& candidate = VALIDATION_LAYER_CANDIDATE[i];
 		uint32_t j = 0;
-		for(; j < candidate.arraySize; ++j)
+		for (; j < candidate.arraySize; ++j)
 		{
 			const char* layerName = candidate.layers[j];
 
-			if(std::find_if(
+			if (std::find_if(
 				availableLayers.begin(),
 				availableLayers.end(),
 				[layerName](const VkLayerProperties& prop) { return strcmp(layerName, prop.layerName) == 0; }) == availableLayers.end())
@@ -244,7 +244,7 @@ bool KVulkanRenderDevice::CheckValidationLayerAvailable(int32_t& candidateIdx)
 			}
 		}
 
-		if(j == candidate.arraySize)
+		if (j == candidate.arraySize)
 		{
 			candidateIdx = i;
 			return true;
@@ -253,16 +253,17 @@ bool KVulkanRenderDevice::CheckValidationLayerAvailable(int32_t& candidateIdx)
 	return false;
 }
 
-bool KVulkanRenderDevice::FindQueue(PhysicalDevice& device, VkQueueFlags bits, const std::vector<uint32_t>& forbidQueueFamilies, uint32_t& queueFamily)
+bool KVulkanRenderDevice::FindQueue(PhysicalDevice& device, VkQueueFlags bits, const std::vector<uint32_t>& forbidQueueFamilies, uint32_t& queueFamilyIndex, VkQueueFamilyProperties& queueFamilyProperties)
 {
-	for (uint32_t idx = 0; idx < (uint32_t)device.queueFamilyProperties.size(); ++idx)
+	for (uint32_t idx = 0; idx < (uint32_t)device.allFamilyProperties.size(); ++idx)
 	{
-		VkQueueFamilyProperties vkFamilyProperties = device.queueFamilyProperties[idx];
+		VkQueueFamilyProperties vkFamilyProperties = device.allFamilyProperties[idx];
 		if (vkFamilyProperties.queueFlags & bits && vkFamilyProperties.queueCount > 0)
 		{
 			if (std::find(forbidQueueFamilies.begin(), forbidQueueFamilies.end(), idx) == forbidQueueFamilies.end())
 			{
-				queueFamily = idx;
+				queueFamilyIndex = idx;
+				queueFamilyProperties = vkFamilyProperties;
 				return true;
 			}
 		}
@@ -272,10 +273,10 @@ bool KVulkanRenderDevice::FindQueue(PhysicalDevice& device, VkQueueFlags bits, c
 
 bool KVulkanRenderDevice::CheckDeviceSuitable(PhysicalDevice& device)
 {
-	if(!device.queueComplete)
+	if (!device.queueComplete)
 		return false;
 
-	if(!CheckExtentionsSupported(device))
+	if (!CheckExtentionsSupported(device))
 		return false;
 
 	return true;
@@ -292,48 +293,49 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, nullptr);
-	
-	device.queueFamilyProperties.resize(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, device.queueFamilyProperties.data());
+
+	device.allFamilyProperties.resize(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &queueFamilyCount, device.allFamilyProperties.data());
 
 	std::vector<uint32_t> currentQueueFamilies;
 
-	uint32_t queueFamily = 0;
+	uint32_t queueFamilyIndex = 0;
+	VkQueueFamilyProperties queueFamilyProperties = {};
 
-	if (FindQueue(device, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT, currentQueueFamilies, queueFamily))
+	if (FindQueue(device, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT, currentQueueFamilies, queueFamilyIndex, queueFamilyProperties))
 	{
-		device.graphicsFamilyIndices.push_back(queueFamily);
-		currentQueueFamilies.push_back(queueFamily);
+		device.graphicsFamilyProperties.push_back(std::make_tuple(queueFamilyIndex, queueFamilyProperties));
+		currentQueueFamilies.push_back(queueFamilyIndex);
 	}
 
 	for (uint32_t i = 0; i < KRenderGlobal::MinComputeQueueNum; ++i)
 	{
-		if (FindQueue(device, VK_QUEUE_COMPUTE_BIT, currentQueueFamilies, queueFamily))
+		if (FindQueue(device, VK_QUEUE_COMPUTE_BIT, currentQueueFamilies, queueFamilyIndex, queueFamilyProperties))
 		{
-			device.computeFamilyIndices.push_back(queueFamily);
-			currentQueueFamilies.push_back(queueFamily);
+			device.computeFamilyProperties.push_back(std::make_tuple(queueFamilyIndex, queueFamilyProperties));
+			currentQueueFamilies.push_back(queueFamilyIndex);
 		}
 	}
 
 	for (uint32_t i = 0; i < KRenderGlobal::MinTransferQueueNum; ++i)
 	{
-		if (FindQueue(device, VK_QUEUE_TRANSFER_BIT, currentQueueFamilies, queueFamily))
+		if (FindQueue(device, VK_QUEUE_TRANSFER_BIT, currentQueueFamilies, queueFamilyIndex, queueFamilyProperties))
 		{
-			device.transferFamilyIndices.push_back(queueFamily);
-			currentQueueFamilies.push_back(queueFamily);
+			device.transferFamilyProperties.push_back(std::make_tuple(queueFamilyIndex, queueFamilyProperties));
+			currentQueueFamilies.push_back(queueFamilyIndex);
 		}
 	}
 
 	for (uint32_t i = 0; i < KRenderGlobal::MinExtraGraphicsQueueNum; ++i)
 	{
-		if (FindQueue(device, VK_QUEUE_GRAPHICS_BIT, currentQueueFamilies, queueFamily))
+		if (FindQueue(device, VK_QUEUE_GRAPHICS_BIT, currentQueueFamilies, queueFamilyIndex, queueFamilyProperties))
 		{
-			device.graphicsFamilyIndices.push_back(queueFamily);
-			currentQueueFamilies.push_back(queueFamily);
+			device.graphicsFamilyProperties.push_back(std::make_tuple(queueFamilyIndex, queueFamilyProperties));
+			currentQueueFamilies.push_back(queueFamilyIndex);
 		}
 	}
 
-	device.queueComplete = device.graphicsFamilyIndices.size() > 0;
+	device.queueComplete = device.graphicsFamilyProperties.size() > 0;
 
 	// Get list of supported extensions
 	uint32_t extCount = 0;
@@ -352,7 +354,7 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 
 	device.suitable = CheckDeviceSuitable(device);
 
-	if(device.suitable)
+	if (device.suitable)
 	{
 		device.score = 0;
 
@@ -395,14 +397,14 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 		std::vector<PhysicalDevice> devices;
 
 		std::for_each(vkDevices.begin(), vkDevices.end(), [&](VkPhysicalDevice& device)
-		{
-			PhysicalDevice prop = GetPhysicalDeviceProperty(device);
-			devices.push_back(prop);
-		});
+			{
+				PhysicalDevice prop = GetPhysicalDeviceProperty(device);
+				devices.push_back(prop);
+			});
 
-		for(auto it = devices.begin(); it != devices.end();)
+		for (auto it = devices.begin(); it != devices.end();)
 		{
-			if(it->suitable)
+			if (it->suitable)
 			{
 				++it;
 			}
@@ -412,12 +414,12 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 			}
 		}
 
-		if(devices.size() > 0)
+		if (devices.size() > 0)
 		{
 			std::sort(devices.begin(), devices.end(), [&](PhysicalDevice& lhs, PhysicalDevice rhs)->bool
-			{
-				return lhs.score < rhs.score;
-			});
+				{
+					return lhs.score < rhs.score;
+				});
 
 			m_PhysicalDevice = devices[0];
 			return true;
@@ -506,27 +508,64 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 {
 	if (m_PhysicalDevice.queueComplete)
 	{
-		std::set<uint32_t> uniqueIndices;
-		
-		for (uint32_t index : m_PhysicalDevice.graphicsFamilyIndices) { uniqueIndices.insert(index); }
-		for (uint32_t index : m_PhysicalDevice.computeFamilyIndices) { uniqueIndices.insert(index); }
-		for (uint32_t index : m_PhysicalDevice.transferFamilyIndices) { uniqueIndices.insert(index); }
-
 		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos;
+		std::vector<std::vector<float>> queuePriorities;
 
-		for(uint32_t index : uniqueIndices)
+		for (auto& tuple : m_PhysicalDevice.graphicsFamilyProperties)
 		{
-			// 填充VkDeviceQueueCreateInfo
+			uint32_t familyIndex = std::get<0>(tuple);
+			VkQueueFamilyProperties familyProperty = std::get<1>(tuple);
 			VkDeviceQueueCreateInfo queueCreateInfo = {};
 			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueCreateInfo.queueFamilyIndex = index;
-			queueCreateInfo.queueCount = 1;
-
-			float queuePriority = 1.0f;
-			queueCreateInfo.pQueuePriorities = &queuePriority;
-
+			queueCreateInfo.queueFamilyIndex = familyIndex;
+			if (familyProperty.queueCount > 1)
+			{
+				queueCreateInfo.queueCount = 2;
+				queuePriorities.push_back({ 1.0f , 0.2f });
+			}
+			else
+			{
+				queueCreateInfo.queueCount = 1;
+				queuePriorities.push_back({ 1.0f });
+			}
+			// Placeholder
+			queueCreateInfo.pQueuePriorities = nullptr;
 			deviceQueueCreateInfos.push_back(queueCreateInfo);
 		}
+
+		for (auto& tuple : m_PhysicalDevice.computeFamilyProperties)
+		{
+			uint32_t familyIndex = std::get<0>(tuple);
+			VkQueueFamilyProperties familyProperty = std::get<1>(tuple);
+			VkDeviceQueueCreateInfo queueCreateInfo = {};
+			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			queueCreateInfo.queueFamilyIndex = familyIndex;
+			queueCreateInfo.queueCount = 1;
+			queuePriorities.push_back({ 1.0f });
+			// Placeholder
+			queueCreateInfo.pQueuePriorities = nullptr;
+			deviceQueueCreateInfos.push_back(queueCreateInfo);
+		}
+
+		for (auto& tuple : m_PhysicalDevice.transferFamilyProperties)
+		{
+			uint32_t familyIndex = std::get<0>(tuple);
+			VkQueueFamilyProperties familyProperty = std::get<1>(tuple);
+			VkDeviceQueueCreateInfo queueCreateInfo = {};
+			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			queueCreateInfo.queueFamilyIndex = familyIndex;
+			queueCreateInfo.queueCount = 1;
+			queuePriorities.push_back({ 1.0f });
+			// Placeholder
+			queueCreateInfo.pQueuePriorities = nullptr;
+			deviceQueueCreateInfos.push_back(queueCreateInfo);
+		}
+
+		for (size_t i = 0; i < deviceQueueCreateInfos.size(); ++i)
+		{
+			deviceQueueCreateInfos[i].pQueuePriorities = queuePriorities[i].data();
+		}
+
 		VkResult RES = VK_TIMEOUT;
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
@@ -572,7 +611,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		// 查询DDS支持
 		{
-			VkFormat bcFormats[] = 
+			VkFormat bcFormats[] =
 			{
 				VK_FORMAT_BC1_RGB_UNORM_BLOCK,
 				VK_FORMAT_BC1_RGB_SRGB_BLOCK,
@@ -822,7 +861,7 @@ bool KVulkanRenderDevice::CreateCommandPool()
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	// 指定该命令池所属的队列家族
-	poolInfo.queueFamilyIndex = m_PhysicalDevice.graphicsFamilyIndices[0];
+	poolInfo.queueFamilyIndex = std::get<0>(m_PhysicalDevice.graphicsFamilyProperties[0]);
 	// 为Transient所用
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
@@ -838,17 +877,17 @@ VkBool32 KVulkanRenderDevice::DebugUtilsMessengerCallback(
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData
-	)
+)
 {
-	if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
+	if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
 	{
 		KG_LOG(LM_RENDER, "[Vulkan Validation Layer Debug] %s\n", pCallbackData->pMessage);
 	}
-	if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+	if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
 	{
 		// KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Performance] %s\n", pCallbackData->pMessage);
 	}
-	else if(messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+	else if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
 	{
 		KG_LOGE_ASSERT(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pCallbackData->pMessage);
 	}
@@ -861,28 +900,28 @@ VkBool32 KVulkanRenderDevice::DebugReportCallback(
 	uint64_t object,
 	size_t location,
 	int32_t messageCode,
-	const char *pLayerPrefix,
-	const char *pMessage,
-	void *pUserData
-	)
+	const char* pLayerPrefix,
+	const char* pMessage,
+	void* pUserData
+)
 {
-	if(flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+	if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
 	{
 		KG_LOG(LM_RENDER, "[Vulkan Validation Layer Info] %s\n", pMessage);
 	}
-	if(flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+	if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
 	{
 		KG_LOGD(LM_RENDER, "[Vulkan Validation Layer Debug] %s\n", pMessage);
 	}
-	if(flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+	if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
 	{
 		KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Performance] %s\n", pMessage);
 	}
-	if(flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+	if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
 	{
 		KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Warning] %s\n", pMessage);
 	}
-	if(flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
 	{
 		KG_LOGE_ASSERT(LM_RENDER, "[Vulkan Validation Layer Error] %s\n", pMessage);
 	}
@@ -892,7 +931,7 @@ VkBool32 KVulkanRenderDevice::DebugReportCallback(
 
 bool KVulkanRenderDevice::SetupDebugMessenger()
 {
-	if(m_EnableValidationLayer)
+	if (m_EnableValidationLayer)
 	{
 #ifndef __ANDROID__
 		VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
@@ -920,7 +959,7 @@ bool KVulkanRenderDevice::SetupDebugMessenger()
 
 bool KVulkanRenderDevice::UnsetDebugMessenger()
 {
-	if(m_EnableValidationLayer)
+	if (m_EnableValidationLayer)
 	{
 #ifndef __ANDROID__
 		DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugUtilsMessenger, nullptr);
@@ -945,7 +984,7 @@ bool KVulkanRenderDevice::UnInitHeapAllocator()
 
 bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 {
-	if(window == nullptr
+	if (window == nullptr
 #if defined(_WIN32)
 		|| window->GetHWND() == nullptr
 #elif defined(__ANDROID__)
@@ -975,16 +1014,16 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
 	m_ValidationLayerIdx = -1;
 	// 挂接验证层
-	if(m_EnableValidationLayer)
+	if (m_EnableValidationLayer)
 	{
 		bool bCheckResult = CheckValidationLayerAvailable(m_ValidationLayerIdx);
 		assert(bCheckResult && "try to find validation layer but fail");
-		if(m_ValidationLayerIdx >= 0)
+		if (m_ValidationLayerIdx >= 0)
 		{
 			createInfo.enabledLayerCount = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].arraySize;
 			createInfo.ppEnabledLayerNames = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].layers;
 
-			for(uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
+			for (uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
 			{
 				KG_LOG(LM_RENDER, "Vulkan validation layer picked [%s]\n", createInfo.ppEnabledLayerNames[i]);
 			}
@@ -1004,21 +1043,21 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 
 	if (vkCreateInstance(&createInfo, nullptr, &m_Instance) == VK_SUCCESS)
 	{
-		if(!SetupDebugMessenger())
+		if (!SetupDebugMessenger())
 			return false;
-		if(!PickPhysicsDevice())
+		if (!PickPhysicsDevice())
 			return false;
-		if(!CreateLogicalDevice())
+		if (!CreateLogicalDevice())
 			return false;
-		if(!CreatePipelineCache())
+		if (!CreatePipelineCache())
 			return false;
-		if(!CreateCommandPool())
+		if (!CreateCommandPool())
 			return false;
 
 		// 实际完成了设备初始化
-		if(!InitDeviceGlobal())
+		if (!InitDeviceGlobal())
 			return false;
-		if(!InitHeapAllocator())
+		if (!InitHeapAllocator())
 			return false;
 
 		CreateSwapChain(m_SwapChain);
@@ -1029,7 +1068,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 			(*callback)();
 		}
 
-		if(!InitSwapChain())
+		if (!InitSwapChain())
 			return false;
 
 		m_pWindow->SetRenderDevice(this);
@@ -1065,7 +1104,7 @@ bool KVulkanRenderDevice::InitSwapChain()
 
 bool KVulkanRenderDevice::CleanupSwapChain()
 {
-	if(m_UIOverlay)
+	if (m_UIOverlay)
 	{
 		m_UIOverlay->UnInit();
 		m_UIOverlay = nullptr;
@@ -1142,9 +1181,9 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 {
 	// 确保Vulkan具有我们需要的必要扩展
 	device.suitable = true;
-	for (const char *requiredExt : DEVICE_DEFAULT_EXTENSIONS)
+	for (const char* requiredExt : DEVICE_DEFAULT_EXTENSIONS)
 	{
-		if(std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
+		if (std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
 		{
 			device.suitable = false;
 			break;
@@ -1211,9 +1250,35 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 
 	assert(m_PhysicalDevice.queueComplete);
 
-	KVulkanGlobal::graphicsFamilyIndices = m_PhysicalDevice.graphicsFamilyIndices;
-	KVulkanGlobal::computeFamilyIndices = m_PhysicalDevice.computeFamilyIndices;
-	KVulkanGlobal::transferFamilyIndices = m_PhysicalDevice.transferFamilyIndices;
+	KVulkanGlobal::graphicsFamilyIndices.clear();
+	KVulkanGlobal::computeFamilyIndices.clear();
+	KVulkanGlobal::transferFamilyIndices.clear();
+
+	bool hasPresentQueue = false;
+
+	for (auto& tuple : m_PhysicalDevice.graphicsFamilyProperties)
+	{
+		uint32_t familyIndex = std::get<0>(tuple);
+		KVulkanGlobal::graphicsFamilyIndices.push_back(familyIndex);
+
+		VkQueueFamilyProperties familyProperty = std::get<1>(tuple);
+		if (familyProperty.queueCount > 1)
+		{
+			hasPresentQueue = true;
+		}
+	}
+
+	for (auto& tuple : m_PhysicalDevice.computeFamilyProperties)
+	{
+		uint32_t familyIndex = std::get<0>(tuple);
+		KVulkanGlobal::computeFamilyIndices.push_back(familyIndex);
+	}
+
+	for (auto& tuple : m_PhysicalDevice.transferFamilyProperties)
+	{
+		uint32_t familyIndex = std::get<0>(tuple);
+		KVulkanGlobal::transferFamilyIndices.push_back(familyIndex);
+	}
 
 	KVulkanGlobal::graphicsQueues.resize(KVulkanGlobal::graphicsFamilyIndices.size());
 	KVulkanGlobal::computeQueues.resize(KVulkanGlobal::computeFamilyIndices.size());
@@ -1221,7 +1286,7 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 
 	KRenderGlobal::NumExtraGraphicsQueue = (uint32_t)(KVulkanGlobal::graphicsFamilyIndices.size() > 0 ? (KVulkanGlobal::graphicsFamilyIndices.size() - 1) : 0);
 	KRenderGlobal::NumComputeQueue = (uint32_t)KVulkanGlobal::computeFamilyIndices.size();
-	KRenderGlobal::NumTransferQueue =(uint32_t)KVulkanGlobal::transferFamilyIndices.size();
+	KRenderGlobal::NumTransferQueue = (uint32_t)KVulkanGlobal::transferFamilyIndices.size();
 
 	KRenderGlobal::SupportAnisotropySample = m_Properties.anisotropySupport;
 
@@ -1295,6 +1360,15 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 		KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)KVulkanGlobal::transferQueues[i], VK_OBJECT_TYPE_QUEUE, ("TransferQueues_" + std::to_string(i)).c_str());
 	}
 
+	if (hasPresentQueue)
+	{
+		vkGetDeviceQueue(m_Device, KVulkanGlobal::graphicsFamilyIndices[0], 1, &KVulkanGlobal::presentQueue);
+	}
+	else
+	{
+		vkGetDeviceQueue(m_Device, KVulkanGlobal::graphicsFamilyIndices[0], 0, &KVulkanGlobal::presentQueue);
+	}
+	KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)KVulkanGlobal::presentQueue, VK_OBJECT_TYPE_QUEUE, "PresentQueue");
 
 	return true;
 }
@@ -1328,6 +1402,7 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 	KVulkanGlobal::graphicsQueues = {};
 	KVulkanGlobal::computeQueues = {};
 	KVulkanGlobal::transferQueues = {};
+	KVulkanGlobal::presentQueue = VK_NULL_HANDEL;
 
 	return true;
 }
@@ -1335,6 +1410,12 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 bool KVulkanRenderDevice::CreateSemaphore(IKSemaphorePtr& semaphore)
 {
 	semaphore = IKSemaphorePtr(KNEW KVulkanSemaphore());
+	return true;
+}
+
+bool KVulkanRenderDevice::CreateFence(IKFencePtr& fence)
+{
+	fence = IKFencePtr(KNEW KVulkanFence());
 	return true;
 }
 
@@ -1448,8 +1529,10 @@ bool KVulkanRenderDevice::Present()
 	VkResult vkResult = VK_RESULT_MAX_ENUM;
 
 	uint32_t frameIndex = 0;
-	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->WaitForInFightFrame(frameIndex);
+	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->WaitForInFlightFrame(frameIndex);
 	VK_ASSERT_RESULT(vkResult);
+
+	KRenderGlobal::CurrentInFlightFrameIndex = frameIndex;
 
 	uint32_t chainImageIndex = 0;
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->AcquireNextImage(chainImageIndex);
@@ -1475,9 +1558,7 @@ bool KVulkanRenderDevice::Present()
 		}
 
 		KRenderGlobal::Renderer.Execute(chainImageIndex);
-		VkSemaphore semaphore = ((KVulkanSemaphore*)KRenderGlobal::Renderer.GetFinishSemaphore().get())->GetVkSemaphore();
-
-		vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(chainImageIndex, semaphore);
+		vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->PresentQueue(chainImageIndex);
 
 		for (KDevicePresentCallback* callback : m_PostPresentCallback)
 		{
@@ -1500,7 +1581,7 @@ bool KVulkanRenderDevice::Present()
 	{
 		// 处理次交换链的FrameInFlight 但是FrameIndex依然使用主交换链的结果
 		uint32_t secordaryFrameIndex = 0;
-		((KVulkanSwapChain*)secordarySwapChain)->WaitForInFightFrame(secordaryFrameIndex);
+		((KVulkanSwapChain*)secordarySwapChain)->WaitForInFlightFrame(secordaryFrameIndex);
 
 		vkResult = ((KVulkanSwapChain*)secordarySwapChain)->AcquireNextImage(chainImageIndex);
 		if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
@@ -1515,11 +1596,8 @@ bool KVulkanRenderDevice::Present()
 		else
 		{
 			KRenderGlobal::Renderer.SetSwapChain(secordarySwapChain, nullptr);
-		
 			KRenderGlobal::Renderer.Execute(chainImageIndex);
-			VkSemaphore semaphore = ((KVulkanSemaphore*)KRenderGlobal::Renderer.GetFinishSemaphore().get())->GetVkSemaphore();
-
-			vkResult = ((KVulkanSwapChain*)secordarySwapChain)->PresentQueue(chainImageIndex, semaphore);
+			vkResult = ((KVulkanSwapChain*)secordarySwapChain)->PresentQueue(chainImageIndex);
 
 			if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
 			{
@@ -1584,7 +1662,7 @@ bool KVulkanRenderDevice::CreateQuery(IKQueryPtr& query)
 
 bool KVulkanRenderDevice::Wait()
 {
-	if(m_Device != VK_NULL_HANDLE)
+	if (m_Device != VK_NULL_HANDLE)
 	{
 		vkDeviceWaitIdle(m_Device);
 		return true;

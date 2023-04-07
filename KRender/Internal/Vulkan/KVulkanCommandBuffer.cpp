@@ -31,6 +31,7 @@ bool KVulkanCommandPool::Init(QueueCategory queue, uint32_t index)
 	switch (queue)
 	{
 		case QUEUE_GRAPHICS:
+		case QUEUE_PRESENT:
 			queueFamilyIndices = &KVulkanGlobal::graphicsFamilyIndices;
 			break;
 		case QUEUE_COMPUTE:

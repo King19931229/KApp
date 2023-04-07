@@ -587,7 +587,7 @@ bool KRenderCore::UpdateGizmo()
 
 void KRenderCore::OnPrePresent(uint32_t chainIndex, uint32_t frameIndex)
 {
-	KRenderGlobal::CurrentInFlightFrameIndex = frameIndex;
+	assert(KRenderGlobal::CurrentInFlightFrameIndex == frameIndex);
 
 	KRenderGlobal::TaskExecutor.ProcessSyncTask();
 

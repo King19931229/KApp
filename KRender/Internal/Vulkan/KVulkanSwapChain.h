@@ -37,16 +37,13 @@ protected:
 	std::vector<VkImage> m_SwapChainImages;
 	std::vector<VkImageView> m_SwapChainImageViews;
 	// 这个信号量是给获取交换链Image后促发用的
-	std::vector<VkSemaphore> m_ImageAvailableSemaphores;
+	IKSemaphorePtr m_ImageAvailableSemaphore;
 	// 这个信号量是给完成交换链Image后促发用的
-	std::vector<VkSemaphore> m_RenderFinishedSemaphores;
-	std::vector<VkFence> m_InFlightFences;
+	IKSemaphorePtr m_RenderFinishedSemaphore;
+	IKFencePtr m_InFlightFence;
 	SwapChainSupportDetails m_SwapChainSupportDetails;
 	std::vector<FrameBuffer> m_FrameBuffers;
 	std::vector<IKRenderPassPtr> m_RenderPasses;
-
-	VkCommandPool m_CommandPool;
-	std::vector<VkCommandBuffer> m_CommandBuffers;
 
 	bool QuerySwapChainSupport();
 	bool ChooseSwapSurfaceFormat();
@@ -62,7 +59,6 @@ protected:
 	bool CleanupSwapChain();
 	bool DestroySyncObjects();
 	bool DestroyFrameBuffers();
-	bool DestroyCommandBuffers();
 public:
 	KVulkanSwapChain();
 	~KVulkanSwapChain();
@@ -75,13 +71,17 @@ public:
 	virtual uint32_t GetWidth() { return m_Extend.width; }
 	virtual uint32_t GetHeight() { return m_Extend.height; }
 
+	virtual IKSemaphorePtr GetImageAvailableSemaphore();
+	virtual IKSemaphorePtr GetRenderFinishSemaphore();
+	virtual IKFencePtr GetInFlightFence();
+
 	virtual IKRenderPassPtr GetRenderPass(uint32_t chainIndex);
 	virtual IKFrameBufferPtr GetColorFrameBuffer(uint32_t chainIndex);
 	virtual IKFrameBufferPtr GetDepthStencilFrameBuffer(uint32_t chainIndex);
 
-	VkResult WaitForInFightFrame(uint32_t& frameIndex);
+	VkResult WaitForInFlightFrame(uint32_t& frameIndex);
 	VkResult AcquireNextImage(uint32_t& imageIndex);
-	VkResult PresentQueue(uint32_t imageIndex, VkSemaphore finishSemaphore);
+	VkResult PresentQueue(uint32_t imageIndex);
 
 	inline VkImage GetImage(size_t imageIndex) { return (imageIndex >= m_SwapChainImages.size()) ? VK_NULL_HANDLE : m_SwapChainImages[imageIndex]; }
 	inline VkImageView GetImageView(size_t imageIndex) { return (imageIndex >= m_SwapChainImageViews.size()) ? VK_NULL_HANDLE : m_SwapChainImageViews[imageIndex]; }

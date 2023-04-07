@@ -55,4 +55,5 @@ namespace KVulkanGlobal
 	std::vector<VkQueue> graphicsQueues = {};
 	std::vector<VkQueue> computeQueues = {};
 	std::vector<VkQueue> transferQueues = {};
+	VkQueue presentQueue = VK_NULL_HANDLE;
 }

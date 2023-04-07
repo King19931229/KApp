@@ -617,18 +617,17 @@ void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDes
 	UpdateDynamicWrite(dstSet, usage);
 
 	// Adding a barrier to be sure the fragment has finished writing
-	SetupBarrier(primaryBuffer, true);
+	// SetupBarrier(primaryBuffer, true);
 
 	// Preparing for the compute shader
 	vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
 	vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_PipelineLayout, 0, 1, &dstSet, dynamicBufferCount, &dynamicOffsets);
-
 }
 
 void KVulkanComputePipeline::PostDispatch(IKCommandBufferPtr primaryBuffer)
 {
 	// Adding a barrier to be sure the compute shader has finished
-	SetupBarrier(primaryBuffer, false);
+	// SetupBarrier(primaryBuffer, false);
 }
 
 bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage)

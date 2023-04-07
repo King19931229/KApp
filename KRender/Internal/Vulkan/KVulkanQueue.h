@@ -12,8 +12,26 @@ public:
 
 	virtual bool Init();
 	virtual bool UnInit();
+	virtual bool SetDebugName(const char* name);
 
 	VkSemaphore GetVkSemaphore();
+};
+
+class KVulkanFence : public IKFence
+{
+protected:
+	std::vector<VkFence> m_Fences;
+public:
+	KVulkanFence();
+	~KVulkanFence();
+
+	virtual bool Init(bool singaled);
+	virtual bool UnInit();
+	virtual bool SetDebugName(const char* name);
+	virtual bool Wait();
+	virtual bool Reset();
+
+	VkFence GetVkFence();
 };
 
 struct KVulkanQueue : public IKQueue
@@ -31,7 +49,7 @@ public:
 	virtual bool UnInit();
 	virtual QueueCategory GetCategory() const;
 	virtual uint32_t GetIndex() const;
-	virtual bool Submit(IKCommandBufferPtr commandBuffer, IKSemaphorePtr wait, IKSemaphorePtr singal);
+	virtual bool Submit(IKCommandBufferPtr commandBuffer, std::vector<IKSemaphorePtr> waits, std::vector<IKSemaphorePtr> singals, IKFencePtr fence);
 
 	inline uint32_t GetQueueFamilyIndex() { return m_QueueFamilyIndex; }
 	inline VkQueue GetVkQueue() { return m_vkQueue; }

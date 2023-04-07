@@ -86,7 +86,7 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 	return false;
 }
 
-bool KGBuffer::TranslateColorAttachment(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KGBuffer::TranslateColor(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	for (uint32_t i = 0; i < GBUFFER_TARGET_COUNT; ++i)
 	{
@@ -95,8 +95,14 @@ bool KGBuffer::TranslateColorAttachment(IKCommandBufferPtr buffer, IKQueuePtr sr
 	return true;
 }
 
-bool KGBuffer::TranslateDepthStencilAttachment(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+bool KGBuffer::TranslateDepthStencil(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
 {
 	buffer->TranslateOwnership(m_DepthStencilTarget->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
+	return true;
+}
+
+bool KGBuffer::TranslateAO(IKCommandBufferPtr buffer, IKQueuePtr srcQueue, IKQueuePtr dstQueue, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout)
+{
+	buffer->TranslateOwnership(m_AOTarget->GetFrameBuffer(), srcQueue, dstQueue, srcStages, dstStages, oldLayout, newLayout);
 	return true;
 }

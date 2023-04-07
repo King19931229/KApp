@@ -24,6 +24,8 @@ namespace KVulkanGlobal
 	extern std::vector<VkQueue> computeQueues;
 	extern std::vector<VkQueue> transferQueues;
 
+	extern VkQueue presentQueue;
+
 	extern VkPhysicalDeviceProperties deviceProperties;
 	extern VkPhysicalDeviceFeatures deviceFeatures;
 

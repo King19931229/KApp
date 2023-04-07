@@ -80,32 +80,26 @@ public:
 		}
 	};
 protected:
-	IKComputePipelinePtr m_AOComputePipeline;
-	IKComputePipelinePtr m_AOTemporalPipeline;
-	IKComputePipelinePtr m_ComposePipeline;
+	// Ping-Pong
+	IKComputePipelinePtr m_AOComputePipeline[2];
+	IKComputePipelinePtr m_ReprojectPipeline[2];
+	IKComputePipelinePtr m_AOTemporalPipeline[2];
+	IKComputePipelinePtr m_AtrousComputePipeline[2];
+	IKComputePipelinePtr m_ComposePipeline[2];
+	IKComputePipelinePtr m_BlurHorizontalComputePipeline[2][3];
+	IKComputePipelinePtr m_BlurVerticalComputePipeline[2][3];
+
 	IKComputePipelinePtr m_MeanHorizontalComputePipeline;
 	IKComputePipelinePtr m_MeanVerticalComputePipeline;
-	IKComputePipelinePtr m_ReprojectPipeline;
-	IKComputePipelinePtr m_AtrousComputePipeline;
 
-	IKComputePipelinePtr m_BlurHorizontalComputePipeline[3];
-	IKComputePipelinePtr m_BlurVerticalComputePipeline[3];
+	// Ping-Pong
+	IKRenderTargetPtr m_AOTarget[2];
+	IKRenderTargetPtr m_HitDistanceTarget[2];
+	IKRenderTargetPtr m_NormalDepthTarget[2];
+	IKRenderTargetPtr m_SquaredMeanTarget[2];
+	IKRenderTargetPtr m_TSPP[2];
 
-	IKRenderTargetPtr m_PrevAOTarget;
-	IKRenderTargetPtr m_CurAOTarget;
-
-	IKRenderTargetPtr m_PrevHitDistanceTarget;
-	IKRenderTargetPtr m_CurHitDistanceTarget;
-
-	IKRenderTargetPtr m_PrevNormalDepthTarget;
-	IKRenderTargetPtr m_CurNormalDepthTarget;
-
-	IKRenderTargetPtr m_PrevSquaredMeanTarget;
-	IKRenderTargetPtr m_CurSquaredMeanTarget;
-
-	IKRenderTargetPtr m_PrevTSPP;
-	IKRenderTargetPtr m_CurTSPP;
-
+	// Horizontaland vertical
 	IKRenderTargetPtr m_MeanVarianceTarget[2];
 
 	IKRenderTargetPtr m_ReprojectedTarget;
@@ -130,6 +124,8 @@ protected:
 	uint32_t m_Width;
 	uint32_t m_Height;
 
+	uint32_t m_CurrentAOIndex;
+
 	bool m_Enable;
 
 	void UpdateAOUniform();
@@ -148,7 +144,6 @@ public:
 
 	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
 	bool Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, IKQueuePtr computeQueue);
-	bool Blit(IKCommandBufferPtr primaryBuffer);
 
 	AoControl& GetAoParameters() { return m_AOParameters; }
 
