@@ -53,7 +53,7 @@ namespace KRenderGlobal
 
 	uint32_t CurrentInFlightFrameIndex = 0;
 	uint32_t CurrentFrameNum = 0;
-	uint32_t NumFramesInFlight = 2;
+	uint32_t NumFramesInFlight = 1;
 
 	uint32_t MinExtraGraphicsQueueNum = 1;
 	uint32_t MinComputeQueueNum = 1;

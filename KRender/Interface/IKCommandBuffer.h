@@ -9,6 +9,7 @@ struct IKCommandPool
 	virtual bool Init(QueueCategory queue, uint32_t index) = 0;
 	virtual bool UnInit() = 0;	
 	virtual bool Reset() = 0;
+	virtual bool SetDebugName(const char* name) = 0;
 };
 
 typedef std::vector<IKCommandBufferPtr> KCommandBufferList;
@@ -19,6 +20,8 @@ struct IKCommandBuffer
 
 	virtual bool Init(IKCommandPoolPtr pool, CommandBufferLevel level) = 0;
 	virtual bool UnInit() = 0;
+
+	virtual bool SetDebugName(const char* name) = 0;
 
 	virtual bool SetViewport(const KViewPortArea& area) = 0;
 	virtual bool SetDepthBias(float depthBiasConstant, float depthBiasClamp, float depthBiasSlope) = 0;

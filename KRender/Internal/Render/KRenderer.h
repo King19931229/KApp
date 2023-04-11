@@ -58,6 +58,7 @@ protected:
 		void UnInit();
 	};
 
+	GPUQueueMiscs m_Shadow;
 	GPUQueueMiscs m_PreGraphics;
 	GPUQueueMiscs m_PostGraphics;
 	GPUQueueMiscs m_Compute;

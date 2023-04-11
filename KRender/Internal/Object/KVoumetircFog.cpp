@@ -17,6 +17,7 @@ KVolumetricFog::KVolumetricFog()
 	, m_Absorption(0.0f)
 	, m_Start(1.0f)
 	, m_Depth(0)
+	, m_Enable(true)
 {
 }
 
@@ -27,12 +28,12 @@ KVolumetricFog::~KVolumetricFog()
 void KVolumetricFog::InitializePipeline()
 {
 	m_PrimaryCommandBuffer->BeginPrimary();
-	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
-	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -55,14 +56,14 @@ void KVolumetricFog::InitializePipeline()
 		m_VoxelLightInjectPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_VOXEL_PREV, m_VoxelLightTarget[(i + 1) & 1]->GetFrameBuffer(), *m_VoxelSampler, false);
 		m_VoxelLightInjectPipeline[i]->BindStorageImage(VOLUMETRIC_FOG_BINDING_VOXEL_CURR, m_VoxelLightTarget[i]->GetFrameBuffer(), VOXEL_FORMAT, COMPUTE_RESOURCE_OUT, 1, false);
 
-		for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+		for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.SHADOW_MAP_MAX_CASCADED; ++cascadedIndex)
 		{
 			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 			if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
 			m_VoxelLightInjectPipeline[i]->BindSampler(VOLUMETRIC_FOG_BINDING_STATIC_CSM0 + cascadedIndex, shadowRT->GetFrameBuffer(), csmSampler, false);
 		}
 
-		for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+		for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.SHADOW_MAP_MAX_CASCADED; ++cascadedIndex)
 		{
 			IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
 			if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
@@ -99,12 +100,12 @@ void KVolumetricFog::InitializePipeline()
 	m_ScatteringPipeline->Init();
 
 	m_PrimaryCommandBuffer->BeginPrimary();
-	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 	}
-	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
@@ -123,7 +124,7 @@ void KVolumetricFog::Resize(uint32_t width, uint32_t height)
 	m_ScatteringPass->UnInit();
 	m_ScatteringPass->SetColorAttachment(0, m_ScatteringTarget->GetFrameBuffer());
 	m_ScatteringPass->SetOpColor(0, LO_CLEAR, SO_STORE);
-	m_ScatteringPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+	m_ScatteringPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 1.0f });
 	ASSERT_RESULT(m_ScatteringPass->Init());
 }
 
@@ -299,8 +300,20 @@ bool KVolumetricFog::Execute(IKCommandBufferPtr primaryBuffer)
 
 	primaryBuffer->BeginDebugMarker("VolumetricFog", glm::vec4(0, 1, 1, 0));
 
-	UpdateVoxel(primaryBuffer);
-	UpdateScattering(primaryBuffer);
+	if (m_Enable)
+	{
+		UpdateVoxel(primaryBuffer);
+		UpdateScattering(primaryBuffer);
+	}
+	else
+	{
+		primaryBuffer->BeginDebugMarker("Scattering", glm::vec4(0, 1, 1, 0));
+		primaryBuffer->BeginRenderPass(m_ScatteringPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_ScatteringPass->GetViewPort());
+		primaryBuffer->EndRenderPass();
+		primaryBuffer->Translate(m_ScatteringTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->EndDebugMarker();
+	}
 
 	m_CurrentVoxelIndex ^= 1;
 

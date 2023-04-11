@@ -9,7 +9,7 @@ class KRTAO
 public:
 	enum
 	{
-		RTAO_GROUP_SIZE = 32,
+		RTAO_GROUP_SIZE = 8,
 		MEAN_WIDTH = 9
 	};
 

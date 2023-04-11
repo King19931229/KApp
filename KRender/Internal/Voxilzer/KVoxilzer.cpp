@@ -28,6 +28,7 @@ KVoxilzer::KVoxilzer()
 	, m_OctreeLeafCount(0)
 	, m_VolumeGridSize(0)
 	, m_VoxelSize(0)
+	, m_Enable(true)
 	, m_InjectFirstBounce(true)
 	, m_VoxelDrawEnable(false)
 	, m_VoxelDrawWireFrame(true)
@@ -114,17 +115,20 @@ void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 
 void KVoxilzer::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 {
-	if (m_VoxelLastUseOctree != m_VoxelUseOctree)
+	if (m_Enable)
 	{
-		KRenderGlobal::RenderDevice->Wait();
-		SetupVoxelReleatedData();
-	}
+		if (m_VoxelLastUseOctree != m_VoxelUseOctree)
+		{
+			KRenderGlobal::RenderDevice->Wait();
+			SetupVoxelReleatedData();
+		}
 
-	if (m_VoxelDebugUpdate || m_VoxelNeedUpdate || m_VoxelLastUseOctree != m_VoxelUseOctree)
-	{
-		UpdateInternal(primaryBuffer);
-		m_VoxelNeedUpdate = false;
-		m_VoxelLastUseOctree = m_VoxelUseOctree;
+		if (m_VoxelDebugUpdate || m_VoxelNeedUpdate || m_VoxelLastUseOctree != m_VoxelUseOctree)
+		{
+			UpdateInternal(primaryBuffer);
+			m_VoxelNeedUpdate = false;
+			m_VoxelLastUseOctree = m_VoxelUseOctree;
+		}
 	}
 }
 
@@ -1400,8 +1404,20 @@ bool KVoxilzer::UpdateFrame(IKCommandBufferPtr primaryBuffer)
 {
 	bool result = true;
 	UpdateProjectionMatrices();
-	result &= UpdateLightingResult(primaryBuffer);
-	result &= UpdateOctreRayTestResult(primaryBuffer);
+	if (m_Enable)
+	{
+		result &= UpdateLightingResult(primaryBuffer);
+		result &= UpdateOctreRayTestResult(primaryBuffer);
+	}
+	else
+	{
+		primaryBuffer->BeginDebugMarker("VoxelLightPass", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
+		primaryBuffer->EndRenderPass();
+		primaryBuffer->EndDebugMarker();
+		primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	}
 	return result;
 }
 

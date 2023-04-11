@@ -10,6 +10,7 @@ KScreenSpaceReflection::KScreenSpaceReflection()
 	, m_RayReuseCount(4)
 	, m_AtrousLevel(0)
 	, m_CurrentIdx(0)
+	, m_Enable(true)
 	, m_ResolveInFullResolution(true)
 	, m_FirstFrame(false)
 {
@@ -498,157 +499,14 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 	}
 
 	primaryBuffer->BeginDebugMarker("SSR", glm::vec4(0, 1, 0, 0));
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	if (m_Enable)
 	{
-		primaryBuffer->BeginDebugMarker("SSR_Trace", glm::vec4(0, 1, 0, 0));
-
-		primaryBuffer->BeginRenderPass(m_ReflectionPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_ReflectionPass->GetViewPort());
-
-		KRenderCommand command;
-		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
-		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
-		command.indexDraw = true;
-
-		struct ObjectData
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		{
-			uint32_t frameNum;
-			int32_t maxHiZMip;
-		} objectData;
-		objectData.frameNum = KRenderGlobal::CurrentFrameNum;
-		objectData.maxHiZMip = (int32_t)KRenderGlobal::HiZBuffer.GetNumMips() - 1;
+			primaryBuffer->BeginDebugMarker("SSR_Trace", glm::vec4(0, 1, 0, 0));
 
-		KDynamicConstantBufferUsage objectUsage;
-		objectUsage.binding = SHADER_BINDING_OBJECT;
-		objectUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
-
-		command.objectUsage = objectUsage;
-
-		command.pipeline = m_ReflectionPipeline;
-		command.pipeline->GetHandle(m_ReflectionPass, command.pipelineHandle);
-
-		primaryBuffer->Render(command);
-
-		primaryBuffer->EndRenderPass();
-
-		primaryBuffer->Translate(m_HitResultTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(m_HitMaskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-
-		primaryBuffer->EndDebugMarker();
-	}
-
-	{
-		primaryBuffer->BeginDebugMarker("SSR_RayReuse", glm::vec4(0, 1, 0, 0));
-
-		primaryBuffer->BeginRenderPass(m_RayReusePass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_RayReusePass[m_CurrentIdx]->GetViewPort());
-
-		KRenderCommand command;
-		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
-		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
-		command.indexDraw = true;
-
-		struct ObjectData
-		{
-			uint32_t frameNum;
-			int32_t reuseCount;
-		} objectData;
-		objectData.reuseCount = m_RayReuseCount;
-		objectData.frameNum = KRenderGlobal::CurrentFrameNum;
-
-		KDynamicConstantBufferUsage objectUsage;
-		objectUsage.binding = SHADER_BINDING_OBJECT;
-		objectUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
-
-		command.objectUsage = objectUsage;
-
-		command.pipeline = m_RayReusePipeline;
-		command.pipeline->GetHandle(m_RayReusePass[m_CurrentIdx], command.pipelineHandle);
-
-		primaryBuffer->Render(command);
-
-		primaryBuffer->EndRenderPass();
-
-		primaryBuffer->Translate(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-
-		primaryBuffer->EndDebugMarker();
-	}
-
-	{
-		primaryBuffer->BeginDebugMarker("SSR_Temporal", glm::vec4(0, 1, 0, 0));
-
-		primaryBuffer->BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_TemporalPass->GetViewPort());
-
-		KRenderCommand command;
-		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
-		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
-		command.indexDraw = true;
-
-		struct ObjectData
-		{
-		} objectData;
-
-		KDynamicConstantBufferUsage objectUsage;
-		objectUsage.binding = SHADER_BINDING_OBJECT;
-		objectUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
-
-		// command.objectUsage = objectUsage;
-
-		command.pipeline = m_TemporalPipeline[m_CurrentIdx];
-		command.pipeline->GetHandle(m_TemporalPass, command.pipelineHandle);
-
-		primaryBuffer->Render(command);
-
-		primaryBuffer->EndRenderPass();
-
-		primaryBuffer->Translate(m_FinalTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(m_FinalSquaredTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(m_FinalTsppTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(m_VarianceTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-
-		primaryBuffer->EndDebugMarker();
-	}
-
-	{
-		primaryBuffer->BeginDebugMarker("SSR_Blit", glm::vec4(0, 1, 0, 0));
-
-		primaryBuffer->BeginRenderPass(m_BlitPass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
-		primaryBuffer->SetViewport(m_BlitPass[m_CurrentIdx]->GetViewPort());
-
-		KRenderCommand command;
-		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
-		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
-		command.indexDraw = true;
-
-		command.pipeline = m_BlitPipeline;
-		command.pipeline->GetHandle(m_BlitPass[m_CurrentIdx], command.pipelineHandle);
-
-		primaryBuffer->Render(command);
-
-		primaryBuffer->EndRenderPass();
-
-		primaryBuffer->Translate(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(m_TemporalSquaredTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(m_TemporalTsppTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		primaryBuffer->Translate(m_BlurTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-
-		primaryBuffer->EndDebugMarker();
-	}
-
-	{
-		primaryBuffer->BeginDebugMarker("SSR_Atrous", glm::vec4(0, 1, 0, 0));
-		for (int32_t level = 1; level <= m_AtrousLevel; ++level)
-		{
-			primaryBuffer->BeginDebugMarker("SSR_AtrousPass" + std::to_string(level), glm::vec4(0, 1, 0, 0));
-
-			uint32_t i = level & 1;
-
-			primaryBuffer->BeginRenderPass(m_AtrousPass[i], SUBPASS_CONTENTS_INLINE);
-			primaryBuffer->SetViewport(m_AtrousPass[i]->GetViewPort());
+			primaryBuffer->BeginRenderPass(m_ReflectionPass, SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->SetViewport(m_ReflectionPass->GetViewPort());
 
 			KRenderCommand command;
 			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
@@ -657,9 +515,11 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 
 			struct ObjectData
 			{
-				uint32_t level;
+				uint32_t frameNum;
+				int32_t maxHiZMip;
 			} objectData;
-			objectData.level = level;
+			objectData.frameNum = KRenderGlobal::CurrentFrameNum;
+			objectData.maxHiZMip = (int32_t)KRenderGlobal::HiZBuffer.GetNumMips() - 1;
 
 			KDynamicConstantBufferUsage objectUsage;
 			objectUsage.binding = SHADER_BINDING_OBJECT;
@@ -668,45 +528,198 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 
 			command.objectUsage = objectUsage;
 
-			command.pipeline = m_AtrousPipeline[i];
-			command.pipeline->GetHandle(m_AtrousPass[i], command.pipelineHandle);
+			command.pipeline = m_ReflectionPipeline;
+			command.pipeline->GetHandle(m_ReflectionPass, command.pipelineHandle);
 
 			primaryBuffer->Render(command);
 
 			primaryBuffer->EndRenderPass();
 
-			primaryBuffer->Translate(m_BlurTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(m_HitResultTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(m_HitMaskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
 			primaryBuffer->EndDebugMarker();
 		}
-		primaryBuffer->EndDebugMarker();
-	}
 
+		{
+			primaryBuffer->BeginDebugMarker("SSR_RayReuse", glm::vec4(0, 1, 0, 0));
+
+			primaryBuffer->BeginRenderPass(m_RayReusePass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->SetViewport(m_RayReusePass[m_CurrentIdx]->GetViewPort());
+
+			KRenderCommand command;
+			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+			command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+			command.indexDraw = true;
+
+			struct ObjectData
+			{
+				uint32_t frameNum;
+				int32_t reuseCount;
+			} objectData;
+			objectData.reuseCount = m_RayReuseCount;
+			objectData.frameNum = KRenderGlobal::CurrentFrameNum;
+
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = SHADER_BINDING_OBJECT;
+			objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+			command.objectUsage = objectUsage;
+
+			command.pipeline = m_RayReusePipeline;
+			command.pipeline->GetHandle(m_RayReusePass[m_CurrentIdx], command.pipelineHandle);
+
+			primaryBuffer->Render(command);
+
+			primaryBuffer->EndRenderPass();
+
+			primaryBuffer->Translate(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+			primaryBuffer->EndDebugMarker();
+		}
+
+		{
+			primaryBuffer->BeginDebugMarker("SSR_Temporal", glm::vec4(0, 1, 0, 0));
+
+			primaryBuffer->BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->SetViewport(m_TemporalPass->GetViewPort());
+
+			KRenderCommand command;
+			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+			command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+			command.indexDraw = true;
+
+			struct ObjectData
+			{
+			} objectData;
+
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = SHADER_BINDING_OBJECT;
+			objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+			// command.objectUsage = objectUsage;
+
+			command.pipeline = m_TemporalPipeline[m_CurrentIdx];
+			command.pipeline->GetHandle(m_TemporalPass, command.pipelineHandle);
+
+			primaryBuffer->Render(command);
+
+			primaryBuffer->EndRenderPass();
+
+			primaryBuffer->Translate(m_FinalTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(m_FinalSquaredTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(m_FinalTsppTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(m_VarianceTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+			primaryBuffer->EndDebugMarker();
+		}
+
+		{
+			primaryBuffer->BeginDebugMarker("SSR_Blit", glm::vec4(0, 1, 0, 0));
+
+			primaryBuffer->BeginRenderPass(m_BlitPass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->SetViewport(m_BlitPass[m_CurrentIdx]->GetViewPort());
+
+			KRenderCommand command;
+			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+			command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+			command.indexDraw = true;
+
+			command.pipeline = m_BlitPipeline;
+			command.pipeline->GetHandle(m_BlitPass[m_CurrentIdx], command.pipelineHandle);
+
+			primaryBuffer->Render(command);
+
+			primaryBuffer->EndRenderPass();
+
+			primaryBuffer->Translate(m_TemporalTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(m_TemporalSquaredTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(m_TemporalTsppTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(m_BlurTarget[m_CurrentIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+			primaryBuffer->EndDebugMarker();
+		}
+
+		{
+			primaryBuffer->BeginDebugMarker("SSR_Atrous", glm::vec4(0, 1, 0, 0));
+			for (int32_t level = 1; level <= m_AtrousLevel; ++level)
+			{
+				primaryBuffer->BeginDebugMarker("SSR_AtrousPass" + std::to_string(level), glm::vec4(0, 1, 0, 0));
+
+				uint32_t i = level & 1;
+
+				primaryBuffer->BeginRenderPass(m_AtrousPass[i], SUBPASS_CONTENTS_INLINE);
+				primaryBuffer->SetViewport(m_AtrousPass[i]->GetViewPort());
+
+				KRenderCommand command;
+				command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+				command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+				command.indexDraw = true;
+
+				struct ObjectData
+				{
+					uint32_t level;
+				} objectData;
+				objectData.level = level;
+
+				KDynamicConstantBufferUsage objectUsage;
+				objectUsage.binding = SHADER_BINDING_OBJECT;
+				objectUsage.range = sizeof(objectData);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+				command.objectUsage = objectUsage;
+
+				command.pipeline = m_AtrousPipeline[i];
+				command.pipeline->GetHandle(m_AtrousPass[i], command.pipelineHandle);
+
+				primaryBuffer->Render(command);
+
+				primaryBuffer->EndRenderPass();
+
+				primaryBuffer->Translate(m_BlurTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+				primaryBuffer->EndDebugMarker();
+			}
+			primaryBuffer->EndDebugMarker();
+		}
+
+		{
+			primaryBuffer->BeginDebugMarker("SSR_Compose", glm::vec4(0, 1, 0, 0));
+
+			uint32_t i = m_AtrousLevel & 1;
+
+			primaryBuffer->BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->SetViewport(m_ComposePass->GetViewPort());
+
+			KRenderCommand command;
+			command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+			command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+			command.indexDraw = true;
+
+			command.pipeline = m_ComposePipeline[i];
+			command.pipeline->GetHandle(m_ComposePass, command.pipelineHandle);
+
+			primaryBuffer->Render(command);
+
+			primaryBuffer->EndRenderPass();
+
+			primaryBuffer->Translate(m_ComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+
+			primaryBuffer->EndDebugMarker();
+		}
+		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+	}
+	else
 	{
 		primaryBuffer->BeginDebugMarker("SSR_Compose", glm::vec4(0, 1, 0, 0));
-
-		uint32_t i = m_AtrousLevel & 1;
-
 		primaryBuffer->BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_ComposePass->GetViewPort());
-
-		KRenderCommand command;
-		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
-		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
-		command.indexDraw = true;
-
-		command.pipeline = m_ComposePipeline[i];
-		command.pipeline->GetHandle(m_ComposePass, command.pipelineHandle);
-
-		primaryBuffer->Render(command);
-
 		primaryBuffer->EndRenderPass();
-
 		primaryBuffer->Translate(m_ComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-
 		primaryBuffer->EndDebugMarker();
 	}
-	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 	primaryBuffer->EndDebugMarker();
 
 	m_CurrentIdx ^= 1;

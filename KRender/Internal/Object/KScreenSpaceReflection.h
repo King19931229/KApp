@@ -24,6 +24,7 @@ protected:
 	int32_t m_AtrousLevel;
 	uint32_t m_CurrentIdx;
 	float m_Ratio;
+	bool m_Enable;
 	bool m_ResolveInFullResolution;
 	bool m_FirstFrame;
 
@@ -61,6 +62,7 @@ public:
 	bool Init(uint32_t width, uint32_t height, float ratio, bool resolveInFullResolution);
 	bool UnInit();
 
+	bool& GetEnable() { return m_Enable; }
 	bool& GetDebugDrawEnable() { return m_DebugDrawer.GetEnable(); }
 	int32_t& GetAtrousLevel() { return m_AtrousLevel; }
 	int32_t& GetRayReuseCount() { return m_RayReuseCount; }

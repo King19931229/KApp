@@ -73,9 +73,11 @@ void KRenderer::GPUQueueMiscs::Init(QueueCategory category, uint32_t queueIndex,
 {	
 	KRenderGlobal::RenderDevice->CreateCommandPool(pool);
 	pool->Init(category, queueIndex);
+	pool->SetDebugName((name + std::string("CommandPool")).c_str());
 
 	KRenderGlobal::RenderDevice->CreateCommandBuffer(buffer);
 	buffer->Init(pool, CBL_PRIMARY);
+	buffer->SetDebugName((name + std::string("CommandBuffer")).c_str());
 
 	KRenderGlobal::RenderDevice->CreateQueue(queue);
 	queue->Init(category, queueIndex);
@@ -98,10 +100,16 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	std::vector<KRenderComponent*> cullRes;
 	KRenderGlobal::Scene.GetRenderComponent(*m_Camera, false, cullRes);
 
+	m_Shadow.buffer->BeginPrimary();
+	{
+		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
+		KRenderGlobal::CascadedShadowMap.UpdateCasters(m_Shadow.buffer);
+	}
+	m_Shadow.buffer->End();
+	m_Shadow.queue->Submit(m_Shadow.buffer, {}, {}, nullptr);
+
 	m_PreGraphics.buffer->BeginPrimary();
 	{
-		KRenderGlobal::RenderDevice->SetCheckPointMarker(m_PreGraphics.buffer.get(), KRenderGlobal::CurrentFrameNum, "Render");
-
 		KRenderGlobal::HiZOcclusion.Execute(m_PreGraphics.buffer, cullRes);
 
 		KRenderGlobal::DeferredRenderer.PrePass(m_PreGraphics.buffer, cullRes);
@@ -110,10 +118,10 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::GBuffer.TranslateColor(m_PreGraphics.buffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::GBuffer.TranslateDepthStencil(m_PreGraphics.buffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
-		KRenderGlobal::FrameGraph.Compile();
-		KRenderGlobal::FrameGraph.Execute(m_PreGraphics.buffer, chainImageIndex);
+		// KRenderGlobal::FrameGraph.Compile();
+		// KRenderGlobal::FrameGraph.Execute(m_PreGraphics.buffer, chainImageIndex);
 
+		KRenderGlobal::CascadedShadowMap.UpdateMask(m_PreGraphics.buffer);
 		KRenderGlobal::VolumetricFog.Execute(m_PreGraphics.buffer);
 
 		// 清空AO结果
@@ -143,6 +151,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 	m_PostGraphics.buffer->BeginPrimary();
 	{
+		KRenderGlobal::RenderDevice->SetCheckPointMarker(m_PostGraphics.buffer.get(), KRenderGlobal::CurrentFrameNum, "Render");
+
 		KRenderGlobal::GBuffer.TranslateAO(m_PostGraphics.buffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::GBuffer.TranslateColor(m_PostGraphics.buffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::GBuffer.TranslateDepthStencil(m_PostGraphics.buffer, m_Compute.queue, m_PostGraphics.queue, PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -249,6 +259,7 @@ bool KRenderer::Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t
 	m_Pass = KMainPassPtr(KNEW KMainPass(*this));
 	m_Pass->Init();
 
+	m_Shadow.Init(QUEUE_GRAPHICS, 0, "Shadow");
 	m_PreGraphics.Init(QUEUE_GRAPHICS, 0, "PreGraphics");
 	m_PostGraphics.Init(QUEUE_PRESENT, 0, "PostGraphics");
 	m_Compute.Init(QUEUE_COMPUTE, 0, "Compute");
@@ -336,6 +347,7 @@ bool KRenderer::UnInit()
 	m_UIOverlay = nullptr;
 	m_CameraCube = nullptr;
 
+	m_Shadow.UnInit();
 	m_PreGraphics.UnInit();
 	m_PostGraphics.UnInit();
 	m_Compute.UnInit();
@@ -504,6 +516,7 @@ void KRenderer::OnSwapChainRecreate(uint32_t width, uint32_t height)
 {
 	KRenderGlobal::FrameGraph.Resize();
 	KRenderGlobal::PostProcessManager.Resize(width, height);
+	KRenderGlobal::CascadedShadowMap.Resize();
 	KRenderGlobal::GBuffer.Resize(width, height);
 	KRenderGlobal::HiZBuffer.Resize(width, height);
 	KRenderGlobal::HiZOcclusion.Resize();

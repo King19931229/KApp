@@ -85,9 +85,10 @@ class KCascadedShadowMap
 	friend class KCascadedShadowMapCasterPass;
 	friend class KCascadedShadowMapReceiverPass;
 	friend class KCascadedShadowMapDebugPass;
+public:
+	static constexpr uint32_t SHADOW_MAP_MAX_CASCADED = 4;
 protected:
 	static constexpr ElementFormat RECEIVER_TARGET_FORMAT = EF_R8_UNORM;
-	static constexpr uint32_t SHADOW_MAP_MAX_CASCADED = 4;
 	static constexpr char* RENDER_STAGE_NAME[2] = { "CSM_Static", "CSM_Dynamic" };
 	const KCamera* m_MainCamera;
 
@@ -108,6 +109,10 @@ protected:
 	IKRenderPassPtr m_DynamicReceiverPass;
 	IKRenderPassPtr m_CombineReceiverPass;
 
+	IKRenderTargetPtr m_StaticReceiverTarget;
+	IKRenderTargetPtr m_DynamicReceiverTarget;
+	IKRenderTargetPtr m_CombineReceiverTarget;
+
 	struct Cascade
 	{
 		// resolution
@@ -122,6 +127,7 @@ protected:
 		glm::vec4 clipPlanes[6];
 		// renderPass
 		IKRenderPassPtr renderPass;
+		IKRenderTargetPtr rendertarget;
 		// debug
 		glm::mat4 debugClip;
 		IKPipelinePtr debugPipeline;
@@ -152,11 +158,13 @@ protected:
 	float m_ShadowRange;
 	float m_SplitLambda;
 
+	bool m_Enable;
+
 	bool m_FixToScene;
 	bool m_FixTexel;
 	bool m_MinimizeShadowDraw;
 
-	bool m_StaticShoudUpdate;
+	bool m_StaticShouldUpdate;
 
 	void UpdateDynamicCascades();
 	void UpdateStaticCascades();
@@ -173,6 +181,22 @@ protected:
 	bool UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic);
 	bool UpdateMask(IKCommandBufferPtr primaryBuffer, bool isStatic);
 	bool CombineMask(IKCommandBufferPtr primaryBuffer);
+
+	void ExecuteCasterUpdate(IKCommandBufferPtr commandBuffer, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget);
+
+	enum MaskType
+	{
+		STATIC_MASK,
+		DYNAMIC_MASK,
+		COMBINE_MASK
+	};
+	void ExecuteMaskUpdate(IKCommandBufferPtr commandBuffer, std::function<IKRenderTargetPtr(MaskType)> getMaskTarget);
+
+	inline IKRenderTargetPtr GetStaticTarget(uint32_t cascadedIndex) { return m_CasterPass ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_StaticCascadeds[cascadedIndex].rendertarget; }
+	inline IKRenderTargetPtr GetDynamicTarget(uint32_t cascadedIndex) { return m_CasterPass ? m_CasterPass->GetDynamicTarget(cascadedIndex) : m_DynamicCascadeds[cascadedIndex].rendertarget; }
+
+	inline IKRenderTargetPtr GetStaticMask() { return m_ReceiverPass ? m_ReceiverPass->GetStaticMask() : m_StaticReceiverTarget; }
+	inline IKRenderTargetPtr GetDynamicMask() { return m_ReceiverPass ? m_ReceiverPass->GetDynamicMask() : m_DynamicReceiverTarget; }
 public:
 	KCascadedShadowMap();
 	~KCascadedShadowMap();
@@ -180,7 +204,12 @@ public:
 	bool Init(const KCamera* camera, uint32_t numCascaded, uint32_t shadowMapSize, uint32_t width, uint32_t height);
 	bool UnInit();
 
+	bool Resize();
+
 	bool UpdateShadowMap();
+	bool UpdateCasters(IKCommandBufferPtr commandBuffer);
+	bool UpdateMask(IKCommandBufferPtr commandBuffer);
+
 	bool DebugRender(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
 
 	IKRenderTargetPtr GetShadowMapTarget(size_t cascadedIndex, bool isStatic);
@@ -196,11 +225,13 @@ public:
 	inline float& GetSplitLambda() { return m_SplitLambda; }
 	inline float& GetLightSize() { return m_LightSize; }
 
+	inline bool& GetEnable() { return m_Enable; }
 	inline bool& GetFixToScene() { return m_FixToScene; }
 	inline bool& GetFixTexel() { return m_FixTexel; }
 	inline bool& GetMinimizeShadowDraw() { return m_MinimizeShadowDraw; }
 
 	inline KCascadedShadowMapCasterPassPtr GetCasterPass() { return m_CasterPass; }
 	inline KCascadedShadowMapReceiverPassPtr GetReceiverPass() { return m_ReceiverPass; }
-	inline IKRenderTargetPtr GetFinalMask() { return m_ReceiverPass ? m_ReceiverPass->GetCombineMask() : nullptr; }
+
+	inline IKRenderTargetPtr GetFinalMask() { return m_ReceiverPass ? m_ReceiverPass->GetCombineMask() : m_CombineReceiverTarget; }
 };

@@ -11,9 +11,8 @@
 #include <algorithm>
 
 KVulkanSwapChain::KVulkanSwapChain()
-	: m_PresentQueueIndex(0),
-	m_MaxFramesInFight(0),
-	m_CurrentFlightIndex(0)
+	: m_MaxFramesInFight(0)
+	, m_CurrentFlightIndex(0)
 {
 	m_SwapChain = VK_NULL_HANDLE;
 
@@ -140,7 +139,7 @@ bool KVulkanSwapChain::CreateSwapChain()
 	}
 
 	uint32_t graphIndex = KVulkanGlobal::graphicsFamilyIndices[0];
-	uint32_t presentIndex = m_PresentQueueIndex;
+	uint32_t presentIndex = graphIndex;
 
 	ASSERT_RESULT(ChooseSwapSurfaceFormat());
 	ASSERT_RESULT(ChooseSwapPresentMode());
@@ -478,21 +477,8 @@ VkResult KVulkanSwapChain::PresentQueue(uint32_t imageIndex)
 
 bool KVulkanSwapChain::ChooseQueue()
 {
-	VkBool32 presentSupport = false;
-
-	for (size_t i = 0; i < KVulkanGlobal::graphicsFamilyIndices.size(); ++i)
-	{
-		uint32_t idx = KVulkanGlobal::graphicsFamilyIndices[i];
-		vkGetPhysicalDeviceSurfaceSupportKHR(KVulkanGlobal::physicalDevice, idx, m_Surface, &presentSupport);
-		if (presentSupport)
-		{
-			m_PresentQueueIndex = idx;
-			m_PresentQueue = KVulkanGlobal::graphicsQueues[i];
-			break;
-		}
-	}
-
-	return presentSupport;
+	m_PresentQueue = KVulkanGlobal::presentQueue;
+	return true;
 }
 
 #if defined(_WIN32)

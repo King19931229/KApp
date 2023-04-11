@@ -176,6 +176,7 @@ KClipmapVoxilzer::KClipmapVoxilzer()
 	, m_ClipLevelCount(3)
 	, m_BaseVoxelSize(16.0f)
 	, m_ScreenRatio(1.0f)
+	, m_Enable(true)
 	, m_InjectFirstBounce(true)
 	, m_VoxelDrawEnable(false)
 	, m_VoxelDebugVoxelize(false)
@@ -199,19 +200,23 @@ void KClipmapVoxilzer::Resize(uint32_t width, uint32_t height)
 
 	m_LightPassTarget->UnInit();
 	m_LightPassTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8G8B8A8_UNORM);
+	m_LightPassTarget->GetFrameBuffer()->SetDebugName("ClipmapVoxilzerLightPassTarget");
 
 	m_LightComposeTarget->UnInit();
 	m_LightComposeTarget->InitFromColor(m_Width, m_Height, 1, 1, EF_R8G8B8A8_UNORM);
+	m_LightComposeTarget->GetFrameBuffer()->SetDebugName("ClipmapVoxilzerComposeTarget");
 
 	m_LightPassRenderPass->UnInit();
 	m_LightPassRenderPass->SetColorAttachment(0, m_LightPassTarget->GetFrameBuffer());
 	m_LightPassRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_LightPassRenderPass->Init();
+	m_LightPassRenderPass->SetDebugName("ClipmapVoxilzerLightPassRenderPass");
 
 	m_LightComposeRenderPass->UnInit();
 	m_LightComposeRenderPass->SetColorAttachment(0, m_LightComposeTarget->GetFrameBuffer());
 	m_LightComposeRenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_LightComposeRenderPass->Init();
+	m_LightComposeRenderPass->SetDebugName("ClipmapVoxilzerComposeRenderPass");
 
 	SetupLightPassPipeline();
 }
@@ -315,7 +320,19 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 
 bool KClipmapVoxilzer::UpdateFrame(IKCommandBufferPtr primaryBuffer)
 {
-	return UpdateLightingResult(primaryBuffer);
+	if (m_Enable)
+	{
+		return UpdateLightingResult(primaryBuffer);
+	}
+	else
+	{
+		primaryBuffer->BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginRenderPass(m_LightComposeRenderPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_LightComposeRenderPass->GetViewPort());
+		primaryBuffer->EndRenderPass();
+		primaryBuffer->Translate(m_LightComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->EndDebugMarker();
+	}
 }
 
 void KClipmapVoxilzer::UpdateVoxelBuffer()
@@ -770,54 +787,57 @@ void KClipmapVoxilzer::InjectPropagation(IKCommandBufferPtr commandBuffer)
 
 void KClipmapVoxilzer::UpdateVoxel(IKCommandBufferPtr primaryBuffer)
 {
-	for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
-	{
-		KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
-		level.SetForceUpdate(m_VoxelDebugUpdate);
-	}
-
-	if (m_VoxelEmpty || m_VoxelDebugVoxelize)
+	if (m_Enable)
 	{
 		for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
 		{
 			KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
-			glm::vec3 cameraPos = m_Camera->GetPosition();
-			cameraPos += level.GetVoxelSize() * 0.5f;
-			cameraPos -= level.GetWorldExtent() * 0.5f;
-			glm::ivec3 pos = level.WorldPositionToClipCoord(cameraPos);
-			level.SetMinPosition(pos);
-			level.SetUpdateRegions({ KClipmapVoxelizationRegion(level.GetMin(), level.GetMax()) });
+			level.SetForceUpdate(m_VoxelDebugUpdate);
 		}
-	}
-	else
-	{
-		for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
+
+		if (m_VoxelEmpty || m_VoxelDebugVoxelize)
 		{
-			KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
-
-			glm::ivec3 movement = ComputeMovementByCamera(levelIdx);
-			std::vector<KClipmapVoxelizationRegion> updateRegions = ComputeRevoxelizationRegionsByMovement(levelIdx, movement);
-
-			if (!updateRegions.empty())
+			for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
 			{
-				level.SetUpdateRegions(updateRegions);
+				KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
+				glm::vec3 cameraPos = m_Camera->GetPosition();
+				cameraPos += level.GetVoxelSize() * 0.5f;
+				cameraPos -= level.GetWorldExtent() * 0.5f;
+				glm::ivec3 pos = level.WorldPositionToClipCoord(cameraPos);
+				level.SetMinPosition(pos);
+				level.SetUpdateRegions({ KClipmapVoxelizationRegion(level.GetMin(), level.GetMax()) });
 			}
 		}
-	}
-
-	ApplyUpdateMovement();
-	UpdateVoxelBuffer();
-	UpdateInternal(primaryBuffer);
-
-	for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
-	{
-		if (m_ClipLevels[levelIdx].IsUpdateFrame())
+		else
 		{
-			m_ClipLevels[levelIdx].MarkUpdateFinish();
-		}
-	}
+			for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
+			{
+				KClipmapVoxilzerLevel& level = m_ClipLevels[levelIdx];
 
-	m_VoxelEmpty = false;
+				glm::ivec3 movement = ComputeMovementByCamera(levelIdx);
+				std::vector<KClipmapVoxelizationRegion> updateRegions = ComputeRevoxelizationRegionsByMovement(levelIdx, movement);
+
+				if (!updateRegions.empty())
+				{
+					level.SetUpdateRegions(updateRegions);
+				}
+			}
+		}
+
+		ApplyUpdateMovement();
+		UpdateVoxelBuffer();
+		UpdateInternal(primaryBuffer);
+
+		for (uint32_t levelIdx = 0; levelIdx < m_ClipLevelCount; ++levelIdx)
+		{
+			if (m_ClipLevels[levelIdx].IsUpdateFrame())
+			{
+				m_ClipLevels[levelIdx].MarkUpdateFinish();
+			}
+		}
+
+		m_VoxelEmpty = false;
+	}
 }
 
 void KClipmapVoxilzer::DownSampleVisibility(IKCommandBufferPtr commandBuffer)
@@ -939,17 +959,23 @@ void KClipmapVoxilzer::ReloadShader()
 void KClipmapVoxilzer::SetupVoxelBuffer()
 {
 	m_VoxelAlbedo->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelAlbedo->GetFrameBuffer()->SetDebugName("ClipmapVoxilzerVoxelAlbedo");
 	m_VoxelNormal->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelNormal->GetFrameBuffer()->SetDebugName("ClipmapVoxilzerVoxelNormal");
 	m_VoxelEmissive->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelEmissive->GetFrameBuffer()->SetDebugName("ClipmapVoxilzerVoxelEmissive");
 	m_StaticFlag->InitFromStorage3D(m_ClipmapVolumeDimensionX, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8_UNORM);
+	m_StaticFlag->GetFrameBuffer()->SetDebugName("ClipmapVoxilzerStaticFlag");
 	m_VoxelRadiance->InitFromStorage3D(m_ClipmapVolumeDimensionX6Face, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelRadiance->GetFrameBuffer()->SetDebugName("ClipmapVoxilzerVoxelRadiance");
 	m_VoxelVisibility->InitFromStorage3D(m_ClipmapVolumeDimensionX6Face, m_ClipmapVolumeDimensionY, m_ClipmapVolumeDimensionZ, 1, EF_R8G8B8A8_UNORM);
+	m_VoxelVisibility->GetFrameBuffer()->SetDebugName("ClipmapVoxilzerVoxelVisibility");
 }
 
 void KClipmapVoxilzer::SetupVoxelPipeline()
 {
 	m_PrimaryCommandBuffer->BeginPrimary();
-	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -992,7 +1018,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_InjectRadiancePipeline->BindStorageImage(VOXEL_CLIPMAP_BINDING_VISIBILITY, m_VoxelVisibility->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_IN, 0, false);
 	m_InjectRadiancePipeline->BindDynamicUniformBuffer(SHADER_BINDING_OBJECT);
 
-	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.SHADOW_MAP_MAX_CASCADED; ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 		if (!shadowRT) shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(0, true);
@@ -1037,7 +1063,7 @@ void KClipmapVoxilzer::SetupVoxelPipeline()
 	m_WrapRadianceBorderPipeline->Init("voxel/clipmap/lighting/wrap_border_radiance.comp");
 
 	m_PrimaryCommandBuffer->BeginPrimary();
-	for (uint32_t cascadedIndex = 0; cascadedIndex <= 3; ++cascadedIndex)
+	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
 		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);

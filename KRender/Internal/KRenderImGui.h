@@ -22,6 +22,7 @@ public:
 	enum DebugMenuItem
 	{
 		DEFERRED,
+		ADVANCED_CONTROL,
 		DEBUG_MENU_ITEM_COUNT
 	};
 	static const char* DebugMenuName[DEBUG_MENU_ITEM_COUNT];

@@ -92,6 +92,8 @@ protected:
 	float m_Start;
 	float m_Depth;
 
+	bool m_Enable;
+
 	void InitializePipeline();
 
 	void UpdateVoxel(IKCommandBufferPtr primaryBuffer);
@@ -100,6 +102,7 @@ public:
 	KVolumetricFog();
 	~KVolumetricFog();
 
+	bool& GetEnable() { return m_Enable; }
 	float& GetStart() { return m_Start; }
 	float& GetDepth() { return m_Depth; }
 	float& GetAnisotropy() { return m_Anisotropy; }

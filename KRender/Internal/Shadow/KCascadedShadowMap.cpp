@@ -104,53 +104,85 @@ IKRenderTargetPtr KCascadedShadowMapCasterPass::GetDynamicTarget(size_t cascaded
 	return nullptr;
 }
 
-bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
+void KCascadedShadowMap::ExecuteCasterUpdate(IKCommandBufferPtr commandBuffer, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget)
 {
-	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
-
-	bool& updateStatic = m_Master.m_StaticShoudUpdate;
-
-	if (updateStatic)
+	if (m_StaticShouldUpdate)
 	{
-		m_Master.m_Statistics[1].Reset();
-		for (size_t i = 0; i < m_Master.m_StaticCascadeds.size(); ++i)
+		m_Statistics[1].Reset();
+		for (uint32_t cascadedIndex = 0; cascadedIndex < (uint32_t)m_StaticCascadeds.size(); ++cascadedIndex)
 		{
-			IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_StaticTargetIDs[i]);
-			IKRenderPassPtr renderPass = m_Master.m_StaticCascadeds[i].renderPass;
+			IKRenderTargetPtr shadowTarget = getCascadedTarget(cascadedIndex, true);
+			IKRenderPassPtr renderPass = m_StaticCascadeds[cascadedIndex].renderPass;
 
 			ASSERT_RESULT(shadowTarget);
 			renderPass->SetDepthStencilAttachment(shadowTarget->GetFrameBuffer());
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
-			m_Master.UpdateRT(primaryBuffer, shadowTarget, renderPass, i, true);
+			commandBuffer->BeginDebugMarker("CSM_Static_" + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
+			if (m_Enable)
+			{
+				UpdateRT(commandBuffer, shadowTarget, renderPass, cascadedIndex, true);
+			}
+			else
+			{
+				commandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+				commandBuffer->SetViewport(renderPass->GetViewPort());
+				commandBuffer->EndRenderPass();
+			}
+			commandBuffer->EndDebugMarker();
 
-			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
-		KRenderGlobal::Statistics.UpdateRenderStageStatistics(m_Master.RENDER_STAGE_NAME[0], m_Master.m_Statistics[1]);
-		updateStatic = false;
+		KRenderGlobal::Statistics.UpdateRenderStageStatistics(RENDER_STAGE_NAME[0], m_Statistics[1]);
+		m_StaticShouldUpdate = false;
 	}
 
 	// Dynamic object is updated every frame
 	{
-		m_Master.m_Statistics[0].Reset();
-		for (size_t i = 0; i < m_Master.m_DynamicCascadeds.size(); ++i)
+		m_Statistics[0].Reset();
+		for (uint32_t cascadedIndex = 0; cascadedIndex < (uint32_t)m_DynamicCascadeds.size(); ++cascadedIndex)
 		{
-			IKRenderTargetPtr shadowTarget = KRenderGlobal::FrameGraph.GetTarget(m_DynamicTargetIDs[i]);
-			IKRenderPassPtr renderPass = m_Master.m_DynamicCascadeds[i].renderPass;
+			IKRenderTargetPtr shadowTarget = getCascadedTarget(cascadedIndex, false);
+			IKRenderPassPtr renderPass = m_DynamicCascadeds[cascadedIndex].renderPass;
 
 			ASSERT_RESULT(shadowTarget);
 			renderPass->SetDepthStencilAttachment(shadowTarget->GetFrameBuffer());
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
-			m_Master.UpdateRT(primaryBuffer, shadowTarget, renderPass, i, false);
+			commandBuffer->BeginDebugMarker("CSM_Dynamic_" + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
+			if (m_Enable)
+			{
+				UpdateRT(commandBuffer, shadowTarget, renderPass, cascadedIndex, false);
+			}
+			else
+			{
+				commandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+				commandBuffer->SetViewport(renderPass->GetViewPort());
+				commandBuffer->EndRenderPass();
+			}
+			commandBuffer->EndDebugMarker();
 
-			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
-		KRenderGlobal::Statistics.UpdateRenderStageStatistics(m_Master.RENDER_STAGE_NAME[0], m_Master.m_Statistics[0]);
+		KRenderGlobal::Statistics.UpdateRenderStageStatistics(RENDER_STAGE_NAME[0], m_Statistics[0]);
 	}
+}
 
+bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
+{
+	m_Master.ExecuteCasterUpdate(executor.GetPrimaryBuffer(), [this](uint32_t cascadedIndex, bool isStatic)->IKRenderTargetPtr
+	{
+		if (isStatic)
+		{
+			return KRenderGlobal::FrameGraph.GetTarget(m_StaticTargetIDs[cascadedIndex]);
+		}
+		else
+		{
+			return KRenderGlobal::FrameGraph.GetTarget(m_DynamicTargetIDs[cascadedIndex]);
+		}
+	});
 	return true;
 }
 
@@ -267,55 +299,105 @@ IKRenderTargetPtr KCascadedShadowMapReceiverPass::GetCombineMask()
 	return KRenderGlobal::FrameGraph.GetTarget(m_CombineMaskID);
 }
 
-bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
+void KCascadedShadowMap::ExecuteMaskUpdate(IKCommandBufferPtr commandBuffer, std::function<IKRenderTargetPtr(MaskType)> getMaskTarget)
 {
-	IKCommandBufferPtr primaryBuffer = executor.GetPrimaryBuffer();
-
 	// Static mask update
 	{
-		IKRenderTargetPtr maskTarget = KRenderGlobal::FrameGraph.GetTarget(m_StaticMaskID);
-		IKRenderPassPtr renderPass = m_Master.m_StaticReceiverPass;
+		IKRenderTargetPtr maskTarget = getMaskTarget(STATIC_MASK);
+		IKRenderPassPtr renderPass = m_StaticReceiverPass;
 
 		ASSERT_RESULT(maskTarget);
 		renderPass->SetColorAttachment(0, maskTarget->GetFrameBuffer());
 		renderPass->SetClearColor(0, { 1.0f, 1.0f, 1.0f, 1.0f });
 		ASSERT_RESULT(renderPass->Init());
 
-		m_Master.UpdateMask(primaryBuffer, true);
+		commandBuffer->BeginDebugMarker("CSM_Static_Mask", glm::vec4(1.0f));
+		if (m_Enable)
+		{
+			UpdateMask(commandBuffer, true);
+		}
+		else
+		{
+			commandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			commandBuffer->SetViewport(renderPass->GetViewPort());
+			commandBuffer->EndRenderPass();
+		}
+		commandBuffer->EndDebugMarker();
 
-		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	// Dynamic mask update
 	{
-		IKRenderTargetPtr maskTarget = KRenderGlobal::FrameGraph.GetTarget(m_DynamicMaskID);
-		IKRenderPassPtr renderPass = m_Master.m_DynamicReceiverPass;
+		IKRenderTargetPtr maskTarget = getMaskTarget(DYNAMIC_MASK);
+		IKRenderPassPtr renderPass = m_DynamicReceiverPass;
 
 		ASSERT_RESULT(maskTarget);
 		renderPass->SetColorAttachment(0, maskTarget->GetFrameBuffer());
 		renderPass->SetClearColor(0, { 1.0f, 1.0f, 1.0f, 1.0f });
 		ASSERT_RESULT(renderPass->Init());
 
-		m_Master.UpdateMask(primaryBuffer, false);
+		commandBuffer->BeginDebugMarker("CSM_Dynamic_Mask", glm::vec4(1.0f));
+		if (m_Enable)
+		{
+			UpdateMask(commandBuffer, false);
+		}
+		else
+		{
+			commandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			commandBuffer->SetViewport(renderPass->GetViewPort());
+			commandBuffer->EndRenderPass();
+		}
+		commandBuffer->EndDebugMarker();
 
-		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
 	// Mask combine
 	{
-		IKRenderTargetPtr maskTarget = KRenderGlobal::FrameGraph.GetTarget(m_CombineMaskID);
-		IKRenderPassPtr renderPass = m_Master.m_CombineReceiverPass;
+		IKRenderTargetPtr maskTarget = getMaskTarget(COMBINE_MASK);
+		IKRenderPassPtr renderPass = m_CombineReceiverPass;
 
 		ASSERT_RESULT(maskTarget);
 		renderPass->SetColorAttachment(0, maskTarget->GetFrameBuffer());
 		renderPass->SetClearColor(0, { 1.0f, 1.0f, 1.0f, 1.0f });
 		ASSERT_RESULT(renderPass->Init());
 
-		m_Master.CombineMask(primaryBuffer);
+		commandBuffer->BeginDebugMarker("CSM_Combine_Mask", glm::vec4(1.0f));
+		if (m_Enable)
+		{
+			CombineMask(commandBuffer);
+		}
+		else
+		{
+			commandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			commandBuffer->SetViewport(renderPass->GetViewPort());
+			commandBuffer->EndRenderPass();
+		}
+		commandBuffer->EndDebugMarker();
 
-		primaryBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->Translate(maskTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
+}
 
+bool KCascadedShadowMapReceiverPass::Execute(KFrameGraphExecutor& executor)
+{
+	m_Master.ExecuteMaskUpdate(executor.GetPrimaryBuffer(), [this](KCascadedShadowMap::MaskType maskType)->IKRenderTargetPtr
+	{
+		if (maskType == KCascadedShadowMap::STATIC_MASK)
+		{
+			return KRenderGlobal::FrameGraph.GetTarget(m_StaticMaskID);
+		}
+		else if (maskType == KCascadedShadowMap::DYNAMIC_MASK)
+		{
+			return KRenderGlobal::FrameGraph.GetTarget(m_DynamicMaskID);
+		}
+		else if (maskType == KCascadedShadowMap::COMBINE_MASK)
+		{
+			return KRenderGlobal::FrameGraph.GetTarget(m_CombineMaskID);
+		}
+		return nullptr;
+	});
 	return true;
 }
 
@@ -352,10 +434,11 @@ KCascadedShadowMap::KCascadedShadowMap()
 	m_ShadowRange(3000.0f),
 	m_LightSize(0.01f),
 	m_SplitLambda(0.5f),
+	m_Enable(true),
 	m_FixToScene(true),
 	m_FixTexel(true),
 	m_MinimizeShadowDraw(true),
-	m_StaticShoudUpdate(true)
+	m_StaticShouldUpdate(true)
 {
 	m_DepthBiasConstant[0] = 0.0f;
 	m_DepthBiasConstant[1] = 0.0f;
@@ -574,10 +657,10 @@ void KCascadedShadowMap::UpdateStaticCascades()
 	glm::vec3 diff = m_MainCamera->GetPosition() - m_StaticCenter;
 	if (std::max(abs(diff.z), std::max(abs(diff.x), abs(diff.y))) > minCascadedShadowRange * 0.5f)
 	{
-		m_StaticShoudUpdate = true;
+		m_StaticShouldUpdate = true;
 	}
 
-	if (!m_StaticShoudUpdate)
+	if (!m_StaticShouldUpdate)
 	{
 		return;
 	}
@@ -732,12 +815,12 @@ bool KCascadedShadowMap::UpdatePipelineFromRTChanged()
 	if (m_CombineReceiverPipeline)
 	{
 		m_CombineReceiverPipeline->SetSampler(0,
-			m_ReceiverPass->GetStaticMask()->GetFrameBuffer(),
+			GetStaticMask()->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 
 		m_CombineReceiverPipeline->SetSampler(1,
-			m_ReceiverPass->GetDynamicMask()->GetFrameBuffer(),
+			GetDynamicMask()->GetFrameBuffer(),
 			KRenderGlobal::GBuffer.GetSampler(),
 			true);
 	}
@@ -770,6 +853,8 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			Cascade& cascaded = m_DynamicCascadeds[i];
 			cascaded.shadowSize = cascadedShadowSize;
 			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(cascaded.renderPass));
+			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(cascaded.rendertarget));
+			cascaded.rendertarget->InitFromDepthStencil(cascadedShadowSize, cascadedShadowSize, 1, false);
 		}
 
 		m_StaticCascadeds.resize(numCascaded);
@@ -778,16 +863,20 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			Cascade& cascaded = m_StaticCascadeds[i];
 			cascaded.shadowSize = cascadedShadowSize;
 			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(cascaded.renderPass));
+			ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderTarget(cascaded.rendertarget));
+			cascaded.rendertarget->InitFromDepthStencil(cascadedShadowSize, cascadedShadowSize, 1, false);
 		}
 
-		m_CasterPass = KCascadedShadowMapCasterPassPtr(KNEW KCascadedShadowMapCasterPass(*this));
-		m_CasterPass->Init();
+		// m_CasterPass = KCascadedShadowMapCasterPassPtr(KNEW KCascadedShadowMapCasterPass(*this));
+		// m_CasterPass->Init();
 
-		m_ReceiverPass = KCascadedShadowMapReceiverPassPtr(KNEW KCascadedShadowMapReceiverPass(*this));
-		m_ReceiverPass->Init();
+		// m_ReceiverPass = KCascadedShadowMapReceiverPassPtr(KNEW KCascadedShadowMapReceiverPass(*this));
+		// m_ReceiverPass->Init();
 
 		// 先把需要的RT创建好(TODO) 后面要引用
-		KRenderGlobal::FrameGraph.Compile();
+		// KRenderGlobal::FrameGraph.Compile();
+
+		Resize();
 
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "shadow/quad.vert", m_QuadVS, false));
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "shadow/cascaded/static_mask.frag", m_StaticReceiverFS, false));
@@ -833,7 +922,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			for (uint32_t cascadedIndex = 0; cascadedIndex < numCascaded; ++cascadedIndex)
 			{
 				uint32_t binding = isStatic ? staticBindings[cascadedIndex] : dynamicBindings[cascadedIndex];
-				IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
+				IKRenderTargetPtr shadowTarget = isStatic ? GetStaticTarget(cascadedIndex) : GetDynamicTarget(cascadedIndex);
 				pipeline->SetSampler(binding, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
 			}
 
@@ -841,7 +930,7 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			for (uint32_t cascadedIndex = numCascaded; cascadedIndex < SHADOW_MAP_MAX_CASCADED; ++cascadedIndex)
 			{
 				uint32_t binding = isStatic ? staticBindings[cascadedIndex] : dynamicBindings[cascadedIndex];
-				IKRenderTargetPtr shadowTarget = isStatic ? m_CasterPass->GetStaticTarget(0) : m_CasterPass->GetDynamicTarget(0);
+				IKRenderTargetPtr shadowTarget = isStatic ? GetStaticTarget(0) : GetDynamicTarget(0);
 				pipeline->SetSampler(binding, shadowTarget->GetFrameBuffer(), m_ShadowSampler);
 			}
 
@@ -865,19 +954,19 @@ bool KCascadedShadowMap::Init(const KCamera* camera, uint32_t numCascaded, uint3
 			pipeline->SetShader(ST_FRAGMENT, *m_CombineReceiverFS);
 
 			pipeline->SetSampler(0,
-				m_ReceiverPass->GetStaticMask()->GetFrameBuffer(),
+				GetStaticMask()->GetFrameBuffer(),
 				KRenderGlobal::GBuffer.GetSampler(),
 				true);
 
 			pipeline->SetSampler(1,
-				m_ReceiverPass->GetDynamicMask()->GetFrameBuffer(),
+				GetDynamicMask()->GetFrameBuffer(),
 				KRenderGlobal::GBuffer.GetSampler(),
 				true);
 
 			pipeline->Init();
 		}
 
-		m_StaticShoudUpdate = true;
+		m_StaticShouldUpdate = true;
 
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_StaticReceiverPass));
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateRenderPass(m_DynamicReceiverPass));
@@ -897,6 +986,7 @@ bool KCascadedShadowMap::UnInit()
 	{
 		SAFE_UNINIT(cascaded.debugPipeline);
 		SAFE_UNINIT(cascaded.renderPass);
+		SAFE_UNINIT(cascaded.rendertarget);
 	}
 	m_StaticCascadeds.clear();
 
@@ -904,8 +994,13 @@ bool KCascadedShadowMap::UnInit()
 	{
 		SAFE_UNINIT(cascaded.debugPipeline);
 		SAFE_UNINIT(cascaded.renderPass);
+		SAFE_UNINIT(cascaded.rendertarget);
 	}
 	m_DynamicCascadeds.clear();
+
+	SAFE_UNINIT(m_StaticReceiverTarget);
+	SAFE_UNINIT(m_DynamicReceiverTarget);
+	SAFE_UNINIT(m_CombineReceiverTarget);
 
 	SAFE_UNINIT(m_StaticReceiverPass);
 	SAFE_UNINIT(m_DynamicReceiverPass);
@@ -932,6 +1027,30 @@ bool KCascadedShadowMap::UnInit()
 
 	KRenderGlobal::Statistics.UnRegisterRenderStage(RENDER_STAGE_NAME[0]);
 	KRenderGlobal::Statistics.UnRegisterRenderStage(RENDER_STAGE_NAME[1]);
+
+	return true;
+}
+
+bool KCascadedShadowMap::Resize()
+{
+	SAFE_UNINIT(m_StaticReceiverTarget);
+	SAFE_UNINIT(m_DynamicReceiverTarget);
+	SAFE_UNINIT(m_CombineReceiverTarget);
+
+	IKRenderWindow* window = KRenderGlobal::RenderDevice->GetMainWindow();
+	size_t w = 0, h = 0;
+	if (window && window->GetSize(w, h))
+	{
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_StaticReceiverTarget);
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_DynamicReceiverTarget);
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_CombineReceiverTarget);
+
+		m_StaticReceiverTarget->InitFromColor((uint32_t)w, (uint32_t)h, 1, 1, KCascadedShadowMap::RECEIVER_TARGET_FORMAT);
+		m_DynamicReceiverTarget->InitFromColor((uint32_t)w, (uint32_t)h, 1, 1, KCascadedShadowMap::RECEIVER_TARGET_FORMAT);
+		m_CombineReceiverTarget->InitFromColor((uint32_t)w, (uint32_t)h, 1, 1, KCascadedShadowMap::RECEIVER_TARGET_FORMAT);
+	}
+
+	UpdatePipelineFromRTChanged();
 
 	return true;
 }
@@ -1115,7 +1234,6 @@ bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTarg
 			litCullRes = newLitCullRes;
 		}
 
-		primaryBuffer->BeginDebugMarker("CSM_" + std::string(isStatic ? "Static_" : "Dynamic_") + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
 		primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(renderPass->GetViewPort());
 
@@ -1142,7 +1260,6 @@ bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTarg
 			}
 		}
 		primaryBuffer->EndRenderPass();
-		primaryBuffer->EndDebugMarker();
 
 		return true;
 	}
@@ -1154,7 +1271,6 @@ bool KCascadedShadowMap::UpdateMask(IKCommandBufferPtr primaryBuffer, bool isSta
 	IKRenderPassPtr renderPass = isStatic ? m_StaticReceiverPass : m_DynamicReceiverPass;
 	IKPipelinePtr pipeline = isStatic ? m_StaticReceiverPipeline : m_DynamicReceiverPipeline;
 
-	primaryBuffer->BeginDebugMarker("CSM_" + std::string(isStatic ? "Static" : "Dynamic") + "_Mask", glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 	primaryBuffer->SetViewport(renderPass->GetViewPort());
 
@@ -1169,7 +1285,6 @@ bool KCascadedShadowMap::UpdateMask(IKCommandBufferPtr primaryBuffer, bool isSta
 	primaryBuffer->Render(command);
 
 	primaryBuffer->EndRenderPass();
-	primaryBuffer->EndDebugMarker();
 
 	return true;
 }
@@ -1179,7 +1294,6 @@ bool KCascadedShadowMap::CombineMask(IKCommandBufferPtr primaryBuffer)
 	IKRenderPassPtr renderPass = m_CombineReceiverPass;
 	IKPipelinePtr pipeline = m_CombineReceiverPipeline;
 
-	primaryBuffer->BeginDebugMarker("CSM_Combine_Mask", glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 	primaryBuffer->SetViewport(renderPass->GetViewPort());
 
@@ -1194,7 +1308,6 @@ bool KCascadedShadowMap::CombineMask(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->Render(command);
 
 	primaryBuffer->EndRenderPass();
-	primaryBuffer->EndDebugMarker();
 
 	return true;
 }
@@ -1276,6 +1389,43 @@ bool KCascadedShadowMap::UpdateShadowMap()
 	return true;
 }
 
+bool KCascadedShadowMap::UpdateCasters(IKCommandBufferPtr commandBuffer)
+{
+	ExecuteCasterUpdate(commandBuffer, [this](uint32_t cascadedIndex, bool isStatic)->IKRenderTargetPtr
+	{
+		if (isStatic)
+		{
+			return m_StaticCascadeds[cascadedIndex].rendertarget;
+		}
+		else
+		{
+			return m_DynamicCascadeds[cascadedIndex].rendertarget;
+		}
+	});
+	return true;
+}
+
+bool KCascadedShadowMap::UpdateMask(IKCommandBufferPtr commandBuffer)
+{
+	ExecuteMaskUpdate(commandBuffer, [this](KCascadedShadowMap::MaskType maskType)->IKRenderTargetPtr
+	{
+		if (maskType == KCascadedShadowMap::STATIC_MASK)
+		{
+			return m_StaticReceiverTarget;
+		}
+		else if (maskType == KCascadedShadowMap::DYNAMIC_MASK)
+		{
+			return m_DynamicReceiverTarget;
+		}
+		else if (maskType == KCascadedShadowMap::COMBINE_MASK)
+		{
+			return m_CombineReceiverTarget;
+		}
+		return nullptr;
+	});
+	return true;
+}
+
 bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic)
 {
 	KRenderCommand command;
@@ -1351,6 +1501,17 @@ IKRenderTargetPtr KCascadedShadowMap::GetShadowMapTarget(size_t cascadedIndex, b
 	if (m_CasterPass)
 	{
 		return isStatic ? m_CasterPass->GetStaticTarget(cascadedIndex) : m_CasterPass->GetDynamicTarget(cascadedIndex);
+	}
+	else
+	{
+		if (cascadedIndex < GetNumCascaded())
+		{
+			return isStatic ? m_StaticCascadeds[cascadedIndex].rendertarget : m_DynamicCascadeds[cascadedIndex].rendertarget;
+		}
+		else
+		{
+			return nullptr;
+		}
 	}
 	return nullptr;
 }

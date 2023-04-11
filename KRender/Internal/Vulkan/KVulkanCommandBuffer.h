@@ -5,7 +5,7 @@
 class KVulkanCommandPool : public IKCommandPool
 {
 protected:
-	VkCommandPool m_CommandPool;
+	std::vector<VkCommandPool> m_CommandPools;
 public:
 	KVulkanCommandPool();
 	~KVulkanCommandPool();
@@ -13,15 +13,16 @@ public:
 	virtual bool Init(QueueCategory queue, uint32_t index);
 	virtual bool UnInit();
 	virtual bool Reset();
+	virtual bool SetDebugName(const char* name);
 
-	inline VkCommandPool GetVkHandle() { return m_CommandPool; }
+	inline std::vector<VkCommandPool> GetVkHandles() { return m_CommandPools; }
 };
 
 class KVulkanCommandBuffer : public IKCommandBuffer
 {
 protected:
 	std::vector<VkCommandBuffer> m_CommandBuffers;
-	VkCommandPool m_ParentPool;
+	std::vector<VkCommandPool> m_ParentPools;
 	VkCommandBufferLevel m_CommandLevel;
 public:
 	KVulkanCommandBuffer();
@@ -29,6 +30,8 @@ public:
 
 	virtual bool Init(IKCommandPoolPtr pool, CommandBufferLevel level);
 	virtual bool UnInit();
+
+	virtual bool SetDebugName(const char* name);
 
 	virtual bool SetViewport(const KViewPortArea& area);
 	virtual bool SetDepthBias(float depthBiasConstant, float depthBiasClamp, float depthBiasSlope);

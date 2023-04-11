@@ -101,7 +101,7 @@ void ComputeWeights(vec2 targetOffset, ivec2 size, ivec2 samplePos[4],
 	weights *= GetDepthWeights(depth, dxdy, sampleDepths, depthSigma, depthWeightCutoff, NumExponentBits, NumMantissaBits);
 }
 
-#define RTAO_GROUP_SIZE 32
+#define RTAO_GROUP_SIZE 8
 layout(local_size_x = RTAO_GROUP_SIZE, local_size_y = RTAO_GROUP_SIZE) in;
 
 #endif

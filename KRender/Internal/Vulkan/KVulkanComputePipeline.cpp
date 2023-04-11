@@ -617,7 +617,7 @@ void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDes
 	UpdateDynamicWrite(dstSet, usage);
 
 	// Adding a barrier to be sure the fragment has finished writing
-	// SetupBarrier(primaryBuffer, true);
+	SetupBarrier(primaryBuffer, true);
 
 	// Preparing for the compute shader
 	vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
@@ -627,7 +627,7 @@ void KVulkanComputePipeline::PreDispatch(IKCommandBufferPtr primaryBuffer, VkDes
 void KVulkanComputePipeline::PostDispatch(IKCommandBufferPtr primaryBuffer)
 {
 	// Adding a barrier to be sure the compute shader has finished
-	// SetupBarrier(primaryBuffer, false);
+	SetupBarrier(primaryBuffer, false);
 }
 
 bool KVulkanComputePipeline::Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage)
@@ -681,8 +681,10 @@ bool KVulkanComputePipeline::ExecuteIndirect(IKCommandBufferPtr primaryBuffer, I
 			bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-			VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-			vkCmdPipelineBarrier(cmdBuf, stageFlags, stageFlags, VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
+			VkPipelineStageFlags srcStageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			VkPipelineStageFlags dstStageFlags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+
+			vkCmdPipelineBarrier(cmdBuf, srcStageFlags, dstStageFlags, VK_DEPENDENCY_DEVICE_GROUP_BIT, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
 		}
 
 		vkCmdDispatchIndirect(cmdBuf, indirectBuf, 0);

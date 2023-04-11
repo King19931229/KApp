@@ -169,6 +169,8 @@ protected:
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 
+	bool m_Enable;
+
 	bool m_InjectFirstBounce;
 	bool m_VoxelDrawEnable;
 	bool m_VoxelDrawWireFrame;
@@ -223,7 +225,8 @@ public:
 
 	void UpdateVoxel(IKCommandBufferPtr primaryBuffer);
 	void ReloadShader();
-
+	
+	bool& GetEnable() { return m_Enable; }
 	bool& GetVoxelUseOctree() { return m_VoxelUseOctree; }
 	bool& GetVoxelDebugUpdate() { return m_VoxelDebugUpdate; }
 	bool& GetVoxelDrawEnable() { return m_VoxelDrawEnable; }

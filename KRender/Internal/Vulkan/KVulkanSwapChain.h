@@ -30,7 +30,6 @@ protected:
 	VkPresentModeKHR m_PresentMode;
 	VkSurfaceFormatKHR m_SurfaceFormat;
 
-	uint32_t m_PresentQueueIndex;
 	uint32_t m_MaxFramesInFight;
 	uint32_t m_CurrentFlightIndex;
 

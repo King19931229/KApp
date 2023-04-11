@@ -393,6 +393,7 @@ bool KVulkanRenderPass::Init(uint32_t mipmap)
 			subpass.pResolveAttachments = massCreated ? &colorResolveRefs[0] : nullptr;
 
 			// subpass依赖
+			/*
 			VkSubpassDependency dependencies[2] = {};
 
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -410,6 +411,7 @@ bool KVulkanRenderPass::Init(uint32_t mipmap)
 			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+			*/
 
 			VkRenderPassCreateInfo renderPassInfo = {};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;

@@ -21,6 +21,7 @@ const char* KRenderImGui::SettingMenuName[] =
 const char* KRenderImGui::DebugMenuName[] =
 {
 	"DeferredRenderer",
+	"AdvancedContorl"
 };
 
 KRenderImGui::KRenderImGui()
@@ -156,6 +157,8 @@ void KRenderImGui::Run()
 		{
 			ImGui::Begin(SettingMenuName[CSM], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
+			ImGui::Checkbox("Enable", &KRenderGlobal::CascadedShadowMap.GetEnable());
+
 			ImGui::SliderFloat("DepthBias Slope[0]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(0), 0.0f, 5.0f);
 			ImGui::SliderFloat("DepthBias Slope[1]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(1), 0.0f, 5.0f);
 			ImGui::SliderFloat("DepthBias Slope[2]", &KRenderGlobal::CascadedShadowMap.GetDepthBiasSlope(2), 0.0f, 5.0f);
@@ -164,6 +167,7 @@ void KRenderImGui::Run()
 			// ImGui::SliderFloat("ShadowRange", &KRenderGlobal::CascadedShadowMap.GetShadowRange(), 0.1f, 5000.0f);
 			// ImGui::SliderFloat("SplitLambda", &KRenderGlobal::CascadedShadowMap.GetSplitLambda(), 0.001f, 1.0f);
 			// ImGui::SliderFloat("LightSize", &KRenderGlobal::CascadedShadowMap.GetLightSize(), 0.0f, 0.1f);
+
 			ImGui::Checkbox("FixToScene", &KRenderGlobal::CascadedShadowMap.GetFixToScene());
 			ImGui::Checkbox("FixTexel", &KRenderGlobal::CascadedShadowMap.GetFixTexel());
 			ImGui::Checkbox("Minimize Draw", &KRenderGlobal::CascadedShadowMap.GetMinimizeShadowDraw());
@@ -175,6 +179,7 @@ void KRenderImGui::Run()
 		{
 			ImGui::Begin(SettingMenuName[SSR], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
+			ImGui::Checkbox("Enable", &KRenderGlobal::ScreenSpaceReflection.GetEnable());
 			ImGui::Checkbox("DebugDraw", &KRenderGlobal::ScreenSpaceReflection.GetDebugDrawEnable());
 			ImGui::SliderInt("RayReuse", &KRenderGlobal::ScreenSpaceReflection.GetRayReuseCount(), 1, 9);
 			ImGui::SliderInt("Atrous", &KRenderGlobal::ScreenSpaceReflection.GetAtrousLevel(), 0, 5);
@@ -205,7 +210,7 @@ void KRenderImGui::Run()
 			ImGui::Checkbox("DebugDraw", &KRenderGlobal::RTAO.GetDebugDrawEnable());
 			ImGui::SliderFloat("Length of the ray", &KRenderGlobal::RTAO.GetAoParameters().rtao_radius, 0.0f, 20.0f);
 			ImGui::SliderFloat("Strenth of darkness", &KRenderGlobal::RTAO.GetAoParameters().rtao_power, 0.0001f, 10.0f);
-			ImGui::SliderInt("Number of samples at each iteration", &KRenderGlobal::RTAO.GetAoParameters().rtao_samples, 1, 32);
+			ImGui::SliderInt("Number of samples at each iteration", &KRenderGlobal::RTAO.GetAoParameters().rtao_samples, 1, 256);
 			ImGui::SliderInt("Attenuate based on distance", &KRenderGlobal::RTAO.GetAoParameters().rtao_distance_based, 0, 1);
 
 			ImGui::End();
@@ -215,6 +220,7 @@ void KRenderImGui::Run()
 		{
 			ImGui::Begin(SettingMenuName[SVO_GI], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
+			ImGui::Checkbox("Enable", &KRenderGlobal::Voxilzer.GetEnable());
 			ImGui::Checkbox("Octree", &KRenderGlobal::Voxilzer.GetVoxelUseOctree());
 			ImGui::Checkbox("VoxelDraw", &KRenderGlobal::Voxilzer.GetVoxelDrawEnable());
 			ImGui::Checkbox("VoxelDrawWireFrame", &KRenderGlobal::Voxilzer.GetVoxelDrawWireFrame());
@@ -228,6 +234,7 @@ void KRenderImGui::Run()
 		{
 			ImGui::Begin(SettingMenuName[CLIPMAP_GI], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
+			ImGui::Checkbox("Enable", &KRenderGlobal::ClipmapVoxilzer.GetEnable());
 			ImGui::Checkbox("LightDraw", &KRenderGlobal::ClipmapVoxilzer.GetLightDebugDrawEnable());
 			ImGui::Checkbox("VoxelDebugUpdate", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDebugUpdate());
 			ImGui::Checkbox("VoxelDebugVoxelize", &KRenderGlobal::ClipmapVoxilzer.GetVoxelDebugVoxelize());
@@ -263,6 +270,7 @@ void KRenderImGui::Run()
 		{
 			ImGui::Begin(SettingMenuName[VOLUMETIRIC_FOG], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
+			ImGui::Checkbox("Enable", &KRenderGlobal::VolumetricFog.GetEnable());
 			ImGui::SliderFloat("Start", &KRenderGlobal::VolumetricFog.GetStart(), 1.0f, 5000.0f);
 			ImGui::SliderFloat("Depth", &KRenderGlobal::VolumetricFog.GetDepth(), 1.0f, 5000.0f);
 			ImGui::SliderFloat("Anisotropy", &KRenderGlobal::VolumetricFog.GetAnisotropy(), 0.0f, 1.0f);

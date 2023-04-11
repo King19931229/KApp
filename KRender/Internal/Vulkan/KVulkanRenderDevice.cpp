@@ -521,7 +521,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			if (familyProperty.queueCount > 1)
 			{
 				queueCreateInfo.queueCount = 2;
-				queuePriorities.push_back({ 1.0f , 0.2f });
+				queuePriorities.push_back({ 1.0f, 1.0f });
 			}
 			else
 			{
@@ -885,7 +885,7 @@ VkBool32 KVulkanRenderDevice::DebugUtilsMessengerCallback(
 	}
 	if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
 	{
-		// KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Performance] %s\n", pCallbackData->pMessage);
+		KG_LOGW(LM_RENDER, "[Vulkan Validation Layer Performance] %s\n", pCallbackData->pMessage);
 	}
 	else if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
 	{
@@ -1346,7 +1346,14 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	// Setup queues
 	for (size_t i = 0; i < KVulkanGlobal::graphicsFamilyIndices.size(); ++i)
 	{
-		vkGetDeviceQueue(m_Device, KVulkanGlobal::graphicsFamilyIndices[i], 0, &KVulkanGlobal::graphicsQueues[i]);
+		if (i == 0 && hasPresentQueue)
+		{
+			vkGetDeviceQueue(m_Device, KVulkanGlobal::graphicsFamilyIndices[i], 1, &KVulkanGlobal::graphicsQueues[i]);
+		}
+		else
+		{
+			vkGetDeviceQueue(m_Device, KVulkanGlobal::graphicsFamilyIndices[i], 0, &KVulkanGlobal::graphicsQueues[i]);
+		}
 		KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)KVulkanGlobal::graphicsQueues[i], VK_OBJECT_TYPE_QUEUE, ("GraphicsQueues_" + std::to_string(i)).c_str());
 	}
 	for (size_t i = 0; i < KVulkanGlobal::computeFamilyIndices.size(); ++i)
@@ -1360,14 +1367,8 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 		KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)KVulkanGlobal::transferQueues[i], VK_OBJECT_TYPE_QUEUE, ("TransferQueues_" + std::to_string(i)).c_str());
 	}
 
-	if (hasPresentQueue)
-	{
-		vkGetDeviceQueue(m_Device, KVulkanGlobal::graphicsFamilyIndices[0], 1, &KVulkanGlobal::presentQueue);
-	}
-	else
-	{
-		vkGetDeviceQueue(m_Device, KVulkanGlobal::graphicsFamilyIndices[0], 0, &KVulkanGlobal::presentQueue);
-	}
+	vkGetDeviceQueue(m_Device, KVulkanGlobal::graphicsFamilyIndices[0], 0, &KVulkanGlobal::presentQueue);
+
 	KVulkanHelper::DebugUtilsSetObjectName(m_Device, (uint64_t)KVulkanGlobal::presentQueue, VK_OBJECT_TYPE_QUEUE, "PresentQueue");
 
 	return true;
