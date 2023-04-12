@@ -132,9 +132,17 @@ bool KVulkanTexture::InitDevice(bool async)
 				assert(pixels);
 
 				void* data = nullptr;
-				VK_ASSERT_RESULT(vkMapMemory(device, stagingAllocInfo.vkMemroy, stagingAllocInfo.vkOffset, imageSize, 0, &data));
-				memcpy(data, pixels, static_cast<size_t>(imageSize));
-				vkUnmapMemory(device, stagingAllocInfo.vkMemroy);
+
+				if (stagingAllocInfo.pMapped)
+				{
+					memcpy(stagingAllocInfo.pMapped, pixels, static_cast<size_t>(imageSize));
+				}
+				else
+				{
+					VK_ASSERT_RESULT(vkMapMemory(device, stagingAllocInfo.vkMemroy, stagingAllocInfo.vkOffset, imageSize, 0, &data));
+					memcpy(data, pixels, static_cast<size_t>(imageSize));
+					vkUnmapMemory(device, stagingAllocInfo.vkMemroy);
+				}
 
 				KVulkanInitializer::CreateVkImage((uint32_t)m_Width,
 					(uint32_t)m_Height,

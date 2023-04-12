@@ -227,7 +227,7 @@ void KHiZOcclusion::PullCandidatesResult()
 
 	std::vector<uint8_t> readback;
 	readback.resize(src->GetWidth() * src->GetHeight());
-	dest->Readback(readback.data(), 0, readback.size() * sizeof(uint8_t));
+	dest->Readback(readback.data(), readback.size() * sizeof(uint8_t));
 
 	for (uint32_t y = 0; y < OCCLUSION_TARGRT_DIMENSION; ++y)
 	{

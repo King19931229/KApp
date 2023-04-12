@@ -348,23 +348,47 @@ void KVulkanRayTracePipeline::CreateShaderBindingTables()
 	// Copy handles
 	uint32_t handleIndex = 0;
 	{
-		vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.raygen.allocInfo.vkMemroy, m_ShaderBindingTables.raygen.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.raygen.mapped);
-		memcpy(m_ShaderBindingTables.raygen.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
-		vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.raygen.allocInfo.vkMemroy);
+		if (m_ShaderBindingTables.raygen.allocInfo.pMapped)
+		{
+			m_ShaderBindingTables.raygen.mapped = m_ShaderBindingTables.raygen.allocInfo.pMapped;
+			memcpy(m_ShaderBindingTables.raygen.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
+		}
+		else
+		{
+			vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.raygen.allocInfo.vkMemroy, m_ShaderBindingTables.raygen.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.raygen.mapped);
+			memcpy(m_ShaderBindingTables.raygen.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
+			vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.raygen.allocInfo.vkMemroy);
+		}
 		++handleIndex;
 	}
 	if (m_MissShader.shader)
 	{
-		vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy, m_ShaderBindingTables.miss.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.miss.mapped);
-		memcpy(m_ShaderBindingTables.miss.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, handleSize);
-		vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy);
+		if (m_ShaderBindingTables.miss.allocInfo.pMapped)
+		{
+			m_ShaderBindingTables.miss.mapped = m_ShaderBindingTables.miss.allocInfo.pMapped;
+			memcpy(m_ShaderBindingTables.miss.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
+		}
+		else
+		{
+			vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy, m_ShaderBindingTables.miss.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.miss.mapped);
+			memcpy(m_ShaderBindingTables.miss.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
+			vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.miss.allocInfo.vkMemroy);
+		}
 		++handleIndex;
 	}
 	if (m_ClosestHitShader.shader)
 	{
-		vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.hit.allocInfo.vkMemroy, m_ShaderBindingTables.hit.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.hit.mapped);
-		memcpy(m_ShaderBindingTables.hit.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, handleSize);
-		vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.hit.allocInfo.vkMemroy);
+		if (m_ShaderBindingTables.hit.allocInfo.pMapped)
+		{
+			m_ShaderBindingTables.hit.mapped = m_ShaderBindingTables.miss.allocInfo.pMapped;
+			memcpy(m_ShaderBindingTables.hit.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
+		}
+		else
+		{
+			vkMapMemory(KVulkanGlobal::device, m_ShaderBindingTables.hit.allocInfo.vkMemroy, m_ShaderBindingTables.hit.allocInfo.vkOffset, VK_WHOLE_SIZE, 0, &m_ShaderBindingTables.hit.mapped);
+			memcpy(m_ShaderBindingTables.hit.mapped, shaderHandleStorage.data() + (VkDeviceSize)handleSizeAligned * handleIndex, (VkDeviceSize)handleSize);
+			vkUnmapMemory(KVulkanGlobal::device, m_ShaderBindingTables.hit.allocInfo.vkMemroy);
+		}
 		++handleIndex;
 	}
 }

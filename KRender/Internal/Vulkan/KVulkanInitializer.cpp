@@ -891,10 +891,17 @@ namespace KVulkanInitializer
 				vkStageBuffer,
 				stageAllocInfo);
 
-			void* data = nullptr;
-			VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, stageAllocInfo.vkMemroy, stageAllocInfo.vkOffset, size, 0, &data));
-			memcpy(data, pSrcData, (size_t)size);
-			vkUnmapMemory(KVulkanGlobal::device, stageAllocInfo.vkMemroy);
+			if (stageAllocInfo.pMapped)
+			{
+				memcpy(stageAllocInfo.pMapped, pSrcData, (size_t)size);
+			}
+			else
+			{
+				void* data = nullptr;
+				VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, stageAllocInfo.vkMemroy, stageAllocInfo.vkOffset, size, 0, &data));
+				memcpy(data, pSrcData, (size_t)size);
+				vkUnmapMemory(KVulkanGlobal::device, stageAllocInfo.vkMemroy);
+			}
 
 			KVulkanInitializer::CopyVkBuffer(vkStageBuffer, vkBuffer, size);
 			KVulkanInitializer::FreeVkBuffer(vkStageBuffer, stageAllocInfo);

@@ -292,10 +292,17 @@ bool KVulkanAccelerationStructure::BuildTopDown(const std::vector<BottomASTransf
 		// 这里没有拷贝数据导致数据为空验证层居然在之后不报错
 		if (instanceSize)
 		{
-			void* instanceData = nullptr;
-			VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, instanceAlloc.vkMemroy, instanceAlloc.vkOffset, instanceSize, 0, &instanceData));
-			memcpy(instanceData, instances.data(), instanceSize);
-			vkUnmapMemory(KVulkanGlobal::device, instanceAlloc.vkMemroy);
+			if (instanceAlloc.pMapped)
+			{
+				memcpy(instanceAlloc.pMapped, instances.data(), instanceSize);
+			}
+			else
+			{
+				void* instanceData = nullptr;
+				VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, instanceAlloc.vkMemroy, instanceAlloc.vkOffset, instanceSize, 0, &instanceData));
+				memcpy(instanceData, instances.data(), instanceSize);
+				vkUnmapMemory(KVulkanGlobal::device, instanceAlloc.vkMemroy);
+			}
 		}
 		VK_ASSERT_RESULT(vkBindBufferMemory(KVulkanGlobal::device, instanceBufferHandle, instanceAlloc.vkMemroy, instanceAlloc.vkOffset));
 

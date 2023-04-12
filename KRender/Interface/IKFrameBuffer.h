@@ -14,6 +14,6 @@ struct IKFrameBuffer
 	virtual bool IsStorageImage() const = 0;
 	virtual bool IsReadback() const = 0;
 	virtual bool CopyToReadback(IKFrameBuffer* framebuffer) = 0;
-	virtual bool Readback(void* pDest, size_t offset, size_t size) = 0;
+	virtual bool Readback(void* pDest, size_t size) = 0;
 	virtual bool Translate(IKCommandBuffer* cmd, IKQueue* srcQueue, IKQueue* dstQueue, uint32_t baseMip, uint32_t numMip, PipelineStages srcStages, PipelineStages dstStages, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 };

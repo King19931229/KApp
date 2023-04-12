@@ -376,17 +376,24 @@ bool KVulkanFrameBuffer::CopyToReadback(IKFrameBuffer* framebuffer)
 	return false;
 }
 
-bool KVulkanFrameBuffer::Readback(void* pDest, size_t offset, size_t size)
+bool KVulkanFrameBuffer::Readback(void* pDest, size_t size)
 {
 	if (pDest && IsReadback())
 	{
-		void* pSrc = nullptr;
-		if (vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, size, 0, (void**)&pSrc) == VK_SUCCESS)
+		if (m_AllocInfo.pMapped)
 		{
-			memcpy((unsigned char*)pDest + offset, pSrc, size);
-			vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
-			return true;
+			memcpy(pDest, m_AllocInfo.pMapped, size);
 		}
+		else
+		{
+			void* pSrc = nullptr;
+			if (vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, size, 0, (void**)&pSrc) == VK_SUCCESS)
+			{
+				memcpy(pDest, pSrc, size);
+				vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
+			}
+		}
+		return true;
 	}
 	return false;
 }

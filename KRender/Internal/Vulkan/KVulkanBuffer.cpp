@@ -46,7 +46,14 @@ bool KVulkanStageBuffer::Map(void** ppData)
 	assert(!m_Mapping);
 	if (m_vkBuffer != VK_NULL_HANDLE)
 	{
-		VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
+		if (m_AllocInfo.pMapped)
+		{
+			*ppData = m_AllocInfo.pMapped;
+		}
+		else
+		{
+			VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
+		}
 		m_Mapping = true;
 		return true;
 	}
@@ -58,7 +65,10 @@ bool KVulkanStageBuffer::UnMap()
 	assert(m_Mapping);
 	if (m_vkBuffer != VK_NULL_HANDLE)
 	{
-		vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
+		if (!m_AllocInfo.pMapped)
+		{
+			vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
+		}
 		m_Mapping = false;
 		return true;
 	}
@@ -126,10 +136,17 @@ bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uin
 			, m_vkBuffer
 			, m_AllocInfo);
 
-		void* data = nullptr;
-		VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, &data));
-		memcpy(data, pData, (size_t)m_BufferSize);
-		vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
+		if (m_AllocInfo.pMapped)
+		{
+			memcpy(m_AllocInfo.pMapped, pData, (size_t)m_BufferSize);
+		}
+		else
+		{
+			void* data = nullptr;
+			VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, &data));
+			memcpy(data, pData, (size_t)m_BufferSize);
+			vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
+		}
 	}
 	else
 	{
@@ -185,7 +202,14 @@ bool KVulkanBuffer::Map(void** ppData)
 	{
 		if (m_vkBuffer != VK_NULL_HANDLE)
 		{
-			VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
+			if (m_AllocInfo.pMapped)
+			{
+				*ppData = m_AllocInfo.pMapped;
+			}
+			else
+			{
+				VK_ASSERT_RESULT(vkMapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy, m_AllocInfo.vkOffset, m_BufferSize, 0, ppData));
+			}
 			m_Mapping = true;
 			return true;
 		}
@@ -211,7 +235,10 @@ bool KVulkanBuffer::UnMap()
 	{
 		if (m_vkBuffer != VK_NULL_HANDLE)
 		{
-			vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
+			if (!m_AllocInfo.pMapped)
+			{
+				vkUnmapMemory(KVulkanGlobal::device, m_AllocInfo.vkMemroy);
+			}
 			m_Mapping = false;
 			return true;
 		}

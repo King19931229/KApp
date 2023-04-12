@@ -7,6 +7,7 @@ namespace KVulkanHeapAllocator
 	{
 		VkDeviceMemory vkMemroy;
 		VkDeviceSize vkOffset;
+		void* pMapped;
 		// 内部释放使用 不要修改其内容
 		void* internalData;
 
@@ -14,6 +15,7 @@ namespace KVulkanHeapAllocator
 		{
 			vkMemroy = VK_NULL_HANDEL;
 			vkOffset = 0;
+			pMapped = nullptr;
 			internalData = nullptr;
 		}
 	};

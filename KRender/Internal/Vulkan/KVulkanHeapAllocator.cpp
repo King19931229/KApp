@@ -89,6 +89,7 @@ namespace KVulkanHeapAllocator
 		void* vkMemroy;
 #endif
 		VkDeviceSize size;
+		void* pMapped;
 
 		MemoryAllocateType type;
 
@@ -100,16 +101,25 @@ namespace KVulkanHeapAllocator
 		PageInfo* pPre;
 		PageInfo* pNext;
 		
-		// 额外信息 用于释放时索引
+		// 额外信息
 		MemoryHeap* pParent;
+		int persistentMap;
 		int noShare;
 
-		PageInfo(MemoryHeap* _pParent, VkDevice _vkDevice, VkDeviceSize _size,
-			MemoryAllocateType _type, uint32_t _memoryTypeIndex, uint32_t _memoryHeapIndex, int _noShare)
+		PageInfo(MemoryHeap* _pParent,
+			VkDevice _vkDevice,
+			VkDeviceSize _size,
+			MemoryAllocateType _type,
+			uint32_t _memoryTypeIndex,
+			uint32_t _memoryHeapIndex,
+			int _persistentMap,
+			int _noShare)
 		{
 			vkDevice = _vkDevice;
 			size = _size;
 			type = _type;
+
+			pMapped = nullptr;
 
 			memoryTypeIndex = _memoryTypeIndex;
 			memoryHeapIndex = _memoryHeapIndex;
@@ -119,12 +129,14 @@ namespace KVulkanHeapAllocator
 			pPre = pNext = nullptr;	
 
 			pParent = _pParent;
+			persistentMap = _persistentMap;
 			noShare = _noShare;
 		}
 
 		~PageInfo()
 		{
 			assert(vkMemroy == VK_NULL_HANDLE);
+			assert(pMapped == nullptr);
 		}
 
 		void Check()
@@ -172,6 +184,13 @@ namespace KVulkanHeapAllocator
 
 					VK_ASSERT_RESULT(vkAllocateMemory(DEVICE, &allocInfo, nullptr, &vkMemroy));
 					HEAP_REMAIN_SIZE[memoryHeapIndex] -= size;
+
+					if (persistentMap)
+					{
+						assert(!pMapped);
+						vkMapMemory(DEVICE, vkMemroy, 0, size, 0, &pMapped);
+						assert(pMapped);
+					}
 				}
 #else
 				{
@@ -232,6 +251,12 @@ namespace KVulkanHeapAllocator
 				SAFE_DELETE(pHead);
 				assert(vkMemroy != VK_NULL_HANDLE);
 #ifdef KVUALKAN_HEAP_TRUELY_ALLOC
+				if (persistentMap)
+				{
+					assert(pMapped);
+					vkUnmapMemory(vkDevice, vkMemroy);
+					pMapped = nullptr;
+				}
 				vkFreeMemory(vkDevice, vkMemroy, nullptr);
 				HEAP_REMAIN_SIZE[memoryHeapIndex] += size;
 #else
@@ -506,13 +531,13 @@ namespace KVulkanHeapAllocator
 			return newPageSize;
 		}
 
-		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment, bool noShared, MemoryAllocateType type)
+		BlockInfo* Alloc(VkDeviceSize sizeToFit, VkDeviceSize alignment, bool persistentMap, bool noShared, MemoryAllocateType type)
 		{
 			std::lock_guard<decltype(ALLOC_FREE_LOCK)> guard(ALLOC_FREE_LOCK);
 
-			if(noShared)
+			if (noShared)
 			{
-				PageInfo* pPage = KNEW PageInfo(this, vkDevice, sizeToFit, type, memoryTypeIndex, memoryHeapIndex, true);
+				PageInfo* pPage = KNEW PageInfo(this, vkDevice, sizeToFit, type, memoryTypeIndex, memoryHeapIndex, persistentMap, noShared);
 				BlockInfo* pBlock = pPage->Alloc(sizeToFit, alignment);
 
 				pPage->pNext = pNoShareHead[type];
@@ -548,7 +573,7 @@ namespace KVulkanHeapAllocator
 						lastPageSize[type] = newSize;
 						totalPageSize[type] += newSize;
 
-						PageInfo* pNewPage = KNEW PageInfo(this, vkDevice, newSize, type, memoryTypeIndex, memoryHeapIndex, false);
+						PageInfo* pNewPage = KNEW PageInfo(this, vkDevice, newSize, type, memoryTypeIndex, memoryHeapIndex, persistentMap, noShared);
 
 						if(pPage)
 							pPage->pNext = pNewPage;
@@ -720,7 +745,7 @@ namespace KVulkanHeapAllocator
 				else if(remainSize > 0)
 				{
 					// 把剩余的空间分配到新节点上
-					PageInfo* pNewPage = KNEW PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->type, pPage->memoryTypeIndex, pPage->memoryHeapIndex, false);
+					PageInfo* pNewPage = KNEW PageInfo(pPage->pParent, pPage->vkDevice, remainSize, pPage->type, pPage->memoryTypeIndex, pPage->memoryHeapIndex, pPage->persistentMap, pPage->noShare);
 					pNewPage->vkMemroy = VK_NULL_HANDLE;
 					pNewPage->size = remainSize;
 
@@ -842,7 +867,9 @@ namespace KVulkanHeapAllocator
 				type = MAT_ACCELERATION_STRUCTURE;
 			}
 
-			info.internalData = pHeap->Alloc(size, alignment, noShared, type);
+			bool persistentMap = memoryUsage & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+
+			info.internalData = pHeap->Alloc(size, alignment, persistentMap, noShared, type);
 
 			if(info.internalData)
 			{
@@ -851,6 +878,15 @@ namespace KVulkanHeapAllocator
 
 				info.vkMemroy = static_cast<VkDeviceMemory>(pPage->vkMemroy);
 				info.vkOffset = pBlock->offset;
+
+				if (pPage->persistentMap)
+				{
+					info.pMapped = POINTER_OFFSET(pPage->pMapped, pBlock->offset);
+				}
+				else
+				{
+					info.pMapped = nullptr;
+				}
 
 				return true;
 			}
