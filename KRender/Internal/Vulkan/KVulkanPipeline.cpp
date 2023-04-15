@@ -561,12 +561,17 @@ bool KVulkanPipeline::CreateLayout()
 
 	VK_ASSERT_RESULT(vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout));
 
+	if (!m_Name.empty())
+	{
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_DescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (std::string(m_Name) + "_DescriptorSetLayout").c_str());
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_PipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, (std::string(m_Name) + "_PipelineLayout").c_str());
+	}	
+
 	return true;
 }
 
-bool KVulkanPipeline::CreateDestcriptionPool()
+bool KVulkanPipeline::CreateDestcriptionWrite()
 {
-	// 更新描述集合	
 	m_WriteDescriptorSet.clear();
 	m_ImageWriteInfo.clear();
 	m_BufferWriteInfo.clear();
@@ -643,15 +648,34 @@ bool KVulkanPipeline::CreateDestcriptionPool()
 		m_WriteDescriptorSet.push_back(samplerDescriptorWrite);
 	}
 
-	m_Pool.Init(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, m_WriteDescriptorSet);
+	return true;
+}
+
+bool KVulkanPipeline::CreateDestcriptionPool(uint32_t threadIndex)
+{
+	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+	
+	if (threadIndex >= m_Pools.size())
+	{
+		KVulkanDescriptorPool pool;
+		pool.Init(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, m_WriteDescriptorSet);
+		if (!m_Name.empty())
+		{
+			pool.SetDebugName(m_Name + "_Thread" + std::to_string(threadIndex));
+		}
+		m_Pools.resize(threadIndex + 1);
+		m_Pools[threadIndex] = std::move(pool);
+	}
 
 	return true;
 }
 
-VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
+VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(uint32_t threadIndex,
+	const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
 	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
 {
-	return m_Pool.Alloc(KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppConstantUsage, dynamicBufferUsageCount, ppStorageUsage, storageBufferUsageCount);
+	CreateDestcriptionPool(threadIndex);
+	return m_Pools[threadIndex].Alloc(KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppConstantUsage, dynamicBufferUsageCount, ppStorageUsage, storageBufferUsageCount);
 }
 
 bool KVulkanPipeline::Init()
@@ -674,7 +698,11 @@ bool KVulkanPipeline::UnInit()
 	m_Uniforms.clear();
 	m_Samplers.clear();
 
-	m_Pool.UnInit();
+	for (KVulkanDescriptorPool& pool : m_Pools)
+	{
+		pool.UnInit();
+	}
+	m_Pools.clear();
 
 	return true;
 }
@@ -689,15 +717,16 @@ bool KVulkanPipeline::Reload()
 bool KVulkanPipeline::SetDebugName(const char* name)
 {
 	m_Name = name;
-	if (m_DescriptorSetLayout)
+
+	if (m_DescriptorSetLayout != VK_NULL_HANDEL)
 	{
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_DescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (std::string(name) + "_DescriptorSetLayout").c_str());
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_DescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (std::string(m_Name) + "_DescriptorSetLayout").c_str());
 	}
-	if (m_PipelineLayout)
+	if (m_PipelineLayout != VK_NULL_HANDEL)
 	{
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_PipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, (std::string(name) + "_PipelineLayout").c_str());
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_PipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, (std::string(m_Name) + "_PipelineLayout").c_str());
 	}
-	m_Pool.SetDebugName(name);
+
 	return true;
 }
 
@@ -749,7 +778,7 @@ bool KVulkanPipeline::GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr&
 	if (m_DescriptorSetLayout == VK_NULL_HANDLE && m_PipelineLayout == VK_NULL_HANDLE)
 	{
 		CreateLayout();
-		CreateDestcriptionPool();
+		CreateDestcriptionWrite();
 	}
 
 	if (renderPass)

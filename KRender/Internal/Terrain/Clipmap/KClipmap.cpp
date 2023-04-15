@@ -128,8 +128,6 @@ const uint16_t KClipmapLevel::ms_UpdateIndices[] = { 0, 1, 2, 2, 3, 0 };
 
 IKVertexBufferPtr KClipmapLevel::ms_UpdateVertexBuffer = nullptr;
 IKIndexBufferPtr KClipmapLevel::ms_UpdateIndexBuffer = nullptr;
-IKCommandBufferPtr KClipmapLevel::ms_CommandBuffer = nullptr;
-IKCommandPoolPtr KClipmapLevel::ms_CommandPool = nullptr;
 IKSamplerPtr KClipmapLevel::ms_Sampler = nullptr;
 KShaderRef KClipmapLevel::ms_UpdateVS;
 KShaderRef KClipmapLevel::ms_UpdateFS;
@@ -246,10 +244,12 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 		updateTexture->InitDevice(false);
 	}
 
+	IKCommandBufferPtr commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+
 	if (m_ComputeShaderUpdate)
 	{
-		ms_CommandBuffer->BeginPrimary();
-		ms_CommandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_GENERAL);
+		commandBuffer->BeginPrimary();
+		commandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_GENERAL);
 
 		for (size_t rectIdx = 0; rectIdx < rects.size(); ++rectIdx)
 		{
@@ -269,22 +269,22 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 
 			IKComputePipelinePtr& computePipeline = m_UpdateComputePipelines[rectIdx];
 
-			ms_CommandBuffer->Translate(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_GENERAL);
-			computePipeline->Execute(ms_CommandBuffer, groupX, groupY, 1, &usage);
-			ms_CommandBuffer->Translate(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			commandBuffer->Translate(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_GENERAL);
+			computePipeline->Execute(commandBuffer, groupX, groupY, 1, &usage);
+			commandBuffer->Translate(m_UpdateTextures[rectIdx]->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 
-		ms_CommandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		ms_CommandBuffer->End();
-		ms_CommandBuffer->Flush();
+		commandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->End();
+		commandBuffer->Flush();
 	}
 	else
 	{
-		ms_CommandBuffer->BeginPrimary();
-		ms_CommandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_COLOR_ATTACHMENT);
-		ms_CommandBuffer->BeginDebugMarker("ClipmapUpdate", glm::vec4(0, 1, 0, 0));
-		ms_CommandBuffer->BeginRenderPass(m_UpdateRenderPass, SUBPASS_CONTENTS_INLINE);
-		ms_CommandBuffer->SetViewport(m_UpdateRenderPass->GetViewPort());
+		commandBuffer->BeginPrimary();
+		commandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_COLOR_ATTACHMENT);
+		commandBuffer->BeginDebugMarker("ClipmapUpdate", glm::vec4(0, 1, 0, 0));
+		commandBuffer->BeginRenderPass(m_UpdateRenderPass, SUBPASS_CONTENTS_INLINE);
+		commandBuffer->SetViewport(m_UpdateRenderPass->GetViewPort());
 
 		IKPipelineHandlePtr pipeHandle = nullptr;
 		KRenderCommand command;
@@ -298,7 +298,7 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 			updateViewport.width = rect.endX - rect.startX + 1;
 			updateViewport.height = rect.endY - rect.startY + 1;
 
-			ms_CommandBuffer->SetViewport(updateViewport);
+			commandBuffer->SetViewport(updateViewport);
 
 			m_UpdatePipelines[rectIdx]->GetHandle(m_UpdateRenderPass, pipeHandle);
 
@@ -320,14 +320,14 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 			command.pipeline = m_UpdatePipelines[rectIdx];
 			command.pipelineHandle = pipeHandle;
 			command.indexDraw = true;
-			ms_CommandBuffer->Render(command);
+			commandBuffer->Render(command);
 		}
 
-		ms_CommandBuffer->EndRenderPass();
-		ms_CommandBuffer->EndDebugMarker();
-		ms_CommandBuffer->End();
+		commandBuffer->EndRenderPass();
+		commandBuffer->EndDebugMarker();
+		commandBuffer->End();
 
-		ms_CommandBuffer->Flush();
+		commandBuffer->Flush();
 	}
 }
 
@@ -529,12 +529,6 @@ void KClipmapLevel::InitShared()
 	ms_Sampler->SetFilterMode(FM_NEAREST, FM_NEAREST);
 	ms_Sampler->Init(0, 0);
 
-	KRenderGlobal::RenderDevice->CreateCommandPool(ms_CommandPool);
-	ms_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
-	KRenderGlobal::RenderDevice->CreateCommandBuffer(ms_CommandBuffer);
-	ms_CommandBuffer->Init(ms_CommandPool, CBL_PRIMARY);
-
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "terrain/clip_update.vert", ms_UpdateVS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "terrain/clip_update.frag", ms_UpdateFS, false);
 }
@@ -544,8 +538,6 @@ void KClipmapLevel::UnInitShared()
 	ms_UpdateVS.Release();
 	ms_UpdateFS.Release();
 	SAFE_UNINIT(ms_Sampler);
-	SAFE_UNINIT(ms_CommandBuffer);
-	SAFE_UNINIT(ms_CommandPool);
 	SAFE_UNINIT(ms_UpdateVertexBuffer);
 	SAFE_UNINIT(ms_UpdateIndexBuffer);
 }
@@ -916,12 +908,6 @@ void KClipmap::InitializeClipmapLevel()
 
 void KClipmap::InitializePipeline()
 {
-	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
-	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_CommandBuffer);
-	m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
-
 	KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "terrain/clipmap.vert", m_VSShader, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "terrain/clipmap.frag", m_FSShader, false);
 
@@ -1007,9 +993,6 @@ void KClipmap::UnInit()
 	SAFE_UNINIT(m_DiffuseTexture);
 	SAFE_UNINIT(m_Sampler);
 	SAFE_UNINIT(m_MipmapSampler);
-
-	SAFE_UNINIT(m_CommandBuffer);
-	SAFE_UNINIT(m_CommandPool);
 
 	KClipmapLevel::UnInitShared();
 	m_DebugDrawer.UnInit();
@@ -1162,7 +1145,7 @@ void KClipmap::Update(const KCamera* camera)
 	m_Updated = true;
 }
 
-void KClipmap::RenderInternal(IKCommandBufferPtr commandBuffer, IKRenderPassPtr renderPass, int32_t levelIdx, bool hollowCenter)
+void KClipmap::RenderInternal(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, int32_t levelIdx, bool hollowCenter)
 {
 	KClipmapLevelPtr clipLevel = m_ClipLevels[levelIdx];
 
@@ -1295,23 +1278,16 @@ void KClipmap::RenderInternal(IKCommandBufferPtr commandBuffer, IKRenderPassPtr 
 		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		command.indexDraw = true;
 
-		m_CommandBuffer->Render(command);
+		primaryBuffer->Render(command);
 	}
 }
 
-bool KClipmap::Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers)
+bool KClipmap::Render(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass)
 {
-	m_CommandBuffer->BeginSecondary(renderPass);
-	m_CommandBuffer->SetViewport(renderPass->GetViewPort());
-
 	for (int32_t levelIdx = 0; levelIdx <= m_FinestLevel; ++levelIdx)
 	{
-		RenderInternal(m_CommandBuffer, renderPass, levelIdx, levelIdx != m_FinestLevel);
+		RenderInternal(primaryBuffer, renderPass, levelIdx, levelIdx != m_FinestLevel);
 	}
-
-	m_CommandBuffer->End();
-
-	buffers.push_back(m_CommandBuffer);
 	return true;
 }
 
@@ -1349,7 +1325,7 @@ bool KClipmap::DisableDebugDraw()
 	return true;
 }
 
-bool KClipmap::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+bool KClipmap::DebugRender(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass)
 {
 	m_DebugDrawer.Render(renderPass, primaryBuffer);
 	return true;

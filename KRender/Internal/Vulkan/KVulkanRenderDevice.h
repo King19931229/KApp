@@ -181,7 +181,6 @@ public:
 	virtual bool CreateComputePipeline(IKComputePipelinePtr& compute);
 
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool);
-	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer);
 
 	virtual bool CreateQuery(IKQueryPtr& query);
 	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain);

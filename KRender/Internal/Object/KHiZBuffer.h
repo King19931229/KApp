@@ -19,9 +19,6 @@ protected:
 
 	KSamplerRef m_HiZSampler;
 
-	IKCommandPoolPtr	m_CommandPool;
-	IKCommandBufferPtr	m_PrimaryCommandBuffer;
-
 	IKPipelinePtr m_ReadDepthPipeline;
 	std::vector<IKPipelinePtr> m_BuildHiZMinPipelines;
 	std::vector<IKPipelinePtr> m_BuildHiZMaxPipelines;

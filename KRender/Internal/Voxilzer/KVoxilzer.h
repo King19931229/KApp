@@ -123,9 +123,6 @@ protected:
 	glm::mat4 m_ViewProjectionMatrix[3];
 	glm::mat4 m_ViewProjectionMatrixI[3];
 
-	IKCommandBufferPtr m_PrimaryCommandBuffer;
-	IKCommandPoolPtr m_CommandPool;
-
 	IKRenderTargetPtr m_VoxelRenderPassTarget;
 	IKRenderPassPtr m_VoxelRenderPass;
 

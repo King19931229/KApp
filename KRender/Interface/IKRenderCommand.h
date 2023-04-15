@@ -158,6 +158,8 @@ struct KRenderCommand
 	const KMeshData* meshData;
 	const struct IKMaterialTextureBinding* textureBinding;
 
+	uint32_t threadIndex;
+
 	IKPipelinePtr pipeline;
 	IKPipelineHandlePtr pipelineHandle;
 
@@ -165,7 +167,6 @@ struct KRenderCommand
 	bool instanceDraw;
 	bool meshShaderDraw;
 
-	// TODO Array
 	KDynamicConstantBufferUsage objectUsage;
 	KDynamicConstantBufferUsage shadingUsage;
 	KDynamicConstantBufferUsage debugUsage;
@@ -179,6 +180,8 @@ struct KRenderCommand
 		indexData = nullptr;
 		meshData = nullptr;
 		textureBinding = nullptr;
+
+		threadIndex = 0;
 
 		pipeline = nullptr;
 		pipelineHandle = nullptr;

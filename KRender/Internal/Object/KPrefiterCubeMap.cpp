@@ -23,7 +23,6 @@ const uint32_t KPrefilerCubeMap::ms_Indices[] = { 0, 1, 2, 2, 3, 0 };
 KPrefilerCubeMap::KPrefilerCubeMap()
 	: m_DiffuseIrradiancePipeline(nullptr)
 	, m_SpecularIrradiancePipeline(nullptr)
-	, m_CommandPool(nullptr)
 	, m_VertexBuffer(nullptr)
 	, m_IndexBuffer(nullptr)
 {
@@ -273,11 +272,6 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 	m_SHConstructPipeline->BindStorageImage(SH_BINDING_CUBEMAP, m_SHConstructCubeMap->GetFrameBuffer(), EF_R16G16B16A16_FLOAT, COMPUTE_RESOURCE_OUT, 0, true);
 	m_SHConstructPipeline->Init("pbr/sh_construct.comp");
 
-	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-	renderDevice->CreateCommandBuffer(m_CommandBuffer);
-	m_CommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
-
 	return true;
 }
 
@@ -300,9 +294,6 @@ bool KPrefilerCubeMap::FreeTempResource()
 	}
 	m_MipmapTargets.clear();
 
-	SAFE_UNINIT(m_CommandBuffer);
-	SAFE_UNINIT(m_CommandPool);
-
 	m_DiffuseIrradianceShaderMap.UnInit();
 	m_SpecularIrradianceShaderMap.UnInit();
 	m_IntegrateBRDFShaderMap.UnInit();
@@ -324,22 +315,23 @@ bool KPrefilerCubeMap::Compute()
 
 			for (int i = 0; i < 6; ++i)
 			{
-				m_CommandBuffer->BeginPrimary();
-				m_CommandBuffer->BeginDebugMarker("PrefilerCubeMap", glm::vec4(0, 1, 0, 0));
-				m_CommandBuffer->BeginRenderPass(pass, SUBPASS_CONTENTS_INLINE);
-				m_CommandBuffer->SetViewport(pass->GetViewPort());
+				IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+				primaryBuffer->BeginPrimary();
+				primaryBuffer->BeginDebugMarker("PrefilerCubeMap", glm::vec4(0, 1, 0, 0));
+				primaryBuffer->BeginRenderPass(pass, SUBPASS_CONTENTS_INLINE);
+				primaryBuffer->SetViewport(pass->GetViewPort());
 
 				KRenderCommand command;
 				if (PopulateCubeMapRenderCommand(command, i, (float)mipLevel / (m_MipmapTargets.size() - 1), pipeline, pass))
 				{
-					m_CommandBuffer->Render(command);
+					primaryBuffer->Render(command);
 				}
 
-				m_CommandBuffer->EndRenderPass();
-				m_CommandBuffer->EndDebugMarker();
-				m_CommandBuffer->End();
+				primaryBuffer->EndRenderPass();
+				primaryBuffer->EndDebugMarker();
+				primaryBuffer->End();
 
-				m_CommandBuffer->Flush();
+				primaryBuffer->Flush();
 
 				texture->CopyFromFrameBuffer(target->GetFrameBuffer(), i, mipLevel);
 			}
@@ -350,10 +342,11 @@ bool KPrefilerCubeMap::Compute()
 	DrawAndBlit(m_SpecularIrradiancePipeline, m_SpecularIrradianceMap);
 
 	{
-		m_CommandBuffer->BeginPrimary();
-		m_CommandBuffer->BeginDebugMarker("IntegrateBRDF", glm::vec4(0, 1, 0, 0));
-		m_CommandBuffer->BeginRenderPass(m_IntegrateBRDFPass, SUBPASS_CONTENTS_INLINE);
-		m_CommandBuffer->SetViewport(m_IntegrateBRDFPass->GetViewPort());
+		IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+		primaryBuffer->BeginPrimary();
+		primaryBuffer->BeginDebugMarker("IntegrateBRDF", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginRenderPass(m_IntegrateBRDFPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_IntegrateBRDFPass->GetViewPort());
 
 		IKPipelineHandlePtr pipeHandle = nullptr;
 		KRenderCommand command;
@@ -367,31 +360,32 @@ bool KPrefilerCubeMap::Compute()
 			command.pipelineHandle = pipeHandle;
 		}
 
-		m_CommandBuffer->Render(command);
+		primaryBuffer->Render(command);
 
-		m_CommandBuffer->EndRenderPass();
-		m_CommandBuffer->EndDebugMarker();
+		primaryBuffer->EndRenderPass();
+		primaryBuffer->EndDebugMarker();
 
-		m_CommandBuffer->Translate(m_IntegrateBRDFTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_IntegrateBRDFTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		m_CommandBuffer->End();
-		m_CommandBuffer->Flush();
+		primaryBuffer->End();
+		primaryBuffer->Flush();
 	}
 
 	{
-		m_CommandBuffer->BeginPrimary();
+		IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+		primaryBuffer->BeginPrimary();
 
-		m_CommandBuffer->Translate(m_SrcCubeMap->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+		primaryBuffer->Translate(m_SrcCubeMap->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 
-		m_SHProductPipeline->Execute(m_CommandBuffer,
+		m_SHProductPipeline->Execute(primaryBuffer,
 			(uint32_t)(m_SrcCubeMap->GetWidth() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
 			(uint32_t)(m_SrcCubeMap->GetHeight() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
 			6);
 
-		m_CommandBuffer->Translate(m_SrcCubeMap->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_SrcCubeMap->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		m_CommandBuffer->End();
-		m_CommandBuffer->Flush();
+		primaryBuffer->End();
+		primaryBuffer->Flush();
 	}
 
 	std::vector<glm::vec4> products;
@@ -416,19 +410,20 @@ bool KPrefilerCubeMap::Compute()
 	m_SHCoffBuffer->InitDevice(false);
 
 	{
-		m_CommandBuffer->BeginPrimary();
+		IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+		primaryBuffer->BeginPrimary();
 
-		m_CommandBuffer->Translate(m_SHConstructCubeMap->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
+		primaryBuffer->Translate(m_SHConstructCubeMap->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 
-		m_SHConstructPipeline->Execute(m_CommandBuffer,
+		m_SHConstructPipeline->Execute(primaryBuffer,
 			(uint32_t)(m_SHConstructCubeMap->GetWidth() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
 			(uint32_t)(m_SHConstructCubeMap->GetHeight() + SH_GROUP_SIZE - 1) / SH_GROUP_SIZE,
 			6);
 
-		m_CommandBuffer->Translate(m_SHConstructCubeMap->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_SHConstructCubeMap->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-		m_CommandBuffer->End();
-		m_CommandBuffer->Flush();
+		primaryBuffer->End();
+		primaryBuffer->Flush();
 	}
 
 	return true;

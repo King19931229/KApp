@@ -6,14 +6,30 @@ class KVulkanCommandPool : public IKCommandPool
 {
 protected:
 	std::vector<VkCommandPool> m_CommandPools;
+	struct BufferUsage
+	{
+		std::vector<IKCommandBufferPtr> buffers;
+		size_t currentActive;
+		BufferUsage()
+		{
+			currentActive = 0;
+		}
+		void Reset(CommmandBufferReset resetMode);
+	};
+	BufferUsage m_PrimaryUsage;
+	BufferUsage m_SecondaryUsage;
+	CommmandBufferReset m_ResetMode;
+	std::string m_Name;
 public:
 	KVulkanCommandPool();
 	~KVulkanCommandPool();
 
-	virtual bool Init(QueueCategory queue, uint32_t index);
+	virtual bool Init(QueueCategory queue, uint32_t index, CommmandBufferReset resetMode);
 	virtual bool UnInit();
 	virtual bool Reset();
 	virtual bool SetDebugName(const char* name);
+
+	virtual IKCommandBufferPtr Request(CommandBufferLevel level);
 
 	inline std::vector<VkCommandPool> GetVkHandles() { return m_CommandPools; }
 };
@@ -28,8 +44,9 @@ public:
 	KVulkanCommandBuffer();
 	virtual ~KVulkanCommandBuffer();
 
-	virtual bool Init(IKCommandPoolPtr pool, CommandBufferLevel level);
-	virtual bool UnInit();
+	bool Init(KVulkanCommandPool *pool, CommandBufferLevel level);
+	bool UnInit();
+	bool Reset(CommmandBufferReset resetMode);
 
 	virtual bool SetDebugName(const char* name);
 

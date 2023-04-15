@@ -10,8 +10,6 @@ class KVulkanRayTracePipeline : public IKRayTracePipeline
 protected:
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_ShaderGroups;
 	IKUniformBufferPtr m_CameraBuffer;
-	IKCommandPoolPtr m_CommandPool;
-	IKCommandBufferPtr m_CommandBuffer;
 	IKAccelerationStructurePtr m_TopDownAS;
 
 	struct Scene

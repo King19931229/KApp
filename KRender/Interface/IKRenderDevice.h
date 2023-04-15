@@ -69,7 +69,6 @@ struct IKRenderDevice
 	virtual bool CreateComputePipeline(IKComputePipelinePtr& compute) = 0;
 
 	virtual bool CreateCommandPool(IKCommandPoolPtr& pool) = 0;
-	virtual bool CreateCommandBuffer(IKCommandBufferPtr& buffer) = 0;
 
 	virtual bool CreateQuery(IKQueryPtr& query) = 0;
 	virtual bool CreateSwapChain(IKSwapChainPtr& swapChain) = 0;

@@ -30,6 +30,23 @@ public:
 };
 typedef std::shared_ptr<KMainPass> KMainPassPtr;
 
+struct KRendererInitContext
+{
+	const KCamera* camera;
+	IKCameraCubePtr cameraCube;
+	uint32_t width;
+	uint32_t height;
+	bool enableAsyncCompute;
+
+	KRendererInitContext()
+		: camera(nullptr)
+		, cameraCube(nullptr)
+		, width(0)
+		, height(0)
+		, enableAsyncCompute(true)
+	{}
+};
+
 class KRenderer : public IKRenderer
 {
 	friend class KMainBasePass;
@@ -50,12 +67,12 @@ protected:
 	struct GPUQueueMiscs
 	{
 		IKCommandPoolPtr pool;
-		IKCommandBufferPtr buffer;
 		IKSemaphorePtr finish;
 		IKQueuePtr queue;
 
 		void Init(QueueCategory category, uint32_t queueIndex, const char* name);
 		void UnInit();
+		void Reset();
 	};
 
 	GPUQueueMiscs m_Shadow;
@@ -63,16 +80,20 @@ protected:
 	GPUQueueMiscs m_PostGraphics;
 	GPUQueueMiscs m_Compute;
 
+	bool m_PrevEnableAsyncCompute;
+	bool m_EnableAsyncCompute;
 	bool m_DisplayCameraCube;
 	bool m_CameraOutdate;
 
 	bool UpdateCamera();
 	bool UpdateGlobal();
+
+	bool SwitchAsyncCompute(bool enableAsyncCompute);
 public:
 	KRenderer();
 	~KRenderer();
 
-	bool Init(const KCamera* camera, IKCameraCubePtr cameraCube, uint32_t width, uint32_t height);
+	bool Init(const KRendererInitContext& initContext);
 	bool UnInit();
 
 	IKRenderScene* GetScene() override { return m_Scene; }
@@ -83,6 +104,8 @@ public:
 	bool SetSceneCamera(IKRenderScene* scene, const KCamera* camera) override;
 	bool SetCallback(IKRenderWindow* window, OnWindowRenderCallback* callback) override;
 	bool RemoveCallback(IKRenderWindow* window) override;
+
+	bool& GetEnableAsyncCompute() { return m_EnableAsyncCompute; }
 
 	bool Update();
 	bool Render(uint32_t chainImageIndex_);

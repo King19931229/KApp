@@ -63,5 +63,6 @@ namespace KRenderGlobal
 	uint32_t NumComputeQueue = 0;
 	uint32_t NumTransferQueue = 0;
 
+	IKCommandPoolPtr CommandPool = nullptr;
 	IKRenderDevice* RenderDevice = nullptr;
 }

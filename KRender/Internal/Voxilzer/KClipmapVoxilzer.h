@@ -152,9 +152,6 @@ protected:
 	float m_BaseVoxelSize;
 	float m_ScreenRatio;
 
-	IKCommandBufferPtr m_PrimaryCommandBuffer;
-	IKCommandPoolPtr m_CommandPool;
-
 	IKRenderTargetPtr m_VoxelRenderPassTarget;
 	IKRenderPassPtr m_VoxelRenderPass;
 

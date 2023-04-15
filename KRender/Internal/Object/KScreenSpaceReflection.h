@@ -49,9 +49,6 @@ protected:
 	IKRenderPassPtr m_AtrousPass[2];
 	IKRenderPassPtr m_ComposePass;
 
-	IKCommandBufferPtr m_PrimaryCommandBuffer;
-	IKCommandPoolPtr m_CommandPool;
-
 	KRTDebugDrawer m_DebugDrawer;
 
 	void InitializePipeline();

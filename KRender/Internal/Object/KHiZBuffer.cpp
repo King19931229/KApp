@@ -101,11 +101,13 @@ bool KHiZBuffer::Resize(uint32_t width, uint32_t height)
 	m_HiZMaxBuffer->UnInit();
 	m_HiZMaxBuffer->InitFromColor(m_HiZWidth, m_HiZHeight, 1, m_NumMips, EF_R32_FLOAT);
 
-	m_PrimaryCommandBuffer->BeginPrimary();
-	m_PrimaryCommandBuffer->Translate(m_HiZMinBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	m_PrimaryCommandBuffer->Translate(m_HiZMaxBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-	m_PrimaryCommandBuffer->End();
-	m_PrimaryCommandBuffer->Flush();
+	IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+
+	primaryBuffer->BeginPrimary();
+	primaryBuffer->Translate(m_HiZMinBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->Translate(m_HiZMaxBuffer->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	primaryBuffer->End();
+	primaryBuffer->Flush();
 
 	SAFE_UNINIT_CONTAINER(m_HiZMinRenderPass);
 	SAFE_UNINIT_CONTAINER(m_HiZMaxRenderPass);
@@ -165,12 +167,6 @@ bool KHiZBuffer::Init(uint32_t width, uint32_t height)
 	desc.magFilter = FM_NEAREST;
 	KRenderGlobal::SamplerManager.Acquire(desc, m_HiZBuildSampler);
 
-	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
-	ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer));
-	ASSERT_RESULT(m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY));
-
 	Resize(width, height);
 
 	return true;
@@ -189,9 +185,6 @@ bool KHiZBuffer::UnInit()
 	SAFE_UNINIT(m_ReadDepthPipeline);
 	SAFE_UNINIT_CONTAINER(m_BuildHiZMinPipelines);
 	SAFE_UNINIT_CONTAINER(m_BuildHiZMaxPipelines);
-
-	SAFE_UNINIT(m_PrimaryCommandBuffer);
-	SAFE_UNINIT(m_CommandPool);
 
 	SAFE_UNINIT_CONTAINER(m_HiZMinRenderPass);
 	SAFE_UNINIT_CONTAINER(m_HiZMaxRenderPass);

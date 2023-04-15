@@ -11,6 +11,7 @@
 #include "Internal/KConstantDefinition.h"
 
 KVulkanCommandPool::KVulkanCommandPool()
+	: m_ResetMode(CBR_RESET_POOL)
 {
 }
 
@@ -19,7 +20,7 @@ KVulkanCommandPool::~KVulkanCommandPool()
 	assert(m_CommandPools.empty());
 }
 
-bool KVulkanCommandPool::Init(QueueCategory queue, uint32_t index)
+bool KVulkanCommandPool::Init(QueueCategory queue, uint32_t index, CommmandBufferReset resetMode)
 {
 	ASSERT_RESULT(UnInit());
 
@@ -50,22 +51,39 @@ bool KVulkanCommandPool::Init(QueueCategory queue, uint32_t index)
 		return false;
 	}
 
+	VkCommandPoolCreateFlags flags = 0;
+
+	switch (resetMode)
+	{
+		case CBR_RESET_INDIVIDUALLY:
+		case CBR_ALWAYS_ALLOCATE:
+			flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+			break;
+		case CBR_RESET_POOL:
+		default:
+			flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+			break;
+	}
+
 	m_CommandPools.resize(KRenderGlobal::NumFramesInFlight);
 	for (size_t i = 0; i < m_CommandPools.size(); ++i)
 	{
 		VkCommandPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolInfo.queueFamilyIndex = (*queueFamilyIndices)[index];
-		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		//poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+		poolInfo.flags = flags;
 		VK_ASSERT_RESULT(vkCreateCommandPool(KVulkanGlobal::device, &poolInfo, nullptr, &m_CommandPools[i]));
 	}
+
+	m_ResetMode = resetMode;
 
 	return true;	
 }
 
 bool KVulkanCommandPool::UnInit()
 {
+	Reset();
+
 	if(m_CommandPools.size() > 0)
 	{
 		for (size_t i = 0; i < m_CommandPools.size(); ++i)
@@ -79,8 +97,35 @@ bool KVulkanCommandPool::UnInit()
 	return true;
 }
 
+IKCommandBufferPtr KVulkanCommandPool::Request(CommandBufferLevel level)
+{
+	IKCommandBufferPtr buffer = nullptr;
+
+	BufferUsage& usage = level == CBL_PRIMARY ? m_PrimaryUsage : m_SecondaryUsage;
+
+	if (usage.currentActive < usage.buffers.size())
+	{
+		buffer = usage.buffers[usage.currentActive++];
+	}
+	else
+	{
+		KVulkanCommandBuffer* vulkanCommandBuffer = new KVulkanCommandBuffer();
+		buffer = IKCommandBufferPtr(vulkanCommandBuffer);
+		vulkanCommandBuffer->Init(this, level);
+		if (!m_Name.empty())
+		{
+			vulkanCommandBuffer->SetDebugName((m_Name + "_CommandBuffer_" + std::to_string(usage.buffers.size())).c_str());
+		}
+		usage.buffers.push_back(buffer);
+		++usage.currentActive;
+	}
+
+	return buffer;
+}
+
 bool KVulkanCommandPool::SetDebugName(const char* name)
 {
+	m_Name = name;
 	if (m_CommandPools.size() > 0)
 	{
 		for (size_t i = 0; i < m_CommandPools.size(); ++i)
@@ -92,14 +137,40 @@ bool KVulkanCommandPool::SetDebugName(const char* name)
 	return false;
 }
 
+void KVulkanCommandPool::BufferUsage::Reset(CommmandBufferReset resetMode)
+{
+	if (resetMode == CBR_RESET_INDIVIDUALLY)
+	{
+		for (IKCommandBufferPtr buffer : buffers)
+		{
+			((KVulkanCommandBuffer*)(buffer.get()))->Reset(resetMode);
+		}
+	}
+	else if(resetMode == CBR_ALWAYS_ALLOCATE)
+	{
+		for (IKCommandBufferPtr buffer : buffers)
+		{
+			((KVulkanCommandBuffer*)(buffer.get()))->UnInit();
+		}
+		buffers.clear();
+	}
+	currentActive = 0;
+}
+
 bool KVulkanCommandPool::Reset()
 {
-	if(m_CommandPools.size() > 0)
+	if (m_ResetMode == CBR_RESET_POOL)
 	{
-		ASSERT_RESULT(KVulkanGlobal::deviceReady);
-		VK_ASSERT_RESULT(vkResetCommandPool(KVulkanGlobal::device, m_CommandPools[KRenderGlobal::CurrentInFlightFrameIndex], VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT));
-		return true;
+		if (m_CommandPools.size() > 0)
+		{
+			ASSERT_RESULT(KVulkanGlobal::deviceReady);
+			VK_ASSERT_RESULT(vkResetCommandPool(KVulkanGlobal::device, m_CommandPools[KRenderGlobal::CurrentInFlightFrameIndex], 0));
+		}
 	}
+
+	m_PrimaryUsage.Reset(m_ResetMode);
+	m_SecondaryUsage.Reset(m_ResetMode);
+
 	return false;
 }
 
@@ -112,12 +183,12 @@ KVulkanCommandBuffer::~KVulkanCommandBuffer()
 {
 }
 
-bool KVulkanCommandBuffer::Init(IKCommandPoolPtr pool, CommandBufferLevel level)
+bool KVulkanCommandBuffer::Init(KVulkanCommandPool* pool, CommandBufferLevel level)
 {
 	ASSERT_RESULT(UnInit());
 
 	ASSERT_RESULT(KVulkanGlobal::deviceReady);
-	KVulkanCommandPool* vulkanPool = (KVulkanCommandPool*)pool.get();
+	KVulkanCommandPool* vulkanPool = (KVulkanCommandPool*)pool;
 
 	m_ParentPools = vulkanPool->GetVkHandles();
 	ASSERT_RESULT(!m_ParentPools.empty());
@@ -169,13 +240,25 @@ bool KVulkanCommandBuffer::UnInit()
 	return true;
 }
 
+bool KVulkanCommandBuffer::Reset(CommmandBufferReset resetMode)
+{
+	if (resetMode == CBR_RESET_INDIVIDUALLY)
+	{
+		if (m_CommandBuffers.size() > 0)
+		{
+			VK_ASSERT_RESULT(vkResetCommandBuffer(m_CommandBuffers[KRenderGlobal::CurrentInFlightFrameIndex], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
+		}
+	}
+	return true;
+}
+
 bool KVulkanCommandBuffer::SetDebugName(const char* name)
 {
 	if (m_CommandBuffers.size() > 0)
 	{
 		for (size_t i = 0; i < m_CommandBuffers.size(); ++i)
 		{
-			KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_CommandBuffers[i], VK_OBJECT_TYPE_COMMAND_BUFFER, (name + std::string("_") + std::to_string(i)).c_str());
+			KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_CommandBuffers[i], VK_OBJECT_TYPE_COMMAND_BUFFER, (name + std::string("_FrameID_") + std::to_string(i)).c_str());
 		}
 		return true;
 	}
@@ -274,7 +357,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			storageUsages[storageBufferCount++] = &(command.meshStorageUsages[i]);
 		}
 
-		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(dynamicUsages, dynamicBufferCount, storageUsages, storageBufferCount);
+		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(command.threadIndex, dynamicUsages, dynamicBufferCount, storageUsages, storageBufferCount);
 
 		// 绑定管线
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -414,6 +497,7 @@ bool KVulkanCommandBuffer::BeginPrimary()
 	{
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 		return true;
 	}
@@ -441,7 +525,7 @@ bool KVulkanCommandBuffer::BeginSecondary(IKRenderPassPtr renderPass)
 		// 命令开始时候创建需要一个命令开始信息
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 		beginInfo.pInheritanceInfo = &inheritanceInfo;
 
 		VK_ASSERT_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));

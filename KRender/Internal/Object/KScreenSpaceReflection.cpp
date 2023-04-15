@@ -232,12 +232,6 @@ bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio, 
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_atrous.frag", m_AtrousFS, false);
 	KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "ssr/ssr_compose.frag", m_ComposeFS, false);
 
-	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
-	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer);
-	m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
-
 	Resize(width, height);
 
 	m_DebugDrawer.Init(m_ComposeTarget, 0, 0, 1, 1);
@@ -247,9 +241,6 @@ bool KScreenSpaceReflection::Init(uint32_t width, uint32_t height, float ratio, 
 
 bool KScreenSpaceReflection::UnInit()
 {
-	SAFE_UNINIT(m_PrimaryCommandBuffer);
-	SAFE_UNINIT(m_CommandPool);
-
 	m_DebugDrawer.UnInit();
 	SAFE_UNINIT(m_HitResultTarget);
 	SAFE_UNINIT(m_HitMaskTarget);
@@ -456,31 +447,32 @@ bool KScreenSpaceReflection::Resize(uint32_t width, uint32_t height)
 
 	InitializePipeline();
 
-	m_PrimaryCommandBuffer->BeginPrimary();
+	IKCommandBufferPtr commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+	commandBuffer->BeginPrimary();
 
 	for (uint32_t i = 0; i < 2; ++i)
 	{
-		m_PrimaryCommandBuffer->BeginRenderPass(m_BlitPass[i], SUBPASS_CONTENTS_INLINE);
-		m_PrimaryCommandBuffer->SetViewport(m_BlitPass[i]->GetViewPort());
-		m_PrimaryCommandBuffer->EndRenderPass();
-		m_PrimaryCommandBuffer->Translate(m_TemporalTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		m_PrimaryCommandBuffer->Translate(m_TemporalSquaredTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		m_PrimaryCommandBuffer->Translate(m_TemporalTsppTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
-		m_PrimaryCommandBuffer->Translate(m_BlurTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->BeginRenderPass(m_BlitPass[i], SUBPASS_CONTENTS_INLINE);
+		commandBuffer->SetViewport(m_BlitPass[i]->GetViewPort());
+		commandBuffer->EndRenderPass();
+		commandBuffer->Translate(m_TemporalTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->Translate(m_TemporalSquaredTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->Translate(m_TemporalTsppTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		commandBuffer->Translate(m_BlurTarget[i]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 
-	m_PrimaryCommandBuffer->BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
-	m_PrimaryCommandBuffer->SetViewport(m_TemporalPass->GetViewPort());
-	m_PrimaryCommandBuffer->EndRenderPass();
-	m_PrimaryCommandBuffer->Translate(m_FinalTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandBuffer->BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
+	commandBuffer->SetViewport(m_TemporalPass->GetViewPort());
+	commandBuffer->EndRenderPass();
+	commandBuffer->Translate(m_FinalTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-	m_PrimaryCommandBuffer->BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
-	m_PrimaryCommandBuffer->SetViewport(m_ComposePass->GetViewPort());
-	m_PrimaryCommandBuffer->EndRenderPass();
-	m_PrimaryCommandBuffer->Translate(m_ComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	commandBuffer->BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
+	commandBuffer->SetViewport(m_ComposePass->GetViewPort());
+	commandBuffer->EndRenderPass();
+	commandBuffer->Translate(m_ComposeTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-	m_PrimaryCommandBuffer->End();
-	m_PrimaryCommandBuffer->Flush();
+	commandBuffer->End();
+	commandBuffer->Flush();
 
 	return true;
 }

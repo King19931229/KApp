@@ -25,6 +25,41 @@ KVulkanDescriptorPool::~KVulkanDescriptorPool()
 	ASSERT_RESULT(m_Descriptors.empty());
 }
 
+KVulkanDescriptorPool::KVulkanDescriptorPool(KVulkanDescriptorPool&& rhs)
+{
+	Move(std::move(rhs));
+}
+
+KVulkanDescriptorPool& KVulkanDescriptorPool::operator=(KVulkanDescriptorPool&& rhs)
+{
+	Move(std::move(rhs));
+	return *this;
+}
+
+void KVulkanDescriptorPool::Move(KVulkanDescriptorPool&& rhs)
+{
+	m_Layout = std::move(rhs.m_Layout);
+	m_Descriptors = std::move(rhs.m_Descriptors);
+
+	m_DynamicImageWriteInfo = std::move(rhs.m_DynamicImageWriteInfo);
+	m_UniformBufferWriteInfo = std::move(rhs.m_UniformBufferWriteInfo);
+	m_DynamicUniformBufferWriteInfo = std::move(rhs.m_DynamicUniformBufferWriteInfo);
+	m_DynamicStorageBufferWriteInfo = std::move(rhs.m_DynamicStorageBufferWriteInfo);
+
+	m_DescriptorWriteInfo = std::move(rhs.m_DescriptorWriteInfo);
+	m_DescriptorDynamicWriteInfo = std::move(rhs.m_DescriptorDynamicWriteInfo);
+
+	m_CurrentFrame = std::move(rhs.m_CurrentFrame);
+	m_BlockSize = std::move(rhs.m_BlockSize);
+	m_UniformBufferCount = std::move(rhs.m_UniformBufferCount);
+	m_DynamicUniformBufferCount = std::move(rhs.m_DynamicUniformBufferCount);
+	m_DynamicStorageBufferCount = std::move(rhs.m_DynamicStorageBufferCount);
+	m_ImageCount = std::move(rhs.m_ImageCount);
+
+	// m_Lock = std::move(rhs.m_Lock);
+	m_Name = std::move(rhs.m_Name);
+}
+
 bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 	const std::vector<VkDescriptorSetLayoutBinding>& descriptorSetLayoutBinding,
 	const std::vector<VkWriteDescriptorSet>& writeInfo)

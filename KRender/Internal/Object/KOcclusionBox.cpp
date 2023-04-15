@@ -241,14 +241,8 @@ bool KOcclusionBox::Init(IKRenderDevice* renderDevice)
 
 	m_Device = renderDevice;
 
-	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
 	renderDevice->CreateVertexBuffer(m_VertexBuffer);
 	renderDevice->CreateIndexBuffer(m_IndexBuffer);
-
-	renderDevice->CreateCommandBuffer(m_CommandBuffer);
-	m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY);
 
 	m_InstanceBuffers.resize(frameInFlight);
 
@@ -272,8 +266,6 @@ bool KOcclusionBox::UnInit()
 	SAFE_UNINIT(m_PipelineInstanceFrontFace);
 	SAFE_UNINIT(m_PipelineInstanceBackFace);
 
-	SAFE_UNINIT(m_CommandBuffer);
-
 	for (FrameInstanceBufferList& instanceBuffers : m_InstanceBuffers)
 	{
 		for (IKVertexBufferPtr& instanceBuffer : instanceBuffers)
@@ -290,8 +282,6 @@ bool KOcclusionBox::UnInit()
 	m_VertexShader.Release();
 	m_VertexInstanceShader.Release();
 	m_FragmentShader.Release();
-
-	SAFE_UNINIT(m_CommandPool);
 
 	m_VertexData.Reset();
 	m_IndexData.Reset();
@@ -402,15 +392,12 @@ bool KOcclusionBox::MergeInstanceMap(KRenderComponent* renderComponent, const KA
 	return false;
 }
 
-bool KOcclusionBox::Render(IKRenderPassPtr renderPass, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers)
+bool KOcclusionBox::Render(IKCommandBufferPtr commandBuffer, IKRenderPassPtr renderPass, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers)
 {
 	if (camera)
 	{
 		if (m_Enable)
 		{
-			IKCommandBufferPtr commandBuffer = m_CommandBuffer;
-
-			commandBuffer->BeginSecondary(renderPass);
 			commandBuffer->SetViewport(renderPass->GetViewPort());
 			// 解决Z-Fighting问题
 			commandBuffer->SetDepthBias(m_DepthBiasConstant, 0.0f, m_DepthBiasSlope);
@@ -648,9 +635,6 @@ bool KOcclusionBox::Render(IKRenderPassPtr renderPass, const KCamera* camera, st
 				}
 			}
 
-			commandBuffer->End();
-
-			buffers.push_back(commandBuffer);
 		}
 		else
 		{

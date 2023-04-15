@@ -171,14 +171,13 @@ protected:
 	void UpdateCascadesDebug();
 
 	bool GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic);
-	void PopulateRenderCommand(size_t cascadedIndex,
-		IKRenderTargetPtr shadowTarget, IKRenderPassPtr renderPass,
-		bool isStatic,
-		std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
+	void PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
 	void FilterRenderComponent(std::vector<KRenderComponent*>& in, bool isStatic);
+	bool PopulateRenderCommandList(size_t cascadedIndex, bool isStatic, KRenderCommandList& commandList);
 
 	bool UpdatePipelineFromRTChanged();
-	bool UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderTargetPtr shadowMapTarget, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic);
+
+	bool UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic);
 	bool UpdateMask(IKCommandBufferPtr primaryBuffer, bool isStatic);
 	bool CombineMask(IKCommandBufferPtr primaryBuffer);
 

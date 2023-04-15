@@ -96,8 +96,6 @@ protected:
 	static const uint16_t ms_UpdateIndices[6];
 	static IKVertexBufferPtr ms_UpdateVertexBuffer;
 	static IKIndexBufferPtr ms_UpdateIndexBuffer;
-	static IKCommandBufferPtr ms_CommandBuffer;
-	static IKCommandPoolPtr ms_CommandPool;
 	static KVertexData ms_UpdateVertexData;
 	static KIndexData ms_UpdateIndexData;
 	static IKSamplerPtr ms_Sampler;
@@ -205,9 +203,6 @@ protected:
 
 	IKTexturePtr m_DiffuseTexture;
 
-	IKCommandBufferPtr m_CommandBuffer;
-	IKCommandPoolPtr m_CommandPool;
-
 	KHeightMap m_HeightMap;
 
 	KRTDebugDrawer m_DebugDrawer;
@@ -234,7 +229,7 @@ protected:
 	void InitializeFootprintPos();
 	void InitializeClipmapLevel();
 	void InitializePipeline();
-	void RenderInternal(IKCommandBufferPtr commandBuffer, IKRenderPassPtr renderPass, int32_t levelIdx, bool hollowCenter);
+	void RenderInternal(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, int32_t levelIdx, bool hollowCenter);
 public:
 	KClipmap();
 	~KClipmap();
@@ -249,11 +244,11 @@ public:
 	TerrainType GetType() const override { return TERRAIN_TYPE_CLIPMAP; }
 
 	void Update(const KCamera* camera) override;
-	bool Render(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);
+	bool Render(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass) override;
 
 	bool EnableDebugDraw(const KTerrainDebug& debug) override;
 	bool DisableDebugDraw() override;
-	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
+	bool DebugRender(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass) override;
 
 	int32_t GetBlockCount() const { return (m_GridCount + 1) / 4; }
 	int32_t GetGridCount() const { return m_GridCount; }

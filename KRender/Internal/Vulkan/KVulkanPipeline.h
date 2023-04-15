@@ -141,15 +141,17 @@ protected:
 	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
 
 	// 设备句柄
-	VkDescriptorSetLayout	m_DescriptorSetLayout;
-	VkPipelineLayout		m_PipelineLayout;
+	VkDescriptorSetLayout m_DescriptorSetLayout;
+	VkPipelineLayout m_PipelineLayout;
 
-	KVulkanDescriptorPool	m_Pool;
+	std::vector<KVulkanDescriptorPool> m_Pools;
+	std::mutex m_Lock;
 
 	std::string m_Name;
 
 	bool CreateLayout();
-	bool CreateDestcriptionPool();
+	bool CreateDestcriptionWrite();
+	bool CreateDestcriptionPool(uint32_t threadIndex);
 	bool DestroyDevice();
 	bool ClearHandle();
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
@@ -161,6 +163,8 @@ protected:
 
 	RenderPassInvalidCallback m_RenderPassInvalidCB;
 	bool InvaildHandle(IKRenderPass* target);
+
+	void AssignDebugName();
 public:
 	KVulkanPipeline();
 	virtual ~KVulkanPipeline();
@@ -209,6 +213,7 @@ public:
 	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
-	VkDescriptorSet AllocDescriptorSet(const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
+	VkDescriptorSet AllocDescriptorSet(uint32_t threadIndex,
+		const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
 		const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
 };

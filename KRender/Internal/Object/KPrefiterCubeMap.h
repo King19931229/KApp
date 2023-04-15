@@ -43,9 +43,6 @@ protected:
 	IKComputePipelinePtr m_SHConstructPipeline;
 	IKStorageBufferPtr m_SHCoffBuffer;
 
-	IKCommandBufferPtr m_CommandBuffer;
-	IKCommandPoolPtr m_CommandPool;
-
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 

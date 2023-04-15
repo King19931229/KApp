@@ -443,6 +443,13 @@ enum CommandBufferLevel
 	CBL_SECONDARY
 };
 
+enum CommmandBufferReset
+{
+	CBR_RESET_POOL,
+	CBR_RESET_INDIVIDUALLY,
+	CBR_ALWAYS_ALLOCATE
+};
+
 enum SubpassContents
 {
 	SUBPASS_CONTENTS_INLINE,

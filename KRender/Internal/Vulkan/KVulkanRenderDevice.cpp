@@ -521,7 +521,7 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			if (familyProperty.queueCount > 1)
 			{
 				queueCreateInfo.queueCount = 2;
-				queuePriorities.push_back({ 1.0f, 1.0f });
+				queuePriorities.push_back({ 1.0f, 0.5f });
 			}
 			else
 			{
@@ -1534,6 +1534,7 @@ bool KVulkanRenderDevice::Present()
 	VK_ASSERT_RESULT(vkResult);
 
 	KRenderGlobal::CurrentInFlightFrameIndex = frameIndex;
+	KRenderGlobal::CommandPool->Reset();
 
 	uint32_t chainImageIndex = 0;
 	vkResult = ((KVulkanSwapChain*)m_SwapChain.get())->AcquireNextImage(chainImageIndex);
@@ -1646,12 +1647,6 @@ bool KVulkanRenderDevice::QueryProperty(KRenderDeviceProperties** ppProperty)
 bool KVulkanRenderDevice::CreateCommandPool(IKCommandPoolPtr& pool)
 {
 	pool = IKCommandPoolPtr(KNEW KVulkanCommandPool());
-	return true;
-}
-
-bool KVulkanRenderDevice::CreateCommandBuffer(IKCommandBufferPtr& buffer)
-{
-	buffer = IKCommandBufferPtr(KNEW KVulkanCommandBuffer());
 	return true;
 }
 

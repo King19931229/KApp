@@ -50,57 +50,46 @@ void KVoxilzer::UpdateInternal(IKCommandBufferPtr primaryBuffer)
 
 	if (m_VoxelUseOctree)
 	{
-		m_PrimaryCommandBuffer->BeginPrimary();
+		IKCommandBufferPtr commandBuffer = nullptr;
+		
+		commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+		commandBuffer->BeginPrimary();
+		VoxelizeStaticSceneCounter(commandBuffer, true);
+		commandBuffer->End();
+		commandBuffer->Flush();
 
-		VoxelizeStaticSceneCounter(m_PrimaryCommandBuffer, true);
+		commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+		commandBuffer->BeginPrimary();
+		VoxelizeStaticSceneCounter(commandBuffer, false);
+		commandBuffer->End();
+		commandBuffer->Flush();
 
-		m_PrimaryCommandBuffer->End();
-		m_PrimaryCommandBuffer->Flush();
-
-		m_PrimaryCommandBuffer->BeginPrimary();
-
-		VoxelizeStaticSceneCounter(m_PrimaryCommandBuffer, false);
-
-		m_PrimaryCommandBuffer->End();
-		m_PrimaryCommandBuffer->Flush();
-
+		commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+		commandBuffer->BeginPrimary();
 		// CheckFragmentlistData();
-
-		m_PrimaryCommandBuffer->BeginPrimary();
-
-		BuildOctree(m_PrimaryCommandBuffer);
-
-		m_PrimaryCommandBuffer->End();
-		m_PrimaryCommandBuffer->Flush();
+		BuildOctree(commandBuffer);		
+		commandBuffer->End();
+		commandBuffer->Flush();
 
 		uint32_t lastBuildinfo[] = { 0, 0 };
 		m_BuildInfoBuffer->Read(lastBuildinfo);
 		m_OctreeNonLeafCount = lastBuildinfo[0] + lastBuildinfo[1];
 		m_CounterBuffer->Read(&m_OctreeLeafCount);
-	}
-	else
-	{
-		m_PrimaryCommandBuffer->BeginPrimary();
 
-		VoxelizeStaticScene(m_PrimaryCommandBuffer);
+		commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+		commandBuffer->BeginPrimary();
+		UpdateRadiance(commandBuffer);
+		commandBuffer->End();
+		commandBuffer->Flush();
 
-		m_PrimaryCommandBuffer->End();
-		m_PrimaryCommandBuffer->Flush();
-	}
-
-	m_PrimaryCommandBuffer->BeginPrimary();
-
-	UpdateRadiance(m_PrimaryCommandBuffer);
-
-	m_PrimaryCommandBuffer->End();
-	m_PrimaryCommandBuffer->Flush();
-
-	if (m_VoxelUseOctree)
-	{
 		ShrinkOctree();
 		CheckOctreeData();
 	}
-
+	else
+	{
+		VoxelizeStaticScene(primaryBuffer);
+		UpdateRadiance(primaryBuffer);
+	}
 }
 
 void KVoxilzer::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
@@ -687,19 +676,21 @@ void KVoxilzer::Resize(uint32_t width, uint32_t height)
 	m_OctreeRayTestPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 	m_OctreeRayTestPass->Init();
 
+	IKCommandBufferPtr commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+
 	// 清空RenderTarget同时Translate Layout到Shader可读
-	m_PrimaryCommandBuffer->BeginPrimary();
+	commandBuffer->BeginPrimary();
 
-	m_PrimaryCommandBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
-	m_PrimaryCommandBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
-	m_PrimaryCommandBuffer->EndRenderPass();
+	commandBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
+	commandBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
+	commandBuffer->EndRenderPass();
 
-	m_PrimaryCommandBuffer->BeginRenderPass(m_OctreeRayTestPass, SUBPASS_CONTENTS_INLINE);
-	m_PrimaryCommandBuffer->SetViewport(m_OctreeRayTestPass->GetViewPort());
-	m_PrimaryCommandBuffer->EndRenderPass();
+	commandBuffer->BeginRenderPass(m_OctreeRayTestPass, SUBPASS_CONTENTS_INLINE);
+	commandBuffer->SetViewport(m_OctreeRayTestPass->GetViewPort());
+	commandBuffer->EndRenderPass();
 
-	m_PrimaryCommandBuffer->End();
-	m_PrimaryCommandBuffer->Flush();
+	commandBuffer->End();
+	commandBuffer->Flush();
 }
 
 void KVoxilzer::SetupLightPassPipeline()
@@ -1055,25 +1046,30 @@ void KVoxilzer::BuildOctree(IKCommandBufferPtr commandBuffer)
 		m_OctreeBuffer->UnInit();
 		m_OctreeBuffer->InitMemory(octreeNodeNum * OCTREE_NODE_SIZE, nullptr);
 		m_OctreeBuffer->InitDevice(false);
+		m_OctreeBuffer->SetDebugName("SVO_OctreeBuffer");
 
 #ifdef USE_OCTREE_MIPMAP_BUFFER
 		m_OctreeMipmapDataBuffer->UnInit();
 		m_OctreeMipmapDataBuffer->InitMemory(octreeNodeNum * OCTREE_MIPMAP_DATA_SIZE, nullptr);
 		m_OctreeMipmapDataBuffer->InitDevice(false);
+		m_OctreeMipmapDataBuffer->SetDebugName("SVO_OctreeMipmapDataBuffer");
 #endif
 	}
 
 	m_OctreeDataBuffer->UnInit();
 	m_OctreeDataBuffer->InitMemory(fragmentCount * OCTREE_DATA_SIZE, nullptr);
 	m_OctreeDataBuffer->InitDevice(false);
+	m_OctreeDataBuffer->SetDebugName("SVO_OctreeDataBuffer");
 
 	uint32_t buildinfo[] = { 0, 8 };
 	m_BuildInfoBuffer->InitMemory(sizeof(buildinfo), buildinfo);
 	m_BuildInfoBuffer->InitDevice(false);
+	m_BuildInfoBuffer->SetDebugName("SVO_BuildInfoBuffer");
 
 	uint32_t indirectinfo[] = { 1, 1, 1 };
 	m_BuildIndirectBuffer->InitMemory(sizeof(indirectinfo), indirectinfo);
 	m_BuildIndirectBuffer->InitDevice(true);
+	m_BuildIndirectBuffer->SetDebugName("SVO_BuildIndirectBuffer");
 
 	uint32_t fragmentGroupX = group_x_64(fragmentCount);
 
@@ -1114,6 +1110,7 @@ void KVoxilzer::ShrinkOctree()
 	m_OctreeBuffer->UnInit();
 	m_OctreeBuffer->InitMemory(m_OctreeNonLeafCount * OCTREE_NODE_SIZE, buffers.data());
 	m_OctreeBuffer->InitDevice(false);
+	m_OctreeBuffer->SetDebugName("SVO_OctreeBuffer");
 
 #ifdef USE_OCTREE_MIPMAP_BUFFER
 	buffers.resize(m_OctreeMipmapDataBuffer->GetBufferSize());
@@ -1121,6 +1118,7 @@ void KVoxilzer::ShrinkOctree()
 	m_OctreeMipmapDataBuffer->UnInit();
 	m_OctreeMipmapDataBuffer->InitMemory(m_OctreeNonLeafCount * OCTREE_MIPMAP_DATA_SIZE, buffers.data());
 	m_OctreeMipmapDataBuffer->InitDevice(false);
+	m_OctreeMipmapDataBuffer->SetDebugName("SVO_OctreeMipmapDataBuffer");
 #endif
 
 	buffers.resize(m_OctreeDataBuffer->GetBufferSize());
@@ -1128,6 +1126,7 @@ void KVoxilzer::ShrinkOctree()
 	m_OctreeDataBuffer->UnInit();
 	m_OctreeDataBuffer->InitMemory(m_OctreeLeafCount * OCTREE_DATA_SIZE, buffers.data());
 	m_OctreeDataBuffer->InitDevice(false);
+	m_OctreeDataBuffer->SetDebugName("SVO_OctreeDataBuffer");
 }
 
 void KVoxilzer::UpdateRadiance(IKCommandBufferPtr commandBuffer)
@@ -1298,7 +1297,7 @@ bool KVoxilzer::OctreeRayTestRender(IKRenderPassPtr renderPass, IKCommandBufferP
 
 bool KVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 {
-	if (!m_VoxelDrawEnable)
+	if (!m_VoxelDrawEnable || !m_Enable)
 		return true;
 
 	IKPipelinePtr* pipeline = nullptr;
@@ -1326,25 +1325,28 @@ bool KVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPtr prima
 
 bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 {
-	IKPipelinePtr& lightPassPipeline = m_VoxelUseOctree ? m_LightPassOctreePipeline : m_LightPassPipeline;
+	if (m_Enable)
+	{
+		IKPipelinePtr& lightPassPipeline = m_VoxelUseOctree ? m_LightPassOctreePipeline : m_LightPassPipeline;
 
-	primaryBuffer->BeginDebugMarker("VoxelLightPass", glm::vec4(0, 1, 0, 0));
-	primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
-	primaryBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
+		primaryBuffer->BeginDebugMarker("VoxelLightPass", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
+		primaryBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
 
-	KRenderCommand command;
-	command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
-	command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
-	command.pipeline = lightPassPipeline;
-	command.pipeline->GetHandle(m_LightPassRenderPass, command.pipelineHandle);
-	command.indexDraw = true;
+		KRenderCommand command;
+		command.vertexData = &KRenderGlobal::QuadDataProvider.GetVertexData();
+		command.indexData = &KRenderGlobal::QuadDataProvider.GetIndexData();
+		command.pipeline = lightPassPipeline;
+		command.pipeline->GetHandle(m_LightPassRenderPass, command.pipelineHandle);
+		command.indexDraw = true;
 
-	primaryBuffer->Render(command);
+		primaryBuffer->Render(command);
 
-	primaryBuffer->EndRenderPass();
-	primaryBuffer->EndDebugMarker();
+		primaryBuffer->EndRenderPass();
+		primaryBuffer->EndDebugMarker();
 
-	primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->Translate(m_LightPassTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+	}
 
 	return true;
 }
@@ -1490,12 +1492,6 @@ bool KVoxilzer::Init(IKRenderScene* scene, const KCamera* camera, uint32_t dimen
 	renderDevice->CreateSampler(m_LinearSampler);
 	renderDevice->CreateSampler(m_MipmapSampler);
 
-	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
-	renderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer);
-	m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
-
 	renderDevice->CreateRenderTarget(m_VoxelRenderPassTarget);
 	renderDevice->CreateRenderPass(m_VoxelRenderPass);
 
@@ -1610,8 +1606,6 @@ bool KVoxilzer::UnInit()
 
 	SAFE_UNINIT(m_VoxelRenderPass);
 	SAFE_UNINIT(m_VoxelRenderPassTarget);
-	SAFE_UNINIT(m_PrimaryCommandBuffer);
-	SAFE_UNINIT(m_CommandPool);
 
 	SAFE_UNINIT(m_StaticFlag);
 	SAFE_UNINIT(m_VoxelAlbedo);

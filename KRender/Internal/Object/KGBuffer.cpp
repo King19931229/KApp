@@ -70,16 +70,20 @@ bool KGBuffer::Resize(uint32_t width, uint32_t height)
 		{
 			EnsureRenderTarget(m_RenderTarget[i]);
 			ASSERT_RESULT(m_RenderTarget[i]->InitFromColor(width, height, 1, 1, GBufferDescription[i].format));
+			m_RenderTarget[i]->GetFrameBuffer()->SetDebugName(("GBuffer_" + std::to_string(i)).c_str());
 		}
 
 		EnsureRenderTarget(m_DepthStencilTarget);
 		ASSERT_RESULT(m_DepthStencilTarget->InitFromDepthStencil(width, height, 1, true));
+		m_DepthStencilTarget->GetFrameBuffer()->SetDebugName("DepthStencil");
 
 		EnsureRenderTarget(m_AOTarget);
 		ASSERT_RESULT(m_AOTarget->InitFromColor(width, height, 1, 1, AOFormat));
+		m_AOTarget->GetFrameBuffer()->SetDebugName("AO");
 
 		EnsureRenderTarget(m_SceneTarget);
 		ASSERT_RESULT(m_SceneTarget->InitFromColor(width, height, 1, 1, EF_R16G16B16A16_FLOAT));
+		m_SceneTarget->GetFrameBuffer()->SetDebugName("SceneColor");
 
 		return true;
 	}

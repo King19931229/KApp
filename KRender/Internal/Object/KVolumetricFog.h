@@ -36,9 +36,6 @@ protected:
 	IKPipelinePtr m_ScatteringPipeline;
 	IKRenderPassPtr m_ScatteringPass;
 
-	IKCommandBufferPtr m_PrimaryCommandBuffer;
-	IKCommandPoolPtr m_CommandPool;
-
 	KSamplerRef m_VoxelSampler;
 
 	KShaderRef m_QuadVS;

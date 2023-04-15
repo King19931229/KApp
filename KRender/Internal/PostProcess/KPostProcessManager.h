@@ -18,7 +18,6 @@ class KPostProcessManager : public IKPostProcessManager
 	friend class KPostProcessPass;
 protected:
 	IKRenderDevice* m_Device;
-	IKCommandPoolPtr m_CommandPool;
 	size_t m_FrameInFlight;
 
 	size_t m_Width;

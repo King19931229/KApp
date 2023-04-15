@@ -13,8 +13,7 @@
 #include "KBase/Publish/KNumerical.h"
 
 KVulkanRayTracePipeline::KVulkanRayTracePipeline()
-	: m_CommandPool(nullptr)
-	, m_StorageRT(nullptr)
+	: m_StorageRT(nullptr)
 	, m_Format(EF_R8G8B8A8_UNORM)
 	, m_Width(0)
 	, m_Height(0)
@@ -409,20 +408,10 @@ void KVulkanRayTracePipeline::DestroyShaderBindingTables()
 
 void KVulkanRayTracePipeline::CreateCommandBuffers()
 {
-	IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
-	uint32_t frames = KRenderGlobal::NumFramesInFlight;
-
-	renderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
-	ASSERT_RESULT(renderDevice->CreateCommandBuffer(m_CommandBuffer));
-	ASSERT_RESULT(m_CommandBuffer->Init(m_CommandPool, CBL_SECONDARY));
 }
 
 void KVulkanRayTracePipeline::DestroyCommandBuffers()
 {
-	SAFE_UNINIT(m_CommandBuffer);
-	SAFE_UNINIT(m_CommandPool);
 }
 
 bool KVulkanRayTracePipeline::SetShaderTable(ShaderType type, const char* szShader)

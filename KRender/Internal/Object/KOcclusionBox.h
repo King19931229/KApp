@@ -25,9 +25,6 @@ protected:
 	typedef std::vector<IKVertexBufferPtr> FrameInstanceBufferList;
 	std::vector<FrameInstanceBufferList> m_InstanceBuffers;
 
-	IKCommandBufferPtr m_CommandBuffer;
-	IKCommandPoolPtr m_CommandPool;
-
 	IKVertexBufferPtr m_VertexBuffer;
 	IKIndexBufferPtr m_IndexBuffer;
 
@@ -68,7 +65,7 @@ public:
 	bool UnInit();
 
 	bool Reset(std::vector<KRenderComponent*>& cullRes, IKCommandBufferPtr primaryCommandBuffer);
-	bool Render(IKRenderPassPtr renderPass, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers);
+	bool Render(IKCommandBufferPtr commandBuffer, IKRenderPassPtr renderPass, const KCamera* camera, std::vector<KRenderComponent*>& cullRes, std::vector<IKCommandBufferPtr>& buffers);
 	
 	inline bool& GetEnable() { return m_Enable; }
 	inline float& GetDepthBiasConstant() { return m_DepthBiasConstant; }

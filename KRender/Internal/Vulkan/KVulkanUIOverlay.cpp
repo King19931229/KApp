@@ -47,7 +47,7 @@ bool KVulkanUIOverlay::Draw(IKRenderPassPtr renderPass, IKCommandBufferPtr inCom
 		VkPipeline pipeline = ((KVulkanPipelineHandle*)pipelineHandle.get())->GetVkPipeline();
 
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
-		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(nullptr, 0, nullptr, 0);
+		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(0, nullptr, 0, nullptr, 0);
 
 		VkBuffer vkVertexBufferHandle = vulkanVertexBuffer->GetVulkanHandle();
 

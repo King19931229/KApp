@@ -43,7 +43,6 @@ KPostProcessManager::~KPostProcessManager()
 	assert(m_AllConnections.empty());
 	assert(m_AllNodes.empty());
 	assert(m_StartPointPass == nullptr);
-	assert(m_CommandPool == nullptr);
 }
 
 bool KPostProcessManager::Init(IKRenderDevice* device,
@@ -66,9 +65,6 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_Sampler->Init(0, 0);
 
-	m_Device->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
 	m_StartPointPass = IKPostProcessNodePtr(KNEW KPostProcessPass(this, frameInFlight, POST_PROCESS_STAGE_START_POINT));
 	KPostProcessPass* pass = static_cast<KPostProcessPass*>(m_StartPointPass.get());
 	pass->SetFormat(startFormat);
@@ -89,12 +85,6 @@ bool KPostProcessManager::UnInit()
 
 	ClearDeletedPassConnection();
 	ClearCreatedPassConnection();
-
-	if(m_CommandPool)
-	{
-		m_CommandPool->UnInit();
-		m_CommandPool = nullptr;
-	}
 
 	if(m_Sampler)
 	{

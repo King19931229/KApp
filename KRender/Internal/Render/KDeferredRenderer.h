@@ -10,7 +10,6 @@ class KDeferredRenderer
 public:
 	typedef std::vector<RenderPassCallFuncType*> RenderPassCallFuncList;
 protected:
-	IKCommandPoolPtr		m_CommandPool;
 	IKRenderPassPtr			m_RenderPass[DRS_STAGE_COUNT];
 	KRenderStageStatistics	m_Statistics[DRS_STAGE_COUNT];
 	RenderPassCallFuncList	m_RenderCallFuncs[DRS_STAGE_COUNT];

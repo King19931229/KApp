@@ -27,18 +27,21 @@ KVolumetricFog::~KVolumetricFog()
 
 void KVolumetricFog::InitializePipeline()
 {
-	m_PrimaryCommandBuffer->BeginPrimary();
+	IKCommandBufferPtr commandBuffer = nullptr;
+	
+	commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+	commandBuffer->BeginPrimary();
 	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
-		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		if (shadowRT) commandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
 	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
-		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		if (shadowRT) commandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	}
-	m_PrimaryCommandBuffer->End();
+	commandBuffer->End();
 
 	IKUniformBufferPtr cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
 	IKUniformBufferPtr globalBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_GLOBAL);
@@ -99,18 +102,19 @@ void KVolumetricFog::InitializePipeline()
 
 	m_ScatteringPipeline->Init();
 
-	m_PrimaryCommandBuffer->BeginPrimary();
+	commandBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
+	commandBuffer->BeginPrimary();
 	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, true);
-		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+		if (shadowRT) commandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 	}
 	for (uint32_t cascadedIndex = 0; cascadedIndex < KRenderGlobal::CascadedShadowMap.GetNumCascaded(); ++cascadedIndex)
 	{
 		IKRenderTargetPtr shadowRT = KRenderGlobal::CascadedShadowMap.GetShadowMapTarget(cascadedIndex, false);
-		if (shadowRT) m_PrimaryCommandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+		if (shadowRT) commandBuffer->Translate(shadowRT->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 	}
-	m_PrimaryCommandBuffer->End();
+	commandBuffer->End();
 }
 
 void KVolumetricFog::Resize(uint32_t width, uint32_t height)
@@ -146,12 +150,6 @@ bool KVolumetricFog::Init(uint32_t gridX, uint32_t gridY, uint32_t gridZ, float 
 	desc.addressU = desc.addressV = desc.addressW = AM_CLAMP_TO_EDGE;
 	KRenderGlobal::SamplerManager.Acquire(desc, m_VoxelSampler);
 
-	KRenderGlobal::RenderDevice->CreateCommandPool(m_CommandPool);
-	m_CommandPool->Init(QUEUE_GRAPHICS, 0);
-
-	KRenderGlobal::RenderDevice->CreateCommandBuffer(m_PrimaryCommandBuffer);
-	m_PrimaryCommandBuffer->Init(m_CommandPool, CBL_PRIMARY);
-
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		KRenderGlobal::RenderDevice->CreateRenderTarget(m_VoxelLightTarget[i]);
@@ -182,8 +180,6 @@ bool KVolumetricFog::Init(uint32_t gridX, uint32_t gridY, uint32_t gridZ, float 
 
 bool KVolumetricFog::KVolumetricFog::UnInit()
 {
-	SAFE_UNINIT(m_PrimaryCommandBuffer);
-	SAFE_UNINIT(m_CommandPool);
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		SAFE_UNINIT(m_VoxelLightTarget[i]);

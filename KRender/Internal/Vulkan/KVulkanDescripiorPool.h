@@ -59,9 +59,14 @@ protected:
 	VkDescriptorPool CreateDescriptorPool(size_t maxCount);
 
 	VkDescriptorSet InternalAlloc(size_t frameIndex, size_t currentFrame);
+
+	void Move(KVulkanDescriptorPool&& rhs);
 public:
 	KVulkanDescriptorPool();
 	~KVulkanDescriptorPool();
+
+	KVulkanDescriptorPool(KVulkanDescriptorPool&& rhs);
+	KVulkanDescriptorPool& operator=(KVulkanDescriptorPool&& rhs);
 
 	bool Init(VkDescriptorSetLayout layout,
 		const std::vector<VkDescriptorSetLayoutBinding>& descriptorSetLayoutBinding,

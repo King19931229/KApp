@@ -6,10 +6,11 @@
 struct IKCommandPool
 {
 	virtual ~IKCommandPool() {};
-	virtual bool Init(QueueCategory queue, uint32_t index) = 0;
+	virtual bool Init(QueueCategory queue, uint32_t index, CommmandBufferReset resetMode) = 0;
 	virtual bool UnInit() = 0;	
 	virtual bool Reset() = 0;
 	virtual bool SetDebugName(const char* name) = 0;
+	virtual IKCommandBufferPtr Request(CommandBufferLevel level) = 0;
 };
 
 typedef std::vector<IKCommandBufferPtr> KCommandBufferList;
@@ -17,9 +18,6 @@ typedef std::vector<IKCommandBufferPtr> KCommandBufferList;
 struct IKCommandBuffer
 {
 	virtual ~IKCommandBuffer() {};
-
-	virtual bool Init(IKCommandPoolPtr pool, CommandBufferLevel level) = 0;
-	virtual bool UnInit() = 0;
 
 	virtual bool SetDebugName(const char* name) = 0;
 

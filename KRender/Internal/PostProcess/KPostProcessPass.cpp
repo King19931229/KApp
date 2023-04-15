@@ -122,9 +122,6 @@ bool KPostProcessPass::Init()
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, m_VSFile.c_str(), m_VSShader, false));
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, m_FSFile.c_str(), m_FSShader, false));
 
-		device->CreateCommandBuffer(m_CommandBuffer);
-		m_CommandBuffer->Init(m_Mgr->m_CommandPool, CBL_SECONDARY);
-
 		{
 			device->CreatePipeline(m_Pipeline);
 
@@ -276,7 +273,6 @@ bool KPostProcessPass::UnInit()
 	SAFE_UNINIT(m_RenderPass);
 	SAFE_UNINIT(m_Pipeline);
 	SAFE_UNINIT(m_ScreenDrawPipeline);
-	SAFE_UNINIT(m_CommandBuffer);
 
 	m_bInit = false;
 

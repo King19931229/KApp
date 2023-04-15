@@ -93,6 +93,9 @@ bool KRenderCore::InitGlobalManager()
 	KRenderDeviceProperties* property = nullptr;
 	ASSERT_RESULT(m_Device->QueryProperty(&property));
 
+	ASSERT_RESULT(m_Device->CreateCommandPool(KRenderGlobal::CommandPool));
+	ASSERT_RESULT(KRenderGlobal::CommandPool->Init(QUEUE_GRAPHICS, 0, CBR_RESET_POOL));
+
 	KRenderGlobal::RenderDevice = m_Device;
 	KRenderGlobal::FrameResourceManager.Init();
 	KRenderGlobal::MeshManager.Init(m_Device);
@@ -121,6 +124,7 @@ bool KRenderCore::UnInitGlobalManager()
 	KRenderGlobal::DynamicConstantBufferManager.UnInit();
 	KRenderGlobal::InstanceBufferManager.UnInit();
 
+	SAFE_UNINIT(KRenderGlobal::CommandPool);
 	KRenderGlobal::RenderDevice = nullptr;
 
 	return true;
@@ -137,7 +141,14 @@ bool KRenderCore::InitRenderer()
 	GetRayTraceMgr()->CreateRayTraceScene(KRenderGlobal::RayTraceScene);
 	KRenderGlobal::RayTraceScene->Init(&KRenderGlobal::Scene, &m_Camera);
 
-	KRenderGlobal::Renderer.Init(&m_Camera, m_CameraCube, (uint32_t)width, (uint32_t)height);
+	KRendererInitContext initContext;
+	initContext.camera = &m_Camera;
+	initContext.cameraCube = m_CameraCube;
+	initContext.width = (uint32_t)width;
+	initContext.height = (uint32_t)height;
+	initContext.enableAsyncCompute = false;
+
+	KRenderGlobal::Renderer.Init(initContext);
 
 	return true;
 }

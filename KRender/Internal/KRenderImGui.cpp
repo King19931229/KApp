@@ -153,6 +153,13 @@ void KRenderImGui::Run()
 			ImGui::End();
 		}
 
+		if (m_DebugMenuEnable[ADVANCED_CONTROL])
+		{
+			ImGui::Begin(DebugMenuName[ADVANCED_CONTROL], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Checkbox("AsyncCompute", &KRenderGlobal::Renderer.GetEnableAsyncCompute());
+			ImGui::End();
+		}
+
 		if (m_SettingMenuEnable[CSM])
 		{
 			ImGui::Begin(SettingMenuName[CSM], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
