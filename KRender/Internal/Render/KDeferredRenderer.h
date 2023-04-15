@@ -31,7 +31,7 @@ protected:
 
 	void BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<KRenderComponent*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances);
 	void HandleRenderCommandBinding(DeferredRenderStage renderStage, KRenderCommand& command);
-	void BuildRenderCommand(IKCommandBufferPtr primaryBuffer, DeferredRenderStage deferredRenderStage, const std::vector<KRenderComponent*>& cullRes);
+	void BuildRenderCommand(KMultithreadingRenderContext& renderContext, DeferredRenderStage deferredRenderStage, const std::vector<KRenderComponent*>& cullRes);
 
 	void RecreateRenderPass(uint32_t width, uint32_t heigh);
 	void RecreatePipeline();
@@ -46,8 +46,8 @@ public:
 	void AddCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func);
 	void RemoveCallFunc(DeferredRenderStage stage, RenderPassCallFuncType* func);
 	
-	void PrePass(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes);
-	void BasePass(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes);
+	void PrePass(KMultithreadingRenderContext& renderContext, const std::vector<KRenderComponent*>& cullRes);
+	void BasePass(KMultithreadingRenderContext& renderContext, const std::vector<KRenderComponent*>& cullRes);
 	void DeferredLighting(IKCommandBufferPtr primaryBuffer);
 	void ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes);
 	void SkyPass(IKCommandBufferPtr primaryBuffer);

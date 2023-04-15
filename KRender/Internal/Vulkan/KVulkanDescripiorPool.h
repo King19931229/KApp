@@ -65,6 +65,9 @@ public:
 	KVulkanDescriptorPool();
 	~KVulkanDescriptorPool();
 
+	KVulkanDescriptorPool(KVulkanDescriptorPool&) = delete;
+	KVulkanDescriptorPool& operator=(KVulkanDescriptorPool&) = delete;
+
 	KVulkanDescriptorPool(KVulkanDescriptorPool&& rhs);
 	KVulkanDescriptorPool& operator=(KVulkanDescriptorPool&& rhs);
 

@@ -652,10 +652,8 @@ bool KVulkanPipeline::CreateDestcriptionWrite()
 }
 
 bool KVulkanPipeline::CreateDestcriptionPool(uint32_t threadIndex)
-{
-	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
-	
-	if (threadIndex >= m_Pools.size())
+{	
+	if (!m_PoolInitializeds[threadIndex])
 	{
 		KVulkanDescriptorPool pool;
 		pool.Init(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, m_WriteDescriptorSet);
@@ -663,10 +661,9 @@ bool KVulkanPipeline::CreateDestcriptionPool(uint32_t threadIndex)
 		{
 			pool.SetDebugName(m_Name + "_Thread" + std::to_string(threadIndex));
 		}
-		m_Pools.resize(threadIndex + 1);
 		m_Pools[threadIndex] = std::move(pool);
-	}
-
+		m_PoolInitializeds[threadIndex] = true;
+	}	
 	return true;
 }
 
@@ -674,6 +671,7 @@ VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(uint32_t threadIndex,
 	const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
 	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
 {
+	threadIndex = std::min(threadIndex, (uint32_t)(m_Pools.size() - 1));
 	CreateDestcriptionPool(threadIndex);
 	return m_Pools[threadIndex].Alloc(KRenderGlobal::CurrentInFlightFrameIndex, KRenderGlobal::CurrentFrameNum, this, ppConstantUsage, dynamicBufferUsageCount, ppStorageUsage, storageBufferUsageCount);
 }
@@ -698,11 +696,14 @@ bool KVulkanPipeline::UnInit()
 	m_Uniforms.clear();
 	m_Samplers.clear();
 
-	for (KVulkanDescriptorPool& pool : m_Pools)
+	for (size_t i = 0; i < m_Pools.size(); ++i)
 	{
-		pool.UnInit();
+		if (m_PoolInitializeds[i])
+		{
+			m_Pools[i].UnInit();
+			m_PoolInitializeds[i] = false;
+		}
 	}
-	m_Pools.clear();
 
 	return true;
 }

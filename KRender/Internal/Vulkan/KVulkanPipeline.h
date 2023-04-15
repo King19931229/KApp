@@ -144,8 +144,8 @@ protected:
 	VkDescriptorSetLayout m_DescriptorSetLayout;
 	VkPipelineLayout m_PipelineLayout;
 
-	std::vector<KVulkanDescriptorPool> m_Pools;
-	std::mutex m_Lock;
+	std::array<KVulkanDescriptorPool, 128> m_Pools;
+	std::array<bool, 128> m_PoolInitializeds;
 
 	std::string m_Name;
 

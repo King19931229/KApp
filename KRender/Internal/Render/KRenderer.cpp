@@ -57,8 +57,11 @@ KRenderer::KRenderer()
 	m_Scene(nullptr),
 	m_Camera(nullptr),
 	m_CameraCube(nullptr),
-	m_PrevEnableAsyncCompute(true),
-	m_EnableAsyncCompute(true),
+	m_PrevEnableAsyncCompute(false),
+	m_PrevMultithreadCount(std::thread::hardware_concurrency()),
+	m_MultithreadCount(std::thread::hardware_concurrency()),
+	m_EnableAsyncCompute(false),
+	m_EnableMultithreadRender(true),
 	m_DisplayCameraCube(true),
 	m_CameraOutdate(true)
 {
@@ -71,9 +74,12 @@ KRenderer::~KRenderer()
 	ASSERT_RESULT(m_CameraCube == nullptr);
 }
 
-void KRenderer::GPUQueueMiscs::Init(QueueCategory category, uint32_t queueIndex, const char* name)
+void KRenderer::GPUQueueMiscs::Init(QueueCategory inCategory, uint32_t inQueueIndex, uint32_t threadNum, const char* name)
 {
 	UnInit();
+
+	category = inCategory;
+	queueIndex = inQueueIndex;
 
 	KRenderGlobal::RenderDevice->CreateCommandPool(pool);
 	pool->Init(category, queueIndex, CBR_RESET_POOL);
@@ -85,6 +91,8 @@ void KRenderer::GPUQueueMiscs::Init(QueueCategory category, uint32_t queueIndex,
 	KRenderGlobal::RenderDevice->CreateSemaphore(finish);
 	finish->Init();
 	finish->SetDebugName((name + std::string("Finish")).c_str());
+
+	SetThreadNum(threadNum);
 }
 
 void KRenderer::GPUQueueMiscs::UnInit()
@@ -92,6 +100,8 @@ void KRenderer::GPUQueueMiscs::UnInit()
 	SAFE_UNINIT(finish);
 	SAFE_UNINIT(queue);
 	SAFE_UNINIT(pool);
+	SAFE_UNINIT_CONTAINER(threadPools);
+	threadPools.clear();
 }
 
 void KRenderer::GPUQueueMiscs::Reset()
@@ -99,6 +109,38 @@ void KRenderer::GPUQueueMiscs::Reset()
 	if (pool)
 	{
 		pool->Reset();
+	}
+	for (IKCommandPoolPtr& pool : threadPools)
+	{
+		if (pool)
+		{
+			pool->Reset();
+		}
+	}
+}
+
+void KRenderer::GPUQueueMiscs::SetThreadNum(uint32_t threadNum)
+{
+	size_t prevSize = threadPools.size();
+	size_t currSize = threadNum;
+
+	if (prevSize < currSize)
+	{
+		threadPools.resize(threadNum);
+		for (size_t i = prevSize; i < currSize; ++i)
+		{
+			KRenderGlobal::RenderDevice->CreateCommandPool(threadPools[i]);
+			threadPools[i]->Init(category, queueIndex, CBR_RESET_POOL);
+		}
+	}
+	else if (prevSize > currSize)
+	{
+		for (size_t i = currSize; i < prevSize; ++i)
+		{
+			threadPools[i]->UnInit();
+			threadPools[i] = nullptr;
+		}
+		threadPools.resize(threadNum);
 	}
 }
 
@@ -108,6 +150,12 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	{
 		KRenderGlobal::RenderDevice->Wait();
 		SwitchAsyncCompute(m_EnableAsyncCompute);
+	}
+
+	if (m_PrevMultithreadCount != m_MultithreadCount)
+	{
+		KRenderGlobal::RenderDevice->Wait();
+		ResetThreadNum(m_MultithreadCount);
 	}
 
 	std::vector<KRenderComponent*> cullRes;
@@ -120,7 +168,14 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	commandBuffer->BeginPrimary();
 	{
 		KRenderGlobal::CascadedShadowMap.UpdateShadowMap();
-		KRenderGlobal::CascadedShadowMap.UpdateCasters(commandBuffer);
+
+		KMultithreadingRenderContext multithreadRenderContext;
+		multithreadRenderContext.primaryBuffer = commandBuffer;
+		multithreadRenderContext.threadCommandPools = m_Shadow.threadPools;
+		multithreadRenderContext.enableMultithreading = m_EnableMultithreadRender;
+		multithreadRenderContext.threadPool = &m_ThreadPool;
+
+		KRenderGlobal::CascadedShadowMap.UpdateCasters(multithreadRenderContext);
 	}
 	commandBuffer->End();
 	m_Shadow.queue->Submit(commandBuffer, {}, {}, nullptr);
@@ -131,8 +186,14 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	{
 		KRenderGlobal::HiZOcclusion.Execute(commandBuffer, cullRes);
 
-		KRenderGlobal::DeferredRenderer.PrePass(commandBuffer, cullRes);
-		KRenderGlobal::DeferredRenderer.BasePass(commandBuffer, cullRes);
+		KMultithreadingRenderContext multithreadRenderContext;
+		multithreadRenderContext.primaryBuffer = commandBuffer;
+		multithreadRenderContext.threadCommandPools = m_PreGraphics.threadPools;
+		multithreadRenderContext.enableMultithreading = m_EnableMultithreadRender;
+		multithreadRenderContext.threadPool = &m_ThreadPool;
+
+		KRenderGlobal::DeferredRenderer.PrePass(multithreadRenderContext, cullRes);
+		KRenderGlobal::DeferredRenderer.BasePass(multithreadRenderContext, cullRes);
 
 		KRenderGlobal::GBuffer.TranslateColor(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		KRenderGlobal::GBuffer.TranslateDepthStencil(commandBuffer, m_PreGraphics.queue, m_PreGraphics.queue, PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
@@ -252,6 +313,7 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	uint32_t width = initContext.width;
 	uint32_t height = initContext.height;
 	bool enableAsyncCompute = initContext.enableAsyncCompute;
+	bool enableMultithreadRender = initContext.enableMultithreadRender;
 
 	IKRenderDevice* device = KRenderGlobal::RenderDevice;
 
@@ -342,7 +404,10 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 
 	m_Camera = camera;
 
+	m_EnableMultithreadRender = enableMultithreadRender;
+
 	SwitchAsyncCompute(enableAsyncCompute);
+	ResetThreadNum(std::thread::hardware_concurrency());
 
 	return true;
 }
@@ -358,18 +423,32 @@ bool KRenderer::SwitchAsyncCompute(bool enableAsyncCompute)
 
 	if (m_EnableAsyncCompute)
 	{
-		m_Shadow.Init(QUEUE_GRAPHICS, 0, "Shadow");
-		m_PreGraphics.Init(QUEUE_GRAPHICS, 0, "PreGraphics");
-		m_PostGraphics.Init(QUEUE_PRESENT, 0, "PostGraphics");
-		m_Compute.Init(QUEUE_COMPUTE, 0, "Compute");
+		m_Shadow.Init(QUEUE_GRAPHICS, 0, m_MultithreadCount, "Shadow");
+		m_PreGraphics.Init(QUEUE_GRAPHICS, 0, m_MultithreadCount, "PreGraphics");
+		m_PostGraphics.Init(QUEUE_PRESENT, 0, m_MultithreadCount, "PostGraphics");
+		m_Compute.Init(QUEUE_COMPUTE, 0, m_MultithreadCount, "Compute");
 	}
 	else
 	{
-		m_Shadow.Init(QUEUE_PRESENT, 0, "Shadow");
-		m_PreGraphics.Init(QUEUE_PRESENT, 0, "PreGraphics");
-		m_PostGraphics.Init(QUEUE_PRESENT, 0, "PostGraphics");
-		m_Compute.Init(QUEUE_PRESENT, 0, "Compute");
+		m_Shadow.Init(QUEUE_PRESENT, 0, m_MultithreadCount, "Shadow");
+		m_PreGraphics.Init(QUEUE_PRESENT, 0, m_MultithreadCount, "PreGraphics");
+		m_PostGraphics.Init(QUEUE_PRESENT, 0, m_MultithreadCount, "PostGraphics");
+		m_Compute.Init(QUEUE_PRESENT, 0, m_MultithreadCount, "Compute");
 	}
+
+	return true;
+}
+
+bool KRenderer::ResetThreadNum(uint32_t threadNum)
+{
+	m_PrevMultithreadCount = m_MultithreadCount = threadNum;
+
+	m_ThreadPool.SetThreadCount(threadNum);
+
+	m_Shadow.SetThreadNum(threadNum);
+	m_PreGraphics.SetThreadNum(threadNum);
+	m_PostGraphics.SetThreadNum(threadNum);
+	m_Compute.SetThreadNum(threadNum);
 
 	return true;
 }

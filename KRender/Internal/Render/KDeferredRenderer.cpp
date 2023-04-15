@@ -422,7 +422,7 @@ void KDeferredRenderer::HandleRenderCommandBinding(DeferredRenderStage renderSta
 	}
 }
 
-void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, DeferredRenderStage deferredRenderStage, const std::vector<KRenderComponent*>& cullRes)
+void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderContext, DeferredRenderStage deferredRenderStage, const std::vector<KRenderComponent*>& cullRes)
 {
 	RenderStage renderStage = GDeferredRenderStageDescription[deferredRenderStage].renderStage;
 	RenderStage instanceRenderStage = GDeferredRenderStageDescription[deferredRenderStage].instanceRenderStage;
@@ -536,21 +536,80 @@ void KDeferredRenderer::BuildRenderCommand(IKCommandBufferPtr primaryBuffer, Def
 		}
 	}
 
-	primaryBuffer->BeginDebugMarker(debugMarker, glm::vec4(0, 1, 0, 0));
-	primaryBuffer->BeginRenderPass(m_RenderPass[renderStage], SUBPASS_CONTENTS_INLINE);
-	primaryBuffer->SetViewport(m_RenderPass[renderStage]->GetViewPort());
+	renderContext.primaryBuffer->BeginDebugMarker(debugMarker, glm::vec4(0, 1, 0, 0));
 
-	for (KRenderCommand& command : commands)
+	if (renderContext.enableMultithreading)
 	{
-		IKPipelineHandlePtr handle = nullptr;
-		if (command.pipeline->GetHandle(m_RenderPass[renderStage], handle))
+		IKRenderPassPtr renderPass = m_RenderPass[renderStage];
+		std::vector<KRenderCommand>& commandList = commands;
+
+		renderContext.primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
+
+		size_t threadNum = renderContext.threadCommandPools.size();
+
+		size_t commandEachThread = commandList.size() / threadNum;
+		size_t currentCommandIndex = 0;
+		size_t currentCommandCount = commandEachThread + commandList.size() % threadNum;
+
+		KCommandBufferList commandBuffers;
+		commandBuffers.resize((commandEachThread > 0) ? renderContext.threadCommandPools.size() : 1);
+
+		for (auto it = commandList.begin(); it != commandList.end();)
 		{
-			primaryBuffer->Render(command);
+			KRenderCommand& command = *it;
+			if (!command.pipeline->GetHandle(renderPass, command.pipelineHandle))
+			{
+				it = commandList.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+
+		for (size_t threadIndex = 0; threadIndex < commandBuffers.size(); ++threadIndex)
+		{
+			renderContext.threadPool->AddJob(threadIndex, [this, currentCommandIndex, currentCommandCount, renderPass, &commandList, &renderContext, &commandBuffers, threadIndex]()
+			{
+				IKCommandBufferPtr commandBuffer = renderContext.threadCommandPools[threadIndex]->Request(CBL_SECONDARY);
+
+				commandBuffer->BeginSecondary(renderPass);
+
+				commandBuffer->SetViewport(renderPass->GetViewPort());
+
+				for (size_t idx = 0; idx < currentCommandCount; ++idx)
+				{
+					KRenderCommand& command = commandList[currentCommandIndex + idx];
+					command.threadIndex = (uint32_t)threadIndex;
+					commandBuffer->Render(command);
+				}
+				commandBuffer->End();
+
+				commandBuffers[threadIndex] = commandBuffer;
+			});
+			currentCommandIndex += currentCommandCount;
+			currentCommandCount = commandEachThread;
+		}
+
+		renderContext.threadPool->WaitAll();
+		renderContext.primaryBuffer->ExecuteAll(commandBuffers, false);
+	}
+	else
+	{
+		renderContext.primaryBuffer->BeginRenderPass(m_RenderPass[renderStage], SUBPASS_CONTENTS_INLINE);
+		renderContext.primaryBuffer->SetViewport(m_RenderPass[renderStage]->GetViewPort());
+		for (KRenderCommand& command : commands)
+		{
+			IKPipelineHandlePtr handle = nullptr;
+			if (command.pipeline->GetHandle(m_RenderPass[renderStage], handle))
+			{
+				renderContext.primaryBuffer->Render(command);
+			}
 		}
 	}
 
-	primaryBuffer->EndRenderPass();
-	primaryBuffer->EndDebugMarker();
+	renderContext.primaryBuffer->EndRenderPass();
+	renderContext.primaryBuffer->EndDebugMarker();
 
 	KRenderGlobal::Statistics.UpdateRenderStageStatistics(GDeferredRenderStageDescription[renderStage].debugMarker, statistics);
 }
@@ -615,18 +674,22 @@ void KDeferredRenderer::CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 }
 
-void KDeferredRenderer::PrePass(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes)
+void KDeferredRenderer::PrePass(KMultithreadingRenderContext& renderContext, const std::vector<KRenderComponent*>& cullRes)
 {
 }
 
-void KDeferredRenderer::BasePass(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes)
+void KDeferredRenderer::BasePass(KMultithreadingRenderContext& renderContext, const std::vector<KRenderComponent*>& cullRes)
 {
-	BuildRenderCommand(primaryBuffer, DRS_STAGE_BASE_PASS, cullRes);
+	BuildRenderCommand(renderContext, DRS_STAGE_BASE_PASS, cullRes);
 }
 
 void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes)
 {
-	BuildRenderCommand(primaryBuffer, DRS_STAGE_FORWARD_TRANSPRANT, cullRes);
+	KMultithreadingRenderContext context;
+	context.primaryBuffer = primaryBuffer;
+	context.enableMultithreading = false;
+
+	BuildRenderCommand(context, DRS_STAGE_FORWARD_TRANSPRANT, cullRes);
 }
 
 void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)

@@ -7,6 +7,7 @@
 #include "Interface/IKRenderer.h"
 #include "Internal/Scene/KRenderScene.h"
 #include "Internal/FrameGraph/KFrameGraph.h"
+#include "Internal/KRenderThreadPool.h"
 #include "KBase/Publish/KThreadPool.h"
 #include "Publish/KCamera.h"
 
@@ -37,13 +38,15 @@ struct KRendererInitContext
 	uint32_t width;
 	uint32_t height;
 	bool enableAsyncCompute;
+	bool enableMultithreadRender;
 
 	KRendererInitContext()
 		: camera(nullptr)
 		, cameraCube(nullptr)
 		, width(0)
 		, height(0)
-		, enableAsyncCompute(true)
+		, enableAsyncCompute(false)
+		, enableMultithreadRender(false)
 	{}
 };
 
@@ -61,18 +64,28 @@ protected:
 
 	RenderPassCallFuncType m_DebugCallFunc;
 	RenderPassCallFuncType m_ForegroundCallFunc;
-
 	std::unordered_map<IKRenderWindow*, OnWindowRenderCallback*> m_WindowRenderCB;
 
 	struct GPUQueueMiscs
 	{
+		std::vector<IKCommandPoolPtr> threadPools;
 		IKCommandPoolPtr pool;
 		IKSemaphorePtr finish;
 		IKQueuePtr queue;
 
-		void Init(QueueCategory category, uint32_t queueIndex, const char* name);
+		QueueCategory category;
+		uint32_t queueIndex;
+
+		GPUQueueMiscs()
+			: category(QUEUE_GRAPHICS)
+			, queueIndex(0)
+		{
+		}
+
+		void Init(QueueCategory category, uint32_t queueIndex, uint32_t threadNum, const char* name);
 		void UnInit();
 		void Reset();
+		void SetThreadNum(uint32_t threadNum);
 	};
 
 	GPUQueueMiscs m_Shadow;
@@ -80,8 +93,16 @@ protected:
 	GPUQueueMiscs m_PostGraphics;
 	GPUQueueMiscs m_Compute;
 
+	KRenderThreadPool m_ThreadPool;
+
+	int m_PrevMultithreadCount;
+	int m_MultithreadCount;
+
 	bool m_PrevEnableAsyncCompute;
 	bool m_EnableAsyncCompute;
+
+	bool m_EnableMultithreadRender;
+
 	bool m_DisplayCameraCube;
 	bool m_CameraOutdate;
 
@@ -89,6 +110,7 @@ protected:
 	bool UpdateGlobal();
 
 	bool SwitchAsyncCompute(bool enableAsyncCompute);
+	bool ResetThreadNum(uint32_t threadNum);
 public:
 	KRenderer();
 	~KRenderer();
@@ -106,6 +128,8 @@ public:
 	bool RemoveCallback(IKRenderWindow* window) override;
 
 	bool& GetEnableAsyncCompute() { return m_EnableAsyncCompute; }
+	bool& GetEnableMultithreadRender() { return m_EnableMultithreadRender; }
+	int& GetMultithreadCount() { return m_MultithreadCount; }
 
 	bool Update();
 	bool Render(uint32_t chainImageIndex_);

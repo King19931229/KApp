@@ -177,11 +177,11 @@ protected:
 
 	bool UpdatePipelineFromRTChanged();
 
-	bool UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic);
+	bool UpdateRT(KMultithreadingRenderContext& renderContext, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic);
 	bool UpdateMask(IKCommandBufferPtr primaryBuffer, bool isStatic);
 	bool CombineMask(IKCommandBufferPtr primaryBuffer);
 
-	void ExecuteCasterUpdate(IKCommandBufferPtr commandBuffer, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget);
+	void ExecuteCasterUpdate(KMultithreadingRenderContext& renderContext, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget);
 
 	enum MaskType
 	{
@@ -206,7 +206,7 @@ public:
 	bool Resize();
 
 	bool UpdateShadowMap();
-	bool UpdateCasters(IKCommandBufferPtr commandBuffer);
+	bool UpdateCasters(KMultithreadingRenderContext& renderContext);
 	bool UpdateMask(IKCommandBufferPtr commandBuffer);
 
 	bool DebugRender(IKRenderPassPtr renderPass, std::vector<IKCommandBufferPtr>& buffers);

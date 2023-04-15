@@ -69,7 +69,7 @@ class KThreadPool
 
 		const std::string& m_ThreadName;
 
-		bool m_bDone;
+		const bool& m_bDone;
 		std::thread m_Thread;
 
 		static unsigned short ms_IDCounter;
@@ -136,22 +136,22 @@ class KThreadPool
 			KSemaphore& sem,
 			std::mutex& waitMutex,
 			std::condition_variable& waitCond,
-			const std::string& threadName
-			)
-			: m_Queue(queue),
-			m_SharedQueue(sharedQueue),
-			m_Sem(sem),
-			m_WaitMutex(waitMutex),
-			m_WaitCond(waitCond),
-			m_ThreadName(threadName),
-			m_bDone(false),
-			m_Thread(&KWorkerThread::ThreadFunc, this)
+			const std::string& threadName,
+			bool& done)
+			: m_Queue(queue)
+			, m_SharedQueue(sharedQueue)
+			, m_Sem(sem)
+			, m_WaitMutex(waitMutex)
+			, m_WaitCond(waitCond)
+			, m_ThreadName(threadName)
+			, m_bDone(done)
+			, m_Thread(&KWorkerThread::ThreadFunc, this)
 		{
 		}
 
 		~KWorkerThread()
 		{
-			m_bDone = true;
+			assert(m_bDone);
 			m_Sem.NotifyAll();
 			m_Thread.join();
 		}
@@ -215,6 +215,7 @@ protected:
 	KSemaphore m_Sem;
 	std::mutex m_WaitMutex;
 	std::condition_variable m_WaitCond;
+	bool m_bDone;
 
 	std::string m_WorkerThreadName;
 
@@ -222,8 +223,9 @@ protected:
 	KSyncTaskThread *m_pSyncTaskThread;
 public:
 	KThreadPool()
-		: m_pSyncTaskThread(nullptr),
-		m_WorkerThreadName("WorkThread")
+		: m_pSyncTaskThread(nullptr)
+		, m_bDone(true)
+		, m_WorkerThreadName("WorkThread")
 	{
 	}
 
@@ -238,12 +240,13 @@ public:
 	{
 		assert(!m_pSyncTaskThread);
 		m_WorkerThreadName = workThreadName;
+		m_bDone = false;
 		if (!m_pSyncTaskThread)
 		{
 			m_pSyncTaskThread = KNEW KSyncTaskThread(m_SharedQueue);
 			while (uThreadNum--)
 			{
-				KWorkerThread* pThread = KNEW KWorkerThread(m_Queue, m_SharedQueue, m_Sem, m_WaitMutex, m_WaitCond, m_WorkerThreadName);
+				KWorkerThread* pThread = KNEW KWorkerThread(m_Queue, m_SharedQueue, m_Sem, m_WaitMutex, m_WaitCond, m_WorkerThreadName, m_bDone);
 				assert(pThread);
 				m_Threads.push_back(pThread);
 			}
@@ -252,7 +255,7 @@ public:
 
 	void UnInit()
 	{
-		// assert(m_pSyncTaskThread);
+		m_bDone = true;
 		if (m_pSyncTaskThread)
 		{
 			KDELETE m_pSyncTaskThread;

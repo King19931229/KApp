@@ -6,6 +6,7 @@
 #include "Internal/KRenderGlobal.h"
 #include "Internal/KConstantGlobal.h"
 #include "Internal/Render/KRenderUtil.h"
+#include "Internal/KRenderThreadPool.h"
 #include "KBase/Interface/IKLog.h"
 
 KCascadedShadowMapCasterPass::KCascadedShadowMapCasterPass(KCascadedShadowMap& master)
@@ -104,8 +105,10 @@ IKRenderTargetPtr KCascadedShadowMapCasterPass::GetDynamicTarget(size_t cascaded
 	return nullptr;
 }
 
-void KCascadedShadowMap::ExecuteCasterUpdate(IKCommandBufferPtr commandBuffer, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget)
+void KCascadedShadowMap::ExecuteCasterUpdate(KMultithreadingRenderContext& renderContext, std::function<IKRenderTargetPtr(uint32_t, bool)> getCascadedTarget)
 {
+	IKCommandBufferPtr primaryBuffer = renderContext.primaryBuffer;
+
 	if (m_StaticShouldUpdate)
 	{
 		m_Statistics[1].Reset();
@@ -119,23 +122,22 @@ void KCascadedShadowMap::ExecuteCasterUpdate(IKCommandBufferPtr commandBuffer, s
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
-			commandBuffer->BeginDebugMarker("CSM_Static_" + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
-			commandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->BeginDebugMarker("CSM_Static_" + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
 
-			commandBuffer->SetViewport(renderPass->GetViewPort());
-			// Set depth bias (aka "Polygon offset")
-			// Required to avoid shadow mapping artefacts
-			commandBuffer->SetDepthBias(m_DepthBiasConstant[cascadedIndex], 0, m_DepthBiasSlope[cascadedIndex]);
+			if (renderContext.enableMultithreading)
+				primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
+			else
+				primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 
 			if (m_Enable)
 			{
-				UpdateRT(commandBuffer, renderPass, cascadedIndex, true);
+				UpdateRT(renderContext, renderPass, cascadedIndex, true);
 			}
 
-			commandBuffer->EndRenderPass();
-			commandBuffer->EndDebugMarker();
+			primaryBuffer->EndRenderPass();
+			primaryBuffer->EndDebugMarker();
 
-			commandBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		KRenderGlobal::Statistics.UpdateRenderStageStatistics(RENDER_STAGE_NAME[0], m_Statistics[1]);
 		m_StaticShouldUpdate = false;
@@ -154,23 +156,22 @@ void KCascadedShadowMap::ExecuteCasterUpdate(IKCommandBufferPtr commandBuffer, s
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
-			commandBuffer->BeginDebugMarker("CSM_Dynamic_" + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));			
-			commandBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+			primaryBuffer->BeginDebugMarker("CSM_Dynamic_" + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
 
-			commandBuffer->SetViewport(renderPass->GetViewPort());
-			// Set depth bias (aka "Polygon offset")
-			// Required to avoid shadow mapping artefacts
-			commandBuffer->SetDepthBias(m_DepthBiasConstant[cascadedIndex], 0, m_DepthBiasSlope[cascadedIndex]);
+			if (renderContext.enableMultithreading)
+				primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
+			else
+				primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 
 			if (m_Enable)
 			{
-				UpdateRT(commandBuffer, renderPass, cascadedIndex, false);
+				UpdateRT(renderContext, renderPass, cascadedIndex, false);
 			}
 
-			commandBuffer->EndRenderPass();
-			commandBuffer->EndDebugMarker();
+			primaryBuffer->EndRenderPass();
+			primaryBuffer->EndDebugMarker();
 
-			commandBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+			primaryBuffer->Translate(shadowTarget->GetFrameBuffer(), PIPELINE_STAGE_LATE_FRAGMENT_TESTS, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		}
 		KRenderGlobal::Statistics.UpdateRenderStageStatistics(RENDER_STAGE_NAME[0], m_Statistics[0]);
 	}
@@ -178,17 +179,20 @@ void KCascadedShadowMap::ExecuteCasterUpdate(IKCommandBufferPtr commandBuffer, s
 
 bool KCascadedShadowMapCasterPass::Execute(KFrameGraphExecutor& executor)
 {
-	m_Master.ExecuteCasterUpdate(executor.GetPrimaryBuffer(), [this](uint32_t cascadedIndex, bool isStatic)->IKRenderTargetPtr
+	KMultithreadingRenderContext renderContext;
+	renderContext.primaryBuffer = executor.GetPrimaryBuffer();
+
+	m_Master.ExecuteCasterUpdate(renderContext, [this](uint32_t cascadedIndex, bool isStatic)->IKRenderTargetPtr
+	{
+		if (isStatic)
 		{
-			if (isStatic)
-			{
-				return KRenderGlobal::FrameGraph.GetTarget(m_StaticTargetIDs[cascadedIndex]);
-			}
-			else
-			{
-				return KRenderGlobal::FrameGraph.GetTarget(m_DynamicTargetIDs[cascadedIndex]);
-			}
-		});
+			return KRenderGlobal::FrameGraph.GetTarget(m_StaticTargetIDs[cascadedIndex]);
+		}
+		else
+		{
+			return KRenderGlobal::FrameGraph.GetTarget(m_DynamicTargetIDs[cascadedIndex]);
+		}
+	});
 	return true;
 }
 
@@ -1239,7 +1243,7 @@ bool KCascadedShadowMap::PopulateRenderCommandList(size_t cascadedIndex, bool is
 	return false;
 }
 
-bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic)
+bool KCascadedShadowMap::UpdateRT(KMultithreadingRenderContext& renderContext, IKRenderPassPtr renderPass, size_t cascadedIndex, bool isStatic)
 {
 	Cascade* cascadeds = isStatic ? m_StaticCascadeds.data() : m_DynamicCascadeds.data();
 	size_t numCascaded = isStatic ? m_StaticCascadeds.size() : m_DynamicCascadeds.size();
@@ -1248,11 +1252,74 @@ bool KCascadedShadowMap::UpdateRT(IKCommandBufferPtr primaryBuffer, IKRenderPass
 	{
 		KRenderCommandList commandList;
 		PopulateRenderCommandList(cascadedIndex, isStatic, commandList);
-		for (KRenderCommand& command : commandList)
+
+		if (renderContext.enableMultithreading)
 		{
-			if (command.pipeline->GetHandle(renderPass, command.pipelineHandle))
+			size_t threadNum = renderContext.threadCommandPools.size();
+
+			size_t commandEachThread = commandList.size() / threadNum;
+			size_t currentCommandIndex = 0;
+			size_t currentCommandCount = commandEachThread + commandList.size() % threadNum;
+
+			KCommandBufferList commandBuffers;
+			commandBuffers.resize((commandEachThread > 0) ? renderContext.threadCommandPools.size() : 1);
+
+			for (auto it = commandList.begin(); it != commandList.end();)
 			{
-				primaryBuffer->Render(command);
+				KRenderCommand& command = *it;
+				if (!command.pipeline->GetHandle(renderPass, command.pipelineHandle))
+				{
+					it = commandList.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+
+			for (size_t threadIndex = 0; threadIndex < commandBuffers.size(); ++threadIndex)
+			{
+				renderContext.threadPool->AddJob(threadIndex, [this, cascadedIndex, currentCommandIndex, currentCommandCount, renderPass, &commandList, &renderContext, &commandBuffers, threadIndex]()
+				{
+					IKCommandBufferPtr commandBuffer = renderContext.threadCommandPools[threadIndex]->Request(CBL_SECONDARY);
+
+					commandBuffer->BeginSecondary(renderPass);
+
+					commandBuffer->SetViewport(renderPass->GetViewPort());
+					// Set depth bias (aka "Polygon offset")
+					// Required to avoid shadow mapping artefacts
+					commandBuffer->SetDepthBias(m_DepthBiasConstant[cascadedIndex], 0, m_DepthBiasSlope[cascadedIndex]);
+
+					for (size_t idx = 0; idx < currentCommandCount; ++idx)
+					{
+						KRenderCommand& command = commandList[currentCommandIndex + idx];
+						command.threadIndex = (uint32_t)threadIndex;						
+						commandBuffer->Render(command);	
+					}
+					commandBuffer->End();
+
+					commandBuffers[threadIndex] = commandBuffer;
+				});
+				currentCommandIndex += currentCommandCount;
+				currentCommandCount = commandEachThread;
+			}
+
+			renderContext.threadPool->WaitAll();
+			renderContext.primaryBuffer->ExecuteAll(commandBuffers, false);
+		}
+		else
+		{
+			renderContext.primaryBuffer->SetViewport(renderPass->GetViewPort());
+			// Set depth bias (aka "Polygon offset")
+			// Required to avoid shadow mapping artefacts
+			renderContext.primaryBuffer->SetDepthBias(m_DepthBiasConstant[cascadedIndex], 0, m_DepthBiasSlope[cascadedIndex]);
+
+			for (KRenderCommand& command : commandList)
+			{
+				if (command.pipeline->GetHandle(renderPass, command.pipelineHandle))
+				{
+					renderContext.primaryBuffer->Render(command);
+				}
 			}
 		}
 		return true;
@@ -1383,40 +1450,40 @@ bool KCascadedShadowMap::UpdateShadowMap()
 	return true;
 }
 
-bool KCascadedShadowMap::UpdateCasters(IKCommandBufferPtr commandBuffer)
+bool KCascadedShadowMap::UpdateCasters(KMultithreadingRenderContext& renderContext)
 {
-	ExecuteCasterUpdate(commandBuffer, [this](uint32_t cascadedIndex, bool isStatic)->IKRenderTargetPtr
+	ExecuteCasterUpdate(renderContext, [this](uint32_t cascadedIndex, bool isStatic)->IKRenderTargetPtr
+	{
+		if (isStatic)
 		{
-			if (isStatic)
-			{
-				return m_StaticCascadeds[cascadedIndex].rendertarget;
-			}
-			else
-			{
-				return m_DynamicCascadeds[cascadedIndex].rendertarget;
-			}
-		});
+			return m_StaticCascadeds[cascadedIndex].rendertarget;
+		}
+		else
+		{
+			return m_DynamicCascadeds[cascadedIndex].rendertarget;
+		}
+	});
 	return true;
 }
 
 bool KCascadedShadowMap::UpdateMask(IKCommandBufferPtr commandBuffer)
 {
 	ExecuteMaskUpdate(commandBuffer, [this](KCascadedShadowMap::MaskType maskType)->IKRenderTargetPtr
+	{
+		if (maskType == KCascadedShadowMap::STATIC_MASK)
 		{
-			if (maskType == KCascadedShadowMap::STATIC_MASK)
-			{
-				return m_StaticReceiverTarget;
-			}
-			else if (maskType == KCascadedShadowMap::DYNAMIC_MASK)
-			{
-				return m_DynamicReceiverTarget;
-			}
-			else if (maskType == KCascadedShadowMap::COMBINE_MASK)
-			{
-				return m_CombineReceiverTarget;
-			}
-			return nullptr;
-		});
+			return m_StaticReceiverTarget;
+		}
+		else if (maskType == KCascadedShadowMap::DYNAMIC_MASK)
+		{
+			return m_DynamicReceiverTarget;
+		}
+		else if (maskType == KCascadedShadowMap::COMBINE_MASK)
+		{
+			return m_CombineReceiverTarget;
+		}
+		return nullptr;
+	});
 	return true;
 }
 

@@ -147,6 +147,7 @@ bool KRenderCore::InitRenderer()
 	initContext.width = (uint32_t)width;
 	initContext.height = (uint32_t)height;
 	initContext.enableAsyncCompute = false;
+	initContext.enableMultithreadRender = true;
 
 	KRenderGlobal::Renderer.Init(initContext);
 
