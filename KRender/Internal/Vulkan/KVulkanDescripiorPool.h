@@ -4,13 +4,34 @@
 #include <vector>
 #include <mutex>
 
+struct KVulkanDescriptorPoolAllocatedSet
+{
+	VkDescriptorSet set;
+	size_t hash0;
+	size_t hash1;
+
+	KVulkanDescriptorPoolAllocatedSet()
+		: set(VK_NULL_HANDEL)
+		, hash0(0)
+		, hash1(0)
+	{}
+
+	KVulkanDescriptorPoolAllocatedSet(VkDescriptorSet inSet)
+		: set(inSet)
+		, hash0(0)
+		, hash1(0)
+	{}
+};
+
+typedef std::shared_ptr<KVulkanDescriptorPoolAllocatedSet> KVulkanDescriptorPoolAllocatedSetPtr;
+
 class KVulkanDescriptorPool
 {
 protected:
 	struct DescriptorSetBlock
 	{
 		VkDescriptorPool pool;
-		std::vector<VkDescriptorSet> sets;
+		std::vector<KVulkanDescriptorPoolAllocatedSetPtr> sets;
 		size_t useCount;
 		size_t maxCount;
 
@@ -36,8 +57,9 @@ protected:
 	VkDescriptorSetLayout m_Layout;
 	std::vector<DescriptorSetBlockList> m_Descriptors;
 
-	std::vector<VkDescriptorImageInfo> m_DynamicImageWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_UniformBufferWriteInfo;
+
+	std::vector<VkDescriptorImageInfo> m_DynamicImageWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_DynamicUniformBufferWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_DynamicStorageBufferWriteInfo;
 
@@ -52,13 +74,16 @@ protected:
 	uint32_t m_DynamicStorageBufferCount;
 	uint32_t m_ImageCount;
 
-	std::mutex m_Lock;
+#ifdef _DEBUG
+	std::atomic_bool m_Allocating;
+#endif	
 	std::string m_Name;
 
 	VkDescriptorSet AllocDescriptorSet(VkDescriptorPool pool);
 	VkDescriptorPool CreateDescriptorPool(size_t maxCount);
 
-	VkDescriptorSet InternalAlloc(size_t frameIndex, size_t currentFrame);
+	size_t HashCombine(const VkWriteDescriptorSet& write, size_t currentHash);
+	KVulkanDescriptorPoolAllocatedSetPtr InternalAlloc(size_t frameIndex, size_t currentFrame);
 
 	void Move(KVulkanDescriptorPool&& rhs);
 public:
@@ -81,6 +106,4 @@ public:
 	VkDescriptorSet Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,
 		const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
 		const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount);
-
-	// TODO 加上Compute Pipeline支持
 };

@@ -91,7 +91,6 @@ protected:
 		std::vector<IKSamplerPtr> samplers;
 		std::vector<std::tuple<uint32_t, uint32_t>> mipmaps;
 		bool dynamicWrite;
-		bool onceWrite;
 
 		SamplerBindingInfo()
 		{
@@ -99,7 +98,6 @@ protected:
 			samplers = {};
 			mipmaps = {};
 			dynamicWrite = false;
-			onceWrite = false;
 		}
 	};
 	std::unordered_map<unsigned int, SamplerBindingInfo> m_Samplers;
@@ -144,9 +142,12 @@ protected:
 	VkDescriptorSetLayout m_DescriptorSetLayout;
 	VkPipelineLayout m_PipelineLayout;
 
-	std::array<KVulkanDescriptorPool, 128> m_Pools;
-	std::array<bool, 128> m_PoolInitializeds;
-
+	static constexpr uint32_t MAX_THREAD_SUPPORT = 512;
+	std::array<KVulkanDescriptorPool, MAX_THREAD_SUPPORT> m_Pools;
+	std::array<bool, MAX_THREAD_SUPPORT> m_PoolInitializeds;
+#ifdef _DEBUG
+	std::array<std::atomic_bool, MAX_THREAD_SUPPORT> m_PoolInitialing;
+#endif
 	std::string m_Name;
 
 	bool CreateLayout();
@@ -163,8 +164,6 @@ protected:
 
 	RenderPassInvalidCallback m_RenderPassInvalidCB;
 	bool InvaildHandle(IKRenderPass* target);
-
-	void AssignDebugName();
 public:
 	KVulkanPipeline();
 	virtual ~KVulkanPipeline();

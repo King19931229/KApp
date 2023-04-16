@@ -90,6 +90,7 @@
     <ClInclude Include="Publish\KPlane.h" />
     <ClInclude Include="Publish\KPlatform.h" />
     <ClInclude Include="Publish\KReferenceHolder.h" />
+    <ClInclude Include="Publish\KSectionEnterAssertGuard.h" />
     <ClInclude Include="Publish\KStringUtil.h" />
     <ClInclude Include="Publish\KSystem.h" />
     <ClInclude Include="Publish\KSemaphore.h" />

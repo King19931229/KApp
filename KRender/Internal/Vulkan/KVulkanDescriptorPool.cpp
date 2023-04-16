@@ -6,17 +6,22 @@
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanGlobal.h"
 #include "KVulkanHelper.h"
+#include "KBase/Publish/KHash.h"
+#include "KBase/Publish/KSectionEnterAssertGuard.h"
 #include <algorithm>
 #include <assert.h>
 
 KVulkanDescriptorPool::KVulkanDescriptorPool()
-	: m_Layout(VK_NULL_HANDLE),
-	m_CurrentFrame(0),
-	m_BlockSize(512),
-	m_UniformBufferCount(0),
-	m_DynamicUniformBufferCount(0),
-	m_DynamicStorageBufferCount(0),
-	m_ImageCount(0)
+	: m_Layout(VK_NULL_HANDLE)
+	, m_CurrentFrame(0)
+	, m_BlockSize(512)
+	, m_UniformBufferCount(0)
+	, m_DynamicUniformBufferCount(0)
+	, m_DynamicStorageBufferCount(0)
+	, m_ImageCount(0)
+#ifdef _DEBUG
+	, m_Allocating(false)
+#endif
 {
 }
 
@@ -124,12 +129,7 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 		m_DescriptorWriteInfo.push_back(copy);
 	}
 
-	// 取最大值
-	uint32_t size = m_UniformBufferCount;
-	size = std::max(size, m_DynamicUniformBufferCount);
-	size = std::max(size, m_DynamicStorageBufferCount);
-	size = std::max(size, m_ImageCount);
-	m_DescriptorDynamicWriteInfo.resize(size);
+	m_DescriptorDynamicWriteInfo.resize(m_UniformBufferCount + m_DynamicUniformBufferCount + m_DynamicStorageBufferCount + m_ImageCount);
 
 	return true;
 }
@@ -227,7 +227,9 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 	const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
 	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
 {
-	VkDescriptorSet set = InternalAlloc(frameIndex, currentFrame);
+	KVulkanDescriptorPoolAllocatedSetPtr allocation = InternalAlloc(frameIndex, currentFrame);
+
+	VkDescriptorSet set = allocation->set;
 
 	ASSERT_RESULT(set != VK_NULL_HANDLE);
 
@@ -235,7 +237,8 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 	ASSERT_RESULT(dynamicBufferUsageCount <= m_DynamicUniformBufferWriteInfo.size());
 	ASSERT_RESULT(dynamicBufferUsageCount <= m_DescriptorDynamicWriteInfo.size());
 
-	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+	size_t descriptorWriteIdx = 0;
+	size_t hash = 0;
 
 	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline);
 	if (vulkanPipeline)
@@ -247,14 +250,13 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 		size_t imageWriteIdx = 0;
 		size_t storageBufferWriteIdx = 0;
 		size_t uniformBufferWriteIdx = 0;
-		size_t descriptorWriteIdx = 0;
 
 		for (auto& pair : samplerBindings)
 		{
 			unsigned int binding = pair.first;
 			KVulkanPipeline::SamplerBindingInfo& info = pair.second;
 
-			if (!info.dynamicWrite && info.onceWrite)
+			if (!info.dynamicWrite)
 			{
 				continue;
 			}
@@ -301,11 +303,8 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 			samplerDescriptorWrite.pImageInfo = &imageInfoStart;
 			samplerDescriptorWrite.pTexelBufferView = nullptr;
 
-			info.onceWrite = true;
+			hash = HashCombine(samplerDescriptorWrite, hash);
 		}
-
-		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(descriptorWriteIdx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
-		descriptorWriteIdx = 0;
 
 		auto& storageImageBindings = vulkanPipeline->m_StorageImages;
 		for (auto& pair : storageImageBindings)
@@ -344,10 +343,9 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 			storageDescriptorWrite.pBufferInfo = nullptr; // Optional
 			storageDescriptorWrite.pImageInfo = &imageInfoStart;
 			storageDescriptorWrite.pTexelBufferView = nullptr; // Optional
-		}
 
-		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(descriptorWriteIdx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
-		descriptorWriteIdx = 0;
+			hash = HashCombine(storageDescriptorWrite, hash);
+		}
 
 		auto& storageBufferBindings = vulkanPipeline->m_StorageBuffers;
 		for (auto& pair : storageBufferBindings)
@@ -372,10 +370,9 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 			storageDescriptorWrite.pBufferInfo = &bufferInfo;
 			storageDescriptorWrite.pImageInfo = nullptr;
 			storageDescriptorWrite.pTexelBufferView = nullptr;
-		}
 
-		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(descriptorWriteIdx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
-		descriptorWriteIdx = 0;
+			hash = HashCombine(storageDescriptorWrite, hash);
+		}
 
 		auto& uniformBufferBindings = vulkanPipeline->m_Uniforms;
 		for (auto& pair : uniformBufferBindings)
@@ -400,11 +397,19 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 			uniformDescriptorWrite.pBufferInfo = &bufferInfo;
 			uniformDescriptorWrite.pImageInfo = nullptr;
 			uniformDescriptorWrite.pTexelBufferView = nullptr;
+
+			hash = HashCombine(uniformDescriptorWrite, hash);
 		}
 
-		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(descriptorWriteIdx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
-		descriptorWriteIdx = 0;
+		if (allocation->hash0 != hash && descriptorWriteIdx > 0)
+		{
+			vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(descriptorWriteIdx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+			allocation->hash0 = hash;
+		}
 	}
+
+	descriptorWriteIdx = 0;
+	hash = 0;
 
 	for (size_t i = 0; i < dynamicBufferUsageCount; ++i)
 	{
@@ -418,7 +423,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 		bufferInfo.offset = 0;
 		bufferInfo.range = usage->range;
 
-		VkWriteDescriptorSet& dynamicUniformDescriptorWrite = m_DescriptorDynamicWriteInfo[i];
+		VkWriteDescriptorSet& dynamicUniformDescriptorWrite = m_DescriptorDynamicWriteInfo[descriptorWriteIdx++];
 
 		dynamicUniformDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		dynamicUniformDescriptorWrite.dstSet = set;
@@ -430,9 +435,9 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 		dynamicUniformDescriptorWrite.pBufferInfo = &bufferInfo;
 		dynamicUniformDescriptorWrite.pImageInfo = nullptr;
 		dynamicUniformDescriptorWrite.pTexelBufferView = nullptr;
-	}
 
-	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(dynamicBufferUsageCount), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+		hash = HashCombine(dynamicUniformDescriptorWrite, hash);
+	}
 
 	for (size_t i = 0; i < storageBufferUsageCount; ++i)
 	{
@@ -445,7 +450,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 		bufferInfo.offset = 0;
 		bufferInfo.range = VK_WHOLE_SIZE;
 
-		VkWriteDescriptorSet& storageDescriptorWrite = m_DescriptorDynamicWriteInfo[i];
+		VkWriteDescriptorSet& storageDescriptorWrite = m_DescriptorDynamicWriteInfo[descriptorWriteIdx++];
 
 		storageDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		storageDescriptorWrite.dstSet = set;
@@ -457,26 +462,74 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 		storageDescriptorWrite.pBufferInfo = &bufferInfo;
 		storageDescriptorWrite.pImageInfo = nullptr;
 		storageDescriptorWrite.pTexelBufferView = nullptr;
+
+		hash = HashCombine(storageDescriptorWrite, hash);
 	}
 
-	vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(storageBufferUsageCount), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+	if (allocation->hash1 != hash && descriptorWriteIdx > 0)
+	{
+		vkUpdateDescriptorSets(KVulkanGlobal::device, static_cast<uint32_t>(descriptorWriteIdx), m_DescriptorDynamicWriteInfo.data(), 0, nullptr);
+		allocation->hash1 = hash;
+	}
 
 	return set;
 }
 
-VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t currentFrame)
+size_t KVulkanDescriptorPool::HashCombine(const VkWriteDescriptorSet& write, size_t currentHash)
+{
+	size_t hash = currentHash;
+
+	KHash::HashCombine(hash, write.dstBinding);
+	KHash::HashCombine(hash, write.dstArrayElement);
+	KHash::HashCombine(hash, write.descriptorCount);
+	KHash::HashCombine(hash, write.descriptorType);
+	
+	if (write.pImageInfo)
+	{
+		for (uint32_t i = 0; i < write.descriptorCount; ++i)
+		{
+			KHash::HashCombine(hash, write.pImageInfo[i].sampler);
+			KHash::HashCombine(hash, write.pImageInfo[i].imageView);
+			KHash::HashCombine(hash, write.pImageInfo[i].imageLayout);
+		}
+	}
+
+	if (write.pBufferInfo)
+	{
+		for (uint32_t i = 0; i < write.descriptorCount; ++i)
+		{
+			KHash::HashCombine(hash, write.pBufferInfo[i].buffer);
+			KHash::HashCombine(hash, write.pBufferInfo[i].offset);
+			KHash::HashCombine(hash, write.pBufferInfo[i].range);
+		}
+	}
+
+	if (write.pTexelBufferView)
+	{
+		for (uint32_t i = 0; i < write.descriptorCount; ++i)
+		{
+			KHash::HashCombine(hash, write.pTexelBufferView[i]);
+		}
+	}
+
+	return hash;
+}
+
+KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t currentFrame)
 {
 	ASSERT_RESULT(m_Layout != VK_NULL_HANDLE);
 
-	std::lock_guard<decltype(m_Lock)> lockGuard(m_Lock);
+#ifdef _DEBUG
+	KSectionEnterAssertGuard gurad(m_Allocating);
+#endif
 
 	if (frameIndex >= m_Descriptors.size())
 	{
 		m_Descriptors.resize(frameIndex + 1);
 	}
-
 	DescriptorSetBlockList& blockList = m_Descriptors[frameIndex];
 
+	// 1.释放没用的Set
 	if (blockList.currentFrame != currentFrame)
 	{
 		blockList.currentFrame = currentFrame;
@@ -490,7 +543,9 @@ VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t c
 				size_t newCount = block.sets.size() / 2;
 				for (size_t idx = newCount; idx < block.sets.size(); ++idx)
 				{
-					vkFreeDescriptorSets(KVulkanGlobal::device, block.pool, 1, &block.sets[idx]);
+					vkFreeDescriptorSets(KVulkanGlobal::device, block.pool, 1, &block.sets[idx]->set);
+					block.sets[idx]->hash0 = 0;
+					block.sets[idx]->hash1 = 0;
 				}
 				block.sets.resize(newCount);
 
@@ -517,6 +572,8 @@ VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t c
 	}
 
 	size_t blockIndex = 0;
+
+	// 2.找没有超过Block预算的Set
 	for (auto it = blockList.blocks.begin(), itEnd = blockList.blocks.end(); it != itEnd; ++it)
 	{
 		DescriptorSetBlock& block = *it;
@@ -531,8 +588,10 @@ VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t c
 					KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)newSet, VK_OBJECT_TYPE_DESCRIPTOR_SET,
 						(m_Name + "_DescriptorSet_" + std::to_string(blockIndex) + "_" + std::to_string(block.sets.size())).c_str());
 				}
-				block.sets.push_back(newSet);
-				return newSet;
+
+				KVulkanDescriptorPoolAllocatedSetPtr newAllocation(new KVulkanDescriptorPoolAllocatedSet(newSet));
+				block.sets.push_back(newAllocation);
+				return newAllocation;
 			}
 			else
 			{
@@ -542,20 +601,24 @@ VkDescriptorSet KVulkanDescriptorPool::InternalAlloc(size_t frameIndex, size_t c
 		++blockIndex;
 	}
 
-	DescriptorSetBlock newBlock;
-	newBlock.useCount = 0;
-	newBlock.maxCount = m_BlockSize;
-	newBlock.pool = CreateDescriptorPool(newBlock.maxCount);
+	// 3.新建一个Block
+	DescriptorSetBlock block;
+	block.useCount = 0;
+	block.maxCount = m_BlockSize;
+	block.pool = CreateDescriptorPool(block.maxCount);
 
-	VkDescriptorSet newSet = AllocDescriptorSet(newBlock.pool);
+	VkDescriptorSet newSet = AllocDescriptorSet(block.pool);
 	if (!m_Name.empty())
 	{
 		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)newSet, VK_OBJECT_TYPE_DESCRIPTOR_SET,
-			(m_Name + "_DescriptorSet_" + std::to_string(blockIndex) + "_" + std::to_string(newBlock.sets.size())).c_str());
+			(m_Name + "_DescriptorSet_" + std::to_string(blockIndex) + "_" + std::to_string(block.sets.size())).c_str());
 	}
-	newBlock.sets.push_back(newSet);
-	++newBlock.useCount;
 
-	blockList.blocks.push_back(newBlock);
-	return newSet;
+	KVulkanDescriptorPoolAllocatedSetPtr newAllocation(new KVulkanDescriptorPoolAllocatedSet(newSet));
+	block.sets.push_back(newAllocation);
+	++block.useCount;
+
+	blockList.blocks.push_back(block);
+
+	return newAllocation;
 }

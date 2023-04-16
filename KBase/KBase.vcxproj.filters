@@ -247,6 +247,9 @@
     <ClInclude Include="Internal\Codec\KCodecBase.h">
       <Filter>Internal\Codec</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KSectionEnterAssertGuard.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">

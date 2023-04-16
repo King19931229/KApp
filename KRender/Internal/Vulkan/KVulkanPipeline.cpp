@@ -8,6 +8,7 @@
 #include "KVulkanRenderPass.h"
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanGlobal.h"
+#include "KBase/Publish/KSectionEnterAssertGuard.h"
 
 static VkShaderStageFlagBits SHADER_STAGE_FLAGS[] =
 {
@@ -282,7 +283,6 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKFrameBufferPtr image, 
 		info.samplers = { sampler };
 		info.mipmaps = { { 0, 0 } };
 		info.dynamicWrite = dynimicWrite;
-		info.onceWrite = false;
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
 	}
@@ -298,7 +298,6 @@ bool KVulkanPipeline::SetSamplerMipmap(unsigned int location, IKFrameBufferPtr i
 		info.samplers = { sampler };
 		info.mipmaps = { { startMip, mipNum } };
 		info.dynamicWrite = dynimicWrite;
-		info.onceWrite = false;
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
 	}
@@ -353,7 +352,6 @@ bool KVulkanPipeline::SetSamplers(unsigned int location, const std::vector<IKFra
 			info.mipmaps.push_back({ 0, 0 });
 		}
 		info.dynamicWrite = dynimicWrite;
-		info.onceWrite = false;
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
 	}
@@ -653,6 +651,10 @@ bool KVulkanPipeline::CreateDestcriptionWrite()
 
 bool KVulkanPipeline::CreateDestcriptionPool(uint32_t threadIndex)
 {	
+#ifdef _DEBUG
+	KSectionEnterAssertGuard gurad(m_PoolInitialing[threadIndex]);
+#endif
+
 	if (!m_PoolInitializeds[threadIndex])
 	{
 		KVulkanDescriptorPool pool;
@@ -663,7 +665,8 @@ bool KVulkanPipeline::CreateDestcriptionPool(uint32_t threadIndex)
 		}
 		m_Pools[threadIndex] = std::move(pool);
 		m_PoolInitializeds[threadIndex] = true;
-	}	
+	}
+
 	return true;
 }
 
