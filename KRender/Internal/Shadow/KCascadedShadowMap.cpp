@@ -1071,58 +1071,100 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStat
 	KRenderUtil::CalculateInstancesByMaterial(litCullRes, instances);
 
 	// 准备Instance数据
-	for (KMaterialSubMeshInstance& instance : instances)
+	for (KMaterialSubMeshInstance& subMeshInstance : instances)
 	{
-		KMaterialSubMeshPtr materialSubMesh = instance.materialSubMesh;
-		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = instance.instanceData;
+		KMaterialSubMeshPtr materialSubMesh = subMeshInstance.materialSubMesh;
+		std::vector<KVertexDefinition::INSTANCE_DATA_MATRIX4F>& instances = subMeshInstance.instanceData;
 		ASSERT_RESULT(!instances.empty());
 
-		RenderStage stage = isStatic ? RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE : RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE;
-
 		KRenderCommand command;
-		if (materialSubMesh->GetRenderCommand(stage, command))
+		if (instances.size() > 1)
 		{
-			KConstantDefinition::CSM_OBJECT_INSTANCE csmInstance = { (uint32_t)cascadedIndex };
-
-			command.objectUsage.binding = SHADER_BINDING_OBJECT;
-			command.objectUsage.range = sizeof(csmInstance);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&csmInstance, command.objectUsage);
-
-			++statistics.drawcalls;
-
-			std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
-			ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
-			ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
-
-			command.instanceDraw = true;
-			command.instanceUsages.resize(allocRes.size());
-			for (size_t i = 0; i < allocRes.size(); ++i)
+			RenderStage stage = isStatic ? RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN_INSTANCE : RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN_INSTANCE;
+			if (materialSubMesh->GetRenderCommand(stage, command))
 			{
-				KInstanceBufferUsage& usage = command.instanceUsages[i];
-				KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
-				usage.buffer = allocResult.buffer;
-				usage.start = allocResult.start;
-				usage.count = allocResult.count;
-				usage.offset = allocResult.offset;
-			}
+				if (!KRenderUtil::AssignShadingParameter(command, materialSubMesh->GetMaterial()))
+				{
+					continue;
+				}
 
-			if (command.indexDraw)
-			{
-				statistics.primtives += command.indexData->indexCount;
-				statistics.faces += command.indexData->indexCount / 3;
-			}
-			else
-			{
-				statistics.primtives += command.vertexData->vertexCount;
-				statistics.faces += command.vertexData->vertexCount / 3;
-			}
+				KConstantDefinition::CSM_OBJECT_INSTANCE csmInstance = { (uint32_t)cascadedIndex };
 
-			if (!KRenderUtil::AssignShadingParameter(command, materialSubMesh->GetMaterial()))
-			{
-				continue;
-			}
+				command.objectUsage.binding = SHADER_BINDING_OBJECT;
+				command.objectUsage.range = sizeof(csmInstance);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&csmInstance, command.objectUsage);
 
-			commands.push_back(command);
+				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
+				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
+
+				command.instanceDraw = true;
+				command.instanceUsages.resize(allocRes.size());
+				for (size_t i = 0; i < allocRes.size(); ++i)
+				{
+					// TODO 合并这个类
+					KInstanceBufferUsage& usage = command.instanceUsages[i];
+					KInstanceBufferManager::AllocResultBlock& allocResult = allocRes[i];
+					usage.buffer = allocResult.buffer;
+					usage.start = allocResult.start;
+					usage.count = allocResult.count;
+					usage.offset = allocResult.offset;
+				}
+				
+				++statistics.drawcalls;
+
+				if (command.indexDraw)
+				{
+					statistics.primtives += command.indexData->indexCount;
+					statistics.faces += command.indexData->indexCount / 3;
+				}
+				else
+				{
+					statistics.primtives += command.vertexData->vertexCount;
+					statistics.faces += command.vertexData->vertexCount / 3;
+				}
+
+				commands.push_back(command);
+			}
+		}
+		else
+		{
+			RenderStage stage = isStatic ? RENDER_STAGE_CASCADED_SHADOW_STATIC_GEN : RENDER_STAGE_CASCADED_SHADOW_DYNAMIC_GEN;
+			if (materialSubMesh->GetRenderCommand(stage, command))
+			{
+				if (!KRenderUtil::AssignShadingParameter(command, materialSubMesh->GetMaterial()))
+				{
+					continue;
+				}
+
+				for (size_t idx = 0; idx < instances.size(); ++idx)
+				{
+					const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
+
+					KConstantDefinition::OBJECT objectData;
+					objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
+					objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
+					KConstantDefinition::CSM_OBJECT csmObject = { objectData, (uint32_t)cascadedIndex };
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
+					command.objectUsage.range = sizeof(csmObject);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&csmObject, command.objectUsage);
+
+					++statistics.drawcalls;
+
+					if (command.indexDraw)
+					{
+						statistics.primtives += command.indexData->indexCount;
+						statistics.faces += command.indexData->indexCount / 3;
+					}
+					else
+					{
+						statistics.primtives += command.vertexData->vertexCount;
+						statistics.faces += command.vertexData->vertexCount / 3;
+					}
+
+					commands.push_back(command);
+				}
+			}
 		}
 	}
 }

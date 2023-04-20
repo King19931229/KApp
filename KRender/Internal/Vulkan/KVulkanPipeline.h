@@ -75,14 +75,12 @@ protected:
 		ShaderTypes shaderTypes;
 		IKUniformBufferPtr buffer;
 	};
-	std::unordered_map<unsigned int, UniformBufferBindingInfo> m_Uniforms;
 
 	struct PushConstantBindingInfo
 	{
 		ShaderTypes shaderTypes;
 		uint32_t size;
 	};
-	PushConstantBindingInfo m_PushContant;
 
 	// Sampler 信息
 	struct SamplerBindingInfo
@@ -90,17 +88,14 @@ protected:
 		std::vector<IKFrameBufferPtr> images;
 		std::vector<IKSamplerPtr> samplers;
 		std::vector<std::tuple<uint32_t, uint32_t>> mipmaps;
-		bool dynamicWrite;
 
 		SamplerBindingInfo()
 		{
 			images = {};
 			samplers = {};
 			mipmaps = {};
-			dynamicWrite = false;
 		}
 	};
-	std::unordered_map<unsigned int, SamplerBindingInfo> m_Samplers;
 
 	// Storage Image信息
 	struct StorageImageBindingInfo
@@ -113,7 +108,6 @@ protected:
 			format = EF_UNKNOWN;
 		}
 	};
-	std::unordered_map<unsigned int, StorageImageBindingInfo> m_StorageImages;
 
 	// Storage Buffer信息
 	struct StorageBufferBindingInfo
@@ -127,15 +121,27 @@ protected:
 			buffer = nullptr;
 		}
 	};
+
+	enum BindingType
+	{
+		BINDING_UNIFORM,
+		BINDING_SAMPLER,
+		BINDING_STORAGE_IMAGE,
+		BINDING_STORAGE_BUFFER
+	};
+
+	std::unordered_map<unsigned int, BindingType> m_BindingType;
+
+	PushConstantBindingInfo m_PushContant;
+	std::unordered_map<unsigned int, UniformBufferBindingInfo> m_Uniforms;
+	std::unordered_map<unsigned int, SamplerBindingInfo> m_Samplers;
+	std::unordered_map<unsigned int, StorageImageBindingInfo> m_StorageImages;
 	std::unordered_map<unsigned int, StorageBufferBindingInfo> m_StorageBuffers;
 
 	IKShaderPtr m_Shaders[COUNT];
 
 	std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetLayoutBinding;
-
-	// 以下数据需要被持有
 	std::vector<VkWriteDescriptorSet> m_WriteDescriptorSet;
-	std::vector<VkDescriptorImageInfo> m_ImageWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_BufferWriteInfo;
 
 	// 设备句柄
@@ -155,6 +161,8 @@ protected:
 	bool CreateDestcriptionPool(uint32_t threadIndex);
 	bool DestroyDevice();
 	bool ClearHandle();
+
+	bool CheckBindConflict(unsigned int location, BindingType type);
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
 
 	bool CheckDependencyResource();

@@ -30,6 +30,9 @@ protected:
 	uint32_t m_MSAA;
 	uint32_t m_Layers;
 
+	static uint32_t ms_UniqueIDCounter;
+	uint32_t m_UniqueID;
+
 	bool m_External;
 
 	std::unordered_map<uint32_t, VkImageView> m_MipmapImageViews;
@@ -84,7 +87,9 @@ public:
 	inline VkSampleCountFlagBits GetMSAAFlag() const { return m_MSAAFlag; }
 	inline VkFormat GetForamt() const { return m_Format; }
 	inline VkImageLayout GetImageLayout() const { return m_ImageLayout; }
+	inline uint32_t GetUniqueID() const { return m_UniqueID; }
 
 	VkImageView GetMipmapImageView(uint32_t startMip, uint32_t numMip);
 	VkImageView GetReinterpretImageView(ElementFormat format);
+
 };

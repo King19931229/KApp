@@ -65,6 +65,7 @@ bool KMesh::UnInit()
 
 void KMesh::UpdateTriangleMesh()
 {
+	return;
 	m_TriangleMesh.Destroy();
 	for (KSubMeshPtr& subMesh : m_SubMeshes)
 	{

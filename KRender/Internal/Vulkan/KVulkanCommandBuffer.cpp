@@ -56,9 +56,9 @@ bool KVulkanCommandPool::Init(QueueCategory queue, uint32_t index, CommmandBuffe
 	switch (resetMode)
 	{
 		case CBR_RESET_INDIVIDUALLY:
-		case CBR_ALWAYS_ALLOCATE:
 			flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 			break;
+		case CBR_RESET_ALLOCATE_FREE:
 		case CBR_RESET_POOL:
 		default:
 			flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
@@ -146,7 +146,7 @@ void KVulkanCommandPool::BufferUsage::Reset(CommmandBufferReset resetMode)
 			((KVulkanCommandBuffer*)(buffer.get()))->Reset(resetMode);
 		}
 	}
-	else if(resetMode == CBR_ALWAYS_ALLOCATE)
+	else if(resetMode == CBR_RESET_ALLOCATE_FREE)
 	{
 		for (IKCommandBufferPtr buffer : buffers)
 		{

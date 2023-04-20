@@ -57,22 +57,24 @@ protected:
 	VkDescriptorSetLayout m_Layout;
 	std::vector<DescriptorSetBlockList> m_Descriptors;
 
-	std::vector<VkDescriptorBufferInfo> m_UniformBufferWriteInfo;
-
-	std::vector<VkDescriptorImageInfo> m_DynamicImageWriteInfo;
+	std::vector<VkDescriptorImageInfo>  m_ImageWriteInfo;
+	std::vector<VkDescriptorImageInfo>  m_StorageImageWriteInfo;
+	std::vector<VkDescriptorBufferInfo> m_StorageBufferWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_DynamicUniformBufferWriteInfo;
 	std::vector<VkDescriptorBufferInfo> m_DynamicStorageBufferWriteInfo;
 
-	std::vector<VkWriteDescriptorSet> m_DescriptorWriteInfo;
-	// 持久化的临时容器
+	std::vector<VkWriteDescriptorSet> m_DescriptorStaticWriteInfo;
 	std::vector<VkWriteDescriptorSet> m_DescriptorDynamicWriteInfo;
 
 	size_t m_CurrentFrame;
 	size_t m_BlockSize;
+
+	uint32_t m_ImageCount;
+	uint32_t m_StorageImageCount;
 	uint32_t m_UniformBufferCount;
+	uint32_t m_StorageBufferCount;
 	uint32_t m_DynamicUniformBufferCount;
 	uint32_t m_DynamicStorageBufferCount;
-	uint32_t m_ImageCount;
 
 #ifdef _DEBUG
 	std::atomic_bool m_Allocating;

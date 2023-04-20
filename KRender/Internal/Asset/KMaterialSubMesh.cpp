@@ -52,6 +52,26 @@ bool KMaterialSubMesh::Init(KSubMeshPtr subMesh, KMaterialRef material)
 	ASSERT_RESULT(CreateShadowPipeline());
 	ASSERT_RESULT(CreateGBufferPipeline());
 	ASSERT_RESULT(CreateVoxelPipeline());
+
+	const IKMaterialTextureBinding* textureBinding = m_Material->GetTextureBinding().get();
+	uint8_t numSlot = textureBinding->GetNumSlot();
+	for (uint32_t stage = RENDER_STAGE_NORMAL_BEGIN; stage <= RENDER_STAGE_NORMAL_END; ++stage)
+	{
+		IKPipelinePtr pipeline = m_Pipelines[stage];
+		if (pipeline)
+		{
+			for (uint8_t i = 0; i < numSlot; ++i)
+			{
+				IKTexturePtr texture = textureBinding->GetTexture(i);
+				IKSamplerPtr sampler = textureBinding->GetSampler(i);
+				if (texture && sampler)
+				{
+					pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, texture->GetFrameBuffer(), sampler, true);
+				}
+			}
+		}
+	}
+
 	return true;
 }
 

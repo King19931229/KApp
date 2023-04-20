@@ -240,8 +240,7 @@ bool KVulkanPipeline::SetConstantBuffer(unsigned int location, ShaderTypes shade
 {
 	if(buffer)
 	{
-		ASSERT_RESULT(m_Samplers.find(location) == m_Samplers.end() && "The location you try to bind is conflited with sampler");
-
+		CheckBindConflict(location, BINDING_UNIFORM);
 		UniformBufferBindingInfo info = { shaderTypes, buffer };
 		auto it = m_Uniforms.find(location);
 		if(it == m_Uniforms.end())
@@ -257,10 +256,30 @@ bool KVulkanPipeline::SetConstantBuffer(unsigned int location, ShaderTypes shade
 	return false;
 }
 
+bool KVulkanPipeline::CheckBindConflict(unsigned int location, BindingType type)
+{
+#ifdef _DEBUG
+	auto it = m_BindingType.find(location);
+	if (it == m_BindingType.end())
+	{
+		m_BindingType.insert({ location, type });
+		return true;
+	}
+	else
+	{
+		BindingType prevType = it->second;
+		assert(prevType == type);
+		it->second = type;
+		return prevType == type;
+	}
+#else
+	return true;
+#endif
+}
+
 bool KVulkanPipeline::BindSampler(unsigned int location, const SamplerBindingInfo& info)
 {
-	ASSERT_RESULT(m_Uniforms.find(location) == m_Uniforms.end() && "The location you try to bind is conflited with ubo");
-
+	CheckBindConflict(location, BINDING_SAMPLER);
 	auto it = m_Samplers.find(location);
 	if(it == m_Samplers.end())
 	{
@@ -270,7 +289,6 @@ bool KVulkanPipeline::BindSampler(unsigned int location, const SamplerBindingInf
 	{
 		it->second = info;
 	}
-
 	return true;
 }
 
@@ -282,7 +300,6 @@ bool KVulkanPipeline::SetSampler(unsigned int location, IKFrameBufferPtr image, 
 		info.images = { image };
 		info.samplers = { sampler };
 		info.mipmaps = { { 0, 0 } };
-		info.dynamicWrite = dynimicWrite;
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
 	}
@@ -297,7 +314,6 @@ bool KVulkanPipeline::SetSamplerMipmap(unsigned int location, IKFrameBufferPtr i
 		info.images = { image };
 		info.samplers = { sampler };
 		info.mipmaps = { { startMip, mipNum } };
-		info.dynamicWrite = dynimicWrite;
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
 	}
@@ -308,6 +324,7 @@ bool KVulkanPipeline::SetStorageImage(unsigned int location, IKFrameBufferPtr im
 {
 	if (image)
 	{
+		CheckBindConflict(location, BINDING_STORAGE_IMAGE);
 		StorageImageBindingInfo info;
 		info.images = { image };
 		info.format = format;
@@ -321,6 +338,7 @@ bool KVulkanPipeline::SetStorageBuffer(unsigned int location, ShaderTypes shader
 {
 	if (buffer)
 	{
+		CheckBindConflict(location, BINDING_STORAGE_BUFFER);
 		StorageBufferBindingInfo info;
 		info.shaderTypes = shaderTypes;
 		info.buffer = buffer;
@@ -351,7 +369,6 @@ bool KVulkanPipeline::SetSamplers(unsigned int location, const std::vector<IKFra
 		{
 			info.mipmaps.push_back({ 0, 0 });
 		}
-		info.dynamicWrite = dynimicWrite;
 		ASSERT_RESULT(BindSampler(location, info));
 		return true;
 	}
@@ -362,6 +379,7 @@ bool KVulkanPipeline::SetStorageImages(unsigned int location, const std::vector<
 {
 	if (images.size() > 0)
 	{
+		CheckBindConflict(location, BINDING_STORAGE_IMAGE);
 		StorageImageBindingInfo info;
 		info.images = images;
 		info.format = format;
@@ -571,80 +589,38 @@ bool KVulkanPipeline::CreateLayout()
 bool KVulkanPipeline::CreateDestcriptionWrite()
 {
 	m_WriteDescriptorSet.clear();
-	m_ImageWriteInfo.clear();
+	m_WriteDescriptorSet.reserve(m_Uniforms.size());
+
 	m_BufferWriteInfo.clear();
+	m_BufferWriteInfo.resize(m_Uniforms.size());
 
-	size_t imageWriteCount = 0;
-	for (auto& pair : m_Samplers)
+	size_t idx = 0;
+	for (auto& pair : m_Uniforms)
 	{
-		imageWriteCount += pair.second.images.size();
-	}
-	for (auto& pair : m_StorageImages)
-	{
-		imageWriteCount += pair.second.images.size();
-	}
-	m_ImageWriteInfo.resize(imageWriteCount);
+		uint32_t binding = pair.first;
+		KVulkanUniformBuffer* vulkanUniformBuffer = (KVulkanUniformBuffer*)pair.second.buffer.get();
 
-	size_t bufferWriteCount = m_Uniforms.size() + m_StorageBuffers.size();
-	m_BufferWriteInfo.resize(bufferWriteCount);
+		VkDescriptorBufferInfo& bufferWrite = m_BufferWriteInfo[idx];
+		bufferWrite.buffer = vulkanUniformBuffer->GetVulkanHandle();
+		bufferWrite.offset = 0;
+		bufferWrite.range = (VkDeviceSize)vulkanUniformBuffer->GetBufferSize();
 
-	size_t bufferIdx = 0;
-	size_t imageIdx = 0;
+		VkWriteDescriptorSet write = {};
+		write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write.pNext = nullptr;
+		write.dstSet = VK_NULL_HANDLE;
+		write.dstBinding = binding;
+		write.dstArrayElement = 0;
+		write.descriptorCount = 1;
+		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
-	for (auto& pair : m_Samplers)
-	{
-		unsigned int location = pair.first;
-		SamplerBindingInfo& info = pair.second;
+		write.pBufferInfo = &bufferWrite;
+		write.pImageInfo = nullptr;
+		write.pTexelBufferView = nullptr;
 
-		if (info.dynamicWrite)
-			continue;
-
-		VkDescriptorImageInfo& imageInfoStart = m_ImageWriteInfo[imageIdx];
-
-		for (size_t i = 0; i < info.images.size(); ++i)
-		{
-			VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageIdx++];
-
-			IKFrameBufferPtr frameBuffer = info.images[i];
-			ASSERT_RESULT(frameBuffer);
-
-			uint32_t startMip = std::get<0>(info.mipmaps[i]);
-			uint32_t numMip = std::get<1>(info.mipmaps[i]);
-			if (startMip == 0 && numMip == 0)
-			{
-				imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetImageView();
-			}
-			else
-			{
-				imageInfo.imageView = ((KVulkanFrameBuffer*)frameBuffer.get())->GetMipmapImageView(startMip, numMip);
-			}
-
-			imageInfo.imageLayout = frameBuffer->IsStorageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.sampler = ((KVulkanSampler*)info.samplers[i].get())->GetVkSampler();
-
-			ASSERT_RESULT(imageInfo.imageView);
-			ASSERT_RESULT(imageInfo.sampler);
-		}
-
-		VkWriteDescriptorSet samplerDescriptorWrite = {};
-
-		samplerDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		// 写入的描述集合
-		samplerDescriptorWrite.dstSet = VK_NULL_HANDLE;
-		// 写入的位置 与DescriptorSetLayout里的VkDescriptorSetLayoutBinding位置对应
-		samplerDescriptorWrite.dstBinding = location;
-		// 写入索引与下面descriptorCount对应
-		samplerDescriptorWrite.dstArrayElement = 0;
-
-		samplerDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerDescriptorWrite.descriptorCount = (uint32_t)info.images.size();
-
-		samplerDescriptorWrite.pBufferInfo = nullptr; // Optional
-		samplerDescriptorWrite.pImageInfo = &imageInfoStart;
-		samplerDescriptorWrite.pTexelBufferView = nullptr; // Optional
-
-		m_WriteDescriptorSet.push_back(samplerDescriptorWrite);
-	}
+		m_WriteDescriptorSet.push_back(write);
+		++idx;
+	}		
 
 	return true;
 }
@@ -663,6 +639,7 @@ bool KVulkanPipeline::CreateDestcriptionPool(uint32_t threadIndex)
 		{
 			pool.SetDebugName(m_Name + "_Thread" + std::to_string(threadIndex));
 		}
+		m_Pools[threadIndex].UnInit();
 		m_Pools[threadIndex] = std::move(pool);
 		m_PoolInitializeds[threadIndex] = true;
 	}
@@ -696,8 +673,16 @@ bool KVulkanPipeline::UnInit()
 
 	m_PushContant = { 0, 0 };
 
+	m_BindingType.clear();
+
 	m_Uniforms.clear();
 	m_Samplers.clear();
+	m_StorageImages.clear();
+	m_StorageBuffers.clear();
+
+	m_DescriptorSetLayoutBinding.clear();
+	m_WriteDescriptorSet.clear();
+	m_BufferWriteInfo.clear();
 
 	for (size_t i = 0; i < m_Pools.size(); ++i)
 	{
@@ -705,6 +690,9 @@ bool KVulkanPipeline::UnInit()
 		{
 			m_Pools[i].UnInit();
 			m_PoolInitializeds[i] = false;
+#ifdef _DEBUG
+			m_PoolInitialing[i] = false;
+#endif
 		}
 	}
 
@@ -713,8 +701,20 @@ bool KVulkanPipeline::UnInit()
 
 bool KVulkanPipeline::Reload()
 {
+	// FIXME
 	DestroyDevice();
 	ClearHandle();
+	for (size_t i = 0; i < m_Pools.size(); ++i)
+	{
+		if (m_PoolInitializeds[i])
+		{
+			m_Pools[i].UnInit();
+			m_PoolInitializeds[i] = false;
+#ifdef _DEBUG
+			m_PoolInitialing[i] = false;
+#endif
+		}
+	}
 	return true;
 }
 

@@ -447,7 +447,7 @@ enum CommmandBufferReset
 {
 	CBR_RESET_POOL,
 	CBR_RESET_INDIVIDUALLY,
-	CBR_ALWAYS_ALLOCATE
+	CBR_RESET_ALLOCATE_FREE
 };
 
 enum SubpassContents

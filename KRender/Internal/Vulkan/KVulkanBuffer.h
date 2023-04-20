@@ -33,8 +33,11 @@ protected:
 	VkBufferUsageFlags m_Usages;
 	KVulkanStageBuffer m_StageBuffer;
 	uint32_t m_BufferSize;
+	uint32_t m_UniqueID;
 	bool m_bHostVisible;
 	bool m_Mapping;
+
+	static uint32_t ms_UniqueIDCounter;
 public:
 	KVulkanBuffer();
 	~KVulkanBuffer();
@@ -51,6 +54,8 @@ public:
 
 	inline bool IsHostVisible() const { return m_bHostVisible; }
 	inline VkBuffer GetVulkanHandle() { return m_vkBuffer; }
+	inline uint32_t GetUniqueID() const { return m_UniqueID; }
+
 	VkDeviceAddress GetDeviceAddress() const;
 };
 
@@ -136,6 +141,7 @@ public:
 	virtual bool CopyTo(IKStorageBufferPtr pDest);
 
 	VkBuffer GetVulkanHandle();
+	uint32_t GetUniqueID() const;
 };
 
 class KVulkanUniformBuffer : public KUniformBufferBase

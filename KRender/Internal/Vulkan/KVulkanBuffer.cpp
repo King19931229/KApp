@@ -99,10 +99,13 @@ bool KVulkanStageBuffer::Read(void* pData)
 	return false;
 }
 
+uint32_t KVulkanBuffer::ms_UniqueIDCounter = 0;
+
 KVulkanBuffer::KVulkanBuffer()
 	: m_vkBuffer(VK_NULL_HANDLE)
 	, m_Usages(0)
 	, m_BufferSize(0)
+	, m_UniqueID(0)
 	, m_bHostVisible(false)
 	, m_Mapping(false)
 {
@@ -163,6 +166,8 @@ bool KVulkanBuffer::InitDevice(VkBufferUsageFlags usages, const void* pData, uin
 		KVulkanInitializer::CopyVkBuffer(m_StageBuffer.GetVulkanHandle(), m_vkBuffer, (VkDeviceSize)m_BufferSize);
 		m_StageBuffer.UnInit();
 	}
+
+	m_UniqueID = ++ms_UniqueIDCounter;
 
 	return true;
 }
@@ -560,6 +565,11 @@ bool KVulkanStorageBuffer::CopyTo(IKStorageBufferPtr pDest)
 VkBuffer KVulkanStorageBuffer::GetVulkanHandle()
 {
 	return m_Buffer.GetVulkanHandle();
+}
+
+uint32_t KVulkanStorageBuffer::GetUniqueID() const
+{
+	return m_Buffer.GetUniqueID();
 }
 
 // KVulkanUniformBuffer

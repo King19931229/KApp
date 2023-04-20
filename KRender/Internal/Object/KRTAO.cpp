@@ -10,6 +10,13 @@ KRTAO::KRTAO()
 	, m_CurrentAOIndex(0)
 	, m_Enable(true)
 {
+	ZERO_MEMORY(m_AOComputePipeline);
+	ZERO_MEMORY(m_ReprojectPipeline);
+	ZERO_MEMORY(m_AOTemporalPipeline);
+	ZERO_MEMORY(m_AtrousComputePipeline);
+	ZERO_MEMORY(m_ComposePipeline);
+	ZERO_MEMORY(m_BlurHorizontalComputePipeline);
+	ZERO_MEMORY(m_BlurVerticalComputePipeline);
 }
 
 KRTAO::~KRTAO()
@@ -50,49 +57,49 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 	{
 		IKRenderDevice* renderDevice = KRenderGlobal::RenderDevice;
 
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			renderDevice->CreateRenderTarget(m_AOTarget[i]);
-			renderDevice->CreateRenderTarget(m_HitDistanceTarget[i]);
-			renderDevice->CreateRenderTarget(m_NormalDepthTarget[i]);
-			renderDevice->CreateRenderTarget(m_SquaredMeanTarget[i]);
-			renderDevice->CreateRenderTarget(m_TSPP[i]);
-		}
-
-		renderDevice->CreateRenderTarget(m_MeanVarianceTarget[0]);
-		renderDevice->CreateRenderTarget(m_MeanVarianceTarget[1]);
-
-		renderDevice->CreateRenderTarget(m_ReprojectedTarget);
-		renderDevice->CreateRenderTarget(m_VarianceTarget);
-		renderDevice->CreateRenderTarget(m_BlurStrengthTarget);
-		renderDevice->CreateRenderTarget(m_AtrousAOTarget);
-
-		renderDevice->CreateRenderTarget(m_BlurTempTarget);
-
-		Resize();
-
-		m_Camera = scene->GetCamera();
-		m_PrevCamMat = glm::mat4(0.0f);
-
-		renderDevice->CreateUniformBuffer(m_AOUniformBuffer);
-		m_AOUniformBuffer->InitMemory(sizeof(m_AOParameters), &m_AOParameters);
-		m_AOUniformBuffer->InitDevice();
-
-		renderDevice->CreateUniformBuffer(m_MeanUniformBuffer);
-		m_MeanUniformBuffer->InitMemory(sizeof(m_MeanParameters), &m_MeanParameters);
-		m_MeanUniformBuffer->InitDevice();
-
-		IKRenderTargetPtr gbuffer0 = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
-		IKRenderTargetPtr gbuffer1 = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1);
-		IKRenderTargetPtr ao = KRenderGlobal::GBuffer.GetAOTarget();
-
-		IKUniformBufferPtr& cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
-
 		KRenderDeviceProperties* property = nullptr;
 		renderDevice->QueryProperty(&property);
 
 		if (property->raytraceSupport)
 		{
+			for (uint32_t i = 0; i < 2; ++i)
+			{
+				renderDevice->CreateRenderTarget(m_AOTarget[i]);
+				renderDevice->CreateRenderTarget(m_HitDistanceTarget[i]);
+				renderDevice->CreateRenderTarget(m_NormalDepthTarget[i]);
+				renderDevice->CreateRenderTarget(m_SquaredMeanTarget[i]);
+				renderDevice->CreateRenderTarget(m_TSPP[i]);
+			}
+
+			renderDevice->CreateRenderTarget(m_MeanVarianceTarget[0]);
+			renderDevice->CreateRenderTarget(m_MeanVarianceTarget[1]);
+
+			renderDevice->CreateRenderTarget(m_ReprojectedTarget);
+			renderDevice->CreateRenderTarget(m_VarianceTarget);
+			renderDevice->CreateRenderTarget(m_BlurStrengthTarget);
+			renderDevice->CreateRenderTarget(m_AtrousAOTarget);
+
+			renderDevice->CreateRenderTarget(m_BlurTempTarget);
+
+			Resize();
+
+			m_Camera = scene->GetCamera();
+			m_PrevCamMat = glm::mat4(0.0f);
+
+			renderDevice->CreateUniformBuffer(m_AOUniformBuffer);
+			m_AOUniformBuffer->InitMemory(sizeof(m_AOParameters), &m_AOParameters);
+			m_AOUniformBuffer->InitDevice();
+
+			renderDevice->CreateUniformBuffer(m_MeanUniformBuffer);
+			m_MeanUniformBuffer->InitMemory(sizeof(m_MeanParameters), &m_MeanParameters);
+			m_MeanUniformBuffer->InitDevice();
+
+			IKRenderTargetPtr gbuffer0 = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0);
+			IKRenderTargetPtr gbuffer1 = KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET1);
+			IKRenderTargetPtr ao = KRenderGlobal::GBuffer.GetAOTarget();
+
+			IKUniformBufferPtr& cameraBuffer = KRenderGlobal::FrameResourceManager.GetConstantBuffer(CBT_CAMERA);
+
 			for (uint32_t i = 0; i < 2; ++i)
 			{
 				renderDevice->CreateComputePipeline(m_AOComputePipeline[i]);
@@ -210,7 +217,7 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 		}
 	}
 
-	m_DebugDrawer.Init(KRenderGlobal::GBuffer.GetAOTarget() , 0, 0, 1, 1);
+	m_DebugDrawer.Init(KRenderGlobal::GBuffer.GetAOTarget(), 0, 0, 1, 1);
 
 	m_CurrentAOIndex = 0;
 
@@ -284,7 +291,7 @@ bool KRTAO::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBu
 
 bool KRTAO::Execute(IKCommandBufferPtr primaryBuffer, IKQueuePtr graphicsQueue, IKQueuePtr computeQueue)
 {
-	if (m_AOComputePipeline && m_Enable)
+	if (m_AOComputePipeline[m_CurrentAOIndex] && m_Enable)
 	{
 		primaryBuffer->BeginDebugMarker("RTAO", glm::vec4(0, 1, 0, 0));
 

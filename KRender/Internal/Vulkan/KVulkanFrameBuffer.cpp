@@ -5,6 +5,8 @@
 #include "KVulkanCommandBuffer.h"
 #include "KVulkanQueue.h"
 
+uint32_t KVulkanFrameBuffer::ms_UniqueIDCounter = 0;
+
 KVulkanFrameBuffer::KVulkanFrameBuffer()
 	: m_ImageType(VK_IMAGE_TYPE_MAX_ENUM),
 	m_ImageViewType(VK_IMAGE_VIEW_TYPE_MAX_ENUM),
@@ -21,6 +23,7 @@ KVulkanFrameBuffer::KVulkanFrameBuffer()
 	m_Mipmaps(0),
 	m_MSAA(1),
 	m_Layers(1),
+	m_UniqueID(0),
 	m_External(true)
 {
 }
@@ -85,6 +88,8 @@ bool KVulkanFrameBuffer::InitExternal(ExternalType type, VkImage image, VkImageV
 		KVulkanInitializer::TransitionImageLayout(m_MSAAImage, m_Format, 0, m_Layers, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
 		KVulkanInitializer::CreateVkImageView(m_MSAAImage, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, 1, m_MSAAImageView);
 	}
+
+	m_UniqueID = ++ms_UniqueIDCounter;
 
 	return true;
 }
@@ -160,6 +165,8 @@ bool KVulkanFrameBuffer::InitColor(VkFormat format, TextureType textureType, uin
 		KVulkanInitializer::CreateVkImageView(m_MSAAImage, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_COLOR_BIT, 0, m_Mipmaps, 0, 1, m_MSAAImageView);
 	}
 
+	m_UniqueID = ++ms_UniqueIDCounter;
+
 	return true;
 }
 
@@ -211,6 +218,8 @@ bool KVulkanFrameBuffer::InitDepthStencil(uint32_t width, uint32_t height, uint3
 	KVulkanInitializer::TransitionImageLayout(m_Image, m_Format, 0, 1, 0, m_Mipmaps, VK_IMAGE_LAYOUT_UNDEFINED, m_ImageLayout);
 	KVulkanInitializer::CreateVkImageView(m_Image, m_ImageViewType, m_Format, VK_IMAGE_ASPECT_DEPTH_BIT, 0, m_Mipmaps, 0, 1, m_ImageView);
 
+	m_UniqueID = ++ms_UniqueIDCounter;
+
 	return true;
 }
 
@@ -258,6 +267,8 @@ bool KVulkanFrameBuffer::InitStorageInternal(VkFormat format, TextureType type, 
 		// 清空数据
 		KVulkanInitializer::ZeroVkImage(m_Image, m_ImageLayout, 0, m_Layers, 0, m_Mipmaps);
 	}
+
+	m_UniqueID = ++ms_UniqueIDCounter;
 
 	return true;
 }
@@ -307,6 +318,8 @@ bool KVulkanFrameBuffer::InitReadback(VkFormat format, uint32_t width, uint32_t 
 		// 清空数据
 		KVulkanInitializer::ZeroVkImage(m_Image, m_ImageLayout, 0, m_Layers, 0, m_Mipmaps);
 	}
+
+	m_UniqueID = ++ms_UniqueIDCounter;
 
 	return true;
 }

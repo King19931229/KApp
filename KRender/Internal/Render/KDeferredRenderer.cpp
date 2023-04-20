@@ -452,8 +452,6 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 					return;
 				}
 
-				++statistics.drawcalls;
-
 				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
 				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
 				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.Alloc(instances.size(), instances.data(), allocRes));
@@ -469,6 +467,8 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 					usage.count = allocResult.count;
 					usage.offset = allocResult.offset;
 				}
+
+				++statistics.drawcalls;
 
 				if (command.indexDraw)
 				{
@@ -500,8 +500,6 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 					return;
 				}
 
-				++statistics.drawcalls;
-
 				for (size_t idx = 0; idx < instances.size(); ++idx)
 				{
 					const KVertexDefinition::INSTANCE_DATA_MATRIX4F& instance = instances[idx];
@@ -512,6 +510,8 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 					command.objectUsage.binding = SHADER_BINDING_OBJECT;
 					command.objectUsage.range = sizeof(objectData);
 					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+					++statistics.drawcalls;
 
 					if (command.indexDraw)
 					{
@@ -538,9 +538,10 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 
 	renderContext.primaryBuffer->BeginDebugMarker(debugMarker, glm::vec4(0, 1, 0, 0));
 
+	IKRenderPassPtr renderPass = m_RenderPass[deferredRenderStage];
+
 	if (renderContext.enableMultithreading)
 	{
-		IKRenderPassPtr renderPass = m_RenderPass[renderStage];
 		std::vector<KRenderCommand>& commandList = commands;
 
 		renderContext.primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
@@ -596,12 +597,12 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 	}
 	else
 	{
-		renderContext.primaryBuffer->BeginRenderPass(m_RenderPass[renderStage], SUBPASS_CONTENTS_INLINE);
-		renderContext.primaryBuffer->SetViewport(m_RenderPass[renderStage]->GetViewPort());
+		renderContext.primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
+		renderContext.primaryBuffer->SetViewport(renderPass->GetViewPort());
 		for (KRenderCommand& command : commands)
 		{
 			IKPipelineHandlePtr handle = nullptr;
-			if (command.pipeline->GetHandle(m_RenderPass[renderStage], handle))
+			if (command.pipeline->GetHandle(renderPass, handle))
 			{
 				renderContext.primaryBuffer->Render(command);
 			}

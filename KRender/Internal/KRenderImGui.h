@@ -23,6 +23,7 @@ public:
 	{
 		DEFERRED,
 		ADVANCED_CONTROL,
+		VULKAN,
 		DEBUG_MENU_ITEM_COUNT
 	};
 	static const char* DebugMenuName[DEBUG_MENU_ITEM_COUNT];

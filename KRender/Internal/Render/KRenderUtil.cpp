@@ -154,19 +154,6 @@ namespace KRenderUtil
 				KRenderGlobal::DynamicConstantBufferManager.Alloc(fsShadingBuffer.data(), command.shadingUsage);
 			}
 
-			const IKMaterialTextureBinding* textureBinding = material->GetTextureBinding().get();
-
-			uint8_t numSlot = textureBinding->GetNumSlot();
-			for (uint8_t i = 0; i < numSlot; ++i)
-			{
-				IKTexturePtr texture = textureBinding->GetTexture(i);
-				IKSamplerPtr sampler = textureBinding->GetSampler(i);
-				if (texture && sampler)
-				{
-					command.pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, texture->GetFrameBuffer(), sampler, true);
-				}
-			}
-
 			return true;
 		}
 		return false;

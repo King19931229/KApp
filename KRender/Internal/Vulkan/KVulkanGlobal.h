@@ -10,6 +10,8 @@ namespace KVulkanGlobal
 	extern bool supportMeshShader;
 	extern bool supportDebugMarker;
 
+	extern bool hashDescriptorUpdate;
+
 	extern VkInstance instance;
 	extern VkDevice device;
 	extern VkPhysicalDevice physicalDevice;

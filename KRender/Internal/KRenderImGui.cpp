@@ -1,6 +1,7 @@
 #include "KRenderImGui.h"
 #include "KRenderGlobal.h"
 #include "KBase/Interface/IKJson.h"
+#include "Internal/Vulkan/KVulkanGlobal.h"
 #include "imgui.h"
 
 KRenderImGui GRenderImGui;
@@ -21,7 +22,8 @@ const char* KRenderImGui::SettingMenuName[] =
 const char* KRenderImGui::DebugMenuName[] =
 {
 	"DeferredRenderer",
-	"AdvancedContorl"
+	"AdvancedContorl",
+	"Vulkan"
 };
 
 KRenderImGui::KRenderImGui()
@@ -158,7 +160,14 @@ void KRenderImGui::Run()
 			ImGui::Begin(DebugMenuName[ADVANCED_CONTROL], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 			ImGui::Checkbox("AsyncCompute", &KRenderGlobal::Renderer.GetEnableAsyncCompute());
 			ImGui::Checkbox("MultithreadRender", &KRenderGlobal::Renderer.GetEnableMultithreadRender());
-			ImGui::SliderInt("MultithreadCount", &KRenderGlobal::Renderer.GetMultithreadCount(), 1, std::thread::hardware_concurrency());
+			ImGui::SliderInt("MultithreadCount", &KRenderGlobal::Renderer.GetMultithreadCount(), 1, 128);
+			ImGui::End();
+		}
+
+		if (m_DebugMenuEnable[VULKAN])
+		{
+			ImGui::Begin(DebugMenuName[VULKAN], nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+			ImGui::Checkbox("HashDescriptorUpdate", &KVulkanGlobal::hashDescriptorUpdate);
 			ImGui::End();
 		}
 
