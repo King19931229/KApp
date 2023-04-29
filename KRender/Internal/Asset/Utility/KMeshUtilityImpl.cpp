@@ -2,7 +2,6 @@
 #include "Internal/Asset/KSubMesh.h"
 #include "Internal/KVertexDefinition.h"
 #include "Internal/KRenderGlobal.h"
-#include <assert.h>
 
 namespace KMeshUtility
 {

@@ -5,8 +5,6 @@
 #include "KBase/Publish/KStringParser.h"
 #include "Internal/KRenderGlobal.h"
 
-#include <assert.h>
-
 KPostProcessConnection::KPostProcessConnection(KPostProcessManager* mgr)
 	: m_Mgr(mgr)
 {

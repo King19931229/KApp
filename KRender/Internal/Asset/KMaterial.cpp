@@ -5,8 +5,6 @@
 #include "KBase/Publish/KStringParser.h"
 #include "KBase/Interface/IKFileSystem.h"
 
-#include <assert.h>
-
 KMaterial::KMaterial()
 	: m_Version(msCurrentVersion),
 	m_ShadingMode(MSM_OPAQUE),

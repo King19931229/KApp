@@ -538,6 +538,15 @@
     <ClInclude Include="Internal\Vulkan\KVulkanQueue.h">
       <Filter>Internal\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\Vulkan\KVulkanPipelineLayout.h">
+      <Filter>Internal\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\KPipelineBase.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\Manager\KPipelineManager.h">
+      <Filter>Internal\Manager</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -872,6 +881,15 @@
     </ClCompile>
     <ClCompile Include="Internal\Vulkan\KVulkanQueue.cpp">
       <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Vulkan\KVulkanPipelineLayout.cpp">
+      <Filter>Internal\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\KPipelineBase.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Manager\KPipelineManager.cpp">
+      <Filter>Internal\Manager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

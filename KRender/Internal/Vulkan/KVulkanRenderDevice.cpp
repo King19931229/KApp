@@ -8,6 +8,7 @@
 #include "KVulkanSampler.h"
 #include "KVulkanRenderTarget.h"
 #include "KVulkanPipeline.h"
+#include "KVulkanPipelineLayout.h"
 #include "KVulkanCommandBuffer.h"
 #include "KVulkanQuery.h"
 #include "KVulkanRenderPass.h"
@@ -37,7 +38,6 @@
 #include <algorithm>
 #include <set>
 #include <functional>
-#include <assert.h>
 
 //-------------------- Extensions --------------------//
 const char* DEVICE_DEFAULT_EXTENSIONS[] =
@@ -997,15 +997,20 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 
 	m_pWindow = window;
 
-	VkApplicationInfo appInfo = {};
-
 	// 描述实例
+	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = "KVulkan";
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 2, 0);
 	appInfo.pEngineName = "KVulkanEngine";
 	appInfo.engineVersion = VK_MAKE_VERSION(1, 2, 0);
 	appInfo.apiVersion = VK_API_VERSION_1_2;
+
+	VkValidationFeaturesEXT validationFeatures = {};
+	validationFeatures.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+	validationFeatures.disabledValidationFeatureCount = 1;
+	const VkValidationFeatureDisableEXT disables[] = { VK_VALIDATION_FEATURE_DISABLE_SHADER_VALIDATION_CACHE_EXT };
+	validationFeatures.pDisabledValidationFeatures = disables;
 
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -1027,6 +1032,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 			{
 				KG_LOG(LM_RENDER, "Vulkan validation layer picked [%s]\n", createInfo.ppEnabledLayerNames[i]);
 			}
+			createInfo.pNext = &validationFeatures;
 		}
 	}
 	else
@@ -1130,11 +1136,6 @@ bool KVulkanRenderDevice::UnInit()
 	m_GpuCrashTracker = nullptr;
 #endif
 
-	for (KDeviceUnInitCallback* callback : m_UnInitCallback)
-	{
-		(*callback)();
-	}
-
 	for (IKSwapChain* swapChain : m_SecordarySwapChains)
 	{
 		SAFE_UNINIT(swapChain);
@@ -1142,6 +1143,11 @@ bool KVulkanRenderDevice::UnInit()
 	m_SecordarySwapChains.clear();
 
 	CleanupSwapChain();
+
+	for (KDeviceUnInitCallback* callback : m_UnInitCallback)
+	{
+		(*callback)();
+	}
 
 	if (m_PipelineCache != VK_NULL_HANDLE)
 	{
@@ -1495,6 +1501,18 @@ bool KVulkanRenderDevice::CreateRenderTarget(IKRenderTargetPtr& target)
 bool KVulkanRenderDevice::CreatePipeline(IKPipelinePtr& pipeline)
 {
 	pipeline = IKPipelinePtr(KNEW KVulkanPipeline());
+	return true;
+}
+
+bool KVulkanRenderDevice::CreatePipelineLayout(IKPipelineLayoutPtr& pipelineLayout)
+{
+	pipelineLayout = IKPipelineLayoutPtr(KNEW KVulkanPipelineLayout());
+	return true;
+}
+
+bool KVulkanRenderDevice::CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle)
+{
+	pipelineHandle = IKPipelineHandlePtr(KNEW KVulkanPipelineHandle());
 	return true;
 }
 

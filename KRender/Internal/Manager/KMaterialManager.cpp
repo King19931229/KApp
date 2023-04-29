@@ -1,6 +1,5 @@
 #include "KMaterialManager.h"
 #include "Internal/Asset/KMaterial.h"
-#include <assert.h>
 
 KMaterialManager::KMaterialManager()
 	: m_Device(nullptr)

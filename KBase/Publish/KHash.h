@@ -35,4 +35,9 @@ namespace KHash
 	{
 		return func((const char*)&value, sizeof(value));
 	}
+
+	inline void HashCombine(std::uint64_t& seed, const std::string& str)
+	{
+		HashCombine(seed, BKDR(str.c_str(), str.length()));
+	}
 }

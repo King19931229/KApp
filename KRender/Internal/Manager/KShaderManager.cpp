@@ -1,6 +1,5 @@
 #include "KShaderManager.h"
 #include "KBase/Publish/KHash.h"
-#include <assert.h>
 
 KSpirvBuiltInResource::KSpirvBuiltInResource()
 {

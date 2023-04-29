@@ -112,18 +112,6 @@ bool KTextureManager::Acquire(const char* name, const void* pRawData, size_t dat
 	return false;
 }
 
-bool KTextureManager::Release(IKTexturePtr& texture)
-{
-	if(texture)
-	{
-		// 等待设备空闲
-		m_Device->Wait();
-		texture->UnInit();
-		return true;
-	}
-	return false;
-}
-
 bool KTextureManager::GetErrorTexture(KTextureRef& ref)
 {
 	if (m_ErrorTexture)

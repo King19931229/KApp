@@ -1,7 +1,6 @@
 #include "KMaterialParameter.h"
 #include "KBase/Publish/KHash.h"
 #include <algorithm>
-#include <assert.h>
 
 KMaterialParameter::KMaterialParameter()
 {

@@ -1,18 +1,66 @@
 #pragma once
-
 #include "KRender/Interface/IKRenderConfig.h"
+#include "KBase/Publish/KReferenceHolder.h"
 
-struct IKPipelineHandle
+struct KPipelineState
 {
-	virtual ~IKPipelineHandle() {}
-	virtual bool Init(IKPipeline* pipeline, IKRenderPass* renderPass) = 0;
-	virtual bool UnInit() = 0;
+	enum { R,G,B,A };
+	PrimitiveTopology topology;
+	bool colorWrites[4];
+	BlendFactor blendSrcFactor;
+	BlendFactor blendDstFactor;
+	BlendOperator blendOp;
+	bool blend;
+	CullMode cullMode;
+	FrontFace frontFace;
+	PolygonMode polygonMode;
+	CompareFunc depthComp;
+	bool depthWrite;
+	bool depthTest;
+	bool depthBias;
+	CompareFunc stencilComp;
+	StencilOperator stencilFailOp;
+	StencilOperator stencilDepthFailOp;
+	StencilOperator stencilPassOp;
+	uint32_t stencilRef;
+	bool stencil;
+
+	KPipelineState()
+	{
+		topology = PT_TRIANGLE_LIST;
+		colorWrites[0] = colorWrites[1] = colorWrites[2] = colorWrites[3] = true;
+		blendSrcFactor = BF_SRC_ALPHA;
+		blendDstFactor = BF_ONE_MINUS_SRC_ALPHA;
+		blendOp = BO_ADD;
+		blend = false;
+		cullMode = CM_BACK;
+		frontFace = FF_COUNTER_CLOCKWISE;
+		polygonMode = PM_FILL;
+		depthComp = CF_LESS_OR_EQUAL;
+		depthWrite = true;
+		depthTest = true;
+		depthBias = false;
+		stencilComp = CF_LESS_OR_EQUAL;
+		stencilFailOp = stencilDepthFailOp = stencilPassOp = SO_KEEP;
+		stencilRef = 0;
+		stencil = false;
+	}
+};
+
+struct KPipelineBinding
+{
+	IKShaderPtr shaders[LAYOUT_SHADER_COUNT];
+	std::vector<VertexFormat> formats;
+
+	KPipelineBinding()
+	{}
 };
 
 struct IKPipeline
 {
 	virtual ~IKPipeline() {}
 
+	// State
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology) = 0;
 	virtual bool SetVertexBinding(const VertexFormat* format, size_t count) = 0;
 
@@ -30,7 +78,8 @@ struct IKPipeline
 	virtual bool SetStencilFunc(CompareFunc func, StencilOperator failOp, StencilOperator depthFailOp, StencilOperator passOp) = 0;
 	virtual bool SetStencilRef(uint32_t ref) = 0;
 	virtual bool SetStencilEnable(bool enable) = 0;
-	
+
+	// Binding
 	virtual bool SetShader(ShaderType shaderType, IKShaderPtr shader) = 0;
 	virtual bool SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer) = 0;
 
@@ -55,3 +104,22 @@ struct IKPipeline
 
 	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle) = 0;
 };
+
+struct IKPipelineLayout
+{
+	virtual ~IKPipelineLayout() {}
+	virtual bool Init(const KPipelineBinding& binding) = 0;
+	virtual bool UnInit() = 0;
+};
+
+typedef KReferenceHolder<IKPipelineLayoutPtr> KPipelineLayoutRef;
+
+struct IKPipelineHandle
+{
+	virtual ~IKPipelineHandle() {}
+	virtual bool Init(IKPipelineLayout* layout, IKRenderPass* renderPass, const KPipelineState& state, const KPipelineBinding& binding) = 0;
+	virtual bool UnInit() = 0;
+	virtual bool SetDebugName(const char* name) = 0;
+};
+
+typedef KReferenceHolder<IKPipelineHandlePtr> KPipelineHandleRef;

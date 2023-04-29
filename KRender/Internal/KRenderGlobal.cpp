@@ -12,6 +12,7 @@ namespace KRenderGlobal
 	KMaterialManager MaterialManager;
 	KDynamicConstantBufferManager DynamicConstantBufferManager;
 	KInstanceBufferManager InstanceBufferManager;
+	KPipelineManager PipelineManager;
 
 	KPostProcessManager PostProcessManager;
 	KRayTraceManager RayTraceManager;

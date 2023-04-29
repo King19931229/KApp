@@ -1,7 +1,6 @@
 #include "KMaterialTextureBinding.h"
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Interface/IKLog.h"
-#include <assert.h>
 
 KMaterialTextureBinding::KMaterialTextureBinding()
 {

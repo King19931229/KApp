@@ -1,4 +1,5 @@
 #include "KVulkanPipeline.h"
+#include "KVulkanPipelineLayout.h"
 #include "KVulkanBuffer.h"
 #include "KVulkanTexture.h"
 #include "KVulkanSampler.h"
@@ -8,44 +9,13 @@
 #include "KVulkanRenderPass.h"
 #include "KVulkanFrameBuffer.h"
 #include "KVulkanGlobal.h"
+#include "Internal/KRenderGlobal.h"
 #include "KBase/Publish/KSectionEnterAssertGuard.h"
 
-static VkShaderStageFlagBits SHADER_STAGE_FLAGS[] =
+KVulkanPipeline::KVulkanPipeline()
+	: m_DescriptorSetLayout(VK_NULL_HANDLE)
+	, m_PipelineLayout(VK_NULL_HANDLE)
 {
-	VK_SHADER_STAGE_VERTEX_BIT,
-	VK_SHADER_STAGE_FRAGMENT_BIT,
-	VK_SHADER_STAGE_GEOMETRY_BIT,
-	VK_SHADER_STAGE_TASK_BIT_NV,
-	VK_SHADER_STAGE_MESH_BIT_NV
-};
-
-static_assert(ARRAY_SIZE(SHADER_STAGE_FLAGS) == KVulkanPipeline::COUNT, "size must match");
-
-KVulkanPipeline::KVulkanPipeline() :
-	m_PrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
-	m_ColorWriteMask(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT),
-	m_ColorSrcBlendFactor(VK_BLEND_FACTOR_SRC_ALPHA),
-	m_ColorDstBlendFactor(VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA),
-	m_ColorBlendOp(VK_BLEND_OP_ADD),
-	m_BlendEnable(VK_FALSE),
-	m_PolygonMode(VK_POLYGON_MODE_FILL),
-	m_CullMode(VK_CULL_MODE_BACK_BIT),
-	m_FrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE),
-	m_DepthWrite(VK_TRUE),
-	m_DepthTest(VK_TRUE),
-	m_DepthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL),
-	m_DescriptorSetLayout(VK_NULL_HANDLE),
-	m_PipelineLayout(VK_NULL_HANDLE),
-	m_DepthBiasEnable(VK_FALSE),
-	m_StencilFailOp(VK_STENCIL_OP_KEEP),
-	m_StencilDepthFailOp(VK_STENCIL_OP_KEEP),
-	m_StencilPassOp(VK_STENCIL_OP_KEEP),
-	m_StencilCompareOp(VK_COMPARE_OP_ALWAYS),
-	m_StencilRef(0),
-	m_StencilEnable(VK_FALSE)
-{
-	m_PushContant = { 0, 0 };
-
 	m_RenderPassInvalidCB = [this](IKRenderPass* renderPass)
 	{
 		InvaildHandle(renderPass);
@@ -54,14 +24,6 @@ KVulkanPipeline::KVulkanPipeline() :
 
 KVulkanPipeline::~KVulkanPipeline()
 {
-	ASSERT_RESULT(m_DescriptorSetLayout == VK_NULL_HANDLE);
-	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
-	for (uint32_t i = 0; i < COUNT; ++i)
-	{
-		ASSERT_RESULT(m_Shaders[i] == nullptr);
-	}
-	ASSERT_RESULT(m_Uniforms.empty());
-	ASSERT_RESULT(m_Samplers.empty());
 }
 
 bool KVulkanPipeline::InvaildHandle(IKRenderPass* renderPass)
@@ -71,8 +33,7 @@ bool KVulkanPipeline::InvaildHandle(IKRenderPass* renderPass)
 		auto it = m_HandleMap.find(renderPass);
 		if (it != m_HandleMap.end())
 		{
-			IKPipelineHandlePtr handle = it->second;
-			handle->UnInit();
+			KRenderGlobal::PipelineManager.InvalidateHandle(it->second.hash);
 			m_HandleMap.erase(it);
 		}
 	}
@@ -81,509 +42,54 @@ bool KVulkanPipeline::InvaildHandle(IKRenderPass* renderPass)
 
 bool KVulkanPipeline::DestroyDevice()
 {
-	if (m_DescriptorSetLayout)
-	{
-		vkDestroyDescriptorSetLayout(KVulkanGlobal::device, m_DescriptorSetLayout, nullptr);
-		m_DescriptorSetLayout = VK_NULL_HANDLE;
-	}
-	if (m_PipelineLayout)
-	{
-		vkDestroyPipelineLayout(KVulkanGlobal::device, m_PipelineLayout, nullptr);
-		m_PipelineLayout = VK_NULL_HANDLE;
-	}
+	m_Layout.Release();
 
-	return true;
-}
+	m_DescriptorSetLayout = VK_NULL_HANDEL;
+	m_PipelineLayout = VK_NULL_HANDEL;
+	m_DescriptorSetLayoutBinding.clear();
 
-bool KVulkanPipeline::ClearHandle()
-{
 	for (auto& pair : m_HandleMap)
 	{
 		IKRenderPass* pass = pair.first;
-		IKPipelineHandlePtr handle = pair.second;
+		PipelineHandle& handle = pair.second;
+		KRenderGlobal::PipelineManager.InvalidateHandle(handle.hash);
 		pass->UnRegisterInvalidCallback(&m_RenderPassInvalidCB);
-		handle->UnInit();
 	}
 	m_HandleMap.clear();
 
-	return true;
-}
+	m_WriteDescriptorSet.clear();
+	m_BufferWriteInfo.clear();
 
-bool KVulkanPipeline::SetPrimitiveTopology(PrimitiveTopology topology)
-{
-	ASSERT_RESULT(KVulkanHelper::TopologyToVkPrimitiveTopology(topology, m_PrimitiveTopology));
-	return true;
-}
-
-bool KVulkanPipeline::SetVertexBinding(const VertexFormat* formats, size_t count)
-{
-	KVulkanHelper::VulkanBindingDetailList bindingDetails;
-	ASSERT_RESULT(KVulkanHelper::PopulateInputBindingDescription(formats, count, bindingDetails));
-
-	m_BindingDescriptions.clear();
-	m_AttributeDescriptions.clear();
-
-	for (KVulkanHelper::VulkanBindingDetail& detail : bindingDetails)
+	for (size_t i = 0; i < m_Pools.size(); ++i)
 	{
-		m_BindingDescriptions.push_back(detail.bindingDescription);
-		m_AttributeDescriptions.insert(m_AttributeDescriptions.end(),
-			detail.attributeDescriptions.begin(),
-			detail.attributeDescriptions.end()
-		);
-	}
-	return true;
-}
-
-bool KVulkanPipeline::SetColorWrite(bool r, bool g, bool b, bool a)
-{
-	m_ColorWriteMask = 0;
-	m_ColorWriteMask |=  (r * VK_COLOR_COMPONENT_R_BIT);
-	m_ColorWriteMask |=  (g * VK_COLOR_COMPONENT_G_BIT);
-	m_ColorWriteMask |=  (b * VK_COLOR_COMPONENT_B_BIT);
-	m_ColorWriteMask |=  (a * VK_COLOR_COMPONENT_A_BIT);
-	return true;
-}
-
-bool KVulkanPipeline::SetColorBlend(BlendFactor srcFactor, BlendFactor dstFactor, BlendOperator op)
-{
-	ASSERT_RESULT(KVulkanHelper::BlendFactorToVkBlendFactor(srcFactor, m_ColorSrcBlendFactor));
-	ASSERT_RESULT(KVulkanHelper::BlendFactorToVkBlendFactor(dstFactor, m_ColorDstBlendFactor));
-	ASSERT_RESULT(KVulkanHelper::BlendOperatorToVkBlendOp(op, m_ColorBlendOp));
-	return true;
-}
-
-bool KVulkanPipeline::SetBlendEnable(bool enable)
-{
-	m_BlendEnable = enable;
-	return true;
-}
-
-bool KVulkanPipeline::SetCullMode(CullMode cullMode)
-{
-	ASSERT_RESULT(KVulkanHelper::CullModeToVkCullMode(cullMode, m_CullMode));
-	return true;
-}
-
-bool KVulkanPipeline::SetFrontFace(FrontFace frontFace)
-{
-	ASSERT_RESULT(KVulkanHelper::FrontFaceToVkFrontFace(frontFace, m_FrontFace));
-	return true;
-}
-
-bool KVulkanPipeline::SetPolygonMode(PolygonMode polygonMode)
-{
-	ASSERT_RESULT(KVulkanHelper::PolygonModeToVkPolygonMode(polygonMode, m_PolygonMode));
-	return true;
-}
-
-bool KVulkanPipeline::SetDepthFunc(CompareFunc func, bool depthWrtie, bool depthTest)
-{
-	ASSERT_RESULT(KVulkanHelper::CompareFuncToVkCompareOp(func, m_DepthCompareOp));
-	m_DepthWrite = (VkBool32)depthWrtie;
-	m_DepthTest = (VkBool32)depthTest;
-	return true;
-}
-
-bool KVulkanPipeline::SetDepthBiasEnable(bool enable)
-{
-	m_DepthBiasEnable = (VkBool32)enable;
-	return true;
-}
-
-bool KVulkanPipeline::SetStencilFunc(CompareFunc func, StencilOperator failOp, StencilOperator depthFailOp, StencilOperator passOp)
-{
-	ASSERT_RESULT(KVulkanHelper::CompareFuncToVkCompareOp(func, m_StencilCompareOp));	
-	ASSERT_RESULT(KVulkanHelper::StencilOperatorToVkStencilOp(failOp, m_StencilFailOp));
-	ASSERT_RESULT(KVulkanHelper::StencilOperatorToVkStencilOp(depthFailOp, m_StencilDepthFailOp));
-	ASSERT_RESULT(KVulkanHelper::StencilOperatorToVkStencilOp(passOp, m_StencilPassOp));
-	return true;
-}
-
-bool KVulkanPipeline::SetStencilRef(uint32_t ref)
-{
-	m_StencilRef = ref;
-	return true;
-}
-
-bool KVulkanPipeline::SetStencilEnable(bool enable)
-{
-	m_StencilEnable = (VkBool32)enable;
-	return true;
-}
-
-bool KVulkanPipeline::SetShader(ShaderType shaderType, IKShaderPtr shader)
-{
-	switch (shaderType)
-	{
-	case ST_VERTEX:
-		m_Shaders[VERTEX] = shader;
-		return true;
-	case ST_FRAGMENT:
-		m_Shaders[FRAGMENT] = shader;
-		return true;
-	case ST_GEOMETRY:
-		m_Shaders[GEOMETRY] = shader;
-		return true;
-	case ST_TASK:
-		m_Shaders[TASK] = shader;
-		return true;
-	case ST_MESH:
-		m_Shaders[MESH] = shader;
-		return true;
-	default:
-		assert(false && "unknown shader");
-		return false;
-	}
-}
-
-bool KVulkanPipeline::SetConstantBuffer(unsigned int location, ShaderTypes shaderTypes, IKUniformBufferPtr buffer)
-{
-	if(buffer)
-	{
-		CheckBindConflict(location, BINDING_UNIFORM);
-		UniformBufferBindingInfo info = { shaderTypes, buffer };
-		auto it = m_Uniforms.find(location);
-		if(it == m_Uniforms.end())
+		if (m_PoolInitializeds[i])
 		{
-			m_Uniforms[location] = info;
-		}
-		else
-		{
-			it->second = info;
-		}
-		return true;
-	}
-	return false;
-}
-
-bool KVulkanPipeline::CheckBindConflict(unsigned int location, BindingType type)
-{
+			m_Pools[i].UnInit();
+			m_PoolInitializeds[i] = false;
 #ifdef _DEBUG
-	auto it = m_BindingType.find(location);
-	if (it == m_BindingType.end())
-	{
-		m_BindingType.insert({ location, type });
-		return true;
-	}
-	else
-	{
-		BindingType prevType = it->second;
-		assert(prevType == type);
-		it->second = type;
-		return prevType == type;
-	}
-#else
-	return true;
+			m_PoolInitialing[i] = false;
 #endif
-}
-
-bool KVulkanPipeline::BindSampler(unsigned int location, const SamplerBindingInfo& info)
-{
-	CheckBindConflict(location, BINDING_SAMPLER);
-	auto it = m_Samplers.find(location);
-	if(it == m_Samplers.end())
-	{
-		m_Samplers[location] = info;
-	}
-	else
-	{
-		it->second = info;
-	}
-	return true;
-}
-
-bool KVulkanPipeline::SetSampler(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, bool dynimicWrite)
-{
-	if (image && sampler)
-	{
-		SamplerBindingInfo info;
-		info.images = { image };
-		info.samplers = { sampler };
-		info.mipmaps = { { 0, 0 } };
-		ASSERT_RESULT(BindSampler(location, info));
-		return true;
-	}
-	return false;
-}
-
-bool KVulkanPipeline::SetSamplerMipmap(unsigned int location, IKFrameBufferPtr image, IKSamplerPtr sampler, uint32_t startMip, uint32_t mipNum, bool dynimicWrite)
-{
-	if (image && sampler)
-	{
-		SamplerBindingInfo info;
-		info.images = { image };
-		info.samplers = { sampler };
-		info.mipmaps = { { startMip, mipNum } };
-		ASSERT_RESULT(BindSampler(location, info));
-		return true;
-	}
-	return false;
-}
-
-bool KVulkanPipeline::SetStorageImage(unsigned int location, IKFrameBufferPtr image, ElementFormat format)
-{
-	if (image)
-	{
-		CheckBindConflict(location, BINDING_STORAGE_IMAGE);
-		StorageImageBindingInfo info;
-		info.images = { image };
-		info.format = format;
-		m_StorageImages[location] = info;
-		return true;
-	}
-	return false;
-}
-
-bool KVulkanPipeline::SetStorageBuffer(unsigned int location, ShaderTypes shaderTypes, IKStorageBufferPtr buffer)
-{
-	if (buffer)
-	{
-		CheckBindConflict(location, BINDING_STORAGE_BUFFER);
-		StorageBufferBindingInfo info;
-		info.shaderTypes = shaderTypes;
-		info.buffer = buffer;
-	
-		auto it = m_StorageBuffers.find(location);
-		if (it == m_StorageBuffers.end())
-		{
-			m_StorageBuffers[location] = info;
 		}
-		else
-		{
-			it->second = info;
-		}
-		return true;
 	}
-	return false;
-}
 
-bool KVulkanPipeline::SetSamplers(unsigned int location, const std::vector<IKFrameBufferPtr>& images, const std::vector<IKSamplerPtr>& samplers, bool dynimicWrite)
-{
-	if (samplers.size() == images.size() && samplers.size() > 0)
-	{
-		SamplerBindingInfo info;
-		info.images = images;
-		info.samplers = samplers;
-		info.mipmaps.reserve(images.size());
-		for (size_t i = 0; i < images.size(); ++i)
-		{
-			info.mipmaps.push_back({ 0, 0 });
-		}
-		ASSERT_RESULT(BindSampler(location, info));
-		return true;
-	}
-	return false;
-}
-
-bool KVulkanPipeline::SetStorageImages(unsigned int location, const std::vector<IKFrameBufferPtr>& images, ElementFormat format)
-{
-	if (images.size() > 0)
-	{
-		CheckBindConflict(location, BINDING_STORAGE_IMAGE);
-		StorageImageBindingInfo info;
-		info.images = images;
-		info.format = format;
-		m_StorageImages[location] = info;
-		return true;
-	}
-	return false;
-}
-
-bool KVulkanPipeline::CreateConstantBlock(ShaderTypes shaderTypes, uint32_t size)
-{
-	m_PushContant = { shaderTypes, size };
-	return true;
-}
-
-bool KVulkanPipeline::DestroyConstantBlock()
-{
-	m_PushContant = { 0, 0 };
 	return true;
 }
 
 bool KVulkanPipeline::CreateLayout()
 {
-	ASSERT_RESULT(m_DescriptorSetLayout == VK_NULL_HANDLE);
-	ASSERT_RESULT(m_PipelineLayout == VK_NULL_HANDLE);
-
-	/*
-	DescriptorSetLayout 仅仅声明UBO Sampler绑定的位置
-	实际UBO Sampler 句柄绑定在描述集合里指定
-	*/
-	m_DescriptorSetLayoutBinding.clear();
-
-	auto MergeLayoutBinding = [](std::vector<VkDescriptorSetLayoutBinding>& bindings, const VkDescriptorSetLayoutBinding& newBinding)
+	if (KRenderGlobal::PipelineManager.AcquireLayout(m_Binding, m_Layout))
 	{
-		auto it = std::find_if(bindings.begin(), bindings.end(),
-			[&newBinding](const VkDescriptorSetLayoutBinding& reference)->bool
-		{
-			if (newBinding.binding != reference.binding)
-				return false;
-			if (newBinding.descriptorType != reference.descriptorType)
-				return false;
-			if (newBinding.descriptorCount != reference.descriptorCount)
-				return false;
-			if (newBinding.pImmutableSamplers != reference.pImmutableSamplers)
-				return false;
-			return true;
-		});
-
-		if (it == bindings.end())
-		{
-			bindings.push_back(newBinding);
-		}
-		else
-		{
-			(*it).stageFlags |= newBinding.stageFlags;
-		}
-	};
-
-	auto AddLayoutBinding = [this, MergeLayoutBinding](const KShaderInformation& information, VkShaderStageFlags stageFlag)
-	{
-		for (const KShaderInformation::Storage& storage : information.storageBuffers)
-		{
-			VkDescriptorSetLayoutBinding sboLayoutBinding = {};
-			// 与Shader中绑定位置对应
-			sboLayoutBinding.binding = storage.bindingIndex;
-			sboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			sboLayoutBinding.descriptorCount = storage.arraysize > 1 ? storage.arraysize : 1;
-			// 声明哪个阶段Shader能够使用上此UBO
-			sboLayoutBinding.stageFlags = stageFlag;
-			sboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-			MergeLayoutBinding(m_DescriptorSetLayoutBinding, sboLayoutBinding);
-		}
-
-		for (const KShaderInformation::Storage& storage : information.storageImages)
-		{
-			VkDescriptorSetLayoutBinding sboLayoutBinding = {};
-			// 与Shader中绑定位置对应
-			sboLayoutBinding.binding = storage.bindingIndex;
-			sboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-			sboLayoutBinding.descriptorCount = storage.arraysize > 1 ? storage.arraysize : 1;
-			// 声明哪个阶段Shader能够使用上此UBO
-			sboLayoutBinding.stageFlags = stageFlag;
-			sboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-			MergeLayoutBinding(m_DescriptorSetLayoutBinding, sboLayoutBinding);
-		}
-
-		for (const KShaderInformation::Constant& constant : information.constants)
-		{
-			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-			// 与Shader中绑定位置对应
-			uboLayoutBinding.binding = constant.bindingIndex;
-			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			uboLayoutBinding.descriptorCount = 1;
-			// 声明哪个阶段Shader能够使用上此UBO
-			uboLayoutBinding.stageFlags = stageFlag;
-			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-			MergeLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
-		}
-
-		for (const KShaderInformation::Constant& constant : information.dynamicConstants)
-		{
-			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-			// 与Shader中绑定位置对应
-			uboLayoutBinding.binding = constant.bindingIndex;
-			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-			uboLayoutBinding.descriptorCount = 1;
-			// 声明哪个阶段Shader能够使用上此UBO
-			uboLayoutBinding.stageFlags = stageFlag;
-			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-			MergeLayoutBinding(m_DescriptorSetLayoutBinding, uboLayoutBinding);
-		}
-
-		for (const KShaderInformation::Texture& texture : information.textures)
-		{
-			VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-			// 与Shader中绑定位置对应
-			samplerLayoutBinding.binding = texture.bindingIndex;
-			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			samplerLayoutBinding.descriptorCount = texture.arraysize > 1 ? texture.arraysize : 1;
-			// 声明哪个阶段Shader能够使用上此Sampler
-			samplerLayoutBinding.stageFlags = stageFlag;
-			samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-			MergeLayoutBinding(m_DescriptorSetLayoutBinding, samplerLayoutBinding);
-		}
-	};
-
-	for (uint32_t i = 0; i < COUNT; ++i)
-	{
-		if (m_Shaders[i])
-		{
-			AddLayoutBinding(m_Shaders[i]->GetInformation(), SHADER_STAGE_FLAGS[i]);
-		}
+		KVulkanPipelineLayout* vulkanPipelineLayout = (KVulkanPipelineLayout*)m_Layout.Get().get();
+		m_DescriptorSetLayout = vulkanPipelineLayout->GetDescriptorSetLayout();
+		m_PipelineLayout = vulkanPipelineLayout->GetPipelineLayout();
+		m_DescriptorSetLayoutBinding = vulkanPipelineLayout->GetDescriptorSetLayoutBinding();
+		CreateDestcriptionWrite();
+		return true;
 	}
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = static_cast<uint32_t>(m_DescriptorSetLayoutBinding.size());
-	layoutInfo.pBindings = m_DescriptorSetLayoutBinding.data();
-
-	VK_ASSERT_RESULT(vkCreateDescriptorSetLayout(KVulkanGlobal::device, &layoutInfo, nullptr, &m_DescriptorSetLayout));
-
-	/*
-	声明PushConstant
-	*/
-	std::vector<VkPushConstantRange> pushConstantRanges;
-
-	auto AddPushConstantRange = [](std::vector<VkPushConstantRange>& ranges, const KShaderInformation& information, VkShaderStageFlags stageFlag)
+	else
 	{
-		for (const KShaderInformation::Constant& constant : information.pushConstants)
-		{
-			VkPushConstantRange range = {};
-			range.stageFlags = stageFlag;
-			range.offset = 0;
-			range.size = constant.size;
-
-			auto it = std::find_if(ranges.begin(), ranges.end(), 
-				[&range](const VkPushConstantRange& reference)->bool
-				{
-					if (range.offset != reference.offset)
-						return false;
-					if (range.size != reference.size)
-						return false;
-					return true;
-				});
-
-			if (it == ranges.end())
-			{
-				ranges.push_back(range);
-			}
-			else
-			{
-				(*it).stageFlags |= range.stageFlags;
-			}
-		}
-	};
-
-	if (m_Shaders[VERTEX]) AddPushConstantRange(pushConstantRanges, m_Shaders[VERTEX]->GetInformation(), VK_SHADER_STAGE_VERTEX_BIT);
-	if (m_Shaders[GEOMETRY]) AddPushConstantRange(pushConstantRanges, m_Shaders[GEOMETRY]->GetInformation(), VK_SHADER_STAGE_GEOMETRY_BIT);
-	if (m_Shaders[FRAGMENT]) AddPushConstantRange(pushConstantRanges, m_Shaders[FRAGMENT]->GetInformation(), VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	// 创建管线布局
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 1;
-	// 指定该管线的描述布局
-	pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout;
-	// 指定PushConstant
-	pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
-	pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges.size() > 0 ? pushConstantRanges.data() : nullptr;
-
-	VK_ASSERT_RESULT(vkCreatePipelineLayout(KVulkanGlobal::device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout));
-
-	if (!m_Name.empty())
-	{
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_DescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (std::string(m_Name) + "_DescriptorSetLayout").c_str());
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_PipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, (std::string(m_Name) + "_PipelineLayout").c_str());
-	}	
-
-	return true;
+		return false;
+	}
 }
 
 bool KVulkanPipeline::CreateDestcriptionWrite()
@@ -626,25 +132,30 @@ bool KVulkanPipeline::CreateDestcriptionWrite()
 }
 
 bool KVulkanPipeline::CreateDestcriptionPool(uint32_t threadIndex)
-{	
-#ifdef _DEBUG
-	KSectionEnterAssertGuard gurad(m_PoolInitialing[threadIndex]);
-#endif
-
-	if (!m_PoolInitializeds[threadIndex])
+{
+	if (m_Layout)
 	{
-		KVulkanDescriptorPool pool;
-		pool.Init(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, m_WriteDescriptorSet);
-		if (!m_Name.empty())
+#ifdef _DEBUG
+		KSectionEnterAssertGuard gurad(m_PoolInitialing[threadIndex]);
+#endif
+		if (!m_PoolInitializeds[threadIndex])
 		{
-			pool.SetDebugName(m_Name + "_Thread" + std::to_string(threadIndex));
+			KVulkanDescriptorPool pool;
+			pool.Init(m_DescriptorSetLayout, m_DescriptorSetLayoutBinding, m_WriteDescriptorSet);
+			if (!m_Name.empty())
+			{
+				pool.SetDebugName(m_Name + "_Thread" + std::to_string(threadIndex));
+			}
+			m_Pools[threadIndex].UnInit();
+			m_Pools[threadIndex] = std::move(pool);
+			m_PoolInitializeds[threadIndex] = true;
 		}
-		m_Pools[threadIndex].UnInit();
-		m_Pools[threadIndex] = std::move(pool);
-		m_PoolInitializeds[threadIndex] = true;
+		return true;
 	}
-
-	return true;
+	else
+	{
+		return false;
+	}
 }
 
 VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(uint32_t threadIndex,
@@ -658,131 +169,29 @@ VkDescriptorSet KVulkanPipeline::AllocDescriptorSet(uint32_t threadIndex,
 
 bool KVulkanPipeline::Init()
 {
+	KPipelineBase::Init();
 	return true;
 }
 
 bool KVulkanPipeline::UnInit()
 {
+	KPipelineBase::UnInit();
 	DestroyDevice();
-	ClearHandle();
-
-	for (uint32_t i = 0; i < COUNT; ++i)
-	{
-		m_Shaders[i] = nullptr;
-	}
-
-	m_PushContant = { 0, 0 };
-
-	m_BindingType.clear();
-
-	m_Uniforms.clear();
-	m_Samplers.clear();
-	m_StorageImages.clear();
-	m_StorageBuffers.clear();
-
-	m_DescriptorSetLayoutBinding.clear();
-	m_WriteDescriptorSet.clear();
-	m_BufferWriteInfo.clear();
-
-	for (size_t i = 0; i < m_Pools.size(); ++i)
-	{
-		if (m_PoolInitializeds[i])
-		{
-			m_Pools[i].UnInit();
-			m_PoolInitializeds[i] = false;
-#ifdef _DEBUG
-			m_PoolInitialing[i] = false;
-#endif
-		}
-	}
-
 	return true;
 }
 
 bool KVulkanPipeline::Reload()
 {
-	// FIXME
+	KPipelineBase::Reload();
 	DestroyDevice();
-	ClearHandle();
-	for (size_t i = 0; i < m_Pools.size(); ++i)
-	{
-		if (m_PoolInitializeds[i])
-		{
-			m_Pools[i].UnInit();
-			m_PoolInitializeds[i] = false;
-#ifdef _DEBUG
-			m_PoolInitialing[i] = false;
-#endif
-		}
-	}
-	return true;
-}
-
-bool KVulkanPipeline::SetDebugName(const char* name)
-{
-	m_Name = name;
-
-	if (m_DescriptorSetLayout != VK_NULL_HANDEL)
-	{
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_DescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (std::string(m_Name) + "_DescriptorSetLayout").c_str());
-	}
-	if (m_PipelineLayout != VK_NULL_HANDEL)
-	{
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_PipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, (std::string(m_Name) + "_PipelineLayout").c_str());
-	}
-
-	return true;
-}
-
-const char* KVulkanPipeline::GetDebugName() const
-{
-	return m_Name.size() ? m_Name.c_str() : nullptr;
-}
-
-bool KVulkanPipeline::CheckDependencyResource()
-{
-	if (!m_Shaders[VERTEX] && !m_Shaders[MESH])
-	{
-		return false;
-	}
-
-	if (!m_Shaders[FRAGMENT])
-	{
-		return false;
-	}
-
-	for (uint32_t i = 0; i < COUNT; ++i)
-	{
-		if (m_Shaders[i] && m_Shaders[i]->GetResourceState() != RS_DEVICE_LOADED)
-			return false;
-	}
-
-	for (auto& pair : m_Samplers)
-	{
-		unsigned int location = pair.first;
-		SamplerBindingInfo& info = pair.second;
-
-		// TODO Image被初始化
-		if (!info.images[0])
-		{
-			return false;
-		}
-	}
-
 	return true;
 }
 
 bool KVulkanPipeline::GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle)
 {
-	if (!CheckDependencyResource())
-	{
-		return false;
-	}
-
-	if (m_DescriptorSetLayout == VK_NULL_HANDLE && m_PipelineLayout == VK_NULL_HANDLE)
+	if (!m_Layout)
 	{
 		CreateLayout();
-		CreateDestcriptionWrite();
 	}
 
 	if (renderPass)
@@ -790,22 +199,44 @@ bool KVulkanPipeline::GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr&
 		auto it = m_HandleMap.find(renderPass.get());
 		if (it != m_HandleMap.end())
 		{
-			handle = it->second;
+			handle = *it->second.handle;
 			return true;
 		}
 
-		renderPass->RegisterInvalidCallback(&m_RenderPassInvalidCB);
-		handle = IKPipelineHandlePtr(KNEW KVulkanPipelineHandle());
-		handle->Init(this, renderPass.get());
-		m_HandleMap[renderPass.get()] = handle;
-
-		return true;
+		PipelineHandle newHandle;
+		if (KRenderGlobal::PipelineManager.AcquireHandle(m_Layout.Get().get(), renderPass.get(), m_State, m_Binding, newHandle.handle, newHandle.hash))
+		{
+			m_HandleMap[renderPass.get()] = newHandle;
+			handle = newHandle.handle.Get();
+			handle->SetDebugName(m_Name.c_str());
+			renderPass->RegisterInvalidCallback(&m_RenderPassInvalidCB);
+			return true;
+		}
 	}
 	return false;
 }
 
 KVulkanPipelineHandle::KVulkanPipelineHandle()
 	: m_GraphicsPipeline(VK_NULL_HANDLE)
+	, m_PrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+	, m_ColorWriteMask(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
+	, m_ColorSrcBlendFactor(VK_BLEND_FACTOR_SRC_ALPHA)
+	, m_ColorDstBlendFactor(VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA)
+	, m_ColorBlendOp(VK_BLEND_OP_ADD)
+	, m_BlendEnable(VK_FALSE)
+	, m_PolygonMode(VK_POLYGON_MODE_FILL)
+	, m_CullMode(VK_CULL_MODE_BACK_BIT)
+	, m_FrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+	, m_DepthWrite(VK_TRUE)
+	, m_DepthTest(VK_TRUE)
+	, m_DepthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL)
+	, m_DepthBiasEnable(VK_FALSE)
+	, m_StencilFailOp(VK_STENCIL_OP_KEEP)
+	, m_StencilDepthFailOp(VK_STENCIL_OP_KEEP)
+	, m_StencilPassOp(VK_STENCIL_OP_KEEP)
+	, m_StencilCompareOp(VK_COMPARE_OP_ALWAYS)
+	, m_StencilRef(0)
+	, m_StencilEnable(VK_FALSE)
 {
 }
 
@@ -814,37 +245,87 @@ KVulkanPipelineHandle::~KVulkanPipelineHandle()
 	ASSERT_RESULT(m_GraphicsPipeline == VK_NULL_HANDLE);
 }
 
-bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
+bool KVulkanPipelineHandle::InitializeVulkanTerminology(const KPipelineState& state, const KPipelineBinding& binding)
+{
+	ASSERT_RESULT(KVulkanHelper::TopologyToVkPrimitiveTopology(state.topology, m_PrimitiveTopology));
+
+	KVulkanHelper::VulkanBindingDetailList bindingDetails;
+	ASSERT_RESULT(KVulkanHelper::PopulateInputBindingDescription(binding.formats.data(), binding.formats.size(), bindingDetails));
+
+	m_BindingDescriptions.clear();
+	m_AttributeDescriptions.clear();
+
+	for (KVulkanHelper::VulkanBindingDetail& detail : bindingDetails)
+	{
+		m_BindingDescriptions.push_back(detail.bindingDescription);
+		m_AttributeDescriptions.insert(m_AttributeDescriptions.end(),
+			detail.attributeDescriptions.begin(),
+			detail.attributeDescriptions.end()
+		);
+	}
+
+	m_ColorWriteMask = 0;
+	m_ColorWriteMask |= (state.colorWrites[state.R] * VK_COLOR_COMPONENT_R_BIT);
+	m_ColorWriteMask |= (state.colorWrites[state.G] * VK_COLOR_COMPONENT_G_BIT);
+	m_ColorWriteMask |= (state.colorWrites[state.B] * VK_COLOR_COMPONENT_B_BIT);
+	m_ColorWriteMask |= (state.colorWrites[state.A] * VK_COLOR_COMPONENT_A_BIT);
+
+	ASSERT_RESULT(KVulkanHelper::BlendFactorToVkBlendFactor(state.blendSrcFactor, m_ColorSrcBlendFactor));
+	ASSERT_RESULT(KVulkanHelper::BlendFactorToVkBlendFactor(state.blendDstFactor, m_ColorDstBlendFactor));
+	ASSERT_RESULT(KVulkanHelper::BlendOperatorToVkBlendOp(state.blendOp, m_ColorBlendOp));
+
+	m_BlendEnable = state.blend;
+
+	ASSERT_RESULT(KVulkanHelper::CullModeToVkCullMode(state.cullMode, m_CullMode));
+	ASSERT_RESULT(KVulkanHelper::FrontFaceToVkFrontFace(state.frontFace, m_FrontFace));
+	ASSERT_RESULT(KVulkanHelper::PolygonModeToVkPolygonMode(state.polygonMode, m_PolygonMode));
+	ASSERT_RESULT(KVulkanHelper::CompareFuncToVkCompareOp(state.depthComp, m_DepthCompareOp));
+
+	m_DepthWrite = (VkBool32)state.depthWrite;
+	m_DepthTest = (VkBool32)state.depthTest;
+
+	m_DepthBiasEnable = (VkBool32)state.depthBias;
+
+	ASSERT_RESULT(KVulkanHelper::CompareFuncToVkCompareOp(state.stencilComp, m_StencilCompareOp));
+	ASSERT_RESULT(KVulkanHelper::StencilOperatorToVkStencilOp(state.stencilFailOp, m_StencilFailOp));
+	ASSERT_RESULT(KVulkanHelper::StencilOperatorToVkStencilOp(state.stencilDepthFailOp, m_StencilDepthFailOp));
+	ASSERT_RESULT(KVulkanHelper::StencilOperatorToVkStencilOp(state.stencilPassOp, m_StencilPassOp));
+
+	m_StencilRef = state.stencilRef;
+	m_StencilEnable = (VkBool32)state.stencil;
+	return true;
+}
+
+bool KVulkanPipelineHandle::Init(IKPipelineLayout* layout, IKRenderPass* renderPass, const KPipelineState& state, const KPipelineBinding& binding)
 {
 	UnInit();
 
-	ASSERT_RESULT(pipeline);
+	ASSERT_RESULT(layout);
 	ASSERT_RESULT(renderPass);
 
 	ASSERT_RESULT(m_GraphicsPipeline == VK_NULL_HANDLE);
 
-	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline);
+	KVulkanPipelineLayout* vulkanPipelineLayout = static_cast<KVulkanPipelineLayout*>(layout);
 	KVulkanRenderPass* vulkanRenderPass = static_cast<KVulkanRenderPass*>(renderPass);
-
-	ASSERT_RESULT((vulkanPipeline->m_Shaders[KVulkanPipeline::VERTEX] || vulkanPipeline->m_Shaders[KVulkanPipeline::MESH]) && vulkanPipeline->m_Shaders[KVulkanPipeline::FRAGMENT]);
-	ASSERT_RESULT(vulkanPipeline->m_PipelineLayout);
 
 	VkSampleCountFlagBits msaaFlag = vulkanRenderPass->GetMSAAFlag();
 	const KViewPortArea& area = vulkanRenderPass->GetViewPort();
+
+	InitializeVulkanTerminology(state, binding);
 
 	// 配置顶点输入信息
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-	vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)vulkanPipeline->m_BindingDescriptions.size();
-	vertexInputInfo.pVertexBindingDescriptions = vulkanPipeline->m_BindingDescriptions.data();
-	vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)vulkanPipeline->m_AttributeDescriptions.size();
-	vertexInputInfo.pVertexAttributeDescriptions = vulkanPipeline->m_AttributeDescriptions.data();
+	vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)m_BindingDescriptions.size();
+	vertexInputInfo.pVertexBindingDescriptions = m_BindingDescriptions.data();
+	vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)m_AttributeDescriptions.size();
+	vertexInputInfo.pVertexAttributeDescriptions = m_AttributeDescriptions.data();
 
 	// 配置顶点组装信息
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = vulkanPipeline->m_PrimitiveTopology;
+	inputAssembly.topology = m_PrimitiveTopology;
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 	// 配置视口裁剪
@@ -874,12 +355,12 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizer.depthClampEnable = VK_FALSE;
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = vulkanPipeline->m_PolygonMode;
+	rasterizer.polygonMode = m_PolygonMode;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = vulkanPipeline->m_CullMode;
-	rasterizer.frontFace = vulkanPipeline->m_FrontFace;
+	rasterizer.cullMode = m_CullMode;
+	rasterizer.frontFace = m_FrontFace;
 
-	rasterizer.depthBiasEnable = vulkanPipeline->m_DepthBiasEnable;
+	rasterizer.depthBiasEnable = m_DepthBiasEnable;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
 	rasterizer.depthBiasClamp = 0.0f; // Optional
 	rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
@@ -887,27 +368,27 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 	// 配置深度缓冲信息
 	VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depthStencil.depthTestEnable = vulkanPipeline->m_DepthTest;
-	depthStencil.depthWriteEnable = vulkanPipeline->m_DepthWrite;
-	depthStencil.depthCompareOp = vulkanPipeline->m_DepthCompareOp;
+	depthStencil.depthTestEnable = m_DepthTest;
+	depthStencil.depthWriteEnable = m_DepthWrite;
+	depthStencil.depthCompareOp = m_DepthCompareOp;
 
 	depthStencil.depthBoundsTestEnable = VK_FALSE; // Optional
 	depthStencil.minDepthBounds = 0.0f; // Optional
 	depthStencil.maxDepthBounds = 1.0f; // Optional
 
-	depthStencil.stencilTestEnable = vulkanPipeline->m_StencilEnable;
+	depthStencil.stencilTestEnable = m_StencilEnable;
 
 	VkStencilOpState stencilState = {};
-	if (vulkanPipeline->m_StencilEnable)
+	if (m_StencilEnable)
 	{
 		stencilState.compareMask = 0xFF;
 		stencilState.writeMask = 0xFF;
 
-		stencilState.compareOp = vulkanPipeline->m_StencilCompareOp;
-		stencilState.failOp = vulkanPipeline->m_StencilFailOp;
-		stencilState.depthFailOp = vulkanPipeline->m_StencilDepthFailOp;
-		stencilState.passOp = vulkanPipeline->m_StencilPassOp;
-		stencilState.reference = vulkanPipeline->m_StencilRef;
+		stencilState.compareOp = m_StencilCompareOp;
+		stencilState.failOp = m_StencilFailOp;
+		stencilState.depthFailOp = m_StencilDepthFailOp;
+		stencilState.passOp = m_StencilPassOp;
+		stencilState.reference = m_StencilRef;
 	}
 	depthStencil.front = stencilState;
 	depthStencil.back = stencilState;
@@ -924,12 +405,12 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 
 	// 配置Alpha混合信息
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-	colorBlendAttachment.colorWriteMask = vulkanPipeline->m_ColorWriteMask;
-	colorBlendAttachment.blendEnable = vulkanPipeline->m_BlendEnable;
+	colorBlendAttachment.colorWriteMask = m_ColorWriteMask;
+	colorBlendAttachment.blendEnable = m_BlendEnable;
 
-	colorBlendAttachment.srcColorBlendFactor = vulkanPipeline->m_ColorSrcBlendFactor;
-	colorBlendAttachment.dstColorBlendFactor = vulkanPipeline->m_ColorDstBlendFactor;
-	colorBlendAttachment.colorBlendOp = vulkanPipeline->m_ColorBlendOp;
+	colorBlendAttachment.srcColorBlendFactor = m_ColorSrcBlendFactor;
+	colorBlendAttachment.dstColorBlendFactor = m_ColorDstBlendFactor;
+	colorBlendAttachment.colorBlendOp = m_ColorBlendOp;
 
 	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
 	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
@@ -970,12 +451,23 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStageInfo;
 	KVulkanShader* vulkanShader = nullptr;
 
-	for (uint32_t i = 0; i < KVulkanPipeline::COUNT; ++i)
+	static VkShaderStageFlagBits SHADER_STAGE_FLAGS[] =
 	{
-		if (vulkanPipeline->m_Shaders[i])
+		VK_SHADER_STAGE_VERTEX_BIT,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		VK_SHADER_STAGE_GEOMETRY_BIT,
+		VK_SHADER_STAGE_TASK_BIT_NV,
+		VK_SHADER_STAGE_MESH_BIT_NV
+	};
+
+	static_assert(ARRAY_SIZE(SHADER_STAGE_FLAGS) == LAYOUT_SHADER_COUNT, "must match");
+
+	for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
+	{
+		if (binding.shaders[i])
 		{
 			VkPipelineShaderStageCreateInfo shaderCreateInfo = {};
-			vulkanShader = (KVulkanShader*)vulkanPipeline->m_Shaders[i].get();
+			vulkanShader = (KVulkanShader*)binding.shaders[i].get();
 			shaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderCreateInfo.stage = SHADER_STAGE_FLAGS[i];
 			shaderCreateInfo.module = vulkanShader->GetShaderModule();
@@ -1008,7 +500,7 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 	// 指定动态状态
 	pipelineInfo.pDynamicState = &dynamicState;
 	// 指定管线布局
-	pipelineInfo.layout = vulkanPipeline->m_PipelineLayout;
+	pipelineInfo.layout = vulkanPipelineLayout->GetPipelineLayout();
 	// 指定渲染通道
 	pipelineInfo.renderPass = vulkanRenderPass->GetVkRenderPass();
 	pipelineInfo.subpass = 0;
@@ -1017,11 +509,6 @@ bool KVulkanPipelineHandle::Init(IKPipeline* pipeline, IKRenderPass* renderPass)
 	pipelineInfo.basePipelineIndex = -1; // Optional
 
 	VK_ASSERT_RESULT(vkCreateGraphicsPipelines(KVulkanGlobal::device, KVulkanGlobal::pipelineCache, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline));
-
-	if (pipeline->GetDebugName() && renderPass->GetDebugName())
-	{
-		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_GraphicsPipeline, VK_OBJECT_TYPE_PIPELINE, (std::string(pipeline->GetDebugName()) + "_" + renderPass->GetDebugName() + "_Pipeline").c_str());
-	}
 
 	return true;
 }
@@ -1036,4 +523,15 @@ bool KVulkanPipelineHandle::UnInit()
 		m_GraphicsPipeline = VK_NULL_HANDLE;
 	}
 	return true;
+}
+
+bool KVulkanPipelineHandle::SetDebugName(const char* name)
+{
+	if (name)
+	{
+		m_Name = name;
+		KVulkanHelper::DebugUtilsSetObjectName(KVulkanGlobal::device, (uint64_t)m_GraphicsPipeline, VK_OBJECT_TYPE_PIPELINE, name);
+		return true;
+	}
+	return false;
 }

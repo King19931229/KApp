@@ -3,8 +3,6 @@
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
 
-#include <assert.h>
-
 KGizmoController::KGizmoController()
 	: m_Gizmo(nullptr),
 	m_CameraCube(nullptr),

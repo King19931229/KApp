@@ -4,6 +4,7 @@
 
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Interface/IKSourceFile.h"
+#include "KBase/Publish/KHash.h"
 #include "KBase/Publish/KReferenceHolder.h"
 
 #include <string>
@@ -25,6 +26,16 @@ struct KShaderInformation
 			bindingIndex = 0;
 			size = 0;
 			arraysize = 0;
+		}
+
+		size_t Hash() const
+		{
+			size_t hash = 0;
+			KHash::HashCombine(hash, descriptorSetIndex);
+			KHash::HashCombine(hash, bindingIndex);
+			KHash::HashCombine(hash, size);
+			KHash::HashCombine(hash, arraysize);
+			return hash;
 		}
 	};
 
@@ -62,8 +73,36 @@ struct KShaderInformation
 				vecSize = 0;
 				dimension = 0;
 			}
+
+			size_t Hash() const
+			{
+				size_t hash = 0;
+				KHash::HashCombine(hash, name);
+				KHash::HashCombine(hash, type);
+				KHash::HashCombine(hash, offset);
+				KHash::HashCombine(hash, size);
+				KHash::HashCombine(hash, arrayCount);
+				KHash::HashCombine(hash, vecSize);
+				KHash::HashCombine(hash, dimension);
+				return hash;
+			}
 		};
+
 		std::vector<ConstantMember> members;
+
+		size_t Hash() const
+		{
+			size_t hash = 0;
+			KHash::HashCombine(hash, descriptorSetIndex);
+			KHash::HashCombine(hash, bindingIndex);
+			KHash::HashCombine(hash, size);
+			KHash::HashCombine(hash, arraysize);
+			for (const ConstantMember& member : members)
+			{
+				KHash::HashCombine(hash, member.Hash());
+			}
+			return hash;
+		}
 	};
 
 	struct Texture
@@ -80,6 +119,16 @@ struct KShaderInformation
 			attachmentIndex = 0;
 			arraysize = 0;
 		}
+
+		size_t Hash() const
+		{
+			size_t hash = 0;
+			KHash::HashCombine(hash, descriptorSetIndex);
+			KHash::HashCombine(hash, bindingIndex);
+			KHash::HashCombine(hash, attachmentIndex);
+			KHash::HashCombine(hash, arraysize);
+			return hash;
+		}
 	};
 
 	std::vector<Storage> storageBuffers;
@@ -88,6 +137,36 @@ struct KShaderInformation
 	std::vector<Constant> pushConstants;
 	std::vector<Constant> dynamicConstants;
 	std::vector<Texture> textures;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;	
+		for (const auto& value : storageBuffers)
+		{
+			KHash::HashCombine(hash, value.Hash());
+		}
+		for (const auto& value : storageImages)
+		{
+			KHash::HashCombine(hash, value.Hash());
+		}
+		for (const auto& value : constants)
+		{
+			KHash::HashCombine(hash, value.Hash());
+		}
+		for (const auto& value : pushConstants)
+		{
+			KHash::HashCombine(hash, value.Hash());
+		}
+		for (const auto& value : dynamicConstants)
+		{
+			KHash::HashCombine(hash, value.Hash());
+		}
+		for (const auto& value : textures)
+		{
+			KHash::HashCombine(hash, value.Hash());
+		}
+		return hash;
+	}
 };
 
 struct IKShader : public IKResource

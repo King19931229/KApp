@@ -9,7 +9,6 @@
 #include "KBase/Publish/KHash.h"
 #include "KBase/Publish/KSectionEnterAssertGuard.h"
 #include <algorithm>
-#include <assert.h>
 
 KVulkanDescriptorPool::KVulkanDescriptorPool()
 	: m_Layout(VK_NULL_HANDLE)

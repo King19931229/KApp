@@ -4,7 +4,6 @@
 #include "glm/glm.hpp"
 
 #include <vector>
-#include <assert.h>
 
 /*
 https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout

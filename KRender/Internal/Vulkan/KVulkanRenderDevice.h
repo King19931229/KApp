@@ -176,6 +176,8 @@ public:
 
 	virtual bool CreateRenderTarget(IKRenderTargetPtr& target);
 	virtual bool CreatePipeline(IKPipelinePtr& pipeline);
+	virtual bool CreatePipelineLayout(IKPipelineLayoutPtr& pipelineLayout);
+	virtual bool CreatePipelineHandle(IKPipelineHandlePtr& pipelineHandle);
 	virtual bool CreateRayTracePipeline(IKRayTracePipelinePtr& raytrace);
 
 	virtual bool CreateComputePipeline(IKComputePipelinePtr& compute);

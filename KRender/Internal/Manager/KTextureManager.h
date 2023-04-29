@@ -12,8 +12,6 @@ protected:
 	AnonymousTextureMap m_AnonymousTextures;
 	KTextureRef m_ErrorTexture;
 	IKRenderDevice* m_Device;
-
-	bool Release(IKTexturePtr& texture);
 public:
 	KTextureManager();
 	~KTextureManager();

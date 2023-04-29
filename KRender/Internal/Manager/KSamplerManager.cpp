@@ -41,7 +41,6 @@ bool KSamplerManager::Release(IKSamplerPtr& sampler)
 {
 	if (sampler)
 	{
-		m_Device->Wait();
 		sampler->UnInit();
 		sampler = nullptr;
 		return true;

@@ -90,6 +90,7 @@
     <ClInclude Include="Internal\KConstantDefinition.h" />
     <ClInclude Include="Internal\KConstantGlobal.h" />
     <ClInclude Include="Internal\KDebugConsole.h" />
+    <ClInclude Include="Internal\KPipelineBase.h" />
     <ClInclude Include="Internal\KRenderCore.h" />
     <ClInclude Include="Internal\KRenderGlobal.h" />
     <ClInclude Include="Internal\KRenderImGui.h" />
@@ -105,6 +106,7 @@
     <ClInclude Include="Internal\Manager\KInstanceBufferManager.h" />
     <ClInclude Include="Internal\Manager\KMaterialManager.h" />
     <ClInclude Include="Internal\Manager\KMeshManager.h" />
+    <ClInclude Include="Internal\Manager\KPipelineManager.h" />
     <ClInclude Include="Internal\Manager\KSamplerManager.h" />
     <ClInclude Include="Internal\Manager\KShaderManager.h" />
     <ClInclude Include="Internal\Manager\KTextureManager.h" />
@@ -153,6 +155,7 @@
     <ClInclude Include="Internal\Vulkan\KVulkanHeapAllocator.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanGlobal.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanHelper.h" />
+    <ClInclude Include="Internal\Vulkan\KVulkanPipelineLayout.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanPipeline.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanQuery.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanQueue.h" />
@@ -208,6 +211,7 @@
     <ClCompile Include="Internal\KConstantDefinition.cpp" />
     <ClCompile Include="Internal\KConstantGlobal.cpp" />
     <ClCompile Include="Internal\KDebugConsole.cpp" />
+    <ClCompile Include="Internal\KPipelineBase.cpp" />
     <ClCompile Include="Internal\KRenderCore.cpp" />
     <ClCompile Include="Internal\KRenderDevice.cpp" />
     <ClCompile Include="Internal\KRenderGlobal.cpp" />
@@ -223,6 +227,7 @@
     <ClCompile Include="Internal\Manager\KInstanceBufferManager.cpp" />
     <ClCompile Include="Internal\Manager\KMaterialManager.cpp" />
     <ClCompile Include="Internal\Manager\KMeshManager.cpp" />
+    <ClCompile Include="Internal\Manager\KPipelineManager.cpp" />
     <ClCompile Include="Internal\Manager\KSamplerManager.cpp" />
     <ClCompile Include="Internal\Manager\KShaderManager.cpp" />
     <ClCompile Include="Internal\Manager\KTextureManager.cpp" />
@@ -269,6 +274,7 @@
     <ClCompile Include="Internal\Vulkan\KVulkanGlobal.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanHeapAllocator.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanHelper.cpp" />
+    <ClCompile Include="Internal\Vulkan\KVulkanPipelineLayout.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanPipeline.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanQuery.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanQueue.cpp" />

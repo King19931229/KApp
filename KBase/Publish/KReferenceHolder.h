@@ -2,6 +2,7 @@
 
 #include "KBase/Publish/KConfig.h"
 #include <functional>
+#include <assert.h>
 
 template<typename Type>
 class KReference

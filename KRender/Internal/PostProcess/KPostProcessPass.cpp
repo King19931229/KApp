@@ -6,8 +6,6 @@
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Publish/KStringParser.h"
 
-#include <assert.h>
-
 KPostProcessPass::KPostProcessPass(KPostProcessManager* manager, size_t frameInFlight, PostProcessStage stage)
 	: m_Mgr(manager),
 	m_Scale(1),

@@ -429,6 +429,16 @@ enum PipelineStage
 };
 typedef unsigned int PipelineStages;
 
+enum LayoutShader
+{
+	LAYOUT_SHADER_VERTEX,
+	LAYOUT_SHADER_FRAGMENT,
+	LAYOUT_SHADER_GEOMETRY,
+	LAYOUT_SHADER_TASK,
+	LAYOUT_SHADER_MESH,
+	LAYOUT_SHADER_COUNT
+};
+
 enum QueueCategory
 {
 	QUEUE_GRAPHICS,
@@ -510,6 +520,9 @@ typedef std::shared_ptr<IKRenderTarget> IKRenderTargetPtr;
 
 struct IKPipeline;
 typedef std::shared_ptr<IKPipeline> IKPipelinePtr;
+
+struct IKPipelineLayout;
+typedef std::shared_ptr<IKPipelineLayout> IKPipelineLayoutPtr;
 
 struct IKPipelineHandle;
 typedef std::shared_ptr<IKPipelineHandle> IKPipelineHandlePtr;

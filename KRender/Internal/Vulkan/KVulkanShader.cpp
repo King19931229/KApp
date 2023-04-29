@@ -17,8 +17,6 @@
 #include "SPIRV/GlslangToSpv.h"
 #include "spirv_cross.hpp"
 
-#include <assert.h>
-
 static const char* CACHE_PATH = "ShaderCached";
 
 KVulkanShader::KVulkanShader()
