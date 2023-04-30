@@ -95,11 +95,11 @@ bool KRenderComponent::Load(IKXMLElementPtr element)
 
 	if (type == MRT_INTERNAL_MESH)
 	{
-		return InitAsMesh(path, false, false);
+		return InitAsMesh(path, true);
 	}
 	else if (type == MRT_EXTERNAL_ASSET)
 	{
-		return InitAsAsset(path, false, false);
+		return InitAsAsset(path, true);
 	}
 
 	return false;
@@ -151,16 +151,6 @@ bool KRenderComponent::GetPath(std::string& path) const
 	return false;
 }
 
-bool KRenderComponent::GetHostVisible(bool& hostVisible) const
-{
-	if (m_Mesh)
-	{
-		hostVisible = m_Mesh->GetHostVisible();
-		return true;
-	}
-	return false;
-}
-
 bool KRenderComponent::SaveAsMesh(const std::string& path) const
 {
 	if (m_Mesh && m_Mesh->GetType() != MRT_DEBUG_UTILITY)
@@ -187,10 +177,10 @@ void KRenderComponent::MeshPostInit()
 	}
 }
 
-bool KRenderComponent::InitAsMesh(const std::string& mesh, bool hostVisible, bool async)
+bool KRenderComponent::InitAsMesh(const std::string& mesh, bool async)
 {
 	UnInit();
-	bool meshAcquire = KRenderGlobal::MeshManager.Acquire(mesh.c_str(), m_Mesh, hostVisible);
+	bool meshAcquire = KRenderGlobal::MeshManager.Acquire(mesh.c_str(), m_Mesh);
 	if (meshAcquire)
 	{
 		MeshPostInit();
@@ -199,10 +189,22 @@ bool KRenderComponent::InitAsMesh(const std::string& mesh, bool hostVisible, boo
 	return false;
 }
 
-bool KRenderComponent::InitAsAsset(const std::string& asset, bool hostVisible, bool async)
+bool KRenderComponent::InitAsAsset(const std::string& asset, bool async)
 {
 	UnInit();
-	bool meshAcquire = KRenderGlobal::MeshManager.AcquireFromAsset(asset.c_str(), m_Mesh, hostVisible);
+	bool meshAcquire = KRenderGlobal::MeshManager.AcquireFromAsset(asset.c_str(), m_Mesh);
+	if (meshAcquire)
+	{
+		MeshPostInit();
+		return true;
+	}
+	return false;
+}
+
+bool KRenderComponent::InitAsUserData(const KAssetImportResult& userData, const std::string& label, bool async)
+{
+	UnInit();
+	bool meshAcquire = KRenderGlobal::MeshManager.AcquireFromUserData(userData, label, m_Mesh);
 	if (meshAcquire)
 	{
 		MeshPostInit();

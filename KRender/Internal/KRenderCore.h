@@ -38,8 +38,11 @@ protected:
 
 	std::unordered_map<IKRenderWindow*, IKSwapChainPtr> m_SecordaryWindow;
 
-	typedef std::unordered_set<KRenderCoreInitCallback*> CallbackSet;
-	CallbackSet m_Callbacks;
+	typedef std::unordered_set<KRenderCoreInitCallback*> InitCallbackSet;
+	InitCallbackSet m_InitCallbacks;
+
+	typedef std::unordered_set<KRenderCoreUIRenderCallback*> UICallbackSet;
+	UICallbackSet m_UICallbacks;
 
 	bool m_bInit;
 	bool m_bTickShouldEnd;
@@ -78,6 +81,7 @@ public:
 
 	virtual bool Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window);
 	virtual bool UnInit();
+	virtual bool IsInit() const;
 
 	virtual bool Loop();
 	virtual bool TickShouldEnd();
@@ -90,6 +94,10 @@ public:
 	virtual bool RegisterInitCallback(KRenderCoreInitCallback* callback);
 	virtual bool UnRegisterInitCallback(KRenderCoreInitCallback* callback);
 	virtual bool UnRegistertAllInitCallback();
+
+	virtual bool RegisterUIRenderCallback(KRenderCoreUIRenderCallback* callback);
+	virtual bool UnRegisterUIRenderCallback(KRenderCoreUIRenderCallback* callback);
+	virtual bool UnRegistertAllUIRenderCallback();
 
 	virtual IKRayTraceManager* GetRayTraceMgr();
 	virtual IKRenderScene* GetRenderScene();

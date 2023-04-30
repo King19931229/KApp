@@ -8,45 +8,192 @@
 #include "KBase/Interface/Component/IKComponentManager.h"
 #include "KBase/Interface/Component/IKRenderComponent.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
+#include "KBase/Interface/Component/IKUserComponent.h"
 
 #include "KBase/Publish/KMath.h"
 #include "KBase/Interface/IKFileSystem.h"
+#include "KBase/Interface/IKAssetLoader.h"
 
-void InitSponza(IKEnginePtr engine)
+#include "imgui.h"
+#include <queue>
+#include <stack>
+
+class KQuadricSimplification
 {
-	auto scene = engine->GetRenderCore()->GetRenderScene();
-	KRenderCoreInitCallback callback = [scene]()
+protected:
+	struct Vertex
 	{
-		int width = 50;
-		int height = 50;
-		int widthExtend = width * 80, heightExtend = height * 80;
-		for (int i = 0; i < width; ++i)
+		glm::vec3 pos;
+	};
+
+	struct Triangle
+	{
+		int32_t index[3] = { -1, -1, -1 };
+	};
+
+	struct Edge
+	{
+		int32_t index[2] = { -1, -1 };
+	};
+
+	struct EdgeContraction
+	{
+		Edge edge;
+		float cost = 0;
+		glm::vec3 pos;
+	};
+
+	struct PointModify
+	{
+		int32_t triangleIndex = - 1;
+		int32_t pointIndex = -1;
+		int32_t prevIndex = -1;
+		int32_t currIndex = -1;
+		std::vector<Triangle>* triangleArray = nullptr;
+
+		void Redo()
 		{
-			for (int j = 0; j < height; ++j)
+			std::vector<Triangle>& triangles = *triangleArray;
+			assert(triangles[triangleIndex].index[pointIndex] == prevIndex);
+			triangles[triangleIndex].index[pointIndex] = currIndex;
+		}
+
+		void Undo()
+		{
+			std::vector<Triangle>& triangles = *triangleArray;
+			assert(triangles[triangleIndex].index[pointIndex] == currIndex);
+			triangles[triangleIndex].index[pointIndex] = prevIndex;
+		}
+	};
+
+	struct EdgeCollapse
+	{
+		std::vector<PointModify> modifies;
+
+		void Redo()
+		{
+			for (size_t i = 0; i < modifies.size(); ++i)
 			{
-				IKEntityPtr entity = KECS::EntityManager->CreateEntity();
+				modifies[i].Redo();
+			}
+		}
 
-				IKComponentBase* component = nullptr;
-				if (entity->RegisterComponent(CT_RENDER, &component))
-				{
-					((IKRenderComponent*)component)->InitAsAsset("Models/OBJ/spider.obj", true, true);
-				}
-
-				if (entity->RegisterComponent(CT_TRANSFORM, &component))
-				{
-					glm::vec3 pos = ((IKTransformComponent*)component)->GetPosition();
-					pos.x = (float)(i * 2 - width) / width * widthExtend;
-					pos.z = (float)(j * 2 - height) / height * heightExtend;
-					pos.y = 0;
-					((IKTransformComponent*)component)->SetPosition(pos);
-				}
-
-				scene->Add(entity.get());
+		void Undo()
+		{
+			for (size_t i = 0; i < modifies.size(); ++i)
+			{
+				modifies[modifies.size() - 1 - i].Undo();
 			}
 		}
 	};
-	// engine->GetRenderCore()->RegisterInitCallback(&callback);
-	callback();
+
+	std::vector<Triangle> m_Triangles;
+	std::vector<Vertex> m_Vertices;
+	std::vector<bool> m_VertexValidFlag;
+	std::priority_queue<EdgeContraction> m_EdgeHeap;
+	std::stack<EdgeCollapse> m_UndoCollapseStack;
+	std::stack<EdgeCollapse> m_RedoCollapseStack;
+
+	void UndoCollapse()
+	{
+		if (!m_UndoCollapseStack.empty())
+		{
+			EdgeCollapse collapse = m_UndoCollapseStack.top();
+			m_UndoCollapseStack.pop();
+			collapse.Undo();
+			m_RedoCollapseStack.push(collapse);
+		}
+	}
+
+	void RedoCollapse()
+	{
+		if (!m_RedoCollapseStack.empty())
+		{
+			EdgeCollapse collapse = m_RedoCollapseStack.top();
+			m_RedoCollapseStack.pop();
+			collapse.Undo();
+			m_UndoCollapseStack.push(collapse);
+		}
+	}
+public:
+	void Init(const KAssetImportResult& input)
+	{
+	}
+	void UnInit()
+	{
+	}
+	void Simplification(uint32_t targetCount)
+	{
+	}
+};
+
+void InitQEM(IKEnginePtr engine)
+{
+	static IKEntityPtr entity = nullptr;
+
+	static KAssetImportResult userData;
+	static bool initUserData = false;
+
+	IKAssetLoaderPtr loader = KAssetLoader::GetLoader(".obj");
+	if (loader)
+	{
+		KAssetImportOption option;
+		option.components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
+		if (loader->Import("Models/OBJ/spider.obj", option, userData))
+		{
+			userData.components = option.components;
+			initUserData = true;
+		}
+	}
+
+	static IKUserComponent::TickFunction Tick = []()
+	{
+		IKRenderComponent* component = nullptr;
+		if (entity->GetComponent(CT_RENDER, &component))
+		{
+			if (initUserData)
+			{				
+				component->InitAsUserData(userData, "spider", false);
+			}
+		}
+	};
+
+	auto scene = engine->GetRenderCore()->GetRenderScene();
+
+	static KRenderCoreInitCallback InitModel = [scene]()
+	{
+		entity = KECS::EntityManager->CreateEntity();
+		IKComponentBase* component = nullptr;
+		if (entity->RegisterComponent(CT_RENDER, &component))
+		{
+			((IKRenderComponent*)component)->InitAsAsset("Models/OBJ/spider.obj", true);
+		}
+		if (entity->RegisterComponent(CT_TRANSFORM, &component))
+		{
+			((IKTransformComponent*)component)->SetPosition(glm::vec3(0));
+		}
+		if (entity->RegisterComponent(CT_USER, &component))
+		{
+			((IKUserComponent*)component)->SetPostTick(&Tick);
+		}
+		scene->Add(entity.get());		
+	};
+
+	static KRenderCoreUIRenderCallback UI = []()
+	{
+		ImGui::Begin("QEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+		ImGui::End();
+	};
+	engine->GetRenderCore()->RegisterUIRenderCallback(&UI);
+
+	if (engine->GetRenderCore()->IsInit())
+	{
+		InitModel();
+	}
+	else
+	{
+		engine->GetRenderCore()->RegisterInitCallback(&InitModel);
+	}
 }
 
 int main()
@@ -67,6 +214,7 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
+//	InitQEM(engine);
 
 	IKDataStreamPtr stream = GetDataStream(IT_FILEHANDLE);
 	if (stream->Open("D:/KApp/scene.txt", IM_READ))
@@ -100,8 +248,6 @@ int main()
 	};
 	//engine->GetRenderCore()->RegisterInitCallback(&callback);
 	callback();
-
-	// InitSponza(engine);
 
 	const bool SECORDARY_WINDOW = false;
 

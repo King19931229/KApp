@@ -1267,7 +1267,7 @@ bool KGLTFLoader::ConvertIntoResult(const KAssetImportOption& importOption, KAss
 
 	for (size_t comIdx = 0; comIdx < importOption.components.size(); ++comIdx)
 	{
-		const KAssetImportOption::ComponentGroup& componentGroup = importOption.components[comIdx];
+		const auto& componentGroup = importOption.components[comIdx];
 		KAssetImportResult::VertexDataBuffer& vertexData = result.verticesDatas[comIdx];
 
 		std::vector<float> vertexBuffer;

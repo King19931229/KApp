@@ -19,7 +19,7 @@ public:
 	KEResourcePorter();
 	~KEResourcePorter();
 
-	bool InitEntity(const std::string& path, IKEntityPtr& entity, bool hostVisible = true);
+	bool InitEntity(const std::string& path, IKEntityPtr& entity);
 	bool UnInitEntity(IKEntityPtr& entity);
 
 	bool Convert(const std::string& assetPath, const std::string& meshPath);

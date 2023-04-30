@@ -547,6 +547,9 @@
     <ClInclude Include="Internal\Manager\KPipelineManager.h">
       <Filter>Internal\Manager</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\ECS\Component\KUserComponent.h">
+      <Filter>Internal\ECS\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">

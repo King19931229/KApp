@@ -21,12 +21,12 @@ public:
 	virtual bool CloestPick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const = 0;
 
 	virtual bool GetPath(std::string& path) const = 0;
-	virtual bool GetHostVisible(bool& hostVisible) const = 0;
 
 	virtual bool SaveAsMesh(const std::string& path) const = 0;
 
-	virtual bool InitAsMesh(const std::string& mesh, bool hostVisible, bool async) = 0;
-	virtual bool InitAsAsset(const std::string& asset, bool hostVisible, bool async) = 0;
+	virtual bool InitAsMesh(const std::string& mesh, bool async) = 0;
+	virtual bool InitAsAsset(const std::string& asset, bool async) = 0;
+	virtual bool InitAsUserData(const KAssetImportResult& userData, const std::string& label, bool async) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) = 0;

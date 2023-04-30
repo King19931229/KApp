@@ -8,6 +8,7 @@
 #include "KRender/Publish/KCamera.h"
 
 typedef std::function<void()> KRenderCoreInitCallback;
+typedef std::function<void()> KRenderCoreUIRenderCallback;
 
 struct IKRenderCore
 {
@@ -15,6 +16,7 @@ struct IKRenderCore
 
 	virtual bool Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window) = 0;
 	virtual bool UnInit() = 0;
+	virtual bool IsInit() const = 0;
 
 	// virtual bool Loop() = 0;
 	virtual bool TickShouldEnd() = 0;
@@ -27,6 +29,10 @@ struct IKRenderCore
 	virtual bool RegisterInitCallback(KRenderCoreInitCallback* callback) = 0;
 	virtual bool UnRegisterInitCallback(KRenderCoreInitCallback* callback) = 0;
 	virtual bool UnRegistertAllInitCallback() = 0;
+
+	virtual bool RegisterUIRenderCallback(KRenderCoreUIRenderCallback* callback) = 0;
+	virtual bool UnRegisterUIRenderCallback(KRenderCoreUIRenderCallback* callback) = 0;
+	virtual bool UnRegistertAllUIRenderCallback() = 0;
 
 	virtual IKRayTraceManager* GetRayTraceMgr() = 0;
 	// 获取主场景

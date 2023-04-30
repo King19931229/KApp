@@ -9,19 +9,17 @@ protected:
 	struct MeshInfo
 	{
 		std::string path;
-		bool hostVisible = false;
 
 		bool operator<(const MeshInfo& rhs) const
 		{
 			if (path != rhs.path)
 				return path < rhs.path;
-			return hostVisible < rhs.hostVisible;
 		}
 	};
 	typedef std::map<MeshInfo, KMeshRef> MeshMap;
 
 	MeshMap m_Meshes;
-	bool AcquireImpl(const char* path, bool fromAsset, bool hostVisible, KMeshRef& ref);
+	bool AcquireImpl(const char* path, bool fromAsset, KMeshRef& ref);
 public:
 	KMeshManager();
 	~KMeshManager();
@@ -29,8 +27,9 @@ public:
 	bool Init();
 	bool UnInit();
 
-	bool Acquire(const char* path, KMeshRef& ref, bool hostVisible = false);
-	bool AcquireFromAsset(const char* path, KMeshRef& ref, bool hostVisible = false);
+	bool Acquire(const char* path, KMeshRef& ref);
+	bool AcquireFromAsset(const char* path, KMeshRef& ref);
+	bool AcquireFromUserData(const KAssetImportResult& userData, const std::string& label, KMeshRef& ref);
 	bool AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref);
 
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref);

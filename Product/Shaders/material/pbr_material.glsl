@@ -88,8 +88,9 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 {
 	MaterialPixelParameters parameters;
 
+	vec4 diffuse = vec4(0.0);
 #if HAS_MATERIAL_TEXTURE0
-	vec4 diffuse = SRGBtoLINEAR(texture(diffuseSampler, texCoord));
+	diffuse = SRGBtoLINEAR(texture(diffuseSampler, texCoord));
 	parameters.baseColor = diffuse.rgb * shading.baseColorFactor.rgb;
 	parameters.opacity = diffuse.a * shading.baseColorFactor.a;
 #else
@@ -148,7 +149,6 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	specular = vec3(0);
 	#endif
 
-	vec4 diffuse;
 	#if HAS_MATERIAL_TEXTURE0
 	diffuse = SRGBtoLINEAR(texture(diffuseSampler, texCoord));
 	#else

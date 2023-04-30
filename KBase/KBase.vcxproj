@@ -24,6 +24,7 @@
     <ClInclude Include="Interface\Component\IKDebugComponent.h" />
     <ClInclude Include="Interface\Component\IKRenderComponent.h" />
     <ClInclude Include="Interface\Component\IKTransformComponent.h" />
+    <ClInclude Include="Interface\Component\IKUserComponent.h" />
     <ClInclude Include="Interface\Entity\IKEntity.h" />
     <ClInclude Include="Interface\Entity\IKEntityManager.h" />
     <ClInclude Include="Interface\IKAssetLoader.h" />

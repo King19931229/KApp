@@ -14,6 +14,7 @@ enum MeshResourceType
 {
 	MRT_INTERNAL_MESH,
 	MRT_EXTERNAL_ASSET,
+	MRT_USER_DATA,
 	MRT_DEBUG_UTILITY,
 	MRT_UNKNOWN,
 };
@@ -31,25 +32,26 @@ protected:
 	KTriangleMesh m_TriangleMesh;
 	std::string m_Path;
 	MeshResourceType m_Type;
-	bool m_HostVisible;
 
-	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetImportOption::ComponentGroup& group);
+	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetVertexComponentGroup& group);
 	void UpdateTriangleMesh();
+
+	bool InitFromImportResult(const KAssetImportResult& result, const std::vector<VertexFormat>& formats, const std::string& label);
 public:
 	KMesh();
 	~KMesh();
 
 	inline MeshResourceType GetType() const { return m_Type; }
 	inline const std::string& GetPath() const { return m_Path; }
-	inline bool GetHostVisible () const{ return m_HostVisible; }
 	inline const KAABBBox& GetLocalBound() const { return m_VertexData.bound; }
 	inline const KTriangleMesh& GetTriangleMesh() const { return m_TriangleMesh; }
 	inline const std::vector<KSubMeshPtr>& GetSubMeshes() const { return m_SubMeshes; }
 	inline const std::vector<KMaterialRef>& GetSubMaterials() const { return m_SubMaterials; }
 
 	bool SaveAsFile(const std::string& path) const;
-	bool InitFromFile(const std::string& path, bool hostVisible = false);
-	bool InitFromAsset(const std::string& path, bool hostVisible = false);
+	bool InitFromFile(const std::string& path);
+	bool InitFromAsset(const std::string& path);
+	bool InitFromUserData(const KAssetImportResult& userData, const std::string& label);
 	bool InitUtility(const KMeshUtilityInfoPtr& info);
 	bool UnInit();
 	bool UpdateUtility(const KMeshUtilityInfoPtr& info);

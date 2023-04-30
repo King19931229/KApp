@@ -21,6 +21,8 @@ enum AssetVertexComponent
 	AVC_BINORMAL_3F = 0x8,
 };
 
+typedef std::vector<AssetVertexComponent> KAssetVertexComponentGroup;
+
 enum MeshTextureSemantic
 {
 	MTS_DIFFUSE = 0,
@@ -74,9 +76,12 @@ struct KMeshTextureSampler
 
 struct KAssetImportResult
 {
-	typedef std::vector<char> VertexDataBuffer;
+	// For userdata
+	std::vector<KAssetVertexComponentGroup> components;
 
+	typedef std::vector<char> VertexDataBuffer;
 	std::vector<VertexDataBuffer> verticesDatas;
+
 	uint32_t vertexCount;
 
 	std::vector<char> indicesData;
@@ -173,8 +178,7 @@ struct KAssetImportResult
 
 struct KAssetImportOption
 {
-	typedef std::vector<AssetVertexComponent> ComponentGroup;
-	std::vector<ComponentGroup> components;
+	std::vector<KAssetVertexComponentGroup> components;
 	float scale[3];
 	float center[3];
 	float uvScale[2];

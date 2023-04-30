@@ -71,7 +71,7 @@ bool KEResourcePorter::GetBaseName(const std::string& fullName, std::string& bas
 	return false;
 }
 
-bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity, bool hostVisible)
+bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity)
 {
 	if (entity)
 	{
@@ -89,14 +89,14 @@ bool KEResourcePorter::InitEntity(const std::string& path, IKEntityPtr& entity, 
 			{
 				if (entity->RegisterComponent(CT_RENDER, &renderComponent))
 				{
-					renderComponent->InitAsMesh(path, hostVisible, true);
+					renderComponent->InitAsMesh(path, true);
 				}
 			}
 			else if (IsSupportedMeshAsset(cExt))
 			{
 				if (entity->RegisterComponent(CT_RENDER, &renderComponent))
 				{
-					renderComponent->InitAsAsset(path, hostVisible, true);
+					renderComponent->InitAsAsset(path, true);
 				}
 			}
 
@@ -142,7 +142,7 @@ bool KEResourcePorter::Convert(const std::string& assetPath, const std::string& 
 	bool bSuccess = false;
 
 	IKEntityPtr entity = KECS::EntityManager->CreateEntity();
-	if (InitEntity(assetPath, entity, true))
+	if (InitEntity(assetPath, entity))
 	{
 		IKRenderComponent* renderComponent = nullptr;
 		if (entity->GetComponent(CT_RENDER, &renderComponent))
@@ -166,7 +166,7 @@ bool KEResourcePorter::ModelDrop(const KCamera* camera, const std::string& path)
 	{
 		IKEntityPtr entity = KECS::EntityManager->CreateEntity();
 
-		if (InitEntity(path, entity, true))
+		if (InitEntity(path, entity))
 		{
 			IKRenderComponent* renderComponent = nullptr;
 			if (entity->GetComponent(CT_RENDER, &renderComponent))

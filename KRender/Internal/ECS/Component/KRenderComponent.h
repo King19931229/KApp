@@ -44,12 +44,12 @@ public:
 	bool CloestPick(const glm::vec3& localOrigin, const glm::vec3& localDir, glm::vec3& result) const override;
 
 	bool GetPath(std::string& path) const override;
-	bool GetHostVisible(bool& hostVisible) const override;
 
 	bool SaveAsMesh(const std::string& path) const override;
 
-	bool InitAsMesh(const std::string& mesh, bool hostVisible, bool async) override;
-	bool InitAsAsset(const std::string& asset, bool hostVisible, bool async) override;
+	bool InitAsMesh(const std::string& mesh, bool async) override;
+	bool InitAsAsset(const std::string& asset, bool async) override;
+	bool InitAsUserData(const KAssetImportResult& userData, const std::string& label, bool async) override;
 	bool UnInit() override;
 
 	inline KMeshPtr GetMesh() { return *m_Mesh; }

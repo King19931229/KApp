@@ -250,6 +250,9 @@
     <ClInclude Include="Publish\KSectionEnterAssertGuard.h">
       <Filter>Publish</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\Component\IKUserComponent.h">
+      <Filter>Interface\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">

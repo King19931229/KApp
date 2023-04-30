@@ -65,7 +65,7 @@ aiProcess_ValidateDataStructure | aiProcess_FindInvalidData\
 uint32_t KAssimpLoader::GetFlags(const KAssetImportOption& importOption)
 {
 	uint32_t flag = IMPORT_FLAGS;
-	for (const KAssetImportOption::ComponentGroup& group : importOption.components)
+	for (const auto& group : importOption.components)
 	{
 		for (const AssetVertexComponent& component : group)
 		{
@@ -199,7 +199,7 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 
 			for (size_t comIdx = 0; comIdx < importOption.components.size(); ++comIdx)
 			{
-				const KAssetImportOption::ComponentGroup& componentGroup = importOption.components[comIdx];
+				const auto& componentGroup = importOption.components[comIdx];
 				std::vector<float>& vertexBuffer = vertexBuffers[comIdx];
 
 				for (const AssetVertexComponent& component : componentGroup)
@@ -286,7 +286,8 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 			if (!valid)
 				continue;
 
-			for (int i = 0; i < 3; ++i) { index32Buffer.push_back(idx[i]); }
+			// 翻转索引
+			for (int i = 0; i < 3; ++i) { index32Buffer.push_back(idx[2 - i]); }
 			part.indexCount += 3;
 			indexCount += 3;
 		}

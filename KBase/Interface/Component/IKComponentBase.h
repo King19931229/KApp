@@ -9,6 +9,8 @@ enum ComponentType
 	CT_RENDER,
 	CT_DEBUG,
 
+	CT_USER,
+
 	CT_COUNT,
 	CT_UNKNOWN = CT_COUNT
 };

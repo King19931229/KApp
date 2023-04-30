@@ -306,7 +306,7 @@ bool KRenderCore::Init(IKRenderDevicePtr& device, IKRenderWindowPtr& window)
 			InitGizmo();
 			InitController();
 
-			for (KRenderCoreInitCallback* callback : m_Callbacks)
+			for (KRenderCoreInitCallback* callback : m_InitCallbacks)
 			{
 				(*callback)();
 			}
@@ -396,9 +396,15 @@ bool KRenderCore::UnInit()
 		m_bInit = false;
 		m_bTickShouldEnd = true;
 
-		m_Callbacks.clear();
+		m_InitCallbacks.clear();
+		m_UICallbacks.clear();
 	}
 	return true;
+}
+
+bool KRenderCore::IsInit() const
+{
+	return m_bInit;
 }
 
 // 只能Loop到主窗口 废弃该做法
@@ -511,10 +517,13 @@ bool KRenderCore::UnRegisterSecordaryWindow(IKRenderWindowPtr& window)
 
 bool KRenderCore::RegisterInitCallback(KRenderCoreInitCallback* callback)
 {
-	if (callback)
+	if (!m_bInit)
 	{
-		m_Callbacks.insert(callback);
-		return true;
+		if (callback)
+		{
+			m_InitCallbacks.insert(callback);
+			return true;
+		}
 	}
 	return false;
 }
@@ -523,10 +532,10 @@ bool KRenderCore::UnRegisterInitCallback(KRenderCoreInitCallback* callback)
 {
 	if (callback)
 	{
-		auto it = m_Callbacks.find(callback);
-		if (it != m_Callbacks.end())
+		auto it = m_InitCallbacks.find(callback);
+		if (it != m_InitCallbacks.end())
 		{
-			m_Callbacks.erase(it);
+			m_InitCallbacks.erase(it);
 			return true;
 		}
 	}
@@ -535,7 +544,37 @@ bool KRenderCore::UnRegisterInitCallback(KRenderCoreInitCallback* callback)
 
 bool KRenderCore::UnRegistertAllInitCallback()
 {
-	m_Callbacks.clear();
+	m_InitCallbacks.clear();
+	return true;
+}
+
+bool KRenderCore::RegisterUIRenderCallback(KRenderCoreUIRenderCallback* callback)
+{
+	if (callback)
+	{
+		m_UICallbacks.insert(callback);
+		return true;
+	}
+	return false;
+}
+
+bool KRenderCore::UnRegisterUIRenderCallback(KRenderCoreUIRenderCallback* callback)
+{
+	if (callback)
+	{
+		auto it = m_UICallbacks.find(callback);
+		if (it != m_UICallbacks.end())
+		{
+			m_UICallbacks.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool KRenderCore::UnRegistertAllUIRenderCallback()
+{
+	m_UICallbacks.clear();
 	return true;
 }
 
@@ -573,6 +612,10 @@ bool KRenderCore::UpdateUIOverlay()
 	IKUIOverlay* ui = m_Device->GetUIOverlay();
 	ui->StartNewFrame();
 	GRenderImGui.Run();
+	for (KRenderCoreUIRenderCallback* callback : m_UICallbacks)
+	{
+		(*callback)();
+	}
 	ui->EndNewFrame();
 	ui->Update();
 	return true;
