@@ -38,7 +38,6 @@ protected:
 
 	std::vector<FrameInstanceBlock> m_InstanceBlocks;
 	std::mutex m_Lock;
-	IKRenderDevice* m_Device;
 	size_t m_VertexSize;
 	size_t m_BlockCount;
 
@@ -49,7 +48,7 @@ public:
 	KInstanceBufferManager();
 	~KInstanceBufferManager();
 
-	bool Init(IKRenderDevice* device, size_t vertexSize, size_t blockSize);
+	bool Init(size_t vertexSize, size_t blockSize);
 	bool UnInit();
 
 	bool Alloc(size_t count, const void* data, std::vector<AllocResultBlock>& results);

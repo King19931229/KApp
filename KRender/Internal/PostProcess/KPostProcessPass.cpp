@@ -106,8 +106,6 @@ unsigned short KPostProcessPass::GetMSAA()
 
 bool KPostProcessPass::Init()
 {
-	IKRenderDevice* device = m_Mgr->GetDevice();
-
 	if(m_Stage == POST_PROCESS_STAGE_START_POINT)
 	{
 		for (auto& input : m_InputConnection)
@@ -121,7 +119,7 @@ bool KPostProcessPass::Init()
 		ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, m_FSFile.c_str(), m_FSShader, false));
 
 		{
-			device->CreatePipeline(m_Pipeline);
+			KRenderGlobal::RenderDevice->CreatePipeline(m_Pipeline);
 
 			IKPipelinePtr& pipeline = m_Pipeline;
 
@@ -184,16 +182,16 @@ bool KPostProcessPass::Init()
 		uint32_t width = static_cast<uint32_t>(m_Mgr->m_Width * m_Scale);
 		uint32_t height = static_cast<uint32_t>(m_Mgr->m_Height * m_Scale);
 
-		device->CreateRenderPass(m_RenderPass);
+		KRenderGlobal::RenderDevice->CreateRenderPass(m_RenderPass);
+		KRenderGlobal::RenderDevice->CreateRenderTarget(m_RenderTarget);
 
-		device->CreateRenderTarget(m_RenderTarget);
 		m_RenderTarget->InitFromColor(width, height, m_MsaaCount, 1, m_Format);
 		m_RenderPass->SetColorAttachment(0, m_RenderTarget->GetFrameBuffer());
 		m_RenderPass->SetClearColor(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		if (m_Stage == POST_PROCESS_STAGE_START_POINT)
 		{
-			device->CreateRenderTarget(m_DepthStencilTarget);
+			KRenderGlobal::RenderDevice->CreateRenderTarget(m_DepthStencilTarget);
 			m_DepthStencilTarget->InitFromDepthStencil(width, height, m_MsaaCount, true);
 			m_RenderPass->SetDepthStencilAttachment(m_DepthStencilTarget->GetFrameBuffer());
 			m_RenderPass->SetClearDepthStencil({ 1.0f, 0 });
@@ -220,7 +218,7 @@ bool KPostProcessPass::Init()
 	}
 
 	{
-		device->CreatePipeline(m_ScreenDrawPipeline);
+		KRenderGlobal::RenderDevice->CreatePipeline(m_ScreenDrawPipeline);
 
 		IKPipelinePtr& pipeline = m_ScreenDrawPipeline;
 

@@ -30,6 +30,8 @@ protected:
 	std::mutex m_LoadTaskLock;
 	KTaskUnitProcessorPtr m_LoadTask;
 
+	std::vector<ShaderInvalidCallback*>	m_InvalidCallbacks;
+
 	bool InitConstant();
 	bool DestroyDevice(VkShaderModule& module);
 
@@ -64,6 +66,9 @@ public:
 	virtual bool InitFromFile(ShaderType type, const std::string& path, bool async);
 	virtual bool InitFromString(ShaderType type, const std::vector<char>& code, bool async);	
 	virtual bool UnInit();
+
+	virtual bool RegisterInvalidCallback(ShaderInvalidCallback* callback);
+	virtual bool UnRegisterInvalidCallback(ShaderInvalidCallback* callback);
 
 	virtual const KShaderInformation& GetInformation();
 

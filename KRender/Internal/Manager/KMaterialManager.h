@@ -8,12 +8,11 @@ protected:
 	typedef std::unordered_map<std::string, KMaterialRef> MaterialMap;
 	MaterialMap m_Materials;
 	KMaterialRef m_MissingMaterial;
-	IKRenderDevice* m_Device;
 public:
 	KMaterialManager();
 	~KMaterialManager();
 
-	bool Init(IKRenderDevice* device);
+	bool Init();
 	bool UnInit();
 
 	bool Acquire(const char* path, KMaterialRef& ref, bool async);

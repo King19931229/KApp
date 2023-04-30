@@ -1,9 +1,9 @@
 #include "KTextureManager.h"
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Publish/KHash.h"
+#include "Internal/KRenderGlobal.h"
 
 KTextureManager::KTextureManager()
-	: m_Device(nullptr)	
 {
 }
 
@@ -13,10 +13,9 @@ KTextureManager::~KTextureManager()
 	assert(!m_ErrorTexture);
 }
 
-bool KTextureManager::Init(IKRenderDevice* device)
+bool KTextureManager::Init()
 {
 	UnInit();
-	m_Device = device;
 	ASSERT_RESULT(Acquire("Textures/Error.png", m_ErrorTexture, false));
 	return true;
 }
@@ -39,7 +38,6 @@ bool KTextureManager::UnInit()
 	}
 	m_AnonymousTextures.clear();
 
-	m_Device = nullptr;
 	return true;
 }
 
@@ -54,7 +52,7 @@ bool KTextureManager::Acquire(const char* path, KTextureRef& ref, bool async)
 	}
 
 	IKTexturePtr texture;
-	m_Device->CreateTexture(texture);
+	KRenderGlobal::RenderDevice->CreateTexture(texture);
 	if(texture->InitMemoryFromFile(path, true, async))
 	{
 		if(texture->InitDevice(async))
@@ -92,7 +90,7 @@ bool KTextureManager::Acquire(const char* name, const void* pRawData, size_t dat
 		}
 
 		IKTexturePtr texture;
-		m_Device->CreateTexture(texture);
+		KRenderGlobal::RenderDevice->CreateTexture(texture);
 		if (texture->InitMemoryFromData(pRawData, name, width, height, depth, format, cubeMap, bGenerateMipmap, async))
 		{
 			if (texture->InitDevice(async))

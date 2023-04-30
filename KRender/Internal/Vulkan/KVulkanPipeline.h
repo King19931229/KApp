@@ -64,8 +64,6 @@ class KVulkanPipeline : public KPipelineBase
 	friend class KVulkanPipelineHandle;
 	friend class KVulkanDescriptorPool;
 protected:
-	KPipelineLayoutRef m_Layout;
-
 	VkDescriptorSetLayout m_DescriptorSetLayout;
 	VkPipelineLayout m_PipelineLayout;
 	std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetLayoutBinding;
@@ -80,22 +78,10 @@ protected:
 	std::array<std::atomic_bool, MAX_THREAD_SUPPORT> m_PoolInitialing;
 #endif
 
-	bool CreateLayout();
 	bool CreateDestcriptionWrite();
 	bool CreateDestcriptionPool(uint32_t threadIndex);
-	bool DestroyDevice();
-
-	RenderPassInvalidCallback m_RenderPassInvalidCB;
-	bool InvaildHandle(IKRenderPass* target);
-
-	struct PipelineHandle
-	{
-		size_t hash = 0;
-		KPipelineHandleRef handle;
-	};
-
-	typedef std::unordered_map<IKRenderPass*, PipelineHandle> PipelineHandleMap;
-	PipelineHandleMap m_HandleMap;
+	bool DestroyDevice() override;
+	bool CreateLayout() override;
 public:
 	KVulkanPipeline();
 	virtual ~KVulkanPipeline();
@@ -103,8 +89,6 @@ public:
 	virtual bool Init();
 	virtual bool UnInit();
 	virtual bool Reload();
-
-	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle);
 
 	inline VkPipelineLayout GetVkPipelineLayout() { return m_PipelineLayout; }
 

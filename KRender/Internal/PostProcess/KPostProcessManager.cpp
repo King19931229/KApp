@@ -30,8 +30,7 @@ const KVertexDefinition::SCREENQUAD_POS_2F KPostProcessManager::ms_Vertices[] =
 const uint16_t KPostProcessManager::ms_Indices[] = {0, 1, 2, 2, 3, 0};
 
 KPostProcessManager::KPostProcessManager()
-	: m_Device(nullptr),
-	m_StartPointPass(nullptr),
+	: m_StartPointPass(nullptr),
 	m_FrameInFlight(0),
 	m_Width(0),
 	m_Height(0)
@@ -45,15 +44,13 @@ KPostProcessManager::~KPostProcessManager()
 	assert(m_StartPointPass == nullptr);
 }
 
-bool KPostProcessManager::Init(IKRenderDevice* device,
-							   size_t width, size_t height,
+bool KPostProcessManager::Init(size_t width, size_t height,
 							   unsigned short massCount,
 							   ElementFormat startFormat,
 							   size_t frameInFlight)
 {
 	UnInit();
 
-	m_Device = device;
 	m_FrameInFlight = frameInFlight;
 	m_Width = width;
 	m_Height = height;
@@ -61,7 +58,7 @@ bool KPostProcessManager::Init(IKRenderDevice* device,
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "postprocess/screenquad.vert", m_ScreenDrawVS, false));
 	ASSERT_RESULT(KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "postprocess/screenquad.frag", m_ScreenDrawFS, false));
 
-	m_Device->CreateSampler(m_Sampler);
+	KRenderGlobal::RenderDevice->CreateSampler(m_Sampler);
 	m_Sampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
 	m_Sampler->Init(0, 0);
 
@@ -379,7 +376,7 @@ bool KPostProcessManager::PopulateRenderCommand(KRenderCommand& command, IKPipel
 
 bool KPostProcessManager::Construct()
 {
-	m_Device->Wait();
+	KRenderGlobal::RenderDevice->Wait();
 
 	ClearDeletedPassConnection();
 

@@ -25,10 +25,7 @@ protected:
 	typedef std::unordered_map<std::string, ShaderVariantionMap> ShaderMap;
 
 	ShaderMap m_Shaders;
-
 	KSpirvBuiltInResource m_SpirVBuiltIn;
-	IKRenderDevice* m_Device;
-
 	IKShader::IncludeSource m_BindingInclude;
 
 	size_t CalcVariantionHash(const KShaderCompileEnvironment& env);
@@ -38,7 +35,7 @@ public:
 	KShaderManager();
 	~KShaderManager();
 
-	bool Init(IKRenderDevice* device);
+	bool Init();
 	bool UnInit();
 
 	bool Reload();

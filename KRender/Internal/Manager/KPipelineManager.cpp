@@ -34,7 +34,7 @@ bool KPipelineManager::UnInit()
 	return true;
 }
 
-size_t KPipelineManager::ComputeBindingHash(const KPipelineBinding& binding)
+size_t KPipelineManager::ComputeBindingLayoutHash(const KPipelineBinding& binding)
 {
 	size_t hash = 0;
 	for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
@@ -48,6 +48,31 @@ size_t KPipelineManager::ComputeBindingHash(const KPipelineBinding& binding)
 		{
 			KHash::HashCombine(hash, 0);
 		}
+	}
+	for (VertexFormat vertexFormat : binding.formats)
+	{
+		KHash::HashCombine(hash, vertexFormat);
+	}
+	return hash;
+}
+
+size_t KPipelineManager::ComputeBindingHash(const KPipelineBinding& binding)
+{
+	size_t hash = 0;
+	for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
+	{
+		if (binding.shaders[i])
+		{
+			KHash::HashCombine(hash, binding.shaders[i].get());
+		}
+		else
+		{
+			KHash::HashCombine(hash, 0);
+		}
+	}
+	for (VertexFormat vertexFormat : binding.formats)
+	{
+		KHash::HashCombine(hash, vertexFormat);
 	}
 	return hash;
 }
@@ -89,7 +114,7 @@ size_t KPipelineManager::ComputeStateHash(const KPipelineState& state)
 
 bool KPipelineManager::AcquireLayout(const KPipelineBinding& binding, KPipelineLayoutRef& ref)
 {
-	size_t hash = ComputeBindingHash(binding);
+	size_t hash = ComputeBindingLayoutHash(binding);
 
 	auto it = m_LayoutMap.find(hash);
 	if (it == m_LayoutMap.end())

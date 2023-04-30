@@ -1,5 +1,6 @@
 #include "KShaderManager.h"
 #include "KBase/Publish/KHash.h"
+#include "Internal/KRenderGlobal.h"
 
 KSpirvBuiltInResource::KSpirvBuiltInResource()
 {
@@ -119,7 +120,6 @@ KSpirvBuiltInResource::~KSpirvBuiltInResource()
 }
 
 KShaderManager::KShaderManager()
-	: m_Device(nullptr)
 {
 }
 
@@ -142,25 +142,24 @@ size_t KShaderManager::CalcVariantionHash(const KShaderCompileEnvironment& env)
 	return KHash::BKDR(fullString.c_str(), fullString.length());
 }
 
-bool KShaderManager::Init(IKRenderDevice* device)
+bool KShaderManager::Init()
 {
 	UnInit();
-	m_Device = device;
 
 	std::string bindingCode;
 	
-#define VERTEX_SEMANTIC(SEMANTIC, LOCATION)		bindingCode += std::string("#define ") + #SEMANTIC + " " + #LOCATION + "\n";
-#define CONSTANT_BUFFER_BINDING(CONSTANT)		bindingCode += std::string("#define ") + "BINDING_" + #CONSTANT + " " + std::to_string(CBT_##CONSTANT) + "\n";
-#define STORAGE_BUFFER_BINDING(STORAGE)			bindingCode += std::string("#define ") + "BINDING_" + #STORAGE + " " + std::to_string(SBT_##STORAGE) + "\n";
-#define TEXTURE_BINDING(SLOT)					bindingCode += std::string("#define ") + "BINDING_TEXTURE" + #SLOT + " " + std::to_string(TB_BEGIN + SLOT) + "\n";
+	#define VERTEX_SEMANTIC(SEMANTIC, LOCATION)		bindingCode += std::string("#define ") + #SEMANTIC + " " + #LOCATION + "\n";
+	#define CONSTANT_BUFFER_BINDING(CONSTANT)		bindingCode += std::string("#define ") + "BINDING_" + #CONSTANT + " " + std::to_string(CBT_##CONSTANT) + "\n";
+	#define STORAGE_BUFFER_BINDING(STORAGE)			bindingCode += std::string("#define ") + "BINDING_" + #STORAGE + " " + std::to_string(SBT_##STORAGE) + "\n";
+	#define TEXTURE_BINDING(SLOT)					bindingCode += std::string("#define ") + "BINDING_TEXTURE" + #SLOT + " " + std::to_string(TB_BEGIN + SLOT) + "\n";
 
-#include "Interface/KVertexSemantic.inl"
-#include "Interface/KShaderBinding.inl"
+	#include "Interface/KVertexSemantic.inl"
+	#include "Interface/KShaderBinding.inl"
 
-#undef TEXTURE_BINDING
-#undef STORAGE_BINDING
-#undef CONSTANT_BUFFER_BINDING
-#undef VERTEX_SEMANTIC
+	#undef TEXTURE_BINDING
+	#undef STORAGE_BINDING
+	#undef CONSTANT_BUFFER_BINDING
+	#undef VERTEX_SEMANTIC
 
 	m_BindingInclude = std::make_pair("binding_generate_code.h", bindingCode);
 
@@ -180,7 +179,6 @@ bool KShaderManager::UnInit()
 		variantionMap.clear();
 	}
 	m_Shaders.clear();
-	m_Device = nullptr;
 	return true;
 }
 
@@ -213,7 +211,7 @@ bool KShaderManager::AcquireByEnvironment(ShaderType type, const char* path, con
 	if (itVar == variantionMap.end())
 	{
 		IKShaderPtr soul;
-		m_Device->CreateShader(soul);
+		KRenderGlobal::RenderDevice->CreateShader(soul);
 		for (const IKShader::MacroPair& macroPair : env.macros)
 		{
 			soul->AddMacro(macroPair);
@@ -258,7 +256,7 @@ bool KShaderManager::Release(IKShaderPtr& shader)
 {
 	if (shader)
 	{
-		m_Device->Wait();
+		KRenderGlobal::RenderDevice->Wait();
 		shader->UnInit();
 		shader = nullptr;
 	}

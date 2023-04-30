@@ -624,7 +624,41 @@ bool KVulkanShader::UnInit()
 
 	m_ResourceState = RS_UNLOADED;
 
+	for (ShaderInvalidCallback* callback : m_InvalidCallbacks)
+	{
+		(*callback)(this);
+	}
+	m_InvalidCallbacks.clear();
+
 	return true;
+}
+
+bool KVulkanShader::RegisterInvalidCallback(ShaderInvalidCallback* callback)
+{
+	if (callback)
+	{
+		auto it = std::find(m_InvalidCallbacks.begin(), m_InvalidCallbacks.end(), callback);
+		if (it == m_InvalidCallbacks.end())
+		{
+			m_InvalidCallbacks.push_back(callback);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool KVulkanShader::UnRegisterInvalidCallback(ShaderInvalidCallback* callback)
+{
+	if (callback)
+	{
+		auto it = std::find(m_InvalidCallbacks.begin(), m_InvalidCallbacks.end(), callback);
+		if (it != m_InvalidCallbacks.end())
+		{
+			m_InvalidCallbacks.erase(it);
+		}
+		return true;
+	}
+	return false;
 }
 
 const KShaderInformation& KVulkanShader::GetInformation()

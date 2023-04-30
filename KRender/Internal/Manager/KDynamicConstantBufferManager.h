@@ -31,7 +31,6 @@ protected:
 
 	std::vector<FrameConstantBlock> m_ConstantBlocks;
 	std::mutex m_Lock;
-	IKRenderDevice* m_Device;
 	size_t m_BlockSize;
 	size_t m_Alignment;
 
@@ -42,7 +41,7 @@ public:
 	KDynamicConstantBufferManager();
 	~KDynamicConstantBufferManager();
 
-	bool Init(IKRenderDevice* device, size_t aligment, size_t blockSize);
+	bool Init(size_t aligment, size_t blockSize);
 	bool UnInit();
 
 	bool Alloc(const void* data, KDynamicConstantBufferUsage& usage);

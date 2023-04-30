@@ -1,5 +1,6 @@
 #pragma once
 #include "Interface/IKPipeline.h"
+#include "Interface/IKShader.h"
 #include "Interface/IKRenderPass.h"
 #include <unordered_map>
 
@@ -8,6 +9,7 @@ class KPipelineBase : public IKPipeline
 protected:
 	KPipelineState m_State;
 	KPipelineBinding m_Binding;
+	KPipelineLayoutRef m_Layout;
 
 	// Constant Buffer信息
 	struct UniformBufferBindingInfo
@@ -79,7 +81,26 @@ protected:
 
 	bool CheckBindConflict(unsigned int location, BindingType type);
 	bool BindSampler(unsigned int location, const SamplerBindingInfo& info);
+
+	struct PipelineHandle
+	{
+		size_t hash = 0;
+		KPipelineHandleRef handle;
+	};
+
+	typedef std::unordered_map<IKRenderPass*, PipelineHandle> PipelineHandleMap;
+	PipelineHandleMap m_HandleMap;
+
+	RenderPassInvalidCallback m_RenderPassInvalidCB;
+	bool InvaildHandle(IKRenderPass* target);
+
+	ShaderInvalidCallback m_ShaderInvalidCB;
+	bool InvaildHandle(IKShader* shader);
+
 	std::string m_Name;
+
+	virtual bool DestroyDevice();
+	virtual bool CreateLayout();
 public:
 	KPipelineBase();
 	~KPipelineBase();
@@ -121,6 +142,8 @@ public:
 	virtual bool Init();
 	virtual bool UnInit();
 	virtual bool Reload();
+
+	virtual bool GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle);
 
 	virtual bool SetDebugName(const char* name);
 	virtual const char* GetDebugName() const;

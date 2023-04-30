@@ -21,14 +21,12 @@ protected:
 	typedef std::map<MeshInfo, KMeshRef> MeshMap;
 
 	MeshMap m_Meshes;
-	IKRenderDevice* m_Device;
-
 	bool AcquireImpl(const char* path, bool fromAsset, bool hostVisible, KMeshRef& ref);
 public:
 	KMeshManager();
 	~KMeshManager();
 
-	bool Init(IKRenderDevice* device);
+	bool Init();
 	bool UnInit();
 
 	bool Acquire(const char* path, KMeshRef& ref, bool hostVisible = false);

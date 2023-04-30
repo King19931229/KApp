@@ -17,7 +17,6 @@ class KPostProcessManager : public IKPostProcessManager
 {
 	friend class KPostProcessPass;
 protected:
-	IKRenderDevice* m_Device;
 	size_t m_FrameInFlight;
 
 	size_t m_Width;
@@ -56,8 +55,7 @@ public:
 	KPostProcessManager();
 	~KPostProcessManager();
 
-	bool Init(IKRenderDevice* device,
-		size_t width, size_t height,
+	bool Init(size_t width, size_t height,
 		unsigned short massCount,
 		ElementFormat startFormat,
 		size_t frameInFlight);
@@ -86,5 +84,4 @@ public:
 	bool Construct() override;
 	bool Execute(unsigned int chainImageIndex, IKSwapChain* swapChain, IKUIOverlay* ui, IKCommandBufferPtr primaryCommandBuffer);
 
-	inline IKRenderDevice* GetDevice() { return m_Device; }	
 };

@@ -1,5 +1,6 @@
 #include "KSamplerManager.h"
 #include "KBase/Publish/KHash.h"
+#include "Internal/KRenderGlobal.h"
 
 namespace std
 {
@@ -27,7 +28,6 @@ namespace std
 }
 
 KSamplerManager::KSamplerManager()
-	: m_Device(nullptr)
 {
 }
 
@@ -48,10 +48,9 @@ bool KSamplerManager::Release(IKSamplerPtr& sampler)
 	return false;
 }
 
-bool KSamplerManager::Init(IKRenderDevice* device)
+bool KSamplerManager::Init()
 {
 	UnInit();
-	m_Device = device;
 	KSamplerDescription desc;
 	ASSERT_RESULT(Acquire(desc, m_ErrorSampler));
 	return true;
@@ -66,7 +65,6 @@ bool KSamplerManager::UnInit()
 		ASSERT_RESULT(ref.GetRefCount() == 1);
 	}
 	m_Samplers.clear();
-	m_Device = nullptr;
 	return true;
 }
 
@@ -77,7 +75,7 @@ bool KSamplerManager::Acquire(const KSamplerDescription& desc, KSamplerRef& ref)
 	if (it == m_Samplers.end())
 	{
 		IKSamplerPtr sampler;
-		m_Device->CreateSampler(sampler);
+		KRenderGlobal::RenderDevice->CreateSampler(sampler);
 
 		sampler->SetAddressMode(desc.addressU, desc.addressV, desc.addressW);
 		sampler->SetFilterMode(desc.minFilter, desc.magFilter);

@@ -169,6 +169,8 @@ struct KShaderInformation
 	}
 };
 
+typedef std::function<void(IKShader*)> ShaderInvalidCallback;
+
 struct IKShader : public IKResource
 {
 	virtual ~IKShader() {}
@@ -191,6 +193,9 @@ struct IKShader : public IKResource
 	virtual const KShaderInformation& GetInformation() = 0;
 	virtual ShaderType GetType() = 0;
 	virtual const char* GetPath() = 0;
+
+	virtual bool RegisterInvalidCallback(ShaderInvalidCallback* callback) = 0;
+	virtual bool UnRegisterInvalidCallback(ShaderInvalidCallback* callback) = 0;
 
 	virtual bool Reload() = 0;
 };

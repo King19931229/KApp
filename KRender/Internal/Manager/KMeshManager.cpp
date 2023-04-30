@@ -4,7 +4,6 @@
 #include "Interface/IKQuery.h"
 
 KMeshManager::KMeshManager()
-	: m_Device(nullptr)
 {
 }
 
@@ -13,10 +12,9 @@ KMeshManager::~KMeshManager()
 	assert(m_Meshes.empty());
 }
 
-bool KMeshManager::Init(IKRenderDevice* device)
+bool KMeshManager::Init()
 {
 	UnInit();
-	m_Device = device;
 	return true;
 }
 
@@ -28,7 +26,6 @@ bool KMeshManager::UnInit()
 		ASSERT_RESULT(ref.GetRefCount() == 1);
 	}
 	m_Meshes.clear();
-	m_Device = nullptr;
 	return true;
 }
 
@@ -107,7 +104,7 @@ bool KMeshManager::AcquireOCQuery(std::vector<IKQueryPtr>& queries)
 	queries.resize(KRenderGlobal::NumFramesInFlight);
 	for (IKQueryPtr& query : queries)
 	{
-		m_Device->CreateQuery(query);
+		KRenderGlobal::RenderDevice->CreateQuery(query);
 		query->Init(QT_OCCLUSION);
 	}
 	return true;

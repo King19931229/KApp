@@ -39,10 +39,12 @@ bool KPrefilerCubeMap::Init(uint32_t width, uint32_t height, size_t mipmaps, con
 	renderDevice->CreateTexture(m_SpecularIrradianceMap);
 	m_SpecularIrradianceMap->InitMemoryFromFile(cubemapPath, true, false);
 	m_SpecularIrradianceMap->InitDevice(false);
+	m_SpecularIrradianceMap->GetFrameBuffer()->SetDebugName("SpecularIrradianceMap");
 
 	renderDevice->CreateTexture(m_DiffuseIrradianceMap);
 	m_DiffuseIrradianceMap->InitMemoryFromFile(cubemapPath, true, false);
 	m_DiffuseIrradianceMap->InitDevice(false);
+	m_DiffuseIrradianceMap->GetFrameBuffer()->SetDebugName("DiffuseIrradianceMap");
 
 	renderDevice->CreateSampler(m_DiffuseIrradianceSampler);
 	m_DiffuseIrradianceSampler->SetFilterMode(FM_LINEAR, FM_LINEAR);
@@ -240,6 +242,7 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 		m_IntegrateBRDFPipeline->SetPolygonMode(PM_FILL);
 
 		m_IntegrateBRDFPipeline->Init();
+		m_IntegrateBRDFPipeline->SetDebugName("IntegrateBRDFPipeline");
 	}
 
 	m_MipmapTargets.resize(m_SpecularIrradianceMap->GetMipmaps());
@@ -305,7 +308,7 @@ bool KPrefilerCubeMap::FreeTempResource()
 
 bool KPrefilerCubeMap::Compute()
 {
-	auto DrawAndBlit = [&](IKPipelinePtr pipeline, IKTexturePtr texture)
+	auto DrawAndBlit = [&](IKPipelinePtr pipeline, IKTexturePtr texture, std::string name)
 	{
 		for (uint32_t mipLevel = 0; mipLevel < (uint32_t)m_MipmapTargets.size(); ++mipLevel)
 		{
@@ -317,7 +320,7 @@ bool KPrefilerCubeMap::Compute()
 			{
 				IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 				primaryBuffer->BeginPrimary();
-				primaryBuffer->BeginDebugMarker("PrefilerCubeMap", glm::vec4(0, 1, 0, 0));
+				primaryBuffer->BeginDebugMarker((name + "_mip_" + std::to_string(mipLevel) + "_face_" + std::to_string(i)).c_str(), glm::vec4(0, 1, 0, 0));
 				primaryBuffer->BeginRenderPass(pass, SUBPASS_CONTENTS_INLINE);
 				primaryBuffer->SetViewport(pass->GetViewPort());
 
@@ -328,6 +331,7 @@ bool KPrefilerCubeMap::Compute()
 				}
 
 				primaryBuffer->EndRenderPass();
+
 				primaryBuffer->EndDebugMarker();
 				primaryBuffer->End();
 
@@ -338,8 +342,8 @@ bool KPrefilerCubeMap::Compute()
 		}
 	};
 
-	DrawAndBlit(m_DiffuseIrradiancePipeline, m_DiffuseIrradianceMap);
-	DrawAndBlit(m_SpecularIrradiancePipeline, m_SpecularIrradianceMap);
+	DrawAndBlit(m_DiffuseIrradiancePipeline, m_DiffuseIrradianceMap,"DiffuseIrradianceMap");
+	DrawAndBlit(m_SpecularIrradiancePipeline, m_SpecularIrradianceMap, "SpecularIrradiance");
 
 	{
 		IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
@@ -363,9 +367,8 @@ bool KPrefilerCubeMap::Compute()
 		primaryBuffer->Render(command);
 
 		primaryBuffer->EndRenderPass();
-		primaryBuffer->EndDebugMarker();
-
 		primaryBuffer->Translate(m_IntegrateBRDFTarget->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
+		primaryBuffer->EndDebugMarker();
 
 		primaryBuffer->End();
 		primaryBuffer->Flush();
@@ -374,6 +377,7 @@ bool KPrefilerCubeMap::Compute()
 	{
 		IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 		primaryBuffer->BeginPrimary();
+		primaryBuffer->BeginDebugMarker("SHProduct", glm::vec4(0, 1, 0, 0));
 
 		primaryBuffer->Translate(m_SrcCubeMap->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 
@@ -384,6 +388,7 @@ bool KPrefilerCubeMap::Compute()
 
 		primaryBuffer->Translate(m_SrcCubeMap->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
+		primaryBuffer->EndDebugMarker();
 		primaryBuffer->End();
 		primaryBuffer->Flush();
 	}
@@ -412,6 +417,7 @@ bool KPrefilerCubeMap::Compute()
 	{
 		IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 		primaryBuffer->BeginPrimary();
+		primaryBuffer->BeginDebugMarker("SHConstructCubeMap", glm::vec4(0, 1, 0, 0));
 
 		primaryBuffer->Translate(m_SHConstructCubeMap->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 
@@ -422,6 +428,7 @@ bool KPrefilerCubeMap::Compute()
 
 		primaryBuffer->Translate(m_SHConstructCubeMap->GetFrameBuffer(), PIPELINE_STAGE_COMPUTE_SHADER, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_GENERAL, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
+		primaryBuffer->EndDebugMarker();
 		primaryBuffer->End();
 		primaryBuffer->Flush();
 	}

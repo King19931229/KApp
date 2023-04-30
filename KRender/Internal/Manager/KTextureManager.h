@@ -11,12 +11,11 @@ protected:
 	TextureMap m_Textures;
 	AnonymousTextureMap m_AnonymousTextures;
 	KTextureRef m_ErrorTexture;
-	IKRenderDevice* m_Device;
 public:
 	KTextureManager();
 	~KTextureManager();
 
-	bool Init(IKRenderDevice* device);
+	bool Init();
 	bool UnInit();
 
 	bool Acquire(const char* path, KTextureRef& ref, bool async);

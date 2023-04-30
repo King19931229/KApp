@@ -16,7 +16,6 @@ constexpr KConstantBufferTypeDescription GConstantBufferTypeDescription[CBT_STAT
 static_assert(ARRAY_SIZE(GConstantBufferTypeDescription) == CBT_STATIC_COUNT, "check");
 
 KFrameResourceManager::KFrameResourceManager()
-	: m_Device(nullptr)
 {
 }
 

@@ -1,8 +1,19 @@
 #include "KPipelineBase.h"
+#include "Internal/KRenderGlobal.h"
 
 KPipelineBase::KPipelineBase()
 {
 	m_PushContant = { 0, 0 };
+
+	m_RenderPassInvalidCB = [this](IKRenderPass* renderPass)
+	{
+		InvaildHandle(renderPass);
+	};
+
+	m_ShaderInvalidCB = [this](IKShader* shader)
+	{
+		InvaildHandle(shader);
+	};
 }
 
 KPipelineBase::~KPipelineBase()
@@ -13,6 +24,29 @@ KPipelineBase::~KPipelineBase()
 	}
 	ASSERT_RESULT(m_Uniforms.empty());
 	ASSERT_RESULT(m_Samplers.empty());
+}
+
+bool KPipelineBase::InvaildHandle(IKRenderPass* renderPass)
+{
+	if (renderPass)
+	{
+		auto it = m_HandleMap.find(renderPass);
+		if (it != m_HandleMap.end())
+		{
+			KRenderGlobal::PipelineManager.InvalidateHandle(it->second.hash);
+			m_HandleMap.erase(it);
+		}
+	}
+	return true;
+}
+
+bool KPipelineBase::InvaildHandle(IKShader* shader)
+{
+	if (shader)
+	{
+		Reload();
+	}
+	return true;
 }
 
 bool KPipelineBase::SetPrimitiveTopology(PrimitiveTopology topology)
@@ -315,16 +349,80 @@ bool KPipelineBase::UnInit()
 
 	for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
 	{
-		m_Binding.shaders[i] = nullptr;
+		if (m_Binding.shaders[i])
+		{
+			m_Binding.shaders[i]->UnRegisterInvalidCallback(&m_ShaderInvalidCB);
+			m_Binding.shaders[i] = nullptr;
+		}
 	}
 	m_Binding.formats.clear();
+
+	DestroyDevice();
 
 	return true;
 }
 
+bool KPipelineBase::DestroyDevice()
+{
+	m_Layout.Release();
+	for (auto& pair : m_HandleMap)
+	{
+		IKRenderPass* pass = pair.first;
+		PipelineHandle& handle = pair.second;
+		KRenderGlobal::PipelineManager.InvalidateHandle(handle.hash);
+		pass->UnRegisterInvalidCallback(&m_RenderPassInvalidCB);
+	}
+	m_HandleMap.clear();
+	return true;
+}
+
+bool KPipelineBase::CreateLayout()
+{
+	KRenderGlobal::PipelineManager.AcquireLayout(m_Binding, m_Layout);
+	for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
+	{
+		if (m_Binding.shaders[i])
+		{
+			m_Binding.shaders[i]->RegisterInvalidCallback(&m_ShaderInvalidCB);
+		}
+	}
+	return true;
+}
+
+
 bool KPipelineBase::Reload()
 {
+	DestroyDevice();
 	return true;
+}
+
+bool KPipelineBase::GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle)
+{
+	if (!m_Layout)
+	{
+		CreateLayout();
+	}
+
+	if (renderPass)
+	{
+		auto it = m_HandleMap.find(renderPass.get());
+		if (it != m_HandleMap.end())
+		{
+			handle = *it->second.handle;
+			return true;
+		}
+
+		PipelineHandle newHandle;
+		if (KRenderGlobal::PipelineManager.AcquireHandle(m_Layout.Get().get(), renderPass.get(), m_State, m_Binding, newHandle.handle, newHandle.hash))
+		{
+			m_HandleMap[renderPass.get()] = newHandle;
+			handle = newHandle.handle.Get();
+			handle->SetDebugName(m_Name.c_str());
+			renderPass->RegisterInvalidCallback(&m_RenderPassInvalidCB);
+			return true;
+		}
+	}
+	return false;
 }
 
 bool KPipelineBase::SetDebugName(const char* name)

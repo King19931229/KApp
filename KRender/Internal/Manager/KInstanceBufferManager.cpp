@@ -2,25 +2,20 @@
 #include "Internal/KRenderGlobal.h"
 
 KInstanceBufferManager::KInstanceBufferManager()
-	: m_Device(nullptr),
-	m_VertexSize(64),
-	m_BlockCount(65536)
+	: m_VertexSize(64)
+	, m_BlockCount(65536)
 {
 }
 
 KInstanceBufferManager::~KInstanceBufferManager()
 {
-	ASSERT_RESULT(m_Device == nullptr);
 	ASSERT_RESULT(m_InstanceBlocks.empty());
 }
 
-bool KInstanceBufferManager::Init(IKRenderDevice* device, size_t vertexSize, size_t blockSize)
+bool KInstanceBufferManager::Init(size_t vertexSize, size_t blockSize)
 {
 	UnInit();
 
-	ASSERT_RESULT(device);
-
-	m_Device = device;
 	m_VertexSize = vertexSize;
 	m_BlockCount = blockSize;
 
@@ -39,7 +34,6 @@ bool KInstanceBufferManager::UnInit()
 		frameBlock.blocks.clear();
 	}
 	m_InstanceBlocks.clear();
-	m_Device = nullptr;
 	return true;
 }
 
@@ -119,7 +113,7 @@ bool KInstanceBufferManager::InternalAlloc(size_t count,
 			{
 				InstanceBlock newBlock;
 
-				ASSERT_RESULT(m_Device->CreateVertexBuffer(newBlock.buffer));
+				ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateVertexBuffer(newBlock.buffer));
 				newBlock.useCount = 0;
 
 				ASSERT_RESULT(newBlock.buffer->InitMemory(m_BlockCount, m_VertexSize, nullptr));

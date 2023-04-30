@@ -16,46 +16,19 @@ KVulkanPipeline::KVulkanPipeline()
 	: m_DescriptorSetLayout(VK_NULL_HANDLE)
 	, m_PipelineLayout(VK_NULL_HANDLE)
 {
-	m_RenderPassInvalidCB = [this](IKRenderPass* renderPass)
-	{
-		InvaildHandle(renderPass);
-	};
 }
 
 KVulkanPipeline::~KVulkanPipeline()
 {
 }
 
-bool KVulkanPipeline::InvaildHandle(IKRenderPass* renderPass)
-{
-	if (renderPass)
-	{
-		auto it = m_HandleMap.find(renderPass);
-		if (it != m_HandleMap.end())
-		{
-			KRenderGlobal::PipelineManager.InvalidateHandle(it->second.hash);
-			m_HandleMap.erase(it);
-		}
-	}
-	return true;
-}
-
 bool KVulkanPipeline::DestroyDevice()
 {
-	m_Layout.Release();
+	KPipelineBase::DestroyDevice();
 
 	m_DescriptorSetLayout = VK_NULL_HANDEL;
 	m_PipelineLayout = VK_NULL_HANDEL;
 	m_DescriptorSetLayoutBinding.clear();
-
-	for (auto& pair : m_HandleMap)
-	{
-		IKRenderPass* pass = pair.first;
-		PipelineHandle& handle = pair.second;
-		KRenderGlobal::PipelineManager.InvalidateHandle(handle.hash);
-		pass->UnRegisterInvalidCallback(&m_RenderPassInvalidCB);
-	}
-	m_HandleMap.clear();
 
 	m_WriteDescriptorSet.clear();
 	m_BufferWriteInfo.clear();
@@ -77,7 +50,7 @@ bool KVulkanPipeline::DestroyDevice()
 
 bool KVulkanPipeline::CreateLayout()
 {
-	if (KRenderGlobal::PipelineManager.AcquireLayout(m_Binding, m_Layout))
+	if (KPipelineBase::CreateLayout())
 	{
 		KVulkanPipelineLayout* vulkanPipelineLayout = (KVulkanPipelineLayout*)m_Layout.Get().get();
 		m_DescriptorSetLayout = vulkanPipelineLayout->GetDescriptorSetLayout();
@@ -176,44 +149,13 @@ bool KVulkanPipeline::Init()
 bool KVulkanPipeline::UnInit()
 {
 	KPipelineBase::UnInit();
-	DestroyDevice();
 	return true;
 }
 
 bool KVulkanPipeline::Reload()
 {
 	KPipelineBase::Reload();
-	DestroyDevice();
 	return true;
-}
-
-bool KVulkanPipeline::GetHandle(IKRenderPassPtr renderPass, IKPipelineHandlePtr& handle)
-{
-	if (!m_Layout)
-	{
-		CreateLayout();
-	}
-
-	if (renderPass)
-	{
-		auto it = m_HandleMap.find(renderPass.get());
-		if (it != m_HandleMap.end())
-		{
-			handle = *it->second.handle;
-			return true;
-		}
-
-		PipelineHandle newHandle;
-		if (KRenderGlobal::PipelineManager.AcquireHandle(m_Layout.Get().get(), renderPass.get(), m_State, m_Binding, newHandle.handle, newHandle.hash))
-		{
-			m_HandleMap[renderPass.get()] = newHandle;
-			handle = newHandle.handle.Get();
-			handle->SetDebugName(m_Name.c_str());
-			renderPass->RegisterInvalidCallback(&m_RenderPassInvalidCB);
-			return true;
-		}
-	}
-	return false;
 }
 
 KVulkanPipelineHandle::KVulkanPipelineHandle()

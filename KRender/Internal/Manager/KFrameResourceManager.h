@@ -5,7 +5,6 @@
 class KFrameResourceManager
 {
 protected:
-	IKRenderDevice* m_Device;
 	IKUniformBufferPtr m_ContantBuffers[CBT_STATIC_COUNT];
 public:
 	KFrameResourceManager();

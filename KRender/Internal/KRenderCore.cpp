@@ -48,7 +48,7 @@ bool KRenderCore::InitPostProcess()
 	size_t width = 0, height = 0;
 	m_Window->GetSize(width, height);
 
-	KRenderGlobal::PostProcessManager.Init(m_Device, width, height, 1, EF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
+	KRenderGlobal::PostProcessManager.Init(width, height, 1, EF_R16G16B16A16_FLOAT, KRenderGlobal::NumFramesInFlight);
 #if 0
 	auto startPoint = KRenderGlobal::PostProcessManager.GetStartPointPass();
 
@@ -98,14 +98,14 @@ bool KRenderCore::InitGlobalManager()
 
 	KRenderGlobal::RenderDevice = m_Device;
 	KRenderGlobal::FrameResourceManager.Init();
-	KRenderGlobal::MeshManager.Init(m_Device);
-	KRenderGlobal::ShaderManager.Init(m_Device);
-	KRenderGlobal::TextureManager.Init(m_Device);
-	KRenderGlobal::SamplerManager.Init(m_Device);
+	KRenderGlobal::MeshManager.Init();
+	KRenderGlobal::ShaderManager.Init();
+	KRenderGlobal::TextureManager.Init();
+	KRenderGlobal::SamplerManager.Init();
 	KRenderGlobal::PipelineManager.Init();
-	KRenderGlobal::MaterialManager.Init(m_Device);
-	KRenderGlobal::DynamicConstantBufferManager.Init(m_Device, property->uniformBufferOffsetAlignment, property->uniformBufferMaxRange);
-	KRenderGlobal::InstanceBufferManager.Init(m_Device, sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
+	KRenderGlobal::MaterialManager.Init();
+	KRenderGlobal::DynamicConstantBufferManager.Init(property->uniformBufferOffsetAlignment, property->uniformBufferMaxRange);
+	KRenderGlobal::InstanceBufferManager.Init(sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
 
 	KRenderGlobal::QuadDataProvider.Init();
 
@@ -181,13 +181,11 @@ bool KRenderCore::InitController()
 	{
 		if (key == INPUT_KEY_ENTER)
 		{
-			m_Device->Wait();
-			KRenderGlobal::ShaderManager.Reload();
-			// TODO 通知回Pipeline
 		}
 		if (key == INPUT_KEY_R)
 		{
 			m_Device->Wait();
+			KRenderGlobal::ShaderManager.Reload();
 			KRenderGlobal::RayTraceManager.ReloadShader();
 			KRenderGlobal::RTAO.ReloadShader();
 			// KRenderGlobal::Voxilzer.ReloadShader();

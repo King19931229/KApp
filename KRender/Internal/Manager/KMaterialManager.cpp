@@ -2,21 +2,18 @@
 #include "Internal/Asset/KMaterial.h"
 
 KMaterialManager::KMaterialManager()
-	: m_Device(nullptr)
 {
 }
 
 KMaterialManager::~KMaterialManager()
 {
-	ASSERT_RESULT(m_Device == nullptr);
 	ASSERT_RESULT(!m_MissingMaterial);
 	ASSERT_RESULT(m_Materials.empty());
 }
 
-bool KMaterialManager::Init(IKRenderDevice* device)
+bool KMaterialManager::Init()
 {
 	UnInit();
-	m_Device = device;
 	ASSERT_RESULT(Acquire("Materials/Missing.mtl", m_MissingMaterial, false));
 	return true;
 }
@@ -30,7 +27,6 @@ bool KMaterialManager::UnInit()
 		ASSERT_RESULT(ref.GetRefCount() == 1);
 	}
 	m_Materials.clear();
-	m_Device = nullptr;
 	return true;
 }
 

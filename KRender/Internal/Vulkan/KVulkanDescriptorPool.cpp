@@ -76,8 +76,9 @@ bool KVulkanDescriptorPool::Init(VkDescriptorSetLayout layout,
 {
 	UnInit();
 
-	m_Layout = layout;
+	ASSERT_RESULT(layout);
 
+	m_Layout = layout;
 	m_ImageCount = 0;
 	m_StorageImageCount = 0;
 	m_UniformBufferCount = 0;
