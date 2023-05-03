@@ -86,6 +86,7 @@
     <ClInclude Include="Publish\KLockFreeQueue.h" />
     <ClInclude Include="Publish\KLockQueue.h" />
     <ClInclude Include="Publish\KMath.h" />
+    <ClInclude Include="Publish\KMeshBuilder.h" />
     <ClInclude Include="Publish\KNumerical.h" />
     <ClInclude Include="Publish\KObjectPool.h" />
     <ClInclude Include="Publish\KPlane.h" />
@@ -103,6 +104,8 @@
     <ClInclude Include="Publish\KThreadTool.h" />
     <ClInclude Include="Publish\KTimer.h" />
     <ClInclude Include="Publish\KTriangle.h" />
+    <ClInclude Include="Publish\Mesh\KMeshProcessor.h" />
+    <ClInclude Include="Publish\Mesh\KMeshSimplification.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Asset\KAssimpIOHooker.cpp" />

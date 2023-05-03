@@ -1020,9 +1020,9 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 						assert(idx0 >= vertexStart);
 						uint32_t arrayIdx = idx0 - vertexStart;
 
-						glm::vec2 uv0 = vertexBuffer[idx0].uv0;// - glm::floor(vertexBuffer[idx0].uv0);
-						glm::vec2 uv1 = vertexBuffer[idx1].uv0;// - glm::floor(vertexBuffer[idx1].uv0);
-						glm::vec2 uv2 = vertexBuffer[idx2].uv0;// - glm::floor(vertexBuffer[idx2].uv0);
+						glm::vec2 uv0 = vertexBuffer[idx0].uv0;
+						glm::vec2 uv1 = vertexBuffer[idx1].uv0;
+						glm::vec2 uv2 = vertexBuffer[idx2].uv0;
 
 						glm::vec3 e1 = vertexBuffer[idx1].pos - vertexBuffer[idx0].pos;
 						glm::vec3 e2 = vertexBuffer[idx2].pos - vertexBuffer[idx0].pos;

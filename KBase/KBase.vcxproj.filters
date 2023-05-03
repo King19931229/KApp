@@ -253,6 +253,15 @@
     <ClInclude Include="Interface\Component\IKUserComponent.h">
       <Filter>Interface\Component</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\Mesh\KMeshSimplification.h">
+      <Filter>Publish\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\Mesh\KMeshProcessor.h">
+      <Filter>Publish\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Publish\KMeshBuilder.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">
@@ -290,6 +299,9 @@
     </Filter>
     <Filter Include="Internal\Asset">
       <UniqueIdentifier>{9aec04e5-f9e7-4e49-9ed7-c268b75ded9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Publish\Mesh">
+      <UniqueIdentifier>{2447d266-cb25-46c9-99a6-b0002f85d03f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

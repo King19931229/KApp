@@ -264,7 +264,7 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 
 			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
 			pipeline->SetBlendEnable(false);
-			pipeline->SetCullMode(CM_BACK);
+			pipeline->SetCullMode(CM_NONE);
 			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
 			pipeline->SetPolygonMode(PM_FILL);
 			pipeline->SetColorWrite(true, true, true, true);

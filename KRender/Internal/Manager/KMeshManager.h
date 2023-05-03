@@ -12,8 +12,7 @@ protected:
 
 		bool operator<(const MeshInfo& rhs) const
 		{
-			if (path != rhs.path)
-				return path < rhs.path;
+			return path < rhs.path;	
 		}
 	};
 	typedef std::map<MeshInfo, KMeshRef> MeshMap;

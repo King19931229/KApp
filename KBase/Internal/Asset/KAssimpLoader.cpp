@@ -55,10 +55,9 @@ KAssimpLoader::~KAssimpLoader()
 {
 }
 
-#define IMPORT_FLAGS (\
-aiProcess_FlipWindingOrder |\
-aiProcess_Triangulate |aiProcess_SortByPType |\
+#define IMPORT_FLAGS (aiProcess_Triangulate |aiProcess_SortByPType |\
 aiProcess_PreTransformVertices |\
+aiProcess_JoinIdenticalVertices |\
 aiProcess_ValidateDataStructure | aiProcess_FindInvalidData\
 )
 
@@ -286,8 +285,7 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 			if (!valid)
 				continue;
 
-			// 翻转索引
-			for (int i = 0; i < 3; ++i) { index32Buffer.push_back(idx[2 - i]); }
+			for (int i = 0; i < 3; ++i) { index32Buffer.push_back(idx[i]); }
 			part.indexCount += 3;
 			indexCount += 3;
 		}

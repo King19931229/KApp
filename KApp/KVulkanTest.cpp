@@ -13,119 +13,8 @@
 #include "KBase/Publish/KMath.h"
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Interface/IKAssetLoader.h"
-
+#include "KBase/Publish/Mesh/KMeshSimplification.h"
 #include "imgui.h"
-#include <queue>
-#include <stack>
-
-class KQuadricSimplification
-{
-protected:
-	struct Vertex
-	{
-		glm::vec3 pos;
-	};
-
-	struct Triangle
-	{
-		int32_t index[3] = { -1, -1, -1 };
-	};
-
-	struct Edge
-	{
-		int32_t index[2] = { -1, -1 };
-	};
-
-	struct EdgeContraction
-	{
-		Edge edge;
-		float cost = 0;
-		glm::vec3 pos;
-	};
-
-	struct PointModify
-	{
-		int32_t triangleIndex = - 1;
-		int32_t pointIndex = -1;
-		int32_t prevIndex = -1;
-		int32_t currIndex = -1;
-		std::vector<Triangle>* triangleArray = nullptr;
-
-		void Redo()
-		{
-			std::vector<Triangle>& triangles = *triangleArray;
-			assert(triangles[triangleIndex].index[pointIndex] == prevIndex);
-			triangles[triangleIndex].index[pointIndex] = currIndex;
-		}
-
-		void Undo()
-		{
-			std::vector<Triangle>& triangles = *triangleArray;
-			assert(triangles[triangleIndex].index[pointIndex] == currIndex);
-			triangles[triangleIndex].index[pointIndex] = prevIndex;
-		}
-	};
-
-	struct EdgeCollapse
-	{
-		std::vector<PointModify> modifies;
-
-		void Redo()
-		{
-			for (size_t i = 0; i < modifies.size(); ++i)
-			{
-				modifies[i].Redo();
-			}
-		}
-
-		void Undo()
-		{
-			for (size_t i = 0; i < modifies.size(); ++i)
-			{
-				modifies[modifies.size() - 1 - i].Undo();
-			}
-		}
-	};
-
-	std::vector<Triangle> m_Triangles;
-	std::vector<Vertex> m_Vertices;
-	std::vector<bool> m_VertexValidFlag;
-	std::priority_queue<EdgeContraction> m_EdgeHeap;
-	std::stack<EdgeCollapse> m_UndoCollapseStack;
-	std::stack<EdgeCollapse> m_RedoCollapseStack;
-
-	void UndoCollapse()
-	{
-		if (!m_UndoCollapseStack.empty())
-		{
-			EdgeCollapse collapse = m_UndoCollapseStack.top();
-			m_UndoCollapseStack.pop();
-			collapse.Undo();
-			m_RedoCollapseStack.push(collapse);
-		}
-	}
-
-	void RedoCollapse()
-	{
-		if (!m_RedoCollapseStack.empty())
-		{
-			EdgeCollapse collapse = m_RedoCollapseStack.top();
-			m_RedoCollapseStack.pop();
-			collapse.Undo();
-			m_UndoCollapseStack.push(collapse);
-		}
-	}
-public:
-	void Init(const KAssetImportResult& input)
-	{
-	}
-	void UnInit()
-	{
-	}
-	void Simplification(uint32_t targetCount)
-	{
-	}
-};
 
 void InitQEM(IKEnginePtr engine)
 {
@@ -134,28 +23,34 @@ void InitQEM(IKEnginePtr engine)
 	static KAssetImportResult userData;
 	static bool initUserData = false;
 
+	static const char* filePath = "Models/OBJ/small_bunny.obj";
+
 	IKAssetLoaderPtr loader = KAssetLoader::GetLoader(".obj");
 	if (loader)
 	{
 		KAssetImportOption option;
 		option.components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
-		if (loader->Import("Models/OBJ/spider.obj", option, userData))
+		if (loader->Import(filePath, option, userData))
 		{
 			userData.components = option.components;
 			initUserData = true;
 		}
 	}
 
+	static KMeshSimplification simplification;
+	static bool initSimplification = false;
+	static int32_t targetCount = 0;
+
+	if (!initSimplification)
+	{
+		simplification.Init(userData, 0);
+		targetCount = 0;// simplification.GetCurVertexCount();
+		initSimplification = true;
+	}
+
 	static IKUserComponent::TickFunction Tick = []()
 	{
-		IKRenderComponent* component = nullptr;
-		if (entity->GetComponent(CT_RENDER, &component))
-		{
-			if (initUserData)
-			{				
-				component->InitAsUserData(userData, "spider", false);
-			}
-		}
+		
 	};
 
 	auto scene = engine->GetRenderCore()->GetRenderScene();
@@ -166,22 +61,36 @@ void InitQEM(IKEnginePtr engine)
 		IKComponentBase* component = nullptr;
 		if (entity->RegisterComponent(CT_RENDER, &component))
 		{
-			((IKRenderComponent*)component)->InitAsAsset("Models/OBJ/spider.obj", true);
+			((IKRenderComponent*)component)->InitAsAsset(filePath, true);
 		}
 		if (entity->RegisterComponent(CT_TRANSFORM, &component))
 		{
 			((IKTransformComponent*)component)->SetPosition(glm::vec3(0));
+			((IKTransformComponent*)component)->SetScale(glm::vec3(100.0f));
 		}
 		if (entity->RegisterComponent(CT_USER, &component))
 		{
 			((IKUserComponent*)component)->SetPostTick(&Tick);
 		}
-		scene->Add(entity.get());		
+		scene->Add(entity.get());
 	};
 
 	static KRenderCoreUIRenderCallback UI = []()
 	{
 		ImGui::Begin("QEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+		ImGui::SliderInt("TargetCount", &targetCount, std::min(simplification.GetMinVertexCount(), simplification.GetMaxVertexCount()), std::min(simplification.GetMaxVertexCount(), simplification.GetMaxVertexCount()));
+		IKRenderComponent* component = nullptr;
+		if (entity->GetComponent(CT_RENDER, &component))
+		{
+			if (initSimplification)
+			{
+				static KAssetImportResult result;
+				if (targetCount != simplification.GetCurVertexCount() && simplification.Simplification(targetCount, result))
+				{
+					component->InitAsUserData(result, "spider", false);
+				}
+			}
+		}
 		ImGui::End();
 	};
 	engine->GetRenderCore()->RegisterUIRenderCallback(&UI);
@@ -214,8 +123,8 @@ int main()
 	options.window.type = KEngineOptions::WindowInitializeInformation::TYPE_DEFAULT;
 
 	engine->Init(std::move(window), options);
-//	InitQEM(engine);
-
+	InitQEM(engine);
+	/*
 	IKDataStreamPtr stream = GetDataStream(IT_FILEHANDLE);
 	if (stream->Open("D:/KApp/scene.txt", IM_READ))
 	{
@@ -225,6 +134,7 @@ int main()
 	}
 	stream->Close();
 	stream = nullptr;
+	*/
 #if 0
 	engine->GetScene()->CreateTerrain(glm::vec3(0), 10 * 1024, 4096, { TERRAIN_TYPE_CLIPMAP, {8, 3} });
 	engine->GetScene()->GetTerrain()->LoadHeightMap("Terrain/small_ridge_1025/height.png");
