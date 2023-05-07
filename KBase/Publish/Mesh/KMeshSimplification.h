@@ -145,6 +145,10 @@ protected:
 	int32_t m_MinTriangleCount = 0;
 	int32_t m_MaxTriangleCount = 0;
 
+	float m_MaxErrorAllow = std::numeric_limits<float>::max();
+	int32_t m_MinTriangleAllow = 1;
+	int32_t m_MinVertexAllow = 3;
+
 	void UndoCollapse()
 	{
 		if (m_CurrOpIdx > 0)
@@ -207,7 +211,7 @@ protected:
 		if (!m_VertexValidFlag[v2])
 			return true;
 
-		return IsDegenerateTriangle(triangle);
+		return false;
 	}
 
 	std::tuple<float, Vertex> ComputeCostAndVertex(const Edge& edge)
@@ -391,7 +395,7 @@ protected:
 				triangle.index[0] = indices[3 * i];
 				triangle.index[1] = indices[3 * i + 1];
 				triangle.index[2] = indices[3 * i + 2];
-				if (!IsInvalid(triangle))
+				if (!IsInvalid(triangle) && !IsDegenerateTriangle(triangle))
 				{
 					for (uint32_t i = 0; i < 3; ++i)
 					{
@@ -493,14 +497,15 @@ protected:
 		m_CurVertexCount = m_MinVertexCount = m_MaxVertexCount;
 		m_CurTriangleCount = m_MinTriangleCount = m_MaxTriangleCount;
 
-		const size_t MIN_VERTRIX_COUNT = 3;
-
-		size_t performCount = (m_MaxVertexCount <= MIN_VERTRIX_COUNT) ? 0 : (m_MaxVertexCount - MIN_VERTRIX_COUNT);
 		size_t performCounter = 0;
 
-		while (performCounter < performCount)
+		while (!m_EdgeHeap.empty())
 		{
-			++performCounter;
+			if (m_CurVertexCount < m_MinVertexAllow)
+				break;
+			if (m_CurTriangleCount < m_MinTriangleAllow)
+				break;
+
 			EdgeContraction contraction;
 			bool validContraction = false;
 
@@ -515,6 +520,11 @@ protected:
 			{
 				break;
 			}
+
+			if (contraction.cost > m_MaxErrorAllow)
+				break;
+
+			++performCounter;
 
 			assert(contraction.edge.index[0] != contraction.edge.index[1]);
 
@@ -555,9 +565,9 @@ protected:
 			collapse.pCurrTriangleCount = &m_CurTriangleCount;
 			collapse.pCurrVertexCount = &m_CurVertexCount;
 
-			std::unordered_set<int32_t> sharedAdjacencySet;
+			std::unordered_set<int32_t> validTriangleSet;
 
-			auto AdjustAdjacencies = [this, newIndex, NewModify, NewContraction, &sharedAdjacencySet, &collapse](int32_t v)
+			auto AdjustAdjacencies = [this, newIndex, NewModify, NewContraction, &validTriangleSet, &collapse](int32_t v)
 			{
 				for (int32_t triIndex : m_Adjacencies[v])
 				{
@@ -570,23 +580,86 @@ protected:
 					{
 						NewContraction(triangle, i, (i + 1) % 3);
 						NewContraction(triangle, i, (i + 2) % 3);
+						validTriangleSet.insert(triIndex);
 					}
 				}
 			};
 
+			int32_t invalidTriangle = 0;
 			std::unordered_set<int32_t> adjacencySet;
+			std::unordered_set<int32_t> validSharedAdjacencySet;
+
 			adjacencySet.insert(m_Adjacencies[v0].begin(), m_Adjacencies[v0].end());
+			std::for_each(m_Adjacencies[v1].begin(), m_Adjacencies[v1].end(), [&adjacencySet, &validSharedAdjacencySet, this](int32_t triIndex)
+			{
+				if (adjacencySet.find(triIndex) != adjacencySet.end())
+				{
+					if (!IsInvalid(m_Triangles[triIndex]))
+					{
+						validSharedAdjacencySet.insert(triIndex);
+					}
+				}
+			});
 			adjacencySet.insert(m_Adjacencies[v1].begin(), m_Adjacencies[v1].end());
+
+			invalidTriangle = (int32_t)validSharedAdjacencySet.size();
+			if (m_CurTriangleCount - invalidTriangle < m_MinTriangleAllow)
+			{
+				continue;
+			}
+
+			std::unordered_set<int32_t> potentialInvalidVertex;
+			for (int32_t triIndex : validSharedAdjacencySet)
+			{
+				Triangle& triangle = m_Triangles[triIndex];
+				for (int32_t vertId : triangle.index)
+				{
+					if (vertId != v0 && vertId != v1 && m_VertexValidFlag[vertId])
+					{
+						potentialInvalidVertex.insert(vertId);
+					}
+				}
+			}
+
+			int32_t invalidVertex = 0;
+
+ 			for (int32_t vertId : potentialInvalidVertex)
+			{
+				bool hasValidTri = false;
+				for (int32_t triIndex : m_Adjacencies[vertId])
+				{
+					Triangle& triangle = m_Triangles[triIndex];
+					if (!IsInvalid(triangle))
+					{
+						if (validSharedAdjacencySet.find(triIndex) != validSharedAdjacencySet.end())
+							continue;
+						hasValidTri = true;
+						break;
+					}
+				}
+				if (!hasValidTri)
+				{
+					m_VertexValidFlag[vertId] = false;
+					++invalidVertex;
+				}
+			}
 
 			collapse.prevTriangleCount = m_CurTriangleCount;
 			collapse.prevVertexCount = m_CurVertexCount;
 
 			AdjustAdjacencies(v0);
 			AdjustAdjacencies(v1);
-			m_VertexValidFlag[v0] = m_VertexValidFlag[v1] = false;
 			m_Adjacencies.push_back(std::vector<int32_t>(adjacencySet.begin(), adjacencySet.end()));
-			m_CurTriangleCount -= 2;
-			m_CurVertexCount -=  1;
+
+			m_VertexValidFlag[v0] = m_VertexValidFlag[v1] = false;
+			if (validTriangleSet.size() == validSharedAdjacencySet.size())
+			{
+				m_VertexValidFlag[newIndex] = false;
+				invalidVertex += 1;
+			}
+
+			m_CurTriangleCount -= invalidTriangle;
+			m_CurVertexCount -= invalidVertex + 1;
 
 			collapse.currTriangleCount = m_CurTriangleCount;
 			collapse.currVertexCount = m_CurVertexCount;
@@ -651,13 +724,6 @@ public:
 			{
 				UndoCollapse();
 			}
-
-			size_t validCounter = 0;
-			for (size_t i = 0; i < m_VertexValidFlag.size(); ++i)
-			{
-				validCounter += m_VertexValidFlag[i];
-			}
-			assert(validCounter == m_CurVertexCount);
 
 			std::vector<uint32_t> indices;
 			for (size_t i = 0; i < m_Triangles.size(); ++i)
