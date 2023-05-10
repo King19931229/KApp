@@ -64,26 +64,19 @@ protected:
 		int32_t prevIndex = -1;
 		int32_t currIndex = -1;
 		std::vector<Triangle>* triangleArray = nullptr;
-		std::vector<bool>* vertexValidArray = nullptr;
 
 		void Redo()
 		{
 			std::vector<Triangle>& triangles = *triangleArray;
-			std::vector<bool>& vertexValid = *vertexValidArray;
 			assert(triangles[triangleIndex].index[pointIndex] == prevIndex);
 			triangles[triangleIndex].index[pointIndex] = currIndex;
-			vertexValid[prevIndex] = false;
-			vertexValid[currIndex] = true;
 		}
 
 		void Undo()
 		{
 			std::vector<Triangle>& triangles = *triangleArray;
-			std::vector<bool>& vertexValid = *vertexValidArray;
 			assert(triangles[triangleIndex].index[pointIndex] == currIndex);
 			triangles[triangleIndex].index[pointIndex] = prevIndex;
-			vertexValid[prevIndex] = true;
-			vertexValid[currIndex] = false;
 		}
 	};
 
@@ -130,7 +123,6 @@ protected:
 
 	std::vector<Triangle> m_Triangles;
 	std::vector<Vertex> m_Vertices;
-	std::vector<bool> m_VertexValidFlag;
 	std::vector<std::vector<int32_t>> m_Adjacencies;
 	std::vector<glm::mat4> m_QMaterix;
 	std::priority_queue<EdgeContraction> m_EdgeHeap;
@@ -191,27 +183,20 @@ protected:
 		return false;
 	}
 
-	bool IsInvalid(const Triangle& triangle)
+	bool IsValid(const Triangle& triangle)
 	{
 		int32_t v0 = triangle.index[0];
 		int32_t v1 = triangle.index[1];
 		int32_t v2 = triangle.index[2];
 
 		if (v0 == v1)
-			return true;
+			return false;
 		if (v0 == v2)
-			return true;
+			return false;
 		if (v1 == v2)
-			return true;
+			return false;
 
-		if (!m_VertexValidFlag[v0])
-			return true;
-		if (!m_VertexValidFlag[v1])
-			return true;
-		if (!m_VertexValidFlag[v2])
-			return true;
-
-		return false;
+		return true;
 	}
 
 	std::tuple<float, Vertex> ComputeCostAndVertex(const Edge& edge)
@@ -219,8 +204,8 @@ protected:
 		int32_t v0 = edge.index[0];
 		int32_t v1 = edge.index[1];
 
-		const Vertex& va = m_Vertices[v0]; assert(m_VertexValidFlag[v0]);
-		const Vertex& vb = m_Vertices[v1]; assert(m_VertexValidFlag[v1]);
+		const Vertex& va = m_Vertices[v0];
+		const Vertex& vb = m_Vertices[v1];
 
 		glm::mat4 QMatrix = m_QMaterix[v0] + m_QMaterix[v1];
 		glm::mat4 AMatrix = QMatrix;
@@ -279,7 +264,7 @@ protected:
 		float t = glm::max(0.0f, glm::min(1.0f, glm::dot(ac, ab) / std::max(1e-2f, glm::dot(ab, ab))));
 
 		vc.uv = glm::mix(va.uv, vb.uv, t);
-		vc.normal = glm::mix(va.normal, vb.normal, t);
+		vc.normal = glm::normalize(glm::mix(va.normal, vb.normal, t));
 
 		return std::make_tuple(cost, vc);
 	};
@@ -375,7 +360,6 @@ protected:
 			pVerticesData += vertexBase;
 
 			m_Vertices.resize(vertexCount);
-			m_VertexValidFlag.resize(vertexCount);
 			m_Adjacencies.resize(vertexCount);
 
 			for (uint32_t i = 0; i < vertexCount; ++i)
@@ -384,10 +368,10 @@ protected:
 				m_Vertices[i].pos = srcVertex.pos;
 				m_Vertices[i].uv = srcVertex.uv;
 				m_Vertices[i].normal = srcVertex.normal;
-				m_VertexValidFlag[i] = true;
 			}
 
 			uint32_t maxTriCount = indexCount / 3;
+
 			m_Triangles.reserve(maxTriCount);
 			for (uint32_t i = 0; i < maxTriCount; ++i)
 			{
@@ -395,10 +379,11 @@ protected:
 				triangle.index[0] = indices[3 * i];
 				triangle.index[1] = indices[3 * i + 1];
 				triangle.index[2] = indices[3 * i + 2];
-				if (!IsInvalid(triangle) && !IsDegenerateTriangle(triangle))
+				if (IsValid(triangle) && !IsDegenerateTriangle(triangle))
 				{
 					for (uint32_t i = 0; i < 3; ++i)
 					{
+						assert(triangle.index[i] < m_Adjacencies.size());
 						m_Adjacencies[triangle.index[i]].push_back((int32_t)(m_Triangles.size()));
 					}
 					m_Triangles.push_back(triangle);
@@ -410,11 +395,7 @@ protected:
 
 			for (uint32_t i = 0; i < vertexCount; ++i)
 			{
-				if (m_Adjacencies[i].size() == 0)
-				{
-					m_VertexValidFlag[i] = false;
-				}
-				else
+				if (m_Adjacencies[i].size() != 0)
 				{
 					++m_MaxVertexCount;
 				}
@@ -499,6 +480,24 @@ protected:
 
 		size_t performCounter = 0;
 
+		std::vector<bool> vertexValidFlag;
+		vertexValidFlag.resize(m_Vertices.size());
+		for (size_t i = 0; i < vertexValidFlag.size(); ++i)
+		{
+			vertexValidFlag[i] = true;
+		}
+
+		auto CheckValidFlag = [&vertexValidFlag](const Triangle& triangle)
+		{
+			if (!vertexValidFlag[triangle.index[0]])
+				return false;
+			if (!vertexValidFlag[triangle.index[1]])
+				return false;
+			if (!vertexValidFlag[triangle.index[2]])
+				return false;
+			return true;
+		};
+
 		while (!m_EdgeHeap.empty())
 		{
 			if (m_CurVertexCount < m_MinVertexAllow)
@@ -513,7 +512,7 @@ protected:
 			{
 				contraction = m_EdgeHeap.top();
 				m_EdgeHeap.pop();
-				validContraction = m_VertexValidFlag[contraction.edge.index[0]] && m_VertexValidFlag[contraction.edge.index[1]];
+				validContraction = vertexValidFlag[contraction.edge.index[0]] && vertexValidFlag[contraction.edge.index[1]];
 			} while (!m_EdgeHeap.empty() && !validContraction);
 
 			if (!validContraction)
@@ -524,17 +523,54 @@ protected:
 			if (contraction.cost > m_MaxErrorAllow)
 				break;
 
-			++performCounter;
-
 			assert(contraction.edge.index[0] != contraction.edge.index[1]);
 
 			int32_t v0 = contraction.edge.index[0];
 			int32_t v1 = contraction.edge.index[1];
 
+			std::unordered_set<int32_t> adjacencySet;
+			std::unordered_set<int32_t> sharedAdjacencySet;
+
+			for (int32_t triIndex : m_Adjacencies[v0])
+			{
+				Triangle& triangle = m_Triangles[triIndex];
+				if (IsValid(triangle))
+				{
+					assert(CheckValidFlag(triangle));
+					adjacencySet.insert(triIndex);
+				}
+			}
+
+			for (int32_t triIndex : m_Adjacencies[v1])
+			{
+				Triangle& triangle = m_Triangles[triIndex];
+				if (IsValid(triangle))
+				{
+					assert(CheckValidFlag(triangle));
+					if (adjacencySet.find(triIndex) != adjacencySet.end())
+					{
+						sharedAdjacencySet.insert(triIndex);
+					}
+					else
+					{
+						adjacencySet.insert(triIndex);
+					}
+				}
+			}
+
+			int32_t invalidTriangle = (int32_t)sharedAdjacencySet.size();
+			if (m_CurTriangleCount - invalidTriangle < m_MinTriangleAllow)
+			{
+				continue;
+			}
+
+			++performCounter;
+
 			int32_t newIndex = (int32_t)m_Vertices.size();
 
 			m_Vertices.push_back(contraction.vertex);
-			m_VertexValidFlag.push_back(true);
+			m_Adjacencies.push_back({});
+			vertexValidFlag.push_back(true);
 			m_QMaterix.push_back(m_QMaterix[v0] + m_QMaterix[v1]);
 
 			auto NewModify = [this, newIndex](int32_t triIndex, int32_t pointIndex)->PointModify
@@ -546,7 +582,6 @@ protected:
 				modify.currIndex = newIndex;
 				assert(modify.prevIndex != modify.currIndex);
 				modify.triangleArray = &m_Triangles;
-				modify.vertexValidArray = &m_VertexValidFlag;
 				return modify;
 			};
 
@@ -567,17 +602,24 @@ protected:
 
 			std::unordered_set<int32_t> validTriangleSet;
 
-			auto AdjustAdjacencies = [this, newIndex, NewModify, NewContraction, &validTriangleSet, &collapse](int32_t v)
+			auto AdjustAdjacencies = [this, newIndex, NewModify, NewContraction, CheckValidFlag, &vertexValidFlag, &sharedAdjacencySet, &validTriangleSet, &collapse](int32_t v)
 			{
 				for (int32_t triIndex : m_Adjacencies[v])
 				{
 					Triangle& triangle = m_Triangles[triIndex];
-					int32_t i = triangle.PointIndex(v); assert(i >= 0);
+
+					int32_t i = triangle.PointIndex(v);
+					assert(i >= 0);
 					PointModify modify = NewModify(triIndex, i);
 					collapse.modifies.push_back(modify);
 					modify.Redo();
-					if (!IsInvalid(triangle))
+
+					if (IsValid(triangle) && CheckValidFlag(triangle))
 					{
+						if (sharedAdjacencySet.find(triIndex) != sharedAdjacencySet.end())
+						{
+							continue;
+						}
 						NewContraction(triangle, i, (i + 1) % 3);
 						NewContraction(triangle, i, (i + 2) % 3);
 						validTriangleSet.insert(triIndex);
@@ -585,36 +627,13 @@ protected:
 				}
 			};
 
-			int32_t invalidTriangle = 0;
-			std::unordered_set<int32_t> adjacencySet;
-			std::unordered_set<int32_t> validSharedAdjacencySet;
-
-			adjacencySet.insert(m_Adjacencies[v0].begin(), m_Adjacencies[v0].end());
-			std::for_each(m_Adjacencies[v1].begin(), m_Adjacencies[v1].end(), [&adjacencySet, &validSharedAdjacencySet, this](int32_t triIndex)
-			{
-				if (adjacencySet.find(triIndex) != adjacencySet.end())
-				{
-					if (!IsInvalid(m_Triangles[triIndex]))
-					{
-						validSharedAdjacencySet.insert(triIndex);
-					}
-				}
-			});
-			adjacencySet.insert(m_Adjacencies[v1].begin(), m_Adjacencies[v1].end());
-
-			invalidTriangle = (int32_t)validSharedAdjacencySet.size();
-			if (m_CurTriangleCount - invalidTriangle < m_MinTriangleAllow)
-			{
-				continue;
-			}
-
 			std::unordered_set<int32_t> potentialInvalidVertex;
-			for (int32_t triIndex : validSharedAdjacencySet)
+			for (int32_t triIndex : sharedAdjacencySet)
 			{
 				Triangle& triangle = m_Triangles[triIndex];
 				for (int32_t vertId : triangle.index)
 				{
-					if (vertId != v0 && vertId != v1 && m_VertexValidFlag[vertId])
+					if (vertId != v0 && vertId != v1 && vertexValidFlag[vertId])
 					{
 						potentialInvalidVertex.insert(vertId);
 					}
@@ -622,24 +641,26 @@ protected:
 			}
 
 			int32_t invalidVertex = 0;
-
  			for (int32_t vertId : potentialInvalidVertex)
 			{
 				bool hasValidTri = false;
 				for (int32_t triIndex : m_Adjacencies[vertId])
 				{
 					Triangle& triangle = m_Triangles[triIndex];
-					if (!IsInvalid(triangle))
+					if (IsValid(triangle))
 					{
-						if (validSharedAdjacencySet.find(triIndex) != validSharedAdjacencySet.end())
+						assert(CheckValidFlag(triangle));
+						if (sharedAdjacencySet.find(triIndex) != sharedAdjacencySet.end())
+						{
 							continue;
+						}
 						hasValidTri = true;
 						break;
 					}
 				}
 				if (!hasValidTri)
 				{
-					m_VertexValidFlag[vertId] = false;
+					vertexValidFlag[vertId] = false;
 					++invalidVertex;
 				}
 			}
@@ -649,12 +670,13 @@ protected:
 
 			AdjustAdjacencies(v0);
 			AdjustAdjacencies(v1);
-			m_Adjacencies.push_back(std::vector<int32_t>(adjacencySet.begin(), adjacencySet.end()));
 
-			m_VertexValidFlag[v0] = m_VertexValidFlag[v1] = false;
-			if (validTriangleSet.size() == validSharedAdjacencySet.size())
+			m_Adjacencies[newIndex] = std::vector<int32_t>(validTriangleSet.begin(), validTriangleSet.end());
+
+			vertexValidFlag[v0] = vertexValidFlag[v1] = false;
+			if (validTriangleSet.size() == 0)
 			{
-				m_VertexValidFlag[newIndex] = false;
+				vertexValidFlag[newIndex] = false;
 				invalidVertex += 1;
 			}
 
@@ -693,7 +715,6 @@ public:
 	{
 		m_Triangles.clear();
 		m_Vertices.clear();
-		m_VertexValidFlag.clear();
 		m_QMaterix.clear();
 		m_EdgeHeap = std::priority_queue<EdgeContraction>();
 		m_CollapseOperations.clear();
@@ -728,13 +749,12 @@ public:
 			std::vector<uint32_t> indices;
 			for (size_t i = 0; i < m_Triangles.size(); ++i)
 			{
-				if (IsInvalid(m_Triangles[i]))
+				if (IsValid(m_Triangles[i]))
 				{
-					continue;
+					indices.push_back(m_Triangles[i].index[0]);
+					indices.push_back(m_Triangles[i].index[1]);
+					indices.push_back(m_Triangles[i].index[2]);
 				}
-				indices.push_back(m_Triangles[i].index[0]);
-				indices.push_back(m_Triangles[i].index[1]);
-				indices.push_back(m_Triangles[i].index[2]);
 			}
 			if (indices.size() == 0)
 			{
