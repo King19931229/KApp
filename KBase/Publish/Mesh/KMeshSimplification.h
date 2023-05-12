@@ -6,6 +6,270 @@
 #include <tuple>
 #include <queue>
 
+// LUP factorization using Doolittle's method with partial pivoting
+template<typename T>
+bool LUPFactorize(T* A, uint32_t* pivot, uint32_t size, T epsilon)
+{
+	for (uint32_t i = 0; i < size; i++)
+	{
+		pivot[i] = i;
+	}
+
+	for (uint32_t i = 0; i < size; i++)
+	{
+		// Find largest pivot in column
+		T		maxValue = abs(A[size * i + i]);
+		int32_t	maxIndex = i;
+
+		for (uint32_t j = i + 1; j < size; j++)
+		{
+			T absValue = abs(A[size * j + i]);
+			if (absValue > maxValue)
+			{
+				maxValue = absValue;
+				maxIndex = j;
+			}
+		}
+
+		if (maxValue < epsilon)
+		{
+			// Matrix is singular
+			return false;
+		}
+
+		// Swap rows pivoting MaxValue to the diagonal
+		if (maxIndex != i)
+		{
+			std::swap(pivot[i], pivot[maxIndex]);
+
+			for (uint32_t j = 0; j < size; j++)
+				std::swap(A[size * i + j], A[size * maxIndex + j]);
+		}
+
+		// Gaussian elimination
+		for (uint32_t j = i + 1; j < size; j++)
+		{
+			A[size * j + i] /= A[size * i + i];
+
+			for (uint32_t k = i + 1; k < size; k++)
+				A[size * j + k] -= A[size * j + i] * A[size * i + k];
+		}
+	}
+
+	return true;
+}
+
+// Solve system of equations A*x = b
+template< typename T >
+void LUPSolve(const T* LU, const uint32_t* pivot, uint32_t size, const T* b, T* x)
+{
+	for (uint32_t i = 0; i < size; i++)
+	{
+		x[i] = b[pivot[i]];
+
+		for (uint32_t j = 0; j < i; j++)
+			x[i] -= LU[size * i + j] * x[j];
+	}
+
+	for (int32_t i = (int32_t)size - 1; i >= 0; i--)
+	{
+		for (uint32_t j = i + 1; j < size; j++)
+			x[i] -= LU[size * i + j] * x[j];
+
+		// Diagonal was filled with max values, all greater than Epsilon
+		x[i] /= LU[size * i + i];
+	}
+}
+
+template<typename T, uint32_t Dimension>
+struct KQuadric
+{
+	static_assert(Dimension >= 1, "Dimension must >= 1");
+	constexpr static uint32_t Size = (Dimension + 1) * Dimension / 2;
+
+	T a[Size];
+	T b[Dimension];
+	T c;
+
+	KQuadric()
+	{
+		for (uint32_t i = 0; i < ARRAY_SIZE(a); ++i)
+			a[i] = 0;
+		for (uint32_t i = 0; i < ARRAY_SIZE(b); ++i)
+			b[i] = 0;
+		c = 0;
+	}
+
+	KQuadric operator*(T factor) const
+	{
+		KQuadric res;
+		for (uint32_t i = 0; i < Size; ++i)
+			res.a[i] = a[i] * factor;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res.b[i] = b[i] * factor;
+		res.c = c * factor;
+		return res;
+	}
+
+	KQuadric operator/(T factor) const
+	{
+		KQuadric res;
+		for (uint32_t i = 0; i < Size; ++i)
+			res.a[i] = a[i] / factor;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res.b[i] = b[i] / factor;
+		res.c = c / factor;
+		return res;
+	}
+
+	KQuadric& operator*=(T factor)
+	{
+		for (uint32_t i = 0; i < Size; ++i)
+			a[i] *= factor;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			b[i] *= factor;
+		c *= factor;
+		return *this;
+	}
+
+	KQuadric& operator/=(T factor)
+	{
+		for (uint32_t i = 0; i < Size; ++i)
+			a[i] /= factor;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			b[i] /= factor;
+		c /= factor;
+		return *this;
+	}
+
+	KQuadric operator+(const KQuadric& rhs) const
+	{
+		KQuadric res;
+		for (uint32_t i = 0; i < Size; ++i)
+			res.a[i] = a[i] + rhs.a[i];
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res.b[i] = b[i] + rhs.b[i];
+		res.c = c + rhs.c;
+		return res;
+	}
+
+	KQuadric operator-(const KQuadric& rhs) const
+	{
+		KQuadric res;
+		for (uint32_t i = 0; i < Size; ++i)
+			res.a[i] = a[i] - rhs.a[i];
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res.b[i] = b[i] - rhs.b[i];
+		res.c = c - rhs.c;
+		return res;
+	}
+
+	KQuadric& operator+=(const KQuadric& rhs)
+	{
+		for (uint32_t i = 0; i < Size; ++i)
+			a[i] += rhs.a[i];
+		for (uint32_t i = 0; i < Dimension; ++i)
+			b[i] += rhs.b[i];
+		c += rhs.c;
+		return *this;
+	}
+
+	KQuadric& operator-=(const KQuadric& rhs)
+	{
+		for (uint32_t i = 0; i < Size; ++i)
+			a[i] -= rhs.a[i];
+		for (uint32_t i = 0; i < Dimension; ++i)
+			b[i] -= rhs.b[i];
+		c -= rhs.c[i];
+		return *this;
+	}
+
+	uint32_t PosToAIndex(uint32_t i, uint32_t j) const
+	{
+		if (j < i)
+		{
+			std::swap(i, j);
+		}
+		if (i < Dimension && j < Dimension)
+		{
+			return i * Dimension + j - (i * i + i) / 2;
+		}
+		else
+		{
+			assert(false);
+			return Size;
+		}
+	}
+
+	bool SetA(int32_t i, int32_t j, T value)
+	{
+		uint32_t index = PosToAIndex(i, j);
+		if (index != Size)
+		{
+			a[index] = value;
+			return true;
+		}
+		return false;
+	}
+
+	T& GetA(int32_t i, int32_t j)
+	{
+		return a[PosToAIndex(i, j)];
+	}
+
+	T Error(T* v) const
+	{
+		T error = 0;
+
+		// vT * a * v
+		for (uint32_t i = 0; i < Dimension; ++i)
+		{
+			for (uint32_t k = 0; k < Dimension; ++k)
+			{
+				error += v[k] * a[PosToAIndex(k, i)] * v[i];
+			}
+		}
+
+		// 2 * bT * v
+		for (uint32_t i = 0; i < Dimension; ++i)
+		{
+			error += 2 * b[i] * v[i];
+		}
+
+		// c
+		error += c;
+
+		return error;
+	}
+
+	bool Optimal(T* x)
+	{
+		// Solve a * x = -b
+		uint32_t pivot[Dimension] = { 0 };
+
+		T A[Dimension * Dimension];
+		for (uint32_t i = 0; i < Dimension; ++i)
+		{
+			for (uint32_t j = 0; j < Dimension; ++j)
+			{
+				A[i * Dimension + j] = -a[PosToAIndex(i, j)];
+			}
+		}
+
+		if (LUPFactorize(A, pivot, Dimension, 1e-3f))
+		{
+			LUPSolve(A, pivot, Dimension, b, x);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+};
+
+typedef KQuadric<float, 3> KQuadric3;
+
 class KMeshSimplification
 {
 protected:
@@ -121,10 +385,12 @@ protected:
 
 	KAssetImportResult::Material m_Material;
 
+	typedef KQuadric3 Quadric;
+
 	std::vector<Triangle> m_Triangles;
 	std::vector<Vertex> m_Vertices;
-	std::vector<std::vector<int32_t>> m_Adjacencies;
-	std::vector<glm::mat4> m_QMaterix;
+	std::vector<std::vector<int32_t>> m_Adjacencies; 
+	std::vector<Quadric> m_Quadric;
 	std::priority_queue<EdgeContraction> m_EdgeHeap;
 	std::vector<EdgeCollapse> m_CollapseOperations;
 	size_t m_CurrOpIdx = 0;
@@ -201,45 +467,23 @@ protected:
 
 	std::tuple<float, Vertex> ComputeCostAndVertex(const Edge& edge)
 	{
+		Vertex vc;
+
 		int32_t v0 = edge.index[0];
 		int32_t v1 = edge.index[1];
 
 		const Vertex& va = m_Vertices[v0];
 		const Vertex& vb = m_Vertices[v1];
 
-		glm::mat4 QMatrix = m_QMaterix[v0] + m_QMaterix[v1];
-		glm::mat4 AMatrix = QMatrix;
-
-		AMatrix[0][3] = 0.0f;
-		AMatrix[1][3] = 0.0f;
-		AMatrix[2][3] = 0.0f;
-		AMatrix[3][3] = 1.0f;
-
-		glm::mat4 AInvMatrix;
-
-		float det = glm::determinant(AMatrix);
-		bool invertible = abs(det) > 1e-2f;
-
-		if (invertible)
-		{
-			AInvMatrix = glm::inverse(AMatrix);
-		}
+		KQuadric3 quadric = m_Quadric[v0] + m_Quadric[v1];
 
 		float cost = std::numeric_limits<float>::max();
-		Vertex vc;
+		float opt[3];
 
-		auto ComputeCost = [&QMatrix](const glm::vec4& v) ->float
+		if (quadric.Optimal(opt))
 		{
-			glm::vec4 t = glm::transpose(QMatrix) * v;
-			float cost = glm::dot(t, v);
-			return cost;
-		};
-
-		if (invertible)
-		{
-			glm::vec4 v = AInvMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-			cost = ComputeCost(v);
-			vc.pos = glm::vec3(v[0] / v[3], v[1] / v[3], v[2] / v[3]);
+			cost = quadric.Error(opt);
+			vc.pos = glm::vec3(opt[0], opt[1], opt[2]);
 		}
 		else
 		{
@@ -248,8 +492,7 @@ protected:
 			for (size_t i = 0; i < sgement; ++i)
 			{
 				glm::vec3 pos = glm::mix(va.pos, vb.pos, (float)(i) / (float)(sgement - 1));
-				glm::vec4 v = glm::vec4(pos, 1.0f);
-				float thisCost = ComputeCost(v);
+				float thisCost = quadric.Error(&pos[0]);
 				if (thisCost < cost)
 				{
 					cost = thisCost;
@@ -408,50 +651,55 @@ protected:
 
 	bool InitHeapData()
 	{
-		m_QMaterix.resize(m_Vertices.size());
+		m_Quadric.resize(m_Vertices.size());
 
-		std::vector<glm::mat4> triQMatrixs;
+		std::vector<Quadric> triQMatrixs;
 		triQMatrixs.resize(m_Triangles.size());
 
-		auto ComputeQMatrix = [](const Vertex& a, const Vertex& b, const Vertex& c) -> glm::mat4
+		auto ComputeQuadric = [](const Vertex& a, const Vertex& b, const Vertex& c) -> Quadric
 		{
+			Quadric res;
+
 			const glm::vec3 pa = a.pos;
 			const glm::vec3 pb = b.pos;
 			const glm::vec3 pc = c.pos;
 
 			glm::vec3 n = glm::cross(pb - pa, pc - pa);
 			n = glm::normalize(n);
-			glm::vec4 p = glm::vec4(n, -glm::dot(n, pa));
+
+			float d = -glm::dot(n, pa);
+			glm::vec4 p = glm::vec4(n, d);
 
 			assert(abs(glm::dot(p, glm::vec4(pa, 1.0f))) < 1e-2f);
 			assert(abs(glm::dot(p, glm::vec4(pb, 1.0f))) < 1e-2f);
 			assert(abs(glm::dot(p, glm::vec4(pc, 1.0f))) < 1e-2f);
 
-			glm::mat4 q = glm::mat4(0);
-
-			for (int r = 0; r < 4; ++r)
+			for (uint32_t i = 0; i < 3; ++i)
 			{
-				for (int c = 0; c < 4; ++c)
+				for (uint32_t j = i; j < 3; ++j)
 				{
-					q[c][r] += p[r] * p[c];
+					res.GetA(i, j) = n[i] * n[j];
 				}
+				res.b[i] = n[i] * d;
 			}
 
-			return q;
+			res.c = d * d;
+			
+			return res;
 		};
 
 		for (size_t triIndex = 0; triIndex < m_Triangles.size(); ++triIndex)
 		{
 			const Triangle& triangle = m_Triangles[triIndex];
-			triQMatrixs[triIndex] = ComputeQMatrix(m_Vertices[triangle.index[0]], m_Vertices[triangle.index[1]], m_Vertices[triangle.index[2]]);
+			triQMatrixs[triIndex] = ComputeQuadric(m_Vertices[triangle.index[0]], m_Vertices[triangle.index[1]], m_Vertices[triangle.index[2]]);
 		}
 
 		for (size_t vertIndex = 0; vertIndex < m_Adjacencies.size(); ++vertIndex)
 		{
-			m_QMaterix[vertIndex] = glm::mat4(0);
+			m_Quadric[vertIndex] = KQuadric3();
 			for (int32_t triIndex : m_Adjacencies[vertIndex])
 			{
-				m_QMaterix[vertIndex] += triQMatrixs[triIndex];
+				m_Quadric[vertIndex] += triQMatrixs[triIndex];
 			}
 		}
 
@@ -571,7 +819,7 @@ protected:
 			m_Vertices.push_back(contraction.vertex);
 			m_Adjacencies.push_back({});
 			vertexValidFlag.push_back(true);
-			m_QMaterix.push_back(m_QMaterix[v0] + m_QMaterix[v1]);
+			m_Quadric.push_back(m_Quadric[v0] + m_Quadric[v1]);
 
 			auto NewModify = [this, newIndex](int32_t triIndex, int32_t pointIndex)->PointModify
 			{
@@ -715,7 +963,7 @@ public:
 	{
 		m_Triangles.clear();
 		m_Vertices.clear();
-		m_QMaterix.clear();
+		m_Quadric.clear();
 		m_EdgeHeap = std::priority_queue<EdgeContraction>();
 		m_CollapseOperations.clear();
 		m_CurrOpIdx = 0;
