@@ -82,6 +82,281 @@ void LUPSolve(const T* LU, const uint32_t* pivot, uint32_t size, const T* b, T* 
 }
 
 template<typename T, uint32_t Dimension>
+struct KVector
+{
+	static_assert(Dimension >= 1, "Dimension must >= 1");
+	T v[Dimension];
+
+	KVector()
+	{
+		for (uint32_t i = 0; i < Dimension; ++i)
+			v[i] = 0;
+	}
+
+	T SquareLength() const
+	{
+		T res = 0;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res += v[i] * v[i];
+		return res;
+	}
+
+	T Length() const
+	{
+		return (T)sqrt(SquareLength());
+	}
+
+	T Dot(const KVector& rhs)
+	{
+		T res = 0;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res += v[i] * rhs.v[i];
+		return res;
+	}
+
+	KVector operator*(T factor) const
+	{
+		KVector res;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res.v[i] = v[i] * factor;
+		return res;
+	}
+
+	KVector operator/(T factor) const
+	{
+		KVector res;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res.v[i] = v[i] / factor;
+		return res;
+	}
+
+	KVector& operator*=(T factor)
+	{
+		for (uint32_t i = 0; i < Dimension; ++i)
+			v[i] *= factor;
+		return *this;
+	}
+
+	KVector& operator/=(T factor)
+	{
+		for (uint32_t i = 0; i < Dimension; ++i)
+			v[i] /= factor;
+		return *this;
+	}
+
+	KVector operator+(const KVector& rhs) const
+	{
+		KVector res;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res.v[i] = v[i] + rhs.v[i];
+		return res;
+	}
+
+	KVector operator-(const KVector& rhs) const
+	{
+		KVector res;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res.v[i] = v[i] - rhs.v[i];
+		return res;
+	}
+
+	KVector& operator+=(const KVector& rhs)
+	{
+		for (uint32_t i = 0; i < Dimension; ++i)
+			v[i] += rhs.v[i];
+		return *this;
+	}
+
+	KVector& operator-=(const KVector& rhs)
+	{
+		for (uint32_t i = 0; i < Dimension; ++i)
+			v[i] -= rhs.v[i];
+		return *this;
+	}
+};
+
+template<typename T, uint32_t Row, uint32_t Column>
+struct KMatrix
+{
+	static_assert(Row >= 1, "Row must >= 1");
+	static_assert(Column >= 1, "Column must >= 1");
+	T m[Row][Column];
+
+	KMatrix()
+	{
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				m[i][j] = 0;
+			}
+		}
+	}
+
+	KMatrix(T val)
+	{
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				if (i == j)
+				{
+					m[i][j] = val;
+				}
+				else
+				{
+					m[i][j] = 0;
+				}
+			}
+		}
+	}
+
+	KMatrix operator*(T factor) const
+	{
+		KMatrix res;
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				res.m[i][j] = m[i][j] * factor;
+			}
+		}
+		return res;
+	}
+
+	KMatrix operator/(T factor) const
+	{
+		KMatrix res;
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				res.m[i][j] = m[i][j] / factor;
+			}
+		}
+		return res;
+	}
+
+	KMatrix& operator*=(T factor)
+	{
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				m[i][j] *= factor;
+			}
+		}
+		return this;
+	}
+
+	KMatrix& operator/=(T factor)
+	{
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				m[i][j] /= factor;
+			}
+		}
+		return this;
+	}
+
+	KMatrix operator+(const KMatrix& rhs) const
+	{
+		KMatrix res;
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				res.m[i][j] = m[i][j] + rhs.m[i][j];
+			}
+		}
+		return res;
+	}
+
+	KMatrix operator-(const KMatrix& rhs) const
+	{
+		KMatrix res;
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				res.m[i][j] = m[i][j] - rhs.m[i][j];
+			}
+		}
+		return res;
+	}
+
+	KMatrix& operator+=(const KMatrix& rhs)
+	{
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				m[i][j] += rhs.m[i][j];
+			}
+		}
+		return this;
+	}
+
+	KMatrix& operator-=(const KMatrix& rhs)
+	{
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				m[i][j] -= rhs.m[i][j];
+			}
+		}
+		return this;
+	}
+};
+
+template<typename T, uint32_t Row, uint32_t Column>
+KVector<T, Column> Mul(const KVector<T, Row>& lhs, const KMatrix<T, Row, Column>& rhs)
+{
+	KVector<T, Column> res;
+	for (uint32_t j = 0; j < Column; ++j)
+	{
+		res.v[j] = 0;
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			res.v[j] += lhs.v[i] * rhs.m[i][j];
+		}
+	}
+	return res;
+}
+
+template<typename T, uint32_t Row, uint32_t Column>
+KVector<T, Row> Mul(const KMatrix<T, Row, Column>& lhs, const KVector<T, Column>& rhs)
+{
+	KVector<T, Row> res;
+	for (uint32_t i = 0; i < Row; ++i)
+	{
+		res.v[i] = 0;
+		for (uint32_t j = 0; j < Column; ++j)
+		{
+			res.v[i] += lhs.m[i][j] * rhs.v[j];
+		}
+	}
+	return res;
+}
+
+template<typename T, uint32_t Row, uint32_t Column>
+KMatrix<T, Row, Column> Mul(const KVector<T, Column>& lhs, const KVector<T, Row>& rhs)
+{
+	KMatrix<T, Row, Column> res;
+	for (uint32_t i = 0; i < Row; ++i)
+	{
+		for (uint32_t j = 0; j < Column; ++j)
+		{
+			res.m[i][j] += lhs.v[j] * rhs.v[i];
+		}
+	}
+	return res;
+}
+
+template<typename T, uint32_t Dimension>
 struct KQuadric
 {
 	static_assert(Dimension >= 1, "Dimension must >= 1");
@@ -93,9 +368,9 @@ struct KQuadric
 
 	KQuadric()
 	{
-		for (uint32_t i = 0; i < ARRAY_SIZE(a); ++i)
+		for (uint32_t i = 0; i < Size; ++i)
 			a[i] = 0;
-		for (uint32_t i = 0; i < ARRAY_SIZE(b); ++i)
+		for (uint32_t i = 0; i < Dimension; ++i)
 			b[i] = 0;
 		c = 0;
 	}
@@ -268,8 +543,6 @@ struct KQuadric
 	}
 };
 
-typedef KQuadric<float, 3> KQuadric3;
-
 class KMeshSimplification
 {
 protected:
@@ -327,20 +600,27 @@ protected:
 		int32_t pointIndex = -1;
 		int32_t prevIndex = -1;
 		int32_t currIndex = -1;
+		bool prevFlip = false;
+		bool currFlip = false;
 		std::vector<Triangle>* triangleArray = nullptr;
+		std::vector<bool>* triangleFlipArray = nullptr;
 
 		void Redo()
 		{
 			std::vector<Triangle>& triangles = *triangleArray;
+			std::vector<bool>& triangleFlips = *triangleFlipArray;
 			assert(triangles[triangleIndex].index[pointIndex] == prevIndex);
 			triangles[triangleIndex].index[pointIndex] = currIndex;
+			triangleFlips[triangleIndex] = currFlip;
 		}
 
 		void Undo()
 		{
 			std::vector<Triangle>& triangles = *triangleArray;
+			std::vector<bool>& triangleFlips = *triangleFlipArray;
 			assert(triangles[triangleIndex].index[pointIndex] == currIndex);
 			triangles[triangleIndex].index[pointIndex] = prevIndex;
+			triangleFlips[triangleIndex] = prevFlip;
 		}
 	};
 
@@ -385,11 +665,15 @@ protected:
 
 	KAssetImportResult::Material m_Material;
 
-	typedef KQuadric3 Quadric;
+	static constexpr uint32_t QuadircDimension = 8;
+	typedef KQuadric<float, QuadircDimension> Quadric;
+	typedef KVector<float, QuadircDimension> Vector;
+	typedef KMatrix<float, QuadircDimension, QuadircDimension> Matrix;
 
 	std::vector<Triangle> m_Triangles;
+	std::vector<bool> m_TriangleFlips;
 	std::vector<Vertex> m_Vertices;
-	std::vector<std::vector<int32_t>> m_Adjacencies; 
+	std::vector<std::vector<int32_t>> m_Adjacencies;
 	std::vector<Quadric> m_Quadric;
 	std::priority_queue<EdgeContraction> m_EdgeHeap;
 	std::vector<EdgeCollapse> m_CollapseOperations;
@@ -427,11 +711,18 @@ protected:
 		}
 	}
 
-	bool IsDegenerateTriangle(const Triangle& triangle)
+	bool IsDegenerateTriangle(const Triangle& triangle) const
 	{
 		int32_t v0 = triangle.index[0];
 		int32_t v1 = triangle.index[1];
 		int32_t v2 = triangle.index[2];
+
+		if (v0 == v1)
+			return false;
+		if (v0 == v2)
+			return false;
+		if (v1 == v2)
+			return false;
 
 		const Vertex& vert0 = m_Vertices[v0];
 		const Vertex& vert1 = m_Vertices[v1];
@@ -449,11 +740,16 @@ protected:
 		return false;
 	}
 
-	bool IsValid(const Triangle& triangle)
+	bool IsValid(uint32_t triIndex) const
 	{
+		if (m_TriangleFlips[triIndex])
+			return false;
+
+		const Triangle& triangle = m_Triangles[triIndex];
+
 		int32_t v0 = triangle.index[0];
 		int32_t v1 = triangle.index[1];
-		int32_t v2 = triangle.index[2];
+		int32_t v2 = triangle.index[2];	
 
 		if (v0 == v1)
 			return false;
@@ -475,15 +771,23 @@ protected:
 		const Vertex& va = m_Vertices[v0];
 		const Vertex& vb = m_Vertices[v1];
 
-		KQuadric3 quadric = m_Quadric[v0] + m_Quadric[v1];
+		Quadric quadric = m_Quadric[v0] + m_Quadric[v1];
+
+		glm::vec2 uvBox[2];
+
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			uvBox[0][i] = std::min(va.uv[i], vb.uv[i]);
+			uvBox[1][i] = std::max(va.uv[i], vb.uv[i]);
+		}
 
 		float cost = std::numeric_limits<float>::max();
-		float opt[3];
+		Vector opt, vec;
 
-		if (quadric.Optimal(opt))
+		if (quadric.Optimal(vec.v))
 		{
-			cost = quadric.Error(opt);
-			vc.pos = glm::vec3(opt[0], opt[1], opt[2]);
+			cost = quadric.Error(vec.v);
+			opt = vec;
 		}
 		else
 		{
@@ -492,22 +796,33 @@ protected:
 			for (size_t i = 0; i < sgement; ++i)
 			{
 				glm::vec3 pos = glm::mix(va.pos, vb.pos, (float)(i) / (float)(sgement - 1));
-				float thisCost = quadric.Error(&pos[0]);
+				glm::vec2 uv = glm::mix(va.uv, vb.uv, (float)(i) / (float)(sgement - 1));
+				glm::vec3 normal = glm::mix(va.normal, vb.normal, (float)(i) / (float)(sgement - 1));
+
+				vec.v[0] = pos[0];		vec.v[1] = pos[1];		vec.v[2] = pos[2];
+				vec.v[3] = uv[0];		vec.v[4] = uv[1];
+				vec.v[5] = normal[0];	vec.v[6] = normal[1];	vec.v[7] = normal[2];
+
+				float thisCost = quadric.Error(vec.v);
 				if (thisCost < cost)
 				{
 					cost = thisCost;
-					vc.pos = pos;
+					opt = vec;
 				}
 			}
 		}
 
+		vc.pos = glm::vec3(opt.v[0], opt.v[1], opt.v[2]);
+		vc.uv = glm::clamp(glm::vec2(opt.v[3], opt.v[4]), uvBox[0], uvBox[1]);
+		vc.normal = glm::normalize(glm::vec3(opt.v[5], opt.v[6], opt.v[7]));
+
+		/*
 		glm::vec3 ac = vc.pos - va.pos;
 		glm::vec3 ab = vb.pos - va.pos;
-
 		float t = glm::max(0.0f, glm::min(1.0f, glm::dot(ac, ab) / std::max(1e-2f, glm::dot(ab, ab))));
-
 		vc.uv = glm::mix(va.uv, vb.uv, t);
 		vc.normal = glm::normalize(glm::mix(va.normal, vb.normal, t));
+		*/
 
 		return std::make_tuple(cost, vc);
 	};
@@ -616,13 +931,15 @@ protected:
 			uint32_t maxTriCount = indexCount / 3;
 
 			m_Triangles.reserve(maxTriCount);
+			m_TriangleFlips.reserve(maxTriCount);
+
 			for (uint32_t i = 0; i < maxTriCount; ++i)
 			{
 				Triangle triangle;
 				triangle.index[0] = indices[3 * i];
 				triangle.index[1] = indices[3 * i + 1];
 				triangle.index[2] = indices[3 * i + 2];
-				if (IsValid(triangle) && !IsDegenerateTriangle(triangle))
+				if (!IsDegenerateTriangle(triangle))
 				{
 					for (uint32_t i = 0; i < 3; ++i)
 					{
@@ -630,6 +947,7 @@ protected:
 						m_Adjacencies[triangle.index[i]].push_back((int32_t)(m_Triangles.size()));
 					}
 					m_Triangles.push_back(triangle);
+					m_TriangleFlips.push_back(false);
 				}
 			}
 
@@ -656,35 +974,49 @@ protected:
 		std::vector<Quadric> triQMatrixs;
 		triQMatrixs.resize(m_Triangles.size());
 
-		auto ComputeQuadric = [](const Vertex& a, const Vertex& b, const Vertex& c) -> Quadric
+		auto ComputeQuadric = [](const Vertex& va, const Vertex& vb, const Vertex& vc) -> Quadric
 		{
 			Quadric res;
 
-			const glm::vec3 pa = a.pos;
-			const glm::vec3 pb = b.pos;
-			const glm::vec3 pc = c.pos;
+			Vector p, q, r;
+			p.v[0] = va.pos[0]; p.v[1] = va.pos[1]; p.v[2] = va.pos[2];
+			q.v[0] = vb.pos[0]; q.v[1] = vb.pos[1]; q.v[2] = vb.pos[2];
+			r.v[0] = vc.pos[0]; r.v[1] = vc.pos[1]; r.v[2] = vc.pos[2];
 
-			glm::vec3 n = glm::cross(pb - pa, pc - pa);
-			n = glm::normalize(n);
+			p.v[3] = va.uv[0]; p.v[4] = va.uv[1];
+			q.v[3] = vb.uv[0]; q.v[4] = vb.uv[1];
+			r.v[3] = vc.uv[0]; r.v[4] = vc.uv[1];
 
-			float d = -glm::dot(n, pa);
-			glm::vec4 p = glm::vec4(n, d);
+			p.v[5] = va.normal[0]; p.v[6] = va.normal[1]; p.v[7] = va.normal[2];
+			q.v[5] = vb.normal[0]; q.v[6] = vb.normal[1]; q.v[7] = vb.normal[2];
+			r.v[5] = vc.normal[0]; r.v[6] = vc.normal[1]; r.v[7] = vc.normal[2];
 
-			assert(abs(glm::dot(p, glm::vec4(pa, 1.0f))) < 1e-2f);
-			assert(abs(glm::dot(p, glm::vec4(pb, 1.0f))) < 1e-2f);
-			assert(abs(glm::dot(p, glm::vec4(pc, 1.0f))) < 1e-2f);
+			Vector e1 = q - p;
+			e1 /= e1.Length();
+
+			Vector e2 = r - p;
+			e2 -= e1 * e2.Dot(e1);
+			e2 /= e2.Length();
+
+			Matrix A = Matrix(1.0f) - Mul(e1, e1) - Mul(e2, e2);
+			Vector b = e1 * e1.Dot(p) + e2 * e2.Dot(p) - p;
+			float c = p.Dot(p) - (p.Dot(e1) * p.Dot(e1)) - (p.Dot(e2) * p.Dot(e2));
 
 			for (uint32_t i = 0; i < 3; ++i)
 			{
 				for (uint32_t j = i; j < 3; ++j)
 				{
-					res.GetA(i, j) = n[i] * n[j];
+					res.GetA(i, j) = A.m[i][j];
 				}
-				res.b[i] = n[i] * d;
+				res.b[i] = b.v[i];
 			}
 
-			res.c = d * d;
-			
+			res.c = c;
+
+			glm::vec3 n = glm::cross(vb.pos - va.pos, vc.pos - va.pos);
+			float area = 0.5f * glm::length(n);
+			res *= area;
+
 			return res;
 		};
 
@@ -696,7 +1028,7 @@ protected:
 
 		for (size_t vertIndex = 0; vertIndex < m_Adjacencies.size(); ++vertIndex)
 		{
-			m_Quadric[vertIndex] = KQuadric3();
+			m_Quadric[vertIndex] = Quadric();
 			for (int32_t triIndex : m_Adjacencies[vertIndex])
 			{
 				m_Quadric[vertIndex] += triQMatrixs[triIndex];
@@ -733,6 +1065,21 @@ protected:
 		for (size_t i = 0; i < vertexValidFlag.size(); ++i)
 		{
 			vertexValidFlag[i] = true;
+		}
+
+		auto ComputeTriangleNormal = [this](const Triangle& triangle)
+		{
+			const glm::vec3& v0 = m_Vertices[triangle.index[0]].pos;
+			const glm::vec3& v1 = m_Vertices[triangle.index[1]].pos;
+			const glm::vec3& v2 = m_Vertices[triangle.index[2]].pos;
+			return glm::normalize(glm::cross(v1 - v0, v2 - v0));
+		};
+
+		std::vector<glm::vec3> triangleNormals;
+		triangleNormals.resize(m_Triangles.size());
+		for (size_t i = 0; i < triangleNormals.size(); ++i)
+		{
+			triangleNormals[i] = ComputeTriangleNormal(m_Triangles[i]);
 		}
 
 		auto CheckValidFlag = [&vertexValidFlag](const Triangle& triangle)
@@ -781,20 +1128,18 @@ protected:
 
 			for (int32_t triIndex : m_Adjacencies[v0])
 			{
-				Triangle& triangle = m_Triangles[triIndex];
-				if (IsValid(triangle))
+				if (IsValid(triIndex))
 				{
-					assert(CheckValidFlag(triangle));
+					assert(CheckValidFlag(m_Triangles[triIndex]));
 					adjacencySet.insert(triIndex);
 				}
 			}
 
 			for (int32_t triIndex : m_Adjacencies[v1])
 			{
-				Triangle& triangle = m_Triangles[triIndex];
-				if (IsValid(triangle))
+				if (IsValid(triIndex))
 				{
-					assert(CheckValidFlag(triangle));
+					assert(CheckValidFlag(m_Triangles[triIndex]));
 					if (adjacencySet.find(triIndex) != adjacencySet.end())
 					{
 						sharedAdjacencySet.insert(triIndex);
@@ -826,10 +1171,8 @@ protected:
 				PointModify modify;
 				modify.triangleIndex = triIndex;
 				modify.pointIndex = pointIndex;
-				modify.prevIndex = m_Triangles[triIndex].index[pointIndex];
-				modify.currIndex = newIndex;
-				assert(modify.prevIndex != modify.currIndex);
 				modify.triangleArray = &m_Triangles;
+				modify.triangleFlipArray = &m_TriangleFlips;
 				return modify;
 			};
 
@@ -848,21 +1191,38 @@ protected:
 			collapse.pCurrTriangleCount = &m_CurTriangleCount;
 			collapse.pCurrVertexCount = &m_CurVertexCount;
 
-			std::unordered_set<int32_t> validTriangleSet;
+			std::unordered_set<int32_t> newAdjacencySet;
 
-			auto AdjustAdjacencies = [this, newIndex, NewModify, NewContraction, CheckValidFlag, &vertexValidFlag, &sharedAdjacencySet, &validTriangleSet, &collapse](int32_t v)
+			auto AdjustAdjacencies = [this, newIndex, NewModify, NewContraction, CheckValidFlag, ComputeTriangleNormal, &vertexValidFlag, &triangleNormals, &sharedAdjacencySet, &newAdjacencySet, &collapse](int32_t v)
 			{
 				for (int32_t triIndex : m_Adjacencies[v])
 				{
 					Triangle& triangle = m_Triangles[triIndex];
 
+					glm::vec3 prevNormal = triangleNormals[triIndex];
+					bool prevNormalFlip = m_TriangleFlips[triIndex];
+
 					int32_t i = triangle.PointIndex(v);
 					assert(i >= 0);
-					PointModify modify = NewModify(triIndex, i);
-					collapse.modifies.push_back(modify);
-					modify.Redo();
+					triangle.index[i] = newIndex;
 
-					if (IsValid(triangle) && CheckValidFlag(triangle))
+					triangleNormals[triIndex] = ComputeTriangleNormal(triangle);
+					if (glm::dot(triangleNormals[triIndex], prevNormal) < -1e-3f)
+					{
+					//	m_TriangleFlips[triIndex] = true;
+					}
+
+					PointModify modify = NewModify(triIndex, i);
+
+					modify.prevIndex = v;
+					modify.currIndex = newIndex;
+					assert(modify.prevIndex != modify.currIndex);
+					modify.prevFlip = prevNormalFlip;
+					modify.currFlip = m_TriangleFlips[triIndex];
+
+					collapse.modifies.push_back(modify);
+
+					if (IsValid(triIndex) && CheckValidFlag(triangle))
 					{
 						if (sharedAdjacencySet.find(triIndex) != sharedAdjacencySet.end())
 						{
@@ -870,7 +1230,7 @@ protected:
 						}
 						NewContraction(triangle, i, (i + 1) % 3);
 						NewContraction(triangle, i, (i + 2) % 3);
-						validTriangleSet.insert(triIndex);
+						newAdjacencySet.insert(triIndex);
 					}
 				}
 			};
@@ -889,15 +1249,14 @@ protected:
 			}
 
 			int32_t invalidVertex = 0;
- 			for (int32_t vertId : potentialInvalidVertex)
+			for (int32_t vertId : potentialInvalidVertex)
 			{
 				bool hasValidTri = false;
 				for (int32_t triIndex : m_Adjacencies[vertId])
 				{
-					Triangle& triangle = m_Triangles[triIndex];
-					if (IsValid(triangle))
+					if (IsValid(triIndex))
 					{
-						assert(CheckValidFlag(triangle));
+						assert(CheckValidFlag(m_Triangles[triIndex]));
 						if (sharedAdjacencySet.find(triIndex) != sharedAdjacencySet.end())
 						{
 							continue;
@@ -919,10 +1278,10 @@ protected:
 			AdjustAdjacencies(v0);
 			AdjustAdjacencies(v1);
 
-			m_Adjacencies[newIndex] = std::vector<int32_t>(validTriangleSet.begin(), validTriangleSet.end());
+			m_Adjacencies[newIndex] = std::vector<int32_t>(newAdjacencySet.begin(), newAdjacencySet.end());
 
 			vertexValidFlag[v0] = vertexValidFlag[v1] = false;
-			if (validTriangleSet.size() == 0)
+			if (newAdjacencySet.size() == 0)
 			{
 				vertexValidFlag[newIndex] = false;
 				invalidVertex += 1;
@@ -995,13 +1354,13 @@ public:
 			}
 
 			std::vector<uint32_t> indices;
-			for (size_t i = 0; i < m_Triangles.size(); ++i)
+			for (uint32_t triIndex = 0; triIndex < (uint32_t)m_Triangles.size(); ++triIndex)
 			{
-				if (IsValid(m_Triangles[i]))
+				if (IsValid(triIndex))
 				{
-					indices.push_back(m_Triangles[i].index[0]);
-					indices.push_back(m_Triangles[i].index[1]);
-					indices.push_back(m_Triangles[i].index[2]);
+					indices.push_back(m_Triangles[triIndex].index[0]);
+					indices.push_back(m_Triangles[triIndex].index[1]);
+					indices.push_back(m_Triangles[triIndex].index[2]);
 				}
 			}
 			if (indices.size() == 0)
