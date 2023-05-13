@@ -564,7 +564,7 @@ protected:
 	{
 		int32_t index[3] = { -1, -1, -1 };
 
-		int32_t PointIndex(int32_t v)
+		int32_t PointIndex(int32_t v) const
 		{
 			for (int32_t i = 0; i < 3; ++i)
 			{
@@ -603,24 +603,19 @@ protected:
 		bool prevFlip = false;
 		bool currFlip = false;
 		std::vector<Triangle>* triangleArray = nullptr;
-		std::vector<bool>* triangleFlipArray = nullptr;
 
 		void Redo()
 		{
 			std::vector<Triangle>& triangles = *triangleArray;
-			std::vector<bool>& triangleFlips = *triangleFlipArray;
 			assert(triangles[triangleIndex].index[pointIndex] == prevIndex);
 			triangles[triangleIndex].index[pointIndex] = currIndex;
-			triangleFlips[triangleIndex] = currFlip;
 		}
 
 		void Undo()
 		{
 			std::vector<Triangle>& triangles = *triangleArray;
-			std::vector<bool>& triangleFlips = *triangleFlipArray;
 			assert(triangles[triangleIndex].index[pointIndex] == currIndex);
 			triangles[triangleIndex].index[pointIndex] = prevIndex;
-			triangleFlips[triangleIndex] = prevFlip;
 		}
 	};
 
@@ -671,9 +666,8 @@ protected:
 	typedef KMatrix<float, QuadircDimension, QuadircDimension> Matrix;
 
 	std::vector<Triangle> m_Triangles;
-	std::vector<bool> m_TriangleFlips;
 	std::vector<Vertex> m_Vertices;
-	std::vector<std::vector<int32_t>> m_Adjacencies;
+	std::vector<std::unordered_set<int32_t>> m_Adjacencies;
 	std::vector<Quadric> m_Quadric;
 	std::priority_queue<EdgeContraction> m_EdgeHeap;
 	std::vector<EdgeCollapse> m_CollapseOperations;
@@ -728,7 +722,7 @@ protected:
 		const Vertex& vert1 = m_Vertices[v1];
 		const Vertex& vert2 = m_Vertices[v2];
 
-		constexpr float EPS = 1e-3f;
+		constexpr float EPS = 1e-5f;
 
 		if (glm::length(vert0.pos - vert1.pos) < EPS)
 			return true;
@@ -742,9 +736,6 @@ protected:
 
 	bool IsValid(uint32_t triIndex) const
 	{
-		if (m_TriangleFlips[triIndex])
-			return false;
-
 		const Triangle& triangle = m_Triangles[triIndex];
 
 		int32_t v0 = triangle.index[0];
@@ -931,7 +922,6 @@ protected:
 			uint32_t maxTriCount = indexCount / 3;
 
 			m_Triangles.reserve(maxTriCount);
-			m_TriangleFlips.reserve(maxTriCount);
 
 			for (uint32_t i = 0; i < maxTriCount; ++i)
 			{
@@ -944,10 +934,9 @@ protected:
 					for (uint32_t i = 0; i < 3; ++i)
 					{
 						assert(triangle.index[i] < m_Adjacencies.size());
-						m_Adjacencies[triangle.index[i]].push_back((int32_t)(m_Triangles.size()));
+						m_Adjacencies[triangle.index[i]].insert((int32_t)(m_Triangles.size()));
 					}
 					m_Triangles.push_back(triangle);
-					m_TriangleFlips.push_back(false);
 				}
 			}
 
@@ -1067,19 +1056,16 @@ protected:
 			vertexValidFlag[i] = true;
 		}
 
-		auto ComputeTriangleNormal = [this](const Triangle& triangle)
+		std::vector<glm::vec3> normals;
+		std::vector<glm::vec3> newNormals;
+		normals.resize(m_Triangles.size());
+		newNormals.resize(m_Triangles.size());
+		for (size_t triIndex = 0; triIndex < normals.size(); ++triIndex)
 		{
-			const glm::vec3& v0 = m_Vertices[triangle.index[0]].pos;
-			const glm::vec3& v1 = m_Vertices[triangle.index[1]].pos;
-			const glm::vec3& v2 = m_Vertices[triangle.index[2]].pos;
-			return glm::normalize(glm::cross(v1 - v0, v2 - v0));
-		};
-
-		std::vector<glm::vec3> triangleNormals;
-		triangleNormals.resize(m_Triangles.size());
-		for (size_t i = 0; i < triangleNormals.size(); ++i)
-		{
-			triangleNormals[i] = ComputeTriangleNormal(m_Triangles[i]);
+			normals[triIndex] = glm::cross(
+				m_Vertices[m_Triangles[triIndex].index[1]].pos - m_Vertices[m_Triangles[triIndex].index[0]].pos,
+				m_Vertices[m_Triangles[triIndex].index[2]].pos - m_Vertices[m_Triangles[triIndex].index[0]].pos);
+			normals[triIndex] = glm::normalize(normals[triIndex]);
 		}
 
 		auto CheckValidFlag = [&vertexValidFlag](const Triangle& triangle)
@@ -1123,30 +1109,34 @@ protected:
 			int32_t v0 = contraction.edge.index[0];
 			int32_t v1 = contraction.edge.index[1];
 
-			std::unordered_set<int32_t> adjacencySet;
 			std::unordered_set<int32_t> sharedAdjacencySet;
-
-			for (int32_t triIndex : m_Adjacencies[v0])
-			{
-				if (IsValid(triIndex))
-				{
-					assert(CheckValidFlag(m_Triangles[triIndex]));
-					adjacencySet.insert(triIndex);
-				}
-			}
+			std::unordered_set<int32_t> noSharedAdjacencySetV0;
+			std::unordered_set<int32_t> noSharedAdjacencySetV1;
 
 			for (int32_t triIndex : m_Adjacencies[v1])
 			{
 				if (IsValid(triIndex))
 				{
 					assert(CheckValidFlag(m_Triangles[triIndex]));
-					if (adjacencySet.find(triIndex) != adjacencySet.end())
+					if (m_Adjacencies[v0].find(triIndex) != m_Adjacencies[v0].end())
 					{
 						sharedAdjacencySet.insert(triIndex);
 					}
 					else
 					{
-						adjacencySet.insert(triIndex);
+						noSharedAdjacencySetV1.insert(triIndex);
+					}
+				}
+			}
+
+			for (int32_t triIndex : m_Adjacencies[v0])
+			{
+				if (IsValid(triIndex))
+				{
+					assert(CheckValidFlag(m_Triangles[triIndex]));
+					if (sharedAdjacencySet.find(triIndex) == sharedAdjacencySet.end())
+					{
+						noSharedAdjacencySetV0.insert(triIndex);
 					}
 				}
 			}
@@ -1155,6 +1145,40 @@ protected:
 			if (m_CurTriangleCount - invalidTriangle < m_MinTriangleAllow)
 			{
 				continue;
+			}
+
+			auto CalcNewNormal = [this, &normals, &newNormals, &contraction](int32_t v, const std::unordered_set<int32_t>& noSharedAdjacencySet)
+			{
+				for (int32_t triIndex : noSharedAdjacencySet)
+				{
+					const Triangle& triangle = m_Triangles[triIndex];
+					int32_t i = triangle.PointIndex(v);
+					newNormals[triIndex] = glm::cross(
+						m_Vertices[triangle.index[(i + 1) % 3]].pos - contraction.vertex.pos,
+						m_Vertices[triangle.index[(i + 2) % 3]].pos - contraction.vertex.pos);
+					newNormals[triIndex] = glm::normalize(newNormals[triIndex]);
+					const float ESP = 1e-2f;
+					if (glm::dot(newNormals[triIndex], normals[triIndex]) < ESP)
+					{
+						return false;
+					}
+				}
+				return true;
+			};
+
+			if (!CalcNewNormal(v0, noSharedAdjacencySetV0))
+				continue;
+
+			if (!CalcNewNormal(v1, noSharedAdjacencySetV1))
+				continue;
+
+			for (int32_t triIndex : noSharedAdjacencySetV0)
+			{
+				normals[triIndex] = newNormals[triIndex];
+			}
+			for (int32_t triIndex : noSharedAdjacencySetV1)
+			{
+				normals[triIndex] = newNormals[triIndex];
 			}
 
 			++performCounter;
@@ -1172,7 +1196,6 @@ protected:
 				modify.triangleIndex = triIndex;
 				modify.pointIndex = pointIndex;
 				modify.triangleArray = &m_Triangles;
-				modify.triangleFlipArray = &m_TriangleFlips;
 				return modify;
 			};
 
@@ -1193,33 +1216,20 @@ protected:
 
 			std::unordered_set<int32_t> newAdjacencySet;
 
-			auto AdjustAdjacencies = [this, newIndex, NewModify, NewContraction, CheckValidFlag, ComputeTriangleNormal, &vertexValidFlag, &triangleNormals, &sharedAdjacencySet, &newAdjacencySet, &collapse](int32_t v)
+			auto AdjustAdjacencies = [this, newIndex, NewModify, NewContraction, CheckValidFlag, &sharedAdjacencySet, &newAdjacencySet, &collapse](int32_t v)
 			{
 				for (int32_t triIndex : m_Adjacencies[v])
 				{
 					Triangle& triangle = m_Triangles[triIndex];
 
-					glm::vec3 prevNormal = triangleNormals[triIndex];
-					bool prevNormalFlip = m_TriangleFlips[triIndex];
-
 					int32_t i = triangle.PointIndex(v);
 					assert(i >= 0);
 					triangle.index[i] = newIndex;
 
-					triangleNormals[triIndex] = ComputeTriangleNormal(triangle);
-					if (glm::dot(triangleNormals[triIndex], prevNormal) < -1e-3f)
-					{
-					//	m_TriangleFlips[triIndex] = true;
-					}
-
 					PointModify modify = NewModify(triIndex, i);
-
 					modify.prevIndex = v;
 					modify.currIndex = newIndex;
 					assert(modify.prevIndex != modify.currIndex);
-					modify.prevFlip = prevNormalFlip;
-					modify.currFlip = m_TriangleFlips[triIndex];
-
 					collapse.modifies.push_back(modify);
 
 					if (IsValid(triIndex) && CheckValidFlag(triangle))
@@ -1278,7 +1288,7 @@ protected:
 			AdjustAdjacencies(v0);
 			AdjustAdjacencies(v1);
 
-			m_Adjacencies[newIndex] = std::vector<int32_t>(newAdjacencySet.begin(), newAdjacencySet.end());
+			m_Adjacencies[newIndex] = newAdjacencySet;
 
 			vertexValidFlag[v0] = vertexValidFlag[v1] = false;
 			if (newAdjacencySet.size() == 0)
@@ -1324,6 +1334,7 @@ public:
 		m_Vertices.clear();
 		m_Quadric.clear();
 		m_EdgeHeap = std::priority_queue<EdgeContraction>();
+		m_Adjacencies.clear();
 		m_CollapseOperations.clear();
 		m_CurrOpIdx = 0;
 		m_CurVertexCount = 0;
