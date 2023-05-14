@@ -807,14 +807,6 @@ protected:
 		vc.uv = glm::clamp(glm::vec2(opt.v[3], opt.v[4]), uvBox[0], uvBox[1]);
 		vc.normal = glm::normalize(glm::vec3(opt.v[5], opt.v[6], opt.v[7]));
 
-		/*
-		glm::vec3 ac = vc.pos - va.pos;
-		glm::vec3 ab = vb.pos - va.pos;
-		float t = glm::max(0.0f, glm::min(1.0f, glm::dot(ac, ab) / std::max(1e-2f, glm::dot(ab, ab))));
-		vc.uv = glm::mix(va.uv, vb.uv, t);
-		vc.normal = glm::normalize(glm::mix(va.normal, vb.normal, t));
-		*/
-
 		return std::make_tuple(cost, vc);
 	};
 
@@ -1056,18 +1048,6 @@ protected:
 			vertexValidFlag[i] = true;
 		}
 
-		std::vector<glm::vec3> normals;
-		std::vector<glm::vec3> newNormals;
-		normals.resize(m_Triangles.size());
-		newNormals.resize(m_Triangles.size());
-		for (size_t triIndex = 0; triIndex < normals.size(); ++triIndex)
-		{
-			normals[triIndex] = glm::cross(
-				m_Vertices[m_Triangles[triIndex].index[1]].pos - m_Vertices[m_Triangles[triIndex].index[0]].pos,
-				m_Vertices[m_Triangles[triIndex].index[2]].pos - m_Vertices[m_Triangles[triIndex].index[0]].pos);
-			normals[triIndex] = glm::normalize(normals[triIndex]);
-		}
-
 		auto CheckValidFlag = [&vertexValidFlag](const Triangle& triangle)
 		{
 			if (!vertexValidFlag[triangle.index[0]])
@@ -1076,6 +1056,44 @@ protected:
 				return false;
 			if (!vertexValidFlag[triangle.index[2]])
 				return false;
+			return true;
+		};
+
+		auto CheckEdge = [this](int32_t vertIndex)
+		{
+			std::set<int32_t> adjacencies;
+			for (int32_t triIndex : m_Adjacencies[vertIndex])
+			{
+				if (IsValid(triIndex))
+				{
+					int32_t index = m_Triangles[triIndex].PointIndex(vertIndex);
+					assert(index >= 0);
+					adjacencies.insert(m_Triangles[triIndex].index[(index + 1) % 3]);
+					adjacencies.insert(m_Triangles[triIndex].index[(index + 2) % 3]);
+				}
+			}
+			for (int32_t adjIndex : adjacencies)
+			{
+				std::set<int32_t> tris;
+				for (int32_t triIndex : m_Adjacencies[vertIndex])
+				{
+					if (IsValid(triIndex))
+					{
+						if (m_Adjacencies[adjIndex].find(triIndex) != m_Adjacencies[adjIndex].end())
+						{
+							tris.insert(triIndex);
+						}
+					}
+				}
+				if (tris.size() > 2)
+				{
+					for (int32_t triIndex : tris)
+					{
+						printf("[%d] %d,%d,%d\n", triIndex, m_Triangles[triIndex].index[0], m_Triangles[triIndex].index[1], m_Triangles[triIndex].index[2]);
+					}
+					return false;
+				}
+			}
 			return true;
 		};
 
@@ -1147,18 +1165,81 @@ protected:
 				continue;
 			}
 
-			auto CalcNewNormal = [this, &normals, &newNormals, &contraction](int32_t v, const std::unordered_set<int32_t>& noSharedAdjacencySet)
+			std::unordered_set<int32_t> sharedVerts;
+			for (int32_t triIndex : sharedAdjacencySet)
+			{
+				Triangle& triangle = m_Triangles[triIndex];
+				for (int32_t vertId : triangle.index)
+				{
+					if (vertId != v0 && vertId != v1)
+					{
+						sharedVerts.insert(vertId);
+					}
+				}
+			}
+
+			auto HasIndirectConnect = [this](int32_t v0, int32_t v1, const std::unordered_set<int32_t>& noSharedAdjacencySetV0, const std::unordered_set<int32_t>& sharedAdjacencySet, std::unordered_set<int32_t>& sharedVerts) -> bool
+			{
+				std::set<int32_t> noSharedAdjVerts;
+				for (int32_t triIndex : noSharedAdjacencySetV0)
+				{
+					int32_t index = m_Triangles[triIndex].PointIndex(v0);
+					assert(index >= 0);
+					int32_t va = m_Triangles[triIndex].index[(index + 1) % 3];
+					int32_t vb = m_Triangles[triIndex].index[(index + 2) % 3];
+					if (sharedVerts.find(va) == sharedVerts.end())
+					{
+						noSharedAdjVerts.insert(va);
+					}
+					if (sharedVerts.find(vb) == sharedVerts.end())
+					{
+						noSharedAdjVerts.insert(vb);
+					}
+				}
+				for (int32_t adjVert : noSharedAdjVerts)
+				{
+					std::set<int32_t> tris;
+					for (int32_t triIndex : m_Adjacencies[adjVert])
+					{
+						if (IsValid(triIndex))
+						{
+							if (sharedAdjacencySet.find(triIndex) != sharedAdjacencySet.end())
+							{
+								continue;
+							}
+							int32_t index = m_Triangles[triIndex].PointIndex(v1);
+							if (index >= 0)
+							{
+								return true;
+							}
+						}
+					}
+				}
+				return false;
+			};
+
+			if (HasIndirectConnect(v0, v1, noSharedAdjacencySetV0, sharedAdjacencySet, sharedVerts))
+			{
+				continue;
+			}
+
+			/*
+			auto CalcNewNormal = [this, &contraction](int32_t v, const std::unordered_set<int32_t>& noSharedAdjacencySet)
 			{
 				for (int32_t triIndex : noSharedAdjacencySet)
 				{
 					const Triangle& triangle = m_Triangles[triIndex];
 					int32_t i = triangle.PointIndex(v);
-					newNormals[triIndex] = glm::cross(
+
+					glm::vec3 newNormal = glm::cross(
 						m_Vertices[triangle.index[(i + 1) % 3]].pos - contraction.vertex.pos,
 						m_Vertices[triangle.index[(i + 2) % 3]].pos - contraction.vertex.pos);
-					newNormals[triIndex] = glm::normalize(newNormals[triIndex]);
-					const float ESP = 1e-2f;
-					if (glm::dot(newNormals[triIndex], normals[triIndex]) < ESP)
+
+					glm::vec3 oldNormal = glm::cross(
+						m_Vertices[triangle.index[(i + 1) % 3]].pos - m_Vertices[triangle.index[i]].pos,
+						m_Vertices[triangle.index[(i + 2) % 3]].pos - m_Vertices[triangle.index[i]].pos);
+
+					if (glm::dot(newNormal, oldNormal) < 0)
 					{
 						return false;
 					}
@@ -1167,19 +1248,15 @@ protected:
 			};
 
 			if (!CalcNewNormal(v0, noSharedAdjacencySetV0))
+			{
 				continue;
+			}
 
 			if (!CalcNewNormal(v1, noSharedAdjacencySetV1))
+			{
 				continue;
-
-			for (int32_t triIndex : noSharedAdjacencySetV0)
-			{
-				normals[triIndex] = newNormals[triIndex];
 			}
-			for (int32_t triIndex : noSharedAdjacencySetV1)
-			{
-				normals[triIndex] = newNormals[triIndex];
-			}
+			*/
 
 			++performCounter;
 
@@ -1245,22 +1322,10 @@ protected:
 				}
 			};
 
-			std::unordered_set<int32_t> potentialInvalidVertex;
-			for (int32_t triIndex : sharedAdjacencySet)
-			{
-				Triangle& triangle = m_Triangles[triIndex];
-				for (int32_t vertId : triangle.index)
-				{
-					if (vertId != v0 && vertId != v1 && vertexValidFlag[vertId])
-					{
-						potentialInvalidVertex.insert(vertId);
-					}
-				}
-			}
-
 			int32_t invalidVertex = 0;
-			for (int32_t vertId : potentialInvalidVertex)
+			for (int32_t vertId : sharedVerts)
 			{
+				assert(vertexValidFlag[vertId]);
 				bool hasValidTri = false;
 				for (int32_t triIndex : m_Adjacencies[vertId])
 				{
@@ -1308,6 +1373,15 @@ protected:
 				m_CollapseOperations.push_back(collapse);
 				++m_CurrOpIdx;
 			}
+
+			/*
+			if (!CheckEdge(newIndex))
+			{
+				m_Vertices[v0].uv = glm::vec2(0.2f, 0.05f);
+				m_Vertices[v1].uv = glm::vec2(0.2f, 0.05f);
+				break;
+			}
+			*/
 		}
 
 		m_MinTriangleCount = m_CurTriangleCount;
