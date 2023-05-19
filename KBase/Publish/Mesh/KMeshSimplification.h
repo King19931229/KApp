@@ -246,7 +246,7 @@ struct KMatrix
 				m[i][j] *= factor;
 			}
 		}
-		return this;
+		return *this;
 	}
 
 	KMatrix& operator/=(T factor)
@@ -258,7 +258,7 @@ struct KMatrix
 				m[i][j] /= factor;
 			}
 		}
-		return this;
+		return *this;
 	}
 
 	KMatrix operator+(const KMatrix& rhs) const
@@ -296,7 +296,7 @@ struct KMatrix
 				m[i][j] += rhs.m[i][j];
 			}
 		}
-		return this;
+		return *this;
 	}
 
 	KMatrix& operator-=(const KMatrix& rhs)
@@ -308,7 +308,7 @@ struct KMatrix
 				m[i][j] -= rhs.m[i][j];
 			}
 		}
-		return this;
+		return *this;
 	}
 };
 
@@ -455,7 +455,7 @@ struct KQuadric
 			a[i] -= rhs.a[i];
 		for (uint32_t i = 0; i < Dimension; ++i)
 			b[i] -= rhs.b[i];
-		c -= rhs.c[i];
+		c -= rhs.c;
 		return *this;
 	}
 
@@ -522,18 +522,338 @@ struct KQuadric
 		// Solve a * x = -b
 		uint32_t pivot[Dimension] = { 0 };
 
-		T A[Dimension * Dimension];
+		KMatrix<T, Dimension, Dimension> A;
+
 		for (uint32_t i = 0; i < Dimension; ++i)
 		{
 			for (uint32_t j = 0; j < Dimension; ++j)
 			{
-				A[i * Dimension + j] = -a[PosToAIndex(i, j)];
+				A.m[i][j] = -a[PosToAIndex(i, j)];
 			}
 		}
 
-		if (LUPFactorize(A, pivot, Dimension, 1e-3f))
+		if (LUPFactorize(&A.m[0][0], pivot, Dimension, 1e-3f))
 		{
-			LUPSolve(A, pivot, Dimension, b, x);
+			LUPSolve(&A.m[0][0], pivot, Dimension, b, x);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+};
+
+template<typename T, uint32_t Attr>
+struct KAttrQuadric
+{
+	constexpr static uint32_t Size = Attr + 3;
+	typedef KVector<T, 3> Vector;
+	typedef KMatrix<T, 3, 3> Matrix;
+	Matrix	nxn_gxg;
+	T		d2_dm2;
+	T		diagonal;
+	T		dm[Attr];
+	Vector	gm[Attr];
+	Vector	dn_dg;
+
+	KAttrQuadric()
+	{
+		for (uint32_t i = 0; i < Attr; ++i)
+		{
+			dm[i] = 0;
+		}
+		d2_dm2 = 0;
+		diagonal = 0;
+	}
+
+	KAttrQuadric(const Vector& p0, const Vector& p1, const Vector& p2, T* in_m)
+	{
+		glm::vec3 v0 = glm::vec3(p0.v[0], p0.v[1], p0.v[2]);
+		glm::vec3 v1 = glm::vec3(p1.v[0], p1.v[1], p1.v[2]);
+		glm::vec3 v2 = glm::vec3(p2.v[0], p2.v[1], p2.v[2]);
+
+		glm::tvec3<T> normal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+		
+		Vector n;
+
+		n.v[0] = normal[0];
+		n.v[1] = normal[1];
+		n.v[2] = normal[2];
+
+		float d = -glm::dot(normal, v0);
+
+		dn_dg = n * d;
+		d2_dm2 = d * d;
+
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			for (uint32_t j = 0; j < 3; ++j)
+			{
+				nxn_gxg.m[i][j] = n.v[i] * n.v[j];
+			}
+		}
+
+		KMatrix<T, 4, 4> A;
+
+		for (uint32_t j = 0; j < 3; ++j)
+		{
+			A.m[0][j] = p0.v[j];
+			A.m[1][j] = p1.v[j];
+			A.m[2][j] = p2.v[j];
+			A.m[3][j] = n.v[j];
+		}
+
+		A.m[0][3] = A.m[1][3] = A.m[2][3] = 1;
+		A.m[3][3] = 0;
+
+		uint32_t pivot[4];
+		bool bInvertable = LUPFactorize(&A.m[0][0], pivot, 4, 1e-12f);
+
+		for (uint32_t k = 0; k < Attr; ++k)
+		{
+			T b[4] = { in_m[k], in_m[Attr + k], in_m[2 * Attr + k], 0 };
+			T x[4] = { 0, 0, 0, 0 };
+
+			if (bInvertable)
+			{
+				LUPSolve(&A.m[0][0], pivot, 4, b, x);
+				gm[k].v[0]	= x[0];
+				gm[k].v[1]	= x[1];
+				gm[k].v[2]	= x[2];
+				dm[k]		= x[3];
+			}
+			else
+			{
+				gm[k].v[0]	= 0;
+				gm[k].v[1]	= 0;
+				gm[k].v[2]	= 0;
+				dm[k]		= b[0];
+			}
+
+			dn_dg += gm[k] * dm[k];
+			d2_dm2 += dm[k] * dm[k];
+
+			for (uint32_t i = 0; i < 3; ++i)
+			{
+				for (uint32_t j = 0; j < 3; ++j)
+				{
+					nxn_gxg.m[i][j] += gm[k].v[i] * gm[k].v[j];
+				}
+			}
+		}
+
+		diagonal = 1;
+	}
+
+	KAttrQuadric operator*(T factor) const
+	{
+		KAttrQuadric res;
+		res.nxn_gxg = nxn_gxg * factor;
+		res.d2_dm2 = d2_dm2 * factor;
+		res.dn_dg = dn_dg * factor;
+		res.diagonal = diagonal * factor;
+		for (uint32_t i = 0; i < Attr; ++i)
+		{
+			res.dm[i] = dm[i] * factor;
+			res.gm[i] = gm[i] * factor;
+		}
+		return res;
+	}
+
+	KAttrQuadric operator/(T factor) const
+	{
+		KAttrQuadric res;
+		res.nxn_gxg = nxn_gxg / factor;
+		res.d2_dm2 = d2_dm2 / factor;
+		res.dn_dg = dn_dg / factor;
+		res.diagonal = diagonal / factor;
+		for (uint32_t i = 0; i < Attr; ++i)
+		{
+			res.dm[i] = dm[i] / factor;
+			res.gm[i] = gm[i] / factor;
+		}
+		return res;
+	}
+
+	KAttrQuadric& operator*=(T factor)
+	{
+		nxn_gxg *= factor;
+		d2_dm2 *= factor;
+		dn_dg *= factor;
+		diagonal *= factor;
+		for (uint32_t i = 0; i < Attr; ++i)
+		{
+			dm[i] *= factor;
+			gm[i] *= factor;
+		}
+		return *this;
+	}
+
+	KAttrQuadric& operator/=(T factor)
+	{
+		nxn_gxg /= factor;
+		d2_dm2 /= factor;
+		dn_dg /= factor;
+		diagonal /= factor;
+		for (uint32_t i = 0; i < Attr; ++i)
+		{
+			dm[i] /= factor;
+			gm[i] /= factor;
+		}
+		return *this;
+	}
+
+	KAttrQuadric operator+(const KAttrQuadric& rhs) const
+	{
+		KAttrQuadric res;
+		res.nxn_gxg = nxn_gxg + rhs.nxn_gxg;
+		res.d2_dm2 = d2_dm2 + rhs.d2_dm2;
+		res.dn_dg = dn_dg + rhs.dn_dg;
+		res.diagonal = diagonal + rhs.diagonal;
+		for (uint32_t i = 0; i < Attr; ++i)
+		{
+			res.dm[i] = dm[i] + rhs.dm[i];
+			res.gm[i] = gm[i] + rhs.gm[i];
+		}
+		return res;
+	}
+
+	KAttrQuadric operator-(const KAttrQuadric& rhs) const
+	{
+		KAttrQuadric res;
+		res.nxn_gxg = nxn_gxg - rhs.nxn_gxg;
+		res.d2_dm2 = d2_dm2 - rhs.d2_dm2;
+		res.dn_dg = dn_dg - rhs.dn_dg;
+		res.diagonal = diagonal - rhs.diagonal;
+		for (uint32_t i = 0; i < Attr; ++i)
+		{
+			res.dm[i] = dm[i] - rhs.dm[i];
+			res.gm[i] = gm[i] - rhs.gm[i];
+		}
+		return res;
+	}
+
+	KAttrQuadric& operator+=(const KAttrQuadric& rhs)
+	{
+		nxn_gxg += rhs.nxn_gxg;
+		d2_dm2 += rhs.d2_dm2;
+		dn_dg += rhs.dn_dg;
+		diagonal += rhs.diagonal;
+		for (uint32_t i = 0; i < Attr; ++i)
+		{
+			dm[i] += rhs.dm[i];
+			gm[i] += rhs.gm[i];
+		}
+		return *this;
+	}
+
+	KAttrQuadric& operator-=(const KAttrQuadric& rhs)
+	{
+		nxn_gxg -= rhs.nxn_gxg;
+		d2_dm2 -= rhs.d2_dm2;
+		dn_dg -= rhs.dn_dg;
+		diagonal -= rhs.diagonal;
+		for (uint32_t i = 0; i < Attr; ++i)
+		{
+			dm[i] -= rhs.dm[i];
+			gm[i] -= rhs.gm[i];
+		}
+		return *this;
+	}
+
+	KMatrix<T, Size, Size> ComputeA() const
+	{
+		KMatrix<T, Size, Size> A;
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			for (uint32_t j = 0; j < 3; ++j)
+			{
+				A.m[i][j] = nxn_gxg.m[i][j];
+			}
+		}
+
+		for (uint32_t k = 0; k < Attr; ++k)
+		{
+			A.m[k + 3][k + 3] = diagonal;
+		}
+
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			for (uint32_t k = 0; k < Attr; ++k)
+			{
+				A.m[i][k + 3] = -gm[k].v[i];
+				A.m[k + 3][i] = -gm[k].v[i];
+			}
+		}
+
+		return A;
+	}
+
+	KVector<T, Size> ComputeB() const
+	{
+		KVector<T, Size> b;
+
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			b.v[i] = dn_dg.v[i];
+		}
+
+		for (uint32_t k = 0; k < Attr; ++k)
+		{
+			b.v[k + 3] = -dm[k];
+		}
+
+		return b;
+	}
+
+	float ComputeC() const
+	{
+		float c = d2_dm2;
+		return c;
+	}
+
+	T Error(T* v) const
+	{
+		T error = 0;
+
+		KMatrix<T, Size, Size> A = ComputeA();
+
+		// vT * a * v
+		for (uint32_t i = 0; i < Size; ++i)
+		{
+			for (uint32_t k = 0; k < Size; ++k)
+			{
+				error += v[k] * A.m[k][i] * v[i];
+			}
+		}
+
+		KVector<T, Size> b = ComputeB();
+
+		// 2 * bT * v
+		for (uint32_t i = 0; i < Size; ++i)
+		{
+			error += 2 * b.v[i] * v[i];
+		}
+
+		// c
+		error += ComputeC();
+
+		return error;
+	}
+
+	bool Optimal(T* x)
+	{
+		// Solve a * x = -b
+		uint32_t pivot[Size] = { 0 };
+
+		KMatrix<T, Size, Size> A = ComputeA() * -1;
+
+		if (LUPFactorize(&A.m[0][0], pivot, Size, 1e-3f))
+		{
+			KVector<T, Size> b = ComputeB();
+
+			LUPSolve(&A.m[0][0], pivot, Size, &b.v[0], x);
 			return true;
 		}
 		else
@@ -600,8 +920,6 @@ protected:
 		int32_t pointIndex = -1;
 		int32_t prevIndex = -1;
 		int32_t currIndex = -1;
-		bool prevFlip = false;
-		bool currFlip = false;
 		std::vector<Triangle>* triangleArray = nullptr;
 
 		void Redo()
@@ -660,7 +978,10 @@ protected:
 
 	KAssetImportResult::Material m_Material;
 
-	static constexpr uint32_t QuadircDimension = 8;
+	static constexpr uint32_t AttrNum = 5;
+	typedef KAttrQuadric<float, AttrNum> AtrrQuadric;
+
+	static constexpr uint32_t QuadircDimension = AttrNum + 3;
 	typedef KQuadric<float, QuadircDimension> Quadric;
 	typedef KVector<float, QuadircDimension> Vector;
 	typedef KMatrix<float, QuadircDimension, QuadircDimension> Matrix;
@@ -668,7 +989,10 @@ protected:
 	std::vector<Triangle> m_Triangles;
 	std::vector<Vertex> m_Vertices;
 	std::vector<std::unordered_set<int32_t>> m_Adjacencies;
-	std::vector<Quadric> m_Quadric;
+
+	// std::vector<Quadric> m_Quadric;
+	std::vector<AtrrQuadric> m_AttrQuadric;
+
 	std::priority_queue<EdgeContraction> m_EdgeHeap;
 	std::vector<EdgeCollapse> m_CollapseOperations;
 	size_t m_CurrOpIdx = 0;
@@ -762,7 +1086,8 @@ protected:
 		const Vertex& va = m_Vertices[v0];
 		const Vertex& vb = m_Vertices[v1];
 
-		Quadric quadric = m_Quadric[v0] + m_Quadric[v1];
+		AtrrQuadric attrQuadric = m_AttrQuadric[v0] + m_AttrQuadric[v1];
+		// Quadric quadric = m_Quadric[v0] + m_Quadric[v1];
 
 		glm::vec2 uvBox[2];
 
@@ -775,9 +1100,9 @@ protected:
 		float cost = std::numeric_limits<float>::max();
 		Vector opt, vec;
 
-		if (quadric.Optimal(vec.v))
+		if (attrQuadric.Optimal(vec.v))
 		{
-			cost = quadric.Error(vec.v);
+			cost = attrQuadric.Error(vec.v);
 			opt = vec;
 		}
 		else
@@ -794,7 +1119,7 @@ protected:
 				vec.v[3] = uv[0];		vec.v[4] = uv[1];
 				vec.v[5] = normal[0];	vec.v[6] = normal[1];	vec.v[7] = normal[2];
 
-				float thisCost = quadric.Error(vec.v);
+				float thisCost = attrQuadric.Error(vec.v);
 				if (thisCost < cost)
 				{
 					cost = thisCost;
@@ -950,10 +1275,14 @@ protected:
 
 	bool InitHeapData()
 	{
-		m_Quadric.resize(m_Vertices.size());
+		// m_Quadric.resize(m_Vertices.size());
+		m_AttrQuadric.resize(m_Vertices.size());
 
-		std::vector<Quadric> triQMatrixs;
-		triQMatrixs.resize(m_Triangles.size());
+		std::vector<Quadric> triQuadrics;
+		triQuadrics.resize(m_Triangles.size());
+
+		std::vector<AtrrQuadric> triAttrQuadrics;
+		triAttrQuadrics.resize(m_Triangles.size());
 
 		auto ComputeQuadric = [](const Vertex& va, const Vertex& vb, const Vertex& vc) -> Quadric
 		{
@@ -1001,18 +1330,51 @@ protected:
 			return res;
 		};
 
+		auto ComputeAttrQuadric = [](const Vertex& va, const Vertex& vb, const Vertex& vc) -> AtrrQuadric
+		{
+			float m[AttrNum * 3];
+
+			const Vertex* v[3] = { &va, &vb, &vc };
+
+			for (uint32_t i = 0; i < 3; ++i)
+			{
+				m[i * AttrNum + 0] = (*v[i]).uv[0];
+				m[i * AttrNum + 1] = (*v[i]).uv[1];
+				m[i * AttrNum + 2] = (*v[i]).normal[0];
+				m[i * AttrNum + 3] = (*v[i]).normal[1];
+				m[i * AttrNum + 4] = (*v[i]).normal[2];
+			}
+
+			KVector<float, 3> p, q, r;
+			p.v[0] = va.pos[0]; p.v[1] = va.pos[1]; p.v[2] = va.pos[2];
+			q.v[0] = vb.pos[0]; q.v[1] = vb.pos[1]; q.v[2] = vb.pos[2];
+			r.v[0] = vc.pos[0]; r.v[1] = vc.pos[1]; r.v[2] = vc.pos[2];
+
+			AtrrQuadric res = AtrrQuadric(p, q, r, m);
+
+			glm::vec3 n = glm::cross(vb.pos - va.pos, vc.pos - va.pos);
+			float area = 0.5f * glm::length(n);
+
+			res *= area;
+
+			return res;
+		};
+
 		for (size_t triIndex = 0; triIndex < m_Triangles.size(); ++triIndex)
 		{
 			const Triangle& triangle = m_Triangles[triIndex];
-			triQMatrixs[triIndex] = ComputeQuadric(m_Vertices[triangle.index[0]], m_Vertices[triangle.index[1]], m_Vertices[triangle.index[2]]);
+			triQuadrics[triIndex] = ComputeQuadric(m_Vertices[triangle.index[0]], m_Vertices[triangle.index[1]], m_Vertices[triangle.index[2]]);
+			triAttrQuadrics[triIndex] = ComputeAttrQuadric(m_Vertices[triangle.index[0]], m_Vertices[triangle.index[1]], m_Vertices[triangle.index[2]]);
 		}
 
 		for (size_t vertIndex = 0; vertIndex < m_Adjacencies.size(); ++vertIndex)
 		{
-			m_Quadric[vertIndex] = Quadric();
+			// m_Quadric[vertIndex] = Quadric();
+			m_AttrQuadric[vertIndex] = AtrrQuadric();
 			for (int32_t triIndex : m_Adjacencies[vertIndex])
 			{
-				m_Quadric[vertIndex] += triQMatrixs[triIndex];
+				// m_Quadric[vertIndex] += triQuadrics[triIndex];
+				m_AttrQuadric[vertIndex] += triAttrQuadrics[triIndex];
 			}
 		}
 
@@ -1178,6 +1540,12 @@ protected:
 				}
 			}
 
+			/*
+				<<Polygon Mesh Processing>> 7. Simplification & Approximation
+				1. If both p and q are boundary vertices, then the edge (p, q) has to be a boundary edge.
+				2. For all vertices r incident to both p and q there has to be a triangle(p, q, r).
+				In other words, the intersection of the one-rings of p and q consists of vertices opposite the edge (p, q) only.
+			*/
 			auto HasIndirectConnect = [this](int32_t v0, int32_t v1, const std::unordered_set<int32_t>& noSharedAdjacencySetV0, const std::unordered_set<int32_t>& sharedAdjacencySet, std::unordered_set<int32_t>& sharedVerts) -> bool
 			{
 				std::set<int32_t> noSharedAdjVerts;
@@ -1223,8 +1591,7 @@ protected:
 				continue;
 			}
 
-			/*
-			auto CalcNewNormal = [this, &contraction](int32_t v, const std::unordered_set<int32_t>& noSharedAdjacencySet)
+			auto TriangleWillInvert = [this, &contraction](int32_t v, const std::unordered_set<int32_t>& noSharedAdjacencySet)
 			{
 				for (int32_t triIndex : noSharedAdjacencySet)
 				{
@@ -1241,22 +1608,21 @@ protected:
 
 					if (glm::dot(newNormal, oldNormal) < 0)
 					{
-						return false;
+						return true;
 					}
 				}
-				return true;
+				return false;
 			};
 
-			if (!CalcNewNormal(v0, noSharedAdjacencySetV0))
+			if (TriangleWillInvert(v0, noSharedAdjacencySetV0))
 			{
 				continue;
 			}
 
-			if (!CalcNewNormal(v1, noSharedAdjacencySetV1))
+			if (TriangleWillInvert(v1, noSharedAdjacencySetV1))
 			{
 				continue;
 			}
-			*/
 
 			++performCounter;
 
@@ -1265,7 +1631,9 @@ protected:
 			m_Vertices.push_back(contraction.vertex);
 			m_Adjacencies.push_back({});
 			vertexValidFlag.push_back(true);
-			m_Quadric.push_back(m_Quadric[v0] + m_Quadric[v1]);
+
+			// m_Quadric.push_back(m_Quadric[v0] + m_Quadric[v1]);
+			m_AttrQuadric.push_back(m_AttrQuadric[v0] + m_AttrQuadric[v1]);
 
 			auto NewModify = [this, newIndex](int32_t triIndex, int32_t pointIndex)->PointModify
 			{
@@ -1406,7 +1774,8 @@ public:
 	{
 		m_Triangles.clear();
 		m_Vertices.clear();
-		m_Quadric.clear();
+		// m_Quadric.clear();
+		m_AttrQuadric.clear();
 		m_EdgeHeap = std::priority_queue<EdgeContraction>();
 		m_Adjacencies.clear();
 		m_CollapseOperations.clear();
