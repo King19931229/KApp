@@ -81,6 +81,48 @@ void LUPSolve(const T* LU, const uint32_t* pivot, uint32_t size, const T* b, T* 
 	}
 }
 
+// Newton's method iterative refinement.
+template< typename T >
+bool LUPSolveIterate(const T* A, const T* LU, const uint32_t* pivot, uint32_t size, const T* b, T* x)
+{
+	T* residual = (T*)malloc(2 * size * sizeof(T));
+	T* error = residual + size;
+
+	LUPSolve(LU, pivot, size, b, x);
+
+	bool bCloseEnough = false;
+	for (uint32_t k = 0; k < 4; k++)
+	{
+		for (uint32_t i = 0; i < size; i++)
+		{
+			residual[i] = b[i];
+
+			for (uint32_t j = 0; j < size; j++)
+			{
+				residual[i] -= A[size * i + j] * x[j];
+			}
+		}
+
+		LUPSolve(LU, pivot, size, residual, error);
+
+		T meanSquaredError = 0.0;
+		for (uint32_t i = 0; i < size; i++)
+		{
+			x[i] += error[i];
+			meanSquaredError += error[i] * error[i];
+		}
+
+		if (meanSquaredError < 1e-4f)
+		{
+			bCloseEnough = true;
+			break;
+		}
+	}
+
+	free(residual);
+	return bCloseEnough;
+}
+
 template<typename T, uint32_t Dimension>
 struct KVector
 {
@@ -111,6 +153,14 @@ struct KVector
 		T res = 0;
 		for (uint32_t i = 0; i < Dimension; ++i)
 			res += v[i] * rhs.v[i];
+		return res;
+	}
+
+	KVector operator-() const
+	{
+		KVector res;
+		for (uint32_t i = 0; i < Dimension; ++i)
+			res.v[i] = -v[i];
 		return res;
 	}
 
@@ -209,6 +259,32 @@ struct KMatrix
 				}
 			}
 		}
+	}
+
+	KMatrix<T, Column, Row> Transpose() const
+	{
+		KMatrix<T, Column, Row> res;
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				res.m[j][i] = m[i][j];
+			}
+		}
+		return res;
+	}
+
+	KMatrix operator-() const
+	{
+		KMatrix res;
+		for (uint32_t i = 0; i < Row; ++i)
+		{
+			for (uint32_t j = 0; j < Column; ++j)
+			{
+				res.m[i][j] = -m[i][j];
+			}
+		}
+		return res;
 	}
 
 	KMatrix operator*(T factor) const
@@ -350,7 +426,25 @@ KMatrix<T, Row, Column> Mul(const KVector<T, Column>& lhs, const KVector<T, Row>
 	{
 		for (uint32_t j = 0; j < Column; ++j)
 		{
-			res.m[i][j] += lhs.v[j] * rhs.v[i];
+			res.m[i][j] = lhs.v[j] * rhs.v[i];
+		}
+	}
+	return res;
+}
+
+template<typename T, uint32_t Row, uint32_t Conn, uint32_t Column>
+KMatrix<T, Row, Column> Mul(const KMatrix<T, Row, Conn>& lhs, const KMatrix<T, Conn, Column>& rhs)
+{
+	KMatrix<T, Row, Column> res;
+	for (uint32_t i = 0; i < Row; ++i)
+	{
+		for (uint32_t j = 0; j < Column; ++j)
+		{
+			res.m[i][j] = 0;
+			for (uint32_t k = 0; k < Conn; ++k)
+			{
+				res.m[i][j] += lhs.m[i][k] * rhs.m[k][j];
+			}
 		}
 	}
 	return res;
@@ -556,6 +650,8 @@ struct KAttrQuadric
 	T		dm[Attr];
 	Vector	gm[Attr];
 	Vector	dn_dg;
+	Vector	n;
+	T		d;
 
 	KAttrQuadric()
 	{
@@ -565,23 +661,25 @@ struct KAttrQuadric
 		}
 		d2_dm2 = 0;
 		diagonal = 0;
+		d = 0;
 	}
 
 	KAttrQuadric(const Vector& p0, const Vector& p1, const Vector& p2, T* in_m)
 	{
-		glm::vec3 v0 = glm::vec3(p0.v[0], p0.v[1], p0.v[2]);
-		glm::vec3 v1 = glm::vec3(p1.v[0], p1.v[1], p1.v[2]);
-		glm::vec3 v2 = glm::vec3(p2.v[0], p2.v[1], p2.v[2]);
+		glm::tvec3<T> v0 = glm::tvec3<T>(p0.v[0], p0.v[1], p0.v[2]);
+		glm::tvec3<T> v1 = glm::tvec3<T>(p1.v[0], p1.v[1], p1.v[2]);
+		glm::tvec3<T> v2 = glm::tvec3<T>(p2.v[0], p2.v[1], p2.v[2]);
 
-		glm::tvec3<T> normal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
-		
-		Vector n;
+		glm::tvec3<T> v01 = v1 - v0;
+		glm::tvec3<T> v02 = v2 - v0;
+
+		glm::tvec3<T> normal = glm::normalize(glm::cross(v01, v02));
 
 		n.v[0] = normal[0];
 		n.v[1] = normal[1];
 		n.v[2] = normal[2];
 
-		float d = -glm::dot(normal, v0);
+		d = -glm::dot(normal, v0);
 
 		dn_dg = n * d;
 		d2_dm2 = d * d;
@@ -594,6 +692,11 @@ struct KAttrQuadric
 			}
 		}
 
+#define COMPUTE_ATTR 1
+#define USE_4X4 1
+
+#if COMPUTE_ATTR
+#if USE_4X4
 		KMatrix<T, 4, 4> A;
 
 		for (uint32_t j = 0; j < 3; ++j)
@@ -608,27 +711,63 @@ struct KAttrQuadric
 		A.m[3][3] = 0;
 
 		uint32_t pivot[4];
-		bool bInvertable = LUPFactorize(&A.m[0][0], pivot, 4, 1e-12f);
+		bool bInvertable = LUPFactorize(&A.m[0][0], pivot, 4, (T)1e-12f);
+#else
+		KMatrix<T, 3, 3> A;
+		
+		A.m[0][0] = v01[0];		A.m[0][1] = v01[1];		A.m[0][2] = v01[2];
+		A.m[1][0] = v02[0];		A.m[1][1] = v02[1];		A.m[1][2] = v02[2];
+		A.m[2][0] = normal[0];	A.m[2][1] = normal[1];	A.m[2][2] = normal[2];
 
+		uint32_t pivot[3];
+		bool bInvertable = LUPFactorize(&A.m[0][0], pivot, 3, 1e-12f);
+#endif
 		for (uint32_t k = 0; k < Attr; ++k)
 		{
-			T b[4] = { in_m[k], in_m[Attr + k], in_m[2 * Attr + k], 0 };
-			T x[4] = { 0, 0, 0, 0 };
-
 			if (bInvertable)
 			{
+				T a[3] = { in_m[k], in_m[Attr + k], in_m[2 * Attr + k] };
+#if USE_4X4
+				T b[4] = { a[0], a[1], a[2], 0 };
+				T x[4] = { 0, 0, 0, 0 };
 				LUPSolve(&A.m[0][0], pivot, 4, b, x);
 				gm[k].v[0]	= x[0];
 				gm[k].v[1]	= x[1];
 				gm[k].v[2]	= x[2];
 				dm[k]		= x[3];
+#else
+				T b[3] = { a[2] - a[0], a[1] - a[0], 0 };
+				T x[3] = { 0, 0, 0 };
+				LUPSolve(&A.m[0][0], pivot, 3, b, x);
+				gm[k].v[0]	= x[0];
+				gm[k].v[1]	= x[1];
+				gm[k].v[2]	= x[2];
+				dm[k]		= a[0] - x[0] * p0.v[0] - x[1] * p0.v[1] - x[2] * p0.v[2];
+#endif
+				T ca[3] = { 0, 0, 0 };
+
+				ca[0] = gm[k].Dot(p0) + dm[k];
+				ca[1] = gm[k].Dot(p1) + dm[k];
+				ca[2] = gm[k].Dot(p2) + dm[k];
+
+				T diff[3] = { 0, 0, 0 };
+				T diffSum = n.Dot(gm[k]);
+				for (uint32_t i = 0; i < 3; ++i)
+				{
+					diff[i] = abs(a[i] - ca[i]);
+					diffSum += diff[i];
+				}
+				if (diffSum > 1e-3f)
+				{
+					int d = 0;
+				}
 			}
 			else
 			{
 				gm[k].v[0]	= 0;
 				gm[k].v[1]	= 0;
 				gm[k].v[2]	= 0;
-				dm[k]		= b[0];
+				dm[k] = (in_m[k] + in_m[Attr + k] + in_m[2 * Attr + k]) / 3.0f;
 			}
 
 			dn_dg += gm[k] * dm[k];
@@ -644,6 +783,17 @@ struct KAttrQuadric
 		}
 
 		diagonal = 1;
+#else
+		for (uint32_t i = 0; i < Attr; ++i)
+		{
+			gm[i].v[0] = 0;
+			gm[i].v[1] = 0;
+			gm[i].v[2] = 0;
+			dm[i] = 0;
+		}
+		diagonal = 1;
+		d = 0;
+#endif
 	}
 
 	KAttrQuadric operator*(T factor) const
@@ -658,6 +808,8 @@ struct KAttrQuadric
 			res.dm[i] = dm[i] * factor;
 			res.gm[i] = gm[i] * factor;
 		}
+		res.n = n * factor;
+		res.d = d * factor;
 		return res;
 	}
 
@@ -673,6 +825,8 @@ struct KAttrQuadric
 			res.dm[i] = dm[i] / factor;
 			res.gm[i] = gm[i] / factor;
 		}
+		res.n = n / factor;
+		res.d = d / factor;
 		return res;
 	}
 
@@ -687,6 +841,8 @@ struct KAttrQuadric
 			dm[i] *= factor;
 			gm[i] *= factor;
 		}
+		n *= factor;
+		d *= factor;
 		return *this;
 	}
 
@@ -701,6 +857,8 @@ struct KAttrQuadric
 			dm[i] /= factor;
 			gm[i] /= factor;
 		}
+		n /= factor;
+		d /= factor;
 		return *this;
 	}
 
@@ -716,6 +874,8 @@ struct KAttrQuadric
 			res.dm[i] = dm[i] + rhs.dm[i];
 			res.gm[i] = gm[i] + rhs.gm[i];
 		}
+		res.n = n + rhs.n;
+		res.d = d + rhs.d;
 		return res;
 	}
 
@@ -731,6 +891,8 @@ struct KAttrQuadric
 			res.dm[i] = dm[i] - rhs.dm[i];
 			res.gm[i] = gm[i] - rhs.gm[i];
 		}
+		res.n = n - rhs.n;
+		res.d = d - rhs.d;
 		return res;
 	}
 
@@ -745,6 +907,8 @@ struct KAttrQuadric
 			dm[i] += rhs.dm[i];
 			gm[i] += rhs.gm[i];
 		}
+		n += rhs.n;
+		d += rhs.d;
 		return *this;
 	}
 
@@ -759,6 +923,8 @@ struct KAttrQuadric
 			dm[i] -= rhs.dm[i];
 			gm[i] -= rhs.gm[i];
 		}
+		n -= rhs.n;
+		d -= rhs.d;
 		return *this;
 	}
 
@@ -807,9 +973,9 @@ struct KAttrQuadric
 		return b;
 	}
 
-	float ComputeC() const
+	T ComputeC() const
 	{
-		float c = d2_dm2;
+		T c = d2_dm2;
 		return c;
 	}
 
@@ -842,18 +1008,86 @@ struct KAttrQuadric
 		return error;
 	}
 
-	bool Optimal(T* x)
+	bool OptimalVolume(T* x)
 	{
-		// Solve a * x = -b
-		uint32_t pivot[Size] = { 0 };
-
-		KMatrix<T, Size, Size> A = ComputeA() * -1;
-
-		if (LUPFactorize(&A.m[0][0], pivot, Size, 1e-3f))
+		if (diagonal < 1e-12f)
 		{
-			KVector<T, Size> b = ComputeB();
+			return false;
+		}
 
-			LUPSolve(&A.m[0][0], pivot, Size, &b.v[0], x);
+		constexpr uint32_t m = Attr;
+
+		KMatrix<T, 3, 3> C;
+		KMatrix<T, 3, m> B;
+		KMatrix<T, m, 3> BT;
+		KVector<T, 3> b1;
+		KVector<T, m> b2;
+
+		C = nxn_gxg;
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			for (uint32_t j = 0; j < m; ++j)
+			{
+				B.m[i][j] = -gm[j].v[i];
+			}
+		}
+		BT = B.Transpose();
+
+		KMatrix<T, 3, 3> _LHS = C - (Mul(B, BT) / diagonal);
+		KMatrix<T, 4, 4> LHS;
+
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			for (uint32_t j = 0; j < 3; ++j)
+			{
+				LHS.m[i][j] = _LHS.m[i][j];
+			}
+			LHS.m[i][3] = n.v[i];
+			LHS.m[3][i] = n.v[i];
+		}
+
+		KMatrix<T, 4, 4> LU = LHS;
+
+		uint32_t pivot[4] = { 0 };
+		if (LUPFactorize(&LU.m[0][0], pivot, 4, (T)1e-12f))
+		{
+			b1 = -dn_dg;
+			for (uint32_t i = 0; i < m; ++i)
+			{
+				b2.v[i] = dm[i];
+			}
+
+			KVector<T, 3> _RHS = b1 - (Mul(B, b2) / diagonal);
+
+			KVector<T, 4> RHS;
+			for (uint32_t i = 0; i < 3; ++i)
+			{
+				RHS.v[i] = _RHS.v[i];
+			}
+			RHS.v[3] = -d;
+
+			KVector<T, 4> _pos;
+			LUPSolveIterate(&LHS.m[0][0], &LU.m[0][0], pivot, 4, &RHS.v[0], &_pos.v[0]);
+			// LUPSolve(&LHS.m[0][0], pivot, 4, &RHS.v[0], &_pos.v[0]);
+
+			KVector<T, 3> pos;
+			for (uint32_t i = 0; i < 3; ++i)
+			{
+				pos.v[i] = _pos.v[i];
+			}
+
+			KVector<T, m> attr;
+			attr = (b2 - Mul(BT, pos)) / diagonal;
+
+			for (uint32_t i = 0; i < 3; ++i)
+			{
+				x[i] = pos.v[i];
+			}
+			for (uint32_t i = 0; i < m; ++i)
+			{
+				x[3 + i] = attr.v[i];
+			}
+
 			return true;
 		}
 		else
@@ -861,11 +1095,98 @@ struct KAttrQuadric
 			return false;
 		}
 	}
+
+	bool Optimal(T* x)
+	{
+		if (diagonal < 1e-12f)
+		{
+			return false;
+		}
+#if 0
+		// Solve a * x = -b
+		uint32_t pivot[Size] = { 0 };
+
+		KMatrix<T, Size, Size> A = -ComputeA();
+		KMatrix<T, Size, Size> LU = A;
+
+		if (LUPFactorize(&LU.m[0][0], pivot, Size, 1e-12f))
+		{
+			KVector<T, Size> b = ComputeB();
+			LUPSolveIterate(&A.m[0][0], &LU.m[0][0], pivot, Size, &b.v[0], x);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+#else
+		constexpr uint32_t m = Attr;
+
+		KMatrix<T, 3, 3> C;
+		KMatrix<T, 3, m> B;
+		KMatrix<T, m, 3> BT;
+		KVector<T, 3> b1;
+		KVector<T, m> b2;
+
+		C = nxn_gxg;
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			for (uint32_t j = 0; j < m; ++j)
+			{
+				B.m[i][j] = -gm[j].v[i];
+			}
+		}
+		BT = B.Transpose();
+
+		KMatrix<T, 3, 3> LHS = C - (Mul(B, BT) / diagonal);
+		KMatrix<T, 3, 3> LU = LHS;
+
+		uint32_t pivot[3] = { 0 };
+		if (LUPFactorize(&LU.m[0][0], pivot, 3, (T)1e-12f))
+		{
+			b1 = -dn_dg;
+			for (uint32_t i = 0; i < m; ++i)
+			{
+				b2.v[i] = dm[i];
+			}
+
+			KVector<T, 3> RHS = b1 - (Mul(B, b2) / diagonal);
+
+			KVector<T, 3> pos;
+			LUPSolveIterate(&LHS.m[0][0], &LU.m[0][0], pivot, 3, &RHS.v[0], &pos.v[0]);
+			// LUPSolve(&LHS.m[0][0], pivot, 3, &RHS.v[0], &pos.v[0]);		
+
+			KVector<T, m> attr;
+			attr = (b2 - Mul(BT, pos)) / diagonal;
+
+			for (uint32_t i = 0; i < 3; ++i)
+			{
+				x[i] = pos.v[i];
+			}
+			for (uint32_t i = 0; i < m; ++i)
+			{
+				x[3 + i] = attr.v[i];
+			}
+
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+#endif
+	}
 };
 
 class KMeshSimplification
 {
 protected:
+	typedef float Type;
+
+	constexpr static Type NORMAL_WEIGHT = 1;// 0.005f;
+	constexpr static Type COLOR_WEIGHT = 0.5f;
+	constexpr static Type UV_WEIGHT = 0.5f;
+
 	struct InputVertexLayout
 	{
 		glm::vec3 pos;
@@ -905,7 +1226,7 @@ protected:
 	struct EdgeContraction
 	{
 		Edge edge;
-		float cost = 0;
+		Type cost = 0;
 		Vertex vertex;
 
 		bool operator<(const EdgeContraction& rhs) const
@@ -979,18 +1300,18 @@ protected:
 	KAssetImportResult::Material m_Material;
 
 	static constexpr uint32_t AttrNum = 5;
-	typedef KAttrQuadric<float, AttrNum> AtrrQuadric;
+	typedef KAttrQuadric<Type, AttrNum> AtrrQuadric;
 
 	static constexpr uint32_t QuadircDimension = AttrNum + 3;
-	typedef KQuadric<float, QuadircDimension> Quadric;
-	typedef KVector<float, QuadircDimension> Vector;
-	typedef KMatrix<float, QuadircDimension, QuadircDimension> Matrix;
+	typedef KQuadric<Type, QuadircDimension> Quadric;
+	typedef KVector<Type, QuadircDimension> Vector;
+	typedef KMatrix<Type, QuadircDimension, QuadircDimension> Matrix;
 
 	std::vector<Triangle> m_Triangles;
 	std::vector<Vertex> m_Vertices;
 	std::vector<std::unordered_set<int32_t>> m_Adjacencies;
 
-	// std::vector<Quadric> m_Quadric;
+	std::vector<Quadric> m_Quadric;
 	std::vector<AtrrQuadric> m_AttrQuadric;
 
 	std::priority_queue<EdgeContraction> m_EdgeHeap;
@@ -1005,7 +1326,7 @@ protected:
 	int32_t m_MinTriangleCount = 0;
 	int32_t m_MaxTriangleCount = 0;
 
-	float m_MaxErrorAllow = std::numeric_limits<float>::max();
+	Type m_MaxErrorAllow = std::numeric_limits<Type>::max();
 	int32_t m_MinTriangleAllow = 1;
 	int32_t m_MinVertexAllow = 3;
 
@@ -1046,7 +1367,7 @@ protected:
 		const Vertex& vert1 = m_Vertices[v1];
 		const Vertex& vert2 = m_Vertices[v2];
 
-		constexpr float EPS = 1e-5f;
+		constexpr float EPS = 1e-3f;
 
 		if (glm::length(vert0.pos - vert1.pos) < EPS)
 			return true;
@@ -1076,7 +1397,7 @@ protected:
 		return true;
 	}
 
-	std::tuple<float, Vertex> ComputeCostAndVertex(const Edge& edge)
+	std::tuple<Type, Vertex> ComputeCostAndVertex(const Edge& edge)
 	{
 		Vertex vc;
 
@@ -1097,10 +1418,15 @@ protected:
 			uvBox[1][i] = std::max(va.uv[i], vb.uv[i]);
 		}
 
-		float cost = std::numeric_limits<float>::max();
+		Type cost = std::numeric_limits<Type>::max();
 		Vector opt, vec;
 
-		if (attrQuadric.Optimal(vec.v))
+		if (attrQuadric.OptimalVolume(vec.v))
+		{
+			cost = attrQuadric.Error(vec.v);
+			opt = vec;
+		}
+		else if (attrQuadric.Optimal(vec.v))
 		{
 			cost = attrQuadric.Error(vec.v);
 			opt = vec;
@@ -1119,7 +1445,7 @@ protected:
 				vec.v[3] = uv[0];		vec.v[4] = uv[1];
 				vec.v[5] = normal[0];	vec.v[6] = normal[1];	vec.v[7] = normal[2];
 
-				float thisCost = attrQuadric.Error(vec.v);
+				Type thisCost = attrQuadric.Error(vec.v);
 				if (thisCost < cost)
 				{
 					cost = thisCost;
@@ -1275,7 +1601,7 @@ protected:
 
 	bool InitHeapData()
 	{
-		// m_Quadric.resize(m_Vertices.size());
+		m_Quadric.resize(m_Vertices.size());
 		m_AttrQuadric.resize(m_Vertices.size());
 
 		std::vector<Quadric> triQuadrics;
@@ -1310,7 +1636,7 @@ protected:
 
 			Matrix A = Matrix(1.0f) - Mul(e1, e1) - Mul(e2, e2);
 			Vector b = e1 * e1.Dot(p) + e2 * e2.Dot(p) - p;
-			float c = p.Dot(p) - (p.Dot(e1) * p.Dot(e1)) - (p.Dot(e2) * p.Dot(e2));
+			Type c = p.Dot(p) - (p.Dot(e1) * p.Dot(e1)) - (p.Dot(e2) * p.Dot(e2));
 
 			for (uint32_t i = 0; i < 3; ++i)
 			{
@@ -1324,7 +1650,7 @@ protected:
 			res.c = c;
 
 			glm::vec3 n = glm::cross(vb.pos - va.pos, vc.pos - va.pos);
-			float area = 0.5f * glm::length(n);
+			Type area = 0.5f * glm::length(n);
 			res *= area;
 
 			return res;
@@ -1332,20 +1658,20 @@ protected:
 
 		auto ComputeAttrQuadric = [](const Vertex& va, const Vertex& vb, const Vertex& vc) -> AtrrQuadric
 		{
-			float m[AttrNum * 3];
+			Type m[AttrNum * 3];
 
 			const Vertex* v[3] = { &va, &vb, &vc };
 
 			for (uint32_t i = 0; i < 3; ++i)
 			{
-				m[i * AttrNum + 0] = (*v[i]).uv[0];
-				m[i * AttrNum + 1] = (*v[i]).uv[1];
-				m[i * AttrNum + 2] = (*v[i]).normal[0];
-				m[i * AttrNum + 3] = (*v[i]).normal[1];
-				m[i * AttrNum + 4] = (*v[i]).normal[2];
+				m[i * AttrNum + 0] = UV_WEIGHT * (*v[i]).uv[0];
+				m[i * AttrNum + 1] = UV_WEIGHT * (*v[i]).uv[1];
+				m[i * AttrNum + 2] = NORMAL_WEIGHT * (*v[i]).normal[0];
+				m[i * AttrNum + 3] = NORMAL_WEIGHT * (*v[i]).normal[1];
+				m[i * AttrNum + 4] = NORMAL_WEIGHT * (*v[i]).normal[2];
 			}
 
-			KVector<float, 3> p, q, r;
+			KVector<Type, 3> p, q, r;
 			p.v[0] = va.pos[0]; p.v[1] = va.pos[1]; p.v[2] = va.pos[2];
 			q.v[0] = vb.pos[0]; q.v[1] = vb.pos[1]; q.v[2] = vb.pos[2];
 			r.v[0] = vc.pos[0]; r.v[1] = vc.pos[1]; r.v[2] = vc.pos[2];
@@ -1353,8 +1679,7 @@ protected:
 			AtrrQuadric res = AtrrQuadric(p, q, r, m);
 
 			glm::vec3 n = glm::cross(vb.pos - va.pos, vc.pos - va.pos);
-			float area = 0.5f * glm::length(n);
-
+			Type area = 0.5f * glm::length(n);
 			res *= area;
 
 			return res;
@@ -1369,11 +1694,11 @@ protected:
 
 		for (size_t vertIndex = 0; vertIndex < m_Adjacencies.size(); ++vertIndex)
 		{
-			// m_Quadric[vertIndex] = Quadric();
+			m_Quadric[vertIndex] = Quadric();
 			m_AttrQuadric[vertIndex] = AtrrQuadric();
 			for (int32_t triIndex : m_Adjacencies[vertIndex])
 			{
-				// m_Quadric[vertIndex] += triQuadrics[triIndex];
+				m_Quadric[vertIndex] += triQuadrics[triIndex];
 				m_AttrQuadric[vertIndex] += triAttrQuadrics[triIndex];
 			}
 		}
@@ -1386,7 +1711,7 @@ protected:
 				EdgeContraction contraction;
 				contraction.edge.index[0] = triangle.index[i];
 				contraction.edge.index[1] = triangle.index[(i + 1) % 3];
-				std::tuple<float, Vertex> costAndVertex = ComputeCostAndVertex(contraction.edge);
+				std::tuple<Type, Vertex> costAndVertex = ComputeCostAndVertex(contraction.edge);
 				contraction.cost = std::get<0>(costAndVertex);
 				contraction.vertex = std::get<1>(costAndVertex);
 				m_EdgeHeap.push(contraction);
@@ -1632,7 +1957,7 @@ protected:
 			m_Adjacencies.push_back({});
 			vertexValidFlag.push_back(true);
 
-			// m_Quadric.push_back(m_Quadric[v0] + m_Quadric[v1]);
+			m_Quadric.push_back(m_Quadric[v0] + m_Quadric[v1]);
 			m_AttrQuadric.push_back(m_AttrQuadric[v0] + m_AttrQuadric[v1]);
 
 			auto NewModify = [this, newIndex](int32_t triIndex, int32_t pointIndex)->PointModify
@@ -1649,7 +1974,7 @@ protected:
 				EdgeContraction contraction;
 				contraction.edge.index[0] = newIndex; assert(contraction.edge.index[0] == newIndex);
 				contraction.edge.index[1] = triangle.index[j]; assert(contraction.edge.index[0] != contraction.edge.index[1]);
-				std::tuple<float, Vertex> costAndVertex = ComputeCostAndVertex(contraction.edge);
+				std::tuple<Type, Vertex> costAndVertex = ComputeCostAndVertex(contraction.edge);
 				contraction.cost = std::get<0>(costAndVertex);
 				contraction.vertex = std::get<1>(costAndVertex);
 				m_EdgeHeap.push(contraction);
@@ -1774,7 +2099,7 @@ public:
 	{
 		m_Triangles.clear();
 		m_Vertices.clear();
-		// m_Quadric.clear();
+		m_Quadric.clear();
 		m_AttrQuadric.clear();
 		m_EdgeHeap = std::priority_queue<EdgeContraction>();
 		m_Adjacencies.clear();
