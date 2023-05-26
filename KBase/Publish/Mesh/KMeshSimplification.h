@@ -1,1209 +1,29 @@
 #pragma once
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Publish/KAABBBox.h"
+#include "KBase/Publish/Mesh/KMeshProcessor.h"
+#include "KBase/Publish/Mesh/KQuadric.h"
 #include <unordered_set>
 #include <unordered_map>
 #include <tuple>
 #include <queue>
 
-// LUP factorization using Doolittle's method with partial pivoting
-template<typename T>
-bool LUPFactorize(T* A, uint32_t* pivot, uint32_t size, T epsilon)
-{
-	for (uint32_t i = 0; i < size; i++)
-	{
-		pivot[i] = i;
-	}
-
-	for (uint32_t i = 0; i < size; i++)
-	{
-		// Find largest pivot in column
-		T		maxValue = abs(A[size * i + i]);
-		int32_t	maxIndex = i;
-
-		for (uint32_t j = i + 1; j < size; j++)
-		{
-			T absValue = abs(A[size * j + i]);
-			if (absValue > maxValue)
-			{
-				maxValue = absValue;
-				maxIndex = j;
-			}
-		}
-
-		if (maxValue < epsilon)
-		{
-			// Matrix is singular
-			return false;
-		}
-
-		// Swap rows pivoting MaxValue to the diagonal
-		if (maxIndex != i)
-		{
-			std::swap(pivot[i], pivot[maxIndex]);
-
-			for (uint32_t j = 0; j < size; j++)
-				std::swap(A[size * i + j], A[size * maxIndex + j]);
-		}
-
-		// Gaussian elimination
-		for (uint32_t j = i + 1; j < size; j++)
-		{
-			A[size * j + i] /= A[size * i + i];
-
-			for (uint32_t k = i + 1; k < size; k++)
-				A[size * j + k] -= A[size * j + i] * A[size * i + k];
-		}
-	}
-
-	return true;
-}
-
-// Solve system of equations A*x = b
-template< typename T >
-void LUPSolve(const T* LU, const uint32_t* pivot, uint32_t size, const T* b, T* x)
-{
-	for (uint32_t i = 0; i < size; i++)
-	{
-		x[i] = b[pivot[i]];
-
-		for (uint32_t j = 0; j < i; j++)
-			x[i] -= LU[size * i + j] * x[j];
-	}
-
-	for (int32_t i = (int32_t)size - 1; i >= 0; i--)
-	{
-		for (uint32_t j = i + 1; j < size; j++)
-			x[i] -= LU[size * i + j] * x[j];
-
-		// Diagonal was filled with max values, all greater than Epsilon
-		x[i] /= LU[size * i + i];
-	}
-}
-
-// Newton's method iterative refinement.
-template< typename T >
-bool LUPSolveIterate(const T* A, const T* LU, const uint32_t* pivot, uint32_t size, const T* b, T* x)
-{
-	T* residual = (T*)malloc(2 * size * sizeof(T));
-	T* error = residual + size;
-
-	LUPSolve(LU, pivot, size, b, x);
-
-	bool bCloseEnough = false;
-	for (uint32_t k = 0; k < 4; k++)
-	{
-		for (uint32_t i = 0; i < size; i++)
-		{
-			residual[i] = b[i];
-
-			for (uint32_t j = 0; j < size; j++)
-			{
-				residual[i] -= A[size * i + j] * x[j];
-			}
-		}
-
-		LUPSolve(LU, pivot, size, residual, error);
-
-		T meanSquaredError = 0.0;
-		for (uint32_t i = 0; i < size; i++)
-		{
-			x[i] += error[i];
-			meanSquaredError += error[i] * error[i];
-		}
-
-		if (meanSquaredError < 1e-4f)
-		{
-			bCloseEnough = true;
-			break;
-		}
-	}
-
-	free(residual);
-	return bCloseEnough;
-}
-
-template<typename T, uint32_t Dimension>
-struct KVector
-{
-	static_assert(Dimension >= 1, "Dimension must >= 1");
-	T v[Dimension];
-
-	KVector()
-	{
-		for (uint32_t i = 0; i < Dimension; ++i)
-			v[i] = 0;
-	}
-
-	T SquareLength() const
-	{
-		T res = 0;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res += v[i] * v[i];
-		return res;
-	}
-
-	T Length() const
-	{
-		return (T)sqrt(SquareLength());
-	}
-
-	T Dot(const KVector& rhs)
-	{
-		T res = 0;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res += v[i] * rhs.v[i];
-		return res;
-	}
-
-	KVector operator-() const
-	{
-		KVector res;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res.v[i] = -v[i];
-		return res;
-	}
-
-	KVector operator*(T factor) const
-	{
-		KVector res;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res.v[i] = v[i] * factor;
-		return res;
-	}
-
-	KVector operator/(T factor) const
-	{
-		KVector res;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res.v[i] = v[i] / factor;
-		return res;
-	}
-
-	KVector& operator*=(T factor)
-	{
-		for (uint32_t i = 0; i < Dimension; ++i)
-			v[i] *= factor;
-		return *this;
-	}
-
-	KVector& operator/=(T factor)
-	{
-		for (uint32_t i = 0; i < Dimension; ++i)
-			v[i] /= factor;
-		return *this;
-	}
-
-	KVector operator+(const KVector& rhs) const
-	{
-		KVector res;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res.v[i] = v[i] + rhs.v[i];
-		return res;
-	}
-
-	KVector operator-(const KVector& rhs) const
-	{
-		KVector res;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res.v[i] = v[i] - rhs.v[i];
-		return res;
-	}
-
-	KVector& operator+=(const KVector& rhs)
-	{
-		for (uint32_t i = 0; i < Dimension; ++i)
-			v[i] += rhs.v[i];
-		return *this;
-	}
-
-	KVector& operator-=(const KVector& rhs)
-	{
-		for (uint32_t i = 0; i < Dimension; ++i)
-			v[i] -= rhs.v[i];
-		return *this;
-	}
-};
-
-template<typename T, uint32_t Row, uint32_t Column>
-struct KMatrix
-{
-	static_assert(Row >= 1, "Row must >= 1");
-	static_assert(Column >= 1, "Column must >= 1");
-	T m[Row][Column];
-
-	KMatrix()
-	{
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				m[i][j] = 0;
-			}
-		}
-	}
-
-	KMatrix(T val)
-	{
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				if (i == j)
-				{
-					m[i][j] = val;
-				}
-				else
-				{
-					m[i][j] = 0;
-				}
-			}
-		}
-	}
-
-	KMatrix<T, Column, Row> Transpose() const
-	{
-		KMatrix<T, Column, Row> res;
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				res.m[j][i] = m[i][j];
-			}
-		}
-		return res;
-	}
-
-	KMatrix operator-() const
-	{
-		KMatrix res;
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				res.m[i][j] = -m[i][j];
-			}
-		}
-		return res;
-	}
-
-	KMatrix operator*(T factor) const
-	{
-		KMatrix res;
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				res.m[i][j] = m[i][j] * factor;
-			}
-		}
-		return res;
-	}
-
-	KMatrix operator/(T factor) const
-	{
-		KMatrix res;
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				res.m[i][j] = m[i][j] / factor;
-			}
-		}
-		return res;
-	}
-
-	KMatrix& operator*=(T factor)
-	{
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				m[i][j] *= factor;
-			}
-		}
-		return *this;
-	}
-
-	KMatrix& operator/=(T factor)
-	{
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				m[i][j] /= factor;
-			}
-		}
-		return *this;
-	}
-
-	KMatrix operator+(const KMatrix& rhs) const
-	{
-		KMatrix res;
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				res.m[i][j] = m[i][j] + rhs.m[i][j];
-			}
-		}
-		return res;
-	}
-
-	KMatrix operator-(const KMatrix& rhs) const
-	{
-		KMatrix res;
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				res.m[i][j] = m[i][j] - rhs.m[i][j];
-			}
-		}
-		return res;
-	}
-
-	KMatrix& operator+=(const KMatrix& rhs)
-	{
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				m[i][j] += rhs.m[i][j];
-			}
-		}
-		return *this;
-	}
-
-	KMatrix& operator-=(const KMatrix& rhs)
-	{
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			for (uint32_t j = 0; j < Column; ++j)
-			{
-				m[i][j] -= rhs.m[i][j];
-			}
-		}
-		return *this;
-	}
-};
-
-template<typename T, uint32_t Row, uint32_t Column>
-KVector<T, Column> Mul(const KVector<T, Row>& lhs, const KMatrix<T, Row, Column>& rhs)
-{
-	KVector<T, Column> res;
-	for (uint32_t j = 0; j < Column; ++j)
-	{
-		res.v[j] = 0;
-		for (uint32_t i = 0; i < Row; ++i)
-		{
-			res.v[j] += lhs.v[i] * rhs.m[i][j];
-		}
-	}
-	return res;
-}
-
-template<typename T, uint32_t Row, uint32_t Column>
-KVector<T, Row> Mul(const KMatrix<T, Row, Column>& lhs, const KVector<T, Column>& rhs)
-{
-	KVector<T, Row> res;
-	for (uint32_t i = 0; i < Row; ++i)
-	{
-		res.v[i] = 0;
-		for (uint32_t j = 0; j < Column; ++j)
-		{
-			res.v[i] += lhs.m[i][j] * rhs.v[j];
-		}
-	}
-	return res;
-}
-
-template<typename T, uint32_t Row, uint32_t Column>
-KMatrix<T, Row, Column> Mul(const KVector<T, Column>& lhs, const KVector<T, Row>& rhs)
-{
-	KMatrix<T, Row, Column> res;
-	for (uint32_t i = 0; i < Row; ++i)
-	{
-		for (uint32_t j = 0; j < Column; ++j)
-		{
-			res.m[i][j] = lhs.v[j] * rhs.v[i];
-		}
-	}
-	return res;
-}
-
-template<typename T, uint32_t Row, uint32_t Conn, uint32_t Column>
-KMatrix<T, Row, Column> Mul(const KMatrix<T, Row, Conn>& lhs, const KMatrix<T, Conn, Column>& rhs)
-{
-	KMatrix<T, Row, Column> res;
-	for (uint32_t i = 0; i < Row; ++i)
-	{
-		for (uint32_t j = 0; j < Column; ++j)
-		{
-			res.m[i][j] = 0;
-			for (uint32_t k = 0; k < Conn; ++k)
-			{
-				res.m[i][j] += lhs.m[i][k] * rhs.m[k][j];
-			}
-		}
-	}
-	return res;
-}
-
-template<typename T, uint32_t Dimension>
-struct KQuadric
-{
-	static_assert(Dimension >= 1, "Dimension must >= 1");
-	constexpr static uint32_t Size = (Dimension + 1) * Dimension / 2;
-
-	T a[Size];
-	T b[Dimension];
-	T c;
-
-	KQuadric()
-	{
-		for (uint32_t i = 0; i < Size; ++i)
-			a[i] = 0;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			b[i] = 0;
-		c = 0;
-	}
-
-	KQuadric operator*(T factor) const
-	{
-		KQuadric res;
-		for (uint32_t i = 0; i < Size; ++i)
-			res.a[i] = a[i] * factor;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res.b[i] = b[i] * factor;
-		res.c = c * factor;
-		return res;
-	}
-
-	KQuadric operator/(T factor) const
-	{
-		KQuadric res;
-		for (uint32_t i = 0; i < Size; ++i)
-			res.a[i] = a[i] / factor;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res.b[i] = b[i] / factor;
-		res.c = c / factor;
-		return res;
-	}
-
-	KQuadric& operator*=(T factor)
-	{
-		for (uint32_t i = 0; i < Size; ++i)
-			a[i] *= factor;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			b[i] *= factor;
-		c *= factor;
-		return *this;
-	}
-
-	KQuadric& operator/=(T factor)
-	{
-		for (uint32_t i = 0; i < Size; ++i)
-			a[i] /= factor;
-		for (uint32_t i = 0; i < Dimension; ++i)
-			b[i] /= factor;
-		c /= factor;
-		return *this;
-	}
-
-	KQuadric operator+(const KQuadric& rhs) const
-	{
-		KQuadric res;
-		for (uint32_t i = 0; i < Size; ++i)
-			res.a[i] = a[i] + rhs.a[i];
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res.b[i] = b[i] + rhs.b[i];
-		res.c = c + rhs.c;
-		return res;
-	}
-
-	KQuadric operator-(const KQuadric& rhs) const
-	{
-		KQuadric res;
-		for (uint32_t i = 0; i < Size; ++i)
-			res.a[i] = a[i] - rhs.a[i];
-		for (uint32_t i = 0; i < Dimension; ++i)
-			res.b[i] = b[i] - rhs.b[i];
-		res.c = c - rhs.c;
-		return res;
-	}
-
-	KQuadric& operator+=(const KQuadric& rhs)
-	{
-		for (uint32_t i = 0; i < Size; ++i)
-			a[i] += rhs.a[i];
-		for (uint32_t i = 0; i < Dimension; ++i)
-			b[i] += rhs.b[i];
-		c += rhs.c;
-		return *this;
-	}
-
-	KQuadric& operator-=(const KQuadric& rhs)
-	{
-		for (uint32_t i = 0; i < Size; ++i)
-			a[i] -= rhs.a[i];
-		for (uint32_t i = 0; i < Dimension; ++i)
-			b[i] -= rhs.b[i];
-		c -= rhs.c;
-		return *this;
-	}
-
-	uint32_t PosToAIndex(uint32_t i, uint32_t j) const
-	{
-		if (j < i)
-		{
-			std::swap(i, j);
-		}
-		if (i < Dimension && j < Dimension)
-		{
-			return i * Dimension + j - (i * i + i) / 2;
-		}
-		else
-		{
-			assert(false);
-			return Size;
-		}
-	}
-
-	bool SetA(int32_t i, int32_t j, T value)
-	{
-		uint32_t index = PosToAIndex(i, j);
-		if (index != Size)
-		{
-			a[index] = value;
-			return true;
-		}
-		return false;
-	}
-
-	T& GetA(int32_t i, int32_t j)
-	{
-		return a[PosToAIndex(i, j)];
-	}
-
-	T Error(T* v) const
-	{
-		T error = 0;
-
-		// vT * a * v
-		for (uint32_t i = 0; i < Dimension; ++i)
-		{
-			for (uint32_t k = 0; k < Dimension; ++k)
-			{
-				error += v[k] * a[PosToAIndex(k, i)] * v[i];
-			}
-		}
-
-		// 2 * bT * v
-		for (uint32_t i = 0; i < Dimension; ++i)
-		{
-			error += 2 * b[i] * v[i];
-		}
-
-		// c
-		error += c;
-
-		return error;
-	}
-
-	bool Optimal(T* x) const
-	{
-		// Solve a * x = -b
-		uint32_t pivot[Dimension] = { 0 };
-
-		KMatrix<T, Dimension, Dimension> A;
-
-		for (uint32_t i = 0; i < Dimension; ++i)
-		{
-			for (uint32_t j = 0; j < Dimension; ++j)
-			{
-				A.m[i][j] = -a[PosToAIndex(i, j)];
-			}
-		}
-
-		if (LUPFactorize(&A.m[0][0], pivot, Dimension, 1e-3f))
-		{
-			LUPSolve(&A.m[0][0], pivot, Dimension, b, x);
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	bool OptimalVolume(T* x) const
-	{
-		return Optimal(x);
-	}
-};
-
-template<typename T, uint32_t Attr>
-struct KAttrQuadric
-{
-	constexpr static uint32_t Size = Attr + 3;
-	typedef KVector<T, 3> Vector;
-	typedef KMatrix<T, 3, 3> Matrix;
-	Matrix	nxn_gxg;
-	T		d2_dm2;
-	T		diagonal;
-	T		dm[Attr];
-	Vector	gm[Attr];
-	Vector	dn_dg;
-	Vector	n;
-	T		d;
-
-	KAttrQuadric()
-	{
-		for (uint32_t i = 0; i < Attr; ++i)
-		{
-			dm[i] = 0;
-		}
-		d2_dm2 = 0;
-		diagonal = 0;
-		d = 0;
-	}
-
-	KAttrQuadric(const Vector& p0, const Vector& p1, const Vector& p2, T* in_m)
-	{
-		glm::tvec3<T> v0 = glm::tvec3<T>(p0.v[0], p0.v[1], p0.v[2]);
-		glm::tvec3<T> v1 = glm::tvec3<T>(p1.v[0], p1.v[1], p1.v[2]);
-		glm::tvec3<T> v2 = glm::tvec3<T>(p2.v[0], p2.v[1], p2.v[2]);
-
-		glm::tvec3<T> v01 = v1 - v0;
-		glm::tvec3<T> v02 = v2 - v0;
-
-		glm::tvec3<T> normal = glm::normalize(glm::cross(v01, v02));
-
-		n.v[0] = normal[0];
-		n.v[1] = normal[1];
-		n.v[2] = normal[2];
-
-		d = -glm::dot(normal, v0);
-
-		dn_dg = n * d;
-		d2_dm2 = d * d;
-
-		for (uint32_t i = 0; i < 3; ++i)
-		{
-			for (uint32_t j = 0; j < 3; ++j)
-			{
-				nxn_gxg.m[i][j] = n.v[i] * n.v[j];
-			}
-		}
-
-#define COMPUTE_ATTR 1
-#define USE_4X4 1
-
-#if COMPUTE_ATTR
-#if USE_4X4
-		KMatrix<T, 4, 4> A;
-
-		for (uint32_t j = 0; j < 3; ++j)
-		{
-			A.m[0][j] = p0.v[j];
-			A.m[1][j] = p1.v[j];
-			A.m[2][j] = p2.v[j];
-			A.m[3][j] = n.v[j];
-		}
-
-		A.m[0][3] = A.m[1][3] = A.m[2][3] = 1;
-		A.m[3][3] = 0;
-
-		uint32_t pivot[4];
-		bool bInvertable = LUPFactorize(&A.m[0][0], pivot, 4, (T)1e-12f);
-#else
-		KMatrix<T, 3, 3> A;
-		
-		A.m[0][0] = v01[0];		A.m[0][1] = v01[1];		A.m[0][2] = v01[2];
-		A.m[1][0] = v02[0];		A.m[1][1] = v02[1];		A.m[1][2] = v02[2];
-		A.m[2][0] = normal[0];	A.m[2][1] = normal[1];	A.m[2][2] = normal[2];
-
-		uint32_t pivot[3];
-		bool bInvertable = LUPFactorize(&A.m[0][0], pivot, 3, 1e-12f);
-#endif
-		for (uint32_t k = 0; k < Attr; ++k)
-		{
-			if (bInvertable)
-			{
-				T a[3] = { in_m[k], in_m[Attr + k], in_m[2 * Attr + k] };
-#if USE_4X4
-				T b[4] = { a[0], a[1], a[2], 0 };
-				T x[4] = { 0, 0, 0, 0 };
-				LUPSolve(&A.m[0][0], pivot, 4, b, x);
-				gm[k].v[0]	= x[0];
-				gm[k].v[1]	= x[1];
-				gm[k].v[2]	= x[2];
-				dm[k]		= x[3];
-#else
-				T b[3] = { a[2] - a[0], a[1] - a[0], 0 };
-				T x[3] = { 0, 0, 0 };
-				LUPSolve(&A.m[0][0], pivot, 3, b, x);
-				gm[k].v[0]	= x[0];
-				gm[k].v[1]	= x[1];
-				gm[k].v[2]	= x[2];
-				dm[k]		= a[0] - x[0] * p0.v[0] - x[1] * p0.v[1] - x[2] * p0.v[2];
-#endif
-				T ca[3] = { 0, 0, 0 };
-
-				ca[0] = gm[k].Dot(p0) + dm[k];
-				ca[1] = gm[k].Dot(p1) + dm[k];
-				ca[2] = gm[k].Dot(p2) + dm[k];
-
-				T diff[3] = { 0, 0, 0 };
-				T diffSum = n.Dot(gm[k]);
-				for (uint32_t i = 0; i < 3; ++i)
-				{
-					diff[i] = abs(a[i] - ca[i]);
-					diffSum += diff[i];
-				}
-				if (diffSum > 1e-3f)
-				{
-					int d = 0;
-				}
-			}
-			else
-			{
-				gm[k].v[0]	= 0;
-				gm[k].v[1]	= 0;
-				gm[k].v[2]	= 0;
-				dm[k] = (in_m[k] + in_m[Attr + k] + in_m[2 * Attr + k]) / 3.0f;
-			}
-
-			dn_dg += gm[k] * dm[k];
-			d2_dm2 += dm[k] * dm[k];
-
-			for (uint32_t i = 0; i < 3; ++i)
-			{
-				for (uint32_t j = 0; j < 3; ++j)
-				{
-					nxn_gxg.m[i][j] += gm[k].v[i] * gm[k].v[j];
-				}
-			}
-		}
-
-		diagonal = 1;
-#else
-		for (uint32_t i = 0; i < Attr; ++i)
-		{
-			gm[i].v[0] = 0;
-			gm[i].v[1] = 0;
-			gm[i].v[2] = 0;
-			dm[i] = 0;
-		}
-		diagonal = 1;
-		d = 0;
-#endif
-	}
-
-	KAttrQuadric operator*(T factor) const
-	{
-		KAttrQuadric res;
-		res.nxn_gxg = nxn_gxg * factor;
-		res.d2_dm2 = d2_dm2 * factor;
-		res.dn_dg = dn_dg * factor;
-		res.diagonal = diagonal * factor;
-		for (uint32_t i = 0; i < Attr; ++i)
-		{
-			res.dm[i] = dm[i] * factor;
-			res.gm[i] = gm[i] * factor;
-		}
-		res.n = n * factor;
-		res.d = d * factor;
-		return res;
-	}
-
-	KAttrQuadric operator/(T factor) const
-	{
-		KAttrQuadric res;
-		res.nxn_gxg = nxn_gxg / factor;
-		res.d2_dm2 = d2_dm2 / factor;
-		res.dn_dg = dn_dg / factor;
-		res.diagonal = diagonal / factor;
-		for (uint32_t i = 0; i < Attr; ++i)
-		{
-			res.dm[i] = dm[i] / factor;
-			res.gm[i] = gm[i] / factor;
-		}
-		res.n = n / factor;
-		res.d = d / factor;
-		return res;
-	}
-
-	KAttrQuadric& operator*=(T factor)
-	{
-		nxn_gxg *= factor;
-		d2_dm2 *= factor;
-		dn_dg *= factor;
-		diagonal *= factor;
-		for (uint32_t i = 0; i < Attr; ++i)
-		{
-			dm[i] *= factor;
-			gm[i] *= factor;
-		}
-		n *= factor;
-		d *= factor;
-		return *this;
-	}
-
-	KAttrQuadric& operator/=(T factor)
-	{
-		nxn_gxg /= factor;
-		d2_dm2 /= factor;
-		dn_dg /= factor;
-		diagonal /= factor;
-		for (uint32_t i = 0; i < Attr; ++i)
-		{
-			dm[i] /= factor;
-			gm[i] /= factor;
-		}
-		n /= factor;
-		d /= factor;
-		return *this;
-	}
-
-	KAttrQuadric operator+(const KAttrQuadric& rhs) const
-	{
-		KAttrQuadric res;
-		res.nxn_gxg = nxn_gxg + rhs.nxn_gxg;
-		res.d2_dm2 = d2_dm2 + rhs.d2_dm2;
-		res.dn_dg = dn_dg + rhs.dn_dg;
-		res.diagonal = diagonal + rhs.diagonal;
-		for (uint32_t i = 0; i < Attr; ++i)
-		{
-			res.dm[i] = dm[i] + rhs.dm[i];
-			res.gm[i] = gm[i] + rhs.gm[i];
-		}
-		res.n = n + rhs.n;
-		res.d = d + rhs.d;
-		return res;
-	}
-
-	KAttrQuadric operator-(const KAttrQuadric& rhs) const
-	{
-		KAttrQuadric res;
-		res.nxn_gxg = nxn_gxg - rhs.nxn_gxg;
-		res.d2_dm2 = d2_dm2 - rhs.d2_dm2;
-		res.dn_dg = dn_dg - rhs.dn_dg;
-		res.diagonal = diagonal - rhs.diagonal;
-		for (uint32_t i = 0; i < Attr; ++i)
-		{
-			res.dm[i] = dm[i] - rhs.dm[i];
-			res.gm[i] = gm[i] - rhs.gm[i];
-		}
-		res.n = n - rhs.n;
-		res.d = d - rhs.d;
-		return res;
-	}
-
-	KAttrQuadric& operator+=(const KAttrQuadric& rhs)
-	{
-		nxn_gxg += rhs.nxn_gxg;
-		d2_dm2 += rhs.d2_dm2;
-		dn_dg += rhs.dn_dg;
-		diagonal += rhs.diagonal;
-		for (uint32_t i = 0; i < Attr; ++i)
-		{
-			dm[i] += rhs.dm[i];
-			gm[i] += rhs.gm[i];
-		}
-		n += rhs.n;
-		d += rhs.d;
-		return *this;
-	}
-
-	KAttrQuadric& operator-=(const KAttrQuadric& rhs)
-	{
-		nxn_gxg -= rhs.nxn_gxg;
-		d2_dm2 -= rhs.d2_dm2;
-		dn_dg -= rhs.dn_dg;
-		diagonal -= rhs.diagonal;
-		for (uint32_t i = 0; i < Attr; ++i)
-		{
-			dm[i] -= rhs.dm[i];
-			gm[i] -= rhs.gm[i];
-		}
-		n -= rhs.n;
-		d -= rhs.d;
-		return *this;
-	}
-
-	KMatrix<T, Size, Size> ComputeA() const
-	{
-		KMatrix<T, Size, Size> A;
-		for (uint32_t i = 0; i < 3; ++i)
-		{
-			for (uint32_t j = 0; j < 3; ++j)
-			{
-				A.m[i][j] = nxn_gxg.m[i][j];
-			}
-		}
-
-		for (uint32_t k = 0; k < Attr; ++k)
-		{
-			A.m[k + 3][k + 3] = diagonal;
-		}
-
-		for (uint32_t i = 0; i < 3; ++i)
-		{
-			for (uint32_t k = 0; k < Attr; ++k)
-			{
-				A.m[i][k + 3] = -gm[k].v[i];
-				A.m[k + 3][i] = -gm[k].v[i];
-			}
-		}
-
-		return A;
-	}
-
-	KVector<T, Size> ComputeB() const
-	{
-		KVector<T, Size> b;
-
-		for (uint32_t i = 0; i < 3; ++i)
-		{
-			b.v[i] = dn_dg.v[i];
-		}
-
-		for (uint32_t k = 0; k < Attr; ++k)
-		{
-			b.v[k + 3] = -dm[k];
-		}
-
-		return b;
-	}
-
-	T ComputeC() const
-	{
-		T c = d2_dm2;
-		return c;
-	}
-
-	T Error(T* v) const
-	{
-		T error = 0;
-
-		KMatrix<T, Size, Size> A = ComputeA();
-
-		// vT * a * v
-		for (uint32_t i = 0; i < Size; ++i)
-		{
-			for (uint32_t k = 0; k < Size; ++k)
-			{
-				error += v[k] * A.m[k][i] * v[i];
-			}
-		}
-
-		KVector<T, Size> b = ComputeB();
-
-		// 2 * bT * v
-		for (uint32_t i = 0; i < Size; ++i)
-		{
-			error += 2 * b.v[i] * v[i];
-		}
-
-		// c
-		error += ComputeC();
-
-		return error;
-	}
-
-	bool OptimalVolume(T* x) const
-	{
-		if (diagonal < 1e-12f)
-		{
-			return false;
-		}
-
-		constexpr uint32_t m = Attr;
-
-		KMatrix<T, 3, 3> C;
-		KMatrix<T, 3, m> B;
-		KMatrix<T, m, 3> BT;
-		KVector<T, 3> b1;
-		KVector<T, m> b2;
-
-		C = nxn_gxg;
-		for (uint32_t i = 0; i < 3; ++i)
-		{
-			for (uint32_t j = 0; j < m; ++j)
-			{
-				B.m[i][j] = -gm[j].v[i];
-			}
-		}
-		BT = B.Transpose();
-
-		KMatrix<T, 3, 3> _LHS = C - (Mul(B, BT) / diagonal);
-		KMatrix<T, 4, 4> LHS;
-
-		for (uint32_t i = 0; i < 3; ++i)
-		{
-			for (uint32_t j = 0; j < 3; ++j)
-			{
-				LHS.m[i][j] = _LHS.m[i][j];
-			}
-			LHS.m[i][3] = n.v[i];
-			LHS.m[3][i] = n.v[i];
-		}
-
-		KMatrix<T, 4, 4> LU = LHS;
-
-		uint32_t pivot[4] = { 0 };
-		if (LUPFactorize(&LU.m[0][0], pivot, 4, (T)1e-12f))
-		{
-			b1 = -dn_dg;
-			for (uint32_t i = 0; i < m; ++i)
-			{
-				b2.v[i] = dm[i];
-			}
-
-			KVector<T, 3> _RHS = b1 - (Mul(B, b2) / diagonal);
-
-			KVector<T, 4> RHS;
-			for (uint32_t i = 0; i < 3; ++i)
-			{
-				RHS.v[i] = _RHS.v[i];
-			}
-			RHS.v[3] = -d;
-
-			KVector<T, 4> _pos;
-			LUPSolveIterate(&LHS.m[0][0], &LU.m[0][0], pivot, 4, &RHS.v[0], &_pos.v[0]);
-			// LUPSolve(&LHS.m[0][0], pivot, 4, &RHS.v[0], &_pos.v[0]);
-
-			KVector<T, 3> pos;
-			for (uint32_t i = 0; i < 3; ++i)
-			{
-				pos.v[i] = _pos.v[i];
-			}
-
-			KVector<T, m> attr;
-			attr = (b2 - Mul(BT, pos)) / diagonal;
-
-			for (uint32_t i = 0; i < 3; ++i)
-			{
-				x[i] = pos.v[i];
-			}
-			for (uint32_t i = 0; i < m; ++i)
-			{
-				x[3 + i] = attr.v[i];
-			}
-
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	bool Optimal(T* x) const
-	{
-		if (diagonal < 1e-12f)
-		{
-			return false;
-		}
-#if 0
-		// Solve a * x = -b
-		uint32_t pivot[Size] = { 0 };
-
-		KMatrix<T, Size, Size> A = -ComputeA();
-		KMatrix<T, Size, Size> LU = A;
-
-		if (LUPFactorize(&LU.m[0][0], pivot, Size, 1e-12f))
-		{
-			KVector<T, Size> b = ComputeB();
-			LUPSolveIterate(&A.m[0][0], &LU.m[0][0], pivot, Size, &b.v[0], x);
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-#else
-		constexpr uint32_t m = Attr;
-
-		KMatrix<T, 3, 3> C;
-		KMatrix<T, 3, m> B;
-		KMatrix<T, m, 3> BT;
-		KVector<T, 3> b1;
-		KVector<T, m> b2;
-
-		C = nxn_gxg;
-		for (uint32_t i = 0; i < 3; ++i)
-		{
-			for (uint32_t j = 0; j < m; ++j)
-			{
-				B.m[i][j] = -gm[j].v[i];
-			}
-		}
-		BT = B.Transpose();
-
-		KMatrix<T, 3, 3> LHS = C - (Mul(B, BT) / diagonal);
-		KMatrix<T, 3, 3> LU = LHS;
-
-		uint32_t pivot[3] = { 0 };
-		if (LUPFactorize(&LU.m[0][0], pivot, 3, (T)1e-12f))
-		{
-			b1 = -dn_dg;
-			for (uint32_t i = 0; i < m; ++i)
-			{
-				b2.v[i] = dm[i];
-			}
-
-			KVector<T, 3> RHS = b1 - (Mul(B, b2) / diagonal);
-
-			KVector<T, 3> pos;
-			LUPSolveIterate(&LHS.m[0][0], &LU.m[0][0], pivot, 3, &RHS.v[0], &pos.v[0]);
-			// LUPSolve(&LHS.m[0][0], pivot, 3, &RHS.v[0], &pos.v[0]);		
-
-			KVector<T, m> attr;
-			attr = (b2 - Mul(BT, pos)) / diagonal;
-
-			for (uint32_t i = 0; i < 3; ++i)
-			{
-				x[i] = pos.v[i];
-			}
-			for (uint32_t i = 0; i < m; ++i)
-			{
-				x[3 + i] = attr.v[i];
-			}
-
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-#endif
-	}
-};
-
 class KMeshSimplification
 {
 protected:
-	typedef float Type;
+	typedef double Type;
 
-	constexpr static Type NORMAL_WEIGHT = 1;// 0.005f;
+	constexpr static Type NORMAL_WEIGHT = 1;
 	constexpr static Type COLOR_WEIGHT = 0.5f;
 	constexpr static Type UV_WEIGHT = 0.5f;
 
-	struct InputVertexLayout
-	{
-		glm::vec3 pos;
-		glm::vec3 normal;
-		glm::vec2 uv;
-	};
-
 	struct Vertex
 	{
-		glm::vec3 pos;
-		glm::vec2 uv;
-		glm::vec3 normal;
+		glm::tvec3<Type> pos;
+		glm::tvec2<Type> uv;
+		glm::tvec3<Type> color;
+		glm::tvec3<Type> normal;
+		int32_t partIndex = -1;
 	};
 
 	struct Triangle
@@ -1303,8 +123,6 @@ protected:
 		}
 	};
 
-	KAssetImportResult::Material m_Material;
-
 	static constexpr uint32_t AttrNum = 5;
 	typedef KAttrQuadric<Type, AttrNum> AtrrQuadric;
 
@@ -1340,7 +158,7 @@ protected:
 	int32_t m_MinTriangleAllow = 1;
 	int32_t m_MinVertexAllow = 3;
 
-	bool m_Memoryless = true;
+	bool m_Memoryless = false;
 
 	void UndoCollapse()
 	{
@@ -1419,7 +237,7 @@ protected:
 		const Vertex& va = m_Vertices[v0];
 		const Vertex& vb = m_Vertices[v1];
 
-		glm::vec2 uvBox[2];
+		glm::tvec2<Type> uvBox[2];
 
 		for (uint32_t i = 0; i < 2; ++i)
 		{
@@ -1464,150 +282,65 @@ protected:
 		}
 
 		vc.pos = glm::vec3(opt.v[0], opt.v[1], opt.v[2]);
-		vc.uv = glm::clamp(glm::vec2(opt.v[3], opt.v[4]), uvBox[0], uvBox[1]);
+		vc.uv = glm::clamp(glm::tvec2<Type>(opt.v[3], opt.v[4]), uvBox[0], uvBox[1]);
 		vc.normal = glm::normalize(glm::vec3(opt.v[5], opt.v[6], opt.v[7]));
+
+		vc.partIndex = va.partIndex;
 
 		return std::make_tuple(cost, vc);
 	};
 
-	bool InitVertexData(const KAssetImportResult& input, size_t partIndex)
+	bool InitVertexData(const std::vector<KMeshProcessorVertex> vertices, const std::vector<uint32_t>& indices)
 	{
-		auto FindPNTIndex = [](const std::vector<KAssetVertexComponentGroup>& group) -> int32_t
-		{
-			for (int32_t i = 0; i < (int32_t)group.size(); ++i)
-			{
-				const KAssetVertexComponentGroup& componentGroup = group[i];
-				if (componentGroup.size() == 3)
-				{
-					if (componentGroup[0] == AVC_POSITION_3F && componentGroup[1] == AVC_NORMAL_3F && componentGroup[2] == AVC_UV_2F)
-					{
-						return i;
-					}
-				}
-			}
-			return -1;
-		};
+		uint32_t vertexCount = (uint32_t)vertices.size();
+		uint32_t indexCount = (uint32_t)indices.size();
 
-		int32_t vertexDataIndex = FindPNTIndex(input.components);
+		m_Vertices.resize(vertexCount);
+		m_Adjacencies.resize(vertexCount);
+		m_Versions.resize(vertexCount);
 
-		if (vertexDataIndex < 0)
+		for (uint32_t i = 0; i < vertexCount; ++i)
 		{
-			return false;
+			m_Vertices[i].pos = vertices[i].pos;
+			m_Vertices[i].uv = vertices[i].uv;
+			m_Vertices[i].color = vertices[i].color;
+			m_Vertices[i].normal = vertices[i].normal;
+			m_Vertices[i].partIndex = vertices[i].partIndex;
+			m_Versions[i] = 0;
 		}
 
-		if (partIndex < input.parts.size())
+		uint32_t maxTriCount = indexCount / 3;
+		m_Triangles.reserve(maxTriCount);
+
+		for (uint32_t i = 0; i < maxTriCount; ++i)
 		{
-			const KAssetImportResult::ModelPart& part = input.parts[partIndex];
-			const KAssetImportResult::VertexDataBuffer& vertexData = input.verticesDatas[vertexDataIndex];
-
-			m_Material = part.material;
-
-			uint32_t indexBase = part.indexBase;
-			uint32_t indexCount = part.indexCount;
-
-			uint32_t vertexBase = part.vertexBase;
-			uint32_t vertexCount = part.vertexCount;
-
-			uint32_t indexMin = std::numeric_limits<uint32_t>::max();
-
-			std::vector<uint32_t> indices;
-
-			if (indexCount == 0)
+			Triangle triangle;
+			triangle.index[0] = indices[3 * i];
+			triangle.index[1] = indices[3 * i + 1];
+			triangle.index[2] = indices[3 * i + 2];
+			if (!IsDegenerateTriangle(triangle))
 			{
-				return false;
-			}
-			else
-			{
-				indices.resize(indexCount);
-				if (input.index16Bit)
+				for (uint32_t i = 0; i < 3; ++i)
 				{
-					const uint16_t* pIndices = (const uint16_t*)input.indicesData.data();
-					pIndices += indexBase;
-					for (uint32_t i = 0; i < indexCount; ++i)
-					{
-						indices[i] = pIndices[i];
-					}
+					assert(triangle.index[i] < m_Adjacencies.size());
+					m_Adjacencies[triangle.index[i]].insert((int32_t)(m_Triangles.size()));
 				}
-				else
-				{
-					const uint32_t* pIndices = (const uint32_t*)input.indicesData.data();
-					pIndices += indexBase;
-					for (uint32_t i = 0; i < indexCount; ++i)
-					{
-						indices[i] = pIndices[i];
-					}
-				}
+				m_Triangles.push_back(triangle);
 			}
-
-			if (indexCount % 3 != 0)
-			{
-				return false;
-			}
-
-			for (uint32_t i = 0; i < indexCount; ++i)
-			{
-				if (indices[i] < indexMin)
-				{
-					indexMin = indices[i];
-				}
-			}
-
-			for (uint32_t i = 0; i < indexCount; ++i)
-			{
-				indices[i] -= indexMin;
-			}
-
-			const InputVertexLayout* pVerticesData = (const InputVertexLayout*)vertexData.data();
-			pVerticesData += vertexBase;
-
-			m_Vertices.resize(vertexCount);
-			m_Adjacencies.resize(vertexCount);
-			m_Versions.resize(vertexCount);
-
-			for (uint32_t i = 0; i < vertexCount; ++i)
-			{
-				const InputVertexLayout& srcVertex = pVerticesData[i];
-				m_Vertices[i].pos = srcVertex.pos;
-				m_Vertices[i].uv = srcVertex.uv;
-				m_Vertices[i].normal = srcVertex.normal;
-				m_Versions[i] = 0;
-			}
-
-			uint32_t maxTriCount = indexCount / 3;
-
-			m_Triangles.reserve(maxTriCount);
-
-			for (uint32_t i = 0; i < maxTriCount; ++i)
-			{
-				Triangle triangle;
-				triangle.index[0] = indices[3 * i];
-				triangle.index[1] = indices[3 * i + 1];
-				triangle.index[2] = indices[3 * i + 2];
-				if (!IsDegenerateTriangle(triangle))
-				{
-					for (uint32_t i = 0; i < 3; ++i)
-					{
-						assert(triangle.index[i] < m_Adjacencies.size());
-						m_Adjacencies[triangle.index[i]].insert((int32_t)(m_Triangles.size()));
-					}
-					m_Triangles.push_back(triangle);
-				}
-			}
-
-			m_MaxTriangleCount = (int32_t)m_Triangles.size();
-			m_MaxVertexCount = 0;
-
-			for (uint32_t i = 0; i < vertexCount; ++i)
-			{
-				if (m_Adjacencies[i].size() != 0)
-				{
-					++m_MaxVertexCount;
-				}
-			}
-
-			return true;
 		}
-		return false;
+
+		m_MaxTriangleCount = (int32_t)m_Triangles.size();
+		m_MaxVertexCount = 0;
+
+		for (uint32_t i = 0; i < vertexCount; ++i)
+		{
+			if (m_Adjacencies[i].size() != 0)
+			{
+				++m_MaxVertexCount;
+			}
+		}
+
+		return true;
 	}
 
 	Quadric ComputeQuadric(const Triangle& triangle)
@@ -1733,6 +466,12 @@ protected:
 				std::tuple<Type, Vertex> costAndVertex = ComputeCostAndVertex(contraction.edge, m_Quadric[v0] + m_Quadric[v1], m_AttrQuadric[v0] + m_AttrQuadric[v1]);
 				contraction.cost = std::get<0>(costAndVertex);
 				contraction.vertex = std::get<1>(costAndVertex);
+
+				if (contraction.cost > 1e5f)
+				{
+					int x = 0;
+				}
+
 				m_EdgeHeap.push(contraction);
 			}
 		}
@@ -1766,7 +505,7 @@ protected:
 
 		auto CheckEdge = [this](int32_t vertIndex)
 		{
-			std::set<int32_t> adjacencies;
+			std::unordered_set<int32_t> adjacencies;
 			for (int32_t triIndex : m_Adjacencies[vertIndex])
 			{
 				if (IsValid(triIndex))
@@ -1779,7 +518,7 @@ protected:
 			}
 			for (int32_t adjIndex : adjacencies)
 			{
-				std::set<int32_t> tris;
+				std::unordered_set<int32_t> tris;
 				for (int32_t triIndex : m_Adjacencies[vertIndex])
 				{
 					if (IsValid(triIndex))
@@ -1891,7 +630,7 @@ protected:
 			*/
 			auto HasIndirectConnect = [this](int32_t v0, int32_t v1, const std::unordered_set<int32_t>& noSharedAdjacencySetV0, const std::unordered_set<int32_t>& sharedAdjacencySet, std::unordered_set<int32_t>& sharedVerts) -> bool
 			{
-				std::set<int32_t> noSharedAdjVerts;
+				std::unordered_set<int32_t> noSharedAdjVerts;
 				for (int32_t triIndex : noSharedAdjacencySetV0)
 				{
 					int32_t index = m_Triangles[triIndex].PointIndex(v0);
@@ -1909,7 +648,7 @@ protected:
 				}
 				for (int32_t adjVert : noSharedAdjVerts)
 				{
-					std::set<int32_t> tris;
+					std::unordered_set<int32_t> tris;
 					for (int32_t triIndex : m_Adjacencies[adjVert])
 					{
 						if (IsValid(triIndex))
@@ -2214,10 +953,10 @@ protected:
 		return true;
 	}
 public:
-	bool Init(const KAssetImportResult& input, size_t partIndex)
+	bool Init(const std::vector<KMeshProcessorVertex> vertices, const std::vector<uint32_t>& indices)
 	{
 		UnInit();
-		if (InitVertexData(input, partIndex) && InitHeapData())
+		if (InitVertexData(vertices, indices) && InitHeapData())
 		{
 			if (PerformSimplification())
 				return true;
@@ -2252,21 +991,59 @@ public:
 	inline int32_t& GetMaxVertexCount() { return m_MaxVertexCount; }
 	inline int32_t& GetCurVertexCount() { return m_CurVertexCount; }
 
-	bool Simplification(int32_t targetCount, KAssetImportResult& output)
+	bool Simplification(MeshSimplifyTarget target, int32_t targetCount, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
 	{
-		if (targetCount >= m_MinVertexCount && targetCount <= m_MaxVertexCount)
+		vertices.clear();
+		indices.clear();
+
+		if (targetCount > 0)
 		{
-			while (m_CurVertexCount > targetCount)
+			if (target == MeshSimplifyTarget::VERTEX)
 			{
-				RedoCollapse();
+				while (m_CurVertexCount < targetCount)
+				{
+					UndoCollapse();
+				}
+				while (m_CurVertexCount > targetCount)
+				{
+					RedoCollapse();
+				}
+			}
+			else if (target == MeshSimplifyTarget::TRIANGLE)
+			{
+
+				while (m_CurTriangleCount < targetCount)
+				{
+					UndoCollapse();
+				}
+				while (m_CurTriangleCount > targetCount)
+				{
+					RedoCollapse();
+				}
+			}
+			else if (target == MeshSimplifyTarget::BOTH)
+			{
+				while (m_CurTriangleCount < targetCount && m_CurVertexCount < targetCount)
+				{
+					UndoCollapse();
+				}
+				while (m_CurTriangleCount > targetCount && m_CurVertexCount > targetCount)
+				{
+					RedoCollapse();
+				}
+			}
+			else if (target == MeshSimplifyTarget::EITHER)
+			{
+				while (m_CurTriangleCount < targetCount || m_CurVertexCount < targetCount)
+				{
+					UndoCollapse();
+				}
+				while (m_CurTriangleCount > targetCount || m_CurVertexCount > targetCount)
+				{
+					RedoCollapse();
+				}
 			}
 
-			while (m_CurVertexCount < targetCount)
-			{
-				UndoCollapse();
-			}
-
-			std::vector<uint32_t> indices;
 			for (uint32_t triIndex = 0; triIndex < (uint32_t)m_Triangles.size(); ++triIndex)
 			{
 				if (IsValid(triIndex))
@@ -2282,7 +1059,6 @@ public:
 			}
 
 			std::unordered_map<uint32_t, uint32_t> remapIndices;
-			std::vector<Vertex> vertices;
 
 			for (size_t i = 0; i < indices.size(); ++i)
 			{
@@ -2292,7 +1068,16 @@ public:
 				{
 					int32_t mapIndex = (int32_t)remapIndices.size();
 					remapIndices.insert({ oldIndex, mapIndex });
-					vertices.push_back(m_Vertices[oldIndex]);
+					KMeshProcessorVertex vertex;
+					vertex.pos = m_Vertices[oldIndex].pos;
+					vertex.uv = m_Vertices[oldIndex].uv;
+					vertex.color = m_Vertices[oldIndex].color;
+					vertex.normal = m_Vertices[oldIndex].normal;
+					vertex.partIndex = m_Vertices[oldIndex].partIndex;
+					// TODO
+					// vertex.tangent;
+					// vertex.binormal;
+					vertices.push_back(vertex);
 				}
 			}
 
@@ -2300,48 +1085,6 @@ public:
 			{
 				indices[i] = remapIndices[indices[i]];
 			}
-
-			KAssetImportResult::ModelPart part;
-			part.indexBase = 0;
-			part.indexCount = (uint32_t)indices.size();
-			part.vertexBase = 0;
-			part.vertexCount = (uint32_t)vertices.size();
-			part.material = m_Material;
-
-			std::vector<InputVertexLayout> outputVertices;
-			outputVertices.resize(vertices.size());
-
-			KAABBBox bound;
-
-			for (size_t i = 0; i < vertices.size(); ++i)
-			{
-				outputVertices[i].pos = vertices[i].pos;
-				outputVertices[i].normal = vertices[i].normal;
-				outputVertices[i].uv = vertices[i].uv;
-				bound.Merge(vertices[i].pos, bound);
-			}
-
-			output.components = { { AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F } };
-			output.parts = { part };
-			output.vertexCount = (uint32_t)vertices.size();
-
-			output.index16Bit = false;
-			output.indicesData.resize(sizeof(indices[0]) * indices.size());
-			memcpy(output.indicesData.data(), indices.data(), output.indicesData.size());
-
-			KAssetImportResult::VertexDataBuffer vertexBuffer;
-			vertexBuffer.resize(sizeof(outputVertices[0]) * outputVertices.size());
-			memcpy(vertexBuffer.data(), outputVertices.data(), vertexBuffer.size());
-
-			output.verticesDatas = { vertexBuffer };
-
-			output.extend.min[0] = bound.GetMin()[0];
-			output.extend.min[1] = bound.GetMin()[1];
-			output.extend.min[2] = bound.GetMin()[2];
-
-			output.extend.max[0] = bound.GetMax()[0];
-			output.extend.max[1] = bound.GetMax()[1];
-			output.extend.max[2] = bound.GetMax()[2];
 
 			return true;
 		}

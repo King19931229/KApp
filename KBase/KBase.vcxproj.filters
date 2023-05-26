@@ -303,6 +303,9 @@
     <Filter Include="Publish\Mesh">
       <UniqueIdentifier>{2447d266-cb25-46c9-99a6-b0002f85d03f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\Mesh">
+      <UniqueIdentifier>{41461dda-ecd1-4554-81f0-ba29882040bd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\Codec\KETCCodec.cpp">
@@ -430,6 +433,9 @@
     </ClCompile>
     <ClCompile Include="Internal\Codec\KCodecBase.cpp">
       <Filter>Internal\Codec</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\Mesh\KMeshProcessor.cpp">
+      <Filter>Internal\Mesh</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

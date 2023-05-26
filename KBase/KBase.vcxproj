@@ -146,6 +146,7 @@
     <ClCompile Include="Internal\KStringUtil.cpp" />
     <ClCompile Include="Internal\KSystem.cpp" />
     <ClCompile Include="Internal\KThreadTool.cpp" />
+    <ClCompile Include="Internal\Mesh\KMeshProcessor.cpp" />
     <ClCompile Include="Internal\XML\KXMLAttribute.cpp" />
     <ClCompile Include="Internal\XML\KXMLDeclaration.cpp" />
     <ClCompile Include="Internal\XML\KXMLDocument.cpp" />

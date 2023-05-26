@@ -14,6 +14,7 @@
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Publish/Mesh/KMeshSimplification.h"
+#include "KBase/Publish/Mesh/KMeshProcessor.h"
 #include "imgui.h"
 
 void InitQEM(IKEnginePtr engine)
@@ -23,7 +24,13 @@ void InitQEM(IKEnginePtr engine)
 	static KAssetImportResult userData;
 	static bool initUserData = false;
 
-	static const char* filePath = "Models/OBJ/small_bunny.obj";
+	
+	static const char* filePath = "Models/OBJ/bunny.obj";
+		// "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf";
+
+	static std::vector<KMeshProcessorVertex> vertices;
+	static std::vector<uint32_t> indices;
+	static std::vector<KAssetImportResult::Material> originalMats;
 
 	IKAssetLoaderPtr loader = KAssetLoader::GetLoader(".obj");
 	if (loader)
@@ -33,6 +40,11 @@ void InitQEM(IKEnginePtr engine)
 		if (loader->Import(filePath, option, userData))
 		{
 			userData.components = option.components;
+			KMeshProcessor::ConvertForMeshProcessor(userData, vertices, indices);
+			for (size_t partIndex = 0; partIndex < userData.parts.size(); ++partIndex)
+			{
+				originalMats.push_back(userData.parts[partIndex].material);
+			}
 			initUserData = true;
 		}
 	}
@@ -43,8 +55,8 @@ void InitQEM(IKEnginePtr engine)
 
 	if (!initSimplification)
 	{
-		simplification.Init(userData, 0);
-		targetCount = 0;// simplification.GetCurVertexCount();
+		simplification.Init(vertices, indices);
+		targetCount = 0;
 		initSimplification = true;
 	}
 
@@ -66,7 +78,7 @@ void InitQEM(IKEnginePtr engine)
 		if (entity->RegisterComponent(CT_TRANSFORM, &component))
 		{
 			((IKTransformComponent*)component)->SetPosition(glm::vec3(0));
-			((IKTransformComponent*)component)->SetScale(glm::vec3(100.0f));
+			((IKTransformComponent*)component)->SetScale(glm::vec3(500.0f));
 		}
 		if (entity->RegisterComponent(CT_USER, &component))
 		{
@@ -78,16 +90,22 @@ void InitQEM(IKEnginePtr engine)
 	static KRenderCoreUIRenderCallback UI = []()
 	{
 		ImGui::Begin("QEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-		ImGui::SliderInt("TargetCount", &targetCount, std::min(simplification.GetMinVertexCount(), simplification.GetMaxVertexCount()), std::min(simplification.GetMaxVertexCount(), simplification.GetMaxVertexCount()));
+		ImGui::SliderInt("TargetCount", &targetCount, std::max(simplification.GetMaxVertexCount() - 1000000, simplification.GetMinVertexCount()), std::min(simplification.GetMaxVertexCount(), simplification.GetMaxVertexCount()));
 		IKRenderComponent* component = nullptr;
 		if (entity->GetComponent(CT_RENDER, &component))
 		{
 			if (initSimplification)
 			{
 				static KAssetImportResult result;
-				if (targetCount != simplification.GetCurVertexCount() && simplification.Simplification(targetCount, result))
+				if (targetCount != simplification.GetCurVertexCount() && simplification.Simplification(MeshSimplifyTarget::VERTEX, targetCount, vertices, indices))
 				{
-					component->InitAsUserData(result, "spider", false);
+					if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, originalMats))
+					{
+						// if (KMeshProcessor::CalcTBN(vertices, indices))
+						{
+							component->InitAsUserData(result, "qem", false);
+						}
+					}
 				}
 			}
 		}
