@@ -77,7 +77,7 @@ void LUPSolve(const T* LU, const uint32_t* pivot, uint32_t size, const T* b, T* 
 
 // Newton's method iterative refinement.
 template< typename T >
-bool LUPSolveIterate(const T* A, const T* LU, const uint32_t* pivot, uint32_t size, const T* b, T* x)
+bool LUPSolveIterate(const T* A, const T* LU, const uint32_t* pivot, uint32_t size, const T* b, T* x, const T epsilon)
 {
 	T* residual = (T*)malloc(2 * size * sizeof(T));
 	T* error = residual + size;
@@ -106,7 +106,7 @@ bool LUPSolveIterate(const T* A, const T* LU, const uint32_t* pivot, uint32_t si
 			meanSquaredError += error[i] * error[i];
 		}
 
-		if (meanSquaredError < 1e-4f)
+		if (meanSquaredError < epsilon)
 		{
 			bCloseEnough = true;
 			break;
@@ -449,6 +449,7 @@ struct KQuadric
 {
 	static_assert(Dimension >= 1, "Dimension must >= 1");
 	constexpr static uint32_t Size = (Dimension + 1) * Dimension / 2;
+	constexpr static T Precision = 1e-12f;
 
 	T a[Size];
 	T b[Dimension];
@@ -620,7 +621,7 @@ struct KQuadric
 			}
 		}
 
-		if (LUPFactorize(&A.m[0][0], pivot, Dimension, 1e-3f))
+		if (LUPFactorize(&A.m[0][0], pivot, Dimension, Precision))
 		{
 			LUPSolve(&A.m[0][0], pivot, Dimension, b, x);
 			return true;
@@ -641,6 +642,8 @@ template<typename T, uint32_t Attr>
 struct KAttrQuadric
 {
 	constexpr static uint32_t Size = Attr + 3;
+	constexpr static T Precision = 1e-12f;
+
 	typedef KVector<T, 3> Vector;
 	typedef KMatrix<T, 3, 3> Matrix;
 	Matrix	nxn_gxg;
@@ -710,7 +713,7 @@ struct KAttrQuadric
 		A.m[3][3] = 0;
 
 		uint32_t pivot[4];
-		bool bInvertable = LUPFactorize(&A.m[0][0], pivot, 4, (T)1e-12f);
+		bool bInvertable = LUPFactorize(&A.m[0][0], pivot, 4, Precision);
 #else
 		KMatrix<T, 3, 3> A;
 		
@@ -719,7 +722,7 @@ struct KAttrQuadric
 		A.m[2][0] = normal[0];	A.m[2][1] = normal[1];	A.m[2][2] = normal[2];
 
 		uint32_t pivot[3];
-		bool bInvertable = LUPFactorize(&A.m[0][0], pivot, 3, 1e-12f);
+		bool bInvertable = LUPFactorize(&A.m[0][0], pivot, 3, Precision);
 #endif
 		for (uint32_t k = 0; k < Attr; ++k)
 		{
@@ -1009,7 +1012,7 @@ struct KAttrQuadric
 
 	bool OptimalVolume(T* x) const
 	{
-		if (diagonal < 1e-12f)
+		if (diagonal < Precision)
 		{
 			return false;
 		}
@@ -1048,7 +1051,7 @@ struct KAttrQuadric
 		KMatrix<T, 4, 4> LU = LHS;
 
 		uint32_t pivot[4] = { 0 };
-		if (LUPFactorize(&LU.m[0][0], pivot, 4, (T)1e-12f))
+		if (LUPFactorize(&LU.m[0][0], pivot, 4, Precision))
 		{
 			b1 = -dn_dg;
 			for (uint32_t i = 0; i < m; ++i)
@@ -1066,7 +1069,7 @@ struct KAttrQuadric
 			RHS.v[3] = -d;
 
 			KVector<T, 4> _pos;
-			LUPSolveIterate(&LHS.m[0][0], &LU.m[0][0], pivot, 4, &RHS.v[0], &_pos.v[0]);
+			LUPSolveIterate(&LHS.m[0][0], &LU.m[0][0], pivot, 4, &RHS.v[0], &_pos.v[0], Precision);
 			// LUPSolve(&LHS.m[0][0], pivot, 4, &RHS.v[0], &_pos.v[0]);
 
 			KVector<T, 3> pos;
@@ -1097,7 +1100,7 @@ struct KAttrQuadric
 
 	bool Optimal(T* x) const
 	{
-		if (diagonal < 1e-12f)
+		if (diagonal < Precision)
 		{
 			return false;
 		}
@@ -1108,7 +1111,7 @@ struct KAttrQuadric
 		KMatrix<T, Size, Size> A = -ComputeA();
 		KMatrix<T, Size, Size> LU = A;
 
-		if (LUPFactorize(&LU.m[0][0], pivot, Size, 1e-12f))
+		if (LUPFactorize(&LU.m[0][0], pivot, Size, Precision))
 		{
 			KVector<T, Size> b = ComputeB();
 			LUPSolveIterate(&A.m[0][0], &LU.m[0][0], pivot, Size, &b.v[0], x);
@@ -1141,7 +1144,7 @@ struct KAttrQuadric
 		KMatrix<T, 3, 3> LU = LHS;
 
 		uint32_t pivot[3] = { 0 };
-		if (LUPFactorize(&LU.m[0][0], pivot, 3, (T)1e-12f))
+		if (LUPFactorize(&LU.m[0][0], pivot, 3, Precision))
 		{
 			b1 = -dn_dg;
 			for (uint32_t i = 0; i < m; ++i)
@@ -1152,7 +1155,7 @@ struct KAttrQuadric
 			KVector<T, 3> RHS = b1 - (Mul(B, b2) / diagonal);
 
 			KVector<T, 3> pos;
-			LUPSolveIterate(&LHS.m[0][0], &LU.m[0][0], pivot, 3, &RHS.v[0], &pos.v[0]);
+			LUPSolveIterate(&LHS.m[0][0], &LU.m[0][0], pivot, 3, &RHS.v[0], &pos.v[0], Precision);
 			// LUPSolve(&LHS.m[0][0], pivot, 3, &RHS.v[0], &pos.v[0]);		
 
 			KVector<T, m> attr;

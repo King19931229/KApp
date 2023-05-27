@@ -5,8 +5,81 @@
 #include "KBase/Publish/Mesh/KQuadric.h"
 #include <unordered_set>
 #include <unordered_map>
+#include <functional>
 #include <tuple>
 #include <queue>
+
+struct KEdgeHash
+{
+	// key为相邻节点 value为所在三角形列表
+	std::vector<std::unordered_map<int32_t, std::unordered_set<int32_t>>> edges;
+
+	KEdgeHash(size_t num = 0)
+	{
+		Init(num);
+	}
+
+	void Append()
+	{
+		edges.push_back({});
+	}
+
+	void Init(size_t num)
+	{
+		edges.resize(num);
+	}
+
+	void UnInit()
+	{
+		edges.clear();
+	}
+
+	void AddEdgeHash(int32_t v0, int32_t v1, int32_t triIndex)
+	{
+		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
+		auto it = link.find(v1);
+		if (it == link.end())
+		{
+			it = link.insert({ v1, {} }).first;
+		}
+		it->second.insert(triIndex);
+	}
+
+	void RemoveEdgeHash(int32_t v0, int32_t v1, int32_t triIndex)
+	{
+		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
+		auto it = link.find(v1);
+		if (it != link.end())
+		{
+			it->second.erase(triIndex);
+		}
+	}
+
+	void ClearEdgeHash(int32_t v0)
+	{
+		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
+		link.clear();
+	}
+
+	void ForEach(int32_t v0, std::function<void(int32_t, int32_t)> call)
+	{
+		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
+		for (auto it = link.begin(); it != link.end(); ++it)
+		{
+			int32_t v1 = it->first;
+			std::unordered_set<int32_t> tris = it->second;
+			for (int32_t triIndex : tris)
+			{
+				call(v1, triIndex);
+			}
+		}
+	}
+
+	bool HasConnection(int32_t v0, int32_t v1) const
+	{
+		return edges[v0].find(v1) != edges[v0].end();
+	}
+};
 
 class KMeshSimplification
 {
@@ -16,6 +89,12 @@ protected:
 	constexpr static Type NORMAL_WEIGHT = 1;
 	constexpr static Type COLOR_WEIGHT = 0.5f;
 	constexpr static Type UV_WEIGHT = 0.5f;
+
+	enum VertexFlag
+	{
+		VERTEX_FLAG_FREE,
+		VERTEX_FLAG_LOCK
+	};
 
 	struct Vertex
 	{
@@ -93,8 +172,8 @@ protected:
 		int32_t currTriangleCount = 0;
 		int32_t currVertexCount = 0;
 
-		int32_t* pCurrVertexCount = nullptr;
-		int32_t* pCurrTriangleCount = nullptr;
+		int32_t* pVertexCount = nullptr;
+		int32_t* pTriangleCount = nullptr;
 
 		void Redo()
 		{
@@ -103,10 +182,10 @@ protected:
 				modifies[i].Redo();
 			}
 
-			assert(*pCurrVertexCount == prevVertexCount);
-			assert(*pCurrTriangleCount == prevTriangleCount);
-			*pCurrVertexCount = currVertexCount;
-			*pCurrTriangleCount = currTriangleCount;
+			assert(*pVertexCount == prevVertexCount);
+			assert(*pTriangleCount == prevTriangleCount);
+			*pVertexCount = currVertexCount;
+			*pTriangleCount = currTriangleCount;
 		}
 
 		void Undo()
@@ -116,10 +195,10 @@ protected:
 				modifies[modifies.size() - 1 - i].Undo();
 			}
 
-			assert(*pCurrVertexCount == currVertexCount);
-			assert(*pCurrTriangleCount == currTriangleCount);
-			*pCurrVertexCount = prevVertexCount;
-			*pCurrTriangleCount = prevTriangleCount;
+			assert(*pVertexCount == currVertexCount);
+			assert(*pTriangleCount == currTriangleCount);
+			*pVertexCount = prevVertexCount;
+			*pTriangleCount = prevTriangleCount;
 		}
 	};
 
@@ -133,8 +212,12 @@ protected:
 
 	std::vector<Triangle> m_Triangles;
 	std::vector<Vertex> m_Vertices;
-	std::vector<std::unordered_set<int32_t>> m_Adjacencies;
 	std::vector<int32_t> m_Versions;
+	std::vector<int32_t> m_Flags;
+	// 相邻三角形列表
+	std::vector<std::unordered_set<int32_t>> m_Adjacencies;
+
+	KEdgeHash m_EdgeHash;
 
 	std::vector<Quadric> m_Quadric;
 	std::vector<AtrrQuadric> m_AttrQuadric;
@@ -158,7 +241,7 @@ protected:
 	int32_t m_MinTriangleAllow = 1;
 	int32_t m_MinVertexAllow = 3;
 
-	bool m_Memoryless = false;
+	bool m_Memoryless = true;
 
 	void UndoCollapse()
 	{
@@ -197,11 +280,11 @@ protected:
 		const Vertex& vert1 = m_Vertices[v1];
 		const Vertex& vert2 = m_Vertices[v2];
 
-		constexpr float EPS = 1e-3f;
+		constexpr float EPS = 1e-5f;
 
 		if (glm::length(vert0.pos - vert1.pos) < EPS)
 			return true;
-		if (glm::length(vert0.pos - vert1.pos) < EPS)
+		if (glm::length(vert0.pos - vert2.pos) < EPS)
 			return true;
 		if (glm::length(vert1.pos - vert2.pos) < EPS)
 			return true;
@@ -292,12 +375,15 @@ protected:
 
 	bool InitVertexData(const std::vector<KMeshProcessorVertex> vertices, const std::vector<uint32_t>& indices)
 	{
+		KAABBBox bound;
+
 		uint32_t vertexCount = (uint32_t)vertices.size();
 		uint32_t indexCount = (uint32_t)indices.size();
 
 		m_Vertices.resize(vertexCount);
 		m_Adjacencies.resize(vertexCount);
 		m_Versions.resize(vertexCount);
+		m_Flags.resize(vertexCount);
 
 		for (uint32_t i = 0; i < vertexCount; ++i)
 		{
@@ -307,7 +393,11 @@ protected:
 			m_Vertices[i].normal = vertices[i].normal;
 			m_Vertices[i].partIndex = vertices[i].partIndex;
 			m_Versions[i] = 0;
+			m_Flags[i] = VERTEX_FLAG_FREE;
+			bound.Merge(m_Vertices[i].pos, bound);
 		}
+
+		m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f);
 
 		uint32_t maxTriCount = indexCount / 3;
 		m_Triangles.reserve(maxTriCount);
@@ -451,28 +541,45 @@ protected:
 			}
 		}
 
-		for (size_t triIndex = 0; triIndex < m_Triangles.size(); ++triIndex)
+		m_EdgeHash.Init(m_Vertices.size());
+
+		for (int32_t triIndex = 0; triIndex < (int32_t)m_Triangles.size(); ++triIndex)
 		{
 			const Triangle& triangle = m_Triangles[triIndex];
 			for (size_t i = 0; i < 3; ++i)
 			{
-				EdgeContraction contraction;
 				int32_t v0 = triangle.index[i];
 				int32_t v1 = triangle.index[(i + 1) % 3];
-				contraction.edge.index[0] = v0;
-				contraction.edge.index[1] = v1;
-				contraction.version.index[0] = m_Versions[v0];
-				contraction.version.index[1] = m_Versions[v1];
-				std::tuple<Type, Vertex> costAndVertex = ComputeCostAndVertex(contraction.edge, m_Quadric[v0] + m_Quadric[v1], m_AttrQuadric[v0] + m_AttrQuadric[v1]);
-				contraction.cost = std::get<0>(costAndVertex);
-				contraction.vertex = std::get<1>(costAndVertex);
 
-				if (contraction.cost > 1e5f)
+				m_EdgeHash.AddEdgeHash(v0, v1, triIndex);
+
+				if (!m_EdgeHash.HasConnection(v1, v0))
 				{
-					int x = 0;
+					EdgeContraction contraction;
+					contraction.edge.index[0] = v0;
+					contraction.edge.index[1] = v1;
+					contraction.version.index[0] = m_Versions[v0];
+					contraction.version.index[1] = m_Versions[v1];
+					std::tuple<Type, Vertex> costAndVertex = ComputeCostAndVertex(contraction.edge, m_Quadric[v0] + m_Quadric[v1], m_AttrQuadric[v0] + m_AttrQuadric[v1]);
+					contraction.cost = std::get<0>(costAndVertex);
+					contraction.vertex = std::get<1>(costAndVertex);
+					m_EdgeHeap.push(contraction);
 				}
+			}
+		}
 
-				m_EdgeHeap.push(contraction);
+		for (int32_t triIndex = 0; triIndex < (int32_t)m_Triangles.size(); ++triIndex)
+		{
+			const Triangle& triangle = m_Triangles[triIndex];
+			for (size_t i = 0; i < 3; ++i)
+			{
+				int32_t v0 = triangle.index[i];
+				int32_t v1 = triangle.index[(i + 1) % 3];
+				assert(m_EdgeHash.HasConnection(v0, v1));
+				if (!m_EdgeHash.HasConnection(v1, v0))
+				{
+					m_Flags[v0] = m_Flags[v1] = VERTEX_FLAG_LOCK;
+				}
 			}
 		}
 
@@ -551,11 +658,16 @@ protected:
 			EdgeContraction contraction;
 			bool validContraction = false;
 
+			int32_t v0 = -1;
+			int32_t v1 = -1;
+
 			do
 			{
 				contraction = m_EdgeHeap.top();
+				v0 = contraction.edge.index[0];
+				v1 = contraction.edge.index[1];
+				validContraction = (m_Versions[v0] == contraction.version.index[0] && m_Versions[v1] == contraction.version.index[1] && !(m_Flags[v0] == VERTEX_FLAG_LOCK || m_Flags[v1] == VERTEX_FLAG_LOCK));
 				m_EdgeHeap.pop();
-				validContraction = (m_Versions[contraction.edge.index[0]] == contraction.version.index[0] && m_Versions[contraction.edge.index[1]] == contraction.version.index[1]);
 			} while (!m_EdgeHeap.empty() && !validContraction);
 
 			if (!validContraction)
@@ -567,9 +679,6 @@ protected:
 				break;
 
 			assert(contraction.edge.index[0] != contraction.edge.index[1]);
-
-			int32_t v0 = contraction.edge.index[0];
-			int32_t v1 = contraction.edge.index[1];
 
 			std::unordered_set<int32_t> sharedAdjacencySet;
 			std::unordered_set<int32_t> noSharedAdjacencySetV0;
@@ -711,7 +820,9 @@ protected:
 			int32_t newIndex = (int32_t)m_Vertices.size();
 
 			m_Vertices.push_back(contraction.vertex);
+			m_EdgeHash.Append();
 			m_Adjacencies.push_back({});
+			m_Flags.push_back(m_Flags[v0] | m_Flags[v1]);
 			m_Versions.push_back(0);
 
 			std::unordered_set<int32_t> adjacencyVert;
@@ -761,12 +872,10 @@ protected:
 				return modify;
 			};
 
-			auto NewContraction = [this, newIndex](const Triangle& triangle, int32_t i, int32_t j)
+			auto NewContraction = [this, newIndex](int32_t v0, int32_t v1)
 			{
 				EdgeContraction contraction;
 
-				int32_t v0 = triangle.index[i];
-				int32_t v1 = triangle.index[j];
 				contraction.edge.index[0] = v0;
 				contraction.edge.index[1] = v1;
 				assert(contraction.edge.index[0] != contraction.edge.index[1]);
@@ -810,13 +919,9 @@ protected:
 				m_EdgeHeap.push(contraction);
 			};
 
-			EdgeCollapse collapse;
-			collapse.pCurrTriangleCount = &m_CurTriangleCount;
-			collapse.pCurrVertexCount = &m_CurVertexCount;
-
 			std::unordered_set<int32_t> newAdjacencySet;
 
-			auto AdjustAdjacencies = [this, newIndex, NewModify, CheckValidFlag, &sharedAdjacencySet, &newAdjacencySet, &collapse](int32_t v)
+			auto AdjustAdjacencies = [this, newIndex, NewModify, CheckValidFlag, &sharedAdjacencySet, &newAdjacencySet](int32_t v, EdgeCollapse& collapse)
 			{
 				for (int32_t triIndex : m_Adjacencies[v])
 				{
@@ -848,27 +953,6 @@ protected:
 				}
 			};
 
-			auto BuildNewContraction = [this, NewContraction, CheckValidFlag](int32_t v)
-			{
-				for (int32_t triIndex : m_Adjacencies[v])
-				{
-					const Triangle& triangle = m_Triangles[triIndex];
-					if (!IsValid(triIndex))
-					{
-						continue;
-					}
-					if (!CheckValidFlag(triangle))
-					{
-						continue;
-					}
-					int32_t i = triangle.PointIndex(v);
-					assert(i >= 0);
-
-					NewContraction(triangle, i, (i + 1) % 3);
-					NewContraction(triangle, i, (i + 2) % 3);
-				}
-			};
-
 			int32_t invalidVertex = 0;
 			for (int32_t vertId : sharedVerts)
 			{
@@ -894,13 +978,57 @@ protected:
 				}
 			}
 
+			auto RemoveOldEdgeHash = [this](int32_t vCurr, int32_t triIndex)
+			{
+				if (IsValid(triIndex))
+				{
+					const Triangle& triangle = m_Triangles[triIndex];
+					int idx = triangle.PointIndex(vCurr);
+					assert(idx >= 0);
+					int32_t vPrev = triangle.index[(idx + 2) % 3];
+					int32_t vNext = triangle.index[(idx + 1) % 3];
+					m_EdgeHash.RemoveEdgeHash(vPrev, vCurr, triIndex);
+					m_EdgeHash.RemoveEdgeHash(vCurr, vNext, triIndex);
+				}
+			};
+
+			if (m_Memoryless)
+			{
+				for (int32_t vertId : adjacencyVert)
+				{
+					++m_Versions[vertId];
+					m_EdgeHash.ForEach(vertId, [vertId, RemoveOldEdgeHash](int32_t vNext, int32_t triIndex)
+					{
+						RemoveOldEdgeHash(vertId, triIndex);
+					});
+				}
+			}
+			else
+			{
+				m_EdgeHash.ForEach(v0, [v0, RemoveOldEdgeHash](int32_t vNext, int32_t triIndex)
+				{
+					RemoveOldEdgeHash(v0, triIndex);
+				});
+				m_EdgeHash.ForEach(v1, [v1, RemoveOldEdgeHash](int32_t vNext, int32_t triIndex)
+				{
+					RemoveOldEdgeHash(v1, triIndex);
+				});
+			}
+
+			EdgeCollapse collapse;
+
+			collapse.pTriangleCount = &m_CurTriangleCount;
+			collapse.pVertexCount = &m_CurVertexCount;
+
 			collapse.prevTriangleCount = m_CurTriangleCount;
 			collapse.prevVertexCount = m_CurVertexCount;
 
-			AdjustAdjacencies(v0);
-			AdjustAdjacencies(v1);
+			AdjustAdjacencies(v0, collapse);
+			AdjustAdjacencies(v1, collapse);
 
 			m_Adjacencies[newIndex] = newAdjacencySet;
+			m_Adjacencies[v0].clear();
+			m_Adjacencies[v1].clear();
 
 			m_Versions[v0] = m_Versions[v1] = -1;
 			if (newAdjacencySet.size() == 0)
@@ -909,12 +1037,42 @@ protected:
 				invalidVertex += 1;
 			}
 
+			auto BuildNewContraction = [this, NewContraction, CheckValidFlag](int32_t v)
+			{
+				for (int32_t triIndex : m_Adjacencies[v])
+				{
+					const Triangle& triangle = m_Triangles[triIndex];
+					if (!IsValid(triIndex))
+					{
+						continue;
+					}
+					if (!CheckValidFlag(triangle))
+					{
+						continue;
+					}
+					int32_t i = triangle.PointIndex(v);
+					assert(i >= 0);
+
+					int32_t v0 = triangle.index[i];
+					int32_t v1 = triangle.index[(i + 1) % 3];
+					int32_t v2 = triangle.index[(i + 2) % 3];
+
+					m_EdgeHash.AddEdgeHash(v0, v1, triIndex);
+					if (!m_EdgeHash.HasConnection(v1, v0))
+					{
+						NewContraction(v0, v1);
+					}
+
+					m_EdgeHash.AddEdgeHash(v2, v0, triIndex);
+					if (!m_EdgeHash.HasConnection(v0, v2))
+					{
+						NewContraction(v2, v0);
+					}
+				}
+			};
+
 			if (m_Memoryless)
 			{
-				for (int32_t vertId : adjacencyVert)
-				{
-					++m_Versions[vertId];
-				}
 				for (int32_t vertId : adjacencyVert)
 				{
 					BuildNewContraction(vertId);
@@ -967,6 +1125,7 @@ public:
 
 	bool UnInit()
 	{
+		m_EdgeHash.UnInit();
 		m_Triangles.clear();
 		m_Vertices.clear();
 		m_Quadric.clear();
@@ -974,8 +1133,9 @@ public:
 		m_TriQuadric.clear();
 		m_TriAttrQuadric.clear();
 		m_EdgeHeap = std::priority_queue<EdgeContraction>();
-		m_Adjacencies.clear();
 		m_Versions.clear();
+		m_Flags.clear();
+		m_Adjacencies.clear();
 		m_CollapseOperations.clear();
 		m_CurrOpIdx = 0;
 		m_CurVertexCount = 0;
