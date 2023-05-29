@@ -19,11 +19,6 @@ struct KEdgeHash
 		Init(num);
 	}
 
-	void Append()
-	{
-		edges.push_back({});
-	}
-
 	void Init(size_t num)
 	{
 		edges.resize(num);
@@ -86,9 +81,9 @@ class KMeshSimplification
 protected:
 	typedef double Type;
 
-	constexpr static Type NORMAL_WEIGHT = 1;
-	constexpr static Type COLOR_WEIGHT = 0.5f;
-	constexpr static Type UV_WEIGHT = 0.5f;
+	Type NORMAL_WEIGHT = (Type)0.5F;
+	Type COLOR_WEIGHT = (Type)0.75F;
+	Type UV_WEIGHT = (Type)0.8F;
 
 	enum VertexFlag
 	{
@@ -202,7 +197,7 @@ protected:
 		}
 	};
 
-	static constexpr uint32_t AttrNum = 5;
+	static constexpr uint32_t AttrNum = 8;
 	typedef KAttrQuadric<Type, AttrNum> AtrrQuadric;
 
 	static constexpr uint32_t QuadircDimension = AttrNum + 3;
@@ -241,7 +236,7 @@ protected:
 	int32_t m_MinTriangleAllow = 1;
 	int32_t m_MinVertexAllow = 3;
 
-	bool m_Memoryless = true;
+	bool m_Memoryless = false;
 
 	void UndoCollapse()
 	{
@@ -310,15 +305,18 @@ protected:
 		return true;
 	}
 
-	std::tuple<Type, Vertex> ComputeCostAndVertex(const Edge& edge, const Quadric &quadric, const AtrrQuadric &attrQuadric)
+	std::tuple<Type, Vertex> ComputeCostAndVertex(const Edge& edge, const Quadric &quadric, const AtrrQuadric &attrQuadric) const
 	{
-		Vertex vc;
-
 		int32_t v0 = edge.index[0];
 		int32_t v1 = edge.index[1];
 
 		const Vertex& va = m_Vertices[v0];
 		const Vertex& vb = m_Vertices[v1];
+
+		bool lock0 = m_Flags[v0] == VERTEX_FLAG_LOCK;
+		bool lock1 = m_Flags[v1] == VERTEX_FLAG_LOCK;
+
+		assert(!(lock0 && lock1));
 
 		glm::tvec2<Type> uvBox[2];
 
@@ -329,45 +327,61 @@ protected:
 		}
 
 		Type cost = std::numeric_limits<Type>::max();
-		Vector opt, vec;
+		Vector opt;
 
-		if (attrQuadric.OptimalVolume(vec.v))
+		if (lock0 || lock1)
 		{
-			cost = attrQuadric.Error(vec.v);
-			opt = vec;
-		}
-		else if (attrQuadric.Optimal(vec.v))
-		{
-			cost = attrQuadric.Error(vec.v);
-			opt = vec;
+			Vertex v = lock0 ? va : vb;
+			opt.v[0] = v.pos[0];	opt.v[1] = v.pos[1];	opt.v[2] = v.pos[2];
+			opt.v[3] = v.uv[0];		opt.v[4] = v.uv[1];
+			opt.v[5] = v.normal[0];	opt.v[6] = v.normal[1];	opt.v[7] = v.normal[2];
+			opt.v[8] = v.color[0];	opt.v[9] = v.color[1];	opt.v[10] = v.color[2];
+			cost = attrQuadric.Error(opt.v);
 		}
 		else
 		{
-			constexpr size_t sgement = 3;
-			static_assert(sgement >= 1, "ensure sgement");
-			for (size_t i = 0; i < sgement; ++i)
+			Vector vec;
+			if (attrQuadric.OptimalVolume(vec.v))
 			{
-				glm::vec3 pos = glm::mix(va.pos, vb.pos, (float)(i) / (float)(sgement - 1));
-				glm::vec2 uv = glm::mix(va.uv, vb.uv, (float)(i) / (float)(sgement - 1));
-				glm::vec3 normal = glm::mix(va.normal, vb.normal, (float)(i) / (float)(sgement - 1));
-
-				vec.v[0] = pos[0];		vec.v[1] = pos[1];		vec.v[2] = pos[2];
-				vec.v[3] = uv[0];		vec.v[4] = uv[1];
-				vec.v[5] = normal[0];	vec.v[6] = normal[1];	vec.v[7] = normal[2];
-
-				Type thisCost = attrQuadric.Error(vec.v);
-				if (thisCost < cost)
+				cost = attrQuadric.Error(vec.v);
+				opt = vec;
+			}
+			else if (attrQuadric.Optimal(vec.v))
+			{
+				cost = attrQuadric.Error(vec.v);
+				opt = vec;
+			}
+			else
+			{
+				constexpr size_t sgement = 3;
+				static_assert(sgement >= 1, "ensure sgement");
+				for (size_t i = 0; i < sgement; ++i)
 				{
-					cost = thisCost;
-					opt = vec;
+					auto pos = glm::mix(va.pos, vb.pos, (Type)(i) / (Type)(sgement - 1));
+					auto uv = glm::mix(va.uv, vb.uv, (Type)(i) / (Type)(sgement - 1));
+					auto normal = glm::mix(va.normal, vb.normal, (Type)(i) / (Type)(sgement - 1));
+					auto color = glm::mix(va.color, vb.color, (Type)(i) / (Type)(sgement - 1));
+
+					vec.v[0] = pos[0];		vec.v[1] = pos[1];		vec.v[2] = pos[2];
+					vec.v[3] = uv[0];		vec.v[4] = uv[1];
+					vec.v[5] = normal[0];	vec.v[6] = normal[1];	vec.v[7] = normal[2];
+					vec.v[8] = color[0];	vec.v[9] = color[1];	vec.v[10] = color[2];
+
+					Type thisCost = attrQuadric.Error(vec.v);
+					if (thisCost < cost)
+					{
+						cost = thisCost;
+						opt = vec;
+					}
 				}
 			}
 		}
 
-		vc.pos = glm::vec3(opt.v[0], opt.v[1], opt.v[2]);
-		vc.uv = glm::clamp(glm::tvec2<Type>(opt.v[3], opt.v[4]), uvBox[0], uvBox[1]);
-		vc.normal = glm::normalize(glm::vec3(opt.v[5], opt.v[6], opt.v[7]));
-
+		Vertex vc;
+		vc.pos = decltype(vc.pos)(opt.v[0], opt.v[1], opt.v[2]);
+		vc.uv = glm::clamp(decltype(vc.uv)(opt.v[3] / UV_WEIGHT, opt.v[4] / UV_WEIGHT), uvBox[0], uvBox[1]);
+		vc.normal = glm::normalize(decltype(vc.normal)(opt.v[5] / NORMAL_WEIGHT, opt.v[6] / NORMAL_WEIGHT, opt.v[7] / NORMAL_WEIGHT));
+		vc.color = decltype(vc.color)(opt.v[8] / COLOR_WEIGHT, opt.v[9] / COLOR_WEIGHT, opt.v[10] / COLOR_WEIGHT);
 		vc.partIndex = va.partIndex;
 
 		return std::make_tuple(cost, vc);
@@ -384,6 +398,7 @@ protected:
 		m_Adjacencies.resize(vertexCount);
 		m_Versions.resize(vertexCount);
 		m_Flags.resize(vertexCount);
+		m_EdgeHash.Init(2 * m_Vertices.size());
 
 		for (uint32_t i = 0; i < vertexCount; ++i)
 		{
@@ -397,7 +412,7 @@ protected:
 			bound.Merge(m_Vertices[i].pos, bound);
 		}
 
-		m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f);
+		// m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f);
 
 		uint32_t maxTriCount = indexCount / 3;
 		m_Triangles.reserve(maxTriCount);
@@ -414,6 +429,7 @@ protected:
 				{
 					assert(triangle.index[i] < m_Adjacencies.size());
 					m_Adjacencies[triangle.index[i]].insert((int32_t)(m_Triangles.size()));
+					m_EdgeHash.AddEdgeHash(triangle.index[i], triangle.index[(i + 1) % 3], (int32_t)(m_Triangles.size()));
 				}
 				m_Triangles.push_back(triangle);
 			}
@@ -433,7 +449,7 @@ protected:
 		return true;
 	}
 
-	Quadric ComputeQuadric(const Triangle& triangle)
+	Quadric ComputeQuadric(const Triangle& triangle) const
 	{
 		const Vertex& va = m_Vertices[triangle.index[0]];
 		const Vertex& vb = m_Vertices[triangle.index[1]];
@@ -446,13 +462,17 @@ protected:
 		q.v[0] = vb.pos[0]; q.v[1] = vb.pos[1]; q.v[2] = vb.pos[2];
 		r.v[0] = vc.pos[0]; r.v[1] = vc.pos[1]; r.v[2] = vc.pos[2];
 
-		p.v[3] = va.uv[0]; p.v[4] = va.uv[1];
-		q.v[3] = vb.uv[0]; q.v[4] = vb.uv[1];
-		r.v[3] = vc.uv[0]; r.v[4] = vc.uv[1];
+		p.v[3] = UV_WEIGHT * va.uv[0]; p.v[4] = UV_WEIGHT * va.uv[1];
+		q.v[3] = UV_WEIGHT * vb.uv[0]; q.v[4] = UV_WEIGHT * vb.uv[1];
+		r.v[3] = UV_WEIGHT * vc.uv[0]; r.v[4] = UV_WEIGHT * vc.uv[1];
 
-		p.v[5] = va.normal[0]; p.v[6] = va.normal[1]; p.v[7] = va.normal[2];
-		q.v[5] = vb.normal[0]; q.v[6] = vb.normal[1]; q.v[7] = vb.normal[2];
-		r.v[5] = vc.normal[0]; r.v[6] = vc.normal[1]; r.v[7] = vc.normal[2];
+		p.v[5] = NORMAL_WEIGHT * va.normal[0]; p.v[6] = NORMAL_WEIGHT * va.normal[1]; p.v[7] = NORMAL_WEIGHT * va.normal[2];
+		q.v[5] = NORMAL_WEIGHT * vb.normal[0]; q.v[6] = NORMAL_WEIGHT * vb.normal[1]; q.v[7] = NORMAL_WEIGHT * vb.normal[2];
+		r.v[5] = NORMAL_WEIGHT * vc.normal[0]; r.v[6] = NORMAL_WEIGHT * vc.normal[1]; r.v[7] = NORMAL_WEIGHT * vc.normal[2];
+
+		p.v[7] = COLOR_WEIGHT * va.color[0]; p.v[8] = COLOR_WEIGHT * va.color[1]; p.v[9] = COLOR_WEIGHT * va.color[2];
+		q.v[7] = COLOR_WEIGHT * vb.color[0]; q.v[8] = COLOR_WEIGHT * vb.color[1]; q.v[9] = COLOR_WEIGHT * vb.color[2];
+		r.v[7] = COLOR_WEIGHT * vc.color[0]; r.v[8] = COLOR_WEIGHT * vc.color[1]; r.v[9] = COLOR_WEIGHT * vc.color[2];
 
 		Vector e1 = q - p;
 		e1 /= e1.Length();
@@ -483,7 +503,7 @@ protected:
 		return res;
 	};
 
-	AtrrQuadric ComputeAttrQuadric(const Triangle& triangle)
+	AtrrQuadric ComputeAttrQuadric(const Triangle& triangle) const
 	{
 		const Vertex& va = m_Vertices[triangle.index[0]];
 		const Vertex& vb = m_Vertices[triangle.index[1]];
@@ -500,6 +520,9 @@ protected:
 			m[i * AttrNum + 2] = NORMAL_WEIGHT * (*v[i]).normal[0];
 			m[i * AttrNum + 3] = NORMAL_WEIGHT * (*v[i]).normal[1];
 			m[i * AttrNum + 4] = NORMAL_WEIGHT * (*v[i]).normal[2];
+			m[i * AttrNum + 5] = COLOR_WEIGHT * (*v[i]).color[0];
+			m[i * AttrNum + 6] = COLOR_WEIGHT * (*v[i]).color[1];
+			m[i * AttrNum + 7] = COLOR_WEIGHT * (*v[i]).color[2];
 		}
 
 		KVector<Type, 3> p, q, r;
@@ -515,6 +538,19 @@ protected:
 
 		return res;
 	};
+
+	EdgeContraction ComputeContraction(int32_t v0, int32_t v1, const Quadric& quadric, const AtrrQuadric& attrQuadric) const
+	{
+		EdgeContraction contraction;
+		contraction.edge.index[0] = v0;
+		contraction.edge.index[1] = v1;
+		contraction.version.index[0] = m_Versions[v0];
+		contraction.version.index[1] = m_Versions[v1];
+		std::tuple<Type, Vertex> costAndVertex = ComputeCostAndVertex(contraction.edge, quadric, attrQuadric);
+		contraction.cost = std::get<0>(costAndVertex);
+		contraction.vertex = std::get<1>(costAndVertex);
+		return contraction;
+	}
 
 	bool InitHeapData()
 	{
@@ -541,33 +577,6 @@ protected:
 			}
 		}
 
-		m_EdgeHash.Init(m_Vertices.size());
-
-		for (int32_t triIndex = 0; triIndex < (int32_t)m_Triangles.size(); ++triIndex)
-		{
-			const Triangle& triangle = m_Triangles[triIndex];
-			for (size_t i = 0; i < 3; ++i)
-			{
-				int32_t v0 = triangle.index[i];
-				int32_t v1 = triangle.index[(i + 1) % 3];
-
-				m_EdgeHash.AddEdgeHash(v0, v1, triIndex);
-
-				if (!m_EdgeHash.HasConnection(v1, v0))
-				{
-					EdgeContraction contraction;
-					contraction.edge.index[0] = v0;
-					contraction.edge.index[1] = v1;
-					contraction.version.index[0] = m_Versions[v0];
-					contraction.version.index[1] = m_Versions[v1];
-					std::tuple<Type, Vertex> costAndVertex = ComputeCostAndVertex(contraction.edge, m_Quadric[v0] + m_Quadric[v1], m_AttrQuadric[v0] + m_AttrQuadric[v1]);
-					contraction.cost = std::get<0>(costAndVertex);
-					contraction.vertex = std::get<1>(costAndVertex);
-					m_EdgeHeap.push(contraction);
-				}
-			}
-		}
-
 		for (int32_t triIndex = 0; triIndex < (int32_t)m_Triangles.size(); ++triIndex)
 		{
 			const Triangle& triangle = m_Triangles[triIndex];
@@ -579,6 +588,22 @@ protected:
 				if (!m_EdgeHash.HasConnection(v1, v0))
 				{
 					m_Flags[v0] = m_Flags[v1] = VERTEX_FLAG_LOCK;
+				}
+			}
+		}
+
+		for (int32_t triIndex = 0; triIndex < (int32_t)m_Triangles.size(); ++triIndex)
+		{
+			const Triangle& triangle = m_Triangles[triIndex];
+			for (size_t i = 0; i < 3; ++i)
+			{
+				int32_t v0 = triangle.index[i];
+				int32_t v1 = triangle.index[(i + 1) % 3];
+				bool lock0 = m_Flags[v0] == VERTEX_FLAG_LOCK;
+				bool lock1 = m_Flags[v1] == VERTEX_FLAG_LOCK;
+				if (v0 < v1 && !(lock0 && lock1))
+				{
+					m_EdgeHeap.push(ComputeContraction(v0, v1, m_Quadric[v0] + m_Quadric[v1], m_AttrQuadric[v0] + m_AttrQuadric[v1]));
 				}
 			}
 		}
@@ -666,7 +691,7 @@ protected:
 				contraction = m_EdgeHeap.top();
 				v0 = contraction.edge.index[0];
 				v1 = contraction.edge.index[1];
-				validContraction = (m_Versions[v0] == contraction.version.index[0] && m_Versions[v1] == contraction.version.index[1] && !(m_Flags[v0] == VERTEX_FLAG_LOCK || m_Flags[v1] == VERTEX_FLAG_LOCK));
+				validContraction = (m_Versions[v0] == contraction.version.index[0] && m_Versions[v1] == contraction.version.index[1] && !(m_Flags[v0] == VERTEX_FLAG_LOCK && m_Flags[v1] == VERTEX_FLAG_LOCK));
 				m_EdgeHeap.pop();
 			} while (!m_EdgeHeap.empty() && !validContraction);
 
@@ -684,6 +709,18 @@ protected:
 			std::unordered_set<int32_t> noSharedAdjacencySetV0;
 			std::unordered_set<int32_t> noSharedAdjacencySetV1;
 
+			auto ComputeTriangleBound = [this](int32_t triIndex)
+			{
+				KAABBBox bound;
+				const Triangle& triangle = m_Triangles[triIndex];
+				bound.Merge(m_Vertices[triangle.index[0]].pos, bound);
+				bound.Merge(m_Vertices[triangle.index[1]].pos, bound);
+				bound.Merge(m_Vertices[triangle.index[2]].pos, bound);
+				return bound;
+			};
+
+			KAABBBox adjacencyBound;
+
 			for (int32_t triIndex : m_Adjacencies[v1])
 			{
 				if (IsValid(triIndex))
@@ -697,6 +734,7 @@ protected:
 					{
 						noSharedAdjacencySetV1.insert(triIndex);
 					}
+					adjacencyBound.Merge(ComputeTriangleBound(triIndex), adjacencyBound);
 				}
 			}
 
@@ -710,10 +748,17 @@ protected:
 						noSharedAdjacencySetV0.insert(triIndex);
 					}
 				}
+				adjacencyBound.Merge(ComputeTriangleBound(triIndex), adjacencyBound);
 			}
 
 			int32_t invalidTriangle = (int32_t)sharedAdjacencySet.size();
 			if (m_CurTriangleCount - invalidTriangle < m_MinTriangleAllow)
+			{
+				continue;
+			}
+
+			float maxDistanceSquare = 4.0f * glm::dot(adjacencyBound.GetExtend(), adjacencyBound.GetExtend());
+			if (adjacencyBound.DistanceSquare(glm::vec3(contraction.vertex.pos)) > maxDistanceSquare)
 			{
 				continue;
 			}
@@ -820,7 +865,7 @@ protected:
 			int32_t newIndex = (int32_t)m_Vertices.size();
 
 			m_Vertices.push_back(contraction.vertex);
-			m_EdgeHash.Append();
+			m_EdgeHash.ClearEdgeHash(newIndex);
 			m_Adjacencies.push_back({});
 			m_Flags.push_back(m_Flags[v0] | m_Flags[v1]);
 			m_Versions.push_back(0);
@@ -874,20 +919,11 @@ protected:
 
 			auto NewContraction = [this, newIndex](int32_t v0, int32_t v1)
 			{
-				EdgeContraction contraction;
+				Quadric quadric;
+				AtrrQuadric atrrQuadric;
 
-				contraction.edge.index[0] = v0;
-				contraction.edge.index[1] = v1;
-				assert(contraction.edge.index[0] != contraction.edge.index[1]);
-				contraction.version.index[0] = m_Versions[v0];
-				contraction.version.index[1] = m_Versions[v1];
-
-				std::tuple<Type, Vertex> costAndVertex;
 				if (m_Memoryless)
 				{
-					Quadric quadric;
-					AtrrQuadric atrrQuadric;
-
 					for (int32_t triIndex : m_Adjacencies[v0])
 					{
 						if (IsValid(triIndex))
@@ -905,18 +941,14 @@ protected:
 							atrrQuadric += m_TriAttrQuadric[triIndex];
 						}
 					}
-
-					costAndVertex = ComputeCostAndVertex(contraction.edge, quadric, atrrQuadric);
 				}
 				else
 				{
-					costAndVertex = ComputeCostAndVertex(contraction.edge, m_Quadric[v0] + m_Quadric[v1], m_AttrQuadric[v0] + m_AttrQuadric[v1]);
+					quadric = m_Quadric[v0] + m_Quadric[v1];
+					atrrQuadric = m_AttrQuadric[v0] + m_AttrQuadric[v1];
 				}
 
-				contraction.cost = std::get<0>(costAndVertex);
-				contraction.vertex = std::get<1>(costAndVertex);
-
-				m_EdgeHeap.push(contraction);
+				m_EdgeHeap.push(ComputeContraction(v0, v1, quadric, atrrQuadric));
 			};
 
 			std::unordered_set<int32_t> newAdjacencySet;
@@ -1057,16 +1089,26 @@ protected:
 					int32_t v1 = triangle.index[(i + 1) % 3];
 					int32_t v2 = triangle.index[(i + 2) % 3];
 
+					bool lock0 = m_Flags[v0] == VERTEX_FLAG_LOCK;
+					bool lock1 = m_Flags[v1] == VERTEX_FLAG_LOCK;
+					bool lock2 = m_Flags[v2] == VERTEX_FLAG_LOCK;
+
 					m_EdgeHash.AddEdgeHash(v0, v1, triIndex);
 					if (!m_EdgeHash.HasConnection(v1, v0))
 					{
-						NewContraction(v0, v1);
+						if (!(lock0 && lock1))
+						{
+							NewContraction(v0, v1);
+						}
 					}
 
 					m_EdgeHash.AddEdgeHash(v2, v0, triIndex);
 					if (!m_EdgeHash.HasConnection(v0, v2))
 					{
-						NewContraction(v2, v0);
+						if (!(lock2 && lock0))
+						{
+							NewContraction(v2, v0);
+						}
 					}
 				}
 			};

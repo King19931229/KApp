@@ -131,6 +131,33 @@ public:
 		}
 	}
 
+	float DistanceSquare(const glm::vec3& point) const
+	{
+		float distSquare = 0;
+
+		if (point.x > m_Max.x)
+			distSquare += (point.x - m_Max.x) * (point.x - m_Max.x);
+		if (point.x < m_Min.x)
+			distSquare += (point.x - m_Min.x) * (point.x - m_Min.x);
+
+		if (point.y > m_Max.y)
+			distSquare += (point.y - m_Max.y) * (point.y - m_Max.y);
+		if (point.y < m_Min.y)
+			distSquare += (point.y - m_Min.y) * (point.y - m_Min.y);
+
+		if (point.z > m_Max.z)
+			distSquare += (point.z - m_Max.z) * (point.z - m_Max.z);
+		if (point.z < m_Min.z)
+			distSquare += (point.z - m_Min.z) * (point.z - m_Min.z);
+
+		return distSquare;
+	}
+
+	float Distance(const glm::vec3& point) const
+	{
+		return sqrt(DistanceSquare(point));
+	}
+
 	bool Intersect(const glm::vec3& point) const
 	{
 		if(m_Max.x < point.x)
