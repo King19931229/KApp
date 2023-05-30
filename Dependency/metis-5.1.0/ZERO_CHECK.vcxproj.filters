@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\metis-5.1.0\CMakeFiles\44a7b0c1e43c1a5b7b46887fce6847e7\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{EAC945AB-02A7-3408-B504-72F07BDABF56}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

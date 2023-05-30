@@ -1,0 +1,139 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{DA55BE16-F2BB-3CE5-9177-1F4FBB245E68}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>x64</Platform>
+    <ProjectName>ALL_BUILD</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>D:\KApp\Dependency\metis-5.1.0\GKlib;D:\KApp\Dependency\metis-5.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>D:\KApp\Dependency\metis-5.1.0\GKlib;D:\KApp\Dependency\metis-5.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\KApp\Dependency\metis-5.1.0\CMakeLists.txt">
+      <StdOutEncoding>UTF-8</StdOutEncoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/KApp/Dependency/metis-5.1.0/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/KApp/Dependency/metis-5.1.0 -BD:/KApp/Dependency/metis-5.1.0 --check-stamp-file D:/KApp/Dependency/metis-5.1.0/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\metis-5.1.0\CMakeFiles\3.18.6\CMakeCCompiler.cmake;D:\KApp\Dependency\metis-5.1.0\CMakeFiles\3.18.6\CMakeCXXCompiler.cmake;D:\KApp\Dependency\metis-5.1.0\CMakeFiles\3.18.6\CMakeRCCompiler.cmake;D:\KApp\Dependency\metis-5.1.0\CMakeFiles\3.18.6\CMakeSystem.cmake;D:\KApp\Dependency\metis-5.1.0\GKlib\GKlibSystem.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCCompiler.cmake.in;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCCompilerABI.c;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCInformation.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCXXCompiler.cmake.in;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCXXCompilerABI.cpp;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCXXInformation.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCommonLanguageInclude.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCompilerIdDetection.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCXXCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCompileFeatures.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCompilerABI.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCompilerId.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineRCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineSystem.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeFindBinUtils.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeGenericSystem.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeInitializeConfigs.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeLanguageInformation.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeParseImplicitIncludeInfo.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeParseImplicitLinkInfo.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeRCCompiler.cmake.in;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeRCInformation.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeSystem.cmake.in;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeSystemSpecificInformation.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeSystemSpecificInitialize.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeTestCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeTestCXXCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeTestCompilerCommon.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeTestRCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CheckFunctionExists.c;D:\Program Files\CMake\share\cmake-3.18\Modules\CheckFunctionExists.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CheckIncludeFile.c.in;D:\Program Files\CMake\share\cmake-3.18\Modules\CheckIncludeFile.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\ADSP-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\ARMCC-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\ARMClang-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\AppleClang-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Borland-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Bruce-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\CMakeCommonCompilerMacros.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Clang-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Clang-DetermineCompilerInternal.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Comeau-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Compaq-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Compaq-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Cray-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Embarcadero-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Fujitsu-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\GHS-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\GNU-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\GNU-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\HP-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\HP-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\IAR-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\IBMCPP-C-DetermineVersionInternal.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\IBMCPP-CXX-DetermineVersionInternal.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Intel-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\MSVC-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\NVIDIA-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\OpenWatcom-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\PGI-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\PathScale-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\SCO-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\SDCC-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\SunPro-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\SunPro-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\TI-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\TinyCC-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\VisualAge-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\VisualAge-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Watcom-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\XL-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\XL-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\XLClang-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\XLClang-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\zOS-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\zOS-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CompilerId\VS-10.vcxproj.in;D:\Program Files\CMake\share\cmake-3.18\Modules\Internal\FeatureTesting.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\Windows-Determine-CXX.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\Windows-MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\Windows-MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\Windows-MSVC.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\Windows.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\WindowsPaths.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\metis-5.1.0\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/KApp/Dependency/metis-5.1.0/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/KApp/Dependency/metis-5.1.0 -BD:/KApp/Dependency/metis-5.1.0 --check-stamp-file D:/KApp/Dependency/metis-5.1.0/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\metis-5.1.0\CMakeFiles\3.18.6\CMakeCCompiler.cmake;D:\KApp\Dependency\metis-5.1.0\CMakeFiles\3.18.6\CMakeCXXCompiler.cmake;D:\KApp\Dependency\metis-5.1.0\CMakeFiles\3.18.6\CMakeRCCompiler.cmake;D:\KApp\Dependency\metis-5.1.0\CMakeFiles\3.18.6\CMakeSystem.cmake;D:\KApp\Dependency\metis-5.1.0\GKlib\GKlibSystem.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCCompiler.cmake.in;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCCompilerABI.c;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCInformation.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCXXCompiler.cmake.in;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCXXCompilerABI.cpp;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCXXInformation.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCommonLanguageInclude.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeCompilerIdDetection.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCXXCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCompileFeatures.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCompilerABI.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineCompilerId.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineRCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeDetermineSystem.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeFindBinUtils.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeGenericSystem.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeInitializeConfigs.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeLanguageInformation.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeParseImplicitIncludeInfo.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeParseImplicitLinkInfo.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeRCCompiler.cmake.in;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeRCInformation.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeSystem.cmake.in;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeSystemSpecificInformation.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeSystemSpecificInitialize.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeTestCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeTestCXXCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeTestCompilerCommon.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CMakeTestRCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CheckFunctionExists.c;D:\Program Files\CMake\share\cmake-3.18\Modules\CheckFunctionExists.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CheckIncludeFile.c.in;D:\Program Files\CMake\share\cmake-3.18\Modules\CheckIncludeFile.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\ADSP-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\ARMCC-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\ARMClang-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\AppleClang-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Borland-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Bruce-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\CMakeCommonCompilerMacros.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Clang-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Clang-DetermineCompilerInternal.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Comeau-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Compaq-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Compaq-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Cray-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Embarcadero-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Fujitsu-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\GHS-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\GNU-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\GNU-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\HP-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\HP-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\IAR-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\IBMCPP-C-DetermineVersionInternal.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\IBMCPP-CXX-DetermineVersionInternal.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Intel-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\MSVC-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\NVIDIA-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\OpenWatcom-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\PGI-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\PathScale-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\SCO-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\SDCC-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\SunPro-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\SunPro-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\TI-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\TinyCC-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\VisualAge-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\VisualAge-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\Watcom-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\XL-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\XL-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\XLClang-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\XLClang-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\zOS-C-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Compiler\zOS-CXX-DetermineCompiler.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\CompilerId\VS-10.vcxproj.in;D:\Program Files\CMake\share\cmake-3.18\Modules\Internal\FeatureTesting.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\Windows-Determine-CXX.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\Windows-MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\Windows-MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\Windows-MSVC.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\Windows.cmake;D:\Program Files\CMake\share\cmake-3.18\Modules\Platform\WindowsPaths.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\metis-5.1.0\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="D:\KApp\Dependency\metis-5.1.0\ZERO_CHECK.vcxproj">
+      <Project>{83B53141-7201-3B6C-B935-4989F0FD6D0B}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="D:\KApp\Dependency\metis-5.1.0\programs\cmpfillin.vcxproj">
+      <Project>{6ADAEA01-7FF7-3D80-B9BF-65B593B28591}</Project>
+      <Name>cmpfillin</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\KApp\Dependency\metis-5.1.0\programs\gpmetis.vcxproj">
+      <Project>{ECA29EB4-646F-311C-BD5D-DA98A9839554}</Project>
+      <Name>gpmetis</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\KApp\Dependency\metis-5.1.0\programs\graphchk.vcxproj">
+      <Project>{65EF7EF5-2757-33B8-970D-6480AF488E41}</Project>
+      <Name>graphchk</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\KApp\Dependency\metis-5.1.0\programs\m2gmetis.vcxproj">
+      <Project>{E0BA4D37-641A-3A5F-9B9D-560E86F43848}</Project>
+      <Name>m2gmetis</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\KApp\Dependency\metis-5.1.0\libmetis\metis.vcxproj">
+      <Project>{8834AC40-81BC-38C8-B7A9-26BBD8FDF889}</Project>
+      <Name>metis</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\KApp\Dependency\metis-5.1.0\programs\mpmetis.vcxproj">
+      <Project>{99907D3D-4EFC-3F6B-8C40-3AA6CFCF8515}</Project>
+      <Name>mpmetis</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\KApp\Dependency\metis-5.1.0\programs\ndmetis.vcxproj">
+      <Project>{2C2F7D36-11AA-3F1E-82CD-9751EBA88FA4}</Project>
+      <Name>ndmetis</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
