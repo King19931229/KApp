@@ -220,7 +220,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
@@ -233,8 +233,8 @@
       <AdditionalDependencies>FreeImageLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x86/;../Dependency/boost/Publish/Debug/x86/;../Dependency/Python27/Publish/Debug/x86/;../Dependency/assimp-3.3.1/Publish/Debug/x86/;../Dependency/tinyxml2/Publish/Debug/x86/;../Dependency/zip-0.1.16/Publish/Debug/x86/;../Dependency/rttr-0.9.7/Publish/Debug/x86/;../Dependency/astc-encoder/Publish/Debug/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;boost.lib;assimp.lib;tinyxml2.lib;zip.lib;rttr.lib;astcenc-native-static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x86/;../Dependency/boost/Publish/Debug/x86/;../Dependency/Python27/Publish/Debug/x86/;../Dependency/assimp-3.3.1/Publish/Debug/x86/;../Dependency/tinyxml2/Publish/Debug/x86/;../Dependency/zip-0.1.16/Publish/Debug/x86/;../Dependency/rttr-0.9.7/Publish/Debug/x86/;../Dependency/astc-encoder/Publish/Debug/x86/;../Dependency/metis-5.1.0/Publish/Debug/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;assimp.lib;tinyxml2.lib;zip.lib;rttr.lib;astcenc-native-static.lib;metis.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -244,7 +244,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DEBUG;_LIB;FREEIMAGE_LIB;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
@@ -257,8 +257,8 @@
       <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x64/;../Dependency/boost/Publish/Debug/x64/;../Dependency/Python27/Publish/Debug/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x64/;../Dependency/boost/Publish/Debug/x64/;../Dependency/Python27/Publish/Debug/x64/;../Dependency/assimp-3.3.1/Publish/Debug/x64/;../Dependency/tinyxml2/Publish/Debug/x64/;../Dependency/zip-0.1.16/Publish/Debug/x64/;../Dependency/rttr-0.9.7/Publish/Debug/x64/;../Dependency/astc-encoder/Publish/Debug/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;boost.lib;assimp.lib;tinyxml2.lib;zip.lib;rttr.lib;astcenc-native-static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Debug/x64/;../Dependency/boost/Publish/Debug/x64/;../Dependency/Python27/Publish/Debug/x64/;../Dependency/assimp-3.3.1/Publish/Debug/x64/;../Dependency/tinyxml2/Publish/Debug/x64/;../Dependency/zip-0.1.16/Publish/Debug/x64/;../Dependency/rttr-0.9.7/Publish/Debug/x64/;../Dependency/astc-encoder/Publish/Debug/x64/;../Dependency/metis-5.1.0/Publish/Debug/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;assimp.lib;tinyxml2.lib;zip.lib;rttr.lib;astcenc-native-static.lib;metis.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -270,7 +270,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;NDEBUG;_LIB;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
@@ -283,8 +283,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x86/;../Dependency/boost/Publish/Release/x86/;../Dependency/Python27/Publish/Release/x86/;../Dependency/assimp-3.3.1/Publish/Release/x86/;../Dependency/tinyxml2/Publish/Release/x86/;../Dependency/zip-0.1.16/Publish/Release/x86/;../Dependency/rttr-0.9.7/Publish/Release/x86/;../Dependency/astc-encoder/Publish/Release/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;boost.lib;assimp.lib;tinyxml2.lib;zip.lib;rttr.lib;astcenc-native-static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x86/;../Dependency/boost/Publish/Release/x86/;../Dependency/Python27/Publish/Release/x86/;../Dependency/assimp-3.3.1/Publish/Release/x86/;../Dependency/tinyxml2/Publish/Release/x86/;../Dependency/zip-0.1.16/Publish/Release/x86/;../Dependency/rttr-0.9.7/Publish/Release/x86/;../Dependency/astc-encoder/Publish/Release/x86/;../Dependency/metis-5.1.0/Publish/Release/x86/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;assimp.lib;tinyxml2.lib;zip.lib;rttr.lib;astcenc-native-static.lib;metis.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -296,7 +296,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;NDEBUG;_LIB;FREEIMAGE_LIB;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/FreeImage/;../Dependency/boost/include/;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/assimp-3.3.1/include/;../Dependency/zip-0.1.16/src/;../Dependency/rapidjson/include/;../Dependency/tinyxml2/;../Dependency/glm-0.9.8.0/;../Dependency/rttr-0.9.7/src/;../Dependency/tinygltf/;../Dependency/astc-encoder/Source/;../Dependency/metis-5.1.0/include/</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
@@ -309,8 +309,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x64/;../Dependency/boost/Publish/Release/x64/;../Dependency/Python27/Publish/Release/x64/;../Dependency/assimp-3.3.1/Publish/Release/x64/;../Dependency/tinyxml2/Publish/Release/x64/;../Dependency/zip-0.1.16/Publish/Release/x64/;../Dependency/rttr-0.9.7/Publish/Release/x64/;../Dependency/astc-encoder/Publish/Release/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>FreeImageLib.lib;boost.lib;assimp.lib;tinyxml2.lib;zip.lib;rttr.lib;astcenc-native-static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../Dependency/FreeImage/Publish/Release/x64/;../Dependency/boost/Publish/Release/x64/;../Dependency/Python27/Publish/Release/x64/;../Dependency/assimp-3.3.1/Publish/Release/x64/;../Dependency/tinyxml2/Publish/Release/x64/;../Dependency/zip-0.1.16/Publish/Release/x64/;../Dependency/rttr-0.9.7/Publish/Release/x64/;../Dependency/astc-encoder/Publish/Release/x64/;../Dependency/metis-5.1.0/Publish/Release/x64/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>FreeImageLib.lib;boost.lib;assimp.lib;tinyxml2.lib;zip.lib;rttr.lib;astcenc-native-static.lib;metis.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

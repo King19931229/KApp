@@ -186,9 +186,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\libmetis\CMakeLists.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Filter Include="Source Files">
       <UniqueIdentifier>{970E8F94-47F8-3911-855E-B6E535E560E9}</UniqueIdentifier>
     </Filter>
