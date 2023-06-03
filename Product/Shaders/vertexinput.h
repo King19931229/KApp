@@ -22,17 +22,6 @@ struct VertexPack
 */
 layout(binding = BINDING_POSITION_NORMAL_UV, scalar) readonly buffer VertexPackBuffer { float meshletVertex[]; };
 
-#if DIFFUSE_SPECULAR_INPUT
-/*
-struct DiffuseSpecularPack
-{
-	vec3 diffuse;
-	vec3 specular;
-};
-*/
-layout(binding = BINDING_DIFFUSE_SPECULAR, scalar) readonly buffer DiffuseSpecularPackBuffer { float meshletDiffuseSpecular[]; };
-#endif
-
 #if TANGENT_BINORMAL_INPUT
 /*
 struct TangentBinormalPack
@@ -54,14 +43,37 @@ layout(location = POSITION) in vec3 position;
 layout(location = NORMAL) in vec3 normal;
 layout(location = TEXCOORD0) in vec2 texcoord0;
 
-#if DIFFUSE_SPECULAR_INPUT
-layout(location = DIFFUSE) in vec3 diffuse;
-layout(location = SPECULAR) in vec3 specular;
+#if UV2_INPUT
+layout(location = TEXCOORD1) in vec2 texcoord1;
 #endif
 
 #if TANGENT_BINORMAL_INPUT
 layout(location = TANGENT) in vec3 tangent;
 layout(location = BINORMAL) in vec3 binormal;
+#endif
+
+#if VERTEX_COLOR_INPUT0
+layout(location = COLOR0) in vec3 color0;
+#endif
+
+#if VERTEX_COLOR_INPUT1
+layout(location = COLOR1) in vec3 color1;
+#endif
+
+#if VERTEX_COLOR_INPUT2
+layout(location = COLOR2) in vec3 color2;
+#endif
+
+#if VERTEX_COLOR_INPUT3
+layout(location = COLOR3) in vec3 color3;
+#endif
+
+#if VERTEX_COLOR_INPUT4
+layout(location = COLOR4) in vec3 color4;
+#endif
+
+#if VERTEX_COLOR_INPUT5
+layout(location = COLOR5) in vec3 color5;
 #endif
 
 #if INSTANCE_INPUT

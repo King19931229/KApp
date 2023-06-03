@@ -1,5 +1,5 @@
 // TODO
-#define SCREENQAUD_POS 13
+#define SCREENQAUD_POS 17
 layout (location = SCREENQAUD_POS) in vec2 inPos;
 layout (location = 0) out vec2 outUV;
 

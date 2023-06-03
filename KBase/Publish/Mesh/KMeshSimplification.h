@@ -1,5 +1,4 @@
 #pragma once
-#include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Publish/KAABBBox.h"
 #include "KBase/Publish/Mesh/KMeshProcessor.h"
 #include "KBase/Publish/Mesh/KQuadric.h"
@@ -404,7 +403,7 @@ protected:
 		{
 			m_Vertices[i].pos = vertices[i].pos;
 			m_Vertices[i].uv = vertices[i].uv;
-			m_Vertices[i].color = vertices[i].color;
+			m_Vertices[i].color = vertices[i].color[0];
 			m_Vertices[i].normal = vertices[i].normal;
 			m_Vertices[i].partIndex = vertices[i].partIndex;
 			m_Versions[i] = 0;
@@ -1270,12 +1269,15 @@ public:
 				{
 					int32_t mapIndex = (int32_t)remapIndices.size();
 					remapIndices.insert({ oldIndex, mapIndex });
+
 					KMeshProcessorVertex vertex;
+					vertex.partIndex = m_Vertices[oldIndex].partIndex;
+
 					vertex.pos = m_Vertices[oldIndex].pos;
 					vertex.uv = m_Vertices[oldIndex].uv;
-					vertex.color = m_Vertices[oldIndex].color;
+					vertex.color[0] = m_Vertices[oldIndex].color;
 					vertex.normal = m_Vertices[oldIndex].normal;
-					vertex.partIndex = m_Vertices[oldIndex].partIndex;
+					
 					// TODO
 					// vertex.tangent;
 					// vertex.binormal;

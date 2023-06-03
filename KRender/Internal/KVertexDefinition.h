@@ -21,10 +21,9 @@ namespace KVertexDefinition
 		glm::vec2 UV2;
 	};
 
-	struct DIFF_3F_SPEC_3F
+	struct COLOR_3F
 	{
-		glm::vec3 DIFFUSE;
-		glm::vec3 SPECULAR;
+		glm::vec3 COLOR;
 	};
 
 	struct TAN_3F_BIN_3F

@@ -175,9 +175,6 @@ namespace KRenderUtil
 				case VF_POINT_NORMAL_UV:
 					binding = SBT_POSITION_NORMAL_UV;
 					break;
-				case VF_DIFFUSE_SPECULAR:
-					binding = SBT_DIFFUSE_SPECULAR;
-					break;
 				case VF_TANGENT_BINORMAL:
 					binding = SBT_TANGENT_BINORMAL;
 					break;

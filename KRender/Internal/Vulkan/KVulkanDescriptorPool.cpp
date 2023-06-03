@@ -245,37 +245,49 @@ VkDescriptorPool KVulkanDescriptorPool::CreateDescriptorPool(size_t maxCount)
 	return newPool;
 }
 
+#define ASSERT_RESULT_PIPELINE(exp)\
+do\
+{\
+	if(!(exp))\
+	{\
+		pipeline->DebugDump();\
+		assert(false && "assert failure please check");\
+	}\
+}\
+while(false);
+
 VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFrame, IKPipeline* pipeline,
 	const KDynamicConstantBufferUsage** ppConstantUsage, size_t dynamicBufferUsageCount,
 	const KStorageBufferUsage** ppStorageUsage, size_t storageBufferUsageCount)
 {
+	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline);
+
 	KVulkanDescriptorPoolAllocatedSetPtr allocation = InternalAlloc(frameIndex, currentFrame);
 
 	VkDescriptorSet set = allocation->set;
 
-	ASSERT_RESULT(set != VK_NULL_HANDLE);
+	ASSERT_RESULT_PIPELINE(set != VK_NULL_HANDLE);
 
-	ASSERT_RESULT(!dynamicBufferUsageCount || ppConstantUsage);
-	ASSERT_RESULT(dynamicBufferUsageCount <= m_DynamicUniformBufferWriteInfo.size());
-	ASSERT_RESULT(dynamicBufferUsageCount <= m_DescriptorDynamicWriteInfo.size());
+	ASSERT_RESULT_PIPELINE(!dynamicBufferUsageCount || ppConstantUsage);
+	ASSERT_RESULT_PIPELINE(dynamicBufferUsageCount <= m_DynamicUniformBufferWriteInfo.size());
+	ASSERT_RESULT_PIPELINE(dynamicBufferUsageCount <= m_DescriptorDynamicWriteInfo.size());
 
 	size_t descriptorWriteIdx = 0;
 	size_t hash = 0;
 
-	KVulkanPipeline* vulkanPipeline = static_cast<KVulkanPipeline*>(pipeline);
 	if (vulkanPipeline)
 	{
 		auto& samplerBindings = vulkanPipeline->m_Samplers;
-		ASSERT_RESULT(samplerBindings.size() <= m_ImageWriteInfo.size());
-		ASSERT_RESULT(samplerBindings.size() <= m_DescriptorDynamicWriteInfo.size());
+		ASSERT_RESULT_PIPELINE(samplerBindings.size() <= m_ImageWriteInfo.size());
+		ASSERT_RESULT_PIPELINE(samplerBindings.size() <= m_DescriptorDynamicWriteInfo.size());
 
 		auto& storageImageBindings = vulkanPipeline->m_StorageImages;
-		ASSERT_RESULT(storageImageBindings.size() <= m_StorageImageWriteInfo.size());
-		ASSERT_RESULT(storageImageBindings.size() <= m_DescriptorDynamicWriteInfo.size());
+		ASSERT_RESULT_PIPELINE(storageImageBindings.size() <= m_StorageImageWriteInfo.size());
+		ASSERT_RESULT_PIPELINE(storageImageBindings.size() <= m_DescriptorDynamicWriteInfo.size());
 
 		auto& storageBufferBindings = vulkanPipeline->m_StorageBuffers;
-		ASSERT_RESULT(storageBufferBindings.size() <= m_StorageBufferWriteInfo.size());
-		ASSERT_RESULT(storageBufferBindings.size() <= m_DescriptorDynamicWriteInfo.size());
+		ASSERT_RESULT_PIPELINE(storageBufferBindings.size() <= m_StorageBufferWriteInfo.size());
+		ASSERT_RESULT_PIPELINE(storageBufferBindings.size() <= m_DescriptorDynamicWriteInfo.size());
 
 		size_t imageWriteIdx = 0;
 		size_t storageImageWriteIdx = 0;
@@ -337,7 +349,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 					VkDescriptorImageInfo& imageInfo = m_ImageWriteInfo[imageWriteIdx++];
 
 					IKFrameBufferPtr frameBuffer = info.images[i];
-					ASSERT_RESULT(frameBuffer);
+					ASSERT_RESULT_PIPELINE(frameBuffer);
 
 					KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)frameBuffer.get();
 
@@ -355,8 +367,8 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 					imageInfo.imageLayout = frameBuffer->IsStorageImage() ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					imageInfo.sampler = ((KVulkanSampler*)info.samplers[0].get())->GetVkSampler();
 
-					ASSERT_RESULT(imageInfo.imageView);
-					ASSERT_RESULT(imageInfo.sampler);
+					ASSERT_RESULT_PIPELINE(imageInfo.imageView);
+					ASSERT_RESULT_PIPELINE(imageInfo.sampler);
 				}
 
 				VkWriteDescriptorSet& samplerDescriptorWrite = m_DescriptorDynamicWriteInfo[descriptorWriteIdx++];
@@ -386,7 +398,7 @@ VkDescriptorSet KVulkanDescriptorPool::Alloc(size_t frameIndex, size_t currentFr
 					IKFrameBufferPtr frameBuffer = info.images[i];
 					KVulkanFrameBuffer* vulkanFrameBuffer = (KVulkanFrameBuffer*)frameBuffer.get();
 
-					ASSERT_RESULT(frameBuffer->IsStorageImage());
+					ASSERT_RESULT_PIPELINE(frameBuffer->IsStorageImage());
 
 					imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 					imageInfo.imageView = (info.format == EF_UNKNOWN) ? vulkanFrameBuffer->GetImageView() : vulkanFrameBuffer->GetReinterpretImageView(info.format);

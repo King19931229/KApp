@@ -8,17 +8,21 @@
 
 enum AssetVertexComponent
 {
-	AVC_POSITION_3F = 0x0,
-	AVC_NORMAL_3F = 0x1,
-	AVC_UV_2F = 0x3,
+	AVC_POSITION_3F,
+	AVC_NORMAL_3F,
 
-	AVC_UV2_2F = 0x4,
+	AVC_UV_2F,
+	AVC_UV2_2F,
 
-	AVC_DIFFUSE_3F = 0x5,
-	AVC_SPECULAR_3F = 0x6,
+	AVC_COLOR0_3F,
+	AVC_COLOR1_3F,
+	AVC_COLOR2_3F,
+	AVC_COLOR3_3F,
+	AVC_COLOR4_3F,
+	AVC_COLOR5_3F,
 
-	AVC_TANGENT_3F = 0x7,
-	AVC_BINORMAL_3F = 0x8,
+	AVC_TANGENT_3F,
+	AVC_BINORMAL_3F
 };
 
 typedef std::vector<AssetVertexComponent> KAssetVertexComponentGroup;

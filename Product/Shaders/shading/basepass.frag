@@ -7,6 +7,25 @@ layout(location = 4) in vec3 worldTangent;
 layout(location = 5) in vec3 worldBinormal;
 #endif
 
+#if VERTEX_COLOR_INPUT0
+layout(location = 6) in vec3 color0;
+#endif
+#if VERTEX_COLOR_INPUT1
+layout(location = 7) in vec3 color1;
+#endif
+#if VERTEX_COLOR_INPUT2
+layout(location = 8) in vec3 color2;
+#endif
+#if VERTEX_COLOR_INPUT3
+layout(location = 9) in vec3 color3;
+#endif
+#if VERTEX_COLOR_INPUT4
+layout(location = 10) in vec3 color4;
+#endif
+#if VERTEX_COLOR_INPUT5
+layout(location = 11) in vec3 color5;
+#endif
+
 layout(location = 0) out vec4 RT0;
 layout(location = 1) out vec4 RT1;
 layout(location = 2) out vec4 RT2;
@@ -44,6 +63,10 @@ void main()
 		, worldBinormal
 #endif
 		);
+	
+// #if VERTEX_COLOR_INPUT0
+// 	parameters.baseColor = color0;
+// #endif
 
 	EncodeGBuffer(
 		parameters.position,

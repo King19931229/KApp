@@ -60,6 +60,8 @@ struct IKPipeline
 {
 	virtual ~IKPipeline() {}
 
+	virtual bool DebugDump() = 0;
+
 	// State
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology) = 0;
 	virtual bool SetVertexBinding(const VertexFormat* format, size_t count) = 0;

@@ -9,6 +9,25 @@ layout(location = 4) out vec3 out_tangent;
 layout(location = 5) out vec3 out_binormal;
 #endif
 
+#if VERTEX_COLOR_INPUT0
+layout(location = 6) out vec3 out_color0;
+#endif
+#if VERTEX_COLOR_INPUT1
+layout(location = 7) out vec3 out_color1;
+#endif
+#if VERTEX_COLOR_INPUT2
+layout(location = 8) out vec3 out_color2;
+#endif
+#if VERTEX_COLOR_INPUT3
+layout(location = 9) out vec3 out_color3;
+#endif
+#if VERTEX_COLOR_INPUT4
+layout(location = 10) out vec3 out_color4;
+#endif
+#if VERTEX_COLOR_INPUT5
+layout(location = 11) out vec3 out_color5;
+#endif
+
 #if !INSTANCE_INPUT
 layout(binding = BINDING_OBJECT)
 uniform Object
@@ -40,6 +59,30 @@ void main()
 #if TANGENT_BINORMAL_INPUT
 	out_tangent = worldTangent.xyz;
 	out_binormal = worldBinormal.xyz;
+#endif
+
+#if VERTEX_COLOR_INPUT0
+	out_color0 = color0;
+#endif
+
+#if VERTEX_COLOR_INPUT1
+	out_color1 = color1;
+#endif
+
+#if VERTEX_COLOR_INPUT2
+	out_color2 = color2;
+#endif
+
+#if VERTEX_COLOR_INPUT3
+	out_color3 = color3;
+#endif
+
+#if VERTEX_COLOR_INPUT4
+	out_color4 = color4;
+#endif
+
+#if VERTEX_COLOR_INPUT5
+	out_color5 = color5;
 #endif
 
 	gl_Position = camera.viewProj * worldPos;

@@ -3,6 +3,7 @@
 #include "Interface/IKRenderCommand.h"
 #include "Interface/IKMaterial.h"
 #include <unordered_map>
+#include <unordered_set>
 #include <mutex>
 
 constexpr uint32_t MAX_SHADERMAP_TEXTURE_BINDING = 16;
@@ -85,22 +86,20 @@ protected:
 	typedef std::vector<IKShader::MacroPair> Macros;
 	typedef std::shared_ptr<Macros> MacrosPtr;
 	typedef std::unordered_map<size_t, MacrosPtr> MacrosMap;
+	typedef std::unordered_set<size_t> MacrosSet;
 
 	static std::mutex STATIC_RESOURCE_LOCK;
 	static MacrosMap VS_MACROS_MAP;
 	static MacrosMap VS_INSTANCE_MACROS_MAP;
 	static MacrosMap MS_MACROS_MAP;
 	static MacrosMap FS_MACROS_MAP;
+	static MacrosSet MACROS_SET;
 
-	static size_t GenHash(const bool* macrosToEnable, size_t macrosSize);
+	static size_t GenHash(const bool* macrosToEnable);
 	static size_t CalcHash(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding, bool meshletInput);
 
-	static void PermutateMacro(const char** marcosToPermutate,
-		bool* macrosToEnable,
-		size_t macrosSize,
-		size_t vsMacrosSize,
-		size_t permutateIndex);
-
+	static void EnsureMacroMap(const bool* macrosToEnable);
+	static void PermutateMacro(bool* macrosToEnable, size_t permutateIndex);
 public:
 	KShaderMap();
 	~KShaderMap();
@@ -131,6 +130,7 @@ public:
 
 	IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
 	IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
+	// TODO 更换成Semantic
 	IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count);
 	IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding, bool meshletInput);
 };

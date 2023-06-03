@@ -178,6 +178,8 @@ struct IKShader : public IKResource
 	typedef std::tuple<std::string, std::string> MacroPair;
 	typedef std::tuple<std::string, std::string> IncludeSource;
 
+	virtual bool DebugDump() = 0;
+
 	virtual bool AddMacro(const MacroPair& macroPair) = 0;
 	virtual bool RemoveAllMacro() = 0;
 	virtual bool GetAllMacro(std::vector<MacroPair>& macros) = 0;

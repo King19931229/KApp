@@ -14,6 +14,7 @@
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Publish/Mesh/KMeshSimplification.h"
+#include "KBase/Publish/Mesh/KMeshClusterGroup.h"
 #include "KBase/Publish/Mesh/KMeshProcessor.h"
 #include "imgui.h"
 
@@ -25,7 +26,7 @@ void InitQEM(IKEnginePtr engine)
 	static bool initUserData = false;
 
 	
-	static const char* filePath = "Models/OBJ/bunny.obj";
+	static const char* filePath = "Models/OBJ/small_bunny.obj";
 		// "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf";
 
 	static std::vector<KMeshProcessorVertex> vertices;
@@ -37,6 +38,7 @@ void InitQEM(IKEnginePtr engine)
 	{
 		KAssetImportOption option;
 		option.components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
+		option.components.push_back({ AVC_COLOR0_3F });
 		if (loader->Import(filePath, option, userData))
 		{
 			userData.components = option.components;
@@ -45,6 +47,10 @@ void InitQEM(IKEnginePtr engine)
 			{
 				originalMats.push_back(userData.parts[partIndex].material);
 			}
+
+			KMeshClusterGroup group;
+			group.Init(vertices, indices, 128);
+
 			initUserData = true;
 		}
 	}
@@ -101,7 +107,7 @@ void InitQEM(IKEnginePtr engine)
 				{
 					if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, originalMats))
 					{
-						// if (KMeshProcessor::CalcTBN(vertices, indices))
+						if (KMeshProcessor::CalcTBN(vertices, indices))
 						{
 							component->InitAsUserData(result, "qem", false);
 						}

@@ -55,6 +55,8 @@ public:
 
 	virtual bool SetConstantEntry(uint32_t constantID, uint32_t offset, size_t size, const void* data);
 
+	virtual bool DebugDump();
+
 	virtual bool AddMacro(const MacroPair& macroPair);
 	virtual bool RemoveAllMacro();
 	virtual bool GetAllMacro(std::vector<MacroPair>& macros);

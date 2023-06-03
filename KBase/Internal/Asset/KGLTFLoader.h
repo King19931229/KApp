@@ -66,12 +66,10 @@ protected:
 		glm::vec3 normal;
 		glm::vec3 tangent;
 		glm::vec3 binormal;
-		glm::vec2 uv0;
-		glm::vec2 uv1;
+		glm::vec2 uv[2];
 		glm::vec4 joint0;
 		glm::vec4 weight0;
-		glm::vec4 color0;
-		glm::vec4 color1;
+		glm::vec4 color[5];
 
 		bool operator<(const Vertex& rhs) const
 		{
@@ -86,12 +84,16 @@ protected:
 			COMPARE_AND_RETURN(normal);
 			COMPARE_AND_RETURN(tangent);
 			COMPARE_AND_RETURN(binormal);
-			COMPARE_AND_RETURN(uv0);
-			COMPARE_AND_RETURN(uv1);
+			COMPARE_AND_RETURN(uv[0]);
+			COMPARE_AND_RETURN(uv[1]);
 			COMPARE_AND_RETURN(joint0);
 			COMPARE_AND_RETURN(weight0);
-			COMPARE_AND_RETURN(color0);
-			COMPARE_AND_RETURN(color1);
+			COMPARE_AND_RETURN(color[0]);
+			COMPARE_AND_RETURN(color[1]);
+			COMPARE_AND_RETURN(color[2]);
+			COMPARE_AND_RETURN(color[3]);
+			COMPARE_AND_RETURN(color[4]);
+			COMPARE_AND_RETURN(color[5]);
 
 #undef COMPARE_AND_RETURN
 			return false;

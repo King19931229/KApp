@@ -135,11 +135,14 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 
 		vertexCount += scene->mMeshes[i]->mNumVertices;
 
-		aiColor3D pDiffuse(0.f, 0.f, 0.f);
-		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pDiffuse);
+		aiColor3D pColor[6];
 
-		aiColor3D pSpecular(0.f, 0.f, 0.f);
-		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_SPECULAR, pSpecular);
+		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor[0]);
+		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_SPECULAR, pColor[1]);
+		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_EMISSIVE, pColor[2]);
+		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_AMBIENT, pColor[3]);
+		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_TRANSPARENT, pColor[4]);
+		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_REFLECTIVE, pColor[5]);
 
 		aiString diffuseMap;
 		if (aiReturn_SUCCESS == scene->mMaterials[paiMesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseMap))
@@ -223,16 +226,18 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 							vertexBuffer.push_back(pTexCoord2->x * uvScale[0]);
 							vertexBuffer.push_back(pTexCoord2->y * uvScale[1]);
 							break;
-						case AVC_DIFFUSE_3F:
-							vertexBuffer.push_back(pDiffuse.r);
-							vertexBuffer.push_back(pDiffuse.g);
-							vertexBuffer.push_back(pDiffuse.b);
+
+						case AVC_COLOR0_3F:
+						case AVC_COLOR1_3F:
+						case AVC_COLOR2_3F:
+						case AVC_COLOR3_3F:
+						case AVC_COLOR4_3F:
+						case AVC_COLOR5_3F:
+							vertexBuffer.push_back(pColor[component - AVC_COLOR0_3F].r);
+							vertexBuffer.push_back(pColor[component - AVC_COLOR0_3F].g);
+							vertexBuffer.push_back(pColor[component - AVC_COLOR0_3F].b);
 							break;
-						case AVC_SPECULAR_3F:
-							vertexBuffer.push_back(pSpecular.r);
-							vertexBuffer.push_back(pSpecular.g);
-							vertexBuffer.push_back(pSpecular.b);
-							break;
+
 						case AVC_TANGENT_3F:
 							vertexBuffer.push_back(pTangent->x);
 							vertexBuffer.push_back(pTangent->y);

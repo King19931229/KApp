@@ -433,6 +433,16 @@ KVulkanShader::ShaderInitResult KVulkanShader::InitFromStringImpl(const char* co
 	return SHADER_INIT_COMPILE_FAILURE;
 }
 
+bool KVulkanShader::DebugDump()
+{
+	const char* annotatedSource = m_SourceFile->GetAnnotatedSource();
+	if (annotatedSource)
+	{
+		KG_LOGE(LM_RENDER, "[DebugDump]\n<%s>\n%s\n", m_Path.c_str(), annotatedSource);
+	}
+	return true;
+}
+
 bool KVulkanShader::AddMacro(const MacroPair& macroPair)
 {
 	if (m_ResourceState == RS_UNLOADED)

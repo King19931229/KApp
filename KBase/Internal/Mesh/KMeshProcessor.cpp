@@ -4,6 +4,54 @@
 
 namespace KMeshProcessor
 {
+	struct PNT
+	{
+		glm::vec3 pos;
+		glm::vec3 normal;
+		glm::vec2 uv;
+	};
+
+	int32_t FindPNTIndex(const std::vector<KAssetVertexComponentGroup>& group)
+	{
+		for (int32_t i = 0; i < (int32_t)group.size(); ++i)
+		{
+			const KAssetVertexComponentGroup& componentGroup = group[i];
+			if (componentGroup.size() == 3)
+			{
+				if (componentGroup[0] == AVC_POSITION_3F && componentGroup[1] == AVC_NORMAL_3F && componentGroup[2] == AVC_UV_2F)
+				{
+					return i;
+				}
+			}
+		}
+		return -1;
+	};
+
+	int32_t FindColorIndex(const std::vector<KAssetVertexComponentGroup>& group, uint32_t colorIndex)
+	{
+		assert(colorIndex <= 5);
+		AssetVertexComponent targetComponent = (AssetVertexComponent)(AVC_COLOR0_3F + colorIndex);
+
+		if (targetComponent > AVC_COLOR5_3F)
+		{
+			return -1;
+		}
+
+		for (int32_t i = 0; i < (int32_t)group.size(); ++i)
+		{
+			const KAssetVertexComponentGroup& componentGroup = group[i];
+			if (componentGroup.size() == 1)
+			{
+				if (componentGroup[0] == targetComponent)
+				{
+					return i;
+				}
+			}
+		}
+
+		return -1;
+	}
+
 	bool CalcTBN(std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices)
 	{
 		uint32_t vertexCount	= (uint32_t)vertices.size();
@@ -116,26 +164,16 @@ namespace KMeshProcessor
 
 	bool ConvertForMeshProcessor(const KAssetImportResult& input, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
 	{
-		auto FindPNTIndex = [](const std::vector<KAssetVertexComponentGroup>& group) -> int32_t
-		{
-			for (int32_t i = 0; i < (int32_t)group.size(); ++i)
-			{
-				const KAssetVertexComponentGroup& componentGroup = group[i];
-				if (componentGroup.size() == 3)
-				{
-					if (componentGroup[0] == AVC_POSITION_3F && componentGroup[1] == AVC_NORMAL_3F && componentGroup[2] == AVC_UV_2F)
-					{
-						return i;
-					}
-				}
-			}
-			return -1;
-		};
-
-		int32_t vertexPositionIndex = FindPNTIndex(input.components);
-		if (vertexPositionIndex < 0)
+		int32_t PNTIndex = FindPNTIndex(input.components);
+		if (PNTIndex < 0)
 		{
 			return false;
+		}
+
+		int32_t colorIndex[5] = { -1 };
+		for (uint32_t i = 0; i < 5; ++i)
+		{
+			colorIndex[i] = FindColorIndex(input.components, i);
 		}
 
 		uint32_t totalVertexCount = 0;
@@ -155,17 +193,9 @@ namespace KMeshProcessor
 		vertices.resize(totalVertexCount);
 		indices.resize(totalIndexCount);
 
-		struct VertexPositionLayout
-		{
-			glm::vec3 pos;
-			glm::vec3 normal;
-			glm::vec2 uv;
-		};
-
 		for (size_t partIndex = 0; partIndex < input.parts.size(); ++partIndex)
 		{
 			const KAssetImportResult::ModelPart& part = input.parts[partIndex];
-			const KAssetImportResult::VertexDataBuffer& vertexData = input.verticesDatas[vertexPositionIndex];
 
 			uint32_t indexBase = part.indexBase;
 			uint32_t indexCount = part.indexCount;
@@ -194,16 +224,35 @@ namespace KMeshProcessor
 				}
 			}
 
-			const VertexPositionLayout* pVerticesData = (const VertexPositionLayout*)vertexData.data();
-			pVerticesData += vertexBase;
+			for (uint32_t i = 0; i < vertexCount; ++i)
+			{
+				vertices[i + vertexBase].partIndex = (int32_t)partIndex;
+			}
+
+			const KAssetImportResult::VertexDataBuffer& PNTData = input.verticesDatas[PNTIndex];
+			const PNT* pnts = (const PNT*)PNTData.data();
+			pnts += vertexBase;
 
 			for (uint32_t i = 0; i < vertexCount; ++i)
 			{
-				const VertexPositionLayout& srcVertex = pVerticesData[i];
-				vertices[i + vertexBase].pos = srcVertex.pos;
-				vertices[i + vertexBase].uv = srcVertex.uv;
-				vertices[i + vertexBase].normal = srcVertex.normal;
-				vertices[i + vertexBase].partIndex = (int32_t)partIndex;
+				const PNT& pnt = pnts[i];
+				vertices[i + vertexBase].pos = pnt.pos;
+				vertices[i + vertexBase].uv = pnt.uv;
+				vertices[i + vertexBase].normal = pnt.normal;
+			}
+
+			for (uint32_t c = 0; c < 5; ++c)
+			{
+				if (colorIndex[c] >= 0)
+				{
+					const KAssetImportResult::VertexDataBuffer& colorData = input.verticesDatas[colorIndex[c]];
+					const glm::vec3* colors = (const glm::vec3*)colorData.data();
+					colors += vertexBase;
+					for (uint32_t i = 0; i < vertexCount; ++i)
+					{
+						vertices[i + vertexBase].color[c] = colors[i];
+					}
+				}
 			}
 		}
 
@@ -223,11 +272,11 @@ namespace KMeshProcessor
 
 		std::vector<int32_t> partIndexRemap;
 		partIndexRemap.resize(maxPartIndex >= 0 ? (maxPartIndex + 1) : 0);
-		for (int32_t i = 0; i < partIndexRemap.size(); ++i)
+		for (int32_t i = 0; i < (int32_t)partIndexRemap.size(); ++i)
 		{
 			partIndexRemap[i] = -1;
 		}
-		for (int32_t i = 0; i < sortMaterialIndices.size(); ++i)
+		for (int32_t i = 0; i < (int32_t)sortMaterialIndices.size(); ++i)
 		{
 			partIndexRemap[sortMaterialIndices[i]] = i;
 		}
@@ -294,39 +343,46 @@ namespace KMeshProcessor
 			vertexBase += part.vertexCount;
 		}
 
-		struct VertexPositionLayout
-		{
-			glm::vec3 pos;
-			glm::vec3 normal;
-			glm::vec2 uv;
-		};
-
-		std::vector<VertexPositionLayout> outputVertices;
-		outputVertices.resize(vertices.size());
-
 		KAABBBox bound;
-		for (size_t i = 0; i < vertices.size(); ++i)
+		std::vector<KAssetImportResult::VertexDataBuffer> vertexBuffers;
+		std::vector<KAssetVertexComponentGroup> components;
 		{
-			outputVertices[i].pos = vertices[i].pos;
-			outputVertices[i].normal = vertices[i].normal;
-			outputVertices[i].uv = vertices[i].uv;
-			bound.Merge(vertices[i].pos, bound);
+			KAssetImportResult::VertexDataBuffer vertexBuffer;
+			vertexBuffer.resize(sizeof(PNT) * vertices.size());
+			PNT* pnts = (PNT*)vertexBuffer.data();
+			for (size_t i = 0; i < vertices.size(); ++i)
+			{
+				pnts[i].pos = vertices[i].pos;
+				pnts[i].normal = vertices[i].normal;
+				pnts[i].uv = vertices[i].uv;
+				bound.Merge(vertices[i].pos, bound);
+			}
+			components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
+			vertexBuffers.push_back(std::move(vertexBuffer));
 		}
 
-		output.components = { { AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F } };
+		for (uint32_t c = 0; c < 5; ++c)
+		{
+			KAssetImportResult::VertexDataBuffer vertexBuffer;
+			vertexBuffer.resize(sizeof(glm::vec3)* vertices.size());
+			glm::vec3* colors = (glm::vec3*)vertexBuffer.data();
+			for (size_t i = 0; i < vertices.size(); ++i)
+			{
+				colors[i] = vertices[i].color[c];
+			}
+			components.push_back({ (AssetVertexComponent)(AVC_COLOR0_3F + c) });
+			vertexBuffers.push_back(std::move(vertexBuffer));
+		}
+
 		output.parts = parts;
 		output.vertexCount = (uint32_t)vertices.size();
 		output.indexCount = (uint32_t)indices.size();
+		output.components = std::move(components);
+		output.verticesDatas = std::move(vertexBuffers);
 
 		output.index16Bit = false;
 		output.indicesData.resize(sizeof(indices[0]) * indices.size());
 		memcpy(output.indicesData.data(), indices.data(), output.indicesData.size());
-
-		KAssetImportResult::VertexDataBuffer vertexBuffer;
-		vertexBuffer.resize(sizeof(outputVertices[0]) * outputVertices.size());
-		memcpy(vertexBuffer.data(), outputVertices.data(), vertexBuffer.size());
-
-		output.verticesDatas = { vertexBuffer };
 
 		output.extend.min[0] = bound.GetMin()[0];
 		output.extend.min[1] = bound.GetMin()[1];

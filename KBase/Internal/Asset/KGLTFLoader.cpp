@@ -616,20 +616,16 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 				const float* bufferPos = nullptr;
 				const float* bufferNormals = nullptr;
 				const float* bufferTangents = nullptr;
-				const float* bufferTexCoordSet0 = nullptr;
-				const float* bufferTexCoordSet1 = nullptr;
-				const float* bufferColorSet0 = nullptr;
-				const float* bufferColorSet1 = nullptr;
+				const float* bufferTexCoordSet[2] = { nullptr };
+				const float* bufferColorSet[6] = { nullptr };
 				const void* bufferJoints = nullptr;
 				const float* bufferWeights = nullptr;
 
 				int posByteStride = 0;
 				int normByteStride = 0;
 				int tangentByteStride = 0;
-				int uv0ByteStride = 0;
-				int uv1ByteStride = 0;
-				int color0ByteStride = 0;
-				int color1ByteStride = 0;
+				int uvByteStride[2] = { 0 };
+				int colorByteStride[6] = { 0 };
 				int jointByteStride = 0;
 				int weightByteStride = 0;
 
@@ -667,15 +663,15 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 				{
 					const tinygltf::Accessor& uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
 					const tinygltf::BufferView& uvView = model.bufferViews[uvAccessor.bufferView];
-					bufferTexCoordSet0 = reinterpret_cast<const float*>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
-					uv0ByteStride = uvAccessor.ByteStride(uvView) ? (uvAccessor.ByteStride(uvView) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC2);
+					bufferTexCoordSet[0] = reinterpret_cast<const float*>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+					uvByteStride[0] = uvAccessor.ByteStride(uvView) ? (uvAccessor.ByteStride(uvView) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC2);
 				}
 				if (primitive.attributes.find("TEXCOORD_1") != primitive.attributes.end())
 				{
 					const tinygltf::Accessor& uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_1")->second];
 					const tinygltf::BufferView& uvView = model.bufferViews[uvAccessor.bufferView];
-					bufferTexCoordSet1 = reinterpret_cast<const float*>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
-					uv1ByteStride = uvAccessor.ByteStride(uvView) ? (uvAccessor.ByteStride(uvView) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC2);
+					bufferTexCoordSet[1] = reinterpret_cast<const float*>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+					uvByteStride[1] = uvAccessor.ByteStride(uvView) ? (uvAccessor.ByteStride(uvView) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC2);
 				}
 
 				// Vertex colors
@@ -683,15 +679,15 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 				{
 					const tinygltf::Accessor& accessor = model.accessors[primitive.attributes.find("COLOR_0")->second];
 					const tinygltf::BufferView& view = model.bufferViews[accessor.bufferView];
-					bufferColorSet0 = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
-					color0ByteStride = accessor.ByteStride(view) ? (accessor.ByteStride(view) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC3);
+					bufferColorSet[0] = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+					colorByteStride[0] = accessor.ByteStride(view) ? (accessor.ByteStride(view) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC3);
 				}
 				if (primitive.attributes.find("COLOR_1") != primitive.attributes.end())
 				{
 					const tinygltf::Accessor& accessor = model.accessors[primitive.attributes.find("COLOR_1")->second];
 					const tinygltf::BufferView& view = model.bufferViews[accessor.bufferView];
-					bufferColorSet1 = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
-					color1ByteStride = accessor.ByteStride(view) ? (accessor.ByteStride(view) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC3);
+					bufferColorSet[1] = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+					colorByteStride[1] = accessor.ByteStride(view) ? (accessor.ByteStride(view) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC3);
 				}
 
 				// Skinning
@@ -725,10 +721,15 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					Vertex& vert = loaderInfo.vertexBuffer[loaderInfo.vertexPos];
 					vert.pos = glm::vec4(glm::make_vec3(&bufferPos[v * posByteStride]), 1.0f);
 					vert.normal = glm::normalize(glm::vec3(bufferNormals ? glm::make_vec3(&bufferNormals[v * normByteStride]) : glm::vec3(1.0f, 0.0f, 0.0f)));
-					vert.uv0 = bufferTexCoordSet0 ? glm::make_vec2(&bufferTexCoordSet0[v * uv0ByteStride]) : glm::vec3(0.0f);
-					vert.uv1 = bufferTexCoordSet1 ? glm::make_vec2(&bufferTexCoordSet1[v * uv1ByteStride]) : glm::vec3(0.0f);
-					vert.color0 = bufferColorSet0 ? glm::make_vec4(&bufferColorSet0[v * color0ByteStride]) : glm::vec4(1.0f);
-					vert.color1 = bufferColorSet1 ? glm::make_vec4(&bufferColorSet1[v * color1ByteStride]) : glm::vec4(1.0f);
+
+					for (size_t k = 0; k < ARRAYSIZE(vert.uv); ++k)
+					{
+						vert.uv[k] = bufferTexCoordSet[k] ? glm::make_vec2(&bufferTexCoordSet[k][v * uvByteStride[k]]) : glm::vec3(0.0f);
+					}
+					for (size_t k = 0; k < ARRAYSIZE(vert.color); ++k)
+					{
+						vert.color[k] = bufferColorSet[k] ? glm::make_vec4(&bufferColorSet[k][v * colorByteStride[k]]) : glm::vec4(1.0f);
+					}
 
 #ifdef TINYGLTF_NO_STB_IMAGE
 					// vert.uv0.y = 1.0f - vert.uv0.y;
@@ -1020,9 +1021,9 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 						assert(idx0 >= vertexStart);
 						uint32_t arrayIdx = idx0 - vertexStart;
 
-						glm::vec2 uv0 = vertexBuffer[idx0].uv0;
-						glm::vec2 uv1 = vertexBuffer[idx1].uv0;
-						glm::vec2 uv2 = vertexBuffer[idx2].uv0;
+						glm::vec2 uv0 = vertexBuffer[idx0].uv[0];
+						glm::vec2 uv1 = vertexBuffer[idx1].uv[0];
+						glm::vec2 uv2 = vertexBuffer[idx2].uv[0];
 
 						glm::vec3 e1 = vertexBuffer[idx1].pos - vertexBuffer[idx0].pos;
 						glm::vec3 e2 = vertexBuffer[idx2].pos - vertexBuffer[idx0].pos;
@@ -1291,22 +1292,19 @@ bool KGLTFLoader::ConvertIntoResult(const KAssetImportOption& importOption, KAss
 						vertexBuffer.push_back(vertex.normal[2]);
 						break;
 					case AVC_UV_2F:
-						vertexBuffer.push_back(vertex.uv0[0] * uvScale[0]);
-						vertexBuffer.push_back(vertex.uv0[1] * uvScale[1]);
-						break;
 					case AVC_UV2_2F:
-						vertexBuffer.push_back(vertex.uv1[0] * uvScale[0]);
-						vertexBuffer.push_back(vertex.uv1[1] * uvScale[1]);
+						vertexBuffer.push_back(vertex.uv[component - AVC_UV_2F][0] * uvScale[0]);
+						vertexBuffer.push_back(vertex.uv[component - AVC_UV_2F][1] * uvScale[1]);
 						break;
-					case AVC_DIFFUSE_3F:
-						vertexBuffer.push_back(vertex.color0[0]);
-						vertexBuffer.push_back(vertex.color0[1]);
-						vertexBuffer.push_back(vertex.color0[2]);
-						break;
-					case AVC_SPECULAR_3F:
-						vertexBuffer.push_back(vertex.color1[0]);
-						vertexBuffer.push_back(vertex.color1[1]);
-						vertexBuffer.push_back(vertex.color1[2]);
+					case AVC_COLOR0_3F:
+					case AVC_COLOR1_3F:
+					case AVC_COLOR2_3F:
+					case AVC_COLOR3_3F:
+					case AVC_COLOR4_3F:
+					case AVC_COLOR5_3F:
+						vertexBuffer.push_back(vertex.color[component - AVC_COLOR0_3F][0]);
+						vertexBuffer.push_back(vertex.color[component - AVC_COLOR0_3F][1]);
+						vertexBuffer.push_back(vertex.color[component - AVC_COLOR0_3F][2]);
 						break;
 					case AVC_TANGENT_3F:
 						vertexBuffer.push_back(vertex.tangent[0]);

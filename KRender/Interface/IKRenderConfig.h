@@ -82,9 +82,7 @@ struct KConstantBufferTypeDescription
 enum StorageBufferType
 {
 	SBT_POSITION_NORMAL_UV = CBT_END + 1,
-	SBT_DIFFUSE_SPECULAR,
 	SBT_TANGENT_BINORMAL,
-
 	SBT_MESHLET_DESC,
 	SBT_MESHLET_PRIM
 };
@@ -171,21 +169,26 @@ enum ConstantSemantic
 
 enum VertexFormat
 {
-	// for 3d element
+	// default
 	VF_POINT_NORMAL_UV,
-	VF_UV2,
-	VF_DIFFUSE_SPECULAR,
 	VF_TANGENT_BINORMAL,
 	VF_BLEND_WEIGHTS_INDICES,
-	// for gui
+	VF_UV2,
+	VF_COLOR0,
+	VF_COLOR1,
+	VF_COLOR2,
+	VF_COLOR3,
+	VF_COLOR4,
+	VF_COLOR5,
+	// gui
 	VF_GUI_POS_UV_COLOR,
-	// for offscreen quad
+	// offscreen quad
 	VF_SCREENQUAD_POS,
-	// for debug
+	// debug
 	VF_DEBUG_POINT,
-	// for instance
+	// instance
 	VF_INSTANCE,
-	// for terrain
+	// terrain
 	VF_TERRAIN_POS,
 
 	VF_UNKNOWN,

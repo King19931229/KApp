@@ -5,7 +5,7 @@ namespace KVertexDefinition
 {
 	static VertexDetail POS_3F_NORM_3F_UV_2F_DETAILS;
 	static VertexDetail UV2_2F_DETAILS;
-	static VertexDetail DIFF_3F_SPEC_3F_DETAILS;
+	static VertexDetail COLOR_3F_DETAILS[5];
 	static VertexDetail TAN_3F_BIN_3F_DETAILS;
 	static VertexDetail BW_4F_BI_4I_DETAILS;
 	static VertexDetail GUI_POS_2F_UV_2F_COLOR_4BYTE_DETAILS;
@@ -33,11 +33,13 @@ namespace KVertexDefinition
 				UV2_2F_DETAILS.semanticDetails.push_back({ VS_TEXCOORD1, EF_R32G32_FLOAT, MEMBER_OFFSET(UV2_2F, UV2) });
 				UV2_2F_DETAILS.vertexSize = sizeof(UV2_2F);
 			}
-			// DIFF_2F_SPEC_2F
+			// COLOR_3F_DETAILS
 			{
-				DIFF_3F_SPEC_3F_DETAILS.semanticDetails.push_back({ VS_DIFFUSE, EF_R32G32B32_FLOAT, MEMBER_OFFSET(DIFF_3F_SPEC_3F, DIFFUSE) });
-				DIFF_3F_SPEC_3F_DETAILS.semanticDetails.push_back({ VS_SPECULAR, EF_R32G32B32_FLOAT, MEMBER_OFFSET(DIFF_3F_SPEC_3F, SPECULAR) });
-				DIFF_3F_SPEC_3F_DETAILS.vertexSize = sizeof(DIFF_3F_SPEC_3F);
+				for (uint32_t i = 0; i < 5; ++i)
+				{
+					COLOR_3F_DETAILS[i].semanticDetails.push_back({ (VertexSemantic)(VS_COLOR0 + i), EF_R32G32B32_FLOAT, MEMBER_OFFSET(COLOR_3F, COLOR) });
+					COLOR_3F_DETAILS[i].vertexSize = sizeof(COLOR_3F);
+				}
 			}
 			// TAN_3F_BIN_3F
 			{
@@ -95,9 +97,13 @@ namespace KVertexDefinition
 		case VF_POINT_NORMAL_UV:
 			return POS_3F_NORM_3F_UV_2F_DETAILS;
 		case VF_UV2:
-			return UV2_2F_DETAILS;
-		case VF_DIFFUSE_SPECULAR:
-			return DIFF_3F_SPEC_3F_DETAILS;
+			return UV2_2F_DETAILS;	
+		case VF_COLOR0:
+		case VF_COLOR1:
+		case VF_COLOR2:
+		case VF_COLOR3:
+		case VF_COLOR4:
+			return COLOR_3F_DETAILS[format - VF_COLOR0];
 		case VF_TANGENT_BINORMAL:
 			return TAN_3F_BIN_3F_DETAILS;
 		case VF_BLEND_WEIGHTS_INDICES:

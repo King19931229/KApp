@@ -105,6 +105,8 @@ public:
 	KPipelineBase();
 	~KPipelineBase();
 
+	virtual bool DebugDump();
+
 	virtual bool SetPrimitiveTopology(PrimitiveTopology topology);
 	virtual bool SetVertexBinding(const VertexFormat* format, size_t count);
 

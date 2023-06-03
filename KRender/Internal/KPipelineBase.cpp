@@ -26,6 +26,18 @@ KPipelineBase::~KPipelineBase()
 	ASSERT_RESULT(m_Samplers.empty());
 }
 
+bool KPipelineBase::DebugDump()
+{
+	for (uint32_t i = 0; i < LAYOUT_SHADER_COUNT; ++i)
+	{
+		if (m_Binding.shaders[i])
+		{
+			m_Binding.shaders[i]->DebugDump();
+		}
+	}
+	return true;
+}
+
 bool KPipelineBase::InvaildHandle(IKRenderPass* renderPass)
 {
 	if (renderPass)

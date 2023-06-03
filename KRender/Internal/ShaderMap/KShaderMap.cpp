@@ -2,30 +2,44 @@
 #include "Internal/KRenderGlobal.h"
 
 static const size_t TANGENT_BINORMAL_INPUT_MACRO_INDEX = 0;
-static const size_t DIFFUSE_SPECULAR_INPUT_INDEX = 1;
-static const size_t UV2_INPUT_MACRO_INDEX = 2;
-static const size_t BLEND_WEIGHT_INPUT_MACRO_INDEX = 3;
+static const size_t UV2_INPUT_MACRO_INDEX = 1;
+static const size_t BLEND_WEIGHT_INPUT_MACRO_INDEX = 2;
 
-static const size_t MATERIAL_TEXTURE0_INDEX = 4;
-static const size_t MATERIAL_TEXTURE1_INDEX = 5;
-static const size_t MATERIAL_TEXTURE2_INDEX = 6;
-static const size_t MATERIAL_TEXTURE3_INDEX = 7;
+static const size_t VERTEX_COLOR0_INDEX = 3;
+static const size_t VERTEX_COLOR1_INDEX = 4;
+static const size_t VERTEX_COLOR2_INDEX = 5;
+static const size_t VERTEX_COLOR3_INDEX = 6;
+static const size_t VERTEX_COLOR4_INDEX = 7;
+static const size_t VERTEX_COLOR5_INDEX = 8;
 
-static const size_t MATERIAL_TEXTURE4_INDEX = 8;
-static const size_t MATERIAL_TEXTURE5_INDEX = 9;
-static const size_t MATERIAL_TEXTURE6_INDEX = 10;
-static const size_t MATERIAL_TEXTURE7_INDEX = 11;
+static const size_t VERTEX_COLOR_COUNT = VERTEX_COLOR5_INDEX - VERTEX_COLOR0_INDEX + 1;
+
+static const size_t MATERIAL_TEXTURE0_INDEX = 9;
+static const size_t MATERIAL_TEXTURE1_INDEX = 10;
+static const size_t MATERIAL_TEXTURE2_INDEX = 11;
+static const size_t MATERIAL_TEXTURE3_INDEX = 12;
+
+static const size_t MATERIAL_TEXTURE4_INDEX = 13;
+static const size_t MATERIAL_TEXTURE5_INDEX = 14;
+static const size_t MATERIAL_TEXTURE6_INDEX = 15;
+static const size_t MATERIAL_TEXTURE7_INDEX = 16;
 
 static const size_t MATERIAL_TEXTURE_COUNT = MATERIAL_TEXTURE7_INDEX - MATERIAL_TEXTURE0_INDEX + 1;
 
-static const size_t MESHLET_INPUT_INDEX = 12;
+static const size_t MESHLET_INPUT_INDEX = 17;
 
 static const char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
 
 static const char* TANGENT_BINORMAL_INPUT_MACRO = "TANGENT_BINORMAL_INPUT";
-static const char* DIFFUSE_SPECULAR_INPUT_MACRO = "DIFFUSE_SPECULAR_INPUT";
 static const char* UV2_INPUT_MACRO = "UV2_INPUT";
 static const char* BLEND_WEIGHT_INPUT_MACRO = "BLEND_WEIGHT_INPUT";
+
+static const char* VERTEX_COLOR_INPUT0_MACRO = "VERTEX_COLOR_INPUT0";
+static const char* VERTEX_COLOR_INPUT1_MACRO = "VERTEX_COLOR_INPUT1";
+static const char* VERTEX_COLOR_INPUT2_MACRO = "VERTEX_COLOR_INPUT2";
+static const char* VERTEX_COLOR_INPUT3_MACRO = "VERTEX_COLOR_INPUT3";
+static const char* VERTEX_COLOR_INPUT4_MACRO = "VERTEX_COLOR_INPUT4";
+static const char* VERTEX_COLOR_INPUT5_MACRO = "VERTEX_COLOR_INPUT5";
 
 static const char* HAS_MATERIAL_TEXTURE0_MACRO = "HAS_MATERIAL_TEXTURE0";
 static const char* HAS_MATERIAL_TEXTURE1_MACRO = "HAS_MATERIAL_TEXTURE1";
@@ -38,19 +52,20 @@ static const char* HAS_MATERIAL_TEXTURE7_MACRO = "HAS_MATERIAL_TEXTURE7";
 
 static const char* MESHLET_INPUT_MACRO = "MESHLET_INPUT";
 
-const char* PERMUTATING_MACRO[MESHLET_INPUT_INDEX + 1];
+static const size_t MACRO_SIZE = MESHLET_INPUT_INDEX - TANGENT_BINORMAL_INPUT_MACRO_INDEX + 1;
+static const char* PERMUTATING_MACRO[MACRO_SIZE];
 
 // VS不需要贴图绑定宏
-static const size_t VS_MACRO_SIZE = BLEND_WEIGHT_INPUT_MACRO_INDEX - TANGENT_BINORMAL_INPUT_MACRO_INDEX + 1;
+static const size_t VS_MACRO_SIZE = VERTEX_COLOR5_INDEX - TANGENT_BINORMAL_INPUT_MACRO_INDEX + 1;
 // FS却需要用到顶点输入宏
-static const size_t FS_MACRO_SIZE = MESHLET_INPUT_INDEX - TANGENT_BINORMAL_INPUT_MACRO_INDEX + 1;
+static const size_t FS_MACRO_SIZE = MACRO_SIZE;
 
 static bool PERMUTATING_ARRAY_INIT = false;
 
-size_t KShaderMap::GenHash(const bool* macrosToEnable, size_t macrosSize)
+size_t KShaderMap::GenHash(const bool* macrosToEnable)
 {
 	size_t hash = 0;
-	for (size_t i = 0; i < macrosSize; ++i)
+	for (size_t i = 0; i < MACRO_SIZE; ++i)
 	{
 		if (macrosToEnable[i])
 		{
@@ -78,9 +93,9 @@ size_t KShaderMap::CalcHash(const VertexFormat* formats, size_t count, const KTe
 		{
 			macrosToEnable[TANGENT_BINORMAL_INPUT_MACRO_INDEX] = true;
 		}
-		else if (format == VF_DIFFUSE_SPECULAR)
+		else if (format >= VF_COLOR0 && format <= VF_COLOR5)
 		{
-			macrosToEnable[DIFFUSE_SPECULAR_INPUT_INDEX] = true;
+			macrosToEnable[VERTEX_COLOR0_INDEX + (format - VF_COLOR0)] = true;
 		}
 		else if (format == VF_UV2)
 		{
@@ -108,7 +123,8 @@ size_t KShaderMap::CalcHash(const VertexFormat* formats, size_t count, const KTe
 		macrosToEnable[MESHLET_INPUT_INDEX] = true;
 	}
 
-	return GenHash(macrosToEnable, ARRAY_SIZE(PERMUTATING_MACRO));
+	EnsureMacroMap(macrosToEnable);
+	return  GenHash(macrosToEnable);
 }
 
 std::mutex KShaderMap::STATIC_RESOURCE_LOCK;
@@ -116,6 +132,7 @@ KShaderMap::MacrosMap KShaderMap::VS_MACROS_MAP;
 KShaderMap::MacrosMap KShaderMap::VS_INSTANCE_MACROS_MAP;
 KShaderMap::MacrosMap KShaderMap::MS_MACROS_MAP;
 KShaderMap::MacrosMap KShaderMap::FS_MACROS_MAP;
+KShaderMap::MacrosSet KShaderMap::MACROS_SET;
 
 void KShaderMap::InitializePermuationMap()
 {
@@ -123,9 +140,15 @@ void KShaderMap::InitializePermuationMap()
 	if (!PERMUTATING_ARRAY_INIT)
 	{
 		PERMUTATING_MACRO[TANGENT_BINORMAL_INPUT_MACRO_INDEX] = TANGENT_BINORMAL_INPUT_MACRO;
-		PERMUTATING_MACRO[DIFFUSE_SPECULAR_INPUT_INDEX] = DIFFUSE_SPECULAR_INPUT_MACRO;
 		PERMUTATING_MACRO[UV2_INPUT_MACRO_INDEX] = UV2_INPUT_MACRO;
 		PERMUTATING_MACRO[BLEND_WEIGHT_INPUT_MACRO_INDEX] = BLEND_WEIGHT_INPUT_MACRO;
+
+		PERMUTATING_MACRO[VERTEX_COLOR0_INDEX] = VERTEX_COLOR_INPUT0_MACRO;
+		PERMUTATING_MACRO[VERTEX_COLOR1_INDEX] = VERTEX_COLOR_INPUT1_MACRO;
+		PERMUTATING_MACRO[VERTEX_COLOR2_INDEX] = VERTEX_COLOR_INPUT2_MACRO;
+		PERMUTATING_MACRO[VERTEX_COLOR3_INDEX] = VERTEX_COLOR_INPUT3_MACRO;
+		PERMUTATING_MACRO[VERTEX_COLOR4_INDEX] = VERTEX_COLOR_INPUT4_MACRO;
+		PERMUTATING_MACRO[VERTEX_COLOR5_INDEX] = VERTEX_COLOR_INPUT5_MACRO;
 
 		PERMUTATING_MACRO[MATERIAL_TEXTURE0_INDEX] = HAS_MATERIAL_TEXTURE0_MACRO;
 		PERMUTATING_MACRO[MATERIAL_TEXTURE1_INDEX] = HAS_MATERIAL_TEXTURE1_MACRO;
@@ -139,8 +162,8 @@ void KShaderMap::InitializePermuationMap()
 
 		PERMUTATING_MACRO[MESHLET_INPUT_INDEX] = MESHLET_INPUT_MACRO;
 
-		bool macrosToEnable[ARRAY_SIZE(PERMUTATING_MACRO)] = { false };
-		PermutateMacro(PERMUTATING_MACRO, macrosToEnable, ARRAY_SIZE(PERMUTATING_MACRO), VS_MACRO_SIZE, 0);
+		// bool macrosToEnable[ARRAY_SIZE(PERMUTATING_MACRO)] = { false };
+		// PermutateMacro(PERMUTATING_MACRO, macrosToEnable, ARRAY_SIZE(PERMUTATING_MACRO), VS_MACRO_SIZE, 0);
 
 		PERMUTATING_ARRAY_INIT = true;
 	}
@@ -158,48 +181,44 @@ KShaderMap::~KShaderMap()
 	ASSERT_RESULT(m_FSShaderMap.empty());
 }
 
-void KShaderMap::PermutateMacro(const char** marcosToPermutate,
-	bool* macrosToEnable,
-	size_t macrosSize,
-	size_t vsMacrosSize,
-	size_t permutateIndex
-)
+void KShaderMap::EnsureMacroMap(const bool* macrosToEnable)
 {
-	ASSERT_RESULT(marcosToPermutate);
-	ASSERT_RESULT(macrosToEnable);
-	ASSERT_RESULT(permutateIndex <= macrosSize);
+	std::lock_guard<decltype(STATIC_RESOURCE_LOCK)> guard(STATIC_RESOURCE_LOCK);
 
-	if (permutateIndex == macrosSize)
+	size_t hash = GenHash(macrosToEnable);
+	if (MACROS_SET.find(hash) == MACROS_SET.end())
 	{
+		MACROS_SET.insert(hash);
+
 		Macros vsNoninstanceMacros;
 		Macros vsInstanceMacros;
 		Macros fsMacros;
 		Macros msMacros;
 
-		vsNoninstanceMacros.reserve(macrosSize + 1);
-		vsInstanceMacros.reserve(macrosSize + 1);
+		vsNoninstanceMacros.reserve(MACRO_SIZE);
+		vsInstanceMacros.reserve(MACRO_SIZE);
 
-		for (size_t i = 0; i < macrosSize; ++i)
+		for (size_t i = 0; i < MACRO_SIZE; ++i)
 		{
 			if (macrosToEnable[i])
 			{
-				if (i < vsMacrosSize)
+				if (i < VS_MACRO_SIZE)
 				{
-					vsInstanceMacros.push_back({ marcosToPermutate[i], "1" });
-					vsNoninstanceMacros.push_back({ marcosToPermutate[i], "1" });
-					msMacros.push_back({ marcosToPermutate[i], "1" });
+					vsInstanceMacros.push_back({ PERMUTATING_MACRO[i], "1" });
+					vsNoninstanceMacros.push_back({ PERMUTATING_MACRO[i], "1" });
+					msMacros.push_back({ PERMUTATING_MACRO[i], "1" });
 				}
-				fsMacros.push_back({ marcosToPermutate[i], "1" });
+				fsMacros.push_back({ PERMUTATING_MACRO[i], "1" });
 			}
 			else
 			{
-				if (i < vsMacrosSize)
+				if (i < VS_MACRO_SIZE)
 				{
-					vsInstanceMacros.push_back({ marcosToPermutate[i], "0" });
-					vsNoninstanceMacros.push_back({ marcosToPermutate[i], "0" });
-					msMacros.push_back({ marcosToPermutate[i], "0" });
+					vsInstanceMacros.push_back({ PERMUTATING_MACRO[i], "0" });
+					vsNoninstanceMacros.push_back({ PERMUTATING_MACRO[i], "0" });
+					msMacros.push_back({ PERMUTATING_MACRO[i], "0" });
 				}
-				fsMacros.push_back({ marcosToPermutate[i], "0" });
+				fsMacros.push_back({ PERMUTATING_MACRO[i], "0" });
 			}
 		}
 
@@ -207,26 +226,33 @@ void KShaderMap::PermutateMacro(const char** marcosToPermutate,
 		vsInstanceMacros.push_back({ INSTANCE_INPUT_MACRO, "1" });
 		msMacros.push_back({ INSTANCE_INPUT_MACRO, "0" });
 
-		assert(MESHLET_INPUT_INDEX >= vsMacrosSize);
+		static_assert(MESHLET_INPUT_INDEX >= VS_MACRO_SIZE, "ensure");
 		vsNoninstanceMacros.push_back({ MESHLET_INPUT_MACRO, "0" });
 		vsInstanceMacros.push_back({ MESHLET_INPUT_MACRO, "0" });
 		msMacros.push_back({ MESHLET_INPUT_MACRO, "1" });
 
-		size_t vsHash = GenHash(macrosToEnable, macrosSize);
-		size_t fsHash = GenHash(macrosToEnable, macrosSize);
+		VS_MACROS_MAP[hash] = std::make_shared<Macros>(std::move(vsNoninstanceMacros));
+		VS_INSTANCE_MACROS_MAP[hash] = std::make_shared<Macros>(std::move(vsInstanceMacros));
+		MS_MACROS_MAP[hash] = std::make_shared<Macros>(std::move(msMacros));
+		FS_MACROS_MAP[hash] = std::make_shared<Macros>(std::move(fsMacros));
+	}
+}
 
-		VS_MACROS_MAP[vsHash] = std::make_shared<Macros>(std::move(vsNoninstanceMacros));
-		VS_INSTANCE_MACROS_MAP[vsHash] = std::make_shared<Macros>(std::move(vsInstanceMacros));
-		MS_MACROS_MAP[vsHash] = std::make_shared<Macros>(std::move(msMacros));
-		FS_MACROS_MAP[fsHash] = std::make_shared<Macros>(std::move(fsMacros));
+void KShaderMap::PermutateMacro(bool* macrosToEnable, size_t permutateIndex)
+{
+	ASSERT_RESULT(macrosToEnable);
+	ASSERT_RESULT(permutateIndex <= MACRO_SIZE);
 
+	if (permutateIndex == MACRO_SIZE)
+	{
+		EnsureMacroMap(macrosToEnable);
 		return;
 	}
 
 	for (bool value : {false, true})
 	{
 		macrosToEnable[permutateIndex] = value;
-		PermutateMacro(marcosToPermutate, macrosToEnable, macrosSize, vsMacrosSize, permutateIndex + 1);
+		PermutateMacro(macrosToEnable, permutateIndex + 1);
 	}
 }
 

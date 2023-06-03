@@ -174,9 +174,13 @@ bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetVertexCompo
 	case VF_UV2:
 		group.push_back(AVC_UV2_2F);
 		return true;
-	case VF_DIFFUSE_SPECULAR:
-		group.push_back(AVC_DIFFUSE_3F);
-		group.push_back(AVC_SPECULAR_3F);
+	case VF_COLOR0:
+	case VF_COLOR1:
+	case VF_COLOR2:
+	case VF_COLOR3:
+	case VF_COLOR4:
+	case VF_COLOR5:
+		group.push_back((AssetVertexComponent)(AVC_COLOR0_3F + (format - VF_COLOR0)));
 		return true;
 	case VF_TANGENT_BINORMAL:
 		group.push_back(AVC_TANGENT_3F);
@@ -304,7 +308,7 @@ bool KMesh::InitFromAsset(const std::string& path)
 		KAssetImportOption option;
 		KAssetImportResult result;
 
-		VertexFormat formats[] = { VF_POINT_NORMAL_UV, VF_DIFFUSE_SPECULAR, VF_TANGENT_BINORMAL };
+		VertexFormat formats[] = { VF_POINT_NORMAL_UV, VF_COLOR0, VF_TANGENT_BINORMAL };
 		for(VertexFormat format : formats)
 		{
 			KAssetVertexComponentGroup group;
@@ -357,14 +361,14 @@ bool KMesh::InitFromUserData(const KAssetImportResult& userData, const std::stri
 				formats.push_back(VF_UV2);
 				continue;
 			}
+			if (componentGroup[0] >= AVC_COLOR0_3F && componentGroup[0] <= AVC_COLOR5_3F)
+			{
+				formats.push_back((VertexFormat)(VF_COLOR0 + (componentGroup[0] - AVC_COLOR0_3F)));
+				continue;
+			}
 		}
 		if (componentGroup.size() == 2)
 		{
-			if (componentGroup[0] == AVC_DIFFUSE_3F && componentGroup[1] == AVC_SPECULAR_3F)
-			{
-				formats.push_back(VF_DIFFUSE_SPECULAR);
-				continue;
-			}
 			if (componentGroup[0] == AVC_TANGENT_3F && componentGroup[1] == AVC_BINORMAL_3F)
 			{
 				formats.push_back(VF_TANGENT_BINORMAL);
