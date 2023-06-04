@@ -264,11 +264,11 @@ protected:
 		int32_t v2 = triangle.index[2];
 
 		if (v0 == v1)
-			return false;
+			return true;
 		if (v0 == v2)
-			return false;
+			return true;
 		if (v1 == v2)
-			return false;
+			return true;
 
 		const Vertex& vert0 = m_Vertices[v0];
 		const Vertex& vert1 = m_Vertices[v1];
@@ -319,10 +319,18 @@ protected:
 
 		glm::tvec2<Type> uvBox[2];
 
+		glm::tvec3<Type> colorBox[5][2];
+
 		for (uint32_t i = 0; i < 2; ++i)
 		{
 			uvBox[0][i] = std::min(va.uv[i], vb.uv[i]);
 			uvBox[1][i] = std::max(va.uv[i], vb.uv[i]);
+		}
+
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			colorBox[0][0][i] = std::min(va.color[i], vb.color[i]);
+			colorBox[0][1][i] = std::max(va.color[i], vb.color[i]);
 		}
 
 		Type cost = std::numeric_limits<Type>::max();
@@ -380,7 +388,7 @@ protected:
 		vc.pos = decltype(vc.pos)(opt.v[0], opt.v[1], opt.v[2]);
 		vc.uv = glm::clamp(decltype(vc.uv)(opt.v[3] / UV_WEIGHT, opt.v[4] / UV_WEIGHT), uvBox[0], uvBox[1]);
 		vc.normal = glm::normalize(decltype(vc.normal)(opt.v[5] / NORMAL_WEIGHT, opt.v[6] / NORMAL_WEIGHT, opt.v[7] / NORMAL_WEIGHT));
-		vc.color = decltype(vc.color)(opt.v[8] / COLOR_WEIGHT, opt.v[9] / COLOR_WEIGHT, opt.v[10] / COLOR_WEIGHT);
+		vc.color = glm::clamp(decltype(vc.color)(opt.v[8] / COLOR_WEIGHT, opt.v[9] / COLOR_WEIGHT, opt.v[10] / COLOR_WEIGHT), colorBox[0][0], colorBox[0][1]);
 		vc.partIndex = va.partIndex;
 
 		return std::make_tuple(cost, vc);
@@ -1192,7 +1200,7 @@ public:
 	inline int32_t& GetMaxVertexCount() { return m_MaxVertexCount; }
 	inline int32_t& GetCurVertexCount() { return m_CurVertexCount; }
 
-	bool Simplification(MeshSimplifyTarget target, int32_t targetCount, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	bool Simplify(MeshSimplifyTarget target, int32_t targetCount, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
 	{
 		vertices.clear();
 		indices.clear();
@@ -1277,7 +1285,7 @@ public:
 					vertex.uv = m_Vertices[oldIndex].uv;
 					vertex.color[0] = m_Vertices[oldIndex].color;
 					vertex.normal = m_Vertices[oldIndex].normal;
-					
+
 					// TODO
 					// vertex.tangent;
 					// vertex.binormal;

@@ -10,9 +10,6 @@ namespace KMath
 	template<typename T>
 	inline T FloatPrecision(T value);
 
-	template<typename T>
-	inline uint32_t MantissaCount(T value);
-
 	template<>
 	inline float FloatPrecision(float value)
 	{
@@ -37,6 +34,9 @@ namespace KMath
 		return pow(2.0, -mantissaBits - 1) * exponent;
 	}
 
+	template<typename T>
+	inline uint32_t MantissaCount(T value);
+
 	template<>
 	inline uint32_t MantissaCount(float value)
 	{
@@ -47,6 +47,18 @@ namespace KMath
 	inline uint32_t MantissaCount(double value)
 	{
 		return 52;
+	}
+
+	template <class T>
+	inline T DivideAndRoundUp(T dividend, T divisor)
+	{
+		return (dividend + divisor - 1) / divisor;
+	}
+
+	template <class T>
+	inline T DivideAndRoundDown(T dividend, T divisor)
+	{
+		return dividend / divisor;
 	}
 
 	// 永远返回正数

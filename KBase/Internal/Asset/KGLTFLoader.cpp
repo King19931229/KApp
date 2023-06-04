@@ -728,7 +728,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 					}
 					for (size_t k = 0; k < ARRAYSIZE(vert.color); ++k)
 					{
-						vert.color[k] = bufferColorSet[k] ? glm::make_vec4(&bufferColorSet[k][v * colorByteStride[k]]) : glm::vec4(1.0f);
+						vert.color[k] = bufferColorSet[k] ? glm::make_vec4(&bufferColorSet[k][v * colorByteStride[k]]) : glm::vec4(0.0f);
 					}
 
 #ifdef TINYGLTF_NO_STB_IMAGE

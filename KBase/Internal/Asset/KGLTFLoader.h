@@ -69,7 +69,7 @@ protected:
 		glm::vec2 uv[2];
 		glm::vec4 joint0;
 		glm::vec4 weight0;
-		glm::vec4 color[5];
+		glm::vec3 color[6];
 
 		bool operator<(const Vertex& rhs) const
 		{

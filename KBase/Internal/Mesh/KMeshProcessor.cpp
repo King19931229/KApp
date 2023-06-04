@@ -157,7 +157,7 @@ namespace KMeshProcessor
 		KMeshSimplification simplification;
 		if (simplification.Init(oldVertices, oldIndices))
 		{
-			return simplification.Simplification(target, targetCount, newVertices, newIndices);
+			return simplification.Simplify(target, targetCount, newVertices, newIndices);
 		}
 		return false;
 	}
