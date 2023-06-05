@@ -25,75 +25,64 @@ void InitQEM(IKEnginePtr engine)
 	static KAssetImportResult userData;
 	static bool initUserData = false;
 
-
-	struct FileInfo
+	struct ModelInfo
 	{
 		const char* path;
 		const char* ext;
+		const float scale;
 	};
 
-	static const FileInfo fileInfos[] =
+	static const ModelInfo modelInfos[] =
 	{
-		{ "Models/OBJ/small_bunny.obj", ".obj"},
-		{ "Models/OBJ/bunny.obj", ".obj"},
-		{ "Models/OBJ/dragon.obj", ".obj"},
-		{ "Models/OBJ/armadillo.obj", ".obj"},
-		{ "Models/OBJ/tyra.obj", ".obj"},
-		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf"}
+		{ "Models/OBJ/small_bunny.obj", ".obj", 1000.0f},
+		{ "Models/OBJ/bunny.obj", ".obj", 100.0f},
+		{ "Models/OBJ/dragon.obj", ".obj", 100.0f},
+		{ "Models/OBJ/armadillo.obj", ".obj", 100.0f},
+		{ "Models/OBJ/tyra.obj", ".obj", 1000.0f},
+		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f}
 	};
 
-	static const uint32_t fileIndex = 1;
-	static const char* filePath = fileInfos[fileIndex].path;
-	static const char* fileExt = fileInfos[fileIndex].ext;
-
-	static std::vector<KMeshProcessorVertex> vertices;
-	static std::vector<uint32_t> indices;
+	static const uint32_t fileIndex = 3;
+	static const char* filePath = modelInfos[fileIndex].path;
+	static const char* fileExt = modelInfos[fileIndex].ext;
+	static const float scale = modelInfos[fileIndex].scale;
 
 	static std::vector<KAssetImportResult::Material> originalMats;
 
-	IKAssetLoaderPtr loader = KAssetLoader::GetLoader(fileExt);
-	if (loader)
+	static KMeshSimplification simplification;
+	static KVirtualGeometryBuilder clusterBuilder;
+
+	if (!initUserData)
 	{
-		KAssetImportOption option;
-		option.components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
-		// option.components.push_back({ AVC_COLOR0_3F });
-		if (loader->Import(filePath, option, userData))
+		IKAssetLoaderPtr loader = KAssetLoader::GetLoader(fileExt);
+		if (loader)
 		{
-			userData.components = option.components;
-
-			KMeshProcessor::ConvertForMeshProcessor(userData, vertices, indices);
-			for (size_t partIndex = 0; partIndex < userData.parts.size(); ++partIndex)
+			KAssetImportOption option;
+			option.components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
+			// option.components.push_back({ AVC_COLOR0_3F });
+			if (loader->Import(filePath, option, userData))
 			{
-				originalMats.push_back(userData.parts[partIndex].material);
-			}
+				userData.components = option.components;
 
-			{
-				KMeshTriangleClusterBuilder builder;
-				builder.Init(vertices, indices, 128);
+				std::vector<KMeshProcessorVertex> vertices;
+				std::vector<uint32_t> indices;
+
+				KMeshProcessor::ConvertForMeshProcessor(userData, vertices, indices);
+				for (size_t partIndex = 0; partIndex < userData.parts.size(); ++partIndex)
+				{
+					originalMats.push_back(userData.parts[partIndex].material);
+				}
+
+				simplification.Init(vertices, indices);
+
+				clusterBuilder.Build(vertices, indices, 128);
 				std::vector<KMeshProcessorVertex> newVertices;
 				std::vector<uint32_t> newIndices;
-				builder.ColorDebugCluster(newVertices, newIndices);
+				clusterBuilder.ColorDebugClusterGroup(0, newVertices, newIndices);
 				KMeshProcessor::ConvertFromMeshProcessor(userData, newVertices, newIndices, originalMats);
 			}
-
-			{
-				KVirtualGeometryBuilder builder;
-				builder.Build(vertices, indices, 128);
-			}
-
-			initUserData = true;
 		}
-	}
-
-	static KMeshSimplification simplification;
-	static bool initSimplification = false;
-	static int32_t targetCount = 0;
-
-	if (!initSimplification)
-	{
-		simplification.Init(vertices, indices);
-		targetCount = 0;
-		initSimplification = true;
+		initUserData = true;
 	}
 
 	static IKUserComponent::TickFunction Tick = []()
@@ -114,7 +103,7 @@ void InitQEM(IKEnginePtr engine)
 		if (entity->RegisterComponent(CT_TRANSFORM, &component))
 		{
 			((IKTransformComponent*)component)->SetPosition(glm::vec3(0));
-			((IKTransformComponent*)component)->SetScale(glm::vec3(50.0f));
+			((IKTransformComponent*)component)->SetScale(glm::vec3(scale));
 		}
 		if (entity->RegisterComponent(CT_USER, &component))
 		{
@@ -126,21 +115,54 @@ void InitQEM(IKEnginePtr engine)
 	static KRenderCoreUIRenderCallback UI = []()
 	{
 		ImGui::Begin("QEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+		static int32_t targetCount = 0;
+		static int32_t targetLevel = 0;
+		static int32_t currentTargetLevel = -1;
+
+		static bool debugSimplification = false;
+		ImGui::Checkbox("DebugSimplification", &debugSimplification);
 		ImGui::SliderInt("TargetCount", &targetCount, std::max(simplification.GetMaxVertexCount() - 1000000, simplification.GetMinVertexCount()), std::min(simplification.GetMaxVertexCount(), simplification.GetMaxVertexCount()));
+
+		static bool debugCluster = false;
+		ImGui::Checkbox("DebugCluster", &debugCluster);
+		ImGui::SliderInt("TargetLevel", &targetLevel, 0, (int)(clusterBuilder.GetLevelNum() - 1));
+
 		IKRenderComponent* component = nullptr;
 		if (entity->GetComponent(CT_RENDER, &component))
 		{
-			if (initSimplification)
+			if (initUserData)
 			{
 				static KAssetImportResult result;
-				if (targetCount != simplification.GetCurVertexCount() && simplification.Simplify(MeshSimplifyTarget::VERTEX, targetCount, vertices, indices))
-				{
-					if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, originalMats))
+				static std::vector<KMeshProcessorVertex> vertices;
+				static std::vector<uint32_t> indices;
+
+				if (debugSimplification)
+				{					
+					if (targetCount != simplification.GetCurVertexCount() && simplification.Simplify(MeshSimplifyTarget::VERTEX, targetCount, vertices, indices))
 					{
-						if (KMeshProcessor::CalcTBN(vertices, indices))
+						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, originalMats))
 						{
-							component->InitAsUserData(result, "qem", false);
+							if (KMeshProcessor::CalcTBN(vertices, indices))
+							{
+								component->InitAsUserData(result, "qem", false);
+							}
 						}
+					}
+				}
+				else if (debugCluster)
+				{
+					if (currentTargetLevel != targetLevel)
+					{
+						clusterBuilder.ColorDebugClusterGroup(targetLevel, vertices, indices);
+						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, originalMats))
+						{
+							if (KMeshProcessor::CalcTBN(vertices, indices))
+							{
+								component->InitAsUserData(result, "cluster", false);
+							}
+						}
+						currentTargetLevel = targetLevel;
 					}
 				}
 			}

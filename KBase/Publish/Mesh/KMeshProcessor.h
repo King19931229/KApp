@@ -96,6 +96,11 @@ struct std::hash<KMeshProcessorVertex>
 	}
 };
 
+inline size_t KMeshProcessorVertexHash(const KMeshProcessorVertex& vertex)
+{
+	static std::hash<KMeshProcessorVertex> hasher;
+	return hasher(vertex);
+}
 
 namespace KMeshProcessor
 {

@@ -131,6 +131,15 @@ struct KMeshCluster
 	}
 };
 
+typedef std::shared_ptr<KMeshCluster> KMeshClusterPtr;
+
+struct KMeshClusterGroup
+{
+	std::vector<uint32_t> clusters;
+	std::vector<uint32_t> childrenClusters;
+	uint32_t level = 0;
+};
+
 struct KGraph
 {
 	idx_t offset = 0;
@@ -527,15 +536,21 @@ public:
 		return false;
 	}
 
-	bool ColorDebugCluster(std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	void GetClusters(std::vector<KMeshCluster>& clusters)
+	{
+		clusters = m_Clusters;
+	}
+
+	static bool ColorDebugCluster(const std::vector<KMeshCluster>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
 	{
 		vertices.clear();
 		indices.clear();
 
 		uint32_t clusterIndexBegin = 0;
 
-		for (const KMeshCluster& cluster : m_Clusters)
+		for (uint32_t id : ids)
 		{
+			const KMeshCluster& cluster = clusters[id];
 			std::vector<KMeshProcessorVertex> clusterVertices = cluster.vertices;
 			std::vector<uint32_t> clusterIndices = cluster.indices;
 			glm::vec3 clusterColor = cluster.color;
@@ -557,28 +572,26 @@ public:
 
 		return true;
 	}
-
-	void GetClusters(std::vector<KMeshCluster>& cluster)
-	{
-		cluster = m_Clusters;
-	}
 };
 
 class KVirtualGeometryBuilder
 {
 protected:
 	std::vector<KMeshCluster> m_Clusters;
+	std::vector<KMeshClusterGroup> m_ClusterGroups;
+
 	uint32_t m_MaxClusterGroup = 32;
 	uint32_t m_MaxPartitionNum = 128;
+	uint32_t m_LevelNum = 0;
 
-	void DAGReduce(uint32_t begin, uint32_t end)
+	void DAGReduce(uint32_t childrenBegin, uint32_t childrenEnd, uint32_t level)
 	{
-		uint32_t numChildren = end - begin + 1;
-		assert(begin < m_Clusters.size());
-		assert(end < m_Clusters.size());
+		uint32_t numChildren = childrenEnd - childrenBegin + 1;
+		assert(childrenBegin < m_Clusters.size());
+		assert(childrenEnd < m_Clusters.size());
 
 		KMeshCluster mergedCluster;
-		mergedCluster.Init(m_Clusters.data() + begin, numChildren);
+		mergedCluster.Init(m_Clusters.data() + childrenBegin, numChildren);
 
 		uint32_t numParent = KMath::DivideAndRoundUp((uint32_t)mergedCluster.indices.size(), (uint32_t)(6 * m_MaxPartitionNum));
 		m_Clusters.reserve(m_Clusters.size() + numParent);
@@ -588,6 +601,8 @@ protected:
 
 		std::vector<KMeshProcessorVertex> vertices;
 		std::vector<uint32_t> indices;
+
+		uint32_t parentBegin = (uint32_t)m_Clusters.size();
 
 		for (uint32_t partitionNum = m_MaxPartitionNum; partitionNum >= m_MaxPartitionNum / 2; partitionNum -= 2)
 		{
@@ -618,6 +633,29 @@ protected:
 				m_Clusters.insert(m_Clusters.end(), parentClusters.begin(), parentClusters.end());
 				break;
 			}
+		}
+
+		uint32_t parentEnd = (uint32_t)m_Clusters.size() - 1;
+		if (parentBegin <= parentEnd)
+		{
+			numParent = parentEnd - parentBegin + 1;
+
+			KMeshClusterGroup newGroup;
+			newGroup.level = level + 1;
+
+			newGroup.clusters.resize(numParent);
+			for (uint32_t i = 0; i < numParent; ++i)
+			{
+				newGroup.clusters[i] = parentBegin + i;
+			}
+
+			newGroup.childrenClusters.resize(numChildren);
+			for (uint32_t i = 0; i < numChildren; ++i)
+			{
+				newGroup.childrenClusters[i] = childrenBegin + i;
+			}
+
+			m_ClusterGroups.push_back(newGroup);
 		}
 	}
 
@@ -717,6 +755,7 @@ public:
 	bool Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, int32_t maxPartitionNum)
 	{
 		m_MaxPartitionNum = maxPartitionNum;
+		m_LevelNum = 0;
 
 		ClusterTriangle(vertices, indices);
 
@@ -724,21 +763,45 @@ public:
 		uint32_t levelClusterEnd = 0;
 		uint32_t levelClusterNum = (uint32_t)m_Clusters.size();
 		uint32_t newLevelBegin = 0;
+		uint32_t currentLevel = 0;
+
+		auto AddBaseGroup = [this](uint32_t begin, uint32_t end)
+		{
+			KMeshClusterGroup newGroup;
+			uint32_t num = end - begin + 1;
+			newGroup.level = 0;
+			newGroup.clusters.resize(num);
+			for (uint32_t i = 0; i < num; ++i)
+			{
+				newGroup.clusters[i] = begin + i;
+			}
+			m_ClusterGroups.push_back(newGroup);
+		};
 
 		while (levelClusterNum)
 		{
 			levelClusterEnd = levelClusterBegin + levelClusterNum - 1;
 			if (levelClusterNum <= 1)
 			{
+				if (currentLevel == 0)
+				{
+					AddBaseGroup(levelClusterBegin, levelClusterEnd);
+				}
+				++currentLevel;
 				break;
 			}
 
 			if (levelClusterNum <= m_MaxClusterGroup)
 			{
+				if (currentLevel == 0)
+				{
+					AddBaseGroup(levelClusterBegin, levelClusterEnd);
+				}
 				newLevelBegin = (uint32_t)m_Clusters.size();
-				DAGReduce(levelClusterBegin, levelClusterEnd);
+				DAGReduce(levelClusterBegin, levelClusterEnd, currentLevel);
 				levelClusterBegin = newLevelBegin;
 				levelClusterNum = (uint32_t)(m_Clusters.size() - levelClusterBegin);
+				++currentLevel;
 				continue;
 			}
 
@@ -760,17 +823,52 @@ public:
 				}
 			}
 
+			if (currentLevel == 0)
+			{
+				for (const KRange& range : partitioner.ranges)
+				{
+					uint32_t clusterBegin = levelClusterBegin + range.begin;
+					uint32_t clusterEnd = levelClusterBegin + range.end;
+					AddBaseGroup(clusterBegin, clusterEnd);
+				}
+			}
+
 			newLevelBegin = (uint32_t)m_Clusters.size();
 			for (const KRange& range : partitioner.ranges)
 			{
 				uint32_t clusterBegin = levelClusterBegin + range.begin;
 				uint32_t clusterEnd = levelClusterBegin + range.end;
-				DAGReduce(clusterBegin, clusterEnd);
+				DAGReduce(clusterBegin, clusterEnd, currentLevel);
 			}
 			levelClusterBegin = newLevelBegin;
 			levelClusterNum = (uint32_t)m_Clusters.size() - levelClusterBegin;
+
+			++currentLevel;
 		}
 
+		m_LevelNum = currentLevel;
+
 		return true;
+	}
+
+	void ColorDebugClusterGroup(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	{
+		std::vector<uint32_t> ids;
+		for (const KMeshClusterGroup& group : m_ClusterGroups)
+		{
+			if (group.level == level)
+			{
+				for (uint32_t id : group.clusters)
+				{
+					ids.push_back(id);
+				}
+			}
+		}
+		KMeshTriangleClusterBuilder::ColorDebugCluster(m_Clusters, ids, vertices, indices);
+	}
+
+	uint32_t GetLevelNum() const
+	{
+		return m_LevelNum;
 	}
 };
