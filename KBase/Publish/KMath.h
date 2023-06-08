@@ -7,10 +7,6 @@
 
 namespace KMath
 {
-	template<typename T>
-	inline T FloatPrecision(T value);
-
-	template<>
 	inline float FloatPrecision(float value)
 	{
 		const int32_t exponentBits = 8;
@@ -22,7 +18,6 @@ namespace KMath
 		return (float)pow(2.0f, -mantissaBits - 1) * exponent;
 	}
 
-	template<>
 	inline double FloatPrecision(double value)
 	{
 		const int32_t exponentBits = 11;
@@ -34,16 +29,41 @@ namespace KMath
 		return pow(2.0, -mantissaBits - 1) * exponent;
 	}
 
-	template<typename T>
-	inline uint32_t MantissaCount(T value);
+	inline float ScaleFactorToSameExponent(float original, float target)
+	{
+		uint32_t expOriginal = (*(uint32_t*)&original & ((uint32_t)~0 >> 1)) >> 23;
+		uint32_t expTarget = (*(uint32_t*)&target & ((uint32_t)~0 >> 1)) >> 23;
+		int32_t exp = 127 + (int32_t)expTarget - (int32_t)expOriginal;
+		int32_t resAsInt = exp << 23;
+		float factor = *(float*)&resAsInt;
+		return factor;
+	}
 
-	template<>
+	inline double ScaleFactorToSameExponent(double original, double target)
+	{
+		uint64_t expOriginal = (*(uint64_t*)&original & ((uint64_t)~0 >> 1)) >> 52;
+		uint64_t expTarget = (*(uint64_t*)&target & ((uint64_t)~0 >> 1)) >> 52;
+		int64_t exp = 1023 + (int64_t)expTarget - (int64_t)expOriginal;
+		int64_t resAsInt = exp << 52;
+		double factor = *(double*)&resAsInt;
+		return factor;
+	}
+
+	inline uint32_t ExponentCount(float value)
+	{
+		return 8;
+	}
+
+	inline uint32_t ExponentCount(double value)
+	{
+		return 11;
+	}
+
 	inline uint32_t MantissaCount(float value)
 	{
 		return 23;
 	}
 
-	template<>
 	inline uint32_t MantissaCount(double value)
 	{
 		return 52;

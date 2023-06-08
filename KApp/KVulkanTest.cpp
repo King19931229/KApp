@@ -34,15 +34,15 @@ void InitQEM(IKEnginePtr engine)
 
 	static const ModelInfo modelInfos[] =
 	{
-		{ "Models/OBJ/small_bunny.obj", ".obj", 1000.0f},
-		{ "Models/OBJ/bunny.obj", ".obj", 100.0f},
-		{ "Models/OBJ/dragon.obj", ".obj", 100.0f},
-		{ "Models/OBJ/armadillo.obj", ".obj", 100.0f},
-		{ "Models/OBJ/tyra.obj", ".obj", 1000.0f},
-		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f}
+		{ "Models/OBJ/small_bunny.obj", ".obj", 1000.0f },
+		{ "Models/OBJ/bunny.obj", ".obj", 100.0f },
+		{ "Models/OBJ/dragon.obj", ".obj", 100.0f },
+		{ "Models/OBJ/armadillo.obj", ".obj", 100.0f },
+		{ "Models/OBJ/tyra.obj", ".obj", 1000.0f },
+		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f }
 	};
 
-	static const uint32_t fileIndex = 3;
+	static const uint32_t fileIndex = 2;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
@@ -73,7 +73,7 @@ void InitQEM(IKEnginePtr engine)
 					originalMats.push_back(userData.parts[partIndex].material);
 				}
 
-				simplification.Init(vertices, indices);
+				simplification.Init(vertices, indices, 1, 3);
 
 				clusterBuilder.Build(vertices, indices, 128);
 				std::vector<KMeshProcessorVertex> newVertices;
@@ -138,8 +138,9 @@ void InitQEM(IKEnginePtr engine)
 				static std::vector<uint32_t> indices;
 
 				if (debugSimplification)
-				{					
-					if (targetCount != simplification.GetCurVertexCount() && simplification.Simplify(MeshSimplifyTarget::VERTEX, targetCount, vertices, indices))
+				{
+					float error = 0;
+					if (targetCount != simplification.GetCurVertexCount() && simplification.Simplify(MeshSimplifyTarget::VERTEX, targetCount, vertices, indices, error))
 					{
 						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, originalMats))
 						{

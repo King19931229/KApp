@@ -5,9 +5,7 @@
 enum class MeshSimplifyTarget
 {
 	VERTEX,
-	TRIANGLE,
-	BOTH,
-	EITHER
+	TRIANGLE
 };
 
 struct KMeshProcessorVertex
@@ -127,7 +125,8 @@ namespace KMeshProcessor
 
 	EXPORT_DLL bool Simplify(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices,
 		MeshSimplifyTarget target, uint32_t targetCount,
-		std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices);
+		std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices,
+		float& error);
 
 	EXPORT_DLL bool ConvertForMeshProcessor(const KAssetImportResult& input, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices);
 	EXPORT_DLL bool ConvertFromMeshProcessor(KAssetImportResult& output, const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<KAssetImportResult::Material>& originalMats);

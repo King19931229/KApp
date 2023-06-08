@@ -1,5 +1,6 @@
 #pragma once
 #include "KBase/Publish/KAABBBox.h"
+#include "KBase/Publish/KMath.h"
 #include "KBase/Publish/Mesh/KMeshProcessor.h"
 #include "KBase/Publish/Mesh/KQuadric.h"
 #include <unordered_set>
@@ -75,14 +76,16 @@ struct KEdgeHash
 	}
 };
 
+// TODO
+// 处理多个顶点属性组合可能
 class KMeshSimplification
 {
 protected:
 	typedef double Type;
 
-	Type NORMAL_WEIGHT = (Type)0.5F;
-	Type COLOR_WEIGHT = (Type)0.75F;
-	Type UV_WEIGHT = (Type)0.8F;
+	Type NORMAL_WEIGHT = (Type)1.0f;
+	Type COLOR_WEIGHT = (Type)0.0625f;
+	Type UV_WEIGHT[2] = { (Type)0.0625f,  (Type)0.0625f };
 
 	enum VertexFlag
 	{
@@ -126,6 +129,7 @@ protected:
 		Edge edge;
 		Edge version;
 		Type cost = 0;
+		Type error = 0;
 		Vertex vertex;
 
 		bool operator<(const EdgeContraction& rhs) const
@@ -165,9 +169,12 @@ protected:
 		int32_t prevVertexCount = 0;
 		int32_t currTriangleCount = 0;
 		int32_t currVertexCount = 0;
+		Type prevError = 0;
+		Type currError = 0;
 
 		int32_t* pVertexCount = nullptr;
 		int32_t* pTriangleCount = nullptr;
+		Type* pError = nullptr;
 
 		void Redo()
 		{
@@ -178,8 +185,10 @@ protected:
 
 			assert(*pVertexCount == prevVertexCount);
 			assert(*pTriangleCount == prevTriangleCount);
+			assert(*pError == prevError);
 			*pVertexCount = currVertexCount;
 			*pTriangleCount = currTriangleCount;
+			*pError = currError;
 		}
 
 		void Undo()
@@ -191,8 +200,10 @@ protected:
 
 			assert(*pVertexCount == currVertexCount);
 			assert(*pTriangleCount == currTriangleCount);
+			assert(*pError == currError);
 			*pVertexCount = prevVertexCount;
 			*pTriangleCount = prevTriangleCount;
+			*pError = prevError;
 		}
 	};
 
@@ -203,6 +214,10 @@ protected:
 	typedef KQuadric<Type, QuadircDimension> Quadric;
 	typedef KVector<Type, QuadircDimension> Vector;
 	typedef KMatrix<Type, QuadircDimension, QuadircDimension> Matrix;
+
+	typedef KVector<Type, 3> Vector3;
+	typedef KMatrix<Type, 3, 3> Matrix3;
+	typedef KQuadric<Type, 3> ErrorQuadric;
 
 	std::vector<Triangle> m_Triangles;
 	std::vector<Vertex> m_Vertices;
@@ -215,9 +230,11 @@ protected:
 
 	std::vector<Quadric> m_Quadric;
 	std::vector<AtrrQuadric> m_AttrQuadric;
+	std::vector<ErrorQuadric> m_ErrorQuadric;
 
 	std::vector<Quadric> m_TriQuadric;
 	std::vector<AtrrQuadric> m_TriAttrQuadric;
+	std::vector<ErrorQuadric> m_TriErrorQuadric;
 
 	std::priority_queue<EdgeContraction> m_EdgeHeap;
 	std::vector<EdgeCollapse> m_CollapseOperations;
@@ -231,7 +248,12 @@ protected:
 	int32_t m_MinTriangleCount = 0;
 	int32_t m_MaxTriangleCount = 0;
 
+	Type m_CurError = 0;
 	Type m_MaxErrorAllow = std::numeric_limits<Type>::max();
+
+	Type m_PositionScale = 1;
+	Type m_PositionInvScale = 1;
+
 	int32_t m_MinTriangleAllow = 1;
 	int32_t m_MinVertexAllow = 3;
 
@@ -304,7 +326,14 @@ protected:
 		return true;
 	}
 
-	std::tuple<Type, Vertex> ComputeCostAndVertex(const Edge& edge, const Quadric &quadric, const AtrrQuadric &attrQuadric) const
+	struct EdgeContractionResult
+	{
+		Type cost = 0;
+		Type error = 0;
+		Vertex result;
+	};
+
+	EdgeContractionResult ComputeContractionResult(const Edge& edge, const Quadric &quadric, const AtrrQuadric &attrQuadric, const ErrorQuadric& errorQuadric) const
 	{
 		int32_t v0 = edge.index[0];
 		int32_t v1 = edge.index[1];
@@ -360,14 +389,14 @@ protected:
 			}
 			else
 			{
-				constexpr size_t sgement = 3;
-				static_assert(sgement >= 1, "ensure sgement");
-				for (size_t i = 0; i < sgement; ++i)
+				constexpr size_t segment = 3;
+				static_assert(segment >= 1, "ensure segment");
+				for (size_t i = 0; i < segment; ++i)
 				{
-					auto pos = glm::mix(va.pos, vb.pos, (Type)(i) / (Type)(sgement - 1));
-					auto uv = glm::mix(va.uv, vb.uv, (Type)(i) / (Type)(sgement - 1));
-					auto normal = glm::mix(va.normal, vb.normal, (Type)(i) / (Type)(sgement - 1));
-					auto color = glm::mix(va.color, vb.color, (Type)(i) / (Type)(sgement - 1));
+					auto pos = glm::mix(va.pos, vb.pos, (Type)(i) / (Type)(segment - 1));
+					auto uv = glm::mix(va.uv, vb.uv, (Type)(i) / (Type)(segment - 1));
+					auto normal = glm::mix(va.normal, vb.normal, (Type)(i) / (Type)(segment - 1));
+					auto color = glm::mix(va.color, vb.color, (Type)(i) / (Type)(segment - 1));
 
 					vec.v[0] = pos[0];		vec.v[1] = pos[1];		vec.v[2] = pos[2];
 					vec.v[3] = uv[0];		vec.v[4] = uv[1];
@@ -386,12 +415,19 @@ protected:
 
 		Vertex vc;
 		vc.pos = decltype(vc.pos)(opt.v[0], opt.v[1], opt.v[2]);
-		vc.uv = glm::clamp(decltype(vc.uv)(opt.v[3] / UV_WEIGHT, opt.v[4] / UV_WEIGHT), uvBox[0], uvBox[1]);
+		vc.uv = glm::clamp(decltype(vc.uv)(opt.v[3] / UV_WEIGHT[0], opt.v[4] / UV_WEIGHT[0]), uvBox[0], uvBox[1]);
 		vc.normal = glm::normalize(decltype(vc.normal)(opt.v[5] / NORMAL_WEIGHT, opt.v[6] / NORMAL_WEIGHT, opt.v[7] / NORMAL_WEIGHT));
 		vc.color = glm::clamp(decltype(vc.color)(opt.v[8] / COLOR_WEIGHT, opt.v[9] / COLOR_WEIGHT, opt.v[10] / COLOR_WEIGHT), colorBox[0][0], colorBox[0][1]);
 		vc.partIndex = va.partIndex;
 
-		return std::make_tuple(cost, vc);
+		EdgeContractionResult result;
+
+		Type error = errorQuadric.Error(opt.v);
+
+		result.cost = cost;
+		result.error = error;
+		result.result = vc;
+		return result;
 	};
 
 	bool InitVertexData(const std::vector<KMeshProcessorVertex> vertices, const std::vector<uint32_t>& indices)
@@ -400,6 +436,46 @@ protected:
 
 		uint32_t vertexCount = (uint32_t)vertices.size();
 		uint32_t indexCount = (uint32_t)indices.size();
+		uint32_t maxTriCount = indexCount / 3;
+
+		const Type targetTriangleArea = 0.25f;
+		const Type uvSizeThreshold = 1.0f / 1024.0f;
+
+		Type uvSize[2] = { 0.0f, 0.0f };
+		Type triangleArea = 0;
+		Type maxEdgeLengthSquare = 0;
+		for (uint32_t i = 0; i < maxTriCount; ++i)
+		{
+			const uint32_t& id0 = indices[3 * i];
+			const uint32_t& id1 = indices[3 * i + 1];
+			const uint32_t& id2 = indices[3 * i + 2];
+
+			glm::tvec2<Type> e01 = vertices[id1].uv - vertices[id0].uv;
+			glm::tvec2<Type> e02 = vertices[id2].uv - vertices[id0].uv;
+
+			glm::tvec3<Type> v01 = vertices[id1].pos - vertices[id0].pos;
+			glm::tvec3<Type> v02 = vertices[id2].pos - vertices[id0].pos;
+			glm::tvec3<Type> v12 = vertices[id2].pos - vertices[id1].pos;
+
+			maxEdgeLengthSquare = glm::max(maxEdgeLengthSquare, glm::dot(v01, v01));
+			maxEdgeLengthSquare = glm::max(maxEdgeLengthSquare, glm::dot(v02, v02));
+			maxEdgeLengthSquare = glm::max(maxEdgeLengthSquare, glm::dot(v12, v12));
+
+			uvSize[0] += 0.5f * abs(e01.x * e02.y - e01.y * e02.x);
+			triangleArea += 0.5f * glm::length(glm::cross(v01, v02));
+		}
+
+		uvSize[0] = glm::max(uvSizeThreshold, sqrt(uvSize[0] / (Type)maxTriCount));
+		uvSize[1] = glm::max(uvSizeThreshold, sqrt(uvSize[1] / (Type)maxTriCount));
+		triangleArea = triangleArea / (Type)maxTriCount;
+
+		Type maxEdgeLength = sqrt(maxEdgeLengthSquare);
+
+		UV_WEIGHT[0] = 1.0f / (128.0f * uvSize[0]);
+		UV_WEIGHT[1] = 1.0f / (128.0f * uvSize[1]);
+
+		m_PositionScale = KMath::ScaleFactorToSameExponent(triangleArea, targetTriangleArea);
+		m_PositionInvScale = (Type)1 / m_PositionScale;
 
 		m_Vertices.resize(vertexCount);
 		m_Adjacencies.resize(vertexCount);
@@ -409,7 +485,7 @@ protected:
 
 		for (uint32_t i = 0; i < vertexCount; ++i)
 		{
-			m_Vertices[i].pos = vertices[i].pos;
+			m_Vertices[i].pos = glm::tvec3<Type>(vertices[i].pos) * m_PositionScale;
 			m_Vertices[i].uv = vertices[i].uv;
 			m_Vertices[i].color = vertices[i].color[0];
 			m_Vertices[i].normal = vertices[i].normal;
@@ -421,7 +497,6 @@ protected:
 
 		// m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f);
 
-		uint32_t maxTriCount = indexCount / 3;
 		m_Triangles.reserve(maxTriCount);
 
 		for (uint32_t i = 0; i < maxTriCount; ++i)
@@ -430,15 +505,21 @@ protected:
 			triangle.index[0] = indices[3 * i];
 			triangle.index[1] = indices[3 * i + 1];
 			triangle.index[2] = indices[3 * i + 2];
-			if (!IsDegenerateTriangle(triangle))
+
+			for (uint32_t i = 0; i < 3; ++i)
 			{
-				for (uint32_t i = 0; i < 3; ++i)
-				{
-					assert(triangle.index[i] < m_Adjacencies.size());
-					m_Adjacencies[triangle.index[i]].insert((int32_t)(m_Triangles.size()));
-					m_EdgeHash.AddEdgeHash(triangle.index[i], triangle.index[(i + 1) % 3], (int32_t)(m_Triangles.size()));
-				}
-				m_Triangles.push_back(triangle);
+				assert(triangle.index[i] < m_Adjacencies.size());
+				m_Adjacencies[triangle.index[i]].insert((int32_t)(m_Triangles.size()));
+				m_EdgeHash.AddEdgeHash(triangle.index[i], triangle.index[(i + 1) % 3], (int32_t)(m_Triangles.size()));
+			}
+
+			m_Triangles.push_back(triangle);
+
+			if (IsDegenerateTriangle(triangle))
+			{
+				m_Flags[indices[3 * i]] = VERTEX_FLAG_LOCK;
+				m_Flags[indices[3 * i + 1]] = VERTEX_FLAG_LOCK;
+				m_Flags[indices[3 * i + 2]] = VERTEX_FLAG_LOCK;
 			}
 		}
 
@@ -469,9 +550,9 @@ protected:
 		q.v[0] = vb.pos[0]; q.v[1] = vb.pos[1]; q.v[2] = vb.pos[2];
 		r.v[0] = vc.pos[0]; r.v[1] = vc.pos[1]; r.v[2] = vc.pos[2];
 
-		p.v[3] = UV_WEIGHT * va.uv[0]; p.v[4] = UV_WEIGHT * va.uv[1];
-		q.v[3] = UV_WEIGHT * vb.uv[0]; q.v[4] = UV_WEIGHT * vb.uv[1];
-		r.v[3] = UV_WEIGHT * vc.uv[0]; r.v[4] = UV_WEIGHT * vc.uv[1];
+		p.v[3] = UV_WEIGHT[0] * va.uv[0]; p.v[4] = UV_WEIGHT[0] * va.uv[1];
+		q.v[3] = UV_WEIGHT[0] * vb.uv[0]; q.v[4] = UV_WEIGHT[0] * vb.uv[1];
+		r.v[3] = UV_WEIGHT[0] * vc.uv[0]; r.v[4] = UV_WEIGHT[0] * vc.uv[1];
 
 		p.v[5] = NORMAL_WEIGHT * va.normal[0]; p.v[6] = NORMAL_WEIGHT * va.normal[1]; p.v[7] = NORMAL_WEIGHT * va.normal[2];
 		q.v[5] = NORMAL_WEIGHT * vb.normal[0]; q.v[6] = NORMAL_WEIGHT * vb.normal[1]; q.v[7] = NORMAL_WEIGHT * vb.normal[2];
@@ -522,8 +603,8 @@ protected:
 
 		for (uint32_t i = 0; i < 3; ++i)
 		{
-			m[i * AttrNum + 0] = UV_WEIGHT * (*v[i]).uv[0];
-			m[i * AttrNum + 1] = UV_WEIGHT * (*v[i]).uv[1];
+			m[i * AttrNum + 0] = UV_WEIGHT[0] * (*v[i]).uv[0];
+			m[i * AttrNum + 1] = UV_WEIGHT[0] * (*v[i]).uv[1];
 			m[i * AttrNum + 2] = NORMAL_WEIGHT * (*v[i]).normal[0];
 			m[i * AttrNum + 3] = NORMAL_WEIGHT * (*v[i]).normal[1];
 			m[i * AttrNum + 4] = NORMAL_WEIGHT * (*v[i]).normal[2];
@@ -539,23 +620,66 @@ protected:
 
 		AtrrQuadric res = AtrrQuadric(p, q, r, m);
 
-		glm::vec3 n = glm::cross(vb.pos - va.pos, vc.pos - va.pos);
-		Type area = 0.5f * glm::length(n);
+		glm::tvec3<Type> n = glm::cross(vb.pos - va.pos, vc.pos - va.pos);
+		Type area = Type(0.5f) * glm::length(n);
 		res *= area;
 
 		return res;
 	};
 
-	EdgeContraction ComputeContraction(int32_t v0, int32_t v1, const Quadric& quadric, const AtrrQuadric& attrQuadric) const
+	ErrorQuadric ComputePosQuadric(const Triangle& triangle) const
+	{
+		const Vertex& va = m_Vertices[triangle.index[0]];
+		const Vertex& vb = m_Vertices[triangle.index[1]];
+		const Vertex& vc = m_Vertices[triangle.index[2]];
+
+		ErrorQuadric res;
+
+		Vector3 p, q, r;
+		p.v[0] = va.pos[0]; p.v[1] = va.pos[1]; p.v[2] = va.pos[2];
+		q.v[0] = vb.pos[0]; q.v[1] = vb.pos[1]; q.v[2] = vb.pos[2];
+		r.v[0] = vc.pos[0]; r.v[1] = vc.pos[1]; r.v[2] = vc.pos[2];
+
+		Vector3 e1 = q - p;
+		e1 /= e1.Length();
+
+		Vector3 e2 = r - p;
+		e2 -= e1 * e2.Dot(e1);
+		e2 /= e2.Length();
+
+		Matrix3 A = Matrix3(1.0f) - Mul(e1, e1) - Mul(e2, e2);
+		Vector3 b = e1 * e1.Dot(p) + e2 * e2.Dot(p) - p;
+		Type c = p.Dot(p) - (p.Dot(e1) * p.Dot(e1)) - (p.Dot(e2) * p.Dot(e2));
+
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			for (uint32_t j = i; j < 3; ++j)
+			{
+				res.GetA(i, j) = A.m[i][j];
+			}
+			res.b[i] = b.v[i];
+		}
+
+		res.c = c;
+
+		glm::tvec3<Type> n = glm::cross(vb.pos - va.pos, vc.pos - va.pos);
+		Type area = Type(0.5f) * glm::length(n);
+		res *= area;
+
+		return res;
+	}
+
+	EdgeContraction ComputeContraction(int32_t v0, int32_t v1, const Quadric& quadric, const AtrrQuadric& attrQuadric, const ErrorQuadric& errorQuadric) const
 	{
 		EdgeContraction contraction;
 		contraction.edge.index[0] = v0;
 		contraction.edge.index[1] = v1;
 		contraction.version.index[0] = m_Versions[v0];
 		contraction.version.index[1] = m_Versions[v1];
-		std::tuple<Type, Vertex> costAndVertex = ComputeCostAndVertex(contraction.edge, quadric, attrQuadric);
-		contraction.cost = std::get<0>(costAndVertex);
-		contraction.vertex = std::get<1>(costAndVertex);
+		EdgeContractionResult result = ComputeContractionResult(contraction.edge, quadric, attrQuadric, errorQuadric);
+		contraction.cost = result.cost;
+		contraction.error = result.error;
+		contraction.vertex = result.result;
 		return contraction;
 	}
 
@@ -563,24 +687,29 @@ protected:
 	{
 		m_Quadric.resize(m_Vertices.size());
 		m_AttrQuadric.resize(m_Vertices.size());
+		m_ErrorQuadric.resize(m_Vertices.size());
 
 		m_TriQuadric.resize(m_Triangles.size());
 		m_TriAttrQuadric.resize(m_Triangles.size());
+		m_TriErrorQuadric.resize(m_Triangles.size());
 
 		for (size_t triIndex = 0; triIndex < m_Triangles.size(); ++triIndex)
 		{
 			m_TriQuadric[triIndex] = ComputeQuadric(m_Triangles[triIndex]);
 			m_TriAttrQuadric[triIndex] = ComputeAttrQuadric(m_Triangles[triIndex]);
+			m_TriErrorQuadric[triIndex] = ComputePosQuadric(m_Triangles[triIndex]);
 		}
 
 		for (size_t vertIndex = 0; vertIndex < m_Adjacencies.size(); ++vertIndex)
 		{
 			m_Quadric[vertIndex] = Quadric();
 			m_AttrQuadric[vertIndex] = AtrrQuadric();
+			m_ErrorQuadric[vertIndex] = ErrorQuadric();
 			for (int32_t triIndex : m_Adjacencies[vertIndex])
 			{
 				m_Quadric[vertIndex] += m_TriQuadric[triIndex];
 				m_AttrQuadric[vertIndex] += m_TriAttrQuadric[triIndex];
+				m_ErrorQuadric[vertIndex] += m_TriErrorQuadric[triIndex];
 			}
 		}
 
@@ -610,7 +739,7 @@ protected:
 				bool lock1 = m_Flags[v1] == VERTEX_FLAG_LOCK;
 				if (v0 < v1 && !(lock0 && lock1))
 				{
-					m_EdgeHeap.push(ComputeContraction(v0, v1, m_Quadric[v0] + m_Quadric[v1], m_AttrQuadric[v0] + m_AttrQuadric[v1]));
+					m_EdgeHeap.push(ComputeContraction(v0, v1, m_Quadric[v0] + m_Quadric[v1], m_AttrQuadric[v0] + m_AttrQuadric[v1], m_ErrorQuadric[v0] + m_ErrorQuadric[v1]));
 				}
 			}
 		}
@@ -619,15 +748,31 @@ protected:
 		{
 			m_Quadric.clear();
 			m_AttrQuadric.clear();
+			m_ErrorQuadric.clear();
 		}
 
 		return true;
 	}
 
-	bool PerformSimplification()
+	bool PerformSimplification(int32_t minVertexAllow, int32_t minTriangleAllow)
 	{
+		m_MinVertexAllow = minVertexAllow;
+		m_MinTriangleAllow = minTriangleAllow;
+
+		assert(m_MinVertexAllow >= 1 && m_MinTriangleAllow >= 3);
+		if (m_MinVertexAllow < 1 || m_MinTriangleAllow < 3)
+		{
+			return false;
+		}
+
 		m_CurVertexCount = m_MinVertexCount = m_MaxVertexCount;
 		m_CurTriangleCount = m_MinTriangleCount = m_MaxTriangleCount;
+		m_CurError = 0;
+
+		if (m_CurVertexCount <= m_MinVertexAllow || m_CurTriangleCount <= m_MinTriangleAllow)
+		{
+			return true;
+		}
 
 		size_t performCounter = 0;
 
@@ -683,9 +828,13 @@ protected:
 		while (!m_EdgeHeap.empty())
 		{
 			if (m_CurVertexCount < m_MinVertexAllow)
+			{
 				break;
+			}
 			if (m_CurTriangleCount < m_MinTriangleAllow)
+			{
 				break;
+			}
 
 			EdgeContraction contraction;
 			bool validContraction = false;
@@ -707,7 +856,7 @@ protected:
 				break;
 			}
 
-			if (contraction.cost > m_MaxErrorAllow)
+			if (contraction.error > m_MaxErrorAllow)
 				break;
 
 			assert(contraction.edge.index[0] != contraction.edge.index[1]);
@@ -913,6 +1062,7 @@ protected:
 			{
 				m_Quadric.push_back(m_Quadric[v0] + m_Quadric[v1]);
 				m_AttrQuadric.push_back(m_AttrQuadric[v0] + m_AttrQuadric[v1]);
+				m_ErrorQuadric.push_back(m_ErrorQuadric[v0] + m_ErrorQuadric[v1]);
 			}
 
 			auto NewModify = [this, newIndex](int32_t triIndex, int32_t pointIndex)->PointModify
@@ -927,7 +1077,8 @@ protected:
 			auto NewContraction = [this, newIndex](int32_t v0, int32_t v1)
 			{
 				Quadric quadric;
-				AtrrQuadric atrrQuadric;
+				AtrrQuadric attrQuadric;
+				ErrorQuadric errorQuadric;
 
 				if (m_Memoryless)
 				{
@@ -936,7 +1087,8 @@ protected:
 						if (IsValid(triIndex))
 						{
 							quadric += m_TriQuadric[triIndex];
-							atrrQuadric += m_TriAttrQuadric[triIndex];
+							attrQuadric += m_TriAttrQuadric[triIndex];
+							errorQuadric += m_TriErrorQuadric[triIndex];
 						}
 					}
 
@@ -945,17 +1097,19 @@ protected:
 						if (IsValid(triIndex))
 						{
 							quadric += m_TriQuadric[triIndex];
-							atrrQuadric += m_TriAttrQuadric[triIndex];
+							attrQuadric += m_TriAttrQuadric[triIndex];
+							errorQuadric += m_TriErrorQuadric[triIndex];
 						}
 					}
 				}
 				else
 				{
 					quadric = m_Quadric[v0] + m_Quadric[v1];
-					atrrQuadric = m_AttrQuadric[v0] + m_AttrQuadric[v1];
+					attrQuadric = m_AttrQuadric[v0] + m_AttrQuadric[v1];
+					errorQuadric = m_ErrorQuadric[v0] + m_ErrorQuadric[v1];
 				}
 
-				m_EdgeHeap.push(ComputeContraction(v0, v1, quadric, atrrQuadric));
+				m_EdgeHeap.push(ComputeContraction(v0, v1, quadric, attrQuadric, errorQuadric));
 			};
 
 			std::unordered_set<int32_t> newAdjacencySet;
@@ -1058,9 +1212,11 @@ protected:
 
 			collapse.pTriangleCount = &m_CurTriangleCount;
 			collapse.pVertexCount = &m_CurVertexCount;
+			collapse.pError = &m_CurError;
 
 			collapse.prevTriangleCount = m_CurTriangleCount;
 			collapse.prevVertexCount = m_CurVertexCount;
+			collapse.prevError = m_CurError;
 
 			AdjustAdjacencies(v0, collapse);
 			AdjustAdjacencies(v1, collapse);
@@ -1134,9 +1290,11 @@ protected:
 
 			m_CurTriangleCount -= invalidTriangle;
 			m_CurVertexCount -= invalidVertex + 1;
+			m_CurError = std::max(m_CurError, contraction.error);
 
 			collapse.currTriangleCount = m_CurTriangleCount;
 			collapse.currVertexCount = m_CurVertexCount;
+			collapse.currError = m_CurError;
 
 			if (!collapse.modifies.empty())
 			{
@@ -1147,8 +1305,8 @@ protected:
 			/*
 			if (!CheckEdge(newIndex))
 			{
-				m_Vertices[v0].uv = glm::vec2(0.2f, 0.05f);
-				m_Vertices[v1].uv = glm::vec2(0.2f, 0.05f);
+				m_Vertices[v0].color[0] = glm::vec3(0);
+				m_Vertices[v1].color[0] = glm::vec3(0);
 				break;
 			}
 			*/
@@ -1160,13 +1318,15 @@ protected:
 		return true;
 	}
 public:
-	bool Init(const std::vector<KMeshProcessorVertex> vertices, const std::vector<uint32_t>& indices)
+	bool Init(const std::vector<KMeshProcessorVertex> vertices, const std::vector<uint32_t>& indices, int32_t minVertexAllow, int32_t minTriangleAllow)
 	{
 		UnInit();
 		if (InitVertexData(vertices, indices) && InitHeapData())
 		{
-			if (PerformSimplification())
+			if (PerformSimplification(minVertexAllow, minTriangleAllow))
+			{
 				return true;
+			}
 		}
 		UnInit();
 		return false;
@@ -1178,9 +1338,11 @@ public:
 		m_Triangles.clear();
 		m_Vertices.clear();
 		m_Quadric.clear();
+		m_ErrorQuadric.clear();
 		m_AttrQuadric.clear();
 		m_TriQuadric.clear();
 		m_TriAttrQuadric.clear();
+		m_TriErrorQuadric.clear();
 		m_EdgeHeap = std::priority_queue<EdgeContraction>();
 		m_Versions.clear();
 		m_Flags.clear();
@@ -1193,6 +1355,7 @@ public:
 		m_CurTriangleCount = 0;
 		m_MinTriangleCount = 0;
 		m_MaxTriangleCount = 0;
+		m_CurError = 0;
 		return true;
 	}
 
@@ -1200,14 +1363,25 @@ public:
 	inline int32_t& GetMaxVertexCount() { return m_MaxVertexCount; }
 	inline int32_t& GetCurVertexCount() { return m_CurVertexCount; }
 
-	bool Simplify(MeshSimplifyTarget target, int32_t targetCount, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	bool Simplify(MeshSimplifyTarget target, int32_t targetCount, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, float& error)
 	{
 		vertices.clear();
 		indices.clear();
 
-		if (targetCount > 0)
+		if (target == MeshSimplifyTarget::VERTEX)
 		{
-			if (target == MeshSimplifyTarget::VERTEX)
+			if (targetCount < m_MinVertexCount)
+			{
+				return false;
+			}
+			else if (targetCount > m_MaxVertexCount)
+			{
+				while (m_CurVertexCount != m_MaxVertexCount)
+				{
+					UndoCollapse();
+				}
+			}
+			else
 			{
 				while (m_CurVertexCount < targetCount)
 				{
@@ -1218,9 +1392,22 @@ public:
 					RedoCollapse();
 				}
 			}
-			else if (target == MeshSimplifyTarget::TRIANGLE)
+		}
+		else if (target == MeshSimplifyTarget::TRIANGLE)
+		{
+			if (targetCount < m_MinTriangleCount)
 			{
-
+				return false;
+			}
+			else if (targetCount > m_MaxTriangleCount)
+			{
+				while (m_CurTriangleCount != m_MaxTriangleCount)
+				{
+					UndoCollapse();
+				}
+			}
+			else
+			{
 				while (m_CurTriangleCount < targetCount)
 				{
 					UndoCollapse();
@@ -1230,76 +1417,55 @@ public:
 					RedoCollapse();
 				}
 			}
-			else if (target == MeshSimplifyTarget::BOTH)
-			{
-				while (m_CurTriangleCount < targetCount && m_CurVertexCount < targetCount)
-				{
-					UndoCollapse();
-				}
-				while (m_CurTriangleCount > targetCount && m_CurVertexCount > targetCount)
-				{
-					RedoCollapse();
-				}
-			}
-			else if (target == MeshSimplifyTarget::EITHER)
-			{
-				while (m_CurTriangleCount < targetCount || m_CurVertexCount < targetCount)
-				{
-					UndoCollapse();
-				}
-				while (m_CurTriangleCount > targetCount || m_CurVertexCount > targetCount)
-				{
-					RedoCollapse();
-				}
-			}
-
-			for (uint32_t triIndex = 0; triIndex < (uint32_t)m_Triangles.size(); ++triIndex)
-			{
-				if (IsValid(triIndex))
-				{
-					indices.push_back(m_Triangles[triIndex].index[0]);
-					indices.push_back(m_Triangles[triIndex].index[1]);
-					indices.push_back(m_Triangles[triIndex].index[2]);
-				}
-			}
-			if (indices.size() == 0)
-			{
-				return false;
-			}
-
-			std::unordered_map<uint32_t, uint32_t> remapIndices;
-
-			for (size_t i = 0; i < indices.size(); ++i)
-			{
-				uint32_t oldIndex = indices[i];
-				auto it = remapIndices.find(oldIndex);
-				if (it == remapIndices.end())
-				{
-					int32_t mapIndex = (int32_t)remapIndices.size();
-					remapIndices.insert({ oldIndex, mapIndex });
-
-					KMeshProcessorVertex vertex;
-					vertex.partIndex = m_Vertices[oldIndex].partIndex;
-
-					vertex.pos = m_Vertices[oldIndex].pos;
-					vertex.uv = m_Vertices[oldIndex].uv;
-					vertex.color[0] = m_Vertices[oldIndex].color;
-					vertex.normal = m_Vertices[oldIndex].normal;
-
-					// TODO
-					// vertex.tangent;
-					// vertex.binormal;
-					vertices.push_back(vertex);
-				}
-			}
-
-			for (size_t i = 0; i < indices.size(); ++i)
-			{
-				indices[i] = remapIndices[indices[i]];
-			}
-
-			return true;
 		}
-		return false;
+
+		error = (float)(m_CurError * m_PositionScale);
+
+		for (uint32_t triIndex = 0; triIndex < (uint32_t)m_Triangles.size(); ++triIndex)
+		{
+			if (IsValid(triIndex))
+			{
+				indices.push_back(m_Triangles[triIndex].index[0]);
+				indices.push_back(m_Triangles[triIndex].index[1]);
+				indices.push_back(m_Triangles[triIndex].index[2]);
+			}
+		}
+		if (indices.size() == 0)
+		{
+			return false;
+		}
+
+		std::unordered_map<uint32_t, uint32_t> remapIndices;
+
+		for (size_t i = 0; i < indices.size(); ++i)
+		{
+			uint32_t oldIndex = indices[i];
+			auto it = remapIndices.find(oldIndex);
+			if (it == remapIndices.end())
+			{
+				int32_t mapIndex = (int32_t)remapIndices.size();
+				remapIndices.insert({ oldIndex, mapIndex });
+
+				KMeshProcessorVertex vertex;
+				vertex.partIndex = m_Vertices[oldIndex].partIndex;
+
+				vertex.pos = glm::tvec3<Type>(m_Vertices[oldIndex].pos) * m_PositionInvScale;
+				vertex.uv = m_Vertices[oldIndex].uv;
+				vertex.color[0] = m_Vertices[oldIndex].color;
+				vertex.normal = m_Vertices[oldIndex].normal;
+
+				// TODO
+				// vertex.tangent;
+				// vertex.binormal;
+				vertices.push_back(vertex);
+			}
+		}
+
+		for (size_t i = 0; i < indices.size(); ++i)
+		{
+			indices[i] = remapIndices[indices[i]];
+		}
+
+		return true;
 	}
 };

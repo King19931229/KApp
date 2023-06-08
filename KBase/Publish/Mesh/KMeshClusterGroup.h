@@ -19,6 +19,7 @@ struct KMeshCluster
 
 	std::vector<KMeshProcessorVertex> vertices;
 	std::vector<uint32_t> indices;
+	float error = 0;
 	glm::vec3 color;
 
 	KMeshCluster()
@@ -28,7 +29,7 @@ struct KMeshCluster
 	{
 		float random = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
 		color = glm::vec3(0, 0, 0);
-		color[rand() % 3] = random;
+		color[rand() % 3] = powf(random, 0.5f);
 	}
 
 	void UnInit()
@@ -137,7 +138,10 @@ struct KMeshClusterGroup
 {
 	std::vector<uint32_t> clusters;
 	std::vector<uint32_t> childrenClusters;
+	KAABBBox bound;
 	uint32_t level = 0;
+	uint32_t index = 0;
+	float maxError = 0;
 };
 
 struct KGraph
@@ -596,18 +600,21 @@ protected:
 		uint32_t numParent = KMath::DivideAndRoundUp((uint32_t)mergedCluster.indices.size(), (uint32_t)(6 * m_MaxPartitionNum));
 		m_Clusters.reserve(m_Clusters.size() + numParent);
 
+		uint32_t minTargetTriangleNum = m_MaxPartitionNum * numParent / 2;
+
 		KMeshSimplification simplification;
-		simplification.Init(mergedCluster.vertices, mergedCluster.indices);
+		simplification.Init(mergedCluster.vertices, mergedCluster.indices, 3, minTargetTriangleNum);
 
 		std::vector<KMeshProcessorVertex> vertices;
 		std::vector<uint32_t> indices;
 
+		float error = 0;
 		uint32_t parentBegin = (uint32_t)m_Clusters.size();
 
 		for (uint32_t partitionNum = m_MaxPartitionNum; partitionNum >= m_MaxPartitionNum / 2; partitionNum -= 2)
 		{
 			uint32_t targetTriangleNum = partitionNum * numParent;
-			if (!simplification.Simplify(MeshSimplifyTarget::TRIANGLE, targetTriangleNum, vertices, indices))
+			if (!simplification.Simplify(MeshSimplifyTarget::TRIANGLE, targetTriangleNum, vertices, indices, error))
 			{
 				continue;
 			}
@@ -643,17 +650,22 @@ protected:
 			KMeshClusterGroup newGroup;
 			newGroup.level = level + 1;
 
-			newGroup.clusters.resize(numParent);
-			for (uint32_t i = 0; i < numParent; ++i)
-			{
-				newGroup.clusters[i] = parentBegin + i;
-			}
-
 			newGroup.childrenClusters.resize(numChildren);
 			for (uint32_t i = 0; i < numChildren; ++i)
 			{
 				newGroup.childrenClusters[i] = childrenBegin + i;
+				error = std::max(error, m_Clusters[childrenBegin + i].error);
 			}
+
+			newGroup.clusters.resize(numParent);
+			for (uint32_t i = 0; i < numParent; ++i)
+			{
+				newGroup.clusters[i] = parentBegin + i;
+				m_Clusters[parentBegin + i].error = error;
+			}
+
+			newGroup.maxError = error;
+			newGroup.index = (uint32_t)m_ClusterGroups.size();
 
 			m_ClusterGroups.push_back(newGroup);
 		}
@@ -775,6 +787,7 @@ public:
 			{
 				newGroup.clusters[i] = begin + i;
 			}
+			newGroup.index = (uint32_t)m_ClusterGroups.size();
 			m_ClusterGroups.push_back(newGroup);
 		};
 

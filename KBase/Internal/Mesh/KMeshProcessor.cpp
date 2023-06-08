@@ -152,12 +152,13 @@ namespace KMeshProcessor
 
 	bool Simplify(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices,
 		MeshSimplifyTarget target, uint32_t targetCount,
-		std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices)
+		std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices,
+		float& error)
 	{
 		KMeshSimplification simplification;
-		if (simplification.Init(oldVertices, oldIndices))
+		if (simplification.Init(oldVertices, oldIndices, 1, 3))
 		{
-			return simplification.Simplify(target, targetCount, newVertices, newIndices);
+			return simplification.Simplify(target, targetCount, newVertices, newIndices, error);
 		}
 		return false;
 	}
