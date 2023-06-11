@@ -10,6 +10,9 @@ struct KRange
 	uint32_t end = 0;
 };
 
+struct KMeshCluster;
+typedef std::shared_ptr<KMeshCluster> KMeshClusterPtr;
+
 struct KMeshCluster
 {
 	struct Triangle
@@ -38,7 +41,7 @@ struct KMeshCluster
 		indices.clear();
 	}
 
-	void Init(KMeshCluster* clusters, size_t numClusters)
+	void Init(KMeshClusterPtr* clusters, size_t numClusters)
 	{
 		UnInit();
 		AssignRandomColor();
@@ -48,28 +51,29 @@ struct KMeshCluster
 
 		for (size_t i = 0; i < numClusters; ++i)
 		{
-			sumVertexNum += (uint32_t)clusters[i].vertices.size();
-			sumIndexNum += (uint32_t)clusters[i].indices.size();
+			sumVertexNum += (uint32_t)clusters[i]->vertices.size();
+			sumIndexNum += (uint32_t)clusters[i]->indices.size();
 		}
 
 		vertices.reserve(sumVertexNum);
 		indices.reserve(sumIndexNum);
 
-		std::unordered_map<KMeshProcessorVertex, uint32_t> vertexMap;
+		std::unordered_map<size_t, uint32_t> vertexMap;
 
 		for (size_t i = 0; i < numClusters; ++i)
 		{
-			KMeshCluster& cluster = clusters[i];
+			KMeshCluster& cluster = *clusters[i];
 			for (uint32_t index : cluster.indices)
 			{
 				const KMeshProcessorVertex& vertex = cluster.vertices[index];
+				size_t hash = KMeshProcessorVertexHash(vertex);
 				uint32_t newIndex = 0;
-				auto it = vertexMap.find(vertex);
+				auto it = vertexMap.find(hash);
 				if (it == vertexMap.end())
 				{
 					newIndex = (uint32_t)vertices.size();
 					vertices.push_back(vertex);
-					vertexMap.insert({ vertex, newIndex });
+					vertexMap.insert({ hash, newIndex });
 				}
 				else
 				{
@@ -131,8 +135,6 @@ struct KMeshCluster
 		indices.shrink_to_fit();
 	}
 };
-
-typedef std::shared_ptr<KMeshCluster> KMeshClusterPtr;
 
 struct KMeshClusterGroup
 {
@@ -202,12 +204,20 @@ struct KGraphPartitioner
 		mapback.clear();
 	}
 
-	void PartitionBisect(KGraph* graph, size_t maxPartition)
+	void PartitionBisect(KGraph* graph, size_t minPartition, size_t maxPartition)
 	{
+		idx_t expectedPartition = idx_t(minPartition + maxPartition) / 2;
+		idx_t expectedNumParts = std::max(2, (graph->num + (idx_t)expectedPartition - 1) / (idx_t)expectedPartition);
+
 		real_t partitionWeights[2] = { 0.5f, 0.5f };
+		partitionWeights[0] = (expectedNumParts >> 1) / (real_t)expectedNumParts;
+		partitionWeights[1] = 1 - partitionWeights[0];
 
 		idx_t options[METIS_NOPTIONS];
 		METIS_SetDefaultOptions(options);
+
+		bool bLoose = expectedNumParts >= 128 || maxPartition / minPartition > 1;
+		options[METIS_OPTION_UFACTOR] = bLoose ? 200 : 1;
 
 		idx_t numConstraints = 1;
 		idx_t numParts = 2;
@@ -324,12 +334,12 @@ struct KGraphPartitioner
 
 			assert(partition0.adjacencyOffset.size() + partition1.adjacencyOffset.size() - 1 == graph->adjacencyOffset.size());
 
-			PartitionBisect(&partition0, maxPartition);
-			PartitionBisect(&partition1, maxPartition);
+			PartitionBisect(&partition0, minPartition, maxPartition);
+			PartitionBisect(&partition1, minPartition, maxPartition);
 		}
 	}
 
-	void PartitionStrict(KGraph* graph, size_t maxPartition)
+	void PartitionStrict(KGraph* graph, size_t minPartition, size_t maxPartition)
 	{
 		Start(graph->num);		
 		if (graph->num < maxPartition)
@@ -338,16 +348,17 @@ struct KGraphPartitioner
 		}
 		else
 		{
-			PartitionBisect(graph, maxPartition);
+			PartitionBisect(graph, minPartition, maxPartition);
 		}
 		Finish();
 	}
 
-	void PartitionRelex(KGraph* graph, size_t maxPartition)
+	void PartitionRelex(KGraph* graph, size_t minPartition, size_t maxPartition)
 	{
 		Start(graph->num);
 
-		idx_t numPartition = (idx_t)((graph->num + (maxPartition - 1)) / maxPartition);
+		idx_t expectedPartition = idx_t(minPartition + maxPartition) / 2;
+		idx_t numPartition = (idx_t)((graph->num + (expectedPartition - 1)) / expectedPartition);
 
 		if (numPartition > 1)
 		{
@@ -425,8 +436,9 @@ class KMeshTriangleClusterBuilder
 protected:
 	typedef KMeshCluster::Triangle Triangle;
 
+	uint32_t m_MinPartitionNum = 124;
 	uint32_t m_MaxPartitionNum = 128;
-	std::vector<KMeshCluster> m_Clusters;
+	std::vector<KMeshClusterPtr> m_Clusters;
 
 	struct Adjacency
 	{
@@ -442,26 +454,27 @@ protected:
 			uint32_t numVertices = (uint32_t)vertices.size();
 			uint32_t numTriangles = (uint32_t)indices.size() / 3;
 
+			KEdgeHash edgeHash;
+			edgeHash.Init(numVertices);
+
 			context.triangles.resize(numTriangles);
 
-			std::vector<std::unordered_set<idx_t>> vertexAdjacencies;
-			vertexAdjacencies.resize(numVertices);
 			for (uint32_t triIndex = 0; triIndex < numTriangles; ++triIndex)
 			{
-				uint32_t idx0 = indices[3 * triIndex + 0];
-				uint32_t idx1 = indices[3 * triIndex + 1];
-				uint32_t idx2 = indices[3 * triIndex + 2];
+				uint32_t v0 = indices[3 * triIndex + 0];
+				uint32_t v1 = indices[3 * triIndex + 1];
+				uint32_t v2 = indices[3 * triIndex + 2];
 
-				assert(idx0 < numVertices);
-				assert(idx1 < numVertices);
-				assert(idx2 < numVertices);
+				assert(v0 < numVertices);
+				assert(v1 < numVertices);
+				assert(v2 < numVertices);
 
-				Triangle newTriangle = { {(int32_t)idx0, (int32_t)idx1, (int32_t)idx2} };
+				Triangle newTriangle = { {(int32_t)v0, (int32_t)v1, (int32_t)v2} };
 				context.triangles[triIndex] = newTriangle;
 
-				vertexAdjacencies[idx0].insert(triIndex);
-				vertexAdjacencies[idx1].insert(triIndex);
-				vertexAdjacencies[idx2].insert(triIndex);
+				edgeHash.AddEdgeHash(v0, v1, triIndex);
+				edgeHash.AddEdgeHash(v1, v2, triIndex);
+				edgeHash.AddEdgeHash(v2, v0, triIndex);
 			}
 
 			context.graph.adjacencyOffset.clear();
@@ -475,17 +488,19 @@ protected:
 
 			for (uint32_t triIndex = 0; triIndex < numTriangles; ++triIndex)
 			{
-				std::unordered_set<idx_t> triangleAdjacencies;
+				std::vector<idx_t> triangleAdjacencies;
+				triangleAdjacencies.reserve(3);
 				for (uint32_t i = 0; i < 3; ++i)
 				{
-					uint32_t vertIdx = context.triangles[triIndex].index[i];
-					for (uint32_t adjancyTriIndex : vertexAdjacencies[vertIdx])
+					uint32_t v0 = context.triangles[triIndex].index[i];
+					uint32_t v1 = context.triangles[triIndex].index[(i + 1) % 3];
+					edgeHash.ForEachTri(v1, v0, [triIndex, &triangleAdjacencies](int32_t adjTriIndex)
 					{
-						if (adjancyTriIndex != triIndex)
+						if (triIndex != adjTriIndex)
 						{
-							triangleAdjacencies.insert(adjancyTriIndex);
+							triangleAdjacencies.push_back(adjTriIndex);
 						}
-					}
+					});
 				}
 
 				context.graph.adjacencyOffset.push_back((idx_t)context.graph.adjacency.size());
@@ -508,15 +523,15 @@ protected:
 	void Partition(Adjacency& context)
 	{
 		KGraphPartitioner partitioner;
-		partitioner.PartitionStrict(&context.graph, m_MaxPartitionNum);
+		partitioner.PartitionStrict(&context.graph, m_MinPartitionNum, m_MaxPartitionNum);
 
 		m_Clusters.clear();
 		m_Clusters.reserve(partitioner.ranges.size());
 
 		for (const KRange& range : partitioner.ranges)
 		{
-			KMeshCluster cluster;
-			cluster.Init(context.vertices, context.triangles, partitioner.indices, range);
+			KMeshClusterPtr cluster = KMeshClusterPtr(new KMeshCluster());
+			cluster->Init(context.vertices, context.triangles, partitioner.indices, range);
 			m_Clusters.push_back(std::move(cluster));
 		}
 	}
@@ -527,9 +542,10 @@ public:
 		return true;
 	}
 
-	bool Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, int32_t maxPartitionNum)
+	bool Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum)
 	{
 		UnInit();
+		m_MinPartitionNum = minPartitionNum;
 		m_MaxPartitionNum = maxPartitionNum;
 		Adjacency adjacency;
 		if (BuildTriangleAdjacencies(vertices, indices, adjacency))
@@ -540,12 +556,12 @@ public:
 		return false;
 	}
 
-	void GetClusters(std::vector<KMeshCluster>& clusters)
+	void GetClusters(std::vector<KMeshClusterPtr>& clusters)
 	{
 		clusters = m_Clusters;
 	}
 
-	static bool ColorDebugCluster(const std::vector<KMeshCluster>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	static bool ColorDebugCluster(const std::vector<KMeshClusterPtr>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
 	{
 		vertices.clear();
 		indices.clear();
@@ -554,7 +570,7 @@ public:
 
 		for (uint32_t id : ids)
 		{
-			const KMeshCluster& cluster = clusters[id];
+			const KMeshCluster& cluster = *clusters[id];
 			std::vector<KMeshProcessorVertex> clusterVertices = cluster.vertices;
 			std::vector<uint32_t> clusterIndices = cluster.indices;
 			glm::vec3 clusterColor = cluster.color;
@@ -581,10 +597,12 @@ public:
 class KVirtualGeometryBuilder
 {
 protected:
-	std::vector<KMeshCluster> m_Clusters;
+	std::vector<KMeshClusterPtr> m_Clusters;
 	std::vector<KMeshClusterGroup> m_ClusterGroups;
 
+	uint32_t m_MinClusterGroup = 8;
 	uint32_t m_MaxClusterGroup = 32;
+	uint32_t m_MinPartitionNum = 124;
 	uint32_t m_MaxPartitionNum = 128;
 	uint32_t m_LevelNum = 0;
 
@@ -594,16 +612,15 @@ protected:
 		assert(childrenBegin < m_Clusters.size());
 		assert(childrenEnd < m_Clusters.size());
 
-		KMeshCluster mergedCluster;
-		mergedCluster.Init(m_Clusters.data() + childrenBegin, numChildren);
+		KMeshClusterPtr mergedCluster = KMeshClusterPtr(new KMeshCluster());
+		mergedCluster->Init(m_Clusters.data() + childrenBegin, numChildren);
 
-		uint32_t numParent = KMath::DivideAndRoundUp((uint32_t)mergedCluster.indices.size(), (uint32_t)(6 * m_MaxPartitionNum));
+		uint32_t numParent = KMath::DivideAndRoundUp((uint32_t)mergedCluster->indices.size(), (uint32_t)(6 * m_MaxPartitionNum));
 		m_Clusters.reserve(m_Clusters.size() + numParent);
 
 		uint32_t minTargetTriangleNum = m_MaxPartitionNum * numParent / 2;
-
 		KMeshSimplification simplification;
-		simplification.Init(mergedCluster.vertices, mergedCluster.indices, 3, minTargetTriangleNum);
+		simplification.Init(mergedCluster->vertices, mergedCluster->indices, 3, minTargetTriangleNum);
 
 		std::vector<KMeshProcessorVertex> vertices;
 		std::vector<uint32_t> indices;
@@ -611,7 +628,7 @@ protected:
 		float error = 0;
 		uint32_t parentBegin = (uint32_t)m_Clusters.size();
 
-		for (uint32_t partitionNum = m_MaxPartitionNum; partitionNum >= m_MaxPartitionNum / 2; partitionNum -= 2)
+		for (uint32_t partitionNum = m_MaxPartitionNum - 2; partitionNum >= m_MaxPartitionNum / 2; partitionNum -= 2)
 		{
 			uint32_t targetTriangleNum = partitionNum * numParent;
 			if (!simplification.Simplify(MeshSimplifyTarget::TRIANGLE, targetTriangleNum, vertices, indices, error))
@@ -621,18 +638,18 @@ protected:
 
 			if (numParent == 1)
 			{
-				mergedCluster.Init(vertices, indices);
+				mergedCluster->Init(vertices, indices);
 				m_Clusters.push_back(mergedCluster);
 				break;
 			}
 
 			KMeshTriangleClusterBuilder builder;
-			if (!builder.Init(vertices, indices, m_MaxPartitionNum))
+			if (!builder.Init(vertices, indices, m_MinPartitionNum, m_MaxPartitionNum))
 			{
 				continue;
 			}
 
-			std::vector<KMeshCluster> parentClusters;
+			std::vector<KMeshClusterPtr> parentClusters;
 			builder.GetClusters(parentClusters);
 
 			if (parentClusters.size() <= numParent)
@@ -654,14 +671,14 @@ protected:
 			for (uint32_t i = 0; i < numChildren; ++i)
 			{
 				newGroup.childrenClusters[i] = childrenBegin + i;
-				error = std::max(error, m_Clusters[childrenBegin + i].error);
+				error = std::max(error, m_Clusters[childrenBegin + i]->error);
 			}
 
 			newGroup.clusters.resize(numParent);
 			for (uint32_t i = 0; i < numParent; ++i)
 			{
 				newGroup.clusters[i] = parentBegin + i;
-				m_Clusters[parentBegin + i].error = error;
+				m_Clusters[parentBegin + i]->error = error;
 			}
 
 			newGroup.maxError = error;
@@ -674,72 +691,91 @@ protected:
 	void ClusterTriangle(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices)
 	{
 		KMeshTriangleClusterBuilder builder;
-		builder.Init(vertices, indices, m_MaxPartitionNum);
+		builder.Init(vertices, indices, m_MinPartitionNum, m_MaxPartitionNum);
 		builder.GetClusters(m_Clusters);
 	}
 
 	KGraph BuildClustersAdjacency(size_t begin, size_t end)
 	{
-		struct VertexInfo
-		{
-			std::unordered_set<size_t> clusterIDs;
-		};
+		std::unordered_map<size_t, size_t> vertNewIdxMap;
 
-		std::unordered_map<KMeshProcessorVertex, VertexInfo> vertices;
-
-		auto AssignClusterID = [&](const KMeshProcessorVertex& vertex, size_t clusterID)
+		size_t verticeHashSize = 0;
+		for (size_t idx = begin; idx <= end; ++idx)
 		{
-			auto it = vertices.find(vertex);
-			if (it == vertices.end())
-			{
-				size_t index = vertices.size();
-				VertexInfo info;
-				info.clusterIDs = { clusterID };
-				vertices.insert({ vertex,  info });
-			}
-			else
-			{
-				VertexInfo& info = it->second;
-				info.clusterIDs.insert(clusterID);
-			}
-		};
+			verticeHashSize += m_Clusters[idx]->indices.size();
+		}
+
+		std::vector<size_t> verticeHash;
+		verticeHash.resize(verticeHashSize);
+
+		size_t verticeHashIdxBegin = 0;
 
 		for (size_t idx = begin; idx <= end; ++idx)
 		{
-			const KMeshCluster& cluster = m_Clusters[idx];
+			const KMeshCluster& cluster = *m_Clusters[idx];
 			size_t clusterID = idx - begin;
-			for (uint32_t vertIdx : cluster.indices)
+			for (size_t i = 0; i < cluster.indices.size(); ++i)
 			{
+				uint32_t vertIdx = cluster.indices[i];
 				const KMeshProcessorVertex& vertex = cluster.vertices[vertIdx];
-				AssignClusterID(vertex, clusterID);
+				size_t hash = KMeshProcessorVertexHash(vertex);
+				if (vertNewIdxMap.find(hash) == vertNewIdxMap.end())
+				{
+					uint32_t newVertIdx = (uint32_t)vertNewIdxMap.size();
+					vertNewIdxMap.insert({ hash, newVertIdx });
+				}
+				verticeHash[verticeHashIdxBegin + i] = hash;
 			}
+			verticeHashIdxBegin += cluster.indices.size();
+		}
+
+		size_t verticesNum = vertNewIdxMap.size();
+
+		KEdgeHash edgeHash;
+		edgeHash.Init(verticesNum);
+
+		verticeHashIdxBegin = 0;
+
+		for (size_t idx = begin; idx <= end; ++idx)
+		{
+			const KMeshCluster& cluster = *m_Clusters[idx];
+			size_t clusterID = idx - begin;
+			for (size_t i = 0; i < cluster.indices.size(); ++i)
+			{
+				size_t v0Hash = verticeHash[verticeHashIdxBegin + i];
+				size_t v1Hash = verticeHash[verticeHashIdxBegin + 3 * (i / 3) + (i + 1) % 3];
+				int32_t newV0 = (int32_t)vertNewIdxMap[v0Hash];
+				int32_t newV1 = (int32_t)vertNewIdxMap[v1Hash];
+				edgeHash.AddEdgeHash((int32_t)newV0, (int32_t)newV1, (int32_t)clusterID);
+			}
+			verticeHashIdxBegin += cluster.indices.size();
 		}
 
 		size_t clusterNum = end - begin + 1;
 
-		std::vector<std::unordered_set<size_t>> clusterAdj;
+		std::vector<std::unordered_map<size_t, size_t>> clusterAdj;
 		clusterAdj.resize(clusterNum);
 
-		for (auto& pair : vertices)
+		for (int32_t v0 = 0; v0 < (int32_t)verticesNum; ++v0)
 		{
-			const VertexInfo& info = pair.second;
-			if (info.clusterIDs.size() > 1)
+			edgeHash.ForEach(v0, [v0, &clusterAdj, &edgeHash](int32_t v1, int32_t clusterID)
 			{
-				std::vector<size_t> clusterIDs = std::vector<size_t>(info.clusterIDs.begin(), info.clusterIDs.end());
-				for (size_t i = 0; i < clusterIDs.size(); ++i)
+				edgeHash.ForEachTri(v1, v0, [&clusterAdj, clusterID](int32_t anotherClusterID)
 				{
-					for (size_t j = 0; j < clusterIDs.size(); ++j)
+					if (clusterID != anotherClusterID)
 					{
-						if (i != j)
+						auto it = clusterAdj[clusterID].find(anotherClusterID);
+						if (it == clusterAdj[clusterID].end())
 						{
-							size_t clusterID0 = clusterIDs[i];
-							size_t clusterID1 = clusterIDs[j];
-							clusterAdj[clusterID0].insert(clusterID1);
-							clusterAdj[clusterID1].insert(clusterID0);
+							clusterAdj[clusterID].insert({ anotherClusterID, 1 });
+						}
+						else
+						{
+							++it->second;
 						}
 					}
-				}
-			}
+				});
+			});
 		}
 
 		KGraph graph;
@@ -753,10 +789,12 @@ protected:
 		for (size_t clusterID = 0; clusterID < clusterNum; ++clusterID)
 		{
 			graph.adjacencyOffset.push_back((idx_t)graph.adjacency.size());
-			for (size_t clusterAdjID : clusterAdj[clusterID])
+			for (auto& pair : clusterAdj[clusterID])
 			{
-				graph.adjacency.push_back((idx_t)clusterAdjID);
-				graph.adjacencyCost.push_back(1);
+				size_t anotherClusterID = pair.first;
+				size_t cost = pair.second;
+				graph.adjacency.push_back((idx_t)anotherClusterID);
+				graph.adjacencyCost.push_back((idx_t)cost);
 			}
 		}
 		graph.adjacencyOffset.push_back((idx_t)graph.adjacency.size());
@@ -764,8 +802,9 @@ protected:
 		return graph;
 	}
 public:
-	bool Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, int32_t maxPartitionNum)
+	bool Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum)
 	{
+		m_MinPartitionNum = minPartitionNum;
 		m_MaxPartitionNum = maxPartitionNum;
 		m_LevelNum = 0;
 
@@ -821,10 +860,10 @@ public:
 			KGraph clusterGraph = BuildClustersAdjacency(levelClusterBegin, levelClusterEnd);
 
 			KGraphPartitioner partitioner;
-			partitioner.PartitionStrict(&clusterGraph, m_MaxClusterGroup);
+			partitioner.PartitionStrict(&clusterGraph, m_MinClusterGroup, m_MaxClusterGroup);
 
 			{
-				std::vector<KMeshCluster> newOrderCluster;
+				std::vector<KMeshClusterPtr> newOrderCluster;
 				newOrderCluster.resize(levelClusterNum);
 				for (idx_t index : partitioner.indices)
 				{

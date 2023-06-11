@@ -31,6 +31,8 @@ struct KEdgeHash
 
 	void AddEdgeHash(int32_t v0, int32_t v1, int32_t triIndex)
 	{
+		assert(v0 < (int32_t)edges.size());
+		assert(v1 < (int32_t)edges.size());
 		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
 		auto it = link.find(v1);
 		if (it == link.end())
@@ -42,6 +44,8 @@ struct KEdgeHash
 
 	void RemoveEdgeHash(int32_t v0, int32_t v1, int32_t triIndex)
 	{
+		assert(v0 < (int32_t)edges.size());
+		assert(v1 < (int32_t)edges.size());
 		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
 		auto it = link.find(v1);
 		if (it != link.end())
@@ -52,12 +56,14 @@ struct KEdgeHash
 
 	void ClearEdgeHash(int32_t v0)
 	{
+		assert(v0 < (int32_t)edges.size());
 		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
 		link.clear();
 	}
 
 	void ForEach(int32_t v0, std::function<void(int32_t, int32_t)> call)
 	{
+		assert(v0 < (int32_t)edges.size());
 		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
 		for (auto it = link.begin(); it != link.end(); ++it)
 		{
@@ -72,7 +78,23 @@ struct KEdgeHash
 
 	bool HasConnection(int32_t v0, int32_t v1) const
 	{
+		assert(v0 < (int32_t)edges.size());
+		assert(v1 < (int32_t)edges.size());
 		return edges[v0].find(v1) != edges[v0].end();
+	}
+
+	void ForEachTri(int32_t v0, int32_t v1, std::function<void(int32_t)> call)
+	{
+		assert(v0 < (int32_t)edges.size());
+		assert(v1 < (int32_t)edges.size());
+		auto it = edges[v0].find(v1);
+		if (it != edges[v0].end())
+		{
+			for (int32_t triIndex : it->second)
+			{
+				call(triIndex);
+			}
+		}
 	}
 };
 
@@ -347,20 +369,13 @@ protected:
 		assert(!(lock0 && lock1));
 
 		glm::tvec2<Type> uvBox[2];
-
 		glm::tvec3<Type> colorBox[5][2];
 
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			uvBox[0][i] = std::min(va.uv[i], vb.uv[i]);
-			uvBox[1][i] = std::max(va.uv[i], vb.uv[i]);
-		}
+		uvBox[0] = glm::min(va.uv, vb.uv);
+		uvBox[1] = glm::max(va.uv, vb.uv);
 
-		for (uint32_t i = 0; i < 3; ++i)
-		{
-			colorBox[0][0][i] = std::min(va.color[i], vb.color[i]);
-			colorBox[0][1][i] = std::max(va.color[i], vb.color[i]);
-		}
+		colorBox[0][0] = glm::min(va.color, vb.color);
+		colorBox[0][1] = glm::max(va.color, vb.color);
 
 		Type cost = std::numeric_limits<Type>::max();
 		Vector opt;
@@ -393,10 +408,11 @@ protected:
 				static_assert(segment >= 1, "ensure segment");
 				for (size_t i = 0; i < segment; ++i)
 				{
-					auto pos = glm::mix(va.pos, vb.pos, (Type)(i) / (Type)(segment - 1));
-					auto uv = glm::mix(va.uv, vb.uv, (Type)(i) / (Type)(segment - 1));
-					auto normal = glm::mix(va.normal, vb.normal, (Type)(i) / (Type)(segment - 1));
-					auto color = glm::mix(va.color, vb.color, (Type)(i) / (Type)(segment - 1));
+					Type factor = (Type)(i) / (Type)(segment - 1);
+					auto pos = glm::mix(va.pos, vb.pos, factor);
+					auto uv = glm::mix(va.uv, vb.uv, factor);
+					auto normal = glm::mix(va.normal, vb.normal, factor);
+					auto color = glm::mix(va.color, vb.color, factor);
 
 					vec.v[0] = pos[0];		vec.v[1] = pos[1];		vec.v[2] = pos[2];
 					vec.v[3] = uv[0];		vec.v[4] = uv[1];
@@ -430,7 +446,39 @@ protected:
 		return result;
 	};
 
-	bool InitVertexData(const std::vector<KMeshProcessorVertex> vertices, const std::vector<uint32_t>& indices)
+	void SanitizeDuplicatedVertexData(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	{
+		vertices.clear();
+		indices.clear();
+
+		vertices.reserve(oldVertices.size());
+		indices.reserve(oldIndices.size());
+
+		std::unordered_map<size_t, size_t> mapIndices;
+
+		for (uint32_t index : oldIndices)
+		{
+			const KMeshProcessorVertex& vertex = oldVertices[index];
+			size_t hash = KMeshProcessorVertexHash(vertex);
+			auto it = mapIndices.find(hash);
+			uint32_t newIndex = 0;
+			if (it == mapIndices.end())
+			{
+				newIndex = (uint32_t)vertices.size();
+				mapIndices.insert({ hash, newIndex });
+				vertices.push_back(vertex);
+			}
+			else
+			{
+				newIndex = (uint32_t)it->second;
+			}
+			indices.push_back(newIndex);
+		}
+
+		return;
+	}
+
+	bool InitVertexData(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices)
 	{
 		KAABBBox bound;
 
@@ -520,6 +568,21 @@ protected:
 				m_Flags[indices[3 * i]] = VERTEX_FLAG_LOCK;
 				m_Flags[indices[3 * i + 1]] = VERTEX_FLAG_LOCK;
 				m_Flags[indices[3 * i + 2]] = VERTEX_FLAG_LOCK;
+			}
+		}
+
+		for (int32_t triIndex = 0; triIndex < (int32_t)m_Triangles.size(); ++triIndex)
+		{
+			const Triangle& triangle = m_Triangles[triIndex];
+			for (size_t i = 0; i < 3; ++i)
+			{
+				int32_t v0 = triangle.index[i];
+				int32_t v1 = triangle.index[(i + 1) % 3];
+				assert(m_EdgeHash.HasConnection(v0, v1));
+				if (!m_EdgeHash.HasConnection(v1, v0))
+				{
+					m_Flags[v0] = m_Flags[v1] = VERTEX_FLAG_LOCK;
+				}
 			}
 		}
 
@@ -627,7 +690,7 @@ protected:
 		return res;
 	};
 
-	ErrorQuadric ComputePosQuadric(const Triangle& triangle) const
+	ErrorQuadric ComputeErrorQuadric(const Triangle& triangle) const
 	{
 		const Vertex& va = m_Vertices[triangle.index[0]];
 		const Vertex& vb = m_Vertices[triangle.index[1]];
@@ -683,7 +746,7 @@ protected:
 		return contraction;
 	}
 
-	bool InitHeapData()
+	void InitHeapData()
 	{
 		m_Quadric.resize(m_Vertices.size());
 		m_AttrQuadric.resize(m_Vertices.size());
@@ -697,7 +760,7 @@ protected:
 		{
 			m_TriQuadric[triIndex] = ComputeQuadric(m_Triangles[triIndex]);
 			m_TriAttrQuadric[triIndex] = ComputeAttrQuadric(m_Triangles[triIndex]);
-			m_TriErrorQuadric[triIndex] = ComputePosQuadric(m_Triangles[triIndex]);
+			m_TriErrorQuadric[triIndex] = ComputeErrorQuadric(m_Triangles[triIndex]);
 		}
 
 		for (size_t vertIndex = 0; vertIndex < m_Adjacencies.size(); ++vertIndex)
@@ -710,21 +773,6 @@ protected:
 				m_Quadric[vertIndex] += m_TriQuadric[triIndex];
 				m_AttrQuadric[vertIndex] += m_TriAttrQuadric[triIndex];
 				m_ErrorQuadric[vertIndex] += m_TriErrorQuadric[triIndex];
-			}
-		}
-
-		for (int32_t triIndex = 0; triIndex < (int32_t)m_Triangles.size(); ++triIndex)
-		{
-			const Triangle& triangle = m_Triangles[triIndex];
-			for (size_t i = 0; i < 3; ++i)
-			{
-				int32_t v0 = triangle.index[i];
-				int32_t v1 = triangle.index[(i + 1) % 3];
-				assert(m_EdgeHash.HasConnection(v0, v1));
-				if (!m_EdgeHash.HasConnection(v1, v0))
-				{
-					m_Flags[v0] = m_Flags[v1] = VERTEX_FLAG_LOCK;
-				}
 			}
 		}
 
@@ -750,8 +798,6 @@ protected:
 			m_AttrQuadric.clear();
 			m_ErrorQuadric.clear();
 		}
-
-		return true;
 	}
 
 	bool PerformSimplification(int32_t minVertexAllow, int32_t minTriangleAllow)
@@ -857,7 +903,9 @@ protected:
 			}
 
 			if (contraction.error > m_MaxErrorAllow)
-				break;
+			{
+				continue;
+			}
 
 			assert(contraction.edge.index[0] != contraction.edge.index[1]);
 
@@ -1039,6 +1087,7 @@ protected:
 
 					m_TriQuadric[triIndex] = ComputeQuadric(triangle);
 					m_TriAttrQuadric[triIndex] = ComputeAttrQuadric(triangle);
+					m_TriErrorQuadric[triIndex] = ComputeErrorQuadric(triangle);
 
 					adjacencyVert.insert(triangle.index[(idx + 1) % 3]);
 					adjacencyVert.insert(triangle.index[(idx + 2) % 3]);
@@ -1053,6 +1102,7 @@ protected:
 
 					m_TriQuadric[triIndex] = ComputeQuadric(triangle);
 					m_TriAttrQuadric[triIndex] = ComputeAttrQuadric(triangle);
+					m_TriErrorQuadric[triIndex] = ComputeErrorQuadric(triangle);
 
 					adjacencyVert.insert(triangle.index[(idx + 1) % 3]);
 					adjacencyVert.insert(triangle.index[(idx + 2) % 3]);
@@ -1318,16 +1368,23 @@ protected:
 		return true;
 	}
 public:
-	bool Init(const std::vector<KMeshProcessorVertex> vertices, const std::vector<uint32_t>& indices, int32_t minVertexAllow, int32_t minTriangleAllow)
+	bool Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, int32_t minVertexAllow, int32_t minTriangleAllow)
 	{
 		UnInit();
-		if (InitVertexData(vertices, indices) && InitHeapData())
+
+		std::vector<KMeshProcessorVertex> newVertices;
+		std::vector<uint32_t> newIndices;
+
+		SanitizeDuplicatedVertexData(vertices, indices, newVertices, newIndices);
+		if (InitVertexData(newVertices, newIndices))
 		{
+			InitHeapData();
 			if (PerformSimplification(minVertexAllow, minTriangleAllow))
 			{
 				return true;
 			}
 		}
+
 		UnInit();
 		return false;
 	}
@@ -1419,7 +1476,7 @@ public:
 			}
 		}
 
-		error = (float)(m_CurError * m_PositionScale);
+		error = (float)(sqrt(m_CurError) * m_PositionInvScale);
 
 		for (uint32_t triIndex = 0; triIndex < (uint32_t)m_Triangles.size(); ++triIndex)
 		{
