@@ -42,7 +42,7 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f }
 	};
 
-	static const uint32_t fileIndex = 5;
+	static const uint32_t fileIndex = 2;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
@@ -116,17 +116,24 @@ void InitQEM(IKEnginePtr engine)
 	{
 		ImGui::Begin("QEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-		static int32_t targetCount = 0;
-		static int32_t targetLevel = 0;
-		static int32_t currentTargetLevel = -1;
-
 		static bool debugSimplification = false;
+		static int32_t targetCount = 0;
 		ImGui::Checkbox("DebugSimplification", &debugSimplification);
 		ImGui::SliderInt("TargetCount", &targetCount, std::max(simplification.GetMaxVertexCount() - 1000000, simplification.GetMinVertexCount()), std::min(simplification.GetMaxVertexCount(), simplification.GetMaxVertexCount()));
 
 		static bool debugCluster = false;
+		static int32_t targetLevel = 0;
 		ImGui::Checkbox("DebugCluster", &debugCluster);
 		ImGui::SliderInt("TargetLevel", &targetLevel, 0, (int)(clusterBuilder.GetLevelNum() - 1));
+
+		static bool debugDAGCut = false;
+		static bool updateDebugDAGCut = false;
+		static int32_t targetTriangleNum = 0;
+		static float targetError = 0;
+		ImGui::Checkbox("DebugDAGCut", &debugDAGCut);
+		ImGui::SliderInt("TargetTriangleNum", &targetTriangleNum, (int)clusterBuilder.GetMinTriangleNum(), (int)clusterBuilder.GetMaxTriangleNum());
+		ImGui::SliderFloat("TargetError", &targetError, 0, clusterBuilder.GetMaxError());
+		ImGui::Checkbox("UpdateDebugDAGCut", &updateDebugDAGCut);
 
 		IKRenderComponent* component = nullptr;
 		if (entity->GetComponent(CT_RENDER, &component))
@@ -154,6 +161,7 @@ void InitQEM(IKEnginePtr engine)
 				}
 				else if (debugCluster)
 				{
+					static int32_t currentTargetLevel = -1;
 					if (currentTargetLevel != targetLevel)
 					{
 						clusterBuilder.ColorDebugClusterGroup(targetLevel, vertices, indices);
@@ -165,6 +173,23 @@ void InitQEM(IKEnginePtr engine)
 							}
 						}
 						currentTargetLevel = targetLevel;
+					}
+				}
+				else if (debugDAGCut)
+				{
+					static uint32_t currentTargetTriangleNum = std::numeric_limits<uint32_t>::max();
+					static float currentTargetError = -1;
+					if (updateDebugDAGCut)
+					{
+						clusterBuilder.ColorDebugDAGCut(targetTriangleNum, targetError, vertices, indices, currentTargetTriangleNum, currentTargetError);
+						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, originalMats))
+						{
+							if (KMeshProcessor::CalcTBN(vertices, indices))
+							{
+								component->InitAsUserData(result, "cluster", false);
+							}
+						}
+						updateDebugDAGCut = false;
 					}
 				}
 			}

@@ -20,9 +20,14 @@ struct KMeshCluster
 		int32_t index[3] = { -1, -1 ,-1 };
 	};
 
+	constexpr static uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
+
 	std::vector<KMeshProcessorVertex> vertices;
 	std::vector<uint32_t> indices;
+	uint32_t generatingGroupIndex = INVALID_INDEX;
+	uint32_t level = 0;
 	float error = 0;
+	bool root = true;
 	glm::vec3 color;
 
 	KMeshCluster()
@@ -606,6 +611,10 @@ protected:
 	uint32_t m_MaxPartitionNum = 128;
 	uint32_t m_LevelNum = 0;
 
+	uint32_t m_MaxTriangleNum = 0;
+	uint32_t m_MinTriangleNum = 0;
+	float m_MaxError = 0;
+
 	void DAGReduce(uint32_t childrenBegin, uint32_t childrenEnd, uint32_t level)
 	{
 		uint32_t numChildren = childrenEnd - childrenBegin + 1;
@@ -671,18 +680,21 @@ protected:
 			for (uint32_t i = 0; i < numChildren; ++i)
 			{
 				newGroup.childrenClusters[i] = childrenBegin + i;
+				m_Clusters[childrenBegin + i]->root = false;
 				error = std::max(error, m_Clusters[childrenBegin + i]->error);
 			}
+
+			newGroup.maxError = error;
+			newGroup.index = (uint32_t)m_ClusterGroups.size();
 
 			newGroup.clusters.resize(numParent);
 			for (uint32_t i = 0; i < numParent; ++i)
 			{
 				newGroup.clusters[i] = parentBegin + i;
 				m_Clusters[parentBegin + i]->error = error;
+				m_Clusters[parentBegin + i]->level = newGroup.level;
+				m_Clusters[parentBegin + i]->generatingGroupIndex = newGroup.index;
 			}
-
-			newGroup.maxError = error;
-			newGroup.index = (uint32_t)m_ClusterGroups.size();
 
 			m_ClusterGroups.push_back(newGroup);
 		}
@@ -899,28 +911,178 @@ public:
 		}
 
 		m_LevelNum = currentLevel;
+		
+		m_MinTriangleNum = 0;
+		m_MaxTriangleNum = 0;
+		m_MaxError = 0;
+
+		for (size_t i = m_ClusterGroups.size(); i >= 1; --i)
+		{
+			size_t groupIndex = i - 1;
+			const KMeshClusterGroup& group = m_ClusterGroups[groupIndex];
+			for (uint32_t clusterIndex : group.clusters)
+			{
+				KMeshClusterPtr cluster = m_Clusters[clusterIndex];
+				if (cluster->root)
+				{
+					m_MinTriangleNum += (uint32_t)cluster->indices.size() / 3;
+				}
+				else if (cluster->generatingGroupIndex == KMeshCluster::INVALID_INDEX)
+				{
+					m_MaxTriangleNum += (uint32_t)cluster->indices.size() / 3;
+				}
+				m_MaxError = glm::max(m_MaxError, cluster->error);
+			}
+		}
 
 		return true;
 	}
 
+	void FindDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<uint32_t>& clusterIndices, uint32_t& triangleCount, float& error)
+	{
+		struct DAGCutElement
+		{
+			uint32_t clusterIndex;
+			float error = 0;
+
+			bool operator<(const DAGCutElement& rhs) const
+			{
+				return error < rhs.error;
+			}
+
+			DAGCutElement(uint32_t index, float err)
+				: clusterIndex(index)
+				, error(err)
+			{
+			}
+		};
+
+		std::vector<bool> clusterInHeap;
+		clusterInHeap.resize(m_Clusters.size());
+
+		std::priority_queue<DAGCutElement> clusterHeap;
+
+		uint32_t curTriangleCount = 0;
+
+		for (size_t i = m_ClusterGroups.size(); i >= 1; --i)
+		{
+			size_t groupIndex = i - 1;
+			const KMeshClusterGroup& group = m_ClusterGroups[groupIndex];
+			for (uint32_t clusterIndex : group.clusters)
+			{
+				KMeshClusterPtr cluster = m_Clusters[clusterIndex];
+				if (cluster->root)
+				{
+					DAGCutElement element(clusterIndex, cluster->error);
+					clusterHeap.push(element);
+					curTriangleCount += (uint32_t)cluster->indices.size() / 3;
+					clusterInHeap[clusterIndex] = true;
+				}
+			}
+		}
+
+		float minError = std::numeric_limits<float>::max();
+		float curError = -1;
+
+		while (!clusterHeap.empty())
+		{
+			DAGCutElement element = clusterHeap.top();
+
+			KMeshClusterPtr cluster = m_Clusters[element.clusterIndex];
+			curError = element.error;
+			assert(curError == cluster->error);
+
+			if (cluster->level == 0)
+			{
+				break;
+			}
+
+			bool targetHit = false;
+			if (curError <= targetError || curTriangleCount >= targetTriangleCount)
+			{
+				targetHit = true;
+			}
+
+			if (targetHit && curError < minError)
+			{
+				break;
+			}
+
+			minError = std::min(minError, curError);
+
+			clusterHeap.pop();
+			curTriangleCount -= (uint32_t)m_Clusters[element.clusterIndex]->indices.size() / 3;
+
+			const KMeshClusterGroup& group = m_ClusterGroups[cluster->generatingGroupIndex];
+			for (uint32_t clusterIndex : group.childrenClusters)
+			{
+				if (clusterInHeap[clusterIndex])
+				{
+					continue;
+				}
+				DAGCutElement element(clusterIndex, m_Clusters[clusterIndex]->error);
+				clusterHeap.push(element);
+				curTriangleCount += (uint32_t)m_Clusters[clusterIndex]->indices.size() / 3;
+				clusterInHeap[clusterIndex] = true;
+			}
+		}
+
+		assert(curError <= targetError || curTriangleCount >= targetTriangleCount);
+
+		triangleCount = curTriangleCount;
+		error = curError;
+
+		clusterIndices.clear();
+		clusterIndices.reserve(clusterHeap.size());
+
+		while (!clusterHeap.empty())
+		{
+			DAGCutElement element = clusterHeap.top();
+			clusterIndices.push_back(element.clusterIndex);
+			clusterHeap.pop();
+		}
+	}
+
+	void ColorDebugDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, uint32_t& triangleCount, float& error)
+	{
+		std::vector<uint32_t> clusterIndices;
+		FindDAGCut(targetTriangleCount, targetError, clusterIndices, triangleCount, error);
+		KMeshTriangleClusterBuilder::ColorDebugCluster(m_Clusters, clusterIndices, vertices, indices);
+	}
+
 	void ColorDebugClusterGroup(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
 	{
-		std::vector<uint32_t> ids;
+		std::vector<uint32_t> clusterIndices;
 		for (const KMeshClusterGroup& group : m_ClusterGroups)
 		{
 			if (group.level == level)
 			{
 				for (uint32_t id : group.clusters)
 				{
-					ids.push_back(id);
+					clusterIndices.push_back(id);
 				}
 			}
 		}
-		KMeshTriangleClusterBuilder::ColorDebugCluster(m_Clusters, ids, vertices, indices);
+		KMeshTriangleClusterBuilder::ColorDebugCluster(m_Clusters, clusterIndices, vertices, indices);
 	}
 
 	uint32_t GetLevelNum() const
 	{
 		return m_LevelNum;
+	}
+
+	uint32_t GetMaxTriangleNum() const
+	{
+		return m_MaxTriangleNum;
+	}
+
+	uint32_t GetMinTriangleNum() const
+	{
+		return m_MinTriangleNum;
+	}
+	
+	float GetMaxError() const
+	{
+		return m_MaxError;
 	}
 };

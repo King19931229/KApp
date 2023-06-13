@@ -49,7 +49,7 @@ namespace KRenderGlobal
 	KStatistics Statistics;
 
 	bool EnableDebugRender = false;
-	bool DisableRayTrace = false;
+	bool DisableRayTrace = true;
 	bool SupportAnisotropySample = false;
 
 	uint32_t CurrentInFlightFrameIndex = 0;
