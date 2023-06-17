@@ -1,7 +1,9 @@
 #pragma once
 #include "KBase/Publish/Mesh/KMeshProcessor.h"
 #include "KBase/Publish/Mesh/KMeshSimplification.h"
+#include "KBase/Publish/KFileTool.h"
 #include <unordered_set>
+#include <sstream>
 #include <metis.h>
 
 struct KRange
@@ -24,6 +26,7 @@ struct KMeshCluster
 
 	std::vector<KMeshProcessorVertex> vertices;
 	std::vector<uint32_t> indices;
+	uint32_t groupIndex = INVALID_INDEX;
 	uint32_t generatingGroupIndex = INVALID_INDEX;
 	uint32_t level = 0;
 	float error = 0;
@@ -33,11 +36,13 @@ struct KMeshCluster
 	KMeshCluster()
 	{}
 
-	void AssignRandomColor()
+	static glm::vec3 RandomColor()
 	{
-		float random = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
-		color = glm::vec3(0, 0, 0);
-		color[rand() % 3] = powf(random, 0.5f);
+		glm::vec3 color;
+		color[0] = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+		color[1] = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+		color[2] = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+		return color;
 	}
 
 	void UnInit()
@@ -49,7 +54,7 @@ struct KMeshCluster
 	void Init(KMeshClusterPtr* clusters, size_t numClusters)
 	{
 		UnInit();
-		AssignRandomColor();
+		color = RandomColor();
 
 		uint32_t sumVertexNum = 0;
 		uint32_t sumIndexNum = 0;
@@ -95,7 +100,7 @@ struct KMeshCluster
 	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices)
 	{
 		UnInit();
-		AssignRandomColor();
+		color = RandomColor();
 		vertices = inVertices;
 		indices = inIndices;
 	}
@@ -103,7 +108,7 @@ struct KMeshCluster
 	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<Triangle>& inTriangles, const std::vector<idx_t>& inTriIndices, const KRange& range)
 	{
 		UnInit();
-		AssignRandomColor();
+		color = RandomColor();
 
 		size_t num = range.end - range.begin + 1;
 
@@ -146,6 +151,7 @@ struct KMeshClusterGroup
 	std::vector<uint32_t> clusters;
 	std::vector<uint32_t> childrenClusters;
 	KAABBBox bound;
+	glm::vec3 color;
 	uint32_t level = 0;
 	uint32_t index = 0;
 	float maxError = 0;
@@ -211,8 +217,14 @@ struct KGraphPartitioner
 
 	void PartitionBisect(KGraph* graph, size_t minPartition, size_t maxPartition)
 	{
+		if (graph->num <= maxPartition)
+		{
+			ranges.push_back(NewRange(graph->offset, graph->num));
+			return;
+		}
+
 		idx_t expectedPartition = idx_t(minPartition + maxPartition) / 2;
-		idx_t expectedNumParts = std::max(2, (graph->num + (idx_t)expectedPartition - 1) / (idx_t)expectedPartition);
+		idx_t expectedNumParts = std::max(2, KMath::DivideAndRoundNearest(graph->num, (idx_t)expectedPartition));
 
 		real_t partitionWeights[2] = { 0.5f, 0.5f };
 		partitionWeights[0] = (expectedNumParts >> 1) / (real_t)expectedNumParts;
@@ -222,7 +234,42 @@ struct KGraphPartitioner
 		METIS_SetDefaultOptions(options);
 
 		bool bLoose = expectedNumParts >= 128 || maxPartition / minPartition > 1;
+		bool bSlow = graph->num < 4096;
+		/*
+			ChatGPT:
+			METIS_OPTION_UFACTOR是METIS图分区软件用于控制不平衡因子的参数。
+			该参数用于限制每个分区的大小与平均分区大小之间的最大比率。
+			通过调整METIS_OPTION_UFACTOR值，可以控制分区大小的平衡，从而获得更好的负载平衡，避免某些分区的计算开销过大。
+			METIS_OPTION_UFACTOR的默认值为30，这意味着每个分区的大小不能超过平均分区大小的30倍。
+			如果METIS_OPTION_UFACTOR的值很大，则每个分区的大小与平均分区大小之间的最大差异就会很大，这可能导致分区的负载不平衡，从而影响分区质量和计算效率。
+			因此，在选择METIS_OPTION_UFACTOR的值时，需要平衡分区结果的质量和计算成本之间的权衡，以获得较好的分区效果，同时确保分区的计算成本是合理的。
+		*/
 		options[METIS_OPTION_UFACTOR] = bLoose ? 200 : 1;
+		/*
+			ChatGPT:
+			METIS_OPTION_NCUTS是METIS图分区软件中的一个选项，它指定在进行分区过程中所使用的割边数目最小化算法的数量。
+			METIS使用多种算法进行图分区，并且其中一些算法是基于谱图的，需要计算割边数量来实现分区优化。
+			METIS_OPTION_NCUTS选项设置为一个正整数n，则METIS将使用n种不同的割边数目最小化算法来进行分区。
+			较大的NCUTS值将导致METIS对多种不同的目标函数进行优化，从而增加了分区的时间和计算成本，但在某些情况下可能会导致更好的分区结果。
+			通常情况下，较小的NCUTS值能够提供较好的分区结果，并且需要较少的计算资源。
+		*/
+		options[METIS_OPTION_NCUTS] = graph->num < 1024 ? 8 : (graph->num < 4096 ? 4 : 1);
+		// options[METIS_OPTION_NCUTS] = bSlow ? 4 : 1;
+		/*
+			ChatGPT:
+			METIS_OPTION_NITER是METIS图分区软件中用于控制迭代次数的参数。
+			该参数指定METIS在分区过程中最多运行的迭代次数。METIS图分区是一种迭代算法，也就是说，它通过多次迭代来优化分区质量。
+			增加迭代次数可以提高分区质量，但同时也会增加METIS的计算时间。METIS_OPTION_NITER的默认值为10，这意味着METIS在分区过程中将运行10次迭代，以优化分区质量。
+			如果需要更高质量的分区，可以将METIS_OPTION_NITER增加到更高的值。但需要注意的是，增加迭代次数会显著增加METIS的计算成本，应该根据分区质量和计算时间等因素平衡考虑。
+		*/
+		options[METIS_OPTION_NITER] = bSlow ? 20 : 10;
+		/*
+			ChatGPT:
+			METIS_OPTION_MINCONN是METIS图分区软件中的一个选项，它指定在图分区过程中是否强制要求保持子图的连通性。
+			如果将此选项设为true，则METIS生成的所有子图都保证是连通的。这在一些应用中非常重要，比如电路设计和网络优化等领域。
+			但是，为了保证连通性，可能会导致各个子图的平衡性较差，因此需要将此选项与其他划分目标（如负载平衡和最小化通信量）相平衡。
+		*/
+		options[METIS_OPTION_MINCONN] = 1;
 
 		idx_t numConstraints = 1;
 		idx_t numParts = 2;
@@ -244,112 +291,128 @@ struct KGraphPartitioner
 			partitionIDs.data() + graph->offset
 		);
 
-		idx_t start = (idx_t)graph->offset;
-		idx_t end = (idx_t)(graph->offset + graph->num - 1);
-
-		idx_t partNum[2] = { 0, 0 };
-		for (idx_t i = start; i <= end; ++i)
+		assert(r == METIS_OK);
+		if (r == METIS_OK)
 		{
-			oldIndices[i] = indices[i];
-			++partNum[partitionIDs[i]];
-		}
-
-		idx_t partIndexer[2] = { start, start + partNum[0] };
-		for (idx_t i = start; i <= end; ++i)
-		{
-			mapto[i] = partIndexer[partitionIDs[i]]++;
-			indices[mapto[i]] = oldIndices[i];
-			mapback[mapto[i]] = i;
-		}
-
-		idx_t split = start + partNum[0];
-
-		/*
-		while (start <= end)
-		{
-			while (partitionIDs[start] == 0)
+			idx_t start = (idx_t)graph->offset;
+			idx_t end = (idx_t)(graph->offset + graph->num - 1);
+#if 1
+			idx_t partNum[2] = { 0, 0 };
+			for (idx_t i = start; i <= end; ++i)
 			{
-				mapback[start] = mapto[start] = start;
-				++start;
+				oldIndices[i] = indices[i];
+				++partNum[partitionIDs[i]];
 			}
 
-			while (partitionIDs[end] == 1)
+			idx_t partIndexer[2] = { start, start + partNum[0] };
+			for (idx_t i = start; i <= end; ++i)
 			{
-				mapback[end] = mapto[end] = end;
-				--end;
+				mapto[i] = partIndexer[partitionIDs[i]]++;
+				indices[mapto[i]] = oldIndices[i];
+				mapback[mapto[i]] = i;
 			}
 
-			if (start < end)
+			idx_t split = start + partNum[0];
+#else
+			while (start <= end)
 			{
-				std::swap(indices[start], indices[end]);
-				mapback[start] = mapto[start] = end;
-				mapback[end] = mapto[end] = start;
-				++start;
-				--end;
-			}
-		}
-		idx_t split = start;
-		*/
-
-		KGraph partition0, partition1;
-		partition0.offset = graph->offset;
-		partition0.num = split - partition0.offset;
-		partition1.offset = split;
-		partition1.num = graph->num - partition0.num;
-
-		if (partition0.num <= maxPartition && partition1.num <= maxPartition)
-		{
-			ranges.push_back(NewRange(partition0.offset, partition0.num));
-			ranges.push_back(NewRange(partition1.offset, partition1.num));
-		}
-		else
-		{
-			partition0.adjacency.reserve(graph->adjacency.size() >> 1);
-			partition0.adjacencyCost.reserve(graph->adjacencyCost.size() >> 1);
-			partition0.adjacencyOffset.reserve(graph->adjacencyOffset.size() >> 1);
-
-			partition1.adjacency.reserve(graph->adjacency.size() >> 1);
-			partition1.adjacencyCost.reserve(graph->adjacencyCost.size() >> 1);
-			partition1.adjacencyOffset.reserve(graph->adjacencyOffset.size() >> 1);
-
-			// for each new
-			for (size_t i = 0; i < graph->num; ++i)
-			{
-				KGraph* childPartition = (i >= partition0.num) ? &partition1 : &partition0;
-				childPartition->adjacencyOffset.push_back((idx_t)childPartition->adjacency.size());
-				// map to old
-				idx_t orgLocalIdx = mapback[graph->offset + i] - graph->offset;
-				for (idx_t k = graph->adjacencyOffset[orgLocalIdx]; k < graph->adjacencyOffset[orgLocalIdx + 1]; ++k)
+				while (start <= end && partitionIDs[start] == 0)
 				{
-					idx_t adj = graph->adjacency[k];
-					idx_t adjCost = graph->adjacencyCost[k];
-					// map to new
-					idx_t adjIndex = mapto[graph->offset + adj];
-					if (adjIndex >= childPartition->offset && adjIndex < (childPartition->offset + childPartition->num))
+					mapback[start] = mapto[start] = start;
+					++start;
+				}
+
+				while (start <= end && partitionIDs[end] == 1)
+				{
+					mapback[end] = mapto[end] = end;
+					--end;
+				}
+
+				if (start < end)
+				{
+					std::swap(indices[start], indices[end]);
+					mapback[start] = mapto[start] = end;
+					mapback[end] = mapto[end] = start;
+					++start;
+					--end;
+		}
+	}
+			idx_t split = start;
+#endif
+			KGraph partition0, partition1;
+
+			partition0.offset = graph->offset;
+			partition0.num = split - graph->offset;
+			partition1.offset = split;
+			partition1.num = graph->offset + graph->num - split;
+			assert(partition0.num + partition1.num == graph->num);
+
+			for (idx_t i = partition0.offset; i < partition0.offset + partition0.num; ++i)
+			{
+				assert(partitionIDs[mapback[i]] == 0);
+			}
+
+			for (idx_t i = partition1.offset; i < partition1.offset + partition1.num; ++i)
+			{
+				assert(partitionIDs[mapback[i]] == 1);
+			}
+
+			assert(partition0.num > 1);
+			assert(partition1.num > 1);
+
+			if (partition0.num <= maxPartition && partition1.num <= maxPartition)
+			{
+				ranges.push_back(NewRange(partition0.offset, partition0.num));
+				ranges.push_back(NewRange(partition1.offset, partition1.num));
+			}
+			else
+			{
+				partition0.adjacency.reserve(graph->adjacency.size() >> 1);
+				partition0.adjacencyCost.reserve(graph->adjacencyCost.size() >> 1);
+				partition0.adjacencyOffset.reserve(graph->adjacencyOffset.size() >> 1);
+
+				partition1.adjacency.reserve(graph->adjacency.size() >> 1);
+				partition1.adjacencyCost.reserve(graph->adjacencyCost.size() >> 1);
+				partition1.adjacencyOffset.reserve(graph->adjacencyOffset.size() >> 1);
+
+				// for each new
+				for (size_t i = 0; i < graph->num; ++i)
+				{
+					KGraph* childPartition = (i >= partition0.num) ? &partition1 : &partition0;
+					childPartition->adjacencyOffset.push_back((idx_t)childPartition->adjacency.size());
+					// map to old
+					idx_t orgLocalIdx = mapback[graph->offset + i] - graph->offset;
+					for (idx_t k = graph->adjacencyOffset[orgLocalIdx]; k < graph->adjacencyOffset[orgLocalIdx + 1]; ++k)
 					{
-						idx_t adjChildIndex = adjIndex - childPartition->offset;
-						childPartition->adjacency.push_back(adjChildIndex);
-						childPartition->adjacencyCost.push_back(adjCost);
+						idx_t adj = graph->adjacency[k];
+						idx_t adjCost = graph->adjacencyCost[k];
+						// map to new
+						idx_t adjIndex = mapto[graph->offset + adj] - childPartition->offset;
+						if (adjIndex >= 0 && adjIndex < childPartition->num)
+						{
+							childPartition->adjacency.push_back(adjIndex);
+							childPartition->adjacencyCost.push_back(adjCost);
+						}
 					}
 				}
+
+				partition0.adjacencyOffset.push_back((idx_t)partition0.adjacency.size());
+				partition1.adjacencyOffset.push_back((idx_t)partition1.adjacency.size());
+
+				assert(partition0.adjacencyOffset.size() + partition1.adjacencyOffset.size() - 1 == graph->adjacencyOffset.size());
+
+				PartitionBisect(&partition0, minPartition, maxPartition);
+				PartitionBisect(&partition1, minPartition, maxPartition);
 			}
-
-			partition0.adjacencyOffset.push_back((idx_t)partition0.adjacency.size());
-			partition1.adjacencyOffset.push_back((idx_t)partition1.adjacency.size());
-
-			assert(partition0.adjacencyOffset.size() + partition1.adjacencyOffset.size() - 1 == graph->adjacencyOffset.size());
-
-			PartitionBisect(&partition0, minPartition, maxPartition);
-			PartitionBisect(&partition1, minPartition, maxPartition);
-		}
+}
 	}
 
 	void PartitionStrict(KGraph* graph, size_t minPartition, size_t maxPartition)
 	{
-		Start(graph->num);		
+		Start(graph->num);
 		if (graph->num < maxPartition)
 		{
-			ranges.push_back(NewRange(0, graph->num));
+			ranges.push_back(NewRange(graph->offset, graph->num));
 		}
 		else
 		{
@@ -565,38 +628,6 @@ public:
 	{
 		clusters = m_Clusters;
 	}
-
-	static bool ColorDebugCluster(const std::vector<KMeshClusterPtr>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
-	{
-		vertices.clear();
-		indices.clear();
-
-		uint32_t clusterIndexBegin = 0;
-
-		for (uint32_t id : ids)
-		{
-			const KMeshCluster& cluster = *clusters[id];
-			std::vector<KMeshProcessorVertex> clusterVertices = cluster.vertices;
-			std::vector<uint32_t> clusterIndices = cluster.indices;
-			glm::vec3 clusterColor = cluster.color;
-
-			for (uint32_t& index : clusterIndices)
-			{
-				index += clusterIndexBegin;
-			}
-			for (KMeshProcessorVertex& vertex : clusterVertices)
-			{
-				vertex.color[0] = clusterColor;
-			}
-
-			vertices.insert(vertices.end(), clusterVertices.begin(), clusterVertices.end());
-			indices.insert(indices.end(), clusterIndices.begin(), clusterIndices.end());
-
-			clusterIndexBegin += (uint32_t)clusterVertices.size();
-		}
-
-		return true;
-	}
 };
 
 class KVirtualGeometryBuilder
@@ -615,8 +646,15 @@ protected:
 	uint32_t m_MinTriangleNum = 0;
 	float m_MaxError = 0;
 
+	bool m_CheckClusterAdacency = false;
+
 	void DAGReduce(uint32_t childrenBegin, uint32_t childrenEnd, uint32_t level)
 	{
+		if (m_CheckClusterAdacency)
+		{
+			assert(CheckClustersAdjacency(childrenBegin, childrenEnd));
+		}
+
 		uint32_t numChildren = childrenEnd - childrenBegin + 1;
 		assert(childrenBegin < m_Clusters.size());
 		assert(childrenEnd < m_Clusters.size());
@@ -675,17 +713,18 @@ protected:
 
 			KMeshClusterGroup newGroup;
 			newGroup.level = level + 1;
+			newGroup.index = (uint32_t)m_ClusterGroups.size();
+			newGroup.color = KMeshCluster::RandomColor();
 
 			newGroup.childrenClusters.resize(numChildren);
 			for (uint32_t i = 0; i < numChildren; ++i)
 			{
 				newGroup.childrenClusters[i] = childrenBegin + i;
 				m_Clusters[childrenBegin + i]->root = false;
+				m_Clusters[childrenBegin + i]->groupIndex = newGroup.index;
 				error = std::max(error, m_Clusters[childrenBegin + i]->error);
 			}
-
 			newGroup.maxError = error;
-			newGroup.index = (uint32_t)m_ClusterGroups.size();
 
 			newGroup.clusters.resize(numParent);
 			for (uint32_t i = 0; i < numParent; ++i)
@@ -707,12 +746,12 @@ protected:
 		builder.GetClusters(m_Clusters);
 	}
 
-	KGraph BuildClustersAdjacency(size_t begin, size_t end)
+	std::vector<std::unordered_map<size_t, size_t>> MaskClustersAdjacency(const std::vector<idx_t>& clusterIndices)
 	{
 		std::unordered_map<size_t, size_t> vertNewIdxMap;
 
 		size_t verticeHashSize = 0;
-		for (size_t idx = begin; idx <= end; ++idx)
+		for (size_t idx : clusterIndices)
 		{
 			verticeHashSize += m_Clusters[idx]->indices.size();
 		}
@@ -722,10 +761,9 @@ protected:
 
 		size_t verticeHashIdxBegin = 0;
 
-		for (size_t idx = begin; idx <= end; ++idx)
+		for (size_t idx : clusterIndices)
 		{
 			const KMeshCluster& cluster = *m_Clusters[idx];
-			size_t clusterID = idx - begin;
 			for (size_t i = 0; i < cluster.indices.size(); ++i)
 			{
 				uint32_t vertIdx = cluster.indices[i];
@@ -748,10 +786,10 @@ protected:
 
 		verticeHashIdxBegin = 0;
 
-		for (size_t idx = begin; idx <= end; ++idx)
+		size_t clusterID = 0;
+		for (size_t idx : clusterIndices)
 		{
 			const KMeshCluster& cluster = *m_Clusters[idx];
-			size_t clusterID = idx - begin;
 			for (size_t i = 0; i < cluster.indices.size(); ++i)
 			{
 				size_t v0Hash = verticeHash[verticeHashIdxBegin + i];
@@ -761,9 +799,10 @@ protected:
 				edgeHash.AddEdgeHash((int32_t)newV0, (int32_t)newV1, (int32_t)clusterID);
 			}
 			verticeHashIdxBegin += cluster.indices.size();
+			++clusterID;
 		}
 
-		size_t clusterNum = end - begin + 1;
+		size_t clusterNum = clusterID;
 
 		std::vector<std::unordered_map<size_t, size_t>> clusterAdj;
 		clusterAdj.resize(clusterNum);
@@ -790,6 +829,67 @@ protected:
 			});
 		}
 
+		for (size_t i = 0; i < clusterNum; ++i)
+		{
+			for (size_t j = i + 1; j < clusterNum; ++j)
+			{
+				auto it = clusterAdj[i].find(j);
+				if (it != clusterAdj[i].end())
+				{
+					size_t cost = it->second;
+					auto itBack = clusterAdj[j].find(i);
+					assert(itBack != clusterAdj[j].end());
+					size_t costBack = itBack->second;
+					assert(cost == costBack);
+				}
+			}
+		}
+
+		return clusterAdj;
+	}
+
+	std::vector<std::unordered_map<size_t, size_t>> MaskClustersAdjacency(idx_t begin, idx_t end)
+	{
+		std::vector<idx_t> clusterIndices;
+		clusterIndices.resize(end - begin + 1);
+		for (idx_t i = begin; i <= end; ++i)
+		{
+			clusterIndices[i - begin] = i;
+		}
+		return MaskClustersAdjacency(clusterIndices);
+	}
+
+	bool CheckClustersAdjacency(const std::vector<idx_t>& clusterIndices)
+	{
+		std::vector<std::unordered_map<size_t, size_t>> clusterAdj = MaskClustersAdjacency(clusterIndices);
+		for (size_t i = 0; i < clusterAdj.size(); ++i)
+		{
+			if (clusterAdj[i].empty())
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool CheckClustersAdjacency(idx_t begin, idx_t end)
+	{
+		std::vector<std::unordered_map<size_t, size_t>> clusterAdj = MaskClustersAdjacency(begin, end);
+		for (size_t i = 0; i < clusterAdj.size(); ++i)
+		{
+			if (clusterAdj[i].empty())
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	KGraph BuildClustersAdjacency(idx_t begin, idx_t end)
+	{
+		std::vector<std::unordered_map<size_t, size_t>> clusterAdj = MaskClustersAdjacency(begin, end);
+		size_t clusterNum = end - begin + 1;
+
 		KGraph graph;
 		graph.offset = 0;
 		graph.num = (uint32_t)clusterNum;
@@ -805,6 +905,9 @@ protected:
 			{
 				size_t anotherClusterID = pair.first;
 				size_t cost = pair.second;
+				bool sibling = m_Clusters[clusterID]->generatingGroupIndex != KMeshCluster::INVALID_INDEX && m_Clusters[clusterID]->generatingGroupIndex == m_Clusters[anotherClusterID]->generatingGroupIndex;
+				cost *= sibling ? 1 : 16;
+				cost += 4;
 				graph.adjacency.push_back((idx_t)anotherClusterID);
 				graph.adjacencyCost.push_back((idx_t)cost);
 			}
@@ -812,6 +915,75 @@ protected:
 		graph.adjacencyOffset.push_back((idx_t)graph.adjacency.size());
 
 		return graph;
+	}
+
+	static bool ColorDebugClusters(const std::vector<KMeshClusterPtr>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	{
+		vertices.clear();
+		indices.clear();
+
+		uint32_t clusterIndexBegin = 0;
+
+		for (uint32_t id : ids)
+		{
+			const KMeshCluster& cluster = *clusters[id];
+			std::vector<KMeshProcessorVertex> clusterVertices = cluster.vertices;
+			std::vector<uint32_t> clusterIndices = cluster.indices;
+			const glm::vec3& clusterColor = cluster.color;
+
+			for (uint32_t& index : clusterIndices)
+			{
+				index += clusterIndexBegin;
+			}
+			for (KMeshProcessorVertex& vertex : clusterVertices)
+			{
+				vertex.color[0] = clusterColor;
+			}
+
+			vertices.insert(vertices.end(), clusterVertices.begin(), clusterVertices.end());
+			indices.insert(indices.end(), clusterIndices.begin(), clusterIndices.end());
+
+			clusterIndexBegin += (uint32_t)clusterVertices.size();
+		}
+
+		return true;
+	}
+
+	static bool ColorDebugClusterGroups(const std::vector<KMeshClusterPtr>& clusters, const std::vector<KMeshClusterGroup>& groups, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	{
+		vertices.clear();
+		indices.clear();
+
+		uint32_t clusterIndexBegin = 0;
+
+		for (uint32_t id : ids)
+		{
+			const KMeshClusterGroup& group = groups[id];
+			const glm::vec3& clusterGruopColor = group.color;
+
+			for (uint32_t clusterIndex : group.clusters)
+			{
+				const KMeshClusterPtr cluster = clusters[clusterIndex];
+				std::vector<KMeshProcessorVertex> clusterVertices = cluster->vertices;
+				std::vector<uint32_t> clusterIndices = cluster->indices;
+
+				for (uint32_t& index : clusterIndices)
+				{
+					index += clusterIndexBegin;
+				}
+				for (KMeshProcessorVertex& vertex : clusterVertices)
+				{
+					vertex.color[0] = clusterGruopColor;
+				}
+
+				vertices.insert(vertices.end(), clusterVertices.begin(), clusterVertices.end());
+				indices.insert(indices.end(), clusterIndices.begin(), clusterIndices.end());
+
+				clusterIndexBegin += (uint32_t)clusterVertices.size();
+			}
+		}
+
+		return true;
 	}
 public:
 	bool Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum)
@@ -834,11 +1006,13 @@ public:
 			uint32_t num = end - begin + 1;
 			newGroup.level = 0;
 			newGroup.clusters.resize(num);
+			newGroup.index = (uint32_t)m_ClusterGroups.size();
+			newGroup.color = KMeshCluster::RandomColor();
 			for (uint32_t i = 0; i < num; ++i)
 			{
 				newGroup.clusters[i] = begin + i;
+				m_Clusters[begin + i]->generatingGroupIndex = newGroup.index;
 			}
-			newGroup.index = (uint32_t)m_ClusterGroups.size();
 			m_ClusterGroups.push_back(newGroup);
 		};
 
@@ -877,13 +1051,45 @@ public:
 			{
 				std::vector<KMeshClusterPtr> newOrderCluster;
 				newOrderCluster.resize(levelClusterNum);
-				for (idx_t index : partitioner.indices)
+				for (const KRange& range : partitioner.ranges)
 				{
-					newOrderCluster[index] = m_Clusters[index + levelClusterBegin];
+					for (uint32_t idx = range.begin; idx <= range.end; ++idx)
+					{
+						newOrderCluster[idx] = m_Clusters[levelClusterBegin + partitioner.indices[idx]];
+					}
 				}
+
+				if (m_CheckClusterAdacency)
+				{
+					for (const KRange& range : partitioner.ranges)
+					{
+						std::vector<idx_t> clusterIndices;
+						clusterIndices.resize(range.end - range.begin + 1);
+						for (uint32_t idx = range.begin; idx <= range.end; ++idx)
+						{
+							clusterIndices[idx - range.begin] = levelClusterBegin + partitioner.indices[idx];
+						}
+						assert(CheckClustersAdjacency(clusterIndices));
+					}
+				}
+
 				for (size_t i = 0; i < levelClusterNum; ++i)
 				{
-					m_Clusters[i + levelClusterBegin] = std::move(newOrderCluster[i]);
+					m_Clusters[i + levelClusterBegin] = newOrderCluster[i];
+				}
+
+				if (m_CheckClusterAdacency)
+				{
+					for (const KRange& range : partitioner.ranges)
+					{
+						std::vector<idx_t> clusterIndices;
+						clusterIndices.resize(range.end - range.begin + 1);
+						for (uint32_t idx = range.begin; idx <= range.end; ++idx)
+						{
+							clusterIndices[idx - range.begin] = levelClusterBegin + idx;
+						}
+						assert(CheckClustersAdjacency(clusterIndices));
+					}
 				}
 			}
 
@@ -911,7 +1117,7 @@ public:
 		}
 
 		m_LevelNum = currentLevel;
-		
+
 		m_MinTriangleNum = 0;
 		m_MaxTriangleNum = 0;
 		m_MaxError = 0;
@@ -927,7 +1133,7 @@ public:
 				{
 					m_MinTriangleNum += (uint32_t)cluster->indices.size() / 3;
 				}
-				else if (cluster->generatingGroupIndex == KMeshCluster::INVALID_INDEX)
+				else if (cluster->level == 0)
 				{
 					m_MaxTriangleNum += (uint32_t)cluster->indices.size() / 3;
 				}
@@ -938,7 +1144,7 @@ public:
 		return true;
 	}
 
-	void FindDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<uint32_t>& clusterIndices, uint32_t& triangleCount, float& error)
+	void FindDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<uint32_t>& clusterIndices, uint32_t& triangleCount, float& error) const
 	{
 		struct DAGCutElement
 		{
@@ -1043,15 +1249,18 @@ public:
 		}
 	}
 
-	void ColorDebugDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, uint32_t& triangleCount, float& error)
+	void ColorDebugDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, uint32_t& triangleCount, float& error) const
 	{
 		std::vector<uint32_t> clusterIndices;
 		FindDAGCut(targetTriangleCount, targetError, clusterIndices, triangleCount, error);
-		KMeshTriangleClusterBuilder::ColorDebugCluster(m_Clusters, clusterIndices, vertices, indices);
+		ColorDebugClusters(m_Clusters, clusterIndices, vertices, indices);
 	}
 
-	void ColorDebugClusterGroup(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	void ColorDebugCluster(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices) const
 	{
+		vertices.clear();
+		indices.clear();
+
 		std::vector<uint32_t> clusterIndices;
 		for (const KMeshClusterGroup& group : m_ClusterGroups)
 		{
@@ -1063,7 +1272,237 @@ public:
 				}
 			}
 		}
-		KMeshTriangleClusterBuilder::ColorDebugCluster(m_Clusters, clusterIndices, vertices, indices);
+
+		ColorDebugClusters(m_Clusters, clusterIndices, vertices, indices);
+	}
+
+	void ColorDebugClusterGroup(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices) const
+	{
+		vertices.clear();
+		indices.clear();
+
+		std::vector<uint32_t> groupIndices;
+		for (size_t i = 0; i < m_ClusterGroups.size(); ++i)
+		{
+			const KMeshClusterGroup& group = m_ClusterGroups[i];
+			std::vector<uint32_t> clusterIndices;
+			if (group.level == level)
+			{
+				groupIndices.push_back((uint32_t)i);
+			}
+		}
+
+		ColorDebugClusterGroups(m_Clusters, m_ClusterGroups, groupIndices, vertices, indices);
+	}
+
+	void DumpClusterGroupAsOBJ(const std::string& saveRoot)
+	{
+		for (size_t groupIdx = 0; groupIdx < m_ClusterGroups.size(); ++groupIdx)
+		{
+			const KMeshClusterGroup& group = m_ClusterGroups[groupIdx];
+
+			std::stringstream ss;
+			ss << "cluster_group_" << groupIdx << "_" << group.level;
+			std::string objName = ss.str();
+			std::string filePath;
+			if (KFileTool::PathJoin(saveRoot, objName + ".obj", filePath))
+			{
+				if (!KFileTool::IsPathExist(saveRoot))
+				{
+					KFileTool::CreateFolder(saveRoot, true);
+				}
+
+				IKDataStreamPtr dataStream = GetDataStream(IT_FILEHANDLE);
+				if (!dataStream->Open(filePath.c_str(), IM_WRITE))
+				{
+					dataStream->Close();
+					continue;
+				}
+
+				std::stringstream fileSS;
+				fileSS << "o " << objName << std::endl;
+
+				std::vector<size_t> clusterIndexOffset;
+				clusterIndexOffset.resize(group.clusters.size());
+				clusterIndexOffset[0] = 0;
+
+				size_t t = 0;
+				for (uint32_t clusterIdx : group.clusters)
+				{
+					KMeshClusterPtr cluster = m_Clusters[clusterIdx];
+					for (size_t i = 0; i < cluster->vertices.size(); ++i)
+					{
+						const KMeshProcessorVertex& vertex = cluster->vertices[i];
+						fileSS << "v " << vertex.pos.x << " " << vertex.pos.y << " " << vertex.pos.z << std::endl;
+						fileSS << "vt " << vertex.uv.x << " " << vertex.uv.y << std::endl;
+						fileSS << "vn " << vertex.normal.x << " " << vertex.normal.y << " " << vertex.normal.z << std::endl;
+					}
+					if (group.clusters.size() >= 1 && t < group.clusters.size() - 1)
+					{
+						clusterIndexOffset[t + 1] = clusterIndexOffset[t] + cluster->vertices.size();
+					}
+					++t;
+				}
+
+				t = 0;
+				for (uint32_t clusterIdx : group.clusters)
+				{
+					KMeshClusterPtr cluster = m_Clusters[clusterIdx];
+					uint32_t indexOffset = (uint32_t)clusterIndexOffset[t];
+					for (size_t i = 0; i < cluster->indices.size(); i += 3)
+					{
+						uint32_t idx0 = indexOffset + 1 + cluster->indices[i];
+						uint32_t idx1 = indexOffset + 1 + cluster->indices[i + 1];
+						uint32_t idx2 = indexOffset + 1 + cluster->indices[i + 2];
+						fileSS << "f ";
+						fileSS << idx0 << "/" << idx0 << "/" << idx0;
+						fileSS << " ";
+						fileSS << idx1 << "/" << idx1 << "/" << idx1;
+						fileSS << " ";
+						fileSS << idx2 << "/" << idx2 << "/" << idx2;
+						fileSS << std::endl;
+					}
+					++t;
+				}
+
+				std::string data = fileSS.str();
+				dataStream->Write(data.c_str(), data.length());
+				dataStream->Close();
+			}
+		}
+	}
+
+	void DumpClusterAsOBJ(const std::string& saveRoot) const
+	{
+		for (size_t clusterIdx = 0; clusterIdx < m_Clusters.size(); ++clusterIdx)
+		{
+			KMeshClusterPtr cluster = m_Clusters[clusterIdx];
+			std::stringstream ss;
+			ss << "cluster" << clusterIdx << "_" << cluster->level;
+			std::string objName = ss.str();
+			std::string filePath;
+			if (KFileTool::PathJoin(saveRoot, objName + ".obj", filePath))
+			{
+				if (!KFileTool::IsPathExist(saveRoot))
+				{
+					KFileTool::CreateFolder(saveRoot, true);
+				}
+
+				IKDataStreamPtr dataStream = GetDataStream(IT_FILEHANDLE);
+				if (!dataStream->Open(filePath.c_str(), IM_WRITE))
+				{
+					dataStream->Close();
+					continue;
+				}
+
+				std::stringstream fileSS;
+				fileSS << "o " << objName << std::endl;
+				for (size_t i = 0; i < cluster->vertices.size(); ++i)
+				{
+					const KMeshProcessorVertex& vertex = cluster->vertices[i];
+					fileSS << "v " << vertex.pos.x << " " << vertex.pos.y << " " << vertex.pos.z << std::endl;
+					fileSS << "vt " << vertex.uv.x << " " << vertex.uv.y << std::endl;
+					fileSS << "vn " << vertex.normal.x << " " << vertex.normal.y << " " << vertex.normal.z << std::endl;
+				}
+				fileSS << "s off" << std::endl;
+				for (size_t i = 0; i < cluster->indices.size(); i += 3)
+				{
+					uint32_t idx0 = 1 + cluster->indices[i];
+					uint32_t idx1 = 1 + cluster->indices[i + 1];
+					uint32_t idx2 = 1 + cluster->indices[i + 2];
+					fileSS << "f ";
+					fileSS << idx0 << "/" << idx0 << "/" << idx0;
+					fileSS << " ";
+					fileSS << idx1 << "/" << idx1 << "/" << idx1;
+					fileSS << " ";
+					fileSS << idx2 << "/" << idx2 << "/" << idx2;
+					fileSS << std::endl;
+				}
+
+				std::string data = fileSS.str();
+				dataStream->Write(data.c_str(), data.length());
+				dataStream->Close();
+			}
+		}
+	}
+
+	void DumpClusterInformation(std::string& output) const
+	{
+		std::stringstream ss;
+		ss << "Index,LodLevel,TriangleNum,Error,Adjacency,Children,Parent," << std::endl;
+		for (size_t i = 0; i < m_Clusters.size(); ++i)
+		{
+			KMeshClusterPtr cluster = m_Clusters[i];
+
+			std::string adjacencies;
+			std::string parents;
+			if (cluster->groupIndex != KMeshCluster::INVALID_INDEX)
+			{
+				const KMeshClusterGroup& groupAsChildren = m_ClusterGroups[cluster->groupIndex];
+
+				{
+					size_t t = 0;
+					std::stringstream ssParents;
+					ssParents << "\"";
+					for (uint32_t parent : groupAsChildren.clusters)
+					{
+						++t;
+						ssParents << parent;
+						if (t != groupAsChildren.clusters.size())
+						{
+							ssParents << ",";
+						}
+					}
+					ssParents << "\"";
+					parents = ssParents.str();
+				}
+
+				{
+					size_t t = 0;
+					std::stringstream ssAdjacencies;
+					ssAdjacencies << "\"";
+					for (uint32_t adj : groupAsChildren.childrenClusters)
+					{
+						if (adj == i)
+						{
+							continue;
+						}
+						++t;
+						ssAdjacencies << adj;
+						if (t != groupAsChildren.childrenClusters.size() - 1)
+						{
+							ssAdjacencies << ",";
+						}
+					}
+					ssAdjacencies << "\"";
+					adjacencies = ssAdjacencies.str();
+				}
+			}
+
+			std::string children;
+			if (cluster->generatingGroupIndex != KMeshCluster::INVALID_INDEX)
+			{
+				const KMeshClusterGroup& groupAsParent = m_ClusterGroups[cluster->generatingGroupIndex];
+				std::stringstream ssChildren;
+				ssChildren << "\"";
+				size_t t = 0;
+				for (uint32_t child : groupAsParent.childrenClusters)
+				{
+					++t;
+					ssChildren << child;
+					if (t != groupAsParent.childrenClusters.size())
+					{
+						ssChildren << ",";
+					}
+				}
+				ssChildren << "\"";
+				children = ssChildren.str();
+			}
+
+			ss << i << "," << cluster->level << "," << cluster->indices.size() / 3 << "," << cluster->error << "," << adjacencies << "," << children << "," << parents;
+			ss << std::endl;
+		}
+		output = ss.str();
 	}
 
 	uint32_t GetLevelNum() const
@@ -1080,7 +1519,7 @@ public:
 	{
 		return m_MinTriangleNum;
 	}
-	
+
 	float GetMaxError() const
 	{
 		return m_MaxError;

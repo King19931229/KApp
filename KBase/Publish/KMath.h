@@ -81,6 +81,14 @@ namespace KMath
 		return dividend / divisor;
 	}
 
+	template <class T>
+	inline T DivideAndRoundNearest(T dividend, T divisor)
+	{
+		return (dividend >= 0)
+			? (dividend + divisor / 2) / divisor
+			: (dividend - divisor / 2 + 1) / divisor;
+	}
+
 	// 永远返回正数
 	template<typename T>
 	inline T Mod(T x, T y)
