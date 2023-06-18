@@ -4,6 +4,7 @@
 #include "KBase/Publish/KFileTool.h"
 #include <unordered_set>
 #include <sstream>
+#include <iomanip>
 #include <metis.h>
 
 struct KRange
@@ -28,8 +29,10 @@ struct KMeshCluster
 	std::vector<uint32_t> indices;
 	uint32_t groupIndex = INVALID_INDEX;
 	uint32_t generatingGroupIndex = INVALID_INDEX;
+	uint32_t index = INVALID_INDEX;
 	uint32_t level = 0;
 	float error = 0;
+	float maxParentError = 0;
 	bool root = true;
 	glm::vec3 color;
 
@@ -156,6 +159,8 @@ struct KMeshClusterGroup
 	uint32_t index = 0;
 	float maxError = 0;
 };
+
+typedef std::shared_ptr<KMeshClusterGroup> KMeshClusterGroupPtr;
 
 struct KGraph
 {
@@ -634,7 +639,7 @@ class KVirtualGeometryBuilder
 {
 protected:
 	std::vector<KMeshClusterPtr> m_Clusters;
-	std::vector<KMeshClusterGroup> m_ClusterGroups;
+	std::vector<KMeshClusterGroupPtr> m_ClusterGroups;
 
 	uint32_t m_MinClusterGroup = 8;
 	uint32_t m_MaxClusterGroup = 32;
@@ -711,28 +716,39 @@ protected:
 		{
 			numParent = parentEnd - parentBegin + 1;
 
-			KMeshClusterGroup newGroup;
-			newGroup.level = level + 1;
-			newGroup.index = (uint32_t)m_ClusterGroups.size();
-			newGroup.color = KMeshCluster::RandomColor();
+			KMeshClusterGroupPtr newGroup = KMeshClusterGroupPtr(new KMeshClusterGroup());
+			newGroup->level = level + 1;
+			newGroup->index = (uint32_t)m_ClusterGroups.size();
+			newGroup->color = KMeshCluster::RandomColor();
 
-			newGroup.childrenClusters.resize(numChildren);
+			newGroup->childrenClusters.resize(numChildren);
 			for (uint32_t i = 0; i < numChildren; ++i)
 			{
-				newGroup.childrenClusters[i] = childrenBegin + i;
-				m_Clusters[childrenBegin + i]->root = false;
-				m_Clusters[childrenBegin + i]->groupIndex = newGroup.index;
-				error = std::max(error, m_Clusters[childrenBegin + i]->error);
+				uint32_t idx = childrenBegin + i;
+				m_Clusters[idx]->root = false;
+				m_Clusters[idx]->groupIndex = newGroup->index;
+				error = std::max(error, m_Clusters[idx]->error);
+				// 这里要这样获取index 因为图划分后Clusters被重排了
+				newGroup->childrenClusters[i] = m_Clusters[idx]->index;
 			}
-			newGroup.maxError = error;
 
-			newGroup.clusters.resize(numParent);
+			newGroup->clusters.resize(numParent);
 			for (uint32_t i = 0; i < numParent; ++i)
 			{
-				newGroup.clusters[i] = parentBegin + i;
-				m_Clusters[parentBegin + i]->error = error;
-				m_Clusters[parentBegin + i]->level = newGroup.level;
-				m_Clusters[parentBegin + i]->generatingGroupIndex = newGroup.index;
+				uint32_t idx = parentBegin + i;
+				m_Clusters[idx]->index = parentBegin + i;
+				m_Clusters[idx]->error = error;
+				m_Clusters[idx]->level = newGroup->level;
+				m_Clusters[idx]->generatingGroupIndex = newGroup->index;
+				newGroup->clusters[i] = idx;
+			}
+
+			newGroup->maxError = error;
+
+			for (uint32_t i = 0; i < numChildren; ++i)
+			{
+				uint32_t idx = childrenBegin + i;
+				m_Clusters[idx]->maxParentError = error;
 			}
 
 			m_ClusterGroups.push_back(newGroup);
@@ -859,6 +875,18 @@ protected:
 		return MaskClustersAdjacency(clusterIndices);
 	}
 
+	bool CheckClustersIndex()
+	{
+		for (size_t i = 0; i < m_Clusters.size(); ++i)
+		{
+			if (m_Clusters[i]->index != (uint32_t)i)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	bool CheckClustersAdjacency(const std::vector<idx_t>& clusterIndices)
 	{
 		std::vector<std::unordered_map<size_t, size_t>> clusterAdj = MaskClustersAdjacency(clusterIndices);
@@ -949,7 +977,7 @@ protected:
 		return true;
 	}
 
-	static bool ColorDebugClusterGroups(const std::vector<KMeshClusterPtr>& clusters, const std::vector<KMeshClusterGroup>& groups, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	static bool ColorDebugClusterGroups(const std::vector<KMeshClusterPtr>& clusters, const std::vector<KMeshClusterGroupPtr>& groups, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
 	{
 		vertices.clear();
 		indices.clear();
@@ -958,14 +986,14 @@ protected:
 
 		for (uint32_t id : ids)
 		{
-			const KMeshClusterGroup& group = groups[id];
+			const KMeshClusterGroup& group = *groups[id];
 			const glm::vec3& clusterGruopColor = group.color;
 
 			for (uint32_t clusterIndex : group.clusters)
 			{
-				const KMeshClusterPtr cluster = clusters[clusterIndex];
-				std::vector<KMeshProcessorVertex> clusterVertices = cluster->vertices;
-				std::vector<uint32_t> clusterIndices = cluster->indices;
+				const KMeshCluster& cluster = *clusters[clusterIndex];
+				std::vector<KMeshProcessorVertex> clusterVertices = cluster.vertices;
+				std::vector<uint32_t> clusterIndices = cluster.indices;
 
 				for (uint32_t& index : clusterIndices)
 				{
@@ -1002,16 +1030,17 @@ public:
 
 		auto AddBaseGroup = [this](uint32_t begin, uint32_t end)
 		{
-			KMeshClusterGroup newGroup;
+			KMeshClusterGroupPtr newGroup = KMeshClusterGroupPtr(new KMeshClusterGroup());
 			uint32_t num = end - begin + 1;
-			newGroup.level = 0;
-			newGroup.clusters.resize(num);
-			newGroup.index = (uint32_t)m_ClusterGroups.size();
-			newGroup.color = KMeshCluster::RandomColor();
+			newGroup->level = 0;
+			newGroup->clusters.resize(num);
+			newGroup->index = (uint32_t)m_ClusterGroups.size();
+			newGroup->color = KMeshCluster::RandomColor();
 			for (uint32_t i = 0; i < num; ++i)
 			{
-				newGroup.clusters[i] = begin + i;
-				m_Clusters[begin + i]->generatingGroupIndex = newGroup.index;
+				newGroup->clusters[i] = begin + i;
+				m_Clusters[begin + i]->index = begin + i;
+				m_Clusters[begin + i]->generatingGroupIndex = newGroup->index;
 			}
 			m_ClusterGroups.push_back(newGroup);
 		};
@@ -1116,6 +1145,8 @@ public:
 			++currentLevel;
 		}
 
+		std::sort(m_Clusters.begin(), m_Clusters.end(), [](const KMeshClusterPtr& lhs, const KMeshClusterPtr& rhs) -> bool { return lhs->index < rhs->index; });
+
 		m_LevelNum = currentLevel;
 
 		m_MinTriangleNum = 0;
@@ -1125,7 +1156,7 @@ public:
 		for (size_t i = m_ClusterGroups.size(); i >= 1; --i)
 		{
 			size_t groupIndex = i - 1;
-			const KMeshClusterGroup& group = m_ClusterGroups[groupIndex];
+			const KMeshClusterGroup& group = *m_ClusterGroups[groupIndex];
 			for (uint32_t clusterIndex : group.clusters)
 			{
 				KMeshClusterPtr cluster = m_Clusters[clusterIndex];
@@ -1173,7 +1204,7 @@ public:
 		for (size_t i = m_ClusterGroups.size(); i >= 1; --i)
 		{
 			size_t groupIndex = i - 1;
-			const KMeshClusterGroup& group = m_ClusterGroups[groupIndex];
+			const KMeshClusterGroup& group = *m_ClusterGroups[groupIndex];
 			for (uint32_t clusterIndex : group.clusters)
 			{
 				KMeshClusterPtr cluster = m_Clusters[clusterIndex];
@@ -1219,7 +1250,7 @@ public:
 			clusterHeap.pop();
 			curTriangleCount -= (uint32_t)m_Clusters[element.clusterIndex]->indices.size() / 3;
 
-			const KMeshClusterGroup& group = m_ClusterGroups[cluster->generatingGroupIndex];
+			const KMeshClusterGroup& group = *m_ClusterGroups[cluster->generatingGroupIndex];
 			for (uint32_t clusterIndex : group.childrenClusters)
 			{
 				if (clusterInHeap[clusterIndex])
@@ -1262,11 +1293,11 @@ public:
 		indices.clear();
 
 		std::vector<uint32_t> clusterIndices;
-		for (const KMeshClusterGroup& group : m_ClusterGroups)
+		for (KMeshClusterGroupPtr group : m_ClusterGroups)
 		{
-			if (group.level == level)
+			if (group->level == level)
 			{
-				for (uint32_t id : group.clusters)
+				for (uint32_t id : group->clusters)
 				{
 					clusterIndices.push_back(id);
 				}
@@ -1284,7 +1315,7 @@ public:
 		std::vector<uint32_t> groupIndices;
 		for (size_t i = 0; i < m_ClusterGroups.size(); ++i)
 		{
-			const KMeshClusterGroup& group = m_ClusterGroups[i];
+			const KMeshClusterGroup& group = *m_ClusterGroups[i];
 			std::vector<uint32_t> clusterIndices;
 			if (group.level == level)
 			{
@@ -1299,10 +1330,10 @@ public:
 	{
 		for (size_t groupIdx = 0; groupIdx < m_ClusterGroups.size(); ++groupIdx)
 		{
-			const KMeshClusterGroup& group = m_ClusterGroups[groupIdx];
+			const KMeshClusterGroup& group = *m_ClusterGroups[groupIdx];
 
 			std::stringstream ss;
-			ss << "cluster_group_" << groupIdx << "_" << group.level;
+			ss << "cluster_group_" << group.level << "_" << groupIdx;
 			std::string objName = ss.str();
 			std::string filePath;
 			if (KFileTool::PathJoin(saveRoot, objName + ".obj", filePath))
@@ -1320,6 +1351,7 @@ public:
 				}
 
 				std::stringstream fileSS;
+				fileSS << std::fixed << std::setprecision(10);
 				fileSS << "o " << objName << std::endl;
 
 				std::vector<size_t> clusterIndexOffset;
@@ -1333,6 +1365,7 @@ public:
 					for (size_t i = 0; i < cluster->vertices.size(); ++i)
 					{
 						const KMeshProcessorVertex& vertex = cluster->vertices[i];
+						fileSS << "# " << i << std::endl;
 						fileSS << "v " << vertex.pos.x << " " << vertex.pos.y << " " << vertex.pos.z << std::endl;
 						fileSS << "vt " << vertex.uv.x << " " << vertex.uv.y << std::endl;
 						fileSS << "vn " << vertex.normal.x << " " << vertex.normal.y << " " << vertex.normal.z << std::endl;
@@ -1396,10 +1429,12 @@ public:
 				}
 
 				std::stringstream fileSS;
+				fileSS << std::fixed << std::setprecision(10);
 				fileSS << "o " << objName << std::endl;
 				for (size_t i = 0; i < cluster->vertices.size(); ++i)
 				{
 					const KMeshProcessorVertex& vertex = cluster->vertices[i];
+					fileSS << "# " << i << std::endl;
 					fileSS << "v " << vertex.pos.x << " " << vertex.pos.y << " " << vertex.pos.z << std::endl;
 					fileSS << "vt " << vertex.uv.x << " " << vertex.uv.y << std::endl;
 					fileSS << "vn " << vertex.normal.x << " " << vertex.normal.y << " " << vertex.normal.z << std::endl;
@@ -1426,83 +1461,128 @@ public:
 		}
 	}
 
-	void DumpClusterInformation(std::string& output) const
+	void DumpClusterInformation(const std::string& saveRoot) const
 	{
-		std::stringstream ss;
-		ss << "Index,LodLevel,TriangleNum,Error,Adjacency,Children,Parent," << std::endl;
-		for (size_t i = 0; i < m_Clusters.size(); ++i)
+		std::string filePath;
+		if (KFileTool::PathJoin(saveRoot, "cluster.csv", filePath))
 		{
-			KMeshClusterPtr cluster = m_Clusters[i];
-
-			std::string adjacencies;
-			std::string parents;
-			if (cluster->groupIndex != KMeshCluster::INVALID_INDEX)
+			if (!KFileTool::IsPathExist(saveRoot))
 			{
-				const KMeshClusterGroup& groupAsChildren = m_ClusterGroups[cluster->groupIndex];
-
-				{
-					size_t t = 0;
-					std::stringstream ssParents;
-					ssParents << "\"";
-					for (uint32_t parent : groupAsChildren.clusters)
-					{
-						++t;
-						ssParents << parent;
-						if (t != groupAsChildren.clusters.size())
-						{
-							ssParents << ",";
-						}
-					}
-					ssParents << "\"";
-					parents = ssParents.str();
-				}
-
-				{
-					size_t t = 0;
-					std::stringstream ssAdjacencies;
-					ssAdjacencies << "\"";
-					for (uint32_t adj : groupAsChildren.childrenClusters)
-					{
-						if (adj == i)
-						{
-							continue;
-						}
-						++t;
-						ssAdjacencies << adj;
-						if (t != groupAsChildren.childrenClusters.size() - 1)
-						{
-							ssAdjacencies << ",";
-						}
-					}
-					ssAdjacencies << "\"";
-					adjacencies = ssAdjacencies.str();
-				}
+				KFileTool::CreateFolder(saveRoot, true);
 			}
 
-			std::string children;
-			if (cluster->generatingGroupIndex != KMeshCluster::INVALID_INDEX)
+			IKDataStreamPtr dataStream = GetDataStream(IT_FILEHANDLE);
+			if (!dataStream->Open(filePath.c_str(), IM_WRITE))
 			{
-				const KMeshClusterGroup& groupAsParent = m_ClusterGroups[cluster->generatingGroupIndex];
-				std::stringstream ssChildren;
-				ssChildren << "\"";
-				size_t t = 0;
-				for (uint32_t child : groupAsParent.childrenClusters)
-				{
-					++t;
-					ssChildren << child;
-					if (t != groupAsParent.childrenClusters.size())
-					{
-						ssChildren << ",";
-					}
-				}
-				ssChildren << "\"";
-				children = ssChildren.str();
+				dataStream->Close();
+				return;
 			}
 
-			ss << i << "," << cluster->level << "," << cluster->indices.size() / 3 << "," << cluster->error << "," << adjacencies << "," << children << "," << parents;
-			ss << std::endl;
+			std::stringstream ss;
+			ss << "Index,LodLevel,TriangleNum,Error,AdjacenciesAsChildren,AdjacenciesAsParent,Children,Parent," << std::endl;
+			for (size_t i = 0; i < m_Clusters.size(); ++i)
+			{
+				KMeshClusterPtr cluster = m_Clusters[i];
+
+				std::string adjacenciesAsChildren;
+				std::string adjacenciesAsParent;
+				std::string children;
+				std::string parents;
+
+				if (cluster->groupIndex != KMeshCluster::INVALID_INDEX)
+				{
+					const KMeshClusterGroup& groupAsChildren = *m_ClusterGroups[cluster->groupIndex];
+
+					{
+						size_t t = 0;
+						std::stringstream ssParents;
+						ssParents << "\"";
+						for (uint32_t parent : groupAsChildren.clusters)
+						{
+							++t;
+							ssParents << parent;
+							if (t != groupAsChildren.clusters.size())
+							{
+								ssParents << ",";
+							}
+						}
+						ssParents << "\"";
+						parents = ssParents.str();
+					}
+
+					{
+						size_t t = 0;
+						std::stringstream ssAdjacencies;
+						ssAdjacencies << "\"";
+						for (uint32_t adj : groupAsChildren.childrenClusters)
+						{
+							if (adj == i)
+							{
+								continue;
+							}
+							++t;
+							ssAdjacencies << adj;
+							if (t != groupAsChildren.childrenClusters.size() - 1)
+							{
+								ssAdjacencies << ",";
+							}
+						}
+						ssAdjacencies << "\"";
+						adjacenciesAsChildren = ssAdjacencies.str();
+					}
+				}
+
+				if (cluster->generatingGroupIndex != KMeshCluster::INVALID_INDEX)
+				{
+					const KMeshClusterGroup& groupAsParent = *m_ClusterGroups[cluster->generatingGroupIndex];
+
+					{
+						std::stringstream ssChildren;
+						ssChildren << "\"";
+						size_t t = 0;
+						for (uint32_t child : groupAsParent.childrenClusters)
+						{
+							++t;
+							ssChildren << child;
+							if (t != groupAsParent.childrenClusters.size())
+							{
+								ssChildren << ",";
+							}
+						}
+						ssChildren << "\"";
+						children = ssChildren.str();
+					}
+
+					{
+						size_t t = 0;
+						std::stringstream ssAdjacencies;
+						ssAdjacencies << "\"";
+						for (uint32_t adj : groupAsParent.clusters)
+						{
+							if (adj == i)
+							{
+								continue;
+							}
+							++t;
+							ssAdjacencies << adj;
+							if (t != groupAsParent.clusters.size() - 1)
+							{
+								ssAdjacencies << ",";
+							}
+						}
+						ssAdjacencies << "\"";
+						adjacenciesAsParent = ssAdjacencies.str();
+					}
+				}
+
+				ss << i << "," << cluster->level << "," << cluster->indices.size() / 3 << "," << cluster->error << "," << adjacenciesAsChildren << "," << adjacenciesAsParent << "," << children << "," << parents;
+				ss << std::endl;
+			}
+
+			std::string data = ss.str();
+			dataStream->Write(data.c_str(), data.length());
+			dataStream->Close();
 		}
-		output = ss.str();
 	}
 
 	uint32_t GetLevelNum() const

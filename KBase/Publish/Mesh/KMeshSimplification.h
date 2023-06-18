@@ -318,7 +318,7 @@ protected:
 		const Vertex& vert1 = m_Vertices[v1];
 		const Vertex& vert2 = m_Vertices[v2];
 
-		constexpr float EPS = 1e-5f;
+		constexpr Type EPS = 1e-5f;
 
 		if (glm::length(vert0.pos - vert1.pos) < EPS)
 			return true;
@@ -380,17 +380,20 @@ protected:
 		Type cost = std::numeric_limits<Type>::max();
 		Vector opt;
 
+		Vertex vc;
+
 		if (lock0 || lock1)
 		{
-			Vertex v = lock0 ? va : vb;
-			opt.v[0] = v.pos[0];	opt.v[1] = v.pos[1];	opt.v[2] = v.pos[2];
-			opt.v[3] = v.uv[0];		opt.v[4] = v.uv[1];
-			opt.v[5] = v.normal[0];	opt.v[6] = v.normal[1];	opt.v[7] = v.normal[2];
-			opt.v[8] = v.color[0];	opt.v[9] = v.color[1];	opt.v[10] = v.color[2];
+			vc = lock0 ? va : vb;
+			opt.v[0] = vc.pos[0];		opt.v[1] = vc.pos[1];		opt.v[2] = vc.pos[2];
+			opt.v[3] = vc.uv[0];		opt.v[4] = vc.uv[1];
+			opt.v[5] = vc.normal[0];	opt.v[6] = vc.normal[1];	opt.v[7] = vc.normal[2];
+			opt.v[8] = vc.color[0];		opt.v[9] = vc.color[1];		opt.v[10] = vc.color[2];
 			cost = attrQuadric.Error(opt.v);
 		}
 		else
 		{
+			bool bLerp = false;
 			Vector vec;
 			if (attrQuadric.OptimalVolume(vec.v))
 			{
@@ -408,11 +411,33 @@ protected:
 				static_assert(segment >= 1, "ensure segment");
 				for (size_t i = 0; i < segment; ++i)
 				{
-					Type factor = (Type)(i) / (Type)(segment - 1);
-					auto pos = glm::mix(va.pos, vb.pos, factor);
-					auto uv = glm::mix(va.uv, vb.uv, factor);
-					auto normal = glm::mix(va.normal, vb.normal, factor);
-					auto color = glm::mix(va.color, vb.color, factor);
+					glm::tvec3<Type> pos;
+					glm::tvec2<Type> uv;
+					glm::tvec3<Type> normal;
+					glm::tvec3<Type> color;
+
+					if (i == 0)
+					{
+						pos = va.pos;
+						uv = va.uv;
+						normal = va.normal;
+						color = va.color;
+					}
+					else if (i == segment - 1)
+					{
+						pos = vb.pos;
+						uv = vb.uv;
+						normal = vb.normal;
+						color = vb.color;
+					}
+					else
+					{
+						Type factor = (Type)(i) / (Type)(segment - 1);
+						pos = glm::mix(va.pos, vb.pos, factor);
+						uv = glm::mix(va.uv, vb.uv, factor);
+						normal = glm::normalize(glm::mix(va.normal, vb.normal, factor));
+						color = glm::mix(va.color, vb.color, factor);
+					}
 
 					vec.v[0] = pos[0];		vec.v[1] = pos[1];		vec.v[2] = pos[2];
 					vec.v[3] = uv[0];		vec.v[4] = uv[1];
@@ -426,15 +451,25 @@ protected:
 						opt = vec;
 					}
 				}
+				bLerp = true;
 			}
-		}
 
-		Vertex vc;
-		vc.pos = decltype(vc.pos)(opt.v[0], opt.v[1], opt.v[2]);
-		vc.uv = glm::clamp(decltype(vc.uv)(opt.v[3] / UV_WEIGHT[0], opt.v[4] / UV_WEIGHT[0]), uvBox[0], uvBox[1]);
-		vc.normal = glm::normalize(decltype(vc.normal)(opt.v[5] / NORMAL_WEIGHT, opt.v[6] / NORMAL_WEIGHT, opt.v[7] / NORMAL_WEIGHT));
-		vc.color = glm::clamp(decltype(vc.color)(opt.v[8] / COLOR_WEIGHT, opt.v[9] / COLOR_WEIGHT, opt.v[10] / COLOR_WEIGHT), colorBox[0][0], colorBox[0][1]);
-		vc.partIndex = va.partIndex;
+			vc.pos = glm::tvec3<Type>(opt.v[0], opt.v[1], opt.v[2]);
+			if (!bLerp)
+			{
+				vc.uv = glm::clamp(glm::tvec2<Type>(opt.v[3] / UV_WEIGHT[0], opt.v[4] / UV_WEIGHT[0]), uvBox[0], uvBox[1]);
+				vc.normal = glm::normalize(glm::tvec3<Type>(opt.v[5] / NORMAL_WEIGHT, opt.v[6] / NORMAL_WEIGHT, opt.v[7] / NORMAL_WEIGHT));
+				vc.color = glm::clamp(glm::tvec3<Type>(opt.v[8] / COLOR_WEIGHT, opt.v[9] / COLOR_WEIGHT, opt.v[10] / COLOR_WEIGHT), colorBox[0][0], colorBox[0][1]);
+			}
+			else
+			{
+				vc.uv = glm::tvec2<Type>(opt.v[3], opt.v[4]);
+				vc.normal = glm::tvec3<Type>(opt.v[5], opt.v[6], opt.v[7]);
+				vc.color = glm::tvec3<Type>(opt.v[8], opt.v[9], opt.v[10]);
+			}
+
+			vc.partIndex = va.partIndex;
+		}
 
 		EdgeContractionResult result;
 
@@ -545,6 +580,7 @@ protected:
 
 		// m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f);
 
+		m_Triangles.clear();
 		m_Triangles.reserve(maxTriCount);
 
 		for (uint32_t i = 0; i < maxTriCount; ++i)
@@ -961,7 +997,7 @@ protected:
 				continue;
 			}
 
-			float maxDistanceSquare = 4.0f * glm::dot(adjacencyBound.GetExtend(), adjacencyBound.GetExtend());
+			Type maxDistanceSquare = 4.0f * glm::dot(adjacencyBound.GetExtend(), adjacencyBound.GetExtend());
 			if (adjacencyBound.DistanceSquare(glm::vec3(contraction.vertex.pos)) > maxDistanceSquare)
 			{
 				continue;
@@ -1505,15 +1541,10 @@ public:
 
 				KMeshProcessorVertex vertex;
 				vertex.partIndex = m_Vertices[oldIndex].partIndex;
-
 				vertex.pos = glm::tvec3<Type>(m_Vertices[oldIndex].pos) * m_PositionInvScale;
 				vertex.uv = m_Vertices[oldIndex].uv;
 				vertex.color[0] = m_Vertices[oldIndex].color;
 				vertex.normal = m_Vertices[oldIndex].normal;
-
-				// TODO
-				// vertex.tangent;
-				// vertex.binormal;
 				vertices.push_back(vertex);
 			}
 		}

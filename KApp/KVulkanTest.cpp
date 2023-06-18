@@ -42,7 +42,7 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f }
 	};
 
-	static const uint32_t fileIndex = 1;
+	static const uint32_t fileIndex = 4;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
@@ -83,16 +83,15 @@ void InitQEM(IKEnginePtr engine)
 			}
 		}
 
-		std::string debugCluster;
-		clusterBuilder.DumpClusterInformation(debugCluster);
+		std::string fileName, name, ext;
+		KFileTool::FileName(filePath, fileName);
+		KFileTool::SplitExt(fileName, name, ext);
 
-		IKDataStreamPtr output = GetDataStream(IT_FILEHANDLE);
-		output->Open("clusters.csv", IM_WRITE);
-		output->Write(debugCluster.data(), debugCluster.length());
-		output->Close();
-
-		clusterBuilder.DumpClusterAsOBJ("D:/DebugCluster/");
-		clusterBuilder.DumpClusterGroupAsOBJ("D:/DebugClusterGroup/");
+		std::string folder = "D:/Debug/" + name + "/";
+		KFileTool::CreateFolder(folder, true);
+		clusterBuilder.DumpClusterInformation(folder);
+		clusterBuilder.DumpClusterAsOBJ(folder + "/clusters");
+		clusterBuilder.DumpClusterGroupAsOBJ(folder + "/clusterGroups");
 
 		initUserData = true;
 	}
