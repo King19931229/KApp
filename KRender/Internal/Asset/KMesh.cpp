@@ -238,7 +238,7 @@ bool KMesh::InitFromImportResult(const KAssetImportResult& result, const std::ve
 					if (eleFormat == EF_R32G32B32_FLOAT)
 					{
 						const glm::vec3* posData = reinterpret_cast<const glm::vec3*>(dataSource.data() + i * detail.vertexSize + eleOffset);
-						m_VertexData.bound.Merge(*posData, m_VertexData.bound);
+						m_VertexData.bound = m_VertexData.bound.Merge(*posData);
 					}
 					else
 					{

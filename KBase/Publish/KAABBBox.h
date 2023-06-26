@@ -153,9 +153,21 @@ public:
 		return distSquare;
 	}
 
-	float Distance(const glm::vec3& point) const
+	inline float Distance(const glm::vec3& point) const
 	{
 		return sqrt(DistanceSquare(point));
+	}
+
+	inline float Surface() const
+	{
+		glm::vec3 extend = GetExtend();
+		return 2 * (extend.x * extend.y + extend.x * extend.z + extend.y * extend.z);
+	}
+
+	float Volume() const
+	{
+		glm::vec3 extend = GetExtend();
+		return extend.x * extend.y * extend.z;
 	}
 
 	bool Intersect(const glm::vec3& point) const
@@ -235,15 +247,16 @@ public:
 		}
 	}
 
-	void Merge(const KAABBBox& other, KAABBBox& result)
+	KAABBBox Merge(const KAABBBox& other)
 	{
-		if(IsInfinite())
+		KAABBBox result;
+		if (IsInfinite())
 		{
 			result.m_Mode = m_Mode;
 			result.m_Min = m_Min;
 			result.m_Max = m_Max;
 		}
-		else if(IsNull())
+		else if (IsNull())
 		{
 			result.m_Mode = other.m_Mode;
 			result.m_Min = other.m_Min;
@@ -251,13 +264,13 @@ public:
 		}
 		else
 		{
-			if(other.IsInfinite())
+			if (other.IsInfinite())
 			{
 				result.m_Mode = other.m_Mode;
 				result.m_Min = other.m_Min;
 				result.m_Max = other.m_Max;
 			}
-			else if(other.IsNull())
+			else if (other.IsNull())
 			{
 				result.m_Mode = m_Mode;
 				result.m_Min = m_Min;
@@ -276,17 +289,19 @@ public:
 				result.m_Min.z = std::min(m_Min.z, other.m_Min.z);
 			}
 		}
+		return result;
 	}
 
-	void Merge(const glm::vec3& point, KAABBBox& result)
+	KAABBBox Merge(const glm::vec3& point)
 	{
-		if(IsInfinite())
+		KAABBBox result;
+		if (IsInfinite())
 		{
 			result.m_Mode = EM_INFINITE;
 			result.m_Min = m_Min;
 			result.m_Max = m_Max;
 		}
-		else if(IsNull())
+		else if (IsNull())
 		{
 			result.m_Mode = EM_DEFAULF;
 			result.m_Min = result.m_Max = point;
@@ -303,6 +318,7 @@ public:
 			result.m_Min.y = std::min(m_Min.y, point.y);
 			result.m_Min.z = std::min(m_Min.z, point.z);
 		}
+		return result;
 	}
 
 	bool Intersect(const glm::vec3& origin, const glm::vec3& dir) const

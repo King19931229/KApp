@@ -1140,9 +1140,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 			{
 				newMesh->bb = p->bb;
 			}
-			KAABBBox merge;
-			newMesh->bb.Merge(p->bb, merge);
-			newMesh->bb = merge;
+			newMesh->bb = newMesh->bb.Merge(p->bb);
 		}
 		newNode->mesh = newMesh;
 	}
@@ -1371,9 +1369,7 @@ void KGLTFLoader::CalculateBoundingBox(NodePtr node, Node* parent)
 		}
 	}
 
-	KAABBBox merge;
-	parentBvh.Merge(node->bvh, merge);
-	parentBvh = merge;
+	parentBvh = parentBvh.Merge(node->bvh);
 
 	for (NodePtr child : node->children)
 	{

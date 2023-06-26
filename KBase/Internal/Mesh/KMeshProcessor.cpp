@@ -356,7 +356,7 @@ namespace KMeshProcessor
 				pnts[i].pos = vertices[i].pos;
 				pnts[i].normal = vertices[i].normal;
 				pnts[i].uv = vertices[i].uv;
-				bound.Merge(vertices[i].pos, bound);
+				bound = bound.Merge(vertices[i].pos);
 			}
 			components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
 			vertexBuffers.push_back(std::move(vertexBuffer));

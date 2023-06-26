@@ -477,7 +477,7 @@ bool KMeshUtilityImpl::CreateMesh(const std::vector<KVertexDefinition::DEBUG_POS
 		KAABBBox bound;
 		for (auto& pos : vertices)
 		{
-			bound.Merge(pos.DEBUG_POSITION, bound);
+			bound = bound.Merge(pos.DEBUG_POSITION);
 		}
 
 		vertexData.vertexFormats.push_back(VF_DEBUG_POINT);

@@ -576,7 +576,7 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 			{
 				glm::vec4 invCorner = invCamView * glm::vec4(frustumCorners[i], 1.0f);
 				frustumCorners[i] = invCorner / invCorner.w;
-				frustumBox.Merge(frustumCorners[i], frustumBox);
+				frustumBox = frustumBox.Merge(frustumCorners[i]);
 			}
 		}
 		dynamicCascaded.frustumBox = frustumBox;
@@ -1220,7 +1220,7 @@ bool KCascadedShadowMap::PopulateRenderCommandList(size_t cascadedIndex, bool is
 				IKEntity* entity = component->GetEntityHandle();
 				if (entity && entity->GetBound(bound))
 				{
-					receiverBox.Merge(bound, receiverBox);
+					receiverBox = receiverBox.Merge(bound);
 				}
 			}
 

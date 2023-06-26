@@ -133,15 +133,12 @@ protected:
 
 			glm::mat4 viewInv = glm::inverse(m_View);
 
-			KAABBBox tempBoxResult;
-			tempBoxResult.SetNull();
 			m_Box.SetNull();
 			for(int i = 0; i < FC_COUNT; ++i)
 			{
 				m_Corners[i] = viewInv * glm::vec4(m_Corners[i], 1.0f);
-				tempBoxResult.Merge(m_Corners[i], tempBoxResult);
+				m_Box = m_Box.Merge(m_Corners[i]);
 			}
-			m_Box = tempBoxResult;
 
 			m_Planes[FP_NEAR].Init(m_Corners[FC_NEAR_TOP_LEFT], m_Corners[FC_NEAR_TOP_RIGHT], m_Corners[FC_NEAR_BOTTOM_RIGHT]);
 			m_Planes[FP_FAR].Init(m_Corners[FC_FAR_TOP_LEFT], m_Corners[FC_FAR_BOTTOM_LEFT], m_Corners[FC_FAR_BOTTOM_RIGHT]);

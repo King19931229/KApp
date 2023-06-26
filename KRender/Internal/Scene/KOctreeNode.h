@@ -413,7 +413,7 @@ public:
 		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
 		{
 			const auto& curObject = *it;
-			result.Merge(curObject.Bounds, result);
+			result = result.Merge(curObject.Bounds);
 		}
 
 		if (children)
@@ -422,7 +422,7 @@ public:
 			{
 				KAABBBox childResult;
 				children[i].GetObjectBound(childResult);
-				result.Merge(childResult, result);
+				result = result.Merge(childResult);
 			}
 		}
 

@@ -575,7 +575,7 @@ protected:
 			m_Vertices[i].partIndex = vertices[i].partIndex;
 			m_Versions[i] = 0;
 			m_Flags[i] = VERTEX_FLAG_FREE;
-			bound.Merge(m_Vertices[i].pos, bound);
+			bound = bound.Merge(m_Vertices[i].pos);
 		}
 
 		// m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f);
@@ -953,9 +953,9 @@ protected:
 			{
 				KAABBBox bound;
 				const Triangle& triangle = m_Triangles[triIndex];
-				bound.Merge(m_Vertices[triangle.index[0]].pos, bound);
-				bound.Merge(m_Vertices[triangle.index[1]].pos, bound);
-				bound.Merge(m_Vertices[triangle.index[2]].pos, bound);
+				bound = bound.Merge(m_Vertices[triangle.index[0]].pos);
+				bound = bound.Merge(m_Vertices[triangle.index[1]].pos);
+				bound = bound.Merge(m_Vertices[triangle.index[2]].pos);
 				return bound;
 			};
 
@@ -974,7 +974,7 @@ protected:
 					{
 						noSharedAdjacencySetV1.insert(triIndex);
 					}
-					adjacencyBound.Merge(ComputeTriangleBound(triIndex), adjacencyBound);
+					adjacencyBound = adjacencyBound.Merge(ComputeTriangleBound(triIndex));
 				}
 			}
 
@@ -988,7 +988,7 @@ protected:
 						noSharedAdjacencySetV0.insert(triIndex);
 					}
 				}
-				adjacencyBound.Merge(ComputeTriangleBound(triIndex), adjacencyBound);
+				adjacencyBound = adjacencyBound.Merge(ComputeTriangleBound(triIndex));
 			}
 
 			int32_t invalidTriangle = (int32_t)sharedAdjacencySet.size();

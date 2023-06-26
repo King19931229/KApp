@@ -279,7 +279,7 @@ bool KMeshSerializerV0::ReadVertexElementData(IKDataStreamPtr& stream, VertexFor
 				if (eleFormat == EF_R32G32B32_FLOAT)
 				{
 					const glm::vec3* posData = reinterpret_cast<const glm::vec3*>(vertexDatas.data() + i * vertexDataSize + eleOffset);
-					bound.Merge(*posData, bound);
+					bound = bound.Merge(*posData);
 				}
 				else
 				{

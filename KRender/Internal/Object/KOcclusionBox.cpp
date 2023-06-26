@@ -350,7 +350,7 @@ bool KOcclusionBox::MergeInstanceGroup(KRenderComponent* renderComponent, const 
 		for (InstanceGroup& group : groups)
 		{
 			KAABBBox mergedBox;
-			group.bound.Merge(bound, mergedBox);
+			mergedBox = group.bound.Merge(bound);
 			glm::vec3 extend = mergedBox.GetExtend();
 
 			if (extend.x <= m_InstanceGroupSize &&
