@@ -331,7 +331,7 @@ void KDeferredRenderer::RecreatePipeline()
 	}
 }
 
-void KDeferredRenderer::BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<KRenderComponent*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances)
+void KDeferredRenderer::BuildMaterialSubMeshInstance(DeferredRenderStage renderStage, const std::vector<IKEntity*>& cullRes, std::vector<KMaterialSubMeshInstance>& instances)
 {
 	if (renderStage == DRS_STAGE_BASE_PASS)
 	{
@@ -422,7 +422,7 @@ void KDeferredRenderer::HandleRenderCommandBinding(DeferredRenderStage renderSta
 	}
 }
 
-void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderContext, DeferredRenderStage deferredRenderStage, const std::vector<KRenderComponent*>& cullRes)
+void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderContext, DeferredRenderStage deferredRenderStage, const std::vector<IKEntity*>& cullRes)
 {
 	RenderStage renderStage = GDeferredRenderStageDescription[deferredRenderStage].renderStage;
 	RenderStage instanceRenderStage = GDeferredRenderStageDescription[deferredRenderStage].instanceRenderStage;
@@ -675,16 +675,16 @@ void KDeferredRenderer::CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 }
 
-void KDeferredRenderer::PrePass(KMultithreadingRenderContext& renderContext, const std::vector<KRenderComponent*>& cullRes)
+void KDeferredRenderer::PrePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes)
 {
 }
 
-void KDeferredRenderer::BasePass(KMultithreadingRenderContext& renderContext, const std::vector<KRenderComponent*>& cullRes)
+void KDeferredRenderer::BasePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes)
 {
 	BuildRenderCommand(renderContext, DRS_STAGE_BASE_PASS, cullRes);
 }
 
-void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes)
+void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes)
 {
 	KMultithreadingRenderContext context;
 	context.primaryBuffer = primaryBuffer;
@@ -702,82 +702,76 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 	KRenderStageStatistics& statistics = m_Statistics[DRS_STATE_DEBUG_OBJECT];
 	statistics.Reset();
 
-	std::vector<KRenderComponent*> cullRes;
-	KRenderGlobal::Scene.GetRenderComponent(*m_Camera, KRenderGlobal::EnableDebugRender, cullRes);
+	std::vector<IKEntity*> cullRes;
+	KRenderGlobal::Scene.GetVisibleEntities(*m_Camera, cullRes);
 
 	std::vector<KRenderCommand> commands;
 
-	for (KRenderComponent* render : cullRes)
+	for (IKEntity* entity : cullRes)
 	{
-		IKEntity* entity = render->GetEntityHandle();
-
+		KRenderComponent* render = nullptr;
 		KTransformComponent* transform = nullptr;
-		if (entity->GetComponent(CT_TRANSFORM, &transform))
+		if (entity->GetComponent(CT_RENDER, &render) && entity->GetComponent(CT_TRANSFORM, &transform))
 		{
-			KDebugComponent* debug = nullptr;
-			KRenderComponent* render = nullptr;
-			if (entity->GetComponent(CT_DEBUG, (IKComponentBase**)&debug) && entity->GetComponent(CT_RENDER, (IKComponentBase**)&render))
+			KConstantDefinition::DEBUG objectData;
+			objectData.MODEL = transform->FinalTransform();
+			objectData.COLOR = render->GetUtilityColor();
+
+			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
+
+			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 			{
-				KConstantDefinition::DEBUG objectData;
-				objectData.MODEL = transform->FinalTransform();
-				objectData.COLOR = debug->Color();
+				KRenderCommand command;
 
-				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
-
-				for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
+				if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_TRIANGLE, command))
 				{
-					KRenderCommand command;
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
+					command.objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-					if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_TRIANGLE, command))
+					++statistics.drawcalls;
+					if (command.indexDraw)
 					{
-						command.objectUsage.binding = SHADER_BINDING_OBJECT;
-						command.objectUsage.range = sizeof(objectData);
-						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
-
-						++statistics.drawcalls;
-						if (command.indexDraw)
-						{
-							statistics.faces += command.indexData->indexCount / 3;
-							statistics.primtives += command.indexData->indexCount;
-						}
-						else
-						{
-							statistics.faces += command.vertexData->vertexCount / 3;
-							statistics.primtives += command.vertexData->vertexCount;
-						}
-
-						command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
-
-						if (command.Complete())
-						{
-							commands.push_back(std::move(command));
-						}
+						statistics.faces += command.indexData->indexCount / 3;
+						statistics.primtives += command.indexData->indexCount;
+					}
+					else
+					{
+						statistics.faces += command.vertexData->vertexCount / 3;
+						statistics.primtives += command.vertexData->vertexCount;
 					}
 
-					if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_LINE, command))
+					command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
+
+					if (command.Complete())
 					{
-						command.objectUsage.binding = SHADER_BINDING_OBJECT;
-						command.objectUsage.range = sizeof(objectData);
-						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+						commands.push_back(std::move(command));
+					}
+				}
 
-						++statistics.drawcalls;
-						if (command.indexDraw)
-						{
-							statistics.faces += command.indexData->indexCount / 2;
-							statistics.primtives += command.indexData->indexCount;
-						}
-						else
-						{
-							statistics.faces += command.vertexData->vertexCount / 2;
-							statistics.primtives += command.vertexData->vertexCount;
-						}
+				if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_LINE, command))
+				{
+					command.objectUsage.binding = SHADER_BINDING_OBJECT;
+					command.objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
 
-						command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
+					++statistics.drawcalls;
+					if (command.indexDraw)
+					{
+						statistics.faces += command.indexData->indexCount / 2;
+						statistics.primtives += command.indexData->indexCount;
+					}
+					else
+					{
+						statistics.faces += command.vertexData->vertexCount / 2;
+						statistics.primtives += command.vertexData->vertexCount;
+					}
 
-						if (command.Complete())
-						{
-							commands.push_back(std::move(command));
-						}
+					command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
+
+					if (command.Complete())
+					{
+						commands.push_back(std::move(command));
 					}
 				}
 			}

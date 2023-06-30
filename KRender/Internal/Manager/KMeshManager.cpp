@@ -74,19 +74,14 @@ bool KMeshManager::AcquireFromAsset(const char* path, KMeshRef& ref)
 	return AcquireImpl(path, true, ref);
 }
 
-bool KMeshManager::AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref)
+bool KMeshManager::New(KMeshRef& ref)
 {
 	KMeshPtr ptr = KMeshPtr(KNEW KMesh());
-	if (ptr->InitUtility(info))
+	ref = KMeshRef(ptr, [this](KMeshPtr ptr)
 	{
-		ref = KMeshRef(ptr, [this](KMeshPtr ptr)
-		{
-			ptr->UnInit();
-		});
-		return true;
-	}
-	ptr = nullptr;
-	return false;
+		ptr->UnInit();
+	});
+	return true;
 }
 
 bool KMeshManager::AcquireFromUserData(const KAssetImportResult& userData, const std::string& label, KMeshRef& ref)
@@ -101,15 +96,6 @@ bool KMeshManager::AcquireFromUserData(const KAssetImportResult& userData, const
 		return true;
 	}
 	ptr = nullptr;
-	return false;
-}
-
-bool KMeshManager::UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref)
-{
-	if (ref)
-	{
-		return ref->UpdateUtility(info);
-	}
 	return false;
 }
 

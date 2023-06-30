@@ -158,8 +158,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		ResetThreadNum(m_MultithreadCount);
 	}
 
-	std::vector<KRenderComponent*> cullRes;
-	KRenderGlobal::Scene.GetRenderComponent(*m_Camera, false, cullRes);
+	std::vector<IKEntity*> cullRes;
+	KRenderGlobal::Scene.GetVisibleEntities(*m_Camera, cullRes);
 
 	IKCommandBufferPtr commandBuffer = nullptr;
 

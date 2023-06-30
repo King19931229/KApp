@@ -90,8 +90,8 @@ bool KShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 	}
 	// 更新RenderTarget
 	{
-		std::vector<KRenderComponent*> cullRes;
-		KRenderGlobal::Scene.GetRenderComponent(m_Camera, false, cullRes);
+		std::vector<IKEntity*> cullRes;
+		KRenderGlobal::Scene.GetVisibleEntities(m_Camera, cullRes);
 
 		primaryBuffer->BeginDebugMarker("SM", glm::vec4(0, 1, 0, 0));
 		primaryBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_INLINE);
@@ -102,9 +102,8 @@ bool KShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 		primaryBuffer->SetDepthBias(m_DepthBiasConstant, 0, m_DepthBiasSlope);
 		{
 			KRenderCommandList commandList;
-			for (KRenderComponent* component : cullRes)
+			for (IKEntity* entity : cullRes)
 			{
-				IKEntity* entity = component->GetEntityHandle();
 				KTransformComponent* transform = nullptr;
 				KRenderComponent* render = nullptr;
 				if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform) && entity->GetComponent(CT_RENDER, (IKComponentBase**)&render))

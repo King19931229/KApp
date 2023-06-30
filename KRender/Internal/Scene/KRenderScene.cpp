@@ -171,63 +171,36 @@ bool KRenderScene::UnRegisterEntityObserver(EntityObserverFunc* func)
 	}
 }
 
-bool KRenderScene::GetRenderComponent(const KCamera& camera, bool withDebug, std::vector<KRenderComponent*>& result)
+bool KRenderScene::GetVisibleEntities(const KCamera& camera, std::vector<IKEntity*>& result)
 {
-	std::deque<IKEntity*> entities;
+	result.clear();
 	if (m_SceneMgr)
 	{
-		m_SceneMgr->GetVisibleEntity(&camera, entities);
-
-		if (withDebug)
-		{
-			m_SceneMgr->GetDebugEntity(entities);
-		}
-
-		result.clear();
-		result.reserve(entities.size());
-
-		for (IKEntity* entity : entities)
-		{
-			KRenderComponent* component = nullptr;
-			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component) && component)
-			{
-				result.push_back(component);
-			}
-		}
-
+		m_SceneMgr->GetVisibleEntity(&camera, result);
 		return true;
-	}
-	result.clear();
+	}	
 	return false;
 }
 
-bool KRenderScene::GetRenderComponent(const KAABBBox& bound, bool withDebug, std::vector<KRenderComponent*>& result)
+bool KRenderScene::GetVisibleEntities(const KAABBBox& bound, std::vector<IKEntity*>& result)
 {
-	std::deque<IKEntity*> entities;
+	result.clear();
 	if (m_SceneMgr)
 	{
-		m_SceneMgr->GetVisibleEntity(&bound, entities);
-
-		if (withDebug)
-		{
-			m_SceneMgr->GetDebugEntity(entities);
-		}
-
-		result.clear();
-		result.reserve(entities.size());
-
-		for (IKEntity* entity : entities)
-		{
-			KRenderComponent* component = nullptr;
-			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component) && component)
-			{
-				result.push_back(component);
-			}
-		}
-
+		m_SceneMgr->GetVisibleEntity(&bound, result);
 		return true;
 	}
+	return false;
+}
+
+bool KRenderScene::GetDebugEntities(std::vector<IKEntity*>& result)
+{
 	result.clear();
+	if (m_SceneMgr)
+	{
+		m_SceneMgr->GetDebugEntity(result);
+		return true;
+	}
 	return false;
 }
 
@@ -333,13 +306,7 @@ bool KRenderScene::GetAllEntities(std::vector<IKEntity*>& result)
 	result.clear();
 	if (m_SceneMgr)
 	{
-		std::deque<IKEntity*> entities;
-		m_SceneMgr->GetAllEntity(entities);
-		result.reserve(entities.size());
-		for (IKEntity* entity : entities)
-		{
-			result.push_back(entity);
-		}
+		m_SceneMgr->GetAllEntity(result);
 		return true;
 	}
 	return false;

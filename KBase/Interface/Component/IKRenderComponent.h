@@ -27,9 +27,13 @@ public:
 	virtual bool InitAsMesh(const std::string& mesh, bool async) = 0;
 	virtual bool InitAsAsset(const std::string& asset, bool async) = 0;
 	virtual bool InitAsUserData(const KAssetImportResult& userData, const std::string& label, bool async) = 0;
+	// virtual bool InitAsUtility(const KMeshUtilityInfo& info) = 0;
+
+	virtual void SetUtilityColor(const glm::vec4& color) = 0;
+	virtual const glm::vec4& GetUtilityColor() const = 0;
+	virtual bool IsUtility() const = 0;
+
 	virtual bool UnInit() = 0;
 
 	virtual bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) = 0;
-
-	virtual bool IsUtility() const = 0;
 };

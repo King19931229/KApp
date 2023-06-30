@@ -1,49 +1,68 @@
 #include "KMeshUtilityImpl.h"
+#include "KMeshUtilityInfo.h"
 
 namespace KMeshUtility
 {
-	KMeshUtilityInfoPtr CreateBox(const KMeshBoxInfo& info)
+	KMeshUtilityInfo CreateBox(const KMeshBoxInfo& info)
 	{
-		return KMeshUtilityInfoPtr(KNEW KMeshBoxUtilityInfo(info));
+		KMeshUtilityInfo ret;
+		KMeshUtilityImpl::PouplateData(info, ret.positions, ret.indices, ret.primtive);
+		return ret;
 	}
 
-	KMeshUtilityInfoPtr CreateQuad(const KMeshQuadInfo& info)
+	KMeshUtilityInfo CreateQuad(const KMeshQuadInfo& info)
 	{
-		return KMeshUtilityInfoPtr(KNEW KMeshQuadUtilityInfo(info));
+		KMeshUtilityInfo ret;
+		KMeshUtilityImpl::PouplateData(info, ret.positions, ret.indices, ret.primtive);
+		return ret;
 	}
 
-	KMeshUtilityInfoPtr CreateCone(const KMeshConeInfo& info)
+	KMeshUtilityInfo CreateCone(const KMeshConeInfo& info)
 	{
-		return KMeshUtilityInfoPtr(KNEW KMeshConeUtilityInfo(info));
+		KMeshUtilityInfo ret;
+		KMeshUtilityImpl::PouplateData(info, ret.positions, ret.indices, ret.primtive);
+		return ret;
 	}
 
-	KMeshUtilityInfoPtr CreateCylinder(const KMeshCylinderInfo& info)
+	KMeshUtilityInfo CreateCylinder(const KMeshCylinderInfo& info)
 	{
-		return KMeshUtilityInfoPtr(KNEW KMeshCylinderUtilityInfo(info));
+		KMeshUtilityInfo ret;
+		KMeshUtilityImpl::PouplateData(info, ret.positions, ret.indices, ret.primtive);
+		return ret;
 	}
 
-	KMeshUtilityInfoPtr CreateCircle(const KMeshCircleInfo& info)
+	KMeshUtilityInfo CreateCircle(const KMeshCircleInfo& info)
 	{
-		return KMeshUtilityInfoPtr(KNEW KMeshCircleUtilityInfo(info));
+		KMeshUtilityInfo ret;
+		KMeshUtilityImpl::PouplateData(info, ret.positions, ret.indices, ret.primtive);
+		return ret;
 	}
 
-	KMeshUtilityInfoPtr CreateArc(const KMeshArcInfo& info)
+	KMeshUtilityInfo CreateArc(const KMeshArcInfo& info)
 	{
-		return KMeshUtilityInfoPtr(KNEW KMeshArcUtilityInfo(info));
+		KMeshUtilityInfo ret;
+		KMeshUtilityImpl::PouplateData(info, ret.positions, ret.indices, ret.primtive);
+		return ret;
 	}
 
-	KMeshUtilityInfoPtr CreateSphere(const KMeshSphereInfo& info)
+	KMeshUtilityInfo CreateSphere(const KMeshSphereInfo& info)
 	{
-		return KMeshUtilityInfoPtr(KNEW KMeshSphereUtilityInfo(info));
+		KMeshUtilityInfo ret;
+		KMeshUtilityImpl::PouplateData(info, ret.positions, ret.indices, ret.primtive);
+		return ret;
 	}
 
-	KMeshUtilityInfoPtr CreateTriangle(const KMeshTriangleInfo& info)
+	KMeshUtilityInfo CreateTriangle(const KMeshTriangleInfo& info)
 	{
-		return KMeshUtilityInfoPtr(KNEW KMeshTriangleUtilityInfo(info));
+		KMeshUtilityInfo ret;
+		KMeshUtilityImpl::PouplateData(info, ret.positions, ret.indices, ret.primtive);
+		return ret;
 	}
 
-	KMeshUtilityInfoPtr CreateCube(const KMeshCubeInfo& info)
+	KMeshUtilityInfo CreateCube(const KMeshCubeInfo& info)
 	{
-		return KMeshUtilityInfoPtr(KNEW KMeshCubeUtilityInfo(info));
+		KMeshUtilityInfo ret;
+		KMeshUtilityImpl::PouplateData(info, ret.positions, ret.indices, ret.primtive);
+		return ret;
 	}
 }

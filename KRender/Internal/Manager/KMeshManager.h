@@ -29,9 +29,7 @@ public:
 	bool Acquire(const char* path, KMeshRef& ref);
 	bool AcquireFromAsset(const char* path, KMeshRef& ref);
 	bool AcquireFromUserData(const KAssetImportResult& userData, const std::string& label, KMeshRef& ref);
-	bool AcquireAsUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref);
-
-	bool UpdateUtility(const KMeshUtilityInfoPtr& info, KMeshRef& ref);
+	bool New(KMeshRef& ref);
 
 	bool AcquireOCQuery(std::vector<IKQueryPtr>& queries);
 	bool ReleaseOCQuery(std::vector<IKQueryPtr>& queries);

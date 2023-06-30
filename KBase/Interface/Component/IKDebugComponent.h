@@ -1,6 +1,6 @@
 #pragma once
 #include "IKComponentBase.h"
-#include "glm/glm.hpp"
+#include "KBase/Publish/KDebugUtility.h"
 
 struct IKDebugComponent : public IKComponentBase
 {
@@ -12,7 +12,4 @@ public:
 	{
 	}
 	virtual ~IKDebugComponent() {}
-
-	virtual const glm::vec4& Color() const = 0;
-	virtual void SetColor(const glm::vec4& color) = 0;
 };

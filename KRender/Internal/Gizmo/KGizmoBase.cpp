@@ -23,10 +23,10 @@ KGizmoBase::~KGizmoBase()
 
 void KGizmoBase::SetEntityColor(IKEntityPtr entity, const glm::vec4& color)
 {
-	IKDebugComponent* debugComponent = nullptr;
-	if (entity && entity->GetComponent(CT_DEBUG, &debugComponent))
+	IKRenderComponent* renderComponent = nullptr;
+	if (entity && entity->GetComponent(CT_RENDER, &renderComponent))
 	{
-		debugComponent->SetColor(color);
+		renderComponent->SetUtilityColor(color);
 	}
 };
 

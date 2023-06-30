@@ -1065,7 +1065,7 @@ bool KCascadedShadowMap::Resize()
 	return true;
 }
 
-void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
+void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics)
 {
 	std::vector<KMaterialSubMeshInstance> instances;
 	KRenderUtil::CalculateInstancesByMaterial(litCullRes, instances);
@@ -1169,20 +1169,20 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStat
 	}
 }
 
-void KCascadedShadowMap::FilterRenderComponent(std::vector<KRenderComponent*>& in, bool isStatic)
+void KCascadedShadowMap::FilterRenderComponent(std::vector<IKEntity*>& in, bool isStatic)
 {
-	std::vector<KRenderComponent*> out;
+	std::vector<IKEntity*> out;
 	out.reserve(in.size());
 
-	for (KRenderComponent* render : in)
+	for (IKEntity* entity : in)
 	{
-		IKEntity* entity = render->GetEntityHandle();
+		IKRenderComponent* render = nullptr;
 		IKTransformComponent* transform = nullptr;
-		if (entity && entity->GetComponent(CT_TRANSFORM, &transform))
+		if (entity->GetComponent(CT_RENDER, &render) && entity->GetComponent(CT_TRANSFORM, &transform))
 		{
 			if (transform->IsStatic() == isStatic)
 			{
-				out.push_back(render);
+				out.push_back(entity);
 			}
 		}
 	}
@@ -1199,28 +1199,31 @@ bool KCascadedShadowMap::PopulateRenderCommandList(size_t cascadedIndex, bool is
 	{
 		Cascade& cascaded = cascadeds[cascadedIndex];
 
-		std::vector<KRenderComponent*> litCullRes;
-		KRenderGlobal::Scene.GetRenderComponent(cascaded.litBox, false, litCullRes);
+		std::vector<IKEntity*> litCullRes;
+		KRenderGlobal::Scene.GetVisibleEntities(cascaded.litBox, litCullRes);
 
 		if (m_MinimizeShadowDraw)
 		{
-			std::vector<KRenderComponent*> frustumCullRes;
-			KRenderGlobal::Scene.GetRenderComponent(cascaded.frustumBox, false, frustumCullRes);
+			std::vector<IKEntity*> frustumCullRes;
+			KRenderGlobal::Scene.GetVisibleEntities(cascaded.frustumBox, frustumCullRes);
 
-			std::vector<KRenderComponent*> newLitCullRes;
+			std::vector<IKEntity*> newLitCullRes;
 
 			KAABBBox receiverBox;
-			for (KRenderComponent* component : frustumCullRes)
+			for (IKEntity* entity : frustumCullRes)
 			{
-				if (!component->IsOcclusionVisible())
+				KRenderComponent* render = nullptr;
+				if (entity->GetComponent(CT_RENDER, &render))
 				{
-					continue;
-				}
-				KAABBBox bound;
-				IKEntity* entity = component->GetEntityHandle();
-				if (entity && entity->GetBound(bound))
-				{
-					receiverBox = receiverBox.Merge(bound);
+					if (!render->IsOcclusionVisible())
+					{
+						continue;
+					}
+					KAABBBox bound;
+					if (entity && entity->GetBound(bound))
+					{
+						receiverBox = receiverBox.Merge(bound);
+					}
 				}
 			}
 
@@ -1250,11 +1253,11 @@ bool KCascadedShadowMap::PopulateRenderCommandList(size_t cascadedIndex, bool is
 			if (receiverBox.IsDefault())
 			{
 				newLitCullRes.reserve(litCullRes.size());
-				for (KRenderComponent* component : litCullRes)
+				for (IKEntity* entity : litCullRes)
 				{
+					IKRenderComponent* render = nullptr;
 					KAABBBox casterBound;
-					IKEntity* entity = component->GetEntityHandle();
-					if (entity && entity->GetBound(casterBound))
+					if (entity->GetComponent(CT_RENDER, &render) && entity->GetBound(casterBound))
 					{
 						casterBound.Transform(cascaded.viewProjMatrix, casterBound);
 
@@ -1268,7 +1271,7 @@ bool KCascadedShadowMap::PopulateRenderCommandList(size_t cascadedIndex, bool is
 							casterMin.y <= receiverMax.y && casterMax.y >= receiverMin.y &&
 							casterMin.z <= receiverMax.z)
 						{
-							newLitCullRes.push_back(component);
+							newLitCullRes.push_back(entity);
 						}
 					}
 				}

@@ -55,6 +55,7 @@ struct KMeshCluster
 		return color;
 	}
 
+	void InitBound();
 	void UnInit();
 	void Init(KMeshClusterPtr* clusters, size_t numClusters);
 	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices);
@@ -164,6 +165,7 @@ protected:
 	std::vector<KMeshClusterPtr> m_Clusters;
 	std::vector<KMeshClusterGroupPtr> m_ClusterGroups;
 	std::vector<KMeshClusterStoragePartPtr> m_ClusterStorageParts;
+	std::vector<KMeshClusterBVHNodePtr> m_BVHNodes;
 
 	uint32_t m_MinClusterGroup = 8;
 	uint32_t m_MaxClusterGroup = 32;
@@ -174,6 +176,8 @@ protected:
 	uint32_t m_MaxTriangleNum = 0;
 	uint32_t m_MinTriangleNum = 0;
 	float m_MaxError = 0;
+
+	uint32_t m_BVHRoot = 0;
 
 	bool m_CheckClusterAdacency = false;
 
@@ -187,9 +191,6 @@ protected:
 	bool CheckClustersAdjacency(idx_t begin, idx_t end);
 	KGraph BuildClustersAdjacency(idx_t begin, idx_t end);
 
-	void BuildClusterStorage();
-	void BuildClusterBVH();
-
 	enum SortAxis
 	{
 		AXIS_X,
@@ -200,13 +201,15 @@ protected:
 
 	float SortBVHNodesByAxis(const std::vector<KMeshClusterBVHNodePtr>& bvhNodes, SortAxis axis, const std::vector<uint32_t>& indices, const KRange& range, std::vector<uint32_t>& sorted);
 	void SortBVHNodes(const std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices);
-
 	uint32_t BuildHierarchyTopDown(std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices, bool sort);
+
+	void BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum);
+	void BuildClusterStorage();
+	void BuildClusterBVH();
 
 	static bool ColorDebugClusters(const std::vector<KMeshClusterPtr>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices);
 	static bool ColorDebugClusterGroups(const std::vector<KMeshClusterPtr>& clusters, const std::vector<KMeshClusterGroupPtr>& groups, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices);
 public:
-	bool Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum);
 	void FindDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<uint32_t>& clusterIndices, uint32_t& triangleCount, float& error) const;
 	void ColorDebugDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, uint32_t& triangleCount, float& error) const;
 	void ColorDebugCluster(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices) const;
@@ -214,6 +217,8 @@ public:
 	void DumpClusterGroupAsOBJ(const std::string& saveRoot) const;
 	void DumpClusterAsOBJ(const std::string& saveRoot) const;
 	void DumpClusterInformation(const std::string& saveRoot) const;
+
+	void Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices);
 
 	inline uint32_t GetLevelNum() const
 	{

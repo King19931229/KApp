@@ -4,15 +4,10 @@
 #include "Interface/IKAccelerationStructure.h"
 #include "Internal/KVertexDefinition.h"
 #include "Internal/Asset/Material/KMaterialTextureBinding.h"
+#include "KBase/Publish/KDebugUtility.h"
 #include "Meshlet/KMeshlet.h"
 
 #include <functional>
-
-enum DebugPrimitive
-{
-	DEBUG_PRIMITIVE_LINE,
-	DEBUG_PRIMITIVE_TRIANGLE
-};
 
 class KMesh;
 class KSubMesh

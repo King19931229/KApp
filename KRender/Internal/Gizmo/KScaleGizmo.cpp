@@ -60,117 +60,94 @@ bool KScaleGizmo::Init(const KCamera* camera)
 	m_XYZPlaneEntity = KECS::EntityManager->CreateEntity();
 
 	KRenderComponent* renderComponent = nullptr;
-	KDebugComponent* debugComponent = nullptr;
 
 	// Origin
 	m_OriginEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(KMeshUtility::CreateSphere({ glm::mat4(1.0f), ORIGIN_RADIUS }));
-
-	m_OriginEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	renderComponent->InitAsUtility(KMeshUtility::CreateSphere({ glm::mat4(1.0f), ORIGIN_RADIUS }));
+	renderComponent->SetUtilityColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	m_OriginEntity->RegisterComponent(CT_TRANSFORM);
 
 	// XAxis
 	m_XAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(KMeshUtility::CreateCylinder({
+	renderComponent->InitAsUtility(KMeshUtility::CreateCylinder({
 		glm::rotate(glm::mat4(1.0f), -glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)), AXIS_LENGTH, AXIS_RADIUS }));
-
-	m_XAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(X_AXIS_COLOR);
+	renderComponent->SetUtilityColor(X_AXIS_COLOR);
 
 	m_XAxisEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YAxis
 	m_YAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(KMeshUtility::CreateCylinder({ glm::mat4(1.0f), AXIS_LENGTH, AXIS_RADIUS }));
-
-	m_YAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(Y_AXIS_COLOR);
+	renderComponent->InitAsUtility(KMeshUtility::CreateCylinder({ glm::mat4(1.0f), AXIS_LENGTH, AXIS_RADIUS }));
+	renderComponent->SetUtilityColor(Y_AXIS_COLOR);
 
 	m_YAxisEntity->RegisterComponent(CT_TRANSFORM);
 
 	// ZAxis
 	m_ZAxisEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(KMeshUtility::CreateCylinder({
+	renderComponent->InitAsUtility(KMeshUtility::CreateCylinder({
 		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)), AXIS_LENGTH, AXIS_RADIUS }));
-
-	m_ZAxisEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(Z_AXIS_COLOR);
+	renderComponent->SetUtilityColor(Z_AXIS_COLOR);
 
 	m_ZAxisEntity->RegisterComponent(CT_TRANSFORM);
 
 	// XCube
 	m_XCubeEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(
+	renderComponent->InitAsUtility(
 		KMeshUtility::CreateCube({ glm::translate(glm::mat4(1.0f), glm::vec3(AXIS_LENGTH, 0.0f, 0.0f)),
 			glm::vec3(CUBE_HALF_EXTEND) }));
-
-	m_XCubeEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	renderComponent->SetUtilityColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	m_XCubeEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YCube
 	m_YCubeEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(
+	renderComponent->InitAsUtility(
 		KMeshUtility::CreateCube({ glm::translate(glm::mat4(1.0f), glm::vec3(0, AXIS_LENGTH, 0.0f)),
 			glm::vec3(CUBE_HALF_EXTEND) }));
-
-	m_YCubeEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	renderComponent->SetUtilityColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	m_YCubeEntity->RegisterComponent(CT_TRANSFORM);
 
 	// ZArrow
 	m_ZCubeEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(
+	renderComponent->InitAsUtility(
 		KMeshUtility::CreateCube({ glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0f, AXIS_LENGTH)),
 			glm::vec3(CUBE_HALF_EXTEND) }));
-
-	m_ZCubeEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	renderComponent->SetUtilityColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	m_ZCubeEntity->RegisterComponent(CT_TRANSFORM);
 
 	// XZPlane
 	m_XZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(
+	renderComponent->InitAsUtility(
 		KMeshUtility::CreateTriangle({
 		glm::vec3(0.0f), PLANE_SIZE, PLANE_SIZE, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) }));
-
-	m_XZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(PLANE_COLOR);
+	renderComponent->SetUtilityColor(PLANE_COLOR);
 
 	m_XZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YZPlane
 	m_YZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(
+	renderComponent->InitAsUtility(
 		KMeshUtility::CreateTriangle({ glm::vec3(0.0f), PLANE_SIZE, PLANE_SIZE, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) }));
-
-	m_YZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(PLANE_COLOR);
+	renderComponent->SetUtilityColor(PLANE_COLOR);
 
 	m_YZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YZPlane
 	m_XYPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(
+	renderComponent->InitAsUtility(
 		KMeshUtility::CreateTriangle({ glm::vec3(0.0f), PLANE_SIZE, PLANE_SIZE, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f) }));
-
-	m_XYPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+	renderComponent->SetUtilityColor(glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
 
 	m_XYPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	// XYZPlane
 	m_XYZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(
+	renderComponent->InitAsUtility(
 		KMeshUtility::CreateTriangle({ glm::vec3(PLANE_SIZE, 0, 0), 1.414f * PLANE_SIZE, 1.414f * PLANE_SIZE, glm::vec3(-1, 1, 0), glm::vec3(-1, 0, 1) }));
-
-	m_XYZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+	renderComponent->SetUtilityColor(glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
 
 	m_XYZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 

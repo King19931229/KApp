@@ -16,7 +16,7 @@ protected:
 	// Minimum side length that a node can be - essentially an alternative to having a max depth
 	float m_MinSize;
 
-	KEntityToNodeMap* m_EntityToNode;
+	KEntityToNodeMap m_EntityToNode;
 public:
 	KOctreeSceneManager();
 	~KOctreeSceneManager();
@@ -28,10 +28,10 @@ public:
 	bool Add(IKEntity* entity) override;
 	bool Remove(IKEntity* entity) override;
 	bool Transform(IKEntity* entity) override;
-	bool GetVisibleEntity(const KCamera* camera, std::deque<IKEntity*>& visibles) override;
-	bool GetVisibleEntity(const KAABBBox* bound, std::deque<IKEntity*>& visibles) override;
-	bool GetAllEntity(std::deque<IKEntity*>& visibles) override;
-	bool GetDebugEntity(std::deque<IKEntity*>& debugVisibles) override;
+	bool GetVisibleEntity(const KCamera* camera, std::vector<IKEntity*>& visibles) override;
+	bool GetVisibleEntity(const KAABBBox* bound, std::vector<IKEntity*>& visibles) override;
+	bool GetAllEntity(std::vector<IKEntity*>& visibles) override;
+	bool GetDebugEntity(std::vector<IKEntity*>& debugVisibles) override;
 	bool GetSceneBound(KAABBBox& box) override;
 
 	bool Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntity*>& result) override;

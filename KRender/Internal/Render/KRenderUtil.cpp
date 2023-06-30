@@ -6,16 +6,16 @@
 
 namespace KRenderUtil
 {
-	void CalculateInstancesByMesh(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances)
+	void CalculateInstancesByMesh(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances)
 	{
 		instances.clear();
 		std::map<KSubMeshPtr, size_t> subMeshIndexMap;
 
-		for (KRenderComponent* render : renderComponents)
+		for (IKEntity* entity : entities)
 		{
-			IKEntity* entity = render->GetEntityHandle();
+			KRenderComponent* render = nullptr;
 			KTransformComponent* transform = nullptr;
-			if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
+			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&render) && entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
 			{
 				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 
@@ -47,15 +47,15 @@ namespace KRenderUtil
 		}
 	}
 
-	void CalculateInstancesByMaterial(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances)
+	void CalculateInstancesByMaterial(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances)
 	{
 		std::map<std::tuple<KSubMeshPtr, IKMaterialPtr>, size_t> materialSubMeshIndexMap;
 
-		for (KRenderComponent* render : renderComponents)
+		for (IKEntity* entity : entities)
 		{
-			IKEntity* entity = render->GetEntityHandle();
+			KRenderComponent* render = nullptr;
 			KTransformComponent* transform = nullptr;
-			if (entity->GetComponent(CT_TRANSFORM, &transform))
+			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&render) && entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
 			{
 				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 
@@ -90,15 +90,15 @@ namespace KRenderUtil
 		}
 	}
 
-	void GetInstances(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp)
+	void GetInstances(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp)
 	{
 		instances.clear();
 
-		for (KRenderComponent* render : renderComponents)
+		for (IKEntity* entity : entities)
 		{
-			IKEntity* entity = render->GetEntityHandle();
+			KRenderComponent* render = nullptr;
 			KTransformComponent* transform = nullptr;
-			if (entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
+			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&render) && entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
 			{
 				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 

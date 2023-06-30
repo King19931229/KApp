@@ -24,7 +24,6 @@ class KMesh
 {
 	friend class KSubMesh;
 	friend class KMeshSerializerV0;
-	friend class KMeshUtilityImpl;
 protected:
 	KVertexData m_VertexData;
 	std::vector<KSubMeshPtr> m_SubMeshes;
@@ -52,9 +51,8 @@ public:
 	bool InitFromFile(const std::string& path);
 	bool InitFromAsset(const std::string& path);
 	bool InitFromUserData(const KAssetImportResult& userData, const std::string& label);
-	bool InitUtility(const KMeshUtilityInfoPtr& info);
+	bool InitFromUtility(const KMeshUtilityInfo& info);
 	bool UnInit();
-	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
 	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as);
 };
 

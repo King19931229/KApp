@@ -11,8 +11,8 @@
 // An object in the octree
 struct KOctreeObject
 {
-	IKEntity* Obj;
-	KAABBBox Bounds;
+	IKEntity* obj;
+	KAABBBox bounds;
 };
 
 struct KOctreeNode;
@@ -26,17 +26,17 @@ private:
 	// Centre of this node
 	glm::vec3 center;
 	// Length of this node if it has a looseness of 1.0
-	float baseLength;
+	float baseLength = 0;
 	// Looseness value for this node
-	float looseness;
+	float looseness = 0;
 	// Minimum size for a node in this octree
-	float minSize;
+	float minSize = 0;
 	// Actual length of sides, taking the looseness value into account
-	float adjLength;
+	float adjLength = 0;
 	// Bounding box that represents this node
 	KAABBBox bounds;
 	// Objects in this node
-	std::deque<KOctreeObject> objects;
+	std::vector<KOctreeObject> objects;
 	// If there are already NUM_OBJECTS_ALLOWED in a node, we split it into children
 	// A generally good number seems to be something around 8-15
 	constexpr static int NUM_OBJECTS_ALLOWED = 8;
@@ -44,8 +44,6 @@ private:
 	KOctreeNode* children = nullptr;
 	// Bounds of potential children to this node. These are actual size (with looseness taken into account), not base size
 	KAABBBox* childBounds = nullptr;
-	// Render component for debugging info
-	IKEntityPtr boundEntity = nullptr;
 	// Record the mapping record for the entity to the node
 	KEntityToNodeMap* sharedEntityToNode = nullptr;
 
@@ -84,7 +82,7 @@ private:
 				const auto& curObj = *it;
 				objects.push_back(curObj);
 
-				(*sharedEntityToNode)[curObj.Obj] = this;
+				(*sharedEntityToNode)[curObj.obj] = this;
 			}
 		}
 		SAFE_DELETE_ARRAY(children);
@@ -112,14 +110,14 @@ private:
 		assert(!childBounds);
 		childBounds = KNEW KAABBBox[8];
 
-		childBounds[0].InitFromHalfExtent(center + glm::vec3(-quarter, quarter, -quarter), childActualSize);
-		childBounds[1].InitFromHalfExtent(center + glm::vec3(quarter, quarter, -quarter), childActualSize);
-		childBounds[2].InitFromHalfExtent(center + glm::vec3(-quarter, quarter, quarter), childActualSize);
-		childBounds[3].InitFromHalfExtent(center + glm::vec3(quarter, quarter, quarter), childActualSize);
-		childBounds[4].InitFromHalfExtent(center + glm::vec3(-quarter, -quarter, -quarter), childActualSize);
-		childBounds[5].InitFromHalfExtent(center + glm::vec3(quarter, -quarter, -quarter), childActualSize);
-		childBounds[6].InitFromHalfExtent(center + glm::vec3(-quarter, -quarter, quarter), childActualSize);
-		childBounds[7].InitFromHalfExtent(center + glm::vec3(quarter, -quarter, quarter), childActualSize);
+		childBounds[0].InitFromHalfExtent(center + quarter * glm::vec3(-1,  1, -1), childActualSize);
+		childBounds[1].InitFromHalfExtent(center + quarter * glm::vec3( 1,  1, -1), childActualSize);
+		childBounds[2].InitFromHalfExtent(center + quarter * glm::vec3(-1,  1,  1), childActualSize);
+		childBounds[3].InitFromHalfExtent(center + quarter * glm::vec3( 1,  1,  1), childActualSize);
+		childBounds[4].InitFromHalfExtent(center + quarter * glm::vec3(-1, -1, -1), childActualSize);
+		childBounds[5].InitFromHalfExtent(center + quarter * glm::vec3( 1, -1, -1), childActualSize);
+		childBounds[6].InitFromHalfExtent(center + quarter * glm::vec3(-1, -1,  1), childActualSize);
+		childBounds[7].InitFromHalfExtent(center + quarter * glm::vec3( 1, -1,  1), childActualSize);
 	}
 
 	static bool Encapsulates(const KAABBBox& outerBounds, const KAABBBox& innerBounds)
@@ -188,10 +186,10 @@ private:
 				for (auto it = objects.cbegin(); it != objects.cend();)
 				{
 					const auto& existingObj = *it;
-					bestFitChild = BestFitChild(existingObj.Bounds.GetCenter());
-					if (Encapsulates(children[bestFitChild].bounds, existingObj.Bounds))
+					bestFitChild = BestFitChild(existingObj.bounds.GetCenter());
+					if (Encapsulates(children[bestFitChild].bounds, existingObj.bounds))
 					{
-						children[bestFitChild].SubAdd(existingObj.Obj, existingObj.Bounds);
+						children[bestFitChild].SubAdd(existingObj.obj, existingObj.bounds);
 						it = objects.erase(it);
 					}
 					else
@@ -216,9 +214,7 @@ private:
 	}
 
 	// 用于 KNEW []
-	KOctreeNode()
-	{
-	}
+	KOctreeNode() {}
 	// 禁止拷贝
 	KOctreeNode(const KOctreeNode& rhs) = delete;
 	KOctreeNode& operator=(const KOctreeNode& rhs) = delete;
@@ -232,16 +228,6 @@ public:
 	{
 		SAFE_DELETE_ARRAY(children);
 		SAFE_DELETE_ARRAY(childBounds);
-
-		if (boundEntity)
-		{
-			boundEntity->UnRegisterAllComponent();
-			if (KECS::EntityManager)
-			{
-				KECS::EntityManager->ReleaseEntity(boundEntity);
-			}
-			boundEntity = nullptr;
-		}
 	}
 
 	bool Add(IKEntity* obj, const KAABBBox& objBounds)
@@ -261,7 +247,7 @@ public:
 		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
 		{
 			const auto& existingObj = *it;
-			if (existingObj.Obj == obj)
+			if (existingObj.obj == obj)
 			{
 				objects.erase(it);
 				(*sharedEntityToNode).erase(obj);
@@ -287,7 +273,7 @@ public:
 		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
 		{
 			const auto& curObject = *it;
-			result.push_back(curObject.Obj);
+			result.push_back(curObject.obj);
 		}
 
 		if (children)
@@ -308,7 +294,7 @@ public:
 
 		for (const auto& curObject : objects)
 		{
-			if (curObject.Bounds.Intersect(checkBounds))
+			if (curObject.bounds.Intersect(checkBounds))
 			{
 				return true;
 			}
@@ -339,9 +325,9 @@ public:
 		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
 		{
 			const auto& curObject = *it;
-			if (curObject.Bounds.Intersect(origin, dir))
+			if (curObject.bounds.Intersect(origin, dir))
 			{
-				result.push_back(curObject.Obj);
+				result.push_back(curObject.obj);
 			}
 		}
 
@@ -365,9 +351,9 @@ public:
 		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
 		{
 			const auto& curObject = *it;
-			if (curObject.Bounds.Intersect(checkBounds))
+			if (curObject.bounds.Intersect(checkBounds))
 			{
-				result.push_back(curObject.Obj);
+				result.push_back(curObject.obj);
 			}
 		}
 
@@ -391,9 +377,9 @@ public:
 		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
 		{
 			const auto& curObject = *it;
-			if (camera.CheckVisible(curObject.Bounds))
+			if (camera.CheckVisible(curObject.bounds))
 			{
-				result.push_back(curObject.Obj);
+				result.push_back(curObject.obj);
 			}
 		}
 
@@ -413,7 +399,7 @@ public:
 		for (auto it = objects.cbegin(), itEnd = objects.cend(); it != itEnd; ++it)
 		{
 			const auto& curObject = *it;
-			result = result.Merge(curObject.Bounds);
+			result = result.Merge(curObject.bounds);
 		}
 
 		if (children)
@@ -429,41 +415,5 @@ public:
 		bound = result;
 
 		return true;
-	}
-
-	template<typename QueryResultType>
-	void GetDebugRender(QueryResultType& result)
-	{
-		if (!boundEntity)
-		{
-			boundEntity = KECS::EntityManager->CreateEntity();
-
-			IKComponentBase* component = nullptr;
-			if (boundEntity->RegisterComponent(CT_RENDER, &component))
-			{
-				((KRenderComponent*)component)->InitUtility(
-					KMeshUtility::CreateBox({ bounds.GetExtend() * 0.5f }));
-			}
-
-			if (boundEntity->RegisterComponent(CT_TRANSFORM, &component))
-			{
-				((KTransformComponent*)component)->SetPosition(bounds.GetCenter());
-			}
-
-			if (boundEntity->RegisterComponent(CT_DEBUG, &component))
-			{
-				((KDebugComponent*)component)->SetColor(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-			}
-		}
-
-		result.push_back(boundEntity.get());
-
-		if (children)
-		{
-			for (auto i = 0; i < 8; i++)
-			{
-				children[i].GetDebugRender(result);
-			}
-		}
 	}
 };

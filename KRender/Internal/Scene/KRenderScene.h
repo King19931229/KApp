@@ -35,10 +35,12 @@ public:
 	bool RegisterEntityObserver(EntityObserverFunc* func) override;
 	bool UnRegisterEntityObserver(EntityObserverFunc* func) override;
 
-	bool GetRenderComponent(const KCamera& camera, bool withDebug, std::vector<KRenderComponent*>& result);
-	bool GetRenderComponent(const KAABBBox& bound, bool withDebug, std::vector<KRenderComponent*>& result);
+	bool GetVisibleEntities(const KCamera& camera, std::vector<IKEntity*>& result) override;
+	bool GetVisibleEntities(const KAABBBox& bound, std::vector<IKEntity*>& result) override;
 
-	bool GetSceneObjectBound(KAABBBox& box);
+	bool GetDebugEntities(std::vector<IKEntity*>& result) override;
+
+	bool GetSceneObjectBound(KAABBBox& box) override;
 
 	bool Pick(const KCamera& camera, size_t x, size_t y,
 		size_t screenWidth, size_t screenHeight, std::vector<IKEntity*>& result) override;

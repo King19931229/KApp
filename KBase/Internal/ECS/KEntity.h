@@ -28,6 +28,7 @@ protected:
 	IKComponentBase* GetRenderComponent() { return SafeGetComponent(CT_RENDER); }
 	IKComponentBase* GetDebugComponent() { return SafeGetComponent(CT_DEBUG); }
 	IKComponentBase* GetTransformComponent() { return SafeGetComponent(CT_TRANSFORM); }
+	IKComponentBase* GetUserComponent() { return SafeGetComponent(CT_USER); }
 
 	KEntity();
 public:

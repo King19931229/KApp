@@ -62,6 +62,7 @@ bool KMesh::UnInit()
 
 void KMesh::UpdateTriangleMesh()
 {
+	// TODO
 	return;
 	m_TriangleMesh.Destroy();
 	for (KSubMeshPtr& subMesh : m_SubMeshes)
@@ -394,29 +395,66 @@ bool KMesh::InitFromUserData(const KAssetImportResult& userData, const std::stri
 	return true;
 }
 
-bool KMesh::InitUtility(const KMeshUtilityInfoPtr& info)
-{
-	UnInit();
 
-	if (KMeshUtility::CreateUtility(this, info))
+bool KMesh::InitFromUtility(const KMeshUtilityInfo& info)
+{
+	IKVertexBufferPtr vertexBuffer = nullptr;
+	KSubMeshPtr subMesh = nullptr;
+
+	if (m_Type != MRT_DEBUG_UTILITY)
 	{
-		m_Type = MRT_DEBUG_UTILITY;
-		UpdateTriangleMesh();
-		return true;
+		UnInit();
+		KRenderGlobal::RenderDevice->CreateVertexBuffer(vertexBuffer);
+		m_VertexData.vertexBuffers = { vertexBuffer };
+		m_VertexData.vertexFormats = { VF_DEBUG_POINT };
+		subMesh = KSubMeshPtr(KNEW KSubMesh(this));
+		m_SubMeshes.push_back(subMesh);
+	}
+	else
+	{
+		vertexBuffer = m_VertexData.vertexBuffers[0];
+		subMesh = m_SubMeshes[0];
 	}
 
-	return false;
-}
+	vertexBuffer->UnInit();
+	vertexBuffer->InitMemory(info.positions.size(), sizeof(info.positions[0]), info.positions.data());
+	vertexBuffer->InitDevice(true);
 
-bool KMesh::UpdateUtility(const KMeshUtilityInfoPtr& info)
-{
-	if (KMeshUtility::UpdateUtility(this, info))
+	KAABBBox bound;
+	for (auto& pos : info.positions)
 	{
-		UpdateTriangleMesh();
-		return true;
+		bound = bound.Merge(pos);
 	}
 
-	return false;
+	m_VertexData.vertexStart = 0;
+	m_VertexData.vertexCount = (uint32_t)info.positions.size();
+	m_VertexData.bound = bound;
+
+	assert(m_SubMeshes.size() == 1);
+
+	if (info.indices.empty())
+	{
+		subMesh->InitDebug(info.primtive, &m_VertexData, nullptr);
+	}
+	else
+	{
+		IKIndexBufferPtr indexBuffer = nullptr;
+		KRenderGlobal::RenderDevice->CreateIndexBuffer(indexBuffer);
+
+		indexBuffer->InitMemory(IT_16, info.indices.size(), info.indices.data());
+		indexBuffer->InitDevice(false);
+
+		KIndexData indexData;
+		indexData.indexBuffer = indexBuffer;
+		indexData.indexStart = 0;
+		indexData.indexCount = (uint32_t)info.indices.size();
+
+		subMesh->InitDebug(info.primtive, &m_VertexData, &indexData);
+	}
+
+	UpdateTriangleMesh();
+
+	return true;
 }
 
 bool KMesh::GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as)

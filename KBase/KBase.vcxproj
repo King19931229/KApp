@@ -75,6 +75,7 @@
     <ClInclude Include="Internal\XML\KXMLElement.h" />
     <ClInclude Include="Publish\KAABBBox.h" />
     <ClInclude Include="Publish\KConfig.h" />
+    <ClInclude Include="Publish\KDebugUtility.h" />
     <ClInclude Include="Publish\KDump.h" />
     <ClInclude Include="Publish\KFileTool.h" />
     <ClInclude Include="Publish\KHandleRetriever.h" />

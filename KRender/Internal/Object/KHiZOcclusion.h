@@ -86,5 +86,5 @@ public:
 	bool& GetDebugDrawEnable();
 
 	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer);
-	bool Execute(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes);
+	bool Execute(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
 };

@@ -12,11 +12,11 @@ class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 	RTTR_REGISTRATION_FRIEND
 protected:
 	KMeshRef m_Mesh;
+	glm::vec4 m_UtilityColor;
+
 	std::vector<KMaterialSubMeshPtr> m_MaterialSubMeshes;
 	std::vector<IKQueryPtr> m_OCQueries;
 	std::vector<IKQueryPtr> m_OCInstanceQueries;
-
-	KMeshUtilityInfoPtr m_DebugUtility;
 
 	bool m_UseMaterialTexture;
 	bool m_OcclusionVisible;
@@ -50,14 +50,16 @@ public:
 	bool InitAsMesh(const std::string& mesh, bool async) override;
 	bool InitAsAsset(const std::string& asset, bool async) override;
 	bool InitAsUserData(const KAssetImportResult& userData, const std::string& label, bool async) override;
+	bool InitAsUtility(const KMeshUtilityInfo& info);
+
+	void SetUtilityColor(const glm::vec4& color) override { m_UtilityColor = color; }
+	const glm::vec4& GetUtilityColor() const override { return m_UtilityColor; }
+	bool IsUtility() const override { return m_Mesh && m_Mesh->GetType() == MRT_DEBUG_UTILITY; }
+
 	bool UnInit() override;
 
 	inline KMeshPtr GetMesh() { return *m_Mesh; }
 	inline const std::vector<KMaterialSubMeshPtr>& GetMaterialSubMeshs() const { return m_MaterialSubMeshes; }
-
-	bool InitUtility(const KMeshUtilityInfoPtr& info);
-	bool UpdateUtility(const KMeshUtilityInfoPtr& info);
-	bool IsUtility() const override { return m_Mesh && m_Mesh->GetType() == MRT_DEBUG_UTILITY; }
 
 	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) override;
 

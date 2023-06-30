@@ -171,8 +171,8 @@ protected:
 	void UpdateCascadesDebug();
 
 	bool GetDebugRenderCommand(KRenderCommandList& commands, bool isStatic);
-	void PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<KRenderComponent*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
-	void FilterRenderComponent(std::vector<KRenderComponent*>& in, bool isStatic);
+	void PopulateRenderCommand(size_t cascadedIndex, bool isStatic, const std::vector<IKEntity*>& litCullRes, std::vector<KRenderCommand>& commands, KRenderStageStatistics& statistics);
+	void FilterRenderComponent(std::vector<IKEntity*>& in, bool isStatic);
 	bool PopulateRenderCommandList(size_t cascadedIndex, bool isStatic, KRenderCommandList& commandList);
 
 	bool UpdatePipelineFromRTChanged();

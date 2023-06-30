@@ -637,25 +637,25 @@ void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 		KAABBBox sceneBox;
 		sceneBox.InitFromMinMax(clipLevel.GetWorldMin(), clipLevel.GetWorldMax());
 
-		std::vector<KRenderComponent*> cullRes;
-		((KRenderScene*)m_Scene)->GetRenderComponent(sceneBox, false, cullRes);
+		std::vector<IKEntity*> cullRes;
+		m_Scene->GetVisibleEntities(sceneBox, cullRes);
 
 		if (cullRes.size() == 0)
 			continue;
 
 		std::vector<KRenderCommand> commands;
-		for (KRenderComponent* render : cullRes)
-		{
-			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
-			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
-			{
-				KRenderCommand command;
-				if (materialSubMesh->GetRenderCommand(RENDER_STAGE_CLIPMAP_VOXEL, command))
-				{
-					IKEntity* entity = render->GetEntityHandle();
 
-					KTransformComponent* transform = nullptr;
-					if (entity->GetComponent(CT_TRANSFORM, &transform))
+		for (IKEntity* entity : cullRes)
+		{
+			KRenderComponent* render = nullptr;
+			KTransformComponent* transform = nullptr;
+			if (entity->GetComponent(CT_RENDER, &render) && entity->GetComponent(CT_TRANSFORM, &transform))
+			{
+				const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
+				for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
+				{
+					KRenderCommand command;
+					if (materialSubMesh->GetRenderCommand(RENDER_STAGE_CLIPMAP_VOXEL, command))
 					{
 						const glm::mat4& finalTran = transform->GetFinal();
 

@@ -816,8 +816,8 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 	m_Scene->GetSceneObjectBound(sceneBox);
 
 	// TODO
-	std::vector<KRenderComponent*> cullRes;
-	((KRenderScene*)m_Scene)->GetRenderComponent(sceneBox, false, cullRes);
+	std::vector<IKEntity*> cullRes;
+	m_Scene->GetVisibleEntities(sceneBox, cullRes);
 
 	if (cullRes.size() == 0) return;
 
@@ -826,11 +826,11 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 	commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
 
 	std::vector<KRenderCommand> commands;
-	for (KRenderComponent* render : cullRes)
+	for (IKEntity* entity : cullRes)
 	{
-		IKEntity* entity = render->GetEntityHandle();
+		KRenderComponent* render = nullptr;
 		KTransformComponent* transform = nullptr;
-		if (entity->GetComponent(CT_TRANSFORM, &transform))
+		if (entity->GetComponent(CT_RENDER, &render) && entity->GetComponent(CT_TRANSFORM, &transform))
 		{
 			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
@@ -873,8 +873,8 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 	KAABBBox sceneBox;
 	m_Scene->GetSceneObjectBound(sceneBox);
 
-	std::vector<KRenderComponent*> cullRes;
-	((KRenderScene*)m_Scene)->GetRenderComponent(sceneBox, false, cullRes);
+	std::vector<IKEntity*> cullRes;
+	m_Scene->GetVisibleEntities(sceneBox, cullRes);
 
 	uint32_t counter = 0;
 	uint32_t countOnly = bCountOnly;
@@ -908,11 +908,11 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 
 	std::vector<KRenderCommand> commands;
 
-	for (KRenderComponent* render : cullRes)
+	for (IKEntity* entity : cullRes)
 	{
-		IKEntity* entity = render->GetEntityHandle();
+		KRenderComponent* render = nullptr;
 		KTransformComponent* transform = nullptr;
-		if (entity->GetComponent(CT_TRANSFORM, &transform))
+		if (entity->GetComponent(CT_RENDER, &render) && entity->GetComponent(CT_TRANSFORM, &transform))
 		{
 			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
 			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)

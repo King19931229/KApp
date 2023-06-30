@@ -6,15 +6,13 @@ KOctreeSceneManager::KOctreeSceneManager()
 	: m_Root(nullptr),
 	m_Looseness(1.0f),
 	m_InitialSize(0.0f),
-	m_MinSize(0.0f),
-	m_EntityToNode(nullptr)
+	m_MinSize(0.0f)
 {
 }
 
 KOctreeSceneManager::~KOctreeSceneManager()
 {
 	assert(!m_Root);
-	assert(!m_EntityToNode);
 }
 
 bool KOctreeSceneManager::Init(float initialWorldSize, const glm::vec3& initialWorldPos, float minNodeSize, float loosenessVal)
@@ -24,17 +22,16 @@ bool KOctreeSceneManager::Init(float initialWorldSize, const glm::vec3& initialW
 	m_InitialSize = initialWorldSize;
 	m_MinSize = minNodeSize;
 	m_Looseness = glm::clamp(loosenessVal, 1.0f, 2.0f);
-	m_EntityToNode = KNEW KEntityToNodeMap();
 
-	m_Root = KNEW KOctreeNode(m_InitialSize, m_MinSize, m_Looseness, initialWorldPos, m_EntityToNode);
+	m_Root = KNEW KOctreeNode(m_InitialSize, m_MinSize, m_Looseness, initialWorldPos, &m_EntityToNode);
 
 	return true;
 }
 
 bool KOctreeSceneManager::UnInit()
 {
+	m_EntityToNode.clear();
 	SAFE_DELETE(m_Root);
-	SAFE_DELETE(m_EntityToNode);
 	return true;
 }
 
@@ -50,10 +47,10 @@ bool KOctreeSceneManager::Add(IKEntity* entity)
 
 bool KOctreeSceneManager::Remove(IKEntity* entity)
 {
-	if (m_Root && m_EntityToNode)
+	if (m_Root)
 	{
-		auto it = m_EntityToNode->find(entity);
-		if (it != m_EntityToNode->end())
+		auto it = m_EntityToNode.find(entity);
+		if (it != m_EntityToNode.end())
 		{
 			KOctreeNode* node = it->second;
 			bool success = node->Remove(entity);
@@ -77,7 +74,7 @@ bool KOctreeSceneManager::Transform(IKEntity* entity)
 	return true;
 }
 
-bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<IKEntity*>& visibles)
+bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::vector<IKEntity*>& visibles)
 {
 	if (m_Root)
 	{
@@ -87,7 +84,7 @@ bool KOctreeSceneManager::GetVisibleEntity(const KCamera* camera, std::deque<IKE
 	return false;
 }
 
-bool KOctreeSceneManager::GetVisibleEntity(const KAABBBox* bound, std::deque<IKEntity*>& visibles)
+bool KOctreeSceneManager::GetVisibleEntity(const KAABBBox* bound, std::vector<IKEntity*>& visibles)
 {
 	if (m_Root)
 	{
@@ -97,7 +94,7 @@ bool KOctreeSceneManager::GetVisibleEntity(const KAABBBox* bound, std::deque<IKE
 	return false;
 }
 
-bool KOctreeSceneManager::GetAllEntity(std::deque<IKEntity*>& visibles)
+bool KOctreeSceneManager::GetAllEntity(std::vector<IKEntity*>& visibles)
 {
 	if (m_Root)
 	{
@@ -107,11 +104,10 @@ bool KOctreeSceneManager::GetAllEntity(std::deque<IKEntity*>& visibles)
 	return false;
 }
 
-bool KOctreeSceneManager::GetDebugEntity(std::deque<IKEntity*>& debugVisibles)
+bool KOctreeSceneManager::GetDebugEntity(std::vector<IKEntity*>& debugVisibles)
 {
 	if (m_Root)
 	{
-		m_Root->GetDebugRender(debugVisibles);
 		return true;
 	}
 	return false;

@@ -14,9 +14,9 @@ typedef std::function<bool(const KMaterialSubMeshInstance&, const KMaterialSubMe
 
 namespace KRenderUtil
 {
-	void CalculateInstancesByMesh(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances);
-	void CalculateInstancesByMaterial(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances);
-	void GetInstances(const std::vector<KRenderComponent*>& renderComponents, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp);
+	void CalculateInstancesByMesh(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances);
+	void CalculateInstancesByMaterial(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances);
+	void GetInstances(const std::vector<IKEntity*>& entities, std::vector<KMaterialSubMeshInstance>& instances, KMaterialSubMeshInstanceCompareFunction comp);
 	bool AssignShadingParameter(KRenderCommand& command, KMaterialRef material);
 	bool AssignMeshStorageParameter(KRenderCommand& command);
 };

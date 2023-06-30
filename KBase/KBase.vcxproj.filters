@@ -265,6 +265,9 @@
     <ClInclude Include="Publish\Mesh\KMeshClusterGroup.h">
       <Filter>Publish\Mesh</Filter>
     </ClInclude>
+    <ClInclude Include="Publish\KDebugUtility.h">
+      <Filter>Publish</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Internal">

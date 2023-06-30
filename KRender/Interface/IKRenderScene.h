@@ -49,6 +49,11 @@ struct IKRenderScene
 	virtual bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntity*& result) = 0;
 
 	virtual bool GetAllEntities(std::vector<IKEntity*>& result) = 0;
+
+	virtual bool GetVisibleEntities(const KCamera& camera, std::vector<IKEntity*>& result) = 0;
+	virtual bool GetVisibleEntities(const KAABBBox& bound, std::vector<IKEntity*>& result) = 0;
+
+	virtual bool GetDebugEntities(std::vector<IKEntity*>& result) = 0;
 };
 
 typedef std::unique_ptr<IKRenderScene> IKRenderScenePtr;

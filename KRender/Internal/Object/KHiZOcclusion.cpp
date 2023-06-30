@@ -407,7 +407,7 @@ bool KHiZOcclusion::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr p
 	}	
 }
 
-bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<KRenderComponent*>& cullRes)
+bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes)
 {
 	if (!m_Enable)
 	{
@@ -420,13 +420,11 @@ bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<
 
 	candidates.reserve(cullRes.size());
 
-	for (KRenderComponent* render : cullRes)
+	for (IKEntity* entity : cullRes)
 	{
-		IKEntity* entity = render->GetEntityHandle();
+		KRenderComponent* render = nullptr;
 		KTransformComponent* transform = nullptr;
-		entity->GetComponent(CT_TRANSFORM, &transform);
-
-		if (transform)
+		if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&render) && entity->GetComponent(CT_TRANSFORM, (IKComponentBase**)&transform))
 		{
 			glm::vec3 worldPos;
 			KAABBBox localBound;

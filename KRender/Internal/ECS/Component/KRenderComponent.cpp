@@ -15,9 +15,8 @@ RTTR_REGISTRATION
 }
 
 KRenderComponent::KRenderComponent()
-	: m_DebugUtility(nullptr),
-	m_UseMaterialTexture(false),
-	m_OcclusionVisible(true)
+	: m_UseMaterialTexture(false)
+	, m_OcclusionVisible(true)
 {}
 
 KRenderComponent::~KRenderComponent()
@@ -233,30 +232,27 @@ bool KRenderComponent::UnInit()
 	return true;
 }
 
-bool KRenderComponent::InitUtility(const KMeshUtilityInfoPtr& info)
+bool KRenderComponent::InitAsUtility(const KMeshUtilityInfo& info)
 {
-	UnInit();
-	m_DebugUtility = info;
-	if (KRenderGlobal::MeshManager.AcquireAsUtility(info, m_Mesh))
+	if (!IsUtility())
 	{
-		const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
-		m_MaterialSubMeshes.reserve(subMeshes.size());
-		for (size_t i = 0; i < subMeshes.size(); ++i)
-		{
-			KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh());
-			materialSubMesh->InitDebug(subMeshes[i], subMeshes[i]->GetDebugPrimitive());
-			m_MaterialSubMeshes.push_back(materialSubMesh);
-		}
-		return true;
+		KRenderGlobal::RenderDevice->Wait();
+		UnInit();
+		KRenderGlobal::MeshManager.New(m_Mesh);
 	}
-	return false;
-}
 
-bool KRenderComponent::UpdateUtility(const KMeshUtilityInfoPtr& info)
-{
-	ASSERT_RESULT(m_DebugUtility->GetType() == info->GetType());
-	m_DebugUtility = info;
-	return KRenderGlobal::MeshManager.UpdateUtility(info, m_Mesh);
+	m_Mesh->InitFromUtility(info);
+
+	const std::vector<KSubMeshPtr>& subMeshes = m_Mesh->GetSubMeshes();
+	m_MaterialSubMeshes.reserve(subMeshes.size());
+	for (size_t i = 0; i < subMeshes.size(); ++i)
+	{
+		KMaterialSubMeshPtr materialSubMesh = KMaterialSubMeshPtr(KNEW KMaterialSubMesh());
+		materialSubMesh->InitDebug(subMeshes[i], subMeshes[i]->GetDebugPrimitive());
+		m_MaterialSubMeshes.push_back(materialSubMesh);
+	}
+
+	return true;
 }
 
 bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as)

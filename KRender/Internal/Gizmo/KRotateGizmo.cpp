@@ -99,42 +99,34 @@ bool KRotateGizmo::Init(const KCamera* camera)
 	m_RotateEntity = KECS::EntityManager->CreateEntity();
 
 	KRenderComponent* renderComponent = nullptr;
-	KDebugComponent* debugComponent = nullptr;
 
 	// XRotate
 	m_XPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(KMeshUtility::CreateCircle({
+	renderComponent->InitAsUtility(KMeshUtility::CreateCircle({
 		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)), RADIUS }));
-
-	m_XPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(X_PLANE_COLOR);
+	renderComponent->SetUtilityColor(X_PLANE_COLOR);
 
 	m_XPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	// YRotate
 	m_YPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(KMeshUtility::CreateCircle({ glm::mat4(1.0f), RADIUS }));
-
-	m_YPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(Y_PLANE_COLOR);
+	renderComponent->InitAsUtility(KMeshUtility::CreateCircle({ glm::mat4(1.0f), RADIUS }));
+	renderComponent->SetUtilityColor(Y_PLANE_COLOR);
 
 	m_YPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	// ZRotate
 	m_ZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(KMeshUtility::CreateCircle({
+	renderComponent->InitAsUtility(KMeshUtility::CreateCircle({
 		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)), RADIUS }));
-
-	m_ZPlaneEntity->RegisterComponent(CT_DEBUG, &debugComponent);
-	debugComponent->SetColor(Z_PLANE_COLOR);
+	renderComponent->SetUtilityColor(Z_PLANE_COLOR);
 
 	m_ZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	m_RotateEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitUtility(KMeshUtility::CreateArc({ glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), RADIUS, 0.0f }));
+	renderComponent->InitAsUtility(KMeshUtility::CreateArc({ glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), RADIUS, 0.0f }));
 
 	m_RotateEntity->RegisterComponent(CT_TRANSFORM);
-	m_RotateEntity->RegisterComponent(CT_DEBUG);
 
 	m_AllEntity = ALL_SCENE_ENTITY;
 
@@ -222,7 +214,7 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				KRenderComponent* renderComponent = nullptr;
 				if (m_RotateEntity && m_RotateEntity->GetComponent(CT_RENDER, &renderComponent))
 				{
-					renderComponent->UpdateUtility(KMeshUtility::CreateArc({ v1, m_PickPlane.GetNormal(), RADIUS, theta }));
+					renderComponent->InitAsUtility(KMeshUtility::CreateArc({ v1, m_PickPlane.GetNormal(), RADIUS, theta }));
 				}
 
 				//KLog::Logger->Log(LL_DEBUG, "%f", theta);
