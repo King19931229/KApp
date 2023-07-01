@@ -15,7 +15,7 @@
 #include "KBase/Interface/IKFileSystem.h"
 #include "KBase/Interface/IKAssetLoader.h"
 #include "KBase/Publish/Mesh/KMeshSimplification.h"
-#include "KBase/Publish/Mesh/KMeshClusterGroup.h"
+#include "KBase/Publish/Mesh/KVirtualGeometryBuilder.h"
 #include "KBase/Publish/Mesh/KMeshProcessor.h"
 #include "imgui.h"
 
@@ -43,7 +43,7 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f }
 	};
 
-	static const uint32_t fileIndex = 2;
+	static const uint32_t fileIndex = 4;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
@@ -123,12 +123,16 @@ void InitQEM(IKEnginePtr engine)
 			clusterBuilder.GetAllBVHBounds(bvhBounds);
 			for (KAABBBox& bound : bvhBounds)
 			{
-				bound = bound.Transform(glm::scale(glm::mat4(1), glm::vec3(scale)));
-				KMeshBoxInfo info;
-				info.transform = glm::translate(glm::mat4(1), bound.GetCenter());
-				info.halfExtend = bound.GetExtend() * 0.5f;
-				// ((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateBox(info), glm::vec4(0, 0, 1, 1));
-				// ((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateBox(info), glm::vec4(0.3f, 0.3f, 0.3f, 0.02f));
+				/*bound = bound.Transform(glm::scale(glm::mat4(1), glm::vec3(scale)));
+				 KMeshBoxInfo boxInfo;
+				 boxInfo.transform = glm::translate(glm::mat4(1), bound.GetCenter());
+				 boxInfo.halfExtend = bound.GetExtend() * 0.5f;
+				 ((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateBox(boxInfo), glm::vec4(0, 0, 1, 1));
+
+				KMeshCubeInfo cubeInfo;
+				cubeInfo.transform = glm::translate(glm::mat4(1), bound.GetCenter());
+				cubeInfo.halfExtend = bound.GetExtend() * 0.5f;
+				((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateCube(cubeInfo), glm::vec4(0.3f, 0.3f, 0.3f, 0.02f));*/
 			}
 		}
 		if (entity->RegisterComponent(CT_USER, &component))

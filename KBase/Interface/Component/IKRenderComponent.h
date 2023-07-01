@@ -30,6 +30,8 @@ public:
 	virtual bool InitAsUserData(const KMeshRawData& userData, const std::string& label, bool async) = 0;
 	virtual bool InitAsDebugUtility(const KDebugUtilityInfo& info) = 0;
 
+	virtual bool InitAsVirtualGeometry(const KMeshRawData& userData, const std::string& label) = 0;
+
 	virtual void SetUtilityColor(const glm::vec4& color) = 0;
 	virtual const glm::vec4& GetUtilityColor() const = 0;
 	virtual bool IsUtility() const = 0;

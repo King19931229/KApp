@@ -9,7 +9,6 @@ protected:
 	struct MeshInfo
 	{
 		std::string path;
-
 		bool operator<(const MeshInfo& rhs) const
 		{
 			return path < rhs.path;	

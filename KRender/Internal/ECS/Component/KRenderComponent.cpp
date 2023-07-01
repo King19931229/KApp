@@ -255,6 +255,12 @@ bool KRenderComponent::InitAsDebugUtility(const KDebugUtilityInfo& info)
 	return true;
 }
 
+bool KRenderComponent::InitAsVirtualGeometry(const KMeshRawData& userData, const std::string& label)
+{
+	UnInit();
+	return true;
+}
+
 bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as)
 {
 	if (m_Mesh)

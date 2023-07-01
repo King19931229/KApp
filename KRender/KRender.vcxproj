@@ -142,6 +142,9 @@
     <ClInclude Include="Internal\Terrain\Clipmap\KClipmap.h" />
     <ClInclude Include="Internal\Terrain\KHeightMap.h" />
     <ClInclude Include="Internal\Terrain\KTerrain.h" />
+    <ClInclude Include="Internal\VirtualGeometry\KVirtualGeomerty.h" />
+    <ClInclude Include="Internal\VirtualGeometry\KVirtualGeometryManager.h" />
+    <ClInclude Include="Internal\VirtualGeometry\KVirtualGeometryScene.h" />
     <ClInclude Include="Internal\Voxilzer\KClipmapVoxilzer.h" />
     <ClInclude Include="Internal\Voxilzer\KVoxilzer.h" />
     <ClInclude Include="Internal\Vulkan\KVulkanAccelerationStructure.h" />
@@ -259,6 +262,9 @@
     <ClCompile Include="Internal\Terrain\Clipmap\KClipmap.cpp" />
     <ClCompile Include="Internal\Terrain\KHeightMap.cpp" />
     <ClCompile Include="Internal\Terrain\KTerrain.cpp" />
+    <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometry.cpp" />
+    <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometryManager.cpp" />
+    <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometryScene.cpp" />
     <ClCompile Include="Internal\Voxilzer\KClipmapVoxilzer.cpp" />
     <ClCompile Include="Internal\Voxilzer\KVoxilzer.cpp" />
     <ClCompile Include="Internal\Vulkan\KVulkanAccelerationStructure.cpp" />
@@ -360,7 +366,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;../Dependency/metis-5.1.0/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
@@ -383,7 +389,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;../Dependency/metis-5.1.0/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
@@ -409,7 +415,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;../Dependency/metis-5.1.0/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
@@ -435,7 +441,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;GLM_FORCE_RADIANS;GLM_FORCE_DEPTH_ZERO_TO_ONE;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../;../Dependency/Python27/Include/;../Dependency/Python27/PCStatic/;../Dependency/glm-0.9.8.0/;../Dependency/glfw3/include/;../Dependency/imgui/;../Dependency/rttr-0.9.7/src/;../Dependency/glslang/;../Dependency/SPIRV-Cross/;../Dependency/NsightAftermath/include/;../Dependency/NsightAftermath/VkNsightAftermath/;../Dependency/metis-5.1.0/include/;$(VK_SDK_PATH)/Include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>

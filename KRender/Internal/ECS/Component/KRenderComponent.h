@@ -52,6 +52,8 @@ public:
 	bool InitAsUserData(const KMeshRawData& userData, const std::string& label, bool async) override;
 	bool InitAsDebugUtility(const KDebugUtilityInfo& info);
 
+	bool InitAsVirtualGeometry(const KMeshRawData& userData, const std::string& label);
+
 	void SetUtilityColor(const glm::vec4& color) override { m_UtilityColor = color; }
 	const glm::vec4& GetUtilityColor() const override { return m_UtilityColor; }
 	bool IsUtility() const override { return m_Mesh && m_Mesh->GetType() == MRT_DEBUG_UTILITY; }

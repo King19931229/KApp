@@ -22,6 +22,10 @@ struct KVirtualGeometryDefine
 	static constexpr uint32_t MAX_BVH_NODES_BIT_MAX = (1 << MAX_BVH_NODES_BITS) - 1;
 	static constexpr uint32_t MAX_BVH_NODES = 1 << MAX_BVH_NODES_BITS;
 	static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
+
+	static constexpr uint32_t MAX_CLUSTER_TRIANGLE = 128;
+	static constexpr uint32_t MAX_CLUSTER_VERTEX = 256;
+	static constexpr uint32_t MAX_CLUSTER_GROUP = 32;
 };
 static_assert(!(KVirtualGeometryDefine::MAX_BVH_NODES& (KVirtualGeometryDefine::MAX_BVH_NODES - 1)), "MAX_BVH_NODES must be pow of 2");
 
@@ -140,7 +144,7 @@ public:
 	}
 };
 
-struct KMeshClusterStoragePart
+struct KMeshClustersPart
 {
 	std::vector<uint32_t> clusters;
 	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
@@ -148,7 +152,24 @@ struct KMeshClusterStoragePart
 	KAABBBox bound;
 };
 
-typedef std::shared_ptr<KMeshClusterStoragePart> KMeshClusterStoragePartPtr;
+typedef std::shared_ptr<KMeshClustersPart> KMeshClustersPartPtr;
+
+struct KMeshClusterBatch
+{
+	uint32_t vertexOffset = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t indexOffset = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t storageIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	glm::vec4 boundCenter;
+	glm::vec4 boundHalfExtend;
+};
+
+struct KMeshClustersStorage
+{
+	std::vector<glm::vec3> positions;
+	std::vector<glm::vec3> normals;
+	std::vector<glm::vec2> uvs;
+	std::vector<uint32_t> indices;
+};
 
 struct KMeshClusterBVHNode
 {
@@ -157,6 +178,16 @@ struct KMeshClusterBVHNode
 	KAABBBox bound;
 };
 
+struct KMeshClusterHierarchy
+{
+	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
+	glm::vec4 boundCenter;
+	glm::vec4 boundHalfExtend;
+	uint32_t partIndex;
+};
+
+static_assert(sizeof(KMeshClusterHierarchy) == KVirtualGeometryDefine::MAX_BVH_NODES * 4 + 32 + 4, "always");
+
 typedef std::shared_ptr<KMeshClusterBVHNode> KMeshClusterBVHNodePtr;
 
 class KVirtualGeometryBuilder
@@ -164,7 +195,7 @@ class KVirtualGeometryBuilder
 protected:
 	std::vector<KMeshClusterPtr> m_Clusters;
 	std::vector<KMeshClusterGroupPtr> m_ClusterGroups;
-	std::vector<KMeshClusterStoragePartPtr> m_ClusterStorageParts;
+	std::vector<KMeshClustersPartPtr> m_ClusterStorageParts;
 	std::vector<KMeshClusterBVHNodePtr> m_BVHNodes;
 
 	uint32_t m_MinClusterGroup = 8;
@@ -172,6 +203,8 @@ protected:
 	uint32_t m_MinPartitionNum = 124;
 	uint32_t m_MaxPartitionNum = 128;
 	uint32_t m_LevelNum = 0;
+
+	uint32_t m_MaxClusterVertex = 256;
 
 	uint32_t m_MaxTriangleNum = 0;
 	uint32_t m_MinTriangleNum = 0;
@@ -203,11 +236,13 @@ protected:
 	void SortBVHNodes(const std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices);
 	uint32_t BuildHierarchyTopDown(std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices, bool sort);
 
-	void BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum);
+	void BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum, uint32_t minClusterGroup, uint32_t maxClusterGroup);
 	void BuildClusterStorage();
 	void BuildClusterBVH();
 
 	void RecurselyVisitBVH(uint32_t index, std::function<void(uint32_t index)> visitFunc);
+
+	uint32_t BuildMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies, uint32_t index);
 
 	static bool ColorDebugClusters(const std::vector<KMeshClusterPtr>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices);
 	static bool ColorDebugClusterGroups(const std::vector<KMeshClusterPtr>& clusters, const std::vector<KMeshClusterGroupPtr>& groups, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices);
@@ -222,6 +257,9 @@ public:
 	void DumpClusterInformation(const std::string& saveRoot) const;
 
 	void Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices);
+
+	bool GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, std::vector<KMeshClustersStorage>& stroages);
+	bool GetMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies);
 
 	inline uint32_t GetLevelNum() const
 	{

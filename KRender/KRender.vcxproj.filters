@@ -79,6 +79,9 @@
     <Filter Include="Internal\Render">
       <UniqueIdentifier>{1af52500-8b99-462a-802e-894dac1dbc6f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Internal\VirtualGeometry">
+      <UniqueIdentifier>{f5231b21-2e5d-4ec1-ba23-50e616d85898}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\IKRenderDevice.h">
@@ -541,6 +544,15 @@
     <ClInclude Include="Internal\ECS\Component\KUserComponent.h">
       <Filter>Internal\ECS\Component</Filter>
     </ClInclude>
+    <ClInclude Include="Internal\VirtualGeometry\KVirtualGeometryScene.h">
+      <Filter>Internal\VirtualGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\VirtualGeometry\KVirtualGeometryManager.h">
+      <Filter>Internal\VirtualGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\VirtualGeometry\KVirtualGeomerty.h">
+      <Filter>Internal\VirtualGeometry</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Internal\KRenderDevice.cpp">
@@ -878,6 +890,15 @@
     </ClCompile>
     <ClCompile Include="Internal\Manager\KPipelineManager.cpp">
       <Filter>Internal\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometryScene.cpp">
+      <Filter>Internal\VirtualGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometryManager.cpp">
+      <Filter>Internal\VirtualGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Internal\VirtualGeometry\KVirtualGeometry.cpp">
+      <Filter>Internal\VirtualGeometry</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

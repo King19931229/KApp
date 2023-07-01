@@ -262,7 +262,7 @@
     <ClInclude Include="Publish\KMeshBuilder.h">
       <Filter>Publish</Filter>
     </ClInclude>
-    <ClInclude Include="Publish\Mesh\KMeshClusterGroup.h">
+    <ClInclude Include="Publish\Mesh\KVirtualGeometryBuilder.h">
       <Filter>Publish\Mesh</Filter>
     </ClInclude>
     <ClInclude Include="Publish\KDebugUtility.h">
@@ -443,7 +443,7 @@
     <ClCompile Include="Internal\Mesh\KMeshProcessor.cpp">
       <Filter>Internal\Mesh</Filter>
     </ClCompile>
-    <ClCompile Include="Internal\Mesh\KMeshClusterGroup.cpp">
+    <ClCompile Include="Internal\Mesh\KVirtualGeometryBuilder.cpp">
       <Filter>Internal\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="Internal\KDebugUtility.cpp">

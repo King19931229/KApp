@@ -703,9 +703,13 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer, const std:
 	statistics.Reset();
 
 	std::vector<KRenderCommand> commands;
+	std::vector<glm::vec3> positions;
+	std::vector<size_t> sortedIndices;
 
-	auto BuildCommand = [&statistics, &commands, this](const std::vector<KMaterialSubMeshPtr>& materialSubMeshes, const KConstantDefinition::DEBUG& objectData)
+	auto BuildCommand = [&statistics, &commands, &sortedIndices, &positions, this](const std::vector<KMaterialSubMeshPtr>& materialSubMeshes, const KConstantDefinition::DEBUG& objectData)
 	{
+		glm::vec3 position = KMath::ExtractPosition(objectData.MODEL.MODEL);
+
 		for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
 		{
 			KRenderCommand command;
@@ -732,6 +736,8 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer, const std:
 
 				if (command.Complete())
 				{
+					sortedIndices.push_back(commands.size());
+					positions.push_back(position);
 					commands.push_back(std::move(command));
 				}
 			}
@@ -758,6 +764,8 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer, const std:
 
 				if (command.Complete())
 				{
+					sortedIndices.push_back(commands.size());
+					positions.push_back(position);
 					commands.push_back(std::move(command));
 				}
 			}
@@ -799,8 +807,23 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer, const std:
 		}
 	}
 
-	for (KRenderCommand& command : commands)
+	const glm::vec3& cameraPos = m_Camera->GetPosition();
+	const glm::vec3& cameraForward = m_Camera->GetForward();
+
+	std::sort(sortedIndices.begin(), sortedIndices.end(), [&cameraPos, &cameraForward, &positions](size_t lhs, size_t rhs) ->bool
 	{
+		const glm::vec3 lhsPos = positions[lhs];
+		const glm::vec3 rhsPos = positions[rhs];
+
+		const float lhsDis = glm::dot(lhsPos - cameraPos, cameraForward);
+		const float rhsDis = glm::dot(rhsPos - cameraPos, cameraForward);
+
+		return lhsDis > rhsDis;
+	});
+
+	for (size_t index : sortedIndices)
+	{
+		KRenderCommand& command = commands[index];
 		IKPipelineHandlePtr handle = nullptr;
 		if (command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], handle))
 		{

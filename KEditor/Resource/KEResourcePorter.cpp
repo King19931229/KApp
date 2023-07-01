@@ -47,7 +47,7 @@ bool KEResourcePorter::DropPosition(const KCamera* camera, const KAABBBox& local
 	{
 		const glm::mat4& viewMat = camera->GetViewMatrix();
 		KAABBBox viewBound;
-		localBound.Transform(viewMat, viewBound);
+		viewBound = localBound.Transform(viewMat);
 		float zExtend = viewBound.GetExtend().z;
 		pos = camera->GetPosition() + (zExtend * 0.5f + m_EntityDropDistance) * camera->GetForward();
 		return true;
