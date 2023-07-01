@@ -104,15 +104,6 @@ bool KOctreeSceneManager::GetAllEntity(std::vector<IKEntity*>& visibles)
 	return false;
 }
 
-bool KOctreeSceneManager::GetDebugEntity(std::vector<IKEntity*>& debugVisibles)
-{
-	if (m_Root)
-	{
-		return true;
-	}
-	return false;
-}
-
 bool KOctreeSceneManager::GetSceneBound(KAABBBox& box)
 {
 	if (m_Root)

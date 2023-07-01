@@ -1156,13 +1156,13 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 	m_LinearNodes.push_back(newNode);
 }
 
-bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KAssetImportResult& result)
+bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KMeshRawData& result)
 {
 	if (node->mesh)
 	{
 		for (PrimitivePtr primitive : node->mesh->primitives)
 		{
-			KAssetImportResult::ModelPart part;
+			KMeshRawData::ModelPart part;
 
 			Material& material = primitive->material;
 
@@ -1251,9 +1251,9 @@ bool KGLTFLoader::AppendMeshIntoResult(NodePtr node, KAssetImportResult& result)
 	return true;
 }
 
-bool KGLTFLoader::ConvertIntoResult(const KAssetImportOption& importOption, KAssetImportResult& result)
+bool KGLTFLoader::ConvertIntoResult(const KAssetImportOption& importOption, KMeshRawData& result)
 {
-	result = KAssetImportResult();
+	result = KMeshRawData();
 
 	const float* scale = importOption.scale;
 	const float* center = importOption.center;
@@ -1267,7 +1267,7 @@ bool KGLTFLoader::ConvertIntoResult(const KAssetImportOption& importOption, KAss
 	for (size_t comIdx = 0; comIdx < importOption.components.size(); ++comIdx)
 	{
 		const auto& componentGroup = importOption.components[comIdx];
-		KAssetImportResult::VertexDataBuffer& vertexData = result.verticesDatas[comIdx];
+		KMeshRawData::VertexDataBuffer& vertexData = result.verticesDatas[comIdx];
 
 		std::vector<float> vertexBuffer;
 
@@ -1361,7 +1361,7 @@ void KGLTFLoader::CalculateBoundingBox(NodePtr node, Node* parent)
 	{
 		if (node->mesh->bb.IsDefault())
 		{
-			node->mesh->bb.Transform(node->GetMatrix(), node->aabb);
+			node->aabb = node->mesh->bb.Transform(node->GetMatrix());
 			if (node->children.size() == 0)
 			{
 				node->bvh = node->aabb;
@@ -1424,7 +1424,7 @@ void KGLTFLoader::TransformMeshVertices()
 	}
 }
 
-bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result)
+bool KGLTFLoader::Import(const char* pszFile, const KAssetImportOption& importOption, KMeshRawData& result)
 {
 	if (!KFileTool::ParentFolder(pszFile, m_AssetFolder))
 	{

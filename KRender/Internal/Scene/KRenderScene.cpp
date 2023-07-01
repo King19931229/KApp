@@ -193,17 +193,6 @@ bool KRenderScene::GetVisibleEntities(const KAABBBox& bound, std::vector<IKEntit
 	return false;
 }
 
-bool KRenderScene::GetDebugEntities(std::vector<IKEntity*>& result)
-{
-	result.clear();
-	if (m_SceneMgr)
-	{
-		m_SceneMgr->GetDebugEntity(result);
-		return true;
-	}
-	return false;
-}
-
 bool KRenderScene::GetSceneObjectBound(KAABBBox& box)
 {
 	if (m_SceneMgr)

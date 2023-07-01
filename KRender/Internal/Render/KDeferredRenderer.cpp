@@ -693,7 +693,7 @@ void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer, cons
 	BuildRenderCommand(context, DRS_STAGE_FORWARD_TRANSPRANT, cullRes);
 }
 
-void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
+void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes)
 {
 	primaryBuffer->BeginDebugMarker(GDeferredRenderStageDescription[DRS_STATE_DEBUG_OBJECT].debugMarker, glm::vec4(0, 1, 0, 0));
 	primaryBuffer->BeginRenderPass(m_RenderPass[DRS_STATE_DEBUG_OBJECT], SUBPASS_CONTENTS_INLINE);
@@ -702,10 +702,67 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 	KRenderStageStatistics& statistics = m_Statistics[DRS_STATE_DEBUG_OBJECT];
 	statistics.Reset();
 
-	std::vector<IKEntity*> cullRes;
-	KRenderGlobal::Scene.GetVisibleEntities(*m_Camera, cullRes);
-
 	std::vector<KRenderCommand> commands;
+
+	auto BuildCommand = [&statistics, &commands, this](const std::vector<KMaterialSubMeshPtr>& materialSubMeshes, const KConstantDefinition::DEBUG& objectData)
+	{
+		for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
+		{
+			KRenderCommand command;
+
+			if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_TRIANGLE, command))
+			{
+				command.objectUsage.binding = SHADER_BINDING_OBJECT;
+				command.objectUsage.range = sizeof(objectData);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+				++statistics.drawcalls;
+				if (command.indexDraw)
+				{
+					statistics.faces += command.indexData->indexCount / 3;
+					statistics.primtives += command.indexData->indexCount;
+				}
+				else
+				{
+					statistics.faces += command.vertexData->vertexCount / 3;
+					statistics.primtives += command.vertexData->vertexCount;
+				}
+
+				command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
+
+				if (command.Complete())
+				{
+					commands.push_back(std::move(command));
+				}
+			}
+
+			if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_LINE, command))
+			{
+				command.objectUsage.binding = SHADER_BINDING_OBJECT;
+				command.objectUsage.range = sizeof(objectData);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+
+				++statistics.drawcalls;
+				if (command.indexDraw)
+				{
+					statistics.faces += command.indexData->indexCount / 2;
+					statistics.primtives += command.indexData->indexCount;
+				}
+				else
+				{
+					statistics.faces += command.vertexData->vertexCount / 2;
+					statistics.primtives += command.vertexData->vertexCount;
+				}
+
+				command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
+
+				if (command.Complete())
+				{
+					commands.push_back(std::move(command));
+				}
+			}
+		}
+	};
 
 	for (IKEntity* entity : cullRes)
 	{
@@ -713,67 +770,31 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer)
 		KTransformComponent* transform = nullptr;
 		if (entity->GetComponent(CT_RENDER, &render) && entity->GetComponent(CT_TRANSFORM, &transform))
 		{
+			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
+
 			KConstantDefinition::DEBUG objectData;
 			objectData.MODEL = transform->FinalTransform();
 			objectData.COLOR = render->GetUtilityColor();
 
-			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = render->GetMaterialSubMeshs();
+			BuildCommand(materialSubMeshes, objectData);
+		}
 
-			for (KMaterialSubMeshPtr materialSubMesh : materialSubMeshes)
+		KDebugComponent* debug = nullptr;
+		if (entity->GetComponent(CT_DEBUG, &debug))
+		{
+			const std::vector<KMaterialSubMeshPtr>& materialSubMeshes = debug->GetMaterialSubMeshs();
+			const std::vector<glm::vec4>& colors = debug->GetColors();
+
+			assert(colors.size() == materialSubMeshes.size());
+
+			for (size_t i = 0; i < materialSubMeshes.size(); ++i)
 			{
-				KRenderCommand command;
+				KConstantDefinition::DEBUG objectData;
+				objectData.MODEL.MODEL = glm::mat4(1.0f);
+				objectData.MODEL.PRVE_MODEL = glm::mat4(1.0f);
+				objectData.COLOR = colors[i];
 
-				if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_TRIANGLE, command))
-				{
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(objectData);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
-
-					++statistics.drawcalls;
-					if (command.indexDraw)
-					{
-						statistics.faces += command.indexData->indexCount / 3;
-						statistics.primtives += command.indexData->indexCount;
-					}
-					else
-					{
-						statistics.faces += command.vertexData->vertexCount / 3;
-						statistics.primtives += command.vertexData->vertexCount;
-					}
-
-					command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
-
-					if (command.Complete())
-					{
-						commands.push_back(std::move(command));
-					}
-				}
-
-				if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_LINE, command))
-				{
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(objectData);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
-
-					++statistics.drawcalls;
-					if (command.indexDraw)
-					{
-						statistics.faces += command.indexData->indexCount / 2;
-						statistics.primtives += command.indexData->indexCount;
-					}
-					else
-					{
-						statistics.faces += command.vertexData->vertexCount / 2;
-						statistics.primtives += command.vertexData->vertexCount;
-					}
-
-					command.pipeline->GetHandle(m_RenderPass[DRS_STATE_DEBUG_OBJECT], command.pipelineHandle);
-
-					if (command.Complete())
-					{
-						commands.push_back(std::move(command));
-					}
-				}
+				BuildCommand({ materialSubMeshes[i] }, objectData);
 			}
 		}
 	}

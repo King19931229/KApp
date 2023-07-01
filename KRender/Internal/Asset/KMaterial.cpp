@@ -849,7 +849,7 @@ bool KMaterial::InitFromFile(const std::string& path, bool async)
 	return false;
 }
 
-bool KMaterial::InitFromImportAssetMaterial(const KAssetImportResult::Material& input, bool async)
+bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async)
 {
 	UnInit();
 

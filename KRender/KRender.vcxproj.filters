@@ -46,9 +46,6 @@
     <Filter Include="Internal\Window">
       <UniqueIdentifier>{3c22e8fe-9e8c-417b-b03c-356abf1caab9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Internal\Asset\Utility">
-      <UniqueIdentifier>{535415ea-deda-46d1-a7db-91afc3ba3bfc}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Internal\Gizmo">
       <UniqueIdentifier>{c2114faa-71be-454b-b273-2044004f7233}</UniqueIdentifier>
     </Filter>
@@ -299,12 +296,6 @@
     </ClInclude>
     <ClInclude Include="Internal\Gizmo\KRotateGizmo.h">
       <Filter>Internal\Gizmo</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\Asset\Utility\KMeshUtilityImpl.h">
-      <Filter>Internal\Asset\Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="Internal\Asset\Utility\KMeshUtilityInfo.h">
-      <Filter>Internal\Asset\Utility</Filter>
     </ClInclude>
     <ClInclude Include="Internal\Gizmo\KScaleGizmo.h">
       <Filter>Internal\Gizmo</Filter>
@@ -707,12 +698,6 @@
     </ClCompile>
     <ClCompile Include="Internal\Gizmo\KRotateGizmo.cpp">
       <Filter>Internal\Gizmo</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\Asset\Utility\KMeshUtilityImpl.cpp">
-      <Filter>Internal\Asset\Utility</Filter>
-    </ClCompile>
-    <ClCompile Include="Internal\Asset\Utility\KMeshUtilityInfo.cpp">
-      <Filter>Internal\Asset\Utility</Filter>
     </ClCompile>
     <ClCompile Include="Internal\Gizmo\KScaleGizmo.cpp">
       <Filter>Internal\Gizmo</Filter>

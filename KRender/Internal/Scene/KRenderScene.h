@@ -38,8 +38,6 @@ public:
 	bool GetVisibleEntities(const KCamera& camera, std::vector<IKEntity*>& result) override;
 	bool GetVisibleEntities(const KAABBBox& bound, std::vector<IKEntity*>& result) override;
 
-	bool GetDebugEntities(std::vector<IKEntity*>& result) override;
-
 	bool GetSceneObjectBound(KAABBBox& box) override;
 
 	bool Pick(const KCamera& camera, size_t x, size_t y,

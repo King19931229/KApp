@@ -1,7 +1,6 @@
 #include "KMesh.h"
 #include "KSubMesh.h"
 #include "Serializer/KMeshSerializer.h"
-#include "Utility/KMeshUtilityImpl.h"
 #include "Interface/IKRenderDevice.h"
 #include "Interface/IKBuffer.h"
 #include "Interface/IKQuery.h"
@@ -193,7 +192,7 @@ bool KMesh::CompoentGroupFromVertexFormat(VertexFormat format, KAssetVertexCompo
 	}
 }
 
-bool KMesh::InitFromImportResult(const KAssetImportResult& result, const std::vector<VertexFormat>& formats, const std::string& label)
+bool KMesh::InitFromImportResult(const KMeshRawData& result, const std::vector<VertexFormat>& formats, const std::string& label)
 {
 	m_VertexData.vertexFormats = formats;
 	m_VertexData.vertexBuffers.resize(m_VertexData.vertexFormats.size());
@@ -208,7 +207,7 @@ bool KMesh::InitFromImportResult(const KAssetImportResult& result, const std::ve
 	{
 		const VertexFormat& format = m_VertexData.vertexFormats[i];
 		IKVertexBufferPtr& buffer = m_VertexData.vertexBuffers[i];
-		const KAssetImportResult::VertexDataBuffer dataSource = result.verticesDatas[i];
+		const KMeshRawData::VertexDataBuffer dataSource = result.verticesDatas[i];
 
 		ASSERT_RESULT(KRenderGlobal::RenderDevice->CreateVertexBuffer(buffer));
 
@@ -273,7 +272,7 @@ bool KMesh::InitFromImportResult(const KAssetImportResult& result, const std::ve
 		KSubMeshPtr& subMesh = m_SubMeshes[i];
 		KMaterialRef& material = m_SubMaterials[i];
 
-		const KAssetImportResult::ModelPart& subPart = result.parts[i];
+		const KMeshRawData::ModelPart& subPart = result.parts[i];
 
 		KIndexData indexData;
 
@@ -307,7 +306,7 @@ bool KMesh::InitFromAsset(const std::string& path)
 	if(loader)
 	{
 		KAssetImportOption option;
-		KAssetImportResult result;
+		KMeshRawData result;
 
 		VertexFormat formats[] = { VF_POINT_NORMAL_UV, VF_COLOR0, VF_TANGENT_BINORMAL };
 		for(VertexFormat format : formats)
@@ -337,7 +336,7 @@ bool KMesh::InitFromAsset(const std::string& path)
 	return false;
 }
 
-bool KMesh::InitFromUserData(const KAssetImportResult& userData, const std::string& label)
+bool KMesh::InitFromUserData(const KMeshRawData& userData, const std::string& label)
 {
 	UnInit();
 
@@ -396,7 +395,7 @@ bool KMesh::InitFromUserData(const KAssetImportResult& userData, const std::stri
 }
 
 
-bool KMesh::InitFromUtility(const KMeshUtilityInfo& info)
+bool KMesh::InitFromUtility(const KDebugUtilityInfo& info)
 {
 	IKVertexBufferPtr vertexBuffer = nullptr;
 	KSubMeshPtr subMesh = nullptr;

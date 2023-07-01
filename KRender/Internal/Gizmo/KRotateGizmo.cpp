@@ -102,7 +102,7 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	// XRotate
 	m_XPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUtility(KMeshUtility::CreateCircle({
+	renderComponent->InitAsDebugUtility(KDebugUtility::CreateCircle({
 		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f)), RADIUS }));
 	renderComponent->SetUtilityColor(X_PLANE_COLOR);
 
@@ -110,21 +110,21 @@ bool KRotateGizmo::Init(const KCamera* camera)
 
 	// YRotate
 	m_YPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUtility(KMeshUtility::CreateCircle({ glm::mat4(1.0f), RADIUS }));
+	renderComponent->InitAsDebugUtility(KDebugUtility::CreateCircle({ glm::mat4(1.0f), RADIUS }));
 	renderComponent->SetUtilityColor(Y_PLANE_COLOR);
 
 	m_YPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	// ZRotate
 	m_ZPlaneEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUtility(KMeshUtility::CreateCircle({
+	renderComponent->InitAsDebugUtility(KDebugUtility::CreateCircle({
 		glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f)), RADIUS }));
 	renderComponent->SetUtilityColor(Z_PLANE_COLOR);
 
 	m_ZPlaneEntity->RegisterComponent(CT_TRANSFORM);
 
 	m_RotateEntity->RegisterComponent(CT_RENDER, &renderComponent);
-	renderComponent->InitAsUtility(KMeshUtility::CreateArc({ glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), RADIUS, 0.0f }));
+	renderComponent->InitAsDebugUtility(KDebugUtility::CreateArc({ glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), RADIUS, 0.0f }));
 
 	m_RotateEntity->RegisterComponent(CT_TRANSFORM);
 
@@ -214,7 +214,7 @@ void KRotateGizmo::OnMouseMove(unsigned int x, unsigned int y)
 				KRenderComponent* renderComponent = nullptr;
 				if (m_RotateEntity && m_RotateEntity->GetComponent(CT_RENDER, &renderComponent))
 				{
-					renderComponent->InitAsUtility(KMeshUtility::CreateArc({ v1, m_PickPlane.GetNormal(), RADIUS, theta }));
+					renderComponent->InitAsDebugUtility(KDebugUtility::CreateArc({ v1, m_PickPlane.GetNormal(), RADIUS, theta }));
 				}
 
 				//KLog::Logger->Log(LL_DEBUG, "%f", theta);

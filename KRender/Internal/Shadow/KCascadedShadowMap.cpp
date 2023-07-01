@@ -615,7 +615,7 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 		}
 
 		KAABBBox sceneBoundInLight;
-		sceneBound.Transform(lightViewMatrix, sceneBoundInLight);
+		sceneBoundInLight = sceneBound.Transform(lightViewMatrix);
 
 		float near = -sceneBoundInLight.GetMax().z;
 		float far = -sceneBoundInLight.GetMin().z;
@@ -634,7 +634,7 @@ void KCascadedShadowMap::UpdateDynamicCascades()
 			minExtents.z = -far;
 		}
 		litBox.InitFromMinMax(minExtents, maxExtents);
-		litBox.Transform(glm::inverse(lightViewMatrix), litBox);
+		litBox = litBox.Transform(glm::inverse(lightViewMatrix));
 		dynamicCascaded.litBox = litBox;
 
 		// Store split distance and matrix in cascade
@@ -743,7 +743,7 @@ void KCascadedShadowMap::UpdateStaticCascades()
 		}
 
 		KAABBBox sceneBoundInLight;
-		sceneBound.Transform(lightViewMatrix, sceneBoundInLight);
+		sceneBoundInLight = sceneBound.Transform(lightViewMatrix);
 
 		float near = -sceneBoundInLight.GetMax().z;
 		float far = -sceneBoundInLight.GetMin().z;
@@ -762,7 +762,7 @@ void KCascadedShadowMap::UpdateStaticCascades()
 			minExtents.z = -far;
 		}
 		litBox.InitFromMinMax(minExtents, maxExtents);
-		litBox.Transform(glm::inverse(lightViewMatrix), litBox);
+		litBox = litBox.Transform(glm::inverse(lightViewMatrix));
 		staticCascaded.litBox = litBox;
 
 		// Store split distance and matrix in cascade
@@ -1230,10 +1230,10 @@ bool KCascadedShadowMap::PopulateRenderCommandList(size_t cascadedIndex, bool is
 			// 这里算出的receiverBox要与frustumBox结合算出最紧密的receiverBox
 			if (receiverBox.IsDefault())
 			{
-				receiverBox.Transform(cascaded.viewProjMatrix, receiverBox);
+				receiverBox = receiverBox.Transform(cascaded.viewProjMatrix);
 
 				KAABBBox frustumBox = cascaded.frustumBox;
-				frustumBox.Transform(cascaded.viewProjMatrix, frustumBox);
+				frustumBox = frustumBox.Transform(cascaded.viewProjMatrix);
 
 				const glm::vec3& receiverMin = receiverBox.GetMin();
 				const glm::vec3& receiverMax = receiverBox.GetMax();
@@ -1259,7 +1259,7 @@ bool KCascadedShadowMap::PopulateRenderCommandList(size_t cascadedIndex, bool is
 					KAABBBox casterBound;
 					if (entity->GetComponent(CT_RENDER, &render) && entity->GetBound(casterBound))
 					{
-						casterBound.Transform(cascaded.viewProjMatrix, casterBound);
+						casterBound = casterBound.Transform(cascaded.viewProjMatrix);
 
 						const glm::vec3& receiverMin = receiverBox.GetMin();
 						const glm::vec3& receiverMax = receiverBox.GetMax();

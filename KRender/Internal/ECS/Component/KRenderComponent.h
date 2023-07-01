@@ -1,8 +1,8 @@
 #pragma once
 #include "Interface/IKQuery.h"
 #include "KBase/Interface/Component/IKRenderComponent.h"
+#include "KBase/Publish/KDebugUtility.h"
 #include "Internal/Asset/KMesh.h"
-#include "Internal/Asset/Utility/KMeshUtilityInfo.h"
 #include "Internal/Asset/KMaterial.h"
 #include "Internal/Asset/KMaterialSubMesh.h"
 
@@ -49,8 +49,8 @@ public:
 
 	bool InitAsMesh(const std::string& mesh, bool async) override;
 	bool InitAsAsset(const std::string& asset, bool async) override;
-	bool InitAsUserData(const KAssetImportResult& userData, const std::string& label, bool async) override;
-	bool InitAsUtility(const KMeshUtilityInfo& info);
+	bool InitAsUserData(const KMeshRawData& userData, const std::string& label, bool async) override;
+	bool InitAsDebugUtility(const KDebugUtilityInfo& info);
 
 	void SetUtilityColor(const glm::vec4& color) override { m_UtilityColor = color; }
 	const glm::vec4& GetUtilityColor() const override { return m_UtilityColor; }

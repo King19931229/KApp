@@ -81,7 +81,7 @@ uint32_t KAssimpLoader::GetFlags(const KAssetImportOption& importOption)
 	return flag;
 }
 
-bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption& importOption, KAssetImportResult& result)
+bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption& importOption, KMeshRawData& result)
 {
 	if (!scene)
 	{
@@ -128,7 +128,7 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 		aiString name;
 		scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_NAME, name);
 
-		KAssetImportResult::ModelPart part;
+		KMeshRawData::ModelPart part;
 
 		part.vertexBase = vertexCount;
 		part.indexBase = indexCount;
@@ -343,7 +343,7 @@ bool KAssimpLoader::ImportAiScene(const aiScene* scene, const KAssetImportOption
 	return false;
 }
 
-bool KAssimpLoader::ImportFromMemory(const char* pData, size_t dataSize, const KAssetImportOption& importOption, KAssetImportResult& result)
+bool KAssimpLoader::ImportFromMemory(const char* pData, size_t dataSize, const KAssetImportOption& importOption, KMeshRawData& result)
 {
 	const aiScene* scene = m_Importer.ReadFileFromMemory(pData, dataSize, GetFlags(importOption));
 	if (!scene)
@@ -365,7 +365,7 @@ bool KAssimpLoader::ImportFromMemory(const char* pData, size_t dataSize, const K
 	return false;
 }
 
-bool KAssimpLoader::Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result)
+bool KAssimpLoader::Import(const char* pszFile, const KAssetImportOption& importOption, KMeshRawData& result)
 {
 	const aiScene* scene = m_Importer.ReadFile(pszFile, GetFlags(importOption));
 	if (!scene)

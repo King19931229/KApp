@@ -52,7 +52,7 @@ public:
 	void ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
 	void SkyPass(IKCommandBufferPtr primaryBuffer);
 	void CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer);
-	void DebugObject(IKCommandBufferPtr primaryBuffer);
+	void DebugObject(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
 	void Foreground(IKCommandBufferPtr primaryBuffer);
 	void EmptyAO(IKCommandBufferPtr primaryBuffer);
 

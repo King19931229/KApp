@@ -431,7 +431,7 @@ bool KHiZOcclusion::Execute(IKCommandBufferPtr primaryBuffer, const std::vector<
 			KAABBBox worldBound;
 			worldPos = transform->GetPosition();
 			render->GetLocalBound(localBound);
-			localBound.Transform(transform->GetFinal(), worldBound);
+			worldBound = localBound.Transform(transform->GetFinal());
 
 			Candidate newCandidate;
 			newCandidate.pos = worldPos;

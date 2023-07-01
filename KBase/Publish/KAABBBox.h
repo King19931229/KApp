@@ -58,8 +58,9 @@ public:
 		m_Mode = EM_DEFAULF;
 	}
 
-	void Transform(const glm::mat4& transform, KAABBBox& result) const
+	KAABBBox Transform(const glm::mat4& transform) const
 	{
+		KAABBBox result;
 		if (IsDefault())
 		{
 #if 1
@@ -129,6 +130,7 @@ public:
 			result.InitFromMinMax(min, max);
 #endif
 		}
+		return result;
 	}
 
 	float DistanceSquare(const glm::vec3& point) const

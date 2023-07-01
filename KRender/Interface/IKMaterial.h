@@ -107,7 +107,7 @@ struct IKMaterial
 	virtual IKPipelinePtr CreateCSMInstancePipeline(const VertexFormat* formats, size_t count, bool staticCSM) = 0;
 
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;
-	virtual bool InitFromImportAssetMaterial(const KAssetImportResult::Material& input, bool async) = 0;
+	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async) = 0;
 	virtual bool UnInit() = 0;
 
 	virtual const std::string& GetPath() const = 0;

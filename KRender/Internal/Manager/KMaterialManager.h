@@ -18,5 +18,5 @@ public:
 	bool Acquire(const char* path, KMaterialRef& ref, bool async);
 	bool GetMissingMaterial(KMaterialRef& ref);
 
-	bool Create(const KAssetImportResult::Material& input, KMaterialRef& ref, bool async);
+	bool Create(const KMeshRawData::Material& input, KMaterialRef& ref, bool async);
 };

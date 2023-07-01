@@ -2,6 +2,7 @@
 #include "Internal/KRenderGlobal.h"
 #include "Internal/ECS/Component/KTransformComponent.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
+#include "Internal/ECS/Component/KDebugComponent.h"
 #include "KBase/Interface/Entity/IKEntity.h"
 
 namespace KRenderUtil

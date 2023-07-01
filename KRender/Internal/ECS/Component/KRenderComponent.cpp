@@ -200,7 +200,7 @@ bool KRenderComponent::InitAsAsset(const std::string& asset, bool async)
 	return false;
 }
 
-bool KRenderComponent::InitAsUserData(const KAssetImportResult& userData, const std::string& label, bool async)
+bool KRenderComponent::InitAsUserData(const KMeshRawData& userData, const std::string& label, bool async)
 {
 	UnInit();
 	bool meshAcquire = KRenderGlobal::MeshManager.AcquireFromUserData(userData, label, m_Mesh);
@@ -232,7 +232,7 @@ bool KRenderComponent::UnInit()
 	return true;
 }
 
-bool KRenderComponent::InitAsUtility(const KMeshUtilityInfo& info)
+bool KRenderComponent::InitAsDebugUtility(const KDebugUtilityInfo& info)
 {
 	if (!IsUtility())
 	{

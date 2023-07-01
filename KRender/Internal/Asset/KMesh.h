@@ -1,4 +1,5 @@
 #pragma once
+#include "KBase/Publish/KDebugUtility.h"
 #include "Internal/KVertexDefinition.h"
 #include "Internal/KConstantDefinition.h"
 #include "Interface/IKRenderDevice.h"
@@ -8,7 +9,6 @@
 #include "KMaterial.h"
 #include "KMaterialSubMesh.h"
 #include "KTriangleMesh.h"
-#include "Utility/KMeshUtilityInfo.h"
 
 enum MeshResourceType
 {
@@ -35,7 +35,7 @@ protected:
 	static bool CompoentGroupFromVertexFormat(VertexFormat format, KAssetVertexComponentGroup& group);
 	void UpdateTriangleMesh();
 
-	bool InitFromImportResult(const KAssetImportResult& result, const std::vector<VertexFormat>& formats, const std::string& label);
+	bool InitFromImportResult(const KMeshRawData& result, const std::vector<VertexFormat>& formats, const std::string& label);
 public:
 	KMesh();
 	~KMesh();
@@ -50,8 +50,8 @@ public:
 	bool SaveAsFile(const std::string& path) const;
 	bool InitFromFile(const std::string& path);
 	bool InitFromAsset(const std::string& path);
-	bool InitFromUserData(const KAssetImportResult& userData, const std::string& label);
-	bool InitFromUtility(const KMeshUtilityInfo& info);
+	bool InitFromUserData(const KMeshRawData& userData, const std::string& label);
+	bool InitFromUtility(const KDebugUtilityInfo& info);
 	bool UnInit();
 	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as);
 };

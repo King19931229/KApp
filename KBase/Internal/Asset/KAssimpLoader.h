@@ -14,13 +14,13 @@ protected:
 	std::string m_AssetFolder;
 
 	uint32_t GetFlags(const KAssetImportOption& importOption);
-	bool ImportAiScene(const aiScene* scene, const KAssetImportOption& importOption, KAssetImportResult& result);
+	bool ImportAiScene(const aiScene* scene, const KAssetImportOption& importOption, KMeshRawData& result);
 public:
 	KAssimpLoader();
 	virtual ~KAssimpLoader();
 
-	virtual bool ImportFromMemory(const char* pData, size_t size, const KAssetImportOption& importOption, KAssetImportResult& result);
-	virtual bool Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result);
+	virtual bool ImportFromMemory(const char* pData, size_t size, const KAssetImportOption& importOption, KMeshRawData& result);
+	virtual bool Import(const char* pszFile, const KAssetImportOption& importOption, KMeshRawData& result);
 
 	static bool Init();
 	static bool UnInit();

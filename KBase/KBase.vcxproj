@@ -130,6 +130,7 @@
     <ClCompile Include="Internal\KAssetLoader.cpp" />
     <ClCompile Include="Internal\KCodec.cpp" />
     <ClCompile Include="Internal\KDataStream.cpp" />
+    <ClCompile Include="Internal\KDebugUtility.cpp" />
     <ClCompile Include="Internal\KDump.cpp" />
     <ClCompile Include="Internal\KFileSystem.cpp" />
     <ClCompile Include="Internal\KFileTool.cpp" />

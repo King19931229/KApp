@@ -62,8 +62,6 @@
     <ClInclude Include="Internal\Asset\Meshlet\KMeshlet.h" />
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializer.h" />
     <ClInclude Include="Internal\Asset\Serializer\KMeshSerializerV0.h" />
-    <ClInclude Include="Internal\Asset\Utility\KMeshUtilityInfo.h" />
-    <ClInclude Include="Internal\Asset\Utility\KMeshUtilityImpl.h" />
     <ClInclude Include="Internal\Controller\KCameraMoveController.h" />
     <ClInclude Include="Internal\Controller\KCameraPreviewController.h" />
     <ClInclude Include="Internal\Controller\KGizmoController.h" />
@@ -184,8 +182,6 @@
     <ClCompile Include="Internal\Asset\Material\KMaterialTextureBinding.cpp" />
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializer.cpp" />
     <ClCompile Include="Internal\Asset\Serializer\KMeshSerializerV0.cpp" />
-    <ClCompile Include="Internal\Asset\Utility\KMeshUtilityInfo.cpp" />
-    <ClCompile Include="Internal\Asset\Utility\KMeshUtilityImpl.cpp" />
     <ClCompile Include="Internal\Controller\KCameraMoveController.cpp" />
     <ClCompile Include="Internal\Controller\KCameraPreviewController.cpp" />
     <ClCompile Include="Internal\Controller\KGizmoController.cpp" />

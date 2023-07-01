@@ -159,36 +159,49 @@ bool KEntity::GetBound(KAABBBox& bound)
 {
 	IKComponentBase* component = nullptr;
 	IKRenderComponent* renderComponent = nullptr;
+	IKDebugComponent* debugComponent = nullptr;
 	IKTransformComponent* transformComponent = nullptr;
 
 	if (GetComponent(CT_RENDER, &component))
 	{
 		renderComponent = (IKRenderComponent*)component;
 	}
+	if (GetComponent(CT_DEBUG, &component))
+	{
+		debugComponent = (IKDebugComponent*)component;
+	}
 	if (GetComponent(CT_TRANSFORM, &component))
 	{
 		transformComponent = (IKTransformComponent*)component;
 	}
 
+	bound.SetNull();
+
 	if (renderComponent)
 	{
-		KAABBBox localBound;
-		if (renderComponent->GetLocalBound(localBound))
+		KAABBBox renderLocalBound;
+		if (renderComponent->GetLocalBound(renderLocalBound))
 		{
-			if (transformComponent)
-			{
-				const glm::mat4& world = transformComponent->GetFinal();
-				localBound.Transform(world, bound);
-			}
-			else
-			{
-				bound = localBound;
-			}
-			return true;
+			bound = bound.Merge(renderLocalBound);
 		}
 	}
 
-	return false;
+	if (transformComponent)
+	{
+		const glm::mat4& world = transformComponent->GetFinal();
+		bound = bound.Transform(world);
+	}
+
+	if (debugComponent)
+	{
+		KAABBBox debugBound;
+		if (debugComponent->GetBound(debugBound))
+		{
+			bound = bound.Merge(debugBound);
+		}
+	}
+
+	return true;
 }
 
 bool KEntity::Intersect(const glm::vec3& origin, const glm::vec3& dir, glm::vec3& result, const float* maxDistance)

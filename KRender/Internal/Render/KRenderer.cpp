@@ -279,7 +279,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::DepthOfField.Execute(commandBuffer);
 		KRenderGlobal::DeferredRenderer.CopySceneColorToFinal(commandBuffer);
 
-		KRenderGlobal::DeferredRenderer.DebugObject(commandBuffer);
+		KRenderGlobal::DeferredRenderer.DebugObject(commandBuffer, cullRes);
 		KRenderGlobal::DeferredRenderer.Foreground(commandBuffer);
 
 		// 绘制SceneColor

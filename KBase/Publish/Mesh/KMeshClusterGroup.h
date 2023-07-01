@@ -177,7 +177,7 @@ protected:
 	uint32_t m_MinTriangleNum = 0;
 	float m_MaxError = 0;
 
-	uint32_t m_BVHRoot = 0;
+	uint32_t m_BVHRoot = KVirtualGeometryDefine::INVALID_INDEX;
 
 	bool m_CheckClusterAdacency = false;
 
@@ -207,6 +207,8 @@ protected:
 	void BuildClusterStorage();
 	void BuildClusterBVH();
 
+	void RecurselyVisitBVH(uint32_t index, std::function<void(uint32_t index)> visitFunc);
+
 	static bool ColorDebugClusters(const std::vector<KMeshClusterPtr>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices);
 	static bool ColorDebugClusterGroups(const std::vector<KMeshClusterPtr>& clusters, const std::vector<KMeshClusterGroupPtr>& groups, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices);
 public:
@@ -214,6 +216,7 @@ public:
 	void ColorDebugDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, uint32_t& triangleCount, float& error) const;
 	void ColorDebugCluster(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices) const;
 	void ColorDebugClusterGroup(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices) const;
+	void GetAllBVHBounds(std::vector<KAABBBox>& bounds);
 	void DumpClusterGroupAsOBJ(const std::string& saveRoot) const;
 	void DumpClusterAsOBJ(const std::string& saveRoot) const;
 	void DumpClusterInformation(const std::string& saveRoot) const;

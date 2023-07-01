@@ -163,7 +163,7 @@ namespace KMeshProcessor
 		return false;
 	}
 
-	bool ConvertForMeshProcessor(const KAssetImportResult& input, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	bool ConvertForMeshProcessor(const KMeshRawData& input, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
 	{
 		int32_t PNTIndex = FindPNTIndex(input.components);
 		if (PNTIndex < 0)
@@ -182,7 +182,7 @@ namespace KMeshProcessor
 
 		for (size_t partIndex = 0; partIndex < input.parts.size(); ++partIndex)
 		{
-			const KAssetImportResult::ModelPart& part = input.parts[partIndex];
+			const KMeshRawData::ModelPart& part = input.parts[partIndex];
 			if (part.vertexCount == 0 || part.indexCount == 0 || part.indexCount % 3 != 0)
 			{
 				return false;
@@ -196,7 +196,7 @@ namespace KMeshProcessor
 
 		for (size_t partIndex = 0; partIndex < input.parts.size(); ++partIndex)
 		{
-			const KAssetImportResult::ModelPart& part = input.parts[partIndex];
+			const KMeshRawData::ModelPart& part = input.parts[partIndex];
 
 			uint32_t indexBase = part.indexBase;
 			uint32_t indexCount = part.indexCount;
@@ -230,7 +230,7 @@ namespace KMeshProcessor
 				vertices[i + vertexBase].partIndex = (int32_t)partIndex;
 			}
 
-			const KAssetImportResult::VertexDataBuffer& PNTData = input.verticesDatas[PNTIndex];
+			const KMeshRawData::VertexDataBuffer& PNTData = input.verticesDatas[PNTIndex];
 			const PNT* pnts = (const PNT*)PNTData.data();
 			pnts += vertexBase;
 
@@ -246,7 +246,7 @@ namespace KMeshProcessor
 			{
 				if (colorIndex[c] >= 0)
 				{
-					const KAssetImportResult::VertexDataBuffer& colorData = input.verticesDatas[colorIndex[c]];
+					const KMeshRawData::VertexDataBuffer& colorData = input.verticesDatas[colorIndex[c]];
 					const glm::vec3* colors = (const glm::vec3*)colorData.data();
 					colors += vertexBase;
 					for (uint32_t i = 0; i < vertexCount; ++i)
@@ -260,7 +260,7 @@ namespace KMeshProcessor
 		return true;
 	}
 
-	bool ConvertFromMeshProcessor(KAssetImportResult& output, const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, const std::vector<KAssetImportResult::Material>& originalMats)
+	bool ConvertFromMeshProcessor(KMeshRawData& output, const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, const std::vector<KMeshRawData::Material>& originalMats)
 	{
 		int32_t maxPartIndex = -1;
 		std::set<int32_t> allPartIndices;
@@ -282,7 +282,7 @@ namespace KMeshProcessor
 			partIndexRemap[sortMaterialIndices[i]] = i;
 		}
 
-		std::vector<KAssetImportResult::ModelPart> parts;
+		std::vector<KMeshRawData::ModelPart> parts;
 
 		std::vector<std::vector<KMeshProcessorVertex>> verticesByMaterial;
 		std::vector<std::vector<uint32_t>> indicesByMaterial;
@@ -333,7 +333,7 @@ namespace KMeshProcessor
 
 		for (size_t partIndex = 0; partIndex < parts.size(); ++partIndex)
 		{
-			KAssetImportResult::ModelPart& part = parts[partIndex];
+			KMeshRawData::ModelPart& part = parts[partIndex];
 			part.indexBase = indexBase;
 			part.indexCount = (uint32_t)indicesByMaterial[partIndex].size();
 			part.vertexBase = 0;
@@ -345,10 +345,10 @@ namespace KMeshProcessor
 		}
 
 		KAABBBox bound;
-		std::vector<KAssetImportResult::VertexDataBuffer> vertexBuffers;
+		std::vector<KMeshRawData::VertexDataBuffer> vertexBuffers;
 		std::vector<KAssetVertexComponentGroup> components;
 		{
-			KAssetImportResult::VertexDataBuffer vertexBuffer;
+			KMeshRawData::VertexDataBuffer vertexBuffer;
 			vertexBuffer.resize(sizeof(PNT) * vertices.size());
 			PNT* pnts = (PNT*)vertexBuffer.data();
 			for (size_t i = 0; i < vertices.size(); ++i)
@@ -364,7 +364,7 @@ namespace KMeshProcessor
 
 		for (uint32_t c = 0; c < 5; ++c)
 		{
-			KAssetImportResult::VertexDataBuffer vertexBuffer;
+			KMeshRawData::VertexDataBuffer vertexBuffer;
 			vertexBuffer.resize(sizeof(glm::vec3)* vertices.size());
 			glm::vec3* colors = (glm::vec3*)vertexBuffer.data();
 			for (size_t i = 0; i < vertices.size(); ++i)

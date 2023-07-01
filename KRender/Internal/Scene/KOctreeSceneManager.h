@@ -31,7 +31,6 @@ public:
 	bool GetVisibleEntity(const KCamera* camera, std::vector<IKEntity*>& visibles) override;
 	bool GetVisibleEntity(const KAABBBox* bound, std::vector<IKEntity*>& visibles) override;
 	bool GetAllEntity(std::vector<IKEntity*>& visibles) override;
-	bool GetDebugEntity(std::vector<IKEntity*>& debugVisibles) override;
 	bool GetSceneBound(KAABBBox& box) override;
 
 	bool Pick(const glm::vec3& origin, const glm::vec3& dir, std::vector<IKEntity*>& result) override;

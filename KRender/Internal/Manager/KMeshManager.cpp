@@ -1,5 +1,4 @@
 #include "KMeshManager.h"
-#include "Internal/Asset/Utility/KMeshUtilityImpl.h"
 #include "Internal/KRenderGlobal.h"
 #include "Interface/IKQuery.h"
 
@@ -84,7 +83,7 @@ bool KMeshManager::New(KMeshRef& ref)
 	return true;
 }
 
-bool KMeshManager::AcquireFromUserData(const KAssetImportResult& userData, const std::string& label, KMeshRef& ref)
+bool KMeshManager::AcquireFromUserData(const KMeshRawData& userData, const std::string& label, KMeshRef& ref)
 {
 	KMeshPtr ptr = KMeshPtr(KNEW KMesh());
 	if (ptr->InitFromUserData(userData, label))

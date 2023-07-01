@@ -110,7 +110,7 @@ public:
 	virtual IKPipelinePtr CreateCSMInstancePipeline(const VertexFormat* formats, size_t count, bool staticCSM);
 
 	virtual bool InitFromFile(const std::string& path, bool async);
-	virtual bool InitFromImportAssetMaterial(const KAssetImportResult::Material& input, bool async);
+	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async);
 	virtual bool UnInit();
 
 	virtual const std::string& GetPath() const { return m_Path; }

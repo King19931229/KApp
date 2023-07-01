@@ -1303,6 +1303,19 @@ void KVirtualGeometryBuilder::BuildClusterBVH()
 	m_BVHRoot = rootIndex;
 }
 
+void KVirtualGeometryBuilder::RecurselyVisitBVH(uint32_t index, std::function<void(uint32_t index)> visitFunc)
+{
+	visitFunc(index);
+
+	if (m_BVHNodes[index]->partIndex == KVirtualGeometryDefine::INVALID_INDEX)
+	{
+		for (uint32_t child : m_BVHNodes[index]->children)
+		{
+			RecurselyVisitBVH(child, visitFunc);
+		}
+	}
+}
+
 void KVirtualGeometryBuilder::FindDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<uint32_t>& clusterIndices, uint32_t& triangleCount, float& error) const
 {
 	struct DAGCutElement
@@ -1452,6 +1465,19 @@ void KVirtualGeometryBuilder::ColorDebugClusterGroup(uint32_t level, std::vector
 	}
 
 	ColorDebugClusterGroups(m_Clusters, m_ClusterGroups, groupIndices, vertices, indices);
+}
+
+void KVirtualGeometryBuilder::GetAllBVHBounds(std::vector<KAABBBox>& bounds)
+{
+	bounds.clear();
+	if (m_BVHRoot != KVirtualGeometryDefine::INVALID_INDEX)
+	{
+		bounds.reserve(m_BVHNodes.size());
+		RecurselyVisitBVH(m_BVHRoot, [this, &bounds](uint32_t nodeIndex)
+		{
+			bounds.push_back(m_BVHNodes[nodeIndex]->bound);
+		});
+	}
 }
 
 void KVirtualGeometryBuilder::DumpClusterGroupAsOBJ(const std::string& saveRoot) const

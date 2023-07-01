@@ -65,7 +65,7 @@ bool KMaterialManager::Acquire(const char* path, KMaterialRef& ref, bool async)
 	return false;
 }
 
-bool KMaterialManager::Create(const KAssetImportResult::Material& input, KMaterialRef& ref, bool async)
+bool KMaterialManager::Create(const KMeshRawData::Material& input, KMaterialRef& ref, bool async)
 {
 	IKMaterialPtr material = IKMaterialPtr(KNEW KMaterial());
 	if (material->InitFromImportAssetMaterial(input, async))

@@ -446,5 +446,8 @@
     <ClCompile Include="Internal\Mesh\KMeshClusterGroup.cpp">
       <Filter>Internal\Mesh</Filter>
     </ClCompile>
+    <ClCompile Include="Internal\KDebugUtility.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

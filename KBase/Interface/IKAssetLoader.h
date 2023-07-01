@@ -78,7 +78,7 @@ struct KMeshTextureSampler
 	}
 };
 
-struct KAssetImportResult
+struct KMeshRawData
 {
 	// For userdata
 	std::vector<KAssetVertexComponentGroup> components;
@@ -172,7 +172,7 @@ struct KAssetImportResult
 		}
 	} extend;
 
-	KAssetImportResult()
+	KMeshRawData()
 	{
 		vertexCount = 0;
 		indexCount = 0;
@@ -199,7 +199,7 @@ typedef std::shared_ptr<IKAssetLoader> IKAssetLoaderPtr;
 
 struct IKAssetLoader
 {
-	virtual bool Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result) = 0;
+	virtual bool Import(const char* pszFile, const KAssetImportOption& importOption, KMeshRawData& result) = 0;
 };
 
 namespace KAssetLoader

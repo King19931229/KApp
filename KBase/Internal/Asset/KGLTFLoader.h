@@ -192,8 +192,8 @@ protected:
 
 	bool LoadModel(const char* pszFile, tinygltf::Model& gltfModel);
 
-	bool AppendMeshIntoResult(NodePtr node, KAssetImportResult& result);
-	bool ConvertIntoResult(const KAssetImportOption& importOption, KAssetImportResult& result);
+	bool AppendMeshIntoResult(NodePtr node, KMeshRawData& result);
+	bool ConvertIntoResult(const KAssetImportOption& importOption, KMeshRawData& result);
 
 	static bool LoadImageDataFunction(tinygltf::Image* image, const int image_idx, std::string* err,
 		std::string* warn, int req_width, int req_height,
@@ -202,7 +202,7 @@ public:
 	KGLTFLoader();
 	~KGLTFLoader();
 
-	virtual bool Import(const char* pszFile, const KAssetImportOption& importOption, KAssetImportResult& result);
+	virtual bool Import(const char* pszFile, const KAssetImportOption& importOption, KMeshRawData& result);
 
 	static bool Init();
 	static bool UnInit();

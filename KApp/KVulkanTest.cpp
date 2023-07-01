@@ -7,6 +7,7 @@
 #include "KBase/Interface/Entity/IKEntityManager.h"
 #include "KBase/Interface/Component/IKComponentManager.h"
 #include "KBase/Interface/Component/IKRenderComponent.h"
+#include "KBase/Interface/Component/IKDebugComponent.h"
 #include "KBase/Interface/Component/IKTransformComponent.h"
 #include "KBase/Interface/Component/IKUserComponent.h"
 
@@ -22,7 +23,7 @@ void InitQEM(IKEnginePtr engine)
 {
 	static IKEntityPtr entity = nullptr;
 
-	static KAssetImportResult userData;
+	static KMeshRawData userData;
 	static bool initUserData = false;
 
 	struct ModelInfo
@@ -42,12 +43,12 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f }
 	};
 
-	static const uint32_t fileIndex = 0;
+	static const uint32_t fileIndex = 2;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
 
-	static std::vector<KAssetImportResult::Material> originalMats;
+	static std::vector<KMeshRawData::Material> originalMats;
 
 	static KMeshSimplification simplification;
 	static KVirtualGeometryBuilder clusterBuilder;
@@ -116,6 +117,20 @@ void InitQEM(IKEnginePtr engine)
 			((IKTransformComponent*)component)->SetPosition(glm::vec3(0));
 			((IKTransformComponent*)component)->SetScale(glm::vec3(scale));
 		}
+		if (entity->RegisterComponent(CT_DEBUG, &component))
+		{
+			std::vector<KAABBBox> bvhBounds;
+			clusterBuilder.GetAllBVHBounds(bvhBounds);
+			for (KAABBBox& bound : bvhBounds)
+			{
+				bound = bound.Transform(glm::scale(glm::mat4(1), glm::vec3(scale)));
+				KMeshBoxInfo info;
+				info.transform = glm::translate(glm::mat4(1), bound.GetCenter());
+				info.halfExtend = bound.GetExtend() * 0.5f;
+				// ((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateBox(info), glm::vec4(0, 0, 1, 1));
+				// ((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateBox(info), glm::vec4(0.3f, 0.3f, 0.3f, 0.02f));
+			}
+		}
 		if (entity->RegisterComponent(CT_USER, &component))
 		{
 			((IKUserComponent*)component)->SetPostTick(&Tick);
@@ -153,7 +168,7 @@ void InitQEM(IKEnginePtr engine)
 		{
 			if (initUserData)
 			{
-				static KAssetImportResult result;
+				static KMeshRawData result;
 				static std::vector<KMeshProcessorVertex> vertices;
 				static std::vector<uint32_t> indices;
 

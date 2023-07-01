@@ -2,6 +2,7 @@
 #include "IKComponentBase.h"
 #include "KRender/Interface/IKMaterial.h"
 #include "KBase/Publish/KAABBBox.h"
+#include "KBase/Publish/KDebugUtility.h"
 
 struct IKRenderComponent : public IKComponentBase
 {
@@ -26,8 +27,8 @@ public:
 
 	virtual bool InitAsMesh(const std::string& mesh, bool async) = 0;
 	virtual bool InitAsAsset(const std::string& asset, bool async) = 0;
-	virtual bool InitAsUserData(const KAssetImportResult& userData, const std::string& label, bool async) = 0;
-	// virtual bool InitAsUtility(const KMeshUtilityInfo& info) = 0;
+	virtual bool InitAsUserData(const KMeshRawData& userData, const std::string& label, bool async) = 0;
+	virtual bool InitAsDebugUtility(const KDebugUtilityInfo& info) = 0;
 
 	virtual void SetUtilityColor(const glm::vec4& color) = 0;
 	virtual const glm::vec4& GetUtilityColor() const = 0;
