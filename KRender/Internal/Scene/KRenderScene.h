@@ -3,6 +3,7 @@
 #include "KBase/Interface/Entity/IKEntity.h"
 #include "KRender/Interface/IKRenderScene.h"
 #include "KRender/Publish/KCamera.h"
+#include "Internal/VirtualGeometry/KVirtualGeometryScene.h"
 #include "Internal/ECS/Component/KRenderComponent.h"
 #include "KSceneManagerBase.h"
 
@@ -12,6 +13,7 @@ protected:
 	std::string m_Name;
 	KSceneManagerBase* m_SceneMgr;
 	std::unordered_set<EntityObserverFunc*> m_Observers;
+	KVirtualGeometryScene m_VGScene;
 	IKTerrainPtr m_Terrain;
 
 	void OnEntityChange(EntitySceneOp op, IKEntity* entity);
@@ -21,6 +23,9 @@ public:
 
 	bool Init(const std::string& name, SceneManagerType type, float initialSize, const glm::vec3& initialPos) override;
 	bool UnInit() override;
+
+	bool InitRenderResource() override;
+	bool UnInitRenderResource() override;
 
 	const std::string& GetName() const override;
 
@@ -49,4 +54,6 @@ public:
 	bool CloestRayPick(const glm::vec3& origin, const glm::vec3& dir, IKEntity*& result) override;
 
 	bool GetAllEntities(std::vector<IKEntity*>& result) override;
+
+	bool Update() override;
 };

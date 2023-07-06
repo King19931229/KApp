@@ -17,6 +17,12 @@ public:
 		: m_Soul(nullptr)
 	{
 	}
+	KReference(Type soul)
+		: m_Soul(soul)
+		, m_ReleaseFunc([](Type soul) { SAFE_DELETE(soul); })
+	{
+		ASSERT_RESULT(m_Soul);
+	}
 	KReference(Type soul, ReleaseFunction releaseFunc)
 		: m_Soul(soul)
 		, m_ReleaseFunc(releaseFunc)
@@ -97,9 +103,14 @@ public:
 		: m_RefCount(nullptr)
 	{
 	}
+	KReferenceHolder(Type soul)
+		: m_Ref(soul)
+		, m_RefCount(KNEW uint32_t(1))
+	{
+	}
 	KReferenceHolder(Type soul, ReleaseFunction releaseFunc)
 		: m_Ref(soul, releaseFunc)
-		, m_RefCount(new uint32_t(1))
+		, m_RefCount(KNEW uint32_t(1))
 	{
 	}
 	~KReferenceHolder()

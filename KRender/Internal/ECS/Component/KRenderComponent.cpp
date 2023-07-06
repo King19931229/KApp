@@ -229,6 +229,7 @@ bool KRenderComponent::UnInit()
 		m_OCQueries.clear();
 	}
 	m_OCInstanceQueries.clear();
+	m_VGResource.Release();
 	return true;
 }
 
@@ -258,7 +259,13 @@ bool KRenderComponent::InitAsDebugUtility(const KDebugUtilityInfo& info)
 bool KRenderComponent::InitAsVirtualGeometry(const KMeshRawData& userData, const std::string& label)
 {
 	UnInit();
-	return true;
+
+	if (KRenderGlobal::VirtualGeometryManager.AcquireFromUserData(userData, label, m_VGResource))
+	{
+		return true;
+	}
+
+	return false;
 }
 
 bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as)

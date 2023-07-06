@@ -5,6 +5,7 @@
 #include "Internal/Asset/KMesh.h"
 #include "Internal/Asset/KMaterial.h"
 #include "Internal/Asset/KMaterialSubMesh.h"
+#include "Internal/VirtualGeometry/KVirtualGeometryScene.h"
 
 class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 {
@@ -12,6 +13,7 @@ class KRenderComponent : public IKRenderComponent, public KReflectionObjectBase
 	RTTR_REGISTRATION_FRIEND
 protected:
 	KMeshRef m_Mesh;
+	KVirtualGeometryResourceRef m_VGResource;
 	glm::vec4 m_UtilityColor;
 
 	std::vector<KMaterialSubMeshPtr> m_MaterialSubMeshes;

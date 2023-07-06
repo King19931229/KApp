@@ -13,6 +13,7 @@
 
 #include "Internal/Object/KDebugDrawer.h"
 
+#include "Internal/KRenderGlobal.h"
 #include "Internal/KConstantGlobal.h"
 #include "Internal/ECS/KECSGlobal.h"
 
@@ -106,6 +107,7 @@ bool KRenderCore::InitGlobalManager()
 	KRenderGlobal::MaterialManager.Init();
 	KRenderGlobal::DynamicConstantBufferManager.Init(property->uniformBufferOffsetAlignment, property->uniformBufferMaxRange);
 	KRenderGlobal::InstanceBufferManager.Init(sizeof(KVertexDefinition::INSTANCE_DATA_MATRIX4F), 65536);
+	KRenderGlobal::VirtualGeometryManager.Init();
 
 	KRenderGlobal::QuadDataProvider.Init();
 
@@ -116,6 +118,7 @@ bool KRenderCore::UnInitGlobalManager()
 {
 	KRenderGlobal::QuadDataProvider.UnInit();
 
+	KRenderGlobal::VirtualGeometryManager.UnInit();
 	KRenderGlobal::MeshManager.UnInit();
 	KRenderGlobal::MaterialManager.UnInit();
 	KRenderGlobal::TextureManager.UnInit();
@@ -188,8 +191,14 @@ bool KRenderCore::InitController()
 			KRenderGlobal::ShaderManager.Reload();
 			KRenderGlobal::RayTraceManager.ReloadShader();
 			KRenderGlobal::RTAO.ReloadShader();
-			// KRenderGlobal::Voxilzer.ReloadShader();
-			KRenderGlobal::ClipmapVoxilzer.ReloadShader();
+			if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+			{
+				KRenderGlobal::ClipmapVoxilzer.ReloadShader();				
+			}
+			else if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+			{
+				KRenderGlobal::Voxilzer.ReloadShader();
+			}
 			KRenderGlobal::DeferredRenderer.ReloadShader();
 			KRenderGlobal::Scene.GetTerrain()->Reload();
 			KRenderGlobal::HiZBuffer.ReloadShader();
@@ -240,16 +249,20 @@ bool KRenderCore::InitRenderResource()
 			KRenderComponent* component = nullptr;
 			if (entity->GetComponent(CT_RENDER, (IKComponentBase**)&component))
 			{
-
+				// TODO
 			}
 		});
 	}
+
+	KRenderGlobal::Scene.InitRenderResource();
 
 	return true;
 }
 
 bool KRenderCore::UnInitRenderResource()
 {
+	KRenderGlobal::Scene.UnInitRenderResource();
+
 	if (KECS::EntityManager)
 	{
 		KECS::EntityManager->ViewAllEntity([](IKEntityPtr entity)

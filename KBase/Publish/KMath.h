@@ -91,49 +91,52 @@ namespace KMath
 
 	// 永远返回正数
 	template<typename T>
-	inline T Mod(T x, T y)
+	inline T Mod_Positive(T x, T y)
 	{
 		if (y < 0) y = -y;
 		if (x < 0) x += (-x / y + 1) * y;
 		return x % y;
 	}
 
-	inline glm::vec3 ExtractPosition(const glm::mat4& transform)
+	template<typename T>
+	inline glm::tvec3<T> ExtractPosition(const glm::tmat4x4<T>& transform)
 	{
-		glm::vec4 transformPos = transform * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-		return glm::vec3(transformPos.x / transformPos.w, transformPos.y / transformPos.w, transformPos.z / transformPos.w);
+		glm::tvec4<T> transformPos = transform * glm::tvec4<T>(0, 0, 0, 1);
+		return glm::tvec3<T>(transformPos.x / transformPos.w, transformPos.y / transformPos.w, transformPos.z / transformPos.w);
 	}
 
-	inline glm::mat3 ExtractRotate(const glm::mat4& transform)
+	template<typename T>
+	inline glm::tmat3x3<T> ExtractRotate(const glm::tmat4x4<T>& transform)
 	{
-		glm::vec3 xAxis = transform * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-		glm::vec3 yAxis = transform * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-		glm::vec3 zAxis = transform * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+		glm::tvec3<T> xAxis = transform * glm::tvec4<T>(1, 0, 0, 0);
+		glm::tvec3<T> yAxis = transform * glm::tvec4<T>(0, 1, 0, 0);
+		glm::tvec3<T> zAxis = transform * glm::tvec4<T>(0, 0, 1, 0);
 
 		xAxis = glm::normalize(xAxis);
 		yAxis = glm::normalize(yAxis);
 		zAxis = glm::normalize(zAxis);
 
-		glm::mat3 rotate = glm::mat3(xAxis, yAxis, zAxis);
+		glm::tmat3x3<T> rotate = glm::tmat3x3<T>(xAxis, yAxis, zAxis);
 
 		// z轴不是x.cross(y) 是负缩放导致的
-		if (glm::dot(glm::cross(xAxis, yAxis), zAxis) < 0.0f)
+		if (glm::dot(glm::cross(xAxis, yAxis), zAxis) < 0)
 		{
-			rotate *= glm::mat3(-1.0f);
+			rotate *= glm::tmat3x3<T>(-1);
 		}
 		
 		return rotate;
 	}
 
-	inline glm::vec3 ExtractScale(const glm::mat4& transform)
+	template<typename T>
+	inline glm::tvec3<T> ExtractScale(const glm::tmat4x4<T>& transform)
 	{
-		glm::mat4 translate = glm::translate(glm::mat4(1.0f), ExtractPosition(transform));
-		glm::mat4 scale = glm::inverse(translate * glm::mat4(ExtractRotate(transform))) * transform;
-		return glm::vec3(scale[0][0], scale[1][1], scale[2][2]);
+		glm::tmat4x4<T> translate = glm::translate(glm::tmat4x4<T>(1), ExtractPosition(transform));
+		glm::tmat4x4<T> scale = glm::inverse(translate * glm::tmat4x4<T>(ExtractRotate(transform))) * transform;
+		return glm::tvec3<T>(scale[0][0], scale[1][1], scale[2][2]);
 	}
 
 	template<typename T>
-	T SmallestPowerOf2GreaterThan(T x)
+	T SmallestPowerOf2GreaterEqualThan(T x)
 	{
 		T result = 1;
 		while (result < x)
@@ -146,7 +149,69 @@ namespace KMath
 	template<typename T>
 	T BiggestPowerOf2LessEqualThan(T x)
 	{
-		return SmallestPowerOf2GreaterThan(x >> 1);
+		return SmallestPowerOf2GreaterEqualThan(x >> 1);
+	}
+
+	inline uint32_t MortonCode2(uint32_t x)
+	{
+		x &= 0x0000ffff;
+		x = (x ^ (x << 8)) & 0x00ff00ff;
+		x = (x ^ (x << 4)) & 0x0f0f0f0f;
+		x = (x ^ (x << 2)) & 0x33333333;
+		x = (x ^ (x << 1)) & 0x55555555;
+		return x;
+	}
+
+	inline uint64_t MortonCode2_64(uint64_t x)
+	{
+		x &= 0x00000000ffffffff;
+		x = (x ^ (x << 16)) & 0x0000ffff0000ffff;
+		x = (x ^ (x << 8)) & 0x00ff00ff00ff00ff;
+		x = (x ^ (x << 4)) & 0x0f0f0f0f0f0f0f0f;
+		x = (x ^ (x << 2)) & 0x3333333333333333;
+		x = (x ^ (x << 1)) & 0x5555555555555555;
+		return x;
+	}
+
+	inline uint32_t ReverseMortonCode2(uint32_t x)
+	{
+		x &= 0x55555555;
+		x = (x ^ (x >> 1)) & 0x33333333;
+		x = (x ^ (x >> 2)) & 0x0f0f0f0f;
+		x = (x ^ (x >> 4)) & 0x00ff00ff;
+		x = (x ^ (x >> 8)) & 0x0000ffff;
+		return x;
+	}
+
+	inline uint64_t ReverseMortonCode2_64(uint64_t x)
+	{
+		x &= 0x5555555555555555;
+		x = (x ^ (x >> 1)) & 0x3333333333333333;
+		x = (x ^ (x >> 2)) & 0x0f0f0f0f0f0f0f0f;
+		x = (x ^ (x >> 4)) & 0x00ff00ff00ff00ff;
+		x = (x ^ (x >> 8)) & 0x0000ffff0000ffff;
+		x = (x ^ (x >> 16)) & 0x00000000ffffffff;
+		return x;
+	}
+
+	inline uint32_t MortonCode3(uint32_t x)
+	{
+		x &= 0x000003ff;
+		x = (x ^ (x << 16)) & 0xff0000ff;
+		x = (x ^ (x << 8)) & 0x0300f00f;
+		x = (x ^ (x << 4)) & 0x030c30c3;
+		x = (x ^ (x << 2)) & 0x09249249;
+		return x;
+	}
+
+	inline uint32_t ReverseMortonCode3(uint32_t x)
+	{
+		x &= 0x09249249;
+		x = (x ^ (x >> 2)) & 0x030c30c3;
+		x = (x ^ (x >> 4)) & 0x0300f00f;
+		x = (x ^ (x >> 8)) & 0xff0000ff;
+		x = (x ^ (x >> 16)) & 0x000003ff;
+		return x;
 	}
 
 	inline bool FromString(const std::string& text, glm::vec3& vec)

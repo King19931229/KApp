@@ -109,13 +109,13 @@ IKCommandBufferPtr KVulkanCommandPool::Request(CommandBufferLevel level)
 	}
 	else
 	{
-		KVulkanCommandBuffer* vulkanCommandBuffer = new KVulkanCommandBuffer();
-		buffer = IKCommandBufferPtr(vulkanCommandBuffer);
+		KVulkanCommandBuffer* vulkanCommandBuffer = KNEW KVulkanCommandBuffer();
 		vulkanCommandBuffer->Init(this, level);
 		if (!m_Name.empty())
 		{
 			vulkanCommandBuffer->SetDebugName((m_Name + "_CommandBuffer_" + std::to_string(usage.buffers.size())).c_str());
 		}
+		buffer = IKCommandBufferPtr(vulkanCommandBuffer);
 		usage.buffers.push_back(buffer);
 		++usage.currentActive;
 	}

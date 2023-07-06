@@ -55,8 +55,8 @@ IKAssetLoaderPtr KAssetLoaderManager::GetLoader(const char* pFilePath)
 		std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
 		if (ext == ".gltf" || ext == ".glb")
 		{
-			return IKAssetLoaderPtr(new KGLTFLoader());
+			return IKAssetLoaderPtr(KNEW KGLTFLoader());
 		}
 	}
-	return IKAssetLoaderPtr(new KAssimpLoader());
+	return IKAssetLoaderPtr(KNEW KAssimpLoader());
 }

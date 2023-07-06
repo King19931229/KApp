@@ -17,6 +17,8 @@ namespace KRenderGlobal
 	KPostProcessManager PostProcessManager;
 	KRayTraceManager RayTraceManager;
 
+	KVirtualGeometryManager VirtualGeometryManager;
+
 	KDeferredRenderer DeferredRenderer;
 
 	KSkyBox SkyBox;
@@ -40,6 +42,7 @@ namespace KRenderGlobal
 	KFrameGraph FrameGraph;
 
 	KRenderScene Scene;
+	// TODO 干掉
 	IKRayTraceScenePtr RayTraceScene;
 
 	KRenderer Renderer;

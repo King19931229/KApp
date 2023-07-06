@@ -24,6 +24,8 @@
 #include "Internal/Shadow/KCascadedShadowMap.h"
 #include "Internal/Object/KVolumetricFog.h"
 
+#include "Internal/VirtualGeometry/KVirtualGeometryManager.h"
+
 #include "Internal/Scene/KRenderScene.h"
 #include "Internal/Render/KRenderer.h"
 
@@ -68,6 +70,8 @@ namespace KRenderGlobal
 
 	extern KPostProcessManager PostProcessManager;
 	extern KRayTraceManager RayTraceManager;
+
+	extern KVirtualGeometryManager VirtualGeometryManager;
 
 	extern KDeferredRenderer DeferredRenderer;
 

@@ -43,7 +43,7 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f }
 	};
 
-	static const uint32_t fileIndex = 4;
+	static const uint32_t fileIndex = 0;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
@@ -75,12 +75,11 @@ void InitQEM(IKEnginePtr engine)
 				}
 
 				simplification.Init(vertices, indices, 1, 3);
-
 				clusterBuilder.Build(vertices, indices);
-				std::vector<KMeshProcessorVertex> newVertices;
-				std::vector<uint32_t> newIndices;
-				clusterBuilder.ColorDebugCluster(0, newVertices, newIndices);
-				KMeshProcessor::ConvertFromMeshProcessor(userData, newVertices, newIndices, originalMats);
+				// std::vector<KMeshProcessorVertex> newVertices;
+				// std::vector<uint32_t> newIndices;
+				// clusterBuilder.ColorDebugCluster(0, newVertices, newIndices);
+				// KMeshProcessor::ConvertFromMeshProcessor(userData, newVertices, newIndices, originalMats);
 			}
 		}
 
@@ -146,6 +145,9 @@ void InitQEM(IKEnginePtr engine)
 	{
 		ImGui::Begin("QEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
+		static bool debugVirtualGeometry = true;
+		ImGui::Checkbox("DebugVirtualGeometry", &debugVirtualGeometry);
+
 		static bool debugSimplification = false;
 		static int32_t targetCount = 0;
 		ImGui::Checkbox("DebugSimplification", &debugSimplification);
@@ -176,7 +178,11 @@ void InitQEM(IKEnginePtr engine)
 				static std::vector<KMeshProcessorVertex> vertices;
 				static std::vector<uint32_t> indices;
 
-				if (debugSimplification)
+				if (debugVirtualGeometry)
+				{
+					component->InitAsVirtualGeometry(userData, "vg");
+				}
+				else if (debugSimplification)
 				{
 					static float error = 0;
 					if (targetCount != simplification.GetCurVertexCount() && simplification.Simplify(MeshSimplifyTarget::VERTEX, targetCount, vertices, indices, error))

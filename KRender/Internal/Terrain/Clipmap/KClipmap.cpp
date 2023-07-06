@@ -436,12 +436,12 @@ int32_t KClipmapLevel::TextureCoordYToWorldY(int32_t j)
 
 int32_t KClipmapLevel::WorldXToTextureCoordX(int32_t x)
 {
-	return KMath::Mod((x - m_BottomLeftX) / m_GridSize, m_GridCount);
+	return KMath::Mod_Positive((x - m_BottomLeftX) / m_GridSize, m_GridCount);
 }
 
 int32_t KClipmapLevel::WorldYToTextureCoordY(int32_t y)
 {
-	return KMath::Mod((y - m_BottomLeftY) / m_GridSize, m_GridCount);
+	return KMath::Mod_Positive((y - m_BottomLeftY) / m_GridSize, m_GridCount);
 }
 
 void KClipmapLevel::ScrollPosition(int32_t bottomLeftX, int32_t bottomLeftY, TrimLocation trim)
@@ -778,10 +778,10 @@ float KClipmapLevel::GetHeight(int32_t x, int32_t y) const
 	float s = idx_x - idx_x_floor;
 	float t = idx_y - idx_y_floor;
 
-	idx_x_floor = KMath::Mod(idx_x_floor, m_GridCount);
-	idx_x_ceil	= KMath::Mod(idx_x_ceil, m_GridCount);
-	idx_y_floor = KMath::Mod(idx_y_floor, m_GridCount);
-	idx_y_ceil	= KMath::Mod(idx_y_ceil, m_GridCount);
+	idx_x_floor = KMath::Mod_Positive(idx_x_floor, m_GridCount);
+	idx_x_ceil	= KMath::Mod_Positive(idx_x_ceil, m_GridCount);
+	idx_y_floor = KMath::Mod_Positive(idx_y_floor, m_GridCount);
+	idx_y_ceil	= KMath::Mod_Positive(idx_y_ceil, m_GridCount);
 
 	float h0 = m_ClipHeightData[idx_y_floor * m_GridCount + idx_x_floor];
 	float h1 = m_ClipHeightData[idx_y_floor * m_GridCount + idx_x_ceil];
@@ -817,14 +817,14 @@ KClipmap::~KClipmap()
 
 KClipmapFootprintPtr KClipmap::CreateFootprint(int32_t width, int32_t height)
 {
-	KClipmapFootprintPtr footptint = KClipmapFootprintPtr(new KClipmapFootprint());
+	KClipmapFootprintPtr footptint = KClipmapFootprintPtr(KNEW KClipmapFootprint());
 	footptint->Init(width, height);
 	return footptint;
 }
 
 KClipmapFootprintPtr KClipmap::CreateFootprint(int32_t width)
 {
-	KClipmapFootprintPtr footptint = KClipmapFootprintPtr(new KClipmapFootprint());
+	KClipmapFootprintPtr footptint = KClipmapFootprintPtr(KNEW KClipmapFootprint());
 	footptint->Init(width);
 	return footptint;
 }
@@ -898,7 +898,7 @@ void KClipmap::InitializeClipmapLevel()
 	m_ClipLevels.resize(m_LevelCount);
 	for (int32_t i = 0; i < m_LevelCount; ++i)
 	{
-		m_ClipLevels[i] = KClipmapLevelPtr(new KClipmapLevel(this, i));
+		m_ClipLevels[i] = KClipmapLevelPtr(KNEW KClipmapLevel(this, i));
 		m_ClipLevels[i]->Init();
 		m_ClipLevels[i]->PopulateUpdateRects();
 		m_ClipLevels[i]->UpdateClipStartScale();

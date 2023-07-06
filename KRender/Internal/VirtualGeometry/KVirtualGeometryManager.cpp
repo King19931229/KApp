@@ -1,1 +1,270 @@
 #include "KVirtualGeometryManager.h"
+#include "Internal/KRenderGlobal.h"
+#include "KBase/Publish/KMath.h"
+
+KVirtualGeometryStorageBuffer::KVirtualGeometryStorageBuffer()
+	: m_Size(0)
+	, m_Buffer(nullptr)
+{
+}
+
+KVirtualGeometryStorageBuffer::~KVirtualGeometryStorageBuffer()
+{
+	assert(!m_Buffer);
+}
+
+bool KVirtualGeometryStorageBuffer::Init(const char* name, size_t initialSize)
+{
+	UnInit();
+	m_Name = name;
+	KRenderGlobal::RenderDevice->CreateStorageBuffer(m_Buffer);
+	m_Buffer->InitMemory(initialSize, nullptr);
+	m_Buffer->InitDevice(false);
+	m_Buffer->SetDebugName(m_Name.c_str());
+	return true;
+}
+
+bool KVirtualGeometryStorageBuffer::UnInit()
+{
+	m_Size = 0;
+	SAFE_UNINIT(m_Buffer);
+	return true;
+}
+
+bool KVirtualGeometryStorageBuffer::Remove(size_t offset, size_t size)
+{
+	if (m_Buffer == nullptr)
+	{
+		return false;
+	}
+
+	if (offset + size <= m_Size)
+	{
+		std::vector<unsigned char> bufferData;
+		bufferData.resize(m_Size);
+		m_Buffer->Read(bufferData.data());
+
+		size_t newBufferSize = std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_Size - size));
+
+		if (newBufferSize < m_Buffer->GetBufferSize())
+		{
+			SAFE_UNINIT(m_Buffer);
+			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_Buffer);
+			m_Buffer->InitMemory(newBufferSize, nullptr);
+			m_Buffer->InitDevice(false);
+			m_Buffer->SetDebugName(m_Name.c_str());
+		}
+
+		void* pWrite = nullptr;
+		m_Buffer->Map(&pWrite);
+		memcpy(POINTER_OFFSET(pWrite, 0), bufferData.data(), offset);
+		memcpy(POINTER_OFFSET(pWrite, offset), bufferData.data() + offset + size, m_Size - size - offset);
+		m_Buffer->UnMap();
+
+		m_Size -= size;
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
+{
+	if (m_Buffer == nullptr)
+	{
+		return false;
+	}
+
+	size_t newBufferSize = std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_Size + size));
+
+	if (newBufferSize > m_Buffer->GetBufferSize())
+	{
+		KRenderGlobal::RenderDevice->Wait();
+
+		m_Buffer->UnInit();
+		m_Buffer->InitMemory(newBufferSize, nullptr);
+		m_Buffer->InitDevice(false);
+		m_Buffer->SetDebugName(m_Name.c_str());
+	}
+
+	void* pWrite = nullptr;
+	m_Buffer->Map(&pWrite);
+	memcpy(POINTER_OFFSET(pWrite, m_Size), pData, size);
+	m_Buffer->UnMap();
+
+	m_Size += size;
+
+	return true;
+}
+
+KVirtualGeometryManager::KVirtualGeometryManager()
+{
+}
+
+KVirtualGeometryManager::~KVirtualGeometryManager()
+{
+	assert(m_GeometryMap.empty());
+}
+
+bool KVirtualGeometryManager::Init()
+{
+	UnInit();
+
+	const size_t initialSize = 1;
+
+	m_PackedHierarchyBuffer.Init("VirtualGeometryPackedHierarchy", initialSize);
+	m_ClusterBatchBuffer.Init("VirtualGeometryClusterBatch", initialSize);
+	m_ClusterStorageBuffer.Init("VirtualGeometryStorage", initialSize);
+
+	return true;
+}
+
+bool KVirtualGeometryManager::UnInit()
+{
+	m_PackedHierarchyBuffer.UnInit();
+	m_ClusterBatchBuffer.UnInit();
+	m_ClusterStorageBuffer.UnInit();
+	m_GeometryMap.clear();
+	for (KVirtualGeometryResourceRef& ref : m_GeometryResources)
+	{
+		assert(ref.GetRefCount() == 1);
+	}
+	m_GeometryResources.clear();
+	return true;
+}
+
+bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData& userData, KVirtualGeometryResourceRef& geometry)
+{
+	GeometryInfo info;
+	info.path = label;
+
+	auto it = m_GeometryMap.find(info);
+	if (it == m_GeometryMap.end())
+	{
+		std::vector<KMeshProcessorVertex> vertices;
+		std::vector<uint32_t> indices;
+		if (!KMeshProcessor::ConvertForMeshProcessor(userData, vertices, indices))
+		{
+			return false;
+		}
+
+		KVirtualGeometryBuilder builder;
+		builder.Build(vertices, indices);
+
+		std::vector<KMeshClusterBatch> clusters;
+		std::vector<KMeshClustersStorage> stroages;
+		if (!builder.GetMeshClusterStorages(clusters, stroages))
+		{
+			return false;
+		}
+
+		std::vector<KMeshClusterHierarchy> hierarchies;
+		if (!builder.GetMeshClusterHierarchies(hierarchies))
+		{
+			return false;
+		}
+
+		uint32_t resourceIndex = (uint32_t)m_GeometryResources.size();
+
+		geometry = KVirtualGeometryResourceRef(KNEW KVirtualGeometryResource());
+		geometry->resourceIndex = resourceIndex;
+
+		geometry->clusterBatchOffset = (uint32_t)m_ClusterBatchBuffer.GetSize();
+		geometry->clusterBatchSize = (uint32_t)clusters.size() * sizeof(KMeshClusterBatch);
+
+		m_ClusterBatchBuffer.Append(geometry->clusterBatchSize, clusters.data());
+
+		geometry->hierarchyPackedOffset = (uint32_t)m_PackedHierarchyBuffer.GetSize();
+		geometry->hierarchyPackedSize = (uint32_t)hierarchies.size() * sizeof(KMeshClusterHierarchy);
+
+		m_PackedHierarchyBuffer.Append(geometry->hierarchyPackedSize, hierarchies.data());
+		
+		geometry->clusterStorageOffset = (uint32_t)m_ClusterStorageBuffer.GetSize();
+		geometry->clusterStorageSize = (uint32_t)stroages.size() * sizeof(KMeshClustersStorage);
+
+		m_ClusterStorageBuffer.Append(geometry->clusterStorageSize, stroages.data());
+
+		m_GeometryResources.push_back(geometry);
+		m_GeometryMap[info] = geometry;
+
+		return true;
+	}
+	else
+	{
+		geometry = it->second;
+		return true;
+	}
+}
+
+bool KVirtualGeometryManager::RemoveUnreferenced()
+{
+	std::vector<GeometryInfo> removes;
+	for (auto& pair : m_GeometryMap)
+	{
+		if (pair.second.GetRefCount() <= 2)
+		{
+			removes.push_back(pair.first);
+		}
+	}
+	for (const GeometryInfo& remove : removes)
+	{
+		m_GeometryMap.erase(remove);
+	}
+
+	for (uint32_t i = 0; i < (uint32_t)m_GeometryResources.size();)
+	{
+		if (m_GeometryResources[i].GetRefCount() <= 1)
+		{
+			RemoveGeometry(i);
+			m_GeometryResources.erase(m_GeometryResources.begin() + i);
+		}
+		else
+		{
+			++i;
+		}
+	}
+
+	for (uint32_t i = 0; i < (uint32_t)m_GeometryResources.size();)
+	{
+		assert(m_GeometryResources[i].GetRefCount() >= 2);
+	}
+	
+	return true;
+}
+
+bool KVirtualGeometryManager::RemoveGeometry(uint32_t index)
+{
+	if (index < (uint32_t)m_GeometryResources.size())
+	{
+		KVirtualGeometryResourceRef geometry = m_GeometryResources[index];
+
+		m_PackedHierarchyBuffer.Remove(geometry->hierarchyPackedOffset, geometry->hierarchyPackedSize);
+		m_ClusterBatchBuffer.Remove(geometry->clusterBatchOffset, geometry->clusterBatchSize);
+		m_ClusterStorageBuffer.Remove(geometry->clusterStorageOffset, geometry->clusterStorageSize);
+
+		for (uint32_t i = index + 1; i < (uint32_t)m_GeometryResources.size(); ++i)
+		{
+			--m_GeometryResources[i]->resourceIndex;
+		}
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool KVirtualGeometryManager::Update()
+{
+	RemoveUnreferenced();
+	return true;
+}
+
+bool KVirtualGeometryManager::AcquireFromUserData(const KMeshRawData& userData, const std::string& label, KVirtualGeometryResourceRef& ref)
+{
+	return AcquireImpl(label.c_str(), userData, ref);
+}

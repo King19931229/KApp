@@ -16,7 +16,7 @@ namespace KFileSystem
 		assert(Manager == nullptr);
 		if (Manager == nullptr)
 		{
-			Manager = IKFileSystemManagerPtr((IKFileSystemManager*)new KFileSystemManager());
+			Manager = IKFileSystemManagerPtr((IKFileSystemManager*)KNEW KFileSystemManager());
 		}
 		return true;
 	}

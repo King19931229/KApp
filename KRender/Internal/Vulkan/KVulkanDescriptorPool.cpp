@@ -641,7 +641,7 @@ KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t
 						(m_Name + "_DescriptorSet_" + std::to_string(blockIndex) + "_" + std::to_string(block.sets.size())).c_str());
 				}
 
-				KVulkanDescriptorPoolAllocatedSetPtr newAllocation(new KVulkanDescriptorPoolAllocatedSet(newSet));
+				KVulkanDescriptorPoolAllocatedSetPtr newAllocation(KNEW KVulkanDescriptorPoolAllocatedSet(newSet));
 				block.sets.push_back(newAllocation);
 				return newAllocation;
 			}
@@ -666,7 +666,7 @@ KVulkanDescriptorPoolAllocatedSetPtr KVulkanDescriptorPool::InternalAlloc(size_t
 			(m_Name + "_DescriptorSet_" + std::to_string(blockIndex) + "_" + std::to_string(block.sets.size())).c_str());
 	}
 
-	KVulkanDescriptorPoolAllocatedSetPtr newAllocation(new KVulkanDescriptorPoolAllocatedSet(newSet));
+	KVulkanDescriptorPoolAllocatedSetPtr newAllocation(KNEW KVulkanDescriptorPoolAllocatedSet(newSet));
 	block.sets.push_back(newAllocation);
 	++block.useCount;
 

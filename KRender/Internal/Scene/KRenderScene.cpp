@@ -22,7 +22,7 @@ bool KRenderScene::Init(const std::string& name, SceneManagerType type, float in
 	UnInit();
 
 	m_Name = name;
-	m_Terrain = IKTerrainPtr(new KNullTerrain());
+	m_Terrain = IKTerrainPtr(KNEW KNullTerrain());
 
 	switch (type)
 	{
@@ -62,6 +62,18 @@ bool KRenderScene::UnInit()
 	DestroyTerrain();
 	m_Terrain = nullptr;
 
+	return true;
+}
+
+bool KRenderScene::InitRenderResource()
+{
+	m_VGScene.Init(this);
+	return true;
+}
+
+bool KRenderScene::UnInitRenderResource()
+{
+	m_VGScene.UnInit();
 	return true;
 }
 
@@ -122,7 +134,7 @@ bool KRenderScene::CreateTerrain(const glm::vec3& center, float size, float heig
 	DestroyTerrain();
 	if (context.type == TERRAIN_TYPE_CLIPMAP)
 	{
-		m_Terrain = IKTerrainPtr(new KClipmap());
+		m_Terrain = IKTerrainPtr(KNEW KClipmap());
 		KClipmap* clipmap = static_cast<KClipmap*>(m_Terrain.get());
 		clipmap->Init(center, size, height, context.clipmap.gridLevel, context.clipmap.divideLevel);
 	}
@@ -138,7 +150,7 @@ bool KRenderScene::DestroyTerrain()
 			KClipmap* clipmap = static_cast<KClipmap*>(m_Terrain.get());
 			clipmap->UnInit();
 		}
-		m_Terrain = IKTerrainPtr(new KNullTerrain());
+		m_Terrain = IKTerrainPtr(KNEW KNullTerrain());
 	}
 	return true;
 }
@@ -299,4 +311,10 @@ bool KRenderScene::GetAllEntities(std::vector<IKEntity*>& result)
 		return true;
 	}
 	return false;
+}
+
+bool KRenderScene::Update()
+{
+	m_VGScene.Update();
+	return true;
 }

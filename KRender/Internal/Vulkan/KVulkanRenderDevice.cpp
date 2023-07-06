@@ -1080,7 +1080,7 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 		m_pWindow->SetRenderDevice(this);
 
 #if defined(USE_NSIGHT_AFTERMATH)
-		m_GpuCrashTracker = new GpuCrashTracker(KVulkanGlobal::vkCmdSetCheckpointNV, KVulkanGlobal::vkGetQueueCheckpointDataNV);
+		m_GpuCrashTracker = KNEW GpuCrashTracker(KVulkanGlobal::vkCmdSetCheckpointNV, KVulkanGlobal::vkGetQueueCheckpointDataNV);
 		((GpuCrashTracker*)m_GpuCrashTracker)->Initialize();
 #endif
 

@@ -14,10 +14,6 @@ struct KVirtualGeometryResource
 
 	uint32_t clusterStorageOffset = 0;
 	uint32_t clusterStorageSize = 0;
-
-	std::vector<KMeshClusterBatch> clusters;
-	std::vector<KMeshClustersStorage> stroages;
-	std::vector<KMeshClusterHierarchy> hierarchies;
 };
 
-typedef KReferenceHolder<KVirtualGeometryResource> KVirtualGeometryResourceRef;
+typedef KReferenceHolder<KVirtualGeometryResource*> KVirtualGeometryResourceRef;

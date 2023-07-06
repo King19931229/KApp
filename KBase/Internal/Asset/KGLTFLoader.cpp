@@ -184,7 +184,7 @@ KCodecResult KGLTFLoader::GetCodecResult(tinygltf::Image& gltfimage)
 	result.bCompressed = false;
 	result.bCubemap = false;
 
-	result.pData = KImageDataPtr(new KImageData(bufferData.size()));
+	result.pData = KImageDataPtr(KNEW KImageData(bufferData.size()));
 	memcpy(result.pData->GetData(), bufferData.data(), bufferData.size());
 
 	KSubImageInfo subImageInfo;
@@ -553,7 +553,7 @@ void KGLTFLoader::GetNodeProps(const tinygltf::Node& node, const tinygltf::Model
 
 void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, MeshLoad& loaderInfo, float globalscale)
 {
-	NodePtr newNode = NodePtr(new Node{});
+	NodePtr newNode = NodePtr(KNEW Node{});
 	newNode->index = nodeIndex;
 	newNode->parent = parent;
 	newNode->name = node.name;
@@ -597,7 +597,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 	if (node.mesh > -1)
 	{
 		const tinygltf::Mesh mesh = model.meshes[node.mesh];
-		MeshPtr newMesh = MeshPtr(new Mesh(newNode->matrix));
+		MeshPtr newMesh = MeshPtr(KNEW Mesh(newNode->matrix));
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
 			const tinygltf::Primitive& primitive = mesh.primitives[j];
@@ -1123,7 +1123,7 @@ void KGLTFLoader::LoadNode(Node* parent, const tinygltf::Node& node, uint32_t no
 			}
 #endif
 
-			PrimitivePtr newPrimitive = PrimitivePtr(new Primitive(
+			PrimitivePtr newPrimitive = PrimitivePtr(KNEW Primitive(
 				indexStart, indexCount,
 				vertexStart, vertexCount,
 				primitive.material > -1 ? m_Materials[primitive.material] : m_Materials.back())
