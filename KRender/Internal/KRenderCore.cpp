@@ -143,9 +143,6 @@ bool KRenderCore::InitRenderer()
 	m_CameraCube = CreateCameraCube();
 	m_CameraCube->Init(m_Device, &m_Camera);
 
-	GetRayTraceMgr()->CreateRayTraceScene(KRenderGlobal::RayTraceScene);
-	KRenderGlobal::RayTraceScene->Init(&KRenderGlobal::Scene, &m_Camera);
-
 	KRendererInitContext initContext;
 	initContext.camera = &m_Camera;
 	initContext.cameraCube = m_CameraCube;
@@ -162,10 +159,6 @@ bool KRenderCore::InitRenderer()
 bool KRenderCore::UnInitRenderer()
 {
 	KRenderGlobal::Renderer.UnInit();
-
-	KRenderGlobal::RayTraceScene->UnInit();
-	GetRayTraceMgr()->RemoveRayTraceScene(KRenderGlobal::RayTraceScene);
-	KRenderGlobal::RayTraceScene = nullptr;
 
 	m_CameraCube->UnInit();
 	m_CameraCube = nullptr;
@@ -254,7 +247,8 @@ bool KRenderCore::InitRenderResource()
 		});
 	}
 
-	KRenderGlobal::Scene.InitRenderResource();
+	KRenderGlobal::Scene.InitRenderResource(&m_Camera);
+	KRenderGlobal::RTAO.Init(KRenderGlobal::Scene.GetRayTraceScene().get());
 
 	return true;
 }

@@ -18,6 +18,7 @@ KRayTraceScene::KRayTraceScene()
 	, m_bNeedRecreateAS(false)
 {
 	m_OnSceneChangedFunc = std::bind(&KRayTraceScene::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
+	m_OnRenderComponentChangedFunc = std::bind(&KRayTraceScene::OnRenderComponentChanged, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 KRayTraceScene::~KRayTraceScene()
@@ -107,11 +108,32 @@ bool KRayTraceScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr 
 
 void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 {
-	IKRenderComponent* renderComponent = nullptr;
-	IKTransformComponent* transformComponent = nullptr;	
+	KRenderComponent* renderComponent = nullptr;
+	KTransformComponent* transformComponent = nullptr;
 	bool bottomUpChanged = false;
 
-	if (op != ESO_ADD)
+	ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
+	ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
+
+	if (op != ESO_REMOVE)
+	{
+		std::vector<IKAccelerationStructurePtr> subAS;
+		renderComponent->GetAllAccelerationStructure(subAS);
+		const glm::mat4& transform = transformComponent->GetFinal();
+
+		for (IKAccelerationStructurePtr as : subAS)
+		{
+			uint32_t handle = AddBottomLevelAS(as, transform);
+			m_ASHandles[entity].insert(handle);
+			bottomUpChanged = true;
+		}
+
+		if (op == ESO_ADD)
+		{
+			renderComponent->RegisterCallback(&m_OnRenderComponentChangedFunc);
+		}
+	}
+	else
 	{
 		auto it = m_ASHandles.find(entity);
 		if (it != m_ASHandles.end())
@@ -123,22 +145,54 @@ void KRayTraceScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 			m_ASHandles.erase(it);
 			bottomUpChanged = true;
 		}
+
+		renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
 	}
 
-	if (op != ESO_REMOVE)
+	if (m_TopDown && bottomUpChanged)
 	{
-		if (entity->GetComponentBase(CT_RENDER, (IKComponentBase**)&renderComponent) && entity->GetComponentBase(CT_TRANSFORM, (IKComponentBase**)&transformComponent))
-		{
-			std::vector<IKAccelerationStructurePtr> subAS;
-			renderComponent->GetAllAccelerationStructure(subAS);
-			const glm::mat4& transform = transformComponent->GetFinal();
+		m_LastDirtyFrame = KRenderGlobal::CurrentFrameNum;
+		m_bNeedRecreateAS = true;
+	}
+}
 
-			for (IKAccelerationStructurePtr as : subAS)
+void KRayTraceScene::OnRenderComponentChanged(IKRenderComponent* renderComponent, bool init)
+{
+	IKEntity* entity = renderComponent->GetEntityHandle();
+	if (!entity)
+	{
+		return;
+	}
+
+	KTransformComponent* transformComponent = nullptr;
+	ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
+
+	bool bottomUpChanged = false;
+
+	if (init)
+	{
+		std::vector<IKAccelerationStructurePtr> subAS;
+		renderComponent->GetAllAccelerationStructure(subAS);
+		const glm::mat4& transform = transformComponent->GetFinal();
+
+		for (IKAccelerationStructurePtr as : subAS)
+		{
+			uint32_t handle = AddBottomLevelAS(as, transform);
+			m_ASHandles[entity].insert(handle);
+			bottomUpChanged = true;
+		}
+	}
+	else
+	{
+		auto it = m_ASHandles.find(entity);
+		if (it != m_ASHandles.end())
+		{
+			for (uint32_t handle : it->second)
 			{
-				uint32_t handle = AddBottomLevelAS(as, transform);
-				m_ASHandles[entity].insert(handle);
-				bottomUpChanged = true;
+				RemoveBottomLevelAS(handle);
 			}
+			m_ASHandles.erase(it);
+			bottomUpChanged = true;
 		}
 	}
 

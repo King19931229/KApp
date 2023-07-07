@@ -4,6 +4,7 @@
 #include "Interface/IKRayTracePipeline.h"
 #include "Interface/IKAccelerationStructure.h"
 #include "Internal/Object/KDebugDrawer.h"
+#include "KBase/Interface/Component/IKRenderComponent.h"
 #include "KBase/Publish/KHandleRetriever.h"
 
 class KRayTraceScene : public IKRayTraceScene
@@ -54,6 +55,9 @@ protected:
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);
+
+	RenderComponentObserverFunc m_OnRenderComponentChangedFunc;
+	void OnRenderComponentChanged(IKRenderComponent* renderComponent, bool init);
 
 	uint32_t AddBottomLevelAS(IKAccelerationStructurePtr as, const glm::mat4& transform);
 	bool RemoveBottomLevelAS(uint32_t handle);

@@ -174,6 +174,19 @@ void KRenderComponent::MeshPostInit()
 		m_MaterialSubMeshes.push_back(materialSubMesh);
 		materialSubMesh->Init(subMeshes[i], subMaterials[i]);
 	}
+
+	for (RenderComponentObserverFunc* callback : m_Callbacks)
+	{
+		(*callback)(this, true);
+	}
+}
+
+void KRenderComponent::VirtualGeometryPostInit()
+{
+	for (RenderComponentObserverFunc* callback : m_Callbacks)
+	{
+		(*callback)(this, true);
+	}
 }
 
 bool KRenderComponent::InitAsMesh(const std::string& mesh, bool async)
@@ -230,6 +243,12 @@ bool KRenderComponent::UnInit()
 	}
 	m_OCInstanceQueries.clear();
 	m_VGResource.Release();
+
+	for (RenderComponentObserverFunc* callback : m_Callbacks)
+	{
+		(*callback)(this, false);
+	}
+
 	return true;
 }
 
@@ -262,6 +281,7 @@ bool KRenderComponent::InitAsVirtualGeometry(const KMeshRawData& userData, const
 
 	if (KRenderGlobal::VirtualGeometryManager.AcquireFromUserData(userData, label, m_VGResource))
 	{
+		VirtualGeometryPostInit();
 		return true;
 	}
 
@@ -273,6 +293,34 @@ bool KRenderComponent::GetAllAccelerationStructure(std::vector<IKAccelerationStr
 	if (m_Mesh)
 	{
 		return (*m_Mesh)->GetAllAccelerationStructure(as);
+	}
+	return false;
+}
+
+bool KRenderComponent::RegisterCallback(RenderComponentObserverFunc* callback)
+{
+	if (callback)
+	{
+		auto it = std::find(m_Callbacks.begin(), m_Callbacks.end(), callback);
+		if (it == m_Callbacks.end())
+		{
+			m_Callbacks.push_back(callback);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool KRenderComponent::UnRegisterCallback(RenderComponentObserverFunc* callback)
+{
+	if (callback)
+	{
+		auto it = std::find(m_Callbacks.begin(), m_Callbacks.end(), callback);
+		if (it != m_Callbacks.end())
+		{
+			m_Callbacks.erase(it);
+		}
+		return true;
 	}
 	return false;
 }

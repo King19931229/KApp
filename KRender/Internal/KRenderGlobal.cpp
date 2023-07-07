@@ -42,8 +42,6 @@ namespace KRenderGlobal
 	KFrameGraph FrameGraph;
 
 	KRenderScene Scene;
-	// TODO 干掉
-	IKRayTraceScenePtr RayTraceScene;
 
 	KRenderer Renderer;
 
@@ -52,7 +50,7 @@ namespace KRenderGlobal
 	KStatistics Statistics;
 
 	bool EnableDebugRender = false;
-	bool DisableRayTrace = true;
+	bool DisableRayTrace = false;
 	bool SupportAnisotropySample = false;
 
 	uint32_t CurrentInFlightFrameIndex = 0;

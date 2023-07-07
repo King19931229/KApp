@@ -1,13 +1,14 @@
 #include "KVirtualGeometryScene.h"
 #include "Internal/KRenderGlobal.h"
+#include "Internal/ECS/Component/KRenderComponent.h"
 #include "KBase/Publish/KMath.h"
 
 KVirtualGeometryScene::KVirtualGeometryScene()
 	: m_Scene(nullptr)
 	, m_Camera(nullptr)
-	, m_IDCounter(0)
 {
 	m_OnSceneChangedFunc = std::bind(&KVirtualGeometryScene::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
+	m_OnRenderComponentChangedFunc = std::bind(&KVirtualGeometryScene::OnRenderComponentChanged, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 KVirtualGeometryScene::~KVirtualGeometryScene()
@@ -17,15 +18,67 @@ KVirtualGeometryScene::~KVirtualGeometryScene()
 
 void KVirtualGeometryScene::OnSceneChanged(EntitySceneOp op, IKEntity* entity)
 {
+	KRenderComponent* renderComponent = nullptr;
+	KTransformComponent* transformComponent = nullptr;
 
+	ASSERT_RESULT(entity->GetComponent(CT_RENDER, &renderComponent));
+	ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
+
+	if (op == ESO_ADD)
+	{
+		const glm::mat4& transform = transformComponent->GetFinal();
+		if (renderComponent->IsVirtualGeometry())
+		{
+			KVirtualGeometryResourceRef vg = renderComponent->GetVirtualGeometry();
+			AddInstance(entity, transform, vg);
+		}
+		renderComponent->RegisterCallback(&m_OnRenderComponentChangedFunc);
+	}
+	if (op == ESO_REMOVE)
+	{
+		RemoveInstance(entity);
+		renderComponent->UnRegisterCallback(&m_OnRenderComponentChangedFunc);
+	}
+	else if (op == ESO_TRANSFORM)
+	{
+		const glm::mat4& transform = transformComponent->GetFinal();
+		TransformInstance(entity, transform);
+	}
 }
 
-bool KVirtualGeometryScene::Init(IKRenderScene* scene)
+void KVirtualGeometryScene::OnRenderComponentChanged(IKRenderComponent* renderComponent, bool init)
+{
+	IKEntity* entity = renderComponent->GetEntityHandle();
+	if (!entity)
+	{
+		return;
+	}
+
+	if (init)
+	{
+		if (renderComponent->IsVirtualGeometry())
+		{
+			KTransformComponent* transformComponent = nullptr;
+			ASSERT_RESULT(entity->GetComponent(CT_TRANSFORM, &transformComponent));
+			const glm::mat4& transform = transformComponent->GetFinal();
+
+			KVirtualGeometryResourceRef vg = ((KRenderComponent*)renderComponent)->GetVirtualGeometry();
+			AddInstance(entity, transform, vg);
+		}
+	}
+	else
+	{
+		RemoveInstance(entity);
+	}
+}
+
+bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 {
 	UnInit();
-	if (scene)
+	if (scene && camera)
 	{
 		m_Scene = scene;
+		m_Camera = camera;
 		m_Name = "VirtualGeometrySceneInstanceData";
 		KRenderGlobal::RenderDevice->CreateStorageBuffer(m_InstanceDataBuffer);
 		m_InstanceDataBuffer->InitMemory(1, nullptr);
@@ -59,8 +112,6 @@ bool KVirtualGeometryScene::UnInit()
 	SAFE_UNINIT(m_InstanceDataBuffer);
 	m_InstanceMap.clear();
 	m_Instances.clear();
-	m_UnusedIDS.clear();
-	m_IDCounter = 0;
 
 	return true;
 }
@@ -106,55 +157,66 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 	return true;
 }
 
-void KVirtualGeometryScene::RecycleID(KVirtualGeometrySceneID ID)
-{
-	m_UnusedIDS.push_back(ID);
-}
-
-KVirtualGeometrySceneID KVirtualGeometryScene::ObtainID()
-{
-	if (m_UnusedIDS.empty())
-	{
-		return m_IDCounter++;
-	}
-	else
-	{
-		KVirtualGeometrySceneID ID = m_UnusedIDS.front();
-		m_UnusedIDS.pop_front();
-		return ID;
-	}
-}
-
 bool KVirtualGeometryScene::Update()
 {
 	UpdateInstanceData();
 	return true;
 }
 
-bool KVirtualGeometryScene::AddInstance(const glm::mat4& transform, KVirtualGeometryResourceRef resource, KVirtualGeometrySceneID& ID)
+KVirtualGeometryScene::InstancePtr KVirtualGeometryScene::GetOrCreateInstance(IKEntity* entity)
 {
-	InstancePtr Instance(KNEW Instance());
-	Instance->index = (uint32_t)m_Instances.size();
-	Instance->transform = transform;
-	m_Instances.push_back(Instance);
-	m_InstanceMap.insert({ ID, Instance });
-	return true;
+	auto it = m_InstanceMap.find(entity);
+	if (it != m_InstanceMap.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		InstancePtr Instance(KNEW Instance());
+		Instance->index = (uint32_t)m_Instances.size();
+		Instance->transform = glm::mat4(0.0f);
+		m_Instances.push_back(Instance);
+		m_InstanceMap.insert({ entity, Instance });
+		return Instance;
+	}
 }
 
-bool KVirtualGeometryScene::RemoveInstance(KVirtualGeometrySceneID ID)
+bool KVirtualGeometryScene::AddInstance(IKEntity* entity, const glm::mat4& transform, KVirtualGeometryResourceRef resource)
 {
-	auto it = m_InstanceMap.find(ID);
+	if (entity)
+	{
+		InstancePtr Instance = GetOrCreateInstance(entity);
+		Instance->transform = transform;
+		Instance->resource = resource;
+		return true;
+	}
+	return false;
+}
+
+bool KVirtualGeometryScene::TransformInstance(IKEntity* entity, const glm::mat4& transform)
+{
+	if (entity)
+	{
+		InstancePtr Instance = GetOrCreateInstance(entity);
+		Instance->transform = transform;
+		return true;
+	}
+	return false;
+}
+
+bool KVirtualGeometryScene::RemoveInstance(IKEntity* entity)
+{
+	auto it = m_InstanceMap.find(entity);
 	if (it != m_InstanceMap.end())
 	{
 		uint32_t index = it->second->index;
 		assert(index < m_Instances.size());
-		for (uint32_t i = index + 1; i <= m_Instances.size(); ++i)
+		for (uint32_t i = index + 1; i < m_Instances.size(); ++i)
 		{
 			--m_Instances[i]->index;
 		}
 		m_InstanceMap.erase(it);
 		m_Instances.erase(m_Instances.begin() + index);
-		RecycleID(ID);
 	}
 	return true;
 }

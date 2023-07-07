@@ -13,6 +13,7 @@ protected:
 	std::string m_Name;
 	KSceneManagerBase* m_SceneMgr;
 	std::unordered_set<EntityObserverFunc*> m_Observers;
+	IKRayTraceScenePtr m_RayTraceScene;
 	KVirtualGeometryScene m_VGScene;
 	IKTerrainPtr m_Terrain;
 
@@ -24,7 +25,7 @@ public:
 	bool Init(const std::string& name, SceneManagerType type, float initialSize, const glm::vec3& initialPos) override;
 	bool UnInit() override;
 
-	bool InitRenderResource() override;
+	bool InitRenderResource(const KCamera* camera) override;
 	bool UnInitRenderResource() override;
 
 	const std::string& GetName() const override;
@@ -56,4 +57,6 @@ public:
 	bool GetAllEntities(std::vector<IKEntity*>& result) override;
 
 	bool Update() override;
+
+	IKRayTraceScenePtr GetRayTraceScene() override;
 };

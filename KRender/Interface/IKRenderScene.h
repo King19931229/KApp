@@ -47,7 +47,7 @@ struct IKRenderScene
 	virtual bool Init(const std::string& name, SceneManagerType type, float initialSize, const glm::vec3& initialPos) = 0;
 	virtual bool UnInit() = 0;
 
-	virtual bool InitRenderResource() = 0;
+	virtual bool InitRenderResource(const KCamera* camera) = 0;
 	virtual bool UnInitRenderResource() = 0;
 
 	virtual const std::string& GetName() const = 0;
@@ -79,6 +79,8 @@ struct IKRenderScene
 	virtual bool GetVisibleEntities(const KAABBBox& bound, std::vector<IKEntity*>& result) = 0;
 
 	virtual bool Update() = 0;
+
+	virtual IKRayTraceScenePtr GetRayTraceScene() = 0;
 };
 
 typedef std::unique_ptr<IKRenderScene> IKRenderScenePtr;

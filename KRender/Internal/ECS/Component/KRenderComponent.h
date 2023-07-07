@@ -20,6 +20,8 @@ protected:
 	std::vector<IKQueryPtr> m_OCQueries;
 	std::vector<IKQueryPtr> m_OCInstanceQueries;
 
+	std::vector<RenderComponentObserverFunc*> m_Callbacks;
+
 	bool m_UseMaterialTexture;
 	bool m_OcclusionVisible;
 
@@ -34,6 +36,7 @@ protected:
 	std::string GetTypeString() const;
 
 	void MeshPostInit();
+	void VirtualGeometryPostInit();
 public:
 	KRenderComponent();
 	virtual ~KRenderComponent();
@@ -60,10 +63,17 @@ public:
 	const glm::vec4& GetUtilityColor() const override { return m_UtilityColor; }
 	bool IsUtility() const override { return m_Mesh && m_Mesh->GetType() == MRT_DEBUG_UTILITY; }
 
+	bool IsVirtualGeometry() const override  { return m_VGResource.Get() != nullptr; }
+
 	bool UnInit() override;
 
 	inline KMeshPtr GetMesh() { return *m_Mesh; }
 	inline const std::vector<KMaterialSubMeshPtr>& GetMaterialSubMeshs() const { return m_MaterialSubMeshes; }
+
+	inline KVirtualGeometryResourceRef GetVirtualGeometry() { return m_VGResource; }
+
+	bool RegisterCallback(RenderComponentObserverFunc* callback) override;
+	bool UnRegisterCallback(RenderComponentObserverFunc* callback) override;
 
 	bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) override;
 

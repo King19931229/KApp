@@ -1,5 +1,7 @@
 #pragma once
 #include "KVirtualGeomerty.h"
+#include "KBase/Interface/Entity/IKEntity.h"
+#include "KBase/Interface/Component/IKRenderComponent.h"
 #include "Interface/IKRenderScene.h"
 #include "Interface/IKBuffer.h"
 #include <list>
@@ -23,11 +25,8 @@ protected:
 
 	std::string m_Name;
 
-	std::unordered_map<KVirtualGeometrySceneID, InstancePtr> m_InstanceMap;
+	std::unordered_map<IKEntity*, InstancePtr> m_InstanceMap;
 	std::vector<InstancePtr> m_Instances;
-
-	std::list<KVirtualGeometrySceneID> m_UnusedIDS;
-	KVirtualGeometrySceneID m_IDCounter;
 
 	struct InstanceBufferData
 	{
@@ -39,21 +38,24 @@ protected:
 	EntityObserverFunc m_OnSceneChangedFunc;
 	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);
 
+	RenderComponentObserverFunc m_OnRenderComponentChangedFunc;
+	void OnRenderComponentChanged(IKRenderComponent* renderComponent, bool init);
+
 	bool UpdateInstanceData();
 
-	void RecycleID(KVirtualGeometrySceneID ID);
-	KVirtualGeometrySceneID ObtainID();
+	InstancePtr GetOrCreateInstance(IKEntity* entity);
+
+	bool AddInstance(IKEntity* entity, const glm::mat4& transform, KVirtualGeometryResourceRef resource);
+	bool TransformInstance(IKEntity* entity, const glm::mat4& transform);
+	bool RemoveInstance(IKEntity* entity);
 public:
 	KVirtualGeometryScene();
 	~KVirtualGeometryScene();
 
-	bool Init(IKRenderScene* scene);
+	bool Init(IKRenderScene* scene, const KCamera* camera);
 	bool UnInit();
 
 	bool Update();
-
-	bool AddInstance(const glm::mat4& transform, KVirtualGeometryResourceRef resource, KVirtualGeometrySceneID& ID);
-	bool RemoveInstance(KVirtualGeometrySceneID ID);
 
 	inline IKStorageBufferPtr GetInstanceBuffer() { return m_InstanceDataBuffer; }
 };

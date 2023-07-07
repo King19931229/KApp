@@ -1,6 +1,7 @@
 #include "KRenderScene.h"
 #include "KOctreeSceneManager.h"
 #include "Internal/Terrain/KTerrain.h"
+#include "Internal/KRenderGlobal.h"
 
 EXPORT_DLL IKRenderScenePtr CreateRenderScene()
 {
@@ -65,14 +66,18 @@ bool KRenderScene::UnInit()
 	return true;
 }
 
-bool KRenderScene::InitRenderResource()
+bool KRenderScene::InitRenderResource(const KCamera* camera)
 {
-	m_VGScene.Init(this);
+	KRenderGlobal::RayTraceManager.CreateRayTraceScene(m_RayTraceScene);
+	m_RayTraceScene->Init(&KRenderGlobal::Scene, camera);
+	m_VGScene.Init(this, camera);
 	return true;
 }
 
 bool KRenderScene::UnInitRenderResource()
 {
+	KRenderGlobal::RayTraceManager.RemoveRayTraceScene(m_RayTraceScene);
+	SAFE_UNINIT(m_RayTraceScene);
 	m_VGScene.UnInit();
 	return true;
 }
@@ -317,4 +322,9 @@ bool KRenderScene::Update()
 {
 	m_VGScene.Update();
 	return true;
+}
+
+IKRayTraceScenePtr KRenderScene::GetRayTraceScene()
+{
+	return m_RayTraceScene;
 }

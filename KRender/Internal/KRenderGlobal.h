@@ -96,7 +96,6 @@ namespace KRenderGlobal
 	extern KFrameGraph FrameGraph;
 
 	extern KRenderScene Scene;
-	extern IKRayTraceScenePtr RayTraceScene;
 
 	extern KRenderer Renderer;
 

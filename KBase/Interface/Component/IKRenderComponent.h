@@ -4,6 +4,10 @@
 #include "KBase/Publish/KAABBBox.h"
 #include "KBase/Publish/KDebugUtility.h"
 
+struct IKRenderComponent;
+
+typedef std::function<void(IKRenderComponent* component, bool init)> RenderComponentObserverFunc;
+
 struct IKRenderComponent : public IKComponentBase
 {
 	RTTR_ENABLE(IKComponentBase)
@@ -36,7 +40,12 @@ public:
 	virtual const glm::vec4& GetUtilityColor() const = 0;
 	virtual bool IsUtility() const = 0;
 
+	virtual bool IsVirtualGeometry() const = 0;
+
 	virtual bool UnInit() = 0;
 
 	virtual bool GetAllAccelerationStructure(std::vector<IKAccelerationStructurePtr>& as) = 0;
+
+	virtual bool RegisterCallback(RenderComponentObserverFunc* callback) = 0;
+	virtual bool UnRegisterCallback(RenderComponentObserverFunc* callback) = 0;
 };

@@ -344,7 +344,6 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 
 	KRenderGlobal::VolumetricFog.Init(64, 64, 128, (camera->GetFar() - camera->GetNear()) * 0.5f, width, height, camera);
 
-	KRenderGlobal::RTAO.Init(KRenderGlobal::RayTraceScene.get());
 	KRenderGlobal::ScreenSpaceReflection.Init(width, height, 0.5f, false);
 
 	KRenderGlobal::DeferredRenderer.Init(camera, width, height);
