@@ -2,7 +2,6 @@
 #define _VOLUMETRIC_FOG_PUBLIC_H_
 
 #include "public.h"
-#include "common.h"
 
 #define GROUP_SIZE 8
 

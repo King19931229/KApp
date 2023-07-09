@@ -1,7 +1,6 @@
 #include "public.h"
 #include "interleave_mapping.h"
 #include "shading/gbuffer.h"
-#include "common.h"
 
 layout(location = 0) in vec2 screenCoord;
 

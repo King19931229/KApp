@@ -320,7 +320,7 @@ bool KPrefilerCubeMap::Compute()
 			{
 				IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 				primaryBuffer->BeginPrimary();
-				primaryBuffer->BeginDebugMarker((name + "_mip_" + std::to_string(mipLevel) + "_face_" + std::to_string(i)).c_str(), glm::vec4(0, 1, 0, 0));
+				primaryBuffer->BeginDebugMarker((name + "_mip_" + std::to_string(mipLevel) + "_face_" + std::to_string(i)).c_str(), glm::vec4(1));
 				primaryBuffer->BeginRenderPass(pass, SUBPASS_CONTENTS_INLINE);
 				primaryBuffer->SetViewport(pass->GetViewPort());
 
@@ -348,7 +348,7 @@ bool KPrefilerCubeMap::Compute()
 	{
 		IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 		primaryBuffer->BeginPrimary();
-		primaryBuffer->BeginDebugMarker("IntegrateBRDF", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("IntegrateBRDF", glm::vec4(1));
 		primaryBuffer->BeginRenderPass(m_IntegrateBRDFPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_IntegrateBRDFPass->GetViewPort());
 
@@ -377,7 +377,7 @@ bool KPrefilerCubeMap::Compute()
 	{
 		IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 		primaryBuffer->BeginPrimary();
-		primaryBuffer->BeginDebugMarker("SHProduct", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("SHProduct", glm::vec4(1));
 
 		primaryBuffer->Translate(m_SrcCubeMap->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 
@@ -417,7 +417,7 @@ bool KPrefilerCubeMap::Compute()
 	{
 		IKCommandBufferPtr primaryBuffer = KRenderGlobal::CommandPool->Request(CBL_PRIMARY);
 		primaryBuffer->BeginPrimary();
-		primaryBuffer->BeginDebugMarker("SHConstructCubeMap", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("SHConstructCubeMap", glm::vec4(1));
 
 		primaryBuffer->Translate(m_SHConstructCubeMap->GetFrameBuffer(), PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COMPUTE_SHADER, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_GENERAL);
 

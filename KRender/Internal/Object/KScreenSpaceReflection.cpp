@@ -490,12 +490,12 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		return true;
 	}
 
-	primaryBuffer->BeginDebugMarker("SSR", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginDebugMarker("SSR", glm::vec4(1));
 	if (m_Enable)
 	{
 		primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 		{
-			primaryBuffer->BeginDebugMarker("SSR_Trace", glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("SSR_Trace", glm::vec4(1));
 
 			primaryBuffer->BeginRenderPass(m_ReflectionPass, SUBPASS_CONTENTS_INLINE);
 			primaryBuffer->SetViewport(m_ReflectionPass->GetViewPort());
@@ -534,7 +534,7 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("SSR_RayReuse", glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("SSR_RayReuse", glm::vec4(1));
 
 			primaryBuffer->BeginRenderPass(m_RayReusePass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
 			primaryBuffer->SetViewport(m_RayReusePass[m_CurrentIdx]->GetViewPort());
@@ -572,7 +572,7 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("SSR_Temporal", glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("SSR_Temporal", glm::vec4(1));
 
 			primaryBuffer->BeginRenderPass(m_TemporalPass, SUBPASS_CONTENTS_INLINE);
 			primaryBuffer->SetViewport(m_TemporalPass->GetViewPort());
@@ -609,7 +609,7 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("SSR_Blit", glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("SSR_Blit", glm::vec4(1));
 
 			primaryBuffer->BeginRenderPass(m_BlitPass[m_CurrentIdx], SUBPASS_CONTENTS_INLINE);
 			primaryBuffer->SetViewport(m_BlitPass[m_CurrentIdx]->GetViewPort());
@@ -635,10 +635,10 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("SSR_Atrous", glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("SSR_Atrous", glm::vec4(1));
 			for (int32_t level = 1; level <= m_AtrousLevel; ++level)
 			{
-				primaryBuffer->BeginDebugMarker("SSR_AtrousPass" + std::to_string(level), glm::vec4(0, 1, 0, 0));
+				primaryBuffer->BeginDebugMarker("SSR_AtrousPass" + std::to_string(level), glm::vec4(1));
 
 				uint32_t i = level & 1;
 
@@ -678,7 +678,7 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 		}
 
 		{
-			primaryBuffer->BeginDebugMarker("SSR_Compose", glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("SSR_Compose", glm::vec4(1));
 
 			uint32_t i = m_AtrousLevel & 1;
 
@@ -705,7 +705,7 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 	}
 	else
 	{
-		primaryBuffer->BeginDebugMarker("SSR_Compose", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("SSR_Compose", glm::vec4(1));
 		primaryBuffer->BeginRenderPass(m_ComposePass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_ComposePass->GetViewPort());
 		primaryBuffer->EndRenderPass();

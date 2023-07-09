@@ -177,12 +177,14 @@ bool KRenderCore::InitController()
 	{
 		if (key == INPUT_KEY_ENTER)
 		{
+			m_Device->Wait();
+			KRenderGlobal::VirtualGeometryManager.ReloadShader();
 		}
 		if (key == INPUT_KEY_R)
 		{
 			m_Device->Wait();
-			KRenderGlobal::ShaderManager.Reload();
 			KRenderGlobal::RayTraceManager.ReloadShader();
+			KRenderGlobal::VirtualGeometryManager.ReloadShader();
 			KRenderGlobal::RTAO.ReloadShader();
 			if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
 			{
@@ -199,6 +201,7 @@ bool KRenderCore::InitController()
 			KRenderGlobal::VolumetricFog.Reload();
 			KRenderGlobal::ScreenSpaceReflection.ReloadShader();
 			KRenderGlobal::DepthOfField.ReloadShader();
+			KRenderGlobal::ShaderManager.Reload();
 		}
 	};
 
@@ -583,11 +586,6 @@ bool KRenderCore::UnRegistertAllUIRenderCallback()
 {
 	m_UICallbacks.clear();
 	return true;
-}
-
-IKRayTraceManager* KRenderCore::GetRayTraceMgr()
-{
-	return &KRenderGlobal::RayTraceManager;
 }
 
 IKRenderScene* KRenderCore::GetRenderScene()

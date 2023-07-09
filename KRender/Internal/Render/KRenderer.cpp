@@ -158,8 +158,6 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		ResetThreadNum(m_MultithreadCount);
 	}
 
-	KRenderGlobal::Scene.Update();
-
 	std::vector<IKEntity*> cullRes;
 	KRenderGlobal::Scene.GetVisibleEntities(*m_Camera, cullRes);
 
@@ -252,6 +250,7 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		KRenderGlobal::HiZBuffer.Construct(commandBuffer);
 
+		KRenderGlobal::VirtualGeometryManager.Execute(commandBuffer);
 		KRenderGlobal::RayTraceManager.Execute(commandBuffer);
 
 		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)

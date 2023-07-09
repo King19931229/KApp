@@ -2,8 +2,6 @@
 #define GAUSSIAN_KERNEL_5X5
 #include "kernal.h"
 #include "shading/gbuffer.h"
-#include "common.h"
-#include "util.h"
 
 layout(location = 0) in vec2 screenCoord;
 

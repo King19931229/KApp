@@ -1,0 +1,31 @@
+#include "vg_define.h"
+#include "culling.h"
+
+layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint instanceId = gl_GlobalInvocationID.x;
+
+	if (instanceId < numInstance)
+	{
+		uint resourceIndex = InstanceData[instanceId].resourceIndex;
+		mat4 localToWorld = InstanceData[instanceId].transform;
+
+		vec4 boundCenter = Resource[resourceIndex].boundCenter;
+		vec4 boundHalfExtend = Resource[resourceIndex].boundHalfExtend;
+
+		FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
+
+		if (cullData.bIsVisible)
+		{
+			uint nodeWriteOffset = InterlockAddNodeWriteOffset();
+			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
+			{
+				CandidateNode node;
+				node.instanceId = instanceId;
+				node.nodeId = 0;
+				StoreCandidateNode(nodeWriteOffset, node);
+			}
+		}
+	}
+}

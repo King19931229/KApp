@@ -1753,6 +1753,12 @@ void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& ver
 	BuildDAG(vertices, indices, 124, 128, 4, 32);
 	BuildClusterStorage();
 	BuildClusterBVH();
+
+	m_Bound.SetNull();
+	for (const KMeshProcessorVertex& vertex : vertices)
+	{
+		m_Bound = m_Bound.Merge(vertex.pos);
+	}
 }
 
 bool KVirtualGeometryBuilder::GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, std::vector<KMeshClustersStorage>& stroages)

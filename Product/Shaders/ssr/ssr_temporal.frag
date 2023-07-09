@@ -1,8 +1,6 @@
 #include "public.h"
 #include "pbr.h"
 #include "shading/gbuffer.h"
-#include "common.h"
-#include "util.h"
 #include "ssr_public.h"
 
 layout(location = 0) in vec2 screenCoord;

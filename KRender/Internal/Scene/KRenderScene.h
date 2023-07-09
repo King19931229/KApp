@@ -14,7 +14,7 @@ protected:
 	KSceneManagerBase* m_SceneMgr;
 	std::unordered_set<EntityObserverFunc*> m_Observers;
 	IKRayTraceScenePtr m_RayTraceScene;
-	KVirtualGeometryScene m_VGScene;
+	IKVirtualGeometryScenePtr m_VGScene;
 	IKTerrainPtr m_Terrain;
 
 	void OnEntityChange(EntitySceneOp op, IKEntity* entity);
@@ -56,7 +56,6 @@ public:
 
 	bool GetAllEntities(std::vector<IKEntity*>& result) override;
 
-	bool Update() override;
-
 	IKRayTraceScenePtr GetRayTraceScene() override;
+	IKVirtualGeometryScenePtr GetVirtualGeometryScene() override;
 };

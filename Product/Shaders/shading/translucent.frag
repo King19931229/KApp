@@ -32,7 +32,6 @@ layout(location = 0) out vec4 outColor;
 /* Shader compiler will replace this into the texcode of the material */
 #include "material_generate_code.h"
 
-#include "util.h"
 #include "pbr.h"
 
 #include "shading_public.h"

@@ -99,7 +99,6 @@ public:
 	virtual bool UnRegisterUIRenderCallback(KRenderCoreUIRenderCallback* callback);
 	virtual bool UnRegistertAllUIRenderCallback();
 
-	virtual IKRayTraceManager* GetRayTraceMgr();
 	virtual IKRenderScene* GetRenderScene();
 	virtual IKRenderer* GetRenderer();
 

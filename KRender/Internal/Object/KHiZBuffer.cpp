@@ -197,7 +197,7 @@ bool KHiZBuffer::UnInit()
 
 bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 {
-	primaryBuffer->BeginDebugMarker("HiZMinBuild", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginDebugMarker("HiZMinBuild", glm::vec4(1));
 	for (uint32_t i = 0; i < m_NumMips; ++i)
 	{
 		if (i == 0)
@@ -209,7 +209,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			IKRenderPassPtr renderPass = m_HiZMinRenderPass[i];
 
-			primaryBuffer->BeginDebugMarker("HiZMinInit", glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("HiZMinInit", glm::vec4(1));
 
 			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 			primaryBuffer->SetViewport(renderPass->GetViewPort());
@@ -256,7 +256,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			IKRenderPassPtr renderPass = m_HiZMinRenderPass[i];
 
-			primaryBuffer->BeginDebugMarker("HiZMinBuild_" + std::to_string(i), glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("HiZMinBuild_" + std::to_string(i), glm::vec4(1));
 
 			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 			primaryBuffer->SetViewport(renderPass->GetViewPort());
@@ -283,7 +283,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 	}
 	primaryBuffer->EndDebugMarker();
 
-	primaryBuffer->BeginDebugMarker("HiZMaxBuild", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginDebugMarker("HiZMaxBuild", glm::vec4(1));
 	for (uint32_t i = 0; i < m_NumMips; ++i)
 	{
 		if (i == 0)
@@ -295,7 +295,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			IKRenderPassPtr renderPass = m_HiZMaxRenderPass[i];
 
-			primaryBuffer->BeginDebugMarker("HiZMaxInit", glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("HiZMaxInit", glm::vec4(1));
 
 			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 			primaryBuffer->SetViewport(renderPass->GetViewPort());
@@ -338,7 +338,7 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			IKRenderPassPtr renderPass = m_HiZMaxRenderPass[i];
 
-			primaryBuffer->BeginDebugMarker("HiZMaxBuild_" + std::to_string(i), glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("HiZMaxBuild_" + std::to_string(i), glm::vec4(1));
 
 			primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_INLINE);
 			primaryBuffer->SetViewport(renderPass->GetViewPort());

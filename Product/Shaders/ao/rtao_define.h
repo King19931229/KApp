@@ -35,7 +35,7 @@
 
 #define BINDING_COMPOSED 21
 
-#include "util.h"
+#include "sampling.h"
 
 vec4 GetNormalWeights(in vec3 normal, in vec3 sampleNormal[4], float sigma, float sigmaExponent)
 {

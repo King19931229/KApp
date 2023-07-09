@@ -70,7 +70,10 @@ bool KRenderScene::InitRenderResource(const KCamera* camera)
 {
 	KRenderGlobal::RayTraceManager.CreateRayTraceScene(m_RayTraceScene);
 	m_RayTraceScene->Init(&KRenderGlobal::Scene, camera);
-	m_VGScene.Init(this, camera);
+
+	KRenderGlobal::VirtualGeometryManager.CreateVirtualGeometryScene(m_VGScene);
+	m_VGScene->Init(&KRenderGlobal::Scene, camera);
+
 	return true;
 }
 
@@ -78,7 +81,10 @@ bool KRenderScene::UnInitRenderResource()
 {
 	KRenderGlobal::RayTraceManager.RemoveRayTraceScene(m_RayTraceScene);
 	SAFE_UNINIT(m_RayTraceScene);
-	m_VGScene.UnInit();
+
+	KRenderGlobal::VirtualGeometryManager.RemoveVirtualGeometryScene(m_VGScene);
+	SAFE_UNINIT(m_VGScene);
+	
 	return true;
 }
 
@@ -318,13 +324,12 @@ bool KRenderScene::GetAllEntities(std::vector<IKEntity*>& result)
 	return false;
 }
 
-bool KRenderScene::Update()
-{
-	m_VGScene.Update();
-	return true;
-}
-
 IKRayTraceScenePtr KRenderScene::GetRayTraceScene()
 {
 	return m_RayTraceScene;
+}
+
+IKVirtualGeometryScenePtr KRenderScene::GetVirtualGeometryScene()
+{
+	return m_VGScene;
 }

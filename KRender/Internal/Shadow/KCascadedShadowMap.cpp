@@ -122,7 +122,7 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KMultithreadingRenderContext& rende
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
-			primaryBuffer->BeginDebugMarker("CSM_Static_" + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("CSM_Static_" + std::to_string(cascadedIndex), glm::vec4(1));
 
 			if (renderContext.enableMultithreading)
 				primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);
@@ -156,7 +156,7 @@ void KCascadedShadowMap::ExecuteCasterUpdate(KMultithreadingRenderContext& rende
 			renderPass->SetClearDepthStencil({ 1.0f, 0 });
 			ASSERT_RESULT(renderPass->Init());
 
-			primaryBuffer->BeginDebugMarker("CSM_Dynamic_" + std::to_string(cascadedIndex), glm::vec4(0, 1, 0, 0));
+			primaryBuffer->BeginDebugMarker("CSM_Dynamic_" + std::to_string(cascadedIndex), glm::vec4(1));
 
 			if (renderContext.enableMultithreading)
 				primaryBuffer->BeginRenderPass(renderPass, SUBPASS_CONTENTS_SECONDARY);

@@ -1,2 +1,2 @@
-cloc KEditor KEngine KBase KRender
+cloc KEngine KBase KRender
 pause

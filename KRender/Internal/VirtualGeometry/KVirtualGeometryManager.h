@@ -1,4 +1,5 @@
 #pragma once
+#include "Interface/IKRenderScene.h"
 #include "KVirtualGeomerty.h"
 #include "Interface/IKBuffer.h"
 #include <map>
@@ -25,6 +26,8 @@ public:
 class KVirtualGeometryManager
 {
 protected:
+	std::unordered_set<IKVirtualGeometryScenePtr> m_Scenes;
+
 	struct GeometryInfo
 	{
 		std::string path;
@@ -41,6 +44,7 @@ protected:
 	KVirtualGeometryStorageBuffer m_PackedHierarchyBuffer;
 	KVirtualGeometryStorageBuffer m_ClusterBatchBuffer;
 	KVirtualGeometryStorageBuffer m_ClusterStorageBuffer;
+	KVirtualGeometryStorageBuffer m_ResourceBuffer;
 
 	bool AcquireImpl(const char* label, const KMeshRawData& userData, KVirtualGeometryResourceRef& geometry);
 	bool RemoveUnreferenced();
@@ -53,10 +57,16 @@ public:
 	bool UnInit();
 
 	bool Update();
+	bool ReloadShader();
 
 	IKStorageBufferPtr GetPackedHierarchyBuffer() { return m_PackedHierarchyBuffer.GetBuffer(); }
 	IKStorageBufferPtr GetClusterBatchBuffer() { return m_ClusterBatchBuffer.GetBuffer(); }
 	IKStorageBufferPtr GetClusterStorageBuffer() { return m_ClusterStorageBuffer.GetBuffer(); }
+	IKStorageBufferPtr GetResourceBuffer() { return m_ResourceBuffer.GetBuffer(); }
 
 	bool AcquireFromUserData(const KMeshRawData& userData, const std::string& label, KVirtualGeometryResourceRef& ref);
+
+	bool CreateVirtualGeometryScene(IKVirtualGeometryScenePtr& scene);
+	bool RemoveVirtualGeometryScene(IKVirtualGeometryScenePtr& scene);
+	bool Execute(IKCommandBufferPtr primaryBuffer);
 };

@@ -4,7 +4,7 @@
 #include "Interface/IKRenderCommand.h"
 #include "Internal/KVertexDefinition.h"
 
-class KRayTraceManager : public IKRayTraceManager
+class KRayTraceManager
 {
 	friend class KRayTraceScene;
 protected:

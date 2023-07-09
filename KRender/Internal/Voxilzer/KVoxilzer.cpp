@@ -821,7 +821,7 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 
 	if (cullRes.size() == 0) return;
 
-	commandBuffer->BeginDebugMarker("VoxelizeStaticScene", glm::vec4(0, 1, 0, 0));
+	commandBuffer->BeginDebugMarker("VoxelizeStaticScene", glm::vec4(1));
 	commandBuffer->BeginRenderPass(m_VoxelRenderPass, SUBPASS_CONTENTS_INLINE);
 	commandBuffer->SetViewport(m_VoxelRenderPass->GetViewPort());
 
@@ -1329,7 +1329,7 @@ bool KVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 	{
 		IKPipelinePtr& lightPassPipeline = m_VoxelUseOctree ? m_LightPassOctreePipeline : m_LightPassPipeline;
 
-		primaryBuffer->BeginDebugMarker("VoxelLightPass", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("VoxelLightPass", glm::vec4(1));
 		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
 
@@ -1381,7 +1381,7 @@ bool KVoxilzer::UpdateOctreRayTestResult(IKCommandBufferPtr primaryBuffer)
 
 		cameraBuffer->Write(cameraInfo);
 
-		primaryBuffer->BeginDebugMarker("VoxelOctreeRayTest", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("VoxelOctreeRayTest", glm::vec4(1));
 		primaryBuffer->BeginRenderPass(m_OctreeRayTestPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_OctreeRayTestPass->GetViewPort());
 
@@ -1413,7 +1413,7 @@ bool KVoxilzer::UpdateFrame(IKCommandBufferPtr primaryBuffer)
 	}
 	else
 	{
-		primaryBuffer->BeginDebugMarker("VoxelLightPass", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("VoxelLightPass", glm::vec4(1));
 		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
 		primaryBuffer->EndRenderPass();

@@ -37,8 +37,16 @@ struct IKRayTraceScene
 	virtual const KCamera* GetCamera() = 0;
 	virtual IKAccelerationStructurePtr GetTopDownAS() = 0;
 };
-
 typedef std::shared_ptr<IKRayTraceScene> IKRayTraceScenePtr;
+
+struct IKVirtualGeometryScene
+{
+	virtual ~IKVirtualGeometryScene() {}
+	virtual bool Init(IKRenderScene* scene, const KCamera* camera) = 0;
+	virtual bool UnInit() = 0;
+	virtual bool Execute(IKCommandBufferPtr primaryBuffer) = 0;
+};
+typedef std::shared_ptr<IKVirtualGeometryScene> IKVirtualGeometryScenePtr;
 
 struct IKRenderScene
 {
@@ -78,9 +86,8 @@ struct IKRenderScene
 	virtual bool GetVisibleEntities(const KCamera& camera, std::vector<IKEntity*>& result) = 0;
 	virtual bool GetVisibleEntities(const KAABBBox& bound, std::vector<IKEntity*>& result) = 0;
 
-	virtual bool Update() = 0;
-
 	virtual IKRayTraceScenePtr GetRayTraceScene() = 0;
+	virtual IKVirtualGeometryScenePtr GetVirtualGeometryScene() = 0;
 };
 
 typedef std::unique_ptr<IKRenderScene> IKRenderScenePtr;

@@ -163,6 +163,7 @@ struct KMeshClusterBatch
 	glm::vec4 boundHalfExtend;
 };
 
+// TODO
 struct KMeshClustersStorage
 {
 	std::vector<glm::vec3> positions;
@@ -180,9 +181,9 @@ struct KMeshClusterBVHNode
 
 struct KMeshClusterHierarchy
 {
-	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
 	glm::vec4 boundCenter;
 	glm::vec4 boundHalfExtend;
+	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
 	uint32_t partIndex;
 };
 
@@ -197,6 +198,8 @@ protected:
 	std::vector<KMeshClusterGroupPtr> m_ClusterGroups;
 	std::vector<KMeshClustersPartPtr> m_ClusterStorageParts;
 	std::vector<KMeshClusterBVHNodePtr> m_BVHNodes;
+
+	KAABBBox m_Bound;
 
 	uint32_t m_MinClusterGroup = 8;
 	uint32_t m_MaxClusterGroup = 32;
@@ -279,5 +282,10 @@ public:
 	inline float GetMaxError() const
 	{
 		return m_MaxError;
+	}
+
+	inline const KAABBBox& GetBound() const
+	{
+		return m_Bound;
 	}
 };

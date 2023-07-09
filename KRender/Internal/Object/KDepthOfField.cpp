@@ -309,11 +309,11 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 	objectData.dofParams2[2] = F;
 	objectData.dofParams2[3] = 1.0f;
 
-	primaryBuffer->BeginDebugMarker("DOF", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginDebugMarker("DOF", glm::vec4(1));
 	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetGBufferTarget(GBUFFER_TARGET0)->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	primaryBuffer->Translate(KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	{
-		primaryBuffer->BeginDebugMarker("DOF_CoC", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("DOF_CoC", glm::vec4(1));
 
 		primaryBuffer->BeginRenderPass(m_CoCPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_CoCPass->GetViewPort());
@@ -343,7 +343,7 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("DOF_Horizontal", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("DOF_Horizontal", glm::vec4(1));
 
 		primaryBuffer->BeginRenderPass(m_HorizontalPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_HorizontalPass->GetViewPort());
@@ -375,7 +375,7 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("DOF_Vertical", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("DOF_Vertical", glm::vec4(1));
 
 		primaryBuffer->BeginRenderPass(m_VerticalPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_VerticalPass->GetViewPort());

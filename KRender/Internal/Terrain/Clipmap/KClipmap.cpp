@@ -282,7 +282,7 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 	{
 		commandBuffer->BeginPrimary();
 		commandBuffer->Translate(m_TextureTarget->GetFrameBuffer(), PIPELINE_STAGE_BOTTOM_OF_PIPE, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_UNDEFINED, IMAGE_LAYOUT_COLOR_ATTACHMENT);
-		commandBuffer->BeginDebugMarker("ClipmapUpdate", glm::vec4(0, 1, 0, 0));
+		commandBuffer->BeginDebugMarker("ClipmapUpdate", glm::vec4(1));
 		commandBuffer->BeginRenderPass(m_UpdateRenderPass, SUBPASS_CONTENTS_INLINE);
 		commandBuffer->SetViewport(m_UpdateRenderPass->GetViewPort());
 

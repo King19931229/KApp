@@ -1,5 +1,5 @@
-#ifndef _KERNAL_H_
-#define _KERNAL_H_
+#ifndef KERNAL_H
+#define KERNAL_H
 
 #if defined(BOX_KERNEL_3X3)
 	const uint Radius = 1;

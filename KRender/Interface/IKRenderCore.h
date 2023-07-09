@@ -34,7 +34,6 @@ struct IKRenderCore
 	virtual bool UnRegisterUIRenderCallback(KRenderCoreUIRenderCallback* callback) = 0;
 	virtual bool UnRegistertAllUIRenderCallback() = 0;
 
-	virtual IKRayTraceManager* GetRayTraceMgr() = 0;
 	// 获取主场景
 	virtual IKRenderScene* GetRenderScene() = 0;
 	virtual IKRenderer* GetRenderer() = 0;

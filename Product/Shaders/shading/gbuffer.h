@@ -8,7 +8,7 @@
 #define GBUFFER_IMAGE4_FORMAT rgba8
 #define AO_IMAGE_FORMAT r8
 
-#include "common.h"
+#include "numerical.h"
 
 vec3 DecodeNormal(vec4 gbuffer0Data)
 {

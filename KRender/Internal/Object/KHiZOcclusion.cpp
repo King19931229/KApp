@@ -335,7 +335,7 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 	dataViewport.width = dimensionX;
 	dataViewport.height = dimensionY;
 
-	primaryBuffer->BeginDebugMarker("PrepareHiZOC", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginDebugMarker("PrepareHiZOC", glm::vec4(1));
 	{
 		primaryBuffer->BeginRenderPass(m_PreparePasses[frameIdx], SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(dataViewport);
@@ -364,7 +364,7 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 	primaryBuffer->Translate(m_PositionTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 	primaryBuffer->Translate(m_ExtentTargets[frameIdx]->GetFrameBuffer(), PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, PIPELINE_STAGE_FRAGMENT_SHADER, IMAGE_LAYOUT_COLOR_ATTACHMENT, IMAGE_LAYOUT_SHADER_READ_ONLY);
 
-	primaryBuffer->BeginDebugMarker("ExecuteHiZOC", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginDebugMarker("ExecuteHiZOC", glm::vec4(1));
 	{
 		primaryBuffer->BeginRenderPass(m_ExecutePasses[frameIdx], SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(dataViewport);

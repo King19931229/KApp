@@ -1,7 +1,6 @@
 #include "public.h"
 #include "pbr.h"
 #include "shading/gbuffer.h"
-#include "common.h"
 #include "sampling.h"
 #include "ssr_public.h"
 

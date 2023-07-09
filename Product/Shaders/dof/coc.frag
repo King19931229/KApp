@@ -1,6 +1,5 @@
 #include "public.h"
 #include "shading/gbuffer.h"
-#include "common.h"
 
 layout(location = 0) in vec2 screenCoord;
 layout(binding = BINDING_TEXTURE0) uniform sampler2D gbuffer0;

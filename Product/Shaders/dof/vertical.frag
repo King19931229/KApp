@@ -1,6 +1,5 @@
 #include "public.h"
 #include "shading/gbuffer.h"
-#include "common.h"
 #include "dof/circular.h"
 
 layout(location = 0) in vec2 screenCoord;

@@ -93,7 +93,7 @@ bool KShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 		std::vector<IKEntity*> cullRes;
 		KRenderGlobal::Scene.GetVisibleEntities(m_Camera, cullRes);
 
-		primaryBuffer->BeginDebugMarker("SM", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("SM", glm::vec4(1));
 		primaryBuffer->BeginRenderPass(m_RenderPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_RenderPass->GetViewPort());
 

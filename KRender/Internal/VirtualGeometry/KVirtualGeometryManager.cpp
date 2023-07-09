@@ -1,4 +1,5 @@
 #include "KVirtualGeometryManager.h"
+#include "KVirtualGeometryScene.h"
 #include "Internal/KRenderGlobal.h"
 #include "KBase/Publish/KMath.h"
 
@@ -113,17 +114,23 @@ bool KVirtualGeometryManager::Init()
 {
 	UnInit();
 
-	const size_t initialSize = 1;
-
-	m_PackedHierarchyBuffer.Init("VirtualGeometryPackedHierarchy", initialSize);
-	m_ClusterBatchBuffer.Init("VirtualGeometryClusterBatch", initialSize);
-	m_ClusterStorageBuffer.Init("VirtualGeometryStorage", initialSize);
+	m_PackedHierarchyBuffer.Init("VirtualGeometryPackedHierarchy", sizeof(glm::uvec4));
+	m_ClusterBatchBuffer.Init("VirtualGeometryClusterBatch", sizeof(glm::uvec4));
+	m_ClusterStorageBuffer.Init("VirtualGeometryStorage", 1);
+	m_ResourceBuffer.Init("VirtualGeometryResource", sizeof(KVirtualGeometryResource));
 
 	return true;
 }
 
 bool KVirtualGeometryManager::UnInit()
 {
+	for (IKVirtualGeometryScenePtr scene : m_Scenes)
+	{
+		scene->UnInit();
+	}
+	m_Scenes.clear();
+
+	m_ResourceBuffer.UnInit();
 	m_PackedHierarchyBuffer.UnInit();
 	m_ClusterBatchBuffer.UnInit();
 	m_ClusterStorageBuffer.UnInit();
@@ -169,23 +176,32 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 
 		uint32_t resourceIndex = (uint32_t)m_GeometryResources.size();
 
-		geometry = KVirtualGeometryResourceRef(KNEW KVirtualGeometryResource());
-		geometry->resourceIndex = resourceIndex;
+		const KAABBBox& bound = builder.GetBound();
 
-		geometry->clusterBatchOffset = (uint32_t)m_ClusterBatchBuffer.GetSize();
-		geometry->clusterBatchSize = (uint32_t)clusters.size() * sizeof(KMeshClusterBatch);
+		{
+			geometry = KVirtualGeometryResourceRef(KNEW KVirtualGeometryResource());
+			geometry->resourceIndex = resourceIndex;
 
-		m_ClusterBatchBuffer.Append(geometry->clusterBatchSize, clusters.data());
+			geometry->clusterBatchOffset = (uint32_t)m_ClusterBatchBuffer.GetSize();
+			geometry->clusterBatchSize = (uint32_t)clusters.size() * sizeof(KMeshClusterBatch);
 
-		geometry->hierarchyPackedOffset = (uint32_t)m_PackedHierarchyBuffer.GetSize();
-		geometry->hierarchyPackedSize = (uint32_t)hierarchies.size() * sizeof(KMeshClusterHierarchy);
+			m_ClusterBatchBuffer.Append(geometry->clusterBatchSize, clusters.data());
 
-		m_PackedHierarchyBuffer.Append(geometry->hierarchyPackedSize, hierarchies.data());
-		
-		geometry->clusterStorageOffset = (uint32_t)m_ClusterStorageBuffer.GetSize();
-		geometry->clusterStorageSize = (uint32_t)stroages.size() * sizeof(KMeshClustersStorage);
+			geometry->hierarchyPackedOffset = (uint32_t)m_PackedHierarchyBuffer.GetSize();
+			geometry->hierarchyPackedSize = (uint32_t)hierarchies.size() * sizeof(KMeshClusterHierarchy);
 
-		m_ClusterStorageBuffer.Append(geometry->clusterStorageSize, stroages.data());
+			m_PackedHierarchyBuffer.Append(geometry->hierarchyPackedSize, hierarchies.data());
+
+			geometry->clusterStorageOffset = (uint32_t)m_ClusterStorageBuffer.GetSize();
+			geometry->clusterStorageSize = (uint32_t)stroages.size() * sizeof(KMeshClustersStorage);
+
+			geometry->boundCenter = glm::vec4(bound.GetCenter(), 0);
+			geometry->boundHalfExtend = glm::vec4(0.5f * bound.GetExtend(), 0);
+
+			m_ClusterStorageBuffer.Append(geometry->clusterStorageSize, stroages.data());
+		}
+
+		m_ResourceBuffer.Append(sizeof(KVirtualGeometryResource), geometry.Get());
 
 		m_GeometryResources.push_back(geometry);
 		m_GeometryMap[info] = geometry;
@@ -241,6 +257,8 @@ bool KVirtualGeometryManager::RemoveGeometry(uint32_t index)
 	{
 		KVirtualGeometryResourceRef geometry = m_GeometryResources[index];
 
+		m_ResourceBuffer.Remove(index * sizeof(KVirtualGeometryResource), sizeof(KVirtualGeometryResource));
+
 		m_PackedHierarchyBuffer.Remove(geometry->hierarchyPackedOffset, geometry->hierarchyPackedSize);
 		m_ClusterBatchBuffer.Remove(geometry->clusterBatchOffset, geometry->clusterBatchSize);
 		m_ClusterStorageBuffer.Remove(geometry->clusterStorageOffset, geometry->clusterStorageSize);
@@ -264,7 +282,41 @@ bool KVirtualGeometryManager::Update()
 	return true;
 }
 
+bool KVirtualGeometryManager::ReloadShader()
+{
+	for (IKVirtualGeometryScenePtr scene : m_Scenes)
+	{
+		KVirtualGeometryScene* vgScene = (KVirtualGeometryScene*)scene.get();
+		vgScene->ReloadShader();
+	}
+	return true;
+}
+
 bool KVirtualGeometryManager::AcquireFromUserData(const KMeshRawData& userData, const std::string& label, KVirtualGeometryResourceRef& ref)
 {
 	return AcquireImpl(label.c_str(), userData, ref);
+}
+
+bool KVirtualGeometryManager::CreateVirtualGeometryScene(IKVirtualGeometryScenePtr& scene)
+{
+	scene = IKVirtualGeometryScenePtr(KNEW KVirtualGeometryScene());
+	m_Scenes.insert(scene);
+	return true;
+}
+
+bool KVirtualGeometryManager::RemoveVirtualGeometryScene(IKVirtualGeometryScenePtr& scene)
+{
+	auto it = m_Scenes.find(scene);
+	if (it != m_Scenes.end())
+		m_Scenes.erase(it);
+	return true;
+}
+
+bool KVirtualGeometryManager::Execute(IKCommandBufferPtr primaryBuffer)
+{
+	for (IKVirtualGeometryScenePtr scene : m_Scenes)
+	{
+		scene->Execute(primaryBuffer);
+	}
+	return true;
 }

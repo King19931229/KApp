@@ -255,7 +255,7 @@ bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPt
 
 bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 {
-	primaryBuffer->BeginDebugMarker("VoxelClipmapLightConeTracing", glm::vec4(0, 1, 0, 0));
+	primaryBuffer->BeginDebugMarker("VoxelClipmapLightConeTracing", glm::vec4(1));
 
 	struct ObjectData
 	{
@@ -267,7 +267,7 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 	objectData.params[2] = 1;
 
 	{
-		primaryBuffer->BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(1));
 		primaryBuffer->BeginRenderPass(m_LightPassRenderPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_LightPassRenderPass->GetViewPort());
 
@@ -291,7 +291,7 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 	}
 
 	{
-		primaryBuffer->BeginDebugMarker("VoxelClipmapLightComposePass", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("VoxelClipmapLightComposePass", glm::vec4(1));
 		primaryBuffer->BeginRenderPass(m_LightComposeRenderPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_LightComposeRenderPass->GetViewPort());
 
@@ -326,7 +326,7 @@ bool KClipmapVoxilzer::UpdateFrame(IKCommandBufferPtr primaryBuffer)
 	}
 	else
 	{
-		primaryBuffer->BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(0, 1, 0, 0));
+		primaryBuffer->BeginDebugMarker("VoxelClipmapLightPass", glm::vec4(1));
 		primaryBuffer->BeginRenderPass(m_LightComposeRenderPass, SUBPASS_CONTENTS_INLINE);
 		primaryBuffer->SetViewport(m_LightComposeRenderPass->GetViewPort());
 		primaryBuffer->EndRenderPass();
