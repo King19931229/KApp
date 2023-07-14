@@ -11,8 +11,8 @@ void main()
 		uint resourceIndex = InstanceData[instanceId].resourceIndex;
 		mat4 localToWorld = InstanceData[instanceId].transform;
 
-		vec4 boundCenter = Resource[resourceIndex].boundCenter;
-		vec4 boundHalfExtend = Resource[resourceIndex].boundHalfExtend;
+		vec4 boundCenter = ResourceData[resourceIndex].boundCenter;
+		vec4 boundHalfExtend = ResourceData[resourceIndex].boundHalfExtend;
 
 		FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
 

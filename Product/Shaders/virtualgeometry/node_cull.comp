@@ -1,0 +1,108 @@
+#include "vg_define.h"
+#include "culling.h"
+
+shared uint SharedCandidateNodeBatch[BVH_MAX_GROUP_BATCH_SIZE];
+
+#define DEBUG_SHADER_GROUP 0
+
+bool IsSharedHierarchyDataValid(uint index)
+{
+	return SharedCandidateNodeBatch[index] != 0xFFFFFFFF;
+}
+
+void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
+{
+	uint localIndex = groupIndex / BVH_MAX_NODES;
+	uint childIndex = groupIndex & BVH_NODE_MASK;
+
+#if DEBUG_SHADER_GROUP
+	uint globalIndex = batchStart + localIndex;
+	if (batchStart > batchSize)
+	{
+		return;
+	}
+	CandidateNode nodeBatch = UnpackCandidateNode(CandidateNodeBatch[globalIndex]);
+#else
+	if (!IsSharedHierarchyDataValid(localIndex))
+	{
+		return;
+	}
+	CandidateNode nodeBatch = UnpackCandidateNode(SharedCandidateNodeBatch[localIndex]);
+#endif
+	
+	uint instanceId = nodeBatch.instanceId;
+	uint resourceIndex = InstanceData[instanceId].resourceIndex;
+
+	ClusterHierarchyStruct hierarchy;
+	GetHierarchyData(nodeBatch, hierarchy);
+
+	uint isLeaf = hierarchy.isLeaf;
+
+	if (isLeaf == 0)
+	{
+		uint nodeIndex = hierarchy.children[childIndex];
+		if (nodeIndex != INVALID_INDEX)
+		{
+			mat4 localToWorld = InstanceData[instanceId].transform;
+
+			vec4 boundCenter = ResourceData[resourceIndex].boundCenter;
+			vec4 boundHalfExtend = ResourceData[resourceIndex].boundHalfExtend;
+
+			FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
+
+			if (cullData.bIsVisible)
+			{
+				uint nodeWriteOffset = InterlockAddNodeWriteOffset();
+				if (nodeWriteOffset < MAX_CANDIDATE_NODE)
+				{
+					CandidateNode node;
+					node.instanceId = instanceId;
+					node.nodeId = nodeIndex;
+					StoreCandidateNode(nodeWriteOffset, node);
+				}
+			}
+		}
+	}
+	// Leaf
+	else
+	{
+	}
+}
+
+layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint groupID = gl_WorkGroupID.x;
+	uint groupIndex = gl_LocalInvocationID.x;
+	uint maxBatchNodes = QueueState[0].nodePrevWriteOffset - QueueState[0].nodeReadOffset;
+
+	uint batchStart = groupID * BVH_MAX_GROUP_BATCH_SIZE;
+	uint batchSize = min(batchStart + BVH_MAX_GROUP_BATCH_SIZE, maxBatchNodes) - batchStart;
+
+	uint nodeIndex = QueueState[0].nodeReadOffset + batchStart + groupIndex;
+
+	bool writeData = false;
+	if (groupIndex < BVH_MAX_GROUP_BATCH_SIZE)
+	{
+		if (groupIndex < batchSize)
+		{
+			writeData = true;
+			SharedCandidateNodeBatch[groupIndex] = CandidateNodeBatch[nodeIndex];
+		}
+		else
+		{
+			SharedCandidateNodeBatch[groupIndex] = 0xFFFFFFFF;
+		}
+	}
+
+	groupMemoryBarrier();
+
+	ProcessNodeBatch(groupIndex, batchStart, batchSize);
+
+	groupMemoryBarrier();
+
+	if (writeData)
+	{
+		CandidateNodeBatch[nodeIndex] = 0xFFFFFFFF;
+	}
+}

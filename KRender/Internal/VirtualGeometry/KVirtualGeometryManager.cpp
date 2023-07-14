@@ -163,15 +163,58 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 
 		std::vector<KMeshClusterBatch> clusters;
 		std::vector<KMeshClustersStorage> stroages;
-		if (!builder.GetMeshClusterStorages(clusters, stroages))
+		std::vector<uint32_t> clustersPartNum;
+		std::vector<uint32_t> clustersPartStart;
+		if (!builder.GetMeshClusterStorages(clusters, stroages, clustersPartNum))
 		{
 			return false;
+		}
+
+		clustersPartStart.resize(clustersPartNum.size());
+		for (size_t i = 0; i < clustersPartNum.size(); ++i)
+		{
+			if (i > 0)
+			{
+				clustersPartStart[i] += clustersPartStart[i - 1] + clustersPartNum[i - 1];
+			}
+			else
+			{
+				clustersPartStart[i] = 0;
+			}
 		}
 
 		std::vector<KMeshClusterHierarchy> hierarchies;
 		if (!builder.GetMeshClusterHierarchies(hierarchies))
 		{
 			return false;
+		}
+
+		uint32_t clusterStart = 0;
+
+		std::vector<KMeshClusterHierarchyPackedNode> hierarchyNode;
+		hierarchyNode.resize(hierarchies.size());
+		for (size_t i = 0; i < hierarchyNode.size(); ++i)
+		{
+			KMeshClusterHierarchy& hierarchy = hierarchies[i];
+			KMeshClusterHierarchyPackedNode& node = hierarchyNode[i];
+			node.boundCenter = hierarchy.boundCenter;
+			node.boundHalfExtend = hierarchy.boundHalfExtend;
+			for (uint32_t child = 0; child < KVirtualGeometryDefine::MAX_BVH_NODES; ++child)
+			{
+				node.children[child] = hierarchy.children[child];
+			}
+			node.boundCenter = hierarchy.boundCenter;
+
+			if (hierarchy.storagePartIndex != KVirtualGeometryDefine::INVALID_INDEX)
+			{
+				node.isLeaf = true;
+				node.clusterStart = clustersPartStart[hierarchy.storagePartIndex];
+				node.clusterNum = clustersPartNum[hierarchy.storagePartIndex];
+			}
+			else
+			{
+				node.isLeaf = false;
+			}
 		}
 
 		uint32_t resourceIndex = (uint32_t)m_GeometryResources.size();
@@ -188,9 +231,9 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			m_ClusterBatchBuffer.Append(geometry->clusterBatchSize, clusters.data());
 
 			geometry->hierarchyPackedOffset = (uint32_t)m_PackedHierarchyBuffer.GetSize();
-			geometry->hierarchyPackedSize = (uint32_t)hierarchies.size() * sizeof(KMeshClusterHierarchy);
+			geometry->hierarchyPackedSize = (uint32_t)hierarchyNode.size() * sizeof(KMeshClusterHierarchyPackedNode);
 
-			m_PackedHierarchyBuffer.Append(geometry->hierarchyPackedSize, hierarchies.data());
+			m_PackedHierarchyBuffer.Append(geometry->hierarchyPackedSize, hierarchyNode.data());
 
 			geometry->clusterStorageOffset = (uint32_t)m_ClusterStorageBuffer.GetSize();
 			geometry->clusterStorageSize = (uint32_t)stroages.size() * sizeof(KMeshClustersStorage);

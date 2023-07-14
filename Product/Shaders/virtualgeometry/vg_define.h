@@ -3,16 +3,21 @@
 
 #extension GL_ARB_shader_atomic_counters : require
 
-#define MAX_BVH_NODES 4
+#define INVALID_INDEX -1
+#define BVH_NODES_BITS 2
+#define BVH_MAX_NODES (1 << BVH_NODES_BITS)
+#define BVH_NODE_MASK (BVH_MAX_NODES - 1)
 #define MAX_CANDIDATE_NODE  (1024 * 1024)
 #define MAX_CANDIDATE_CLUSTER  (1024 * 1024 * 4)
 #define VG_GROUP_SIZE 64
+#define BVH_MAX_GROUP_BATCH_SIZE (VG_GROUP_SIZE / BVH_MAX_NODES)
 
 // Match with KVirtualGeometryInstance
 struct InstanceStruct
 {
 	mat4 transform;
 	uint resourceIndex;
+	uint padding[3];
 };
 
 // Match with KMeshClusterBatch
@@ -23,15 +28,19 @@ struct ClusterBatchStruct
 	uint vertexOffset;
 	uint indexOffset;
 	uint storageIndex;
+	uint padding;
 };
 
-// Match with KMeshClusterHierarchy
+// Match with KMeshClusterHierarchyPackedNode
 struct ClusterHierarchyStruct
 {
 	vec4 boundCenter;
 	vec4 boundHalfExtend;
-	uint children[MAX_BVH_NODES];
-	uint partIndex;
+	uint children[BVH_MAX_NODES];
+	uint isLeaf;
+	uint clusterStart;
+	uint clusterNum;
+	uint padding;
 };
 
 // Match with KVirtualGeometryResource
@@ -50,14 +59,19 @@ struct ResourceStruct
 
 	uint clusterStorageOffset;
 	uint clusterStorageSize;
+
+	uint padding;
 };
 
+// KVirtualGeometryQueueState
 struct QueueStateStruct
 {
 	uint nodeReadOffset;
 	uint nodePrevWriteOffset;
 	uint nodeWriteOffset;
-	uint nodeCount;
+	uint clusterReadOffset;
+	uint clusterWriteOffset;
+	uint padding[3];
 };
 
 struct CandidateNode
@@ -76,6 +90,7 @@ struct CandidateNode
 #define BINDING_CLUSTER_STORAGE_INDEX 7
 #define BINDING_CANDIDATE_NODE_BATCH 8
 #define BINDING_CANDIDATE_CLUSTER_BATCH 9
+#define BINDING_INDIRECT_ARGS 10
 
 layout(binding = BINDING_GLOBAL_DATA)
 uniform GlobalData
@@ -85,7 +100,7 @@ uniform GlobalData
 };
 
 layout (std430, binding = BINDING_RESOURCE) coherent buffer ResourceBuffer {
-	ResourceStruct Resource[];
+	ResourceStruct ResourceData[];
 };
 
 layout (std430, binding = BINDING_QUEUE_STATE) coherent buffer QueueStateBuffer {
@@ -105,32 +120,48 @@ layout (std430, binding = BINDING_CLUSTER_BATCH) buffer ClusterBatchBuffer {
 };
 
 layout (std430, binding = BINDING_CANDIDATE_NODE_BATCH) coherent buffer CandidateNodeBatchBuffer {
-	uvec4 CandidateNodeBatch[];
+	uint CandidateNodeBatch[];
 };
 
 layout (std430, binding = BINDING_CANDIDATE_CLUSTER_BATCH) coherent buffer CandidateClusterBatchBuffer {
-	uvec4 CandidateClusterBatch[];
+	uint CandidateClusterBatch[];
 };
 
-uvec4 PackCandidateNode(CandidateNode node)
+layout (std430, binding = BINDING_INDIRECT_ARGS) coherent buffer IndirectArgsBuffer {
+	uint IndirectArgs[];
+};
+
+uint PackCandidateNode(CandidateNode node)
 {
-	uvec4 pack = uvec4(0, 0, 0, 0);
-	pack[0] = node.instanceId;
-	pack[1] = node.nodeId;
+	uint pack = 0;
+	pack |= node.instanceId & 0xFF;
+	pack |= (node.nodeId & 0xFFFF) << 8;
 	return pack;
 }
 
-CandidateNode UnpackCandidateNode(uvec4 data)
+CandidateNode UnpackCandidateNode(uint data)
 {
 	CandidateNode node;
-	node.instanceId = data[0];
-	node.nodeId = data[1];
+	node.instanceId = data & 0xFF;
+	node.nodeId = (data >> 8) & 0xFFFF;
 	return node;
 }
 
 void StoreCandidateNode(uint index, CandidateNode node)
 {
 	CandidateNodeBatch[index] = PackCandidateNode(node);
+}
+
+void GetHierarchyData(in CandidateNode nodeBatch, out ClusterHierarchyStruct hierarchy)
+{
+	uint resourceIndex = InstanceData[nodeBatch.instanceId].resourceIndex;
+	uint nodeIndex = nodeBatch.nodeId;
+
+	uint hierarchyPackedOffset = ResourceData[resourceIndex].hierarchyPackedOffset;
+	uint hierarchyNodeSize = (BVH_MAX_NODES * 4 + 16 + 32);
+	uint hierarchyOffset = hierarchyPackedOffset / hierarchyNodeSize + nodeIndex;
+
+	hierarchy = ClusterHierarchy[hierarchyOffset];
 }
 
 uint InterlockAddWriteOffset()

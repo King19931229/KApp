@@ -1246,13 +1246,13 @@ void KVirtualGeometryBuilder::BuildClusterBVH()
 	std::vector<KMeshClusterBVHNodePtr> bvhNodes;
 	bvhNodes.resize(m_ClusterStorageParts.size());
 
-	for (uint32_t partIndex = 0; partIndex < (uint32_t)m_ClusterStorageParts.size(); ++partIndex)
+	for (uint32_t storagePartIndex = 0; storagePartIndex < (uint32_t)m_ClusterStorageParts.size(); ++storagePartIndex)
 	{
 		KMeshClusterBVHNodePtr newLeaf = KMeshClusterBVHNodePtr(KNEW KMeshClusterBVHNode());
-		KMeshClustersPartPtr clusterPart = m_ClusterStorageParts[partIndex];
-		newLeaf->partIndex = partIndex;
+		KMeshClustersPartPtr clusterPart = m_ClusterStorageParts[storagePartIndex];
+		newLeaf->storagePartIndex = storagePartIndex;
 		newLeaf->bound = clusterPart->bound;
-		bvhNodes[partIndex] = newLeaf;
+		bvhNodes[storagePartIndex] = newLeaf;
 	}
 
 	uint32_t rootIndex = 0;
@@ -1269,9 +1269,9 @@ void KVirtualGeometryBuilder::BuildClusterBVH()
 		uint32_t maxLevel = 0;
 		for (KMeshClusterBVHNodePtr node : bvhNodes)
 		{
-			if (m_ClusterStorageParts[node->partIndex]->level > maxLevel)
+			if (m_ClusterStorageParts[node->storagePartIndex]->level > maxLevel)
 			{
-				maxLevel = m_ClusterStorageParts[node->partIndex]->level;
+				maxLevel = m_ClusterStorageParts[node->storagePartIndex]->level;
 			}
 		}
 
@@ -1281,7 +1281,7 @@ void KVirtualGeometryBuilder::BuildClusterBVH()
 		for (uint32_t index = 0; index < (uint32_t)bvhNodes.size(); ++index)
 		{
 			KMeshClusterBVHNodePtr node = bvhNodes[index];
-			uint32_t level = m_ClusterStorageParts[node->partIndex]->level;
+			uint32_t level = m_ClusterStorageParts[node->storagePartIndex]->level;
 			indicesByLevel[level].push_back(index);
 		}
 
@@ -1291,7 +1291,7 @@ void KVirtualGeometryBuilder::BuildClusterBVH()
 		for (uint32_t level = 0; level < maxLevel; ++level)
 		{
 			uint32_t levelRootIndex = BuildHierarchyTopDown(bvhNodes, indicesByLevel[level], true);
-			if (bvhNodes[levelRootIndex]->partIndex != KVirtualGeometryDefine::INVALID_INDEX ||
+			if (bvhNodes[levelRootIndex]->storagePartIndex != KVirtualGeometryDefine::INVALID_INDEX ||
 				bvhNodes[levelRootIndex]->children.size() == KVirtualGeometryDefine::MAX_BVH_NODES)
 			{
 				roots.push_back(levelRootIndex);
@@ -1316,7 +1316,7 @@ void KVirtualGeometryBuilder::RecurselyVisitBVH(uint32_t index, std::function<vo
 {
 	visitFunc(index);
 
-	if (m_BVHNodes[index]->partIndex == KVirtualGeometryDefine::INVALID_INDEX)
+	if (m_BVHNodes[index]->storagePartIndex == KVirtualGeometryDefine::INVALID_INDEX)
 	{
 		for (uint32_t child : m_BVHNodes[index]->children)
 		{
@@ -1761,18 +1761,21 @@ void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& ver
 	}
 }
 
-bool KVirtualGeometryBuilder::GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, std::vector<KMeshClustersStorage>& stroages)
+bool KVirtualGeometryBuilder::GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, std::vector<KMeshClustersStorage>& stroages, std::vector<uint32_t>& clustersPartNum)
 {
 	clusters.clear();
 	stroages.clear();
+	clustersPartNum.clear();
 
 	if (m_ClusterStorageParts.size())
 	{
 		clusters.reserve(m_ClusterStorageParts.size() * m_MaxClusterGroup);
 		stroages.reserve(m_ClusterStorageParts.size());
+		clustersPartNum.reserve(m_ClusterStorageParts.size());
 
 		uint32_t vertexOffset = 0;
 		uint32_t indexOffset = 0;
+		uint32_t batchStart = 0;
 
 		for (uint32_t storageIndex = 0; storageIndex < m_ClusterStorageParts.size(); ++storageIndex)
 		{
@@ -1816,6 +1819,8 @@ bool KVirtualGeometryBuilder::GetMeshClusterStorages(std::vector<KMeshClusterBat
 				indexOffset = (uint32_t)indices.size();
 			}
 
+			clustersPartNum.push_back((uint32_t)clustersPart->clusters.size());
+
 			KMeshClustersStorage newStorage;
 			newStorage.positions = poisitions;
 			newStorage.normals = normals;
@@ -1842,7 +1847,7 @@ uint32_t KVirtualGeometryBuilder::BuildMeshClusterHierarchies(std::vector<KMeshC
 
 	KMeshClusterHierarchy newHierarchy = hierarchies[hierarchyIndex];
 
-	newHierarchy.partIndex = bvhNode->partIndex;
+	newHierarchy.storagePartIndex = bvhNode->storagePartIndex;
 	newHierarchy.boundCenter = glm::vec4(bvhNode->bound.GetCenter(), 0);
 	newHierarchy.boundHalfExtend = glm::vec4(0.5f * bvhNode->bound.GetExtend(), 0);
 
@@ -1851,7 +1856,7 @@ uint32_t KVirtualGeometryBuilder::BuildMeshClusterHierarchies(std::vector<KMeshC
 		newHierarchy.children[i] = KVirtualGeometryDefine::INVALID_INDEX;
 	}
 
-	if (newHierarchy.partIndex == KVirtualGeometryDefine::INVALID_INDEX)
+	if (newHierarchy.storagePartIndex == KVirtualGeometryDefine::INVALID_INDEX)
 	{
 		for (uint32_t i = 0; i < KVirtualGeometryDefine::MAX_BVH_NODES; ++i)
 		{
