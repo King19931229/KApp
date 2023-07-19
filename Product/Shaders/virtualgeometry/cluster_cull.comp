@@ -1,0 +1,35 @@
+#include "vg_define.h"
+#include "culling.h"
+
+void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
+{
+    uint batchIndex = batchStart + groupIndex;
+	CandidateCluster cluster = UnpackCandidateCluster(CandidateClusterBatch[batchIndex]);
+	if (cluster.clusterIndex != INVALID_INDEX)
+	{
+		// TODO LOD Error cut
+		uint clusterWriteOffset = InterlockAddClusterWriteOffset(1);
+		if (clusterWriteOffset < MAX_CANDIDATE_CLUSTER)
+		{
+			StoreSelectedCluster(clusterWriteOffset, cluster);
+		}
+	}
+}
+
+layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint groupID = gl_WorkGroupID.x;
+	uint groupIndex = gl_LocalInvocationID.x;
+	uint maxBatchClusters = QueueState[0].clusterWriteOffset - QueueState[0].clusterReadOffset;
+
+	uint batchStart = groupID * VG_GROUP_SIZE;
+	uint batchSize = min(batchStart + VG_GROUP_SIZE, maxBatchClusters) - batchStart;
+
+	uint nodeIndex = QueueState[0].nodeReadOffset + batchStart + groupIndex;
+
+	if (groupIndex < batchSize)
+	{
+		ProcessClusterBatch(groupIndex, batchStart, batchSize);
+	}
+}

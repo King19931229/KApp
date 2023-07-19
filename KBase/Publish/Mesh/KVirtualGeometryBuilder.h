@@ -38,13 +38,18 @@ struct KMeshCluster
 
 	std::vector<KMeshProcessorVertex> vertices;
 	std::vector<uint32_t> indices;
+
+	// lodBound是计算Lod所用到的Bound 并不是严格意义上真正的Bound
+	KAABBBox lodBound;
 	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t generatingGroupIndex = KVirtualGeometryDefine::INVALID_INDEX;
+
 	uint32_t index = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t level = 0;
-	float error = 0;
-	float maxParentError = 0;
-	KAABBBox bound;
+
+	// lodError是计算Lod所用到的Error 并不是严格意义上真正的Error
+	float lodError = 0;
+
 	glm::vec3 color;
 
 	KMeshCluster()
@@ -68,13 +73,13 @@ struct KMeshCluster
 
 struct KMeshClusterGroup
 {
+	std::vector<uint32_t> generatingClusters;
 	std::vector<uint32_t> clusters;
-	std::vector<uint32_t> childrenClusters;
-	KAABBBox bound;
+	KAABBBox lodBound;
 	glm::vec3 color;
 	uint32_t level = 0;
 	uint32_t index = 0;
-	float maxError = 0;
+	float lodError = 0;
 };
 
 typedef std::shared_ptr<KMeshClusterGroup> KMeshClusterGroupPtr;
@@ -149,28 +154,37 @@ struct KMeshClustersPart
 	std::vector<uint32_t> clusters;
 	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t level = KVirtualGeometryDefine::INVALID_INDEX;
-	KAABBBox bound;
+	KAABBBox lodBound;
+	float lodError = 0;
 };
 
 typedef std::shared_ptr<KMeshClustersPart> KMeshClustersPartPtr;
 
 struct KMeshClusterBatch
 {
-	glm::vec4 boundCenter;
-	glm::vec4 boundHalfExtend;
+	glm::vec4 lodBoundCenterError;
+	glm::vec4 lodBoundHalfExtendMaxParentError;
+	// Offset in float32
 	uint32_t vertexOffset = KVirtualGeometryDefine::INVALID_INDEX;
+	// Offset in uint32
 	uint32_t indexOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t storageIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t padding = 0;
 };
 static_assert((sizeof(KMeshClusterBatch) % 16) == 0, "Size must be a multiple of 16");
 
-// TODO
-struct KMeshClustersStorage
+struct KMeshClustersVertexStorage
 {
-	std::vector<glm::vec3> positions;
-	std::vector<glm::vec3> normals;
-	std::vector<glm::vec2> uvs;
+	enum
+	{
+		FLOAT_PER_VERTEX = 8
+	};
+	// Each vertex 8 float: pos.xyz:3 normal.xyz:3 uv:2
+	std::vector<float> vertices;
+};
+
+struct KMeshClustersIndexStorage
+{
 	std::vector<uint32_t> indices;
 };
 
@@ -178,13 +192,14 @@ struct KMeshClusterBVHNode
 {
 	uint32_t storagePartIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	std::vector<uint32_t> children;
-	KAABBBox bound;
+	KAABBBox lodBound;
+	float maxParentLodError = 0;
 };
 
 struct KMeshClusterHierarchy
 {
-	glm::vec4 boundCenter;
-	glm::vec4 boundHalfExtend;
+	glm::vec4 lodBoundCenter;
+	glm::vec4 lodBoundHalfExtend;
 	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
 	uint32_t storagePartIndex = KVirtualGeometryDefine::INVALID_INDEX;
 };
@@ -261,7 +276,7 @@ public:
 
 	void Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices);
 
-	bool GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, std::vector<KMeshClustersStorage>& stroages, std::vector<uint32_t>& clustersPartNum);
+	bool GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, std::vector<uint32_t>& clustersPartNum);
 	bool GetMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies);
 
 	inline uint32_t GetLevelNum() const

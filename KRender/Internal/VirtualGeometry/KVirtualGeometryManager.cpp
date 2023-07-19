@@ -116,7 +116,8 @@ bool KVirtualGeometryManager::Init()
 
 	m_PackedHierarchyBuffer.Init("VirtualGeometryPackedHierarchy", sizeof(glm::uvec4));
 	m_ClusterBatchBuffer.Init("VirtualGeometryClusterBatch", sizeof(glm::uvec4));
-	m_ClusterStorageBuffer.Init("VirtualGeometryStorage", 1);
+	m_ClusterVertexStorageBuffer.Init("VirtualGeometryVertexStorage", sizeof(float) * KMeshClustersVertexStorage::FLOAT_PER_VERTEX);
+	m_ClusterIndexStorageBuffer.Init("VirtualGeometryIndexStorage", sizeof(uint32_t));
 	m_ResourceBuffer.Init("VirtualGeometryResource", sizeof(KVirtualGeometryResource));
 
 	return true;
@@ -133,7 +134,8 @@ bool KVirtualGeometryManager::UnInit()
 	m_ResourceBuffer.UnInit();
 	m_PackedHierarchyBuffer.UnInit();
 	m_ClusterBatchBuffer.UnInit();
-	m_ClusterStorageBuffer.UnInit();
+	m_ClusterVertexStorageBuffer.UnInit();
+	m_ClusterIndexStorageBuffer.UnInit();
 	m_GeometryMap.clear();
 	for (KVirtualGeometryResourceRef& ref : m_GeometryResources)
 	{
@@ -162,10 +164,11 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		builder.Build(vertices, indices);
 
 		std::vector<KMeshClusterBatch> clusters;
-		std::vector<KMeshClustersStorage> stroages;
+		KMeshClustersVertexStorage vertexStroages;
+		KMeshClustersIndexStorage indexStroages;
 		std::vector<uint32_t> clustersPartNum;
 		std::vector<uint32_t> clustersPartStart;
-		if (!builder.GetMeshClusterStorages(clusters, stroages, clustersPartNum))
+		if (!builder.GetMeshClusterStorages(clusters, vertexStroages, indexStroages, clustersPartNum))
 		{
 			return false;
 		}
@@ -189,21 +192,19 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			return false;
 		}
 
-		uint32_t clusterStart = 0;
-
 		std::vector<KMeshClusterHierarchyPackedNode> hierarchyNode;
 		hierarchyNode.resize(hierarchies.size());
 		for (size_t i = 0; i < hierarchyNode.size(); ++i)
 		{
 			KMeshClusterHierarchy& hierarchy = hierarchies[i];
 			KMeshClusterHierarchyPackedNode& node = hierarchyNode[i];
-			node.boundCenter = hierarchy.boundCenter;
-			node.boundHalfExtend = hierarchy.boundHalfExtend;
+			node.lodBoundCenter = hierarchy.lodBoundCenter;
+			node.lodBoundHalfExtend = hierarchy.lodBoundHalfExtend;
 			for (uint32_t child = 0; child < KVirtualGeometryDefine::MAX_BVH_NODES; ++child)
 			{
 				node.children[child] = hierarchy.children[child];
 			}
-			node.boundCenter = hierarchy.boundCenter;
+			node.lodBoundCenter = hierarchy.lodBoundCenter;
 
 			if (hierarchy.storagePartIndex != KVirtualGeometryDefine::INVALID_INDEX)
 			{
@@ -223,7 +224,6 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 
 		{
 			geometry = KVirtualGeometryResourceRef(KNEW KVirtualGeometryResource());
-			geometry->resourceIndex = resourceIndex;
 
 			geometry->clusterBatchOffset = (uint32_t)m_ClusterBatchBuffer.GetSize();
 			geometry->clusterBatchSize = (uint32_t)clusters.size() * sizeof(KMeshClusterBatch);
@@ -235,13 +235,21 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 
 			m_PackedHierarchyBuffer.Append(geometry->hierarchyPackedSize, hierarchyNode.data());
 
-			geometry->clusterStorageOffset = (uint32_t)m_ClusterStorageBuffer.GetSize();
-			geometry->clusterStorageSize = (uint32_t)stroages.size() * sizeof(KMeshClustersStorage);
+			geometry->clusterVertexStorageOffset = (uint32_t)m_ClusterVertexStorageBuffer.GetSize();
+			geometry->clusterVertexStorageSize = (uint32_t)vertexStroages.vertices.size() * sizeof(float);
 
+			m_ClusterVertexStorageBuffer.Append(geometry->clusterVertexStorageSize, vertexStroages.vertices.data());
+
+			geometry->clusterIndexStorageOffset = (uint32_t)m_ClusterIndexStorageBuffer.GetSize();
+			geometry->clusterIndexStorageSize = (uint32_t)indexStroages.indices.size() * sizeof(uint32_t);
+
+			m_ClusterIndexStorageBuffer.Append(geometry->clusterIndexStorageSize, indexStroages.indices.data());
+
+			geometry->resourceIndex = resourceIndex;
 			geometry->boundCenter = glm::vec4(bound.GetCenter(), 0);
 			geometry->boundHalfExtend = glm::vec4(0.5f * bound.GetExtend(), 0);
 
-			m_ClusterStorageBuffer.Append(geometry->clusterStorageSize, stroages.data());
+			// TODO 更新材质索引
 		}
 
 		m_ResourceBuffer.Append(sizeof(KVirtualGeometryResource), geometry.Get());
@@ -304,7 +312,10 @@ bool KVirtualGeometryManager::RemoveGeometry(uint32_t index)
 
 		m_PackedHierarchyBuffer.Remove(geometry->hierarchyPackedOffset, geometry->hierarchyPackedSize);
 		m_ClusterBatchBuffer.Remove(geometry->clusterBatchOffset, geometry->clusterBatchSize);
-		m_ClusterStorageBuffer.Remove(geometry->clusterStorageOffset, geometry->clusterStorageSize);
+		m_ClusterVertexStorageBuffer.Remove(geometry->clusterVertexStorageOffset, geometry->clusterVertexStorageSize);
+		m_ClusterIndexStorageBuffer.Remove(geometry->clusterIndexStorageOffset, geometry->clusterIndexStorageSize);
+
+		// TODO 更新材质索引
 
 		for (uint32_t i = index + 1; i < (uint32_t)m_GeometryResources.size(); ++i)
 		{

@@ -4,7 +4,7 @@ void KMeshCluster::UnInit()
 {
 	vertices.clear();
 	indices.clear();
-	bound.SetNull();
+	lodBound.SetNull();
 	color = glm::vec3(0);
 }
 
@@ -17,7 +17,7 @@ void KMeshCluster::InitBound()
 		maxPos = glm::max(maxPos, vertex.pos);
 		minPos = glm::min(minPos, vertex.pos);
 	}
-	bound.InitFromMinMax(minPos, maxPos);
+	lodBound.InitFromMinMax(minPos, maxPos);
 }
 
 void KMeshCluster::Init(KMeshClusterPtr* clusters, size_t numClusters)
@@ -568,13 +568,14 @@ void KVirtualGeometryBuilder::DAGReduce(uint32_t childrenBegin, uint32_t childre
 	std::vector<KMeshProcessorVertex> vertices;
 	std::vector<uint32_t> indices;
 
-	float error = 0;
+	float lodError = 0;
+	KAABBBox lodBound;
 	uint32_t parentBegin = (uint32_t)m_Clusters.size();
 
 	for (uint32_t partitionNum = m_MaxPartitionNum - 2; partitionNum >= m_MaxPartitionNum / 2; partitionNum -= 2)
 	{
 		uint32_t targetTriangleNum = partitionNum * numParent;
-		if (!simplification.Simplify(MeshSimplifyTarget::TRIANGLE, targetTriangleNum, vertices, indices, error))
+		if (!simplification.Simplify(MeshSimplifyTarget::TRIANGLE, targetTriangleNum, vertices, indices, lodError))
 		{
 			continue;
 		}
@@ -612,35 +613,36 @@ void KVirtualGeometryBuilder::DAGReduce(uint32_t childrenBegin, uint32_t childre
 		newGroup->index = (uint32_t)m_ClusterGroups.size();
 		newGroup->color = KMeshCluster::RandomColor();
 
-		newGroup->childrenClusters.resize(numChildren);
+		newGroup->clusters.resize(numChildren);
 		for (uint32_t i = 0; i < numChildren; ++i)
 		{
 			uint32_t idx = childrenBegin + i;
 			m_Clusters[idx]->groupIndex = newGroup->index;
-			error = std::max(error, m_Clusters[idx]->error);
-			// 这里要这样获取index 因为图划分后Clusters被重排了
-			newGroup->childrenClusters[i] = m_Clusters[idx]->index;
+
+			lodError = std::max(lodError, m_Clusters[idx]->lodError);
+			lodBound = lodBound.Merge(m_Clusters[idx]->lodBound);
+
+			// 这里要这样获取index 因为图划分后m_Clusters被重排了
+			newGroup->clusters[i] = m_Clusters[idx]->index;
 		}
 
-		newGroup->clusters.resize(numParent);
+		newGroup->generatingClusters.resize(numParent);
 		for (uint32_t i = 0; i < numParent; ++i)
 		{
 			uint32_t idx = parentBegin + i;
 			m_Clusters[idx]->index = parentBegin + i;
-			m_Clusters[idx]->error = error;
+
+			m_Clusters[idx]->lodError = lodError;
+			m_Clusters[idx]->lodBound = lodBound;
+
 			m_Clusters[idx]->level = newGroup->level;
 			m_Clusters[idx]->generatingGroupIndex = newGroup->index;
-			newGroup->clusters[i] = idx;
-			newGroup->bound = newGroup->bound.Merge(m_Clusters[idx]->bound);
+
+			newGroup->generatingClusters[i] = idx;
 		}
 
-		newGroup->maxError = error;
-
-		for (uint32_t i = 0; i < numChildren; ++i)
-		{
-			uint32_t idx = childrenBegin + i;
-			m_Clusters[idx]->maxParentError = error;
-		}
+		newGroup->lodError = lodError;
+		newGroup->lodBound = lodBound;
 
 		m_ClusterGroups.push_back(newGroup);
 	}
@@ -923,55 +925,34 @@ void KVirtualGeometryBuilder::BuildDAG(const std::vector<KMeshProcessorVertex>& 
 	ClusterTriangle(vertices, indices);
 
 	uint32_t levelClusterBegin = 0;
-	uint32_t levelClusterEnd = 0;
 	uint32_t levelClusterNum = (uint32_t)m_Clusters.size();
-	uint32_t newLevelBegin = 0;
 	uint32_t currentLevel = 0;
 
-	auto AddBaseGroup = [this](uint32_t begin, uint32_t end)
+	for (uint32_t i = 0; i < (uint32_t)m_Clusters.size(); ++i)
 	{
-		KMeshClusterGroupPtr newGroup = KMeshClusterGroupPtr(KNEW KMeshClusterGroup());
-		uint32_t num = end - begin + 1;
-		newGroup->level = 0;
-		newGroup->clusters.resize(num);
-		newGroup->index = (uint32_t)m_ClusterGroups.size();
-		newGroup->color = KMeshCluster::RandomColor();
-		for (uint32_t i = 0; i < num; ++i)
-		{
-			uint32_t idx = begin + i;
-			m_Clusters[idx]->index = idx;
-			m_Clusters[idx]->generatingGroupIndex = newGroup->index;
-			newGroup->clusters[i] = idx;
-			newGroup->bound = newGroup->bound.Merge(m_Clusters[idx]->bound);
-		}
-		m_ClusterGroups.push_back(newGroup);
-	};
+		m_Clusters[i]->index = i;
+	}
 
-	while (levelClusterNum)
+	while (levelClusterNum > 1)
 	{
-		levelClusterEnd = levelClusterBegin + levelClusterNum - 1;
-		if (levelClusterNum <= 1)
-		{
-			if (currentLevel == 0)
-			{
-				AddBaseGroup(levelClusterBegin, levelClusterEnd);
-			}
-			++currentLevel;
-			break;
-		}
+		uint32_t levelClusterEnd = levelClusterBegin + levelClusterNum - 1;
 
 		if (levelClusterNum <= m_MaxClusterGroup)
 		{
-			if (currentLevel == 0)
-			{
-				AddBaseGroup(levelClusterBegin, levelClusterEnd);
-			}
-			newLevelBegin = (uint32_t)m_Clusters.size();
+			uint32_t newLevelBegin = (uint32_t)m_Clusters.size();
 			DAGReduce(levelClusterBegin, levelClusterEnd, currentLevel);
-			levelClusterBegin = newLevelBegin;
-			levelClusterNum = (uint32_t)(m_Clusters.size() - levelClusterBegin);
-			++currentLevel;
-			continue;
+
+			if (m_Clusters.size() > newLevelBegin)
+			{
+				levelClusterBegin = newLevelBegin;
+				levelClusterNum = (uint32_t)(m_Clusters.size() - levelClusterBegin);
+				++currentLevel;
+				continue;
+			}
+			else
+			{
+				break;
+			}			
 		}
 
 		KGraph clusterGraph = BuildClustersAdjacency(levelClusterBegin, levelClusterEnd);
@@ -1024,27 +1005,52 @@ void KVirtualGeometryBuilder::BuildDAG(const std::vector<KMeshProcessorVertex>& 
 			}
 		}
 
-		if (currentLevel == 0)
-		{
-			for (const KRange& range : partitioner.ranges)
-			{
-				uint32_t clusterBegin = levelClusterBegin + range.begin;
-				uint32_t clusterEnd = levelClusterBegin + range.end;
-				AddBaseGroup(clusterBegin, clusterEnd);
-			}
-		}
+		uint32_t newLevelBegin = (uint32_t)m_Clusters.size();
+		uint32_t newLevelGroupBegin = (uint32_t)m_ClusterGroups.size();
 
-		newLevelBegin = (uint32_t)m_Clusters.size();
 		for (const KRange& range : partitioner.ranges)
 		{
 			uint32_t clusterBegin = levelClusterBegin + range.begin;
 			uint32_t clusterEnd = levelClusterBegin + range.end;
+			size_t prevClusterNum = m_Clusters.size();
 			DAGReduce(clusterBegin, clusterEnd, currentLevel);
+			// Reduce fail
+			if (prevClusterNum == m_Clusters.size())
+			{
+				m_Clusters.resize(newLevelBegin);
+				m_ClusterGroups.resize(newLevelGroupBegin);
+				break;
+			}
 		}
-		levelClusterBegin = newLevelBegin;
-		levelClusterNum = (uint32_t)m_Clusters.size() - levelClusterBegin;
 
-		++currentLevel;
+		if (m_Clusters.size() > newLevelBegin)
+		{
+			levelClusterBegin = newLevelBegin;
+			levelClusterNum = (uint32_t)m_Clusters.size() - levelClusterBegin;
+			++currentLevel;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	{
+		KMeshClusterGroupPtr rootGroup = KMeshClusterGroupPtr(KNEW KMeshClusterGroup());
+		rootGroup->level = currentLevel;
+		rootGroup->clusters.resize(levelClusterNum);
+		rootGroup->index = (uint32_t)m_ClusterGroups.size();
+		rootGroup->color = KMeshCluster::RandomColor();
+		for (uint32_t i = 0; i < levelClusterNum; ++i)
+		{
+			uint32_t idx = levelClusterBegin + i;
+			m_Clusters[idx]->index = idx;
+			m_Clusters[idx]->groupIndex = rootGroup->index;
+			rootGroup->clusters[i] = m_Clusters[idx]->index;
+			rootGroup->lodBound = rootGroup->lodBound.Merge(m_Clusters[idx]->lodBound);
+			rootGroup->lodError = std::max(rootGroup->lodError, m_Clusters[idx]->lodError);
+		}
+		m_ClusterGroups.push_back(rootGroup);
 	}
 
 	std::sort(m_Clusters.begin(), m_Clusters.end(), [](const KMeshClusterPtr& lhs, const KMeshClusterPtr& rhs) -> bool { return lhs->index < rhs->index; });
@@ -1057,20 +1063,22 @@ void KVirtualGeometryBuilder::BuildDAG(const std::vector<KMeshProcessorVertex>& 
 
 	for (size_t i = m_ClusterGroups.size(); i >= 1; --i)
 	{
-		size_t groupIndex = i - 1;
+		uint32_t groupIndex = (uint32_t)i - 1;
 		const KMeshClusterGroup& group = *m_ClusterGroups[groupIndex];
 		for (uint32_t clusterIndex : group.clusters)
 		{
 			KMeshClusterPtr cluster = m_Clusters[clusterIndex];
-			if (cluster->groupIndex == KVirtualGeometryDefine::INVALID_INDEX)
+			assert(cluster->groupIndex == groupIndex);
+			if (groupIndex == (m_ClusterGroups.size() - 1))
 			{
 				m_MinTriangleNum += (uint32_t)cluster->indices.size() / 3;
 			}
-			if (cluster->level == 0)
+			if (cluster->generatingGroupIndex == KVirtualGeometryDefine::INVALID_INDEX)
 			{
+				assert(cluster->level == 0);
 				m_MaxTriangleNum += (uint32_t)cluster->indices.size() / 3;
 			}
-			m_MaxError = glm::max(m_MaxError, cluster->error);
+			m_MaxError = glm::max(m_MaxError, cluster->lodError);
 		}
 	}
 }
@@ -1087,7 +1095,10 @@ void KVirtualGeometryBuilder::BuildClusterStorage()
 		part->clusters = group.clusters;
 		part->groupIndex = groupIndex;
 		part->level = group.level;
-		part->bound = group.bound;
+
+		part->lodBound = group.lodBound;
+		part->lodError = group.lodError;
+
 		m_ClusterStorageParts.push_back(part);
 	}
 }
@@ -1104,15 +1115,15 @@ float KVirtualGeometryBuilder::SortBVHNodesByAxis(const std::vector<KMeshCluster
 	{
 		if (axis == AXIS_X)
 		{
-			return bvhNodes[lhs]->bound.GetCenter().x < bvhNodes[lhs]->bound.GetCenter().x;
+			return bvhNodes[lhs]->lodBound.GetCenter().x < bvhNodes[lhs]->lodBound.GetCenter().x;
 		}
 		else if (axis == AXIS_Y)
 		{
-			return bvhNodes[lhs]->bound.GetCenter().y < bvhNodes[lhs]->bound.GetCenter().y;
+			return bvhNodes[lhs]->lodBound.GetCenter().y < bvhNodes[lhs]->lodBound.GetCenter().y;
 		}
 		else
 		{
-			return bvhNodes[lhs]->bound.GetCenter().z < bvhNodes[lhs]->bound.GetCenter().z;
+			return bvhNodes[lhs]->lodBound.GetCenter().z < bvhNodes[lhs]->lodBound.GetCenter().z;
 		}
 	});
 
@@ -1123,13 +1134,13 @@ float KVirtualGeometryBuilder::SortBVHNodesByAxis(const std::vector<KMeshCluster
 
 	for (uint32_t i = 0; i < halfNum; ++i)
 	{
-		halfBound[0] = halfBound[0].Merge(bvhNodes[sorted[i]]->bound);
-		halfBound[1] = halfBound[1].Merge(bvhNodes[sorted[i + halfNum]]->bound);
+		halfBound[0] = halfBound[0].Merge(bvhNodes[sorted[i]]->lodBound);
+		halfBound[1] = halfBound[1].Merge(bvhNodes[sorted[i + halfNum]]->lodBound);
 	}
 
 	for (uint32_t i = 2 * halfNum; i < num; ++i)
 	{
-		halfBound[1] = halfBound[1].Merge(bvhNodes[sorted[i]]->bound);
+		halfBound[1] = halfBound[1].Merge(bvhNodes[sorted[i]]->lodBound);
 	}
 
 	return halfBound[0].Surface() + halfBound[1].Surface();
@@ -1178,7 +1189,7 @@ void KVirtualGeometryBuilder::SortBVHNodes(const std::vector<KMeshClusterBVHNode
 uint32_t KVirtualGeometryBuilder::BuildHierarchyTopDown(std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices, bool sort)
 {
 	uint32_t nodeNum = (uint32_t)indices.size();
-	
+
 	if (nodeNum == 1)
 	{
 		return indices[0];
@@ -1186,13 +1197,15 @@ uint32_t KVirtualGeometryBuilder::BuildHierarchyTopDown(std::vector<KMeshCluster
 
 	uint32_t rootIndex = (uint32_t)bvhNodes.size();
 	KMeshClusterBVHNodePtr root = KMeshClusterBVHNodePtr(KNEW KMeshClusterBVHNode());
+	root->storagePartIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	bvhNodes.push_back(root);
 
 	if (nodeNum <= KVirtualGeometryDefine::MAX_BVH_NODES)
 	{
 		for (uint32_t childIndex : indices)
 		{
-			root->bound = root->bound.Merge(bvhNodes[childIndex]->bound);
+			root->lodBound = root->lodBound.Merge(bvhNodes[childIndex]->lodBound);
+			root->maxParentLodError = std::max(root->maxParentLodError, bvhNodes[childIndex]->maxParentLodError);
 		}
 		root->children = indices;
 		return rootIndex;
@@ -1234,7 +1247,8 @@ uint32_t KVirtualGeometryBuilder::BuildHierarchyTopDown(std::vector<KMeshCluster
 		std::vector<uint32_t> childIndices = std::vector<uint32_t>(indices.begin() + childOffset, indices.begin() + childOffset + childNum);
 		uint32_t childIndex = BuildHierarchyTopDown(bvhNodes, childIndices, true);
 		root->children[child] = childIndex;
-		root->bound = root->bound.Merge(bvhNodes[childIndex]->bound);
+		root->lodBound = root->lodBound.Merge(bvhNodes[childIndex]->lodBound);
+		root->maxParentLodError = std::max(root->maxParentLodError, bvhNodes[childIndex]->maxParentLodError);
 		childOffset += childNum;
 	}
 
@@ -1251,7 +1265,8 @@ void KVirtualGeometryBuilder::BuildClusterBVH()
 		KMeshClusterBVHNodePtr newLeaf = KMeshClusterBVHNodePtr(KNEW KMeshClusterBVHNode());
 		KMeshClustersPartPtr clusterPart = m_ClusterStorageParts[storagePartIndex];
 		newLeaf->storagePartIndex = storagePartIndex;
-		newLeaf->bound = clusterPart->bound;
+		newLeaf->lodBound = clusterPart->lodBound;
+		newLeaf->maxParentLodError = clusterPart->lodError;
 		bvhNodes[storagePartIndex] = newLeaf;
 	}
 
@@ -1351,20 +1366,17 @@ void KVirtualGeometryBuilder::FindDAGCut(uint32_t targetTriangleCount, float tar
 
 	uint32_t curTriangleCount = 0;
 
-	for (size_t i = m_ClusterGroups.size(); i >= 1; --i)
+	if (m_ClusterGroups.size() > 0)
 	{
-		size_t groupIndex = i - 1;
+		size_t groupIndex = m_ClusterGroups.size() - 1;
 		const KMeshClusterGroup& group = *m_ClusterGroups[groupIndex];
 		for (uint32_t clusterIndex : group.clusters)
 		{
 			KMeshClusterPtr cluster = m_Clusters[clusterIndex];
-			if (cluster->groupIndex == KVirtualGeometryDefine::INVALID_INDEX)
-			{
-				DAGCutElement element(clusterIndex, cluster->error);
-				clusterHeap.push(element);
-				curTriangleCount += (uint32_t)cluster->indices.size() / 3;
-				clusterInHeap[clusterIndex] = true;
-			}
+			DAGCutElement element(clusterIndex, cluster->lodError);
+			clusterHeap.push(element);
+			curTriangleCount += (uint32_t)cluster->indices.size() / 3;
+			clusterInHeap[clusterIndex] = true;
 		}
 	}
 
@@ -1377,7 +1389,7 @@ void KVirtualGeometryBuilder::FindDAGCut(uint32_t targetTriangleCount, float tar
 
 		KMeshClusterPtr cluster = m_Clusters[element.clusterIndex];
 		curError = element.error;
-		assert(curError == cluster->error);
+		assert(curError == cluster->lodError);
 
 		if (cluster->level == 0)
 		{
@@ -1401,13 +1413,13 @@ void KVirtualGeometryBuilder::FindDAGCut(uint32_t targetTriangleCount, float tar
 		curTriangleCount -= (uint32_t)m_Clusters[element.clusterIndex]->indices.size() / 3;
 
 		const KMeshClusterGroup& group = *m_ClusterGroups[cluster->generatingGroupIndex];
-		for (uint32_t clusterIndex : group.childrenClusters)
+		for (uint32_t clusterIndex : group.clusters)
 		{
 			if (clusterInHeap[clusterIndex])
 			{
 				continue;
 			}
-			DAGCutElement element(clusterIndex, m_Clusters[clusterIndex]->error);
+			DAGCutElement element(clusterIndex, m_Clusters[clusterIndex]->lodError);
 			clusterHeap.push(element);
 			curTriangleCount += (uint32_t)m_Clusters[clusterIndex]->indices.size() / 3;
 			clusterInHeap[clusterIndex] = true;
@@ -1484,7 +1496,7 @@ void KVirtualGeometryBuilder::GetAllBVHBounds(std::vector<KAABBBox>& bounds)
 		bounds.reserve(m_BVHNodes.size());
 		RecurselyVisitBVH(m_BVHRoot, [this, &bounds](uint32_t nodeIndex)
 		{
-			bounds.push_back(m_BVHNodes[nodeIndex]->bound);
+			bounds.push_back(m_BVHNodes[nodeIndex]->lodBound);
 		});
 	}
 }
@@ -1652,6 +1664,7 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 			std::string children;
 			std::string parents;
 
+			assert(cluster->groupIndex != KVirtualGeometryDefine::INVALID_INDEX);
 			if (cluster->groupIndex != KVirtualGeometryDefine::INVALID_INDEX)
 			{
 				const KMeshClusterGroup& groupAsChildren = *m_ClusterGroups[cluster->groupIndex];
@@ -1660,11 +1673,11 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 					size_t t = 0;
 					std::stringstream ssParents;
 					ssParents << "\"";
-					for (uint32_t parent : groupAsChildren.clusters)
+					for (uint32_t parent : groupAsChildren.generatingClusters)
 					{
 						++t;
 						ssParents << parent;
-						if (t != groupAsChildren.clusters.size())
+						if (t != groupAsChildren.generatingClusters.size())
 						{
 							ssParents << ",";
 						}
@@ -1677,7 +1690,7 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 					size_t t = 0;
 					std::stringstream ssAdjacencies;
 					ssAdjacencies << "\"";
-					for (uint32_t adj : groupAsChildren.childrenClusters)
+					for (uint32_t adj : groupAsChildren.clusters)
 					{
 						if (adj == i)
 						{
@@ -1685,7 +1698,7 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 						}
 						++t;
 						ssAdjacencies << adj;
-						if (t != groupAsChildren.childrenClusters.size() - 1)
+						if (t != groupAsChildren.clusters.size() - 1)
 						{
 							ssAdjacencies << ",";
 						}
@@ -1703,11 +1716,11 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 					std::stringstream ssChildren;
 					ssChildren << "\"";
 					size_t t = 0;
-					for (uint32_t child : groupAsParent.childrenClusters)
+					for (uint32_t child : groupAsParent.clusters)
 					{
 						++t;
 						ssChildren << child;
-						if (t != groupAsParent.childrenClusters.size())
+						if (t != groupAsParent.clusters.size())
 						{
 							ssChildren << ",";
 						}
@@ -1720,7 +1733,7 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 					size_t t = 0;
 					std::stringstream ssAdjacencies;
 					ssAdjacencies << "\"";
-					for (uint32_t adj : groupAsParent.clusters)
+					for (uint32_t adj : groupAsParent.generatingClusters)
 					{
 						if (adj == i)
 						{
@@ -1728,7 +1741,7 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 						}
 						++t;
 						ssAdjacencies << adj;
-						if (t != groupAsParent.clusters.size() - 1)
+						if (t != groupAsParent.generatingClusters.size() - 1)
 						{
 							ssAdjacencies << ",";
 						}
@@ -1738,7 +1751,7 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 				}
 			}
 
-			ss << i << "," << cluster->level << "," << (cluster->groupIndex == KVirtualGeometryDefine::INVALID_INDEX) << "," << cluster->indices.size() / 3 << "," << cluster->error << "," << adjacenciesAsChildren << "," << adjacenciesAsParent << "," << children << "," << parents;
+			ss << i << "," << cluster->level << "," << (cluster->groupIndex == KVirtualGeometryDefine::INVALID_INDEX) << "," << cluster->indices.size() / 3 << "," << cluster->lodError << "," << adjacenciesAsChildren << "," << adjacenciesAsParent << "," << children << "," << parents;
 			ss << std::endl;
 		}
 
@@ -1761,36 +1774,28 @@ void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& ver
 	}
 }
 
-bool KVirtualGeometryBuilder::GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, std::vector<KMeshClustersStorage>& stroages, std::vector<uint32_t>& clustersPartNum)
+bool KVirtualGeometryBuilder::GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, std::vector<uint32_t>& clustersPartNum)
 {
 	clusters.clear();
-	stroages.clear();
+	vertexStroage.vertices.clear();
+	indexStorage.indices.clear();
 	clustersPartNum.clear();
 
 	if (m_ClusterStorageParts.size())
 	{
-		clusters.reserve(m_ClusterStorageParts.size() * m_MaxClusterGroup);
-		stroages.reserve(m_ClusterStorageParts.size());
+		size_t maxClusterNum = m_ClusterStorageParts.size() * m_MaxClusterGroup;
+		clusters.reserve(maxClusterNum);
+		vertexStroage.vertices.reserve(maxClusterNum * m_MaxClusterVertex * KMeshClustersVertexStorage::FLOAT_PER_VERTEX);
+		indexStorage.indices.reserve(maxClusterNum * m_MaxPartitionNum * 3);
 		clustersPartNum.reserve(m_ClusterStorageParts.size());
 
+		uint32_t batchStart = 0;
 		uint32_t vertexOffset = 0;
 		uint32_t indexOffset = 0;
-		uint32_t batchStart = 0;
 
 		for (uint32_t storageIndex = 0; storageIndex < m_ClusterStorageParts.size(); ++storageIndex)
 		{
 			KMeshClustersPartPtr clustersPart = m_ClusterStorageParts[storageIndex];
-
-			std::vector<glm::vec3> poisitions;
-			std::vector<glm::vec3> normals;
-			std::vector<glm::vec2> uvs;
-
-			std::vector<uint32_t> indices;
-
-			poisitions.reserve(clustersPart->clusters.size() * m_MaxClusterVertex);
-			normals.reserve(clustersPart->clusters.size() * m_MaxClusterVertex);
-			uvs.reserve(clustersPart->clusters.size() * m_MaxClusterVertex);
-			indices.reserve(clustersPart->clusters.size() * m_MaxPartitionNum * 3);
 
 			for (uint32_t clusterIndex : clustersPart->clusters)
 			{
@@ -1801,36 +1806,33 @@ bool KVirtualGeometryBuilder::GetMeshClusterStorages(std::vector<KMeshClusterBat
 				newBatch.vertexOffset = vertexOffset;
 				newBatch.indexOffset = indexOffset;
 				newBatch.storageIndex = storageIndex;
-				newBatch.boundCenter = glm::vec4(cluster->bound.GetCenter(), 0);
-				newBatch.boundHalfExtend = glm::vec4(0.5f * cluster->bound.GetExtend(), 0);
+				newBatch.lodBoundCenterError = glm::vec4(cluster->lodBound.GetCenter(), cluster->lodError);
+				newBatch.lodBoundHalfExtendMaxParentError = glm::vec4(0.5f * cluster->lodBound.GetExtend(), m_ClusterGroups[cluster->groupIndex]->lodError);
 
 				clusters.push_back(newBatch);
 
 				for (const KMeshProcessorVertex& vertex : cluster->vertices)
 				{
-					poisitions.push_back(vertex.pos);
-					normals.push_back(vertex.normal);
-					uvs.push_back(vertex.uv);
-				}
-				
-				indices.insert(indices.end(), cluster->indices.begin(), cluster->indices.end());
+					vertexStroage.vertices.emplace_back(vertex.pos[0]);
+					vertexStroage.vertices.emplace_back(vertex.pos[1]);
+					vertexStroage.vertices.emplace_back(vertex.pos[2]);
 
-				vertexOffset = (uint32_t)poisitions.size();
-				indexOffset = (uint32_t)indices.size();
+					vertexStroage.vertices.emplace_back(vertex.normal[0]);
+					vertexStroage.vertices.emplace_back(vertex.normal[1]);
+					vertexStroage.vertices.emplace_back(vertex.normal[2]);
+
+					vertexStroage.vertices.emplace_back(vertex.uv[0]);
+					vertexStroage.vertices.emplace_back(vertex.uv[1]);
+				}
+
+				indexStorage.indices.insert(indexStorage.indices.end(), cluster->indices.begin(), cluster->indices.end());
+
+				vertexOffset = (uint32_t)vertexStroage.vertices.size();
+				indexOffset = (uint32_t)indexStorage.indices.size();
 			}
 
 			clustersPartNum.push_back((uint32_t)clustersPart->clusters.size());
-
-			KMeshClustersStorage newStorage;
-			newStorage.positions = poisitions;
-			newStorage.normals = normals;
-			newStorage.uvs = uvs;
-			newStorage.indices = indices;
-			stroages.push_back(std::move(newStorage));
 		}
-
-		clusters.shrink_to_fit();
-		stroages.shrink_to_fit();
 
 		return true;
 	}
@@ -1848,8 +1850,8 @@ uint32_t KVirtualGeometryBuilder::BuildMeshClusterHierarchies(std::vector<KMeshC
 	KMeshClusterHierarchy newHierarchy = hierarchies[hierarchyIndex];
 
 	newHierarchy.storagePartIndex = bvhNode->storagePartIndex;
-	newHierarchy.boundCenter = glm::vec4(bvhNode->bound.GetCenter(), 0);
-	newHierarchy.boundHalfExtend = glm::vec4(0.5f * bvhNode->bound.GetExtend(), 0);
+	newHierarchy.lodBoundCenter = glm::vec4(bvhNode->lodBound.GetCenter(), 0);
+	newHierarchy.lodBoundHalfExtend = glm::vec4(0.5f * bvhNode->lodBound.GetExtend(), 0);
 
 	for (uint32_t i = 0; i < KVirtualGeometryDefine::MAX_BVH_NODES; ++i)
 	{

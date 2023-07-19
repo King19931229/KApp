@@ -29,7 +29,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 	}
 	CandidateNode nodeBatch = UnpackCandidateNode(SharedCandidateNodeBatch[localIndex]);
 #endif
-	
+
 	uint instanceId = nodeBatch.instanceId;
 	uint resourceIndex = InstanceData[instanceId].resourceIndex;
 
@@ -52,12 +52,12 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 
 			if (cullData.bIsVisible)
 			{
-				uint nodeWriteOffset = InterlockAddNodeWriteOffset();
+				uint nodeWriteOffset = InterlockAddNodeWriteOffset(1);
 				if (nodeWriteOffset < MAX_CANDIDATE_NODE)
 				{
 					CandidateNode node;
 					node.instanceId = instanceId;
-					node.nodeId = nodeIndex;
+					node.nodeIndex = nodeIndex;
 					StoreCandidateNode(nodeWriteOffset, node);
 				}
 			}
@@ -66,6 +66,20 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 	// Leaf
 	else
 	{
+		uint clusterStart = hierarchy.clusterStart;
+		uint clusterNum = hierarchy.clusterNum;
+		uint clusterWriteOffset = InterlockAddClusterWriteOffset(clusterNum);
+		for (uint i = 0; i < clusterNum; ++i)
+		{
+			if (clusterWriteOffset + i >= MAX_CANDIDATE_CLUSTER)
+			{
+				break;
+			}
+			CandidateCluster cluster;
+			cluster.instanceId = instanceId;
+			cluster.clusterIndex = clusterStart + i;
+			StoreCandidateCluster(clusterWriteOffset + i, cluster);
+		}
 	}
 }
 
@@ -82,17 +96,14 @@ void main()
 	uint nodeIndex = QueueState[0].nodeReadOffset + batchStart + groupIndex;
 
 	bool writeData = false;
-	if (groupIndex < BVH_MAX_GROUP_BATCH_SIZE)
+	if (groupIndex < batchSize)
 	{
-		if (groupIndex < batchSize)
-		{
-			writeData = true;
-			SharedCandidateNodeBatch[groupIndex] = CandidateNodeBatch[nodeIndex];
-		}
-		else
-		{
-			SharedCandidateNodeBatch[groupIndex] = 0xFFFFFFFF;
-		}
+		writeData = true;
+		SharedCandidateNodeBatch[groupIndex] = CandidateNodeBatch[nodeIndex];
+	}
+	else
+	{
+		SharedCandidateNodeBatch[groupIndex] = 0xFFFFFFFF;
 	}
 
 	groupMemoryBarrier();

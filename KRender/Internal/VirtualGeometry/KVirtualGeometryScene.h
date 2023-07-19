@@ -26,7 +26,8 @@ protected:
 		BINDING_CLUSTER_STORAGE_INDEX,
 		BINDING_CANDIDATE_NODE_BATCH,
 		BINDING_CANDIDATE_CLUSTER_BATCH,
-		BINDING_INDIRECT_ARGS
+		BINDING_SELECTED_CLUSTER_BATCH,
+		BINDING_INDIRECT_ARGS,
 	};
 
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_GLOBAL_DATA = "VirtualGeometrySceneGlobalData";
@@ -35,6 +36,7 @@ protected:
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_CANDIDATE_NODE = "VirtualGeometrySceneCandidateNode";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_CANDIDATE_CLUSTER = "VirtualGeometrySceneCandidateCluster";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_INDIRECT_ARGS = "VirtualGeometrySceneIndirectArgs";
+	static constexpr char* VIRTUAL_GEOMETRY_SCENE_SELECTED_CLUSTER = "VirtualGeometrySceneSelectedCluster";
 
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
@@ -59,12 +61,14 @@ protected:
 	IKStorageBufferPtr m_CandidateNodeBuffer;
 	IKStorageBufferPtr m_CandidateClusterBuffer;
 	IKStorageBufferPtr m_IndirectAgrsBuffer;
+	IKStorageBufferPtr m_SelectedClusterBuffer;
 
 	IKComputePipelinePtr m_InitQueueStatePipeline;
 	IKComputePipelinePtr m_InstanceCullPipeline;
 	IKComputePipelinePtr m_InitNodeCullArgsPipeline;
 	IKComputePipelinePtr m_InitClusterCullArgsPipeline;
 	IKComputePipelinePtr m_NodeCullPipeline;
+	IKComputePipelinePtr m_ClusterCullPipeline;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);

@@ -1,9 +1,15 @@
 #ifndef CULLING_H
 #define CULLING_H
 
-const bool NEAR_CLIP_ZERO = true;
-const float CLIP_NEAR_Z = NEAR_CLIP_ZERO ? 0.0 : -1.0;
-const bool SUPPORT_GATHER = false;
+#define NEAR_CLIP_TO_ZERO 1
+
+#if NEAR_CLIP_TO_ZERO
+#	define CLIP_NEAR_Z 0
+#else
+#	define CLIP_NEAR_Z -1
+#endif
+
+#define SUPPORT_GATHER 0
 
 struct FrustumCullData
 {

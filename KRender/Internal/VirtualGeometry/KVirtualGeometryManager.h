@@ -43,7 +43,8 @@ protected:
 
 	KVirtualGeometryStorageBuffer m_PackedHierarchyBuffer;
 	KVirtualGeometryStorageBuffer m_ClusterBatchBuffer;
-	KVirtualGeometryStorageBuffer m_ClusterStorageBuffer;
+	KVirtualGeometryStorageBuffer m_ClusterVertexStorageBuffer;
+	KVirtualGeometryStorageBuffer m_ClusterIndexStorageBuffer;
 	KVirtualGeometryStorageBuffer m_ResourceBuffer;
 
 	bool AcquireImpl(const char* label, const KMeshRawData& userData, KVirtualGeometryResourceRef& geometry);
@@ -61,7 +62,8 @@ public:
 
 	IKStorageBufferPtr GetPackedHierarchyBuffer() { return m_PackedHierarchyBuffer.GetBuffer(); }
 	IKStorageBufferPtr GetClusterBatchBuffer() { return m_ClusterBatchBuffer.GetBuffer(); }
-	IKStorageBufferPtr GetClusterStorageBuffer() { return m_ClusterStorageBuffer.GetBuffer(); }
+	IKStorageBufferPtr GetClusterVertexStorageBuffer() { return m_ClusterVertexStorageBuffer.GetBuffer(); }
+	IKStorageBufferPtr GetClusterIndexStorageBuffer() { return m_ClusterIndexStorageBuffer.GetBuffer(); }
 	IKStorageBufferPtr GetResourceBuffer() { return m_ResourceBuffer.GetBuffer(); }
 
 	bool AcquireFromUserData(const KMeshRawData& userData, const std::string& label, KVirtualGeometryResourceRef& ref);

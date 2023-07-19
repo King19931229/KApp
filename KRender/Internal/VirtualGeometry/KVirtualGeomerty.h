@@ -15,10 +15,15 @@ struct KVirtualGeometryResource
 	uint32_t hierarchyPackedOffset = 0;
 	uint32_t hierarchyPackedSize = 0;
 
-	uint32_t clusterStorageOffset = 0;
-	uint32_t clusterStorageSize = 0;
+	uint32_t clusterVertexStorageOffset = 0;
+	uint32_t clusterVertexStorageSize = 0;
 
-	uint32_t padding = 0;
+	uint32_t clusterIndexStorageOffset = 0;
+	uint32_t clusterIndexStorageSize = 0;
+
+	uint32_t materialIndex = KVirtualGeometryDefine::INVALID_INDEX;
+
+	uint32_t padding[2];
 };
 static_assert((sizeof(KVirtualGeometryResource) % 16) == 0, "Size must be a multiple of 16");
 
@@ -49,8 +54,8 @@ static_assert((sizeof(KVirtualGeometryQueueState) % 16) == 0, "Size must be a mu
 
 struct KMeshClusterHierarchyPackedNode
 {
-	glm::vec4 boundCenter;
-	glm::vec4 boundHalfExtend;
+	glm::vec4 lodBoundCenter;
+	glm::vec4 lodBoundHalfExtend;
 	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
 	uint32_t isLeaf = 0;
 	uint32_t clusterStart = KVirtualGeometryDefine::INVALID_INDEX;

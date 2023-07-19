@@ -18,12 +18,12 @@ void main()
 
 		if (cullData.bIsVisible)
 		{
-			uint nodeWriteOffset = InterlockAddNodeWriteOffset();
+			uint nodeWriteOffset = InterlockAddNodeWriteOffset(1);
 			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
 			{
 				CandidateNode node;
 				node.instanceId = instanceId;
-				node.nodeId = 0;
+				node.nodeIndex = 0;
 				StoreCandidateNode(nodeWriteOffset, node);
 			}
 		}

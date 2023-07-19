@@ -23,8 +23,8 @@ struct InstanceStruct
 // Match with KMeshClusterBatch
 struct ClusterBatchStruct
 {
-	vec4 boundCenter;
-	vec4 boundHalfExtend;
+	vec4 lodBoundCenterError;
+	vec4 lodBoundHalfExtend;
 	uint vertexOffset;
 	uint indexOffset;
 	uint storageIndex;
@@ -34,8 +34,8 @@ struct ClusterBatchStruct
 // Match with KMeshClusterHierarchyPackedNode
 struct ClusterHierarchyStruct
 {
-	vec4 boundCenter;
-	vec4 boundHalfExtend;
+	vec4 lodBoundCenter;
+	vec4 lodBoundHalfExtend;
 	uint children[BVH_MAX_NODES];
 	uint isLeaf;
 	uint clusterStart;
@@ -57,13 +57,18 @@ struct ResourceStruct
 	uint hierarchyPackedOffset;
 	uint hierarchyPackedSize;
 
-	uint clusterStorageOffset;
-	uint clusterStorageSize;
+	uint clusterVertexStorageOffset;
+	uint clusterVertexStorageSize;
 
-	uint padding;
+	uint clusterIndexStorageOffset;
+	uint clusterIndexStorageSize;
+
+	uint materialIndex;
+
+	uint padding[2];
 };
 
-// KVirtualGeometryQueueState
+// Match with KVirtualGeometryQueueState
 struct QueueStateStruct
 {
 	uint nodeReadOffset;
@@ -77,9 +82,22 @@ struct QueueStateStruct
 struct CandidateNode
 {
 	uint instanceId;
-	uint nodeId;
+	uint nodeIndex;
 };
 
+struct CandidateCluster
+{
+	uint instanceId;
+	uint clusterIndex;
+};
+
+struct SelectedCluster
+{
+	uint instanceId;
+	uint clusterIndex;
+};
+
+// Match with KVirtualGeometryScene
 #define BINDING_GLOBAL_DATA 0
 #define BINDING_RESOURCE 1
 #define BINDING_QUEUE_STATE 2
@@ -90,8 +108,10 @@ struct CandidateNode
 #define BINDING_CLUSTER_STORAGE_INDEX 7
 #define BINDING_CANDIDATE_NODE_BATCH 8
 #define BINDING_CANDIDATE_CLUSTER_BATCH 9
-#define BINDING_INDIRECT_ARGS 10
+#define BINDING_SELECTED_CLUSTER_BATCH 10
+#define BINDING_INDIRECT_ARGS 11
 
+// Match with KVirtualGeometryGlobal
 layout(binding = BINDING_GLOBAL_DATA)
 uniform GlobalData
 {
@@ -127,7 +147,11 @@ layout (std430, binding = BINDING_CANDIDATE_CLUSTER_BATCH) coherent buffer Candi
 	uint CandidateClusterBatch[];
 };
 
-layout (std430, binding = BINDING_INDIRECT_ARGS) coherent buffer IndirectArgsBuffer {
+layout (std430, binding = BINDING_SELECTED_CLUSTER_BATCH) coherent buffer SelectedClusterBatchBuffer {
+	uint SelectedClusterBatch[];
+};
+
+layout (std430, binding = BINDING_INDIRECT_ARGS) buffer IndirectArgsBuffer {
 	uint IndirectArgs[];
 };
 
@@ -135,7 +159,7 @@ uint PackCandidateNode(CandidateNode node)
 {
 	uint pack = 0;
 	pack |= node.instanceId & 0xFF;
-	pack |= (node.nodeId & 0xFFFF) << 8;
+	pack |= (node.nodeIndex & 0xFFFF) << 8;
 	return pack;
 }
 
@@ -143,8 +167,24 @@ CandidateNode UnpackCandidateNode(uint data)
 {
 	CandidateNode node;
 	node.instanceId = data & 0xFF;
-	node.nodeId = (data >> 8) & 0xFFFF;
+	node.nodeIndex = (data >> 8) & 0xFFFF;
 	return node;
+}
+
+uint PackCandidateCluster(CandidateCluster cluster)
+{
+	uint pack = 0;
+	pack |= cluster.instanceId & 0xFF;
+	pack |= (cluster.clusterIndex & 0xFFFF) << 8;
+	return pack;
+}
+
+CandidateCluster UnpackCandidateCluster(uint data)
+{
+	CandidateCluster cluster;
+	cluster.instanceId = data & 0xFF;
+	cluster.clusterIndex = (data >> 8) & 0xFFFF;
+	return cluster;
 }
 
 void StoreCandidateNode(uint index, CandidateNode node)
@@ -152,10 +192,20 @@ void StoreCandidateNode(uint index, CandidateNode node)
 	CandidateNodeBatch[index] = PackCandidateNode(node);
 }
 
+void StoreCandidateCluster(uint index, CandidateCluster cluster)
+{
+	CandidateClusterBatch[index] = PackCandidateCluster(cluster);
+}
+
+void StoreSelectedCluster(uint index, CandidateCluster cluster)
+{
+	SelectedClusterBatch[index] = PackCandidateCluster(cluster);
+}
+
 void GetHierarchyData(in CandidateNode nodeBatch, out ClusterHierarchyStruct hierarchy)
 {
 	uint resourceIndex = InstanceData[nodeBatch.instanceId].resourceIndex;
-	uint nodeIndex = nodeBatch.nodeId;
+	uint nodeIndex = nodeBatch.nodeIndex;
 
 	uint hierarchyPackedOffset = ResourceData[resourceIndex].hierarchyPackedOffset;
 	uint hierarchyNodeSize = (BVH_MAX_NODES * 4 + 16 + 32);
@@ -164,12 +214,12 @@ void GetHierarchyData(in CandidateNode nodeBatch, out ClusterHierarchyStruct hie
 	hierarchy = ClusterHierarchy[hierarchyOffset];
 }
 
-uint InterlockAddWriteOffset()
+uint InterlockAddWriteOffset(uint add)
 {
 	while (true)
 	{
 		uint expectedValue = QueueState[0].nodeWriteOffset;
-		uint newValue = expectedValue + 1;
+		uint newValue = expectedValue + add;
 		if (atomicCompSwap(QueueState[0].nodeWriteOffset, expectedValue, newValue) == expectedValue)
 		{
 			return expectedValue;
@@ -178,12 +228,12 @@ uint InterlockAddWriteOffset()
 }
 
 #define InterlockAddDecl(name, member)\
-uint InterlockAdd##name()\
+uint InterlockAdd##name(uint add)\
 {\
 	while (true)\
 	{\
 		uint expectedValue = member;\
-		uint newValue = expectedValue + 1;\
+		uint newValue = expectedValue + add;\
 		if (atomicCompSwap(member, expectedValue, newValue) == expectedValue)\
 		{\
 			return expectedValue;\
@@ -192,5 +242,6 @@ uint InterlockAdd##name()\
 }
 
 InterlockAddDecl(NodeWriteOffset, QueueState[0].nodeWriteOffset);
+InterlockAddDecl(ClusterWriteOffset, QueueState[0].clusterWriteOffset);
 
 #endif

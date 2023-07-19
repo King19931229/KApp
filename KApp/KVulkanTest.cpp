@@ -43,7 +43,7 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f }
 	};
 
-	static const uint32_t fileIndex = 0;
+	static const uint32_t fileIndex = 3;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
@@ -122,16 +122,16 @@ void InitQEM(IKEnginePtr engine)
 			clusterBuilder.GetAllBVHBounds(bvhBounds);
 			for (KAABBBox& bound : bvhBounds)
 			{
-				/*bound = bound.Transform(glm::scale(glm::mat4(1), glm::vec3(scale)));
-				 KMeshBoxInfo boxInfo;
-				 boxInfo.transform = glm::translate(glm::mat4(1), bound.GetCenter());
-				 boxInfo.halfExtend = bound.GetExtend() * 0.5f;
-				 ((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateBox(boxInfo), glm::vec4(0, 0, 1, 1));
+				bound = bound.Transform(glm::scale(glm::mat4(1), glm::vec3(scale)));
+				KMeshBoxInfo boxInfo;
+				boxInfo.transform = glm::translate(glm::mat4(1), bound.GetCenter());
+				boxInfo.halfExtend = bound.GetExtend() * 0.5f;
+				((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateBox(boxInfo), glm::vec4(0, 0, 1, 1));
 
 				KMeshCubeInfo cubeInfo;
 				cubeInfo.transform = glm::translate(glm::mat4(1), bound.GetCenter());
 				cubeInfo.halfExtend = bound.GetExtend() * 0.5f;
-				((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateCube(cubeInfo), glm::vec4(0.3f, 0.3f, 0.3f, 0.02f));*/
+				((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateCube(cubeInfo), glm::vec4(0.3f, 0.3f, 0.3f, 0.02f));
 			}
 		}
 		if (entity->RegisterComponent(CT_USER, &component))
@@ -145,26 +145,44 @@ void InitQEM(IKEnginePtr engine)
 	{
 		ImGui::Begin("QEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-		static bool debugVirtualGeometry = true;
-		ImGui::Checkbox("DebugVirtualGeometry", &debugVirtualGeometry);
+		enum
+		{
+			DebugVirtualGeometry = 0,
+			DebugSimplification,
+			DebugCluster,
+			DebugDAGCut
+		};
 
-		static bool debugSimplification = false;
+		static uint32_t selectedOption = DebugVirtualGeometry;
+
+		if (ImGui::RadioButton("DebugVirtualGeometry", selectedOption == DebugVirtualGeometry))
+		{
+			selectedOption = DebugVirtualGeometry;
+		}
+
+		if (ImGui::RadioButton("DebugSimplification", selectedOption == DebugSimplification))
+		{
+			selectedOption = DebugSimplification;
+		}
 		static int32_t targetCount = 0;
-		ImGui::Checkbox("DebugSimplification", &debugSimplification);
 		ImGui::SliderInt("TargetCount", &targetCount, std::max(simplification.GetMaxVertexCount() - 1000000, simplification.GetMinVertexCount()), std::min(simplification.GetMaxVertexCount(), simplification.GetMaxVertexCount()));
 
-		static bool debugCluster = false;
+		if (ImGui::RadioButton("DebugCluster", selectedOption == DebugCluster))
+		{
+			selectedOption = DebugCluster;
+		}
 		static bool debugAsGroup = false;
 		static int32_t targetLevel = 0;
-		ImGui::Checkbox("DebugCluster", &debugCluster);
 		ImGui::Checkbox("DebugAsGroup", &debugAsGroup);
 		ImGui::SliderInt("TargetLevel", &targetLevel, 0, (int)(clusterBuilder.GetLevelNum() - 1));
 
-		static bool debugDAGCut = false;
+		if (ImGui::RadioButton("DebugDAGCut", selectedOption == DebugDAGCut))
+		{
+			selectedOption = DebugDAGCut;
+		}
 		static bool updateDebugDAGCut = false;
 		static int32_t targetTriangleNum = 0;
 		static float targetError = 0;
-		ImGui::Checkbox("DebugDAGCut", &debugDAGCut);
 		ImGui::Checkbox("UpdateDebugDAGCut", &updateDebugDAGCut);
 		ImGui::SliderInt("TargetTriangleNum", &targetTriangleNum, (int)clusterBuilder.GetMinTriangleNum(), (int)clusterBuilder.GetMaxTriangleNum());
 		ImGui::SliderFloat("TargetError", &targetError, 0, clusterBuilder.GetMaxError());
@@ -178,11 +196,11 @@ void InitQEM(IKEnginePtr engine)
 				static std::vector<KMeshProcessorVertex> vertices;
 				static std::vector<uint32_t> indices;
 
-				if (debugVirtualGeometry)
+				if (selectedOption == DebugVirtualGeometry)
 				{
 					component->InitAsVirtualGeometry(userData, "vg");
 				}
-				else if (debugSimplification)
+				else if (selectedOption == DebugSimplification)
 				{
 					static float error = 0;
 					if (targetCount != simplification.GetCurVertexCount() && simplification.Simplify(MeshSimplifyTarget::VERTEX, targetCount, vertices, indices, error))
@@ -197,7 +215,7 @@ void InitQEM(IKEnginePtr engine)
 					}
 					ImGui::LabelText("Error", "%f", error);
 				}
-				else if (debugCluster)
+				else if (selectedOption == DebugCluster)
 				{
 					static int32_t currentTargetLevel = -1;
 					static bool currentDebugAsGroup = false;
@@ -222,7 +240,7 @@ void InitQEM(IKEnginePtr engine)
 						currentDebugAsGroup = debugAsGroup;
 					}
 				}
-				else if (debugDAGCut)
+				else if (selectedOption == DebugDAGCut)
 				{
 					static uint32_t currentTargetTriangleNum = std::numeric_limits<uint32_t>::max();
 					static float currentTargetError = -1;
@@ -258,6 +276,15 @@ void InitQEM(IKEnginePtr engine)
 int main()
 {
 	DUMP_MEMORY_LEAK_BEGIN();
+
+	/*
+	KCamera camera;
+	camera.LookAt(glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
+	camera.SetPosition(glm::vec3(0));
+	camera.SetPerspective(glm::radians(45.0f), 1, 1, 1000);
+	glm::vec4 pos(0, 0, -500, 1);
+	glm::vec4 pos2 = camera.GetProjectiveMatrix() * pos;
+	*/
 
 	KEngineGlobal::CreateEngine();
 	IKEnginePtr engine = KEngineGlobal::Engine;

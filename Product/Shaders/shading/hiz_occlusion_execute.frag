@@ -23,7 +23,7 @@ float GetMaxDepthFromHZB(ScreenRect rect, ivec2 hzbSize, bool bSample4x4)
 
 	if (bSample4x4)
 	{
-		if (SUPPORT_GATHER)
+		if (SUPPORT_GATHER == 1)
 		{
 			// vec4 gatherCoords;
 			// gatherCoords.xy = vec2(rect.hzbTexels.xy) * texelSize.xy + texelSize.xy;			// (RectPixels.xy + 1) * PixelSize.xy
@@ -112,7 +112,7 @@ float GetMaxDepthFromHZB(ScreenRect rect, ivec2 hzbSize, bool bSample4x4)
 	else
 	{
 		vec4 depth = vec4(0);
-		if (SUPPORT_GATHER)
+		if (SUPPORT_GATHER == 1)
 		{
 			// vec2 coords = rect.hzbTexels.xy * texelSize + texelSize;	// (RectPixels + 1.0f) * TexelSize
 			// depth = textureGatherLod(hiZTex, coords.xy, mipLevel);
