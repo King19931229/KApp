@@ -96,28 +96,33 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_QueueStateBuffer->InitDevice(false);
 			m_QueueStateBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_QUEUE_STATE);
 
-			std::vector<uint8_t> emptyCandidateNodeData;
+			std::vector<uint32_t> emptyCandidateNodeData;
 			emptyCandidateNodeData.resize(MAX_CANDIDATE_NODE);
-			memset(emptyCandidateNodeData.data(), -1, MAX_CANDIDATE_NODE);
+			memset(emptyCandidateNodeData.data(), -1, MAX_CANDIDATE_NODE * sizeof(uint32_t));
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_CandidateNodeBuffer);
-			m_CandidateNodeBuffer->InitMemory(MAX_CANDIDATE_NODE, emptyCandidateNodeData.data());
+			m_CandidateNodeBuffer->InitMemory(MAX_CANDIDATE_NODE * sizeof(uint32_t), emptyCandidateNodeData.data());
 			m_CandidateNodeBuffer->InitDevice(false);
 			m_CandidateNodeBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_CANDIDATE_NODE);
 
-			std::vector<uint8_t> emptyBatchClusterData;
+			std::vector<uint32_t> emptyBatchClusterData;
 			emptyBatchClusterData.resize(MAX_CANDIDATE_CLUSTERS);
-			memset(emptyBatchClusterData.data(), -1, MAX_CANDIDATE_CLUSTERS);
+			memset(emptyBatchClusterData.data(), -1, MAX_CANDIDATE_CLUSTERS * sizeof(uint32_t));
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_CandidateClusterBuffer);
-			m_CandidateClusterBuffer->InitMemory(MAX_CANDIDATE_CLUSTERS, emptyBatchClusterData.data());
+			m_CandidateClusterBuffer->InitMemory(MAX_CANDIDATE_CLUSTERS * sizeof(uint32_t), emptyBatchClusterData.data());
 			m_CandidateClusterBuffer->InitDevice(false);
 			m_CandidateClusterBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_CANDIDATE_CLUSTER);
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_SelectedClusterBuffer);
-			m_SelectedClusterBuffer->InitMemory(MAX_CANDIDATE_CLUSTERS, emptyBatchClusterData.data());
+			m_SelectedClusterBuffer->InitMemory(MAX_CANDIDATE_CLUSTERS * sizeof(uint32_t), emptyBatchClusterData.data());
 			m_SelectedClusterBuffer->InitDevice(false);
 			m_SelectedClusterBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_SELECTED_CLUSTER);
+
+			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_ExtraDebugBuffer);
+			m_ExtraDebugBuffer->InitMemory(MAX_CANDIDATE_CLUSTERS * sizeof(uint32_t), emptyBatchClusterData.data());
+			m_ExtraDebugBuffer->InitDevice(false);
+			m_ExtraDebugBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINDING_EXTRA_DEBUG_INFO);
 
 			uint32_t indirectinfo[] = { 1, 1, 1 };
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_IndirectAgrsBuffer);
@@ -157,7 +162,9 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_NodeCullPipeline->BindStorageBuffer(BINDING_HIERARCHY, KRenderGlobal::VirtualGeometryManager.GetPackedHierarchyBuffer(), COMPUTE_RESOURCE_IN, true);
 			m_NodeCullPipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 			m_NodeCullPipeline->BindStorageBuffer(BINDING_CANDIDATE_NODE_BATCH, m_CandidateNodeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-			m_NodeCullPipeline->BindStorageBuffer(BINDING_CANDIDATE_CLUSTER_BATCH, m_CandidateClusterBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_NodeCullPipeline->BindStorageBuffer(BINDING_CANDIDATE_CLUSTER_BATCH, m_CandidateClusterBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+			m_NodeCullPipeline->BindStorageBuffer(BINDING_EXTRA_DEBUG_INFO, m_ExtraDebugBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+			m_NodeCullPipeline->BindStorageBuffer(BINDING_EXTRA_DEBUG_INFO, m_ExtraDebugBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 			m_NodeCullPipeline->Init("virtualgeometry/node_cull.comp");
 
 			KRenderGlobal::RenderDevice->CreateComputePipeline(m_ClusterCullPipeline);
@@ -165,8 +172,10 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_ClusterCullPipeline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);
 			m_ClusterCullPipeline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
 			m_ClusterCullPipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+			m_ClusterCullPipeline->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
 			m_ClusterCullPipeline->BindStorageBuffer(BINDING_CANDIDATE_CLUSTER_BATCH, m_CandidateClusterBuffer, COMPUTE_RESOURCE_IN, true);
 			m_ClusterCullPipeline->BindStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, m_SelectedClusterBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_ClusterCullPipeline->BindStorageBuffer(BINDING_EXTRA_DEBUG_INFO, m_ExtraDebugBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 			m_ClusterCullPipeline->Init("virtualgeometry/cluster_cull.comp");
 		}
 
@@ -202,6 +211,7 @@ bool KVirtualGeometryScene::UnInit()
 	SAFE_UNINIT(m_CandidateClusterBuffer);
 	SAFE_UNINIT(m_IndirectAgrsBuffer);	
 	SAFE_UNINIT(m_SelectedClusterBuffer);
+	SAFE_UNINIT(m_ExtraDebugBuffer);
 
 	SAFE_UNINIT(m_InitQueueStatePipeline);
 	SAFE_UNINIT(m_InstanceCullPipeline);
@@ -225,7 +235,10 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 	{
 		KVirtualGeometryGlobal globalData;
 		globalData.numInstance = (uint32_t)m_Instances.size();
-		globalData.worldToClip = m_Camera ? (m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix()) : glm::mat4(0);
+		globalData.worldToClip = m_Camera ? (m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix()) : glm::mat4(1);
+		globalData.worldToView = m_Camera ? m_Camera->GetViewMatrix() : glm::mat4(1);
+		globalData.misc.x = m_Camera ? m_Camera->GetNear() : 0.0f;
+		globalData.misc.y = m_Camera ? m_Camera->GetAspect() : 1.0f;
 		m_GlobalDataBuffer->Map(&pWrite);
 		memcpy(pWrite, &globalData, sizeof(globalData));
 		m_GlobalDataBuffer->UnMap();

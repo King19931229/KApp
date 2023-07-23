@@ -17,7 +17,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 
 #if DEBUG_SHADER_GROUP
 	uint globalIndex = batchStart + localIndex;
-	if (batchStart > batchSize)
+	if (localIndex >= batchSize)
 	{
 		return;
 	}
@@ -38,47 +38,62 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 
 	uint isLeaf = hierarchy.isLeaf;
 
+	mat4 localToWorld = InstanceData[instanceId].transform;
+
+	vec3 boundCenter = hierarchy.lodBoundCenterError.xyz;
+	vec3 boundHalfExtend = hierarchy.lodBoundHalfExtendRadius.xyz;
+	float maxParentError = hierarchy.lodBoundCenterError.w;
+	float radius = hierarchy.lodBoundHalfExtendRadius.w;
+
+	FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
+
+#if CULL_CLUSTER_ALONG_BVH
+	if (cullData.bIsVisible)
+	{
+		cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, boundCenter.xyz, radius, maxParentError);
+	}
+#endif
+
+	if (!cullData.bIsVisible)
+	{
+		return;
+	}
+
 	if (isLeaf == 0)
 	{
 		uint nodeIndex = hierarchy.children[childIndex];
 		if (nodeIndex != INVALID_INDEX)
 		{
-			mat4 localToWorld = InstanceData[instanceId].transform;
-
-			vec4 boundCenter = ResourceData[resourceIndex].boundCenter;
-			vec4 boundHalfExtend = ResourceData[resourceIndex].boundHalfExtend;
-
-			FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
-
-			if (cullData.bIsVisible)
+			uint nodeWriteOffset = InterlockAddNodeWriteOffset(1);
+			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
 			{
-				uint nodeWriteOffset = InterlockAddNodeWriteOffset(1);
-				if (nodeWriteOffset < MAX_CANDIDATE_NODE)
-				{
-					CandidateNode node;
-					node.instanceId = instanceId;
-					node.nodeIndex = nodeIndex;
-					StoreCandidateNode(nodeWriteOffset, node);
-				}
+				CandidateNode node;
+				node.instanceId = instanceId;
+				node.nodeIndex = nodeIndex;
+				StoreCandidateNode(nodeWriteOffset, node);
+				// ExtraDebugInfo[nodeWriteOffset] = groupIndex; //uint(IsSharedHierarchyDataValid(localIndex));
 			}
 		}
 	}
 	// Leaf
 	else
 	{
-		uint clusterStart = hierarchy.clusterStart;
-		uint clusterNum = hierarchy.clusterNum;
-		uint clusterWriteOffset = InterlockAddClusterWriteOffset(clusterNum);
-		for (uint i = 0; i < clusterNum; ++i)
+		if (childIndex == 0)
 		{
-			if (clusterWriteOffset + i >= MAX_CANDIDATE_CLUSTER)
+			uint clusterStart = hierarchy.clusterStart;
+			uint clusterNum = hierarchy.clusterNum;
+			uint clusterWriteOffset = InterlockAddClusterWriteOffset(clusterNum);
+			for (uint i = 0; i < clusterNum; ++i)
 			{
-				break;
+				if (clusterWriteOffset + i >= MAX_CANDIDATE_CLUSTER)
+				{
+					break;
+				}
+				CandidateCluster candidateCluster;
+				candidateCluster.instanceId = instanceId;
+				candidateCluster.clusterIndex = clusterStart + i;
+				StoreCandidateCluster(clusterWriteOffset + i, candidateCluster);
 			}
-			CandidateCluster cluster;
-			cluster.instanceId = instanceId;
-			cluster.clusterIndex = clusterStart + i;
-			StoreCandidateCluster(clusterWriteOffset + i, cluster);
 		}
 	}
 }
@@ -90,30 +105,37 @@ void main()
 	uint groupIndex = gl_LocalInvocationID.x;
 	uint maxBatchNodes = QueueState[0].nodePrevWriteOffset - QueueState[0].nodeReadOffset;
 
-	uint batchStart = groupID * BVH_MAX_GROUP_BATCH_SIZE;
-	uint batchSize = min(batchStart + BVH_MAX_GROUP_BATCH_SIZE, maxBatchNodes) - batchStart;
+	uint batchStart = QueueState[0].nodeReadOffset + groupID * BVH_MAX_GROUP_BATCH_SIZE;
+	uint batchSize = min(batchStart + BVH_MAX_GROUP_BATCH_SIZE, QueueState[0].nodePrevWriteOffset) - batchStart;
 
-	uint nodeIndex = QueueState[0].nodeReadOffset + batchStart + groupIndex;
+	uint localIndex = groupIndex / BVH_MAX_NODES;
+	uint childIndex = groupIndex & BVH_NODE_MASK;
 
-	bool writeData = false;
-	if (groupIndex < batchSize)
+#if !DEBUG_SHADER_GROUP
+	bool readData = false;
+	uint nodeIndex = batchStart + localIndex;
+
+	if (childIndex == 0)
 	{
-		writeData = true;
-		SharedCandidateNodeBatch[groupIndex] = CandidateNodeBatch[nodeIndex];
+		if (localIndex < batchSize)
+		{
+			readData = true;
+			SharedCandidateNodeBatch[localIndex] = CandidateNodeBatch[nodeIndex];
+		}
+		else
+		{
+			SharedCandidateNodeBatch[localIndex] = 0xFFFFFFFF;
+		}
 	}
-	else
-	{
-		SharedCandidateNodeBatch[groupIndex] = 0xFFFFFFFF;
-	}
-
-	groupMemoryBarrier();
+	memoryBarrierShared(); // barrier();
+#endif
 
 	ProcessNodeBatch(groupIndex, batchStart, batchSize);
 
-	groupMemoryBarrier();
-
-	if (writeData)
+#if !DEBUG_SHADER_GROUP
+	if (readData)
 	{
 		CandidateNodeBatch[nodeIndex] = 0xFFFFFFFF;
 	}
+#endif
 }

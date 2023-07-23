@@ -28,6 +28,7 @@ protected:
 		BINDING_CANDIDATE_CLUSTER_BATCH,
 		BINDING_SELECTED_CLUSTER_BATCH,
 		BINDING_INDIRECT_ARGS,
+		BINDING_EXTRA_DEBUG_INFO,
 	};
 
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_GLOBAL_DATA = "VirtualGeometrySceneGlobalData";
@@ -37,6 +38,7 @@ protected:
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_CANDIDATE_CLUSTER = "VirtualGeometrySceneCandidateCluster";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_INDIRECT_ARGS = "VirtualGeometrySceneIndirectArgs";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_SELECTED_CLUSTER = "VirtualGeometrySceneSelectedCluster";
+	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINDING_EXTRA_DEBUG_INFO = "VirtualGeometrySceneDebugExtraInffo";
 
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
@@ -62,6 +64,7 @@ protected:
 	IKStorageBufferPtr m_CandidateClusterBuffer;
 	IKStorageBufferPtr m_IndirectAgrsBuffer;
 	IKStorageBufferPtr m_SelectedClusterBuffer;
+	IKStorageBufferPtr m_ExtraDebugBuffer;
 
 	IKComputePipelinePtr m_InitQueueStatePipeline;
 	IKComputePipelinePtr m_InstanceCullPipeline;

@@ -49,6 +49,7 @@ struct KMeshCluster
 
 	// lodError是计算Lod所用到的Error 并不是严格意义上真正的Error
 	float lodError = 0;
+	float edgeLength = 0;
 
 	glm::vec3 color;
 
@@ -80,6 +81,7 @@ struct KMeshClusterGroup
 	uint32_t level = 0;
 	uint32_t index = 0;
 	float lodError = 0;
+	float edgeLength = 0;
 };
 
 typedef std::shared_ptr<KMeshClusterGroup> KMeshClusterGroupPtr;
@@ -163,7 +165,9 @@ typedef std::shared_ptr<KMeshClustersPart> KMeshClustersPartPtr;
 struct KMeshClusterBatch
 {
 	glm::vec4 lodBoundCenterError;
-	glm::vec4 lodBoundHalfExtendMaxParentError;
+	glm::vec4 lodBoundHalfExtendRadius;
+	glm::vec4 parentBoundCenterError;
+	glm::vec4 parentBoundHalfExtendRadius;
 	// Offset in float32
 	uint32_t vertexOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	// Offset in uint32
@@ -172,6 +176,7 @@ struct KMeshClusterBatch
 	uint32_t padding = 0;
 };
 static_assert((sizeof(KMeshClusterBatch) % 16) == 0, "Size must be a multiple of 16");
+static_assert(sizeof(KMeshClusterBatch) == 16 * 4 + 4 * 4, "must match");
 
 struct KMeshClustersVertexStorage
 {
@@ -193,13 +198,13 @@ struct KMeshClusterBVHNode
 	uint32_t storagePartIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	std::vector<uint32_t> children;
 	KAABBBox lodBound;
-	float maxParentLodError = 0;
+	float lodError = 0;
 };
 
 struct KMeshClusterHierarchy
 {
-	glm::vec4 lodBoundCenter;
-	glm::vec4 lodBoundHalfExtend;
+	glm::vec4 lodBoundCenterError;
+	glm::vec4 lodBoundHalfExtendRadius;
 	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
 	uint32_t storagePartIndex = KVirtualGeometryDefine::INVALID_INDEX;
 };

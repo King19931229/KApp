@@ -5,7 +5,7 @@ void main()
 {
 	uint numNode = min(QueueState[0].nodeWriteOffset, MAX_CANDIDATE_NODE) - min(QueueState[0].nodeReadOffset, MAX_CANDIDATE_NODE);
 
-	IndirectArgs[0] = (numNode + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
+	IndirectArgs[0] = (numNode * BVH_MAX_NODES + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
 	IndirectArgs[1] = 1;
 	IndirectArgs[1] = 1;
 

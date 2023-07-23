@@ -43,7 +43,7 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f }
 	};
 
-	static const uint32_t fileIndex = 3;
+	static const uint32_t fileIndex = 0;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
 	static const float scale = modelInfos[fileIndex].scale;
@@ -141,7 +141,7 @@ void InitQEM(IKEnginePtr engine)
 		scene->Add(entity.get());
 	};
 
-	static KRenderCoreUIRenderCallback UI = []()
+	static KRenderCoreUIRenderCallback UI = [engine]()
 	{
 		ImGui::Begin("QEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
@@ -187,18 +187,75 @@ void InitQEM(IKEnginePtr engine)
 		ImGui::SliderInt("TargetTriangleNum", &targetTriangleNum, (int)clusterBuilder.GetMinTriangleNum(), (int)clusterBuilder.GetMaxTriangleNum());
 		ImGui::SliderFloat("TargetError", &targetError, 0, clusterBuilder.GetMaxError());
 
-		IKRenderComponent* component = nullptr;
-		if (entity->GetComponent(CT_RENDER, &component))
+		IKRenderComponent* renderComponent = nullptr;
+		IKTransformComponent* transformComponent = nullptr;
+		if (entity->GetComponent(CT_RENDER, &renderComponent) && entity->GetComponent(CT_TRANSFORM, &transformComponent))
 		{
 			if (initUserData)
 			{
+				static float boundingScale = 1;
+				ImGui::SliderFloat("BoundingScale", &boundingScale, 1.0f, 5.0f);
+
+				KAABBBox bound;
+				renderComponent->GetLocalBound(bound);
+				bound = bound.Transform(transformComponent->GetFinal());
+
+				KCamera* camera = engine->GetRenderCore()->GetCamera();
+				glm::vec3 center = bound.GetCenter();
+
+				float radius = boundingScale * glm::length(bound.GetExtend()) * 0.5f;
+				glm::vec4 centerInView = camera->GetViewMatrix() * glm::vec4(center, 1.0f);
+				
+				float dis = glm::length(glm::vec3(centerInView.x, centerInView.y, centerInView.z));
+				float z = -centerInView.z;
+				float near = camera->GetNear();
+				float zMin = std::max(z - radius, near);
+				float zMax = std::max(z + radius, near);
+
+				float minScale = 0.0f, maxScale = 0.0f;
+
+				if (z + radius <= near)
+				{
+					minScale = 0.0f;
+					maxScale = 0.0f;
+				}
+				else
+				{
+					float x = abs(centerInView.x);
+					float y = abs(centerInView.y);
+					float t = 0;
+
+					t = y / dis;
+					t = sqrt(1.0f - t * t);
+					float cosY = t;
+					ImGui::LabelText("CosY", "%f", cosY);
+
+					t = x / dis;
+					t = sqrt(1.0f - t * t);
+					float cosX = t;
+					ImGui::LabelText("CosX", "%f", cosX);
+
+					float h = 0, w = 0;
+
+					h = cosY * (near * radius) / zMin;
+					w = cosX * camera->GetAspect() * h;
+					minScale = radius / std::max(h, w);
+
+					h = cosY * (near * radius) / zMax;
+					w = cosX * camera->GetAspect() * h;
+					maxScale = radius / std::min(h, w);
+				}
+
+				ImGui::LabelText("MinScale", "%f", minScale);
+				ImGui::LabelText("MaxScale", "%f", maxScale);
+
 				static KMeshRawData result;
 				static std::vector<KMeshProcessorVertex> vertices;
 				static std::vector<uint32_t> indices;
 
 				if (selectedOption == DebugVirtualGeometry)
 				{
-					component->InitAsVirtualGeometry(userData, "vg");
+					renderComponent->InitAsVirtualGeometry(userData, "vg");
 				}
 				else if (selectedOption == DebugSimplification)
 				{
@@ -209,7 +266,7 @@ void InitQEM(IKEnginePtr engine)
 						{
 							if (KMeshProcessor::CalcTBN(vertices, indices))
 							{
-								component->InitAsUserData(result, "qem", false);
+								renderComponent->InitAsUserData(result, "qem", false);
 							}
 						}
 					}
@@ -233,7 +290,7 @@ void InitQEM(IKEnginePtr engine)
 						{
 							if (KMeshProcessor::CalcTBN(vertices, indices))
 							{
-								component->InitAsUserData(result, "cluster", false);
+								renderComponent->InitAsUserData(result, "cluster", false);
 							}
 						}
 						currentTargetLevel = targetLevel;
@@ -251,7 +308,7 @@ void InitQEM(IKEnginePtr engine)
 						{
 							if (KMeshProcessor::CalcTBN(vertices, indices))
 							{
-								component->InitAsUserData(result, "cluster", false);
+								renderComponent->InitAsUserData(result, "cluster", false);
 							}
 						}
 						updateDebugDAGCut = false;

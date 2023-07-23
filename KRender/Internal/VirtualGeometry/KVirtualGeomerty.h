@@ -38,6 +38,8 @@ static_assert((sizeof(KVirtualGeometryInstance) % 16) == 0, "Size must be a mult
 struct KVirtualGeometryGlobal
 {
 	glm::mat4 worldToClip;
+	glm::mat4 worldToView;
+	glm::vec4 misc;
 	uint32_t numInstance;
 };
 
@@ -54,8 +56,8 @@ static_assert((sizeof(KVirtualGeometryQueueState) % 16) == 0, "Size must be a mu
 
 struct KMeshClusterHierarchyPackedNode
 {
-	glm::vec4 lodBoundCenter;
-	glm::vec4 lodBoundHalfExtend;
+	glm::vec4 lodBoundCenterError;
+	glm::vec4 lodBoundHalfExtendRadius;
 	uint32_t children[KVirtualGeometryDefine::MAX_BVH_NODES];
 	uint32_t isLeaf = 0;
 	uint32_t clusterStart = KVirtualGeometryDefine::INVALID_INDEX;

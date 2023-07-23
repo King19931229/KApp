@@ -36,8 +36,6 @@ public:
 	inline glm::vec3 GetExtend() const { return m_Max - m_Min; }
 	inline const glm::vec3& GetMin() const { return m_Min; }
 	inline const glm::vec3& GetMax() const { return m_Max; }
-	inline glm::vec3 GetMin() { return m_Min; }
-	inline glm::vec3 GetMax() { return m_Max; }
 
 	void InitFromHalfExtent(const glm::vec3& center, const glm::vec3& extend)
 	{
@@ -249,7 +247,7 @@ public:
 		}
 	}
 
-	KAABBBox Merge(const KAABBBox& other)
+	KAABBBox Merge(const KAABBBox& other) const
 	{
 		KAABBBox result;
 		if (IsInfinite())
@@ -294,7 +292,7 @@ public:
 		return result;
 	}
 
-	KAABBBox Merge(const glm::vec3& point)
+	KAABBBox Merge(const glm::vec3& point) const
 	{
 		KAABBBox result;
 		if (IsInfinite())

@@ -4,15 +4,41 @@
 void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 {
     uint batchIndex = batchStart + groupIndex;
-	CandidateCluster cluster = UnpackCandidateCluster(CandidateClusterBatch[batchIndex]);
-	if (cluster.clusterIndex != INVALID_INDEX)
+	CandidateCluster candidateCluster = UnpackCandidateCluster(CandidateClusterBatch[batchIndex]);
+	if (candidateCluster.clusterIndex != INVALID_INDEX)
 	{
-		// TODO LOD Error cut
+		uint instanceId = candidateCluster.instanceId;
 		uint clusterWriteOffset = InterlockAddClusterWriteOffset(1);
 		if (clusterWriteOffset < MAX_CANDIDATE_CLUSTER)
 		{
-			StoreSelectedCluster(clusterWriteOffset, cluster);
+			ClusterBatchStruct clusterBatch;
+			GetClusterData(candidateCluster, clusterBatch);
+
+			mat4 localToWorld = InstanceData[instanceId].transform;
+
+			vec3 boundCenter = clusterBatch.lodBoundCenterError.xyz;
+			float localError = clusterBatch.lodBoundCenterError.w;
+			vec3 boundHalfExtend = clusterBatch.lodBoundHalfExtendRadius.xyz;
+			float radius = clusterBatch.lodBoundHalfExtendRadius.w;
+
+			float maxParentError = clusterBatch.parentBoundCenterError.w;
+
+			FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
+#if CULL_CLUSTER_ALONG_BVH
+			if (cullData.bIsVisible)
+			{
+				cullData.bIsVisible = SmallEnoughToDraw(localToWorld, worldToView, boundCenter.xyz, radius, maxParentError);
+			}
+#else
+			cullData.bIsVisible = false;
+#endif
+			if (cullData.bIsVisible)
+			{
+				StoreSelectedCluster(clusterWriteOffset, candidateCluster);
+			}
 		}
+		CandidateClusterBatch[batchIndex] = 0xFFFFFFFF;
+		ExtraDebugInfo[batchIndex] = groupIndex;
 	}
 }
 
@@ -25,8 +51,6 @@ void main()
 
 	uint batchStart = groupID * VG_GROUP_SIZE;
 	uint batchSize = min(batchStart + VG_GROUP_SIZE, maxBatchClusters) - batchStart;
-
-	uint nodeIndex = QueueState[0].nodeReadOffset + batchStart + groupIndex;
 
 	if (groupIndex < batchSize)
 	{
