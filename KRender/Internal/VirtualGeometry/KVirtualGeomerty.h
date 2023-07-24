@@ -50,7 +50,9 @@ struct KVirtualGeometryQueueState
 	uint32_t nodeWriteOffset = 0;
 	uint32_t clusterReadOffset = 0;
 	uint32_t clusterWriteOffset = 0;
-	uint32_t padding[3];
+	uint32_t selectedClusterReadOffset = 0;
+	uint32_t selectedClusterWriteOffset = 0;
+	uint32_t padding = 0;
 };
 static_assert((sizeof(KVirtualGeometryQueueState) % 16) == 0, "Size must be a multiple of 16");
 

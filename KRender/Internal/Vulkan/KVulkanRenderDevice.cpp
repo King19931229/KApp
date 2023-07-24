@@ -21,6 +21,12 @@
 
 #include "KBase/Interface/IKLog.h"
 
+#if defined(_WIN32) && defined(_DEBUG)
+#define USE_VALIDAION_LAYER 1
+#else
+#define USE_VALIDAION_LAYER 0
+#endif
+
 // Enables the Nsight Aftermath code instrumentation for GPU crash dump creation.
 #ifdef _WIN64
 #define USE_NSIGHT_AFTERMATH 0
@@ -199,15 +205,7 @@ static void DestroyDebugReportCallbackEXT(
 //-------------------- KVulkanRenderDevice --------------------//
 KVulkanRenderDevice::KVulkanRenderDevice()
 	: m_pWindow(nullptr)
-	, m_EnableValidationLayer(
-#if defined(_WIN32) && defined(_DEBUG)
-		true
-#elif defined(__ANDROID__)
-		false
-#else
-		false
-#endif
-	)
+	, m_EnableValidationLayer((bool)USE_VALIDAION_LAYER)
 	, m_ValidationLayerIdx(-1)
 	, m_GpuCrashTracker(nullptr)
 {

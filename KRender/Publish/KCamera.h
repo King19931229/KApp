@@ -199,6 +199,8 @@ public:
 	inline float GetFar() const { return m_Far; }
 	inline float GetFov() const { return m_Fov; }
 	inline float GetAspect() const { return m_Aspect; }
+	inline float GetWidth() const { return m_Width; }
+	inline float GetHeight() const { return m_Height; }
 
 	void SetNear(float near)
 	{

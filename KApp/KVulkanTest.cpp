@@ -203,7 +203,7 @@ void InitQEM(IKEnginePtr engine)
 				KCamera* camera = engine->GetRenderCore()->GetCamera();
 				glm::vec3 center = bound.GetCenter();
 
-				float radius = boundingScale * glm::length(bound.GetExtend()) * 0.5f;
+				float radius = std::max(1e-6f, boundingScale * glm::length(bound.GetExtend()) * 0.5f);
 				glm::vec4 centerInView = camera->GetViewMatrix() * glm::vec4(center, 1.0f);
 				
 				float dis = glm::length(glm::vec3(centerInView.x, centerInView.y, centerInView.z));
@@ -211,6 +211,11 @@ void InitQEM(IKEnginePtr engine)
 				float near = camera->GetNear();
 				float zMin = std::max(z - radius, near);
 				float zMax = std::max(z + radius, near);
+
+				size_t w = 0, h = 0;
+				engine->GetRenderCore()->GetRenderWindow()->GetSize(w, h);
+
+				float lodScale = h / camera->GetHeight();
 
 				float minScale = 0.0f, maxScale = 0.0f;
 
@@ -248,6 +253,11 @@ void InitQEM(IKEnginePtr engine)
 
 				ImGui::LabelText("MinScale", "%f", minScale);
 				ImGui::LabelText("MaxScale", "%f", maxScale);
+
+				ImGui::LabelText("LodScale", "%f", lodScale);
+
+				ImGui::LabelText("MinScale/LodScale", "%f", minScale / lodScale);
+				ImGui::LabelText("MaxScale/LodScale", "%f", maxScale / lodScale);
 
 				static KMeshRawData result;
 				static std::vector<KMeshProcessorVertex> vertices;

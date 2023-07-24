@@ -4,6 +4,7 @@
 shared uint SharedCandidateNodeBatch[BVH_MAX_GROUP_BATCH_SIZE];
 
 #define DEBUG_SHADER_GROUP 0
+#define EMIT_CLUSTER_EACH_THREAD 0
 
 bool IsSharedHierarchyDataValid(uint index)
 {
@@ -78,22 +79,32 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 	// Leaf
 	else
 	{
-		if (childIndex == 0)
+#if EMIT_CLUSTER_EACH_THREAD
+		uint clusterNumPerChild = hierarchy.clusterNum / BVH_MAX_NODES;
+		uint clusterNumPerChildRest = hierarchy.clusterNum & BVH_NODE_MASK;
+
+		uint clusterStart = hierarchy.clusterStart + childIndex * clusterNumPerChild;
+		uint clusterNum = clusterNumPerChild + uint(childIndex == BVH_MAX_NODES - 1) * clusterNumPerChildRest;
+#else
+		if (childIndex != 0)
 		{
-			uint clusterStart = hierarchy.clusterStart;
-			uint clusterNum = hierarchy.clusterNum;
-			uint clusterWriteOffset = InterlockAddClusterWriteOffset(clusterNum);
-			for (uint i = 0; i < clusterNum; ++i)
+			return;
+		}
+		uint clusterStart = hierarchy.clusterStart;
+		uint clusterNum = hierarchy.clusterNum;
+#endif
+		uint clusterWriteOffset = InterlockAddClusterWriteOffset(clusterNum);
+
+		for (uint i = 0; i < clusterNum; ++i)
+		{
+			if (clusterWriteOffset + i >= MAX_CANDIDATE_CLUSTER)
 			{
-				if (clusterWriteOffset + i >= MAX_CANDIDATE_CLUSTER)
-				{
-					break;
-				}
-				CandidateCluster candidateCluster;
-				candidateCluster.instanceId = instanceId;
-				candidateCluster.clusterIndex = clusterStart + i;
-				StoreCandidateCluster(clusterWriteOffset + i, candidateCluster);
+				break;
 			}
+			CandidateCluster candidateCluster;
+			candidateCluster.instanceId = instanceId;
+			candidateCluster.clusterIndex = clusterStart + i;
+			StoreCandidateCluster(clusterWriteOffset + i, candidateCluster);
 		}
 	}
 }

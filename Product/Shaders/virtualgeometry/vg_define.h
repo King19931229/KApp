@@ -77,9 +77,14 @@ struct QueueStateStruct
 	uint nodeReadOffset;
 	uint nodePrevWriteOffset;
 	uint nodeWriteOffset;
+
 	uint clusterReadOffset;
 	uint clusterWriteOffset;
-	uint padding[3];
+
+	uint selectedClusterReadOffset;
+	uint selectedClusterWriteOffset;
+
+	uint padding;
 };
 
 struct CandidateNode
@@ -127,6 +132,7 @@ uniform GlobalData
 
 #define cameraNear misc.x
 #define cameraAspect misc.y
+#define lodScale misc.z
 
 layout (std430, binding = BINDING_RESOURCE) coherent buffer ResourceBuffer {
 	ResourceStruct ResourceData[];
@@ -136,15 +142,15 @@ layout (std430, binding = BINDING_QUEUE_STATE) coherent buffer QueueStateBuffer 
 	QueueStateStruct QueueState[];
 };
 
-layout (std430, binding = BINDING_INSTANCE_DATA) buffer InstanceDataBuffer {
+layout (std430, binding = BINDING_INSTANCE_DATA) coherent buffer InstanceDataBuffer {
 	InstanceStruct InstanceData[];
 };
 
-layout (std430, binding = BINDING_HIERARCHY) buffer ClusterHierarchyBuffer {
+layout (std430, binding = BINDING_HIERARCHY) coherent buffer ClusterHierarchyBuffer {
 	ClusterHierarchyStruct ClusterHierarchy[];
 };
 
-layout (std430, binding = BINDING_CLUSTER_BATCH) buffer ClusterBatchBuffer {
+layout (std430, binding = BINDING_CLUSTER_BATCH) coherent buffer ClusterBatchBuffer {
 	ClusterBatchStruct ClusterBatch[];
 };
 
@@ -160,12 +166,12 @@ layout (std430, binding = BINDING_SELECTED_CLUSTER_BATCH) coherent buffer Select
 	uint SelectedClusterBatch[];
 };
 
-layout (std430, binding = BINDING_INDIRECT_ARGS) buffer IndirectArgsBuffer {
+layout (std430, binding = BINDING_INDIRECT_ARGS) coherent buffer IndirectArgsBuffer {
 	uint IndirectArgs[];
 };
 
-layout (std430, binding = BINDING_EXTRA_DEBUG_INFO) buffer ExtraDebugInfoBuffer {
-	uint ExtraDebugInfo[];
+layout (std430, binding = BINDING_EXTRA_DEBUG_INFO) coherent buffer ExtraDebugInfoBuffer {
+	float ExtraDebugInfo[];
 };
 
 uint PackCandidateNode(CandidateNode node)
@@ -234,7 +240,7 @@ void GetClusterData(in CandidateCluster cluster, out ClusterBatchStruct clusterB
 
 	uint clusterBatchOffset = ResourceData[resourceIndex].clusterBatchPackedOffset;
 	uint clusterBatchSize = 16 * 4 + 4 * 4;
-	uint clusterOffset = clusterBatchOffset / clusterBatchOffset + clusterIndex;
+	uint clusterOffset = clusterBatchOffset / clusterBatchSize + clusterIndex;
 
 	clusterBatch = ClusterBatch[clusterOffset];
 }
@@ -243,8 +249,8 @@ vec2 GetProjectScale(mat4 localToWorld, mat4 worldToView, vec3 center, float rad
 {
 	const float near = cameraNear;
 	const float aspect = cameraAspect;
-	const vec3 worldScale = vec3(localToWorld[0][0], localToWorld[1][1], localToWorld[2][2]);
-	const float r = radius * max(max(worldScale.x, worldScale.y), worldScale.z);
+	const vec3 worldScale = vec3(abs(localToWorld[0][0]), abs(localToWorld[1][1]), abs(localToWorld[2][2]));
+	const float r = radius * max(1e-6, max(max(worldScale.x, worldScale.y), worldScale.z));
 
 	const vec4 centerInView = worldToView * vec4(center, 1.0f);
 	const float dis = length(centerInView.xyz);
@@ -280,7 +286,7 @@ vec2 GetProjectScale(mat4 localToWorld, mat4 worldToView, vec3 center, float rad
 		minMaxScale.x = r / max(h, w);
 
 		h = cosY * (near * r) / zMax;
-		w = cosX *aspect * h;
+		w = cosX * aspect * h;
 		minMaxScale.y = r / min(h, w);
 	}
 
@@ -290,13 +296,19 @@ vec2 GetProjectScale(mat4 localToWorld, mat4 worldToView, vec3 center, float rad
 bool ShouldVisitChild(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, float boundRadius, float maxParentError)
 {
 	vec2 error = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius);
-	return error.x < maxParentError;
+	return error.x < lodScale * maxParentError;
 }
 
 bool SmallEnoughToDraw(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, float boundRadius, float localError)
 {
 	vec2 error = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius);
-	return error.x >= localError;
+	return error.x >= lodScale * localError;
+}
+
+bool FitToDraw(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, float boundRadius, float localError, float parentError)
+{
+	vec2 error = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius);
+	return error.x >= localError && error.x < parentError;
 }
 
 uint InterlockAddWriteOffset(uint add)
@@ -328,5 +340,6 @@ uint InterlockAdd##name(uint add)\
 
 InterlockAddDecl(NodeWriteOffset, QueueState[0].nodeWriteOffset);
 InterlockAddDecl(ClusterWriteOffset, QueueState[0].clusterWriteOffset);
+InterlockAddDecl(SelectedClusterWriteOffset, QueueState[0].selectedClusterWriteOffset);
 
 #endif

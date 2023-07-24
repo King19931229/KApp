@@ -164,7 +164,6 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_NodeCullPipeline->BindStorageBuffer(BINDING_CANDIDATE_NODE_BATCH, m_CandidateNodeBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 			m_NodeCullPipeline->BindStorageBuffer(BINDING_CANDIDATE_CLUSTER_BATCH, m_CandidateClusterBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 			m_NodeCullPipeline->BindStorageBuffer(BINDING_EXTRA_DEBUG_INFO, m_ExtraDebugBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
-			m_NodeCullPipeline->BindStorageBuffer(BINDING_EXTRA_DEBUG_INFO, m_ExtraDebugBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 			m_NodeCullPipeline->Init("virtualgeometry/node_cull.comp");
 
 			KRenderGlobal::RenderDevice->CreateComputePipeline(m_ClusterCullPipeline);
@@ -239,6 +238,12 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 		globalData.worldToView = m_Camera ? m_Camera->GetViewMatrix() : glm::mat4(1);
 		globalData.misc.x = m_Camera ? m_Camera->GetNear() : 0.0f;
 		globalData.misc.y = m_Camera ? m_Camera->GetAspect() : 1.0f;
+
+		size_t sceneWidth = 0;
+		size_t sceneHeight = 0;
+		KRenderGlobal::GBuffer.GetSceneColor()->GetSize(sceneWidth, sceneHeight);
+		globalData.misc.z = m_Camera ? (sceneHeight / m_Camera->GetHeight()) : 1.0f;
+
 		m_GlobalDataBuffer->Map(&pWrite);
 		memcpy(pWrite, &globalData, sizeof(globalData));
 		m_GlobalDataBuffer->UnMap();

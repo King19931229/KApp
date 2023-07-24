@@ -8,4 +8,6 @@ void main()
 	QueueState[0].nodeWriteOffset = 0;
 	QueueState[0].clusterReadOffset = 0;
 	QueueState[0].clusterWriteOffset = 0;
+	QueueState[0].selectedClusterReadOffset = 0;
+	QueueState[0].selectedClusterWriteOffset = 0;
 }

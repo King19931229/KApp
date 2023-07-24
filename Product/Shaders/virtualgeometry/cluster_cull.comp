@@ -4,41 +4,46 @@
 void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 {
     uint batchIndex = batchStart + groupIndex;
-	CandidateCluster candidateCluster = UnpackCandidateCluster(CandidateClusterBatch[batchIndex]);
-	if (candidateCluster.clusterIndex != INVALID_INDEX)
+
+	if (CandidateClusterBatch[batchIndex] != 0xFFFFFFFF)
 	{
+		CandidateCluster candidateCluster = UnpackCandidateCluster(CandidateClusterBatch[batchIndex]);
 		uint instanceId = candidateCluster.instanceId;
-		uint clusterWriteOffset = InterlockAddClusterWriteOffset(1);
-		if (clusterWriteOffset < MAX_CANDIDATE_CLUSTER)
-		{
-			ClusterBatchStruct clusterBatch;
-			GetClusterData(candidateCluster, clusterBatch);
+		
+		ClusterBatchStruct clusterBatch;
+		GetClusterData(candidateCluster, clusterBatch);
 
-			mat4 localToWorld = InstanceData[instanceId].transform;
+		mat4 localToWorld = InstanceData[instanceId].transform;
 
-			vec3 boundCenter = clusterBatch.lodBoundCenterError.xyz;
-			float localError = clusterBatch.lodBoundCenterError.w;
-			vec3 boundHalfExtend = clusterBatch.lodBoundHalfExtendRadius.xyz;
-			float radius = clusterBatch.lodBoundHalfExtendRadius.w;
+		vec3 boundCenter = clusterBatch.lodBoundCenterError.xyz;
+		float localError = clusterBatch.lodBoundCenterError.w;
+		vec3 boundHalfExtend = clusterBatch.lodBoundHalfExtendRadius.xyz;
+		float boundRadius = clusterBatch.lodBoundHalfExtendRadius.w;
 
-			float maxParentError = clusterBatch.parentBoundCenterError.w;
-
-			FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
+		FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
 #if CULL_CLUSTER_ALONG_BVH
-			if (cullData.bIsVisible)
-			{
-				cullData.bIsVisible = SmallEnoughToDraw(localToWorld, worldToView, boundCenter.xyz, radius, maxParentError);
-			}
+		if (cullData.bIsVisible)
+		{
+			cullData.bIsVisible = SmallEnoughToDraw(localToWorld, worldToView, boundCenter.xyz, boundRadius, localError);
+		}
 #else
-			cullData.bIsVisible = false;
+		if (cullData.bIsVisible)
+		{
+			float parentError = clusterBatch.parentBoundCenterError.w;
+			cullData.bIsVisible = FitToDraw(localToWorld, worldToView, boundCenter.xyz, boundRadius, localError, parentError);
+		}
 #endif
-			if (cullData.bIsVisible)
+		if (cullData.bIsVisible)
+		{
+			uint clusterWriteOffset = InterlockAddSelectedClusterWriteOffset(1);
+			if (clusterWriteOffset < MAX_CANDIDATE_CLUSTER)
 			{
 				StoreSelectedCluster(clusterWriteOffset, candidateCluster);
+				ExtraDebugInfo[clusterWriteOffset] = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius).x;
 			}
 		}
+
 		CandidateClusterBatch[batchIndex] = 0xFFFFFFFF;
-		ExtraDebugInfo[batchIndex] = groupIndex;
 	}
 }
 
@@ -47,10 +52,9 @@ void main()
 {
 	uint groupID = gl_WorkGroupID.x;
 	uint groupIndex = gl_LocalInvocationID.x;
-	uint maxBatchClusters = QueueState[0].clusterWriteOffset - QueueState[0].clusterReadOffset;
 
-	uint batchStart = groupID * VG_GROUP_SIZE;
-	uint batchSize = min(batchStart + VG_GROUP_SIZE, maxBatchClusters) - batchStart;
+	uint batchStart = QueueState[0].clusterReadOffset + groupID * VG_GROUP_SIZE;
+	uint batchSize = min(batchStart + VG_GROUP_SIZE, QueueState[0].clusterWriteOffset) - batchStart;
 
 	if (groupIndex < batchSize)
 	{
