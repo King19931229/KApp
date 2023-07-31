@@ -1,5 +1,8 @@
 #version 460
 #extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_cull_mask : enable
+#extension GL_EXT_ray_tracing_position_fetch : enable
+
 layout(binding = 0, set = 0) uniform accelerationStructureEXT accEXT;
 layout(location = 0) rayPayloadEXT vec4 localPayload;
 layout(location = 1) rayPayloadInEXT vec4 incomingPayload;
@@ -23,5 +26,7 @@ void main()
     int v15 = gl_GeometryIndexEXT;
     mat3x4 v16 = gl_ObjectToWorld3x4EXT;
     mat3x4 v17 = gl_WorldToObject3x4EXT;
+	uint v18 = gl_CullMaskEXT;
+	vec3 v19 = gl_HitTriangleVertexPositionsEXT[0];
 	traceRayEXT(accEXT, 0u, 1u, 2u, 3u, 0u, vec3(0.5f), 0.5f, vec3(1.0f), 0.75f, 1);
 }
