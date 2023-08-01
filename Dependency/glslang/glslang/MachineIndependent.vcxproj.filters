@@ -197,19 +197,13 @@
   </ItemGroup>
   <ItemGroup>
     <Filter Include="HLSL">
-      <UniqueIdentifier>{12B25521-E289-3952-B861-A6F55A4552B5}</UniqueIdentifier>
+      <UniqueIdentifier>{4683C554-0B68-3C60-BAE4-5122E102CA2C}</UniqueIdentifier>
     </Filter>
     <Filter Include="MachineIndependent">
-      <UniqueIdentifier>{86024735-0440-3FDE-9416-91E63D8C97DB}</UniqueIdentifier>
+      <UniqueIdentifier>{F7B8F4C0-4E16-3126-802F-74102A4F4452}</UniqueIdentifier>
     </Filter>
     <Filter Include="MachineIndependent\Preprocessor">
-      <UniqueIdentifier>{2C73C29A-2596-3C15-90C7-573FBB45308A}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Precompile Header File">
-      <UniqueIdentifier>{B75A7053-3BDD-3DF6-ACC0-8870AFF4D63A}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{38A3CBEE-0715-343B-9E05-8C9CA8C7AA88}</UniqueIdentifier>
+      <UniqueIdentifier>{B4C3DD36-4A88-3982-9EF8-AEA692F30188}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="ResourceLimits\ResourceLimits.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceLimits\resource_limits_c.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Public\ResourceLimits.h">
+      <Filter>Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Public\resource_limits_c.h">
+      <Filter>Public</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Public">
+      <UniqueIdentifier>{1E0B48FD-D340-3975-B466-C55015B1E0C3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{C350E9E6-AD9D-3588-927F-38D8DEFC8086}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

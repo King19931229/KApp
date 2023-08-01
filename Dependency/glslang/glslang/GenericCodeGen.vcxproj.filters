@@ -10,7 +10,7 @@
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GenericCodeGen">
-      <UniqueIdentifier>{C5CC65BB-E3BD-3B9E-B0C6-BD945B97AB3C}</UniqueIdentifier>
+      <UniqueIdentifier>{EBD0C692-FC21-3E43-A143-6107F0475912}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

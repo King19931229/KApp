@@ -1,6 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="CInterface\glslang_c_interface.cpp">
+      <Filter>CInterface</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
     <ClInclude Include="Public\ShaderLang.h">
       <Filter>Public</Filter>
     </ClInclude>
@@ -49,18 +54,13 @@
   </ItemGroup>
   <ItemGroup>
     <Filter Include="CInterface">
-      <UniqueIdentifier>{CB2B5164-B90D-3710-AC4D-03626A231809}</UniqueIdentifier>
+      <UniqueIdentifier>{C2746776-B1E2-345D-88B7-3364D324129D}</UniqueIdentifier>
     </Filter>
     <Filter Include="Include">
-      <UniqueIdentifier>{E7F44ADA-CBC6-3ACA-ADA0-2F2A37FF9157}</UniqueIdentifier>
+      <UniqueIdentifier>{9605F912-0AA6-3972-A406-61535D66E761}</UniqueIdentifier>
     </Filter>
     <Filter Include="Public">
-      <UniqueIdentifier>{8EDA4753-81F4-3D09-A68F-5F385D7FD89B}</UniqueIdentifier>
+      <UniqueIdentifier>{1E0B48FD-D340-3975-B466-C55015B1E0C3}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="CInterface\glslang_c_interface.cpp">
-      <Filter>Include</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

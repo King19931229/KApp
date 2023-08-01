@@ -59,22 +59,26 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\glslang\glslang\Debug\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MachineIndependent.dir\Debug\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MachineIndependentd</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MachineIndependentd</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.lib</TargetExt>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\glslang\glslang\Release\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MachineIndependent.dir\Release\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MachineIndependent</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MachineIndependent</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.lib</TargetExt>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>../Publish/Debug/x86/</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>../Publish/Release/x86/</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>../Publish/Release/x64/</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>../Publish/Debug/x64/</OutDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -89,13 +93,14 @@
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=0;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=0;CMAKE_INTDIR=\"Debug\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -108,7 +113,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -123,13 +128,14 @@
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=0;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=0;CMAKE_INTDIR=\"Debug\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -142,7 +148,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -157,13 +163,14 @@
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=0;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -176,7 +183,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -191,13 +198,14 @@
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_HAS_EXCEPTIONS=0;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;ENABLE_OPT=0;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>D:\KApp\Dependency\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -209,145 +217,88 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="D:\KApp\Dependency\glslang\glslang\CMakeLists.txt">
-      <StdOutEncoding>UTF-8</StdOutEncoding>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building Custom Rule D:/KApp/Dependency/glslang/glslang/CMakeLists.txt</Message>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/KApp/Dependency/glslang/glslang/CMakeLists.txt</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
-"D:\Program Files\CMake\bin\cmake.exe" -SD:/KApp/Dependency/glslang -BD:/KApp/Dependency/glslang --check-stamp-file D:/KApp/Dependency/glslang/glslang/CMakeFiles/generate.stamp
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
-"D:\Program Files\CMake\bin\cmake.exe" -SD:/KApp/Dependency/glslang -BD:/KApp/Dependency/glslang --check-stamp-file D:/KApp/Dependency/glslang/glslang/CMakeFiles/generate.stamp
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\KApp\Dependency\glslang\glslang\CMakeFiles\generate.stamp</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\KApp\Dependency\glslang\glslang\CMakeFiles\generate.stamp</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building Custom Rule D:/KApp/Dependency/glslang/glslang/CMakeLists.txt</Message>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/KApp/Dependency/glslang/glslang/CMakeLists.txt</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
-"D:\Program Files\CMake\bin\cmake.exe" -SD:/KApp/Dependency/glslang -BD:/KApp/Dependency/glslang --check-stamp-file D:/KApp/Dependency/glslang/glslang/CMakeFiles/generate.stamp
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
-"D:\Program Files\CMake\bin\cmake.exe" -SD:/KApp/Dependency/glslang -BD:/KApp/Dependency/glslang --check-stamp-file D:/KApp/Dependency/glslang/glslang/CMakeFiles/generate.stamp
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\KApp\Dependency\glslang\glslang\CMakeFiles\generate.stamp</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\KApp\Dependency\glslang\glslang\CMakeFiles\generate.stamp</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
-    </CustomBuild>
+    <None Include="MachineIndependent\glslang.m4">
+    </None>
+    <None Include="MachineIndependent\glslang.y">
+    </None>
+    <ClCompile Include="MachineIndependent\glslang_tab.cpp" />
+    <ClCompile Include="MachineIndependent\attribute.cpp" />
+    <ClCompile Include="MachineIndependent\Constant.cpp" />
+    <ClCompile Include="MachineIndependent\iomapper.cpp" />
+    <ClCompile Include="MachineIndependent\InfoSink.cpp" />
+    <ClCompile Include="MachineIndependent\Initialize.cpp" />
+    <ClCompile Include="MachineIndependent\IntermTraverse.cpp" />
+    <ClCompile Include="MachineIndependent\Intermediate.cpp" />
+    <ClCompile Include="MachineIndependent\ParseContextBase.cpp" />
+    <ClCompile Include="MachineIndependent\ParseHelper.cpp" />
+    <ClCompile Include="MachineIndependent\PoolAlloc.cpp" />
+    <ClCompile Include="MachineIndependent\RemoveTree.cpp" />
+    <ClCompile Include="MachineIndependent\Scan.cpp" />
+    <ClCompile Include="MachineIndependent\ShaderLang.cpp" />
+    <ClCompile Include="MachineIndependent\SpirvIntrinsics.cpp" />
+    <ClCompile Include="MachineIndependent\SymbolTable.cpp" />
+    <ClCompile Include="MachineIndependent\Versions.cpp" />
+    <ClCompile Include="MachineIndependent\intermOut.cpp" />
+    <ClCompile Include="MachineIndependent\limits.cpp" />
+    <ClCompile Include="MachineIndependent\linkValidate.cpp" />
+    <ClCompile Include="MachineIndependent\parseConst.cpp" />
+    <ClCompile Include="MachineIndependent\reflection.cpp" />
+    <ClCompile Include="MachineIndependent\preprocessor\Pp.cpp" />
+    <ClCompile Include="MachineIndependent\preprocessor\PpAtom.cpp" />
+    <ClCompile Include="MachineIndependent\preprocessor\PpContext.cpp" />
+    <ClCompile Include="MachineIndependent\preprocessor\PpScanner.cpp" />
+    <ClCompile Include="MachineIndependent\preprocessor\PpTokens.cpp" />
+    <ClCompile Include="MachineIndependent\propagateNoContraction.cpp" />
+    <ClCompile Include="HLSL\hlslAttributes.cpp" />
+    <ClCompile Include="HLSL\hlslParseHelper.cpp" />
+    <ClCompile Include="HLSL\hlslScanContext.cpp" />
+    <ClCompile Include="HLSL\hlslOpMap.cpp" />
+    <ClCompile Include="HLSL\hlslTokenStream.cpp" />
+    <ClCompile Include="HLSL\hlslGrammar.cpp" />
+    <ClCompile Include="HLSL\hlslParseables.cpp" />
+    <ClInclude Include="MachineIndependent\attribute.h" />
+    <ClInclude Include="MachineIndependent\glslang_tab.cpp.h" />
+    <ClInclude Include="MachineIndependent\gl_types.h" />
+    <ClInclude Include="MachineIndependent\Initialize.h" />
+    <ClInclude Include="MachineIndependent\iomapper.h" />
+    <ClInclude Include="MachineIndependent\LiveTraverser.h" />
+    <ClInclude Include="MachineIndependent\localintermediate.h" />
+    <ClInclude Include="MachineIndependent\ParseHelper.h" />
+    <ClInclude Include="MachineIndependent\reflection.h" />
+    <ClInclude Include="MachineIndependent\RemoveTree.h" />
+    <ClInclude Include="MachineIndependent\Scan.h" />
+    <ClInclude Include="MachineIndependent\ScanContext.h" />
+    <ClInclude Include="MachineIndependent\SymbolTable.h" />
+    <ClInclude Include="MachineIndependent\Versions.h" />
+    <ClInclude Include="MachineIndependent\parseVersions.h" />
+    <ClInclude Include="MachineIndependent\propagateNoContraction.h" />
+    <ClInclude Include="MachineIndependent\preprocessor\PpContext.h" />
+    <ClInclude Include="MachineIndependent\preprocessor\PpTokens.h" />
+    <ClInclude Include="HLSL\hlslAttributes.h" />
+    <ClInclude Include="HLSL\hlslParseHelper.h" />
+    <ClInclude Include="HLSL\hlslTokens.h" />
+    <ClInclude Include="HLSL\hlslScanContext.h" />
+    <ClInclude Include="HLSL\hlslOpMap.h" />
+    <ClInclude Include="HLSL\hlslTokenStream.h" />
+    <ClInclude Include="HLSL\hlslGrammar.h" />
+    <ClInclude Include="HLSL\hlslParseables.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\glslang.m4">
-    </None>
-    <None Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\glslang.y">
-    </None>
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\glslang_tab.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\attribute.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\Constant.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\iomapper.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\InfoSink.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\Initialize.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\IntermTraverse.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\Intermediate.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\ParseContextBase.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\ParseHelper.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\PoolAlloc.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\RemoveTree.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\Scan.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\ShaderLang.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\SpirvIntrinsics.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\SymbolTable.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\Versions.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\intermOut.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\limits.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\linkValidate.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\parseConst.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\reflection.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\Pp.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpAtom.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpContext.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpScanner.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpTokens.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\propagateNoContraction.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslAttributes.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslParseHelper.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslScanContext.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslOpMap.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslTokenStream.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslGrammar.cpp" />
-    <ClCompile Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslParseables.cpp" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\attribute.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\glslang_tab.cpp.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\gl_types.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\Initialize.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\iomapper.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\LiveTraverser.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\localintermediate.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\ParseHelper.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\reflection.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\RemoveTree.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\Scan.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\ScanContext.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\SymbolTable.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\Versions.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\parseVersions.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\propagateNoContraction.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpContext.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\MachineIndependent\preprocessor\PpTokens.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslAttributes.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslParseHelper.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslTokens.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslScanContext.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslOpMap.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslTokenStream.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslGrammar.h" />
-    <ClInclude Include="D:\KApp\Dependency\glslang\glslang\HLSL\hlslParseables.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="D:\KApp\Dependency\glslang\ZERO_CHECK.vcxproj">
+    <ProjectReference Include="..\ZERO_CHECK.vcxproj">
       <Project>{06EE3E70-62FD-3EA7-9A9A-D225B907A0B3}</Project>
       <Name>ZERO_CHECK</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="D:\KApp\Dependency\glslang\glslang\GenericCodeGen.vcxproj">
+    <ProjectReference Include="GenericCodeGen.vcxproj">
       <Project>{D0895F24-1316-30E4-9AEB-054AF6DDD678}</Project>
       <Name>GenericCodeGen</Name>
     </ProjectReference>
-    <ProjectReference Include="D:\KApp\Dependency\glslang\OGLCompilersDLL\OGLCompiler.vcxproj">
+    <ProjectReference Include="..\OGLCompilersDLL\OGLCompiler.vcxproj">
       <Project>{0428CF69-BBD1-338D-9D05-8B955E8D25F4}</Project>
       <Name>OGLCompiler</Name>
     </ProjectReference>
-    <ProjectReference Include="D:\KApp\Dependency\glslang\glslang\OSDependent\Windows\OSDependent.vcxproj">
+    <ProjectReference Include="OSDependent\Windows\OSDependent.vcxproj">
       <Project>{6DABB767-7B9E-3EDF-951C-AC31F209E019}</Project>
       <Name>OSDependent</Name>
     </ProjectReference>
