@@ -188,6 +188,8 @@ struct IKShader : public IKResource
 	virtual bool RemoveAllIncludeSource() = 0;
 	virtual bool GetAllIncludeSource(std::vector<MacroPair>& macros) = 0;
 
+	virtual bool SetSourceDebugEnable(bool enable) = 0;
+
 	virtual bool InitFromFile(ShaderType type, const std::string& path, bool async) = 0;
 	virtual bool InitFromString(ShaderType type, const std::vector<char>& code, bool async) = 0;
 	virtual bool UnInit() = 0;

@@ -25,7 +25,7 @@ struct IKComputePipeline
 
 	virtual void BindDynamicUniformBuffer(uint32_t location) = 0;
 
-	virtual bool Init(const char* szShader) = 0;
+	virtual bool Init(const char* szShader, bool enableSourceDebug = true) = 0;
 	virtual bool UnInit() = 0;
 	virtual bool Execute(IKCommandBufferPtr primaryBuffer, uint32_t groupX, uint32_t groupY, uint32_t groupZ, const KDynamicConstantBufferUsage* usage = nullptr) = 0;
 	virtual bool ExecuteIndirect(IKCommandBufferPtr primaryBuffer, IKStorageBufferPtr indirectBuffer, const KDynamicConstantBufferUsage* usage = nullptr) = 0;

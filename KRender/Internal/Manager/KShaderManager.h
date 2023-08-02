@@ -16,6 +16,12 @@ struct KShaderCompileEnvironment
 {
 	std::vector<IKShader::MacroPair> macros;
 	std::vector<IKShader::IncludeSource> includes;
+	bool enableSourceDebug;
+
+	KShaderCompileEnvironment()
+	{
+		enableSourceDebug = true;
+	}
 };
 
 class KShaderManager
@@ -40,8 +46,8 @@ public:
 
 	bool Reload();
 
-	bool Acquire(ShaderType type, const char* path, KShaderRef& shader, bool async);
 	bool Acquire(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async);
+	bool Acquire(ShaderType type, const char* path, KShaderRef& shader, bool async);
 
 	inline const KSpirvBuiltInResource* GetSpirVBuildInResource() const { return &m_SpirVBuiltIn; }
 	inline const IKShader::IncludeSource& GetBindingGenerateCode() const { return m_BindingInclude; }

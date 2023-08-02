@@ -95,6 +95,11 @@ const char* DEVICE_MESHSHADER_EXTENSIONS[] =
 	VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME
 };
 
+const char* SHADER_DEBUG_MESHSHADER_EXTENSIONS[] =
+{
+	VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
+};
+
 //-------------------- Validation Layer --------------------//
 const char* KHRONOS_VALIDATION_LAYERS[] =
 {
@@ -795,6 +800,8 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 		{
 			m_Properties.debugMarkerSupport = false;
 		}
+
+		extensionNames.insert(extensionNames.end(), SHADER_DEBUG_MESHSHADER_EXTENSIONS, SHADER_DEBUG_MESHSHADER_EXTENSIONS + ARRAY_SIZE(SHADER_DEBUG_MESHSHADER_EXTENSIONS));
 
 		// 填充VkDeviceCreateInfo
 		VkDeviceCreateInfo createInfo = {};

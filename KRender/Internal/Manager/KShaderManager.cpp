@@ -139,6 +139,7 @@ size_t KShaderManager::CalcVariantionHash(const KShaderCompileEnvironment& env)
 	{
 		fullString += std::get<0>(includePair) + std::get<1>(includePair);
 	}
+	fullString += env.enableSourceDebug ? "1" : "0";
 	return KHash::BKDR(fullString.c_str(), fullString.length());
 }
 
@@ -221,6 +222,8 @@ bool KShaderManager::AcquireByEnvironment(ShaderType type, const char* path, con
 			soul->AddIncludeSource(includePair);
 		}
 
+		soul->SetSourceDebugEnable(env.enableSourceDebug);
+
 		if (soul->InitFromFile(type, path, async))
 		{
 			KShaderRef ref(soul, [this](IKShaderPtr soul)
@@ -242,13 +245,15 @@ bool KShaderManager::AcquireByEnvironment(ShaderType type, const char* path, con
 	return false;
 }
 
-bool KShaderManager::Acquire(ShaderType type, const char* path, KShaderRef& shader, bool async)
-{
-	return AcquireByEnvironment(type, path, {}, shader, async);
-}
-
 bool KShaderManager::Acquire(ShaderType type, const char* path, const KShaderCompileEnvironment& env, KShaderRef& shader, bool async)
 {
+	return AcquireByEnvironment(type, path, env, shader, async);
+}
+
+bool KShaderManager::Acquire(ShaderType type, const char* path, KShaderRef& shader, bool async)
+{
+	KShaderCompileEnvironment env;
+	env.enableSourceDebug = true;
 	return AcquireByEnvironment(type, path, env, shader, async);
 }
 

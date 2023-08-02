@@ -114,7 +114,8 @@ bool KRTAO::Init(IKRayTraceScene* scene)
 				m_AOComputePipeline[i]->BindStorageImage(BINDING_LOCAL_MEAN_VARIANCE_OUTPUT, m_MeanVarianceTarget[1]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 				m_AOComputePipeline[i]->BindStorageImage(BINDING_CUR_NORMAL_DEPTH, m_NormalDepthTarget[i]->GetFrameBuffer(), EF_UNKNOWN, COMPUTE_RESOURCE_OUT, 0, true);
 
-				m_AOComputePipeline[i]->Init("ao/rtao.comp");
+				// 似乎目前SPIRV源码级别调试处理不了光追ComputeShader(glslang 12.3.1)
+				m_AOComputePipeline[i]->Init("ao/rtao.comp", false);
 			}
 
 			renderDevice->CreateComputePipeline(m_MeanHorizontalComputePipeline);

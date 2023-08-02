@@ -30,6 +30,8 @@ protected:
 	std::mutex m_LoadTaskLock;
 	KTaskUnitProcessorPtr m_LoadTask;
 
+	bool m_EnableSourceDebug;
+
 	std::vector<ShaderInvalidCallback*>	m_InvalidCallbacks;
 
 	bool InitConstant();
@@ -47,7 +49,7 @@ protected:
 	bool CancelDeviceTask();
 	bool WaitDeviceTask();
 
-	static bool GenerateSpirV(ShaderType type, const char* code, std::vector<unsigned int>& spirv, std::vector<unsigned int>& spirvOpt);
+	static bool GenerateSpirV(ShaderType type, const char* code, bool enableDebug, std::vector<unsigned int>& spirv, std::vector<unsigned int>& spirvOpt);
 	static bool GenerateReflection(const std::vector<unsigned int>& spirv, KShaderInformation& information);
 public:
 	KVulkanShader();
@@ -64,6 +66,8 @@ public:
 	virtual bool AddIncludeSource(const IncludeSource& includeSource);
 	virtual bool RemoveAllIncludeSource();
 	virtual bool GetAllIncludeSource(std::vector<MacroPair>& macros);
+
+	virtual bool SetSourceDebugEnable(bool enable);
 
 	virtual bool InitFromFile(ShaderType type, const std::string& path, bool async);
 	virtual bool InitFromString(ShaderType type, const std::vector<char>& code, bool async);	

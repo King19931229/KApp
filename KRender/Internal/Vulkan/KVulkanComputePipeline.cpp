@@ -419,10 +419,12 @@ void KVulkanComputePipeline::DestroyPipeline()
 	}
 }
 
-bool KVulkanComputePipeline::Init(const char* szShader)
+bool KVulkanComputePipeline::Init(const char* szShader, bool enableSourceDebug)
 {
 	UnInit();
-	if (KRenderGlobal::ShaderManager.Acquire(ST_COMPUTE, szShader, m_ComputeShader, false))
+	KShaderCompileEnvironment env;
+	env.enableSourceDebug = enableSourceDebug;
+	if (KRenderGlobal::ShaderManager.Acquire(ST_COMPUTE, szShader, env, m_ComputeShader, false))
 	{
 		CreateLayout();
 		CreatePipeline();

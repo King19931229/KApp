@@ -21,10 +21,11 @@ static const char* CACHE_PATH = "ShaderCached";
 
 KVulkanShader::KVulkanShader()
 	: m_ShaderModule(VK_NULL_HANDLE),
-	m_Type(ST_VERTEX),
+	m_Type(ST_ENDENUM),
 	m_SourceFile(GetSourceFile()),
 	m_ResourceState(RS_UNLOADED),
-	m_LoadTask(nullptr)
+	m_LoadTask(nullptr),
+	m_EnableSourceDebug(true)
 {
 	ZERO_MEMORY(m_SpecializationInfo);
 }
@@ -149,27 +150,26 @@ static bool ShaderTypeToEShLanguage(ShaderType type, EShLanguage& language)
 	}
 }
 
-bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector<unsigned int>& spirv, std::vector<unsigned int>& spirvOpt)
+bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, bool enableDebug, std::vector<unsigned int>& spirv, std::vector<unsigned int>& spirvOpt)
 {
-	static std::mutex sSpirVLock;
-
 	EShLanguage language = EShLangVertex;
 	ASSERT_RESULT(ShaderTypeToEShLanguage(type, language));
 
 	std::unique_ptr<glslang::TShader> shader(KNEW glslang::TShader(language));
 	ASSERT_RESULT(code);
+
 	shader->setStrings(&code, 1);
 
 	if (type & (ST_RAYGEN | ST_ANY_HIT | ST_CLOSEST_HIT | ST_MISS))
 	{
-		shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
+		shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_3);
 		shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_5);
 	}
 	else
 	{
 		if ((type & ST_COMPUTE) && KVulkanGlobal::supportRaytrace)
 		{
-			shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
+			shader->setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_3);
 			shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_5);
 		}
 		else if ((type & (ST_TASK | ST_MESH)) && KVulkanGlobal::supportMeshShader)
@@ -184,8 +184,12 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 		}
 	}
 
-	EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
+	EShMessages messages = (EShMessages)(EShMsgDefault
+		| EShMsgVulkanRules
+		| EShMsgSpvRules
+		| EShMsgDebugInfo);
 
+	static std::mutex sSpirVLock;
 	std::lock_guard<decltype(sSpirVLock)> lockGuard(sSpirVLock);
 	{
 		if (!shader->parse(KRenderGlobal::ShaderManager.GetSpirVBuildInResource(), 460, false, messages))
@@ -203,19 +207,16 @@ bool KVulkanShader::GenerateSpirV(ShaderType type, const char* code, std::vector
 		}
 
 		glslang::SpvOptions options;
-#ifdef _DEBUG
+
 		options.validate = true;
-		options.generateDebugInfo = true;
-#endif
+		options.disableOptimizer = enableDebug;
+		options.generateDebugInfo = enableDebug;
+		options.emitNonSemanticShaderDebugInfo = enableDebug;
+		options.emitNonSemanticShaderDebugSource = enableDebug;
+
 		glslang::GlslangToSpv(*program->getIntermediate(language), spirv, &options);
-#ifdef _DEBUG
+
 		spirvOpt = spirv;
-#else
-		options.optimizeSize = true;
-		options.disableOptimizer = false;
-		options.stripDebugInfo = true;
-		glslang::GlslangToSpv(*program->getIntermediate(language), spirvOpt, &options);
-#endif
 	}
 	return true;
 }
@@ -387,7 +388,7 @@ KVulkanShader::ShaderInitResult KVulkanShader::InitFromFileImpl(const std::strin
 		std::vector<unsigned int> spirvNoOpt;
 		std::vector<unsigned int> spirv;
 
-		if (GenerateSpirV(m_Type, finalSource, spirvNoOpt, spirv))
+		if (GenerateSpirV(m_Type, finalSource, m_EnableSourceDebug, spirvNoOpt, spirv))
 		{
 			GenerateReflection(spirvNoOpt, m_Information);
 
@@ -488,6 +489,12 @@ bool KVulkanShader::GetAllIncludeSource(std::vector<IncludeSource>& includeSourc
 {
 	ASSERT_RESULT(m_SourceFile);
 	return m_SourceFile->GetAllIncludeSource(includeSource);
+	return true;
+}
+
+bool KVulkanShader::SetSourceDebugEnable(bool enable)
+{
+	m_EnableSourceDebug = enable;
 	return true;
 }
 
