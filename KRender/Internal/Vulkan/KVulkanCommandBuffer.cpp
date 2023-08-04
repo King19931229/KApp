@@ -368,7 +368,14 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		VkBuffer vertexBuffers[32] = {0};
 		VkDeviceSize offsets[32] = {0};
 
-		uint32_t vertexBufferCount = static_cast<uint32_t>(command.vertexData->vertexBuffers.size());
+		// 间接缓冲
+		VkBuffer indirectBuffer = VK_NULL_HANDEL;
+		if (command.indirectArgsBuffer)
+		{
+			indirectBuffer = ((KVulkanStorageBuffer*)command.indirectArgsBuffer.get())->GetVulkanHandle();
+		}
+
+		uint32_t vertexBufferCount = command.vertexData ? static_cast<uint32_t>(command.vertexData->vertexBuffers.size()) : 0;
 
 		assert(vertexBufferCount < 32);
 
@@ -380,6 +387,12 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			offsets[i] = 0;
 		}
 
+		if (command.indexDraw)
+		{
+			KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
+			vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
+		}
+
 		if (command.meshShaderDraw)
 		{
 			KVulkanGlobal::vkCmdDrawMeshTasksNV(commandBuffer, command.meshData->count, command.meshData->offset);
@@ -388,6 +401,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		{
 			if (command.instanceDraw)
 			{
+				assert(!command.indirectDraw);
 				uint32_t instanceSlot = vertexBufferCount++;
 
 				for (const KInstanceBufferUsage& instanceUsage : command.instanceUsages)
@@ -400,11 +414,8 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 					uint32_t instanceStart = static_cast<uint32_t>(instanceUsage.start);
 					uint32_t instanceCount = static_cast<uint32_t>(instanceUsage.count);
-
 					if (command.indexDraw)
 					{
-						KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
-						vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
 						vkCmdDrawIndexed(commandBuffer, command.indexData->indexCount, instanceCount, command.indexData->indexStart, 0, instanceStart);
 					}
 					else
@@ -422,13 +433,25 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 
 				if (command.indexDraw)
 				{
-					KVulkanIndexBuffer* vulkanIndexBuffer = ((KVulkanIndexBuffer*)command.indexData->indexBuffer.get());
-					vkCmdBindIndexBuffer(commandBuffer, vulkanIndexBuffer->GetVulkanHandle(), 0, vulkanIndexBuffer->GetVulkanIndexType());
-					vkCmdDrawIndexed(commandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+					if (command.indirectArgsBuffer)
+					{
+						vkCmdDrawIndexedIndirect(commandBuffer, indirectBuffer, 0 * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+					}
+					else
+					{
+						vkCmdDrawIndexed(commandBuffer, command.indexData->indexCount, 1, command.indexData->indexStart, 0, 0);
+					}
 				}
 				else
 				{
-					vkCmdDraw(commandBuffer, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
+					if (command.indirectArgsBuffer)
+					{
+						vkCmdDrawIndirect(commandBuffer, indirectBuffer, 0 * sizeof(VkDrawIndirectCommand), 1, sizeof(VkDrawIndirectCommand));
+					}
+					else
+					{
+						vkCmdDraw(commandBuffer, command.vertexData->vertexCount, 1, command.vertexData->vertexStart, 0);
+					}
 				}
 			}
 		}

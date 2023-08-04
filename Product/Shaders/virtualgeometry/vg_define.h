@@ -2,6 +2,7 @@
 #define VG_DEFINE_H
 
 #extension GL_ARB_shader_atomic_counters : require
+#extension GL_EXT_scalar_block_layout : enable
 
 #define INVALID_INDEX -1
 #define BVH_NODES_BITS 2
@@ -9,6 +10,7 @@
 #define BVH_NODE_MASK (BVH_MAX_NODES - 1)
 #define MAX_CANDIDATE_NODE  (1024 * 1024)
 #define MAX_CANDIDATE_CLUSTER  (1024 * 1024 * 4)
+#define MAX_CLUSTER_TRIANGLE_NUM 128
 #define VG_GROUP_SIZE 64
 #define BVH_MAX_GROUP_BATCH_SIZE (VG_GROUP_SIZE / BVH_MAX_NODES)
 #define CULL_CLUSTER_ALONG_BVH 1
@@ -28,10 +30,10 @@ struct ClusterBatchStruct
 	vec4 lodBoundHalfExtendRadius;
 	vec4 parentBoundCenterError;
 	vec4 parentBoundHalfExtendRadius;
-	uint vertexOffset;
-	uint indexOffset;
+	uint vertexFloatOffset;
+	uint indexIntOffset;
 	uint storageIndex;
-	uint padding;
+	uint triangleNum;
 };
 
 // Match with KMeshClusterHierarchyPackedNode
@@ -60,11 +62,11 @@ struct ResourceStruct
 	uint hierarchyPackedOffset;
 	uint hierarchyPackedSize;
 
-	uint clusterVertexStorageOffset;
-	uint clusterVertexStorageSize;
+	uint clusterVertexStorageByteOffset;
+	uint clusterVertexStorageByteSize;
 
-	uint clusterIndexStorageOffset;
-	uint clusterIndexStorageSize;
+	uint clusterIndexStorageByteOffset;
+	uint clusterIndexStorageByteSize;
 
 	uint materialIndex;
 
@@ -119,6 +121,9 @@ struct SelectedCluster
 #define BINDING_SELECTED_CLUSTER_BATCH 10
 #define BINDING_INDIRECT_ARGS 11
 #define BINDING_EXTRA_DEBUG_INFO 12
+#define BINDING_INDIRECT_DRAW_ARGS 13
+#define BINDING_CLUSTER_VERTEX_BUFFER 14
+#define BINDING_CLUSTER_INDEX_BUFFER 15
 
 // Match with KVirtualGeometryGlobal
 layout(binding = BINDING_GLOBAL_DATA)
@@ -134,15 +139,15 @@ uniform GlobalData
 #define cameraAspect misc.y
 #define lodScale misc.z
 
-layout (std430, binding = BINDING_RESOURCE) coherent buffer ResourceBuffer {
+layout (scalar, binding = BINDING_RESOURCE) coherent buffer ResourceBuffer {
 	ResourceStruct ResourceData[];
 };
 
-layout (std430, binding = BINDING_QUEUE_STATE) coherent buffer QueueStateBuffer {
+layout (scalar, binding = BINDING_QUEUE_STATE) coherent buffer QueueStateBuffer {
 	QueueStateStruct QueueState[];
 };
 
-layout (std430, binding = BINDING_INSTANCE_DATA) coherent buffer InstanceDataBuffer {
+layout (scalar, binding = BINDING_INSTANCE_DATA) coherent buffer InstanceDataBuffer {
 	InstanceStruct InstanceData[];
 };
 
@@ -154,15 +159,15 @@ layout (std430, binding = BINDING_CLUSTER_BATCH) coherent buffer ClusterBatchBuf
 	ClusterBatchStruct ClusterBatch[];
 };
 
-layout (std430, binding = BINDING_CANDIDATE_NODE_BATCH) coherent buffer CandidateNodeBatchBuffer {
+layout (scalar, binding = BINDING_CANDIDATE_NODE_BATCH) coherent buffer CandidateNodeBatchBuffer {
 	uint CandidateNodeBatch[];
 };
 
-layout (std430, binding = BINDING_CANDIDATE_CLUSTER_BATCH) coherent buffer CandidateClusterBatchBuffer {
+layout (scalar, binding = BINDING_CANDIDATE_CLUSTER_BATCH) coherent buffer CandidateClusterBatchBuffer {
 	uint CandidateClusterBatch[];
 };
 
-layout (std430, binding = BINDING_SELECTED_CLUSTER_BATCH) coherent buffer SelectedClusterBatchBuffer {
+layout (scalar, binding = BINDING_SELECTED_CLUSTER_BATCH) coherent buffer SelectedClusterBatchBuffer {
 	uint SelectedClusterBatch[];
 };
 
@@ -172,6 +177,18 @@ layout (std430, binding = BINDING_INDIRECT_ARGS) coherent buffer IndirectArgsBuf
 
 layout (std430, binding = BINDING_EXTRA_DEBUG_INFO) coherent buffer ExtraDebugInfoBuffer {
 	float ExtraDebugInfo[];
+};
+
+layout (std430, binding = BINDING_INDIRECT_DRAW_ARGS) coherent buffer IndirectDrawArgsBuffer {
+	uint IndirectDrawArgs[];
+};
+
+layout (scalar, binding = BINDING_CLUSTER_VERTEX_BUFFER) coherent buffer ClusterVertexBuffer {
+	float ClusterVertexData[];
+};
+
+layout (scalar, binding = BINDING_CLUSTER_INDEX_BUFFER) coherent buffer ClusterIndexBuffer {
+	uint ClusterIndexData[];
 };
 
 uint PackCandidateNode(CandidateNode node)

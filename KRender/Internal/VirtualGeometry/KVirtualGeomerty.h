@@ -15,11 +15,11 @@ struct KVirtualGeometryResource
 	uint32_t hierarchyPackedOffset = 0;
 	uint32_t hierarchyPackedSize = 0;
 
-	uint32_t clusterVertexStorageOffset = 0;
-	uint32_t clusterVertexStorageSize = 0;
+	uint32_t clusterVertexStorageByteOffset = 0;
+	uint32_t clusterVertexStorageByteSize = 0;
 
-	uint32_t clusterIndexStorageOffset = 0;
-	uint32_t clusterIndexStorageSize = 0;
+	uint32_t clusterIndexStorageByteOffset = 0;
+	uint32_t clusterIndexStorageByteSize= 0;
 
 	uint32_t materialIndex = KVirtualGeometryDefine::INVALID_INDEX;
 

@@ -9,7 +9,7 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 	{
 		CandidateCluster candidateCluster = UnpackCandidateCluster(CandidateClusterBatch[batchIndex]);
 		uint instanceId = candidateCluster.instanceId;
-		
+
 		ClusterBatchStruct clusterBatch;
 		GetClusterData(candidateCluster, clusterBatch);
 

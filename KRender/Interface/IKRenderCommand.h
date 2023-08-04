@@ -160,12 +160,15 @@ struct KRenderCommand
 
 	uint32_t threadIndex;
 
+	IKStorageBufferPtr indirectArgsBuffer;
+
 	IKPipelinePtr pipeline;
 	IKPipelineHandlePtr pipelineHandle;
 
 	bool indexDraw;
 	bool instanceDraw;
 	bool meshShaderDraw;
+	bool indirectDraw;
 
 	KDynamicConstantBufferUsage objectUsage;
 	KDynamicConstantBufferUsage shadingUsage;
@@ -189,11 +192,16 @@ struct KRenderCommand
 		indexDraw = false;
 		instanceDraw = false;
 		meshShaderDraw = false;
+		indirectDraw = false;
 	}
 
 	bool Complete() const
 	{
-		if (!vertexData || !pipeline)
+		if (!(vertexData || indirectDraw) || !pipeline)
+		{
+			return false;
+		}
+		if (indirectDraw && !indirectArgsBuffer)
 		{
 			return false;
 		}

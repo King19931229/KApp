@@ -234,15 +234,15 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 
 			m_PackedHierarchyBuffer.Append(geometry->hierarchyPackedSize, hierarchyNode.data());
 
-			geometry->clusterVertexStorageOffset = (uint32_t)m_ClusterVertexStorageBuffer.GetSize();
-			geometry->clusterVertexStorageSize = (uint32_t)vertexStroages.vertices.size() * sizeof(float);
+			geometry->clusterVertexStorageByteOffset = (uint32_t)m_ClusterVertexStorageBuffer.GetSize();
+			geometry->clusterVertexStorageByteSize = (uint32_t)vertexStroages.vertices.size() * sizeof(float);
 
-			m_ClusterVertexStorageBuffer.Append(geometry->clusterVertexStorageSize, vertexStroages.vertices.data());
+			m_ClusterVertexStorageBuffer.Append(geometry->clusterVertexStorageByteSize, vertexStroages.vertices.data());
 
-			geometry->clusterIndexStorageOffset = (uint32_t)m_ClusterIndexStorageBuffer.GetSize();
-			geometry->clusterIndexStorageSize = (uint32_t)indexStroages.indices.size() * sizeof(uint32_t);
+			geometry->clusterIndexStorageByteOffset = (uint32_t)m_ClusterIndexStorageBuffer.GetSize();
+			geometry->clusterIndexStorageByteSize = (uint32_t)indexStroages.indices.size() * sizeof(uint32_t);
 
-			m_ClusterIndexStorageBuffer.Append(geometry->clusterIndexStorageSize, indexStroages.indices.data());
+			m_ClusterIndexStorageBuffer.Append(geometry->clusterIndexStorageByteSize, indexStroages.indices.data());
 
 			geometry->resourceIndex = resourceIndex;
 			geometry->boundCenter = glm::vec4(bound.GetCenter(), 0);
@@ -311,8 +311,8 @@ bool KVirtualGeometryManager::RemoveGeometry(uint32_t index)
 
 		m_PackedHierarchyBuffer.Remove(geometry->hierarchyPackedOffset, geometry->hierarchyPackedSize);
 		m_ClusterBatchBuffer.Remove(geometry->clusterBatchOffset, geometry->clusterBatchSize);
-		m_ClusterVertexStorageBuffer.Remove(geometry->clusterVertexStorageOffset, geometry->clusterVertexStorageSize);
-		m_ClusterIndexStorageBuffer.Remove(geometry->clusterIndexStorageOffset, geometry->clusterIndexStorageSize);
+		m_ClusterVertexStorageBuffer.Remove(geometry->clusterVertexStorageByteOffset, geometry->clusterVertexStorageByteSize);
+		m_ClusterIndexStorageBuffer.Remove(geometry->clusterIndexStorageByteOffset, geometry->clusterIndexStorageByteSize);
 
 		// TODO 更新材质索引
 

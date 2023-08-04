@@ -70,5 +70,6 @@ public:
 
 	bool CreateVirtualGeometryScene(IKVirtualGeometryScenePtr& scene);
 	bool RemoveVirtualGeometryScene(IKVirtualGeometryScenePtr& scene);
+
 	bool Execute(IKCommandBufferPtr primaryBuffer);
 };

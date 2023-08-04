@@ -273,7 +273,14 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		KRenderGlobal::GBuffer.TranslateColor(commandBuffer, m_PostGraphics.queue, m_PostGraphics.queue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_COLOR_ATTACHMENT);
 		KRenderGlobal::GBuffer.TranslateDepthStencil(commandBuffer, m_PostGraphics.queue, m_PostGraphics.queue, PIPELINE_STAGE_FRAGMENT_SHADER, PIPELINE_STAGE_EARLY_FRAGMENT_TESTS, IMAGE_LAYOUT_SHADER_READ_ONLY, IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 
+		KMultithreadingRenderContext multithreadRenderContext;
+		multithreadRenderContext.primaryBuffer = commandBuffer;
+		multithreadRenderContext.threadCommandPools = m_PostGraphics.threadPools;
+		multithreadRenderContext.enableMultithreading = m_EnableMultithreadRender;
+		multithreadRenderContext.threadPool = &m_ThreadPool;
+
 		KRenderGlobal::DeferredRenderer.SkyPass(commandBuffer);
+		KRenderGlobal::DeferredRenderer.ForwardOpaque(multithreadRenderContext, cullRes);
 		KRenderGlobal::DeferredRenderer.ForwardTransprant(commandBuffer, cullRes);
 
 		//
@@ -359,6 +366,8 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 
 	m_DebugCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 	{
+		KRenderGlobal::Scene.GetVirtualGeometryScene()->DebugRender(renderPass, primaryBuffer);
+
 		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
 		{
 			if (KRenderGlobal::Voxilzer.IsVoxelDrawEnable())

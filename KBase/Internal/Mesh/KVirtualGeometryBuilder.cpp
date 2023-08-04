@@ -1824,8 +1824,8 @@ bool KVirtualGeometryBuilder::GetMeshClusterStorages(std::vector<KMeshClusterBat
 
 				KMeshClusterBatch newBatch;
 
-				newBatch.vertexOffset = vertexOffset;
-				newBatch.indexOffset = indexOffset;
+				newBatch.vertexFloatOffset = vertexOffset;
+				newBatch.indexIntOffset = indexOffset;
 				newBatch.storageIndex = storageIndex;
 				newBatch.lodBoundCenterError = glm::vec4(cluster->lodBound.GetCenter(), cluster->lodError);
 				newBatch.lodBoundHalfExtendRadius = glm::vec4(0.5f * cluster->lodBound.GetExtend(), 0.5f * glm::length(cluster->lodBound.GetExtend()));
@@ -1834,6 +1834,8 @@ bool KVirtualGeometryBuilder::GetMeshClusterStorages(std::vector<KMeshClusterBat
 
 				newBatch.parentBoundCenterError = glm::vec4(group->lodBound.GetCenter(), group->lodError);
 				newBatch.parentBoundHalfExtendRadius = glm::vec4(0.5f * group->lodBound.GetExtend(), 0.5f * glm::length(group->lodBound.GetExtend()));
+
+				newBatch.triangleNum = (uint32_t)cluster->indices.size() / 3;
 
 				clusters.push_back(newBatch);
 

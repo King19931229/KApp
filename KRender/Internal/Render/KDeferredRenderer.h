@@ -49,6 +49,7 @@ public:
 	void PrePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes);
 	void BasePass(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes);
 	void DeferredLighting(IKCommandBufferPtr primaryBuffer);
+	void ForwardOpaque(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes);
 	void ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes);
 	void SkyPass(IKCommandBufferPtr primaryBuffer);
 	void CopySceneColorToFinal(IKCommandBufferPtr primaryBuffer);

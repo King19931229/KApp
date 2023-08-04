@@ -130,6 +130,15 @@ void KDeferredRenderer::RecreateRenderPass(uint32_t width, uint32_t height)
 			ASSERT_RESULT(renderPass->Init());
 		}
 
+		if (idx == DRS_STAGE_FORWARD_OPAQUE)
+		{
+			renderPass->SetColorAttachment(0, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer());
+			renderPass->SetOpColor(0, LO_LOAD, SO_STORE);
+			renderPass->SetDepthStencilAttachment(KRenderGlobal::GBuffer.GetDepthStencilTarget()->GetFrameBuffer());
+			renderPass->SetOpDepthStencil(LO_LOAD, SO_STORE, LO_LOAD, SO_STORE);
+			ASSERT_RESULT(renderPass->Init());
+		}
+
 		if (idx == DRS_STAGE_FORWARD_TRANSPRANT)
 		{
 			renderPass->SetColorAttachment(0, KRenderGlobal::GBuffer.GetSceneColor()->GetFrameBuffer());
@@ -684,12 +693,16 @@ void KDeferredRenderer::BasePass(KMultithreadingRenderContext& renderContext, co
 	BuildRenderCommand(renderContext, DRS_STAGE_BASE_PASS, cullRes);
 }
 
+void KDeferredRenderer::ForwardOpaque(KMultithreadingRenderContext& renderContext, const std::vector<IKEntity*>& cullRes)
+{
+	BuildRenderCommand(renderContext, DRS_STAGE_FORWARD_OPAQUE, cullRes);
+}
+
 void KDeferredRenderer::ForwardTransprant(IKCommandBufferPtr primaryBuffer, const std::vector<IKEntity*>& cullRes)
 {
 	KMultithreadingRenderContext context;
 	context.primaryBuffer = primaryBuffer;
 	context.enableMultithreading = false;
-
 	BuildRenderCommand(context, DRS_STAGE_FORWARD_TRANSPRANT, cullRes);
 }
 

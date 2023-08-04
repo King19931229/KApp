@@ -168,12 +168,10 @@ struct KMeshClusterBatch
 	glm::vec4 lodBoundHalfExtendRadius;
 	glm::vec4 parentBoundCenterError;
 	glm::vec4 parentBoundHalfExtendRadius;
-	// Offset in float32
-	uint32_t vertexOffset = KVirtualGeometryDefine::INVALID_INDEX;
-	// Offset in uint32
-	uint32_t indexOffset = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t vertexFloatOffset = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t indexIntOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t storageIndex = KVirtualGeometryDefine::INVALID_INDEX;
-	uint32_t padding = 0;
+	uint32_t triangleNum = 0;
 };
 static_assert((sizeof(KMeshClusterBatch) % 16) == 0, "Size must be a multiple of 16");
 static_assert(sizeof(KMeshClusterBatch) == 16 * 4 + 4 * 4, "must match");

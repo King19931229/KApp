@@ -190,6 +190,8 @@ enum VertexFormat
 	VF_INSTANCE,
 	// terrain
 	VF_TERRAIN_POS,
+	// virtual geometry
+	VF_VIRTUAL_GEOMETRY_VERTEX,
 
 	VF_UNKNOWN,
 	VF_COUNT = VF_UNKNOWN

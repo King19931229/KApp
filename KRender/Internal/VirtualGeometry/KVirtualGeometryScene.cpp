@@ -124,11 +124,19 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_ExtraDebugBuffer->InitDevice(false);
 			m_ExtraDebugBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINDING_EXTRA_DEBUG_INFO);
 
-			uint32_t indirectinfo[] = { 1, 1, 1 };
+			uint32_t indirectInfo[] = { 1, 1, 1 };
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_IndirectAgrsBuffer);
-			m_IndirectAgrsBuffer->InitMemory(sizeof(indirectinfo), indirectinfo);
+			m_IndirectAgrsBuffer->InitMemory(sizeof(indirectInfo), indirectInfo);
 			m_IndirectAgrsBuffer->InitDevice(true);
 			m_IndirectAgrsBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_ARGS);
+
+			// TODO随材质数量扩充
+			// { vertexCount, instanceCount, firstVertex, firstInstance }
+			int32_t multiIndirectDrawInfo[] = { 0, 0, 0, 0 };
+			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_IndirectDrawBuffer);
+			m_IndirectDrawBuffer->InitMemory(sizeof(multiIndirectDrawInfo), multiIndirectDrawInfo);
+			m_IndirectDrawBuffer->InitDevice(true);
+			m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
 		}
 		
 		{
@@ -176,6 +184,41 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_ClusterCullPipeline->BindStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, m_SelectedClusterBuffer, COMPUTE_RESOURCE_OUT, true);
 			m_ClusterCullPipeline->BindStorageBuffer(BINDING_EXTRA_DEBUG_INFO, m_ExtraDebugBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 			m_ClusterCullPipeline->Init("virtualgeometry/cluster_cull.comp");
+
+			KRenderGlobal::RenderDevice->CreateComputePipeline(m_CalcDrawArgsPipeline);
+			m_CalcDrawArgsPipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
+			m_CalcDrawArgsPipeline->BindStorageBuffer(BINDING_INDIRECT_DRAW_ARGS, m_IndirectDrawBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_CalcDrawArgsPipeline->Init("virtualgeometry/calc_draw_args.comp");
+		}
+
+		{
+			KShaderCompileEnvironment env;
+			KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "virtualgeometry/vg_debug.vert", env, m_DebugVertexShader, false);
+			KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualgeometry/vg_debug.frag", env, m_DebugFragmentShader, false);
+
+			KRenderGlobal::RenderDevice->CreatePipeline(m_DebugPipeline);
+			m_DebugPipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+			m_DebugPipeline->SetBlendEnable(false);
+			m_DebugPipeline->SetCullMode(CM_BACK);
+			m_DebugPipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+			m_DebugPipeline->SetPolygonMode(PM_FILL);
+			m_DebugPipeline->SetColorWrite(true, true, true, true);
+			m_DebugPipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+			m_DebugPipeline->SetShader(ST_VERTEX, m_DebugVertexShader.Get());
+			m_DebugPipeline->SetShader(ST_FRAGMENT, m_DebugFragmentShader.Get());
+
+			m_DebugPipeline->SetStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, ST_VERTEX, m_SelectedClusterBuffer);
+			m_DebugPipeline->SetStorageBuffer(BINDING_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
+			m_DebugPipeline->SetStorageBuffer(BINDING_RESOURCE, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer());
+			m_DebugPipeline->SetStorageBuffer(BINDING_CLUSTER_BATCH, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer());
+
+			m_DebugPipeline->SetStorageBuffer(BINDING_CLUSTER_VERTEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterVertexStorageBuffer());
+			m_DebugPipeline->SetStorageBuffer(BINDING_CLUSTER_INDEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterIndexStorageBuffer());
+
+			m_DebugPipeline->SetConstantBuffer(BINDING_GLOBAL_DATA, ST_VERTEX, m_GlobalDataBuffer);
+
+			m_DebugPipeline->Init();
 		}
 
 		std::vector<IKEntity*> entites;
@@ -211,6 +254,7 @@ bool KVirtualGeometryScene::UnInit()
 	SAFE_UNINIT(m_IndirectAgrsBuffer);	
 	SAFE_UNINIT(m_SelectedClusterBuffer);
 	SAFE_UNINIT(m_ExtraDebugBuffer);
+	SAFE_UNINIT(m_IndirectDrawBuffer);
 
 	SAFE_UNINIT(m_InitQueueStatePipeline);
 	SAFE_UNINIT(m_InstanceCullPipeline);
@@ -218,6 +262,12 @@ bool KVirtualGeometryScene::UnInit()
 	SAFE_UNINIT(m_InitClusterCullArgsPipeline);
 	SAFE_UNINIT(m_NodeCullPipeline);
 	SAFE_UNINIT(m_ClusterCullPipeline);
+	SAFE_UNINIT(m_CalcDrawArgsPipeline);
+
+	SAFE_UNINIT(m_DebugPipeline);
+
+	m_DebugVertexShader.Release();
+	m_DebugFragmentShader.Release();
 
 	m_InstanceMap.clear();
 	m_Instances.clear();
@@ -340,7 +390,30 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer)
 			m_ClusterCullPipeline->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
 			primaryBuffer->EndDebugMarker();
 		}
+
+		{
+			primaryBuffer->BeginDebugMarker("VirtualGeometry_CalcDrawArgs", glm::vec4(1));
+			m_CalcDrawArgsPipeline->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
+			primaryBuffer->EndDebugMarker();
+		}
 	}
+	primaryBuffer->EndDebugMarker();
+	return true;
+}
+
+bool KVirtualGeometryScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+{
+	primaryBuffer->BeginDebugMarker("VirtualGeometry_Debug", glm::vec4(1));
+
+	KRenderCommand command;
+	command.pipeline = m_DebugPipeline;
+	command.indirectArgsBuffer = m_IndirectDrawBuffer;
+	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+	command.indexDraw = false;
+	command.indirectDraw = true;
+
+	primaryBuffer->Render(command);
+
 	primaryBuffer->EndDebugMarker();
 	return true;
 }
@@ -370,6 +443,22 @@ bool KVirtualGeometryScene::ReloadShader()
 	if (m_ClusterCullPipeline)
 	{
 		m_ClusterCullPipeline->Reload();
+	}
+	if (m_CalcDrawArgsPipeline)
+	{
+		m_CalcDrawArgsPipeline->Reload();
+	}
+	if (m_DebugVertexShader)
+	{
+		m_DebugVertexShader->Reload();
+	}
+	if (m_DebugFragmentShader)
+	{
+		m_DebugFragmentShader->Reload();
+	}
+	if (m_DebugPipeline)
+	{
+		m_DebugPipeline->Reload();
 	}
 	return true;
 }

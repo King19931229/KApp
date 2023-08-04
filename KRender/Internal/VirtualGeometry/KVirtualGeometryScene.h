@@ -29,6 +29,9 @@ protected:
 		BINDING_SELECTED_CLUSTER_BATCH,
 		BINDING_INDIRECT_ARGS,
 		BINDING_EXTRA_DEBUG_INFO,
+		BINDING_INDIRECT_DRAW_ARGS,
+		BINDING_CLUSTER_VERTEX_BUFFER,
+		BINDING_CLUSTER_INDEX_BUFFER
 	};
 
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_GLOBAL_DATA = "VirtualGeometrySceneGlobalData";
@@ -38,7 +41,8 @@ protected:
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_CANDIDATE_CLUSTER = "VirtualGeometrySceneCandidateCluster";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_INDIRECT_ARGS = "VirtualGeometrySceneIndirectArgs";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_SELECTED_CLUSTER = "VirtualGeometrySceneSelectedCluster";
-	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINDING_EXTRA_DEBUG_INFO = "VirtualGeometrySceneDebugExtraInffo";
+	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINDING_EXTRA_DEBUG_INFO = "VirtualGeometrySceneDebugExtraInfo";
+	static constexpr char* VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS = "VirtualGeometrySceneIndirectDrawArgs";
 
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
@@ -65,6 +69,7 @@ protected:
 	IKStorageBufferPtr m_IndirectAgrsBuffer;
 	IKStorageBufferPtr m_SelectedClusterBuffer;
 	IKStorageBufferPtr m_ExtraDebugBuffer;
+	IKStorageBufferPtr m_IndirectDrawBuffer;
 
 	IKComputePipelinePtr m_InitQueueStatePipeline;
 	IKComputePipelinePtr m_InstanceCullPipeline;
@@ -72,6 +77,11 @@ protected:
 	IKComputePipelinePtr m_InitClusterCullArgsPipeline;
 	IKComputePipelinePtr m_NodeCullPipeline;
 	IKComputePipelinePtr m_ClusterCullPipeline;
+	IKComputePipelinePtr m_CalcDrawArgsPipeline;
+
+	KShaderRef m_DebugVertexShader;
+	KShaderRef m_DebugFragmentShader;
+	IKPipelinePtr m_DebugPipeline;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);
@@ -94,6 +104,7 @@ public:
 	bool UnInit() override;
 
 	bool Execute(IKCommandBufferPtr primaryBuffer) override;
+	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
 
 	bool ReloadShader();
 

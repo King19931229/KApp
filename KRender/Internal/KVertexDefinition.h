@@ -7,9 +7,14 @@
 
 namespace KVertexDefinition
 {
-#pragma pack(push, 1)
-
 	struct POS_3F_NORM_3F_UV_2F
+	{
+		glm::vec3 POSITION;
+		glm::vec3 NORMAL;
+		glm::vec2 UV;
+	};
+
+	struct VIRTUAL_GEOMERTY_VERTEX_POS_3F_NORM_3F_UV_2F
 	{
 		glm::vec3 POSITION;
 		glm::vec3 NORMAL;
@@ -83,7 +88,7 @@ namespace KVertexDefinition
 	{
 		glm::vec2 POS;
 	};
-#pragma pack(pop)
+
 	struct VertexSemanticDetail
 	{
 		VertexSemantic semantic;

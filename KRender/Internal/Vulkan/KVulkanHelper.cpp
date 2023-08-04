@@ -729,9 +729,6 @@ namespace KVulkanHelper
 		using KVertexDefinition::VertexSemanticDetail;
 		using KVertexDefinition::VertexSemanticDetailList;
 
-		if(pData == nullptr || uCount == 0)
-			return false;
-
 		detailList.clear();
 		for(size_t idx = 0; idx < uCount; ++idx)
 		{
