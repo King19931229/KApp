@@ -31,7 +31,9 @@ protected:
 		BINDING_EXTRA_DEBUG_INFO,
 		BINDING_INDIRECT_DRAW_ARGS,
 		BINDING_CLUSTER_VERTEX_BUFFER,
-		BINDING_CLUSTER_INDEX_BUFFER
+		BINDING_CLUSTER_INDEX_BUFFER,
+		BINDING_BINNING_DATA,
+		BINDING_BINNING_HEADER
 	};
 
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_GLOBAL_DATA = "VirtualGeometrySceneGlobalData";
@@ -43,6 +45,8 @@ protected:
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_SELECTED_CLUSTER = "VirtualGeometrySceneSelectedCluster";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINDING_EXTRA_DEBUG_INFO = "VirtualGeometrySceneDebugExtraInfo";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS = "VirtualGeometrySceneIndirectDrawArgs";
+	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINNING_DATA = "VirtualGeometrySceneBinningData";
+	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINNIIG_HEADER = "VirtualGeometrySceneBinningHeader";
 
 	IKRenderScene* m_Scene;
 	const KCamera* m_Camera;
@@ -50,6 +54,7 @@ protected:
 	struct Instance
 	{
 		uint32_t index = 0;
+		glm::mat4 prevTransform;
 		glm::mat4 transform;
 		KVirtualGeometryResourceRef resource;
 	};
@@ -59,6 +64,7 @@ protected:
 	std::vector<InstancePtr> m_Instances;
 
 	std::vector<KVirtualGeometryInstance> m_LastInstanceData;
+	std::vector<KMaterialRef> m_BinningMaterials;
 
 	IKUniformBufferPtr m_GlobalDataBuffer;
 
@@ -70,6 +76,8 @@ protected:
 	IKStorageBufferPtr m_SelectedClusterBuffer;
 	IKStorageBufferPtr m_ExtraDebugBuffer;
 	IKStorageBufferPtr m_IndirectDrawBuffer;
+	IKStorageBufferPtr m_BinningDataBuffer;
+	IKStorageBufferPtr m_BinningHeaderBuffer;
 
 	IKComputePipelinePtr m_InitQueueStatePipeline;
 	IKComputePipelinePtr m_InstanceCullPipeline;
@@ -78,6 +86,8 @@ protected:
 	IKComputePipelinePtr m_NodeCullPipeline;
 	IKComputePipelinePtr m_ClusterCullPipeline;
 	IKComputePipelinePtr m_CalcDrawArgsPipeline;
+	IKComputePipelinePtr m_InitBinningPipline;
+	IKComputePipelinePtr m_BinningClassifyPipline;
 
 	KShaderRef m_DebugVertexShader;
 	KShaderRef m_DebugFragmentShader;

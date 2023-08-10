@@ -137,11 +137,19 @@ bool KVirtualGeometryManager::UnInit()
 	m_ClusterVertexStorageBuffer.UnInit();
 	m_ClusterIndexStorageBuffer.UnInit();
 	m_GeometryMap.clear();
+
 	for (KVirtualGeometryResourceRef& ref : m_GeometryResources)
 	{
 		assert(ref.GetRefCount() == 1);
 	}
 	m_GeometryResources.clear();
+
+	for (KMaterialRef& ref : m_MaterialResources)
+	{
+		assert(ref.GetRefCount() == 1);
+	}
+	m_MaterialResources.clear();
+
 	return true;
 }
 
@@ -168,6 +176,7 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		KMeshClustersIndexStorage indexStroages;
 		std::vector<uint32_t> clustersPartNum;
 		std::vector<uint32_t> clustersPartStart;
+
 		if (!builder.GetMeshClusterStorages(clusters, vertexStroages, indexStroages, clustersPartNum))
 		{
 			return false;
@@ -221,6 +230,13 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 
 		const KAABBBox& bound = builder.GetBound();
 
+		uint32_t maxMaterialIndex = 0;
+		for (KMeshClusterBatch& cluster : clusters)
+		{
+			maxMaterialIndex = std::max(cluster.localMaterialIndex, maxMaterialIndex);
+		}
+		assert(maxMaterialIndex + 1 == userData.parts.size());
+
 		{
 			geometry = KVirtualGeometryResourceRef(KNEW KVirtualGeometryResource());
 
@@ -248,7 +264,18 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			geometry->boundCenter = glm::vec4(bound.GetCenter(), 0);
 			geometry->boundHalfExtend = glm::vec4(0.5f * bound.GetExtend(), 0);
 
-			// TODO 更新材质索引
+			geometry->materialBaseIndex = (uint32_t)m_MaterialResources.size();
+			geometry->materialNum = (uint32_t)userData.parts.size();
+		}
+
+		for (uint32_t i = 0; i < userData.parts.size(); ++i)
+		{
+			KMaterialRef material;
+			if (!KRenderGlobal::MaterialManager.Create(userData.parts[i].material, material, false))
+			{
+				KRenderGlobal::MaterialManager.GetMissingMaterial(material);
+			}
+			m_MaterialResources.push_back(material);
 		}
 
 		m_ResourceBuffer.Append(sizeof(KVirtualGeometryResource), geometry.Get());
@@ -314,11 +341,14 @@ bool KVirtualGeometryManager::RemoveGeometry(uint32_t index)
 		m_ClusterVertexStorageBuffer.Remove(geometry->clusterVertexStorageByteOffset, geometry->clusterVertexStorageByteSize);
 		m_ClusterIndexStorageBuffer.Remove(geometry->clusterIndexStorageByteOffset, geometry->clusterIndexStorageByteSize);
 
-		// TODO 更新材质索引
+		uint32_t materialBaseIndex = geometry->materialBaseIndex;
+		uint32_t materialNum = geometry->materialNum;
+		m_MaterialResources.erase(m_MaterialResources.begin() + materialBaseIndex, m_MaterialResources.begin() + materialBaseIndex + materialNum);
 
 		for (uint32_t i = index + 1; i < (uint32_t)m_GeometryResources.size(); ++i)
 		{
-			--m_GeometryResources[i]->resourceIndex;
+			m_GeometryResources[i]->resourceIndex -= 1;
+			m_GeometryResources[i]->materialBaseIndex -= materialNum;
 		}
 
 		return true;

@@ -1,7 +1,8 @@
 #pragma once
 #include "Interface/IKRenderScene.h"
-#include "KVirtualGeomerty.h"
+#include "Interface/IKMaterial.h"
 #include "Interface/IKBuffer.h"
+#include "KVirtualGeomerty.h"
 #include <map>
 
 class KVirtualGeometryStorageBuffer
@@ -40,6 +41,7 @@ protected:
 
 	GeometryMap m_GeometryMap;
 	std::vector<KVirtualGeometryResourceRef> m_GeometryResources;
+	std::vector<KMaterialRef> m_MaterialResources;
 
 	KVirtualGeometryStorageBuffer m_PackedHierarchyBuffer;
 	KVirtualGeometryStorageBuffer m_ClusterBatchBuffer;
@@ -65,6 +67,8 @@ public:
 	IKStorageBufferPtr GetClusterVertexStorageBuffer() { return m_ClusterVertexStorageBuffer.GetBuffer(); }
 	IKStorageBufferPtr GetClusterIndexStorageBuffer() { return m_ClusterIndexStorageBuffer.GetBuffer(); }
 	IKStorageBufferPtr GetResourceBuffer() { return m_ResourceBuffer.GetBuffer(); }
+
+	const std::vector<KMaterialRef>& GetAllMaterials() const { return m_MaterialResources; }
 
 	bool AcquireFromUserData(const KMeshRawData& userData, const std::string& label, KVirtualGeometryResourceRef& ref);
 

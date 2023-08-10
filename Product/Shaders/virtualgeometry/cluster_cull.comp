@@ -35,7 +35,7 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 #endif
 		if (cullData.bIsVisible)
 		{
-			uint clusterWriteOffset = InterlockAddSelectedClusterWriteOffset(1);
+			uint clusterWriteOffset = InterlockAddVisibleClusterNum(1);
 			if (clusterWriteOffset < MAX_CANDIDATE_CLUSTER)
 			{
 				StoreSelectedCluster(clusterWriteOffset, candidateCluster);

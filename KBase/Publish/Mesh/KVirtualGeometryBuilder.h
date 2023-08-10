@@ -171,10 +171,12 @@ struct KMeshClusterBatch
 	uint32_t vertexFloatOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t indexIntOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t storageIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t localMaterialIndex = 0;
 	uint32_t triangleNum = 0;
+	uint32_t padding[3];
 };
 static_assert((sizeof(KMeshClusterBatch) % 16) == 0, "Size must be a multiple of 16");
-static_assert(sizeof(KMeshClusterBatch) == 16 * 4 + 4 * 4, "must match");
+static_assert(sizeof(KMeshClusterBatch) == 16 * 4 + 8 * 4, "must match");
 
 struct KMeshClustersVertexStorage
 {

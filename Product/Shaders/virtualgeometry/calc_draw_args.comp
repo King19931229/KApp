@@ -3,7 +3,7 @@
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-	uint numCluster = QueueState[0].selectedClusterWriteOffset - QueueState[0].selectedClusterReadOffset;
+	uint numCluster = QueueState[0].visibleClusterNum;
 
 	// vertexCount
 	IndirectDrawArgs[0] = MAX_CLUSTER_TRIANGLE_NUM * 3;

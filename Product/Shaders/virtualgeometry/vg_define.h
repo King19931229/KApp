@@ -2,7 +2,6 @@
 #define VG_DEFINE_H
 
 #extension GL_ARB_shader_atomic_counters : require
-#extension GL_EXT_scalar_block_layout : enable
 
 #define INVALID_INDEX -1
 #define BVH_NODES_BITS 2
@@ -18,9 +17,11 @@
 // Match with KVirtualGeometryInstance
 struct InstanceStruct
 {
+	mat4 prevTransform;
 	mat4 transform;
 	uint resourceIndex;
-	uint padding[3];
+	uint binningBaseIndex;
+	uint padding[2];
 };
 
 // Match with KMeshClusterBatch
@@ -33,7 +34,9 @@ struct ClusterBatchStruct
 	uint vertexFloatOffset;
 	uint indexIntOffset;
 	uint storageIndex;
+	uint localMaterialIndex;
 	uint triangleNum;
+	uint padding[3];
 };
 
 // Match with KMeshClusterHierarchyPackedNode
@@ -68,9 +71,10 @@ struct ResourceStruct
 	uint clusterIndexStorageByteOffset;
 	uint clusterIndexStorageByteSize;
 
-	uint materialIndex;
+	uint materialBaseIndex;
+	uint materialNum;
 
-	uint padding[2];
+	uint padding[1];
 };
 
 // Match with KVirtualGeometryQueueState
@@ -83,10 +87,9 @@ struct QueueStateStruct
 	uint clusterReadOffset;
 	uint clusterWriteOffset;
 
-	uint selectedClusterReadOffset;
-	uint selectedClusterWriteOffset;
+	uint visibleClusterNum;
 
-	uint padding;
+	uint padding[2];
 };
 
 struct CandidateNode
@@ -101,10 +104,11 @@ struct CandidateCluster
 	uint clusterIndex;
 };
 
-struct SelectedCluster
+struct BinningBatch
 {
-	uint instanceId;
-	uint clusterIndex;
+	uint index;
+	uint rangeBegin;
+	uint rangeNum;
 };
 
 // Match with KVirtualGeometryScene
@@ -124,6 +128,8 @@ struct SelectedCluster
 #define BINDING_INDIRECT_DRAW_ARGS 13
 #define BINDING_CLUSTER_VERTEX_BUFFER 14
 #define BINDING_CLUSTER_INDEX_BUFFER 15
+#define BINDING_BINNING_DATA 16
+#define BINDING_BINNING_HEADER 17
 
 // Match with KVirtualGeometryGlobal
 layout(binding = BINDING_GLOBAL_DATA)
@@ -139,15 +145,15 @@ uniform GlobalData
 #define cameraAspect misc.y
 #define lodScale misc.z
 
-layout (scalar, binding = BINDING_RESOURCE) coherent buffer ResourceBuffer {
+layout (std430, binding = BINDING_RESOURCE) coherent buffer ResourceBuffer {
 	ResourceStruct ResourceData[];
 };
 
-layout (scalar, binding = BINDING_QUEUE_STATE) coherent buffer QueueStateBuffer {
+layout (std430, binding = BINDING_QUEUE_STATE) coherent buffer QueueStateBuffer {
 	QueueStateStruct QueueState[];
 };
 
-layout (scalar, binding = BINDING_INSTANCE_DATA) coherent buffer InstanceDataBuffer {
+layout (std430, binding = BINDING_INSTANCE_DATA) coherent buffer InstanceDataBuffer {
 	InstanceStruct InstanceData[];
 };
 
@@ -159,15 +165,15 @@ layout (std430, binding = BINDING_CLUSTER_BATCH) coherent buffer ClusterBatchBuf
 	ClusterBatchStruct ClusterBatch[];
 };
 
-layout (scalar, binding = BINDING_CANDIDATE_NODE_BATCH) coherent buffer CandidateNodeBatchBuffer {
+layout (std430, binding = BINDING_CANDIDATE_NODE_BATCH) coherent buffer CandidateNodeBatchBuffer {
 	uint CandidateNodeBatch[];
 };
 
-layout (scalar, binding = BINDING_CANDIDATE_CLUSTER_BATCH) coherent buffer CandidateClusterBatchBuffer {
+layout (std430, binding = BINDING_CANDIDATE_CLUSTER_BATCH) coherent buffer CandidateClusterBatchBuffer {
 	uint CandidateClusterBatch[];
 };
 
-layout (scalar, binding = BINDING_SELECTED_CLUSTER_BATCH) coherent buffer SelectedClusterBatchBuffer {
+layout (std430, binding = BINDING_SELECTED_CLUSTER_BATCH) coherent buffer SelectedClusterBatchBuffer {
 	uint SelectedClusterBatch[];
 };
 
@@ -183,12 +189,20 @@ layout (std430, binding = BINDING_INDIRECT_DRAW_ARGS) coherent buffer IndirectDr
 	uint IndirectDrawArgs[];
 };
 
-layout (scalar, binding = BINDING_CLUSTER_VERTEX_BUFFER) coherent buffer ClusterVertexBuffer {
+layout (std430, binding = BINDING_CLUSTER_VERTEX_BUFFER) coherent buffer ClusterVertexBuffer {
 	float ClusterVertexData[];
 };
 
-layout (scalar, binding = BINDING_CLUSTER_INDEX_BUFFER) coherent buffer ClusterIndexBuffer {
+layout (std430, binding = BINDING_CLUSTER_INDEX_BUFFER) coherent buffer ClusterIndexBuffer {
 	uint ClusterIndexData[];
+};
+
+layout (std430, binding = BINDING_BINNING_DATA) coherent buffer BinningDataBuffer {
+	uint BinningData[];
+};
+
+layout (std430, binding = BINDING_BINNING_HEADER) coherent buffer BinningHeaderBuffer {
+	uvec4 BinningHeader[];
 };
 
 uint PackCandidateNode(CandidateNode node)
@@ -219,8 +233,26 @@ CandidateCluster UnpackCandidateCluster(uint data)
 {
 	CandidateCluster cluster;
 	cluster.clusterIndex = data & 0xFFFF;
-	cluster.instanceId = (data >> 16) & 0xFF;	
+	cluster.instanceId = (data >> 16) & 0xFF;
 	return cluster;
+}
+
+uint PackBinningBatch(BinningBatch batch)
+{
+	uint pack = 0;
+	pack |= (batch.index & 0xFFFF) << 16;
+	pack |= (batch.rangeBegin & 0xFF) << 8;
+	pack |= batch.rangeNum & 0xFF;
+	return pack;
+}
+
+BinningBatch UnpackBinningBatch(uint data)
+{
+	BinningBatch batch;
+	batch.index = (data >> 16) & 0xFFFF;
+	batch.rangeBegin = (data >> 8) & 0xFF;
+	batch.rangeNum = data & 0xFF;
+	return batch;
 }
 
 void StoreCandidateNode(uint index, CandidateNode node)
@@ -236,6 +268,11 @@ void StoreCandidateCluster(uint index, CandidateCluster cluster)
 void StoreSelectedCluster(uint index, CandidateCluster cluster)
 {
 	SelectedClusterBatch[index] = PackCandidateCluster(cluster);
+}
+
+void StoreBinningBatch(uint index, BinningBatch batch)
+{
+	BinningData[index] = PackBinningBatch(batch);
 }
 
 void GetHierarchyData(in CandidateNode node, out ClusterHierarchyStruct hierarchy)
@@ -256,7 +293,7 @@ void GetClusterData(in CandidateCluster cluster, out ClusterBatchStruct clusterB
 	uint clusterIndex = cluster.clusterIndex;
 
 	uint clusterBatchOffset = ResourceData[resourceIndex].clusterBatchPackedOffset;
-	uint clusterBatchSize = 16 * 4 + 4 * 4;
+	uint clusterBatchSize = 16 * 4 + 8 * 4;
 	uint clusterOffset = clusterBatchOffset / clusterBatchSize + clusterIndex;
 
 	clusterBatch = ClusterBatch[clusterOffset];
@@ -357,6 +394,6 @@ uint InterlockAdd##name(uint add)\
 
 InterlockAddDecl(NodeWriteOffset, QueueState[0].nodeWriteOffset);
 InterlockAddDecl(ClusterWriteOffset, QueueState[0].clusterWriteOffset);
-InterlockAddDecl(SelectedClusterWriteOffset, QueueState[0].selectedClusterWriteOffset);
+InterlockAddDecl(VisibleClusterNum, QueueState[0].visibleClusterNum);
 
 #endif

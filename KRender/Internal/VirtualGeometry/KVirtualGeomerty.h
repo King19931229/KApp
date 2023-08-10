@@ -21,17 +21,20 @@ struct KVirtualGeometryResource
 	uint32_t clusterIndexStorageByteOffset = 0;
 	uint32_t clusterIndexStorageByteSize= 0;
 
-	uint32_t materialIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t materialBaseIndex = 0;
+	uint32_t materialNum = 0;
 
-	uint32_t padding[2];
+	uint32_t padding[1];
 };
 static_assert((sizeof(KVirtualGeometryResource) % 16) == 0, "Size must be a multiple of 16");
 
 struct KVirtualGeometryInstance
 {
+	glm::mat4 prevTransform;
 	glm::mat4 transform;
 	uint32_t resourceIndex;
-	uint32_t padding[3];
+	uint32_t binningBaseIndex;
+	uint32_t padding[2];
 };
 static_assert((sizeof(KVirtualGeometryInstance) % 16) == 0, "Size must be a multiple of 16");
 
@@ -50,9 +53,8 @@ struct KVirtualGeometryQueueState
 	uint32_t nodeWriteOffset = 0;
 	uint32_t clusterReadOffset = 0;
 	uint32_t clusterWriteOffset = 0;
-	uint32_t selectedClusterReadOffset = 0;
-	uint32_t selectedClusterWriteOffset = 0;
-	uint32_t padding = 0;
+	uint32_t visibleClusterNum = 0;
+	uint32_t padding[2];
 };
 static_assert((sizeof(KVirtualGeometryQueueState) % 16) == 0, "Size must be a multiple of 16");
 

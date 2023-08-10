@@ -130,13 +130,27 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_IndirectAgrsBuffer->InitDevice(true);
 			m_IndirectAgrsBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_ARGS);
 
-			// TODO随材质数量扩充
 			// { vertexCount, instanceCount, firstVertex, firstInstance }
-			int32_t multiIndirectDrawInfo[] = { 0, 0, 0, 0 };
+			int32_t indirectDrawInfo[] = { 0, 0, 0, 0 };
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_IndirectDrawBuffer);
-			m_IndirectDrawBuffer->InitMemory(sizeof(multiIndirectDrawInfo), multiIndirectDrawInfo);
+			m_IndirectDrawBuffer->InitMemory(sizeof(indirectDrawInfo), indirectDrawInfo);
 			m_IndirectDrawBuffer->InitDevice(true);
 			m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
+
+			uint32_t emptyBinningData[] = { 0 };
+			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_BinningDataBuffer);
+			m_BinningDataBuffer->InitMemory(sizeof(emptyBinningData), emptyBinningData);
+			m_BinningDataBuffer->InitDevice(false);
+			m_BinningDataBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINNING_DATA);
+
+			uint32_t emptyBinningHeader[] = { 0, 0, 0, 0 };
+			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_BinningHeaderBuffer);
+			m_BinningHeaderBuffer->InitMemory(sizeof(emptyBinningData), emptyBinningData);
+			m_BinningHeaderBuffer->InitDevice(false);
+			m_BinningHeaderBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINNIIG_HEADER);
+
+			IKStorageBufferPtr m_BinningDataBuffer;
+			IKStorageBufferPtr m_BinningHeaderBuffer;
 		}
 		
 		{
@@ -189,6 +203,17 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_CalcDrawArgsPipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
 			m_CalcDrawArgsPipeline->BindStorageBuffer(BINDING_INDIRECT_DRAW_ARGS, m_IndirectDrawBuffer, COMPUTE_RESOURCE_OUT, true);
 			m_CalcDrawArgsPipeline->Init("virtualgeometry/calc_draw_args.comp");
+
+			KRenderGlobal::RenderDevice->CreateComputePipeline(m_InitBinningPipline);
+			m_InitBinningPipline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
+			m_InitBinningPipline->BindStorageBuffer(BINDING_INDIRECT_ARGS, m_IndirectAgrsBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_InitBinningPipline->Init("virtualgeometry/init_binning.comp");
+
+			KRenderGlobal::RenderDevice->CreateComputePipeline(m_BinningClassifyPipline);
+			m_BinningClassifyPipline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
+			m_BinningClassifyPipline->BindStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, m_SelectedClusterBuffer, COMPUTE_RESOURCE_IN, true);
+			m_BinningClassifyPipline->BindStorageBuffer(BINDING_BINNING_DATA, m_BinningDataBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_BinningClassifyPipline->Init("virtualgeometry/binning_classify.comp");
 		}
 
 		{
@@ -255,6 +280,8 @@ bool KVirtualGeometryScene::UnInit()
 	SAFE_UNINIT(m_SelectedClusterBuffer);
 	SAFE_UNINIT(m_ExtraDebugBuffer);
 	SAFE_UNINIT(m_IndirectDrawBuffer);
+	SAFE_UNINIT(m_BinningDataBuffer);
+	SAFE_UNINIT(m_BinningHeaderBuffer);
 
 	SAFE_UNINIT(m_InitQueueStatePipeline);
 	SAFE_UNINIT(m_InstanceCullPipeline);
@@ -263,6 +290,8 @@ bool KVirtualGeometryScene::UnInit()
 	SAFE_UNINIT(m_NodeCullPipeline);
 	SAFE_UNINIT(m_ClusterCullPipeline);
 	SAFE_UNINIT(m_CalcDrawArgsPipeline);
+	SAFE_UNINIT(m_InitBinningPipline);
+	SAFE_UNINIT(m_BinningClassifyPipline);
 
 	SAFE_UNINIT(m_DebugPipeline);
 
@@ -272,6 +301,7 @@ bool KVirtualGeometryScene::UnInit()
 	m_InstanceMap.clear();
 	m_Instances.clear();
 	m_LastInstanceData.clear();
+	m_BinningMaterials.clear();
 
 	return true;
 }
@@ -300,7 +330,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 		pWrite = nullptr;
 	}
 
-	if (!m_InstanceDataBuffer)
+	if (!m_InstanceDataBuffer || !m_IndirectDrawBuffer)
 	{
 		return false;
 	}
@@ -308,11 +338,41 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 	std::vector<KVirtualGeometryInstance> instanceData;
 	instanceData.resize(m_Instances.size());
 
+	const std::vector<KMaterialRef>& allMaterials = KRenderGlobal::VirtualGeometryManager.GetAllMaterials();
+	std::unordered_map<uint32_t, uint32_t> materialIndexToBinningIndex;
+
+	std::vector<KMaterialRef> binningMaterials;
+
 	for (size_t i = 0; i < m_Instances.size(); ++i)
 	{
 		KVirtualGeometryResourceRef resource = m_Instances[i]->resource;
 		instanceData[i].resourceIndex = resource->resourceIndex;
+		instanceData[i].prevTransform = m_Instances[i]->prevTransform;
 		instanceData[i].transform = m_Instances[i]->transform;
+
+		uint32_t materialBaseIndex = resource->materialBaseIndex;
+		uint32_t binningBaseIndex = 0;
+
+		auto it = materialIndexToBinningIndex.find(materialBaseIndex);
+		if (it != materialIndexToBinningIndex.end())
+		{
+			binningBaseIndex = it->second;
+		}
+		else
+		{
+			binningBaseIndex = (uint32_t)binningMaterials.size();
+			for (uint32_t localMaterialIndex = 0; localMaterialIndex < resource->materialNum; ++localMaterialIndex)
+			{
+				uint32_t materialIndex = materialBaseIndex + localMaterialIndex;
+				uint32_t binningIndex = binningBaseIndex + localMaterialIndex;
+				binningMaterials.push_back(allMaterials[materialIndex]);
+				materialIndexToBinningIndex[materialIndex] = binningIndex;
+			}
+		}
+
+		instanceData[i].binningBaseIndex = binningBaseIndex;
+
+		m_Instances[i]->prevTransform = m_Instances[i]->transform;
 	}
 
 	if (instanceData.size() == m_LastInstanceData.size())
@@ -323,28 +383,116 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 		}
 	}
 
-	size_t dataSize = sizeof(KVirtualGeometryInstance) * instanceData.size();
-	size_t targetBufferSize = std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(dataSize));
+	m_BinningMaterials = std::move(binningMaterials);
 
-	if (m_InstanceDataBuffer->GetBufferSize() != targetBufferSize)
 	{
-		KRenderGlobal::RenderDevice->Wait();
+		int32_t indirectDrawInfo[] = { 0, 0, 0, 0 };
 
-		m_InstanceDataBuffer->UnInit();
-		m_InstanceDataBuffer->InitMemory(targetBufferSize, nullptr);
-		m_InstanceDataBuffer->InitDevice(false);
-		m_InstanceDataBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INSTANCE_DATA);
+		size_t dataSize = sizeof(indirectDrawInfo) * m_BinningMaterials.size();
+		size_t targetBufferSize = sizeof(indirectDrawInfo) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_BinningMaterials.size()));
+
+		if (m_IndirectDrawBuffer->GetBufferSize() != targetBufferSize)
+		{
+			KRenderGlobal::RenderDevice->Wait();
+			m_IndirectDrawBuffer->UnInit();
+			m_IndirectDrawBuffer->InitMemory(targetBufferSize, nullptr);
+			m_IndirectDrawBuffer->InitDevice(false);
+			m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
+		}
+
+		if (dataSize)
+		{
+			m_InstanceDataBuffer->Map(&pWrite);
+			for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
+			{
+				memcpy(pWrite, indirectDrawInfo, sizeof(indirectDrawInfo));
+				pWrite = POINTER_OFFSET(pWrite, sizeof(indirectDrawInfo));
+			}
+			m_InstanceDataBuffer->UnMap();
+			pWrite = nullptr;
+		}
 	}
 
-	if (dataSize)
 	{
-		m_InstanceDataBuffer->Map(&pWrite);
-		memcpy(pWrite, instanceData.data(), dataSize);
-		m_InstanceDataBuffer->UnMap();
-		pWrite = nullptr;
+		int32_t binningData[] = { 0 };
+
+		size_t dataSize = sizeof(binningData) * m_BinningMaterials.size();
+		size_t targetBufferSize = sizeof(binningData) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_BinningMaterials.size()));
+
+		if (m_BinningDataBuffer->GetBufferSize() != targetBufferSize)
+		{
+			KRenderGlobal::RenderDevice->Wait();
+			m_BinningDataBuffer->UnInit();
+			m_BinningDataBuffer->InitMemory(targetBufferSize, nullptr);
+			m_BinningDataBuffer->InitDevice(false);
+			m_BinningDataBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINNING_DATA);
+		}
+
+		if (dataSize)
+		{
+			m_BinningDataBuffer->Map(&pWrite);
+			for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
+			{
+				memcpy(pWrite, binningData, sizeof(binningData));
+				pWrite = POINTER_OFFSET(pWrite, sizeof(binningData));
+			}
+			m_BinningDataBuffer->UnMap();
+			pWrite = nullptr;
+		}
 	}
 
-	m_LastInstanceData = std::move(instanceData);
+	{
+		int32_t binningHeader[] = { 0 };
+
+		size_t dataSize = sizeof(binningHeader) * m_BinningMaterials.size();
+		size_t targetBufferSize = sizeof(binningHeader) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_BinningMaterials.size()));
+
+		if (m_BinningHeaderBuffer->GetBufferSize() != targetBufferSize)
+		{
+			KRenderGlobal::RenderDevice->Wait();
+			m_BinningHeaderBuffer->UnInit();
+			m_BinningHeaderBuffer->InitMemory(targetBufferSize, nullptr);
+			m_BinningHeaderBuffer->InitDevice(false);
+			m_BinningHeaderBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINNIIG_HEADER);
+		}
+
+		if (dataSize)
+		{
+			m_BinningHeaderBuffer->Map(&pWrite);
+			for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
+			{
+				memcpy(pWrite, binningHeader, sizeof(binningHeader));
+				pWrite = POINTER_OFFSET(pWrite, sizeof(binningHeader));
+			}
+			m_BinningHeaderBuffer->UnMap();
+			pWrite = nullptr;
+		}
+	}
+
+	{
+		size_t dataSize = sizeof(KVirtualGeometryInstance) * instanceData.size();
+		size_t targetBufferSize = sizeof(KVirtualGeometryInstance) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(instanceData.size()));
+
+		if (m_InstanceDataBuffer->GetBufferSize() != targetBufferSize)
+		{
+			KRenderGlobal::RenderDevice->Wait();
+
+			m_InstanceDataBuffer->UnInit();
+			m_InstanceDataBuffer->InitMemory(targetBufferSize, nullptr);
+			m_InstanceDataBuffer->InitDevice(false);
+			m_InstanceDataBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INSTANCE_DATA);
+		}
+
+		if (dataSize)
+		{
+			m_InstanceDataBuffer->Map(&pWrite);
+			memcpy(pWrite, instanceData.data(), dataSize);
+			m_InstanceDataBuffer->UnMap();
+			pWrite = nullptr;
+		}
+
+		m_LastInstanceData = std::move(instanceData);
+	}
 
 	return true;
 }
@@ -394,6 +542,20 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer)
 		{
 			primaryBuffer->BeginDebugMarker("VirtualGeometry_CalcDrawArgs", glm::vec4(1));
 			m_CalcDrawArgsPipeline->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
+			primaryBuffer->EndDebugMarker();
+		}
+
+		{
+			primaryBuffer->BeginDebugMarker("VirtualGeometry_Binning", glm::vec4(1));
+			{
+				primaryBuffer->BeginDebugMarker("VirtualGeometry_InitBinning", glm::vec4(1));
+				m_InitBinningPipline->Execute(primaryBuffer, 1, 1, 1, nullptr);
+				primaryBuffer->EndDebugMarker();
+
+				primaryBuffer->BeginDebugMarker("VirtualGeometry_BinningClassify", glm::vec4(1));
+				m_BinningClassifyPipline->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
+				primaryBuffer->EndDebugMarker();
+			}
 			primaryBuffer->EndDebugMarker();
 		}
 	}
@@ -486,6 +648,7 @@ bool KVirtualGeometryScene::AddInstance(IKEntity* entity, const glm::mat4& trans
 	if (entity)
 	{
 		InstancePtr Instance = GetOrCreateInstance(entity);
+		Instance->prevTransform = transform;
 		Instance->transform = transform;
 		Instance->resource = resource;
 		return true;
