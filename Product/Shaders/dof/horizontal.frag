@@ -13,7 +13,7 @@ layout(location = 1) out vec4 greenImage;
 layout(location = 2) out vec4 blueImage;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	// Aperture FocusDistance FocalLength CoCMax
 	vec4 dofParams;

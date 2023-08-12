@@ -7,7 +7,7 @@ layout(binding = VOXEL_BINDING_TEXMIPMAP_OUT, rgba8) uniform writeonly image3D v
 layout(binding = VOXEL_BINDING_TEXMIPMAP_IN) uniform sampler3D voxelMipmapSrc[6];
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	uvec4 mipDimensionLevel;
 }object;

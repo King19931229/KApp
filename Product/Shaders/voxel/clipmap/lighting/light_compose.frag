@@ -13,7 +13,7 @@ const ivec2 blockSize = ivec2(2, 3);
 const ivec2 splitSize = ivec2(4, 4);
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	ivec4 params;
 } object;

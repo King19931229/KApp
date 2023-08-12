@@ -37,7 +37,7 @@ layout(location = 0) out vec4 outColor;
 #include "shading_public.h"
 
 layout(binding = BINDING_DEBUG)
-uniform Debug
+uniform Debug_DYN_UNIFORM
 {
 	uint debugOption;
 } debug;

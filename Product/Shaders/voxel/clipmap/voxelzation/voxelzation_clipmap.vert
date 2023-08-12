@@ -5,7 +5,7 @@ layout(location = NORMAL) in vec3 normal;
 layout(location = TEXCOORD0) in vec2 texcoord0;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	mat4 model;
 	uint level;

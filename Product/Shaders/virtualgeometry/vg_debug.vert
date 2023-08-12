@@ -64,7 +64,7 @@ void main()
 
 		outVertexColor = RandomColor(selectedCluster.clusterIndex);
 		outVertexColor = RandomColor(selectedCluster.clusterIndex * MAX_CLUSTER_TRIANGLE_NUM + triangleIndex);
-		outVertexColor = outWorldNormal;
+		//outVertexColor = outWorldNormal;
 
 		gl_Position = worldToClip * localToWorld * vec4(position, 1.0);
 	}

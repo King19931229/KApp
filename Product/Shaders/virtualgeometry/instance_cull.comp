@@ -18,7 +18,7 @@ void main()
 
 		if (cullData.bIsVisible)
 		{
-			uint nodeWriteOffset = InterlockAddNodeWriteOffset(1);
+			uint nodeWriteOffset = atomicAdd(QueueState[0].nodeWriteOffset, 1);
 			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
 			{
 				CandidateNode node;

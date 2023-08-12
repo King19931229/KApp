@@ -5,7 +5,7 @@ layout(location = 0) out vec4 outColor;
 layout(binding = BINDING_TEXTURE0) uniform sampler2D depthSampler;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	int minBuild;
 } object;

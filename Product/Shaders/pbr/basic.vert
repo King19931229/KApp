@@ -8,7 +8,7 @@ layout(location = 3) out vec4 cameraPos;
 
 #if !INSTANCE_INPUT
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	mat4 model;
 	mat4 prev_model;

@@ -12,7 +12,7 @@ layout(location = 0) out vec4 outColor;
 #include "shadow/cascaded/static_mask.h"
 
 layout(binding = BINDING_FRAGMENT_SHADING)
-uniform Shading
+uniform Shading_DYN_UNIFORM
 {
 	vec4 lightPos;
 	vec4 lightColor;

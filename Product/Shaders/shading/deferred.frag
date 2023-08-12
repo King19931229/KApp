@@ -48,7 +48,7 @@ void DecodeGBuffer(in vec2 uv, out vec3 worldPos, out vec3 worldNormal, out vec2
 }
 
 layout(binding = BINDING_DEBUG)
-uniform Debug
+uniform Debug_DYN_UNIFORM
 {
 	uint debugOption;
 } debug;

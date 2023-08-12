@@ -9,4 +9,5 @@ void main()
 	QueueState[0].clusterReadOffset = 0;
 	QueueState[0].clusterWriteOffset = 0;
 	QueueState[0].visibleClusterNum = 0;
+	QueueState[0].binningWriteOffset = 0;
 }

@@ -6,7 +6,7 @@ layout(binding = BINDING_IMAGE_IN, rg32f) uniform readonly image2D inImage;
 layout(binding = BINDING_IMAGE_OUT, rg32f) uniform writeonly image2D outImage;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	ivec4 offset;
 }object;

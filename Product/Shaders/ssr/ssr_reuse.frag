@@ -33,7 +33,7 @@ float BRDF(vec3 N, vec3 V, vec3 L, float roughness)
 }
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	uint frameNum;
 	int reuseCount;

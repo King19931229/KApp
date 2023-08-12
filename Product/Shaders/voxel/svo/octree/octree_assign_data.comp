@@ -10,7 +10,7 @@ layout(binding = OCTREE_BINDING_FRAGMENTLIST) readonly buffer uuFragmentList { u
 #include "octree_util.h"
 
 layout(binding = OCTREE_BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	uint uFragmentNum;
 	uint uVoxelResolution;

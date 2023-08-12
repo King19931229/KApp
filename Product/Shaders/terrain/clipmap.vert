@@ -7,7 +7,7 @@ layout(binding = BINDING_TEXTURE0) uniform sampler2D heightMap;
 layout(binding = BINDING_TEXTURE1) uniform sampler2D heightDebugMap;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	vec4 clipStartScale;
 	// footprintPos[0:1] gridCount[2] heightScale[3]

@@ -137,22 +137,20 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_IndirectDrawBuffer->InitDevice(true);
 			m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
 
-			uint32_t emptyBinningData[] = { 0 };
+			std::vector<glm::uvec4> emptyBinningBatchData;
+			emptyBinningBatchData.resize(MAX_CANDIDATE_CLUSTERS);
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_BinningDataBuffer);
-			m_BinningDataBuffer->InitMemory(sizeof(emptyBinningData), emptyBinningData);
+			m_BinningDataBuffer->InitMemory(emptyBinningBatchData.size() * sizeof(glm::uvec4), emptyBinningBatchData.data());
 			m_BinningDataBuffer->InitDevice(false);
 			m_BinningDataBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINNING_DATA);
 
 			uint32_t emptyBinningHeader[] = { 0, 0, 0, 0 };
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_BinningHeaderBuffer);
-			m_BinningHeaderBuffer->InitMemory(sizeof(emptyBinningData), emptyBinningData);
+			m_BinningHeaderBuffer->InitMemory(sizeof(emptyBinningHeader), emptyBinningHeader);
 			m_BinningHeaderBuffer->InitDevice(false);
 			m_BinningHeaderBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINNIIG_HEADER);
-
-			IKStorageBufferPtr m_BinningDataBuffer;
-			IKStorageBufferPtr m_BinningHeaderBuffer;
 		}
-		
+
 		{
 			KRenderGlobal::RenderDevice->CreateComputePipeline(m_InitQueueStatePipeline);
 			m_InitQueueStatePipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_OUT, true);
@@ -205,15 +203,38 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_CalcDrawArgsPipeline->Init("virtualgeometry/calc_draw_args.comp");
 
 			KRenderGlobal::RenderDevice->CreateComputePipeline(m_InitBinningPipline);
+			m_InitBinningPipline->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
 			m_InitBinningPipline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
 			m_InitBinningPipline->BindStorageBuffer(BINDING_INDIRECT_ARGS, m_IndirectAgrsBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_InitBinningPipline->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_OUT, true);
 			m_InitBinningPipline->Init("virtualgeometry/init_binning.comp");
 
 			KRenderGlobal::RenderDevice->CreateComputePipeline(m_BinningClassifyPipline);
 			m_BinningClassifyPipline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
 			m_BinningClassifyPipline->BindStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, m_SelectedClusterBuffer, COMPUTE_RESOURCE_IN, true);
-			m_BinningClassifyPipline->BindStorageBuffer(BINDING_BINNING_DATA, m_BinningDataBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_BinningClassifyPipline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
+			m_BinningClassifyPipline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);;
+			m_BinningClassifyPipline->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
+			m_BinningClassifyPipline->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_OUT, true);
 			m_BinningClassifyPipline->Init("virtualgeometry/binning_classify.comp");
+
+			KRenderGlobal::RenderDevice->CreateComputePipeline(m_BinningAllocatePipline);
+			m_BinningAllocatePipline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
+			m_BinningAllocatePipline->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
+			m_BinningAllocatePipline->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_BinningAllocatePipline->BindStorageBuffer(BINDING_INDIRECT_DRAW_ARGS, m_IndirectDrawBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_BinningAllocatePipline->Init("virtualgeometry/binning_allocate.comp");
+
+			KRenderGlobal::RenderDevice->CreateComputePipeline(m_BinningScatterPipline);
+			m_BinningScatterPipline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
+			m_BinningScatterPipline->BindStorageBuffer(BINDING_SELECTED_CLUSTER_BATCH, m_SelectedClusterBuffer, COMPUTE_RESOURCE_IN, true);
+			m_BinningScatterPipline->BindStorageBuffer(BINDING_INSTANCE_DATA, m_InstanceDataBuffer, COMPUTE_RESOURCE_IN, true);
+			m_BinningScatterPipline->BindStorageBuffer(BINDING_RESOURCE, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer(), COMPUTE_RESOURCE_IN, true);;
+			m_BinningScatterPipline->BindStorageBuffer(BINDING_CLUSTER_BATCH, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer(), COMPUTE_RESOURCE_IN, true);
+			m_BinningScatterPipline->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_BinningScatterPipline->BindStorageBuffer(BINDING_BINNING_DATA, m_BinningDataBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_BinningScatterPipline->BindStorageBuffer(BINDING_INDIRECT_DRAW_ARGS, m_IndirectDrawBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+			m_BinningScatterPipline->Init("virtualgeometry/binning_scatter.comp");
 		}
 
 		{
@@ -242,6 +263,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_DebugPipeline->SetStorageBuffer(BINDING_CLUSTER_INDEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterIndexStorageBuffer());
 
 			m_DebugPipeline->SetConstantBuffer(BINDING_GLOBAL_DATA, ST_VERTEX, m_GlobalDataBuffer);
+			m_DebugPipeline->SetConstantBuffer(BINDING_MATERIAL_DATA, ST_VERTEX, m_GlobalDataBuffer);
 
 			m_DebugPipeline->Init();
 		}
@@ -276,7 +298,7 @@ bool KVirtualGeometryScene::UnInit()
 	SAFE_UNINIT(m_QueueStateBuffer);
 	SAFE_UNINIT(m_CandidateNodeBuffer);
 	SAFE_UNINIT(m_CandidateClusterBuffer);
-	SAFE_UNINIT(m_IndirectAgrsBuffer);	
+	SAFE_UNINIT(m_IndirectAgrsBuffer);
 	SAFE_UNINIT(m_SelectedClusterBuffer);
 	SAFE_UNINIT(m_ExtraDebugBuffer);
 	SAFE_UNINIT(m_IndirectDrawBuffer);
@@ -292,6 +314,8 @@ bool KVirtualGeometryScene::UnInit()
 	SAFE_UNINIT(m_CalcDrawArgsPipeline);
 	SAFE_UNINIT(m_InitBinningPipline);
 	SAFE_UNINIT(m_BinningClassifyPipline);
+	SAFE_UNINIT(m_BinningAllocatePipline);
+	SAFE_UNINIT(m_BinningScatterPipline);
 
 	SAFE_UNINIT(m_DebugPipeline);
 
@@ -313,11 +337,14 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 	if (m_GlobalDataBuffer)
 	{
 		KVirtualGeometryGlobal globalData;
-		globalData.numInstance = (uint32_t)m_Instances.size();
+
 		globalData.worldToClip = m_Camera ? (m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix()) : glm::mat4(1);
 		globalData.worldToView = m_Camera ? m_Camera->GetViewMatrix() : glm::mat4(1);
 		globalData.misc.x = m_Camera ? m_Camera->GetNear() : 0.0f;
 		globalData.misc.y = m_Camera ? m_Camera->GetAspect() : 1.0f;
+
+		globalData.miscs2.x = (uint32_t)m_Instances.size();
+		globalData.miscs2.y = (uint32_t)m_BinningMaterials.size();
 
 		size_t sceneWidth = 0;
 		size_t sceneHeight = 0;
@@ -388,15 +415,16 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 	{
 		int32_t indirectDrawInfo[] = { 0, 0, 0, 0 };
 
-		size_t dataSize = sizeof(indirectDrawInfo) * m_BinningMaterials.size();
-		size_t targetBufferSize = sizeof(indirectDrawInfo) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_BinningMaterials.size()));
+		size_t binningCount = m_BinningMaterials.size() + 1;
+		size_t dataSize = sizeof(indirectDrawInfo) * binningCount;
+		size_t targetBufferSize = sizeof(indirectDrawInfo) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(binningCount));
 
 		if (m_IndirectDrawBuffer->GetBufferSize() != targetBufferSize)
 		{
 			KRenderGlobal::RenderDevice->Wait();
 			m_IndirectDrawBuffer->UnInit();
 			m_IndirectDrawBuffer->InitMemory(targetBufferSize, nullptr);
-			m_IndirectDrawBuffer->InitDevice(false);
+			m_IndirectDrawBuffer->InitDevice(true);
 			m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
 		}
 
@@ -414,35 +442,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 	}
 
 	{
-		int32_t binningData[] = { 0 };
-
-		size_t dataSize = sizeof(binningData) * m_BinningMaterials.size();
-		size_t targetBufferSize = sizeof(binningData) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_BinningMaterials.size()));
-
-		if (m_BinningDataBuffer->GetBufferSize() != targetBufferSize)
-		{
-			KRenderGlobal::RenderDevice->Wait();
-			m_BinningDataBuffer->UnInit();
-			m_BinningDataBuffer->InitMemory(targetBufferSize, nullptr);
-			m_BinningDataBuffer->InitDevice(false);
-			m_BinningDataBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINNING_DATA);
-		}
-
-		if (dataSize)
-		{
-			m_BinningDataBuffer->Map(&pWrite);
-			for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
-			{
-				memcpy(pWrite, binningData, sizeof(binningData));
-				pWrite = POINTER_OFFSET(pWrite, sizeof(binningData));
-			}
-			m_BinningDataBuffer->UnMap();
-			pWrite = nullptr;
-		}
-	}
-
-	{
-		int32_t binningHeader[] = { 0 };
+		uint32_t binningHeader[] = { 0, 0, 0, 0 };
 
 		size_t dataSize = sizeof(binningHeader) * m_BinningMaterials.size();
 		size_t targetBufferSize = sizeof(binningHeader) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_BinningMaterials.size()));
@@ -518,7 +518,7 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer)
 			primaryBuffer->EndDebugMarker();
 		}
 
-		for(uint32_t level = 0; level < 12; ++level)
+		for (uint32_t level = 0; level < 12; ++level)
 		{
 			primaryBuffer->BeginDebugMarker(("VirtualGeometry_InitNodeCullArgs_" + std::to_string(level)).c_str(), glm::vec4(1));
 			m_InitNodeCullArgsPipeline->Execute(primaryBuffer, 1, 1, 1, nullptr);
@@ -548,13 +548,24 @@ bool KVirtualGeometryScene::Execute(IKCommandBufferPtr primaryBuffer)
 		{
 			primaryBuffer->BeginDebugMarker("VirtualGeometry_Binning", glm::vec4(1));
 			{
-				primaryBuffer->BeginDebugMarker("VirtualGeometry_InitBinning", glm::vec4(1));
-				m_InitBinningPipline->Execute(primaryBuffer, 1, 1, 1, nullptr);
-				primaryBuffer->EndDebugMarker();
+				uint32_t numGroup = (uint32_t)(m_BinningMaterials.size() + VG_GROUP_SIZE - 1) / VG_GROUP_SIZE;
+				{
+					primaryBuffer->BeginDebugMarker("VirtualGeometry_InitBinning", glm::vec4(1));
+					m_InitBinningPipline->Execute(primaryBuffer, numGroup, 1, 1, nullptr);
+					primaryBuffer->EndDebugMarker();
 
-				primaryBuffer->BeginDebugMarker("VirtualGeometry_BinningClassify", glm::vec4(1));
-				m_BinningClassifyPipline->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
-				primaryBuffer->EndDebugMarker();
+					primaryBuffer->BeginDebugMarker("VirtualGeometry_BinningClassify", glm::vec4(1));
+					m_BinningClassifyPipline->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
+					primaryBuffer->EndDebugMarker();
+
+					primaryBuffer->BeginDebugMarker("VirtualGeometry_BinningAllocate", glm::vec4(1));
+					m_BinningAllocatePipline->Execute(primaryBuffer, numGroup, 1, 1, nullptr);
+					primaryBuffer->EndDebugMarker();
+
+					primaryBuffer->BeginDebugMarker("VirtualGeometry_BinningScatter", glm::vec4(1));
+					m_BinningScatterPipline->ExecuteIndirect(primaryBuffer, m_IndirectAgrsBuffer, nullptr);
+					primaryBuffer->EndDebugMarker();
+				}
 			}
 			primaryBuffer->EndDebugMarker();
 		}
@@ -567,14 +578,17 @@ bool KVirtualGeometryScene::DebugRender(IKRenderPassPtr renderPass, IKCommandBuf
 {
 	primaryBuffer->BeginDebugMarker("VirtualGeometry_Debug", glm::vec4(1));
 
-	KRenderCommand command;
-	command.pipeline = m_DebugPipeline;
-	command.indirectArgsBuffer = m_IndirectDrawBuffer;
-	command.pipeline->GetHandle(renderPass, command.pipelineHandle);
-	command.indexDraw = false;
-	command.indirectDraw = true;
-
-	primaryBuffer->Render(command);
+	for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
+	{
+		KRenderCommand command;
+		command.pipeline = m_DebugPipeline;
+		command.indirectArgsBuffer = m_IndirectDrawBuffer;
+		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+		command.indexDraw = false;
+		command.indirectDraw = true;
+		command.indrectOffset = (uint32_t)i;
+		primaryBuffer->Render(command);
+	}
 
 	primaryBuffer->EndDebugMarker();
 	return true;
@@ -617,6 +631,22 @@ bool KVirtualGeometryScene::ReloadShader()
 	if (m_DebugFragmentShader)
 	{
 		m_DebugFragmentShader->Reload();
+	}
+	if (m_InitBinningPipline)
+	{
+		m_InitBinningPipline->Reload();
+	}
+	if (m_BinningClassifyPipline)
+	{
+		m_BinningClassifyPipline->Reload();
+	}
+	if (m_BinningAllocatePipline)
+	{
+		m_BinningAllocatePipline->Reload();
+	}
+	if (m_BinningScatterPipline)
+	{
+		m_BinningScatterPipline->Reload();
 	}
 	if (m_DebugPipeline)
 	{

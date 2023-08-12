@@ -11,7 +11,7 @@ layout(binding = VOXEL_BINDING_OCTREE_MIPMAP_DATA) buffer uuOctreeMipmapData { u
 #include "voxel/svo/octree/octree_util.h"
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	uvec4 mipDimensionLevel;
 }object;

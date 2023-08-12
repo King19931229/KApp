@@ -73,6 +73,8 @@ enum
 	CBT_COUNT = CBT_DYNAMIC_COUNT + CBT_STATIC_COUNT
 };
 
+#define DYNAMIC_UNIFORM_BUFFER_SUFFIX "_DYN_UNIFORM"
+
 struct KConstantBufferTypeDescription
 {
 	ConstantBufferType type;

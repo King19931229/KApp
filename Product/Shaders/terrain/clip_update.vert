@@ -3,7 +3,7 @@ layout (location = SCREENQAUD_POS) in vec2 inPos;
 layout (location = 0) out vec2 outUV;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	vec4 area;
 }object;

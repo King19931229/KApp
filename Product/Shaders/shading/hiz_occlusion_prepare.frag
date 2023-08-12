@@ -8,7 +8,7 @@ layout(binding = BINDING_TEXTURE0) uniform sampler2D posTex;
 layout(binding = BINDING_TEXTURE1) uniform sampler2D extentTex;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	int dimX;
 	int dimY;

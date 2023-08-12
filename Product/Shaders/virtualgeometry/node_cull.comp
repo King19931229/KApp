@@ -65,7 +65,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 		uint nodeIndex = hierarchy.children[childIndex];
 		if (nodeIndex != INVALID_INDEX)
 		{
-			uint nodeWriteOffset = InterlockAddNodeWriteOffset(1);
+			uint nodeWriteOffset = atomicAdd(QueueState[0].nodeWriteOffset, 1);
 			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
 			{
 				CandidateNode node;
@@ -93,7 +93,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 		uint clusterStart = hierarchy.clusterStart;
 		uint clusterNum = hierarchy.clusterNum;
 #endif
-		uint clusterWriteOffset = InterlockAddClusterWriteOffset(clusterNum);
+		uint clusterWriteOffset = atomicAdd(QueueState[0].clusterWriteOffset, clusterNum);
 
 		for (uint i = 0; i < clusterNum; ++i)
 		{

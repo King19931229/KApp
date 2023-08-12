@@ -10,7 +10,7 @@ out gl_PerVertex
 };
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	vec4 up;
 	vec4 right;

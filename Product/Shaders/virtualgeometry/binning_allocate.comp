@@ -1,7 +1,25 @@
 #include "vg_define.h"
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-	
+	uint globalIndex = gl_GlobalInvocationID.x;
+	if (globalIndex < numBinning)
+	{
+		uint binningIndex = globalIndex;
+		uint binningBatchNum = BinningHeader[binningIndex].x;
+		BinningHeader[binningIndex].y = atomicAdd(QueueState[0].binningWriteOffset, binningBatchNum);
+
+		uint offset = binningIndex * 4;
+		offset += INDIRECT_DRAW_ARGS_OFFSET;
+
+		// vertexCount
+		IndirectDrawArgs[offset + 0] = MAX_CLUSTER_TRIANGLE_NUM * 3;
+		// instanceCount
+		IndirectDrawArgs[offset + 1] = 0;
+		// firstVertex
+		IndirectDrawArgs[offset + 2] = 0;
+		// firstInstance	
+		IndirectDrawArgs[offset + 3] = 0;
+	}
 }

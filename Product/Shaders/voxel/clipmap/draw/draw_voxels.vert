@@ -14,7 +14,7 @@ layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform image3D voxelV
 const vec4 colorChannels = vec4(1.0);
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	uint level;
 } object;

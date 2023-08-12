@@ -9,7 +9,7 @@ layout(binding = BINDING_TEXTURE1) uniform sampler2D extentTex;
 layout(binding = BINDING_TEXTURE2) uniform sampler2D hiZTex;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	int dimX;
 	int dimY;

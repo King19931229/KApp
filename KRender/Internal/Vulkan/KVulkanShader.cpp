@@ -1,4 +1,4 @@
-#include "KVulkanShader.h"
+﻿#include "KVulkanShader.h"
 #include "KVulkanGlobal.h"
 
 #include "KBase/Interface/IKLog.h"
@@ -308,13 +308,13 @@ bool KVulkanShader::GenerateReflection(const std::vector<unsigned int>& spirv, K
 			constant.members.push_back(member);
 		}
 
-		if (constant.bindingIndex >= CBT_STATIC_BEGIN && constant.bindingIndex <= CBT_STATIC_END)
+		if (KStringUtil::EndsWith(block.name, DYNAMIC_UNIFORM_BUFFER_SUFFIX))
 		{
-			information.constants.push_back(constant);
+			information.dynamicConstants.push_back(constant);
 		}
 		else
 		{
-			information.dynamicConstants.push_back(constant);
+			information.constants.push_back(constant);
 		}
 	}
 

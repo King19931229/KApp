@@ -12,7 +12,7 @@ layout(binding = BINDING_TEXTURE2) uniform sampler2D varianceImage;
 layout(location = 0) out vec4 finalImage;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	uint level;
 } object;

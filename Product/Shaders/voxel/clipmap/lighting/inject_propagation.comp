@@ -11,7 +11,7 @@ layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform image3D voxelV
 layout(binding = VOXEL_CLIPMAP_BINDING_RADIANCE2) uniform sampler3D voxelRadiance2;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	// level:[0] levelCount:[1]
 	uvec4 params;

@@ -18,7 +18,7 @@ layout(location = 0) out vec4 hitImage;
 layout(location = 1) out vec4 maskImage;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	uint frameNum;
 	int maxHiZMip;

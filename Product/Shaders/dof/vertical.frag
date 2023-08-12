@@ -12,7 +12,7 @@ layout(binding = BINDING_TEXTURE4) uniform sampler2D blueImage;
 layout(binding = BINDING_TEXTURE5) uniform sampler2D cocImage;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	// Aperture FocusDistance FocalLength CoCMax
 	vec4 dofParams;

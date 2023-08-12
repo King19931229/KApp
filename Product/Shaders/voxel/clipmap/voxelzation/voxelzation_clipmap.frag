@@ -36,7 +36,7 @@ uniform struct Material
 #endif
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	mat4 model;
 	uint level;

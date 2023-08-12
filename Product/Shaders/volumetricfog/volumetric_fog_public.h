@@ -147,7 +147,7 @@ float SliceThickness(int z, float n, float f, float grid_size_z)
 }
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	mat4 view;
 	mat4 proj;

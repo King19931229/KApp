@@ -45,7 +45,7 @@ void FetchTexels(ivec3 pos, inout vec4 val[8])
 }
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	uvec4 mipDimensionLevel;
 }object;

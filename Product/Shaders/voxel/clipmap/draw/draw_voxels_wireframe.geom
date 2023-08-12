@@ -17,7 +17,7 @@ vec3 VoxelToWorld(vec3 pos, float voxelSize)
 }
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	uvec4 miscs;
 	float bias;

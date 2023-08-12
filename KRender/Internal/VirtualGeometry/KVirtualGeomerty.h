@@ -43,7 +43,12 @@ struct KVirtualGeometryGlobal
 	glm::mat4 worldToClip;
 	glm::mat4 worldToView;
 	glm::vec4 misc;
-	uint32_t numInstance;
+	glm::uvec4 miscs2;
+};
+
+struct KVirtualGeometryMaterial
+{
+	glm::uvec4 miscs3;
 };
 
 struct KVirtualGeometryQueueState
@@ -54,7 +59,8 @@ struct KVirtualGeometryQueueState
 	uint32_t clusterReadOffset = 0;
 	uint32_t clusterWriteOffset = 0;
 	uint32_t visibleClusterNum = 0;
-	uint32_t padding[2];
+	uint32_t binningWriteOffset = 0;
+	uint32_t padding[1];
 };
 static_assert((sizeof(KVirtualGeometryQueueState) % 16) == 0, "Size must be a multiple of 16");
 

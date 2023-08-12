@@ -33,7 +33,8 @@ protected:
 		BINDING_CLUSTER_VERTEX_BUFFER,
 		BINDING_CLUSTER_INDEX_BUFFER,
 		BINDING_BINNING_DATA,
-		BINDING_BINNING_HEADER
+		BINDING_BINNING_HEADER,
+		BINDING_MATERIAL_DATA
 	};
 
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_GLOBAL_DATA = "VirtualGeometrySceneGlobalData";
@@ -88,6 +89,8 @@ protected:
 	IKComputePipelinePtr m_CalcDrawArgsPipeline;
 	IKComputePipelinePtr m_InitBinningPipline;
 	IKComputePipelinePtr m_BinningClassifyPipline;
+	IKComputePipelinePtr m_BinningAllocatePipline;
+	IKComputePipelinePtr m_BinningScatterPipline;
 
 	KShaderRef m_DebugVertexShader;
 	KShaderRef m_DebugFragmentShader;

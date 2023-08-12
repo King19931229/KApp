@@ -13,6 +13,7 @@
 #define VG_GROUP_SIZE 64
 #define BVH_MAX_GROUP_BATCH_SIZE (VG_GROUP_SIZE / BVH_MAX_NODES)
 #define CULL_CLUSTER_ALONG_BVH 1
+#define INDIRECT_DRAW_ARGS_OFFSET 0
 
 // Match with KVirtualGeometryInstance
 struct InstanceStruct
@@ -88,8 +89,9 @@ struct QueueStateStruct
 	uint clusterWriteOffset;
 
 	uint visibleClusterNum;
+	uint binningWriteOffset;
 
-	uint padding[2];
+	uint padding[1];
 };
 
 struct CandidateNode
@@ -106,7 +108,15 @@ struct CandidateCluster
 
 struct BinningBatch
 {
-	uint index;
+	uint clusterIndex;	
+	uint binningIndex;
+	uint rangeBegin;
+	uint rangeNum;
+};
+
+struct Binning
+{
+	uint clusterIndex;
 	uint rangeBegin;
 	uint rangeNum;
 };
@@ -130,20 +140,32 @@ struct BinningBatch
 #define BINDING_CLUSTER_INDEX_BUFFER 15
 #define BINDING_BINNING_DATA 16
 #define BINDING_BINNING_HEADER 17
+#define BINDING_MATEIRAL_DATA 18
 
 // Match with KVirtualGeometryGlobal
-layout(binding = BINDING_GLOBAL_DATA)
+layout (binding = BINDING_GLOBAL_DATA)
 uniform GlobalData
 {
 	mat4 worldToClip;
 	mat4 worldToView;
 	vec4 misc;
- 	uint numInstance;
+ 	uvec4 misc2;
+};
+
+// Match with KVirtualGeometryMaterial
+layout (binding = BINDING_MATEIRAL_DATA)
+uniform MaterialData
+{
+ 	uvec4 misc3;
 };
 
 #define cameraNear misc.x
 #define cameraAspect misc.y
 #define lodScale misc.z
+#define numInstance misc2.x
+#define numBinning misc2.y
+
+#define materialBinningIndex misc3.x
 
 layout (std430, binding = BINDING_RESOURCE) coherent buffer ResourceBuffer {
 	ResourceStruct ResourceData[];
@@ -198,7 +220,7 @@ layout (std430, binding = BINDING_CLUSTER_INDEX_BUFFER) coherent buffer ClusterI
 };
 
 layout (std430, binding = BINDING_BINNING_DATA) coherent buffer BinningDataBuffer {
-	uint BinningData[];
+	uvec4 BinningData[];
 };
 
 layout (std430, binding = BINDING_BINNING_HEADER) coherent buffer BinningHeaderBuffer {
@@ -237,22 +259,37 @@ CandidateCluster UnpackCandidateCluster(uint data)
 	return cluster;
 }
 
-uint PackBinningBatch(BinningBatch batch)
+uvec4 PackBinningBatch(BinningBatch batch)
 {
-	uint pack = 0;
-	pack |= (batch.index & 0xFFFF) << 16;
-	pack |= (batch.rangeBegin & 0xFF) << 8;
-	pack |= batch.rangeNum & 0xFF;
+	uvec4 pack = uvec4(0);
+	pack.x = batch.clusterIndex;
+	pack.y = batch.binningIndex;
+	pack.z |= (batch.rangeBegin & 0xFF) << 8;
+	pack.z |= (batch.rangeNum & 0xFF);
 	return pack;
 }
 
-BinningBatch UnpackBinningBatch(uint data)
+BinningBatch UnpackBinningBatch(uvec4 data)
 {
 	BinningBatch batch;
-	batch.index = (data >> 16) & 0xFFFF;
-	batch.rangeBegin = (data >> 8) & 0xFF;
-	batch.rangeNum = data & 0xFF;
+	batch.clusterIndex = data.x;
+	batch.binningIndex = data.y;
+	batch.rangeBegin = (data.z >> 8) & 0xFF;
+	batch.rangeNum = (data.z & 0xFF);
 	return batch;
+}
+
+Binning GetBinning(uint binningIndex, uint index)
+{
+	uint batchIndex = BinningHeader[binningIndex].y + index;
+	BinningBatch batchData = UnpackBinningBatch(BinningData[batchIndex]);
+
+	Binning binningData;
+	binningData.clusterIndex = batchData.clusterIndex;
+	binningData.rangeBegin = batchData.rangeBegin;
+	binningData.rangeNum = batchData.rangeNum;
+
+	return binningData;
 }
 
 void StoreCandidateNode(uint index, CandidateNode node)
@@ -364,36 +401,5 @@ bool FitToDraw(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, float boun
 	vec2 error = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius);
 	return error.x >= localError && error.x < parentError;
 }
-
-uint InterlockAddWriteOffset(uint add)
-{
-	while (true)
-	{
-		uint expectedValue = QueueState[0].nodeWriteOffset;
-		uint newValue = expectedValue + add;
-		if (atomicCompSwap(QueueState[0].nodeWriteOffset, expectedValue, newValue) == expectedValue)
-		{
-			return expectedValue;
-		}
-	}
-}
-
-#define InterlockAddDecl(name, member)\
-uint InterlockAdd##name(uint add)\
-{\
-	while (true)\
-	{\
-		uint expectedValue = member;\
-		uint newValue = expectedValue + add;\
-		if (atomicCompSwap(member, expectedValue, newValue) == expectedValue)\
-		{\
-			return expectedValue;\
-		}\
-	}\
-}
-
-InterlockAddDecl(NodeWriteOffset, QueueState[0].nodeWriteOffset);
-InterlockAddDecl(ClusterWriteOffset, QueueState[0].clusterWriteOffset);
-InterlockAddDecl(VisibleClusterNum, QueueState[0].visibleClusterNum);
 
 #endif

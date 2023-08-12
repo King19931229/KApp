@@ -61,7 +61,7 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
 }
 
 layout(binding = BINDING_SHADING)
-uniform Shading
+uniform Shading_DYN_UNIFORM
 {
 	vec4 baseColorFactor;
 #if PBR_MATERIAL_SPECULAR_GLOSINESS

@@ -6,7 +6,7 @@ layout(binding = BINDING_TEXTURE0) uniform sampler2D gbuffer0;
 layout(location = 0) out vec4 cocImage;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	// Aperture FocusDistance FocalLength CoCMax
 	vec4 dofParams;

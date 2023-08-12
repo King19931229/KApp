@@ -52,7 +52,7 @@ const float diffuseConeWeights[] =
 };
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	ivec4 params;
 } object;

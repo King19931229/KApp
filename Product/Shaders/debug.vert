@@ -3,7 +3,7 @@
 layout(location = POSITION) in vec3 position;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	mat4 model;
 	mat4 prev_model;

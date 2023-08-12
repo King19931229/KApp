@@ -8,7 +8,7 @@ layout(location = 0) out vec2 out_texCoord;
 
 #if !INSTANCE_INPUT
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	mat4 model;
 	mat4 prev_model;
@@ -22,7 +22,7 @@ layout(location = INSTANCE_PREV_ROW_0) in vec4 prev_world_row0;
 layout(location = INSTANCE_PREV_ROW_1) in vec4 prev_world_row1;
 layout(location = INSTANCE_PREV_ROW_2) in vec4 prev_world_row2;
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	uint index;
 } object;

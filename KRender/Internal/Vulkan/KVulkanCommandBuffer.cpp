@@ -435,7 +435,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 				{
 					if (command.indirectArgsBuffer)
 					{
-						vkCmdDrawIndexedIndirect(commandBuffer, indirectBuffer, 0 * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+						vkCmdDrawIndexedIndirect(commandBuffer, indirectBuffer, command.indrectOffset * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 					}
 					else
 					{
@@ -446,7 +446,7 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 				{
 					if (command.indirectArgsBuffer)
 					{
-						vkCmdDrawIndirect(commandBuffer, indirectBuffer, 0 * sizeof(VkDrawIndirectCommand), 1, sizeof(VkDrawIndirectCommand));
+						vkCmdDrawIndirect(commandBuffer, indirectBuffer, command.indrectOffset * sizeof(VkDrawIndirectCommand), 1, sizeof(VkDrawIndirectCommand));
 					}
 					else
 					{

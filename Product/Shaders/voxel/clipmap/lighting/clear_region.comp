@@ -10,7 +10,7 @@ layout(binding = VOXEL_CLIPMAP_BINDING_EMISSION, rgba8) uniform writeonly image3
 layout(binding = VOXEL_CLIPMAP_BINDING_VISIBILITY, rgba8) uniform writeonly image3D voxelVisibility;
 
 layout(binding = BINDING_OBJECT)
-uniform Object
+uniform Object_DYN_UNIFORM
 {
 	ivec4 regionMin;
 	ivec4 regionMax;
