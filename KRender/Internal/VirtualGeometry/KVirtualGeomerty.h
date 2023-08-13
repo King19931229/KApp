@@ -41,6 +41,7 @@ static_assert((sizeof(KVirtualGeometryInstance) % 16) == 0, "Size must be a mult
 struct KVirtualGeometryGlobal
 {
 	glm::mat4 worldToClip;
+	glm::mat4 prevWorldToClip;
 	glm::mat4 worldToView;
 	glm::vec4 misc;
 	glm::uvec4 miscs2;

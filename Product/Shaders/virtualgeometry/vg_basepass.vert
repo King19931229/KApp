@@ -1,4 +1,4 @@
-#include "vg_default_binding.h"
+#include "vg_basepass_binding.h"
 #include "vg_define.h"
 
 layout(location = 0) out vec2 outTexCoord;

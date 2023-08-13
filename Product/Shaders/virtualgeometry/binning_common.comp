@@ -1,0 +1,46 @@
+#include "vg_default_binding.h"
+#include "vg_define.h"
+#include "culling.h"
+
+layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uint groupID = gl_WorkGroupID.x;
+	uint groupIndex = gl_LocalInvocationID.x;
+
+	uint batchStart = groupID * VG_GROUP_SIZE;
+	uint batchSize = min(batchStart + VG_GROUP_SIZE, QueueState[0].visibleClusterNum) - batchStart;
+
+	if (groupIndex < batchSize)
+	{
+		uint clusterIndex = batchStart + groupIndex;
+
+		CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[clusterIndex]);
+		uint instanceId = selectedCluster.instanceId;
+
+		ClusterBatchStruct clusterBatch;
+		GetClusterData(selectedCluster, clusterBatch);
+
+		// uint resourceIndex = InstanceData[instanceId].resourceIndex;
+		uint binningIndex = InstanceData[instanceId].binningBaseIndex + clusterBatch.localMaterialIndex;
+
+#if defined(BINNING_CLASSIFY)
+		atomicAdd(BinningHeader[binningIndex].x, 1);
+#elif defined(BINNING_SCATTER)
+		BinningBatch batch;
+		batch.clusterIndex = clusterIndex;
+		batch.binningIndex = binningIndex;
+		batch.rangeBegin = 0;
+		batch.rangeNum = clusterBatch.triangleNum;
+
+		uint offset = binningIndex * 4;
+		offset += INDIRECT_DRAW_ARGS_OFFSET;
+		offset += 1;
+
+		uint batchOffset = atomicAdd(IndirectDrawArgs[offset], 1);
+		uint binningWriteOffset = BinningHeader[binningIndex].y + batchOffset;
+
+		StoreBinningBatch(binningWriteOffset, batch);
+#endif	
+	}
+}

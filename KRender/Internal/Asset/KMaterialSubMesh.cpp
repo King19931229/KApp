@@ -129,9 +129,10 @@ bool KMaterialSubMesh::CreateMaterialPipeline()
 		const KVertexData* vertexData = m_SubMesh->m_pVertexData;
 
 		IKShaderPtr vsShader = m_Material->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
+		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		IKShaderPtr msShader = m_Material->GetMSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr mfsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), true);
+		// TODD FIX?
+		IKShaderPtr mfsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 
 		if (vsShader->GetResourceState() != RS_DEVICE_LOADED || fsShader->GetResourceState() != RS_DEVICE_LOADED)
 		{
@@ -242,7 +243,7 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 
 		IKShaderPtr vsShader = m_Material->GetVSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 		IKShaderPtr vsInstanceShader = m_Material->GetVSInstanceShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
-		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size(), false);
+		IKShaderPtr fsShader = m_Material->GetFSShader(vertexData->vertexFormats.data(), vertexData->vertexFormats.size());
 
 		for (RenderStage stage : {RENDER_STAGE_BASEPASS, RENDER_STAGE_BASEPASS_INSTANCE})
 		{
@@ -266,7 +267,7 @@ bool KMaterialSubMesh::CreateGBufferPipeline()
 			pipeline->SetBlendEnable(false);
 			pipeline->SetCullMode(CM_BACK);
 			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-			pipeline->SetPolygonMode(PM_LINE);
+			pipeline->SetPolygonMode(PM_FILL);
 			pipeline->SetColorWrite(true, true, true, true);
 			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
 
@@ -447,7 +448,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(RenderStage stage, IKPipelinePtr& pip
 		pipeline->SetPolygonMode(PM_LINE);
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
-		pipeline->SetDepthFunc(CF_ALWAYS, true, true);
+		pipeline->SetDepthFunc(CF_ALWAYS, false, true);
 
 		pipeline->SetDepthBiasEnable(false);
 
@@ -473,7 +474,7 @@ bool KMaterialSubMesh::CreateFixedPipeline(RenderStage stage, IKPipelinePtr& pip
 		pipeline->SetPolygonMode(PM_FILL);
 		pipeline->SetColorWrite(true, true, true, true);
 		pipeline->SetColorBlend(BF_SRC_ALPHA, BF_ONE_MINUS_SRC_ALPHA, BO_ADD);
-		pipeline->SetDepthFunc(CF_ALWAYS, true, true);
+		pipeline->SetDepthFunc(CF_ALWAYS, false, true);
 
 		pipeline->SetDepthBiasEnable(false);
 

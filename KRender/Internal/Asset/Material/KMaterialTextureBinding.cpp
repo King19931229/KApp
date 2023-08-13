@@ -18,11 +18,6 @@ KMaterialTextureBinding::~KMaterialTextureBinding()
 	}
 }
 
-uint8_t KMaterialTextureBinding::GetNumSlot() const
-{
-	return ARRAY_SIZE(m_Textures);
-}
-
 KSamplerDescription KMaterialTextureBinding::ToSamplerDesc(const KMeshTextureSampler& sampler)
 {
 	KSamplerDescription desc;

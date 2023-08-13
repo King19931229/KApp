@@ -6,12 +6,60 @@
 #include <unordered_set>
 #include <mutex>
 
-constexpr uint32_t MAX_SHADERMAP_TEXTURE_BINDING = 16;
+static constexpr char* INSTANCE_INPUT_MACRO = "INSTANCE_INPUT";
+static constexpr char* MESHLET_INPUT_MACRO = "MESHLET_INPUT";
+
+struct KShaderMapMacro
+{
+	const char* macro;
+	bool vsFormatMacro;
+	VertexFormat vertexFormat;
+	bool fsTextureMacro;
+	uint32_t textureIndex;
+};
+
+static constexpr KShaderMapMacro PERMUTATING_MACRO[]
+{
+	// { macro, vsFormatMacro, vertexFormat, fsTextureMacro, textureIndex }
+	{ "TANGENT_BINORMAL_INPUT", true,	VF_TANGENT_BINORMAL,		false,	-1 },
+	{ "BLEND_WEIGHT_INPUT",		true,	VF_BLEND_WEIGHTS_INDICES,	false,	-1 },
+	{ "UV2_INPUT",				true,	VF_UV2,						false,	-1 },
+
+	{ "VERTEX_COLOR_INPUT0",	true,	VF_COLOR0,					false,	-1 },
+	{ "VERTEX_COLOR_INPUT1",	true,	VF_COLOR1,					false,	-1 },
+	{ "VERTEX_COLOR_INPUT2",	true,	VF_COLOR2,					false,	-1 },
+	{ "VERTEX_COLOR_INPUT3",	true,	VF_COLOR3,					false,	-1 },
+	{ "VERTEX_COLOR_INPUT4",	true,	VF_COLOR4,					false,	-1 },
+	{ "VERTEX_COLOR_INPUT5",	true,	VF_COLOR5,					false,	-1 },
+
+	{ "HAS_MATERIAL_TEXTURE0",	false,	VF_UNKNOWN,					true,	0 },
+	{ "HAS_MATERIAL_TEXTURE1",	false,	VF_UNKNOWN,					true,	1 },
+	{ "HAS_MATERIAL_TEXTURE2",	false,	VF_UNKNOWN,					true,	2 },
+	{ "HAS_MATERIAL_TEXTURE3",	false,	VF_UNKNOWN,					true,	3 },
+	{ "HAS_MATERIAL_TEXTURE4",	false,	VF_UNKNOWN,					true,	4 },
+	{ "HAS_MATERIAL_TEXTURE5",	false,	VF_UNKNOWN,					true,	5 },
+	{ "HAS_MATERIAL_TEXTURE6",	false,	VF_UNKNOWN,					true,	6 },
+	{ "HAS_MATERIAL_TEXTURE7",	false,	VF_UNKNOWN,					true,	7 },
+
+	{ "HAS_MATERIAL_TEXTURE8",	false,	VF_UNKNOWN,					true,	8 },
+	{ "HAS_MATERIAL_TEXTURE9",	false,	VF_UNKNOWN,					true,	9 },
+	{ "HAS_MATERIAL_TEXTURE10",	false,	VF_UNKNOWN,					true,	10 },
+	{ "HAS_MATERIAL_TEXTURE11",	false,	VF_UNKNOWN,					true,	11 },
+	{ "HAS_MATERIAL_TEXTURE12",	false,	VF_UNKNOWN,					true,	12 },
+	{ "HAS_MATERIAL_TEXTURE13",	false,	VF_UNKNOWN,					true,	13 },
+	{ "HAS_MATERIAL_TEXTURE14",	false,	VF_UNKNOWN,					true,	14 },
+	{ "HAS_MATERIAL_TEXTURE15",	false,	VF_UNKNOWN,					true,	15 },
+};
+
+static constexpr size_t MACRO_SIZE = sizeof(PERMUTATING_MACRO) / sizeof(KShaderMapMacro);
+
+extern uint32_t VERTEX_FORMAT_MACRO_INDEX[VF_COUNT];
+extern uint32_t MATERIAL_TEXTURE_BINDING_MACRO_INDEX[MAX_MATERIAL_TEXTURE_BINDING];
 
 class KTextureBinding
 {
 protected:
-	IKTexturePtr m_TextureMap[MAX_SHADERMAP_TEXTURE_BINDING];
+	IKTexturePtr m_TextureMap[MAX_MATERIAL_TEXTURE_BINDING];
 public:
 	KTextureBinding()
 	{
@@ -24,19 +72,19 @@ public:
 
 	IKTexturePtr GetTexture(uint32_t slot) const
 	{
-		assert(slot < MAX_SHADERMAP_TEXTURE_BINDING);
+		assert(slot < MAX_MATERIAL_TEXTURE_BINDING);
 		return m_TextureMap[slot];
 	}
 
 	void AssignTexture(uint32_t slot, IKTexturePtr texture)
 	{
-		assert(slot < MAX_SHADERMAP_TEXTURE_BINDING);
+		assert(slot < MAX_MATERIAL_TEXTURE_BINDING);
 		m_TextureMap[slot] = texture;
 	}
 
 	void Empty()
 	{
-		for (size_t i = 0; i < MAX_SHADERMAP_TEXTURE_BINDING; ++i)
+		for (size_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
 		{
 			m_TextureMap[i] = nullptr;
 		}
@@ -96,7 +144,7 @@ protected:
 	static MacrosSet MACROS_SET;
 
 	static size_t GenHash(const bool* macrosToEnable);
-	static size_t CalcHash(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding, bool meshletInput);
+	static size_t CalcHash(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
 
 	static void EnsureMacroMap(const bool* macrosToEnable);
 	static void PermutateMacro(bool* macrosToEnable, size_t permutateIndex);
@@ -132,5 +180,5 @@ public:
 	IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
 	// TODO 更换成Semantic
 	IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count);
-	IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding, bool meshletInput);
+	IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, const KTextureBinding* textureBinding);
 };

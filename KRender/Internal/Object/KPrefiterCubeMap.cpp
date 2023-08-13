@@ -192,7 +192,7 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 		ASSERT_RESULT(shaderMap.Init(initContext, false));
 
 		IKShaderPtr vertexShader = shaderMap.GetVSShader(formats, 1);
-		IKShaderPtr fragmentShader = shaderMap.GetFSShader(formats, 1, &m_TextureBinding, false);
+		IKShaderPtr fragmentShader = shaderMap.GetFSShader(formats, 1, &m_TextureBinding);
 
 		renderDevice->CreatePipeline(pipeline);
 
@@ -224,7 +224,7 @@ bool KPrefilerCubeMap::AllocateTempResource(IKRenderDevice* renderDevice, uint32
 		m_IntegrateBRDFShaderMap.Init(initContext, false);
 
 		IKShaderPtr vertexShader = m_IntegrateBRDFShaderMap.GetVSShader(formats, 1);
-		IKShaderPtr fragmentShader = m_IntegrateBRDFShaderMap.GetFSShader(formats, 1, nullptr, false);
+		IKShaderPtr fragmentShader = m_IntegrateBRDFShaderMap.GetFSShader(formats, 1, nullptr);
 
 		renderDevice->CreatePipeline(m_IntegrateBRDFPipeline);
 

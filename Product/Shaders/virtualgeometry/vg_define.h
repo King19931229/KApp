@@ -121,32 +121,12 @@ struct Binning
 	uint rangeNum;
 };
 
-// Match with KVirtualGeometryScene
-#define BINDING_GLOBAL_DATA 0
-#define BINDING_RESOURCE 1
-#define BINDING_QUEUE_STATE 2
-#define BINDING_INSTANCE_DATA 3
-#define BINDING_HIERARCHY 4
-#define BINDING_CLUSTER_BATCH 5
-#define BINDING_CLUSTER_STORAGE_VERTEX 6
-#define BINDING_CLUSTER_STORAGE_INDEX 7
-#define BINDING_CANDIDATE_NODE_BATCH 8
-#define BINDING_CANDIDATE_CLUSTER_BATCH 9
-#define BINDING_SELECTED_CLUSTER_BATCH 10
-#define BINDING_INDIRECT_ARGS 11
-#define BINDING_EXTRA_DEBUG_INFO 12
-#define BINDING_INDIRECT_DRAW_ARGS 13
-#define BINDING_CLUSTER_VERTEX_BUFFER 14
-#define BINDING_CLUSTER_INDEX_BUFFER 15
-#define BINDING_BINNING_DATA 16
-#define BINDING_BINNING_HEADER 17
-#define BINDING_MATEIRAL_DATA 18
-
 // Match with KVirtualGeometryGlobal
 layout (binding = BINDING_GLOBAL_DATA)
 uniform GlobalData
 {
 	mat4 worldToClip;
+	mat4 prevWorldToClip;
 	mat4 worldToView;
 	vec4 misc;
  	uvec4 misc2;
@@ -154,7 +134,7 @@ uniform GlobalData
 
 // Match with KVirtualGeometryMaterial
 layout (binding = BINDING_MATEIRAL_DATA)
-uniform MaterialData
+uniform MaterialData_DYN_UNIFORM
 {
  	uvec4 misc3;
 };
@@ -279,9 +259,9 @@ BinningBatch UnpackBinningBatch(uvec4 data)
 	return batch;
 }
 
-Binning GetBinning(uint binningIndex, uint index)
+Binning GetBinning(uint binningIndex, uint binningBatchIndex)
 {
-	uint batchIndex = BinningHeader[binningIndex].y + index;
+	uint batchIndex = BinningHeader[binningIndex].y + binningBatchIndex;
 	BinningBatch batchData = UnpackBinningBatch(BinningData[batchIndex]);
 
 	Binning binningData;
@@ -400,6 +380,12 @@ bool FitToDraw(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, float boun
 {
 	vec2 error = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius);
 	return error.x >= localError && error.x < parentError;
+}
+
+vec3 RandomColor(uint seed)
+{
+	float fSeed = float(seed % 128);
+	return vec3(fract(fSeed * 143.853), fract(fSeed * 268.813), fract(fSeed * 88.318));
 }
 
 #endif

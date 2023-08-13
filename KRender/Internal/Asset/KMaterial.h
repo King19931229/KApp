@@ -9,6 +9,7 @@ protected:
 	uint32_t m_Version;
 	std::string m_Path;
 	std::string m_ShaderFile;
+	std::string m_MaterialCode;
 	MaterialShadingMode m_ShadingMode;
 	IKMaterialParameterPtr m_Parameter;
 	IKMaterialTextureBindingPtr m_TextureBinding;
@@ -74,7 +75,7 @@ protected:
 
 	IKShaderPtr GetVSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count);
 	IKShaderPtr GetVSInstanceShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count);
-	IKShaderPtr GetFSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count, bool meshletInput);
+	IKShaderPtr GetFSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count);
 	IKShaderPtr GetMSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count);
 
 	IKPipelinePtr CreatePipelineImpl(KShaderMap& shaderMap, const PipelineCreateContext& context, const VertexFormat* formats, size_t count);
@@ -86,7 +87,7 @@ public:
 
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count);
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count);
-	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, bool meshletInput);
+	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count);
 	virtual IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count);
 
 	virtual bool HasMSShader() const;
@@ -113,6 +114,7 @@ public:
 	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async);
 	virtual bool UnInit();
 
+	virtual const std::string& GetMaterialGeneratedCode() const { return m_MaterialCode; }
 	virtual const std::string& GetPath() const { return m_Path; }
 
 	virtual bool SaveAsFile(const std::string& path);

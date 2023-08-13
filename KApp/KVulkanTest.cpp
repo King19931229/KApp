@@ -116,6 +116,7 @@ void InitQEM(IKEnginePtr engine)
 			((IKTransformComponent*)component)->SetPosition(glm::vec3(0));
 			((IKTransformComponent*)component)->SetScale(glm::vec3(scale));
 		}
+		/*
 		if (entity->RegisterComponent(CT_DEBUG, &component))
 		{
 			std::vector<KAABBBox> bvhBounds;
@@ -134,6 +135,7 @@ void InitQEM(IKEnginePtr engine)
 				((IKDebugComponent*)component)->AddDebugPart(KDebugUtility::CreateCube(cubeInfo), glm::vec4(0.3f, 0.3f, 0.3f, 0.02f));
 			}
 		}
+		*/
 		if (entity->RegisterComponent(CT_USER, &component))
 		{
 			((IKUserComponent*)component)->SetPostTick(&Tick);

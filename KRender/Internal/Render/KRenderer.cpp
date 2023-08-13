@@ -364,6 +364,11 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 	m_Pass = KMainPassPtr(KNEW KMainPass(*this));
 	m_Pass->Init();
 
+	m_BasePassCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
+	{
+		KRenderGlobal::Scene.GetVirtualGeometryScene()->BasePass(renderPass, primaryBuffer);
+	};
+
 	m_DebugCallFunc = [](IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer)
 	{
 		KRenderGlobal::Scene.GetVirtualGeometryScene()->DebugRender(renderPass, primaryBuffer);
@@ -408,6 +413,7 @@ bool KRenderer::Init(const KRendererInitContext& initContext)
 		KRenderGlobal::DepthOfField.DebugRender(renderPass, primaryBuffer);
 	};
 
+	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STAGE_BASE_PASS, &m_BasePassCallFunc);
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
 	KRenderGlobal::DeferredRenderer.AddCallFunc(DRS_STATE_FOREGROUND, &m_ForegroundCallFunc);
 
@@ -464,9 +470,9 @@ bool KRenderer::ResetThreadNum(uint32_t threadNum)
 
 bool KRenderer::UnInit()
 {
-	IKRenderDevice* device = KRenderGlobal::RenderDevice;
-	device->Wait();
+	KRenderGlobal::RenderDevice->Wait();
 
+	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STAGE_BASE_PASS, &m_BasePassCallFunc);
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STATE_DEBUG_OBJECT, &m_DebugCallFunc);
 	KRenderGlobal::DeferredRenderer.RemoveCallFunc(DRS_STATE_FOREGROUND, &m_ForegroundCallFunc);
 

@@ -579,7 +579,7 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 
 		for (size_t threadIndex = 0; threadIndex < commandBuffers.size(); ++threadIndex)
 		{
-			renderContext.threadPool->AddJob(threadIndex, [this, currentCommandIndex, currentCommandCount, renderPass, &commandList, &renderContext, &commandBuffers, threadIndex]()
+			renderContext.threadPool->AddJob(threadIndex, [this, deferredRenderStage, currentCommandIndex, currentCommandCount, renderPass, &commandList, &renderContext, &commandBuffers, threadIndex]()
 			{
 				IKCommandBufferPtr commandBuffer = renderContext.threadCommandPools[threadIndex]->Request(CBL_SECONDARY);
 
@@ -593,6 +593,15 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 					command.threadIndex = (uint32_t)threadIndex;
 					commandBuffer->Render(command);
 				}
+
+				if (threadIndex == 0)
+				{
+					std::for_each(m_RenderCallFuncs[deferredRenderStage].begin(), m_RenderCallFuncs[deferredRenderStage].end(), [renderPass, commandBuffer](RenderPassCallFuncType* func)
+					{
+						(*func)(renderPass, commandBuffer);
+					});
+				}
+
 				commandBuffer->End();
 
 				commandBuffers[threadIndex] = commandBuffer;
@@ -616,6 +625,11 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 				renderContext.primaryBuffer->Render(command);
 			}
 		}
+
+		std::for_each(m_RenderCallFuncs[deferredRenderStage].begin(), m_RenderCallFuncs[deferredRenderStage].end(), [renderPass, renderContext](RenderPassCallFuncType* func)
+		{
+			(*func)(renderPass, renderContext.primaryBuffer);
+		});
 	}
 
 	renderContext.primaryBuffer->EndRenderPass();

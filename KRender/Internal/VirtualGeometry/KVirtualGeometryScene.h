@@ -66,6 +66,7 @@ protected:
 
 	std::vector<KVirtualGeometryInstance> m_LastInstanceData;
 	std::vector<KMaterialRef> m_BinningMaterials;
+	std::vector<IKPipelinePtr> m_BinningPipelines;
 
 	IKUniformBufferPtr m_GlobalDataBuffer;
 
@@ -92,6 +93,11 @@ protected:
 	IKComputePipelinePtr m_BinningAllocatePipline;
 	IKComputePipelinePtr m_BinningScatterPipline;
 
+	glm::mat4 m_PrevViewProj;
+
+	KShaderRef m_BasePassVertexShader;
+	std::vector<KShaderRef> m_BasePassFragmentShaders;
+
 	KShaderRef m_DebugVertexShader;
 	KShaderRef m_DebugFragmentShader;
 	IKPipelinePtr m_DebugPipeline;
@@ -117,6 +123,8 @@ public:
 	bool UnInit() override;
 
 	bool Execute(IKCommandBufferPtr primaryBuffer) override;
+
+	bool BasePass(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
 	bool DebugRender(IKRenderPassPtr renderPass, IKCommandBufferPtr primaryBuffer) override;
 
 	bool ReloadShader();

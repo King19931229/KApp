@@ -16,6 +16,8 @@ enum class MaterialValueType
 	UNKNOWN
 };
 
+constexpr uint32_t MAX_MATERIAL_TEXTURE_BINDING = 16;
+
 struct IKMaterialValue;
 typedef std::shared_ptr<IKMaterialValue> IKMaterialValuePtr;
 
@@ -54,7 +56,7 @@ struct IKMaterialTextureBinding
 {
 	virtual ~IKMaterialTextureBinding() {}
 
-	virtual uint8_t GetNumSlot() const = 0;
+	static uint8_t GetNumSlot() { return MAX_MATERIAL_TEXTURE_BINDING;	}
 
 	virtual bool SetTexture(uint8_t slot, const std::string& path, const KMeshTextureSampler& sampler) = 0;
 	virtual bool SetTexture(uint8_t slot, const std::string& name, const KCodecResult& result, const KMeshTextureSampler& sampler) = 0;
@@ -85,7 +87,7 @@ struct IKMaterial
 
 	virtual IKShaderPtr GetVSShader(const VertexFormat* formats, size_t count) = 0;
 	virtual IKShaderPtr GetVSInstanceShader(const VertexFormat* formats, size_t count) = 0;
-	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count, bool meshletInput) = 0;
+	virtual IKShaderPtr GetFSShader(const VertexFormat* formats, size_t count) = 0;
 	virtual IKShaderPtr GetMSShader(const VertexFormat* formats, size_t count) = 0;
 
 	virtual bool HasMSShader() const = 0;
@@ -109,6 +111,8 @@ struct IKMaterial
 	virtual bool InitFromFile(const std::string& path, bool async) = 0;
 	virtual bool InitFromImportAssetMaterial(const KMeshRawData::Material& input, bool async) = 0;
 	virtual bool UnInit() = 0;
+
+	virtual const std::string& GetMaterialGeneratedCode() const = 0;
 
 	virtual const std::string& GetPath() const = 0;
 	virtual bool SaveAsFile(const std::string& path) = 0;

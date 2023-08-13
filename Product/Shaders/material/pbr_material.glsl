@@ -1,4 +1,10 @@
+#ifdef VIRTUAL_GEOMETRY
 #include "public.h"
+#else
+#include "public.h"
+#define prevWorldToClip camera.prevViewProj
+#define worldToClip camera.viewProj
+#endif
 
 #if HAS_MATERIAL_TEXTURE0
 layout(binding = BINDING_TEXTURE0) uniform sampler2D diffuseSampler;
@@ -10,7 +16,7 @@ layout(binding = BINDING_TEXTURE1) uniform sampler2D normalSampler;
 
 #if HAS_MATERIAL_TEXTURE2
 #if PBR_MATERIAL_SPECULAR_GLOSINESS
-layout(binding = BINDING_MATERIAL2) uniform sampler2D specularGlosinessSampler;
+layout(binding = BINDING_TEXTURE2) uniform sampler2D specularGlosinessSampler;
 #else
 layout(binding = BINDING_TEXTURE2) uniform sampler2D metalRoughnessSampler;
 #endif
@@ -117,8 +123,8 @@ MaterialPixelParameters ComputeMaterialPixelParameters(
 	parameters.normal = worldNormal;
 #endif
 
-	vec4 prev = camera.prevViewProj * vec4(prevWorldPos, 1.0);
-	vec4 curr = camera.viewProj * vec4(worldPos, 1.0);
+	vec4 prev = prevWorldToClip * vec4(prevWorldPos, 1.0);
+	vec4 curr = worldToClip * vec4(worldPos, 1.0);
 	vec2 prevUV = 0.5 * (prev.xy / prev.w + vec2(1.0));
 	vec2 currUV = 0.5 * (curr.xy / curr.w + vec2(1.0));
 	parameters.motion = prevUV - currUV;

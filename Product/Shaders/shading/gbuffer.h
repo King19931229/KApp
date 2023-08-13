@@ -15,6 +15,7 @@ vec3 DecodeNormal(vec4 gbuffer0Data)
 	return gbuffer0Data.xyz;
 }
 
+// TODO No camera.XXX
 vec3 DecodeNormalViewSpace(vec4 gbuffer0Data)
 {
 	vec4 normal = vec4(gbuffer0Data.xyz, 0.0);
@@ -94,6 +95,27 @@ struct GBufferDecodeData
 	float roughness;
 	float ao;
 };
+
+GBufferEncodeData EncodeGBuffer(mat4 view, mat4 proj, vec3 pos, vec3 normal, vec2 motion, vec3 baseColor, vec3 emissive, float metal, float roughness, float ao)
+{
+	vec4 viewPos = view * vec4(pos, 1.0);
+	float near = proj[3][2] / proj[2][2];
+	float far = -proj[3][2] / (proj[2][3] - proj[2][2]);
+	float depth = (-viewPos.z - near) / (far - near);
+
+	GBufferEncodeData data;
+
+	data.gbuffer0.xyz = normalize(normal);
+	data.gbuffer0.w = depth;
+	data.gbuffer1.xy = vec2(motion.x, motion.y);
+	data.gbuffer2.xyz = baseColor;
+	data.gbuffer2.w = ao;
+	data.gbuffer3.x = metal;
+	data.gbuffer3.y = roughness;
+	data.gbuffer4.xyz = emissive;
+
+	return data;
+}
 
 GBufferDecodeData DecodeGBufferData(GBufferEncodeData encode)
 {

@@ -694,7 +694,7 @@ void KRenderCore::DebugCode()
 
 	shaderMap.Init(initContext, false);
 	shaderMap.GetVSShader(formats, ARRAY_SIZE(formats));
-	shaderMap.GetFSShader(formats, ARRAY_SIZE(formats), nullptr, false);
+	shaderMap.GetFSShader(formats, ARRAY_SIZE(formats), nullptr);
 
 	shaderMap.UnInit();
 }

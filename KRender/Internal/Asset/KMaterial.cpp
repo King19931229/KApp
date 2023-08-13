@@ -188,10 +188,10 @@ IKShaderPtr KMaterial::GetVSInstanceShaderImpl(KShaderMap& shaderMap, const Vert
 	return shaderMap.GetVSInstanceShader(formats, count);
 }
 
-IKShaderPtr KMaterial::GetFSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count, bool meshletInput)
+IKShaderPtr KMaterial::GetFSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count)
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
-	return shaderMap.GetFSShader(formats, count, &textureBinding, meshletInput);
+	return shaderMap.GetFSShader(formats, count, &textureBinding);
 }
 
 IKShaderPtr KMaterial::GetMSShaderImpl(KShaderMap& shaderMap, const VertexFormat* formats, size_t count)
@@ -209,9 +209,9 @@ IKShaderPtr KMaterial::GetVSInstanceShader(const VertexFormat* formats, size_t c
 	return GetVSInstanceShaderImpl(m_ShaderMap, formats, count);
 }
 
-IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count, bool meshletInput)
+IKShaderPtr KMaterial::GetFSShader(const VertexFormat* formats, size_t count)
 {
-	return GetFSShaderImpl(m_ShaderMap, formats, count, meshletInput);
+	return GetFSShaderImpl(m_ShaderMap, formats, count);
 }
 
 IKShaderPtr KMaterial::GetMSShader(const VertexFormat* formats, size_t count)
@@ -448,7 +448,7 @@ IKPipelinePtr KMaterial::CreatePipelineImpl(KShaderMap& shaderMap, const Pipelin
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	IKShaderPtr vsShader = shaderMap.GetVSShader(formats, count);
-	IKShaderPtr fsShader = shaderMap.GetFSShader(formats, count, &textureBinding, false);
+	IKShaderPtr fsShader = shaderMap.GetFSShader(formats, count, &textureBinding);
 	if (vsShader && fsShader)
 	{
 		return CreatePipelineInternal(context, formats, count, vsShader, fsShader);
@@ -460,7 +460,7 @@ IKPipelinePtr KMaterial::CreateMeshPipelineImpl(KShaderMap& shaderMap, const Pip
 {
 	KTextureBinding textureBinding = ConvertToTextureBinding(m_TextureBinding.get());
 	IKShaderPtr msShader = shaderMap.GetMSShader(formats, count);
-	IKShaderPtr fsShader = shaderMap.GetFSShader(formats, count, &textureBinding, true);
+	IKShaderPtr fsShader = shaderMap.GetFSShader(formats, count, &textureBinding);
 	if (msShader && fsShader)
 	{
 		return CreateMeshPipelineInternal(context, formats, count, msShader, fsShader);
@@ -480,7 +480,7 @@ IKPipelinePtr KMaterial::CreateInstancePipelineImpl(KShaderMap& shaderMap, const
 	instanceFormats.push_back(VF_INSTANCE);
 
 	IKShaderPtr vsInstanceShader = shaderMap.GetVSInstanceShader(formats, count);
-	IKShaderPtr fsShader = shaderMap.GetFSShader(formats, count, &textureBinding, false);
+	IKShaderPtr fsShader = shaderMap.GetFSShader(formats, count, &textureBinding);
 	if (vsInstanceShader && fsShader)
 	{
 		return CreatePipelineInternal(context, instanceFormats.data(), instanceFormats.size(), vsInstanceShader, fsShader);
@@ -886,20 +886,19 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 		}
 	}
 
-	std::string materialCode;
 	if (input.metalWorkFlow)
 	{
-		ASSERT_RESULT(SetupMaterialGeneratedCode("material/base_color.glsl", materialCode));
+		ASSERT_RESULT(SetupMaterialGeneratedCode("material/base_color.glsl", m_MaterialCode));
 	}
 	else
 	{
-		ASSERT_RESULT(SetupMaterialGeneratedCode("material/diffuse.glsl", materialCode));
+		ASSERT_RESULT(SetupMaterialGeneratedCode("material/diffuse.glsl", m_MaterialCode));
 	}
 
 	if (input.alphaMode == MAM_OPAQUE || input.alphaMode == MAM_MASK)
 	{
 		KShaderMapInitContext initContext;		
-		initContext.IncludeSource = { {"material_generate_code.h", materialCode} };
+		initContext.IncludeSource = { {"material_generate_code.h", m_MaterialCode} };
 
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/basepass.frag";
@@ -920,7 +919,7 @@ bool KMaterial::InitFromImportAssetMaterial(const KMeshRawData::Material& input,
 		KShaderMapInitContext initContext;
 		initContext.vsFile = "shading/basepass.vert";
 		initContext.fsFile = "shading/translucent.frag";
-		initContext.IncludeSource = { {"material_generate_code.h", materialCode} };
+		initContext.IncludeSource = { {"material_generate_code.h", m_MaterialCode} };
 
 		m_ShadingMode = MSM_TRANSRPANT;
 
