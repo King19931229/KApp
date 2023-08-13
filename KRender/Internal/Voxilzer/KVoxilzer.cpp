@@ -846,10 +846,14 @@ void KVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 					}objectData;
 					objectData.model = finalTran;
 
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(objectData);
 
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+					KDynamicConstantBufferUsage objectUsage;
+					objectUsage.binding = SHADER_BINDING_OBJECT;
+					objectUsage.range = sizeof(objectData);
+
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+					command.dynamicConstantUsages.push_back(objectUsage);
 
 					command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
 
@@ -926,10 +930,14 @@ void KVoxilzer::VoxelizeStaticSceneCounter(IKCommandBufferPtr commandBuffer, boo
 					KConstantDefinition::OBJECT objectData;
 					objectData.MODEL = finalTran;
 					objectData.PRVE_MODEL = prevFinalTran;
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(objectData);
 
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+					KDynamicConstantBufferUsage objectUsage;
+					objectUsage.binding = SHADER_BINDING_OBJECT;
+					objectUsage.range = sizeof(objectData);
+
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+					command.dynamicConstantUsages.push_back(objectUsage);
 
 					command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
 

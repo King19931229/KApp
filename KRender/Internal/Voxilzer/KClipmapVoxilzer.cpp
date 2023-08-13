@@ -244,9 +244,14 @@ bool KClipmapVoxilzer::RenderVoxel(IKRenderPassPtr renderPass, IKCommandBufferPt
 		objectData.params[1] = m_ClipLevelCount;
 		objectData.bias = m_VoxelDrawBias;
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
+
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		command.dynamicConstantUsages.push_back(objectUsage);
+
 		primaryBuffer->Render(command);
 	}
 
@@ -278,9 +283,12 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 		command.pipeline->GetHandle(m_LightPassRenderPass, command.pipelineHandle);
 		command.indexDraw = true;
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		primaryBuffer->Render(command);
 
@@ -302,9 +310,12 @@ bool KClipmapVoxilzer::UpdateLightingResult(IKCommandBufferPtr primaryBuffer)
 		command.pipeline->GetHandle(m_LightComposeRenderPass, command.pipelineHandle);
 		command.indexDraw = true;
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		primaryBuffer->Render(command);
 
@@ -668,10 +679,12 @@ void KClipmapVoxilzer::VoxelizeStaticScene(IKCommandBufferPtr commandBuffer)
 						objectData.model = finalTran;
 						objectData.level = level;
 
-						command.objectUsage.binding = SHADER_BINDING_OBJECT;
-						command.objectUsage.range = sizeof(objectData);
+						KDynamicConstantBufferUsage objectUsage;
+						objectUsage.binding = SHADER_BINDING_OBJECT;
+						objectUsage.range = sizeof(objectData);
+						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-						KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+						command.dynamicConstantUsages.push_back(objectUsage);
 
 						command.pipeline->GetHandle(m_VoxelRenderPass, command.pipelineHandle);
 

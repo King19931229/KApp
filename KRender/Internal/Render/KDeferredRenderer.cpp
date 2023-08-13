@@ -422,12 +422,17 @@ void KDeferredRenderer::HandleRenderCommandBinding(DeferredRenderStage renderSta
 		struct Debug
 		{
 			uint32_t debugOption;
-		} debugUsage;
+		} debug;
 
-		debugUsage.debugOption = m_DebugOption;
-		command.debugUsage.binding = SHADER_BINDING_DEBUG;
-		command.debugUsage.range = sizeof(debugUsage);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&debugUsage, command.debugUsage);
+		debug.debugOption = m_DebugOption;
+
+		KDynamicConstantBufferUsage debugUsage;
+		debugUsage.binding = SHADER_BINDING_DEBUG;
+		debugUsage.range = sizeof(debugUsage);
+
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&debug, debugUsage);
+
+		command.dynamicConstantUsages.push_back(debugUsage);
 	}
 }
 
@@ -516,9 +521,13 @@ void KDeferredRenderer::BuildRenderCommand(KMultithreadingRenderContext& renderC
 					KConstantDefinition::OBJECT objectData;
 					objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
 					objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(objectData);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+					
+					KDynamicConstantBufferUsage objectUsage;
+					objectUsage.binding = SHADER_BINDING_OBJECT;
+					objectUsage.range = sizeof(objectData);
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+					command.dynamicConstantUsages.push_back(objectUsage);
 
 					++statistics.drawcalls;
 
@@ -743,9 +752,12 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer, const std:
 
 			if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_TRIANGLE, command))
 			{
-				command.objectUsage.binding = SHADER_BINDING_OBJECT;
-				command.objectUsage.range = sizeof(objectData);
-				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+				KDynamicConstantBufferUsage objectUsage;
+				objectUsage.binding = SHADER_BINDING_OBJECT;
+				objectUsage.range = sizeof(objectData);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+				command.dynamicConstantUsages.push_back(objectUsage);
 
 				++statistics.drawcalls;
 				if (command.indexDraw)
@@ -771,9 +783,12 @@ void KDeferredRenderer::DebugObject(IKCommandBufferPtr primaryBuffer, const std:
 
 			if (materialSubMesh->GetRenderCommand(RENDER_STAGE_DEBUG_LINE, command))
 			{
-				command.objectUsage.binding = SHADER_BINDING_OBJECT;
-				command.objectUsage.range = sizeof(objectData);
-				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+				KDynamicConstantBufferUsage objectUsage;
+				objectUsage.binding = SHADER_BINDING_OBJECT;
+				objectUsage.range = sizeof(objectData);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+				command.dynamicConstantUsages.push_back(objectUsage);
 
 				++statistics.drawcalls;
 				if (command.indexDraw)
@@ -887,12 +902,16 @@ void KDeferredRenderer::DeferredLighting(IKCommandBufferPtr primaryBuffer)
 	struct Debug
 	{
 		uint32_t debugOption;
-	} debugUsage;
+	} debug;
 
-	debugUsage.debugOption = m_DebugOption;
-	command.debugUsage.binding = SHADER_BINDING_DEBUG;
-	command.debugUsage.range = sizeof(debugUsage);
-	KRenderGlobal::DynamicConstantBufferManager.Alloc(&debugUsage, command.debugUsage);
+	debug.debugOption = m_DebugOption;
+
+	KDynamicConstantBufferUsage debugUsage;	
+	debugUsage.binding = SHADER_BINDING_DEBUG;
+	debugUsage.range = sizeof(debugUsage);
+	KRenderGlobal::DynamicConstantBufferManager.Alloc(&debug, debugUsage);
+
+	command.dynamicConstantUsages.push_back(debugUsage);
 
 	primaryBuffer->Render(command);
 

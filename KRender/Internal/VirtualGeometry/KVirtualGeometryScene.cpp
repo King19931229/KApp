@@ -667,9 +667,14 @@ bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, IKCommandBuffer
 
 		KVirtualGeometryMaterial material;
 		material.miscs3.x = (uint32_t)i;
-		command.objectUsage.binding = MAX_MATERIAL_TEXTURE_BINDING + BINDING_MATERIAL_DATA;
-		command.objectUsage.range = sizeof(material);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&material, command.objectUsage);
+
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = BINDING_MATERIAL_DATA + MAX_MATERIAL_TEXTURE_BINDING;
+		objectUsage.range = sizeof(material);
+
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&material, objectUsage);
+
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		command.pipeline = m_BinningPipelines[i];
 		command.indirectArgsBuffer = m_IndirectDrawBuffer;

@@ -544,9 +544,13 @@ bool KOcclusionBox::Render(IKCommandBufferPtr commandBuffer, IKRenderPassPtr ren
 							KAABBBox &bound = group.bound;
 							transform.PRVE_MODEL = transform.MODEL = glm::translate(glm::mat4(1.0f), bound.GetCenter()) * glm::scale(glm::mat4(1.0f), bound.GetExtend());
 
-							command.objectUsage.binding = SHADER_BINDING_OBJECT;
-							command.objectUsage.range = sizeof(transform);
-							KRenderGlobal::DynamicConstantBufferManager.Alloc(&transform, command.objectUsage);
+							KDynamicConstantBufferUsage objectUsage;
+							objectUsage.binding = SHADER_BINDING_OBJECT;
+							objectUsage.range = sizeof(transform);
+
+							KRenderGlobal::DynamicConstantBufferManager.Alloc(&transform, objectUsage);
+
+							command.dynamicConstantUsages.push_back(objectUsage);
 
 							// Front Face Pass
 							{

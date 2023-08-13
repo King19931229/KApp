@@ -516,9 +516,10 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 			KDynamicConstantBufferUsage objectUsage;
 			objectUsage.binding = SHADER_BINDING_OBJECT;
 			objectUsage.range = sizeof(objectData);
+
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-			command.objectUsage = objectUsage;
+			command.dynamicConstantUsages.push_back(objectUsage);
 
 			command.pipeline = m_ReflectionPipeline;
 			command.pipeline->GetHandle(m_ReflectionPass, command.pipelineHandle);
@@ -557,7 +558,7 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 			objectUsage.range = sizeof(objectData);
 			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-			command.objectUsage = objectUsage;
+			command.dynamicConstantUsages.push_back(objectUsage);
 
 			command.pipeline = m_RayReusePipeline;
 			command.pipeline->GetHandle(m_RayReusePass[m_CurrentIdx], command.pipelineHandle);
@@ -661,7 +662,7 @@ bool KScreenSpaceReflection::Execute(IKCommandBufferPtr primaryBuffer)
 				objectUsage.range = sizeof(objectData);
 				KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-				command.objectUsage = objectUsage;
+				command.dynamicConstantUsages.push_back(objectUsage);
 
 				command.pipeline = m_AtrousPipeline[i];
 				command.pipeline->GetHandle(m_AtrousPass[i], command.pipelineHandle);

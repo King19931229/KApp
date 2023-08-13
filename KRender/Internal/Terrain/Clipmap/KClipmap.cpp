@@ -310,10 +310,13 @@ void KClipmapLevel::UpdateTextureByRect(const std::vector<KClipmapTextureUpdateR
 			objectData.area.x = (float)(rect.endX - rect.startX + 1);
 			objectData.area.y = (float)(rect.endY - rect.startY + 1);
 
-			command.objectUsage.binding = SHADER_BINDING_OBJECT;
-			command.objectUsage.range = sizeof(objectData);
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = SHADER_BINDING_OBJECT;
+			objectUsage.range = sizeof(objectData);
 
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+			command.dynamicConstantUsages.push_back(objectUsage);
 
 			command.vertexData = &ms_UpdateVertexData;
 			command.indexData = &ms_UpdateIndexData;
@@ -1258,11 +1261,17 @@ void KClipmap::RenderInternal(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr 
 		objectData.misc3.x = (float)footprintIdx;
 		objectData.misc3.y = (float)m_FootprintPos.size();
 		if (footprintIdx == 24)
+		{
 			objectData.misc3.z = 2.0f;
+		}
 		else if (footprintIdx >= 25)
+		{
 			objectData.misc3.z = 1.0f;
+		}
 		else
+		{
 			objectData.misc3.z = 0.0f;
+		}
 
 		objectData.misc3.w = (float)clipLevel->GetGridSize();;
 		objectData.misc4.x = (float)clipLevel->GetRealBottomLeftX();
@@ -1270,10 +1279,13 @@ void KClipmap::RenderInternal(IKCommandBufferPtr primaryBuffer, IKRenderPassPtr 
 		objectData.misc4.z = (float)m_HeightMap.GetWidth();
 		objectData.misc4.w = (float)m_HeightMap.GetHeight();
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(objectData);
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
 
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		command.indexDraw = true;

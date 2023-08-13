@@ -142,8 +142,9 @@ namespace KRenderUtil
 				std::vector<char> fsShadingBuffer;
 				fsShadingBuffer.resize(constant->size);
 
-				command.shadingUsage.binding = SHADER_BINDING_SHADING;
-				command.shadingUsage.range = constant->size;
+				KDynamicConstantBufferUsage shadingUsage;
+				shadingUsage.binding = SHADER_BINDING_SHADING;
+				shadingUsage.range = constant->size;
 
 				for (const KShaderInformation::Constant::ConstantMember& member : constant->members)
 				{
@@ -152,7 +153,9 @@ namespace KRenderUtil
 					memcpy(POINTER_OFFSET(fsShadingBuffer.data(), member.offset), value->GetData(), member.size);
 				}
 
-				KRenderGlobal::DynamicConstantBufferManager.Alloc(fsShadingBuffer.data(), command.shadingUsage);
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(fsShadingBuffer.data(), shadingUsage);
+
+				command.dynamicConstantUsages.push_back(shadingUsage);
 			}
 
 			return true;

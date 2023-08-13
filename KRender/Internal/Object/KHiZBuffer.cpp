@@ -233,13 +233,21 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			objectData.minBuild = true;
 
-			command.objectUsage.binding = SHADER_BINDING_OBJECT;
-			command.objectUsage.range = sizeof(objectData);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+			KDynamicConstantBufferUsage objectUsage;
 
-			command.objectUsage.binding = SHADER_BINDING_OBJECT;
-			command.objectUsage.range = sizeof(objectData);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+			objectUsage.binding = SHADER_BINDING_OBJECT;
+			objectUsage.range = sizeof(objectData);
+
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+			command.dynamicConstantUsages = { objectUsage };
+
+			objectUsage.binding = SHADER_BINDING_OBJECT;
+			objectUsage.range = sizeof(objectData);
+
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+			command.dynamicConstantUsages = { objectUsage };
 
 			primaryBuffer->Render(command);
 
@@ -270,9 +278,12 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 			} objectData;
 			objectData.minBuild = true;
 
-			command.objectUsage.binding = SHADER_BINDING_OBJECT;
-			command.objectUsage.range = sizeof(objectData);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = SHADER_BINDING_OBJECT;
+			objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+			command.dynamicConstantUsages.push_back(objectUsage);
 
 			primaryBuffer->Render(command);
 
@@ -319,9 +330,12 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 
 			objectData.minBuild = false;
 
-			command.objectUsage.binding = SHADER_BINDING_OBJECT;
-			command.objectUsage.range = sizeof(objectData);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = SHADER_BINDING_OBJECT;
+			objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+			command.dynamicConstantUsages.push_back(objectUsage);
 
 			primaryBuffer->Render(command);
 
@@ -352,9 +366,12 @@ bool KHiZBuffer::Construct(IKCommandBufferPtr primaryBuffer)
 			} objectData;
 			objectData.minBuild = false;
 
-			command.objectUsage.binding = SHADER_BINDING_OBJECT;
-			command.objectUsage.range = sizeof(objectData);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = SHADER_BINDING_OBJECT;
+			objectUsage.range = sizeof(objectData);
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+			command.dynamicConstantUsages.push_back(objectUsage);
 
 			primaryBuffer->Render(command);
 

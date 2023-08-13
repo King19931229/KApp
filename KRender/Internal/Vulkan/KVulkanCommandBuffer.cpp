@@ -328,23 +328,26 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		VkPipeline pipeline = pipelineHandle->GetVkPipeline();
 		VkPipelineLayout pipelineLayout = vulkanPipeline->GetVkPipelineLayout();
 
-		const KDynamicConstantBufferUsage* dynamicUsages[CBT_DYNAMIC_COUNT] = {};
-		uint32_t dynamicOffsets[CBT_DYNAMIC_COUNT] = { 0 };
-		uint32_t dynamicBufferCount = 0;
+		uint32_t dynamicBufferCount = (uint32_t)command.dynamicConstantUsages.size();
 
-		if (command.objectUsage.buffer)
+		std::vector<const KDynamicConstantBufferUsage*> dynamicUsages;
+		dynamicUsages.resize(dynamicBufferCount);
+		for (uint32_t i = 0; i < dynamicBufferCount; ++i)
 		{
-			dynamicUsages[dynamicBufferCount++] = &(command.objectUsage);
-		}
-		if (command.shadingUsage.buffer)
-		{
-			dynamicUsages[dynamicBufferCount++] = &(command.shadingUsage);
-		}
-		if (command.debugUsage.buffer)
-		{
-			dynamicUsages[dynamicBufferCount++] = &(command.debugUsage);
+			dynamicUsages[i] = &command.dynamicConstantUsages[i];
 		}
 
+		if (dynamicUsages.size() > 1)
+		{
+			std::sort(dynamicUsages.begin(), dynamicUsages.end(), [](const KDynamicConstantBufferUsage* lhs, const KDynamicConstantBufferUsage* rhs)
+			{
+				assert(lhs->binding != rhs->binding);
+				return lhs->binding < rhs->binding;
+			});
+		}
+
+		std::vector<uint32_t> dynamicOffsets;
+		dynamicOffsets.resize(dynamicBufferCount);
 		for (uint32_t i = 0; i < dynamicBufferCount; ++i)
 		{
 			dynamicOffsets[i] = (uint32_t)dynamicUsages[i]->offset;
@@ -357,12 +360,12 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 			storageUsages[storageBufferCount++] = &(command.meshStorageUsages[i]);
 		}
 
-		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(command.threadIndex, dynamicUsages, dynamicBufferCount, storageUsages, storageBufferCount);
+		VkDescriptorSet descriptorSet = vulkanPipeline->AllocDescriptorSet(command.threadIndex, dynamicUsages.data(), dynamicBufferCount, storageUsages, storageBufferCount);
 
 		// 绑定管线
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		// 绑定管线布局
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, dynamicBufferCount, dynamicOffsets);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, dynamicBufferCount, dynamicOffsets.data());
 
 		// 绑定顶点缓冲
 		VkBuffer vertexBuffers[32] = {0};

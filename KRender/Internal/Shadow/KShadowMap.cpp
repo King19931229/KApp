@@ -116,9 +116,13 @@ bool KShadowMap::UpdateShadowMap(IKCommandBufferPtr primaryBuffer)
 						{
 							const KConstantDefinition::OBJECT & final = transform->FinalTransform();
 
-							command.objectUsage.binding = SHADER_BINDING_OBJECT;
-							command.objectUsage.range = sizeof(final);
-							KRenderGlobal::DynamicConstantBufferManager.Alloc(&final, command.objectUsage);
+							KDynamicConstantBufferUsage objectUsage;
+							objectUsage.binding = SHADER_BINDING_OBJECT;
+							objectUsage.range = sizeof(final);
+
+							KRenderGlobal::DynamicConstantBufferManager.Alloc(&final, objectUsage);
+
+							command.dynamicConstantUsages.push_back(objectUsage);
 
 							commandList.push_back(command);
 						}

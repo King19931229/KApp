@@ -278,8 +278,10 @@ void KVolumetricFog::UpdateScattering(IKCommandBufferPtr primaryBuffer)
 	KDynamicConstantBufferUsage objectUsage;
 	objectUsage.binding = SHADER_BINDING_OBJECT;
 	objectUsage.range = sizeof(m_ObjectData);
+
 	KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_ObjectData, objectUsage);
-	command.objectUsage = objectUsage;
+
+	command.dynamicConstantUsages.push_back(objectUsage);
 	
 	primaryBuffer->Render(command);
 	primaryBuffer->EndRenderPass();

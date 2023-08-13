@@ -326,9 +326,10 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 		KDynamicConstantBufferUsage objectUsage;
 		objectUsage.binding = SHADER_BINDING_OBJECT;
 		objectUsage.range = sizeof(objectData);
+
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-		command.objectUsage = objectUsage;
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		command.pipeline = m_CoCPipeline;
 		command.pipeline->GetHandle(m_CoCPass, command.pipelineHandle);
@@ -356,9 +357,10 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 		KDynamicConstantBufferUsage objectUsage;
 		objectUsage.binding = SHADER_BINDING_OBJECT;
 		objectUsage.range = sizeof(objectData);
+
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-		command.objectUsage = objectUsage;
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		command.pipeline = m_HorizontalPipeline;
 		command.pipeline->GetHandle(m_HorizontalPass, command.pipelineHandle);
@@ -388,9 +390,10 @@ bool KDepthOfField::Execute(IKCommandBufferPtr primaryBuffer)
 		KDynamicConstantBufferUsage objectUsage;
 		objectUsage.binding = SHADER_BINDING_OBJECT;
 		objectUsage.range = sizeof(objectData);
+
 		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
 
-		command.objectUsage = objectUsage;
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		command.pipeline = m_VerticalPipeline;
 		command.pipeline->GetHandle(m_VerticalPass, command.pipelineHandle);

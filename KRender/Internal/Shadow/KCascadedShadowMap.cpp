@@ -1090,9 +1090,13 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStat
 
 				KConstantDefinition::CSM_OBJECT_INSTANCE csmInstance = { (uint32_t)cascadedIndex };
 
-				command.objectUsage.binding = SHADER_BINDING_OBJECT;
-				command.objectUsage.range = sizeof(csmInstance);
-				KRenderGlobal::DynamicConstantBufferManager.Alloc(&csmInstance, command.objectUsage);
+				KDynamicConstantBufferUsage objectUsage;
+				objectUsage.binding = SHADER_BINDING_OBJECT;
+				objectUsage.range = sizeof(csmInstance);
+
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&csmInstance, objectUsage);
+
+				command.dynamicConstantUsages.push_back(objectUsage);
 
 				std::vector<KInstanceBufferManager::AllocResultBlock> allocRes;
 				ASSERT_RESULT(KRenderGlobal::InstanceBufferManager.GetVertexSize() == sizeof(instances[0]));
@@ -1145,9 +1149,14 @@ void KCascadedShadowMap::PopulateRenderCommand(size_t cascadedIndex, bool isStat
 					objectData.MODEL = glm::transpose(glm::mat4(instance.ROW0, instance.ROW1, instance.ROW2, glm::vec4(0, 0, 0, 1)));
 					objectData.PRVE_MODEL = glm::transpose(glm::mat4(instance.PREV_ROW0, instance.PREV_ROW1, instance.PREV_ROW2, glm::vec4(0, 0, 0, 1)));
 					KConstantDefinition::CSM_OBJECT csmObject = { objectData, (uint32_t)cascadedIndex };
-					command.objectUsage.binding = SHADER_BINDING_OBJECT;
-					command.objectUsage.range = sizeof(csmObject);
-					KRenderGlobal::DynamicConstantBufferManager.Alloc(&csmObject, command.objectUsage);
+
+					KDynamicConstantBufferUsage objectUsage;
+					objectUsage.binding = SHADER_BINDING_OBJECT;
+					objectUsage.range = sizeof(csmObject);
+
+					KRenderGlobal::DynamicConstantBufferManager.Alloc(&csmObject, objectUsage);
+
+					command.dynamicConstantUsages.push_back(objectUsage);
 
 					++statistics.drawcalls;
 
@@ -1570,9 +1579,13 @@ bool KCascadedShadowMap::GetDebugRenderCommand(KRenderCommandList& commands, boo
 		command.pipeline = cascaded.debugPipeline;
 		command.indexDraw = true;
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(cascaded.debugClip);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&cascaded.debugClip, command.objectUsage);
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(cascaded.debugClip);
+
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&cascaded.debugClip, objectUsage);
+
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		commands.push_back(std::move(command));
 	}

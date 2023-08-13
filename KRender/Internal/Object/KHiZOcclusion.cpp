@@ -351,9 +351,13 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 		objectData.dimX = dimensionX;
 		objectData.dimY = dimensionY;
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
+
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		primaryBuffer->Render(command);
 
@@ -380,9 +384,12 @@ void KHiZOcclusion::PushCandidatesInformation(IKCommandBufferPtr primaryBuffer)
 		objectData.dimX = dimensionX;
 		objectData.dimY = dimensionY;
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(objectData);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, command.objectUsage);
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(objectData);
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&objectData, objectUsage);
+
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		primaryBuffer->Render(command);
 

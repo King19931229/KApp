@@ -927,9 +927,14 @@ bool KCameraCube::GetRenderCommand(KRenderCommandList& commands)
 
 			constant.viewprojclip = m_ClipMat;
 			constant.color = glm::vec4(0.5f, 0.5f, 0.5f, 0.5f);
-			command.objectUsage.binding = SHADER_BINDING_OBJECT;
-			command.objectUsage.range = sizeof(constant);
-			KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, command.objectUsage);
+
+			KDynamicConstantBufferUsage objectUsage;
+			objectUsage.binding = SHADER_BINDING_OBJECT;
+			objectUsage.range = sizeof(constant);
+
+			KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, objectUsage);
+
+			command.dynamicConstantUsages = { objectUsage };
 
 			commands.push_back(std::move(command));
 		}
@@ -946,9 +951,14 @@ bool KCameraCube::GetRenderCommand(KRenderCommandList& commands)
 				command.indexData = &m_CubeIndexData[i];
 				constant.color = glm::vec4(CubeFaceColor[i], m_HoverIn ? 0.8f : 0.2f);
 
-				command.objectUsage.binding = SHADER_BINDING_OBJECT;
-				command.objectUsage.range = sizeof(constant);
-				KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, command.objectUsage);
+
+				KDynamicConstantBufferUsage objectUsage;
+				objectUsage.binding = SHADER_BINDING_OBJECT;
+				objectUsage.range = sizeof(constant);
+
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, objectUsage);
+
+				command.dynamicConstantUsages = { objectUsage };
 
 				commands.push_back(command);
 			}
@@ -967,9 +977,14 @@ bool KCameraCube::GetRenderCommand(KRenderCommandList& commands)
 				command.indexDraw = true;
 				constant.viewprojclip = m_ClipMat * m_CubeCamera.GetProjectiveMatrix() * m_CubeCamera.GetViewMatrix();
 				constant.color = glm::vec4(0.8f, 0.8f, 0.8f, 0.8f);
-				command.objectUsage.binding = SHADER_BINDING_OBJECT;
-				command.objectUsage.range = sizeof(constant);
-				KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, command.objectUsage);
+
+				KDynamicConstantBufferUsage objectUsage;
+				objectUsage.binding = SHADER_BINDING_OBJECT;
+				objectUsage.range = sizeof(constant);
+
+				KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, objectUsage);
+
+				command.dynamicConstantUsages = { objectUsage };
 
 				commands.push_back(std::move(command));
 			}

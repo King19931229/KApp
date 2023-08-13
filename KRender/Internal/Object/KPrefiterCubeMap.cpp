@@ -173,9 +173,13 @@ bool KPrefilerCubeMap::PopulateCubeMapRenderCommand(KRenderCommand& command, uin
 			}
 		}
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(constant);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, command.objectUsage);
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(constant);
+
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&constant, objectUsage);
+
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		return true;
 	}

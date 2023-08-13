@@ -117,9 +117,13 @@ bool KRTDebugDrawer::Render(IKRenderPassPtr renderPass, IKCommandBufferPtr prima
 		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
 		command.indexDraw = true;
 
-		command.objectUsage.binding = SHADER_BINDING_OBJECT;
-		command.objectUsage.range = sizeof(m_Clip);
-		KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_Clip, command.objectUsage);
+		KDynamicConstantBufferUsage objectUsage;
+		objectUsage.binding = SHADER_BINDING_OBJECT;
+		objectUsage.range = sizeof(m_Clip);
+
+		KRenderGlobal::DynamicConstantBufferManager.Alloc(&m_Clip, objectUsage);
+
+		command.dynamicConstantUsages.push_back(objectUsage);
 
 		primaryBuffer->Render(command);
 	}
