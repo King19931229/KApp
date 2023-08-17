@@ -16,20 +16,15 @@ struct KMeshProcessorVertex
 	glm::vec3 normal;
 	glm::vec3 tangent;
 	glm::vec3 binormal;
-	int32_t partIndex = -1;
 
 	bool operator<(const KMeshProcessorVertex& rhs) const
 	{
-		if (partIndex != rhs.partIndex)
-			return partIndex < rhs.partIndex;
-
 		const float eps = 1e-6f;
 		float dot = 0;
 #define COMPARE_AND_RETURN(member)\
 			dot = glm::dot(member - rhs.member, member - rhs.member);\
 			if (dot > eps)\
 				return memcmp(&member, &rhs.member, sizeof(member)) < 0;
-
 		COMPARE_AND_RETURN(pos);
 		COMPARE_AND_RETURN(normal);
 		COMPARE_AND_RETURN(tangent);
@@ -41,7 +36,6 @@ struct KMeshProcessorVertex
 		COMPARE_AND_RETURN(color[3]);
 		COMPARE_AND_RETURN(color[4]);
 		COMPARE_AND_RETURN(color[5]);
-
 #undef COMPARE_AND_RETURN
 		return false;
 	}
@@ -89,7 +83,6 @@ struct std::hash<KMeshProcessorVertex>
 		KHash::HashCombine(hash, Vec3Hash(vertex.normal));
 		KHash::HashCombine(hash, Vec2Hash(vertex.tangent));
 		KHash::HashCombine(hash, Vec2Hash(vertex.binormal));
-		KHash::HashCombine(hash, vertex.partIndex);
 		return hash;
 	}
 };
@@ -98,6 +91,25 @@ inline size_t KMeshProcessorVertexHash(const KMeshProcessorVertex& vertex)
 {
 	static std::hash<KMeshProcessorVertex> hasher;
 	return hasher(vertex);
+}
+
+template<>
+struct std::hash<glm::vec3>
+{
+	inline std::size_t operator()(const glm::vec3& pos) const
+	{
+		std::size_t hash = 0;
+		KHash::HashCombine(hash, std::hash<float>()(pos.x));
+		KHash::HashCombine(hash, std::hash<float>()(pos.y));
+		KHash::HashCombine(hash, std::hash<float>()(pos.z));
+		return hash;
+	}
+};
+
+inline size_t PositionHash(const glm::vec3& position)
+{
+	static std::hash<glm::vec3> hasher;
+	return hasher(position);
 }
 
 namespace KMeshProcessor

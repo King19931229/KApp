@@ -9,10 +9,70 @@
 #include <tuple>
 #include <queue>
 
+struct KPositionHash
+{
+	std::unordered_map<size_t, std::unordered_set<size_t>> vertices;
+
+	KPositionHash()
+	{
+	}
+
+	void Init()
+	{
+		vertices.clear();
+	}
+
+	void UnInit()
+	{
+		vertices.clear();
+	}
+
+	void AddPositionHash(const glm::vec3& position, size_t vertex)
+	{
+		size_t p = PositionHash(position);
+		auto it = vertices.find(p);
+		if (it == vertices.end())
+		{
+			vertices[p] = { vertex };
+		}
+		else
+		{
+			it->second.insert(vertex);
+		}
+	}
+
+	void RemovePositionHash(const glm::vec3& position, size_t vertex)
+	{
+		size_t p = PositionHash(position);
+		auto it = vertices.find(p);
+		if (it != vertices.end())
+		{
+			it->second.erase(vertex);
+		}
+		if (it->second.size() == 0)
+		{
+			vertices.erase(p);
+		}
+	}
+
+	void ForEach(const glm::vec3& position, std::function<void(size_t)> call)
+	{
+		size_t p = PositionHash(position);
+		auto it = vertices.find(p);
+		if (it != vertices.end())
+		{
+			for (size_t vertex : it->second)
+			{
+				call(vertex);
+			}
+		}
+	}
+};
+
 struct KEdgeHash
 {
-	// key为相邻节点 value为所在三角形列表
-	std::vector<std::unordered_map<int32_t, std::unordered_set<int32_t>>> edges;
+	// Key为相邻节点 Value为边所在的三角形列表
+	std::vector<std::unordered_map<size_t, std::unordered_set<size_t>>> edges;
 
 	KEdgeHash(size_t num = 0)
 	{
@@ -29,68 +89,68 @@ struct KEdgeHash
 		edges.clear();
 	}
 
-	void AddEdgeHash(int32_t v0, int32_t v1, int32_t triIndex)
+	void AddEdgeHash(size_t p0, size_t p1, size_t triIndex)
 	{
-		assert(v0 < (int32_t)edges.size());
-		assert(v1 < (int32_t)edges.size());
-		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
-		auto it = link.find(v1);
+		assert(p0 < edges.size());
+		assert(p1 < edges.size());
+		std::unordered_map<size_t, std::unordered_set<size_t>>& link = edges[p0];
+		auto it = link.find(p1);
 		if (it == link.end())
 		{
-			it = link.insert({ v1, {} }).first;
+			it = link.insert({ p1, {} }).first;
 		}
 		it->second.insert(triIndex);
 	}
 
-	void RemoveEdgeHash(int32_t v0, int32_t v1, int32_t triIndex)
+	void RemoveEdgeHash(size_t p0, size_t p1, size_t triIndex)
 	{
-		assert(v0 < (int32_t)edges.size());
-		assert(v1 < (int32_t)edges.size());
-		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
-		auto it = link.find(v1);
+		assert(p0 < edges.size());
+		assert(p1 < edges.size());
+		std::unordered_map<size_t, std::unordered_set<size_t>>& link = edges[p0];
+		auto it = link.find(p1);
 		if (it != link.end())
 		{
 			it->second.erase(triIndex);
 		}
 	}
 
-	void ClearEdgeHash(int32_t v0)
+	void ClearEdgeHash(size_t p0)
 	{
-		assert(v0 < (int32_t)edges.size());
-		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
+		assert(p0 < edges.size());
+		std::unordered_map<size_t, std::unordered_set<size_t>>& link = edges[p0];
 		link.clear();
 	}
 
-	void ForEach(int32_t v0, std::function<void(int32_t, int32_t)> call)
+	void ForEach(size_t p0, std::function<void(size_t, size_t)> call)
 	{
-		assert(v0 < (int32_t)edges.size());
-		std::unordered_map<int32_t, std::unordered_set<int32_t>>& link = edges[v0];
+		assert(p0 < edges.size());
+		std::unordered_map<size_t, std::unordered_set<size_t>>& link = edges[p0];
 		for (auto it = link.begin(); it != link.end(); ++it)
 		{
-			int32_t v1 = it->first;
-			std::unordered_set<int32_t> tris = it->second;
-			for (int32_t triIndex : tris)
+			size_t v1 = it->first;
+			std::unordered_set<size_t> tris = it->second;
+			for (size_t triIndex : tris)
 			{
 				call(v1, triIndex);
 			}
 		}
 	}
 
-	bool HasConnection(int32_t v0, int32_t v1) const
+	bool HasConnection(size_t p0, size_t p1) const
 	{
-		assert(v0 < (int32_t)edges.size());
-		assert(v1 < (int32_t)edges.size());
-		return edges[v0].find(v1) != edges[v0].end();
+		assert(p0 < edges.size());
+		assert(p1 < edges.size());
+		return edges[p0].find(p1) != edges[p0].end();
 	}
 
-	void ForEachTri(int32_t v0, int32_t v1, std::function<void(int32_t)> call)
+	void ForEachTri(size_t p0, size_t p1, std::function<void(size_t)> call)
 	{
-		assert(v0 < (int32_t)edges.size());
-		assert(v1 < (int32_t)edges.size());
-		auto it = edges[v0].find(v1);
-		if (it != edges[v0].end())
+		assert(p0 < edges.size());
+		assert(p1 < edges.size());
+		auto it = edges[p0].find(p1);
+		if (it != edges[p0].end())
 		{
-			for (int32_t triIndex : it->second)
+			for (size_t triIndex : it->second)
 			{
 				call(triIndex);
 			}
@@ -121,14 +181,18 @@ protected:
 		glm::tvec2<Type> uv;
 		glm::tvec3<Type> color;
 		glm::tvec3<Type> normal;
-		int32_t partIndex = -1;
+	};
+
+	enum : size_t
+	{
+		INDEX_NONE = (size_t)-1
 	};
 
 	struct Triangle
 	{
-		int32_t index[3] = { -1, -1, -1 };
+		size_t index[3] = { INDEX_NONE, INDEX_NONE, INDEX_NONE };
 
-		int32_t PointIndex(int32_t v) const
+		int32_t PointIndex(size_t v) const
 		{
 			for (int32_t i = 0; i < 3; ++i)
 			{
@@ -143,7 +207,7 @@ protected:
 
 	struct Edge
 	{
-		int32_t index[2] = { -1, -1 };
+		size_t index[2] = { INDEX_NONE, INDEX_NONE };
 	};
 
 	struct EdgeContraction
@@ -162,10 +226,10 @@ protected:
 
 	struct PointModify
 	{
-		int32_t triangleIndex = -1;
-		int32_t pointIndex = -1;
-		int32_t prevIndex = -1;
-		int32_t currIndex = -1;
+		size_t triangleIndex = INDEX_NONE;
+		size_t pointIndex = INDEX_NONE;
+		size_t prevIndex = INDEX_NONE;
+		size_t currIndex = INDEX_NONE;
 		std::vector<Triangle>* triangleArray = nullptr;
 
 		void Redo()
@@ -246,8 +310,9 @@ protected:
 	std::vector<int32_t> m_Versions;
 	std::vector<int32_t> m_Flags;
 	// 相邻三角形列表
-	std::vector<std::unordered_set<int32_t>> m_Adjacencies;
+	std::vector<std::unordered_set<size_t>> m_Adjacencies;
 
+	KPositionHash m_PosHash;
 	KEdgeHash m_EdgeHash;
 
 	std::vector<Quadric> m_Quadric;
@@ -303,9 +368,9 @@ protected:
 
 	bool IsDegenerateTriangle(const Triangle& triangle) const
 	{
-		int32_t v0 = triangle.index[0];
-		int32_t v1 = triangle.index[1];
-		int32_t v2 = triangle.index[2];
+		size_t v0 = triangle.index[0];
+		size_t v1 = triangle.index[1];
+		size_t v2 = triangle.index[2];
 
 		if (v0 == v1)
 			return true;
@@ -330,13 +395,13 @@ protected:
 		return false;
 	}
 
-	bool IsValid(uint32_t triIndex) const
+	bool IsValid(size_t triIndex) const
 	{
 		const Triangle& triangle = m_Triangles[triIndex];
 
-		int32_t v0 = triangle.index[0];
-		int32_t v1 = triangle.index[1];
-		int32_t v2 = triangle.index[2];	
+		size_t v0 = triangle.index[0];
+		size_t v1 = triangle.index[1];
+		size_t v2 = triangle.index[2];
 
 		if (v0 == v1)
 			return false;
@@ -357,8 +422,8 @@ protected:
 
 	EdgeContractionResult ComputeContractionResult(const Edge& edge, const Quadric &quadric, const AtrrQuadric &attrQuadric, const ErrorQuadric& errorQuadric) const
 	{
-		int32_t v0 = edge.index[0];
-		int32_t v1 = edge.index[1];
+		size_t v0 = edge.index[0];
+		size_t v1 = edge.index[1];
 
 		const Vertex& va = m_Vertices[v0];
 		const Vertex& vb = m_Vertices[v1];
@@ -467,8 +532,6 @@ protected:
 				vc.normal = glm::tvec3<Type>(opt.v[5], opt.v[6], opt.v[7]);
 				vc.color = glm::tvec3<Type>(opt.v[8], opt.v[9], opt.v[10]);
 			}
-
-			vc.partIndex = va.partIndex;
 		}
 
 		EdgeContractionResult result;
@@ -565,6 +628,7 @@ protected:
 		m_Versions.resize(vertexCount);
 		m_Flags.resize(vertexCount);
 		m_EdgeHash.Init(2 * m_Vertices.size());
+		m_PosHash.Init();
 
 		for (uint32_t i = 0; i < vertexCount; ++i)
 		{
@@ -572,9 +636,9 @@ protected:
 			m_Vertices[i].uv = vertices[i].uv;
 			m_Vertices[i].color = vertices[i].color[0];
 			m_Vertices[i].normal = vertices[i].normal;
-			m_Vertices[i].partIndex = vertices[i].partIndex;
 			m_Versions[i] = 0;
 			m_Flags[i] = VERTEX_FLAG_FREE;
+			m_PosHash.AddPositionHash(m_Vertices[i].pos, i);
 			bound = bound.Merge(m_Vertices[i].pos);
 		}
 
@@ -593,7 +657,7 @@ protected:
 			for (uint32_t i = 0; i < 3; ++i)
 			{
 				assert(triangle.index[i] < m_Adjacencies.size());
-				m_Adjacencies[triangle.index[i]].insert((int32_t)(m_Triangles.size()));
+				m_Adjacencies[triangle.index[i]].insert(m_Triangles.size());
 				m_EdgeHash.AddEdgeHash(triangle.index[i], triangle.index[(i + 1) % 3], (int32_t)(m_Triangles.size()));
 			}
 
@@ -612,8 +676,8 @@ protected:
 			const Triangle& triangle = m_Triangles[triIndex];
 			for (size_t i = 0; i < 3; ++i)
 			{
-				int32_t v0 = triangle.index[i];
-				int32_t v1 = triangle.index[(i + 1) % 3];
+				size_t v0 = triangle.index[i];
+				size_t v1 = triangle.index[(i + 1) % 3];
 				assert(m_EdgeHash.HasConnection(v0, v1));
 				if (!m_EdgeHash.HasConnection(v1, v0))
 				{
@@ -768,7 +832,7 @@ protected:
 		return res;
 	}
 
-	EdgeContraction ComputeContraction(int32_t v0, int32_t v1, const Quadric& quadric, const AtrrQuadric& attrQuadric, const ErrorQuadric& errorQuadric) const
+	EdgeContraction ComputeContraction(size_t v0, size_t v1, const Quadric& quadric, const AtrrQuadric& attrQuadric, const ErrorQuadric& errorQuadric) const
 	{
 		EdgeContraction contraction;
 		contraction.edge.index[0] = v0;
@@ -804,7 +868,7 @@ protected:
 			m_Quadric[vertIndex] = Quadric();
 			m_AttrQuadric[vertIndex] = AtrrQuadric();
 			m_ErrorQuadric[vertIndex] = ErrorQuadric();
-			for (int32_t triIndex : m_Adjacencies[vertIndex])
+			for (size_t triIndex : m_Adjacencies[vertIndex])
 			{
 				m_Quadric[vertIndex] += m_TriQuadric[triIndex];
 				m_AttrQuadric[vertIndex] += m_TriAttrQuadric[triIndex];
@@ -812,13 +876,13 @@ protected:
 			}
 		}
 
-		for (int32_t triIndex = 0; triIndex < (int32_t)m_Triangles.size(); ++triIndex)
+		for (size_t triIndex = 0; triIndex < m_Triangles.size(); ++triIndex)
 		{
 			const Triangle& triangle = m_Triangles[triIndex];
 			for (size_t i = 0; i < 3; ++i)
 			{
-				int32_t v0 = triangle.index[i];
-				int32_t v1 = triangle.index[(i + 1) % 3];
+				size_t v0 = triangle.index[i];
+				size_t v1 = triangle.index[(i + 1) % 3];
 				bool lock0 = m_Flags[v0] == VERTEX_FLAG_LOCK;
 				bool lock1 = m_Flags[v1] == VERTEX_FLAG_LOCK;
 				if (v0 < v1 && !(lock0 && lock1))
@@ -871,8 +935,8 @@ protected:
 
 		auto CheckEdge = [this](int32_t vertIndex)
 		{
-			std::unordered_set<int32_t> adjacencies;
-			for (int32_t triIndex : m_Adjacencies[vertIndex])
+			std::unordered_set<size_t> adjacencies;
+			for (size_t triIndex : m_Adjacencies[vertIndex])
 			{
 				if (IsValid(triIndex))
 				{
@@ -882,10 +946,10 @@ protected:
 					adjacencies.insert(m_Triangles[triIndex].index[(index + 2) % 3]);
 				}
 			}
-			for (int32_t adjIndex : adjacencies)
+			for (size_t adjIndex : adjacencies)
 			{
-				std::unordered_set<int32_t> tris;
-				for (int32_t triIndex : m_Adjacencies[vertIndex])
+				std::unordered_set<size_t> tris;
+				for (size_t triIndex : m_Adjacencies[vertIndex])
 				{
 					if (IsValid(triIndex))
 					{
@@ -897,9 +961,9 @@ protected:
 				}
 				if (tris.size() > 2)
 				{
-					for (int32_t triIndex : tris)
+					for (size_t triIndex : tris)
 					{
-						printf("[%d] %d,%d,%d\n", triIndex, m_Triangles[triIndex].index[0], m_Triangles[triIndex].index[1], m_Triangles[triIndex].index[2]);
+						printf("[%d] %d,%d,%d\n", (int32_t)triIndex, (int32_t)m_Triangles[triIndex].index[0], (int32_t)m_Triangles[triIndex].index[1], (int32_t)m_Triangles[triIndex].index[2]);
 					}
 					return false;
 				}
@@ -921,8 +985,8 @@ protected:
 			EdgeContraction contraction;
 			bool validContraction = false;
 
-			int32_t v0 = -1;
-			int32_t v1 = -1;
+			size_t v0 = INDEX_NONE;
+			size_t v1 = INDEX_NONE;
 
 			do
 			{
@@ -945,11 +1009,11 @@ protected:
 
 			assert(contraction.edge.index[0] != contraction.edge.index[1]);
 
-			std::unordered_set<int32_t> sharedAdjacencySet;
-			std::unordered_set<int32_t> noSharedAdjacencySetV0;
-			std::unordered_set<int32_t> noSharedAdjacencySetV1;
+			std::unordered_set<size_t> sharedAdjacencySet;
+			std::unordered_set<size_t> noSharedAdjacencySetV0;
+			std::unordered_set<size_t> noSharedAdjacencySetV1;
 
-			auto ComputeTriangleBound = [this](int32_t triIndex)
+			auto ComputeTriangleBound = [this](size_t triIndex)
 			{
 				KAABBBox bound;
 				const Triangle& triangle = m_Triangles[triIndex];
@@ -961,7 +1025,7 @@ protected:
 
 			KAABBBox adjacencyBound;
 
-			for (int32_t triIndex : m_Adjacencies[v1])
+			for (size_t triIndex : m_Adjacencies[v1])
 			{
 				if (IsValid(triIndex))
 				{
@@ -978,7 +1042,7 @@ protected:
 				}
 			}
 
-			for (int32_t triIndex : m_Adjacencies[v0])
+			for (size_t triIndex : m_Adjacencies[v0])
 			{
 				if (IsValid(triIndex))
 				{
@@ -1003,11 +1067,11 @@ protected:
 				continue;
 			}
 
-			std::unordered_set<int32_t> sharedVerts;
-			for (int32_t triIndex : sharedAdjacencySet)
+			std::unordered_set<size_t> sharedVerts;
+			for (size_t triIndex : sharedAdjacencySet)
 			{
 				Triangle& triangle = m_Triangles[triIndex];
-				for (int32_t vertId : triangle.index)
+				for (size_t vertId : triangle.index)
 				{
 					if (vertId != v0 && vertId != v1)
 					{
@@ -1022,15 +1086,15 @@ protected:
 				2. For all vertices r incident to both p and q there has to be a triangle(p, q, r).
 				In other words, the intersection of the one-rings of p and q consists of vertices opposite the edge (p, q) only.
 			*/
-			auto HasIndirectConnect = [this](int32_t v0, int32_t v1, const std::unordered_set<int32_t>& noSharedAdjacencySetV0, const std::unordered_set<int32_t>& sharedAdjacencySet, std::unordered_set<int32_t>& sharedVerts) -> bool
+			auto HasIndirectConnect = [this](size_t v0, size_t v1, const std::unordered_set<size_t>& noSharedAdjacencySetV0, const std::unordered_set<size_t>& sharedAdjacencySet, std::unordered_set<size_t>& sharedVerts) -> bool
 			{
-				std::unordered_set<int32_t> noSharedAdjVerts;
-				for (int32_t triIndex : noSharedAdjacencySetV0)
+				std::unordered_set<size_t> noSharedAdjVerts;
+				for (size_t triIndex : noSharedAdjacencySetV0)
 				{
 					int32_t index = m_Triangles[triIndex].PointIndex(v0);
 					assert(index >= 0);
-					int32_t va = m_Triangles[triIndex].index[(index + 1) % 3];
-					int32_t vb = m_Triangles[triIndex].index[(index + 2) % 3];
+					size_t va = m_Triangles[triIndex].index[(index + 1) % 3];
+					size_t vb = m_Triangles[triIndex].index[(index + 2) % 3];
 					if (sharedVerts.find(va) == sharedVerts.end())
 					{
 						noSharedAdjVerts.insert(va);
@@ -1040,10 +1104,10 @@ protected:
 						noSharedAdjVerts.insert(vb);
 					}
 				}
-				for (int32_t adjVert : noSharedAdjVerts)
+				for (size_t adjVert : noSharedAdjVerts)
 				{
-					std::unordered_set<int32_t> tris;
-					for (int32_t triIndex : m_Adjacencies[adjVert])
+					std::unordered_set<size_t> tris;
+					for (size_t triIndex : m_Adjacencies[adjVert])
 					{
 						if (IsValid(triIndex))
 						{
@@ -1067,9 +1131,9 @@ protected:
 				continue;
 			}
 
-			auto TriangleWillInvert = [this, &contraction](int32_t v, const std::unordered_set<int32_t>& noSharedAdjacencySet)
+			auto TriangleWillInvert = [this, &contraction](size_t v, const std::unordered_set<size_t>& noSharedAdjacencySet)
 			{
-				for (int32_t triIndex : noSharedAdjacencySet)
+				for (size_t triIndex : noSharedAdjacencySet)
 				{
 					const Triangle& triangle = m_Triangles[triIndex];
 					int32_t i = triangle.PointIndex(v);
@@ -1102,19 +1166,20 @@ protected:
 
 			++performCounter;
 
-			int32_t newIndex = (int32_t)m_Vertices.size();
+			size_t newIndex = m_Vertices.size();
 
 			m_Vertices.push_back(contraction.vertex);
 			m_EdgeHash.ClearEdgeHash(newIndex);
+			m_PosHash.AddPositionHash(contraction.vertex.pos, newIndex);
 			m_Adjacencies.push_back({});
 			m_Flags.push_back(m_Flags[v0] | m_Flags[v1]);
 			m_Versions.push_back(0);
 
-			std::unordered_set<int32_t> adjacencyVert;
+			std::unordered_set<size_t> adjacencyVert;
 
 			if (m_Memoryless)
 			{
-				for (int32_t triIndex : noSharedAdjacencySetV0)
+				for (size_t triIndex : noSharedAdjacencySetV0)
 				{
 					Triangle triangle = m_Triangles[triIndex];
 					int32_t idx = triangle.PointIndex(v0);
@@ -1129,7 +1194,7 @@ protected:
 					adjacencyVert.insert(triangle.index[(idx + 2) % 3]);
 				}
 
-				for (int32_t triIndex : noSharedAdjacencySetV1)
+				for (size_t triIndex : noSharedAdjacencySetV1)
 				{
 					Triangle triangle = m_Triangles[triIndex];
 					int32_t idx = triangle.PointIndex(v1);
@@ -1151,7 +1216,7 @@ protected:
 				m_ErrorQuadric.push_back(m_ErrorQuadric[v0] + m_ErrorQuadric[v1]);
 			}
 
-			auto NewModify = [this, newIndex](int32_t triIndex, int32_t pointIndex)->PointModify
+			auto NewModify = [this, newIndex](size_t triIndex, size_t pointIndex)->PointModify
 			{
 				PointModify modify;
 				modify.triangleIndex = triIndex;
@@ -1160,7 +1225,7 @@ protected:
 				return modify;
 			};
 
-			auto NewContraction = [this, newIndex](int32_t v0, int32_t v1)
+			auto NewContraction = [this, newIndex](size_t v0, size_t v1)
 			{
 				Quadric quadric;
 				AtrrQuadric attrQuadric;
@@ -1168,7 +1233,7 @@ protected:
 
 				if (m_Memoryless)
 				{
-					for (int32_t triIndex : m_Adjacencies[v0])
+					for (size_t triIndex : m_Adjacencies[v0])
 					{
 						if (IsValid(triIndex))
 						{
@@ -1178,7 +1243,7 @@ protected:
 						}
 					}
 
-					for (int32_t triIndex : m_Adjacencies[v1])
+					for (size_t triIndex : m_Adjacencies[v1])
 					{
 						if (IsValid(triIndex))
 						{
@@ -1198,11 +1263,11 @@ protected:
 				m_EdgeHeap.push(ComputeContraction(v0, v1, quadric, attrQuadric, errorQuadric));
 			};
 
-			std::unordered_set<int32_t> newAdjacencySet;
+			std::unordered_set<size_t> newAdjacencySet;
 
-			auto AdjustAdjacencies = [this, newIndex, NewModify, CheckValidFlag, &sharedAdjacencySet, &newAdjacencySet](int32_t v, EdgeCollapse& collapse)
+			auto AdjustAdjacencies = [this, newIndex, NewModify, CheckValidFlag, &sharedAdjacencySet, &newAdjacencySet](size_t v, EdgeCollapse& collapse)
 			{
-				for (int32_t triIndex : m_Adjacencies[v])
+				for (size_t triIndex : m_Adjacencies[v])
 				{
 					Triangle& triangle = m_Triangles[triIndex];
 
@@ -1232,12 +1297,12 @@ protected:
 				}
 			};
 
-			int32_t invalidVertex = 0;
-			for (int32_t vertId : sharedVerts)
+			size_t invalidVertex = 0;
+			for (size_t vertId : sharedVerts)
 			{
 				assert(m_Versions[vertId] >= 0);
 				bool hasValidTri = false;
-				for (int32_t triIndex : m_Adjacencies[vertId])
+				for (size_t triIndex : m_Adjacencies[vertId])
 				{
 					if (IsValid(triIndex))
 					{
@@ -1257,15 +1322,15 @@ protected:
 				}
 			}
 
-			auto RemoveOldEdgeHash = [this](int32_t vCurr, int32_t triIndex)
+			auto RemoveOldEdgeHash = [this](size_t vCurr, size_t triIndex)
 			{
 				if (IsValid(triIndex))
 				{
 					const Triangle& triangle = m_Triangles[triIndex];
-					int idx = triangle.PointIndex(vCurr);
+					int32_t idx = triangle.PointIndex((int32_t)vCurr);
 					assert(idx >= 0);
-					int32_t vPrev = triangle.index[(idx + 2) % 3];
-					int32_t vNext = triangle.index[(idx + 1) % 3];
+					size_t vPrev = (size_t)triangle.index[(idx + 2) % 3];
+					size_t vNext = (size_t)triangle.index[(idx + 1) % 3];
 					m_EdgeHash.RemoveEdgeHash(vPrev, vCurr, triIndex);
 					m_EdgeHash.RemoveEdgeHash(vCurr, vNext, triIndex);
 				}
@@ -1273,10 +1338,10 @@ protected:
 
 			if (m_Memoryless)
 			{
-				for (int32_t vertId : adjacencyVert)
+				for (size_t vertId : adjacencyVert)
 				{
 					++m_Versions[vertId];
-					m_EdgeHash.ForEach(vertId, [vertId, RemoveOldEdgeHash](int32_t vNext, int32_t triIndex)
+					m_EdgeHash.ForEach(vertId, [vertId, RemoveOldEdgeHash](size_t vNext, size_t triIndex)
 					{
 						RemoveOldEdgeHash(vertId, triIndex);
 					});
@@ -1284,11 +1349,11 @@ protected:
 			}
 			else
 			{
-				m_EdgeHash.ForEach(v0, [v0, RemoveOldEdgeHash](int32_t vNext, int32_t triIndex)
+				m_EdgeHash.ForEach(v0, [v0, RemoveOldEdgeHash](size_t vNext, size_t triIndex)
 				{
 					RemoveOldEdgeHash(v0, triIndex);
 				});
-				m_EdgeHash.ForEach(v1, [v1, RemoveOldEdgeHash](int32_t vNext, int32_t triIndex)
+				m_EdgeHash.ForEach(v1, [v1, RemoveOldEdgeHash](size_t vNext, size_t triIndex)
 				{
 					RemoveOldEdgeHash(v1, triIndex);
 				});
@@ -1318,9 +1383,9 @@ protected:
 				invalidVertex += 1;
 			}
 
-			auto BuildNewContraction = [this, NewContraction, CheckValidFlag](int32_t v)
+			auto BuildNewContraction = [this, NewContraction, CheckValidFlag](size_t v)
 			{
-				for (int32_t triIndex : m_Adjacencies[v])
+				for (size_t triIndex : m_Adjacencies[v])
 				{
 					const Triangle& triangle = m_Triangles[triIndex];
 					if (!IsValid(triIndex))
@@ -1334,9 +1399,9 @@ protected:
 					int32_t i = triangle.PointIndex(v);
 					assert(i >= 0);
 
-					int32_t v0 = triangle.index[i];
-					int32_t v1 = triangle.index[(i + 1) % 3];
-					int32_t v2 = triangle.index[(i + 2) % 3];
+					size_t v0 = triangle.index[i];
+					size_t v1 = triangle.index[(i + 1) % 3];
+					size_t v2 = triangle.index[(i + 2) % 3];
 
 					bool lock0 = m_Flags[v0] == VERTEX_FLAG_LOCK;
 					bool lock1 = m_Flags[v1] == VERTEX_FLAG_LOCK;
@@ -1364,7 +1429,7 @@ protected:
 
 			if (m_Memoryless)
 			{
-				for (int32_t vertId : adjacencyVert)
+				for (size_t vertId : adjacencyVert)
 				{
 					BuildNewContraction(vertId);
 				}
@@ -1374,8 +1439,8 @@ protected:
 				BuildNewContraction(newIndex);
 			}
 
-			m_CurTriangleCount -= invalidTriangle;
-			m_CurVertexCount -= invalidVertex + 1;
+			m_CurTriangleCount -= (int32_t)invalidTriangle;
+			m_CurVertexCount -= (int32_t)invalidVertex + 1;
 			m_CurError = std::max(m_CurError, contraction.error);
 
 			collapse.currTriangleCount = m_CurTriangleCount;
@@ -1427,6 +1492,7 @@ public:
 
 	bool UnInit()
 	{
+		m_PosHash.UnInit();
 		m_EdgeHash.UnInit();
 		m_Triangles.clear();
 		m_Vertices.clear();
@@ -1518,9 +1584,9 @@ public:
 		{
 			if (IsValid(triIndex))
 			{
-				indices.push_back(m_Triangles[triIndex].index[0]);
-				indices.push_back(m_Triangles[triIndex].index[1]);
-				indices.push_back(m_Triangles[triIndex].index[2]);
+				indices.push_back((uint32_t)m_Triangles[triIndex].index[0]);
+				indices.push_back((uint32_t)m_Triangles[triIndex].index[1]);
+				indices.push_back((uint32_t)m_Triangles[triIndex].index[2]);
 			}
 		}
 		if (indices.size() == 0)
@@ -1540,7 +1606,6 @@ public:
 				remapIndices.insert({ oldIndex, mapIndex });
 
 				KMeshProcessorVertex vertex;
-				vertex.partIndex = m_Vertices[oldIndex].partIndex;
 				vertex.pos = glm::tvec3<Type>(m_Vertices[oldIndex].pos) * m_PositionInvScale;
 				vertex.uv = m_Vertices[oldIndex].uv;
 				vertex.color[0] = m_Vertices[oldIndex].color;
