@@ -9,11 +9,56 @@
 #include <tuple>
 #include <queue>
 
+struct KPositionHashKey
+{
+	size_t hash = 0;
+	size_t debug = 0;
+	glm::vec3 position;
+
+	KPositionHashKey()
+	{}
+
+	KPositionHashKey(size_t h)
+	{
+		hash = h;
+	}
+
+	bool operator<(const KPositionHashKey& other) const
+	{
+		return hash < other.hash;
+	}
+
+	bool operator==(const KPositionHashKey& other) const
+	{
+		return hash == other.hash;
+	}
+
+	bool operator!=(const KPositionHashKey& other) const
+	{
+		return !(hash == other.hash);
+	}
+};
+
+template<>
+struct std::hash<KPositionHashKey>
+{
+	inline std::size_t operator()(const KPositionHashKey& key) const
+	{
+		return key.hash;
+	}
+};
+
 struct KPositionHash
 {
-	std::unordered_map<size_t, std::unordered_set<size_t>> vertices;
-	std::unordered_map<size_t, uint32_t> flags;
-	std::unordered_map<size_t, size_t> versions;
+	struct VertexInfomation
+	{
+		std::unordered_set<size_t> vertices;
+		std::unordered_set<size_t> adjacencies;
+		uint32_t flag = 0;
+		int32_t version = 0;
+	};
+
+	std::unordered_map<KPositionHashKey, VertexInfomation> informations;
 
 	KPositionHash()
 	{
@@ -21,119 +66,224 @@ struct KPositionHash
 
 	void Init()
 	{
-		vertices.clear();
-		flags.clear();
-		versions.clear();
+		informations.clear();
 	}
 
 	void UnInit()
 	{
-		vertices.clear();
-		flags.clear();
-		versions.clear();
+		informations.clear();
 	}
 
-	size_t GetPositionHash(const glm::vec3& position) const
+	KPositionHashKey GetPositionHash(const glm::vec3& position) const
 	{
-		return PositionHash(position);
-	}
+		KPositionHashKey key;
+		key.hash = PositionHash(position);
+		key.position = position;
 
-	void SetPositionFlag(size_t hash, uint32_t flag)
-	{
-		assert(HasPositionHash(hash));
-		auto it = flags.find(hash);
-		if (it == flags.end())
+		auto it = informations.find(key);
+		if (it != informations.end())
 		{
-			flags.insert({ hash, flag });
+			key.debug = it->first.debug;
+		}
+
+		return key;
+	}
+
+	void SetFlag(KPositionHashKey hash, uint32_t flag)
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			it->second.flag |= flag;
 		}
 		else
 		{
-			it->second |= flag;
+			assert(false);
 		}
 	}
 
-	uint32_t GetPositionFlag(size_t hash) const
+	uint32_t GetFlag(KPositionHashKey hash) const
 	{
-		auto it = flags.find(hash);
-		if (it != flags.end())
+		auto it = informations.find(hash);
+		if (it != informations.end())
 		{
-			return it->second;
+			return it->second.flag;
 		}
 		assert(false);
 		return 0;
 	}
 
-	void SetPositionVersion(size_t hash, size_t version)
+	void SetVersion(KPositionHashKey hash, int32_t version)
 	{
-		assert(HasPositionHash(hash));
-		auto it = versions.find(hash);
-		if (it == versions.end())
+		auto it = informations.find(hash);
+		if (it != informations.end())
 		{
-			versions.insert({ hash, version });
+			it->second.version = version;
 		}
 		else
 		{
-			it->second = version;
+			assert(false);
 		}
 	}
 
-	size_t GetPositionVersion(size_t hash) const
+	void IncVersion(KPositionHashKey hash, int32_t inc)
 	{
-		auto it = versions.find(hash);
-		if (it != versions.end())
+		auto it = informations.find(hash);
+		if (it != informations.end())
 		{
-			return it->second;
+			it->second.version += inc;
+		}
+		else
+		{
+			assert(false);
+		}
+	}
+
+	int32_t GetVersion(KPositionHashKey hash) const
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			return it->second.version;
+		}
+		assert(false);
+		return -1;
+	}
+
+	void SetAdjacency(KPositionHashKey hash, const std::unordered_set<size_t>& adjacencies)
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			it->second.adjacencies = adjacencies;
+		}
+		else
+		{
+			assert(false);
+		}
+	}
+
+	void AddAdjacency(KPositionHashKey hash, size_t triangle)
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			it->second.adjacencies.insert(triangle);
+		}
+		else
+		{
+			assert(false);
+		}
+	}
+
+	const std::unordered_set<size_t>& GetAdjacency(KPositionHashKey hash) const
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			return it->second.adjacencies;
+		}
+		else
+		{
+			assert(false);
+			static std::unordered_set<size_t> empty;
+			return empty;
+		}
+	}
+
+	size_t GetAdjacencySize(KPositionHashKey hash) const
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			return it->second.adjacencies.size();
 		}
 		assert(false);
 		return 0;
 	}
 
-	size_t AddPositionHash(const glm::vec3& position, size_t vertex)
+	bool HasAdjacency(KPositionHashKey hash, size_t triangle)
 	{
-		size_t p = GetPositionHash(position);
-		auto it = vertices.find(p);
-		if (it == vertices.end())
+		auto it = informations.find(hash);
+		if (it != informations.end())
 		{
-			vertices[p] = { vertex };
+			return it->second.adjacencies.find(triangle) != it->second.adjacencies.end();
 		}
 		else
 		{
-			it->second.insert(vertex);
-		}
-		return p;
-	}
-
-	void RemovePositionHash(const glm::vec3& position, size_t vertex)
-	{
-		size_t p = GetPositionHash(position);
-		auto it = vertices.find(p);
-		if (it != vertices.end())
-		{
-			it->second.erase(vertex);
-		}
-		if (it->second.size() == 0)
-		{
-			vertices.erase(p);
-			flags.erase(p);
-			versions.erase(p);
+			assert(false);
+			return false;
 		}
 	}
 
-	bool HasPositionHash(size_t hash) const
+	KPositionHashKey AddPositionHash(const glm::vec3& position, size_t vertex)
 	{
-		auto it = vertices.find(hash);
-		return it != vertices.end();
+		KPositionHashKey hash = GetPositionHash(position);
+		hash.debug = vertex;
+		auto it = informations.find(hash);
+		if (it == informations.end())
+		{
+			VertexInfomation newInfo;
+			newInfo.vertices = { vertex };
+			informations[hash] = newInfo;
+		}
+		else
+		{
+			it->second.vertices.insert(vertex);
+		}
+		return hash;
 	}
 
-	void ForEach(const glm::vec3& position, std::function<void(size_t)> call)
+	void RemovePositionHash(KPositionHashKey hash, size_t vertex)
 	{
-		size_t p = GetPositionHash(position);
-		auto it = vertices.find(p);
-		if (it != vertices.end())
+		auto it = informations.find(hash);
+		if (it != informations.end())
 		{
-			for (size_t vertex : it->second)
+			it->second.vertices.erase(vertex);
+		}
+	}
+
+	bool HasPositionHash(KPositionHashKey hash) const
+	{
+		auto it = informations.find(hash);
+		return it != informations.end();
+	}
+
+	const std::unordered_set<size_t>& GetVertex(KPositionHashKey hash) const
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			return it->second.vertices;
+		}
+		else
+		{
+			assert(false);
+			static std::unordered_set<size_t> empty;
+			return empty;
+		}
+	}
+
+	void ForEachVertex(KPositionHashKey hash, std::function<void(size_t)> call)
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			for (size_t vertex : it->second.vertices)
 			{
 				call(vertex);
+			}
+		}
+	}
+
+	void ForEachAdjacency(KPositionHashKey hash, std::function<void(size_t)> call)
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			for (size_t triangle : it->second.adjacencies)
+			{
+				call(triangle);
 			}
 		}
 	}
@@ -142,7 +292,7 @@ struct KPositionHash
 struct KEdgeHash
 {
 	// Key为顶点Hash            Key为相邻节点 Value为边所在的三角形列表
-	std::unordered_map<size_t, std::unordered_map<size_t, std::unordered_set<size_t>>> edges;
+	std::unordered_map<KPositionHashKey, std::unordered_map<KPositionHashKey, std::unordered_set<size_t>>> edges;
 
 	KEdgeHash()
 	{
@@ -159,14 +309,14 @@ struct KEdgeHash
 		edges.clear();
 	}
 
-	void AddEdgeHash(size_t p0, size_t p1, size_t triIndex)
+	void AddEdgeHash(KPositionHashKey p0, KPositionHashKey p1, size_t triIndex)
 	{
 		auto itOuter = edges.find(p0);
 		if (itOuter == edges.end())
 		{
 			itOuter = edges.insert({ p0, {} }).first;
 		}
-		std::unordered_map<size_t, std::unordered_set<size_t>>& link = itOuter->second;
+		std::unordered_map<KPositionHashKey, std::unordered_set<size_t>>& link = itOuter->second;
 		auto it = link.find(p1);
 		if (it == link.end())
 		{
@@ -175,60 +325,64 @@ struct KEdgeHash
 		it->second.insert(triIndex);
 	}
 
-	void RemoveEdgeHash(size_t p0, size_t p1, size_t triIndex)
+	void RemoveEdgeHash(KPositionHashKey p0, KPositionHashKey p1, size_t triIndex)
 	{
 		auto itOuter = edges.find(p0);
 		if (itOuter != edges.end())
 		{
-			std::unordered_map<size_t, std::unordered_set<size_t>>& link = itOuter->second;
+			std::unordered_map<KPositionHashKey, std::unordered_set<size_t>>& link = itOuter->second;
 			auto it = link.find(p1);
 			if (it != link.end())
 			{
 				it->second.erase(triIndex);
-			}
-		}
-	}
-
-	void ClearEdgeHash(size_t p0)
-	{
-		edges.erase(p0);
-	}
-
-	void ForEach(size_t p0, std::function<void(size_t, size_t)> call)
-	{
-		auto itOuter = edges.find(p0);
-		if (itOuter != edges.end())
-		{
-			std::unordered_map<size_t, std::unordered_set<size_t>>& link = itOuter->second;
-			for (auto it = link.begin(); it != link.end(); ++it)
-			{
-				size_t v1 = it->first;
-				std::unordered_set<size_t> tris = it->second;
-				for (size_t triIndex : tris)
+				if (it->second.size() == 0)
 				{
-					call(v1, triIndex);
+					link.erase(p1);
 				}
 			}
 		}
 	}
 
-	bool HasConnection(size_t p0, size_t p1) const
+	void ClearEdgeHash(KPositionHashKey p0)
 	{
-		auto itOuter = edges.find(p0);
-		if (itOuter != edges.end())
-		{
-			const std::unordered_map<size_t, std::unordered_set<size_t>>& link = itOuter->second;
-			return link.find(p1) != link.end();
-		}
-		return false;		
+		edges.erase(p0);
 	}
 
-	void ForEachTri(size_t p0, size_t p1, std::function<void(size_t)> call)
+	void ForEach(KPositionHashKey p0, std::function<void(KPositionHashKey, size_t)> call)
 	{
 		auto itOuter = edges.find(p0);
 		if (itOuter != edges.end())
 		{
-			std::unordered_map<size_t, std::unordered_set<size_t>>& link = itOuter->second;
+			std::unordered_map<KPositionHashKey, std::unordered_set<size_t>> link = itOuter->second;
+			for (auto it = link.begin(); it != link.end(); ++it)
+			{
+				KPositionHashKey p1 = it->first;
+				std::unordered_set<size_t> tris = it->second;
+				for (size_t triIndex : tris)
+				{
+					call(p1, triIndex);
+				}
+			}
+		}
+	}
+
+	bool HasConnection(KPositionHashKey p0, KPositionHashKey p1) const
+	{
+		auto itOuter = edges.find(p0);
+		if (itOuter != edges.end())
+		{
+			const std::unordered_map<KPositionHashKey, std::unordered_set<size_t>>& link = itOuter->second;
+			return link.find(p1) != link.end();
+		}
+		return false;
+	}
+
+	void ForEachTri(KPositionHashKey p0, KPositionHashKey p1, std::function<void(size_t)> call)
+	{
+		auto itOuter = edges.find(p0);
+		if (itOuter != edges.end())
+		{
+			std::unordered_map<KPositionHashKey, std::unordered_set<size_t>>& link = itOuter->second;
 			auto it = link.find(p1);
 			if (it != link.end())
 			{
@@ -296,6 +450,7 @@ protected:
 	struct EdgeContraction
 	{
 		Edge edge;
+		KPositionHashKey p[2];
 		Edge version;
 		Type cost = 0;
 		Type error = 0;
@@ -390,7 +545,6 @@ protected:
 
 	std::vector<Triangle> m_Triangles;
 	std::vector<Vertex> m_Vertices;
-	std::vector<int32_t> m_Versions;
 	// 相邻三角形列表
 	std::vector<std::unordered_set<size_t>> m_Adjacencies;
 
@@ -502,7 +656,7 @@ protected:
 		Vertex result;
 	};
 
-	EdgeContractionResult ComputeContractionResult(const Edge& edge, const Quadric &quadric, const AtrrQuadric &attrQuadric, const ErrorQuadric& errorQuadric) const
+	EdgeContractionResult ComputeContractionResult(const Edge& edge, const Quadric& quadric, const AtrrQuadric& attrQuadric, const ErrorQuadric& errorQuadric) const
 	{
 		size_t v0 = edge.index[0];
 		size_t v1 = edge.index[1];
@@ -510,11 +664,11 @@ protected:
 		const Vertex& va = m_Vertices[v0];
 		const Vertex& vb = m_Vertices[v1];
 
-		size_t p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
-		size_t p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
+		KPositionHashKey p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
+		KPositionHashKey p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
 
-		bool lock0 = m_PosHash.GetPositionFlag(p0) == VERTEX_FLAG_LOCK;
-		bool lock1 = m_PosHash.GetPositionFlag(p1) == VERTEX_FLAG_LOCK;
+		bool lock0 = m_PosHash.GetFlag(p0) == VERTEX_FLAG_LOCK;
+		bool lock1 = m_PosHash.GetFlag(p1) == VERTEX_FLAG_LOCK;
 
 		assert(!(lock0 && lock1));
 
@@ -661,6 +815,37 @@ protected:
 		return;
 	}
 
+	inline KPositionHashKey GetPositionHash(size_t v) const
+	{
+		return m_PosHash.GetPositionHash(m_Vertices[v].pos);
+	}
+
+	void GetTriangleHash(const Triangle& triangle, KPositionHashKey(&triPosHash)[3])
+	{
+		triPosHash[0] = GetPositionHash(triangle.index[0]);
+		triPosHash[1] = GetPositionHash(triangle.index[1]);
+		triPosHash[2] = GetPositionHash(triangle.index[2]);
+	}
+
+	inline int32_t GetTriangleIndex(KPositionHashKey(&triPosHash)[3], KPositionHashKey hash)
+	{
+		for (int32_t i = 0; i < 3; ++i)
+		{
+			if (triPosHash[i] == hash)
+			{
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	inline int32_t GetTriangleIndexByHash(const Triangle& triangle, KPositionHashKey hash)
+	{
+		KPositionHashKey triPosHash[3];
+		GetTriangleHash(triangle, triPosHash);
+		return GetTriangleIndex(triPosHash, hash);
+	}
+
 	bool InitVertexData(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices)
 	{
 		KAABBBox bound;
@@ -710,7 +895,6 @@ protected:
 
 		m_Vertices.resize(vertexCount);
 		m_Adjacencies.resize(vertexCount);
-		m_Versions.resize(vertexCount);
 		m_EdgeHash.Init();
 		m_PosHash.Init();
 
@@ -720,10 +904,9 @@ protected:
 			m_Vertices[i].uv = vertices[i].uv;
 			m_Vertices[i].color = vertices[i].color[0];
 			m_Vertices[i].normal = vertices[i].normal;
-			m_Versions[i] = 0;
 			bound = bound.Merge(m_Vertices[i].pos);
-			size_t hash = m_PosHash.AddPositionHash(m_Vertices[i].pos, i);
-			m_PosHash.SetPositionFlag(hash, VERTEX_FLAG_FREE);
+			KPositionHashKey hash = m_PosHash.AddPositionHash(m_Vertices[i].pos, i);
+			m_PosHash.SetFlag(hash, VERTEX_FLAG_FREE);
 		}
 
 		// m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f);
@@ -738,27 +921,28 @@ protected:
 			triangle.index[1] = indices[3 * i + 1];
 			triangle.index[2] = indices[3 * i + 2];
 
-			size_t p[3] =
+			KPositionHashKey p[3] =
 			{
-				m_PosHash.GetPositionHash(m_Vertices[triangle.index[0]].pos),
-				m_PosHash.GetPositionHash(m_Vertices[triangle.index[1]].pos),
-				m_PosHash.GetPositionHash(m_Vertices[triangle.index[2]].pos)
+				GetPositionHash(triangle.index[0]),
+				GetPositionHash(triangle.index[1]),
+				GetPositionHash(triangle.index[2])
 			};
 
 			for (uint32_t i = 0; i < 3; ++i)
 			{
 				assert(triangle.index[i] < m_Adjacencies.size());
 				m_Adjacencies[triangle.index[i]].insert(m_Triangles.size());
-				m_EdgeHash.AddEdgeHash(triangle.index[i], triangle.index[(i + 1) % 3], (int32_t)(m_Triangles.size()));
+				m_PosHash.AddAdjacency(p[i], m_Triangles.size());
+				m_EdgeHash.AddEdgeHash(p[i], p[(i + 1) % 3], m_Triangles.size());
 			}
 
 			m_Triangles.push_back(triangle);
 
 			if (IsDegenerateTriangle(triangle))
 			{
-				m_PosHash.SetPositionFlag(p[0], VERTEX_FLAG_LOCK);
-				m_PosHash.SetPositionFlag(p[1], VERTEX_FLAG_LOCK);
-				m_PosHash.SetPositionFlag(p[2], VERTEX_FLAG_LOCK);
+				m_PosHash.SetFlag(p[0], VERTEX_FLAG_LOCK);
+				m_PosHash.SetFlag(p[1], VERTEX_FLAG_LOCK);
+				m_PosHash.SetFlag(p[2], VERTEX_FLAG_LOCK);
 			}
 		}
 
@@ -770,14 +954,14 @@ protected:
 				size_t v0 = triangle.index[i];
 				size_t v1 = triangle.index[(i + 1) % 3];
 
-				size_t p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
-				size_t p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
+				KPositionHashKey p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
+				KPositionHashKey p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
 
-				assert(m_EdgeHash.HasConnection(v0, v1));
-				if (!m_EdgeHash.HasConnection(v1, v0))
+				assert(m_EdgeHash.HasConnection(p0, p1));
+				if (!m_EdgeHash.HasConnection(p1, p0))
 				{
-					m_PosHash.SetPositionFlag(p0, VERTEX_FLAG_LOCK);
-					m_PosHash.SetPositionFlag(p1, VERTEX_FLAG_LOCK);
+					m_PosHash.SetFlag(p0, VERTEX_FLAG_LOCK);
+					m_PosHash.SetFlag(p1, VERTEX_FLAG_LOCK);
 				}
 			}
 		}
@@ -787,7 +971,8 @@ protected:
 
 		for (uint32_t i = 0; i < vertexCount; ++i)
 		{
-			if (m_Adjacencies[i].size() != 0)
+			KPositionHashKey hash = GetPositionHash(i);
+			if (m_PosHash.GetAdjacencySize(hash) != 0)
 			{
 				++m_MaxVertexCount;
 			}
@@ -931,14 +1116,22 @@ protected:
 	EdgeContraction ComputeContraction(size_t v0, size_t v1, const Quadric& quadric, const AtrrQuadric& attrQuadric, const ErrorQuadric& errorQuadric) const
 	{
 		EdgeContraction contraction;
+
 		contraction.edge.index[0] = v0;
 		contraction.edge.index[1] = v1;
-		contraction.version.index[0] = m_Versions[v0];
-		contraction.version.index[1] = m_Versions[v1];
+
+		contraction.p[0] = GetPositionHash(v0);
+		contraction.p[1] = GetPositionHash(v1);
+
+		contraction.version.index[0] = m_PosHash.GetVersion(contraction.p[0]);
+		contraction.version.index[1] = m_PosHash.GetVersion(contraction.p[1]);
+
 		EdgeContractionResult result = ComputeContractionResult(contraction.edge, quadric, attrQuadric, errorQuadric);
+
 		contraction.cost = result.cost;
 		contraction.error = result.error;
 		contraction.vertex = result.result;
+
 		return contraction;
 	}
 
@@ -980,11 +1173,11 @@ protected:
 				size_t v0 = triangle.index[i];
 				size_t v1 = triangle.index[(i + 1) % 3];
 
-				size_t p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
-				size_t p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
+				KPositionHashKey p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
+				KPositionHashKey p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
 
-				bool lock0 = m_PosHash.GetPositionFlag(p0) == VERTEX_FLAG_LOCK;
-				bool lock1 = m_PosHash.GetPositionFlag(p1) == VERTEX_FLAG_LOCK;
+				bool lock0 = m_PosHash.GetFlag(p0) == VERTEX_FLAG_LOCK;
+				bool lock1 = m_PosHash.GetFlag(p1) == VERTEX_FLAG_LOCK;
 
 				if (v0 < v1 && !(lock0 && lock1))
 				{
@@ -1025,36 +1218,40 @@ protected:
 
 		auto CheckValidFlag = [this](const Triangle& triangle)
 		{
-			if (m_Versions[triangle.index[0]] < 0)
-				return false;
-			if (m_Versions[triangle.index[1]] < 0)
-				return false;
-			if (m_Versions[triangle.index[2]] < 0)
-				return false;
+			for (size_t i = 0; i < 3; ++i)
+			{
+				KPositionHashKey hash = GetPositionHash(triangle.index[i]);
+				if (m_PosHash.GetVersion(hash) < 0)
+				{
+					return false;
+				}
+			}
 			return true;
 		};
 
-		auto CheckEdge = [this](int32_t vertIndex)
+		auto CheckEdge = [this](KPositionHashKey pos)
 		{
-			std::unordered_set<size_t> adjacencies;
-			for (size_t triIndex : m_Adjacencies[vertIndex])
+			std::unordered_set<KPositionHashKey> adjacencies;
+
+			for (size_t triIndex : m_PosHash.GetAdjacency(pos))
 			{
 				if (IsValid(triIndex))
 				{
-					int32_t index = m_Triangles[triIndex].PointIndex(vertIndex);
+					int32_t index = GetTriangleIndexByHash(m_Triangles[triIndex], pos);
 					assert(index >= 0);
-					adjacencies.insert(m_Triangles[triIndex].index[(index + 1) % 3]);
-					adjacencies.insert(m_Triangles[triIndex].index[(index + 2) % 3]);
+					adjacencies.insert(GetPositionHash(m_Triangles[triIndex].index[(index + 1) % 3]));
+					adjacencies.insert(GetPositionHash(m_Triangles[triIndex].index[(index + 2) % 3]));
 				}
 			}
-			for (size_t adjIndex : adjacencies)
+
+			for (KPositionHashKey adjIndex : adjacencies)
 			{
 				std::unordered_set<size_t> tris;
-				for (size_t triIndex : m_Adjacencies[vertIndex])
+				for (size_t triIndex : m_PosHash.GetAdjacency(pos))
 				{
 					if (IsValid(triIndex))
 					{
-						if (m_Adjacencies[adjIndex].find(triIndex) != m_Adjacencies[adjIndex].end())
+						if (m_PosHash.HasAdjacency(adjIndex, triIndex))
 						{
 							tris.insert(triIndex);
 						}
@@ -1089,21 +1286,25 @@ protected:
 			size_t v0 = INDEX_NONE;
 			size_t v1 = INDEX_NONE;
 
-			size_t p0 = 0;
-			size_t p1 = 0;
+			KPositionHashKey p0;
+			KPositionHashKey p1;
 
 			do
 			{
 				contraction = m_EdgeHeap.top();
+
 				v0 = contraction.edge.index[0];
 				v1 = contraction.edge.index[1];
-				validContraction = (m_Versions[v0] == contraction.version.index[0] && m_Versions[v1] == contraction.version.index[1]);
+
+				p0 = contraction.p[0];
+				p1 = contraction.p[1];
+
+				validContraction = m_PosHash.GetVersion(p0) == contraction.version.index[0] && m_PosHash.GetVersion(p1) == contraction.version.index[1];
 				if (validContraction)
 				{
-					p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
-					p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
-					validContraction = m_PosHash.GetPositionFlag(p0) != VERTEX_FLAG_LOCK || m_PosHash.GetPositionFlag(p1) != VERTEX_FLAG_LOCK;
+					validContraction = m_PosHash.GetFlag(p0) != VERTEX_FLAG_LOCK || m_PosHash.GetFlag(p1) != VERTEX_FLAG_LOCK;
 				}
+
 				m_EdgeHeap.pop();
 			} while (!m_EdgeHeap.empty() && !validContraction);
 
@@ -1120,8 +1321,8 @@ protected:
 			assert(contraction.edge.index[0] != contraction.edge.index[1]);
 
 			std::unordered_set<size_t> sharedAdjacencySet;
-			std::unordered_set<size_t> noSharedAdjacencySetV0;
-			std::unordered_set<size_t> noSharedAdjacencySetV1;
+			std::unordered_set<size_t> noSharedAdjacencySet0;
+			std::unordered_set<size_t> noSharedAdjacencySet1;
 
 			auto ComputeTriangleBound = [this](size_t triIndex)
 			{
@@ -1135,31 +1336,33 @@ protected:
 
 			KAABBBox adjacencyBound;
 
-			for (size_t triIndex : m_Adjacencies[v1])
+			const std::unordered_set<size_t>& p1Adj = m_PosHash.GetAdjacency(p1);
+			for (size_t triIndex : p1Adj)
 			{
 				if (IsValid(triIndex))
 				{
 					assert(CheckValidFlag(m_Triangles[triIndex]));
-					if (m_Adjacencies[v0].find(triIndex) != m_Adjacencies[v0].end())
+					if (m_PosHash.HasAdjacency(p0, triIndex))
 					{
 						sharedAdjacencySet.insert(triIndex);
 					}
 					else
 					{
-						noSharedAdjacencySetV1.insert(triIndex);
+						noSharedAdjacencySet1.insert(triIndex);
 					}
 					adjacencyBound = adjacencyBound.Merge(ComputeTriangleBound(triIndex));
 				}
 			}
 
-			for (size_t triIndex : m_Adjacencies[v0])
+			const std::unordered_set<size_t>& p0Adj = m_PosHash.GetAdjacency(p0);
+			for (size_t triIndex : p0Adj)
 			{
 				if (IsValid(triIndex))
 				{
 					assert(CheckValidFlag(m_Triangles[triIndex]));
 					if (sharedAdjacencySet.find(triIndex) == sharedAdjacencySet.end())
 					{
-						noSharedAdjacencySetV0.insert(triIndex);
+						noSharedAdjacencySet0.insert(triIndex);
 					}
 				}
 				adjacencyBound = adjacencyBound.Merge(ComputeTriangleBound(triIndex));
@@ -1177,15 +1380,15 @@ protected:
 				continue;
 			}
 
-			std::unordered_set<size_t> sharedVerts;
+			std::unordered_set<KPositionHashKey> sharedPositions;
 			for (size_t triIndex : sharedAdjacencySet)
 			{
-				Triangle& triangle = m_Triangles[triIndex];
-				for (size_t vertId : triangle.index)
+				for (size_t vertId : m_Triangles[triIndex].index)
 				{
-					if (vertId != v0 && vertId != v1)
+					KPositionHashKey p = GetPositionHash(vertId);
+					if (p != p0 && p != p1)
 					{
-						sharedVerts.insert(vertId);
+						sharedPositions.insert(p);
 					}
 				}
 			}
@@ -1196,36 +1399,43 @@ protected:
 				2. For all vertices r incident to both p and q there has to be a triangle(p, q, r).
 				In other words, the intersection of the one-rings of p and q consists of vertices opposite the edge (p, q) only.
 			*/
-			auto HasIndirectConnect = [this](size_t v0, size_t v1, const std::unordered_set<size_t>& noSharedAdjacencySetV0, const std::unordered_set<size_t>& sharedAdjacencySet, std::unordered_set<size_t>& sharedVerts) -> bool
+			auto HasIndirectConnect = [this](KPositionHashKey p0, KPositionHashKey p1, const std::unordered_set<size_t>& noSharedAdjacencySetP0, const std::unordered_set<size_t>& sharedAdjacencySetP01, std::unordered_set<KPositionHashKey>& sharedPositions) -> bool
 			{
-				std::unordered_set<size_t> noSharedAdjVerts;
-				for (size_t triIndex : noSharedAdjacencySetV0)
+				std::unordered_set<KPositionHashKey> noSharedAdjPositions;
+				for (size_t triIndex : noSharedAdjacencySetP0)
 				{
-					int32_t index = m_Triangles[triIndex].PointIndex(v0);
+					KPositionHashKey p[3];
+					GetTriangleHash(m_Triangles[triIndex], p);
+
+					int32_t index = GetTriangleIndex(p, p0);
 					assert(index >= 0);
-					size_t va = m_Triangles[triIndex].index[(index + 1) % 3];
-					size_t vb = m_Triangles[triIndex].index[(index + 2) % 3];
-					if (sharedVerts.find(va) == sharedVerts.end())
+					KPositionHashKey pa = p[(index + 1) % 3];
+					KPositionHashKey pb = p[(index + 2) % 3];
+
+					if (sharedPositions.find(pa) == sharedPositions.end())
 					{
-						noSharedAdjVerts.insert(va);
+						noSharedAdjPositions.insert(pa);
 					}
-					if (sharedVerts.find(vb) == sharedVerts.end())
+					if (sharedPositions.find(pb) == sharedPositions.end())
 					{
-						noSharedAdjVerts.insert(vb);
+						noSharedAdjPositions.insert(pb);
 					}
 				}
-				for (size_t adjVert : noSharedAdjVerts)
+				for (KPositionHashKey adjPos : noSharedAdjPositions)
 				{
-					std::unordered_set<size_t> tris;
-					for (size_t triIndex : m_Adjacencies[adjVert])
+					for (size_t triIndex : m_PosHash.GetAdjacency(adjPos))
 					{
 						if (IsValid(triIndex))
 						{
-							if (sharedAdjacencySet.find(triIndex) != sharedAdjacencySet.end())
+							if (sharedAdjacencySetP01.find(triIndex) != sharedAdjacencySetP01.end())
 							{
 								continue;
 							}
-							int32_t index = m_Triangles[triIndex].PointIndex(v1);
+
+							KPositionHashKey p[3];
+							GetTriangleHash(m_Triangles[triIndex], p);
+
+							int32_t index = GetTriangleIndex(p, p1);
 							if (index >= 0)
 							{
 								return true;
@@ -1236,40 +1446,42 @@ protected:
 				return false;
 			};
 
-			if (HasIndirectConnect(v0, v1, noSharedAdjacencySetV0, sharedAdjacencySet, sharedVerts))
+			if (HasIndirectConnect(p0, p1, noSharedAdjacencySet0, sharedAdjacencySet, sharedPositions))
 			{
 				continue;
 			}
 
-			auto TriangleWillInvert = [this, &contraction](size_t v, const std::unordered_set<size_t>& noSharedAdjacencySet)
+			auto TriangleWillInvert = [this, &contraction](size_t v, const std::unordered_set<size_t>& noSharedAdjacencyPSet)
 			{
-				for (size_t triIndex : noSharedAdjacencySet)
+				for (size_t triIndex : noSharedAdjacencyPSet)
 				{
 					const Triangle& triangle = m_Triangles[triIndex];
 					int32_t i = triangle.PointIndex(v);
-
-					glm::vec3 newNormal = glm::cross(
-						m_Vertices[triangle.index[(i + 1) % 3]].pos - contraction.vertex.pos,
-						m_Vertices[triangle.index[(i + 2) % 3]].pos - contraction.vertex.pos);
-
-					glm::vec3 oldNormal = glm::cross(
-						m_Vertices[triangle.index[(i + 1) % 3]].pos - m_Vertices[triangle.index[i]].pos,
-						m_Vertices[triangle.index[(i + 2) % 3]].pos - m_Vertices[triangle.index[i]].pos);
-
-					if (glm::dot(newNormal, oldNormal) < 0)
+					if (i >= 0)
 					{
-						return true;
+						glm::vec3 newNormal = glm::cross(
+							m_Vertices[triangle.index[(i + 1) % 3]].pos - contraction.vertex.pos,
+							m_Vertices[triangle.index[(i + 2) % 3]].pos - contraction.vertex.pos);
+
+						glm::vec3 oldNormal = glm::cross(
+							m_Vertices[triangle.index[(i + 1) % 3]].pos - m_Vertices[triangle.index[i]].pos,
+							m_Vertices[triangle.index[(i + 2) % 3]].pos - m_Vertices[triangle.index[i]].pos);
+
+						if (glm::dot(newNormal, oldNormal) < 0)
+						{
+							return true;
+						}
 					}
 				}
 				return false;
 			};
 
-			if (TriangleWillInvert(v0, noSharedAdjacencySetV0))
+			if (TriangleWillInvert(v0, noSharedAdjacencySet0))
 			{
 				continue;
 			}
 
-			if (TriangleWillInvert(v1, noSharedAdjacencySetV1))
+			if (TriangleWillInvert(v1, noSharedAdjacencySet1))
 			{
 				continue;
 			}
@@ -1278,47 +1490,73 @@ protected:
 
 			size_t newIndex = m_Vertices.size();
 
-			m_Vertices.push_back(contraction.vertex);
-			m_EdgeHash.ClearEdgeHash(newIndex);
+			if (newIndex == 2134)
+			{
+				int x = 0;
+			}
 
-			size_t newHash = m_PosHash.AddPositionHash(contraction.vertex.pos, newIndex);
-			m_PosHash.SetPositionFlag(newHash, m_PosHash.GetPositionFlag(p0) | m_PosHash.GetPositionFlag(p1));
+			m_Vertices.push_back(contraction.vertex);
+
+			KPositionHashKey newPos = m_PosHash.AddPositionHash(contraction.vertex.pos, newIndex);
+			m_PosHash.SetFlag(newPos, m_PosHash.GetFlag(p0) | m_PosHash.GetFlag(p1));
+
+			if (newPos == p0 || newPos == p1)
+			{
+				m_PosHash.IncVersion(newPos, 1);
+			}
+			else
+			{
+				m_PosHash.SetVersion(newPos, 0);
+			}
 
 			m_Adjacencies.push_back({});
-			m_Versions.push_back(0);
 
-			std::unordered_set<size_t> adjacencyVert;
+			std::unordered_set<KPositionHashKey> adjacencyPositions;
 
 			if (m_Memoryless)
 			{
-				for (size_t triIndex : noSharedAdjacencySetV0)
+				for (size_t triIndex : noSharedAdjacencySet0)
 				{
 					Triangle triangle = m_Triangles[triIndex];
-					int32_t idx = triangle.PointIndex(v0);
+
+					KPositionHashKey p[3];
+					GetTriangleHash(m_Triangles[triIndex], p);
+
+					int32_t idx = GetTriangleIndex(p, p0);
 					assert(idx >= 0);
-					triangle.index[idx] = newIndex;
+					if (idx >= 0)
+					{
+						triangle.index[idx] = newIndex;
 
-					m_TriQuadric[triIndex] = ComputeQuadric(triangle);
-					m_TriAttrQuadric[triIndex] = ComputeAttrQuadric(triangle);
-					m_TriErrorQuadric[triIndex] = ComputeErrorQuadric(triangle);
+						m_TriQuadric[triIndex] = ComputeQuadric(triangle);
+						m_TriAttrQuadric[triIndex] = ComputeAttrQuadric(triangle);
+						m_TriErrorQuadric[triIndex] = ComputeErrorQuadric(triangle);
 
-					adjacencyVert.insert(triangle.index[(idx + 1) % 3]);
-					adjacencyVert.insert(triangle.index[(idx + 2) % 3]);
+						adjacencyPositions.insert(p[(idx + 1) % 3]);
+						adjacencyPositions.insert(p[(idx + 2) % 3]);
+					}
 				}
 
-				for (size_t triIndex : noSharedAdjacencySetV1)
+				for (size_t triIndex : noSharedAdjacencySet1)
 				{
 					Triangle triangle = m_Triangles[triIndex];
-					int32_t idx = triangle.PointIndex(v1);
+
+					KPositionHashKey p[3];
+					GetTriangleHash(m_Triangles[triIndex], p);
+
+					int32_t idx = GetTriangleIndex(p, p1);
 					assert(idx >= 0);
-					triangle.index[idx] = newIndex;
+					if (idx >= 0)
+					{
+						triangle.index[idx] = newIndex;
 
-					m_TriQuadric[triIndex] = ComputeQuadric(triangle);
-					m_TriAttrQuadric[triIndex] = ComputeAttrQuadric(triangle);
-					m_TriErrorQuadric[triIndex] = ComputeErrorQuadric(triangle);
+						m_TriQuadric[triIndex] = ComputeQuadric(triangle);
+						m_TriAttrQuadric[triIndex] = ComputeAttrQuadric(triangle);
+						m_TriErrorQuadric[triIndex] = ComputeErrorQuadric(triangle);
 
-					adjacencyVert.insert(triangle.index[(idx + 1) % 3]);
-					adjacencyVert.insert(triangle.index[(idx + 2) % 3]);
+						adjacencyPositions.insert(p[(idx + 1) % 3]);
+						adjacencyPositions.insert(p[(idx + 2) % 3]);
+					}
 				}
 			}
 			else
@@ -1375,16 +1613,23 @@ protected:
 				m_EdgeHeap.push(ComputeContraction(v0, v1, quadric, attrQuadric, errorQuadric));
 			};
 
-			std::unordered_set<size_t> newAdjacencySet;
+			std::unordered_set<size_t> newAdjacencyTriangle;
 
-			auto AdjustAdjacencies = [this, newIndex, NewModify, CheckValidFlag, &sharedAdjacencySet, &newAdjacencySet](size_t v, EdgeCollapse& collapse)
+			auto AdjustAdjacencies = [this, newIndex, NewModify, CheckValidFlag, &sharedAdjacencySet, &newAdjacencyTriangle](size_t v, EdgeCollapse& collapse)
 			{
-				for (size_t triIndex : m_Adjacencies[v])
+				KPositionHashKey pos = GetPositionHash(v);
+				for (size_t triIndex : m_PosHash.GetAdjacency(pos))
 				{
 					Triangle& triangle = m_Triangles[triIndex];
 
+					KPositionHashKey p[3];
+					GetTriangleHash(triangle, p);
+
+					// int32_t i = GetTriangleIndex(p, pos);
 					int32_t i = triangle.PointIndex(v);
 					assert(i >= 0);
+					assert(GetPositionHash(triangle.index[i]) == pos);
+
 					triangle.index[i] = newIndex;
 
 					PointModify modify = NewModify(triIndex, i);
@@ -1404,17 +1649,17 @@ protected:
 						{
 							continue;
 						}
-						newAdjacencySet.insert(triIndex);
+						newAdjacencyTriangle.insert(triIndex);
 					}
 				}
 			};
 
 			size_t invalidVertex = 0;
-			for (size_t vertId : sharedVerts)
+			for (const KPositionHashKey& pos : sharedPositions)
 			{
-				assert(m_Versions[vertId] >= 0);
+				assert(m_PosHash.GetVersion(pos) >= 0);
 				bool hasValidTri = false;
-				for (size_t triIndex : m_Adjacencies[vertId])
+				for (size_t triIndex : m_PosHash.GetAdjacency(pos))
 				{
 					if (IsValid(triIndex))
 					{
@@ -1429,45 +1674,57 @@ protected:
 				}
 				if (!hasValidTri)
 				{
-					m_Versions[vertId] = -1;
+					m_PosHash.SetVersion(pos, -1);
 					++invalidVertex;
 				}
 			}
 
-			auto RemoveOldEdgeHash = [this](size_t vCurr, size_t triIndex)
+			auto RemoveOldEdgeHash = [this](KPositionHashKey pos, size_t triIndex)
 			{
+				if (triIndex == 4404)
+				{
+					int x = 0;
+				}
 				if (IsValid(triIndex))
 				{
 					const Triangle& triangle = m_Triangles[triIndex];
-					int32_t idx = triangle.PointIndex((int32_t)vCurr);
+					int32_t idx = GetTriangleIndexByHash(triangle, pos);
 					assert(idx >= 0);
-					size_t vPrev = (size_t)triangle.index[(idx + 2) % 3];
-					size_t vNext = (size_t)triangle.index[(idx + 1) % 3];
-					m_EdgeHash.RemoveEdgeHash(vPrev, vCurr, triIndex);
-					m_EdgeHash.RemoveEdgeHash(vCurr, vNext, triIndex);
+					if (idx >= 0)
+					{
+						KPositionHashKey p[3];
+						GetTriangleHash(triangle, p);
+
+						KPositionHashKey pCurr = p[idx];
+						KPositionHashKey pPrev = p[(idx + 2) % 3];
+						KPositionHashKey pNext = p[(idx + 1) % 3];
+
+						m_EdgeHash.RemoveEdgeHash(pPrev, pCurr, triIndex);
+						m_EdgeHash.RemoveEdgeHash(pCurr, pNext, triIndex);
+					}
 				}
 			};
 
 			if (m_Memoryless)
 			{
-				for (size_t vertId : adjacencyVert)
+				for (const KPositionHashKey& pos : adjacencyPositions)
 				{
-					++m_Versions[vertId];
-					m_EdgeHash.ForEach(vertId, [vertId, RemoveOldEdgeHash](size_t vNext, size_t triIndex)
+					m_PosHash.IncVersion(pos, 1);
+					m_EdgeHash.ForEach(pos, [pos, RemoveOldEdgeHash](KPositionHashKey _, size_t triIndex)
 					{
-						RemoveOldEdgeHash(vertId, triIndex);
+						RemoveOldEdgeHash(pos, triIndex);
 					});
 				}
 			}
 			else
 			{
-				m_EdgeHash.ForEach(v0, [v0, RemoveOldEdgeHash](size_t vNext, size_t triIndex)
+				m_EdgeHash.ForEach(p0, [p0, RemoveOldEdgeHash](KPositionHashKey _, size_t triIndex)
 				{
-					RemoveOldEdgeHash(v0, triIndex);
+					RemoveOldEdgeHash(p0, triIndex);
 				});
-				m_EdgeHash.ForEach(v1, [v1, RemoveOldEdgeHash](size_t vNext, size_t triIndex)
+				m_EdgeHash.ForEach(p1, [p1, RemoveOldEdgeHash](KPositionHashKey _, size_t triIndex)
 				{
-					RemoveOldEdgeHash(v1, triIndex);
+					RemoveOldEdgeHash(p1, triIndex);
 				});
 			}
 
@@ -1484,21 +1741,45 @@ protected:
 			AdjustAdjacencies(v0, collapse);
 			AdjustAdjacencies(v1, collapse);
 
-			m_Adjacencies[newIndex] = newAdjacencySet;
+			for (size_t triIndex : newAdjacencyTriangle)
+			{
+				// TODO 只关心同材质三角形
+				{
+					m_Adjacencies[newIndex].insert(triIndex);
+				}
+			}
+
 			m_Adjacencies[v0].clear();
 			m_Adjacencies[v1].clear();
 
-			m_Versions[v0] = m_Versions[v1] = -1;
-			if (newAdjacencySet.size() == 0)
+			m_PosHash.RemovePositionHash(p0, v0);
+			m_PosHash.RemovePositionHash(p1, v1);
+
+			if (p0 != newPos)
 			{
-				m_Versions[newIndex] = -1;
+				m_PosHash.SetVersion(p0, -1);
+			}
+			if (p1 != newPos)
+			{
+				m_PosHash.SetVersion(p1, -1);
+			}
+
+			m_PosHash.SetAdjacency(newPos, newAdjacencyTriangle);
+
+			if (newAdjacencyTriangle.size() == 0)
+			{
+				m_PosHash.SetVersion(newPos, -1);
 				invalidVertex += 1;
 			}
 
-			auto BuildNewContraction = [this, NewContraction, CheckValidFlag](size_t v)
+			auto BuildNewContraction = [this, NewContraction, CheckValidFlag](KPositionHashKey pos)
 			{
-				for (size_t triIndex : m_Adjacencies[v])
+				for (size_t triIndex : m_PosHash.GetAdjacency(pos))
 				{
+					if (triIndex == 4404)
+					{
+						int x = 0;
+					}
 					const Triangle& triangle = m_Triangles[triIndex];
 					if (!IsValid(triIndex))
 					{
@@ -1508,23 +1789,31 @@ protected:
 					{
 						continue;
 					}
-					int32_t i = triangle.PointIndex(v);
-					assert(i >= 0);
+
+					KPositionHashKey p[3];
+					GetTriangleHash(triangle, p);
+
+					int32_t i = GetTriangleIndex(p, pos);
+					if (i < 0)
+					{
+						assert(false);
+						continue;
+					}
 
 					size_t v0 = triangle.index[i];
 					size_t v1 = triangle.index[(i + 1) % 3];
 					size_t v2 = triangle.index[(i + 2) % 3];
 
-					size_t p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
-					size_t p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
-					size_t p2 = m_PosHash.GetPositionHash(m_Vertices[v2].pos);
+					KPositionHashKey p0 = p[i];
+					KPositionHashKey p1 = p[(i + 1) % 3];
+					KPositionHashKey p2 = p[(i + 2) % 3];
 
-					bool lock0 = m_PosHash.GetPositionFlag(p0) == VERTEX_FLAG_LOCK;
-					bool lock1 = m_PosHash.GetPositionFlag(p1) == VERTEX_FLAG_LOCK;
-					bool lock2 = m_PosHash.GetPositionFlag(p2) == VERTEX_FLAG_LOCK;
+					bool lock0 = m_PosHash.GetFlag(p0) == VERTEX_FLAG_LOCK;
+					bool lock1 = m_PosHash.GetFlag(p1) == VERTEX_FLAG_LOCK;
+					bool lock2 = m_PosHash.GetFlag(p2) == VERTEX_FLAG_LOCK;
 
-					m_EdgeHash.AddEdgeHash(v0, v1, triIndex);
-					if (!m_EdgeHash.HasConnection(v1, v0))
+					m_EdgeHash.AddEdgeHash(p0, p1, triIndex);
+					if (!m_EdgeHash.HasConnection(p1, p0))
 					{
 						if (!(lock0 && lock1))
 						{
@@ -1532,8 +1821,8 @@ protected:
 						}
 					}
 
-					m_EdgeHash.AddEdgeHash(v2, v0, triIndex);
-					if (!m_EdgeHash.HasConnection(v0, v2))
+					m_EdgeHash.AddEdgeHash(p2, p0, triIndex);
+					if (!m_EdgeHash.HasConnection(p0, p2))
 					{
 						if (!(lock2 && lock0))
 						{
@@ -1545,14 +1834,14 @@ protected:
 
 			if (m_Memoryless)
 			{
-				for (size_t vertId : adjacencyVert)
+				for (const KPositionHashKey& pos : adjacencyPositions)
 				{
-					BuildNewContraction(vertId);
+					BuildNewContraction(pos);
 				}
 			}
 			else
 			{
-				BuildNewContraction(newIndex);
+				BuildNewContraction(newPos);
 			}
 
 			m_CurTriangleCount -= (int32_t)invalidTriangle;
@@ -1569,14 +1858,12 @@ protected:
 				++m_CurrOpIdx;
 			}
 
-			/*
-			if (!CheckEdge(newIndex))
+			if (!CheckEdge(newPos))
 			{
-				m_Vertices[v0].color[0] = glm::vec3(0);
-				m_Vertices[v1].color[0] = glm::vec3(0);
+				m_Vertices[v0].color = glm::tvec3<Type>(0, 0, 0);
+				m_Vertices[v1].color = glm::tvec3<Type>(0, 0, 0);
 				break;
 			}
-			*/
 		}
 
 		m_MinTriangleCount = m_CurTriangleCount;
@@ -1619,7 +1906,6 @@ public:
 		m_TriAttrQuadric.clear();
 		m_TriErrorQuadric.clear();
 		m_EdgeHeap = std::priority_queue<EdgeContraction>();
-		m_Versions.clear();
 		m_Adjacencies.clear();
 		m_CollapseOperations.clear();
 		m_CurrOpIdx = 0;

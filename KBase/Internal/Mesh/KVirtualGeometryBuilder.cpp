@@ -460,7 +460,7 @@ bool KMeshTriangleClusterBuilder::BuildTriangleAdjacencies(const std::vector<KMe
 		uint32_t numTriangles = (uint32_t)indices.size() / 3;
 
 		KEdgeHash edgeHash;
-		edgeHash.Init(numVertices);
+		edgeHash.Init();
 
 		context.triangles.resize(numTriangles);
 
@@ -491,21 +491,21 @@ bool KMeshTriangleClusterBuilder::BuildTriangleAdjacencies(const std::vector<KMe
 		context.graph.adjacencyCost.clear();
 		context.graph.adjacencyCost.reserve(numTriangles * 3);
 
-		for (uint32_t triIndex = 0; triIndex < numTriangles; ++triIndex)
+		for (size_t triIndex = 0; triIndex < numTriangles; ++triIndex)
 		{
 			std::vector<idx_t> triangleAdjacencies;
 			triangleAdjacencies.reserve(3);
-			for (uint32_t i = 0; i < 3; ++i)
+			for (size_t i = 0; i < 3; ++i)
 			{
-				uint32_t v0 = context.triangles[triIndex].index[i];
-				uint32_t v1 = context.triangles[triIndex].index[(i + 1) % 3];
-				edgeHash.ForEachTri(v1, v0, [triIndex, &triangleAdjacencies](int32_t adjTriIndex)
+				size_t v0 = context.triangles[triIndex].index[i];
+				size_t v1 = context.triangles[triIndex].index[(i + 1) % 3];
+				edgeHash.ForEachTri(v1, v0, [triIndex, &triangleAdjacencies](size_t adjTriIndex)
+				{
+					if (triIndex != adjTriIndex)
 					{
-						if (triIndex != adjTriIndex)
-						{
-							triangleAdjacencies.push_back(adjTriIndex);
-						}
-					});
+						triangleAdjacencies.push_back((idx_t)adjTriIndex);
+					}
+				});
 			}
 
 			context.graph.adjacencyOffset.push_back((idx_t)context.graph.adjacency.size());
@@ -712,7 +712,7 @@ std::vector<std::unordered_map<size_t, size_t>> KVirtualGeometryBuilder::MaskClu
 	size_t verticesNum = vertNewIdxMap.size();
 
 	KEdgeHash edgeHash;
-	edgeHash.Init(verticesNum);
+	edgeHash.Init();
 
 	verticeHashIdxBegin = 0;
 
@@ -737,26 +737,26 @@ std::vector<std::unordered_map<size_t, size_t>> KVirtualGeometryBuilder::MaskClu
 	std::vector<std::unordered_map<size_t, size_t>> clusterAdj;
 	clusterAdj.resize(clusterNum);
 
-	for (int32_t v0 = 0; v0 < (int32_t)verticesNum; ++v0)
+	for (size_t v0 = 0; v0 < verticesNum; ++v0)
 	{
-		edgeHash.ForEach(v0, [v0, &clusterAdj, &edgeHash](int32_t v1, int32_t clusterID)
+		edgeHash.ForEach(v0, [v0, &clusterAdj, &edgeHash](KPositionHashKey v1, size_t clusterID)
+		{
+			edgeHash.ForEachTri(v1, v0, [&clusterAdj, clusterID](size_t anotherClusterID)
 			{
-				edgeHash.ForEachTri(v1, v0, [&clusterAdj, clusterID](int32_t anotherClusterID)
+				if (clusterID != anotherClusterID)
+				{
+					auto it = clusterAdj[clusterID].find(anotherClusterID);
+					if (it == clusterAdj[clusterID].end())
 					{
-						if (clusterID != anotherClusterID)
-						{
-							auto it = clusterAdj[clusterID].find(anotherClusterID);
-							if (it == clusterAdj[clusterID].end())
-							{
-								clusterAdj[clusterID].insert({ anotherClusterID, 1 });
-							}
-							else
-							{
-								++it->second;
-							}
-						}
-					});
+						clusterAdj[clusterID].insert({ anotherClusterID, 1 });
+					}
+					else
+					{
+						++it->second;
+					}
+				}
 			});
+		});
 	}
 
 	for (size_t i = 0; i < clusterNum; ++i)

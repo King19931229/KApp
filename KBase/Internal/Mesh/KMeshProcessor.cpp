@@ -225,11 +225,6 @@ namespace KMeshProcessor
 				}
 			}
 
-			for (uint32_t i = 0; i < vertexCount; ++i)
-			{
-				vertices[i + vertexBase].partIndex = (int32_t)partIndex;
-			}
-
 			const KMeshRawData::VertexDataBuffer& PNTData = input.verticesDatas[PNTIndex];
 			const PNT* pnts = (const PNT*)PNTData.data();
 			pnts += vertexBase;
@@ -262,83 +257,28 @@ namespace KMeshProcessor
 
 	bool ConvertFromMeshProcessor(KMeshRawData& output, const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, const std::vector<KMeshRawData::Material>& originalMats)
 	{
-		int32_t maxPartIndex = -1;
-		std::set<int32_t> allPartIndices;
-		for (size_t i = 0; i < oldVertices.size(); ++i)
-		{
-			maxPartIndex = std::max(maxPartIndex, oldVertices[i].partIndex);
-			allPartIndices.insert(oldVertices[i].partIndex);
-		}
-		std::vector<int32_t> sortMaterialIndices = std::vector<int32_t>(allPartIndices.begin(), allPartIndices.end());
-
-		std::vector<int32_t> partIndexRemap;
-		partIndexRemap.resize(maxPartIndex >= 0 ? (maxPartIndex + 1) : 0);
-		for (int32_t i = 0; i < (int32_t)partIndexRemap.size(); ++i)
-		{
-			partIndexRemap[i] = -1;
-		}
-		for (int32_t i = 0; i < (int32_t)sortMaterialIndices.size(); ++i)
-		{
-			partIndexRemap[sortMaterialIndices[i]] = i;
-		}
+		// TODO 重构
 
 		std::vector<KMeshRawData::ModelPart> parts;
-
-		std::vector<std::vector<KMeshProcessorVertex>> verticesByMaterial;
-		std::vector<std::vector<uint32_t>> indicesByMaterial;
-
-		parts.resize(sortMaterialIndices.size());
-		verticesByMaterial.resize(sortMaterialIndices.size());
-		indicesByMaterial.resize(sortMaterialIndices.size());
-
-		std::unordered_map<uint32_t, uint32_t> indexRemap;
-		for (uint32_t index : oldIndices)
-		{
-			const KMeshProcessorVertex& vertex = oldVertices[index];
-			int32_t partIndex = partIndexRemap[vertex.partIndex];
-			KMeshProcessorVertex newVertex = vertex;
-			newVertex.partIndex = partIndex;
-
-			uint32_t newIndex = 0;
-
-			auto it = indexRemap.find(index);
-			if (it != indexRemap.end())
-			{
-				newIndex = it->second;
-			}
-			else
-			{
-				newIndex = (int32_t)indexRemap.size();
-				indexRemap[index] = newIndex;
-				verticesByMaterial[partIndex].push_back(newVertex);
-			}
-
-			indicesByMaterial[partIndex].push_back(newIndex);
-		}
+		parts.resize(1);
 
 		std::vector<KMeshProcessorVertex> vertices;
 		std::vector<uint32_t> indices;
 
-		vertices.reserve(oldVertices.size());
-		indices.reserve(oldIndices.size());
-
-		for (size_t partIndex = 0; partIndex < parts.size(); ++partIndex)
-		{
-			vertices.insert(vertices.end(), verticesByMaterial[partIndex].begin(), verticesByMaterial[partIndex].end());
-			indices.insert(indices.end(), indicesByMaterial[partIndex].begin(), indicesByMaterial[partIndex].end());
-		}
+		vertices = oldVertices;
+		indices = oldIndices;
 
 		uint32_t indexBase = 0;
 		uint32_t vertexBase = 0;
 
-		for (size_t partIndex = 0; partIndex < parts.size(); ++partIndex)
+		for (size_t partIndex = 0; partIndex < 1; ++partIndex)
 		{
 			KMeshRawData::ModelPart& part = parts[partIndex];
 			part.indexBase = indexBase;
-			part.indexCount = (uint32_t)indicesByMaterial[partIndex].size();
+			part.indexCount = (uint32_t)oldIndices.size();
 			part.vertexBase = 0;
-			part.vertexCount = (uint32_t)verticesByMaterial[partIndex].size();
-			part.material = originalMats[partIndexRemap[partIndex]];
+			part.vertexCount = (uint32_t)oldVertices.size();
+			part.material = originalMats[0];
 
 			indexBase += part.indexCount;
 			vertexBase += part.vertexCount;
