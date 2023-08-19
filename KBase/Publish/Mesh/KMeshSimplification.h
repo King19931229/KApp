@@ -12,6 +12,8 @@
 struct KPositionHash
 {
 	std::unordered_map<size_t, std::unordered_set<size_t>> vertices;
+	std::unordered_map<size_t, uint32_t> flags;
+	std::unordered_map<size_t, size_t> versions;
 
 	KPositionHash()
 	{
@@ -20,16 +22,75 @@ struct KPositionHash
 	void Init()
 	{
 		vertices.clear();
+		flags.clear();
+		versions.clear();
 	}
 
 	void UnInit()
 	{
 		vertices.clear();
+		flags.clear();
+		versions.clear();
 	}
 
-	void AddPositionHash(const glm::vec3& position, size_t vertex)
+	size_t GetPositionHash(const glm::vec3& position) const
 	{
-		size_t p = PositionHash(position);
+		return PositionHash(position);
+	}
+
+	void SetPositionFlag(size_t hash, uint32_t flag)
+	{
+		assert(HasPositionHash(hash));
+		auto it = flags.find(hash);
+		if (it == flags.end())
+		{
+			flags.insert({ hash, flag });
+		}
+		else
+		{
+			it->second |= flag;
+		}
+	}
+
+	uint32_t GetPositionFlag(size_t hash) const
+	{
+		auto it = flags.find(hash);
+		if (it != flags.end())
+		{
+			return it->second;
+		}
+		assert(false);
+		return 0;
+	}
+
+	void SetPositionVersion(size_t hash, size_t version)
+	{
+		assert(HasPositionHash(hash));
+		auto it = versions.find(hash);
+		if (it == versions.end())
+		{
+			versions.insert({ hash, version });
+		}
+		else
+		{
+			it->second = version;
+		}
+	}
+
+	size_t GetPositionVersion(size_t hash) const
+	{
+		auto it = versions.find(hash);
+		if (it != versions.end())
+		{
+			return it->second;
+		}
+		assert(false);
+		return 0;
+	}
+
+	size_t AddPositionHash(const glm::vec3& position, size_t vertex)
+	{
+		size_t p = GetPositionHash(position);
 		auto it = vertices.find(p);
 		if (it == vertices.end())
 		{
@@ -39,11 +100,12 @@ struct KPositionHash
 		{
 			it->second.insert(vertex);
 		}
+		return p;
 	}
 
 	void RemovePositionHash(const glm::vec3& position, size_t vertex)
 	{
-		size_t p = PositionHash(position);
+		size_t p = GetPositionHash(position);
 		auto it = vertices.find(p);
 		if (it != vertices.end())
 		{
@@ -52,12 +114,20 @@ struct KPositionHash
 		if (it->second.size() == 0)
 		{
 			vertices.erase(p);
+			flags.erase(p);
+			versions.erase(p);
 		}
+	}
+
+	bool HasPositionHash(size_t hash) const
+	{
+		auto it = vertices.find(hash);
+		return it != vertices.end();
 	}
 
 	void ForEach(const glm::vec3& position, std::function<void(size_t)> call)
 	{
-		size_t p = PositionHash(position);
+		size_t p = GetPositionHash(position);
 		auto it = vertices.find(p);
 		if (it != vertices.end())
 		{
@@ -71,17 +141,17 @@ struct KPositionHash
 
 struct KEdgeHash
 {
-	// Key为相邻节点 Value为边所在的三角形列表
-	std::vector<std::unordered_map<size_t, std::unordered_set<size_t>>> edges;
+	// Key为顶点Hash            Key为相邻节点 Value为边所在的三角形列表
+	std::unordered_map<size_t, std::unordered_map<size_t, std::unordered_set<size_t>>> edges;
 
-	KEdgeHash(size_t num = 0)
+	KEdgeHash()
 	{
-		Init(num);
+		Init();
 	}
 
-	void Init(size_t num)
+	void Init()
 	{
-		edges.resize(num);
+		edges.clear();
 	}
 
 	void UnInit()
@@ -91,9 +161,12 @@ struct KEdgeHash
 
 	void AddEdgeHash(size_t p0, size_t p1, size_t triIndex)
 	{
-		assert(p0 < edges.size());
-		assert(p1 < edges.size());
-		std::unordered_map<size_t, std::unordered_set<size_t>>& link = edges[p0];
+		auto itOuter = edges.find(p0);
+		if (itOuter == edges.end())
+		{
+			itOuter = edges.insert({ p0, {} }).first;
+		}
+		std::unordered_map<size_t, std::unordered_set<size_t>>& link = itOuter->second;
 		auto it = link.find(p1);
 		if (it == link.end())
 		{
@@ -104,55 +177,65 @@ struct KEdgeHash
 
 	void RemoveEdgeHash(size_t p0, size_t p1, size_t triIndex)
 	{
-		assert(p0 < edges.size());
-		assert(p1 < edges.size());
-		std::unordered_map<size_t, std::unordered_set<size_t>>& link = edges[p0];
-		auto it = link.find(p1);
-		if (it != link.end())
+		auto itOuter = edges.find(p0);
+		if (itOuter != edges.end())
 		{
-			it->second.erase(triIndex);
+			std::unordered_map<size_t, std::unordered_set<size_t>>& link = itOuter->second;
+			auto it = link.find(p1);
+			if (it != link.end())
+			{
+				it->second.erase(triIndex);
+			}
 		}
 	}
 
 	void ClearEdgeHash(size_t p0)
 	{
-		assert(p0 < edges.size());
-		std::unordered_map<size_t, std::unordered_set<size_t>>& link = edges[p0];
-		link.clear();
+		edges.erase(p0);
 	}
 
 	void ForEach(size_t p0, std::function<void(size_t, size_t)> call)
 	{
-		assert(p0 < edges.size());
-		std::unordered_map<size_t, std::unordered_set<size_t>>& link = edges[p0];
-		for (auto it = link.begin(); it != link.end(); ++it)
+		auto itOuter = edges.find(p0);
+		if (itOuter != edges.end())
 		{
-			size_t v1 = it->first;
-			std::unordered_set<size_t> tris = it->second;
-			for (size_t triIndex : tris)
+			std::unordered_map<size_t, std::unordered_set<size_t>>& link = itOuter->second;
+			for (auto it = link.begin(); it != link.end(); ++it)
 			{
-				call(v1, triIndex);
+				size_t v1 = it->first;
+				std::unordered_set<size_t> tris = it->second;
+				for (size_t triIndex : tris)
+				{
+					call(v1, triIndex);
+				}
 			}
 		}
 	}
 
 	bool HasConnection(size_t p0, size_t p1) const
 	{
-		assert(p0 < edges.size());
-		assert(p1 < edges.size());
-		return edges[p0].find(p1) != edges[p0].end();
+		auto itOuter = edges.find(p0);
+		if (itOuter != edges.end())
+		{
+			const std::unordered_map<size_t, std::unordered_set<size_t>>& link = itOuter->second;
+			return link.find(p1) != link.end();
+		}
+		return false;		
 	}
 
 	void ForEachTri(size_t p0, size_t p1, std::function<void(size_t)> call)
 	{
-		assert(p0 < edges.size());
-		assert(p1 < edges.size());
-		auto it = edges[p0].find(p1);
-		if (it != edges[p0].end())
+		auto itOuter = edges.find(p0);
+		if (itOuter != edges.end())
 		{
-			for (size_t triIndex : it->second)
+			std::unordered_map<size_t, std::unordered_set<size_t>>& link = itOuter->second;
+			auto it = link.find(p1);
+			if (it != link.end())
 			{
-				call(triIndex);
+				for (size_t triIndex : it->second)
+				{
+					call(triIndex);
+				}
 			}
 		}
 	}
@@ -308,7 +391,6 @@ protected:
 	std::vector<Triangle> m_Triangles;
 	std::vector<Vertex> m_Vertices;
 	std::vector<int32_t> m_Versions;
-	std::vector<int32_t> m_Flags;
 	// 相邻三角形列表
 	std::vector<std::unordered_set<size_t>> m_Adjacencies;
 
@@ -428,8 +510,11 @@ protected:
 		const Vertex& va = m_Vertices[v0];
 		const Vertex& vb = m_Vertices[v1];
 
-		bool lock0 = m_Flags[v0] == VERTEX_FLAG_LOCK;
-		bool lock1 = m_Flags[v1] == VERTEX_FLAG_LOCK;
+		size_t p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
+		size_t p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
+
+		bool lock0 = m_PosHash.GetPositionFlag(p0) == VERTEX_FLAG_LOCK;
+		bool lock1 = m_PosHash.GetPositionFlag(p1) == VERTEX_FLAG_LOCK;
 
 		assert(!(lock0 && lock1));
 
@@ -626,8 +711,7 @@ protected:
 		m_Vertices.resize(vertexCount);
 		m_Adjacencies.resize(vertexCount);
 		m_Versions.resize(vertexCount);
-		m_Flags.resize(vertexCount);
-		m_EdgeHash.Init(2 * m_Vertices.size());
+		m_EdgeHash.Init();
 		m_PosHash.Init();
 
 		for (uint32_t i = 0; i < vertexCount; ++i)
@@ -637,9 +721,9 @@ protected:
 			m_Vertices[i].color = vertices[i].color[0];
 			m_Vertices[i].normal = vertices[i].normal;
 			m_Versions[i] = 0;
-			m_Flags[i] = VERTEX_FLAG_FREE;
-			m_PosHash.AddPositionHash(m_Vertices[i].pos, i);
 			bound = bound.Merge(m_Vertices[i].pos);
+			size_t hash = m_PosHash.AddPositionHash(m_Vertices[i].pos, i);
+			m_PosHash.SetPositionFlag(hash, VERTEX_FLAG_FREE);
 		}
 
 		// m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f);
@@ -654,6 +738,13 @@ protected:
 			triangle.index[1] = indices[3 * i + 1];
 			triangle.index[2] = indices[3 * i + 2];
 
+			size_t p[3] =
+			{
+				m_PosHash.GetPositionHash(m_Vertices[triangle.index[0]].pos),
+				m_PosHash.GetPositionHash(m_Vertices[triangle.index[1]].pos),
+				m_PosHash.GetPositionHash(m_Vertices[triangle.index[2]].pos)
+			};
+
 			for (uint32_t i = 0; i < 3; ++i)
 			{
 				assert(triangle.index[i] < m_Adjacencies.size());
@@ -665,9 +756,9 @@ protected:
 
 			if (IsDegenerateTriangle(triangle))
 			{
-				m_Flags[indices[3 * i]] = VERTEX_FLAG_LOCK;
-				m_Flags[indices[3 * i + 1]] = VERTEX_FLAG_LOCK;
-				m_Flags[indices[3 * i + 2]] = VERTEX_FLAG_LOCK;
+				m_PosHash.SetPositionFlag(p[0], VERTEX_FLAG_LOCK);
+				m_PosHash.SetPositionFlag(p[1], VERTEX_FLAG_LOCK);
+				m_PosHash.SetPositionFlag(p[2], VERTEX_FLAG_LOCK);
 			}
 		}
 
@@ -678,10 +769,15 @@ protected:
 			{
 				size_t v0 = triangle.index[i];
 				size_t v1 = triangle.index[(i + 1) % 3];
+
+				size_t p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
+				size_t p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
+
 				assert(m_EdgeHash.HasConnection(v0, v1));
 				if (!m_EdgeHash.HasConnection(v1, v0))
 				{
-					m_Flags[v0] = m_Flags[v1] = VERTEX_FLAG_LOCK;
+					m_PosHash.SetPositionFlag(p0, VERTEX_FLAG_LOCK);
+					m_PosHash.SetPositionFlag(p1, VERTEX_FLAG_LOCK);
 				}
 			}
 		}
@@ -883,8 +979,13 @@ protected:
 			{
 				size_t v0 = triangle.index[i];
 				size_t v1 = triangle.index[(i + 1) % 3];
-				bool lock0 = m_Flags[v0] == VERTEX_FLAG_LOCK;
-				bool lock1 = m_Flags[v1] == VERTEX_FLAG_LOCK;
+
+				size_t p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
+				size_t p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
+
+				bool lock0 = m_PosHash.GetPositionFlag(p0) == VERTEX_FLAG_LOCK;
+				bool lock1 = m_PosHash.GetPositionFlag(p1) == VERTEX_FLAG_LOCK;
+
 				if (v0 < v1 && !(lock0 && lock1))
 				{
 					m_EdgeHeap.push(ComputeContraction(v0, v1, m_Quadric[v0] + m_Quadric[v1], m_AttrQuadric[v0] + m_AttrQuadric[v1], m_ErrorQuadric[v0] + m_ErrorQuadric[v1]));
@@ -988,12 +1089,21 @@ protected:
 			size_t v0 = INDEX_NONE;
 			size_t v1 = INDEX_NONE;
 
+			size_t p0 = 0;
+			size_t p1 = 0;
+
 			do
 			{
 				contraction = m_EdgeHeap.top();
 				v0 = contraction.edge.index[0];
 				v1 = contraction.edge.index[1];
-				validContraction = (m_Versions[v0] == contraction.version.index[0] && m_Versions[v1] == contraction.version.index[1] && !(m_Flags[v0] == VERTEX_FLAG_LOCK && m_Flags[v1] == VERTEX_FLAG_LOCK));
+				validContraction = (m_Versions[v0] == contraction.version.index[0] && m_Versions[v1] == contraction.version.index[1]);
+				if (validContraction)
+				{
+					p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
+					p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
+					validContraction = m_PosHash.GetPositionFlag(p0) != VERTEX_FLAG_LOCK || m_PosHash.GetPositionFlag(p1) != VERTEX_FLAG_LOCK;
+				}
 				m_EdgeHeap.pop();
 			} while (!m_EdgeHeap.empty() && !validContraction);
 
@@ -1170,9 +1280,11 @@ protected:
 
 			m_Vertices.push_back(contraction.vertex);
 			m_EdgeHash.ClearEdgeHash(newIndex);
-			m_PosHash.AddPositionHash(contraction.vertex.pos, newIndex);
+
+			size_t newHash = m_PosHash.AddPositionHash(contraction.vertex.pos, newIndex);
+			m_PosHash.SetPositionFlag(newHash, m_PosHash.GetPositionFlag(p0) | m_PosHash.GetPositionFlag(p1));
+
 			m_Adjacencies.push_back({});
-			m_Flags.push_back(m_Flags[v0] | m_Flags[v1]);
 			m_Versions.push_back(0);
 
 			std::unordered_set<size_t> adjacencyVert;
@@ -1403,9 +1515,13 @@ protected:
 					size_t v1 = triangle.index[(i + 1) % 3];
 					size_t v2 = triangle.index[(i + 2) % 3];
 
-					bool lock0 = m_Flags[v0] == VERTEX_FLAG_LOCK;
-					bool lock1 = m_Flags[v1] == VERTEX_FLAG_LOCK;
-					bool lock2 = m_Flags[v2] == VERTEX_FLAG_LOCK;
+					size_t p0 = m_PosHash.GetPositionHash(m_Vertices[v0].pos);
+					size_t p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
+					size_t p2 = m_PosHash.GetPositionHash(m_Vertices[v2].pos);
+
+					bool lock0 = m_PosHash.GetPositionFlag(p0) == VERTEX_FLAG_LOCK;
+					bool lock1 = m_PosHash.GetPositionFlag(p1) == VERTEX_FLAG_LOCK;
+					bool lock2 = m_PosHash.GetPositionFlag(p2) == VERTEX_FLAG_LOCK;
 
 					m_EdgeHash.AddEdgeHash(v0, v1, triIndex);
 					if (!m_EdgeHash.HasConnection(v1, v0))
@@ -1504,7 +1620,6 @@ public:
 		m_TriErrorQuadric.clear();
 		m_EdgeHeap = std::priority_queue<EdgeContraction>();
 		m_Versions.clear();
-		m_Flags.clear();
 		m_Adjacencies.clear();
 		m_CollapseOperations.clear();
 		m_CurrOpIdx = 0;
