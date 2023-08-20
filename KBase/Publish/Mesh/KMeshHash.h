@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <functional>
 
-#define ENABLE_POSITION_HASH_KEY_DEBUG 0
+#define ENABLE_POSITION_HASH_KEY_DEBUG 1
 
 struct KPositionHashKey
 {
@@ -93,7 +93,7 @@ struct KPositionHash
 		auto it = informations.find(hash);
 		if (it != informations.end())
 		{
-			it->second.flag |= flag;
+			it->second.flag = flag;
 		}
 		else
 		{
@@ -175,6 +175,19 @@ struct KPositionHash
 		}
 	}
 
+	void RemoveAdjacency(const KPositionHashKey& hash)
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			it->second.adjacencies = {};
+		}
+		else
+		{
+			assert(false);
+		}
+	}
+
 	const std::unordered_set<size_t>& GetAdjacency(const KPositionHashKey& hash) const
 	{
 		auto it = informations.find(hash);
@@ -215,32 +228,62 @@ struct KPositionHash
 		}
 	}
 
-	KPositionHashKey AddPositionHash(const glm::vec3& position, size_t vertex)
+	KPositionHashKey AddPositionHash(const glm::vec3& position, size_t v)
 	{
 		KPositionHashKey hash = GetPositionHash(position);
 #if ENABLE_POSITION_HASH_KEY_DEBUG
-		hash.debug = vertex;
+		hash.debug = v;
 #endif
 		auto it = informations.find(hash);
 		if (it == informations.end())
 		{
 			VertexInfomation newInfo;
-			newInfo.vertices = { vertex };
+			newInfo.vertices = { v };
 			informations[hash] = newInfo;
 		}
 		else
 		{
-			it->second.vertices.insert(vertex);
+			it->second.vertices.insert(v);
 		}
 		return hash;
 	}
 
-	void RemovePositionHash(const KPositionHashKey& hash, size_t vertex)
+	void RemovePositionHash(const KPositionHashKey& hash, size_t v)
 	{
 		auto it = informations.find(hash);
 		if (it != informations.end())
 		{
-			it->second.vertices.erase(vertex);
+			it->second.vertices.erase(v);
+		}
+	}
+
+	void RemovePositionHashExcept(const KPositionHashKey& hash, size_t v)
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			if (it->second.vertices.find(18139) != it->second.vertices.end())
+			{
+				int x = 0;
+			}
+
+			if (it->second.vertices.find(v) != it->second.vertices.end())
+			{
+				it->second.vertices = { v };
+			}
+			else
+			{
+				it->second.vertices = {};
+			}
+		}
+	}
+
+	void RemoveAllPositionHash(const KPositionHashKey& hash)
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			it->second.vertices = {};
 		}
 	}
 
@@ -270,9 +313,9 @@ struct KPositionHash
 		auto it = informations.find(hash);
 		if (it != informations.end())
 		{
-			for (size_t vertex : it->second.vertices)
+			for (size_t v : it->second.vertices)
 			{
-				call(vertex);
+				call(v);
 			}
 		}
 	}
