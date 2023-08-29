@@ -492,7 +492,6 @@
     <ClInclude Include="Internal\Object\KQuadDataProvider.h">
       <Filter>Internal\Object</Filter>
     </ClInclude>
-    <ClInclude Include="Internal\Dispatcher\KRenderDispatcher.h" />
     <ClInclude Include="Internal\Render\KRenderer.h">
       <Filter>Internal\Render</Filter>
     </ClInclude>

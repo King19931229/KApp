@@ -188,6 +188,19 @@ struct KPositionHash
 		}
 	}
 
+	void RemoveAdjacencyOf(const KPositionHashKey& hash, size_t triIndex)
+	{
+		auto it = informations.find(hash);
+		if (it != informations.end())
+		{
+			it->second.adjacencies.erase(triIndex);
+		}
+		else
+		{
+			assert(false);
+		}
+	}
+
 	const std::unordered_set<size_t>& GetAdjacency(const KPositionHashKey& hash) const
 	{
 		auto it = informations.find(hash);
@@ -244,6 +257,7 @@ struct KPositionHash
 		else
 		{
 			it->second.vertices.insert(v);
+			it->second.version += 1;
 		}
 		return hash;
 	}

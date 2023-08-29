@@ -150,6 +150,120 @@ namespace KMeshProcessor
 		return true;
 	}
 
+	bool RemoveDuplicated(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices)
+	{
+		newVertices.clear();
+		newIndices.clear();
+
+		newVertices.reserve(oldVertices.size());
+		newIndices.reserve(oldIndices.size());
+
+		std::unordered_map<size_t, size_t> mapIndices;
+
+		for (uint32_t index : oldIndices)
+		{
+			const KMeshProcessorVertex& vertex = oldVertices[index];
+			size_t hash = KMeshProcessorVertexHash(vertex);
+			auto it = mapIndices.find(hash);
+			uint32_t newIndex = 0;
+			if (it == mapIndices.end())
+			{
+				newIndex = (uint32_t)newVertices.size();
+				mapIndices.insert({ hash, newIndex });
+				newVertices.push_back(vertex);
+			}
+			else
+			{
+				newIndex = (uint32_t)it->second;
+			}
+			newIndices.push_back(newIndex);
+		}
+
+		return true;
+	}
+
+	bool RemoveEqual(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices)
+	{
+		struct MotornPair
+		{
+			uint32_t motron = -1;
+			uint32_t index = -1;
+
+			inline bool operator<(const MotornPair& rhs) const
+			{
+				return motron < rhs.motron;
+			}
+		};
+		std::vector<MotornPair> motrons;
+
+		{
+			float maxPositionComponent = 0.0f;
+			for (size_t i = 0; i < oldVertices.size(); ++i)
+			{
+				for (int32_t j = 0; j < 3; ++j)
+				{
+					float c = oldVertices[i].pos[j];
+					maxPositionComponent = glm::max(maxPositionComponent, glm::abs(c));
+				}
+			}
+
+			// float posScale = (maxPositionComponent > 1.0f) ? KMath::ScaleFactorToSameExponent(maxPositionComponent, 1.00f) : 1.0f;
+			float posScale = (maxPositionComponent > 1e-5f) ? 1.0f / maxPositionComponent : 1.0f;
+
+			motrons.resize(oldVertices.size());
+
+			for (size_t i = 0; i < oldVertices.size(); ++i)
+			{
+				const glm::vec3& pos = oldVertices[i].pos;
+				uint32_t z = uint32_t(1023 * posScale * (0.30f * pos.x + 0.33f * pos.y + 0.37f * pos.z));
+				motrons[i].motron = KMath::MortonCode3(z);
+				motrons[i].index = (uint32_t)i;
+			}
+
+			std::sort(motrons.begin(), motrons.end());
+		}
+
+		newVertices.clear();
+		newVertices.reserve(oldVertices.size());
+		newIndices.clear();
+		newIndices.reserve(oldIndices.size());
+
+		std::unordered_map<uint32_t, uint32_t> remap;
+
+		for (int64_t i = 0; i < (int64_t)motrons.size(); ++i)
+		{
+			uint32_t newIndex = -1;
+
+			const uint32_t oldIndex = motrons[i].index;
+			for (int64_t j = i - 1; j >= 0; --j)
+			{
+				const uint32_t nearIndex = motrons[j].index;
+				if (oldVertices[oldIndex].AlmostEqual(oldVertices[nearIndex]))
+				{
+					newIndex = remap[nearIndex];
+					break;
+				}
+			}
+
+			if (newIndex == -1)
+			{
+				newIndex = (uint32_t)newVertices.size();
+				newVertices.push_back(oldVertices[oldIndex]);
+			}
+
+			remap[oldIndex] = newIndex;
+		}
+
+		for (size_t i = 0; i < oldIndices.size(); ++i)
+		{
+			uint32_t oldIndex = oldIndices[i];
+			uint32_t newIndex = remap[oldIndex];
+			newIndices.push_back(newIndex);
+		}
+
+		return true;
+	}
+
 	bool Simplify(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices,
 		MeshSimplifyTarget target, uint32_t targetCount,
 		std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices,

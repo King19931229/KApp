@@ -66,7 +66,6 @@
     <ClInclude Include="Internal\Controller\KCameraPreviewController.h" />
     <ClInclude Include="Internal\Controller\KGizmoController.h" />
     <ClInclude Include="Internal\Controller\KUIOverlayController.h" />
-    <ClInclude Include="Internal\Dispatcher\KRenderDispatcher.h" />
     <ClInclude Include="Internal\ECS\Component\KDebugComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KRenderComponent.h" />
     <ClInclude Include="Internal\ECS\Component\KTransformComponent.h" />

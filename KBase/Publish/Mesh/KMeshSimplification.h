@@ -191,7 +191,7 @@ protected:
 	int32_t m_MinTriangleAllow = 1;
 	int32_t m_MinVertexAllow = 3;
 
-	bool m_Memoryless = false;
+	bool m_Memoryless = true;
 
 	void UndoCollapse();
 	void RedoCollapse();

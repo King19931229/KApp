@@ -214,34 +214,8 @@ KMeshSimplification::EdgeContractionResult KMeshSimplification::ComputeContracti
 
 void KMeshSimplification::SanitizeDuplicatedVertexData(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
 {
-	vertices.clear();
-	indices.clear();
-
-	vertices.reserve(oldVertices.size());
-	indices.reserve(oldIndices.size());
-
-	std::unordered_map<size_t, size_t> mapIndices;
-
-	for (uint32_t index : oldIndices)
-	{
-		const KMeshProcessorVertex& vertex = oldVertices[index];
-		size_t hash = KMeshProcessorVertexHash(vertex);
-		auto it = mapIndices.find(hash);
-		uint32_t newIndex = 0;
-		if (it == mapIndices.end())
-		{
-			newIndex = (uint32_t)vertices.size();
-			mapIndices.insert({ hash, newIndex });
-			vertices.push_back(vertex);
-		}
-		else
-		{
-			newIndex = (uint32_t)it->second;
-		}
-		indices.push_back(newIndex);
-	}
-
-	return;
+	// KMeshProcessor::RemoveDuplicated(oldVertices, oldIndices, vertices, indices);
+	KMeshProcessor::RemoveEqual(oldVertices, oldIndices, vertices, indices);
 }
 
 KPositionHashKey KMeshSimplification::GetPositionHash(size_t v) const
@@ -331,14 +305,15 @@ bool KMeshSimplification::InitVertexData(const std::vector<KMeshProcessorVertex>
 	{
 		m_Vertices[i].pos = glm::tvec3<Type>(vertices[i].pos) * m_PositionScale;
 		m_Vertices[i].uv = vertices[i].uv;
-		m_Vertices[i].color = vertices[i].color[0];
+		m_Vertices[i].color = vertices[i].color[0];//glm::tvec3<Type>(1, 1, 1);
 		m_Vertices[i].normal = vertices[i].normal;
 		bound = bound.Merge(m_Vertices[i].pos);
 		KPositionHashKey hash = m_PosHash.AddPositionHash(m_Vertices[i].pos, i);
 		m_PosHash.SetFlag(hash, VERTEX_FLAG_FREE);
 	}
 
-	// m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f);
+	// m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f) * m_PositionInvScale;
+	m_MaxErrorAllow = 1000;
 
 	m_Triangles.clear();
 	m_Triangles.reserve(maxTriCount);
@@ -660,32 +635,41 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 
 	auto CheckEdge = [this](const KPositionHashKey& pos)
 	{
-		std::unordered_set<KPositionHashKey> adjacencies;
+		std::unordered_set<KPositionHashKey> adjacencyPos;
 
-		for (size_t triIndex : m_PosHash.GetAdjacency(pos))
+		const std::unordered_set<size_t>& vertices = m_PosHash.GetVertex(pos);
+		for (size_t v : vertices)
 		{
-			if (IsValid(triIndex))
+			for (size_t triIndex : m_Adjacencies[v])
 			{
-				int32_t index = GetTriangleIndexByHash(m_Triangles[triIndex], pos);
-				assert(index >= 0);
-				adjacencies.insert(GetPositionHash(m_Triangles[triIndex].index[(index + 1) % 3]));
-				adjacencies.insert(GetPositionHash(m_Triangles[triIndex].index[(index + 2) % 3]));
+				if (IsValid(triIndex))
+				{
+					int32_t index = m_Triangles[triIndex].PointIndex(v);
+					assert(index >= 0);
+					adjacencyPos.insert(GetPositionHash(m_Triangles[triIndex].index[(index + 1) % 3]));
+					adjacencyPos.insert(GetPositionHash(m_Triangles[triIndex].index[(index + 2) % 3]));
+				}
 			}
 		}
 
-		for (const KPositionHashKey& adjIndex : adjacencies)
+		for (const KPositionHashKey& adjPos : adjacencyPos)
 		{
+			if (adjPos == pos)
+			{
+				continue;
+			}
 			std::unordered_set<size_t> tris;
 			for (size_t triIndex : m_PosHash.GetAdjacency(pos))
 			{
 				if (IsValid(triIndex))
 				{
-					if (m_PosHash.HasAdjacency(adjIndex, triIndex))
+					if (m_PosHash.HasAdjacency(adjPos, triIndex))
 					{
 						tris.insert(triIndex);
 					}
 				}
 			}
+			// New pos and its adjacency pos share more than 2 triangles
 			if (tris.size() > 2)
 			{
 				for (size_t triIndex : tris)
@@ -742,9 +726,10 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 			break;
 		}
 
-		if (contraction.error > m_MaxErrorAllow)
+		Type currentError = (Type)(sqrt(contraction.error) * m_PositionInvScale);
+		if (currentError > m_MaxErrorAllow)
 		{
-			break;
+			continue;
 		}
 
 		assert(contraction.edge.index[0] != contraction.edge.index[1]);
@@ -922,6 +907,8 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 		m_Vertices.push_back(contraction.vertex);
 		m_Adjacencies.push_back({});
 
+		KPositionHashKey newPos = m_PosHash.GetPositionHash(contraction.vertex.pos);
+
 		std::unordered_set<KPositionHashKey> adjacencyPositions;
 		if (m_Memoryless)
 		{
@@ -1088,13 +1075,9 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 			}
 		};
 
-		KPositionHashKey newPos = m_PosHash.AddPositionHash(contraction.vertex.pos, newIndex);
+		m_PosHash.AddPositionHash(contraction.vertex.pos, newIndex);
 
 		const std::unordered_set<size_t>& p0Verts = m_PosHash.GetVertex(p0);
-		if (p0Verts.size() > 1)
-		{
-			int x = 0;
-		}
 		for (size_t v : p0Verts)
 		{
 			if (v == newIndex)
@@ -1106,10 +1089,6 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 		}
 
 		const std::unordered_set<size_t>& p1Verts = m_PosHash.GetVertex(p1);
-		if (p1Verts.size() > 1)
-		{
-			int x = 0;
-		}
 		for (size_t v : p1Verts)
 		{
 			if (v == newIndex)
@@ -1125,6 +1104,18 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 			m_Adjacencies[newIndex].insert(triIndex);
 		}
 
+		for (size_t triIndex : sharedAdjacencySet)
+		{
+			for (const KPositionHashKey& pos : sharedPositions)
+			{
+				m_PosHash.RemoveAdjacencyOf(pos, triIndex);
+				m_PosHash.ForEachVertex(pos, [this, triIndex](size_t v)
+				{
+					m_Adjacencies[v].erase(triIndex);
+				});
+			}
+		}
+
 		m_PosHash.RemovePositionHashExcept(p0, newIndex);
 		m_PosHash.RemoveAdjacency(p0);
 		m_PosHash.RemovePositionHashExcept(p1, newIndex);
@@ -1132,15 +1123,6 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 
 		m_PosHash.SetFlag(newPos, m_PosHash.GetFlag(p0) | m_PosHash.GetFlag(p1));
 		m_PosHash.SetAdjacency(newPos, newAdjacencyTriangle);
-
-		if (newPos == p0 || newPos == p1)
-		{
-			m_PosHash.IncVersion(newPos, 1);
-		}
-		else
-		{
-			m_PosHash.SetVersion(newPos, 0);
-		}
 
 		if (p0 != newPos)
 		{
@@ -1219,11 +1201,7 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 				GetTriangleHash(triangle, p);
 
 				int32_t i = GetTriangleIndex(p, pos);
-				if (i < 0)
-				{
-					assert(false);
-					continue;
-				}
+				assert(i >= 0);
 
 				size_t v0 = triangle.index[i];
 				size_t v1 = triangle.index[(i + 1) % 3];
@@ -1237,21 +1215,27 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 				bool lock1 = m_PosHash.GetFlag(p1) == VERTEX_FLAG_LOCK;
 				bool lock2 = m_PosHash.GetFlag(p2) == VERTEX_FLAG_LOCK;
 
-				m_EdgeHash.AddEdgeHash(p0, p1, triIndex);
-				if (!m_EdgeHash.HasConnection(p1, p0))
+				if (p0 != p1)
 				{
-					if (!(lock0 && lock1))
+					m_EdgeHash.AddEdgeHash(p0, p1, triIndex);
+					if (!m_EdgeHash.HasConnection(p1, p0))
 					{
-						NewContraction(v0, v1);
+						if (!(lock0 && lock1))
+						{
+							NewContraction(v0, v1);
+						}
 					}
 				}
 
-				m_EdgeHash.AddEdgeHash(p2, p0, triIndex);
-				if (!m_EdgeHash.HasConnection(p0, p2))
+				if (p2 != p0)
 				{
-					if (!(lock2 && lock0))
+					m_EdgeHash.AddEdgeHash(p2, p0, triIndex);
+					if (!m_EdgeHash.HasConnection(p0, p2))
 					{
-						NewContraction(v2, v0);
+						if (!(lock2 && lock0))
+						{
+							NewContraction(v2, v0);
+						}
 					}
 				}
 			}
@@ -1271,7 +1255,7 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 
 		m_CurTriangleCount -= (int32_t)invalidTriangle;
 		m_CurVertexCount -= (int32_t)invalidVertex + 1;
-		m_CurError = std::max(m_CurError, contraction.error);
+		m_CurError = std::max(m_CurError, currentError);
 
 		collapse.currTriangleCount = m_CurTriangleCount;
 		collapse.currVertexCount = m_CurVertexCount;
@@ -1283,14 +1267,15 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 			++m_CurrOpIdx;
 		}
 
-		/*
+#if 0
 		if (!CheckEdge(newPos))
 		{
-			m_Vertices[v0].color = glm::tvec3<Type>(0, 0, 0);
-			m_Vertices[v1].color = glm::tvec3<Type>(0, 0, 0);
+			m_Vertices[v0].color = glm::tvec3<Type>(1, 0, 0);
+			m_Vertices[v1].color = glm::tvec3<Type>(1, 1, 0);
+			m_Vertices[newIndex].color = glm::tvec3<Type>(0, 0, 1);
 			break;
 		}
-		*/
+#endif
 	}
 
 	m_MinTriangleCount = m_CurTriangleCount;
@@ -1402,7 +1387,7 @@ bool KMeshSimplification::Simplify(MeshSimplifyTarget target, int32_t targetCoun
 		}
 	}
 
-	error = (float)(sqrt(m_CurError) * m_PositionInvScale);
+	error = (float)m_CurError;
 
 	for (uint32_t triIndex = 0; triIndex < (uint32_t)m_Triangles.size(); ++triIndex)
 	{
