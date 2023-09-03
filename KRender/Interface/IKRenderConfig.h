@@ -196,8 +196,12 @@ enum VertexFormat
 	VF_VIRTUAL_GEOMETRY_VERTEX,
 
 	VF_UNKNOWN,
-	VF_COUNT = VF_UNKNOWN
+
+	VF_COUNT = VF_UNKNOWN,
+	VF_MAX_VERTEX_COUNT = VF_COLOR5 - VF_COLOR0 + 1
 };
+
+static_assert(VF_COLOR0 + VF_MAX_VERTEX_COUNT == VF_GUI_POS_UV_COLOR, "check");
 
 enum ElementFormat
 {

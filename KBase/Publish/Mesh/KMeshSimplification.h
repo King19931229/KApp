@@ -156,8 +156,11 @@ protected:
 
 	std::vector<Triangle> m_Triangles;
 	std::vector<Vertex> m_Vertices;
+	std::vector<uint32_t> m_MaterialIndices;
 	// 相邻三角形列表
 	std::vector<std::unordered_set<size_t>> m_Adjacencies;
+	// 材质调试
+	std::vector<glm::vec3> m_DebugMaterialColors;
 
 	KPositionHash m_PosHash;
 	KEdgeHash m_EdgeHash;
@@ -213,7 +216,7 @@ protected:
 	inline int32_t GetTriangleIndex(KPositionHashKey(&triPosHash)[3], const KPositionHashKey& hash);
 	inline int32_t GetTriangleIndexByHash(const Triangle& triangle, const KPositionHashKey& hash);
 
-	bool InitVertexData(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices);
+	bool InitVertexData(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices);
 	Quadric ComputeQuadric(const Triangle& triangle) const;
 	AtrrQuadric ComputeAttrQuadric(const Triangle& triangle) const;
 	ErrorQuadric ComputeErrorQuadric(const Triangle& triangle) const;
@@ -221,12 +224,12 @@ protected:
 	void InitHeapData();
 	bool PerformSimplification(int32_t minVertexAllow, int32_t minTriangleAllow);
 public:
-	bool Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, int32_t minVertexAllow, int32_t minTriangleAllow);
+	bool Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, int32_t minVertexAllow, int32_t minTriangleAllow);
 	bool UnInit();
 
 	inline int32_t& GetMinVertexCount() { return m_MinVertexCount; }
 	inline int32_t& GetMaxVertexCount() { return m_MaxVertexCount; }
 	inline int32_t& GetCurVertexCount() { return m_CurVertexCount; }
 
-	bool Simplify(MeshSimplifyTarget target, int32_t targetCount, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, float& error);
+	bool Simplify(MeshSimplifyTarget target, int32_t targetCount, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices, float& error);
 };

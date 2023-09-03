@@ -29,7 +29,7 @@ namespace KMeshProcessor
 
 	int32_t FindColorIndex(const std::vector<KAssetVertexComponentGroup>& group, uint32_t colorIndex)
 	{
-		assert(colorIndex <= 5);
+		assert(colorIndex <= MAX_COLOR_CHANNEL - 1);
 		AssetVertexComponent targetComponent = (AssetVertexComponent)(AVC_COLOR0_3F + colorIndex);
 
 		if (targetComponent > AVC_COLOR5_3F)
@@ -228,14 +228,15 @@ namespace KMeshProcessor
 		newIndices.clear();
 		newIndices.reserve(oldIndices.size());
 
-		std::unordered_map<uint32_t, uint32_t> remap;
+		const int64_t maxSearchCount = 5;
 
+		std::unordered_map<uint32_t, uint32_t> remap;
 		for (int64_t i = 0; i < (int64_t)motrons.size(); ++i)
 		{
 			uint32_t newIndex = -1;
 
 			const uint32_t oldIndex = motrons[i].index;
-			for (int64_t j = i - 1; j >= 0; --j)
+			for (int64_t j = i - 1, k = 0; j >= 0 && k < maxSearchCount; --j, ++k)
 			{
 				const uint32_t nearIndex = motrons[j].index;
 				if (oldVertices[oldIndex].AlmostEqual(oldVertices[nearIndex]))
@@ -264,20 +265,20 @@ namespace KMeshProcessor
 		return true;
 	}
 
-	bool Simplify(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices,
+	bool Simplify(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, const std::vector<uint32_t>& oldMaterialIndices,
 		MeshSimplifyTarget target, uint32_t targetCount,
-		std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices,
+		std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices, std::vector<uint32_t>& newMaterialIndices,
 		float& error)
 	{
 		KMeshSimplification simplification;
-		if (simplification.Init(oldVertices, oldIndices, 1, 3))
+		if (simplification.Init(oldVertices, oldIndices, oldMaterialIndices, 1, 3))
 		{
-			return simplification.Simplify(target, targetCount, newVertices, newIndices, error);
+			return simplification.Simplify(target, targetCount, newVertices, newIndices, newMaterialIndices, error);
 		}
 		return false;
 	}
 
-	bool ConvertForMeshProcessor(const KMeshRawData& input, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices)
+	bool ConvertForMeshProcessor(const KMeshRawData& input, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices)
 	{
 		int32_t PNTIndex = FindPNTIndex(input.components);
 		if (PNTIndex < 0)
@@ -285,8 +286,8 @@ namespace KMeshProcessor
 			return false;
 		}
 
-		int32_t colorIndex[5] = { -1 };
-		for (uint32_t i = 0; i < 5; ++i)
+		int32_t colorIndex[MAX_COLOR_CHANNEL] = { -1 };
+		for (uint32_t i = 0; i < MAX_COLOR_CHANNEL; ++i)
 		{
 			colorIndex[i] = FindColorIndex(input.components, i);
 		}
@@ -307,6 +308,7 @@ namespace KMeshProcessor
 
 		vertices.resize(totalVertexCount);
 		indices.resize(totalIndexCount);
+		materialIndices.resize(totalIndexCount / 3);
 
 		for (size_t partIndex = 0; partIndex < input.parts.size(); ++partIndex)
 		{
@@ -315,10 +317,13 @@ namespace KMeshProcessor
 			uint32_t indexBase = part.indexBase;
 			uint32_t indexCount = part.indexCount;
 
+			uint32_t triangleBase = indexBase / 3;
+			uint32_t triangleCount = indexCount / 3;
+
 			uint32_t vertexBase = part.vertexBase;
 			uint32_t vertexCount = part.vertexCount;
 
-			uint32_t indexMin = std::numeric_limits<uint32_t>::max();
+			constexpr uint32_t indexMin = std::numeric_limits<uint32_t>::max();
 
 			if (input.index16Bit)
 			{
@@ -337,6 +342,11 @@ namespace KMeshProcessor
 				{
 					indices[i + indexBase] = pIndices[i];
 				}
+			}
+
+			for (uint32_t i = 0; i < triangleCount; ++i)
+			{
+				materialIndices[i + triangleBase] = (uint32_t)partIndex;
 			}
 
 			const KMeshRawData::VertexDataBuffer& PNTData = input.verticesDatas[PNTIndex];
@@ -369,30 +379,53 @@ namespace KMeshProcessor
 		return true;
 	}
 
-	bool ConvertFromMeshProcessor(KMeshRawData& output, const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, const std::vector<KMeshRawData::Material>& originalMats)
+	bool ConvertFromMeshProcessor(KMeshRawData& output, const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, const std::vector<uint32_t>& oldMaterialIndices, const std::vector<KMeshRawData::Material>& originalMats)
 	{
-		// TODO 重构
-
 		std::vector<KMeshRawData::ModelPart> parts;
-		parts.resize(1);
+		parts.resize(originalMats.size());
 
 		std::vector<KMeshProcessorVertex> vertices;
 		std::vector<uint32_t> indices;
 
 		vertices = oldVertices;
-		indices = oldIndices;
+
+		std::vector<std::vector<uint32_t>> indicesByMaterial;
+		indicesByMaterial.resize(originalMats.size());
+
+		assert(oldMaterialIndices.size() * 3 == oldIndices.size());
+
+		for (size_t triIndex = 0; triIndex < oldMaterialIndices.size(); ++triIndex)
+		{
+			uint32_t materialIndex = oldMaterialIndices[triIndex];
+			if (materialIndex >= originalMats.size())
+			{
+				return false;
+			}
+			for (size_t i = 0; i < 3; ++i)
+			{
+				indicesByMaterial[materialIndex].push_back(oldIndices[3 * triIndex + i]);
+			}
+		}
+
+		indices.resize(oldIndices.size());
 
 		uint32_t indexBase = 0;
 		uint32_t vertexBase = 0;
 
-		for (size_t partIndex = 0; partIndex < 1; ++partIndex)
+		for (size_t partIndex = 0; partIndex < parts.size(); ++partIndex)
 		{
 			KMeshRawData::ModelPart& part = parts[partIndex];
+			const std::vector<uint32_t>& index = indicesByMaterial[partIndex];
 			part.indexBase = indexBase;
-			part.indexCount = (uint32_t)oldIndices.size();
+			part.indexCount = (uint32_t)index.size();
 			part.vertexBase = 0;
 			part.vertexCount = (uint32_t)oldVertices.size();
-			part.material = originalMats[0];
+			part.material = originalMats[partIndex];
+
+			for (uint32_t i = 0; i < part.indexCount; ++i)
+			{
+				indices[part.indexBase + i] = index[i];
+			}
 
 			indexBase += part.indexCount;
 			vertexBase += part.vertexCount;
@@ -416,7 +449,7 @@ namespace KMeshProcessor
 			vertexBuffers.push_back(std::move(vertexBuffer));
 		}
 
-		for (uint32_t c = 0; c < 5; ++c)
+		for (uint32_t c = 0; c < MAX_COLOR_CHANNEL; ++c)
 		{
 			KMeshRawData::VertexDataBuffer vertexBuffer;
 			vertexBuffer.resize(sizeof(glm::vec3)* vertices.size());

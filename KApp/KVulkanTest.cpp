@@ -60,22 +60,35 @@ void InitQEM(IKEnginePtr engine)
 		{
 			KAssetImportOption option;
 			option.components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
-			// option.components.push_back({ AVC_COLOR0_3F });
+			option.components.push_back({ AVC_COLOR0_3F });
 			if (loader->Import(filePath, option, userData))
 			{
 				userData.components = option.components;
 
 				std::vector<KMeshProcessorVertex> vertices;
 				std::vector<uint32_t> indices;
+				std::vector<uint32_t> materialIndices;
 
-				KMeshProcessor::ConvertForMeshProcessor(userData, vertices, indices);
+				KMeshProcessor::ConvertForMeshProcessor(userData, vertices, indices, materialIndices);
 				for (size_t partIndex = 0; partIndex < userData.parts.size(); ++partIndex)
 				{
 					originalMats.push_back(userData.parts[partIndex].material);
 				}
 
-				simplification.Init(vertices, indices, 1, 3);
-				clusterBuilder.Build(vertices, indices);
+#define DEBUG_MULTI_MATERIAL 1
+#if DEBUG_MULTI_MATERIAL
+				const uint32_t maxMaterialCount = 6;
+				for (size_t i = 0; i < materialIndices.size(); ++i)
+				{
+					materialIndices[i] = rand() % maxMaterialCount;
+				}
+				for (size_t i = originalMats.size(); i < maxMaterialCount; ++i)
+				{
+					originalMats.push_back(originalMats[0]);
+				}
+#endif
+				simplification.Init(vertices, indices, materialIndices, 1, 3);
+				clusterBuilder.Build(vertices, indices, materialIndices);
 				// std::vector<KMeshProcessorVertex> newVertices;
 				// std::vector<uint32_t> newIndices;
 				// clusterBuilder.ColorDebugCluster(0, newVertices, newIndices);
@@ -155,7 +168,7 @@ void InitQEM(IKEnginePtr engine)
 			DebugDAGCut
 		};
 
-		static uint32_t selectedOption = DebugVirtualGeometry;
+		static uint32_t selectedOption = DebugSimplification;
 
 		if (ImGui::RadioButton("DebugVirtualGeometry", selectedOption == DebugVirtualGeometry))
 		{
@@ -168,6 +181,7 @@ void InitQEM(IKEnginePtr engine)
 		}
 		static int32_t targetCount = 0;
 		ImGui::SliderInt("TargetCount", &targetCount, std::max(simplification.GetMaxVertexCount() - 1000000, simplification.GetMinVertexCount()), std::min(simplification.GetMaxVertexCount(), simplification.GetMaxVertexCount()));
+		// ImGui::SliderInt("TargetCount", &targetCount, 8194, 8214);
 
 		if (ImGui::RadioButton("DebugCluster", selectedOption == DebugCluster))
 		{
@@ -264,6 +278,7 @@ void InitQEM(IKEnginePtr engine)
 				static KMeshRawData result;
 				static std::vector<KMeshProcessorVertex> vertices;
 				static std::vector<uint32_t> indices;
+				static std::vector<uint32_t> materalIndices;
 
 				if (selectedOption == DebugVirtualGeometry)
 				{
@@ -272,9 +287,9 @@ void InitQEM(IKEnginePtr engine)
 				else if (selectedOption == DebugSimplification)
 				{
 					static float error = 0;
-					if (targetCount != simplification.GetCurVertexCount() && simplification.Simplify(MeshSimplifyTarget::VERTEX, targetCount, vertices, indices, error))
+					if (targetCount != simplification.GetCurVertexCount() && simplification.Simplify(MeshSimplifyTarget::VERTEX, targetCount, vertices, indices, materalIndices, error))
 					{
-						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, originalMats))
+						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, materalIndices, originalMats))
 						{
 							if (KMeshProcessor::CalcTBN(vertices, indices))
 							{
@@ -298,7 +313,7 @@ void InitQEM(IKEnginePtr engine)
 						{
 							clusterBuilder.ColorDebugCluster(targetLevel, vertices, indices);
 						}
-						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, originalMats))
+						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, materalIndices, originalMats))
 						{
 							if (KMeshProcessor::CalcTBN(vertices, indices))
 							{
@@ -316,7 +331,7 @@ void InitQEM(IKEnginePtr engine)
 					if (updateDebugDAGCut)
 					{
 						clusterBuilder.ColorDebugDAGCut(targetTriangleNum, targetError, vertices, indices, currentTargetTriangleNum, currentTargetError);
-						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, originalMats))
+						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, materalIndices, originalMats))
 						{
 							if (KMeshProcessor::CalcTBN(vertices, indices))
 							{

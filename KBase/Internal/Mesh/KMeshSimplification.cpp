@@ -1,5 +1,8 @@
 #include "Publish/Mesh/KMeshSimplification.h"
 
+#define VERTEX_COLOR_WHITE_DEBUG 0
+#define VERTEX_COLOR_MATERIAL_DEBUG 0
+
 void KMeshSimplification::UndoCollapse()
 {
 	if (m_CurrOpIdx > 0)
@@ -249,7 +252,7 @@ int32_t KMeshSimplification::GetTriangleIndexByHash(const Triangle& triangle, co
 	return GetTriangleIndex(triPosHash, hash);
 }
 
-bool KMeshSimplification::InitVertexData(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices)
+bool KMeshSimplification::InitVertexData(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices)
 {
 	KAABBBox bound;
 
@@ -305,7 +308,10 @@ bool KMeshSimplification::InitVertexData(const std::vector<KMeshProcessorVertex>
 	{
 		m_Vertices[i].pos = glm::tvec3<Type>(vertices[i].pos) * m_PositionScale;
 		m_Vertices[i].uv = vertices[i].uv;
-		m_Vertices[i].color = vertices[i].color[0];//glm::tvec3<Type>(1, 1, 1);
+		m_Vertices[i].color = vertices[i].color[0];
+#if VERTEX_COLOR_WHITE_DEBUG
+		m_Vertices[i].color = glm::tvec3<Type>(1, 1, 1);
+#endif
 		m_Vertices[i].normal = vertices[i].normal;
 		bound = bound.Merge(m_Vertices[i].pos);
 		KPositionHashKey hash = m_PosHash.AddPositionHash(m_Vertices[i].pos, i);
@@ -317,6 +323,8 @@ bool KMeshSimplification::InitVertexData(const std::vector<KMeshProcessorVertex>
 
 	m_Triangles.clear();
 	m_Triangles.reserve(maxTriCount);
+
+	m_MaterialIndices.reserve(maxTriCount);
 
 	for (uint32_t i = 0; i < maxTriCount; ++i)
 	{
@@ -340,7 +348,10 @@ bool KMeshSimplification::InitVertexData(const std::vector<KMeshProcessorVertex>
 			m_EdgeHash.AddEdgeHash(p[i], p[(i + 1) % 3], m_Triangles.size());
 		}
 
+		assert(materialIndices[i] < maxTriCount);
+
 		m_Triangles.push_back(triangle);
+		m_MaterialIndices.push_back(materialIndices[i]);
 
 		if (IsDegenerateTriangle(triangle))
 		{
@@ -380,6 +391,19 @@ bool KMeshSimplification::InitVertexData(const std::vector<KMeshProcessorVertex>
 		{
 			++m_MaxVertexCount;
 		}
+	}
+
+	size_t maxMaterialIndex = 0;
+	for (size_t materialIndex : materialIndices)
+	{
+		maxMaterialIndex = std::max(maxMaterialIndex, materialIndex);
+	}
+
+	m_DebugMaterialColors.resize(maxMaterialIndex + 1);
+	for (size_t i = 0; i <= maxMaterialIndex; ++i)
+	{
+		m_DebugMaterialColors[i] = glm::vec3(0);
+		m_DebugMaterialColors[i][std::rand() % 3] = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
 	}
 
 	return true;
@@ -1284,7 +1308,7 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 	return true;
 }
 
-bool KMeshSimplification::Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, int32_t minVertexAllow, int32_t minTriangleAllow)
+bool KMeshSimplification::Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, int32_t minVertexAllow, int32_t minTriangleAllow)
 {
 	UnInit();
 
@@ -1292,8 +1316,9 @@ bool KMeshSimplification::Init(const std::vector<KMeshProcessorVertex>& vertices
 	std::vector<uint32_t> newIndices;
 
 	SanitizeDuplicatedVertexData(vertices, indices, newVertices, newIndices);
-	if (InitVertexData(newVertices, newIndices))
+	if (InitVertexData(newVertices, newIndices, materialIndices))
 	{
+		m_MaterialIndices = materialIndices;
 		InitHeapData();
 		if (PerformSimplification(minVertexAllow, minTriangleAllow))
 		{
@@ -1309,6 +1334,7 @@ bool KMeshSimplification::UnInit()
 {
 	m_PosHash.UnInit();
 	m_EdgeHash.UnInit();
+	m_MaterialIndices.clear();
 	m_Triangles.clear();
 	m_Vertices.clear();
 	m_Quadric.clear();
@@ -1331,10 +1357,11 @@ bool KMeshSimplification::UnInit()
 	return true;
 }
 
-bool KMeshSimplification::Simplify(MeshSimplifyTarget target, int32_t targetCount, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, float& error)
+bool KMeshSimplification::Simplify(MeshSimplifyTarget target, int32_t targetCount, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices, float& error)
 {
 	vertices.clear();
 	indices.clear();
+	materialIndices.clear();
 
 	if (target == MeshSimplifyTarget::VERTEX)
 	{
@@ -1396,6 +1423,7 @@ bool KMeshSimplification::Simplify(MeshSimplifyTarget target, int32_t targetCoun
 			indices.push_back((uint32_t)m_Triangles[triIndex].index[0]);
 			indices.push_back((uint32_t)m_Triangles[triIndex].index[1]);
 			indices.push_back((uint32_t)m_Triangles[triIndex].index[2]);
+			materialIndices.push_back(m_MaterialIndices[triIndex]);
 		}
 	}
 	if (indices.size() == 0)
@@ -1405,19 +1433,39 @@ bool KMeshSimplification::Simplify(MeshSimplifyTarget target, int32_t targetCoun
 
 	std::unordered_map<uint32_t, uint32_t> remapIndices;
 
+	std::vector<uint32_t> remapIndexKeys;
+	remapIndexKeys.resize(indices.size());
+
+#if VERTEX_COLOR_MATERIAL_DEBUG
+	uint32_t maxIndex = 0;
 	for (size_t i = 0; i < indices.size(); ++i)
 	{
+		maxIndex = std::max(maxIndex, indices[i]);
+	}
+#endif
+
+	for (size_t i = 0; i < indices.size(); ++i)
+	{
+		uint32_t remapIndexKey = indices[i];
+#if VERTEX_COLOR_MATERIAL_DEBUG
+		uint32_t materialIndex = materialIndices[i / 3];
+		remapIndexKey = (uint32_t)(materialIndex * maxIndex + indices[i]);
+#endif
+		remapIndexKeys[i] = remapIndexKey;
 		uint32_t oldIndex = indices[i];
-		auto it = remapIndices.find(oldIndex);
+		auto it = remapIndices.find(remapIndexKey);
 		if (it == remapIndices.end())
 		{
 			int32_t mapIndex = (int32_t)remapIndices.size();
-			remapIndices.insert({ oldIndex, mapIndex });
+			remapIndices.insert({ remapIndexKey, mapIndex });
 
 			KMeshProcessorVertex vertex;
 			vertex.pos = glm::tvec3<Type>(m_Vertices[oldIndex].pos) * m_PositionInvScale;
 			vertex.uv = m_Vertices[oldIndex].uv;
 			vertex.color[0] = m_Vertices[oldIndex].color;
+#if VERTEX_COLOR_MATERIAL_DEBUG
+			vertex.color[0] = m_DebugMaterialColors[materialIndex];
+#endif
 			vertex.normal = m_Vertices[oldIndex].normal;
 			vertices.push_back(vertex);
 		}
@@ -1425,7 +1473,7 @@ bool KMeshSimplification::Simplify(MeshSimplifyTarget target, int32_t targetCoun
 
 	for (size_t i = 0; i < indices.size(); ++i)
 	{
-		indices[i] = remapIndices[indices[i]];
+		indices[i] = remapIndices[remapIndexKeys[i]];
 	}
 
 	return true;

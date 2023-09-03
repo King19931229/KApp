@@ -229,11 +229,12 @@ namespace KMeshProcessor
 	EXPORT_DLL bool RemoveDuplicated(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices);
 	EXPORT_DLL bool RemoveEqual(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices);
 
-	EXPORT_DLL bool Simplify(const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices,
+	EXPORT_DLL bool Simplify(
+		const std::vector<KMeshProcessorVertex>& oldVertices, const std::vector<uint32_t>& oldIndices, const std::vector<uint32_t>& oldMaterialIndices,
 		MeshSimplifyTarget target, uint32_t targetCount,
-		std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices,
+		std::vector<KMeshProcessorVertex>& newVertices, std::vector<uint32_t>& newIndices, std::vector<uint32_t>& newMaterialIndices,
 		float& error);
 
-	EXPORT_DLL bool ConvertForMeshProcessor(const KMeshRawData& input, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices);
-	EXPORT_DLL bool ConvertFromMeshProcessor(KMeshRawData& output, const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<KMeshRawData::Material>& originalMats);
+	EXPORT_DLL bool ConvertForMeshProcessor(const KMeshRawData& input, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices);
+	EXPORT_DLL bool ConvertFromMeshProcessor(KMeshRawData& output, const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& oldMaterialIndices, const std::vector<KMeshRawData::Material>& originalMats);
 };

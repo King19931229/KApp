@@ -163,13 +163,14 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 	{
 		std::vector<KMeshProcessorVertex> vertices;
 		std::vector<uint32_t> indices;
-		if (!KMeshProcessor::ConvertForMeshProcessor(userData, vertices, indices))
+		std::vector<uint32_t> materialIndices;
+		if (!KMeshProcessor::ConvertForMeshProcessor(userData, vertices, indices, materialIndices))
 		{
 			return false;
 		}
 
 		KVirtualGeometryBuilder builder;
-		builder.Build(vertices, indices);
+		builder.Build(vertices, indices, materialIndices);
 
 		std::vector<KMeshClusterBatch> clusters;
 		KMeshClustersVertexStorage vertexStroages;

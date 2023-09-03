@@ -38,6 +38,7 @@ struct KMeshCluster
 
 	std::vector<KMeshProcessorVertex> vertices;
 	std::vector<uint32_t> indices;
+	std::vector<uint32_t> materialIndices;
 
 	// lodBound是计算Lod所用到的Bound 并不是严格意义上真正的Bound
 	KAABBBox lodBound;
@@ -68,8 +69,8 @@ struct KMeshCluster
 	void InitBound();
 	void UnInit();
 	void Init(KMeshClusterPtr* clusters, size_t numClusters);
-	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices);
-	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<Triangle>& inTriangles, const std::vector<idx_t>& inTriIndices, const KRange& range);
+	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices, const std::vector<uint32_t>& inMaterialIndices);
+	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<Triangle>& inTriangles, const std::vector<idx_t>& inTriIndices, const std::vector<uint32_t>& inMaterialIndices, const KRange& range);
 };
 
 struct KMeshClusterGroup
@@ -136,6 +137,7 @@ protected:
 	{
 		std::vector<KMeshProcessorVertex> vertices;
 		std::vector<Triangle> triangles;
+		std::vector<uint32_t> materialIndices;
 		KGraph graph;
 	};
 
@@ -143,7 +145,7 @@ protected:
 	void Partition(Adjacency& context);
 public:
 	bool UnInit();
-	bool Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum);
+	bool Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, uint32_t minPartitionNum, uint32_t maxPartitionNum);
 
 	inline void GetClusters(std::vector<KMeshClusterPtr>& clusters) const
 	{
@@ -238,7 +240,7 @@ protected:
 	bool m_CheckClusterAdacency = false;
 
 	void DAGReduce(uint32_t childrenBegin, uint32_t childrenEnd, uint32_t level);
-	void ClusterTriangle(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices);
+	void ClusterTriangle(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices);
 	std::vector<std::unordered_map<size_t, size_t>> MaskClustersAdjacency(const std::vector<idx_t>& clusterIndices);
 	std::vector<std::unordered_map<size_t, size_t>> MaskClustersAdjacency(idx_t begin, idx_t end);
 
@@ -259,7 +261,7 @@ protected:
 	void SortBVHNodes(const std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices);
 	uint32_t BuildHierarchyTopDown(std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices, bool sort);
 
-	void BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum, uint32_t minClusterGroup, uint32_t maxClusterGroup);
+	void BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, uint32_t minPartitionNum, uint32_t maxPartitionNum, uint32_t minClusterGroup, uint32_t maxClusterGroup);
 	void BuildClusterStorage();
 	void BuildClusterBVH();
 
@@ -279,7 +281,7 @@ public:
 	void DumpClusterAsOBJ(const std::string& saveRoot) const;
 	void DumpClusterInformation(const std::string& saveRoot) const;
 
-	void Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices);
+	void Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices);
 
 	bool GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, std::vector<uint32_t>& clustersPartNum);
 	bool GetMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies);

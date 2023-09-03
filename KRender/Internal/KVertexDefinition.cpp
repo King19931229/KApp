@@ -27,7 +27,7 @@ namespace KVertexDefinition
 			}
 			// COLOR_3F
 			{
-				for (uint32_t i = 0; i < 5; ++i)
+				for (uint32_t i = 0; i < VF_MAX_VERTEX_COUNT; ++i)
 				{
 					VERTEX_DETAILS[VF_COLOR0 + i].semanticDetails.push_back({ (VertexSemantic)(VS_COLOR0 + i), EF_R32G32B32_FLOAT, MEMBER_OFFSET(COLOR_3F, COLOR) });
 					VERTEX_DETAILS[VF_COLOR0 + i].vertexSize = sizeof(COLOR_3F);

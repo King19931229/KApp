@@ -4,6 +4,7 @@ void KMeshCluster::UnInit()
 {
 	vertices.clear();
 	indices.clear();
+	materialIndices.clear();
 	lodBound.SetNull();
 	color = glm::vec3(0);
 	lodError = 0;
@@ -51,15 +52,21 @@ void KMeshCluster::Init(KMeshClusterPtr* clusters, size_t numClusters)
 
 	vertices.reserve(sumVertexNum);
 	indices.reserve(sumIndexNum);
+	materialIndices.reserve(sumIndexNum / 3);
 
 	std::unordered_map<size_t, uint32_t> vertexMap;
 
 	for (size_t i = 0; i < numClusters; ++i)
 	{
 		KMeshCluster& cluster = *clusters[i];
-		for (uint32_t index : cluster.indices)
+		for (size_t idx = 0; idx < cluster.indices.size(); ++idx)
 		{
+			const uint32_t index = cluster.indices[idx];
+			const uint32_t triangleIndex = (uint32_t)idx / 3;
+
+			const uint32_t materialIndex = cluster.materialIndices[triangleIndex];
 			const KMeshProcessorVertex& vertex = cluster.vertices[index];
+
 			size_t hash = KMeshProcessorVertexHash(vertex);
 			uint32_t newIndex = 0;
 			auto it = vertexMap.find(hash);
@@ -74,6 +81,7 @@ void KMeshCluster::Init(KMeshClusterPtr* clusters, size_t numClusters)
 				newIndex = it->second;
 			}
 			indices.push_back(newIndex);
+			materialIndices.push_back(materialIndex);
 		}
 
 		lodError = std::max(lodError, cluster.lodError);
@@ -82,20 +90,22 @@ void KMeshCluster::Init(KMeshClusterPtr* clusters, size_t numClusters)
 
 	vertices.shrink_to_fit();
 	indices.shrink_to_fit();
+	materialIndices.shrink_to_fit();
 
 	InitBound();
 }
 
-void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices)
+void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices, const std::vector<uint32_t>& inMaterialIndices)
 {
 	UnInit();
 	color = RandomColor();
 	vertices = inVertices;
 	indices = inIndices;
+	materialIndices = inMaterialIndices;
 	InitBound();
 }
 
-void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<Triangle>& inTriangles, const std::vector<idx_t>& inTriIndices, const KRange& range)
+void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<Triangle>& inTriangles, const std::vector<idx_t>& inTriIndices, const std::vector<uint32_t>& inMaterialIndices, const KRange& range)
 {
 	UnInit();
 
@@ -105,6 +115,7 @@ void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, con
 
 	vertices.reserve(num);
 	indices.reserve(num * 3);
+	materialIndices.reserve(num);
 
 	std::unordered_map<uint32_t, uint32_t> indexMap;
 
@@ -112,7 +123,8 @@ void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, con
 	size_t end = range.end;
 	for (size_t idx = begin; idx <= end; ++idx)
 	{
-		uint32_t triIndex = inTriIndices[idx];
+		const uint32_t triIndex = inTriIndices[idx];
+		const uint32_t materialIndex = inMaterialIndices[triIndex];
 		for (uint32_t i = 0; i < 3; ++i)
 		{
 			uint32_t index = inTriangles[triIndex].index[i];
@@ -130,6 +142,7 @@ void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, con
 			}
 			indices.push_back(newIndex);
 		}
+		materialIndices.push_back(materialIndex);
 	}
 
 	vertices.shrink_to_fit();
@@ -536,7 +549,7 @@ void KMeshTriangleClusterBuilder::Partition(Adjacency& context)
 	for (const KRange& range : partitioner.ranges)
 	{
 		KMeshClusterPtr cluster = KMeshClusterPtr(KNEW KMeshCluster());
-		cluster->Init(context.vertices, context.triangles, partitioner.indices, range);
+		cluster->Init(context.vertices, context.triangles, partitioner.indices, context.materialIndices, range);
 		m_Clusters.push_back(std::move(cluster));
 	}
 }
@@ -547,12 +560,13 @@ bool KMeshTriangleClusterBuilder::UnInit()
 	return true;
 }
 
-bool KMeshTriangleClusterBuilder::Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum)
+bool KMeshTriangleClusterBuilder::Init(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, uint32_t minPartitionNum, uint32_t maxPartitionNum)
 {
 	UnInit();
 	m_MinPartitionNum = minPartitionNum;
 	m_MaxPartitionNum = maxPartitionNum;
 	Adjacency adjacency;
+	adjacency.materialIndices = materialIndices;
 	if (BuildTriangleAdjacencies(vertices, indices, adjacency))
 	{
 		Partition(adjacency);
@@ -580,10 +594,11 @@ void KVirtualGeometryBuilder::DAGReduce(uint32_t childrenBegin, uint32_t childre
 
 	uint32_t minTargetTriangleNum = m_MaxPartitionNum * numParent / 2;
 	KMeshSimplification simplification;
-	simplification.Init(mergedCluster->vertices, mergedCluster->indices, 3, minTargetTriangleNum);
+	simplification.Init(mergedCluster->vertices, mergedCluster->indices, mergedCluster->materialIndices, 3, minTargetTriangleNum);
 
 	std::vector<KMeshProcessorVertex> vertices;
 	std::vector<uint32_t> indices;
+	std::vector<uint32_t> materialIndices;
 
 	float lodError = 0;
 	float edgeLength = 0;
@@ -593,20 +608,20 @@ void KVirtualGeometryBuilder::DAGReduce(uint32_t childrenBegin, uint32_t childre
 	for (uint32_t partitionNum = m_MaxPartitionNum - 2; partitionNum >= m_MaxPartitionNum / 2; partitionNum -= 2)
 	{
 		uint32_t targetTriangleNum = partitionNum * numParent;
-		if (!simplification.Simplify(MeshSimplifyTarget::TRIANGLE, targetTriangleNum, vertices, indices, lodError))
+		if (!simplification.Simplify(MeshSimplifyTarget::TRIANGLE, targetTriangleNum, vertices, indices, materialIndices, lodError))
 		{
 			continue;
 		}
 
 		if (numParent == 1)
 		{
-			mergedCluster->Init(vertices, indices);
+			mergedCluster->Init(vertices, indices, materialIndices);
 			m_Clusters.push_back(mergedCluster);
 			break;
 		}
 
 		KMeshTriangleClusterBuilder builder;
-		if (!builder.Init(vertices, indices, m_MinPartitionNum, m_MaxPartitionNum))
+		if (!builder.Init(vertices, indices, materialIndices, m_MinPartitionNum, m_MaxPartitionNum))
 		{
 			continue;
 		}
@@ -669,10 +684,10 @@ void KVirtualGeometryBuilder::DAGReduce(uint32_t childrenBegin, uint32_t childre
 	}
 }
 
-void KVirtualGeometryBuilder::ClusterTriangle(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices)
+void KVirtualGeometryBuilder::ClusterTriangle(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices)
 {
 	KMeshTriangleClusterBuilder builder;
-	builder.Init(vertices, indices, m_MinPartitionNum, m_MaxPartitionNum);
+	builder.Init(vertices, indices, materialIndices, m_MinPartitionNum, m_MaxPartitionNum);
 	builder.GetClusters(m_Clusters);
 }
 
@@ -928,7 +943,7 @@ bool KVirtualGeometryBuilder::ColorDebugClusterGroups(const std::vector<KMeshClu
 	return true;
 }
 
-void KVirtualGeometryBuilder::BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, uint32_t minPartitionNum, uint32_t maxPartitionNum, uint32_t minClusterGroup, uint32_t maxClusterGroup)
+void KVirtualGeometryBuilder::BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, uint32_t minPartitionNum, uint32_t maxPartitionNum, uint32_t minClusterGroup, uint32_t maxClusterGroup)
 {
 	m_MinPartitionNum = minPartitionNum;
 	m_MaxPartitionNum = maxPartitionNum;
@@ -943,7 +958,7 @@ void KVirtualGeometryBuilder::BuildDAG(const std::vector<KMeshProcessorVertex>& 
 
 	m_LevelNum = 0;
 
-	ClusterTriangle(vertices, indices);
+	ClusterTriangle(vertices, indices, materialIndices);
 
 	uint32_t levelClusterBegin = 0;
 	uint32_t levelClusterNum = (uint32_t)m_Clusters.size();
@@ -1782,9 +1797,9 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 	}
 }
 
-void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices)
+void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices)
 {
-	BuildDAG(vertices, indices, 124, 128, 4, 32);
+	BuildDAG(vertices, indices, materialIndices, 124, 128, 4, 32);
 	BuildClusterStorage();
 	BuildClusterBVH();
 

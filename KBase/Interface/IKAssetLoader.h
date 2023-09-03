@@ -25,6 +25,12 @@ enum AssetVertexComponent
 	AVC_BINORMAL_3F
 };
 
+enum
+{
+	MAX_COLOR_CHANNEL = AVC_COLOR5_3F - AVC_COLOR0_3F + 1
+};
+static_assert(AVC_COLOR0_3F + MAX_COLOR_CHANNEL == AVC_TANGENT_3F, "check");
+
 typedef std::vector<AssetVertexComponent> KAssetVertexComponentGroup;
 
 enum MeshTextureSemantic
