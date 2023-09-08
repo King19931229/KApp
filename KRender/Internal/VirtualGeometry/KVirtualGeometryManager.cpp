@@ -119,6 +119,7 @@ bool KVirtualGeometryManager::Init()
 	m_ClusterVertexStorageBuffer.Init("VirtualGeometryVertexStorage", sizeof(float) * KMeshClustersVertexStorage::FLOAT_PER_VERTEX);
 	m_ClusterIndexStorageBuffer.Init("VirtualGeometryIndexStorage", sizeof(uint32_t));
 	m_ResourceBuffer.Init("VirtualGeometryResource", sizeof(KVirtualGeometryResource));
+	m_ClusterMateialStorageBuffer.Init("VirtualGeometryMaterialStorage", sizeof(uint32_t) * KMeshClustersMaterialStorage::INT_PER_MATERIAL);
 
 	return true;
 }
@@ -136,6 +137,7 @@ bool KVirtualGeometryManager::UnInit()
 	m_ClusterBatchBuffer.UnInit();
 	m_ClusterVertexStorageBuffer.UnInit();
 	m_ClusterIndexStorageBuffer.UnInit();
+	m_ClusterMateialStorageBuffer.UnInit();
 	m_GeometryMap.clear();
 
 	for (KVirtualGeometryResourceRef& ref : m_GeometryResources)
@@ -175,10 +177,11 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		std::vector<KMeshClusterBatch> clusters;
 		KMeshClustersVertexStorage vertexStroages;
 		KMeshClustersIndexStorage indexStroages;
+		KMeshClustersMaterialStorage materialStorages;
 		std::vector<uint32_t> clustersPartNum;
 		std::vector<uint32_t> clustersPartStart;
 
-		if (!builder.GetMeshClusterStorages(clusters, vertexStroages, indexStroages, clustersPartNum))
+		if (!builder.GetMeshClusterStorages(clusters, vertexStroages, indexStroages, materialStorages, clustersPartNum))
 		{
 			return false;
 		}
@@ -228,15 +231,7 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		}
 
 		uint32_t resourceIndex = (uint32_t)m_GeometryResources.size();
-
 		const KAABBBox& bound = builder.GetBound();
-
-		uint32_t maxMaterialIndex = 0;
-		for (KMeshClusterBatch& cluster : clusters)
-		{
-			maxMaterialIndex = std::max(cluster.localMaterialIndex, maxMaterialIndex);
-		}
-		assert(maxMaterialIndex + 1 == userData.parts.size());
 
 		{
 			geometry = KVirtualGeometryResourceRef(KNEW KVirtualGeometryResource());
@@ -267,6 +262,11 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 
 			geometry->materialBaseIndex = (uint32_t)m_MaterialResources.size();
 			geometry->materialNum = (uint32_t)userData.parts.size();
+
+			geometry->clusterMaterialStorageByteOffset = (uint32_t)m_ClusterMateialStorageBuffer.GetSize();
+			geometry->clusterMaterialStorageByteSize = (uint32_t)materialStorages.materials.size() * sizeof(uint32_t);
+
+			m_ClusterMateialStorageBuffer.Append(geometry->clusterMaterialStorageByteSize, materialStorages.materials.data());
 		}
 
 		for (uint32_t i = 0; i < userData.parts.size(); ++i)
@@ -341,6 +341,7 @@ bool KVirtualGeometryManager::RemoveGeometry(uint32_t index)
 		m_ClusterBatchBuffer.Remove(geometry->clusterBatchOffset, geometry->clusterBatchSize);
 		m_ClusterVertexStorageBuffer.Remove(geometry->clusterVertexStorageByteOffset, geometry->clusterVertexStorageByteSize);
 		m_ClusterIndexStorageBuffer.Remove(geometry->clusterIndexStorageByteOffset, geometry->clusterIndexStorageByteSize);
+		m_ClusterMateialStorageBuffer.Remove(geometry->clusterMaterialStorageByteOffset, geometry->clusterMaterialStorageByteSize);
 
 		uint32_t materialBaseIndex = geometry->materialBaseIndex;
 		uint32_t materialNum = geometry->materialNum;

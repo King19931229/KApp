@@ -6,7 +6,7 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 {
     uint batchIndex = batchStart + groupIndex;
 
-	if (CandidateClusterBatch[batchIndex] != 0xFFFFFFFF)
+	if (CandidateClusterBatch[batchIndex].x != 0xFFFFFFFF)
 	{
 		CandidateCluster candidateCluster = UnpackCandidateCluster(CandidateClusterBatch[batchIndex]);
 		uint instanceId = candidateCluster.instanceId;
@@ -44,7 +44,7 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 			}
 		}
 
-		CandidateClusterBatch[batchIndex] = 0xFFFFFFFF;
+		CandidateClusterBatch[batchIndex] = uvec4(0xFFFFFFFF);
 	}
 }
 

@@ -21,10 +21,13 @@ struct KVirtualGeometryResource
 	uint32_t clusterIndexStorageByteOffset = 0;
 	uint32_t clusterIndexStorageByteSize= 0;
 
+	uint32_t clusterMaterialStorageByteOffset = 0;
+	uint32_t clusterMaterialStorageByteSize = 0;
+
 	uint32_t materialBaseIndex = 0;
 	uint32_t materialNum = 0;
 
-	uint32_t padding[1];
+	uint32_t padding[3];
 };
 static_assert((sizeof(KVirtualGeometryResource) % 16) == 0, "Size must be a multiple of 16");
 

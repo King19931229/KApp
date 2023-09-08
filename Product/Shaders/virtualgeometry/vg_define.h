@@ -32,12 +32,14 @@ struct ClusterBatchStruct
 	vec4 lodBoundHalfExtendRadius;
 	vec4 parentBoundCenterError;
 	vec4 parentBoundHalfExtendRadius;
+
 	uint vertexFloatOffset;
 	uint indexIntOffset;
+	uint materialIntOffset;
 	uint storageIndex;
-	uint localMaterialIndex;
 	uint triangleNum;
-	uint padding[3];
+	uint materialNum;
+	uint padding[2];
 };
 
 // Match with KMeshClusterHierarchyPackedNode
@@ -72,10 +74,14 @@ struct ResourceStruct
 	uint clusterIndexStorageByteOffset;
 	uint clusterIndexStorageByteSize;
 
+	uint clusterMaterialStorageByteOffset;
+	uint clusterMaterialStorageByteSize;
+
+	// No used
 	uint materialBaseIndex;
 	uint materialNum;
 
-	uint padding[1];
+	uint padding[3];
 };
 
 // Match with KVirtualGeometryQueueState
@@ -168,15 +174,15 @@ layout (std430, binding = BINDING_CLUSTER_BATCH) coherent buffer ClusterBatchBuf
 };
 
 layout (std430, binding = BINDING_CANDIDATE_NODE_BATCH) coherent buffer CandidateNodeBatchBuffer {
-	uint CandidateNodeBatch[];
+	uvec4 CandidateNodeBatch[];
 };
 
 layout (std430, binding = BINDING_CANDIDATE_CLUSTER_BATCH) coherent buffer CandidateClusterBatchBuffer {
-	uint CandidateClusterBatch[];
+	uvec4 CandidateClusterBatch[];
 };
 
 layout (std430, binding = BINDING_SELECTED_CLUSTER_BATCH) coherent buffer SelectedClusterBatchBuffer {
-	uint SelectedClusterBatch[];
+	uvec4 SelectedClusterBatch[];
 };
 
 layout (std430, binding = BINDING_INDIRECT_ARGS) coherent buffer IndirectArgsBuffer {
@@ -199,6 +205,10 @@ layout (std430, binding = BINDING_CLUSTER_INDEX_BUFFER) coherent buffer ClusterI
 	uint ClusterIndexData[];
 };
 
+layout (std430, binding = BINDING_CLUSTER_MATERIAL_BUFFER) coherent buffer ClusterMaterialBuffer {
+	uint ClusterMaterialData[];
+};
+
 layout (std430, binding = BINDING_BINNING_DATA) coherent buffer BinningDataBuffer {
 	uvec4 BinningData[];
 };
@@ -207,41 +217,41 @@ layout (std430, binding = BINDING_BINNING_HEADER) coherent buffer BinningHeaderB
 	uvec4 BinningHeader[];
 };
 
-uint PackCandidateNode(CandidateNode node)
+uvec4 PackCandidateNode(CandidateNode node)
 {
-	uint pack = 0;
-	pack |= (node.nodeIndex & 0xFFFF);
-	pack |= (node.instanceId & 0xFF) << 16;
+	uvec4 pack = uvec4(0,0,0,0);
+	pack.x = node.instanceId;
+	pack.y = node.nodeIndex;
 	return pack;
 }
 
-CandidateNode UnpackCandidateNode(uint data)
+CandidateNode UnpackCandidateNode(uvec4 data)
 {
 	CandidateNode node;
-	node.nodeIndex = data & 0xFFFF;
-	node.instanceId = (data >> 16) & 0xFF;	
+	node.instanceId = data.x;
+	node.nodeIndex = data.y;
 	return node;
 }
 
-uint PackCandidateCluster(CandidateCluster cluster)
+uvec4 PackCandidateCluster(CandidateCluster cluster)
 {
-	uint pack = 0;
-	pack |= (cluster.clusterIndex & 0xFFFF);
-	pack |= (cluster.instanceId & 0xFF) << 16;
+	uvec4 pack = uvec4(0,0,0,0);
+	pack.x = cluster.instanceId;
+	pack.y = cluster.clusterIndex;
 	return pack;
 }
 
-CandidateCluster UnpackCandidateCluster(uint data)
+CandidateCluster UnpackCandidateCluster(uvec4 data)
 {
 	CandidateCluster cluster;
-	cluster.clusterIndex = data & 0xFFFF;
-	cluster.instanceId = (data >> 16) & 0xFF;
+	cluster.instanceId = data.x;
+	cluster.clusterIndex = data.y;
 	return cluster;
 }
 
 uvec4 PackBinningBatch(BinningBatch batch)
 {
-	uvec4 pack = uvec4(0);
+	uvec4 pack = uvec4(0,0,0,0);
 	pack.x = batch.clusterIndex;
 	pack.y = batch.binningIndex;
 	pack.z |= (batch.rangeBegin & 0xFF) << 8;
@@ -316,6 +326,19 @@ void GetClusterData(in CandidateCluster cluster, out ClusterBatchStruct clusterB
 	clusterBatch = ClusterBatch[clusterOffset];
 }
 
+void GetMaterialIndexAndRange(in uint resourceIndex, in uint index, in ClusterBatchStruct clusterBatch,
+	out uint mateiralIndex, out uint rangeBegin, out uint rangeEnd)
+{
+	uint clusterMaterialStorageByteOffset = ResourceData[resourceIndex].clusterMaterialStorageByteOffset;
+	uint storageOffset = clusterMaterialStorageByteOffset / 4 + clusterBatch.materialIntOffset;
+
+	storageOffset += 3 * index;
+
+	mateiralIndex = ClusterMaterialData[storageOffset];
+	rangeBegin = ClusterMaterialData[storageOffset + 1];
+	rangeEnd = ClusterMaterialData[storageOffset + 2];
+}
+
 vec2 GetProjectScale(mat4 localToWorld, mat4 worldToView, vec3 center, float radius)
 {
 	const float near = cameraNear;
@@ -379,6 +402,7 @@ bool SmallEnoughToDraw(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, fl
 bool FitToDraw(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, float boundRadius, float localError, float parentError)
 {
 	vec2 error = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius);
+	error /= lodScale;
 	return error.x >= localError && error.x < parentError;
 }
 

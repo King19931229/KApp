@@ -2,14 +2,14 @@
 #include "vg_define.h"
 #include "culling.h"
 
-shared uint SharedCandidateNodeBatch[BVH_MAX_GROUP_BATCH_SIZE];
+shared uvec4 SharedCandidateNodeBatch[BVH_MAX_GROUP_BATCH_SIZE];
 
 #define DEBUG_SHADER_GROUP 0
 #define EMIT_CLUSTER_EACH_THREAD 0
 
 bool IsSharedHierarchyDataValid(uint index)
 {
-	return SharedCandidateNodeBatch[index] != 0xFFFFFFFF;
+	return SharedCandidateNodeBatch[index].x != 0xFFFFFFFF;
 }
 
 void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
@@ -136,7 +136,7 @@ void main()
 		}
 		else
 		{
-			SharedCandidateNodeBatch[localIndex] = 0xFFFFFFFF;
+			SharedCandidateNodeBatch[localIndex] = uvec4(0xFFFFFFFF);
 		}
 	}
 	memoryBarrierShared(); // barrier();
@@ -147,7 +147,7 @@ void main()
 #if !DEBUG_SHADER_GROUP
 	if (readData)
 	{
-		CandidateNodeBatch[nodeIndex] = 0xFFFFFFFF;
+		CandidateNodeBatch[nodeIndex] = uvec4(0xFFFFFFFF);
 	}
 #endif
 }

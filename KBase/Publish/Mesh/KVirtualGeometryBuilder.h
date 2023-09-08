@@ -11,6 +11,14 @@ struct KRange
 {
 	uint32_t begin = 0;
 	uint32_t end = 0;
+
+	KRange() {}
+
+	KRange(uint32_t inBegin, uint32_t inEnd)
+	{
+		begin = inBegin;
+		end = inEnd;
+	}
 };
 
 struct KMeshCluster;
@@ -66,7 +74,10 @@ struct KMeshCluster
 		return color;
 	}
 
+	void GetMaterialRanges(std::vector<uint32_t>& materialIndexs, std::vector<KRange>& materialRanges);
+
 	void InitBound();
+	void SortMaterial();
 	void UnInit();
 	void Init(KMeshClusterPtr* clusters, size_t numClusters);
 	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices, const std::vector<uint32_t>& inMaterialIndices);
@@ -172,10 +183,11 @@ struct KMeshClusterBatch
 	glm::vec4 parentBoundHalfExtendRadius;
 	uint32_t vertexFloatOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t indexIntOffset = KVirtualGeometryDefine::INVALID_INDEX;
+	uint32_t materialIntOffset = KVirtualGeometryDefine::INVALID_INDEX;
 	uint32_t storageIndex = KVirtualGeometryDefine::INVALID_INDEX;
-	uint32_t localMaterialIndex = 0;
 	uint32_t triangleNum = 0;
-	uint32_t padding[3];
+	uint32_t materialNum = 0;
+	uint32_t padding[2];
 };
 static_assert((sizeof(KMeshClusterBatch) % 16) == 0, "Size must be a multiple of 16");
 static_assert(sizeof(KMeshClusterBatch) == 16 * 4 + 8 * 4, "must match");
@@ -193,6 +205,16 @@ struct KMeshClustersVertexStorage
 struct KMeshClustersIndexStorage
 {
 	std::vector<uint32_t> indices;
+};
+
+struct KMeshClustersMaterialStorage
+{
+	enum
+	{
+		INT_PER_MATERIAL = 3
+	};
+	// Each material 3 int: mateialIndex, rangeBegin, rangeEnd
+	std::vector<uint32_t> materials;
 };
 
 struct KMeshClusterBVHNode
@@ -269,13 +291,13 @@ protected:
 
 	uint32_t BuildMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies, uint32_t index);
 
-	static bool ColorDebugClusters(const std::vector<KMeshClusterPtr>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices);
-	static bool ColorDebugClusterGroups(const std::vector<KMeshClusterPtr>& clusters, const std::vector<KMeshClusterGroupPtr>& groups, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices);
+	static bool ColorDebugClusters(const std::vector<KMeshClusterPtr>& clusters, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices);
+	static bool ColorDebugClusterGroups(const std::vector<KMeshClusterPtr>& clusters, const std::vector<KMeshClusterGroupPtr>& groups, const std::vector<uint32_t>& ids, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices);
 public:
 	void FindDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<uint32_t>& clusterIndices, uint32_t& triangleCount, float& error) const;
-	void ColorDebugDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, uint32_t& triangleCount, float& error) const;
-	void ColorDebugCluster(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices) const;
-	void ColorDebugClusterGroup(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices) const;
+	void ColorDebugDAGCut(uint32_t targetTriangleCount, float targetError, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices, uint32_t& triangleCount, float& error) const;
+	void ColorDebugCluster(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices) const;
+	void ColorDebugClusterGroup(uint32_t level, std::vector<KMeshProcessorVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& materialIndices) const;
 	void GetAllBVHBounds(std::vector<KAABBBox>& bounds);
 	void DumpClusterGroupAsOBJ(const std::string& saveRoot) const;
 	void DumpClusterAsOBJ(const std::string& saveRoot) const;
@@ -283,7 +305,7 @@ public:
 
 	void Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices);
 
-	bool GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, std::vector<uint32_t>& clustersPartNum);
+	bool GetMeshClusterStorages(std::vector<KMeshClusterBatch>& clusters, KMeshClustersVertexStorage& vertexStroage, KMeshClustersIndexStorage& indexStorage, KMeshClustersMaterialStorage& materialStorage, std::vector<uint32_t>& clustersPartNum);
 	bool GetMeshClusterHierarchies(std::vector<KMeshClusterHierarchy>& hierarchies);
 
 	inline uint32_t GetLevelNum() const

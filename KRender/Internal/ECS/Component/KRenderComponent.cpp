@@ -111,6 +111,11 @@ bool KRenderComponent::GetLocalBound(KAABBBox& bound) const
 		bound = (*m_Mesh)->GetLocalBound();
 		return true;
 	}
+	else if (m_VGResource)
+	{
+		bound.InitFromHalfExtent(m_VGResource->boundCenter, m_VGResource->boundHalfExtend);
+		return true;
+	}
 	return false;
 }
 

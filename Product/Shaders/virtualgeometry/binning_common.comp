@@ -21,26 +21,35 @@ void main()
 		ClusterBatchStruct clusterBatch;
 		GetClusterData(selectedCluster, clusterBatch);
 
-		// uint resourceIndex = InstanceData[instanceId].resourceIndex;
-		uint binningIndex = InstanceData[instanceId].binningBaseIndex + clusterBatch.localMaterialIndex;
+		uint resourceIndex = InstanceData[instanceId].resourceIndex;
 
+		uint materialNum = clusterBatch.materialNum;
+		for (uint i = 0; i < materialNum; i++)
+		{
+			uint materialIndex = 0;
+			uint rangeBegin = 0;
+			uint rangeEnd = 0;
+			GetMaterialIndexAndRange(resourceIndex, i, clusterBatch, materialIndex, rangeBegin, rangeEnd);
+
+			uint binningIndex = InstanceData[instanceId].binningBaseIndex + materialIndex;
 #if defined(BINNING_CLASSIFY)
-		atomicAdd(BinningHeader[binningIndex].x, 1);
+			atomicAdd(BinningHeader[binningIndex].x, 1);
 #elif defined(BINNING_SCATTER)
-		BinningBatch batch;
-		batch.clusterIndex = clusterIndex;
-		batch.binningIndex = binningIndex;
-		batch.rangeBegin = 0;
-		batch.rangeNum = clusterBatch.triangleNum;
+			BinningBatch batch;
+			batch.clusterIndex = clusterIndex;
+			batch.binningIndex = binningIndex;
+			batch.rangeBegin = rangeBegin;
+			batch.rangeNum = rangeEnd - rangeBegin + 1;
 
-		uint offset = binningIndex * 4;
-		offset += INDIRECT_DRAW_ARGS_OFFSET;
-		offset += 1;
+			uint offset = binningIndex * 4;
+			offset += INDIRECT_DRAW_ARGS_OFFSET;
+			offset += 1;
 
-		uint batchOffset = atomicAdd(IndirectDrawArgs[offset], 1);
-		uint binningWriteOffset = BinningHeader[binningIndex].y + batchOffset;
+			uint batchOffset = atomicAdd(IndirectDrawArgs[offset], 1);
+			uint binningWriteOffset = BinningHeader[binningIndex].y + batchOffset;
 
-		StoreBinningBatch(binningWriteOffset, batch);
+			StoreBinningBatch(binningWriteOffset, batch);
 #endif	
+		}
 	}
 }
