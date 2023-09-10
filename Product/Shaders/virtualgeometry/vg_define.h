@@ -346,7 +346,7 @@ vec2 GetProjectScale(mat4 localToWorld, mat4 worldToView, vec3 center, float rad
 	const vec3 worldScale = vec3(abs(localToWorld[0][0]), abs(localToWorld[1][1]), abs(localToWorld[2][2]));
 	const float r = radius * max(1e-6, max(max(worldScale.x, worldScale.y), worldScale.z));
 
-	const vec4 centerInView = worldToView * vec4(center, 1.0f);
+	const vec4 centerInView = worldToView * localToWorld * vec4(center, 1.0f);
 	const float dis = length(centerInView.xyz);
 	const float z = -centerInView.z;
 
@@ -399,11 +399,14 @@ bool SmallEnoughToDraw(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, fl
 	return error.x >= lodScale * localError;
 }
 
-bool FitToDraw(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, float boundRadius, float localError, float parentError)
+bool FitToDraw(mat4 localToWorld, mat4 worldToView,
+	vec3 localBoundCenter, float localBoundRadius, float localError,
+	vec3 parentBoundCenter, float parentBoundRadius, float parentError)
 {
-	vec2 error = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius);
-	error /= lodScale;
-	return error.x >= localError && error.x < parentError;
+	// error0 >= error1
+	vec2 error0 = GetProjectScale(localToWorld, worldToView, localBoundCenter, localBoundRadius);
+	vec2 error1 = GetProjectScale(localToWorld, worldToView, parentBoundCenter, parentBoundRadius);
+	return error0.x >= lodScale * localError && error1.x < lodScale * parentError;
 }
 
 vec3 RandomColor(uint seed)

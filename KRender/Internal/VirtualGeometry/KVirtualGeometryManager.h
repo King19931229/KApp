@@ -18,6 +18,7 @@ public:
 	bool Init(const char* name, size_t initialSize);
 	bool UnInit();
 	bool Remove(size_t offset, size_t size);
+	bool Modify(size_t offset, size_t size, void* pData);
 	bool Append(size_t size, void* pData);
 
 	size_t GetSize() const { return m_Size; }
@@ -51,7 +52,6 @@ protected:
 	KVirtualGeometryStorageBuffer m_ResourceBuffer;
 
 	bool AcquireImpl(const char* label, const KMeshRawData& userData, KVirtualGeometryResourceRef& geometry);
-	bool RemoveUnreferenced();
 	bool RemoveGeometry(uint32_t index);
 public:
 	KVirtualGeometryManager();
@@ -62,6 +62,8 @@ public:
 
 	bool Update();
 	bool ReloadShader();
+
+	bool RemoveUnreferenced();
 
 	IKStorageBufferPtr GetPackedHierarchyBuffer() { return m_PackedHierarchyBuffer.GetBuffer(); }
 	IKStorageBufferPtr GetClusterBatchBuffer() { return m_ClusterBatchBuffer.GetBuffer(); }

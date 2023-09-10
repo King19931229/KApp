@@ -21,11 +21,6 @@
 
 void InitQEM(IKEnginePtr engine)
 {
-	static IKEntityPtr entity = nullptr;
-
-	static KMeshRawData userData;
-	static bool initUserData = false;
-
 	struct ModelInfo
 	{
 		const char* path;
@@ -43,6 +38,11 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f }
 	};
 
+#if 0
+	static IKEntityPtr entity = nullptr;
+
+	static KMeshRawData userData;
+	static bool initUserData = false;
 	static const uint32_t fileIndex = 0;
 	static const char* filePath = modelInfos[fileIndex].path;
 	static const char* fileExt = modelInfos[fileIndex].ext;
@@ -126,7 +126,7 @@ void InitQEM(IKEnginePtr engine)
 		}
 		if (entity->RegisterComponent(CT_TRANSFORM, &component))
 		{
-			((IKTransformComponent*)component)->SetPosition(glm::vec3(0));
+			((IKTransformComponent*)component)->SetPosition(glm::vec3(1000));
 			((IKTransformComponent*)component)->SetScale(glm::vec3(scale));
 		}
 		/*
@@ -307,11 +307,11 @@ void InitQEM(IKEnginePtr engine)
 					{
 						if (debugAsGroup)
 						{
-							clusterBuilder.ColorDebugClusterGroup(targetLevel, vertices, indices);
+							clusterBuilder.ColorDebugClusterGroup(targetLevel, vertices, indices, materalIndices);
 						}
 						else
 						{
-							clusterBuilder.ColorDebugCluster(targetLevel, vertices, indices);
+							clusterBuilder.ColorDebugCluster(targetLevel, vertices, indices, materalIndices);
 						}
 						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, materalIndices, originalMats))
 						{
@@ -330,7 +330,7 @@ void InitQEM(IKEnginePtr engine)
 					static float currentTargetError = -1;
 					if (updateDebugDAGCut)
 					{
-						clusterBuilder.ColorDebugDAGCut(targetTriangleNum, targetError, vertices, indices, currentTargetTriangleNum, currentTargetError);
+						clusterBuilder.ColorDebugDAGCut(targetTriangleNum, targetError, vertices, indices, materalIndices, currentTargetTriangleNum, currentTargetError);
 						if (KMeshProcessor::ConvertFromMeshProcessor(result, vertices, indices, materalIndices, originalMats))
 						{
 							if (KMeshProcessor::CalcTBN(vertices, indices))
@@ -346,7 +346,70 @@ void InitQEM(IKEnginePtr engine)
 		ImGui::End();
 	};
 	engine->GetRenderCore()->RegisterUIRenderCallback(&UI);
+#else
+	auto scene = engine->GetRenderCore()->GetRenderScene();
 
+	static KRenderCoreInitCallback InitModel = [scene]()
+	{
+		bool initUserData = false;
+
+		std::vector<IKEntityPtr> entites;
+		for (uint32_t fileIndex = 0; fileIndex < 2; ++fileIndex)
+		{
+			KMeshRawData userData;
+			const char* filePath = modelInfos[fileIndex].path;
+			const char* fileExt = modelInfos[fileIndex].ext;
+			const float scale = modelInfos[fileIndex].scale;
+
+			std::vector<KMeshRawData::Material> originalMats;
+
+			IKAssetLoaderPtr loader = KAssetLoader::GetLoader(fileExt);
+
+			KAssetImportOption option;
+			option.components.push_back({ AVC_POSITION_3F, AVC_NORMAL_3F, AVC_UV_2F });
+			option.components.push_back({ AVC_COLOR0_3F });
+			if (loader->Import(filePath, option, userData))
+			{
+				userData.components = option.components;
+			}
+
+			for (uint32_t i = 0; i < 30; ++i)
+			{
+				for (uint32_t j = 0; j < 30; ++j)
+				{
+					for (uint32_t k = 0; k < 1; ++k)
+					{
+						IKEntityPtr entity = KECS::EntityManager->CreateEntity();
+						IKComponentBase* component = nullptr;
+						if (entity->RegisterComponent(CT_RENDER, &component))
+						{
+							((IKRenderComponent*)component)->InitAsVirtualGeometry(userData, "vg" + std::to_string(fileIndex));
+						}
+						if (entity->RegisterComponent(CT_TRANSFORM, &component))
+						{
+							((IKTransformComponent*)component)->SetScale(glm::vec3(scale * (1.0f + (float)i / 10.0f)));
+						}
+						KAABBBox bound;
+						entity->GetBound(bound);
+						if (entity->GetComponent(CT_TRANSFORM, &component))
+						{
+							((IKTransformComponent*)component)->SetPosition(glm::vec3(j * bound.GetExtend().x, i * bound.GetExtend().y, (fileIndex + k) * bound.GetExtend().z));
+						}
+						scene->Add(entity.get());
+						entites.push_back(entity);
+					}
+				}
+			}
+		}
+
+		for (size_t i = 0; i < entites.size() / 2; ++i)
+		{
+			scene->Remove(entites[i].get());
+			entites[i]->UnRegisterAllComponent();
+			KECS::EntityManager->ReleaseEntity(entites[i]);
+		}
+	};
+#endif
 	if (engine->GetRenderCore()->IsInit())
 	{
 		InitModel();

@@ -41,29 +41,53 @@ bool KVirtualGeometryStorageBuffer::Remove(size_t offset, size_t size)
 
 	if (offset + size <= m_Size)
 	{
+		void* pMapped = nullptr;
+
 		std::vector<unsigned char> bufferData;
+
 		bufferData.resize(m_Size);
-		m_Buffer->Read(bufferData.data());
+		m_Buffer->Map(&pMapped);
+		memcpy(bufferData.data(), pMapped, m_Size);
+		m_Buffer->UnMap();
 
 		size_t newBufferSize = std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_Size - size));
 
 		if (newBufferSize < m_Buffer->GetBufferSize())
 		{
-			SAFE_UNINIT(m_Buffer);
-			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_Buffer);
+			m_Buffer->UnInit();
 			m_Buffer->InitMemory(newBufferSize, nullptr);
 			m_Buffer->InitDevice(false);
 			m_Buffer->SetDebugName(m_Name.c_str());
 		}
 
-		void* pWrite = nullptr;
-		m_Buffer->Map(&pWrite);
-		memcpy(POINTER_OFFSET(pWrite, 0), bufferData.data(), offset);
-		memcpy(POINTER_OFFSET(pWrite, offset), bufferData.data() + offset + size, m_Size - size - offset);
+		m_Buffer->Map(&pMapped);
+		memcpy(POINTER_OFFSET(pMapped, 0), bufferData.data(), offset);
+		memcpy(POINTER_OFFSET(pMapped, offset), bufferData.data() + offset + size, m_Size - size - offset);
 		m_Buffer->UnMap();
 
 		m_Size -= size;
 
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool KVirtualGeometryStorageBuffer::Modify(size_t offset, size_t size, void* pData)
+{
+	if (m_Buffer == nullptr)
+	{
+		return false;
+	}
+
+	if (offset + size <= m_Size)
+	{
+		void* pMapped = nullptr;
+		m_Buffer->Map(&pMapped);
+		memcpy(POINTER_OFFSET(pMapped, offset), pData, size);
+		m_Buffer->UnMap();
 		return true;
 	}
 	else
@@ -81,19 +105,36 @@ bool KVirtualGeometryStorageBuffer::Append(size_t size, void* pData)
 
 	size_t newBufferSize = std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(m_Size + size));
 
+	void* pMapped = nullptr;
+
 	if (newBufferSize > m_Buffer->GetBufferSize())
 	{
 		KRenderGlobal::RenderDevice->Wait();
+
+		std::vector<unsigned char> bufferData;
+		if (m_Size > 0)
+		{
+			bufferData.resize(m_Size);
+			m_Buffer->Map(&pMapped);
+			memcpy(bufferData.data(), pMapped, m_Size);
+			m_Buffer->UnMap();
+		}
 
 		m_Buffer->UnInit();
 		m_Buffer->InitMemory(newBufferSize, nullptr);
 		m_Buffer->InitDevice(false);
 		m_Buffer->SetDebugName(m_Name.c_str());
+
+		if (m_Size > 0)
+		{
+			m_Buffer->Map(&pMapped);
+			memcpy(POINTER_OFFSET(pMapped, 0), bufferData.data(), m_Size);
+			m_Buffer->UnMap();
+		}
 	}
 
-	void* pWrite = nullptr;
-	m_Buffer->Map(&pWrite);
-	memcpy(POINTER_OFFSET(pWrite, m_Size), pData, size);
+	m_Buffer->Map(&pMapped);
+	memcpy(POINTER_OFFSET(pMapped, m_Size), pData, size);
 	m_Buffer->UnMap();
 
 	m_Size += size;
@@ -114,11 +155,12 @@ bool KVirtualGeometryManager::Init()
 {
 	UnInit();
 
+	m_ResourceBuffer.Init("VirtualGeometryResource", sizeof(KVirtualGeometryResource));
+
 	m_PackedHierarchyBuffer.Init("VirtualGeometryPackedHierarchy", sizeof(glm::uvec4));
 	m_ClusterBatchBuffer.Init("VirtualGeometryClusterBatch", sizeof(glm::uvec4));
 	m_ClusterVertexStorageBuffer.Init("VirtualGeometryVertexStorage", sizeof(float) * KMeshClustersVertexStorage::FLOAT_PER_VERTEX);
 	m_ClusterIndexStorageBuffer.Init("VirtualGeometryIndexStorage", sizeof(uint32_t));
-	m_ResourceBuffer.Init("VirtualGeometryResource", sizeof(KVirtualGeometryResource));
 	m_ClusterMateialStorageBuffer.Init("VirtualGeometryMaterialStorage", sizeof(uint32_t) * KMeshClustersMaterialStorage::INT_PER_MATERIAL);
 
 	return true;
@@ -133,6 +175,7 @@ bool KVirtualGeometryManager::UnInit()
 	m_Scenes.clear();
 
 	m_ResourceBuffer.UnInit();
+
 	m_PackedHierarchyBuffer.UnInit();
 	m_ClusterBatchBuffer.UnInit();
 	m_ClusterVertexStorageBuffer.UnInit();
@@ -239,22 +282,14 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			geometry->clusterBatchOffset = (uint32_t)m_ClusterBatchBuffer.GetSize();
 			geometry->clusterBatchSize = (uint32_t)clusters.size() * sizeof(KMeshClusterBatch);
 
-			m_ClusterBatchBuffer.Append(geometry->clusterBatchSize, clusters.data());
-
 			geometry->hierarchyPackedOffset = (uint32_t)m_PackedHierarchyBuffer.GetSize();
 			geometry->hierarchyPackedSize = (uint32_t)hierarchyNode.size() * sizeof(KMeshClusterHierarchyPackedNode);
-
-			m_PackedHierarchyBuffer.Append(geometry->hierarchyPackedSize, hierarchyNode.data());
 
 			geometry->clusterVertexStorageByteOffset = (uint32_t)m_ClusterVertexStorageBuffer.GetSize();
 			geometry->clusterVertexStorageByteSize = (uint32_t)vertexStroages.vertices.size() * sizeof(float);
 
-			m_ClusterVertexStorageBuffer.Append(geometry->clusterVertexStorageByteSize, vertexStroages.vertices.data());
-
 			geometry->clusterIndexStorageByteOffset = (uint32_t)m_ClusterIndexStorageBuffer.GetSize();
 			geometry->clusterIndexStorageByteSize = (uint32_t)indexStroages.indices.size() * sizeof(uint32_t);
-
-			m_ClusterIndexStorageBuffer.Append(geometry->clusterIndexStorageByteSize, indexStroages.indices.data());
 
 			geometry->resourceIndex = resourceIndex;
 			geometry->boundCenter = glm::vec4(bound.GetCenter(), 0);
@@ -266,6 +301,10 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 			geometry->clusterMaterialStorageByteOffset = (uint32_t)m_ClusterMateialStorageBuffer.GetSize();
 			geometry->clusterMaterialStorageByteSize = (uint32_t)materialStorages.materials.size() * sizeof(uint32_t);
 
+			m_ClusterBatchBuffer.Append(geometry->clusterBatchSize, clusters.data());
+			m_PackedHierarchyBuffer.Append(geometry->hierarchyPackedSize, hierarchyNode.data());
+			m_ClusterVertexStorageBuffer.Append(geometry->clusterVertexStorageByteSize, vertexStroages.vertices.data());
+			m_ClusterIndexStorageBuffer.Append(geometry->clusterIndexStorageByteSize, indexStroages.indices.data());
 			m_ClusterMateialStorageBuffer.Append(geometry->clusterMaterialStorageByteSize, materialStorages.materials.data());
 		}
 
@@ -321,7 +360,7 @@ bool KVirtualGeometryManager::RemoveUnreferenced()
 		}
 	}
 
-	for (uint32_t i = 0; i < (uint32_t)m_GeometryResources.size();)
+	for (uint32_t i = 0; i < (uint32_t)m_GeometryResources.size(); ++i)
 	{
 		assert(m_GeometryResources[i].GetRefCount() >= 2);
 	}
@@ -347,11 +386,23 @@ bool KVirtualGeometryManager::RemoveGeometry(uint32_t index)
 		uint32_t materialNum = geometry->materialNum;
 		m_MaterialResources.erase(m_MaterialResources.begin() + materialBaseIndex, m_MaterialResources.begin() + materialBaseIndex + materialNum);
 
+		std::vector<KVirtualGeometryResource> resources;
+		resources.reserve(m_GeometryResources.size() - 1);
+
 		for (uint32_t i = index + 1; i < (uint32_t)m_GeometryResources.size(); ++i)
 		{
 			m_GeometryResources[i]->resourceIndex -= 1;
 			m_GeometryResources[i]->materialBaseIndex -= materialNum;
+			m_GeometryResources[i]->hierarchyPackedOffset -= geometry->hierarchyPackedSize;
+			m_GeometryResources[i]->clusterBatchOffset -= geometry->clusterBatchSize;
+			m_GeometryResources[i]->clusterVertexStorageByteOffset -= geometry->clusterVertexStorageByteSize;
+			m_GeometryResources[i]->clusterIndexStorageByteOffset -= geometry->clusterIndexStorageByteSize;
+			m_GeometryResources[i]->clusterMaterialStorageByteOffset -= geometry->clusterMaterialStorageByteSize;
+
+			resources.push_back(*m_GeometryResources[i].Get());
 		}
+
+		m_ResourceBuffer.Modify(index * sizeof(KVirtualGeometryResource), resources.size() * sizeof(KVirtualGeometryResource), resources.data());
 
 		return true;
 	}

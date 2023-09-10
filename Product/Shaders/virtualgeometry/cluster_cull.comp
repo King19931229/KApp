@@ -30,8 +30,10 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 #else
 		if (cullData.bIsVisible)
 		{
+			vec3 parentBoundCenter = clusterBatch.parentBoundCenterError.xyz;
 			float parentError = clusterBatch.parentBoundCenterError.w;
-			cullData.bIsVisible = FitToDraw(localToWorld, worldToView, boundCenter.xyz, boundRadius, localError, parentError);
+			float parentBoundRadius = clusterBatch.parentBoundHalfExtendRadius.w;
+			cullData.bIsVisible = FitToDraw(localToWorld, worldToView, boundCenter.xyz, boundRadius, localError, parentBoundCenter, parentBoundRadius, parentError);
 		}
 #endif
 		if (cullData.bIsVisible)

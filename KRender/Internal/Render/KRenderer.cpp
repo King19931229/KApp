@@ -158,6 +158,8 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		ResetThreadNum(m_MultithreadCount);
 	}
 
+	KRenderGlobal::VirtualGeometryManager.RemoveUnreferenced();
+
 	std::vector<IKEntity*> cullRes;
 	KRenderGlobal::Scene.GetVisibleEntities(*m_Camera, cullRes);
 
