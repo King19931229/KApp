@@ -111,7 +111,7 @@ namespace KMeshProcessor
 				if (needRandomTangent)
 				{
 					normal = glm::normalize(glm::cross(e1, e2));
-					if (abs(glm::dot(normal, glm::vec3(1.0f, 0.0f, 0.0f)) > 1.0f - 1e-2f))
+					if (abs(glm::dot(normal, glm::vec3(1.0f, 0.0f, 0.0f)) > (1.0f - 1e-2f)))
 					{
 						tangent = glm::normalize(glm::cross(normal, glm::vec3(0.0f, 1.0f, 0.0f)));
 					}

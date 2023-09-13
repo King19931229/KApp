@@ -1,7 +1,29 @@
 #include "Publish/Mesh/KMeshSimplification.h"
 
+#define DEBUG_VERTEX_COUNT 0
+#define DEBUG_TRIANGLE_COUNT 0
+
+#if DEBUG_VERTEX_COUNT
+#define VERTEX_DEBUG_PRINTF printf
+#else
+#define VERTEX_DEBUG_PRINTF
+#endif
+
+#if DEBUG_TRIANGLE_COUNT
+#define TRIANGLE_DEBUG_PRINTF printf
+#else
+#define TRIANGLE_DEBUG_PRINTF
+#endif
+
+#if DEBUG_VERTEX_COUNT || DEBUG_TRIANGLE_COUNT
+#define VERTEX_COLOR_WHITE_DEBUG 1
+#else
 #define VERTEX_COLOR_WHITE_DEBUG 0
+#endif
+
 #define VERTEX_COLOR_MATERIAL_DEBUG 0
+
+#define LOCK_ONE_DIRECTION_EDGE 1
 
 void KMeshSimplification::UndoCollapse()
 {
@@ -319,7 +341,7 @@ bool KMeshSimplification::InitVertexData(const std::vector<KMeshProcessorVertex>
 	}
 
 	// m_MaxErrorAllow = (Type)(glm::length(bound.GetMax() - bound.GetMin()) * 0.05f) * m_PositionInvScale;
-	m_MaxErrorAllow = 1000;
+	m_MaxErrorAllow = 100;
 
 	m_Triangles.clear();
 	m_Triangles.reserve(maxTriCount);
@@ -373,11 +395,13 @@ bool KMeshSimplification::InitVertexData(const std::vector<KMeshProcessorVertex>
 			KPositionHashKey p1 = m_PosHash.GetPositionHash(m_Vertices[v1].pos);
 
 			assert(m_EdgeHash.HasConnection(p0, p1));
+#if LOCK_ONE_DIRECTION_EDGE
 			if (!m_EdgeHash.HasConnection(p1, p0))
 			{
 				m_PosHash.SetFlag(p0, VERTEX_FLAG_LOCK);
 				m_PosHash.SetFlag(p1, VERTEX_FLAG_LOCK);
 			}
+#endif
 		}
 	}
 
@@ -807,6 +831,7 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 		}
 
 		int32_t invalidTriangle = (int32_t)sharedAdjacencySet.size();
+
 		if (m_CurTriangleCount - invalidTriangle < m_MinTriangleAllow)
 		{
 			continue;
@@ -926,6 +951,21 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 
 		++performCounter;
 
+		/*
+		Sometimes there are triangles like this A,B,C
+		Whose vertex hash is a,a,c
+		When there is a contraction of edge A<-->D or B<-->D
+		It will produce new triangle as E,E,C which is not a valid triangle
+		By only computing the sharedAdjacencySet can't handle this situation
+		*/
+		invalidTriangle = 0;
+
+		for (size_t tri : sharedAdjacencySet)
+		{
+			TRIANGLE_DEBUG_PRINTF("%d ", (unsigned)tri);
+		}
+		TRIANGLE_DEBUG_PRINTF("<\n");
+
 		size_t newIndex = m_Vertices.size();
 
 		m_Vertices.push_back(contraction.vertex);
@@ -1007,8 +1047,16 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 
 			if (!hasValidTri)
 			{
+				for (size_t v : m_PosHash.GetVertex(pos))
+				{
+					if (m_Adjacencies[v].size() > 0)
+					{
+						VERTEX_DEBUG_PRINTF("%d ", (unsigned)v);
+						m_Adjacencies[v].clear();
+						++invalidVertex;
+					}
+				}
 				m_PosHash.SetVersion(pos, -1);
-				++invalidVertex;
 			}
 		}
 
@@ -1071,10 +1119,6 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 			for (size_t triIndex : m_Adjacencies[v])
 			{
 				Triangle& triangle = m_Triangles[triIndex];
-
-				KPositionHashKey p[3];
-				GetTriangleHash(triangle, p);
-
 				int32_t i = triangle.PointIndex(v);
 				assert(i >= 0);
 
@@ -1104,28 +1148,29 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 		const std::unordered_set<size_t>& p0Verts = m_PosHash.GetVertex(p0);
 		for (size_t v : p0Verts)
 		{
-			if (v == newIndex)
+			if (m_Adjacencies[v].size() == 0)
 			{
 				continue;
 			}
+			assert(v != newIndex);
 			AdjustAdjacencies(v, collapse);
 			m_Adjacencies[v].clear();
+			++invalidVertex;
+			VERTEX_DEBUG_PRINTF("%d ", (unsigned)v);
 		}
 
 		const std::unordered_set<size_t>& p1Verts = m_PosHash.GetVertex(p1);
 		for (size_t v : p1Verts)
 		{
-			if (v == newIndex)
+			if (m_Adjacencies[v].size() == 0)
 			{
 				continue;
 			}
+			assert(v != newIndex);
 			AdjustAdjacencies(v, collapse);
 			m_Adjacencies[v].clear();
-		}
-
-		for (size_t triIndex : newAdjacencyTriangle)
-		{
-			m_Adjacencies[newIndex].insert(triIndex);
+			++invalidVertex;
+			VERTEX_DEBUG_PRINTF("%d ", (unsigned)v);
 		}
 
 		for (size_t triIndex : sharedAdjacencySet)
@@ -1133,10 +1178,18 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 			for (const KPositionHashKey& pos : sharedPositions)
 			{
 				m_PosHash.RemoveAdjacencyOf(pos, triIndex);
-				m_PosHash.ForEachVertex(pos, [this, triIndex](size_t v)
+				for (size_t v : m_PosHash.GetVertex(pos))
 				{
-					m_Adjacencies[v].erase(triIndex);
-				});
+					if (m_Adjacencies[v].size() > 0)
+					{
+						m_Adjacencies[v].erase(triIndex);
+						if (m_Adjacencies[v].size() == 0)
+						{
+							++invalidVertex;
+							VERTEX_DEBUG_PRINTF("%d ", (unsigned)v);
+						}
+					}
+				}
 			}
 		}
 
@@ -1146,7 +1199,6 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 		m_PosHash.RemoveAdjacency(p1);
 
 		m_PosHash.SetFlag(newPos, m_PosHash.GetFlag(p0) | m_PosHash.GetFlag(p1));
-		m_PosHash.SetAdjacency(newPos, newAdjacencyTriangle);
 
 		if (p0 != newPos)
 		{
@@ -1159,14 +1211,33 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 
 		if (newAdjacencyTriangle.size() == 0)
 		{
+			VERTEX_DEBUG_PRINTF("%d ", (unsigned)newIndex);
 			m_PosHash.SetVersion(newPos, -1);
 			invalidVertex += 1;
 		}
+		VERTEX_DEBUG_PRINTF("<\n");
 
 		for (const PointModify& modify : collapse.modifies)
 		{
 			assert(m_Triangles[modify.triangleIndex].index[modify.pointIndex] == modify.prevIndex);
+			bool bValidBef = IsValid(modify.triangleIndex);
 			m_Triangles[modify.triangleIndex].index[modify.pointIndex] = modify.currIndex;
+			bool bValidAft = IsValid(modify.triangleIndex);
+			if (bValidBef && !bValidAft)
+			{
+				++invalidTriangle;
+				TRIANGLE_DEBUG_PRINTF("%d ", (unsigned)modify.triangleIndex);
+			}
+		}
+		TRIANGLE_DEBUG_PRINTF(":\n");
+
+		for (size_t triIndex : newAdjacencyTriangle)
+		{
+			if (IsValid(triIndex))
+			{
+				m_PosHash.AddAdjacency(newPos, triIndex);
+				m_Adjacencies[newIndex].insert(triIndex);
+			}
 		}
 
 		auto NewContraction = [this, newIndex](size_t v0, size_t v1)
@@ -1239,7 +1310,7 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 				bool lock1 = m_PosHash.GetFlag(p1) == VERTEX_FLAG_LOCK;
 				bool lock2 = m_PosHash.GetFlag(p2) == VERTEX_FLAG_LOCK;
 
-				if (p0 != p1)
+				if (p0 != p1 && p2 != p0)
 				{
 					m_EdgeHash.AddEdgeHash(p0, p1, triIndex);
 					if (!m_EdgeHash.HasConnection(p1, p0))
@@ -1249,10 +1320,7 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 							NewContraction(v0, v1);
 						}
 					}
-				}
 
-				if (p2 != p0)
-				{
 					m_EdgeHash.AddEdgeHash(p2, p0, triIndex);
 					if (!m_EdgeHash.HasConnection(p0, p2))
 					{
@@ -1278,7 +1346,8 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 		}
 
 		m_CurTriangleCount -= (int32_t)invalidTriangle;
-		m_CurVertexCount -= (int32_t)invalidVertex + 1;
+		m_CurVertexCount -= (int32_t)invalidVertex;
+		m_CurVertexCount += 1;
 		m_CurError = std::max(m_CurError, currentError);
 
 		collapse.currTriangleCount = m_CurTriangleCount;
@@ -1290,7 +1359,48 @@ bool KMeshSimplification::PerformSimplification(int32_t minVertexAllow, int32_t 
 			m_CollapseOperations.push_back(collapse);
 			++m_CurrOpIdx;
 		}
+#if DEBUG_TRIANGLE_COUNT
+		size_t calcTriangleCount = 0;
+		for (uint32_t triIndex = 0; triIndex < (uint32_t)m_Triangles.size(); ++triIndex)
+		{
+			if (IsValid(triIndex))
+			{
+				++calcTriangleCount;
+			}
+		}
 
+		if (calcTriangleCount != m_CurTriangleCount)
+		{
+			m_Vertices[v0].color = glm::tvec3<Type>(1, 0, 0);
+			m_Vertices[v1].color = glm::tvec3<Type>(1, 1, 0);
+			m_Vertices[newIndex].color = glm::tvec3<Type>(0, 0, 1);
+			break;
+		}
+#endif
+#if DEBUG_VERTEX_COUNT
+		size_t calcVertexCount = 0;
+		for (size_t i = 0; i < m_Vertices.size(); ++i)
+		{
+			KPositionHashKey hash = GetPositionHash(i);
+			if (m_Adjacencies[i].size() > 0 && m_PosHash.GetVersion(hash) >= 0)
+			{
+				++calcVertexCount;
+			}
+			else
+			{
+				VERTEX_DEBUG_PRINTF("%d ", (unsigned)i);
+			}
+		}
+		VERTEX_DEBUG_PRINTF(":\n");
+
+		if (calcVertexCount != m_CurVertexCount)
+		{
+			m_Vertices[v0].color = glm::tvec3<Type>(1, 0, 0);
+			m_Vertices[v1].color = glm::tvec3<Type>(1, 1, 0);
+			m_Vertices[newIndex].color = glm::tvec3<Type>(0, 0, 1);
+			break;
+		}
+#endif
 #if 0
 		if (!CheckEdge(newPos))
 		{

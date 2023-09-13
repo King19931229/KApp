@@ -951,6 +951,7 @@ bool KVirtualGeometryBuilder::ColorDebugClusters(const std::vector<KMeshClusterP
 {
 	vertices.clear();
 	indices.clear();
+	materialIndices.clear();
 
 	uint32_t clusterIndexBegin = 0;
 
@@ -972,6 +973,7 @@ bool KVirtualGeometryBuilder::ColorDebugClusters(const std::vector<KMeshClusterP
 
 		vertices.insert(vertices.end(), clusterVertices.begin(), clusterVertices.end());
 		indices.insert(indices.end(), clusterIndices.begin(), clusterIndices.end());
+		materialIndices.insert(materialIndices.end(), cluster.materialIndices.begin(), cluster.materialIndices.end());
 
 		clusterIndexBegin += (uint32_t)clusterVertices.size();
 	}
@@ -983,6 +985,7 @@ bool KVirtualGeometryBuilder::ColorDebugClusterGroups(const std::vector<KMeshClu
 {
 	vertices.clear();
 	indices.clear();
+	materialIndices.clear();
 
 	uint32_t clusterIndexBegin = 0;
 
@@ -1008,6 +1011,7 @@ bool KVirtualGeometryBuilder::ColorDebugClusterGroups(const std::vector<KMeshClu
 
 			vertices.insert(vertices.end(), clusterVertices.begin(), clusterVertices.end());
 			indices.insert(indices.end(), clusterIndices.begin(), clusterIndices.end());
+			materialIndices.insert(materialIndices.end(), cluster.materialIndices.begin(), cluster.materialIndices.end());
 
 			clusterIndexBegin += (uint32_t)clusterVertices.size();
 		}
@@ -1500,11 +1504,6 @@ void KVirtualGeometryBuilder::FindDAGCut(uint32_t targetTriangleCount, float tar
 		curError = element.error;
 		assert(curError == cluster->lodError);
 
-		if (cluster->level == 0)
-		{
-			break;
-		}
-
 		bool targetHit = false;
 		if (curError <= targetError || curTriangleCount >= targetTriangleCount)
 		{
@@ -1562,6 +1561,7 @@ void KVirtualGeometryBuilder::ColorDebugCluster(uint32_t level, std::vector<KMes
 {
 	vertices.clear();
 	indices.clear();
+	materialIndices.clear();
 
 	std::vector<uint32_t> clusterIndices;
 	for (KMeshClusterGroupPtr group : m_ClusterGroups)
@@ -1582,6 +1582,7 @@ void KVirtualGeometryBuilder::ColorDebugClusterGroup(uint32_t level, std::vector
 {
 	vertices.clear();
 	indices.clear();
+	materialIndices.clear();
 
 	std::vector<uint32_t> groupIndices;
 	for (size_t i = 0; i < m_ClusterGroups.size(); ++i)

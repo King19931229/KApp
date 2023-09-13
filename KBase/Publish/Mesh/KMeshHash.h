@@ -276,11 +276,6 @@ struct KPositionHash
 		auto it = informations.find(hash);
 		if (it != informations.end())
 		{
-			if (it->second.vertices.find(18139) != it->second.vertices.end())
-			{
-				int x = 0;
-			}
-
 			if (it->second.vertices.find(v) != it->second.vertices.end())
 			{
 				it->second.vertices = { v };
