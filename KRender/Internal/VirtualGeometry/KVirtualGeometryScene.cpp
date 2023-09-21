@@ -356,6 +356,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 		globalData.worldToClip = m_Camera ? (m_Camera->GetProjectiveMatrix() * m_Camera->GetViewMatrix()) : glm::mat4(1);
 		globalData.prevWorldToClip = m_PrevViewProj;
 		globalData.worldToView = m_Camera ? m_Camera->GetViewMatrix() : glm::mat4(1);
+		globalData.worldToTranslateView = m_Camera ? m_Camera->GetTranslateViewMatrix() : glm::mat4(1);
 		globalData.misc.x = m_Camera ? m_Camera->GetNear() : 0.0f;
 		globalData.misc.y = m_Camera ? m_Camera->GetAspect() : 1.0f;
 

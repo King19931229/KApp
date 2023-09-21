@@ -57,6 +57,7 @@ protected:
 	glm::vec3 m_Corners[FC_COUNT];
 
 	glm::mat4 m_View;
+	glm::mat4 m_TranslateView;
 	glm::mat4 m_Proj;
 
 	glm::vec3 m_LockX;
@@ -82,11 +83,12 @@ protected:
 	{
 		if(m_InvaildView)
 		{
-			m_View		= glm::lookAtRH(m_Pos, m_Forward + m_Pos, m_Up);
+			m_View			= glm::lookAtRH(m_Pos, m_Forward + m_Pos, m_Up);
+			m_TranslateView = glm::translate(glm::mat4(1.0f), -m_Pos);
 
-			m_Right		= glm::vec3(m_View[0][0], m_View[1][0], m_View[2][0]);
-			m_Up		= glm::vec3(m_View[0][1], m_View[1][1], m_View[2][1]);
-			m_Forward	= -glm::vec3(m_View[0][2], m_View[1][2], m_View[2][2]);
+			m_Right			= glm::vec3(m_View[0][0], m_View[1][0], m_View[2][0]);
+			m_Up			= glm::vec3(m_View[0][1], m_View[1][1], m_View[2][1]);
+			m_Forward		= -glm::vec3(m_View[0][2], m_View[1][2], m_View[2][2]);
 
 			glm::vec3 calcUp = glm::cross(m_Right, m_Forward);
 
@@ -193,6 +195,7 @@ public:
 	inline const glm::vec3& GetForward() const { return m_Forward; }
 	inline const glm::vec3& GetRight() const { return m_Right; }
 	inline const glm::mat4& GetViewMatrix() const { return m_View; }
+	inline const glm::mat4& GetTranslateViewMatrix() const { return m_TranslateView; }
 	inline const glm::mat4& GetProjectiveMatrix() const { return m_Proj; }
 
 	inline float GetNear() const { return m_Near; }

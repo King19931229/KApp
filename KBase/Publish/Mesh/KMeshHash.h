@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <functional>
 
-#define ENABLE_POSITION_HASH_KEY_DEBUG 1
+#define ENABLE_POSITION_HASH_KEY_DEBUG 0
 
 struct KPositionHashKey
 {

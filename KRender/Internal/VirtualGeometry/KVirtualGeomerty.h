@@ -46,6 +46,7 @@ struct KVirtualGeometryGlobal
 	glm::mat4 worldToClip;
 	glm::mat4 prevWorldToClip;
 	glm::mat4 worldToView;
+	glm::mat4 worldToTranslateView;
 	glm::vec4 misc;
 	glm::uvec4 miscs2;
 };
@@ -79,7 +80,7 @@ struct KMeshClusterHierarchyPackedNode
 	uint32_t padding = 0;
 };
 
-static_assert(sizeof(KMeshClusterHierarchyPackedNode) == KVirtualGeometryDefine::MAX_BVH_NODES * 4 + 16 + 32, "size check");
+static_assert(sizeof(KMeshClusterHierarchyPackedNode) == KVirtualGeometryDefine::MAX_BVH_NODES * 4 + 32 + 16, "size check");
 static_assert((sizeof(KMeshClusterHierarchyPackedNode) % 16) == 0, "Size must be a multiple of 16");
 
 typedef KReferenceHolder<KVirtualGeometryResource*> KVirtualGeometryResourceRef;

@@ -43,16 +43,21 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 	mat4 localToWorld = InstanceData[instanceId].transform;
 
 	vec3 boundCenter = hierarchy.lodBoundCenterError.xyz;
-	vec3 boundHalfExtend = hierarchy.lodBoundHalfExtendRadius.xyz;
 	float maxParentError = hierarchy.lodBoundCenterError.w;
+	vec3 boundHalfExtend = hierarchy.lodBoundHalfExtendRadius.xyz;
 	float radius = hierarchy.lodBoundHalfExtendRadius.w;
 
-	FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter.xyz, boundHalfExtend.xyz, localToWorld, worldToClip, true, false);
+	FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter, boundHalfExtend, localToWorld, worldToClip, true, false);
 
 #if CULL_CLUSTER_ALONG_BVH
 	if (cullData.bIsVisible)
 	{
-		cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, boundCenter.xyz, radius, maxParentError);
+#if USE_INSTANCE_CENTER_CULL
+		vec3 instanceCenter = vec3(localToWorld[3][0], localToWorld[3][1], localToWorld[3][2]);
+		cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, instanceCenter, radius, maxParentError);
+#else
+		cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, boundCenter, radius, maxParentError);
+#endif
 	}
 #endif
 

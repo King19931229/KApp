@@ -35,10 +35,11 @@ void InitQEM(IKEnginePtr engine)
 		{ "Models/OBJ/dragon.obj", ".obj", 100.0f },
 		{ "Models/OBJ/armadillo.obj", ".obj", 100.0f },
 		{ "Models/OBJ/tyra.obj", ".obj", 1000.0f },
-		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f }
+		{ "Models/GLTF/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", ".gltf", 100.0f },
+		{ "Models/glTF-Sample-Models/2.0/SciFiHelmet/glTF/SciFiHelmet.gltf", ".gltf", 100.0f }
 	};
 
-#if 0
+#if 1
 	static IKEntityPtr entity = nullptr;
 
 	static KMeshRawData userData;
@@ -88,7 +89,7 @@ void InitQEM(IKEnginePtr engine)
 				}
 #endif
 				simplification.Init(vertices, indices, materialIndices, 1, 3);
-				clusterBuilder.Build(vertices, indices, materialIndices);
+				//clusterBuilder.Build(vertices, indices, materialIndices);
 				// std::vector<KMeshProcessorVertex> newVertices;
 				// std::vector<uint32_t> newIndices;
 				// clusterBuilder.ColorDebugCluster(0, newVertices, newIndices);
@@ -126,7 +127,7 @@ void InitQEM(IKEnginePtr engine)
 		}
 		if (entity->RegisterComponent(CT_TRANSFORM, &component))
 		{
-			((IKTransformComponent*)component)->SetPosition(glm::vec3(1000));
+			//((IKTransformComponent*)component)->SetPosition(glm::vec3(1000));
 			((IKTransformComponent*)component)->SetScale(glm::vec3(scale));
 		}
 		/*

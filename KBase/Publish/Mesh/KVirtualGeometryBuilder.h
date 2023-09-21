@@ -50,7 +50,9 @@ struct KMeshCluster
 
 	// lodBound是计算Lod所用到的Bound 并不是严格意义上真正的Bound
 	KAABBBox lodBound;
+	// 生成的Group所在的index
 	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	// 所处的Group所在的index
 	uint32_t generatingGroupIndex = KVirtualGeometryDefine::INVALID_INDEX;
 
 	uint32_t index = KVirtualGeometryDefine::INVALID_INDEX;
@@ -86,13 +88,15 @@ struct KMeshCluster
 
 struct KMeshClusterGroup
 {
+	// 此Group生成了哪些Cluster
 	std::vector<uint32_t> generatingClusters;
+	// 此Group由哪些Cluster生成
 	std::vector<uint32_t> clusters;
-	KAABBBox lodBound;
+	KAABBBox parentLodBound;
 	glm::vec3 color;
 	uint32_t level = 0;
 	uint32_t index = 0;
-	float lodError = 0;
+	float maxParentError = 0;
 	float edgeLength = 0;
 };
 

@@ -254,8 +254,10 @@ bool KVirtualGeometryManager::AcquireImpl(const char* label, const KMeshRawData&
 		{
 			KMeshClusterHierarchy& hierarchy = hierarchies[i];
 			KMeshClusterHierarchyPackedNode& node = hierarchyNode[i];
+
 			node.lodBoundCenterError = hierarchy.lodBoundCenterError;
 			node.lodBoundHalfExtendRadius = hierarchy.lodBoundHalfExtendRadius;
+
 			for (uint32_t child = 0; child < KVirtualGeometryDefine::MAX_BVH_NODES; ++child)
 			{
 				node.children[child] = hierarchy.children[child];

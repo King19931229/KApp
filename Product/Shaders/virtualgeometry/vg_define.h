@@ -14,6 +14,7 @@
 #define BVH_MAX_GROUP_BATCH_SIZE (VG_GROUP_SIZE / BVH_MAX_NODES)
 #define CULL_CLUSTER_ALONG_BVH 1
 #define INDIRECT_DRAW_ARGS_OFFSET 0
+#define USE_INSTANCE_CENTER_CULL 1
 
 // Match with KVirtualGeometryInstance
 struct InstanceStruct
@@ -134,6 +135,7 @@ uniform GlobalData
 	mat4 worldToClip;
 	mat4 prevWorldToClip;
 	mat4 worldToView;
+	mat4 worldToTranslateView;
 	vec4 misc;
  	uvec4 misc2;
 };
@@ -387,6 +389,55 @@ vec2 GetProjectScale(mat4 localToWorld, mat4 worldToView, vec3 center, float rad
 	return minMaxScale;
 }
 
+#if 0
+vec2 GetProjectScale(mat4 localToWorld, mat4 worldToView, vec3 center, float radius)
+{
+	const vec4 CenterInView = worldToView * localToWorld * vec4(center, 1.0f);
+	const vec3 WorldScale = vec3(abs(localToWorld[0][0]), abs(localToWorld[1][1]), abs(localToWorld[2][2]));
+
+	vec3 Center = (worldToTranslateView * localToWorld * vec4(center, 1.0f)).xyz;
+	float Scale = max(max(WorldScale.x, WorldScale.y), WorldScale.z);
+	float Radius = Scale * radius;
+
+	float ZNear = cameraNear;
+	float DistToClusterSq = dot(Center, Center);
+
+	float Z = -CenterInView.z;
+	float XSq = DistToClusterSq - Z * Z;
+	float X = sqrt(max(0.0, XSq));
+	float DistToTSq = DistToClusterSq - Radius * Radius;
+	float DistToT = sqrt(max(0.0, DistToTSq));
+	float ScaledCosTheta = DistToT;
+	float ScaledSinTheta = Radius;
+	float ScaleToUnit = inversesqrt(DistToClusterSq);
+	float By = (ScaledSinTheta * X + ScaledCosTheta * Z) * ScaleToUnit;
+	float Ty = (-ScaledSinTheta * X + ScaledCosTheta * Z) * ScaleToUnit;
+
+	float H = ZNear - Z;
+	if (DistToTSq < 0.0 || By * DistToT < ZNear)
+	{
+		float Bx = max(X - sqrt(Radius * Radius - H * H), 0.0);
+		By = ZNear * inversesqrt(Bx * Bx + ZNear * ZNear);
+	}
+
+	if (DistToTSq < 0.0 || Ty * DistToT < ZNear)
+	{
+		float Tx = X + sqrt(Radius * Radius - H * H);
+		Ty = ZNear * inversesqrt(Tx * Tx + ZNear * ZNear);
+	}
+
+	float MinZ = max(Z - Radius, ZNear);
+	float MaxZ = max(Z + Radius, ZNear);
+	float MinCosAngle = Ty;
+	float MaxCosAngle = By;
+
+	if (Z + Radius > ZNear)
+		return vec2(MinZ * MinCosAngle, MaxZ * MaxCosAngle) / Radius;
+	else
+		return vec2(0.0, 0.0);
+}
+#endif
+
 bool ShouldVisitChild(mat4 localToWorld, mat4 worldToView, vec3 boundCenter, float boundRadius, float maxParentError)
 {
 	vec2 error = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius);
@@ -403,10 +454,8 @@ bool FitToDraw(mat4 localToWorld, mat4 worldToView,
 	vec3 localBoundCenter, float localBoundRadius, float localError,
 	vec3 parentBoundCenter, float parentBoundRadius, float parentError)
 {
-	// error0 >= error1
-	vec2 error0 = GetProjectScale(localToWorld, worldToView, localBoundCenter, localBoundRadius);
-	vec2 error1 = GetProjectScale(localToWorld, worldToView, parentBoundCenter, parentBoundRadius);
-	return error0.x >= lodScale * localError && error1.x < lodScale * parentError;
+	return ShouldVisitChild(localToWorld, worldToView, parentBoundCenter, parentBoundRadius, parentError) && 
+	SmallEnoughToDraw(localToWorld, worldToView, localBoundCenter, localBoundRadius, localError);
 }
 
 vec3 RandomColor(uint seed)
