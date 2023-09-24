@@ -14,4 +14,9 @@ void main()
 	IndirectDrawArgs[2] = 0;
 	// firstInstance	
 	IndirectDrawArgs[3] = 0;
+
+	// taskCount
+	IndirectDrawArgs[0] = numCluster;
+	// firstTask
+	IndirectDrawArgs[1] = 0;
 }

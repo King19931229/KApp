@@ -213,7 +213,7 @@ struct KRenderCommand
 		{
 			return false;
 		}
-		if (meshShaderDraw && (meshStorageUsages.empty() || !meshData))
+		if (meshShaderDraw && !(meshData || indirectDraw))
 		{
 			return false;
 		}

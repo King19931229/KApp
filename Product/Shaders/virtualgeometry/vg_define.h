@@ -10,10 +10,12 @@
 #define MAX_CANDIDATE_NODE  (1024 * 1024)
 #define MAX_CANDIDATE_CLUSTER  (1024 * 1024 * 4)
 #define MAX_CLUSTER_TRIANGLE_NUM 128
+#define MAX_CLUSTER_VERTEX_NUM 256
 #define VG_GROUP_SIZE 64
 #define BVH_MAX_GROUP_BATCH_SIZE (VG_GROUP_SIZE / BVH_MAX_NODES)
 #define CULL_CLUSTER_ALONG_BVH 1
 #define INDIRECT_DRAW_ARGS_OFFSET 0
+#define INDIRECT_MESH_ARGS_OFFSET 0
 #define USE_INSTANCE_CENTER_CULL 1
 
 // Match with KVirtualGeometryInstance
@@ -197,6 +199,10 @@ layout (std430, binding = BINDING_EXTRA_DEBUG_INFO) coherent buffer ExtraDebugIn
 
 layout (std430, binding = BINDING_INDIRECT_DRAW_ARGS) coherent buffer IndirectDrawArgsBuffer {
 	uint IndirectDrawArgs[];
+};
+
+layout (std430, binding = BINDING_INDIRECT_MESH_ARGS) coherent buffer IndirectMeshArgsBuffer {
+	uint IndirectMeshArgs[];
 };
 
 layout (std430, binding = BINDING_CLUSTER_VERTEX_BUFFER) coherent buffer ClusterVertexBuffer {
@@ -462,6 +468,89 @@ vec3 RandomColor(uint seed)
 {
 	float fSeed = float(seed % 128);
 	return vec3(fract(fSeed * 143.853), fract(fSeed * 268.813), fract(fSeed * 88.318));
+}
+
+void DecodeClusterBatchDataIndex(in uint triangleIndex, in uint localVertexIndex, in uint clusterIndex,
+	out uint index)
+{
+	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[clusterIndex]);
+	uint instanceId = selectedCluster.instanceId;
+
+	ClusterBatchStruct clusterBatch;
+	GetClusterData(selectedCluster, clusterBatch);
+
+	uint resourceIndex = InstanceData[instanceId].resourceIndex;
+	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;
+	uint resourceIndexStorageByteOffset = ResourceData[resourceIndex].clusterIndexStorageByteOffset;
+
+	uint clusterIndexIntOffset = clusterBatch.indexIntOffset;
+
+	uint indexOffset = resourceIndexStorageByteOffset / 4 + clusterIndexIntOffset + triangleIndex * 3 + localVertexIndex;
+	index = ClusterIndexData[indexOffset];
+}
+
+void DecodeClusterBatchDataVertex(in uint vetexIndex, in uint clusterIndex,
+	out mat4 localToWorld, out vec3 position, out vec3 normal, out vec2 uv)
+{
+	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[clusterIndex]);
+	uint instanceId = selectedCluster.instanceId;
+
+	ClusterBatchStruct clusterBatch;
+	GetClusterData(selectedCluster, clusterBatch);
+
+	uint resourceIndex = InstanceData[instanceId].resourceIndex;
+	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;
+
+	uint clusterVertexFloatOffset = clusterBatch.vertexFloatOffset;
+	uint vertexOffset = resourceVertexStorageByteOffset / 4 + clusterVertexFloatOffset + vetexIndex * 8;
+
+	position[0] = ClusterVertexData[vertexOffset + 0];
+	position[1] = ClusterVertexData[vertexOffset + 1];
+	position[2] = ClusterVertexData[vertexOffset + 2];
+
+	normal[0] = ClusterVertexData[vertexOffset + 3];
+	normal[1] = ClusterVertexData[vertexOffset + 4];
+	normal[2] = ClusterVertexData[vertexOffset + 5];
+
+	uv[0] = ClusterVertexData[vertexOffset + 6];
+	uv[1] = ClusterVertexData[vertexOffset + 7];
+
+	localToWorld = InstanceData[instanceId].transform;
+}
+
+void DecodeClusterBatchData(in uint triangleIndex, in uint localVertexIndex, in uint clusterIndex,
+	out mat4 localToWorld, out vec3 position, out vec3 normal, out vec2 uv)
+{
+	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[clusterIndex]);
+	uint instanceId = selectedCluster.instanceId;
+
+	ClusterBatchStruct clusterBatch;
+	GetClusterData(selectedCluster, clusterBatch);
+
+	uint resourceIndex = InstanceData[instanceId].resourceIndex;
+	uint resourceVertexStorageByteOffset = ResourceData[resourceIndex].clusterVertexStorageByteOffset;
+	uint resourceIndexStorageByteOffset = ResourceData[resourceIndex].clusterIndexStorageByteOffset;
+
+	uint clusterVertexFloatOffset = clusterBatch.vertexFloatOffset;
+	uint clusterIndexIntOffset = clusterBatch.indexIntOffset;
+
+	uint indexOffset = resourceIndexStorageByteOffset / 4 + clusterIndexIntOffset + triangleIndex * 3 + localVertexIndex;
+	uint index = ClusterIndexData[indexOffset];
+
+	uint vertexOffset = resourceVertexStorageByteOffset / 4 + clusterVertexFloatOffset + index * 8;
+
+	position[0] = ClusterVertexData[vertexOffset + 0];
+	position[1] = ClusterVertexData[vertexOffset + 1];
+	position[2] = ClusterVertexData[vertexOffset + 2];
+
+	normal[0] = ClusterVertexData[vertexOffset + 3];
+	normal[1] = ClusterVertexData[vertexOffset + 4];
+	normal[2] = ClusterVertexData[vertexOffset + 5];
+
+	uv[0] = ClusterVertexData[vertexOffset + 6];
+	uv[1] = ClusterVertexData[vertexOffset + 7];
+
+	localToWorld = InstanceData[instanceId].transform;
 }
 
 #endif

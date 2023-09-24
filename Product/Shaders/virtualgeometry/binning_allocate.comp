@@ -11,7 +11,9 @@ void main()
 		uint binningBatchNum = BinningHeader[binningIndex].x;
 		BinningHeader[binningIndex].y = atomicAdd(QueueState[0].binningWriteOffset, binningBatchNum);
 
-		uint offset = binningIndex * 4;
+		uint offset = 0;
+
+		offset = binningIndex * 4;
 		offset += INDIRECT_DRAW_ARGS_OFFSET;
 
 		// vertexCount
@@ -22,5 +24,13 @@ void main()
 		IndirectDrawArgs[offset + 2] = 0;
 		// firstInstance	
 		IndirectDrawArgs[offset + 3] = 0;
+
+		offset = binningIndex * 2;
+		offset += INDIRECT_MESH_ARGS_OFFSET;
+ 
+		// taskCount
+		IndirectMeshArgs[offset + 0] = 0;
+		// firstTask
+		IndirectMeshArgs[offset + 1] = 0;
 	}
 }

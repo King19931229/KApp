@@ -41,15 +41,20 @@ void main()
 			batch.rangeBegin = rangeBegin;
 			batch.rangeNum = rangeEnd - rangeBegin + 1;
 
-			uint offset = binningIndex * 4;
-			offset += INDIRECT_DRAW_ARGS_OFFSET;
-			offset += 1;
+			uint offset = 0;
 
-			uint batchOffset = atomicAdd(IndirectDrawArgs[offset], 1);
+			offset = binningIndex * 4;
+			offset += INDIRECT_DRAW_ARGS_OFFSET;
+
+			uint batchOffset = atomicAdd(IndirectDrawArgs[offset + 1], 1);
 			uint binningWriteOffset = BinningHeader[binningIndex].y + batchOffset;
 
 			StoreBinningBatch(binningWriteOffset, batch);
-#endif	
+
+			offset = binningIndex * 2;
+			offset += INDIRECT_MESH_ARGS_OFFSET;
+			atomicAdd(IndirectMeshArgs[offset], 1);
+#endif
 		}
 	}
 }

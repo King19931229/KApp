@@ -15,6 +15,7 @@ protected:
 		MAX_CANDIDATE_CLUSTERS = 1024 * 1024 * 4,
 
 		VG_GROUP_SIZE = 64,
+		VG_MESH_SHADER_GROUP_SIZE = 32,
 
 		BINDING_GLOBAL_DATA = 0,
 		BINDING_RESOURCE,
@@ -30,6 +31,7 @@ protected:
 		BINDING_INDIRECT_ARGS,
 		BINDING_EXTRA_DEBUG_INFO,
 		BINDING_INDIRECT_DRAW_ARGS,
+		BINDING_INDIRECT_MESH_ARGS,
 		BINDING_CLUSTER_VERTEX_BUFFER,
 		BINDING_CLUSTER_INDEX_BUFFER,
 		BINDING_CLUSTER_MATERIAL_BUFFER,
@@ -47,6 +49,7 @@ protected:
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_SELECTED_CLUSTER = "VirtualGeometrySceneSelectedCluster";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINDING_EXTRA_DEBUG_INFO = "VirtualGeometrySceneDebugExtraInfo";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS = "VirtualGeometrySceneIndirectDrawArgs";
+	static constexpr char* VIRTUAL_GEOMETRY_SCENE_INDIRECT_MESH_ARGS = "VirtualGeometrySceneIndirectMeshArgs";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINNING_DATA = "VirtualGeometrySceneBinningData";
 	static constexpr char* VIRTUAL_GEOMETRY_SCENE_BINNIIG_HEADER = "VirtualGeometrySceneBinningHeader";
 
@@ -66,8 +69,20 @@ protected:
 	std::vector<InstancePtr> m_Instances;
 
 	std::vector<KVirtualGeometryInstance> m_LastInstanceData;
+
+	enum BinningPipelineIndex
+	{
+		BINNIING_PIPELINE_VERTEX,
+		BINNIING_PIPELINE_MESH,
+		BINNIING_PIPELINE_COUNT
+	};
+
+	KShaderRef m_BasePassVertexShader;
+	KShaderRef m_BasePassMeshShader;
+
 	std::vector<KMaterialRef> m_BinningMaterials;
-	std::vector<IKPipelinePtr> m_BinningPipelines;
+	std::vector<IKPipelinePtr> m_BinningPipelines[BINNIING_PIPELINE_COUNT];
+	std::vector<KShaderRef> m_BasePassFragmentShaders[BINNIING_PIPELINE_COUNT];
 
 	IKUniformBufferPtr m_GlobalDataBuffer;
 
@@ -79,6 +94,7 @@ protected:
 	IKStorageBufferPtr m_SelectedClusterBuffer;
 	IKStorageBufferPtr m_ExtraDebugBuffer;
 	IKStorageBufferPtr m_IndirectDrawBuffer;
+	IKStorageBufferPtr m_IndirectMeshBuffer;
 	IKStorageBufferPtr m_BinningDataBuffer;
 	IKStorageBufferPtr m_BinningHeaderBuffer;
 
@@ -96,12 +112,11 @@ protected:
 
 	glm::mat4 m_PrevViewProj;
 
-	KShaderRef m_BasePassVertexShader;
-	std::vector<KShaderRef> m_BasePassFragmentShaders;
-
 	KShaderRef m_DebugVertexShader;
 	KShaderRef m_DebugFragmentShader;
 	IKPipelinePtr m_DebugPipeline;
+
+	bool m_UseMeshPipeline;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);

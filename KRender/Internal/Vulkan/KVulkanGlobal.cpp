@@ -34,6 +34,7 @@ namespace KVulkanGlobal
 	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR = VK_NULL_HANDLE;
 
 	PFN_vkCmdDrawMeshTasksNV vkCmdDrawMeshTasksNV = VK_NULL_HANDEL;
+	PFN_vkCmdDrawMeshTasksIndirectNV vkCmdDrawMeshTasksIndirectNV = VK_NULL_HANDEL;
 
 	PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV = VK_NULL_HANDEL;
 	PFN_vkGetQueueCheckpointDataNV vkGetQueueCheckpointDataNV = VK_NULL_HANDEL;

@@ -1333,6 +1333,7 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 
 	// Function pointers for mesh shader
 	KVulkanGlobal::vkCmdDrawMeshTasksNV = reinterpret_cast<PFN_vkCmdDrawMeshTasksNV>(vkGetDeviceProcAddr(m_Device, "vkCmdDrawMeshTasksNV"));
+	KVulkanGlobal::vkCmdDrawMeshTasksIndirectNV = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectNV>(vkGetDeviceProcAddr(m_Device, "vkCmdDrawMeshTasksIndirectNV"));
 
 	// Function pointers for nsight
 	KVulkanGlobal::vkCmdSetCheckpointNV = reinterpret_cast<PFN_vkCmdSetCheckpointNV>(vkGetDeviceProcAddr(m_Device, "vkCmdSetCheckpointNV"));

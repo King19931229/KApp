@@ -6,6 +6,7 @@
 KVirtualGeometryScene::KVirtualGeometryScene()
 	: m_Scene(nullptr)
 	, m_Camera(nullptr)
+	, m_UseMeshPipeline(true)
 {
 	m_OnSceneChangedFunc = std::bind(&KVirtualGeometryScene::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
 	m_OnRenderComponentChangedFunc = std::bind(&KVirtualGeometryScene::OnRenderComponentChanged, this, std::placeholders::_1, std::placeholders::_2);
@@ -137,6 +138,13 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_IndirectDrawBuffer->InitDevice(true);
 			m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
 
+			// { taskCount, firstTask }
+			int32_t indirectMeshInfo[] = { 0, 0 };
+			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_IndirectMeshBuffer);
+			m_IndirectMeshBuffer->InitMemory(sizeof(indirectMeshInfo), indirectMeshInfo);
+			m_IndirectMeshBuffer->InitDevice(true);
+			m_IndirectMeshBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_MESH_ARGS);
+
 			std::vector<glm::uvec4> emptyBinningBatchData;
 			emptyBinningBatchData.resize(MAX_CANDIDATE_CLUSTERS);
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_BinningDataBuffer);
@@ -200,6 +208,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			KRenderGlobal::RenderDevice->CreateComputePipeline(m_CalcDrawArgsPipeline);
 			m_CalcDrawArgsPipeline->BindStorageBuffer(BINDING_QUEUE_STATE, m_QueueStateBuffer, COMPUTE_RESOURCE_IN, true);
 			m_CalcDrawArgsPipeline->BindStorageBuffer(BINDING_INDIRECT_DRAW_ARGS, m_IndirectDrawBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_CalcDrawArgsPipeline->BindStorageBuffer(BINDING_INDIRECT_MESH_ARGS, m_IndirectMeshBuffer, COMPUTE_RESOURCE_OUT, true);
 			m_CalcDrawArgsPipeline->Init("virtualgeometry/calc_draw_args.comp");
 
 			KRenderGlobal::RenderDevice->CreateComputePipeline(m_InitBinningPipline);
@@ -224,6 +233,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_BinningAllocatePipline->BindUniformBuffer(BINDING_GLOBAL_DATA, m_GlobalDataBuffer);
 			m_BinningAllocatePipline->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_OUT, true);
 			m_BinningAllocatePipline->BindStorageBuffer(BINDING_INDIRECT_DRAW_ARGS, m_IndirectDrawBuffer, COMPUTE_RESOURCE_OUT, true);
+			m_BinningAllocatePipline->BindStorageBuffer(BINDING_INDIRECT_MESH_ARGS, m_IndirectMeshBuffer, COMPUTE_RESOURCE_OUT, true);
 			m_BinningAllocatePipline->Init("virtualgeometry/binning_allocate.comp");
 
 			KRenderGlobal::RenderDevice->CreateComputePipeline(m_BinningScatterPipline);
@@ -236,12 +246,14 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_BinningScatterPipline->BindStorageBuffer(BINDING_BINNING_HEADER, m_BinningHeaderBuffer, COMPUTE_RESOURCE_OUT, true);
 			m_BinningScatterPipline->BindStorageBuffer(BINDING_BINNING_DATA, m_BinningDataBuffer, COMPUTE_RESOURCE_OUT, true);
 			m_BinningScatterPipline->BindStorageBuffer(BINDING_INDIRECT_DRAW_ARGS, m_IndirectDrawBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
+			m_BinningScatterPipline->BindStorageBuffer(BINDING_INDIRECT_MESH_ARGS, m_IndirectMeshBuffer, COMPUTE_RESOURCE_IN | COMPUTE_RESOURCE_OUT, true);
 			m_BinningScatterPipline->Init("virtualgeometry/binning_scatter.comp");
 		}
 
 		{
 			KShaderCompileEnvironment env;
 			KRenderGlobal::ShaderManager.Acquire(ST_VERTEX, "virtualgeometry/vg_basepass.vert", env, m_BasePassVertexShader, false);
+			KRenderGlobal::ShaderManager.Acquire(ST_MESH, "virtualgeometry/vg_basepass.mesh", env, m_BasePassMeshShader, false);
 		}
 
 		{
@@ -312,6 +324,7 @@ bool KVirtualGeometryScene::UnInit()
 	SAFE_UNINIT(m_SelectedClusterBuffer);
 	SAFE_UNINIT(m_ExtraDebugBuffer);
 	SAFE_UNINIT(m_IndirectDrawBuffer);
+	SAFE_UNINIT(m_IndirectMeshBuffer);
 	SAFE_UNINIT(m_BinningDataBuffer);
 	SAFE_UNINIT(m_BinningHeaderBuffer);
 
@@ -338,9 +351,13 @@ bool KVirtualGeometryScene::UnInit()
 	m_BinningMaterials.clear();
 
 	m_BasePassVertexShader.Release();
-	m_BasePassFragmentShaders.clear();
+	m_BasePassMeshShader.Release();
 
-	SAFE_UNINIT_CONTAINER(m_BinningPipelines);
+	for (uint32_t i = 0; i < BINNIING_PIPELINE_COUNT; ++i)
+	{
+		m_BasePassFragmentShaders[i].clear();
+		SAFE_UNINIT_CONTAINER(m_BinningPipelines[i]);
+	}
 
 	return true;
 }
@@ -432,95 +449,122 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 	m_BinningMaterials = std::move(binningMaterials);
 
 	// TODO
-	SAFE_UNINIT_CONTAINER(m_BinningPipelines);
-	m_BasePassFragmentShaders.clear();
-	m_BinningPipelines.resize(m_BinningMaterials.size());
-	m_BasePassFragmentShaders.resize(m_BinningMaterials.size());
-
-	for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
+	for (uint32_t i = 0; i < BINNIING_PIPELINE_COUNT; ++i)
 	{
-		IKPipelinePtr& pipeline = m_BinningPipelines[i];
-		KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
+		SAFE_UNINIT_CONTAINER(m_BinningPipelines[i]);		
+		m_BinningPipelines[i].resize(m_BinningMaterials.size());
+		m_BasePassFragmentShaders[i].clear();
+		m_BasePassFragmentShaders[i].resize(m_BinningMaterials.size());
+	}
 
-		KShaderCompileEnvironment env;
-		env.includes.push_back({"material_generate_code.h", m_BinningMaterials[i]->GetMaterialGeneratedCode()});
-		
-		const IKMaterialTextureBinding* textureBinding = m_BinningMaterials[i]->GetTextureBinding().get();
-		uint8_t numSlot = textureBinding->GetNumSlot();
-		for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
+	for (uint32_t k = 0; k < BINNIING_PIPELINE_COUNT; ++k)
+	{
+		for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
 		{
-			env.macros.push_back({ PERMUTATING_MACRO[MATERIAL_TEXTURE_BINDING_MACRO_INDEX[i]].macro, textureBinding->GetTexture(i) ? "1" : "0" });
-		}
+			IKPipelinePtr& pipeline = m_BinningPipelines[k][i];
+			KRenderGlobal::RenderDevice->CreatePipeline(pipeline);
 
-		KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualgeometry/vg_basepass.frag", env, m_BasePassFragmentShaders[i], false);
-		IKShaderPtr vsShader = m_BasePassVertexShader.Get();
-		IKShaderPtr fsShader = m_BasePassFragmentShaders[i].Get();
+			KShaderCompileEnvironment env;
+			env.includes.push_back({ "material_generate_code.h", m_BinningMaterials[i]->GetMaterialGeneratedCode() });
 
-		pipeline->SetVertexBinding(nullptr, 0);
-		pipeline->SetShader(ST_VERTEX, vsShader);
-		pipeline->SetShader(ST_FRAGMENT, fsShader);
+			const IKMaterialTextureBindingPtr materialTextureBinding = m_BinningMaterials[i]->GetTextureBinding();
+			const IKMaterialTextureBinding* textureBinding = materialTextureBinding.get();
 
-		pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
-		pipeline->SetBlendEnable(false);
-		pipeline->SetCullMode(CM_BACK);
-		pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
-		pipeline->SetPolygonMode(PM_FILL);
-		pipeline->SetColorWrite(true, true, true, true);
-		pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
-
-		pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_SELECTED_CLUSTER_BATCH, ST_VERTEX, m_SelectedClusterBuffer);
-		pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
-		pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_RESOURCE, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer());
-		pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_BATCH, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer());
-
-		pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_VERTEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterVertexStorageBuffer());
-		pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_INDEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterIndexStorageBuffer());
-		pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_MATERIAL_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer());
-
-		pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_BINNING_DATA, ST_VERTEX, m_BinningDataBuffer);
-		pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_BINNING_HEADER, ST_VERTEX, m_BinningHeaderBuffer);
-
-		pipeline->SetConstantBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_GLOBAL_DATA, ST_VERTEX | ST_FRAGMENT, m_GlobalDataBuffer);
-
-		for (uint8_t i = 0; i < numSlot; ++i)
-		{
-			IKTexturePtr texture = textureBinding->GetTexture(i);
-			IKSamplerPtr sampler = textureBinding->GetSampler(i);
-			if (texture && sampler)
+			uint8_t numSlot = textureBinding->GetNumSlot();
+			for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_BINDING; ++i)
 			{
-				pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, texture->GetFrameBuffer(), sampler, true);
+				env.macros.push_back({ PERMUTATING_MACRO[MATERIAL_TEXTURE_BINDING_MACRO_INDEX[i]].macro, textureBinding->GetTexture(i) ? "1" : "0" });
 			}
-		}
 
-		pipeline->Init();
+			if (k == BINNIING_PIPELINE_VERTEX)
+			{
+				IKShaderPtr vsShader = m_BasePassVertexShader.Get();
+				pipeline->SetShader(ST_VERTEX, vsShader);
+				KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualgeometry/vg_basepass.frag", env, m_BasePassFragmentShaders[k][i], false);
+			}
+			else
+			{
+				IKShaderPtr msShader = m_BasePassMeshShader.Get();
+				pipeline->SetShader(ST_MESH, msShader);
+				KRenderGlobal::ShaderManager.Acquire(ST_FRAGMENT, "virtualgeometry/vg_basepass_mesh.frag", env, m_BasePassFragmentShaders[k][i], false);
+			}
+
+			pipeline->SetVertexBinding(nullptr, 0);
+
+			IKShaderPtr fsShader = m_BasePassFragmentShaders[k][i].Get();
+			pipeline->SetShader(ST_FRAGMENT, fsShader);
+
+			pipeline->SetPrimitiveTopology(PT_TRIANGLE_LIST);
+			pipeline->SetBlendEnable(false);
+			pipeline->SetCullMode(CM_BACK);
+			pipeline->SetFrontFace(FF_COUNTER_CLOCKWISE);
+			pipeline->SetPolygonMode(PM_FILL);
+			pipeline->SetColorWrite(true, true, true, true);
+			pipeline->SetDepthFunc(CF_LESS_OR_EQUAL, true, true);
+
+			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_SELECTED_CLUSTER_BATCH, ST_VERTEX, m_SelectedClusterBuffer);
+			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_INSTANCE_DATA, ST_VERTEX, m_InstanceDataBuffer);
+			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_RESOURCE, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetResourceBuffer());
+			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_BATCH, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterBatchBuffer());
+
+			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_VERTEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterVertexStorageBuffer());
+			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_INDEX_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterIndexStorageBuffer());
+			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_CLUSTER_MATERIAL_BUFFER, ST_VERTEX, KRenderGlobal::VirtualGeometryManager.GetClusterMaterialStorageBuffer());
+
+			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_BINNING_DATA, ST_VERTEX, m_BinningDataBuffer);
+			pipeline->SetStorageBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_BINNING_HEADER, ST_VERTEX, m_BinningHeaderBuffer);
+
+			pipeline->SetConstantBuffer(MAX_MATERIAL_TEXTURE_BINDING + BINDING_GLOBAL_DATA, ST_VERTEX | ST_FRAGMENT, m_GlobalDataBuffer);
+
+			for (uint8_t i = 0; i < numSlot; ++i)
+			{
+				IKTexturePtr texture = textureBinding->GetTexture(i);
+				IKSamplerPtr sampler = textureBinding->GetSampler(i);
+				if (texture && sampler)
+				{
+					pipeline->SetSampler(SHADER_BINDING_TEXTURE0 + i, texture->GetFrameBuffer(), sampler, true);
+				}
+			}
+
+			pipeline->Init();
+		}
 	}
 
 	{
 		int32_t indirectDrawInfo[] = { 0, 0, 0, 0 };
+		int32_t indirectMeshInfo[] = { 0, 0 };
 
 		size_t binningCount = m_BinningMaterials.size();// +1;
-		size_t dataSize = sizeof(indirectDrawInfo) * binningCount;
-		size_t targetBufferSize = sizeof(indirectDrawInfo) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(binningCount));
 
-		if (m_IndirectDrawBuffer->GetBufferSize() != targetBufferSize)
+		size_t dataSize = 0;
+		size_t targetBufferSize = 0;
+
 		{
-			KRenderGlobal::RenderDevice->Wait();
-			m_IndirectDrawBuffer->UnInit();
-			m_IndirectDrawBuffer->InitMemory(targetBufferSize, nullptr);
-			m_IndirectDrawBuffer->InitDevice(true);
-			m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
+			dataSize = sizeof(indirectDrawInfo) * binningCount;
+			targetBufferSize = sizeof(indirectDrawInfo) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(binningCount));
+
+			if (m_IndirectDrawBuffer->GetBufferSize() != targetBufferSize)
+			{
+				KRenderGlobal::RenderDevice->Wait();
+				m_IndirectDrawBuffer->UnInit();
+				m_IndirectDrawBuffer->InitMemory(targetBufferSize, nullptr);
+				m_IndirectDrawBuffer->InitDevice(true);
+				m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
+			}
 		}
 
-		if (dataSize)
 		{
-			m_InstanceDataBuffer->Map(&pWrite);
-			for (size_t i = 0; i < m_BinningMaterials.size(); ++i)
+			dataSize = sizeof(indirectMeshInfo) * binningCount;
+			targetBufferSize = sizeof(indirectMeshInfo) * std::max((size_t)1, KMath::SmallestPowerOf2GreaterEqualThan(binningCount));
+
+			if (m_IndirectMeshBuffer->GetBufferSize() != targetBufferSize)
 			{
-				memcpy(pWrite, indirectDrawInfo, sizeof(indirectDrawInfo));
-				pWrite = POINTER_OFFSET(pWrite, sizeof(indirectDrawInfo));
+				KRenderGlobal::RenderDevice->Wait();
+				m_IndirectMeshBuffer->UnInit();
+				m_IndirectMeshBuffer->InitMemory(targetBufferSize, nullptr);
+				m_IndirectMeshBuffer->InitDevice(true);
+				m_IndirectMeshBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_MESH_ARGS);
 			}
-			m_InstanceDataBuffer->UnMap();
-			pWrite = nullptr;
 		}
 	}
 
@@ -681,14 +725,27 @@ bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, IKCommandBuffer
 
 		command.dynamicConstantUsages.push_back(objectUsage);
 
-		command.pipeline = m_BinningPipelines[i];
-		command.indirectArgsBuffer = m_IndirectDrawBuffer;
-		command.pipeline->GetHandle(renderPass, command.pipelineHandle);
-		command.indexDraw = false;
-		command.indirectDraw = true;
-		command.indrectOffset = (uint32_t)i;
-
-		primaryBuffer->Render(command);
+		if (m_UseMeshPipeline)
+		{
+			command.pipeline = m_BinningPipelines[BINNIING_PIPELINE_MESH][i];
+			command.indirectArgsBuffer = m_IndirectMeshBuffer;
+			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+			command.indexDraw = false;
+			command.indirectDraw = true;
+			command.meshShaderDraw = true;
+			command.indrectOffset = (uint32_t)i;
+			primaryBuffer->Render(command);
+		}
+		else
+		{
+			command.pipeline = m_BinningPipelines[BINNIING_PIPELINE_VERTEX][i];
+			command.indirectArgsBuffer = m_IndirectDrawBuffer;
+			command.pipeline->GetHandle(renderPass, command.pipelineHandle);
+			command.indexDraw = false;
+			command.indirectDraw = true;
+			command.indrectOffset = (uint32_t)i;
+			primaryBuffer->Render(command);
+		}
 	}
 
 	primaryBuffer->EndDebugMarker();
@@ -758,6 +815,20 @@ bool KVirtualGeometryScene::ReloadShader()
 	{
 		m_BasePassVertexShader->Reload();
 	}
+	if (m_BasePassMeshShader)
+	{
+		m_BasePassMeshShader->Reload();
+	}
+
+	for (uint32_t k = 0; k < BINNIING_PIPELINE_COUNT; ++k)
+	{
+		for (size_t i = 0; i < m_BasePassFragmentShaders[k].size(); ++i)
+		{
+			m_BasePassFragmentShaders[k][i]->Reload();
+			m_BinningPipelines[k][i]->Reload();
+		}
+	}
+
 	if (m_DebugVertexShader)
 	{
 		m_DebugVertexShader->Reload();
