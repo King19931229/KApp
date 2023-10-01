@@ -11,6 +11,6 @@ void main()
 	IndirectArgs[1] = 1;
 
 	QueueState[0].nodeReadOffset = QueueState[0].nodePrevWriteOffset;
-	memoryBarrierBuffer();
+	memoryBarrier(); barrier();
 	QueueState[0].nodePrevWriteOffset = QueueState[0].nodeWriteOffset;
 }

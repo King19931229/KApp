@@ -6,7 +6,6 @@
 KVirtualGeometryScene::KVirtualGeometryScene()
 	: m_Scene(nullptr)
 	, m_Camera(nullptr)
-	, m_UseMeshPipeline(true)
 {
 	m_OnSceneChangedFunc = std::bind(&KVirtualGeometryScene::OnSceneChanged, this, std::placeholders::_1, std::placeholders::_2);
 	m_OnRenderComponentChangedFunc = std::bind(&KVirtualGeometryScene::OnRenderComponentChanged, this, std::placeholders::_1, std::placeholders::_2);
@@ -121,7 +120,7 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_SelectedClusterBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_SELECTED_CLUSTER);
 
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_ExtraDebugBuffer);
-			m_ExtraDebugBuffer->InitMemory(MAX_CANDIDATE_CLUSTERS * sizeof(uint32_t), emptyBatchClusterData.data());
+			m_ExtraDebugBuffer->InitMemory(MAX_CANDIDATE_CLUSTERS * sizeof(glm::uvec4), emptyBatchClusterData.data());
 			m_ExtraDebugBuffer->InitDevice(false);
 			m_ExtraDebugBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_BINDING_EXTRA_DEBUG_INFO);
 
@@ -138,8 +137,8 @@ bool KVirtualGeometryScene::Init(IKRenderScene* scene, const KCamera* camera)
 			m_IndirectDrawBuffer->InitDevice(true);
 			m_IndirectDrawBuffer->SetDebugName(VIRTUAL_GEOMETRY_SCENE_INDIRECT_DRAW_ARGS);
 
-			// { taskCount, firstTask }
-			int32_t indirectMeshInfo[] = { 0, 0 };
+			// { groupCountX, groupCountY, groupCountZ }
+			int32_t indirectMeshInfo[] = { 0, 0, 0 };
 			KRenderGlobal::RenderDevice->CreateStorageBuffer(m_IndirectMeshBuffer);
 			m_IndirectMeshBuffer->InitMemory(sizeof(indirectMeshInfo), indirectMeshInfo);
 			m_IndirectMeshBuffer->InitDevice(true);
@@ -532,7 +531,7 @@ bool KVirtualGeometryScene::UpdateInstanceData()
 
 	{
 		int32_t indirectDrawInfo[] = { 0, 0, 0, 0 };
-		int32_t indirectMeshInfo[] = { 0, 0 };
+		int32_t indirectMeshInfo[] = { 0, 0, 0 };
 
 		size_t binningCount = m_BinningMaterials.size();// +1;
 
@@ -725,7 +724,7 @@ bool KVirtualGeometryScene::BasePass(IKRenderPassPtr renderPass, IKCommandBuffer
 
 		command.dynamicConstantUsages.push_back(objectUsage);
 
-		if (m_UseMeshPipeline)
+		if (KRenderGlobal::VirtualGeometryManager.GetUseMeshPipeline())
 		{
 			command.pipeline = m_BinningPipelines[BINNIING_PIPELINE_MESH][i];
 			command.indirectArgsBuffer = m_IndirectMeshBuffer;

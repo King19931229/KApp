@@ -7,7 +7,8 @@ namespace KVulkanGlobal
 {
 	extern bool deviceReady;
 	extern bool supportRaytrace;
-	extern bool supportMeshShader;
+	extern bool supportNVMeshShader;
+	extern bool supportKHRMeshShader;
 	extern bool supportDebugMarker;
 
 	extern bool hashDescriptorUpdate;
@@ -33,7 +34,8 @@ namespace KVulkanGlobal
 
 	extern VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties;
 	extern VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
-	extern VkPhysicalDeviceMeshShaderPropertiesNV meshShaderFeatures;
+	extern VkPhysicalDeviceMeshShaderPropertiesNV nvMeshShaderFeatures;
+	extern VkPhysicalDeviceMeshShaderPropertiesEXT extMeshShaderFeatures;
 
 	// Function pointers for ray tracing
 	extern PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
@@ -50,6 +52,9 @@ namespace KVulkanGlobal
 	// Function pointers for mesh shader
 	extern PFN_vkCmdDrawMeshTasksNV vkCmdDrawMeshTasksNV;
 	extern PFN_vkCmdDrawMeshTasksIndirectNV vkCmdDrawMeshTasksIndirectNV;
+
+	extern PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasksEXT;
+	extern PFN_vkCmdDrawMeshTasksIndirectEXT vkCmdDrawMeshTasksIndirectEXT;
 
 	// Function pointers for nsight
 	extern PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV;

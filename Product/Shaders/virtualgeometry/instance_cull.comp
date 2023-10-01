@@ -1,6 +1,7 @@
 #include "vg_default_binding.h"
 #include "vg_define.h"
 #include "culling.h"
+#include "wave.h"
 
 layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 void main()
@@ -19,7 +20,8 @@ void main()
 
 		if (cullData.bIsVisible)
 		{
-			uint nodeWriteOffset = atomicAdd(QueueState[0].nodeWriteOffset, 1);
+			uint nodeWriteOffset = 0;
+			WAVE_INTERLOCK_ADD(QueueState[0].nodeWriteOffset, 1, nodeWriteOffset);
 			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
 			{
 				CandidateNode node;

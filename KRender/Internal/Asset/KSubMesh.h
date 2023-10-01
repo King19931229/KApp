@@ -27,7 +27,7 @@ protected:
 	IKAccelerationStructurePtr	m_AccelerationStructure;
 	bool						m_NeedAccelerationStructure;
 
-	KMeshData					m_MeshData;
+	KMeshDataLeagcy				m_MeshData;
 	KMeshletGeometry			m_Meshlet;
 	bool						m_NeedMeshlet;
 public:

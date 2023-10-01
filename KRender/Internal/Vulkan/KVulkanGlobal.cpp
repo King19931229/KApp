@@ -4,7 +4,8 @@ namespace KVulkanGlobal
 {
 	bool deviceReady = false;
 	bool supportRaytrace = false;
-	bool supportMeshShader = false;
+	bool supportNVMeshShader = false;
+	bool supportKHRMeshShader = false;
 	bool supportDebugMarker = false;
 
 	bool hashDescriptorUpdate = true;
@@ -20,7 +21,8 @@ namespace KVulkanGlobal
 
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties = {};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = {};
-	VkPhysicalDeviceMeshShaderPropertiesNV meshShaderFeatures = {};
+	VkPhysicalDeviceMeshShaderPropertiesNV nvMeshShaderFeatures = {};
+	VkPhysicalDeviceMeshShaderPropertiesEXT extMeshShaderFeatures = {};
 
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR = VK_NULL_HANDLE;
 	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR = VK_NULL_HANDLE;
@@ -35,6 +37,9 @@ namespace KVulkanGlobal
 
 	PFN_vkCmdDrawMeshTasksNV vkCmdDrawMeshTasksNV = VK_NULL_HANDEL;
 	PFN_vkCmdDrawMeshTasksIndirectNV vkCmdDrawMeshTasksIndirectNV = VK_NULL_HANDEL;
+
+	PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasksEXT = VK_NULL_HANDEL;
+	PFN_vkCmdDrawMeshTasksIndirectEXT vkCmdDrawMeshTasksIndirectEXT = VK_NULL_HANDEL;
 
 	PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV = VK_NULL_HANDEL;
 	PFN_vkGetQueueCheckpointDataNV vkGetQueueCheckpointDataNV = VK_NULL_HANDEL;

@@ -1,11 +1,12 @@
 #include "vg_default_binding.h"
 #include "vg_define.h"
 #include "culling.h"
+#include "wave.h"
 
 shared uvec4 SharedCandidateNodeBatch[BVH_MAX_GROUP_BATCH_SIZE];
 
 #define DEBUG_SHADER_GROUP 0
-#define EMIT_CLUSTER_EACH_THREAD 0
+#define EMIT_CLUSTER_EACH_THREAD 1
 
 bool IsSharedHierarchyDataValid(uint index)
 {
@@ -53,8 +54,7 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 	if (cullData.bIsVisible)
 	{
 #if USE_INSTANCE_CENTER_CULL
-		vec3 instanceCenter = vec3(localToWorld[3][0], localToWorld[3][1], localToWorld[3][2]);
-		cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, instanceCenter, radius, maxParentError);
+		cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, vec3(0, 0, 0), radius, maxParentError);
 #else
 		cullData.bIsVisible = ShouldVisitChild(localToWorld, worldToView, boundCenter, radius, maxParentError);
 #endif
@@ -71,7 +71,8 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 		uint nodeIndex = hierarchy.children[childIndex];
 		if (nodeIndex != INVALID_INDEX)
 		{
-			uint nodeWriteOffset = atomicAdd(QueueState[0].nodeWriteOffset, 1);
+			uint nodeWriteOffset = 0;
+			WAVE_INTERLOCK_ADD(QueueState[0].nodeWriteOffset, 1, nodeWriteOffset);
 			if (nodeWriteOffset < MAX_CANDIDATE_NODE)
 			{
 				CandidateNode node;
@@ -89,8 +90,12 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 		uint clusterNumPerChild = hierarchy.clusterNum / BVH_MAX_NODES;
 		uint clusterNumPerChildRest = hierarchy.clusterNum & BVH_NODE_MASK;
 
-		uint clusterStart = hierarchy.clusterStart + childIndex * clusterNumPerChild;
-		uint clusterNum = clusterNumPerChild + uint(childIndex == BVH_MAX_NODES - 1) * clusterNumPerChildRest;
+		uint clusterStart = hierarchy.clusterStart + childIndex * clusterNumPerChild + uint(childIndex != 0) * clusterNumPerChildRest;
+		uint clusterNum = clusterNumPerChild + uint(childIndex == 0) * clusterNumPerChildRest;
+		if (clusterNum == 0)
+		{
+			return;
+		}
 #else
 		if (childIndex != 0)
 		{
@@ -99,7 +104,8 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 		uint clusterStart = hierarchy.clusterStart;
 		uint clusterNum = hierarchy.clusterNum;
 #endif
-		uint clusterWriteOffset = atomicAdd(QueueState[0].clusterWriteOffset, clusterNum);
+		uint clusterWriteOffset = 0;
+		WAVE_INTERLOCK_ADD(QueueState[0].clusterWriteOffset, clusterNum, clusterWriteOffset);
 
 		for (uint i = 0; i < clusterNum; ++i)
 		{
@@ -112,6 +118,17 @@ void ProcessNodeBatch(uint groupIndex, uint batchStart, uint batchSize)
 			candidateCluster.clusterIndex = clusterStart + i;
 			StoreCandidateCluster(clusterWriteOffset + i, candidateCluster);
 		}
+
+		// if (subgroupElect())
+		// {
+		// 	clusterNum = 2048;
+		// }
+		// clusterNum = subgroupBroadcastFirst(clusterNum);
+
+		// ExtraDebugInfo[clusterWriteOffset][0] = gl_SubgroupInvocationID;
+		// ExtraDebugInfo[clusterWriteOffset][1] = int(subgroupElect());
+		// ExtraDebugInfo[clusterWriteOffset][2] = clusterNum;
+		// ExtraDebugInfo[clusterWriteOffset][3] = subgroupExclusiveAdd(clusterNum);
 	}
 }
 
@@ -129,14 +146,11 @@ void main()
 	uint childIndex = groupIndex & BVH_NODE_MASK;
 
 #if !DEBUG_SHADER_GROUP
-	bool readData = false;
 	uint nodeIndex = batchStart + localIndex;
-
 	if (childIndex == 0)
 	{
 		if (localIndex < batchSize)
 		{
-			readData = true;
 			SharedCandidateNodeBatch[localIndex] = CandidateNodeBatch[nodeIndex];
 		}
 		else
@@ -150,7 +164,7 @@ void main()
 	ProcessNodeBatch(groupIndex, batchStart, batchSize);
 
 #if !DEBUG_SHADER_GROUP
-	if (readData)
+	if (IsSharedHierarchyDataValid(localIndex))
 	{
 		CandidateNodeBatch[nodeIndex] = uvec4(0xFFFFFFFF);
 	}

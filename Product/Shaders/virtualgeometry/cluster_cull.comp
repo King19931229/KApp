@@ -1,6 +1,7 @@
 #include "vg_default_binding.h"
 #include "vg_define.h"
 #include "culling.h"
+#include "wave.h"
 
 void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 {
@@ -23,12 +24,11 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 
 		FrustumCullData cullData = BoxCullFrustumGeneral(boundCenter, boundHalfExtend, localToWorld, worldToClip, true, false);
 
-		vec3 instanceCenter = vec3(localToWorld[3][0], localToWorld[3][1], localToWorld[3][2]);
 #if CULL_CLUSTER_ALONG_BVH
 		if (cullData.bIsVisible)
 		{
 #if USE_INSTANCE_CENTER_CULL
-			cullData.bIsVisible = SmallEnoughToDraw(localToWorld, worldToView, instanceCenter, boundRadius, localError);
+			cullData.bIsVisible = SmallEnoughToDraw(localToWorld, worldToView, vec3(0, 0, 0), boundRadius, localError);
 #else
 			cullData.bIsVisible = SmallEnoughToDraw(localToWorld, worldToView, boundCenter, boundRadius, localError);
 #endif
@@ -40,7 +40,7 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 			float parentError = clusterBatch.parentBoundCenterError.w;
 			float parentBoundRadius = clusterBatch.parentBoundHalfExtendRadius.w;
 #if USE_INSTANCE_CENTER_CULL
-			cullData.bIsVisible = FitToDraw(localToWorld, worldToView, instanceCenter, boundRadius, localError, instanceCenter, parentBoundRadius, parentError);
+			cullData.bIsVisible = FitToDraw(localToWorld, worldToView, vec3(0, 0, 0), boundRadius, localError, instanceCenter, parentBoundRadius, parentError);
 #else
 			cullData.bIsVisible = FitToDraw(localToWorld, worldToView, boundCenter, boundRadius, localError, parentBoundCenter, parentBoundRadius, parentError);
 #endif
@@ -48,11 +48,12 @@ void ProcessClusterBatch(uint groupIndex, uint batchStart, uint batchSize)
 #endif
 		if (cullData.bIsVisible)
 		{
-			uint clusterWriteOffset = atomicAdd(QueueState[0].visibleClusterNum, 1);
+			uint clusterWriteOffset = 0;
+			WAVE_INTERLOCK_ADD(QueueState[0].visibleClusterNum, 1, clusterWriteOffset);
 			if (clusterWriteOffset < MAX_CANDIDATE_CLUSTER)
 			{
 				StoreSelectedCluster(clusterWriteOffset, candidateCluster);
-				ExtraDebugInfo[clusterWriteOffset] = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius).x;
+				// ExtraDebugInfo[clusterWriteOffset] = GetProjectScale(localToWorld, worldToView, boundCenter, boundRadius).x;
 			}
 		}
 

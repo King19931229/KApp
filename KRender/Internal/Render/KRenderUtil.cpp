@@ -193,7 +193,8 @@ namespace KRenderUtil
 				command.meshStorageUsages.push_back(usage);
 			}
 		}
-
+		
+		/*
 		usage.binding = SBT_MESHLET_DESC;
 		usage.buffer = command.meshData->meshletDescBuffer;
 		command.meshStorageUsages.push_back(usage);
@@ -201,6 +202,7 @@ namespace KRenderUtil
 		usage.binding = SBT_MESHLET_PRIM;
 		usage.buffer = command.meshData->meshletPrimBuffer;
 		command.meshStorageUsages.push_back(usage);
+		*/
 
 		return true;
 	}

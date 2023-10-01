@@ -100,7 +100,19 @@ void KMeshCluster::GetMaterialRanges(std::vector<uint32_t>& materialIndexs, std:
 	}
 }
 
-void KMeshCluster::Init(KMeshClusterPtr* clusters, size_t numClusters)
+void KMeshCluster::CopyProperty(const KMeshCluster& cluster)
+{
+	lodBound = cluster.lodBound;
+	groupIndex = cluster.groupIndex;
+	generatingGroupIndex = cluster.generatingGroupIndex;
+	index = cluster.index;
+	level = cluster.level;
+	lodError = cluster.lodError;
+	edgeLength = cluster.edgeLength;
+	color = cluster.color;
+}
+
+void KMeshCluster::Init(KMeshClusterPtr* clusters, uint32_t numClusters)
 {
 	UnInit();
 
@@ -121,10 +133,10 @@ void KMeshCluster::Init(KMeshClusterPtr* clusters, size_t numClusters)
 
 	std::unordered_map<size_t, uint32_t> vertexMap;
 
-	for (size_t i = 0; i < numClusters; ++i)
+	for (uint32_t i = 0; i < numClusters; ++i)
 	{
 		KMeshCluster& cluster = *clusters[i];
-		for (size_t idx = 0; idx < cluster.indices.size(); ++idx)
+		for (uint32_t idx = 0; idx < (uint32_t)cluster.indices.size(); ++idx)
 		{
 			const uint32_t index = cluster.indices[idx];
 			const uint32_t triangleIndex = (uint32_t)idx / 3;
@@ -177,6 +189,55 @@ void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, con
 	SortMaterial();
 }
 
+void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices, const std::vector<uint32_t>& inMaterialIndices, const KRange& range)
+{
+	UnInit();
+
+	color = RandomColor();
+
+	uint32_t num = range.end - range.begin + 1;
+
+	vertices.reserve(num);
+	indices.reserve(num);
+	materialIndices.reserve(num / 3);
+	assert(num % 3 == 0);
+
+	std::unordered_map<uint32_t, uint32_t> indexMap;
+
+	for (uint32_t i = 0; i < num; ++i)
+	{
+		uint32_t idx = i + range.begin;
+		const uint32_t triIndex = idx / 3;
+
+		uint32_t index = inIndices[idx];
+		uint32_t newIndex = 0;
+		auto it = indexMap.find(index);
+		if (it == indexMap.end())
+		{
+			newIndex = (uint32_t)vertices.size();
+			indexMap.insert({ index, newIndex });
+			vertices.push_back(inVertices[index]);
+		}
+		else
+		{
+			newIndex = it->second;
+		}
+		indices.push_back(newIndex);
+
+		if (i % 3 == 0)
+		{
+			const uint32_t materialIndex = inMaterialIndices[triIndex];
+			materialIndices.push_back(materialIndex);
+		}
+	}
+
+	vertices.shrink_to_fit();
+	indices.shrink_to_fit();
+
+	InitBound();
+	SortMaterial();
+}
+
 void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<Triangle>& inTriangles, const std::vector<idx_t>& inTriIndices, const std::vector<uint32_t>& inMaterialIndices, const KRange& range)
 {
 	UnInit();
@@ -191,9 +252,9 @@ void KMeshCluster::Init(const std::vector<KMeshProcessorVertex>& inVertices, con
 
 	std::unordered_map<uint32_t, uint32_t> indexMap;
 
-	size_t begin = range.begin;
-	size_t end = range.end;
-	for (size_t idx = begin; idx <= end; ++idx)
+	uint32_t begin = range.begin;
+	uint32_t end = range.end;
+	for (uint32_t idx = begin; idx <= end; ++idx)
 	{
 		const uint32_t triIndex = inTriIndices[idx];
 		const uint32_t materialIndex = inMaterialIndices[triIndex];
@@ -1196,6 +1257,49 @@ void KVirtualGeometryBuilder::BuildDAG(const std::vector<KMeshProcessorVertex>& 
 	}
 }
 
+void KVirtualGeometryBuilder::ConstrainCluster()
+{
+	size_t oldClusterNum = m_Clusters.size();
+	for (size_t i = 0; i < m_Clusters.size(); ++i)
+	{
+		while (m_Clusters[i]->vertices.size() > m_MaxClusterVertex)
+		//if (i < oldClusterNum)
+		{
+			KMeshClusterPtr cluster = m_Clusters[i];
+			uint32_t newClusterIndicesNum = 3 * ((uint32_t)cluster->indices.size() / 6);
+			if (newClusterIndicesNum > 0)
+			{
+				KMeshClusterPtr newClusterA = KMeshClusterPtr(new KMeshCluster());
+				newClusterA->Init(cluster->vertices, cluster->indices, cluster->materialIndices, KRange(0, newClusterIndicesNum - 1));
+				KMeshClusterPtr newClusterB = KMeshClusterPtr(new KMeshCluster());
+				newClusterB->Init(cluster->vertices, cluster->indices, cluster->materialIndices, KRange(newClusterIndicesNum, (uint32_t)cluster->indices.size() - 1));
+
+				newClusterA->CopyProperty(*cluster);
+				newClusterB->CopyProperty(*cluster);
+
+				newClusterA->index = cluster->index;
+				newClusterB->index = (uint32_t)m_Clusters.size();
+
+				KMeshClusterGroupPtr group = m_ClusterGroups[cluster->groupIndex];
+
+				m_Clusters[i] = newClusterA;
+				m_Clusters.push_back(newClusterB);
+
+				// auto it = std::find(group->clusters.begin(), group->clusters.end(), newClusterA->index);
+				// *it = newClusterB->index;
+
+				group->clusters.push_back(newClusterB->index);
+
+				if (cluster->generatingGroupIndex != KVirtualGeometryDefine::INVALID_INDEX)
+				{
+					KMeshClusterGroupPtr generatingGroup = m_ClusterGroups[cluster->generatingGroupIndex];
+					generatingGroup->generatingClusters.push_back(newClusterB->index);
+				}
+			}
+		}
+	}
+}
+
 void KVirtualGeometryBuilder::BuildClusterStorage()
 {
 	m_ClusterStorageParts.clear();
@@ -1876,6 +1980,7 @@ void KVirtualGeometryBuilder::DumpClusterInformation(const std::string& saveRoot
 void KVirtualGeometryBuilder::Build(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices)
 {
 	BuildDAG(vertices, indices, materialIndices, 124, 128, 4, 32);
+	ConstrainCluster();
 	BuildClusterStorage();
 	BuildClusterBVH();
 

@@ -1,9 +1,9 @@
 #include "vg_basepass_binding.h"
 #include "vg_define.h"
 
-#extension GL_NV_mesh_shader : require
+#extension GL_EXT_mesh_shader : require
 
-#define VG_MESH_SHADER_GROUP_SIZE 32
+#define VG_MESH_SHADER_GROUP_SIZE 128
 #define VG_MESH_SHADER_VERTEX_PER_LANE (MAX_CLUSTER_VERTEX_NUM / VG_MESH_SHADER_GROUP_SIZE)
 #define VG_MESH_SHADER_TRIANGLE_PER_LANE (MAX_CLUSTER_VERTEX_NUM / VG_MESH_SHADER_GROUP_SIZE)
 
@@ -22,12 +22,12 @@ layout(location = 0) out Interpolants
 
 void main()
 {
-	uint batchIndex = gl_WorkGroupID.x;
+	uint workIndex = gl_WorkGroupID.x;
 	uint landIndex = gl_LocalInvocationID.x;
 
-	Binning binning = GetBinning(materialBinningIndex, batchIndex);
+	Binning binning = GetBinning(materialBinningIndex, workIndex);
 
-	uint clusterIndex = binning.clusterIndex;
+	uint batchIndex = binning.clusterIndex;
 	uint batchTriangleEnd = binning.rangeBegin + binning.rangeNum;
 	uint batchTriangleNum = binning.rangeNum;
 
@@ -48,8 +48,8 @@ void main()
 		uint index;
 		for (uint i = 0; i < 3; ++i)
 		{
-			DecodeClusterBatchDataIndex(triangleIndex, i, clusterIndex, index);
-			gl_PrimitiveIndicesNV[triangleIndex * 3 + i] = index;
+			DecodeClusterBatchDataIndex(triangleIndex, i, batchIndex, index);
+			gl_PrimitiveTriangleIndicesEXT[triangleIndex][i] = index;
 		}
 	}
 
@@ -69,22 +69,24 @@ void main()
 		vec3 normal;
 		vec2 uv;
 
-		DecodeClusterBatchDataVertex(vertexIndex, clusterIndex, localToWorld, position, normal, uv);
+		DecodeClusterBatchDataVertex(vertexIndex, batchIndex, localToWorld, position, normal, uv);
 
 		OUT[vertexIndex].worldPos = (localToWorld * vec4(position, 1.0)).xyz;
 		OUT[vertexIndex].prevWorldPos = (localToWorld * vec4(position, 1.0)).xyz;
 		OUT[vertexIndex].texCoord = uv;
 		OUT[vertexIndex].worldNormal = normalize(mat3(localToWorld) * normal);
 
+		uint clusterIndex;
+		DecodeClusterBatchClusterIndex(batchIndex, clusterIndex);
 		OUT[vertexIndex].vertexColor = RandomColor(clusterIndex);
 		// OUT[vertexIndex].vertexColor = RandomColor(clusterIndex * MAX_CLUSTER_TRIANGLE_NUM + triangleIndex);
 		// OUT[vertexIndex].vertexColor = outWorldNormal;
 
-		gl_MeshVerticesNV[vertexIndex].gl_Position = worldToClip * localToWorld * vec4(position, 1.0);
+		gl_MeshVerticesEXT[vertexIndex].gl_Position = worldToClip * localToWorld * vec4(position, 1.0);
 	}
 
 	if (landIndex == 0)
 	{
-		gl_PrimitiveCountNV = batchTriangleNum;
+		SetMeshOutputsEXT(MAX_CLUSTER_VERTEX_NUM, batchTriangleNum);
 	}
 }

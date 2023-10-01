@@ -179,6 +179,26 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 
 		KRenderGlobal::CascadedShadowMap.UpdateCasters(multithreadRenderContext);
 	}
+	
+	KRenderGlobal::RayTraceManager.Execute(commandBuffer);
+
+	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
+	{
+		KRenderGlobal::Voxilzer.UpdateVoxel(commandBuffer);
+		KRenderGlobal::Voxilzer.UpdateFrame(commandBuffer);
+	}
+
+	if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
+	{
+		KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(commandBuffer);
+		KRenderGlobal::ClipmapVoxilzer.UpdateFrame(commandBuffer);
+	}
+
+	KRenderGlobal::HiZOcclusion.Execute(commandBuffer, cullRes);
+
+	// TODO
+	KRenderGlobal::VirtualGeometryManager.Execute(commandBuffer);
+
 	commandBuffer->End();
 	m_Shadow.queue->Submit(commandBuffer, {}, {}, nullptr);
 
@@ -186,8 +206,6 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 	commandBuffer = m_PreGraphics.pool->Request(CBL_PRIMARY);
 	commandBuffer->BeginPrimary();
 	{
-		KRenderGlobal::HiZOcclusion.Execute(commandBuffer, cullRes);
-
 		KMultithreadingRenderContext multithreadRenderContext;
 		multithreadRenderContext.primaryBuffer = commandBuffer;
 		multithreadRenderContext.threadCommandPools = m_PreGraphics.threadPools;
@@ -251,21 +269,6 @@ bool KRenderer::Render(uint32_t chainImageIndex)
 		}
 
 		KRenderGlobal::HiZBuffer.Construct(commandBuffer);
-
-		KRenderGlobal::VirtualGeometryManager.Execute(commandBuffer);
-		KRenderGlobal::RayTraceManager.Execute(commandBuffer);
-
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::SVO_GI)
-		{
-			KRenderGlobal::Voxilzer.UpdateVoxel(commandBuffer);
-			KRenderGlobal::Voxilzer.UpdateFrame(commandBuffer);
-		}
-
-		if (KRenderGlobal::UsingGIMethod == KRenderGlobal::CLIPMAP_GI)
-		{
-			KRenderGlobal::ClipmapVoxilzer.UpdateVoxel(commandBuffer);
-			KRenderGlobal::ClipmapVoxilzer.UpdateFrame(commandBuffer);
-		}
 
 		KRenderGlobal::ScreenSpaceReflection.Execute(commandBuffer);
 

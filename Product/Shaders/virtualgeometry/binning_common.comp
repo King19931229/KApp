@@ -1,6 +1,7 @@
 #include "vg_default_binding.h"
 #include "vg_define.h"
 #include "culling.h"
+#include "wave.h"
 
 layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 void main()
@@ -33,7 +34,7 @@ void main()
 
 			uint binningIndex = InstanceData[instanceId].binningBaseIndex + materialIndex;
 #if defined(BINNING_CLASSIFY)
-			atomicAdd(BinningHeader[binningIndex].x, 1);
+			WAVE_INTERLOCK_ADD_ONLY(BinningHeader[binningIndex].x, 1);
 #elif defined(BINNING_SCATTER)
 			BinningBatch batch;
 			batch.clusterIndex = clusterIndex;
@@ -46,14 +47,15 @@ void main()
 			offset = binningIndex * 4;
 			offset += INDIRECT_DRAW_ARGS_OFFSET;
 
-			uint batchOffset = atomicAdd(IndirectDrawArgs[offset + 1], 1);
+			uint batchOffset = 0;
+			WAVE_INTERLOCK_ADD(IndirectDrawArgs[offset + 1], 1, batchOffset);
 			uint binningWriteOffset = BinningHeader[binningIndex].y + batchOffset;
 
 			StoreBinningBatch(binningWriteOffset, batch);
 
-			offset = binningIndex * 2;
+			offset = binningIndex * 3;
 			offset += INDIRECT_MESH_ARGS_OFFSET;
-			atomicAdd(IndirectMeshArgs[offset], 1);
+			WAVE_INTERLOCK_ADD_ONLY(IndirectMeshArgs[offset], 1);
 #endif
 		}
 	}

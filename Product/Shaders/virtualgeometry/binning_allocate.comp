@@ -1,5 +1,6 @@
 #include "vg_default_binding.h"
 #include "vg_define.h"
+#include "wave.h"
 
 layout(local_size_x = VG_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 void main()
@@ -9,7 +10,7 @@ void main()
 	{
 		uint binningIndex = globalIndex;
 		uint binningBatchNum = BinningHeader[binningIndex].x;
-		BinningHeader[binningIndex].y = atomicAdd(QueueState[0].binningWriteOffset, binningBatchNum);
+		WAVE_INTERLOCK_ADD(QueueState[0].binningWriteOffset, binningBatchNum, BinningHeader[binningIndex].y);
 
 		uint offset = 0;
 
@@ -25,12 +26,14 @@ void main()
 		// firstInstance	
 		IndirectDrawArgs[offset + 3] = 0;
 
-		offset = binningIndex * 2;
+		offset = binningIndex * 3;
 		offset += INDIRECT_MESH_ARGS_OFFSET;
  
-		// taskCount
+		// groupCountX
 		IndirectMeshArgs[offset + 0] = 0;
-		// firstTask
-		IndirectMeshArgs[offset + 1] = 0;
+		// groupCountY
+		IndirectMeshArgs[offset + 1] = 1;
+		// groupCountZ
+		IndirectMeshArgs[offset + 2] = 1;
 	}
 }

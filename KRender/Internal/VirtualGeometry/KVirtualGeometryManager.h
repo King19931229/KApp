@@ -51,6 +51,8 @@ protected:
 	KVirtualGeometryStorageBuffer m_ClusterMateialStorageBuffer;
 	KVirtualGeometryStorageBuffer m_ResourceBuffer;
 
+	bool m_UseMeshPipeline;
+
 	bool AcquireImpl(const char* label, const KMeshRawData& userData, KVirtualGeometryResourceRef& geometry);
 	bool RemoveGeometry(uint32_t index);
 public:
@@ -71,6 +73,8 @@ public:
 	IKStorageBufferPtr GetClusterIndexStorageBuffer() { return m_ClusterIndexStorageBuffer.GetBuffer(); }
 	IKStorageBufferPtr GetClusterMaterialStorageBuffer() { return m_ClusterMateialStorageBuffer.GetBuffer(); }
 	IKStorageBufferPtr GetResourceBuffer() { return m_ResourceBuffer.GetBuffer(); }
+
+	bool& GetUseMeshPipeline() { return m_UseMeshPipeline; }
 
 	const std::vector<KMaterialRef>& GetAllMaterials() const { return m_MaterialResources; }
 

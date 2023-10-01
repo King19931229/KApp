@@ -45,9 +45,10 @@ class KVulkanRenderDevice : public IKRenderDevice
 
 		bool queueComplete;
 		bool suitable;
-		bool supportNvExtension;
 		bool supportRaytraceExtension;
-		bool supportMeshShaderExtension;
+		bool supportNVAftermatchExtension;
+		bool supportNVMeshShaderExtension;
+		bool supportKHRMeshShaderExtension;
 		bool supportDebugMarker;
 		int score;
 
@@ -63,9 +64,10 @@ class KVulkanRenderDevice : public IKRenderDevice
 			supportedExtensions = {};
 			queueComplete = false;
 			suitable = false;
-			supportNvExtension = false;
 			supportRaytraceExtension = false;
-			supportMeshShaderExtension = false;
+			supportNVAftermatchExtension = false;
+			supportNVMeshShaderExtension = false;
+			supportKHRMeshShaderExtension = false;
 			supportDebugMarker = false;
 			score = 0;
 		}

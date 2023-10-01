@@ -50,9 +50,9 @@ struct KMeshCluster
 
 	// lodBound是计算Lod所用到的Bound 并不是严格意义上真正的Bound
 	KAABBBox lodBound;
-	// 生成的Group所在的index
-	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
 	// 所处的Group所在的index
+	uint32_t groupIndex = KVirtualGeometryDefine::INVALID_INDEX;
+	// 生成的Group所在的index
 	uint32_t generatingGroupIndex = KVirtualGeometryDefine::INVALID_INDEX;
 
 	uint32_t index = KVirtualGeometryDefine::INVALID_INDEX;
@@ -78,11 +78,14 @@ struct KMeshCluster
 
 	void GetMaterialRanges(std::vector<uint32_t>& materialIndexs, std::vector<KRange>& materialRanges);
 
+	void CopyProperty(const KMeshCluster& cluster);
+
 	void InitBound();
 	void SortMaterial();
 	void UnInit();
-	void Init(KMeshClusterPtr* clusters, size_t numClusters);
+	void Init(KMeshClusterPtr* clusters, uint32_t numClusters);
 	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices, const std::vector<uint32_t>& inMaterialIndices);
+	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<uint32_t>& inIndices, const std::vector<uint32_t>& inMaterialIndices, const KRange& range);
 	void Init(const std::vector<KMeshProcessorVertex>& inVertices, const std::vector<Triangle>& inTriangles, const std::vector<idx_t>& inTriIndices, const std::vector<uint32_t>& inMaterialIndices, const KRange& range);
 };
 
@@ -288,6 +291,7 @@ protected:
 	uint32_t BuildHierarchyTopDown(std::vector<KMeshClusterBVHNodePtr>& bvhNodes, std::vector<uint32_t>& indices, bool sort);
 
 	void BuildDAG(const std::vector<KMeshProcessorVertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& materialIndices, uint32_t minPartitionNum, uint32_t maxPartitionNum, uint32_t minClusterGroup, uint32_t maxClusterGroup);
+	void ConstrainCluster();
 	void BuildClusterStorage();
 	void BuildClusterBVH();
 

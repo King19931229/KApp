@@ -15,7 +15,7 @@ protected:
 		MAX_CANDIDATE_CLUSTERS = 1024 * 1024 * 4,
 
 		VG_GROUP_SIZE = 64,
-		VG_MESH_SHADER_GROUP_SIZE = 32,
+		VG_MESH_SHADER_GROUP_SIZE = 128,
 
 		BINDING_GLOBAL_DATA = 0,
 		BINDING_RESOURCE,
@@ -115,8 +115,6 @@ protected:
 	KShaderRef m_DebugVertexShader;
 	KShaderRef m_DebugFragmentShader;
 	IKPipelinePtr m_DebugPipeline;
-
-	bool m_UseMeshPipeline;
 
 	EntityObserverFunc m_OnSceneChangedFunc;
 	void OnSceneChanged(EntitySceneOp op, IKEntity* entity);

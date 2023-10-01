@@ -9,11 +9,11 @@ layout(location = 4) out vec3 outVertexColor;
 
 void main()
 {
-	uint batchIndex = gl_InstanceIndex;
+	uint workIndex = gl_InstanceIndex;
 
-	Binning binning = GetBinning(materialBinningIndex, batchIndex);
+	Binning binning = GetBinning(materialBinningIndex, workIndex);
 
-	uint clusterIndex = binning.clusterIndex;
+	uint batchIndex = binning.clusterIndex;
 	uint batchTriangleEnd = binning.rangeBegin + binning.rangeNum;
 
 	uint triangleIndex = gl_VertexIndex / 3;
@@ -29,17 +29,19 @@ void main()
 		vec3 normal;
 		vec2 uv;
 
-		uint index;
-		DecodeClusterBatchDataIndex(triangleIndex, localVertexIndex, clusterIndex, index);
-		DecodeClusterBatchDataVertex(index, clusterIndex, localToWorld, position, normal, uv);
+		// uint index;
+		// DecodeClusterBatchDataIndex(triangleIndex, localVertexIndex, batchIndex, index);
+		// DecodeClusterBatchDataVertex(index, batchIndex, localToWorld, position, normal, uv);
 
-		// DecodeClusterBatchData(triangleIndex, localVertexIndex, clusterIndex, localToWorld, position, normal, uv);
+		DecodeClusterBatchData(triangleIndex, localVertexIndex, batchIndex, localToWorld, position, normal, uv);
 
 		outWorldPos = (localToWorld * vec4(position, 1.0)).xyz;
 		outPrevWorldPos = (localToWorld * vec4(position, 1.0)).xyz;
 		outTexCoord = uv;
 		outWorldNormal = normalize(mat3(localToWorld) * normal);
 
+		uint clusterIndex;
+		DecodeClusterBatchClusterIndex(batchIndex, clusterIndex);
 		outVertexColor = RandomColor(clusterIndex);
 		// outVertexColor = RandomColor(clusterIndex * MAX_CLUSTER_TRIANGLE_NUM + triangleIndex);
 		// outVertexColor = outWorldNormal;

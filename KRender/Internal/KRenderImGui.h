@@ -15,6 +15,7 @@ public:
 		HIZ_OC,
 		HARDWARE_OC,
 		VOLUMETIRIC_FOG,
+		VIRTUAL_GEOMETRY,
 		SETTING_MENU_ITEM_COUNT
 	};
 	static const char* SettingMenuName[SETTING_MENU_ITEM_COUNT];

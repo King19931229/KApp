@@ -16,7 +16,8 @@ const char* KRenderImGui::SettingMenuName[] =
 	"ClipmapGI",
 	"HiZOcclusion",
 	"HardwareOcclusion",
-	"VolumetricFog"
+	"VolumetricFog",
+	"VirtualGeometry",
 };
 
 const char* KRenderImGui::DebugMenuName[] =
@@ -295,6 +296,11 @@ void KRenderImGui::Run()
 			ImGui::SliderFloat("Density", &KRenderGlobal::VolumetricFog.GetDensity(), 0.0f, 1.0f);
 
 			ImGui::End();
+		}
+
+		if (m_SettingMenuEnable[VIRTUAL_GEOMETRY])
+		{
+			ImGui::Checkbox("UseMeshPipeline", &KRenderGlobal::VirtualGeometryManager.GetUseMeshPipeline());
 		}
 	}
 	ImGui::PopStyleColor(1);

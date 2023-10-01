@@ -48,7 +48,9 @@
 //-------------------- Extensions --------------------//
 const char* DEVICE_DEFAULT_EXTENSIONS[] =
 {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
+	VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME
 };
 
 const char* DEVICE_ADDRESS_EXTENSIONS[] =
@@ -56,7 +58,7 @@ const char* DEVICE_ADDRESS_EXTENSIONS[] =
 	VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
 };
 
-const char* DEVICE_NV_EXTENSIONS[] =
+const char* DEVICE_NV_AFTERMATCH_EXTENSIONS[] =
 {
 	// Required by Nvidia Aftermatch
 	VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
@@ -87,11 +89,15 @@ const char* DEVICE_RAYTRACE_EXTENSIONS[] =
 	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
 };
 
-const char* DEVICE_MESHSHADER_EXTENSIONS[] =
+const char* DEVICE_NV_MESHSHADER_EXTENSIONS[] =
 {
-	// VK_NV_GLSL_SHADER_EXTENSION_NAME,
 	VK_NV_MESH_SHADER_EXTENSION_NAME,
+	VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME
+};
 
+const char* DEVICE_KHR_MESHSHADER_EXTENSIONS[] =
+{
+	VK_EXT_MESH_SHADER_EXTENSION_NAME,
 	VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME
 };
 
@@ -374,7 +380,11 @@ KVulkanRenderDevice::PhysicalDevice KVulkanRenderDevice::GetPhysicalDeviceProper
 		}
 
 		// Support meshshader
-		if (device.supportMeshShaderExtension)
+		if (device.supportKHRMeshShaderExtension)
+		{
+			device.score += 50;
+		}
+		if (device.supportNVMeshShaderExtension)
 		{
 			device.score += 50;
 		}
@@ -400,10 +410,10 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 		std::vector<PhysicalDevice> devices;
 
 		std::for_each(vkDevices.begin(), vkDevices.end(), [&](VkPhysicalDevice& device)
-			{
-				PhysicalDevice prop = GetPhysicalDeviceProperty(device);
-				devices.push_back(prop);
-			});
+		{
+			PhysicalDevice prop = GetPhysicalDeviceProperty(device);
+			devices.push_back(prop);
+		});
 
 		for (auto it = devices.begin(); it != devices.end();)
 		{
@@ -420,9 +430,9 @@ bool KVulkanRenderDevice::PickPhysicsDevice()
 		if (devices.size() > 0)
 		{
 			std::sort(devices.begin(), devices.end(), [&](PhysicalDevice& lhs, PhysicalDevice rhs)->bool
-				{
-					return lhs.score < rhs.score;
-				});
+			{
+				return lhs.score < rhs.score;
+			});
 
 			m_PhysicalDevice = devices[0];
 			return true;
@@ -473,7 +483,7 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 		pNext = &enabledRayqueryFeatures;
 	}
 
-	if (m_PhysicalDevice.supportMeshShaderExtension)
+	if (m_PhysicalDevice.supportNVMeshShaderExtension)
 	{
 		static VkPhysicalDeviceMeshShaderFeaturesNV meshFeatures = {};
 		meshFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
@@ -481,7 +491,20 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 		meshFeatures.meshShader = VK_TRUE;
 		meshFeatures.pNext = pNext;
 		pNext = &meshFeatures;
+	}
 
+	if (m_PhysicalDevice.supportKHRMeshShaderExtension)
+	{
+		static VkPhysicalDeviceMeshShaderFeaturesEXT meshFeatures = {};
+		meshFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+		meshFeatures.taskShader = VK_TRUE;
+		meshFeatures.meshShader = VK_TRUE;
+		meshFeatures.pNext = pNext;
+		pNext = &meshFeatures;
+	}
+
+	if (m_PhysicalDevice.supportNVMeshShaderExtension || m_PhysicalDevice.supportKHRMeshShaderExtension)
+	{
 		static VkPhysicalDeviceFloat16Int8FeaturesKHR float16int8Features = {};
 		float16int8Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR;
 		float16int8Features.shaderFloat16 = VK_TRUE;
@@ -490,7 +513,7 @@ void* KVulkanRenderDevice::GetEnabledFeatures()
 		pNext = &float16int8Features;
 	}
 
-	if (m_PhysicalDevice.supportNvExtension)
+	if (m_PhysicalDevice.supportNVAftermatchExtension)
 	{
 #if USE_NSIGHT_AFTERMATH
 		static VkDeviceDiagnosticsConfigCreateInfoNV diagnosticsConfigCreateInfo = {};
@@ -764,9 +787,10 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 
 		// 组装支持扩展
 		std::vector<const char*> extensionNames(DEVICE_DEFAULT_EXTENSIONS, DEVICE_DEFAULT_EXTENSIONS + ARRAY_SIZE(DEVICE_DEFAULT_EXTENSIONS));
-		if (m_PhysicalDevice.supportNvExtension)
+
+		if (m_PhysicalDevice.supportNVAftermatchExtension)
 		{
-			extensionNames.insert(extensionNames.end(), DEVICE_NV_EXTENSIONS, DEVICE_NV_EXTENSIONS + ARRAY_SIZE(DEVICE_NV_EXTENSIONS));
+			extensionNames.insert(extensionNames.end(), DEVICE_NV_AFTERMATCH_EXTENSIONS, DEVICE_NV_AFTERMATCH_EXTENSIONS + ARRAY_SIZE(DEVICE_NV_AFTERMATCH_EXTENSIONS));
 		}
 
 		if (m_PhysicalDevice.supportRaytraceExtension)
@@ -779,9 +803,14 @@ bool KVulkanRenderDevice::CreateLogicalDevice()
 			m_Properties.raytraceSupport = false;
 		}
 
-		if (m_PhysicalDevice.supportMeshShaderExtension)
+		if (m_PhysicalDevice.supportNVMeshShaderExtension)
 		{
-			extensionNames.insert(extensionNames.end(), DEVICE_MESHSHADER_EXTENSIONS, DEVICE_MESHSHADER_EXTENSIONS + ARRAY_SIZE(DEVICE_MESHSHADER_EXTENSIONS));
+			extensionNames.insert(extensionNames.end(), DEVICE_NV_MESHSHADER_EXTENSIONS, DEVICE_NV_MESHSHADER_EXTENSIONS + ARRAY_SIZE(DEVICE_NV_MESHSHADER_EXTENSIONS));
+		}
+
+		if (m_PhysicalDevice.supportKHRMeshShaderExtension)
+		{
+			extensionNames.insert(extensionNames.end(), DEVICE_KHR_MESHSHADER_EXTENSIONS, DEVICE_KHR_MESHSHADER_EXTENSIONS + ARRAY_SIZE(DEVICE_KHR_MESHSHADER_EXTENSIONS));
 			m_Properties.meshShaderSupport = true;
 		}
 		else
@@ -1027,7 +1056,6 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 	if (m_EnableValidationLayer)
 	{
 		bool bCheckResult = CheckValidationLayerAvailable(m_ValidationLayerIdx);
-		assert(bCheckResult && "try to find validation layer but fail");
 		if (m_ValidationLayerIdx >= 0)
 		{
 			createInfo.enabledLayerCount = VALIDATION_LAYER_CANDIDATE[m_ValidationLayerIdx].arraySize;
@@ -1038,6 +1066,14 @@ bool KVulkanRenderDevice::Init(IKRenderWindow* window)
 				KG_LOG(LM_RENDER, "Vulkan validation layer picked [%s]\n", createInfo.ppEnabledLayerNames[i]);
 			}
 			createInfo.pNext = &validationFeatures;
+		}
+		else
+		{
+			KG_LOGE(LM_RENDER, "Try to find validation layer but fail");
+			m_EnableValidationLayer = false;
+			KG_LOGE(LM_RENDER, "Set back EnableValidationLayer to false");
+			createInfo.enabledLayerCount = 0;
+			createInfo.pNext = nullptr;
 		}
 	}
 	else
@@ -1201,12 +1237,12 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 		}
 	}
 
-	device.supportNvExtension = true;
-	for (const char* requiredExt : DEVICE_NV_EXTENSIONS)
+	device.supportNVAftermatchExtension = true;
+	for (const char* requiredExt : DEVICE_NV_AFTERMATCH_EXTENSIONS)
 	{
 		if (std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
 		{
-			device.supportNvExtension = false;
+			device.supportNVAftermatchExtension = false;
 			break;
 		}
 	}
@@ -1221,12 +1257,22 @@ bool KVulkanRenderDevice::CheckExtentionsSupported(PhysicalDevice& device)
 		}
 	}
 
-	device.supportMeshShaderExtension = true;
-	for (const char* requiredExt : DEVICE_MESHSHADER_EXTENSIONS)
+	device.supportNVMeshShaderExtension = true;
+	for (const char* requiredExt : DEVICE_NV_MESHSHADER_EXTENSIONS)
 	{
 		if (std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
 		{
-			device.supportMeshShaderExtension = false;
+			device.supportNVMeshShaderExtension = false;
+			break;
+		}
+	}
+
+	device.supportKHRMeshShaderExtension = true;
+	for (const char* requiredExt : DEVICE_KHR_MESHSHADER_EXTENSIONS)
+	{
+		if (std::find(device.supportedExtensions.begin(), device.supportedExtensions.end(), requiredExt) == device.supportedExtensions.end())
+		{
+			device.supportKHRMeshShaderExtension = false;
 			break;
 		}
 	}
@@ -1250,7 +1296,8 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 {
 	KVulkanGlobal::device = m_Device;
 	KVulkanGlobal::supportRaytrace = m_PhysicalDevice.supportRaytraceExtension;
-	KVulkanGlobal::supportMeshShader = m_PhysicalDevice.supportMeshShaderExtension;
+	KVulkanGlobal::supportNVMeshShader = m_PhysicalDevice.supportNVMeshShaderExtension;
+	KVulkanGlobal::supportKHRMeshShader = m_PhysicalDevice.supportKHRMeshShaderExtension;
 	KVulkanGlobal::supportDebugMarker = m_PhysicalDevice.supportDebugMarker;
 	KVulkanGlobal::instance = m_Instance;
 	KVulkanGlobal::physicalDevice = m_PhysicalDevice.device;
@@ -1315,8 +1362,12 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	deviceFeatures2.pNext = &KVulkanGlobal::accelerationStructureFeatures;
 	vkGetPhysicalDeviceFeatures2(m_PhysicalDevice.device, &deviceFeatures2);
 
-	KVulkanGlobal::meshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
-	deviceProperties2.pNext = &KVulkanGlobal::meshShaderFeatures;
+	KVulkanGlobal::nvMeshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
+	deviceProperties2.pNext = &KVulkanGlobal::nvMeshShaderFeatures;
+	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.device, &deviceProperties2);
+
+	KVulkanGlobal::extMeshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT;
+	deviceProperties2.pNext = &KVulkanGlobal::extMeshShaderFeatures;
 	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.device, &deviceProperties2);
 
 	// Function pointers for ray tracing
@@ -1334,6 +1385,9 @@ bool KVulkanRenderDevice::InitDeviceGlobal()
 	// Function pointers for mesh shader
 	KVulkanGlobal::vkCmdDrawMeshTasksNV = reinterpret_cast<PFN_vkCmdDrawMeshTasksNV>(vkGetDeviceProcAddr(m_Device, "vkCmdDrawMeshTasksNV"));
 	KVulkanGlobal::vkCmdDrawMeshTasksIndirectNV = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectNV>(vkGetDeviceProcAddr(m_Device, "vkCmdDrawMeshTasksIndirectNV"));
+
+	KVulkanGlobal::vkCmdDrawMeshTasksEXT = reinterpret_cast<PFN_vkCmdDrawMeshTasksEXT>(vkGetDeviceProcAddr(m_Device, "vkCmdDrawMeshTasksEXT"));
+	KVulkanGlobal::vkCmdDrawMeshTasksIndirectEXT = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectEXT>(vkGetDeviceProcAddr(m_Device, "vkCmdDrawMeshTasksIndirectEXT"));
 
 	// Function pointers for nsight
 	KVulkanGlobal::vkCmdSetCheckpointNV = reinterpret_cast<PFN_vkCmdSetCheckpointNV>(vkGetDeviceProcAddr(m_Device, "vkCmdSetCheckpointNV"));
@@ -1390,7 +1444,8 @@ bool KVulkanRenderDevice::UnInitDeviceGlobal()
 {
 	KVulkanGlobal::deviceReady = false;
 	KVulkanGlobal::supportRaytrace = false;
-	KVulkanGlobal::supportMeshShader = false;
+	KVulkanGlobal::supportNVMeshShader = false;
+	KVulkanGlobal::supportKHRMeshShader = false;
 	KVulkanGlobal::supportDebugMarker = false;
 	KVulkanGlobal::instance = VK_NULL_HANDLE;
 	KVulkanGlobal::device = VK_NULL_HANDLE;

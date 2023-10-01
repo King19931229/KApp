@@ -400,11 +400,13 @@ bool KVulkanCommandBuffer::Render(const KRenderCommand& command)
 		{
 			if (command.indirectArgsBuffer)
 			{
-				KVulkanGlobal::vkCmdDrawMeshTasksIndirectNV(commandBuffer, indirectBuffer, command.indrectOffset * sizeof(VkDrawMeshTasksIndirectCommandNV), 1, sizeof(VkDrawMeshTasksIndirectCommandNV));
+				KVulkanGlobal::vkCmdDrawMeshTasksIndirectEXT(commandBuffer, indirectBuffer, command.indrectOffset * sizeof(VkDrawMeshTasksIndirectCommandEXT), 1, sizeof(VkDrawMeshTasksIndirectCommandEXT));
+				// KVulkanGlobal::vkCmdDrawMeshTasksIndirectNV(commandBuffer, indirectBuffer, command.indrectOffset * sizeof(VkDrawMeshTasksIndirectCommandNV), 1, sizeof(VkDrawMeshTasksIndirectCommandNV));
 			}
 			else
 			{
-				KVulkanGlobal::vkCmdDrawMeshTasksNV(commandBuffer, command.meshData->count, command.meshData->offset);
+				KVulkanGlobal::vkCmdDrawMeshTasksEXT(commandBuffer, command.meshData->groupCountX, command.meshData->groupCountY, command.meshData->groupCountZ);
+				// KVulkanGlobal::vkCmdDrawMeshTasksNV(commandBuffer, command.meshData->count, command.meshData->offset);
 			}
 		}
 		else

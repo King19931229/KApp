@@ -1,8 +1,6 @@
 #ifndef VG_DEFINE_H
 #define VG_DEFINE_H
 
-#extension GL_ARB_shader_atomic_counters : require
-
 #define INVALID_INDEX -1
 #define BVH_NODES_BITS 2
 #define BVH_MAX_NODES (1 << BVH_NODES_BITS)
@@ -194,7 +192,7 @@ layout (std430, binding = BINDING_INDIRECT_ARGS) coherent buffer IndirectArgsBuf
 };
 
 layout (std430, binding = BINDING_EXTRA_DEBUG_INFO) coherent buffer ExtraDebugInfoBuffer {
-	float ExtraDebugInfo[];
+	uvec4 ExtraDebugInfo[];
 };
 
 layout (std430, binding = BINDING_INDIRECT_DRAW_ARGS) coherent buffer IndirectDrawArgsBuffer {
@@ -470,10 +468,10 @@ vec3 RandomColor(uint seed)
 	return vec3(fract(fSeed * 143.853), fract(fSeed * 268.813), fract(fSeed * 88.318));
 }
 
-void DecodeClusterBatchDataIndex(in uint triangleIndex, in uint localVertexIndex, in uint clusterIndex,
+void DecodeClusterBatchDataIndex(in uint triangleIndex, in uint localVertexIndex, in uint batchIndex,
 	out uint index)
 {
-	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[clusterIndex]);
+	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[batchIndex]);
 	uint instanceId = selectedCluster.instanceId;
 
 	ClusterBatchStruct clusterBatch;
@@ -489,10 +487,10 @@ void DecodeClusterBatchDataIndex(in uint triangleIndex, in uint localVertexIndex
 	index = ClusterIndexData[indexOffset];
 }
 
-void DecodeClusterBatchDataVertex(in uint vetexIndex, in uint clusterIndex,
+void DecodeClusterBatchDataVertex(in uint vetexIndex, in uint batchIndex,
 	out mat4 localToWorld, out vec3 position, out vec3 normal, out vec2 uv)
 {
-	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[clusterIndex]);
+	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[batchIndex]);
 	uint instanceId = selectedCluster.instanceId;
 
 	ClusterBatchStruct clusterBatch;
@@ -516,6 +514,12 @@ void DecodeClusterBatchDataVertex(in uint vetexIndex, in uint clusterIndex,
 	uv[1] = ClusterVertexData[vertexOffset + 7];
 
 	localToWorld = InstanceData[instanceId].transform;
+}
+
+void DecodeClusterBatchClusterIndex(in uint batchIndex, out uint clusterIndex)
+{
+	CandidateCluster selectedCluster = UnpackCandidateCluster(SelectedClusterBatch[batchIndex]);
+	clusterIndex = selectedCluster.clusterIndex;
 }
 
 void DecodeClusterBatchData(in uint triangleIndex, in uint localVertexIndex, in uint clusterIndex,

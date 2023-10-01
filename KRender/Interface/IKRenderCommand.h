@@ -78,10 +78,9 @@ struct KIndexData
 
 struct KMeshData
 {
-	IKVertexBufferPtr meshletDescBuffer;
-	IKVertexBufferPtr meshletPrimBuffer;
-	uint32_t offset;
-	uint32_t count;
+	uint32_t groupCountX;
+	uint32_t groupCountY;
+	uint32_t groupCountZ;
 
 	KMeshData()
 	{
@@ -89,6 +88,30 @@ struct KMeshData
 	}
 
 	~KMeshData()
+	{
+	}
+
+	void Reset()
+	{
+		groupCountX = 0;
+		groupCountY = 0;
+		groupCountZ = 0;
+	}
+};
+
+struct KMeshDataLeagcy
+{
+	IKVertexBufferPtr meshletDescBuffer;
+	IKVertexBufferPtr meshletPrimBuffer;
+	uint32_t offset;
+	uint32_t count;
+
+	KMeshDataLeagcy()
+	{
+		Reset();
+	}
+
+	~KMeshDataLeagcy()
 	{
 	}
 
